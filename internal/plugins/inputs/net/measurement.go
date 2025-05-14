@@ -6,6 +6,7 @@
 package net
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -18,7 +19,7 @@ type docMeasurement struct{}
 func (*docMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricName,
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "All `tcp_*/udp_*` metrics comes from */proc/net/snmp*",
 		Fields: map[string]interface{}{
 			"bytes_sent":       newFieldsInfoIByte("The number of bytes sent by the interface."),

@@ -148,7 +148,7 @@ func (*dfpvMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: dfpvMetricMeasurement,
 		Desc: "The metric of the Kubernetes PersistentVolume.",
-		Type: "metric",
+		Cat:  point.Metric,
 		Tags: map[string]interface{}{
 			"name":              inputs.NewTagInfo("The dfpv name, consists of pvc name and pod name"),
 			"pvc_name":          inputs.NewTagInfo("Reference to the PVC."),
@@ -176,7 +176,7 @@ func (*dfpvObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: dfpvObjectMeasurement,
 		Desc: "The object of the Kubernetes PersistentVolume.",
-		Type: "object",
+		Cat:  point.Object,
 		Tags: map[string]interface{}{
 			"name":              inputs.NewTagInfo("The dfpv name, consists of pvc name and pod name"),
 			"pvc_name":          inputs.NewTagInfo("Reference to the PVC."),

@@ -6,7 +6,7 @@
 package oceanbase
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -19,7 +19,7 @@ type statMeasurement struct{}
 func (m *statMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "oceanbase_stat",
-		Type: datakit.CategoryMetric,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"metric_value": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -59,7 +59,7 @@ type eventMeasurement struct{}
 func (m *eventMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "oceanbase_event",
-		Type: datakit.CategoryMetric,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"total_waits": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -102,7 +102,7 @@ type sessionMeasurement struct{}
 func (m *sessionMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "oceanbase_session",
-		Type: datakit.CategoryMetric,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"active_cnt": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -145,7 +145,7 @@ type clogMeasurement struct{}
 func (m *clogMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "oceanbase_clog",
-		Type: datakit.CategoryMetric,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"max_clog_sync_delay_seconds": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -185,7 +185,7 @@ type cacheBlockMeasurement struct{}
 func (m *cacheBlockMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "oceanbase_cache_block",
-		Type: datakit.CategoryMetric,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"cache_size": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -225,7 +225,7 @@ type cachePlanMeasurement struct{}
 func (m *cachePlanMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "oceanbase_cache_plan",
-		Type: datakit.CategoryMetric,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"access_count": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -271,7 +271,7 @@ type loggingMeasurement struct{}
 func (m *loggingMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: logName,
-		Type: datakit.CategoryLogging,
+		Cat:  point.Logging,
 		Desc: "",
 		Tags: map[string]interface{}{
 			"host":                 &inputs.TagInfo{Desc: "Hostname."},

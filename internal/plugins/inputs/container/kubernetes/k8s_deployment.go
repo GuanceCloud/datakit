@@ -242,7 +242,7 @@ func (*deploymentMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: deploymentMetricMeasurement,
 		Desc: "The metric of the Kubernetes Deployment.",
-		Type: "metric",
+		Cat:  point.Metric,
 		Tags: map[string]interface{}{
 			"uid":              inputs.NewTagInfo("The UID of Deployment."),
 			"deployment":       inputs.NewTagInfo("Name must be unique within a namespace."),
@@ -269,7 +269,7 @@ func (*deploymentObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: deploymentObjectMeasurement,
 		Desc: "The object of the Kubernetes Deployment.",
-		Type: "object",
+		Cat:  point.Object,
 		Tags: map[string]interface{}{
 			"name":                       inputs.NewTagInfo("The UID of Deployment."),
 			"uid":                        inputs.NewTagInfo("The UID of Deployment."),

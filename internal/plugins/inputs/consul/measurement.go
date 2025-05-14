@@ -6,6 +6,7 @@
 package consul
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -15,7 +16,7 @@ type docMeasurement struct{}
 func (*docMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "consul",
-		Type: "metric",
+		Cat:  point.Metric,
 		//nolint:lll
 		Fields: map[string]interface{}{
 			"up":                           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Bool, Desc: "Was the last query of Consul successful."},

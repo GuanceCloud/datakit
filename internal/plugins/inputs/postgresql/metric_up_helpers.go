@@ -15,6 +15,7 @@ import (
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 func (ipt *Input) setUpState() {
@@ -57,11 +58,11 @@ func (ipt *Input) buildUpPoints() *point.Point {
 	fields := map[string]interface{}{
 		"up": ipt.UpState,
 	}
-	m := &upMeasurement{
-		name:   "collector",
-		tags:   tags,
-		fields: fields,
-		ipt:    ipt,
+	m := &inputs.UpMeasurement{
+		Name:     inputs.CollectorUpMeasurement,
+		Tags:     tags,
+		Fields:   fields,
+		Election: ipt.Election,
 	}
 
 	return m.Point()

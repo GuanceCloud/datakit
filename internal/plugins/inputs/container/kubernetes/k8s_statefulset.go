@@ -212,7 +212,7 @@ func (*statefulsetMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: statefulsetMetricMeasurement,
 		Desc: "The metric of the Kubernetes StatefulSet.",
-		Type: "metric",
+		Cat:  point.Metric,
 		Tags: map[string]interface{}{
 			"uid":              inputs.NewTagInfo("The UID of StatefulSet."),
 			"statefulset":      inputs.NewTagInfo("Name must be unique within a namespace."),
@@ -237,7 +237,7 @@ func (*statefulsetObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: statefulsetObjectMeasurement,
 		Desc: "The object of the Kubernetes StatefulSet.",
-		Type: "object",
+		Cat:  point.Object,
 		Tags: map[string]interface{}{
 			"name":                       inputs.NewTagInfo("The UID of StatefulSet."),
 			"uid":                        inputs.NewTagInfo("The UID of StatefulSet."),

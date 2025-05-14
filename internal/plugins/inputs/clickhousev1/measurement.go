@@ -6,6 +6,7 @@
 package clickhousev1
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -24,7 +25,7 @@ type (
 func (*asyncMetricsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "ClickHouseAsyncMetrics",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"AsynchronousHeavyMetricsCalculationTimeSpent": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.DurationSecond, Desc: "Time in seconds spent for calculation of asynchronous heavy tables related metrics this is the overhead of asynchronous metrics."},
 			"AsynchronousHeavyMetricsUpdateInterval":       &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.DurationSecond, Desc: "Heavy (tables related) metrics update interval"},
@@ -190,7 +191,7 @@ func (*asyncMetricsMeasurement) Info() *inputs.MeasurementInfo {
 func (*metricsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "ClickHouseMetrics",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"ActiveAsyncDrainedConnections":               &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount, Desc: "Number of active connections drained asynchronously."},
 			"ActiveSyncDrainedConnections":                &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount, Desc: "Number of active connections drained synchronously."},
@@ -393,7 +394,7 @@ func (*metricsMeasurement) Info() *inputs.MeasurementInfo {
 func (*profileEventsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "ClickHouseProfileEvents",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"AIORead":       &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount, Desc: "Number of reads with Linux or FreeBSD AIO interface"},
 			"AIOReadBytes":  &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeByte, Desc: "Number of bytes read with Linux or FreeBSD AIO interface"},
@@ -845,7 +846,7 @@ func (*profileEventsMeasurement) Info() *inputs.MeasurementInfo {
 func (*statusInfoMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "ClickHouseStatusInfo",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"DictionaryStatus": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.UnknownUnit, Desc: "Dictionary Status."},
 		},

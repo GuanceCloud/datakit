@@ -18,11 +18,11 @@ import (
 )
 
 const (
-	nginx        = "nginx"
-	ServerZone   = "nginx_server_zone"
-	UpstreamZone = "nginx_upstream_zone"
-	CacheZone    = "nginx_cache_zone"
-	LocationZone = "nginx_location_zone"
+	measurementNginx        = "nginx"
+	measurementServerZone   = "nginx_server_zone"
+	measurementUpstreamZone = "nginx_upstream_zone"
+	measurementCacheZone    = "nginx_cache_zone"
+	measurementLocationZone = "nginx_location_zone"
 
 	NestGeneral       = "general"
 	NestServerZone    = "server_zones"

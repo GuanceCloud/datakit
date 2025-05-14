@@ -402,49 +402,6 @@ func (*JolokiaMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{}
 }
 
-type upMeasurement struct {
-	name     string
-	tags     map[string]string
-	fields   map[string]interface{}
-	election bool
-}
-
-// Point implement MeasurementV2.
-func (m *upMeasurement) Point() *point.Point {
-	opts := point.DefaultMetricOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
-	}
-
-	return point.NewPointV2(m.name,
-		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-		opts...)
-}
-
-func (m *upMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
-	return &inputs.MeasurementInfo{
-		Name: "collector",
-		Type: "metric",
-		Fields: map[string]interface{}{
-			"up": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.SizeByte,
-				Desc:     "",
-			},
-		},
-		Tags: map[string]interface{}{
-			"job": &inputs.TagInfo{
-				Desc: "Server name",
-			},
-			"instance": &inputs.TagInfo{
-				Desc: "Server addr",
-			},
-		},
-	}
-}
-
 type Gatherer struct {
 	metrics  []Metric
 	requests []ReadRequest
@@ -1503,11 +1460,11 @@ func (j *JolokiaAgent) buildUpPoints(client *Client) ([]*point.Point, error) {
 		"up": client.upState,
 	}
 
-	Copt := &upMeasurement{
-		name:     "collector",
-		tags:     tags,
-		fields:   fields,
-		election: j.Election,
+	Copt := &inputs.UpMeasurement{
+		Name:     "collector",
+		Tags:     tags,
+		Fields:   fields,
+		Election: j.Election,
 	}
 
 	CoPts = append(CoPts, Copt.Point())

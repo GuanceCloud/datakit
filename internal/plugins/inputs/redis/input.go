@@ -556,6 +556,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&latencyMeasurement{},
 		&slowlogMeasurement{},
 		&customerObjectMeasurement{},
+		&inputs.UpMeasurement{},
 	}
 }
 

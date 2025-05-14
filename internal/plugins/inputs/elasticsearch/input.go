@@ -372,6 +372,7 @@ func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 		&clusterStatsMeasurement{},
 		&clusterHealthMeasurement{},
 		&customerObjectMeasurement{},
+		&inputs.UpMeasurement{},
 	}
 }
 

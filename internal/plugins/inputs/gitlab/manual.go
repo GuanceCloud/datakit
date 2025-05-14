@@ -6,6 +6,7 @@
 package gitlab
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -21,7 +22,7 @@ type (
 func (*gitlabMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "gitlab",
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "GitLab runtime metrics",
 		Tags: map[string]interface{}{
 			"action":           inputs.NewTagInfo("Action"),
@@ -58,7 +59,7 @@ func (*gitlabMeasurement) Info() *inputs.MeasurementInfo {
 func (*gitlabBaseMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "gitlab_base",
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "GitLab programming language level metrics",
 		Tags: nil,
 		Fields: map[string]interface{}{
@@ -75,7 +76,7 @@ func (*gitlabBaseMeasurement) Info() *inputs.MeasurementInfo {
 func (*gitlabHTTPMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "gitlab_http",
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "GitLab HTTP metrics",
 		Tags: map[string]interface{}{
 			"method": inputs.NewTagInfo("方法"),
@@ -93,7 +94,7 @@ func (*gitlabHTTPMeasurement) Info() *inputs.MeasurementInfo {
 func (g *gitlabPipelineMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "gitlab_pipeline",
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "GitLab Pipeline event metrics",
 		Fields: map[string]interface{}{
 			"pipeline_id":    &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Pipeline id"},
@@ -123,7 +124,7 @@ func (g *gitlabPipelineMeasurement) Info() *inputs.MeasurementInfo {
 func (g *gitlabJobMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "gitlab_job",
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "GitLab Job Event metrics",
 		Fields: map[string]interface{}{
 			"build_id":             &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "build id"},

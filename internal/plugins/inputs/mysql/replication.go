@@ -34,7 +34,7 @@ func (m *replicationMeasurement) Point() *point.Point {
 //nolint:lll
 var replicationMeasurementInfo = &inputs.MeasurementInfo{
 	Name: metricNameMySQLReplication,
-	Type: "metric",
+	Cat:  point.Metric,
 	Fields: map[string]interface{}{
 		"Connect_Retry:": &inputs.FieldInfo{
 			DataType: inputs.Int,
@@ -207,7 +207,7 @@ func (m *replicationLogMeasurement) Point() *point.Point {
 var replicationLogMeasurementInfo = &inputs.MeasurementInfo{
 	Desc: "Record the replication string information.",
 	Name: metricNameMySQLReplicationLog,
-	Type: "logging",
+	Cat:  point.Logging,
 	Fields: map[string]interface{}{
 		"Master_Host": &inputs.FieldInfo{
 			DataType: inputs.String,

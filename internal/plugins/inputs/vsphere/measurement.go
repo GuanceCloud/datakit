@@ -34,7 +34,7 @@ func (m *Measurement) Point() *point.Point {
 func (m *Measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "vsphere_cpu",
-		Type: "metric",
+		Cat:  point.Metric,
 		Tags: map[string]interface{}{},
 	}
 }
@@ -46,7 +46,7 @@ type clusterMeasurement struct {
 func (m *clusterMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "vsphere_cluster",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"cpu_usage_average": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -222,7 +222,7 @@ type datastoreMeasurement struct {
 func (m *datastoreMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "vsphere_datastore",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"datastore_busResets_sum":               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of SCSI-bus reset commands issued."},
 			"datastore_commandsAborted_sum":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of SCSI commands aborted."},
@@ -258,7 +258,7 @@ type vmMeasurement struct {
 func (m *vmMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "vsphere_vm",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"cpu_costop_sum":                          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Time the virtual machine is ready to run, but is unable to run due to co-scheduling constraints."},
 			"cpu_demand_average":                      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "The amount of CPU resources a virtual machine would use if there were no CPU contention or CPU limit."},
@@ -410,7 +410,7 @@ type hostMeasurement struct {
 func (m *hostMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "vsphere_host",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"cpu_costop_sum":                                   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Time the virtual machine is ready to run, but is unable to run due to co-scheduling constraints."},
 			"cpu_demand_average":                               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "The amount of CPU resources a virtual machine would use if there were no CPU contention or CPU limit."},
@@ -626,7 +626,7 @@ func (*hostObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "vsphere_host",
 		Desc: "The object of the ESXi host.",
-		Type: "object",
+		Cat:  point.Object,
 		Tags: map[string]interface{}{
 			Name:            &inputs.TagInfo{Desc: "The name of the ESXi host"},
 			Vendor:          &inputs.TagInfo{Desc: "The hardware vendor identification"},
@@ -650,7 +650,7 @@ func (*vmObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "vsphere_vm",
 		Desc: "The object of the virtual machine.",
-		Type: "object",
+		Cat:  point.Object,
 		Tags: map[string]interface{}{
 			Name:            &inputs.TagInfo{Desc: "The name of the virtual machine"},
 			GuestFullName:   &inputs.TagInfo{Desc: "Guest operating system full name, if known"},
@@ -678,7 +678,7 @@ func (*clusterObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "vsphere_cluster",
 		Desc: "The object of the cluster.",
-		Type: "object",
+		Cat:  point.Object,
 		Tags: map[string]interface{}{
 			Name: &inputs.TagInfo{Desc: "The name of the cluster"},
 		},
@@ -702,7 +702,7 @@ func (*datastoreObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "vsphere_datastore",
 		Desc: "The object of the datastore.",
-		Type: "object",
+		Cat:  point.Object,
 		Tags: map[string]interface{}{
 			Name: &inputs.TagInfo{Desc: "The name of the datastore"},
 			URL:  &inputs.TagInfo{Desc: "The unique locator for the datastore"},
@@ -724,7 +724,7 @@ func (*eventMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: EventMeasurementName,
 		Desc: "The event of the vSphere.",
-		Type: "logging",
+		Cat:  point.Logging,
 		Tags: map[string]interface{}{
 			Status:       &inputs.TagInfo{Desc: "The status of the logging"},
 			"host":       &inputs.TagInfo{Desc: "The host of the vCenter"},

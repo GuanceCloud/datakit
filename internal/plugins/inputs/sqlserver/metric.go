@@ -68,7 +68,7 @@ type SqlserverMeasurment struct {
 func (m *SqlserverMeasurment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"cpu_count":           newCountFieldInfo("Specifies the number of logical CPUs on the system. Not nullable"),
 			"uptime":              newTimeFieldInfo("Total time elapsed since the last computer restart"),
@@ -97,7 +97,7 @@ type Performance struct {
 //nolint:lll
 var performanceMeasurementInfo = &inputs.MeasurementInfo{
 	Name: "sqlserver_performance",
-	Type: "metric",
+	Cat:  point.Metric,
 	Desc: "performance counter maintained by the server,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-performance-counters-transact-sql?view=sql-server-ver15)",
 	Fields: map[string]interface{}{
 		"cntr_value":                       newCountFieldInfo("Current value of the counter"),
@@ -168,7 +168,7 @@ type WaitStatsCategorized struct {
 func (m *WaitStatsCategorized) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_waitstats",
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "information about all the waits encountered by threads that executed,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-wait-stats-transact-sql?view=sql-server-ver15)",
 		Fields: map[string]interface{}{
 			"max_wait_time_ms":    newTimeFieldInfo("Maximum wait time on this wait type."),
@@ -193,7 +193,7 @@ type DatabaseIO struct {
 func (m *DatabaseIO) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_database_io",
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "I/O statistics for data and log files,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-io-virtual-file-stats-transact-sql?view=sql-server-ver15)",
 		Fields: map[string]interface{}{
 			"read_bytes":        newByteFieldInfo("Total number of bytes read on this file"),
@@ -223,7 +223,7 @@ type Schedulers struct {
 func (m *Schedulers) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_schedulers",
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "One row per scheduler in SQL Server where each scheduler is mapped to an individual processor,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-schedulers-transact-sql?view=sql-server-ver15)",
 		Fields: map[string]interface{}{
 			"active_workers_count":      newCountFieldInfo("Number of workers that are active. An active worker is never preemptive, must have an associated task, and is either running, runnable, or suspended. Is not nullable."),
@@ -258,7 +258,7 @@ func (m *VolumeSpace) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_volumespace",
 		Desc: "The version should be greater than SQL Server 2008.",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"volume_available_space_bytes": newByteFieldInfo("Available free space on the volume"),
 			"volume_total_space_bytes":     newByteFieldInfo("Total size in bytes of the volume"),
@@ -279,7 +279,7 @@ type LockRow struct {
 func (m *LockRow) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_lock_row",
-		Type: "logging",
+		Cat:  point.Logging,
 		Fields: map[string]interface{}{
 			"blocking_session_id":     newCountFieldInfo("ID of the session that is blocking the request"),
 			"session_id":              newCountFieldInfo("ID of the session to which this request is related"),
@@ -306,7 +306,7 @@ type LockTable struct {
 func (m *LockTable) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_lock_table",
-		Type: "logging",
+		Cat:  point.Logging,
 		Fields: map[string]interface{}{
 			"request_session_id": newCountFieldInfo("Session ID that currently owns this request"),
 			"object_name":        newStringFieldInfo("Name of the entity in a database with which a resource is associated"),
@@ -327,7 +327,7 @@ type LockDead struct {
 func (m *LockDead) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_lock_dead",
-		Type: "logging",
+		Cat:  point.Logging,
 		Fields: map[string]interface{}{
 			"request_session_id":   newCountFieldInfo("Session ID that currently owns this request"),
 			"blocking_session_id":  newCountFieldInfo("ID of the session that is blocking the request"),
@@ -351,7 +351,7 @@ type LogicalIO struct {
 func (m *LogicalIO) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_logical_io",
-		Type: "logging",
+		Cat:  point.Logging,
 		Fields: map[string]interface{}{
 			"avg_logical_io":       newCountFieldInfo("Average number of logical writes and logical reads"),
 			"total_logical_io":     newCountFieldInfo("Total number of logical writes and logical reads"),
@@ -375,7 +375,7 @@ type WorkerTime struct {
 func (m *WorkerTime) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_worker_time",
-		Type: "logging",
+		Cat:  point.Logging,
 		Fields: map[string]interface{}{
 			"creation_time":       newCountFieldInfo("The Unix time at which the plan was compiled, in millisecond"),
 			"execution_count":     newCountFieldInfo("Number of times that the plan has been executed since it was last compiled"),
@@ -397,7 +397,7 @@ type DatabaseSize struct {
 func (m *DatabaseSize) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_database_size",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"data_size": newKByteFieldInfo("The size of file of Rows"),
 			"log_size":  newKByteFieldInfo("The size of file of Log"),
@@ -415,7 +415,7 @@ type DatabaseFilesMeasurement struct {
 //nolint:lll
 var DatabaseFilesMeasurementInfo = &inputs.MeasurementInfo{
 	Name: "sqlserver_database_files",
-	Type: "metric",
+	Cat:  point.Metric,
 	Fields: map[string]interface{}{
 		"size": &inputs.FieldInfo{
 			DataType: inputs.Int,
@@ -446,7 +446,7 @@ type DatabaseBackupMeasurement struct {
 func (m *DatabaseBackupMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_database_backup",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"backup_count": &inputs.FieldInfo{
 				DataType: inputs.Int,

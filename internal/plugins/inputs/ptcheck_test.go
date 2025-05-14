@@ -18,7 +18,7 @@ func (t *testMeasurement) Info() *MeasurementInfo {
 	return &MeasurementInfo{
 		Name: "test-measurement",
 		Desc: "for testing",
-		Type: "metric",
+		Cat:  point.Metric,
 		Tags: map[string]any{
 			"t1":       &TagInfo{},
 			"t2":       &TagInfo{},

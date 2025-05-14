@@ -15,6 +15,8 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
@@ -287,9 +289,10 @@ type loggingMeasurement struct{}
 //nolint:lll
 func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "logging collect",
-		Type: "logging",
-		Desc: "Use the `source` of the config，if empty then use `default`",
+		Name:           "default",
+		Cat:            point.Logging,
+		MetaDuplicated: true, // input `tailf' and `logging' are the same.
+		Desc:           "Use the `source` of the config，if empty then use `default`",
 		Tags: map[string]interface{}{
 			"host":     inputs.NewTagInfo(`Host name`),
 			"service":  inputs.NewTagInfo("The name of the service, if `service` is empty then use `source`."),

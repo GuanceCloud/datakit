@@ -20,7 +20,7 @@ type dbMeasurement struct{}
 func (m *dbMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: redisDB,
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"keys":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Desc: "Key."},
 			"expires": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Desc: "expires time."},

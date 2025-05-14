@@ -12,6 +12,8 @@ import (
 	"testing"
 
 	"github.com/GuanceCloud/cliutils/point"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var TODO = "-" // global todo string
@@ -32,6 +34,8 @@ const (
 	Rate        = "rate"
 	UnknownType = "unknown"
 	// add more...
+
+	CollectorUpMeasurement = "collector"
 )
 
 // All Units list.
@@ -95,6 +99,58 @@ type MeasurementV2 interface {
 	Point() *point.Point
 }
 
+type UpMeasurement struct {
+	Name     string
+	Tags     map[string]string
+	Fields   map[string]interface{}
+	Election bool
+}
+
+func (m *UpMeasurement) Point() *point.Point {
+	opts := point.DefaultMetricOptions()
+
+	if m.Election {
+		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
+	}
+
+	return point.NewPointV2(m.Name,
+		append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...),
+		opts...)
+}
+
+func (m *UpMeasurement) Info() *MeasurementInfo { //nolint:funlen
+	return &MeasurementInfo{
+		Name:           CollectorUpMeasurement,
+		Cat:            point.Metric,
+		MetaDuplicated: true, // This measurement are shared among multiple collectors.
+		Fields: map[string]interface{}{
+			"up": &FieldInfo{
+				DataType: Int,
+				Type:     Gauge,
+				Unit:     UnknownUnit,
+				Desc:     "",
+			},
+		},
+		Tags: map[string]interface{}{
+			"job": &TagInfo{
+				Desc: "Server name of the instance",
+			},
+			"instance": &TagInfo{
+				Desc: "Server addr of the instance",
+			},
+		},
+	}
+}
+
+// EmptyMeasurement label a collector that got no MeasurementInfo exported.
+type EmptyMeasurement struct{}
+
+var DefaultEmptyMeasurement = &EmptyMeasurement{}
+
+func (e *EmptyMeasurement) Info() *MeasurementInfo {
+	return nil
+}
+
 type FieldInfo struct {
 	Type     string `json:"type"`      // gauge/count/...
 	DataType string `json:"data_type"` // int/float/bool/...
@@ -108,11 +164,23 @@ type TagInfo struct {
 }
 
 type MeasurementInfo struct {
-	Name   string
-	Desc   string
-	Type   string
-	Fields map[string]interface{}
-	Tags   map[string]interface{}
+	Name   string                 `json:"-"`
+	Desc   string                 `json:"desc"`
+	Fields map[string]interface{} `json:"fields"`
+	Tags   map[string]interface{} `json:"tags"`
+
+	Cat point.Category `json:"-"`
+
+	// do not export the measurement info
+	ExportSkip bool `json:"-"`
+
+	// This maybe a duplicated measurement info.
+	// For some collector that got the same measurement(such as custome object).
+	MetaDuplicated bool `json:"-"`
+}
+
+func (m *MeasurementInfo) Type() string {
+	return m.Cat.String()
 }
 
 type CommonMeasurement struct {

@@ -5,13 +5,6 @@
 
 package promremote
 
-import (
-	"time"
-
-	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-)
-
 const (
 	inputName = "prom_remote_write"
 	catalog   = "prom"
@@ -121,30 +114,3 @@ const (
 // if the request body is over this size, we will return an HTTP 413 error.
 // 500 MB.
 const defaultMaxBodySize int64 = 500 * 1024 * 1024
-
-type Measurement struct {
-	Name   string
-	Tags   map[string]string
-	Fields map[string]interface{}
-	TS     time.Time
-}
-
-//nolint:lll
-func (m *Measurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name:   inputName,
-		Type:   "metric",
-		Desc:   "Prometheus remote write metrics",
-		Fields: map[string]interface{}{},
-		Tags:   map[string]interface{}{},
-	}
-}
-
-func (m *Measurement) Point() *point.Point {
-	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.TS))
-
-	return point.NewPointV2(m.Name,
-		append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...),
-		opts...)
-}

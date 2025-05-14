@@ -64,7 +64,7 @@ func (*Input) SampleConfig() string {
 }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{&Measurement{}}
+	return []inputs.Measurement{inputs.DefaultEmptyMeasurement}
 }
 
 func (*Input) AvailableArchs() []string {

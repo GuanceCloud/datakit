@@ -91,9 +91,31 @@ http,StatusCode=404,le=0.003,method=GET,tag_exists=yes request_duration_seconds_
 
 注意，这里的 tag 名称是大小写敏感的，可以用下面的调试工具测试一下数据情况，以决定 tag 名称如何替换。
 
+
 ## 指标 {#metric}
 
-Prometheus Exporter 暴露的指标多种多样，以实际采集到的指标为准。
+```toml
+ [inputs.{{.InputName}}.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+  # ...
+```
+
+{{ range $i, $m := .Measurements }}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- 标签
+
+{{$m.TagsMarkdownTable}}
+
+- 指标列表
+
+{{$m.FieldsMarkdownTable}}
+
+{{ end }}
 
 ## 协议转换说明 {#proto-transfer}
 

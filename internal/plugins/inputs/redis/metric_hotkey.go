@@ -28,7 +28,7 @@ type hotkeyMeasurement struct{}
 func (m *hotkeyMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: redisHotkey,
-		Type: "logging",
+		Cat:  point.Logging,
 		Fields: map[string]interface{}{
 			"key_count":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Key count times."},
 			"keys_sampled": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Sampled keys in the key space."},

@@ -65,7 +65,9 @@ type Input struct {
 
 func (*Input) SampleConfig() string { return sampleConfig }
 
-func (*Input) SampleMeasurement() []inputs.Measurement { return nil }
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{inputs.DefaultEmptyMeasurement}
+}
 
 func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
 

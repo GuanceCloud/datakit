@@ -209,7 +209,7 @@ func (*daemonsetMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: daemonsetMetricMeasurement,
 		Desc: "The metric of the Kubernetes DaemonSet.",
-		Type: "metric",
+		Cat:  point.Metric,
 		Tags: map[string]interface{}{
 			"uid":              inputs.NewTagInfo("The UID of DaemonSet."),
 			"daemonset":        inputs.NewTagInfo("Name must be unique within a namespace."),
@@ -235,7 +235,7 @@ func (*daemonsetObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: daemonsetObjectMeasurement,
 		Desc: "The object of the Kubernetes DaemonSet.",
-		Type: "object",
+		Cat:  point.Object,
 		Tags: map[string]interface{}{
 			"name":                       inputs.NewTagInfo("The UID of DaemonSet."),
 			"uid":                        inputs.NewTagInfo("The UID of DaemonSet."),

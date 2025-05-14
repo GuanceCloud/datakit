@@ -6,6 +6,7 @@
 package hostobject
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -15,7 +16,7 @@ type docMeasurement struct{}
 func (*docMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: hostObjMeasurementName,
-		Type: "object",
+		Cat:  point.Object,
 		Desc: "Host object metrics",
 		Tags: map[string]interface{}{
 			"host":       &inputs.TagInfo{Desc: "Hostname. Required."},

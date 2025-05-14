@@ -17,11 +17,11 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/GuanceCloud/cliutils/point"
 	dt "github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
@@ -445,7 +445,7 @@ func (m *customMeasurement) Point() *point.Point {
 func (m *customMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "oracle_custom",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"VALUE": &inputs.FieldInfo{
 				DataType: inputs.Float,

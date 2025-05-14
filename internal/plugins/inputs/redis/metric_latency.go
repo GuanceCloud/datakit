@@ -23,7 +23,7 @@ type latencyMeasurement struct{}
 func (m *latencyMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: redisLatency,
-		Type: "logging",
+		Cat:  point.Logging,
 		Fields: map[string]interface{}{
 			"occur_time":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.TimestampSec, Desc: "Unix timestamp of the latest latency spike for the event."},
 			"cost_time":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Latest event latency in millisecond."},

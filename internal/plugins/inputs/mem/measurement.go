@@ -5,7 +5,10 @@
 
 package mem
 
-import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+import (
+	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+)
 
 type docMeasurement struct{}
 
@@ -13,7 +16,7 @@ type docMeasurement struct{}
 func (*docMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricName,
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"total":             NewFieldInfoB("Total amount of memory."),
 			"available":         NewFieldInfoB("Amount of available memory."),

@@ -7,6 +7,7 @@ package mysql
 
 import (
 	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -35,14 +36,15 @@ func (m *customerObjectMeasurement) Point() *point.Point {
 //nolint:lll
 func (m *customerObjectMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 	return &inputs.MeasurementInfo{
-		Name: "database",
-		Type: "custom_object",
+		Name:           "database",
+		Cat:            point.CustomObject,
+		MetaDuplicated: true,
 		Fields: map[string]interface{}{
 			"uptime": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationSecond,
-				Desc:     "Current MySQL uptime",
+				Desc:     "Current instance uptime",
 			},
 
 			"display_name": &inputs.FieldInfo{
@@ -52,7 +54,9 @@ func (m *customerObjectMeasurement) Info() *inputs.MeasurementInfo { //nolint:fu
 
 			"version": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Desc:     "Current version of MySQL",
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "Current version of the instance",
 			},
 		},
 		Tags: map[string]interface{}{
@@ -61,11 +65,11 @@ func (m *customerObjectMeasurement) Info() *inputs.MeasurementInfo { //nolint:fu
 			},
 
 			"col_co_status": &inputs.TagInfo{
-				Desc: "Current status of collector on MySQL(`OK/NotOK`)",
+				Desc: "Current status of collector on instance(`OK/NotOK`)",
 			},
 
 			"ip": &inputs.TagInfo{
-				Desc: "Connection IP of the MySQl",
+				Desc: "Connection IP of the instance",
 			},
 
 			"host": &inputs.TagInfo{

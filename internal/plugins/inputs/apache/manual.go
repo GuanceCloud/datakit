@@ -31,7 +31,7 @@ func (m *Measurement) Point() *point.Point {
 func (m *Measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName,
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "The collected metrics are affected by the environment in which Apache is installed. The metrics shown on the `http://<your-apache-server>/server-status?auto` page will prevail.",
 		Fields: map[string]interface{}{
 			"idle_workers":           newCountFieldInfo("The number of idle workers"),

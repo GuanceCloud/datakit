@@ -107,7 +107,7 @@ func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Desc: "Select some of the SQL statements with high execution time, collect their execution plans, and collect various performance indicators during the actual execution process.",
 		Name: metricNameMySQLDbmSample,
-		Type: "logging",
+		Cat:  point.Logging,
 		Fields: map[string]interface{}{
 			"timestamp": &inputs.FieldInfo{
 				DataType: inputs.Float,

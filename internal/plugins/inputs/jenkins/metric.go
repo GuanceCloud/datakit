@@ -63,7 +63,7 @@ func (m *jenkinsPipelineMeasurement) Point() *point.Point {
 func (*jenkinsPipelineMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "jenkins_pipeline",
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "Jenkins Pipeline Event Metrics",
 		Fields: map[string]interface{}{
 			"pipeline_id":    &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Pipeline id"},
@@ -109,7 +109,7 @@ func (m *jenkinsJobMeasurement) Point() *point.Point {
 func (*jenkinsJobMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "jenkins_job",
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "Jenkins Job Event Metrics",
 		Fields: map[string]interface{}{
 			"build_id":             &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Build id"},
@@ -209,7 +209,7 @@ func (m *Measurement) Point() *point.Point {
 func (m *Measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName,
-		Type: "metric",
+		Cat:  point.Metric,
 		Tags: map[string]interface{}{
 			"host":                  inputs.NewTagInfo("Hostname"),
 			"metric_plugin_version": inputs.NewTagInfo("Jenkins plugin version"),

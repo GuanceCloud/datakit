@@ -5,13 +5,16 @@
 
 package swap
 
-import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+import (
+	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+)
 
 type swapMetric struct{}
 
 var swapMeasurement = &inputs.MeasurementInfo{
 	Name: metricName,
-	Type: "metric",
+	Cat:  point.Metric,
 	Fields: map[string]interface{}{
 		"total": &inputs.FieldInfo{
 			Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,

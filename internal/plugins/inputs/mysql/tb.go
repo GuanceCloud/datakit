@@ -35,7 +35,7 @@ func (m *tbMeasurement) Point() *point.Point {
 func (m *tbMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Desc: "MySQL table information",
-		Type: "metric",
+		Cat:  point.Metric,
 		Name: metricNameMySQLTableSchema,
 		Fields: map[string]interface{}{
 			// status

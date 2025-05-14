@@ -11,6 +11,7 @@ package winevent
 import (
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -59,23 +60,22 @@ type Measurement struct {
 
 func (m *Measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name:   inputName,
-		Type:   "logging",
-		Fields: map[string]interface{}{},
-		Tags: map[string]interface{}{
-			"event_id":        inputs.NewTagInfo("Event ID"),
-			"event_record_id": inputs.NewTagInfo("Event record ID"),
-			"status":          inputs.NewTagInfo("Log level"),
-			"event_source":    inputs.NewTagInfo("Windows event source"),
-			"version":         inputs.NewTagInfo("Version"),
-			"task":            inputs.NewTagInfo("Task category"),
-			"keyword":         inputs.NewTagInfo("Keyword"),
-			"process_id":      inputs.NewTagInfo("Process ID"),
-			"channel":         inputs.NewTagInfo("Channel"),
-			"computer":        inputs.NewTagInfo("Computer"),
-			"message":         inputs.NewTagInfo("Event content"),
-			"level":           inputs.NewTagInfo("Level"),
-			"total_message":   inputs.NewTagInfo("Full text of the event"),
+		Name: inputName,
+		Cat:  point.Logging,
+		Fields: map[string]interface{}{
+			"event_id":        &inputs.FieldInfo{Desc: "Event ID", DataType: inputs.String},
+			"event_record_id": &inputs.FieldInfo{Desc: "Event record ID", DataType: inputs.String},
+			"status":          &inputs.FieldInfo{Desc: "Log level", DataType: inputs.String},
+			"event_source":    &inputs.FieldInfo{Desc: "Windows event source", DataType: inputs.String},
+			"version":         &inputs.FieldInfo{Desc: "Version", DataType: inputs.String},
+			"task":            &inputs.FieldInfo{Desc: "Task category", DataType: inputs.String},
+			"keyword":         &inputs.FieldInfo{Desc: "Keyword", DataType: inputs.String},
+			"process_id":      &inputs.FieldInfo{Desc: "Process ID", DataType: inputs.Int},
+			"channel":         &inputs.FieldInfo{Desc: "Channel", DataType: inputs.String},
+			"computer":        &inputs.FieldInfo{Desc: "Computer", DataType: inputs.String},
+			"message":         &inputs.FieldInfo{Desc: "Event content", DataType: inputs.String},
+			"level":           &inputs.FieldInfo{Desc: "Level", DataType: inputs.String},
+			"total_message":   &inputs.FieldInfo{Desc: "Full text of the event", DataType: inputs.String},
 		},
 	}
 }

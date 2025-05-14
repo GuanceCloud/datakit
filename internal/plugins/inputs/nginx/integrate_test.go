@@ -30,7 +30,7 @@ import (
 // ATTENTION: Docker version should use v20.10.18 in integrate tests. Other versions are not tested.
 
 var mExpect = map[string]struct{}{
-	nginx: {},
+	measurementNginx: {},
 }
 
 func TestIntegrate(t *testing.T) {
@@ -587,7 +587,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 		measurement := pt.Name()
 
 		switch measurement {
-		case nginx:
+		case measurementNginx:
 			opts = append(opts, inputs.WithDoc(&NginxMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
@@ -601,9 +601,9 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-			cs.mCount[nginx] = struct{}{}
+			cs.mCount[measurementNginx] = struct{}{}
 
-		case ServerZone:
+		case measurementServerZone:
 			opts = append(opts, inputs.WithDoc(&ServerZoneMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
@@ -617,9 +617,9 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-			cs.mCount[ServerZone] = struct{}{}
+			cs.mCount[measurementServerZone] = struct{}{}
 
-		case UpstreamZone:
+		case measurementUpstreamZone:
 			opts = append(opts, inputs.WithDoc(&UpstreamZoneMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
@@ -633,9 +633,9 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-			cs.mCount[UpstreamZone] = struct{}{}
+			cs.mCount[measurementUpstreamZone] = struct{}{}
 
-		case CacheZone:
+		case measurementCacheZone:
 			opts = append(opts, inputs.WithDoc(&CacheZoneMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
@@ -649,7 +649,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-			cs.mCount[CacheZone] = struct{}{}
+			cs.mCount[measurementCacheZone] = struct{}{}
 
 		default: // TODO: check other measurement
 			panic("unknown measurement")

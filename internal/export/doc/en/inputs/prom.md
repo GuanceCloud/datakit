@@ -96,6 +96,24 @@ http,StatusCode=404,le=0.003,method=GET,tag_exists=yes request_duration_seconds_
 
 Note that the tag name here is case-sensitive, and you can test the data with the following debugging tool to determine how to replace the tag name.
 
+## Metric {#metric}
+
+{{ range $i, $m := .Measurements }}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- Tags
+
+{{$m.TagsMarkdownTable}}
+
+- Metrics
+
+{{$m.FieldsMarkdownTable}}
+
+{{ end }}
+
 ## Protocol Conversion Description {#proto-transfer}
 
 Because the data format of Prometheus is different from the line protocol format of Influxdb. For Prometheus, the following is a piece of data exposed in a K8s cluster:

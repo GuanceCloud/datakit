@@ -419,7 +419,7 @@ func (*podMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: podMetricMeasurement,
 		Desc: "The metric of the Kubernetes Pod.",
-		Type: "metric",
+		Cat:  point.Metric,
 		Tags: map[string]interface{}{
 			"uid":              inputs.NewTagInfo("The UID of pod."),
 			"pod":              inputs.NewTagInfo("Name must be unique within a namespace."),
@@ -469,7 +469,7 @@ func (*podObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: podObjectMeasurement,
 		Desc: "The object of the Kubernetes Pod.",
-		Type: "object",
+		Cat:  point.Object,
 		Tags: map[string]interface{}{
 			"name":             inputs.NewTagInfo("The UID of Pod."),
 			"uid":              inputs.NewTagInfo("The UID of Pod."),

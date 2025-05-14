@@ -349,6 +349,27 @@ If the configured whitelist label is in the native `message.meta`, Will convert 
 
 {{end}}
 
+## Tracing Telemetry {#tracing-telemetry}
+
+{{range $i, $m := .Measurements}}
+
+{{if eq $m.Type "custom_object"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- Tags
+
+{{$m.TagsMarkdownTable}}
+
+- Metrics
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{end}}
+
 ## More Readings {#more-reading}
 
 - [DataKit Tracing Field definition](datakit-tracing-struct.md)

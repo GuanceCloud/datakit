@@ -35,14 +35,15 @@ func (m *customerObjectMeasurement) Point() *point.Point {
 //nolint:lll
 func (m *customerObjectMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 	return &inputs.MeasurementInfo{
-		Name: "mq",
-		Type: "custom_object",
+		Name:           "mq",
+		MetaDuplicated: true,
+		Cat:            point.CustomObject,
 		Fields: map[string]interface{}{
 			"uptime": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationSecond,
-				Desc:     "Current RabbitMQ uptime",
+				Desc:     "Current instance uptime",
 			},
 
 			"display_name": &inputs.FieldInfo{
@@ -56,7 +57,7 @@ func (m *customerObjectMeasurement) Info() *inputs.MeasurementInfo { //nolint:fu
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NoUnit,
-				Desc:     "Current version of RabbitMQ",
+				Desc:     "Current version of the instance",
 			},
 		},
 		Tags: map[string]interface{}{
@@ -65,11 +66,11 @@ func (m *customerObjectMeasurement) Info() *inputs.MeasurementInfo { //nolint:fu
 			},
 
 			"col_co_status": &inputs.TagInfo{
-				Desc: "Current status of collector on RabbitMQ(`OK/NotOK`)",
+				Desc: "Current status of collector on instance(`OK/NotOK`)",
 			},
 
 			"ip": &inputs.TagInfo{
-				Desc: "Connection IP of the RabbitMQ",
+				Desc: "Connection IP of the instance",
 			},
 
 			"host": &inputs.TagInfo{

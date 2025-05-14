@@ -6,6 +6,7 @@
 package nsq
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -20,7 +21,7 @@ type nsqTopicMeasurement struct{}
 func (*nsqTopicMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: nsqTopics,
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "Metrics of all topics in the NSQ cluster",
 		Tags: map[string]interface{}{
 			"topic":   inputs.NewTagInfo("Topic name"),
@@ -45,7 +46,7 @@ type nsqNodesMeasurement struct{}
 func (*nsqNodesMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: nsqNodes,
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "Metrics of all nodes in the NSQ cluster.",
 		Tags: map[string]interface{}{
 			"server_host": inputs.NewTagInfo("Service address, that is `host:ip`."),

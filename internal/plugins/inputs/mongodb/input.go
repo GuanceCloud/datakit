@@ -174,6 +174,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&mongodbShardMeasurement{},
 		&mongodbTopMeasurement{},
 		&customerObjectMeasurement{},
+		&inputs.UpMeasurement{},
 	}
 }
 

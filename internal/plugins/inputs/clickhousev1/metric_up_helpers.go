@@ -56,11 +56,11 @@ func (ipt *Input) buildUpPoints(server string) ([]*point.Point, error) {
 	fields := map[string]interface{}{
 		"up": ipt.upStates[server],
 	}
-	m := &upMeasurement{
-		name:     "collector",
-		tags:     tags,
-		fields:   fields,
-		election: ipt.Election,
+	m := &inputs.UpMeasurement{
+		Name:     inputs.CollectorUpMeasurement,
+		Tags:     tags,
+		Fields:   fields,
+		Election: ipt.Election,
 	}
 	ipt.l.Debugf("build up %s points:%s", inputName, m.Point().LineProto())
 	ms = append(ms, m)

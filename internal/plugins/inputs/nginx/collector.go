@@ -122,7 +122,7 @@ func (ipt *Input) getStubStatusModuleMetric(port int, alignTS int64) {
 	kvs = kvs.Add("connection_waiting", waiting, false, true)
 	kvs = kvs.Add("connection_dropped", accepts-handled, false, true)
 
-	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(nginx, kvs, opts...))
+	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(measurementNginx, kvs, opts...))
 }
 
 func (ipt *Input) getVTSMetric(port int, alignTS int64) {
@@ -191,7 +191,7 @@ func (ipt *Input) makeConnectionsLine(vtsResp NginxVTSResponse, alignTS int64) {
 	kvs = kvs.Add("connection_writing", vtsResp.Connections.Writing, false, true)
 	kvs = kvs.Add("connection_waiting", vtsResp.Connections.Waiting, false, true)
 
-	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(nginx, kvs, opts...))
+	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(measurementNginx, kvs, opts...))
 }
 
 func (ipt *Input) makeServerZoneLine(vtsResp NginxVTSResponse, alignTS int64) {
@@ -214,7 +214,7 @@ func (ipt *Input) makeServerZoneLine(vtsResp NginxVTSResponse, alignTS int64) {
 		kvs = kvs.Add("response_4xx", v.Responses.FourXx, false, true)
 		kvs = kvs.Add("response_5xx", v.Responses.FiveXx, false, true)
 
-		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(ServerZone, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(measurementServerZone, kvs, opts...))
 	}
 }
 
@@ -240,7 +240,7 @@ func (ipt *Input) makeUpstreamZoneLine(vtsResp NginxVTSResponse, alignTS int64) 
 			kvs = kvs.Add("response_4xx", upstream.Responses.FourXx, false, true)
 			kvs = kvs.Add("response_5xx", upstream.Responses.FiveXx, false, true)
 
-			ipt.collectCache = append(ipt.collectCache, point.NewPointV2(UpstreamZone, kvs, opts...))
+			ipt.collectCache = append(ipt.collectCache, point.NewPointV2(measurementUpstreamZone, kvs, opts...))
 		}
 	}
 }
@@ -269,7 +269,7 @@ func (ipt *Input) makeCacheZoneLine(vtsResp NginxVTSResponse, alignTS int64) {
 		kvs = kvs.Add("responses_hit", cacheZone.Responses.Hit, false, true)
 		kvs = kvs.Add("responses_scarce", cacheZone.Responses.Scarce, false, true)
 
-		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(CacheZone, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(measurementCacheZone, kvs, opts...))
 	}
 }
 
@@ -351,7 +351,7 @@ func (ipt *Input) makeNginxLine(plusAPIResp NginxPlusAPIResponse, alignTS int64)
 	kvs = kvs.Add("pid", plusAPIResp.General.Pid, false, true)
 	kvs = kvs.Add("ppid", plusAPIResp.General.Ppid, false, true)
 
-	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(nginx, kvs, opts...))
+	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(measurementNginx, kvs, opts...))
 }
 
 func (ipt *Input) makeServerLine(plusAPIResp NginxPlusAPIResponse, alignTS int64) {
@@ -383,7 +383,7 @@ func (ipt *Input) makeServerLine(plusAPIResp NginxPlusAPIResponse, alignTS int64
 		kvs = kvs.Add("code_404", v.Responses.Codes.Code404, false, true)
 		kvs = kvs.Add("code_503", v.Responses.Codes.Code503, false, true)
 
-		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(ServerZone, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(measurementServerZone, kvs, opts...))
 	}
 }
 
@@ -415,7 +415,7 @@ func (ipt *Input) makeUpStreamLine(plusAPIResp NginxPlusAPIResponse, alignTS int
 			kvs = kvs.Add("response_4xx", upstream.Responses.FourXX, false, true)
 			kvs = kvs.Add("response_5xx", upstream.Responses.FiveXX, false, true)
 
-			ipt.collectCache = append(ipt.collectCache, point.NewPointV2(UpstreamZone, kvs, opts...))
+			ipt.collectCache = append(ipt.collectCache, point.NewPointV2(measurementUpstreamZone, kvs, opts...))
 		}
 	}
 }
@@ -442,7 +442,7 @@ func (ipt *Input) makeCacheLine(plusAPIResp NginxPlusAPIResponse, alignTS int64)
 		kvs = kvs.Add("responses_expired", v.Expired.Bytes, false, true)
 		kvs = kvs.Add("responses_bypass", v.Bypass.Bytes, false, true)
 
-		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(ServerZone, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(measurementServerZone, kvs, opts...))
 	}
 }
 
@@ -472,6 +472,6 @@ func (ipt *Input) makeLocationLine(plusAPIResp NginxPlusAPIResponse, alignTS int
 		kvs.Add("code_404", location.Responses.Codes.Code404, false, true)
 		kvs.Add("code_503", location.Responses.Codes.Code503, false, true)
 
-		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(LocationZone, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(measurementLocationZone, kvs, opts...))
 	}
 }

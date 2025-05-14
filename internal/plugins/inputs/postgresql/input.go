@@ -276,6 +276,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&conflictMeasurement{},
 		&archiverMeasurement{},
 		&customerObjectMeasurement{},
+		&inputs.UpMeasurement{},
 	}
 }
 

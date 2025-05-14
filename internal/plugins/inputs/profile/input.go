@@ -41,7 +41,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/profile/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/rum"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
 const (
@@ -760,7 +759,7 @@ func (ipt *Input) SampleConfig() string {
 }
 
 func (ipt *Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{&trace.TraceMeasurement{Name: inputName}}
+	return []inputs.Measurement{inputs.DefaultEmptyMeasurement}
 }
 
 func (ipt *Input) AvailableArchs() []string {

@@ -153,7 +153,7 @@ func (*persistentvolumeObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: persistentvolumeObjectMeasurement,
 		Desc: "The object of the Kubernetes PersistentVolume.",
-		Type: "object",
+		Cat:  point.Object,
 		Tags: map[string]interface{}{
 			"name":                  inputs.NewTagInfo("The UID of PersistentVolume."),
 			"uid":                   inputs.NewTagInfo("The UID of PersistentVolume."),

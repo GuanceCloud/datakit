@@ -6,6 +6,7 @@
 package container
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -17,7 +18,7 @@ type containerMetric struct{}
 func (*containerMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: containerMeasurement,
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "The metric of containers, only supported Running status.",
 		Tags: map[string]interface{}{
 			"container_id":              inputs.NewTagInfo(`Container ID`),
@@ -74,7 +75,7 @@ func (*containerObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: containerMeasurement,
 		Desc: "The object of containers, only supported Running status.",
-		Type: "object",
+		Cat:  point.Object,
 		Tags: map[string]interface{}{
 			"name":                      inputs.NewTagInfo(`The ID of the container.`),
 			"container_id":              inputs.NewTagInfo(`Container ID`),
@@ -132,9 +133,9 @@ type containerLog struct{}
 //nolint:lll
 func (*containerLog) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "Use Logging Source",
+		Name: "<CONTAINER-NAME>",
 		Desc: "The logging of the container.",
-		Type: "logging",
+		Cat:  point.Logging,
 		Tags: map[string]interface{}{
 			"host":            inputs.NewTagInfo(`Host name`),
 			"service":         inputs.NewTagInfo("The name of the service, if `service` is empty then use `source`."),

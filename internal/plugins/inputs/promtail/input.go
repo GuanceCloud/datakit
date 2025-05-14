@@ -68,9 +68,10 @@ func (m *promtailSampleMeasurement) Point() *point.Point {
 //nolint:lll
 func (*promtailSampleMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "default",
-		Type: "logging",
-		Desc: "Using `source` field in the config file, default is `default`.",
+		Name:           "default",
+		Cat:            point.Logging,
+		MetaDuplicated: true, // same as logging collector's measurement meta.
+		Desc:           "Using `source` field in the config file, default is `default`.",
 		Tags: map[string]interface{}{
 			"filename": inputs.NewTagInfo("File name. Optional."),
 			"job":      inputs.NewTagInfo("Job name. Optional."),

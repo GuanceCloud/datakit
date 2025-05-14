@@ -39,7 +39,7 @@ func (m *dbmStateMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Desc: "Record the number of executions of the query statement, wait time, lock time, and the number of rows queried.",
 		Name: metricNameMySQLDbmMetric,
-		Type: "logging",
+		Cat:  point.Logging,
 		Fields: map[string]interface{}{
 			"sum_timer_wait": &inputs.FieldInfo{
 				DataType: inputs.Int,

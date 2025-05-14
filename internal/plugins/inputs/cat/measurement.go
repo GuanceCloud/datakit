@@ -7,6 +7,7 @@
 package cat
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -14,7 +15,7 @@ type Measurement struct{}
 
 func (m *Measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Type: "metric",
+		Cat:  point.Metric,
 		Name: inputName,
 		Fields: map[string]interface{}{
 			"runtime_up-time": &inputs.FieldInfo{

@@ -84,6 +84,7 @@ func (m *JavaRuntimeMemt) Point() *point.Point {
 func (*JavaRuntimeMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: javaRuntime,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"Uptime": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.DurationMS, Desc: "The total runtime."},
 
@@ -115,6 +116,7 @@ func (m *JavaMemoryMemt) Point() *point.Point {
 func (*JavaMemoryMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: javaMemory,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"HeapMemoryUsageinit":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The initial Java heap memory allocated."},
 			"HeapMemoryUsageused":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java heap memory used."},
@@ -157,6 +159,7 @@ func (m *JavaGcMemt) Point() *point.Point {
 func (*JavaGcMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: javaGarbageCollector,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"CollectionTime":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The approximate GC collection time elapsed."},
 			"CollectionCount": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of GC that have occurred."},
@@ -191,6 +194,7 @@ func (m *JavaThreadMemt) Point() *point.Point {
 func (*JavaThreadMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: javaThreading,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"DaemonThreadCount":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The count of daemon thread."},
 			"PeakThreadCount":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The peak count of thread."},
@@ -226,6 +230,7 @@ func (m *JavaClassLoadMemt) Point() *point.Point {
 func (*JavaClassLoadMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: javaClassLoading,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"LoadedClassCount":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The count of loaded class."},
 			"TotalLoadedClassCount": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The total count of loaded class."},
@@ -260,6 +265,7 @@ func (m *JavaMemoryPoolMemt) Point() *point.Point {
 func (*JavaMemoryPoolMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: javaMemoryPool,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"Usageinit":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The initial Java memory pool allocated."},
 			"Usagemax":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The maximum Java  memory pool available."},

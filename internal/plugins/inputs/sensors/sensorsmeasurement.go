@@ -6,6 +6,7 @@
 package sensors
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -20,7 +21,7 @@ type sensorsMeasurement struct {
 func (m *sensorsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sensors",
-		Type: "metric",
+		Cat:  point.Metric,
 		Tags: map[string]interface{}{
 			"hostname": &inputs.TagInfo{Desc: "Host name"},
 			"adapter":  &inputs.TagInfo{Desc: "Device adapter"},

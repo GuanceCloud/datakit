@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -64,6 +65,7 @@ func (m *TomcatGlobalRequestProcessorM) Point() *point.Point {
 func (m *TomcatGlobalRequestProcessorM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: TomcatGlobalRequestProcessor,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"requestCount":  newFielInfoCount("Number of requests processed."),
 			"bytesReceived": newFielInfoCount("Amount of data received, in bytes."),
@@ -101,6 +103,7 @@ func (m *TomcatJspMonitorM) Point() *point.Point {
 func (m *TomcatJspMonitorM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: TomcatJspMonitor,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"jspCount":       newFielInfoCount("The number of JSPs that have been loaded into a webapp."),
 			"jspReloadCount": newFielInfoCount("The number of JSPs that have been reloaded."),
@@ -132,6 +135,7 @@ func (m *TomcatThreadPoolM) Point() *point.Point {
 func (m *TomcatThreadPoolM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: TomcatThreadPool,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"maxThreads":         newFielInfoCountFloat("MaxThreads."),
 			"currentThreadCount": newFielInfoCount("CurrentThreadCount."),
@@ -161,6 +165,7 @@ func (m *TomcatServletM) Point() *point.Point {
 func (m *TomcatServletM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: TomcatServlet,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"processingTime": &inputs.FieldInfo{
 				Type:     inputs.Gauge,
@@ -199,6 +204,7 @@ func (m *TomcatCacheM) Point() *point.Point {
 func (m *TomcatCacheM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: TomcatCache,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"hitCount":    newFielInfoCount("The number of requests for resources that were served from the cache."),
 			"lookupCount": newFielInfoCount("The number of requests for resources."),
@@ -257,6 +263,7 @@ func (m *TomcatM) Point() *point.Point {
 func (m *TomcatM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"bytes_rcvd":                newFielInfoCountFloat("Bytes per second received by all request processors."),
 			"bytes_sent":                newFielInfoCountFloat("Bytes per second sent by all the request processors."),

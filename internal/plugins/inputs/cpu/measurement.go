@@ -6,6 +6,7 @@
 package cpu
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -14,7 +15,7 @@ type docMeasurement struct{}
 //nolint:lll
 var cpuMeasurement = &inputs.MeasurementInfo{
 	Name: metricName,
-	Type: "metric",
+	Cat:  point.Metric,
 	Fields: map[string]interface{}{
 		"usage_user": &inputs.FieldInfo{
 			Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,

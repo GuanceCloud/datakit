@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/GuanceCloud/pipeline-go/ptinput/funcs"
@@ -45,6 +46,11 @@ func (gd *GuanceDocs) Export() error {
 		"datakit",
 		"integrations",
 		"pipeline/use-pipeline",
+	}
+
+	// load all measurement
+	if err := gd.exportMeasurements(); err != nil {
+		return err
 	}
 
 	for _, lang := range gd.opt.langs {
@@ -125,13 +131,13 @@ func (gd *GuanceDocs) exportPipelineDocs(lang inputs.I18n) error {
 				fndocs = funcs.PipelineFunctionDocsEN
 			}
 
+			l.Debugf("add doc %q to pipeline", f.Name())
 			doc, err = buildPipelineDocs(md, fndocs, gd.opt)
 			if err != nil {
 				return fmt.Errorf("buildPipelineDocs() on %s: %w", f, err)
 			}
 		}
 
-		l.Debugf("add doc %q to pipeline", f.Name())
 		gd.docs[filepath.Join(gd.opt.topDir, lang.String(), "pipeline", "use-pipeline", f.Name())] = doc
 		n++
 	}
@@ -151,6 +157,7 @@ func (gd *GuanceDocs) exportDatakitDocs(lang inputs.I18n) error {
 		ignored = 0
 		n       = 0
 	)
+
 	for _, f := range dkDocs {
 		if f.IsDir() {
 			continue
@@ -172,19 +179,71 @@ func (gd *GuanceDocs) exportDatakitDocs(lang inputs.I18n) error {
 			continue
 		}
 
-		l.Debugf("build doc %q to datakit", f.Name())
+		l.Debugf("add doc %q to datakit", f.Name())
 		doc, err := buildNonInputDocs("doc/"+f.Name(), md, gd.opt)
 		if err != nil {
 			l.Errorf("buildNonInputDocs(%q): %s", f.Name(), err)
 			return err
 		}
 
-		l.Debugf("add doc %q to datakit", f.Name())
 		gd.docs[filepath.Join(gd.opt.topDir, lang.String(), "datakit", f.Name())] = doc
 		n++
 	}
 
 	l.Infof("exported %d datakit docs, ignored: %d, total: %d", n, ignored, len(dkDocs))
+
+	return nil
+}
+
+func (gd *GuanceDocs) exportMeasurements() error {
+	arr := []string{
+		`| Measurement | Category | Input |`,
+		`|---:|---|---|`,
+	}
+
+	for inputName, c := range inputs.Inputs {
+		l.Debugf("export measurement info for %q...", inputName)
+
+		input := c()
+		switch ipt := input.(type) {
+		// nolint:gocritic
+		case inputs.InputV2:
+			sampleMeasurements := ipt.SampleMeasurement()
+			for _, m := range sampleMeasurements {
+				if m == inputs.DefaultEmptyMeasurement {
+					l.Infof("%q got empty measurement info exported.", inputName)
+					continue
+				}
+
+				measurement := m.Info()
+				if measurement == nil {
+					l.Warnf("ignore measurement info from %q, no measurement exported...", inputName)
+					continue
+				}
+
+				if measurement.ExportSkip {
+					l.Infof("skip measurement %+#v", measurement)
+					continue
+				}
+
+				if measurement.Name == "" {
+					l.Warnf("ignore measurement from %s: empty measurement name: %+#v", inputName, measurement)
+					return fmt.Errorf("measurement name not set")
+				}
+
+				l.Debugf("add measurement info for %q from %q...", measurement.Name, inputName)
+
+				// for input name, use italic to skip spell checking.
+				arr = append(arr, fmt.Sprintf("|`%s`|`%s`|[*%s*](../integrations/%s.md)|", measurement.Name, measurement.Cat.String(), inputName, inputName))
+			}
+
+		default:
+			l.Warnf("unknown input: %s, not implements inputs.InputV2", inputName)
+		}
+	}
+
+	sort.Strings(arr)
+	gd.opt.allMeasurements = strings.Join(arr, "\n")
 
 	return nil
 }
@@ -225,6 +284,7 @@ func (gd *GuanceDocs) exportInputDocs(lang inputs.I18n) error {
 		}
 
 		var doc []byte
+		l.Debugf("add doc %q to integrations...", f.Name())
 		if _, ok := inputs.Inputs[name]; ok {
 			l.Debugf("build input doc %q to integrations", name)
 			doc, err = buildInputDoc(name, md, gd.opt)
@@ -239,7 +299,6 @@ func (gd *GuanceDocs) exportInputDocs(lang inputs.I18n) error {
 			}
 		}
 
-		l.Debugf("add doc %q to integrations", f.Name())
 		gd.docs[filepath.Join(gd.opt.topDir, lang.String(), "integrations", f.Name())] = doc
 		n++
 	}

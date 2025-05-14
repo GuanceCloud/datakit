@@ -12,12 +12,13 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	apicorev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/yaml"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 const (
@@ -256,7 +257,7 @@ func (*nodeMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: nodeMetricMeasurement,
 		Desc: "The metric of the Kubernetes Node.",
-		Type: "metric",
+		Cat:  point.Metric,
 		Tags: map[string]interface{}{
 			"uid":              inputs.NewTagInfo("The UID of Node."),
 			"node":             inputs.NewTagInfo("Name must be unique within a namespace"),
@@ -282,7 +283,7 @@ func (*nodeObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: nodeObjectMeasurement,
 		Desc: "The object of the Kubernetes Node.",
-		Type: "object",
+		Cat:  point.Object,
 		Tags: map[string]interface{}{
 			"name":             inputs.NewTagInfo("The UID of Node."),
 			"uid":              inputs.NewTagInfo("The UID of Node."),

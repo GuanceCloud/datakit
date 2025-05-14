@@ -34,7 +34,7 @@ func (m *innodbMeasurement) Point() *point.Point {
 //nolint:lll
 var innoDBMeasurementInfo = &inputs.MeasurementInfo{
 	Name: metricNameMySQLInnodb,
-	Type: "metric",
+	Cat:  point.Metric,
 	Fields: map[string]interface{}{
 		"lock_deadlocks": &inputs.FieldInfo{
 			DataType: inputs.Int,

@@ -46,6 +46,7 @@ type exportOptions struct {
 	version         string
 	datakitImageURL string
 	ignoreMissing   bool
+	allMeasurements string
 }
 
 type option func(*exportOptions)
@@ -118,6 +119,9 @@ type Params struct {
 	// Measurements used to render metric info into markdown documents.
 	Measurements []*inputs.MeasurementInfo
 
+	// AllMeasurements used to show all measurement and it's category and source(input name)
+	AllMeasurements string
+
 	// Dashboard and Monitor used to mapping en/zh contents into dashboard/monitor JSON
 	Dashboard, Monitor map[string]string
 
@@ -178,6 +182,7 @@ func buildNonInputDocs(fileName string, md []byte, opt *exportOptions) ([]byte, 
 		NonInputENVSample:   make(map[string]string),
 		NonInputENVSampleZh: make(map[string]string),
 		DatakitConfSample:   datakit.MainConfSample(datakit.BrandDomainTemplate),
+		AllMeasurements:     opt.allMeasurements,
 		Year:                fmt.Sprintf("%d", time.Now().Year()),
 	}
 
