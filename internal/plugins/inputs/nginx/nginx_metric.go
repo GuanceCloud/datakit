@@ -6,6 +6,7 @@
 package nginx
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -14,8 +15,8 @@ type NginxMeasurement struct{}
 //nolint:lll
 func (m *NginxMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: nginx,
-		Type: "metric",
+		Name: measurementNginx,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"load_timestamp":      newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.TimestampMS, "Nginx process load time in milliseconds, exist when using vts"),
 			"connection_active":   newCountFieldInfo("The current number of active client connections"),

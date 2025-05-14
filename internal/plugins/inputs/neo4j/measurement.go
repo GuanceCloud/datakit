@@ -6,6 +6,7 @@
 package neo4j
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -14,7 +15,7 @@ type docMeasurement struct{}
 func (*docMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "neo4j",
-		Type:   "metric",
+		Cat:    point.Metric,
 		Fields: getFields(),
 		Tags: map[string]interface{}{
 			"host":       inputs.NewTagInfo("Host name."),

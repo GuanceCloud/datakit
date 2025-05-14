@@ -26,9 +26,9 @@ type slowlogMeasurement struct{}
 //nolint:lll
 func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Desc: "Redis 慢查询命令历史，这里我们将其以日志的形式采集",
+		Desc: "Redis slow query history logging",
 		Name: redisSlowlog,
-		Type: "logging",
+		Cat:  point.Logging,
 		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{
 				Desc: "server",

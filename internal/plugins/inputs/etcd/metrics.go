@@ -38,7 +38,7 @@ func (m *etcdMeasurement) Info() *inputs.MeasurementInfo {
 
 	return &inputs.MeasurementInfo{
 		Name:   inputName,
-		Type:   "metric",
+		Cat:    point.Metric,
 		Desc:   "etcd metrics.",
 		Fields: fields,
 		Tags: map[string]interface{}{

@@ -91,7 +91,8 @@ client config：
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-<!-- markdownlint-disable MD046 -->
+
+<!-- markdownlint-enable -->
 
 ---
 
@@ -103,9 +104,11 @@ Notes on configuration files:
 
 ---
 
-## Metric {#metric}
+## Tracing {#tracing}
 
 {{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "tracing"}}
 
 ### `{{$m.Name}}`
 
@@ -118,5 +121,28 @@ Notes on configuration files:
 - Metrics
 
 {{$m.FieldsMarkdownTable}}
+{{end}}
 
 {{ end }}
+
+## Metric {#metric}
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "metric"}}
+
+### Metric `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- Tags
+
+{{$m.TagsMarkdownTable}}
+
+- Metrics
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{ end }}
+<!-- markdownlint-enable -->

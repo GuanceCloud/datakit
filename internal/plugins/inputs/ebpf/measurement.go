@@ -16,7 +16,7 @@ type ConnStatsM struct{}
 func (m *ConnStatsM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "netflow",
-		Type: point.Network.String(),
+		Cat:  point.Network,
 		Tags: map[string]interface{}{
 			"host":       inputs.TagInfo{Desc: "System hostname"},
 			"dst_ip":     inputs.TagInfo{Desc: "Destination IP address"},
@@ -64,7 +64,7 @@ type HTTPFlowM struct{}
 func (m *HTTPFlowM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "httpflow",
-		Type: point.Network.String(),
+		Cat:  point.Network,
 		Tags: map[string]interface{}{
 			"host":        inputs.TagInfo{Desc: "System hostname"},
 			"dst_ip":      inputs.TagInfo{Desc: "Destination IP address"},
@@ -114,7 +114,7 @@ type DNSStatsM struct{}
 func (m *DNSStatsM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "dnsflow",
-		Type: point.Network.String(),
+		Cat:  point.Network,
 		Tags: map[string]interface{}{
 			"host":                    inputs.TagInfo{Desc: "System hostname"},
 			"dst_ip":                  inputs.TagInfo{Desc: "Destination IP address"},
@@ -157,7 +157,7 @@ type BashM struct{}
 func (m *BashM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "bash",
-		Type: point.Logging.String(),
+		Cat:  point.Logging,
 		Tags: map[string]interface{}{
 			"host": inputs.TagInfo{Desc: "host name"},
 		},
@@ -175,7 +175,7 @@ type BPFL4Log struct{}
 //nolint:lll
 func (bpfl4 *BPFL4Log) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Type: point.Logging.String(),
+		Cat:  point.Logging,
 		Name: "bpf_net_l4_log",
 		Tags: map[string]interface{}{
 			"host":          inputs.TagInfo{Desc: "Host name"},
@@ -236,7 +236,7 @@ type BPFL7Log struct{}
 //nolint:lll
 func (bpfl7 *BPFL7Log) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Type: point.Logging.String(),
+		Cat:  point.Logging,
 		Name: "bpf_net_l7_log",
 		Tags: map[string]interface{}{
 			"host":          inputs.TagInfo{Desc: "Host name"},
@@ -295,7 +295,7 @@ type EBPFTrace struct{}
 
 func (bpftrace *EBPFTrace) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Type: point.Tracing.String(),
+		Cat:  point.Tracing,
 		Name: "dketrace",
 		Tags: map[string]any{
 			"service": inputs.TagInfo{Desc: "Service name"},

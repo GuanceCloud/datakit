@@ -57,7 +57,7 @@ func (m *NetflowMeasurement) Point() *point.Point {
 func (*NetflowMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: DefaultSource,
-		Type: "logging",
+		Cat:  point.Metric,
 		Desc: "Using `source` field in the config file, default is `default`.",
 		Tags: map[string]interface{}{
 			"ip":   inputs.NewTagInfo("Collector IP address."),

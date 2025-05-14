@@ -32,7 +32,7 @@ func (m *TraceMeasurement) Point() *point.Point {
 func (m *TraceMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: m.Name,
-		Type: "tracing",
+		Cat:  point.Tracing,
 		Tags: map[string]interface{}{
 			TagHost:             &inputs.TagInfo{Desc: "Hostname."},
 			TagContainerHost:    &inputs.TagInfo{Desc: "Container hostname. Available in OpenTelemetry. Optional."},

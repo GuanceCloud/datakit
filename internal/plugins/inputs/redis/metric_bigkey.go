@@ -41,7 +41,7 @@ type bigKeyMeasurement struct{}
 func (m *bigKeyMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: redisBigkey,
-		Type: "logging",
+		Cat:  point.Logging,
 		Fields: map[string]interface{}{
 			"value_length": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Key length."},
 			"keys_sampled": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Sampled keys in the key space."},

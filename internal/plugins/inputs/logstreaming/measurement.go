@@ -6,6 +6,7 @@
 package logstreaming
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -16,9 +17,10 @@ type logstreamingMeasurement struct{}
 //nolint:lll
 func (*logstreamingMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Type: "logging",
-		Name: defaultMeasurementName,
-		Desc: "Using `source` field in the config file, default is `default`.",
+		Cat:            point.Logging,
+		MetaDuplicated: true,
+		Name:           defaultMeasurementName,
+		Desc:           "Using `source` field in the config file, default is `default`.",
 		Tags: map[string]interface{}{
 			"service":        inputs.NewTagInfo("Service name. Using the `service` parameter in the URL."),
 			"ip_or_hostname": inputs.NewTagInfo("Request IP or hostname."),

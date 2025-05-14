@@ -36,7 +36,7 @@ func (m *SolrRequestTimes) Point() *point.Point {
 func (m *SolrRequestTimes) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameRequestTimes,
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "Request handler request times statistics.",
 		Tags: map[string]interface{}{
 			"host":     &inputs.TagInfo{Desc: "System hostname."},
@@ -81,7 +81,7 @@ func (m *SolrCache) Point() *point.Point {
 func (m *SolrCache) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameCache,
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "Cache statistics.",
 		Tags: map[string]interface{}{
 			"host":     &inputs.TagInfo{Desc: "System hostname."},
@@ -125,7 +125,7 @@ func (m *SolrSearcher) Point() *point.Point {
 func (m *SolrSearcher) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameSearcher,
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "Searcher Statistics",
 		Tags: map[string]interface{}{
 			"host":     &inputs.TagInfo{Desc: "System hostname."},

@@ -6,6 +6,7 @@
 package iis
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -26,7 +27,7 @@ type IISAppPoolWas measurement
 func (m *IISAppPoolWas) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameAppPoolWas,
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "",
 		Tags: map[string]interface{}{
 			"host":     &inputs.TagInfo{Desc: "Host name"},
@@ -46,7 +47,7 @@ type IISWebService measurement
 func (m *IISWebService) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameWebService,
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "",
 		Tags: map[string]interface{}{
 			"host":    &inputs.TagInfo{Desc: "Host name"},

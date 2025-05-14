@@ -6,6 +6,7 @@
 package nginx
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -14,8 +15,8 @@ type ServerZoneMeasurement struct{}
 //nolint:lll
 func (m *ServerZoneMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: ServerZone,
-		Type: "metric",
+		Name: measurementServerZone,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"requests":     newCountFieldInfo("The total number of client requests received from clients."),
 			"received":     newByteFieldInfo("The total amount of data received from clients."),
@@ -49,8 +50,8 @@ type UpstreamZoneMeasurement struct{}
 //nolint:lll
 func (m *UpstreamZoneMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: UpstreamZone,
-		Type: "metric",
+		Name: measurementUpstreamZone,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"request_count": newCountFieldInfo("The total number of client requests received from server."),
 			"received":      newByteFieldInfo("The total number of bytes received from this server."),
@@ -84,8 +85,8 @@ type CacheZoneMeasurement struct{}
 //nolint:lll
 func (m *CacheZoneMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: CacheZone,
-		Type: "metric",
+		Name: measurementCacheZone,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"max_size":              newByteFieldInfo("The limit on the maximum size of the cache specified in the configuration"),
 			"used_size":             newByteFieldInfo("The current size of the cache."),

@@ -173,7 +173,7 @@ func (*Input) AvailableArchs() []string {
 
 func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&Measurement{},
+		inputs.DefaultEmptyMeasurement,
 	}
 }
 

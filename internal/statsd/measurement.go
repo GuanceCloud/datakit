@@ -6,6 +6,7 @@
 package statsd
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -22,6 +23,7 @@ type (
 func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "jvm",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"heap_memory":                 &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java heap memory used."}, // down jvm & jmx mertrics
 			"heap_memory_committed":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java heap memory committed to be used."},
@@ -80,6 +82,7 @@ func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 func (m *JMXMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "jmx",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			// buffer_pool_direct_capacity 这个没找到解释
 			"heap_memory":               &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java heap memory used."},
@@ -119,6 +122,7 @@ func (m *JMXMeasurement) Info() *inputs.MeasurementInfo {
 func (m *DDtraceMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "ddtrace",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"tracer_queue_enqueued_spans":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Tracer queue enqueued spans."},
 			"tracer_queue_enqueued_traces":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Tracer queue enqueued traces."},
@@ -152,102 +156,4 @@ func (m *DDtraceMeasurement) Info() *inputs.MeasurementInfo {
 			"endpoint":                inputs.TagInfo{Desc: "Endpoint."},
 		},
 	}
-}
-
-func MergeAllMeasurementInfo(info *inputs.MeasurementInfo) *inputs.MeasurementInfo {
-	return MergeMeasurementInfo(info, (&JVMMeasurement{}).Info(), (&JMXMeasurement{}).Info(), (&DDtraceMeasurement{}).Info())
-}
-
-func MergeMeasurementInfo(infos ...*inputs.MeasurementInfo) *inputs.MeasurementInfo {
-	if len(infos) == 0 {
-		return &inputs.MeasurementInfo{}
-	}
-
-	retInfo := infos[len(infos)-1]
-	for i := len(infos) - 2; i >= 0; i-- {
-		for k, v := range infos[i].Fields {
-			retInfo.Fields[k] = v
-		}
-		for k, v := range infos[i].Tags {
-			retInfo.Tags[k] = v
-		}
-	}
-	retInfo.Name = infos[0].Name
-
-	return retInfo
-}
-
-func MergeSlice(a, b []string) []string {
-	m := make(map[string]bool)
-	for _, v := range a {
-		m[v] = true
-	}
-	for _, v := range b {
-		m[v] = true
-	}
-	c := make([]string, 0)
-	for k := range m {
-		c = append(c, k)
-	}
-	return c
-}
-
-func GetJVMOptionalFields() []string {
-	m := &JVMMeasurement{}
-	info := m.Info()
-	_ = info
-	s := make([]string, 0)
-	for k := range m.Info().Fields {
-		s = append(s, k)
-	}
-	return s
-}
-
-func GetJVMOptionalTags() []string {
-	m := &JVMMeasurement{}
-	s := make([]string, 0)
-	for k := range m.Info().Tags {
-		s = append(s, k)
-	}
-	return s
-}
-
-func GetJMXOptionalFields() []string {
-	m := &JMXMeasurement{}
-	info := m.Info()
-	_ = info
-	s := make([]string, 0)
-	for k := range m.Info().Fields {
-		s = append(s, k)
-	}
-	return s
-}
-
-func GetJMXOptionalTags() []string {
-	m := &JMXMeasurement{}
-	s := make([]string, 0)
-	for k := range m.Info().Tags {
-		s = append(s, k)
-	}
-	return s
-}
-
-func GetDDtraceOptionalFields() []string {
-	m := &DDtraceMeasurement{}
-	info := m.Info()
-	_ = info
-	s := make([]string, 0)
-	for k := range m.Info().Fields {
-		s = append(s, k)
-	}
-	return s
-}
-
-func GetDDtraceOptionalTags() []string {
-	m := &DDtraceMeasurement{}
-	s := make([]string, 0)
-	for k := range m.Info().Tags {
-		s = append(s, k)
-	}
-	return s
 }

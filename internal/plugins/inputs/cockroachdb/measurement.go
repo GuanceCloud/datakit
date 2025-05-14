@@ -6,6 +6,7 @@
 package cockroachdb
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -20,7 +21,7 @@ type docMeasurement struct{}
 func (*docMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "cockroachdb",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"abortspanbytes":                                                      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Number of bytes in the abort span."},
 			"addsstable_applications":                                             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "[OpenMetrics v1] Number of SSTable ingestion applied (i.e. applied by Replicas)."},

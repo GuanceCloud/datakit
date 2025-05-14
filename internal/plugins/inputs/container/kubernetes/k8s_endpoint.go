@@ -99,7 +99,7 @@ func (*endpointMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: endpointMetricMeasurement,
 		Desc: "The metric of the Kubernetes Endpoints.",
-		Type: "metric",
+		Cat:  point.Metric,
 		Tags: map[string]interface{}{
 			"uid":              inputs.NewTagInfo("The UID of Endpoint."),
 			"endpoint":         inputs.NewTagInfo("Name must be unique within a namespace."),

@@ -15,7 +15,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/pipeline-go/ptinput/funcs"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/all"
@@ -30,6 +32,9 @@ type Integration struct {
 	opt *exportOptions
 
 	docs map[string][]byte
+
+	// all measuments list by category
+	measurements map[point.Category][]string
 }
 
 func NewIntegration(opts ...option) *Integration {
@@ -45,8 +50,9 @@ func NewIntegration(opts ...option) *Integration {
 	}
 
 	return &Integration{
-		opt:  eo,
-		docs: map[string][]byte{},
+		opt:          eo,
+		docs:         map[string][]byte{},
+		measurements: map[point.Category][]string{},
 	}
 }
 
@@ -105,13 +111,8 @@ func (i *Integration) Check() error { return nil }
 
 // ExportMiscs export pipeline sample/docs(base64)/metric docs.
 func (i *Integration) ExportMiscs(lang inputs.I18n) error {
-	if j, err := exportMetaInfo(inputs.Inputs); err != nil {
+	if err := i.exportMetaInfo(inputs.Inputs, lang); err != nil {
 		return err
-	} else {
-		i.docs[filepath.Join(i.opt.topDir,
-			"datakit",
-			lang.String(),
-			"measurements-meta.json")] = j
 	}
 
 	pe := newPLB64DocExporter(lang)

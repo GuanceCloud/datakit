@@ -39,7 +39,7 @@ func (m *processMeasurement) Point() *point.Point {
 func (m *processMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: oracleProcess,
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"pga_alloc_mem":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "PGA memory allocated by process"},
 			"pga_freeable_mem": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "PGA memory freeable by process"},
@@ -78,7 +78,7 @@ func (m *tablespaceMeasurement) Point() *point.Point {
 func (m *tablespaceMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: oracleTablespace,
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"in_use":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Percentage of used space,as a function of the maximum possible Tablespace size"},
 			"off_use":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total space consumed by the Tablespace,in database blocks"},
@@ -116,7 +116,7 @@ func (m *systemMeasurement) Point() *point.Point {
 func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: oracleSystem,
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "You have to wait for a few minutes to see these metrics when your running Oracle database's version is earlier than 12c.",
 		Fields: map[string]interface{}{
 			"active_sessions":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of active sessions"},

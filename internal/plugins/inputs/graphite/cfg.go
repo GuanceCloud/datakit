@@ -86,7 +86,7 @@ type Measurement struct {
 func (m *Measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   inputName,
-		Type:   "metric",
+		Cat:    point.Metric,
 		Desc:   "Graphite exporter metrics",
 		Fields: map[string]interface{}{},
 		Tags:   map[string]interface{}{},

@@ -7,6 +7,7 @@
 package pinpoint
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -106,6 +107,6 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 			"container":    &inputs.TagInfo{Desc: "Whether it is a container"},
 			"agentVersion": &inputs.TagInfo{Desc: "Pinpoint agent version"},
 		},
-		Type: "metric",
+		Cat: point.Metric,
 	}
 }

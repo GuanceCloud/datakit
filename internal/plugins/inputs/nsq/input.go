@@ -95,6 +95,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&nsqTopicMeasurement{},
 		&nsqNodesMeasurement{},
 		&customerObjectMeasurement{},
+		&inputs.UpMeasurement{},
 	}
 }
 

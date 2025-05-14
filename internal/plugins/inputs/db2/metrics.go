@@ -54,6 +54,7 @@ func (m *instanceMeasurement) Point() *point.Point {
 func (m *instanceMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameInstance,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"connection_active": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The current number of connections."},
 		},
@@ -84,6 +85,7 @@ func (m *databaseMeasurement) Point() *point.Point {
 func (m *databaseMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameDatabase,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"application_active":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of applications that are currently connected to the database."},
 			"application_executing": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of applications for which the database manager is currently processing a request."},
@@ -128,6 +130,7 @@ func (m *bufferPoolMeasurement) Point() *point.Point {
 func (m *bufferPoolMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameBufferPool,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"bufferpool_column_hit_percent":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "The percentage of time that the database manager did not need to load a page from disk to service a column-organized table data page request."},
 			"bufferpool_column_reads_logical":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of column-organized table data pages read from the logical table space containers for temporary, regular, and large table spaces."},
@@ -178,6 +181,7 @@ func (m *tableSpaceMeasurement) Point() *point.Point {
 func (m *tableSpaceMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameTableSpace,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"tablespace_size":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The total size of the table space in bytes."},
 			"tablespace_usable":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The total usable size of the table space in bytes."},
@@ -212,6 +216,7 @@ func (m *transactionLogMeasurement) Point() *point.Point {
 func (m *transactionLogMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameTransactionLog,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"log_available": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The disk blocks (4 KiB each) of active log space in the database that is not being used by uncommitted transactions."},
 			"log_reads":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of log pages read from disk by the logger."},

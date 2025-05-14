@@ -260,8 +260,8 @@ type MetricMeasurement struct{}
 func (*MetricMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: jvmMetricName,
-		Desc: "jvm metrics collected by SkyWalking language agent.",
-		Type: "metric",
+		Desc: "JVM metrics collected by SkyWalking language agent.",
+		Cat:  point.Metric,
 		Tags: map[string]interface{}{"service": &inputs.TagInfo{Desc: "service name"}},
 		Fields: map[string]interface{}{
 			"cpu_usage_percent": &inputs.FieldInfo{

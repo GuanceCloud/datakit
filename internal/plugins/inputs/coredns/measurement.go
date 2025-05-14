@@ -6,6 +6,7 @@
 package coredns
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -23,7 +24,7 @@ type (
 func (*aCLMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "coredns_acl",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"blocked_requests_total": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -62,7 +63,7 @@ func (*aCLMeasurement) Info() *inputs.MeasurementInfo {
 func (*cacheMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "coredns_cache",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"entries": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -126,7 +127,7 @@ func (*cacheMeasurement) Info() *inputs.MeasurementInfo {
 func (*dnsSecMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "coredns_dnssec",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"cache_entries": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -159,7 +160,7 @@ func (*dnsSecMeasurement) Info() *inputs.MeasurementInfo {
 func (*forwardMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "coredns_forward",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"requests_total": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -223,7 +224,7 @@ func (*forwardMeasurement) Info() *inputs.MeasurementInfo {
 func (*grpcMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "coredns_grpc",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"requests_total": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -256,7 +257,7 @@ func (*grpcMeasurement) Info() *inputs.MeasurementInfo {
 func (*hostsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "coredns_hosts",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"entries": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -281,7 +282,7 @@ func (*hostsMeasurement) Info() *inputs.MeasurementInfo {
 func (*templateMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "coredns_template",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"matches_total": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -319,7 +320,7 @@ func (*templateMeasurement) Info() *inputs.MeasurementInfo {
 func (*promMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "coredns",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"dns64_requests_translated_total": &inputs.FieldInfo{
 				DataType: inputs.Float,

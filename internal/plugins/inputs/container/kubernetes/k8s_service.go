@@ -201,7 +201,7 @@ func (*serviceMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: serviceMetricMeasurement,
 		Desc: "The metric of the Kubernetes Service.",
-		Type: "metric",
+		Cat:  point.Metric,
 		Tags: map[string]interface{}{
 			"uid":              inputs.NewTagInfo("The UID of Service"),
 			"service":          inputs.NewTagInfo("Name must be unique within a namespace."),
@@ -221,7 +221,7 @@ func (*serviceObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: serviceObjectMeasurement,
 		Desc: "The object of the Kubernetes Service.",
-		Type: "object",
+		Cat:  point.Object,
 		Tags: map[string]interface{}{
 			"name":             inputs.NewTagInfo("The UID of Service"),
 			"uid":              inputs.NewTagInfo("The UID of Service"),

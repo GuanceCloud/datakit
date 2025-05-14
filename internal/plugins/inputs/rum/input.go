@@ -33,7 +33,6 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
 	"google.golang.org/protobuf/proto"
 )
@@ -184,7 +183,7 @@ func (*Input) AvailableArchs() []string { return datakit.AllOS }
 func (*Input) SampleConfig() string { return sampleConfig }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{&trace.TraceMeasurement{Name: inputName}}
+	return []inputs.Measurement{inputs.DefaultEmptyMeasurement}
 }
 
 func (ipt *Input) RegHTTPHandler() {

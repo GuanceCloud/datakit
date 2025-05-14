@@ -21,6 +21,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
+const (
+	telemetryMeasurementName = "tracing_service"
+)
+
 type Telemetry struct {
 	lock        sync.RWMutex
 	host        Host
@@ -38,7 +42,7 @@ func (ob *Telemetry) toPoint() *point.Point {
 	opts := point.DefaultObjectOptions()
 	opts = append(opts, point.WithTime(ob.traceTime))
 	kvs := append(point.NewTags(ob.tags), point.NewKVs(ob.fields)...)
-	return point.NewPointV2("tracing_service", kvs, opts...)
+	return point.NewPointV2(telemetryMeasurementName, kvs, opts...)
 }
 
 func (ob *Telemetry) setField(key string, val interface{}) {
@@ -49,9 +53,9 @@ func (ob *Telemetry) setField(key string, val interface{}) {
 
 func (ob *Telemetry) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "DdTrace APM Telemetry",
-		Desc: "Collect service,host,process APM Telemetry message.",
-		Type: "object",
+		Name: telemetryMeasurementName,
+		Desc: "Collect service, host, process APM telemetry message.",
+		Cat:  point.CustomObject,
 		Fields: map[string]interface{}{
 			string(RequestTypeAppStarted): &inputs.FieldInfo{
 				Type:     inputs.Gauge,
@@ -104,8 +108,8 @@ func (ob *Telemetry) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"hostname":         inputs.NewTagInfo("Host name"),
-			"os":               inputs.NewTagInfo("os"),
-			"os_version":       inputs.NewTagInfo("os version"),
+			"os":               inputs.NewTagInfo("OS name"),
+			"os_version":       inputs.NewTagInfo("OS version"),
 			"architecture":     inputs.NewTagInfo("Architecture"),
 			"kernel_name":      inputs.NewTagInfo("Kernel name"),
 			"kernel_release":   inputs.NewTagInfo("Kernel release"),
@@ -114,7 +118,7 @@ func (ob *Telemetry) Info() *inputs.MeasurementInfo {
 			"name":             inputs.NewTagInfo("same as service name"),
 			"env":              inputs.NewTagInfo("Service ENV"),
 			"service_version":  inputs.NewTagInfo("Service version"),
-			"tracer_version":   inputs.NewTagInfo("DdTrace version"),
+			"tracer_version":   inputs.NewTagInfo("DDTrace version"),
 			"language_name":    inputs.NewTagInfo("Language name"),
 			"language_version": inputs.NewTagInfo("Language version"),
 			"runtime_name":     inputs.NewTagInfo("Runtime name"),

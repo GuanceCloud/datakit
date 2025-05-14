@@ -6,6 +6,7 @@
 package doris
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -16,7 +17,7 @@ type feMeasurement struct{}
 func (*feMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "doris_fe",
-		Type: "metric",
+		Cat:  point.Metric,
 		//nolint:lll
 		Fields: map[string]interface{}{
 			"cache_added":                 &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative value of the number."},
@@ -86,7 +87,7 @@ type jvmMeasurement struct{}
 func (*jvmMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "doris_jvm",
-		Type: "metric",
+		Cat:  point.Metric,
 		//nolint:lll
 		Fields: map[string]interface{}{
 			"heap_size_bytes":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "JVM memory metrics. The tags include max, used, committed , corresponding to the maximum value, used and requested memory respectively."},
@@ -109,7 +110,7 @@ type commonMeasurement struct{}
 func (*commonMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "doris_common",
-		Type: "metric",
+		Cat:  point.Metric,
 		//nolint:lll
 		Fields: map[string]interface{}{
 			"system_meminfo": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "FE node machines. Collected from /proc/meminfo . include buffers , cached , memory_available , memory_free , memory_total."},
@@ -131,7 +132,7 @@ type beMeasurement struct{}
 func (*beMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "doris_be",
-		Type: "metric",
+		Cat:  point.Metric,
 		//nolint:lll
 		Fields: map[string]interface{}{
 			// be process metrics

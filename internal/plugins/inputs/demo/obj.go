@@ -8,6 +8,7 @@ package demo
 import (
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -21,9 +22,10 @@ type demoObj struct {
 //nolint:lll
 func (m *demoObj) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "demo-obj",
-		Type: "object",
-		Desc: "这是一个对象的 demo(**务必加上每个指标集的描述**)",
+		Name:       "demo-obj",
+		Cat:        point.Object,
+		ExportSkip: true,
+		Desc:       "这是一个对象的 demo(**务必加上每个指标集的描述**)",
 		Tags: map[string]interface{}{
 			"tag_a": &inputs.TagInfo{Desc: "示例 tag A"},
 			"tag_b": &inputs.TagInfo{Desc: "示例 tag B"},

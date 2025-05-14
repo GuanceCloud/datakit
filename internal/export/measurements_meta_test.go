@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -21,35 +22,37 @@ func Test_exportMetaInfo(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    outputMetaInfo
+		expect  outputMetaInfo
 		wantErr bool
 	}{
 		{
 			name:    "ok",
 			args:    args{ipts: mockIpts01()},
-			want:    getWant01(),
+			expect:  getWant01(),
 			wantErr: false,
 		},
 		{
 			name:    "error type='objectERROR'",
 			args:    args{ipts: mockIpts02()},
-			want:    outputMetaInfo{},
+			expect:  outputMetaInfo{},
 			wantErr: true,
 		},
 		{
 			name:    "error type=' '",
 			args:    args{ipts: mockIpts03()},
-			want:    outputMetaInfo{},
+			expect:  outputMetaInfo{},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := exportMetaInfo(tt.args.ipts)
+			got, err := doExportMetaInfo(tt.args.ipts)
+
 			if (err != nil) != tt.wantErr {
 				t.Errorf("exportMetaInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if err != nil {
 				l.Debugf("exportMetaInfo() got wanted error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -61,8 +64,8 @@ func Test_exportMetaInfo(t *testing.T) {
 				t.Errorf("Unmarshal error = %v", err)
 			}
 
-			assert.Equal(t, gotObj.MetricMetaInfo, tt.want.MetricMetaInfo)
-			assert.Equal(t, gotObj.ObjectMetaInfo, tt.want.ObjectMetaInfo)
+			assert.Equal(t, gotObj.MMetaInfo, tt.expect.MMetaInfo)
+			assert.Equal(t, gotObj.OMetaInfo, tt.expect.OMetaInfo)
 		})
 	}
 }
@@ -551,7 +554,7 @@ func (mockCPUMeasurement) Info() *inputs.MeasurementInfo {
 	// see https://man7.org/linux/man-pages/man5/proc.5.html
 	return &inputs.MeasurementInfo{
 		Name: "mockCPU",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"usage_user": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
@@ -650,7 +653,7 @@ type mockHostObjectMeasurement struct{}
 func (*mockHostObjectMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "HostObject",
-		Type: "object",
+		Cat:  point.Object,
 		Desc: "Host object metrics",
 		Tags: map[string]interface{}{
 			"host": &inputs.TagInfo{Desc: "Hostname. Required."},
@@ -712,7 +715,7 @@ type (
 func (m *mockDemoMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "demo-metric",
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "这是一个指标集的 demo(**务必加上每个指标集的描述**)",
 		Tags: map[string]interface{}{
 			"tag_a": &inputs.TagInfo{Desc: "示例 tag A"},
@@ -756,7 +759,7 @@ func (m *mockDemoMetric) Info() *inputs.MeasurementInfo {
 func (m *mockDemoMetric2) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "demo-metric2",
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "这是一个指标集的 demo(**务必加上每个指标集的描述**)",
 		Tags: map[string]interface{}{
 			"tag_a": &inputs.TagInfo{Desc: "示例 tag A"},
@@ -801,7 +804,7 @@ func (m *mockDemoMetric2) Info() *inputs.MeasurementInfo {
 func (m *mockDemoObj) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "demo-obj",
-		Type: "object",
+		Cat:  point.Object,
 		Desc: "这是一个对象的 demo(**务必加上每个指标集的描述**)",
 		Tags: map[string]interface{}{
 			"tag_a": &inputs.TagInfo{Desc: "示例 tag A"},
@@ -846,7 +849,7 @@ func (m *mockDemoObj) Info() *inputs.MeasurementInfo {
 func (m *mockDemoLog) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "demo-log",
-		Type: "logging",
+		Cat:  point.Logging,
 		Desc: "这是一个日志的 demo(**务必加上每个指标集的描述**)",
 		Tags: map[string]interface{}{
 			"tag_a": &inputs.TagInfo{Desc: "示例 tag A"},
@@ -890,7 +893,7 @@ func (m *mockDemoLog) Info() *inputs.MeasurementInfo {
 func (m *mockDemoMetric0Field) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "demo-metric-0-field",
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "这是一个指标集的 demo(**务必加上每个指标集的描述**)",
 		Tags: map[string]interface{}{
 			"tag_a": &inputs.TagInfo{Desc: "示例 tag A"},
@@ -903,7 +906,7 @@ func (m *mockDemoMetric0Field) Info() *inputs.MeasurementInfo {
 func (m *mockDemoMetric0Tag) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "demo-metric-0-tag",
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "这是一个指标集的 demo(**务必加上每个指标集的描述**)",
 		Tags: map[string]interface{}{},
 		Fields: map[string]interface{}{
@@ -944,7 +947,7 @@ type mockError01Measurement struct{}
 func (*mockError01Measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "Error01",
-		Type: "objectERROR",
+		Cat:  point.UnknownCategory,
 		Tags: map[string]interface{}{
 			"host": &inputs.TagInfo{Desc: "Hostname. Required."},
 		},
@@ -981,7 +984,7 @@ type mockError02Measurement struct{}
 func (*mockError02Measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "Error02",
-		Type: " ",
+		Cat:  point.UnknownCategory,
 		Tags: map[string]interface{}{
 			"host": &inputs.TagInfo{Desc: "Hostname. Required."},
 		},

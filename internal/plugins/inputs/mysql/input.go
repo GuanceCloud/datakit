@@ -956,6 +956,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&dbmActivityMeasurement{},
 		&replicationLogMeasurement{},
 		&customerObjectMeasurement{},
+		&inputs.UpMeasurement{},
 	}
 }
 

@@ -10,12 +10,5 @@ import (
 )
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{meas{}}
-}
-
-type meas struct{}
-
-//nolint:lll
-func (meas) Info() *inputs.MeasurementInfo {
-	return nil
+	return []inputs.Measurement{inputs.DefaultEmptyMeasurement}
 }

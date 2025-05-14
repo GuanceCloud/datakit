@@ -36,7 +36,7 @@ func (m *userMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Desc: "MySQL user information",
 		Name: metricNameMySQLUserStatus,
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			// status
 			"bytes_received": &inputs.FieldInfo{

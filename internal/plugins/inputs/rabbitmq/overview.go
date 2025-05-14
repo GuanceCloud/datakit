@@ -104,7 +104,7 @@ func (m *OverviewMeasurement) Point() *point.Point {
 func (m *OverviewMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: OverviewMetric,
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"object_totals_channels":    newCountFieldInfo("Total number of channels"),
 			"object_totals_connections": newCountFieldInfo("Total number of connections"),

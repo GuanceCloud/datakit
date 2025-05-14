@@ -9,6 +9,8 @@
 package dialtesting
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -18,6 +20,7 @@ type httpMeasurement struct{}
 func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "http_dial_testing",
+		Cat:  point.DialTesting,
 		Tags: map[string]interface{}{
 			"name":               &inputs.TagInfo{Desc: "The name of the task"},
 			"url":                &inputs.TagInfo{Desc: "The URL of the endpoint to be monitored"},
@@ -132,6 +135,7 @@ type tcpMeasurement struct{}
 func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "tcp_dial_testing",
+		Cat:  point.DialTesting,
 		Tags: map[string]interface{}{
 			"name":            &inputs.TagInfo{Desc: "The name of the task"},
 			"dest_host":       &inputs.TagInfo{Desc: "The name of the host to be monitored"},
@@ -214,6 +218,7 @@ type icmpMeasurement struct{}
 func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "icmp_dial_testing",
+		Cat:  point.DialTesting,
 		Tags: map[string]interface{}{
 			"name":            &inputs.TagInfo{Desc: "The name of the task"},
 			"dest_host":       &inputs.TagInfo{Desc: "The name of the host to be monitored"},
@@ -348,6 +353,7 @@ type websocketMeasurement struct{}
 func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "websocket_dial_testing",
+		Cat:  point.DialTesting,
 		Tags: map[string]interface{}{
 			"name":            &inputs.TagInfo{Desc: "The name of the task"},
 			"url":             &inputs.TagInfo{Desc: "The URL string, such as `ws://www.abc.com`"},
@@ -434,6 +440,7 @@ type multiMeasurement struct{}
 func (m *multiMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "multi_dial_testing",
+		Cat:  point.DialTesting,
 		Tags: map[string]interface{}{
 			"name":            &inputs.TagInfo{Desc: "The name of the task"},
 			"node_name":       &inputs.TagInfo{Desc: "The name of the node"},

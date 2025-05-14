@@ -146,7 +146,7 @@ func (*Input) AvailableArchs() []string { return datakit.AllOS }
 func (*Input) SampleConfig() string { return sampleConfig }
 
 func (ipt *Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{&MetricMeasurement{}, &itrace.TraceMeasurement{}}
+	return []inputs.Measurement{&MetricMeasurement{}, &itrace.TraceMeasurement{Name: "skywalking"}}
 }
 
 func (ipt *Input) RegHTTPHandler() {

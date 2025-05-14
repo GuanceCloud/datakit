@@ -111,38 +111,46 @@ Cat 通过采集系统的各种指标数据，如 CPU、内存、网络、磁盘
 ---
 
 
-## 数据字段说明 {#fields}
+<!-- markdownlint-disable MD024 -->
+## Tracing {#tracing}
 
-{{range $i, $m := .Measurements}}
+{{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "tracing"}}
 
-### 链路字段说明 {#tracing}
+### `{{$m.Name}}`
 
 {{$m.Desc}}
 
-- 标签（String 类型）
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表（非 String 类型，或者长 String 类型）
+- 字段列表
 
 {{$m.FieldsMarkdownTable}}
 {{end}}
+
+{{ end }}
+
+## Metric {#metric}
+
+{{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "metric"}}
 
-### 指标类型 {#metric}
+### Metric `{{$m.Name}}`
 
 {{$m.Desc}}
 
-- 指标的标签
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表
+- 字段列表
 
 {{$m.FieldsMarkdownTable}}
 {{end}}
 
-{{end}}
+{{ end }}
+<!-- markdownlint-enable -->

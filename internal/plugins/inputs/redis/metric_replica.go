@@ -25,7 +25,7 @@ type replicaMeasurement struct{}
 func (m *replicaMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: redisReplica,
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"master_repl_offset": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Desc: "The server's current replication offset."},
 			// "repl_delay":                     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Desc: "Replica delay"},

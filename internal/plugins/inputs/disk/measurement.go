@@ -6,6 +6,7 @@
 package disk
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -15,7 +16,7 @@ type docMeasurement struct{}
 func (*docMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "disk",
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "For FAT-like file system on Linux, there is no inode related metrics",
 		Fields: map[string]interface{}{
 			"total": &inputs.FieldInfo{

@@ -6,6 +6,8 @@
 package kafka
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -153,6 +155,7 @@ var connectTags = map[string]interface{}{
 func (j *KafkaConnectMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "kafka_connect",
+		Cat:    point.Metric,
 		Fields: connectFields,
 		Tags:   connectTags,
 		Desc:   "This metrics needs to be collected on the Connect instance",
@@ -229,6 +232,7 @@ var producerTags = map[string]interface{}{
 func (j *KafkaProducerMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "kafka_producer",
+		Cat:    point.Metric,
 		Fields: producerFields,
 		Tags:   producerTags,
 		Desc:   "This metrics needs to be collected on the Producer instance",
@@ -314,6 +318,7 @@ var consumerTags = map[string]interface{}{
 func (j *KafkaConsumerMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "kafka_consumer",
+		Cat:    point.Metric,
 		Fields: consumerFields,
 		Tags:   consumerTags,
 		Desc:   "This metrics needs to be collected on the Consumer instance",
@@ -338,6 +343,7 @@ var logTags = map[string]interface{}{
 func (j *KafkaLogMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "kafka_log",
+		Cat:    point.Metric,
 		Fields: logFields,
 		Tags:   logTags,
 	}
@@ -360,6 +366,7 @@ var networkTags = map[string]interface{}{
 func (j *KafkaNetworkMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "kafka_network",
+		Cat:    point.Metric,
 		Fields: networkFields,
 		Tags:   networkTags,
 	}
@@ -383,6 +390,7 @@ var requestHandlerTags = map[string]interface{}{
 func (j *KafkaRequestHandlerMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "kafka_request_handler",
+		Cat:    point.Metric,
 		Fields: requestHandlerFields,
 		Tags:   requestHandlerTags,
 	}
@@ -410,6 +418,7 @@ var zooKeeperTags = map[string]interface{}{
 func (j *KafkaZooKeeperMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "kafka_zookeeper",
+		Cat:    point.Metric,
 		Fields: zooKeeperFields,
 		Tags:   zooKeeperTags,
 	}
@@ -781,6 +790,7 @@ var controllerTags = map[string]interface{}{
 func (j *KafkaControllerMment) Info() *inputs.MeasurementInfo { //nolint:funlen
 	return &inputs.MeasurementInfo{
 		Name:   "kafka_controller",
+		Cat:    point.Metric,
 		Desc:   "In Kafka cluster mode, a unique controller node will be elected, and only the controller node will receive valid metrics.",
 		Fields: controllerFields,
 		Tags:   controllerTags,
@@ -829,6 +839,7 @@ var replicationFields = map[string]interface{}{
 func (j *KafkaReplicaMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "kafka_replica_manager",
+		Cat:    point.Metric,
 		Fields: replicationFields,
 		Tags:   replicationTags,
 	}
@@ -868,6 +879,7 @@ var purgatoryFields = map[string]interface{}{
 func (j *KafkaPurgatoryMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "kafka_purgatory",
+		Cat:    point.Metric,
 		Fields: purgatoryFields,
 		Tags:   purgatoryTags,
 	}
@@ -979,6 +991,7 @@ var requestTags = map[string]interface{}{
 func (j *KafkaRequestMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "kafka_request",
+		Cat:    point.Metric,
 		Fields: requestFields,
 		Tags:   requestTags,
 	}
@@ -1138,6 +1151,7 @@ var topicsTags = map[string]interface{}{
 func (j *KafkaTopicsMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "kafka_topics",
+		Cat:    point.Metric,
 		Fields: topicsFields,
 		Tags:   topicsTags,
 	}
@@ -1194,6 +1208,7 @@ var topicTags = map[string]interface{}{
 func (j *KafkaTopicMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "kafka_topic",
+		Cat:    point.Metric,
 		Tags:   topicTags,
 		Fields: topicFields,
 	}
@@ -1217,6 +1232,7 @@ var partitionTags = map[string]interface{}{
 func (j *KafkaPartitionMment) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "kafka_partition",
+		Cat:    point.Metric,
 		Tags:   partitionTags,
 		Fields: partitionFields,
 	}

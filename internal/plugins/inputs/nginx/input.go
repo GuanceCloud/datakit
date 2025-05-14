@@ -303,6 +303,7 @@ func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 		&CacheZoneMeasurement{},
 		&LocationZoneMeasurement{},
 		&customerObjectMeasurement{},
+		&inputs.UpMeasurement{},
 	}
 }
 

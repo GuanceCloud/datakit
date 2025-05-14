@@ -100,7 +100,7 @@ func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Desc: "Collect the waiting event of the current thread",
 		Name: metricNameMySQLDbmActivity,
-		Type: "logging",
+		Cat:  point.Logging,
 		Fields: map[string]interface{}{
 			"query_signature": &inputs.FieldInfo{
 				DataType: inputs.String,

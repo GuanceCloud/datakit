@@ -181,7 +181,7 @@ func (*replicasetMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: replicasetMetricMeasurement,
 		Desc: "The metric of the Kubernetes ReplicaSet.",
-		Type: "metric",
+		Cat:  point.Metric,
 		Tags: map[string]interface{}{
 			"uid":              inputs.NewTagInfo("The UID of ReplicaSet."),
 			"replicaset":       inputs.NewTagInfo("Name must be unique within a namespace."),
@@ -205,7 +205,7 @@ func (*replicasetObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: replicasetObjectMeasurement,
 		Desc: "The object of the Kubernetes ReplicaSet.",
-		Type: "object",
+		Cat:  point.Object,
 		Tags: map[string]interface{}{
 			"name":                       inputs.NewTagInfo("The UID of ReplicaSet."),
 			"uid":                        inputs.NewTagInfo("The UID of ReplicaSet."),

@@ -24,7 +24,7 @@ type clusterMeasurement struct{}
 func (m *clusterMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: redisCluster,
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"cluster_state":                                &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.EnumValue, Desc: "State is 1(ok) if the node is able to receive queries. 0(fail) if there is at least one hash slot which is unbound (no node associated), in error state (node serving it is flagged with FAIL flag), or if the majority of masters can't be reached by this node."},
 			"cluster_slots_assigned":                       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: " Number of slots which are associated to some node (not unbound). This number should be 16384 for the node to work properly, which means that each hash slot should be mapped to a node."},

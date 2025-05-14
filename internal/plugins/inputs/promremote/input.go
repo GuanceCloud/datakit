@@ -445,7 +445,7 @@ func (ipt *Input) SampleConfig() string {
 }
 
 func (ipt *Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{&Measurement{}}
+	return []inputs.Measurement{inputs.DefaultEmptyMeasurement}
 }
 
 func (ipt *Input) AvailableArchs() []string {

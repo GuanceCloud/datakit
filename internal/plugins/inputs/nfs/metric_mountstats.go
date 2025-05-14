@@ -39,7 +39,7 @@ type mountstatsMeasurement struct {
 func (m *mountstatsMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 	return &inputs.MeasurementInfo{
 		Name: "nfs_mountstats",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			// base
 			"fs_avail": &inputs.FieldInfo{

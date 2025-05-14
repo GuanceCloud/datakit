@@ -34,7 +34,7 @@ func (m *processMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName,
 		Desc: "Collect process metrics, including CPU/memory usage, etc.",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"cpu_usage":        newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "CPU usage, the percentage of CPU occupied by the process since it was started. This value will be more stable (different from the instantaneous percentage of `top`)"),
 			"cpu_usage_top":    newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "CPU usage, the average CPU usage of the process within a collection cycle"),
@@ -87,7 +87,7 @@ func (m *processObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName,
 		Desc: "Collect data on process objects, including process names, process commands, etc.",
-		Type: "object",
+		Cat:  point.Object,
 		Fields: map[string]interface{}{
 			"cmdline":          newOtherFieldInfo(inputs.String, inputs.UnknownType, inputs.UnknownUnit, "Command line parameters for the process"),
 			"cpu_usage":        newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "CPU usage, the percentage of CPU occupied by the process since it was started. This value will be more stable (different from the instantaneous percentage of `top`)"),

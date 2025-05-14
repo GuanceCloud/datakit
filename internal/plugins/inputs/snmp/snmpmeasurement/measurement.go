@@ -46,7 +46,7 @@ func (m *SNMPObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: SNMPObjectName,
 		Desc: "SNMP device object data.",
-		Type: "object",
+		Cat:  point.Object,
 		Fields: map[string]interface{}{
 			"device_meta":    newOtherFieldInfo(inputs.String, inputs.String, inputs.NoUnit, "Device meta data (JSON format)."),
 			"interfaces":     newOtherFieldInfo(inputs.String, inputs.String, inputs.NoUnit, "Device network interfaces (JSON format)."),
@@ -92,7 +92,7 @@ func (m *SNMPMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: SNMPMetricName,
 		Desc: "SNMP device metric data.",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"ifNumber":                          newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.NCount, "Number of interface."),
 			"sysUpTimeInstance":                 newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.NCount, "The time (in hundredths of a second) since the network management portion of the system was last re-initialized."),

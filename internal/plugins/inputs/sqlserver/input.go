@@ -893,6 +893,7 @@ func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 		&DatabaseBackupMeasurement{},
 		&DatabaseFilesMeasurement{},
 		&customerObjectMeasurement{},
+		&inputs.UpMeasurement{},
 	}
 }
 

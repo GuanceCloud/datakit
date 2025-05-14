@@ -43,29 +43,3 @@ At present, DataKit collects profiling data in two ways:
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 <!-- markdownlint-enable -->
-## Profiling {#profiling}
-
-For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.{{.InputName}}.tags]`:
-
-``` toml
- [inputs.{{.InputName}}.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
-  # ...
-```
-
-{{ range $i, $m := .Measurements }}
-
-### `{{$m.Name}}`
-
-{{$m.Desc}}
-
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}
-
-{{ end }}

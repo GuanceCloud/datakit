@@ -6,6 +6,7 @@
 package ssh
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -15,7 +16,7 @@ type SSHMeasurement struct{}
 func (s *SSHMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName,
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"ssh_check": &inputs.FieldInfo{
 				DataType: inputs.Bool,

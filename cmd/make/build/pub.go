@@ -154,6 +154,10 @@ func PubDatakit() error {
 
 		// on Zh version for measurements meta and internla-pipelines
 		{"measurements-meta.json", filepath.Join(DistDir, "datakit", inputs.I18nZh.String(), "measurements-meta.json")},
+		{
+			fmt.Sprintf("measurements-meta-%s.json", ReleaseVersion),
+			filepath.Join(DistDir, "datakit", inputs.I18nZh.String(), "measurements-meta.json"),
+		},
 		{"internal-pipelines.json", filepath.Join(DistDir, "datakit", inputs.I18nZh.String(), "internal-pipelines.json")},
 
 		// pipeline docs both export en & zh

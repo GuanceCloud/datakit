@@ -112,7 +112,9 @@ type urlTags []struct {
 
 func (*Input) SampleConfig() string { return sampleCfg }
 
-func (*Input) SampleMeasurement() []inputs.Measurement { return nil }
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{&inputs.UpMeasurement{}}
+}
 
 func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
 

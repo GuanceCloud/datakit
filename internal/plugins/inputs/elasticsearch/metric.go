@@ -48,7 +48,7 @@ func (m nodeStatsMeasurement) Info() *inputs.MeasurementInfo {
 		Name:   "elasticsearch_node_stats",
 		Fields: nodeStatsFields,
 		Tags:   nodeStatsTags,
-		Type:   "metric",
+		Cat:    point.Metric,
 	}
 }
 
@@ -61,7 +61,7 @@ func (m clusterStatsMeasurement) Info() *inputs.MeasurementInfo {
 		Name:   "elasticsearch_cluster_stats",
 		Fields: clusterStatsFields,
 		Tags:   clusterStatsTags,
-		Type:   "metric",
+		Cat:    point.Metric,
 	}
 }
 
@@ -74,7 +74,7 @@ func (m clusterHealthMeasurement) Info() *inputs.MeasurementInfo {
 		Name:   "elasticsearch_cluster_health",
 		Fields: clusterHealthFields,
 		Tags:   clusterHealthTags,
-		Type:   "metric",
+		Cat:    point.Metric,
 	}
 }
 
@@ -87,7 +87,7 @@ func (m clusterHealthIndicesMeasurement) Info() *inputs.MeasurementInfo {
 		Name:   "elasticsearch_cluster_health_indices",
 		Fields: clusterHealthIndicesFields,
 		Tags:   clusterHealthIndicesTags,
-		Type:   "metric",
+		Cat:    point.Metric,
 	}
 }
 
@@ -99,7 +99,7 @@ func (m indicesStatsShardsTotalMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   "elasticsearch_indices_stats_shards_total",
 		Fields: indicesStatsShardsTotalFields,
-		Type:   "metric",
+		Cat:    point.Metric,
 		// No tags.
 	}
 }
@@ -113,7 +113,7 @@ func (m indicesStatsMeasurement) Info() *inputs.MeasurementInfo {
 		Name:   "elasticsearch_indices_stats",
 		Fields: indicesStatsFields,
 		Tags:   indicesStatsTags,
-		Type:   "metric",
+		Cat:    point.Metric,
 	}
 }
 
@@ -126,6 +126,6 @@ func (m indicesStatsShardsMeasurement) Info() *inputs.MeasurementInfo {
 		Name:   "elasticsearch_indices_stats_shards",
 		Fields: indicesStatsShardsFields,
 		Tags:   indicesStatsShardsTags,
-		Type:   "metric",
+		Cat:    point.Metric,
 	}
 }

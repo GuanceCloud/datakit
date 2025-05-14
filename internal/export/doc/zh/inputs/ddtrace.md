@@ -335,11 +335,32 @@ DDTrace 探针启动后，会不断通额外的接口上报服务有关的信息
 
 {{$m.Desc}}
 
-- 标签（String 类型）
+- 标签
 
 {{$m.TagsMarkdownTable}}
 
-- 指标列表（非 String 类型，或者长 String 类型）
+- 指标列表
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{end}}
+
+## 链路资源对象字段说明 {#tracing-telemetry}
+
+{{range $i, $m := .Measurements}}
+
+{{if eq $m.Type "custom_object"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- 标签
+
+{{$m.TagsMarkdownTable}}
+
+- 字段列表
 
 {{$m.FieldsMarkdownTable}}
 {{end}}

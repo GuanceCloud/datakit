@@ -121,9 +121,10 @@ func (m *loggingMeasurement) Point() *point.Point {
 //nolint:lll
 func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: measurementName,
-		Type: "logging",
-		Desc: "Using `source` field in the config file, default is `default`.",
+		Name:           measurementName,
+		Cat:            point.Logging,
+		MetaDuplicated: true,
+		Desc:           "Using `source` field in the config file, default is `default`.",
 		Tags: map[string]interface{}{
 			"filepath": inputs.NewTagInfo(`This item source file, full path.`), // log.file.path
 			"host":     inputs.NewTagInfo(`Host name.`),                        // host.name

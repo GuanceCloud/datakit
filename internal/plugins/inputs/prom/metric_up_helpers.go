@@ -56,13 +56,14 @@ func (i *Input) buildUpPoints(server string) ([]*point.Point, error) {
 	fields := map[string]interface{}{
 		"up": i.upStates[server],
 	}
-	m := &upMeasurement{
-		name:     "collector",
-		tags:     tags,
-		fields:   fields,
-		election: i.Election,
+
+	m := &inputs.UpMeasurement{
+		Name:     inputs.CollectorUpMeasurement,
+		Tags:     tags,
+		Fields:   fields,
+		Election: i.Election,
 	}
-	i.l.Debugf("build up %s points:%s", inputName, m.Point().LineProto())
+
 	ms = append(ms, m)
 	if len(ms) > 0 {
 		pts := getPointsFromMeasurement2(ms)

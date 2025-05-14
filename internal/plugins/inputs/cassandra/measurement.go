@@ -6,6 +6,8 @@
 package cassandra
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	istatsd "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/statsd"
 )
@@ -21,6 +23,7 @@ type CassandraMeasurement struct{}
 func (m *CassandraMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "cassandra",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"active_tasks":                                    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of tasks that the thread pool is actively executing."}, // cassandra metrics
 			"bloom_filter_false_ratio":                        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The ratio of Bloom filter false positives to total checks."},

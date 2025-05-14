@@ -8,6 +8,7 @@ package demo
 import (
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -20,9 +21,10 @@ type demoMetric2 struct {
 
 func (m *demoMetric2) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "demo-metric2",
-		Type: "metric",
-		Desc: "这是一个指标集的 demo(**务必加上每个指标集的描述**)",
+		Name:       "demo-metric2",
+		Cat:        point.Metric,
+		ExportSkip: true,
+		Desc:       "这是一个指标集的 demo(**务必加上每个指标集的描述**)",
 		Tags: map[string]interface{}{
 			"tag_a": &inputs.TagInfo{Desc: "示例 tag A"},
 			"tag_b": &inputs.TagInfo{Desc: "示例 tag B"},

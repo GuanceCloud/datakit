@@ -6,6 +6,7 @@
 package healthcheck
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -81,7 +82,7 @@ type ProcessMetric struct{}
 func (m *ProcessMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: processMetricName,
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"exception":      newOtherFieldInfo(inputs.Int, inputs.Bool, inputs.UnknownUnit, "Exception value, 1 or 0"),
 			"pid":            newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.Int, "The process ID"),
@@ -102,7 +103,7 @@ type TCPMetric struct{}
 func (m *TCPMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: tcpMetricName,
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"exception": newOtherFieldInfo(inputs.Int, inputs.Bool, inputs.UnknownUnit, "Exception value, 1 or 0"),
 		},
@@ -120,7 +121,7 @@ type HTTPMetric struct{}
 func (m *HTTPMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: httpMetricName,
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"exception": newOtherFieldInfo(inputs.Int, inputs.Bool, inputs.UnknownUnit, "Exception value, 1 or 0"),
 		},

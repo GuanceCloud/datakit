@@ -6,6 +6,7 @@
 package nginx
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -13,8 +14,8 @@ type LocationZoneMeasurement struct{}
 
 func (m *LocationZoneMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: LocationZone,
-		Type: "metric",
+		Name: measurementLocationZone,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"requests":     newByteFieldInfo("The number of requests (only for Nginx plus)"),
 			"response":     newByteFieldInfo("The number of response (only for Nginx plus)"),

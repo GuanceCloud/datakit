@@ -490,6 +490,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&metricsMeasurement{},
 		&profileEventsMeasurement{},
 		&statusInfoMeasurement{},
+		&inputs.UpMeasurement{},
 	}
 }
 

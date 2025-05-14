@@ -6,7 +6,11 @@
 // Package xfsquota implements the collection of quota information for the XFS file system.
 package xfsquota
 
-import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+import (
+	"github.com/GuanceCloud/cliutils/point"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+)
 
 type xfsquotaMetric struct{}
 
@@ -14,7 +18,7 @@ type xfsquotaMetric struct{}
 func (*xfsquotaMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "xfsquota",
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "The info of xfs_quota, only supported Linux system.",
 		Tags: map[string]interface{}{
 			"project_id":      inputs.NewTagInfo("The Project ID in xfs_quota identifies a project or group for disk usage limits."),

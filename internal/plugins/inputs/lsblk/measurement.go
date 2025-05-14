@@ -6,6 +6,7 @@
 package lsblk
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -15,7 +16,7 @@ type docMeasurement struct{}
 func (*docMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "lsblk",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"fsavail": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,

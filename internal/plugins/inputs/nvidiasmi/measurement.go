@@ -6,6 +6,7 @@
 package nvidiasmi
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -16,8 +17,9 @@ type docMeasurement struct{}
 //nolint:lll
 func (docMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: metricName,
-		Type: "metric",
+		Name:           metricName,
+		Cat:            point.Metric,
+		MetaDuplicated: true, // collector `nvidia_smi' and `gpu_smi` are the same
 		Fields: map[string]interface{}{
 			"fan_speed":                     &inputs.FieldInfo{Type: inputs.Rate, DataType: inputs.Int, Unit: inputs.RPMPercent, Desc: "Fan speed."},
 			"memory_total":                  &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeMB, Desc: "Frame buffer memory total."},

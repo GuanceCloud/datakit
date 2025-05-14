@@ -200,7 +200,7 @@ func (*cronjobMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: cronjobMetricMeasurement,
 		Desc: "The metric of the Kubernetes CronJob.",
-		Type: "metric",
+		Cat:  point.Metric,
 		Tags: map[string]interface{}{
 			"uid":              inputs.NewTagInfo("The UID of CronJob."),
 			"cronjob":          inputs.NewTagInfo("Name must be unique within a namespace."),
@@ -220,7 +220,7 @@ func (*cronjobObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: cronjobObjectMeasurement,
 		Desc: "The object of the Kubernetes CronJob.",
-		Type: "object",
+		Cat:  point.Object,
 		Tags: map[string]interface{}{
 			"name":             inputs.NewTagInfo("The UID of CronJob."),
 			"uid":              inputs.NewTagInfo("The UID of CronJob."),

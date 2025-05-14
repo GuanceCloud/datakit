@@ -35,7 +35,7 @@ func (m *schemaMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: metricNameMySQLSchema,
 		Desc: "MySQL schema information",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"schema_size": &inputs.FieldInfo{
 				DataType: inputs.Float,

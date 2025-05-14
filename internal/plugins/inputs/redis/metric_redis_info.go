@@ -37,7 +37,7 @@ type infoMeasurement struct {
 func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: redisInfoM,
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			// The fields is copy from official docs, include "Not number" field.
 

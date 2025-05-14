@@ -426,6 +426,7 @@ func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 		&tablespaceMeasurement{},
 		&systemMeasurement{},
 		&customerObjectMeasurement{},
+		&inputs.UpMeasurement{},
 	}
 }
 

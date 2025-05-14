@@ -8,6 +8,7 @@ package smart
 import (
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -22,7 +23,7 @@ type smartMeasurement struct {
 func (s *smartMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName,
-		Type: "metric",
+		Cat:  point.Metric,
 		Tags: map[string]interface{}{
 			"capacity":    &inputs.TagInfo{Desc: "disk capacity"},
 			"device":      &inputs.TagInfo{Desc: "device mount name"},

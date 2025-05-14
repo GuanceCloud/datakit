@@ -135,7 +135,7 @@ func (*event) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: eventLoggingMeasurement,
 		Desc: "The logging of the Kubernetes Event.",
-		Type: "logging",
+		Cat:  point.Logging,
 		Tags: map[string]interface{}{
 			"uid":    inputs.NewTagInfo("The UID of event."),
 			"type":   inputs.NewTagInfo("Type of this event."),

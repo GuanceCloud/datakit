@@ -6,6 +6,7 @@
 package flinkv1
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -19,7 +20,7 @@ type TaskmanagerMeasurement struct{}
 func (*JobmanagerMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "flink_jobmanager",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"Status_JVM_CPU_Load":                                   newGaugeFieldInfo("The recent CPU usage of the JVM."),
 			"Status_JVM_CPU_Time":                                   newGaugeFieldInfo("The CPU time used by the JVM."),
@@ -66,7 +67,7 @@ func (*JobmanagerMeasurement) Info() *inputs.MeasurementInfo {
 func (*TaskmanagerMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "flink_taskmanager",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"Status_Flink_Memory_Managed_Total":                     newGaugeFieldInfo("The total amount of managed memory."),
 			"Status_Flink_Memory_Managed_Used":                      newGaugeFieldInfo("The amount of managed memory currently used."),

@@ -192,7 +192,7 @@ func (*jobMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: jobMetricMeasurement,
 		Desc: "The metric of the Kubernetes Job.",
-		Type: "metric",
+		Cat:  point.Metric,
 		Tags: map[string]interface{}{
 			"uid":              inputs.NewTagInfo("The UID of Job."),
 			"job":              inputs.NewTagInfo("Name must be unique within a namespace."),
@@ -216,7 +216,7 @@ func (*jobObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: jobObjectMeasurement,
 		Desc: "The object of the Kubernetes Job.",
-		Type: "object",
+		Cat:  point.Object,
 		Tags: map[string]interface{}{
 			"name":                       inputs.NewTagInfo("The UID of Job."),
 			"uid":                        inputs.NewTagInfo("The UID of Job."),

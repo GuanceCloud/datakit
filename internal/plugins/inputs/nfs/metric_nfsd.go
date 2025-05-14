@@ -26,7 +26,7 @@ type nfsdMeasurement struct {
 func (m *nfsdMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 	return &inputs.MeasurementInfo{
 		Name: "nfsd",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"tcp_packets_total": &inputs.FieldInfo{
 				Type:     inputs.Count,

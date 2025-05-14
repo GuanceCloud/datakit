@@ -373,7 +373,7 @@ func (m *customMeasurement) Point() *point.Point {
 func (m *customMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "mysql_custom",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"id": &inputs.FieldInfo{
 				DataType: inputs.Float,

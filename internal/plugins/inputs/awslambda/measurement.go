@@ -6,6 +6,7 @@
 package awslambda
 
 import (
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/awslambda/lambdaapi/metrics"
 )
@@ -16,7 +17,7 @@ type metricMeasurement struct{}
 func (*metricMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName + "-metric",
-		Type: "metric",
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			metrics.MaxMemoryUsedMetric: &inputs.FieldInfo{
 				Type: inputs.Histogram, DataType: inputs.Int, Unit: inputs.SizeMBits,
@@ -87,7 +88,7 @@ func (*logMeasurement) Info() *inputs.MeasurementInfo {
 	tags[AWSLogFrom] = &inputs.TagInfo{Desc: "log sources, currently only function are supported"}
 	return &inputs.MeasurementInfo{
 		Name: inputName + "-logging",
-		Type: "logging",
+		Cat:  point.Logging,
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.NoUnit, Desc: "Log message."},
 		},

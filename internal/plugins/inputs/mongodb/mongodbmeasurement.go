@@ -39,7 +39,7 @@ func (m *mongodbMeasurement) Point() *point.Point {
 func (m *mongodbMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: MongoDB,
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "MongoDB measurement. Some metrics may not appear depending on the MongoDB version or DB running status.",
 		Tags: map[string]interface{}{
 			"host":        &inputs.TagInfo{Desc: "mongodb host"},
@@ -238,7 +238,7 @@ func (m *mongodbDBMeasurement) Point() *point.Point {
 func (m *mongodbDBMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: MongoDBStats,
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "MongoDB stats measurement. Some metrics may not appear depending on the MongoDB version or DB running status.",
 		Tags: map[string]interface{}{
 			"db_name":     &inputs.TagInfo{Desc: "database name"},
@@ -304,7 +304,7 @@ func (m *mongodbColMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: MongoDBColStats,
 		Desc: "MongoDB collection measurement. Some metrics may not appear depending on the MongoDB version or DB running status.",
-		Type: "metric",
+		Cat:  point.Metric,
 		Tags: map[string]interface{}{
 			"collection":  &inputs.TagInfo{Desc: "collection name"},
 			"db_name":     &inputs.TagInfo{Desc: "database name"},
@@ -367,7 +367,7 @@ func (m *mongodbShardMeasurement) Point() *point.Point {
 func (m *mongodbShardMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: MongoDBShardStats,
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "MongoDB shard measurement. Some metrics may not appear depending on the MongoDB version or DB running status.",
 		Tags: map[string]interface{}{
 			"host":        &inputs.TagInfo{Desc: "mongodb host"},
@@ -403,7 +403,7 @@ func (m *mongodbTopMeasurement) Point() *point.Point {
 func (m *mongodbTopMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: MongoDBTopStats,
-		Type: "metric",
+		Cat:  point.Metric,
 		Desc: "MongoDB top measurement. Some metrics may not appear depending on the MongoDB version or DB running status.",
 		Tags: map[string]interface{}{
 			"collection":  &inputs.TagInfo{Desc: "collection name"},

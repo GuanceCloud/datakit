@@ -224,6 +224,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&ExchangeMeasurement{},
 		&NodeMeasurement{},
 		&customerObjectMeasurement{},
+		&inputs.UpMeasurement{},
 	}
 }
 
