@@ -183,6 +183,12 @@ ZeroDivisionError: division by zero
 testing,filename=/tmp/094318188 message="2020-10-23 06:41:56,688 INFO demo.py 5.0" 1611746443938917265
 ```
 
+???+ tip "Regular Expression Performance Optimization"
+    - Explicitly prefix with `^` — Strictly limit matching scope and prevent unnecessary backtracking
+    - Avoid appending `.*` at the end — Terminate scanning immediately after successful match to skip redundant checks
+    - Keep patterns concise — Short regex demonstrates significantly better compilation speed and runtime efficiency than complex long patterns
+
+
 #### Automatic Multiline Mode {#auto-multiline}
 
 When this function is turned on, each row of log data will be matched in the multi-row list. If the match is successful, the weight of the current multi-line rule is added by one, so that it can be matched more quickly, and then the matching cycle is exited; If there is no match at the end of the whole list, the match is considered to have failed.
