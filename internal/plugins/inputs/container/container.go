@@ -160,6 +160,12 @@ func (c *container) StartCollect() {
 	}
 }
 
+func (c *container) ReloadConfigKV(_ map[string]string) error {
+	l.Info("reload kv")
+	c.logTable.closeAll()
+	return nil
+}
+
 func checkEndpoint(endpoint string) error {
 	u, err := url.Parse(endpoint)
 	if err != nil {

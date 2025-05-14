@@ -14,7 +14,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
-	"sync"
+	"time"
 
 	bstoml "github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils"
@@ -22,37 +22,57 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-type KVConfig struct {
-	sync.RWMutex
-	config map[string][2]string
-}
+func reloadKVConf(changedConfs map[string]string) error {
+	containHTTPInput := false
 
-var kvConfig = &KVConfig{
-	config: map[string][2]string{},
-}
+	// reload inputs in all changed config
+	for key, confData := range changedConfs {
+		// stop inputs && remove inputs
+		changedInputs := inputs.GetInputsByConfKey(key)
+		for _, i := range changedInputs {
+			if inp, ok := i.Input.(inputs.InputV2); ok {
+				inp.Terminate()
+			}
+			if _, ok := i.Input.(inputs.HTTPInput); ok {
+				containHTTPInput = true
+			}
+			inputs.RemoveInput(i.Name, i.Input)
+		}
 
-func (kv *KVConfig) Add(key, rawConfData, parsedConfData string) string {
-	kv.Lock()
-	defer kv.Unlock()
-
-	kv.config[key] = [2]string{rawConfData, parsedConfData}
-
-	return key
-}
-
-func (kv *KVConfig) ForEach(f func(key string, conf [2]string)) {
-	kv.RLock()
-	defer kv.RUnlock()
-
-	for k, v := range kv.config {
-		f(k, v)
+		// start inputs
+		if inputsInfo, err := getInputsFromConfData(key, confData, inputs.Inputs); err != nil {
+			l.Warnf("getInputsFromConfData failed: %s, ignored", err.Error())
+			return nil
+		} else {
+			for inputName, inputArr := range inputsInfo {
+				l.Infof("kv reload, start input: %s", inputName)
+				for _, input := range inputArr {
+					kvInputReloadCount.WithLabelValues(input.Name).Inc()
+					kvInputLastReload.WithLabelValues(input.Name).Set(float64(time.Now().Unix()))
+					inputs.RunInput(input.Name, input)
+					inputs.AddInput(input.Name, input)
+				}
+			}
+		}
 	}
+
+	// restart http inputs
+	if containHTTPInput {
+		if restartHTTPServer != nil {
+			l.Info("restart http server because of kv changed")
+			restartHTTPServer()
+		} else {
+			l.Warn("restart http server not set")
+		}
+	}
+
+	return nil
 }
 
-func getInputsFromConfData(confKey string, confData []byte, creators map[string]inputs.Creator) (map[string][]*inputs.InputInfo, error) {
+func getInputsFromConfData(confKey string, confData string, creators map[string]inputs.Creator) (map[string][]*inputs.InputInfo, error) {
 	var res map[string]interface{}
 	ret := map[string][]*inputs.InputInfo{}
-	if _, err := bstoml.Decode(string(confData), &res); err != nil {
+	if _, err := bstoml.Decode(confData, &res); err != nil {
 		l.Warnf("bstoml.Decode: %s, ignored, confData:\n%s", err, confData)
 		return nil, err
 	}
@@ -116,7 +136,7 @@ func getInputsFromConfData(confKey string, confData []byte, creators map[string]
 // LoadSingleConf load single conf data with kv replace.
 func LoadSingleConf(confData string, creators map[string]inputs.Creator) (map[string][]*inputs.InputInfo, error) {
 	var err error
-	parsedConfData := []byte(confData)
+	parsedConfData := confData
 	isTemplate := IsKVTemplate(confData)
 
 	if isTemplate {
@@ -131,7 +151,13 @@ func LoadSingleConf(confData string, creators map[string]inputs.Creator) (map[st
 		// add kv config to kvConfig if it is a template, even if it is not a valid kv template.
 		// because the kv template may be invalid firstly, and it may be valid later.
 		if isTemplate {
-			kvConfig.Add(confKey, confData, string(parsedConfData))
+			// kvConfig.Add(confKey, confData, string(parsedConfData))
+			if err := defaultKV.Register("input", confData, reloadKVConf, &KVOpt{
+				IsMultiConf: true,
+				ConfName:    confKey,
+			}); err != nil {
+				l.Errorf("register kv failed: %s", err.Error())
+			}
 		}
 	}()
 

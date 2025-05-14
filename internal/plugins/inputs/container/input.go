@@ -12,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
@@ -64,10 +63,8 @@ type Input struct {
 	Tags map[string]string `toml:"tags"`
 	DeprecatedConf
 
-	Feeder dkio.Feeder
-	Tagger datakit.GlobalTagger
-
-	semStop *cliutils.Sem // start stop signal
+	Feeder  dkio.Feeder
+	Tagger  datakit.GlobalTagger
 	chPause chan bool
 }
 
@@ -130,9 +127,7 @@ func (ipt *Input) setup() {
 }
 
 func (ipt *Input) Terminate() {
-	if ipt.semStop != nil {
-		ipt.semStop.Close()
-	}
+	l.Info("This input does not support Terminate, it is an empty interface.")
 }
 
 func (ipt *Input) Pause() error {
@@ -169,7 +164,6 @@ func newInput() *Input {
 		Feeder:                    dkio.DefaultFeeder(),
 		Tagger:                    datakit.DefaultGlobalTagger(),
 		chPause:                   make(chan bool, inputs.ElectionPauseChannelLength),
-		semStop:                   cliutils.NewSem(),
 	}
 }
 
