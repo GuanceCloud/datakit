@@ -47,15 +47,11 @@ func (m *customerObjectMeasurement) Info() *inputs.MeasurementInfo { //nolint:fu
 
 			"display_name": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
 				Desc:     "Displayed name in UI",
 			},
 
 			"version": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
 				Desc:     "Current version of MySQL",
 			},
 		},

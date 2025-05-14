@@ -85,14 +85,14 @@ func (m *NodeMeasurement) Info() *inputs.MeasurementInfo {
 		Name: NodeMetric,
 		Type: "metric",
 		Fields: map[string]interface{}{
-			"disk_free_alarm": newOtherFieldInfo(inputs.Bool, inputs.Gauge, inputs.UnknownUnit, "Does the node have disk alarm"),
+			"disk_free_alarm": newOtherFieldInfo(inputs.Bool, inputs.Gauge, inputs.NoUnit, "Does the node have disk alarm"),
 			"disk_free":       newByteFieldInfo("Current free disk space"),
-			"fd_used":         newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.UnknownUnit, "Used file descriptors"),
-			"mem_alarm":       newOtherFieldInfo(inputs.Bool, inputs.Gauge, inputs.UnknownUnit, "Does the node have mem alarm"),
+			"fd_used":         newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.NCount, "Used file descriptors"),
+			"mem_alarm":       newOtherFieldInfo(inputs.Bool, inputs.Gauge, inputs.NoUnit, "Does the node have mem alarm"),
 			"mem_limit":       newByteFieldInfo("Memory usage high watermark in bytes"),
 			"mem_used":        newByteFieldInfo("Memory used in bytes"),
 			"run_queue":       newCountFieldInfo("Average number of Erlang processes waiting to run"),
-			"running":         newOtherFieldInfo(inputs.Bool, inputs.Gauge, inputs.UnknownUnit, "Is the node running or not"),
+			"running":         newOtherFieldInfo(inputs.Bool, inputs.Gauge, inputs.NoUnit, "Is the node running or not"),
 			"sockets_used":    newCountFieldInfo("Number of file descriptors used as sockets"),
 
 			// See: https://documentation.solarwinds.com/en/success_center/appoptics/content/kb/host_infrastructure/integrations/rabbitmq.htm

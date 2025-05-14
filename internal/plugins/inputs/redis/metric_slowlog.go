@@ -45,7 +45,7 @@ func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 			"slowlog_id": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.UnknownType,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "Slow log unique ID",
 			},
 			"slowlog_micros": &inputs.FieldInfo{
@@ -57,7 +57,7 @@ func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 			"command": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.UnknownType,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "Slow command",
 			},
 			"slowlog_avg": &inputs.FieldInfo{
@@ -88,14 +88,14 @@ func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 			"client_addr": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.UnknownType,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The client ip:port that run the slow query",
 			},
 
 			"client_name": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.UnknownType,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The client name that run the slow query(if `client setname` executed on client-side)",
 			},
 		},

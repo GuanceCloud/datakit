@@ -235,24 +235,24 @@ func (ipt *Input) Terminate() {
 }
 
 func (ipt *Input) getMetrics(clientCfg *ssh.ClientConfig) ([]*point.Point, error) {
-	tags := make(map[string]string)
-	fields := make(map[string]interface{})
+	var (
+		tags = make(map[string]string)
+		kvs  point.KVs
+	)
 
 	tags["host"] = ipt.Host
 	for tag, tagV := range ipt.Tags {
 		tags[tag] = tagV
 	}
+
 	// ssh检查
 	var sshRst bool
 	sshClient, err := ssh.Dial("tcp", ipt.Host, clientCfg)
 	if err == nil {
 		sshRst = true
 		defer sshClient.Close() //nolint:errcheck
-	} else {
-		sshRst = false
-		fields["ssh_err"] = err.Error()
 	}
-	fields["ssh_check"] = sshRst
+	kvs = kvs.AddV2("ssh_check", sshRst, true)
 
 	// sftp检查
 	if ipt.SftpCheck {
@@ -268,26 +268,19 @@ func (ipt *Input) getMetrics(clientCfg *ssh.ClientConfig) ([]*point.Point, error
 					l.Errorf("Getwd: %s", err)
 				}
 
-				fields["sftp_response_time"] = getMsInterval(time.Since(t1))
-			} else {
-				sftpRst = false
-				fields["sftp_err"] = err.Error()
+				kvs = kvs.AddV2("sftp_response_time", getMsInterval(time.Since(t1)), true)
 			}
-		} else {
-			sftpRst = false
-			fields["sftp_err"] = err.Error()
 		}
-		fields["sftp_check"] = sftpRst
+		kvs = kvs.AddV2("sftp_check", sftpRst, true)
+	}
+
+	for k, v := range tags {
+		kvs = kvs.AddTag(k, v)
 	}
 
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTimestamp(ipt.alignTS))
-
-	pt := point.NewPointV2(ipt.MetricsName,
-		append(point.NewTags(tags), point.NewKVs(fields)...),
-		opts...)
-
-	return []*point.Point{pt}, err
+	return []*point.Point{point.NewPointV2(ipt.MetricsName, kvs, opts...)}, err
 }
 
 func getMsInterval(d time.Duration) float64 {

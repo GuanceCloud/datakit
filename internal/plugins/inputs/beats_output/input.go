@@ -130,8 +130,8 @@ func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 			"service":  inputs.NewTagInfo("Service name, equal to `service` field in the config file."),
 		},
 		Fields: map[string]interface{}{
-			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Message text, existed when default. Could use Pipeline to delete this field."}, // message
-			"status":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Log status."},
+			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.NoUnit, Desc: "Message text, existed when default. Could use Pipeline to delete this field."}, // message
+			"status":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.NoUnit, Desc: "Log status."},
 		},
 	}
 }

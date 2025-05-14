@@ -45,7 +45,7 @@ func (m *processMeasurement) Info() *inputs.MeasurementInfo {
 			"pga_freeable_mem": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "PGA memory freeable by process"},
 			"pga_max_mem":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "PGA maximum memory ever allocated by process"},
 			"pga_used_mem":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "PGA memory used by process"},
-			"pid":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "Oracle process identifier"},
+			"pid":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "Oracle process identifier"},
 		},
 		Tags: map[string]interface{}{
 			"host":           &inputs.TagInfo{Desc: "Host name"},

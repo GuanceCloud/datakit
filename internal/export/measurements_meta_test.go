@@ -131,14 +131,14 @@ func getWant01() outputMetaInfo {
         "disk_size": {
           "type": "gauge",
           "data_type": "int",
-          "unit": "B",
+          "unit": "digital,B",
           "desc": "this is disk size",
           "disabled": false
         },
         "mem_size": {
           "type": "gauge",
           "data_type": "int",
-          "unit": "B",
+          "unit": "digital,B",
           "desc": "this is memory size",
           "disabled": false
         },
@@ -159,7 +159,7 @@ func getWant01() outputMetaInfo {
         "usage": {
           "type": "gauge",
           "data_type": "float",
-          "unit": "percent",
+          "unit": "percent,percent",
           "desc": "this is CPU usage",
           "disabled": false
         }
@@ -181,7 +181,7 @@ func getWant01() outputMetaInfo {
         "usage": {
           "type": "gauge",
           "data_type": "float",
-          "unit": "percent",
+          "unit": "percent,percent",
           "desc": "this is CPU usage",
           "disabled": false
         }
@@ -196,14 +196,14 @@ func getWant01() outputMetaInfo {
         "disk_size": {
           "type": "gauge",
           "data_type": "int",
-          "unit": "B",
+          "unit": "digital,B",
           "desc": "this is disk size",
           "disabled": false
         },
         "mem_size": {
           "type": "gauge",
           "data_type": "int",
-          "unit": "B",
+          "unit": "digital,B",
           "desc": "this is memory size",
           "disabled": false
         },
@@ -224,7 +224,7 @@ func getWant01() outputMetaInfo {
         "usage": {
           "type": "gauge",
           "data_type": "float",
-          "unit": "percent",
+          "unit": "percent,percent",
           "desc": "this is CPU usage",
           "disabled": false
         }
@@ -246,7 +246,7 @@ func getWant01() outputMetaInfo {
         "core_temperature": {
           "type": "gauge",
           "data_type": "float",
-          "unit": "C",
+          "unit": "temperature,C",
           "desc": "CPU core temperature. This is collected by default. Only collect the average temperature of all cores.",
           "disabled": false
         },
@@ -260,77 +260,77 @@ func getWant01() outputMetaInfo {
         "usage_guest": {
           "type": "gauge",
           "data_type": "float",
-          "unit": "percent",
+          "unit": "percent,percent",
           "desc": "% CPU spent running a virtual CPU for guest operating systems.",
           "disabled": false
         },
         "usage_guest_nice": {
           "type": "gauge",
           "data_type": "float",
-          "unit": "percent",
+          "unit": "percent,percent",
           "desc": "% CPU spent running a nice guest(virtual CPU for guest operating systems).",
           "disabled": false
         },
         "usage_idle": {
           "type": "gauge",
           "data_type": "float",
-          "unit": "percent",
+          "unit": "percent,percent",
           "desc": "% CPU in the idle task.",
           "disabled": false
         },
         "usage_iowait": {
           "type": "gauge",
           "data_type": "float",
-          "unit": "percent",
+          "unit": "percent,percent",
           "desc": "% CPU waiting for I/O to complete.",
           "disabled": false
         },
         "usage_irq": {
           "type": "gauge",
           "data_type": "float",
-          "unit": "percent",
+          "unit": "percent,percent",
           "desc": "% CPU servicing hardware interrupts.",
           "disabled": false
         },
         "usage_nice": {
           "type": "gauge",
           "data_type": "float",
-          "unit": "percent",
+          "unit": "percent,percent",
           "desc": "% CPU in user mode with low priority (nice).",
           "disabled": false
         },
         "usage_softirq": {
           "type": "gauge",
           "data_type": "float",
-          "unit": "percent",
+          "unit": "percent,percent",
           "desc": "% CPU servicing soft interrupts.",
           "disabled": false
         },
         "usage_steal": {
           "type": "gauge",
           "data_type": "float",
-          "unit": "percent",
+          "unit": "percent,percent",
           "desc": "% CPU spent in other operating systems when running in a virtualized environment.",
           "disabled": false
         },
         "usage_system": {
           "type": "gauge",
           "data_type": "float",
-          "unit": "percent",
+          "unit": "percent,percent",
           "desc": "% CPU in system mode.",
           "disabled": false
         },
         "usage_total": {
           "type": "gauge",
           "data_type": "float",
-          "unit": "percent",
+          "unit": "percent,percent",
           "desc": "% CPU in total active usage, as well as (100 - usage_idle).",
           "disabled": false
         },
         "usage_user": {
           "type": "gauge",
           "data_type": "float",
-          "unit": "percent",
+          "unit": "percent,percent",
           "desc": "% CPU in user mode.",
           "disabled": false
         }
@@ -354,7 +354,7 @@ func getWant01() outputMetaInfo {
         "cpu_usage": {
           "type": "gauge",
           "data_type": "float",
-          "unit": "percent",
+          "unit": "percent,percent",
           "desc": "CPU usage",
           "disabled": false
         },
@@ -368,21 +368,21 @@ func getWant01() outputMetaInfo {
         "disk_used_percent": {
           "type": "gauge",
           "data_type": "float",
-          "unit": "percent",
+          "unit": "percent,percent",
           "desc": "disk usage",
           "disabled": false
         },
         "diskio_read_bytes_per_sec": {
           "type": "gauge",
           "data_type": "int",
-          "unit": "B/S",
+          "unit": "traffic,B/S",
           "desc": "disk read rate",
           "disabled": false
         },
         "diskio_write_bytes_per_sec": {
           "type": "gauge",
           "data_type": "int",
-          "unit": "B/S",
+          "unit": "traffic,B/S",
           "desc": "disk write rate",
           "disabled": false
         },
@@ -403,7 +403,7 @@ func getWant01() outputMetaInfo {
         "mem_used_percent": {
           "type": "gauge",
           "data_type": "float",
-          "unit": "percent",
+          "unit": "percent,percent",
           "desc": "memory usage",
           "disabled": false
         },
@@ -417,21 +417,21 @@ func getWant01() outputMetaInfo {
         "net_recv_bytes_per_sec": {
           "type": "gauge",
           "data_type": "int",
-          "unit": "B/S",
+          "unit": "traffic,B/S",
           "desc": "network receive rate",
           "disabled": false
         },
         "net_send_bytes_per_sec": {
           "type": "gauge",
           "data_type": "int",
-          "unit": "B/S",
+          "unit": "traffic,B/S",
           "desc": "network send rate",
           "disabled": false
         },
         "start_time": {
           "type": "",
           "data_type": "int",
-          "unit": "ms",
+          "unit": "time,ms",
           "desc": "Host startup time (Unix timestamp)",
           "disabled": false
         }
@@ -456,14 +456,14 @@ func getWant01() outputMetaInfo {
         "disk_size": {
           "type": "gauge",
           "data_type": "int",
-          "unit": "B",
+          "unit": "digital,B",
           "desc": "this is disk size",
           "disabled": false
         },
         "mem_size": {
           "type": "gauge",
           "data_type": "int",
-          "unit": "B",
+          "unit": "digital,B",
           "desc": "this is memory size",
           "disabled": false
         },
@@ -484,7 +484,7 @@ func getWant01() outputMetaInfo {
         "usage": {
           "type": "gauge",
           "data_type": "float",
-          "unit": "percent",
+          "unit": "percent,percent",
           "desc": "this is CPU usage",
           "disabled": false
         }

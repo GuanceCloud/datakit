@@ -77,8 +77,8 @@ func (*promtailSampleMeasurement) Info() *inputs.MeasurementInfo {
 			"host":     inputs.NewTagInfo("Hostname."),
 		},
 		Fields: map[string]interface{}{
-			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Message text, existed when default. Could use Pipeline to delete this field."}, // message
-			"status":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Log status."},
+			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.NoUnit, Desc: "Message text, existed when default. Could use Pipeline to delete this field."}, // message
+			"status":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.EnumValue, Desc: "Log status."},
 		},
 	}
 }

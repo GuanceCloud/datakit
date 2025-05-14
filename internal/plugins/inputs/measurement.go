@@ -34,49 +34,56 @@ const (
 	// add more...
 )
 
-// units.
+// All Units list.
+//
+//	See https://guanceyun.feishu.cn/wiki/HjVgwzx7iiGFO0kpNYmck8HFnef
 const (
 	UnknownUnit = "-"
+	NoUnit      = "N/A"
 
-	SizeByte  = "B"
-	SizeKB    = "KB"
-	SizeKBits = "Kb"
-	SizeMB    = "MB"
-	SizeMBits = "Mb"
-	SizeGB    = "GB"
-	SizeTB    = "TB"
+	EnumValue = "enum"
+
+	SizeByte  = "digital,B"
+	SizeKB    = "digital,KB"
+	SizeKBits = "digital,Kb"
+	SizeMB    = "digital,MB"
+	SizeMBits = "digital,Mb"
+	SizeGB    = "digital,GB"
+	SizeTB    = "digital,TB"
 	NCount    = "count"
 
 	// time units.
-	DurationPS     = "ps"
-	DurationNS     = "ns"
-	DurationUS     = "μs"
-	DurationMS     = "ms"
-	DurationSecond = "s"
-	DurationMinute = "min"
-	DurationHour   = "h"
-	DurationDay    = "d"
+	DurationPS     = "time,ps"
+	DurationNS     = "time,ns"
+	DurationUS     = "time,μs"
+	DurationMS     = "time,ms"
+	DurationSecond = "time,s"
+	DurationMinute = "time,min"
+	DurationHour   = "time,h"
+	DurationDay    = "time,d"
 
 	// timestamp units.
-	TimestampNS  = "nsec"
-	TimestampUS  = "usec"
-	TimestampMS  = "msec"
-	TimestampSec = "sec"
+	TimestampNS  = "timeStamp,nsec"
+	TimestampUS  = "timeStamp,usec"
+	TimestampMS  = "timeStamp,msec"
+	TimestampSec = "timeStamp,sec"
 
-	Percent = "percent"
+	Percent        = "percent,percent"         // percent 0~100
+	PercentDecimal = "percent,percent_decimal" // percent 0~1
 
 	// TODO: add more...
-	BytesPerSec    = "B/S"
-	RequestsPerSec = "req/s"
-	Celsius        = "C"
+	BytesPerSec    = "traffic,B/S"
+	RequestsPerSec = "throughput,reqps"
+	Celsius        = "temperature,C"
 	Ampere         = "ampere"
 	Watt           = "watt"
 	Volt           = "volt"
-	FrequencyMHz   = "MHz"
+	FrequencyMHz   = "frequency,MHz"
 	RPMPercent     = "RPM%"
 	RotationRete   = "RPM"
 	PartPerMillion = "PPM"
-	Millicores     = "m"
+	Millicores     = "milli-cores"
+	FramePerSecond = "fps"
 )
 
 type Measurement interface {
@@ -133,7 +140,7 @@ func (m *MeasurementInfo) FieldsMarkdownTable() string {
 
 		unit := f.Unit
 		if unit == "" {
-			unit = UnknownUnit
+			unit = NoUnit
 		}
 
 		rows = append(rows, fmt.Sprintf(rowfmt, key, f.Desc, f.DataType, unit))

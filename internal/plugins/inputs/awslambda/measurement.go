@@ -89,7 +89,7 @@ func (*logMeasurement) Info() *inputs.MeasurementInfo {
 		Name: inputName + "-logging",
 		Type: "logging",
 		Fields: map[string]interface{}{
-			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Log message."},
+			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.NoUnit, Desc: "Log message."},
 		},
 		Tags: tags,
 	}

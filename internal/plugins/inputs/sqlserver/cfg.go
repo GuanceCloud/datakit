@@ -289,7 +289,7 @@ func newBoolFieldInfo(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		DataType: inputs.Bool,
 		Type:     inputs.Gauge,
-		Unit:     inputs.UnknownUnit,
+		Unit:     inputs.NoUnit,
 		Desc:     desc,
 	}
 }

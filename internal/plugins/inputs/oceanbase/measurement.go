@@ -24,7 +24,7 @@ func (m *statMeasurement) Info() *inputs.MeasurementInfo {
 			"metric_value": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The value of the statistical item.",
 			},
 		},
@@ -288,8 +288,8 @@ func (m *loggingMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Fields: map[string]interface{}{
-			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The text of the logging."},
-			"status":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The status of the logging, only supported `info/emerg/alert/critical/error/warning/debug/OK/unknown`."},
+			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.NoUnit, Desc: "The text of the logging."},
+			"status":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.NoUnit, Desc: "The status of the logging, only supported `info/emerg/alert/critical/error/warning/debug/OK/unknown`."},
 		},
 	}
 }
