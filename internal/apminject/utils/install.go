@@ -33,9 +33,9 @@ import (
 const (
 	preloadConfigFilePath = "/etc/ld.so.preload"
 
-	dirInject          = "apm_inject"
-	dirInjectSubInject = "inject"
-	dirInjectSubLib    = "lib"
+	DirInject          = "apm_inject"
+	DirInjectSubInject = "inject"
+	DirInjectSubLib    = "lib"
 
 	dockerDaemonJSONPath      = "/etc/docker/daemon.json"
 	dockerFieldDefaultRuntime = "default-runtime"
@@ -61,7 +61,7 @@ var (
 )
 
 func dkRuncPath() string {
-	return filepath.Join(dirDkInstall, dirInject, dirInjectSubInject, dkruncBinName)
+	return filepath.Join(dirDkInstall, DirInject, DirInjectSubInject, dkruncBinName)
 }
 
 func Download(log *logger.Logger, opt ...Opt) error {
@@ -87,7 +87,7 @@ func Download(log *logger.Logger, opt ...Opt) error {
 
 	cp.Printf("\n")
 	dl.CurDownloading = "apm-inject"
-	injTo := filepath.Join(c.installDir, dirInject, dirInjectSubInject)
+	injTo := filepath.Join(c.installDir, DirInject, DirInjectSubInject)
 	cp.Infof("Downloading %s => %s\n", c.launcherURL, injTo)
 	if err := dl.Download(c.cli, c.launcherURL, injTo,
 		true, false); err != nil {
@@ -101,7 +101,7 @@ func Download(log *logger.Logger, opt ...Opt) error {
 	if c.ddJavaLibURL != "" {
 		cp.Printf("\n")
 		dl.CurDownloading = "apm-lib-java"
-		injTo = filepath.Join(c.installDir, dirInject, dirInjectSubLib,
+		injTo = filepath.Join(c.installDir, DirInject, DirInjectSubLib,
 			"java", "dd-java-agent.jar")
 		cp.Infof("Downloading %s => %s\n", c.ddJavaLibURL, injTo)
 		if err := dl.Download(c.cli, c.ddJavaLibURL, injTo,
@@ -300,7 +300,7 @@ func readPreloadWithoutLanucher(preloadPath, installDir string) (string, error) 
 		lns = append(lns, t)
 	}
 
-	soPath := filepath.Join(installDir, dirInject, dirInjectSubInject, launcherName)
+	soPath := filepath.Join(installDir, DirInject, DirInjectSubInject, launcherName)
 
 	var outLns []string
 	for _, ln := range lns {
@@ -354,7 +354,7 @@ func setPreload(installDir, soPath string) error {
 
 func laucnherSoPath(kind, installDir string) (string, error) {
 	var soPath string
-	bp := filepath.Join(installDir, dirInject, dirInjectSubInject)
+	bp := filepath.Join(installDir, DirInject, DirInjectSubInject)
 	switch kind {
 	case glibc:
 		soPath = filepath.Join(bp, launcherName+".so")
@@ -558,9 +558,9 @@ func setDockerRunc(configPath, runcPath string) error {
 		return err
 	}
 
-	injLdPreld := filepath.Join(dirDkInstall, dirInject, dirInjectSubInject, "ld.so.preload")
+	injLdPreld := filepath.Join(dirDkInstall, DirInject, DirInjectSubInject, "ld.so.preload")
 	if _, err := os.Stat(injLdPreld); err != nil {
-		soPath := filepath.Join(dirDkInstall, dirInject, dirInjectSubInject, launcherName+".so") + "\n"
+		soPath := filepath.Join(dirDkInstall, DirInject, DirInjectSubInject, launcherName+".so") + "\n"
 		if err := os.WriteFile(injLdPreld, []byte(soPath), 0o644); err != nil { //nolint:gosec
 			return err
 		}
