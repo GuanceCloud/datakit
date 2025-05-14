@@ -13,7 +13,7 @@ before_script:
 
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "1.72.0"
+  CI_VERSION: "1.73.0"
   CI_TESTING_VERSION: $CI_VERSION-testing_$CI_COMMIT_BRANCH
   DCA_CI_VERSION: "0.1.1"
   DCA_CI_TESTING_VERSION: $DCA_CI_VERSION-testing_$CI_COMMIT_BRANCH
@@ -324,7 +324,7 @@ release-testing-tw: # release testing packages to truewatch
     - cloudcare-ft
 
 release-prod-guance: # CI for guance packages
-  stage: _deploy_truewatch
+  stage: _deploy_guance
   resource_group: production
   needs:
     [
@@ -348,7 +348,7 @@ release-prod-guance: # CI for guance packages
       VERSION="$CI_VERSION" \
       PKGEBPF=1 \
       BRAND="guance" \
-      HELM_CHART_REPO="datakit-chart-cn" \
+      HELM_CHART_REPO="datakit-chart-cn"
     - make production_image GIT_BRANCH=$CI_COMMIT_BRANCH \
       VERSION="$CI_VERSION" \
       BRAND="guance" \
@@ -388,7 +388,7 @@ release-prod-tw: # CI for truewatch packages
       VERSION="$CI_VERSION" \
       PKGEBPF=1 \
       BRAND="truewatch" \
-      HELM_CHART_REPO="datakit-chart-intl" \
+      HELM_CHART_REPO="datakit-chart-intl"
     - make production_image GIT_BRANCH=$CI_COMMIT_BRANCH \
       VERSION="$CI_VERSION" \
       BRAND="truewatch" \
@@ -476,7 +476,6 @@ build-dca-production-image-guance:
       changes: # And if one of these files changed, we are going to release new version of DCA images.
         - dca/package.json
         - dca/Dockerfile.guance
-        - dca/Dockerfile.tw
         - dca/Dockerfile.uos
     - if: "$CI_COMMIT_BRANCH =~ /^dca-master-.*$/"
   script:
@@ -504,9 +503,7 @@ build-dca-production-image-tw:
     - if: "$CI_COMMIT_BRANCH == 'master'"
       changes:
         - dca/package.json
-        - dca/Dockerfile.guance
         - dca/Dockerfile.tw
-        - dca/Dockerfile.uos
     - if: "$CI_COMMIT_BRANCH =~ /^dca-master-.*$/"
   script:
     - nvm use v16.14.0

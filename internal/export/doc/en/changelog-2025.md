@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.73.0 (2025/05/14) {#cl-1.73.0}
+
+This release is an iterative release, and the main updates are as follows:
+
+### New Features {#cl-1.73.0-new}
+
+- Added `/v1/ntp` HTTP API, which is mainly used to verify the point timestamps on RUM data (#2666).
+
+### Issue Fixes {#cl-1.73.0-fix}
+
+- Fix the HTTP header `User-Agent` of DataKit itself for HTTP dialtesting (#2662).
+- Fix APM automatic injection for Java subprocess (#2645).
+- Fix container logs cannot be collected in the host installation mode introduced in version 1.72.0 (#2650).
+- Fix ineffective DDTrace sampling introduced introduced in version 1.72.0 (#2670).
+
+### Function Optimizations {#cl-1.73.0-opt}
+
+- Adjust the change event fields for Kubernetes objects (#2647).
+- Add the `mount_point` field in the Windows disk collector (#2652).
+- Extract the database-related meta information to the first-level fields in the DDTrace/OpenTelemetry APM collector (#2635).
+- The KV mechanism issued by the center adds support for Kubernetes Pod logs (configure KV in the annotation) and metric collection (configure KV in the KubernetesPrometheus collector conf) (#2635).
+- Other adjustments (#2663/#2651/#2646/#2627/#2624/#2564/#2598/#2422).
+
+---
+
 
 ## 1.72.0 (2025/04/23) {#cl-1.72.0}
 
