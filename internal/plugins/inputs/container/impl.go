@@ -7,7 +7,6 @@ package container
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/GuanceCloud/cliutils/logger"
 
@@ -88,7 +87,7 @@ func newContainerCollectors(ipt *Input) []Collector {
 
 		collector, err := newContainer(ipt, endpoint, getMountPoint(), client)
 		if err != nil {
-			l.Warnf("cannot connect endpoint, err: %s", err)
+			l.Warnf("cannot connect endpoint(%s), err: %s", endpoint, err)
 			continue
 		}
 
@@ -101,11 +100,6 @@ func newContainerCollectors(ipt *Input) []Collector {
 
 func newK8sCollectors(ipt *Input) (Collector, error) {
 	client, err := k8sclient.NewKubernetesClientInCluster()
-	if err != nil {
-		return nil, err
-	}
-
-	nodeName, err := getLocalNodeName()
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +125,6 @@ func newK8sCollectors(ipt *Input) (Collector, error) {
 	l.Infof("Use labels %s for k8s metric", optForMetric.keys)
 
 	cfg := kubernetes.Config{
-		NodeName:                      nodeName,
 		NodeLocal:                     ipt.EnableK8sNodeLocal,
 		EnableK8sMetric:               ipt.EnableK8sMetric,
 		EnableK8sObject:               true,
@@ -153,20 +146,6 @@ func newK8sCollectors(ipt *Input) (Collector, error) {
 	}
 
 	return kubernetes.NewKubeCollector(client, &cfg, ipt.chPause)
-}
-
-func getLocalNodeName() (string, error) {
-	var e string
-	if os.Getenv("NODE_NAME") != "" {
-		e = os.Getenv("NODE_NAME")
-	}
-	if os.Getenv("ENV_K8S_NODE_NAME") != "" {
-		e = os.Getenv("ENV_K8S_NODE_NAME")
-	}
-	if e != "" {
-		return e, nil
-	}
-	return "", fmt.Errorf("invalid ENV_K8S_NODE_NAME environment, cannot be empty")
 }
 
 func getCollectorMeasurement() []inputs.Measurement {

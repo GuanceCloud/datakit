@@ -44,8 +44,8 @@ func (c *container) gatherMetric(timestamp int64) {
 	for ns, count := range nsCount {
 		var kvs point.KVs
 		kvs = kvs.AddTag("namespace", ns)
-		kvs = kvs.AddTag("node_name", c.nodeName)
 		kvs = kvs.AddV2("container", count, false)
+		kvs = kvs.AddTag("node_name", c.localNodeName)
 
 		pt := point.NewPointV2("kubernetes", kvs, append(opts, point.WithTimestamp(timestamp))...)
 		pts = append(pts, pt)

@@ -53,7 +53,6 @@ type Kube struct {
 	cfg    *Config
 	client k8sClient
 
-	nodeName                 string
 	onWatchingEvent          *atomic.Bool
 	onWatchingChange         *atomic.Bool
 	lastEventResourceVersion string
@@ -76,11 +75,11 @@ func NewKubeCollector(client k8sclient.Client, cfg *Config, chanPause chan bool)
 	if err != nil {
 		return nil, err
 	}
+	cfg.NodeName = nodeName
 
 	return &Kube{
 		cfg:              cfg,
 		client:           client,
-		nodeName:         nodeName,
 		onWatchingEvent:  &atomic.Bool{},
 		onWatchingChange: &atomic.Bool{},
 		paused:           true,
