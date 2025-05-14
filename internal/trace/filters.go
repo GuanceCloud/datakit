@@ -176,7 +176,7 @@ func (smp *Sampler) Sample(log *logger.Logger, dktrace DatakitTrace) (DatakitTra
 		switch str {
 		case UserDrop, SamplerDrop:
 			return nil, true
-		case UserKeep, SamplerKeep:
+		case UserKeep:
 			return dktrace, false
 		}
 	}
