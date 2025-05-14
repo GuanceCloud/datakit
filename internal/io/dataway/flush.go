@@ -225,7 +225,7 @@ func (dw *Dataway) doFlush(w *writer, b *body, opts ...WriteOption) error {
 			case point.Metric, // these categories are not default cached.
 				point.MetricDeprecated,
 				point.Object,
-				point.ObjectChange,
+				point.ObjectChange, // Deprecated.
 				point.CustomObject,
 				point.DynamicDWCategory:
 

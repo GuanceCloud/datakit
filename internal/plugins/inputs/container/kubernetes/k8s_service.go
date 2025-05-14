@@ -21,9 +21,10 @@ import (
 )
 
 const (
-	serviceMetricMeasurement       = "kube_service"
-	serviceObjectMeasurement       = "kubernetes_services"
-	serviceObjectChangeMeasurement = "kubernetes_services"
+	serviceMetricMeasurement = "kube_service"
+	serviceObjectMeasurement = "kubernetes_services"
+	serviceChangeSource      = "kubernetes_services"
+	serviceChangeSourceType  = "Service"
 )
 
 //nolint:gochecknoinits
@@ -83,7 +84,7 @@ func (s *service) gatherObject(ctx context.Context) {
 	}
 }
 
-func (s *service) addObjectChangeInformer(informerFactory informers.SharedInformerFactory) {
+func (s *service) addChangeInformer(informerFactory informers.SharedInformerFactory) {
 	informer := informerFactory.Core().V1().Services()
 	if informer == nil {
 		klog.Warn("cannot get service informer")
@@ -91,6 +92,8 @@ func (s *service) addObjectChangeInformer(informerFactory informers.SharedInform
 	}
 
 	updateFunc := func(oldObj, newObj interface{}) {
+		objectChangeCountVec.WithLabelValues(serviceChangeSourceType, "update").Inc()
+
 		oldServiceObj, ok := oldObj.(*apicorev1.Service)
 		if !ok {
 			klog.Warnf("converting to Service object failed, %v", oldObj)
@@ -110,7 +113,8 @@ func (s *service) addObjectChangeInformer(informerFactory informers.SharedInform
 		}
 
 		if difftext != "" {
-			processObjectChange(s.cfg.Feeder, serviceObjectChangeMeasurement, difftext, newServiceObj)
+			objectChangeCountVec.WithLabelValues(serviceChangeSourceType, "spec-changed").Inc()
+			processChange(s.cfg.Feeder, serviceChangeSource, serviceChangeSourceType, difftext, newServiceObj)
 		}
 	}
 

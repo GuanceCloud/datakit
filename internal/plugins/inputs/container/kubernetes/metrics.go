@@ -16,6 +16,7 @@ var (
 	collectResourceCostVec  *prometheus.SummaryVec
 	podMetricsQueryCountVec *prometheus.CounterVec
 	podAnnotationPromVec    *prometheus.SummaryVec
+	objectChangeCountVec    *prometheus.CounterVec
 )
 
 func setupMetrics() {
@@ -98,11 +99,25 @@ func setupMetrics() {
 		},
 	)
 
+	objectChangeCountVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "input_container",
+			Name:      "kubernetes_resources_change_total",
+			Help:      "Total number of objects changed for Kubernetes resources.",
+		},
+		[]string{
+			"resource",
+			"type",
+		},
+	)
+
 	metrics.MustRegister(
 		collectCostVec,
 		collectResourceCostVec,
 		collectPtsVec,
 		podMetricsQueryCountVec,
 		podAnnotationPromVec,
+		objectChangeCountVec,
 	)
 }

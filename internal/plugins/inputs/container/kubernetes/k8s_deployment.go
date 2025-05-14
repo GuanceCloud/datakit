@@ -20,9 +20,10 @@ import (
 )
 
 const (
-	deploymentMetricMeasurement       = "kube_deployment"
-	deploymentObjectMeasurement       = "kubernetes_deployments"
-	deploymentObjectChangeMeasurement = "kubernetes_deployments"
+	deploymentMetricMeasurement = "kube_deployment"
+	deploymentObjectMeasurement = "kubernetes_deployments"
+	deploymentChangeSource      = "kubernetes_deployments"
+	deploymentChangeSourceType  = "Deployment"
 )
 
 //nolint:gochecknoinits
@@ -82,7 +83,7 @@ func (d *deployment) gatherObject(ctx context.Context) {
 	}
 }
 
-func (d *deployment) addObjectChangeInformer(informerFactory informers.SharedInformerFactory) {
+func (d *deployment) addChangeInformer(informerFactory informers.SharedInformerFactory) {
 	informer := informerFactory.Apps().V1().Deployments()
 	if informer == nil {
 		klog.Warn("cannot get deployment informer")
@@ -90,6 +91,8 @@ func (d *deployment) addObjectChangeInformer(informerFactory informers.SharedInf
 	}
 
 	updateFunc := func(oldObj, newObj interface{}) {
+		objectChangeCountVec.WithLabelValues(deploymentChangeSourceType, "update").Inc()
+
 		oldDeploymentObj, ok := oldObj.(*apiappsv1.Deployment)
 		if !ok {
 			klog.Warnf("converting to Deployment object failed, %v", oldObj)
@@ -109,7 +112,8 @@ func (d *deployment) addObjectChangeInformer(informerFactory informers.SharedInf
 		}
 
 		if difftext != "" {
-			processObjectChange(d.cfg.Feeder, deploymentObjectChangeMeasurement, difftext, newDeploymentObj)
+			objectChangeCountVec.WithLabelValues(deploymentChangeSourceType, "spec-changed").Inc()
+			processChange(d.cfg.Feeder, deploymentChangeSource, deploymentChangeSourceType, difftext, newDeploymentObj)
 		}
 	}
 

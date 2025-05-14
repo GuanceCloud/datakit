@@ -36,7 +36,7 @@ type (
 	resource interface {
 		gatherMetric(ctx context.Context, timestamp int64 /*nanoseconds*/)
 		gatherObject(ctx context.Context)
-		addObjectChangeInformer(informerFactory informers.SharedInformerFactory)
+		addChangeInformer(informerFactory informers.SharedInformerFactory)
 	}
 )
 

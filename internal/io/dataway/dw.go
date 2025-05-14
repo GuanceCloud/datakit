@@ -45,7 +45,7 @@ var (
 		point.Network.URL(),
 		point.KeyEvent.URL(),
 		point.Object.URL(),
-		point.ObjectChange.URL(),
+		point.ObjectChange.URL(), // Deprecated.
 		point.CustomObject.URL(),
 		point.Logging.URL(),
 		point.Tracing.URL(),
