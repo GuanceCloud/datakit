@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	kubeapi "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -87,7 +88,7 @@ func (k *Kube) buildEventPoints(event *kubewatch.Event) []*point.Point {
 	kvs = kvs.AddTag("uid", string(item.UID))
 	kvs = kvs.AddTag("type", item.Type)
 	kvs = kvs.AddTag("reason", item.Reason)
-	kvs = kvs.AddTag("from_node", k.cfg.NodeName)
+	kvs = kvs.AddTag("from_node", config.RenameNode(k.cfg.NodeName))
 
 	kvs = kvs.AddV2("involved_kind", item.InvolvedObject.Kind, false)
 	kvs = kvs.AddV2("involved_uid", string(item.InvolvedObject.UID), false)

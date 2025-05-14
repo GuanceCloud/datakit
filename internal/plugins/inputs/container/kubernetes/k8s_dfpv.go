@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"k8s.io/client-go/informers"
@@ -75,7 +76,7 @@ func (d *dfpv) buildMetricPoints(list []*podVolumeInfo, timestamp int64) []*poin
 
 		kvs = kvs.AddTag("name", item.pvcName+"/"+item.podName)
 		kvs = kvs.AddTag("pvc_name", item.pvcName)
-		kvs = kvs.AddTag("node_name", item.nodeName)
+		kvs = kvs.AddTag("node_name", config.RenameNode(item.nodeName))
 		kvs = kvs.AddTag("pod_name", item.podName)
 		kvs = kvs.AddTag("namespace", item.namespace)
 		kvs = kvs.AddTag("volume_mount_name", item.volumeMountName)
@@ -111,7 +112,7 @@ func (d *dfpv) buildObjectPoints(list []*podVolumeInfo) []*point.Point {
 
 		kvs = kvs.AddTag("name", item.pvcName+"/"+item.podName)
 		kvs = kvs.AddTag("pvc_name", item.pvcName)
-		kvs = kvs.AddTag("node_name", item.nodeName)
+		kvs = kvs.AddTag("node_name", config.RenameNode(item.nodeName))
 		kvs = kvs.AddTag("pod_name", item.podName)
 		kvs = kvs.AddTag("namespace", item.namespace)
 		kvs = kvs.AddTag("volume_mount_name", item.volumeMountName)
