@@ -8,9 +8,11 @@ package kubernetes
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/google/uuid"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/diff"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -68,21 +70,28 @@ func feedLogging(name string, feeder dkio.Feeder, pts []*point.Point) {
 	}
 }
 
-func processObjectChange(feeder dkio.Feeder, source, difftext string, obj metav1.Object) {
+func processChange(feeder dkio.Feeder, source, sourceType, difftext string, obj metav1.Object) {
 	var kvs point.KVs
-	kvs = kvs.AddTag("uid", string(obj.GetUID()))
-	kvs = kvs.AddTag("name", obj.GetName())
-	kvs = kvs.AddTag("namespace", obj.GetNamespace())
-	kvs = kvs.Add("diff", difftext, false, false)
-	pt := point.NewPointV2(source, kvs, point.WithTimestamp(time.Now().UnixNano()))
+	kvs = append(kvs, buildChangeEventKVs()...)
 
-	collectPtsVec.WithLabelValues("k8s-object-change").Add(1)
+	name := obj.GetName()
+	kvs = kvs.AddTag("df_resource", name)
+	kvs = kvs.AddTag("df_title", fmt.Sprintf("[%s] %s configuration changed", sourceType, name))
+
+	kvs = kvs.AddTag("df_uid", string(obj.GetUID()))
+	kvs = kvs.AddTag("df_namespace", obj.GetNamespace())
+	kvs = kvs.AddTag("df_resource_type", source)
+
+	kvs = kvs.AddV2("df_message", difftext, false)
+	pt := point.NewPointV2("event", kvs, point.WithTimestamp(time.Now().UnixNano()))
+
+	collectPtsVec.WithLabelValues("k8s-object-change-event").Add(1)
 
 	if err := feeder.FeedV2(
-		point.ObjectChange,
+		point.KeyEvent,
 		[]*point.Point{pt},
 		dkio.WithElection(true),
-		dkio.WithInputName("k8s-object-change"),
+		dkio.WithInputName("k8s-object-change-event"),
 	); err != nil {
 		klog.Warnf("feed failed, err: %s", err)
 	}
@@ -115,6 +124,30 @@ func diffObject(oldObj, newObj interface{}) (difftext string, err error) {
 		return "", err
 	}
 	return diff.LineDiffWithContextLines(string(oldText), string(newText), contextLines), nil
+}
+
+func buildChangeEventKVs() (kvs point.KVs) {
+	const (
+		defaultStatus = "info"
+		defaultSource = "change"
+	)
+
+	var uid string
+	if u, err := uuid.NewRandom(); err == nil {
+		uid = "event-" + strings.ToLower(u.String())
+	} else {
+		klog.Warnf("cannot generate UUIDv4, err: %s", err)
+	}
+	kvs = kvs.AddTag("df_event_id", uid)
+	kvs = kvs.AddTag("df_source", defaultSource)
+	kvs = kvs.AddTag("df_status", defaultStatus)
+	kvs = kvs.AddTag("df_sub_status", defaultStatus)
+
+	now := time.Now()
+	kvs = kvs.AddV2("df_check_range_start", now.Unix(), false)
+	kvs = kvs.AddV2("df_check_range_end", now.Unix(), false)
+	kvs = kvs.AddV2("df_date_range", 0, false)
+	return
 }
 
 func getLocalNodeName() (string, error) {

@@ -56,7 +56,7 @@ func (ptg *ptGrouper) setExtKVs() {
 	switch ptg.cat {
 	case
 		point.Logging,
-		point.ObjectChange,
+		point.ObjectChange, // Deprecated.
 		point.DialTesting,
 		point.Network,
 		point.KeyEvent,

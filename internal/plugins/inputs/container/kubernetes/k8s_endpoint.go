@@ -58,8 +58,8 @@ func (e *endpoint) gatherMetric(ctx context.Context, timestamp int64) {
 	feedMetric("k8s-counter", e.cfg.Feeder, counterPts, true)
 }
 
-func (*endpoint) gatherObject(_ context.Context)                            { /* nil */ }
-func (*endpoint) addObjectChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
+func (*endpoint) gatherObject(_ context.Context)                      { /* nil */ }
+func (*endpoint) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
 func (e *endpoint) buildMetricPoints(list *apicorev1.EndpointsList, timestamp int64) []*point.Point {
 	var pts []*point.Point

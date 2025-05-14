@@ -21,9 +21,10 @@ import (
 )
 
 const (
-	nodeMetricMeasurement       = "kube_node"
-	nodeObjectMeasurement       = "kubernetes_nodes"
-	nodeObjectChangeMeasurement = "kubernetes_nodes"
+	nodeMetricMeasurement = "kube_node"
+	nodeObjectMeasurement = "kubernetes_nodes"
+	nodeChangeSource      = "kubernetes_nodes"
+	nodeChangeSourceType  = "Node"
 )
 
 //nolint:gochecknoinits
@@ -83,7 +84,7 @@ func (n *node) gatherObject(ctx context.Context) {
 	}
 }
 
-func (n *node) addObjectChangeInformer(informerFactory informers.SharedInformerFactory) {
+func (n *node) addChangeInformer(informerFactory informers.SharedInformerFactory) {
 	informer := informerFactory.Core().V1().Nodes()
 	if informer == nil {
 		klog.Warn("cannot get node informer")
@@ -91,6 +92,8 @@ func (n *node) addObjectChangeInformer(informerFactory informers.SharedInformerF
 	}
 
 	updateFunc := func(oldObj, newObj interface{}) {
+		objectChangeCountVec.WithLabelValues(nodeChangeSourceType, "update").Inc()
+
 		oldNodeObj, ok := oldObj.(*apicorev1.Node)
 		if !ok {
 			klog.Warnf("converting to Node object failed, %v", oldObj)
@@ -110,7 +113,8 @@ func (n *node) addObjectChangeInformer(informerFactory informers.SharedInformerF
 		}
 
 		if difftext != "" {
-			processObjectChange(n.cfg.Feeder, nodeObjectChangeMeasurement, difftext, newNodeObj)
+			objectChangeCountVec.WithLabelValues(nodeChangeSourceType, "spec-changed").Inc()
+			processChange(n.cfg.Feeder, nodeChangeSource, nodeChangeSourceType, difftext, newNodeObj)
 		}
 	}
 

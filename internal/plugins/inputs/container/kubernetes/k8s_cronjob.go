@@ -20,9 +20,10 @@ import (
 )
 
 const (
-	cronjobMetricMeasurement       = "kube_cronjob"
-	cronjobObjectMeasurement       = "kubernetes_cron_jobs"
-	cronjobObjectChangeMeasurement = "kubernetes_cron_jobs"
+	cronjobMetricMeasurement = "kube_cronjob"
+	cronjobObjectMeasurement = "kubernetes_cron_jobs"
+	cronjobChangeSource      = "kubernetes_cron_jobs"
+	cronjobChangeSourceType  = "CronJob"
 )
 
 //nolint:gochecknoinits
@@ -82,7 +83,7 @@ func (c *cronjob) gatherObject(ctx context.Context) {
 	}
 }
 
-func (c *cronjob) addObjectChangeInformer(informerFactory informers.SharedInformerFactory) {
+func (c *cronjob) addChangeInformer(informerFactory informers.SharedInformerFactory) {
 	informer := informerFactory.Batch().V1().CronJobs()
 	if informer == nil {
 		klog.Warn("cannot get cronjob informer")
@@ -90,6 +91,8 @@ func (c *cronjob) addObjectChangeInformer(informerFactory informers.SharedInform
 	}
 
 	updateFunc := func(oldObj, newObj interface{}) {
+		objectChangeCountVec.WithLabelValues(cronjobChangeSourceType, "update").Inc()
+
 		oldCronjobObj, ok := oldObj.(*apibatchv1.CronJob)
 		if !ok {
 			klog.Warnf("converting to CronJob object failed, %v", oldObj)
@@ -109,7 +112,8 @@ func (c *cronjob) addObjectChangeInformer(informerFactory informers.SharedInform
 		}
 
 		if difftext != "" {
-			processObjectChange(c.cfg.Feeder, cronjobObjectChangeMeasurement, difftext, newCronjobObj)
+			objectChangeCountVec.WithLabelValues(cronjobChangeSourceType, "spec-changed").Inc()
+			processChange(c.cfg.Feeder, cronjobChangeSource, cronjobChangeSourceType, difftext, newCronjobObj)
 		}
 	}
 

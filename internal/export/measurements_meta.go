@@ -92,7 +92,8 @@ func exportMetaInfo(ipts map[string]inputs.Creator) ([]byte, error) {
 				switch tmp.Type {
 				case point.Logging.String(),
 					point.Tracing.String(),
-					point.ObjectChange.String(),
+					point.ObjectChange.String(), // Deprecated.
+					point.KeyEvent.String(),
 					point.Network.String():
 					l.Warnf("ignore %s from %s", tmp.Type, k)
 					continue

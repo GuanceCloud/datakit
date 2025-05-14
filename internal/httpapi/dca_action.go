@@ -455,7 +455,7 @@ func testDatakitPipelineAction(_ *ws.Client, response *ws.DCAResponse, data *ws.
 			point.Metric,
 			point.Network,
 			point.Object,
-			point.ObjectChange,
+			point.ObjectChange, // Deprecated.
 			point.Profiling,
 			point.RUM,
 			point.Security,

@@ -64,7 +64,7 @@ func (d *dfpv) gatherObject(ctx context.Context) {
 	feedObject("k8s-dfpv-object", d.cfg.Feeder, pts, false)
 }
 
-func (d *dfpv) addObjectChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
+func (d *dfpv) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
 func (d *dfpv) buildMetricPoints(list []*podVolumeInfo, timestamp int64) []*point.Point {
 	var pts []*point.Point

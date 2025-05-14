@@ -19,8 +19,9 @@ import (
 )
 
 const (
-	persistentvolumeclaimObjectMeasurement       = "kubernetes_persistentvolumeclaims"
-	persistentvolumeclaimObjectChangeMeasurement = "kubernetes_persistentvolumeclaims"
+	persistentvolumeclaimObjectMeasurement = "kubernetes_persistentvolumeclaims"
+	persistentvolumeclaimChangeSource      = "kubernetes_persistentvolumeclaims"
+	persistentvolumeclaimChangeSourceType  = "PersistentVolumeClaim"
 )
 
 //nolint:gochecknoinits
@@ -59,7 +60,7 @@ func (p *persistentvolumeclaim) gatherObject(ctx context.Context) {
 	}
 }
 
-func (p *persistentvolumeclaim) addObjectChangeInformer(informerFactory informers.SharedInformerFactory) {
+func (p *persistentvolumeclaim) addChangeInformer(informerFactory informers.SharedInformerFactory) {
 	informer := informerFactory.Core().V1().PersistentVolumeClaims()
 	if informer == nil {
 		klog.Warn("cannot get persistentvolumeclaim informer")
@@ -67,6 +68,8 @@ func (p *persistentvolumeclaim) addObjectChangeInformer(informerFactory informer
 	}
 
 	updateFunc := func(oldObj, newObj interface{}) {
+		objectChangeCountVec.WithLabelValues(persistentvolumeclaimChangeSourceType, "update").Inc()
+
 		oldPersistentVolumeClaimObj, ok := oldObj.(*apicorev1.PersistentVolumeClaim)
 		if !ok {
 			klog.Warnf("converting to PersistentVolumeClaim object failed, %v", oldObj)
@@ -86,7 +89,11 @@ func (p *persistentvolumeclaim) addObjectChangeInformer(informerFactory informer
 		}
 
 		if difftext != "" {
-			processObjectChange(p.cfg.Feeder, persistentvolumeclaimObjectChangeMeasurement, difftext, newPersistentVolumeClaimObj)
+			objectChangeCountVec.WithLabelValues(persistentvolumeclaimChangeSourceType, "spec-changed").Inc()
+			processChange(p.cfg.Feeder,
+				persistentvolumeclaimChangeSource,
+				persistentvolumeclaimChangeSourceType,
+				difftext, newPersistentVolumeClaimObj)
 		}
 	}
 

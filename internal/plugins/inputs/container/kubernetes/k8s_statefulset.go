@@ -19,9 +19,10 @@ import (
 )
 
 const (
-	statefulsetMetricMeasurement       = "kube_statefulset"
-	statefulsetObjectMeasurement       = "kubernetes_statefulsets"
-	statefulsetObjectChangeMeasurement = "kubernetes_statefulsets"
+	statefulsetMetricMeasurement = "kube_statefulset"
+	statefulsetObjectMeasurement = "kubernetes_statefulsets"
+	statefulsetChangeSource      = "kubernetes_statefulsets"
+	statefulsetChangeSourceType  = "StatefulSet"
 )
 
 //nolint:gochecknoinits
@@ -81,7 +82,7 @@ func (s *statefulset) gatherObject(ctx context.Context) {
 	}
 }
 
-func (s *statefulset) addObjectChangeInformer(informerFactory informers.SharedInformerFactory) {
+func (s *statefulset) addChangeInformer(informerFactory informers.SharedInformerFactory) {
 	informer := informerFactory.Apps().V1().StatefulSets()
 	if informer == nil {
 		klog.Warn("cannot get statefulset informer")
@@ -89,6 +90,8 @@ func (s *statefulset) addObjectChangeInformer(informerFactory informers.SharedIn
 	}
 
 	updateFunc := func(oldObj, newObj interface{}) {
+		objectChangeCountVec.WithLabelValues(statefulsetChangeSourceType, "update").Inc()
+
 		oldStatefulSetObj, ok := oldObj.(*apiappsv1.StatefulSet)
 		if !ok {
 			klog.Warnf("converting to StatefulSet object failed, %v", oldObj)
@@ -108,7 +111,8 @@ func (s *statefulset) addObjectChangeInformer(informerFactory informers.SharedIn
 		}
 
 		if difftext != "" {
-			processObjectChange(s.cfg.Feeder, statefulsetObjectChangeMeasurement, difftext, newStatefulSetObj)
+			objectChangeCountVec.WithLabelValues(statefulsetChangeSourceType, "spec-changed").Inc()
+			processChange(s.cfg.Feeder, statefulsetChangeSource, statefulsetChangeSourceType, difftext, newStatefulSetObj)
 		}
 	}
 

@@ -20,9 +20,10 @@ import (
 )
 
 const (
-	daemonsetMetricMeasurement       = "kube_daemonset"
-	daemonsetObjectMeasurement       = "kubernetes_daemonset"
-	daemonsetObjectChangeMeasurement = "kubernetes_daemonsets"
+	daemonsetMetricMeasurement = "kube_daemonset"
+	daemonsetObjectMeasurement = "kubernetes_daemonset"
+	daemonsetChangeSource      = "kubernetes_daemonsets"
+	daemonsetChangeSourceType  = "DaemonSet"
 )
 
 //nolint:gochecknoinits
@@ -82,7 +83,7 @@ func (d *daemonset) gatherObject(ctx context.Context) {
 	}
 }
 
-func (d *daemonset) addObjectChangeInformer(informerFactory informers.SharedInformerFactory) {
+func (d *daemonset) addChangeInformer(informerFactory informers.SharedInformerFactory) {
 	informer := informerFactory.Apps().V1().DaemonSets()
 	if informer == nil {
 		klog.Warn("cannot get daemonset informer")
@@ -90,6 +91,8 @@ func (d *daemonset) addObjectChangeInformer(informerFactory informers.SharedInfo
 	}
 
 	updateFunc := func(oldObj, newObj interface{}) {
+		objectChangeCountVec.WithLabelValues(daemonsetChangeSourceType, "update").Inc()
+
 		oldDaemonsetObj, ok := oldObj.(*apiappsv1.DaemonSet)
 		if !ok {
 			klog.Warnf("converting to DaemonSet object failed, %v", oldObj)
@@ -109,7 +112,8 @@ func (d *daemonset) addObjectChangeInformer(informerFactory informers.SharedInfo
 		}
 
 		if difftext != "" {
-			processObjectChange(d.cfg.Feeder, daemonsetObjectChangeMeasurement, difftext, newDaemonsetObj)
+			objectChangeCountVec.WithLabelValues(daemonsetChangeSourceType, "spec-changed").Inc()
+			processChange(d.cfg.Feeder, daemonsetChangeSource, daemonsetChangeSourceType, difftext, newDaemonsetObj)
 		}
 	}
 
