@@ -49,6 +49,7 @@ type logInstance struct {
 	imageName, imageShortName, imageTag string
 	logPath                             string
 	configStr                           string
+	configTemplate                      string
 	configs                             logConfigs
 
 	podName, podIP, podNamespace string
@@ -304,6 +305,19 @@ func (t *logTable) closeFromTable(id string) {
 	for _, cancel := range t.table[id] {
 		if cancel != nil {
 			cancel()
+		}
+	}
+}
+
+func (t *logTable) closeAll() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	for _, cancels := range t.table {
+		for _, cancel := range cancels {
+			if cancel != nil {
+				cancel()
+			}
 		}
 	}
 }

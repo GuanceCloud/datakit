@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	kvUpdateCount      prometheus.Counter
+	kvUpdateCount      prometheus.CounterVec
 	kvPullLatencyVec   *prometheus.SummaryVec
 	kvLastUpdate       prometheus.Gauge
 	kvInputReloadCount prometheus.CounterVec
@@ -55,13 +55,14 @@ func metricsSetup() {
 		[]string{"status"},
 	)
 
-	kvUpdateCount = prometheus.NewCounter(
+	kvUpdateCount = *prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
 			Subsystem: "kv",
 			Name:      "update_total",
 			Help:      "KV updated count",
 		},
+		[]string{"name"},
 	)
 
 	kvInputLastReload = *prometheus.NewGaugeVec(

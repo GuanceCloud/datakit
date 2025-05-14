@@ -14,6 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -38,6 +39,7 @@ type Input struct {
 	feeder   dkio.Feeder
 	cancel   context.CancelFunc
 
+	semStop *cliutils.Sem // start stop signal
 	runOnce sync.Once
 }
 
@@ -46,7 +48,6 @@ func (*Input) Catalog() string                         { return inputName }
 func (*Input) AvailableArchs() []string                { return []string{datakit.LabelK8s} }
 func (*Input) Singleton()                              { /*nil*/ }
 func (*Input) SampleMeasurement() []inputs.Measurement { return nil /* no measurement docs exported */ }
-func (*Input) Terminate()                              { /* TODO */ }
 
 func (ipt *Input) Run() {
 	klog = logger.SLogger("kubernetesprometheus")
@@ -74,6 +75,11 @@ func (ipt *Input) Run() {
 
 		select {
 		case <-datakit.Exit.Wait():
+			ipt.stop()
+			klog.Info("exit")
+			return
+
+		case <-ipt.semStop.Wait():
 			ipt.stop()
 			klog.Info("exit")
 			return
@@ -161,6 +167,12 @@ func (ipt *Input) stop() {
 	}
 }
 
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
+}
+
 func (ipt *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
 	select {
@@ -197,6 +209,7 @@ func init() { //nolint:gochecknoinits
 			chPause:             make(chan bool, inputs.ElectionPauseChannelLength),
 			pause:               newPauseVar(),
 			feeder:              dkio.DefaultFeeder(),
+			semStop:             cliutils.NewSem(),
 		}
 	})
 }

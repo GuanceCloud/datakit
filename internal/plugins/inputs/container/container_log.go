@@ -106,6 +106,16 @@ func (c *container) cleanMissingContainerLog(activeIDs []string) {
 }
 
 func (c *container) tailingLogs(ins *logInstance) {
+	if err := config.GetKV().Register("container-logs", ins.configTemplate, c.ReloadConfigKV,
+		&config.KVOpt{
+			IsMultiConf:              true,
+			IsUnRegisterBeforeReload: true,
+			ConfName:                 ins.containerName + "-" + ins.id,
+		},
+	); err != nil {
+		l.Warnf("register KV err: %s", err)
+	}
+
 	g := goroutine.NewGroup(goroutine.Option{Name: "container-logs/" + ins.containerName})
 
 	for _, cfg := range ins.configs {
@@ -173,10 +183,14 @@ func (c *container) tailingLogs(ins *logInstance) {
 		l.Infof("add container log collection with path %s from source %s", pathAtRootfs, cfg.Source)
 
 		c.logTable.addToTable(ins.id, cfg.Path, tail.Close)
+
+		cfgPath := cfg.Path
+		cfgSource := cfg.Source
+
 		g.Go(func(ctx context.Context) error {
 			defer func() {
-				c.logTable.removePathFromTable(ins.id, cfg.Path)
-				l.Infof("remove container log collection from source %s", cfg.Source)
+				c.logTable.removePathFromTable(ins.id, cfgPath)
+				l.Infof("remove container log collection from source %s", cfgSource)
 			}()
 			tail.Start()
 			return nil
@@ -209,11 +223,11 @@ func (c *container) queryContainerLogInfo(item *runtime.Container) *logInstance 
 		} else {
 			// ex: datakit/logs
 			if v := pod.Annotations[fmt.Sprintf(logConfigAnnotationKeyFormat, "")]; v != "" {
-				ins.configStr = v
+				ins.configTemplate = v
 			}
 			// ex: datakit/nginx.logs
 			if v := pod.Annotations[fmt.Sprintf(logConfigAnnotationKeyFormat, ins.containerName+".")]; v != "" {
-				ins.configStr = v
+				ins.configTemplate = v
 			}
 
 			ins.podIP = pod.Status.PodIP
@@ -229,13 +243,22 @@ func (c *container) queryContainerLogInfo(item *runtime.Container) *logInstance 
 	// ex: DATAKIT_LOGS_CONFIG
 	if item.Envs != nil {
 		if str, ok := item.Envs["DATAKIT_LOGS_CONFIG"]; ok {
-			ins.configStr = str
+			ins.configTemplate = str
 		}
 	}
 
-	ins.imageName, ins.imageShortName, ins.imageTag = runtime.ParseImage(ins.image)
+	var err error
+	ins.configStr, err = config.GetKV().ReplaceKV(ins.configTemplate)
+	if err != nil {
+		ins.configStr = ins.configTemplate
+		l.Warnf("failed of replace kv for container %s, err: %s", ins.containerName, ins.configTemplate)
+	} else {
+		l.Debugf("replace kv for container %s, old: %s, new:%s", ins.containerName, ins.configTemplate, ins.configStr)
+	}
 
+	ins.imageName, ins.imageShortName, ins.imageTag = runtime.ParseImage(ins.image)
 	l.Debugf("container %s use config: %v", ins.containerName, ins)
+
 	return ins
 }
 

@@ -14,21 +14,43 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"text/template"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 )
 
+// KV represents a key-value store that manages configurations and reloads configurations if needed.
 type KV struct {
 	Value   string `json:"value"`
 	Version int64  `json:"version"`
 
-	kv   map[string]string
-	tick *time.Ticker
-	md5  string
+	watchers map[string]*watcher
+	kv       map[string]string
+	tick     *time.Ticker
+	md5      string
+
+	mu sync.RWMutex
 }
+
+var g = goroutine.NewGroup(goroutine.Option{
+	Name: "KV",
+})
+
+type watcher struct {
+	name         string
+	templateStrs map[string]string
+	callback     KVReloadFunc
+	lastValue    map[string]string
+
+	isReloading              int32 // watcher is in state reloading
+	isMultiConf              bool  // one watcher observe multi conf
+	isUnRegisterBeforeReload bool  // watcher is unregistered before reload
+}
+type KVReloadFunc func(map[string]string) error
 
 var kvReg = regexp.MustCompile(`{{.*}}`)
 
@@ -55,11 +77,89 @@ var funcMap = template.FuncMap{
 var (
 	pullInterval = 30 * time.Second
 	defaultKV    = &KV{
-		tick: time.NewTicker(pullInterval),
+		tick:     time.NewTicker(pullInterval),
+		watchers: map[string]*watcher{},
 	}
 
 	restartHTTPServer func()
 )
+
+type KVOpt struct {
+	IsMultiConf              bool   // merge conf when watcher is registered
+	IsUnRegisterBeforeReload bool   // watcher is unregistered before reload
+	ConfName                 string // if IsMultiConf is true, ConfName is required for each conf
+}
+
+// Register registers a new watcher with the given name, configuration template, reload function, and options.
+// It ensures that the configuration template is valid and replaces any key-value placeholders with actual values.
+// If the watcher already exists, it checks for conflicts and updates the configuration if necessary.
+//
+// Parameters:
+//   - watcherName: The name of the watcher to register.
+//   - conf: The configuration template string, which should contain placeholders like '{{.key}}'.
+//   - reload: The function to be called when the configuration needs to be reloaded.
+//   - opt: Optional configuration options for the watcher.
+//
+// Returns:
+//   - error: An error if the registration fails due to invalid configuration, conflicts, or other issues.
+func (c *KV) Register(watcherName, conf string, reload KVReloadFunc, opt *KVOpt) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if opt == nil {
+		opt = &KVOpt{}
+	}
+
+	if !IsKVTemplate(conf) {
+		return fmt.Errorf("conf is not a template, should contain string like '{{.key}}'")
+	}
+
+	if opt.IsMultiConf && opt.ConfName == "" {
+		return fmt.Errorf("confName is required when IsMultiConf is true")
+	}
+
+	result, err := c.ReplaceKV(conf)
+	if err != nil {
+		return fmt.Errorf("replace kv failed: %w", err)
+	}
+	parsedConf := result
+
+	w, ok := c.watchers[watcherName]
+	// watcher already exists
+	if ok {
+		// check if watcher is multi conf
+		if !w.isMultiConf {
+			return fmt.Errorf("kv watcher already exists: %s", watcherName)
+		} else {
+			if _, ok := w.templateStrs[opt.ConfName]; ok {
+				return fmt.Errorf("kv conf name already exists: %s", opt.ConfName)
+			}
+			w.templateStrs[opt.ConfName] = conf
+			w.lastValue[opt.ConfName] = parsedConf
+			return nil
+		}
+	}
+
+	if reload == nil {
+		return fmt.Errorf("reload is nil")
+	}
+
+	confName := watcherName
+	if opt.ConfName != "" {
+		confName = opt.ConfName
+	}
+
+	c.watchers[watcherName] = &watcher{
+		templateStrs:             map[string]string{confName: conf},
+		callback:                 reload,
+		lastValue:                map[string]string{confName: parsedConf},
+		isMultiConf:              opt.IsMultiConf,
+		isUnRegisterBeforeReload: opt.IsUnRegisterBeforeReload,
+		name:                     watcherName,
+	}
+
+	return nil
+}
 
 func (c *KV) LoadKV() {
 	if err := c.LoadKVFile(datakit.KVFile); err != nil {
@@ -112,24 +212,23 @@ func parseKV(c *KV) error {
 	return nil
 }
 
-func (c *KV) ReadFileWithKV(file string) ([]byte, error) {
-	data, err := os.ReadFile(filepath.Clean(file))
-	if err != nil {
-		return nil, fmt.Errorf("os.ReadFile: %w", err)
-	}
-
-	return c.ReplaceKV(string(data))
-}
-
-func (c *KV) ReplaceKV(content string) ([]byte, error) {
+// ReplaceKV replaces placeholders in the provided template content with the corresponding key-value pairs from the KV struct.
+//
+// Parameters:
+//   - content: A string containing the template with placeholders to be replaced.
+//
+// Returns:
+//   - string: The resulting content after replacing the placeholders.
+//   - error: An error is returned if the template parsing or execution fails.
+func (c *KV) ReplaceKV(content string) (string, error) {
 	if tmpl, err := template.New("kvs").Funcs(funcMap).Option("missingkey=zero").Parse(content); err != nil {
-		return nil, fmt.Errorf("read template failed: %w", err)
+		return "", fmt.Errorf("read template failed: %w", err)
 	} else {
 		var buf strings.Builder
 		if err := tmpl.Execute(&buf, c.kv); err != nil {
-			return nil, fmt.Errorf("execute template failed: %w", err)
+			return "", fmt.Errorf("execute template failed: %w", err)
 		}
-		return []byte(buf.String()), nil
+		return buf.String(), nil
 	}
 }
 
@@ -141,6 +240,69 @@ func GetKV() *KV {
 	return defaultKV
 }
 
+func (c *KV) reload() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for name, w := range c.watchers {
+		if len(w.templateStrs) == 0 {
+			l.Warnf("watcher %s has no template", name)
+			continue
+		}
+
+		l.Debugf("try to reload kv watcher: %s", name)
+		isChanged := false
+
+		if atomic.LoadInt32(&w.isReloading) == 1 {
+			l.Warnf("kv watcher %s is reloading, ignored", name)
+			continue
+		}
+
+		currentValues := make(map[string]string)
+		changedValues := make(map[string]string)
+		for name, templateStr := range w.templateStrs {
+			currentValues[name] = w.lastValue[name]
+			current, err := c.ReplaceKV(templateStr)
+			if err != nil {
+				l.Warnf("execute template failed: %s", err.Error())
+				continue
+			}
+			currentValue := current
+
+			if currentValue != w.lastValue[name] {
+				isChanged = true
+				currentValues[name] = currentValue
+				changedValues[name] = currentValue
+			}
+		}
+
+		if !isChanged {
+			l.Debugf("kv not changed for name %s, ignored", name)
+			continue
+		}
+
+		if w.isUnRegisterBeforeReload {
+			l.Infof("kv watcher %s is unregistered before reload", name)
+			delete(c.watchers, name)
+		}
+		l.Infof("kv changed for name %s, start to callback", name)
+		func(w *watcher, currentValues, changedValues map[string]string) {
+			g.Go(func(ctx context.Context) error {
+				atomic.StoreInt32(&w.isReloading, 1)
+				defer atomic.StoreInt32(&w.isReloading, 0)
+
+				err := w.callback(changedValues)
+				if err != nil {
+					l.Errorf("kv callback failed for %s: %s", name, err.Error())
+				} else {
+					w.lastValue = currentValues
+					kvUpdateCount.WithLabelValues(w.name).Inc()
+				}
+				return nil
+			})
+		}(w, currentValues, changedValues)
+	}
+}
+
 func (c *KV) pull() {
 	defer c.tick.Stop()
 
@@ -149,7 +311,8 @@ func (c *KV) pull() {
 		case <-c.tick.C:
 			l.Debugf("try pull remote kvs...")
 			if c.doPullKV() {
-				c.reloadInputsWithKV()
+				// c.reloadInputsWithKV()
+				c.reload()
 			}
 		case <-datakit.Exit.Wait():
 			l.Info("kvs puller exits")
@@ -231,70 +394,4 @@ func (c *KV) doPullKV() (isReload bool) {
 		isReload = true
 	}
 	return isReload
-}
-
-func (c *KV) reloadInputsWithKV() {
-	defer func() {
-		kvUpdateCount.Inc()
-	}()
-
-	containHTTPInput := false
-	changedConf := map[string]string{}
-	// iterate all kv config to check if they need to be reloaded
-	kvConfig.ForEach(func(key string, confData [2]string) {
-		rawConf := confData[0]
-		lastParsedConf := confData[1]
-		parsedConfData, err := c.ReplaceKV(rawConf)
-		if err != nil {
-			l.Warnf("replace kv failed: %s, conf: %s", err.Error(), rawConf)
-			return
-		}
-
-		if string(parsedConfData) == lastParsedConf {
-			return
-		}
-
-		changedConf[key] = string(parsedConfData)
-	})
-
-	// reload inputs in all changed config
-	for key, confData := range changedConf {
-		// stop inputs && remove inputs
-		changedInputs := inputs.GetInputsByConfKey(key)
-		for _, i := range changedInputs {
-			if inp, ok := i.Input.(inputs.InputV2); ok {
-				inp.Terminate()
-			}
-			if _, ok := i.Input.(inputs.HTTPInput); ok {
-				containHTTPInput = true
-			}
-			inputs.RemoveInput(i.Name, i.Input)
-		}
-
-		// start inputs
-		if inputsInfo, err := getInputsFromConfData(key, []byte(confData), inputs.Inputs); err != nil {
-			l.Warnf("getInputsFromConfData failed: %s, ignored", err.Error())
-			return
-		} else {
-			for inputName, inputArr := range inputsInfo {
-				l.Infof("kv reload, start input: %s", inputName)
-				for _, input := range inputArr {
-					kvInputReloadCount.WithLabelValues(input.Name).Inc()
-					kvInputLastReload.WithLabelValues(input.Name).Set(float64(time.Now().Unix()))
-					inputs.RunInput(input.Name, input)
-					inputs.AddInput(input.Name, input)
-				}
-			}
-		}
-	}
-
-	// restart http inputs
-	if containHTTPInput {
-		if restartHTTPServer != nil {
-			l.Info("restart http server because of kv changed")
-			restartHTTPServer()
-		} else {
-			l.Warn("restart http server not set")
-		}
-	}
 }
