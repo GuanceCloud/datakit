@@ -713,21 +713,31 @@ func (c *Config) loadHTTPAPIEnvs() {
 }
 
 func (c *Config) setNodenameAsHostname() {
+	var nodeName string
+
 	for _, x := range []string{
 		"ENV_K8S_NODE_NAME",
 		"NODE_NAME", // Deprecated
 	} {
 		if v := datakit.GetEnv(x); v != "" {
-			c.Hostname = v
 			datakit.DatakitHostName = c.Hostname
+			c.Hostname = v
+			nodeName = v
 			break
 		}
 	}
 
 	if v := datakit.GetEnv("ENV_K8S_CLUSTER_NODE_NAME"); v != "" {
 		l.Infof("ENV_K8S_CLUSTER_NODE_NAME set to %s", v)
-		c.Hostname = v
 		datakit.DatakitHostName = c.Hostname
+		c.Hostname = v
+
+		if nodeName != "" {
+			if index := strings.Index(v, nodeName); index != -1 {
+				nodeNamePrefix = v[:index]
+				nodeNameSuffix = v[index+len(nodeName):]
+			}
+		}
 	}
 }
 
@@ -833,4 +843,13 @@ func (c *Config) LoadEnvs() error {
 	c.loadConfdEnvs()
 
 	return nil
+}
+
+var (
+	nodeNamePrefix string
+	nodeNameSuffix string
+)
+
+func RenameNode(nodeName string) string {
+	return nodeNamePrefix + nodeName + nodeNameSuffix
 }

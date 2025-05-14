@@ -593,3 +593,115 @@ func TestLoadEnv(t *testing.T) {
 		})
 	}
 }
+
+func TestSetNodenameAsHostname(t *testing.T) {
+	cases := []struct {
+		name                                       string
+		envs                                       map[string]string
+		expectHostname                             string
+		expectNodeNamePrefix, expectNodeNameSuffix string
+	}{
+		{
+			name: "test-prefix-nodeName",
+			envs: map[string]string{
+				"ENV_K8S_NODE_NAME":         "host-abc",
+				"ENV_K8S_CLUSTER_NODE_NAME": "cluster_host-abc",
+			},
+			expectHostname:       "cluster_host-abc",
+			expectNodeNamePrefix: "cluster_",
+			expectNodeNameSuffix: "",
+		},
+		{
+			name: "test-prefix-nodeName-2",
+			envs: map[string]string{
+				"NODE_NAME":                 "host-abc",
+				"ENV_K8S_CLUSTER_NODE_NAME": "cluster_host-abc",
+			},
+			expectHostname:       "cluster_host-abc",
+			expectNodeNamePrefix: "cluster_",
+			expectNodeNameSuffix: "",
+		},
+		{
+			name: "test-suffix-nodeName",
+			envs: map[string]string{
+				"ENV_K8S_NODE_NAME":         "host-abc",
+				"ENV_K8S_CLUSTER_NODE_NAME": "host-abc_k8s",
+			},
+			expectHostname:       "host-abc_k8s",
+			expectNodeNamePrefix: "",
+			expectNodeNameSuffix: "_k8s",
+		},
+		{
+			name: "test-prefix-and-suffix-nodeName",
+			envs: map[string]string{
+				"ENV_K8S_NODE_NAME":         "host-abc",
+				"ENV_K8S_CLUSTER_NODE_NAME": "cluster_host-abc_k8s",
+			},
+			expectHostname:       "cluster_host-abc_k8s",
+			expectNodeNamePrefix: "cluster_",
+			expectNodeNameSuffix: "_k8s",
+		},
+		{
+			name: "test-only-nodeName",
+			envs: map[string]string{
+				"ENV_K8S_NODE_NAME": "host-abc",
+			},
+			expectHostname:       "host-abc",
+			expectNodeNamePrefix: "",
+			expectNodeNameSuffix: "",
+		},
+		{
+			name: "test-only-cluster-nodeName",
+			envs: map[string]string{
+				"ENV_K8S_CLUSTER_NODE_NAME": "cluster_host-abc_k8s",
+			},
+			expectHostname:       "cluster_host-abc_k8s",
+			expectNodeNamePrefix: "",
+			expectNodeNameSuffix: "",
+		},
+		{
+			name: "test-no-match-nodeName",
+			envs: map[string]string{
+				"ENV_K8S_NODE_NAME":         "host-abc",
+				"ENV_K8S_CLUSTER_NODE_NAME": "cluster_host-def_k8s",
+			},
+			expectHostname:       "cluster_host-def_k8s",
+			expectNodeNamePrefix: "",
+			expectNodeNameSuffix: "",
+		},
+		{
+			name:                 "test-empty",
+			envs:                 map[string]string{}, // empty
+			expectHostname:       "",
+			expectNodeNamePrefix: "",
+			expectNodeNameSuffix: "",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := DefaultConfig()
+
+			// setup envs
+			for k, v := range tc.envs {
+				assert.NoError(t, os.Setenv(k, v))
+			}
+
+			c.setNodenameAsHostname()
+
+			assert.Equal(t, tc.expectHostname, c.Hostname)
+			assert.Equal(t, tc.expectNodeNamePrefix, nodeNamePrefix)
+			assert.Equal(t, tc.expectNodeNameSuffix, nodeNameSuffix)
+
+			t.Cleanup(func() {
+				for k := range tc.envs {
+					assert.NoError(t, os.Unsetenv(k))
+				}
+
+				// reset global variables
+				nodeNamePrefix = ""
+				nodeNameSuffix = ""
+			})
+		})
+	}
+}

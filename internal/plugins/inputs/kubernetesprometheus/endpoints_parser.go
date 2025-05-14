@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -219,6 +220,9 @@ func (p *endpointsParser) parsePromConfig(ins *Instance) ([]*basePromConfig, err
 					continue
 				}
 				if matched, res := p.matchAddress(&set.Addresses[addressIdx], v); matched && res != "" {
+					if v == "__kubernetes_endpoints_address_node_name" {
+						res = config.RenameNode(res)
+					}
 					tags[k] = res
 					continue
 				}

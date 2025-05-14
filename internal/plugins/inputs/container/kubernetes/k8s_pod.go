@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/podutil"
@@ -131,7 +132,7 @@ func (p *pod) gatherMetric(ctx context.Context, fieldSelector string, timestamp 
 		for nodeName, n := range count {
 			var kvs point.KVs
 			kvs = kvs.AddTag("namespace", ns)
-			kvs = kvs.AddTag("node_name", nodeName)
+			kvs = kvs.AddTag("node_name", config.RenameNode(nodeName))
 			kvs = kvs.AddV2("pod", n, false)
 
 			pt := point.NewPointV2("kubernetes", kvs, append(opts, point.WithTimestamp(timestamp))...)
@@ -241,7 +242,7 @@ func (p *pod) buildObjectPoints(list *apicorev1.PodList, metricsClient PodMetric
 
 		kvs = kvs.AddTag("name", string(item.UID))
 		kvs = kvs.AddTag("pod_ip", item.Status.PodIP)
-		kvs = kvs.AddTag("host", item.Spec.NodeName) // Pointing to the node where the pod is located.
+		kvs = kvs.AddTag("host", config.RenameNode(item.Spec.NodeName)) // Pointing to the node where the pod is located.
 		kvs = kvs.AddTag("phase", string(item.Status.Phase))
 		kvs = kvs.AddTag("qos_class", string(item.Status.QOSClass))
 		kvs = kvs.AddTag("status", string(item.Status.Phase))
@@ -313,7 +314,7 @@ func buildPodKVs(item *apicorev1.Pod) point.KVs {
 	kvs = kvs.AddTag("uid", string(item.UID))
 	kvs = kvs.AddTag("pod_name", item.Name)
 	kvs = kvs.AddTag("namespace", item.Namespace)
-	kvs = kvs.AddTag("node_name", item.Spec.NodeName)
+	kvs = kvs.AddTag("node_name", config.RenameNode(item.Spec.NodeName))
 
 	// "scheduled","unschedulable","volumes_persistentvolumeclaims_readonly"
 
@@ -474,6 +475,7 @@ func (*podObject) Info() *inputs.MeasurementInfo {
 			"name":             inputs.NewTagInfo("The UID of Pod."),
 			"uid":              inputs.NewTagInfo("The UID of Pod."),
 			"pod_name":         inputs.NewTagInfo("Name must be unique within a namespace."),
+			"host":             inputs.NewTagInfo("Pointing to the node where the pod is located."),
 			"node_name":        inputs.NewTagInfo("NodeName is a request to schedule this pod onto a specific node."),
 			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 			"phase":            inputs.NewTagInfo("The phase of a Pod is a simple, high-level summary of where the Pod is in its lifecycle.(Pending/Running/Succeeded/Failed/Unknown)"),

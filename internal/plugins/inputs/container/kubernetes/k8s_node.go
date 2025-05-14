@@ -12,13 +12,14 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+
 	apicorev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/yaml"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 const (
@@ -136,7 +137,7 @@ func (n *node) buildMetricPoints(list *apicorev1.NodeList, timestamp int64) []*p
 		var kvs point.KVs
 
 		kvs = kvs.AddTag("uid", string(item.UID))
-		kvs = kvs.AddTag("node", item.Name)
+		kvs = kvs.AddTag("node", config.RenameNode(item.Name))
 
 		t := item.Status.Allocatable["cpu"]
 		kvs = kvs.AddV2("cpu_allocatable", t.AsApproximateFloat64(), false)
@@ -182,7 +183,7 @@ func (n *node) buildObjectPoints(list *apicorev1.NodeList) []*point.Point {
 
 		kvs = kvs.AddTag("name", string(item.UID))
 		kvs = kvs.AddTag("uid", string(item.UID))
-		kvs = kvs.AddTag("node_name", item.Name)
+		kvs = kvs.AddTag("node_name", config.RenameNode(item.Name))
 		for _, condition := range item.Status.Conditions {
 			if condition.Reason == "KubeletReady" {
 				kvs = kvs.AddTag("status", string(condition.Type))
