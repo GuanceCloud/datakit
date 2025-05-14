@@ -212,13 +212,13 @@ var replicationLogMeasurementInfo = &inputs.MeasurementInfo{
 		"Master_Host": &inputs.FieldInfo{
 			DataType: inputs.String,
 			Type:     inputs.String,
-			Unit:     inputs.UnknownUnit,
+			Unit:     inputs.NoUnit,
 			Desc:     "The host name of the master.",
 		},
 		"Master_User": &inputs.FieldInfo{
 			DataType: inputs.String,
 			Type:     inputs.String,
-			Unit:     inputs.UnknownUnit,
+			Unit:     inputs.NoUnit,
 			Desc:     "The user name used to connect to the master.",
 		},
 		"Master_Port": &inputs.FieldInfo{
@@ -230,13 +230,13 @@ var replicationLogMeasurementInfo = &inputs.MeasurementInfo{
 		"Master_Log_File": &inputs.FieldInfo{
 			DataType: inputs.String,
 			Type:     inputs.String,
-			Unit:     inputs.UnknownUnit,
+			Unit:     inputs.NoUnit,
 			Desc:     "The name of the binary log file from which the server is reading.",
 		},
 		"Executed_Gtid_Set": &inputs.FieldInfo{
 			DataType: inputs.String,
 			Type:     inputs.String,
-			Unit:     inputs.UnknownUnit,
+			Unit:     inputs.NoUnit,
 			Desc:     "The set of global transaction IDs written in the binary log.",
 		},
 	},

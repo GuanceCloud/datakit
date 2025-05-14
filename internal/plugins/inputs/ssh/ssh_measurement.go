@@ -20,26 +20,14 @@ func (s *SSHMeasurement) Info() *inputs.MeasurementInfo {
 			"ssh_check": &inputs.FieldInfo{
 				DataType: inputs.Bool,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "SSH service status",
-			},
-			"ssh_err": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "Fail reason of connect ssh service",
 			},
 			"sftp_check": &inputs.FieldInfo{
 				DataType: inputs.Bool,
 				Type:     inputs.Gauge,
 				Unit:     inputs.UnknownUnit,
 				Desc:     "SFTP service status",
-			},
-			"sftp_err": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "Fail reason of connect sftp service",
 			},
 			"sftp_response_time": &inputs.FieldInfo{
 				DataType: inputs.Float,

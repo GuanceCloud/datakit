@@ -105,61 +105,55 @@ func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 			"query_signature": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The hash value computed from SQL text",
 			},
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The text of the normalized SQL text",
 			},
 			"thread_id": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The thread ID",
 			},
 			"processlist_id": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The process list ID",
 			},
 			"processlist_user": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownUnit,
 				Desc:     "The user associated with a thread",
 			},
 			"processlist_host": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownUnit,
 				Desc:     "The host name of the client with a thread",
 			},
 			"processlist_db": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownUnit,
 				Desc:     "The default database for the thread, or NULL if none has been selected",
 			},
 			"processlist_command": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownUnit,
 				Desc:     "The command of the thread",
 			},
 			"processlist_state": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownUnit,
 				Desc:     "The state of the thread",
 			},
 			"sql_text": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownUnit,
 				Desc:     "The statement the thread is executing",
 			},
 			"event_timer_start": &inputs.FieldInfo{
@@ -189,31 +183,26 @@ func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 			"current_schema": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownUnit,
 				Desc:     "The default database for the statement, NULL if there is none",
 			},
 			"wait_event": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownUnit,
 				Desc:     "The name of the wait event",
 			},
 			"event_id": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownUnit,
 				Desc:     "The event id",
 			},
 			"end_event_id": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownUnit,
 				Desc:     "The thread current event number when the event ends",
 			},
 			"event_name": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownUnit,
 				Desc:     "The name of the instrument that produced the event",
 			},
 			"wait_timer_start": &inputs.FieldInfo{
@@ -231,43 +220,36 @@ func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 			"object_schema": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownUnit,
 				Desc:     "The schema of th object being acted on",
 			},
 			"object_name": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownUnit,
 				Desc:     "The name of the object being acted on",
 			},
 			"index_name": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownUnit,
 				Desc:     "The name of the index used",
 			},
 			"object_type": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownUnit,
 				Desc:     "The type of the object being acted on",
 			},
 			"event_source": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownUnit,
 				Desc:     "The name of the source file",
 			},
 			"ip": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownUnit,
 				Desc:     "The client IP address",
 			},
 			"port": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownUnit,
 				Desc:     "The TCP/IP port number, in the range from 0 to 65535",
 			},
 			"socket_event_name": &inputs.FieldInfo{

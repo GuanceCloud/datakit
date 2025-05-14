@@ -111,7 +111,7 @@ metadata:
   name: datakit-crd
 ---
 apiVersion: "<<<custom_key.brand_main_domain>>>/v1beta1"
-kind: DataKit
+kind: Datakit
 metadata:
   name: my-test-crd-object
   namespace: datakit-crd

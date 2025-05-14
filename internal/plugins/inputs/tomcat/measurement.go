@@ -65,11 +65,17 @@ func (m *TomcatGlobalRequestProcessorM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: TomcatGlobalRequestProcessor,
 		Fields: map[string]interface{}{
-			"requestCount":   newFielInfoCount("Number of requests processed."),
-			"bytesReceived":  newFielInfoCount("Amount of data received, in bytes."),
-			"bytesSent":      newFielInfoCount("Amount of data sent, in bytes."),
-			"processingTime": newFielInfoInt("Total time to process the requests."),
-			"errorCount":     newFielInfoCount("Number of errors."),
+			"requestCount":  newFielInfoCount("Number of requests processed."),
+			"bytesReceived": newFielInfoCount("Amount of data received, in bytes."),
+			"bytesSent":     newFielInfoCount("Amount of data sent, in bytes."),
+			"processingTime": &inputs.FieldInfo{
+				Type:     inputs.Gauge,
+				DataType: inputs.Int,
+				Unit:     inputs.DurationMS,
+				Desc:     "Total time to process the requests.",
+			},
+
+			"errorCount": newFielInfoCount("Number of errors."),
 		},
 		Tags: map[string]interface{}{
 			"name":              inputs.NewTagInfo("Protocol handler name."),
@@ -156,9 +162,15 @@ func (m *TomcatServletM) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: TomcatServlet,
 		Fields: map[string]interface{}{
-			"processingTime": newFielInfoInt("Total execution time of the Servlet's service method."),
-			"errorCount":     newFielInfoCount("Error count."),
-			"requestCount":   newFielInfoCount("Number of requests processed by this wrapper."),
+			"processingTime": &inputs.FieldInfo{
+				Type:     inputs.Gauge,
+				DataType: inputs.Int,
+				Unit:     inputs.DurationMS,
+				Desc:     "Total execution time of the Servlet's service method.",
+			},
+
+			"errorCount":   newFielInfoCount("Error count."),
+			"requestCount": newFielInfoCount("Number of requests processed by this wrapper."),
 		},
 		Tags: map[string]interface{}{
 			"J2EEApplication":   inputs.NewTagInfo("J2EE Application."),
@@ -197,17 +209,6 @@ func (m *TomcatCacheM) Info() *inputs.MeasurementInfo {
 			"host":              inputs.NewTagInfo("System hostname."),
 			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url."),
 		},
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-func newFielInfoInt(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		Type:     inputs.Gauge,
-		DataType: inputs.Int,
-		Unit:     inputs.UnknownUnit,
-		Desc:     desc,
 	}
 }
 

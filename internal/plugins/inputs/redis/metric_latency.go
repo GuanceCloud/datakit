@@ -28,7 +28,7 @@ func (m *latencyMeasurement) Info() *inputs.MeasurementInfo {
 			"occur_time":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.TimestampSec, Desc: "Unix timestamp of the latest latency spike for the event."},
 			"cost_time":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Latest event latency in millisecond."},
 			"max_cost_time": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "All-time maximum latency for this event."},
-			"event_name":    &inputs.FieldInfo{DataType: inputs.String, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "Event name."},
+			"event_name":    &inputs.FieldInfo{DataType: inputs.String, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "Event name."},
 		},
 		Tags: map[string]interface{}{
 			"server":       &inputs.TagInfo{Desc: "Server addr"},
@@ -106,7 +106,9 @@ func (ipt *Input) parseLatencyData(list string) ([]*point.Point, error) {
 			kvs = kvs.Add(info, value, false, false)
 		}
 
-		kvs = kvs.Add("message", finalPart[0]+" cost time "+finalPart[2]+"ms"+",max_cost_time "+finalPart[3]+"ms", false, false)
+		kvs = kvs.Add("message",
+			finalPart[0]+" cost time "+finalPart[2]+"ms"+",max_cost_time "+finalPart[3]+"ms",
+			false, false)
 
 		for k, v := range ipt.mergedTags {
 			kvs = kvs.AddTag(k, v)

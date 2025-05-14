@@ -221,7 +221,7 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 			"eventloop_cycles":                       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Total number of `eventloop` cycles."},
 			"eventloop_duration_sum":                 &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationUS, Desc: "Total time spent in the `eventloop` in microseconds (including I/O and command processing)."},
 			"eventloop_duration_cmd_sum":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationUS, Desc: "Total time spent on executing commands in microseconds."},
-			"instantaneous_eventloop_cycles_per_sec": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "Number of `eventloop` cycles per second."},
+			"instantaneous_eventloop_cycles_per_sec": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of `eventloop` cycles per second."},
 			"instantaneous_eventloop_duration_usec":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationUS, Desc: "Average time spent in a single `eventloop` cycle in microseconds."},
 			"acl_access_denied_auth":                 &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of authentication failures."},
 			"acl_access_denied_cmd":                  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of commands rejected because of access denied to the command."},

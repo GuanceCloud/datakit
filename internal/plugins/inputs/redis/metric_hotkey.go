@@ -30,8 +30,8 @@ func (m *hotkeyMeasurement) Info() *inputs.MeasurementInfo {
 		Name: redisHotkey,
 		Type: "logging",
 		Fields: map[string]interface{}{
-			"key_count":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "Key count times."},
-			"keys_sampled": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "Sampled keys in the key space."},
+			"key_count":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Key count times."},
+			"keys_sampled": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Sampled keys in the key space."},
 		},
 		Tags: map[string]interface{}{
 			"host":         &inputs.TagInfo{Desc: "Hostname."},

@@ -130,13 +130,13 @@ func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {
 			"no_good_index_used": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.EnumValue,
 				Desc:     "0 if a good index was found for the statement, 1 if no good index was found.",
 			},
 			"no_index_used": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.EnumValue,
 				Desc:     "0 if the statement performed a table scan with an index, 1 if without an index.",
 			},
 			"rows_affected": &inputs.FieldInfo{
@@ -220,7 +220,7 @@ func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The text of the normalized statement digest.",
 			},
 		},

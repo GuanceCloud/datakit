@@ -59,7 +59,7 @@ func (m *TCPMeasurement) Info() *inputs.MeasurementInfo {
 			"success": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "1: success/-1: failed",
 			},
 		},
@@ -74,7 +74,7 @@ func (m *UDPMeasurement) Info() *inputs.MeasurementInfo {
 			"success": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "1: success/-1: failed",
 			},
 		},
