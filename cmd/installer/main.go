@@ -24,6 +24,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/installer/installer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/upgrader/upgrader"
+	apminjUtils "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/apminject/dkrunc/utils"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -208,6 +209,35 @@ func offlineExtract() error {
 		// dk_upgrader should extract to dir /usr/local/dk_upgrader
 		case strings.HasPrefix(f, "dk_upgrader"): // e.g., dk_upgrader-linux-amd64.tar.gz
 			destDir = upgrader.InstallDir
+
+		case strings.HasPrefix(f, "datakit-apm-inject-linux-"):
+			destDir = filepath.Join(datakit.InstallDir,
+				apminjUtils.DirInject, apminjUtils.DirInjectSubInject)
+		case strings.HasSuffix(f, "dd-java-agent.jar"):
+			dstDir := filepath.Join(datakit.InstallDir,
+				apminjUtils.DirInject, apminjUtils.DirInjectSubLib, "java")
+
+			_ = os.MkdirAll(dstDir, os.ModePerm)
+
+			dstFile := filepath.Join(dstDir, "dd-java-agent.jar")
+			_ = os.RemoveAll(dstFile) // must remove first, jar file maybe used by other program
+
+			//nolint:gosec
+			if newFile, err := os.OpenFile(dstFile,
+				os.O_CREATE|os.O_RDWR|os.O_TRUNC, os.ModePerm); err != nil {
+				l.Warnf("Create %s failed: %s", dstFile, err.Error())
+			} else {
+				if old, err := os.Open(f); err != nil { //nolint:gosec
+					l.Warnf("Open %s failed: %s", f, err.Error())
+				} else {
+					if _, err := io.Copy(newFile, old); err != nil {
+						l.Warnf("Copy %s to %s failed: %s", f, destDir, err.Error())
+					}
+				}
+				_ = newFile.Close()
+			}
+			continue // no need to extract, just copy to dir
+
 		default: // pass: others are datakit.tar.gz and data.tar.gz
 		}
 

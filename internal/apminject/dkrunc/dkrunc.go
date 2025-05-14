@@ -203,18 +203,33 @@ func tryModProcSpec(spec *Spec) (*Spec, error) {
 	for i := 1; i < len(spec.Process.Args[1:]); i++ {
 		p := strings.TrimSpace(spec.Process.Args[i])
 		if strings.HasPrefix(p, "-javaagent:") {
-			v := strings.TrimPrefix(p, "-javaagent:")
-			if path.Base(strings.TrimSpace(v)) ==
-				path.Base(agentDir) {
+			if strings.Contains(p, "dd-java-agent.jar") {
 				return nil, fmt.Errorf("already injected")
 			}
 		}
 	}
+	var javaOpt string
+	for _, v := range spec.Process.Env {
+		p := strings.SplitN(v, "=", 2)
+		if len(p) != 2 {
+			continue
+		}
+		if p[0] != "JAVA_TOOL_OPTIONS" {
+			continue
+		}
+		javaOpt = p[1]
+		if strings.Contains(p[1], "dd-java-agent.jar") {
+			return nil, fmt.Errorf("already injected")
+		}
+	}
 
-	args := []string{spec.Process.Args[0], fmt.Sprintf("-javaagent:%s", agentDir)}
-	args = append(args, spec.Process.Args[1:]...)
-	spec.Process.Args = args
+	newJavaOptEnv := fmt.Sprintf("JAVA_TOOL_OPTIONS=-javaagent:%s", agentDir)
+	if len(javaOpt) > 0 {
+		newJavaOptEnv += " " + javaOpt
+	}
+
 	spec.Process.Env = append(spec.Process.Env,
+		newJavaOptEnv,
 		fmt.Sprintf("DD_TRACE_AGENT_URL=unix://%s", injUtils.DefaultDKUDS),
 		fmt.Sprintf("DD_JMXFETCH_STATSD_HOST=unix://%s", injUtils.DefaultStatsDUDS),
 		"DD_JMXFETCH_STATSD_PORT=0",

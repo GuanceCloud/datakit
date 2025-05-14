@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -104,7 +103,7 @@ func rewrite(param *reArgs) (*reArgs, error) {
 			path: ddrun,
 		}
 
-		_, urlEnvs, err := traceURL(langPython)
+		urlEnvs, err := traceURL(langPython)
 		if err != nil {
 			return nil, err
 		}
@@ -133,7 +132,7 @@ func rewrite(param *reArgs) (*reArgs, error) {
 			return nil, errUnsupportedJava
 		}
 
-		urlArgs, urlEnvs, err := traceURL(langJava)
+		urlEnvs, err := traceURL(langJava)
 		if err != nil {
 			return nil, err
 		}
@@ -141,12 +140,24 @@ func rewrite(param *reArgs) (*reArgs, error) {
 		for i := 1; i < len(param.argv); i++ {
 			p := strings.TrimSpace(param.argv[i])
 			if strings.HasPrefix(p, "-javaagent:") {
-				v := strings.TrimPrefix(p, "-javaagent:")
-				if path.Base(strings.TrimSpace(v)) ==
-					path.Base(strings.TrimSpace(
-						ddtraceJarPath)) {
+				if strings.Contains(p, ddtraceLibName) {
 					return nil, errAlreadyInjected
 				}
+			}
+		}
+
+		var javaOpt string
+		for _, v := range param.envp {
+			p := strings.SplitN(v, "=", 2)
+			if len(p) != 2 {
+				continue
+			}
+			if p[0] != "JAVA_TOOL_OPTIONS" {
+				continue
+			}
+			javaOpt = p[1]
+			if strings.Contains(javaOpt, ddtraceLibName) {
+				return nil, errAlreadyInjected
 			}
 		}
 
@@ -161,22 +172,18 @@ func rewrite(param *reArgs) (*reArgs, error) {
 
 		ret := &reArgs{
 			path: param.path,
+			argv: append([]string{}, param.argv...),
 		}
 
-		ret.argv = append(ret.argv, param.argv[0])
-		ret.argv = append(ret.argv,
-			fmt.Sprintf("-javaagent:%s", ddtraceJarPath),
-		)
-		for _, v := range urlArgs {
-			ret.argv = append(ret.argv, strings.Join(v[:], "="))
+		newJavaOptEnv := fmt.Sprintf("JAVA_TOOL_OPTIONS=-javaagent:%s", ddtraceJarPath)
+		if len(javaOpt) > 0 {
+			newJavaOptEnv += " " + javaOpt
 		}
-		ret.argv = append(ret.argv, param.argv[1:]...)
-
+		ret.envp = append(ret.envp, newJavaOptEnv)
 		for _, v := range urlEnvs {
 			ret.envp = append(ret.envp, strings.Join(v[:], "="))
 		}
 		ret.envp = append(ret.envp, param.envp...)
-
 		return ret, nil
 	}
 
@@ -188,7 +195,7 @@ const (
 	langPython = "python"
 )
 
-func traceURL(lang string) (args [][2]string, envs [][2]string, err error) {
+func traceURL(lang string) (envs [][2]string, err error) {
 	addr := utils.GetDKAddr()
 
 	switch lang {
@@ -230,7 +237,7 @@ func traceURL(lang string) (args [][2]string, envs [][2]string, err error) {
 		}
 	}
 
-	return nil, nil, fmt.Errorf("unsupported language")
+	return nil, fmt.Errorf("unsupported language")
 }
 
 func marshal(path string, args, envp []string) string {
