@@ -281,7 +281,7 @@ plugin_load_add ='group_replication.so'
 
 {{ end }}
 
-## 自定义对象 {#object}
+## 自定义对象 {#customobject}
 
 {{ range $i, $m := .Measurements }}
 
@@ -325,26 +325,6 @@ plugin_load_add ='group_replication.so'
 
 {{ end }}
 
-## 自定义对象 {#customobject}
-
-{{ range $i, $m := .Measurements }}
-
-{{if eq $m.Type "custom_object"}}
-
-### `{{$m.Name}}`
-
-{{$m.Desc}}
-
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 字段列表
-
-{{$m.FieldsMarkdownTable}}
-{{end}}
-
-{{ end }}
 <!-- markdownlint-enable -->
 
 ### MySQL 运行日志 {#mysql-logging}
