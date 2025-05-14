@@ -8,8 +8,8 @@ dashboard :
   - desc  : 'ClickHouse'
     path  : 'dashboard/en/clickhouse'
 monitor   :
-  - desc  : 'N/A'
-    path  : '-'
+  - desc  : 'ClickHouse'
+    path  : 'monitor/zh/clickhouse'
 ---
 
 

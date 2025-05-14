@@ -1,0 +1,2893 @@
+{
+  "title": "ClickHouse",
+  "dashboardType": "CUSTOM",
+  "dashboardExtend": {
+    "groupUnfoldStatus": {
+      "query": false,
+      "概览": true,
+      "Insertion": true,
+      "Zookeeper": false,
+      "Replication": false,
+      "connections": true
+    }
+  },
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "iconSet": {
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/zh/clickhouse/clickhouse.png",
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/zh/clickhouse/icon.svg"
+  },
+  "dashboardBindSet": [],
+  "thumbnail": "",
+  "tagInfo": [],
+  "summary": "",
+  "main": {
+    "vars": [
+      {
+        "name": "<<.Dashboard.var_instance>>",
+        "seq": 0,
+        "datasource": "ftinfluxdb",
+        "code": "instance",
+        "type": "TAG",
+        "definition": {
+          "tag": "instance",
+          "field": "",
+          "value": "",
+          "metric": "ClickHouseMetrics",
+          "object": "",
+          "defaultVal": {
+            "label": "",
+            "value": ""
+          }
+        },
+        "valueSort": "asc",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true,
+        "extend": {}
+      }
+    ],
+    "charts": [
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "last(VersionInteger)",
+                "name": "last(VersionInteger)",
+                "unit": "",
+                "units": [
+                  "custom",
+                  ""
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "custom",
+            "fixedTime": "",
+            "fontColor": "#B3D690",
+            "lineColor": "#3AB8FF",
+            "precision": "0",
+            "showTitle": true,
+            "titleDesc": "<<.Dashboard.version_desc>>",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "scientificNotation": true,
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name":"<<.Dashboard.group_overview>>"
+        },
+        "name": "<<.Dashboard.version>>",
+        "pos": {
+          "h": 9,
+          "w": 4,
+          "x": 4,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseMetrics`:(last(`VersionInteger`)) { `instance` = '#{instance}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "VersionInteger",
+              "filters": [
+                {
+                  "id": "9bdd1260-0612-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseMetrics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "last(VersionInteger)",
+                "name": "last(VersionInteger)",
+                "unit": "",
+                "units": [
+                  "custom",
+                  ""
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "custom",
+            "fixedTime": "",
+            "fontColor": "#A6BDFF",
+            "lineColor": "#3AB8FF",
+            "precision": "0",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "scientificNotation": true,
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name":"<<.Dashboard.group_overview>>"
+        },
+        "name": "Revision",
+        "pos": {
+          "h": 9,
+          "w": 4,
+          "x": 12,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseMetrics`:(last(`Revision`)) { `instance` = '#{instance}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "Revision",
+              "filters": [
+                {
+                  "id": "bbeaca70-0612-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseMetrics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "last(VersionInteger)",
+                "name": "last(VersionInteger)",
+                "unit": "",
+                "units": [
+                  "custom",
+                  ""
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": true,
+            "unitType": "custom",
+            "fixedTime": "",
+            "fontColor": "#A6BDFF",
+            "lineColor": "#3AB8FF",
+            "precision": "0",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "scientificNotation": true,
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name":"<<.Dashboard.group_overview>>"
+        },
+        "name": "Tables",
+        "pos": {
+          "h": 9,
+          "w": 4,
+          "x": 20,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseAsyncMetrics`:(last(`NumberOfTables`)) { `instance` = '#{instance}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "NumberOfTables",
+              "filters": [
+                {
+                  "id": "8cb6bed0-0612-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseAsyncMetrics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "last(VersionInteger)",
+                "name": "last(VersionInteger)",
+                "unit": "",
+                "units": [
+                  "custom",
+                  ""
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": true,
+            "unitType": "custom",
+            "fixedTime": "",
+            "fontColor": "#A6BDFF",
+            "lineColor": "#3AB8FF",
+            "precision": "0",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "scientificNotation": true,
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name":"<<.Dashboard.group_overview>>"
+        },
+        "name": "Databases",
+        "pos": {
+          "h": 9,
+          "w": 4,
+          "x": 16,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseAsyncMetrics`:(avg(`NumberOfDatabases`)) { `instance` = '#{instance}' }",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "NumberOfDatabases",
+              "filters": [
+                {
+                  "id": "2bb40a10-0613-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseAsyncMetrics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [
+              {
+                "key": "last(Uptime)",
+                "name": "last(Uptime)",
+                "unit": "",
+                "units": [
+                  "time",
+                  "s"
+                ]
+              }
+            ],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "custom",
+            "fixedTime": "",
+            "fontColor": "#B3D690",
+            "lineColor": "#3AB8FF",
+            "precision": "0",
+            "showTitle": true,
+            "titleDesc": "",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "compareTitle": "",
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "scientificNotation": true,
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name":"<<.Dashboard.group_overview>>"
+        },
+        "name": "Uptime",
+        "pos": {
+          "h": 9,
+          "w": 4,
+          "x": 8,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseAsyncMetrics`:(avg(`Uptime`))",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "Uptime",
+              "filters": [],
+              "groupBy": [],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseAsyncMetrics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "links": [],
+          "settings": {
+            "url": "https://th.bing.com/th/id/R.3867e683780efa20686da46548a44ee4?rik=tcx0iuRRTYKNuA&riu=http%3a%2f%2fpliutau.com%2fclickhouse1.png&ehk=CMzKqnnPHedatGN5H%2bKgpwO8jHOEj3CsE60WLsyXHKk%3d&risl=&pid=ImgRaw&r=0&sres=1&sresct=1",
+            "type": "contain",
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "fixedTime": "",
+            "showTitle": true,
+            "titleDesc": "",
+            "timeInterval": "default",
+            "isTimeInterval": false,
+            "backgroundStyle": {
+              "background-size": "contain"
+            },
+            "showFieldMapping": false
+          },
+          "isRefresh": false
+        },
+        "group": {
+          "name":"<<.Dashboard.group_overview>>"
+        },
+        "name": "ClickHouse",
+        "pos": {
+          "h": 9,
+          "w": 4,
+          "x": 0,
+          "y": 0
+        },
+        "type": "picture",
+        "queries": []
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "pageSize": 0,
+            "unitType": "global",
+            "fixedTime": "",
+            "precision": "2",
+            "queryMode": "toGroupColumn",
+            "showTitle": true,
+            "titleDesc": "<<.Dashboard.http_connections>>",
+            "globalUnit": [],
+            "isSampling": true,
+            "pageEnable": false,
+            "showColumns": [],
+            "valMappings": [],
+            "timeInterval": "default",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "table",
+            "showFieldMapping": false,
+            "valColorMappings": [],
+            "scientificNotation": true,
+            "mainMeasurementSort": "top",
+            "mainMeasurementField": "<<.Dashboard.current_value_title>>",
+            "mainMeasurementLimit": 5,
+            "openThousandsSeparator": false,
+            "mainMeasurementQueryCode": "D"
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "connections"
+        },
+        "name": "<<.Dashboard.http_connections>>",
+        "pos": {
+          "h": 8,
+          "w": 7,
+          "x": 0,
+          "y": 0
+        },
+        "type": "table",
+        "queries": [
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseMetrics`:(last(`HTTPConnection`) AS `<<.Dashboard.current_value_title>>`) { `instance` = '#{instance}' } BY `instance`",
+              "code": "D",
+              "fill": null,
+              "type": "simple",
+              "alias": "<<.Dashboard.current_value_title>>",
+              "field": "HTTPConnection",
+              "filters": [
+                {
+                  "id": "64318e80-0613-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseMetrics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseMetrics`:(avg(`HTTPConnection`) AS `<<.Dashboard.avg_value_title>>`) { `instance` = '#{instance}' } BY `instance`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "<<.Dashboard.avg_value_title>>",
+              "field": "HTTPConnection",
+              "filters": [
+                {
+                  "id": "64318e80-0613-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseMetrics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseMetrics`:(max(`HTTPConnection`) AS `<<.Dashboard.max_value_title>>`) { `instance` = '#{instance}' } BY `instance`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "<<.Dashboard.max_value_title>>",
+              "field": "HTTPConnection",
+              "filters": [
+                {
+                  "id": "64318e80-0613-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "max",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseMetrics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "pageSize": 0,
+            "unitType": "global",
+            "fixedTime": "",
+            "precision": "2",
+            "queryMode": "toGroupColumn",
+            "showTitle": true,
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "pageEnable": false,
+            "showColumns": [],
+            "valMappings": [],
+            "timeInterval": "default",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "table",
+            "showFieldMapping": false,
+            "valColorMappings": [],
+            "scientificNotation": true,
+            "mainMeasurementSort": "top",
+            "mainMeasurementField": "<<.Dashboard.current_value_title>>",
+            "mainMeasurementLimit": 5,
+            "openThousandsSeparator": false,
+            "mainMeasurementQueryCode": "D"
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "connections"
+        },
+        "name": "<<.Dashboard.tcp_connections>>",
+        "pos": {
+          "h": 8,
+          "w": 8,
+          "x": 7,
+          "y": 0
+        },
+        "type": "table",
+        "queries": [
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseMetrics`:(last(`TCPConnection`) AS `<<.Dashboard.current_value_title>>`) { `instance` = '#{instance}' } BY `instance`",
+              "code": "D",
+              "fill": null,
+              "type": "simple",
+              "alias": "<<.Dashboard.current_value_title>>",
+              "field": "TCPConnection",
+              "filters": [
+                {
+                  "id": "87c84640-0613-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseMetrics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseMetrics`:(avg(`TCPConnection`) AS `<<.Dashboard.avg_value_title>>`) { `instance` = '#{instance}' } BY `instance`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "<<.Dashboard.avg_value_title>>",
+              "field": "TCPConnection",
+              "filters": [
+                {
+                  "id": "87c84640-0613-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseMetrics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseMetrics`:(max(`TCPConnection`) AS `<<.Dashboard.max_value_title>>`) { `instance` = '#{instance}' } BY `instance`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "<<.Dashboard.max_value_title>>",
+              "field": "TCPConnection",
+              "filters": [
+                {
+                  "id": "87c84640-0613-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "max",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseMetrics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "pageSize": 0,
+            "unitType": "global",
+            "fixedTime": "",
+            "precision": "2",
+            "queryMode": "toGroupColumn",
+            "showTitle": true,
+            "titleDesc": "<<.Dashboard.interserver_desc>>",
+            "globalUnit": [],
+            "isSampling": true,
+            "pageEnable": false,
+            "showColumns": [],
+            "valMappings": [],
+            "timeInterval": "default",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "table",
+            "showFieldMapping": false,
+            "valColorMappings": [],
+            "scientificNotation": true,
+            "mainMeasurementSort": "top",
+            "mainMeasurementField": "<<.Dashboard.current_value_title>>",
+            "mainMeasurementLimit": 5,
+            "openThousandsSeparator": false,
+            "mainMeasurementQueryCode": "D"
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "connections"
+        },
+        "name": "<<.Dashboard.interserver_title>>",
+        "pos": {
+          "h": 8,
+          "w": 9,
+          "x": 15,
+          "y": 0
+        },
+        "type": "table",
+        "queries": [
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseMetrics`:(last(`InterserverConnection`) AS `<<.Dashboard.current_value_title>>`) { `instance` = '#{instance}' } BY `instance`",
+              "code": "D",
+              "fill": null,
+              "type": "simple",
+              "alias": "<<.Dashboard.current_value_title>>",
+              "field": "InterserverConnection",
+              "filters": [
+                {
+                  "id": "a75b9e30-0613-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseMetrics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseMetrics`:(avg(`InterserverConnection`) AS `<<.Dashboard.avg_value_title>>`) { `instance` = '#{instance}' } BY `instance`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "<<.Dashboard.avg_value_title>>",
+              "field": "InterserverConnection",
+              "filters": [
+                {
+                  "id": "a75b9e30-0613-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseMetrics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseMetrics`:(max(`InterserverConnection`) AS `<<.Dashboard.max_value_title>>`) { `instance` = '#{instance}' } BY `instance`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "<<.Dashboard.max_value_title>>",
+              "field": "InterserverConnection",
+              "filters": [
+                {
+                  "id": "a75b9e30-0613-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [
+                "last"
+              ],
+              "fieldFunc": "max",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseMetrics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "compareTitle": "",
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Insertion"
+        },
+        "name": "<<.Dashboard.insertion_title>>",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseProfileEvents`:(last(`DelayedInserts`)) { `instance` = '#{instance}' } BY `instance`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "DelayedInserts",
+              "filters": [
+                {
+                  "id": "19c0e570-0614-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseProfileEvents",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "compareTitle": "",
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": "Insertion"
+        },
+        "name": "<<.Dashboard.insert_bytes>>",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 16,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseProfileEvents`:(last(`InsertedBytes`)) { `instance` = '#{instance}' } BY `instance`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "InsertedBytes",
+              "filters": [
+                {
+                  "id": "2dc34590-0614-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseProfileEvents",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "compareTitle": "",
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": "Insertion"
+        },
+        "name": "<<.Dashboard.insert_lines>>",
+        "pos": {
+          "h": 10,
+          "w": 8,
+          "x": 8,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseProfileEvents`:(last(`InsertedRows`)) { `instance` = '#{instance}' } BY `instance`",
+              "code": "A",
+              "fill": "",
+              "type": "simple",
+              "alias": "",
+              "field": "InsertedRows",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "247cda00-0614-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseProfileEvents",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "compareTitle": "",
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Query"
+        },
+        "name": "<<.Dashboard.query_count>>",
+        "pos": {
+          "h": 13,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseProfileEvents`:(last(`Query`)) { `instance` = '#{instance}' } BY `instance`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "Query",
+              "filters": [
+                {
+                  "id": "36535970-0614-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseProfileEvents",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "compareTitle": "",
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Query"
+        },
+        "name": "<<.Dashboard.memory_tracking>>",
+        "pos": {
+          "h": 13,
+          "w": 6,
+          "x": 6,
+          "y": 13
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseMetrics`:(last(`MemoryTracking`)) { `instance` = '#{instance}' } BY `instance`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "MemoryTracking",
+              "filters": [
+                {
+                  "id": "666da660-0614-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseMetrics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "compareTitle": "",
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Query"
+        },
+        "name": "<<.Dashboard.select_query_count>>",
+        "pos": {
+          "h": 13,
+          "w": 6,
+          "x": 12,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseProfileEvents`:(last(`SelectQuery`)) { `instance` = '#{instance}' } BY `instance`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "SelectQuery",
+              "filters": [
+                {
+                  "id": "458f7ef0-0614-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseProfileEvents",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "compareTitle": "",
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Query"
+        },
+        "name": "<<.Dashboard.insert_query_count>>",
+        "pos": {
+          "h": 13,
+          "w": 6,
+          "x": 0,
+          "y": 13
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseProfileEvents`:(last(`InsertQuery`)) { `instance` = '#{instance}' } BY `instance`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "InsertQuery",
+              "filters": [
+                {
+                  "id": "5f161280-0614-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseProfileEvents",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "compareTitle": "",
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Query"
+        },
+        "name": "<<.Dashboard.merge_count>>",
+        "pos": {
+          "h": 13,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseMetrics`:(last(`Merge`)) { `instance` = '#{instance}' } BY `instance`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "Merge",
+              "filters": [
+                {
+                  "id": "3da6f5b0-0614-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseMetrics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "compareTitle": "",
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Replication"
+        },
+        "name": "<<.Dashboard.readonly_replica>>",
+        "pos": {
+          "h": 12,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseMetrics`:(last(`ReadonlyReplica`)) { `instance` = '#{instance}' } BY `instance`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "ReadonlyReplica",
+              "filters": [
+                {
+                  "id": "7fe65740-0614-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseMetrics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "compareTitle": "",
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Replication"
+        },
+        "name": "<<.Dashboard.replicated_checks>>",
+        "pos": {
+          "h": 12,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseMetrics`:(last(`ReplicatedChecks`)) { `instance` = '#{instance}' } BY `instance`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "ReplicatedChecks",
+              "filters": [
+                {
+                  "id": "d6c36e90-0614-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseMetrics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "compareTitle": "",
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Replication"
+        },
+        "name": "<<.Dashboard.replicated_fetch>>",
+        "pos": {
+          "h": 12,
+          "w": 6,
+          "x": 12,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseMetrics`:(last(`ReplicatedFetch`)) { `instance` = '#{instance}' } BY `instance`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "ReplicatedFetch",
+              "filters": [
+                {
+                  "id": "18187020-0615-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseMetrics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "compareTitle": "",
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Replication"
+        },
+        "name": "<<.Dashboard.replicated_sends>>",
+        "pos": {
+          "h": 12,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseMetrics`:(last(`ReplicatedSend`)) { `instance` = '#{instance}' } BY `instance`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "ReplicatedSend",
+              "filters": [
+                {
+                  "id": "3d939f50-0615-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseMetrics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "compareTitle": "",
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Query"
+        },
+        "name": "<<.Dashboard.background_pool_schedule>>",
+        "pos": {
+          "h": 13,
+          "w": 6,
+          "x": 12,
+          "y": 13
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseMetrics`:(last(`BackgroundSchedulePoolTask`)) { `instance` = '#{instance}' } BY `instance`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "BackgroundSchedulePoolTask",
+              "filters": [
+                {
+                  "id": "6e5d82a0-0614-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseMetrics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "compareTitle": "",
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Query"
+        },
+        "name": "<<.Dashboard.dict_cache_keys_requested>>",
+        "pos": {
+          "h": 13,
+          "w": 6,
+          "x": 18,
+          "y": 13
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseProfileEvents`:(last(`DictCacheKeysRequested`)) { `instance` = '#{instance}' } BY `instance`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "DictCacheKeysRequested",
+              "filters": [
+                {
+                  "id": "75dce9d0-0614-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseProfileEvents",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "compareTitle": "",
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Query"
+        },
+        "name": "<<.Dashboard.read_write>>",
+        "pos": {
+          "h": 13,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseMetrics`:(last(`Read`) AS `Read`) { `instance` = '#{instance}' } BY `instance`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "Read",
+              "field": "Read",
+              "filters": [
+                {
+                  "id": "50e47f30-0614-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseMetrics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseMetrics`:(last(`Write`) AS `Write`) { `instance` = '#{instance}' } BY `instance`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "Write",
+              "field": "Write",
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "55ad03c0-0614-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseMetrics",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "compareTitle": "",
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Zookeeper"
+        },
+        "name": "<<.Dashboard.ZooKeeperRequest>>",
+        "pos": {
+          "h": 13,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseMetrics`:(last(`ZooKeeperRequest`)) { `instance` = '#{instance}' } BY `instance`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "ZooKeeperRequest",
+              "filters": [
+                {
+                  "id": "488aef30-0615-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseMetrics",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "compareTitle": "",
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Zookeeper"
+        },
+        "name": "<<.Dashboard.ZooKeeperBytesReceived>>",
+        "pos": {
+          "h": 13,
+          "w": 6,
+          "x": 12,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseProfileEvents`:(last(`ZooKeeperBytesReceived`)) { `instance` = '#{instance}' } BY `instance`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "ZooKeeperBytesReceived",
+              "filters": [
+                {
+                  "id": "749cd340-0615-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseProfileEvents",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": "medium",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "compareTitle": "",
+            "connectNulls": true,
+            "legendValues": "",
+            "timeInterval": "auto",
+            "legendPostion": "none",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Zookeeper"
+        },
+        "name": "<<.Dashboard.ZooKeeperBytesSent>>",
+        "pos": {
+          "h": 13,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`ClickHouseProfileEvents`:(last(`ZooKeeperBytesSent`)) { `instance` = '#{instance}' } BY `instance`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "ZooKeeperBytesSent",
+              "filters": [
+                {
+                  "id": "61c6be20-0615-11f0-906e-110a88214471",
+                  "op": "=",
+                  "name": "instance",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{instance}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "instance"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "ClickHouseProfileEvents",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "name":"<<.Dashboard.group_overview>>",
+        "extend": {
+          "colorKey": "default"
+        }
+      },
+      {
+        "name": "connections",
+        "extend": {
+          "colorKey": "style_key4"
+        }
+      },
+      {
+        "name": "Insertion",
+        "extend": {
+          "colorKey": "style_key6"
+        }
+      },
+      {
+        "name": "Query",
+        "extend": {
+          "colorKey": "style_key8"
+        }
+      },
+      {
+        "name": "Replication",
+        "extend": {
+          "colorKey": "style_key12"
+        }
+      },
+      {
+        "name": "Zookeeper",
+        "extend": {
+          "colorKey": "style_key19"
+        }
+      }
+    ],
+    "type": "template"
+  },
+  "identifier": ""
+}
