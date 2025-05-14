@@ -322,7 +322,7 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 		var spanKV point.KVs
 		priority, ok := span.Metrics[keyPriority]
 		if ok {
-			if priority == -1 || priority == -3 {
+			if priority == -1 || priority == -3 || priority == 0 {
 				log.Debugf("drop this traceID=%s service=%s", span.TraceID, span.Service)
 				return []*itrace.DkSpan{} // 此处应该返回空的数组。
 			}
