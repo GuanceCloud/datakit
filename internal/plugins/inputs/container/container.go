@@ -27,7 +27,7 @@ type container struct {
 	runtime   runtime.ContainerRuntime
 	k8sClient k8sclient.Client
 
-	nodeName                      string
+	localNodeName                 string
 	maxConcurrent                 int
 	enableCollectLogging          bool
 	enableExtractK8sLabelAsTagsV1 bool
@@ -61,11 +61,6 @@ var containerExistList sync.Map
 
 func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sclient.Client) (Collector, error) {
 	logFilter, err := filter.NewFilter(ipt.ContainerIncludeLog, ipt.ContainerExcludeLog)
-	if err != nil {
-		return nil, err
-	}
-
-	nodeName, err := getLocalNodeName()
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +100,7 @@ func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sc
 		ipt:           ipt,
 		runtime:       r,
 		k8sClient:     k8sClient,
-		nodeName:      nodeName,
+		localNodeName: config.Cfg.Hostname,
 		maxConcurrent: ipt.ContainerMaxConcurrent,
 
 		enableCollectLogging:          true,
