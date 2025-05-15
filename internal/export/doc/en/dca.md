@@ -252,7 +252,7 @@ After connecting to DataKit remotely, click "Log" to view the logs of DataKit an
 
 ## Changelog {#change-log}
 
-### 0.1.1(2025/04/23) {#cl-0.1.1}
+### 0.1.1(2025/05/15) {#cl-0.1.1}
 
 - Add container ENV for DCA backend Prometheus exporter URL (`DCA_PROM_LISTEN`)
 - Refactor DCA build

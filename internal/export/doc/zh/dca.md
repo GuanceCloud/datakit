@@ -258,7 +258,7 @@ DCA 开启和安装以后，您可在浏览器输入 DCA web 服务地址进行�
 
 ## 更新日志 {#change-log}
 
-### 0.1.1(2025/04/23) {#cl-0.1.1}
+### 0.1.1(2025/05/15) {#cl-0.1.1}
 
 - 增加 DCA backend Prometheus 指标暴露环境变量配置（`DCA_PROM_LISTEN`）
 - 重构 DCA 构建过程
