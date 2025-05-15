@@ -514,7 +514,7 @@ build-dca-production-image-tw:
     - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TW"
     - export OSS_PATH="dca"
     - make build_dca DCA_VERSION="$DCA_CI_VERSION" BRAND="truewatch"
-    - make build_dca_image DOCKER_IMAGE_REPO="pubrepo.truewatch.com/truewatch/dca" \
+    - make build_dca_image DOCKER_IMAGE_REPO="pubrepo.guance.com/truewatch/dca" \
       DOCKERFILE_SUFFIX="tw" \
       DCA_VERSION="$DCA_CI_VERSION"
       # NOTE: no UOS image for truewatch
