@@ -41,6 +41,8 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: spec.nodeName
+            - name: ENV_CLUSTER_NAME_K8S
+              value: {{ .Values.datakit.cluster_name_k8s}}
             - name: ENV_DATAWAY
               value: {{ .Values.datakit.dataway_url }}
             - name: ENV_GLOBAL_TAGS
