@@ -377,6 +377,18 @@ Among them, `auth` only supports ordinary username and password authentication, 
 }
 ```
 
+- HTTP Request Timeout (`request_timeout`)
+
+HTTP request timeout is mainly used to adjust the timeout of the HTTP request. The default timeout is 60 seconds, and the timeout can be adjusted here.
+
+`request_timeout` example:
+
+```json
+"advance_options": {
+  "request_timeout": "60s",
+}
+```
+
 - HTTP Request a Certificate (`certificate`)
 
 | Field                              | Type   | Whether Required | Description             |
