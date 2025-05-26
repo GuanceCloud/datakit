@@ -376,6 +376,18 @@ monitor   :
 }
 ```
 
+- HTTP 超时时间（`request_timeout`）
+
+HTTP 请求的超时时间，默认是 "60s"，即 60 秒。
+
+`request_timeout` 示例：
+
+```json
+"advance_options": {
+  "request_timeout": "60s",
+}
+```
+
 - HTTP 请求证书（`certificate`）
 
 | 字段                              | 类型   | 是否必须 | 说明             |

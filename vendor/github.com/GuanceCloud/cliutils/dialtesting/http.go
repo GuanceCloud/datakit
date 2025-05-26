@@ -28,7 +28,10 @@ var (
 	_ ITask     = (*HTTPTask)(nil)
 )
 
-const MaxBodySize = 10 * 1024
+const (
+	MaxBodySize        = 10 * 1024
+	DefaultHTTPTimeout = 60 * time.Second
+)
 
 type HTTPTask struct {
 	*Task
@@ -445,8 +448,7 @@ func (t *HTTPTask) setupAdvanceOpts(req *http.Request) error {
 }
 
 func (t *HTTPTask) init() error {
-	httpTimeout := 60 * time.Second // default timeout
-
+	httpTimeout := DefaultHTTPTimeout
 
 	// advance options
 	opt := t.AdvanceOptions
@@ -457,9 +459,7 @@ func (t *HTTPTask) init() error {
 			return err
 		}
 
-		if du < httpTimeout {
-			httpTimeout = du
-		}
+		httpTimeout = du
 	}
 
 	// setup HTTP client

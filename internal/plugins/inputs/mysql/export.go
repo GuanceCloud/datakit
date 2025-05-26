@@ -215,34 +215,32 @@ func (*Input) Monitor(lang inputs.I18n) map[string]string {
 	case inputs.I18nZh:
 		//nolint:lll
 		return map[string]string{
-			"default_monitor_name":                                     "默认",
-			"mysql_qps_title":                                          `MySQL QPS 过高`,
-			"mysql_qps_message":                                        `MySQL QPS 过高，请及时安排处理\n当前配置阈值：10\n当前检测值：{{Result}}\nhost：{{host}}\n服务名：{{server}}`,
-			"mysql_aborted_connects_title":                             `MySQL 尝试连接到服务器失败的次数过高`,
-			"mysql_aborted_connects_message":                           `MySQL 尝试连接到服务器失败的次数过高，请及时安排处理\n当前配置阈值：10\n当前检测值：{{Result}}\nhost：{{host}}\n服务名：{{server}}`,
-			"mysql_aborted_clients_title":                              `MySQL 由于客户端没有正确关闭连接而中止的连接数过高`,
-			"mysql_aborted_clients_message":                            `尝试连接到服务器失败的次数过高，请及时安排处理\n当前配置阈值：10\n当前检测值：{{Result}}\nhost：{{host}}\n服务名：{{server}}`,
-			"mysql_slow_query_title":                                   `MySQL 慢查询次数过高`,
-			"mysql_slow_query_message":                                 `MySQL 慢查询数量大于10次，请及时安排处理\n当前配置阈值：10\n当前检测值：{{Result}}\n用户：{{user}}\n`,
-			"mysql_lock_title":                                         `MySQL 每秒获得锁次数过高`,
-			"mysql_lock_message":                                       `MySQL 每秒立即获得锁的数大于5，请及时安排处理\n当前配置阈值：5\n当前检测值：{{Result}}\nhost：{{host}}\n服务名：{{server}}`,
-			
+			"default_monitor_name":           "默认",
+			"mysql_qps_title":                `MySQL QPS 过高`,
+			"mysql_qps_message":              `MySQL QPS 过高，请及时安排处理\n当前配置阈值：10\n当前检测值：{{Result}}\nhost：{{host}}\n服务名：{{server}}`,
+			"mysql_aborted_connects_title":   `MySQL 尝试连接到服务器失败的次数过高`,
+			"mysql_aborted_connects_message": `MySQL 尝试连接到服务器失败的次数过高，请及时安排处理\n当前配置阈值：10\n当前检测值：{{Result}}\nhost：{{host}}\n服务名：{{server}}`,
+			"mysql_aborted_clients_title":    `MySQL 由于客户端没有正确关闭连接而中止的连接数过高`,
+			"mysql_aborted_clients_message":  `尝试连接到服务器失败的次数过高，请及时安排处理\n当前配置阈值：10\n当前检测值：{{Result}}\nhost：{{host}}\n服务名：{{server}}`,
+			"mysql_slow_query_title":         `MySQL 慢查询次数过高`,
+			"mysql_slow_query_message":       `MySQL 慢查询数量大于10次，请及时安排处理\n当前配置阈值：10\n当前检测值：{{Result}}\n用户：{{user}}\n`,
+			"mysql_lock_title":               `MySQL 每秒获得锁次数过高`,
+			"mysql_lock_message":             `MySQL 每秒立即获得锁的数大于5，请及时安排处理\n当前配置阈值：5\n当前检测值：{{Result}}\nhost：{{host}}\n服务名：{{server}}`,
 		}
 	case inputs.I18nEn:
 		//nolint:lll
 		return map[string]string{
-			"default_monitor_name":                                     "default",
-			"mysql_qps_title":                                          `MySQL QPS is too high`,
-			"mysql_qps_message":                                        `MySQL QPS is too high, please handle it as soon as possible\nCurrent threshold value: 10\nCurrent detection value: {{Result}}\nhost：{{host}}\nService name：{{server}}`,
-			"mysql_aborted_connects_title":                             `MySQL attempts to connect to the server failed too many times`,
-			"mysql_aborted_connects_message":                           `MySQL attempts to connect to the server failed too many times, please handle it as soon as possible\nCurrent threshold value: 10\nCurrent detection value: {{Result}}\nhost：{{host}}\nService name：{{server}}`,
-			"mysql_aborted_clients_title":                              `MySQL aborted connections due to clients not closing connections`,
-			"mysql_aborted_clients_message":                            `MySQL attempts to connect to the server failed too many times, please handle it as soon as possible\nCurrent threshold value: 10\nCurrent detection value: {{Result}}\nhost：{{host}}\nService name：{{server}}`,
-			"mysql_slow_query_title":                                   `MySQL slow query count is too high`,
-			"mysql_slow_query_message":                                 `MySQL slow query count is too high, please handle it as soon as possible\nCurrent threshold value: 10\nCurrent detection value: {{Result}}\nuser：{{user}}\n`,
-			"mysql_lock_title":                                         `MySQL lock acquisition rate is too high`,
-			"mysql_lock_message":                                       `MySQL lock acquisition rate is too high, please handle it as soon as possible\nCurrent threshold value: 5\nCurrent detection value: {{Result}}\nhost：{{host}}\nService name：{{server}}`,
-
+			"default_monitor_name":           "default",
+			"mysql_qps_title":                `MySQL QPS is too high`,
+			"mysql_qps_message":              `MySQL QPS is too high, please handle it as soon as possible\nCurrent threshold value: 10\nCurrent detection value: {{Result}}\nhost：{{host}}\nService name：{{server}}`,
+			"mysql_aborted_connects_title":   `MySQL attempts to connect to the server failed too many times`,
+			"mysql_aborted_connects_message": `MySQL attempts to connect to the server failed too many times, please handle it as soon as possible\nCurrent threshold value: 10\nCurrent detection value: {{Result}}\nhost：{{host}}\nService name：{{server}}`,
+			"mysql_aborted_clients_title":    `MySQL aborted connections due to clients not closing connections`,
+			"mysql_aborted_clients_message":  `MySQL attempts to connect to the server failed too many times, please handle it as soon as possible\nCurrent threshold value: 10\nCurrent detection value: {{Result}}\nhost：{{host}}\nService name：{{server}}`,
+			"mysql_slow_query_title":         `MySQL slow query count is too high`,
+			"mysql_slow_query_message":       `MySQL slow query count is too high, please handle it as soon as possible\nCurrent threshold value: 10\nCurrent detection value: {{Result}}\nuser：{{user}}\n`,
+			"mysql_lock_title":               `MySQL lock acquisition rate is too high`,
+			"mysql_lock_message":             `MySQL lock acquisition rate is too high, please handle it as soon as possible\nCurrent threshold value: 5\nCurrent detection value: {{Result}}\nhost：{{host}}\nService name：{{server}}`,
 		}
 	default:
 		return nil
