@@ -69,14 +69,12 @@ func NewFilter(include, exclude []string) (Filter, error) {
 	return filters, nil
 }
 
+// Match returns the result of the filter match, or true if the filter type is not found.
 func (filters Filter) Match(typ FilterType, field string) bool {
-	if field == "" || len(filters) != supportedFilterTypesNum {
-		return false
-	}
-	if filters[typ] != nil {
+	if field != "" && filters[typ] != nil {
 		return filters[typ].Match(field)
 	}
-	return false
+	return true
 }
 
 func splitRules(arr []string) [][]string {
@@ -89,7 +87,7 @@ func splitRules(arr []string) [][]string {
 		content := strings.TrimPrefix(str, prefix)
 		rule := strings.TrimSpace(content)
 		if rule == "*" {
-			// trans to double star
+			// convert to double star
 			return "**"
 		}
 		return rule

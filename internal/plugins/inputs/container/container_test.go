@@ -43,57 +43,78 @@ func TestBuildLabelsOption(t *testing.T) {
 }
 
 func TestShouldPullLogs(t *testing.T) {
-	in := []string{"image:pubrepo.guance.com/kodo*", "namespace:kube-system"}
-	ex := []string{"image:datakit*", "namespace:nginx"}
-
-	filter, err := filter.NewFilter(in, ex)
-	assert.Nil(t, err)
-
-	c := &container{logFilter: filter}
-
 	cases := []struct {
-		in     *logInstance
-		should bool
+		include, exclude []string
+		in               *logInstance
+		should           bool
 	}{
 		{
+			include: []string{"image:redis*", "namespace:kube-system"},
 			in: &logInstance{
-				image:        "pubrepo.guance.com/kodo:1.11",
+				image:        "redis:1.23",
 				podNamespace: "kube-system",
 			},
 			should: true,
 		},
 		{
+			include: []string{"image:redis*", "namespace:kube-system"},
 			in: &logInstance{
-				image:        "pubrepo.guance.com/kodo:1.12",
-				podNamespace: "faker",
-			},
-			should: true,
-		},
-		{
-			in: &logInstance{
-				image:        "k8s.io/etcd:1.21",
-				podNamespace: "kube-system",
-			},
-			should: true,
-		},
-		{
-			in: &logInstance{
-				image:        "pubrepo.guance.com/faker:1.11",
-				podNamespace: "nginx",
-			},
-			should: false,
-		},
-		{
-			in: &logInstance{
-				image:        "nginx:1.12",
+				image:        "redis:1.23",
 				podNamespace: "middleware",
 			},
 			should: false,
 		},
 		{
+			// exclude
+			exclude: []string{"image:redis*", "namespace:kube-system"},
 			in: &logInstance{
-				image:        "datakit:1.12",
-				podNamespace: "datakit",
+				image:        "redis:1.23",
+				podNamespace: "middleware",
+			},
+			should: false,
+		},
+		{
+			// exclude
+			exclude: []string{"image:redis*", "namespace:kube-system"},
+			in: &logInstance{
+				image:        "<invalid>:1.23",
+				podNamespace: "kube-system",
+			},
+			should: false,
+		},
+		{
+			// exclude
+			exclude: []string{"image:redis*", "namespace:kube-system"},
+			in: &logInstance{
+				image:        "nginx:1.23",
+				podNamespace: "middleware",
+			},
+			should: true,
+		},
+		{
+			include: []string{"image:redis*", "namespace:kube-system"},
+			exclude: []string{"image:nginx*", "namespace:middleware"},
+			in: &logInstance{
+				image:        "redis:1.23",
+				podNamespace: "kube-system",
+			},
+			should: true,
+		},
+		{
+			include: []string{"image:redis*", "namespace:kube-system"},
+			exclude: []string{"image:nginx*", "namespace:middleware"},
+			in: &logInstance{
+				image:        "redis:1.23",
+				podNamespace: "middleware",
+			},
+			should: false,
+		},
+		{
+			include: []string{"image:redis*", "namespace:kube-system"},
+			exclude: []string{"image:nginx*", "namespace:middleware"},
+			in: &logInstance{
+				image:        "nginx:1.12",
+				podNamespace: "kube-system",
 			},
 			should: false,
 		},
@@ -101,6 +122,11 @@ func TestShouldPullLogs(t *testing.T) {
 
 	for idx, tc := range cases {
 		t.Run(fmt.Sprintf("%d", idx), func(t *testing.T) {
+			filter, err := filter.NewFilter(tc.include, tc.exclude)
+			assert.Nil(t, err)
+
+			c := &container{logFilter: filter}
+
 			res := c.shouldPullContainerLog(tc.in)
 			assert.Equal(t, tc.should, res)
 		})
