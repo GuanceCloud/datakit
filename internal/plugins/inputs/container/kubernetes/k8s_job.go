@@ -61,8 +61,7 @@ func (j *job) gatherMetric(ctx context.Context, timestamp int64) {
 		}
 	}
 
-	counterPts := buildPointsFromCounter("job", j.counter, timestamp)
-	feedMetric("k8s-counter", j.cfg.Feeder, counterPts, true)
+	processCounter(j.cfg, "job", j.counter, timestamp)
 }
 
 func (j *job) gatherObject(ctx context.Context) {

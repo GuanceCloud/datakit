@@ -58,9 +58,7 @@ func (s *statefulset) gatherMetric(ctx context.Context, timestamp int64) {
 			break
 		}
 	}
-
-	counterPts := buildPointsFromCounter("statefulset", s.counter, timestamp)
-	feedMetric("k8s-counter", s.cfg.Feeder, counterPts, true)
+	processCounter(s.cfg, "statefulset", s.counter, timestamp)
 }
 
 func (s *statefulset) gatherObject(ctx context.Context) {
@@ -112,7 +110,7 @@ func (s *statefulset) addChangeInformer(informerFactory informers.SharedInformer
 
 		if difftext != "" {
 			objectChangeCountVec.WithLabelValues(statefulsetChangeSourceType, "spec-changed").Inc()
-			processChange(s.cfg.Feeder, statefulsetChangeSource, statefulsetChangeSourceType, difftext, newStatefulSetObj)
+			processChange(s.cfg, statefulsetChangeSource, statefulsetChangeSourceType, difftext, newStatefulSetObj)
 		}
 	}
 

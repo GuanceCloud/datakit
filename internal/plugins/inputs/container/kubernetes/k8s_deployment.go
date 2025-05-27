@@ -59,9 +59,7 @@ func (d *deployment) gatherMetric(ctx context.Context, timestamp int64) {
 			break
 		}
 	}
-
-	counterPts := buildPointsFromCounter("deployment", d.counter, timestamp)
-	feedMetric("k8s-counter", d.cfg.Feeder, counterPts, true)
+	processCounter(d.cfg, "deployment", d.counter, timestamp)
 }
 
 func (d *deployment) gatherObject(ctx context.Context) {
@@ -113,7 +111,7 @@ func (d *deployment) addChangeInformer(informerFactory informers.SharedInformerF
 
 		if difftext != "" {
 			objectChangeCountVec.WithLabelValues(deploymentChangeSourceType, "spec-changed").Inc()
-			processChange(d.cfg.Feeder, deploymentChangeSource, deploymentChangeSourceType, difftext, newDeploymentObj)
+			processChange(d.cfg, deploymentChangeSource, deploymentChangeSourceType, difftext, newDeploymentObj)
 		}
 	}
 

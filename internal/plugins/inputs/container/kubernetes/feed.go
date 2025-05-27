@@ -70,9 +70,9 @@ func feedLogging(name string, feeder dkio.Feeder, pts []*point.Point) {
 	}
 }
 
-func processChange(feeder dkio.Feeder, source, sourceType, difftext string, obj metav1.Object) {
+func processChange(cfg *Config, source, sourceType, difftext string, obj metav1.Object) {
 	var kvs point.KVs
-	kvs = append(kvs, buildChangeEventKVs()...)
+	kvs = append(kvs, buildDefaultChangeEventKVs()...)
 
 	name := obj.GetName()
 	kvs = kvs.AddTag("df_resource", name)
@@ -83,11 +83,12 @@ func processChange(feeder dkio.Feeder, source, sourceType, difftext string, obj 
 	kvs = kvs.AddTag("df_resource_type", source)
 
 	kvs = kvs.AddV2("df_message", difftext, false)
-	pt := point.NewPointV2("event", kvs, point.WithTimestamp(time.Now().UnixNano()))
+	kvs = append(kvs, point.NewTags(cfg.ExtraTags)...)
 
+	pt := point.NewPointV2("event", kvs, point.WithTimestamp(time.Now().UnixNano()))
 	collectPtsVec.WithLabelValues("k8s-object-change-event").Add(1)
 
-	if err := feeder.FeedV2(
+	if err := cfg.Feeder.FeedV2(
 		point.KeyEvent,
 		[]*point.Point{pt},
 		dkio.WithElection(true),
@@ -97,7 +98,7 @@ func processChange(feeder dkio.Feeder, source, sourceType, difftext string, obj 
 	}
 }
 
-func buildPointsFromCounter(name string, counter map[string]int, timestamp int64 /*nanoseconds*/) []*point.Point {
+func processCounter(cfg *Config, name string, counter map[string]int, timestamp int64 /*nanoseconds*/) {
 	var pts []*point.Point
 	opts := point.DefaultMetricOptions()
 
@@ -105,11 +106,13 @@ func buildPointsFromCounter(name string, counter map[string]int, timestamp int64
 		var kvs point.KVs
 		kvs = kvs.AddTag("namespace", ns)
 		kvs = kvs.AddV2(name, count, false)
+		kvs = append(kvs, point.NewTags(cfg.ExtraTags)...)
 
 		pt := point.NewPointV2("kubernetes", kvs, append(opts, point.WithTimestamp(timestamp))...)
 		pts = append(pts, pt)
 	}
-	return pts
+
+	feedMetric("k8s-counter", cfg.Feeder, pts, true)
 }
 
 func diffObject(oldObj, newObj interface{}) (difftext string, err error) {
@@ -126,7 +129,7 @@ func diffObject(oldObj, newObj interface{}) (difftext string, err error) {
 	return diff.LineDiffWithContextLines(string(oldText), string(newText), contextLines), nil
 }
 
-func buildChangeEventKVs() (kvs point.KVs) {
+func buildDefaultChangeEventKVs() (kvs point.KVs) {
 	const (
 		defaultStatus = "info"
 		defaultSource = "change"
