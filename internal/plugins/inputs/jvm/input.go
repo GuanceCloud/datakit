@@ -23,7 +23,7 @@ const (
 )
 
 const (
-	JvmConfigSample = `[[inputs.jvm]]
+	confSample = `[[inputs.jvm]]
   # default_tag_prefix      = ""
   # default_field_prefix    = ""
   # default_field_separator = "."
@@ -83,7 +83,7 @@ const (
   # ...`
 )
 
-var JvmTypeMap = map[string]string{
+var jvmTypeMap = map[string]string{
 	"Uptime":                         "int",
 	"HeapMemoryUsageinit":            "int",
 	"HeapMemoryUsageused":            "int",
@@ -129,13 +129,13 @@ func (ipt *Input) Run() {
 	ipt.JolokiaAgent.PluginName = inputName
 
 	ipt.JolokiaAgent.Tags = ipt.Tags
-	ipt.JolokiaAgent.Types = JvmTypeMap
+	ipt.JolokiaAgent.Types = jvmTypeMap
 	ipt.JolokiaAgent.L = log
 	ipt.JolokiaAgent.Collect()
 }
 
 func (ipt *Input) Catalog() string      { return inputName }
-func (ipt *Input) SampleConfig() string { return JvmConfigSample }
+func (ipt *Input) SampleConfig() string { return confSample }
 func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&JavaRuntimeMemt{},
@@ -152,7 +152,9 @@ func (ipt *Input) AvailableArchs() []string {
 }
 
 func defaultInput() *Input {
-	return &Input{}
+	return &Input{
+		JolokiaAgent: *jolokia.DefaultInput(),
+	}
 }
 
 func init() { //nolint:gochecknoinits

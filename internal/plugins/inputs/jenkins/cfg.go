@@ -41,7 +41,7 @@ var (
   ## Set response_timeout
   # response_timeout = "5s"
 
-  ## Set true to enable election
+  ## Set true to enable election(default: true)
   # election = true
 
   ## Optional TLS Config
@@ -118,6 +118,9 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
 	Tagger  datakit.GlobalTagger
+
+	pause   bool
+	pauseCh chan bool
 }
 
 func newCountFieldInfo(desc string) *inputs.FieldInfo {

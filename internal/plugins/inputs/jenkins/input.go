@@ -102,16 +102,17 @@ func (ipt *Input) Run() {
 	if !ipt.EnableCollect {
 		l.Info("metric collecting is disabled")
 	}
+
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
+
 	for {
-		select {
-		case <-tick.C:
-			if !ipt.EnableCollect {
-				continue
-			}
+		if ipt.pause {
+			l.Debug("%s election paused", inputName)
+		} else if ipt.EnableCollect {
 			ipt.start = time.Now()
 			ipt.getPluginMetric()
+
 			if len(ipt.collectCache) > 0 {
 				if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
 					dkio.WithCollectCost(time.Since(ipt.start)),
@@ -120,16 +121,22 @@ func (ipt *Input) Run() {
 				); err != nil {
 					ipt.lastErr = err
 					l.Errorf(err.Error())
-					continue
 				}
+
 				ipt.collectCache = ipt.collectCache[:0]
 			}
+
 			if ipt.lastErr != nil {
 				ipt.feeder.FeedLastError(ipt.lastErr.Error(),
 					metrics.WithLastErrorInput(inputName),
 				)
 				ipt.lastErr = nil
 			}
+		}
+
+		select {
+		case <-tick.C:
+
 		case <-datakit.Exit.Wait():
 			ipt.exit()
 			ipt.shutdownServer()
@@ -260,12 +267,37 @@ func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
+func (ipt *Input) Pause() error {
+	tick := time.NewTicker(inputs.ElectionPauseTimeout)
+	defer tick.Stop()
+	select {
+	case ipt.pauseCh <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
+}
+
+func (ipt *Input) Resume() error {
+	tick := time.NewTicker(inputs.ElectionResumeTimeout)
+	defer tick.Stop()
+	select {
+	case ipt.pauseCh <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
+	}
+}
+
 func defaultInput() *Input {
 	return &Input{
 		Interval: datakit.Duration{Duration: time.Second * 30},
 		semStop:  cliutils.NewSem(),
 		feeder:   dkio.DefaultFeeder(),
 		Tagger:   datakit.DefaultGlobalTagger(),
+
+		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+		Election: true, // default enable election
 	}
 }
 
