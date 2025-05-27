@@ -59,9 +59,7 @@ func (d *daemonset) gatherMetric(ctx context.Context, timestamp int64) {
 			break
 		}
 	}
-
-	counterPts := buildPointsFromCounter("daemonset", d.counter, timestamp)
-	feedMetric("k8s-counter", d.cfg.Feeder, counterPts, true)
+	processCounter(d.cfg, "daemonset", d.counter, timestamp)
 }
 
 func (d *daemonset) gatherObject(ctx context.Context) {
@@ -113,7 +111,7 @@ func (d *daemonset) addChangeInformer(informerFactory informers.SharedInformerFa
 
 		if difftext != "" {
 			objectChangeCountVec.WithLabelValues(daemonsetChangeSourceType, "spec-changed").Inc()
-			processChange(d.cfg.Feeder, daemonsetChangeSource, daemonsetChangeSourceType, difftext, newDaemonsetObj)
+			processChange(d.cfg, daemonsetChangeSource, daemonsetChangeSourceType, difftext, newDaemonsetObj)
 		}
 	}
 

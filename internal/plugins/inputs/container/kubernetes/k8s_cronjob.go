@@ -59,9 +59,7 @@ func (c *cronjob) gatherMetric(ctx context.Context, timestamp int64) {
 			break
 		}
 	}
-
-	counterPts := buildPointsFromCounter("cronjob", c.counter, timestamp)
-	feedMetric("k8s-counter", c.cfg.Feeder, counterPts, true)
+	processCounter(c.cfg, "cronjob", c.counter, timestamp)
 }
 
 func (c *cronjob) gatherObject(ctx context.Context) {
@@ -113,7 +111,7 @@ func (c *cronjob) addChangeInformer(informerFactory informers.SharedInformerFact
 
 		if difftext != "" {
 			objectChangeCountVec.WithLabelValues(cronjobChangeSourceType, "spec-changed").Inc()
-			processChange(c.cfg.Feeder, cronjobChangeSource, cronjobChangeSourceType, difftext, newCronjobObj)
+			processChange(c.cfg, cronjobChangeSource, cronjobChangeSourceType, difftext, newCronjobObj)
 		}
 	}
 

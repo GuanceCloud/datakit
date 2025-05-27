@@ -53,9 +53,7 @@ func (e *endpoint) gatherMetric(ctx context.Context, timestamp int64) {
 			break
 		}
 	}
-
-	counterPts := buildPointsFromCounter("endpoint", e.counter, timestamp)
-	feedMetric("k8s-counter", e.cfg.Feeder, counterPts, true)
+	processCounter(e.cfg, "endpoint", e.counter, timestamp)
 }
 
 func (*endpoint) gatherObject(_ context.Context)                      { /* nil */ }

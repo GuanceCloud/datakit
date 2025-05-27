@@ -62,9 +62,7 @@ func (n *node) gatherMetric(ctx context.Context, timestamp int64) {
 			break
 		}
 	}
-
-	counterPts := buildPointsFromCounter("node", n.counter, timestamp)
-	feedMetric("k8s-counter", n.cfg.Feeder, counterPts, true)
+	processCounter(n.cfg, "node", n.counter, timestamp)
 }
 
 func (n *node) gatherObject(ctx context.Context) {
@@ -116,7 +114,7 @@ func (n *node) addChangeInformer(informerFactory informers.SharedInformerFactory
 
 		if difftext != "" {
 			objectChangeCountVec.WithLabelValues(nodeChangeSourceType, "spec-changed").Inc()
-			processChange(n.cfg.Feeder, nodeChangeSource, nodeChangeSourceType, difftext, newNodeObj)
+			processChange(n.cfg, nodeChangeSource, nodeChangeSourceType, difftext, newNodeObj)
 		}
 	}
 

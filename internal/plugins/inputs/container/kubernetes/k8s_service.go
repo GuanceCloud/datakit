@@ -60,9 +60,7 @@ func (s *service) gatherMetric(ctx context.Context, timestamp int64) {
 			break
 		}
 	}
-
-	counterPts := buildPointsFromCounter("service", s.counter, timestamp)
-	feedMetric("k8s-counter", s.cfg.Feeder, counterPts, true)
+	processCounter(s.cfg, "service", s.counter, timestamp)
 }
 
 func (s *service) gatherObject(ctx context.Context) {
@@ -114,7 +112,7 @@ func (s *service) addChangeInformer(informerFactory informers.SharedInformerFact
 
 		if difftext != "" {
 			objectChangeCountVec.WithLabelValues(serviceChangeSourceType, "spec-changed").Inc()
-			processChange(s.cfg.Feeder, serviceChangeSource, serviceChangeSourceType, difftext, newServiceObj)
+			processChange(s.cfg, serviceChangeSource, serviceChangeSourceType, difftext, newServiceObj)
 		}
 	}
 

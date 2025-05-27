@@ -56,9 +56,7 @@ func (r *replicaset) gatherMetric(ctx context.Context, timestamp int64) {
 			break
 		}
 	}
-
-	counterPts := buildPointsFromCounter("replicaset", r.counter, timestamp)
-	feedMetric("k8s-counter", r.cfg.Feeder, counterPts, true)
+	processCounter(r.cfg, "replicaset", r.counter, timestamp)
 }
 
 func (r *replicaset) gatherObject(ctx context.Context) {

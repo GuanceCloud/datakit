@@ -90,10 +90,11 @@ func (p *persistentvolumeclaim) addChangeInformer(informerFactory informers.Shar
 
 		if difftext != "" {
 			objectChangeCountVec.WithLabelValues(persistentvolumeclaimChangeSourceType, "spec-changed").Inc()
-			processChange(p.cfg.Feeder,
+			processChange(p.cfg,
 				persistentvolumeclaimChangeSource,
 				persistentvolumeclaimChangeSourceType,
-				difftext, newPersistentVolumeClaimObj)
+				difftext,
+				newPersistentVolumeClaimObj)
 		}
 	}
 
