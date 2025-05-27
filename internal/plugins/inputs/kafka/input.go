@@ -9,7 +9,6 @@ package kafka
 import (
 	"context"
 
-	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
@@ -54,7 +53,7 @@ func (ipt *Input) Run() {
 	ipt.JolokiaAgent.PluginName = inputName
 	ipt.JolokiaAgent.Tags = ipt.Tags
 	ipt.JolokiaAgent.Types = KafkaTypeMap
-	l.Debugf("kafka url:%s", ipt.URLs)
+	l.Debugf("kafka url:%s", ipt.JolokiaAgent.URLs)
 	ipt.JolokiaAgent.Collect()
 }
 
@@ -79,7 +78,7 @@ func (ipt *Input) RunPipeline() {
 		tailer.EnableMultiline(true),
 		tailer.WithMaxMultilineLength(int64(float64(config.Cfg.Dataway.MaxRawBodySize) * 0.8)),
 		tailer.WithMultilinePatterns([]string{ipt.Log.MultilineMatch}),
-		tailer.WithGlobalTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
+		tailer.WithGlobalTags(inputs.MergeTags(ipt.JolokiaAgent.Tagger.HostTags(), ipt.Tags, "")),
 		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
 	}
 
@@ -150,12 +149,17 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
+func defaultInput() *Input {
+	j := jolokia.DefaultInput()
+	j.PluginName = inputName
+
+	return &Input{
+		JolokiaAgent: *j,
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			JolokiaAgent: jolokia.JolokiaAgent{
-				SemStop: cliutils.NewSem(),
-			},
-		}
+		return defaultInput()
 	})
 }

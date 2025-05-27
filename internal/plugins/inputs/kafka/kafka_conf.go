@@ -24,6 +24,8 @@ const (
   
   ## Monitor Interval
   # interval   = "60s"
+
+  election = true
   
   # Add agents URLs to query
   urls = ["http://localhost:8080/jolokia"]

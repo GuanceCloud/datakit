@@ -12,7 +12,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/jolokia"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 
@@ -31,9 +30,8 @@ type tomcatlog struct {
 }
 
 type Input struct {
-	jolokia.JolokiaAgent
-	Log  *tomcatlog        `toml:"log"`
-	Tags map[string]string `toml:"tags"`
+	sem *cliutils.Sem
+	Log *tomcatlog `toml:"log"`
 }
 
 func (*Input) Catalog() string {
@@ -96,18 +94,13 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) Terminate() {
-	if ipt.SemStop != nil { // nolint:typecheck
-		ipt.SemStop.Close() // nolint:typecheck
+	if ipt.sem != nil { // nolint:typecheck
+		ipt.sem.Close() // nolint:typecheck
 	}
 }
 
 func defaultInput() *Input {
-	return &Input{
-		JolokiaAgent: jolokia.JolokiaAgent{
-			SemStop: cliutils.NewSem(),
-			Tagger:  datakit.DefaultGlobalTagger(),
-		},
-	}
+	return &Input{}
 }
 
 func init() { //nolint:gochecknoinits
