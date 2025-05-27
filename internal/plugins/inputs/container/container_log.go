@@ -82,15 +82,21 @@ func (c *container) gatherLogging() {
 }
 
 func (c *container) shouldPullContainerLog(ins *logInstance) bool {
-	if ins.enabled() {
-		return true
+	if len(ins.configs) != 0 {
+		disable := true
+		for _, cfg := range ins.configs {
+			disable = disable && cfg.Disable
+		}
+		return !disable
 	}
+
 	if ins.ownerKind == "job" || ins.ownerKind == "cronjob" {
 		return false
 	}
-	pass := c.logFilter.Match(filter.FilterImage, ins.image) ||
-		c.logFilter.Match(filter.FilterImageName, ins.imageName) ||
-		c.logFilter.Match(filter.FilterImageShortName, ins.imageShortName) ||
+
+	pass := c.logFilter.Match(filter.FilterImage, ins.image) &&
+		c.logFilter.Match(filter.FilterImageName, ins.imageName) &&
+		c.logFilter.Match(filter.FilterImageShortName, ins.imageShortName) &&
 		c.logFilter.Match(filter.FilterNamespace, ins.podNamespace)
 
 	return pass

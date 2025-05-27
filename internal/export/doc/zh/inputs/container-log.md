@@ -383,6 +383,20 @@ DataKit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 
 ## FAQ {#faq}
 
+### 过滤指定容器不采集日志 {#filter-container-logs}
+
+DataKit 提供两种方式来过滤指定容器，防止采集其日志。分别是通过 `container.conf` 配置文件中的 `container_include_log` 和 `container_exclude_log` 配置项，以及它们对应的环境变量设置。此外，还可以通过 `datakit/logs` 注解指定 `"disable": true` 来实现相同的效果。
+
+过滤过程如下：
+
+1. 如果容器存在 `datakit/logs` 注解或环境变量，并且所有的 `"disable": true` 设置都生效，表示该容器的日志不需要采集，直接忽略。
+1. 如果容器所属的 Pod 是由 `Job` 或 `CronJob` 创建的，则不采集该容器的日志。
+1. `container_include_log` 和 `container_exclude_log` 配置项只有在容器满足所有条件时，才会采集日志：
+   - 例如，配置 `container_include_log = ["image:redis*"]` 和 `container_exclude_log = ["namespace:middleware*"]`，只有当容器的 `image` 匹配 `redis*`，且 `namespace` 不匹配 `middleware*` 时，才会采集日志。
+   - 如果只配置 `container_include_log = ["image:redis*"]`，只要容器满足该条件，日志就会被采集。
+
+由于 `container_include_log` 和 `container_exclude_log` 同时使用较为复杂，建议仅选择其中之一进行配置。
+
 ### 日志目录的软链接问题 {#log-path-link}
 
 正常情况下，DataKit 会从容器/Kubernetes API 找到日志文件的路径，然后采集该文件。

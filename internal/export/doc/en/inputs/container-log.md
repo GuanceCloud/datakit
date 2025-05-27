@@ -380,6 +380,23 @@ By default, DataKit collects stdout/stderr logs for all containers on your machi
 ## FAQ {#faq}
 
 <!-- markdownlint-disable MD013 -->
+### Filtering Specific Containers from Log Collection {#filter-container-logs}
+<!-- markdownlint-enable -->
+
+DataKit offers two methods for filtering specific containers and preventing their logs from being collected. These methods include using the `container_include_log` and `container_exclude_log` settings in the `container.conf` file, along with their corresponding environment variables. Additionally, you can achieve the same effect by using the `datakit/logs` annotation with `"disable": true`.
+
+The filtering process works as follows:
+
+1. If a container has a `datakit/logs` annotation or environment variable, and all `"disable": true` settings are active, the container's logs will be ignored and not collected.
+1. If the Pod to which the container belongs is created by a `Job` or `CronJob`, the container's logs will not be collected.
+1. The `container_include_log` and `container_exclude_log` settings only apply when all conditions are met:
+   - For example, with `container_include_log = ["image:redis*"]` and `container_exclude_log = ["namespace:middleware*"]`, logs will only be collected if the container's `image` matches `redis*` and the `namespace` does not match `middleware*`.
+   - If only `container_include_log = ["image:redis*"]` is specified, logs will be collected as long as this condition is met.
+
+Since using both `container_include_log` and `container_exclude_log` together can be complex, it is recommended to use only one of them.
+
+
+<!-- markdownlint-disable MD013 -->
 ### Issue with Soft Links in Log Directories {#log-path-link}
 <!-- markdownlint-enable -->
 

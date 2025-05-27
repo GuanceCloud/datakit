@@ -63,24 +63,16 @@ type logInstance struct {
 	volMounts map[string]string
 }
 
-func (lc *logInstance) enabled() bool {
-	b := false
-	for _, cfg := range lc.configs {
-		b = b || !cfg.Disable
-	}
-	return b
-}
-
-func (lc *logInstance) parseLogConfigs() error {
-	if lc.configStr != "" {
+func (ins *logInstance) parseLogConfigs() error {
+	if ins.configStr != "" {
 		var configs logConfigs
-		if err := json.Unmarshal([]byte(lc.configStr), &configs); err != nil {
+		if err := json.Unmarshal([]byte(ins.configStr), &configs); err != nil {
 			return fmt.Errorf("failed to parse configs from container %s, err: %w, data: %s",
-				lc.containerName, err, lc.configStr)
+				ins.containerName, err, ins.configStr)
 		}
-		lc.configs = configs
+		ins.configs = configs
 
-		for _, cfg := range lc.configs {
+		for _, cfg := range ins.configs {
 			if cfg.Disable {
 				continue
 			}
@@ -95,7 +87,7 @@ func (lc *logInstance) parseLogConfigs() error {
 			path := filepath.Clean(cfg.Path)
 			foundHostPath := false
 
-			for vol, hostdir := range lc.volMounts {
+			for vol, hostdir := range ins.volMounts {
 				if strings.HasPrefix(path, vol) {
 					cfg.hostDir = hostdir
 					cfg.insideDir = vol
@@ -106,34 +98,34 @@ func (lc *logInstance) parseLogConfigs() error {
 			}
 
 			if !foundHostPath {
-				return fmt.Errorf("unexpected log path %s, no matched mounts(%d) found", cfg.Path, len(lc.volMounts))
+				return fmt.Errorf("unexpected log path %s, no matched mounts(%d) found", cfg.Path, len(ins.volMounts))
 			}
 		}
 	}
 	return nil
 }
 
-func (lc *logInstance) addStdout() {
-	if len(lc.configs) == 0 {
-		lc.configs = append(lc.configs, &logConfig{
-			Path:   lc.logPath,
-			Source: lc.containerName,
+func (ins *logInstance) addStdout() {
+	if len(ins.configs) == 0 {
+		ins.configs = append(ins.configs, &logConfig{
+			Path:   ins.logPath,
+			Source: ins.containerName,
 		})
 		return
 	}
 
-	for _, cfg := range lc.configs {
+	for _, cfg := range ins.configs {
 		if cfg.Disable {
 			continue
 		}
 		if (cfg.Type == "" || cfg.Type == "stdout") && cfg.Path == "" {
-			cfg.Path = lc.logPath
+			cfg.Path = ins.logPath
 		}
 	}
 }
 
-func (lc *logInstance) fillLogType(runtimeName string) {
-	for _, cfg := range lc.configs {
+func (ins *logInstance) fillLogType(runtimeName string) {
+	for _, cfg := range ins.configs {
 		if cfg.Type != "" {
 			continue
 		}
@@ -141,17 +133,17 @@ func (lc *logInstance) fillLogType(runtimeName string) {
 	}
 }
 
-func (lc *logInstance) fillSource() {
-	for _, cfg := range lc.configs {
+func (ins *logInstance) fillSource() {
+	for _, cfg := range ins.configs {
 		if cfg.Source != "" {
 			continue
 		}
-		cfg.Source = lc.containerName
+		cfg.Source = ins.containerName
 	}
 }
 
-func (lc *logInstance) checkTagsKey() {
-	for _, cfg := range lc.configs {
+func (ins *logInstance) checkTagsKey() {
+	for _, cfg := range ins.configs {
 		for k, v := range cfg.Tags {
 			if idx := strings.Index(k, "."); idx == -1 {
 				continue
@@ -165,11 +157,11 @@ func (lc *logInstance) checkTagsKey() {
 	}
 }
 
-func (lc *logInstance) setTagsToLogConfigs(m map[string]string) {
+func (ins *logInstance) setTagsToLogConfigs(m map[string]string) {
 	if len(m) == 0 {
 		return
 	}
-	for _, cfg := range lc.configs {
+	for _, cfg := range ins.configs {
 		if cfg.Tags == nil {
 			cfg.Tags = make(map[string]string)
 		}
@@ -181,13 +173,13 @@ func (lc *logInstance) setTagsToLogConfigs(m map[string]string) {
 	}
 }
 
-func (lc *logInstance) setLabelAsTags(m map[string]string, all bool, keys []string) {
+func (ins *logInstance) setLabelAsTags(m map[string]string, all bool, keys []string) {
 	if len(m) == 0 {
 		return
 	}
 
 	if all {
-		for _, cfg := range lc.configs {
+		for _, cfg := range ins.configs {
 			if cfg.Tags == nil {
 				cfg.Tags = make(map[string]string)
 			}
@@ -201,7 +193,7 @@ func (lc *logInstance) setLabelAsTags(m map[string]string, all bool, keys []stri
 		return
 	}
 
-	for _, cfg := range lc.configs {
+	for _, cfg := range ins.configs {
 		if cfg.Tags == nil {
 			cfg.Tags = make(map[string]string)
 		}
@@ -222,21 +214,21 @@ func replaceLabelKey(s string) string {
 	return strings.ReplaceAll(s, ".", "_")
 }
 
-func (lc *logInstance) tags() map[string]string {
+func (ins *logInstance) tags() map[string]string {
 	m := map[string]string{
-		"container_id":   lc.id,
-		"container_name": lc.containerName,
-		"image":          lc.image,
+		"container_id":   ins.id,
+		"container_name": ins.containerName,
+		"image":          ins.image,
 	}
 
-	if lc.podName != "" {
-		m["pod_name"] = lc.podName
-		m["pod_ip"] = lc.podIP
-		m["namespace"] = lc.podNamespace
+	if ins.podName != "" {
+		m["pod_name"] = ins.podName
+		m["pod_ip"] = ins.podIP
+		m["namespace"] = ins.podNamespace
 	}
 
-	if lc.ownerKind != "" && lc.ownerName != "" {
-		m[lc.ownerKind] = lc.ownerName
+	if ins.ownerKind != "" && ins.ownerName != "" {
+		m[ins.ownerKind] = ins.ownerName
 	}
 
 	return m

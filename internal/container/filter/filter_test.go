@@ -162,7 +162,7 @@ func TestMatchFilter(t *testing.T) {
 		{
 			inType:  FilterImageName,
 			inField: "nginx",
-			matched: false,
+			matched: true,
 		},
 		{
 			inType:  FilterNamespace,
