@@ -31,8 +31,8 @@ This is an iterative release with the following key updates:
 - Enhanced Oracle metric collection by adding metrics related to locked-sessions and waiting-events, and refactored Oracle dashboard (#2684).
 - Added custom timeout configuration for the dialtesting collector (#2693).
 - Other updates (#2702):
-  - Added best practices documentation for APM sampling (#2673).
-  - Updated a batch of dashboards (!3513/!3498/!3494).
+    - Added best practices documentation for APM sampling (#2673).
+    - Updated a batch of dashboards (!3513/!3498/!3494).
 
 
 ---
