@@ -12,11 +12,11 @@ const sampleCfg = `
   ## Filling in specific device IP address, example ["10.200.10.240", "10.200.10.241"].
   ## And you can use auto_discovery and specific_devices at the same time.
   ## If you don't want to specific device, you don't need provide this.
-  # specific_devices = ["***"] # SNMP Device IP.
+  # specific_devices = [""] # SNMP Device IP.
 
   ## Filling in autodiscovery CIDR subnet, example ["10.200.10.0/24", "10.200.20.0/24"].
   ## If you don't want to enable autodiscovery feature, you don't need provide this.
-  # auto_discovery = ["***"] # Used in autodiscovery mode only, ignore this in other cases.
+  # auto_discovery = [""] # Used in autodiscovery mode only, ignore this in other cases.
 
   ## Consul server url for consul discovery
   ## We can discovery snmp instance from consul services
@@ -50,18 +50,18 @@ const sampleCfg = `
   ## Password in SNMP v2, enclose with single quote. Only worked in SNMP v2.
   ## If you are using SNMP v2, this is must be provided.
   ## If you are using SNMP v3, you don't need provide this.
-  # v2_community_string = "***"
+  # v2_community_string = ""
 
-  ## Authentication stuff in SNMP v3.
+  ## Authentication for SNMP v3.
   ## If you are using SNMP v2, you don't need provide this.
   ## If you are using SNMP v3, this is must be provided.
-  # v3_user = "***"
-  # v3_auth_protocol = "***"
-  # v3_auth_key = "***"
-  # v3_priv_protocol = "***"
-  # v3_priv_key = "***"
-  # v3_context_engine_id = "***"
-  # v3_context_name = "***"
+  # v3_user = ""
+  # v3_auth_protocol = "" # MD5/SHA/SHA224/SHA256/SHA384/SHA512 or empty
+  # v3_auth_key = ""
+  # v3_priv_protocol = "" # DES/AES/AES192/AES192C/AES256/AES256C or empty
+  # v3_priv_key = ""
+  # v3_context_engine_id = "" # optional
+  # v3_context_name = ""      # optional
 
   ## Number of workers used to collect and discovery devices concurrently. Default is 100.
   ## Modifying it based on device's number and network scale.

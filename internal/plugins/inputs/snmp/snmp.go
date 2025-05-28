@@ -71,8 +71,16 @@ func (ipt *Input) BuildSNMPParams(deviceIP string) (*gosnmp.GoSNMP, error) {
 		authProtocol = gosnmp.NoAuth
 	case "md5":
 		authProtocol = gosnmp.MD5
-	case "sha":
+	case "sha", "sha128":
 		authProtocol = gosnmp.SHA
+	case "sha256":
+		authProtocol = gosnmp.SHA256
+	case "sha224":
+		authProtocol = gosnmp.SHA224
+	case "sha384":
+		authProtocol = gosnmp.SHA384
+	case "sha512":
+		authProtocol = gosnmp.SHA512
 	default:
 		return nil, fmt.Errorf("unsupported authentication protocol: %s", ipt.V3AuthProtocol)
 	}

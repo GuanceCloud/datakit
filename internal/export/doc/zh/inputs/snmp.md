@@ -29,21 +29,21 @@ monitor   :
 
 SNMP 协议分为 3 个版本：v1/v2c/v3，其中：
 
-- **v1 和 v2c 是兼容的**。很多 SNMP 设备只提供 v2c 和 v3 两种版本的选择。v2c 版本，兼容性最好，很多旧设备只支持这个版本；
+- v1 和 v2c 是兼容的，很多 SNMP 设备只提供 v2c 和 v3 两种版本的选择。v2c 版本，兼容性最好，很多旧设备只支持这个版本；
 - 如果对安全性要求高，选用 v3。安全性也是 v3 版本与之前版本的主要区别；
 
 DataKit 支持以上所有版本。
 
 ### 选择 v1/v2c 版本 {#config-v2}
 
-如果选择 v1/v2c 版本，需要提供 `community string`，中文翻译为「团体名/团体字符串/未加密的口令」，即密码，与 SNMP 设备进行交互需要提供这个进行鉴权。另外，有的设备会进一步进行细分，分为「只读团体名」和「读写团体名」。顾名思义：
+如果选择 v1/v2c 版本，需要提供 `v2_community_string`（团体名/团体字符串/未加密的口令），与 SNMP 设备进行交互需要提供这个进行鉴权。另外，有的设备会进一步进行细分，分为*只读团体名*和*读写团体名*：顾名思义：
 
 - 只读团体名：设备只会向该方提供内部指标数据，不能修改内部的一些配置（DataKit 用这个就够了）
 - 读写团体名：提供方拥有设备内部指标数据查询与部分配置修改权限
 
 ### 选择 v3 版本 {#config-v3}
 
-如果选择 v3 版本，需要提供 「用户名」、「认证算法/密码」、「加密算法/密码」、「上下文」 等，各个设备要求不同，根据设备侧的配置进行填写。
+如果选择 v3 版本，需要提供 `v3_user/v3_auth_protocol/v3_auth_key/v3_priv_protocol/v3_priv_key` 等，各个设备要求不同，根据设备侧的配置进行填写。
 
 ## 配置 {#config}
 
@@ -53,7 +53,7 @@ DataKit 支持以上所有版本。
 === "主机安装"
 
     进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
-    
+
     ```toml
     {{ CodeBlock .InputSample 4 }}
     ```
@@ -75,15 +75,15 @@ DataKit 支持以上所有版本。
         profile_name = "xxx.yaml"
         ip_list = ["ip1", "ip2"]
         class = "server"
-    
+
       [[inputs.snmp.zabbix_profiles]]
         profile_name = "yyy.xml"
         ip_list = ["ip3", "ip4"]
         class = "firewall"
-    
+
       # ...
     ```
-  
+
     `profile_name` 可以是全路径或只包含文件名，只包含文件名的话，文件要放到 *./conf.d/snmp/userprofiles/* 子目录下。
 
     您可以去 Zabbix 官方下载对应的的配置，也可以去 [社区](https://github.com/zabbix/community-templates){:target="_blank"} 下载。
@@ -108,7 +108,7 @@ DataKit 支持以上所有版本。
         ```shell
         $ snmpwalk -v 2c -c public <ip> 1.3.6.1.2.1.1.2.0
         iso.3.6.1.2.1.1.2.0 = OID: iso.3.6.1.4.1.2011.2.240.12
-        
+
         $ snmpgetnext -v 2c -c public <ip> 1.3.6.1.4.1.2011.2.240.12
         iso.3.6.1.4.1.2011.5.2.1.1.1.1.6.114.97.100.105.117.115 = STRING: "radius"
         ```
@@ -122,12 +122,12 @@ DataKit 支持以上所有版本。
         profile_name = "xxx.yml"
         ip_list = ["ip1", "ip2"]
         class = "server"
-    
+
       [[inputs.snmp.prom_profiles]]
         profile_name = "yyy.yml"
         ip_list = ["ip3", "ip4"]
         class = "firewall"
-    
+
       # ...
     ```
 
@@ -193,6 +193,65 @@ SNMP 设备在默认情况下，一般 SNMP 协议处于关闭状态，需要进
     sudo apt–get install snmp                # Ubuntu
     ```
 <!-- markdownlint-enable -->
+
+#### SNMPv3 示例 {#snmpv3-example}
+
+我们以一个 Linux 上的 `snmpd` 作为示例，来演示如何采集 SNMP v3 的采集。
+
+- 在一台 Ubuntu 机器上，我们可以安装 snmpd 服务：
+
+    ```shell
+    sudo apt install snmp snmpd libsnmp-dev
+    ```
+
+- 准备如下一个简易的 *snmpd.conf* 配置：
+
+    ```conf title="my-snmpd.conf"
+    # 设定 UDP 161 端口
+    agentaddress udp:161
+
+    # 设定用户名以及几个认证相关的配置
+    createUser snmpv3user1 SHA "authPassAgent1" AES "privPassAgent1"
+
+    # 授予用户访问权限 (rouser: read-only, rwuser: read-write)
+    rouser snmpv3user1 priv .1.3.6
+    ```
+
+- 先停掉 `snmpd` 服务，手动启动 snmpd 程序：
+
+    ```shell
+    sudo /usr/sbin/snmpd -f -Lo -C \
+      -p x.pid -Ddump,usm,acl,header,context,pdu,snmpv3 \
+      -c my-snmpd.conf
+    ```
+
+- 用 `snmpwalk` 命令检测一下，预期将输出很多 OID 设备信息：
+
+    ```shell
+    snmpwalk -v3 -l authPriv \
+      -u snmpv3user1 \
+      -a SHA \
+      -A "authPassAgent1" \
+      -x AES \
+      -X "privPassAgent1" \
+      udp:127.0.0.1:161 .1.3.6.1.2.1.1
+    ```
+
+- 如果 `snmpwalk` 命令成功，就可以在 DataKit 上开启本采集器，通过 SNMPv3 来采集指标。关键配置如下：
+
+    ```toml title="conf.d/snmp/snmp.conf"
+    specific_devices = ["127.0.0.1"] # 此处不要填 localhost
+    snmp_version     = 3
+    port             = 161
+
+    v3_user                = "snmpv3user1"
+    v3_auth_protocol       = "SHA" # MD5/SHA/SHA224/SHA256/SHA384/SHA512 or empty
+    v3_auth_key            = "authPassAgent1"
+    v3_priv_protocol       = "AES" # DES/AES/AES192/AES192C/AES256/AES256C or empty
+    v3_priv_key            = "privPassAgent1"
+    # v3_context_engine_id = "" # optional
+    # v3_context_name      = "" # optional
+    ```
 
 ## 指标 {#metric}
 
@@ -263,17 +322,13 @@ DataKit 支持 "指定设备" 和 "自动发现" 两种模式。两种模式可�
 
 自动发现模式下，DataKit 向指定 IP 网段内的所有地址逐一发送 SNMP 协议数据包，如果其响应可以匹配到相应的 Profile，那么 DataKit 认为该 IP 上有一个 SNMP 设备。
 
-<!-- markdownlint-disable MD013 -->
-### 在<<<custom_key.brand_name>>>上看不到我想要的指标怎么办? {#faq-not-support}
-<!-- markdownlint-enable -->
+### 设备不支持采集 {#faq-not-support}
 
 DataKit 可以从所有 SNMP 设备中收集通用的基线指标。如果你发现被采集的设备上报的数据中没有你想要的指标，那么，你可以需要为该设备[自定义一份 Profile](snmp.md#advanced-custom-oid)。
 
 为了完成上述工作，你很可能需要从设备厂商的官网下载该设备型号的 OID 手册。
 
-<!-- markdownlint-disable MD013 -->
-### 为什么开启 SNMP 设备采集但看不到指标? {#faq-no-metrics}
-<!-- markdownlint-enable -->
+### 开启 SNMP 设备采集但看不到指标 {#faq-no-metrics}
 
 尝试为你的设备放开 ACLs/防火墙 规则。
 
