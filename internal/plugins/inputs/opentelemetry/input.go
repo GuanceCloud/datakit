@@ -62,6 +62,9 @@ const (
   ## delete trace message
   # del_message = true
 
+  ## logging message data max length,default is 500kb
+  log_max = 500
+
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
@@ -138,6 +141,7 @@ type Input struct {
 	Pipelines           map[string]string            `toml:"pipelines"`             // deprecated
 	IgnoreAttributeKeys []string                     `toml:"ignore_attribute_keys"` // deprecated
 	CustomerTags        []string                     `toml:"customer_tags"`
+	LogMaxLen           int                          `toml:"log_max"`
 	HTTPConfig          *httpConfig                  `toml:"http"`
 	GRPCConfig          *gRPC                        `toml:"grpc"`
 	CompatibleDDTrace   bool                         `toml:"compatible_ddtrace"`
@@ -189,6 +193,9 @@ func (ipt *Input) RegHTTPHandler() {
 	convertToZhaoShang = ipt.CompatibleZhaoShang
 	delMessage = ipt.DelMessage
 	globalTags = ipt.Tags
+	if ipt.LogMaxLen > 0 {
+		logMaxLen = ipt.LogMaxLen * kb
+	}
 
 	var err error
 	var wkpool *workerpool.WorkerPool
