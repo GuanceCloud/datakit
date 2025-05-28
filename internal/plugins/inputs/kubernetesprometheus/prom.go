@@ -96,6 +96,12 @@ func (p *promScraper) scrape(defaultTimestamp int64) error {
 
 	p.pm.SetTimestamp(defaultTimestamp)
 	err := p.pm.ScrapeURL(p.urlstr)
+	if err != nil {
+		p.recordUp(0, defaultTimestamp)
+	} else {
+		p.recordUp(1, defaultTimestamp)
+	}
+
 	collectCostVec.WithLabelValues(p.role, p.key, p.remote).Observe(float64(time.Since(start)) / float64(time.Second))
 	return err
 }
