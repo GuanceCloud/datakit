@@ -281,11 +281,11 @@ plugin_load_add ='group_replication.so'
 
 {{ end }}
 
-## 自定义对象 {#customobject}
+## 对象 {#object}
 
 {{ range $i, $m := .Measurements }}
 
-{{if eq $m.Type "custom_object"}}
+{{if eq $m.Type "object"}}
 
 ### `{{$m.Name}}`
 
@@ -301,6 +301,143 @@ plugin_load_add ='group_replication.so'
 {{end}}
 
 {{ end }}
+
+### `message` 指标字段结构 {#message-struct}
+
+`message` 字段基本结构如下：
+
+```json
+{
+  "setting": {
+    "auto_generate_certs": "ON",
+    ...
+  },
+
+  "databases": [ # databases information
+    {
+      "name": "db1",
+      "default_character_set_name": "utf8mb4",
+      "default_collation_name": "utf8mb4_general_ci",
+      "tables": [ # tables information
+        {
+          "name": "table1",
+          "columns": [], # columns information
+          "indexes": [], # indexes information
+          "foreign_keys": [], # foreign keys information
+          "partitions": [] # partitions information
+        }
+        ...
+      ]
+    }
+    ...
+  ]
+}
+```
+
+#### `setting` {#host-meta}
+
+  `setting` 字段中的数据来源于 `performance_schema.global_variables` 表，该表包含了 MySQL 服务器的全局变量信息，详细字段可以参考 [MySQL 文档](https://dev.mysql.com/doc/refman/5.7/en/server-system-variables.html){:target="_blank"}。
+
+#### `databases` {#databases}
+
+`databases` 字段保存了 MySQL 服务器上所有数据库的信息，每个数据库的信息如下：
+
+| 字段名             | 描述                                           |  类型  |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | 数据库名称                                         | string |
+| `default_character_set_name`        | 数据库默认字符集（如 utf8mb4）  | string |
+| `default_collation_name`        | 数据库默认排序规则（如 utf8mb4_general_ci）      | string |
+| `tables`        | 包含表信息的列表      | list |
+
+##### `tables` {#databases-tables}
+
+`tables` 字段包含了数据库中所有表的信息，每个表的信息如下：
+
+| 字段名             | 描述                                           |  类型  |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | 表名称                                         | string |
+| `columns`        | 包含列信息的列表                             | list |
+| `indexes`        | 包含索引信息的列表                             | list |
+| `foreign_keys`        | 包含外键信息的列表                             | list |
+| `partitions`        | 包含分区信息的列表                             | list |
+
+`tables` 中类型为 list 的字段的详细结构如下：
+
+- `tables.columns` 字段
+
+`columns` 字段包含了表中所有列的信息，每个列的信息如下：
+
+| 字段名             | 描述                                           |  类型  |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | 列名称                                         | string |
+| `data_type`        | 数据类型（如 int）                                         | string |
+| `default`        |  默认值（NULL 会转换为空字符串）                                        | string |
+| `nullable`        |  是否允许为空（True 表示允许，对应 SQL 中的 NULL）            | bool |
+| `ordinal_position`        |  列在表中的顺序位置（从 1 开始）            | string |
+
+- `tables.indexes`
+
+`tables.indexes` 字段包含了表中所有索引的信息，每个索引的信息如下：
+
+| 字段名             | 描述                                           |  类型  |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | 索引名称                                         | string |
+| `cardinality` | 索引中唯一值的估计数量 | string |
+| `index_type` | 索引类型 | string |
+| `columns` | 索引包含的列 | list |
+| `non_unique` | 是否为非唯一索引（True 表示允许重复值） | bool |
+| `expression` | 索引表达式（仅当索引基于表达式创建时存在） | string |
+
+索引列信息字段 `indexes.columns` 包含了索引中包含的列的信息，每个列的信息如下：
+
+| 字段名             | 描述                                           |  类型  |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | 列名称                                         | string |
+| `sub_part` | 部分索引的字符数（如 `varchar` 列只索引前 10 个字符时为 10） | int |
+| `collation` | 列的排序规则                                             | string |
+| `packed` | 索引存储格式                                               | string |
+| `nullable` | 列是否允许为 NULL                                         | string |
+
+- `tables.foreign_keys`
+
+`foreign_keys` 字段包含了表中所有外键的信息，每个外键的信息如下：
+
+| 字段名             | 描述                                           |  类型  |
+| ------------------:| ---------------------------------------------- | :----: |
+| `constraint_schema` |外键所属的数据库（通常与表所在数据库一致） | string |
+| `name` |外键约束名称 | string |
+| `column_names` |外键列名称（多个列用逗号分隔，如 user_id, order_id） | string |
+| `referenced_table_schema` |引用表所在的数据库 | string |
+| `referenced_table_name` |引用表名称 | string |
+| `referenced_column_names` |引用列名称（多个列用逗号分隔） | string |
+| `update_action` |级联更新规则（如 CASCADE, RESTRICT） | string |
+| `delete_action` |级联删除规则（如 CASCADE, SET NULL） | string |
+
+- `tables.partitions`
+
+`partitions` 字段包含了表中所有分区的信息，每个分区的信息如下：
+
+| 字段名             | 描述                                           |  类型  |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name` |分区名称 | string |
+| `subpartitions` |包含子分区信息的字典列表（仅当存在子分区时有效） | list |
+| `partition_ordinal_position` |分区在表中的顺序位置 | int |
+| `partition_method` |分区方法（如 RANGE, LIST） | string |
+| `partition_expression` |分区表达式（如 COLUMN(id)） | string |
+| `partition_description` |分区描述（如 VALUES LESS THAN (100)） | string |
+| `table_rows` |分区中的行数（包含所有子分区的总行数） | int |
+| `data_length` |分区数据大小（字节，包含所有子分区的总大小） | int |
+
+子分区信息字段 `partitions.subpartitions` 包含了子分区的信息，每个子分区的信息如下：
+
+| 字段名 | 描述 | 数据类型 |
+| --- | --- | --- |
+| `name` |分区名称 | string |
+| `subpartition_ordinal_position` |子分区在分区中的顺序位置 | string |
+| `subpartition_method` |子分区方法（如 HASH, KEY） | string |
+| `subpartition_expression` |子分区表达式 | string |
+| `table_rows` |子分区中的行数 | int |
+| `data_length` |子分区数据大小（字节） | int |
 
 ## 日志 {#logging}
 

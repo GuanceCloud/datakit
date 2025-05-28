@@ -54,6 +54,7 @@ const (
 var (
 	inputName            = "mysql"
 	customObjectFeedName = inputName + "/CO"
+	objectFeedName       = inputName + "/O"
 	customQueryFeedName  = inputName + "/custom_query"
 	loggingFeedName      = inputName + "/L"
 	catalogName          = "db"
@@ -99,6 +100,7 @@ type Input struct {
 	DbmMetric         dbmMetric   `toml:"dbm_metric"`
 	DbmSample         dbmSample   `toml:"dbm_sample"`
 	DbmActivity       dbmActivity `toml:"dbm_activity"`
+	Object            mysqlObject `toml:"object"`
 
 	Replica      bool `toml:"replication"`
 	GroupReplica bool `toml:"group_replication"`
@@ -123,7 +125,7 @@ type Input struct {
 
 	UpState int
 
-	Version            string
+	Version            *mysqlVersion
 	Uptime             int
 	CollectCoStatus    string
 	CollectCoErrMsg    string
@@ -179,6 +181,15 @@ type Input struct {
 	dbmSamplePlans []planObj
 
 	lastErrors []string
+	mergedTags map[string]string
+}
+
+type mysqlObject struct {
+	Enable   bool             `toml:"enabled"`
+	Interval datakit.Duration `toml:"interval"`
+
+	name               string
+	lastCollectionTime time.Time
 }
 
 func (ipt *Input) ElectionEnabled() bool {
@@ -341,6 +352,19 @@ func (ipt *Input) initCfg() error {
 	if ipt.Dbm {
 		ipt.initDbm()
 	}
+
+	const sqlSelect = "SELECT VERSION();"
+	version := getCleanMysqlVersion(ipt.q(sqlSelect, getMetricName(metricNameMySQL, "select_version")))
+	if version == nil || version.version == "" {
+		return fmt.Errorf("failed to get mysql empty version")
+	} else {
+		ipt.Version = version
+	}
+
+	if ipt.Object.Enable {
+		ipt.Object.name = fmt.Sprintf("%s:%d", ipt.Host, ipt.Port)
+	}
+
 	return nil
 }
 
@@ -494,10 +518,6 @@ func (ipt *Input) metricCollectMysqlDbmSample() ([]*point.Point, error) {
 
 func (ipt *Input) metricCollectMysqlCustomerObject() ([]*point.Point, error) {
 	ipt.setIptCOStatus()
-	if err := ipt.collectMysqlCustomerObject(); err != nil {
-		ipt.setIptErrCOStatus()
-		return []*point.Point{}, err
-	}
 	pts, err := ipt.buildMysqlCustomerObject()
 	if err != nil {
 		return []*point.Point{}, err
@@ -522,6 +542,8 @@ func (ipt *Input) Collect() (map[point.Category][]*point.Point, error) {
 		ptsLoggingMetric,
 		ptsLoggingSample,
 		ptsCustomerObject []*point.Point
+
+	mpts := make(map[point.Category][]*point.Point)
 
 	// collect basic metrics
 	for _, metricName := range []string{
@@ -634,7 +656,7 @@ func (ipt *Input) Collect() (map[point.Category][]*point.Point, error) {
 
 		err := g.Wait()
 		if err != nil {
-			l.Errorf("mysql dmb collect error: %v", err)
+			l.Errorf("mysql dbm collect error: %v", err)
 			ipt.feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),
 				metrics.WithLastErrorCategory(point.Metric),
@@ -642,13 +664,25 @@ func (ipt *Input) Collect() (map[point.Category][]*point.Point, error) {
 		}
 	}
 
+	if err := ipt.collectMysqlBasicInfo(); err != nil {
+		l.Errorf("collectMysqlBasicInfo failed: %s", err.Error())
+	}
+
+	// deprecated, may be removed in the future
 	pts, err := ipt.metricCollectMysqlCustomerObject()
 	if err != nil {
 		l.Errorf("metricCollectMysqlCustomerObject failed: %s", err.Error())
 	}
 	ptsCustomerObject = append(ptsCustomerObject, pts...)
 
-	mpts := make(map[point.Category][]*point.Point)
+	if ipt.Object.Enable {
+		if pts, err := ipt.metricCollectMysqlObject(); err != nil {
+			l.Errorf("metricCollectMysqlObject failed: %s", err.Error())
+		} else {
+			mpts[point.Object] = pts
+		}
+	}
+
 	mpts[point.Metric] = ptsMetric
 
 	ptsLoggingMetric = append(ptsLoggingMetric, ptsLoggingSample...) // two combine in one
@@ -851,6 +885,12 @@ func (ipt *Input) Run() {
 	l.Infof("collecting each %v", ipt.Interval.Duration)
 	ipt.start = time.Now()
 
+	if ipt.Election {
+		ipt.mergedTags = inputs.MergeTags(ipt.tagger.ElectionTags(), ipt.Tags, ipt.Host)
+	} else {
+		ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, ipt.Host)
+	}
+
 	// run custom queries
 	ipt.runCustomQueries()
 
@@ -883,6 +923,8 @@ func (ipt *Input) Run() {
 						feedName = customObjectFeedName // use specific CO-suffix feed name.
 					case point.Logging:
 						feedName = loggingFeedName // use specific L-suffix feed name.
+					case point.Object:
+						feedName = objectFeedName
 					}
 
 					if err := ipt.feeder.FeedV2(category, pts,
@@ -957,6 +999,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&replicationLogMeasurement{},
 		&customerObjectMeasurement{},
 		&inputs.UpMeasurement{},
+		&mysqlObjectMeasurement{},
 	}
 }
 
@@ -992,6 +1035,10 @@ func defaultInput() *Input {
 		tagger:   datakit.DefaultGlobalTagger(),
 		semStop:  cliutils.NewSem(),
 		UpState:  0,
+		Object: mysqlObject{
+			Enable:   true,
+			Interval: datakit.Duration{Duration: 600 * time.Second},
+		},
 	}
 }
 

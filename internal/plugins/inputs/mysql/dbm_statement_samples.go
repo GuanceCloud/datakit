@@ -36,7 +36,6 @@ type eventStrategy struct {
 
 type dbmSampleCache struct {
 	checkPoint        int64
-	version           mysqlVersion
 	globalStatusTable string
 	strategy          eventStrategy
 	explainCache      cacheLimit
@@ -402,7 +401,7 @@ func getNewEventsStatements(i *Input, eventTable string, rowLimit int) ([]eventR
 	}
 
 	var subSelect string
-	if i.dbmSampleCache.version.versionCompatible([]int{8, 0, 0}) {
+	if i.Version.versionCompatible([]int{8, 0, 0}) {
 		subSelect = "(SELECT *,row_number() over (partition by digest order by timer_wait desc) as row_num FROM %s)"
 	} else {
 		if _, err := conn.ExecContext(ctx, "set @row_num = 0"); err != nil {

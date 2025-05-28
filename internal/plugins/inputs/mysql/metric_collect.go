@@ -102,9 +102,7 @@ func (ipt *Input) collectMysqlReplication() error {
 	ipt.mReplication = map[string]interface{}{}
 	ipt.mGroupReplication = map[string]interface{}{}
 
-	const sqlSelect = "SELECT VERSION();"
-	version := getCleanMysqlVersion(ipt.q(sqlSelect, getMetricName(metricNameMySQLReplication, "select_version")))
-	if version == nil {
+	if version := ipt.getVersion(); version == "" {
 		err = errors.New("version_nil")
 		return err
 	}
@@ -827,17 +825,11 @@ func (ipt *Input) collectMysqlDbmSample() error {
 	}()
 
 	if len(ipt.dbmSampleCache.globalStatusTable) == 0 {
-		if len(ipt.dbmSampleCache.version.version) == 0 {
-			const sqlSelect = "SELECT VERSION();"
-			version := getCleanMysqlVersion(ipt.q(sqlSelect, getMetricName(metricNameMySQLDbmSample, "select_version")))
-			if version == nil {
-				err = errors.New("version_nil")
-				return err
-			}
-			ipt.dbmSampleCache.version = *version
+		if ipt.Version == nil || ipt.Version.version == "" {
+			return errors.New("version is empty")
 		}
 
-		if ipt.dbmSampleCache.version.flavor == strMariaDB || !(ipt.dbmSampleCache.version.versionCompatible([]int{5, 7, 0})) {
+		if ipt.Version.flavor == strMariaDB || !(ipt.Version.versionCompatible([]int{5, 7, 0})) {
 			ipt.dbmSampleCache.globalStatusTable = "information_schema.global_status"
 		} else {
 			ipt.dbmSampleCache.globalStatusTable = "performance_schema.global_status"
@@ -863,47 +855,3 @@ func (ipt *Input) collectMysqlDbmSample() error {
 
 	return nil
 }
-
-// nolint:execinquery
-func (ipt *Input) collectMysqlCustomerObject() error {
-	const sqlSelectVersion = "SELECT VERSION();"
-	rows, err := ipt.db.Query(sqlSelectVersion)
-	if err != nil {
-		l.Error("collectMysqlCustomerObject fail:", err.Error())
-		return fmt.Errorf("query failed: %w", err)
-	}
-	defer closeRows(rows)
-	var version string
-	if rows.Next() {
-		if err := rows.Scan(&version); err != nil {
-			l.Error("collectMysqlCustomerObject fail:", err.Error())
-			return fmt.Errorf("scan error: %w", err)
-		}
-	}
-	ipt.Version = version
-	const sqlSelectUptime = "SHOW GLOBAL STATUS LIKE 'Uptime';"
-	rows, err = ipt.db.Query(sqlSelectUptime)
-	if err != nil {
-		l.Error("collectMysqlCustomerObject fail:", err.Error())
-		return fmt.Errorf("query failed: %w", err)
-	}
-	defer closeRows(rows)
-	var variableName string
-	var uptime int
-	if rows.Next() {
-		if err := rows.Scan(&variableName, &uptime); err != nil {
-			l.Error("collectMysqlCustomerObject fail:", err.Error())
-			return fmt.Errorf("scan error: %w", err)
-		}
-		if variableName == "Uptime" {
-			ipt.Uptime = uptime
-		}
-	}
-	if err := rows.Err(); err != nil {
-		l.Error("collectMysqlCustomerObject fail:", err.Error())
-		return fmt.Errorf("error iterating rows: %w", err)
-	}
-	return nil
-}
-
-//----------------------------------------------------------------------
