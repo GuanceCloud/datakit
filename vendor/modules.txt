@@ -1027,6 +1027,9 @@ github.com/hashicorp/vault/sdk/physical/inmem
 # github.com/hashicorp/yamux v0.1.1
 ## explicit; go 1.15
 github.com/hashicorp/yamux
+# github.com/hipages/php-fpm_exporter v1.2.1
+## explicit; go 1.13
+github.com/hipages/php-fpm_exporter/phpfpm
 # github.com/ibmdb/go_ibm_db v0.4.4
 ## explicit
 github.com/ibmdb/go_ibm_db
@@ -1579,6 +1582,9 @@ github.com/sijms/go-ora/v2/trace
 # github.com/sirupsen/logrus v1.9.3
 ## explicit; go 1.13
 github.com/sirupsen/logrus
+# github.com/speps/go-hashids v2.0.0+incompatible
+## explicit
+github.com/speps/go-hashids
 # github.com/spf13/cast v1.5.1
 ## explicit; go 1.18
 github.com/spf13/cast
@@ -1614,6 +1620,9 @@ github.com/tklauser/go-sysconf
 # github.com/tklauser/numcpus v0.4.0
 ## explicit; go 1.11
 github.com/tklauser/numcpus
+# github.com/tomasen/fcgi_client v0.0.0-20180423082037-2bb3d819fd19
+## explicit
+github.com/tomasen/fcgi_client
 # github.com/tweekmonster/luser v0.0.0-20161003172636-3fa38070dbd7
 ## explicit
 github.com/tweekmonster/luser

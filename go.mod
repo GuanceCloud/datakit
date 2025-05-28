@@ -394,6 +394,12 @@ require (
 
 require github.com/GuanceCloud/pipeline-go v1.0.3
 
+require (
+	github.com/hipages/php-fpm_exporter v1.2.1 // indirect
+	github.com/speps/go-hashids v2.0.0+incompatible // indirect
+	github.com/tomasen/fcgi_client v0.0.0-20180423082037-2bb3d819fd19 // indirect
+)
+
 replace (
 	github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
 	github.com/fsnotify/fsnotify => github.com/GuanceCloud/fsnotify v1.8.2
