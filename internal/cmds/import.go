@@ -34,7 +34,15 @@ func (u *uploaderImpl) upload(pts []*point.Point, cat point.Category) error {
 		return nil
 	}
 
-	return u.dw.Write(dataway.WithPoints(pts), dataway.WithCategory(cat))
+	return u.dw.Write(dataway.WithPoints(pts),
+		dataway.WithCategory(cat),
+		dataway.WithNoWAL(true), // upload to dataway directly
+		// gzip the body during building body.
+		//
+		// dataway's default GZip is true, so we must gzip the body within body-building.
+		// or the endpoint HTTP POST will set gzip header.
+		dataway.WithGzipDuringBuildBody(true),
+	)
 }
 
 func runImport(u uploader, when int64) error {
@@ -140,6 +148,11 @@ func adjustPointTime(when time.Time, pts []*point.Point) (out []*point.Point) {
 
 func findDataFiles(p string) (arr []string) {
 	if err := filepath.Walk(p, func(path string, info fs.FileInfo, err error) error {
+		if info == nil {
+			l.Infof("nil FileInfo on %q", path)
+			return nil
+		}
+
 		if info.IsDir() {
 			return nil
 		}

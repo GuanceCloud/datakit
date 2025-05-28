@@ -1,6 +1,6 @@
 # 在 WAL 中使用 tmpfs
 
-:fontawesome-brands-linux : :material-kubernetes :
+:fontawesome-brands-linux: :material-kubernetes:
 
 ---
 
