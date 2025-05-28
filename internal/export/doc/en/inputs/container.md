@@ -197,7 +197,7 @@ For all of the following data collections, a global tag named `host` is appended
 
 {{$m.TagsMarkdownTable}}
 
-- Metrics
+- Fields
 
 {{$m.FieldsMarkdownTable}}
 {{end}}
@@ -218,7 +218,27 @@ For all of the following data collections, a global tag named `host` is appended
 
 {{$m.TagsMarkdownTable}}
 
-- Metrics
+- Fields
+
+{{$m.FieldsMarkdownTable}}{{end}}
+
+{{ end }}
+
+## Change Events {#keyevent}
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "keyevent"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- Tags
+
+{{$m.TagsMarkdownTable}}
+
+- Fields
 
 {{$m.FieldsMarkdownTable}}{{end}}
 

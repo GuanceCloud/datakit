@@ -194,7 +194,7 @@ monitor:
 
 {{$o.TagsMarkdownTable}}
 
-- 指标列表
+- 字段列表
 
 {{$o.FieldsMarkdownTable}}
 {{end}}
@@ -218,6 +218,27 @@ monitor:
 - 字段列表
 
 {{$l.FieldsMarkdownTable}}
+{{end}}
+
+{{ end }}
+
+## 变更事件 {#keyevent}
+
+{{ range $i, $o := .Measurements }}
+
+{{if eq $o.Type "keyevent"}}
+
+### `{{$o.Name}}`
+
+{{$o.Desc}}
+
+- 标签
+
+{{$o.TagsMarkdownTable}}
+
+- 字段列表
+
+{{$o.FieldsMarkdownTable}}
 {{end}}
 
 {{ end }}
