@@ -111,6 +111,13 @@ func (ct *criClient) ContainerStatus(id string) (*ContainerStatus, error) {
 		return nil, fmt.Errorf("query cri status fail, err: %w", err)
 	}
 
+	if resp.GetStatus() == nil {
+		return nil, fmt.Errorf("parse cri status fail, err: status is nil")
+	}
+	if resp.GetInfo() == nil {
+		return nil, fmt.Errorf("parse cri info fail, err: info is nil")
+	}
+
 	info, err := ParseCriInfo(resp.GetInfo()["info"])
 	if err != nil {
 		return nil, fmt.Errorf("parse cri info fail, err: %w", err)
@@ -118,12 +125,28 @@ func (ct *criClient) ContainerStatus(id string) (*ContainerStatus, error) {
 
 	status := &ContainerStatus{
 		ID:      id,
-		Name:    resp.GetStatus().GetMetadata().GetName(),
 		Pid:     info.getPid(),
 		LogPath: resp.GetStatus().GetLogPath(),
-		Image:   resp.GetStatus().GetImage().GetImage(),
 		Envs:    info.getConfigEnvs(),
 		Mounts:  make(map[string]string),
+	}
+
+	if metadata := resp.GetStatus().GetMetadata(); metadata != nil {
+		status.Name = metadata.GetName()
+	}
+	if image := resp.GetStatus().GetImage(); image != nil {
+		status.Image = image.GetImage()
+	}
+
+	if resource := resp.GetStatus().GetResources(); resource != nil {
+		if resource.Linux != nil {
+			status.MemoryLimitInBytes = resource.Linux.MemoryLimitInBytes
+
+			if resource.Linux.CpuPeriod != 0 {
+				limit := float64(resource.Linux.CpuQuota) / float64(resource.Linux.CpuPeriod)
+				status.CPULimitMillicores = int64(limit * 1e3) // milli
+			}
+		}
 	}
 
 	for _, mount := range resp.GetStatus().GetMounts() {
@@ -170,8 +193,10 @@ func (ct *criClient) ContainerTop(id string) (*ContainerTop, error) {
 		}
 		cpuUsagePercentage := float64(cpu-stats.GetCpu().GetUsageCoreNanoSeconds().GetValue()) / float64(duration)
 		top.CPUPercent = cpuUsagePercentage * 100
-		top.CPUUsageMillicores = int(cpuUsagePercentage * 1000)
+		top.CPUUsageMillicores = int64(cpuUsagePercentage * 1e3)
 	}
+	top.CPULimitMillicores = status.CPULimitMillicores
+
 	// cpu cores
 	if cores, err := getCPUCores(ct.procMountPoint); err == nil {
 		top.CPUCores = cores
@@ -179,6 +204,7 @@ func (ct *criClient) ContainerTop(id string) (*ContainerTop, error) {
 
 	// memory
 	top.MemoryWorkingSet = int64(stats.GetMemory().GetWorkingSetBytes().GetValue())
+	top.MemoryLimitInBytes = status.MemoryLimitInBytes
 	// memory capacity
 	if hostMemory, err := getHostMemory(ct.procMountPoint); err == nil {
 		top.MemoryCapacity = hostMemory

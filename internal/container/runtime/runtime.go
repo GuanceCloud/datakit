@@ -49,6 +49,9 @@ type ContainerStatus struct {
 	LogPath string
 	Envs    map[string]string
 
+	CPULimitMillicores int64
+	MemoryLimitInBytes int64
+
 	// Target To Source
 	// example: map["/tmp/opt"] = "/var/lib/docker/volumes/<id>/_data"
 	Mounts map[string]string
@@ -59,12 +62,14 @@ type ContainerTop struct {
 	Pid int
 
 	CPUPercent         float64
-	CPUUsageMillicores int
-	CPUCores           int
+	CPUUsageMillicores int64
+	CPULimitMillicores int64
+	CPUCores           int64
 
 	// unit bytes
-	MemoryWorkingSet int64
-	MemoryCapacity   int64 // host memory
+	MemoryWorkingSet   int64
+	MemoryLimitInBytes int64
+	MemoryCapacity     int64 // host memory
 
 	// unit bytes
 	NetworkRcvd int64
@@ -73,7 +78,7 @@ type ContainerTop struct {
 	BlockWrite  int64
 }
 
-func getCPUCores(procMountPoint string) (int, error) {
+func getCPUCores(procMountPoint string) (int64, error) {
 	cpuinfo, err := newCPUInfo(procMountPoint)
 	if err != nil {
 		return 0, err
