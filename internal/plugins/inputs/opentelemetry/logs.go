@@ -17,6 +17,12 @@ import (
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
+var (
+	kb = 1024
+	// logMaxLen 默认500kb.
+	logMaxLen = 500 * kb
+)
+
 func ParseLogsRequest(resourceLogss []*logs.ResourceLogs) []*point.Point {
 	pts := make([]*point.Point, 0)
 	for _, resourceLogs := range resourceLogss {
@@ -49,33 +55,48 @@ func ParseLogsRequest(resourceLogss []*logs.ResourceLogs) []*point.Point {
 				case *common.AnyValue_KvlistValue:
 					message = body.GetKvlistValue().String()
 				}
+				messages := splitByByteLength(message, logMaxLen)
+				for i, msg := range messages {
+					kvs := mergeTags(resourceTags, scopeTags, ptTags)
+					for k, v := range globalTags { // span.attribute 优先级大于全局tag。
+						kvs = kvs.AddV2(k, v, false)
+					}
+					kvs = kvs.Add("message", msg, false, false).
+						AddV2(itrace.FieldSpanid, convert(record.GetSpanId()), false).
+						AddV2(itrace.FieldTraceID, convert(record.GetTraceId()), false).
+						AddTag("status", getStatus(record.GetSeverityNumber(), record.GetSeverityText())).
+						AddTag("service", service).
+						AddTag(itrace.TagSource, source).
+						AddTag(itrace.TagDKFingerprintKey, datakit.DatakitHostName+"_"+datakit.Version)
 
-				kvs := mergeTags(resourceTags, scopeTags, ptTags)
-				for k, v := range globalTags { // span.attribute 优先级大于全局tag。
-					kvs = kvs.AddV2(k, v, false)
+					if host != "" {
+						kvs = kvs.AddTag("host", host)
+					}
+					ts := time.Unix(0, int64(record.GetTimeUnixNano()))
+					if record.GetTimeUnixNano() == 0 {
+						ts = time.Unix(0, int64(record.GetObservedTimeUnixNano()))
+					}
+					opts := point.DefaultLoggingOptions()
+					opts = append(opts, point.WithTime(ts.Add(time.Millisecond*time.Duration(i))))
+					pts = append(pts, point.NewPointV2(source, kvs, opts...))
 				}
-				kvs = kvs.Add("message", message, false, false).
-					Add(itrace.FieldSpanid, convert(record.GetSpanId()), false, false).
-					Add(itrace.FieldTraceID, convert(record.GetTraceId()), false, false).
-					AddTag("status", getStatus(record.GetSeverityNumber(), record.GetSeverityText())).
-					AddTag("service", service).
-					AddTag(itrace.TagSource, source).
-					AddTag(itrace.TagDKFingerprintKey, datakit.DatakitHostName+"_"+datakit.Version)
-
-				if host != "" {
-					kvs = kvs.AddTag("host", host)
-				}
-				ts := time.Unix(0, int64(record.GetTimeUnixNano()))
-				if record.GetTimeUnixNano() == 0 {
-					ts = time.Unix(0, int64(record.GetObservedTimeUnixNano()))
-				}
-				opts := point.DefaultLoggingOptions()
-				opts = append(opts, point.WithTime(ts))
-				pts = append(pts, point.NewPointV2(source, kvs, opts...))
 			}
 		}
 	}
 	return pts
+}
+
+func splitByByteLength(s string, length int) []string {
+	runes := []rune(s)
+	var chunks []string
+	for i := 0; i < len(runes); i += length {
+		end := i + length
+		if end > len(runes) {
+			end = len(runes)
+		}
+		chunks = append(chunks, string(runes[i:end]))
+	}
+	return chunks
 }
 
 func getStatus(severityNum logs.SeverityNumber, level string) string {

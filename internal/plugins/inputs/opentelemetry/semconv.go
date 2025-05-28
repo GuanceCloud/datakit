@@ -54,8 +54,9 @@ var otelErrKeyToDkErrKey = map[string]string{
 }
 
 var (
-	convertToZhaoShang = false
-	convertToDD        = false
+	convertToZhaoShang   = false
+	convertToDD          = false
+	maxLogMetricFiledLen = 1024 * 32
 )
 
 var spanKinds = map[int32]string{

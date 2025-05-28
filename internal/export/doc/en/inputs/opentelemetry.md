@@ -324,6 +324,9 @@ for example: `-Dotel.resource.attributes="log.source=sourcename"`.
 
 You can [View logging documents](https://opentelemetry.io/docs/specs/otel/logs/sdk_exporters/stdout/){:target="_blank"}
 
+By default, the maximum length of log content is 500kb, and the excess length will be divided into multiple logs.
+The maximum length of the log label is 32KB. This field is not configurable, and the excess length will be cut off.
+
 > Note: If the app is running in a container environment (such as k8s), [DataKit will automatically collect logs](container-log.md#logging-stdout){:target="_blank"}. If `otel` collects logs again, there will be a problem of duplicate collection.
 > It is recommended to manually [turn off DataKit's autonomous log](container-log.md#logging-with-image-config){:target="_blank"} collection behavior before enabling `otel` to collect logs.
 

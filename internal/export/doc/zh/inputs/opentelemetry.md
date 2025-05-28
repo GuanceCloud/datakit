@@ -316,7 +316,7 @@ telemetry.sdk.version
 
 目前 JAVA Agent 支持采集 `stdout` 日志。并使用 [Standard output](https://opentelemetry.io/docs/specs/otel/logs/sdk_exporters/stdout/){:target="_blank"} 方式通过 `otlp` 协议发送到 DataKit 中。
 
-`OTEL Agent` 默认情况下不开启 log 采集，必须需要通过显式命令： `otel.logs.exporter` 开启方式为：
+`OTEL Agent` 默认情况下**不开启** log 采集，必须需要通过显式命令： `otel.logs.exporter` 开启方式为：
 
 ```shell
 # env
@@ -331,6 +331,8 @@ java -javaagent:/path/to/agnet.jar \
   -Dotel.exporter.otlp.endpoint=http://<DataKit Addr>:4317 \
   -jar app.jar
 ```
+
+默认情况下，日志内容的最大长度为 500KB ，超过的部分会分成多条日志。日志的标签最大长度为 32KB ，该字段不可配置，超过的部分会切割掉。
 
 通过 OTEL 采集的日志的 `source` 为服务名，也可以通过添加标签的方式自定义：`log.source` ，比如：`-Dotel.resource.attributes="log.source=source_name"`。
 

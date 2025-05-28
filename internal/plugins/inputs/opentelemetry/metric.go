@@ -143,8 +143,8 @@ func attributesToTag(src []*common.KeyValue) map[string]string {
 		key := keyVal.GetKey()
 		switch keyVal.GetValue().Value.(type) {
 		case *common.AnyValue_BytesValue, *common.AnyValue_StringValue:
-			if s := keyVal.Value.GetStringValue(); len(s) > 1024 {
-				shadowTags[key] = s[:1024]
+			if s := keyVal.Value.GetStringValue(); len(s) > maxLogMetricFiledLen {
+				shadowTags[key] = s[:maxLogMetricFiledLen]
 			} else {
 				shadowTags[key] = s
 			}
@@ -169,7 +169,7 @@ func mergeTags(resource, scope, pt map[string]string) point.KVs {
 	for _, m := range []map[string]string{resource, scope, pt} {
 		for k, v := range m {
 			k = strings.ReplaceAll(k, ".", "_")
-			kv = kv.AddTag(k, v)
+			kv = kv.AddV2(k, v, false)
 		}
 	}
 	return kv
