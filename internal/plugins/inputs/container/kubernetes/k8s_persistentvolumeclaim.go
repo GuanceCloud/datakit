@@ -7,6 +7,9 @@ package kubernetes
 
 import (
 	"context"
+	"sort"
+	"strings"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
@@ -127,6 +130,22 @@ func (p *persistentvolumeclaim) buildObjectPoints(list *apicorev1.PersistentVolu
 			kvs = kvs.AddV2("storage_class_name", *item.Spec.StorageClassName, false)
 		}
 
+		kvs = kvs.AddV2("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3, false)
+
+		if item.Spec.Resources.Requests != nil {
+			storage, ok := item.Spec.Resources.Requests["storage"]
+			if ok {
+				kvs = kvs.AddV2("requests_storage", storage.String(), false)
+			}
+		}
+
+		accessModes := []string{}
+		for _, mode := range item.Spec.AccessModes {
+			accessModes = append(accessModes, string(mode))
+		}
+		sort.Strings(accessModes)
+		kvs = kvs.AddV2("access_modes", strings.Join(accessModes, ","), false)
+
 		if y, err := yaml.Marshal(item); err == nil {
 			kvs = kvs.AddV2("yaml", string(y), false)
 		}
@@ -169,10 +188,13 @@ func (*persistentvolumeclaimObject) Info() *inputs.MeasurementInfo {
 			"<all_selector_matchlabels>": inputs.NewTagInfo("Represents the selector.matchLabels for Kubernetes resources"),
 		},
 		Fields: map[string]interface{}{
+			"age":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},
 			"phase":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The phase indicates if a volume is available, bound to a claim, or released by a claim.(Pending/Bound/Lost)"},
 			"volume_name":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "VolumeName is the binding reference to the PersistentVolume backing this claim."},
 			"volume_mode":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "VolumeMode defines what type of volume is required by the claim.(Block/Filesystem)"},
 			"storage_class_name": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "StorageClassName is the name of the StorageClass required by the claim."},
+			"access_modes":       &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "AccessModes contains the desired access modes the volume should have."},
+			"requests_storage":   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Specifies the maximum storage capacity of a PersistentVolume (PV), which Kubernetes uses for scheduling and resource allocation."},
 			"message":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Object details"},
 		},
 	}
