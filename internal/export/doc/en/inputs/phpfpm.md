@@ -5,8 +5,8 @@ tags:
   - 'MIDDLEWARE'
 __int_icon      : 'icon/php_fpm'
 dashboard :
-  - desc  : 'php_fpm'
-    path  : 'dashboard/en/php_fpm'
+  - desc  : 'PHP-FPM'
+    path  : 'dashboard/phpfpm'
 ---
 
 {{.AvailableArchs}}

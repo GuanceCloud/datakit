@@ -118,7 +118,7 @@ func (ipt *Input) setup() {
 
 	l.Infof("%s input started", inputName)
 	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)
-	ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")
+	ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, ipt.StatusURL)
 	l.Debugf("merged tags: %+#v", ipt.mergedTags)
 }
 

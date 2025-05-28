@@ -1,0 +1,938 @@
+{
+  "title": "PHP-FPM",
+  "dashboardType": "CUSTOM",
+  "dashboardExtend": {
+    "groupUnfoldStatus": {
+      "System Limits": true,
+      "Process Metrics": true,
+      "Connection Metrics": true,
+      "连接与队列监控": false,
+      "Connection & Queue Metrics": false,
+      "Request Performance Metrics": true
+    }
+  },
+  "dashboardMapping": [],
+  "dashboardOwnerType": "node",
+  "iconSet": {},
+  "dashboardBindSet": [],
+  "thumbnail": "",
+  "tagInfo": [],
+  "summary": "",
+  "main": {
+    "vars": [],
+    "charts": [
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "lineType": "linear",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "累积的请求接受总数",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "min",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Connection Metrics"
+        },
+        "name": "Accepted connection",
+        "pos": {
+          "h": 15,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`phpfpm`:(sum(`accepted_connections`) AS `accepted`) BY `address`, `host`, `region`, `pool`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "accepted",
+              "field": "accepted_connections",
+              "filters": [],
+              "groupBy": [
+                "address",
+                "host",
+                "region",
+                "pool"
+              ],
+              "funcList": [],
+              "fieldFunc": "sum",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "phpfpm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "lineType": "linear",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "监听队列",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": [
+              "last"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Connection Metrics"
+        },
+        "name": "Listen queue",
+        "pos": {
+          "h": 15,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`phpfpm`:(last(`listen_queue`) AS `listen`) BY `pool`, `host`, `region`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "listen",
+              "field": "listen_queue",
+              "filters": [],
+              "groupBy": [
+                "pool",
+                "host",
+                "region"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "phpfpm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`phpfpm`:(last(`max_listen_queue`) AS `max`) BY `pool`, `host`, `region`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "max",
+              "field": "max_listen_queue",
+              "filters": [],
+              "groupBy": [
+                "pool",
+                "host",
+                "region"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "phpfpm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`phpfpm`:(avg(`listen_queue_length`) AS `length`) BY `pool`, `host`, `region`",
+              "code": "C",
+              "fill": null,
+              "type": "simple",
+              "alias": "length",
+              "field": "listen_queue_length",
+              "filters": [],
+              "groupBy": [
+                "pool",
+                "host",
+                "region"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "phpfpm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "lineType": "linear",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "进程状态",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "last"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Process Metrics"
+        },
+        "name": "Process metrics",
+        "pos": {
+          "h": 15,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`phpfpm`:(last(`idle_processes`) AS `idle`) BY `pool`, `process_manager`, `host`, `region`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "idle",
+              "field": "idle_processes",
+              "filters": [],
+              "groupBy": [
+                "pool",
+                "process_manager",
+                "host",
+                "region"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "phpfpm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`phpfpm`:(last(`active_processes`) AS `active`) BY `pool`, `process_manager`, `host`, `region`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "active",
+              "field": "active_processes",
+              "filters": [],
+              "groupBy": [
+                "pool",
+                "process_manager",
+                "host",
+                "region"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "phpfpm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`phpfpm`:(last(`total_processes`) AS `total`) BY `pool`, `process_manager`, `host`, `region`",
+              "code": "C",
+              "fill": null,
+              "type": "simple",
+              "alias": "total",
+              "field": "total_processes",
+              "filters": [],
+              "groupBy": [
+                "pool",
+                "process_manager",
+                "host",
+                "region"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "phpfpm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "bgColor": "",
+            "mappings": [],
+            "showLine": false,
+            "unitType": "global",
+            "fixedTime": "",
+            "fontColor": "",
+            "lineColor": "#3AB8FF",
+            "precision": "2",
+            "showTitle": true,
+            "titleDesc": "历史最大活跃进程数",
+            "downsample": "last",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": "",
+            "openCompare": false,
+            "showLineAxis": false,
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "singlestat",
+            "showFieldMapping": false,
+            "sequenceChartType": "line",
+            "scientificNotation": true,
+            "openThousandsSeparator": true
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Process Metrics"
+        },
+        "name": "Max active processes",
+        "pos": {
+          "h": 15,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "type": "singlestat",
+        "queries": [
+          {
+            "name": "",
+            "type": "singlestat",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`phpfpm`:(avg(`max_active_processes`))",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "max_active_processes",
+              "filters": [],
+              "groupBy": [],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "phpfpm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "lineType": "linear",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "进程达到上限的次数",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": [
+              "sum"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "System Limits"
+        },
+        "name": "Max children reached",
+        "pos": {
+          "h": 15,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`phpfpm`:(sum(`max_children_reached`) AS `children`) BY `pool`, `process_manager`, `host`, `region`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "children",
+              "field": "max_children_reached",
+              "filters": [],
+              "groupBy": [
+                "pool",
+                "process_manager",
+                "host",
+                "region"
+              ],
+              "funcList": [],
+              "fieldFunc": "sum",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "phpfpm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "lineType": "linear",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "慢请求总数",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": [
+              "sum"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "System Limits"
+        },
+        "name": "Slow requests",
+        "pos": {
+          "h": 15,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`phpfpm`:(sum(`slow_requests`) AS `slow`) BY `pool`, `pid`, `process_state`, `region`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "slow",
+              "field": "slow_requests",
+              "filters": [],
+              "groupBy": [
+                "pool",
+                "pid",
+                "process_state",
+                "region"
+              ],
+              "funcList": [],
+              "fieldFunc": "sum",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "phpfpm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "lineType": "linear",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "进程处理的请求总数",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": [
+              "sum"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": ""
+        },
+        "group": {
+          "name": "Request Performance Metrics"
+        },
+        "name": "Process requests",
+        "pos": {
+          "h": 15,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`phpfpm`:(sum(`process_requests`) AS `request`) BY `pid`, `pool`, `process_state`, `process_manager`, `host`, `region`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "request",
+              "field": "process_requests",
+              "filters": [],
+              "groupBy": [
+                "pid",
+                "pool",
+                "process_state",
+                "process_manager",
+                "host",
+                "region"
+              ],
+              "funcList": [],
+              "fieldFunc": "sum",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "phpfpm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "lineType": "linear",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "最后请求",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "last"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Request Performance Metrics"
+        },
+        "name": "Process last request",
+        "pos": {
+          "h": 15,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`phpfpm`:(last(`process_last_requestMemory`) AS `memory`) BY `pid`, `pool`, `process_state`, `host`, `region`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "memory",
+              "field": "process_last_requestMemory",
+              "filters": [],
+              "groupBy": [
+                "pid",
+                "pool",
+                "process_state",
+                "host",
+                "region"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "phpfpm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`phpfpm`:(last(`process_last_request_cpu`) AS `cpu`) BY `pid`, `pool`, `process_state`, `host`, `region`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "cpu",
+              "field": "process_last_request_cpu",
+              "filters": [],
+              "groupBy": [
+                "pid",
+                "pool",
+                "process_state",
+                "host",
+                "region"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "phpfpm",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
+              "additionalFields": null
+            },
+            "disabled": false,
+            "datasource": "dataflux"
+          }
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "name": "Request Performance Metrics",
+        "extend": {}
+      },
+      {
+        "name": "Process Metrics",
+        "extend": {}
+      },
+      {
+        "name": "Connection Metrics",
+        "extend": {}
+      },
+      {
+        "name": "System Limits",
+        "extend": {}
+      }
+    ],
+    "type": "template"
+  },
+  "identifier": ""
+}
