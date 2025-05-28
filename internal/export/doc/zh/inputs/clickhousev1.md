@@ -8,8 +8,8 @@ dashboard  :
   - desc   : 'ClickHouse'
     path   : 'dashboard/zh/clickhouse'
 monitor    :
-  - desc   : '暂无'
-    path   : '-'
+  - desc   : 'ClickHouse'
+    path   : 'monitor/zh/clickhouse'
 ---
 
 {{.AvailableArchs}}
