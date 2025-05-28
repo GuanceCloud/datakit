@@ -46,6 +46,14 @@ const (
   ## Metric name in metric_exclude_list will not be collected, such as ["mysql_schema", "mysql_user_status"]
   metric_exclude_list = [""]
 
+  ## collect mysql object
+  [inputs.mysql.object]
+    ## Set true to enable mysql object collection
+    enabled = true
+
+    ## interval to collect mysql object which will be greater than collection interval
+    interval = "60s"
+
   [inputs.mysql.log]
     # #required, glob logfiles
     # files = ["/var/log/mysql/*.log"]

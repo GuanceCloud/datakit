@@ -362,10 +362,14 @@ func (ipt *Input) getCustomQueryPoints(query *customQuery, arr []map[string]inte
 
 func (ipt *Input) buildMysqlCustomerObject() ([]*gcPoint.Point, error) {
 	ms := []inputs.MeasurementV2{}
+	version := ""
+	if ipt.Version != nil {
+		version = ipt.Version.version
+	}
 	fields := map[string]interface{}{
 		"display_name": fmt.Sprintf("%s:%d", ipt.Host, ipt.Port),
 		"uptime":       ipt.Uptime,
-		"version":      ipt.Version,
+		"version":      version,
 	}
 	tags := map[string]string{
 		"name":          fmt.Sprintf("mysql-%s:%d", ipt.Host, ipt.Port),
@@ -444,7 +448,7 @@ func (ipt *Input) getKVs() gcPoint.KVs {
 	var kvs gcPoint.KVs
 
 	// add extended tags
-	for k, v := range ipt.Tags {
+	for k, v := range ipt.mergedTags {
 		kvs = kvs.AddTag(k, v)
 	}
 

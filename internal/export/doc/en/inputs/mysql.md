@@ -279,11 +279,11 @@ For all of the following data collections, the global election tags will added a
 
 {{ end }}
 
-## Custom Object {#object}
+## Object {#object}
 
 {{ range $i, $m := .Measurements }}
 
-{{if eq $m.Type "custom_object"}}
+{{if eq $m.Type "object"}}
 
 ### `{{$m.Name}}`
 
@@ -300,6 +300,141 @@ For all of the following data collections, the global election tags will added a
 
 {{ end }}
 
+### `message` Metric Field Structure {#message-struct}
+
+The basic structure of the `message` field is as follows:
+
+```json
+{
+  "setting": {
+    "auto_generate_certs": "ON",
+    ...
+  },
+
+  "databases": [ # databases information
+    {
+      "name": "db1",
+      "default_character_set_name": "utf8mb4",
+      "default_collation_name": "utf8mb4_general_ci",
+      "tables": [ # tables information
+        {
+          "name": "table1",
+          "columns": [], # columns information
+          "indexes": [], # indexes information
+          "foreign_keys": [], # foreign keys information
+          "partitions": [] # partitions information
+        }
+        ...
+      ]
+    }
+    ...
+  ]
+}
+```
+
+#### `setting` {#host-meta}
+
+  The `setting` field contains data sourced from the `performance_schema.global_variables` table, which holds global variable information for the MySQL server. Detailed fields can be referenced in the [MySQL Documentation](https://dev.mysql.com/doc/refman/5.7/en/server-system-variables.html){:target="_blank"}
+
+#### `databases` {#databases}
+
+The `databases` field stores information about all databases on the MySQL server. Each database entry includes the following:
+
+| Field Name              | Description                 | Type   |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`                       | Database name                | string |
+| `default_character_set_name` | Default character set for the database (e.g., utf8mb4)  | string |
+| `default_collation_name`     | Default collation for the database (e.g., utf8mb4_general_ci)      | string |
+| `tables`                     | List containing table information      | list |
+
+##### `tables` {#databases-tables}
+
+The `tables` field contains information about all tables in the database. Each table entry includes:
+
+| Field Name              | Description                 | Type   |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | Table name                                         | string |
+| `columns`        | List containing column information              | list |
+| `indexes`        | List containing index information               | list |
+| `foreign_keys`   | List containing foreign key information         | list |
+| `partitions`     | List containing partition information           | list |
+
+Details of the list fields:
+
+- `tables.columns` field
+
+The `tables.columns` field contains information about all columns in the table. Each column entry includes:
+
+| Field Name              | Description                 | Type   |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | Column name                                         | string |
+| `data_type`        |  Data type (e.g., int)                                        | string |
+| `default`        |  Default value (NULL is converted to empty string)           | string |
+| `nullable`        |  Whether NULL values are allowed (True indicates NULL is allowed, corresponding to NULL in SQL) | bool |
+| `ordinal_position`        |   The sequential position of the column in the table (starting from 1)           | string |
+
+- `tables.indexes`
+
+The `tables.indexes` field contains information about all indexes in the table. Each index entry includes:
+
+| Field Name              | Description                 | Type   |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | Index name                                         | string |
+| `cardinality` | Estimated number of unique values in the index | string |
+| `index_type` | Index type | string |
+| `columns` | Columns included in the index | list |
+| `non_unique` | Whether the index allows duplicate values (True indicates non-unique) | bool |
+| `expression` | Index expression (only present if the index is based on an expression) | string |
+
+The index column information field `indexes.columns` contains details about the columns included in the index. Each column entry includes:
+
+| Field Name              | Description                 | Type   |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | Column name                                         | string |
+| `sub_part` | Number of characters indexed for partial indexes (e.g., 10 for indexing the first 10 characters of a `varchar` column) | int |
+| `collation` | Column collation                                             | string |
+| `packed` | Index storage format                                               | string |
+| `nullable` | Whether the column allows NULL values                                         | string |
+
+- `tables.foreign_keys`
+
+The `tables.foreign_keys` field contains information about all foreign keys in the table. Each foreign key entry includes:
+
+| Field Name              | Description                 | Type   |
+| ------------------:| ---------------------------------------------- | :----: |
+| `constraint_schema`| Database to which the foreign key belongs (typically the same as the table's database) |string |
+| `name`| Foreign key constraint name |string |
+| `column_names`| Names of foreign key columns (comma-separated for multiple columns, e.g., user_id, order_id) |string |
+| `referenced_table_schema`| Database of the referenced table |string |
+| `referenced_table_name`| Name of the referenced table |string |
+| `referenced_column_names`| Names of referenced columns (comma-separated) |string |
+| `update_action`| Cascade update rule (e.g., CASCADE, RESTRICT) |string |
+| `delete_action`| Cascade delete rule (e.g., CASCADE, SET NULL) |string |
+
+- `tables.partitions`
+
+The `tables.partitions` field contains information about all partitions in the table. Each partition entry includes:
+
+| Field Name              | Description                 | Type   |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name` |   Partition name | string |
+| `subpartitions` |   List of dictionaries containing `subpartition` information (only valid if `subpartitions` exist) | list |
+| `partition_ordinal_position` |   Sequential position of the partition in the table | int |
+| `partition_method` |   Partitioning method (e.g., RANGE, LIST) | string |
+| `partition_expression` |   Partition expression (e.g., COLUMN(id)) | string |
+| `partition_description` |   Partition description (e.g., VALUES LESS THAN (100)) | string |
+| `table_rows` |   Number of rows in the partition (total rows including all `subpartitions`) | int |
+| `data_length` |   Size of partition data (in bytes, total size including all `subpartitions`) | int |
+
+The `subpartition` information field `partitions.subpartitions` contains details about `subpartitions`. Each `subpartition` entry includes:
+
+| Field Name              | Description                 | Type   |
+| --- | --- | --- |
+| `subpartition_ordinal_position` | Sequential position of the `subpartition` within the partition| string |
+| `subpartition_method` | `Subpartitioning` method (e.g., HASH, KEY)| string |
+| `subpartition_expression` | `Subpartition` expression| string |
+| `table_rows` | Number of rows in the `subpartition`| int |
+| `data_length` | Size of `subpartition` data (in bytes)| int |
 
 ## Log {#logging}
 
