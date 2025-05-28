@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"testing"
+	T "testing"
 	"time"
 
 	bstoml "github.com/BurntSushi/toml"
@@ -397,6 +398,25 @@ func TestLoadDWRetry(t *testing.T) {
 			assert.Equal(t, tc.retryDelay, c.Dataway.RetryDelay)
 		})
 	}
+}
+
+func TestLoadResourceLimite(t *T.T) {
+	t.Run(`default`, func(t *T.T) {
+		conf := `
+[resource_limit]
+  path = "/datakit"
+  cpu_max = 10.0
+	cpu_cores = 2.3
+  mem_max_mb = 4096
+  enable = true
+		`
+
+		c := DefaultConfig()
+
+		_, err := bstoml.Decode(conf, c)
+		assert.NoError(t, err)
+		assert.Equal(t, 10.0, c.ResourceLimitOptions.CPUMax)
+	})
 }
 
 func Test_setupDataway(t *testing.T) {
