@@ -5,8 +5,8 @@ tags:
   - '中间件'
 __int_icon      : 'icon/php_fpm'
 dashboard :
-  - desc  : 'php_fpm'
-    path  : 'dashboard/zh/php_fpm'
+  - desc  : 'PHP-FPM'
+    path  : 'dashboard/phpfpm'
 ---
 
 {{.AvailableArchs}}

@@ -24,51 +24,51 @@ func (*baseMeasurement) Info() *inputs.MeasurementInfo {
 		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"accepted_connections": &inputs.FieldInfo{
-				Type: inputs.Count, DataType: inputs.Int, Unit: inputs.SizeByte,
+				Type: inputs.Count, DataType: inputs.Int, Unit: inputs.NCount,
 				Desc: "The number of requests accepted by the pool.",
 			},
 			"listen_queue": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
 				Desc: "The number of requests in the queue of pending connections.",
 			},
 			"max_listen_queue": &inputs.FieldInfo{
-				Type: inputs.Count, DataType: inputs.Int, Unit: inputs.SizeByte,
+				Type: inputs.Count, DataType: inputs.Int, Unit: inputs.NCount,
 				Desc: "The maximum number of requests in the queue of pending connections since FPM has started.",
 			},
 			"listen_queue_length": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
 				Desc: "The size of the socket queue of pending connections.",
 			},
 			"idle_processes": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
 				Desc: "The number of idle processes.",
 			},
 			"active_processes": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
 				Desc: "The number of active processes.",
 			},
 			"total_processes": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
 				Desc: "The number of idle + active processes.",
 			},
 			"max_active_processes": &inputs.FieldInfo{
-				Type: inputs.Count, DataType: inputs.Int, Unit: inputs.SizeByte,
+				Type: inputs.Count, DataType: inputs.Int, Unit: inputs.NCount,
 				Desc: "The maximum number of active processes since FPM has started.",
 			},
 			"max_children_reached": &inputs.FieldInfo{
-				Type: inputs.Count, DataType: inputs.Int, Unit: inputs.SizeByte,
+				Type: inputs.Count, DataType: inputs.Int, Unit: inputs.NCount,
 				Desc: "The number of times, the process limit has been reached, when pm tries to start more children (works only for pm 'dynamic' and 'ondemand').",
 			},
 			"slow_requests": &inputs.FieldInfo{
-				Type: inputs.Count, DataType: inputs.Int, Unit: inputs.SizeByte,
+				Type: inputs.Count, DataType: inputs.Int, Unit: inputs.NCount,
 				Desc: "The number of requests that exceeded your 'request_slowlog_timeout' value.",
 			},
 			"process_requests": &inputs.FieldInfo{
-				Type: inputs.Count, DataType: inputs.Int, Unit: inputs.SizeByte,
+				Type: inputs.Count, DataType: inputs.Int, Unit: inputs.NCount,
 				Desc: "The number of requests the process has served.",
 			},
 			"process_last_request_memory": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
 				Desc: "The max amount of memory the last request consumed.",
 			},
 			"process_last_request_cpu": &inputs.FieldInfo{
@@ -76,7 +76,7 @@ func (*baseMeasurement) Info() *inputs.MeasurementInfo {
 				Desc: "The %cpu the last request consumed.",
 			},
 			"process_request_duration": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.DurationUS,
 				Desc: "The duration in microseconds of the requests.",
 			},
 		},
