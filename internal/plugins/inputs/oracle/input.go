@@ -19,11 +19,9 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/jmoiron/sqlx"
 	go_ora "github.com/sijms/go-ora/v2"
-	"github.com/spf13/cast"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -35,21 +33,13 @@ const (
 	maxInterval          = 15 * time.Minute
 	minInterval          = 10 * time.Second
 	inputName            = "oracle"
-	customObjectFeedName = inputName + "/CO"
-	customQueryFeedName  = inputName + "/custom_query"
-	loggingFeedName      = inputName + "/L"
+	customObjectFeedName = inputName + "-CO"
+	customQueryFeedName  = inputName + "-custom_query"
+	loggingFeedName      = inputName + "-L"
 	catalogName          = "db"
 )
 
 var l = logger.DefaultSLogger(inputName)
-
-type customQuery struct {
-	SQL      string           `toml:"sql"`
-	Metric   string           `toml:"metric"`
-	Tags     []string         `toml:"tags"`
-	Fields   []string         `toml:"fields"`
-	Interval datakit.Duration `toml:"interval"`
-}
 
 type Input struct {
 	Host              string           `toml:"host"`
@@ -66,7 +56,9 @@ type Input struct {
 	Election          bool              `toml:"election"`
 	Tags              map[string]string `toml:"tags"`
 
-	Version            string
+	mainVersion, // simple version like 11
+	fullVersion string // full version like 'Oracle Database 11g Express Edition Release 11.2.0.2.0 - 64bit Production'
+
 	Uptime             int
 	CollectCoStatus    string
 	CollectCoErrMsg    string
@@ -79,12 +71,10 @@ type Input struct {
 	mergedTags     map[string]string
 	db             *sqlx.DB
 	pause          bool
-	start          time.Time
+	ptsTime        time.Time
 	slowQueryTime  time.Duration
 	lastActiveTime string
-	collectors     map[string]func() (point.Category, []*point.Point, error)
 	cacheSQL       map[string]string
-	alignTS        int64
 
 	UpState int
 }
@@ -116,6 +106,8 @@ func (ipt *Input) setupDB() error {
 		return err
 	}
 
+	ipt.getOracleVersion()
+
 	return nil
 }
 
@@ -129,25 +121,18 @@ func (ipt *Input) getConnString() string {
 	return connStr
 }
 
-func (ipt *Input) Collect() (map[point.Category][]*point.Point, error) {
-	var err error
-	allPts := make(map[point.Category][]*point.Point)
+func (ipt *Input) Collect() {
+	ipt.setUpState()
+	ipt.FeedCoPts()
 
-	ipt.start = time.Now()
+	ipt.collectOracleProcess()
+	ipt.collectOracleTableSpace()
+	ipt.collectOracleSystem()
+	ipt.collectSlowQuery()
+	ipt.collectWaitingEvent()
+	ipt.collectLockedSession()
 
-	for name, collector := range ipt.collectors {
-		category, pts, err := collector()
-		if err != nil {
-			l.Warnf("collect %s failed: %s", name, err.Error())
-			continue
-		}
-
-		allPts[category] = append(allPts[category], pts...)
-	}
-
-	ipt.getVersionAndUptime()
-
-	return allPts, err
+	ipt.getOracleUptime()
 }
 
 func (ipt *Input) Init() {
@@ -168,6 +153,7 @@ func (ipt *Input) Init() {
 			setHost = true
 		}
 	}
+
 	if setHost {
 		host, err = os.Hostname()
 		if err != nil {
@@ -175,18 +161,9 @@ func (ipt *Input) Init() {
 		}
 	}
 
-	ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, host)
+	ipt.mergedTags = inputs.MergeTags(ipt.tagger.ElectionTags(), ipt.Tags, host)
 	ipt.mergedTags["oracle_service"] = ipt.Service
 	ipt.mergedTags["oracle_server"] = fmt.Sprintf("%s:%d", ipt.Host, ipt.Port)
-
-	ipt.collectors = map[string]func() (point.Category, []*point.Point, error){
-		"oracle_process":    ipt.collectOracleProcess,
-		"oracle_tablespace": ipt.collectOracleTableSpace,
-		"oracle_system":     ipt.collectOracleSystem,
-	}
-	for _, metric := range ipt.MetricExcludeList {
-		delete(ipt.collectors, metric)
-	}
 
 	// cache sql
 	ipt.cacheSQL = make(map[string]string)
@@ -198,7 +175,6 @@ func (ipt *Input) Init() {
 		} else {
 			if du >= time.Millisecond {
 				ipt.slowQueryTime = du
-				ipt.collectors["slow_query"] = ipt.collectSlowQuery
 			} else {
 				l.Warnf("slow query time %v less than 1 millisecond, skip", du)
 			}
@@ -233,114 +209,6 @@ func (ipt *Input) Init() {
 	}
 }
 
-func (ipt *Input) runCustomQueries() {
-	if len(ipt.Query) == 0 {
-		return
-	}
-
-	l.Infof("start to run custom queries, total %d queries", len(ipt.Query))
-
-	g := goroutine.NewGroup(goroutine.Option{
-		Name:         "oracle_custom_query",
-		PanicTimes:   6,
-		PanicTimeout: 10 * time.Second,
-	})
-	for _, q := range ipt.Query {
-		func(q *customQuery) {
-			g.Go(func(ctx context.Context) error {
-				ipt.runCustomQuery(q)
-				return nil
-			})
-		}(q)
-	}
-}
-
-func (ipt *Input) runCustomQuery(query *customQuery) {
-	if query == nil {
-		return
-	}
-
-	// use input interval as default
-	duration := ipt.Interval.Duration
-	// use custom query interval if set
-	if query.Interval.Duration > 0 {
-		duration = config.ProtectedInterval(minInterval, maxInterval, query.Interval.Duration)
-	}
-
-	tick := time.NewTicker(duration)
-	defer tick.Stop()
-
-	start := time.Now()
-	for {
-		if ipt.pause {
-			l.Debugf("not leader, custom query skipped")
-		} else {
-			// collect custom query
-			l.Debugf("start collecting custom query, metric name: %s", query.Metric)
-			arr := getCleanCustomQueries(ipt.q(query.SQL, getMetricName(query.Metric, "custom_query")))
-
-			pts := []*point.Point{}
-			opts := point.DefaultMetricOptions()
-			opts = append(opts, point.WithTimestamp(start.UnixNano()))
-			if ipt.Election {
-				opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
-			}
-			for _, row := range arr {
-				var kvs point.KVs
-				// add extended tags
-				for k, v := range ipt.mergedTags {
-					kvs = kvs.AddTag(k, v)
-				}
-
-				for _, tgKey := range query.Tags {
-					if value, ok := row[tgKey]; ok {
-						kvs = kvs.AddTag(tgKey, cast.ToString(value))
-						delete(row, tgKey)
-					}
-				}
-
-				for _, fdKey := range query.Fields {
-					if value, ok := row[fdKey]; ok {
-						// transform all fields to float64
-						kvs = kvs.Add(fdKey, cast.ToFloat64(value), false, true)
-					}
-				}
-
-				if kvs.FieldCount() > 0 {
-					pts = append(pts, point.NewPointV2(query.Metric, kvs, opts...))
-				}
-			}
-			if len(pts) > 0 {
-				if err := ipt.feeder.FeedV2(point.Metric, pts,
-					dkio.WithCollectCost(time.Since(start)),
-					dkio.WithElection(ipt.Election),
-					dkio.WithInputName(customQueryFeedName),
-				); err != nil {
-					ipt.feeder.FeedLastError(err.Error(),
-						metrics.WithLastErrorInput(customQueryFeedName),
-						metrics.WithLastErrorCategory(point.Metric),
-					)
-					l.Errorf("feed failed: %s", err.Error())
-				}
-			}
-		}
-
-		select {
-		case <-datakit.Exit.Wait():
-			l.Info("custom query exit")
-			return
-
-		case <-ipt.semStop.Wait():
-			l.Info("custom query return")
-			return
-
-		case tt := <-tick.C:
-			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), duration.Milliseconds())
-			start = time.UnixMilli(nextts)
-		}
-	}
-}
-
 func (ipt *Input) Run() {
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
@@ -355,48 +223,12 @@ func (ipt *Input) Run() {
 	// run custom queries
 	ipt.runCustomQueries()
 
-	lastTS := time.Now()
+	ipt.ptsTime = time.Now()
 	for {
-		ipt.alignTS = lastTS.UnixNano()
 		if ipt.pause {
 			l.Info("not leader, skipped")
 		} else {
-			l.Info("oracle input gathering...")
-			ipt.setUpState()
-			mpts, err := ipt.Collect()
-			if err != nil {
-				ipt.setErrUpState()
-				l.Warnf("i.Collect failed: %v", err)
-				ipt.feeder.FeedLastError(err.Error(),
-					metrics.WithLastErrorInput(inputName),
-					metrics.WithLastErrorCategory(point.Metric),
-				)
-			}
-
-			ipt.FeedCoPts()
-
-			for category, pts := range mpts {
-				feedName := inputName
-				if category == point.Logging {
-					feedName = loggingFeedName
-				}
-
-				if len(pts) > 0 {
-					if err := ipt.feeder.FeedV2(category, pts,
-						dkio.WithCollectCost(time.Since(ipt.start)),
-						dkio.WithElection(ipt.Election),
-						dkio.WithInputName(feedName),
-					); err != nil {
-						ipt.feeder.FeedLastError(err.Error(),
-							metrics.WithLastErrorInput(inputName),
-							metrics.WithLastErrorCategory(point.Metric),
-						)
-						l.Errorf("feed : %s", err)
-					}
-				}
-			}
-
-			ipt.FeedUpMetric()
+			ipt.Collect()
 		}
 
 		select {
@@ -407,8 +239,7 @@ func (ipt *Input) Run() {
 			return
 
 		case tt := <-tick.C:
-			nextts := inputs.AlignTimeMillSec(tt, lastTS.UnixMilli(), ipt.Interval.Duration.Milliseconds())
-			lastTS = time.UnixMilli(nextts)
+			ipt.ptsTime = time.UnixMilli(inputs.AlignTimeMillSec(tt, ipt.ptsTime.UnixMilli(), ipt.Interval.Duration.Milliseconds()))
 
 		case ipt.pause = <-ipt.pauseCh:
 			// nil
@@ -426,6 +257,10 @@ func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 		&tablespaceMeasurement{},
 		&systemMeasurement{},
 		&customerObjectMeasurement{},
+		&slowQueryMeasurement{},
+		&waitingEventMeasurement{},
+		&lockMeasurement{},
+
 		&inputs.UpMeasurement{},
 	}
 }
@@ -460,6 +295,35 @@ func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
 	}
+}
+
+func selectWrapper[T any](ipt *Input, s T, sql string, names ...string) error {
+	now := time.Now()
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	defer cancel()
+
+	var name string
+	if len(names) == 1 {
+		name = names[0]
+	}
+
+	err := ipt.db.SelectContext(ctx, s, sql)
+	if err != nil && (strings.Contains(err.Error(), "ORA-01012") || strings.Contains(err.Error(), "database is closed")) {
+		if err := ipt.setupDB(); err != nil {
+			_ = ipt.db.Close()
+		}
+	}
+
+	if err != nil {
+		l.Errorf("executed sql: %s, cost: %v, err: %v\n", sql, time.Since(now), err)
+	} else {
+		metricName, sqlName := getMetricNames(name)
+		if len(sqlName) > 0 {
+			sqlQueryCostSummary.WithLabelValues(metricName, sqlName).Observe(float64(time.Since(now)) / float64(time.Second))
+		}
+	}
+
+	return err
 }
 
 func defaultInput() *Input {

@@ -261,6 +261,8 @@ apt-get install -y libaio-dev libaio1
 
 ### `{{$m.Name}}`
 
+{{$m.Desc}}
+
 - 标签
 
 {{$m.TagsMarkdownTable}}
@@ -293,7 +295,7 @@ apt-get install -y libaio-dev libaio1
 
 {{ end }}
 
-## 慢查询支持 {#slow}
+## 慢查询采集 {#slow}
 
 DataKit 可以将执行超过用户自定义时间的 SQL 语句报告给<<<custom_key.brand_name>>>，在日志中显示，来源名是 `oracle_log`。
 
@@ -311,6 +313,25 @@ DataKit 可以将执行超过用户自定义时间的 SQL 语句报告给<<<cust
 
     更多字段解释可以查看[这里](https://docs.oracle.com/en/database/oracle/oracle-database/19/refrn/V-SQLAREA.html#GUID-09D5169F-EE9E-4297-8E01-8D191D87BDF7)。
 <!-- markdownlint-enable -->
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "logging"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- 标签
+
+{{$m.TagsMarkdownTable}}
+
+- 指标列表
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{ end }}
 
 ## FAQ {#faq}
 

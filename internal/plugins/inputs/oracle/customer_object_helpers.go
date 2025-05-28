@@ -7,7 +7,8 @@ package oracle
 
 import (
 	"fmt"
-	"time"
+	"regexp"
+	"strings"
 
 	gcPoint "github.com/GuanceCloud/cliutils/point"
 
@@ -76,34 +77,45 @@ func getPointsFromMeasurement(ms []inputs.MeasurementV2) []*gcPoint.Point {
 	return pts
 }
 
-func (ipt *Input) getVersionAndUptime() {
+func (ipt *Input) getOracleVersion() {
 	if ipt.db == nil {
 		l.Errorf("Database connection is nil")
 		return
 	}
-	versionQuery := "SELECT BANNER FROM v$version WHERE banner LIKE 'Oracle%'"
-	uptimeQuery := "SELECT (SYSDATE - STARTUP_TIME) * 86400 AS uptime_seconds FROM v$instance"
 
-	// 获取 Oracle 版本
-	var version string
-	err := ipt.db.Get(&version, versionQuery)
-	if err != nil {
+	versionQuery := "SELECT BANNER FROM v$version WHERE banner LIKE 'Oracle%'"
+	if err := ipt.db.Get(&ipt.fullVersion, versionQuery); err != nil {
 		l.Errorf("Failed to get Oracle version: %s", err.Error())
 		return
+	} else if ipt.mainVersion == "" {
+		if x := oracleVersionRe.FindStringSubmatch(ipt.fullVersion); len(x) > 1 {
+			ipt.mainVersion = strings.Split(x[1], ".")[0]
+		}
 	}
-	ipt.Version = version
+}
+
+func (ipt *Input) getOracleUptime() {
+	if ipt.db == nil {
+		l.Errorf("Database connection is nil")
+		return
+	}
+
+	uptimeQuery := "SELECT (SYSDATE - STARTUP_TIME) * 86400 AS uptime_seconds FROM v$instance"
 
 	// 获取 Oracle 启动时间
 	var uptimeSeconds float64
-	err = ipt.db.Get(&uptimeSeconds, uptimeQuery)
-	if err != nil {
+	if err := ipt.db.Get(&uptimeSeconds, uptimeQuery); err != nil {
 		l.Errorf("Failed to get Oracle uptime: %s", err.Error())
+
+		ipt.setErrUpState()
 		return
 	}
 	ipt.Uptime = int(uptimeSeconds)
 
-	l.Debugf("Oracle Version: %s, Uptime: %d seconds", ipt.Version, ipt.Uptime)
+	l.Debugf("Oracle Version: %s, Uptime: %d seconds", ipt.fullVersion, ipt.Uptime)
 }
+
+var oracleVersionRe = regexp.MustCompile(`Release\s+(\d+\.\d+\.\d+\.\d+\.\d+)`)
 
 func (ipt *Input) collectCustomerObjectMeasurement() ([]*gcPoint.Point, error) {
 	ipt.setIptCOStatus()
@@ -111,7 +123,7 @@ func (ipt *Input) collectCustomerObjectMeasurement() ([]*gcPoint.Point, error) {
 
 	fields := map[string]interface{}{
 		"display_name": fmt.Sprintf("%s:%d", ipt.Host, ipt.Port),
-		"version":      ipt.Version,
+		"version":      ipt.fullVersion,
 		"uptime":       fmt.Sprintf("%d", ipt.Uptime),
 	}
 	tags := map[string]string{
@@ -138,7 +150,6 @@ func (ipt *Input) collectCustomerObjectMeasurement() ([]*gcPoint.Point, error) {
 func (ipt *Input) FeedCoPts() {
 	pts, _ := ipt.collectCustomerObjectMeasurement()
 	if err := ipt.feeder.FeedV2(gcPoint.CustomObject, pts,
-		dkio.WithCollectCost(time.Since(ipt.start)),
 		dkio.WithElection(ipt.Election),
 		dkio.WithInputName(customObjectFeedName),
 	); err != nil {
@@ -155,7 +166,6 @@ func (ipt *Input) FeedCoByErr(err error) {
 	ipt.setIptErrCOStatus()
 	pts := ipt.getCoPointByColErr()
 	if err := ipt.feeder.FeedV2(gcPoint.CustomObject, pts,
-		dkio.WithCollectCost(time.Since(ipt.start)),
 		dkio.WithElection(ipt.Election),
 		dkio.WithInputName(customObjectFeedName),
 	); err != nil {
