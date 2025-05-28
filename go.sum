@@ -147,6 +147,8 @@ github.com/GuanceCloud/cliutils v1.1.22-0.20250423115841-118da498760e h1:ZWXD/jj
 github.com/GuanceCloud/cliutils v1.1.22-0.20250423115841-118da498760e/go.mod h1:A9IifVTE4+h6rK7rgvzXoMVwe+wl75UPuM+sqYhjepQ=
 github.com/GuanceCloud/cliutils v1.1.22-0.20250512031313-3d9d013450fb h1:1+6E9KFuiJW80zRZnE01H7nU+EXzFDjAPJdvVKGOxeY=
 github.com/GuanceCloud/cliutils v1.1.22-0.20250512031313-3d9d013450fb/go.mod h1:A9IifVTE4+h6rK7rgvzXoMVwe+wl75UPuM+sqYhjepQ=
+github.com/GuanceCloud/cliutils v1.1.22-0.20250527022327-172e19beaa76 h1:tiQP3f3fYJyothjCC2StS9P53Z09HxKFytLeLf3PNCQ=
+github.com/GuanceCloud/cliutils v1.1.22-0.20250527022327-172e19beaa76/go.mod h1:A9IifVTE4+h6rK7rgvzXoMVwe+wl75UPuM+sqYhjepQ=
 github.com/GuanceCloud/confd v0.1.101 h1:yjHgfl6YzAlTbFOFMTE4ERpFJzIyovOW7ZFc2/ZssL0=
 github.com/GuanceCloud/confd v0.1.101/go.mod h1:o0opIwOX+yNwV9nh56x5ymFMJ+YBD8JuPxBJ7a1mEmo=
 github.com/GuanceCloud/dockertest/v3 v3.9.4 h1:ScSNhfA2HSNLfrYoNd1KSRxkrymlKiBE60g4f6eUoOk=
