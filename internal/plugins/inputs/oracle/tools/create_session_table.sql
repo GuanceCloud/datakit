@@ -1,0 +1,8 @@
+CREATE TABLE session_test_data (id NUMBER, val VARCHAR2(100));;;
+
+BEGIN
+	FOR i IN 1..1000 LOOP
+		INSERT INTO session_test_data VALUES (i, DBMS_RANDOM.STRING('X', 50));
+	END LOOP;
+	COMMIT;
+END;

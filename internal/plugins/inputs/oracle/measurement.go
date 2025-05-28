@@ -11,10 +11,55 @@ import (
 )
 
 const (
-	oracleProcess    = "oracle_process"
-	oracleTablespace = "oracle_tablespace"
-	oracleSystem     = "oracle_system"
+	measurementOracleProcess    = "oracle_process"
+	measurementOracleTablespace = "oracle_tablespace"
+	measurementOracleSystem     = "oracle_system"
+	measurementOracleLog        = "oracle_log"
+	measurementLockedSession    = "oracle_locked_session"
+	measurementWaitingEvent     = "oracle_waiting_event"
 )
+
+type lockMeasurement struct{}
+
+func (*lockMeasurement) Point() *point.Point {
+	return nil
+}
+
+func (*lockMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: measurementLockedSession,
+		Desc: `[:octicons-tag-24: Version-1.74.0](../datakit/changelog.md#cl-1.74.0)`,
+		Cat:  point.Metric,
+		Tags: map[string]any{
+			"event":          &inputs.TagInfo{Desc: "Locked session that waiting the specified event name"},
+			"host":           &inputs.TagInfo{Desc: "Host name"},
+			"oracle_server":  &inputs.TagInfo{Desc: "Server addr"},
+			"oracle_service": &inputs.TagInfo{Desc: "Server service"},
+		},
+		Fields: map[string]any{
+			"waiting_session_count": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Locked session count"},
+		},
+	}
+}
+
+type waitingEventMeasurement struct{}
+
+func (*waitingEventMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: measurementWaitingEvent,
+		Desc: `[:octicons-tag-24: Version-1.74.0](../datakit/changelog.md#cl-1.74.0)`,
+		Cat:  point.Metric,
+		Tags: map[string]any{
+			"event":      &inputs.TagInfo{Desc: "Event name"},
+			"event_type": &inputs.TagInfo{Desc: "Event type, such as `USER/BACKGROUND`"},
+			"program":    &inputs.TagInfo{Desc: "Program(process) name that waiting the event"},
+			"username":   &inputs.TagInfo{Desc: "Oracle username that waiting the event"},
+		},
+		Fields: map[string]any{
+			"count": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Waiting event count"},
+		},
+	}
+}
 
 type processMeasurement struct {
 	name   string
@@ -38,7 +83,7 @@ func (m *processMeasurement) Point() *point.Point {
 //nolint:lll
 func (m *processMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: oracleProcess,
+		Name: measurementOracleProcess,
 		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"pga_alloc_mem":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "PGA memory allocated by process"},
@@ -77,11 +122,11 @@ func (m *tablespaceMeasurement) Point() *point.Point {
 //nolint:lll
 func (m *tablespaceMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: oracleTablespace,
+		Name: measurementOracleTablespace,
 		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"in_use":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Percentage of used space,as a function of the maximum possible Tablespace size"},
-			"off_use":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total space consumed by the Tablespace,in database blocks"},
+			"off_use":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total space consumed by the Tablespace, in database blocks"},
 			"ts_size":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Table space size"},
 			"used_space": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Used space"},
 		},
@@ -115,7 +160,7 @@ func (m *systemMeasurement) Point() *point.Point {
 //nolint:lll
 func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: oracleSystem,
+		Name: measurementOracleSystem,
 		Cat:  point.Metric,
 		Desc: "You have to wait for a few minutes to see these metrics when your running Oracle database's version is earlier than 12c.",
 		Fields: map[string]interface{}{
@@ -146,7 +191,7 @@ func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 			"redo_generated":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Redo generated per second"},
 			"redo_writes":               &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Redo writes per second"},
 			"rows_per_sort":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Rows per sort"},
-			"service_response_time":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampSec, Desc: "Service response time"},
+			"service_response_time":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Service response time"},
 			"session_count":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Session count"},
 			"session_limit_usage":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Session limit usage"},
 			"shared_pool_free":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Shared pool free memory %"},
@@ -154,12 +199,62 @@ func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 			"sorts_per_user_call":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Sorts per user call"},
 			"temp_space_used":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Temp space used"},
 			"user_rollbacks":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of user rollbacks"},
+			"uptime":                    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationSecond, Desc: "Instance uptime"},
 		},
 		Tags: map[string]interface{}{
 			"host":           &inputs.TagInfo{Desc: "Host name"},
 			"oracle_server":  &inputs.TagInfo{Desc: "Server addr"},
 			"oracle_service": &inputs.TagInfo{Desc: "Server service"},
 			"pdb_name":       &inputs.TagInfo{Desc: "PDB name"},
+		},
+	}
+}
+
+type slowQueryMeasurement struct{}
+
+//nolint:lll
+func (x *slowQueryMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: measurementOracleLog,
+		Cat:  point.Logging,
+		Desc: `For full and detailed field into, see [here](https://docs.oracle.com/en/database/oracle/oracle-database/19/refrn/V-SQLAREA.html){:target="_blank"}`,
+		Fields: map[string]any{
+			// core performance metrics
+			`sql_fulltext`:   &inputs.FieldInfo{Unit: inputs.NoUnit, DataType: inputs.String, Desc: "All characters of the SQL text for the current cursor"},
+			`elapsed_time`:   &inputs.FieldInfo{Unit: inputs.DurationUS, DataType: inputs.Int, Desc: "Elapsed time (in microseconds) used by this cursor for parsing, executing, and fetching. If the cursor uses parallel execution, then `ELAPSED_TIME` is the cumulative time..."},
+			`cpu_time`:       &inputs.FieldInfo{Unit: inputs.DurationUS, DataType: inputs.Int, Desc: "CPU time (in microseconds) used by this cursor for parsing, executing, and fetching"},
+			`executions`:     &inputs.FieldInfo{Unit: inputs.NCount, DataType: inputs.Int, Desc: "Total number of executions, totalled over all the child cursors"},
+			`disk_reads`:     &inputs.FieldInfo{Unit: inputs.NCount, DataType: inputs.Int, Desc: "Sum of the number of disk reads over all child cursors"},
+			`buffer_gets`:    &inputs.FieldInfo{Unit: inputs.NCount, DataType: inputs.Int, Desc: "Sum of buffer gets over all child cursors"},
+			`rows_processed`: &inputs.FieldInfo{Unit: inputs.NCount, DataType: inputs.Int, Desc: "Total number of rows processed on behalf of this SQL statement"},
+
+			// wait metrics
+			`user_io_wait_time`:     &inputs.FieldInfo{Unit: inputs.DurationUS, DataType: inputs.Int, Desc: "User I/O Wait Time (in microseconds)"},
+			`concurrency_wait_time`: &inputs.FieldInfo{Unit: inputs.DurationUS, DataType: inputs.Int, Desc: "Concurrency wait time (in microseconds)"},
+			`application_wait_time`: &inputs.FieldInfo{Unit: inputs.DurationUS, DataType: inputs.Int, Desc: "Application wait time (in microseconds)"},
+			`cluster_wait_time`:     &inputs.FieldInfo{Unit: inputs.DurationUS, DataType: inputs.Int, Desc: "Cluster wait time (in microseconds)"},
+
+			// execution plan metrics
+			`plan_hash_value`: &inputs.FieldInfo{Unit: inputs.NoUnit, DataType: inputs.Int, Desc: "Numeric representation of the current SQL plan for this cursor. Comparing one `PLAN_HASH_VALUE` to another easily identifies whether or not two plans are the same (rather than comparing the two plans line by line)."},
+			`parse_calls`:     &inputs.FieldInfo{Unit: inputs.NCount, DataType: inputs.Int, Desc: "Sum of all parse calls to all the child cursors under this parent"},
+			`sorts`:           &inputs.FieldInfo{Unit: inputs.NCount, DataType: inputs.Int, Desc: "Sum of the number of sorts that were done for all the child cursors"},
+
+			// context metrics
+			`parsing_schema_name`: &inputs.FieldInfo{Unit: inputs.NoUnit, DataType: inputs.String, Desc: "Schema name that was used to parse this child cursor"},
+			`last_active_time`:    &inputs.FieldInfo{Unit: inputs.NoUnit, DataType: inputs.String, Desc: "Time at which the query plan was last active"},
+
+			// other fields
+			`username`:    &inputs.FieldInfo{Unit: inputs.NoUnit, DataType: inputs.String, Desc: "Name of the user"},
+			`avg_elapsed`: &inputs.FieldInfo{Unit: inputs.DurationUS, DataType: inputs.Int, Desc: "Average elapsed time of executions(`elapsed_time/executions`)"},
+			`message`:     &inputs.FieldInfo{Unit: inputs.NoUnit, DataType: inputs.String, Desc: "JSON dump of all queried fields of table `V$SQLAREA`"},
+		},
+
+		Tags: map[string]any{
+			`sql_id`:       &inputs.TagInfo{Desc: "SQL identifier of the parent cursor in the library cache"},
+			`module`:       &inputs.TagInfo{Desc: "Contains the name of the module that was executing when the SQL statement was first parsed as set by calling `DBMS_APPLICATION_INFO.SET_MODULE`"},
+			`action`:       &inputs.TagInfo{Desc: "Contains the name of the action that was executing when the SQL statement was first parsed as set by calling `DBMS_APPLICATION_INFO.SET_ACTION`"},
+			`command_type`: &inputs.TagInfo{Desc: "Oracle command type definition"},
+			`status`:       &inputs.TagInfo{Desc: "Log level, always `warning` here"},
 		},
 	}
 }

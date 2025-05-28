@@ -33,6 +33,7 @@ const (
 	Summary     = "summary"
 	Rate        = "rate"
 	UnknownType = "unknown"
+	EnumType    = "enum"
 	// add more...
 
 	CollectorUpMeasurement = "collector"

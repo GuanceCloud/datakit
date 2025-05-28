@@ -1,236 +1,394 @@
 {
-  "checkers": [
-    {
-      "jsonScript": {
-        "type": "simpleCheck",
-        "every": "5m",
-        "title": "<<.Monitor.oracle_table_place_title>>",
-        "groupBy": [
-          "host",
-          "tablespace_name"
-        ],
-        "message": "<<.Monitor.oracle_table_place_message>>",
-        "targets": [
-          {
-            "dql": "M::`oracle_tablespace`:(last(`in_use`)) BY `host`, `tablespace_name`",
-            "alias": "Result",
-            "qtype": "dql"
+  "title": "Oracle",
+  "dashboardType": "CUSTOM",
+  "dashboardExtend": {},
+  "dashboardMapping": [],
+  "dashboardOwnerType": "inner",
+  "iconSet": {
+    "url": "https://static-res.guance.com/dataflux-template/dashboard/zh/oracle/oracle.png",
+    "icon": "https://static-res.guance.com/dataflux-template/dashboard/zh/oracle/icon.svg"
+  },
+  "dashboardBindSet": [],
+  "thumbnail": "",
+  "tagInfo": [],
+  "summary": "",
+  "main": {
+    "vars": [
+      {
+        "name": "server",
+        "seq": 0,
+        "datasource": "ftinfluxdb",
+        "code": "oracle_server",
+        "type": "TAG",
+        "definition": {
+          "tag": "oracle_server",
+          "field": "",
+          "value": "",
+          "metric": "oracle_system",
+          "object": "",
+          "defaultVal": {
+            "label": "*",
+            "value": "*"
           }
-        ],
-        "channels": [],
-        "interval": 300,
-        "atAccounts": [],
-        "checkerOpt": {
-          "rules": [
-            {
-              "status": "critical",
-              "conditions": [
-                {
-                  "alias": "Result",
-                  "operands": [
-                    "90"
-                  ],
-                  "operator": ">="
-                }
-              ],
-              "matchTimes": 1,
-              "conditionLogic": "and"
-            },
-            {
-              "status": "error",
-              "conditions": [
-                {
-                  "alias": "Result",
-                  "operands": [
-                    "80",
-                    "90"
-                  ],
-                  "operator": "between"
-                }
-              ],
-              "matchTimes": 1,
-              "conditionLogic": "and"
-            }
-          ],
-          "infoEvent": false,
-          "combineExpr": "A && B",
-          "openMatchTimes": false
         },
-        "noDataTitle": "",
-        "noDataMessage": "",
-        "atNoDataAccounts": [],
-        "disableCheckEndTime": false,
-        "notificationMessage": "",
-        "recoverNeedPeriodCount": 2,
-        "openNotificationMessage": false,
-        "noDataNotificationMessage": "",
-        "openNoDataNotificationMessage": false
+        "valueSort": "asc",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true,
+        "extend": {}
       },
-      "extend": {
-        "rules": [
-          {
-            "status": "critical",
-            "conditions": [
-              {
-                "alias": "Result",
-                "operands": [
-                  "90"
-                ],
-                "operator": ">="
-              }
-            ],
-            "matchTimes": 1,
-            "conditionLogic": "and"
-          },
-          {
-            "status": "error",
-            "conditions": [
-              {
-                "alias": "Result",
-                "operands": [
-                  "80",
-                  "90"
-                ],
-                "operator": "between"
-              }
-            ],
-            "matchTimes": 1,
-            "conditionLogic": "and"
+      {
+        "name": "service",
+        "seq": 1,
+        "datasource": "dataflux",
+        "code": "service_name",
+        "type": "QUERY",
+        "definition": {
+          "tag": "",
+          "field": "",
+          "value": "show_tag_value(from=['oracle_process'],keyin=['oracle_service'])",
+          "metric": "",
+          "object": "",
+          "defaultVal": {
+            "label": "*",
+            "value": "*"
           }
-        ],
-        "manager": [],
-        "funcName": "",
-        "querylist": [
+        },
+        "valueSort": "default",
+        "hide": 0,
+        "isHiddenAsterisk": 0,
+        "multiple": true,
+        "includeStar": true,
+        "extend": {}
+      }
+    ],
+    "charts": [
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": null,
+            "lineType": "linear",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "percent",
+              "percent"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "min",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "tableSortMetricName": "缓冲区缓存命中率",
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": "Instance info"
+        },
+        "name": "Cache hit",
+        "pos": {
+          "h": 13,
+          "w": 12,
+          "x": 12,
+          "y": 66
+        },
+        "type": "sequence",
+        "queries": [
           {
-            "uuid": "864f7657-48a9-4ad7-b256-6b26c4cc5607",
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`oracle_tablespace`:(last(`in_use`)) BY `host`, `tablespace_name`",
-              "code": "Result",
+              "q": "M::`oracle_system`:(avg(`buffer_cachehit_ratio`) AS `buffer`) { `oracle_server` = '#{oracle_server}' and `oracle_service` = '#{service_name}' } BY `oracle_server`, `oracle_service`",
+              "code": "A",
+              "fill": null,
               "type": "simple",
-              "alias": "",
-              "field": "in_use",
-              "filters": [],
-              "groupBy": [
-                "host",
-                "tablespace_name"
+              "alias": "buffer",
+              "field": "buffer_cachehit_ratio",
+              "limit": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "13e46bb0-352e-11f0-b4af-490f24b94468",
+                  "op": "=",
+                  "name": "oracle_server",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{oracle_server}",
+                  "values": []
+                },
+                {
+                  "id": "13e492c0-352e-11f0-b4af-490f24b94468",
+                  "op": "=",
+                  "name": "oracle_service",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{service_name}",
+                  "values": []
+                }
               ],
+              "groupBy": [
+                "oracle_server",
+                "oracle_service"
+              ],
+              "labelOp": "",
               "funcList": [],
-              "fieldFunc": "last",
+              "fieldFunc": "avg",
               "fieldType": "float",
               "namespace": "metric",
-              "dataSource": "oracle_tablespace",
+              "dataSource": "oracle_system",
+              "queryFuncs": [],
+              "withLabels": [],
               "groupByTime": "",
-              "additionalFields": null
+              "indexFilter": "default"
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`oracle_system`:(avg(`library_cachehit_ratio`) AS `lib`) { `oracle_server` = '#{oracle_server}' and `oracle_service` = '#{service_name}' } BY `oracle_server`, `oracle_service`",
+              "code": "C",
+              "fill": null,
+              "type": "simple",
+              "alias": "lib",
+              "field": "library_cachehit_ratio",
+              "limit": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "c94a1430-3526-11f0-b4af-490f24b94468",
+                  "op": "=",
+                  "name": "oracle_server",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{oracle_server}",
+                  "values": []
+                },
+                {
+                  "id": "c94a1431-3526-11f0-b4af-490f24b94468",
+                  "op": "=",
+                  "name": "oracle_service",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{service_name}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "oracle_server",
+                "oracle_service"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "oracle_system",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "default"
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`oracle_system`:(avg(`cursor_cachehit_ratio`) AS `cursor`) { `oracle_server` = '#{oracle_server}' and `oracle_service` = '#{service_name}' } BY `oracle_server`, `oracle_service`",
+              "code": "B",
+              "fill": null,
+              "type": "simple",
+              "alias": "cursor",
+              "field": "cursor_cachehit_ratio",
+              "limit": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "17ec3850-352e-11f0-b4af-490f24b94468",
+                  "op": "=",
+                  "name": "oracle_server",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{oracle_server}",
+                  "values": []
+                },
+                {
+                  "id": "17ec3851-352e-11f0-b4af-490f24b94468",
+                  "op": "=",
+                  "name": "oracle_service",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{service_name}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "oracle_server",
+                "oracle_service"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "oracle_system",
+              "queryFuncs": [],
+              "withLabels": [],
+              "groupByTime": "",
+              "indexFilter": "default"
             },
             "datasource": "dataflux"
           }
-        ],
-        "issueLevelUUID": "",
-        "needRecoverIssue": false,
-        "isNeedCreateIssue": false,
-        "issueDfStatus": []
+        ]
       },
-      "is_disable": true,
-      "tagInfo": [],
-      "secret": "",
-      "type": "trigger",
-      "monitorName": "default",
-      "alertPolicyNames": []
-    },
-    {
-      "jsonScript": {
-        "type": "seniorMutationsCheck",
-        "every": "5m",
-        "range": 900,
-        "title": "<<.Monitor.oracle_active_session_title>>",
-        "groupBy": [
-          "host",
-          "oracle_service"
-        ],
-        "message": "<<.Monitor.oracle_active_session_message>>",
-        "range_2": 1800,
-        "targets": [
-          {
-            "dql": "M::`oracle_system`:(avg(`active_sessions`)) BY `host`, `oracle_service`",
-            "alias": "Result",
-            "qtype": "dql"
-          }
-        ],
-        "channels": [],
-        "interval": 1800,
-        "atAccounts": [],
-        "checkerOpt": {
-          "rules": [
-            {
-              "status": "critical",
-              "conditions": [
-                {
-                  "alias": "Result",
-                  "operands": [
-                    "100"
-                  ],
-                  "operator": ">="
-                }
-              ],
-              "matchTimes": 1,
-              "conditionLogic": "and"
-            }
-          ],
-          "diffMode": "value",
-          "direction": "both",
-          "infoEvent": false,
-          "threshold": {
-            "value": 100,
-            "status": true,
-            "operator": ">"
-          },
-          "combineExpr": "A && B",
-          "openMatchTimes": false
-        },
-        "noDataTitle": "",
-        "periodBefore": 0,
-        "noDataMessage": "",
-        "atNoDataAccounts": [],
-        "disableCheckEndTime": false,
-        "notificationMessage": "",
-        "recoverNeedPeriodCount": 2,
-        "openNotificationMessage": false,
-        "noDataNotificationMessage": "",
-        "openNoDataNotificationMessage": false
-      },
-      "extend": {
-        "rules": [
-          {
-            "status": "critical",
-            "conditions": [
-              {
-                "alias": "Result",
-                "operands": [
-                  "100"
-                ],
-                "operator": ">="
-              }
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 100,
+            "density": null,
+            "lineType": "linear",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "digital",
+              "B"
             ],
-            "matchTimes": 1,
-            "conditionLogic": "and"
-          }
-        ],
-        "manager": [],
-        "funcName": "",
-        "querylist": [
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "min",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "tableSortMetricName": "活动排序的总块数",
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "D"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": "Instance info"
+        },
+        "name": "Temp space",
+        "pos": {
+          "h": 16,
+          "w": 12,
+          "x": 0,
+          "y": 50
+        },
+        "type": "sequence",
+        "queries": [
           {
-            "uuid": "7af1a3ad-100e-43df-be16-ed893d331e82",
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
             "qtype": "dql",
             "query": {
-              "q": "M::`oracle_system`:(avg(`active_sessions`)) BY `host`, `oracle_service`",
-              "code": "Result",
+              "q": "M::`oracle_system`:(avg(`temp_space_used`) AS `used`) { `oracle_server` = '#{oracle_server}' and `oracle_service` = '#{service_name}' } BY `oracle_server`, `oracle_service`",
+              "code": "D",
               "type": "simple",
-              "alias": "",
-              "field": "active_sessions",
-              "filters": [],
+              "alias": "used",
+              "field": "temp_space_used",
+              "filters": [
+                {
+                  "id": "4079c8e0-61da-11eb-bfd1-75a1f3a5078f",
+                  "op": "=",
+                  "name": "oracle_server",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{oracle_server}",
+                  "values": []
+                },
+                {
+                  "id": "b3a80fd0-c840-11eb-8c91-137cdaf56565",
+                  "op": "=",
+                  "name": "oracle_service",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{service_name}"
+                }
+              ],
               "groupBy": [
-                "host",
+                "oracle_server",
                 "oracle_service"
               ],
               "funcList": [],
@@ -238,23 +396,3145 @@
               "fieldType": "float",
               "namespace": "metric",
               "dataSource": "oracle_system",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "density": null,
+            "lineType": "linear",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "custom",
+              "times/sec"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "min",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": 360,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Instance info"
+        },
+        "name": "Sorting",
+        "pos": {
+          "h": 16,
+          "w": 12,
+          "x": 12,
+          "y": 50
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`oracle_system`:(avg(`disk_sorts`) AS `disk`) { `oracle_server` = '#{oracle_server}' and `oracle_service` = '#{service_name}' } BY `oracle_server`, `oracle_service`",
+              "code": "A",
+              "type": "simple",
+              "alias": "disk",
+              "field": "disk_sorts",
+              "filters": [
+                {
+                  "id": "68844c20-d4b2-11eb-b6fd-6ff82c63a527",
+                  "op": "=",
+                  "name": "oracle_server",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{oracle_server}",
+                  "values": []
+                },
+                {
+                  "id": "6af991e0-d4b2-11eb-b6fd-6ff82c63a527",
+                  "op": "=",
+                  "name": "oracle_service",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{service_name}"
+                }
+              ],
+              "groupBy": [
+                "oracle_server",
+                "oracle_service"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "oracle_system",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          },
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`oracle_system`:(avg(`sorts_per_user_call`) AS `user`) { `oracle_server` = '#{oracle_server}' and `oracle_service` = '#{service_name}' } BY `oracle_server`, `oracle_service`",
+              "code": "B",
+              "type": "simple",
+              "alias": "user",
+              "field": "sorts_per_user_call",
+              "filters": [
+                {
+                  "id": "68844c20-d4b2-11eb-b6fd-6ff82c63a527",
+                  "op": "=",
+                  "name": "oracle_server",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{oracle_server}",
+                  "values": []
+                },
+                {
+                  "id": "6af991e0-d4b2-11eb-b6fd-6ff82c63a527",
+                  "op": "=",
+                  "name": "oracle_service",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{service_name}"
+                }
+              ],
+              "groupBy": [
+                "oracle_server",
+                "oracle_service"
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "oracle_system",
+              "queryFuncs": [],
+              "groupByTime": ""
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 100,
+            "lineType": "linear",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "digital",
+              "B"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "min",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "showMainTitle": true,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "variables": []
+        },
+        "group": {
+          "name": "Instance info"
+        },
+        "name": "Process",
+        "pos": {
+          "h": 17,
+          "w": 12,
+          "x": 0,
+          "y": 17
+        },
+        "type": "combine",
+        "queries": [
+          {
+            "id": 422218,
+            "name": "Process PGA alloc mem",
+            "type": "sequence",
+            "uuid": "main",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 100,
+                "lineType": "linear",
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [
+                  "digital",
+                  "B"
+                ],
+                "isSampling": true,
+                "compareType": [],
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": null,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": false
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`oracle_process`:(avg(`pga_alloc_mem`) AS `alloc`) { `oracle_server` = '#{oracle_server}' and `oracle_service` = '#{service_name}' } BY `oracle_server`, `oracle_service`, `program`",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "alloc",
+                  "field": "pga_alloc_mem",
+                  "filters": [
+                    {
+                      "id": "45785f60-7ae9-11ef-b170-aba9b2081868",
+                      "op": "=",
+                      "name": "oracle_server",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{oracle_server}",
+                      "values": []
+                    },
+                    {
+                      "id": "483f4790-7ae9-11ef-b170-aba9b2081868",
+                      "op": "=",
+                      "name": "oracle_service",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{service_name}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "oracle_server",
+                    "oracle_service",
+                    "program"
+                  ],
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "oracle_process",
+                  "queryFuncs": [],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "additionalFields": null
+                },
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "createAt": 1747645428,
+            "deleteAt": -1,
+            "updateAt": 1747713444,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_67208ab0522e4be8b7f780e9241ee9d8",
+            "chartGroupUUID": "chtg_d3bc16c40be8448385fb6726f3ed8c96",
+            "isWorkspaceKeyIndicator": 0
+          },
+          {
+            "id": 422221,
+            "pos": {
+              "h": 10,
+              "w": 12,
+              "x": 12,
+              "y": 0
+            },
+            "name": "Process PGA used mem",
+            "type": "sequence",
+            "uuid": "00c879b30492424ebcf09f2c2e7eb6ab",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 100,
+                "lineType": "linear",
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [
+                  "digital",
+                  "B"
+                ],
+                "isSampling": true,
+                "compareType": [],
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": null,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": false
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`oracle_process`:(avg(`pga_used_mem`) AS `used`) { `oracle_service` = '#{service_name}' and `oracle_server` = '#{oracle_server}' } BY `oracle_server`, `oracle_service`",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "used",
+                  "field": "pga_used_mem",
+                  "filters": [
+                    {
+                      "id": "483f4790-7ae9-11ef-b170-aba9b2081868",
+                      "op": "=",
+                      "name": "oracle_service",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{service_name}",
+                      "values": []
+                    },
+                    {
+                      "id": "3bdc0200-352d-11f0-b4af-490f24b94468",
+                      "op": "=",
+                      "name": "oracle_server",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{oracle_server}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "oracle_server",
+                    "oracle_service"
+                  ],
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "oracle_process",
+                  "queryFuncs": [],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "additionalFields": null
+                },
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "createAt": 1747645428,
+            "deleteAt": -1,
+            "updateAt": 1747713533,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_67208ab0522e4be8b7f780e9241ee9d8",
+            "chartGroupUUID": "chtg_d3bc16c40be8448385fb6726f3ed8c96",
+            "isWorkspaceKeyIndicator": 0
+          },
+          {
+            "id": 422219,
+            "pos": {
+              "h": 10,
+              "w": 12,
+              "x": 0,
+              "y": 10
+            },
+            "name": "Process PGA free mem",
+            "type": "sequence",
+            "uuid": "b4b06472a30743a3af2e54ab963c87c4",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 100,
+                "lineType": "linear",
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [
+                  "digital",
+                  "B"
+                ],
+                "isSampling": true,
+                "compareType": [],
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": null,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": true
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`oracle_process`:(avg(`pga_freeable_mem`) AS `free`) { `oracle_server` = '#{oracle_server}' and `oracle_service` = '#{service_name}' } BY `oracle_server`, `oracle_service`, `program`",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "free",
+                  "field": "pga_freeable_mem",
+                  "filters": [
+                    {
+                      "id": "45785f60-7ae9-11ef-b170-aba9b2081868",
+                      "op": "=",
+                      "name": "oracle_server",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{oracle_server}",
+                      "values": []
+                    },
+                    {
+                      "id": "483f4790-7ae9-11ef-b170-aba9b2081868",
+                      "op": "=",
+                      "name": "oracle_service",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{service_name}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "oracle_server",
+                    "oracle_service",
+                    "program"
+                  ],
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "oracle_process",
+                  "queryFuncs": [],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "additionalFields": null
+                },
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "createAt": 1747645428,
+            "deleteAt": -1,
+            "updateAt": 1747713509,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_67208ab0522e4be8b7f780e9241ee9d8",
+            "chartGroupUUID": "chtg_d3bc16c40be8448385fb6726f3ed8c96",
+            "isWorkspaceKeyIndicator": 0
+          },
+          {
+            "id": 422220,
+            "pos": {
+              "h": 10,
+              "w": 12,
+              "x": 12,
+              "y": 10
+            },
+            "name": "Process PGA max mem",
+            "type": "sequence",
+            "uuid": "23d83ade0f3e46589f67057ed995fdf7",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 100,
+                "lineType": "linear",
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [
+                  "digital",
+                  "B"
+                ],
+                "isSampling": true,
+                "compareType": [],
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": null,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": true
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`oracle_process`:(avg(`pga_max_mem`) AS `max`) { `oracle_server` = '#{oracle_server}' and `oracle_service` = '#{service_name}' } BY `oracle_server`, `oracle_service`",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "max",
+                  "field": "pga_max_mem",
+                  "filters": [
+                    {
+                      "id": "45785f60-7ae9-11ef-b170-aba9b2081868",
+                      "op": "=",
+                      "name": "oracle_server",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{oracle_server}",
+                      "values": []
+                    },
+                    {
+                      "id": "483f4790-7ae9-11ef-b170-aba9b2081868",
+                      "op": "=",
+                      "name": "oracle_service",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{service_name}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "oracle_server",
+                    "oracle_service"
+                  ],
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "oracle_process",
+                  "queryFuncs": [],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "additionalFields": null
+                },
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "createAt": 1747645428,
+            "deleteAt": -1,
+            "updateAt": 1747713500,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_67208ab0522e4be8b7f780e9241ee9d8",
+            "chartGroupUUID": "chtg_d3bc16c40be8448385fb6726f3ed8c96",
+            "isWorkspaceKeyIndicator": 0
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 100,
+            "lineType": "linear",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "min",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "showMainTitle": true,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "variables": []
+        },
+        "group": {
+          "name": "Instance info"
+        },
+        "name": "Sessions",
+        "pos": {
+          "h": 17,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "type": "combine",
+        "queries": [
+          {
+            "id": 422393,
+            "name": "Total sessions",
+            "type": "sequence",
+            "uuid": "main",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 100,
+                "lineType": "linear",
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [],
+                "isSampling": true,
+                "compareType": [],
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": null,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": false
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`oracle_system`:(avg(`session_count`) AS `sessions`) { `oracle_server` = '#{oracle_server}' and `oracle_service` = '#{service_name}' } BY `oracle_server`, `oracle_service`",
+                  "code": "A",
+                  "type": "simple",
+                  "alias": "sessions",
+                  "field": "session_count",
+                  "limit": null,
+                  "fillNum": null,
+                  "filters": [
+                    {
+                      "id": "e10c09d0-3525-11f0-b4af-490f24b94468",
+                      "op": "=",
+                      "name": "oracle_server",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{oracle_server}",
+                      "values": []
+                    },
+                    {
+                      "id": "e10c09d1-3525-11f0-b4af-490f24b94468",
+                      "op": "=",
+                      "name": "oracle_service",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{service_name}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "oracle_server",
+                    "oracle_service"
+                  ],
+                  "labelOp": "",
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "oracle_system",
+                  "queryFuncs": [],
+                  "withLabels": [],
+                  "groupByTime": "",
+                  "indexFilter": "default"
+                },
+                "disabled": false,
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "createAt": 1747709679,
+            "deleteAt": -1,
+            "updateAt": 1747789929,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_67208ab0522e4be8b7f780e9241ee9d8",
+            "chartGroupUUID": "chtg_9aaab16f1cfa48e4b74a8ce5e764342c",
+            "isWorkspaceKeyIndicator": 0
+          },
+          {
+            "id": 422392,
+            "pos": {
+              "h": 10,
+              "w": 12,
+              "x": 12,
+              "y": 0
+            },
+            "name": "Active sessions",
+            "type": "sequence",
+            "uuid": "df28638b4610408bbb68babfe5751b71",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 100,
+                "lineType": "linear",
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [],
+                "isSampling": true,
+                "compareType": [],
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": null,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": false
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`oracle_system`:(avg(`active_sessions`) AS `sessions`) { `oracle_server` = '#{oracle_server}' and `oracle_service` = '#{service_name}' } BY `oracle_server`, `oracle_service`",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "sessions",
+                  "field": "active_sessions",
+                  "limit": null,
+                  "fillNum": null,
+                  "filters": [
+                    {
+                      "id": "8c3745a0-3525-11f0-b4af-490f24b94468",
+                      "op": "=",
+                      "name": "oracle_server",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{oracle_server}",
+                      "values": []
+                    },
+                    {
+                      "id": "8c3745a1-3525-11f0-b4af-490f24b94468",
+                      "op": "=",
+                      "name": "oracle_service",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{service_name}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "oracle_server",
+                    "oracle_service"
+                  ],
+                  "labelOp": "",
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "oracle_system",
+                  "queryFuncs": [],
+                  "withLabels": [],
+                  "groupByTime": "",
+                  "indexFilter": "default"
+                },
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "createAt": 1747709654,
+            "deleteAt": -1,
+            "updateAt": 1747713193,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_67208ab0522e4be8b7f780e9241ee9d8",
+            "chartGroupUUID": "chtg_9aaab16f1cfa48e4b74a8ce5e764342c",
+            "isWorkspaceKeyIndicator": 0
+          },
+          {
+            "id": 422562,
+            "pos": {
+              "h": 11,
+              "w": 12,
+              "x": 0,
+              "y": 21
+            },
+            "name": "Logons account",
+            "type": "sequence",
+            "uuid": "46e6ea221aa44686b885252763e33f82",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 100,
+                "lineType": "linear",
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [],
+                "isSampling": true,
+                "compareType": [],
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": null,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": false
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`oracle_system`:(avg(`current_logins_count`) AS `account`) { `oracle_server` = '#{oracle_server}' and `oracle_service` = '#{service_name}' } BY `oracle_server`, `oracle_service`",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "account",
+                  "field": "current_logins_count",
+                  "limit": null,
+                  "fillNum": null,
+                  "filters": [
+                    {
+                      "id": "a7b52b60-35e0-11f0-86b4-cf4a9d078b12",
+                      "op": "=",
+                      "name": "oracle_server",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{oracle_server}",
+                      "values": []
+                    },
+                    {
+                      "id": "a7b52b61-35e0-11f0-86b4-cf4a9d078b12",
+                      "op": "=",
+                      "name": "oracle_service",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{service_name}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "oracle_server",
+                    "oracle_service"
+                  ],
+                  "labelOp": "",
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "oracle_system",
+                  "queryFuncs": [],
+                  "withLabels": [],
+                  "groupByTime": "",
+                  "indexFilter": "default"
+                },
+                "disabled": false,
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "createAt": 1747789936,
+            "deleteAt": -1,
+            "updateAt": 1747789977,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_67208ab0522e4be8b7f780e9241ee9d8",
+            "chartGroupUUID": "chtg_9aaab16f1cfa48e4b74a8ce5e764342c",
+            "isWorkspaceKeyIndicator": 0
+          },
+          {
+            "id": 422553,
+            "pos": {
+              "h": 13,
+              "w": 12,
+              "x": 0,
+              "y": 0
+            },
+            "name": "Locked sessions",
+            "type": "sequence",
+            "uuid": "a0427ab2c78f498b989d79ce3699404f",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 100,
+                "lineType": "linear",
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [],
+                "isSampling": true,
+                "compareType": [],
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": null,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": false
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`oracle_locked_session`:(avg(`waiting_session_count`) AS `locked`) { `oracle_server` = '#{oracle_server}' and `oracle_service` = '#{service_name}' } BY `oracle_server`, `oracle_service`",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "locked",
+                  "field": "waiting_session_count",
+                  "filters": [
+                    {
+                      "id": "ce40da40-355e-11f0-ac3c-336f2f17c6c7",
+                      "op": "=",
+                      "name": "oracle_server",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{oracle_server}",
+                      "values": []
+                    },
+                    {
+                      "id": "d15ce750-355e-11f0-ac3c-336f2f17c6c7",
+                      "op": "=",
+                      "name": "oracle_service",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{service_name}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "oracle_server",
+                    "oracle_service"
+                  ],
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "oracle_locked_session",
+                  "queryFuncs": [],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "additionalFields": null
+                },
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "createAt": 1747734218,
+            "deleteAt": -1,
+            "updateAt": 1747736407,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_67208ab0522e4be8b7f780e9241ee9d8",
+            "chartGroupUUID": "chtg_afef1b3ae5c84739b1b33d255cdabeef",
+            "isWorkspaceKeyIndicator": 0
+          },
+          {
+            "id": 422554,
+            "pos": {
+              "h": 13,
+              "w": 12,
+              "x": 12,
+              "y": 0
+            },
+            "name": "Waiting events",
+            "type": "sequence",
+            "uuid": "d01aa59bb27b49fcb053a13e7c231821",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 100,
+                "lineType": "linear",
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [],
+                "isSampling": true,
+                "compareType": [],
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": null,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": false
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`oracle_waiting_event`:(avg(`count`) AS `locked`) { `oracle_server` = '#{oracle_server}' and `event_type` != 'BACKGROUND' } BY `oracle_server`, `event_type`, `event`, `program`",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "locked",
+                  "field": "count",
+                  "filters": [
+                    {
+                      "id": "fc71a6b0-355e-11f0-ac3c-336f2f17c6c7",
+                      "op": "=",
+                      "name": "oracle_server",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{oracle_server}",
+                      "values": []
+                    },
+                    {
+                      "id": "0ebbf690-355f-11f0-ac3c-336f2f17c6c7",
+                      "op": "!=",
+                      "name": "event_type",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "BACKGROUND",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "oracle_server",
+                    "event_type",
+                    "event",
+                    "program"
+                  ],
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "oracle_waiting_event",
+                  "queryFuncs": [],
+                  "groupByTime": "",
+                  "indexFilter": "",
+                  "additionalFields": null
+                },
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "createAt": 1747734225,
+            "deleteAt": -1,
+            "updateAt": 1747734350,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_67208ab0522e4be8b7f780e9241ee9d8",
+            "chartGroupUUID": "chtg_afef1b3ae5c84739b1b33d255cdabeef",
+            "isWorkspaceKeyIndicator": 0
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 100,
+            "lineType": "linear",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "time",
+              "ms"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "min",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": true
+        },
+        "group": {
+          "name": "Instance info"
+        },
+        "name": "Response time",
+        "pos": {
+          "h": 16,
+          "w": 12,
+          "x": 0,
+          "y": 34
+        },
+        "type": "sequence",
+        "queries": [
+          {
+            "name": "",
+            "type": "sequence",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`oracle_system`:(avg(`service_response_time`) AS `resp`) { `oracle_server` = '#{oracle_server}' and `oracle_service` = '#{service_name}' } BY `oracle_server`, `oracle_service`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "resp",
+              "field": "service_response_time",
+              "limit": null,
+              "fillNum": null,
+              "filters": [
+                {
+                  "id": "3abe8840-3526-11f0-b4af-490f24b94468",
+                  "op": "=",
+                  "name": "oracle_server",
+                  "type": "keyword",
+                  "logic": "and",
+                  "value": "#{oracle_server}",
+                  "values": []
+                },
+                {
+                  "id": "3abe8841-3526-11f0-b4af-490f24b94468",
+                  "op": "=",
+                  "name": "oracle_service",
+                  "type": "",
+                  "logic": "and",
+                  "value": "#{service_name}",
+                  "values": []
+                }
+              ],
+              "groupBy": [
+                "oracle_server",
+                "oracle_service"
+              ],
+              "labelOp": "",
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "oracle_system",
+              "queryFuncs": [],
+              "withLabels": [],
               "groupByTime": "",
+              "indexFilter": "default"
+            },
+            "datasource": "dataflux"
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 100,
+            "density": null,
+            "lineType": "linear",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "digital",
+              "B"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "min",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": 360,
+            "showMainTitle": true,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "variables": []
+        },
+        "group": {
+          "name": "Instance info"
+        },
+        "name": "IO",
+        "pos": {
+          "h": 17,
+          "w": 12,
+          "x": 12,
+          "y": 17
+        },
+        "type": "combine",
+        "queries": [
+          {
+            "id": 422535,
+            "name": "Read bytes",
+            "type": "sequence",
+            "uuid": "main",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 100,
+                "density": null,
+                "lineType": "linear",
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [
+                  "digital",
+                  "B"
+                ],
+                "isSampling": true,
+                "compareType": [],
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": 360,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": false
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`oracle_system`:(avg(`physical_read_bytes`) AS `read`) { `oracle_server` = '#{oracle_server}' and `oracle_service` = '#{service_name}' } BY `oracle_server`, `oracle_service`",
+                  "code": "A",
+                  "type": "simple",
+                  "alias": "read",
+                  "field": "physical_read_bytes",
+                  "filters": [
+                    {
+                      "id": "d2634380-d4b2-11eb-b6fd-6ff82c63a527",
+                      "op": "=",
+                      "name": "oracle_server",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{oracle_server}",
+                      "values": []
+                    },
+                    {
+                      "id": "d44040e0-d4b2-11eb-b6fd-6ff82c63a527",
+                      "op": "=",
+                      "name": "oracle_service",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{service_name}"
+                    }
+                  ],
+                  "groupBy": [
+                    "oracle_server",
+                    "oracle_service"
+                  ],
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "oracle_system",
+                  "queryFuncs": [],
+                  "groupByTime": ""
+                },
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "createAt": 1747732100,
+            "deleteAt": -1,
+            "updateAt": 1747791200,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_67208ab0522e4be8b7f780e9241ee9d8",
+            "chartGroupUUID": "chtg_9aaab16f1cfa48e4b74a8ce5e764342c",
+            "isWorkspaceKeyIndicator": 0
+          },
+          {
+            "id": 422566,
+            "pos": {
+              "h": 11,
+              "w": 12,
+              "x": 12,
+              "y": 33
+            },
+            "name": "Write bytes",
+            "type": "sequence",
+            "uuid": "fbcc41d222284bd3985a0ba648b9172b",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 100,
+                "density": null,
+                "lineType": "linear",
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [
+                  "digital",
+                  "B"
+                ],
+                "isSampling": true,
+                "compareType": [],
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": 360,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": false
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`oracle_system`:(avg(`physical_write_bytes`) AS `write`) { `oracle_server` = '#{oracle_server}' and `oracle_service` = '#{service_name}' } BY `oracle_server`, `oracle_service`",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "write",
+                  "field": "physical_write_bytes",
+                  "limit": null,
+                  "fillNum": null,
+                  "filters": [
+                    {
+                      "id": "7d778ac0-35e3-11f0-a4df-19f5520fabac",
+                      "op": "=",
+                      "name": "oracle_server",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{oracle_server}",
+                      "values": []
+                    },
+                    {
+                      "id": "7d778ac1-35e3-11f0-a4df-19f5520fabac",
+                      "op": "=",
+                      "name": "oracle_service",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{service_name}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "oracle_server",
+                    "oracle_service"
+                  ],
+                  "labelOp": "",
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "oracle_system",
+                  "queryFuncs": [],
+                  "withLabels": [],
+                  "groupByTime": "",
+                  "indexFilter": "default"
+                },
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "createAt": 1747791148,
+            "deleteAt": -1,
+            "updateAt": 1747791186,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_67208ab0522e4be8b7f780e9241ee9d8",
+            "chartGroupUUID": "chtg_9aaab16f1cfa48e4b74a8ce5e764342c",
+            "isWorkspaceKeyIndicator": 0
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "index": "default",
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "unitType": "global",
+            "fixedTime": "",
+            "inColumns": [
+              {
+                "field": "time",
+                "headerName": "时间"
+              }
+            ],
+            "showTitle": true,
+            "titleDesc": "",
+            "addColumns": [
+              {
+                "hide": true,
+                "field": "status"
+              },
+              {
+                "hide": true,
+                "field": "__docid"
+              },
+              {
+                "field": "oracle_server",
+                "headerName": "Server"
+              },
+              {
+                "field": "username",
+                "headerName": " User"
+              },
+              {
+                "field": "avg_elapsed",
+                "headerName": " Avg cost(us)"
+              },
+              {
+                "field": "executions"
+              },
+              {
+                "field": "message",
+                "headerName": "SQL"
+              }
+            ],
+            "globalUnit": [],
+            "isSampling": true,
+            "valMappings": [],
+            "timeInterval": "",
+            "isTimeInterval": false,
+            "openTimeOffset": false,
+            "changeWorkspace": false,
+            "currentChartType": "log",
+            "showFieldMapping": false,
+            "valColorMappings": []
+          },
+          "fixedTime": "",
+          "isRefresh": false
+        },
+        "group": {
+          "name": "Slow query"
+        },
+        "name": "Slow SQLs",
+        "pos": {
+          "h": 19,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        },
+        "type": "log",
+        "queries": [
+          {
+            "name": "",
+            "type": "log",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "L('default')::`oracle_log`:(`status`, `__docid`, `oracle_server`, `username`, `avg_elapsed`, `executions`, `message`)",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "内容",
+              "field": null,
+              "fields": [
+                {
+                  "hide": true,
+                  "field": "status"
+                },
+                {
+                  "hide": true,
+                  "field": "__docid"
+                },
+                {
+                  "alias": "Server",
+                  "field": "oracle_server",
+                  "isEditAlias": false
+                },
+                {
+                  "alias": " User",
+                  "field": "username",
+                  "isEditAlias": false
+                },
+                {
+                  "alias": " Avg cost(us)",
+                  "field": "avg_elapsed",
+                  "isEditAlias": false
+                },
+                {
+                  "field": "executions"
+                },
+                {
+                  "alias": "SQL",
+                  "field": "message",
+                  "isEditAlias": false
+                }
+              ],
+              "filters": [],
+              "groupBy": [],
+              "orderby": [
+                {
+                  "time": "desc"
+                }
+              ],
+              "funcList": [],
+              "fieldFunc": "avg",
+              "fieldType": "text",
+              "highlight": true,
+              "namespace": "logging",
+              "dataSource": "oracle_log",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "default",
+              "additionalFields": null,
+              "disableMultipleField": false
+            },
+            "datasource": "dataflux",
+            "noTimeRange": false
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [
+              {
+                "key": "last(uptime)",
+                "name": "last(uptime)",
+                "alias": "Uptime"
+              },
+              {
+                "key": "version",
+                "name": "version",
+                "alias": "Version"
+              },
+              {
+                "key": "oracle_server",
+                "name": "oracle_server",
+                "alias": "Instance"
+              }
+            ],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "pageSize": 0,
+            "unitType": "global",
+            "fixedTime": "",
+            "precision": "2",
+            "queryMode": "toGroupColumn",
+            "showTitle": true,
+            "titleDesc": "",
+            "globalUnit": [
+              "time",
+              "s"
+            ],
+            "isSampling": true,
+            "pageEnable": false,
+            "showColumns": [],
+            "valMappings": [],
+            "aliasVersion": 2,
+            "columnsWidth": [
+              {
+                "field": "oracle_server",
+                "width": 169
+              },
+              {
+                "field": "version",
+                "width": 483
+              },
+              {
+                "field": "0_last(uptime)",
+                "width": 351
+              }
+            ],
+            "timeInterval": "auto",
+            "isTimeInterval": false,
+            "changeWorkspace": false,
+            "currentChartType": "table",
+            "showFieldMapping": false,
+            "valColorMappings": [],
+            "scientificNotation": true,
+            "mainMeasurementSort": "top",
+            "mainMeasurementField": "last(uptime)",
+            "mainMeasurementLimit": 100,
+            "openThousandsSeparator": false,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": "Instance info"
+        },
+        "name": "Instance list",
+        "pos": {
+          "h": 17,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "type": "table",
+        "queries": [
+          {
+            "name": "",
+            "type": "table",
+            "unit": "",
+            "color": "",
+            "qtype": "dql",
+            "query": {
+              "q": "M::`oracle_system`:(last(`uptime`)) BY `oracle_server`, `version`",
+              "code": "A",
+              "fill": null,
+              "type": "simple",
+              "alias": "",
+              "field": "uptime",
+              "filters": [],
+              "groupBy": [
+                "oracle_server",
+                "version"
+              ],
+              "funcList": [],
+              "fieldFunc": "last",
+              "fieldType": "float",
+              "namespace": "metric",
+              "dataSource": "oracle_system",
+              "queryFuncs": [],
+              "groupByTime": "",
+              "indexFilter": "",
               "additionalFields": null
             },
             "datasource": "dataflux"
           }
-        ],
-        "issueLevelUUID": "",
-        "needRecoverIssue": false,
-        "isNeedCreateIssue": false,
-        "issueDfStatus": []
+        ]
       },
-      "is_disable": true,
-      "tagInfo": [],
-      "secret": "",
-      "type": "trigger",
-      "monitorName": "default",
-      "alertPolicyNames": []
-    }
-  ]
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 100,
+            "density": null,
+            "lineType": "linear",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "areaLine",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [
+              "custom",
+              "times/sec"
+            ],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "min",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": 360,
+            "showMainTitle": true,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "variables": []
+        },
+        "group": {
+          "name": "Instance info"
+        },
+        "name": "SQL",
+        "pos": {
+          "h": 16,
+          "w": 12,
+          "x": 12,
+          "y": 34
+        },
+        "type": "combine",
+        "queries": [
+          {
+            "id": 422560,
+            "pos": {
+              "h": 11,
+              "w": 12,
+              "x": 12,
+              "y": 33
+            },
+            "name": "SQLs/sec",
+            "type": "sequence",
+            "uuid": "6a47850b3e92440180597eaf781f2494",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [
+                  {
+                    "key": "times",
+                    "name": "times",
+                    "unit": "times/sec",
+                    "units": [
+                      "custom",
+                      "times/sec"
+                    ]
+                  }
+                ],
+                "colors": [],
+                "levels": [],
+                "slimit": 100,
+                "density": null,
+                "lineType": "linear",
+                "showLine": false,
+                "unitType": "custom",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [],
+                "isSampling": true,
+                "compareType": [],
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": 360,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": false
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`oracle_system`:(avg(`executions_per_sec`) AS `times`) { `oracle_server` = '#{oracle_server}' and `oracle_service` = '#{service_name}' } BY `oracle_server`, `oracle_service`",
+                  "code": "A",
+                  "type": "simple",
+                  "alias": "times",
+                  "field": "executions_per_sec",
+                  "filters": [
+                    {
+                      "id": "d2634380-d4b2-11eb-b6fd-6ff82c63a527",
+                      "op": "=",
+                      "name": "oracle_server",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{oracle_server}",
+                      "values": []
+                    },
+                    {
+                      "id": "d44040e0-d4b2-11eb-b6fd-6ff82c63a527",
+                      "op": "=",
+                      "name": "oracle_service",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{service_name}"
+                    }
+                  ],
+                  "groupBy": [
+                    "oracle_server",
+                    "oracle_service"
+                  ],
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "oracle_system",
+                  "queryFuncs": [],
+                  "groupByTime": ""
+                },
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "createAt": 1747789409,
+            "deleteAt": -1,
+            "updateAt": 1747791037,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_67208ab0522e4be8b7f780e9241ee9d8",
+            "chartGroupUUID": "chtg_9aaab16f1cfa48e4b74a8ce5e764342c",
+            "isWorkspaceKeyIndicator": 0
+          },
+          {
+            "id": 422565,
+            "pos": {
+              "h": 11,
+              "w": 12,
+              "x": 12,
+              "y": 44
+            },
+            "name": "SQLs/txn",
+            "type": "sequence",
+            "uuid": "89bdc55a35f340228174c51d83fa4a1f",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 100,
+                "density": null,
+                "lineType": "linear",
+                "showLine": false,
+                "unitType": "custom",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [],
+                "isSampling": true,
+                "compareType": [],
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": 360,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": true
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`oracle_system`:(avg(`executions_per_txn`) AS `txns`) { `oracle_server` = '#{oracle_server}' and `oracle_service` = '#{service_name}' } BY `oracle_server`, `oracle_service`",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "txns",
+                  "field": "executions_per_txn",
+                  "limit": null,
+                  "fillNum": null,
+                  "filters": [
+                    {
+                      "id": "ec4bff90-35e2-11f0-a4df-19f5520fabac",
+                      "op": "=",
+                      "name": "oracle_server",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{oracle_server}",
+                      "values": []
+                    },
+                    {
+                      "id": "ec4bff91-35e2-11f0-a4df-19f5520fabac",
+                      "op": "=",
+                      "name": "oracle_service",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{service_name}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "oracle_server",
+                    "oracle_service"
+                  ],
+                  "labelOp": "",
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "oracle_system",
+                  "queryFuncs": [],
+                  "withLabels": [],
+                  "groupByTime": "",
+                  "indexFilter": "default"
+                },
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "createAt": 1747790908,
+            "deleteAt": -1,
+            "updateAt": 1747790991,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_67208ab0522e4be8b7f780e9241ee9d8",
+            "chartGroupUUID": "chtg_9aaab16f1cfa48e4b74a8ce5e764342c",
+            "isWorkspaceKeyIndicator": 0
+          },
+          {
+            "id": 422561,
+            "name": "Hard parse",
+            "type": "sequence",
+            "uuid": "main",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 100,
+                "density": null,
+                "lineType": "linear",
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [
+                  "custom",
+                  "times/sec"
+                ],
+                "isSampling": true,
+                "compareType": [],
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": 360,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": false
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`oracle_system`:(avg(`hard_parses`) AS `parse`) { `oracle_server` = '#{oracle_server}' and `oracle_service` = '#{service_name}' } BY `oracle_server`, `oracle_service`",
+                  "code": "A",
+                  "type": "simple",
+                  "alias": "parse",
+                  "field": "hard_parses",
+                  "filters": [
+                    {
+                      "id": "d2634380-d4b2-11eb-b6fd-6ff82c63a527",
+                      "op": "=",
+                      "name": "oracle_server",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{oracle_server}",
+                      "values": []
+                    },
+                    {
+                      "id": "d44040e0-d4b2-11eb-b6fd-6ff82c63a527",
+                      "op": "=",
+                      "name": "oracle_service",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{service_name}"
+                    }
+                  ],
+                  "groupBy": [
+                    "oracle_server",
+                    "oracle_service"
+                  ],
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "oracle_system",
+                  "queryFuncs": [],
+                  "groupByTime": ""
+                },
+                "disabled": false,
+                "datasource": "dataflux"
+              },
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "",
+                  "code": "B",
+                  "type": "dql",
+                  "funcList": []
+                },
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "createAt": 1747789645,
+            "deleteAt": -1,
+            "updateAt": 1747790382,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_67208ab0522e4be8b7f780e9241ee9d8",
+            "chartGroupUUID": "chtg_9aaab16f1cfa48e4b74a8ce5e764342c",
+            "isWorkspaceKeyIndicator": 0
+          },
+          {
+            "id": 422564,
+            "pos": {
+              "h": 11,
+              "w": 12,
+              "x": 12,
+              "y": 55
+            },
+            "name": "Parse fail/sec",
+            "type": "sequence",
+            "uuid": "f69b7dcb3a2e465d8b154c62d6459313",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 100,
+                "density": null,
+                "lineType": "linear",
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [
+                  "custom",
+                  "times/sec"
+                ],
+                "isSampling": true,
+                "compareType": [],
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": 360,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": false
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`oracle_system`:(avg(`parse_failures`) AS `fail`) { `oracle_server` = '#{oracle_server}' and `oracle_service` = '#{service_name}' } BY `oracle_server`, `oracle_service`",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "fail",
+                  "field": "parse_failures",
+                  "limit": null,
+                  "fillNum": null,
+                  "filters": [
+                    {
+                      "id": "b47c63d0-35e1-11f0-a4df-19f5520fabac",
+                      "op": "=",
+                      "name": "oracle_server",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{oracle_server}",
+                      "values": []
+                    },
+                    {
+                      "id": "b47c63d1-35e1-11f0-a4df-19f5520fabac",
+                      "op": "=",
+                      "name": "oracle_service",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{service_name}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "oracle_server",
+                    "oracle_service"
+                  ],
+                  "labelOp": "",
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "oracle_system",
+                  "queryFuncs": [],
+                  "withLabels": [],
+                  "groupByTime": "",
+                  "indexFilter": "default"
+                },
+                "disabled": false,
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "createAt": 1747790385,
+            "deleteAt": -1,
+            "updateAt": 1747790417,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_67208ab0522e4be8b7f780e9241ee9d8",
+            "chartGroupUUID": "chtg_9aaab16f1cfa48e4b74a8ce5e764342c",
+            "isWorkspaceKeyIndicator": 0
+          }
+        ]
+      },
+      {
+        "extend": {
+          "settings": {
+            "alias": [],
+            "units": [],
+            "colors": [],
+            "levels": [],
+            "slimit": 20,
+            "lineType": "smooth",
+            "showLine": false,
+            "unitType": "global",
+            "chartType": "line",
+            "fixedTime": "",
+            "isPercent": false,
+            "openStack": false,
+            "precision": "2",
+            "showLabel": false,
+            "showTitle": true,
+            "stackType": "time",
+            "titleDesc": "",
+            "globalUnit": [],
+            "isSampling": true,
+            "compareType": [],
+            "openCompare": false,
+            "yAxixMaxVal": null,
+            "yAxixMinVal": null,
+            "connectNulls": true,
+            "legendValues": [
+              "avg",
+              "min",
+              "max"
+            ],
+            "timeInterval": "auto",
+            "legendPostion": "bottom",
+            "maxPointCount": null,
+            "showMainTitle": true,
+            "sorderByOrder": "desc",
+            "xAxisShowType": "time",
+            "isTimeInterval": true,
+            "changeWorkspace": false,
+            "currentChartType": "sequence",
+            "showFieldMapping": false,
+            "onlyShowGroupName": false,
+            "scientificNotation": true,
+            "openThousandsSeparator": true,
+            "mainMeasurementQueryCode": "A"
+          },
+          "fixedTime": "",
+          "isRefresh": false,
+          "variables": [],
+          "fixedGroupByTime": null
+        },
+        "group": {
+          "name": "Instance info"
+        },
+        "name": "Table space",
+        "pos": {
+          "h": 13,
+          "w": 12,
+          "x": 0,
+          "y": 66
+        },
+        "type": "combine",
+        "queries": [
+          {
+            "id": 422570,
+            "name": "Table space",
+            "type": "sequence",
+            "uuid": "main",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 20,
+                "lineType": "smooth",
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "line",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [],
+                "isSampling": true,
+                "compareType": [],
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": null,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "A"
+              },
+              "fixedTime": "",
+              "isRefresh": false,
+              "fixedGroupByTime": null
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`oracle_tablespace`:(avg(`ts_size`) AS `Total`) { `oracle_server` = '#{oracle_server}' and `oracle_service` = '#{service_name}' } BY `tablespace_name`, `oracle_server`, `oracle_service`",
+                  "code": "A",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "Total",
+                  "field": "ts_size",
+                  "filters": [
+                    {
+                      "id": "0287f6b0-c83c-11eb-8c91-137cdaf56565",
+                      "op": "=",
+                      "name": "oracle_server",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{oracle_server}",
+                      "values": []
+                    },
+                    {
+                      "id": "067a6690-c83c-11eb-8c91-137cdaf56565",
+                      "op": "=",
+                      "name": "oracle_service",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{service_name}"
+                    }
+                  ],
+                  "groupBy": [
+                    "tablespace_name",
+                    "oracle_server",
+                    "oracle_service"
+                  ],
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "oracle_tablespace",
+                  "queryFuncs": [],
+                  "groupByTime": ""
+                },
+                "datasource": "dataflux"
+              },
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`oracle_tablespace`:(avg(`used_space`) AS `Used`) { `oracle_server` = '#{oracle_server}' and `oracle_service` = '#{service_name}' } BY `tablespace_name`, `oracle_server`, `oracle_service`",
+                  "code": "B",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "Used",
+                  "field": "used_space",
+                  "filters": [
+                    {
+                      "id": "0287f6b0-c83c-11eb-8c91-137cdaf56565",
+                      "op": "=",
+                      "name": "oracle_server",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{oracle_server}",
+                      "values": []
+                    },
+                    {
+                      "id": "067a6690-c83c-11eb-8c91-137cdaf56565",
+                      "op": "=",
+                      "name": "oracle_service",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{service_name}"
+                    }
+                  ],
+                  "groupBy": [
+                    "tablespace_name",
+                    "oracle_server",
+                    "oracle_service"
+                  ],
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "oracle_tablespace",
+                  "queryFuncs": [],
+                  "groupByTime": ""
+                },
+                "disabled": false,
+                "datasource": "dataflux"
+              },
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`oracle_tablespace`:(avg(`in_use`) AS `%Used`) { `oracle_server` = '#{oracle_server}' and `oracle_service` = '#{service_name}' } BY `tablespace_name`, `oracle_server`, `oracle_service`",
+                  "code": "C",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "%Used",
+                  "field": "in_use",
+                  "filters": [
+                    {
+                      "id": "0287f6b0-c83c-11eb-8c91-137cdaf56565",
+                      "op": "=",
+                      "name": "oracle_server",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{oracle_server}",
+                      "values": []
+                    },
+                    {
+                      "id": "067a6690-c83c-11eb-8c91-137cdaf56565",
+                      "op": "=",
+                      "name": "oracle_service",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{service_name}"
+                    }
+                  ],
+                  "groupBy": [
+                    "tablespace_name",
+                    "oracle_server",
+                    "oracle_service"
+                  ],
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "oracle_tablespace",
+                  "queryFuncs": [],
+                  "groupByTime": ""
+                },
+                "disabled": false,
+                "datasource": "dataflux"
+              },
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`oracle_tablespace`:(avg(`off_use`) AS `Offline blocks`) { `oracle_server` = '#{oracle_server}' and `oracle_service` = '#{service_name}' } BY `tablespace_name`, `oracle_server`, `oracle_service`",
+                  "code": "D",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "Offline blocks",
+                  "field": "off_use",
+                  "filters": [
+                    {
+                      "id": "0287f6b0-c83c-11eb-8c91-137cdaf56565",
+                      "op": "=",
+                      "name": "oracle_server",
+                      "type": "keyword",
+                      "logic": "and",
+                      "value": "#{oracle_server}",
+                      "values": []
+                    },
+                    {
+                      "id": "067a6690-c83c-11eb-8c91-137cdaf56565",
+                      "op": "=",
+                      "name": "oracle_service",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{service_name}"
+                    }
+                  ],
+                  "groupBy": [
+                    "tablespace_name",
+                    "oracle_server",
+                    "oracle_service"
+                  ],
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "oracle_tablespace",
+                  "queryFuncs": [],
+                  "groupByTime": ""
+                },
+                "disabled": true,
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "",
+            "createAt": 1747792225,
+            "deleteAt": -1,
+            "updateAt": -1,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_67208ab0522e4be8b7f780e9241ee9d8",
+            "chartGroupUUID": "default",
+            "isWorkspaceKeyIndicator": 0
+          },
+          {
+            "id": 422571,
+            "pos": {
+              "h": 13,
+              "w": 12
+            },
+            "name": "Used",
+            "type": "sequence",
+            "uuid": "531ee976401c4e12aca76fc3fe6176a2",
+            "extend": {
+              "settings": {
+                "alias": [],
+                "units": [],
+                "colors": [],
+                "levels": [],
+                "slimit": 20,
+                "density": null,
+                "lineType": "linear",
+                "showLine": false,
+                "unitType": "global",
+                "chartType": "areaLine",
+                "fixedTime": "",
+                "isPercent": false,
+                "openStack": false,
+                "precision": "2",
+                "showLabel": false,
+                "showTitle": true,
+                "stackType": "time",
+                "titleDesc": "",
+                "globalUnit": [
+                  "digital",
+                  "B"
+                ],
+                "isSampling": true,
+                "compareType": [],
+                "openCompare": false,
+                "yAxixMaxVal": null,
+                "yAxixMinVal": null,
+                "connectNulls": true,
+                "legendValues": [
+                  "avg",
+                  "min",
+                  "max"
+                ],
+                "timeInterval": "auto",
+                "legendPostion": "bottom",
+                "maxPointCount": 360,
+                "sorderByOrder": "desc",
+                "xAxisShowType": "time",
+                "isTimeInterval": true,
+                "changeWorkspace": false,
+                "currentChartType": "sequence",
+                "showFieldMapping": false,
+                "onlyShowGroupName": false,
+                "scientificNotation": true,
+                "tableSortMetricName": "缓冲区缓存命中率",
+                "openThousandsSeparator": true,
+                "mainMeasurementQueryCode": "B"
+              },
+              "fixedTime": "",
+              "isRefresh": false,
+              "fixedGroupByTime": null
+            },
+            "status": 0,
+            "creator": "acnt_6ceac174261a11eaae676ef8a3472ce6",
+            "queries": [
+              {
+                "name": "",
+                "type": "sequence",
+                "unit": "",
+                "color": "",
+                "qtype": "dql",
+                "query": {
+                  "q": "M::`oracle_tablespace`:(avg(`used_space`) AS `used`) { `oracle_server` = '#{oracle_server}' and `oracle_service` = '#{service_name}' } BY `tablespace_name`, `oracle_server`, `oracle_service`",
+                  "code": "B",
+                  "fill": null,
+                  "type": "simple",
+                  "alias": "used",
+                  "field": "used_space",
+                  "limit": null,
+                  "fillNum": null,
+                  "filters": [
+                    {
+                      "id": "9b1fc9a0-35e5-11f0-a4df-19f5520fabac",
+                      "op": "=",
+                      "name": "oracle_server",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{oracle_server}",
+                      "values": []
+                    },
+                    {
+                      "id": "9b1fc9a1-35e5-11f0-a4df-19f5520fabac",
+                      "op": "=",
+                      "name": "oracle_service",
+                      "type": "",
+                      "logic": "and",
+                      "value": "#{service_name}",
+                      "values": []
+                    }
+                  ],
+                  "groupBy": [
+                    "tablespace_name",
+                    "oracle_server",
+                    "oracle_service"
+                  ],
+                  "labelOp": "",
+                  "funcList": [],
+                  "fieldFunc": "avg",
+                  "fieldType": "float",
+                  "namespace": "metric",
+                  "dataSource": "oracle_tablespace",
+                  "queryFuncs": [],
+                  "withLabels": [],
+                  "groupByTime": "",
+                  "indexFilter": "default"
+                },
+                "datasource": "dataflux"
+              }
+            ],
+            "updator": "",
+            "createAt": 1747792225,
+            "deleteAt": -1,
+            "updateAt": -1,
+            "notesUUID": "",
+            "dashboardUUID": "dsbd_67208ab0522e4be8b7f780e9241ee9d8",
+            "chartGroupUUID": "default",
+            "isWorkspaceKeyIndicator": 0
+          }
+        ]
+      }
+    ],
+    "groups": [
+      {
+        "name": "Instance info",
+        "extend": {
+          "colorKey": "default"
+        }
+      },
+      {
+        "name": "Slow query",
+        "extend": {
+          "colorKey": "default"
+        }
+      }
+    ],
+    "type": "template"
+  },
+  "identifier": ""
 }
+

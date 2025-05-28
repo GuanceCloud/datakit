@@ -257,6 +257,8 @@ For all of the following data collections, the global election tags will added a
 
 ### `{{$m.Name}}`
 
+{{$m.Desc}}
+
 - Tags
 
 {{$m.TagsMarkdownTable}}
@@ -289,7 +291,7 @@ For all of the following data collections, the global election tags will added a
 
 {{ end }}
 
-## Long running queries {#slow}
+## Slow query {#slow}
 
 DataKit could reports the SQLs, those executed time exceeded the threshold time defined by user, to <<<custom_key.brand_name>>>, displays in the `Logs` side bar, the source name is `oracle_log`.
 
@@ -309,6 +311,25 @@ Change the value of the field `slow_query_time` from `0s` to the threshold time,
     For more fields, see [here](https://docs.oracle.com/en/database/oracle/oracle-database/19/refrn/V-SQLAREA.html#GUID-09D5169F-EE9E-4297-8E01-8D191D87BDF7).
 
 <!-- markdownlint-enable -->
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "logging"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- Tags
+
+{{$m.TagsMarkdownTable}}
+
+- Metrics
+
+{{$m.FieldsMarkdownTable}}
+{{end}}
+
+{{ end }}
 
 ## FAQ {#faq}
 <!-- markdownlint-disable MD013 -->
