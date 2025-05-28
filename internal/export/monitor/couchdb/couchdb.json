@@ -1,0 +1,556 @@
+{
+    "checkers": [
+      {
+        "jsonScript": {
+          "type": "simpleCheck",
+          "every": "5m",
+          "title": "<<.Monitor.httpd_status_codes_4xx_title>>",
+          "groupBy": [
+            "host",
+            "instance"
+          ],
+          "message": "<<.Monitor.httpd_status_codes_4xx_message>>",
+          "targets": [
+            {
+              "dql": "eval(A/B*100, A=\"M::`couchdb`:(difference(`httpd_status_codes`)) { `code` >= '400' and `code` < '500' } BY `host`, `instance`\", B=\"M::`couchdb`:(difference(`httpd_status_codes`)) BY `host`, `instance`\")",
+              "alias": "Result",
+              "qtype": "dql"
+            }
+          ],
+          "channels": [],
+          "interval": 300,
+          "atAccounts": [],
+          "checkerOpt": {
+            "rules": [
+              {
+                "status": "critical",
+                "conditions": [
+                  {
+                    "alias": "Result",
+                    "operands": [
+                      "5"
+                    ],
+                    "operator": ">="
+                  }
+                ],
+                "matchTimes": 1,
+                "conditionLogic": "and"
+              },
+              {
+                "status": "error",
+                "conditions": [
+                  {
+                    "alias": "Result",
+                    "operands": [
+                      "2"
+                    ],
+                    "operator": ">="
+                  }
+                ],
+                "matchTimes": 1,
+                "conditionLogic": "and"
+              }
+            ],
+            "infoEvent": false,
+            "combineExpr": "A && B",
+            "openMatchTimes": false,
+            "openOkConditions": false
+          },
+          "eventCharts": [],
+          "noDataTitle": "",
+          "noDataMessage": "",
+          "atNoDataAccounts": [],
+          "eventChartEnable": false,
+          "disableCheckEndTime": false,
+          "notificationMessage": "",
+          "recoverNeedPeriodCount": 2,
+          "openNotificationMessage": false,
+          "noDataNotificationMessage": "",
+          "openNoDataNotificationMessage": false
+        },
+        "extend": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "5"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "error",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "2"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "manager": [],
+          "funcName": "",
+          "querylist": [
+            {
+              "uuid": "2586b146-3a3a-4790-b604-9f355ac1a319",
+              "qtype": "dql",
+              "query": {
+                "q": "eval(A/B*100, A=\"M::`couchdb`:(difference(`httpd_status_codes`)) { `code` >= '400' and `code` < '500' } BY `host`, `instance`\", B=\"M::`couchdb`:(difference(`httpd_status_codes`)) BY `host`, `instance`\")",
+                "code": "Result",
+                "type": "expression",
+                "alias": "",
+                "children": [
+                  {
+                    "q": "M::`couchdb`:(difference(`httpd_status_codes`)) { `code` >= '400' and `code` < '500' } BY `host`, `instance`",
+                    "code": "A",
+                    "fill": null,
+                    "type": "simple",
+                    "alias": "",
+                    "field": "httpd_status_codes",
+                    "limit": null,
+                    "fillNum": null,
+                    "filters": [
+                      {
+                        "id": "0b1c47f0-2403-11f0-af27-cb426d12b3ec",
+                        "op": ">=",
+                        "name": "code",
+                        "type": "",
+                        "logic": "and",
+                        "value": "400",
+                        "values": []
+                      },
+                      {
+                        "id": "cfe461a0-2406-11f0-af27-cb426d12b3ec",
+                        "op": "<",
+                        "name": "code",
+                        "type": "keyword",
+                        "logic": "and",
+                        "value": "500",
+                        "values": []
+                      }
+                    ],
+                    "groupBy": [
+                      "host",
+                      "instance"
+                    ],
+                    "labelOp": "",
+                    "fieldFunc": "difference",
+                    "fieldType": "float",
+                    "namespace": "metric",
+                    "dataSource": "couchdb",
+                    "queryFuncs": [],
+                    "withLabels": [],
+                    "groupByTime": "",
+                    "indexFilter": "default"
+                  },
+                  {
+                    "q": "M::`couchdb`:(difference(`httpd_status_codes`)) BY `host`, `instance`",
+                    "code": "B",
+                    "fill": null,
+                    "type": "simple",
+                    "alias": "",
+                    "field": "httpd_status_codes",
+                    "limit": null,
+                    "fillNum": null,
+                    "filters": [],
+                    "groupBy": [
+                      "host",
+                      "instance"
+                    ],
+                    "labelOp": "",
+                    "fieldFunc": "difference",
+                    "fieldType": "float",
+                    "namespace": "metric",
+                    "dataSource": "couchdb",
+                    "queryFuncs": [],
+                    "withLabels": [],
+                    "groupByTime": "",
+                    "indexFilter": "default"
+                  }
+                ],
+                "funcList": [],
+                "expression": "A/B*100"
+              },
+              "datasource": "dataflux"
+            }
+          ],
+          "issueLevelUUID": "",
+          "needRecoverIssue": false,
+          "isNeedCreateIssue": false,
+          "issueDfStatus": []
+        },
+        "is_disable": false,
+        "tagInfo": [
+          {
+            "name": "CouchDB"
+          }
+        ],
+        "secret": "",
+        "type": "trigger",
+        "monitorName": "default",
+        "alertPolicyNames": []
+      },
+      {
+        "jsonScript": {
+          "type": "simpleCheck",
+          "every": "5m",
+          "title": "<<.Monitor.httpd_status_codes_5xx_title>>",
+          "groupBy": [
+            "host",
+            "instance"
+          ],
+          "message": "<<.Monitor.httpd_status_codes_5xx_message>>",
+          "targets": [
+            {
+              "dql": "eval(A/B*100, A=\"M::`couchdb`:(difference(`httpd_status_codes`)) { `code` >= '500' } BY `host`, `instance`\", B=\"M::`couchdb`:(difference(`httpd_status_codes`)) BY `host`, `instance`\")",
+              "alias": "Result",
+              "qtype": "dql"
+            }
+          ],
+          "channels": [],
+          "interval": 300,
+          "atAccounts": [],
+          "checkerOpt": {
+            "rules": [
+              {
+                "status": "critical",
+                "conditions": [
+                  {
+                    "alias": "Result",
+                    "operands": [
+                      "5"
+                    ],
+                    "operator": ">="
+                  }
+                ],
+                "matchTimes": 1,
+                "conditionLogic": "and"
+              },
+              {
+                "status": "error",
+                "conditions": [
+                  {
+                    "alias": "Result",
+                    "operands": [
+                      "2"
+                    ],
+                    "operator": ">="
+                  }
+                ],
+                "matchTimes": 1,
+                "conditionLogic": "and"
+              }
+            ],
+            "infoEvent": false,
+            "combineExpr": "A && B",
+            "openMatchTimes": false,
+            "openOkConditions": false
+          },
+          "eventCharts": [],
+          "noDataTitle": "",
+          "noDataMessage": "",
+          "atNoDataAccounts": [],
+          "eventChartEnable": false,
+          "disableCheckEndTime": false,
+          "notificationMessage": "",
+          "recoverNeedPeriodCount": 2,
+          "openNotificationMessage": false,
+          "noDataNotificationMessage": "",
+          "openNoDataNotificationMessage": false
+        },
+        "extend": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "5"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "error",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "2"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "manager": [],
+          "funcName": "",
+          "querylist": [
+            {
+              "uuid": "2586b146-3a3a-4790-b604-9f355ac1a319",
+              "qtype": "dql",
+              "query": {
+                "q": "eval(A/B*100, A=\"M::`couchdb`:(difference(`httpd_status_codes`)) { `code` >= '500' } BY `host`, `instance`\", B=\"M::`couchdb`:(difference(`httpd_status_codes`)) BY `host`, `instance`\")",
+                "code": "Result",
+                "type": "expression",
+                "alias": "",
+                "children": [
+                  {
+                    "q": "M::`couchdb`:(difference(`httpd_status_codes`)) { `code` >= '500' } BY `host`, `instance`",
+                    "code": "A",
+                    "fill": null,
+                    "type": "simple",
+                    "alias": "",
+                    "field": "httpd_status_codes",
+                    "limit": null,
+                    "fillNum": null,
+                    "filters": [
+                      {
+                        "id": "0b1c47f0-2403-11f0-af27-cb426d12b3ec",
+                        "op": ">=",
+                        "name": "code",
+                        "type": "",
+                        "logic": "and",
+                        "value": "500",
+                        "values": []
+                      }
+                    ],
+                    "groupBy": [
+                      "host",
+                      "instance"
+                    ],
+                    "labelOp": "",
+                    "fieldFunc": "difference",
+                    "fieldType": "float",
+                    "namespace": "metric",
+                    "dataSource": "couchdb",
+                    "queryFuncs": [],
+                    "withLabels": [],
+                    "groupByTime": "",
+                    "indexFilter": "default"
+                  },
+                  {
+                    "q": "M::`couchdb`:(difference(`httpd_status_codes`)) BY `host`, `instance`",
+                    "code": "B",
+                    "fill": null,
+                    "type": "simple",
+                    "alias": "",
+                    "field": "httpd_status_codes",
+                    "limit": null,
+                    "fillNum": null,
+                    "filters": [],
+                    "groupBy": [
+                      "host",
+                      "instance"
+                    ],
+                    "labelOp": "",
+                    "fieldFunc": "difference",
+                    "fieldType": "float",
+                    "namespace": "metric",
+                    "dataSource": "couchdb",
+                    "queryFuncs": [],
+                    "withLabels": [],
+                    "groupByTime": "",
+                    "indexFilter": "default"
+                  }
+                ],
+                "funcList": [],
+                "expression": "A/B*100"
+              },
+              "datasource": "dataflux"
+            }
+          ],
+          "issueLevelUUID": "",
+          "needRecoverIssue": false,
+          "isNeedCreateIssue": false,
+          "issueDfStatus": []
+        },
+        "is_disable": false,
+        "tagInfo": [
+          {
+            "name": "CouchDB"
+          }
+        ],
+        "secret": "",
+        "type": "trigger",
+        "monitorName": "default",
+        "alertPolicyNames": []
+      },
+      {
+        "jsonScript": {
+          "type": "simpleCheck",
+          "every": "5m",
+          "title": "<<.Monitor.couchdb_p90_title>>",
+          "groupBy": [
+            "host",
+            "instance"
+          ],
+          "message": "<<.Monitor.couchdb_p90_message>>",
+          "targets": [
+            {
+              "dql": "M::`couchdb`:(avg(`request_time_seconds`)) { `quantile` = '0.9' } BY `host`, `instance`",
+              "alias": "Result",
+              "qtype": "dql"
+            }
+          ],
+          "channels": [],
+          "interval": 300,
+          "atAccounts": [],
+          "checkerOpt": {
+            "rules": [
+              {
+                "status": "critical",
+                "conditions": [
+                  {
+                    "alias": "Result",
+                    "operands": [
+                      "500"
+                    ],
+                    "operator": ">="
+                  }
+                ],
+                "matchTimes": 1,
+                "conditionLogic": "and"
+              },
+              {
+                "status": "error",
+                "conditions": [
+                  {
+                    "alias": "Result",
+                    "operands": [
+                      "200"
+                    ],
+                    "operator": ">="
+                  }
+                ],
+                "matchTimes": 1,
+                "conditionLogic": "and"
+              }
+            ],
+            "infoEvent": false,
+            "combineExpr": "A && B",
+            "openMatchTimes": false,
+            "openOkConditions": false
+          },
+          "eventCharts": [],
+          "noDataTitle": "",
+          "noDataMessage": "",
+          "atNoDataAccounts": [],
+          "eventChartEnable": false,
+          "disableCheckEndTime": false,
+          "notificationMessage": "",
+          "recoverNeedPeriodCount": 2,
+          "openNotificationMessage": false,
+          "noDataNotificationMessage": "",
+          "openNoDataNotificationMessage": false
+        },
+        "extend": {
+          "rules": [
+            {
+              "status": "critical",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "500"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            },
+            {
+              "status": "error",
+              "conditions": [
+                {
+                  "alias": "Result",
+                  "operands": [
+                    "200"
+                  ],
+                  "operator": ">="
+                }
+              ],
+              "matchTimes": 1,
+              "conditionLogic": "and"
+            }
+          ],
+          "manager": [],
+          "funcName": "",
+          "querylist": [
+            {
+              "uuid": "2586b146-3a3a-4790-b604-9f355ac1a319",
+              "qtype": "dql",
+              "query": {
+                "q": "M::`couchdb`:(avg(`request_time_seconds`)) { `quantile` = '0.9' } BY `host`, `instance`",
+                "code": "Result",
+                "fill": null,
+                "type": "simple",
+                "alias": "",
+                "field": "request_time_seconds",
+                "limit": null,
+                "fillNum": null,
+                "filters": [
+                  {
+                    "id": "86ebc7b0-2409-11f0-a950-3bc4b3846f32",
+                    "op": "=",
+                    "name": "quantile",
+                    "type": "",
+                    "logic": "and",
+                    "value": "0.9",
+                    "values": []
+                  }
+                ],
+                "groupBy": [
+                  "host",
+                  "instance"
+                ],
+                "labelOp": "",
+                "funcList": [],
+                "fieldFunc": "avg",
+                "fieldType": "float",
+                "namespace": "metric",
+                "dataSource": "couchdb",
+                "queryFuncs": [],
+                "withLabels": [],
+                "groupByTime": "",
+                "indexFilter": "default"
+              },
+              "datasource": "dataflux"
+            }
+          ],
+          "issueLevelUUID": "",
+          "needRecoverIssue": false,
+          "isNeedCreateIssue": false,
+          "issueDfStatus": []
+        },
+        "is_disable": false,
+        "tagInfo": [
+          {
+            "name": "CouchDB"
+          }
+        ],
+        "secret": "",
+        "type": "trigger",
+        "monitorName": "default",
+        "alertPolicyNames": []
+      }
+    ]
+  }

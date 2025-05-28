@@ -12,57 +12,58 @@ func (*Input) Dashboard(lang inputs.I18n) map[string]string {
 	switch lang {
 	case inputs.I18nZh:
 		return map[string]string{
-			"uptime_seconds_note":               "正常运行时间",
-			"uptime_seconds":                    "正常运行时间",
-			"erlang_memory_bytes_note":          "Erlang内存大小",
-			"erlang_memory_bytes":               "Erlang内存大小",
-			"httpd_request_methods_note":        "HTTP 分类型请求数量",
+			"var_host":                          "主机",
+			"var_instance":                      "实例",
+			"group_overview":                    "概览",
+			"group_db_request":                  "数据库请求",
+			"group_replicator":                  "复制器状态",
+			"httpd_requests_total":              "请求数 HTTP requests/s",
+			"request_time_seconds":              "请求耗时",
+			"database_reads_total":              "数据库读(Reads/s)",
+			"httpd_bulk_requests":               "批量请求数(requests/s)",
+			"httpd_status_codes":                "HTTP 响应状态码趋势",
 			"httpd_request_methods":             "HTTP 分类型请求数",
-			"open_databases_note":               "打开的数据库数量",
-			"open_databases":                    "数据库数量",
-			"open_os_files_note":                "打开的文件数量",
-			"open_os_files":                     "文件数量",
-			"auth_cache_hits_note":              "身份验证缓存命中数",
-			"auth_cache_hits":                   "缓存命中数",
-			"auth_cache_misses_note":            "身份验证缓存未命中数",
-			"auth_cache_misses":                 "缓存未命中数",
-			"httpd_requests_note":               "HTTP 请求数",
-			"httpd_requests":                    "HTTP 请求数",
-			"httpd_bulk_requests_note":          "批量请求数",
-			"httpd_bulk_requests":               "批量请求数",
-			"collect_results_time_seconds_note": "呼叫延迟",
-			"collect_results_time_seconds":      "呼叫延迟",
-			"database_reads_writes_note":        "数据库读次数<br>数据库写次数<br>数据库被清除次数",
-			"database_reads_writes":             "数据库读写",
-			"httpd_status_codes_note":           "HTTP 分响应状态码统计次数",
-			"httpd_status_codes":                "HTTP 响应状态码",
+			"httpd_request_methods_pie":         "HTTP 分类型请求数分布",
+			"database_writes_total":             "数据库写(Writes/s)",
+			"httpd_status_codes_pie":            "HTTP 响应状态码分布",
+			"couch_replicator_jobs_running":     "复制器调度程序中运行的作业数量",
+			"couch_replicator_jobs_pending":     "复制器调度程序中待处理的作业数量",
+			"couch_replicator_jobs_crashed":     "复制器调度程序中崩溃的作业数量",
+			"auth_cache_requests_total":         "身份验证缓存请求数",
+			"auth_cache_misses_total":           "身份验证缓存未命中数",
+			"alias_instance":                    "实例",
+			"alias_host":                        "所在主机",
+			"alias_online":                      "在线时长",
+			"instance_overview":                 "实例概览",
+
+
 		}
 	case inputs.I18nEn:
 		return map[string]string{
-			"uptime_seconds_note":               "CouchDB uptime",
-			"uptime_seconds":                    "CouchDB uptime",
-			"erlang_memory_bytes_note":          "Size of memory dynamically allocated by the Erlang emulator",
-			"erlang_memory_bytes":               "Erlang memory",
-			"httpd_request_methods_note":        "Number of HTTP option requests",
-			"httpd_request_methods":             "HTTP option requests",
-			"open_databases_note":               "Number of open databases",
-			"open_databases":                    "Open databases",
-			"open_os_files_note":                "Number of file descriptors CouchDB has open",
-			"open_os_files":                     "Open files",
-			"auth_cache_hits_note":              "Number of authentication cache hits",
-			"auth_cache_hits":                   "Auth cache hits",
-			"auth_cache_misses_note":            "Number of authentication cache misses",
-			"auth_cache_misses":                 "Auth cache misses",
-			"httpd_requests_note":               "HTTP requests",
-			"httpd_requests":                    "HTTP requests",
-			"httpd_bulk_requests_note":          "Number of bulk requests",
-			"httpd_bulk_requests":               "Bulk requests",
-			"collect_results_time_seconds_note": "Microsecond latency for calls to couch_db:collect_results",
-			"collect_results_time_seconds":      "Latency for calls",
-			"database_reads_writes_note":        "DB read times<br>DB write times<br>DB was purged times",
-			"database_reads_writes":             "DB reads and writes",
-			"httpd_status_codes_note":           "Number of HTTP status_codes responses",
-			"httpd_status_codes":                "HTTP status_codes responses",
+			"var_host":                          "Host",
+			"var_instance":                      "Instance",
+			"group_overview":                    "Overview",
+			"group_db_request":                  "Database Request",
+			"group_replicator":                  "Replicator Status",
+			"httpd_requests_total":              "HTTP requests/s",
+			"request_time_seconds":              "Request Time",
+			"database_reads_total":              "Database Read(Reads/s)",
+			"httpd_bulk_requests":               "Bulk Requests/s",
+			"httpd_status_codes":                "HTTP Status Codes",
+			"httpd_request_methods":             "HTTP Request Methods",
+			"httpd_request_methods_pie":         "HTTP Request Methods trend",
+			"database_writes_total":             "Database Write(Writes/s)",
+			"httpd_status_codes_pie":            "HTTP Status Codes trend",
+			"couch_replicator_jobs_running":     "Couch Replicator Jobs Running",
+			"couch_replicator_jobs_pending":     "Couch Replicator Jobs Pending",
+			"couch_replicator_jobs_crashed":     "Couch Replicator Jobs Crashed",
+			"auth_cache_requests_total":         "Auth Cache Requests",
+			"auth_cache_misses_total":           "Auth Cache Misses",
+			"alias_instance":                    "Instance",
+			"alias_host":                        "Host",
+			"alias_online":                      "Online Time",
+			"instance_overview":                 "Instance Overview",
+
 		}
 	default:
 		return nil
@@ -72,12 +73,24 @@ func (*Input) Dashboard(lang inputs.I18n) map[string]string {
 func (*Input) Monitor(lang inputs.I18n) map[string]string {
 	switch lang {
 	case inputs.I18nZh:
+        //nolint:lll
 		return map[string]string{
-			//nolint:lll
+			"httpd_status_codes_4xx_title":                          `CouchDB 请求 4xx 错误率异常告警`,
+			"httpd_status_codes_4xx_message":                        `> 告警等级：{{status}}\n> CouchDB 服务地址: 主机 {{host}}，实例 {{instance}}\n> 服务错误率：{{ Result | to_fixed(2) }}%\n> 建议：请求 4xx 错误率等于单位时间的 4xx 错误请求数(例如 '401 Unauthorized') 除以 总请求数。如果错误率过高，请关注。`,
+			"httpd_status_codes_5xx_title":                          `CouchDB 请求 5xx 错误率异常告警`,
+			"httpd_status_codes_5xx_message":                        `> 告警等级：{{status}}\n> CouchDB 服务地址: 主机 {{host}}，实例 {{instance}}\n> 服务错误率：{{ Result | to_fixed(2) }}%\n> 建议：请求 5xx 错误率等于单位时间的 5xx 错误请求数(例如 '502 Bad Gateway') 除以 总请求数。如果错误率过高，请关注。`,
+			"couchdb_p90_title":                                     `CouchDB P90 响应时长过高`,
+			"couchdb_p90_message":                                   `> 告警等级：{{status}}\n> CouchDB 服务地址: 主机 {{host}}，实例 {{instance}}\n> P90 响应时长：{{Result}}ms\n> 建议：请求响应时长过高，请关注。`,
 		}
 	case inputs.I18nEn:
+	    //nolint:lll
 		return map[string]string{
-			//nolint:lll
+			"httpd_status_codes_4xx_title":                          `CouchDB Request 4xx Error Rate Alert`,
+			"httpd_status_codes_4xx_message":                        `> Alert Level: {{status}}\n> CouchDB Service Address: Host {{host}}, Instance {{instance}}\n> Service Error Rate: {{ Result | to_fixed(2) }}%\n> Suggestion: The request 4xx error rate equals the number of 4xx error requests (e.g., '401 Unauthorized') per unit time divided by the total number of requests. If the error rate is too high, please pay attention.`,
+			"httpd_status_codes_5xx_title":                          `CouchDB Request 5xx Error Rate Alert`,
+			"httpd_status_codes_5xx_message":                        `> Alert Level: {{status}}\n> CouchDB Service Address: Host {{host}}, Instance {{instance}}\n> Service Error Rate: {{ Result | to_fixed(2) }}%\n> Suggestion: The request 5xx error rate equals the number of 5xx error requests (e.g., '502 Bad Gateway') per unit time divided by the total number of requests. If the error rate is too high, please pay attention.`,
+			"couchdb_p90_title":                                     `CouchDB P90 Response Time Too High`,
+			"couchdb_p90_message":                                   `> Alert Level: {{status}}\n> CouchDB Service Address: Host {{host}}, Instance {{instance}}\n> P90 Response Time: {{Result}}ms\n> Suggestion: The request response time is too high, please investigate.`,
 		}
 	default:
 		return nil
