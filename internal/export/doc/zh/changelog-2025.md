@@ -1,5 +1,41 @@
 # 更新日志
 
+## 1.74.0(2025/05/28) {#cl-1.74.0}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.74.0-new}
+
+- 新增 PHP-FPM 采集器（#2608）
+- MySQL 新增对象采集（#2679）
+
+### 问题修复 {#cl-1.74.0-fix}
+
+- 修复 DDTrace 资源目录上报不全问题（#2600）
+- 修复 Kafka/Jenkins/Jolokia 采集器选举无效问题（#2688）
+- 修复升级程序强制修改已有资源限制的 bug，此问题自 1.73 版本引入（#2695）
+- 修复 Kubernetes 对象计数以及对象变更中缺失 cluster tag 问题（#2696）
+- 修复数据录制/回放失效问题（#2699）
+- 修复 KubernetesPrometheus *up* 指标在 endpoint 不可用时设置错误问题（#2704）
+- 修复 SNMP 不支持 `SHA224/SHA256/SHA384/SHA512` 问题（#2697）
+
+### 功能优化 {#cl-1.74.0-opt}
+
+- DDTrace 新增 `out_host` 字段提取
+- DataKit 请求 DataWay 接口时，统一追加了 HTTP header `Referer: DataKit`（#2703）
+- Kubernetes 基础设施对象 PV/PVC 新增采集字段 `age/capacity_storage/access_modes/requests_storage`（#2667）
+- 优化纯容器环境中容器 CPU/Mem limit 指标采集（#2669）
+- 优化 OpenTelemetry 日志采集中超长日志的处理（#2671）
+- 优化容器日志 include/exclude 采集策略（#2672/#2686）
+- 优化 Helm 默认配置，移除 KSM 并增设 `ENV_CLUSTER_NAME_K8S` 配置入口（#2683）
+- 优化 Oracle 指标采集，新增 locked-session/waiting-event 有关的指标，同时重构其内置视图（#2684）
+- 拨测采集器新增自定义 timeout 配置（#2693）
+- 其它更新（#2702）：
+    - 新增 APM 采样最佳实践文档（#2673）
+    - 更新一批内置视图（!3513/!3498/!3494）
+
+---
+
 ## 1.73.0(2025/05/14) {#cl-1.73.0}
 
 本次发布属于迭代发布，主要有如下更新：

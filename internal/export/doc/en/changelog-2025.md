@@ -1,5 +1,42 @@
 # Changelog
 
+## 1.74.0 (2025/05/28) {#cl-1.74.0}
+
+This is an iterative release with the following key updates:
+
+### New Features {#cl-1.74.0-new}
+
+- Added PHP-FPM collector (#2608).
+- Added object collection for MySQL (#2679).
+
+### Issue Fixes {#cl-1.74.0-fix}
+
+- Fixed incomplete collection on DDTrace resource (#2600).
+- Fixed election not working for Kafka/Jenkins/Jolokia collectors (#2688).
+- Fixed bug introduced in v1.73 that force-modified existing resource limits during install/upgrade (#2695).
+- Fixed the missing `cluster` tag in Kubernetes object counting and object changes (#2696).
+- Fixed data record/playback not working (#2699).
+- Fixed bug on KubernetesPrometheus *up* metrics when endpoints are unavailable (#2704).
+- Enabled support for `SHA224/SHA256/SHA384/SHA512` in SNMP (#2697).
+
+### Function Optimizations {#cl-1.74.0-opt}
+
+- DDTrace added `out_host` field.
+- Added a unified HTTP header `Referer: DataKit` to DataKit requests to DataWay APIs (#2703).
+- Added new fields `age/capacity_storage/access_modes/requests_storage` for Kubernetes PV/PVC objects (#2667).
+- Optimized collection of container CPU/memory limit metrics in pure container environments (#2669).
+- Improved handling of large logs for OpenTelemetry logging collection (#2671).
+- Optimized log include/exclude collection strategies (#2672/#2686).
+- Optimized Helm default configuration, removed KSM, and added an `ENV_CLUSTER_NAME_K8S` configuration entry (#2683).
+- Enhanced Oracle metric collection by adding metrics related to locked-sessions and waiting-events, and refactored Oracle dashboard (#2684).
+- Added custom timeout configuration for the dialtesting collector (#2693).
+- Other updates (#2702):
+  - Added best practices documentation for APM sampling (#2673).
+  - Updated a batch of dashboards (!3513/!3498/!3494).
+
+
+---
+
 ## 1.73.0 (2025/05/14) {#cl-1.73.0}
 
 This release is an iterative release, and the main updates are as follows:
