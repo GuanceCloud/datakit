@@ -42,7 +42,21 @@ skip: 'not-searchable-on-index-page'
 
 --->
 
-## v1.47.1-guance {#cl-1.47.1-guance}
+## v1.47.5-guance (2025/5/22) {#cl-1.47.5-guance}
+
+### 修复 {#cl-1.47.5-guance-fix}
+
+- 修复： Pulsar 消费者链路断开问题。
+- 修复： [资源目录字段缺失问题](https://github.com/GuanceCloud/dd-trace-java/issues/127){:target="_blank"}
+
+## v1.47.4-guance (2025/5/14) {#cl-1.47.4-guance}
+
+### 新增 {#cl-1.47.4-guance-fix}
+
+- 方法级的插桩，[配置并开启](ddtrace-ext-java.md#trace-method) 功能。
+
+
+## v1.47.1-guance (2025/4/17) {#cl-1.47.1-guance}
 
 ### 修复 {#cl-1.47.1-guance-fix}
 

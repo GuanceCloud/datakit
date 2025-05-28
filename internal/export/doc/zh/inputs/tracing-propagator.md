@@ -3,6 +3,8 @@ title     : 'Tracing Propagator'
 summary   : '多链路中的信息传播机制及使用'
 tags      :
   - '链路追踪'
+  - 'Propagator'
+  - '透传协议'
 __int_icon: ''
 ---
 

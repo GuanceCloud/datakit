@@ -18,6 +18,16 @@ For the installation of the PHP APM plugin, refer to the [Datadog PHP Integratio
 
 Depending on the PHP runtime environment (Apache/NGINX), there are some differences in the configuration. See the [Datadog PHP Trace SDK Configuration Documentation](https://docs.datadoghq.com/tracing/trace_collection/library_config/php/){:target="_blank"}.
 
+A request in a Web project is like a process, which can cause a large data flow in the central resource directory. Therefore, it is recommended to turn off resource reporting:
+
+```shell
+#ENV
+export DD_INSTRUMENTATION_TELEMETRY_ENABLED=false
+
+#command
+-Ddd.instrumentation.telemetry.enable=false
+```
+
 ## Environment Variable Support {#envs}
 
 Below are common PHP APM parameter configurations. For a complete list of parameters, refer to the [Datadog Documentation](https://docs.datadoghq.com/tracing/trace_collection/library_config/php/){:target="_blank"}.

@@ -11,24 +11,6 @@ import (
 	"fmt"
 )
 
-// Body is the common high-level structure encapsulating a telemetry request body.
-type Body struct {
-	APIVersion  string      `json:"api_version"`
-	RequestType RequestType `json:"request_type"`
-	TracerTime  int64       `json:"tracer_time"`
-	RuntimeID   string      `json:"runtime_id"`
-	SeqID       int64       `json:"seq_id"`
-	Debug       bool        `json:"debug"`
-	Payload     interface{} `json:"payload"`
-	Application Application `json:"application"`
-	Host        Host        `json:"host"`
-}
-
-type BatchBody struct {
-	RequestType RequestType `json:"request_type"`
-	Payload     interface{} `json:"payload"`
-}
-
 // RequestType determines how the Payload of a request should be handled.
 type RequestType string
 
@@ -61,6 +43,37 @@ const (
 
 	RequestTypeMessageBatch RequestType = "message-batch"
 )
+
+// requestTypeMap Use "_" replace to "-".
+var requestTypeMap = map[RequestType]string{
+	RequestTypeAppStarted:                   "app_started",
+	RequestTypeAppHeartbeat:                 "app_heartbeat",
+	RequestTypeGenerateMetrics:              "generate_metrics",
+	RequestTypeDistributions:                "distributions",
+	RequestTypeAppClosing:                   "app_closing",
+	RequestTypeDependenciesLoaded:           "app_dependencies_loaded",
+	RequestTypeAppClientConfigurationChange: "app_client_configuration_change",
+	RequestTypeAppProductChange:             "app_product_change",
+	RequestTypeAppIntegrationsChange:        "app_integrations_change",
+}
+
+// Body is the common high-level structure encapsulating a telemetry request body.
+type Body struct {
+	APIVersion  string      `json:"api_version"`
+	RequestType RequestType `json:"request_type"`
+	TracerTime  int64       `json:"tracer_time"`
+	RuntimeID   string      `json:"runtime_id"`
+	SeqID       int64       `json:"seq_id"`
+	Debug       bool        `json:"debug"`
+	Payload     interface{} `json:"payload"`
+	Application Application `json:"application"`
+	Host        Host        `json:"host"`
+}
+
+type BatchBody struct {
+	RequestType RequestType `json:"request_type"`
+	Payload     interface{} `json:"payload"`
+}
 
 // Namespace describes an APM product to distinguish telemetry coming from
 // different products used by the same application.

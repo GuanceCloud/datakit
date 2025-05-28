@@ -173,7 +173,10 @@ func (*Input) SampleConfig() string { return sampleConfig }
 func (*Input) Singleton() {}
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{&Measurement{}, &itrace.TraceMeasurement{Name: inputName}}
+	return []inputs.Measurement{
+		&JVMMeasurement{},
+		&itrace.TraceMeasurement{Name: inputName},
+	}
 }
 
 func (ipt *Input) RegHTTPHandler() {

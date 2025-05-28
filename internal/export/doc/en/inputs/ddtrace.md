@@ -328,6 +328,17 @@ Restore whitelist functionality from DataKit version [1.22.0](../datakit/changel
 
 If the configured whitelist label is in the native `message.meta`, Will convert to replace `.` with `_`.
 
+## Resource Catalog {#resource}
+
+DDTrace reports its configuration information, integration list, dependencies, and service-related information to DataKit after initialization.  
+Currently, this feature is only supported in **Java Agent**. Below are descriptions of each field:
+
+- `app_client_configuration_change`: Contains the agent's configuration details.
+- `app_dependencies_loaded`: Dependency list, including package names and version information.
+- `app_integrations_change`: Integration list, including package names and instrumentation status (enabled/disabled).
+- Additional fields: Host metadata and service information.
+
+
 ## Tracing {#tracing}
 
 {{range $i, $m := .Measurements}}

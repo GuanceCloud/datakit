@@ -41,6 +41,7 @@ var ddTags = map[string]string{
 	"db.type":      "db_system",
 	"db.instance":  "db_name",
 	"db.operation": "db_operation",
+	"out.host":     "out_host",
 }
 
 var ddTagsLock sync.RWMutex

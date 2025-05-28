@@ -25,7 +25,20 @@ Currently, DDTrace has added the following extensions to the technology stack：
 
 ## changelog {#changelog}
 
-## v1.47.1-guance {#cl-1.47.1-guance}
+## v1.47.5-guance (2025/5/22) {#cl-1.47.5-guance}
+
+### fix {#cl-1.47.5-guance-fix}
+
+- Fix: Pulsar consumer bug.
+- Fix: [Resource catalog bug](https://github.com/GuanceCloud/dd-trace-java/issues/127){:target="_blank"}
+
+## v1.47.4-guance (2025/5/14) {#cl-1.47.4-guance}
+
+### fix {#cl-1.47.4-guance-fix}
+
+- Attach to trace methods
+
+## v1.47.1-guance (2025/4/17) {#cl-1.47.1-guance}
 
 ### fix {#cl-1.47.1-guance-fix}
 
