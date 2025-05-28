@@ -7,6 +7,9 @@ package kubernetes
 
 import (
 	"context"
+	"sort"
+	"strings"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
@@ -125,6 +128,22 @@ func (p *persistentvolume) buildObjectPoints(list *apicorev1.PersistentVolumeLis
 			kvs = kvs.AddV2("claimRef_namespace", item.Spec.ClaimRef.Namespace, false)
 		}
 
+		kvs = kvs.AddV2("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3, false)
+
+		if item.Spec.Capacity != nil {
+			storage, ok := item.Spec.Capacity["storage"]
+			if ok {
+				kvs = kvs.AddV2("capacity_storage", storage.String(), false)
+			}
+		}
+
+		accessModes := []string{}
+		for _, mode := range item.Spec.AccessModes {
+			accessModes = append(accessModes, string(mode))
+		}
+		sort.Strings(accessModes)
+		kvs = kvs.AddV2("access_modes", strings.Join(accessModes, ","), false)
+
 		if y, err := yaml.Marshal(item); err == nil {
 			kvs = kvs.AddV2("yaml", string(y), false)
 		}
@@ -161,9 +180,12 @@ func (*persistentvolumeObject) Info() *inputs.MeasurementInfo {
 			"cluster_name_k8s":      inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
+			"age":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},
 			"phase":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The phase indicates if a volume is available, bound to a claim, or released by a claim.(Pending/Available/Bound/Released/Failed)"},
 			"claimRef_name":      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Name of the bound PersistentVolumeClaim."},
 			"claimRef_namespace": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Namespace of the PersistentVolumeClaim."},
+			"capacity_storage":   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Specifies the maximum storage capacity of a PersistentVolume (PV), which Kubernetes uses for scheduling and resource allocation."},
+			"access_modes":       &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "AccessModes contains the desired access modes the volume should have."},
 			"message":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Object details"},
 		},
 	}
