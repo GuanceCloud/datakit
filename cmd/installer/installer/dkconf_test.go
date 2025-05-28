@@ -131,13 +131,16 @@ func Test_loadInstallerArgs(t *T.T) {
 		args := &InstallerArgs{
 			LimitCPUCores: 1,
 		}
+
 		mc := config.DefaultConfig()
+		memMax := mc.ResourceLimitOptions.MemMax
+
 		mc, err := args.LoadInstallerArgs(mc)
 		assert.NoError(t, err)
 
 		assert.Equal(t, 1.0, mc.ResourceLimitOptions.CPUCores)
 
-		assert.Equal(t, args.LimitMemMax, mc.ResourceLimitOptions.MemMax)
+		assert.Equal(t, memMax, mc.ResourceLimitOptions.MemMax)
 	})
 
 	t.Run(`resource-limit-cpu-max`, func(t *T.T) {
@@ -147,9 +150,56 @@ func Test_loadInstallerArgs(t *T.T) {
 		mc := config.DefaultConfig()
 		mc, err := args.LoadInstallerArgs(mc)
 		assert.NoError(t, err)
+		memMax := mc.ResourceLimitOptions.MemMax
 
 		assert.Equal(t, 10.0, mc.ResourceLimitOptions.CPUMax)
-		assert.Equal(t, args.LimitMemMax, mc.ResourceLimitOptions.MemMax)
+		assert.Equal(t, memMax, mc.ResourceLimitOptions.MemMax)
+	})
+
+	t.Run(`resource-limit-cpu-args-not-set`, func(t *T.T) {
+		args := &InstallerArgs{
+			LimitCPUMax: 0,
+		}
+
+		mc := config.DefaultConfig()
+		memMax := mc.ResourceLimitOptions.MemMax
+
+		mc.ResourceLimitOptions.CPUMax = 7.0
+
+		mc, err := args.LoadInstallerArgs(mc)
+		assert.NoError(t, err)
+
+		assert.Equal(t, 7.0, mc.ResourceLimitOptions.CPUMax)
+		assert.Equal(t, memMax, mc.ResourceLimitOptions.MemMax) // max-mem not changed
+	})
+
+	t.Run(`double-load`, func(t *T.T) {
+		var (
+			args = &InstallerArgs{
+				LimitCPUMax: 0,
+			}
+			err error
+			mc  = config.DefaultConfig()
+		)
+
+		defMemMax := mc.ResourceLimitOptions.MemMax
+		defCpuCores := mc.ResourceLimitOptions.CPUCores
+
+		mc, err = args.LoadInstallerArgs(mc) // 1st load within  main.go/applyFlags()
+		assert.NoError(t, err)
+		assert.Equal(t, defMemMax, mc.ResourceLimitOptions.MemMax)     // not changed
+		assert.Equal(t, defCpuCores, mc.ResourceLimitOptions.CPUCores) // not changed
+
+		mc.ResourceLimitOptions.CPUMax = 7.0
+		mc.ResourceLimitOptions.MemMax = 11
+
+		mc, err = args.LoadInstallerArgs(mc) // 2nd load within upgrade.go/Upgrade()
+		assert.NoError(t, err)
+
+		t.Logf("ResourceLimitOptions: %+#v", mc.ResourceLimitOptions)
+
+		assert.Equal(t, 7.0, mc.ResourceLimitOptions.CPUMax)
+		assert.Equal(t, int64(11), mc.ResourceLimitOptions.MemMax)
 	})
 
 	t.Run(`resource-limit-mem`, func(t *T.T) {
@@ -161,8 +211,6 @@ func Test_loadInstallerArgs(t *T.T) {
 		assert.NoError(t, err)
 
 		assert.Equal(t, int64(100), mc.ResourceLimitOptions.MemMax)
-
-		assert.Equal(t, args.LimitCPUCores, mc.ResourceLimitOptions.CPUCores)
 	})
 
 	t.Run(`9529-http-listen-only-port`, func(t *T.T) {

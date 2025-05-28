@@ -354,15 +354,10 @@ func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config,
 
 				// we passed limit-cpu-cores, so reset cpu-max config and deprecated it
 				mc.ResourceLimitOptions.CPUMax = 0
-			} else { // use default settings from datakit.conf
-				args.LimitCPUCores = mc.ResourceLimitOptions.CPUCores
-				args.LimitCPUMax = mc.ResourceLimitOptions.CPUCores / float64(runtime.NumCPU()) * 100.0
 			}
 
 			if args.LimitMemMax > 0 {
 				mc.ResourceLimitOptions.MemMax = args.LimitMemMax
-			} else {
-				args.LimitMemMax = mc.ResourceLimitOptions.MemMax
 			}
 
 			mc.ResourceLimitOptions.Setup()

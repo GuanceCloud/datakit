@@ -57,7 +57,7 @@ func (args *InstallerArgs) Upgrade(mc *config.Config) (err error) {
 
 func (args *InstallerArgs) upgradeMainConfig(c *config.Config) *config.Config {
 	if c.PointPool != nil {
-		l.Infof("default enable point pool")
+		l.Infof("always disable point pool by default")
 		c.PointPool.Enable = false // default disable point-pool
 	}
 
