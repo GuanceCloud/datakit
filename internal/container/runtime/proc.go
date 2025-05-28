@@ -8,7 +8,7 @@ package runtime
 // The linuxproc cannot be compiled on non-Linux systems, so export the interface.
 
 type cpuInfo interface {
-	cores() int
+	cores() int64
 }
 
 type memInfo interface {

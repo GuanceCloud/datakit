@@ -38,8 +38,8 @@ func newCPUInfo(mountPoint string) (cpuInfo, error) {
 	}, nil
 }
 
-func (c *cpuInfoProc) cores() int {
-	return c.info.NumCore()
+func (c *cpuInfoProc) cores() int64 {
+	return int64(c.info.NumCore())
 }
 
 type memInfoProc struct {

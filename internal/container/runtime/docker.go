@@ -148,6 +148,17 @@ func (d *dockerClient) ContainerStatus(id string) (*ContainerStatus, error) {
 		status.Pid = inspect.State.Pid
 	}
 
+	if inspect.HostConfig != nil {
+		status.MemoryLimitInBytes = inspect.HostConfig.Resources.Memory
+
+		if nanoCPUs := inspect.HostConfig.Resources.NanoCPUs; nanoCPUs != 0 {
+			status.CPULimitMillicores = nanoCPUs / 1e6 // milli
+		} else if inspect.HostConfig.Resources.CPUPeriod != 0 {
+			limit := float64(inspect.HostConfig.Resources.CPUQuota) / float64(inspect.HostConfig.Resources.CPUPeriod)
+			status.CPULimitMillicores = int64(limit * 1e3) // milli
+		}
+	}
+
 	return &status, nil
 }
 
@@ -172,7 +183,9 @@ func (d *dockerClient) ContainerTop(id string) (*ContainerTop, error) {
 	// cpu usage
 	top.CPUPercent, top.CPUUsageMillicores = calculateCPUUsageUnix(stats)
 	// cpu cores
-	top.CPUCores = int(stats.CPUStats.OnlineCPUs)
+	top.CPUCores = int64(stats.CPUStats.OnlineCPUs)
+	// cpu limit millicores
+	top.CPULimitMillicores = status.CPULimitMillicores
 
 	// block io
 	top.BlockRead, top.BlockWrite = calculateBlockIO(stats.BlkioStats)
@@ -197,8 +210,10 @@ func (d *dockerClient) ContainerTop(id string) (*ContainerTop, error) {
 	top.NetworkRcvd = rx
 	top.NetworkSent = tx
 
-	// memory usage and menory limit
+	// memory usage
 	top.MemoryWorkingSet = calculateMemUsageUnixNoCache(stats.MemoryStats)
+	// memory limit
+	top.MemoryLimitInBytes = status.MemoryLimitInBytes
 	// memory capacity
 	if hostMemory, err := getHostMemory(d.procMountPoint); err == nil {
 		top.MemoryCapacity = hostMemory
@@ -253,9 +268,9 @@ func calculateMemUsageUnixNoCache(mem types.MemoryStats) int64 {
 }
 
 // calculateCPUUsageUnix return usage percent and millicores.
-func calculateCPUUsageUnix(v *types.StatsJSON) (float64, int) {
-	cpuPercent := 0.0
-	cpuUsageMillicores := 0
+func calculateCPUUsageUnix(v *types.StatsJSON) (float64, int64) {
+	var cpuPercent float64
+	var cpuUsageMillicores int64
 
 	var (
 		// calculate the change for the cpu usage of the container in between readings
@@ -271,7 +286,7 @@ func calculateCPUUsageUnix(v *types.StatsJSON) (float64, int) {
 	if systemDelta > 0.0 && cpuDelta > 0.0 {
 		cpuUsagePercentage := (cpuDelta / systemDelta) * onlineCPUs
 		cpuPercent = cpuUsagePercentage * 100.0
-		cpuUsageMillicores = int(cpuUsagePercentage * 1000)
+		cpuUsageMillicores = int64(cpuUsagePercentage * 1e3)
 	}
 
 	return cpuPercent, cpuUsageMillicores

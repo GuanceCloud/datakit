@@ -112,14 +112,16 @@ func (c *container) cleanMissingContainerLog(activeIDs []string) {
 }
 
 func (c *container) tailingLogs(ins *logInstance) {
-	if err := config.GetKV().Register("container-logs", ins.configTemplate, c.ReloadConfigKV,
-		&config.KVOpt{
-			IsMultiConf:              true,
-			IsUnRegisterBeforeReload: true,
-			ConfName:                 ins.containerName + "-" + ins.id,
-		},
-	); err != nil {
-		l.Warnf("register KV err: %s", err)
+	if config.IsKVTemplate(ins.configTemplate) {
+		if err := config.GetKV().Register("container-logs", ins.configTemplate, c.ReloadConfigKV,
+			&config.KVOpt{
+				IsMultiConf:              true,
+				IsUnRegisterBeforeReload: true,
+				ConfName:                 ins.containerName + "-" + ins.id,
+			},
+		); err != nil {
+			l.Warnf("register KV err: %s", err)
+		}
 	}
 
 	g := goroutine.NewGroup(goroutine.Option{Name: "container-logs/" + ins.containerName})

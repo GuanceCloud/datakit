@@ -263,11 +263,19 @@ func buildTopKVs(top *runtime.ContainerTop) point.KVs {
 	if top.CPUCores != 0 {
 		kvs = kvs.AddV2("cpu_usage_base100", top.CPUPercent/float64(top.CPUCores), false)
 	}
+	if top.CPULimitMillicores != 0 {
+		kvs = kvs.AddV2("cpu_limit_millicores", top.CPULimitMillicores, false)
+		kvs = kvs.AddV2("cpu_usage_base_limit", float64(top.CPUUsageMillicores)/float64(top.CPULimitMillicores)*100, false)
+	}
 
 	kvs = kvs.AddV2("mem_usage", top.MemoryWorkingSet, false)
 	if top.MemoryCapacity != 0 && top.MemoryCapacity != math.MaxInt64 {
 		kvs = kvs.AddV2("mem_capacity", top.MemoryCapacity, false)
 		kvs = kvs.AddV2("mem_used_percent", float64(top.MemoryWorkingSet)/float64(top.MemoryCapacity)*100, false)
+	}
+	if top.MemoryLimitInBytes != 0 {
+		kvs = kvs.AddV2("mem_limit", top.MemoryLimitInBytes, false)
+		kvs = kvs.AddV2("mem_used_percent_base_limit", float64(top.MemoryWorkingSet)/float64(top.MemoryLimitInBytes)*100, false)
 	}
 
 	kvs = kvs.AddV2("network_bytes_rcvd", top.NetworkRcvd, false)
@@ -297,15 +305,15 @@ func buildPodKVs(containerName string, pod *apicorev1.Pod, top *runtime.Containe
 
 	cpuLimit, memLimit := podutil.ContainerLimitInPod(containerName, pod)
 	if cpuLimit != 0 {
-		kvs = kvs.AddV2("cpu_limit_millicores", cpuLimit, false)
+		kvs = kvs.AddV2("cpu_limit_millicores", cpuLimit, true) // use force
 		if top != nil {
-			kvs = kvs.AddV2("cpu_usage_base_limit", float64(top.CPUUsageMillicores)/float64(cpuLimit)*100, false)
+			kvs = kvs.AddV2("cpu_usage_base_limit", float64(top.CPUUsageMillicores)/float64(cpuLimit)*100, true)
 		}
 	}
 	if memLimit != 0 {
-		kvs = kvs.AddV2("mem_limit", memLimit, false)
+		kvs = kvs.AddV2("mem_limit", memLimit, true)
 		if top != nil {
-			kvs = kvs.AddV2("mem_used_percent_base_limit", float64(top.MemoryWorkingSet)/float64(memLimit)*100, false)
+			kvs = kvs.AddV2("mem_used_percent_base_limit", float64(top.MemoryWorkingSet)/float64(memLimit)*100, true)
 		}
 	}
 
