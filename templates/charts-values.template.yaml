@@ -25,6 +25,9 @@ datakit:
   ## @param http_listen - string
   ## It supports specifying the network card bound to the Datakit HTTP service in the installation phase (default localhost)
   http_listen: 0.0.0.0:9529
+  ## @param cluster_name_k8s - string
+  ## set cluster name of the Kubernetes
+  cluster_name_k8s: default
 
 
 image:
@@ -159,7 +162,7 @@ dkconfig: []
 
 ## If true, deploys the kube-state-metrics deployment.
 ## ref: https://github.com/kubernetes/charts/tree/master/stable/kube-state-metrics
-kubeStateMetricsEnabled: true
+kubeStateMetricsEnabled: false
 
 ## If true, deploys the metrics-server deployment.
 ## ref: https://github.com/kubernetes-sigs/metrics-server/tree/master/charts/metrics-server
