@@ -9,10 +9,13 @@ package snmprefiles
 
 import (
 	"embed"
+	"fmt"
 	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/GuanceCloud/cliutils/logger"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmpmeasurement"
@@ -23,7 +26,10 @@ const (
 	trapsDBDir  = "traps_db"
 )
 
+var l = logger.DefaultSLogger("snmprefiles")
+
 func ReleaseFiles() error {
+	l = logger.SLogger("snmprefiles")
 	snmpPreFilesRoot := filepath.Join(datakit.ConfdDir, snmpmeasurement.InputName)
 	if err := releaseProfiles(snmpPreFilesRoot); err != nil {
 		return err
@@ -51,50 +57,55 @@ func GetTrapsDBRoot() string {
 //go:embed profiles/*.yaml
 var profileFiles embed.FS
 
-func releaseProfiles(targetRoot string) error {
-	releaseDir := filepath.Join(targetRoot, profilesDir)
+func releaseProfiles(dest string) error {
+	releaseDir := filepath.Join(dest, profilesDir)
 	if err := os.MkdirAll(releaseDir, datakit.ConfPerm); err != nil {
 		return err
 	}
-	if err := releaseEMDFiles(releaseDir, profilesDir, &profileFiles); err != nil {
+	if err := releaseEmbedFiles(releaseDir, profilesDir, &profileFiles); err != nil {
 		return err
 	}
 	return nil
 }
-
-//------------------------------------------------------------------------------
 
 //go:embed traps_db/*.gz
 var trapsdbFiles embed.FS
 
-func releaseTrapsDB(targetRoot string) error {
-	releaseDir := filepath.Join(targetRoot, trapsDBDir)
+func releaseTrapsDB(dest string) error {
+	releaseDir := filepath.Join(dest, trapsDBDir)
 	if err := os.MkdirAll(releaseDir, datakit.ConfPerm); err != nil {
 		return err
 	}
-	if err := releaseEMDFiles(releaseDir, trapsDBDir, &trapsdbFiles); err != nil {
+	if err := releaseEmbedFiles(releaseDir, trapsDBDir, &trapsdbFiles); err != nil {
 		return err
 	}
 	return nil
 }
 
-//------------------------------------------------------------------------------
-
 // example:
 //
-//	targetRoot = conf.d    emdDir = profiles
-//	targetRoot = conf.d    emdDir = traps_db
-func releaseEMDFiles(targetRoot, emdDir string, emdFS *embed.FS) error {
-	files, _ := fs.ReadDir(emdFS, emdDir)
+//	dest = conf.d, embDir = profiles
+//	dest = conf.d, embDir = traps_db
+func releaseEmbedFiles(dest, embDir string, emdFS *embed.FS) error {
+	files, err := fs.ReadDir(emdFS, embDir)
+	if err != nil {
+		return fmt.Errorf("ReadDir(%q): %w", embDir, err)
+	}
+
 	for _, file := range files {
-		releaseFullPath := filepath.Join(targetRoot, file.Name())
-		insideFullName := filepath.Join(emdDir, file.Name())
-		bys, err := fs.ReadFile(emdFS, insideFullName)
-		if err != nil {
-			return err
-		}
-		if err := ioutil.WriteFile(releaseFullPath, bys, datakit.ConfPerm); err != nil {
-			return err
+		var (
+			releasePath = filepath.Join(dest, file.Name())
+			embPath     = filepath.Join(embDir, file.Name())
+		)
+
+		l.Debugf("read %q to %q...", embPath, releasePath)
+
+		if data, err := fs.ReadFile(emdFS, embPath); err != nil {
+			l.Warnf("ReadFile(%q): %s, ignored", embPath, err)
+			continue
+		} else if err := ioutil.WriteFile(releasePath, data, datakit.ConfPerm); err != nil {
+			l.Warnf("ioutil.WriteFile(%q): %s", releasePath, err)
+			continue
 		}
 	}
 

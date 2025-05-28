@@ -37,14 +37,14 @@ DataKit supports all of the above versions.
 
 ### Choosing v1/v2c version {#config-v2}
 
-If you choose v1/v2c version, you need to provide `community string`, AKA `community name/community string/unencrypted password`, which is required for authentication when interacting with an SNMP device. In addition, some devices will be distinguished into `read-only community name` and `read-write community name`. As the name implies:
+When selecting the v1/v2c version, a `v2_community_string` must be provided for authentication when interacting with SNMP devices. Additionally, some devices further subdivide this into *read-only community strings* and *read-write community strings*. As the names suggest:
 
 - `Read-only community name`: The device will only provide internal metrics data to that party, and cannot modify some internal configurations (this is enough for DataKit).
 - `Read-write community name`: The provider has the permission to query the internal metrics data of the equipment and modify some configurations.
 
 ### Choosing v3 version {#config-v3}
 
-If you choose v3 version, you need to provide `username`, `authentication algorithm/password`, `encryption algorithm/password`, `context`, etc. Each device is different and should be filled in as same as configuration in SNMP device.
+If you choose v3 version, you need to provide `v3_user/v3_auth_protocol/v3_auth_key/v3_priv_protocol/v3_priv_key`, etc. Each device is different and should be configured as same as configuration in SNMP device.
 
 ## Configuration {#config}
 
@@ -205,6 +205,66 @@ When SNMP devices are in the default, the general SNMP protocol is closed, you n
 
 <!-- markdownlint-enable -->
 
+
+#### SNMPv3 Example {#snmpv3-example}
+
+We take an `snmpd` service on Linux as an example to demonstrate how to collecting SNMPv3 data.
+
+- On an Ubuntu machine, install the `snmpd` service:
+
+    ```shell
+    sudo apt install snmp snmpd libsnmp-dev
+    ```
+
+- Prepare a simple *snmpd.conf* configuration as follows:
+
+    ```conf title="my-snmpd.conf"
+    # Set the UDP 161 port
+    agentaddress udp:161
+
+    # Define a user and related authentication configurations
+    createUser snmpv3user1 SHA "authPassAgent1" AES "privPassAgent1"
+
+    # Grant user access permissions (rouser: read-only, rwuser: read-write)
+    rouser snmpv3user1 priv .1.3.6
+    ```
+
+- Stop the `snmpd` service first, then manually start the `snmpd` process:
+
+    ```shell
+    sudo /usr/sbin/snmpd -f -Lo -C \
+      -p x.pid -Ddump,usm,acl,header,context,pdu,snmpv3 \
+      -c my-snmpd.conf
+    ```
+
+- Use the `snmpwalk` command to test, which is expected to output extensive OID device information:
+
+    ```shell
+    snmpwalk -v3 -l authPriv \
+      -u snmpv3user1 \
+      -a SHA \
+      -A "authPassAgent1" \
+      -x AES \
+      -X "privPassAgent1" \
+      udp:127.0.0.1:161 .1.3.6.1.2.1.1
+    ```
+
+- If the `snmpwalk` command succeeds, enable the collector on DataKit to collect metrics via SNMPv3. The key configuration is as follows:
+
+    ```toml title="conf.d/snmp/snmp.conf"
+    specific_devices = ["127.0.0.1"] # Do not use "localhost" here
+    snmp_version     = 3
+    port             = 161
+
+    v3_user                = "snmpv3user1"
+    v3_auth_protocol       = "SHA" # MD5/SHA/SHA224/SHA256/SHA384/SHA512 or empty
+    v3_auth_key            = "authPassAgent1"
+    v3_priv_protocol       = "AES" # DES/AES/AES192/AES192C/AES256/AES256C or empty
+    v3_priv_key            = "privPassAgent1"
+    # v3_context_engine_id = "" # Optional
+    # v3_context_name      = "" # Optional
+    ```
+
 ## Metric {#metric}
 
 For all of the following data collections, the global election tags will added automatically, we can add extra tags in `[inputs.{{.InputName}}.tags]` if needed:
@@ -273,13 +333,13 @@ In "specified device mode", DataKit communicates with the specified IP device us
 
 In "auto-discovery mode", DataKit sends SNMP packets to all address in the specified IP segment one by one, and if the response matches the corresponding profile, DataKit assumes that there is a SNMP device on that IP.
 
-### I can't find metrics, what should I do?  {#faq-not-support}
+### Device not support {#faq-not-support}
 
-DataKit collects generic base-line metrics from all devices. If you can't find the metric you want, you can [write a custom profile](snmp.md#advanced-custom-oid).
+DataKit collects generic basic metrics from all devices. If you can't find the metric you want, you can [write a custom profile](snmp.md#advanced-custom-oid).
 
 To archiving this, you probably needs to download the device's OID manual from its official website.
 
-### Why I can't see any metrics after I completed configuration? {#faq-no-metrics}
+### Can't see any metrics after configuration? {#faq-no-metrics}
 
 <!-- markdownlint-enable -->
 

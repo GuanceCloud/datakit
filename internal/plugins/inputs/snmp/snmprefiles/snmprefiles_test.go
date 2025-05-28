@@ -35,7 +35,7 @@ func TestReleaseFiles(t *testing.T) {
 	}{
 		{
 			name:  "normal",
-			confd: "/tmp/gotest/confd",
+			confd: t.TempDir(),
 		},
 	}
 
