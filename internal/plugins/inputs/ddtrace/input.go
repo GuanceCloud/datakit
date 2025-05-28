@@ -120,20 +120,22 @@ const (
 )
 
 var (
-	log                 = logger.DefaultSLogger(inputName)
-	v1, v2, v3, v4, v5  = "/v0.1/spans", "/v0.2/traces", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces"
-	stats, apmTelemetry = "/v0.6/stats", "/telemetry/proxy/api/v2/apmtelemetry"
-	afterGatherRun      itrace.AfterGatherHandler
-	inputTags           map[string]string
-	wkpool              *workerpool.WorkerPool
-	localCache          *storage.Storage
-	traceBase           = 10
-	spanBase            = 10
-	delMessage          bool
-	traceMaxSpans       = 100000
-	maxTraceBody        = int64(32 * (1 << 20))
-	noStreaming         = false
-	trace128BitID       bool
+	log                = logger.DefaultSLogger(inputName)
+	v1, v2, v3, v4, v5 = "/v0.1/spans", "/v0.2/traces", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces"
+	stats              = "/v0.6/stats"
+	apmTelemetry       = "/telemetry/proxy/api/v2/apmtelemetry"
+	info               = "/info"
+	afterGatherRun     itrace.AfterGatherHandler
+	inputTags          map[string]string
+	wkpool             *workerpool.WorkerPool
+	localCache         *storage.Storage
+	traceBase          = 10
+	spanBase           = 10
+	delMessage         bool
+	traceMaxSpans      = 100000
+	maxTraceBody       = int64(32 * (1 << 20))
+	noStreaming        = false
+	trace128BitID      bool
 )
 
 type Input struct {
@@ -174,7 +176,7 @@ func (*Input) AvailableArchs() []string { return datakit.AllOS }
 func (*Input) SampleConfig() string { return sampleConfig }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}, &Telemetry{}}
+	return []inputs.Measurement{&itrace.TraceMeasurement{Name: inputName}, &jvmTelemetry{}}
 }
 
 func (ipt *Input) RegHTTPHandler() {
@@ -328,6 +330,7 @@ func (ipt *Input) RegHTTPHandler() {
 		}
 	}
 	if isReg {
+		httpapi.RegHTTPHandler(http.MethodGet, info, handleDDInfo)
 		httpapi.RegHTTPHandler(http.MethodGet, stats, handleDDStats)
 		ipt.OMInitAndRunning()
 		httpapi.RegHTTPHandler(http.MethodPost, apmTelemetry, ipt.handleDDProxy)
@@ -384,6 +387,7 @@ func (ipt *Input) Terminate() {
 	}
 	if isReg {
 		httpapi.RemoveHTTPRoute(http.MethodGet, stats)
+		httpapi.RemoveHTTPRoute(http.MethodGet, info)
 		httpapi.RemoveHTTPRoute(http.MethodPost, apmTelemetry)
 	}
 }

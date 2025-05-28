@@ -32,6 +32,7 @@ func (m *TraceMeasurement) Point() *point.Point {
 func (m *TraceMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: m.Name,
+		Desc: "This is the field description for the trace.",
 		Cat:  point.Tracing,
 		Tags: map[string]interface{}{
 			TagHost:             &inputs.TagInfo{Desc: "Hostname."},
@@ -51,9 +52,10 @@ func (m *TraceMeasurement) Info() *inputs.MeasurementInfo {
 			TagHttpUrl:          &inputs.TagInfo{Desc: "HTTP URL. Optional."},
 			TagDKFingerprintKey: &inputs.TagInfo{Desc: "DataKit fingerprint is DataKit hostname"},
 			TagBaseService:      &inputs.TagInfo{Desc: "Span Base service name"},
-			"db_host":           &inputs.TagInfo{Desc: "DB host name: ip or domain name"},
-			"db_system":         &inputs.TagInfo{Desc: "Database system name:mysql,oracle..."},
-			"db_name":           &inputs.TagInfo{Desc: "Database name"},
+			"db_host":           &inputs.TagInfo{Desc: "DB host name: ip or domain name. Optional."},
+			"db_system":         &inputs.TagInfo{Desc: "Database system name:mysql,oracle...  Optional."},
+			"db_name":           &inputs.TagInfo{Desc: "Database name. Optional."},
+			"out_host":          &inputs.TagInfo{Desc: "This is the database host, equivalent to db_host,only DDTrace-go. Optional."},
 		},
 		Fields: map[string]interface{}{
 			FieldDuration: &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationUS, Desc: "Duration of span"},

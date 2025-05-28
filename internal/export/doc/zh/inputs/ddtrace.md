@@ -325,6 +325,16 @@ DDTrace 探针启动后，会不断通额外的接口上报服务有关的信息
 从 DataKit 版本 [1.22.0](../datakit/changelog.md#cl-1.22.0) 恢复白名单功能，如果有必须要提取到一级标签列表中的标签，可以在 `customer_tags` 中配置。
 配置的白名单标签如果是原生的 `message.meta` 中，会使用 `.` 作为分隔符，采集器会进行转换将 `.` 替换成 `_` 。
 
+## 资源目录 {#resource}
+
+DDTrace 在启动后会上报自身配置信息、集成列表、依赖关系以及服务相关信息到 DataKit 。
+目前仅支持 Java Agent ，以下是各个字段说明：
+
+- `app_client_configuration_change` 其中包含 Agent 的配置信息。
+- `app_dependencies_loaded` 依赖列表，包括包名和版本信息。
+- `app_integrations_change` 集成列表，包括包名和是否开启探针。
+- 其他：主机信息和服务信息。
+
 ## 链路字段说明 {#tracing}
 
 {{range $i, $m := .Measurements}}

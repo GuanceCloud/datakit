@@ -17,6 +17,16 @@ PHP APM 插件安装，参见 [Datadog PHP 接入文档](https://docs.datadoghq.
 
 根据 PHP 实际运行环境不同（Apache/NGINX），其配置有一些差异，详见 [Datadog PHP trace SDK 配置文档](https://docs.datadoghq.com/tracing/trace_collection/library_config/php/){:target="_blank"}。
 
+Web 项目中一个请求就是一个进程，会导致中心的资源目录数据流很大，所以建议关闭资源上报：
+
+```shell
+#ENV
+export DD_INSTRUMENTATION_TELEMETRY_ENABLED=false
+
+#command
+-Ddd.instrumentation.telemetry.enable=false
+```
+
 ## 环境变量支持 {#envs}
 
 下面是常用的 PPH APM 参数配置，完整的参数配置列表，参见 [Datadog 文档](https://docs.datadoghq.com/tracing/trace_collection/library_config/php/){:target="_blank"}。

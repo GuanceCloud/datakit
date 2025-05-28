@@ -11,12 +11,13 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-type Measurement struct{}
+type JVMMeasurement struct{}
 
 //nolint:funlen
-func (m *Measurement) Info() *inputs.MeasurementInfo {
+func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: inputName,
+		Name: metricName,
+		Desc: "OpenTelemetry JVM Metrics",
 		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"application.ready.time": &inputs.FieldInfo{
@@ -350,6 +351,118 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 				Type: inputs.Histogram, DataType: inputs.Float, Unit: inputs.NCount,
 				Desc: "The count of HTTP request duration time in each bucket",
 			},
+			"http.server.tomcat.sessions.activeSessions": &inputs.FieldInfo{
+				Type: inputs.Count, DataType: inputs.Float, Unit: inputs.NCount,
+				Desc: "The number of active sessions",
+			},
+			"http.server.tomcat.errorCount": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
+				Desc: "The number of errors per second on all request processors",
+			},
+			"http.server.tomcat.requestCount": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
+				Desc: "The number of requests per second across all request processors",
+			},
+			"http.server.tomcat.maxTime": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.TimestampMS,
+				Desc: "The longest request processing time",
+			},
+			"http.server.tomcat.processingTime": &inputs.FieldInfo{
+				Type: inputs.Count, DataType: inputs.Float, Unit: inputs.TimestampMS,
+				Desc: "Represents the total time for processing all requests",
+			},
+			"http.server.tomcat.traffic": &inputs.FieldInfo{
+				Type: inputs.Count, DataType: inputs.Float, Unit: inputs.BytesPerSec,
+				Desc: "The number of bytes transmitted",
+			},
+			"http.server.tomcat.threads": &inputs.FieldInfo{
+				Type: inputs.Count, DataType: inputs.Float, Unit: inputs.NCount,
+				Desc: "Thread Count of the Thread Pool",
+			},
+			"kafka.message.count": &inputs.FieldInfo{
+				Type: inputs.Count, DataType: inputs.Float,
+				Unit: inputs.NCount, Desc: "The number of messages received by the broker",
+			},
+
+			"kafka.request.count": &inputs.FieldInfo{
+				Type: inputs.Count, DataType: inputs.Float,
+				Unit: inputs.NCount, Desc: "The number of requests received by the broker",
+			},
+
+			"kafka.request.failed": &inputs.FieldInfo{
+				Type: inputs.Count, DataType: inputs.Float,
+				Unit: inputs.NCount, Desc: "The number of requests to the broker resulting in a failure",
+			},
+
+			"kafka.request.time.total": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Float,
+				Unit: inputs.TimestampMS, Desc: "The total time the broker has taken to service requests",
+			},
+
+			"kafka.request.time.50p": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Float,
+				Unit: inputs.TimestampMS, Desc: "The 50th percentile time the broker has taken to service requests",
+			},
+
+			"kafka.request.time.99p": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Float,
+				Unit: inputs.TimestampMS, Desc: "The 99th percentile time the broker has taken to service requests",
+			},
+
+			"kafka.request.queue": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Float,
+				Unit: inputs.NCount, Desc: "Size of the request queue",
+			},
+
+			"kafka.network.io": &inputs.FieldInfo{
+				Type: inputs.Count, DataType: inputs.Float,
+				Unit: inputs.SizeByte, Desc: "The bytes received or sent by the broker",
+			},
+
+			"kafka.purgatory.size": &inputs.FieldInfo{
+				Type: inputs.Count, DataType: inputs.Float,
+				Unit: inputs.NCount, Desc: "The number of requests waiting in purgatory",
+			},
+
+			"kafka.partition.count": &inputs.FieldInfo{
+				Type: inputs.Count, DataType: inputs.Float,
+				Unit: inputs.NCount, Desc: "The number of partitions on the broker",
+			},
+
+			"kafka.partition.offline": &inputs.FieldInfo{
+				Type: inputs.Count, DataType: inputs.Float,
+				Unit: inputs.NCount, Desc: "The number of partitions offline",
+			},
+
+			"kafka.partition.underReplicated": &inputs.FieldInfo{
+				Type: inputs.Count, DataType: inputs.Float,
+				Unit: inputs.NCount, Desc: "The number of under replicated partitions",
+			},
+
+			"kafka.isr.operation.count": &inputs.FieldInfo{
+				Type: inputs.Count, DataType: inputs.Float,
+				Unit: inputs.NCount, Desc: "The number of in-sync replica shrink and expand operations",
+			},
+
+			"kafka.lag.max": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Float,
+				Unit: inputs.TimestampMS, Desc: "The max lag in messages between follower and leader replicas",
+			},
+
+			"kafka.controller.active.count": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Float,
+				Unit: inputs.NCount, Desc: "The number of controllers active on the broker",
+			},
+
+			"kafka.leaderElection.count": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Float,
+				Unit: inputs.NCount, Desc: "The leader election count",
+			},
+
+			"kafka.leaderElection.unclean.count": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Float,
+				Unit: inputs.NCount, Desc: "Unclean leader election count - increasing indicates broker failures",
+			},
 		},
 
 		Tags: map[string]interface{}{
@@ -395,6 +508,8 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 			"db_system":                 &inputs.TagInfo{Desc: "Database system name:mysql,oracle..."},
 			"db_name":                   &inputs.TagInfo{Desc: "Database name"},
 			"le":                        &inputs.TagInfo{Desc: "*_bucket: histogram metric explicit bounds"},
+			"type":                      &inputs.TagInfo{Desc: "Kafka broker type"},
+			"direction":                 &inputs.TagInfo{Desc: "received or sent"},
 		},
 	}
 }

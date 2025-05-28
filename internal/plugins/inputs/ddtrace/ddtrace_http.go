@@ -120,6 +120,11 @@ func handleDDStats(resp http.ResponseWriter, req *http.Request) {
 	resp.WriteHeader(http.StatusNotFound)
 }
 
+func handleDDInfo(resp http.ResponseWriter, req *http.Request) {
+	log.Infof("### %s unsupported yet", req.URL.Path)
+	resp.WriteHeader(http.StatusNotFound)
+}
+
 func (ipt *Input) handleDDProxy(resp http.ResponseWriter, req *http.Request) {
 	bts, err := io.ReadAll(req.Body)
 	defer req.Body.Close() //nolint

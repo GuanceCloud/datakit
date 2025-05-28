@@ -296,7 +296,7 @@ telemetry.sdk.version
 
 {{ range $i, $m := .Measurements }}
 
-### {{$m.Type}}
+### `{{$m.Name}}`
 
 {{$m.Desc}}
 
