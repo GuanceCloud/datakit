@@ -176,7 +176,7 @@ spec:
             path: /
           name: rootfs
         - hostPath:
-            path: /root/datakit_cache
+            path: {{ .Values.datakit.cache.mountPath }}
           name: cache
         - hostPath:
             path: /sys/kernel/debug

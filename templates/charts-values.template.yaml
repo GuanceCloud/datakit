@@ -28,6 +28,10 @@ datakit:
   ## @param cluster_name_k8s - string
   ## set cluster name of the Kubernetes
   cluster_name_k8s: default
+  ## datakit cache mountPath
+  cache:
+    mountPath: /root/datakit_cache
+
 
 
 image:
