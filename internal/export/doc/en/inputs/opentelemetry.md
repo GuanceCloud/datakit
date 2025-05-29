@@ -336,3 +336,4 @@ The maximum length of the log label is 32KB. This field is not configurable, and
 - Official user manual: [opentelemetry-io-docs](https://opentelemetry.io/docs/){:target="_blank"}
 - Environment variable configuration: [sdk-extensions](https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk-extensions/autoconfigure/README.md#otlp-exporter-both-span-and-metric-exporters){:target="_blank"}
 - GitHub GuanceCloud version [OpenTelemetry-Java-instrumentation](https://github.com/GuanceCloud/opentelemetry-java-instrumentation){:target="_blank"}
+- Sampling strategy considerations when DDTrace and OpenTelemetry are concatenated [Tracing Sampled](tracing-sample.md)

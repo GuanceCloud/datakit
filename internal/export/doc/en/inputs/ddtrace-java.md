@@ -233,3 +233,4 @@ Below are the explanations for each command-line parameter and their correspondi
 
 - Secondary development version [DDTrace JAVA extend](ddtrace-ext-java.md){:target="_blank"}
 - By default, JVM metrics will be collected, specific metrics: [metrics](jvm.md#metric){:target="_blank"}
+- Sampling strategy considerations when DDTrace and OpenTelemetry are concatenated: [Tracing Sampled](tracing-sample.md)

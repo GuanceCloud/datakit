@@ -384,3 +384,4 @@ DDTrace 在启动后会上报自身配置信息、集成列表、依赖关系以
 - [正确使用正则表达式来配置](../datakit/datakit-input-conf.md#debug-regex)
 - [多链路串联](tracing-propagator.md)
 - [Java 接入与异常说明](ddtrace-java.md)
+- [DDTrace 采样策略和多链路工具串联注意事项](tracing-sample.md)

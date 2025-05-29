@@ -354,3 +354,4 @@ DataKit 目前提供了如下两种语言的最佳实践：
 - [官方使用手册](https://opentelemetry.io/docs/){:target="_blank"}
 - [环境变量配置](https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk-extensions/autoconfigure/README.md#otlp-exporter-both-span-and-metric-exporters){:target="_blank"}
 - [<<<custom_key.brand_name>>>二次开发版本](https://github.com/GuanceCloud/opentelemetry-java-instrumentation){:target="_blank"}
+- [DDTrace 与 OpenTelemetry 串联时采样策略注意事项](tracing-sample.md)
