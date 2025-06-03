@@ -7,6 +7,7 @@ package build
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -31,47 +32,58 @@ var (
 
 	CIOnlineNewVersion = fmt.Sprintf(`
 {
-	"msgtype": "text",
-	"text": {
-		"content": "%s 发布了 DataKit 新版本(%s)"
+	"msg_type": "text",
+	"content": {
+		"text": "%s 发布了 DataKit 新版本(%s)"
 	}
 }`, git.Uploader, ReleaseVersion)
 
 	CIPassNotifyMsg = fmt.Sprintf(`
 {
-	"msgtype": "text",
-	"text": {
-		"content": "%s 触发的 DataKit CI 通过"
+	"msg_type": "text",
+	"content": {
+		"text": "%s 触发的 DataKit CI 通过"
 	}
 }`, git.Uploader)
 
 	CINotifyStartBuildMsg = fmt.Sprintf(`
 {
-  "msgtype": "text",
-  "text": {
-  	"content": "%s 正在执行 DataKit CI 编译，此刻请勿在分支[%s]提交代码"
+  "msg_type": "text",
+  "content": {
+  	"text": "%s 正在执行 DataKit CI 编译，此刻请勿在分支[%s]提交代码"
   }
 }`, git.Uploader, git.Branch)
 
 	CINotifyStartPubMsg = fmt.Sprintf(`
 {
-  "msgtype": "text",
-  "text": {
-		"content": "%s 正在执行发布 Datakit:%s..."
+  "msg_type": "text",
+  "content": {
+		"text": "%s 正在执行发布 DataKit:%s..."
   }
 }`, git.Uploader, ReleaseVersion)
 
 	CINotifyStartPubEBpfMsg = fmt.Sprintf(`
 {
-  "msgtype": "text",
-  "text": {
-  	"content": "%s 正在执行发布 DataKit eBPF %s..."
+  "msg_type": "text",
+  "content": {
+  	"text": "%s 正在执行发布 DataKit eBPF %s..."
   }
 }`, git.Uploader, ReleaseVersion)
 )
 
-func notify(tkn string, body io.Reader) {
-	req, err := http.NewRequest("POST", "https://oapi.dingtalk.com/robot/send?access_token="+tkn, body)
+type content struct {
+	Text string `json:"text"`
+}
+
+type textMsg struct {
+	MsgType string  `json:"msg_type"`
+	Content content `json:"content"`
+}
+
+func doNotify(tkn string, body string) {
+	l.Infof("robot notify message: %s", body)
+
+	req, err := http.NewRequest("POST", "https://open.feishu.cn/open-apis/bot/v2/hook/"+tkn, bytes.NewBufferString(body))
 	if err != nil {
 		l.Errorf("NewRequest: %s", err.Error())
 		return
@@ -88,7 +100,6 @@ func notify(tkn string, body io.Reader) {
 
 	defer resp.Body.Close() //nolint:errcheck
 
-	// TODO 校验 respbody 中的 errcode，如 310000
 	respbody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		l.Errorf("io.ReadAll: %s", err)
@@ -97,7 +108,7 @@ func notify(tkn string, body io.Reader) {
 
 	switch resp.StatusCode / 100 {
 	case 2:
-		l.Debugf("notify dingding ok(%q): %q", resp.Status, respbody)
+		l.Debugf("notify robot ok(%q): %q", resp.Status, respbody)
 		return
 	default:
 		l.Error(fmt.Errorf(string(respbody)))
@@ -110,7 +121,7 @@ func NotifyStartPub() {
 	}
 
 	l.Debugf("NotifyStartPub...")
-	notify(NotifyToken, bytes.NewBufferString(CINotifyStartPubMsg))
+	doNotify(NotifyToken, CINotifyStartPubMsg)
 }
 
 func NotifyStartPubEBpf() {
@@ -119,7 +130,7 @@ func NotifyStartPubEBpf() {
 	}
 
 	l.Debugf("NotifyStartPubEBpf...")
-	notify(NotifyToken, bytes.NewBufferString(CINotifyStartPubEBpfMsg))
+	doNotify(NotifyToken, CINotifyStartPubEBpfMsg)
 }
 
 func NotifyStartBuild() {
@@ -128,7 +139,7 @@ func NotifyStartBuild() {
 	}
 
 	l.Debugf("NotifyStartBuild...")
-	notify(NotifyToken, bytes.NewBufferString(CINotifyStartBuildMsg))
+	doNotify(NotifyToken, CINotifyStartBuildMsg)
 }
 
 // NotifyFail send notifications and exit current process.
@@ -143,14 +154,14 @@ func NotifyFail(msg string) {
 
 	failNotify := fmt.Sprintf(`
 {
-	"msgtype": "text",
-	"text": {
-		"content": "%s 触发的 DataKit CI 失败:\n%s"
+	"msg_type": "text",
+	"content": {
+	  "text": "%s 触发的 DataKit CI 失败:\n%s"
 	}
 }`, git.Uploader, msg)
 
 	l.Debugf("NotifyFail...")
-	notify(NotifyToken, bytes.NewBufferString(failNotify))
+	doNotify(NotifyToken, failNotify)
 }
 
 func NotifyBuildDone() {
@@ -159,7 +170,7 @@ func NotifyBuildDone() {
 	}
 
 	l.Debugf("NotifyBuildDone...")
-	notify(NotifyToken, bytes.NewBufferString(CIPassNotifyMsg))
+	doNotify(NotifyToken, CIPassNotifyMsg)
 }
 
 func buildNotifyContent(ver, cdn, release string, archs []string) string {
@@ -232,7 +243,7 @@ func buildNotifyContent(ver, cdn, release string, archs []string) string {
 	for _, arch := range archs {
 		parts := strings.Split(arch, "/")
 		if len(parts) != 2 {
-			panic(fmt.Sprintf("invalid arch: %s", arch))
+			l.Fatalf(fmt.Sprintf("invalid arch: %s", arch))
 		}
 
 		goos, goarch := parts[0], parts[1]
@@ -265,18 +276,20 @@ func NotifyPubDone() {
 	switch ReleaseType {
 	case ReleaseLocal, ReleaseTesting:
 
-		content := buildNotifyContent(ReleaseVersion, DownloadCDN, ReleaseType, curArchs)
+		tm := textMsg{
+			Content: content{
+				Text: buildNotifyContent(ReleaseVersion, DownloadCDN, ReleaseType, curArchs),
+			},
+			MsgType: "text",
+		}
 
-		notifyNewVersion := fmt.Sprintf(`
-{
-	"msgtype": "text",
-	"text": {
-		"content": "%s"
-	}
-}`, content)
+		j, err := json.Marshal(tm)
+		if err != nil {
+			l.Fatal(err.Error())
+		}
 
 		var buf bytes.Buffer
-		t, err := template.New("").Parse(notifyNewVersion)
+		t, err := template.New("").Parse(string(j))
 		if err != nil {
 			l.Errorf("template.New", err)
 		}
@@ -286,11 +299,11 @@ func NotifyPubDone() {
 		}
 
 		l.Debugf("NotifyPubDone...")
-		notify(NotifyToken, &buf)
+		doNotify(NotifyToken, buf.String())
 
 	case ReleaseProduction:
 		l.Debugf("NotifyPubDone for release...")
-		notify(NotifyToken, bytes.NewBufferString(CIOnlineNewVersion))
+		doNotify(NotifyToken, CIOnlineNewVersion)
 	}
 }
 
@@ -317,7 +330,7 @@ func NotifyPubEBpfDone() {
 			for _, arch := range curEBpfArchs {
 				parts := strings.Split(arch, "/")
 				if len(parts) != 2 {
-					panic(fmt.Sprintf("invalid arch: %s", arch))
+					l.Fatalf(fmt.Sprintf("invalid arch: %s", arch))
 				}
 
 				goos, goarch := parts[0], parts[1]
@@ -332,9 +345,9 @@ func NotifyPubEBpfDone() {
 
 		CINotifyNewEBpfVersion := fmt.Sprintf(`
 {
-	"msgtype": "text",
-	"text": {
-		"content": "%s"
+	"msg_type": "text",
+	"content": {
+		"text": "%s"
 		}
 }`, strings.Join(content, "\n"))
 
@@ -349,16 +362,16 @@ func NotifyPubEBpfDone() {
 		}
 
 		l.Debugf("NotifyPubEBpfDone...")
-		notify(NotifyToken, &buf)
+		doNotify(NotifyToken, buf.String())
 	case ReleaseProduction:
 
 		l.Debugf("NotifyPubEBpfDone for release...")
-		notify(NotifyToken, bytes.NewBufferString(fmt.Sprintf(`
+		doNotify(NotifyToken, fmt.Sprintf(`
 		{
-			"msgtype": "text",
-			"text": {
-				"content": "%s 发布了 DataKit eBPF %s 新版本(%s)"
+			"msg_type": "text",
+			"content": {
+				"text": "%s 发布了 DataKit eBPF %s 新版本(%s)"
 			}
-		}`, git.Uploader, strings.Join(curEBpfArchs, ", "), ReleaseVersion)))
+		}`, git.Uploader, strings.Join(curEBpfArchs, ", "), ReleaseVersion))
 	}
 }

@@ -8,7 +8,7 @@ export OSS_BUCKET='df-storage-dev'
 export OSS_HOST='oss-cn-hangzhou.aliyuncs.com'
 export OSS_PATH='<zhangsan>/datakit'
 
-export DINGDING_TOKEN="245xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxc87"
+export ROBOT_TOKEN="6841xxxxxxxxxxxxxxxxxxxxxxxxxxxxx32d"
 
 # See: https://stackoverflow.com/a/17841619/342348
 function join_by {
