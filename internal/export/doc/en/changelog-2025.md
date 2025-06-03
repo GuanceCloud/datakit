@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.74.1(2025/06/03) {#cl-1.74.1}
+
+This release is a hotfix, with the following updates:
+
+### 问题修复 {#cl-1.74.1-fix}
+
+- Fixed duplicated ClusterRole definition in Helm package (#2711)
+
+---
+
 ## 1.74.0 (2025/05/28) {#cl-1.74.0}
 
 This is an iterative release with the following key updates:
