@@ -117,7 +117,7 @@ const (
 
 // LoadENVs load all CI/CD environments.
 func LoadENVs() {
-	if x := os.Getenv("DINGDING_TOKEN"); x != "" {
+	if x := os.Getenv("ROBOT_TOKEN"); x != "" {
 		NotifyToken = x
 	}
 
