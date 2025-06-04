@@ -134,6 +134,7 @@ func (p *pod) gatherMetric(ctx context.Context, fieldSelector string, timestamp 
 			kvs = kvs.AddTag("namespace", ns)
 			kvs = kvs.AddTag("node_name", config.RenameNode(nodeName))
 			kvs = kvs.AddV2("pod", n, false)
+			kvs = append(kvs, point.NewTags(p.cfg.ExtraTags)...)
 
 			pt := point.NewPointV2("kubernetes", kvs, append(opts, point.WithTimestamp(timestamp))...)
 			counterPts = append(counterPts, pt)
