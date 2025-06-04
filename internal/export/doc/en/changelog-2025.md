@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.74.2(2025/06/04) {#cl-1.74.2}
+
+This release is a hotfix, with the following updates:
+
+### Bug Fixes {#cl-1.74.2-fix}
+
+- Fixed global tags missing on Kubernetes pod count metric (#2715)
+
+---
+
 ## 1.74.1(2025/06/03) {#cl-1.74.1}
 
 This release is a hotfix, with the following updates:

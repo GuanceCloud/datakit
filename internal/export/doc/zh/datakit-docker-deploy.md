@@ -32,7 +32,11 @@ sudo docker run \
     --privileged \
     --publish 19529:9529 \
     -d \
+<<<% if custom_key.brand_key == 'guance' %>>>
     pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:{{.Version}}
+<<<% else %>>>
+    pubrepo.<<<custom_key.brand_main_domain>>>/truewatch/datakit:{{.Version}}
+<<<% endif %>>>
 ```
 
 启动参数说明：
