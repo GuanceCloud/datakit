@@ -4,7 +4,7 @@ kind: ClusterRole
 metadata:
   name: {{ include "datakit.fullname" . }}
   labels:
-    app.kubernetes.io/managed-by: Helm
+    {{- include "datakit.labels" . | nindent 4 }}
   annotations:
     meta.helm.sh/release-name: {{ .Release.Name }}
     meta.helm.sh/release-namespace: {{ .Release.Namespace }}
