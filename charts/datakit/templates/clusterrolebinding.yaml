@@ -4,7 +4,6 @@ kind: ClusterRoleBinding
 metadata:
   name: {{ include "datakit.fullname" . }}
   labels:
-    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}  # Helm 管理标识
     {{- include "datakit.labels" . | nindent 4 }}  # 保留原有标签
   annotations:
     meta.helm.sh/release-name: {{ .Release.Name | quote }}  # Helm 发布名称
