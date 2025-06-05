@@ -61,7 +61,7 @@ supported version: 0.9.3 and above.
 
 DDTrace supported version: [:octicons-tag-24:  v0.113.0](ddtrace-ext-changelog.md#cl-0.113.0)
 
-## redis command args {#redis-command-args}
+### redis command args {#redis-command-args}
 
 The Resource in the redis link will only display redis.command information, and will not display parameter information.
 
@@ -247,6 +247,34 @@ After the declaration is made in the above way, the corresponding method will be
 DDTrace supported version： [:octicons-tag-24: v1.12.1](ddtrace-ext-changelog.md#cl-1.12.1-guance)
 
 ## Others {#other}
+
+
+### Package Instrumentation {#package}
+
+It is possible to enhance all class methods under the custom business package name. Some of the methods added are meaningless, so they are not open, as follows:
+
+- `isEquals()`
+- `isToString()`
+- `isFinalizer()`
+- `isGetter()`
+- `isSetter()`
+- `isSynthetic()`
+
+Add parameter settings as follows:
+
+```shell
+# Use commas to separate package names.
+-Ddd.trace.method.packages=com.zy,javax.servlet,com.example.package
+
+# or use ENV.
+export DD_TRACE_METHOD_PACKAGES=com.zy,javax.servlet,com.example.package
+```
+
+Note:
+
+1. It also supports obtaining the input parameters of the corresponding method. If it is a basic object type, the input parameter information can be directly viewed;
+2. The resource method currently supports up to 5 input parameters;
+3. String type field values support a maximum of 1024 characters;
 
 ## supported trace-128-id {#trace_128_bit_id}
 

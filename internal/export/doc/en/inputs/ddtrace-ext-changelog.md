@@ -25,6 +25,13 @@ Currently, DDTrace has added the following extensions to the technology stack：
 
 ## changelog {#changelog}
 
+## v1.47.6-guance (2025/6/4) {#cl-1.47.6-guance}
+
+### fix {#cl-1.47.6-guance-fix}
+
+- How to enhance the methods in custom Package and Class by using [command to enable function](ddtrace-ext-java.md#package){:target="_blank"}
+
+
 ## v1.47.5-guance (2025/5/22) {#cl-1.47.5-guance}
 
 ### fix {#cl-1.47.5-guance-fix}

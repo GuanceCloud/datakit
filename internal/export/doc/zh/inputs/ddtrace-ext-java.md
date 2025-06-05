@@ -230,6 +230,33 @@ DDTrace 最低版本支持： [:octicons-tag-24: v1.25.2](ddtrace-ext-changelog.
 
 ## 其他 {#others}
 
+### 包级别的自定义插桩 {#package}
+
+可以针对自定义业务包名，对包下的所有类方法进行增强。其中部分方法添加没有意义，所以不开放，如下：
+
+- `isEquals()`
+- `isToString()`
+- `isFinalizer()`
+- `isGetter()`
+- `isSetter()`
+- `isSynthetic()`
+
+新增参数设置，如下：
+
+```shell
+# 使用逗号分割包名
+-Ddd.trace.method.packages=com.zy,javax.servlet,com.example.package
+
+# 或者使用环境变量
+export DD_TRACE_METHOD_PACKAGES=com.zy,javax.servlet,com.example.package
+```
+
+注意：
+
+1. 同时支持获取对应方法的入参，如果是基础对象类型，可以直接看到入参信息；
+2. resource 方法入参数目前最多支持 5 个；
+3. 字符串类型的字段值最多支持 1024 个字符；
+
 ### 方法级的插桩 {#trace-method}
 
 增强 method 埋点操作，通过指定参数 `-Ddd.trace.method.file` 扩展 `dd.trace.methods` 配置，将需要增强的方法、类放在文件中进行维护，如下所示：
