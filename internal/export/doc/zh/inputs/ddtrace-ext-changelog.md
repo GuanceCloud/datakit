@@ -42,6 +42,14 @@ skip: 'not-searchable-on-index-page'
 
 --->
 
+
+## v1.47.6-guance (2025/6/4) {#cl-1.47.6-guance}
+
+### 修复 {#cl-1.47.6-guance-fix}
+
+- 可以针对自定义 Package 及 Class 中方法进行增强，如何通过[命令开启功能](ddtrace-ext-java.md#package){:target="_blank"}
+
+
 ## v1.47.5-guance (2025/5/22) {#cl-1.47.5-guance}
 
 ### 修复 {#cl-1.47.5-guance-fix}
