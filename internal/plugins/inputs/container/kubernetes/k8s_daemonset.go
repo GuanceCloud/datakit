@@ -20,10 +20,10 @@ import (
 )
 
 const (
+	daemonsetType              = "DaemonSet"
 	daemonsetMetricMeasurement = "kube_daemonset"
-	daemonsetObjectMeasurement = "kubernetes_daemonset"
-	daemonsetChangeSource      = "kubernetes_daemonsets"
-	daemonsetChangeSourceType  = "DaemonSet"
+	daemonsetObjectClass       = "kubernetes_daemonset"
+	daemonsetObjectResourceKey = "daemonset_name"
 )
 
 //nolint:gochecknoinits
@@ -89,7 +89,7 @@ func (d *daemonset) addChangeInformer(informerFactory informers.SharedInformerFa
 	}
 
 	updateFunc := func(oldObj, newObj interface{}) {
-		objectChangeCountVec.WithLabelValues(daemonsetChangeSourceType, "update").Inc()
+		objectChangeCountVec.WithLabelValues(daemonsetType, "update").Inc()
 
 		oldDaemonsetObj, ok := oldObj.(*apiappsv1.DaemonSet)
 		if !ok {
@@ -110,8 +110,8 @@ func (d *daemonset) addChangeInformer(informerFactory informers.SharedInformerFa
 		}
 
 		if difftext != "" {
-			objectChangeCountVec.WithLabelValues(daemonsetChangeSourceType, "spec-changed").Inc()
-			processChange(d.cfg, daemonsetChangeSource, daemonsetChangeSourceType, difftext, newDaemonsetObj)
+			objectChangeCountVec.WithLabelValues(daemonsetType, "spec-changed").Inc()
+			processChange(d.cfg, daemonsetObjectClass, daemonsetObjectResourceKey, daemonsetType, difftext, newDaemonsetObj)
 		}
 	}
 
@@ -163,7 +163,7 @@ func (d *daemonset) buildObjectPoints(list *apiappsv1.DaemonSetList) []*point.Po
 
 		kvs = kvs.AddTag("name", string(item.UID))
 		kvs = kvs.AddTag("uid", string(item.UID))
-		kvs = kvs.AddTag("daemonset_name", item.Name)
+		kvs = kvs.AddTag(daemonsetObjectResourceKey, item.Name)
 		kvs = kvs.AddTag("namespace", item.Namespace)
 
 		kvs = kvs.AddV2("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3, false)
@@ -193,7 +193,7 @@ func (d *daemonset) buildObjectPoints(list *apiappsv1.DaemonSetList) []*point.Po
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, d.cfg.LabelAsTagsForNonMetric.All, d.cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(d.cfg.ExtraTags)...)
-		pt := point.NewPointV2(daemonsetObjectMeasurement, kvs, opts...)
+		pt := point.NewPointV2(daemonsetObjectClass, kvs, opts...)
 		pts = append(pts, pt)
 	}
 
@@ -231,7 +231,7 @@ type daemonsetObject struct{}
 //nolint:lll
 func (*daemonsetObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: daemonsetObjectMeasurement,
+		Name: daemonsetObjectClass,
 		Desc: "The object of the Kubernetes DaemonSet.",
 		Cat:  point.Object,
 		Tags: map[string]interface{}{

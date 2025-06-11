@@ -23,10 +23,10 @@ import (
 )
 
 const (
+	nodeType              = "Node"
 	nodeMetricMeasurement = "kube_node"
-	nodeObjectMeasurement = "kubernetes_nodes"
-	nodeChangeSource      = "kubernetes_nodes"
-	nodeChangeSourceType  = "Node"
+	nodeObjectClass       = "kubernetes_nodes"
+	nodeObjectResourceKey = "node_name"
 )
 
 //nolint:gochecknoinits
@@ -92,7 +92,7 @@ func (n *node) addChangeInformer(informerFactory informers.SharedInformerFactory
 	}
 
 	updateFunc := func(oldObj, newObj interface{}) {
-		objectChangeCountVec.WithLabelValues(nodeChangeSourceType, "update").Inc()
+		objectChangeCountVec.WithLabelValues(nodeType, "update").Inc()
 
 		oldNodeObj, ok := oldObj.(*apicorev1.Node)
 		if !ok {
@@ -113,8 +113,8 @@ func (n *node) addChangeInformer(informerFactory informers.SharedInformerFactory
 		}
 
 		if difftext != "" {
-			objectChangeCountVec.WithLabelValues(nodeChangeSourceType, "spec-changed").Inc()
-			processChange(n.cfg, nodeChangeSource, nodeChangeSourceType, difftext, newNodeObj)
+			objectChangeCountVec.WithLabelValues(nodeType, "spec-changed").Inc()
+			processChange(n.cfg, nodeObjectClass, nodeObjectResourceKey, nodeType, difftext, newNodeObj)
 		}
 	}
 
@@ -181,7 +181,7 @@ func (n *node) buildObjectPoints(list *apicorev1.NodeList) []*point.Point {
 
 		kvs = kvs.AddTag("name", string(item.UID))
 		kvs = kvs.AddTag("uid", string(item.UID))
-		kvs = kvs.AddTag("node_name", config.RenameNode(item.Name))
+		kvs = kvs.AddTag(nodeObjectResourceKey, config.RenameNode(item.Name))
 		for _, condition := range item.Status.Conditions {
 			if condition.Reason == "KubeletReady" {
 				kvs = kvs.AddTag("status", string(condition.Type))
@@ -242,7 +242,7 @@ func (n *node) buildObjectPoints(list *apicorev1.NodeList) []*point.Point {
 			kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, n.cfg.LabelAsTagsForNonMetric.All, n.cfg.LabelAsTagsForNonMetric.Keys)...)
 		}
 		kvs = append(kvs, point.NewTags(n.cfg.ExtraTags)...)
-		pt := point.NewPointV2(nodeObjectMeasurement, kvs, opts...)
+		pt := point.NewPointV2(nodeObjectClass, kvs, opts...)
 		pts = append(pts, pt)
 	}
 
@@ -280,7 +280,7 @@ type nodeObject struct{}
 //nolint:lll
 func (*nodeObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: nodeObjectMeasurement,
+		Name: nodeObjectClass,
 		Desc: "The object of the Kubernetes Node.",
 		Cat:  point.Object,
 		Tags: map[string]interface{}{

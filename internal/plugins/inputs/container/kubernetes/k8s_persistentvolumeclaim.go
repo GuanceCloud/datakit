@@ -22,9 +22,9 @@ import (
 )
 
 const (
-	persistentvolumeclaimObjectMeasurement = "kubernetes_persistentvolumeclaims"
-	persistentvolumeclaimChangeSource      = "kubernetes_persistentvolumeclaims"
-	persistentvolumeclaimChangeSourceType  = "PersistentVolumeClaim"
+	persistentvolumeclaimType              = "PersistentVolumeClaim"
+	persistentvolumeclaimObjectClass       = "kubernetes_persistentvolumeclaims"
+	persistentvolumeclaimObjectResourceKey = "persistentvolumeclaim_name"
 )
 
 //nolint:gochecknoinits
@@ -71,7 +71,7 @@ func (p *persistentvolumeclaim) addChangeInformer(informerFactory informers.Shar
 	}
 
 	updateFunc := func(oldObj, newObj interface{}) {
-		objectChangeCountVec.WithLabelValues(persistentvolumeclaimChangeSourceType, "update").Inc()
+		objectChangeCountVec.WithLabelValues(persistentvolumeclaimType, "update").Inc()
 
 		oldPersistentVolumeClaimObj, ok := oldObj.(*apicorev1.PersistentVolumeClaim)
 		if !ok {
@@ -92,10 +92,11 @@ func (p *persistentvolumeclaim) addChangeInformer(informerFactory informers.Shar
 		}
 
 		if difftext != "" {
-			objectChangeCountVec.WithLabelValues(persistentvolumeclaimChangeSourceType, "spec-changed").Inc()
+			objectChangeCountVec.WithLabelValues(persistentvolumeclaimType, "spec-changed").Inc()
 			processChange(p.cfg,
-				persistentvolumeclaimChangeSource,
-				persistentvolumeclaimChangeSourceType,
+				persistentvolumeclaimObjectClass,
+				persistentvolumeclaimObjectResourceKey,
+				persistentvolumeclaimType,
 				difftext,
 				newPersistentVolumeClaimObj)
 		}
@@ -119,7 +120,7 @@ func (p *persistentvolumeclaim) buildObjectPoints(list *apicorev1.PersistentVolu
 
 		kvs = kvs.AddTag("name", string(item.UID))
 		kvs = kvs.AddTag("uid", string(item.UID))
-		kvs = kvs.AddTag("persistentvolumeclaim_name", item.Name)
+		kvs = kvs.AddTag(persistentvolumeclaimObjectResourceKey, item.Name)
 		kvs = kvs.AddTag("namespace", item.Namespace)
 		kvs = kvs.AddTag("phase", string(item.Status.Phase))
 
@@ -165,7 +166,7 @@ func (p *persistentvolumeclaim) buildObjectPoints(list *apicorev1.PersistentVolu
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, p.cfg.LabelAsTagsForNonMetric.All, p.cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(p.cfg.ExtraTags)...)
-		pt := point.NewPointV2(persistentvolumeclaimObjectMeasurement, kvs, opts...)
+		pt := point.NewPointV2(persistentvolumeclaimObjectClass, kvs, opts...)
 		pts = append(pts, pt)
 	}
 
@@ -177,7 +178,7 @@ type persistentvolumeclaimObject struct{}
 //nolint:lll
 func (*persistentvolumeclaimObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: persistentvolumeclaimObjectMeasurement,
+		Name: persistentvolumeclaimObjectClass,
 		Desc: "The object of the Kubernetes PersistentVolumeClaim.",
 		Cat:  point.Object,
 		Tags: map[string]interface{}{

@@ -20,7 +20,7 @@ import (
 
 const (
 	replicasetMetricMeasurement = "kube_replicaset"
-	replicasetObjectMeasurement = "kubernetes_replica_sets"
+	replicasetObjectClass       = "kubernetes_replica_sets"
 )
 
 //nolint:gochecknoinits
@@ -165,7 +165,7 @@ func (r *replicaset) buildObjectPoints(list *apiappsv1.ReplicaSetList) []*point.
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, r.cfg.LabelAsTagsForNonMetric.All, r.cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(r.cfg.ExtraTags)...)
-		pt := point.NewPointV2(replicasetObjectMeasurement, kvs, opts...)
+		pt := point.NewPointV2(replicasetObjectClass, kvs, opts...)
 		pts = append(pts, pt)
 	}
 
@@ -201,7 +201,7 @@ type replicasetObject struct{}
 //nolint:lll
 func (*replicasetObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: replicasetObjectMeasurement,
+		Name: replicasetObjectClass,
 		Desc: "The object of the Kubernetes ReplicaSet.",
 		Cat:  point.Object,
 		Tags: map[string]interface{}{

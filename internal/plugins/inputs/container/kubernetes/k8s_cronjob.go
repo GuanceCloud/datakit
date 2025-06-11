@@ -20,10 +20,10 @@ import (
 )
 
 const (
+	cronjobType              = "CronJob"
 	cronjobMetricMeasurement = "kube_cronjob"
-	cronjobObjectMeasurement = "kubernetes_cron_jobs"
-	cronjobChangeSource      = "kubernetes_cron_jobs"
-	cronjobChangeSourceType  = "CronJob"
+	cronjobObjectClass       = "kubernetes_cron_jobs"
+	cronjobObjectResourceKey = "cron_job_name"
 )
 
 //nolint:gochecknoinits
@@ -89,7 +89,7 @@ func (c *cronjob) addChangeInformer(informerFactory informers.SharedInformerFact
 	}
 
 	updateFunc := func(oldObj, newObj interface{}) {
-		objectChangeCountVec.WithLabelValues(cronjobChangeSourceType, "update").Inc()
+		objectChangeCountVec.WithLabelValues(cronjobType, "update").Inc()
 
 		oldCronjobObj, ok := oldObj.(*apibatchv1.CronJob)
 		if !ok {
@@ -110,8 +110,8 @@ func (c *cronjob) addChangeInformer(informerFactory informers.SharedInformerFact
 		}
 
 		if difftext != "" {
-			objectChangeCountVec.WithLabelValues(cronjobChangeSourceType, "spec-changed").Inc()
-			processChange(c.cfg, cronjobChangeSource, cronjobChangeSourceType, difftext, newCronjobObj)
+			objectChangeCountVec.WithLabelValues(cronjobType, "spec-changed").Inc()
+			processChange(c.cfg, cronjobObjectClass, cronjobObjectResourceKey, cronjobType, difftext, newCronjobObj)
 		}
 	}
 
@@ -159,7 +159,7 @@ func (c *cronjob) buildObjectPoints(list *apibatchv1.CronJobList) []*point.Point
 
 		kvs = kvs.AddTag("name", string(item.UID))
 		kvs = kvs.AddTag("uid", string(item.UID))
-		kvs = kvs.AddTag("cron_job_name", item.Name)
+		kvs = kvs.AddTag(cronjobObjectResourceKey, item.Name)
 		kvs = kvs.AddTag("namespace", item.Namespace)
 
 		kvs = kvs.AddV2("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3, false)
@@ -184,7 +184,7 @@ func (c *cronjob) buildObjectPoints(list *apibatchv1.CronJobList) []*point.Point
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, c.cfg.LabelAsTagsForNonMetric.All, c.cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(c.cfg.ExtraTags)...)
-		pt := point.NewPointV2(cronjobObjectMeasurement, kvs, opts...)
+		pt := point.NewPointV2(cronjobObjectClass, kvs, opts...)
 		pts = append(pts, pt)
 	}
 
@@ -216,7 +216,7 @@ type cronjobObject struct{}
 //nolint:lll
 func (*cronjobObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: cronjobObjectMeasurement,
+		Name: cronjobObjectClass,
 		Desc: "The object of the Kubernetes CronJob.",
 		Cat:  point.Object,
 		Tags: map[string]interface{}{

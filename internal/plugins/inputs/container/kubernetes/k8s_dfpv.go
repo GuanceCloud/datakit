@@ -17,7 +17,7 @@ import (
 
 const (
 	dfpvMetricMeasurement = "kube_dfpv"
-	dfpvObjectMeasurement = "kubernetes_dfpv"
+	dfpvObjectClass       = "kubernetes_dfpv"
 )
 
 //nolint:gochecknoinits
@@ -135,7 +135,7 @@ func (d *dfpv) buildObjectPoints(list []*podVolumeInfo) []*point.Point {
 		// dfpv 不使用 LabelAsTagsForNonMetric
 		//
 		kvs = append(kvs, point.NewTags(d.cfg.ExtraTags)...)
-		pt := point.NewPointV2(dfpvObjectMeasurement, kvs, opts...)
+		pt := point.NewPointV2(dfpvObjectClass, kvs, opts...)
 		pts = append(pts, pt)
 	}
 
@@ -175,7 +175,7 @@ type dfpvObject struct{}
 //nolint:lll
 func (*dfpvObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: dfpvObjectMeasurement,
+		Name: dfpvObjectClass,
 		Desc: "The object of the Kubernetes PersistentVolume.",
 		Cat:  point.Object,
 		Tags: map[string]interface{}{

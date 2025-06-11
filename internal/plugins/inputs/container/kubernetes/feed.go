@@ -70,19 +70,22 @@ func feedLogging(name string, feeder dkio.Feeder, pts []*point.Point) {
 	}
 }
 
-func processChange(cfg *Config, source, sourceType, difftext string, obj metav1.Object) {
+func processChange(cfg *Config, class, sourceName, sourceType, difftext string, obj metav1.Object) {
 	var kvs point.KVs
 	kvs = append(kvs, buildDefaultChangeEventKVs()...)
 
+	kvs = kvs.AddTag("class", class)
+	kvs = kvs.AddTag("uid", string(obj.GetUID()))
+	kvs = kvs.AddTag("namespace", obj.GetNamespace())
+
 	name := obj.GetName()
-	kvs = kvs.AddTag("df_resource", name)
-	kvs = kvs.AddTag("df_title", fmt.Sprintf("[%s] %s configuration changed", sourceType, name))
+	kvs = kvs.AddTag(sourceName, name)
 
-	kvs = kvs.AddTag("df_uid", string(obj.GetUID()))
-	kvs = kvs.AddTag("df_namespace", obj.GetNamespace())
-	kvs = kvs.AddTag("df_resource_type", source)
-
+	content := fmt.Sprintf("[%s] %s configuration changed", sourceType, name)
+	kvs = kvs.AddV2("df_title", content, false)
+	kvs = kvs.AddV2("df_detail", content, false)
 	kvs = kvs.AddV2("df_message", difftext, false)
+
 	kvs = append(kvs, point.NewTags(cfg.ExtraTags)...)
 
 	pt := point.NewPointV2("event", kvs, point.WithTimestamp(time.Now().UnixNano()))
@@ -146,10 +149,6 @@ func buildDefaultChangeEventKVs() (kvs point.KVs) {
 	kvs = kvs.AddTag("df_status", defaultStatus)
 	kvs = kvs.AddTag("df_sub_status", defaultStatus)
 
-	now := time.Now()
-	kvs = kvs.AddV2("df_check_range_start", now.Unix(), false)
-	kvs = kvs.AddV2("df_check_range_end", now.Unix(), false)
-	kvs = kvs.AddV2("df_date_range", 0, false)
 	return
 }
 

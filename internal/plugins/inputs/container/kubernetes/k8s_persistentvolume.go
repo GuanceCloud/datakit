@@ -22,9 +22,9 @@ import (
 )
 
 const (
-	persistentvolumeObjectMeasurement = "kubernetes_persistentvolumes"
-	persistentvolumeChangeSource      = "kubernetes_persistentvolumes"
-	persistentvolumeChangeSourceType  = "PersistentVolume"
+	persistentvolumeType              = "PersistentVolume"
+	persistentvolumeObjectClass       = "kubernetes_persistentvolumes"
+	persistentvolumeObjectResourceKey = "persistentvolume_name"
 )
 
 //nolint:gochecknoinits
@@ -73,7 +73,7 @@ func (p *persistentvolume) addChangeInformer(informerFactory informers.SharedInf
 	}
 
 	updateFunc := func(oldObj, newObj interface{}) {
-		objectChangeCountVec.WithLabelValues(persistentvolumeChangeSourceType, "update").Inc()
+		objectChangeCountVec.WithLabelValues(persistentvolumeType, "update").Inc()
 
 		oldPersistentVolumeObj, ok := oldObj.(*apicorev1.PersistentVolume)
 		if !ok {
@@ -94,10 +94,11 @@ func (p *persistentvolume) addChangeInformer(informerFactory informers.SharedInf
 		}
 
 		if difftext != "" {
-			objectChangeCountVec.WithLabelValues(persistentvolumeChangeSourceType, "spec-changed").Inc()
+			objectChangeCountVec.WithLabelValues(persistentvolumeType, "spec-changed").Inc()
 			processChange(p.cfg,
-				persistentvolumeChangeSource,
-				persistentvolumeChangeSourceType,
+				persistentvolumeObjectClass,
+				persistentvolumeObjectResourceKey,
+				persistentvolumeType,
 				difftext, newPersistentVolumeObj)
 		}
 	}
@@ -120,7 +121,7 @@ func (p *persistentvolume) buildObjectPoints(list *apicorev1.PersistentVolumeLis
 
 		kvs = kvs.AddTag("name", string(item.UID))
 		kvs = kvs.AddTag("uid", string(item.UID))
-		kvs = kvs.AddTag("persistentvolume_name", item.Name)
+		kvs = kvs.AddTag(persistentvolumeObjectResourceKey, item.Name)
 		kvs = kvs.AddTag("phase", string(item.Status.Phase))
 
 		if item.Spec.ClaimRef != nil && item.Spec.ClaimRef.Kind == "PersistentVolumeClaim" {
@@ -158,7 +159,7 @@ func (p *persistentvolume) buildObjectPoints(list *apicorev1.PersistentVolumeLis
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, p.cfg.LabelAsTagsForNonMetric.All, p.cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(p.cfg.ExtraTags)...)
-		pt := point.NewPointV2(persistentvolumeObjectMeasurement, kvs, opts...)
+		pt := point.NewPointV2(persistentvolumeObjectClass, kvs, opts...)
 		pts = append(pts, pt)
 	}
 
@@ -170,7 +171,7 @@ type persistentvolumeObject struct{}
 //nolint:lll
 func (*persistentvolumeObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: persistentvolumeObjectMeasurement,
+		Name: persistentvolumeObjectClass,
 		Desc: "The object of the Kubernetes PersistentVolume.",
 		Cat:  point.Object,
 		Tags: map[string]interface{}{

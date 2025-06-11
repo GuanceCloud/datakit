@@ -21,10 +21,10 @@ import (
 )
 
 const (
+	serviceType              = "Service"
 	serviceMetricMeasurement = "kube_service"
-	serviceObjectMeasurement = "kubernetes_services"
-	serviceChangeSource      = "kubernetes_services"
-	serviceChangeSourceType  = "Service"
+	serviceObjectClass       = "kubernetes_services"
+	serviceObjectResourceKey = "service_name"
 )
 
 //nolint:gochecknoinits
@@ -90,7 +90,7 @@ func (s *service) addChangeInformer(informerFactory informers.SharedInformerFact
 	}
 
 	updateFunc := func(oldObj, newObj interface{}) {
-		objectChangeCountVec.WithLabelValues(serviceChangeSourceType, "update").Inc()
+		objectChangeCountVec.WithLabelValues(serviceType, "update").Inc()
 
 		oldServiceObj, ok := oldObj.(*apicorev1.Service)
 		if !ok {
@@ -111,8 +111,8 @@ func (s *service) addChangeInformer(informerFactory informers.SharedInformerFact
 		}
 
 		if difftext != "" {
-			objectChangeCountVec.WithLabelValues(serviceChangeSourceType, "spec-changed").Inc()
-			processChange(s.cfg, serviceChangeSource, serviceChangeSourceType, difftext, newServiceObj)
+			objectChangeCountVec.WithLabelValues(serviceType, "spec-changed").Inc()
+			processChange(s.cfg, serviceObjectClass, serviceObjectResourceKey, serviceType, difftext, newServiceObj)
 		}
 	}
 
@@ -158,7 +158,7 @@ func (s *service) buildObjectPoints(list *apicorev1.ServiceList) []*point.Point 
 
 		kvs = kvs.AddTag("name", string(item.UID))
 		kvs = kvs.AddTag("uid", string(item.UID))
-		kvs = kvs.AddTag("service_name", item.Name)
+		kvs = kvs.AddTag(serviceObjectResourceKey, item.Name)
 		kvs = kvs.AddTag("namespace", item.Namespace)
 		kvs = kvs.AddTag("type", string(item.Spec.Type))
 
@@ -185,7 +185,7 @@ func (s *service) buildObjectPoints(list *apicorev1.ServiceList) []*point.Point 
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, s.cfg.LabelAsTagsForNonMetric.All, s.cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(s.cfg.ExtraTags)...)
-		pt := point.NewPointV2(serviceObjectMeasurement, kvs, opts...)
+		pt := point.NewPointV2(serviceObjectClass, kvs, opts...)
 		pts = append(pts, pt)
 	}
 
@@ -217,7 +217,7 @@ type serviceObject struct{}
 //nolint:lll
 func (*serviceObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: serviceObjectMeasurement,
+		Name: serviceObjectClass,
 		Desc: "The object of the Kubernetes Service.",
 		Cat:  point.Object,
 		Tags: map[string]interface{}{

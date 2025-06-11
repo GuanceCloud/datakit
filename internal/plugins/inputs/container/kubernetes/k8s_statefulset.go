@@ -19,10 +19,10 @@ import (
 )
 
 const (
+	statefulsetType              = "StatefulSet"
 	statefulsetMetricMeasurement = "kube_statefulset"
-	statefulsetObjectMeasurement = "kubernetes_statefulsets"
-	statefulsetChangeSource      = "kubernetes_statefulsets"
-	statefulsetChangeSourceType  = "StatefulSet"
+	statefulsetObjectClass       = "kubernetes_statefulsets"
+	statefulsetObjectResourceKey = "statefulset_name"
 )
 
 //nolint:gochecknoinits
@@ -88,7 +88,7 @@ func (s *statefulset) addChangeInformer(informerFactory informers.SharedInformer
 	}
 
 	updateFunc := func(oldObj, newObj interface{}) {
-		objectChangeCountVec.WithLabelValues(statefulsetChangeSourceType, "update").Inc()
+		objectChangeCountVec.WithLabelValues(statefulsetType, "update").Inc()
 
 		oldStatefulSetObj, ok := oldObj.(*apiappsv1.StatefulSet)
 		if !ok {
@@ -109,8 +109,8 @@ func (s *statefulset) addChangeInformer(informerFactory informers.SharedInformer
 		}
 
 		if difftext != "" {
-			objectChangeCountVec.WithLabelValues(statefulsetChangeSourceType, "spec-changed").Inc()
-			processChange(s.cfg, statefulsetChangeSource, statefulsetChangeSourceType, difftext, newStatefulSetObj)
+			objectChangeCountVec.WithLabelValues(statefulsetType, "spec-changed").Inc()
+			processChange(s.cfg, statefulsetObjectClass, statefulsetObjectResourceKey, statefulsetType, difftext, newStatefulSetObj)
 		}
 	}
 
@@ -164,7 +164,7 @@ func (s *statefulset) buildObjectPoints(list *apiappsv1.StatefulSetList) []*poin
 
 		kvs = kvs.AddTag("name", string(item.UID))
 		kvs = kvs.AddTag("uid", string(item.UID))
-		kvs = kvs.AddTag("statefulset_name", item.Name)
+		kvs = kvs.AddTag(statefulsetObjectResourceKey, item.Name)
 		kvs = kvs.AddTag("namespace", item.Namespace)
 
 		kvs = kvs.AddV2("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3, false)
@@ -196,7 +196,7 @@ func (s *statefulset) buildObjectPoints(list *apiappsv1.StatefulSetList) []*poin
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, s.cfg.LabelAsTagsForNonMetric.All, s.cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(s.cfg.ExtraTags)...)
-		pt := point.NewPointV2(statefulsetObjectMeasurement, kvs, opts...)
+		pt := point.NewPointV2(statefulsetObjectClass, kvs, opts...)
 		pts = append(pts, pt)
 	}
 
@@ -233,7 +233,7 @@ type statefulsetObject struct{}
 //nolint:lll
 func (*statefulsetObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: statefulsetObjectMeasurement,
+		Name: statefulsetObjectClass,
 		Desc: "The object of the Kubernetes StatefulSet.",
 		Cat:  point.Object,
 		Tags: map[string]interface{}{
