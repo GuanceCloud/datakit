@@ -26,6 +26,7 @@ CGO_FLAGS              = "-Wno-undef-prefix -Wno-deprecated-declarations" # to d
 HL                     = \033[0;32m # high light
 NC                     = \033[0m    # no color
 RED                    = \033[31m   # red
+LOG_LEVEL             ?= "info"
 
 SUPPORTED_GOLINT_VERSION         = 1.46.2
 SUPPORTED_GOLINT_VERSION_ANOTHER = v1.46.2
@@ -103,8 +104,13 @@ define notify_build
 	fi
 	@echo "===== notify $(BIN) $(1) ===="
 	GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run -tags with_inputs cmd/make/make.go \
-		-main $(ENTRY) -binary $(BIN) -name $(NAME) \
-		-release $(1) -dist-dir $(DIST_DIR) -archs $(2) \
+		-log-level $(LOG_LEVEL) \
+		-main $(ENTRY) \
+		-binary $(BIN) \
+		-name $(NAME) \
+		-release $(1) \
+		-dist-dir $(DIST_DIR) \
+		-archs $(2) \
 		-notify-only
 endef
 
@@ -125,6 +131,7 @@ define build_bin
 	@echo "===== building $(BIN) $(1) ====="
 	GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run \
 		-tags with_inputs cmd/make/make.go      \
+		-log-level $(LOG_LEVEL)                 \
 		-release $(1)                           \
 		-archs $(2)                             \
 		-main $(ENTRY)                          \
@@ -136,7 +143,7 @@ define build_bin
 		-docker-image-repo $(DOCKER_IMAGE_REPO) \
 		-helm-chart-dir $(HELM_CHART_DIR)       \
 		-pkg-ebpf $(PKGEBPF)                    \
-	  -only-external-inputs $(ONLY_BUILD_INPUTS_EXTENTIONS)
+		-only-external-inputs $(ONLY_BUILD_INPUTS_EXTENTIONS)
 	@tree -Csh -L 3 $(DIST_DIR)
 endef
 
@@ -145,6 +152,7 @@ define publish
 	@echo "===== publishing $(1) $(NAME) ====="
 	GO111MODULE=off CGO_CFLAGS=$(CGO_FLAGS) go run \
 		-tags with_inputs cmd/make/make.go      \
+		-log-level $(LOG_LEVEL)                 \
 		-release $(1)                           \
 		-archs $(2)                             \
 		-pub                                    \
@@ -161,6 +169,7 @@ define pub_ebpf
 	@echo "===== publishing $(1) $(NAME_EBPF) ====="
 	@GO111MODULE=off CGO_CFLAGS=$(CGO_FLAGS) go run \
 		-tags with_inputs cmd/make/make.go \
+		-log-level $(LOG_LEVEL) \
 		-release $(1)           \
 		-archs $(2)             \
 		-pub-ebpf               \
@@ -172,28 +181,28 @@ define build_docker_image
 	echo 'publishing to $(2)...';
 	@if [ $(2) = "registry.jiagouyun.com" ]; then \
 		sudo docker buildx build --platform $(1) \
-		  --build-arg DIST_DIR=$(DIST_DIR) \
+			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/datakit:$(VERSION) \
 			-f dockerfiles/Dockerfile.$(DOCKERFILE_SUFFIX) . --push; \
 		sudo docker buildx build --platform $(1) \
-		 --build-arg DIST_DIR=$(DIST_DIR) \
+			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/datakit-elinker:$(VERSION) \
 			-f dockerfiles/Dockerfile_elinker.$(DOCKERFILE_SUFFIX) . --push; \
 		sudo docker buildx build --platform $(1) \
-		 --build-arg DIST_DIR=$(DIST_DIR) \
+			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/logfwd:$(VERSION) \
 			-f dockerfiles/Dockerfile_logfwd.$(DOCKERFILE_SUFFIX) . --push; \
 	else \
 		sudo docker buildx build --platform $(1) \
-		  --build-arg DIST_DIR=$(DIST_DIR) \
+			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/datakit:$(VERSION) \
 			-f dockerfiles/Dockerfile.$(DOCKERFILE_SUFFIX) . --push; \
 		sudo docker buildx build --platform $(1) \
-		  --build-arg DIST_DIR=$(DIST_DIR) \
+			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/datakit-elinker:$(VERSION) \
 			-f dockerfiles/Dockerfile_elinker.$(DOCKERFILE_SUFFIX) . --push; \
 		sudo docker buildx build --platform $(1) \
-		  --build-arg DIST_DIR=$(DIST_DIR) \
+			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/logfwd:$(VERSION) \
 			-f dockerfiles/Dockerfile_logfwd.$(DOCKERFILE_SUFFIX) . --push; \
 	fi
@@ -242,7 +251,7 @@ endef
 define build_ip2isp
 	rm -rf china-operator-ip
 	git clone -b ip-lists https://github.com/gaoyifan/china-operator-ip.git
-	@GO111MODULE=off CGO_ENABLED=0 go run -tags with_inputs cmd/make/make.go -build-isp
+	@GO111MODULE=off CGO_ENABLED=0 go run -tags with_inputs cmd/make/make.go -build-isp -log-level $(LOG_LEVEL)
 endef
 
 ##############################################################################
@@ -320,6 +329,7 @@ build_dca: deps build_dca_web
 	@mv dca/web/build $(DIST_DIR)/dca-web # move DCA web(build during build_dca_web) to $(DIST_DIR)
 	@CGO_CFLAGS=$(CGO_FLAGS) GO111MODULE=off CGO_ENABLED=0 \
 		go run cmd/make/make.go -dca \
+		-log-level $(LOG_LEVEL) \
 		-archs $(DCA_BUILD_ARCH) \
 		-dist-dir $(DIST_DIR) \
 		-dca-version $(DCA_VERSION) \
@@ -344,9 +354,12 @@ vet:
 
 ut: deps
 	CGO_CFLAGS=$(CGO_FLAGS) GO111MODULE=off CGO_ENABLED=1 \
-						 REMOTE_HOST=$(DOCKER_REMOTE_HOST) \
-						 go run cmd/make/make.go -ut -ut-exclude $(UT_EXCLUDE) -ut-only $(UT_ONLY) -ut-parallel $(UT_PARALLEL) \
-						 -dataway-url $(DATAWAY_URL); \
+	REMOTE_HOST=$(DOCKER_REMOTE_HOST) \
+	go run cmd/make/make.go \
+	--log-level $(LOG_LEVEL) \
+	-ut -ut-exclude $(UT_EXCLUDE) -ut-only $(UT_ONLY) -ut-parallel $(UT_PARALLEL) \
+	-log-level $(LOG_LEVEL) \
+	-dataway-url $(DATAWAY_URL); \
 		if [ $$? != 0 ]; then \
 			exit 1; \
 		else \
@@ -438,20 +451,24 @@ md_lint: md_export
 	# Disable autofix on checking generated documents.
 	# Also disable section check on generated docs(there are sections that rended in measurement name)
 	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
-		go run cmd/make/make.go --mdcheck $(docs_dir) \
+		go run cmd/make/make.go \
+		--log-level $(LOG_LEVEL) \
+		--mdcheck $(docs_dir) \
 		--mdcheck-no-section-check --mdcheck-no-autofix $(AUTO_FIX)
 	$(call check_docs,$(docs_dir))
 
 md_export:
 	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
 		go run cmd/make/make.go \
+		--log-level $(LOG_LEVEL) \
 		--mdcheck $(docs_template_dir) \
 		--mdcheck-no-autofix $(AUTO_FIX);
 	@rm -rf $(exportdir) && mkdir -p $(exportdir)
 	@bash export.sh -D $(exportdir) -E -V 0.0.0
 
 sample_conf_lint:
-	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run -tags with_inputs cmd/make/make.go --sample-conf-check
+	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run -tags with_inputs cmd/make/make.go \
+		--sample-conf-check --log-level $(LOG_LEVEL)
 
 project_words:
 	cspell -c cspell/cspell.json --words-only --unique internal/export/doc/zh/** | sort --ignore-case >> project-words.txt

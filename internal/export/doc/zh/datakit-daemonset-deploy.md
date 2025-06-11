@@ -52,23 +52,23 @@
     
     
     ```shell
-    $ helm install datakit datakit \
+    helm install datakit datakit \
          --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
          -n datakit --create-namespace \
-         --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<your-token>" 
+         --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>" 
     ```
     
     查看部署状态：
     
     ```shell
-    $ helm -n datakit list
+    helm -n datakit list
     ```
     
     可以通过如下命令来升级：
     
     ```shell
-    $ helm -n datakit get  values datakit -o yaml > values.yaml
-    $ helm upgrade datakit datakit \
+    helm -n datakit get  values datakit -o yaml > values.yaml
+    helm upgrade datakit datakit \
         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
         -n datakit \
         -f values.yaml
@@ -77,7 +77,52 @@
     可以通过如下命令来卸载：
     
     ```shell
-    $ helm uninstall datakit -n datakit
+    helm uninstall datakit -n datakit
+    ```
+
+    ### 更多 Helm 示例 {#helm-examples}
+
+    除了手动编辑上面的 *values.yaml* 来调整 DataKit 配置（如果遇到复杂转义操作，还是建议直接用 *values.yaml* 来操作），还可以在 Helm 安装阶段就指定这些参数。需要注意的是，这些参数的设置需符合 Helm 的命令行语法。
+
+    **设置默认的采集器列表**
+
+    ```shell
+    helm install datakit datakit \
+         --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+         -n datakit --create-namespace \
+         --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<your-token>" \
+         --set datakit.default_enabled_inputs="statsd\,dk\,cpu\,mem"
+    ```
+
+    注意，此处需要将 `,` 转义一下，不然 Helm 会报错。
+
+    **设置环境变量**
+
+    DataKit 支持非常多的[环境变量设置](datakit-daemonset-install.md#env-setting)，我们可以用如下的方式来追加一组环境变量设置：
+
+    ```shell
+    helm install datakit datakit \
+        --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+        -n datakit --create-namespace \
+        --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=tkn_xxx" \
+        --set "extraEnvs[0].name=ENV_INPUT_OTEL_GRPC" \
+        --set 'extraEnvs[0].value=\{"trace_enable":true\,"metric_enable":true\,"addr":"0.0.0.0:4317"\}' \
+        --set "extraEnvs[1].name=ENV_INPUT_CPU_PERCPU" \
+        --set 'extraEnvs[1].value=true'
+    ```
+
+    此处 `extraEnvs` 是 DataKit Helm 包中定义的设置环境变量的入口，由于环境变量是数组结构，故此处我们用数组下标（从 0 开始）的方式来追加多个环境变量。其中 `name` 即环境变量名，`value` 即对应的值。值得注意的是，某些环境变量的值是 JSON 字符串，此处我们也要注意对一些字符（比 `{},` 等字符）做转义。
+
+    **安装指定版本**
+
+    可以通过 `image.tag` 来指定 DataKit 镜像版本号：
+
+    ```shell
+    helm install datakit datakit \
+        --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+        -n datakit --create-namespace \
+        --set image.tag="1.70.0" \
+        ...
     ```
 <!-- markdownlint-enable -->
 

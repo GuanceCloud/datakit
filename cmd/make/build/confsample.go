@@ -16,7 +16,7 @@ func CheckSampleConf(allInputs map[string]inputs.Creator) error {
 	l.Infof("check %d inputs's config samples", len(allInputs))
 
 	for name, creator := range allInputs {
-		l.Infof("check config sample of %q", name)
+		l.Debugf("check config sample of %q", name)
 		input := creator()
 
 		// check if all conf sample are EN

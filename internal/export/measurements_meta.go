@@ -109,7 +109,7 @@ func doExportMetaInfo(ipts map[string]inputs.Creator) ([]byte, error) {
 			sampleMeasurements := ipt.SampleMeasurement()
 			for _, m := range sampleMeasurements {
 				if m == inputs.DefaultEmptyMeasurement {
-					l.Infof("%q got empty measurement info exported.", inputName)
+					l.Warnf("%q got empty measurement info exported.", inputName)
 					continue
 				}
 
@@ -120,7 +120,7 @@ func doExportMetaInfo(ipts map[string]inputs.Creator) ([]byte, error) {
 				}
 
 				if measurement.ExportSkip {
-					l.Infof("skip measurement %+#v", measurement)
+					l.Warnf("skip measurement %+#v", measurement)
 					continue
 				}
 
