@@ -23,6 +23,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -561,7 +562,7 @@ func (ipt *Input) getPoint(data []byte, eventType string) ([]*point.Point, error
 	ipt.addExtraTags(tags)
 
 	opts := point.DefaultLoggingOptions()
-	opts = append(opts, point.WithTime(time.Now()))
+	opts = append(opts, point.WithTime(ntp.Now()))
 
 	if ipt.Election {
 		tags = inputs.MergeTagsWrapper(tags, ipt.Tagger.ElectionTags(), ipt.Tags, ipt.URL)

@@ -20,6 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -57,6 +58,7 @@ type input struct {
 	feeder dkio.Feeder
 	tagger datakit.GlobalTagger
 
+	ptsTime time.Time
 	urlTags []map[string]string
 }
 
@@ -97,6 +99,8 @@ func (i *input) Run() {
 	tick := time.NewTicker(i.Interval.Duration)
 	defer tick.Stop()
 
+	i.ptsTime = ntp.Now()
+
 	for {
 		if i.pause {
 			l.Debugf("election failed, skipped")
@@ -118,7 +122,8 @@ func (i *input) Run() {
 		}
 
 		select {
-		case <-tick.C:
+		case tt := <-tick.C:
+			i.ptsTime = inputs.AlignTime(tt, i.ptsTime, i.Interval.Duration)
 
 		case i.pause = <-i.pauseCh:
 			l.Infof("set input %q paused?(%v)", inputName, i.pause)

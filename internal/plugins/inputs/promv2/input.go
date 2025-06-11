@@ -20,6 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/promscrape"
 )
@@ -87,12 +88,16 @@ func (ipt *Input) Run() {
 		return
 	}
 
-	start := time.Now()
+	start := ntp.Now()
 
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
 
 	for {
+		if !ipt.pause {
+			ipt.scrape(start.UnixNano())
+		}
+
 		select {
 		case <-datakit.Exit.Wait():
 			ipt.log.Info("promv2 exit")
@@ -106,11 +111,7 @@ func (ipt *Input) Run() {
 			// nil
 
 		case tt := <-tick.C:
-			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), ipt.Interval.Milliseconds())
-			start = time.UnixMilli(nextts)
-			if !ipt.pause {
-				ipt.scrape(start.UnixNano())
-			}
+			start = inputs.AlignTime(tt, start, ipt.Interval)
 		}
 	}
 }

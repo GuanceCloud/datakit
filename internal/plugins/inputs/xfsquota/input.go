@@ -15,6 +15,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -50,22 +51,20 @@ func (ipt *Input) Run() {
 		return
 	}
 
-	start := time.Now()
-
+	start := ntp.Now()
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
 
 	for {
+		ipt.collectXFSQuota(start.UnixNano())
+
 		select {
 		case <-datakit.Exit.Wait():
 			l.Info("xfsquota exit")
 			return
 
 		case tt := <-tick.C:
-			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), ipt.Interval.Milliseconds())
-			start = time.UnixMilli(nextts)
-
-			ipt.collectXFSQuota(start.UnixNano())
+			start = inputs.AlignTime(tt, start, ipt.Interval)
 		}
 	}
 }

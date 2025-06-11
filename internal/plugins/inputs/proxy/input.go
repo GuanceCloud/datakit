@@ -21,6 +21,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -188,7 +189,7 @@ func (ipt *Input) doInitProxy() error {
 				log.Warnf("on request got error from proxy context: %s", ctx.Error.Error())
 			}
 
-			r.Header.Add("X-Proxy-Time", fmt.Sprintf("%d", time.Now().UnixNano()))
+			r.Header.Add("X-Proxy-Time", fmt.Sprintf("%d", ntp.Now().UnixNano()))
 			proxyReqVec.WithLabelValues(
 				r.URL.Path,
 				r.Method,

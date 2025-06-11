@@ -28,6 +28,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -75,8 +76,7 @@ type customQuery struct {
 	Interval datakit.Duration `toml:"interval"`
 	Tags     []string         `toml:"tags"`
 	Fields   []string         `toml:"fields"`
-
-	start time.Time
+	ptsTime  time.Time
 }
 
 type mysqllog struct {
@@ -133,10 +133,10 @@ type Input struct {
 	CollectCoErrMsg    string
 	LastCustomerObject *customerObjectMeasurement
 
-	start  time.Time
-	db     *sql.DB
-	feeder dkio.Feeder
-	tagger datakit.GlobalTagger
+	ptsTime time.Time
+	db      *sql.DB
+	feeder  dkio.Feeder
+	tagger  datakit.GlobalTagger
 
 	// response   []map[string]interface{}
 	tail       *tailer.Tailer
@@ -768,20 +768,21 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 	tick := time.NewTicker(duration)
 	defer tick.Stop()
 
-	start := time.Now()
+	query.ptsTime = ntp.Now()
 	for {
+		collectStart := time.Now()
+
 		if ipt.pause {
 			l.Debugf("not leader, custom query skipped")
 		} else {
-			// collect custom query
 			l.Debugf("start collecting custom query, metric name: %s", query.Metric)
+
 			arr := getCleanMysqlCustomQueries(ipt.q(query.SQL, query.Metric))
 			if arr != nil {
-				query.start = start
 				points := ipt.getCustomQueryPoints(query, arr)
 				if len(points) > 0 {
 					if err := ipt.feeder.FeedV2(point.Metric, points,
-						dkio.WithCollectCost(time.Since(start)),
+						dkio.WithCollectCost(time.Since(collectStart)),
 						dkio.WithElection(ipt.Election),
 						dkio.WithInputName(customQueryFeedName),
 					); err != nil {
@@ -807,8 +808,7 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 			return
 
 		case tt := <-tick.C:
-			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), duration.Milliseconds())
-			start = time.UnixMilli(nextts)
+			query.ptsTime = inputs.AlignTime(tt, query.ptsTime, duration)
 		}
 	}
 }
@@ -889,7 +889,7 @@ func (ipt *Input) Run() {
 	}
 
 	l.Infof("collecting each %v", ipt.Interval.Duration)
-	ipt.start = time.Now()
+	ipt.ptsTime = ntp.Now()
 
 	if ipt.Election {
 		ipt.mergedTags = inputs.MergeTags(ipt.tagger.ElectionTags(), ipt.Tags, ipt.Host)
@@ -906,8 +906,9 @@ func (ipt *Input) Run() {
 		} else {
 			l.Debugf("mysql input gathering...")
 
-			ipt.setUpState()
+			collectStart := time.Now()
 
+			ipt.setUpState()
 			ipt.resetLastError()
 
 			mpts, err := ipt.Collect()
@@ -934,7 +935,7 @@ func (ipt *Input) Run() {
 					}
 
 					if err := ipt.feeder.FeedV2(category, pts,
-						dkio.WithCollectCost(time.Since(ipt.start)),
+						dkio.WithCollectCost(time.Since(collectStart)),
 						dkio.WithElection(ipt.Election),
 						dkio.WithInputName(feedName),
 					); err != nil {
@@ -964,8 +965,7 @@ func (ipt *Input) Run() {
 			return
 
 		case tt := <-tick.C:
-			nextts := inputs.AlignTimeMillSec(tt, ipt.start.UnixMilli(), ipt.Interval.Duration.Milliseconds())
-			ipt.start = time.UnixMilli(nextts)
+			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.Interval.Duration)
 		case ipt.pause = <-ipt.pauseCh:
 			// nil
 		}

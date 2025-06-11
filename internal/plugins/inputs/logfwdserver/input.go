@@ -26,6 +26,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -201,7 +202,7 @@ func (ipt *Input) setup() bool {
 func makePts(source string, cnt []string, tags map[string]string, originFields map[string]interface{}) []*point.Point {
 	pts := []*point.Point{}
 
-	now := time.Now()
+	now := ntp.Now()
 	for _, cnt := range cnt {
 		opts := point.DefaultLoggingOptions()
 		opts = append(opts, point.WithTime(now))

@@ -11,6 +11,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"k8s.io/client-go/informers"
 )
@@ -69,7 +70,7 @@ func (d *dfpv) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ 
 
 func (d *dfpv) buildMetricPoints(list []*podVolumeInfo, timestamp int64) []*point.Point {
 	var pts []*point.Point
-	opts := point.DefaultMetricOptions()
+	opts := append(point.DefaultMetricOptions(), point.WithTimestamp(timestamp))
 
 	for _, item := range list {
 		var kvs point.KVs
@@ -105,7 +106,7 @@ func (d *dfpv) buildMetricPoints(list []*podVolumeInfo, timestamp int64) []*poin
 
 func (d *dfpv) buildObjectPoints(list []*podVolumeInfo) []*point.Point {
 	var pts []*point.Point
-	opts := point.DefaultObjectOptions()
+	opts := append(point.DefaultObjectOptions(), point.WithTime(ntp.Now()))
 
 	for _, item := range list {
 		var kvs point.KVs

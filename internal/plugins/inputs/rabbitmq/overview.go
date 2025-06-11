@@ -6,12 +6,77 @@
 package rabbitmq
 
 import (
+	"time"
+
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
+// objectTotals ...
+type objectTotals struct {
+	Channels    int64
+	Connections int64
+	Consumers   int64
+	Exchanges   int64
+	Queues      int64
+}
+
+type queueTotals struct {
+	Messages       int64
+	MessagesDetail details `json:"messages_details"`
+
+	MessagesReady       int64   `json:"messages_ready"`
+	MessagesReadyDetail details `json:"messages_ready_details"`
+
+	MessagesUnacknowledged       int64   `json:"messages_unacknowledged"`
+	MessagesUnacknowledgedDetail details `json:"messages_unacknowledged_details"`
+}
+
+// details ...
+type details struct {
+	Rate float64 `json:"rate"`
+}
+
+// messageStats ...
+type messageStats struct {
+	Ack                     int64
+	AckDetails              details `json:"ack_details"`
+	Confirm                 int64   `json:"confirm"`
+	ConfirmDetail           details `json:"ack_details_details"`
+	Deliver                 int64
+	DeliverDetails          details `json:"deliver_details"`
+	DeliverGet              int64   `json:"deliver_get"`
+	DeliverGetDetails       details `json:"deliver_get_details"`
+	Publish                 int64
+	PublishDetails          details `json:"publish_details"`
+	Redeliver               int64
+	RedeliverDetails        details `json:"redeliver_details"`
+	PublishIn               int64   `json:"publish_in"`
+	PublishInDetails        details `json:"publish_in_details"`
+	PublishOut              int64   `json:"publish_out"`
+	PublishOutDetails       details `json:"publish_out_details"`
+	ReturnUnroutable        int64   `json:"return_unroutable"`
+	ReturnUnroutableDetails details `json:"return_unroutable_details"`
+}
+
+type listeners struct {
+	Protocol string `json:"protocol"`
+}
+
+type overviewResponse struct {
+	Version      string        `json:"rabbitmq_version"`
+	ClusterName  string        `json:"cluster_name"`
+	MessageStats *messageStats `json:"message_stats"`
+	ObjectTotals *objectTotals `json:"object_totals"`
+	QueueTotals  *queueTotals  `json:"queue_totals"`
+	Listeners    []listeners   `json:"listeners"`
+}
+
 func getOverview(n *Input) {
-	overview := &OverviewResponse{}
+	var (
+		collectStart = time.Now()
+		overview     = &overviewResponse{}
+	)
 
 	err := n.requestJSON("/api/overview", &overview)
 	if err != nil {
@@ -19,127 +84,52 @@ func getOverview(n *Input) {
 		n.lastErr = err
 		return
 	}
-	// ts := time.Now()
+
 	if overview.QueueTotals == nil || overview.ObjectTotals == nil || overview.MessageStats == nil {
 		l.Errorf("Wrong answer from rabbitmq. Probably auth issue")
 		return
 	}
-	tags := map[string]string{
-		"url":              n.URL,
-		"rabbitmq_version": overview.Version,
-	}
-	if n.host != "" {
-		tags["host"] = n.host
-	}
 
-	n.Tags["cluster_name"] = overview.ClusterName
+	kvs := point.NewTags(n.mergedTags)
 
-	for k, v := range n.Tags {
-		tags[k] = v
-	}
+	kvs = kvs.AddTag("url", n.URL).
+		AddTag("rabbitmq_version", overview.Version).
+		AddTag("cluster_name", overview.ClusterName).
+		AddV2("object_totals_channels", overview.ObjectTotals.Channels, true).
+		AddV2("object_totals_connections", overview.ObjectTotals.Connections, true).
+		AddV2("object_totals_consumers", overview.ObjectTotals.Consumers, true).
+		AddV2("object_totals_queues", overview.ObjectTotals.Queues, true).
+		AddV2("message_ack_count", overview.MessageStats.Ack, true).
+		AddV2("message_ack_rate", overview.MessageStats.AckDetails.Rate, true).
+		AddV2("message_confirm_count", overview.MessageStats.Confirm, true).
+		AddV2("message_confirm_rate", overview.MessageStats.ConfirmDetail.Rate, true).
+		AddV2("message_deliver_get_count", overview.MessageStats.DeliverGet, true).
+		AddV2("message_deliver_get_rate", overview.MessageStats.DeliverGetDetails.Rate, true).
+		AddV2("message_publish_count", overview.MessageStats.Publish, true).
+		AddV2("message_publish_rate", overview.MessageStats.PublishDetails.Rate, true).
+		AddV2("message_publish_in_count", overview.MessageStats.PublishIn, true).
+		AddV2("message_publish_in_rate", overview.MessageStats.PublishInDetails.Rate, true).
+		AddV2("message_publish_out_count", overview.MessageStats.PublishOut, true).
+		AddV2("message_publish_out_rate", overview.MessageStats.PublishOutDetails.Rate, true).
+		AddV2("message_redeliver_count", overview.MessageStats.Redeliver, true).
+		AddV2("message_redeliver_rate", overview.MessageStats.RedeliverDetails.Rate, true).
+		AddV2("message_return_unroutable_count", overview.MessageStats.ReturnUnroutable, true).
+		AddV2("message_return_unroutable_count_rate", overview.MessageStats.ReturnUnroutableDetails.Rate, true).
+		AddV2("queue_totals_messages_count", overview.QueueTotals.Messages, true).
+		AddV2("queue_totals_messages_rate", overview.QueueTotals.MessagesDetail.Rate, true).
+		AddV2("queue_totals_messages_ready_count", overview.QueueTotals.MessagesReady, true).
+		AddV2("queue_totals_messages_ready_rate", overview.QueueTotals.MessagesReadyDetail.Rate, true).
+		AddV2("queue_totals_messages_unacknowledged_count", overview.QueueTotals.MessagesUnacknowledged, true).
+		AddV2("queue_totals_messages_unacknowledged_rate", overview.QueueTotals.MessagesUnacknowledgedDetail.Rate, true)
 
-	if n.Election {
-		tags = inputs.MergeTags(n.Tagger.ElectionTags(), tags, n.URL)
-	} else {
-		tags = inputs.MergeTags(n.Tagger.HostTags(), tags, n.URL)
-	}
+	opts := append(point.DefaultMetricOptions(), point.WithTime(n.start))
+	pt := point.NewPointV2(overviewMeasurementName, kvs, opts...)
 
-	fields := map[string]interface{}{
-		"object_totals_channels":    overview.ObjectTotals.Channels,
-		"object_totals_connections": overview.ObjectTotals.Connections,
-		"object_totals_consumers":   overview.ObjectTotals.Consumers,
-		"object_totals_queues":      overview.ObjectTotals.Queues,
-
-		"message_ack_count":                    overview.MessageStats.Ack,
-		"message_ack_rate":                     overview.MessageStats.AckDetails.Rate,
-		"message_confirm_count":                overview.MessageStats.Confirm,
-		"message_confirm_rate":                 overview.MessageStats.ConfirmDetail.Rate,
-		"message_deliver_get_count":            overview.MessageStats.DeliverGet,
-		"message_deliver_get_rate":             overview.MessageStats.DeliverGetDetails.Rate,
-		"message_publish_count":                overview.MessageStats.Publish,
-		"message_publish_rate":                 overview.MessageStats.PublishDetails.Rate,
-		"message_publish_in_count":             overview.MessageStats.PublishIn,
-		"message_publish_in_rate":              overview.MessageStats.PublishInDetails.Rate,
-		"message_publish_out_count":            overview.MessageStats.PublishOut,
-		"message_publish_out_rate":             overview.MessageStats.PublishOutDetails.Rate,
-		"message_redeliver_count":              overview.MessageStats.Redeliver,
-		"message_redeliver_rate":               overview.MessageStats.RedeliverDetails.Rate,
-		"message_return_unroutable_count":      overview.MessageStats.ReturnUnroutable,
-		"message_return_unroutable_count_rate": overview.MessageStats.ReturnUnroutableDetails.Rate,
-
-		"queue_totals_messages_count":                overview.QueueTotals.Messages,
-		"queue_totals_messages_rate":                 overview.QueueTotals.MessagesDetail.Rate,
-		"queue_totals_messages_ready_count":          overview.QueueTotals.MessagesReady,
-		"queue_totals_messages_ready_rate":           overview.QueueTotals.MessagesReadyDetail.Rate,
-		"queue_totals_messages_unacknowledged_count": overview.QueueTotals.MessagesUnacknowledged,
-		"queue_totals_messages_unacknowledged_rate":  overview.QueueTotals.MessagesUnacknowledgedDetail.Rate,
-	}
-	metric := &OverviewMeasurement{
-		name:   OverviewMetric,
-		tags:   tags,
-		fields: fields,
-		ts:     n.alignTS,
-	}
-	n.metricAppend(metric.Point())
-}
-
-type OverviewMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     int64
-}
-
-// Point implement MeasurementV2.
-func (m *OverviewMeasurement) Point() *point.Point {
-	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTimestamp(m.ts))
-
-	return point.NewPointV2(m.name,
-		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-		opts...)
-}
-
-//nolint:lll
-func (m *OverviewMeasurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: OverviewMetric,
-		Cat:  point.Metric,
-		Fields: map[string]interface{}{
-			"object_totals_channels":    newCountFieldInfo("Total number of channels"),
-			"object_totals_connections": newCountFieldInfo("Total number of connections"),
-			"object_totals_consumers":   newCountFieldInfo("Total number of consumers"),
-			"object_totals_queues":      newCountFieldInfo("Total number of queues"),
-
-			"message_ack_count":                    newCountFieldInfo("Number of messages delivered to clients and acknowledged"),
-			"message_ack_rate":                     newRateFieldInfo("Rate of messages delivered to clients and acknowledged per second"),
-			"message_confirm_count":                newCountFieldInfo("Count of messages confirmed"),
-			"message_confirm_rate":                 newRateFieldInfo("Rate of messages confirmed per second"),
-			"message_deliver_get_count":            newCountFieldInfo("Sum of messages delivered in acknowledgement mode to consumers, in no-acknowledgement mode to consumers, in acknowledgement mode in response to basic.get, and in no-acknowledgement mode in response to basic.get"),
-			"message_deliver_get_rate":             newRateFieldInfo("Rate per second of the sum of messages delivered in acknowledgement mode to consumers, in no-acknowledgement mode to consumers, in acknowledgement mode in response to basic.get, and in no-acknowledgement mode in response to basic.get "),
-			"message_publish_count":                newCountFieldInfo("Count of messages published"),
-			"message_publish_rate":                 newRateFieldInfo("Rate of messages published per second"),
-			"message_publish_in_count":             newCountFieldInfo("Count of messages published from channels into this overview"),
-			"message_publish_in_rate":              newRateFieldInfo("Rate of messages published from channels into this overview per sec "),
-			"message_publish_out_count":            newCountFieldInfo("Count of messages published from this overview into queues"),
-			"message_publish_out_rate":             newRateFieldInfo("Rate of messages published from this overview into queues per second"),
-			"message_redeliver_count":              newCountFieldInfo("Count of subset of messages in deliver_get which had the redelivered flag set"),
-			"message_redeliver_rate":               newRateFieldInfo("Rate of subset of messages in deliver_get which had the redelivered flag set per second"),
-			"message_return_unroutable_count_rate": newRateFieldInfo("Rate of messages returned to publisher as unroutable per second"),
-			"message_return_unroutable_count":      newCountFieldInfo("Count of messages returned to publisher as unroutable "),
-
-			"queue_totals_messages_count":                newCountFieldInfo("Total number of messages (ready plus unacknowledged)"),
-			"queue_totals_messages_rate":                 newRateFieldInfo("Total rate of messages (ready plus unacknowledged)"),
-			"queue_totals_messages_ready_count":          newCountFieldInfo("Number of messages ready for delivery "),
-			"queue_totals_messages_ready_rate":           newRateFieldInfo("Rate of number of messages ready for delivery"),
-			"queue_totals_messages_unacknowledged_count": newCountFieldInfo("Number of unacknowledged messages"),
-			"queue_totals_messages_unacknowledged_rate":  newRateFieldInfo("Rate of number of unacknowledged messages"),
-		},
-		Tags: map[string]interface{}{
-			"url":              inputs.NewTagInfo("RabbitMQ url"),
-			"rabbitmq_version": inputs.NewTagInfo("RabbitMQ version"),
-			"cluster_name":     inputs.NewTagInfo("RabbitMQ cluster name"),
-			"host":             inputs.NewTagInfo("Hostname of RabbitMQ running on."),
-		},
+	if err := n.feeder.FeedV2(point.Metric, []*point.Point{pt},
+		dkio.WithCollectCost(time.Since(collectStart)),
+		dkio.WithElection(n.Election),
+		dkio.WithInputName(inputName),
+	); err != nil {
+		l.Errorf("FeedMeasurement: %s", err.Error())
 	}
 }

@@ -202,8 +202,6 @@ func (ipt *Input) Collect() error {
 }
 
 func (ipt *Input) feedBatch(points []*point.Point) {
-	start := time.Now()
-
 	pts := []*point.Point{}
 	for i, v := range points {
 		for kk, vv := range ipt.taggerTags {
@@ -215,7 +213,6 @@ func (ipt *Input) feedBatch(points []*point.Point) {
 		// len(pts) >= 1024 --> 1024 pts per batch
 		if i >= len(points)-1 || len(pts) >= 1024 {
 			if err := ipt.Feeder.FeedV2(point.Metric, pts,
-				dkio.WithCollectCost(time.Since(start)),
 				dkio.WithInputName(ipt.Source)); err != nil {
 				ipt.Feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),

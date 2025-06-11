@@ -11,6 +11,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	apiappsv1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/informers"
@@ -125,7 +126,7 @@ func (s *statefulset) addChangeInformer(informerFactory informers.SharedInformer
 
 func (s *statefulset) buildMetricPoints(list *apiappsv1.StatefulSetList, timestamp int64) []*point.Point {
 	var pts []*point.Point
-	opts := point.DefaultMetricOptions()
+	opts := append(point.DefaultMetricOptions(), point.WithTimestamp(timestamp))
 
 	for _, item := range list.Items {
 		var kvs point.KVs
@@ -146,7 +147,7 @@ func (s *statefulset) buildMetricPoints(list *apiappsv1.StatefulSetList, timesta
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, s.cfg.LabelAsTagsForMetric.All, s.cfg.LabelAsTagsForMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(s.cfg.ExtraTags)...)
-		pt := point.NewPointV2(statefulsetMetricMeasurement, kvs, append(opts, point.WithTimestamp(timestamp))...)
+		pt := point.NewPointV2(statefulsetMetricMeasurement, kvs, opts...)
 		pts = append(pts, pt)
 
 		s.counter[item.Namespace]++
@@ -157,7 +158,7 @@ func (s *statefulset) buildMetricPoints(list *apiappsv1.StatefulSetList, timesta
 
 func (s *statefulset) buildObjectPoints(list *apiappsv1.StatefulSetList) []*point.Point {
 	var pts []*point.Point
-	opts := point.DefaultObjectOptions()
+	opts := append(point.DefaultObjectOptions(), point.WithTime(ntp.Now()))
 
 	for _, item := range list.Items {
 		var kvs point.KVs

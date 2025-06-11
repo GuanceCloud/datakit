@@ -27,6 +27,7 @@ import (
 	filefdutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hostutil/filefd"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/mem"
 )
@@ -69,7 +70,7 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
 	Tagger  datakit.GlobalTagger
-	alignTS int64
+	ptsTime time.Time
 }
 
 func (ipt *Input) Singleton() {
@@ -96,13 +97,9 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (ipt *Input) Collect() error {
-	opts := point.DefaultMetricOptions()
-
-	ipt.collectCache = make([]*point.Point, 0)
-	opts = append(opts, point.WithTimestamp(ipt.alignTS))
+	opts := append(point.DefaultMetricOptions(), point.WithTime(ipt.ptsTime))
 
 	loadAvg, err := load.Avg()
-
 	if err != nil && !strings.Contains(err.Error(), "not implemented") {
 		return err
 	}
@@ -200,7 +197,7 @@ func (ipt *Input) Collect() error {
 	}
 	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(metricNameSystem, kvs, opts...))
 
-	return err
+	return nil
 }
 
 func (ipt *Input) Run() {
@@ -210,10 +207,9 @@ func (ipt *Input) Run() {
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
 
-	lastTS := time.Now()
+	ipt.ptsTime = ntp.Now()
 	for {
-		ipt.alignTS = lastTS.UnixNano()
-
+		collectStart := time.Now()
 		if err := ipt.Collect(); err != nil {
 			l.Errorf("Collect: %s", err)
 			ipt.feeder.FeedLastError(err.Error(),
@@ -223,17 +219,18 @@ func (ipt *Input) Run() {
 
 		if len(ipt.collectCache) > 0 {
 			if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
-				dkio.WithCollectCost(time.Since(lastTS)),
+				dkio.WithCollectCost(time.Since(collectStart)),
 				dkio.WithInputName(inputName),
 			); err != nil {
 				l.Errorf("Feed failed: %v", err)
 			}
+
+			ipt.collectCache = ipt.collectCache[:0]
 		}
 
 		select {
 		case tt := <-tick.C:
-			nextts := inputs.AlignTimeMillSec(tt, lastTS.UnixMilli(), ipt.Interval.Duration.Milliseconds())
-			lastTS = time.UnixMilli(nextts)
+			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.Interval.Duration)
 		case <-datakit.Exit.Wait():
 			l.Info("system input exit")
 			return

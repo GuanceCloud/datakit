@@ -23,6 +23,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -106,16 +107,17 @@ func (ipt *Input) Run() {
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
 
+	ipt.start = ntp.Now()
 	for {
 		if ipt.pause {
 			l.Debug("%s election paused", inputName)
 		} else if ipt.EnableCollect {
-			ipt.start = time.Now()
+			collectStart := time.Now()
 			ipt.getPluginMetric()
 
 			if len(ipt.collectCache) > 0 {
 				if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
-					dkio.WithCollectCost(time.Since(ipt.start)),
+					dkio.WithCollectCost(time.Since(collectStart)),
 					dkio.WithElection(ipt.Election),
 					dkio.WithInputName(inputName),
 				); err != nil {
@@ -135,7 +137,8 @@ func (ipt *Input) Run() {
 		}
 
 		select {
-		case <-tick.C:
+		case tt := <-tick.C:
+			ipt.start = inputs.AlignTime(tt, ipt.start, ipt.Interval.Duration)
 
 		case <-datakit.Exit.Wait():
 			ipt.exit()

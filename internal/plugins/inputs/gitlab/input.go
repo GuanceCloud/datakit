@@ -20,6 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -118,7 +119,7 @@ func (ipt *Input) Run() {
 
 	ticker := time.NewTicker(ipt.duration)
 	defer ticker.Stop()
-	start := time.Now()
+	start := ntp.Now()
 
 	for {
 		select {
@@ -135,7 +136,7 @@ func (ipt *Input) Run() {
 				l.Debugf("not leader, skipped")
 				continue
 			}
-			start = time.UnixMilli(inputs.AlignTimeMillSec(tt, start.UnixMilli(), ipt.duration.Milliseconds()))
+			start = inputs.AlignTime(tt, start, ipt.duration)
 			ipt.gather(start.UnixNano())
 
 		case ipt.pause = <-ipt.pauseCh:

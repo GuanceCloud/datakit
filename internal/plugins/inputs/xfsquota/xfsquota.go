@@ -36,7 +36,6 @@ func getXFSQuota(binaryPath string, filesystemPath string) (string, error) {
 	return out.String(), nil
 }
 
-// var quotaInfoRegex = regexp.MustCompile(`^(User|Group)\s+([\w#]+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([\d-]+)\s+([\[\]\w-]+)`).
 var quotaInfoRegex = regexp.MustCompile(`(\S+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\S+\s*\[.*\])`)
 
 func parseQuotaOutput(output string) ([]QuotaInfo, error) {

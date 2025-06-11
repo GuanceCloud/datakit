@@ -8,7 +8,6 @@ package redis
 import (
 	"context"
 	"fmt"
-	"time"
 
 	gcPoint "github.com/GuanceCloud/cliutils/point"
 
@@ -86,7 +85,6 @@ func (ipt *Input) FeedCoErr(err error) {
 	ipt.setIptErrCOStatus()
 	pts := ipt.getCoPointByColErr()
 	if err := ipt.feeder.FeedV2(gcPoint.CustomObject, pts,
-		dkio.WithCollectCost(time.Since(ipt.start)),
 		dkio.WithElection(ipt.Election),
 		dkio.WithInputName(customObjectFeedName),
 	); err != nil {

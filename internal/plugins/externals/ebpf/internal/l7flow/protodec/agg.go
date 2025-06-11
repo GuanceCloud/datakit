@@ -12,6 +12,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/spf13/cast"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/comm"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/cli"
@@ -179,7 +180,7 @@ func (agg *HTTPAggP) Export(tags map[string]string, k8sInfo *cli.K8sInfo) []*poi
 	defer agg.RUnlock()
 	var result []*point.Point
 
-	pTime := time.Now()
+	pTime := ntp.Now()
 	for k, v := range agg.data {
 		if pt, err := kv2point(&k, v, pTime, tags, k8sInfo); err != nil {
 			log.Debug(err)

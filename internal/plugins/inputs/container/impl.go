@@ -85,7 +85,7 @@ func newContainerCollectors(ipt *Input) []Collector {
 			}
 		}
 
-		collector, err := newContainer(ipt, endpoint, getMountPoint(), client)
+		collector, err := newContainerCollector(ipt, endpoint, getMountPoint(), client)
 		if err != nil {
 			l.Warnf("cannot connect endpoint(%s), err: %s", endpoint, err)
 			continue

@@ -5,6 +5,8 @@ package l4log
 
 import (
 	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 )
 
 const (
@@ -67,7 +69,7 @@ func (cm *connMap) insert(k PMeta, v *PValue) {
 func newConnMap() *connMap {
 	return &connMap{
 		m:  make(map[PMeta]*PValue),
-		tn: time.Now(),
+		tn: ntp.Now(),
 	}
 }
 

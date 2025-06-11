@@ -17,6 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 	apicorev1 "k8s.io/api/core/v1"
@@ -151,13 +152,17 @@ func newPromRunnersWithTomlConfig(feeder dkio.Feeder, configStr string) ([]*prom
 }
 
 func newPromRunnerWithConfig(feeder dkio.Feeder, c *promConfig) (*promRunner, error) {
-	p := &promRunner{
-		identifier:   fmt.Sprintf("%s: %v", c.Source, c.URLs),
-		conf:         c,
-		feeder:       feeder,
-		lastTime:     time.Now(),
-		instanceTags: make(map[string]string),
-	}
+	var (
+		p = &promRunner{
+			identifier:   fmt.Sprintf("%s: %v", c.Source, c.URLs),
+			conf:         c,
+			feeder:       feeder,
+			lastTime:     ntp.Now(),
+			instanceTags: make(map[string]string),
+		}
+
+		start = time.Now()
+	)
 
 	hosts, err := parseURLHost(c)
 	if err != nil {
@@ -180,7 +185,7 @@ func newPromRunnerWithConfig(feeder dkio.Feeder, c *promConfig) (*promRunner, er
 		if p.conf.AsLogging != nil && p.conf.AsLogging.Enable {
 			for _, pt := range pts {
 				err := p.feeder.FeedV2(point.Logging, []*point.Point{pt},
-					dkio.WithCollectCost(time.Since(p.lastTime)),
+					dkio.WithCollectCost(time.Since(start)),
 					dkio.WithElection(defaultPromElection),
 					dkio.WithInputName(pt.Name()),
 				)
@@ -190,7 +195,7 @@ func newPromRunnerWithConfig(feeder dkio.Feeder, c *promConfig) (*promRunner, er
 			}
 		} else {
 			err := p.feeder.FeedV2(point.Metric, pts,
-				dkio.WithCollectCost(time.Since(p.lastTime)),
+				dkio.WithCollectCost(time.Since(start)),
 				dkio.WithElection(defaultPromElection),
 				dkio.WithInputName(p.conf.Source),
 			)
@@ -254,8 +259,7 @@ func (p *promRunner) scrapOnce() {
 
 	select {
 	case tt := <-p.tick.C:
-		nextts := inputs.AlignTimeMillSec(tt, p.lastTime.UnixMilli(), p.conf.Interval.Milliseconds())
-		p.lastTime = time.UnixMilli(nextts)
+		p.lastTime = inputs.AlignTime(tt, p.lastTime, p.conf.Interval)
 
 		klog.Debugf("running collect from source %s", p.conf.Source)
 

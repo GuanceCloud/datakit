@@ -28,6 +28,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	dkmetrics "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/pcommon"
 )
@@ -108,13 +109,15 @@ type Input struct {
 
 func (ipt *Input) Run() {
 	ipt.setup()
+
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
-	start := time.Now()
 
+	start := ntp.Now()
 	pcommon.SetLog()
 
 	for {
+		collectStart := time.Now()
 		l.Debugf("start collecting...")
 		if err := ipt.collect(start.UnixNano()); err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
@@ -123,7 +126,7 @@ func (ipt *Input) Run() {
 			)
 		} else {
 			if err := ipt.feeder.FeedV2(point.Object, ipt.collectCache,
-				dkio.WithCollectCost(time.Since(start)),
+				dkio.WithCollectCost(time.Since(collectStart)),
 				dkio.WithElection(false),
 				dkio.WithInputName(inputName)); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
@@ -142,8 +145,7 @@ func (ipt *Input) Run() {
 			l.Infof("%s return on sem", inputName)
 			return
 		case tt := <-tick.C:
-			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), ipt.Interval.Milliseconds())
-			start = time.UnixMilli(nextts)
+			start = inputs.AlignTime(tt, start, ipt.Interval)
 		}
 	}
 }

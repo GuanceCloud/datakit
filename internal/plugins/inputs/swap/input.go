@@ -19,6 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -59,15 +60,14 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
 	Tagger  datakit.GlobalTagger
-	alignTS int64
+	ptsTime time.Time
 }
 
-func (ipt *Input) Singleton() {
-}
+func (ipt *Input) Singleton() {}
 
-func (ipt *Input) appendMeasurement(name string, tags map[string]string, fields map[string]interface{}, ts time.Time) {
+func (ipt *Input) appendMeasurement(name string, tags map[string]string, fields map[string]interface{}) {
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTimestamp(ipt.alignTS))
+	opts = append(opts, point.WithTime(ipt.ptsTime))
 
 	pt := point.NewPointV2(name,
 		append(point.NewTags(tags), point.NewKVs(fields)...),
@@ -96,9 +96,11 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (ipt *Input) Collect() error {
-	ipt.collectCache = make([]*point.Point, 0)
+	if len(ipt.collectCache) > 0 {
+		ipt.collectCache = ipt.collectCache[:0]
+	}
+
 	swap, err := ipt.swapStat()
-	ts := time.Now()
 	if err != nil {
 		return fmt.Errorf("error getting swap memory info: %w", err)
 	}
@@ -108,15 +110,14 @@ func (ipt *Input) Collect() error {
 		"used":         swap.Used,
 		"free":         swap.Free,
 		"used_percent": swap.UsedPercent,
-
-		"in":  swap.Sin,
-		"out": swap.Sout,
+		"in":           swap.Sin,
+		"out":          swap.Sout,
 	}
 	tags := map[string]string{}
 	for k, v := range ipt.Tags {
 		tags[k] = v
 	}
-	ipt.appendMeasurement(metricName, tags, fields, ts)
+	ipt.appendMeasurement(metricName, tags, fields)
 
 	return nil
 }
@@ -128,31 +129,32 @@ func (ipt *Input) Run() {
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
 
-	lastTS := time.Now()
+	ipt.ptsTime = ntp.Now()
 	for {
-		ipt.alignTS = lastTS.UnixNano()
+		collectStart := time.Now()
+		if err := ipt.Collect(); err == nil {
+			if errFeed := ipt.feeder.FeedV2(
+				point.Metric, ipt.collectCache,
+				dkio.WithCollectCost(time.Since(collectStart)),
+				dkio.WithInputName(metricName),
+			); errFeed != nil {
+				ipt.feeder.FeedLastError(errFeed.Error(),
+					metrics.WithLastErrorInput(inputName),
+					metrics.WithLastErrorCategory(point.Metric),
+				)
+				l.Errorf("feed : %s", errFeed)
+			}
+		} else {
+			ipt.feeder.FeedLastError(err.Error(),
+				metrics.WithLastErrorInput(inputName),
+			)
+			l.Error(err)
+		}
 
 		select {
 		case tt := <-tick.C:
-			if err := ipt.Collect(); err == nil {
-				if errFeed := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
-					dkio.WithCollectCost(time.Since(lastTS)),
-					dkio.WithInputName(metricName),
-				); errFeed != nil {
-					ipt.feeder.FeedLastError(errFeed.Error(),
-						metrics.WithLastErrorInput(inputName),
-						metrics.WithLastErrorCategory(point.Metric),
-					)
-					l.Errorf("feed : %s", errFeed)
-				}
-			} else {
-				ipt.feeder.FeedLastError(err.Error(),
-					metrics.WithLastErrorInput(inputName),
-				)
-				l.Error(err)
-			}
-			nextts := inputs.AlignTimeMillSec(tt, lastTS.UnixMilli(), ipt.Interval.Duration.Milliseconds())
-			lastTS = time.UnixMilli(nextts)
+			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.Interval.Duration)
+
 		case <-datakit.Exit.Wait():
 			l.Infof("system input exit")
 			return

@@ -22,6 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
 )
@@ -74,6 +75,7 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
 	Tagger  datakit.GlobalTagger
+	ptsTime time.Time
 
 	UpState int
 }
@@ -112,22 +114,12 @@ func (ipt *Input) Run() {
 	updateListTicker := time.NewTicker(updateEndpointListInterval)
 	defer updateListTicker.Stop()
 
+	ipt.ptsTime = ntp.Now()
+
 	for {
-		select {
-		case <-datakit.Exit.Wait():
-			l.Info("nsq exit")
-			return
-
-		case <-ipt.semStop.Wait():
-			l.Info("nsq return")
-			return
-
-		case <-gatherTicker.C:
-			if ipt.pause {
-				l.Debugf("not leader, skipped")
-				continue
-			}
-
+		if ipt.pause {
+			l.Debugf("not leader, skipped")
+		} else {
 			ipt.setUpState()
 
 			l.Debugf("feed nsq pts")
@@ -152,6 +144,20 @@ func (ipt *Input) Run() {
 			}
 
 			ipt.FeedUpMetric()
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("nsq exit")
+			return
+
+		case <-ipt.semStop.Wait():
+			l.Info("nsq return")
+			return
+
+		case tt := <-gatherTicker.C:
+			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.duration)
+
 		case <-updateListTicker.C:
 			if ipt.pause {
 				l.Debugf("not leader, skipped")
@@ -287,7 +293,7 @@ func (ipt *Input) gather() ([]*point.Point, error) {
 		}
 	}
 
-	return st.makePoint(ipt.Tags)
+	return st.makePoint(ipt.Tags, ipt.ptsTime)
 }
 
 func (ipt *Input) updateEndpointListByLookupd(lookupdEndpoint string) error {

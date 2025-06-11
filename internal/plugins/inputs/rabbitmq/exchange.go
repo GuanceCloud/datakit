@@ -7,126 +7,78 @@ package rabbitmq
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
+type exchange struct {
+	Name         string
+	messageStats `json:"message_stats"`
+	Type         string
+	Internal     bool
+	Vhost        string
+	Durable      bool
+	AutoDelete   bool `json:"auto_delete"`
+}
+
 func getExchange(n *Input) {
-	var exchanges []Exchange
-	err := n.requestJSON("/api/exchanges", &exchanges)
-	if err != nil {
+	var (
+		exchanges    []exchange
+		collectStart = time.Now()
+	)
+
+	if err := n.requestJSON("/api/exchanges", &exchanges); err != nil {
 		l.Error(err.Error())
 		n.lastErr = err
 		return
 	}
-	// ts := time.Now()
+
+	var pts []*point.Point
+
+	opts := append(point.DefaultMetricOptions(), point.WithTime(n.start))
+
 	for _, exchange := range exchanges {
+		kvs := point.NewTags(n.mergedTags)
+
 		if exchange.Name == "" {
 			exchange.Name = "(AMQP default)"
 		}
 
-		tags := map[string]string{
-			"url":           n.URL,
-			"exchange_name": exchange.Name,
-			"type":          exchange.Type,
-			"vhost":         exchange.Vhost,
-			"internal":      strconv.FormatBool(exchange.Internal),
-			"durable":       strconv.FormatBool(exchange.Durable),
-			"auto_delete":   strconv.FormatBool(exchange.AutoDelete),
-		}
-		if n.host != "" {
-			tags["host"] = n.host
-		}
-		for k, v := range n.Tags {
-			tags[k] = v
-		}
+		kvs = kvs.AddTag("exchange_name", exchange.Name).
+			AddTag("url", n.URL).
+			AddTag("exchange_name", exchange.Name).
+			AddTag("type", exchange.Type).
+			AddTag("vhost", exchange.Vhost).
+			AddTag("internal", strconv.FormatBool(exchange.Internal)).
+			AddTag("durable", strconv.FormatBool(exchange.Durable)).
+			AddTag("auto_delete", strconv.FormatBool(exchange.AutoDelete)).
+			AddV2("message_ack_count", exchange.messageStats.Ack, true).
+			AddV2("message_ack_rate", exchange.messageStats.AckDetails.Rate, true).
+			AddV2("message_confirm_count", exchange.messageStats.Confirm, true).
+			AddV2("message_confirm_rate", exchange.messageStats.ConfirmDetail.Rate, true).
+			AddV2("message_deliver_get_count", exchange.messageStats.DeliverGet, true).
+			AddV2("message_deliver_get_rate", exchange.messageStats.DeliverGetDetails.Rate, true).
+			AddV2("message_publish_count", exchange.messageStats.Publish, true).
+			AddV2("message_publish_rate", exchange.messageStats.PublishDetails.Rate, true).
+			AddV2("message_publish_in_count", exchange.messageStats.PublishIn, true).
+			AddV2("message_publish_in_rate", exchange.messageStats.PublishInDetails.Rate, true).
+			AddV2("message_publish_out_count", exchange.messageStats.PublishOut, true).
+			AddV2("message_publish_out_rate", exchange.messageStats.PublishOutDetails.Rate, true).
+			AddV2("message_redeliver_count", exchange.messageStats.Redeliver, true).
+			AddV2("message_redeliver_rate", exchange.messageStats.RedeliverDetails.Rate, true).
+			AddV2("message_return_unroutable_count", exchange.messageStats.ReturnUnroutable, true).
+			AddV2("message_return_unroutable_count_rate", exchange.messageStats.ReturnUnroutableDetails.Rate, true)
 
-		if n.Election {
-			tags = inputs.MergeTags(n.Tagger.ElectionTags(), tags, n.URL)
-		} else {
-			tags = inputs.MergeTags(n.Tagger.HostTags(), tags, n.URL)
-		}
-
-		fields := map[string]interface{}{
-			"message_ack_count":                    exchange.MessageStats.Ack,
-			"message_ack_rate":                     exchange.MessageStats.AckDetails.Rate,
-			"message_confirm_count":                exchange.MessageStats.Confirm,
-			"message_confirm_rate":                 exchange.MessageStats.ConfirmDetail.Rate,
-			"message_deliver_get_count":            exchange.MessageStats.DeliverGet,
-			"message_deliver_get_rate":             exchange.MessageStats.DeliverGetDetails.Rate,
-			"message_publish_count":                exchange.MessageStats.Publish,
-			"message_publish_rate":                 exchange.MessageStats.PublishDetails.Rate,
-			"message_publish_in_count":             exchange.MessageStats.PublishIn,
-			"message_publish_in_rate":              exchange.MessageStats.PublishInDetails.Rate,
-			"message_publish_out_count":            exchange.MessageStats.PublishOut,
-			"message_publish_out_rate":             exchange.MessageStats.PublishOutDetails.Rate,
-			"message_redeliver_count":              exchange.MessageStats.Redeliver,
-			"message_redeliver_rate":               exchange.MessageStats.RedeliverDetails.Rate,
-			"message_return_unroutable_count":      exchange.MessageStats.ReturnUnroutable,
-			"message_return_unroutable_count_rate": exchange.MessageStats.ReturnUnroutableDetails.Rate,
-		}
-		metric := &ExchangeMeasurement{
-			name:   ExchangeMetric,
-			tags:   tags,
-			fields: fields,
-			ts:     n.alignTS,
-		}
-		n.metricAppend(metric.Point())
+		pts = append(pts, point.NewPointV2(exchangeMeasurementName, kvs, opts...))
 	}
-}
 
-type ExchangeMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     int64
-}
-
-// Point implement MeasurementV2.
-func (m *ExchangeMeasurement) Point() *point.Point {
-	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTimestamp(m.ts))
-
-	return point.NewPointV2(m.name,
-		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-		opts...)
-}
-
-//nolint:lll
-func (m *ExchangeMeasurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: ExchangeMetric,
-		Cat:  point.Metric,
-		Fields: map[string]interface{}{
-			"message_ack_count":                    newCountFieldInfo("Number of messages in exchanges delivered to clients and acknowledged"),
-			"message_ack_rate":                     newRateFieldInfo("Rate of messages in exchanges delivered to clients and acknowledged per second"),
-			"message_confirm_count":                newCountFieldInfo("Count of messages in exchanges confirmed"),
-			"message_confirm_rate":                 newRateFieldInfo("Rate of messages in exchanges confirmed per second"),
-			"message_deliver_get_count":            newCountFieldInfo("Sum of messages in exchanges delivered in acknowledgement mode to consumers, in no-acknowledgement mode to consumers, in acknowledgement mode in response to basic.get, and in no-acknowledgement mode in response to basic.get"),
-			"message_deliver_get_rate":             newRateFieldInfo("Rate per second of the sum of exchange messages delivered in acknowledgement mode to consumers, in no-acknowledgement mode to consumers, in acknowledgement mode in response to basic.get, and in no-acknowledgement mode in response to basic.get"),
-			"message_publish_count":                newCountFieldInfo("Count of messages in exchanges published"),
-			"message_publish_rate":                 newRateFieldInfo("Rate of messages in exchanges published per second"),
-			"message_publish_in_count":             newCountFieldInfo("Count of messages published from channels into this exchange"),
-			"message_publish_in_rate":              newRateFieldInfo("Rate of messages published from channels into this exchange per sec"),
-			"message_publish_out_count":            newCountFieldInfo("Count of messages published from this exchange into queues"),
-			"message_publish_out_rate":             newRateFieldInfo("Rate of messages published from this exchange into queues per second"),
-			"message_redeliver_count":              newCountFieldInfo("Count of subset of messages in exchanges in deliver_get which had the redelivered flag set"),
-			"message_redeliver_rate":               newRateFieldInfo("Rate of subset of messages in exchanges in deliver_get which had the redelivered flag set per second"),
-			"message_return_unroutable_count_rate": newRateFieldInfo("Rate of messages in exchanges returned to publisher as un-routable per second"),
-			"message_return_unroutable_count":      newCountFieldInfo("Count of messages in exchanges returned to publisher as un-routable"),
-		},
-
-		Tags: map[string]interface{}{
-			"url":           inputs.NewTagInfo("RabbitMQ host URL"),
-			"exchange_name": inputs.NewTagInfo("RabbitMQ exchange name"),
-			"type":          inputs.NewTagInfo("RabbitMQ exchange type"),
-			"vhost":         inputs.NewTagInfo("RabbitMQ exchange virtual hosts"),
-			"internal":      inputs.NewTagInfo("If set, the exchange may not be used directly by publishers, but only when bound to other exchanges. Internal exchanges are used to construct wiring that is not visible to applications"),
-			"durable":       inputs.NewTagInfo("If set when creating a new exchange, the exchange will be marked as durable. Durable exchanges remain active when a server restarts. Non-durable exchanges (transient exchanges) are purged if/when a server restarts."),
-			"auto_delete":   inputs.NewTagInfo("If set, the exchange is deleted when all queues have finished using it"),
-			"host":          inputs.NewTagInfo("Hostname of RabbitMQ running on."),
-			"cluster_name":  inputs.NewTagInfo("RabbitMQ cluster name"),
-		},
+	if err := n.feeder.FeedV2(point.Metric, pts,
+		dkio.WithCollectCost(time.Since(collectStart)),
+		dkio.WithElection(n.Election),
+		dkio.WithInputName(inputName),
+	); err != nil {
+		l.Errorf("FeedMeasurement: %s", err.Error())
 	}
 }

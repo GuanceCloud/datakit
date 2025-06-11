@@ -216,7 +216,7 @@ func (ipt *Input) gatherSolrCache(k, remote string, v json.RawMessage, commTags 
 		name:   metricNameCache,
 		fields: fields,
 		tags:   tags,
-		ts:     ipt.alignTS,
+		ts:     ipt.ptsTime.UnixNano(),
 	}
 	ipt.appendM(metric.Point())
 
@@ -270,7 +270,7 @@ func (ipt *Input) gatherSolrRequestTimes(k, remote string, v json.RawMessage, co
 		name:   metricNameRequestTimes,
 		fields: fields,
 		tags:   tags,
-		ts:     ipt.alignTS,
+		ts:     ipt.ptsTime.UnixNano(),
 	}
 	ipt.appendM(metric.Point())
 

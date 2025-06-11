@@ -8,25 +8,74 @@ package rabbitmq
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"net"
-	"net/url"
+	"net/http"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
-	"github.com/GuanceCloud/cliutils/point"
+	"github.com/influxdata/telegraf/plugins/common/tls"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 
 var _ inputs.ElectionInput = (*Input)(nil)
+
+type rabbitmqlog struct {
+	Files             []string `toml:"files"`
+	Pipeline          string   `toml:"pipeline"`
+	IgnoreStatus      []string `toml:"ignore"`
+	CharacterEncoding string   `toml:"character_encoding"`
+	MultilineMatch    string   `toml:"multiline_match"`
+}
+
+type Input struct {
+	URL      string           `toml:"url"`
+	Username string           `toml:"username"`
+	Password string           `toml:"password"`
+	Interval datakit.Duration `toml:"interval"`
+	Log      *rabbitmqlog     `toml:"log"`
+
+	Tags       map[string]string `toml:"tags"`
+	mergedTags map[string]string
+
+	Version            string
+	Uptime             int
+	CollectCoStatus    string
+	CollectCoErrMsg    string
+	LastCustomerObject *customerObjectMeasurement
+
+	QueueNameIncludeDeprecated []string `toml:"queue_name_include,omitempty"`
+	QueueNameExcludeDeprecated []string `toml:"queue_name_exclude,omitempty"`
+
+	tls.ClientConfig
+
+	// HTTP client
+	client *http.Client
+
+	tail    *tailer.Tailer
+	lastErr error
+
+	start time.Time
+
+	Election bool `toml:"election"`
+	pause    bool
+	pauseCh  chan bool
+
+	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
+	Tagger  datakit.GlobalTagger
+
+	UpState int
+}
 
 func (*Input) SampleConfig() string { return sample }
 
@@ -98,29 +147,31 @@ func (ipt *Input) RunPipeline() {
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	l.Info("rabbitmq start")
+
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
-	if err := ipt.setHostIfNotLoopback(); err != nil {
-		l.Errorf("failed to set host from url: %v", err)
+
+	if ipt.Election {
+		ipt.mergedTags = inputs.MergeTags(ipt.Tagger.ElectionTags(), ipt.Tags, ipt.URL)
+	} else {
+		ipt.mergedTags = inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, ipt.URL)
 	}
-	client, err := ipt.createHTTPClient()
-	if err != nil {
+
+	if x, err := ipt.newClient(); err != nil {
 		ipt.FeedCoByErr(err)
 		l.Errorf("[error] rabbitmq init client err:%s", err.Error())
 		return
+	} else {
+		ipt.client = x
 	}
-	ipt.client = client
+
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
 
-	lastTS := time.Now()
+	ipt.start = ntp.Now()
 	for {
-		ipt.alignTS = lastTS.UnixNano()
-
 		if !ipt.pause {
 			ipt.setUpState()
-
 			ipt.getMetric()
-
 			ipt.FeedCoPts()
 
 			if ipt.lastErr != nil {
@@ -131,17 +182,6 @@ func (ipt *Input) Run() {
 				ipt.lastErr = nil
 			}
 
-			if len(ipt.collectCache) > 0 {
-				if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
-					dkio.WithCollectCost(time.Since(lastTS)),
-					dkio.WithElection(ipt.Election),
-					dkio.WithInputName(inputName),
-				); err != nil {
-					l.Errorf("FeedMeasurement: %s", err.Error())
-				}
-
-				ipt.collectCache = ipt.collectCache[:0]
-			}
 			ipt.FeedUpMetric()
 		} else {
 			l.Debugf("not leader, skipped")
@@ -159,28 +199,11 @@ func (ipt *Input) Run() {
 			return
 
 		case tt := <-tick.C:
-			nextts := inputs.AlignTimeMillSec(tt, lastTS.UnixMilli(), ipt.Interval.Duration.Milliseconds())
-			lastTS = time.UnixMilli(nextts)
+			ipt.start = inputs.AlignTime(tt, ipt.start, ipt.Interval.Duration)
 
 		case ipt.pause = <-ipt.pauseCh:
-			// nil
 		}
 	}
-}
-
-func (ipt *Input) setHostIfNotLoopback() error {
-	uu, err := url.Parse(ipt.URL)
-	if err != nil {
-		return err
-	}
-	host, _, err := net.SplitHostPort(uu.Host)
-	if err != nil {
-		return err
-	}
-	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
-		ipt.host = host
-	}
-	return nil
 }
 
 func (ipt *Input) exit() {
@@ -199,10 +222,11 @@ func (ipt *Input) Terminate() {
 type MetricFunc func(n *Input)
 
 func (ipt *Input) getMetric() {
-	ipt.start = time.Now()
 	// get overview first, to get cluster name
 	getOverview(ipt)
+
 	getFunc := []MetricFunc{getNode, getQueues, getExchange}
+
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_rabbitmq"})
 	for _, v := range getFunc {
 		func(gf MetricFunc) {
@@ -212,6 +236,7 @@ func (ipt *Input) getMetric() {
 			})
 		}(v)
 	}
+
 	if err := g.Wait(); err != nil {
 		l.Errorf("g.Wait failed: %v", err)
 	}
@@ -219,10 +244,10 @@ func (ipt *Input) getMetric() {
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&OverviewMeasurement{},
-		&QueueMeasurement{},
-		&ExchangeMeasurement{},
-		&NodeMeasurement{},
+		&overviewMeasurement{},
+		&queueMeasurement{},
+		&exchangeMeasurement{},
+		&nodeMeasurement{},
 		&customerObjectMeasurement{},
 		&inputs.UpMeasurement{},
 	}
@@ -247,6 +272,46 @@ func (ipt *Input) Resume() error {
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
+	}
+}
+
+func (ipt *Input) newClient() (*http.Client, error) {
+	tlsCfg, err := ipt.ClientConfig.TLSConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: tlsCfg,
+		},
+		Timeout: time.Second * 10,
+	}
+
+	return client, nil
+}
+
+func (ipt *Input) requestJSON(u string, target interface{}) error {
+	u = fmt.Sprintf("%s%s", ipt.URL, u)
+	req, err := http.NewRequest("GET", u, nil)
+	if err != nil {
+		return err
+	}
+	req.SetBasicAuth(ipt.Username, ipt.Password)
+	resp, err := ipt.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close() //nolint:errcheck
+	return json.NewDecoder(resp.Body).Decode(target)
+}
+
+func newCountFieldInfo(desc string) *inputs.FieldInfo {
+	return &inputs.FieldInfo{
+		DataType: inputs.Int,
+		Type:     inputs.Count,
+		Unit:     inputs.NCount,
+		Desc:     desc,
 	}
 }
 

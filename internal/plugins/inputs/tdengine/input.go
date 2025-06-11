@@ -91,7 +91,7 @@ type Input struct {
 	feeder   dkio.Feeder
 	Tagger   datakit.GlobalTagger
 
-	alignTS int64 //
+	alignTS int64
 }
 
 func (ipt *Input) ElectionEnabled() bool {

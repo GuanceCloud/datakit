@@ -19,6 +19,7 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 )
@@ -100,7 +101,7 @@ func (ipt *Input) Run() {
 
 	ipt.l.Info("etcd start")
 
-	ipt.start = time.Now()
+	ipt.start = ntp.Now()
 
 	for {
 		if ipt.pause {
@@ -121,7 +122,7 @@ func (ipt *Input) Run() {
 			return
 
 		case tt := <-tick.C:
-			ipt.start = time.UnixMilli(inputs.AlignTimeMillSec(tt, ipt.start.UnixMilli(), ipt.Interval.Milliseconds()))
+			ipt.start = inputs.AlignTime(tt, ipt.start, ipt.Interval)
 
 		case ipt.pause = <-ipt.chPause:
 			// nil
@@ -168,7 +169,7 @@ func (ipt *Input) doCollect() ([]*point.Point, error) {
 	if err != nil {
 		ipt.l.Errorf("Collect: %s", err)
 
-		ioname := inputName + "/" + ipt.Source
+		ioname := inputName + "-" + ipt.Source
 		ipt.feeder.FeedLastError(err.Error(),
 			metrics.WithLastErrorInput(inputName),
 			metrics.WithLastErrorSource(ioname),

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/shirou/gopsutil/mem"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCollec(t *testing.T) {
@@ -20,9 +21,7 @@ func TestCollec(t *testing.T) {
 		}
 	}
 
-	if len(i.collectCache) != 1 {
-		t.Errorf("Need to clear collectCache")
-	}
+	assert.Len(t, i.collectCache, 1)
 
 	expected := map[string]interface{}{
 		"total":        int64(111),

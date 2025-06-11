@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
@@ -42,7 +43,7 @@ func TestStatsPoint(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	pts, err := st.makePoint(map[string]string{"t_key": "t_value"})
+	pts, err := st.makePoint(map[string]string{"t_key": "t_value"}, time.Now())
 	assert.NoError(t, err)
 
 	if len(pts) != len(ptsCases) {

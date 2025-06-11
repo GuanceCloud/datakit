@@ -26,6 +26,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -92,7 +93,8 @@ func (ipt *Input) Run() {
 		}
 	}
 
-	ipt.ObjectInterval.Duration = config.ProtectedInterval(minObjectInterval,
+	ipt.ObjectInterval.Duration = config.ProtectedInterval(
+		minObjectInterval,
 		maxObjectInterval,
 		ipt.ObjectInterval.Duration)
 
@@ -109,18 +111,16 @@ func (ipt *Input) Run() {
 			tick := time.NewTicker(ipt.MetricInterval.Duration)
 			defer tick.Stop()
 
-			ipt.metricTime = time.Now()
+			ipt.metricTime = ntp.Now()
 			for {
+				collectStart := time.Now()
 				processList := ipt.getProcesses(true)
-				tn := time.Now().UTC()
-
-				ipt.WriteMetric(processList, tn)
-				ipt.mrec.flush(processList, tn)
+				ipt.collectMetric(processList, collectStart)
+				ipt.mrec.flush(processList, ipt.metricTime.UTC())
 
 				select {
 				case tt := <-tick.C:
-					nextts := inputs.AlignTimeMillSec(tt, ipt.metricTime.UnixMilli(), ipt.MetricInterval.Duration.Milliseconds())
-					ipt.metricTime = time.UnixMilli(nextts)
+					ipt.metricTime = inputs.AlignTime(tt, ipt.metricTime, ipt.MetricInterval.Duration)
 				case <-datakit.Exit.Wait():
 					l.Info("process write metric exit")
 					return nil
@@ -137,7 +137,7 @@ func (ipt *Input) Run() {
 	for {
 		processList := ipt.getProcesses(false)
 		tn := time.Now().UTC()
-		ipt.WriteObject(processList, tn)
+		ipt.collectObject(processList, tn)
 		ipt.orec.flush(processList, tn)
 
 		select {
@@ -348,10 +348,11 @@ func (ipt *Input) Parse(proc *pr.Process, procRec *procRecorder, tn time.Time) p
 	return kvs
 }
 
-func (ipt *Input) WriteObject(processList []*pr.Process, tn time.Time) {
-	var collectCache []*point.Point
-
-	opts := point.DefaultObjectOptions()
+func (ipt *Input) collectObject(processList []*pr.Process, tn time.Time) {
+	var (
+		collectCache []*point.Point
+		opts         = append(point.DefaultObjectOptions(), point.WithTime(ntp.Now()))
+	)
 
 	for _, proc := range processList {
 		kvs := ipt.Parse(proc, ipt.orec, tn)
@@ -465,7 +466,7 @@ func (ipt *Input) WriteObject(processList []*pr.Process, tn time.Time) {
 	}
 }
 
-func (ipt *Input) WriteMetric(processList []*pr.Process, tn time.Time) {
+func (ipt *Input) collectMetric(processList []*pr.Process, tn time.Time) {
 	var collectCache []*point.Point
 
 	opts := point.DefaultMetricOptions()
@@ -493,7 +494,8 @@ func (ipt *Input) WriteMetric(processList []*pr.Process, tn time.Time) {
 			kvs = kvs.AddTag(k, v)
 		}
 
-		collectCache = append(collectCache, point.NewPointV2(inputName, kvs, append(opts, point.WithTime(ipt.metricTime))...))
+		collectCache = append(collectCache,
+			point.NewPointV2(inputName, kvs, append(opts, point.WithTime(ipt.metricTime))...))
 	}
 
 	if len(collectCache) == 0 {

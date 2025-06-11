@@ -82,7 +82,7 @@ func (i *input) collectUDP(destHost string, destPort string) *point.Point {
 		}
 	}
 
-	return point.NewPointV2("udp", kvs, point.DefaultMetricOptions()...)
+	return point.NewPointV2("udp", kvs, append(point.DefaultMetricOptions(), point.WithTime(i.ptsTime))...)
 }
 
 func runTimeout(c *exec.Cmd, timeout time.Duration) error {

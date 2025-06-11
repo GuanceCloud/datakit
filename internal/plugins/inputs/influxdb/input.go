@@ -24,6 +24,7 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -182,10 +183,11 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
-	start := time.Now()
+	start := ntp.Now()
 
 	for {
 		if !ipt.pause {
+			collectStart := time.Now()
 			if err := ipt.Collect(start.UnixNano()); err != nil {
 				l.Errorf("Collect: %s", err)
 				ipt.feeder.FeedLastError(err.Error(),
@@ -195,7 +197,7 @@ func (ipt *Input) Run() {
 
 			if len(ipt.collectCache) > 0 {
 				if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
-					dkio.WithCollectCost(time.Since(start)),
+					dkio.WithCollectCost(time.Since(collectStart)),
 					dkio.WithElection(ipt.Election),
 					dkio.WithInputName(inputName),
 				); err != nil {
@@ -222,8 +224,7 @@ func (ipt *Input) Run() {
 			return
 
 		case tt := <-tick.C:
-			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), ipt.Interval.Duration.Milliseconds())
-			start = time.UnixMilli(nextts)
+			start = inputs.AlignTime(tt, start, ipt.Interval.Duration)
 
 		case ipt.pause = <-ipt.pauseCh:
 			// nil

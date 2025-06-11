@@ -90,6 +90,7 @@ func NewDefaultDataway(opts ...DWOption) *Dataway {
 		MaxRetryCount:      DefaultRetryCount,
 		RetryDelay:         DefaultRetryDelay,
 		NTP: &ntp{
+			Enable:     true,
 			Interval:   time.Minute * 5,
 			SyncOnDiff: time.Second * 30,
 		},
@@ -110,6 +111,7 @@ func NewDefaultDataway(opts ...DWOption) *Dataway {
 }
 
 type ntp struct {
+	Enable     bool          `toml:"enable"`
 	Interval   time.Duration `toml:"interval"`
 	SyncOnDiff time.Duration `toml:"diff"`
 }

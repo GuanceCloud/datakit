@@ -25,6 +25,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -106,7 +107,7 @@ func (ipt *Input) Run() {
 			return
 
 		default:
-			start := time.Now()
+			collectStart := time.Now()
 			events, err := ipt.fetchEvents(ipt.subscription)
 			if err != nil {
 				if !errors.Is(err, ErrorNoMoreItems) {
@@ -127,7 +128,7 @@ func (ipt *Input) Run() {
 
 				if len(ipt.collectCache) > 0 {
 					if err := ipt.feeder.FeedV2(point.Logging, ipt.collectCache,
-						dkio.WithCollectCost(time.Since(start)),
+						dkio.WithCollectCost(time.Since(collectStart)),
 						dkio.WithInputName(inputName),
 					); err != nil {
 						l.Errorf("feed error: %s", err.Error())
@@ -160,7 +161,7 @@ func (ipt *Input) handleEvent(event Event) {
 	ts, err := time.Parse(time.RFC3339Nano, event.TimeCreated.SystemTime)
 	if err != nil {
 		l.Error(err.Error())
-		ts = time.Now()
+		ts = ntp.Now()
 	}
 
 	msg, err := json.Marshal(event)

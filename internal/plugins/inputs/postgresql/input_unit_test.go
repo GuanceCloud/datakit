@@ -226,21 +226,21 @@ func TestInput(t *testing.T) {
 	t.Run("executeQuery", func(t *testing.T) {
 		var err error
 		input.service = &MockCollectService{}
-		err = input.executeQuery(&queryCacheItem{query: "sql"})
+		err = input.executeQuery(&queryCacheItem{q: "sql"})
 		assert.NoError(t, err)
 
 		// when rows.Columns() error
 		input.service = &MockCollectService{
 			columnError: 1,
 		}
-		err = input.executeQuery(&queryCacheItem{query: "sql"})
+		err = input.executeQuery(&queryCacheItem{q: "sql"})
 		assert.Error(t, err)
 
 		// when GetColumnMap() error
 		input.service = &MockCollectService{
 			columnMapError: 1,
 		}
-		err = input.executeQuery(&queryCacheItem{query: "sql"})
+		err = input.executeQuery(&queryCacheItem{q: "sql"})
 		assert.Error(t, err)
 	})
 }

@@ -17,6 +17,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/cilium/ebpf"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/c"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/cli"
 	"golang.org/x/sys/unix"
@@ -85,7 +86,7 @@ func (record *srcIPPortRecorder) InsertAndUpdate(ip [4]uint32) {
 	defer record.Unlock()
 	record.Record[ip] = IPPortRecord{
 		IP: ip,
-		TS: time.Now(),
+		TS: ntp.Now(),
 	}
 }
 
@@ -107,7 +108,7 @@ const (
 func (record *srcIPPortRecorder) CleanOutdateData() {
 	record.Lock()
 	defer record.Unlock()
-	ts := time.Now()
+	ts := ntp.Now()
 	needDelete := [][4]uint32{}
 	for k, v := range record.Record {
 		if ts.Sub(v.TS) > cleanIPPortDur {

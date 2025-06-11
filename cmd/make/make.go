@@ -83,7 +83,6 @@ func init() { //nolint:gochecknoinits
 	flag.BoolVar(&sampleConfCheck, "sample-conf-check", false, "check input's sample conf")
 	flag.StringVar(&mdNoAutofix, "mdcheck-no-autofix", "", "check markdown docs with autofix")
 	flag.BoolVar(&mdNoSectionCheck, "mdcheck-no-section-check", false, "do not check markdown sections")
-	flag.StringVar(&mdSkip, "mdcheck-skip", "", "specify markdown files to skip")
 	flag.StringVar(&mdMetaDir, "meta-dir", "", "metadir used to check markdown meta")
 
 	flag.BoolVar(&dca, "dca", false, "build DCA only")
@@ -270,14 +269,11 @@ func applyFlags() {
 		if err := build.Compile(); err != nil {
 			l.Errorf("build.Compile: %s", err)
 			build.NotifyFail(err.Error())
-		} else {
-			if pkgEBPF != 0 {
-				if err := build.PackageEBPF(); err != nil {
-					l.Errorf("build.PackageeBPF: %s", err)
-					return
-				}
+		} else if pkgEBPF != 0 {
+			if err := build.PackageEBPF(); err != nil {
+				l.Errorf("build.PackageeBPF: %s", err)
+				return
 			}
-			build.NotifyBuildDone()
 		}
 		return
 	}

@@ -21,6 +21,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -53,7 +54,7 @@ type Input struct {
 	pauseCh  chan bool
 
 	semStop *cliutils.Sem
-	alignTS int64
+	ptsTime time.Time
 }
 
 func (ipt *Input) ElectionEnabled() bool {
@@ -66,13 +67,11 @@ func (ipt *Input) Run() {
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
 
-	lastTS := time.Now()
+	ipt.ptsTime = ntp.Now()
 	for {
 		if ipt.pause {
 			l.Debugf("not leader, skipped")
 		} else {
-			ipt.alignTS = lastTS.UnixNano()
-
 			start := time.Now()
 			if err := ipt.collect(); err != nil {
 				l.Errorf("collect: %s", err)
@@ -98,8 +97,7 @@ func (ipt *Input) Run() {
 
 		select {
 		case tt := <-tick.C:
-			nextts := inputs.AlignTimeMillSec(tt, lastTS.UnixMilli(), ipt.Interval.Milliseconds())
-			lastTS = time.UnixMilli(nextts)
+			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.Interval)
 		case <-datakit.Exit.Wait():
 			l.Infof("%s input exit", inputName)
 			return

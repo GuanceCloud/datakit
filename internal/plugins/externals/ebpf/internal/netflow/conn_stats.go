@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 	"unsafe"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 )
 
 // #include "../c/netflow/conn_stats.h"
@@ -194,14 +196,14 @@ type ConnStatsRecord struct {
 func (c *ConnStatsRecord) initCache() {
 	c.closedConns = make(map[ConnectionInfo]ConnFullStats)
 	c.lastActiveConns = make(map[ConnectionInfo]ConnFullStats)
-	c.lastTS = time.Now()
+	c.lastTS = ntp.Now()
 }
 
 func newConnStatsRecord() *ConnStatsRecord {
 	return &ConnStatsRecord{
 		closedConns:     make(map[ConnectionInfo]ConnFullStats),
 		lastActiveConns: make(map[ConnectionInfo]ConnFullStats),
-		lastTS:          time.Now(),
+		lastTS:          ntp.Now(),
 	}
 }
 

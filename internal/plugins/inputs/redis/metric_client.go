@@ -65,7 +65,7 @@ func (m *clientMeasurement) Info() *inputs.MeasurementInfo {
 func (ipt *Input) parseClientData(list string) ([]*point.Point, error) {
 	collectCache := []*point.Point{}
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTimestamp(ipt.alignTS))
+	opts = append(opts, point.WithTime(ipt.ptsTime))
 
 	rdr := strings.NewReader(list)
 

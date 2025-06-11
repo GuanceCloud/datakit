@@ -25,6 +25,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -98,14 +99,15 @@ func (ipt *Input) Run() {
 			l.Debug("%s election paused", inputName)
 		} else {
 			ipt.handleServerDropWarn()
-			ipt.start = time.Now()
+			ipt.start = ntp.Now()
 			if err := ipt.collect(); err != nil {
 				l.Errorf("collect: %s", err)
 			}
 		}
 
 		select {
-		case <-tick.C:
+		case tt := <-tick.C:
+			ipt.start = inputs.AlignTime(tt, ipt.start, ipt.Interval)
 		case <-datakit.Exit.Wait():
 			l.Infof("%s input exit", inputName)
 			return
@@ -150,6 +152,7 @@ func (ipt *Input) collect() error {
 }
 
 func (ipt *Input) doCollect(idx int) error {
+	start := time.Now()
 	data, err := ipt.getBytes(idx)
 	if err != nil {
 		l.Errorf("getBytes %v", err)
@@ -167,7 +170,7 @@ func (ipt *Input) doCollect(idx int) error {
 
 	if len(pts) > 0 {
 		if err := ipt.feeder.FeedV2(point.Metric, pts,
-			dkio.WithCollectCost(time.Since(ipt.start)),
+			dkio.WithCollectCost(time.Since(start)),
 			dkio.WithElection(ipt.Election),
 			dkio.WithInputName(metricName)); err != nil {
 			ipt.feeder.FeedLastError(err.Error(),

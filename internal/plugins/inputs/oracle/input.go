@@ -24,6 +24,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -223,7 +224,7 @@ func (ipt *Input) Run() {
 	// run custom queries
 	ipt.runCustomQueries()
 
-	ipt.ptsTime = time.Now()
+	ipt.ptsTime = ntp.Now()
 	for {
 		if ipt.pause {
 			l.Info("not leader, skipped")
@@ -239,7 +240,7 @@ func (ipt *Input) Run() {
 			return
 
 		case tt := <-tick.C:
-			ipt.ptsTime = time.UnixMilli(inputs.AlignTimeMillSec(tt, ipt.ptsTime.UnixMilli(), ipt.Interval.Duration.Milliseconds()))
+			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.Interval.Duration)
 
 		case ipt.pause = <-ipt.pauseCh:
 			// nil
@@ -324,6 +325,34 @@ func selectWrapper[T any](ipt *Input, s T, sql string, names ...string) error {
 	}
 
 	return err
+}
+
+func (ipt *Input) getKVsOpts(categorys ...point.Category) []point.Option {
+	var opts []point.Option
+
+	category := point.Metric
+	if len(categorys) > 0 {
+		category = categorys[0]
+	}
+
+	switch category { //nolint:exhaustive
+	case point.Logging:
+		opts = point.DefaultLoggingOptions()
+	case point.Metric:
+		opts = point.DefaultMetricOptions()
+	case point.Object:
+		opts = point.DefaultObjectOptions()
+	default:
+		opts = point.DefaultMetricOptions()
+	}
+
+	if ipt.Election {
+		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
+	}
+
+	opts = append(opts, point.WithTime(ipt.ptsTime))
+
+	return opts
 }
 
 func defaultInput() *Input {

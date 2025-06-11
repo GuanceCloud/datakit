@@ -11,6 +11,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
@@ -126,7 +127,7 @@ func (c *cronjob) addChangeInformer(informerFactory informers.SharedInformerFact
 
 func (c *cronjob) buildMetricPoints(list *apibatchv1.CronJobList, timestamp int64) []*point.Point {
 	var pts []*point.Point
-	opts := point.DefaultMetricOptions()
+	opts := append(point.DefaultMetricOptions(), point.WithTimestamp(timestamp))
 
 	for _, item := range list.Items {
 		var kvs point.KVs
@@ -141,7 +142,7 @@ func (c *cronjob) buildMetricPoints(list *apibatchv1.CronJobList, timestamp int6
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, c.cfg.LabelAsTagsForMetric.All, c.cfg.LabelAsTagsForMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(c.cfg.ExtraTags)...)
-		pt := point.NewPointV2(cronjobMetricMeasurement, kvs, append(opts, point.WithTimestamp(timestamp))...)
+		pt := point.NewPointV2(cronjobMetricMeasurement, kvs, opts...)
 		pts = append(pts, pt)
 
 		c.counter[item.Namespace]++
@@ -152,7 +153,7 @@ func (c *cronjob) buildMetricPoints(list *apibatchv1.CronJobList, timestamp int6
 
 func (c *cronjob) buildObjectPoints(list *apibatchv1.CronJobList) []*point.Point {
 	var pts []*point.Point
-	opts := point.DefaultObjectOptions()
+	opts := append(point.DefaultObjectOptions(), point.WithTime(ntp.Now()))
 
 	for _, item := range list.Items {
 		var kvs point.KVs

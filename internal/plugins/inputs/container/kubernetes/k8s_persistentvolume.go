@@ -13,6 +13,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
@@ -114,7 +115,7 @@ func (p *persistentvolume) addChangeInformer(informerFactory informers.SharedInf
 
 func (p *persistentvolume) buildObjectPoints(list *apicorev1.PersistentVolumeList) []*point.Point {
 	var pts []*point.Point
-	opts := point.DefaultObjectOptions()
+	opts := append(point.DefaultObjectOptions(), point.WithTime(ntp.Now()))
 
 	for _, item := range list.Items {
 		var kvs point.KVs

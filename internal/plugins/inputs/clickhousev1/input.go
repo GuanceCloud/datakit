@@ -22,6 +22,7 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 )
@@ -111,7 +112,7 @@ func (ipt *Input) Run() {
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
 
-	ipt.start = time.Now()
+	ipt.start = ntp.Now()
 	for {
 		if ipt.pause {
 			l.Debug("%s election paused", inputName)
@@ -123,7 +124,7 @@ func (ipt *Input) Run() {
 
 		select {
 		case tt := <-tick.C:
-			ipt.start = time.UnixMilli(inputs.AlignTimeMillSec(tt, ipt.start.UnixMilli(), ipt.Interval.Milliseconds()))
+			ipt.start = inputs.AlignTime(tt, ipt.start, ipt.Interval)
 
 		case <-datakit.Exit.Wait():
 			l.Infof("%s input exit", inputName)

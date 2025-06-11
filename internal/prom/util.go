@@ -14,6 +14,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	dto "github.com/prometheus/client_model/go"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 )
 
 const statusInfo = "INFO"
@@ -319,7 +320,7 @@ func (p *Prom) MetricFamilies2points(metricFamilies map[string]*dto.MetricFamily
 
 	ptts := p.opt.ptts
 	if ptts == 0 {
-		ptts = time.Now().UnixNano()
+		ptts = ntp.Now().UnixNano()
 	}
 
 	opts := append(point.DefaultMetricOptions(), point.WithTimestamp(ptts))

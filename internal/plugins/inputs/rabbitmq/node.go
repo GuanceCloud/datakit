@@ -6,107 +6,92 @@
 package rabbitmq
 
 import (
+	"time"
+
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
+type node struct {
+	Name              string
+	DiskFreeAlarm     bool  `json:"disk_free_alarm"`
+	MemAlarm          bool  `json:"mem_alarm"`
+	Running           bool  `json:"running"`
+	DiskFree          int64 `json:"disk_free"`
+	DiskFreeLimit     int64 `json:"disk_free_limit"`
+	FdTotal           int64 `json:"fd_total"`
+	FdUsed            int64 `json:"fd_used"`
+	MemLimit          int64 `json:"mem_limit"`
+	MemUsed           int64 `json:"mem_used"`
+	ProcTotal         int64 `json:"proc_total"`
+	ProcUsed          int64 `json:"proc_used"`
+	RunQueue          int64 `json:"run_queue"`
+	SocketsTotal      int64 `json:"sockets_total"`
+	SocketsUsed       int64 `json:"sockets_used"`
+	Uptime            int64 `json:"uptime"`
+	MnesiaDiskTxCount int64 `json:"mnesia_disk_tx_count"`
+	MnesiaRAMTxCount  int64 `json:"mnesia_ram_tx_count"`
+	GcNum             int64 `json:"gc_num"`
+	IoWriteBytes      int64 `json:"io_write_bytes"`
+	IoReadBytes       int64 `json:"io_read_bytes"`
+	GcBytesReclaimed  int64 `json:"gc_bytes_reclaimed"`
+
+	IoWriteAvgTime float64 `json:"io_write_avg_time"`
+	IoReadAvgTime  float64 `json:"io_read_avg_time"`
+	IoSeekAvgTime  float64 `json:"io_seek_avg_time"`
+	IoSyncAvgTime  float64 `json:"io_sync_avg_time"`
+
+	GcNumDetails             details `json:"gc_num_details"`
+	MnesiaRAMTxCountDetails  details `json:"mnesia_ram_tx_count_details"`
+	MnesiaDiskTxCountDetails details `json:"mnesia_disk_tx_count_details"`
+	GcBytesReclaimedDetails  details `json:"gc_bytes_reclaimed_details"`
+	IoReadAvgTimeDetails     details `json:"io_read_avg_time_details"`
+	IoReadBytesDetails       details `json:"io_read_bytes_details"`
+	IoWriteAvgTimeDetails    details `json:"io_write_avg_time_details"`
+	IoWriteBytesDetails      details `json:"io_write_bytes_details"`
+}
+
 func getNode(n *Input) {
-	var Nodes []Node
-	err := n.requestJSON("/api/nodes", &Nodes)
-	if err != nil {
+	var (
+		Nodes        []node
+		collectStart = time.Now()
+		pts          []*point.Point
+		opts         = append(point.DefaultMetricOptions(), point.WithTime(n.start))
+	)
+
+	if err := n.requestJSON("/api/nodes", &Nodes); err != nil {
 		l.Error(err.Error())
 		n.lastErr = err
 		return
 	}
-	// ts := time.Now()
+
 	for _, node := range Nodes {
-		tags := map[string]string{
-			"url":       n.URL,
-			"node_name": node.Name,
-		}
-		if n.host != "" {
-			tags["host"] = n.host
-		}
-		for k, v := range n.Tags {
-			tags[k] = v
-		}
+		kvs := point.NewTags(n.mergedTags)
 
-		if n.Election {
-			tags = inputs.MergeTags(n.Tagger.ElectionTags(), tags, n.URL)
-		} else {
-			tags = inputs.MergeTags(n.Tagger.HostTags(), tags, n.URL)
-		}
+		kvs = kvs.AddTag("url", n.URL).
+			AddTag("node_name", node.Name).
+			AddV2("disk_free_alarm", node.DiskFreeAlarm, true).
+			AddV2("disk_free", node.DiskFree, true).
+			AddV2("fd_used", node.FdUsed, true).
+			AddV2("mem_alarm", node.MemAlarm, true).
+			AddV2("mem_limit", node.MemLimit, true).
+			AddV2("mem_used", node.MemUsed, true).
+			AddV2("run_queue", node.RunQueue, true).
+			AddV2("running", node.Running, true).
+			AddV2("sockets_used", node.SocketsUsed, true).
+			AddV2("io_write_avg_time", node.IoWriteAvgTime, true).
+			AddV2("io_read_avg_time", node.IoReadAvgTime, true).
+			AddV2("io_sync_avg_time", node.IoSyncAvgTime, true).
+			AddV2("io_seek_avg_time", node.IoSeekAvgTime, true)
 
-		fields := map[string]interface{}{
-			"disk_free_alarm":   node.DiskFreeAlarm,
-			"disk_free":         node.DiskFree,
-			"fd_used":           node.FdUsed,
-			"mem_alarm":         node.MemAlarm,
-			"mem_limit":         node.MemLimit,
-			"mem_used":          node.MemUsed,
-			"run_queue":         node.RunQueue,
-			"running":           node.Running,
-			"sockets_used":      node.SocketsUsed,
-			"io_write_avg_time": node.IoWriteAvgTime,
-			"io_read_avg_time":  node.IoReadAvgTime,
-			"io_sync_avg_time":  node.IoSyncAvgTime,
-			"io_seek_avg_time":  node.IoSeekAvgTime,
-		}
-		metric := &NodeMeasurement{
-			name:   NodeMetric,
-			tags:   tags,
-			fields: fields,
-			ts:     n.alignTS,
-		}
-		n.metricAppend(metric.Point())
+		pts = append(pts, point.NewPointV2(nodeMeasurementName, kvs, opts...))
 	}
-}
 
-type NodeMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     int64
-}
-
-// Point implement MeasurementV2.
-func (m *NodeMeasurement) Point() *point.Point {
-	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTimestamp(m.ts))
-
-	return point.NewPointV2(m.name,
-		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-		opts...)
-}
-
-//nolint:lll
-func (m *NodeMeasurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: NodeMetric,
-		Cat:  point.Metric,
-		Fields: map[string]interface{}{
-			"disk_free_alarm": newOtherFieldInfo(inputs.Bool, inputs.Gauge, inputs.NoUnit, "Does the node have disk alarm"),
-			"disk_free":       newByteFieldInfo("Current free disk space"),
-			"fd_used":         newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.NCount, "Used file descriptors"),
-			"mem_alarm":       newOtherFieldInfo(inputs.Bool, inputs.Gauge, inputs.NoUnit, "Does the node have mem alarm"),
-			"mem_limit":       newByteFieldInfo("Memory usage high watermark in bytes"),
-			"mem_used":        newByteFieldInfo("Memory used in bytes"),
-			"run_queue":       newCountFieldInfo("Average number of Erlang processes waiting to run"),
-			"running":         newOtherFieldInfo(inputs.Bool, inputs.Gauge, inputs.NoUnit, "Is the node running or not"),
-			"sockets_used":    newCountFieldInfo("Number of file descriptors used as sockets"),
-
-			// See: https://documentation.solarwinds.com/en/success_center/appoptics/content/kb/host_infrastructure/integrations/rabbitmq.htm
-			"io_read_avg_time":  newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.DurationMS, "Average wall time (milliseconds) for each disk read operation in the last statistics interval"),
-			"io_write_avg_time": newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.DurationMS, "Average wall time (milliseconds) for each disk write operation in the last statistics interval"),
-			"io_seek_avg_time":  newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.DurationMS, "Average wall time (milliseconds) for each seek operation in the last statistics interval"),
-			"io_sync_avg_time":  newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.DurationMS, "Average wall time (milliseconds) for each fsync() operation in the last statistics interval"),
-		},
-
-		Tags: map[string]interface{}{
-			"url":          inputs.NewTagInfo("RabbitMQ url"),
-			"node_name":    inputs.NewTagInfo("RabbitMQ node name"),
-			"cluster_name": inputs.NewTagInfo("RabbitMQ cluster name"),
-			"host":         inputs.NewTagInfo("Hostname of RabbitMQ running on."),
-		},
+	if err := n.feeder.FeedV2(point.Metric, pts,
+		dkio.WithCollectCost(time.Since(collectStart)),
+		dkio.WithElection(n.Election),
+		dkio.WithInputName(inputName),
+	); err != nil {
+		l.Errorf("FeedMeasurement: %s", err.Error())
 	}
 }

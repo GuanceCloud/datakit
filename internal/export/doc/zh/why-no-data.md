@@ -39,6 +39,12 @@ Wed Jul 21 08:22:32 UTC 2021
 
 另外，如果时间滞后，<<<custom_key.brand_name>>>默认的查看器是看不到这些数据的（一般查看器默认显示最近 15min 的数据），可以在查看器上调一下查看的时间范围。
 
+<!-- markdownlint-disable MD046 -->
+???+ info
+
+    DataKit 自 [:octicons-tag-24: Version-1.75.0](../datakit/changelog.md#cl-1.75.0) 开始使用 DataWay 机器时间作为数据采集时间，一定程度上避免了本机时间偏差较大带来的问题。
+<!-- markdownlint-enable -->
+
 ### 主机软硬件不支持 {#iss-os-arch}
 
 某些采集器在一些特定的平台上是不支持的，即使开启了配置，也不会有数据采集：

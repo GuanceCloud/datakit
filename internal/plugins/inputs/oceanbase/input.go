@@ -24,6 +24,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -74,7 +75,7 @@ type Input struct {
 	slowQueryTime      time.Duration
 	collectors         map[string]func() (point.Category, []*point.Point, error)
 	tenantNames        map[string]string
-	alignTS            int64
+	ptsTime            time.Time
 }
 
 func (ipt *Input) initCfg() error {
@@ -286,14 +287,13 @@ func (ipt *Input) Run() {
 
 	l.Infof("collecting each %v", ipt.Interval.Duration)
 
-	lastTS := time.Now()
+	ipt.ptsTime = ntp.Now()
 	for {
 		if ipt.pause {
 			l.Debugf("not leader, skipped")
 		} else {
 			l.Debugf("oceanbase input gathering...")
 
-			ipt.alignTS = lastTS.UnixNano()
 			mpts, err := ipt.Collect()
 			if err != nil {
 				l.Warnf("i.Collect failed: %v", err)
@@ -328,8 +328,7 @@ func (ipt *Input) Run() {
 			return
 
 		case tt := <-tick.C:
-			nextts := inputs.AlignTimeMillSec(tt, lastTS.UnixMilli(), ipt.Interval.Duration.Milliseconds())
-			lastTS = time.UnixMilli(nextts)
+			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.Interval.Duration)
 
 		case ipt.pause = <-ipt.pauseCh:
 			// nil

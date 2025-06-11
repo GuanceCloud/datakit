@@ -20,18 +20,18 @@ type outputMetaInfo struct {
 	Version     string                         `json:"version"`
 	ReleaseDate string                         `json:"release_date"`
 	Doc         []string                       `json:"doc"`
-	MMetaInfo   map[string]metaInfoMeasurement `json:"metrics"`
-	OMetaInfo   map[string]metaInfoMeasurement `json:"objects"`
+	MMetaInfo   map[string]metaInfoMeasurement `json:"metric"`
+	OMetaInfo   map[string]metaInfoMeasurement `json:"object"`
 	COMetaInfo  map[string]metaInfoMeasurement `json:"custom_object"`
 	OCHMetaInfo map[string]metaInfoMeasurement `json:"object_change"`
 	LMetaInfo   map[string]metaInfoMeasurement `json:"logging"`
-	NMetaInfo   map[string]metaInfoMeasurement `json:"networking"`
+	NMetaInfo   map[string]metaInfoMeasurement `json:"network"`
 	EMetaInfo   map[string]metaInfoMeasurement `json:"keyevent"`
 	TMetaInfo   map[string]metaInfoMeasurement `json:"tracing"`
 	RMetaInfo   map[string]metaInfoMeasurement `json:"rum"`
 	SMetaInfo   map[string]metaInfoMeasurement `json:"security"`
 	PMetaInfo   map[string]metaInfoMeasurement `json:"profiling"`
-	DTMetaInfo  map[string]metaInfoMeasurement `json:"dialtesting"`
+	DTMetaInfo  map[string]metaInfoMeasurement `json:"dialtest"`
 }
 
 type metaInfoMeasurement struct {

@@ -8,6 +8,7 @@ package nsq
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -88,9 +89,11 @@ func (s *stats) feedCache(host string, data *DataStats) {
 	}
 }
 
-func (s *stats) makePoint(addTags map[string]string) ([]*point.Point, error) {
+func (s *stats) makePoint(addTags map[string]string, ptsTime time.Time) ([]*point.Point, error) {
 	var pts []*point.Point
 	var lastErr error
+
+	opts := append(point.DefaultMetricOptions(), point.WithTime(ptsTime))
 
 	for topic, c := range s.topicCache {
 		for channel, channelStats := range c {
@@ -105,6 +108,7 @@ func (s *stats) makePoint(addTags map[string]string) ([]*point.Point, error) {
 
 			pt := point.NewPointV2(nsqTopics,
 				append(point.NewTags(tags), point.NewKVs(fields)...),
+				opts...,
 			)
 			pts = append(pts, pt)
 		}
@@ -133,6 +137,7 @@ func (s *stats) makePoint(addTags map[string]string) ([]*point.Point, error) {
 
 		pt := point.NewPointV2(nsqNodes,
 			append(point.NewTags(tags), point.NewKVs(fields)...),
+			opts...,
 		)
 		pts = append(pts, pt)
 	}

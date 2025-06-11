@@ -21,6 +21,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -222,9 +223,10 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(duration)
 	defer tick.Stop()
-	start := time.Now()
+	start := ntp.Now()
 
 	for {
+		collectStart := time.Now()
 		if err := ipt.Collect(start.UnixNano()); err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),
@@ -234,7 +236,7 @@ func (ipt *Input) Run() {
 
 		if len(ipt.collectCache) > 0 {
 			if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
-				dkio.WithCollectCost(time.Since(start)),
+				dkio.WithCollectCost(time.Since(collectStart)),
 				dkio.WithElection(false),
 				dkio.WithInputName(inputName)); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
@@ -247,8 +249,7 @@ func (ipt *Input) Run() {
 
 		select {
 		case tt := <-tick.C:
-			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), duration.Milliseconds())
-			start = time.UnixMilli(nextts)
+			start = inputs.AlignTime(tt, start, duration)
 		case <-datakit.Exit.Wait():
 			l.Info("host_healthcheck exit")
 			return

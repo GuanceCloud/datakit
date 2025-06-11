@@ -61,7 +61,7 @@ func (*endpoint) addChangeInformer(_ informers.SharedInformerFactory) { /* nil *
 
 func (e *endpoint) buildMetricPoints(list *apicorev1.EndpointsList, timestamp int64) []*point.Point {
 	var pts []*point.Point
-	opts := point.DefaultMetricOptions()
+	opts := append(point.DefaultMetricOptions(), point.WithTimestamp(timestamp))
 
 	for _, item := range list.Items {
 		var kvs point.KVs
@@ -81,7 +81,7 @@ func (e *endpoint) buildMetricPoints(list *apicorev1.EndpointsList, timestamp in
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, e.cfg.LabelAsTagsForMetric.All, e.cfg.LabelAsTagsForMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(e.cfg.ExtraTags)...)
-		pt := point.NewPointV2(endpointMetricMeasurement, kvs, append(opts, point.WithTimestamp(timestamp))...)
+		pt := point.NewPointV2(endpointMetricMeasurement, kvs, opts...)
 		pts = append(pts, pt)
 
 		e.counter[item.Namespace]++

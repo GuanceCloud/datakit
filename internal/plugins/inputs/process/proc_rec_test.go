@@ -51,5 +51,5 @@ func BenchmarkWriteObject(b *testing.B) {
 	}
 	processList := in.getProcesses(false)
 	tn := time.Now().UTC()
-	in.WriteObject(processList, tn)
+	in.collectObject(processList, tn)
 }

@@ -258,12 +258,12 @@ ulimit = 64000
 
   # use dataway as NTP server
   [dataway.ntp]
-    interval = "5m"  # sync dataway time each 5min
+    enable   = true
+    interval = "5m"  # sync dataway time each 5min(minimal 1min)
 
-    # if datakit local time and dataway time's ABS value reach the diff,
-    # datakit's soft time will update to the dataway time.
-    # NOTE: diff MUST larger than "1s"
-    diff     = "30s" 
+    # if abs(datakit time - dataway time) >= diff, datakit will adjust data point
+    # time with dataway time.
+    diff     = "30s"  # minimal 5s
 
   # WAL queue for uploading points
   [dataway.wal]

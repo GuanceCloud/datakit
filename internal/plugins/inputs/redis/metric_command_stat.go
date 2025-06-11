@@ -45,7 +45,7 @@ func (ipt *Input) parseCommandData(list string) ([]*point.Point, error) {
 		collectCache = []*point.Point{}
 		rdr          = strings.NewReader(list)
 		scanner      = bufio.NewScanner(rdr)
-		opts         = append(point.DefaultMetricOptions(), point.WithTimestamp(ipt.alignTS))
+		opts         = append(point.DefaultMetricOptions(), point.WithTime(ipt.ptsTime))
 	)
 
 	for scanner.Scan() {

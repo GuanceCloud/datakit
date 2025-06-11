@@ -16,6 +16,7 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/afpacket"
 	"github.com/google/gopacket/layers"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/cli"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/spanid"
@@ -143,7 +144,7 @@ func NewTCPConns(gtags map[string]string, ctrID, nsUID string,
 		ctrID:        ctrID,
 		nsUID:        nsUID,
 		conns: conns{
-			poolCreateTime: time.Now().UnixNano(),
+			poolCreateTime: ntp.Now().UnixNano(),
 
 			pool:       *newConnsMaps(defaultTCPKeepAlive / 4),
 			twoMSLPool: *newConnsMaps(time.Second * 10),

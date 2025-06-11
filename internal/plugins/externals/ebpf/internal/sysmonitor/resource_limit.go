@@ -12,6 +12,7 @@ import (
 
 	"github.com/shirou/gopsutil/net"
 	"github.com/shirou/gopsutil/v3/process"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 )
 
 type ResourceLimiter struct {
@@ -99,7 +100,7 @@ func (res *ResourceLimiter) overResLimit() bool {
 		}
 	}
 	if res.Bandwidth > 0 {
-		tn := time.Now()
+		tn := ntp.Now()
 		defer func() {
 			res.lastNetTn = tn
 		}()

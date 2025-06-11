@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -155,7 +156,7 @@ func (s *scrapeManager) runWorker(ctx context.Context, workerNum int, scrapeInte
 
 func (s *scrapeManager) doWork(ctx context.Context, name string, scrapeInterval time.Duration) {
 	tasks := make(map[string]scraper)
-	start := time.Now()
+	start := ntp.Now()
 
 	ticker := time.NewTicker(scrapeInterval)
 	defer ticker.Stop()
@@ -180,8 +181,7 @@ func (s *scrapeManager) doWork(ctx context.Context, name string, scrapeInterval 
 			}
 
 		case tt := <-ticker.C:
-			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), scrapeInterval.Milliseconds())
-			start = time.UnixMilli(nextts)
+			start = inputs.AlignTime(tt, start, scrapeInterval)
 
 			var removeTasks []string
 			for _, task := range tasks {

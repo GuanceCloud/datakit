@@ -27,6 +27,7 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmpmeasurement"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmprefiles"
@@ -138,6 +139,8 @@ type Input struct {
 	autodetectProfile    bool
 	feeder               dkio.Feeder
 	Tagger               datakit.GlobalTagger
+
+	ptsTime time.Time
 }
 
 type TrapsConfig struct {
@@ -289,12 +292,16 @@ func (ipt *Input) Run() {
 	defer tickerMetric.Stop()
 	defer tickerDiscovery.Stop()
 
+	ipt.ptsTime = ntp.Now()
+
 	for {
 		select {
 		case <-tickerObject.C:
+			// NOTE: object points time do not need to align to interval.
 			ipt.collectObject()
 
-		case <-tickerMetric.C:
+		case tt := <-tickerMetric.C:
+			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.MetricInterval)
 			ipt.collectMetrics()
 
 		case <-tickerDiscovery.C:
@@ -521,14 +528,14 @@ func checkIPDone(deviceIP string) {
 }
 
 func (ipt *Input) doCollectObject(deviceIP string, device *deviceInfo) {
-	tn := time.Now().UTC()
-	points := ipt.CollectingMeasurements(deviceIP, device, tn, true)
+	collectStart := time.Now()
+	points := ipt.CollectingMeasurements(deviceIP, device, true)
 	if len(points) == 0 {
 		return
 	}
 
 	if err := ipt.feeder.FeedV2(point.Object, points,
-		dkio.WithCollectCost(time.Since(tn)),
+		dkio.WithCollectCost(time.Since(collectStart)),
 		dkio.WithElection(ipt.Election),
 		dkio.WithInputName(snmpmeasurement.SNMPObjectName),
 	); err != nil {
@@ -541,14 +548,14 @@ func (ipt *Input) doCollectObject(deviceIP string, device *deviceInfo) {
 }
 
 func (ipt *Input) doCollectMetrics(deviceIP string, device *deviceInfo) {
-	tn := time.Now().UTC()
-	points := ipt.CollectingMeasurements(deviceIP, device, tn, false)
+	collectStart := time.Now()
+	points := ipt.CollectingMeasurements(deviceIP, device, false)
 	if len(points) == 0 {
 		return
 	}
 
 	if err := ipt.feeder.FeedV2(point.Metric, points,
-		dkio.WithCollectCost(time.Since(tn)),
+		dkio.WithCollectCost(time.Since(collectStart)),
 		dkio.WithElection(ipt.Election),
 		dkio.WithInputName(snmpmeasurement.SNMPMetricName),
 	); err != nil {
@@ -560,10 +567,13 @@ func (ipt *Input) doCollectMetrics(deviceIP string, device *deviceInfo) {
 	}
 }
 
-func (ipt *Input) CollectingMeasurements(deviceIP string, device *deviceInfo, tn time.Time, isObject bool) []*point.Point {
+func (ipt *Input) CollectingMeasurements(deviceIP string, device *deviceInfo, isObject bool) []*point.Point {
 	var pts []*point.Point
 
-	var fts tagFields
+	var (
+		fts tagFields
+		tn  = ntp.Now() // for object, use current time
+	)
 
 	if isObject {
 		ipt.doCollectCore(deviceIP, device, tn, &fts, true) // object need collect meta
@@ -597,7 +607,7 @@ func (ipt *Input) CollectingMeasurements(deviceIP string, device *deviceInfo, tn
 				Name:   snmpmeasurement.SNMPMetricName,
 				Tags:   data.Tags,
 				Fields: data.Fields,
-				TS:     tn,
+				TS:     ipt.ptsTime, // for metric, use aligned point time
 			}
 			pts = append(pts, smtc.Point())
 		}
@@ -636,7 +646,12 @@ func (ipt *Input) doAutoDiscovery(deviceIP, subnet string) {
 
 //------------------------------------------------------------------------------
 
-func (ipt *Input) doCollectCore(ip string, device *deviceInfo, tn time.Time, fts *tagFields, collectObject bool) {
+func (ipt *Input) doCollectCore(ip string,
+	device *deviceInfo,
+	tn time.Time,
+	fts *tagFields,
+	collectObject bool,
+) {
 	deviceReachable, tags, values, checkErr, isErrClosed := device.getValuesAndTags()
 	if checkErr != nil {
 		if isErrClosed && len(device.Subnet) > 0 {

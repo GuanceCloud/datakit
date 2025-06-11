@@ -29,7 +29,7 @@ func TestCon(t *testing.T) {
 	}
 
 	n.getMetric()
-	for _, v := range collectCache {
+	for _, v := range n.collectCache {
 		t.Log(v.LineProto())
 	}
 }

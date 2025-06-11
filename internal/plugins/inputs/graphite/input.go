@@ -322,7 +322,7 @@ func (ipt *Input) sendMetric(measurements []*graphiteMetric, start time.Time) {
 		}
 
 		kvs = kvs.Add(metric.Name, metric.Value, false, true)
-		kvs = kvs.Add("timestamp", metric.Timestamp, false, true)
+		kvs = kvs.Add("timestamp", metric.Timestamp, false, true) // use client-side timestamp, do not align time here.
 
 		pts = append(pts, point.NewPointV2(metric.MeasurementName, kvs, opts...))
 	}

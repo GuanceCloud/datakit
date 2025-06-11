@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
 )
@@ -24,7 +25,7 @@ func (conns *TCPConns) netlogConv2Point(k *PMeta, v *PValue,
 	opt []point.Option, rm bool, nicIPList []string,
 ) ([]*point.Point, error) {
 	pts := []*point.Point{}
-	tsnow := time.Now().UnixNano()
+	tsnow := ntp.Now().UnixNano()
 	tags := buildCommTags(k, v, conns)
 
 	{ // http log and metric
@@ -106,7 +107,7 @@ const (
 func (conns *TCPConns) feedNetworkLog(pool *connMap,
 	cal2mslDelete bool, forceDelete bool, nicIPList []string,
 ) {
-	tn := time.Now()
+	tn := ntp.Now()
 	ts := tn.UnixNano()
 	pts := make([]*point.Point, 0, maxFeedCount)
 	count := 0

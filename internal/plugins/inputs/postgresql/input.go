@@ -28,6 +28,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -183,7 +184,8 @@ type Relation struct {
 }
 
 type queryCacheItem struct {
-	query           string
+	ptsTime         time.Time
+	q               string
 	measurementInfo *inputs.MeasurementInfo
 }
 
@@ -232,6 +234,7 @@ type Input struct {
 	version  *semver.Version
 	isAurora bool
 	semStop  *cliutils.Sem // start stop signal
+	ptsTime  time.Time
 
 	collectFuncs     map[string]func() error
 	relationMetrics  map[string]relationMetric
@@ -337,7 +340,7 @@ func (ipt *Input) getQueryPoints(cache *queryCacheItem) ([]*point.Point, error) 
 		points  []*point.Point
 	)
 
-	if cache == nil || cache.query == "" {
+	if cache == nil || cache.q == "" {
 		return nil, fmt.Errorf("query cache is empty")
 	}
 
@@ -347,13 +350,14 @@ func (ipt *Input) getQueryPoints(cache *queryCacheItem) ([]*point.Point, error) 
 	}
 
 	start := time.Now()
-	rows, err := ipt.service.Query(cache.query)
+	rows, err := ipt.service.Query(cache.q)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close() //nolint:errcheck
 
-	sqlQueryCostSummary.WithLabelValues(measurementInfo.Name, measurementInfo.Name).Observe(float64(time.Since(start)) / float64(time.Second))
+	sqlQueryCostSummary.WithLabelValues(measurementInfo.Name,
+		measurementInfo.Name).Observe(time.Since(start).Seconds())
 	if columns, err = rows.Columns(); err != nil {
 		return nil, err
 	}
@@ -364,6 +368,7 @@ func (ipt *Input) getQueryPoints(cache *queryCacheItem) ([]*point.Point, error) 
 			return nil, err
 		}
 		if point := ipt.makePoints(columnMap, measurementInfo); point != nil {
+			point.SetTime(cache.ptsTime)
 			points = append(points, point)
 		}
 	}
@@ -372,6 +377,9 @@ func (ipt *Input) getQueryPoints(cache *queryCacheItem) ([]*point.Point, error) 
 }
 
 func (ipt *Input) executeQuery(cache *queryCacheItem) error {
+	// set point's time on non-custome query
+	cache.ptsTime = ipt.ptsTime
+
 	if points, err := ipt.getQueryPoints(cache); err != nil {
 		return fmt.Errorf("getQueryPoints error: %w", err)
 	} else {
@@ -401,7 +409,7 @@ func (ipt *Input) getDBMetrics() error {
 		}
 
 		cache = &queryCacheItem{
-			query:           query,
+			q:               query,
 			measurementInfo: inputMeasurement{}.Info(),
 		}
 		ipt.metricQueryCache[DBMetric] = cache
@@ -431,7 +439,7 @@ func (ipt *Input) getDynamicQueryMetrics() error {
 		}
 
 		cache = &queryCacheItem{
-			query:           query,
+			q:               query,
 			measurementInfo: conflictMeasurement{}.Info(),
 		}
 		ipt.metricQueryCache[DynamicMetric] = cache
@@ -449,7 +457,7 @@ func (ipt *Input) getBgwMetrics() error {
 		select * FROM pg_stat_bgwriter
 	`
 		cache = &queryCacheItem{
-			query:           query,
+			q:               query,
 			measurementInfo: bgwriterMeasurement{}.Info(),
 		}
 		ipt.metricQueryCache[BgwriterMetric] = cache
@@ -476,7 +484,7 @@ func (ipt *Input) getRelationMetrics() error {
 			}
 
 			cache = &queryCacheItem{
-				query:           query,
+				q:               query,
 				measurementInfo: relationInfo.measurementInfo,
 			}
 			ipt.metricQueryCache[cacheName] = cache
@@ -496,7 +504,7 @@ func (ipt *Input) getArchiverMetrics() error {
 	if !ok {
 		query := "select archived_count, failed_count as archived_failed_count FROM pg_stat_archiver"
 		cache = &queryCacheItem{
-			query:           query,
+			q:               query,
 			measurementInfo: archiverMeasurement{}.Info(),
 		}
 		ipt.metricQueryCache[ArchiverMetric] = cache
@@ -536,7 +544,7 @@ SELECT CASE WHEN pg_last_xlog_receive_location() IS NULL OR pg_last_xlog_receive
 			query += " WHERE (SELECT pg_is_in_recovery())"
 		}
 		cache = &queryCacheItem{
-			query:           query,
+			q:               query,
 			measurementInfo: replicationMeasurement{}.Info(),
 		}
 		ipt.metricQueryCache[ReplicationMetric] = cache
@@ -561,7 +569,7 @@ FROM pg_stat_replication_slots AS stat
 JOIN pg_replication_slots ON pg_replication_slots.slot_name = stat.slot_name
 `
 		cache = &queryCacheItem{
-			query:           query,
+			q:               query,
 			measurementInfo: replicationSlotMeasurement{}.Info(),
 		}
 		ipt.metricQueryCache[ReplicationSlot] = cache
@@ -580,7 +588,7 @@ SELECT name, blks_zeroed, blks_hit, blks_read,
 FROM pg_stat_slru
 `
 		cache = &queryCacheItem{
-			query:           query,
+			q:               query,
 			measurementInfo: slruMeasurement{}.Info(),
 		}
 		ipt.metricQueryCache[SlruMetric] = cache
@@ -598,7 +606,7 @@ func (ipt *Input) getConnectionMetrics() error {
 		FROM pg_stat_database, max_con
 	`
 		cache = &queryCacheItem{
-			query:           query,
+			q:               query,
 			measurementInfo: connectionMeasurement{}.Info(),
 		}
 		ipt.metricQueryCache[ConnectionMetric] = cache
@@ -840,7 +848,6 @@ func (ipt *Input) makePoints(columnMap map[string]*interface{}, measurementInfo 
 		if ipt.Election {
 			opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
 		}
-		opts = append(opts, point.WithTimestamp(time.Now().UnixNano()))
 
 		metricName := inputName
 		if measurementInfo != nil {
@@ -974,107 +981,6 @@ func (ipt *Input) init() error {
 	return nil
 }
 
-func (ipt *Input) runCustomQueries() {
-	if len(ipt.CustomQuery) == 0 {
-		return
-	}
-
-	l.Infof("start to run custom queries, total %d queries", len(ipt.CustomQuery))
-
-	g := goroutine.NewGroup(goroutine.Option{
-		Name:         "postgresql_custom_query",
-		PanicTimes:   6,
-		PanicTimeout: 10 * time.Second,
-	})
-	for _, q := range ipt.CustomQuery {
-		func(q *customQuery) {
-			g.Go(func(ctx context.Context) error {
-				ipt.runCustomQuery(q)
-				return nil
-			})
-		}(q)
-	}
-}
-
-func (ipt *Input) runCustomQuery(query *customQuery) {
-	if query == nil {
-		return
-	}
-
-	// use input interval as default
-	duration := ipt.Interval.Duration
-	// use custom query interval if set
-	if query.Interval.Duration > 0 {
-		duration = config.ProtectedInterval(minInterval, maxInterval, query.Interval.Duration)
-	}
-
-	tick := time.NewTicker(duration)
-	defer tick.Stop()
-
-	start := time.Now()
-	for {
-		if ipt.pause {
-			l.Debugf("not leader, custom query skipped")
-		} else {
-			// collect custom query
-			l.Debugf("start collecting custom query, metric name: %s", query.Metric)
-
-			tags := map[string]interface{}{}
-			fields := map[string]interface{}{}
-			for _, tag := range query.Tags {
-				tags[tag] = tag
-			}
-			for _, field := range query.Fields {
-				fields[field] = field
-			}
-
-			queryItem := &queryCacheItem{
-				query: query.SQL,
-				measurementInfo: &inputs.MeasurementInfo{
-					Name:   query.Metric,
-					Tags:   tags,
-					Fields: fields,
-				},
-			}
-
-			if err := ipt.startService(); err != nil {
-				l.Warnf("start service failed: %s", err.Error())
-			} else {
-				if points, err := ipt.getQueryPoints(queryItem); err != nil {
-					l.Errorf("collect custom query [%s] failed: %s", query.SQL, err.Error())
-				} else if len(points) > 0 {
-					if err := ipt.feeder.FeedV2(point.Metric, points,
-						dkio.WithCollectCost(time.Since(start)),
-						dkio.WithElection(ipt.Election),
-						dkio.WithInputName(customQueryFeedName),
-					); err != nil {
-						ipt.feeder.FeedLastError(err.Error(),
-							metrics.WithLastErrorInput(customQueryFeedName),
-						)
-						l.Errorf("feed failed: %s", err.Error())
-					}
-				}
-			}
-		}
-
-		select {
-		case <-datakit.Exit.Wait():
-			ipt.exit()
-			l.Info("custom query exit")
-			return
-
-		case <-ipt.semStop.Wait():
-			ipt.exit()
-			l.Info("custom query return")
-			return
-
-		case tt := <-tick.C:
-			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), duration.Milliseconds())
-			start = time.UnixMilli(nextts)
-		}
-	}
-}
-
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
@@ -1121,24 +1027,12 @@ func (ipt *Input) Run() {
 
 	// run custom queries
 	ipt.runCustomQueries()
+	ipt.ptsTime = ntp.Now()
 
 	for {
-		select {
-		case <-datakit.Exit.Wait():
-			ipt.exit()
-			l.Info("postgresql exit")
-			return
-
-		case <-ipt.semStop.Wait():
-			ipt.exit()
-			l.Info("postgresql return")
-			return
-
-		case <-tick.C:
-			if ipt.pause {
-				l.Debugf("not leader, skipped")
-				continue
-			}
+		if ipt.pause {
+			l.Debugf("not leader, skipped")
+		} else {
 			ipt.setUpState()
 			start := time.Now()
 			if err := ipt.Collect(); err != nil {
@@ -1165,6 +1059,21 @@ func (ipt *Input) Run() {
 			ipt.FeedUpMetric()
 
 			ipt.FeedCoPts()
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			ipt.exit()
+			l.Info("postgresql exit")
+			return
+
+		case <-ipt.semStop.Wait():
+			ipt.exit()
+			l.Info("postgresql return")
+			return
+
+		case tt := <-tick.C:
+			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.Interval.Duration)
 
 		case ipt.pause = <-ipt.pauseCh:
 			// nil

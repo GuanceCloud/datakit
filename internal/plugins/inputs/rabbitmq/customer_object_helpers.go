@@ -10,7 +10,6 @@ import (
 	"net"
 	"net/url"
 	"strconv"
-	"time"
 
 	gcPoint "github.com/GuanceCloud/cliutils/point"
 
@@ -188,7 +187,6 @@ func (ipt *Input) FeedCoPts() {
 	}
 	pts, _ := ipt.collectCustomerObjectMeasurement()
 	if err := ipt.feeder.FeedV2(gcPoint.CustomObject, pts,
-		dkio.WithCollectCost(time.Since(ipt.start)),
 		dkio.WithElection(ipt.Election),
 		dkio.WithInputName(customObjectFeedName),
 	); err != nil {
@@ -205,7 +203,6 @@ func (ipt *Input) FeedCoByErr(err error) {
 	ipt.setIptErrCOStatus()
 	pts := ipt.getCoPointByColErr()
 	if err := ipt.feeder.FeedV2(gcPoint.CustomObject, pts,
-		dkio.WithCollectCost(time.Since(ipt.start)),
 		dkio.WithElection(ipt.Election),
 		dkio.WithInputName(customObjectFeedName),
 	); err != nil {

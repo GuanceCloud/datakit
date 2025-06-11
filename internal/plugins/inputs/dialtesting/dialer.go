@@ -18,8 +18,10 @@ import (
 
 	dt "github.com/GuanceCloud/cliutils/dialtesting"
 	_ "github.com/go-ping/ping"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -243,7 +245,7 @@ func (d *dialer) run() error {
 		case dt.ClassHeadless:
 			return fmt.Errorf("headless task deprecated")
 		default:
-			now := time.Now()
+			now := ntp.Now()
 			if !d.dialingTime.IsZero() {
 				lastDialingDuration := now.Sub(d.dialingTime)
 				interval := lastDialingDuration - taskInterval

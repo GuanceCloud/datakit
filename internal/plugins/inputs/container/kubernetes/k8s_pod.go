@@ -15,6 +15,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/podutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
@@ -126,7 +127,7 @@ func (p *pod) gatherMetric(ctx context.Context, fieldSelector string, timestamp 
 	}
 
 	var counterPts []*point.Point
-	opts := point.DefaultMetricOptions()
+	opts := append(point.DefaultMetricOptions(), point.WithTimestamp(timestamp))
 
 	for ns, count := range p.counter {
 		for nodeName, n := range count {
@@ -136,7 +137,7 @@ func (p *pod) gatherMetric(ctx context.Context, fieldSelector string, timestamp 
 			kvs = kvs.AddV2("pod", n, false)
 			kvs = append(kvs, point.NewTags(p.cfg.ExtraTags)...)
 
-			pt := point.NewPointV2("kubernetes", kvs, append(opts, point.WithTimestamp(timestamp))...)
+			pt := point.NewPointV2("kubernetes", kvs, opts...)
 			counterPts = append(counterPts, pt)
 		}
 	}
@@ -193,7 +194,7 @@ func (p *pod) gatherObject(ctx context.Context, fieldSelector string, pending bo
 
 func (p *pod) buildMetricPoints(list *apicorev1.PodList, metricsClient PodMetricsClient, nodeInfo nodeCapacity, timestamp int64) []*point.Point {
 	var pts []*point.Point
-	opts := point.DefaultMetricOptions()
+	opts := append(point.DefaultMetricOptions(), point.WithTimestamp(timestamp))
 
 	for idx, item := range list.Items {
 		if p.counter[item.Namespace] == nil {
@@ -226,7 +227,7 @@ func (p *pod) buildMetricPoints(list *apicorev1.PodList, metricsClient PodMetric
 		}
 
 		kvs = append(kvs, point.NewTags(p.cfg.ExtraTags)...)
-		pt := point.NewPointV2(podMetricMeasurement, kvs, append(opts, point.WithTimestamp(timestamp))...)
+		pt := point.NewPointV2(podMetricMeasurement, kvs, opts...)
 		pts = append(pts, pt)
 	}
 
@@ -235,7 +236,7 @@ func (p *pod) buildMetricPoints(list *apicorev1.PodList, metricsClient PodMetric
 
 func (p *pod) buildObjectPoints(list *apicorev1.PodList, metricsClient PodMetricsClient, nodeInfo nodeCapacity) []*point.Point {
 	var pts []*point.Point
-	opts := point.DefaultObjectOptions()
+	opts := append(point.DefaultObjectOptions(), point.WithTime(ntp.Now()))
 
 	for idx, item := range list.Items {
 		var kvs point.KVs

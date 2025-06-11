@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
@@ -272,11 +273,9 @@ func TestInput_getPts(t *testing.T) {
 			assert.NoError(t, err)
 
 			ipt.collectCache = make([]*point.Point, 0)
-			intervalMillSec := ipt.Interval.Milliseconds()
-			var lastAlignTime int64
-			tn := ntp.NTPTime()
-			lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
-			err = ipt.getPts(tt.args.data, lastAlignTime*1e6)
+			var ts time.Time
+			ts = inputs.AlignTime(ntp.Now(), ts, ipt.Interval)
+			err = ipt.getPts(tt.args.data, ts.UnixNano())
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Input.getPts() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -341,7 +340,7 @@ func TestInput_getPts_with_host(t *testing.T) {
 			assert.NoError(t, err)
 
 			ipt.collectCache = make([]*point.Point, 0)
-			err = ipt.getPts(tt.args.data, ntp.NTPTime().UnixNano())
+			err = ipt.getPts(tt.args.data, ntp.Now().UnixNano())
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Input.getPts() error = %v, wantErr %v", err, tt.wantErr)
 				return

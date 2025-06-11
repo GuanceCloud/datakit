@@ -12,6 +12,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
@@ -127,7 +128,7 @@ func (s *service) addChangeInformer(informerFactory informers.SharedInformerFact
 
 func (s *service) buildMetricPoints(list *apicorev1.ServiceList, timestamp int64) []*point.Point {
 	var pts []*point.Point
-	opts := point.DefaultMetricOptions()
+	opts := append(point.DefaultMetricOptions(), point.WithTimestamp(timestamp))
 
 	for _, item := range list.Items {
 		var kvs point.KVs
@@ -140,7 +141,7 @@ func (s *service) buildMetricPoints(list *apicorev1.ServiceList, timestamp int64
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, s.cfg.LabelAsTagsForMetric.All, s.cfg.LabelAsTagsForMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(s.cfg.ExtraTags)...)
-		pt := point.NewPointV2(serviceMetricMeasurement, kvs, append(opts, point.WithTimestamp(timestamp))...)
+		pt := point.NewPointV2(serviceMetricMeasurement, kvs, opts...)
 		pts = append(pts, pt)
 
 		s.counter[item.Namespace]++
@@ -151,7 +152,7 @@ func (s *service) buildMetricPoints(list *apicorev1.ServiceList, timestamp int64
 
 func (s *service) buildObjectPoints(list *apicorev1.ServiceList) []*point.Point {
 	var pts []*point.Point
-	opts := point.DefaultObjectOptions()
+	opts := append(point.DefaultObjectOptions(), point.WithTime(ntp.Now()))
 
 	for _, item := range list.Items {
 		var kvs point.KVs

@@ -10,7 +10,6 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
@@ -67,7 +66,7 @@ func TestGetMetric(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.i.setup()
 
-			tc.i.collect(time.Now().UnixNano())
+			tc.i.collect()
 			points := tc.i.collectCache
 			if len(points) > 0 {
 				for _, v := range points {

@@ -358,8 +358,8 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 		measurement := pt.Name()
 
 		switch measurement {
-		case ExchangeMetric:
-			opts = append(opts, inputs.WithDoc(&ExchangeMeasurement{}))
+		case exchangeMeasurementName:
+			opts = append(opts, inputs.WithDoc(&exchangeMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -372,26 +372,10 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-			cs.mCount[ExchangeMetric] = struct{}{}
+			cs.mCount[exchangeMeasurementName] = struct{}{}
 
-		case NodeMetric:
-			opts = append(opts, inputs.WithDoc(&NodeMeasurement{}))
-
-			msgs := inputs.CheckPoint(pt, opts...)
-
-			for _, msg := range msgs {
-				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
-			}
-
-			// TODO: error here
-			if len(msgs) > 0 {
-				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
-			}
-
-			cs.mCount[NodeMetric] = struct{}{}
-
-		case OverviewMetric:
-			opts = append(opts, inputs.WithDoc(&OverviewMeasurement{}))
+		case nodeMeasurementName:
+			opts = append(opts, inputs.WithDoc(&nodeMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -404,10 +388,10 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-			cs.mCount[OverviewMetric] = struct{}{}
+			cs.mCount[nodeMeasurementName] = struct{}{}
 
-		case QueueMetric:
-			opts = append(opts, inputs.WithDoc(&QueueMeasurement{}))
+		case overviewMeasurementName:
+			opts = append(opts, inputs.WithDoc(&overviewMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
 
@@ -420,7 +404,23 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-			cs.mCount[QueueMetric] = struct{}{}
+			cs.mCount[overviewMeasurementName] = struct{}{}
+
+		case queueMeasurementName:
+			opts = append(opts, inputs.WithDoc(&queueMeasurement{}))
+
+			msgs := inputs.CheckPoint(pt, opts...)
+
+			for _, msg := range msgs {
+				cs.t.Logf("check measurement %s failed: %+#v", measurement, msg)
+			}
+
+			// TODO: error here
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
+			}
+
+			cs.mCount[queueMeasurementName] = struct{}{}
 
 		default: // TODO: check other measurement
 			panic("unknown measurement: " + measurement)

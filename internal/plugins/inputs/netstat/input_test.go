@@ -10,7 +10,6 @@ import (
 	"reflect"
 	"sort"
 	"testing"
-	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/shirou/gopsutil/v3/net"
@@ -90,7 +89,7 @@ func TestNetStatCollect(t *testing.T) {
 	}
 	i.platform = "linux" // runtime.GOOS
 	i.setup()
-	if err := i.collect(time.Now().UnixNano()); err != nil {
+	if err := i.collect(); err != nil {
 		t.Error(err)
 	}
 
@@ -274,7 +273,7 @@ func TestCollectByPort(t *testing.T) {
 			// run function
 			i.platform = "linux" // runtime.GOOS
 			i.setup()
-			if err := i.collect(time.Now().UnixNano()); err != nil {
+			if err := i.collect(); err != nil {
 				t.Error(err)
 			}
 

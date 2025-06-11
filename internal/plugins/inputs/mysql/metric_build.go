@@ -12,6 +12,7 @@ import (
 	gcPoint "github.com/GuanceCloud/cliutils/point"
 	"github.com/spf13/cast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -75,7 +76,7 @@ func (ipt *Input) buildMysql() ([]*gcPoint.Point, error) {
 			ipt.objectMetric.Trans = trans
 		}
 
-		ipt.objectMetric.Time = time.Now()
+		ipt.objectMetric.Time = ntp.Now()
 	}
 
 	if hasKey(m.resData, "Key_blocks_unused") &&
@@ -375,10 +376,7 @@ func (ipt *Input) getCustomQueryPoints(query *customQuery, arr []map[string]inte
 		return pts
 	}
 
-	opts := ipt.getKVsOpts()
-	if !query.start.IsZero() {
-		opts = append(opts, gcPoint.WithTimestamp(query.start.UnixNano()))
-	}
+	opts := append(ipt.getKVsOpts(), gcPoint.WithTime(query.ptsTime)) // use custom query's aligned time
 
 	for _, item := range arr {
 		kvs := ipt.getKVs()
@@ -484,7 +482,7 @@ func (ipt *Input) getKVsOpts(categorys ...gcPoint.Category) []gcPoint.Option {
 		opts = append(opts, gcPoint.WithExtraTags(datakit.GlobalElectionTags()))
 	}
 
-	opts = append(opts, gcPoint.WithTimestamp(ipt.start.UnixNano()))
+	opts = append(opts, gcPoint.WithTimestamp(ipt.ptsTime.UnixNano()))
 
 	return opts
 }

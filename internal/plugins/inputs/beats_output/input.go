@@ -22,6 +22,7 @@ import (
 	v2 "github.com/elastic/go-lumber/server/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -242,7 +243,7 @@ func (ipt *Input) getNewTags(dataPiece *DataStruct) map[string]string {
 
 func (ipt *Input) feed(pending []*DataStruct) {
 	pts := []*point.Point{}
-	now := time.Now()
+	now := ntp.Now()
 	for _, v := range pending {
 		if len(v.Message) == 0 {
 			continue

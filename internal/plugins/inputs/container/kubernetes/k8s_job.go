@@ -11,6 +11,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
@@ -91,7 +92,7 @@ func (j *job) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
 func (j *job) buildMetricPoints(list *apibatchv1.JobList, timestamp int64) []*point.Point {
 	var pts []*point.Point
-	opts := point.DefaultMetricOptions()
+	opts := append(point.DefaultMetricOptions(), point.WithTimestamp(timestamp))
 
 	for _, item := range list.Items {
 		var kvs point.KVs
@@ -120,7 +121,7 @@ func (j *job) buildMetricPoints(list *apibatchv1.JobList, timestamp int64) []*po
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, j.cfg.LabelAsTagsForMetric.All, j.cfg.LabelAsTagsForMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(j.cfg.ExtraTags)...)
-		pt := point.NewPointV2(jobMetricMeasurement, kvs, append(opts, point.WithTimestamp(timestamp))...)
+		pt := point.NewPointV2(jobMetricMeasurement, kvs, opts...)
 		pts = append(pts, pt)
 
 		j.counter[item.Namespace]++
@@ -131,7 +132,7 @@ func (j *job) buildMetricPoints(list *apibatchv1.JobList, timestamp int64) []*po
 
 func (j *job) buildObjectPoints(list *apibatchv1.JobList) []*point.Point {
 	var pts []*point.Point
-	opts := point.DefaultObjectOptions()
+	opts := append(point.DefaultObjectOptions(), point.WithTime(ntp.Now()))
 
 	for _, item := range list.Items {
 		var kvs point.KVs

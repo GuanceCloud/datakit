@@ -111,7 +111,13 @@ func BuildNetworkInterfacesMetadata(deviceID string, store *Store) []InterfaceMe
 }
 
 //nolint:lll
-func BatchPayloads(namespace string, subnet string, collectTime time.Time, batchSize int, device DeviceMetadata, interfaces []InterfaceMetadata) []NetworkDevicesMetadata {
+func BatchPayloads(namespace string,
+	subnet string,
+	collectTime time.Time,
+	batchSize int,
+	device DeviceMetadata,
+	interfaces []InterfaceMetadata,
+) []NetworkDevicesMetadata {
 	var payloads []NetworkDevicesMetadata
 	var resourceCount int
 	payload := NetworkDevicesMetadata{
