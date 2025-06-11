@@ -224,7 +224,12 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
     diff     = "30s"  # minimal 5s
 ```
 
-该行为默认开启，如果 DataWay 版本较低，最终效果仍旧是采用当前系统时间（即不做任何校准）。
+<!-- markdownlint-disable MD046 -->
+???+ warning
+
+    - 该行为默认开启，如果 DataWay 版本较低，最终效果仍旧是采用当前系统时间（即不做任何校准）
+    - 目前 eBPP 相关的采集，由于其与 DataKit 是分离运行的，暂不支持时间矫正功能
+<!-- markdownlint-enable -->
 
 ### IO 模块调参 {#io-tuning}
 

@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.75.0 (2025/06/11) {#cl-1.75.0}
+
+This is an iterative release with the following key updates:
+
+### New Features {#cl-1.75.0-new}
+
+- Added [time calibration function](datakit-conf.md#ntp) for data collection, where the collection time is based on DataWay time (#2664).
+- Added `multipart/form-data` on HTTP dial-testing body (#2630).
+- Added election feature to the dial-testing collector (#2649).
+
+### Issue Fixes {#cl-1.75.0-fix}
+
+- Fixed an issue where the SNMP collector could not exit normally in certain scenarios (#2705).
+
+### Function Optimizations {#cl-1.75.0-opt}
+
+- Adjusted Kubernetes event change fields (#2716).
+- Enhanced MySQL object collection (#2709).
+- Enabled the statsd collector by default and optimized the Helm installation package (#2706).
+
+---
+
 ## 1.74.2(2025/06/04) {#cl-1.74.2}
 
 This release is a hotfix, with the following updates:

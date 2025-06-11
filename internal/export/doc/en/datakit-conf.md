@@ -223,6 +223,13 @@ The following configuration is available in *datakit.conf*:
     diff     = "30s"  # Minimum 5 seconds
 ```
 
+<!-- markdownlint-disable MD046 -->
+???+ warning
+
+    - This feature is enabled by default. If the DataWay version is too low, the local time will still be used (i.e., no calibration is performed).
+    - Currently, eBPF-related collections, which run separately from DataKit, do not support this feature.
+<!-- markdownlint-enable -->
+
 ### IO Module Parameter Adjustment {#io-tuning}
 
 [:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) ·
