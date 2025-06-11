@@ -23,6 +23,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -197,7 +198,7 @@ func (ipt *Input) Run() {
 
 	l.Infof("merged tags: %+#v", ipt.mergedTags)
 
-	lastTS := time.Now()
+	ipt.ptsTime = ntp.Now()
 	for {
 		if ipt.pause {
 			l.Debugf("not leader, skipped")
@@ -205,10 +206,11 @@ func (ipt *Input) Run() {
 			ipt.setUpState()
 			ipt.FeedCoPts()
 
-			ipt.collect(lastTS.UnixNano())
+			collectStart := time.Now()
+			ipt.collect()
 			if len(ipt.collectCache) > 0 {
 				if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
-					dkio.WithCollectCost(time.Since(lastTS)),
+					dkio.WithCollectCost(time.Since(collectStart)),
 					dkio.WithElection(ipt.Election),
 					dkio.WithInputName(inputName),
 				); err != nil {
@@ -225,7 +227,7 @@ func (ipt *Input) Run() {
 				ipt.setErrUpState()
 			}
 
-			ipt.FeedUpMetric(lastTS)
+			ipt.FeedUpMetric()
 		}
 
 		select {
@@ -238,8 +240,7 @@ func (ipt *Input) Run() {
 			l.Info("nginx return")
 			return
 		case tt := <-tick.C:
-			nextts := inputs.AlignTimeMillSec(tt, lastTS.UnixMilli(), ipt.Interval.Milliseconds())
-			lastTS = time.UnixMilli(nextts)
+			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.Interval)
 		case ipt.pause = <-ipt.pauseCh:
 		}
 	}
@@ -258,15 +259,15 @@ func (ipt *Input) Terminate() {
 	}
 }
 
-func (ipt *Input) getMetric(alignTS int64) {
+func (ipt *Input) getMetric() {
 	for i := ipt.Ports[0]; i <= ipt.Ports[1]; i++ {
 		if ipt.UsePlusAPI { //nolint
-			ipt.getPlusMetric(alignTS)
-			ipt.getStubStatusModuleMetric(i, alignTS)
+			ipt.getPlusMetric()
+			ipt.getStubStatusModuleMetric(i)
 		} else if ipt.UseVts {
-			ipt.getVTSMetric(i, alignTS)
+			ipt.getVTSMetric(i)
 		} else {
-			ipt.getStubStatusModuleMetric(i, alignTS)
+			ipt.getStubStatusModuleMetric(i)
 		}
 	}
 }
@@ -382,8 +383,8 @@ func (ipt *Input) checkPortsAndURL() error {
 	return nil
 }
 
-func (ipt *Input) collect(alignTS int64) {
-	ipt.getMetric(alignTS)
+func (ipt *Input) collect() {
+	ipt.getMetric()
 }
 
 func defaultInput() *Input {

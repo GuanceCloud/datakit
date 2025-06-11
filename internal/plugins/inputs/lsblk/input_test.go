@@ -9,34 +9,34 @@
 package lsblk
 
 import (
-	"fmt"
-	"os"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 )
 
 func TestCollect(t *testing.T) {
 	i := defaultInput()
-	for x := 0; x < 1; x++ {
+	for x := 0; x < 2; x++ {
+		i.ptsTime = ntp.Now()
 		if err := i.collect(); err != nil {
 			t.Error(err)
 		}
-		time.Sleep(time.Second * 1)
-	}
-	if len(i.collectCache) < 1 {
-		t.Error("Failed to collect, no data returned")
-	}
-	tmap := map[string]bool{}
-	for _, pt := range i.collectCache {
-		tmap[pt.Time().String()] = true
+		time.Sleep(time.Second * 1) // with sleep to update ptsTime
 	}
 
-	for key, value := range i.collectCache {
+	assert.NotEmpty(t, i.collectCache)
+
+	tmap := map[int64]bool{}
+	for _, pt := range i.collectCache { // test if all point's time the same.
+		tmap[pt.Time().UnixNano()] = true
+	}
+
+	for key, value := range tmap {
 		t.Log(key, value)
 	}
-	fmt.Fprintln(os.Stderr, i.collectCache)
 
-	if len(tmap) != 1 {
-		t.Error("Need to clear collectCache.")
-	}
+	// if point's time the same, the map should only 1 elem.
+	assert.Lenf(t, tmap, 1, "Need to clear collectCache.")
 }

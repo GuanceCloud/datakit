@@ -21,9 +21,7 @@ const (
 
 type lockMeasurement struct{}
 
-func (*lockMeasurement) Point() *point.Point {
-	return nil
-}
+func (*lockMeasurement) Point() *point.Point { return nil }
 
 func (*lockMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
@@ -61,22 +59,10 @@ func (*waitingEventMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type processMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     int64
-}
+type processMeasurement struct{}
 
 // Point implement MeasurementV2.
-func (m *processMeasurement) Point() *point.Point {
-	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTimestamp(m.ts))
-
-	return point.NewPointV2(m.name,
-		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-		opts...)
-}
+func (m *processMeasurement) Point() *point.Point { return nil }
 
 // https://docs.oracle.com/en/database/oracle/oracle-database/19/refrn/V-PROCESS.html#GUID-BBE32620-1043-4345-9448-51DB21547FEB
 //
@@ -102,22 +88,10 @@ func (m *processMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type tablespaceMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     int64
-}
+type tablespaceMeasurement struct{}
 
 // Point implement MeasurementV2.
-func (m *tablespaceMeasurement) Point() *point.Point {
-	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTimestamp(m.ts))
-
-	return point.NewPointV2(m.name,
-		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-		opts...)
-}
+func (m *tablespaceMeasurement) Point() *point.Point { return nil }
 
 //nolint:lll
 func (m *tablespaceMeasurement) Info() *inputs.MeasurementInfo {
@@ -140,22 +114,10 @@ func (m *tablespaceMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type systemMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     int64
-}
+type systemMeasurement struct{}
 
 // Point implement MeasurementV2.
-func (m *systemMeasurement) Point() *point.Point {
-	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTimestamp(m.ts))
-
-	return point.NewPointV2(m.name,
-		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-		opts...)
-}
+func (m *systemMeasurement) Point() *point.Point { return nil }
 
 //nolint:lll
 func (m *systemMeasurement) Info() *inputs.MeasurementInfo {

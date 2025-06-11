@@ -300,7 +300,7 @@ func doRun() error {
 	startIO()
 
 	// start NTP syncer on dataway.
-	if n := config.Cfg.Dataway.NTP; n != nil {
+	if n := config.Cfg.Dataway.NTP; n != nil && n.Enable {
 		ntp.StartNTP(config.Cfg.Dataway,
 			n.Interval,
 			uint64(n.SyncOnDiff/time.Second))

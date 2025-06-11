@@ -63,7 +63,7 @@ func fetchPoolData(statusURL string) (*pfpm.Pool, error) {
 
 func (ipt *Input) collectPoolsPts() ([]*point.Point, error) {
 	ipt.collectCache = make([]*point.Point, 0)
-	opts := point.DefaultMetricOptions()
+	opts := append(point.DefaultMetricOptions(), point.WithTime(ipt.ptsTime))
 
 	if ipt.StatusURL == "" {
 		l.Error("status_url is empty.")

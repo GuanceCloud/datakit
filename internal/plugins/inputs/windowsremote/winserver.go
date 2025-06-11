@@ -11,14 +11,16 @@ package windowsremote
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/windowsremote/wmi"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/windowsremote/wmi/class"
 	"net"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/windowsremote/wmi"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/windowsremote/wmi/class"
 )
 
 type winServer struct {
@@ -176,7 +178,7 @@ func (s *winServer) toObjectPoints() []*point.Point {
 		AddTag("ip", s.ip)
 	opts := point.DefaultObjectOptions()
 	pt := point.NewPointV2(hostobjectMeasurement, kvs, opts...)
-	pt.SetTime(time.Now())
+	pt.SetTime(ntp.Now())
 	pts = append(pts, pt)
 
 	for _, p := range s.Process {

@@ -21,7 +21,7 @@ type elasticsearchMeasurement struct {
 
 // Point implement MeasurementV2.
 func (m *elasticsearchMeasurement) Point() *point.Point {
-	opts := point.DefaultMetricOptions()
+	opts := append(point.DefaultMetricOptions(), point.WithTimestamp(m.ts))
 
 	if m.election {
 		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))

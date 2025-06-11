@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/command"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
@@ -173,8 +174,8 @@ Core 3:
 		for idx, pt := range pts {
 			assert.Equalf(t, "tag1", pt.Get("key1"), "%d got %s", idx, pt.Pretty())
 			assert.Equalf(t, "tag2", pt.Get("key2"), "%d got %s", idx, pt.Pretty())
-			assert.Equalf(t, "coretemp-isa-0000", pt.Get("chip"), "%d got %s", idx, pt.Pretty())
-			assert.Equalf(t, "ISA adapter", pt.Get("adapter"), "%d got %s", idx, pt.Pretty())
+			require.Equalf(t, "coretemp-isa-0000", pt.Get("chip"), "%d got %s", idx, pt.Pretty())
+			require.Equalf(t, "ISA adapter", pt.Get("adapter"), "%d got %s", idx, pt.Pretty())
 		}
 
 		pt := pts[0]

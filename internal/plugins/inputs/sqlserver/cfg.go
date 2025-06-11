@@ -60,7 +60,6 @@ var (
   ## (optional) collection interval, default is 10s
   interval = "10s"
 
-
   ## Set true to enable election
   election = true
 
@@ -102,9 +101,6 @@ default_time(time, "+0")
 	customQueryFeedName  = inputName + "/custom_query"
 	catalogName          = "db"
 	l                    = logger.DefaultSLogger(inputName)
-
-	collectCache        []*point.Point
-	loggingCollectCache []*point.Point
 
 	minInterval = time.Second * 5
 	maxInterval = time.Minute * 10
@@ -182,7 +178,10 @@ type Input struct {
 	collectQuery        map[string]string
 	collectLoggingQuery map[string]string
 
-	UpState int
+	UpState             int
+	ptsTime             time.Time
+	collectCache        []*point.Point
+	loggingCollectCache []*point.Point
 }
 
 func (ipt *Input) getKVsOpts(categorys ...point.Category) []point.Option {

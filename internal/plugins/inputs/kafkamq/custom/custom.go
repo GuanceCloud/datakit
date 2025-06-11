@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
@@ -111,17 +112,19 @@ func (mq *Custom) DoMsg(msg *sarama.ConsumerMessage) error {
 		topic            = msg.Topic
 		msgs             = make([]string, 0)
 		category         = point.Logging
-		opts             = make([]point.Option, 0)
 		topicToSpilt, ok = mq.SpiltTopicsMap[topic]
 	)
+
 	if mq.feeder == nil {
 		err = fmt.Errorf("feeder is nil,return")
 		log.Warn(err)
 		return err
 	}
+
 	if !ok {
 		topicToSpilt = mq.SpiltBody
 	}
+
 	if topicToSpilt {
 		is := make([]interface{}, 0)
 		err := json.Unmarshal(msg.Value, &is)
@@ -145,49 +148,57 @@ func (mq *Custom) DoMsg(msg *sarama.ConsumerMessage) error {
 		msgs = append(msgs, newMessage)
 	}
 
-	for _, msgStr := range msgs {
-		tags := map[string]string{"type": MsgType}
-		msgLen := len(msgStr)
-		fields := map[string]interface{}{pipeline.FieldStatus: pipeline.DefaultStatus, "message_len": msgLen}
-		plMap := map[string]string{}
-		if p, ok := mq.LogTopicsMap[topic]; ok {
-			fields[pipeline.FieldMessage] = msgStr
-			plMap[topic] = p
-			opts = append(point.DefaultLoggingOptions(), point.WithExtraTags(mq.Tagger.HostTags()))
-		}
-		if p, ok := mq.MetricTopicsMap[topic]; ok {
-			category = point.Metric
-			tags[pipeline.FieldMessage] = msgStr
-			plMap[topic] = p
-			opts = append(point.DefaultMetricOptions(), point.WithExtraTags(mq.Tagger.HostTags()))
-		}
+	var (
+		ptopts []point.Option
+		plMap  = map[string]string{}
+		tags   = map[string]string{"type": MsgType}
+		pts    []*point.Point
+	)
 
-		if p, ok := mq.RumTopicsMap[topic]; ok {
-			category = point.RUM
-			fields[pipeline.FieldMessage] = msgStr
-			tags["app_id"] = topic     // 这里只是一个占位符，没有实际意义，但是 rum 数据中的 app_id 是必须要有的字段。
-			plMap[topic+"_"+topic] = p // 这也是 pl 中要必须的格式： app_id_xxx。
-			opts = append(opts, point.WithExtraTags(mq.Tagger.HostTags()))
-		}
+	if x, ok := mq.LogTopicsMap[topic]; ok {
+		ptopts = point.DefaultLoggingOptions()
+		plMap[topic] = x
+	} else if x, ok := mq.MetricTopicsMap[topic]; ok {
+		plMap[topic] = x
+		ptopts = point.DefaultMetricOptions()
+		category = point.Metric
+	} else if x, ok := mq.RumTopicsMap[topic]; ok {
+		tags["app_id"] = topic     // 这里只是一个占位符，没有实际意义，但是 rum 数据中的 app_id 是必须要有的字段。
+		plMap[topic+"_"+topic] = x // 这也是 pl 中要必须的格式： app_id_xxx。
+		category = point.RUM
+	}
+
+	// add datakit host tag to check which datakit accepted the message.
+	ptopts = append(ptopts, point.WithExtraTags(mq.Tagger.HostTags()), point.WithTime(ntp.Now()))
+
+	for _, msgStr := range msgs {
 		if len(plMap) == 0 {
 			err = fmt.Errorf("can not find [%s] pipeline script", topic)
 			log.Warn(err)
 			return err
 		}
-		fields["offset"] = msg.Offset
-		fields["partition"] = msg.Partition
-		pt := point.NewPointV2(topic, append(point.NewTags(tags), point.NewKVs(fields)...), opts...)
 
-		if err := mq.feeder.FeedV2(category, []*point.Point{pt},
-			dkio.WithInputName(topic),
-			dkio.WithPipelineOption(&lang.LogOption{
-				ScriptMap: plMap,
-			}),
-		); err != nil {
-			log.Warnf("feed io err=%v", err)
+		kvs := point.NewTags(tags).
+			AddV2(pipeline.FieldStatus, pipeline.DefaultStatus, true).
+			AddV2("message_len", len(msgStr), true).
+			AddV2("offset", msg.Offset, true).
+			AddV2("partition", msg.Partition, true)
+
+		if category == point.Metric { // string not allowed in metric, move to tag.
+			kvs = kvs.AddTag(pipeline.FieldMessage, msgStr)
+		} else {
+			kvs = kvs.AddV2(pipeline.FieldMessage, msgStr, true)
 		}
+
+		pts = append(pts, point.NewPointV2(topic, kvs, ptopts...))
 	}
-	return err
+
+	return mq.feeder.FeedV2(category, pts,
+		dkio.WithInputName(topic),
+		dkio.WithPipelineOption(&lang.LogOption{
+			ScriptMap: plMap,
+		}),
+	)
 }
 
 func (mq *Custom) initMap() {

@@ -13,6 +13,7 @@ import (
 
 	manager "github.com/DataDog/ebpf-manager"
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/comm"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/protodec"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
@@ -131,7 +132,7 @@ func (netTrace *NetTrace) StreamHandle(tn int64, uniID CUniID, data *comm.Netwrk
 		}
 
 		if pipe.Decoder != nil && d.CaptureSize > 0 {
-			pipe.Decoder.Decode(txRx, d, time.Now().UnixNano(), &netTrace.threadInnerID)
+			pipe.Decoder.Decode(txRx, d, ntp.Now().UnixNano(), &netTrace.threadInnerID)
 		}
 	}
 

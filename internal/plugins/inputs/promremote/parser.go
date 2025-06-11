@@ -13,6 +13,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/prometheus/common/model"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/promremote/prompb"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 )
@@ -32,13 +33,14 @@ type Parser struct {
 // Parse parses given byte as protocol buffer. it performs necessary
 // metric filtering and prefixing, and returns parsed measurements.
 func (p *Parser) Parse(timeSeries []prompb.TimeSeries, ipt *Input, additionalTags map[string]string) ([]*point.Point, error) {
-	var err error
-	var pts []*point.Point
-	now := time.Now()
-	var t time.Time
-	timeOpt := point.WithTime(now)
-	opts := point.DefaultMetricOptions()
-	opts = append(opts, timeOpt)
+	var (
+		err     error
+		pts     []*point.Point
+		now     = ntp.Now()
+		t       time.Time
+		timeOpt = point.WithTime(now)
+		opts    = append(point.DefaultMetricOptions(), timeOpt)
+	)
 
 	demoSource, ok := additionalTags["__source"]
 	if !ok {

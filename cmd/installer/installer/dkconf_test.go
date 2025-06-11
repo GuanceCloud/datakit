@@ -75,6 +75,27 @@ func Test_mergeDefaultInputs(t *T.T) {
 			expect,
 			opt.mergeDefaultInputs(defaultList, []string{"-cpu", "mem", "disk"}, false))
 	})
+
+	t.Run("disable-all-default", func(t *T.T) {
+		opt := DefaultInstallArgs()
+		defaultList := []string{
+			"cpu",
+			"disk",
+			"mem",
+			"system",
+		}
+		expect := []string{
+			"-cpu",
+			"-disk",
+			"-mem",
+			"-system",
+			"ddtrace",
+		}
+
+		assert.Equal(t,
+			expect,
+			opt.mergeDefaultInputs(defaultList, []string{"ddtrace"}, false))
+	})
 }
 
 func Test_loadInstallerArgs(t *T.T) {

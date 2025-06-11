@@ -24,7 +24,7 @@ func (ipt *Input) buildBaseMetric() ([]*point.Point, error) {
 	ms := []inputs.MeasurementV2{}
 	m := &baseMeasurement{
 		name: "nfs",
-		ts:   ipt.alignTS,
+		ts:   ipt.ptsTime.UnixNano(),
 		tags: map[string]string{},
 	}
 
@@ -43,14 +43,15 @@ func (ipt *Input) buildBaseMetric() ([]*point.Point, error) {
 	ms = append(ms, m)
 	pts := getPointsFromMeasurement(ms)
 
-	if requestv2StatsPts, err := collectNFSRequestsv2Stats(&clientRPCStats.V2Stats, ipt.alignTS); err == nil {
+	if requestv2StatsPts, err := collectNFSRequestsv2Stats(&clientRPCStats.V2Stats, ipt.ptsTime.UnixNano()); err == nil {
 		pts = append(pts, requestv2StatsPts...)
 	}
-	if requestv3StatsPts, err := collectNFSRequestsv3Stats(&clientRPCStats.V3Stats, ipt.alignTS); err == nil {
+
+	if requestv3StatsPts, err := collectNFSRequestsv3Stats(&clientRPCStats.V3Stats, ipt.ptsTime.UnixNano()); err == nil {
 		pts = append(pts, requestv3StatsPts...)
 	}
 
-	if requestv4StatsPts, err := collectNFSRequestsv4Stats(&clientRPCStats.ClientV4Stats, ipt.alignTS); err == nil {
+	if requestv4StatsPts, err := collectNFSRequestsv4Stats(&clientRPCStats.ClientV4Stats, ipt.ptsTime.UnixNano()); err == nil {
 		pts = append(pts, requestv4StatsPts...)
 	}
 
@@ -65,7 +66,7 @@ func (ipt *Input) buildNFSdMetric() ([]*point.Point, error) {
 	ms := []inputs.MeasurementV2{}
 	m := &nfsdMeasurement{
 		name: "nfsd",
-		ts:   ipt.alignTS,
+		ts:   ipt.ptsTime.UnixNano(),
 		tags: map[string]string{},
 	}
 
@@ -91,17 +92,17 @@ func (ipt *Input) buildNFSdMetric() ([]*point.Point, error) {
 	ms = append(ms, m)
 	pts := getPointsFromMeasurement(ms)
 
-	if requestv2StatsPts, err := collectNFSdRequestsv2Stats(&serverRPCStats.V2Stats, ipt.alignTS); err == nil {
+	if requestv2StatsPts, err := collectNFSdRequestsv2Stats(&serverRPCStats.V2Stats, ipt.ptsTime.UnixNano()); err == nil {
 		pts = append(pts, requestv2StatsPts...)
 	}
-	if requestv3StatsPts, err := collectNFSdRequestsv3Stats(&serverRPCStats.V3Stats, ipt.alignTS); err == nil {
+	if requestv3StatsPts, err := collectNFSdRequestsv3Stats(&serverRPCStats.V3Stats, ipt.ptsTime.UnixNano()); err == nil {
 		pts = append(pts, requestv3StatsPts...)
 	}
-	if requestv4StatsPts, err := collectNFSdRequestsv4Stats(&serverRPCStats.V4Ops, ipt.alignTS); err == nil {
+	if requestv4StatsPts, err := collectNFSdRequestsv4Stats(&serverRPCStats.V4Ops, ipt.ptsTime.UnixNano()); err == nil {
 		pts = append(pts, requestv4StatsPts...)
 	}
 
-	if nfsdServerRPCStatsPts, err := collectNFSdServerRPCStats(serverRPCStats.ServerRPC, ipt.alignTS); err == nil {
+	if nfsdServerRPCStatsPts, err := collectNFSdServerRPCStats(serverRPCStats.ServerRPC, ipt.ptsTime.UnixNano()); err == nil {
 		pts = append(pts, nfsdServerRPCStatsPts...)
 	}
 
@@ -122,7 +123,7 @@ func (ipt *Input) buildMountStats() ([]*point.Point, error) {
 				"mountpoint": mount.Mount,
 				"type":       mount.Type,
 			},
-			ts: ipt.alignTS,
+			ts: ipt.ptsTime.UnixNano(),
 		}
 
 		for key, value := range ipt.Tags {
@@ -211,7 +212,7 @@ func (ipt *Input) buildMountStats() ([]*point.Point, error) {
 
 		// operations
 		if ipt.MountstatsMetric.Operations {
-			if opMs, err := collectMountStatsOperation(mount, mountStatsNfs.Operations, ipt.alignTS); err == nil {
+			if opMs, err := collectMountStatsOperation(mount, mountStatsNfs.Operations, ipt.ptsTime.UnixNano()); err == nil {
 				ms = append(ms, opMs...)
 			}
 		}

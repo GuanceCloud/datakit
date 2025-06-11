@@ -25,6 +25,7 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -126,7 +127,7 @@ type Input struct {
 	feeder      dkio.Feeder
 	mergedTags  map[string]string
 	tagger      datakit.GlobalTagger
-	alignTS     int64
+	ptsTime     time.Time
 }
 
 type redisCPUUsage struct {
@@ -331,7 +332,7 @@ func (ipt *Input) collectInfoMeasurement() ([]*point.Point, error) {
 		m.tags[k] = v
 	}
 
-	return m.getData(ipt.alignTS)
+	return m.getData(ipt.ptsTime.UnixNano())
 }
 
 func (ipt *Input) collectClientMeasurement() ([]*point.Point, error) {
@@ -458,17 +459,15 @@ func (ipt *Input) Run() {
 		ipt.goroutineBigKey(ctxKey)
 	}
 
-	lastTS := time.Now()
+	ipt.ptsTime = ntp.Now()
 	for {
-		ipt.alignTS = lastTS.UnixNano()
-
 		if !ipt.pause {
 			ipt.tryInit()
 
 			ipt.setUpState()
 
 			l.Debugf("redis input gathering...")
-			ipt.start = time.Now()
+			ipt.start = ntp.Now()
 			if err := ipt.Collect(); err != nil {
 				l.Errorf("Collect: %s", err)
 				ipt.setErrUpState()
@@ -490,8 +489,7 @@ func (ipt *Input) Run() {
 			return
 
 		case tt := <-tick.C:
-			nextts := inputs.AlignTimeMillSec(tt, lastTS.UnixMilli(), ipt.Interval.Milliseconds())
-			lastTS = time.UnixMilli(nextts)
+			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.Interval)
 		case ipt.pause = <-ipt.pauseCh:
 			// nil
 		}

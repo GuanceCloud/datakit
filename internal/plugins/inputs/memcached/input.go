@@ -24,6 +24,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -430,7 +431,7 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.duration)
 	defer tick.Stop()
-	start := time.Now()
+	start := ntp.Now()
 
 	for {
 		if err := ipt.Collect(start.UnixNano()); err != nil {
@@ -464,8 +465,7 @@ func (ipt *Input) Run() {
 			return
 
 		case tt := <-tick.C:
-			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), ipt.duration.Milliseconds())
-			start = time.UnixMilli(nextts)
+			start = inputs.AlignTime(tt, start, ipt.duration)
 		}
 	}
 }

@@ -25,7 +25,7 @@ type tcpTask struct {
 	Port string
 }
 
-func (t *tcpTask) getResults() *point.Point {
+func (t *tcpTask) getResults(ts time.Time) *point.Point {
 	var kvs point.KVs
 
 	kvs = kvs.MustAddTag("dest_host", t.Host)
@@ -40,7 +40,7 @@ func (t *tcpTask) getResults() *point.Point {
 	kvs = kvs.Add("response_time_with_dns", responseTimeWithDNS, false, true)
 	kvs = kvs.Add("success", int64(1), false, true) // default set ok
 
-	return point.NewPointV2("tcp", kvs, point.DefaultMetricOptions()...)
+	return point.NewPointV2("tcp", kvs, append(point.DefaultMetricOptions(), point.WithTime(ts))...)
 }
 
 func (t *tcpTask) run() error {
@@ -81,7 +81,7 @@ func (t *tcpTask) run() error {
 func (i *input) runTCP(t *tcpTask) *point.Point {
 	err := t.run()
 
-	pt := t.getResults()
+	pt := t.getResults(i.ptsTime)
 
 	if err != nil {
 		l.Warnf("TCP run: %s, ignored", err)

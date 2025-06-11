@@ -657,7 +657,7 @@ func (ipt *Input) buildPoint(name string, tags map[string]string, fields map[str
 	}
 
 	opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
-	opts = append(opts, point.WithTimestamp(ipt.alignTS))
+	opts = append(opts, point.WithTime(ipt.ptsTime))
 
 	kvs := point.NewTags(tags)
 

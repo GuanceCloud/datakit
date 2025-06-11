@@ -22,6 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -71,7 +72,7 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
 	Tagger  datakit.GlobalTagger
-	alignTS int64
+	ptsTime time.Time
 }
 
 var errSSHCfg = errors.New("both password and privateKeyFile missed")
@@ -193,10 +194,9 @@ func (ipt *Input) gather() {
 		}
 	}
 
-	lastTS := time.Now()
+	ipt.ptsTime = ntp.Now()
 	for {
-		ipt.alignTS = lastTS.UnixNano()
-
+		collectStart := time.Now()
 		collectCache, err := ipt.getMetrics(clientCfg)
 		if err != nil {
 			l.Errorf("getMetrics: %s", err.Error())
@@ -205,7 +205,7 @@ func (ipt *Input) gather() {
 
 		if len(collectCache) != 0 {
 			if err := ipt.feeder.FeedV2(point.Metric, collectCache,
-				dkio.WithCollectCost(time.Since(lastTS)),
+				dkio.WithCollectCost(time.Since(collectStart)),
 				dkio.WithInputName(inputName),
 			); err != nil {
 				l.Errorf("Feed failed: %s", err.Error())
@@ -214,8 +214,7 @@ func (ipt *Input) gather() {
 
 		select {
 		case tt := <-tick.C:
-			nextts := inputs.AlignTimeMillSec(tt, lastTS.UnixMilli(), d.Milliseconds())
-			lastTS = time.UnixMilli(nextts)
+			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, d)
 
 		case <-datakit.Exit.Wait():
 			l.Infof("input %v exit", inputName)
@@ -279,7 +278,7 @@ func (ipt *Input) getMetrics(clientCfg *ssh.ClientConfig) ([]*point.Point, error
 	}
 
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTimestamp(ipt.alignTS))
+	opts = append(opts, point.WithTime(ipt.ptsTime))
 	return []*point.Point{point.NewPointV2(ipt.MetricsName, kvs, opts...)}, err
 }
 

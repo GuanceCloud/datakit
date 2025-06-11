@@ -11,6 +11,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
@@ -82,7 +83,7 @@ func (r *replicaset) addChangeInformer(_ informers.SharedInformerFactory) { /* n
 
 func (r *replicaset) buildMetricPoints(list *apiappsv1.ReplicaSetList, timestamp int64) []*point.Point {
 	var pts []*point.Point
-	opts := point.DefaultMetricOptions()
+	opts := append(point.DefaultMetricOptions(), point.WithTimestamp(timestamp))
 
 	for _, item := range list.Items {
 		var kvs point.KVs
@@ -103,7 +104,7 @@ func (r *replicaset) buildMetricPoints(list *apiappsv1.ReplicaSetList, timestamp
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, r.cfg.LabelAsTagsForMetric.All, r.cfg.LabelAsTagsForMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(r.cfg.ExtraTags)...)
-		pt := point.NewPointV2(replicasetMetricMeasurement, kvs, append(opts, point.WithTimestamp(timestamp))...)
+		pt := point.NewPointV2(replicasetMetricMeasurement, kvs, opts...)
 		pts = append(pts, pt)
 
 		r.counter[item.Namespace]++
@@ -114,7 +115,7 @@ func (r *replicaset) buildMetricPoints(list *apiappsv1.ReplicaSetList, timestamp
 
 func (r *replicaset) buildObjectPoints(list *apiappsv1.ReplicaSetList) []*point.Point {
 	var pts []*point.Point
-	opts := point.DefaultObjectOptions()
+	opts := append(point.DefaultObjectOptions(), point.WithTime(ntp.Now()))
 
 	for _, item := range list.Items {
 		var kvs point.KVs

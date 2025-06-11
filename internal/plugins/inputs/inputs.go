@@ -24,6 +24,7 @@ import (
 	"github.com/GuanceCloud/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 
@@ -580,13 +581,15 @@ func MergeTagsWrapper(origin, global, inputTags map[string]string, remote string
 	return MergeTags(global, origin, remote)
 }
 
-func AlignTimeMillSec(triggerTime time.Time, lastts, intervalMillSec int64) (nextts int64) {
-	tt := triggerTime.UnixMilli()
-	nextts = lastts + intervalMillSec
-	if d := math.Abs(float64(tt - nextts)); d > 0 && d/float64(intervalMillSec) > 0.1 {
-		nextts = tt
+// AlignTime more simple version of align time.
+func AlignTime(now, last time.Time, interval time.Duration) (next time.Time) {
+	// now 是 ticker.C 返回的时间（time），但该时间是跟机器时间对齐的，此处跟 ntp 时间校准一下。
+	ms := ntp.CalibrateTime(now).UnixMilli()
+	next = last.Add(interval)
+	if d := math.Abs(float64(ms - next.UnixMilli())); d > 0 && d/float64(interval.Milliseconds()) > 0.1 {
+		next = time.Unix(0, ms*1e6)
 	}
-	return nextts
+	return next
 }
 
 func Init() {

@@ -126,7 +126,7 @@ func getWant01() outputMetaInfo {
     "-----------------------------",
     "objects.xxx 下为对象指标集，其余字段类似"
   ],
-  "metrics": {
+  "metric": {
     "demo-metric": {
       "desc": "这是一个指标集的 demo(**务必加上每个指标集的描述**)",
       "type": "metric",
@@ -349,7 +349,7 @@ func getWant01() outputMetaInfo {
       "from": "CPU"
     }
   },
-  "objects": {
+  "object": {
     "HostObject": {
       "desc": "Host object metrics",
       "type": "object",

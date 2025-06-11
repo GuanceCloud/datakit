@@ -441,6 +441,14 @@ func (c *Config) loadDatawayEnvs() {
 				l.Warnf("invalid ENV_DATAWAY_NTP_DIFF: %q: %s, ignored", v, err.Error())
 			}
 		}
+
+		if v := datakit.GetEnv("ENV_DATAWAY_DISABLE_NTP"); v != "" {
+			var err error
+			c.Dataway.NTP.Enable, err = strconv.ParseBool(v)
+			if err != nil {
+				l.Warnf("invalid ENV_DATAWAY_DISABLE_NTP: %q: %s, ignored", v, err.Error())
+			}
+		}
 	}
 
 	// WAL

@@ -19,6 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -35,6 +36,8 @@ type Input struct {
 	Interval datakit.Duration  `toml:"interval"`
 	Timeout  datakit.Duration  `toml:"timeout"`
 	Tags     map[string]string `toml:"tags"`
+
+	ptsTime time.Time
 
 	feeder  dkio.Feeder
 	semStop *cliutils.Sem // start stop signal
@@ -72,14 +75,16 @@ func (ipt *Input) Run() {
 	}
 
 	tick := time.NewTicker(ipt.Interval.Duration)
+	defer tick.Stop()
+	ipt.ptsTime = ntp.Now()
+
 	for {
+		if err = ipt.gather(); err != nil {
+			l.Errorf("gather: %s", err.Error())
+			metrics.FeedLastError(inputName, err.Error())
+		}
+
 		select {
-		case <-tick.C:
-			if err = ipt.gather(); err != nil {
-				l.Errorf("gather: %s", err.Error())
-				metrics.FeedLastError(inputName, err.Error())
-				continue
-			}
 		case <-datakit.Exit.Wait():
 			l.Info("sensors input exit")
 			return
@@ -87,6 +92,9 @@ func (ipt *Input) Run() {
 		case <-ipt.semStop.Wait():
 			l.Info("sensors input return")
 			return
+
+		case tt := <-tick.C:
+			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.Interval.Duration)
 		}
 	}
 }
@@ -106,10 +114,10 @@ func (ipt *Input) gather() error {
 		return err
 	}
 
-	if cache, err := ipt.parse(string(output)); err != nil {
+	if pts, err := ipt.parse(string(output)); err != nil {
 		return err
 	} else {
-		return ipt.feeder.FeedV2(point.Metric, cache,
+		return ipt.feeder.FeedV2(point.Metric, pts,
 			dkio.WithCollectCost(time.Since(start)),
 			dkio.WithInputName(inputName),
 		)
@@ -131,6 +139,7 @@ func (ipt *Input) parse(output string) ([]*point.Point, error) {
 		tags   = ipt.getCustomerTags()
 		fields = make(map[string]interface{})
 		cache  []*point.Point
+		opts   = append(point.DefaultMetricOptions(), point.WithTime(ipt.ptsTime))
 	)
 
 	for _, line := range lines {
@@ -138,7 +147,7 @@ func (ipt *Input) parse(output string) ([]*point.Point, error) {
 			cache = append(cache,
 				point.NewPointV2(inputName,
 					append(point.NewTags(tags), point.NewKVs(fields)...),
-					point.DefaultMetricOptions()...))
+					opts...))
 
 			tags = ipt.getCustomerTags()
 			fields = make(map[string]interface{})
@@ -157,7 +166,7 @@ func (ipt *Input) parse(output string) ([]*point.Point, error) {
 				cache = append(cache,
 					point.NewPointV2(inputName,
 						append(point.NewTags(tags), point.NewKVs(fields)...),
-						point.DefaultMetricOptions()...))
+						opts...))
 
 				tmp := make(map[string]string)
 				for k, v := range tags {
@@ -184,7 +193,7 @@ func (ipt *Input) parse(output string) ([]*point.Point, error) {
 		cache = append(cache,
 			point.NewPointV2(inputName,
 				append(point.NewTags(tags), point.NewKVs(fields)...),
-				point.DefaultMetricOptions()...))
+				opts...))
 	}
 
 	return cache, nil

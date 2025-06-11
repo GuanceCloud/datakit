@@ -24,7 +24,7 @@ import (
 
 const defaultActiveDuration = time.Hour * 1
 
-func (c *container) gatherLogging() {
+func (c *containerCollector) gatherLogging() {
 	list, err := c.runtime.ListContainers()
 	if len(list) == 0 && err != nil {
 		l.Warn("not found containers, err: %s", err)
@@ -81,7 +81,7 @@ func (c *container) gatherLogging() {
 	l.Debugf("current container logtable: %s", c.logTable.String())
 }
 
-func (c *container) shouldPullContainerLog(ins *logInstance) bool {
+func (c *containerCollector) shouldPullContainerLog(ins *logInstance) bool {
 	if len(ins.configs) != 0 {
 		disable := true
 		for _, cfg := range ins.configs {
@@ -102,7 +102,7 @@ func (c *container) shouldPullContainerLog(ins *logInstance) bool {
 	return pass
 }
 
-func (c *container) cleanMissingContainerLog(activeIDs []string) {
+func (c *containerCollector) cleanMissingContainerLog(activeIDs []string) {
 	missingIDs := c.logTable.findDifferences(activeIDs)
 	for _, id := range missingIDs {
 		l.Infof("clean log collection for container id %s", id)
@@ -111,7 +111,7 @@ func (c *container) cleanMissingContainerLog(activeIDs []string) {
 	}
 }
 
-func (c *container) tailingLogs(ins *logInstance) {
+func (c *containerCollector) tailingLogs(ins *logInstance) {
 	if config.IsKVTemplate(ins.configTemplate) {
 		if err := config.GetKV().Register("container-logs", ins.configTemplate, c.ReloadConfigKV,
 			&config.KVOpt{
@@ -206,7 +206,7 @@ func (c *container) tailingLogs(ins *logInstance) {
 	}
 }
 
-func (c *container) queryContainerLogInfo(item *runtime.Container) *logInstance {
+func (c *containerCollector) queryContainerLogInfo(item *runtime.Container) *logInstance {
 	podName := getPodNameForLabels(item.Labels)
 	namespace := getPodNamespaceForLabels(item.Labels)
 

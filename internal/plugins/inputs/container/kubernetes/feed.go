@@ -9,14 +9,15 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/google/uuid"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/diff"
-	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/diff"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 )
 
 func feedMetric(name string, feeder dkio.Feeder, pts []*point.Point, election bool) {
@@ -88,7 +89,7 @@ func processChange(cfg *Config, class, sourceName, sourceType, difftext string, 
 
 	kvs = append(kvs, point.NewTags(cfg.ExtraTags)...)
 
-	pt := point.NewPointV2("event", kvs, point.WithTimestamp(time.Now().UnixNano()))
+	pt := point.NewPointV2("event", kvs, point.WithTimestamp(ntp.Now().UnixNano()))
 	collectPtsVec.WithLabelValues("k8s-object-change-event").Add(1)
 
 	if err := cfg.Feeder.FeedV2(

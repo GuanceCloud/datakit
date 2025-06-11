@@ -22,13 +22,12 @@ import (
 
 func TestCollect(t *T.T) {
 	i := defaultInput()
-	intervalMillSec := i.Interval.Milliseconds()
-	var lastAlignTime int64
+	var ts time.Time
 
 	for x := 0; x < 1; x++ {
 		tn := time.Now()
-		lastAlignTime = inputs.AlignTimeMillSec(tn, lastAlignTime, intervalMillSec)
-		if err := i.collect(lastAlignTime * 1e6); err != nil {
+		ts = inputs.AlignTime(tn, ts, i.Interval)
+		if err := i.collect(ts.UnixNano()); err != nil {
 			t.Error(err)
 		}
 		time.Sleep(time.Second * 1)

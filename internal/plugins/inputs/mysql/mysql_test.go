@@ -490,7 +490,7 @@ func TestMetricCollectMysqlGeneral(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			input.start = time.Now()
+			input.ptsTime = time.Now()
 
 			if tc.name == "CollectMysqlDbmMetric" {
 				// 这个测试需要运行两遍 fun() 才能通过

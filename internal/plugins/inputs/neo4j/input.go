@@ -21,6 +21,7 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 )
@@ -93,7 +94,7 @@ type (
 		pauseCh  chan bool
 		pause    bool
 
-		start time.Time
+		ptsTime time.Time
 
 		urls []*url.URL
 
@@ -112,7 +113,7 @@ func (ipt *Input) Run() {
 
 	ipt.l.Info(inputName + " start")
 
-	ipt.start = time.Now()
+	ipt.ptsTime = ntp.Now()
 
 	for {
 		if ipt.pause {
@@ -125,7 +126,7 @@ func (ipt *Input) Run() {
 
 		select {
 		case tt := <-tick.C:
-			ipt.start = time.UnixMilli(inputs.AlignTimeMillSec(tt, ipt.start.UnixMilli(), ipt.Interval.Milliseconds()))
+			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.Interval)
 		case <-datakit.Exit.Wait():
 			l.Infof("%s input exit", inputName)
 			return
@@ -207,6 +208,7 @@ func (ipt *Input) setup() error {
 }
 
 func (ipt *Input) collect() error {
+	collectStart := time.Now()
 	pts, err := ipt.doCollect()
 	if err != nil {
 		return err
@@ -216,7 +218,7 @@ func (ipt *Input) collect() error {
 	}
 
 	if err := ipt.feeder.FeedV2(point.Metric, pts,
-		dkio.WithCollectCost(time.Since(ipt.start)),
+		dkio.WithCollectCost(time.Since(collectStart)),
 		dkio.WithElection(ipt.Election),
 		dkio.WithInputName(inputName)); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
@@ -284,7 +286,7 @@ func (ipt *Input) getPts() ([]*point.Point, error) {
 		if uu.Scheme != "http" && uu.Scheme != "https" {
 			pts, err = ipt.pm.CollectFromFileV2(u)
 		} else {
-			pts, err = ipt.pm.CollectFromHTTPV2(u, iprom.WithTimestamp(ipt.start.UnixNano()))
+			pts, err = ipt.pm.CollectFromHTTPV2(u, iprom.WithTimestamp(ipt.ptsTime.UnixNano()))
 		}
 		if err != nil {
 			return nil, err
@@ -292,7 +294,7 @@ func (ipt *Input) getPts() ([]*point.Point, error) {
 
 		for _, pt := range pts {
 			// some field name -> tag
-			if err := formatPoint(pt, ipt.start.UnixNano()); err != nil {
+			if err := formatPoint(pt, ipt.ptsTime.UnixNano()); err != nil {
 				ipt.l.Debugf("formatPoint err: %v", err)
 			}
 

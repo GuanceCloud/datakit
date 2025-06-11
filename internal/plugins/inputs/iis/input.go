@@ -23,6 +23,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/win_utils/pdh"
@@ -130,27 +131,29 @@ func (ipt *Input) Run() {
 
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	tick := time.NewTicker(ipt.Interval.Duration)
-	start := time.Now()
+	start := ntp.Now()
 
 	defer tick.Stop()
 	for {
+		collectStart := time.Now()
+		if err := ipt.Collect(start.UnixNano()); err == nil {
+			if feedErr := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
+				dkio.WithCollectCost(time.Since(collectStart)),
+				dkio.WithInputName(inputName),
+			); feedErr != nil {
+				l.Error(feedErr)
+				metrics.FeedLastError(inputName, feedErr.Error())
+			}
+		} else {
+			l.Error(err)
+			metrics.FeedLastError(inputName, err.Error())
+		}
+		ipt.collectCache = ipt.collectCache[:0]
+
 		select {
 		case tt := <-tick.C:
-			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), ipt.Interval.Duration.Milliseconds())
-			start = time.UnixMilli(nextts)
-			if err := ipt.Collect(start.UnixNano()); err == nil {
-				if feedErr := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
-					dkio.WithCollectCost(time.Since(start)),
-					dkio.WithInputName(inputName),
-				); feedErr != nil {
-					l.Error(feedErr)
-					metrics.FeedLastError(inputName, feedErr.Error())
-				}
-			} else {
-				l.Error(err)
-				metrics.FeedLastError(inputName, err.Error())
-			}
-			ipt.collectCache = make([]*point.Point, 0)
+			start = inputs.AlignTime(tt, start, ipt.Interval.Duration)
+
 		case <-datakit.Exit.Wait():
 			ipt.exit()
 			l.Infof("iis input exit")

@@ -38,14 +38,6 @@ var (
 	}
 }`, git.Uploader, ReleaseVersion)
 
-	CIPassNotifyMsg = fmt.Sprintf(`
-{
-	"msg_type": "text",
-	"content": {
-		"text": "%s 触发的 DataKit CI 通过"
-	}
-}`, git.Uploader)
-
 	CINotifyStartBuildMsg = fmt.Sprintf(`
 {
   "msg_type": "text",
@@ -152,25 +144,20 @@ func NotifyFail(msg string) {
 		return
 	}
 
-	failNotify := fmt.Sprintf(`
-{
-	"msg_type": "text",
-	"content": {
-	  "text": "%s 触发的 DataKit CI 失败:\n%s"
+	tm := textMsg{
+		Content: content{
+			Text: fmt.Sprintf("%s 触发的 DataKit CI 失败:\n%s", git.Uploader, msg),
+		},
+		MsgType: "text",
 	}
-}`, git.Uploader, msg)
+
+	j, err := json.Marshal(tm)
+	if err != nil {
+		l.Fatal(err.Error())
+	}
 
 	l.Debugf("NotifyFail...")
-	doNotify(NotifyToken, failNotify)
-}
-
-func NotifyBuildDone() {
-	if NotifyToken == "" {
-		return
-	}
-
-	l.Debugf("NotifyBuildDone...")
-	doNotify(NotifyToken, CIPassNotifyMsg)
+	doNotify(NotifyToken, string(j))
 }
 
 func buildNotifyContent(ver, cdn, release string, archs []string) string {

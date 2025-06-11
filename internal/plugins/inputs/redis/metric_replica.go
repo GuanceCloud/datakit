@@ -99,7 +99,7 @@ var slaveMatch = regexp.MustCompile(`^slave\d+`)
 func (ipt *Input) parseReplicaData(list string) ([]*point.Point, error) {
 	collectCache := []*point.Point{}
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTimestamp(ipt.alignTS))
+	opts = append(opts, point.WithTime(ipt.ptsTime))
 	var masterIP, masterPort string
 
 	rdr := strings.NewReader(list)

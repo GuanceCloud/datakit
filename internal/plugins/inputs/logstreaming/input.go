@@ -21,6 +21,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/workerpool"
@@ -113,7 +114,7 @@ func (ipt *Input) RegHTTPHandler() {
 			log.Errorf("### new local-cache failed: %s", err.Error())
 		} else {
 			localCache.RegisterConsumer(storage.HTTP_KEY, func(buf []byte) error {
-				start := time.Now()
+				start := ntp.Now()
 				reqpb := &storage.Request{}
 				if err := proto.Unmarshal(buf, reqpb); err != nil {
 					return err
@@ -139,7 +140,8 @@ func (ipt *Input) RegHTTPHandler() {
 					}
 					ipt.handleLogstreaming(&httpapi.NopResponseWriter{}, req)
 
-					log.Debugf("### process status: buffer-size: %dkb, cost: %dms, err: %v", len(reqpb.Body)>>10, time.Since(start)/time.Millisecond, err)
+					log.Debugf("### process status: buffer-size: %dkb, cost: %dms, err: %v",
+						len(reqpb.Body)>>10, time.Since(start)/time.Millisecond, err)
 
 					return nil
 				}

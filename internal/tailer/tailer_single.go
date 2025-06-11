@@ -27,6 +27,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/reader"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/recorder"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/textparser"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 )
 
@@ -387,12 +388,16 @@ func (t *Single) feedToRemote(pending [][]byte) {
 	}
 }
 
-func (t *Single) feedToIO(pending [][]byte) {
-	pts := []*point.Point{}
+const (
+	logTimeStep = time.Microsecond // 1us
+)
 
-	opts := append(point.DefaultLoggingOptions(), point.WithPrecheck(false), point.WithTimestamp(0))
-	// -1us
-	timeNow := time.Now().Add(-time.Duration(len(pending)) * time.Microsecond)
+func (t *Single) feedToIO(pending [][]byte) {
+	var (
+		pts     = []*point.Point{}
+		opts    = append(point.DefaultLoggingOptions(), point.WithPrecheck(false))
+		timeNow = ntp.Now().Add(-time.Duration(len(pending)) * logTimeStep)
+	)
 
 	for i, cnt := range pending {
 		t.readLines++
@@ -431,7 +436,13 @@ func (t *Single) feedToIO(pending [][]byte) {
 		}
 
 		pt := point.NewPointV2(t.opt.source, kvs, opts...)
-		pt.SetTime(timeNow.Add(time.Duration(i) * time.Microsecond))
+
+		// 此处设置每条日志的时间差为 1us, 这样日志查看器中的日志显示顺序跟当前的采集顺序就保持一致了.
+		// 此处如果这批日志的时间戳都一样, 在查看器中看到日志将可能随机展示(因为查看器默认按照 point 的
+		// 时间戳来倒排显示)
+		// 注意, 此处这个时间还是可以在后续的 pipeline 被改写.
+		pt.SetTime(timeNow.Add(time.Duration(i) * logTimeStep))
+
 		pts = append(pts, pt)
 	}
 

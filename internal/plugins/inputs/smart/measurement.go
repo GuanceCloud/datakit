@@ -6,18 +6,11 @@
 package smart
 
 import (
-	"time"
-
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-type smartMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
+type smartMeasurement struct{}
 
 //nolint:lll
 func (s *smartMeasurement) Info() *inputs.MeasurementInfo {

@@ -15,7 +15,6 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/araddon/dateparse"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/obfuscate"
 )
@@ -293,34 +292,6 @@ func (ipt *Input) collectSlowQuery() {
 		dkio.WithInputName(loggingFeedName)); err != nil {
 		l.Warnf("feeder.FeedV2: %s, ignored", err)
 	}
-}
-
-func (ipt *Input) getKVsOpts(categorys ...point.Category) []point.Option {
-	var opts []point.Option
-
-	category := point.Metric
-	if len(categorys) > 0 {
-		category = categorys[0]
-	}
-
-	switch category { //nolint:exhaustive
-	case point.Logging:
-		opts = point.DefaultLoggingOptions()
-	case point.Metric:
-		opts = point.DefaultMetricOptions()
-	case point.Object:
-		opts = point.DefaultObjectOptions()
-	default:
-		opts = point.DefaultMetricOptions()
-	}
-
-	if ipt.Election {
-		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
-	}
-
-	opts = append(opts, point.WithTime(ipt.ptsTime))
-
-	return opts
 }
 
 func (ipt *Input) getKVs() point.KVs {

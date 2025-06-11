@@ -27,6 +27,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -205,7 +206,7 @@ func (ipt *Input) getPerformanceCounters() {
 			append(point.NewTags(tags), point.NewKVs(fields)...), opts...)
 
 		if len(fields) > 0 {
-			collectCache = append(collectCache, point)
+			ipt.collectCache = append(ipt.collectCache, point)
 		}
 	}
 }
@@ -271,9 +272,10 @@ func (ipt *Input) initDB() error {
 		RawQuery: query.Encode(),
 	}
 
-	cfg, err := msdsn.Parse(u.String())
+	dsn := u.String()
+	cfg, err := msdsn.Parse(dsn)
 	if err != nil {
-		return err
+		return fmt.Errorf("msdsn.Parse(%s): %w", dsn, err)
 	}
 
 	if ipt.InstanceName != "" {
@@ -335,28 +337,28 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 	}
 
 	// use input interval as default
-	duration := ipt.Interval.Duration
 	// use custom query interval if set
 	if query.Interval.Duration > 0 {
-		duration = config.ProtectedInterval(minInterval, maxInterval, query.Interval.Duration)
+		query.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, query.Interval.Duration)
 	}
 
-	tick := time.NewTicker(duration)
+	tick := time.NewTicker(query.Interval.Duration)
 	defer tick.Stop()
 
-	start := time.Now()
+	ptsTime := ntp.Now()
 	for {
 		if ipt.pause {
 			l.Debugf("not leader, custom query skipped")
 		} else {
+			start := time.Now()
 			// collect custom query
 			l.Debugf("start collecting custom query, metric name: %s", query.Metric)
-			res, err := ipt.query(query.Metric, query.SQL)
-			if err != nil {
+
+			if res, err := ipt.query(query.Metric, query.SQL); err != nil {
 				l.Warnf("collect custom query [%s] failed: %s", query.SQL, err.Error())
 			} else {
 				opt := ipt.getKVsOpts()
-				opt = append(opt, point.WithTimestamp(start.UnixNano()))
+				opt = append(opt, point.WithTimestamp(ptsTime.UnixNano()))
 				pts := []*point.Point{}
 				for _, row := range res {
 					kvs := ipt.getKVs()
@@ -409,8 +411,7 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 			return
 
 		case tt := <-tick.C:
-			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), duration.Milliseconds())
-			start = time.UnixMilli(nextts)
+			ptsTime = inputs.AlignTime(tt, ptsTime, query.Interval.Duration)
 		}
 	}
 }
@@ -489,6 +490,8 @@ func (ipt *Input) Run() {
 	// run custom queries
 	ipt.runCustomQueries()
 
+	ipt.ptsTime = ntp.Now()
+
 	for {
 		if ipt.pause {
 			l.Debugf("not leader, skipped")
@@ -496,26 +499,26 @@ func (ipt *Input) Run() {
 			ipt.setUpState()
 			l.Debugf("start to collect")
 			ipt.getMetric()
-			if len(collectCache) > 0 {
-				err := ipt.feeder.FeedV2(point.Metric, collectCache,
+			if len(ipt.collectCache) > 0 {
+				err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
 					dkio.WithCollectCost(time.Since(ipt.start)),
 					dkio.WithElection(ipt.Election),
 					dkio.WithInputName(inputName),
 				)
-				collectCache = collectCache[:0]
+				ipt.collectCache = ipt.collectCache[:0]
 				if err != nil {
 					ipt.lastErr = err
 					l.Errorf(err.Error())
 				}
 			}
 
-			if len(loggingCollectCache) > 0 {
-				err := ipt.feeder.FeedV2(point.Logging, loggingCollectCache,
+			if len(ipt.loggingCollectCache) > 0 {
+				err := ipt.feeder.FeedV2(point.Logging, ipt.loggingCollectCache,
 					dkio.WithCollectCost(time.Since(ipt.start)),
 					dkio.WithElection(ipt.Election),
 					dkio.WithInputName(loggingFeedName),
 				)
-				loggingCollectCache = loggingCollectCache[:0]
+				ipt.loggingCollectCache = ipt.loggingCollectCache[:0]
 				if err != nil {
 					ipt.lastErr = err
 					l.Errorf(err.Error())
@@ -535,7 +538,9 @@ func (ipt *Input) Run() {
 		}
 
 		select {
-		case <-tick.C:
+		case tt := <-tick.C:
+			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.Interval.Duration)
+
 		case <-datakit.Exit.Wait():
 			ipt.exit()
 			l.Info("sqlserver exit")
@@ -563,7 +568,7 @@ func (ipt *Input) Terminate() {
 }
 
 func (ipt *Input) getMetric() {
-	now := time.Now()
+	now := ntp.Now()
 	collectInterval := 10 * time.Minute
 	if !ipt.start.IsZero() {
 		collectInterval = now.Sub(ipt.start)
@@ -694,9 +699,9 @@ func (ipt *Input) handRow(name, query string, isLogging bool) {
 			kvs, opts...)
 
 		if isLogging {
-			loggingCollectCache = append(loggingCollectCache, point)
+			ipt.loggingCollectCache = append(ipt.loggingCollectCache, point)
 		} else {
-			collectCache = append(collectCache, point)
+			ipt.collectCache = append(ipt.collectCache, point)
 		}
 	}
 }
@@ -814,7 +819,7 @@ func (ipt *Input) getDatabaseFilesMetrics() error {
 			name:     info.Name,
 			election: ipt.Election,
 		}
-		collectCache = append(collectCache, m.Point())
+		ipt.collectCache = append(ipt.collectCache, m.Point())
 	}
 
 	return nil

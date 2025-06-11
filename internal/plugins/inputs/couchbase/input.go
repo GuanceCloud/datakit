@@ -22,6 +22,7 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	dnet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/couchbase/collectors"
 )
@@ -77,14 +78,18 @@ func (ipt *Input) Run() {
 		return
 	}
 
-	tick := time.NewTicker(ipt.Interval)
+	var (
+		tick  = time.NewTicker(ipt.Interval)
+		start = ntp.Now()
+	)
+
 	defer tick.Stop()
-	start := time.Now()
 
 	for {
 		if ipt.pause {
 			l.Debug("%s election paused", inputName)
 		} else {
+			costStart := time.Now()
 			if err := ipt.collect(start.UnixNano()); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
@@ -94,7 +99,7 @@ func (ipt *Input) Run() {
 
 			if len(ipt.client.Pts) > 0 {
 				if err := ipt.feeder.FeedV2(point.Metric, ipt.client.Pts,
-					dkio.WithCollectCost(time.Since(start)),
+					dkio.WithCollectCost(time.Since(costStart)),
 					dkio.WithElection(ipt.Election),
 					dkio.WithInputName(metricName)); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
@@ -108,8 +113,7 @@ func (ipt *Input) Run() {
 
 		select {
 		case tt := <-tick.C:
-			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), ipt.Interval.Milliseconds())
-			start = time.UnixMilli(nextts)
+			start = inputs.AlignTime(tt, start, ipt.Interval)
 		case <-datakit.Exit.Wait():
 			l.Infof("%s input exit", inputName)
 			return

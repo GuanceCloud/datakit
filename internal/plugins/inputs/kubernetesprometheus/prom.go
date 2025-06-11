@@ -15,6 +15,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/promscrape"
 )
 
@@ -122,7 +123,7 @@ func (p *promScraper) recordUp(up int, timestamp int64) {
 	kvs = kvs.AddV2("up", up, false)
 
 	if timestamp == 0 {
-		timestamp = time.Now().UnixNano()
+		timestamp = ntp.Now().UnixNano()
 	}
 
 	pt := point.NewPointV2("collector", kvs, append(point.DefaultMetricOptions(), point.WithTimestamp(timestamp))...)

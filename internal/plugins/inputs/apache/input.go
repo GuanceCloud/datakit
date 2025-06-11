@@ -27,6 +27,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -176,7 +177,7 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
-	ipt.start = time.Now()
+	ipt.start = ntp.Now()
 
 	for {
 		select {
@@ -197,8 +198,8 @@ func (ipt *Input) Run() {
 			}
 			ipt.setUpState()
 			ipt.FeedCoPts()
-			nextts := inputs.AlignTimeMillSec(tt, ipt.start.UnixMilli(), ipt.Interval.Duration.Milliseconds())
-			ipt.start = time.UnixMilli(nextts)
+			ipt.start = inputs.AlignTime(tt, ipt.start, ipt.Interval.Duration)
+
 			m, err := ipt.getMetric()
 			if err != nil {
 				ipt.feeder.FeedLastError(err.Error(),

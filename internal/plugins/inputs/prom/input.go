@@ -20,6 +20,7 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 )
@@ -131,7 +132,7 @@ func (i *Input) Run() {
 	defer tick.Stop()
 
 	i.l.Info("prom start")
-	i.start = time.Now()
+	i.start = ntp.Now()
 
 	for {
 		if i.pause {
@@ -153,7 +154,7 @@ func (i *Input) Run() {
 			return
 
 		case tt := <-tick.C:
-			i.start = time.UnixMilli(inputs.AlignTimeMillSec(tt, i.start.UnixMilli(), i.Interval.Milliseconds()))
+			i.start = inputs.AlignTime(tt, i.start, i.Interval)
 
 		case i.pause = <-i.chPause:
 			// nil

@@ -22,7 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-type container struct {
+type containerCollector struct {
 	ipt       *Input
 	runtime   runtime.ContainerRuntime
 	k8sClient k8sclient.Client
@@ -38,6 +38,8 @@ type container struct {
 	logTable  *logTable
 	extraTags map[string]string
 	feeder    dkio.Feeder
+
+	ptsTime time.Time
 }
 
 func newECSFargate(ipt *Input, agentURL string) (Collector, error) {
@@ -48,7 +50,7 @@ func newECSFargate(ipt *Input, agentURL string) (Collector, error) {
 
 	tags := inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")
 
-	return &container{
+	return &containerCollector{
 		ipt:                  ipt,
 		runtime:              r,
 		enableCollectLogging: false,
@@ -59,7 +61,7 @@ func newECSFargate(ipt *Input, agentURL string) (Collector, error) {
 
 var containerExistList sync.Map
 
-func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sclient.Client) (Collector, error) {
+func newContainerCollector(ipt *Input, endpoint string, mountPoint string, k8sClient k8sclient.Client) (Collector, error) {
 	l.Warnf("FLAG include: %v, exclude: %v", ipt.ContainerIncludeLog, ipt.ContainerExcludeLog)
 	logFilter, err := filter.NewFilter(ipt.ContainerIncludeLog, ipt.ContainerExcludeLog)
 	if err != nil {
@@ -97,7 +99,7 @@ func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sc
 	optForNonMetric := buildLabelsOption(ipt.ExtractK8sLabelAsTagsV2, config.Cfg.Dataway.GlobalCustomerKeys)
 	optForMetric := buildLabelsOption(ipt.ExtractK8sLabelAsTagsV2ForMetric, config.Cfg.Dataway.GlobalCustomerKeys)
 
-	return &container{
+	return &containerCollector{
 		ipt:           ipt,
 		runtime:       r,
 		k8sClient:     k8sClient,
@@ -116,7 +118,7 @@ func newContainer(ipt *Input, endpoint string, mountPoint string, k8sClient k8sc
 	}, nil
 }
 
-func (c *container) StartCollect() {
+func (c *containerCollector) StartCollect() {
 	tickers := []*time.Ticker{
 		time.NewTicker(metricInterval),
 		time.NewTicker(c.ipt.LoggingSearchInterval),
@@ -129,9 +131,8 @@ func (c *container) StartCollect() {
 
 	c.gatherLogging()
 	time.Sleep(time.Second * 3) // window time
-	c.gatherObject()
 
-	start := time.Now()
+	c.gatherObject()
 
 	for {
 		select {
@@ -141,22 +142,22 @@ func (c *container) StartCollect() {
 
 		case tt := <-tickers[0].C:
 			if c.ipt.EnableContainerMetric {
-				nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), metricInterval.Milliseconds())
-				start = time.UnixMilli(nextts)
-
-				c.gatherMetric(start.UnixNano())
+				c.ptsTime = inputs.AlignTime(tt, c.ptsTime, metricInterval)
+				c.gatherMetric()
 			}
+
 		case <-tickers[1].C:
 			if c.enableCollectLogging {
 				c.gatherLogging()
 			}
+
 		case <-tickers[2].C:
 			c.gatherObject()
 		}
 	}
 }
 
-func (c *container) ReloadConfigKV(_ map[string]string) error {
+func (c *containerCollector) ReloadConfigKV(_ map[string]string) error {
 	l.Info("reload kv")
 	c.logTable.closeAll()
 	return nil

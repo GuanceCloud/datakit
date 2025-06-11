@@ -99,20 +99,16 @@ func TestCustom_Process(t *testing.T) {
 			}
 			mq.Process(tt.args.msg)
 			ps, err := tt.fields.feeder.AnyPoints(time.Second)
-			if err != nil {
-				t.Errorf("feeder anyPoints err:%v", err)
-				return
-			}
+			assert.NoError(t, err)
+
 			if len(ps) == 0 {
 				t.Logf("ps len =0")
 				return
 			}
+
 			pt := ps[0]
 			t.Logf("%v", pt)
-			if pt.Get("message") == nil {
-				t.Errorf("not has tag: [message]")
-			}
-
+			assert.NotNil(t, pt.Get("message"))
 			assert.NotEmptyf(t, pt.GetTag("type"), "tag [type] missing")
 		})
 	}

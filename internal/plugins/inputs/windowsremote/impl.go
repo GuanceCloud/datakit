@@ -13,6 +13,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -43,19 +44,19 @@ func (ipt *Input) startCollect() {
 	}
 	l.Infof("windows_remote collect start ips=%s", ips)
 
-	start := time.Now()
+	ptsTime := ntp.Now()
 
 	for {
+		if !ipt.isPause() {
+			ipt.collectMetricFromIPs(ips, ptsTime.UnixNano())
+		}
+
 		select {
 		case <-datakit.Exit.Wait():
 			return
 
 		case tt := <-tickers[0].C:
-			if !ipt.isPause() {
-				nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), metricInterval.Milliseconds())
-				start = time.UnixMilli(nextts)
-				ipt.collectMetricFromIPs(ips, start.UnixNano())
-			}
+			ptsTime = inputs.AlignTime(tt, ptsTime, metricInterval)
 
 		case <-tickers[1].C:
 			if !ipt.isPause() {

@@ -17,6 +17,7 @@ import (
 	manager "github.com/DataDog/ebpf-manager"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/c"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 
@@ -119,7 +120,7 @@ func (tracer *BashTracer) readlineCallBack(cpu int, data []byte,
 	mFields["pid"] = fmt.Sprintf("%d", int(eventC.pid_tgid>>32))
 
 	mFields["message"] = fmt.Sprintf("%s pid:`%s` user:`%s` cmd:`%s`",
-		time.Now().Format(time.RFC3339), mFields["pid"], mFields["user"], mFields["cmd"])
+		ntp.Now().Format(time.RFC3339), mFields["pid"], mFields["user"], mFields["cmd"])
 
 	kvs := point.NewTags(mTags)
 	kvs = append(kvs, point.NewKVs(mFields)...)

@@ -14,7 +14,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/pipeline-go/constants"
@@ -22,6 +21,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 )
 
@@ -98,7 +98,7 @@ func (ipt *Input) processLogBody(param *parameters) error {
 		logPtOpt = point.DefaultLoggingOptions()
 		plopt    *lang.LogOption
 		pts      []*point.Point
-		now      = time.Now()
+		now      = ntp.Now()
 	)
 
 	if !param.ignoreURLTags {
@@ -180,11 +180,8 @@ func (ipt *Input) processLogBody(param *parameters) error {
 						ts = now.UnixNano()
 					}
 
-					pt := point.NewPointV2(source, kvs, append(
-						logPtOpt,
-						point.WithExtraTags(extraTags),
-						point.WithTime(time.Unix(0, ts)))...)
-					pts = append(pts, pt)
+					pts = append(pts, point.NewPointV2(source, kvs,
+						append(logPtOpt, point.WithExtraTags(extraTags), point.WithTimestamp(ts))...))
 				}
 				decJSON = true
 			}
@@ -212,11 +209,10 @@ func (ipt *Input) processLogBody(param *parameters) error {
 		for scanner.Scan() {
 			var kvs point.KVs
 
-			kvs = kvs.Add(constants.FieldMessage, scanner.Text(), false, true)
-			kvs = kvs.Add(constants.FieldStatus, pipeline.DefaultStatus, false, true)
-			pt := point.NewPointV2(source, kvs,
-				append(logPtOpt, point.WithExtraTags(extraTags), point.WithTime(now))...)
-			pts = append(pts, pt)
+			kvs = kvs.AddV2(constants.FieldMessage, scanner.Text(), true).
+				AddV2(constants.FieldStatus, pipeline.DefaultStatus, true)
+			pts = append(pts, point.NewPointV2(source, kvs,
+				append(logPtOpt, point.WithExtraTags(extraTags), point.WithTime(now))...))
 		}
 	}
 
@@ -226,6 +222,6 @@ func (ipt *Input) processLogBody(param *parameters) error {
 	}
 
 	return ipt.feeder.FeedV2(point.Logging, pts,
-		dkio.WithInputName(inputName+"/"+source),
+		dkio.WithInputName(inputName+"-"+source),
 		dkio.WithPipelineOption(plopt))
 }

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	T "testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -149,4 +150,29 @@ func TestMergeTags(t *T.T) {
 	})
 }
 
-////////////////////////////////////////////////////////////////////////////////
+func TestAlignTimeMillSec(t *T.T) {
+	t.Run(`basic`, func(t *T.T) {
+		var (
+			triggerTime = time.Unix(1746667932, 0)
+			interval    = time.Second * 10
+			lastts      = triggerTime.Add(-11 * time.Second) // last is 11s before
+		)
+
+		t.Logf("trig: %d, last: %d", triggerTime.Unix(), lastts.Unix())
+
+		t.Logf("align time: %s", AlignTime(triggerTime, lastts, interval))
+	})
+
+	t.Run(`5min-align`, func(t *T.T) {
+		var (
+			triggerTime = time.Now()
+			interval    = time.Second * 300
+			lastts      = triggerTime.Add(+330 * time.Second)
+		)
+
+		t.Logf("trig: %v, last: %v", triggerTime, lastts)
+
+		alignTime := AlignTime(triggerTime, lastts, interval)
+		t.Logf("align time: %v", alignTime)
+	})
+}

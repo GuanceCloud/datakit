@@ -11,6 +11,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
 
@@ -126,7 +127,7 @@ func (d *daemonset) addChangeInformer(informerFactory informers.SharedInformerFa
 
 func (d *daemonset) buildMetricPoints(list *apiappsv1.DaemonSetList, timestamp int64) []*point.Point {
 	var pts []*point.Point
-	opts := point.DefaultMetricOptions()
+	opts := append(point.DefaultMetricOptions(), point.WithTimestamp(timestamp))
 
 	for _, item := range list.Items {
 		var kvs point.KVs
@@ -145,7 +146,7 @@ func (d *daemonset) buildMetricPoints(list *apiappsv1.DaemonSetList, timestamp i
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, d.cfg.LabelAsTagsForMetric.All, d.cfg.LabelAsTagsForMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(d.cfg.ExtraTags)...)
-		pt := point.NewPointV2(daemonsetMetricMeasurement, kvs, append(opts, point.WithTimestamp(timestamp))...)
+		pt := point.NewPointV2(daemonsetMetricMeasurement, kvs, opts...)
 		pts = append(pts, pt)
 
 		d.counter[item.Namespace]++
@@ -156,7 +157,7 @@ func (d *daemonset) buildMetricPoints(list *apiappsv1.DaemonSetList, timestamp i
 
 func (d *daemonset) buildObjectPoints(list *apiappsv1.DaemonSetList) []*point.Point {
 	var pts []*point.Point
-	opts := point.DefaultObjectOptions()
+	opts := append(point.DefaultObjectOptions(), point.WithTime(ntp.Now()))
 
 	for _, item := range list.Items {
 		var kvs point.KVs

@@ -14,11 +14,13 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	k8sclient "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -107,7 +109,7 @@ func (k *Kube) StartCollect() {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background()) // nolint
-	start := time.Now()
+	start := ntp.Now()
 
 	for {
 		select {
@@ -127,9 +129,7 @@ func (k *Kube) StartCollect() {
 
 		case tt := <-tickers[0].C:
 			if k.cfg.EnableK8sMetric {
-				nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), metricInterval.Milliseconds())
-				start = time.UnixMilli(nextts)
-
+				start = inputs.AlignTime(tt, start, metricInterval)
 				k.gatherMetric(start.UnixNano())
 			}
 

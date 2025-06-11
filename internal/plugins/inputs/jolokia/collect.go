@@ -20,6 +20,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -52,7 +53,7 @@ func (j *JolokiaAgent) Collect() {
 
 	tick := time.NewTicker(duration)
 	defer tick.Stop()
-	start := time.Now()
+	start := ntp.Now()
 
 	for {
 		if j.pause {
@@ -83,7 +84,7 @@ func (j *JolokiaAgent) Collect() {
 
 		select {
 		case tt := <-tick.C:
-			start = time.UnixMilli(inputs.AlignTimeMillSec(tt, start.UnixMilli(), duration.Milliseconds()))
+			start = inputs.AlignTime(tt, start, duration)
 
 		case <-datakit.Exit.Wait():
 			j.L.Infof("input %s exit", j.PluginName)

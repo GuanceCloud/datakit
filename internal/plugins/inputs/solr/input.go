@@ -23,6 +23,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
@@ -109,7 +110,7 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
 	Tagger  datakit.GlobalTagger
-	alignTS int64
+	ptsTime time.Time
 }
 
 func (ipt *Input) ElectionEnabled() bool {
@@ -211,9 +212,25 @@ func (ipt *Input) Run() {
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
 
-	lastTS := time.Now()
+	ipt.ptsTime = ntp.Now()
 	for {
-		ipt.alignTS = lastTS.UnixNano()
+		if ipt.pause {
+			l.Debugf("not leader, skipped")
+		} else {
+			collectStart := time.Now()
+			if err := ipt.Collect(); err == nil {
+				if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
+					dkio.WithCollectCost(time.Since(collectStart)),
+					dkio.WithElection(ipt.Election),
+					dkio.WithInputName(inputName),
+				); err != nil {
+					ipt.logError(err)
+				}
+			} else {
+				ipt.logError(err)
+			}
+			ipt.collectCache = ipt.collectCache[:0]
+		}
 
 		select {
 		case <-datakit.Exit.Wait():
@@ -227,24 +244,7 @@ func (ipt *Input) Run() {
 			return
 
 		case tt := <-tick.C:
-			nextts := inputs.AlignTimeMillSec(tt, lastTS.UnixMilli(), ipt.Interval.Duration.Milliseconds())
-			lastTS = time.UnixMilli(nextts)
-			if ipt.pause {
-				l.Debugf("not leader, skipped")
-				continue
-			}
-			if err := ipt.Collect(); err == nil {
-				if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
-					dkio.WithCollectCost(time.Since(lastTS)),
-					dkio.WithElection(ipt.Election),
-					dkio.WithInputName(inputName),
-				); err != nil {
-					ipt.logError(err)
-				}
-			} else {
-				ipt.logError(err)
-			}
-			ipt.collectCache = make([]*point.Point, 0)
+			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.Interval.Duration)
 
 		case ipt.pause = <-ipt.pauseCh:
 			// nil
@@ -327,7 +327,7 @@ func (ipt *Input) Collect() error {
 							fields: fieldSearcher,
 							tags:   tagsSearcher,
 							name:   metricNameSearcher,
-							ts:     ipt.alignTS,
+							ts:     ipt.ptsTime.UnixNano(),
 						}
 						ipt.appendM(metric.Point())
 					}

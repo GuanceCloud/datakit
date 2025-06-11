@@ -18,11 +18,12 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/podutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (c *container) gatherMetric(timestamp int64) {
+func (c *containerCollector) gatherMetric() {
 	start := time.Now()
 	list, err := c.runtime.ListContainers()
 	if err != nil {
@@ -30,7 +31,7 @@ func (c *container) gatherMetric(timestamp int64) {
 		return
 	}
 
-	pts := c.runGather(list, c.buildMetricPoints, timestamp)
+	pts := c.runGather(list, c.buildMetricPoints)
 
 	nsCount := make(map[string]int)
 	for _, pt := range pts {
@@ -47,7 +48,7 @@ func (c *container) gatherMetric(timestamp int64) {
 		kvs = kvs.AddV2("container", count, false)
 		kvs = kvs.AddTag("node_name", c.localNodeName)
 
-		pt := point.NewPointV2("kubernetes", kvs, append(opts, point.WithTimestamp(timestamp))...)
+		pt := point.NewPointV2("kubernetes", kvs, append(opts, point.WithTime(c.ptsTime))...)
 		pts = append(pts, pt)
 	}
 
@@ -65,7 +66,7 @@ func (c *container) gatherMetric(timestamp int64) {
 	collectCostVec.WithLabelValues("metric").Observe(time.Since(start).Seconds())
 }
 
-func (c *container) gatherObject() {
+func (c *containerCollector) gatherObject() {
 	start := time.Now()
 	list, err := c.runtime.ListContainers()
 	if err != nil {
@@ -73,7 +74,7 @@ func (c *container) gatherObject() {
 		return
 	}
 
-	pts := c.runGather(list, c.buildObjectPoints, 0)
+	pts := c.runGather(list, c.buildObjectPoint)
 	collectPtsVec.WithLabelValues("object").Add(float64(len(pts)))
 
 	if err := c.feeder.FeedV2(
@@ -88,10 +89,9 @@ func (c *container) gatherObject() {
 	collectCostVec.WithLabelValues("object").Observe(time.Since(start).Seconds())
 }
 
-func (c *container) runGather(
+func (c *containerCollector) runGather(
 	list []*runtime.Container,
-	buildPointsFunc func(*runtime.Container, int64) *point.Point,
-	timestamp int64,
+	buildPointsFunc func(*runtime.Container) *point.Point,
 ) []*point.Point {
 	var pts []*point.Point
 	var mu sync.Mutex
@@ -105,7 +105,7 @@ func (c *container) runGather(
 
 		func(item *runtime.Container) {
 			g.Go(func(ctx context.Context) error {
-				pt := buildPointsFunc(item, timestamp)
+				pt := buildPointsFunc(item)
 				mu.Lock()
 				pts = append(pts, pt)
 				mu.Unlock()
@@ -127,7 +127,7 @@ func (c *container) runGather(
 	return pts
 }
 
-func (c *container) buildMetricPoints(item *runtime.Container, timestamp int64) *point.Point {
+func (c *containerCollector) buildMetricPoints(item *runtime.Container) *point.Point {
 	var kvs point.KVs
 	kvs = append(kvs, buildInfoKVs(item)...)
 	kvs = append(kvs, buildECSFargateKVs(item)...)
@@ -147,7 +147,10 @@ func (c *container) buildMetricPoints(item *runtime.Container, timestamp int64) 
 	)
 
 	if c.k8sClient != nil && podname != "" {
-		pod, err := c.k8sClient.GetPods(namespace).Get(context.Background(), podname, metav1.GetOptions{ResourceVersion: "0"})
+		pod, err := c.k8sClient.GetPods(namespace).Get(
+			context.Background(),
+			podname,
+			metav1.GetOptions{ResourceVersion: "0"})
 		if err != nil {
 			l.Warnf("query pod failed, err: %s", err)
 		} else {
@@ -155,17 +158,20 @@ func (c *container) buildMetricPoints(item *runtime.Container, timestamp int64) 
 				image = img
 			}
 			kvs = append(kvs, buildPodKVs(containerName, pod, top)...)
-			kvs = append(kvs, pointutil.LabelsToPointKVs(pod.Labels, c.podLabelAsTagsForMetric.all, c.podLabelAsTagsForMetric.keys)...)
+			kvs = append(kvs, pointutil.LabelsToPointKVs(pod.Labels,
+				c.podLabelAsTagsForMetric.all,
+				c.podLabelAsTagsForMetric.keys)...)
 		}
 	}
 
 	kvs = kvs.AddTag("image", image)
 	kvs = append(kvs, point.NewTags(c.extraTags)...)
 
-	return point.NewPointV2(containerMeasurement, kvs, append(point.DefaultMetricOptions(), point.WithTimestamp(timestamp))...)
+	return point.NewPointV2(containerMeasurement, kvs,
+		append(point.DefaultMetricOptions(), point.WithTime(c.ptsTime))...)
 }
 
-func (c *container) buildObjectPoints(item *runtime.Container, _ int64) *point.Point {
+func (c *containerCollector) buildObjectPoint(item *runtime.Container) *point.Point {
 	var kvs point.KVs
 	kvs = append(kvs, buildInfoKVs(item)...)
 	kvs = append(kvs, buildECSFargateKVs(item)...)
@@ -207,9 +213,9 @@ func (c *container) buildObjectPoints(item *runtime.Container, _ int64) *point.P
 
 	msg := pointutil.PointKVsToJSON(kvs)
 	kvs = kvs.AddV2("message", pointutil.TrimString(msg, maxMessageLength), false)
-
 	kvs = append(kvs, point.NewTags(c.extraTags)...)
-	return point.NewPointV2(containerMeasurement, kvs, point.DefaultObjectOptions()...)
+	return point.NewPointV2(containerMeasurement, kvs,
+		append(point.DefaultObjectOptions(), point.WithTime(ntp.Now()))...)
 }
 
 func buildInfoKVs(item *runtime.Container) point.KVs {

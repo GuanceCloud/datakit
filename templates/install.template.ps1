@@ -495,7 +495,7 @@ $ps1_script=Join-Path $tmpDir ".install-{{.Version}}.ps1"
 Write-COutput green "* Downloading $installer_url from $installer_base_url..."
 
 if (Test-Path $installer) {
-	Remove-Item $installer
+	Remove-Item $installer -Recurse -Force
 }
 
 Import-Module bitstransfer

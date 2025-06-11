@@ -26,6 +26,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -143,7 +144,7 @@ func (t *tdEngine) run() {
 				ticker := time.NewTicker(metric.TimeSeries)
 				defer ticker.Stop()
 
-				lastTS := time.Now()
+				lastTS := ntp.Now()
 				for {
 					t.Ipt.alignTS = lastTS.UnixNano()
 
@@ -153,12 +154,12 @@ func (t *tdEngine) run() {
 					case <-t.stop:
 						return nil
 					case tt := <-ticker.C:
-						nextts := inputs.AlignTimeMillSec(tt, lastTS.UnixMilli(), metric.TimeSeries.Milliseconds())
-						lastTS = time.UnixMilli(nextts)
+						lastTS = inputs.AlignTime(tt, lastTS, metric.TimeSeries)
 						if !t.upstream {
 							l.Debugf("not leader, skipped")
 							continue
 						}
+
 						l.Debugf("start to run selectSQL,metricName = %s", metric.metricName)
 						for _, sql := range metric.MetricList {
 							body, err := query(t.adapter, t.basic, "", []byte(sql.sql))
@@ -187,10 +188,12 @@ func (t *tdEngine) run() {
 	g.Go(func(ctx context.Context) error {
 		ticker := time.NewTicker(time.Minute * 5)
 		defer ticker.Stop()
-		var lastTS int64
+
+		var lastTS time.Time
+
 		for {
-			startTime := time.Now()
-			lastTS = inputs.AlignTimeMillSec(startTime, lastTS, (time.Minute * 5).Milliseconds())
+			startTime := ntp.Now()
+			lastTS = inputs.AlignTime(startTime, lastTS, (time.Minute * 5))
 			select {
 			case <-datakit.Exit.Wait():
 				return nil
@@ -201,7 +204,7 @@ func (t *tdEngine) run() {
 					continue
 				}
 				l.Debugf("run getSTablesNum")
-				msmC <- t.getSTablesNum(lastTS * 1e6)
+				msmC <- t.getSTablesNum(lastTS.UnixNano())
 			}
 		}
 	})
@@ -370,12 +373,8 @@ func makeMeasurements(subMetricName string, res restResult, sql selectSQL, ipt *
 			}
 		}
 
-		// if msm.ts.IsZero() {
-		// 	msm.ts = time.Now()
-		// }
-
 		if msm.ts == 0 {
-			msm.ts = time.Now().UnixNano()
+			msm.ts = ntp.Now().UnixNano()
 		}
 
 		if sql.unit != "" {

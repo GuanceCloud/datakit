@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
@@ -101,7 +102,7 @@ type Input struct {
 	collectLogs    []*point.Point
 	collectObjects []*point.Point
 	g              *goroutine.Group
-	start          time.Time
+	ptsTime        time.Time
 	mutex          sync.Mutex
 	duration       time.Duration
 	timeout        time.Duration
@@ -226,7 +227,7 @@ func (ipt *Input) collectResourceEvent(resourceType string) {
 
 	pts := []*point.Point{}
 	for _, obj := range res.objects {
-		latestTime := ipt.start
+		latestTime := ipt.ptsTime
 		if obj.lastLogTime == nil {
 			obj.lastLogTime = make(map[string]time.Time)
 		} else if t, exists := obj.lastLogTime[resourceType]; exists {
@@ -334,12 +335,14 @@ func (ipt *Input) collectResourceObject(resourceType string) {
 		}
 		pt := m.Point()
 
+		pt.SetTime(ntp.Now())
+
 		// custom tags
 		for k, v := range ipt.Tags {
 			pt.AddTag(k, v)
 		}
 
-		pts = append(pts, m.Point())
+		pts = append(pts, pt)
 	}
 	if len(pts) > 0 {
 		ipt.mutex.Lock()
@@ -562,7 +565,7 @@ func (ipt *Input) makePoints(buckets map[string]metricEntry) {
 			pt.AddTag(k, v)
 		}
 
-		pts = append(pts, m.Point())
+		pts = append(pts, pt)
 	}
 
 	ipt.mutex.Lock()
@@ -604,9 +607,11 @@ func (ipt *Input) Run() {
 		}
 	}
 
+	ipt.ptsTime = ntp.Now()
+
 	for {
 		if !ipt.pause {
-			ipt.start = time.Now()
+			collectStart := time.Now()
 			l.Debugf("vsphere input gathering...")
 
 			if err := ipt.Collect(); err != nil {
@@ -619,7 +624,7 @@ func (ipt *Input) Run() {
 				l.Debugf("collect cache length: %d", len(ipt.collectCache))
 				if len(ipt.collectCache) > 0 {
 					if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
-						dkio.WithCollectCost(time.Since(ipt.start)),
+						dkio.WithCollectCost(time.Since(collectStart)),
 						dkio.WithElection(ipt.Election),
 						dkio.WithInputName(inputName),
 					); err != nil {
@@ -632,7 +637,7 @@ func (ipt *Input) Run() {
 				l.Debugf("collect log length: %d", len(ipt.collectLogs))
 				if len(ipt.collectLogs) > 0 {
 					if err := ipt.feeder.FeedV2(point.Logging, ipt.collectLogs,
-						dkio.WithCollectCost(time.Since(ipt.start)),
+						dkio.WithCollectCost(time.Since(collectStart)),
 						dkio.WithElection(ipt.Election),
 						dkio.WithInputName(inputName),
 					); err != nil {
@@ -647,7 +652,7 @@ func (ipt *Input) Run() {
 				l.Debugf("collect object length: %d", len(ipt.collectObjects))
 				if len(ipt.collectObjects) > 0 {
 					if err := ipt.feeder.FeedV2(point.CustomObject, ipt.collectObjects,
-						dkio.WithCollectCost(time.Since(ipt.start)),
+						dkio.WithCollectCost(time.Since(collectStart)),
 						dkio.WithElection(ipt.Election),
 						dkio.WithInputName(inputName+"/CO"),
 					); err != nil {
@@ -676,7 +681,8 @@ func (ipt *Input) Run() {
 			log.Info("vsphere input return")
 
 			return
-		case <-tick.C:
+		case tt := <-tick.C:
+			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.Interval.Duration)
 		case ipt.pause = <-ipt.pauseCh:
 		}
 	}

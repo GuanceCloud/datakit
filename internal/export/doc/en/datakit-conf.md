@@ -205,6 +205,24 @@ The default logging level for DataKit is `info`. Edit `datakit.conf` to modify t
 
 The following content involves some advanced configuration. If you are not sure about the configuration, it is recommended to consult our technical experts.
 
+### Time Calibration {#ntp}
+
+[:octicons-tag-24: Version-1.75.0](../datakit/changelog.md#cl-1.75.0)
+
+To prevent data collection issues caused by local time deviations, DataKit can detect significant time discrepancies by calling the DataWay interface ([:octicons-tag-24: Version-1.6.0](../deployment/dataway-changelog.md#cl-1.6.0)). When a significant deviation is detected, DataKit will calibrate its current time (without modifying the system time) for data collection purposes.
+
+The following configuration is available in *datakit.conf*:
+
+```toml
+  # Use DataWay as the NTP server
+  [dataway.ntp]
+    enable   = true  # default enabled
+    interval = "5m"  # Sync with DataWay time every 5 minutes (minimum 1 minute)
+
+    # If the absolute difference between DataKit time and DataWay time is >= diff, DataKit will adjust data point times using DataWay time.
+    diff     = "30s"  # Minimum 5 seconds
+```
+
 ### IO Module Parameter Adjustment {#io-tuning}
 
 [:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) ·

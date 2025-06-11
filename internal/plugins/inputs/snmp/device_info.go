@@ -202,7 +202,13 @@ func (dmd *deviceMetaData) Add(bys []byte) {
 
 // nolint:lll
 // ReportNetworkDeviceMetadata reports device metadata.
-func (di *deviceInfo) ReportNetworkDeviceMetadata(store *snmputil.ResultValueStore, origTags []string, metadataConfigs snmputil.MetadataConfig, collectTime time.Time, deviceStatus snmputil.DeviceStatus, outData *deviceMetaData) {
+func (di *deviceInfo) ReportNetworkDeviceMetadata(store *snmputil.ResultValueStore,
+	origTags []string,
+	metadataConfigs snmputil.MetadataConfig,
+	collectTime time.Time,
+	deviceStatus snmputil.DeviceStatus,
+	outData *deviceMetaData,
+) {
 	tags := snmputil.CopyStrings(origTags)
 	tags = snmputil.SortUniqInPlace(tags)
 
@@ -216,7 +222,12 @@ func (di *deviceInfo) ReportNetworkDeviceMetadata(store *snmputil.ResultValueSto
 
 	interfaces := snmputil.BuildNetworkInterfacesMetadata(deviceID, metadataStore)
 
-	metadataPayloads := snmputil.BatchPayloads(di.Namespace, di.Subnet, collectTime, snmputil.PayloadMetadataBatchSize, device, interfaces)
+	metadataPayloads := snmputil.BatchPayloads(di.Namespace,
+		di.Subnet,
+		collectTime,
+		snmputil.PayloadMetadataBatchSize,
+		device,
+		interfaces)
 
 	for _, payload := range metadataPayloads {
 		payloadBytes, err := json.Marshal(payload)

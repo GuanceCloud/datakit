@@ -11,9 +11,10 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/db2/collect/ccommon"
 )
 
@@ -139,7 +140,7 @@ func (m *tableSpaceMetrics) collect() (*ccommon.TagField, error) {
 					Name:        inputName,
 					EventPrefix: ccommon.EventPrefixDb2,
 					Tags:        newTags,
-					Date:        time.Now().Unix(),
+					Date:        ntp.Now().Unix(),
 					Status:      "warning",
 					Title:       "Table space state change",
 					Message:     fmt.Sprintf("State of `%s` changed from `%s` to `%s`.", r.Tbsp_name.String, previousState, r.Tbsp_state.String),

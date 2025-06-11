@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 )
@@ -26,9 +27,9 @@ func (ipt *Input) getPts(data []byte, server string) error {
 
 	// ts := time.Now()
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTimestamp(ipt.AlignTS))
+	opts = append(opts, point.WithTime(ipt.ptsTime))
 
-	metrics, metricsLog := smi.genTagsFields(ipt, server, ipt.AlignTS)
+	metrics, metricsLog := smi.genTagsFields(ipt, server, ipt.ptsTime)
 
 	for _, metric := range metrics {
 		var kvs point.KVs
@@ -209,12 +210,12 @@ type ProcessInfo []struct {
 	UsedMemory        string `xml:"used_memory"` // int
 }
 
-func (s *SMI) genTagsFields(ipt *Input, server string, alignTS int64) ([]metric, []metric) {
+func (s *SMI) genTagsFields(ipt *Input, server string, ptsTime time.Time) ([]metric, []metric) {
 	metrics := []metric{}
 	metricsLog := []metric{}
 	for _, gpu := range s.GPU {
 		// handle GPU online info
-		ipt.gpuOnlineInfo(gpu.UUID, server, alignTS)
+		ipt.gpuOnlineInfo(gpu.UUID, server, ptsTime)
 
 		tags := map[string]string{}
 		fields := map[string]interface{}{}

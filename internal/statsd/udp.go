@@ -11,7 +11,8 @@ import (
 	"fmt"
 	"net"
 	"strings"
-	"time"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 )
 
 func (col *Collector) setupUDPServer() error {
@@ -86,7 +87,7 @@ func (col *Collector) udpListen(conn *net.UDPConn) error {
 			select {
 			case col.in <- job{
 				Buffer: b,
-				Time:   time.Now(),
+				Time:   ntp.Now(),
 				Addr:   addr.IP.String(),
 			}:
 			default:

@@ -83,7 +83,7 @@ func (ipt *Input) CollectClusterMeasurement() ([]*point.Point, error) {
 func (ipt *Input) parseClusterData(list string) ([]*point.Point, error) {
 	collectCache := []*point.Point{}
 	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTimestamp(ipt.alignTS))
+	opts = append(opts, point.WithTime(ipt.ptsTime))
 
 	var kvs point.KVs
 	kvs = kvs.AddTag("server_addr", ipt.Addr)

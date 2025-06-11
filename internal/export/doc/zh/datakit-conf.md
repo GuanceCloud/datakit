@@ -205,6 +205,27 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 
 下面涉及的内容涉及一些高级配置，如果对配置不是很有把握，建议咨询我们的技术专家。
 
+### 时间校准 {#ntp}
+
+[:octicons-tag-24: Version-1.75.0](../datakit/changelog.md#cl-1.75.0)
+
+为避免本机时间偏差对数据采集的影响，DataKit 可通过调用 DataWay 接口（[:octicons-tag-24: Version-1.6.0](../deployment/dataway-changelog.md#cl-1.6.0)）来感知自身时间是否出现较大偏差。当感知到较大偏差后，DataKit 会校准当前时间（但不会修改系统时间）作为数据采集的时间。
+
+在 *datakit.conf* 中，有如下配置项：
+
+```toml
+  # use dataway as NTP server
+  [dataway.ntp]
+    enable   = true  # default enabled
+    interval = "5m"  # sync dataway time each 5min(minimal 1min)
+
+    # if abs(datakit time - dataway time) >= diff, datakit will adjust data point
+    # time with dataway time.
+    diff     = "30s"  # minimal 5s
+```
+
+该行为默认开启，如果 DataWay 版本较低，最终效果仍旧是采用当前系统时间（即不做任何校准）。
+
 ### IO 模块调参 {#io-tuning}
 
 [:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) ·

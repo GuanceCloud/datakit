@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/cli"
 )
@@ -181,7 +182,7 @@ func (agg *FlowAgg) Append(dnsKey DNSQAKey, stats DNSStats) error {
 func (agg *FlowAgg) ToPoint(tags map[string]string, k8sInfo *cli.K8sInfo) []*point.Point {
 	var result []*point.Point
 
-	pTime := time.Now()
+	pTime := ntp.Now()
 	for k, v := range agg.data {
 		if pt, err := kv2point(&k, v, pTime, tags, k8sInfo); err != nil {
 			l.Debug(err)

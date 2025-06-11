@@ -84,12 +84,13 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
-	start := ntp.NTPTime()
+	start := ntp.Now()
 
 	for {
 		if ipt.pause {
 			l.Debugf("not leader, %s skipped", inputName)
 		} else {
+			collectStart := time.Now()
 			if err := ipt.collect(start.UnixNano()); err != nil {
 				l.Errorf("collect: %s", err)
 				ipt.feeder.FeedLastError(err.Error(),
@@ -100,7 +101,7 @@ func (ipt *Input) Run() {
 
 			if len(ipt.collectCache) > 0 {
 				if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
-					dkio.WithCollectCost(time.Since(start)),
+					dkio.WithCollectCost(time.Since(collectStart)),
 					dkio.WithElection(ipt.Election),
 					dkio.WithInputName(metricName),
 				); err != nil {
@@ -115,8 +116,7 @@ func (ipt *Input) Run() {
 
 		select {
 		case tt := <-tick.C:
-			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), ipt.Interval.Milliseconds())
-			start = time.UnixMilli(nextts)
+			start = inputs.AlignTime(tt, start, ipt.Interval)
 		case <-datakit.Exit.Wait():
 			l.Infof("%s input exit", inputName)
 			return

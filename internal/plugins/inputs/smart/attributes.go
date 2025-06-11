@@ -10,6 +10,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/GuanceCloud/cliutils/point"
 )
 
 var (
@@ -63,7 +65,7 @@ var deviceFieldIds = map[string]string{
 var sasNvmeAttributes = map[string]struct {
 	ID    string
 	Name  string
-	Parse func(key string, fields map[string]interface{}, str string) error
+	Parse func(key string, str string, kvs point.KVs) (point.KVs, error)
 }{
 	"Accumulated start-stop cycles": {
 		ID:   "4",
@@ -99,15 +101,14 @@ var sasNvmeAttributes = map[string]struct {
 	},
 	"Critical Warning": {
 		Name: "critical_warning",
-		Parse: func(key string, fields map[string]interface{}, str string) error {
-			var value int64
-			if _, err := fmt.Sscanf(str, "0x%x", &value); err != nil {
-				return err
+		Parse: func(key string, str string, kvs point.KVs) (point.KVs, error) {
+			var v int64
+			if _, err := fmt.Sscanf(str, "0x%x", &v); err != nil {
+				return nil, err
+			} else {
+				kvs = kvs.AddV2("raw_value", v, true)
+				return kvs, nil
 			}
-
-			fields["raw_value"] = value
-
-			return nil
 		},
 	},
 	"Available Spare": {
@@ -204,53 +205,52 @@ var sasNvmeAttributes = map[string]struct {
 	},
 }
 
-func parseTemperature(key string, fields map[string]interface{}, str string) error {
+func parseTemperature(key string, str string, kvs point.KVs) (point.KVs, error) {
 	var temp int64
 	if _, err := fmt.Sscanf(str, "%d C", &temp); err != nil {
-		return err
+		return nil, err
+	} else {
+		kvs = kvs.AddV2(key, temp, true)
+		return kvs, nil
 	}
-	fields[key] = temp
-
-	return nil
 }
 
-func parseCommaSeparatedInt(key string, fields map[string]interface{}, str string) error {
+func parseCommaSeparatedInt(key string, str string, kvs point.KVs) (point.KVs, error) {
 	str = strings.Join(strings.Fields(str), "")
-	i, err := strconv.ParseInt(strings.ReplaceAll(str, ",", ""), 10, 64)
-	if err != nil {
-		return err
+	if v, err := strconv.ParseInt(strings.ReplaceAll(str, ",", ""), 10, 64); err != nil {
+		return nil, err
+	} else {
+		kvs = kvs.AddV2(key, v, true)
 	}
-	fields[key] = i
 
-	return nil
+	return kvs, nil
 }
 
-func parsePercentageInt(key string, fields map[string]interface{}, str string) error {
-	return parseCommaSeparatedInt(key, fields, strings.TrimSuffix(str, "%"))
+func parsePercentageInt(key string, str string, kvs point.KVs) (point.KVs, error) {
+	return parseCommaSeparatedInt(key, strings.TrimSuffix(str, "%"), kvs)
 }
 
-func parseDataUnits(key string, fields map[string]interface{}, str string) error {
+func parseDataUnits(key string, str string, kvs point.KVs) (point.KVs, error) {
 	units := strings.Fields(str)[0]
-
-	return parseCommaSeparatedInt(key, fields, units)
+	return parseCommaSeparatedInt(key, units, kvs)
 }
 
-func parseTemperatureSensor(key string, fields map[string]interface{}, str string) error {
-	var temp int64
-	if _, err := fmt.Sscanf(str, "%d C", &temp); err != nil {
-		return err
+func parseTemperatureSensor(key string, str string, kvs point.KVs) (point.KVs, error) {
+	var v int64
+	if _, err := fmt.Sscanf(str, "%d C", &v); err != nil {
+		return nil, err
+	} else {
+		kvs = kvs.AddV2(key, v, true)
 	}
 
-	fields[key] = temp
-
-	return nil
+	return kvs, nil
 }
 
 // to obtain Intel specific metrics from nvme-cli.
 var intelAttributes = map[string]struct {
 	ID    string
 	Name  string
-	Parse func(key string, fields map[string]interface{}, str string) error
+	Parse func(key string, str string, kvs point.KVs) (point.KVs, error)
 }{
 	"program_fail_count": {
 		Name: "Program_fail_count",
@@ -281,8 +281,8 @@ var intelAttributes = map[string]struct {
 	},
 	"timed_workload_timer": {
 		Name: "Timed_workload_timer",
-		Parse: func(key string, fields map[string]interface{}, str string) error {
-			return parseCommaSeparatedIntWithCache(key, fields, strings.TrimSuffix(str, " min"))
+		Parse: func(key string, str string, kvs point.KVs) (point.KVs, error) {
+			return parseCommaSeparatedIntWithCache(key, strings.TrimSuffix(str, " min"), kvs)
 		},
 	},
 	"thermal_throttle_status": {
@@ -302,59 +302,59 @@ var intelAttributes = map[string]struct {
 	},
 }
 
-func parseWearLeveling(key string, fields map[string]interface{}, str string) error {
+func parseWearLeveling(key string, str string, kvs point.KVs) (point.KVs, error) {
 	var min, max, avg int64
 	if _, err := fmt.Sscanf(str, "min: %d, max: %d, avg: %d", &min, &max, &avg); err != nil {
-		return err
+		return nil, err
 	}
+
 	values := []int64{min, max, avg}
 	for i, submetricName := range []string{"Min", "Max", "Avg"} {
-		fields[fmt.Sprintf("%s_%s", key, submetricName)] = values[i]
+		kvs = kvs.AddV2(fmt.Sprintf("%s_%s", key, submetricName), values[i], true)
 	}
 
-	return nil
+	return kvs, nil
 }
 
-func parseTimedWorkload(key string, fields map[string]interface{}, str string) error {
+func parseTimedWorkload(key string, str string, kvs point.KVs) (point.KVs, error) {
 	var value float64
 	if _, err := fmt.Sscanf(str, "%f", &value); err != nil {
-		return err
+		return nil, err
 	}
-	fields[key] = value
+	kvs = kvs.AddV2(key, value, true)
 
-	return nil
+	return kvs, nil
 }
 
-func parseThermalThrottle(key string, fields map[string]interface{}, str string) error {
+func parseThermalThrottle(key string, str string, kvs point.KVs) (point.KVs, error) {
 	var (
 		percentage float64
 		count      int64
 	)
+
 	if _, err := fmt.Sscanf(str, "%f%%, cnt: %d", &percentage, &count); err != nil {
-		return err
+		return nil, err
+	} else {
+		kvs = kvs.AddV2(key+"_Prc", percentage, true).AddV2(key+"_Count", count, true)
+		return kvs, nil
 	}
-	fields[key+"_Prc"] = percentage
-	fields[key+"_Count"] = count
-
-	return nil
 }
 
-func parseBytesWritten(key string, fields map[string]interface{}, str string) error {
-	var value int64
-	if _, err := fmt.Sscanf(str, "sectors: %d", &value); err != nil {
-		return err
+func parseBytesWritten(key string, str string, kvs point.KVs) (point.KVs, error) {
+	var v int64
+	if _, err := fmt.Sscanf(str, "sectors: %d", &v); err != nil {
+		return nil, err
+	} else {
+		kvs = kvs.AddV2(key, v, true)
+		return kvs, nil
 	}
-	fields[key] = value
-
-	return nil
 }
 
-func parseCommaSeparatedIntWithCache(key string, fields map[string]interface{}, str string) error {
-	i, err := strconv.ParseInt(strings.ReplaceAll(str, ",", ""), 10, 64)
-	if err != nil {
-		return err
+func parseCommaSeparatedIntWithCache(key string, str string, kvs point.KVs) (point.KVs, error) {
+	if v, err := strconv.ParseInt(strings.ReplaceAll(str, ",", ""), 10, 64); err != nil {
+		return nil, err
+	} else {
+		kvs = kvs.AddV2(key, v, true)
+		return kvs, nil
 	}
-	fields[key] = i
-
-	return nil
 }

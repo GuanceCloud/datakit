@@ -22,6 +22,7 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -311,7 +312,7 @@ func (ipt *Input) Run() {
 
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
-	start := time.Now()
+	start := ntp.Now()
 
 	log.Infof("%s input started", inputName)
 
@@ -339,14 +340,16 @@ func (ipt *Input) Run() {
 			log.Info("mongodb input exit")
 
 			return
+
 		case <-ipt.semStop.Wait():
 			ipt.exit()
 			log.Info("mongodb input return")
 
 			return
+
 		case tt := <-tick.C:
-			nextts := inputs.AlignTimeMillSec(tt, start.UnixMilli(), ipt.Interval.Duration.Milliseconds())
-			start = time.UnixMilli(nextts)
+			start = inputs.AlignTime(tt, start, ipt.Interval.Duration)
+
 		case ipt.pause = <-ipt.pauseCh:
 		}
 	}

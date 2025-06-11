@@ -31,7 +31,7 @@ func TestNTPTime(t *T.T) {
 		time.Sleep(time.Second) // wait worker ok
 
 		local := LocalTime()
-		ntpTime := NTPTime()
+		ntpTime := Now()
 
 		assert.Equalf(t, int64(10), ntpTime.Unix()-local.Unix(), "local: %d, ntp: %d", local.Unix(), ntpTime.Unix())
 		t.Logf("local: %d, ntp: %d", local.Unix(), ntpTime.Unix())
@@ -46,7 +46,7 @@ func TestNTPTime(t *T.T) {
 		time.Sleep(time.Second) // wait worker ok
 
 		local := LocalTime()
-		ntpTime := NTPTime()
+		ntpTime := Now()
 
 		assert.Equalf(t, int64(-10), ntpTime.Unix()-local.Unix(), "local: %d, ntp: %d", local.Unix(), ntpTime.Unix())
 		t.Logf("local: %d, ntp: %d", local.Unix(), ntpTime.Unix())

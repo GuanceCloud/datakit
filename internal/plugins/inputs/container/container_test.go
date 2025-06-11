@@ -125,7 +125,7 @@ func TestShouldPullLogs(t *testing.T) {
 			filter, err := filter.NewFilter(tc.include, tc.exclude)
 			assert.Nil(t, err)
 
-			c := &container{logFilter: filter}
+			c := &containerCollector{logFilter: filter}
 
 			res := c.shouldPullContainerLog(tc.in)
 			assert.Equal(t, tc.should, res)
