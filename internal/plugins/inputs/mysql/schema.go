@@ -46,7 +46,7 @@ func (m *schemaMeasurement) Info() *inputs.MeasurementInfo {
 			"query_run_time_avg": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
-				Unit:     inputs.DurationNS,
+				Unit:     inputs.DurationUS,
 				Desc:     "Avg query response time per schema.",
 			},
 		},

@@ -75,6 +75,8 @@ type customQuery struct {
 	Interval datakit.Duration `toml:"interval"`
 	Tags     []string         `toml:"tags"`
 	Fields   []string         `toml:"fields"`
+
+	start time.Time
 }
 
 type mysqllog struct {
@@ -149,6 +151,8 @@ type Input struct {
 
 	dbmCache       map[string]dbmRow
 	dbmSampleCache dbmSampleCache
+
+	objectMetric *objectMertric
 
 	// collected metrics - mysql
 	globalStatus    map[string]interface{}
@@ -362,6 +366,7 @@ func (ipt *Input) initCfg() error {
 	}
 
 	if ipt.Object.Enable {
+		ipt.objectMetric = &objectMertric{}
 		ipt.Object.name = fmt.Sprintf("%s:%d", ipt.Host, ipt.Port)
 	}
 
@@ -772,6 +777,7 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 			l.Debugf("start collecting custom query, metric name: %s", query.Metric)
 			arr := getCleanMysqlCustomQueries(ipt.q(query.SQL, query.Metric))
 			if arr != nil {
+				query.start = start
 				points := ipt.getCustomQueryPoints(query, arr)
 				if len(points) > 0 {
 					if err := ipt.feeder.FeedV2(point.Metric, points,

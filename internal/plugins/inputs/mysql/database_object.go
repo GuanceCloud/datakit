@@ -20,7 +20,8 @@ import (
 const (
 	tableChunkSize             = 500
 	maxExecutionTime           = 60 * time.Second
-	mysqlObjectMeasurementName = "database_mysql"
+	mysqlObjectMeasurementName = "database"
+	mysqlType                  = "MySQL"
 )
 
 type mysqlObjectMeasurement struct{}
@@ -30,20 +31,34 @@ func (*mysqlObjectMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: mysqlObjectMeasurementName,
 		Cat:  point.Object,
-		Desc: "MySQL object metrics",
+		Desc: "MySQL object metrics([:octicons-tag-24: Version-1.74.0](../datakit/changelog-2025.md#cl-1.74.0))",
 		Tags: map[string]interface{}{
-			"host":    &inputs.TagInfo{Desc: "The hostname of the MySQL server"},
-			"server":  &inputs.TagInfo{Desc: "The server address of the MySQL server"},
-			"version": &inputs.TagInfo{Desc: "The version of the MySQL server"},
-			"name":    &inputs.TagInfo{Desc: "The name of the database. The value is `host:port` in default"},
-			"type":    &inputs.TagInfo{Desc: "The type of the database. The value is `mysql`"},
-			"port":    &inputs.TagInfo{Desc: "The port of the MySQL server"},
+			"host":          &inputs.TagInfo{Desc: "The hostname of the MySQL server"},
+			"server":        &inputs.TagInfo{Desc: "The server address of the MySQL server"},
+			"version":       &inputs.TagInfo{Desc: "The version of the MySQL server"},
+			"name":          &inputs.TagInfo{Desc: "The name of the database. The value is `host:port` in default"},
+			"database_type": &inputs.TagInfo{Desc: "The type of the database. The value is `MySQL`"},
+			"port":          &inputs.TagInfo{Desc: "The port of the MySQL server"},
 		},
 		Fields: map[string]interface{}{
-			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Summary of database information"},
-			"uptime":  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "The number of seconds that the server has been up"},
+			"message":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Summary of database information"},
+			"uptime":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "The number of seconds that the server has been up"},
+			"slow_queries":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of queries that have taken more than long_query_time seconds. This counter increments regardless of whether the slow query log is enabled."},
+			"avg_query_time": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.TimestampUS, Desc: "The average time taken by a query to execute"},
+			"qps":            &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Gauge, Desc: "The number of queries executed by the database per second"},
+			"tps":            &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Gauge, Desc: "The number of transactions executed by the database per second"},
+			"slow_query_log": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Whether the slow query log is enabled. The value can be 0 (or OFF) to disable the log or 1 (or ON) to enable the log."},
 		},
 	}
+}
+
+type objectMertric struct {
+	Queries     int64
+	SlowQueries int64
+	Trans       int64
+	QPS         float64
+	TPS         float64
+	Time        time.Time
 }
 
 // nolint:execinquery
@@ -158,8 +173,8 @@ func (m *mysqlObjectMessage) String() string {
 }
 
 func (ipt *Input) metricCollectMysqlObject() ([]*point.Point, error) {
-	if ipt.Object.lastCollectionTime.Add(ipt.Object.Interval.Duration).After(time.Now()) {
-		l.Infof("skip mysql_object collection, time interval not reached")
+	if !ipt.Object.lastCollectionTime.IsZero() && ipt.Object.lastCollectionTime.Add(ipt.Object.Interval.Duration).After(time.Now()) {
+		l.Debugf("skip mysql_object collection, time interval not reached")
 		return nil, nil
 	}
 
@@ -173,9 +188,7 @@ func (ipt *Input) metricCollectMysqlObject() ([]*point.Point, error) {
 	if err != nil {
 		l.Warnf("getMysqlMetadata failed: %s", err.Error())
 	} else {
-		message = mysqlObjectMessage{
-			Setting: setting,
-		}
+		message.Setting = setting
 	}
 
 	databases, err := ipt.getMysqlDatabases()
@@ -186,7 +199,8 @@ func (ipt *Input) metricCollectMysqlObject() ([]*point.Point, error) {
 	}
 
 	kvs = kvs.AddTag("version", ipt.getVersion()).
-		AddTag("type", "mysql").
+		AddTag("type", mysqlType). // deprecated
+		AddTag("database_type", mysqlType).
 		AddTag("name", ipt.Object.name).
 		AddTag("host", ipt.Host).
 		AddTag("server", ipt.mergedTags["server"]).
@@ -194,10 +208,57 @@ func (ipt *Input) metricCollectMysqlObject() ([]*point.Point, error) {
 		Add("uptime", ipt.Uptime, false, true).
 		Add("message", message.String(), false, true)
 
-	if kvs.FieldCount() > 0 {
-		return []*point.Point{point.NewPointV2("database_mysql", kvs, opts...)}, nil
+	// slow query log
+	if v, ok := setting["slow_query_log"]; ok {
+		kvs = kvs.Add("slow_query_log", v, false, true)
 	}
-	return nil, nil
+
+	// qps, tps, slow_queries, avg_query_time
+	if ipt.objectMetric != nil {
+		qps := fmt.Sprintf("%.2f", ipt.objectMetric.QPS)
+		kvs = kvs.Add("qps", qps, false, true)
+
+		tps := fmt.Sprintf("%.2f", ipt.objectMetric.TPS)
+		kvs = kvs.Add("tps", tps, false, true)
+
+		kvs = kvs.Add("slow_queries", ipt.objectMetric.SlowQueries, false, true)
+	}
+
+	if v, err := ipt.getAverageQueryExecutionTime(); err == nil {
+		kvs = kvs.Add("avg_query_time", v, false, true)
+	} else {
+		l.Warnf("getAverageQueryExecutionTime failed: %s", err.Error())
+	}
+
+	return []*point.Point{point.NewPointV2("database", kvs, opts...)}, nil
+}
+
+const sqlGetAverageQueryExecutionTime = `
+SELECT ROUND((SUM(sum_timer_wait) / SUM(count_star)) / 1000000) AS avg_us
+	FROM performance_schema.events_statements_summary_by_digest
+	WHERE schema_name IS NOT NULL;
+`
+
+func (ipt *Input) getAverageQueryExecutionTime() (float64, error) {
+	rows := ipt.q(sqlGetAverageQueryExecutionTime, getMetricName("mysql_object", "mysql_average_query_execution_time"))
+	if rows == nil {
+		return 0, errors.New("query average query execution time failed: nil rows")
+	}
+	if rows.Err() != nil {
+		return 0, fmt.Errorf("get average query execution time rows error: %w", rows.Err())
+	}
+	defer closeRows(rows)
+	var avgUs sql.NullFloat64
+	if rows.Next() {
+		if err := rows.Scan(&avgUs); err != nil {
+			return 0, fmt.Errorf("scan error: %w", err)
+		}
+		if avgUs.Valid {
+			return avgUs.Float64, nil
+		}
+	}
+
+	return 0, nil
 }
 
 func (ipt *Input) getMysqlSetting() (map[string]string, error) {
