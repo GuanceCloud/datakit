@@ -88,13 +88,13 @@ type Input struct {
 	TaskExecTimeInterval            string            `toml:"task_exec_time_interval,omitempty"`
 	DisableInternalNetworkTask      bool              `toml:"disable_internal_network_task,omitempty"`
 	DisabledInternalNetworkCIDRList []string          `toml:"disabled_internal_network_cidr_list,omitempty"`
+	Election                        bool              `toml:"election"`
 
 	Tags       map[string]string
 	RegionTags map[string]string
 
-	Election bool `toml:"election"`
-	pause    bool
-	pauseCh  chan bool
+	pause   bool
+	pauseCh chan bool
 
 	semStop              *cliutils.Sem // start stop signal
 	cli                  *http.Client  // class string
@@ -362,7 +362,7 @@ const sample = `
   disabled_internal_network_cidr_list = []
 
   # Set true to enable election
-  election = true
+  election = false
 
   # Custom tags.
   [inputs.dialtesting.tags]
@@ -1050,6 +1050,7 @@ func (ipt *Input) pullHTTPTask(reqURL *url.URL, sinceUs, variableSinceUs int64) 
 // ENV_INPUT_DIALTESTING_SERVER: string.
 // ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK: bool.
 // ENV_INPUT_DIALTESTING_DISABLED_INTERNAL_NETWORK_CIDR_LIST: []string.
+// ENV_INPUT_DIALTESTING_ELECTION: bool.
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if ak, ok := envs["ENV_INPUT_DIALTESTING_AK"]; ok {
 		ipt.AK = ak
@@ -1065,6 +1066,14 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 
 	if server, ok := envs["ENV_INPUT_DIALTESTING_SERVER"]; ok {
 		ipt.Server = server
+	}
+
+	if v, ok := envs["ENV_INPUT_DIALTESTING_ELECTION"]; ok {
+		if isElection, err := strconv.ParseBool(v); err != nil {
+			l.Warnf("parse ENV_INPUT_DIALTESTING_ELECTION [%s] error: %s, ignored", v, err.Error())
+		} else {
+			ipt.Election = isElection
+		}
 	}
 
 	if v, ok := envs["ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK"]; ok {
@@ -1104,7 +1113,7 @@ func defaultInput() *Input {
 			updateVariables:  []dt.Variable{},
 			updateVariableCh: make(chan dt.Variable, 100),
 		},
-		Election: true,
+		Election: false,
 		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
 	}
 }

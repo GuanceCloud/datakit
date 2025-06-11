@@ -103,6 +103,15 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 			Desc:    "Disable debug API on dial-testing(Default disabled)",
 			DescZh:  "禁止拨测调试接口（默认禁止）",
 		},
+
+		{
+			ENVName: "ENV_INPUT_DIALTESTING_ELECTION",
+			Type:    doc.Boolean,
+			Example: "`false`",
+			Default: "`false`",
+			Desc:    "Enable election(Default disabled)",
+			DescZh:  "开启选举功能（默认禁止）",
+		},
 	}
 
 	return doc.SetENVDoc("ENV_INPUT_DIALTESTING_", infos)
