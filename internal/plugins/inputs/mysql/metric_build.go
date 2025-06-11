@@ -7,6 +7,7 @@ package mysql
 
 import (
 	"fmt"
+	"time"
 
 	gcPoint "github.com/GuanceCloud/cliutils/point"
 	"github.com/spf13/cast"
@@ -34,6 +35,47 @@ func (ipt *Input) buildMysql() ([]*gcPoint.Point, error) {
 	}
 	if ipt.binLogOn {
 		m.resData["Binlog_space_usage_bytes"] = ipt.binlog["Binlog_space_usage_bytes"]
+	}
+
+	if ipt.objectMetric != nil {
+		if v, ok := m.resData["Slow_queries"]; ok {
+			ipt.objectMetric.SlowQueries = cast.ToInt64(v)
+		}
+		var costTimeSeconds float64
+
+		if !ipt.objectMetric.Time.IsZero() {
+			costTimeSeconds = time.Since(ipt.objectMetric.Time).Seconds()
+		}
+
+		if costTimeSeconds > 0 {
+			// calculate QPS
+			if v, ok := m.resData["Queries"]; ok {
+				val := cast.ToInt64(v)
+				if val >= ipt.objectMetric.Queries {
+					ipt.objectMetric.QPS = float64(val-ipt.objectMetric.Queries) / costTimeSeconds
+				}
+
+				ipt.objectMetric.Queries = val
+			}
+
+			// calculate TPS
+			var trans int64
+			if v, ok := m.resData["Com_commit"]; ok {
+				trans += cast.ToInt64(v)
+			}
+
+			if v, ok := m.resData["Com_rollback"]; ok {
+				trans += cast.ToInt64(v)
+			}
+
+			if trans >= ipt.objectMetric.Trans {
+				ipt.objectMetric.TPS = float64(trans-ipt.objectMetric.Trans) / costTimeSeconds
+			}
+
+			ipt.objectMetric.Trans = trans
+		}
+
+		ipt.objectMetric.Time = time.Now()
 	}
 
 	if hasKey(m.resData, "Key_blocks_unused") &&
@@ -334,6 +376,9 @@ func (ipt *Input) getCustomQueryPoints(query *customQuery, arr []map[string]inte
 	}
 
 	opts := ipt.getKVsOpts()
+	if !query.start.IsZero() {
+		opts = append(opts, gcPoint.WithTimestamp(query.start.UnixNano()))
+	}
 
 	for _, item := range arr {
 		kvs := ipt.getKVs()

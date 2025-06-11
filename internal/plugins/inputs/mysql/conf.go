@@ -52,7 +52,7 @@ const (
     enabled = true
 
     ## interval to collect mysql object which will be greater than collection interval
-    interval = "60s"
+    interval = "600s"
 
   [inputs.mysql.log]
     # #required, glob logfiles
