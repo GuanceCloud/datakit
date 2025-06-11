@@ -34,7 +34,7 @@ const (
 	USER_DISCOVERY       = 5 //nolint:stylecheck
 )
 
-type Job struct {
+type snmpJob struct {
 	ID         jobType
 	IP         string
 	Device     *deviceInfo

@@ -678,7 +678,6 @@ func (ipt *Input) InitDiskQueueIO() error {
 							return nil
 						}); err != nil {
 							if errors.Is(err, diskcache.ErrNoData) {
-								log.Debugf("disk queue is empty: %s", err)
 								time.Sleep(time.Second * 3)
 							} else {
 								log.Errorf("unable to get msg from disk cache: %s", err)

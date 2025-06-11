@@ -134,7 +134,7 @@ type Input struct {
 	mSpecificDevices     map[string]*deviceInfo
 	mDynamicDevices      sync.Map
 	mFieldNameSpecified  map[string]struct{}
-	jobs                 chan Job
+	jobs                 chan snmpJob
 	autodetectProfile    bool
 	feeder               dkio.Feeder
 	Tagger               datakit.GlobalTagger
@@ -220,7 +220,7 @@ func (ipt *Input) Run() {
 	}
 
 	// starting snmp collecting
-	ipt.jobs = make(chan Job)
+	ipt.jobs = make(chan snmpJob)
 
 	if err := ipt.ValidateConfig(); err != nil {
 		l.Errorf("validateConfig failed: %v", err)
@@ -251,7 +251,7 @@ func (ipt *Input) Run() {
 		workerNum = ipt.getIPCount()
 	}
 
-	workerFunc := func() {
+	workerFunc := func(idx int) {
 		g.Go(func(ctx context.Context) error {
 			for {
 				select {
@@ -259,7 +259,7 @@ func (ipt *Input) Run() {
 					ipt.doJob(job)
 
 				case <-datakit.Exit.Wait():
-					l.Info(snmpmeasurement.InputName + " exit")
+					l.Infof("snmp worker %d exited", idx)
 					return nil
 
 				case <-ipt.semStop.Wait():
@@ -270,8 +270,9 @@ func (ipt *Input) Run() {
 		})
 	}
 
+	l.Infof("start %d snmp workers...", workerNum)
 	for w := 0; w < workerNum; w++ {
-		workerFunc()
+		workerFunc(w)
 	}
 
 	ipt.initUserDefinition()
@@ -302,7 +303,7 @@ func (ipt *Input) Run() {
 
 		case <-datakit.Exit.Wait():
 			ipt.exit()
-			l.Info(snmpmeasurement.InputName + " exit")
+			l.Info("snmp exit")
 			return
 
 		case <-ipt.semStop.Wait():
@@ -310,6 +311,18 @@ func (ipt *Input) Run() {
 			l.Infof(snmpmeasurement.InputName + " return")
 			return
 		}
+	}
+}
+
+func (ipt *Input) sendJob(j *snmpJob) error {
+	select {
+	case ipt.jobs <- *j: // pass
+		return nil
+	case <-ipt.semStop.Wait():
+		return fmt.Errorf("on semStop")
+
+	case <-datakit.Exit.Wait():
+		return fmt.Errorf("on datakit eixt")
 	}
 }
 
@@ -321,10 +334,13 @@ func (ipt *Input) collectObject() {
 
 	// send specific devices
 	for deviceIP, device := range ipt.mSpecificDevices {
-		ipt.jobs <- Job{
+		if err := ipt.sendJob(&snmpJob{
 			ID:     COLLECT_OBJECT,
 			IP:     deviceIP,
 			Device: device,
+		}); err != nil {
+			l.Warnf("sendJob: %s", err.Error())
+			return
 		}
 	}
 
@@ -341,12 +357,16 @@ func (ipt *Input) collectObject() {
 			return true
 		}
 
-		ipt.jobs <- Job{
+		if err := ipt.sendJob(&snmpJob{
 			ID:     COLLECT_OBJECT,
 			IP:     deviceIP,
 			Device: device,
+		}); err != nil {
+			l.Warnf("sendJob: %s", err.Error())
+			return false
+		} else {
+			return true
 		}
-		return true
 	})
 }
 
@@ -358,10 +378,13 @@ func (ipt *Input) collectMetrics() {
 
 	// send specific devices
 	for deviceIP, device := range ipt.mSpecificDevices {
-		ipt.jobs <- Job{
+		if err := ipt.sendJob(&snmpJob{
 			ID:     COLLECT_METRICS,
 			IP:     deviceIP,
 			Device: device,
+		}); err != nil {
+			l.Warnf("sendJob: %s", err.Error())
+			return
 		}
 	}
 
@@ -378,12 +401,16 @@ func (ipt *Input) collectMetrics() {
 			return true
 		}
 
-		ipt.jobs <- Job{
+		if err := ipt.sendJob(&snmpJob{
 			ID:     COLLECT_METRICS,
 			IP:     deviceIP,
 			Device: device,
+		}); err != nil {
+			l.Warnf("sendJob: %s", err.Error())
+			return false
+		} else {
+			return true
 		}
-		return true
 	})
 }
 
@@ -427,25 +454,18 @@ func (ipt *Input) dispatchDiscovery(subnet string, discovery *discoveryInfo, mSp
 			continue
 		}
 
-		ipt.jobs <- Job{
+		if err := ipt.sendJob(&snmpJob{
 			ID:     DISCOVERY,
 			IP:     deviceIP,
 			Subnet: subnet,
-		}
-
-		select {
-		case <-datakit.Exit.Wait():
-			l.Debugf("subnet %s: Stop scheduling devices, exit", subnet)
+		}); err != nil {
+			l.Warnf("sendJob on subnet %s: %s", subnet, err.Error())
 			return
-		case <-ipt.semStop.Wait():
-			l.Debugf("subnet %s: Stop scheduling devices, stop", subnet)
-			return
-		default:
 		}
 	}
 }
 
-func (ipt *Input) doJob(job Job) {
+func (ipt *Input) doJob(job snmpJob) {
 	ipt.checkIPWorking(job.IP)
 	defer checkIPDone(job.IP)
 
