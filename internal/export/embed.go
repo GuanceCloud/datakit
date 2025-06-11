@@ -12,5 +12,4 @@ import (
 //go:embed doc/*
 var AllDocs embed.FS
 
-//go:embed dashboard/* monitor/*
-var AllTemplates embed.FS
+var AllTemplates *embed.FS = nil

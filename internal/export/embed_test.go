@@ -23,6 +23,8 @@ func TestList(t *T.T) {
 	})
 
 	t.Run("list-all-dashboard", func(t *T.T) {
+		t.Skip("all templates removed")
+
 		dirs, err := AllTemplates.ReadDir("dashboard")
 		assert.NoError(t, err)
 
