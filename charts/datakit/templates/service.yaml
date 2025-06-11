@@ -29,4 +29,16 @@ spec:
     - port: {{ .Values.service.port }}
       targetPort: {{ .Values.service.port }}
       protocol: TCP
-      name: http
+      name: http-port # For all HTTP APIs
+    - port: {{ .Values.statsd.port }}
+      targetPort: {{ .Values.statsd.port }}
+      protocol: UDP
+      name: statsd-port
+    - port: {{ .Values.otelGRPC.port }}
+      targetPort: {{ .Values.otelGRPC.port }}
+      protocol: TCP
+      name: otel-grpc-port
+    - port: {{ .Values.logfwdServer.port }}
+      targetPort: {{ .Values.logfwdServer.port }}
+      protocol: TCP
+      name: logfwd-port

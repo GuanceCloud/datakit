@@ -14,7 +14,7 @@ datakit:
   global_tags: host=__datakit_hostname,host_ip=__datakit_ip
   ## @param default_enabled_inputs - string
   ## The default open collector list, format example: input1, input2, input3
-  default_enabled_inputs: dk,cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
+  default_enabled_inputs: statsd,dk,cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container,kubernetesprometheus
   ## @param enabled_election - boolean
   ## When the election is enabled, it is enabled by default. If it needs to be enabled, you can give any non empty string value to the environment variable. (e.g. true / false)
   enabled_election: true
@@ -136,6 +136,22 @@ tolerations:
 service:
   type: ClusterIP
   port: 9529
+  targetPortName: http-port
+
+statsd:
+  type: ClusterIP
+  port: 8125
+  targetPortName: statsd-port
+
+otelGRPC:
+  type: ClusterIP
+  port: 4317
+  targetPortName: otel-grpc-port
+
+logfwdServer:
+  type: ClusterIP
+  port: 9533
+  targetPortName: logfwd-port
 
 ## @param dkconfig - array - optional
 ## Configure Datakit custom input
@@ -171,5 +187,3 @@ kubeStateMetricsEnabled: false
 ## If true, deploys the metrics-server deployment.
 ## ref: https://github.com/kubernetes-sigs/metrics-server/tree/master/charts/metrics-server
 MetricsServerEnabled: false
-
-

@@ -120,6 +120,7 @@ Some collectors only allow a single instance to run, and even if multiple copies
 | [`host_processes`](../integrations/host_processes.md) | Collect the list of resident (surviving for more than 10min) processes on the host                                                          |
 | [`hostobject`](../integrations/hostobject.md)         | Collect basic information of host computer (such as operating system information, hardware information, etc.)                               |
 | [`container`](../integrations/container.md)           | Collect possible containers or Kubernetes data on the host. Assuming there are no containers on the host, the collector will exit directly. |
+| [`statsd`](../integrations/statsd.md)                 | Collect metrics for DDTrace                                                                                                                 |
 
 ### Close the Specific Collector {#disable-inputs}
 

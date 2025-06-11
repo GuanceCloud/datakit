@@ -93,9 +93,18 @@ spec:
   selector:
     app: daemonset-datakit
   ports:
-    - protocol: TCP
+    - protocol: TCP # for HTTP apis and some collector(inputs) HTTP server, such as DDTrace
       port: 9529
-      targetPort: 9529
+      targetPort: http-port
+    - protocol: UDP
+      port: 8125
+      targetPort: statsd-port
+    - protocol: TCP
+      port: 4317
+      targetPort: otel-grpc-port
+    - protocol: TCP
+      port: 9533
+      targetPort: logfwd-port
 
 ---
 
@@ -161,10 +170,10 @@ spec:
           value: default
         - name: ENV_GLOBAL_HOST_TAGS
           value: host=__datakit_hostname,host_ip=__datakit_ip
-        - name: ENV_GLOBAL_ELECTION_TAGS
-          value: ""                                            # Default not set
+        - name: ENV_GLOBAL_ELECTION_TAGS # Default not set
+          value: ""
         - name: ENV_DEFAULT_ENABLED_INPUTS
-          value: dk,cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container,kubernetesprometheus
+          value: statsd,dk,cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container,kubernetesprometheus
         - name: ENV_ENABLE_ELECTION
           value: enable
         - name: ENV_HTTP_LISTEN
@@ -205,7 +214,19 @@ spec:
         ports:
         - containerPort: 9529
           hostPort: 9529
-          name: port
+          name: http-port
+          protocol: TCP
+        - containerPort: 8125
+          hostPort: 8125
+          name: statsd-port
+          protocol: UDP
+        - containerPort: 4317
+          hostPort: 4317
+          name: otel-grpc-port
+          protocol: TCP
+        - containerPort: 9533
+          hostPort: 9533
+          name: logfwd-port
           protocol: TCP
         resources:
           requests:

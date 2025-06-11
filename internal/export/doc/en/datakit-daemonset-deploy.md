@@ -18,14 +18,14 @@ This document describes how to install DataKit in K8s via DaemonSet.
     
     ```yaml
         - name: ENV_DATAWAY
-            value: https://openway.<<<custom_key.brand_main_domain>>>?token=<your-token> # Fill in the real address of DataWay here
+            value: https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN> # Fill in the real address of DataWay here
     ```
     
     If you choose another node, change the corresponding DataWay address here, such as AWS node:
     
     ```yaml
         - name: ENV_DATAWAY
-            value: https://aws-openway.<<<custom_key.brand_main_domain>>>?token=<your-token> 
+            value: https://aws-openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>
     ```
     
     Install yaml
@@ -50,23 +50,23 @@ This document describes how to install DataKit in K8s via DaemonSet.
     Helm installs DataKit (note modifying the `datakit.dataway_url` parameter)，in which many [default collectors](datakit-input-conf.md#default-enabled-inputs) are turned on without configuration.
     
     ```shell
-    $ helm install datakit datakit \
-               --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
-               -n datakit --create-namespace \
-               --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<your-token>" 
+    helm install datakit datakit \
+        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+        -n datakit --create-namespace \
+        --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>"
     ```
     
     View deployment status:
     
     ```shell
-    $ helm -n datakit list
+    helm -n datakit list
     ```
     
     You can upgrade with the following command:
     
     ```shell
-    $ helm -n datakit get  values datakit -o yaml > values.yaml
-    $ helm upgrade datakit datakit \
+    helm -n datakit get  values datakit -o yaml > values.yaml
+    helm upgrade datakit datakit \
         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
         -n datakit \
         -f values.yaml
@@ -76,6 +76,51 @@ This document describes how to install DataKit in K8s via DaemonSet.
     
     ```shell
     $ helm uninstall datakit -n datakit
+    ```
+
+    ### More Helm Examples {#helm-examples}
+
+    In addition to manually editing the *values.yaml* to adjust DataKit configurations (it is still recommended to use *values.yaml* directly for complex escape operations), you can also specify these parameters during the Helm installation phase. Note that these parameters must adhere to Helm's command-line syntax.
+
+    **Setting Default Collector List**
+
+    ```shell
+    helm install datakit datakit \
+         --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+         -n datakit --create-namespace \
+         --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>" \
+         --set datakit.default_enabled_inputs="statsd\,dk\,cpu\,mem"
+    ```
+
+    **Note**: The comma `,` must be escaped here; otherwise, Helm will throw an error.
+    
+    **Setting Environment Variables**
+
+    DataKit supports numerous [environment variable configurations](datakit-daemonset-install.md#env-setting), which can be appended using the following method:
+
+    ```shell
+    helm install datakit datakit \
+        --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+        -n datakit --create-namespace \
+        --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=tkn_xxx" \
+        --set "extraEnvs[0].name=ENV_INPUT_OTEL_GRPC" \
+        --set 'extraEnvs[0].value=\{"trace_enable":true\,"metric_enable":true\,"addr":"0.0.0.0:4317"\}' \
+        --set "extraEnvs[1].name=ENV_INPUT_CPU_PERCPU" \
+        --set 'extraEnvs[1].value=true'
+    ```
+
+    Here, `extraEnvs` is an entry defined in the DataKit Helm chart for setting environment variables. Since environment variables are in array format, we use array indices (starting from 0) to append multiple variables. `name` represents the environment variable name, and `value` is the corresponding value. Notably, if an environment variable's value is a JSON string, characters like `{},` must be escaped.
+    
+    **Installing a Specific Version**
+
+    You can specify the DataKit image version using `image.tag`:
+
+    ```shell
+    helm install datakit datakit \
+        --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+        -n datakit --create-namespace \
+        --set image.tag="1.70.0" \
+        ...
     ```
 <!-- markdownlint-enable -->
 

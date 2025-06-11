@@ -33,19 +33,20 @@ DataKit 安装完成后，默认会开启一批采集器，无需手动开启。
 
 默认开启的采集器一般跟主机相关，列表如下：
 
-| 采集器名称                                                        | 说明                                                                         |
-| ---                                                               | ---                                                                          |
+| 采集器名称                                                        | 说明                                                                           |
+| ---                                                               | ---                                                                            |
 | [CPU（`cpu`）](../integrations/cpu.md)                            | 采集主机的 CPU 使用情况                                                        |
-| [Disk（`disk`）](../integrations/disk.md)                         | 采集磁盘占用情况                                                             |
-| [磁盘 IO（`diskio`）](../integrations/diskio.md)                   | 采集主机的磁盘 IO 情况                                                         |
-| [内存（`mem`）](../integrations/mem.md)                           | 采集主机的内存使用情况                                                       |
+| [Disk（`disk`）](../integrations/disk.md)                         | 采集磁盘占用情况                                                               |
+| [磁盘 IO（`diskio`）](../integrations/diskio.md)                  | 采集主机的磁盘 IO 情况                                                         |
+| [内存（`mem`）](../integrations/mem.md)                           | 采集主机的内存使用情况                                                         |
 | [Swap（`swap`）](../integrations/swap.md)                         | 采集 Swap 内存使用情况                                                         |
-| [System（`system`）](../integrations/system.md)                   | 采集主机操作系统负载                                                         |
-| [Net（`net`）](../integrations/net.md)                            | 采集主机网络流量情况                                                         |
+| [System（`system`）](../integrations/system.md)                   | 采集主机操作系统负载                                                           |
+| [Net（`net`）](../integrations/net.md)                            | 采集主机网络流量情况                                                           |
 | [主机进程（`host_processes`）](../integrations/host_processes.md) | 采集主机上常驻（存活 10min 以上）进程列表                                      |
-| [主机对象（`hostobject`）](../integrations/hostobject.md)         | 采集主机基础信息（如操作系统信息、硬件信息等）                               |
+| [主机对象（`hostobject`）](../integrations/hostobject.md)         | 采集主机基础信息（如操作系统信息、硬件信息等）                                 |
 | [容器（`container`）](../integrations/container.md)               | 采集主机上可能的容器或 Kubernetes 数据，假定主机上没有容器，则采集器会直接退出 |
-| [DataKit（`dk`）](../integrations/dk.md)                          | 采集 DataKit 自身运行指标收集                                                |
+| [DataKit（`dk`）](../integrations/dk.md)                          | 采集 DataKit 自身运行指标收集                                                  |
+| [Statsd（`statsd`）](../integrations/statsd.md)                   | 配合 DDTrace 采集收集指标数据                                                  |
 
 ### 移除默认采集器 {#disable-default-inputs}
 

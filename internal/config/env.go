@@ -811,7 +811,12 @@ func (c *Config) LoadEnvs() error {
 			if v == "-" {
 				l.Warnf("no default inputs enabled!")
 			} else {
-				c.DefaultEnabledInputs = strings.Split(v, ",")
+				// helm 安装时，不能用直接用`,'分隔采集器名字，需转义一下这里的`,'，此处为了避免转义，支持用空格字符来分隔。
+				if strings.Contains(v, " ") {
+					c.DefaultEnabledInputs = strings.Split(v, " ")
+				} else {
+					c.DefaultEnabledInputs = strings.Split(v, ",")
+				}
 			}
 			break
 		}

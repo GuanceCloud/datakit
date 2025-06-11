@@ -18,6 +18,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/make/build"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	mexport "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/all"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
@@ -41,6 +42,7 @@ var (
 	export           = false
 	dwURL            = "not-set"
 	mdSkip           = ""
+	logLevel         = "info"
 
 	l = logger.DefaultSLogger("make")
 )
@@ -98,10 +100,27 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&build.ExportIgnore, "ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
 	flag.StringVar(&build.ExportTODO, "TODO", "TODO", "set TODO placeholder")
 	flag.StringVar(&build.ExportVersion, "version", datakit.Version, "specify version string in document's header")
+
+	flag.StringVar(&logLevel, "log-level", "info", "set log level of building log")
 }
 
 func applyFlags() {
 	build.LoadENVs()
+
+	// set global log root
+	lopt := &logger.Option{
+		Level: strings.ToLower(logLevel),
+		Flags: logger.OPT_DEFAULT,
+	}
+
+	if err := logger.InitRoot(lopt); err != nil {
+		l.Errorf("set root log(options: %+#v) failed: %s", lopt, err.Error())
+	} else {
+		l.Infof("set root logger(options: %+#v)ok", lopt)
+		l = logger.SLogger("make")
+		build.SetLog()
+		mexport.SetLog()
+	}
 
 	if mdCheck != "" {
 		skips := strings.Split(mdSkip, ",")
@@ -185,7 +204,7 @@ func applyFlags() {
 	switch build.ReleaseType {
 	case build.ReleaseProduction, build.ReleaseLocal, build.ReleaseTesting:
 	default:
-		l.Fatalf("invalid release type: %s", build.ReleaseType)
+		l.Errorf("invalid release type: %q", build.ReleaseType)
 	}
 
 	// override git.Version

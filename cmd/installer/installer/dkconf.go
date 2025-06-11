@@ -34,6 +34,7 @@ var (
 		"net",
 		"host_processes",
 		"dk",
+		"statsd",
 	}
 
 	defaultHostInputsForLinux = []string{
@@ -48,6 +49,7 @@ var (
 		"host_processes",
 		"container",
 		"dk",
+		"statsd",
 	}
 
 	defaultHostInputsForMacOS = []string{
@@ -61,6 +63,7 @@ var (
 		"net",
 		"container",
 		"dk",
+		"statsd",
 
 		// host_processes is costly, maybe we should disable default
 		"host_processes",

@@ -32,7 +32,6 @@ const (
 )
 
 var (
-
 	// OSArches defined current supported release OS/Archs.
 	// Use `go tool dist list` to get golang supported os/archs.
 	OSArches = []string{ // supported os/arch list
@@ -115,6 +114,10 @@ const (
 	ReleaseLocal      = "local"
 )
 
+func SetLog() {
+	l = logger.SLogger("build")
+}
+
 // LoadENVs load all CI/CD environments.
 func LoadENVs() {
 	if x := os.Getenv("ROBOT_TOKEN"); x != "" {
@@ -144,7 +147,7 @@ func updateDownloadCDN(rtype string, oc *cliutils.OssCli) {
 }
 
 func runEnv(args, env []string) ([]byte, error) {
-	l.Debugf("run command %v", append(env, args...))
+	l.Infof("run command %v", append(env, args...))
 
 	cmd := exec.Command(args[0], args[1:]...) //nolint:gosec
 	if env != nil {
@@ -393,6 +396,7 @@ func Compile() error {
 		return err
 	}
 
+	l.Infof("build helm package...")
 	if err := buildDatakitHelm(); err != nil {
 		l.Warnf("buildDatakitHelm: %s, ignore", err)
 	}
