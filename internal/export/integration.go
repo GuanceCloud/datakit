@@ -301,6 +301,11 @@ func (i *Integration) exportIntegration(lang inputs.I18n) error {
 
 // exportTemplate export dashboard or monitor template.
 func (i *Integration) exportTemplate(templateDir string, lang inputs.I18n) error {
+	if AllTemplates == nil {
+		l.Infof("no template exists")
+		return nil
+	}
+
 	templateEntry, err := AllTemplates.ReadDir(templateDir)
 	if err != nil {
 		return err
