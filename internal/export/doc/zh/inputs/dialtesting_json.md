@@ -364,14 +364,18 @@ monitor   :
 | :---        | ---    | ---      | ---                                     |
 | `body_type` | string | N        | Body 类型，即请求头 `Content-Type` 的值 |
 | `body`      | string | N        | 请求 Body                               |
+| `form`      | map[string]string | N        | `Content-Type` 为 `multipart/form-data` 时，请求 Body 的表单数据                     |
 
 `request_body` 示例：
 
 ```json
 "advance_options": {
   "request_body": {
-    "body_type": "text/html",
-    "body": "填写好请求体，此处注意各种复杂的转义"
+    "body_type": "multipart/form-data",
+    "body": "填写好请求体，此处注意各种复杂的转义",
+    "form": {
+      "name": "file",
+    }
   }
 }
 ```

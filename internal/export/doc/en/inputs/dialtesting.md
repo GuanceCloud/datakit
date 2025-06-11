@@ -56,6 +56,14 @@ The following is a network deployment topology for dialtesting nodes, which incl
 - Public Network Nodes: Directly use the nodes deployed globally to check the healthy of **public network** services.
 - Private Network Nodes: If you need to check **private network** services, you need to deploy **private** nodes. Of course, if the network allows, these private nodes can also check services deployed on the public network.
 
+
+<!-- markdownlint-disable MD046 -->
+
+???+ note
+
+    When the node is deployed in an internal network environment and unable to access the external network, traffic forwarding can be achieved by configuring a proxy server. For specific configuration steps, please refer to the detailed instructions in the [Use DataKit Proxy](../datakit/datakit-proxy.md#datakit).
+<!-- markdownlint-enable -->
+
 Whether it is a public or private node, they can both create probe tasks through the Web page.
 
 ```mermaid
