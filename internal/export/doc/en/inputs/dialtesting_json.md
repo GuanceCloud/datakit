@@ -365,14 +365,18 @@ Among them, `auth` only supports ordinary username and password authentication, 
 | :---        | ---    | ---      | ---                                     |
 | `body_type` | string | N        | Body type, that is, the value of the request header `Content-Type` |
 | `body`      | string | N        | Request Body                               |
+| `form`      | map[string]string | N        | When the Content-Type is `multipart/form-data`, it is the form data of the request Body                     |
 
 `request_body` example:
 
 ```json
 "advance_options": {
   "request_body": {
-    "body_type": "text/html",
-    "body": "Fill in the request body, and pay attention to various complicated escapes here"
+    "body_type": "multipart/form-data",
+    "body": "Fill in the request body, and pay attention to various complicated escapes here",
+    "form": {
+      "name": "file",
+    }
   }
 }
 ```

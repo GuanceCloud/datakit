@@ -44,9 +44,10 @@ import (
 )
 
 var ( // type assertions
-	_          inputs.ReadEnv = (*Input)(nil)
-	_          inputs.InputV2 = (*Input)(nil)
-	g                         = datakit.G("inputs_dialtesting")
+	_          inputs.ReadEnv       = (*Input)(nil)
+	_          inputs.InputV2       = (*Input)(nil)
+	_          inputs.ElectionInput = (*Input)(nil)
+	g                               = datakit.G("inputs_dialtesting")
 	dialWorker *worker
 )
 
@@ -90,6 +91,10 @@ type Input struct {
 
 	Tags       map[string]string
 	RegionTags map[string]string
+
+	Election bool `toml:"election"`
+	pause    bool
+	pauseCh  chan bool
 
 	semStop              *cliutils.Sem // start stop signal
 	cli                  *http.Client  // class string
@@ -356,6 +361,9 @@ const sample = `
   # Disable internal network cidr list.
   disabled_internal_network_cidr_list = []
 
+  # Set true to enable election
+  election = true
+
   # Custom tags.
   [inputs.dialtesting.tags]
   # some_tag = "some_value"
@@ -475,6 +483,32 @@ func (ipt *Input) setupCli() {
 	ipt.cli = httpcli.Cli(opt)
 }
 
+func (ipt *Input) ElectionEnabled() bool {
+	return ipt.Election
+}
+
+func (ipt *Input) Pause() error {
+	tick := time.NewTicker(inputs.ElectionPauseTimeout)
+	defer tick.Stop()
+	select {
+	case ipt.pauseCh <- true:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("pause %s failed", inputName)
+	}
+}
+
+func (ipt *Input) Resume() error {
+	tick := time.NewTicker(inputs.ElectionResumeTimeout)
+	defer tick.Stop()
+	select {
+	case ipt.pauseCh <- false:
+		return nil
+	case <-tick.C:
+		return fmt.Errorf("resume %s failed", inputName)
+	}
+}
+
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
@@ -558,21 +592,31 @@ func (ipt *Input) doServerTask() {
 		ipt.variables.run()
 
 		for {
-			l.Debug("try pull tasks...")
-			startPullTime := time.Now()
-			j, err := ipt.pullTask()
-			if err != nil {
-				l.Warnf(`pullTask: %s, ignore`, err.Error())
-			} else {
-				l.Debug("try dispatch tasks...")
-				endPullTime := time.Now()
-				if err := ipt.dispatchTasks(j); err != nil {
-					l.Warnf("dispatchTasks: %s, ignored", err.Error())
+			if !ipt.pause {
+				l.Debug("try pull tasks...")
+				startPullTime := time.Now()
+				j, err := ipt.pullTask()
+				if err != nil {
+					l.Warnf(`pullTask: %s, ignore`, err.Error())
 				} else {
-					taskPullCostSummary.WithLabelValues(ipt.regionName, "0").
-						Observe(float64(endPullTime.Sub(startPullTime)) / float64(time.Second))
+					l.Debug("try dispatch tasks...")
+					endPullTime := time.Now()
+					if err := ipt.dispatchTasks(j); err != nil {
+						l.Warnf("dispatchTasks: %s, ignored", err.Error())
+					} else {
+						taskPullCostSummary.WithLabelValues(ipt.regionName, "0").
+							Observe(float64(endPullTime.Sub(startPullTime)) / float64(time.Second))
+					}
+				}
+			} else {
+				l.Debug("pause, ignore pull tasks")
+				if ipt.pos > 0 {
+					l.Info("election defeat, stop all task")
+					ipt.stopAlltask()
+					ipt.pos = 0
 				}
 			}
+
 			select {
 			case <-datakit.Exit.Wait():
 				l.Info("exit")
@@ -583,6 +627,7 @@ func (ipt *Input) doServerTask() {
 				return
 
 			case <-tick.C:
+			case ipt.pause = <-ipt.pauseCh:
 			}
 		}
 	}
@@ -1059,6 +1104,8 @@ func defaultInput() *Input {
 			updateVariables:  []dt.Variable{},
 			updateVariableCh: make(chan dt.Variable, 100),
 		},
+		Election: true,
+		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
 	}
 }
 

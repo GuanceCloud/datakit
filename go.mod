@@ -374,7 +374,7 @@ require (
 )
 
 require (
-	github.com/GuanceCloud/cliutils v1.1.22-0.20250527022327-172e19beaa76
+	github.com/GuanceCloud/cliutils v1.1.22-0.20250611022309-e9ba0146e33f
 	github.com/VictoriaMetrics/easyproto v0.1.4 // indirect
 	github.com/andybalholm/brotli v1.0.4
 	github.com/avast/retry-go/v4 v4.1.0 // indirect
@@ -392,10 +392,12 @@ require (
 	github.com/valyala/fastjson v1.6.3
 )
 
-require github.com/GuanceCloud/pipeline-go v1.0.3
+require (
+	github.com/GuanceCloud/pipeline-go v1.0.3
+	github.com/hipages/php-fpm_exporter v1.2.1
+)
 
 require (
-	github.com/hipages/php-fpm_exporter v1.2.1 // indirect
 	github.com/speps/go-hashids v2.0.0+incompatible // indirect
 	github.com/tomasen/fcgi_client v0.0.0-20180423082037-2bb3d819fd19 // indirect
 )
