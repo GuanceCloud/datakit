@@ -386,3 +386,4 @@ Currently, this feature is only supported in **Java Agent**. Below are descripti
 - [DataKit Tracing Field definition](datakit-tracing-struct.md)
 - [DataKit general Tracing data collection instructions](datakit-tracing.md)
 - [Proper use of regular expressions to configure](../datakit/datakit-input-conf.md#debug-regex)
+- Sampling strategy considerations when DDTrace and OpenTelemetry are concatenated: [Tracing Sampled](tracing-sample.md)

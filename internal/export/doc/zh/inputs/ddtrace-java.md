@@ -393,4 +393,7 @@ public AjaxResult billing(String tag) {
 ## 更多 {#more-reading}
 
 - 二开版本的 [DDTrace JAVA 扩展内容](ddtrace-ext-java.md)
+- 二开版本的 [DDTrace JAVA 更新日志](ddtrace-ext-changelog.md)
 - 默认会采集指标，具体 [指标集列表](jvm.md#metric)
+- [Java 接入与异常说明](ddtrace-java.md)
+- [DDTrace 采样策略和多链路工具串联注意事项](tracing-sample.md)
