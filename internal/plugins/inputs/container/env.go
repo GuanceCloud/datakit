@@ -216,7 +216,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	whitelistStr := ""
-	// This code is to maintain compatibility.
+	// Deprecated, but kept for backward compatibility.
 	if str, ok := envs["ENV_LOGGING_FIELD_WHITE_LIST"]; ok && str != "" {
 		whitelistStr = str
 	}
@@ -230,7 +230,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	}
 
 	openfilesStr := ""
-	// This code is to maintain compatibility.
+	// Deprecated, but kept for backward compatibility.
 	if str, ok := envs["ENV_LOGGING_MAX_OPEN_FILES"]; ok && str != "" {
 		openfilesStr = str
 	}

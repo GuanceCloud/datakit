@@ -20,10 +20,10 @@ import (
 )
 
 const (
+	deploymentType              = "Deployment"
 	deploymentMetricMeasurement = "kube_deployment"
-	deploymentObjectMeasurement = "kubernetes_deployments"
-	deploymentChangeSource      = "kubernetes_deployments"
-	deploymentChangeSourceType  = "Deployment"
+	deploymentObjectClass       = "kubernetes_deployments"
+	deploymentObjectResourceKey = "deployment_name"
 )
 
 //nolint:gochecknoinits
@@ -89,7 +89,7 @@ func (d *deployment) addChangeInformer(informerFactory informers.SharedInformerF
 	}
 
 	updateFunc := func(oldObj, newObj interface{}) {
-		objectChangeCountVec.WithLabelValues(deploymentChangeSourceType, "update").Inc()
+		objectChangeCountVec.WithLabelValues(deploymentType, "update").Inc()
 
 		oldDeploymentObj, ok := oldObj.(*apiappsv1.Deployment)
 		if !ok {
@@ -110,8 +110,8 @@ func (d *deployment) addChangeInformer(informerFactory informers.SharedInformerF
 		}
 
 		if difftext != "" {
-			objectChangeCountVec.WithLabelValues(deploymentChangeSourceType, "spec-changed").Inc()
-			processChange(d.cfg, deploymentChangeSource, deploymentChangeSourceType, difftext, newDeploymentObj)
+			objectChangeCountVec.WithLabelValues(deploymentType, "spec-changed").Inc()
+			processChange(d.cfg, deploymentObjectClass, deploymentObjectResourceKey, deploymentType, difftext, newDeploymentObj)
 		}
 	}
 
@@ -174,7 +174,7 @@ func (d *deployment) buildObjectPoints(list *apiappsv1.DeploymentList) []*point.
 
 		kvs = kvs.AddTag("name", string(item.UID))
 		kvs = kvs.AddTag("uid", string(item.UID))
-		kvs = kvs.AddTag("deployment_name", item.Name)
+		kvs = kvs.AddTag(deploymentObjectResourceKey, item.Name)
 		kvs = kvs.AddTag("namespace", item.Namespace)
 
 		kvs = kvs.AddV2("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3, false)
@@ -226,7 +226,7 @@ func (d *deployment) buildObjectPoints(list *apiappsv1.DeploymentList) []*point.
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, d.cfg.LabelAsTagsForNonMetric.All, d.cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(d.cfg.ExtraTags)...)
-		pt := point.NewPointV2(deploymentObjectMeasurement, kvs, opts...)
+		pt := point.NewPointV2(deploymentObjectClass, kvs, opts...)
 		pts = append(pts, pt)
 	}
 
@@ -265,7 +265,7 @@ type deploymentObject struct{}
 //nolint:lll
 func (*deploymentObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: deploymentObjectMeasurement,
+		Name: deploymentObjectClass,
 		Desc: "The object of the Kubernetes Deployment.",
 		Cat:  point.Object,
 		Tags: map[string]interface{}{

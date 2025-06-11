@@ -20,7 +20,7 @@ import (
 
 const (
 	jobMetricMeasurement = "kube_job"
-	jobObjectMeasurement = "kubernetes_jobs"
+	jobObjectClass       = "kubernetes_jobs"
 )
 
 //nolint:gochecknoinits
@@ -177,7 +177,7 @@ func (j *job) buildObjectPoints(list *apibatchv1.JobList) []*point.Point {
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, j.cfg.LabelAsTagsForNonMetric.All, j.cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(j.cfg.ExtraTags)...)
-		pt := point.NewPointV2(jobObjectMeasurement, kvs, opts...)
+		pt := point.NewPointV2(jobObjectClass, kvs, opts...)
 		pts = append(pts, pt)
 	}
 
@@ -213,7 +213,7 @@ type jobObject struct{}
 //nolint:lll
 func (*jobObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: jobObjectMeasurement,
+		Name: jobObjectClass,
 		Desc: "The object of the Kubernetes Job.",
 		Cat:  point.Object,
 		Tags: map[string]interface{}{

@@ -24,7 +24,7 @@ import (
 
 const (
 	podMetricMeasurement = "kube_pod"
-	podObjectMeasurement = "kubelet_pod"
+	podObjectClass       = "kubelet_pod"
 )
 
 //nolint:gochecknoinits
@@ -285,7 +285,7 @@ func (p *pod) buildObjectPoints(list *apicorev1.PodList, metricsClient PodMetric
 			kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, p.cfg.LabelAsTagsForNonMetric.All, p.cfg.LabelAsTagsForNonMetric.Keys)...)
 		}
 		kvs = append(kvs, point.NewTags(p.cfg.ExtraTags)...)
-		pt := point.NewPointV2(podObjectMeasurement, kvs, opts...)
+		pt := point.NewPointV2(podObjectClass, kvs, opts...)
 		pts = append(pts, pt)
 	}
 
@@ -369,8 +369,8 @@ func queryPodMetrics(ctx context.Context, client PodMetricsClient, item *apicore
 	kvs = kvs.AddV2("mem_usage", podMet.memoryUsageBytes, false)
 	kvs = kvs.AddV2("mem_rss", podMet.memoryRSSBytes, false)
 	kvs = kvs.AddV2("mem_capacity", node.memCapacity, false)
-	kvs = kvs.AddV2("memory_usage_bytes", podMet.memoryUsageBytes, false) // maintain compatibility
-	kvs = kvs.AddV2("memory_capacity", node.memCapacity, false)           // maintain compatibility
+	kvs = kvs.AddV2("memory_usage_bytes", podMet.memoryUsageBytes, false) // Retained for backward compatibility.
+	kvs = kvs.AddV2("memory_capacity", node.memCapacity, false)           // Retained for backward compatibility.
 
 	if node.cpuCapacityMillicores != 0 {
 		cores := node.cpuCapacityMillicores / 1e3
@@ -393,8 +393,9 @@ func queryPodMetrics(ctx context.Context, client PodMetricsClient, item *apicore
 
 	if node.memCapacity != 0 {
 		x := float64(podMet.memoryUsageBytes) / float64(node.memCapacity) * 100
-		kvs = kvs.AddV2("mem_used_percent_base_100", x, false)
-		kvs = kvs.AddV2("memory_used_percent", x, false) // maintain compatibility
+		kvs = kvs.AddV2("mem_used_percent", x, false)
+		kvs = kvs.AddV2("mem_used_percent_base_100", x, false) // Retained for backward compatibility.
+		kvs = kvs.AddV2("memory_used_percent", x, false)       // Retained for backward compatibility.
 	}
 	if memLimit := podutil.SumMemoryLimits(item); memLimit != 0 {
 		kvs = kvs.AddV2("mem_limit", memLimit, false)
@@ -469,7 +470,7 @@ type podObject struct{}
 //nolint:lll
 func (*podObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: podObjectMeasurement,
+		Name: podObjectClass,
 		Desc: "The object of the Kubernetes Pod.",
 		Cat:  point.Object,
 		Tags: map[string]interface{}{
@@ -508,6 +509,7 @@ func (*podObject) Info() *inputs.MeasurementInfo {
 			"mem_capacity":                      &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory capacity of the host machine."},
 			"mem_limit":                         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory limit across all containers in this Pod.  Note: This value is the sum of all container limit values, as Pods do not have a direct limit value."},
 			"mem_request":                       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory request across all containers in this Pod.  Note: This value is the sum of all container request values, as Pods do not have a direct request value."},
+			"mem_used_percent_base_100":         &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage usage of the memory (refer from `mem_used_percent`"},
 			"memory_usage_bytes":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The sum of the memory usage of all containers in this Pod (Deprecated use `mem_usage`)."},
 			"memory_capacity":                   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "The total memory in the host machine (Deprecated use `mem_capacity`)."},
 			"memory_used_percent":               &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Percent, Desc: "The percentage usage of the memory (refer from `mem_used_percent`"},
