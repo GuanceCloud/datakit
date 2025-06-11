@@ -60,6 +60,8 @@ func (t *TrapListener) run() {
 	if err != nil {
 		t.errorsChannel <- err
 	}
+
+	l.Info("TrapListener exited, error: %v", err)
 }
 
 func (t *TrapListener) blockUntilReady() error {

@@ -241,7 +241,6 @@ func (ipt *Input) initSessionReplayWorkers() error {
 							return nil
 						}); err != nil {
 							if errors.Is(err, diskcache.ErrNoData) {
-								log.Debugf("disk queue is empty: %s", err)
 								time.Sleep(time.Millisecond * 1500)
 							} else {
 								log.Errorf("unable to get msg from disk cache: %s", err)

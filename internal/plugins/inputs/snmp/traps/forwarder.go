@@ -69,7 +69,7 @@ func (tf *TrapForwarder) run() {
 	for {
 		select {
 		case <-tf.stopChan:
-			l.Info("Stopped TrapForwarder")
+			l.Info("TrapForwarder exited")
 			return
 		case packet := <-tf.trapsIn:
 			tf.sendTrap(packet)

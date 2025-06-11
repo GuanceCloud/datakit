@@ -33,7 +33,7 @@ func (ipt *Input) initUserDefinition() {
 
 	for idx, store := range ipt.UserProfileStore.ZabbixStores {
 		for _, ip := range store.IPList {
-			ipt.jobs <- Job{
+			ipt.jobs <- snmpJob{
 				ID:  USER_DISCOVERY,
 				IP:  ip,
 				Idx: idx,
@@ -89,7 +89,7 @@ func (ipt *Input) dispatchUserDiscovery(subnet string, discovery *discoveryInfo)
 			continue
 		}
 
-		ipt.jobs <- Job{
+		ipt.jobs <- snmpJob{
 			ID:  USER_DISCOVERY,
 			IP:  deviceIP,
 			Idx: -1,
@@ -339,7 +339,7 @@ func (ipt *Input) collectUserObject() {
 			return true
 		}
 
-		ipt.jobs <- Job{
+		ipt.jobs <- snmpJob{
 			ID:     COLLECT_USER_OBJECT,
 			IP:     ip,
 			Device: device,
@@ -393,7 +393,7 @@ func (ipt *Input) collectUserMetrics() {
 		class := device.ClassName()
 		deviceNumbers[class]++
 
-		ipt.jobs <- Job{
+		ipt.jobs <- snmpJob{
 			ID:     COLLECT_USER_METRICS,
 			IP:     ip,
 			Device: device,

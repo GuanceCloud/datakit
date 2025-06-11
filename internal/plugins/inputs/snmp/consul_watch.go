@@ -97,7 +97,7 @@ func (w *Watcher) doConsulJob(svc *consulapi.AgentService) {
 		tags[k] = v
 	}
 
-	w.Ipt.jobs <- Job{
+	w.Ipt.jobs <- snmpJob{
 		ID:         USER_DISCOVERY,
 		IP:         deviceIP,
 		Idx:        -1,
