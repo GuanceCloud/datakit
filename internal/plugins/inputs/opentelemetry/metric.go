@@ -161,10 +161,22 @@ func attributesToTag(src []*common.KeyValue) map[string]string {
 	for _, s := range delMetricKey {
 		delete(shadowTags, s)
 	}
+	log.Infof("shadowtags len=%d", len(shadowTags))
 	return shadowTags
 }
 
 func mergeTags(resource, scope, pt map[string]string) point.KVs {
+	var kv point.KVs
+	for _, m := range []map[string]string{resource, scope, pt} {
+		for k, v := range m {
+			k = strings.ReplaceAll(k, ".", "_")
+			kv = kv.AddTag(k, v)
+		}
+	}
+	return kv
+}
+
+func mergeTagsToField(resource, scope, pt map[string]string) point.KVs {
 	var kv point.KVs
 	for _, m := range []map[string]string{resource, scope, pt} {
 		for k, v := range m {
