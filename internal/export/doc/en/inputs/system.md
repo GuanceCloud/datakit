@@ -21,9 +21,7 @@ The system collector collects system load, uptime, the number of CPU cores, and 
 
 ## Configuration {#config}
 
-## Preconditions {#requrements}
-
-None
+After successfully installing and starting DataKit, the system collector will be enabled by default without the need for manual activation.
 
 <!-- markdownlint-disable MD046 -->
 ## Collector Configuration {#input-config}
