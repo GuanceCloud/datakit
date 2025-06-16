@@ -362,6 +362,7 @@ func init() { //nolint:gochecknoinits
 			semStop:   cliutils.NewSem(),
 		}
 	})
+
 	inputs.Add(deprecatedInputName, func() inputs.Input {
 		return &Input{
 			Tags:      make(map[string]string),

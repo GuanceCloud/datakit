@@ -204,6 +204,14 @@ func (gd *GuanceDocs) exportMeasurements() error {
 	for inputName, c := range inputs.Inputs {
 		l.Debugf("export measurement info for %q...", inputName)
 
+		switch inputName {
+		// there is no tailf.md and nvidia_smi.md and to avoid 440 page.
+		case "tailf", "nvidia_smi": // duplicated with logging and gpu_smi
+			l.Infof("skip duplicated measurement from %q", inputName)
+			continue
+		default: // pass
+		}
+
 		input := c()
 		switch ipt := input.(type) {
 		// nolint:gocritic
