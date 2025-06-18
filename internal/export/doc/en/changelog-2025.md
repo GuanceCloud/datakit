@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.75.1(2025/06/18) {#cl-1.75.1}
+
+This release is a hotfix containing the following updates:
+
+### Bug Fixes {#cl-1.75.1-fix}
+
+- Fixed log collection path configuration issue on Windows (#2718)
+- Fixed OpenTelemetry metrics collection issue (#2720)
+- Fixed Jenkins CI collection issue and added GitLab Pipeline queue metrics collection (#2725)
+- Fixed high disk IO issue caused by WAL implementation (#2717)
+
+---
+
 ## 1.75.0 (2025/06/11) {#cl-1.75.0}
 
 This is an iterative release with the following key updates:
