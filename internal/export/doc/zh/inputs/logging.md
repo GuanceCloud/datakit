@@ -38,7 +38,7 @@ monitor   :
         "/var/log/*.txt",                          # 文件路径下所有 txt 文件
         "/var/log/sys*",                           # 文件路径下所有以 sys 前缀的文件
         "/var/log/syslog",                         # Unix 格式文件路径
-        '''C:\\path\\space 空格中文路径\\*.txt''', # Windows 风格文件路径，路径分割符为双反斜杠 \\，并且两侧各有三个单引号
+        "C:/path/space 空格中文路径/*.txt",        # Windows 文件路径和 Unix 相同风格
       ]
     
       ## socket 目前支持两种协议：tcp/udp。建议开启内网端口防止安全隐患
@@ -244,14 +244,14 @@ testing,filename=/tmp/094318188 message="2020-10-23 06:41:56,688 INFO demo.py 5.
 
 #### 超长多行日志处理的限制 {#too-long-logs}
 
-目前最多能处理不超过 32MiB 的单条多行日志，如果实际多行日志超过 32MiB，DataKit 会将其识别成多条。举例如下，假定有如下多行日志，我们要将其识别成单条日志：
+单条多行日志不超过 DataKit 配置项 `MaxRawBodySize * 0.8`（默认 819KiB) 大小，如果超过这个值，DataKit 会将剩余的日志也拼接起来，即使它们不是有效的多行数据。举例如下，假定有如下多行日志：
 
 ```log
 2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
 Traceback (most recent call last):
   File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
     response = self.full_dispatch_request()
-      ...                                 <---- 此处省略 32MiB - 800 字节，加上上面的 4 行，刚好超过 32MiB
+      ...                                 <---- 此处省略 819KiB
         File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
           response = self.full_dispatch_request()
              ZeroDivisionError: division by zero
@@ -260,19 +260,19 @@ Traceback (most recent call last):
  ...
 ```
 
-此处，由于有超长的多行日志，第一条日志超过 32MiB，DataKit 提前结束这条多行，最终得到三条日志：
+此处，由于有超长的多行日志，第一条日志超过 819KiB，DataKit 提前结束这条多行，最终得到三条日志：
 
-第一条：即头部的 32MiB
+第一条：即头部的 819KiB
 
 ```log
 2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
 Traceback (most recent call last):
   File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
     response = self.full_dispatch_request()
-      ...                                 <---- 此处省略 32MiB - 800 字节，加上上面的 4 行，刚好超过 32MiB
+      ...                                 <---- 此处省略 819KiB
 ```
 
-第二条：除去头部的 32MiB，剩余的部分独立成为一条日志
+第二条：除去头部的 819KiB，剩余的部分拼接成为一条日志
 
 ```log
         File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
