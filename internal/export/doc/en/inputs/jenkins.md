@@ -25,6 +25,9 @@ The Jenkins collector monitors Jenkins through plugin `Metrics` data collection,
 
 - JenKins version >= `2.332.1`; Already tested version:
     - [x] 2.332.1
+    - [x] 2.452.4
+    - [x] 2.479.1
+    - [x] 2.504.2
 
 - Install JenKins [see here](https://www.jenkins.io/doc/book/installing/){:target="_blank"}
 - Download the `Metric` plug-in, [management plug-in page](https://www.jenkins.io/doc/book/managing/plugins/){:target="_blank"},[Metric plug-in page](https://plugins.jenkins.io/metrics/){:target="_blank"}

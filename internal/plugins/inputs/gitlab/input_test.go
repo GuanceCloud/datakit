@@ -544,7 +544,7 @@ func newMockWriter() *mockWriter {
 }
 
 func TestPipelineJson(t *testing.T) {
-	var ppl PipelineEventPayload
+	var ppl plEventPayload
 	if err := json.Unmarshal([]byte(pipelineJson1), &ppl); err != nil {
 		t.Error(err)
 	}
@@ -554,7 +554,7 @@ func TestPipelineJson(t *testing.T) {
 }
 
 func TestJobJson(t *testing.T) {
-	var h JobEventPayload
+	var h jobEventPayload
 	if err := json.Unmarshal([]byte(jobJson), &h); err != nil {
 		t.Error(err)
 	}
@@ -584,18 +584,19 @@ func TestGetPipelineTagsAndFields(t *testing.T) {
 				"ref":             "master",
 			},
 			map[string]interface{}{
-				"duration":       int64(63000000),
-				"pipeline_id":    "31",
-				"commit_message": "test\n",
-				"message":        "test\n",
-				"created_at":     int64(1471015408000),
-				"finished_at":    int64(1471015589000),
+				"duration":        int64(63000000),
+				"pipeline_id":     "31",
+				"commit_message":  "test\n",
+				"message":         "test\n",
+				"created_at":      int64(1471015408000),
+				"finished_at":     int64(1471015589000),
+				"queued_duration": int64(118000),
 			},
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var pipeline PipelineEventPayload
+			var pipeline plEventPayload
 			if err := json.Unmarshal([]byte(tc.eventJson), &pipeline); err != nil {
 				t.Error(err)
 			}
@@ -615,7 +616,7 @@ func TestGetJobTagsAndFields(t *testing.T) {
 		expectedFields map[string]interface{}
 	}{
 		{
-			"success job",
+			"success-job",
 			jobJson,
 			map[string]string{
 				"object_kind":          "build",
@@ -637,11 +638,11 @@ func TestGetJobTagsAndFields(t *testing.T) {
 				"build_started_at":     int64(1614048097886),
 				"build_commit_message": "test\n",
 				"message":              "test\n",
-				"build_duration":       int64(0),
+				"build_created_at":     int64(1614048097886),
 			},
 		},
 		{
-			"failed job",
+			"failed-job",
 			failedJobJson,
 			map[string]string{
 				"object_kind":          "build",
@@ -664,13 +665,15 @@ func TestGetJobTagsAndFields(t *testing.T) {
 				"build_commit_message": "Update .gitlab-ci.yml",
 				"message":              "Update .gitlab-ci.yml",
 				"build_duration":       int64(16791868),
+				"build_created_at":     int64(1650161525000),
 				"build_finished_at":    int64(1650161552000),
+				"queued_duration":      int64(10100971), // use duration from json
 			},
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var job JobEventPayload
+			var job jobEventPayload
 			if err := json.Unmarshal([]byte(tc.eventJson), &job); err != nil {
 				t.Error(err)
 			}

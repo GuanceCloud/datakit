@@ -66,14 +66,9 @@ See [official configuration doc](https://docs.gitlab.com/ee/administration/monit
 
 ### Turn on GitLab CI Visualization {#ci-visible}
 
-Ensure that the DataFlux Func platform is available.
+By configuring GitLab Webhook, GitLab CI visualization can be achieved, the steps to enable it are as follows:
 
-By configuring GitLab Webhook, GitLab CI visualization can be achieved. Data reporting needs to be done through DataFlux Func, and the steps to enable it are as follows:
-
-1. Install the GitLab CI integration (script ID: `guance_gitlab_ci`) on DataFlux Func. Follow the installation process as referenced in [GitLab CI Integration Configuration](https://func.<<<custom_key.brand_main_domain>>>/doc/script-market-guance-gitlab-ci/){:target="_blank"};
-2. In GitLab go to `Settings` > `Webhooks`, configure the URL to the API address obtained from step one. Trigger configure Job events and Pipeline events, and click Add webhook to confirm the addition;
-
-Triggering the GitLab CI process will allow you to log in to <<<custom_key.brand_name>>> to view the execution status of CI after completion.
+In GitLab go to {{ UISteps "Settings,Webhooks" ","}}, configure the URL to the API address obtained from step one. Trigger configure **Job events** and **Pipeline events**, and click Add webhook to confirm the addition;
 
 ## Metric {#metric}
 
@@ -98,8 +93,9 @@ We can specify additional tags for **Gitlab CI data** in the configuration by `[
 Note: To ensure that GitLab CI functions properly, the extra tags specified for GitLab CI data do not overwrite tags already in its data (see below for a list of GitLab CI tags).
 
 
-
 {{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "metric"}}
 
 ### `{{$m.Name}}`
 
@@ -113,4 +109,26 @@ Note: To ensure that GitLab CI functions properly, the extra tags specified for 
 
 {{$m.FieldsMarkdownTable}}
 
+{{ end }}
+{{ end }}
+
+## Logging {#logging}
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "logging"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- Tags
+
+{{$m.TagsMarkdownTable}}
+
+- Metrics
+
+{{$m.FieldsMarkdownTable}}
+
+{{ end }}
 {{ end }}

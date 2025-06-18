@@ -80,6 +80,7 @@ func (ipt *Input) setup() {
 
 func (ipt *Input) setupServer() {
 	router := gin.Default()
+	router.GET("/info", gin.WrapH(ipt))
 	router.PUT("/v0.3/traces", gin.WrapH(ipt))
 	ipt.srv = &http.Server{
 		Addr:        ipt.CIEventPort,
@@ -294,10 +295,11 @@ func (ipt *Input) Resume() error {
 
 func defaultInput() *Input {
 	return &Input{
-		Interval: datakit.Duration{Duration: time.Second * 30},
-		semStop:  cliutils.NewSem(),
-		feeder:   dkio.DefaultFeeder(),
-		Tagger:   datakit.DefaultGlobalTagger(),
+		Interval:   datakit.Duration{Duration: time.Second * 30},
+		semStop:    cliutils.NewSem(),
+		feeder:     dkio.DefaultFeeder(),
+		Tagger:     datakit.DefaultGlobalTagger(),
+		DDInfoResp: `{"endpoints": ["/v0.3/traces"]}`,
 
 		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
 		Election: true, // default enable election
