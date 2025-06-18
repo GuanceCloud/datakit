@@ -40,7 +40,7 @@ This document focuses on local disk log collection and Socket log collection:
         "/var/log/*.txt",            # All files of the txt
         "/var/log/sys*",             # All files prefixed with sys under the file path
         "/var/log/syslog",           # Unix format file path
-        '''C:\\path\\log\\*.txt''',  # Windows-style file path, where the path separator is a double backslash \\, and there are three single quotes on both sides.
+        "C:/path/*.txt",             # Windows file paths are in the same style as Unix
       ]
     
       ## socket currently supports two protocols: tcp/udp. It is recommended to open the intranet port to prevent potential safety hazards
@@ -247,14 +247,14 @@ Because there are multiple multi-row configurations for the log, their prioritie
 #### Restrictions on Processing Very Long Multi-line Logs {#too-long-logs}
 <!-- markdownlint-enable -->
 
-At present, a single multi-line log of no more than 32MiB can be processed at most. If the actual multi-line log exceeds 32MiB, DataKit will recognize it as multiple. For example, let's assume that there are several lines of logs as follows, and we want to identify them as a single log:
+An individual multiline log should not exceed the size of `MaxRawBodySize * 0.8` (default 819KiB) as configured in DataKit. If it exceeds this value, DataKit will concatenate the remaining logs, even if they are not valid multiline data. An example is as follows, assuming the following multiline logs:
 
 ```log
 2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
 Traceback (most recent call last):
   File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
     response = self.full_dispatch_request()
-      ...                                 <---- Omitting 32MiB here - 800 bytes, plus the 4 lines above, is just over 32MiB
+      ...                                 <---- Omitting 819KiB
         File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
           response = self.full_dispatch_request()
              ZeroDivisionError: division by zero
@@ -263,19 +263,19 @@ Traceback (most recent call last):
  ...
 ```
 
-Here, because of the super-long multi-line log, the first log exceeds 32MiB, DataKit ends this multi-line early, and finally gets three logs:
+Here, because of the super-long multi-line log, the first log exceeds 819KiB DataKit ends this multi-line early, and finally gets three logs:
 
-Number 1: 32MiB of the head
+Number 1: 819KiB of the head
 
 ```log
 2020-10-23 06:54:20,164 ERROR /usr/local/lib/python3.6/dist-packages/flask/app.py Exception on /0 [GET]
 Traceback (most recent call last):
   File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app
     response = self.full_dispatch_request()
-      ...                                 <---- Omitting 32MiB here - 800 bytes, plus the 4 lines above, is just over 32MiB
+      ...                                 <---- Omitting 819KiB
 ```
 
-Number 2: Remove the 32MiB in the header, and the rest will become a log independently
+Number 2: Remove the 819KiB in the header, and the rest will become a log independently
 
 ```log
         File "/usr/local/lib/python3.6/dist-packages/flask/app.py", line 2447, in wsgi_app

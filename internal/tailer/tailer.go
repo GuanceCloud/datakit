@@ -56,7 +56,9 @@ type Tailer struct {
 
 func NewTailer(patterns []string, opts ...Option) (*Tailer, error) {
 	_ = logtail.InitDefault()
+
 	c := getOption(opts...)
+	patterns = cleanPatterns(patterns)
 
 	tailer := &Tailer{
 		options:       opts,
@@ -259,4 +261,14 @@ func (t *Tailer) shouldOpenFile(file string) bool {
 		return false
 	}
 	return true
+}
+
+func cleanPatterns(patterns []string) []string {
+	newPatterns := make([]string, len(patterns))
+	copy(newPatterns, patterns)
+	for i := range newPatterns {
+		newPatterns[i] = filepath.Clean(newPatterns[i])
+		newPatterns[i] = filepath.ToSlash(newPatterns[i])
+	}
+	return newPatterns
 }

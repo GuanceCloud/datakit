@@ -9,6 +9,7 @@ package fileprovider
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/bmatcuk/doublestar/v4"
@@ -49,7 +50,7 @@ func (sc *Scanner) ScanFiles() ([]string, error) {
 		}
 	}
 
-	return unique(files), nil
+	return toSlash(unique(files)), nil
 }
 
 func unique(slice []string) []string {
@@ -62,4 +63,11 @@ func unique(slice []string) []string {
 		}
 	}
 	return res
+}
+
+func toSlash(paths []string) []string {
+	for i := range paths {
+		paths[i] = filepath.ToSlash(paths[i])
+	}
+	return paths
 }
