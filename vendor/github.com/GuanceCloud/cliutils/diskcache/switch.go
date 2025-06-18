@@ -37,7 +37,7 @@ func (c *DiskCache) loadUnfinishedFile() error {
 	}
 
 	// invalid .pos, ignored
-	if pos.Seek <= 0 {
+	if pos.Seek <= 0 && pos.Name == nil {
 		return nil
 	}
 
@@ -62,6 +62,13 @@ func (c *DiskCache) loadUnfinishedFile() error {
 func (c *DiskCache) doSwitchNextFile() error {
 	c.rwlock.Lock()
 	defer c.rwlock.Unlock()
+
+	// clear .pos: prepare for new .pos for next new file.
+	if !c.noPos {
+		if err := c.pos.reset(); err != nil {
+			return err
+		}
+	}
 
 	if len(c.dataFiles) == 0 {
 		return nil
@@ -88,6 +95,8 @@ func (c *DiskCache) doSwitchNextFile() error {
 		if err := c.pos.dumpFile(); err != nil {
 			return err
 		}
+
+		posUpdatedVec.WithLabelValues("switch", c.path).Inc()
 	}
 
 	return nil

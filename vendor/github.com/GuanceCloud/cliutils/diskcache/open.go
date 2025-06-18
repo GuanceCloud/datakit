@@ -188,5 +188,11 @@ func (c *DiskCache) Close() error {
 		c.wfd = nil
 	}
 
+	if c.pos != nil {
+		if err := c.pos.close(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
