@@ -57,7 +57,7 @@ func ParseLogsRequest(resourceLogss []*logs.ResourceLogs) []*point.Point {
 				}
 				messages := splitByByteLength(message, logMaxLen)
 				for i, msg := range messages {
-					kvs := mergeTags(resourceTags, scopeTags, ptTags)
+					kvs := mergeTagsToField(resourceTags, scopeTags, ptTags)
 					for k, v := range globalTags { // span.attribute 优先级大于全局tag。
 						kvs = kvs.AddV2(k, v, false)
 					}
