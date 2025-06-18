@@ -14,6 +14,7 @@ var (
 	rotateVec,
 	removeVec,
 	wakeupVec,
+	posUpdatedVec,
 	seekBackVec *prometheus.CounterVec
 
 	sizeVec,
@@ -146,6 +147,15 @@ func setupMetrics() {
 		[]string{"path"},
 	)
 
+	posUpdatedVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: ns,
+			Name:      "pos_updated_total",
+			Help:      ".pos file updated count",
+		},
+		[]string{"op", "path"},
+	)
+
 	seekBackVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: ns,
@@ -234,6 +244,7 @@ func ResetMetrics() {
 	droppedDataVec.Reset()
 	rotateVec.Reset()
 	wakeupVec.Reset()
+	posUpdatedVec.Reset()
 	seekBackVec.Reset()
 	capVec.Reset()
 	batchSizeVec.Reset()
@@ -252,6 +263,7 @@ func Metrics() []prometheus.Collector {
 		rotateVec,
 		removeVec,
 		wakeupVec,
+		posUpdatedVec,
 		seekBackVec,
 
 		sizeVec,

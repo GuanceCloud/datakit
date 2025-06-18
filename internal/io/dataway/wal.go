@@ -29,6 +29,7 @@ type Cache interface {
 type WALConf struct {
 	MaxCapacityGB          float64       `toml:"max_capacity_gb"`
 	Path                   string        `toml:"path,omitempty"`
+	NoPos                  bool          `toml:"no_pos"`
 	FailCacheCleanInterval time.Duration `toml:"fail_cache_clean_interval"`
 
 	NoDropCategories []string `toml:"no_drop_categories"`
@@ -217,6 +218,7 @@ func (dw *Dataway) setupWAL() error {
 		cacheDir := filepath.Join(dw.WAL.Path, cat.String())
 		opts := []diskcache.CacheOption{
 			diskcache.WithPath(cacheDir),
+			diskcache.WithNoPos(dw.WAL.NoPos),
 			diskcache.WithNoLock(true),            // disable .lock file checking
 			diskcache.WithWakeup(defaultRotateAt), // short wakeup on WAL queue
 			diskcache.WithCapacity(int64(dw.WAL.MaxCapacityGB * float64(1<<30))),
@@ -247,6 +249,7 @@ func (dw *Dataway) setupWAL() error {
 		diskcache.WithPath(filepath.Join(dw.WAL.Path, "fc")),
 		diskcache.WithFILODrop(true), // under fail-cache, still drop data if WAL disk full(no matter which category)
 		diskcache.WithNoLock(true),
+		diskcache.WithNoPos(dw.WAL.NoPos),
 		diskcache.WithWakeup(defaultRotateAt),
 		diskcache.WithCapacity(int64(dw.WAL.MaxCapacityGB*float64(1<<30)))); err != nil {
 		return err

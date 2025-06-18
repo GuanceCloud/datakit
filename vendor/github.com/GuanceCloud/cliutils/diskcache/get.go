@@ -22,13 +22,6 @@ func (c *DiskCache) switchNextFile() error {
 		}
 	}
 
-	// clear .pos
-	if !c.noPos {
-		if err := c.pos.reset(); err != nil {
-			return err
-		}
-	}
-
 	// reopen next file to read
 	return c.doSwitchNextFile()
 }
@@ -156,11 +149,13 @@ retry:
 
 __updatePos:
 	// update seek position
-	if !c.noPos {
+	if !c.noPos && nbytes > 0 {
 		c.pos.Seek += int64(dataHeaderLen + nbytes)
 		if derr := c.pos.dumpFile(); derr != nil {
 			return derr
 		}
+
+		posUpdatedVec.WithLabelValues("get", c.path).Inc()
 	}
 
 __end:
