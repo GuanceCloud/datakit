@@ -55,42 +55,54 @@ type ddTraces []ddTrace
 
 func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	l.Debugf("Jenkins CI event server receives request: %s", req.URL.Path)
-	traces, err := decodeTraces(req)
-	if err != nil {
-		l.Errorf(err.Error())
-		return
-	}
-	var pts []*point.Point
-	for _, trace := range traces {
-		for _, span := range trace {
-			if !needStatus(span) {
-				l.Debugf("skip span with ci.status = %s", span.Meta["ci.status"])
-				continue
-			}
-			pt, err := ipt.getPoint(span)
-			if err != nil {
-				l.Errorf(err.Error())
-				continue
-			}
-			if pt == nil {
-				continue
-			}
-			pts = append(pts, pt)
+
+	switch req.URL.Path {
+	case "/info": // Jenkins need this /info request to check availability of the webhook.
+		if _, err := resp.Write([]byte(ipt.DDInfoResp)); err != nil {
+			l.Warnf("write on /info failed: %s, ignored", err.Error())
 		}
-	}
-	if len(pts) == 0 {
-		l.Debugf("empty Jenkins CI point array")
-		return
-	}
-	if err := ipt.feeder.FeedV2(point.Logging, pts,
-		dkio.WithElection(ipt.Election),
-		dkio.WithInputName("jenkins_ci"),
-	); err != nil {
-		ipt.feeder.FeedLastError(err.Error(),
-			metrics.WithLastErrorInput(inputName),
-			metrics.WithLastErrorSource("jenkins_ci"),
-		)
-		resp.WriteHeader(http.StatusInternalServerError)
+
+	case "/v0.3/traces":
+		traces, err := decodeTraces(req)
+		if err != nil {
+			l.Errorf(err.Error())
+			return
+		}
+		var pts []*point.Point
+		for _, trace := range traces {
+			for _, span := range trace {
+				if !needStatus(span) {
+					l.Debugf("skip span with ci.status = %s", span.Meta["ci.status"])
+					continue
+				}
+				pt, err := ipt.getPoint(span)
+				if err != nil {
+					l.Errorf(err.Error())
+					continue
+				}
+				if pt == nil {
+					continue
+				}
+				pts = append(pts, pt)
+			}
+		}
+		if len(pts) == 0 {
+			l.Debugf("empty Jenkins CI point array")
+			return
+		}
+		if err := ipt.feeder.FeedV2(point.Logging, pts,
+			dkio.WithElection(ipt.Election),
+			dkio.WithInputName("jenkins_ci"),
+		); err != nil {
+			ipt.feeder.FeedLastError(err.Error(),
+				metrics.WithLastErrorInput(inputName),
+				metrics.WithLastErrorSource("jenkins_ci"),
+			)
+			resp.WriteHeader(http.StatusInternalServerError)
+		}
+
+	default:
+		l.Warnf("not support URL: %q, ignored", req.URL.Path)
 	}
 }
 

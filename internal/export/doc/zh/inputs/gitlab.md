@@ -64,14 +64,9 @@ GitLab 需要开启 Prometheus 数据采集功能，开启方式如下（以英�
 
 ### 开启 GitLab CI 可视化 {#ci-visible}
 
-确保已有 DataFlux Func 平台
+通过配置 GitLab Webhook，可以实现 GitLab CI 可视化。
 
-通过配置 GitLab Webhook，可以实现 GitLab CI 可视化。需要通过 DataFlux Func 进行数据上报，开启步骤如下：
-
-1. 在 DataFlux Func 上安装 GitLab CI 集成（脚本 ID：`guance_gitlab_ci`），安装流程参考[GitLab CI 集成配置](https://func.<<<custom_key.brand_main_domain>>>/doc/script-market-guance-gitlab-ci/){:target="_blank"};
-2. 在 GitLab 转到 `Settings` -> `Webhooks` 中，将 URL 配置为第一步的 API 地址，Trigger 配置 Job events 和 Pipeline events 两项，点击 Add webhook 确认添加；
-
-触发 GitLab CI 流程，执行结束后可以登陆<<<custom_key.brand_name>>>查看 CI 执行情况。
+在 GitLab 左边栏，转到 {{ UISteps "Settings,Webhooks" ","}} 中，将 URL 配置为第一步的 API 地址，Trigger 配置 **Job events** 和 **Pipeline events** 两项，点击 Add webhook 确认添加；
 
 ## 指标 {#metric}
 
@@ -99,6 +94,8 @@ GitLab 需要开启 Prometheus 数据采集功能，开启方式如下（以英�
 
 {{ range $i, $m := .Measurements }}
 
+{{if eq $m.Type "metric"}}
+
 ### `{{$m.Name}}`
 
 {{$m.Desc}}
@@ -111,4 +108,26 @@ GitLab 需要开启 Prometheus 数据采集功能，开启方式如下（以英�
 
 {{$m.FieldsMarkdownTable}}
 
+{{ end }}
+{{ end }}
+
+## 日志 {#logging}
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "logging"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+- 标签
+
+{{$m.TagsMarkdownTable}}
+
+- 指标列表
+
+{{$m.FieldsMarkdownTable}}
+
+{{ end }}
 {{ end }}

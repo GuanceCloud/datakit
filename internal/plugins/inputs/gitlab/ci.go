@@ -52,44 +52,49 @@ func (t *customTime) UnmarshalJSON(b []byte) (err error) {
 	return
 }
 
-// PipelineEventPayload contains the information for GitLab's pipeline status change event.
-type PipelineEventPayload struct {
-	ObjectKind       *string                   `json:"object_kind"`
-	User             *User                     `json:"user"`
-	Project          *Project                  `json:"project"`
-	Commit           *Commit                   `json:"commit"`
-	ObjectAttributes *PipelineObjectAttributes `json:"object_attributes"`
-	MergeRequest     *MergeRequest             `json:"merge_request"`
-	Builds           *[]Build                  `json:"builds"`
+// plEventPayload contains the information for GitLab's pipeline status change event.
+type plEventPayload struct {
+	ObjectKind       *string       `json:"object_kind"`
+	User             *user         `json:"user"`
+	Project          *project      `json:"project"`
+	Commit           *commit       `json:"commit"`
+	ObjectAttributes *plObjAttrs   `json:"object_attributes"`
+	MergeRequest     *mergeRequest `json:"merge_request"`
+	Builds           []build       `json:"builds"`
 }
 
-// JobEventPayload contains the information for GitLab's Job status change.
-type JobEventPayload struct {
-	ObjectKind         *string      `json:"object_kind"`
-	Ref                *string      `json:"ref"`
-	Tag                *bool        `json:"tag"`
-	BeforeSHA          *string      `json:"before_sha"`
-	SHA                *string      `json:"sha"`
-	BuildID            *int64       `json:"build_id"`
-	BuildName          *string      `json:"build_name"`
-	BuildStage         *string      `json:"build_stage"`
-	BuildStatus        *string      `json:"build_status"`
-	BuildStartedAt     *customTime  `json:"build_started_at"`
-	BuildFinishedAt    *customTime  `json:"build_finished_at"`
-	BuildDuration      *float64     `json:"build_duration"`
+// jobEventPayload contains the information for GitLab's Job status change.
+type jobEventPayload struct {
+	ObjectKind  *string `json:"object_kind"`
+	Ref         *string `json:"ref"`
+	Tag         *bool   `json:"tag"`
+	BeforeSHA   *string `json:"before_sha"`
+	SHA         *string `json:"sha"`
+	BuildID     *int64  `json:"build_id"`
+	BuildName   *string `json:"build_name"`
+	BuildStage  *string `json:"build_stage"`
+	BuildStatus *string `json:"build_status"`
+
+	BuildCreatedAt  *customTime `json:"build_created_at"`
+	BuildStartedAt  *customTime `json:"build_started_at"`
+	BuildFinishedAt *customTime `json:"build_finished_at"`
+
+	BuildQueuedDuration *float64 `json:"build_queued_duration"`
+	BuildDuration       *float64 `json:"build_duration"`
+
 	BuildAllowFailure  *bool        `json:"build_allow_failure"`
 	BuildFailureReason *string      `json:"build_failure_reason"`
 	PipelineID         *int64       `json:"pipeline_id"`
 	ProjectID          *int64       `json:"project_id"`
 	ProjectName        *string      `json:"project_name"`
-	User               *User        `json:"user"`
-	Commit             *BuildCommit `json:"commit"`
-	Repository         *Repository  `json:"repository"`
-	Runner             *Runner      `json:"runner"`
+	User               *user        `json:"user"`
+	Commit             *buildCommit `json:"commit"`
+	Repository         *repository  `json:"repository"`
+	Runner             *runner      `json:"runner"`
 }
 
-// Build contains all the GitLab Build information.
-type Build struct {
+// build contains all the GitLab build information.
+type build struct {
 	ID            *int64         `json:"id"`
 	Stage         *string        `json:"stage"`
 	Name          *string        `json:"name"`
@@ -99,40 +104,40 @@ type Build struct {
 	FinishedAt    *customTime    `json:"finished_at"`
 	When          *string        `json:"when"`
 	Manual        *bool          `json:"manual"`
-	User          *User          `json:"user"`
-	Runner        *Runner        `json:"runner"`
-	ArtifactsFile *ArtifactsFile `json:"artifactsfile"`
+	User          *user          `json:"user"`
+	Runner        *runner        `json:"runner"`
+	ArtifactsFile *artifactsFile `json:"artifactsfile"`
 }
 
-// Runner represents a runner agent.
-type Runner struct {
+// runner represents a runner agent.
+type runner struct {
 	ID          *int64  `json:"id"`
 	Description *string `json:"description"`
 	Active      *bool   `json:"active"`
 	IsShared    *bool   `json:"is_shared"`
 }
 
-// ArtifactsFile contains all the GitLab artifact information.
-type ArtifactsFile struct {
+// artifactsFile contains all the GitLab artifact information.
+type artifactsFile struct {
 	Filename *string `json:"filename"`
 	Size     *string `json:"size"`
 }
 
-// Commit contains all the GitLab commit information.
-type Commit struct {
+// commit contains all the GitLab commit information.
+type commit struct {
 	ID        *string     `json:"id"`
 	Message   *string     `json:"message"`
 	Title     *string     `json:"title"`
 	Timestamp *customTime `json:"timestamp"`
 	URL       *string     `json:"url"`
-	Author    *Author     `json:"author"`
+	Author    *author     `json:"author"`
 	Added     *[]string   `json:"added"`
 	Modified  *[]string   `json:"modified"`
 	Removed   *[]string   `json:"removed"`
 }
 
-// BuildCommit contains all the GitLab build commit information.
-type BuildCommit struct {
+// buildCommit contains all the GitLab build commit information.
+type buildCommit struct {
 	ID          *int64      `json:"id"`
 	SHA         *string     `json:"sha"`
 	Message     *string     `json:"message"`
@@ -144,8 +149,8 @@ type BuildCommit struct {
 	FinishedAt  *customTime `json:"finished_at"`
 }
 
-// User contains all the GitLab user information.
-type User struct {
+// user contains all the GitLab user information.
+type user struct {
 	ID        *int64  `json:"id"`
 	Name      *string `json:"name"`
 	UserName  *string `json:"username"`
@@ -153,8 +158,8 @@ type User struct {
 	Email     *string `json:"email"`
 }
 
-// Project contains all the GitLab project information.
-type Project struct {
+// project contains all the GitLab project information.
+type project struct {
 	ID                *int64  `json:"id"`
 	Name              *string `json:"name"`
 	Description       *string `json:"description"`
@@ -172,8 +177,8 @@ type Project struct {
 	HTTPURL           *string `json:"http_url"`
 }
 
-// Repository contains all the GitLab repository information.
-type Repository struct {
+// repository contains all the GitLab repository information.
+type repository struct {
 	Name            *string `json:"name"`
 	URL             *string `json:"url"`
 	Description     *string `json:"description"`
@@ -183,111 +188,30 @@ type Repository struct {
 	VisibilityLevel *int64  `json:"visibility_level"`
 }
 
-// ObjectAttributes contains all the GitLab object attributes information.
-type ObjectAttributes struct {
-	ID               *int64      `json:"id"`
-	Title            *string     `json:"title"`
-	AssigneeIDS      *[]int64    `json:"assignee_ids"`
-	AssigneeID       *int64      `json:"assignee_id"`
-	AuthorID         *int64      `json:"author_id"`
-	ProjectID        *int64      `json:"project_id"`
-	CreatedAt        *customTime `json:"created_at"`
-	UpdatedAt        *customTime `json:"updated_at"`
-	UpdatedByID      *int64      `json:"updated_by_id"`
-	LastEditedAt     *customTime `json:"last_edited_at"`
-	LastEditedByID   *int64      `json:"last_edited_by_id"`
-	RelativePosition *int64      `json:"relative_position"`
-	Position         *Position   `json:"position"`
-	BranchName       *string     `json:"branch_name"`
-	Description      *string     `json:"description"`
-	MilestoneID      *int64      `json:"milestone_id"`
-	State            *string     `json:"state"`
-	StateID          *int64      `json:"state_id"`
-	Confidential     *bool       `json:"confidential"`
-	DiscussionLocked *bool       `json:"discussion_locked"`
-	DueDate          *customTime `json:"due_date"`
-	TimeEstimate     *int64      `json:"time_estimate"`
-	TotalTimeSpent   *int64      `json:"total_time_spent"`
-	IID              *int64      `json:"iid"`
-	URL              *string     `json:"url"`
-	Action           *string     `json:"action"`
-	TargetBranch     *string     `json:"target_branch"`
-	SourceBranch     *string     `json:"source_branch"`
-	SourceProjectID  *int64      `json:"source_project_id"`
-	TargetProjectID  *int64      `json:"target_project_id"`
-	StCommits        *string     `json:"st_commits"`
-	MergeStatus      *string     `json:"merge_status"`
-	Content          *string     `json:"content"`
-	Format           *string     `json:"format"`
-	Message          *string     `json:"message"`
-	Slug             *string     `json:"slug"`
-	Ref              *string     `json:"ref"`
-	Tag              *bool       `json:"tag"`
-	SHA              *string     `json:"sha"`
-	BeforeSHA        *string     `json:"before_sha"`
-	Status           *string     `json:"status"`
-	Stages           *[]string   `json:"stages"`
-	Duration         *int64      `json:"duration"`
-	Note             *string     `json:"note"`
-	NotebookType     *string     `json:"noteable_type"` // nolint:misspell
-	At               *customTime `json:"attachment"`
-	LineCode         *string     `json:"line_code"`
-	CommitID         *string     `json:"commit_id"`
-	NoteableID       *int64      `json:"noteable_id"` // nolint: misspell
-	System           *bool       `json:"system"`
-	WorkInProgress   *bool       `json:"work_in_progress"`
-	StDiffs          *[]StDiff   `json:"st_diffs"`
-	Source           *Source     `json:"source"`
-	Target           *Target     `json:"target"`
-	LastCommit       *LastCommit `json:"last_commit"`
-	Assignee         *Assignee   `json:"assignee"`
+// plObjAttrs contains pipeline specific GitLab object attributes information.
+type plObjAttrs struct {
+	ID         *int64         `json:"id"`
+	Ref        *string        `json:"ref"`
+	Tag        *bool          `json:"tag"`
+	SHA        *string        `json:"sha"`
+	BeforeSHA  *string        `json:"before_sha"`
+	Source     *string        `json:"source"`
+	Status     *string        `json:"status"`
+	Stages     *[]string      `json:"stages"`
+	CreatedAt  *customTime    `json:"created_at"`
+	FinishedAt *customTime    `json:"finished_at"`
+	Duration   *int64         `json:"duration"`
+	Variables  *[]plVariables `json:"variables"`
 }
 
-// PipelineObjectAttributes contains pipeline specific GitLab object attributes information.
-type PipelineObjectAttributes struct {
-	ID         *int64      `json:"id"`
-	Ref        *string     `json:"ref"`
-	Tag        *bool       `json:"tag"`
-	SHA        *string     `json:"sha"`
-	BeforeSHA  *string     `json:"before_sha"`
-	Source     *string     `json:"source"`
-	Status     *string     `json:"status"`
-	Stages     *[]string   `json:"stages"`
-	CreatedAt  *customTime `json:"created_at"`
-	FinishedAt *customTime `json:"finished_at"`
-	Duration   *int64      `json:"duration"`
-	Variables  *[]Variable `json:"variables"`
-}
-
-// Variable contains pipeline variables.
-type Variable struct {
+// plVariables contains pipeline variables.
+type plVariables struct {
 	Key   *string `json:"key"`
 	Value *string `json:"value"`
 }
 
-// Position defines a specific location, identified by paths line numbers and
-// image coordinates, within a specific diff, identified by start, head and
-// base commit ids.
-//
-// Text position will have: new_line and old_line
-// Image position will have: width, height, x, y.
-type Position struct {
-	BaseSHA      *string `json:"base_sha"`
-	StartSHA     *string `json:"start_sha"`
-	HeadSHA      *string `json:"head_sha"`
-	OldPath      *string `json:"old_path"`
-	NewPath      *string `json:"new_path"`
-	PositionType *string `json:"position_type"`
-	OldLine      *int64  `json:"old_line"`
-	NewLine      *int64  `json:"new_line"`
-	Width        *int64  `json:"width"`
-	Height       *int64  `json:"height"`
-	X            *int64  `json:"x"`
-	Y            *int64  `json:"y"`
-}
-
-// MergeRequest contains all the GitLab merge request information.
-type MergeRequest struct {
+// mergeRequest contains all the GitLab merge request information.
+type mergeRequest struct {
 	ID              *int64      `json:"id"`
 	TargetBranch    *string     `json:"target_branch"`
 	SourceBranch    *string     `json:"source_branch"`
@@ -305,16 +229,16 @@ type MergeRequest struct {
 	Description     *string     `json:"description"`
 	Position        *int64      `json:"position"`
 	LockedAt        *customTime `json:"locked_at"`
-	Source          *Source     `json:"source"`
-	Target          *Target     `json:"target"`
-	LastCommit      *LastCommit `json:"last_commit"`
+	Source          *source     `json:"source"`
+	Target          *target     `json:"target"`
+	LastCommit      *lastCommit `json:"last_commit"`
 	WorkInProgress  *bool       `json:"work_in_progress"`
-	Assignee        *Assignee   `json:"assignee"`
+	Assignee        *assignee   `json:"assignee"`
 	URL             *string     `json:"url"`
 }
 
-// Assignee contains all the GitLab assignee information.
-type Assignee struct {
+// assignee contains all the GitLab assignee information.
+type assignee struct {
 	ID        *int64  `json:"id"`
 	Name      *string `json:"name"`
 	Username  *string `json:"username"`
@@ -322,20 +246,8 @@ type Assignee struct {
 	Email     *string `json:"email"`
 }
 
-// StDiff contains all the GitLab diff information.
-type StDiff struct {
-	Diff        *string `json:"diff"`
-	NewPath     *string `json:"new_path"`
-	OldPath     *string `json:"old_path"`
-	AMode       *string `json:"a_mode"`
-	BMode       *string `json:"b_mode"`
-	NewFile     *bool   `json:"new_file"`
-	RenamedFile *bool   `json:"renamed_file"`
-	DeletedFile *bool   `json:"deleted_file"`
-}
-
-// Source contains all the GitLab source information.
-type Source struct {
+// source contains all the GitLab source information.
+type source struct {
 	Name              *string `json:"name"`
 	Description       *string `json:"description"`
 	WebURL            *string `json:"web_url"`
@@ -352,8 +264,8 @@ type Source struct {
 	HTTPURL           *string `json:"http_url"`
 }
 
-// Target contains all the GitLab target information.
-type Target struct {
+// target contains all the GitLab target information.
+type target struct {
 	Name              *string `json:"name"`
 	Description       *string `json:"description"`
 	WebURL            *string `json:"web_url"`
@@ -370,37 +282,59 @@ type Target struct {
 	HTTPURL           *string `json:"http_url"`
 }
 
-// LastCommit contains all the GitLab last commit information.
-type LastCommit struct {
+// lastCommit contains all the GitLab last commit information.
+type lastCommit struct {
 	ID        *string     `json:"id"`
 	Message   *string     `json:"message"`
 	Timestamp *customTime `json:"timestamp"`
 	URL       *string     `json:"url"`
-	Author    *Author     `json:"author"`
+	Author    *author     `json:"author"`
 }
 
-// Author contains all the GitLab author information.
-type Author struct {
+// author contains all the GitLab author information.
+type author struct {
 	Name  *string `json:"name"`
 	Email *string `json:"email"`
 }
 
-func getJobEventFields(j JobEventPayload) map[string]interface{} {
-	fields := map[string]interface{}{}
+func getJobEventFields(j jobEventPayload) map[string]interface{} {
+	var (
+		fields = map[string]interface{}{}
+		createdAt,
+		startedAt,
+		finishedAt,
+		duration,
+		queueDuration int64
+	)
+
 	if j.BuildID != nil {
 		fields["build_id"] = strconv.FormatInt(*j.BuildID, 10)
 	}
-	if j.BuildStartedAt != nil {
-		fields["build_started_at"] = j.BuildStartedAt.UnixMilli()
+
+	if j.BuildCreatedAt != nil {
+		createdAt = j.BuildCreatedAt.UnixMilli()
+		fields["build_created_at"] = createdAt
 	}
+
+	if j.BuildStartedAt != nil {
+		startedAt = j.BuildStartedAt.UnixMilli()
+		fields["build_started_at"] = startedAt
+	}
+
+	if j.BuildQueuedDuration != nil {
+		queueDuration = int64(*j.BuildQueuedDuration * float64(time.Millisecond))
+		fields["queued_duration"] = queueDuration
+	}
+
 	if j.BuildFinishedAt != nil {
-		fields["build_finished_at"] = j.BuildFinishedAt.UnixMilli()
+		finishedAt = j.BuildFinishedAt.UnixMilli()
+		fields["build_finished_at"] = finishedAt
 	}
 	if j.BuildDuration != nil {
-		fields["build_duration"] = int64(*j.BuildDuration * float64(time.Second/time.Microsecond))
-	} else {
-		fields["build_duration"] = int64(0)
+		duration = int64(*j.BuildDuration * float64(time.Second/time.Microsecond))
+		fields["build_duration"] = duration
 	}
+
 	if j.PipelineID != nil {
 		fields["pipeline_id"] = strconv.FormatInt(*j.PipelineID, 10)
 	}
@@ -417,7 +351,7 @@ func getJobEventFields(j JobEventPayload) map[string]interface{} {
 	return fields
 }
 
-func getJobEventTags(j JobEventPayload) map[string]string {
+func getJobEventTags(j jobEventPayload) map[string]string {
 	tags := map[string]string{}
 	if j.ObjectKind != nil {
 		tags["object_kind"] = *j.ObjectKind
@@ -452,32 +386,49 @@ func getJobEventTags(j JobEventPayload) map[string]string {
 	return tags
 }
 
-func getPipelineEventFields(pl PipelineEventPayload) map[string]interface{} {
-	fields := map[string]interface{}{}
+func getPipelineEventFields(pl plEventPayload) map[string]interface{} {
+	var (
+		fields = map[string]interface{}{}
+		duration,
+		queueDuration,
+		createdAt,
+		finishedAt int64
+	)
+
 	if pl.ObjectAttributes != nil && pl.ObjectAttributes.ID != nil {
 		fields["pipeline_id"] = strconv.FormatInt(*pl.ObjectAttributes.ID, 10)
 	}
 	if pl.ObjectAttributes != nil && pl.ObjectAttributes.Duration != nil {
-		fields["duration"] = *pl.ObjectAttributes.Duration * int64(time.Second/time.Microsecond)
+		duration = *pl.ObjectAttributes.Duration * int64(time.Second/time.Microsecond)
 	} else {
 		fields["duration"] = int64(0)
 	}
+
 	if pl.Commit != nil && pl.Commit.Message != nil {
 		fields["commit_message"] = *pl.Commit.Message
 		fields["message"] = *pl.Commit.Message
 	}
+
 	if pl.ObjectAttributes != nil {
 		if pl.ObjectAttributes.CreatedAt != nil {
-			fields["created_at"] = pl.ObjectAttributes.CreatedAt.UnixMilli()
+			createdAt = pl.ObjectAttributes.CreatedAt.UnixMilli()
 		}
 		if pl.ObjectAttributes.FinishedAt != nil {
-			fields["finished_at"] = pl.ObjectAttributes.FinishedAt.UnixMilli()
+			finishedAt = pl.ObjectAttributes.FinishedAt.UnixMilli()
 		}
+
+		queueDuration = finishedAt - createdAt - duration/int64(time.Microsecond)
 	}
+
+	fields["finished_at"] = finishedAt
+	fields["created_at"] = createdAt
+	fields["queued_duration"] = queueDuration
+	fields["duration"] = duration
+
 	return fields
 }
 
-func getPipelineEventTags(pl PipelineEventPayload) map[string]string {
+func getPipelineEventTags(pl plEventPayload) map[string]string {
 	tags := map[string]string{}
 	if pl.ObjectKind != nil {
 		tags["object_kind"] = *pl.ObjectKind
@@ -522,7 +473,7 @@ func (ipt *Input) getPoint(data []byte, eventType string) ([]*point.Point, error
 	switch eventType {
 	case pipelineHook:
 		measurementName = "gitlab_pipeline"
-		var pl PipelineEventPayload
+		var pl plEventPayload
 		if err := json.Unmarshal(data, &pl); err != nil {
 			return nil, err
 		}
@@ -540,9 +491,9 @@ func (ipt *Input) getPoint(data []byte, eventType string) ([]*point.Point, error
 
 	case jobHook:
 		measurementName = "gitlab_job"
-		var j JobEventPayload
+		var j jobEventPayload
 		if err := json.Unmarshal(data, &j); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("invalid job event: %w", err)
 		}
 		// We need job event with build status success or failed only.
 		if j.BuildStatus == nil {
@@ -550,7 +501,7 @@ func (ipt *Input) getPoint(data []byte, eventType string) ([]*point.Point, error
 			return nil, nil
 		}
 		if *j.BuildStatus != "success" && *j.BuildStatus != "failed" {
-			l.Debugf("ignore job event with build_status = '%s'", *j.BuildStatus)
+			l.Infof("ignore job event on status %q", *j.BuildStatus)
 			return nil, nil
 		}
 		tags = getJobEventTags(j)
@@ -559,6 +510,10 @@ func (ipt *Input) getPoint(data []byte, eventType string) ([]*point.Point, error
 	default:
 		return nil, fmt.Errorf("unrecognized event payload: %v", eventType)
 	}
+
+	// add event raw json
+	fields["event_raw"] = string(data)
+
 	ipt.addExtraTags(tags)
 
 	opts := point.DefaultLoggingOptions()

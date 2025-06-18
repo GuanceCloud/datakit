@@ -24,7 +24,8 @@ var (
 	l           = logger.DefaultSLogger(inputName)
 	minInterval = time.Second
 	maxInterval = time.Second * 30
-	sample      = `
+
+	sample = `
 [[inputs.jenkins]]
   ## Set true if you want to collect metric from url below.
   enable_collect = true
@@ -37,6 +38,8 @@ var (
 
   # ##(optional) collection interval, default is 30s
   # interval = "30s"
+
+  ddinfo_resp = '''{ "endpoints": ["/v0.3/traces"] }'''
 
   ## Set response_timeout
   # response_timeout = "5s"
@@ -102,6 +105,7 @@ type Input struct {
 	EnableCIVisibility bool              `toml:"enable_ci_visibility"`
 	CIEventPort        string            `toml:"ci_event_port"`
 	CIExtraTags        map[string]string `toml:"ci_extra_tags"`
+	DDInfoResp         string            `toml:"ddinfo_resp"`
 
 	tls.ClientConfig
 	// HTTP client

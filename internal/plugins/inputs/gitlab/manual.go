@@ -94,15 +94,17 @@ func (*gitlabHTTPMeasurement) Info() *inputs.MeasurementInfo {
 func (g *gitlabPipelineMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "gitlab_pipeline",
-		Cat:  point.Metric,
+		Cat:  point.Logging,
 		Desc: "GitLab Pipeline event metrics",
 		Fields: map[string]interface{}{
-			"pipeline_id":    &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Pipeline id"},
-			"duration":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationUS, Desc: "Pipeline duration (microseconds)"},
-			"commit_message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The message attached to the most recent commit of the code that triggered the Pipeline."},
-			"created_at":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampMS, Desc: "Millisecond timestamp of Pipeline creation"},
-			"finished_at":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampMS, Desc: "Millisecond timestamp of the end of the Pipeline"},
-			"message":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The message attached to the most recent commit of the code that triggered the Pipeline. Same as commit_message"},
+			"pipeline_id":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Pipeline id"},
+			"duration":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationUS, Desc: "Pipeline duration (microseconds)"},
+			"queued_duration": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationMS, Desc: "Pipeline queued duration"},
+			"commit_message":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The message attached to the most recent commit of the code that triggered the Pipeline."},
+			"created_at":      &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampMS, Desc: "Millisecond timestamp of Pipeline creation"},
+			"finished_at":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampMS, Desc: "Millisecond timestamp of the end of the Pipeline"},
+			"message":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.NoUnit, Desc: "The message attached to the most recent commit of the code that triggered the Pipeline. Same as commit_message"},
+			"event_raw":       &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.NoUnit, Desc: "The raw JSON body of the webhook event"},
 		},
 		Tags: map[string]interface{}{
 			"object_kind":     inputs.NewTagInfo("Event type, in this case Pipeline"),
@@ -124,18 +126,20 @@ func (g *gitlabPipelineMeasurement) Info() *inputs.MeasurementInfo {
 func (g *gitlabJobMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "gitlab_job",
-		Cat:  point.Metric,
+		Cat:  point.Logging,
 		Desc: "GitLab Job Event metrics",
 		Fields: map[string]interface{}{
 			"build_id":             &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "build id"},
 			"build_started_at":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampMS, Desc: "Millisecond timestamp of the start of build"},
 			"build_finished_at":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampMS, Desc: "Millisecond timestamp of the end of build"},
 			"build_duration":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationUS, Desc: "Build duration (microseconds)"},
+			"queued_duration":      &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationMS, Desc: "Job queued duration"},
 			"pipeline_id":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Pipeline id for build"},
 			"project_id":           &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Project id for build"},
 			"runner_id":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Runner id for build"},
 			"build_commit_message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The message attached to the most recent commit of the code that triggered the build"},
 			"message":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The message attached to the most recent commit of the code that triggered the build. Same as build_commit_message"},
+			"event_raw":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.NoUnit, Desc: "The raw JSON body of the webhook event"},
 		},
 		Tags: map[string]interface{}{
 			"object_kind":          inputs.NewTagInfo("Event type, in this case Job"),
