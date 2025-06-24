@@ -118,7 +118,7 @@ Redis 的链路中的 Resource 只会显示 `redis.command` 信息，并不会�
 k8s:
 
 ```shell
-DD_REDIS_COMMAND_ARGS=TRUE
+export DD_REDIS_COMMAND_ARGS=TRUE
 ```
 
 在<<<custom_key.brand_name>>>链路的详情中会增加一个 Tag：`redis.command.args=key val...`。其中 `key val ...` 对应的就是 redis 语句中的 `jedis.set(key,val)`
@@ -143,6 +143,9 @@ DDTrace 默认会将 SQL 中参数转化为 `?`，这导致用户在排查问题
 ```shell
 # ddtrace 启动时增加参数，默认是 false
 -Ddd.jdbc.sql.obfuscation=true
+
+#或者环境变量方式
+export DD_JDBC_SQL_OBFUSCATION=true
 ```
 
 效果示例：
@@ -212,18 +215,21 @@ DDTrace 最低版本支持： [:octicons-tag-24: v0.113.0](ddtrace-ext-changelog
 获取 response body 需要对响应流进行读取操作，会占用一定的 Java 内存空间，建议对响应体较大的请求(如文件下载接口)加上黑名单处理，防止 OOM，黑名上的 URL 将不再解析响应体内容。
 黑名单配置如下：
 
-- 参数方式
+```shell
+#参数方式
+-Ddd.trace.response.body.blacklist.urls="/auth,/download/file"
 
-> -Ddd.trace.response.body.blacklist.urls="/auth,/download/file"
-
-- 环境变量方式
-
-> DD_TRACE_RESPONSE_BODY_BLACKLIST_URLS
-
+#环境变量方式
+export DD_TRACE_RESPONSE_BODY_BLACKLIST_URLS="/auth,/download/file"
+```
 
 ### 链路数据中添加 HTTP Header 信息 {#trace_header}
 
-链路详情中会将请求和响应的头部信息放到标签中。默认为关闭状态，如需开启，则启动时添加参数 `-Ddd.trace.headers.enabled=true`, 开启后，在链路详情中可以看到请求头部信息会在 `servlet_request_header`  响应的头部信息会在 `servlet_response_header` 中。
+链路详情中会将请求和响应的头部信息放到标签中。
+
+默认为关闭状态，如需开启，则启动时添加参数 `-Ddd.trace.headers.enabled=true`, 或者环境变量方式 `DD_TRACE_HEADERS_ENABLED=true`.
+
+开启后，在链路详情中可以看到请求头部信息会在 `servlet_request_header`  响应的头部信息会在 `servlet_response_header` 中。
 
 DDTrace 最低版本支持： [:octicons-tag-24: v1.25.2](ddtrace-ext-changelog.md#cl-1.25.2-guance)
 
@@ -262,7 +268,11 @@ export DD_TRACE_METHOD_PACKAGES=com.zy,javax.servlet,com.example.package
 增强 method 埋点操作，通过指定参数 `-Ddd.trace.method.file` 扩展 `dd.trace.methods` 配置，将需要增强的方法、类放在文件中进行维护，如下所示：
 
 ```shell
+#使用命令行形式
 -Ddd.trace.method.file=/home/root/agent/methods.txt
+
+#或者使用环境变量
+export DD_TRACE_METHOD_FILE=/home/root/agent/methods.txt
 ```
 
 methods.txt 内容格式参考如下：
@@ -305,8 +315,12 @@ DDTrace 二次开发将默认的远端端口 8126 修改为 9529。
 
 通过 `-Ddd.logs.pattern` 来调整默认的 Pattern，比如：
 
-``` not-set
--Ddd.logs.pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %X{dd.service} %X{dd.trace_id} %X{dd.span_id} - %msg%n"`
+```shell
+#使用命令行形式
+-Ddd.logs.pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %X{dd.service} %X{dd.trace_id} %X{dd.span_id} - %msg%n"
+
+#或者，使用环境变量
+export DD_LOGS_PATTERN="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %X{dd.service} %X{dd.trace_id} %X{dd.span_id} - %msg%n"
 ```
 
 支持版本：

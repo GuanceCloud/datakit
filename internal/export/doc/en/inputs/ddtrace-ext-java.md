@@ -65,7 +65,19 @@ DDTrace supported version: [:octicons-tag-24:  v0.113.0](ddtrace-ext-changelog.m
 
 The Resource in the redis link will only display redis.command information, and will not display parameter information.
 
-Enable this function: start the command to add the environment variable `-Ddd.redis.command.args`, and a tag will be added in the details of the <<<custom_key.brand_name>>> link: `redis.command.args=key val`.
+Enable this function: start the command to add the environment variable `-Ddd.redis.command.args`, and a tag will be added in the details of the <<<custom_key.brand_name>>> trace message: `redis.command.args=key val`.
+
+
+```shell
+-Ddd.redis.command.args=true
+```
+
+k8s:
+
+```shell
+export DD_REDIS_COMMAND_ARGS=TRUE
+```
+
 
 Supported version:
 
@@ -79,7 +91,13 @@ DDTrace supported version: [:octicons-tag-24:  v1.17.3](ddtrace-ext-changelog.md
 
 By modifying the default log pattern, application logs and links are correlated, thereby reducing deployment costs. The logging framework `log4j2` is currently supported, but `logback` is not currently supported.
 
-`-Ddd.logs.pattern` like `-Ddd.logs.pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %X{dd.service} %X{dd.trace_id} %X{dd.span_id} - %msg%n"`
+```shell
+#command
+-Ddd.logs.pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %X{dd.service} %X{dd.trace_id} %X{dd.span_id} - %msg%n"
+
+#or env
+DD_LOGS_PATTERN="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %X{dd.service} %X{dd.trace_id} %X{dd.span_id} - %msg%n"
+```
 
 supported version： log4j2
 
@@ -91,6 +109,9 @@ In the Java startup command, add the following command line parameters to enable
 
 ```shell
 -Ddd.jdbc.sql.obfuscation=true
+
+#or env:
+export DD_JDBC_SQL_OBFUSCATION=true
 ```
 
 Display of results:
@@ -179,7 +200,11 @@ Enhance method tracing operations by specifying the `-Ddd.trace.method.file` par
 This allows maintaining the classes and methods requiring instrumentation in a file, as shown below:
 
 ```shell
--Ddd.trace.method.file=/home/root/agent/methods.txt
+#command line:
+-Ddd.trace.method.file="/home/root/agent/methods.txt"
+
+#or env
+DD_TRACE_METHOD_FILE="/home/root/agent/methods.txt"
 ```
 
 The content format of `methods.txt` should follow this example:
@@ -231,7 +256,7 @@ DDTrace supported version: [:octicons-tag-24: v1.25.2](ddtrace-ext-changelog.md#
 
 **Specific functions** need to be defined and declared through specific parameters. Currently, ddtrace provides two ways to trace specific functions:
 
-1. Marked by startup parameters: -Ddd.trace.methods ，reference documents： [Class or method injection Trace](https://docs.<<<custom_key.brand_main_domain>>>/integrations/apm/ddtrace/ddtrace-skill-param/#5-trace){:target="_blank"}
+1. Marked by startup parameters: `-Ddd.trace.methods` ，reference documents： [Class or method injection Trace](https://docs.<<<custom_key.brand_main_domain>>>/integrations/apm/ddtrace/ddtrace-skill-param/#5-trace){:target="_blank"}
 
 2. By introducing the SDK, use @Trace to mark, refer to the document [function level burying point](https://docs.<<<custom_key.brand_main_domain>>>/integrations/apm/ddtrace/ddtrace-skill-api/#2){:target="_blank"}
 
@@ -291,6 +316,10 @@ how to config:
 ```shell
 # open trace.128.bit, and use W3C propagation.
 -Ddd.trace.128.bit.traceid.generation.enabled=true -Ddd.trace.propagation.style=tracecontext
+
+#or env
+export DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED=true
+export DD_TRACE_PROPAGATION_STYLE=tracecontext
 ```
 
 This is  [GitHub issue](https://github.com/GuanceCloud/dd-trace-java/issues/37){:target="_blank"}
