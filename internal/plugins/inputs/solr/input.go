@@ -219,10 +219,10 @@ func (ipt *Input) Run() {
 		} else {
 			collectStart := time.Now()
 			if err := ipt.Collect(); err == nil {
-				if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
+				if err := ipt.feeder.Feed(point.Metric, ipt.collectCache,
 					dkio.WithCollectCost(time.Since(collectStart)),
 					dkio.WithElection(ipt.Election),
-					dkio.WithInputName(inputName),
+					dkio.WithSource(inputName),
 				); err != nil {
 					ipt.logError(err)
 				}

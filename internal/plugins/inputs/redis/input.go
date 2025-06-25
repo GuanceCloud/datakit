@@ -39,7 +39,7 @@ const (
 
 var (
 	inputName                                 = "redis"
-	customObjectFeedName                      = inputName + "/CO"
+	customObjectFeedName                      = dkio.FeedSource(inputName, "CO")
 	catalogName                               = "db"
 	l                                         = logger.DefaultSLogger("redis")
 	_                    inputs.ElectionInput = (*Input)(nil)
@@ -272,10 +272,10 @@ func (ipt *Input) Collect() error {
 
 		if len(pts) > 0 {
 			if pts[0].Name() == "database" {
-				if err := ipt.feeder.FeedV2(point.CustomObject, pts,
+				if err := ipt.feeder.Feed(point.CustomObject, pts,
 					dkio.WithCollectCost(time.Since(ipt.start)),
 					dkio.WithElection(ipt.Election),
-					dkio.WithInputName(customObjectFeedName)); err != nil {
+					dkio.WithSource(customObjectFeedName)); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
 						metrics.WithLastErrorInput(inputName),
 						metrics.WithLastErrorCategory(point.CustomObject),
@@ -283,10 +283,10 @@ func (ipt *Input) Collect() error {
 					l.Errorf("feed measurement: %s", err)
 				}
 			} else {
-				if err := ipt.feeder.FeedV2(point.Metric, pts,
+				if err := ipt.feeder.Feed(point.Metric, pts,
 					dkio.WithCollectCost(time.Since(ipt.start)),
 					dkio.WithElection(ipt.Election),
-					dkio.WithInputName(inputName)); err != nil {
+					dkio.WithSource(inputName)); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
 						metrics.WithLastErrorInput(inputName),
 						metrics.WithLastErrorCategory(point.Metric),

@@ -108,10 +108,10 @@ func getPointsFromMeasurement2(ms []inputs.MeasurementV2) []*point.Point {
 func (ipt *Input) FeedUpMetric(server string) {
 	pts, _ := ipt.buildUpPoints(server)
 	if len(pts) > 0 {
-		if err := ipt.feeder.FeedV2(point.Metric, pts,
+		if err := ipt.feeder.Feed(point.Metric, pts,
 			dkio.WithCollectCost(time.Since(time.Now())),
 			dkio.WithElection(ipt.Election),
-			dkio.WithInputName(inputName),
+			dkio.WithSource(inputName),
 		); err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),

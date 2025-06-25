@@ -109,10 +109,10 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 				}
 			}
 			if len(pts) > 0 {
-				if err := ipt.feeder.FeedV2(point.Metric, pts,
+				if err := ipt.feeder.Feed(point.Metric, pts,
 					dkio.WithCollectCost(time.Since(collectStart)),
 					dkio.WithElection(ipt.Election),
-					dkio.WithInputName(customQueryFeedName),
+					dkio.WithSource(customQueryFeedName),
 				); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
 						metrics.WithLastErrorInput(customQueryFeedName),

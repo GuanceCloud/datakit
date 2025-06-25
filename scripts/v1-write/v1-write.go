@@ -130,12 +130,12 @@ func benchHTTPServer() {
 					}
 				}
 
-				if !*flagDecode {
-					goto end
-				}
-
 				if *flagHeader {
 					showHeaders(c)
+				}
+
+				if !*flagDecode {
+					goto end
 				}
 
 				if c.Request.Header.Get("Content-Encoding") == "gzip" {
@@ -218,9 +218,6 @@ func benchHTTPServer() {
 }
 
 func showInfo() {
-	//log.Printf("total M/%s, L/%s, req/%d, 5xx/%d",
-	//humanize.SI(float64(MPts.Load()), ""),
-	//humanize.SI(float64(LPts.Load()), ""),
 	log.Printf("total M/%d, L/%d, T/%d req/%d, 5xx/%d, 5xx ratio: %d/1000, decErr: %d, decErrPts: %d",
 		MPts.Load(),
 		LPts.Load(),

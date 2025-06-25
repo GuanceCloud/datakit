@@ -134,7 +134,7 @@ func textProcessor(opts []iprom.PromOption, feeder dkio.Feeder, body io.Reader, 
 		return err
 	}
 
-	return feeder.FeedV2(point.Metric, pts, dkio.WithInputName(inputName), dkio.DisableGlobalTags(true))
+	return feeder.Feed(point.Metric, pts, dkio.WithSource(inputName), dkio.DisableGlobalTags(true))
 }
 
 func protobufProcessor(opts []iprom.PromOption, feeder dkio.Feeder, body io.Reader, tags map[string]string) error {
@@ -164,7 +164,7 @@ func protobufProcessor(opts []iprom.PromOption, feeder dkio.Feeder, body io.Read
 		return err
 	}
 
-	return feeder.FeedV2(point.Metric, pts, dkio.WithInputName(inputName), dkio.DisableGlobalTags(true))
+	return feeder.Feed(point.Metric, pts, dkio.WithSource(inputName), dkio.DisableGlobalTags(true))
 }
 
 func init() { //nolint:gochecknoinits

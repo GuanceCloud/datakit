@@ -66,7 +66,7 @@ func (ipt *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request
 	resp.Write([]byte(`{"status":"success"}`)) //nolint:errcheck,gosec
 }
 
-func completeSource(source string) string {
+func getSourceName(source string) string {
 	if source != "" {
 		return source
 	}
@@ -88,7 +88,9 @@ const (
 
 func (ipt *Input) processLogBody(param *parameters) error {
 	var (
-		source = completeSource(param.queryValues.Get("source"))
+		source       = getSourceName(param.queryValues.Get("source"))
+		storageIndex = param.queryValues.Get("storage_index")
+
 		// TODO
 		// 每一条 request 都要解析和创建一个 tags，影响性能
 		// 可以将其缓存起来，以 url 的 md5 值为 key
@@ -221,7 +223,13 @@ func (ipt *Input) processLogBody(param *parameters) error {
 		return nil
 	}
 
-	return ipt.feeder.FeedV2(point.Logging, pts,
-		dkio.WithInputName(inputName+"-"+source),
+	feedName := dkio.FeedSource(inputName, source)
+	if storageIndex != "" {
+		feedName = dkio.FeedSource(feedName, storageIndex)
+	}
+
+	return ipt.feeder.Feed(point.Logging, pts,
+		dkio.WithSource(feedName),
+		dkio.WithStorageIndex(storageIndex),
 		dkio.WithPipelineOption(plopt))
 }

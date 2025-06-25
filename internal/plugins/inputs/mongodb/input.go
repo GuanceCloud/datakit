@@ -35,7 +35,7 @@ var _ inputs.ElectionInput = &Input{}
 var (
 	catalogName          = "db"
 	inputName            = "mongodb"
-	customObjectFeedName = inputName + "/CO"
+	customObjectFeedName = dkio.FeedSource(inputName, "CO")
 	sampleConfig         = `
 [[inputs.mongodb]]
   ## Gathering interval

@@ -18,10 +18,10 @@ var _ FeederOutputer = new(datawayOutput)
 
 // feederOutput send feeder data to dataway.
 type datawayOutput struct {
-	chans map[point.Category]chan *feedOption
+	chans map[point.Category]chan *feedData
 }
 
-func (fo *datawayOutput) Reader(cat point.Category) <-chan *feedOption {
+func (fo *datawayOutput) Reader(cat point.Category) <-chan *feedData {
 	return fo.chans[cat]
 }
 
@@ -54,14 +54,14 @@ func writeLastError(err string, opts ...metrics.LastErrorOption) {
 	metrics.LastErrVec.WithLabelValues(le.Input, le.Source, catStr, err).Set(float64(time.Now().Unix()))
 }
 
-func (fo *datawayOutput) Write(data *feedOption) error {
+func (fo *datawayOutput) Write(data *feedData) error {
 	if len(data.pts) == 0 {
 		return nil
 	}
 
 	if data.syncSend {
 		defIO.recordPoints(data)
-		err := defIO.doCompact(data.pts, data.cat)
+		err := defIO.doCompact(data.pts, data.cat, "")
 		if err != nil {
 			log.Warnf("post %d points to %s failed: %s, ignored", len(data.pts), data.cat, err)
 		}
@@ -91,7 +91,7 @@ func (fo *datawayOutput) Write(data *feedOption) error {
 // NewDatawayOutput new a Dataway output for feeder, its the default output of feeder.
 func NewDatawayOutput(chanCap int) FeederOutputer {
 	dw := datawayOutput{
-		chans: make(map[point.Category]chan *feedOption),
+		chans: make(map[point.Category]chan *feedData),
 	}
 
 	if chanCap == 0 {
@@ -105,7 +105,7 @@ func NewDatawayOutput(chanCap int) FeederOutputer {
 	ioChanCap.WithLabelValues("all-the-same").Set(float64(chanCap))
 
 	for _, c := range point.AllCategories() {
-		dw.chans[c] = make(chan *feedOption, chanCap)
+		dw.chans[c] = make(chan *feedData, chanCap)
 	}
 
 	return &dw

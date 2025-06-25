@@ -12,5 +12,6 @@ file=$2
 
 # 使用for循环执行指定次数的迭代
 for ((i=1; i<=num_iterations; i++)); do
-		curl -v http://localhost:9529/v1/write/logstreaming?source=drop-testing --data-binary "@$2"
+		curl -v "http://localhost:19529/v1/write/logstreaming?source=drop-testing&storage_index=index_logstream" --data-binary "@$2"
+		sleep 0.1 # to avoid HTTP 429
 done

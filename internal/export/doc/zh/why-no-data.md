@@ -42,7 +42,7 @@ Wed Jul 21 08:22:32 UTC 2021
 <!-- markdownlint-disable MD046 -->
 ???+ info
 
-    DataKit 自 [:octicons-tag-24: Version-1.75.0](../datakit/changelog.md#cl-1.75.0) 开始使用 DataWay 机器时间作为数据采集时间，一定程度上避免了本机时间偏差较大带来的问题。
+    DataKit 自 [:octicons-tag-24: Version-1.75.0](../datakit/changelog-2025.md#cl-1.75.0) 开始使用 DataWay 机器时间作为数据采集时间，一定程度上避免了本机时间偏差较大带来的问题。
 <!-- markdownlint-enable -->
 
 ### 主机软硬件不支持 {#iss-os-arch}

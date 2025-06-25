@@ -154,10 +154,10 @@ func (ipt *Input) feedLog(logEvent []*telemetry.LogEvent, syncSend bool) {
 
 	pts := ipt.toLogPointArr(logEvent)
 
-	if err := ipt.feeder.FeedV2(point.Logging, pts,
+	if err := ipt.feeder.Feed(point.Logging, pts,
 		dkio.WithSyncSend(syncSend),
 		dkio.WithElection(false),
-		dkio.WithInputName(inputName)); err != nil {
+		dkio.WithSource(inputName)); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
 			metrics.WithLastErrorInput(inputName),
 			metrics.WithLastErrorCategory(point.Logging),
@@ -172,10 +172,10 @@ func (ipt *Input) feedMetric(metricEvent []*telemetry.Event, syncSend bool) {
 	}
 	pts := ipt.toMetricPointArr(metricEvent)
 
-	if err := ipt.feeder.FeedV2(point.Metric, pts,
+	if err := ipt.feeder.Feed(point.Metric, pts,
 		dkio.WithSyncSend(syncSend),
 		dkio.WithElection(false),
-		dkio.WithInputName(inputName)); err != nil {
+		dkio.WithSource(inputName)); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
 			metrics.WithLastErrorInput(inputName),
 			metrics.WithLastErrorCategory(point.Metric),

@@ -7,13 +7,14 @@ package apache
 
 import (
 	"time"
+
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
 const (
-	inputName            = "apache"
-	customObjectFeedName = inputName + "/CO"
-	minInterval          = time.Second
-	maxInterval          = time.Second * 30
+	inputName   = "apache"
+	minInterval = time.Second
+	maxInterval = time.Second * 30
 
 	//nolint:lll
 	sample = `
@@ -80,6 +81,8 @@ var (
 		"ServerVersion": "server_version",
 		"ServerMPM":     "server_mpm",
 	}
+
+	customObjectFeedName = dkio.FeedSource(inputName, "CO")
 )
 
 // scoreboard metrics.

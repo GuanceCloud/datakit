@@ -256,10 +256,10 @@ func (ipt *Input) Run() {
 				metrics.WithLastErrorCategory(point.Metric),
 			)
 		} else if len(pts) > 0 {
-			if err := ipt.feeder.FeedV2(point.Metric, pts,
+			if err := ipt.feeder.Feed(point.Metric, pts,
 				dkio.WithCollectCost(time.Since(collectStart)),
 				dkio.WithElection(false),
-				dkio.WithInputName(source)); err != nil {
+				dkio.WithSource(source)); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
 					metrics.WithLastErrorCategory(point.Metric),

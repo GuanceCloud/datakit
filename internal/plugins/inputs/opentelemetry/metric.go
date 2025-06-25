@@ -119,8 +119,8 @@ func (ipt *Input) parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics) {
 				}
 
 				if len(pts) >= 100 {
-					if err := ipt.feeder.FeedV2(point.Metric, pts,
-						dkio.WithInputName(inputName),
+					if err := ipt.feeder.Feed(point.Metric, pts,
+						dkio.WithSource(inputName),
 						dkio.WithCollectCost(time.Since(start)),
 					); err != nil {
 						log.Errorf("feed err=%s", err.Error())
@@ -131,7 +131,7 @@ func (ipt *Input) parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics) {
 		}
 	}
 
-	_ = ipt.feeder.FeedV2(point.Metric, pts, dkio.WithInputName(inputName), dkio.WithCollectCost(time.Since(start)))
+	_ = ipt.feeder.Feed(point.Metric, pts, dkio.WithSource(inputName), dkio.WithCollectCost(time.Since(start)))
 }
 
 func attributesToTag(src []*common.KeyValue) map[string]string {

@@ -147,7 +147,7 @@ func InitLog() {
 }
 
 func exportMetrics(pts []*point.Point) error {
-	if err := metricsFeeder.FeedV2(point.Metric, pts, dkio.WithInputName(metricsName)); err != nil {
+	if err := metricsFeeder.Feed(point.Metric, pts, dkio.WithSource(metricsName)); err != nil {
 		return fmt.Errorf("unable to feed profiling metrics: %w", err)
 	}
 	return nil

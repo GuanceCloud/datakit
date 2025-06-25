@@ -20,12 +20,12 @@ type debugOutput struct{}
 
 var _ FeederOutputer = new(debugOutput)
 
-func (fo *debugOutput) Reader(cat point.Category) <-chan *feedOption {
+func (fo *debugOutput) Reader(cat point.Category) <-chan *feedData {
 	// not implemented
 	return nil
 }
 
-func (fo *debugOutput) Write(data *feedOption) error {
+func (fo *debugOutput) Write(data *feedData) error {
 	for _, pt := range data.pts {
 		cp.Printf("%s\n", pt.LineProto())
 	}

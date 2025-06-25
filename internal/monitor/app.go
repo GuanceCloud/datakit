@@ -23,7 +23,7 @@ import (
 var (
 	l = logger.DefaultSLogger("monitor")
 
-	inputsFeedCols   = strings.Split(`Input|Cat|Feeds|P90Lat|P90Pts|Filtered|LastFeed|AvgCost|Errors`, "|")
+	inputsFeedCols   = strings.Split(`Source|Cat|Feeds|P90Lat|P90Pts|Filtered|LastFeed|AvgCost|Errors`, "|")
 	plStatsCols      = strings.Split("Script|Cat|Namespace|TotalPts|DropPts|ErrPts|PLUpdate|AvgCost", "|")
 	walStatsCols     = strings.Split("Cat|Points(mem/disk/drop/total)", "|")
 	enabledInputCols = strings.Split(`Input|Count|Crashed`, "|")

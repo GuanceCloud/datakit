@@ -98,8 +98,8 @@ func (l *LogsServiceServer) Export(ctx context.Context, logsReq *logs.ExportLogs
 	start := time.Now()
 	pts := l.input.parseLogRequest(logsReq.GetResourceLogs())
 	if len(pts) != 0 {
-		if err := l.input.feeder.FeedV2(point.Logging, pts,
-			dkio.WithInputName(inputName),
+		if err := l.input.feeder.Feed(point.Logging, pts,
+			dkio.WithSource(inputName),
 			dkio.WithCollectCost(time.Since(start)),
 		); err != nil {
 			log.Error(err.Error())

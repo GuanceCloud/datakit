@@ -22,9 +22,10 @@ import (
 )
 
 const (
-	HeaderXGlobalTags = "X-Global-Tags"
-	DefaultRetryCount = 1
-	DefaultRetryDelay = time.Second
+	HeaderXGlobalTags       = "X-Global-Tags"
+	HeaderXStorageIndexName = "X-Storage-Index-Name"
+	DefaultRetryCount       = 1
+	DefaultRetryDelay       = time.Second
 
 	// DeprecatedDefaultMaxRawBodySize will cause too many memory, we set it to
 	// 1MB. Set 1MB because the max-log length(message) is 1MB at storage side.

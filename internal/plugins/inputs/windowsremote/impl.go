@@ -158,12 +158,12 @@ func feedMetric(name string, feeder dkio.Feeder, pts []*point.Point, election bo
 		return
 	}
 
-	if err := feeder.FeedV2(
+	if err := feeder.Feed(
 		point.Metric,
 		pts,
 		dkio.WithElection(election),
 		dkio.WithCollectCost(cost),
-		dkio.WithInputName(name),
+		dkio.WithSource(name),
 	); err != nil {
 		l.Warnf("%s feed failed, err: %s", name, err)
 	}
@@ -174,12 +174,12 @@ func feedObject(name string, feeder dkio.Feeder, pts []*point.Point, election bo
 		return
 	}
 
-	if err := feeder.FeedV2(
+	if err := feeder.Feed(
 		point.Object,
 		pts,
 		dkio.WithElection(election),
 		dkio.WithCollectCost(cost),
-		dkio.WithInputName(name),
+		dkio.WithSource(name),
 	); err != nil {
 		l.Warnf("%s feed failed, err: %s", name, err)
 	}
@@ -190,12 +190,12 @@ func feedLogging(name string, feeder dkio.Feeder, pts []*point.Point, election b
 		return
 	}
 
-	if err := feeder.FeedV2(
+	if err := feeder.Feed(
 		point.Logging,
 		pts,
 		dkio.WithElection(election),
 		dkio.WithCollectCost(cost),
-		dkio.WithInputName(name),
+		dkio.WithSource(name),
 	); err != nil {
 		l.Warnf("%s feed logging failed, err: %s", name, err)
 	}

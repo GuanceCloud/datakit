@@ -88,9 +88,9 @@ func (ipt *Input) scanHotkey(ctxKey context.Context) error {
 		}
 
 		if len(pts) > 0 {
-			if err := ipt.feeder.FeedV2(point.Logging, pts,
+			if err := ipt.feeder.Feed(point.Logging, pts,
 				dkio.WithElection(ipt.Election),
-				dkio.WithInputName(redisHotkey)); err != nil {
+				dkio.WithSource(redisHotkey)); err != nil {
 				return err
 			}
 		}

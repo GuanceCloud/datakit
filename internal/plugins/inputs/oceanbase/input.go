@@ -305,10 +305,10 @@ func (ipt *Input) Run() {
 
 			for category, pts := range mpts {
 				if len(pts) > 0 {
-					if err := ipt.feeder.FeedV2(category, pts,
+					if err := ipt.feeder.Feed(category, pts,
 						dkio.WithCollectCost(time.Since(ipt.start)),
 						dkio.WithElection(ipt.Election),
-						dkio.WithInputName(inputName),
+						dkio.WithSource(inputName),
 					); err != nil {
 						ipt.feeder.FeedLastError(err.Error(),
 							metrics.WithLastErrorInput(inputName),

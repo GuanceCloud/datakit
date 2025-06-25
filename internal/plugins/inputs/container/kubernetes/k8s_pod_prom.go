@@ -184,20 +184,20 @@ func newPromRunnerWithConfig(feeder dkio.Feeder, c *promConfig) (*promRunner, er
 
 		if p.conf.AsLogging != nil && p.conf.AsLogging.Enable {
 			for _, pt := range pts {
-				err := p.feeder.FeedV2(point.Logging, []*point.Point{pt},
+				err := p.feeder.Feed(point.Logging, []*point.Point{pt},
 					dkio.WithCollectCost(time.Since(start)),
 					dkio.WithElection(defaultPromElection),
-					dkio.WithInputName(pt.Name()),
+					dkio.WithSource(pt.Name()),
 				)
 				if err != nil {
 					klog.Warnf("failed to feed prom logging: %s, ignored", err)
 				}
 			}
 		} else {
-			err := p.feeder.FeedV2(point.Metric, pts,
+			err := p.feeder.Feed(point.Metric, pts,
 				dkio.WithCollectCost(time.Since(start)),
 				dkio.WithElection(defaultPromElection),
-				dkio.WithInputName(p.conf.Source),
+				dkio.WithSource(p.conf.Source),
 			)
 			if err != nil {
 				klog.Warnf("failed to feed prom metrics: %s, ignored", err)

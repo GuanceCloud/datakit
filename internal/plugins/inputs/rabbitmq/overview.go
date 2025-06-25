@@ -125,10 +125,10 @@ func getOverview(n *Input) {
 	opts := append(point.DefaultMetricOptions(), point.WithTime(n.start))
 	pt := point.NewPointV2(overviewMeasurementName, kvs, opts...)
 
-	if err := n.feeder.FeedV2(point.Metric, []*point.Point{pt},
+	if err := n.feeder.Feed(point.Metric, []*point.Point{pt},
 		dkio.WithCollectCost(time.Since(collectStart)),
 		dkio.WithElection(n.Election),
-		dkio.WithInputName(inputName),
+		dkio.WithSource(inputName),
 	); err != nil {
 		l.Errorf("FeedMeasurement: %s", err.Error())
 	}

@@ -114,11 +114,11 @@ func (ipt *Input) collectXFSQuota(timestamp int64) {
 		pts = append(pts, point.NewPointV2("xfsquota", kvs, append(opts, point.WithTimestamp(timestamp))...))
 	}
 
-	if err := ipt.Feeder.FeedV2(
+	if err := ipt.Feeder.Feed(
 		point.Metric,
 		pts,
 		dkio.WithCollectCost(time.Since(start)),
-		dkio.WithInputName(inputName),
+		dkio.WithSource(inputName),
 	); err != nil {
 		l.Warnf("failed to feed xfsquota metrics: %s", err)
 	}

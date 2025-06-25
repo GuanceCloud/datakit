@@ -105,11 +105,7 @@ func NewBenchmarkMockedFeeder() *BenchmarkMockedFeeder {
 	return &BenchmarkMockedFeeder{}
 }
 
-func (m *BenchmarkMockedFeeder) Feed(name string, category point.Category, pts []*point.Point, opts ...*dkio.Option) error {
-	return nil
-}
-
-func (m *BenchmarkMockedFeeder) FeedV2(category point.Category, pts []*point.Point, opts ...dkio.FeedOption) error {
+func (m *BenchmarkMockedFeeder) Feed(category point.Category, pts []*point.Point, opts ...dkio.FeedOption) error {
 	return nil
 }
 

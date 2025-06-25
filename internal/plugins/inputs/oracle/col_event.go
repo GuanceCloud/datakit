@@ -76,11 +76,11 @@ func (ipt *Input) collectWaitingEvent() {
 	}
 
 	l.Debugf("%s: get %d points", name, len(pts))
-	if err := ipt.feeder.FeedV2(point.Metric,
+	if err := ipt.feeder.Feed(point.Metric,
 		pts,
 		dkio.WithCollectCost(time.Since(start)),
 		dkio.WithElection(ipt.Election),
-		dkio.WithInputName(inputName)); err != nil {
-		l.Warnf("feeder.FeedV2: %s, ignored", err)
+		dkio.WithSource(inputName)); err != nil {
+		l.Warnf("feeder.Feed: %s, ignored", err)
 	}
 }

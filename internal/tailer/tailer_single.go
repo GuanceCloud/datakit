@@ -63,6 +63,11 @@ func NewTailerSingle(filepath string, opts ...Option) (*Single, error) {
 		filepath: filepath,
 	}
 
+	t.opt.feedName = dkio.FeedSource("logging", t.opt.source)
+	if t.opt.storageIndex != "" {
+		t.opt.feedName = dkio.FeedSource(t.opt.feedName, t.opt.storageIndex)
+	}
+
 	if t.opt.insideFilepathFunc != nil {
 		t.insideFilepath = t.opt.insideFilepathFunc(filepath)
 	}
@@ -450,10 +455,11 @@ func (t *Single) feedToIO(pending [][]byte) {
 		return
 	}
 
-	if err := t.opt.feeder.FeedV2(
+	if err := t.opt.feeder.Feed(
 		point.Logging,
 		pts,
-		dkio.WithInputName("logging/"+t.opt.source),
+		dkio.WithStorageIndex(t.opt.storageIndex),
+		dkio.WithSource(t.opt.feedName),
 		dkio.WithPipelineOption(&lang.LogOption{
 			DisableAddStatusField: t.opt.disableAddStatusField,
 			IgnoreStatus:          t.opt.ignoreStatus,

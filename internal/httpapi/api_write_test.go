@@ -1511,15 +1511,15 @@ func TestAPIV1Write(t *T.T) {
 		})
 	}
 
-	inputSpec := map[string]string{
-		"/v1/write/metric?input=demo": "demo",
-		"/v1/write/metric":            "datakit-http",
-		"/v1/write/security":          "scheck",
-		"/v1/write/rum":               "rum",
-		"/v1/write/custom_object":     "custom_object",
+	inputSpec := []string{
+		"/v1/write/metric?input=demo",
+		"/v1/write/metric",
+		"/v1/write/security",
+		"/v1/write/rum",
+		"/v1/write/custom_object",
 	}
 
-	for k, v := range inputSpec {
+	for _, k := range inputSpec {
 		t.Run("input-name-"+k, func(t *T.T) {
 			req := httptest.NewRequest("POST", k, bytes.NewBuffer(lineProtocol))
 
@@ -1530,8 +1530,6 @@ func TestAPIV1Write(t *T.T) {
 
 			assert.Len(t, wr.Points, len(samplePoints))
 			t.Logf("pt[0]: %s", wr.Points[0].Pretty())
-
-			assert.Equal(t, v, wr.input)
 
 			t.Logf("wr: %+#v", wr)
 		})
@@ -1888,4 +1886,48 @@ func (q *nilIPQ) Query(_ string) (*ipdb.IPdbRecord, error) {
 
 func (q *nilIPQ) GetSourceIP(req *http.Request) (string, string) {
 	return plval.RequestSourceIP(req, "")
+}
+
+func TestLoggingIndex(t *T.T) {
+	t.Run(`basic`, func(t *T.T) {
+		var (
+			wr       APIWriteResult
+			logIndex = "index_a"
+			body     = bytes.NewBufferString(`source1,tag1=1 message="log message"`)
+		)
+		req, err := http.NewRequest(`POST`, fmt.Sprintf("http://localhost:1234/v1/write/logging?%s=%s", argStorageIndex, logIndex), body)
+		require.NoError(t, err)
+
+		require.NoError(t, wr.APIV1Write(req))
+
+		fo := dkio.GetFeedData()
+		for _, opt := range wr.FeedOptions {
+			opt(fo)
+		}
+
+		assert.Equal(t, logIndex, fo.GetStorageIndex())
+		assert.Equal(t, dkio.FeedSource("v1-write", dkio.FeedSource("logging", logIndex)), fo.GetFeedSource())
+	})
+
+	t.Run(`not-working-on-non-logging`, func(t *T.T) {
+		var (
+			wr       APIWriteResult
+			logIndex = "index_a"
+			body     = bytes.NewBufferString(`source1,tag1=1 message="log message"`)
+		)
+
+		// not working on object.
+		req, err := http.NewRequest(`POST`, fmt.Sprintf("http://localhost:1234/v1/write/object?%s=%s", argStorageIndex, logIndex), body)
+		require.NoError(t, err)
+
+		require.NoError(t, wr.APIV1Write(req))
+
+		fo := dkio.GetFeedData()
+		for _, opt := range wr.FeedOptions {
+			opt(fo)
+		}
+
+		assert.NotEqual(t, logIndex, fo.GetStorageIndex())
+		assert.Equal(t, dkio.FeedSource("v1-write", "object"), fo.GetFeedSource())
+	})
 }

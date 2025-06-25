@@ -137,9 +137,9 @@ func (ipt *Input) Run() {
 	for {
 		collectStart := time.Now()
 		if err := ipt.Collect(start.UnixNano()); err == nil {
-			if feedErr := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
+			if feedErr := ipt.feeder.Feed(point.Metric, ipt.collectCache,
 				dkio.WithCollectCost(time.Since(collectStart)),
-				dkio.WithInputName(inputName),
+				dkio.WithSource(inputName),
 			); feedErr != nil {
 				l.Error(feedErr)
 				metrics.FeedLastError(inputName, feedErr.Error())

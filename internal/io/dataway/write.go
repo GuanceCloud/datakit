@@ -37,6 +37,12 @@ func WithDynamicURL(urlStr string) WriteOption {
 	}
 }
 
+func WithStorageIndex(name string) WriteOption {
+	return func(w *writer) {
+		w.indexName = name
+	}
+}
+
 func WithCacheAll(on bool) WriteOption {
 	return func(w *writer) {
 		w.cacheAll = on
@@ -94,7 +100,9 @@ func WithNoWAL(on bool) WriteOption {
 }
 
 type writer struct {
-	category   point.Category
+	category point.Category
+
+	indexName,
 	dynamicURL string
 
 	points []*point.Point
@@ -119,6 +127,7 @@ type writer struct {
 func (w *writer) reset() {
 	w.category = point.UnknownCategory
 	w.dynamicURL = ""
+	w.indexName = ""
 	w.points = w.points[:0]
 	w.gzip = gzipNotSet
 	w.cacheClean = false
@@ -182,6 +191,11 @@ func (dw *Dataway) Write(opts ...WriteOption) error {
 		if opt != nil {
 			opt(w)
 		}
+	}
+
+	// apply index name to HTTP header.
+	if w.indexName != "" {
+		WithHTTPHeader(HeaderXStorageIndexName, w.indexName)(w)
 	}
 
 	if w.bcb == nil { // set default callback

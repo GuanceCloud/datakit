@@ -22,8 +22,8 @@ func ParsePPAgentStatMessage(md metadata.MD, msg *ppv1.PStatMessage) {
 	if statBatch != nil && statBatch.GetAgentStat() != nil {
 		pts = statBatchToPoints(md, statBatch)
 		if len(pts) > 0 && metricFeeder != nil {
-			if err := metricFeeder.FeedV2(point.Metric, pts,
-				dkio.WithInputName(inputName),
+			if err := metricFeeder.Feed(point.Metric, pts,
+				dkio.WithSource(inputName),
 			); err != nil {
 				log.Errorf("feed metric to io err=%v", err)
 			}

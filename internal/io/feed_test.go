@@ -107,7 +107,7 @@ func TestRunpl(t *T.T) {
 				t.Error("!ok")
 			}
 
-			fo := GetFeedOption()
+			fo := GetFeedData()
 			fo.input = "a"
 			fo.cat = point.Logging
 			fo.pts = c.pts

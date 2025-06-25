@@ -30,7 +30,7 @@ func TestNPoints(t *T.T) {
 			pts := []*point.Point{pt}
 
 			for i := 0; i < n; i++ {
-				assert.NoError(t, f.Feed(t.Name(), point.Metric, pts))
+				assert.NoError(t, f.Feed(point.Metric, pts, WithSource(t.Name())))
 				time.Sleep(time.Millisecond * 10)
 			}
 		}()
@@ -56,7 +56,7 @@ func TestNPoints(t *T.T) {
 			pts := []*point.Point{pt}
 
 			for i := 0; i < n; i++ {
-				assert.NoError(t, f.Feed(t.Name(), point.Metric, pts))
+				assert.NoError(t, f.Feed(point.Metric, pts, WithSource(t.Name())))
 				time.Sleep(time.Millisecond * 10)
 			}
 		}()
@@ -78,7 +78,7 @@ func TestNPoints(t *T.T) {
 			pts := []*point.Point{pt}
 
 			for i := 0; i < n; i++ {
-				assert.NoError(t, f.Feed(t.Name(), point.Metric, pts))
+				assert.NoError(t, f.Feed(point.Metric, pts, WithSource(t.Name())))
 				time.Sleep(time.Millisecond * 10)
 			}
 		}()
@@ -109,10 +109,10 @@ func TestNPoints(t *T.T) {
 	out:
 
 		for i := 0; i < chanCap; i++ {
-			assert.NoError(t, f.Feed(t.Name(), point.Metric, pts), "feed err on %dth", i)
+			assert.NoError(t, f.Feed(point.Metric, pts, WithSource(t.Name())), "feed err on %dth", i)
 		}
 
-		err := f.Feed(t.Name(), point.Metric, pts)
+		err := f.Feed(point.Metric, pts, WithSource(t.Name()))
 		assert.Error(t, err)
 		t.Logf("got expect error: %s", err)
 	})

@@ -133,10 +133,10 @@ func (ipt *Input) Run() {
 	for {
 		collectStart := time.Now()
 		if err := ipt.Collect(); err == nil {
-			if errFeed := ipt.feeder.FeedV2(
+			if errFeed := ipt.feeder.Feed(
 				point.Metric, ipt.collectCache,
 				dkio.WithCollectCost(time.Since(collectStart)),
-				dkio.WithInputName(metricName),
+				dkio.WithSource(metricName),
 			); errFeed != nil {
 				ipt.feeder.FeedLastError(errFeed.Error(),
 					metrics.WithLastErrorInput(inputName),

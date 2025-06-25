@@ -34,7 +34,7 @@ type apiWriteImpl struct{}
 
 func (x *apiWriteImpl) Feed(category point.Category, pts []*point.Point, opt []dkio.FeedOption) error {
 	f := dkio.DefaultFeeder()
-	return f.FeedV2(category, pts, opt...)
+	return f.Feed(category, pts, opt...)
 }
 
 const (
@@ -150,7 +150,6 @@ type APIWriteResult struct {
 
 	PointCallback point.Callback
 
-	input,
 	inputVersion,
 	plName,
 	SrcIP,
@@ -184,7 +183,6 @@ func (wr *APIWriteResult) reset() {
 	wr.IPInfo = nil
 
 	wr.globalElectionTags = false
-	wr.input = ""
 	wr.inputVersion = ""
 	wr.ignoreGlobalTags = false
 	wr.SrcIP = ""
@@ -264,6 +262,7 @@ func (wr *APIWriteResult) getIPInfo(req *http.Request) error {
 const (
 	argPrecision            = "precision"
 	argInput                = "input"
+	argStorageIndex         = "storage_index"
 	argIgnoreGlobalTags     = "ignore_global_tags"      // deprecated, use IGNORE_GLOBAL_HOST_TAGS
 	argIgnoreGlobalHostTags = "ignore_global_host_tags" // default enabled
 	argGlobalElectionTags   = "global_election_tags"    // default disabled
@@ -285,7 +284,7 @@ func (wr *APIWriteResult) APIV1Write(req *http.Request) (err error) {
 	var (
 		categoryURL = req.URL.Path
 		body        []byte
-		inputName   = "datakit-http"
+		inputName   string
 
 		opts = []point.Option{
 			point.WithTime(time.Now()),
@@ -293,27 +292,22 @@ func (wr *APIWriteResult) APIV1Write(req *http.Request) (err error) {
 		}
 	)
 
-	switch categoryURL {
+	wr.Category = point.CatURL(categoryURL)
+	inputName = wr.Category.String()
+
+	switch wr.Category { //nolint: exhaustive
 	// set specific options on them
-	case point.Metric.URL():
+	case point.Metric:
 		opts = append(opts, point.DefaultMetricOptions()...)
-	case point.Logging.URL():
+	case point.Logging:
 		opts = append(opts, point.DefaultLoggingOptions()...)
-	case point.Object.URL():
+	case point.Object:
 		opts = append(opts, point.DefaultObjectOptions()...)
 
-	case point.Network.URL(),
-		point.Tracing.URL(),
-		point.KeyEvent.URL(): // pass
+	case point.Network, point.Tracing, point.KeyEvent,
+		point.CustomObject, point.Security: // pass
 
-		// set input-name for them
-	case point.CustomObject.URL():
-		inputName = "custom_object"
-	case point.Security.URL():
-		inputName = "scheck"
-
-	case point.RUM.URL():
-		inputName = "rum"
+	case point.RUM:
 		if err := wr.getIPInfo(req); err != nil {
 			l.Warnf("getIPInfo failed: %s, ignored", err)
 		}
@@ -325,16 +319,20 @@ func (wr *APIWriteResult) APIV1Write(req *http.Request) (err error) {
 		return uhttp.Errorf(ErrInvalidCategory, "invalid URL %q", categoryURL)
 	}
 
-	wr.Category = point.CatURL(categoryURL)
-
+	// API can set input name via query args.
 	q := req.URL.Query()
 	if x := q.Get(argInput); x != "" {
 		inputName = x
 	}
 
-	wr.FeedOptions = append(wr.FeedOptions, dkio.WithInputName(inputName))
+	feedName := dkio.FeedSource("v1-write", inputName)
 
-	wr.input = inputName
+	if x := q.Get(argStorageIndex); x != "" && wr.Category == point.Logging /* only for category logging */ {
+		wr.FeedOptions = append(wr.FeedOptions, dkio.WithStorageIndex(x))
+		feedName = dkio.FeedSource(feedName, x)
+	}
+
+	wr.FeedOptions = append(wr.FeedOptions, dkio.WithSource(feedName))
 
 	if x := q.Get(argPrecision); x != "" {
 		opts = append(opts, point.WithPrecision(point.PrecStr(x)))

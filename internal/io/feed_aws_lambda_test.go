@@ -19,7 +19,7 @@ func TestFeedAwsLambda(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		wg.Add(1)
 		go func() {
-			err := output.Write(&feedOption{
+			err := output.Write(&feedData{
 				cat: point.Metric,
 				pts: make([]*point.Point, 100),
 			})

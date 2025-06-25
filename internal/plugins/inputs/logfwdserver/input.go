@@ -12,7 +12,6 @@ package logfwdserver
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net"
 	"net/http"
 	"time"
@@ -115,11 +114,12 @@ func (ipt *Input) Run() {
 }
 
 type message struct {
-	Source   string                 `json:"source"`
-	Pipeline string                 `json:"pipeline"`
-	Tags     map[string]string      `json:"tags"`
-	Fields   map[string]interface{} `json:"fields"`
-	Log      string                 `json:"log"`
+	Source       string                 `json:"source"`
+	StorageIndex string                 `json:"storage_index"`
+	Pipeline     string                 `json:"pipeline"`
+	Tags         map[string]string      `json:"tags"`
+	Fields       map[string]interface{} `json:"fields"`
+	Log          string                 `json:"log"`
 }
 
 func (ipt *Input) setup() bool {
@@ -151,7 +151,11 @@ func (ipt *Input) setup() bool {
 			return err
 		}
 
-		name := "logfwd/" + msg.Source
+		feedName := dkio.FeedSource("logfwd", msg.Source)
+		if msg.StorageIndex != "" {
+			feedName = dkio.FeedSource(feedName, msg.StorageIndex)
+		}
+
 		tags := msg.Tags
 		if tags == nil {
 			tags = make(map[string]string)
@@ -161,17 +165,15 @@ func (ipt *Input) setup() bool {
 				tags[k] = v
 			}
 		}
-		if tags["pod_name"] != "" {
-			name += fmt.Sprintf("(podname:%s)", tags["pod_name"])
-		}
 
 		pts := makePts(msg.Source, []string{msg.Log}, tags, msg.Fields)
 		if len(pts) == 0 {
 			return nil
 		}
 
-		if err := ipt.feeder.FeedV2(point.Logging, pts,
-			dkio.WithInputName(name),
+		if err := ipt.feeder.Feed(point.Logging, pts,
+			dkio.WithStorageIndex(msg.StorageIndex),
+			dkio.WithSource(feedName),
 			dkio.WithPipelineOption(&lang.LogOption{
 				ScriptMap: map[string]string{msg.Source: msg.Pipeline},
 			}),

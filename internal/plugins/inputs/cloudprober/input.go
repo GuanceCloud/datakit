@@ -90,9 +90,9 @@ func (ipt *Input) getMetric() {
 		return
 	}
 	if len(pts) > 0 {
-		if err := ipt.feeder.FeedV2(point.Metric, pts,
+		if err := ipt.feeder.Feed(point.Metric, pts,
 			dkio.WithCollectCost(time.Since(ipt.start)),
-			dkio.WithInputName(inputName)); err != nil {
+			dkio.WithSource(inputName)); err != nil {
 			l.Error(err.Error())
 			ipt.lastErr = err
 		}

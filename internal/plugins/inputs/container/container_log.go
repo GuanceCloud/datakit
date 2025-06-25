@@ -155,6 +155,7 @@ func (c *containerCollector) tailingLogs(ins *logInstance) {
 		}
 
 		opts := []tailer.Option{
+			tailer.WithStorageIndex(cfg.StorageIndex),
 			tailer.WithSource(cfg.Source),
 			tailer.WithService(cfg.Service),
 			tailer.WithPipeline(cfg.Pipeline),

@@ -122,6 +122,14 @@ The complete description of URL parameters is as follows:
 - Description: If `source` is not specified (or the corresponding *source.p* does not exist or is invalid), the uploaded Point data will not execute the Pipeline.
 - Example: `curl -X POST -d '<YOUR-DATA>' "http://localhost:9529/v1/write/metric&source=my-data-source-name"`
 
+**`storage_index`** [:octicons-tag-24: Version-1.76.0](changelog-2025.md#cl-1.76.0)
+
+- Type: string
+- Required: No
+- Default Value: None
+- Description**: This parameter only takes effect for logging, used to specify the log index name. (Note: The index name must start with a letter and can only contain lowercase letters, numbers, or `_` characters.)
+- Example: `curl -X POST -d '<YOUR-DATA>' "http://localhost:9529/v1/write/logging&storage_index=index_abc"`
+
 **`strict`** [:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)
 
 - Type: bool
@@ -614,7 +622,7 @@ status_code: 500
 
 ### `GET /v1/ntp` {#api-ntp}
 
-[:octicons-tag-24: Version-1.73.0](changelog.md#cl-1.73.0)
+[:octicons-tag-24: Version-1.73.0](changelog-2025.md#cl-1.73.0)
 
 Get the Unix timestamp (in seconds) of the machine where DataKit is located.
 
@@ -1145,7 +1153,7 @@ HTTP Code: 400
 
 ### `/v1/env_variable` {#api-env-variable}
 
-[:octicons-tag-24: Version-1.72.0](changelog.md#cl-1.72.0)
+[:octicons-tag-24: Version-1.72.0](changelog-2025.md#cl-1.72.0)
 
 Get the list of RUM environment variables. Description of request parameters:
 

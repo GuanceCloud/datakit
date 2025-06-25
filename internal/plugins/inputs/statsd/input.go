@@ -212,8 +212,8 @@ func (ipt *Input) feedBatch(points []*point.Point) {
 		// i >= len(points)-1 --> last batch
 		// len(pts) >= 1024 --> 1024 pts per batch
 		if i >= len(points)-1 || len(pts) >= 1024 {
-			if err := ipt.Feeder.FeedV2(point.Metric, pts,
-				dkio.WithInputName(ipt.Source)); err != nil {
+			if err := ipt.Feeder.Feed(point.Metric, pts,
+				dkio.WithSource(ipt.Source)); err != nil {
 				ipt.Feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
 					metrics.WithLastErrorSource(ipt.Source),

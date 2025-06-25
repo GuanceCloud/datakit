@@ -54,11 +54,11 @@ func (c *containerCollector) gatherMetric() {
 
 	collectPtsVec.WithLabelValues("metric").Add(float64(len(pts)))
 
-	if err := c.feeder.FeedV2(
+	if err := c.feeder.Feed(
 		point.Metric,
 		pts,
 		dkio.WithElection(false),
-		dkio.WithInputName("container-metric"),
+		dkio.WithSource("container-metric"),
 	); err != nil {
 		l.Warnf("container-metric feed failed, err: %s", err)
 	}
@@ -77,11 +77,11 @@ func (c *containerCollector) gatherObject() {
 	pts := c.runGather(list, c.buildObjectPoint)
 	collectPtsVec.WithLabelValues("object").Add(float64(len(pts)))
 
-	if err := c.feeder.FeedV2(
+	if err := c.feeder.Feed(
 		point.Object,
 		pts,
 		dkio.WithElection(false),
-		dkio.WithInputName("container-object"),
+		dkio.WithSource("container-object"),
 	); err != nil {
 		l.Warnf("container-object feed failed, err: %s", err)
 	}

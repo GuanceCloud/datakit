@@ -68,9 +68,10 @@ monitor   :
 
 Promtail 采集器支持在 HTTP URL 中添加参数。参数列表如下：
 
-- `source`：标识数据来源。例如 `nginx` 或者 `redis`（`/v1/write/promtail?source=nginx`)，默认将 `source` 设为 `default`；
-- `pipeline`：指定数据需要使用的 pipeline 名称，例如 `nginx.p`（`/v1/write/promtail?pipeline=nginx.p`）；
-- `tags`：添加自定义 tag，以英文逗号 `,` 分割，例如 `key1=value1` 和 `key2=value2`（`/v1/write/promtail?tags=key1=value1,key2=value2`）。
+- `source`：标识数据来源。例如 `nginx` 或者 `redis`（`/v1/write/promtail?source=nginx`)，默认将 `source` 设为 `default`
+- `pipeline`：指定数据需要使用的 pipeline 名称，例如 `nginx.p`（`/v1/write/promtail?pipeline=nginx.p`）
+- `tags`：添加自定义 tag，以英文逗号 `,` 分割，例如 `key1=value1` 和 `key2=value2`（`/v1/write/promtail?tags=key1=value1,key2=value2`）
+- `storage_index`：指定日志存储索引名（`/v1/write/promtail?storage_index=index_abc`） [:octicons-tag-24: Version-1.76.0](../datakit/changelog-2025.md#cl-1.76.0)
 
 ### 示例 {#example}
 

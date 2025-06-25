@@ -76,7 +76,9 @@ const mqSampleConfig = `
   ## user custom message with PL script.
   #[inputs.kafkamq.custom]
     #spilt_json_body = true
-    #thread = 8 
+    #thread = 8
+    #storage_index = "" # NOTE: only working on logging collection
+
     ## spilt_topic_map determines whether to enable log splitting for specific topic based on the values in the spilt_topic_map[topic].
     #[inputs.kafkamq.custom.spilt_topic_map]
     #  "log_topic"=true

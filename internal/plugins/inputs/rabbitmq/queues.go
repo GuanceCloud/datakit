@@ -81,10 +81,10 @@ func getQueues(n *Input) {
 		pts = append(pts, point.NewPointV2(queueMeasurementName, kvs, opts...))
 	}
 
-	if err := n.feeder.FeedV2(point.Metric, pts,
+	if err := n.feeder.Feed(point.Metric, pts,
 		dkio.WithCollectCost(time.Since(collectStart)),
 		dkio.WithElection(n.Election),
-		dkio.WithInputName(inputName),
+		dkio.WithSource(inputName),
 	); err != nil {
 		l.Errorf("FeedMeasurement: %s", err.Error())
 	}

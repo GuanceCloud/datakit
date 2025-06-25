@@ -30,11 +30,12 @@ import (
 var (
 	_ inputs.InputV2   = &Input{}
 	_ inputs.HTTPInput = &Input{}
+
+	customObjectFeedName = dkio.FeedSource(inputName, "CO")
 )
 
 const (
-	inputName            = "ddtrace"
-	customObjectFeedName = inputName + "/CO"
+	inputName = "ddtrace"
 
 	// TraceIDUpper Tag used to propagate the higher-order 64 bits of a 128-bit trace id encoded as a
 	// lower-case hexadecimal string with no zero-padding or `0x` prefix.

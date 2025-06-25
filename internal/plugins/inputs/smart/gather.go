@@ -77,9 +77,9 @@ func (ipt *Input) getAttributes(devices []string) error {
 
 					metrics.FeedLastError(inputName, err.Error())
 				} else {
-					return ipt.feeder.FeedV2(point.Metric, []*point.Point{pt},
+					return ipt.feeder.Feed(point.Metric, []*point.Point{pt},
 						dkio.WithCollectCost(time.Since(start)),
-						dkio.WithInputName(inputName),
+						dkio.WithSource(inputName),
 					)
 				}
 
@@ -106,9 +106,9 @@ func (ipt *Input) getVendorNVMeAttributes(devices []string) error {
 
 							metrics.FeedLastError(inputName, err.Error())
 						} else {
-							return ipt.feeder.FeedV2(point.Metric, []*point.Point{pt},
+							return ipt.feeder.Feed(point.Metric, []*point.Point{pt},
 								dkio.WithCollectCost(time.Since(start)),
-								dkio.WithInputName(inputName),
+								dkio.WithSource(inputName),
 							)
 						}
 						return nil
@@ -122,9 +122,9 @@ func (ipt *Input) getVendorNVMeAttributes(devices []string) error {
 						l.Errorf("gatherIntelNVMeDisk: %s", err.Error())
 						metrics.FeedLastError(inputName, err.Error())
 					} else {
-						return ipt.feeder.FeedV2(point.Metric, []*point.Point{pt},
+						return ipt.feeder.Feed(point.Metric, []*point.Point{pt},
 							dkio.WithCollectCost(time.Since(start)),
-							dkio.WithInputName(inputName),
+							dkio.WithSource(inputName),
 						)
 					}
 

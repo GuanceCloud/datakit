@@ -34,9 +34,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
 
-var _ inputs.ElectionInput = (*Input)(nil)
-
-var mask = regexp.MustCompile(`https?:\/\/\S+:\S+@`)
+var (
+	_    inputs.ElectionInput = (*Input)(nil)
+	mask                      = regexp.MustCompile(`https?:\/\/\S+:\S+@`)
+)
 
 const (
 	statsPath      = "/_nodes/stats"
@@ -323,7 +324,7 @@ func mapHealthStatusToCode(s string) int {
 
 var (
 	inputName            = "elasticsearch"
-	customObjectFeedName = inputName + "/CO"
+	customObjectFeedName = dkio.FeedSource(inputName, "CO")
 	catalogName          = "db"
 	l                    = logger.DefaultSLogger("elasticsearch")
 )
@@ -596,10 +597,10 @@ func (ipt *Input) Run() {
 				)
 				l.Error(err)
 			} else if len(ipt.collectCache) > 0 {
-				if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
+				if err := ipt.feeder.Feed(point.Metric, ipt.collectCache,
 					dkio.WithCollectCost(time.Since(collectStart)),
 					dkio.WithElection(ipt.Election),
-					dkio.WithInputName(inputName)); err != nil {
+					dkio.WithSource(inputName)); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
 						metrics.WithLastErrorInput(inputName),
 					)

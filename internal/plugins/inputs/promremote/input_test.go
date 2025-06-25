@@ -433,12 +433,7 @@ func NewUnitTestMockedFeeder() *UnitTestMockedFeeder {
 	return &UnitTestMockedFeeder{}
 }
 
-func (m *UnitTestMockedFeeder) Feed(name string, category point.Category, pts []*point.Point, opts ...*dkio.Option) error {
-	m.PTs = append(m.PTs, pts...)
-	return nil
-}
-
-func (m *UnitTestMockedFeeder) FeedV2(category point.Category, pts []*point.Point, opts ...dkio.FeedOption) error {
+func (m *UnitTestMockedFeeder) Feed(category point.Category, pts []*point.Point, opts ...dkio.FeedOption) error {
 	m.PTs = append(m.PTs, pts...)
 	return nil
 }

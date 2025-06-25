@@ -133,10 +133,10 @@ func (tf *TrapForwarder) sendTrap(packet *SnmpPacket) {
 		TS:     tn,
 	}
 
-	if err := tf.feeder.FeedV2(point.Logging, []*point.Point{metric.Point()},
+	if err := tf.feeder.Feed(point.Logging, []*point.Point{metric.Point()},
 		dkio.WithCollectCost(time.Since(tn)),
 		dkio.WithElection(tf.election),
-		dkio.WithInputName(trapsLogging),
+		dkio.WithSource(trapsLogging),
 	); err != nil {
 		l.Errorf("Feed logging err: %v", err)
 		tf.feeder.FeedLastError(err.Error(),

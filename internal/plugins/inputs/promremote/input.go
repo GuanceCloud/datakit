@@ -244,10 +244,10 @@ func (ipt *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
 	}
 
 	if len(pts) > 0 {
-		if err := ipt.feeder.FeedV2(point.Metric, pts,
+		if err := ipt.feeder.Feed(point.Metric, pts,
 			dkio.WithCollectCost(time.Since(start)),
 			dkio.DisableGlobalTags(true),
-			dkio.WithInputName(inputName)); err != nil {
+			dkio.WithSource(inputName)); err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),
 				metrics.WithLastErrorCategory(point.Metric),

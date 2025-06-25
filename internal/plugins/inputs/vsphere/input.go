@@ -623,10 +623,10 @@ func (ipt *Input) Run() {
 			} else {
 				l.Debugf("collect cache length: %d", len(ipt.collectCache))
 				if len(ipt.collectCache) > 0 {
-					if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
+					if err := ipt.feeder.Feed(point.Metric, ipt.collectCache,
 						dkio.WithCollectCost(time.Since(collectStart)),
 						dkio.WithElection(ipt.Election),
-						dkio.WithInputName(inputName),
+						dkio.WithSource(inputName),
 					); err != nil {
 						ipt.feeder.FeedLastError(err.Error(),
 							metrics.WithLastErrorInput(inputName),
@@ -636,10 +636,10 @@ func (ipt *Input) Run() {
 
 				l.Debugf("collect log length: %d", len(ipt.collectLogs))
 				if len(ipt.collectLogs) > 0 {
-					if err := ipt.feeder.FeedV2(point.Logging, ipt.collectLogs,
+					if err := ipt.feeder.Feed(point.Logging, ipt.collectLogs,
 						dkio.WithCollectCost(time.Since(collectStart)),
 						dkio.WithElection(ipt.Election),
-						dkio.WithInputName(inputName),
+						dkio.WithSource(inputName),
 					); err != nil {
 						ipt.feeder.FeedLastError(err.Error(),
 							metrics.WithLastErrorInput(inputName),
@@ -651,10 +651,10 @@ func (ipt *Input) Run() {
 
 				l.Debugf("collect object length: %d", len(ipt.collectObjects))
 				if len(ipt.collectObjects) > 0 {
-					if err := ipt.feeder.FeedV2(point.CustomObject, ipt.collectObjects,
+					if err := ipt.feeder.Feed(point.CustomObject, ipt.collectObjects,
 						dkio.WithCollectCost(time.Since(collectStart)),
 						dkio.WithElection(ipt.Election),
-						dkio.WithInputName(inputName+"/CO"),
+						dkio.WithSource(dkio.FeedSource(inputName, "CO")),
 					); err != nil {
 						ipt.feeder.FeedLastError(err.Error(),
 							metrics.WithLastErrorInput(inputName),

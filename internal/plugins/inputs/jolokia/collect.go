@@ -68,11 +68,11 @@ func (j *JolokiaAgent) Collect() {
 			}
 
 			if len(j.collectCache) > 0 {
-				if err := j.Feeder.FeedV2(point.Metric,
+				if err := j.Feeder.Feed(point.Metric,
 					j.collectCache,
 					dkio.WithCollectCost(time.Since(collectStart)),
 					dkio.WithElection(j.Election),
-					dkio.WithInputName(j.PluginName)); err != nil {
+					dkio.WithSource(j.PluginName)); err != nil {
 					j.L.Errorf("Feed: %s, ignored", err.Error())
 				}
 
@@ -124,10 +124,10 @@ func (j *JolokiaAgent) Gather(ptTS int64) error {
 				client.upState = 1
 
 				pts, _ := j.collectCustomerObjectMeasurement(client)
-				if err := j.Feeder.FeedV2(point.CustomObject, pts,
+				if err := j.Feeder.Feed(point.CustomObject, pts,
 					dkio.WithCollectCost(time.Since(time.Now())),
 					dkio.WithElection(j.Election),
-					dkio.WithInputName(j.PluginName+"/CO")); err != nil {
+					dkio.WithSource(dkio.FeedSource(j.PluginName, "CO"))); err != nil {
 					j.L.Errorf("Feed: %s, ignored", err.Error())
 				}
 
@@ -138,10 +138,10 @@ func (j *JolokiaAgent) Gather(ptTS int64) error {
 				}
 
 				pts, _ = j.buildUpPoints(client)
-				if err := j.Feeder.FeedV2(point.Metric, pts,
+				if err := j.Feeder.Feed(point.Metric, pts,
 					dkio.WithCollectCost(time.Since(time.Now())),
 					dkio.WithElection(j.Election),
-					dkio.WithInputName(j.PluginName)); err != nil {
+					dkio.WithSource(j.PluginName)); err != nil {
 					j.L.Errorf("Feed: %s, ignored", err.Error())
 				}
 

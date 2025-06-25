@@ -26,7 +26,7 @@ func TestInputFeedMetrics(t *T.T) {
 		cat := point.Metric
 		f := DefaultFeeder()
 
-		assert.NoError(t, f.Feed(t.Name(), cat, nil, nil))
+		assert.NoError(t, f.Feed(cat, nil, WithSource(t.Name())))
 
 		mfs, err := reg.Gather()
 		assert.NoError(t, err)
@@ -51,9 +51,7 @@ func TestInputFeedMetrics(t *T.T) {
 
 		feeder := DefaultFeeder()
 
-		assert.NoError(t, feeder.Feed(t.Name(), cat, pts, &Option{
-			CollectCost: time.Second,
-		}))
+		assert.NoError(t, feeder.Feed(cat, pts, WithSource(t.Name()), WithCollectCost(time.Second)))
 
 		mfs, err := reg.Gather()
 		assert.NoError(t, err)

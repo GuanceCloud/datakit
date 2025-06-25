@@ -27,11 +27,11 @@ func feedMetric(name string, feeder dkio.Feeder, pts []*point.Point, election bo
 
 	collectPtsVec.WithLabelValues(name).Add(float64(len(pts)))
 
-	if err := feeder.FeedV2(
+	if err := feeder.Feed(
 		point.Metric,
 		pts,
 		dkio.WithElection(election),
-		dkio.WithInputName("k8s-metric"),
+		dkio.WithSource("k8s-metric"),
 	); err != nil {
 		klog.Warnf("%s feed failed, err: %s", name, err)
 	}
@@ -44,11 +44,11 @@ func feedObject(name string, feeder dkio.Feeder, pts []*point.Point, election bo
 
 	collectPtsVec.WithLabelValues(name).Add(float64(len(pts)))
 
-	if err := feeder.FeedV2(
+	if err := feeder.Feed(
 		point.Object,
 		pts,
 		dkio.WithElection(election),
-		dkio.WithInputName("k8s-object"),
+		dkio.WithSource("k8s-object"),
 	); err != nil {
 		klog.Warnf("%s feed failed, err: %s", name, err)
 	}
@@ -61,11 +61,11 @@ func feedLogging(name string, feeder dkio.Feeder, pts []*point.Point) {
 
 	collectPtsVec.WithLabelValues(name).Add(float64(len(pts)))
 
-	if err := feeder.FeedV2(
+	if err := feeder.Feed(
 		point.Logging,
 		pts,
 		dkio.WithElection(true),
-		dkio.WithInputName("k8s-event"),
+		dkio.WithSource("k8s-event"),
 	); err != nil {
 		klog.Warnf("%s feed failed, err: %s", name, err)
 	}
@@ -92,11 +92,11 @@ func processChange(cfg *Config, class, sourceName, sourceType, difftext string, 
 	pt := point.NewPointV2("event", kvs, point.WithTimestamp(ntp.Now().UnixNano()))
 	collectPtsVec.WithLabelValues("k8s-object-change-event").Add(1)
 
-	if err := cfg.Feeder.FeedV2(
+	if err := cfg.Feeder.Feed(
 		point.KeyEvent,
 		[]*point.Point{pt},
 		dkio.WithElection(true),
-		dkio.WithInputName("k8s-object-change-event"),
+		dkio.WithSource("k8s-object-change-event"),
 	); err != nil {
 		klog.Warnf("feed failed, err: %s", err)
 	}

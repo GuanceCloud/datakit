@@ -360,10 +360,10 @@ func (ipt *Input) doCollectUserObject(deviceIP string, device *deviceInfo) {
 		return
 	}
 
-	if err := ipt.feeder.FeedV2(point.CustomObject, points,
+	if err := ipt.feeder.Feed(point.CustomObject, points,
 		dkio.WithCollectCost(time.Since(tn)),
 		dkio.WithElection(ipt.Election),
-		dkio.WithInputName(snmpmeasurement.SNMPObjectName),
+		dkio.WithSource(snmpmeasurement.SNMPObjectName),
 	); err != nil {
 		l.Errorf("FeedMeasurement metric err: %v", err)
 		ipt.feeder.FeedLastError(err.Error(),
@@ -424,10 +424,10 @@ func (ipt *Input) doCollectUserMetrics(deviceIP string, device *deviceInfo) {
 		return
 	}
 
-	if err := ipt.feeder.FeedV2(point.Metric, points,
+	if err := ipt.feeder.Feed(point.Metric, points,
 		dkio.WithCollectCost(time.Since(tn)),
 		dkio.WithElection(ipt.Election),
-		dkio.WithInputName(snmpmeasurement.SNMPMetricName),
+		dkio.WithSource(snmpmeasurement.SNMPMetricName),
 	); err != nil {
 		l.Errorf("FeedMeasurement metric err: %v", err)
 		ipt.feeder.FeedLastError(err.Error(),

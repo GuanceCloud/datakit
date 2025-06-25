@@ -169,10 +169,10 @@ func (ipt *Input) collectCustomerObjectMeasurement() ([]*gcPoint.Point, error) {
 
 func (ipt *Input) FeedCoPts() {
 	pts, _ := ipt.collectCustomerObjectMeasurement()
-	if err := ipt.feeder.FeedV2(gcPoint.CustomObject, pts,
+	if err := ipt.feeder.Feed(gcPoint.CustomObject, pts,
 		dkio.WithCollectCost(time.Since(time.Now())),
 		dkio.WithElection(ipt.Election),
-		dkio.WithInputName(customObjectFeedName),
+		dkio.WithSource(customObjectFeedName),
 	); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
 			metrics.WithLastErrorInput(inputName),
@@ -186,10 +186,10 @@ func (ipt *Input) FeedCoByErr(err error) {
 	ipt.setIptErrCOMsg(err.Error())
 	ipt.setIptErrCOStatus()
 	pts := ipt.getCoPointByColErr()
-	if err := ipt.feeder.FeedV2(gcPoint.CustomObject,
+	if err := ipt.feeder.Feed(gcPoint.CustomObject,
 		pts,
 		dkio.WithElection(ipt.Election),
-		dkio.WithInputName(customObjectFeedName),
+		dkio.WithSource(customObjectFeedName),
 	); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
 			metrics.WithLastErrorInput(inputName),
