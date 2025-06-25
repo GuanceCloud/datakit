@@ -513,3 +513,7 @@ push_new_version:
 	else \
 		printf "\n$(HL)push version $(VERSION) done\n$(NC)"; \
 	fi
+
+coverage:
+	@LOGGER_PATH=nul UT_EXCLUDE_INTEGRATION_TESTING=on gocov test ./... > coverage.json
+	gocov report coverage.json | grep 'Total Coverage'
