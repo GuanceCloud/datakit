@@ -15,7 +15,7 @@ import (
 
 // func TestCollect(t *testing.T) {
 // 	i := defaultInput()
-// 	i.Host = "junlin623.cn"
+// 	i.Host = "localhost"
 // 	i.Port = 54321
 // 	i.User = "datakit"
 // 	i.Password = "datakit"
