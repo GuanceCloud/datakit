@@ -98,7 +98,7 @@ func Test_mergeDefaultInputs(t *T.T) {
 	})
 }
 
-func Test_loadInstallerArgs(t *T.T) {
+func TestLoadInstallerArgs(t *T.T) {
 	t.Run(`dataway-invalid-token`, func(t *T.T) {
 		args := &InstallerArgs{
 			DatawayURLs: "https://abc.com?token=tkn_1234",
@@ -264,5 +264,22 @@ func Test_loadInstallerArgs(t *T.T) {
 		mc, err := args.LoadInstallerArgs(mc)
 		assert.NoError(t, err)
 		assert.Equal(t, "::1:4321", mc.HTTPAPI.Listen)
+	})
+
+	t.Run(`set-user`, func(t *T.T) {
+		args := DefaultInstallArgs()
+
+		mc := config.DefaultConfig()
+		mc.DatakitUser = "not-admin"
+
+		mc, err := args.LoadInstallerArgs(mc)
+		assert.NoError(t, err)
+		assert.Equal(t, "not-admin", mc.DatakitUser)
+
+		// set new user
+		args.FlagUserName = "another-admin"
+		mc, err = args.LoadInstallerArgs(mc)
+		assert.NoError(t, err)
+		assert.Equal(t, "another-admin", mc.DatakitUser)
 	})
 }

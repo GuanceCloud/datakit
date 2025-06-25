@@ -88,8 +88,8 @@ func isRoot() error {
 		return fmt.Errorf("get user failed: %w", err)
 	}
 
-	if u.Username != "root" {
-		return fmt.Errorf("not root user, current is %s", u.Username)
+	if !datakit.IsAdminUser(u.Username) {
+		return fmt.Errorf("not admin user, current is %s", u.Username)
 	}
 
 	return nil
@@ -204,16 +204,13 @@ func uninstallDatakit() error {
 }
 
 func reinstallDatakit(mc *config.Config) error {
-	limitCPUMax := fmt.Sprintf("%d%%", int(mc.ResourceLimitOptions.CPUMax))
-	limitMemMax := fmt.Sprintf("%dM", mc.ResourceLimitOptions.MemMax)
-	if !mc.ResourceLimitOptions.Enable || mc.DatakitUser != "datakit" {
-		limitCPUMax = ""
-		limitMemMax = ""
-	}
+	var opts []dkservice.ServiceOption
 
-	opts := []dkservice.ServiceOption{
-		dkservice.WithMemLimit(limitMemMax),
-		dkservice.WithCPULimit(limitCPUMax),
+	if mc.ResourceLimitOptions.Enable {
+		opts = append(opts,
+			dkservice.WithMemLimit(fmt.Sprintf("%dM", mc.ResourceLimitOptions.MemMax)),
+			dkservice.WithCPULimit(fmt.Sprintf("%f%%", mc.ResourceLimitOptions.CPUMax)),
+		)
 	}
 
 	if runtime.GOOS == datakit.OSLinux { // only linux add user to daemon service

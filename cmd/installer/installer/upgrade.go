@@ -9,11 +9,12 @@ import (
 	"os"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/kardianos/service"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 )
 
@@ -23,7 +24,18 @@ func SetLog() {
 	l = logger.SLogger("upgrade")
 }
 
-func (args *InstallerArgs) Upgrade(mc *config.Config) (err error) {
+func (args *InstallerArgs) Upgrade(mc *config.Config, svc service.Service) (err error) {
+	if args.shouldReinstallService {
+		l.Info("service updated, uninstall it...")
+
+		args.uninstallDKService(svc)
+
+		l.Infof("re-installing service datakit...")
+		if err := service.Control(svc, "install"); err != nil {
+			l.Warnf("uninstall service failed %s", err.Error()) //nolint:lll
+		}
+	}
+
 	// load exists datakit.conf
 	if err := mc.LoadMainTOML(datakit.MainConfPath); err == nil {
 		// load DK_XXX env config

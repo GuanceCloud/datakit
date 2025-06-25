@@ -114,6 +114,7 @@ type InstallerArgs struct {
 
 	LimitCPUMax, LimitCPUCores float64
 	LimitCPUMin                float64 // deprecated
+	shouldReinstallService     bool
 
 	LimitMemMax      int64
 	CryptoAESKey     string
@@ -254,25 +255,52 @@ func (args *InstallerArgs) SetDatakitLiteAndELinker() {
 	}
 }
 
-// SetupService detect if datakit is installed, and try to stop service before install/upgrade.
-func (args *InstallerArgs) SetupService() (service.Service, error) {
-	cpulimit := ""
-	if x := args.LimitCPUCores / float64(runtime.NumCPU()) * 100.0; x > 100.0 {
-		cpulimit = "100%"
-	} else {
-		cpulimit = fmt.Sprintf("%f%%", x)
+func (args *InstallerArgs) setupServiceOptions() *service.Config {
+	var (
+		def          = config.DefaultConfig()
+		rl           = def.ResourceLimitOptions // use cpu/mem limit from default configure
+		limitUpdated = false
+	)
+
+	// setup CPU max
+	if args.LimitCPUCores > 0.0 {
+		rl.CPUCores = args.LimitCPUCores
+		limitUpdated = true
+	}
+	if args.LimitCPUMax > 0.0 {
+		rl.CPUMax = args.LimitCPUMax
+		limitUpdated = true
 	}
 
+	// setup mem max
+	if args.LimitMemMax > 0 {
+		rl.MemMax = args.LimitMemMax
+		limitUpdated = true
+	}
+
+	rl.Setup() // apply
+
 	svcopts := []dkservice.ServiceOption{
-		dkservice.WithMemLimit(fmt.Sprintf("%dM", args.LimitMemMax)),
-		dkservice.WithCPULimit(cpulimit),
+		dkservice.WithMemLimit(fmt.Sprintf("%dM", rl.MemMax)),
+		dkservice.WithCPULimit(fmt.Sprintf("%f%%", rl.CPUMax)),
 	}
 
 	if runtime.GOOS == datakit.OSLinux && args.FlagUserName != "" {
 		svcopts = append(svcopts, dkservice.WithUser(args.FlagUserName))
+
+		if !datakit.IsAdminUser(args.FlagUserName) && limitUpdated && args.FlagDKUpgrade {
+			// for non-admin user, during upgrade, if user specified new cpu/mem limit, we should
+			// apply them to datakit.service.
+			args.shouldReinstallService = true
+		}
 	}
 
-	svc, err := dkservice.NewService(svcopts...)
+	return dkservice.ApplyOptions(dkservice.DefaultServiceConfig(), svcopts...)
+}
+
+// SetupService detect if datakit is installed, and try to stop service before install/upgrade.
+func (args *InstallerArgs) SetupService() (service.Service, error) {
+	svc, err := dkservice.NewServiceOnConfigure(args.setupServiceOptions())
 	if err != nil {
 		l.Errorf("new %s service failed: %s", runtime.GOOS, err.Error())
 		return nil, err
@@ -297,11 +325,6 @@ func (args *InstallerArgs) SetupService() (service.Service, error) {
 				cp.Warnf("stop service failed %s, ignored\n", err.Error())
 			}
 		}
-	}
-
-	cp.Infof("Stopping running DataKit...\n") // we should stop the service before install/upgrade
-	if err = service.Control(svc, "stop"); err != nil {
-		cp.Warnf("stop service failed %s, ignored\n", err.Error())
 	}
 
 	return svc, nil

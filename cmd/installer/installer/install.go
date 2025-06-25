@@ -17,8 +17,7 @@ import (
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )
 
-// Install will stop/uninstall/install svc.
-func (args *InstallerArgs) Install(mc *config.Config, svc service.Service) (err error) {
+func (args *InstallerArgs) uninstallDKService(svc service.Service) {
 	svcStatus, err := svc.Status()
 	if err != nil {
 		if errors.Is(err, service.ErrNotInstalled) {
@@ -41,6 +40,11 @@ func (args *InstallerArgs) Install(mc *config.Config, svc service.Service) (err 
 			}
 		}
 	}
+}
+
+// Install will stop/uninstall/install svc.
+func (args *InstallerArgs) Install(mc *config.Config, svc service.Service) (err error) {
+	args.uninstallDKService(svc)
 
 	if err := args.WriteDefInputs(mc); err != nil {
 		l.Warnf("WriteDefInputs: %s, ignored", err)

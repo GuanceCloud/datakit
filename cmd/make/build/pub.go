@@ -38,24 +38,24 @@ type tarFileOpt uint32
 
 const (
 	// Option to include version information in filename.
-	TarRlsVerMask tarFileOpt = 0b1
-	TarNoRlsVer   tarFileOpt = 0b0
-	TarWithRlsVer tarFileOpt = 0b1
+	tarReleaseVerMask tarFileOpt = 0b1
+	tarNoReleaseVer   tarFileOpt = 0b0
+	tarWithReleaseVer tarFileOpt = 0b1
 
-	ARM64 = "arm64"
-	AMD64 = "amd64"
-	Linux = "linux"
+	archARM64       = "arm64"
+	archAMD64       = "amd64"
+	lambdaArchAMD64 = "x86_64"
 )
 
 func tarFiles(pubPath, buildPath, appName, goos, goarch string, opt tarFileOpt) (string, string) {
 	l.Debugf("tarFiles entry, pubPath = %s, buildPath = %s, appName = %s", pubPath, buildPath, appName)
 	var gzFileName, gzFilePath string
 
-	switch opt & TarRlsVerMask {
-	case TarWithRlsVer:
+	switch opt & tarReleaseVerMask {
+	case tarWithReleaseVer:
 		gzFileName = fmt.Sprintf("%s-%s-%s-%s.tar.gz",
 			appName, goos, goarch, ReleaseVersion)
-	case TarNoRlsVer:
+	case tarNoReleaseVer:
 		gzFileName = fmt.Sprintf("%s-%s-%s.tar.gz",
 			appName, goos, goarch)
 	}
@@ -179,19 +179,19 @@ func PubDatakit() error {
 		}
 
 		goos, goarch := parts[0], parts[1]
-		gzName, gzPath := tarFiles(DistDir, DistDir, AppName, parts[0], parts[1], TarWithRlsVer)
+		gzName, gzPath := tarFiles(DistDir, DistDir, AppName, parts[0], parts[1], tarWithReleaseVer)
 
 		if isExtraLite() {
-			gzName, gzPath := tarFiles(DistDir, DistDir, AppName+"_lite", parts[0], parts[1], TarWithRlsVer)
+			gzName, gzPath := tarFiles(DistDir, DistDir, AppName+"_lite", parts[0], parts[1], tarWithReleaseVer)
 			basics = append(basics, ossFile{gzName, gzPath})
 		}
 
 		if isExtraELinker() {
-			gzName, gzPath := tarFiles(DistDir, DistDir, AppName+"_elinker", parts[0], parts[1], TarWithRlsVer)
+			gzName, gzPath := tarFiles(DistDir, DistDir, AppName+"_elinker", parts[0], parts[1], tarWithReleaseVer)
 			basics = append(basics, ossFile{gzName, gzPath})
 		}
 
-		if isExtraAWSLambda() && (goarch == AMD64 || goarch == ARM64) && goos == Linux {
+		if isExtraAWSLambda() && (goarch == archAMD64 || goarch == archARM64) && goos == datakit.OSLinux {
 			var (
 				zipName       = fmt.Sprintf("%s-%s-%s-%s.zip", AppName+"_aws_extension", goos, goarch, ReleaseVersion)
 				zipNameLatest = fmt.Sprintf("%s-%s-%s.zip", AppName+"_aws_extension", goos, goarch)
@@ -211,13 +211,13 @@ func PubDatakit() error {
 		}
 
 		// apm-auto-inject-launcher
-		if goos == Linux && (goarch == AMD64 || goarch == ARM64) && runtime.GOOS == "linux" {
+		if goos == datakit.OSLinux && (goarch == archAMD64 || goarch == archARM64) && runtime.GOOS == datakit.OSLinux {
 			gzName, gzPath := tarFiles(
-				DistDir, DistDir, "datakit-apm-inject", goos, goarch, TarWithRlsVer)
+				DistDir, DistDir, "datakit-apm-inject", goos, goarch, tarWithReleaseVer)
 			basics = append(basics, ossFile{gzName, gzPath})
 		}
 
-		upgraderGZFile, upgraderGZPath := tarFiles(DistDir, DistDir, upgrader.BuildBinName, parts[0], parts[1], TarNoRlsVer)
+		upgraderGZFile, upgraderGZPath := tarFiles(DistDir, DistDir, upgrader.BuildBinName, parts[0], parts[1], tarNoReleaseVer)
 
 		installerExe := fmt.Sprintf("installer-%s-%s", goos, goarch)
 		installerExeWithVer := fmt.Sprintf("installer-%s-%s-%s", goos, goarch, ReleaseVersion)
@@ -320,10 +320,10 @@ func uploadAWSLambdaZip(zipName string, goos string, goarch string, isUploadAWS 
 			}
 			var arn string
 			switch goarch {
-			case AMD64:
-				arn, err = uploadAWSLayer(targetZipPath, AppName, "x86_64")
-			case ARM64:
-				arn, err = uploadAWSLayer(targetZipPath, AppName, ARM64)
+			case archAMD64:
+				arn, err = uploadAWSLayer(targetZipPath, AppName, lambdaArchAMD64)
+			case archARM64:
+				arn, err = uploadAWSLayer(targetZipPath, AppName, archARM64)
 			default:
 			}
 			if err != nil {

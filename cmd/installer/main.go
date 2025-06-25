@@ -61,14 +61,7 @@ func init() {
 	flag.BoolVar(&args.FlagOffline, "offline", false, "-offline option removed")
 	flag.BoolVar(&args.FlagDownloadOnly, "download-only", false, "only download install packages")
 	flag.StringVar(&args.DistBaseURL, "installer_base_url", "", "install datakit and data BaseUrl")
-	flag.StringVar(&args.FlagUserName, "user-name",
-		func() string {
-			if runtime.GOOS == datakit.OSLinux {
-				return "root"
-			} else {
-				return ""
-			}
-		}(), "install log") // user & group.
+	flag.StringVar(&args.FlagUserName, "user-name", "", "set system username to running datakit, default are root") // user & group.
 	flag.StringVar(&args.FlagLite, "lite", "", "install datakit lite")
 	flag.StringVar(&args.FlagELinker, "elinker", "", "install datakit eBPF span linker")
 	flag.StringVar(&args.InstrumentationEnabled, "apm-instrumentation-enabled", "", "enable APM instrumentation")
@@ -280,7 +273,7 @@ Data           : %s
 	args.SetDatakitLiteAndELinker()
 
 	if !args.FlagDKUpgrade || args.FlagUpgraderEnabled == 1 {
-		upgrader.StopUpgradeService(args.FlagUserName)
+		upgrader.StopUpgradeService(mc.DatakitUser)
 	}
 
 	if args.FlagDownloadOnly {
@@ -353,6 +346,11 @@ func main() {
 		os.Exit(-1)
 	}
 
+	cp.Infof("Stopping running DataKit...\n") // we should stop the service before install/upgrade
+	if err = service.Control(svc, "stop"); err != nil {
+		cp.Warnf("stop service failed %s, ignored\n", err.Error())
+	}
+
 	// 迁移老版本 datakit 数据目录
 	moveOldDatakit(svc)
 
@@ -365,7 +363,7 @@ func main() {
 
 	if args.FlagDKUpgrade { // upgrade new version
 		l.Infof("Upgrading to version %s...", DataKitVersion)
-		if err = args.Upgrade(config.Cfg); err != nil {
+		if err = args.Upgrade(config.Cfg, svc); err != nil {
 			l.Warnf("upgrade datakit failed: %s, ignored", err.Error())
 		}
 	} else { // install new datakit

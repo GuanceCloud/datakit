@@ -285,7 +285,9 @@ func (args *InstallerArgs) getDataway() (*dataway.Dataway, error) {
 func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config, error) {
 	var err error
 
-	mc.DatakitUser = args.FlagUserName
+	if args.FlagUserName != "" {
+		mc.DatakitUser = args.FlagUserName
+	}
 
 	// setup dataway and check token format
 	if len(args.DatawayURLs) != 0 {

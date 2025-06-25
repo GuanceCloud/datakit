@@ -492,3 +492,15 @@ func PutbackKVs(kvs point.KVs) {
 		}
 	}
 }
+
+// IsAdminUser test if uname is admin user.
+func IsAdminUser(uname string) bool {
+	switch runtime.GOOS {
+	case OSWindows:
+		return uname == "administrator"
+	case OSLinux, OSDarwin:
+		return uname == "root"
+	default:
+		return false
+	}
+}
