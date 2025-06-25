@@ -78,7 +78,7 @@ FROM
     (SELECT
       N.nspname as schemaname,
       relname as table,
-      I.inhparent::regclass AS partition_of,
+      I.inhparent::regclass::text AS partition_of,
       C.relpages, C.reltuples, C.relallvisible,
       pg_relation_size(C.oid) as relation_size,
       CASE WHEN C.relhasindex THEN pg_indexes_size(C.oid) ELSE 0 END as index_size,
@@ -510,6 +510,38 @@ func (m slruMeasurement) Info() *inputs.MeasurementInfo {
 			"db":     inputs.NewTagInfo("The database name"),
 			"server": inputs.NewTagInfo("The server address"),
 			"name":   inputs.NewTagInfo("The name of the `SLRU`"),
+		},
+	}
+}
+
+type ioMeasurement struct {
+	inputMeasurement
+}
+
+//nolint:lll
+func (m ioMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "postgresql_io",
+		Desc: "The metrics are obtained from the view pg_stat_io, only available with PostgreSQL 16 and newer. (DBM only)",
+		Cat:  point.Metric,
+		Fields: map[string]interface{}{
+			"evictions":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of times a block has been written out from a shared or local buffer in order to make it available for another use."},
+			"extend_time": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Time spent in extend operations in milliseconds (if track_io_timing is enabled, otherwise zero)."},
+			"extends":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of relation extend operations, each of the size specified in op_bytes."},
+			"fsync_time":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Time spent in fsync operations in milliseconds (if track_io_timing is enabled, otherwise zero)."},
+			"fsyncs":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of fsync calls. These are only tracked in context normal."},
+			"hits":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of times a desired block was found in a shared buffer."},
+			"read_time":   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Time spent in read operations in milliseconds (if track_io_timing is enabled, otherwise zero)."},
+			"reads":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of read operations, each of the size specified in op_bytes."},
+			"write_time":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Time spent in write operations in milliseconds (if track_io_timing is enabled, otherwise zero)."},
+			"writes":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of write operations, each of the size specified in op_bytes."},
+		},
+		Tags: map[string]interface{}{
+			"db":           inputs.NewTagInfo("The database name"),
+			"server":       inputs.NewTagInfo("The server address"),
+			"backend_type": inputs.NewTagInfo("Type of backend (e.g. background worker, autovacuum worker)"),
+			"object":       inputs.NewTagInfo("Target object of an I/O operation"),
+			"context":      inputs.NewTagInfo("The context of an I/O operation"),
 		},
 	}
 }

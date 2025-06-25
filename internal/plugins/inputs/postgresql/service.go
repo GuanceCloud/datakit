@@ -26,6 +26,7 @@ var (
 	V120 = semver.New("12.0.0")
 	V130 = semver.New("13.0.0")
 	V140 = semver.New("14.0.0")
+	V160 = semver.New("16.0.0")
 )
 
 type SQLService struct {
@@ -67,6 +68,7 @@ func (p *SQLService) Start() (err error) {
 	}
 
 	p.pool = pool
+
 	return nil
 }
 
@@ -131,4 +133,31 @@ func (p *SQLService) GetColumnMap(row scanner, columns []string) (map[string]*in
 		return nil, err
 	}
 	return columnMap, nil
+}
+
+func (p *SQLService) QueryByDatabase(query, db string) (Rows, error) {
+	if db == "" {
+		return p.Query(query)
+	}
+
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	config := p.pool.Config().Copy().ConnConfig
+	config.Database = db
+
+	conn, err := pgx.ConnectConfig(context.Background(), config)
+	if err != nil {
+		return nil, fmt.Errorf("connect config error: %w", err)
+	}
+	defer conn.Close(context.Background()) // nolint:errcheck
+
+	rows, err := conn.Query(context.Background(), query)
+	if err != nil {
+		return nil, err
+	} else if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows.Err: %w", err)
+	}
+
+	return &pgxRow{rows}, nil
 }

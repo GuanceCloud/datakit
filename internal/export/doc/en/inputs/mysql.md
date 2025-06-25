@@ -332,7 +332,7 @@ The basic structure of the `message` field is as follows:
 }
 ```
 
-#### `setting` {#host-meta}
+#### `setting` {#setting}
 
   The `setting` field contains data sourced from the `performance_schema.global_variables` table, which holds global variable information for the MySQL server. Detailed fields can be referenced in the [MySQL Documentation](https://dev.mysql.com/doc/refman/5.7/en/server-system-variables.html){:target="_blank"}
 

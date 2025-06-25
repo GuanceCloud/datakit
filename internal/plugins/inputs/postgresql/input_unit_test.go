@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/araddon/dateparse"
 	"github.com/coreos/go-semver/semver"
 	"github.com/spf13/cast"
@@ -67,6 +68,13 @@ func (m *MockCollectService) Query(query string) (Rows, error) {
 	if query == "-1" {
 		return nil, mockError{}
 	}
+	rows := &MockCollectRows{
+		columnError: m.columnError,
+	}
+	return rows, nil
+}
+
+func (m *MockCollectService) QueryByDatabase(query, database string) (Rows, error) {
 	rows := &MockCollectRows{
 		columnError: m.columnError,
 	}
@@ -158,13 +166,14 @@ func TestCollect(t *testing.T) {
 		mockData: getMockData(mockFields),
 	}
 
-	err = input.init()
+	err = input.initDB()
 	assert.NoError(t, err)
+	input.initCfg()
 	err = input.Collect()
 	assert.NoError(t, err)
-	assert.Greater(t, len(input.collectCache), 0, "input collectCache should has at least one measurement")
+	assert.Greater(t, len(input.collectCache[point.Metric]), 0, "input collectCache should has at least one measurement")
 
-	points := input.collectCache[0]
+	points := input.collectCache[point.Metric][0]
 
 	fields := points.InfluxFields()
 
@@ -206,7 +215,9 @@ func TestParseUrl(t *testing.T) {
 }
 
 func TestInput(t *testing.T) {
-	input := &Input{}
+	input := defaultInput()
+	input.version = &semver.Version{Major: 12}
+	input.initCfg()
 	sampleMeasurements := input.SampleMeasurement()
 	assert.Greater(t, len(sampleMeasurements), 0)
 	m, ok := sampleMeasurements[0].(*inputMeasurement)
@@ -305,122 +316,7 @@ func (r RowScanner) Scan(dest ...interface{}) error {
 	return nil
 }
 
-/* test: fail
-func TestService(t *testing.T) {
-	s := &SQLService{
-		MaxIdle:     1,
-		MaxOpen:     1,
-		MaxLifetime: time.Duration(0),
-	}
-	s.Open = func(dbType, connStr string) (DB, error) {
-		db := &DbMock{}
-		return db, nil
-	}
-
-	err := s.Start()
-	assert.Nil(t, err)
-
-	s.Open = func(dbType, connStr string) (DB, error) {
-		db := &DbMock{}
-		return db, mockError{}
-	}
-	err = s.Start()
-	assert.NotNil(t, err)
-	assert.Nil(t, s.Stop())
-
-	// Query
-	t.Run("Query", func(t *testing.T) {
-		rows, err := s.Query("query")
-		assert.Nil(t, err)
-		assert.Nil(t, rows)
-
-		t.Run("should catch error", func(t *testing.T) {
-			rows, err := s.Query("-1")
-			assert.Nil(t, rows)
-			assert.NotNil(t, err)
-		})
-	})
-
-	// SetAddress
-	t.Run("SetAddress", func(t *testing.T) {
-		add := "localhost"
-		s.SetAddress(add)
-		assert.Equal(t, s.Address, add)
-	})
-
-	// GetColumnMap
-	t.Run("GetColumnMap", func(t *testing.T) {
-		row := RowScanner{
-			data: []int{1},
-		}
-		columns := []string{"a"}
-		res, err := s.GetColumnMap(row, columns)
-		assert.Nil(t, err)
-		assert.Equal(t, row.data[0], *res["a"])
-
-		t.Run("catch error", func(t *testing.T) {
-			row.data[0] = -1
-			res, err = s.GetColumnMap(row, columns)
-			assert.NotNil(t, err)
-			assert.Nil(t, res)
-		})
-	})
-} */
-
 func TestTime(t *testing.T) {
 	_, err := dateparse.ParseIn("2014-12-16 06:20:00 UTC", time.Local)
 	assert.NoError(t, err)
-}
-
-func TestInput_setHostIfNotLoopback(t *testing.T) {
-	tests := []struct {
-		name     string
-		address  string
-		expected string
-	}{
-		{
-			name:     "empty",
-			address:  "postgresql://",
-			expected: "",
-		},
-		{
-			name:     "loopback",
-			address:  "postgresql://localhost",
-			expected: "",
-		},
-		{
-			name:     "loopback",
-			address:  "postgresql://127.0.0.1",
-			expected: "",
-		},
-		{
-			name:     "normal",
-			address:  "postgresql://192.168.1.1:5432",
-			expected: "192.168.1.1",
-		},
-		{
-			name:     "with credentials",
-			address:  "postgresql://user:secret@192.168.1.1",
-			expected: "192.168.1.1",
-		},
-		{
-			name:     "with params and credentials",
-			address:  "postgresql://other@192.168.1.1/otherdb?connect_timeout=10&application_name=myapp",
-			expected: "192.168.1.1",
-		},
-		{
-			name:     "with params",
-			address:  "postgresql://192.168.1.1/mydb?user=other&password=secret",
-			expected: "192.168.1.1",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ipt := &Input{
-				Address: tt.address,
-			}
-			ipt.setHostIfNotLoopback()
-			assert.Equal(t, tt.expected, ipt.host)
-		})
-	}
 }

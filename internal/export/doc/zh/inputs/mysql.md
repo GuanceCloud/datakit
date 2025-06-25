@@ -334,7 +334,7 @@ plugin_load_add ='group_replication.so'
 }
 ```
 
-#### `setting` {#host-meta}
+#### `setting` {#setting}
 
   `setting` 字段中的数据来源于 `performance_schema.global_variables` 表，该表包含了 MySQL 服务器的全局变量信息，详细字段可以参考 [MySQL 文档](https://dev.mysql.com/doc/refman/5.7/en/server-system-variables.html){:target="_blank"}。
 
