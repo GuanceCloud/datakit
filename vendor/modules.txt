@@ -1568,6 +1568,9 @@ github.com/shirou/gopsutil/v3/process
 # github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4
 ## explicit
 github.com/shirou/w32
+# github.com/shopspring/decimal v1.2.0
+## explicit; go 1.13
+github.com/shopspring/decimal
 # github.com/sijms/go-ora/v2 v2.8.19 => github.com/GuanceCloud/go-ora/v2 v2.8.20
 ## explicit; go 1.17
 github.com/sijms/go-ora/v2

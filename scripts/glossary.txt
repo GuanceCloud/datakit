@@ -71,6 +71,7 @@ Jenkins
 JihuLab
 Jolokia
 KafkaMQ
+Kingbase
 Kodo
 Kubernetes
 Log4j
