@@ -96,7 +96,7 @@ func (ipt *Input) parseResourceSpans(resspans []*trace.ResourceSpans) itrace.Dat
 
 				spanKV = spanKV.Add(itrace.FieldTraceID, traceID, false, false).
 					Add(itrace.FieldParentID, parenID, false, false).
-					Add(itrace.FieldSpanid, spanIDs, false, false).
+					Add(itrace.FieldSpanid, spanID, false, false).
 					Add(itrace.FieldResource, span.Name, false, false).
 					AddTag(itrace.TagOperation, span.Name).
 					AddTag(itrace.TagSource, inputName).
