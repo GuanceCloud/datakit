@@ -62,7 +62,6 @@ func newECSFargate(ipt *Input, agentURL string) (Collector, error) {
 var containerExistList sync.Map
 
 func newContainerCollector(ipt *Input, endpoint string, mountPoint string, k8sClient k8sclient.Client) (Collector, error) {
-	l.Warnf("FLAG include: %v, exclude: %v", ipt.ContainerIncludeLog, ipt.ContainerExcludeLog)
 	logFilter, err := filter.NewFilter(ipt.ContainerIncludeLog, ipt.ContainerExcludeLog)
 	if err != nil {
 		return nil, err

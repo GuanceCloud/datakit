@@ -37,7 +37,7 @@ var fieldMap = map[string]string{
 	"vm.memory.total.committed": "vm_memory_total_committed",
 }
 
-type Metric struct {
+type jenkinsMetricResp struct {
 	Version string                            `json:"version"`
 	Gauges  map[string]map[string]interface{} `json:"gauges"`
 }
@@ -137,14 +137,14 @@ func (*jenkinsJobMeasurement) Info() *inputs.MeasurementInfo {
 }
 
 func (ipt *Input) getPluginMetric() {
-	var metric Metric
+	var metric jenkinsMetricResp
 	err := ipt.requestJSON(fmt.Sprintf("/metrics/%s/metrics?pretty=true", ipt.Key), &metric)
 	if err != nil {
 		l.Error(err.Error())
 		ipt.lastErr = err
 		return
 	}
-	ts := time.Now()
+
 	tags := map[string]string{
 		"metric_plugin_version": metric.Version,
 		"url":                   ipt.URL,
@@ -178,17 +178,17 @@ func (ipt *Input) getPluginMetric() {
 		tags = inputs.MergeTags(ipt.Tagger.HostTags(), tags, ipt.URL)
 	}
 
-	measurement := &Measurement{
+	measurement := &metricMeasurement{
 		name:   inputName,
 		fields: fields,
 		tags:   tags,
-		ts:     ts,
+		ts:     ipt.ptsTime,
 	}
+
 	ipt.collectCache = append(ipt.collectCache, measurement.Point())
-	l.Debug(ipt.collectCache[0])
 }
 
-type Measurement struct {
+type metricMeasurement struct {
 	name   string
 	tags   map[string]string
 	fields map[string]interface{}
@@ -196,7 +196,7 @@ type Measurement struct {
 }
 
 // Point implement MeasurementV2.
-func (m *Measurement) Point() *point.Point {
+func (m *metricMeasurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
@@ -206,7 +206,7 @@ func (m *Measurement) Point() *point.Point {
 }
 
 //nolint:lll
-func (m *Measurement) Info() *inputs.MeasurementInfo {
+func (m *metricMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: inputName,
 		Cat:  point.Metric,

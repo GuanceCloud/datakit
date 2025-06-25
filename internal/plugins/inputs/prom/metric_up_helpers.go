@@ -10,7 +10,6 @@ import (
 	"net"
 	"net/url"
 	"strconv"
-	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 
@@ -89,15 +88,15 @@ func getPointsFromMeasurement2(ms []inputs.MeasurementV2) []*point.Point {
 
 func (i *Input) FeedUpMetric(server string) {
 	pts, _ := i.buildUpPoints(server)
+	feedSource := dkio.FeedSource(inputName, i.Source, "up")
 	if len(pts) > 0 {
 		if err := i.Feeder.Feed(point.Metric, pts,
-			dkio.WithCollectCost(time.Since(i.start)),
 			dkio.WithElection(i.Election),
-			dkio.WithSource(inputName+"/"+i.Source),
+			dkio.WithSource(feedSource),
 		); err != nil {
 			i.Feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),
-				metrics.WithLastErrorSource(inputName+"/"+i.Source),
+				metrics.WithLastErrorSource(feedSource),
 			)
 			i.l.Errorf("feed measurement: %s", err)
 		}

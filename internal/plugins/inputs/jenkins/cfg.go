@@ -111,8 +111,8 @@ type Input struct {
 	// HTTP client
 	client *http.Client
 
-	start time.Time
-	tail  *tailer.Tailer
+	ptsTime time.Time
+	tail    *tailer.Tailer
 
 	srv *http.Server
 
