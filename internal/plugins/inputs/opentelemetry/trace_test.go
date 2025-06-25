@@ -11,7 +11,6 @@ import (
 )
 
 func Test_convert(t *testing.T) {
-	convertToDD = true
 	id, _ := hex.DecodeString("818616084f850520843d19e3936e4720")
 	t.Logf("id len=%d", len(id))
 	type args struct {
@@ -25,12 +24,13 @@ func Test_convert(t *testing.T) {
 		{name: "case128", args: args{id: id}, want: "9528800851807586080"},
 	}
 
+	ipt := defaultInput()
+	ipt.CompatibleDDTrace = true
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := convert(tt.args.id); got != tt.want {
+			if got := ipt.convertBinID(tt.args.id); got != tt.want {
 				t.Errorf("convert() = %v, want %v", got, tt.want)
 			}
 		})
 	}
-	convertToDD = false
 }

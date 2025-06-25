@@ -6,8 +6,6 @@
 package opentelemetry
 
 import (
-	"strings"
-
 	common "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
 
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
@@ -47,92 +45,98 @@ const (
 	infSuffix    = "+Inf" // 固定且大小写敏感
 )
 
-var otelErrKeyToDkErrKey = map[string]string{
-	ExceptionTypeKey:       itrace.FieldErrType,
-	ExceptionMessageKey:    itrace.FieldErrMessage,
-	ExceptionStacktraceKey: itrace.FieldErrStack,
-}
-
 var (
-	convertToZhaoShang   = false
-	convertToDD          = false
-	maxLogMetricFiledLen = 1024 * 32
-)
-
-var spanKinds = map[int32]string{
-	0: "unspecified",
-	1: "internal",
-	2: "server",
-	3: "client",
-	4: "producer",
-	5: "consumer",
-}
-
-// OTELAttributes 公共标签，其中有版本变更的以使用最新的为准。
-var OTELAttributes = map[string]string{
-	// DB
-	"db.system":    "db_system",
-	"db.operation": "db_operation",
-	"db.name":      "db_name",
-	"db.statement": "db_statement",
-
-	// common
-	"server.address":       "server_address",
-	"net.host.name":        "net_host_name",
-	"server.port":          "server_port",
-	"net.host.port":        "net_host_port",
-	"network.peer.address": "network_peer_address",
-	"network.peer.port":    "network_peer_port",
-	"network.transport":    "network_transport",
-
-	// HTTP
-	"http.request.method":       "http_request_method",
-	"http.method":               "http_method",
-	"error.type":                "error_type",
-	"http.response.status_code": "http_response_status_code",
-	"http.status_code":          "http_status_code",
-	"http.route":                "http_route",
-	"http.target":               "http_target",
-	"http.scheme":               "http_scheme",
-	"http.url":                  "http_url",
-	"url.full":                  "url_full",
-	"url.scheme":                "url_scheme",
-	"url.path":                  "url_path",
-	"url.query":                 "url_query",
-	"client.address":            "client_address",
-	"client.port":               "client_port",
-
-	// MQ
-	"messaging.system":           "messaging_system",
-	"messaging.operation":        "messaging_operation",
-	"messaging.message.id":       "messaging_message.id",
-	"messaging.destination.name": "messaging_destination.name",
-
-	// RPC
-	"rpc.service": "rpc_service",
-	"rpc.system":  "rpc_system",
-
-	// error
-	"exception":            "exception",
-	"exception.type":       "exception_type",
-	"exception.message":    "exception_message",
-	"exception.stacktrace": "exception_stacktrace",
-
-	"container.name": "container_name",
-	"process.pid":    "process_pid",
-	"project":        "project",
-	"version":        "version",
-	"env":            "env",
-	"host":           "host",
-	"pod_name":       "pod_name",
-	"pod_namespace":  "pod_namespace",
-}
-
-func AddCustomTags(customTags []string) {
-	for _, tag := range customTags {
-		OTELAttributes[tag] = strings.ReplaceAll(tag, ".", "_")
+	otelErrKeyToDkErrKey = map[string]string{
+		ExceptionTypeKey:       itrace.FieldErrType,
+		ExceptionMessageKey:    itrace.FieldErrMessage,
+		ExceptionStacktraceKey: itrace.FieldErrStack,
 	}
-}
+
+	maxLogMetricFiledLen = 1024 * 32
+
+	spanKinds = map[int32]string{
+		0: "unspecified",
+		1: "internal",
+		2: "server",
+		3: "client",
+		4: "producer",
+		5: "consumer",
+	}
+
+	// otelPubAttrs 公共标签，其中有版本变更的以使用最新的为准。
+	otelPubAttrs = map[string]string{
+		// DB
+		"db.system":    "db_system",
+		"db.operation": "db_operation",
+		"db.name":      "db_name",
+		"db.statement": "db_statement",
+
+		// common
+		"server.address":       "server_address",
+		"net.host.name":        "net_host_name",
+		"server.port":          "server_port",
+		"net.host.port":        "net_host_port",
+		"network.peer.address": "network_peer_address",
+		"network.peer.port":    "network_peer_port",
+		"network.transport":    "network_transport",
+
+		// HTTP
+		"http.request.method":       "http_request_method",
+		"http.method":               "http_method",
+		"error.type":                "error_type",
+		"http.response.status_code": "http_response_status_code",
+		"http.status_code":          "http_status_code",
+		"http.route":                "http_route",
+		"http.target":               "http_target",
+		"http.scheme":               "http_scheme",
+		"http.url":                  "http_url",
+		"url.full":                  "url_full",
+		"url.scheme":                "url_scheme",
+		"url.path":                  "url_path",
+		"url.query":                 "url_query",
+		"client.address":            "client_address",
+		"client.port":               "client_port",
+
+		// MQ
+		"messaging.system":           "messaging_system",
+		"messaging.operation":        "messaging_operation",
+		"messaging.message.id":       "messaging_message.id",
+		"messaging.destination.name": "messaging_destination.name",
+
+		// RPC
+		"rpc.service": "rpc_service",
+		"rpc.system":  "rpc_system",
+
+		// error
+		"exception":            "exception",
+		"exception.type":       "exception_type",
+		"exception.message":    "exception_message",
+		"exception.stacktrace": "exception_stacktrace",
+
+		"container.name": "container_name",
+		"process.pid":    "process_pid",
+		"project":        "project",
+		"version":        "version",
+		"env":            "env",
+		"host":           "host",
+		"pod_name":       "pod_name",
+		"pod_namespace":  "pod_namespace",
+	}
+
+	// delMetricKey: 删除无效的key，节省内存空间。
+	delMetricKey = []string{
+		"process.command_line",
+		"process.executable.path",
+		"process.runtime.description",
+		"process.runtime.name",
+		"process.runtime.version",
+		"telemetry.distro.name",
+		"telemetry.distro.version",
+		"telemetry.sdk.language",
+		"telemetry.sdk.name",
+		"telemetry.sdk.version",
+	}
+)
 
 func getServiceNameBySystem(atts []*common.KeyValue, defaultName string) string {
 	for _, keyValue := range atts {
@@ -145,18 +149,4 @@ func getServiceNameBySystem(atts []*common.KeyValue, defaultName string) string 
 	}
 
 	return defaultName
-}
-
-// delMetricKey: 删除无效的key，节省内存空间。
-var delMetricKey = []string{
-	"process.command_line",
-	"process.executable.path",
-	"process.runtime.description",
-	"process.runtime.name",
-	"process.runtime.version",
-	"telemetry.distro.name",
-	"telemetry.distro.version",
-	"telemetry.sdk.language",
-	"telemetry.sdk.name",
-	"telemetry.sdk.version",
 }
