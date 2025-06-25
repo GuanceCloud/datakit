@@ -7,89 +7,15 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"net"
-	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/BurntSushi/toml"
 )
-
-const (
-	KindHOST    = "host"
-	KindDocker  = "docker"
-	KindDisable = "disable"
-
-	RuntimeRunc   = "runc"
-	RuntimeDkRunc = "dk-runc"
-)
-
-type config struct {
-	enableHostInject   bool
-	enableDockerInject bool
-	installDir         string
-	launcherURL        string
-	ddJavaLibURL       string
-	pyLib              bool
-
-	cli *http.Client
-
-	forceUpgradeAPMLib bool
-}
-
-type Opt func(c *config)
-
-func WithInstallDir(dir string) Opt {
-	return func(c *config) {
-		c.installDir = dir
-	}
-}
-
-func WithInstrumentationEnabled(s string) Opt {
-	return func(c *config) {
-		disable := false
-		for _, val := range strings.Split(s, ",") {
-			switch strings.TrimSpace(val) {
-			case KindDisable:
-				disable = true
-			case KindDocker:
-				c.enableDockerInject = true
-			case KindHOST:
-				c.enableHostInject = true
-			}
-		}
-		if disable || s == "" {
-			c.enableDockerInject = false
-			c.enableHostInject = false
-		}
-	}
-}
-
-func WithLauncherURL(cli *http.Client, launcherURL string) Opt {
-	return func(c *config) {
-		c.cli = cli
-		c.launcherURL = launcherURL
-	}
-}
-
-func WithJavaLibURL(url string) Opt {
-	return func(c *config) {
-		c.ddJavaLibURL = url
-	}
-}
-
-func WithPythonLib(ok bool) Opt {
-	return func(c *config) {
-		c.pyLib = ok
-	}
-}
-
-func WithForceUpgradeLib(y bool) Opt {
-	return func(c *config) {
-		c.forceUpgradeAPMLib = y
-	}
-}
 
 type AgentAddr struct {
 	DkHost string
@@ -115,6 +41,18 @@ const (
 	// used for container.
 	EnvDKSocketAddr     = "ENV_DATAKIT_SOCKET_ADDR"
 	EnvStatsdSocketAddr = "ENV_DATAKIT_STATSD_SOCKET_ADDR"
+
+	// disable inject.
+	EnvDKAPMINJECT = "ENV_DATAKIT_DISABLE_APM_INS"
+)
+
+var (
+	ErrPyLibNotFound    = errors.New("ddtrace-run not found")
+	ErrParseJavaVersion = errors.New(("failed to parse java version"))
+	ErrJavaLibNotFound  = errors.New("dd-java-agent.jar not found")
+	ErrUnsupportedJava  = errors.New(("unsupported java version"))
+	ErrAlreadyInjected  = errors.New(("already injected"))
+	ErrInjectDisabled   = errors.New("inject disabled")
 )
 
 type iptsCfg struct {
@@ -196,4 +134,54 @@ func getEnv(name, defaultValue string) string {
 		return v
 	}
 	return defaultValue
+}
+
+func GetJavaVersion(s string) (int, error) {
+	lines := strings.Split(s, "\n")
+	if len(lines) < 2 {
+		return 0, ErrParseJavaVersion
+	}
+
+	idx := strings.Index(lines[0], "\"")
+	if idx == -1 {
+		return 0, ErrParseJavaVersion
+	}
+	idxTail := strings.LastIndex(lines[0], "\"")
+	if idx == -1 {
+		return 0, ErrParseJavaVersion
+	}
+
+	versionStr := lines[0][idx+1 : idxTail-1]
+	li := strings.Split(versionStr, ".")
+	if len(li) < 2 {
+		return 0, ErrParseJavaVersion
+	}
+
+	v, err := strconv.Atoi(li[0])
+	if err != nil {
+		return 0, err
+	}
+
+	if v == 1 {
+		v, err = strconv.Atoi(li[1])
+		if err != nil {
+			return 0, err
+		}
+		return v, nil
+	} else {
+		return v, nil
+	}
+}
+
+func CheckDisableInjFromEnv(k, v string) bool {
+	if k == EnvDKAPMINJECT {
+		switch strings.ToLower(v) {
+		case "f", "false", "0":
+			return false
+		default:
+			return true
+		}
+	}
+
+	return false
 }

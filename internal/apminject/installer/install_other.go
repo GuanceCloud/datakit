@@ -7,7 +7,7 @@
 // +build !linux !amd64
 // +build !linux !arm64
 
-package utils
+package installer
 
 import (
 	"fmt"

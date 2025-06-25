@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/upgrader/upgrader"
-	apminj "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/apminject/utils"
+	apmInstaller "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/apminject/installer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmds"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
@@ -75,18 +75,18 @@ func (args *InstallerArgs) DownloadFiles(to string) error {
 
 	if runtime.GOOS == "linux" &&
 		(runtime.GOARCH == "amd64" || runtime.GOARCH == "arm64") {
-		opts := []apminj.Opt{
-			apminj.WithLauncherURL(cli, args.DistDatakitAPMInjectURL),
-			apminj.WithInstallDir(to),
-			apminj.WithInstrumentationEnabled(args.InstrumentationEnabled),
+		opts := []apmInstaller.Opt{
+			apmInstaller.WithLauncherURL(cli, args.DistDatakitAPMInjectURL),
+			apmInstaller.WithInstallDir(to),
+			apmInstaller.WithInstrumentationEnabled(args.InstrumentationEnabled),
 		}
 		if args.InstrumentationEnabled != "" {
 			opts = append(opts,
-				apminj.WithJavaLibURL(args.DistDatakitAPMInjJavaLibURL),
-				apminj.WithPythonLib(true))
+				apmInstaller.WithJavaLibURL(args.DistDatakitAPMInjJavaLibURL),
+				apmInstaller.WithPythonLib(true))
 		}
 
-		if err := apminj.Download(l, opts...); err != nil {
+		if err := apmInstaller.Download(l, opts...); err != nil {
 			l.Warnf("download apm inject failed: %s", err.Error())
 		} else {
 			config.Cfg.APMInject.InstrumentationEnabled = args.InstrumentationEnabled

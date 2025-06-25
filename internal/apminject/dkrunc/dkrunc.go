@@ -18,8 +18,6 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/apminject/dkrunc/utils"
 
-	reUtils "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/apminject/rewriter/utils"
-
 	injUtils "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/apminject/utils"
 )
 
@@ -213,6 +211,11 @@ func tryModProcSpec(spec *Spec) (*Spec, error) {
 		p := strings.SplitN(v, "=", 2)
 		if len(p) != 2 {
 			continue
+		}
+		if p[0] == injUtils.EnvDKAPMINJECT {
+			if injUtils.CheckDisableInjFromEnv(p[0], p[1]) {
+				return nil, fmt.Errorf("inject disabled by env")
+			}
 		}
 		if p[0] != "JAVA_TOOL_OPTIONS" {
 			continue
@@ -422,13 +425,13 @@ func checkJavaInContainer(rootfs string, envPath string, binName string) (bool, 
 		return false, err
 	}
 
-	ver, err := reUtils.GetJavaVersion(string(o))
+	ver, err := injUtils.GetJavaVersion(string(o))
 	if err != nil {
 		return false, err
 	}
 
 	if ver < 8 {
-		return false, reUtils.ErrUnsupportedJava
+		return false, injUtils.ErrUnsupportedJava
 	}
 
 	return true, nil

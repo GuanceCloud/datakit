@@ -371,6 +371,8 @@ DK_APM_INSTRUMENTATION_ENABLED=docker \
 - 值 `"host"`、`"docker"` 或 `"host,docker"`，开启
 - 值 `""` 或者 `"disable"`，关闭
 
+针对特定的主机上的进程或者容器内的进程，可以通过注入环境变量 `ENV_DATAKIT_DISABLE_APM_INS`，并把值设置为 `true` 来关闭自动注入功能。
+
 注意事项：
 
 1. 删除 DataKit 安装目录下的文件前，需要先卸载该功能，请执行 **`datakit tool --remove-apm-auto-inject`** 清理系统设置和 Docker 的设置。

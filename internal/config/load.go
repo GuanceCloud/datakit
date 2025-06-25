@@ -17,7 +17,8 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	plmanager "github.com/GuanceCloud/pipeline-go/manager"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/apminject/utils"
+	apmInstaller "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/apminject/installer"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
@@ -110,9 +111,9 @@ func LoadCfg(c *Config, mcp string) error {
 	}
 
 	if c.APMInject != nil {
-		if err := utils.Install(l,
-			utils.WithInstallDir(datakit.InstallDir),
-			utils.WithInstrumentationEnabled(
+		if err := apmInstaller.Install(l,
+			apmInstaller.WithInstallDir(datakit.InstallDir),
+			apmInstaller.WithInstrumentationEnabled(
 				c.APMInject.InstrumentationEnabled),
 		); err != nil {
 			l.Warnf("failed to install/uninstall apm inject: %s", err.Error())

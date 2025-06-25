@@ -343,6 +343,8 @@ DK_APM_INSTRUMENTATION_ENABLED=docker \
 
 For host deployment, after DataKit is installed, reopen a terminal and restart the corresponding Java/Python application.
 
+For a specific process on the host or in a container, you can disable the automatic injection feature by injecting the environment variable `ENV_DATAKIT_DISABLE_APM_INS` and setting the value to `true`.
+
 To enable or disable this feature, modify the value of the `instrumentation_enabled` configuration under `[apm_inject]` in the `datakit.conf` file:
 
 - Value `"host"`, `"docker"` or `"host,docker"`, enable
