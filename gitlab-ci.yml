@@ -358,10 +358,9 @@ release-prod-guance: # CI for guance packages
       VERSION="$CI_VERSION" \
       PKGEBPF=1 \
       DOCKER_IMAGE_REPO="pubrepo.guance.com/uos-dataflux"
-    - make push_ligai_version VERSION="$CI_VERSION" \
-      LIGAI_CUSTOMFIELD=$LIGAI_CUSTOMFIELD \
-      LIGAI_AUTO_DEVOPS_TOKEN=$LIGAI_AUTO_DEVOPS_TOKEN \
-      LIGAI_API=$LIGAI_API
+    - make push_new_version VERSION="$CI_VERSION" \
+      NEW_VERSION_PUSH_TOKEN=$NEW_VERSION_PUSH_TOKEN \
+      NEW_VERSION_PUSH_URL=$NEW_VERSION_PUSH_URL
   tags:
     - cloudcare-ft
 

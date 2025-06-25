@@ -3,10 +3,9 @@
 default: local
 
 
-# ligai version notify settings
-LIGAI_CUSTOMFIELD       ?=NOT_SET
-LIGAI_AUTO_DEVOPS_TOKEN ?=NOT_SET
-LIGAI_API               ?=NOT_SET
+# new version notify settings
+NEW_VERSION_PUSH_TOKEN ?=NOT_SET
+NEW_VERSION_PUSH_URL   ?=NOT_SET
 
 DOCKER_IMAGE_REPO      ?= NOT_SET
 BRAND                  ?= NOT_SET
@@ -502,15 +501,15 @@ endef
 detect_mr_target_branch:
 	$(call check_mr_target_branch,$(MERGE_REQUEST_TARGET_BRANCH))
 
-push_ligai_version:
-	@printf "$(HL)push new datakit version $(VERSION) to ligai...\n$(NC)";
-	@curl -i -X POST \
+push_new_version:
+	@printf "$(HL)push new datakit version $(VERSION)...\n$(NC)"
+	@if ! curl -s -S -X POST \
 		-H 'Content-Type: application/json' \
-		-H "auto_devops_token: $(LIGAI_AUTO_DEVOPS_TOKEN)" \
-		-d '{"version":"$(VERSION)","field_code":"$(LIGAI_CUSTOMFIELD)"}' \
-		$(LIGAI_API)
-	@if [ $$? != 0 ]; then \
-		printf "$(RED) [WARN] push version to ligai failed"; \
+		-H "auto_devops_token: $(NEW_VERSION_PUSH_TOKEN)" \
+		-d '{"version":"$(VERSION)","field_code":"datakit"}' \
+		"$(NEW_VERSION_PUSH_URL)"; then \
+		printf "\n$(RED)push version $(VERSION) failed\n$(NC)"; \
+		exit 1; \
 	else \
-		printf "[INFO] push version to ligai ok"; \
+		printf "\n$(HL)push version $(VERSION) done\n$(NC)"; \
 	fi
