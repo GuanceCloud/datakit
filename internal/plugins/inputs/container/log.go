@@ -25,6 +25,7 @@ type logConfig struct {
 	Type                  string            `json:"type"`
 	Path                  string            `json:"path"`
 	Source                string            `json:"source"`
+	StorageIndex          string            `json:"storage_index"`
 	Service               string            `json:"service"`
 	CharacterEncoding     string            `json:"character_encoding"`
 	Pipeline              string            `json:"pipeline"`

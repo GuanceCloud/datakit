@@ -314,10 +314,10 @@ func (ipt *Input) OMInitAndRunning() {
 			select {
 			case ob := <-ipt.om.OBChan:
 				ipt.om.obsLock.Lock()
-				err := ipt.feeder.FeedV2(
+				err := ipt.feeder.Feed(
 					point.CustomObject,
 					[]*point.Point{ob.toPoint()},
-					dkio.WithInputName(customObjectFeedName),
+					dkio.WithSource(customObjectFeedName),
 				)
 				if err != nil {
 					log.Errorf("feed err=%v", err)

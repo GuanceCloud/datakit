@@ -35,15 +35,16 @@ import (
 )
 
 var (
-	inputName                                 = "postgresql"
-	customObjectFeedName                      = inputName + "/CO"
-	objectFeedName                            = inputName + "/O"
-	loggingFeedName                           = inputName + "/L"
-	customQueryFeedName                       = inputName + "/custom_query"
-	catalogName                               = "db"
-	l                                         = logger.DefaultSLogger(inputName)
-	_                    inputs.ElectionInput = (*Input)(nil)
-	kvMatcher                                 = regexp.MustCompile(`(password|sslcert|sslkey|sslmode|sslrootcert)=\S+ ?`)
+	inputName            = "postgresql"
+	customObjectFeedName = dkio.FeedSource(inputName, "CO")
+	objectFeedName       = dkio.FeedSource(inputName, "O")
+	loggingFeedName      = dkio.FeedSource(inputName, "L")
+	customQueryFeedName  = dkio.FeedSource(inputName, "custom_query")
+
+	catalogName                      = "db"
+	l                                = logger.DefaultSLogger(inputName)
+	_           inputs.ElectionInput = (*Input)(nil)
+	kvMatcher                        = regexp.MustCompile(`(password|sslcert|sslkey|sslmode|sslrootcert)=\S+ ?`)
 )
 
 const (
@@ -1189,10 +1190,10 @@ func (ipt *Input) Run() {
 						feedName = objectFeedName
 					}
 
-					if err := ipt.feeder.FeedV2(category, points,
+					if err := ipt.feeder.Feed(category, points,
 						dkio.WithCollectCost(time.Since(start)),
 						dkio.WithElection(ipt.Election),
-						dkio.WithInputName(feedName),
+						dkio.WithSource(feedName),
 					); err != nil {
 						ipt.feeder.FeedLastError(err.Error(),
 							metrics.WithLastErrorInput(inputName),

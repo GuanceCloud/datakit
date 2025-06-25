@@ -285,12 +285,12 @@ func (ipt *Input) collectSlowQuery() {
 		pts = append(pts, point.NewPointV2(metricName, kvs, ipt.getKVsOpts(point.Logging)...))
 	}
 
-	if err := ipt.feeder.FeedV2(point.Logging,
+	if err := ipt.feeder.Feed(point.Logging,
 		pts,
 		dkio.WithCollectCost(time.Since(start)),
 		dkio.WithElection(ipt.Election),
-		dkio.WithInputName(loggingFeedName)); err != nil {
-		l.Warnf("feeder.FeedV2: %s, ignored", err)
+		dkio.WithSource(loggingFeedName)); err != nil {
+		l.Warnf("feeder.Feed: %s, ignored", err)
 	}
 }
 

@@ -96,9 +96,9 @@ default_time(time, "+0")
 `
 
 	inputName            = `sqlserver`
-	customObjectFeedName = inputName + "/CO"
-	loggingFeedName      = inputName + "/L"
-	customQueryFeedName  = inputName + "/custom_query"
+	customObjectFeedName = dkio.FeedSource(inputName, "CO")
+	loggingFeedName      = dkio.FeedSource(inputName, "L")
+	customQueryFeedName  = dkio.FeedSource(inputName, "custom_query")
 	catalogName          = "db"
 	l                    = logger.DefaultSLogger(inputName)
 

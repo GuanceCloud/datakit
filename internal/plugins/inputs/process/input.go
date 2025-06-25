@@ -454,9 +454,9 @@ func (ipt *Input) collectObject(processList []*pr.Process, tn time.Time) {
 		return
 	}
 
-	if err := ipt.feeder.FeedV2(point.Object, collectCache,
+	if err := ipt.feeder.Feed(point.Object, collectCache,
 		dkio.WithCollectCost(time.Since(tn)),
-		dkio.WithInputName(objectFeedName),
+		dkio.WithSource(objectFeedName),
 	); err != nil {
 		l.Errorf("Feed object err :%s", err.Error())
 		ipt.feeder.FeedLastError(ipt.lastErr.Error(),
@@ -502,11 +502,11 @@ func (ipt *Input) collectMetric(processList []*pr.Process, tn time.Time) {
 		return
 	}
 
-	if err := ipt.feeder.FeedV2(point.Metric, collectCache,
+	if err := ipt.feeder.Feed(point.Metric, collectCache,
 		dkio.WithCollectCost(time.Since(tn)),
-		dkio.WithInputName(inputName+"/metric"),
+		dkio.WithSource(dkio.FeedSource(inputName, "metric")),
 	); err != nil {
-		l.Errorf("FeedV2() :%s", err.Error())
+		l.Errorf("Feed() :%s", err.Error())
 		ipt.feeder.FeedLastError(err.Error(),
 			metrics.WithLastErrorInput(inputName),
 			metrics.WithLastErrorCategory(point.Metric),

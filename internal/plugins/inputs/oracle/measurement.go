@@ -26,7 +26,7 @@ func (*lockMeasurement) Point() *point.Point { return nil }
 func (*lockMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: measurementLockedSession,
-		Desc: `[:octicons-tag-24: Version-1.74.0](../datakit/changelog.md#cl-1.74.0)`,
+		Desc: `[:octicons-tag-24: Version-1.74.0](../datakit/changelog-2025.md#cl-1.74.0)`,
 		Cat:  point.Metric,
 		Tags: map[string]any{
 			"event":          &inputs.TagInfo{Desc: "Locked session that waiting the specified event name"},
@@ -45,7 +45,7 @@ type waitingEventMeasurement struct{}
 func (*waitingEventMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: measurementWaitingEvent,
-		Desc: `[:octicons-tag-24: Version-1.74.0](../datakit/changelog.md#cl-1.74.0)`,
+		Desc: `[:octicons-tag-24: Version-1.74.0](../datakit/changelog-2025.md#cl-1.74.0)`,
 		Cat:  point.Metric,
 		Tags: map[string]any{
 			"event":      &inputs.TagInfo{Desc: "Event name"},

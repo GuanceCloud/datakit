@@ -32,7 +32,7 @@ var _ inputs.ElectionInput = (*Input)(nil)
 
 var (
 	inputName            = `nginx`
-	customObjectFeedName = inputName + "/CO"
+	customObjectFeedName = dkio.FeedSource(inputName, "CO")
 
 	l           = logger.DefaultSLogger(inputName)
 	minInterval = time.Second * 10
@@ -209,10 +209,10 @@ func (ipt *Input) Run() {
 			collectStart := time.Now()
 			ipt.collect()
 			if len(ipt.collectCache) > 0 {
-				if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
+				if err := ipt.feeder.Feed(point.Metric, ipt.collectCache,
 					dkio.WithCollectCost(time.Since(collectStart)),
 					dkio.WithElection(ipt.Election),
-					dkio.WithInputName(inputName),
+					dkio.WithSource(inputName),
 				); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
 						metrics.WithLastErrorInput(inputName),

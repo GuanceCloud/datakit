@@ -117,9 +117,9 @@ func (ipt *Input) gather() error {
 	if pts, err := ipt.parse(string(output)); err != nil {
 		return err
 	} else {
-		return ipt.feeder.FeedV2(point.Metric, pts,
+		return ipt.feeder.Feed(point.Metric, pts,
 			dkio.WithCollectCost(time.Since(start)),
-			dkio.WithInputName(inputName),
+			dkio.WithSource(inputName),
 		)
 	}
 }

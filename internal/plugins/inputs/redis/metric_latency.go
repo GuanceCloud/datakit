@@ -46,9 +46,9 @@ func (ipt *Input) getLatencyData() error {
 	}
 
 	if len(pts) > 0 {
-		if err := ipt.feeder.FeedV2(point.Logging, pts,
+		if err := ipt.feeder.Feed(point.Logging, pts,
 			dkio.WithElection(ipt.Election),
-			dkio.WithInputName(redisLatency)); err != nil {
+			dkio.WithSource(redisLatency)); err != nil {
 			return err
 		}
 	}

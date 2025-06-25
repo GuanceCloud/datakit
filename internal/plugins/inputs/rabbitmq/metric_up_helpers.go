@@ -94,10 +94,10 @@ func (ipt *Input) FeedUpMetric() {
 	pts, _ := ipt.buildUpPoints()
 	if len(pts) > 0 {
 		l.Debug("feed up metric")
-		if err := ipt.feeder.FeedV2(point.Metric, pts,
+		if err := ipt.feeder.Feed(point.Metric, pts,
 			dkio.WithCollectCost(time.Since(time.Now())),
 			dkio.WithElection(ipt.Election),
-			dkio.WithInputName(inputName),
+			dkio.WithSource(inputName),
 		); err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),

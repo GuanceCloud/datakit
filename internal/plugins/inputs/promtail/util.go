@@ -92,6 +92,10 @@ func getPipelinePath(req *http.Request) string {
 	return req.URL.Query().Get("pipeline")
 }
 
+func getStorageIndex(req *http.Request) string {
+	return req.URL.Query().Get("storage_index")
+}
+
 func getCustomTags(req *http.Request) map[string]string {
 	tagStr := req.URL.Query().Get("tags")
 	return parseTagStr(tagStr)

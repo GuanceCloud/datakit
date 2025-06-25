@@ -119,6 +119,14 @@ curl -X POST -H "Content-Type: application/pbjson; proto=com.guance.Point" -d '<
 - 说明：如果不指定 `source`（或者对应的 *source.p* 不存在或无效），上传的 Point 数据不会执行 Pipeline
 - 示例：`curl -X POST -d '<YOUR-DATA>' "http://localhost:9529/v1/write/metric&source=my-data-source-name"`
 
+**`storage_index`** [:octicons-tag-24: Version-1.76.0](changelog-2025.md#cl-1.76.0)
+
+- 类型：string
+- 是否必选：N
+- 默认值：-
+- 说明：该参数只对日志写入有效，用于指定日志索引名（注意，索引名称必须以字母开头，并且只能包含小写字母、数字或 `_` 字符）
+- 示例：`curl -X POST -d '<YOUR-DATA>' "http://localhost:9529/v1/write/logging&storage_index=index_abc"`
+
 **`strict`** [:octicons-tag-24: Version-1.5.9](changelog.md#cl-1.5.9)
 
 - 类型：bool
@@ -627,7 +635,7 @@ status_code: 500
 
 ### `GET /v1/ntp` {#api-ntp}
 
-[:octicons-tag-24: Version-1.73.0](changelog.md#cl-1.73.0)
+[:octicons-tag-24: Version-1.73.0](changelog-2025.md#cl-1.73.0)
 
 获取当前 DataKit 所在机器的 Unix 时间戳（单位秒）。
 
@@ -1173,7 +1181,7 @@ HTTP Code: 400
 
 ### `/v1/env_variable` {#api-env-variable}
 
-[:octicons-tag-24: Version-1.72.0](changelog.md#cl-1.72.0)
+[:octicons-tag-24: Version-1.72.0](changelog-2025.md#cl-1.72.0)
 
 获取 RUM 环境变量列表。
 

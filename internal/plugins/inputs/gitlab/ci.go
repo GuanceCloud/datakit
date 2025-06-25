@@ -581,9 +581,9 @@ func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if err := ipt.feeder.FeedV2(point.Logging, pts,
+	if err := ipt.feeder.Feed(point.Logging, pts,
 		dkio.WithElection(ipt.Election),
-		dkio.WithInputName("gitlab_ci")); err != nil {
+		dkio.WithSource("gitlab_ci")); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
 			metrics.WithLastErrorInput(inputName),
 			metrics.WithLastErrorCategory(point.Logging),

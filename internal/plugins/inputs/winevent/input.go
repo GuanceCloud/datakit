@@ -127,9 +127,9 @@ func (ipt *Input) Run() {
 				}
 
 				if len(ipt.collectCache) > 0 {
-					if err := ipt.feeder.FeedV2(point.Logging, ipt.collectCache,
+					if err := ipt.feeder.Feed(point.Logging, ipt.collectCache,
 						dkio.WithCollectCost(time.Since(collectStart)),
-						dkio.WithInputName(inputName),
+						dkio.WithSource(inputName),
 					); err != nil {
 						l.Errorf("feed error: %s", err.Error())
 						ipt.feeder.FeedLastError(err.Error(),

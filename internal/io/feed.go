@@ -45,39 +45,35 @@ var (
 	defaultFeederFun = func() Feeder { return &ioFeeder{} }
 )
 
-// GetFeedOption create or get-back a raw feed-option.
-func GetFeedOption() *feedOption {
-	if x := feedOptionPool.Get(); x == nil {
-		return &feedOption{}
+// GetFeedData create or get-back a raw feed-option.
+func GetFeedData() *feedData {
+	if fd := feedOptionPool.Get(); fd == nil {
+		return &feedData{}
 	} else {
-		return x.(*feedOption)
+		return fd.(*feedData)
 	}
 }
 
-// PutFeedOption reset and put-back a feed-option to pool.
-func PutFeedOption(fo *feedOption) {
-	fo.collectCost = 0
-	fo.input = "unknown"
-	fo.version = ""
-	fo.noGlobalTags = false
-	fo.cat = point.UnknownCategory
-	fo.postTimeout = 0
-	fo.plOption = nil
-	fo.election = false
-	fo.pts = nil
+// putFeedData reset and put-back a feed data to pool.
+func putFeedData(fd *feedData) {
+	fd.collectCost = 0
+	fd.input = "unknown"
+	fd.version = ""
+	fd.storageIndex = ""
+	fd.noGlobalTags = false
+	fd.cat = point.UnknownCategory
+	fd.postTimeout = 0
+	fd.plOption = nil
+	fd.election = false
+	fd.pts = nil
 
-	feedOptionPool.Put(fo)
+	feedOptionPool.Put(fd)
 }
 
 type FeederOutputer interface {
-	Write(fo *feedOption) error
+	Write(fd *feedData) error
 	WriteLastError(err string, opts ...metrics.LastErrorOption)
-	Reader(c point.Category) <-chan *feedOption
-}
-
-// SetDefaultFeeder get default feeder.
-func SetDefaultFeeder(f func() Feeder) {
-	defaultFeederFun = f
+	Reader(c point.Category) <-chan *feedData
 }
 
 // DefaultFeeder get default feeder.
@@ -94,10 +90,11 @@ type Option struct {
 	Version     string
 }
 
-type feedOption struct {
+type feedData struct {
 	collectCost,
 	postTimeout time.Duration
 
+	storageIndex,
 	input,
 	version string
 
@@ -111,34 +108,53 @@ type feedOption struct {
 	pts []*point.Point
 }
 
+// GetStorageIndex get storage index name.
+func (fd *feedData) GetStorageIndex() string {
+	return fd.storageIndex
+}
+
+// GetFeedSource get feed name.
+func (fd *feedData) GetFeedSource() string {
+	return fd.input
+}
+
 // FeedOption used to define various feed options.
-type FeedOption func(*feedOption)
+type FeedOption func(*feedData)
 
 // DisableGlobalTags used to enable/disable adding global host/election tags.
 func DisableGlobalTags(on bool) FeedOption {
-	return func(fo *feedOption) { fo.noGlobalTags = on }
+	return func(fd *feedData) { fd.noGlobalTags = on }
 }
 
 func WithCollectCost(du time.Duration) FeedOption {
-	return func(fo *feedOption) { fo.collectCost = du }
+	return func(fd *feedData) { fd.collectCost = du }
 }
 
 func WithPostTimeout(du time.Duration) FeedOption {
-	return func(fo *feedOption) { fo.postTimeout = du }
+	return func(fd *feedData) { fd.postTimeout = du }
 }
 
 func WithPipelineOption(po *lang.LogOption) FeedOption {
-	return func(fo *feedOption) { fo.plOption = po }
+	return func(fd *feedData) { fd.plOption = po }
 }
 
-func WithInputVersion(v string) FeedOption { return func(fo *feedOption) { fo.version = v } }
-func WithSyncSend(on bool) FeedOption      { return func(fo *feedOption) { fo.syncSend = on } }
-func WithElection(on bool) FeedOption      { return func(fo *feedOption) { fo.election = on } }
-func WithInputName(name string) FeedOption { return func(fo *feedOption) { fo.input = name } }
+func WithInputVersion(v string) FeedOption { return func(fd *feedData) { fd.version = v } }
+func WithSyncSend(on bool) FeedOption      { return func(fd *feedData) { fd.syncSend = on } }
+func WithElection(on bool) FeedOption      { return func(fd *feedData) { fd.election = on } }
+func WithSource(name string) FeedOption    { return func(fd *feedData) { fd.input = name } }
+
+// WithStorageIndex set storage index name on curren feed.
+// Currently only category L allowed to set set storage index name.
+func WithStorageIndex(name string) FeedOption { return func(fd *feedData) { fd.storageIndex = name } }
+
+// FeedSource used to build a valid name for your WithFeedName().
+func FeedSource(arr ...string) string {
+	// we may use the feed name in file path, and `.' is ok for both linux/windows file path.
+	return strings.Join(arr, ".")
+}
 
 type Feeder interface {
-	Feed(name string, category point.Category, pts []*point.Point, opt ...*Option) error
-	FeedV2(category point.Category, pts []*point.Point, opts ...FeedOption) error
+	Feed(category point.Category, pts []*point.Point, opts ...FeedOption) error
 	FeedLastError(err string, opts ...metrics.LastErrorOption)
 }
 
@@ -152,31 +168,6 @@ func (*ioFeeder) FeedLastError(err string, opts ...metrics.LastErrorOption) {
 		defIO.fo.WriteLastError(err, opts...)
 	} else {
 		log.Warnf("feed output not set, ignored")
-	}
-}
-
-// Feed send collected point to io upload queue. Before sending to upload queue,
-// pipeline and filter are applied to pts.
-func (f *ioFeeder) Feed(name string, category point.Category, pts []*point.Point, opts ...*Option) error {
-	inputsFeedVec.WithLabelValues(name, category.String()).Inc()
-	inputsFeedPtsVec.WithLabelValues(name, category.String()).Observe(float64(len(pts)))
-	inputsLastFeedVec.WithLabelValues(name, category.String()).Set(float64(time.Now().Unix()))
-
-	fo := GetFeedOption()
-	fo.input = name
-	fo.cat = category
-	fo.pts = pts
-
-	if len(opts) > 0 && opts[0] != nil {
-		inputsCollectLatencyVec.WithLabelValues(name, category.String()).Observe(float64(opts[0].CollectCost) / float64(time.Second))
-
-		fo.collectCost = opts[0].CollectCost
-		fo.version = opts[0].Version
-		fo.postTimeout = opts[0].PostTimeout
-		fo.plOption = opts[0].PlOption
-		return defIO.doFeed(fo)
-	} else {
-		return defIO.doFeed(fo)
 	}
 }
 
@@ -199,8 +190,8 @@ func refreshGlobalTags() {
 	}
 }
 
-func (f *ioFeeder) attachTags(pts []*point.Point, fo *feedOption) {
-	if fo.noGlobalTags {
+func (f *ioFeeder) attachTags(pts []*point.Point, fd *feedData) {
+	if fd.noGlobalTags {
 		return
 	}
 
@@ -209,7 +200,7 @@ func (f *ioFeeder) attachTags(pts []*point.Point, fo *feedOption) {
 
 	var kvs point.KVs
 
-	if fo.election {
+	if fd.election {
 		kvs = globalElectionKVs
 	} else {
 		kvs = globalHostKVs
@@ -220,33 +211,33 @@ func (f *ioFeeder) attachTags(pts []*point.Point, fo *feedOption) {
 	}
 }
 
-func (f *ioFeeder) FeedV2(cat point.Category, pts []*point.Point, opts ...FeedOption) error {
-	fo := GetFeedOption()
+func (f *ioFeeder) Feed(cat point.Category, pts []*point.Point, opts ...FeedOption) error {
+	fdata := GetFeedData()
 	for _, opt := range opts {
 		if opt != nil {
-			opt(fo)
+			opt(fdata)
 		}
 	}
 
-	inputsFeedVec.WithLabelValues(fo.input, cat.String()).Inc()
-	inputsFeedPtsVec.WithLabelValues(fo.input, cat.String()).Observe(float64(len(pts)))
-	inputsLastFeedVec.WithLabelValues(fo.input, cat.String()).Set(float64(time.Now().Unix()))
+	inputsFeedVec.WithLabelValues(fdata.input, cat.String()).Inc()
+	inputsFeedPtsVec.WithLabelValues(fdata.input, cat.String()).Observe(float64(len(pts)))
+	inputsLastFeedVec.WithLabelValues(fdata.input, cat.String()).Set(float64(time.Now().Unix()))
 
 	if globalTagger.Updated() {
 		globalTagger.UpdateVersion()
 		refreshGlobalTags()
 	}
 
-	f.attachTags(pts, fo)
+	f.attachTags(pts, fdata)
 
-	fo.cat = cat
-	fo.pts = pts
+	fdata.cat = cat
+	fdata.pts = pts
 
-	if fo.collectCost > 0 {
-		inputsCollectLatencyVec.WithLabelValues(fo.input, cat.String()).Observe(float64(fo.collectCost) / float64(time.Second))
+	if fdata.collectCost > 0 {
+		inputsCollectLatencyVec.WithLabelValues(fdata.input, cat.String()).Observe(float64(fdata.collectCost) / float64(time.Second))
 	}
 
-	return defIO.doFeed(fo)
+	return defIO.doFeed(fdata)
 }
 
 func PLAggFeed(cat point.Category, name string, data any) error {
@@ -281,13 +272,13 @@ func PLAggFeed(cat point.Category, name string, data any) error {
 		catStr,
 	).Add(float64(bf - len(pts)))
 
-	fo := GetFeedOption()
-	fo.pts = pts
-	fo.cat = cat
-	fo.input = name
+	fd := GetFeedData()
+	fd.pts = pts
+	fd.cat = cat
+	fd.input = name
 
 	if defIO.fo != nil {
-		return defIO.fo.Write(fo)
+		return defIO.fo.Write(fd)
 	} else {
 		log.Warnf("feed output not set, ignored")
 		return nil
@@ -295,7 +286,7 @@ func PLAggFeed(cat point.Category, name string, data any) error {
 }
 
 // beforeFeed apply pipeline and filter handling on pts.
-func beforeFeed(opt *feedOption) ([]*point.Point, map[point.Category][]*point.Point, int, error) {
+func beforeFeed(opt *feedData) ([]*point.Point, map[point.Category][]*point.Point, int, error) {
 	var plopt *lang.LogOption
 	if opt != nil {
 		plopt = opt.plOption
@@ -343,7 +334,7 @@ func beforeFeed(opt *feedOption) ([]*point.Point, map[point.Category][]*point.Po
 	return after, ptCreate, offloadCount, nil
 }
 
-func (x *dkIO) doFeed(opt *feedOption) error {
+func (x *dkIO) doFeed(opt *feedData) error {
 	if len(opt.pts) == 0 {
 		if opt.syncSend {
 			return x.fo.Write(opt)
@@ -353,7 +344,7 @@ func (x *dkIO) doFeed(opt *feedOption) error {
 	}
 
 	if opt.input == "" {
-		pc, src, ln, ok := runtime.Caller(2) // skip 2 level: current doFeed and uplevel Feed/FeedV2
+		pc, src, ln, ok := runtime.Caller(2) // skip 2 level: current doFeed and uplevel Feed
 		if ok {
 			fn := runtime.FuncForPC(pc).Name()
 			log.Warnf("feed with no name, file: %s, caller: %s, line: %d", src, fn, ln)
@@ -392,7 +383,7 @@ func (x *dkIO) doFeed(opt *feedOption) error {
 			inputsFeedPtsVec.WithLabelValues(crName, crCat).Observe(float64(len(v)))
 			inputsLastFeedVec.WithLabelValues(crName, crCat).Set(float64(time.Now().Unix()))
 
-			ptsCreateOpt := GetFeedOption()
+			ptsCreateOpt := GetFeedData()
 			ptsCreateOpt.input = "pipeline/create_point"
 			ptsCreateOpt.cat = cat
 			ptsCreateOpt.pts = v

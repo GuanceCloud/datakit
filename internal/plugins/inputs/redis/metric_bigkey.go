@@ -69,9 +69,9 @@ func (ipt *Input) collectBigKey() error {
 	}
 
 	if len(pts) > 0 {
-		if err := ipt.feeder.FeedV2(point.Logging, pts,
+		if err := ipt.feeder.Feed(point.Logging, pts,
 			dkio.WithElection(ipt.Election),
-			dkio.WithInputName(redisBigkey)); err != nil {
+			dkio.WithSource(redisBigkey)); err != nil {
 			return err
 		}
 	}
@@ -197,9 +197,9 @@ func (ipt *Input) scanBigKey(ctxKey context.Context) error {
 		}
 
 		if len(pts) > 0 {
-			if err := ipt.feeder.FeedV2(point.Logging, pts,
+			if err := ipt.feeder.Feed(point.Logging, pts,
 				dkio.WithElection(ipt.Election),
-				dkio.WithInputName(redisBigkey)); err != nil {
+				dkio.WithSource(redisBigkey)); err != nil {
 				return err
 			}
 		}

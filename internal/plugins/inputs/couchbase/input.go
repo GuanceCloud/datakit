@@ -98,10 +98,10 @@ func (ipt *Input) Run() {
 			}
 
 			if len(ipt.client.Pts) > 0 {
-				if err := ipt.feeder.FeedV2(point.Metric, ipt.client.Pts,
+				if err := ipt.feeder.Feed(point.Metric, ipt.client.Pts,
 					dkio.WithCollectCost(time.Since(costStart)),
 					dkio.WithElection(ipt.Election),
-					dkio.WithInputName(metricName)); err != nil {
+					dkio.WithSource(metricName)); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
 						metrics.WithLastErrorInput(inputName),
 						metrics.WithLastErrorCategory(point.Metric),

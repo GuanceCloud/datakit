@@ -91,10 +91,10 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 				if points, err := ipt.getQueryPoints(queryItem); err != nil {
 					l.Errorf("collect custom query [%s] failed: %s", query.SQL, err.Error())
 				} else if len(points) > 0 {
-					if err := ipt.feeder.FeedV2(point.Metric, points,
+					if err := ipt.feeder.Feed(point.Metric, points,
 						dkio.WithCollectCost(time.Since(collectStart)),
 						dkio.WithElection(ipt.Election),
-						dkio.WithInputName(customQueryFeedName),
+						dkio.WithSource(customQueryFeedName),
 					); err != nil {
 						ipt.feeder.FeedLastError(err.Error(),
 							metrics.WithLastErrorInput(customQueryFeedName),

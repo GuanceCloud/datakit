@@ -198,35 +198,6 @@ var (
 	GRPCDomainSock     = filepath.Join(InstallDir, "datakit.sock")
 	GRPCSock           = ""
 
-	// map["/v1/write/metric"] = "M".
-	CategoryMap = map[string]string{
-		MetricDeprecated: SinkCategoryMetric,
-		Metric:           SinkCategoryMetric,
-		Network:          SinkCategoryNetwork,
-		KeyEvent:         SinkCategoryKeyEvent,
-		Object:           SinkCategoryObject,
-		CustomObject:     SinkCategoryCustomObject,
-		Logging:          SinkCategoryLogging,
-		Tracing:          SinkCategoryTracing,
-		RUM:              SinkCategoryRUM,
-		Security:         SinkCategorySecurity,
-		Profiling:        SinkCategoryProfiling,
-	}
-
-	// map["M"] = "/v1/write/metric".
-	CategoryMapReverse = map[string]string{
-		SinkCategoryMetric:       Metric,
-		SinkCategoryNetwork:      Network,
-		SinkCategoryKeyEvent:     KeyEvent,
-		SinkCategoryObject:       Object,
-		SinkCategoryCustomObject: CustomObject,
-		SinkCategoryLogging:      Logging,
-		SinkCategoryTracing:      Tracing,
-		SinkCategoryRUM:          RUM,
-		SinkCategorySecurity:     Security,
-		SinkCategoryProfiling:    Profiling,
-	}
-
 	// map["/v1/write/metric"] = "metric".
 	CategoryPureMap = map[string]string{
 		MetricDeprecated: CategoryMetric,

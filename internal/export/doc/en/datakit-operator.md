@@ -12,7 +12,7 @@ DataKit Operator is a collaborative project between DataKit and Kubernetes orche
 
 Currently, DataKit Operator provides the following functions:
 
-- Injection DDTrace SDK(Java/Python/Node.js) and related environments. See [documentation](datakit-operator.md#datakit-operator-inject-lib).
+- Injection DDTrace Java SDK and related environments. See [documentation](datakit-operator.md#datakit-operator-inject-lib).
 - Injection Sidecar logfwd to collect Pod logging. See [documentation](datakit-operator.md#datakit-operator-inject-logfwd).
 - Support task distribution for DataKit plugins. See [documentation](election.md#plugins-election).
 
@@ -133,6 +133,15 @@ The default configuration is as follows:
                 "DK_PROFILE_SCHEDULE": "0 * * * *"
             }
         }
+    },
+    "admission_mutate": {
+        "loggings": [
+            {
+                "namespace_selectors": ["test01"],
+                "label_selectors":     ["app=logging"],
+                "config":"[{\"disable\":false,\"type\":\"file\",\"path\":\"/tmp/opt/**/*.log\",\"storage_index\":\"logging-index\"\"source\":\"logging-tmp\"},{\"disable\":true,\"type\":\"file\",\"path\":\"/var/log/opt/**/*.log\",\"source\":\"logging-var\"}]"
+            }
+        ]
     }
 }
 ```
@@ -398,11 +407,12 @@ datakit-lib-init
         "datakit_addr": "datakit-service.datakit.svc:9533",
         "loggings": [
             {
-                "logfiles": ["<your-logfile-path>"],
-                "ignore": [],
-                "source": "<your-source>",
-                "service": "<your-service>",
-                "pipeline": "<your-pipeline.p>",
+                "logfiles":      ["<your-logfile-path>"],
+                "ignore":        [],
+                "storage_index": "<your-storage-index>",
+                "source":        "<your-source>",
+                "service":       "<your-service>",
+                "pipeline":      "<your-pipeline.p>",
                 "character_encoding": "",
                 "multiline_match": "<your-match>",
                 "tags": {}
@@ -422,6 +432,7 @@ Parameter explanation can refer to [logfwd configuration](../integrations/logfwd
 - `loggings` is the main configuration and is an array that can refer to [DataKit logging collector](../integrations/logging.md).
     - `logfiles` is a list of log files, which can specify absolute paths and support batch specification using glob rules. Absolute paths are recommended.
     - `ignore` filters file paths using glob rules. If it meets any filtering condition, the file will not be collected.
+    - `storage_index` set storage index.
     - `source` is the data source. If it is empty, `'default'` will be used by default.
     - `service` adds a new tag. If it is empty, `$source` will be used by default.
     - `pipeline` is the Pipeline script path. If it is empty, `$source.p` will be used. If `$source.p` does not exist, the Pipeline will not be used. (This script file exists on the DataKit side.)

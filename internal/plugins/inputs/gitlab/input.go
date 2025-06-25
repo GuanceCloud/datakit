@@ -196,10 +196,10 @@ func (ipt *Input) gather(ptTS int64) {
 	}
 
 	if len(pts) > 0 {
-		if err := ipt.feeder.FeedV2(point.Metric, pts,
+		if err := ipt.feeder.Feed(point.Metric, pts,
 			dkio.WithCollectCost(time.Since(start)),
 			dkio.WithElection(ipt.Election),
-			dkio.WithInputName(inputName)); err != nil {
+			dkio.WithSource(inputName)); err != nil {
 			l.Errorf("feed measurement: %s", err)
 		}
 	}

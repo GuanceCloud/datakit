@@ -211,11 +211,11 @@ func (ipt *Input) callback(pts []*point.Point) error {
 
 	cost := time.Since(ipt.lastStart)
 
-	if err := ipt.Feeder.FeedV2(
+	if err := ipt.Feeder.Feed(
 		point.Metric,
 		pts,
 		dkio.WithCollectCost(cost),
-		dkio.WithInputName(inputName+"/"+ipt.Source),
+		dkio.WithSource(dkio.FeedSource(inputName, ipt.Source)),
 		dkio.WithElection(ipt.Election),
 	); err != nil {
 		ipt.log.Warnf("failed to feed prom metrics: %s", err)

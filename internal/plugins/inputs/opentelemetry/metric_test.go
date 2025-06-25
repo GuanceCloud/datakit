@@ -179,12 +179,7 @@ type feeder struct {
 	t *testing.T
 }
 
-func (f *feeder) Feed(name string, category point.Category, pts []*point.Point, opt ...*dkio.Option) error {
-	f.t.Logf("not implement")
-	return nil
-}
-
-func (f *feeder) FeedV2(category point.Category, pts []*point.Point, opts ...dkio.FeedOption) error {
+func (f *feeder) Feed(category point.Category, pts []*point.Point, opts ...dkio.FeedOption) error {
 	f.t.Logf("category = %s", category)
 	if len(pts) == 0 {
 		f.t.Errorf("parse otel metric to point.len==0")

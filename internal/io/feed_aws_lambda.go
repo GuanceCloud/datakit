@@ -17,7 +17,7 @@ type awsLambdaOutput struct {
 	cache map[point.Category]*SafeSlice[[]*point.Point, *point.Point]
 }
 
-func (a *awsLambdaOutput) Write(fo *feedOption) error {
+func (a *awsLambdaOutput) Write(fo *feedData) error {
 	if fo.syncSend {
 		defer a.flush()
 	}
@@ -33,7 +33,7 @@ func (a *awsLambdaOutput) WriteLastError(err string, opts ...metrics.LastErrorOp
 	writeLastError(err, opts...)
 }
 
-func (a *awsLambdaOutput) Reader(_ point.Category) <-chan *feedOption {
+func (a *awsLambdaOutput) Reader(_ point.Category) <-chan *feedData {
 	panic("unsupported")
 }
 

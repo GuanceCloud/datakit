@@ -217,10 +217,10 @@ func (ipt *Input) collect() error {
 		return fmt.Errorf("points got nil from doCollect")
 	}
 
-	if err := ipt.feeder.FeedV2(point.Metric, pts,
+	if err := ipt.feeder.Feed(point.Metric, pts,
 		dkio.WithCollectCost(time.Since(collectStart)),
 		dkio.WithElection(ipt.Election),
-		dkio.WithInputName(inputName)); err != nil {
+		dkio.WithSource(inputName)); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
 			metrics.WithLastErrorInput(inputName),
 			metrics.WithLastErrorSource(source),

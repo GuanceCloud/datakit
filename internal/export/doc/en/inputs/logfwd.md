@@ -59,11 +59,12 @@ The logfwd main configuration is in JSON format, and the following is a configur
         "datakit_addr": "127.0.0.1:9533",
         "loggings": [
             {
-                "logfiles": ["<your-logfile-path>"],
-                "ignore": [],
-                "source": "<your-source>",
-                "service": "<your-service>",
-                "pipeline": "<your-pipeline.p>",
+                "logfiles":      ["<your-logfile-path>"],
+                "ignore":        [],
+                "storage_index": "<your-storage-index>",
+                "source":        "<your-source>",
+                "service":       "<your-service>",
+                "pipeline":      "<your-pipeline.p>",
                 "character_encoding": "",
                 "multiline_match": "<your-match>",
                 "tags": {}
@@ -84,6 +85,7 @@ Description of configuration parameters:
 - `loggings` is the primary configuration, an array, and the subitems are basically the same as the [logging](logging.md) collector.
     - `logfiles` list of log files, you can specify absolute paths, support batch specifying using glob rules, and recommend using absolute paths.
     - `ignore` file path filtering, using glob rules, the file will not be collected if any filtering condition is met.
+    - `storage_index` set storage index
     - `source` data source; if empty, 'default' is used by default.
     - `service` adds tag; if empty, $source is used by default.
     - `pipeline` Pipeline script path, if empty $source.p will be used, if $source.p does not exist will not use Pipeline (this script file exists on the DataKit side).
@@ -95,9 +97,10 @@ Supported environment variables:
 
 | Environment Variable Name        | Configuration Item Meaning                                                                                                  |
 | :---                             | :---                                                                                                                        |
-| `LOGFWD_DATAKIT_HOST`            | DataKit 地址                                                                                                                |
+| `LOGFWD_DATAKIT_HOST`            | DataKit Address                                                                                                             |
 | `LOGFWD_DATAKIT_PORT`            | DataKit Port                                                                                                                |
 | `LOGFWD_GLOBAL_SOURCE`           | Configure the global source with the highest priority                                                                       |
+| `LOGFWD_GLOBAL_STORAGE_INDEX`    | Configure the global storage_index with the highest priority                                                                |
 | `LOGFWD_GLOBAL_SERVICE`          | Configure the global service with the highest priority                                                                      |
 | `LOGFWD_POD_NAME`                | Specifying pod name adds `pod_name` to tags                                                                                 |
 | `LOGFWD_POD_NAMESPACE`           | Specifying pod namespace adds `namespace` to tags                                                                           |

@@ -384,10 +384,10 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 				}
 
 				if len(pts) > 0 {
-					if err := ipt.feeder.FeedV2(point.Metric, pts,
+					if err := ipt.feeder.Feed(point.Metric, pts,
 						dkio.WithCollectCost(time.Since(start)),
 						dkio.WithElection(ipt.Election),
-						dkio.WithInputName(customQueryFeedName),
+						dkio.WithSource(customQueryFeedName),
 					); err != nil {
 						ipt.feeder.FeedLastError(err.Error(),
 							metrics.WithLastErrorInput(customQueryFeedName),
@@ -500,10 +500,10 @@ func (ipt *Input) Run() {
 			l.Debugf("start to collect")
 			ipt.getMetric()
 			if len(ipt.collectCache) > 0 {
-				err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
+				err := ipt.feeder.Feed(point.Metric, ipt.collectCache,
 					dkio.WithCollectCost(time.Since(ipt.start)),
 					dkio.WithElection(ipt.Election),
-					dkio.WithInputName(inputName),
+					dkio.WithSource(inputName),
 				)
 				ipt.collectCache = ipt.collectCache[:0]
 				if err != nil {
@@ -513,10 +513,10 @@ func (ipt *Input) Run() {
 			}
 
 			if len(ipt.loggingCollectCache) > 0 {
-				err := ipt.feeder.FeedV2(point.Logging, ipt.loggingCollectCache,
+				err := ipt.feeder.Feed(point.Logging, ipt.loggingCollectCache,
 					dkio.WithCollectCost(time.Since(ipt.start)),
 					dkio.WithElection(ipt.Election),
-					dkio.WithInputName(loggingFeedName),
+					dkio.WithSource(loggingFeedName),
 				)
 				ipt.loggingCollectCache = ipt.loggingCollectCache[:0]
 				if err != nil {

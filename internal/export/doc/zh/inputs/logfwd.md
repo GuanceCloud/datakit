@@ -61,11 +61,12 @@ logfwd 主配置是 JSON 格式，以下是配置示例：
         "datakit_addr": "127.0.0.1:9533",
         "loggings": [
             {
-                "logfiles": ["<your-logfile-path>"],
-                "ignore": [],
-                "source": "<your-source>",
-                "service": "<your-service>",
-                "pipeline": "<your-pipeline.p>",
+                "logfiles":      ["<your-logfile-path>"],
+                "ignore":        [],
+                "storage_index": "<your-storage-index>",
+                "source":        "<your-source>",
+                "service":       "<your-service>",
+                "pipeline":      "<your-pipeline.p>",
                 "character_encoding": "",
                 "multiline_match": "<your-match>",
                 "tags": {}
@@ -86,6 +87,7 @@ logfwd 主配置是 JSON 格式，以下是配置示例：
 - `loggings` 为主要配置，是一个数组，子项也基本和 [logging](logging.md) 采集器相同。
     - `logfiles` 日志文件列表，可以指定绝对路径，支持使用 glob 规则进行批量指定，推荐使用绝对路径
     - `ignore` 文件路径过滤，使用 glob 规则，符合任意一条过滤条件将不会对该文件进行采集
+    - `storage_index` 指定日志存储索引
     - `source` 数据来源，如果为空，则默认使用 'default'
     - `service` 新增标记 tag，如果为空，则默认使用 `$source`
     - `pipeline` Pipeline 脚本路径，如果为空将使用 `$source.p`，如果 `$source.p` 不存在将不使用 Pipeline（此脚本文件存在于 DataKit 端）
@@ -101,6 +103,7 @@ logfwd 主配置是 JSON 格式，以下是配置示例：
 | `LOGFWD_DATAKIT_PORT`            | DataKit Port                                                                                                            |
 | `LOGFWD_TARGET_CONTAINER_IMAGE`  | 配置目标容器的镜像名，例如 `nginx:1.22`，解析并添加相关的 tag（`image`、`image_name`、`image_short_name`、`image_tag`） |
 | `LOGFWD_GLOBAL_SOURCE`           | 配置全局 source，优先级最高                                                                                             |
+| `LOGFWD_GLOBAL_STORAGE_INDEX`    | 配置全局 storage_index，优先级最高                                                                                      |
 | `LOGFWD_GLOBAL_SERVICE`          | 配置全局 service，优先级最高                                                                                            |
 | `LOGFWD_POD_NAME`                | 指定 pod name，会 tags 中添加 `pod_name`                                                                                |
 | `LOGFWD_POD_NAMESPACE`           | 指定 pod namespace，会 tags 中添加 `namespace`                                                                          |

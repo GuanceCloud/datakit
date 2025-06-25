@@ -113,8 +113,8 @@ func (ipt *Input) Run() {
 
 		// If there is data in the collectCache, submit it
 		if len(ipt.collectCache) > 0 {
-			if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
-				dkio.WithInputName(metricName)); err != nil {
+			if err := ipt.feeder.Feed(point.Metric, ipt.collectCache,
+				dkio.WithSource(metricName)); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
 					metrics.WithLastErrorCategory(point.Metric),
@@ -125,8 +125,8 @@ func (ipt *Input) Run() {
 
 		// If there is data in the collectCachePort, submit it
 		if len(ipt.collectCachePort) > 0 {
-			if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCachePort,
-				dkio.WithInputName(metricNamePort)); err != nil {
+			if err := ipt.feeder.Feed(point.Metric, ipt.collectCachePort,
+				dkio.WithSource(metricNamePort)); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
 					metrics.WithLastErrorCategory(point.Metric),

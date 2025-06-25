@@ -18,8 +18,10 @@ import (
 type compactor struct {
 	category      point.Category
 	compactTicker *time.Ticker
-	points        []*point.Point
-	lastCompact   time.Time
+
+	readyPoints   int // queued point count in arrPoints and indexedPoints
+	arrPoints     []*point.Point
+	indexedPoints map[string][]*point.Point
 }
 
 func (x *dkIO) runCompactor(cat point.Category) {
@@ -31,6 +33,7 @@ func (x *dkIO) runCompactor(cat point.Category) {
 	c := &compactor{
 		compactTicker: time.NewTicker(x.flushInterval),
 		category:      cat,
+		indexedPoints: map[string][]*point.Point{},
 	}
 
 	defer c.compactTicker.Stop()
@@ -41,32 +44,32 @@ func (x *dkIO) runCompactor(cat point.Category) {
 		c.category = point.Logging
 	}
 
-	log.Infof("run compactor on %s", c.category)
+	log.Infof("run compactor on %s, compact at %s/%d points", c.category, x.flushInterval, x.compactAt)
 	for {
 		select {
 		case d := <-r:
 			x.cacheData(c, d, true)
-			PutFeedOption(d) // release feed options here
+			putFeedData(d) // release feed data here
 
 		case <-c.compactTicker.C:
-			if len(c.points) > 0 {
-				log.Debugf("on tick(%s) to compact %s(%d points), last compact %s ago...",
-					x.flushInterval, c.category, len(c.points), time.Since(c.lastCompact))
+			if c.readyPoints > 0 {
+				log.Debugf("on tick(%s) to compact %s(%d points)", x.flushInterval, c.category, c.readyPoints)
 				x.compact(c)
 			}
 
 		case <-datakit.Exit.Wait():
-			if len(c.points) > 0 {
-				log.Debugf("on tick(%s) to compact %s(%d points), last compact %s ago...",
-					x.flushInterval, c.category, len(c.points), time.Since(c.lastCompact))
+			if c.readyPoints > 0 {
+				log.Debugf("on tick(%s) to compact %s(%d points)", x.flushInterval, c.category, c.readyPoints)
 				x.compact(c)
 			}
+
+			log.Infof("compactor on %s exit", c.category)
 			return
 		}
 	}
 }
 
-func (x *dkIO) cacheData(c *compactor, d *feedOption, tryClean bool) {
+func (x *dkIO) cacheData(c *compactor, d *feedData, tryClean bool) {
 	if d == nil {
 		log.Warn("get empty data, ignored")
 		return
@@ -77,21 +80,27 @@ func (x *dkIO) cacheData(c *compactor, d *feedOption, tryClean bool) {
 		return
 	}
 
+	c.readyPoints += len(d.pts)
+
 	log.Debugf("get iodata(%d points) from %s|%s", len(d.pts), d.cat, d.input)
 
 	x.recordPoints(d)
-	c.points = append(c.points, d.pts...)
+	if d.storageIndex != "" {
+		c.indexedPoints[d.storageIndex] = append(c.indexedPoints[d.storageIndex], d.pts...)
+	} else {
+		c.arrPoints = append(c.arrPoints, d.pts...)
+	}
 
 	queuePtsVec.WithLabelValues(d.cat.String()).Add(float64(len(d.pts)))
 
-	if tryClean && x.compactAt > 0 && len(c.points) > x.compactAt {
+	if tryClean && x.compactAt > 0 && c.readyPoints > x.compactAt {
 		x.compact(c)
 		// reset compact ticker to prevent small packages
 		c.compactTicker.Reset(x.flushInterval)
 	}
 }
 
-func (x *dkIO) recordPoints(d *feedOption) {
+func (x *dkIO) recordPoints(d *feedData) {
 	if x.recorder != nil && x.recorder.Enabled {
 		if err := x.recorder.Record(d.pts, d.cat, d.input); err != nil {
 			log.Warnf("record %d points on %q from %q failed: %s", len(d.pts), d.cat, d.input, err)
@@ -104,25 +113,46 @@ func (x *dkIO) recordPoints(d *feedOption) {
 }
 
 func (x *dkIO) compact(c *compactor) {
-	c.lastCompact = time.Now()
-
-	npts := float64(len(c.points))
-	defer func() {
-		flushVec.WithLabelValues(c.category.String()).Inc()
-		queuePtsVec.WithLabelValues(c.category.String()).Sub(npts)
-	}()
-
-	if err := x.doCompact(c.points, c.category); err != nil {
-		log.Warnf("post %d points to %s failed: %s, ignored", len(c.points), c.category, err)
+	if c.readyPoints == 0 {
+		log.Debugf("no point to compact on %s", c.category.String())
+		return // no points to compact
 	}
 
-	// I think here is the best position to put back these points.
-	datakit.PutbackPoints(c.points...)
+	defer func() {
+		flushVec.WithLabelValues(c.category.String()).Inc()
+		queuePtsVec.WithLabelValues(c.category.String()).Sub(float64(c.readyPoints))
+		c.readyPoints = 0
+	}()
 
-	c.points = c.points[:0] // clear
+	// compact no index points
+	if len(c.arrPoints) > 0 {
+		if err := x.doCompact(c.arrPoints, c.category, ""); err != nil {
+			log.Warnf("compact %d points on %s failed: %s, ignored", len(c.arrPoints), c.category, err)
+		}
+		// put back these points.
+		datakit.PutbackPoints(c.arrPoints...)
+
+		c.arrPoints = c.arrPoints[:0] // clear
+	}
+
+	// compact storage-indexed points
+	for k, arr := range c.indexedPoints {
+		if len(arr) == 0 {
+			log.Debugf("no point, skip storage index %q", k)
+			continue
+		}
+
+		if err := x.doCompact(arr, c.category, k); err != nil {
+			log.Warnf("compact %d points on %s failed: %s, ignored", len(c.arrPoints), c.category, err)
+		}
+
+		// put back these points.
+		datakit.PutbackPoints(arr...)
+		c.indexedPoints[k] = c.indexedPoints[k][:0] // clear: should we delete the key in map?
+	}
 }
 
-func (x *dkIO) doCompact(points []*point.Point, cat point.Category, dynamicURL ...string) error {
+func (x *dkIO) doCompact(points []*point.Point, cat point.Category, indexName string) error {
 	if x.dw == nil {
 		return fmt.Errorf("dataway not set")
 	}
@@ -138,8 +168,8 @@ func (x *dkIO) doCompact(points []*point.Point, cat point.Category, dynamicURL .
 		dataway.WithCategory(cat),
 	}
 
-	if len(dynamicURL) > 0 {
-		opts = append(opts, dataway.WithDynamicURL(dynamicURL[0]))
+	if indexName != "" {
+		opts = append(opts, dataway.WithStorageIndex(indexName))
 	}
 
 	return x.dw.Write(opts...)

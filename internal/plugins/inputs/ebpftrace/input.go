@@ -97,8 +97,8 @@ func (*Input) AvailableArchs() []string {
 }
 
 var defaultExporter = func(pts []*point.Point) error {
-	return dkio.DefaultFeeder().FeedV2(point.Tracing, pts,
-		dkio.WithInputName("ebpf-tracing"))
+	return dkio.DefaultFeeder().Feed(point.Tracing, pts,
+		dkio.WithSource("ebpf-tracing"))
 }
 
 func (ipt *Input) Run() {

@@ -61,7 +61,6 @@ func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		if _, err := resp.Write([]byte(ipt.DDInfoResp)); err != nil {
 			l.Warnf("write on /info failed: %s, ignored", err.Error())
 		}
-
 	case "/v0.3/traces":
 		traces, err := decodeTraces(req)
 		if err != nil {
@@ -90,9 +89,9 @@ func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 			l.Debugf("empty Jenkins CI point array")
 			return
 		}
-		if err := ipt.feeder.FeedV2(point.Logging, pts,
+		if err := ipt.feeder.Feed(point.Logging, pts,
 			dkio.WithElection(ipt.Election),
-			dkio.WithInputName("jenkins_ci"),
+			dkio.WithSource("jenkins_ci"),
 		); err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),

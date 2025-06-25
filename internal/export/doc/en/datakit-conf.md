@@ -207,7 +207,7 @@ The following content involves some advanced configuration. If you are not sure 
 
 ### Time Calibration {#ntp}
 
-[:octicons-tag-24: Version-1.75.0](../datakit/changelog.md#cl-1.75.0)
+[:octicons-tag-24: Version-1.75.0](../datakit/changelog-2025.md#cl-1.75.0)
 
 To prevent data collection issues caused by local time deviations, DataKit can detect significant time discrepancies by calling the DataWay interface ([:octicons-tag-24: Version-1.6.0](../deployment/dataway-changelog.md#cl-1.6.0)). When a significant deviation is detected, DataKit will calibrate its current time (without modifying the system time) for data collection purposes.
 

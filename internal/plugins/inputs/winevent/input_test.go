@@ -62,7 +62,7 @@ func (m *mockFeeder) Feed(name string, category point.Category, pts []*point.Poi
 	return nil
 }
 
-func (m *mockFeeder) FeedV2(category point.Category, pts []*point.Point, opts ...io.FeedOption) error {
+func (m *mockFeeder) Feed(category point.Category, pts []*point.Point, opts ...io.FeedOption) error {
 	m.ptsNumber += len(pts)
 	if m.maxNumber <= m.ptsNumber {
 		m.semStop.Close()

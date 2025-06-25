@@ -25,6 +25,10 @@ type option struct {
 	service string
 	// pipeline脚本路径，如果为空则不使用pipeline
 	pipeline string
+
+	// set storage index name
+	storageIndex string
+
 	// 解释文件内容时所使用的的字符编码，如果设置为空，将不进行转码处理
 	// e.g. "utf-8","utf-16le","utf-16be","gbk","gb18030"
 	characterEncoding string
@@ -61,8 +65,10 @@ type option struct {
 	// 如果要采集的文件 size 小于此值，将使用 from_bgeinning，单位字节
 	fileFromBeginningThresholdSize int64
 
-	mode   Mode
-	feeder dkio.Feeder
+	mode Mode
+
+	feeder   dkio.Feeder
+	feedName string
 }
 
 type Option func(*option)
@@ -71,6 +77,7 @@ func WithSockets(arr []string) Option        { return func(opt *option) { opt.so
 func WithIgnorePatterns(arr []string) Option { return func(opt *option) { opt.ignorePatterns = arr } }
 func WithIgnoreStatus(arr []string) Option   { return func(opt *option) { opt.ignoreStatus = arr } }
 func WithPipeline(s string) Option           { return func(opt *option) { opt.pipeline = s } }
+func WithStorageIndex(name string) Option    { return func(opt *option) { opt.storageIndex = name } }
 func WithCharacterEncoding(s string) Option  { return func(opt *option) { opt.characterEncoding = s } }
 func WithFromBeginning(b bool) Option        { return func(opt *option) { opt.fromBeginning = b } }
 func WithTextParserMode(mode Mode) Option    { return func(opt *option) { opt.mode = mode } }
@@ -191,6 +198,7 @@ func getOption(opts ...Option) *option {
 			o(with)
 		}
 	}
+
 	return with
 }
 

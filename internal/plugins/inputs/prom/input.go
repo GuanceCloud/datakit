@@ -238,10 +238,10 @@ func (i *Input) collectFormURLs() error {
 				for _, pt := range pts {
 					// We need to feed each point separately because
 					// each point might have different measurement name.
-					if err := i.Feeder.FeedV2(point.Logging, []*point.Point{pt},
+					if err := i.Feeder.Feed(point.Logging, []*point.Point{pt},
 						dkio.WithCollectCost(time.Since(i.start)),
 						dkio.WithElection(i.Election),
-						dkio.WithInputName(pt.Name()),
+						dkio.WithSource(pt.Name()),
 					); err != nil {
 						i.Feeder.FeedLastError(err.Error(),
 							metrics.WithLastErrorInput(inputName),
@@ -250,10 +250,10 @@ func (i *Input) collectFormURLs() error {
 						i.l.Errorf("feed logging: %s", err)
 					}
 				}
-			} else if err := i.Feeder.FeedV2(point.Metric, pts,
+			} else if err := i.Feeder.Feed(point.Metric, pts,
 				dkio.WithCollectCost(time.Since(i.start)),
 				dkio.WithElection(i.Election),
-				dkio.WithInputName(inputName+"/"+i.Source),
+				dkio.WithSource(dkio.FeedSource(inputName, i.Source)),
 			); err != nil {
 				i.Feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
@@ -378,10 +378,10 @@ func (i *Input) defaultHandleCallback() promHandleCallback {
 			for _, pt := range pts {
 				// We need to feed each point separately because
 				// each point might have different measurement name.
-				if err := i.Feeder.FeedV2(point.Logging, []*point.Point{pt},
+				if err := i.Feeder.Feed(point.Logging, []*point.Point{pt},
 					dkio.WithCollectCost(time.Since(i.start)),
 					dkio.WithElection(i.Election),
-					dkio.WithInputName(pt.Name()),
+					dkio.WithSource(pt.Name()),
 				); err != nil {
 					i.Feeder.FeedLastError(err.Error(),
 						metrics.WithLastErrorInput(inputName),
@@ -390,10 +390,10 @@ func (i *Input) defaultHandleCallback() promHandleCallback {
 					i.l.Errorf("feed logging: %s", err)
 				}
 			}
-		} else if err := i.Feeder.FeedV2(point.Metric, pts,
+		} else if err := i.Feeder.Feed(point.Metric, pts,
 			dkio.WithCollectCost(time.Since(i.start)),
 			dkio.WithElection(i.Election),
-			dkio.WithInputName(inputName+"/"+i.Source),
+			dkio.WithSource(dkio.FeedSource(inputName, i.Source)),
 		); err != nil {
 			i.Feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),

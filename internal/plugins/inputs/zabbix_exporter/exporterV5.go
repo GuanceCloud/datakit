@@ -155,7 +155,7 @@ func (ex *ExporterV5) collect() {
 		select {
 		case pts := <-ex.metricChan:
 			if len(pts) > 0 {
-				err = ex.feeder.FeedV2(point.Metric, pts, dkio.WithInputName(inputName))
+				err = ex.feeder.Feed(point.Metric, pts, dkio.WithSource(inputName))
 				if err != nil {
 					log.Errorf("feed pts err=%v", err)
 				}

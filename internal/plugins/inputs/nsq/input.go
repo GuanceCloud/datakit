@@ -27,12 +27,9 @@ import (
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
 )
 
-var _ inputs.ElectionInput = (*Input)(nil)
-
 const (
-	inputName            = "nsq"
-	customObjectFeedName = inputName + "/CO"
-	catalog              = "nsq"
+	inputName = "nsq"
+	catalog   = "nsq"
 
 	nsqdStatsPattern = "%s/stats?format=json"
 	lookupdPattern   = "%s/nodes"
@@ -41,6 +38,9 @@ const (
 )
 
 var (
+	_                    inputs.ElectionInput = (*Input)(nil)
+	customObjectFeedName                      = dkio.FeedSource(inputName, "CO")
+
 	updateEndpointListInterval = time.Second * 30
 	minInterval                = time.Second * 3
 	defaultInterval            = time.Second * 10
@@ -134,10 +134,10 @@ func (ipt *Input) Run() {
 			}
 
 			if len(pts) > 0 {
-				if err := ipt.feeder.FeedV2(point.Metric, pts,
+				if err := ipt.feeder.Feed(point.Metric, pts,
 					dkio.WithCollectCost(time.Since(start)),
 					dkio.WithElection(ipt.Election),
-					dkio.WithInputName(inputName),
+					dkio.WithSource(inputName),
 				); err != nil {
 					l.Errorf("io.Feed: %s, ignored", err)
 				}

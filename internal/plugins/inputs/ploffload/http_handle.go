@@ -18,14 +18,16 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
-	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/cliutils/point"
+	"google.golang.org/protobuf/proto"
+
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
-	"google.golang.org/protobuf/proto"
 )
 
 type ptsData struct {
@@ -45,7 +47,7 @@ func (ipt *Input) handlePlOffload(resp http.ResponseWriter, req *http.Request) {
 	ptCounterVec.WithLabelValues(ptsData.cat.String()).Add(float64(len(ptsData.pts)))
 
 	log.Debugf("category: %s, pts num: %d", ptsData.cat, len(ptsData.pts))
-	if err := ipt.feeder.Feed(ptsData.inputName, ptsData.cat, ptsData.pts, nil); err != nil {
+	if err := ipt.feeder.Feed(ptsData.cat, ptsData.pts, dkio.WithSource(ptsData.inputName)); err != nil {
 		log.Error(err.Error())
 		httpStatusRespFunc(resp, req, err)
 		return

@@ -216,22 +216,22 @@ func envDataway() []*inputs.ENVInfo {
 		{
 			ENVName: "ENV_DATAWAY_NTP_INTERVAL",
 			Type:    doc.String,
-			Desc:    "Set NTP sync interval [:octicons-tag-24: Version-1.75.0](changelog.md#cl-1.75.0)",
-			DescZh:  "设置 NTP 时间同步间隔 [:octicons-tag-24: Version-1.75.0](changelog.md#cl-1.75.0)",
+			Desc:    "Set NTP sync interval [:octicons-tag-24: Version-1.75.0](changelog-2025.md#cl-1.75.0)",
+			DescZh:  "设置 NTP 时间同步间隔 [:octicons-tag-24: Version-1.75.0](changelog-2025.md#cl-1.75.0)",
 		},
 
 		{
 			ENVName: "ENV_DATAWAY_NTP_DIFF",
 			Type:    doc.String,
-			Desc:    "Set NTP sync difference [:octicons-tag-24: Version-1.75.0](changelog.md#cl-1.75.0)",
-			DescZh:  "设置 NTP 时间同步的误差 [:octicons-tag-24: Version-1.75.0](changelog.md#cl-1.75.0)",
+			Desc:    "Set NTP sync difference [:octicons-tag-24: Version-1.75.0](changelog-2025.md#cl-1.75.0)",
+			DescZh:  "设置 NTP 时间同步的误差 [:octicons-tag-24: Version-1.75.0](changelog-2025.md#cl-1.75.0)",
 		},
 
 		{
 			ENVName: "ENV_DATAWAY_DISABLE_NTP",
 			Type:    doc.Boolean,
-			Desc:    "Disable NTP sync       [:octicons-tag-24: Version-1.75.0](changelog.md#cl-1.75.0)",
-			DescZh:  "设置 NTP 时间同步的误差[:octicons-tag-24: Version-1.75.0](changelog.md#cl-1.75.0)",
+			Desc:    "Disable NTP sync       [:octicons-tag-24: Version-1.75.0](changelog-2025.md#cl-1.75.0)",
+			DescZh:  "设置 NTP 时间同步的误差[:octicons-tag-24: Version-1.75.0](changelog-2025.md#cl-1.75.0)",
 		},
 
 		// WAL
@@ -259,8 +259,8 @@ func envDataway() []*inputs.ENVInfo {
 		{
 			ENVName: "ENV_DATAWAY_WAL_NO_DROP_CATEGORIES",
 			Type:    doc.List,
-			Desc:    "Set category list that do not drop data if WAL disk full [:octicons-tag-24: Version-1.71.0](changelog.md#cl-1.71.0)",
-			DescZh:  "当 WAL 磁盘限定容量写满时，设置不主动丢弃的数据类型列表 [:octicons-tag-24: Version-1.71.0](changelog.md#cl-1.71.0)",
+			Desc:    "Set category list that do not drop data if WAL disk full [:octicons-tag-24: Version-1.71.0](changelog-2025.md#cl-1.71.0)",
+			DescZh:  "当 WAL 磁盘限定容量写满时，设置不主动丢弃的数据类型列表 [:octicons-tag-24: Version-1.71.0](changelog-2025.md#cl-1.71.0)",
 			Example: "`'L,T,N'`",
 		},
 

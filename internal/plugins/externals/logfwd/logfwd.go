@@ -34,6 +34,7 @@ var (
 	loggerLevel = os.Getenv("LOGFWD_LOG_LEVEL")
 
 	globalSource             = os.Getenv("LOGFWD_GLOBAL_SOURCE")
+	globalStorageIndex       = os.Getenv("LOGFWD_GLOBAL_STORAGE_INDEX")
 	globalService            = os.Getenv("LOGFWD_GLOBAL_SERVICE")
 	podName                  = os.Getenv("LOGFWD_POD_NAME")
 	podNamespace             = os.Getenv("LOGFWD_POD_NAMESPACE")
@@ -162,12 +163,13 @@ type writeMessage func([]byte) error
 func forwardFunc(lg *logging, fn writeMessage) tailer.ForwardFunc {
 	return func(filename, text string, fields map[string]interface{}) error {
 		msg := message{
-			Type:     "1",
-			Source:   lg.Source,
-			Pipeline: lg.Pipeline,
-			Log:      text,
-			Tags:     make(map[string]string),
-			Fields:   fields,
+			Type:         "1",
+			StorageIndex: lg.StorageIndex,
+			Source:       lg.Source,
+			Pipeline:     lg.Pipeline,
+			Log:          text,
+			Tags:         make(map[string]string),
+			Fields:       fields,
 		}
 
 		msg.Tags["filename"] = filename
@@ -190,8 +192,9 @@ func forwardFunc(lg *logging, fn writeMessage) tailer.ForwardFunc {
 
 func buildTailer(lg *logging, fn tailer.ForwardFunc) (*tailer.Tailer, error) {
 	opts := []tailer.Option{
-		tailer.WithIgnorePatterns(lg.Ignore),
+		tailer.WithStorageIndex(lg.StorageIndex),
 		tailer.WithSource(lg.Source),
+		tailer.WithIgnorePatterns(lg.Ignore),
 		tailer.WithPipeline(lg.Pipeline),
 		tailer.WithCharacterEncoding(lg.CharacterEncoding),
 		tailer.WithMultilinePatterns([]string{lg.MultilineMatch}),
@@ -252,6 +255,7 @@ type logging struct {
 	LogFiles              []string          `json:"logfiles"`
 	Ignore                []string          `json:"ignore"`
 	Source                string            `json:"source"`
+	StorageIndex          string            `json:"storage_index,omitempty"`
 	Service               string            `json:"service"`
 	Pipeline              string            `json:"pipeline"`
 	CharacterEncoding     string            `json:"character_encoding"`
@@ -287,6 +291,10 @@ func (lg *logging) setup() {
 		lg.Service = lg.Source
 	}
 
+	if globalStorageIndex != "" {
+		lg.StorageIndex = globalStorageIndex
+	}
+
 	if lg.Tags == nil {
 		lg.Tags = make(map[string]string)
 	}
@@ -310,12 +318,13 @@ func (lg *logging) setup() {
 }
 
 type message struct {
-	Type     string                 `json:"type"`
-	Source   string                 `json:"source"`
-	Pipeline string                 `json:"pipeline,omitempty"`
-	Tags     map[string]string      `json:"tags,omitempty"`
-	Fields   map[string]interface{} `json:"fields,omitempty"`
-	Log      string                 `json:"log"`
+	Type         string                 `json:"type"`
+	Source       string                 `json:"source"`
+	StorageIndex string                 `json:"storage_index,omitempty"`
+	Pipeline     string                 `json:"pipeline,omitempty"`
+	Tags         map[string]string      `json:"tags,omitempty"`
+	Fields       map[string]interface{} `json:"fields,omitempty"`
+	Log          string                 `json:"log"`
 }
 
 func (m *message) json() ([]byte, error) {

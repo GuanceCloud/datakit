@@ -80,7 +80,7 @@ func (aga *AfterGather) doFeed(iname string, dktrace DatakitTrace) {
 		pts = append(pts, span.Point)
 	}
 
-	if err := aga.feeder.FeedV2(point.Tracing, pts, dkio.WithInputName(iname)); err != nil {
+	if err := aga.feeder.Feed(point.Tracing, pts, dkio.WithSource(iname)); err != nil {
 		aga.log.Warnf("feed %d points failed: %s, ignored", len(pts), err.Error())
 	}
 }

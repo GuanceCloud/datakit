@@ -130,6 +130,7 @@ func (agg *FlowAggregator) run() {
 }
 
 func (agg *FlowAggregator) sendFlows(flows []*common.Flow, flushTime time.Time) {
+	feedName := dkio.FeedSource(common.InputName, agg.source)
 	for _, flow := range flows {
 		flowPayload := buildPayload(flow, agg.hostname, flushTime)
 		payloadBytes, err := json.Marshal(flowPayload)
@@ -159,9 +160,9 @@ func (agg *FlowAggregator) sendFlows(flows []*common.Flow, flushTime time.Time) 
 		logging.Fields["source_port"] = flowPayload.Source.Port
 		logging.Fields["type"] = flowPayload.FlowType
 
-		if err := agg.feeder.FeedV2(point.Logging, []*point.Point{logging.Point()},
+		if err := agg.feeder.Feed(point.Logging, []*point.Point{logging.Point()},
 			dkio.WithCollectCost(time.Since(flushTime)),
-			dkio.WithInputName(common.InputName+"/"+agg.source),
+			dkio.WithSource(feedName),
 		); err != nil {
 			l.Errorf("Feed failed: %v", err)
 		}

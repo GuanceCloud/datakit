@@ -111,10 +111,10 @@ func (i *input) Run() {
 			i.Collect()
 
 			if len(i.collectCache) > 0 {
-				if err := i.feeder.FeedV2(point.Metric, i.collectCache,
+				if err := i.feeder.Feed(point.Metric, i.collectCache,
 					dkio.WithCollectCost(time.Since(start)),
 					dkio.WithElection(i.Election),
-					dkio.WithInputName(inputName),
+					dkio.WithSource(inputName),
 				); err != nil {
 					l.Errorf("Feed: %s, ignored", err)
 				}

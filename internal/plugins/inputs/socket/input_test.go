@@ -42,14 +42,6 @@ type feeder struct {
 	errStrs []string
 }
 
-func (f *feeder) Feed(name string,
-	category point.Category,
-	pts []*point.Point,
-	opt ...*io.Option,
-) error {
-	return nil
-}
-
 func (f *feeder) FeedLastError(err string, opts ...metrics.LastErrorOption) {
 	le := metrics.NewLastError()
 	for _, opt := range opts {
@@ -60,7 +52,7 @@ func (f *feeder) FeedLastError(err string, opts ...metrics.LastErrorOption) {
 	f.errStrs = append(f.errStrs, err)
 }
 
-func (f *feeder) FeedV2(cat point.Category, pts []*point.Point, opts ...io.FeedOption) error {
+func (f *feeder) Feed(cat point.Category, pts []*point.Point, opts ...io.FeedOption) error {
 	return nil
 }
 

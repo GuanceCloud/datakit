@@ -239,10 +239,10 @@ func (d *MongodbData) flush(cost time.Duration) {
 	log.Debugf("collect cache length: %d", len(d.collectCache))
 	if len(d.collectCache) > 0 {
 		log.Debugf("start to feed %s metrics %d points", inputName, len(d.collectCache))
-		if err := d.ipt.feeder.FeedV2(point.Metric, d.collectCache,
+		if err := d.ipt.feeder.Feed(point.Metric, d.collectCache,
 			dkio.WithCollectCost(cost),
 			dkio.WithElection(d.ipt.Election),
-			dkio.WithInputName(inputName),
+			dkio.WithSource(inputName),
 		); err != nil {
 			d.ipt.feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),

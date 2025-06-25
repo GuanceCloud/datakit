@@ -804,13 +804,9 @@ func NewMockedFeeder() *MockedFeeder {
 	}
 }
 
-func (f *MockedFeeder) Feed(name string, category point.Category, pts []*point.Point, opts ...*io.Option) error {
-	return fmt.Errorf("mock error")
-}
-
 func (f *MockedFeeder) FeedLastError(err string, opts ...metrics.LastErrorOption) {}
 
-func (f *MockedFeeder) FeedV2(cat point.Category, pts []*point.Point, opts ...io.FeedOption) error {
+func (f *MockedFeeder) Feed(cat point.Category, pts []*point.Point, opts ...io.FeedOption) error {
 	return fmt.Errorf("mock error")
 }
 func (f *MockedFeeder) UpdateVersion() {}
@@ -830,14 +826,9 @@ func NewMockedFeederEmpty() *MockedFeederEmpty {
 	}
 }
 
-func (f *MockedFeederEmpty) Feed(name string, category point.Category, pts []*point.Point, opts ...*io.Option) error {
-	return nil
-}
+func (f *MockedFeederEmpty) FeedLastError(err string, opts ...metrics.LastErrorOption) {}
 
-func (f *MockedFeederEmpty) FeedLastError(err string, opts ...metrics.LastErrorOption) {
-}
-
-func (f *MockedFeederEmpty) FeedV2(cat point.Category, pts []*point.Point, opts ...io.FeedOption) error {
+func (f *MockedFeederEmpty) Feed(cat point.Category, pts []*point.Point, opts ...io.FeedOption) error {
 	return nil
 }
 func (f *MockedFeederEmpty) UpdateVersion() {}

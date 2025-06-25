@@ -54,10 +54,10 @@ const (
 
 var (
 	inputName            = "mysql"
-	customObjectFeedName = inputName + "/CO"
-	objectFeedName       = inputName + "/O"
-	customQueryFeedName  = inputName + "/custom_query"
-	loggingFeedName      = inputName + "/L"
+	customObjectFeedName = dkio.FeedSource(inputName, "CO")
+	objectFeedName       = dkio.FeedSource(inputName, "O")
+	customQueryFeedName  = dkio.FeedSource(inputName, "custom_query")
+	loggingFeedName      = dkio.FeedSource(inputName, "L")
 	catalogName          = "db"
 	l                    = logger.DefaultSLogger("mysql")
 )
@@ -781,10 +781,10 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 			if arr != nil {
 				points := ipt.getCustomQueryPoints(query, arr)
 				if len(points) > 0 {
-					if err := ipt.feeder.FeedV2(point.Metric, points,
+					if err := ipt.feeder.Feed(point.Metric, points,
 						dkio.WithCollectCost(time.Since(collectStart)),
 						dkio.WithElection(ipt.Election),
-						dkio.WithInputName(customQueryFeedName),
+						dkio.WithSource(customQueryFeedName),
 					); err != nil {
 						ipt.feeder.FeedLastError(err.Error(),
 							metrics.WithLastErrorInput(customQueryFeedName),
@@ -851,10 +851,10 @@ func (ipt *Input) Run() {
 			ipt.setInptErrCOMsg(err.Error())
 			ipt.setIptErrCOStatus()
 			pts := ipt.getCoPointByColErr()
-			if err := ipt.feeder.FeedV2(point.CustomObject,
+			if err := ipt.feeder.Feed(point.CustomObject,
 				pts,
 				dkio.WithElection(ipt.Election),
-				dkio.WithInputName(customObjectFeedName),
+				dkio.WithSource(customObjectFeedName),
 			); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
@@ -934,10 +934,10 @@ func (ipt *Input) Run() {
 						feedName = objectFeedName
 					}
 
-					if err := ipt.feeder.FeedV2(category, pts,
+					if err := ipt.feeder.Feed(category, pts,
 						dkio.WithCollectCost(time.Since(collectStart)),
 						dkio.WithElection(ipt.Election),
-						dkio.WithInputName(feedName),
+						dkio.WithSource(feedName),
 					); err != nil {
 						ipt.feeder.FeedLastError(err.Error(),
 							metrics.WithLastErrorInput(inputName),

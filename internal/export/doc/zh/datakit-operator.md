@@ -12,7 +12,7 @@ DataKit Operator 是 DataKit 在 Kubernetes 编排的联动项目，旨在协助
 
 目前 DataKit-Operator 提供以下功能：
 
-- 注入 DDTrace SDK（Java/Python/Node.js）以及对应环境变量信息，参见[文档](datakit-operator.md#datakit-operator-inject-lib)
+- 注入 DDTrace Java SDK 以及对应环境变量信息，参见[文档](datakit-operator.md#datakit-operator-inject-lib)
 - 注入 Sidecar logfwd 服务以采集容器内日志，参见[文档](datakit-operator.md#datakit-operator-inject-logfwd)
 - 支持 DataKit 采集器的任务选举，参见[文档](election.md#plugins-election)
 
@@ -139,7 +139,7 @@ DataKit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
             {
                 "namespace_selectors": ["test01"],
                 "label_selectors":     ["app=logging"],
-                "config":"[{\"disable\":false,\"type\":\"file\",\"path\":\"/tmp/opt/**/*.log\",\"source\":\"logging-tmp\"},{\"disable\":true,\"type\":\"file\",\"path\":\"/var/log/opt/**/*.log\",\"source\":\"logging-var\"}]"
+                "config":"[{\"disable\":false,\"type\":\"file\",\"path\":\"/tmp/opt/**/*.log\",\"storage_index\":\"logging-index\"\"source\":\"logging-tmp\"},{\"disable\":true,\"type\":\"file\",\"path\":\"/var/log/opt/**/*.log\",\"source\":\"logging-var\"}]"
             }
         ]
     }
@@ -401,11 +401,12 @@ datakit-lib-init
         "datakit_addr": "datakit-service.datakit.svc:9533",
         "loggings": [
             {
-                "logfiles": ["<your-logfile-path>"],
-                "ignore": [],
-                "source": "<your-source>",
-                "service": "<your-service>",
-                "pipeline": "<your-pipeline.p>",
+                "logfiles":      ["<your-logfile-path>"],
+                "ignore":        [],
+                "storage_index": "<your-storage-index>",
+                "source":        "<your-source>",
+                "service":       "<your-service>",
+                "pipeline":      "<your-pipeline.p>",
                 "character_encoding": "",
                 "multiline_match": "<your-match>",
                 "tags": {}
@@ -425,6 +426,7 @@ datakit-lib-init
 - `loggings` 为主要配置，是一个数组，可参考 [DataKit logging 采集器](../integrations/logging.md)
     - `logfiles` 日志文件列表，可以指定绝对路径，支持使用 glob 规则进行批量指定，推荐使用绝对路径
     - `ignore` 文件路径过滤，使用 glob 规则，符合任意一条过滤条件将不会对该文件进行采集
+    - `storage_index` 指定日志存储索引
     - `source` 数据来源，如果为空，则默认使用 'default'
     - `service` 新增标记 tag，如果为空，则默认使用 $source
     - `pipeline` Pipeline 脚本路径，如果为空将使用 $source.p，如果 $source.p 不存在将不使用 Pipeline（此脚本文件存在于 DataKit 端）

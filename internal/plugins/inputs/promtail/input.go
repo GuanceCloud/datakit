@@ -89,9 +89,13 @@ func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	var (
 		pipelinePath = getPipelinePath(req)
 		source       = getSource(req)
+		storageIndex = getStorageIndex(req)
 		pts          []*point.Point
 	)
-	l.Debugf("receive log from %s, source = %s, pipeline = %s", req.URL.String(), source, pipelinePath)
+
+	l.Debugf("receive log from %s, source = %s, pipeline = %s, storage_index = %s",
+		req.URL.String(), source, pipelinePath, storageIndex)
+
 	request, err := ipt.parseRequest(req)
 	if err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
@@ -140,14 +144,32 @@ func (ipt *Input) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 			pts = append(pts, logging.Point())
 		}
 	}
+
 	l.Debugf("received %d logs from promtail, feeding to io...", len(pts))
 
-	if err := ipt.feeder.FeedV2(point.Logging, pts,
-		dkio.WithInputName(source),
-		dkio.WithPipelineOption(&lang.LogOption{
-			ScriptMap: map[string]string{source: pipelinePath},
-		}),
-	); err != nil {
+	var (
+		feedName string
+		feedopts []dkio.FeedOption
+	)
+
+	if pipelinePath != "" {
+		feedopts = append(feedopts,
+			dkio.WithPipelineOption(&lang.LogOption{
+				ScriptMap: map[string]string{source: pipelinePath},
+			}),
+		)
+	}
+
+	if storageIndex != "" {
+		feedName = dkio.FeedSource(inputName, source, storageIndex)
+		feedopts = append(feedopts, dkio.WithStorageIndex(storageIndex))
+	} else {
+		feedName = dkio.FeedSource(inputName, source)
+	}
+
+	feedopts = append(feedopts, dkio.WithSource(feedName))
+
+	if err := ipt.feeder.Feed(point.Logging, pts, feedopts...); err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
 	} else {
 		resp.WriteHeader(http.StatusNoContent)

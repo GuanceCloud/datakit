@@ -33,6 +33,7 @@ type Custom struct {
 	// old config
 	LogTopics    []string `toml:"log_topics"`
 	LogPl        string   `toml:"log_pl"`
+	StorageIndex string   `toml:"storage_index"`
 	MetricTopics []string `toml:"metric_topic"`
 	MetricPl     string   `toml:"metric_pl"`
 
@@ -193,12 +194,28 @@ func (mq *Custom) DoMsg(msg *sarama.ConsumerMessage) error {
 		pts = append(pts, point.NewPointV2(topic, kvs, ptopts...))
 	}
 
-	return mq.feeder.FeedV2(category, pts,
-		dkio.WithInputName(topic),
-		dkio.WithPipelineOption(&lang.LogOption{
-			ScriptMap: plMap,
-		}),
+	var (
+		feedopts []dkio.FeedOption
+		feedName string
 	)
+
+	if len(plMap) > 0 {
+		feedopts = append(feedopts,
+			dkio.WithPipelineOption(&lang.LogOption{
+				ScriptMap: plMap,
+			}))
+	}
+
+	if category == point.Logging && mq.StorageIndex != "" { // NOTE: storage index only works on L::
+		feedopts = append(feedopts, dkio.WithStorageIndex(mq.StorageIndex))
+		feedName = dkio.FeedSource("kafkamq", topic, mq.StorageIndex)
+	} else {
+		feedName = dkio.FeedSource("kafkamq", topic)
+	}
+
+	feedopts = append(feedopts, dkio.WithSource(feedName))
+
+	return mq.feeder.Feed(category, pts, feedopts...)
 }
 
 func (mq *Custom) initMap() {

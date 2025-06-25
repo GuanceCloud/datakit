@@ -36,8 +36,15 @@ type SocketLogger struct {
 	log    *logger.Logger
 }
 
-func NewSocketLogWithOptions(opts ...Option) (*SocketLogger, error) {
+func NewSocketLogging(opts ...Option) (*SocketLogger, error) {
 	c := getOption(opts...)
+
+	// setup feed name
+	c.feedName = dkio.FeedSource("socketLog.", c.source)
+	if c.storageIndex != "" {
+		c.feedName = dkio.FeedSource(c.feedName, c.storageIndex)
+	}
+
 	sk := &SocketLogger{
 		opt: c,
 	}
@@ -154,8 +161,9 @@ func (sk *SocketLogger) feed(pending [][]byte) {
 		return
 	}
 
-	if err := sk.opt.feeder.FeedV2(point.Logging, pts,
-		dkio.WithInputName("socketLog/"+sk.opt.source),
+	if err := sk.opt.feeder.Feed(point.Logging, pts,
+		dkio.WithSource(sk.opt.feedName),
+		dkio.WithStorageIndex(sk.opt.storageIndex),
 		dkio.WithPipelineOption(&lang.LogOption{
 			DisableAddStatusField: sk.opt.disableAddStatusField,
 			IgnoreStatus:          sk.opt.ignoreStatus,

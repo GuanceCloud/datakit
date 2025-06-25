@@ -47,6 +47,9 @@ const (
   ## grok pipeline script name
   pipeline = ""
 
+  ## storage index: set storage index name
+  storage_index = ""
+
   ## datakit read text from Files or Socket , default max_textline is 256k
   ## If your log text line exceeds 256Kb, please configure the length of your text,
   ## but the maximum length cannot exceed 256Mb
@@ -66,6 +69,7 @@ type Input struct {
 	Source        string            `toml:"source"`
 	Service       string            `toml:"service"`
 	Pipeline      string            `toml:"pipeline"`
+	StorageIndex  string            `toml:"storage_index"`
 	MaximumLength int               `toml:"maximum_length,omitempty"`
 	Tags          map[string]string `toml:"tags"`
 
@@ -267,14 +271,33 @@ func (ipt *Input) feed(pending []*DataStruct) {
 
 		pts = append(pts, logging.Point())
 	}
-	if len(pts) > 0 {
-		if err := ipt.feeder.FeedV2(point.Logging, pts,
+
+	var (
+		feedOpts []dkio.FeedOption
+		feedName string
+	)
+
+	if ipt.StorageIndex != "" {
+		feedName = dkio.FeedSource(inputName, ipt.Source, ipt.StorageIndex)
+		feedOpts = append(feedOpts, dkio.WithStorageIndex(ipt.StorageIndex))
+	} else {
+		feedName = dkio.FeedSource(inputName, ipt.Source)
+	}
+
+	feedOpts = append(feedOpts, dkio.WithSource(feedName))
+
+	if ipt.Pipeline != "" {
+		feedOpts = append(feedOpts,
 			dkio.WithPipelineOption(&lang.LogOption{
 				ScriptMap: map[string]string{
 					ipt.Source: ipt.Pipeline,
 				},
 			}),
-			dkio.WithInputName(inputName+"/"+ipt.Listen)); err != nil {
+		)
+	}
+
+	if len(pts) > 0 {
+		if err := ipt.feeder.Feed(point.Logging, pts, feedOpts...); err != nil {
 			l.Error(err)
 		}
 	}

@@ -36,17 +36,7 @@ func NewMockedFeeder() *MockedFeeder {
 	}
 }
 
-func (f *MockedFeeder) Feed(name string, category point.Category, pts []*point.Point, opts ...*Option) error {
-	select {
-	case f.ch <- pts:
-	default:
-		return ErrBusy
-	}
-
-	return nil
-}
-
-func (f *MockedFeeder) FeedV2(category point.Category, pts []*point.Point, opts ...FeedOption) error {
+func (f *MockedFeeder) Feed(category point.Category, pts []*point.Point, opts ...FeedOption) error {
 	select {
 	case f.ch <- pts:
 	default:

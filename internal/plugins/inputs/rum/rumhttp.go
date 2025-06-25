@@ -102,8 +102,8 @@ func (ipt *Input) handleRUM(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if err := ipt.feeder.FeedV2(point.RUM, wr.Points, wr.FeedOptions...); err != nil {
-		log.Warnf("FeedV2: %s, ignored", err.Error())
+	if err := ipt.feeder.Feed(point.RUM, wr.Points, wr.FeedOptions...); err != nil {
+		log.Warnf("Feed: %s, ignored", err.Error())
 		httpErr(w, err)
 		return
 	}

@@ -91,12 +91,7 @@ func NewPTLenMockedFeeder() *PTLenMockedFeeder {
 	return &PTLenMockedFeeder{}
 }
 
-func (m *PTLenMockedFeeder) Feed(name string, category point.Category, pts []*point.Point, opts ...*dkio.Option) error {
-	m.batchLength = append(m.batchLength, len(pts))
-	return nil
-}
-
-func (m *PTLenMockedFeeder) FeedV2(category point.Category, pts []*point.Point, opts ...dkio.FeedOption) error {
+func (m *PTLenMockedFeeder) Feed(category point.Category, pts []*point.Point, opts ...dkio.FeedOption) error {
 	m.batchLength = append(m.batchLength, len(pts))
 	return nil
 }
