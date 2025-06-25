@@ -12,20 +12,11 @@ import (
 )
 
 const (
-	preloadConfigFilePath = "/etc/ld.so.preload"
-	dkruncBinName         = "dkrunc"
-	launcherName          = "apm_launcher"
-
 	DirInject          = "apm_inject"
 	DirInjectSubInject = "inject"
 	DirInjectSubLib    = "lib"
-
-	dockerDaemonJSONPath      = "/etc/docker/daemon.json"
-	dockerFieldDefaultRuntime = "default-runtime"
-	dockerFieldRuntimes       = "runtimes"
-
-	RuntimeRunc   = "runc"
-	RuntimeDkRunc = "dk-runc"
+	RuntimeRunc        = "runc"
+	RuntimeDkRunc      = "dk-runc"
 )
 
 const (

@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.76.0(2025/06/25) {#cl-1.76.0}
+
+This release is an iterative update with the following main changes:
+
+### New Features {#cl-1.76.0-new}
+
+- Added support for specifying direct indexes in log collection (#2687)
+- Added PostgreSQL object collection (#2719)
+- Added Kingbase database collector (#2648)
+
+### Bug Fixes {#cl-1.76.0-fix}
+
+- Fixed Prometheus Export metrics collection time display issue (!3574)
+- Fixed high CPU consumption issue in OpenTelemetry collection (#2726)
+- Fixed DataKit service initialization issue (#2727)
+
+### Optimizations {#cl-1.76.0-opt}
+
+- Added support for ignoring APM auto-injection for target processes or containers via additional environment variables (#2722)
+
+---
+
 ## 1.75.1(2025/06/18) {#cl-1.75.1}
 
 This release is a hotfix containing the following updates:

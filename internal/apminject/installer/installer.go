@@ -31,6 +31,15 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpcli"
 )
 
+const (
+	preloadConfigFilePath     = "/etc/ld.so.preload"
+	dkruncBinName             = "dkrunc"
+	launcherName              = "apm_launcher"
+	dockerDaemonJSONPath      = "/etc/docker/daemon.json"
+	dockerFieldDefaultRuntime = "default-runtime"
+	dockerFieldRuntimes       = "runtimes"
+)
+
 var (
 	dirDkInstall = datakit.InstallDir
 	py3Regexp    = regexp.MustCompile(`^Python 3.(\d+)`)
