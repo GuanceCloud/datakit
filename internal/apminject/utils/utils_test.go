@@ -3,18 +3,14 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-//go:build (linux && amd64 && test_docker) || (linux && arm64 && test_docker)
-// +build linux,amd64,test_docker linux,arm64,test_docker
+//go:build (linux && amd64) || (linux && arm64)
+// +build linux,amd64 linux,arm64
 
 package utils
 
 import (
 	"debug/elf"
-	"encoding/json"
-	"os"
-	"strconv"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -60,193 +56,24 @@ Written by Roland McGrath and Ulrich Drepper.`
 }`
 )
 
-func TestSetUnset(t *testing.T) {
-	runcPath := "/tmp/dk_ctr_test_runc_" + strconv.FormatInt(time.Now().UnixNano(), 36)
-	f, err := os.OpenFile(runcPath, os.O_CREATE, 0o755)
-	if err != nil {
-		t.Fatal(err)
-	}
-	f.Close()
-
-	const (
-		Set   = 1
-		Unset = 2
-	)
-	cases := []struct {
-		path   string
-		cfg    map[string]any
-		newCfg map[string]any
-		kind   int // 0, 1, 2
-		failed bool
-	}{
-		{
-			kind: Set,
-			path: "/tmp/" + "dk_ctr_test_cfg_" + strconv.FormatInt(time.Now().UnixNano(), 36),
-			cfg: map[string]any{
-				"default-runtime": "runc",
-				"runtimes": map[string]any{
-					"gvisor": map[string]any{
-						"runtimeType": "io.containerd.runsc.v1",
-						"options": map[string]any{
-							"TypeUrl":    "io.containerd.runsc.v1.options",
-							"ConfigPath": "/etc/containerd/runsc.toml",
-						},
-					},
-				},
-			},
-			newCfg: map[string]any{
-				"default-runtime": RuntimeDkRunc,
-				"runtimes": map[string]any{
-					"gvisor": map[string]any{
-						"runtimeType": "io.containerd.runsc.v1",
-						"options": map[string]any{
-							"TypeUrl":    "io.containerd.runsc.v1.options",
-							"ConfigPath": "/etc/containerd/runsc.toml",
-						},
-					},
-					RuntimeDkRunc: map[string]any{
-						"path": runcPath,
-					},
-				},
-			},
-		},
-		{
-			kind: Set,
-			path: "/tmp/" + "dk_ctr_test_cfg_" + strconv.FormatInt(time.Now().UnixNano(), 36),
-			cfg: map[string]any{
-				"runtimes": map[string]any{
-					"gvisor": map[string]any{
-						"runtimeType": "io.containerd.runsc.v1",
-						"options": map[string]any{
-							"TypeUrl":    "io.containerd.runsc.v1.options",
-							"ConfigPath": "/etc/containerd/runsc.toml",
-						},
-					},
-				},
-			},
-			newCfg: map[string]any{
-				"default-runtime": RuntimeDkRunc,
-				"runtimes": map[string]any{
-					"gvisor": map[string]any{
-						"runtimeType": "io.containerd.runsc.v1",
-						"options": map[string]any{
-							"TypeUrl":    "io.containerd.runsc.v1.options",
-							"ConfigPath": "/etc/containerd/runsc.toml",
-						},
-					},
-					RuntimeDkRunc: map[string]any{
-						"path": runcPath,
-					},
-				},
-			},
-		},
-		{
-			kind:   Unset,
-			path:   "/tmp/" + "dk_ctr_test_cfg_" + strconv.FormatInt(time.Now().UnixNano(), 36),
-			failed: true,
-			cfg: map[string]any{
-				"default-runtime": RuntimeDkRunc,
-				"runtimes": map[string]any{
-					"gvisor": map[string]any{
-						"runtimeType": "io.containerd.runsc.v1",
-						"options": map[string]any{
-							"TypeUrl":    "io.containerd.runsc.v1.options",
-							"ConfigPath": "/etc/containerd/runsc.toml",
-						},
-					},
-				},
-			},
-			newCfg: map[string]any{
-				"runtimes": map[string]any{
-					"gvisor": map[string]any{
-						"runtimeType": "io.containerd.runsc.v1",
-						"options": map[string]any{
-							"TypeUrl":    "io.containerd.runsc.v1.options",
-							"ConfigPath": "/etc/containerd/runsc.toml",
-						},
-					},
-				},
-			},
-		},
-		{
-			kind:   Unset,
-			path:   "/tmp/" + "dk_ctr_test_cfg_" + strconv.FormatInt(time.Now().UnixNano(), 36),
-			failed: true,
-			cfg: map[string]any{
-				"default-runtime": RuntimeDkRunc,
-				"runtimes": map[string]any{
-					"gvisor": map[string]any{
-						"runtimeType": "io.containerd.runsc.v1",
-						"options": map[string]any{
-							"TypeUrl":    "io.containerd.runsc.v1.options",
-							"ConfigPath": "/etc/containerd/runsc.toml",
-						},
-					},
-				},
-			},
-			newCfg: map[string]any{
-				"runtimes": map[string]any{
-					"gvisor": map[string]any{
-						"runtimeType": "io.containerd.runsc.v1",
-						"options": map[string]any{
-							"TypeUrl":    "io.containerd.runsc.v1.options",
-							"ConfigPath": "/etc/containerd/runsc.toml",
-						},
-					},
-				},
-			},
-		},
-	}
-	for _, c := range cases {
-		t.Run("", func(t *testing.T) {
-			f, err := os.OpenFile(c.path, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0o755)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if err := json.NewEncoder(f).Encode(c.cfg); err != nil {
-				t.Fatal(err)
-			}
-			f.Close()
-			switch c.kind {
-			case 1:
-				err := setDockerRunc(c.path, runcPath)
-				if c.failed {
-					assert.Error(t, err)
-				} else {
-					assert.NoError(t, err)
-				}
-				val, err := loadDockerDaemonConfig(c.path)
-				assert.NoError(t, err)
-				assert.Equal(t, c.newCfg, val)
-			case 2:
-				err := unsetDockerRunc(c.path)
-				assert.NoError(t, err)
-				val, err := loadDockerDaemonConfig(c.path)
-				assert.NoError(t, err)
-				assert.Equal(t, c.newCfg, val)
-			}
-		})
-	}
-}
-
 func TestUtils(t *testing.T) {
 	v1, v2, ok := libcInfo(glibc235)
-	assert.Equal(t, v1, glibc)
+	assert.Equal(t, v1, GLibc)
 	assert.Equal(t, v2, "2.35")
 	assert.True(t, ok)
 
 	v1, v2, ok = libcInfo(glic212)
-	assert.Equal(t, v1, glibc)
+	assert.Equal(t, v1, GLibc)
 	assert.Equal(t, v2, "2.12")
 	assert.True(t, ok)
 
 	v1, v2, ok = libcInfo(glibc236)
-	assert.Equal(t, v1, glibc)
+	assert.Equal(t, v1, GLibc)
 	assert.Equal(t, v2, "2.36")
 	assert.True(t, ok)
 
 	v1, v2, ok = libcInfo(musl125)
-	assert.Equal(t, v1, muslc)
+	assert.Equal(t, v1, Muslc)
 	assert.Equal(t, v2, "1.2.5")
 	assert.True(t, ok)
 }
@@ -256,7 +83,7 @@ func TestLddInfo(t *testing.T) {
 		{Library: "libc.so.6", Version: "GLIBC_2.35"},
 		{Library: "ld-linux-x86-64.so.2", Version: "GLIBC_2.35"},
 	}
-	v, err := requiredGLIBCVersion(syms)
+	v, err := RequiredGLIBCVersion(syms)
 	assert.NoError(t, err)
 	assert.Equal(t, Version{2, 35, 0}, v)
 }

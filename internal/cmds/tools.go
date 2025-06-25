@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	apmInj "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/apminject/utils"
+	apmInstaller "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/apminject/installer"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -142,8 +142,8 @@ func runToolFlags() error {
 
 	case *flagToolRemoveApmAutoInject:
 		// cleanup apm inject
-		if err := apmInj.Uninstall(
-			apmInj.WithInstallDir(datakit.InstallDir)); err != nil {
+		if err := apmInstaller.Uninstall(
+			apmInstaller.WithInstallDir(datakit.InstallDir)); err != nil {
 			cp.Errorf("remove failed: %s\n", err.Error())
 		}
 		if err := unsetDKConfAPMInst(datakit.MainConfPath); err != nil {
@@ -154,12 +154,12 @@ func runToolFlags() error {
 	case *flagToolChangeDockerContainersRuntime != "":
 		var from, to string
 		switch *flagToolChangeDockerContainersRuntime {
-		case apmInj.RuntimeDkRunc:
-			from, to = apmInj.RuntimeRunc, apmInj.RuntimeDkRunc
-		case apmInj.RuntimeRunc:
-			from, to = apmInj.RuntimeDkRunc, apmInj.RuntimeRunc
+		case apmInstaller.RuntimeDkRunc:
+			from, to = apmInstaller.RuntimeRunc, apmInstaller.RuntimeDkRunc
+		case apmInstaller.RuntimeRunc:
+			from, to = apmInstaller.RuntimeDkRunc, apmInstaller.RuntimeRunc
 		}
-		if err := apmInj.ChangeDockerHostConfigRunc(from, to, ""); err != nil {
+		if err := apmInstaller.ChangeDockerHostConfigRunc(from, to, ""); err != nil {
 			cp.Errorf("change runtime of all containers from %s to %s failed: %s\n",
 				from, to, err.Error())
 		} else {

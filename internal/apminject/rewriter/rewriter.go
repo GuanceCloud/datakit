@@ -84,6 +84,17 @@ func rewrite(param *reArgs) (*reArgs, error) {
 	exePath := filepath.Clean(param.path)
 	_, exeName := filepath.Split(exePath)
 
+	for _, env := range param.envp {
+		if !strings.Contains(env, utils.EnvDKAPMINJECT) {
+			continue
+		}
+		if v := strings.SplitN(env, "=", 2); len(v) == 2 {
+			if utils.CheckDisableInjFromEnv(v[0], v[1]) {
+				return nil, utils.ErrInjectDisabled
+			}
+		}
+	}
+
 	var pyScript bool
 	if pyScriptWhitelist(exePath) {
 		if s, err := pythonScriptMagic(exePath); err == nil {
