@@ -15,6 +15,7 @@ import (
 
 	humanize "github.com/dustin/go-humanize"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/downloader"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpcli"
 )
@@ -42,7 +43,7 @@ func PubDatakitEBpf() error {
 				if parts[0] != runtime.GOOS {
 					continue
 				}
-				if parts[0] != Linux {
+				if parts[0] != datakit.OSLinux {
 					continue
 				}
 				if parts[1] != runtime.GOARCH {
@@ -52,7 +53,7 @@ func PubDatakitEBpf() error {
 			}
 
 			curEBpfArchs = append(curEBpfArchs, arch)
-			gz, gzpath := tarFiles(DistDir, buildPath, appName, parts[0], parts[1], TarWithRlsVer)
+			gz, gzpath := tarFiles(DistDir, buildPath, appName, parts[0], parts[1], tarWithReleaseVer)
 			basics = append(basics, ossFile{gz, gzpath})
 		}
 	}
@@ -96,7 +97,7 @@ func PackageEBPF() error {
 			NotifyFail(err.Error())
 		}
 		goos, goarch := parts[0], parts[1]
-		if goos == Linux {
+		if goos == datakit.OSLinux {
 			url := "https://" + filepath.Join(uploadAddr, fmt.Sprintf(
 				"datakit-ebpf-%s-%s-%s.tar.gz", goos, goarch, ReleaseVersion))
 			dir := fmt.Sprintf("%s/%s-%s-%s/externals/", DistDir, AppName, goos, goarch)

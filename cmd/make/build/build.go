@@ -345,7 +345,7 @@ func Compile() error {
 		}
 
 		if isExtraAWSLambda() &&
-			(goarch == AMD64 || goarch == ARM64) && /* enable build under macOS for debugging. */
+			(goarch == archAMD64 || goarch == archARM64) && /* enable build under macOS for debugging. */
 			goos != "windows" { // windows not need currently
 			var (
 				dir       = fmt.Sprintf("%s/%s_aws_lambda-%s-%s/extensions", DistDir, AppName, goos, goarch)

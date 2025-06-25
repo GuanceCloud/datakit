@@ -24,6 +24,11 @@ var (
 	sLogger      service.Logger
 )
 
+const (
+	ServiceOptCPU = "CPUQuota"
+	ServiceOptMem = "MemoryLimit"
+)
+
 type ServiceOption func(sconf *service.Config)
 
 func Name() string {
@@ -45,7 +50,7 @@ func WithUser(userName string) ServiceOption {
 func WithMemLimit(mem string) ServiceOption {
 	return func(sconf *service.Config) {
 		if mem != "" {
-			sconf.Option["MemoryLimit"] = mem
+			sconf.Option[ServiceOptMem] = mem
 		}
 	}
 }
@@ -53,7 +58,7 @@ func WithMemLimit(mem string) ServiceOption {
 func WithCPULimit(cpu string) ServiceOption {
 	return func(sconf *service.Config) {
 		if cpu != "" {
-			sconf.Option["CPUQuota"] = cpu
+			sconf.Option[ServiceOptCPU] = cpu
 		}
 	}
 }
@@ -80,8 +85,8 @@ func WithExecutable(exec string, args []string) ServiceOption {
 
 type program struct{}
 
-func NewService(opts ...ServiceOption) (service.Service, error) {
-	scfg := &service.Config{
+func DefaultServiceConfig() *service.Config {
+	x := &service.Config{
 		Option: map[string]any{
 			"RestartSec":         10, // 重启间隔.
 			"StartLimitInterval": 60, // 60秒内5次重启之后便不再启动.
@@ -90,21 +95,37 @@ func NewService(opts ...ServiceOption) (service.Service, error) {
 		},
 		Name:        serviceName,
 		DisplayName: displayName,
-		Description: "Collects data and upload it to Guance Cloud.",
+		Description: "Collects data for observability",
 		Executable:  datakit.DatakitBinaryPath(),
 		UserName:    "",
 	}
 
+	if runtime.GOOS == "darwin" {
+		x.Name = "com.datakit"
+	}
+
+	return x
+}
+
+func ApplyOptions(scfg *service.Config, opts ...ServiceOption) *service.Config {
 	for _, opt := range opts {
 		if opt != nil {
 			opt(scfg)
 		}
 	}
 
-	if runtime.GOOS == "darwin" {
-		scfg.Name = "com.datakit"
+	// Under admin user, we should not apply cpu/memeory limit within service, in this case,
+	// cpu/mem limit should set via cgroup.
+	// while under non-admin user, cgroup not working, we can set cpu/mem limit via service(only for linux)
+	if datakit.IsAdminUser(scfg.UserName) || scfg.UserName == "" /* default to root */ {
+		delete(scfg.Option, ServiceOptCPU)
+		delete(scfg.Option, ServiceOptMem)
 	}
 
+	return scfg
+}
+
+func NewServiceOnConfigure(scfg *service.Config) (service.Service, error) {
 	prog := &program{}
 	svc, err := service.New(prog, scfg)
 	if err != nil {
@@ -112,6 +133,10 @@ func NewService(opts ...ServiceOption) (service.Service, error) {
 	}
 
 	return svc, nil
+}
+
+func NewService(opts ...ServiceOption) (service.Service, error) {
+	return NewServiceOnConfigure(ApplyOptions(DefaultServiceConfig(), opts...))
 }
 
 func StartService(entry func()) error {
