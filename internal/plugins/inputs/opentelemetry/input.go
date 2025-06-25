@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -32,6 +33,8 @@ import (
 var (
 	_ inputs.InputV2   = &Input{}
 	_ inputs.HTTPInput = &Input{}
+
+	log = logger.DefaultSLogger(inputName)
 )
 
 const (
@@ -64,6 +67,13 @@ const (
 
   ## logging message data max length,default is 500kb
   log_max = 500
+
+  ## JSON marshaler: set JSON marshaler. available marshaler are:
+  ##   gojson/jsoniter/protojson
+  ##
+  ## For better performance, gojson and jsoniter is better than protojson,
+  ## for compatible reason we still use protojson as default.
+  jmarshaler = "protojson"
 
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
@@ -130,38 +140,43 @@ const (
 `
 )
 
-var (
-	log              = logger.DefaultSLogger(inputName)
-	spiltServiceName bool
-	delMessage       bool
-	globalTags       map[string]string
-)
-
 type Input struct {
-	Pipelines           map[string]string            `toml:"pipelines"`             // deprecated
-	IgnoreAttributeKeys []string                     `toml:"ignore_attribute_keys"` // deprecated
-	CustomerTags        []string                     `toml:"customer_tags"`
-	LogMaxLen           int                          `toml:"log_max"`
-	HTTPConfig          *httpConfig                  `toml:"http"`
-	GRPCConfig          *gRPC                        `toml:"grpc"`
-	CompatibleDDTrace   bool                         `toml:"compatible_ddtrace"`
-	CompatibleZhaoShang bool                         `toml:"compatible_zhaoshang"`
-	SpiltServiceName    bool                         `toml:"spilt_service_name"`
-	DelMessage          bool                         `toml:"del_message"`
-	ExpectedHeaders     map[string]string            `toml:"expected_headers"`
-	KeepRareResource    bool                         `toml:"keep_rare_resource"`
-	CloseResource       map[string][]string          `toml:"close_resource"`
-	OmitErrStatus       []string                     `toml:"omit_err_status"`
-	Sampler             *itrace.Sampler              `toml:"sampler"`
-	Tags                map[string]string            `toml:"tags"`
-	WPConfig            *workerpool.WorkerPoolConfig `toml:"threads"`
-	LocalCacheConfig    *storage.StorageConfig       `toml:"storage"`
+	Pipelines           map[string]string `toml:"pipelines"`             // deprecated
+	IgnoreAttributeKeys []string          `toml:"ignore_attribute_keys"` // deprecated
+	CustomerTags        []string          `toml:"customer_tags"`
+	LogMaxLen           int               `toml:"log_max"`
+	HTTPConfig          *httpConfig       `toml:"http"`
+	GRPCConfig          *gRPC             `toml:"grpc"`
 
-	feeder     dkio.Feeder
-	semStop    *cliutils.Sem // start stop signal
-	Tagger     datakit.GlobalTagger
-	workerPool *workerpool.WorkerPool
-	localCache *storage.Storage
+	CompatibleDDTrace   bool `toml:"compatible_ddtrace"`
+	CompatibleZhaoShang bool `toml:"compatible_zhaoshang"`
+
+	SpiltServiceName bool                         `toml:"spilt_service_name"`
+	DelMessage       bool                         `toml:"del_message"`
+	ExpectedHeaders  map[string]string            `toml:"expected_headers"`
+	KeepRareResource bool                         `toml:"keep_rare_resource"`
+	CloseResource    map[string][]string          `toml:"close_resource"`
+	OmitErrStatus    []string                     `toml:"omit_err_status"`
+	Sampler          *itrace.Sampler              `toml:"sampler"`
+	Tags             map[string]string            `toml:"tags"`
+	WPConfig         *workerpool.WorkerPoolConfig `toml:"threads"`
+	LocalCacheConfig *storage.StorageConfig       `toml:"storage"`
+
+	JSONMarshaler string `toml:"jmarshaler"`
+
+	feeder      dkio.Feeder
+	semStop     *cliutils.Sem // start stop signal
+	Tagger      datakit.GlobalTagger
+	workerPool  *workerpool.WorkerPool
+	localCache  *storage.Storage
+	commonAttrs map[string]string
+
+	ptsOpts    []point.Option
+	jmarshaler jsonMarshaler
+}
+
+type jsonMarshaler interface {
+	Marshal(x proto.Message) ([]byte, error)
 }
 
 func (*Input) Catalog() string { return inputName }
@@ -186,16 +201,26 @@ func (ipt *Input) RegHTTPHandler() {
 
 		return
 	}
-	if len(ipt.CustomerTags) > 0 {
-		AddCustomTags(ipt.CustomerTags)
+
+	switch ipt.JSONMarshaler {
+	case "gojson":
+		ipt.jmarshaler = &gojsonMarshaler{}
+	case "jsoniter":
+		ipt.jmarshaler = &jsoniterMarshaler{}
+	default:
+		ipt.jmarshaler = &protojsonMarshaler{}
 	}
 
-	traceOpts = append(point.CommonLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
-	spiltServiceName = ipt.SpiltServiceName
-	convertToDD = ipt.CompatibleDDTrace
-	convertToZhaoShang = ipt.CompatibleZhaoShang
-	delMessage = ipt.DelMessage
-	globalTags = ipt.Tags
+	// setup common attributes.
+	for k, v := range otelPubAttrs { // deep copy
+		ipt.commonAttrs[k] = v
+	}
+	// NOTE: CustomerTags may overwrite public common attribytes
+	for _, key := range ipt.CustomerTags {
+		otelPubAttrs[key] = strings.ReplaceAll(key, ".", "_")
+	}
+
+	ipt.ptsOpts = append(point.CommonLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
 	if ipt.LogMaxLen > 0 {
 		logMaxLen = ipt.LogMaxLen * kb
 	}
@@ -206,6 +231,7 @@ func (ipt *Input) RegHTTPHandler() {
 		if wkpool, err = workerpool.NewWorkerPool(ipt.WPConfig, log); err != nil {
 			log.Errorf("### new worker-pool failed: %s", err.Error())
 		}
+
 		if err = wkpool.Start(); err != nil {
 			log.Errorf("### start worker-pool failed: %s", err.Error())
 		} else {
@@ -304,7 +330,8 @@ func (ipt *Input) RegHTTPHandler() {
 	}
 
 	if ipt.HTTPConfig != nil {
-		ipt.HTTPConfig.initConfig(ipt.feeder, afterGather)
+		ipt.HTTPConfig.input = ipt
+		ipt.HTTPConfig.initConfig(afterGather)
 
 		httpapi.RegHTTPHandler("POST", ipt.HTTPConfig.TraceAPI,
 			httpapi.CheckExpectedHeaders(
@@ -322,7 +349,7 @@ func (ipt *Input) Run() {
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_opentelemetry"})
 	g.Go(func(ctx context.Context) error {
 		if ipt.GRPCConfig != nil {
-			ipt.GRPCConfig.runGRPCV1(ipt.GRPCConfig.Address)
+			ipt.GRPCConfig.runGRPCV1(ipt.GRPCConfig.Address, ipt)
 		}
 
 		return nil
@@ -375,6 +402,7 @@ func defaultInput() *Input {
 		semStop:          cliutils.NewSem(),
 		Tagger:           datakit.DefaultGlobalTagger(),
 		SpiltServiceName: true,
+		commonAttrs:      map[string]string{},
 	}
 }
 

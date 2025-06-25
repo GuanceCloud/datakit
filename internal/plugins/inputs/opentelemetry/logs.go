@@ -23,7 +23,7 @@ var (
 	logMaxLen = 500 * kb
 )
 
-func ParseLogsRequest(resourceLogss []*logs.ResourceLogs) []*point.Point {
+func (ipt *Input) parseLogRequest(resourceLogss []*logs.ResourceLogs) []*point.Point {
 	pts := make([]*point.Point, 0)
 	for _, resourceLogs := range resourceLogss {
 		resourceTags := attributesToTag(resourceLogs.GetResource().GetAttributes()) // resource Attr
@@ -58,12 +58,12 @@ func ParseLogsRequest(resourceLogss []*logs.ResourceLogs) []*point.Point {
 				messages := splitByByteLength(message, logMaxLen)
 				for i, msg := range messages {
 					kvs := mergeTagsToField(resourceTags, scopeTags, ptTags)
-					for k, v := range globalTags { // span.attribute 优先级大于全局tag。
+					for k, v := range ipt.Tags { // span.attribute 优先级大于全局tag。
 						kvs = kvs.AddV2(k, v, false)
 					}
 					kvs = kvs.Add("message", msg, false, false).
-						AddV2(itrace.FieldSpanid, convert(record.GetSpanId()), false).
-						AddV2(itrace.FieldTraceID, convert(record.GetTraceId()), false).
+						AddV2(itrace.FieldSpanid, ipt.convertBinID(record.GetSpanId()), false).
+						AddV2(itrace.FieldTraceID, ipt.convertBinID(record.GetTraceId()), false).
 						AddTag("status", getStatus(record.GetSeverityNumber(), record.GetSeverityText())).
 						AddTag("service", service).
 						AddTag(itrace.TagSource, source).

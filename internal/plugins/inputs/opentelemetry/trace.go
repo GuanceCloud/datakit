@@ -8,6 +8,7 @@ package opentelemetry
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"strconv"
 	"time"
 
@@ -16,21 +17,65 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	common "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
 	trace "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/trace/v1"
+	jsoniter "github.com/json-iterator/go"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace/ext"
 )
 
-var traceOpts = []point.Option{}
+type protojsonMarshaler struct{}
 
-func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
-	var dktraces itrace.DatakitTraces
-	spanIDs, parentIDs := getSpanIDsAndParentIDs(resspans)
+func (j *protojsonMarshaler) Marshal(x proto.Message) ([]byte, error) {
+	return protojson.Marshal(x)
+}
+
+type gojsonMarshaler struct{}
+
+func (j *gojsonMarshaler) Marshal(x proto.Message) ([]byte, error) {
+	return json.Marshal(x)
+}
+
+func initJSONIter() jsoniter.API {
+	customExtension := jsoniter.DecoderExtension{}
+
+	// 注册所有OTel关键类型的序列化优化
+	json := jsoniter.Config{
+		EscapeHTML:                    false,
+		TagKey:                        "json",
+		OnlyTaggedField:               false,
+		SortMapKeys:                   false,
+		IndentionStep:                 0,
+		ValidateJsonRawMessage:        true,
+		ObjectFieldMustBeSimpleString: true,
+	}.Froze()
+
+	json.RegisterExtension(customExtension)
+	return json
+}
+
+var otelJSON = initJSONIter()
+
+type jsoniterMarshaler struct{}
+
+func (m *jsoniterMarshaler) Marshal(x proto.Message) ([]byte, error) {
+	return otelJSON.Marshal(x)
+}
+
+func (ipt *Input) parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
+	var (
+		dktraces           itrace.DatakitTraces
+		spanIDs, parentIDs = ipt.getSpanIDsAndParentIDs(resspans)
+	)
+
 	for _, spans := range resspans {
-		log.Debugf("otel span: %s", spans.String())
-		serviceName := "unknown_service"
-		runtimeID := ""
-		runtimeIDInitialized := false
+		var (
+			serviceName          = "unknown_service"
+			runtimeID            = ""
+			runtimeIDInitialized = false
+			dktrace              itrace.DatakitTrace
+		)
+
 		for _, v := range spans.Resource.Attributes {
 			if v.Key == otelResourceServiceKey {
 				serviceName = v.Value.GetStringValue()
@@ -39,13 +84,19 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 			}
 		}
 
-		var dktrace itrace.DatakitTrace
 		for _, scopeSpans := range spans.ScopeSpans {
 			for _, span := range scopeSpans.Spans {
-				var spanKV point.KVs
-				spanKV = spanKV.Add(itrace.FieldTraceID, convert(span.GetTraceId()), false, false).
-					Add(itrace.FieldParentID, convert(span.GetParentSpanId()), false, false).
-					Add(itrace.FieldSpanid, convert(span.GetSpanId()), false, false).
+				var (
+					spanKV  point.KVs
+					attrs   = make([]*common.KeyValue, 0)
+					spanID  = ipt.convertBinID(span.GetSpanId())
+					parenID = ipt.convertBinID(span.GetParentSpanId())
+					traceID = ipt.convertBinID(span.GetTraceId())
+				)
+
+				spanKV = spanKV.Add(itrace.FieldTraceID, traceID, false, false).
+					Add(itrace.FieldParentID, parenID, false, false).
+					Add(itrace.FieldSpanid, spanIDs, false, false).
 					Add(itrace.FieldResource, span.Name, false, false).
 					AddTag(itrace.TagOperation, span.Name).
 					AddTag(itrace.TagSource, inputName).
@@ -54,16 +105,16 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 					Add(itrace.FieldDuration, int64(span.EndTimeUnixNano-span.StartTimeUnixNano)/int64(time.Microsecond), false, false).
 					AddTag(itrace.TagSpanStatus, getDKSpanStatus(span.GetStatus())).
 					AddTag(itrace.TagSpanType,
-						itrace.FindSpanTypeStrSpanID(convert(span.GetSpanId()), convert(span.GetParentSpanId()), spanIDs, parentIDs)).
+						itrace.FindSpanTypeStrSpanID(spanID, parenID, spanIDs, parentIDs)).
 					AddTag(itrace.TagDKFingerprintKey, datakit.DatakitHostName+"_"+datakit.Version)
 
 				// service_name from xx.system.
-				if spiltServiceName {
+				if ipt.SpiltServiceName {
 					spanKV = spanKV.MustAddTag(itrace.TagService, getServiceNameBySystem(span.GetAttributes(), serviceName)).
 						AddTag(itrace.TagBaseService, serviceName)
 				}
 
-				for k, v := range globalTags { // span.attribute 优先级大于全局tag。
+				for k, v := range ipt.Tags { // span.attribute 优先级大于全局tag。
 					spanKV = spanKV.MustAddTag(k, v)
 				}
 
@@ -87,35 +138,50 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 						break
 					}
 				}
+
 				if kind, ok := spanKinds[int32(span.GetKind())]; ok {
 					spanKV = spanKV.AddTag("span_kind", kind)
 				}
-				attrs := make([]*common.KeyValue, 0)
-				spanKV, attrs = attributesToKVS(spanKV, attrs, spans.Resource.GetAttributes())
-				spanKV, attrs = attributesToKVS(spanKV, attrs, scopeSpans.Scope.GetAttributes())
-				spanKV, attrs = attributesToKVS(spanKV, attrs, span.GetAttributes())
+
+				for _, x := range [][]*common.KeyValue{
+					spans.Resource.GetAttributes(),
+					scopeSpans.Scope.GetAttributes(),
+					span.GetAttributes(),
+				} {
+					newkv, newattr := ipt.attributesToKVS(x)
+					log.Debugf("newkv: %d, newattr: %d", len(newkv), len(newattr))
+					spanKV = append(spanKV, newkv...)
+					attrs = append(attrs, newattr...)
+				}
+
 				if len(span.GetEvents()) > 0 {
 					for _, event := range span.GetEvents() {
-						spanKV, attrs = attributesToKVS(spanKV, attrs, event.GetAttributes())
+						newkv, newattr := ipt.attributesToKVS(event.GetAttributes())
+						log.Debugf("newkv: %d, newattr: %d", len(newkv), len(newattr))
+						spanKV = append(spanKV, newkv...)
+						attrs = append(attrs, newattr...)
 					}
 				}
+
 				if dbHost := getDBHost(span.GetAttributes()); dbHost != "" {
 					spanKV = spanKV.AddTag("db_host", dbHost)
 				}
+
 				span.Attributes = attrs
 				spanKV = spanKV.AddTag(itrace.TagSourceType, getSourceType(spanKV.Tags()))
-				if !delMessage {
-					if buf, err := protojson.Marshal(span); err != nil {
+				if !ipt.DelMessage {
+					if buf, err := ipt.jmarshaler.Marshal(span); err != nil {
 						log.Warn(err.Error())
 					} else {
 						spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
 					}
 				}
 				t := time.Unix(int64(span.StartTimeUnixNano)/1e9, int64(span.StartTimeUnixNano)%1e9)
-				pt := point.NewPointV2(inputName, spanKV, append(traceOpts, point.WithTime(t))...)
+				pt := point.NewPointV2(inputName, spanKV, append(ipt.ptsOpts, point.WithTime(t))...)
 				dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 			}
 		}
+
 		if len(dktrace) != 0 {
 			dktraces = append(dktraces, dktrace)
 		}
@@ -124,7 +190,7 @@ func parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 	return dktraces
 }
 
-func getSpanIDsAndParentIDs(resspans []*trace.ResourceSpans) (map[string]bool, map[string]bool) {
+func (ipt *Input) getSpanIDsAndParentIDs(resspans []*trace.ResourceSpans) (map[string]bool, map[string]bool) {
 	var (
 		spanIDs   = make(map[string]bool)
 		parentIDs = make(map[string]bool)
@@ -135,8 +201,8 @@ func getSpanIDsAndParentIDs(resspans []*trace.ResourceSpans) (map[string]bool, m
 				if span == nil {
 					continue
 				}
-				spanIDs[convert(span.SpanId)] = true
-				parentIDs[convert(span.ParentSpanId)] = true
+				spanIDs[ipt.convertBinID(span.SpanId)] = true
+				parentIDs[ipt.convertBinID(span.ParentSpanId)] = true
 			}
 		}
 	}
@@ -152,9 +218,9 @@ func byteToString(buf []byte) string {
 	return hex.EncodeToString(buf)
 }
 
-func convert(id []byte) string {
+func (ipt *Input) convertBinID(id []byte) string {
 	switch {
-	case convertToDD:
+	case ipt.CompatibleDDTrace:
 		if len(id) >= 8 {
 			bts := id[len(id)-8:]
 			num := binary.BigEndian.Uint64(bts[:8])
@@ -163,12 +229,14 @@ func convert(id []byte) string {
 			log.Debugf("traceid or spanid is %s ,can not convert to [8]byte", string(id))
 			return "0"
 		}
-	case convertToZhaoShang:
+
+	case ipt.CompatibleZhaoShang:
 		if len(id) > 8 {
 			return string(id)
 		} else {
 			return byteToString(id)
 		}
+
 	default:
 		return byteToString(id)
 	}

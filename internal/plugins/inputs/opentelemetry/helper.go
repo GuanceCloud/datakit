@@ -21,9 +21,9 @@ func getAttr(key string, attributes []*common.KeyValue) (*common.KeyValue, bool)
 	return nil, false
 }
 
-func attributesToKVS(spanKV point.KVs, otherAttrs, atts []*common.KeyValue) (point.KVs, []*common.KeyValue) {
+func (ipt *Input) attributesToKVS(atts []*common.KeyValue) (spanKV point.KVs, otherAttrs []*common.KeyValue) {
 	for _, v := range atts {
-		if replaceKey, ok := OTELAttributes[v.Key]; ok {
+		if replaceKey, ok := ipt.commonAttrs[v.Key]; ok {
 			switch v.Value.Value.(type) {
 			case *common.AnyValue_BytesValue, *common.AnyValue_StringValue:
 				if s := v.Value.GetStringValue(); len(s) > 1024 {
@@ -40,6 +40,7 @@ func attributesToKVS(spanKV point.KVs, otherAttrs, atts []*common.KeyValue) (poi
 			otherAttrs = append(otherAttrs, v)
 		}
 	}
+
 	return spanKV, otherAttrs
 }
 

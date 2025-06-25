@@ -25,10 +25,10 @@ type httpConfig struct {
 	LogsAPI      string `toml:"logs_api" json:"logs_api"`
 
 	afterGatherRun itrace.AfterGatherHandler
-	feeder         dkio.Feeder
+	input          *Input
 }
 
-func (h *httpConfig) initConfig(feeder dkio.Feeder, agterGather *itrace.AfterGather) {
+func (h *httpConfig) initConfig(agterGather *itrace.AfterGather) {
 	// 路由可能为空，为版本兼容设置默认值。
 	if h.TraceAPI == "" {
 		h.TraceAPI = defaultTraceAPI
@@ -39,7 +39,6 @@ func (h *httpConfig) initConfig(feeder dkio.Feeder, agterGather *itrace.AfterGat
 	if h.LogsAPI == "" {
 		h.LogsAPI = defaultLogAPI
 	}
-	h.feeder = feeder
 	h.afterGatherRun = agterGather
 }
 
@@ -92,7 +91,7 @@ func (h *httpConfig) handleOTELTrace(resp http.ResponseWriter, req *http.Request
 	}
 
 	if h.afterGatherRun != nil {
-		if dktraces := parseResourceSpans(tsreq.ResourceSpans); len(dktraces) != 0 {
+		if dktraces := h.input.parseResourceSpans(tsreq.ResourceSpans); len(dktraces) != 0 {
 			h.afterGatherRun.Run(inputName, dktraces)
 		}
 	}
@@ -122,7 +121,7 @@ func (h *httpConfig) handleOTElMetrics(resp http.ResponseWriter, req *http.Reque
 		resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	parseResourceMetricsV2(msreq.ResourceMetrics, h.feeder)
+	h.input.parseResourceMetricsV2(msreq.ResourceMetrics)
 }
 
 func (h *httpConfig) handleOTELLogging(resp http.ResponseWriter, req *http.Request) {
@@ -148,9 +147,9 @@ func (h *httpConfig) handleOTELLogging(resp http.ResponseWriter, req *http.Reque
 		resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	pts := ParseLogsRequest(otelLogs.GetResourceLogs())
+	pts := h.input.parseLogRequest(otelLogs.GetResourceLogs())
 	if len(pts) > 0 {
-		if err = h.feeder.FeedV2(point.Logging, pts, dkio.WithInputName(inputName)); err != nil {
+		if err = h.input.feeder.FeedV2(point.Logging, pts, dkio.WithInputName(inputName)); err != nil {
 			log.Errorf("feed logging to io err=%v", err)
 		}
 	}
