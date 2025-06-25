@@ -514,3 +514,7 @@ push_ligai_version:
 	else \
 		printf "[INFO] push version to ligai ok"; \
 	fi
+
+coverage:
+	@LOGGER_PATH=nul UT_EXCLUDE_INTEGRATION_TESTING=on gocov test ./... > coverage.json
+	gocov report coverage.json | grep 'Total Coverage'
