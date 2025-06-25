@@ -59,7 +59,7 @@ var (
 	inputName           = "kingbase"
 	metricName          = inputName
 	catalogName         = "db"
-	customQueryFeedName = inputName + "/custom_query"
+	customQueryFeedName = dkio.FeedSource(inputName, "custom_query")
 	l                   = logger.DefaultSLogger(inputName)
 )
 
@@ -261,10 +261,10 @@ func (ipt *Input) Run() {
 			}
 
 			if len(ipt.collectCache) > 0 {
-				if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
+				if err := ipt.feeder.Feed(point.Metric, ipt.collectCache,
 					dkio.WithCollectCost(time.Since(start)),
 					dkio.WithElection(ipt.Election),
-					dkio.WithInputName(metricName)); err != nil {
+					dkio.WithSource(metricName)); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
 						metrics.WithLastErrorInput(inputName),
 						metrics.WithLastErrorCategory(point.Metric),
