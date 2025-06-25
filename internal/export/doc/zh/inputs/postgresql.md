@@ -25,16 +25,54 @@ PostgreSQL 采集器可以从 PostgreSQL 实例中采集实例运行状态指标
 - PostgreSQL 版本 >= 9.0
 - 创建监控帐号
 
-```sql
--- PostgreSQL >= 10
-create user datakit with password '<PASSWORD>';
-grant pg_monitor to datakit;
-grant SELECT ON pg_stat_database to datakit;
+    ```sql
+    -- PostgreSQL >= 10
+    create user datakit with password '<PASSWORD>';
+    grant pg_monitor to datakit;
+    grant SELECT ON pg_stat_database to datakit;
+    
+    -- PostgreSQL < 10
+    create user datakit with password '<PASSWORD>';
+    grant SELECT ON pg_stat_database to datakit;
+    ```
 
--- PostgreSQL < 10
-create user datakit with password '<PASSWORD>';
-grant SELECT ON pg_stat_database to datakit;
-```
+- 开启 `pg_stat_statements` 扩展（可选）
+
+    [PostgreSQL 对象](postgresql.md#object) 采集时，部分指标如 `qps/tps/avg_query_time` 等，需要开启 `pg_stat_statements` 扩展。具体步骤如下：
+
+    - **修改配置文件**
+
+        找到并编辑 PostgreSQL 配置文件（通常位于 `/var/lib/pgsql/data/postgresql.conf` 或 `/etc/postgresql/<版本>/main/postgresql.conf`）：
+
+        ```ini
+        # 启用 pg_stat_statements 扩展
+        shared_preload_libraries = 'pg_stat_statements'
+        
+        # 可选配置
+        pg_stat_statements.track = 'all'  # 收集所有 SQL 语句
+        pg_stat_statements.max = 10000  # 最多收集的 SQL 语句数量
+        pg_stat_statements.track_utility = off # 忽略 utility 语句，只跟踪常规 SQL 查询如 SELECT、INSERT、UPDATE、DELETE
+        
+        ```
+
+    - **重启 PostgreSQL 服务**
+
+        修改好配置文件后，需要重启 PostgreSQL 服务。
+
+    - **数据库中创建扩展**
+
+        连接到目标数据库， 执行以下 SQL：
+
+        ```sql
+        CREATE EXTENSION pg_stat_statements;
+        ```
+
+    - **验证扩展是否成功开启**
+
+        ```sql
+        SELECT * FROM pg_extension WHERE extname = 'pg_stat_statements';
+        SELECT * FROM pg_stat_statements LIMIT 10;
+        ```
 
 ### 采集器配置 {#input-config}
 
@@ -75,11 +113,11 @@ grant SELECT ON pg_stat_database to datakit;
 {{ end }}
 {{ end }}
 
-## 自定义对象 {#object}
+## 对象 {#object}
 
 {{ range $i, $m := .Measurements }}
 
-{{if eq $m.Type "custom_object"}}
+{{if eq $m.Type "object"}}
 
 ### `{{$m.Name}}`
 
@@ -95,6 +133,138 @@ grant SELECT ON pg_stat_database to datakit;
 {{end}}
 
 {{ end }}
+
+### `message` 指标字段结构 {#message-struct}
+
+`message` 字段基本结构如下：
+
+```json
+{
+  "setting": {
+    "DateStyle":"ISO, MDY",
+    ...
+  },
+
+  "databases": [ # databases information
+    {
+      "name": "db1",
+      "encoding": "utf8",
+      "owner": "datakit",
+      "schemas": [ # schemas information
+        {
+          "name": "schema1",
+          "owner": "datakit",
+          "tables": [ # tables information
+            {
+              "name": "table1",
+              "columns": [], # columns information
+              "indexes": [], # indexes information
+              "foreign_keys": [], # foreign keys information
+            }
+            ...
+          ]
+        },
+        ...
+      ]
+    }
+    ...
+  ]
+}
+```
+
+#### `setting` {#setting}
+
+  `setting` 字段中的数据来源于 `pg_settings` 系统视图，用于展示当前数据库系统的配置参数信息，详细信息可以参考 [PostgreSQL 文档](https://www.postgresql.org/docs/current/view-pg-settings.html){:target="_blank"}。
+
+#### `databases` {#databases}
+
+`databases` 字段保存了 `PostgreSQL` 服务器上所有数据库的信息，每个数据库的信息如下：
+
+| 字段名             | 描述                                           |  类型  |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | 数据库名称                                           | string |
+| `encoding`        | 数据库编码                                        | string |
+| `owner`        | 角色名称                                            | string |
+| `description`        | 描述文本                                      | string |
+| `schemas`        | 包含 `schema` 信息的列表                           | list |
+
+`schemas` 字段包含了数据库中的所有 `schema` 信息，每个 `schema` 的信息如下：
+
+| 字段名             | 描述                                           |  类型  |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | `schema` 名称                                           | string |
+| `owner`        | 角色名称                                            | string |
+| `tables`        | 包含 `table` 信息的列表                           | list |
+
+`tables` 字段包含了数据库中所有表的信息，每个表的信息如下：
+
+| 字段名             | 描述                                           |  类型  |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | 表名称                                         | string |
+| `owner`        | 角色名称                             | string |
+| `has_indexes`        | 是否有索引                             | bool |
+| `has_partitions`        | 是否有分区                             | bool |
+| `toast_table`        | `toast` 表名称                             | string |
+| `partition_key`        | 分区键                             | string |
+| `num_partitions`        | 分区数量                             | int64 |
+| `foreign_keys`        | 包含外键信息的列表                             | list |
+| `columns`        | 包含列信息的列表                             | list |
+| `indexes`        | 包含索引信息的列表                             | list |
+
+- `tables.columns`
+
+`columns` 字段包含了数据库中表的所有列的信息，每个列的信息如下：
+
+| 字段名             | 描述                                           |  类型  |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | `column` 名称                                           | string |
+| `data_type`        | 数据类型                                            | string |
+| `nullable`        | 是否可以为空                                            | bool |
+| `default`        | 默认值                                            | string |
+
+- `tables.indexes`
+
+`indexes` 字段包含了数据库中表的所有索引的信息，每个索引的信息如下：
+
+| 字段名             | 描述                                           |  类型  |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | `index` 名称                                           | string |
+| `columns`     | 索引包含的列                                              | list |
+| `index_type`  | 索引类型                                                  | string |
+| `definition`        | 索引定义                                            | string |
+| `is_unique`        | 是否唯一                                            | bool |
+| `is_primary`        | 是否主键                                            | bool |
+| `is_exclusion`        | 是否为排除约束索引                                            | bool |
+| `is_immediate`        | 每条语句执行结束后是否立即检查约束                      | bool |
+| `is_valid`        | 是否有效                                            | bool |
+| `is_clustered`        | 是否为聚簇索引                                            | bool |
+| `is_checkxmin`        | 是否检查 `xmin`                                            | bool |
+| `is_ready`        | 是否就绪                                            | bool |
+| `is_live`        | 是否活跃                                            | bool |
+| `is_replident`        | 是否是行标识索引                                            | bool |
+| `is_partial`        | 是否是部分索引                                            | bool |
+
+索引列信息字段 `indexes.columns` 包含了索引中包含的列的信息，每个列的信息如下：
+
+| 字段名             | 描述                                           |  类型  |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | 列名称                                         | string |
+
+- `tables.foreign_keys`
+
+`foreign_keys` 字段包含了数据库中表的所有外键的信息，每个外键的信息如下：
+
+| 字段名             | 描述                                           |  类型  |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | `foreign_key` 名称                                           | string |
+| `definition`        | 外键定义                                            | string |
+| `constraint_schema` |外键所属的数据库（通常与表所在数据库一致） | string |
+| `column_names` |外键列名称（多个列用逗号分隔，如 user_id, order_id） | string |
+| `referenced_table_schema` |引用表所在的数据库 | string |
+| `referenced_table_name` |引用表名称 | string |
+| `referenced_column_names` |引用列名称（多个列用逗号分隔） | string |
+| `update_action` |级联更新规则（如 CASCADE, RESTRICT） | string |
+| `delete_action` |级联删除规则（如 CASCADE, SET NULL） | string |
 
 ## 日志 {#logging}
 

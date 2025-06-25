@@ -21,6 +21,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/coreos/go-semver/semver"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cast"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
@@ -36,6 +37,8 @@ import (
 var (
 	inputName                                 = "postgresql"
 	customObjectFeedName                      = inputName + "/CO"
+	objectFeedName                            = inputName + "/O"
+	loggingFeedName                           = inputName + "/L"
 	customQueryFeedName                       = inputName + "/custom_query"
 	catalogName                               = "db"
 	l                                         = logger.DefaultSLogger(inputName)
@@ -53,6 +56,8 @@ const (
 	DynamicMetric     = "dynamic"
 	ArchiverMetric    = "archiver"
 	ReplicationSlot   = "replication_slot"
+	IOMetric          = "io"
+	DBMMetric         = "dbm_metric"
 )
 
 const sampleConfig = `
@@ -89,6 +94,27 @@ const sampleConfig = `
   ## Metric name in metric_exclude_list will not be collected.
   #
   metric_exclude_list = [""]
+
+  ## collect object
+  [inputs.postgresql.object]
+    # Set true to enable collecting objects
+    enabled = true
+
+    # interval to collect postgresql object which will be greater than collection interval
+    interval = "600s"
+
+    [inputs.postgresql.object.collect_schemas]
+      # Set true to enable collecting schemas
+      enabled = true
+
+      # Maximum number of tables to collect
+      max_tables = 300
+
+      # Set true to enable auto discovery database
+      auto_discovery_database = false
+
+     # Maximum number of databases to collect
+     max_database = 100
 
   ## Relations config
   #
@@ -168,6 +194,7 @@ type Service interface {
 	Stop()
 	Ping() error
 	Query(string) (Rows, error)
+	QueryByDatabase(string, string) (Rows, error)
 	SetAddress(string)
 	GetColumnMap(scanner, []string) (map[string]*interface{}, error)
 }
@@ -198,6 +225,22 @@ type customQuery struct {
 	Interval datakit.Duration `toml:"interval"`
 }
 
+type pgObject struct {
+	Enable         bool                 `toml:"enabled"`
+	Interval       datakit.Duration     `toml:"interval"`
+	CollectSchemas configCollectSchemas `toml:"collect_schemas"`
+
+	name               string
+	lastCollectionTime time.Time
+}
+
+type configCollectSchemas struct {
+	Enabled               bool `toml:"enabled"`
+	MaxTables             int  `toml:"max_tables"`
+	MaxDatabases          int  `toml:"max_databases"`
+	AutoDiscoveryDatabase bool `toml:"auto_discovery_database"`
+}
+
 type Input struct {
 	Address           string            `toml:"address"`
 	Outputaddress     string            `toml:"outputaddress"`
@@ -210,8 +253,8 @@ type Input struct {
 	Relations         []Relation     `toml:"relations"`
 	CustomQuery       []*customQuery `toml:"custom_queries"`
 	Log               *postgresqllog `toml:"log"`
+	Object            pgObject       `toml:"object"`
 
-	Version            string
 	Uptime             int
 	CollectCoStatus    string
 	CollectCoErrMsg    string
@@ -221,8 +264,10 @@ type Input struct {
 
 	service      Service
 	tail         *tailer.Tailer
-	collectCache []*point.Point
+	collectCache map[point.Category][]*point.Point
 	host         string
+	port         uint16
+	dbName       string
 
 	Election bool `toml:"election"`
 	pause    bool
@@ -241,6 +286,8 @@ type Input struct {
 	metricQueryCache map[string]*queryCacheItem
 
 	UpState int
+
+	objectMetric *objectMertric
 }
 
 type postgresqllog struct {
@@ -278,8 +325,8 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&connectionMeasurement{},
 		&conflictMeasurement{},
 		&archiverMeasurement{},
-		&customerObjectMeasurement{},
 		&inputs.UpMeasurement{},
+		&postgresqlObjectMeasurement{},
 	}
 }
 
@@ -333,7 +380,7 @@ func (ipt *Input) SanitizedAddress() (sanitizedAddress string, err error) {
 	return sanitizedAddress, err
 }
 
-func (ipt *Input) getQueryPoints(cache *queryCacheItem) ([]*point.Point, error) {
+func (ipt *Input) getQueryPoints(cache *queryCacheItem, dealColumnFn ...func(map[string]*interface{})) ([]*point.Point, error) {
 	var (
 		columns []string
 		err     error
@@ -367,6 +414,11 @@ func (ipt *Input) getQueryPoints(cache *queryCacheItem) ([]*point.Point, error) 
 		if err != nil {
 			return nil, err
 		}
+		if len(dealColumnFn) > 0 {
+			for _, fn := range dealColumnFn {
+				fn(columnMap)
+			}
+		}
 		if point := ipt.makePoints(columnMap, measurementInfo); point != nil {
 			point.SetTime(cache.ptsTime)
 			points = append(points, point)
@@ -383,7 +435,7 @@ func (ipt *Input) executeQuery(cache *queryCacheItem) error {
 	if points, err := ipt.getQueryPoints(cache); err != nil {
 		return fmt.Errorf("getQueryPoints error: %w", err)
 	} else {
-		ipt.collectCache = append(ipt.collectCache, points...)
+		ipt.collectCache[point.Metric] = append(ipt.collectCache[point.Metric], points...)
 	}
 
 	return nil
@@ -573,6 +625,39 @@ JOIN pg_replication_slots ON pg_replication_slots.slot_name = stat.slot_name
 			measurementInfo: replicationSlotMeasurement{}.Info(),
 		}
 		ipt.metricQueryCache[ReplicationSlot] = cache
+		l.Infof("Query for metric [%s]: %s", cache.measurementInfo.Name, query)
+	}
+
+	return ipt.executeQuery(cache)
+}
+
+func (ipt *Input) getIOMetrics() error {
+	cache, ok := ipt.metricQueryCache[IOMetric]
+	if !ok {
+		// PG16+
+		query := `
+SELECT backend_type,
+       object,
+       context,
+       evictions,
+       extend_time,
+       extends,
+       fsync_time,
+       fsyncs,
+       hits,
+       read_time,
+       reads,
+       write_time,
+       writes
+FROM pg_stat_io
+LIMIT 200
+		`
+
+		cache = &queryCacheItem{
+			q:               query,
+			measurementInfo: ioMeasurement{}.Info(),
+		}
+		ipt.metricQueryCache[IOMetric] = cache
 		l.Infof("Query for metric [%s]: %s", cache.measurementInfo.Name, query)
 	}
 
@@ -775,9 +860,9 @@ func (ipt *Input) Collect() error {
 
 	g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName(inputName)})
 
-	err = ipt.getVersionAndUptime()
+	err = ipt.getUptime()
 	if err != nil {
-		l.Errorf("Failed to get version and uptime: %v", err)
+		l.Errorf("Failed to get uptime: %v", err)
 	}
 
 	// collect metrics
@@ -794,15 +879,7 @@ func (ipt *Input) Collect() error {
 }
 
 func (ipt *Input) makePoints(columnMap map[string]*interface{}, measurementInfo *inputs.MeasurementInfo) *point.Point {
-	var kvs point.KVs
-	if ipt.host != "" {
-		kvs = kvs.AddTag("host", ipt.host)
-	}
-
-	for k, v := range ipt.Tags {
-		kvs = kvs.AddTag(k, v)
-	}
-
+	kvs := ipt.getKVs()
 	if measurementInfo == nil {
 		measurementInfo = inputMeasurement{}.Info()
 	}
@@ -844,20 +921,55 @@ func (ipt *Input) makePoints(columnMap map[string]*interface{}, measurementInfo 
 	}
 
 	if kvs.FieldCount() > 0 {
-		opts := point.DefaultMetricOptions()
-		if ipt.Election {
-			opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
-		}
-
+		cat := point.Metric
 		metricName := inputName
 		if measurementInfo != nil {
 			metricName = measurementInfo.Name
+			cat = measurementInfo.Cat
 		}
 
+		opts := ipt.getKVsOpts(cat)
 		return point.NewPointV2(metricName, kvs, opts...)
 	}
 
 	return nil
+}
+
+func (ipt *Input) getKVs() point.KVs {
+	var kvs point.KVs
+
+	// add extended tags
+	for k, v := range ipt.mergedTags {
+		kvs = kvs.AddTag(k, v)
+	}
+
+	return kvs
+}
+
+func (ipt *Input) getKVsOpts(categorys ...point.Category) []point.Option {
+	var opts []point.Option
+
+	category := point.Metric
+	if len(categorys) > 0 {
+		category = categorys[0]
+	}
+
+	switch category { //nolint:exhaustive
+	case point.Logging:
+		opts = point.DefaultLoggingOptions()
+	case point.Metric:
+		opts = point.DefaultMetricOptions()
+	case point.Object:
+		opts = point.DefaultObjectOptions()
+	default:
+		opts = point.DefaultMetricOptions()
+	}
+
+	if ipt.Election {
+		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
+	}
+
+	return opts
 }
 
 func (ipt *Input) RunPipeline() {
@@ -900,9 +1012,16 @@ const (
 	minInterval = 10 * time.Second
 )
 
-func (ipt *Input) init() error {
+func (ipt *Input) initDB() error {
+	config, err := pgxpool.ParseConfig(ipt.Address)
+	if err != nil {
+		return fmt.Errorf("parse config error: %w", err)
+	}
+	ipt.port = config.ConnConfig.Port
+	ipt.host = config.ConnConfig.Host
+
 	ipt.service.SetAddress(ipt.Address)
-	err := ipt.service.Start()
+	err = ipt.service.Start()
 	if err != nil {
 		return err
 	}
@@ -914,26 +1033,35 @@ func (ipt *Input) init() error {
 	ipt.setAurora()
 
 	// set default Tags
-	tagAddress, err := ipt.SanitizedAddress()
-	if err != nil {
-		return err
-	}
 	dbName, err := getDBName(ipt.Address)
 	if err != nil {
 		l.Warnf("get db name error: %s, use postgres instead", err.Error())
 		dbName = "postgres"
 	}
+	ipt.dbName = dbName
+
 	if ipt.Tags == nil {
 		ipt.Tags = map[string]string{}
 	}
-	ipt.Tags["server"] = tagAddress
 	ipt.Tags["db"] = dbName
 
+	return nil
+}
+
+func (ipt *Input) initCfg() {
+	ipt.collectCache = map[point.Category][]*point.Point{}
+
 	if ipt.Election {
-		ipt.mergedTags = inputs.MergeTags(ipt.tagger.ElectionTags(), ipt.Tags, ipt.Address)
+		ipt.mergedTags = inputs.MergeTags(ipt.tagger.ElectionTags(), ipt.Tags, ipt.host)
 	} else {
-		ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, ipt.Address)
+		ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, ipt.host)
 	}
+
+	if v, ok := ipt.mergedTags["host"]; ok {
+		ipt.host = v
+	}
+
+	ipt.mergedTags["server"] = fmt.Sprintf("%s:%d", ipt.host, ipt.port)
 
 	l.Infof("merged tags: %+#v", ipt.mergedTags)
 
@@ -964,6 +1092,10 @@ func (ipt *Input) init() error {
 		ipt.collectFuncs["postgresql_archiver"] = ipt.getArchiverMetrics
 	}
 
+	if V160.LessThan(*ipt.version) || V160.Equal(*ipt.version) {
+		ipt.collectFuncs["postgresql_io"] = ipt.getIOMetrics
+	}
+
 	ipt.relationMetrics = map[string]relationMetric{}
 	for _, m := range relationMetrics {
 		ipt.relationMetrics[m.measurementInfo.Name] = m
@@ -978,16 +1110,15 @@ func (ipt *Input) init() error {
 		ipt.collectFuncs["relation"] = ipt.getRelationMetrics
 	}
 
-	return nil
+	if ipt.Object.Enable {
+		ipt.objectMetric = &objectMertric{}
+		ipt.Object.name = fmt.Sprintf("%s:%d", ipt.host, ipt.port)
+		ipt.collectFuncs["database"] = ipt.collectDatabaseObject
+	}
 }
 
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
-
-	if err := ipt.setHostIfNotLoopback(); err != nil {
-		l.Errorf("failed to set host: %v", err)
-		return
-	}
 
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 
@@ -997,7 +1128,7 @@ func (ipt *Input) Run() {
 
 	// try init
 	for {
-		if err := ipt.init(); err != nil {
+		if err := ipt.initDB(); err != nil {
 			ipt.FeedCoByErr(err)
 			l.Errorf("failed to init postgresql: %s", err.Error())
 			ipt.feeder.FeedLastError(err.Error(),
@@ -1023,6 +1154,8 @@ func (ipt *Input) Run() {
 		}
 	}
 
+	ipt.initCfg()
+
 	defer ipt.service.Stop() //nolint:errcheck
 
 	// run custom queries
@@ -1043,19 +1176,34 @@ func (ipt *Input) Run() {
 				ipt.setErrUpState()
 			}
 
-			if len(ipt.collectCache) > 0 {
-				if err := ipt.feeder.FeedV2(point.Metric, ipt.collectCache,
-					dkio.WithCollectCost(time.Since(start)),
-					dkio.WithElection(ipt.Election),
-					dkio.WithInputName(inputName),
-				); err != nil {
-					ipt.feeder.FeedLastError(err.Error(),
-						metrics.WithLastErrorInput(inputName),
-					)
-					l.Errorf("feed : %s", err)
+			for category, points := range ipt.collectCache {
+				if len(points) > 0 {
+					feedName := inputName
+
+					switch category { // nolint: exhaustive
+					case point.CustomObject:
+						feedName = customObjectFeedName
+					case point.Logging:
+						feedName = loggingFeedName
+					case point.Object:
+						feedName = objectFeedName
+					}
+
+					if err := ipt.feeder.FeedV2(category, points,
+						dkio.WithCollectCost(time.Since(start)),
+						dkio.WithElection(ipt.Election),
+						dkio.WithInputName(feedName),
+					); err != nil {
+						ipt.feeder.FeedLastError(err.Error(),
+							metrics.WithLastErrorInput(inputName),
+						)
+						l.Errorf("feed : %s", err)
+					}
+
+					ipt.collectCache[category] = ipt.collectCache[category][:0]
 				}
-				ipt.collectCache = ipt.collectCache[:0]
 			}
+
 			ipt.FeedUpMetric()
 
 			ipt.FeedCoPts()
@@ -1114,24 +1262,6 @@ func (ipt *Input) Resume() error {
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
 	}
-}
-
-func (ipt *Input) setHostIfNotLoopback() error {
-	uu, err := url.Parse(ipt.Address)
-	if err != nil {
-		return err
-	}
-	var host string
-	h, _, err := net.SplitHostPort(uu.Host)
-	if err == nil {
-		host = h
-	} else {
-		host = uu.Host
-	}
-	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
-		ipt.host = host
-	}
-	return nil
 }
 
 // getDBName parses out the DB name from an input URI.
@@ -1204,6 +1334,16 @@ func NewInput(service Service) *Input {
 		feeder:   dkio.DefaultFeeder(),
 		tagger:   datakit.DefaultGlobalTagger(),
 		semStop:  cliutils.NewSem(),
+		Object: pgObject{
+			Enable:   true,
+			Interval: datakit.Duration{Duration: 600 * time.Second},
+			CollectSchemas: configCollectSchemas{
+				Enabled:               true,
+				MaxTables:             300,
+				MaxDatabases:          100,
+				AutoDiscoveryDatabase: false,
+			},
+		},
 	}
 	input.service = service
 	return input

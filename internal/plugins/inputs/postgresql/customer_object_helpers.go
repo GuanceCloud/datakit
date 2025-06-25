@@ -100,29 +100,12 @@ func getPointsFromMeasurement(ms []inputs.MeasurementV2) []*gcPoint.Point {
 	return pts
 }
 
-func (ipt *Input) getVersionAndUptime() error {
-	rows, err := ipt.service.Query("SHOW SERVER_VERSION;")
-	if err != nil {
-		return fmt.Errorf("failed to query PostgreSQL version: %w", err)
-	}
-	defer rows.Close()
-
-	var rawVersion string
-
-	if rows.Next() {
-		if err := rows.Scan(&rawVersion); err != nil {
-			return fmt.Errorf("failed to scan PostgreSQL version: %w", err)
-		}
-	}
-
-	ipt.Version = rawVersion
-
-	// 查询 PostgreSQL 启动时间
-	rows, err = ipt.service.Query("SELECT pg_postmaster_start_time();")
+func (ipt *Input) getUptime() error {
+	rows, err := ipt.service.Query("SELECT pg_postmaster_start_time();")
 	if err != nil {
 		return fmt.Errorf("failed to query PostgreSQL start time: %w", err)
 	}
-	defer rows.Close() // 确保在函数退出时关闭 rows
+	defer rows.Close()
 
 	var startTime time.Time
 
@@ -160,7 +143,7 @@ func (ipt *Input) collectCustomerObjectMeasurement() ([]*gcPoint.Point, error) {
 
 	fields := map[string]interface{}{
 		"display_name": fmt.Sprintf("%s:%d", host, port),
-		"version":      ipt.Version,
+		"version":      ipt.version.String(),
 		"uptime":       fmt.Sprintf("%d", ipt.Uptime),
 	}
 	tags := map[string]string{

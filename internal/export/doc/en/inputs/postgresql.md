@@ -26,16 +26,54 @@ PostgreSQL collector can collect the running status index from PostgreSQL instan
 - PostgreSQL version >= 9.0
 - Create user
 
-```sql
--- PostgreSQL >= 10
-create user datakit with password '<PASSWORD>';
-grant pg_monitor to datakit;
-grant SELECT ON pg_stat_database to datakit;
+    ```sql
+    -- PostgreSQL >= 10
+    create user datakit with password '<PASSWORD>';
+    grant pg_monitor to datakit;
+    grant SELECT ON pg_stat_database to datakit;
 
--- PostgreSQL < 10
-create user datakit with password '<PASSWORD>';
-grant SELECT ON pg_stat_database to datakit;
-```
+    -- PostgreSQL < 10
+    create user datakit with password '<PASSWORD>';
+    grant SELECT ON pg_stat_database to datakit;
+    ```
+
+- Enable the `pg_stat_statements` Extension (Optional)
+
+    When collecting [PostgreSQL Object](postgresql.md#object), some key metrics such as `qps/tps/avg_query_time` rely on the `pg_stat_statements` extension. The specific steps to enable this extension are as follows:
+
+    - **Modify the Configuration File**
+
+        Locate and edit the PostgreSQL configuration file (common paths are `/var/lib/pgsql/data/postgresql.conf` or `/etc/postgresql/<version>/main/postgresql.conf`), and add or modify the following configuration items:
+
+        ```ini
+        # Enable the pg_stat_statements
+        shared_preload_libraries = 'pg_stat_statements'
+
+        # Optional configuration
+        pg_stat_statements.track = 'all'  # collect all SQL statements
+        pg_stat_statements.max = 10000  # max number of SQL statements to track
+        pg_stat_statements.track_utility = off # ignore utility statements, only track regular SQL statements like `SELECT`, `INSERT`, `UPDATE`, `DELETE`
+
+        ```
+
+    - **Restart the PostgreSQL Service**
+
+        After modifying the configuration file, it is necessary to restart the PostgreSQL service for the configurations to take effect.​
+
+    - **Create the Extension**
+
+        Connect to the target database and execute the following SQL statement to create the extension:
+
+        ```sql
+        CREATE EXTENSION pg_stat_statements;
+        ```
+
+        - **Verify the Successful Enablement of the Extension:**
+
+        ```sql
+        SELECT * FROM pg_extension WHERE extname = 'pg_stat_statements';
+        SELECT * FROM pg_stat_statements LIMIT 10;
+        ```
 
 ### Collector Configuration {#input-config}
 
@@ -75,11 +113,11 @@ For all of the following data collections, the global election tags will added a
 {{ end }}
 {{ end }}
 
-## Custom Object {#object}
+## Object {#object}
 
 {{ range $i, $m := .Measurements }}
 
-{{if eq $m.Type "custom_object"}}
+{{if eq $m.Type "object"}}
 
 ### `{{$m.Name}}`
 
@@ -95,6 +133,139 @@ For all of the following data collections, the global election tags will added a
 {{end}}
 
 {{ end }}
+
+
+### Structure of the `message` field {#message-struct}
+
+The basic structure of the `message` field is as follows:​
+
+```json
+{
+  "setting": {
+    "DateStyle":"ISO, MDY",
+    ...
+  },
+
+  "databases": [ # databases information
+    {
+      "name": "db1",
+      "encoding": "utf8",
+      "owner": "datakit",
+      "schemas": [ # schemas information
+        {
+          "name": "schema1",
+          "owner": "datakit",
+          "tables": [ # tables information
+            {
+              "name": "table1",
+              "columns": [], # columns information
+              "indexes": [], # indexes information
+              "foreign_keys": [], # foreign keys information
+            }
+            ...
+          ]
+        },
+        ...
+      ]
+    }
+    ...
+  ]
+}
+```
+
+#### `setting` {#setting}
+
+  The data in the `setting` field is sourced from the `pg_settings` system view and is used to display the configuration parameter information of the current database. For more details, please refer to the [PostgreSQL documentation](https://www.postgresql.org/docs/current/view-pg-settings.html){:target="_blank"}.
+
+#### `databases` {#databases}
+
+The `databases` field stores information about all databases on the `PostgreSQL` server. The detailed information of each database is shown in the following table:
+
+| Field Name              | Description                 | Type   |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | Database name                                           | string |
+| `encoding`        | Database encoding                                        | string |
+| `owner`        | Role name                                            | string |
+| `description`        | Description text                                      | string |
+| `schemas`        | List containing `schema` information                           | list |
+
+The `schemas` field contains information about all the `schemas` in the database. The information for each `schema` is as follows:
+
+| Field Name              | Description                 | Type   |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | `schema` name                                           | string |
+| `owner`        | Role name                                            | string |
+| `tables`        | List containing `table` information                           | list |
+
+The `tables` field contains information about all the `tables` in the database. The information for each `table` is as follows:
+
+| Field Name              | Description                 | Type   |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | `table` name                                         | string |
+| `owner`        | `table` owner                                            | string |
+| `has_indexes`        | Whether there are indexes                             | bool |
+| `has_partitions`        | Whether there are partitions                             | bool |
+| `toast_table`        | `toast` table name                             | string |
+| `partition_key`        | Partition key                             | string |
+| `num_partitions`        | Number of partitions                             | int64 |
+| `foreign_keys`        | List containing foreign key information                             | list |
+| `columns`        | List containing `column` information                           | list |
+| `indexes`        | List containing `index` information                           | list |
+
+- `tables.columns`
+
+The `columns` field contains information about all the `columns` in the `tables`. The information for each `column` is as follows:
+
+| Field Name              | Description                 | Type   |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | Name                                           | string |
+| `data_type`        | Data type                                            | string |
+| `nullable`        | Whether `column` can be null                                            | bool |
+| `default`        | Default value                                            | string |
+
+- `tables.indexes`
+
+The `indexes` field contains information about all the `indexes` in the database tables. The information for each `index` is as follows:
+
+| Field Name              | Description                 | Type   |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | Name                                           | string |
+| `columns`     | Columns included in the index                                              | list |
+| `index_type`  | Index type                                                  | string |
+| `definition`        | Index definition                                            | string |
+| `is_unique`        | Whether unique                                            | bool |
+| `is_primary`        | Whether primary                                            | bool |
+| `is_exclusion`        | Whether exclusion constraint index                                            | bool |
+| `is_immediate`        | Whether to check constraints immediately after each statement execution                      | bool |
+| `is_valid`        | Whether it is valid                                            | bool |
+| `is_clustered`        | Whether it is a clustered index                                            | bool |
+| `is_checkxmin`        | Whether to check `xmin`                                            | bool |
+| `is_ready`        | Whether it is ready                                            | bool |
+| `is_live`        | Whether it is live                                            | bool |
+| `is_replident`        | Whether it is a row identifier index                                            | bool |
+| `is_partial`        | Whether it is a partial index                                            | bool |
+
+The `indexes.columns` field, which contains information about the columns included in the `index`, has the following details for each column:
+
+| Field Name              | Description                 | Type   |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | Name                                         | string |
+
+- `tables.foreign_keys`
+
+The `foreign_keys` field contains information about all the `foreign_keys` in the database tables. The information for each `foreign_key` is as follows:
+
+| Field Name              | Description                 | Type   |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | Name                                           | string |
+| `definition`        | Foreign key definition                                            | string |
+| `constraint_schema` |Foreign key schema                                            | string |
+| `column_names` |Foreign key column names                                            | string |
+| `referenced_table_schema` |Referenced table schema                                            | string |
+| `referenced_table_name` |Referenced table name                                            | string |
+| `referenced_column_names` |Referenced column names                                            | string |
+| `update_action` |Cascade update rule (such as CASCADE, RESTRICT)                                            | string |
+| `delete_action` |Cascade delete rule (such as CASCADE, SET NULL)                                            | string |
 
 ## Log Collection {#logging}
 

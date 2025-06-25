@@ -215,11 +215,8 @@ func (ipt *Input) metricCollectMysqlObject() ([]*point.Point, error) {
 
 	// qps, tps, slow_queries, avg_query_time
 	if ipt.objectMetric != nil {
-		qps := fmt.Sprintf("%.2f", ipt.objectMetric.QPS)
-		kvs = kvs.Add("qps", qps, false, true)
-
-		tps := fmt.Sprintf("%.2f", ipt.objectMetric.TPS)
-		kvs = kvs.Add("tps", tps, false, true)
+		kvs = kvs.Add("qps", ipt.objectMetric.QPS, false, true)
+		kvs = kvs.Add("tps", ipt.objectMetric.TPS, false, true)
 
 		kvs = kvs.Add("slow_queries", ipt.objectMetric.SlowQueries, false, true)
 	}
