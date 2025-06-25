@@ -108,7 +108,7 @@ func (ipt *Input) Run() {
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
 
-	ipt.start = ntp.Now()
+	ipt.ptsTime = ntp.Now()
 	for {
 		if ipt.pause {
 			l.Debug("%s election paused", inputName)
@@ -139,7 +139,7 @@ func (ipt *Input) Run() {
 
 		select {
 		case tt := <-tick.C:
-			ipt.start = inputs.AlignTime(tt, ipt.start, ipt.Interval.Duration)
+			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.Interval.Duration)
 
 		case <-datakit.Exit.Wait():
 			ipt.exit()
@@ -265,7 +265,7 @@ func (*Input) AvailableArchs() []string {
 
 func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&Measurement{},
+		&metricMeasurement{},
 		&jenkinsPipelineMeasurement{},
 		&jenkinsJobMeasurement{},
 	}

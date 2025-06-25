@@ -217,7 +217,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 		switch measurement {
 		case inputName:
 			opts = append(opts, cs.opts...)
-			opts = append(opts, inputs.WithDoc(&Measurement{}))
+			opts = append(opts, inputs.WithDoc(&metricMeasurement{}))
 
 			msgs := inputs.CheckPoint(pt, opts...)
 

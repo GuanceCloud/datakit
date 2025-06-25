@@ -80,7 +80,8 @@ type promRunner struct {
 	pm         *iprom.Prom
 	feeder     dkio.Feeder
 
-	tick     *time.Ticker
+	tick *time.Ticker
+	collectStart,
 	lastTime time.Time
 
 	currentURL   string
@@ -152,17 +153,13 @@ func newPromRunnersWithTomlConfig(feeder dkio.Feeder, configStr string) ([]*prom
 }
 
 func newPromRunnerWithConfig(feeder dkio.Feeder, c *promConfig) (*promRunner, error) {
-	var (
-		p = &promRunner{
-			identifier:   fmt.Sprintf("%s: %v", c.Source, c.URLs),
-			conf:         c,
-			feeder:       feeder,
-			lastTime:     ntp.Now(),
-			instanceTags: make(map[string]string),
-		}
-
-		start = time.Now()
-	)
+	p := &promRunner{
+		identifier:   fmt.Sprintf("%s: %v", c.Source, c.URLs),
+		conf:         c,
+		feeder:       feeder,
+		lastTime:     ntp.Now(),
+		instanceTags: make(map[string]string),
+	}
 
 	hosts, err := parseURLHost(c)
 	if err != nil {
@@ -185,7 +182,7 @@ func newPromRunnerWithConfig(feeder dkio.Feeder, c *promConfig) (*promRunner, er
 		if p.conf.AsLogging != nil && p.conf.AsLogging.Enable {
 			for _, pt := range pts {
 				err := p.feeder.Feed(point.Logging, []*point.Point{pt},
-					dkio.WithCollectCost(time.Since(start)),
+					dkio.WithCollectCost(time.Since(p.collectStart)),
 					dkio.WithElection(defaultPromElection),
 					dkio.WithSource(pt.Name()),
 				)
@@ -195,7 +192,7 @@ func newPromRunnerWithConfig(feeder dkio.Feeder, c *promConfig) (*promRunner, er
 			}
 		} else {
 			err := p.feeder.Feed(point.Metric, pts,
-				dkio.WithCollectCost(time.Since(start)),
+				dkio.WithCollectCost(time.Since(p.collectStart)),
 				dkio.WithElection(defaultPromElection),
 				dkio.WithSource(p.conf.Source),
 			)
@@ -265,6 +262,7 @@ func (p *promRunner) scrapOnce() {
 
 		for _, u := range p.conf.URLs {
 			p.currentURL = u
+			p.collectStart = time.Now()
 			// use callback processor, not return pts
 			_, err := p.pm.CollectFromHTTPV2(u, iprom.WithTimestamp(p.lastTime.UnixNano()))
 			if err != nil {
