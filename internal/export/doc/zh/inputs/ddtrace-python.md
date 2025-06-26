@@ -87,7 +87,6 @@ DD_RUNTIME_METRICS_ENABLED=true \
 ```python title="service_a.py"
 from flask import Flask, request
 import requests, os
-from ddtrace import tracer
 
 app = Flask(__name__)
 
@@ -115,7 +114,6 @@ if __name__ == '__main__':
 ```python title="service_b.py"
 from flask import Flask, request
 import os, time, requests
-from ddtrace import tracer
 
 app = Flask(__name__)
 
