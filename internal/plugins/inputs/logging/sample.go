@@ -26,7 +26,7 @@ var sampleCfg = `
 
   ## Socket currently supports two protocols: tcp/udp. It is recommended to use internal
   ## network ports for security.
-  socket = [
+  sockets = [
    #"tcp://0.0.0.0:9540",
    #"udp://0.0.0.0:9541"
   ]

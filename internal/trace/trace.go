@@ -9,16 +9,19 @@ package trace
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/hex"
 	"errors"
 	"io"
 	"net/http"
 	"regexp"
+	"runtime/debug"
 	"strconv"
 	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 )
 
 // tracing data constants
@@ -73,8 +76,8 @@ const (
 	TagVersion          = "version"
 	TagDKFingerprintKey = "dk_fingerprint"
 	TagBaseService      = "base_service"
+	TagSpanKind         = "span_kind"
 
-	// line protocol fields.
 	FieldDuration   = "duration"
 	FieldMessage    = "message"
 	FieldParentID   = "parent_id"
@@ -181,8 +184,51 @@ var (
 
 	DefaultGRPCServerOpts = []grpc.ServerOption{
 		grpc.MaxRecvMsgSize(1024 * 1024 * 10),
+		OTLPInterceptors(),
 	}
 )
+
+// OTLPInterceptors add multiple interceptor on gRPC.
+func OTLPInterceptors() grpc.ServerOption {
+	return grpc.ChainUnaryInterceptor(payloadInterceptor, recoveryInterceptor)
+}
+
+// payloadInterceptor set metrics on gRPC payload.
+func payloadInterceptor(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+	var size int
+	switch info.FullMethod {
+	case "/opentelemetry.proto.collector.trace.v1.TraceService/Export",
+		"/opentelemetry.proto.collector.metrics.v1.MetricsService/Export",
+		"/opentelemetry.proto.collector.logs.v1.LogsService/Export": // current only for otel gRPC.
+		if msg, ok := req.(proto.Message); ok {
+			size = proto.Size(msg)
+			grpcPayloadSizeVec.WithLabelValues(info.FullMethod).Observe(float64(size))
+		}
+
+	default:
+	}
+
+	return handler(ctx, req)
+}
+
+// recoveryInterceptor try to protect on crash.
+func recoveryInterceptor(
+	ctx context.Context,
+	req interface{},
+	info *grpc.UnaryServerInfo,
+	handler grpc.UnaryHandler,
+) (resp interface{}, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Warnf("Recovered from panic in %s: %v\n%s",
+				info.FullMethod,
+				r,
+				debug.Stack())
+		}
+	}()
+
+	return handler(ctx, req)
+}
 
 func GetSpanSourceType(app string) string {
 	if s, ok := sourceTypes[strings.ToLower(app)]; ok {

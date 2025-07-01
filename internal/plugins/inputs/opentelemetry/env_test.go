@@ -49,6 +49,7 @@ func TestReadEnv(t *testing.T) {
 				"ENV_INPUT_OTEL_HTTP":               `{"enable":true, "http_status_ok": 200, "trace_api": "/otel/v1/traces", "metric_api": "/otel/v1/metrics"}`,
 				"ENV_INPUT_OTEL_GRPC":               `{"trace_enable": true, "metric_enable": true, "addr": "127.0.0.1:4317"}`,
 				"ENV_INPUT_OTEL_EXPECTED_HEADERS":   `{"ex_version": "1.2.3", "ex_name": "env_resource_name"}`,
+				"ENV_INPUT_OTEL_CLEAN_MESSAGE":      `0`,
 			},
 			expected: &Input{
 				CustomerTags:     []string{"block1", "block2"},
@@ -62,6 +63,7 @@ func TestReadEnv(t *testing.T) {
 				HTTPConfig:       &httpConfig{StatusCodeOK: 200, TraceAPI: "/otel/v1/traces", MetricAPI: "/otel/v1/metrics"},
 				GRPCConfig:       &gRPC{Address: "127.0.0.1:4317"},
 				ExpectedHeaders:  map[string]string{"ex_version": "1.2.3", "ex_name": "env_resource_name"},
+				CleanMessage:     false,
 			},
 		},
 	}

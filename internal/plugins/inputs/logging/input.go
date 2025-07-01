@@ -222,14 +222,18 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
+func defaultInput() *Input {
+	return &Input{
+		Tags:      make(map[string]string),
+		inputName: inputName,
+		Tagger:    datakit.DefaultGlobalTagger(),
+		semStop:   cliutils.NewSem(),
+	}
+}
+
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return &Input{
-			Tags:      make(map[string]string),
-			inputName: inputName,
-			Tagger:    datakit.DefaultGlobalTagger(),
-			semStop:   cliutils.NewSem(),
-		}
+		return defaultInput()
 	})
 
 	inputs.Add(deprecatedInputName, func() inputs.Input {
