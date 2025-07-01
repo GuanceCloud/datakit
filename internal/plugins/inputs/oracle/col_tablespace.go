@@ -58,6 +58,11 @@ func (ipt *Input) collectOracleTableSpace() {
 		pts        []*point.Point
 	)
 
+	if ipt.isMetricExclude(metricName) {
+		l.Debugf("metric [%s] is excluded, ignored", metricName)
+		return
+	}
+
 	if sql, ok := ipt.cacheSQL[metricName]; ok {
 		if err := selectWrapper(ipt, &rows, sql, getMetricName(metricName, "oracle_tablespace")); err != nil {
 			l.Errorf("failed to collect table space: %s", err)
@@ -65,21 +70,23 @@ func (ipt *Input) collectOracleTableSpace() {
 		}
 	} else {
 		err := selectWrapper(ipt, &rows, SQLTableSpace, getMetricName(metricName, "oracle_tablespace"))
-		ipt.cacheSQL[metricName] = SQLTableSpace
 		l.Infof("Query for metric [%s], sql: %s", metricName, SQLTableSpace)
 		if err != nil {
 			if strings.Contains(err.Error(), "ORA-00942: table or view does not exist") {
-				ipt.cacheSQL[metricName] = SQLTableSpaceOld
 				l.Infof("Query for metric [%s], sql: %s", metricName, SQLTableSpaceOld)
 				// oracle old version. 11g
 				if err := selectWrapper(ipt, &rows, SQLTableSpaceOld, getMetricName(metricName, "oracle_tablespace_old")); err != nil {
 					l.Errorf("failed to collect old table space info: %s", err)
 					return
+				} else {
+					ipt.cacheSQL[metricName] = SQLTableSpaceOld
 				}
 			} else {
 				l.Errorf("failed to collect table space info: %s", err)
 				return
 			}
+		} else {
+			ipt.cacheSQL[metricName] = SQLTableSpace
 		}
 	}
 

@@ -122,6 +122,16 @@ func (ipt *Input) getConnString() string {
 	return connStr
 }
 
+func (ipt *Input) isMetricExclude(metric string) bool {
+	for _, m := range ipt.MetricExcludeList {
+		if metric == m {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (ipt *Input) Collect() {
 	ipt.setUpState()
 	ipt.FeedCoPts()

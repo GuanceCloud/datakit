@@ -42,6 +42,11 @@ func (ipt *Input) collectLockedSession() {
 		start = time.Now()
 	)
 
+	if ipt.isMetricExclude(name) {
+		l.Debugf("metric [%s] is excluded, ignored", name)
+		return
+	}
+
 	if err := selectWrapper(ipt, &rows, colLockedSession, name); err != nil {
 		l.Errorf("failed to collect %q: %s", name, err)
 		return

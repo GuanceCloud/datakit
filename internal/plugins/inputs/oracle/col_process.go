@@ -55,6 +55,11 @@ func (ipt *Input) collectOracleProcess() {
 		pts        []*point.Point
 	)
 
+	if ipt.isMetricExclude(metricName) {
+		l.Debugf("metric [%s] is excluded, ignored", metricName)
+		return
+	}
+
 	if sql, ok := ipt.cacheSQL[metricName]; ok {
 		if err := selectWrapper(ipt, &rows, sql, getMetricName(metricName, "oracle_process")); err != nil {
 			l.Error("failed to collect processes info: %s", err)
@@ -62,21 +67,23 @@ func (ipt *Input) collectOracleProcess() {
 		}
 	} else {
 		err := selectWrapper(ipt, &rows, SQLProcess, getMetricName(metricName, "oracle_process"))
-		ipt.cacheSQL[metricName] = SQLProcess
 		l.Infof("Query for metric [%s], sql: %s", metricName, SQLProcess)
 		if err != nil {
 			if strings.Contains(err.Error(), "ORA-00942: table or view does not exist") {
-				ipt.cacheSQL[metricName] = SQLProcessOld
 				l.Infof("Query for metric [%s], sql: %s", metricName, SQLProcessOld)
 				// oracle old version. 11g
 				if err := selectWrapper(ipt, &rows, SQLProcessOld, getMetricName(metricName, "oracle_process_old")); err != nil {
 					l.Errorf("failed to collect old processes info: %s", err)
 					return
+				} else {
+					ipt.cacheSQL[metricName] = SQLProcessOld
 				}
 			} else {
 				l.Errorf("failed to collect processes info: %s", err)
 				return
 			}
+		} else {
+			ipt.cacheSQL[metricName] = SQLProcess
 		}
 	}
 

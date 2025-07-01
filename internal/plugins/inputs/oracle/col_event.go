@@ -60,6 +60,11 @@ func (ipt *Input) collectWaitingEvent() {
 		start = time.Now()
 	)
 
+	if ipt.isMetricExclude(name) {
+		l.Debugf("metric [%s] is excluded, ignored", name)
+		return
+	}
+
 	if err := selectWrapper(ipt, &rows, colWaitingEvent, name); err != nil {
 		l.Errorf("failed to collect %q: %s", name, err)
 		return
