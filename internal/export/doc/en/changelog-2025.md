@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.76.1(2025/07/01) {#cl-1.76.1}
+
+This release is a hotfix containing the following fixes:
+
+### Bug Fixes {#cl-1.76.1-fix}
+
+- OpenTelemetry collector:
+    - Fixed the issue where custom tags could not be extracted, introduced in 1.76.0 (#2733)
+    - By default, redundant fields in the `message` field are now discarded, keeping only the converted `trace_id` field in attributes
+
+- Oracle collector:
+    - Fixed the inability to disable specific metrics, introduced in 1.74.0 (#2729)
+    - Fixed SQL caching issues
+
+- Fixed crash issue in SQLServer Collector caused by `interval` configuration
+
+---
+
 ## 1.76.0(2025/06/25) {#cl-1.76.0}
 
 This release is an iterative update with the following main changes:
