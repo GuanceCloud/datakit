@@ -13,14 +13,9 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	common "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
 	logs "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/logs/v1"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
-)
-
-var (
-	kb = 1024
-	// logMaxLen 默认500kb.
-	logMaxLen = 500 * kb
 )
 
 func (ipt *Input) parseLogRequest(resourceLogss []*logs.ResourceLogs) []*point.Point {
@@ -55,7 +50,9 @@ func (ipt *Input) parseLogRequest(resourceLogss []*logs.ResourceLogs) []*point.P
 				case *common.AnyValue_KvlistValue:
 					message = body.GetKvlistValue().String()
 				}
-				messages := splitByByteLength(message, logMaxLen)
+
+				messages := splitByByteLength(message, ipt.LogMaxLen*1024)
+
 				for i, msg := range messages {
 					kvs := mergeTagsToField(resourceTags, scopeTags, ptTags)
 					for k, v := range ipt.Tags { // span.attribute 优先级大于全局tag。

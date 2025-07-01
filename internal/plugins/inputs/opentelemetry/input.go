@@ -58,9 +58,9 @@ const (
   ## compatible ddtrace: It is possible to compatible OTEL Trace with DDTrace trace
   # compatible_ddtrace=false
 
-  ## spilt service.name form xx.system.
+  ## split service.name form xx.system.
   ## see: https://github.com/open-telemetry/semantic-conventions/blob/main/docs/database/database-spans.md
-  spilt_service_name = true
+  split_service_name = true
 
   ## delete trace message
   # del_message = true
@@ -74,6 +74,9 @@ const (
   ## For better performance, gojson and jsoniter is better than protojson,
   ## for compatible reason we still use protojson as default.
   jmarshaler = "protojson"
+
+  ## cleaned the top-level fields in message. Default true
+  clean_message = true
 
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
@@ -144,14 +147,15 @@ type Input struct {
 	Pipelines           map[string]string `toml:"pipelines"`             // deprecated
 	IgnoreAttributeKeys []string          `toml:"ignore_attribute_keys"` // deprecated
 	CustomerTags        []string          `toml:"customer_tags"`
-	LogMaxLen           int               `toml:"log_max"`
+	LogMaxLen           int               `toml:"log_max"` // KiB
 	HTTPConfig          *httpConfig       `toml:"http"`
 	GRPCConfig          *gRPC             `toml:"grpc"`
 
 	CompatibleDDTrace   bool `toml:"compatible_ddtrace"`
 	CompatibleZhaoShang bool `toml:"compatible_zhaoshang"`
+	CleanMessage        bool `toml:"clean_message"`
 
-	SpiltServiceName bool                         `toml:"spilt_service_name"`
+	SplitServiceName bool                         `toml:"spilt_service_name"`
 	DelMessage       bool                         `toml:"del_message"`
 	ExpectedHeaders  map[string]string            `toml:"expected_headers"`
 	KeepRareResource bool                         `toml:"keep_rare_resource"`
@@ -175,10 +179,6 @@ type Input struct {
 	jmarshaler jsonMarshaler
 }
 
-type jsonMarshaler interface {
-	Marshal(x proto.Message) ([]byte, error)
-}
-
 func (*Input) Catalog() string { return inputName }
 
 func (*Input) AvailableArchs() []string { return datakit.AllOS }
@@ -194,13 +194,8 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
-func (ipt *Input) RegHTTPHandler() {
+func (ipt *Input) setup() *Input {
 	log = logger.SLogger(inputName)
-	if ipt.HTTPConfig == nil && ipt.GRPCConfig == nil {
-		log.Infof("### All OpenTelemetry web protocol are not enabled")
-
-		return
-	}
 
 	switch ipt.JSONMarshaler {
 	case "gojson":
@@ -215,14 +210,23 @@ func (ipt *Input) RegHTTPHandler() {
 	for k, v := range otelPubAttrs { // deep copy
 		ipt.commonAttrs[k] = v
 	}
+
 	// NOTE: CustomerTags may overwrite public common attribytes
 	for _, key := range ipt.CustomerTags {
-		otelPubAttrs[key] = strings.ReplaceAll(key, ".", "_")
+		ipt.commonAttrs[key] = strings.ReplaceAll(key, ".", "_")
 	}
 
 	ipt.ptsOpts = append(point.CommonLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
-	if ipt.LogMaxLen > 0 {
-		logMaxLen = ipt.LogMaxLen * kb
+	return ipt
+}
+
+func (ipt *Input) RegHTTPHandler() {
+	ipt = ipt.setup()
+
+	if ipt.HTTPConfig == nil && ipt.GRPCConfig == nil {
+		log.Infof("### All OpenTelemetry web protocol are not enabled")
+
+		return
 	}
 
 	var err error
@@ -349,7 +353,7 @@ func (ipt *Input) Run() {
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_opentelemetry"})
 	g.Go(func(ctx context.Context) error {
 		if ipt.GRPCConfig != nil {
-			ipt.GRPCConfig.runGRPCV1(ipt.GRPCConfig.Address, ipt)
+			ipt.GRPCConfig.runGRPCV1(ipt)
 		}
 
 		return nil
@@ -401,8 +405,10 @@ func defaultInput() *Input {
 		feeder:           dkio.DefaultFeeder(),
 		semStop:          cliutils.NewSem(),
 		Tagger:           datakit.DefaultGlobalTagger(),
-		SpiltServiceName: true,
+		SplitServiceName: true,
 		commonAttrs:      map[string]string{},
+		CleanMessage:     true,
+		LogMaxLen:        500,
 	}
 }
 

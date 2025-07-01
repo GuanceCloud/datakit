@@ -14,6 +14,7 @@ import (
 var (
 	TracingProcessCount *prometheus.CounterVec
 	tracingSamplerCount *prometheus.CounterVec
+	grpcPayloadSizeVec  *prometheus.SummaryVec
 )
 
 func metricsSetup() {
@@ -42,9 +43,32 @@ func metricsSetup() {
 			"service",
 		},
 	)
+
+	grpcPayloadSizeVec = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: "grpc",
+			Name:      "trace_payload_bytes",
+			Help:      "The payload size of gRPC request send to DataKit",
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
+		},
+		[]string{
+			"method",
+		},
+	)
 }
 
 func init() { //nolint:gochecknoinits
 	metricsSetup()
-	metrics.MustRegister(TracingProcessCount, tracingSamplerCount)
+	metrics.MustRegister(Metrics()...)
+}
+
+func Metrics() []prometheus.Collector {
+	return []prometheus.Collector{
+		TracingProcessCount, tracingSamplerCount, grpcPayloadSizeVec,
+	}
 }

@@ -8,7 +8,6 @@ package opentelemetry
 import (
 	"encoding/binary"
 	"encoding/hex"
-	"encoding/json"
 	"strconv"
 	"time"
 
@@ -17,50 +16,9 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	common "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
 	trace "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/trace/v1"
-	jsoniter "github.com/json-iterator/go"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 	"gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace/ext"
 )
-
-type protojsonMarshaler struct{}
-
-func (j *protojsonMarshaler) Marshal(x proto.Message) ([]byte, error) {
-	return protojson.Marshal(x)
-}
-
-type gojsonMarshaler struct{}
-
-func (j *gojsonMarshaler) Marshal(x proto.Message) ([]byte, error) {
-	return json.Marshal(x)
-}
-
-func initJSONIter() jsoniter.API {
-	customExtension := jsoniter.DecoderExtension{}
-
-	// 注册所有OTel关键类型的序列化优化
-	json := jsoniter.Config{
-		EscapeHTML:                    false,
-		TagKey:                        "json",
-		OnlyTaggedField:               false,
-		SortMapKeys:                   false,
-		IndentionStep:                 0,
-		ValidateJsonRawMessage:        true,
-		ObjectFieldMustBeSimpleString: true,
-	}.Froze()
-
-	json.RegisterExtension(customExtension)
-	return json
-}
-
-var otelJSON = initJSONIter()
-
-type jsoniterMarshaler struct{}
-
-func (m *jsoniterMarshaler) Marshal(x proto.Message) ([]byte, error) {
-	return otelJSON.Marshal(x)
-}
 
 func (ipt *Input) parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
 	var (
@@ -68,116 +26,173 @@ func (ipt *Input) parseResourceSpans(resspans []*trace.ResourceSpans) itrace.Dat
 		spanIDs, parentIDs = ipt.getSpanIDsAndParentIDs(resspans)
 	)
 
+	// otel trace are 3 level:
+	//   level-1: resource spans
+	//   level-2: scope spans
+	//   level-3: spans within a single scope
 	for _, spans := range resspans {
 		var (
 			serviceName          = "unknown_service"
-			runtimeID            = ""
 			runtimeIDInitialized = false
-			dktrace              itrace.DatakitTrace
+
+			dktrace   itrace.DatakitTrace
+			runtimeID string
 		)
 
-		for _, v := range spans.Resource.Attributes {
-			if v.Key == otelResourceServiceKey {
+		for idx, v := range spans.Resource.Attributes {
+			if v == nil {
+				continue
+			}
+
+			switch v.Key {
+			case otelResourceServiceKey:
 				serviceName = v.Value.GetStringValue()
-			} else if v.Key == itrace.FieldRuntimeID {
+
+				if ipt.CleanMessage {
+					spans.Resource.Attributes[idx] = nil
+				}
+
+			case itrace.FieldRuntimeID:
 				runtimeID = v.Value.GetStringValue()
+
+				if ipt.CleanMessage {
+					spans.Resource.Attributes[idx] = nil
+				}
+
+			default: // pass
 			}
 		}
 
 		for _, scopeSpans := range spans.ScopeSpans {
 			for _, span := range scopeSpans.Spans {
 				var (
-					spanKV  point.KVs
-					attrs   = make([]*common.KeyValue, 0)
-					spanID  = ipt.convertBinID(span.GetSpanId())
-					parenID = ipt.convertBinID(span.GetParentSpanId())
-					traceID = ipt.convertBinID(span.GetTraceId())
+					spanKVs     point.KVs
+					mergedAttrs = make([]*common.KeyValue, 0)
+					spanID      = ipt.convertBinID(span.GetSpanId())
+					parenID     = ipt.convertBinID(span.GetParentSpanId())
+					traceID     = ipt.convertBinID(span.GetTraceId())
+					spanAttrs   = span.GetAttributes()
+					spanTime    = int64(span.StartTimeUnixNano)
 				)
 
-				spanKV = spanKV.Add(itrace.FieldTraceID, traceID, false, false).
-					Add(itrace.FieldParentID, parenID, false, false).
-					Add(itrace.FieldSpanid, spanID, false, false).
-					Add(itrace.FieldResource, span.Name, false, false).
+				// extra add converted trace-id to attrs for global text search.
+				spanAttrs = append(spanAttrs, &common.KeyValue{
+					Key:   itrace.FieldTraceID,
+					Value: &common.AnyValue{Value: &common.AnyValue_StringValue{StringValue: traceID}},
+				})
+
+				// commom tags & fields.
+				spanKVs = spanKVs.AddV2(itrace.FieldTraceID, traceID, false).
+					AddV2(itrace.FieldParentID, parenID, false).
+					AddV2(itrace.FieldSpanid, spanID, false).
+					AddV2(itrace.FieldResource, span.Name, false).
+					AddV2(itrace.FieldStart, int64(span.StartTimeUnixNano)/int64(time.Microsecond), false).
+					AddV2(itrace.FieldDuration, int64(span.EndTimeUnixNano-span.StartTimeUnixNano)/int64(time.Microsecond), false).
+					AddTag(itrace.TagSpanStatus, getDKSpanStatus(span.GetStatus())).
+					AddTag(itrace.TagSpanType, itrace.FindSpanTypeStrSpanID(spanID, parenID, spanIDs, parentIDs)).
+					AddTag(itrace.TagDKFingerprintKey, datakit.DatakitHostName+"_"+datakit.Version).
 					AddTag(itrace.TagOperation, span.Name).
 					AddTag(itrace.TagSource, inputName).
-					AddTag(itrace.TagService, serviceName).
-					Add(itrace.FieldStart, int64(span.StartTimeUnixNano)/int64(time.Microsecond), false, false).
-					Add(itrace.FieldDuration, int64(span.EndTimeUnixNano-span.StartTimeUnixNano)/int64(time.Microsecond), false, false).
-					AddTag(itrace.TagSpanStatus, getDKSpanStatus(span.GetStatus())).
-					AddTag(itrace.TagSpanType,
-						itrace.FindSpanTypeStrSpanID(spanID, parenID, spanIDs, parentIDs)).
-					AddTag(itrace.TagDKFingerprintKey, datakit.DatakitHostName+"_"+datakit.Version)
+					AddTag(itrace.TagService, serviceName)
 
 				// service_name from xx.system.
-				if ipt.SpiltServiceName {
-					spanKV = spanKV.MustAddTag(itrace.TagService, getServiceNameBySystem(span.GetAttributes(), serviceName)).
+				if ipt.SplitServiceName {
+					spanKVs = spanKVs.MustAddTag(itrace.TagService,
+						ipt.getServiceNameBySystem(spanAttrs, serviceName)).
 						AddTag(itrace.TagBaseService, serviceName)
 				}
 
 				for k, v := range ipt.Tags { // span.attribute 优先级大于全局tag。
-					spanKV = spanKV.MustAddTag(k, v)
+					spanKVs = spanKVs.MustAddTag(k, v)
 				}
 
 				if runtimeID == "" && !runtimeIDInitialized {
-					if attrRuntimeID, ok := getAttr(itrace.FieldRuntimeID, span.Attributes); ok {
-						runtimeID = attrRuntimeID.Value.GetStringValue()
+					if v, idx := getAttr(itrace.FieldRuntimeID, spanAttrs); v != nil {
+						runtimeID = v.Value.GetStringValue()
+						if ipt.CleanMessage {
+							spanAttrs[idx] = nil
+						}
 					}
 					runtimeIDInitialized = true
 				}
+
 				if runtimeID != "" {
-					spanKV = spanKV.AddV2(ext.RuntimeID, runtimeID, true).AddV2(itrace.FieldRuntimeID, runtimeID, true)
+					spanKVs = spanKVs.AddV2(ext.RuntimeID, runtimeID, true). // NOTE: ext.RuntimeID deprecated
+													AddV2(itrace.FieldRuntimeID, runtimeID, true)
 				}
 
+				// extract exception event and related fields
 				for i := range span.Events {
+					if span.Events[i] == nil {
+						continue
+					}
+
 					if span.Events[i].Name == ExceptionEventName {
-						for o, d := range otelErrKeyToDkErrKey {
-							if attr, ok := getAttr(o, span.Events[i].Attributes); ok {
-								spanKV = spanKV.Add(d, attr.Value.GetStringValue(), false, false)
+						evtAttrs := span.Events[i].Attributes
+						for key, alias := range otelExceptionAliasMap {
+							if v, idx := getAttr(key, evtAttrs); v != nil {
+								spanKVs = spanKVs.AddV2(alias, v.Value.GetStringValue(), true)
+								if ipt.CleanMessage {
+									evtAttrs[idx] = nil
+								}
 							}
+						}
+
+						if ipt.CleanMessage {
+							span.Events[i] = nil
 						}
 						break
 					}
 				}
 
 				if kind, ok := spanKinds[int32(span.GetKind())]; ok {
-					spanKV = spanKV.AddTag("span_kind", kind)
+					spanKVs = spanKVs.AddTag(itrace.TagSpanKind, kind)
 				}
 
+				// Extract selected attrs as tags, other attrs are merged into current span's attrs.
+				//
+				// NOTE:
+				//   - all resource attrs(expect selected) are copied into all spans of current trace
+				//   - all scoped attrs(except selected) are copied into all spans of current scope spans
 				for _, x := range [][]*common.KeyValue{
 					spans.Resource.GetAttributes(),
 					scopeSpans.Scope.GetAttributes(),
-					span.GetAttributes(),
+					spanAttrs,
 				} {
-					newkv, newattr := ipt.attributesToKVS(x)
-					log.Debugf("newkv: %d, newattr: %d", len(newkv), len(newattr))
-					spanKV = append(spanKV, newkv...)
-					attrs = append(attrs, newattr...)
+					newkv, newattr := ipt.selectAttrs(x)
+					spanKVs = append(spanKVs, newkv...)
+					mergedAttrs = append(mergedAttrs, newattr...)
 				}
 
 				if len(span.GetEvents()) > 0 {
 					for _, event := range span.GetEvents() {
-						newkv, newattr := ipt.attributesToKVS(event.GetAttributes())
-						log.Debugf("newkv: %d, newattr: %d", len(newkv), len(newattr))
-						spanKV = append(spanKV, newkv...)
-						attrs = append(attrs, newattr...)
+						newkv, newattr := ipt.selectAttrs(event.GetAttributes())
+						spanKVs = append(spanKVs, newkv...)
+						mergedAttrs = append(mergedAttrs, newattr...)
 					}
 				}
 
-				if dbHost := getDBHost(span.GetAttributes()); dbHost != "" {
-					spanKV = spanKV.AddTag("db_host", dbHost)
+				if dbHost := getDBHost(spanAttrs); dbHost != "" {
+					spanKVs = spanKVs.AddTag("db_host", dbHost)
 				}
 
-				span.Attributes = attrs
-				spanKV = spanKV.AddTag(itrace.TagSourceType, getSourceType(spanKV.Tags()))
+				span.Attributes = mergedAttrs
+
+				spanKVs = spanKVs.AddTag(itrace.TagSourceType, getSourceType(spanKVs.Tags()))
 				if !ipt.DelMessage {
+					if ipt.CleanMessage {
+						span = ipt.cleanSpan(span)
+					}
+
 					if buf, err := ipt.jmarshaler.Marshal(span); err != nil {
 						log.Warn(err.Error())
 					} else {
-						spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
+						spanKVs = spanKVs.AddV2(itrace.FieldMessage, string(buf), false)
 					}
 				}
-				t := time.Unix(int64(span.StartTimeUnixNano)/1e9, int64(span.StartTimeUnixNano)%1e9)
-				pt := point.NewPointV2(inputName, spanKV, append(ipt.ptsOpts, point.WithTime(t))...)
+
+				pt := point.NewPointV2(inputName, spanKVs,
+					append(ipt.ptsOpts, point.WithTimestamp(spanTime))...)
 				dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 			}
 		}
@@ -188,6 +203,20 @@ func (ipt *Input) parseResourceSpans(resspans []*trace.ResourceSpans) itrace.Dat
 	}
 
 	return dktraces
+}
+
+// cleanSpan try to remove fields of the span and make the marshaled json smaller.
+func (ipt *Input) cleanSpan(span *trace.Span) *trace.Span {
+	span.TraceId = nil
+	span.SpanId = nil
+	span.ParentSpanId = nil
+	span.Name = ""
+	span.Kind = trace.Span_SPAN_KIND_UNSPECIFIED
+	span.StartTimeUnixNano = 0
+	span.EndTimeUnixNano = 0
+	span.Status = nil
+
+	return span
 }
 
 func (ipt *Input) getSpanIDsAndParentIDs(resspans []*trace.ResourceSpans) (map[string]bool, map[string]bool) {

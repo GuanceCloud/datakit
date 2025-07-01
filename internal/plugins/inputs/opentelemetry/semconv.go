@@ -46,7 +46,7 @@ const (
 )
 
 var (
-	otelErrKeyToDkErrKey = map[string]string{
+	otelExceptionAliasMap = map[string]string{
 		ExceptionTypeKey:       itrace.FieldErrType,
 		ExceptionMessageKey:    itrace.FieldErrMessage,
 		ExceptionStacktraceKey: itrace.FieldErrStack,
@@ -138,13 +138,19 @@ var (
 	}
 )
 
-func getServiceNameBySystem(atts []*common.KeyValue, defaultName string) string {
-	for _, keyValue := range atts {
-		key := keyValue.GetKey()
-		if key == "db.system" || key == "rpc.system" || key == "messaging.system" {
-			if system := keyValue.GetValue().GetStringValue(); system != "" {
+func (ipt *Input) getServiceNameBySystem(attrs []*common.KeyValue, defaultName string) string {
+	for idx, attr := range attrs {
+		key := attr.GetKey()
+
+		switch key {
+		case "db.system", "rpc.system", "messaging.system":
+			if system := attr.GetValue().GetStringValue(); system != "" {
+				if ipt.CleanMessage {
+					attrs[idx] = nil
+				}
 				return system
 			}
+		default: // pass
 		}
 	}
 
