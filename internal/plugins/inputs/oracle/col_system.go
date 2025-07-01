@@ -170,6 +170,11 @@ func (ipt *Input) collectOracleSystem() {
 		pts        []*point.Point
 	)
 
+	if ipt.isMetricExclude(metricName) {
+		l.Debugf("metric [%s] is excluded, ignored", metricName)
+		return
+	}
+
 	sql := sqlConSystemMetric["default"]
 	if x, ok := sqlConSystemMetric[ipt.mainVersion]; ok { // use version specific SQL.
 		sql = x

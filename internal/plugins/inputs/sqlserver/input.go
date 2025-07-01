@@ -337,12 +337,14 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 	}
 
 	// use input interval as default
+	duration := ipt.Interval.Duration
+
 	// use custom query interval if set
 	if query.Interval.Duration > 0 {
-		query.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, query.Interval.Duration)
+		duration = config.ProtectedInterval(minInterval, maxInterval, query.Interval.Duration)
 	}
 
-	tick := time.NewTicker(query.Interval.Duration)
+	tick := time.NewTicker(duration)
 	defer tick.Stop()
 
 	ptsTime := ntp.Now()
