@@ -54,9 +54,9 @@ RabbitMQ collector monitors RabbitMQ by collecting data through the plug-in `rab
 - Create user, for example:
 
     ```shell
-    sudo rabbitmqctl add_user guance <SECRET>
-    sudo rabbitmqctl set_permissions  -p / guance "^aliveness-test$" "^amq\.default$" ".*"
-    sudo rabbitmqctl set_user_tags guance monitoring
+    sudo rabbitmqctl add_user monitor <SECRET>
+    sudo rabbitmqctl set_permissions  -p / monitor "^aliveness-test$" "^amq\.default$" ".*"
+    sudo rabbitmqctl set_user_tags monitor monitoring
     ```
 
 ### Collector Configuration {#input-config}
