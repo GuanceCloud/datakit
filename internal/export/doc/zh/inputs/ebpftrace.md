@@ -54,9 +54,41 @@ DataKit ELinker 或 DataKit 中的 `ebpftrace` 插件用于接收和链接 eBPF 
 
 请参考以下部署模型（如下图）： 需要使所有 `ebpf` 外部采集器的 [`ebpf-trace`](./ebpf.md#ebpf-trace) 插件生成的 eBPF span 数据**发送至同一个开启 `ebpftrace` 采集器的 DataKit ELinker 或 DataKit** 上
 
-> 如果一个服务的三个应用 App 1 ～ 3 位于两个不同的节点，`ebpftrace` 目前根据 tcp seq 等来确认进程间的网络调用关系，需要对相关 eBPF span 进行链接以此生成 trace_id 和设置 parent_id。
+> 如果一个服务的三个应用 App 1 ～ 3 位于两个不同的节点，`ebpftrace` 目前根据 TCP *seq* 等来确认进程间的网络调用关系，需要对相关 eBPF span 进行链接以此生成 `trace_id` 和设置 `parent_id`。
 
-![img0](./imgs/tracing.png)
+
+```mermaid
+graph LR
+    subgraph Node 2
+        direction LR
+        dk_ebpf2("App: datakit-ebpf<br/>(ebpf-trace plugin on)")
+        App1("App 1")
+    end
+    subgraph Node 3
+        direction LR
+        dk_ebpf3("App: datakit-ebpf<br/>(ebpf-trace plugin on)")
+        App5("App 3")
+    end
+    subgraph Node 1
+        direction LR
+        dk_ebpf1("App: datakit-ebpf<br/>(ebpf-trace plugin on)")
+        App7("App 2")
+        subgraph Linux Container
+             App21("App 4")
+        end
+    end
+
+    %% Aggregator
+    dk("App: DataKit<br/>(with ebpftracing plugin)")
+
+    DataWay("DataWay")
+
+    %% Connections
+    dk_ebpf1 -- "eBPF Span (HTTP POST)" --> dk
+    dk_ebpf2 -- "eBPF Span (HTTP POST)" --> dk
+    dk_ebpf3 -- "eBPF Span (HTTP POST)" --> dk
+    dk -- "Upload Tracing Data<br/>(HTTP POST)" --> DataWay
+```
 
 ### DataKit ELinker/DataKit 的 `ebpftrace` 插件配置 {#ebpftrace-config}
 
