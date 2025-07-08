@@ -114,6 +114,7 @@ internal/export/doc/zh/inputs/imgs/tracing.png
 # DCA files
 node_modules
 dca/web/build
+dca/web/src/config.ts
 !dca/dca.yaml
 internal/apminject/dkrunc/dkrunc
 dk.metrics

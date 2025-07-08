@@ -22,35 +22,35 @@ code {
   font-size: 14px;
 }
 
-.ant-form-item .site-form-item-icon {
-  color: rgba(0, 0, 0, 0.25);
-}
+// .ant-form-item .site-form-item-icon {
+//   color: rgba(0, 0, 0, 0.25);
+// }
 
-.ant-btn-primary {
-  background-color: #2F61CC;
-  border-color: #2F61CC;
+// .ant-btn-primary {
+//   background-color: #2F61CC;
+//   border-color: #2F61CC;
 
-  &:hover,
-  &:active,
-  &:focus {
-    background-color: #1b4db7;
-    border-color: #2F61CC;
-    color: #fff;
-  }
+//   &:hover,
+//   &:active,
+//   &:focus {
+//     background-color: #1b4db7;
+//     border-color: #2F61CC;
+//     color: #fff;
+//   }
 
-  &:not(:disabled):active {
-    background-color: #1b4db7;
-    border-color: #2F61CC;
-  }
-}
+//   &:not(:disabled):active {
+//     background-color: #1b4db7;
+//     border-color: #2F61CC;
+//   }
+// }
 
-.ant-btn-default {
+// .ant-btn-default {
 
-  &:not(:disabled):active {
-    border-color: #2F61CC;
-    color: #2F61CC
-  }
-}
+//   &:not(:disabled):active {
+//     border-color: #2F61CC;
+//     color: #2F61CC
+//   }
+// }
 
 // editor
 .editor {

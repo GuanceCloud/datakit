@@ -15,6 +15,7 @@ import { DatakitInfoNav } from '../DatakitInfoNav/DatakitInfoNav';
 import { useAppSelector } from 'src/hooks';
 import { alertError, isContainerMode, isDatakitManagement, isDatakitUpgradeable } from 'src/helper/helper';
 import { DashboardContext, getOSIcon } from 'src/pages/Dashboard/Dashboard';
+import { useTranslation } from 'react-i18next';
 
 type DkInfoContextType = {
   datakit?: IDatakit
@@ -40,6 +41,7 @@ export type DatakitProps = {
 }
 
 export function Nodata({ loading, isError = false, refresh }) {
+  const { t } = useTranslation()
   return <div style={{ textAlign: "center", paddingTop: "50px", flex: 1 }}>
     {loading ?
       <Spin indicator={<LoadingOutlined style={{ fontSize: 40, color: "#FF6600" }} spin />} />
@@ -50,16 +52,17 @@ export function Nodata({ loading, isError = false, refresh }) {
             <img src={NetworkErrorImg} alt="" />
           </div>
           <div>
-            <span>网络不给力，请点击</span>
-            <span onClick={refresh} style={{ paddingLeft: '5px', color: '#537CD5', cursor: 'pointer' }}>刷新</span>
+            <span>{t("network_error")}</span>
+            <span onClick={refresh} style={{ paddingLeft: '5px', color: '#537CD5', cursor: 'pointer' }}>{t("refresh")}</span>
           </div>
         </div>
-        : "暂无数据"
+        : t("no_data")
     }
   </div>
 }
 
 function DkInfo() {
+  const { t } = useTranslation()
   const { modal } = App.useApp()
   const location = useLocation()
   const { state } = location
@@ -142,12 +145,12 @@ function DkInfo() {
       return
     }
     modal.confirm({
-      title: "重启",
-      content: "确定要重启吗？",
+      title: t("reload"),
+      content: t("confirm_reload_datakit"),
       onOk: async () => {
         return reloadDatakit(datakit).unwrap().then((res) => {
           if (res.success) {
-            message.success("Datakit 重启命令已发送成功")
+            message.success(t("reload_datakit_success"))
           }
         }).catch((err) => {
           alertError(err)
@@ -161,13 +164,13 @@ function DkInfo() {
       return
     }
     modal.confirm({
-      title: "升级 DataKit",
-      content: "确定要升级 DataKit 吗？",
+      title: t("upgrade_datakit"),
+      content: t("confirm_upgrade_datakit"),
       onOk: async () => {
         return upgradeDatakit(datakit).unwrap().then((res) => {
           console.log(res)
           if (res.success) {
-            message.success("Datakit 升级命令已发送成功")
+            message.success(t("upgrade_datakit_success"))
           }
         }).catch((err) => {
           alertError(err)
@@ -194,7 +197,7 @@ function DkInfo() {
   if (!datakit) {
     return <div className={styles.nodata}>
       <div className={styles.img}></div>
-      <div className={styles.text}>请选择 DataKit 进行查看</div>
+      <div className={styles.text}>{t("select_datakit_view")}</div>
     </div>
   }
 
@@ -203,7 +206,7 @@ function DkInfo() {
       <div className={styles.nav}>
         <Select
           showSearch={true}
-          placeholder="请选择 DataKit"
+          placeholder={t("select_datakit")}
           style={{ width: 200 }}
           // labelRender={labelRender}
           defaultValue={datakit?.host_name}
@@ -218,15 +221,15 @@ function DkInfo() {
         <Space className={styles["buttons"]}>
           <Button type="default" size={'small'} disabled={!isDatakitUpgradeable(datakit, latestDatakitVersion)} onClick={() => upgrade()}>
             <span className="fth-iconfont-Update size-14"> </span>
-            <span className={styles.text}>升级</span>
+            <span className={styles.text}>{t("upgrade")}</span>
           </Button>
           <Button type="default" size={'small'} disabled={!isDatakitManagement(datakit) || isContainerMode(datakit)} onClick={reload}>
             <ReloadOutlined className={styles.icon} />
-            <span className={styles.text}>重启</span>
+            <span className={styles.text}>{t("reload")}</span>
           </Button>
           <Button type="default" size={'small'} onClick={() => refresh()}>
             <SyncOutlined className={styles.icon} />
-            <span className={styles.text}>刷新</span>
+            <span className={styles.text}>{t("refresh")}</span>
           </Button>
         </Space>
       </div>

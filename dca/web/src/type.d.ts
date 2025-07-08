@@ -15,3 +15,8 @@ export interface Config {
   innerHost?: string
   frontHost?: string
 }
+
+declare module "*.json" {
+  const value: any;
+  export default value;
+}

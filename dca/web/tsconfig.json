@@ -21,7 +21,9 @@
     "noImplicitAny": false,
     "noEmit": true,
     "jsx": "react-jsx",
-    "types": ["react"]
+    "types": [
+      "react"
+    ]
   },
   "include": [
     "src"

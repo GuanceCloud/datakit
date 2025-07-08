@@ -165,7 +165,7 @@ func datakitLogDownladHandler(ctx *gin.Context) {
 
 	conn, err := getNewWebsocketConn(datakit, ws.GetDatakitLogDownloadAction)
 	if err != nil {
-		h.fail(500, "server error")
+		h.fail(500, fmt.Sprintf("get new websocket connection error: %s", err.Error()))
 		return
 	}
 
@@ -177,14 +177,14 @@ func datakitLogDownladHandler(ctx *gin.Context) {
 	}
 
 	if err := conn.WriteMessage(websocket.TextMessage, msg.Bytes()); err != nil {
-		h.fail(500, "server error")
+		h.fail(500, fmt.Sprintf("write message to websocket error: %s", err.Error()))
 		l.Warnf("failed to write message to websocket: %s", err.Error())
 		return
 	}
 
 	for {
 		if messageType, bytes, err := conn.ReadMessage(); err != nil {
-			h.fail(500, "server error")
+			h.fail(500, fmt.Sprintf("read message from websocket error: %s", err.Error()))
 			l.Warnf("failed to read message from websocket: %s", err.Error())
 			return
 		} else {
@@ -194,11 +194,11 @@ func datakitLogDownladHandler(ctx *gin.Context) {
 				dest := ws.WebsocketMessage{}
 				if err := json.Unmarshal(bytes, &dest); err != nil {
 					l.Errorf("failed to unmarshal message: %s", err.Error())
-					h.fail(500, "server error")
+					h.fail(500, fmt.Sprintf("failed to unmarshal message: %s", err.Error()))
 					return
 				} else if msg.Action != dest.Action {
 					l.Errorf("message action not match: %s, %s", msg.Action, dest.Action)
-					h.fail(500, "server error")
+					h.fail(500, "message action not match")
 					return
 				}
 
@@ -218,7 +218,7 @@ func datakitLogDownladHandler(ctx *gin.Context) {
 				}
 			default:
 				l.Warnf("got unknow message type: %d", messageType)
-				h.fail(500, "server error")
+				h.fail(500, fmt.Sprintf("unknown message type: %d", &messageType))
 				return
 			}
 		}
@@ -339,7 +339,7 @@ func websocketLogHandler(ctx *gin.Context) {
 
 	if err := newConn.WriteMessage(websocket.TextMessage, msg.Bytes()); err != nil {
 		l.Warnf("failed to write message: %s, exit", err.Error())
-		h.fail(500, "server error")
+		h.fail(500, fmt.Sprintf("failed to write message: %s", err.Error()))
 		return
 	}
 

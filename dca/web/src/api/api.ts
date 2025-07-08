@@ -1,6 +1,7 @@
 import { NETWORK_TIMEOUT_CODE, ResonseError, type IDatakit } from "../store/type"
 import logger from "./logger"
 import { getMsg } from 'src/store/baseApi';
+import i18n from "../i18n"
 
 export const FETCH_ABORT_ERROR = "fetch aborted"
 
@@ -102,7 +103,7 @@ function datakitApi(datakit: IDatakit) {
       const url = `${hostURL}${path}`
       const resResult = await fetchWithTimeout(url, opt).then((r) => {
         if (r.status === 500) {
-          const error: ResonseError = { errorCode: "500", message: "数据获取失败" }
+          const error: ResonseError = { errorCode: "500", message: i18n.t("api.data.fetch.failed") }
           return [error, null]
         }
 
@@ -310,7 +311,7 @@ export async function getLogTail(datakit: IDatakit, type = "log", controller?: A
     signal: controller.signal,
   }).then((response) => {
     if (Math.floor(response.status / 100) !== 2) {
-      return ["日志文件获取失败", null] as [string, ReadableStreamDefaultReader<Uint8Array> | null | undefined]
+      return [i18n.t("api.log.fetch.failed"), null] as [string, ReadableStreamDefaultReader<Uint8Array> | null | undefined]
     }
     return ["", { reader: response.body?.getReader(), controller }]
   }).catch((err) => {

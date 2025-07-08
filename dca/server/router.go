@@ -7,6 +7,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -16,6 +17,7 @@ import (
 	tollbooth "github.com/didip/tollbooth/v6"
 	"github.com/didip/tollbooth/v6/limiter"
 	ws "gitlab.jiagouyun.com/cloudcare-tools/datakit/dca/websocket"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (
@@ -34,9 +36,9 @@ var (
 )
 
 var (
-	consoleWebURL = "https://console.guance.com"
-	consoleAPIURL = "https://console-api.guance.com"
-	staticBaseURL = "https://static.guance.com"
+	consoleWebURL = fmt.Sprintf("https://console.%s", datakit.BrandDomain)
+	consoleAPIURL = fmt.Sprintf("https://console-api.%s", datakit.BrandDomain)
+	staticBaseURL = fmt.Sprintf("https://static.%s", datakit.BrandDomain)
 	dcaHTTPPort   = "80"
 	ignoreAuthURI = []string{
 		"/ws",

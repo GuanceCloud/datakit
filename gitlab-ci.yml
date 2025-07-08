@@ -15,7 +15,7 @@ variables:
   PROJECT: "datakit"
   CI_VERSION: "1.76.1"
   CI_TESTING_VERSION: $CI_VERSION-testing_$CI_COMMIT_BRANCH
-  DCA_CI_VERSION: "0.1.1"
+  DCA_CI_VERSION: "0.1.2"
   DCA_CI_TESTING_VERSION: $DCA_CI_VERSION-testing_$CI_COMMIT_BRANCH
   DISABLED_MR_TARGET_BRANCHES: "/^master|main/"
   DISABLED_MR_TITLE: '/^(\[Draft\]|\(Draft\)|Draft:)/'

@@ -8,24 +8,21 @@ import {
   FetchBaseQueryMeta,
 } from '@reduxjs/toolkit/query/react';
 import { alertError } from 'src/helper/helper';
-import { CONSOLE_AUTH_TOKEN_FAILED, DCA_AUTH_FAILED, ERRMSG, ResonseError } from './type';
+import { CONSOLE_AUTH_TOKEN_FAILED, DCA_AUTH_FAILED, ResonseError } from './type';
 import { clearStore } from '.';
+
+import i18n from '../i18n';
 
 const baseQuery = fetchBaseQuery({
   baseUrl: '',
 });
 
-export function getMsg(err: ResonseError): string {
+export function getMsg(err: ResonseError, params?: Record<string, string>): string {
   if (!err) {
-    return "未知错误"
+    return i18n.t("api.unknown_error")
   }
 
-  const errFormat = ERRMSG[err.errorCode]
-  const msg = err.message || "未知错误"
-  if (errFormat) {
-    return errFormat.replace("{{msg}}", msg)
-  }
-  return msg
+  return i18n.t("api." + err.errorCode, params)
 }
 
 const fetchWithIntercept: BaseQueryFn<

@@ -1,49 +1,55 @@
 import { Tabs } from "antd"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 
 import './DatakitInfoNav.scss'
 import { IDatakit } from "src/store/type"
+import { useTranslation } from "react-i18next"
 
-const defaultTabItems = [
-    {
-        label: "首页",
-        key: "0",
-        path: "",
-        types: ["host", "container"]
-    },
-    {
-        label: "运行情况",
-        key: "1",
-        path: "/runinfo",
-        types: ["host", "container"]
-    },
-    {
-        label: "采集器配置",
-        key: "2",
-        path: "/config",
-        types: ["host", "container"]
-    },
-    {
-        label: "Pipelines",
-        key: "3",
-        path: "/pipeline",
-        types: ["host", "container"]
-    },
-    {
-        label: "黑名单",
-        key: "4",
-        path: "/blacklist",
-        types: ["host", "container"]
-    },
-    {
-        label: "日志",
-        key: "5",
-        path: "/log",
-        types: ["host", "container"]
-    },
-]
 export function DatakitInfoNav({ datakit }: { datakit: IDatakit }) {
+    const { t } = useTranslation()
+
+    const defaultTabItems = useMemo(() => {
+        return [
+            {
+                label: t("label.index"),
+                key: "0",
+                path: "",
+                types: ["host", "container"]
+            },
+            {
+                label: t("label.run_info"),
+                key: "1",
+                path: "/runinfo",
+                types: ["host", "container"]
+            },
+            {
+                label: t("label.collector_config"),
+                key: "2",
+                path: "/config",
+                types: ["host", "container"]
+            },
+            {
+                label: t("label.pipeline"),
+                key: "3",
+                path: "/pipeline",
+                types: ["host", "container"]
+            },
+            {
+                label: t("label.blacklist"),
+                key: "4",
+                path: "/blacklist",
+                types: ["host", "container"]
+            },
+            {
+                label: t("label.log"),
+                key: "5",
+                path: "/log",
+                types: ["host", "container"]
+            },
+        ]
+
+    }, [t])
     const [key, setKey] = useState<string>("1")
     const [navMap, setNavMap] = useState<Record<string, string>>({})
     const [tabItems, setTabItems] = useState(defaultTabItems)
@@ -61,7 +67,7 @@ export function DatakitInfoNav({ datakit }: { datakit: IDatakit }) {
         })
 
         setNavMap(navItemsMap)
-    }, [datakit])
+    }, [datakit, t, defaultTabItems])
 
     useEffect(() => {
         for (let key in navMap) {

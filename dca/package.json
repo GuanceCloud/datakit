@@ -1,5 +1,6 @@
 {
   "name": "dca",
+  "version": "0.1.2",
   "description": "DataKit Control App",
   "scripts": {
     "dev": "npm run start:client",
