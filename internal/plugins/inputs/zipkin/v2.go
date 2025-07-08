@@ -51,7 +51,7 @@ func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 		}
 
 		if span.TraceID.High != 0 {
-			spanKV = spanKV.Add(itrace.FieldTraceID, fmt.Sprintf("%x%x", span.TraceID.High, span.TraceID.Low), false, true)
+			spanKV = spanKV.Add(itrace.FieldTraceID, fmt.Sprintf("%016x%016x", span.TraceID.High, span.TraceID.Low), false, true)
 		} else {
 			spanKV = spanKV.Add(itrace.FieldTraceID, strconv.FormatUint(span.TraceID.Low, 16), false, true)
 		}
