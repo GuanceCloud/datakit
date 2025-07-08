@@ -16,6 +16,8 @@ import { IDatakitStat } from "src/store/type"
 import { useIsAdmin } from 'src/hooks/useIsAdmin'
 import DCAEditor, { DCAEditorConfiguration } from 'src/components/DCAEditor/DCAEditor'
 import { Editor } from 'codemirror'
+import { useTranslation } from 'react-i18next'
+import config from "src/config"
 
 
 const { Text } = Typography
@@ -37,6 +39,7 @@ type ConfigInfo = {
 }
 
 export default function Config() {
+  const { t } = useTranslation()
   const [code, setCode] = useState<string>("")
   const [enabledConfig, setEnabledConfig] = useState<ConfigInfo[]>([])
   const [datakitConfig, setDatakitConfig] = useState<ConfigInfo | undefined>()
@@ -70,11 +73,11 @@ export default function Config() {
   useEffect(() => {
     if (blocker.state === "blocked") {
       Modal.confirm({
-        title: '确认',
+        title: t('confirm'),
         icon: <ExclamationCircleOutlined />,
-        content: '当前处于修改状态，确定离开吗？',
-        okText: '确认',
-        cancelText: '取消',
+        content: t("edit_state_away"),
+        okText: t("confirm"),
+        cancelText: t("cancel"),
         centered: true,
         onOk: () => {
           blocker.proceed()
@@ -84,7 +87,7 @@ export default function Config() {
         }
       })
     }
-  }, [blocker])
+  }, [blocker, t])
 
   useEffect(() => {
     datakitStat && initDatakitInfo(datakitStat)
@@ -111,7 +114,7 @@ export default function Config() {
   const helpRedirect = () => {
     if (configSelected && configSelected.inputName) {
       let key = configSelected.inputName
-      window.open(`https://docs.guance.com/integrations/${key}/`)
+      window.open(`${config.docURL}/integrations/${key}/`)
     }
   }
 
@@ -128,11 +131,11 @@ export default function Config() {
 
   const cancelEdit = () => {
     Modal.confirm({
-      title: '确认',
+      title: t('confirm'),
       icon: <ExclamationCircleOutlined />,
-      content: '当前处于修改状态，确定取消吗？',
-      okText: '确认',
-      cancelText: '取消',
+      content: t('edit_state_cancel'),
+      okText: t("confirm"),
+      cancelText: t("cancel"),
       centered: true,
       onOk: () => {
         configSelected?.realConfig && setCode(configSelected?.realConfig)
@@ -149,12 +152,12 @@ export default function Config() {
     const handleDelete = async () => {
       let path = configSelected?.path || ""
       if (!path) {
-        return alertError("当前配置文件路径不存在")
+        return alertError(t("file_path_not_exists"))
       }
 
       const [err] = await deleteDatakitConfig(datakit, { path, inputName: configSelected.inputName })
       if (!err) {
-        message.success("删除成功")
+        message.success(t("delete_success"))
         setIsEdit(false)
         setConfigSelected(null)
       } else {
@@ -163,11 +166,11 @@ export default function Config() {
     }
 
     Modal.confirm({
-      title: "请确认",
+      title: t("confirm"),
       icon: <ExclamationCircleOutlined />,
-      content: '确定要删除当前采集器配置文件吗?',
-      okText: '确认',
-      cancelText: '取消',
+      content: t("confirm_delete_config"),
+      okText: t("confirm"),
+      cancelText: t("cancel"),
       onOk: handleDelete,
     })
 
@@ -180,21 +183,21 @@ export default function Config() {
     let [isCorrectToml, checkErr] = checkToml(code)
     if (!isCorrectToml) {
       Modal.info({
-        title: "配置格式错误！",
+        title: t("config.format_error"),
         icon: <ExclamationCircleOutlined />,
-        content: checkErr ? `Line ${checkErr.line}:${checkErr.column}: ${checkErr.message}` : "格式错误，请重新编辑",
-        okText: '确定',
+        content: checkErr ? `Line ${checkErr.line}:${checkErr.column}: ${checkErr.message}` : t("config.format_error.message"),
+        okText: t("confirm"),
         centered: true,
       })
       return
     }
     let path = configSelected?.path || ""
     if (!path) {
-      return alertError("当前配置文件路径不存在")
+      return alertError(t("config.file_not_exists"))
     }
     const [err] = await saveDatakitConfig(datakit, { path, config: code, inputName: configSelected.inputName, isNew: configSelected.isNew })
     if (!err) {
-      message.success("保存成功")
+      message.success(t("save_success"))
       setIsEdit(false)
       setConfigSelected({
         inputName: configSelected.inputName,
@@ -224,7 +227,7 @@ export default function Config() {
 
   const checkConfig = async (config: ConfigInfo) => {
     if (!config.path) {
-      alertError("当前文件路径不存在，请确认！")
+      alertError(t("config.confirm_file_not_exists"))
       return
     }
     if (!datakit) {
@@ -233,7 +236,7 @@ export default function Config() {
     const [err, content] = await getDatakitConfig(datakit, config.path)
     if (err) {
       console.error(err)
-      alertError("配置获取失败，请检查路径是否正确，或重启Datakit！")
+      alertError(t("config.get_fail"))
       return
     }
     setIsEdit(false)
@@ -248,11 +251,11 @@ export default function Config() {
       event.stopPropagation()
       if (isEdit) {
         Modal.confirm({
-          title: '确认',
+          title: t("confirm"),
           icon: <ExclamationCircleOutlined />,
-          content: '当前处于修改状态，确定离开吗？',
-          okText: '确认',
-          cancelText: '取消',
+          content: t('edit_state_away'),
+          okText: t("confirm"),
+          cancelText: t("cancel"),
           centered: true,
           onOk: () => {
             checkConfig(config)
@@ -268,11 +271,11 @@ export default function Config() {
     if (isEdit) {
       const isOk = await new Promise((resolve) => {
         Modal.confirm({
-          title: '确认',
+          title: t("confirm"),
           icon: <ExclamationCircleOutlined />,
-          content: '当前处于修改状态，确定离开吗？',
-          okText: '确认',
-          cancelText: '取消',
+          content: t('edit_state_away'),
+          okText: t("confirm"),
+          cancelText: t("cancel"),
           centered: true,
           onOk: () => {
             resolve(true)
@@ -381,7 +384,7 @@ export default function Config() {
           <div className="title">
             <Space size={4}>
               <span className="fth-iconfont-configured"></span>
-              <span>已配置</span>
+              <span>{t("config.configured")}</span>
             </Space>
           </div>
           <div className="list">
@@ -434,7 +437,7 @@ export default function Config() {
           <div className="title">
             <Space size={4}>
               <span className="fth-iconfont-Sample"></span>
-              <span>Sample 列表</span>
+              <span>Sample {t("list")}</span>
             </Space>
           </div>
           <ul className="list">
@@ -459,11 +462,10 @@ export default function Config() {
           <>
             <div className="setting">
               <div className="path">
-                {configSelected.isNew ? "Sample 列表下都是官方提供的采集器配置文件示例，支持点击编辑另存为同名 conf 文件，并追加到已配置目录下" : `路径： ${configSelected?.path}`}
+                {configSelected.isNew ? t("config.new_config_message") : `${t("file_path")}： ${configSelected?.path}`}
               </div>
               <div className="edit">
                 <Space>
-
                   {
                     isAdmin && !isContainerMode(datakit)
                     &&
@@ -471,30 +473,30 @@ export default function Config() {
                       <>
                         <Button type="primary" size="small" className="button" onClick={editConfig}>
                           <EditOutlined />
-                          编辑
+                          {t("edit")}
                         </Button>
                       </>
                       :
                       <>
                         <Button type="primary" size="small" className="button" onClick={saveConfig}>
                           {configSelected.isNew ?
-                            <Tooltip title="另存为同名 conf 文件到已配置列表中" placement="bottom">
-                              <span>另存为</span>
+                            <Tooltip title={t("config.save_as_message")} placement="bottom">
+                              <span>{t("save_as")}</span>
                             </Tooltip>
                             :
-                            <span>保存</span>
+                            <span>{t("save")}</span>
                           }
                         </Button>
                         <Button size="small" className="button" onClick={cancelEdit}>
-                          取消
+                          {t("cancel")}
                         </Button>
                       </>)
                   }
                   <Button type="default" size="small" onClick={() => toggleIsSample()}>
-                    {isSample ? "关闭 Sample" : "Sample 配置"}
+                    {isSample ? t("config.close_sample") : t("config.configure_sample")}
                   </Button>
                   <Button type="default" size="small" onClick={() => helpRedirect()}>
-                    帮助
+                    {t("help")}
                   </Button>
                   {isAdmin && !isContainerMode(datakit) && !configSelected.isMainConf &&
                     (!configSelected.isNew && <Button type="default" size="small" onClick={() => deleteConfig()}>

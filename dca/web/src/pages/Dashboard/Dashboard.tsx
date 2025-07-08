@@ -1,6 +1,6 @@
-import { Divider, Dropdown, message, Modal, Space } from 'antd'
+import { Divider, Dropdown, message, Modal, Space, Tooltip } from 'antd'
 import { Outlet, useNavigate } from 'react-router-dom';
-import { CaretDownOutlined, ExclamationCircleOutlined, LogoutOutlined, UserOutlined } from '@ant-design/icons';
+import { CaretDownOutlined, ExclamationCircleOutlined, LogoutOutlined, TranslationOutlined, UserOutlined } from '@ant-design/icons';
 import { connect, ConnectedProps } from 'react-redux';
 import { createContext, useEffect, useState } from 'react';
 import { Typography } from 'antd';
@@ -15,6 +15,12 @@ import { set, User } from 'src/store/user/user';
 import linuxIcon from "src/assets/linux.png"
 import windowsIcon from "src/assets/windows.png"
 import macIcon from "src/assets/mac.png"
+import { useTranslation } from 'react-i18next';
+import config from "src/config"
+import { toggleLanguage } from 'src/i18n';
+
+const isTrueWatch = config.brandName === "truewatch"
+const iconClass = isTrueWatch ? "icon-truewatch" : "icon"
 
 const { Text } = Typography
 const osIcons = {
@@ -23,17 +29,6 @@ const osIcons = {
   "mac": macIcon
 }
 
-const defaultMenu = {
-  items:
-    [
-      {
-        key: "1",
-        label: (
-          <div style={{ color: "#C6C6C6", textAlign: "center", height: "110px", lineHeight: "110px" }}>暂无数据</div>
-        )
-      }
-    ]
-}
 type DashboardContextType = {
   currentWorkspace: IWorkspace | undefined
   latestDatakitVersion: string
@@ -49,7 +44,19 @@ export function getOSIcon(os: string): string {
 }
 
 function Dashboard({ user, setUserInfo }: Props) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
+  const defaultMenu = {
+    items:
+      [
+        {
+          key: "1",
+          label: (
+            <div style={{ color: "#C6C6C6", textAlign: "center", height: "110px", lineHeight: "110px" }}>{t("no_data")}</div>
+          )
+        }
+      ]
+  }
   const [menu, setMenu] = useState(defaultMenu)
   const [visible, setVisible] = useState<Boolean>(false)
   const [latestDatakitVersion, setLatestDatakitVersion] = useState("")
@@ -113,11 +120,11 @@ function Dashboard({ user, setUserInfo }: Props) {
   const logout = async () => {
     const isOk = await new Promise((resolve) => {
       Modal.confirm({
-        title: '确认',
+        title: t("confirm"),
         icon: <ExclamationCircleOutlined />,
-        content: '是否退出当前账户',
-        okText: '确认',
-        cancelText: '取消',
+        content: t("is_logout"),
+        okText: t("confirm"),
+        cancelText: t("cancel"),
         centered: true,
         onOk: () => {
           resolve(true)
@@ -134,12 +141,12 @@ function Dashboard({ user, setUserInfo }: Props) {
 
     userLogout().unwrap().then(() => {
       clearStore().finally(() => {
-        message.success("退出成功")
+        message.success(t("logout_success"))
         navigate("/login", { replace: true })
       })
     }).catch((err) => {
       console.error(err)
-      alertError("退出失败")
+      alertError(t("logout_fail"))
     })
   }
 
@@ -151,7 +158,7 @@ function Dashboard({ user, setUserInfo }: Props) {
           <div onClick={logout}>
             <Space>
               <LogoutOutlined />
-              <span>退出</span>
+              <span>{t("logout")}</span>
             </Space>
           </div>
         ),
@@ -178,13 +185,14 @@ function Dashboard({ user, setUserInfo }: Props) {
   }
 
   const getWorkSpaceName = (currentWorkspace: IWorkspace | undefined): string => {
-    return currentWorkspace ? (currentWorkspace.name || currentWorkspace.wsName) : '工作空间列表'
+    return currentWorkspace ? (currentWorkspace.name || currentWorkspace.wsName) : t("workspace_list")
   }
 
   useEffect(() => {
     if (currentWorkspace) {
       navigate("/dashboard")
     }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentWorkspace])
 
@@ -196,7 +204,9 @@ function Dashboard({ user, setUserInfo }: Props) {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <div className={styles.icon}></div>
+        <div
+          className={styles[iconClass]}
+        ></div>
         <div className={styles.list}>
           <Dropdown
             menu={menu}
@@ -218,11 +228,26 @@ function Dashboard({ user, setUserInfo }: Props) {
           </Dropdown>
         </div>
         <div className={styles.right}>
+          {
+            !isTrueWatch && (
+              <div className={styles.lang}>
+                <Tooltip title="中文 / English">
+                  <Space onClick={() => {
+                    toggleLanguage()
+                  }}>
+                    <TranslationOutlined size={16} />
+                    <span>{t("language")}</span>
+                  </Space>
+                </Tooltip>
+                <Divider type="vertical" />
+              </div>
+            )
+          }
           <div className={styles.help}>
-            <a target="_blank" rel="noreferrer" href="https://docs.guance.com/datakit/dca">
+            <a target="_blank" rel="noreferrer" href={`${config.docURL}/datakit/dca`}>
               <Space>
                 <span className='fth-iconfont-help2'></span>
-                <span>帮助</span>
+                <span>{t("help")}</span>
               </Space>
 
             </a>

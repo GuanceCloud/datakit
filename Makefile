@@ -320,6 +320,7 @@ build_dca_web:
 	mkdir -p $(DIST_DIR)
 	cd dca && npm ci --registry=http://registry.npmmirror.com --disturl=http://npmmirror.com/dist --unsafe-perm && \
 	cd web && npm ci --registry=http://registry.npmmirror.com --disturl=http://npmmirror.com/dist --unsafe-perm && \
+	cp src/config/config.${BRAND}.ts src/config.ts && \
 	npm run build \
   cd ../..
 

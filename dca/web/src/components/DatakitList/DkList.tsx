@@ -14,6 +14,7 @@ import { useAppSelector } from 'src/hooks'
 import { DashboardContext, getOSIcon } from 'src/pages/Dashboard/Dashboard';
 import { useLazyGetDatakitListQuery, useLazyReloadDatakitQuery, useLazyUpgradeDatakitQuery, useLazyGetDatakitListByIDQuery } from 'src/store/datakitApi';
 import DatakitStatus from '../DatakitStatus/DatakitStatus';
+import { useTranslation } from 'react-i18next';
 
 const { Text } = Typography;
 const maxRequestNumber = 10
@@ -42,6 +43,7 @@ function getDatakitStatus(datakit: IDatakit): string {
 
 function DatakitList({ updateDatakits }: Props) {
   const { modal } = App.useApp()
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [timer, setTimer] = useState<NodeJS.Timeout>()
   const [searchName, setSearchName] = useState("")
@@ -157,8 +159,8 @@ function DatakitList({ updateDatakits }: Props) {
     }
 
     modal.confirm({
-      title: "升级 Datakit",
-      content: `当前共有${upgradeDatakits.length}个 Datakit 可升级，确定要升级 Datakit 吗？`,
+      title: t("datakit.upgrade"),
+      content: t("datakit.upgrade_datakit_message", { count: upgradeDatakits.length }),
       onOk: async () => {
         return runJob(maxRequestNumber, upgradeDatakits, (dk) => {
           return upgradeSingleDatakit(dk)
@@ -175,7 +177,7 @@ function DatakitList({ updateDatakits }: Props) {
     })
     return upgradeDatakit(dk).unwrap().then((res) => {
       if (res.success) {
-        message.success("Datakit 升级命令已发送成功")
+        message.success(t("upgrade_datakit_success"))
         updateDatakits(
           datakits.map((d) => {
             if (d.id === dk.id) {
@@ -192,12 +194,12 @@ function DatakitList({ updateDatakits }: Props) {
   }
   const upgrade = async (dk: IDatakit) => {
     if (!dk) {
-      return alertError("请选择要操作的 DataKit")
+      return alertError(t("select_datakit"))
     }
     const isLatest = dk.version === latestDatakitVersion
     modal.confirm({
-      title: "升级 Datakit",
-      content: `${isLatest ? "当前版本已是最新版本，" : ""}确定要升级 Datakit 吗？`,
+      title: t("upgrade_datakit"),
+      content: `${isLatest ? t("version_is_latest") + ", " : ""}${t("confirm_upgrade_datakit")}`,
       onOk: () => {
         upgradeSingleDatakit(dk)
       }
@@ -210,7 +212,7 @@ function DatakitList({ updateDatakits }: Props) {
     })
     return reloadDatakit(dk).unwrap().then((res) => {
       if (res.success) {
-        message.success("Datakit 重启命令已发送成功")
+        message.success(t("reload_datakit_success"))
         updateDatakits(
           datakits.map((d) => {
             if (d.id === dk.id) {
@@ -241,8 +243,8 @@ function DatakitList({ updateDatakits }: Props) {
     }
 
     modal.confirm({
-      title: "重启 Datakit",
-      content: `当前共有${reloadDatakits.length}个 Datakit 可操作，确定要重启 Datakit 吗？`,
+      title: t("reload_datakit"),
+      content: t("reload_datakit_message", { count: reloadDatakits.length }),
       onOk: async () => {
         return runJob(maxRequestNumber, reloadDatakits, (dk) => {
           return reloadSingleDatakit(dk)
@@ -255,12 +257,12 @@ function DatakitList({ updateDatakits }: Props) {
 
   const reload = async (dk: IDatakit) => {
     if (!dk) {
-      return alertError("请选择要操作的 DataKit")
+      return alertError(t("select_datakit"))
     }
 
     modal.confirm({
-      title: "重启",
-      content: "确定要重启 Datakit 吗？",
+      title: t("reload"),
+      content: t("confirm_reload_datakit"),
       onOk: async () => {
         return reloadSingleDatakit(dk)
       }
@@ -269,7 +271,7 @@ function DatakitList({ updateDatakits }: Props) {
 
   const DatakitListColumns: TableColumnsType<DataKitDataType> = [
     {
-      title: '主机名',
+      title: t("host_name"),
       dataIndex: 'host_name',
       render: (value, record) => {
         return <Space>
@@ -286,41 +288,41 @@ function DatakitList({ updateDatakits }: Props) {
       }
     },
     {
-      title: "系统架构",
+      title: t("os_arch"),
       render(text, record) {
         return `${record.os}/${record.arch}`
       }
     },
     {
-      title: '状态',
+      title: t("status_text"),
       dataIndex: "status",
       render(text, record) {
         return <DatakitStatus datakit={record}></DatakitStatus>
       }
     },
     {
-      title: '运行时长',
+      title: t("uptime"),
       dataIndex: "start_time",
       render(value, record) {
         return moment.duration(moment(value).diff(record.updated_at), "millisecond").humanize()
       }
     },
     {
-      title: "最后更新时间",
+      title: t("last_update"),
       dataIndex: "updated_at",
       render(text) {
         return moment(text).format('YYYY-MM-DD HH:mm:ss')
       }
     },
     {
-      title: '容器运行',
+      title: t("is_container_running"),
       dataIndex: 'run_in_container',
-      render(value, record) {
-        return value ? '是' : '否'
+      render(value) {
+        return value ? t("yes") : t("no")
       }
     },
     {
-      title: 'DataKit 版本',
+      title: t("datakit_version"),
       dataIndex: 'version',
       render(text, record) {
         return (
@@ -335,16 +337,16 @@ function DatakitList({ updateDatakits }: Props) {
       }
     },
     {
-      title: "操作",
+      title: t("operation"),
       render(text, record) {
         return (
           loadingDatakits[record.id] ?
             <Spin size='small' /> // loading row
             :
             <Space>
-              <Button size='small' type='link' disabled={!isDatakitManagement(record)} onClick={() => { navigate("/dashboard/runinfo", { state: { datakit: record } }) }}>管理</Button>
-              <Button size='small' type='link' disabled={!isDatakitManagement(record) || isContainerMode(record)} onClick={() => { reload(record) }}>重启</Button>
-              <Button size='small' type='link' disabled={!isDatakitUpgradeable(record, latestDatakitVersion)} onClick={() => { upgrade(record) }}>升级</Button>
+              <Button size='small' type='link' disabled={!isDatakitManagement(record)} onClick={() => { navigate("/dashboard/runinfo", { state: { datakit: record } }) }}>{t("management")}</Button>
+              <Button size='small' type='link' disabled={!isDatakitManagement(record) || isContainerMode(record)} onClick={() => { reload(record) }}>{t("reload")}</Button>
+              <Button size='small' type='link' disabled={!isDatakitUpgradeable(record, latestDatakitVersion)} onClick={() => { upgrade(record) }}>{t("upgrade")}</Button>
             </Space>
         )
       }
@@ -383,23 +385,36 @@ function DatakitList({ updateDatakits }: Props) {
     <div className={styles.container}>
       <div className={`${styles.search} ${styles.item}`}>
         <div className={styles['search-input']}>
-          <Input placeholder="搜索主机名或 IP" prefix={<SearchOutlined />} value={searchName} onChange={(e) => setSearchName(e.target.value)} onPressEnter={(e) => { searchDatakitList(e) }} />
+          <Input
+            placeholder={t("search_host_ip")}
+            prefix={<SearchOutlined />}
+            value={searchName}
+            onChange={(e) => setSearchName(e.target.value)}
+            onPressEnter={(e) => { searchDatakitList(e) }}
+          />
         </div>
       </div>
       <div className={styles["operation"]}>
-
         <div className={styles['total']}>
-          共 {pageInfo.totalCount} 台 DataKit
+          {t("total_datakit", { count: pageInfo.totalCount })}
         </div>
         <div className={styles["button"]}>
           <Space>
-            <Button type="default" size="small" className="button" onClick={() => setEnableSelection(!enableSelection)} >
+            <Button
+              type="default"
+              size="small"
+              className="button"
+              onClick={() => setEnableSelection(!enableSelection)} >
               <CopyOutlined />
-              批量操作
+              {t("batch_operation")}
             </Button>
-            <Button type="default" size="small" className="button" onClick={() => initDatakitList()}>
+            <Button
+              type="default"
+              size="small"
+              className="button"
+              onClick={() => initDatakitList()}>
               <span className="fth-iconfont-refresh1 size-14"> </span>
-              <span style={{ paddingLeft: '5px' }}>刷新</span>
+              <span style={{ paddingLeft: '5px' }}>{t("refresh")}</span>
             </Button>
           </Space>
         </div>
@@ -408,19 +423,21 @@ function DatakitList({ updateDatakits }: Props) {
         {
           enableSelection &&
           <div className={styles['edit']}>
-            <div className={styles["text"]}> 已选中 {selectedRowKeys.length} 项 </div>
+            <div className={styles["text"]}>
+              {t("selected_num", { num: selectedRowKeys.length })}
+            </div>
             <div className={styles["upgrade"]}>
               <Text disabled={rowSelection.selectedRowKeys.length === 0} onClick={() => batchUpgrade()}>
-                <span className="fth-iconfont-Update size-14"></span>升级
+                <span className="fth-iconfont-Update size-14"></span>{t("upgrade")}
               </Text>
             </div>
             <div className={styles["reload"]}>
               <Text disabled={rowSelection.selectedRowKeys.length === 0} onClick={() => batchReload()}>
-                <span className="fth-iconfont-Reload1 size-14"></span>重启
+                <span className="fth-iconfont-Reload1 size-14"></span>{t("reload")}
               </Text>
             </div>
             <div className={styles["cancel"]} onClick={() => { setSelectedRowKeys([]) }}>
-              <Text disabled={rowSelection.selectedRowKeys.length === 0}>取消</Text>
+              <Text disabled={rowSelection.selectedRowKeys.length === 0}>{t("cancel")}</Text>
             </div>
           </div>
         }

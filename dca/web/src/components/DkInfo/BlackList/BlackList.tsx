@@ -6,16 +6,19 @@ import { alertError } from 'src/helper/helper';
 import { DkInfoContext, Nodata } from "../DkInfo";
 import './BlackList.scss'
 import { useLazyGetFilterQuery } from 'src/store/datakitApi';
+import { useTranslation } from 'react-i18next';
+import config from "src/config"
 
 const editorOptions = { readOnly: true, mode: "javascript", cursorBlinkRate: 0 }
 
 export default function BlackList() {
+  const { t } = useTranslation()
   const [code, setCode] = useState<string>("")
   const [filterPath, setFilterPath] = useState<string>("")
   const { datakit } = useContext(DkInfoContext)
 
   const helpRedirect = () => {
-    window.open("https://docs.guance.com/management/overall-blacklist/")
+    window.open(`${config.docURL}/management/overall-blacklist/`)
   }
 
   const [getFilter, { data: filterResponse, isLoading, isError }] = useLazyGetFilterQuery()
@@ -53,11 +56,11 @@ export default function BlackList() {
           <>
             <div className="setting">
               <div className="path">
-                {`路径： ${filterPath}`}
+                {`${t("file_path")}： ${filterPath}`}
               </div>
               <div className="edit">
                 <Button type="default" size="small" onClick={() => helpRedirect()}>
-                  帮助
+                  {t("help")}
                 </Button>
               </div>
             </div>

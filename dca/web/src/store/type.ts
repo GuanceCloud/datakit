@@ -2,42 +2,6 @@ export const NETWORK_TIMEOUT_CODE = "network.error.timeout"
 export const CONSOLE_AUTH_TOKEN_FAILED = "ft.AuthTokenFailed"
 export const DCA_AUTH_FAILED = "auth.failed"
 
-export const ERRMSG: Record<string, string> = {
-  "innerCorestone.auth.invalidEmailOrMobile": "用户名错误，请重新输入",
-  "innerCorestone.auth.passwordIncorrect": "密码错误，请重新输入",
-  "innerCorestone.auth.noSuchEmail": "用户名不存在，请重新输入",
-  "innerCorestone.auth.MFALoginVerifyCacheExpired": "操作已过期，请重新操作",
-  "innerCorestone.auth.MFAPassCodeInvalid": "输入的验证码不正确",
-  "innerCorestone.auth.noSuchAccount": "用户不存在，请重新输入",
-  "network.error": "网络异常",
-  "ft.Forbidden": "您无权限操作",
-  "server.request.error": "连接异常，请稍后再试",
-  "server.error": "操作失败，请稍后再试",
-  "server.request.timeout": "连接超时，请稍后再试",
-  "toml.format.error": "当前配置文件格式错误",
-  "pipeline.parse.error": "解析失败: {{msg}}",
-  "route.not.found": "当前版本 DataKit 不支持该操作，请升级版本(>=1.29.0) ",
-  "innerCorestone.auth.smsCodeExpired": "验证码已失效",
-  "innerCorestone.auth.smsCodeIncorrect": "验证码错误，请重新获取",
-  "whiteList.check.error": "该采集器已开启白名单，当前客户端无权限访问",
-  "record.not.exist": "当前文档不存在或已被删除",
-  "param.invalid.duplicate": "名称重复",
-  "reload.connect.timeout": "重启中，尝试连接失败，请稍后再重新连接",
-  "innerCorestone.auth.invalidMobile": "手机号码格式错误",
-  "innerCorestone.auth.noSuchMobile": "手机号不存在，请重新输入",
-  "request.error.invalidToken": "用户令牌已失效，请重新登录",
-  "request.error.requirePermission": "当前用户无权限进行此操作",
-  "request.error.notSupport": "当前 DataKit 不支持该操作",
-  "datakit.token.invalid": "请检查 DataKit 的 token 是否正确",
-  "dql.queryError": "DQL queryError",
-  "dql.parseError": "DQL parseError",
-  "dca.log.file.invalid": "日志文件未找到",
-  "datakit.not.found": "请检查目标 DataKit 是否在线",
-  "server.request.refused": "目标 DataKit 无法连接，请稍后再试",
-  [NETWORK_TIMEOUT_CODE]: "请求超时，请重试",
-  [DCA_AUTH_FAILED]: "当前无权限进行此操作",
-}
-
 export const enum DCA_STATUS {
   RUNNING = "running",
   OFFLINE = "offline",
@@ -67,6 +31,7 @@ export type WorkspaceRole = "owner" | "readOnly" | "wsAdmin" | "general" | "snap
 
 export type IWorkspace = {
   accountRole?: WorkspaceRole
+  language?: string
   autoAggregation?: string
   createAt?: string
   id?: string

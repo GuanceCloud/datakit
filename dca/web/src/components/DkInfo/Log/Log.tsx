@@ -8,15 +8,17 @@ import { downloadLogFile } from "src/api/api"
 import { alertError } from "src/helper/helper"
 import DCAEditor from 'src/components/DCAEditor/DCAEditor'
 import { useIsAdmin } from 'src/hooks/useIsAdmin'
+import { useTranslation } from 'react-i18next'
 
 const logTypes = {
-    "1": { type: "log", description: "DataKit 运行日志" },
-    "2": { type: "gin.log", description: "gin 运行日志" }
+    "1": { type: "log", description: "DataKit log" },
+    "2": { type: "gin.log", description: "gin log" }
 }
 
 const MAX_LINE_COUNT = 1000 // max lines of log to show
 
 export default function Log() {
+    const { t } = useTranslation()
     const { datakit } = useContext(DkInfoContext)
     const isAdmin = useIsAdmin()
     const [logType, setLogType] = useState(logTypes["1"])
@@ -90,7 +92,7 @@ export default function Log() {
                     <div className={styles["log-export"]}>
                         <Button type="default" size="small" onClick={() => downloadLog(logType.type)}>
                             <DownloadOutlined />
-                            <span>导出</span>
+                            <span>{t("export")}</span>
                         </Button>
                     </div>
                 }

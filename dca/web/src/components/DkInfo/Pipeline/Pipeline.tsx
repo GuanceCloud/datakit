@@ -11,12 +11,12 @@ import PipelineTest from "./PipelineTest/PipelineTest";
 import { alertError, isContainerMode } from "src/helper/helper";
 import { useIsAdmin } from "src/hooks/useIsAdmin";
 import DCAEditor, { DCAEditorConfiguration } from "src/components/DCAEditor/DCAEditor";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography
 
 const DEFAULT_CATEGORY = "default"
 
-const defaultMenu = <div>default <Tooltip placement="right" title="pipeline 目录下的文件，可用于日志数据处理。"><QuestionCircleOutlined /></Tooltip></div>
 function isPipelineName(name?: string): boolean {
   if (!name) {
     return false
@@ -48,6 +48,7 @@ type selectedItem = {
 }
 
 export default function Pipeline() {
+  const { t } = useTranslation()
   const [fileData, setFileData] = useState<Record<string, any>>({})
   const [fileCategory, setFileCategory] = useState<MenuProps['items']>()
   const [selected, setSelected] = useState<selectedItem | null>(null)
@@ -71,14 +72,16 @@ export default function Pipeline() {
     }
   )
 
+  const defaultMenu = <div>default <Tooltip placement="right" title={t("default_menu_message")}><QuestionCircleOutlined /></Tooltip></div>
+
   useEffect(() => {
     if (blocker.state === "blocked") {
       Modal.confirm({
-        title: '确认',
+        title: t("confirm"),
         icon: <ExclamationCircleOutlined />,
-        content: '当前处于修改状态，确定离开吗？',
-        okText: '确认',
-        cancelText: '取消',
+        content: t("edit_state_away"),
+        okText: t("confirm"),
+        cancelText: t("cancel"),
         centered: true,
         onOk: () => {
           blocker.proceed()
@@ -88,7 +91,7 @@ export default function Pipeline() {
         }
       })
     }
-  }, [blocker])
+  }, [blocker, t])
 
   useEffect(() => {
     setEditorOptions((opt) => {
@@ -116,7 +119,7 @@ export default function Pipeline() {
     }
     return {
       validateStatus: 'error',
-      errorMsg: '名称不能为空，且需要以 .p 结尾',
+      errorMsg: t("file_name_invalid_message"),
     };
   }
 
@@ -145,7 +148,6 @@ export default function Pipeline() {
   if (!datakit) {
     return
   }
-
   const doSelectFile = async (f) => {
     let dirName = currentCategory
     if (dirName === DEFAULT_CATEGORY) {
@@ -174,11 +176,11 @@ export default function Pipeline() {
   const selectFile = async (f) => {
     if (isEdit) {
       Modal.confirm({
-        title: '确认',
+        title: t("confirm"),
         icon: <ExclamationCircleOutlined />,
-        content: '当前处于修改状态，确定离开吗？',
-        okText: '确认',
-        cancelText: '取消',
+        content: t("edit_state_away"),
+        okText: t("confirm"),
+        cancelText: t("cancel"),
         centered: true,
         onOk: () => {
           doSelectFile(f)
@@ -205,7 +207,7 @@ export default function Pipeline() {
     if (!selected) return
 
     if (!selected.name || !code) {
-      return alertError("文件名或文件内容不能为空")
+      return alertError(t("file_name_content_empty"))
     }
     const pipeline: PipelineInfo = { fileName: selected.name, content: code, category: selected.category === DEFAULT_CATEGORY ? "" : selected.category }
     const [err] = await updatePipeline(datakit, pipeline)
@@ -213,7 +215,7 @@ export default function Pipeline() {
       return alertError(err)
     }
 
-    message.success("修改成功")
+    message.success(t("edit_success"))
     setSelected({ ...selected, content: code })
 
     setIsEdit(false)
@@ -227,11 +229,11 @@ export default function Pipeline() {
 
   const cancelEdit = () => {
     Modal.confirm({
-      title: '确认',
+      title: t("confirm"),
       icon: <ExclamationCircleOutlined />,
-      content: '当前处于修改状态，确定取消吗？',
-      okText: '确认',
-      cancelText: '取消',
+      content: t("edit_state_cancel"),
+      okText: t("confirm"),
+      cancelText: t("cancel"),
       centered: true,
       onOk: () => {
         setIsEdit(false)
@@ -251,18 +253,18 @@ export default function Pipeline() {
       if (err) {
         alertError(err)
       } else {
-        message.success("删除成功")
+        message.success(t("delete_success"))
         setSelected(null)
         initFileList()
       }
     }
 
     Modal.confirm({
-      title: "请确认",
+      title: t('confirm'),
       icon: <ExclamationCircleOutlined />,
-      content: '确定要删除当前文件吗?',
-      okText: '确认',
-      cancelText: '取消',
+      content: t("confirm_delete_file"),
+      okText: t("confirm"),
+      cancelText: t("cancel"),
       onOk: handleDelete,
     })
   }
@@ -276,7 +278,7 @@ export default function Pipeline() {
         if (err) {
           return alertError(err)
         }
-        message.success("保存成功")
+        message.success(t("save_success"))
         await initFileList()
         const newItem: selectedItem = {
           name,
@@ -393,7 +395,7 @@ export default function Pipeline() {
                 <div className="wrap" onClick={() => newPipeline(currentCategory)}>
                   <Space>
                     <PlusCircleOutlined />
-                    新建 Pipeline
+                    {t("new_pipeline")}
                   </Space>
 
                 </div>
@@ -421,7 +423,7 @@ export default function Pipeline() {
             <>
               <div className="setting">
                 <div className="path">
-                  {`路径： ${selected?.path}`}
+                  {`${t("file_path")}： ${selected?.path}`}
                 </div>
                 <div className="edit">
                   <div className="setting-left">
@@ -435,21 +437,21 @@ export default function Pipeline() {
                             <>
                               <Button size="small" type="primary" className="button" onClick={edit}>
                                 <EditOutlined />
-                                编辑
+                                {t("edit")}
                               </Button>
                               <Button size="small" className="button" onClick={copyFile}>
                                 <CopyOutlined />
-                                克隆
+                                {t("clone")}
                               </Button>
                             </>
                             :
                             <>
                               <Button size="small" type="primary" className="button" onClick={save}>
                                 <SaveOutlined />
-                                保存
+                                {t("save")}
                               </Button>
                               <Button size="small" className="button" onClick={cancelEdit}>
-                                取消
+                                {t("cancel")}
                               </Button>
                             </>)
                       }
@@ -458,7 +460,7 @@ export default function Pipeline() {
                         <>
                           <Button size="small" className="button" onClick={test}>
                             <ToolOutlined />
-                            <span >{isTest ? "关闭测试" : "测试"}</span>
+                            <span >{isTest ? t("pipeline.close_test") : t("pipeline.test")}</span>
                           </Button>
                           <Button type="default" disabled={isEdit} size="small" onClick={() => deletePipelineFile()}>
                             <span className="fth-iconfont-trash size-14"></span>
@@ -494,16 +496,16 @@ export default function Pipeline() {
       </div>
 
       <Modal
-        title={`${isCopy ? "克隆" : "新建"} Pipeline`}
+        title={`${isCopy ? t("clone") : t("pipeline.new")} Pipeline`}
         open={isModalVisible}
         onOk={handleOk}
         onCancel={handleCancel}
         destroyOnClose={true}
-        okText="确定"
-        cancelText="取消"
+        okText={t("confirm")}
+        cancelText={t("cancel")}
       >
         <div style={{ padding: "50px 50px 10px 50px" }}>
-          <div style={{ paddingBottom: "5px", fontSize: "14px" }}>Pipeline 名称</div>
+          <div style={{ paddingBottom: "5px", fontSize: "14px" }}>{t("pipeline.name")}</div>
           <Form
             autoComplete="off"
             name="basic"

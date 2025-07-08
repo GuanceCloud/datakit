@@ -6,8 +6,11 @@ import { PersistGate } from 'redux-persist/integration/react';
 import store, { persistor } from './store/index';
 import './index.scss';
 import App from './App';
+import config from './config';
 
-moment.locale('zh-cn')
+if (config.brandName === 'guance') {
+  moment.locale('zh-cn')
+}
 
 const container = document.getElementById('root')
 const root = createRoot(container!)

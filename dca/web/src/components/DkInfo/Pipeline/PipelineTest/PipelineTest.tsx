@@ -7,15 +7,17 @@ import 'react-json-view-lite/dist/index.css'
 import './PipelineTest.scss'
 import { alertError } from "src/helper/helper";
 import { CloseOutlined, PlusOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 
 export default function PipelineTest({ datakit, fileName, category, pipeline }) {
+  const { t } = useTranslation()
   const [textArr, setTextArr] = useState<string[]>([""])
   const [parsedText, setParsedText] = useState<any>({})
   const [checkedSampleIndex, setCheckedSampleIndex] = useState<number>(0)
 
   const test = async (index?: number) => {
     if (!textArr) {
-      return alertError("输入文本不能为空")
+      return alertError(t("error_input_content_empty"))
     }
 
     if (index === undefined) {
@@ -99,16 +101,16 @@ export default function PipelineTest({ datakit, fileName, category, pipeline }) 
 
       <div className="setting-content">
         <div className={textArr.length >= 3 ? "add-sample disabled" : "add-sample"} onClick={addSample}>
-          <PlusOutlined />添加样本
+          <PlusOutlined /> {t("pipeline.add_sample")}
         </div>
         <div className="test-button" onClick={() => { test() }}>
-          <Button size="small"><span className="fth-iconfont-play1"></span> &nbsp;开始测试</Button>
+          <Button size="small"><span className="fth-iconfont-play1"></span> &nbsp;{t("pipeline.start_test")}</Button>
         </div>
 
       </div>
       <div className="result">
         <div className="header">
-          <div className="title">基本信息</div>
+          <div className="title">{t("pipeline.basic_info")}</div>
           <ul className="sample-tabs">
             {
               textArr.map((v, i) => {
@@ -116,7 +118,7 @@ export default function PipelineTest({ datakit, fileName, category, pipeline }) 
                   key={i}
                   className={checkedSampleIndex === i ? "active" : ""}
                   onClick={() => setCheckedSampleIndex(i)}
-                >样本{i + 1}</li>
+                >{t("sample")}{i + 1}</li>
               })
             }
           </ul>
