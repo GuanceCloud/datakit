@@ -44,25 +44,25 @@ func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 			"status_code": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The response code",
 			},
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The message string which includes the header and the body of the request or the response",
 			},
 			"task": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The raw task string",
 			},
 			"fail_reason": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The reason that leads to the failure of the task",
 			},
 			"response_time": &inputs.FieldInfo{
@@ -110,7 +110,7 @@ func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 			"success": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The number to specify whether is successful, 1 for success, -1 for failure",
 			},
 			"seq_number": &inputs.FieldInfo{
@@ -122,7 +122,7 @@ func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 			"config_vars": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The configuration variables of the task",
 			},
 		},
@@ -157,25 +157,25 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The message string includes the response time or fail reason",
 			},
 			"task": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The raw task string",
 			},
 			"traceroute": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The json string fo the `traceroute` result",
 			},
 			"fail_reason": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The reason that leads to the failure of the task",
 			},
 			"response_time": &inputs.FieldInfo{
@@ -193,7 +193,7 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 			"success": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The number to specify whether is successful, 1 for success, -1 for failure",
 			},
 			"seq_number": &inputs.FieldInfo{
@@ -205,7 +205,7 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 			"config_vars": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The configuration variables of the task",
 			},
 		},
@@ -238,25 +238,25 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The message string includes the average time of the round trip or the failure reason",
 			},
 			"task": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The raw task string",
 			},
 			"fail_reason": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The reason that leads to the failure of the task",
 			},
 			"traceroute": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The `json` string fo the `traceroute` result",
 			},
 			"average_round_trip_time": &inputs.FieldInfo{
@@ -310,7 +310,7 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 			"packet_loss_percent": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.Percent,
 				Desc:     "The loss percent of the packets",
 			},
 			"packets_received": &inputs.FieldInfo{
@@ -328,7 +328,7 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 			"success": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The number to specify whether is successful, 1 for success, -1 for failure",
 			},
 			"seq_number": &inputs.FieldInfo{
@@ -340,7 +340,7 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 			"config_vars": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The configuration variables of the task",
 			},
 		},
@@ -373,31 +373,31 @@ func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The message string includes the response time or the failure reason",
 			},
 			"task": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The raw task string",
 			},
 			"fail_reason": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The reason that leads to the failure of the task",
 			},
 			"response_message": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The message of the response",
 			},
 			"sent_message": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The sent message ",
 			},
 			"response_time": &inputs.FieldInfo{
@@ -415,7 +415,7 @@ func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {
 			"success": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The number to specify whether is successful, 1 for success, -1 for failure",
 			},
 			"seq_number": &inputs.FieldInfo{
@@ -427,7 +427,7 @@ func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {
 			"config_vars": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The configuration variables of the task",
 			},
 		},
@@ -458,31 +458,31 @@ func (m *multiMeasurement) Info() *inputs.MeasurementInfo {
 			"last_step": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NCount,
 				Desc:     "The last number of the task be executed",
 			},
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The message string which includes the header and the body of the request or the response",
 			},
 			"task": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The raw task string",
 			},
 			"fail_reason": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The reason that leads to the failure of the task",
 			},
 			"steps": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The result of each step",
 			},
 			"response_time": &inputs.FieldInfo{
@@ -494,7 +494,7 @@ func (m *multiMeasurement) Info() *inputs.MeasurementInfo {
 			"success": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The number to specify whether is successful, 1 for success, -1 for failure",
 			},
 			"seq_number": &inputs.FieldInfo{
@@ -506,7 +506,7 @@ func (m *multiMeasurement) Info() *inputs.MeasurementInfo {
 			"config_vars": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The configuration variables of the task",
 			},
 		},
