@@ -197,6 +197,23 @@ func (ipt *Input) collectOracleSystem() {
 		if metric, ok := systemCols[row.MetricName.String]; ok {
 			value := row.Value.Float64
 
+			if ipt.objectMetric != nil {
+				if metric == "executions_per_sec" {
+					ipt.objectMetric.QPS = value
+				}
+				if metric == "executions_per_txn" {
+					ipt.objectMetric.TPS = value
+				}
+				switch metric {
+				case "executions_per_sec":
+					ipt.objectMetric.QPS = value
+				case "user_commits":
+					ipt.objectMetric.TranCommits = value
+				case "user_rollbacks":
+					ipt.objectMetric.TranRolls = value
+				}
+			}
+
 			switch row.MetricUnit.String {
 			case "CentiSeconds Per Second":
 				value /= 100

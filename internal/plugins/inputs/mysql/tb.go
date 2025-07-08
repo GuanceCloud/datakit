@@ -72,7 +72,7 @@ func (m *tbMeasurement) Info() *inputs.MeasurementInfo {
 				Desc: "The storage engine for the table. See The InnoDB Storage Engine, and Alternative Storage Engines.",
 			},
 			"server": &inputs.TagInfo{
-				Desc: "Server addr",
+				Desc: "The address of the server. The value is `host:port`",
 			},
 			"table_name": &inputs.TagInfo{
 				Desc: "The name of the table.",
@@ -83,7 +83,7 @@ func (m *tbMeasurement) Info() *inputs.MeasurementInfo {
 			"table_type": &inputs.TagInfo{
 				Desc: "BASE TABLE for a table, VIEW for a view, or SYSTEM VIEW for an INFORMATION_SCHEMA table.",
 			},
-			"version": &inputs.TagInfo{
+			"table_version": &inputs.TagInfo{
 				Desc: "The version number of the table's .frm file.",
 			},
 			"host": &inputs.TagInfo{

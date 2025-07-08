@@ -236,6 +236,10 @@ func (ipt *Input) collectSlowQuery() {
 		return
 	}
 
+	if ipt.objectMetric != nil {
+		ipt.objectMetric.SlowQueries += int64(len(rows))
+	}
+
 	for _, r := range rows {
 		gotlastActiveTime, err := dateparse.ParseAny(r.LAST_ACTIVE_TIME.String)
 		if err != nil {

@@ -38,6 +38,14 @@ const (
   ## Set true to enable election
   election = true
 
+  ## collect object
+  [inputs.oracle.object]
+    # Set true to enable collecting objects
+    enabled = true
+
+    # interval to collect oracle object which will be greater than collection interval
+    interval = "600s"
+
   ## Run a custom SQL query and collect corresponding metrics.
   # [[inputs.oracle.custom_queries]]
   #   sql = '''

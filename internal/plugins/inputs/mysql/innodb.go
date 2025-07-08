@@ -837,9 +837,7 @@ var innoDBMeasurementInfo = &inputs.MeasurementInfo{
 		},
 	},
 	Tags: map[string]interface{}{
-		"server": &inputs.TagInfo{
-			Desc: "Server addr",
-		},
+		"server": &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"},
 		"host": &inputs.TagInfo{
 			Desc: "The server host address",
 		},

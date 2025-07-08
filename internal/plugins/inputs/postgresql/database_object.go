@@ -60,7 +60,7 @@ func (*postgresqlObjectMeasurement) Info() *inputs.MeasurementInfo {
 		Desc: "PostgreSQL object metrics([:octicons-tag-24: Version-1.76.0](../datakit/changelog-2025.md#cl-1.76.0))",
 		Tags: map[string]interface{}{
 			"host":          &inputs.TagInfo{Desc: "The hostname of the PostgreSQL server"},
-			"server":        &inputs.TagInfo{Desc: "The server address of the PostgreSQL server"},
+			"server":        &inputs.TagInfo{Desc: "The server address of the PostgreSQL server. The value is `host:port`"},
 			"version":       &inputs.TagInfo{Desc: "The version of the PostgreSQL server"},
 			"name":          &inputs.TagInfo{Desc: "The name of the database. The value is `host:port` in default"},
 			"database_type": &inputs.TagInfo{Desc: "The type of the database. The value is `PostgreSQL`"},
@@ -132,7 +132,7 @@ func (ipt *Input) collectDatabaseObject() error {
 		AddTag("name", ipt.Object.name).
 		AddTag("host", ipt.host).
 		AddTag("slow_query_log", slowQueryLog).
-		AddTag("server", ipt.mergedTags["server"]).
+		AddTag("server", ipt.Object.name).
 		AddTag("port", fmt.Sprintf("%d", ipt.port)).
 		Add("uptime", ipt.Uptime, false, true).
 		Add("message", message.String(), false, true)

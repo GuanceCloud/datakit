@@ -31,7 +31,8 @@ func (*lockMeasurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]any{
 			"event":          &inputs.TagInfo{Desc: "Locked session that waiting the specified event name"},
 			"host":           &inputs.TagInfo{Desc: "Host name"},
-			"oracle_server":  &inputs.TagInfo{Desc: "Server addr"},
+			"oracle_server":  &inputs.TagInfo{Desc: "Server addr. Deprecated. Please use `server`"},
+			"server":         &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"},
 			"oracle_service": &inputs.TagInfo{Desc: "Server service"},
 		},
 		Fields: map[string]any{
@@ -48,10 +49,12 @@ func (*waitingEventMeasurement) Info() *inputs.MeasurementInfo {
 		Desc: `[:octicons-tag-24: Version-1.74.0](../datakit/changelog-2025.md#cl-1.74.0)`,
 		Cat:  point.Metric,
 		Tags: map[string]any{
-			"event":      &inputs.TagInfo{Desc: "Event name"},
-			"event_type": &inputs.TagInfo{Desc: "Event type, such as `USER/BACKGROUND`"},
-			"program":    &inputs.TagInfo{Desc: "Program(process) name that waiting the event"},
-			"username":   &inputs.TagInfo{Desc: "Oracle username that waiting the event"},
+			"event":         &inputs.TagInfo{Desc: "Event name"},
+			"oracle_server": &inputs.TagInfo{Desc: "Server addr. Deprecated. Please use `server`"},
+			"server":        &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"},
+			"event_type":    &inputs.TagInfo{Desc: "Event type, such as `USER/BACKGROUND`"},
+			"program":       &inputs.TagInfo{Desc: "Program(process) name that waiting the event"},
+			"username":      &inputs.TagInfo{Desc: "Oracle username that waiting the event"},
 		},
 		Fields: map[string]any{
 			"count": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Waiting event count"},
@@ -80,7 +83,8 @@ func (m *processMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"host":           &inputs.TagInfo{Desc: "Host name"},
-			"oracle_server":  &inputs.TagInfo{Desc: "Server addr"},
+			"oracle_server":  &inputs.TagInfo{Desc: "Server addr. Deprecated. Please use `server`"},
+			"server":         &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"},
 			"oracle_service": &inputs.TagInfo{Desc: "Server service"},
 			"pdb_name":       &inputs.TagInfo{Desc: "PDB name"},
 			"program":        &inputs.TagInfo{Desc: "Program in progress"},
@@ -106,7 +110,8 @@ func (m *tablespaceMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"host":            &inputs.TagInfo{Desc: "Host name"},
-			"oracle_server":   &inputs.TagInfo{Desc: "Server addr"},
+			"oracle_server":   &inputs.TagInfo{Desc: "Server addr. Deprecated. Please use `server`"},
+			"server":          &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"},
 			"oracle_service":  &inputs.TagInfo{Desc: "Server service"},
 			"pdb_name":        &inputs.TagInfo{Desc: "PDB name"},
 			"tablespace_name": &inputs.TagInfo{Desc: "Table space name"},
@@ -165,7 +170,8 @@ func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"host":           &inputs.TagInfo{Desc: "Host name"},
-			"oracle_server":  &inputs.TagInfo{Desc: "Server addr"},
+			"oracle_server":  &inputs.TagInfo{Desc: "Server addr. Deprecated. Please use `server`"},
+			"server":         &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"},
 			"oracle_service": &inputs.TagInfo{Desc: "Server service"},
 			"pdb_name":       &inputs.TagInfo{Desc: "PDB name"},
 		},
@@ -212,11 +218,13 @@ func (x *slowQueryMeasurement) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]any{
-			`sql_id`:       &inputs.TagInfo{Desc: "SQL identifier of the parent cursor in the library cache"},
-			`module`:       &inputs.TagInfo{Desc: "Contains the name of the module that was executing when the SQL statement was first parsed as set by calling `DBMS_APPLICATION_INFO.SET_MODULE`"},
-			`action`:       &inputs.TagInfo{Desc: "Contains the name of the action that was executing when the SQL statement was first parsed as set by calling `DBMS_APPLICATION_INFO.SET_ACTION`"},
-			`command_type`: &inputs.TagInfo{Desc: "Oracle command type definition"},
-			`status`:       &inputs.TagInfo{Desc: "Log level, always `warning` here"},
+			`sql_id`:        &inputs.TagInfo{Desc: "SQL identifier of the parent cursor in the library cache"},
+			`module`:        &inputs.TagInfo{Desc: "Contains the name of the module that was executing when the SQL statement was first parsed as set by calling `DBMS_APPLICATION_INFO.SET_MODULE`"},
+			`action`:        &inputs.TagInfo{Desc: "Contains the name of the action that was executing when the SQL statement was first parsed as set by calling `DBMS_APPLICATION_INFO.SET_ACTION`"},
+			`command_type`:  &inputs.TagInfo{Desc: "Oracle command type definition"},
+			`status`:        &inputs.TagInfo{Desc: "Log level, always `warning` here"},
+			"oracle_server": &inputs.TagInfo{Desc: "Server addr. Deprecated. Please use `server`"},
+			"server":        &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"},
 		},
 	}
 }

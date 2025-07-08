@@ -35,12 +35,21 @@ const (
 	minInterval          = 10 * time.Second
 	inputName            = "oracle"
 	customObjectFeedName = inputName + "-CO"
+	objectFeedName       = inputName + "-O"
 	customQueryFeedName  = inputName + "-custom_query"
 	loggingFeedName      = inputName + "-L"
 	catalogName          = "db"
 )
 
 var l = logger.DefaultSLogger(inputName)
+
+type oracleObject struct {
+	Enable   bool             `toml:"enabled"`
+	Interval datakit.Duration `toml:"interval"`
+
+	name               string
+	lastCollectionTime time.Time
+}
 
 type Input struct {
 	Host              string           `toml:"host"`
@@ -57,8 +66,11 @@ type Input struct {
 	Election          bool              `toml:"election"`
 	Tags              map[string]string `toml:"tags"`
 
+	Object oracleObject `toml:"object"`
+
 	mainVersion, // simple version like 11
 	fullVersion string // full version like 'Oracle Database 11g Express Edition Release 11.2.0.2.0 - 64bit Production'
+	objectMetric *objectMertric
 
 	Uptime             int
 	CollectCoStatus    string
@@ -144,6 +156,10 @@ func (ipt *Input) Collect() {
 	ipt.collectLockedSession()
 
 	ipt.getOracleUptime()
+
+	if ipt.Object.Enable {
+		ipt.collectDatabaseObject()
+	}
 }
 
 func (ipt *Input) Init() {
@@ -172,9 +188,22 @@ func (ipt *Input) Init() {
 		}
 	}
 
+	// set object name
+	ipt.Object.name = fmt.Sprintf("%s:%d", ipt.Host, ipt.Port)
+	ipt.objectMetric = &objectMertric{}
+
 	ipt.mergedTags = inputs.MergeTags(ipt.tagger.ElectionTags(), ipt.Tags, host)
-	ipt.mergedTags["oracle_service"] = ipt.Service
-	ipt.mergedTags["oracle_server"] = fmt.Sprintf("%s:%d", ipt.Host, ipt.Port)
+	if _, ok := ipt.mergedTags["oracle_service"]; !ok {
+		ipt.mergedTags["oracle_service"] = ipt.Service
+	}
+
+	if _, ok := ipt.mergedTags["oracle_server"]; !ok {
+		ipt.mergedTags["oracle_server"] = ipt.Object.name
+	}
+
+	if _, ok := ipt.mergedTags["server"]; !ok {
+		ipt.mergedTags["server"] = ipt.Object.name
+	}
 
 	// cache sql
 	ipt.cacheSQL = make(map[string]string)
@@ -271,6 +300,7 @@ func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 		&slowQueryMeasurement{},
 		&waitingEventMeasurement{},
 		&lockMeasurement{},
+		&oracleObjectMeasurement{},
 
 		&inputs.UpMeasurement{},
 	}
@@ -371,9 +401,13 @@ func defaultInput() *Input {
 		Timeout:  "10s",
 		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
 		Election: true,
-		feeder:   dkio.DefaultFeeder(),
-		tagger:   datakit.DefaultGlobalTagger(),
-		semStop:  cliutils.NewSem(),
+		Object: oracleObject{
+			Enable:   true,
+			Interval: datakit.Duration{Duration: 600 * time.Second},
+		},
+		feeder:  dkio.DefaultFeeder(),
+		tagger:  datakit.DefaultGlobalTagger(),
+		semStop: cliutils.NewSem(),
 	}
 }
 
