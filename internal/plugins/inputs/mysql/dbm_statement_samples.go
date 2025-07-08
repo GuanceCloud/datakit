@@ -224,10 +224,8 @@ func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"host": &inputs.TagInfo{Desc: " The server host address"},
-			"server": &inputs.TagInfo{
-				Desc: "The server address containing both host and port",
-			},
+			"host":              &inputs.TagInfo{Desc: " The server host address"},
+			"server":            &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"},
 			"service":           &inputs.TagInfo{Desc: "The service name and the value is 'mysql'"},
 			"current_schema":    &inputs.TagInfo{Desc: "The name of the current schema."},
 			"plan_definition":   &inputs.TagInfo{Desc: "The plan definition of JSON format."},
@@ -236,12 +234,10 @@ func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {
 			"resource_hash":     &inputs.TagInfo{Desc: "The hash value computed from SQL text."},
 			"query_truncated":   &inputs.TagInfo{Desc: "It indicates whether the query is truncated."},
 			"network_client_ip": &inputs.TagInfo{Desc: "The ip address of the client"},
-			"digest": &inputs.TagInfo{
-				Desc: "The digest hash value computed from the original normalized statement. ",
-			},
-			"digest_text":      &inputs.TagInfo{Desc: "The digest_text of the statement."},
-			"processlist_db":   &inputs.TagInfo{Desc: "The name of the database."},
-			"processlist_user": &inputs.TagInfo{Desc: "The user name of the client."},
+			"digest":            &inputs.TagInfo{Desc: "The digest hash value computed from the original normalized statement. "},
+			"digest_text":       &inputs.TagInfo{Desc: "The digest_text of the statement."},
+			"processlist_db":    &inputs.TagInfo{Desc: "The name of the database."},
+			"processlist_user":  &inputs.TagInfo{Desc: "The user name of the client."},
 		},
 	}
 }

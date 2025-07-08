@@ -1062,7 +1062,9 @@ func (ipt *Input) initCfg() {
 		ipt.host = v
 	}
 
-	ipt.mergedTags["server"] = fmt.Sprintf("%s:%d", ipt.host, ipt.port)
+	if _, ok := ipt.mergedTags["server"]; !ok {
+		ipt.mergedTags["server"] = fmt.Sprintf("%s:%d", ipt.host, ipt.port)
+	}
 
 	l.Infof("merged tags: %+#v", ipt.mergedTags)
 
@@ -1111,9 +1113,10 @@ func (ipt *Input) initCfg() {
 		ipt.collectFuncs["relation"] = ipt.getRelationMetrics
 	}
 
+	ipt.Object.name = fmt.Sprintf("%s:%d", ipt.host, ipt.port)
+
 	if ipt.Object.Enable {
 		ipt.objectMetric = &objectMertric{}
-		ipt.Object.name = fmt.Sprintf("%s:%d", ipt.host, ipt.port)
 		ipt.collectFuncs["database"] = ipt.collectDatabaseObject
 	}
 }

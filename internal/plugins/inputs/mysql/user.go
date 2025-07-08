@@ -126,7 +126,7 @@ func (m *userMeasurement) Info() *inputs.MeasurementInfo {
 				Desc: "The server host address",
 			},
 			"server": &inputs.TagInfo{
-				Desc: "The server address containing both host and port",
+				Desc: "The address of the server. The value is `host:port`",
 			},
 		},
 	}

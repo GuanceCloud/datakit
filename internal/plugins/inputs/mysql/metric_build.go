@@ -226,7 +226,11 @@ func (ipt *Input) buildMysqlTableSchema() ([]*gcPoint.Point, error) {
 
 		for kk, vv := range v {
 			switch kk {
-			case "table_schema", "table_name", "table_type", "engine", "version":
+			case "version":
+				if vvv, ok := vv.(string); ok {
+					kvs = kvs.AddTag("table_version", vvv)
+				}
+			case "table_schema", "table_name", "table_type", "engine":
 				if vvv, ok := vv.(string); ok {
 					kvs = kvs.AddTag(kk, vvv)
 				}

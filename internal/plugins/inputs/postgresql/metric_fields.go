@@ -153,7 +153,7 @@ func (m inputMeasurement) Info() *inputs.MeasurementInfo {
 			"sessions_killed":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of database sessions to this database that were terminated by operator intervention."},
 		},
 		Tags: map[string]interface{}{
-			"server": inputs.NewTagInfo("The server address"),
+			"server": inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 			"db":     inputs.NewTagInfo("The database name"),
 		},
 	}
@@ -177,7 +177,7 @@ func (m lockMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"db":       inputs.NewTagInfo("The database name"),
-			"server":   inputs.NewTagInfo("The server address"),
+			"server":   inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 			"table":    inputs.NewTagInfo("The table name"),
 			"schema":   inputs.NewTagInfo("The schema name"),
 			"locktype": inputs.NewTagInfo("The lock type"),
@@ -281,7 +281,7 @@ func (m statMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"server": inputs.NewTagInfo("The server address"),
+			"server": inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 			"db":     inputs.NewTagInfo("The database name"),
 			"table":  inputs.NewTagInfo("The table name"),
 			"schema": inputs.NewTagInfo("The schema name"),
@@ -320,7 +320,7 @@ func (m indexMeasurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"table":    inputs.NewTagInfo("The table name"),
 			"db":       inputs.NewTagInfo("The database name"),
-			"server":   inputs.NewTagInfo("The server address"),
+			"server":   inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 			"schema":   inputs.NewTagInfo("The schema name"),
 			"pg_index": inputs.NewTagInfo("The index name"),
 		},
@@ -357,7 +357,7 @@ func (m sizeMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"db":     inputs.NewTagInfo("The database name"),
-			"server": inputs.NewTagInfo("The server address"),
+			"server": inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 			"table":  inputs.NewTagInfo("The table name"),
 			"schema": inputs.NewTagInfo("The schema name"),
 		},
@@ -424,7 +424,7 @@ func (m statIOMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"db":     inputs.NewTagInfo("The database name"),
-			"server": inputs.NewTagInfo("The server address"),
+			"server": inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 			"table":  inputs.NewTagInfo("The table name"),
 			"schema": inputs.NewTagInfo("The schema name"),
 		},
@@ -455,7 +455,7 @@ func (m replicationMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"db":     inputs.NewTagInfo("The database name"),
-			"server": inputs.NewTagInfo("The server address"),
+			"server": inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
 }
@@ -481,7 +481,7 @@ func (m replicationSlotMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"db":        inputs.NewTagInfo("The database name"),
-			"server":    inputs.NewTagInfo("The server address"),
+			"server":    inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 			"slot_name": inputs.NewTagInfo("The replication slot name"),
 			"slot_type": inputs.NewTagInfo("The replication slot type"),
 		},
@@ -508,7 +508,7 @@ func (m slruMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"db":     inputs.NewTagInfo("The database name"),
-			"server": inputs.NewTagInfo("The server address"),
+			"server": inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 			"name":   inputs.NewTagInfo("The name of the `SLRU`"),
 		},
 	}
@@ -538,7 +538,7 @@ func (m ioMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"db":           inputs.NewTagInfo("The database name"),
-			"server":       inputs.NewTagInfo("The server address"),
+			"server":       inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 			"backend_type": inputs.NewTagInfo("Type of backend (e.g. background worker, autovacuum worker)"),
 			"object":       inputs.NewTagInfo("Target object of an I/O operation"),
 			"context":      inputs.NewTagInfo("The context of an I/O operation"),
@@ -568,7 +568,7 @@ func (m bgwriterMeasurement) Info() *inputs.MeasurementInfo {
 			"checkpoint_sync_time":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.DurationMS, Desc: "The total amount of checkpoint processing time spent synchronizing files to disk."},
 		},
 		Tags: map[string]interface{}{
-			"server": inputs.NewTagInfo("The server address"),
+			"server": inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 			"db":     inputs.NewTagInfo("The database name"),
 		},
 	}
@@ -588,7 +588,7 @@ func (m connectionMeasurement) Info() *inputs.MeasurementInfo {
 			"percent_usage_connections": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of connections to this database as a fraction of the maximum number of allowed connections."},
 		},
 		Tags: map[string]interface{}{
-			"server": inputs.NewTagInfo("The server address"),
+			"server": inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 			"db":     inputs.NewTagInfo("The database name"),
 		},
 	}
@@ -611,7 +611,7 @@ func (m conflictMeasurement) Info() *inputs.MeasurementInfo {
 			"confl_deadlock":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of queries in this database that have been canceled due to deadlocks."},
 		},
 		Tags: map[string]interface{}{
-			"server": inputs.NewTagInfo("The server address"),
+			"server": inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 			"db":     inputs.NewTagInfo("The database name"),
 		},
 	}
@@ -632,7 +632,7 @@ func (m archiverMeasurement) Info() *inputs.MeasurementInfo {
 			"archived_failed_count": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of failed attempts for archiving WAL files."},
 		},
 		Tags: map[string]interface{}{
-			"server": inputs.NewTagInfo("The server address"),
+			"server": inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 			"db":     inputs.NewTagInfo("The database name"),
 		},
 	}

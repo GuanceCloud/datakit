@@ -268,7 +268,7 @@ func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"host":    &inputs.TagInfo{Desc: "The server host address"},
 			"service": &inputs.TagInfo{Desc: "The service name and the value is 'mysql'"},
-			"server":  &inputs.TagInfo{Desc: "The server address"},
+			"server":  &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"},
 		},
 	}
 }

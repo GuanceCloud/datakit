@@ -242,7 +242,7 @@ var replicationLogMeasurementInfo = &inputs.MeasurementInfo{
 	},
 	Tags: map[string]interface{}{
 		"server": &inputs.TagInfo{
-			Desc: "Server addr",
+			Desc: "The address of the server. The value is `host:port`",
 		},
 		"host": &inputs.TagInfo{
 			Desc: "The server host address",

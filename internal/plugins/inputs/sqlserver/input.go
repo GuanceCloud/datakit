@@ -723,6 +723,17 @@ func (ipt *Input) filterOutDBName(name string) bool {
 }
 
 func (ipt *Input) init() {
+	port := "1433"
+	host := ipt.Host
+	parts := strings.Split(ipt.Host, ":")
+	if len(parts) == 2 {
+		host = parts[0]
+		port = parts[1]
+	}
+
+	// set server tag
+	ipt.Tags["server"] = fmt.Sprintf("%s:%s", host, port)
+
 	if len(ipt.Database) == 0 {
 		ipt.Database = "master"
 	}

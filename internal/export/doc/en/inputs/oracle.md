@@ -270,11 +270,11 @@ For all of the following data collections, the global election tags will added a
 {{ end }}
 {{ end }}
 
-## Custom Object {#object}
+## Object {#object}
 
 {{ range $i, $m := .Measurements }}
 
-{{if eq $m.Type "custom_object"}}
+{{if eq $m.Type "object"}}
 
 ### `{{$m.Name}}`
 

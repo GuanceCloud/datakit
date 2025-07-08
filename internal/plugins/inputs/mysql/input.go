@@ -365,9 +365,13 @@ func (ipt *Input) initCfg() error {
 		ipt.Version = version
 	}
 
+	ipt.Object.name = fmt.Sprintf("%s:%d", ipt.Host, ipt.Port)
 	if ipt.Object.Enable {
 		ipt.objectMetric = &objectMertric{}
-		ipt.Object.name = fmt.Sprintf("%s:%d", ipt.Host, ipt.Port)
+	}
+
+	if _, ok := ipt.mergedTags["server"]; !ok {
+		ipt.mergedTags["server"] = ipt.Object.name
 	}
 
 	return nil
@@ -379,7 +383,6 @@ func (ipt *Input) initDbm() {
 }
 
 func (ipt *Input) globalTag() {
-	ipt.Tags["server"] = ipt.Addr
 	if len(ipt.Service) > 0 {
 		ipt.Tags["service_name"] = ipt.Service
 	}
@@ -845,6 +848,12 @@ func (ipt *Input) Run() {
 	// init collectors
 	ipt.initCollectors()
 
+	if ipt.Election {
+		ipt.mergedTags = inputs.MergeTags(ipt.tagger.ElectionTags(), ipt.Tags, ipt.Host)
+	} else {
+		ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, ipt.Host)
+	}
+
 	// Try until init OK.
 	for {
 		if err := ipt.initCfg(); err != nil {
@@ -890,12 +899,6 @@ func (ipt *Input) Run() {
 
 	l.Infof("collecting each %v", ipt.Interval.Duration)
 	ipt.ptsTime = ntp.Now()
-
-	if ipt.Election {
-		ipt.mergedTags = inputs.MergeTags(ipt.tagger.ElectionTags(), ipt.Tags, ipt.Host)
-	} else {
-		ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, ipt.Host)
-	}
 
 	// run custom queries
 	ipt.runCustomQueries()

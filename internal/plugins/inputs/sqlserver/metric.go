@@ -86,6 +86,7 @@ func (m *SqlserverMeasurment) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"sqlserver_host": inputs.NewTagInfo("Host name which installed SQLServer"),
+			"server":         inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
 }
@@ -152,6 +153,7 @@ var performanceMeasurementInfo = &inputs.MeasurementInfo{
 		"counter_type":   inputs.NewTagInfo("Type of the counter"),
 		"instance":       inputs.NewTagInfo("Name of the specific instance of the counter"),
 		"sqlserver_host": inputs.NewTagInfo("Host name which installed SQLServer"),
+		"server":         inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 	},
 }
 
@@ -181,6 +183,7 @@ func (m *WaitStatsCategorized) Info() *inputs.MeasurementInfo {
 			"sqlserver_host": inputs.NewTagInfo("Host name which installed SQLServer"),
 			"wait_type":      inputs.NewTagInfo("Name of the wait type. For more information, see Types of Waits, later in this topic"),
 			"wait_category":  inputs.NewTagInfo("Wait category info"),
+			"server":         inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
 }
@@ -211,6 +214,7 @@ func (m *DatabaseIO) Info() *inputs.MeasurementInfo {
 			"logical_filename":  inputs.NewTagInfo("Logical name of the file in the database"),
 			"physical_filename": inputs.NewTagInfo("Operating-system file name."),
 			"sqlserver_host":    inputs.NewTagInfo("Host name which installed SQLServer"),
+			"server":            inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
 }
@@ -245,6 +249,7 @@ func (m *Schedulers) Info() *inputs.MeasurementInfo {
 			"cpu_id":         inputs.NewTagInfo("CPU ID assigned to the scheduler."),
 			"sqlserver_host": inputs.NewTagInfo("Host name which installed SQLServer"),
 			"scheduler_id":   inputs.NewTagInfo("ID of the scheduler. All schedulers that are used to run regular queries have ID numbers less than 1048576. Those schedulers that have IDs greater than or equal to 1048576 are used internally by SQL Server, such as the dedicated administrator connection scheduler. Is not nullable."),
+			"server":         inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
 }
@@ -267,6 +272,7 @@ func (m *VolumeSpace) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"sqlserver_host":     inputs.NewTagInfo("Host name which installed SQLServer"),
 			"volume_mount_point": inputs.NewTagInfo("Mount point at which the volume is rooted. Can return an empty string. Returns null on Linux operating system."),
+			"server":             inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
 }
@@ -294,7 +300,9 @@ func (m *LockRow) Info() *inputs.MeasurementInfo {
 			"session_status":          newStringFieldInfo("Status of the session"),
 			"message":                 newStringFieldInfo("Text of the SQL query"),
 		},
-		Tags: map[string]interface{}{},
+		Tags: map[string]interface{}{
+			"server": inputs.NewTagInfo("The address of the server. The value is `host:port`"),
+		},
 	}
 }
 
@@ -315,7 +323,9 @@ func (m *LockTable) Info() *inputs.MeasurementInfo {
 			"request_mode":       newStringFieldInfo("Mode of the request"),
 			"request_status":     newStringFieldInfo("Current status of this request"),
 		},
-		Tags: map[string]interface{}{},
+		Tags: map[string]interface{}{
+			"server": inputs.NewTagInfo("The address of the server. The value is `host:port`"),
+		},
 	}
 }
 
@@ -339,7 +349,9 @@ func (m *LockDead) Info() *inputs.MeasurementInfo {
 			"blocking_text":        newStringFieldInfo("Text of the SQL query which is blocking"),
 			"message":              newStringFieldInfo("Text of the SQL query which is blocking"),
 		},
-		Tags: map[string]interface{}{},
+		Tags: map[string]interface{}{
+			"server": inputs.NewTagInfo("The address of the server. The value is `host:port`"),
+		},
 	}
 }
 
@@ -363,6 +375,7 @@ func (m *LogicalIO) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"message": inputs.NewTagInfo("Text of the SQL query"),
+			"server":  inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
 }
@@ -385,6 +398,7 @@ func (m *WorkerTime) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"message": inputs.NewTagInfo("Text of the SQL query"),
+			"server":  inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
 }
@@ -404,6 +418,7 @@ func (m *DatabaseSize) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"database_name": inputs.NewTagInfo("Name of the database"),
+			"server":        inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
 }
@@ -431,6 +446,7 @@ var DatabaseFilesMeasurementInfo = &inputs.MeasurementInfo{
 		"state_desc":    inputs.NewTagInfo("Description of the file state"),
 		"file_id":       inputs.NewTagInfo("ID of the file within database"),
 		"file_type":     inputs.NewTagInfo("File type: 0 = Rows, 1 = Log, 2 = File-Stream, 3 = Identified for informational purposes only, 4 = Full-text"),
+		"server":        inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 	},
 }
 
@@ -457,6 +473,7 @@ func (m *DatabaseBackupMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"database": inputs.NewTagInfo("Database name"),
+			"server":   inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
 }

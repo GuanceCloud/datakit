@@ -274,11 +274,11 @@ apt-get install -y libaio-dev libaio1
 {{ end }}
 {{ end }}
 
-## 自定义对象 {#object}
+## 对象 {#object}
 
 {{ range $i, $m := .Measurements }}
 
-{{if eq $m.Type "custom_object"}}
+{{if eq $m.Type "object"}}
 
 ### `{{$m.Name}}`
 
