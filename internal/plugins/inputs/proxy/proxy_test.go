@@ -21,7 +21,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
 type slowReader struct {
@@ -644,8 +643,7 @@ func BenchmarkProxy(b *T.B) {
 	for _, bc := range cases {
 		b.Run(bc.name, func(b *T.B) {
 			// proxy server
-			randPort := testutils.RandPort("tcp")
-			p := Input{Bind: "0.0.0.0", Port: randPort, Verbose: false, MITM: bc.mitm}
+			p := Input{Bind: "0.0.0.0", Port: 0, Verbose: false, MITM: bc.mitm}
 			require.NoError(b, p.doInitProxy())
 
 			proxyURLString := fmt.Sprintf("http://0.0.0.0:%d", p.ln.Addr().(*net.TCPAddr).Port)

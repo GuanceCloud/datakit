@@ -11,6 +11,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -23,9 +24,9 @@ import (
 	"github.com/elazarl/goproxy"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
 var reqs = map[string]string{
@@ -58,7 +59,7 @@ func TestProxy(t *testing.T) {
 	proxy := goproxy.NewProxyHttpServer()
 	proxy.Verbose = true
 
-	proxyAddr := fmt.Sprintf("0.0.0.0:%d", testutils.RandPort("tcp"))
+	proxyAddr := "0.0.0.0:0"
 
 	proxysrv := &http.Server{
 		Addr:    proxyAddr,
@@ -66,7 +67,12 @@ func TestProxy(t *testing.T) {
 	}
 
 	go func() {
-		if err := proxysrv.ListenAndServe(); err != nil {
+		l, err := net.Listen("tcp", proxyAddr)
+		require.NoError(t, err)
+
+		proxyAddr = l.Addr().String()
+
+		if err := proxysrv.Serve(l); err != nil {
 			t.Logf("%s", err)
 		}
 	}()
