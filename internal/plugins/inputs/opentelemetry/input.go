@@ -132,6 +132,7 @@ const (
   ## add is the listening on address for GRPC server.
   [inputs.opentelemetry.grpc]
    addr = "127.0.0.1:4317"
+   max_payload = 16777216 # default 16MiB
 
   ## If 'expected_headers' is well configed, then the obligation of sending certain wanted HTTP headers is on the client side,
   ## otherwise HTTP status code 400(bad request) will be provoked.
@@ -224,7 +225,7 @@ func (ipt *Input) RegHTTPHandler() {
 	ipt = ipt.setup()
 
 	if ipt.HTTPConfig == nil && ipt.GRPCConfig == nil {
-		log.Infof("### All OpenTelemetry web protocol are not enabled")
+		log.Infof("all otel web protocol are not enabled")
 
 		return
 	}
@@ -233,11 +234,11 @@ func (ipt *Input) RegHTTPHandler() {
 	var wkpool *workerpool.WorkerPool
 	if ipt.WPConfig != nil {
 		if wkpool, err = workerpool.NewWorkerPool(ipt.WPConfig, log); err != nil {
-			log.Errorf("### new worker-pool failed: %s", err.Error())
+			log.Errorf("new worker-pool failed: %s", err.Error())
 		}
 
 		if err = wkpool.Start(); err != nil {
-			log.Errorf("### start worker-pool failed: %s", err.Error())
+			log.Errorf("start worker-pool failed: %s", err.Error())
 		} else {
 			ipt.workerPool = wkpool
 		}
@@ -245,9 +246,9 @@ func (ipt *Input) RegHTTPHandler() {
 
 	var localCache *storage.Storage
 	if ipt.LocalCacheConfig != nil && ipt.HTTPConfig != nil {
-		log.Debug("### start register")
+		log.Debug("start register")
 		if localCache, err = storage.NewStorage(ipt.LocalCacheConfig, log); err != nil {
-			log.Errorf("### new local-cache failed: %s", err.Error())
+			log.Errorf("new local-cache failed: %s", err.Error())
 		} else {
 			localCache.RegisterConsumer(storage.HTTP_KEY, func(buf []byte) error {
 				start := time.Now()
@@ -272,17 +273,17 @@ func (ipt *Input) RegHTTPHandler() {
 						RequestURI:       reqpb.RequestUri,
 					}
 					if req.URL, err = url.Parse(reqpb.Url); err != nil {
-						log.Errorf("### parse raw URL: %s failed: %s", reqpb.Url, err.Error())
+						log.Errorf("parse raw URL: %s failed: %s", reqpb.Url, err.Error())
 					}
 					ipt.HTTPConfig.handleOTELTrace(&httpapi.NopResponseWriter{}, req)
 
-					log.Debugf("### process status: buffer-size: %dkb, cost: %dms, err: %v", len(reqpb.Body)>>10, time.Since(start)/time.Millisecond, err)
+					log.Debugf("process status: buffer-size: %dkb, cost: %dms, err: %v", len(reqpb.Body)>>10, time.Since(start)/time.Millisecond, err)
 
 					return nil
 				}
 			})
 			if err = localCache.RunConsumeWorker(); err != nil {
-				log.Errorf("### run local-cache consumer failed: %s", err.Error())
+				log.Errorf("run local-cache consumer failed: %s", err.Error())
 			}
 		}
 	}
@@ -344,7 +345,7 @@ func (ipt *Input) RegHTTPHandler() {
 		httpapi.RegHTTPHandler("POST", ipt.HTTPConfig.MetricAPI, httpapi.CheckExpectedHeaders(ipt.HTTPConfig.handleOTElMetrics, log, expectedHeaders))
 		httpapi.RegHTTPHandler("POST", ipt.HTTPConfig.LogsAPI, httpapi.CheckExpectedHeaders(ipt.HTTPConfig.handleOTELLogging, log, expectedHeaders))
 
-		log.Infof("### register handler:trace:%s metric: %s logs:%s  of agent %s",
+		log.Infof("register handler:trace:%s metric: %s logs:%s  of agent %s",
 			ipt.HTTPConfig.TraceAPI, ipt.HTTPConfig.MetricAPI, ipt.HTTPConfig.LogsAPI, inputName)
 	}
 }
@@ -359,7 +360,7 @@ func (ipt *Input) Run() {
 		return nil
 	})
 
-	log.Infof("### %s agent is running...", inputName)
+	log.Infof("%s agent is running...", inputName)
 
 	select {
 	case <-datakit.Exit.Wait():

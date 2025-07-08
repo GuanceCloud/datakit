@@ -40,7 +40,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "WPConfig", ENVName: "THREADS", Type: doc.JSON, Example: `{"buffer":1000, "threads":100}`, Desc: "Total number of threads and buffer", DescZh: "线程和缓存的数量"},
 		{FieldName: "LocalCacheConfig", ENVName: "STORAGE", Type: doc.JSON, Example: "`{\"storage\":\"./otel_storage\", \"capacity\": 5120}`", Desc: "Local cache file path and size (MB) ", DescZh: "本地缓存路径和大小（MB）"},
 		{FieldName: "HTTPConfig", ENVName: "HTTP", Type: doc.JSON, Example: "`{\"enable\":true, \"http_status_ok\": 200, \"trace_api\": \"/otel/v1/traces\", \"metric_api\": \"/otel/v1/metrics\"}`", Desc: "HTTP agent config", DescZh: "代理 HTTP 配置"},
-		{FieldName: "GRPCConfig", ENVName: "GRPC", Type: doc.JSON, Example: `{"trace_enable": true, "metric_enable": true, "addr": "127.0.0.1:4317"}`, Desc: "GRPC agent config", DescZh: "代理 GRPC 配置"},
+		{FieldName: "GRPCConfig", ENVName: "GRPC", Type: doc.JSON, Example: `{"addr": "127.0.0.1:4317", "max_payload": 16777216 }`, Desc: "GRPC agent config", DescZh: "代理 GRPC 配置"},
 		{FieldName: "ExpectedHeaders", Type: doc.JSON, Example: `{"ex_version": "1.2.3", "ex_name": "env_resource_name"}`, Desc: "If 'expected_headers' is well config, then the obligation of sending certain wanted HTTP headers is on the client side", DescZh: "配置使用客户端的 HTTP 头"},
 		{FieldName: "CleanMessage", Type: doc.Boolean, Example: "`true/false`", Desc: "Clean message generate smaller `message` field", DescZh: "精简 `message` 字段大小"},
 		{FieldName: "Tags", Type: doc.JSON, Example: `{"k1":"v1", "k2":"v2", "k3":"v3"}`},
@@ -71,7 +71,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 // export ENV_INPUT_OTEL_THREADS=`{"buffer":1000, "threads":100}`
 // export ENV_INPUT_OTEL_STORAGE=`{"storage":"./otel_storage", "capacity": 5120}`
 // export ENV_INPUT_OTEL_HTTP=`{"enable":true, "http_status_ok": 200, "trace_api": "/otel/v1/trace", "metric_api": "/otel/v1/metric"}`
-// export ENV_INPUT_OTEL_GRPC=`{"trace_enable": true, "metric_enable": true, "addr": "127.0.0.1:4317"}`
+// export ENV_INPUT_OTEL_GRPC=`{true, "addr": "127.0.0.1:4317"}`
 // export ENV_INPUT_OTEL_EXPECTED_HEADERS=`{"ex_version": "1.2.3", "ex_name": "env_resource_name"}`.
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	log = logger.SLogger(inputName)

@@ -21,7 +21,8 @@ import (
 )
 
 type gRPC struct {
-	Address string `toml:"addr" json:"addr"`
+	Address    string `toml:"addr" json:"addr"`
+	MaxPayload int    `toml:"max_payload" json:"max_payload"`
 
 	trueAddr string
 
@@ -33,16 +34,23 @@ type gRPC struct {
 func (gc *gRPC) runGRPCV1(ipt *Input) {
 	listener, err := net.Listen("tcp", gc.Address)
 	if err != nil {
-		log.Errorf("### opentelemetry grpc server v1 listening on %s failed: %v", gc.Address, err.Error())
+		log.Errorf("opentelemetry grpc server v1 listening on %s failed: %v", gc.Address, err.Error())
 
 		return
 	}
 
 	gc.trueAddr = listener.Addr().String()
-	log.Debugf("### opentelemetry grpc v1 listening on: %s", gc.trueAddr)
+	log.Debugf("opentelemetry grpc v1 listening on: %s", gc.trueAddr)
+
+	if gc.MaxPayload <= 0 {
+		gc.MaxPayload = 16777216
+	}
+
+	log.Infof("set gRPC max payload to %d", gc.MaxPayload)
 
 	gc.otelSvr = grpc.NewServer(
-		itrace.DefaultGRPCServerOpts...,
+		grpc.MaxRecvMsgSize(gc.MaxPayload),
+		itrace.OTLPInterceptors(),
 	)
 
 	// register T/M/L gRPC server

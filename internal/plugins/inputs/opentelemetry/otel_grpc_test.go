@@ -15,6 +15,7 @@ import (
 	tv1 "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/collector/trace/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -22,6 +23,64 @@ import (
 )
 
 func Test_grpcServer(t *T.T) {
+	t.Run(`max-payload`, func(t *T.T) {
+		reg := prometheus.NewRegistry()
+		reg.MustRegister(itrace.Metrics()...)
+		ipt := defaultInput()
+		ipt.setup()
+
+		ipt.GRPCConfig = &gRPC{
+			Address:    "0.0.0.0:0",
+			MaxPayload: 100, // too small
+		}
+
+		var wg sync.WaitGroup
+
+		wg.Add(1)
+
+		// setup gRPC server
+		go func() {
+			defer wg.Done()
+			ipt.GRPCConfig.runGRPCV1(ipt)
+		}()
+
+		time.Sleep(time.Second) // wait gRPC server ok.
+
+		// client
+		conn, err := grpc.Dial(
+			ipt.GRPCConfig.trueAddr,
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithBlock(),
+			grpc.WithTimeout(5*time.Second),
+		)
+		assert.NoError(t, err)
+		defer conn.Close()
+
+		client := tv1.NewTraceServiceClient(conn)
+
+		// setup test data
+		req := createTestTraceData(100)
+
+		// send
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		resp, err := client.Export(ctx, req)
+		require.Error(t, err)
+		require.Nil(t, resp)
+		require.Contains(t, err.Error(), "ResourceExhausted")
+
+		t.Logf("resp: %v, err: %s", resp, err)
+
+		ipt.GRPCConfig.stop() // stop server
+		wg.Wait()
+
+		mfs, err := reg.Gather()
+		assert.NoError(t, err)
+
+		t.Logf("metrics:\n%s", metrics.MetricFamily2Text(mfs))
+	})
+
 	t.Run(`basic`, func(t *T.T) {
 		reg := prometheus.NewRegistry()
 		reg.MustRegister(itrace.Metrics()...)
@@ -67,7 +126,7 @@ func Test_grpcServer(t *T.T) {
 		resp, err := client.Export(ctx, req)
 		assert.NoError(t, err)
 
-		t.Logf("resp: %v", resp)
+		t.Logf("resp: %+#v", resp)
 
 		ipt.GRPCConfig.stop() // stop server
 		wg.Wait()
