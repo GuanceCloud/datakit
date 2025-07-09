@@ -69,12 +69,20 @@ func sliceString(ctx *runtime.Task, funcExpr *ast.CallExpr, vals ...any) *errcha
 		ctx.Regs.ReturnAppend(errstring, ast.String)
 		return nil
 	}
-	if start < 0 || end > int64(len(name)) || start > end {
+
+	runes := []rune(name)
+	lenRunes := int64(len(runes))
+
+	if end > lenRunes {
+		end = lenRunes
+	}
+
+	if start < 0 || end > lenRunes || start > end {
 		ctx.Regs.ReturnAppend(errstring, ast.String)
 		return nil
 	}
 
-	substring := name[start:end]
+	substring := string(runes[start:end])
 
 	ctx.Regs.ReturnAppend(substring, ast.String)
 	return nil

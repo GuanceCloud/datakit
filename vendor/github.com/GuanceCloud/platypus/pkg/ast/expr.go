@@ -348,7 +348,7 @@ func (e *SliceExpr) String() string {
 }
 
 type AssignmentExpr struct {
-	LHS, RHS *Node
+	LHS, RHS []*Node
 	Op       Op
 	OpPos    token.LnColPos
 }

@@ -400,7 +400,7 @@ func (p *parser) newUnaryExpr(op Item, r *ast.Node) *ast.Node {
 	})
 }
 
-func (p *parser) newAssignmentStmt(l, r *ast.Node, op Item) *ast.Node {
+func (p *parser) newAssignmentStmt(l, r []*ast.Node, op Item) *ast.Node {
 	return ast.WrapAssignmentStmt(&ast.AssignmentExpr{
 		LHS:   l,
 		Op:    AstOp(op.Typ),
@@ -412,6 +412,7 @@ func (p *parser) newAssignmentStmt(l, r *ast.Node, op Item) *ast.Node {
 func (p *parser) newInExpr(l, r *ast.Node, inOp Item) *ast.Node {
 	return ast.WrapInExpr(&ast.InExpr{
 		LHS:   l,
+		Op:    "in",
 		RHS:   r,
 		OpPos: p.posCache.LnCol(inOp.Pos),
 	})
@@ -526,28 +527,17 @@ func (p *parser) newSliceExpr(obj *ast.Node, start *ast.Node, end *ast.Node, ste
 		p.addParseErrf(p.yyParser.lval.item.PositionRange(), "invalid slice expression: object is nil")
 		return nil
 	}
-	switch obj.NodeType {
-	case ast.TypeIdentifier, ast.TypeStringLiteral, ast.TypeListLiteral, ast.TypeSliceExpr:
-	default:
-		p.addParseErrf(p.yyParser.lval.item.PositionRange(),
-			fmt.Sprintf("invalid slice object type %s", obj.NodeType))
-		return nil
-	}
-
 	if start != nil {
 		switch start.NodeType {
-		case ast.TypeIdentifier, ast.TypeIntegerLiteral, ast.TypeFloatLiteral:
-		default:
+		case ast.TypeFloatLiteral, ast.TypeListLiteral, ast.TypeStringLiteral:
 			p.addParseErrf(p.yyParser.lval.item.PositionRange(),
 				fmt.Sprintf("invalid slice start type %s", start.NodeType))
 			return nil
 		}
 	}
-
 	if end != nil {
 		switch end.NodeType {
-		case ast.TypeIdentifier, ast.TypeIntegerLiteral, ast.TypeFloatLiteral:
-		default:
+		case ast.TypeFloatLiteral, ast.TypeListLiteral, ast.TypeStringLiteral:
 			p.addParseErrf(p.yyParser.lval.item.PositionRange(),
 				fmt.Sprintf("invalid slice end type %s", end.NodeType))
 			return nil
@@ -555,13 +545,13 @@ func (p *parser) newSliceExpr(obj *ast.Node, start *ast.Node, end *ast.Node, ste
 	}
 	if step != nil {
 		switch step.NodeType {
-		case ast.TypeIdentifier, ast.TypeIntegerLiteral, ast.TypeFloatLiteral:
-		default:
+		case ast.TypeFloatLiteral, ast.TypeListLiteral, ast.TypeStringLiteral:
 			p.addParseErrf(p.yyParser.lval.item.PositionRange(),
 				fmt.Sprintf("invalid slice step type %s", step.NodeType))
 			return nil
 		}
 	}
+
 	return ast.WrapSliceExpr(&ast.SliceExpr{
 		Obj:      obj,
 		Start:    start,

@@ -173,6 +173,38 @@ func CompilePattern(input string, denomalized PatternStorageIface) (*GrokRegexp,
 	}, nil
 }
 
+func CompilePattern2(gP *GrokPattern, denomalized PatternStorageIface) (*GrokRegexp, error) {
+	re, err := regexp.Compile(gP.denormalized)
+	if err != nil {
+		return nil, err
+	}
+
+	var subMatchNames SubMatchName
+	for i, name := range re.SubexpNames() {
+		if name != "" {
+			// update index
+			for j := range subMatchNames.name {
+				if subMatchNames.name[j] == name {
+					subMatchNames.subexpIndex[j] = i
+					break
+				}
+			}
+
+			// insert name and index
+			subMatchNames.name = append(subMatchNames.name, name)
+			subMatchNames.subexpIndex = append(subMatchNames.subexpIndex, i)
+		}
+	}
+
+	subMatchNames.subexpCount = len(re.SubexpNames())
+
+	return &GrokRegexp{
+		grokPattern:   gP,
+		re:            re,
+		subMatchNames: subMatchNames,
+	}, nil
+}
+
 func LoadPatternsFromPath(path string) (map[string]string, error) {
 	if fi, err := os.Stat(path); err == nil {
 		if fi.IsDir() {

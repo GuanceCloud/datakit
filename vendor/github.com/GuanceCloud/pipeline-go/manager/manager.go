@@ -131,6 +131,7 @@ func CategoryDirName() map[point.Category]string {
 		point.KeyEvent:     "keyevent",
 		point.Object:       "object",
 		point.CustomObject: "custom_object",
+		point.ObjectChange: "object_change",
 		point.Logging:      "logging",
 		point.Tracing:      "tracing",
 		point.RUM:          "rum",

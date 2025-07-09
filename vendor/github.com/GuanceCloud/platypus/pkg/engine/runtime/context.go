@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"reflect"
 	"sync"
 
 	"github.com/GuanceCloud/grok"
@@ -23,10 +22,12 @@ const (
 )
 
 type Task struct {
+	private map[string]any
+
 	Regs PlReg
 
-	stackHeader *PlProcStack
-	stackCur    *PlProcStack
+	stackHeader *Stack
+	stackCur    *Stack
 
 	funcCall  map[string]FuncCall
 	funcCheck map[string]FuncCheck
@@ -44,8 +45,6 @@ type Task struct {
 	callRef []*ast.CallExpr
 
 	name string
-
-	withValue map[any]any
 }
 
 func (ctx *Task) Name() string {
@@ -58,38 +57,9 @@ var (
 	ErrKeyExists        = errors.New("key exists")
 )
 
-func (ctx *Task) WithVal(key, val any, force bool) error {
-	if key == nil {
-		return ErrNilKey
-	}
-	if !reflect.TypeOf(key).Comparable() {
-		return ErrKeyNotComparable
-	}
-	if ctx.withValue == nil {
-		ctx.withValue = map[any]any{
-			key: val,
-		}
-		return nil
-	}
-
-	if _, ok := ctx.withValue[key]; !ok {
-		ctx.withValue[key] = val
-	} else {
-		if force {
-			ctx.withValue[key] = val
-		} else {
-			return ErrKeyExists
-		}
-	}
-
-	return nil
-}
-
-func (ctx *Task) Val(key any) any {
-	if ctx.withValue == nil {
-		return nil
-	}
-	return ctx.withValue[key]
+func (ctx *Task) PValue(k string) (any, bool) {
+	v, ok := ctx.private[k]
+	return v, ok
 }
 
 func (ctx *Task) InData() any {
@@ -121,8 +91,8 @@ func InitCtx(ctx *Task, input Input, script *Script, signal Signal) *Task {
 }
 
 func InitCtxForCheck(ctx *Task, script *Script, checkFn map[string]FuncCheck) *Task {
-	ctx.stackHeader = &PlProcStack{
-		data: map[string]*Varb{},
+	ctx.stackHeader = &Stack{
+		Data: map[string]*Varb{},
 	}
 	ctx.stackCur = ctx.stackHeader
 
@@ -212,19 +182,19 @@ func (ctx *Task) GetFuncCheck(key string) (FuncCheck, bool) {
 }
 
 func (ctx *Task) StackEnterNew() {
-	next := &PlProcStack{
-		data:   map[string]*Varb{},
-		before: ctx.stackCur,
+	next := &Stack{
+		Data:   map[string]*Varb{},
+		Before: ctx.stackCur,
 	}
 
 	ctx.stackCur = next
 }
 
 func (ctx *Task) StackExitCur() {
-	ctx.stackCur.data = nil
-	ctx.stackCur.checkPattern = nil
+	ctx.stackCur.Data = nil
+	ctx.stackCur.CheckPattern = nil
 
-	ctx.stackCur = ctx.stackCur.before
+	ctx.stackCur = ctx.stackCur.Before
 }
 
 func (ctx *Task) StackClear() {
@@ -274,8 +244,8 @@ var ctxPool sync.Pool = sync.Pool{
 func GetContext() *Task {
 	ctx, _ := ctxPool.Get().(*Task)
 
-	ctx.stackHeader = &PlProcStack{
-		data: map[string]*Varb{},
+	ctx.stackHeader = &Stack{
+		Data: map[string]*Varb{},
 	}
 	ctx.stackCur = ctx.stackHeader
 	return ctx
