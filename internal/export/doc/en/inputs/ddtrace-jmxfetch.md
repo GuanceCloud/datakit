@@ -50,12 +50,12 @@ How to collect metrics through custom configuration.
 - `jvm.peak_thread_count`
 - `jvm.daemon_thread_count`
 
-> `dd-java-agent` has built-in these three indicators starting from v1.17.3-guance, and no additional configuration is required. However, other MBean indicators can still be configured in this customized way.
+> `dd-java-agent` has built-in these three indicators starting from v1.17.3-ext, and no additional configuration is required. However, other MBean indicators can still be configured in this customized way.
 
 Custom indicators need to add configuration files:
 
 1. mkdir `/usr/local/ddtrace/conf.d`, Other directories can be used.
-2. Create a configuration file under the folder `guance.d/conf.yaml`.
+2. Create a configuration file under the folder `ext.d/conf.yaml`.
 3. `conf.yaml` at end of doc.
 
 My service name is `tmall.jar` and the merged startup parameters are:
@@ -67,7 +67,7 @@ java -javaagent:/usr/local/dd-java-agent.jar \
   -Dcom.sun.management.jmxremote.ssl=false \
   -Dcom.sun.management.jmxremote.authenticate=false \
   -Ddd.jmxfetch.config.dir="/usr/local/ddtrace/conf.d/" \
-  -Ddd.jmxfetch.config="guance.d/conf.yaml" \
+  -Ddd.jmxfetch.config="ext.d/conf.yaml" \
   -jar tmall.jar
 ```
 

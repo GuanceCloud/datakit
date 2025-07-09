@@ -41,7 +41,7 @@ Dubbo is an open source framework of Alibaba Cloud, which currently supports Dub
 
 supported version: Dubbo2: 2.7.0 and above, Dubbo3 has no version restrictions.
 
-DDTrace supported version: [:octicons-tag-24:  v1.30.4](ddtrace-ext-changelog.md#cl-1.30.4-guance)
+DDTrace supported version: [:octicons-tag-24:  v1.30.4](ddtrace-ext-changelog.md#cl-1.30.4-ext)
 
 ### RocketMQ {#rocketmq}
 
@@ -51,7 +51,7 @@ There is a difference when referencing the library, the apache RocketMQ artifact
 
 supported version: Currently supports version 4.8.0 and above. Alibaba Cloud RocketMQ service supports version 5.0 and above.
 
-DDTrace supported version: [:octicons-tag-24:  v1.4.1](ddtrace-ext-changelog.md#cl-1.4.1-guance)
+DDTrace supported version: [:octicons-tag-24:  v1.4.1](ddtrace-ext-changelog.md#cl-1.4.1-ext)
 
 ### Thrift supported {#thrift}
 
@@ -85,7 +85,7 @@ Supported version:
 - [x] Lettuce
 - [x] Redisson
 
-DDTrace supported version: [:octicons-tag-24:  v1.17.3](ddtrace-ext-changelog.md#cl-1.17.3-guance)
+DDTrace supported version: [:octicons-tag-24:  v1.17.3](ddtrace-ext-changelog.md#cl-1.17.3-ext)
 
 ### log pattern {#log-pattern}
 
@@ -188,7 +188,7 @@ supported version：
 
 - [x] all
 
-DDTrace supported version: [:octicons-tag-24:  v1.12.1](ddtrace-ext-changelog.md#cl-1.12.1-guance)
+DDTrace supported version: [:octicons-tag-24:  v1.12.1](ddtrace-ext-changelog.md#cl-1.12.1-ext)
 
 
 ## HTTP {#http}
@@ -220,7 +220,7 @@ Each line adheres to the format described in the Datadog documentation for [dd.t
 
 Note: Using `-Ddd.trace.method.file` eliminates the need to configure `dd.trace.methods` separately.
 
-DDTrace supported version:  [:octicons-tag-24: v1.47.4](ddtrace-ext-changelog.md#cl-1.47.4-guance)
+DDTrace supported version:  [:octicons-tag-24: v1.47.4](ddtrace-ext-changelog.md#cl-1.47.4-ext)
 
 ### HTTP Response,Request Body in the trace {#response_body}
 
@@ -241,13 +241,13 @@ The blacklist configuration is as follows:
 
 > DD_TRACE_RESPONSE_BODY_BLACKLIST_URLS
 
-DDTrace supported version: [:octicons-tag-24:  v1.47.1-guance](ddtrace-ext-changelog.md#cl-1.47.1-guance)
+DDTrace supported version: [:octicons-tag-24:  v1.47.1](ddtrace-ext-changelog.md#cl-1.47.1-ext)
 
 ### Tracing Header {#trace_header}
 
 The link information will put the header information of the request and response into the tag.The default state is off. If it needs to be turned on, add the parameter `-Ddd.trace.headers.enabled=true`  during startup.
 
-DDTrace supported version: [:octicons-tag-24: v1.25.2](ddtrace-ext-changelog.md#cl-1.25.2-guance)
+DDTrace supported version: [:octicons-tag-24: v1.25.2](ddtrace-ext-changelog.md#cl-1.25.2-ext)
 
 ### Get the parameter of function {#dd_trace_methods}
 
@@ -269,7 +269,7 @@ After the declaration is made in the above way, the corresponding method will be
 
 <!-- markdownlint-enable -->
 
-DDTrace supported version： [:octicons-tag-24: v1.12.1](ddtrace-ext-changelog.md#cl-1.12.1-guance)
+DDTrace supported version： [:octicons-tag-24: v1.12.1](ddtrace-ext-changelog.md#cl-1.12.1-ext)
 
 ## Others {#other}
 
@@ -304,7 +304,7 @@ Note:
 ## supported trace-128-id {#trace_128_bit_id}
 
 [:octicons-tag-24: DataKit-1.8.0](../datakit/changelog.md#cl-1.8.0)
-[:octicons-tag-24: DDTrace-1.4.0-guance](ddtrace-ext-changelog.md#cl-1.14.0-guance)
+[:octicons-tag-24: DDTrace-1.4.0](ddtrace-ext-changelog.md#cl-1.14.0-ext)
 
 The default trace-id of the DDTrace agent is 64 bit, and the DataKit also supports 64 bit trace-id in the received link data.
 Starting from `v1.11.0`, it supports the `W3C protocol` and supports receiving 128 bit trace-id. However, the trace id sent to the link is still 64 bit.

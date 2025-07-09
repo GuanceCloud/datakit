@@ -13,39 +13,6 @@ __int_icon: 'icon/opentelemetry'
 
 配置：[DataKit 配置 OTEL](opentelemetry.md)
 
-## 添加依赖 {#dependencies}
-
-在 pom.xml 中添加依赖
-
-``` xml
-<!-- 加入 opentelemetry  -->
-<dependency>
-    <groupId>io.opentelemetry</groupId>
-    <artifactId>opentelemetry-sdk</artifactId>
-    <version>1.9.0</version>
-</dependency>
-<dependency>
-    <groupId>io.opentelemetry</groupId>
-    <artifactId>opentelemetry-exporter-otlp</artifactId>
-    <version>1.9.0</version>
-</dependency>
-<dependency>
-    <groupId>io.grpc</groupId>
-    <artifactId>grpc-netty-shaded</artifactId>
-    <version>1.41.0</version>
-</dependency>
-<dependency>
-    <groupId>io.opentelemetry</groupId>
-    <artifactId>opentelemetry-semconv</artifactId>
-    <version>1.9.0-alpha</version>
-</dependency>
-<!-- 使用 grpc 协议 -->
-<dependency>
-    <groupId>io.grpc</groupId>
-    <artifactId>grpc-protobuf</artifactId>
-    <version>1.36.1</version>
-</dependency>
-```
 
 ## Java agent 形式 {#with-agent}
 
@@ -84,7 +51,41 @@ CATALINA_OPTS="$CATALINA_OPTS -javaagent:PATH/TO/opentelemetry-javaagent.jar -Do
 
 在配置字段 `exporter.otlp.endpoint` 时，可以不用配置并使用默认值（localhost:4317），因为 DataKit 与 Java 程序在一台主机上，默认的端口也是 4317。
 
-## Java 2：代码注入形式 {#with-code}
+## 代码注入形式 {#with-code}
+
+添加依赖：在 pom.xml 中添加依赖
+
+``` xml
+<!-- 加入 opentelemetry  -->
+<dependency>
+    <groupId>io.opentelemetry</groupId>
+    <artifactId>opentelemetry-sdk</artifactId>
+    <version>1.9.0</version>
+</dependency>
+<dependency>
+    <groupId>io.opentelemetry</groupId>
+    <artifactId>opentelemetry-exporter-otlp</artifactId>
+    <version>1.9.0</version>
+</dependency>
+<dependency>
+    <groupId>io.grpc</groupId>
+    <artifactId>grpc-netty-shaded</artifactId>
+    <version>1.41.0</version>
+</dependency>
+<dependency>
+    <groupId>io.opentelemetry</groupId>
+    <artifactId>opentelemetry-semconv</artifactId>
+    <version>1.9.0-alpha</version>
+</dependency>
+<!-- 使用 grpc 协议 -->
+<dependency>
+    <groupId>io.grpc</groupId>
+    <artifactId>grpc-protobuf</artifactId>
+    <version>1.36.1</version>
+</dependency>
+```
+
+代码实现：
 
 ``` java
 package com.example;
@@ -165,13 +166,6 @@ public class otlpdemo {
 }
 ```
 
-## 查看效果 {#view}
-
-登录 [<<<custom_key.brand_name>>>](https://console.<<<custom_key.brand_main_domain>>>/tracing/service/table?time=15m){:target="_blank"} 后查看 「应用性能监测 -> 链路 -> 点击单条链路」
-
-![avatar](imgs/otel-java-example.png)
-
-在火焰图中可看到每一个模块中执行的时间、调用流程等。
 
 ## 参考 {#more-readings}
 

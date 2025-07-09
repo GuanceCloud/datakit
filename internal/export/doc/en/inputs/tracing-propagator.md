@@ -68,9 +68,9 @@ Products and manufacturers:
 
 The open source address of the product:
 
-- [OpenTelemetry](https://github.com/open-telemetry){:target="_blank"} is a product under CNCF. At the same time, GuanceCloud also [extended it](https://github.com/GuanceCloud/opentelemetry-java-instrumentation){:target="_blank"}
+- [OpenTelemetry](https://github.com/open-telemetry){:target="_blank"} is a product under CNCF.
 - [Jaeger](https://github.com/jaegertracing/jaeger){:target="_blank"} also belongs to CNCF
-- [Datadog](https://github.com/DataDog){:target="_blank"} is a multilingual link tool, in which GuanceCloud has [extended](https://github.com/GuanceCloud/dd-trace-java){:target="_blank"}
+- [Datadog](https://github.com/DataDog){:target="_blank"} is a multilingual link tool.
 - [SkyWalking](https://github.com/apache?q=skywalking&type=all&language=&sort=){:target="_blank"} is an open source product under the Apache Foundation
 - [Zipkin](https://github.com/OpenZipkin){:target="_blank"} There are link tools in multiple languages.
 
@@ -220,11 +220,4 @@ After `compatible_otel=true`, all DDTrace `span_id` and `parent_id` will become 
     ```
 <!-- markdownlint-enable -->
 
-So far, DDTrace and OTEL have been connected in series on the link, and the service call relationship and logs can also be connected in series:
-
-<!-- markdownlint-disable MD046 MD033 -->
-<figure>
-  <img src="https://github.com/GuanceCloud/dd-trace-java/assets/31207055/9b599678-1ebc-4f1f-9993-f863fb25280b" style="height: 600px" alt="Link Details">
-  <figcaption> Link Details </figcaption>
-</figure>
-<!-- markdownlint-enable -->
+So far, DDTrace and OTEL have been connected in series on the link, and the service call relationship and logs can also be connected in series.

@@ -110,6 +110,7 @@ internal/plugins/externals/ebpf/internal/testuitls/mysqlins/mysqlins
 internal/export/doc/zh/inputs/imgs/tracing.png
 /git
 /build
+export-songlq.sh
 
 # DCA files
 node_modules

@@ -13,7 +13,7 @@ In this paper, the common Web-side three-tier architecture mode is used to reali
 
 Before using OTEL to send Trace to DataKit, make sure you have [configured the collector](opentelemetry.md).
 
-## Next, implement in pseudo code {#code}
+## implement in pseudo code {#code}
 
 Simulation scenario: A user's login request flows through various modules on the server and is returned to the client. Add link tracking and marking in each process, and finally log in to the <<<custom_key.brand_name>>> platform to check the processing time and service status of each module in this process.
 
@@ -156,14 +156,6 @@ func main() {
     os.Exit(0)
 }
 ```
-
-## View Effect {#view}
-
-Log in to [<<<custom_key.brand_name>>>](https://console.<<<custom_key.brand_main_domain>>>/tracing/service/table?time=15m){:target="_blank"} and then view `application performance monitoring` -> `links` -> Click on a single `link`
-
-![OTEL-go-example"](imgs/otel-go-example.png)
-
-In the flame diagram, you can see the execution time, call flow and so on in each module.
 
 ---
 
