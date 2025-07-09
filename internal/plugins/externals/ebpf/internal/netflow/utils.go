@@ -5,6 +5,7 @@ package netflow
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"math"
 	"net"
@@ -15,7 +16,6 @@ import (
 
 	manager "github.com/DataDog/ebpf-manager"
 	"github.com/GuanceCloud/cliutils/logger"
-	"github.com/GuanceCloud/cliutils/point"
 	"github.com/cilium/ebpf"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/c"
@@ -254,99 +254,54 @@ func NewNetFlowManger(constEditor []manager.ConstantEditor, ctMap map[string]*eb
 	return m, nil
 }
 
-func ConvConn2M(k ConnectionInfo, v ConnFullStats, name string,
-	gTags map[string]string, ptTime time.Time, pidMap map[int][2]string,
-) (*point.Point, error) {
-	mFields := map[string]interface{}{}
-	mTags := map[string]string{}
-
-	for k, v := range gTags {
-		mTags[k] = v
+func AddClientServerInf(mtags map[string]string, mfields map[string]any) (map[string]string, map[string]any) {
+	direction, ok := mtags["direction"]
+	if !ok {
+		return mtags, mfields
 	}
 
-	mTags["status"] = "info"
-	mTags["pid"] = fmt.Sprint(k.Pid)
-	if procName, ok := pidMap[int(k.Pid)]; ok {
-		mTags["process_name"] = procName[0]
-	} else {
-		mTags["process_name"] = NoValue
+	if v, ok := mtags["dst_domain"]; ok {
+		mtags["server_domain"] = v
 	}
 
-	isV6 := !ConnAddrIsIPv4(k.Meta)
-	if k.Saddr[0] == 0 && k.Saddr[1] == 0 && k.Daddr[0] == 0 && k.Daddr[1] == 0 {
-		if k.Saddr[2] == 0xffff0000 && k.Daddr[2] == 0xffff0000 {
-			isV6 = false
-		} else if k.Saddr[2] == 0 && k.Daddr[2] == 0 && k.Saddr[3] > 1 && k.Daddr[3] > 1 {
-			isV6 = false
+	switch direction {
+	case DirectionIncoming:
+		mtags["conn_side"] = "server"
+
+		mtags["server_ip"] = mtags["src_ip"]
+		mtags["server_ip_type"] = mtags["dst_ip_type"]
+		mtags["server_port"] = mtags["src_port"]
+
+		mtags["client_ip"] = mtags["dst_ip"]
+		mtags["client_ip_type"] = mtags["dst_ip_type"]
+		mtags["client_port"] = mtags["dst_port"]
+
+		if v, ok := mfields["bytes_read"]; ok {
+			mfields["client_sent"] = v
+		}
+		if v, ok := mfields["bytes_written"]; ok {
+			mfields["server_sent"] = v
+		}
+	default:
+		mtags["conn_side"] = "client"
+
+		mtags["server_ip"] = mtags["dst_ip"]
+		mtags["server_ip_type"] = mtags["dst_ip_type"]
+		mtags["server_port"] = mtags["dst_port"]
+
+		mtags["client_ip"] = mtags["src_ip"]
+		mtags["client_ip_type"] = mtags["src_ip_type"]
+		mtags["client_port"] = mtags["src_port"]
+
+		if v, ok := mfields["bytes_written"]; ok {
+			mfields["client_sent"] = v
+		}
+		if v, ok := mfields["bytes_read"]; ok {
+			mfields["server_sent"] = v
 		}
 	}
 
-	if !isV6 {
-		mTags["src_ip_type"] = ConnIPv4Type(k.Saddr[3])
-		mTags["dst_ip_type"] = ConnIPv4Type(k.Daddr[3])
-		mTags["family"] = "IPv4"
-	} else {
-		mTags["src_ip_type"] = ConnIPv6Type(k.Saddr)
-
-		mTags["dst_ip_type"] = ConnIPv6Type(k.Daddr)
-		mTags["family"] = "IPv6"
-	}
-
-	srcIP := U32BEToIP(k.Saddr, isV6).String()
-	mTags["src_ip"] = srcIP
-
-	dstIP := U32BEToIP(k.Daddr, isV6).String()
-	mTags["dst_ip"] = dstIP
-
-	if dnsRecord != nil {
-		mTags["dst_domain"] = dnsRecord.LookupAddr(dstIP)
-	}
-
-	if k.Sport == math.MaxUint32 {
-		mTags["src_port"] = "*"
-	} else {
-		mTags["src_port"] = fmt.Sprintf("%d", k.Sport)
-	}
-
-	if k.Dport == math.MaxUint32 {
-		mTags["dst_port"] = "*"
-	} else {
-		mTags["dst_port"] = fmt.Sprintf("%d", k.Dport)
-	}
-
-	mFields["bytes_read"] = int64(v.Stats.RecvBytes)
-	mFields["bytes_written"] = int64(v.Stats.SentBytes)
-
-	var l4proto string
-	if ConnProtocolIsTCP(k.Meta) {
-		l4proto = "tcp"
-		mTags["transport"] = l4proto
-		mFields["retransmits"] = int64(v.TCPStats.Retransmits)
-		mFields["rtt"] = int64(v.TCPStats.Rtt)
-		mFields["rtt_var"] = int64(v.TCPStats.RttVar)
-		mFields["tcp_closed"] = v.TotalClosed
-		mFields["tcp_established"] = v.TotalEstablished
-	} else {
-		l4proto = "udp"
-		mTags["transport"] = l4proto
-	}
-	mTags["direction"] = ConnDirection2Str(v.Stats.Direction)
-
-	// add K8s tags
-
-	mTags = AddK8sTags2Map(k8sNetInfo, &BaseKey{
-		SAddr:     srcIP,
-		DAddr:     dstIP,
-		SPort:     k.Sport,
-		DPort:     k.Dport,
-		Transport: l4proto,
-	}, mTags)
-
-	kvs := point.NewTags(mTags)
-	kvs = append(kvs, point.NewKVs(mFields)...)
-	pt := point.NewPointV2(name, kvs, append(
-		point.CommonLoggingOptions(), point.WithTime(ptTime))...)
-	return pt, nil
+	return mtags, mfields
 }
 
 func IsIncomingFromK8s(k8sNetInfo *cli.K8sInfo, pid int, srcIP string,
@@ -359,6 +314,148 @@ func IsIncomingFromK8s(k8sNetInfo *cli.K8sInfo, pid int, srcIP string,
 		}
 	}
 	return false
+}
+
+func addNoValueK8s(src bool, mTags map[string]string) map[string]string {
+	if mTags == nil {
+		mTags = map[string]string{}
+	}
+
+	client := true
+	if v, ok := mTags["direction"]; ok {
+		if v == DirectionIncoming {
+			client = false
+		}
+	}
+
+	if src {
+		mTags["src_k8s_namespace"] = NoValue
+		mTags["src_k8s_pod_name"] = NoValue
+		mTags["src_k8s_service_name"] = NoValue
+		mTags["src_k8s_deployment_name"] = NoValue
+		mTags["src_k8s_workload_name"] = NoValue
+		mTags["src_k8s_workload_type"] = NoValue
+	} else {
+		mTags["dst_k8s_namespace"] = NoValue
+		mTags["dst_k8s_pod_name"] = NoValue
+		mTags["dst_k8s_service_name"] = NoValue
+		mTags["dst_k8s_deployment_name"] = NoValue
+		mTags["dst_k8s_workload_name"] = NoValue
+		mTags["dst_k8s_workload_type"] = NoValue
+	}
+
+	if (client && src) || (!client && !src) {
+		mTags["client_k8s_namespace"] = NoValue
+		mTags["client_k8s_pod_name"] = NoValue
+		mTags["client_k8s_service_name"] = NoValue
+		mTags["client_k8s_deployment_name"] = NoValue
+		mTags["client_k8s_workload_name"] = NoValue
+		mTags["client_k8s_workload_type"] = NoValue
+	} else {
+		mTags["server_k8s_namespace"] = NoValue
+		mTags["server_k8s_pod_name"] = NoValue
+		mTags["server_k8s_service_name"] = NoValue
+		mTags["server_k8s_deployment_name"] = NoValue
+		mTags["server_k8s_workload_name"] = NoValue
+		mTags["server_k8s_workload_type"] = NoValue
+	}
+
+	return mTags
+}
+
+func addPodTag(src bool, k8stag *cli.K8sTag, mTags map[string]string) map[string]string {
+	if mTags == nil {
+		mTags = map[string]string{}
+	}
+	client := true
+	if v, ok := mTags["direction"]; ok {
+		if v == DirectionIncoming {
+			client = false
+		}
+	}
+
+	if src {
+		mTags["src_k8s_namespace"] = k8stag.NS
+		mTags["src_k8s_pod_name"] = k8stag.PodName
+		mTags["src_k8s_service_name"] = k8stag.SvcName
+		mTags["src_k8s_deployment_name"] = k8stag.WorkloadName
+		mTags["src_k8s_workload_name"] = k8stag.WorkloadName
+		mTags["src_k8s_workload_type"] = k8stag.Kind.String()
+		for k, v := range k8stag.Labels {
+			mTags[k] = v
+		}
+	} else {
+		mTags["dst_k8s_namespace"] = k8stag.NS
+		mTags["dst_k8s_pod_name"] = k8stag.PodName
+		mTags["dst_k8s_service_name"] = k8stag.SvcName
+		mTags["dst_k8s_deployment_name"] = k8stag.WorkloadName
+		mTags["dst_k8s_workload_name"] = k8stag.WorkloadName
+		mTags["dst_k8s_workload_type"] = k8stag.Kind.String()
+	}
+
+	if (client && src) || (!client && !src) {
+		mTags["client_k8s_namespace"] = k8stag.NS
+		mTags["client_k8s_pod_name"] = k8stag.PodName
+		mTags["client_k8s_service_name"] = k8stag.SvcName
+		mTags["client_k8s_deployment_name"] = k8stag.WorkloadName
+		mTags["client_k8s_workload_name"] = k8stag.WorkloadName
+		mTags["client_k8s_workload_type"] = k8stag.Kind.String()
+	} else {
+		mTags["server_k8s_namespace"] = k8stag.NS
+		mTags["server_k8s_pod_name"] = k8stag.PodName
+		mTags["server_k8s_service_name"] = k8stag.SvcName
+		mTags["server_k8s_deployment_name"] = k8stag.WorkloadName
+		mTags["server_k8s_workload_name"] = k8stag.WorkloadName
+		mTags["server_k8s_workload_type"] = k8stag.Kind.String()
+	}
+	return mTags
+}
+
+func addSvcTag(src bool, t *cli.PodChainSvc, mTags map[string]string) map[string]string {
+	if mTags == nil {
+		mTags = map[string]string{}
+	}
+
+	client := true
+	if v, ok := mTags["direction"]; ok {
+		if v == DirectionIncoming {
+			client = false
+		}
+	}
+
+	if src {
+		mTags["src_k8s_namespace"] = t.Chain.Tag.NS
+		mTags["src_k8s_pod_name"] = NoValue
+		mTags["src_k8s_service_name"] = t.Svc.Name
+		mTags["src_k8s_deployment_name"] = t.Chain.Tag.WorkloadName
+		mTags["src_k8s_workload"] = t.Chain.Tag.WorkloadName
+		mTags["src_k8s_workload_type"] = t.Chain.Tag.Kind.String()
+	} else {
+		mTags["dst_k8s_namespace"] = t.Chain.Tag.NS
+		mTags["dst_k8s_pod_name"] = NoValue
+		mTags["dst_k8s_service_name"] = t.Svc.Name
+		mTags["dst_k8s_deployment_name"] = t.Chain.Tag.WorkloadName
+		mTags["dst_k8s_workload"] = t.Chain.Tag.WorkloadName
+		mTags["dst_k8s_workload_type"] = t.Chain.Tag.Kind.String()
+	}
+
+	if (client && src) || (!client && !src) {
+		mTags["client_k8s_namespace"] = t.Chain.Tag.NS
+		mTags["client_k8s_pod_name"] = NoValue
+		mTags["client_k8s_service_name"] = t.Svc.Name
+		mTags["client_k8s_deployment_name"] = t.Chain.Tag.WorkloadName
+		mTags["client_k8s_workload"] = t.Chain.Tag.WorkloadName
+		mTags["client_k8s_workload_type"] = t.Chain.Tag.Kind.String()
+	} else {
+		mTags["server_k8s_namespace"] = t.Chain.Tag.NS
+		mTags["server_k8s_pod_name"] = NoValue
+		mTags["server_k8s_service_name"] = t.Svc.Name
+		mTags["server_k8s_deployment_name"] = t.Chain.Tag.WorkloadName
+		mTags["server_k8s_workload"] = t.Chain.Tag.WorkloadName
+		mTags["server_k8s_workload_type"] = t.Chain.Tag.Kind.String()
+	}
+
+	return mTags
 }
 
 func AddK8sTags2Map(k8sNetInfo *cli.K8sInfo,
@@ -382,39 +479,18 @@ func AddK8sTags2Map(k8sNetInfo *cli.K8sInfo,
 		if t, ok := k8sNetInfo.QueryPodInfo(
 			basekey.PID, basekey.SAddr, int(basekey.SPort), basekey.Transport); ok && t != nil {
 			srcK8sFlag = true
-			mTags["src_k8s_namespace"] = t.NS
-			mTags["src_k8s_pod_name"] = t.PodName
-			mTags["src_k8s_service_name"] = t.SvcName
-			mTags["src_k8s_deployment_name"] = t.WorkloadName
-			mTags["src_k8s_workload"] = t.WorkloadName
-			mTags["src_k8s_workload_type"] = t.Kind.String()
-
-			for k, v := range t.Labels {
-				if _, ok := mTags[k]; !ok {
-					mTags[k] = v
-				}
-			}
+			mTags = addPodTag(true, t, mTags)
 		} else if t, ok := k8sNetInfo.QuerySvcInfo(
 			basekey.Transport, basekey.SAddr, int(basekey.SPort)); ok && t != nil {
 			srcK8sFlag = true
-			mTags["src_k8s_namespace"] = t.Chain.Tag.NS
-			mTags["src_k8s_pod_name"] = NoValue
-			mTags["src_k8s_service_name"] = t.Svc.Name
-			mTags["src_k8s_deployment_name"] = t.Chain.Tag.WorkloadName
-			mTags["src_k8s_workload"] = t.Chain.Tag.WorkloadName
-			mTags["src_k8s_workload_type"] = t.Chain.Tag.Kind.String()
+			mTags = addSvcTag(true, t, mTags)
 		}
 
 		if basekey.DNATAddr != "" && basekey.DNATPort != 0 {
 			if t, ok := k8sNetInfo.QueryPodInfo(
 				0, basekey.DNATAddr, int(basekey.DNATPort), basekey.Transport); ok && t != nil {
 				dstK8sFlag = true
-				mTags["dst_k8s_namespace"] = t.NS
-				mTags["dst_k8s_pod_name"] = t.PodName
-				mTags["dst_k8s_service_name"] = t.SvcName
-				mTags["dst_k8s_deployment_name"] = t.WorkloadName
-				mTags["dst_k8s_workload"] = t.WorkloadName
-				mTags["dst_k8s_workload_type"] = t.Kind.String()
+				mTags = addPodTag(false, t, mTags)
 				goto skip_dst
 			}
 		}
@@ -423,22 +499,12 @@ func AddK8sTags2Map(k8sNetInfo *cli.K8sInfo,
 			basekey.DAddr, int(basekey.DPort), basekey.Transport); ok && t != nil {
 			// k.dport
 			dstK8sFlag = true
-			mTags["dst_k8s_namespace"] = t.NS
-			mTags["dst_k8s_pod_name"] = t.PodName
-			mTags["dst_k8s_service_name"] = t.SvcName
-			mTags["dst_k8s_deployment_name"] = t.WorkloadName
-			mTags["dst_k8s_workload"] = t.WorkloadName
-			mTags["dst_k8s_workload_type"] = t.Kind.String()
+			addPodTag(false, t, mTags)
 		} else {
 			if t, ok := k8sNetInfo.QuerySvcInfo(basekey.Transport,
 				basekey.DAddr, int(basekey.DPort)); ok && t != nil {
 				dstK8sFlag = true
-				mTags["dst_k8s_namespace"] = t.Chain.Tag.NS
-				mTags["dst_k8s_pod_name"] = NoValue
-				mTags["dst_k8s_service_name"] = t.Svc.Name
-				mTags["dst_k8s_deployment_name"] = t.Chain.Tag.WorkloadName
-				mTags["dst_k8s_workload"] = t.Chain.Tag.WorkloadName
-				mTags["dst_k8s_workload_type"] = t.Chain.Tag.Kind.String()
+				mTags = addSvcTag(false, t, mTags)
 			}
 		}
 
@@ -446,62 +512,46 @@ func AddK8sTags2Map(k8sNetInfo *cli.K8sInfo,
 		if srcK8sFlag || dstK8sFlag {
 			mTags["sub_source"] = "K8s"
 			if !srcK8sFlag {
-				mTags["src_k8s_namespace"] = NoValue
-				mTags["src_k8s_pod_name"] = NoValue
-				mTags["src_k8s_service_name"] = NoValue
-				mTags["src_k8s_deployment_name"] = NoValue
-				mTags["src_k8s_workload"] = NoValue
-				mTags["src_k8s_workload_type"] = NoValue
+				addNoValueK8s(true, mTags)
 			}
 			if !dstK8sFlag {
-				mTags["dst_k8s_namespace"] = NoValue
-				mTags["dst_k8s_pod_name"] = NoValue
-				mTags["dst_k8s_service_name"] = NoValue
-				mTags["dst_k8s_deployment_name"] = NoValue
-				mTags["dst_k8s_workload"] = NoValue
-				mTags["dst_k8s_workload_type"] = NoValue
+				addNoValueK8s(false, mTags)
 			}
 		}
 	}
 	return mTags
 }
 
-func U32BEToIPv4Array(addr uint32) [4]uint8 {
-	var ip [4]uint8
+func U32BEToIPv4Array(addr uint32) [4]byte {
+	ip := [4]byte{}
+	binary.LittleEndian.PutUint32(ip[:], addr)
+	return ip
+}
+
+func U32IP4(addr uint32) net.IP {
+	ip4 := U32BEToIPv4Array(addr)
+	return net.IP(ip4[:])
+}
+
+func U32BEToIPv6Array(addr [4]uint32) [16]byte {
+	var ip [16]byte
 	for x := 0; x < 4; x++ {
-		ip[x] = uint8(addr & 0xff)
-		addr >>= 8
+		binary.LittleEndian.PutUint32(ip[x*4:], addr[x])
 	}
 	return ip
 }
 
-func SwapU16(v uint16) uint16 {
-	return ((v & 0x00ff) << 8) | ((v & 0xff00) >> 8)
-}
-
-func U32BEToIPv6Array(addr [4]uint32) [8]uint16 {
-	var ip [8]uint16
-	for x := 0; x < 4; x++ {
-		ip[(x * 2)] = SwapU16(uint16(addr[x] & 0xffff))
-		ip[(x*2)+1] = SwapU16(uint16((addr[x] >> 16) & 0xffff))
-	}
-	return ip
+func U32IP6(addr [4]uint32) net.IP {
+	ip6 := U32BEToIPv6Array(addr)
+	return net.IP(ip6[:])
 }
 
 func U32BEToIP(addr [4]uint32, isIPv6 bool) net.IP {
-	ip := net.IP{}
-	if !isIPv6 {
-		v4 := U32BEToIPv4Array(addr[3])
-		for _, v := range v4 {
-			ip = append(ip, v)
-		}
+	if isIPv6 {
+		return U32IP6(addr)
 	} else {
-		v6 := U32BEToIPv6Array(addr)
-		for _, v := range v6 {
-			ip = append(ip, byte((v&0xff00)>>8), byte(v&0x00ff)) // SwapU16(v)
-		}
+		return U32IP4(addr[3])
 	}
-	return ip
 }
 
 // ConnNotNeedToFilter rules: 1. Filter connections with the same source IP and destination IP;

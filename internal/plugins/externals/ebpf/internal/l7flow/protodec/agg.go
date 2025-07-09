@@ -269,6 +269,8 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 
 	tags = netflow.AddK8sTags2Map(k8sNetInfo, &key.BaseKey, tags)
 
+	tags, fields = netflow.AddClientServerInf(tags, fields)
+
 	kvs := point.NewTags(tags)
 	kvs = append(kvs, point.NewKVs(fields)...)
 	pt := point.NewPointV2("httpflow", kvs, append(
