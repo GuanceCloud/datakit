@@ -35,6 +35,7 @@ PATH_EXCLUSION_REGEX = [
     'internal/plugins/externals/ebpf',
     'internal/plugins/inputs/skywalking/v3',
     'internal/plugins/inputs/promremote/prompb',
+    'internal/plugins/inputs/dameng/driver',
     'internal/plugins/inputs/kingbase/driver',
     'internal/win_utils/pdh',
     'internal/obfuscate',
