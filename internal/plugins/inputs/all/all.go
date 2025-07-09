@@ -36,6 +36,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/coredns"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/couchbase"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/couchdb"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/dameng"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/db2"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/ddtrace"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/demo"

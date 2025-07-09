@@ -32,6 +32,7 @@ DIMM
 DKProto
 DKSpan
 DaemonSet
+Dameng
 DataDog
 #Datakit
 #Datakits
@@ -120,6 +121,7 @@ Solr
 Stddev
 Tablespace
 Tencent
+tablespace
 Uprobe
 VXLAN
 Vertx
