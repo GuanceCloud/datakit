@@ -17,11 +17,6 @@ import (
 	"golang.org/x/net/context"
 )
 
-type ConnResult struct {
-	result map[ConnectionInfo]ConnFullStats
-	tags   map[string]string
-}
-
 const connExpirationInterval = 6 * 3600 // 6 * 3600s
 
 const (
@@ -39,7 +34,6 @@ func SetEnableUDP(on bool) {
 
 type NetFlowTracer struct {
 	connStatsRecord *ConnStatsRecord
-	resultCh        chan *ConnResult
 	closedEventCh   chan *ConncetionClosedInfo
 	procFilter      *sysmonitor.ProcessFilter
 }
@@ -47,7 +41,6 @@ type NetFlowTracer struct {
 func NewNetFlowTracer(procFilter *sysmonitor.ProcessFilter) *NetFlowTracer {
 	return &NetFlowTracer{
 		connStatsRecord: newConnStatsRecord(),
-		resultCh:        make(chan *ConnResult, 4),
 		closedEventCh:   make(chan *ConncetionClosedInfo, 64),
 		procFilter:      procFilter,
 	}

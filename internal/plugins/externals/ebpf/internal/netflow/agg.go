@@ -97,13 +97,13 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 	if key.SPort == math.MaxUint32 {
 		tags["src_port"] = "*"
 	} else {
-		tags["src_port"] = strconv.FormatInt(int64(key.SPort), 10)
+		tags["src_port"] = strconv.Itoa(int(key.SPort))
 	}
 
 	if key.DPort == math.MaxUint32 {
 		tags["dst_port"] = "*"
 	} else {
-		tags["dst_port"] = strconv.FormatInt(int64(key.DPort), 10)
+		tags["dst_port"] = strconv.Itoa(int(key.DPort))
 	}
 
 	if dnsRecord != nil {
@@ -136,6 +136,8 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 	}
 
 	tags = AddK8sTags2Map(k8sNetInfo, &key.BaseKey, tags)
+
+	tags, fields = AddClientServerInf(tags, fields)
 
 	kvs := point.NewTags(tags)
 	kvs = append(kvs, point.NewKVs(fields)...)
