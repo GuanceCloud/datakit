@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/changes"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -85,6 +86,11 @@ func (ipt *Input) Run() {
 
 	l.Info("container input start")
 	ipt.setup()
+
+	if err := changes.LoadAllManifests(); err != nil {
+		l.Errorf("load manifests fail, err: %s", err)
+		return
+	}
 
 	var wg sync.WaitGroup
 	g := goroutine.NewGroup(goroutine.Option{Name: "container"})

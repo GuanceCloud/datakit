@@ -54,7 +54,7 @@ func (local *podLocal) gatherObject(ctx context.Context) {
 	local.pod.gatherObject(ctx, fieldSelector, false)
 }
 
-func (local *podLocal) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
+func (*podLocal) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
 func newPodRemote(client k8sClient, cfg *Config) resource {
 	return &podRemote{pod: newPod(client, cfg)}
@@ -82,7 +82,7 @@ func (remote *podRemote) gatherObject(ctx context.Context) {
 	remote.pod.gatherObject(ctx, fieldSelector, pending)
 }
 
-func (remote *podRemote) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
+func (*podRemote) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
 type pod struct {
 	client  k8sClient

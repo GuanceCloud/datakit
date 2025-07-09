@@ -13,9 +13,8 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/google/uuid"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/yaml"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/diff"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/changes"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 )
@@ -71,30 +70,37 @@ func feedLogging(name string, feeder dkio.Feeder, pts []*point.Point) {
 	}
 }
 
-func processChange(cfg *Config, class, sourceName, sourceType, difftext string, obj metav1.Object) {
-	var kvs point.KVs
-	kvs = append(kvs, buildDefaultChangeEventKVs()...)
-
-	kvs = kvs.AddTag("class", class)
-	kvs = kvs.AddTag("uid", string(obj.GetUID()))
-	kvs = kvs.AddTag("namespace", obj.GetNamespace())
-
+func processChange(cfg *Config, class, sourceName string, diffs []FieldDiff, obj metav1.Object) {
 	name := obj.GetName()
-	kvs = kvs.AddTag(sourceName, name)
+	var pts []*point.Point
 
-	content := fmt.Sprintf("[%s] %s configuration changed", sourceType, name)
-	kvs = kvs.AddV2("df_title", content, false)
-	kvs = kvs.AddV2("df_detail", content, false)
-	kvs = kvs.AddV2("df_message", difftext, false)
+	for _, df := range diffs {
+		title, message, err := changes.RenderK8sTemplate(defaultChangeLanguage, df.ChangeID, df)
+		if err != nil {
+			klog.Warnf("render k8s template fail, %s", err)
+			continue
+		}
 
-	kvs = append(kvs, point.NewTags(cfg.ExtraTags)...)
+		var kvs point.KVs
+		kvs = append(kvs, buildDefaultChangeEventKVs()...)
 
-	pt := point.NewPointV2("event", kvs, point.WithTimestamp(ntp.Now().UnixNano()))
-	collectPtsVec.WithLabelValues("k8s-object-change-event").Add(1)
+		kvs = kvs.AddTag("class", class)
+		kvs = kvs.AddTag("uid", string(obj.GetUID()))
+		kvs = kvs.AddTag("namespace", obj.GetNamespace())
+		kvs = kvs.AddTag(sourceName, name)
+
+		kvs = kvs.AddV2("df_title", title, false)
+		kvs = kvs.AddV2("df_message", message, false)
+		kvs = kvs.AddV2("diff", df.DiffText, false)
+
+		kvs = append(kvs, point.NewTags(cfg.ExtraTags)...)
+		pts = append(pts, point.NewPointV2("event", kvs, point.WithTimestamp(ntp.Now().UnixNano())))
+		collectPtsVec.WithLabelValues("k8s-change").Add(1)
+	}
 
 	if err := cfg.Feeder.Feed(
 		point.KeyEvent,
-		[]*point.Point{pt},
+		pts,
 		dkio.WithElection(true),
 		dkio.WithSource("k8s-object-change-event"),
 	); err != nil {
@@ -117,20 +123,6 @@ func processCounter(cfg *Config, name string, counter map[string]int, timestamp 
 	}
 
 	feedMetric("k8s-counter", cfg.Feeder, pts, true)
-}
-
-func diffObject(oldObj, newObj interface{}) (difftext string, err error) {
-	const contextLines = 4
-
-	oldText, err := yaml.Marshal(oldObj)
-	if err != nil {
-		return "", err
-	}
-	newText, err := yaml.Marshal(newObj)
-	if err != nil {
-		return "", err
-	}
-	return diff.LineDiffWithContextLines(string(oldText), string(newText), contextLines), nil
 }
 
 func buildDefaultChangeEventKVs() (kvs point.KVs) {

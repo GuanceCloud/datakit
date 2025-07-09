@@ -1,0 +1,255 @@
+version = "1.0.0"
+[[change]]
+id = "k8s_change_01_01"
+[change.title]
+  zh = "{{.OwnerKind}} {{.OwnerName}} 镜像变更"
+  en = "{{.OwnerKind}} {{.OwnerName}} Image Change"
+[change.message]
+  zh = "{{.OwnerKind}} {{.OwnerName}} 的容器镜像已变更\n容器名称：{{.ContainerName}}\n旧镜像：{{.OldValue}}\n新镜像：{{.NewValue}}"
+  en = "Image for {{.OwnerKind}} {{.OwnerName}} have changed\nContainer: {{.ContainerName}}\nOld image: {{.OldValue}}\nNew image: {{.NewValue}}"
+
+[[change]]
+id = "k8s_change_01_02"
+[change.title]
+  zh = "{{.OwnerKind}} {{.OwnerName}} 环境变量变更"
+  en = "{{.OwnerKind}} {{.OwnerName}} Env Vars Change"
+[change.message]
+  zh = "{{.OwnerKind}} {{.OwnerName}} 的环境变量配置已变更\n容器名称：{{.ContainerName}}\n变更详情：\n{{.ChangeValueList}}"
+  en = "Environment variables for {{.OwnerKind}} {{.OwnerName}} have changed\nContainer: {{.ContainerName}}\nChange details:\n{{.ChangeValueList}}"
+
+[[change]]
+id = "k8s_change_01_03"
+[change.title]
+  zh = "{{.OwnerKind}} {{.OwnerName}} 启动命令变更"
+  en = "{{.OwnerKind}} {{.OwnerName}} Command Change"
+[change.message]
+  zh = "{{.OwnerKind}} {{.OwnerName}} 的容器启动命令已变更\n容器名称：{{.ContainerName}}\n旧命令：{{.OldValue}}\n新命令：{{.NewValue}}"
+  en = "Container command for {{.OwnerKind}} {{.OwnerName}} has changed\nContainer: {{.ContainerName}}\nOld command: {{.OldValue}}\nNew command: {{.NewValue}}"
+
+[[change]]
+id = "k8s_change_01_04"
+[change.title]
+  zh = "{{.OwnerKind}} {{.OwnerName}} 资源配额变更"
+  en = "{{.OwnerKind}} {{.OwnerName}} Resources Change"
+[change.message]
+  zh = "{{.OwnerKind}} {{.OwnerName}} 的资源限制已变更\n容器名称：{{.ContainerName}}\n旧配额：{{.OldValue}}\n新配额：{{.NewValue}}"
+  en = "Resource limits for {{.OwnerKind}} {{.OwnerName}} have changed\nContainer: {{.ContainerName}}\nOld limit: {{.OldValue}}\nNew limit: {{.NewValue}}"
+
+[[change]]
+id = "k8s_change_01_05"
+[change.title]
+  zh = "{{.OwnerKind}} {{.OwnerName}} 挂载点变更"
+  en = "{{.OwnerKind}} {{.OwnerName}} Volume Mount Change"
+[change.message]
+  zh = "{{.OwnerKind}} {{.OwnerName}} 的存储卷挂载配置已变更\n容器名称：{{.ContainerName}}\n变更详情：\n{{.ChangeValueList}}"
+  en = "Volume mounts for {{.OwnerKind}} {{.OwnerName}} have changed\nContainer: {{.ContainerName}}\nChange details:\n{{.ChangeValueList}}"
+
+[[change]]
+id = "k8s_change_01_06"
+[change.title]
+  zh = "{{.OwnerKind}} {{.OwnerName}} 存储卷变更"
+  en = "{{.OwnerKind}} {{.OwnerName}} Volumes Change"
+[change.message]
+  zh = "{{.OwnerKind}} {{.OwnerName}} 的存储卷配置已变更\n变更详情：\n{{.ChangeValueList}}"
+  en = "Volumes configuration for {{.OwnerKind}} {{.OwnerName}} has changed\nChange details:\n{{.ChangeValueList}}"
+
+[[change]]
+id = "k8s_change_01_07"
+[change.title]
+  zh = "{{.OwnerKind}} {{.OwnerName}} 安全上下文变更"
+  en = "{{.OwnerKind}} {{.OwnerName}} SecurityContext Change"
+[change.message]
+  zh = "{{.OwnerKind}} {{.OwnerName}} 的安全上下文配置已变更\n变更详情：\n{{.ChangeValueList}}"
+  en = "SecurityContext for {{.OwnerKind}} {{.OwnerName}} has changed\nChange details:\n{{.ChangeValueList}}"
+
+[[change]]
+id = "k8s_change_01_08"
+[change.title]
+  zh = "{{.OwnerKind}} {{.OwnerName}} 探针配置变更"
+  en = "{{.OwnerKind}} {{.OwnerName}} Probe Change"
+[change.message]
+  zh = "{{.OwnerKind}} {{.OwnerName}} 的健康检查探针已变更\n容器名称：{{.ContainerName}}\n变更详情：\n{{.ChangeValueList}}"
+  en = "Health probe for {{.OwnerKind}} {{.OwnerName}} has changed\nContainer: {{.ContainerName}}\nChange details:\n{{.ChangeValueList}}"
+
+[[change]]
+id = "k8s_change_01_09"
+[change.title]
+  zh = "{{.OwnerKind}} {{.OwnerName}} 网络策略变更"
+  en = "{{.OwnerKind}} {{.OwnerName}} NetworkPolicy Change"
+[change.message]
+  zh = "{{.OwnerKind}} {{.OwnerName}} 的网络策略配置已变更\n变更详情：\n{{.ChangeValueList}}"
+  en = "NetworkPolicy settings for {{.OwnerKind}} {{.OwnerName}} have changed\nChange details:\n{{.ChangeValueList}}"
+
+[[change]]
+id = "k8s_change_01_10"
+[change.title]
+  zh = "{{.OwnerKind}} {{.OwnerName}} 容忍度变更"
+  en = "{{.OwnerKind}} {{.OwnerName}} Tolerations Change"
+[change.message]
+  zh = "{{.OwnerKind}} {{.OwnerName}} 的节点容忍度配置已变更\n变更详情：\n{{.ChangeValueList}}"
+  en = "Tolerations for {{.OwnerKind}} {{.OwnerName}} have changed\nChange details:\n{{.ChangeValueList}}"
+
+[[change]]
+id = "k8s_change_01_11"
+[change.title]
+  zh = "{{.OwnerKind}} {{.OwnerName}} 节点选择器变更"
+  en = "{{.OwnerKind}} {{.OwnerName}} NodeSelector Change"
+[change.message]
+  zh = "{{.OwnerKind}} {{.OwnerName}} 的节点选择器配置已变更\n变更详情：\n{{.ChangeValueList}}"
+  en = "NodeSelector for {{.OwnerKind}} {{.OwnerName}} has changed\nChange details:\n{{.ChangeValueList}}"
+
+[[change]]
+id = "k8s_change_01_12"
+[change.title]
+  zh = "{{.OwnerKind}} {{.OwnerName}} 亲和性配置变更"
+  en = "{{.OwnerKind}} {{.OwnerName}} Affinity Change"
+[change.message]
+  zh = "{{.OwnerKind}} {{.OwnerName}} 的节点/容器亲和性配置已变更\n"
+  en = "Affinity settings for {{.OwnerKind}} {{.OwnerName}} have changed\n"
+
+[[change]]
+id = "k8s_change_01_13"
+[change.title]
+  zh = "{{.OwnerKind}} 服务账号变更"
+  en = "{{.OwnerKind}} ServiceAccount Change"
+[change.message]
+  zh = "{{.OwnerKind}} {{.OwnerName}} 使用的服务账号已变更\n旧账号：{{.OldValue}}\n新账号：{{.NewValue}}"
+  en = "ServiceAccount for {{.OwnerKind}} {{.OwnerName}} has changed\nOld serviceAccount: {{.OldValue}}\nNew serviceAccount: {{.NewValue}}"
+
+# ========== Deployment 变更 ==========
+[[change]]
+id = "k8s_change_02_01"
+[change.title]
+  zh = "创建 Deployment {{.OwnerName}}"
+  en = "Create Deployment {{.OwnerName}}"
+[change.message]
+  zh = "在命名空间 {{.Namespace}} 中创建了 Deployment {{.OwnerName}}"
+  en = "Deployment {{.OwnerName}} created in namespace {{.Namespace}}"
+
+[[change]]
+id = "k8s_change_02_02"
+[change.title]
+  zh = "删除 Deployment {{.OwnerName}}"
+  en = "Delete Deployment {{.OwnerName}}"
+[change.message]
+  zh = "命名空间 {{.Namespace}} 中的 Deployment {{.OwnerName}} 已被删除"
+  en = "Deployment {{.OwnerName}} in namespace {{.Namespace}} has been deleted"
+
+[[change]]
+id = "k8s_change_02_03"
+[change.title]
+  zh = "Deployment {{.OwnerName}} 标签变更"
+  en = "Deployment {{.OwnerName}} Labels Change"
+[change.message]
+  zh = "Deployment {{.OwnerName}} 的标签已变更\n变更详情：\n{{.ChangeValueList}}"
+  en = "Labels for Deployment {{.OwnerName}} have changed\nChange details:\n{{.ChangeValueList}}"
+
+[[change]]
+id = "k8s_change_02_04"
+[change.title]
+  zh = "Deployment {{.OwnerName}} 注解变更"
+  en = "Deployment {{.OwnerName}} Annotations Change"
+[change.message]
+  zh = "Deployment {{.OwnerName}} 的注解已变更\n变更详情：\n{{.ChangeValueList}}"
+  en = "Annotations for Deployment {{.OwnerName}} have changed\nChange details:\n{{.ChangeValueList}}"
+
+[[change]]
+id = "k8s_change_02_05"
+[change.title]
+  zh = "Deployment {{.OwnerName}} 副本数变更"
+  en = "Deployment {{.OwnerName}} Replicas Change"
+[change.message]
+  zh = "Deployment {{.OwnerName}} 的副本数已变更\n旧值：{{.OldValue}}\n新值：{{.NewValue}}"
+  en = "Replicas for Deployment {{.OwnerName}} have changed\nOld replicas: {{.OldValue}}\nNew replicas: {{.NewValue}}"
+
+[[change]]
+id = "k8s_change_02_06"
+[change.title]
+  zh = "Deployment {{.OwnerName}} 更新策略变更"
+  en = "Deployment {{.OwnerName}} Strategy Change"
+[change.message]
+  zh = "Deployment {{.OwnerName}} 的更新策略已变更\n旧值：{{.OldValue}}\n新值：{{.NewValue}}"
+  en = "Update strategy for Deployment {{.OwnerName}} has changed\nOld strategy: {{.OldValue}}\nNew strategy: {{.NewValue}}"
+
+# ========== DaemonSet Changes ==========
+[[change]]
+id = "k8s_change_03_01"
+[change.title]
+  zh = "创建 DaemonSet {{.OwnerName}}"
+  en = "Create DaemonSet {{.OwnerName}}"
+[change.message]
+  zh = "在命名空间 {{.Namespace}} 中创建了 DaemonSet {{.OwnerName}}"
+  en = "DaemonSet {{.OwnerName}} created in namespace {{.Namespace}}"
+
+[[change]]
+id = "k8s_change_03_02"
+[change.title]
+  zh = "删除 DaemonSet {{.OwnerName}}"
+  en = "Delete DaemonSet {{.OwnerName}}"
+[change.message]
+  zh = "命名空间 {{.Namespace}} 中的 DaemonSet {{.OwnerName}} 已被删除"
+  en = "DaemonSet {{.OwnerName}} in namespace {{.Namespace}} has been deleted"
+
+[[change]]
+id = "k8s_change_03_03"
+[change.title]
+  zh = "DaemonSet {{.OwnerName}} 标签变更"
+  en = "DaemonSet {{.OwnerName}} Labels Change"
+[change.message]
+  zh = "DaemonSet {{.OwnerName}} 的标签已变更\n变更详情：\n{{.ChangeValueList}}"
+  en = "Labels for DaemonSet {{.OwnerName}} have changed\nChange details:\n{{.ChangeValueList}}"
+
+[[change]]
+id = "k8s_change_03_04"
+[change.title]
+  zh = "DaemonSet {{.OwnerName}} 注解变更"
+  en = "DaemonSet {{.OwnerName}} Annotations Change"
+[change.message]
+  zh = "DaemonSet {{.OwnerName}} 的注解已变更\n变更详情：\n{{.ChangeValueList}}"
+  en = "Annotations for DaemonSet {{.OwnerName}} have changed\nChange details:\n{{.ChangeValueList}}"
+
+# ========== StatefulSet Changes ==========
+[[change]]
+id = "k8s_change_04_01"
+[change.title]
+  zh = "创建 StatefulSet {{.OwnerName}}"
+  en = "Create StatefulSet {{.OwnerName}}"
+[change.message]
+  zh = "在命名空间 {{.Namespace}} 中创建了 StatefulSet {{.OwnerName}}"
+  en = "StatefulSet {{.OwnerName}} created in namespace {{.Namespace}}"
+
+[[change]]
+id = "k8s_change_04_02"
+[change.title]
+  zh = "删除 StatefulSet {{.OwnerName}}"
+  en = "Delete StatefulSet {{.OwnerName}}"
+[change.message]
+  zh = "命名空间 {{.Namespace}} 中的 StatefulSet {{.OwnerName}} 已被删除"
+  en = "StatefulSet {{.OwnerName}} in namespace {{.Namespace}} has been deleted"
+
+[[change]]
+id = "k8s_change_04_03"
+[change.title]
+  zh = "StatefulSet {{.OwnerName}} 标签变更"
+  en = "StatefulSet {{.OwnerName}} Labels Change"
+[change.message]
+  zh = "StatefulSet {{.OwnerName}} 的标签已变更\n变更详情：\n{{.ChangeValueList}}"
+  en = "Labels for StatefulSet {{.OwnerName}} have changed\nChange details:\n{{.ChangeValueList}}"
+
+[[change]]
+id = "k8s_change_04_04"
+[change.title]
+  zh = "StatefulSet {{.OwnerName}} 注解变更"
+  en = "StatefulSet {{.OwnerName}} Annotations Change"
+[change.message]
+  zh = "StatefulSet {{.OwnerName}} 的注解已变更\n变更详情：\n{{.ChangeValueList}}"
+  en = "Annotations for StatefulSet {{.OwnerName}} have changed\nChange details:\n{{.ChangeValueList}}"
+
+[[change]]
+id = "k8s_change_04_05"
+[change.title]
+  zh = "StatefulSet {{.OwnerName}} 副本数变更"
+  en = "StatefulSet {{.OwnerName}} Replicas Change"
+[change.message]
+  zh = "StatefulSet {{.OwnerName}} 的副本数已变更\n旧值：{{.OldValue}}\n新值：{{.NewValue}}"
+  en = "Replicas for StatefulSet {{.OwnerName}} have changed\nOld replicas: {{.OldValue}}\nNew replicas: {{.NewValue}}"

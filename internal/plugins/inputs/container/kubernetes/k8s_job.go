@@ -88,7 +88,7 @@ func (j *job) gatherObject(ctx context.Context) {
 	}
 }
 
-func (j *job) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
+func (*job) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
 func (j *job) buildMetricPoints(list *apibatchv1.JobList, timestamp int64) []*point.Point {
 	var pts []*point.Point
