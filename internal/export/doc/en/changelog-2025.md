@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.77.0(2025/07/09) {#cl-1.77.0}
+
+This release is an iterative update with the following main changes:
+
+### New Features {#cl-1.77.0-new}
+
+- Added multilingual support to DCA UI (#2724)
+- Added Oracle database object collection (#2728)
+- Add collector for Dameng database (#2708)
+
+### Bug Fixes {#cl-1.77.0-fix}
+
+- Fixed Zipkin Trace ID high-bit zero-padding issue (#2741)
+- Fixed Pipeline array index out-of-bounds issue (#2743)
+
+### Optimizations {#cl-1.77.0-opt}
+
+- Pipeline added new function `strlen()` (#2743)
+- OpenTelemetry gRPC now supports body size adjustment, default size changed from 10MiB to 16MiB (#2738)
+- Kubernetes object changes improvements (#2723)
+- Database metrics now uniformly include `server` tag for correlation with corresponding objects (#2730)
+- Optimized eBPF network collection fields (#2737)
+- Other optimizations (#2735)
+
+---
+
 ## 1.76.1(2025/07/01) {#cl-1.76.1}
 
 This release is a hotfix containing the following fixes:
