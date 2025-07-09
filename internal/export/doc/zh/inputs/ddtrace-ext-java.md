@@ -45,7 +45,7 @@ tags      :
 
 - [x] all
 
-DDTrace 最低版本支持： [:octicons-tag-24: v1.12.1](ddtrace-ext-changelog.md#cl-1.12.1-guance)
+DDTrace 最低版本支持： [:octicons-tag-24: v1.12.1](ddtrace-ext-changelog.md#cl-1.12.1-ext)
 
 ### 支持达梦国产数据库 {#dameng-db}
 
@@ -53,7 +53,7 @@ DDTrace 最低版本支持： [:octicons-tag-24: v1.12.1](ddtrace-ext-changelog.
 
 - [x] v8
 
-DDTrace 最低版本支持： [:octicons-tag-24: v1.12.1](ddtrace-ext-changelog.md#cl-1.12.1-guance)
+DDTrace 最低版本支持： [:octicons-tag-24: v1.12.1](ddtrace-ext-changelog.md#cl-1.12.1-ext)
 
 
 ### HSF {#hsf}
@@ -83,7 +83,7 @@ Dubbo 是阿里云的一个开源框架，目前已经支持 Dubbo2 以及 Dubbo
 - [x] Dubbo2：2.7.0+
 - [x] Dubbo3：全支持
 
-DDTrace 最低支持版本： [:octicons-tag-24:  v1.30.4](ddtrace-ext-changelog.md#cl-1.30.4-guance)
+DDTrace 最低支持版本： [:octicons-tag-24:  v1.30.4](ddtrace-ext-changelog.md#cl-1.30.4-ext)
 
 ### RocketMQ {#rocketmq}
 
@@ -93,7 +93,7 @@ RocketMQ 是阿里云贡献 Apache 基金会的开源消息队列框架。注意
 
 版本支持：目前支持 4.8.0 及以上版本。 阿里云 RocketMQ 服务支持 5.0 以上。
 
-DDTrace 最低版本支持： [:octicons-tag-24: v1.17.4](ddtrace-ext-changelog.md#cl-1.17.4-guance)
+DDTrace 最低版本支持： [:octicons-tag-24: v1.17.4](ddtrace-ext-changelog.md#cl-1.17.4-ext)
 
 ### Thrift 支持 {#thrift}
 
@@ -231,7 +231,7 @@ export DD_TRACE_RESPONSE_BODY_BLACKLIST_URLS="/auth,/download/file"
 
 开启后，在链路详情中可以看到请求头部信息会在 `servlet_request_header`  响应的头部信息会在 `servlet_response_header` 中。
 
-DDTrace 最低版本支持： [:octicons-tag-24: v1.25.2](ddtrace-ext-changelog.md#cl-1.25.2-guance)
+DDTrace 最低版本支持： [:octicons-tag-24: v1.25.2](ddtrace-ext-changelog.md#cl-1.25.2-ext)
 
 
 ## 其他 {#others}
@@ -288,7 +288,7 @@ com.zy.observable.server.service.TestService[*]
 
 使用 `-Ddd.trace.method.file` 可以不必再配置 `dd.trace.methods`
 
-DDTrace 最低版本支持： [:octicons-tag-24: v1.47.4](ddtrace-ext-changelog.md#cl-1.47.4-guance)
+DDTrace 最低版本支持： [:octicons-tag-24: v1.47.4](ddtrace-ext-changelog.md#cl-1.47.4-ext)
 
 
 ### 获取特定函数的入参信息 {#dd-trace-methods}

@@ -16,64 +16,51 @@ Currently, OTEL has added the following technology stack extensions:
 
     ---
 
-    [SDK :material-download:](https://static.<<<custom_key.brand_main_domain>>>/dd-image/opentelemetry-javaagent.jar){:target="_blank"} ·
-    [:material-github:](https://github.com/GuanceCloud/opentelemetry-java-instrumentation){:target="_blank"} ·
-    [Issue](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues/new){:target="_blank"} ·
-    [:octicons-history-16:](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/releases){:target="_blank"}
+    [SDK :material-download:](https://static.<<<custom_key.brand_main_domain>>>/dd-image/opentelemetry-javaagent.jar){:target="_blank"}
 
 </div>
 <!-- markdownlint-enable -->
 
 ## changelog {#changelog}
 
-## 1.28.0-guance (2023/7/7) {#cl-1.28.0-guance}
+## 1.28.0-ext (2023/7/7) {#cl-1.28.0-ext}
 
-### new {#cl-1.28.0-guance-new}
+### new {#cl-1.28.0-ext-new}
 
 - Merge open-telemetry v1.28.0
 
 ---
 
-## 1.26.3-guance (2023/7/7) {#cl-1.26.3-guance}
+## 1.26.2-ext (2023/6/15) {#cl-1.26.2-ext}
+download this version jar: [v1.26.2-ext](https://static.<<<custom_key.brand_main_domain>>>/dd-image/opentelemetry-javaagent-1.26.2-ext.jar)
 
-### new {#cl-1.26.3-guance-new}
+### new {#cl-1.26.2-ext-new}
 
-- Support [guance-exporter](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues/17){:target="_blank"}
+- Obfuscation of database type data.
 
----
+## 1.26.1-ext (2023/6/9) {#cl-1.26.1-ext}
 
-## 1.26.2-guance (2023/6/15) {#cl-1.26.2-guance}
-download this version jar: [v1.26.2-guance](https://static.<<<custom_key.brand_main_domain>>>/dd-image/opentelemetry-javaagent-1.26.2-guance.jar)
+### new {#cl-1.26.1-ext-new}
 
-### new {#cl-1.26.2-guance-new}
-
-- [DB Obfuscation](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues/15){:target="_blank"}
-
-## 1.26.1-guance (2023/6/9) {#cl-1.26.1-guance}
-
-### new {#cl-1.26.1-guance-new}
-
-- The non-intrusive method supports obtaining the input parameter information of a specific method [GitHub-Issue](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues/12){:target="_blank"}
-- Alibaba Cloud HSF framework integration [GitHub-Issue](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues/12){:target="_blank"}
+- The non-intrusive method supports obtaining the input parameter information of a specific method.
+- Alibaba Cloud HSF framework integration.
 
 ---
 
-## 1.26.0-guance (2023/6/1) {#cl-1.26.0-guance}
+## 1.26.0-ext (2023/6/1) {#cl-1.26.0-ext}
 
-### new {#cl-1.26.0-guance-new}
+### new {#cl-1.26.0-ext-new}
 
 - Merge OpenTelemetry tag v1.26.0
-- Support Damned database [GitHub-Issue](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues/5){:target="_blank"}
+- Support Damned database.
 
 ---
 
-## 1.25.0-guance (2023/5/10) {#cl-1.25.0-guance}
+## 1.25.0-ext (2023/5/10) {#cl-1.25.0-ext}
 
-### new {#cl-1.25.0-guance-new}
+### new {#cl-1.25.0-ext-new}
 
 - Merge OpenTelemetry tag v1.25.0
-- Support xxl-job 2.3 [GitHub-Issue](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues/1){:target="_blank"}
-- Support Alibaba Dubbo and Dubbox framework integration [GitHub-Issue](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues/2){:target="_blank"}
-- Support thrift [GitHub-Issue](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues/3){:target="_blank"}
-
----
+- Support xxl-job 2.3.
+- Support Alibaba Dubbo and Dubbox framework integration.
+- Support thrift framework.

@@ -69,9 +69,9 @@ Baggage 真正的意义是传播 `key:value` 性质的键值对，常用于传�
 
 产品的开源地址：
 
-- [OpenTelemetry](https://github.com/open-telemetry){:target="_blank"} 是 CNCF 下的一个产品。同时<<<custom_key.brand_name>>>也对其[做了扩展](https://github.com/GuanceCloud/opentelemetry-java-instrumentation){:target="_blank"}
+- [OpenTelemetry](https://github.com/open-telemetry){:target="_blank"} 是 CNCF 下的一个产品。
 - [Jaeger](https://github.com/jaegertracing/jaeger){:target="_blank"} 同属于 CNCF
-- [Datadog](https://github.com/DataDog){:target="_blank"} 多语言的链路工具，其中<<<custom_key.brand_name>>>对其[做了扩展](https://github.com/GuanceCloud/dd-trace-java){:target="_blank"}
+- [Datadog](https://github.com/DataDog){:target="_blank"} 多语言的链路工具。
 - [SkyWalking](https://github.com/apache?q=skywalking&type=all&language=&sort=){:target="_blank"} 属于 Apache 基金会下的开源产品
 - [Zipkin](https://github.com/OpenZipkin){:target="_blank"} 其中有多个语言的链路工具。
 
@@ -197,6 +197,7 @@ $ java -javaagent:/usr/local/ddtrace/opentelemetry-javaagent.jar \
 
 Client 端会发送 HTTP 请求到 Server 端，DDTrace 会通过 `tracecontext` 请求头部中携带链路信息传递到服务端上
 
+
 但是，在「服务调用关系」中两个工具上来的数据连接不上，这是因为双方的 SpanID 并不是统一的，DDTrace 是一个 10 进制的数字字符串，而 OpenTelemetry 是 16 进制的数字字符串。为此，需要修改 `ddtrace` 采集器中的配置，将 `ddtrace.conf` 中的 `compatible_otel` 放开：
 
 ```toml
@@ -221,11 +222,4 @@ Client 端会发送 HTTP 请求到 Server 端，DDTrace 会通过 `tracecontext`
     ```
 <!-- markdownlint-enable -->
 
-至此， DDTrace 和 OTEL 在链路上实现了串联，服务调用关系和日志也能串联：
-
-<!-- markdownlint-disable MD046 MD033 -->
-<figure >
-  <img src="https://github.com/GuanceCloud/dd-trace-java/assets/31207055/9b599678-1ebc-4f1f-9993-f863fb25280b" style="height: 600px" alt="链路详情">
-  <figcaption> 链路详情 </figcaption>
-</figure>
-<!-- markdownlint-enable -->
+至此， DDTrace 和 OTEL 在链路上实现了串联，服务调用关系和日志也能串联。

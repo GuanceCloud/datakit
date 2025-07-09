@@ -76,6 +76,3 @@ In the end, the link details on <<<custom_key.brand_name>>> look like this:
 
    If the statements are excessively long or contain numerous line breaks, the formatting may become chaotic without proper formatting. Additionally, this can lead to unnecessary traffic consumption.
 
-## More {#more}
-
-If you have other questions, please ask in [GitHub](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues){:target="_blank"}

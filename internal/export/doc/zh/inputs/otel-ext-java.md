@@ -54,7 +54,7 @@ ps.setString(2,pw);        //  替换第二个?
 较少的另一种写法：
 
 ```java
-    ps = conn.prepareStatement("SELECT name,password,id FROM student where name='guance' and password='123456'");
+    ps = conn.prepareStatement("SELECT name,password,id FROM student where name='abc' and password='123456'");
    // ps.setString(1,username);  不再使用 set
    // ps.setString(2,pw);
 ```
@@ -98,4 +98,4 @@ OTEL_JDBC_SQL_OBFUSCATION=true
 
 ## 更多 {#more}
 
-如果有其他问题请前往：[GitHub-Issue](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues){:target="_blank"}
+更多文档问题以及使用问题请前往：[GitHub-Issue](https://opentelemetry.io/docs/languages/java/instrumentation/){:target="_blank"}

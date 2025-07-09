@@ -13,41 +13,6 @@ Before using OTEL to send Trace to DataKit, make sure you have [configured the c
 
 Configuration: [DataKit Configuration OTEL](opentelemetry.md)
 
-## Add Dependencies {#dependencies}
-
-Add dependencies in pom.xml
-
-``` xml
-    <!-- add opentelemetry  -->
-    <dependency>
-        <groupId>io.opentelemetry</groupId>
-        <artifactId>opentelemetry-sdk</artifactId>
-        <version>1.9.0</version>
-    </dependency>
-    <dependency>
-        <groupId>io.opentelemetry</groupId>
-        <artifactId>opentelemetry-exporter-otlp</artifactId>
-        <version>1.9.0</version>
-    </dependency>
-    <dependency>
-        <groupId>io.grpc</groupId>
-        <artifactId>grpc-netty-shaded</artifactId>
-        <version>1.41.0</version>
-    </dependency>
-    <dependency>
-        <groupId>io.opentelemetry</groupId>
-        <artifactId>opentelemetry-semconv</artifactId>
-        <version>1.9.0-alpha</version>
-    </dependency>
-    <!-- use grpc protocol -->
-    <dependency>
-        <groupId>io.grpc</groupId>
-        <artifactId>grpc-protobuf</artifactId>
-        <version>1.36.1</version>
-    </dependency>
-
-```
-
 ## Java Agent Form {#with-agent}
 
 There are many ways you can start an Agent. Next, we will show you how to start an Agent through environment variables, command line, and Tomcat configuration.
@@ -83,7 +48,41 @@ CATALINA_OPTS="$CATALINA_OPTS -javaagent:PATH/TO/opentelemetry-javaagent.jar -Do
 <!-- markdownlint-enable -->
 When configuring the field `exporter.otlp.endpoint`, you can dispense with the configuration and use the default value (localhost: 4317), because DataKit is on the same host as the Java program, and the default port is also 4317.
 
-## Java 2: Code Injection Form {#with-code}
+## Code Injection Form {#with-code}
+
+Add dependencies in pom.xml:
+
+``` xml
+    <!-- add opentelemetry  -->
+    <dependency>
+        <groupId>io.opentelemetry</groupId>
+        <artifactId>opentelemetry-sdk</artifactId>
+        <version>1.9.0</version>
+    </dependency>
+    <dependency>
+        <groupId>io.opentelemetry</groupId>
+        <artifactId>opentelemetry-exporter-otlp</artifactId>
+        <version>1.9.0</version>
+    </dependency>
+    <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-netty-shaded</artifactId>
+        <version>1.41.0</version>
+    </dependency>
+    <dependency>
+        <groupId>io.opentelemetry</groupId>
+        <artifactId>opentelemetry-semconv</artifactId>
+        <version>1.9.0-alpha</version>
+    </dependency>
+    <!-- use grpc protocol -->
+    <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-protobuf</artifactId>
+        <version>1.36.1</version>
+    </dependency>
+
+```
+
 
 ``` java
 package com.example;
@@ -165,15 +164,6 @@ public class otlpdemo {
 }
 ```
 
-## View Effect {#view}
-
-Log in to [<<<custom_key.brand_name>>>](https://console.<<<custom_key.brand_main_domain>>>/tracing/service/table?time=15m){:target="_blank"} and view `application performance monitoring` -> `links` -> Click on a single `link`
-
-![avatar](imgs/otel-java-example.png)
-
-In the flame diagram, you can see the execution time, call flow and so on in each module.
-
----
 
 ## Reference {#more-readings}
 

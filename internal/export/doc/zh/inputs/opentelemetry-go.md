@@ -13,7 +13,7 @@ __int_icon: 'icon/opentelemetry'
 
 在使用 OTEL 发送 Trace 到 DataKit 之前，请先确定您已经[配置好了采集器](opentelemetry.md)。
 
-## 接下来使用伪代码实现 {#code}
+## 伪实现 {#code}
 
 模拟场景：一条用户的登录请求在服务端的各个模块流转并返回到客户端的过程。在每一个过程中都加上链路追踪并标记，最后登录<<<custom_key.brand_name>>>平台查看在这个过程中每个模块的处理时间和服务状态。
 
@@ -157,13 +157,7 @@ func main() {
 }
 ```
 
-## 效果查看 {#view}
-
-登录 [<<<custom_key.brand_name>>>](https://console.<<<custom_key.brand_main_domain>>>/tracing/service/table?time=15m){:target="_blank"} 后查看「应用性能监测 -> 链路 -> 点击单条链路」
-
-![not-set](imgs/otel-go-example.png)
-
-在火焰图中可看到每一个模块中执行的时间、调用流程等。
+---
 
 ## 参考 {#more-readings}
 

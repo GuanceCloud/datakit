@@ -43,13 +43,13 @@ DD_JMXFETCH_STATSD_PORT=8125
 - `jvm.peak_thread_count`
 - `jvm.daemon_thread_count`
 
-> `dd-java-agent` 从 v1.17.3-guance 开始已经将这三个指标内置，不需要再额外配置。但这种自定义的方式依然可以配置其他的 MBean 指标。
+> `dd-java-agent` 从 v1.17.3-ext 开始已经将这三个指标内置，不需要再额外配置。但这种自定义的方式依然可以配置其他的 MBean 指标。
 
 自定义指标需要增加配置文件：
 
 1. 创建文件夹 */usr/local/ddtrace/conf.d* 目录随意（注意权限），下面用的着。
-1. 在文件夹下创建配置文件 *guance.d/conf.yaml*, 文件必须是 yaml 格式。
-1. *conf.yaml* 文件配置看最后
+2. 在文件夹下创建配置文件 *ext.d/conf.yaml*, 文件必须是 yaml 格式。
+3. *conf.yaml* 文件配置看最后
 
 我的服务名为 `tmall.jar` 合并启动参数为：
 
@@ -60,7 +60,7 @@ java -javaagent:/usr/local/dd-java-agent.jar \
   -Dcom.sun.management.jmxremote.ssl=false \
   -Dcom.sun.management.jmxremote.authenticate=false \
   -Ddd.jmxfetch.config.dir="/usr/local/ddtrace/conf.d/" \
-  -Ddd.jmxfetch.config="guance.d/conf.yaml" \
+  -Ddd.jmxfetch.config="ext.d/conf.yaml" \
   -jar tmall.jar
 ```
 

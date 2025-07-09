@@ -15,197 +15,188 @@ Currently, DDTrace has added the following extensions to the technology stack：
 
     ---
 
-    [SDK :material-download:](https://static.<<<custom_key.brand_main_domain>>>/dd-image/dd-java-agent.jar){:target="_blank"} ·
-    [:material-github:](https://github.com/GuanceCloud/dd-trace-java){:target="_blank"} ·
-    [Issue](https://github.com/GuanceCloud/dd-trace-java/issues/new){:target="_blank"} ·
-    [:octicons-history-16:](https://github.com/GuanceCloud/dd-trace-java/releases){:target="_blank"}
+    [SDK :material-download:](https://static.<<<custom_key.brand_main_domain>>>/dd-image/dd-java-agent.jar){:target="_blank"}
 
 </div>
 <!-- markdownlint-enable -->
 
 ## changelog {#changelog}
 
-## v1.47.6-guance (2025/6/4) {#cl-1.47.6-guance}
+## v1.47.6-ext (2025/6/4) {#cl-1.47.6-ext}
 
-### fix {#cl-1.47.6-guance-fix}
+### fix {#cl-1.47.6-ext-fix}
 
 - How to enhance the methods in custom Package and Class by using [command to enable function](ddtrace-ext-java.md#package){:target="_blank"}
 
 
-## v1.47.5-guance (2025/5/22) {#cl-1.47.5-guance}
+## v1.47.5-ext (2025/5/22) {#cl-1.47.5-ext}
 
-### fix {#cl-1.47.5-guance-fix}
+### fix {#cl-1.47.5-ext-fix}
 
 - Fix: Pulsar consumer bug.
-- Fix: [Resource catalog bug](https://github.com/GuanceCloud/dd-trace-java/issues/127){:target="_blank"}
+- Fix: Resource catalog bug.
 
-## v1.47.4-guance (2025/5/14) {#cl-1.47.4-guance}
+## v1.47.4-ext (2025/5/14) {#cl-1.47.4-ext}
 
-### fix {#cl-1.47.4-guance-fix}
+### fix {#cl-1.47.4-ext-fix}
 
 - Attach to trace methods
 
-## v1.47.1-guance (2025/4/17) {#cl-1.47.1-guance}
+## v1.47.1-ext (2025/4/17) {#cl-1.47.1-ext}
 
-### fix {#cl-1.47.1-guance-fix}
+### fix {#cl-1.47.1-ext-fix}
 
 - Fix the problem that Dubbo Response does not take effect.
 - Merge DDTrace Tag: v1.47.1.
 
 
-## v1.42.8-guance {#cl-1.42.8-guance}
+## v1.42.8-ext {#cl-1.42.8-ext}
 
-### fix {#cl-1.42.8-guance-fix}
+### fix {#cl-1.42.8-ext-fix}
 
 - Fix Response Body: Add config"dd.trace.response.body.blacklist.urls".
 
-## v1.42.7-guance {#cl-1.42.7-guance}
+## v1.42.7-ext {#cl-1.42.7-ext}
 
-### fix {#cl-1.42.7-guance-fix}
+### fix {#cl-1.42.7-ext-fix}
 
 - Fix Response Body ENV Bug
 - Merge DDTrace tag v1.42.1 version.
 
-## v1.36.1-guance {#cl-1.36.1-guance}
+## v1.36.1-ext {#cl-1.36.1-ext}
 
-### fix {#cl-1.36.1-guance-fix}
+### fix {#cl-1.36.1-ext-fix}
 
 - Merge DataDog Java Agent tag 1.36.0.
-- Add `dd-guance-version` tag.
+- Add `dd-ext-version` tag.
 - Using `mybatis plus`, the SQL statements executed by the batch class are not recorded as span information.
 
-## v1.34.2-guance {#cl-1.34.2-guance}
+## v1.34.2-ext {#cl-1.34.2-ext}
 
-### fix {#cl-1.34.2-guance-fix}
+### fix {#cl-1.34.2-ext-fix}
 
 - Due to excessive memory usage, it has been decided to remove the [add response body](ddtrace-ext-java.md#response_body) feature.
 
-## v1.34.0-guance {#cl-1.34.0-guance}
+## v1.34.0-ext {#cl-1.34.0-ext}
 
-### new {#cl-1.34.0-guance-fix}
+### new {#cl-1.34.0-ext-fix}
 
 - Merge DataDog v1.34.0
 
-## v1.30.5-guance v1.30.6-guance {#cl-1.30.5-guance}
+## v1.30.5-ext v1.30.6-ext {#cl-1.30.5-ext}
 
-### fix {#cl-1.30.5-guance-fix}
+### fix {#cl-1.30.5-ext-fix}
 
 - Fixed `trace_id` extraction problem under `W3C` protocol.
 - Fix `Pulsar OOM` issue.
 - `Lettuce5` obtains `peer_ip` in cluster mode.
 
-## v1.30.4-guance (2024/4/25) {#cl-1.30.4-guance}
+## v1.30.4-ext (2024/4/25) {#cl-1.30.4-ext}
 
-### fix {#cl-1.30.4-guance-fix}
+### fix {#cl-1.30.4-ext-fix}
 
 - Solve the problem that the link cannot be interrupted due to continuous delivery of `Dubbo` service.
 - Solve the problem of `Pulsar` not releasing memory.
 
-## v1.30.2-guance (2024/4/3) {#cl-1.30.2-guance}
+## v1.30.2-ext (2024/4/3) {#cl-1.30.2-ext}
 
-### fix {#cl-1.30.2-guance-fix}
+### fix {#cl-1.30.2-ext-fix}
 
 - Redis SDK `Lettuce` supports viewing `Command` parameters.
 
-## v1.30.1-guance (2024/2/6) {#cl-1.30.1-guance}
+## v1.30.1-ext (2024/2/6) {#cl-1.30.1-ext}
 
-### new {#cl-1.30.1-guance-fix}
+### new {#cl-1.30.1-ext-fix}
 
 - Merge DDTrace tag  1.30.0.
 - To add HTTP Response Body information in the trace data, [the command to enable it is](ddtrace-ext-java.md#response_body)
 
-## v1.25.2-guance (2024/1/10) {#cl-1.25.2-guance}
+## v1.25.2-ext (2024/1/10) {#cl-1.25.2-ext}
 
-### new {#cl-1.25.2-guance-fix}
+### new {#cl-1.25.2-ext-fix}
 
 - By using the environment `dd.trace.headers.enabled=true`, the `header` information can be placed in the `span` tag `servlet_request_header`.
 
-## v1.25.1-guance (2024/1/4) {#cl-1.25.1-guance}
+## v1.21.1-ext (2023/11/1) {#cl-1.21.1-ext}
 
-### new {#cl-1.25.1-guance-fix}
-
-- Add `Guance_trace_id` at response header.
-
-## v1.21.1-guance (2023/11/1) {#cl-1.21.1-guance}
-
-### fix {#cl-1.21.1-guance-fix}
+### fix {#cl-1.21.1-ext-fix}
 
 - Add Apache Pulsar consumer batch instructions.
 
-## v1.21.0-guance (2023/10/24) {#cl-1.21.0-guance}
+## v1.21.0-ext (2023/10/24) {#cl-1.21.0-ext}
 
-### fix {#cl-1.21.0-guance-fix}
+### fix {#cl-1.21.0-ext-fix}
 
 - Merge DDTrace tag v1.21.0.
 
-## v1.20.3-guance (2023/10/13) {#cl-1.20.3-guance}
+## v1.20.3-ext (2023/10/13) {#cl-1.20.3-ext}
 
-### add {#cl-1.20.3-guance-fix}
+### add {#cl-1.20.3-ext-fix}
 
 - Add `xxl-job` 2.2 version.
 
-## v1.20.2-guance (2023/9/25) {#cl-1.20.2-guance}
+## v1.20.2-ext (2023/9/25) {#cl-1.20.2-ext}
 
-### add {#cl-1.20.2-guance-fix}
+### add {#cl-1.20.2-ext-fix}
 
 - Add Apache Pulsar instructions.
 
-## v1.20.1-guance (2023/9/8) {#cl-1.20.1-guance}
+## v1.20.1-ext (2023/9/8) {#cl-1.20.1-ext}
 
-### fix {#cl-1.20.1-guance-fix}
+### fix {#cl-1.20.1-ext-fix}
 
 - Merge DDTrace tag v1.20.1 and release new version.
 
-## v1.17.4-guance (2023/7/27) {#cl-1.17.4-guance}
+## v1.17.4-ext (2023/7/27) {#cl-1.17.4-ext}
 
-### fix {#cl-1.17.4-guance-fix}
+### fix {#cl-1.17.4-ext-fix}
 
 - Fix RocketMQ send span bug.
 
-## v1.17.2-guance v1.17.3-guance (2023/7/20) {#cl-1.17.3-guance}
+## v1.17.2-ext v1.17.3-ext (2023/7/20) {#cl-1.17.3-ext}
 
-### fix {#cl-1.17.3-guance-fix}
+### fix {#cl-1.17.3-ext-fix}
 
 - Fix bug for Redis not has Spans.
 - Delete Info logging of Dubbo.
-- Add 4 个 JVM metric,see [GitHub-Issue](https://github.com/GuanceCloud/dd-trace-java/issues/46){:target="_blank"}
+- Add 4 个 JVM metric:`jvm.total_thread_count`, `jvm.peak_thread_count`, `jvm.daemon_thread_count`, `jvm.gc.code_cache.used`.
 
-## v1.17.1-guance (2023/7/11) {#cl-1.17.1-guance}
+## v1.17.1-ext (2023/7/11) {#cl-1.17.1-ext}
 
-### fix {#cl-1.17.1-guance-new}
+### fix {#cl-1.17.1-ext-new}
 
 - RocketMQ returns a value when sending an asynchronous message, which can cause an NPE.
 - RocketMQ will replace the message itself cache span with local cache, and users no longer need to turn off the traceContext function.
 
-## v1.17.0-guance (2023/7/7) {#cl-1.17.0-guance}
+## v1.17.0-ext (2023/7/7) {#cl-1.17.0-ext}
 
-### fix {#cl-1.17.0-guance-new}
+### fix {#cl-1.17.0-ext-new}
 
 - Merge Datadog v1.17.0.
 
 
-## v1.15.4-guance (2023/6/12) {#cl-1.15.4-guance}
+## v1.15.4-ext (2023/6/12) {#cl-1.15.4-ext}
 
-### new {#cl-1.15.4-guance-new}
+### new {#cl-1.15.4-ext-new}
 
 - Merge Datadog v1.15.3 tag
-- [Support PowerJob](https://github.com/GuanceCloud/dd-trace-java/issues/42){:target="_blank"}
+- Support PowerJob.
 
 
-## v1.14.0-guance (2023/5/18) {#cl-1.14.0-guance}
+## v1.14.0-ext (2023/5/18) {#cl-1.14.0-ext}
 
-### fix {#cl-1.14.0-guance-new}
+### fix {#cl-1.14.0-ext-new}
 
 - Merge Datadog v1.14.0 version.
-- [support trace 128 bit id](https://github.com/GuanceCloud/dd-trace-java/issues/37){:target="_blank"}
+- Support `trace-128-bit-id`.
 
 
-## v1.12.1-guance (2023/5/11) {#cl-1.12.1-guance}
+## v1.12.1-ext (2023/5/11) {#cl-1.12.1-ext}
 
-### fix {#cl-1.12.1-guance-new}
+### fix {#cl-1.12.1-ext-new}
 
-- supported MongoDB obfuscation， [MongoDB Issue](https://github.com/GuanceCloud/dd-trace-java/issues/38){:target="_blank"}
-- [supported DM8](https://github.com/GuanceCloud/dd-trace-java/issues/39){:target="_blank"}
+- Supported MongoDB obfuscation.
+- Supported DM8.
 
 
 ## v1.12.0 (2023/4/20) {#cl-1.10.2}
@@ -213,11 +204,11 @@ Currently, DDTrace has added the following extensions to the technology stack：
 ### fix {#cl-1.12.0-new}
 
 - Merge ddtrace tag:1.12.0.
-- Support [DangDang Dubbox](https://github.com/GuanceCloud/dd-trace-java/issues/32){:target="_blank"}.
-- Solve the confusion between jax-rs and Dubbo traces [problem Issue](https://github.com/GuanceCloud/dd-trace-java/issues/34){:target="_blank"}.
-- Solve the problem that the order of Dubbo trace topology map is wrong [problem](https://github.com/GuanceCloud/dd-trace-java/issues/35){:target="_blank"}.
-- Solve the conflict between RocketMQ and customer-defined trace data [problem](https://github.com/GuanceCloud/dd-trace-java/issues/29){:target="_blank"}.
-- Modify RocketMQ resource name [GitHub-issue](https://github.com/GuanceCloud/dd-trace-java/issues/33){:target="_blank"}.
+- Support `DangDang Dubbox`.
+- Solve the confusion between jax-rs and Dubbo traces.
+- Solve the problem that the order of Dubbo trace topology map is wrong bug.
+- Solve the conflict between RocketMQ and customer-defined trace data bug.
+- Modify RocketMQ resource name.
 
 ## v1.10.2 (2023/4/10) {#cl-1.10.2}
 
@@ -232,7 +223,7 @@ Currently, DDTrace has added the following extensions to the technology stack：
 ### new {#cl-1.8.0-new}
 
 - merge ddtrace 1.8.0 version.
-- add [Get the input parameter information of a specific function](https://github.com/GuanceCloud/dd-trace-java/issues/26){:target="_blank"}
+- add `Get the input parameter information of a specific function`.
 
 ## v1.4.1(2023/2/27) {#cl-1.4.1}
 
@@ -250,9 +241,9 @@ Currently, DDTrace has added the following extensions to the technology stack：
 
 ### new {#cl-1.3.2-new}
 
-- Add redis view parameter [GitHub-#19](https://github.com/GuanceCloud/dd-trace-java/issues/19){:target="_blank"})
-- Modify `dd-java-agent` default port [GitHub-#18](https://github.com/GuanceCloud/dd-trace-java/issues/18){:target="_blank"})
-- Alibaba Cloud RocketMQ bug [GitHub-#22](https://github.com/GuanceCloud/dd-trace-java/issues/22){:target="_blank"})
+- Add redis view parameter.
+- Modify `dd-java-agent` default port is 9529.
+- Alibaba Cloud RocketMQ bug.
 
 ## v1.3.0(2022/12/28) {#cl-1.3.0}
 
@@ -275,11 +266,9 @@ Currently, DDTrace has added the following extensions to the technology stack：
 
 ### new {#cl-0.113.0-new}
 
-- The desensitization function adds SQL placeholder (`?`) agent support([#7](https://github.com/GuanceCloud/dd-trace-java/issues/7){:target="_blank"})
+- The desensitization function adds SQL placeholder (`?`) agent support.
 
 ## 0.113.0(2022-10-25) {#cl-0.113.0}
-
-- [GitHub download](https://github.com/GuanceCloud/dd-trace-java/releases/tag/v0.113.0-guance){:target="_blank"}
 
 ### Function adjustment instructions {#cl-0.113.0-new}
 
@@ -291,8 +280,6 @@ Currently, DDTrace has added the following extensions to the technology stack：
 
 Merge DataDog v0.108.1 version, compile while retaining 0.108.1
 
-- [GitHub download](https://github.com/GuanceCloud/dd-trace-java/releases/tag/v0.108.1){:target="_blank"}
-
 ### Description of function adjustments. {#cl-0.118.0-new}
 
 - add thrift instrumentation（thrift version >=0.9.3）
@@ -303,25 +290,19 @@ Merge DataDog v0.108.1 version, compile while retaining 0.108.1
 
 Merge DataDog v0.108.1 and compile it.
 
-- [GitHub download](https://github.com/GuanceCloud/dd-trace-java/releases/tag/v0.108.1){:target="_blank"}
-
 ### 0.108.1 {#cl-0.108.1-new}
 
 - add `xxl_job` agent ( `xxl_job` version >= 2.3.0)
 
 ---
 
-## guance-0.107.0((2022-08-30)) {#cl-0.107.0}
+## 0.107.0-ext((2022-08-30)) {#cl-0.107.0}
 
 Merge DataDog 107 version, compile.
 
-- [GitHub download](https://github.com/GuanceCloud/dd-trace-java/releases/tag/guance-107){:target="_blank"}
-
 ---
 
-## guance-0.105.0(2022-08-23) {#cl-0.105.0}
-
-[GitHub download](https://static.<<<custom_key.brand_main_domain>>>/ddtrace/dd-java-agent-guance-0.106.0-SNAPSHOT.jar){:target="_blank"}
+## 0.105.0-ext(2022-08-23) {#cl-0.105.0}
 
 ### new {#cl-0.105.0}
 

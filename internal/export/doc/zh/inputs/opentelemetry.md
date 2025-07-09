@@ -98,7 +98,7 @@ java -javaagent:/usr/local/ddtrace/opentelemetry-javaagent-2.5.0.jar \
 
 默认日志是开启的，要关闭日志采集的话，exporter 配置为空即可：`-Dotel.logs.exporter=none`
 
-更多关于 V2 版本的重大修改请查看官方文档或者 GitHub <<<custom_key.brand_name>>>版本说明： [Github-GuanCe-v2.11.0](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/releases/tag/v2.11.0-guance){:target="_blank"}
+更多关于 V2 版本的重大修改请查看官方文档或者 GitHub <<<custom_key.brand_name>>>版本说明： [Github-v2.0.0](https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/tag/v2.0.0){:target="_blank"}
 
 ## 常规命令 {#sdk-configuration}
 
@@ -353,5 +353,4 @@ DataKit 目前提供了如下两种语言的最佳实践：
 - [Golang SDK](https://github.com/open-telemetry/opentelemetry-go){:target="_blank"}
 - [官方使用手册](https://opentelemetry.io/docs/){:target="_blank"}
 - [环境变量配置](https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk-extensions/autoconfigure/README.md#otlp-exporter-both-span-and-metric-exporters){:target="_blank"}
-- [<<<custom_key.brand_name>>>二次开发版本](https://github.com/GuanceCloud/opentelemetry-java-instrumentation){:target="_blank"}
 - [DDTrace 与 OpenTelemetry 串联时采样策略注意事项](tracing-sample.md)

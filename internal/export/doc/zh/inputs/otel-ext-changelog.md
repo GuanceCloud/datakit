@@ -21,10 +21,7 @@ skip: 'not-searchable-on-index-page'
 
     ---
 
-    [SDK :material-download:](https://static.<<<custom_key.brand_main_domain>>>/dd-image/opentelemetry-javaagent.jar){:target="_blank"} ·
-    [:material-github:](https://github.com/GuanceCloud/opentelemetry-java-instrumentation){:target="_blank"} ·
-    [Issue](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues/new){:target="_blank"} ·
-    [:octicons-history-16:](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/releases){:target="_blank"}
+    [SDK :material-download:](https://static.<<<custom_key.brand_main_domain>>>/dd-image/opentelemetry-javaagent.jar){:target="_blank"}
 
 </div>
 <!-- markdownlint-enable -->
@@ -45,56 +42,48 @@ skip: 'not-searchable-on-index-page'
 
 --->
 
-## 1.28.0-guance (2023/7/7) {#cl-1.28.0-guance}
+## 1.28.0-ext (2023/7/7) {#cl-1.28.0-ext}
 
-### 新加功能 {#cl-1.28.0-guance-new}
+### 新加功能 {#cl-1.28.0-ext-new}
 
 - 合并 open-telemetry 最新分支
 
 ---
 
-## 1.26.3-guance (2023/7/7) {#cl-1.26.3-guance}
+## 1.26.2-ext (2023/6/15) {#cl-1.26.2-ext}
+下载当前版本 jar 包： [v1.26.2-ext](https://static.<<<custom_key.brand_main_domain>>>/dd-image/opentelemetry-javaagent-1.26.2-ext.jar){:target="_blank"}
 
-### 新加功能 {#cl-1.26.3-guance-new}
+### 新加功能 {#cl-1.26.2-ext-new}
 
-- 新增 [guance-exporter](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues/17){:target="_blank"}
-
----
-
-## 1.26.2-guance (2023/6/15) {#cl-1.26.2-guance}
-下载当前版本 jar 包： [v1.26.2-guance](https://static.<<<custom_key.brand_main_domain>>>/dd-image/opentelemetry-javaagent-1.26.2-guance.jar){:target="_blank"}
-
-### 新加功能 {#cl-1.26.2-guance-new}
-
-- [增加 DB 语句脱敏](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues/15){:target="_blank"}
+- 增加 DB 语句脱敏
 
 ---
 
-## 1.26.1-guance (2023/6/9) {#cl-1.26.1-guance}
+## 1.26.1-ext (2023/6/9) {#cl-1.26.1-ext}
 
-### 新加功能 {#cl-1.26.1-guance-new}
+### 新加功能 {#cl-1.26.1-ext-new}
 
-- 非侵入方式支持获取特定方法的入参信息 [GitHub-Issue](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues/12){:target="_blank"}
-- 阿里云 HSF 框架集成 [GitHub-Issue](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues/12){:target="_blank"}
+- 非侵入方式支持获取特定方法的入参信息。
+- 阿里云 HSF 框架集成。
 
 ---
 
-## 1.26.0-guance (2023/6/1) {#cl-1.26.0-guance}
+## 1.26.0-ext (2023/6/1) {#cl-1.26.0-ext}
 
-### 新加功能 {#cl-1.26.0-guance-new}
+### 新加功能 {#cl-1.26.0-ext-new}
 
 - 合并最新 OpenTelemetry 分支 v1.26.0
-- 支持国产达梦数据库 [GitHub-Issue](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues/5){:target="_blank"}
+- 支持国产达梦数据库。
 
 ---
 
-## 1.25.0-guance (2023/5/10) {#cl-1.25.0-guance}
+## 1.25.0-ext (2023/5/10) {#cl-1.25.0-ext}
 
-### 新加功能 {#cl-1.25.0-guance-new}
+### 新加功能 {#cl-1.25.0-ext-new}
 
 - 合并最新 OpenTelemetry 分支 v1.25.0
-- 支持 xxl-job 2.3 [GitHub-Issue](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues/1){:target="_blank"}
-- 增加支持阿里巴巴 Dubbo 及 Dubbox 框架支持 [GitHub-Issue](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues/2){:target="_blank"}
-- 支持 thrift [GitHub-Issue](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/issues/3){:target="_blank"}
+- 支持 xxl-job 2.3
+- 增加支持阿里巴巴 Dubbo 及 Dubbox 框架支持。
+- 支持 thrift。
 
 ---

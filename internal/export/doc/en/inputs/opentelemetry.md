@@ -106,7 +106,7 @@ java -javaagent:/usr/local/ddtrace/opentelemetry-javaagent-2.5.0.jar \
 
 The default log is enabled. If you want to turn off log collection, the exporter configuration can be empty: `-Dotel.logs.exporter=none`
 
-For more major changes in the V2 version, please check the official documentation or [GitHub GuanCe Cloud](https://github.com/GuanceCloud/opentelemetry-java-instrumentation/releases/tag/v2.11.0-guance){:target="_blank"} version notes
+For more major changes in the V2 version, please check the official documentation or [GitHub open-telemetry Cloud](https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/tag/v2.0.0){:target="_blank"} version notes.
 
 
 ## General SDK Configuration {#sdk-configuration}
@@ -276,7 +276,7 @@ This conversion enables seamless integration of OpenTelemetry-collected histogra
 
 ## Delete Metric Tags {#del-metric}
 
-There are many useless tags in the indicators reported by OTEL. These are all of **String** type. They have been deleted because they occupy too much memory and bandwidth and will not be uploaded to the GuanCe cloud center.
+There are many useless tags in the indicators reported by OTEL. These are all of **String** type. They have been deleted because they occupy too much memory and bandwidth and will not be uploaded to the cloud center.
 
 These tags include:
 
@@ -335,5 +335,4 @@ The maximum length of the log label is 32KB. This field is not configurable, and
 - Go open source address [OpenTelemetry-go](https://github.com/open-telemetry/opentelemetry-go){:target="_blank"}
 - Official user manual: [opentelemetry-io-docs](https://opentelemetry.io/docs/){:target="_blank"}
 - Environment variable configuration: [sdk-extensions](https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk-extensions/autoconfigure/README.md#otlp-exporter-both-span-and-metric-exporters){:target="_blank"}
-- GitHub GuanceCloud version [OpenTelemetry-Java-instrumentation](https://github.com/GuanceCloud/opentelemetry-java-instrumentation){:target="_blank"}
 - Sampling strategy considerations when DDTrace and OpenTelemetry are concatenated [Tracing Sampled](tracing-sample.md)
