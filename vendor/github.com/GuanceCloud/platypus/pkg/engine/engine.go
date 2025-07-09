@@ -11,8 +11,28 @@ import (
 	"path/filepath"
 
 	plruntime "github.com/GuanceCloud/platypus/pkg/engine/runtime"
+	"github.com/GuanceCloud/platypus/pkg/engine/runtimev2"
 	"github.com/GuanceCloud/platypus/pkg/parser"
 )
+
+func ParseV2(name, script string, fn map[string]*runtimev2.Fn) (*runtimev2.Script, error) {
+	stmts, err := parser.ParsePipeline(name, script)
+	if err != nil {
+		return nil, err
+	}
+
+	p := &runtimev2.Script{
+		Name:  name,
+		Stmts: stmts,
+		Fn:    fn,
+	}
+
+	if err := p.Check(); err != nil {
+		return nil, err
+	}
+
+	return p, nil
+}
 
 func ParseScript(scripts map[string]string,
 	call map[string]plruntime.FuncCall, check map[string]plruntime.FuncCheck) (

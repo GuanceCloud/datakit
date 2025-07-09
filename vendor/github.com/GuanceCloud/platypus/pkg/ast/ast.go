@@ -440,7 +440,7 @@ func NodeStartPos(node *Node) token.LnColPos {
 	case TypeConditionalExpr:
 		return node.ConditionalExpr().LHS.StartPos()
 	case TypeAssignmentExpr:
-		return node.AssignmentExpr().LHS.StartPos()
+		return node.AssignmentExpr().LHS[0].StartPos()
 
 	case TypeCallExpr:
 		return node.CallExpr().NamePos

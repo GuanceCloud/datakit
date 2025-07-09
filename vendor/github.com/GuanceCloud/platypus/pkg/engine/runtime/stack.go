@@ -17,31 +17,37 @@ type Varb struct {
 	DType ast.DType
 }
 
-type PlProcStack struct {
-	data   map[string]*Varb
-	before *PlProcStack
+type Stack struct {
+	Data   map[string]*Varb
+	Before *Stack
 
-	checkPattern map[string]*grok.GrokPattern
+	CheckPattern map[string]*grok.GrokPattern
 }
 
-func (stack *PlProcStack) SetPattern(patternAlias string, grokPattern *grok.GrokPattern) {
-	if stack.checkPattern == nil {
-		stack.checkPattern = make(map[string]*grok.GrokPattern)
+func NewStack() *Stack {
+	return &Stack{
+		Data: map[string]*Varb{},
 	}
-	stack.checkPattern[patternAlias] = grokPattern
 }
 
-func (stack *PlProcStack) GetPattern(pattern string) (*grok.GrokPattern, bool) {
+func (stack *Stack) SetPattern(patternAlias string, grokPattern *grok.GrokPattern) {
+	if stack.CheckPattern == nil {
+		stack.CheckPattern = make(map[string]*grok.GrokPattern)
+	}
+	stack.CheckPattern[patternAlias] = grokPattern
+}
+
+func (stack *Stack) GetPattern(pattern string) (*grok.GrokPattern, bool) {
 	cur := stack
 
 	for {
 		// 在 cur stack
-		if v, ok := cur.checkPattern[pattern]; ok {
+		if v, ok := cur.CheckPattern[pattern]; ok {
 			return v, ok
 		}
 		// 尝试在上一级查找
-		if cur.before != nil {
-			cur = cur.before
+		if cur.Before != nil {
+			cur = cur.Before
 		} else {
 			break
 		}
@@ -50,26 +56,26 @@ func (stack *PlProcStack) GetPattern(pattern string) (*grok.GrokPattern, bool) {
 	return nil, false
 }
 
-func (stack *PlProcStack) Set(key string, value any, dType ast.DType) {
+func (stack *Stack) Set(key string, value any, dType ast.DType) {
 	cur := stack
 
 	for {
 		// 在 cur stack
-		if v, ok := cur.data[key]; ok {
+		if v, ok := cur.Data[key]; ok {
 			v.DType = dType
 			v.Value = value
 			return
 		}
 		// 尝试在上一级查找
-		if cur.before != nil {
-			cur = cur.before
+		if cur.Before != nil {
+			cur = cur.Before
 		} else {
 			break
 		}
 	}
 
 	// new
-	stack.data[key] = &Varb{
+	stack.Data[key] = &Varb{
 		Value: value,
 		DType: dType,
 	}
@@ -83,17 +89,17 @@ func (stack *PlProcStack) Set(key string, value any, dType ast.DType) {
 // 	}
 // }
 
-func (stack *PlProcStack) Get(key string) (*Varb, error) {
+func (stack *Stack) Get(key string) (*Varb, error) {
 	cur := stack
 
 	for {
 		// 在 cur stack
-		if v, ok := cur.data[key]; ok {
+		if v, ok := cur.Data[key]; ok {
 			return v, nil
 		}
 		// 尝试在上一级查找
-		if cur.before != nil {
-			cur = cur.before
+		if cur.Before != nil {
+			cur = cur.Before
 		} else {
 			break
 		}
@@ -102,9 +108,9 @@ func (stack *PlProcStack) Get(key string) (*Varb, error) {
 	return nil, fmt.Errorf("not found")
 }
 
-func (stack *PlProcStack) Clear() {
-	stack.checkPattern = nil
-	for k := range stack.data {
-		delete(stack.data, k)
+func (stack *Stack) Clear() {
+	stack.CheckPattern = nil
+	for k := range stack.Data {
+		delete(stack.Data, k)
 	}
 }

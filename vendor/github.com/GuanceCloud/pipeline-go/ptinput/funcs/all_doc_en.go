@@ -206,6 +206,9 @@ var (
 
 	//go:embed md/setopt.en.md
 	docSetoptEN string
+
+	//go:embed md/strlen.md
+	docStrlenEN string
 )
 
 const (
@@ -633,6 +636,13 @@ var (
 		Doc: docSetoptEN,
 		FnCategory: map[string][]string{
 			langTagEnUS: {eOther},
+		},
+	}
+
+	strlenMDEN = PLDoc{
+		Doc: docStrlenEN,
+		FnCategory: map[string][]string{
+			langTagEnUS: {eStringOp},
 		},
 	}
 )

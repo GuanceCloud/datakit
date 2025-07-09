@@ -77,6 +77,7 @@ NIL NULL IF ELIF ELSE
 
 %type<nodes>
 	function_args
+	comma_params
 
 %type <node>
 	stmt
@@ -221,29 +222,44 @@ SPACE_EOLS: EOLS
 |
 ;
 
-assignment_stmt: expr EQ SPACE_EOLS expr
+
+comma_params: expr
+{
+	$$ = []*ast.Node{$1}
+}
+| comma_params COMMA SPACE_EOLS expr
+{
+	$$ = append($$, $4)
+}
+
+assignment_stmt: comma_params EQ SPACE_EOLS comma_params
 {
 	$$ = yylex.(*parser).newAssignmentStmt($1, $4, $2)
 }
 | expr ADD_EQ SPACE_EOLS expr
 {
-	$$ = yylex.(*parser).newAssignmentStmt($1, $4, $2)
+	$$ = yylex.(*parser).newAssignmentStmt(
+		[]*ast.Node{$1}, []*ast.Node{$4}, $2)
 }
 | expr SUB_EQ SPACE_EOLS expr
 {
-	$$ = yylex.(*parser).newAssignmentStmt($1, $4, $2)
+	$$ = yylex.(*parser).newAssignmentStmt(
+		[]*ast.Node{$1}, []*ast.Node{$4}, $2)
 }
 | expr MUL_EQ SPACE_EOLS expr
 {
-	$$ = yylex.(*parser).newAssignmentStmt($1, $4, $2)
+	$$ = yylex.(*parser).newAssignmentStmt(
+		[]*ast.Node{$1}, []*ast.Node{$4}, $2)
 }
 | expr DIV_EQ SPACE_EOLS expr
 {
-	$$ = yylex.(*parser).newAssignmentStmt($1, $4, $2)
+	$$ = yylex.(*parser).newAssignmentStmt(
+		[]*ast.Node{$1}, []*ast.Node{$4}, $2)
 }
 | expr MOD_EQ SPACE_EOLS expr
 {
-	$$ = yylex.(*parser).newAssignmentStmt($1, $4, $2)
+	$$ = yylex.(*parser).newAssignmentStmt(
+		[]*ast.Node{$1}, []*ast.Node{$4}, $2)
 }
 ;
 
@@ -400,7 +416,8 @@ function_args: function_args COMMA SPACE_EOLS expr
 
 named_arg: identifier EQ SPACE_EOLS expr
 {
-	$$ = yylex.(*parser).newAssignmentStmt($1, $4, $2)
+	$$ = yylex.(*parser).newAssignmentStmt(
+		[]*ast.Node{$1}, []*ast.Node{$4}, $2)
 }
 ;
 
@@ -539,6 +556,10 @@ slice_expr_start
     $$ = $1
 }
 | slice_expr
+{
+    $$ = $1
+}
+| call_expr
 {
     $$ = $1
 }

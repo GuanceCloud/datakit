@@ -178,9 +178,9 @@ func checkParams(ctx *runtime.Task, funcExpr *ast.CallExpr, paramDesc []*Param) 
 		if p := funcExpr.Param[lenP]; p != nil {
 			if p.NodeType == ast.TypeAssignmentExpr {
 				expr := p.AssignmentExpr()
-				switch expr.RHS.NodeType {
+				switch expr.RHS[0].NodeType {
 				case ast.TypeListLiteral:
-					for _, n := range expr.RHS.ListLiteral().List {
+					for _, n := range expr.RHS[0].ListLiteral().List {
 						if ok := checkLiteralType(n.NodeType, paramDesc[lenP].Type); !ok {
 							return runtime.NewRunError(ctx, "unexpected data type", p.StartPos())
 						}
@@ -266,11 +266,11 @@ func normalizeFuncParams(ctx *runtime.Task, keyMapp map[string]int,
 			if prvIsPosVar {
 				prvIsPosVar = false
 			}
-			if arg.AssignmentExpr().LHS.NodeType != ast.TypeIdentifier {
+			if arg.AssignmentExpr().LHS[0].NodeType != ast.TypeIdentifier {
 				return runtime.NewRunError(ctx, "named parameter must be an identifier", arg.StartPos())
 			}
 
-			kname := arg.AssignmentExpr().LHS.Identifier().Name
+			kname := arg.AssignmentExpr().LHS[0].Identifier().Name
 
 			kIndex, ok := keyMapp[kname]
 			if !ok {
@@ -329,7 +329,7 @@ func normalizeFuncArgsDeprecated(fnStmt *ast.CallExpr, keyList []string, reqParm
 			if beforPosArg {
 				beforPosArg = false
 			}
-			kname, err := getKeyName(arg.AssignmentExpr().LHS)
+			kname, err := getKeyName(arg.AssignmentExpr().LHS[0])
 			if err != nil {
 				return err
 			}
@@ -337,7 +337,7 @@ func normalizeFuncArgsDeprecated(fnStmt *ast.CallExpr, keyList []string, reqParm
 			if !ok {
 				return fmt.Errorf("argument %s does not exist", kname)
 			}
-			ret[kIndex] = arg.AssignmentExpr().RHS
+			ret[kIndex] = arg.AssignmentExpr().RHS[0]
 		} else {
 			if !beforPosArg {
 				return fmt.Errorf("positional arguments cannot follow keyword arguments")

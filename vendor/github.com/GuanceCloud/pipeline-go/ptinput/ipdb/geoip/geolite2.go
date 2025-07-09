@@ -26,7 +26,7 @@ const (
 var _ ipdb.IPdb = (*Geoip)(nil)
 
 var (
-	l = logger.DefaultSLogger("iploc")
+	l = logger.DefaultSLogger("geoip")
 
 	openDB = func(f string) (*geoip2.Reader, error) {
 		db, err := geoip2.Open(f)

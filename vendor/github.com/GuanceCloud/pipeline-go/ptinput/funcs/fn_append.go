@@ -22,15 +22,7 @@ func doAppendChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlErr
 			"the first param expects Identifier, got %s", funcExpr.Param[0].NodeType),
 			funcExpr.Param[0].StartPos())
 	}
-	switch funcExpr.Param[1].NodeType { //nolint:exhaustive
-	case ast.TypeIdentifier, ast.TypeAttrExpr, ast.TypeBoolLiteral,
-		ast.TypeIntegerLiteral, ast.TypeFloatLiteral, ast.TypeStringLiteral:
-	default:
-		return runtime.NewRunError(ctx, fmt.Sprintf(
-			"the second param expects Identifier, AttrExpr, BoolLiteral, NumberLiteral or StringLiteral, got %s",
-			funcExpr.Param[1].NodeType), funcExpr.Param[1].StartPos(),
-		)
-	}
+
 	return nil
 }
 
@@ -43,15 +35,11 @@ func Append(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 		return errR
 	}
 
-	elem, _, errR := runtime.RunStmt(ctx, funcExpr.Param[1])
-	if errR != nil {
-		return errR
-	}
-
 	key, err := getKeyName(funcExpr.Param[0])
 	if err != nil {
 		return runtime.NewRunError(ctx, err.Error(), funcExpr.Param[0].StartPos())
 	}
+
 	val, err := ctx.GetKey(key)
 	if err != nil {
 		l.Debugf("key `%v` does not exist, ignored", key)
@@ -61,6 +49,7 @@ func Append(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 		l.Debugf("cannot append to a %s", val.DType.String())
 		return nil
 	}
+
 	var arr []any
 	switch v := val.Value.(type) {
 	case []any:
@@ -69,6 +58,12 @@ func Append(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 		l.Debugf("expect []any, got %T", v)
 		return nil
 	}
+
+	elem, _, errR := runtime.RunStmt(ctx, funcExpr.Param[1])
+	if errR != nil {
+		return errR
+	}
+
 	arr = append(arr, elem)
 	ctx.Regs.ReturnAppend(arr, ast.List)
 	return nil

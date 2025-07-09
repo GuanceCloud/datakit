@@ -1,2 +1,3 @@
 dist/
 vendor/
+pkg/arbiter/builtin-funcs/local_code_test.go

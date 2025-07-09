@@ -8,8 +8,8 @@ require (
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/DataDog/gopsutil v1.2.1
 	github.com/GuanceCloud/confd v0.1.101
-	github.com/GuanceCloud/grok v1.1.4
-	github.com/GuanceCloud/platypus v0.3.1
+	github.com/GuanceCloud/grok v1.1.5-0.20250416104424-34917bd63e69
+	github.com/GuanceCloud/platypus v0.3.3-0.20250528074826-e3130ff5a05c
 	github.com/GuanceCloud/timeout v1.9.1
 	github.com/IBM/sarama v1.41.2
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible // indirect
@@ -22,7 +22,7 @@ require (
 	github.com/containerd/cgroups/v3 v3.0.1
 	github.com/containerd/containerd v1.5.5 // indirect
 	github.com/cortexproject/cortex v1.9.1-0.20210722081137-485474c9afb2
-	github.com/dgraph-io/ristretto v0.1.0
+	github.com/dgraph-io/ristretto v0.2.0
 	github.com/didip/tollbooth/v6 v6.1.2
 	github.com/docker/docker v20.10.8+incompatible
 	github.com/dustin/go-humanize v1.0.1
@@ -76,7 +76,7 @@ require (
 	github.com/shirou/gopsutil/v3 v3.22.7
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cast v1.5.1
-	github.com/spf13/pflag v1.0.5
+	github.com/spf13/pflag v1.0.6
 	github.com/stretchr/testify v1.9.0
 	github.com/tidwall/gjson v1.17.0 // indirect
 	github.com/tinylib/msgp v1.1.6
@@ -146,7 +146,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
-	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 // indirect
+	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/docker/cli v20.10.17+incompatible // indirect
 	github.com/docker/distribution v2.8.1+incompatible // indirect
@@ -183,7 +183,6 @@ require (
 	github.com/gogo/status v1.0.3 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
-	github.com/golang/glog v1.0.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 	github.com/google/gnostic v0.6.9 // indirect
 	github.com/google/go-cmp v0.6.0
@@ -258,7 +257,7 @@ require (
 	github.com/opentracing-contrib/go-stdlib v1.0.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.1-0.20220228012449-10b1cf09e00b // indirect
 	github.com/oschwald/maxminddb-golang v1.11.0 // indirect
-	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
+	github.com/pelletier/go-toml/v2 v2.0.8
 	github.com/philhofer/fwd v1.1.1 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/pierrec/lz4/v4 v4.1.18 // indirect
@@ -367,7 +366,7 @@ require (
 	github.com/petermattis/goid v0.0.0-20240327183114-c42a807a84ba
 	github.com/rosedblabs/wal v1.3.6
 	github.com/sijms/go-ora/v2 v2.8.19
-	github.com/spf13/cobra v1.5.0
+	github.com/spf13/cobra v1.9.1
 	github.com/vmware/govmomi v0.38.0
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
 	k8s.io/kubelet v0.0.0-00010101000000-000000000000
@@ -380,7 +379,7 @@ require (
 	github.com/avast/retry-go/v4 v4.1.0 // indirect
 	github.com/avvmoto/buf-readerat v0.0.0-20171115124131-a17c8cb89270 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
@@ -393,7 +392,7 @@ require (
 )
 
 require (
-	github.com/GuanceCloud/pipeline-go v1.0.3
+	github.com/GuanceCloud/pipeline-go v1.0.9-0.20250709075953-d5939952f5b1
 	github.com/hipages/php-fpm_exporter v1.2.1
 	github.com/shopspring/decimal v1.2.0
 )

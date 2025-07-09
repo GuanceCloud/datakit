@@ -91,6 +91,7 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"hash()":                   FnHash.Doc[0],
 	"slice_string()":           FnSliceString.Doc[0],
 	"setopt()":                 &setoptMD,
+	"strlen()":                 &strLen,
 }
 
 var PipelineFunctionDocsEN = map[string]*PLDoc{
@@ -165,6 +166,7 @@ var PipelineFunctionDocsEN = map[string]*PLDoc{
 	"hash()":                   FnHash.Doc[1],
 	"slice_string()":           FnSliceString.Doc[1],
 	"setopt()":                 &setoptMDEN,
+	"strlen()":                 &strlenMDEN,
 }
 
 // embed docs.
@@ -364,6 +366,9 @@ var (
 
 	//go:embed md/setopt.md
 	docSetopt string
+
+	//go:embed md/strlen.md
+	docStrlen string
 )
 
 const (
@@ -793,6 +798,13 @@ var (
 		Doc: docSetopt,
 		FnCategory: map[string][]string{
 			langTagZhCN: {cOther},
+		},
+	}
+
+	strLen = PLDoc{
+		Doc: docStrlen,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cStringOp},
 		},
 	}
 )

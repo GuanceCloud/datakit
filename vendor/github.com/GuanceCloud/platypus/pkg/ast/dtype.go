@@ -5,7 +5,9 @@
 
 package ast
 
-import "github.com/spf13/cast"
+import (
+	"github.com/spf13/cast"
+)
 
 type DType uint
 
@@ -24,7 +26,7 @@ func (t DType) String() string {
 	case Float:
 		return "float"
 	case String:
-		return "string"
+		return "str"
 	case List:
 		return "list"
 	case Map:
@@ -52,6 +54,10 @@ const (
 	//// or map[any]any (default).
 	// Map.
 )
+
+func AllTyp() []DType {
+	return []DType{Bool, Int, Float, String, List, Map}
+}
 
 func DectDataType(val any) (any, DType) {
 	if val == nil {

@@ -116,6 +116,8 @@ var FuncsMap = map[string]runtime.FuncCall{
 	"hash":                   FnHash.Call,
 	"slice_string":           FnSliceString.Call,
 
+	"strlen": StrLen,
+
 	"setopt": Setopt,
 
 	// disable
@@ -200,5 +202,6 @@ var FuncsCheckMap = map[string]runtime.FuncCheck{
 	// disable
 	"json_all": JSONAllChecking,
 
+	"strlen": StrLenChecking,
 	"setopt": SetoptChecking,
 }

@@ -59,6 +59,8 @@ func RunStmtCheck(ctx *Task, ctxCheck *ContextCheck, node *ast.Node) *errchain.P
 		return RunAttrExprCheck(ctx, ctxCheck, node.AttrExpr())
 	case ast.TypeIndexExpr:
 		return RunIndexExprGetCheck(ctx, ctxCheck, node.IndexExpr())
+	case ast.TypeInExpr:
+		return RunInExprCheck(ctx, ctxCheck, node.InExpr())
 
 	case ast.TypeArithmeticExpr:
 		return RunArithmeticExprCheck(ctx, ctxCheck, node.ArithmeticExpr())
@@ -217,12 +219,26 @@ func RunSliceExprCheck(ctx *Task, ctxCheck *ContextCheck, expr *ast.SliceExpr) *
 	return nil
 }
 
-func RunAssignmentExprCheck(ctx *Task, ctxCheck *ContextCheck, expr *ast.AssignmentExpr) *errchain.PlError {
+func RunInExprCheck(ctx *Task, ctxCheck *ContextCheck, expr *ast.InExpr) *errchain.PlError {
 	if err := RunStmtCheck(ctx, ctxCheck, expr.RHS); err != nil {
 		return err
 	}
 	if err := RunStmtCheck(ctx, ctxCheck, expr.LHS); err != nil {
 		return err
+	}
+	return nil
+}
+
+func RunAssignmentExprCheck(ctx *Task, ctxCheck *ContextCheck, expr *ast.AssignmentExpr) *errchain.PlError {
+	for _, n := range expr.LHS {
+		if err := RunStmtCheck(ctx, ctxCheck, n); err != nil {
+			return err
+		}
+	}
+	for _, n := range expr.RHS {
+		if err := RunStmtCheck(ctx, ctxCheck, n); err != nil {
+			return err
+		}
 	}
 	return nil
 }
