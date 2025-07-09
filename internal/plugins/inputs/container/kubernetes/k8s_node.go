@@ -19,15 +19,12 @@ import (
 
 	apicorev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
-	"k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/yaml"
 )
 
 const (
-	nodeType              = "Node"
 	nodeMetricMeasurement = "kube_node"
 	nodeObjectClass       = "kubernetes_nodes"
-	nodeObjectResourceKey = "node_name"
 )
 
 //nolint:gochecknoinits
@@ -85,48 +82,7 @@ func (n *node) gatherObject(ctx context.Context) {
 	}
 }
 
-func (n *node) addChangeInformer(informerFactory informers.SharedInformerFactory) {
-	informer := informerFactory.Core().V1().Nodes()
-	if informer == nil {
-		klog.Warn("cannot get node informer")
-		return
-	}
-
-	updateFunc := func(oldObj, newObj interface{}) {
-		objectChangeCountVec.WithLabelValues(nodeType, "update").Inc()
-
-		oldNodeObj, ok := oldObj.(*apicorev1.Node)
-		if !ok {
-			klog.Warnf("converting to Node object failed, %v", oldObj)
-			return
-		}
-
-		newNodeObj, ok := newObj.(*apicorev1.Node)
-		if !ok {
-			klog.Warnf("converting to Node object failed, %v", newObj)
-			return
-		}
-
-		difftext, err := diffObject(oldNodeObj.Spec, newNodeObj.Spec)
-		if err != nil {
-			klog.Warnf("marshal failed, err: %s", err)
-			return
-		}
-
-		if difftext != "" {
-			objectChangeCountVec.WithLabelValues(nodeType, "spec-changed").Inc()
-			processChange(n.cfg, nodeObjectClass, nodeObjectResourceKey, nodeType, difftext, newNodeObj)
-		}
-	}
-
-	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(_ interface{}) { /* skip */ },
-		DeleteFunc: func(_ interface{}) { /* skip */ },
-		UpdateFunc: func(oldObj, newObj interface{}) {
-			updateFunc(oldObj, newObj)
-		},
-	})
-}
+func (*node) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
 func (n *node) buildMetricPoints(list *apicorev1.NodeList, timestamp int64) []*point.Point {
 	var pts []*point.Point
@@ -182,7 +138,7 @@ func (n *node) buildObjectPoints(list *apicorev1.NodeList) []*point.Point {
 
 		kvs = kvs.AddTag("name", string(item.UID))
 		kvs = kvs.AddTag("uid", string(item.UID))
-		kvs = kvs.AddTag(nodeObjectResourceKey, config.RenameNode(item.Name))
+		kvs = kvs.AddTag("node_name", config.RenameNode(item.Name))
 		for _, condition := range item.Status.Conditions {
 			if condition.Reason == "KubeletReady" {
 				kvs = kvs.AddTag("status", string(condition.Type))

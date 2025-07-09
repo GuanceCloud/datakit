@@ -79,7 +79,7 @@ func (r *replicaset) gatherObject(ctx context.Context) {
 	}
 }
 
-func (r *replicaset) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
+func (*replicaset) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
 func (r *replicaset) buildMetricPoints(list *apiappsv1.ReplicaSetList, timestamp int64) []*point.Point {
 	var pts []*point.Point

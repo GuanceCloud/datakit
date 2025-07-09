@@ -15,6 +15,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/changes"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
@@ -27,6 +28,9 @@ import (
 var (
 	objectInterval = time.Minute * 5
 	metricInterval = time.Second * 60
+
+	defaultChangeLanguage = changes.LangEn
+	controllerStartTime   time.Time
 
 	klog = logger.DefaultSLogger("k8s")
 )
@@ -244,6 +248,9 @@ func (k *Kube) tryWatchEventAndChange(ctx context.Context) {
 }
 
 func (k *Kube) gatherChange(ctx context.Context) {
+	controllerStartTime = time.Now().UTC()
+	klog.Infof("controller start time is %s", controllerStartTime)
+
 	apiClient, err := k8sclient.GetAPIClient()
 	if err != nil {
 		klog.Warnf("failed of apiclient: %s", err)
@@ -308,8 +315,8 @@ func (*objectChangeEvent) Info() *inputs.MeasurementInfo {
 		},
 		Fields: map[string]interface{}{
 			"df_title":   &inputs.FieldInfo{DataType: inputs.String, Type: inputs.UnknownType, Unit: inputs.UnknownUnit, Desc: "Diff text of resource changes."},
-			"df_detail":  &inputs.FieldInfo{DataType: inputs.String, Type: inputs.UnknownType, Unit: inputs.UnknownUnit, Desc: "This is a template field, concatenated from other values: `[{{df_resource_type}}] {{df_resource}} configuration changed`."},
-			"df_message": &inputs.FieldInfo{DataType: inputs.String, Type: inputs.UnknownType, Unit: inputs.UnknownUnit, Desc: "Diff text of resource changes."},
+			"df_message": &inputs.FieldInfo{DataType: inputs.String, Type: inputs.UnknownType, Unit: inputs.UnknownUnit, Desc: "This is a template field, concatenated from other values: `[{{df_resource_type}}] {{df_resource}} configuration changed`."},
+			"diff":       &inputs.FieldInfo{DataType: inputs.String, Type: inputs.UnknownType, Unit: inputs.UnknownUnit, Desc: "Diff text of resource changes."},
 		},
 	}
 }

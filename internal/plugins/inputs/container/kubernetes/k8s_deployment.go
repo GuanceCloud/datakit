@@ -7,10 +7,15 @@ package kubernetes
 
 import (
 	"context"
+	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/changes"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/diff"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"sigs.k8s.io/yaml"
@@ -89,6 +94,31 @@ func (d *deployment) addChangeInformer(informerFactory informers.SharedInformerF
 		return
 	}
 
+	addFunc := func(newObj interface{}) {
+		obj, ok := newObj.(*apiappsv1.Deployment)
+		if !ok {
+			klog.Warnf("converting to Deployment object failed, %v", newObj)
+			return
+		}
+		if obj.CreationTimestamp.After(controllerStartTime) {
+			diffs := createNoChangedFieldDiffs(changes.DeploymentCreate, obj.Namespace, deploymentType, obj.Name)
+			objectChangeCountVec.WithLabelValues(deploymentType, "create").Inc()
+			processChange(d.cfg, deploymentObjectClass, deploymentObjectResourceKey, diffs, obj)
+		}
+	}
+
+	deleteFunc := func(oldObj interface{}) {
+		obj, ok := oldObj.(*apiappsv1.Deployment)
+		if !ok {
+			klog.Warnf("converting to Deployment object failed, %v", oldObj)
+			return
+		}
+
+		diffs := createNoChangedFieldDiffs(changes.DeploymentDelete, obj.Namespace, deploymentType, obj.Name)
+		objectChangeCountVec.WithLabelValues(deploymentType, "delete").Inc()
+		processChange(d.cfg, deploymentObjectClass, deploymentObjectResourceKey, diffs, obj)
+	}
+
 	updateFunc := func(oldObj, newObj interface{}) {
 		objectChangeCountVec.WithLabelValues(deploymentType, "update").Inc()
 
@@ -104,21 +134,20 @@ func (d *deployment) addChangeInformer(informerFactory informers.SharedInformerF
 			return
 		}
 
-		difftext, err := diffObject(oldDeploymentObj.Spec, newDeploymentObj.Spec)
-		if err != nil {
-			klog.Warnf("marshal failed, err: %s", err)
-			return
-		}
-
-		if difftext != "" {
+		diffs := compareDeployment(oldDeploymentObj, newDeploymentObj)
+		if len(diffs) != 0 {
 			objectChangeCountVec.WithLabelValues(deploymentType, "spec-changed").Inc()
-			processChange(d.cfg, deploymentObjectClass, deploymentObjectResourceKey, deploymentType, difftext, newDeploymentObj)
+			processChange(d.cfg, deploymentObjectClass, deploymentObjectResourceKey, diffs, newDeploymentObj)
 		}
 	}
 
 	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(_ interface{}) { /* skip */ },
-		DeleteFunc: func(_ interface{}) { /* skip */ },
+		AddFunc: func(newObj interface{}) {
+			addFunc(newObj)
+		},
+		DeleteFunc: func(oldObj interface{}) {
+			deleteFunc(oldObj)
+		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			updateFunc(oldObj, newObj)
 		},
@@ -232,6 +261,55 @@ func (d *deployment) buildObjectPoints(list *apiappsv1.DeploymentList) []*point.
 	}
 
 	return pts
+}
+
+func compareDeployment(oldVal, newVal *apiappsv1.Deployment) []FieldDiff {
+	res := comparePodTemplate(&(oldVal.Spec.Template), &(newVal.Spec.Template))
+	res = append(res, compareLabels(changes.DeploymentLabels, &(oldVal.ObjectMeta), &(newVal.ObjectMeta))...)
+	res = append(res, compareAnnotations(changes.DeploymentAnnotations, &(oldVal.ObjectMeta), &(newVal.ObjectMeta))...)
+
+	if oldVal.Spec.Replicas != nil && newVal.Spec.Replicas != nil &&
+		*oldVal.Spec.Replicas != *newVal.Spec.Replicas {
+		oldReplicas := strconv.Itoa(int(*oldVal.Spec.Replicas))
+		newReplicas := strconv.Itoa(int(*newVal.Spec.Replicas))
+		res = append(res, FieldDiff{
+			ChangeID: changes.DeploymentReplicas,
+			OldValue: oldReplicas,
+			NewValue: newReplicas,
+			DiffText: formatAsDiffLines("replicas", oldReplicas, newReplicas),
+		})
+	}
+
+	if equal, difftext := diff.Compare(oldVal.Spec.Strategy, newVal.Spec.Strategy); !equal {
+		oldRollingUpdate := []string{}
+		newRollingUpdate := []string{}
+
+		if oldVal.Spec.Strategy.RollingUpdate != nil {
+			if oldVal.Spec.Strategy.RollingUpdate.MaxUnavailable != nil {
+				oldRollingUpdate = append(oldRollingUpdate, fmt.Sprintf("MaxUnavailable=%s", oldVal.Spec.Strategy.RollingUpdate.MaxUnavailable))
+			}
+			if oldVal.Spec.Strategy.RollingUpdate.MaxSurge != nil {
+				oldRollingUpdate = append(oldRollingUpdate, fmt.Sprintf("MaxSurge=%s", oldVal.Spec.Strategy.RollingUpdate.MaxSurge))
+			}
+		}
+		if newVal.Spec.Strategy.RollingUpdate != nil {
+			if newVal.Spec.Strategy.RollingUpdate.MaxUnavailable != nil {
+				oldRollingUpdate = append(oldRollingUpdate, fmt.Sprintf("MaxUnavailable=%s", newVal.Spec.Strategy.RollingUpdate.MaxUnavailable))
+			}
+			if newVal.Spec.Strategy.RollingUpdate.MaxSurge != nil {
+				oldRollingUpdate = append(oldRollingUpdate, fmt.Sprintf("MaxSurge=%s", newVal.Spec.Strategy.RollingUpdate.MaxSurge))
+			}
+		}
+		res = append(res, FieldDiff{
+			ChangeID: changes.DeploymentStrategy,
+			OldValue: fmt.Sprintf("Type=%s,{%s}", oldVal.Spec.Strategy.Type, strings.Join(oldRollingUpdate, ",")),
+			NewValue: fmt.Sprintf("Type=%s,{%s}", newVal.Spec.Strategy.Type, strings.Join(newRollingUpdate, ",")),
+			DiffText: difftext,
+		})
+	}
+
+	fillOwnerInfoForDiffs(res, newVal.Namespace, deploymentType, newVal.Name)
+	return res
 }
 
 type deploymentMetric struct{}

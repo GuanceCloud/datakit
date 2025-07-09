@@ -18,11 +18,10 @@ import (
 
 	apicorev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
-	"k8s.io/client-go/tools/cache"
 )
 
 const (
-	serviceType              = "Service"
+	// serviceType              = "Service".
 	serviceMetricMeasurement = "kube_service"
 	serviceObjectClass       = "kubernetes_services"
 	serviceObjectResourceKey = "service_name"
@@ -83,48 +82,7 @@ func (s *service) gatherObject(ctx context.Context) {
 	}
 }
 
-func (s *service) addChangeInformer(informerFactory informers.SharedInformerFactory) {
-	informer := informerFactory.Core().V1().Services()
-	if informer == nil {
-		klog.Warn("cannot get service informer")
-		return
-	}
-
-	updateFunc := func(oldObj, newObj interface{}) {
-		objectChangeCountVec.WithLabelValues(serviceType, "update").Inc()
-
-		oldServiceObj, ok := oldObj.(*apicorev1.Service)
-		if !ok {
-			klog.Warnf("converting to Service object failed, %v", oldObj)
-			return
-		}
-
-		newServiceObj, ok := newObj.(*apicorev1.Service)
-		if !ok {
-			klog.Warnf("converting to Service object failed, %v", newObj)
-			return
-		}
-
-		difftext, err := diffObject(oldServiceObj.Spec, newServiceObj.Spec)
-		if err != nil {
-			klog.Warnf("marshal failed, err: %s", err)
-			return
-		}
-
-		if difftext != "" {
-			objectChangeCountVec.WithLabelValues(serviceType, "spec-changed").Inc()
-			processChange(s.cfg, serviceObjectClass, serviceObjectResourceKey, serviceType, difftext, newServiceObj)
-		}
-	}
-
-	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(_ interface{}) { /* skip */ },
-		DeleteFunc: func(_ interface{}) { /* skip */ },
-		UpdateFunc: func(oldObj, newObj interface{}) {
-			updateFunc(oldObj, newObj)
-		},
-	})
-}
+func (*service) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
 func (s *service) buildMetricPoints(list *apicorev1.ServiceList, timestamp int64) []*point.Point {
 	var pts []*point.Point

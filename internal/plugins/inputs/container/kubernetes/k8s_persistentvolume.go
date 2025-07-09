@@ -19,13 +19,10 @@ import (
 
 	apicorev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
-	"k8s.io/client-go/tools/cache"
 )
 
 const (
-	persistentvolumeType              = "PersistentVolume"
-	persistentvolumeObjectClass       = "kubernetes_persistentvolumes"
-	persistentvolumeObjectResourceKey = "persistentvolume_name"
+	persistentvolumeObjectClass = "kubernetes_persistentvolumes"
 )
 
 //nolint:gochecknoinits
@@ -66,52 +63,7 @@ func (p *persistentvolume) gatherObject(ctx context.Context) {
 	}
 }
 
-func (p *persistentvolume) addChangeInformer(informerFactory informers.SharedInformerFactory) {
-	informer := informerFactory.Core().V1().PersistentVolumes()
-	if informer == nil {
-		klog.Warn("cannot get persistentvolume informer")
-		return
-	}
-
-	updateFunc := func(oldObj, newObj interface{}) {
-		objectChangeCountVec.WithLabelValues(persistentvolumeType, "update").Inc()
-
-		oldPersistentVolumeObj, ok := oldObj.(*apicorev1.PersistentVolume)
-		if !ok {
-			klog.Warnf("converting to PersistentVolume object failed, %v", oldObj)
-			return
-		}
-
-		newPersistentVolumeObj, ok := newObj.(*apicorev1.PersistentVolume)
-		if !ok {
-			klog.Warnf("converting to PersistentVolume object failed, %v", newObj)
-			return
-		}
-
-		difftext, err := diffObject(oldPersistentVolumeObj.Spec, newPersistentVolumeObj.Spec)
-		if err != nil {
-			klog.Warnf("marshal failed, err: %s", err)
-			return
-		}
-
-		if difftext != "" {
-			objectChangeCountVec.WithLabelValues(persistentvolumeType, "spec-changed").Inc()
-			processChange(p.cfg,
-				persistentvolumeObjectClass,
-				persistentvolumeObjectResourceKey,
-				persistentvolumeType,
-				difftext, newPersistentVolumeObj)
-		}
-	}
-
-	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(_ interface{}) { /* skip */ },
-		DeleteFunc: func(_ interface{}) { /* skip */ },
-		UpdateFunc: func(oldObj, newObj interface{}) {
-			updateFunc(oldObj, newObj)
-		},
-	})
-}
+func (*persistentvolume) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
 func (p *persistentvolume) buildObjectPoints(list *apicorev1.PersistentVolumeList) []*point.Point {
 	var pts []*point.Point
@@ -122,7 +74,7 @@ func (p *persistentvolume) buildObjectPoints(list *apicorev1.PersistentVolumeLis
 
 		kvs = kvs.AddTag("name", string(item.UID))
 		kvs = kvs.AddTag("uid", string(item.UID))
-		kvs = kvs.AddTag(persistentvolumeObjectResourceKey, item.Name)
+		kvs = kvs.AddTag("persistentvolume_name", item.Name)
 		kvs = kvs.AddTag("phase", string(item.Status.Phase))
 
 		if item.Spec.ClaimRef != nil && item.Spec.ClaimRef.Kind == "PersistentVolumeClaim" {

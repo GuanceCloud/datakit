@@ -18,13 +18,10 @@ import (
 
 	apicorev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
-	"k8s.io/client-go/tools/cache"
 )
 
 const (
-	persistentvolumeclaimType              = "PersistentVolumeClaim"
-	persistentvolumeclaimObjectClass       = "kubernetes_persistentvolumeclaims"
-	persistentvolumeclaimObjectResourceKey = "persistentvolumeclaim_name"
+	persistentvolumeclaimObjectClass = "kubernetes_persistentvolumeclaims"
 )
 
 //nolint:gochecknoinits
@@ -63,53 +60,7 @@ func (p *persistentvolumeclaim) gatherObject(ctx context.Context) {
 	}
 }
 
-func (p *persistentvolumeclaim) addChangeInformer(informerFactory informers.SharedInformerFactory) {
-	informer := informerFactory.Core().V1().PersistentVolumeClaims()
-	if informer == nil {
-		klog.Warn("cannot get persistentvolumeclaim informer")
-		return
-	}
-
-	updateFunc := func(oldObj, newObj interface{}) {
-		objectChangeCountVec.WithLabelValues(persistentvolumeclaimType, "update").Inc()
-
-		oldPersistentVolumeClaimObj, ok := oldObj.(*apicorev1.PersistentVolumeClaim)
-		if !ok {
-			klog.Warnf("converting to PersistentVolumeClaim object failed, %v", oldObj)
-			return
-		}
-
-		newPersistentVolumeClaimObj, ok := newObj.(*apicorev1.PersistentVolumeClaim)
-		if !ok {
-			klog.Warnf("converting to PersistentVolumeClaim object failed, %v", newObj)
-			return
-		}
-
-		difftext, err := diffObject(oldPersistentVolumeClaimObj.Spec, newPersistentVolumeClaimObj.Spec)
-		if err != nil {
-			klog.Warnf("marshal failed, err: %s", err)
-			return
-		}
-
-		if difftext != "" {
-			objectChangeCountVec.WithLabelValues(persistentvolumeclaimType, "spec-changed").Inc()
-			processChange(p.cfg,
-				persistentvolumeclaimObjectClass,
-				persistentvolumeclaimObjectResourceKey,
-				persistentvolumeclaimType,
-				difftext,
-				newPersistentVolumeClaimObj)
-		}
-	}
-
-	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(_ interface{}) { /* skip */ },
-		DeleteFunc: func(_ interface{}) { /* skip */ },
-		UpdateFunc: func(oldObj, newObj interface{}) {
-			updateFunc(oldObj, newObj)
-		},
-	})
-}
+func (*persistentvolumeclaim) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
 func (p *persistentvolumeclaim) buildObjectPoints(list *apicorev1.PersistentVolumeClaimList) []*point.Point {
 	var pts []*point.Point
@@ -120,7 +71,7 @@ func (p *persistentvolumeclaim) buildObjectPoints(list *apicorev1.PersistentVolu
 
 		kvs = kvs.AddTag("name", string(item.UID))
 		kvs = kvs.AddTag("uid", string(item.UID))
-		kvs = kvs.AddTag(persistentvolumeclaimObjectResourceKey, item.Name)
+		kvs = kvs.AddTag("persistentvolumeclaim_name", item.Name)
 		kvs = kvs.AddTag("namespace", item.Namespace)
 		kvs = kvs.AddTag("phase", string(item.Status.Phase))
 

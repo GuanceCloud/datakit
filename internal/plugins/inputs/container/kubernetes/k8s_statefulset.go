@@ -7,9 +7,11 @@ package kubernetes
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/changes"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -88,6 +90,31 @@ func (s *statefulset) addChangeInformer(informerFactory informers.SharedInformer
 		return
 	}
 
+	addFunc := func(newObj interface{}) {
+		obj, ok := newObj.(*apiappsv1.StatefulSet)
+		if !ok {
+			klog.Warnf("converting to StatefulSet object failed, %v", newObj)
+			return
+		}
+		if obj.CreationTimestamp.After(controllerStartTime) {
+			diffs := createNoChangedFieldDiffs(changes.StatefulSetCreate, obj.Namespace, statefulsetType, obj.Name)
+			objectChangeCountVec.WithLabelValues(statefulsetType, "create").Inc()
+			processChange(s.cfg, statefulsetObjectClass, statefulsetObjectResourceKey, diffs, obj)
+		}
+	}
+
+	deleteFunc := func(oldObj interface{}) {
+		obj, ok := oldObj.(*apiappsv1.StatefulSet)
+		if !ok {
+			klog.Warnf("converting to StatefulSet object failed, %v", oldObj)
+			return
+		}
+
+		diffs := createNoChangedFieldDiffs(changes.StatefulSetDelete, obj.Namespace, statefulsetType, obj.Name)
+		objectChangeCountVec.WithLabelValues(statefulsetType, "delete").Inc()
+		processChange(s.cfg, statefulsetObjectClass, statefulsetObjectResourceKey, diffs, obj)
+	}
+
 	updateFunc := func(oldObj, newObj interface{}) {
 		objectChangeCountVec.WithLabelValues(statefulsetType, "update").Inc()
 
@@ -103,21 +130,20 @@ func (s *statefulset) addChangeInformer(informerFactory informers.SharedInformer
 			return
 		}
 
-		difftext, err := diffObject(oldStatefulSetObj.Spec, newStatefulSetObj.Spec)
-		if err != nil {
-			klog.Warnf("marshal failed, err: %s", err)
-			return
-		}
-
-		if difftext != "" {
+		diffs := compareStatefulSet(oldStatefulSetObj, newStatefulSetObj)
+		if len(diffs) != 0 {
 			objectChangeCountVec.WithLabelValues(statefulsetType, "spec-changed").Inc()
-			processChange(s.cfg, statefulsetObjectClass, statefulsetObjectResourceKey, statefulsetType, difftext, newStatefulSetObj)
+			processChange(s.cfg, statefulsetObjectClass, statefulsetObjectResourceKey, diffs, newStatefulSetObj)
 		}
 	}
 
 	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(_ interface{}) { /* skip */ },
-		DeleteFunc: func(_ interface{}) { /* skip */ },
+		AddFunc: func(newObj interface{}) {
+			addFunc(newObj)
+		},
+		DeleteFunc: func(oldObj interface{}) {
+			deleteFunc(oldObj)
+		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			updateFunc(oldObj, newObj)
 		},
@@ -202,6 +228,27 @@ func (s *statefulset) buildObjectPoints(list *apiappsv1.StatefulSetList) []*poin
 	}
 
 	return pts
+}
+
+func compareStatefulSet(oldVal, newVal *apiappsv1.StatefulSet) []FieldDiff {
+	res := comparePodTemplate(&(oldVal.Spec.Template), &(newVal.Spec.Template))
+	res = append(res, compareLabels(changes.StatefulSetLabels, &(oldVal.ObjectMeta), &(newVal.ObjectMeta))...)
+	res = append(res, compareAnnotations(changes.StatefulSetAnnotations, &(oldVal.ObjectMeta), &(newVal.ObjectMeta))...)
+
+	if oldVal.Spec.Replicas != nil && newVal.Spec.Replicas != nil &&
+		*oldVal.Spec.Replicas != *newVal.Spec.Replicas {
+		oldReplicas := strconv.Itoa(int(*oldVal.Spec.Replicas))
+		newReplicas := strconv.Itoa(int(*newVal.Spec.Replicas))
+		res = append(res, FieldDiff{
+			ChangeID: changes.StatefulSetReplicas,
+			OldValue: oldReplicas,
+			NewValue: newReplicas,
+			DiffText: formatAsDiffLines("replicas", oldReplicas, newReplicas),
+		})
+	}
+
+	fillOwnerInfoForDiffs(res, newVal.Namespace, statefulsetType, newVal.Name)
+	return res
 }
 
 type statefulsetMetric struct{}

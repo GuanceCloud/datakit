@@ -17,14 +17,11 @@ import (
 
 	apibatchv1 "k8s.io/api/batch/v1"
 	"k8s.io/client-go/informers"
-	"k8s.io/client-go/tools/cache"
 )
 
 const (
-	cronjobType              = "CronJob"
 	cronjobMetricMeasurement = "kube_cronjob"
 	cronjobObjectClass       = "kubernetes_cron_jobs"
-	cronjobObjectResourceKey = "cron_job_name"
 )
 
 //nolint:gochecknoinits
@@ -82,48 +79,7 @@ func (c *cronjob) gatherObject(ctx context.Context) {
 	}
 }
 
-func (c *cronjob) addChangeInformer(informerFactory informers.SharedInformerFactory) {
-	informer := informerFactory.Batch().V1().CronJobs()
-	if informer == nil {
-		klog.Warn("cannot get cronjob informer")
-		return
-	}
-
-	updateFunc := func(oldObj, newObj interface{}) {
-		objectChangeCountVec.WithLabelValues(cronjobType, "update").Inc()
-
-		oldCronjobObj, ok := oldObj.(*apibatchv1.CronJob)
-		if !ok {
-			klog.Warnf("converting to CronJob object failed, %v", oldObj)
-			return
-		}
-
-		newCronjobObj, ok := newObj.(*apibatchv1.CronJob)
-		if !ok {
-			klog.Warnf("converting to CronJob object failed, %v", newObj)
-			return
-		}
-
-		difftext, err := diffObject(oldCronjobObj.Spec, newCronjobObj.Spec)
-		if err != nil {
-			klog.Warnf("marshal failed, err: %s", err)
-			return
-		}
-
-		if difftext != "" {
-			objectChangeCountVec.WithLabelValues(cronjobType, "spec-changed").Inc()
-			processChange(c.cfg, cronjobObjectClass, cronjobObjectResourceKey, cronjobType, difftext, newCronjobObj)
-		}
-	}
-
-	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(_ interface{}) { /* skip */ },
-		DeleteFunc: func(_ interface{}) { /* skip */ },
-		UpdateFunc: func(oldObj, newObj interface{}) {
-			updateFunc(oldObj, newObj)
-		},
-	})
-}
+func (*cronjob) addChangeInformer(_ informers.SharedInformerFactory) { /* nil */ }
 
 func (c *cronjob) buildMetricPoints(list *apibatchv1.CronJobList, timestamp int64) []*point.Point {
 	var pts []*point.Point
@@ -160,7 +116,7 @@ func (c *cronjob) buildObjectPoints(list *apibatchv1.CronJobList) []*point.Point
 
 		kvs = kvs.AddTag("name", string(item.UID))
 		kvs = kvs.AddTag("uid", string(item.UID))
-		kvs = kvs.AddTag(cronjobObjectResourceKey, item.Name)
+		kvs = kvs.AddTag("cron_job_name", item.Name)
 		kvs = kvs.AddTag("namespace", item.Namespace)
 
 		kvs = kvs.AddV2("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3, false)

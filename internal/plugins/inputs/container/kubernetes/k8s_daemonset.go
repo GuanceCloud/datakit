@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/changes"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -89,6 +90,31 @@ func (d *daemonset) addChangeInformer(informerFactory informers.SharedInformerFa
 		return
 	}
 
+	addFunc := func(newObj interface{}) {
+		obj, ok := newObj.(*apiappsv1.DaemonSet)
+		if !ok {
+			klog.Warnf("converting to DaemonSet object failed, %v", newObj)
+			return
+		}
+		if obj.CreationTimestamp.After(controllerStartTime) {
+			diffs := createNoChangedFieldDiffs(changes.DaemonSetCreate, obj.Namespace, daemonsetType, obj.Name)
+			objectChangeCountVec.WithLabelValues(daemonsetType, "create").Inc()
+			processChange(d.cfg, daemonsetObjectClass, daemonsetObjectResourceKey, diffs, obj)
+		}
+	}
+
+	deleteFunc := func(oldObj interface{}) {
+		obj, ok := oldObj.(*apiappsv1.DaemonSet)
+		if !ok {
+			klog.Warnf("converting to DaemonSet object failed, %v", oldObj)
+			return
+		}
+
+		diffs := createNoChangedFieldDiffs(changes.DaemonSetDelete, obj.Namespace, daemonsetType, obj.Name)
+		objectChangeCountVec.WithLabelValues(daemonsetType, "delete").Inc()
+		processChange(d.cfg, daemonsetObjectClass, daemonsetObjectResourceKey, diffs, obj)
+	}
+
 	updateFunc := func(oldObj, newObj interface{}) {
 		objectChangeCountVec.WithLabelValues(daemonsetType, "update").Inc()
 
@@ -104,21 +130,20 @@ func (d *daemonset) addChangeInformer(informerFactory informers.SharedInformerFa
 			return
 		}
 
-		difftext, err := diffObject(oldDaemonsetObj.Spec, newDaemonsetObj.Spec)
-		if err != nil {
-			klog.Warnf("marshal failed, err: %s", err)
-			return
-		}
-
-		if difftext != "" {
+		diffs := compareDaemonSet(oldDaemonsetObj, newDaemonsetObj)
+		if len(diffs) != 0 {
 			objectChangeCountVec.WithLabelValues(daemonsetType, "spec-changed").Inc()
-			processChange(d.cfg, daemonsetObjectClass, daemonsetObjectResourceKey, daemonsetType, difftext, newDaemonsetObj)
+			processChange(d.cfg, daemonsetObjectClass, daemonsetObjectResourceKey, diffs, newDaemonsetObj)
 		}
 	}
 
 	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    func(_ interface{}) { /* skip */ },
-		DeleteFunc: func(_ interface{}) { /* skip */ },
+		AddFunc: func(newObj interface{}) {
+			addFunc(newObj)
+		},
+		DeleteFunc: func(oldObj interface{}) {
+			deleteFunc(oldObj)
+		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			updateFunc(oldObj, newObj)
 		},
@@ -199,6 +224,15 @@ func (d *daemonset) buildObjectPoints(list *apiappsv1.DaemonSetList) []*point.Po
 	}
 
 	return pts
+}
+
+func compareDaemonSet(oldVal, newVal *apiappsv1.DaemonSet) []FieldDiff {
+	res := comparePodTemplate(&(oldVal.Spec.Template), &(newVal.Spec.Template))
+	res = append(res, compareLabels(changes.DaemonSetLabels, &(oldVal.ObjectMeta), &(newVal.ObjectMeta))...)
+	res = append(res, compareAnnotations(changes.DaemonSetAnnotations, &(oldVal.ObjectMeta), &(newVal.ObjectMeta))...)
+
+	fillOwnerInfoForDiffs(res, newVal.Namespace, daemonsetType, newVal.Name)
+	return res
 }
 
 type daemonsetMetric struct{}
