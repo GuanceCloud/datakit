@@ -12,9 +12,29 @@ Amazon PrivateLink 是一项高度可用的可扩展技术，使您能够将 VPC
 - **更安全**：数据不经过公网，完全在私网内流转，数据更安全
 - **更低资费**：相比公网带宽的高费用，虚拟互联网的资费成本更低
 
-目前已上架的服务为 **cn-northwest-1、us-west-2、 ap-southeast-1** 两个地域，其他地域的也即将上架，架构如下：
+架构如下：
 
-![not-set](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/aws_privatelink.png)
+```mermaid
+flowchart LR
+  subgraph Customer_VPC
+    dk_a[Availability Zone A - dk]
+    dk_b[Availability Zone B - dk]
+    dk_c[Availability Zone C - dk]
+    plc[Endpoints]
+
+    dk_a --> plc
+    dk_b --> plc
+    dk_c --> plc
+  end
+
+  subgraph <<<custom_key.brand_main_domain>>>_VPC
+    pls[Endpoints Service]
+    nlb[NLB]
+    dw[DW - Availability Zone C]
+    pls --> nlb --> dw
+  end
+  plc --> pls
+```
 
 ## 前提条件 {#prerequisite}
 
@@ -25,55 +45,81 @@ Amazon PrivateLink 是一项高度可用的可扩展技术，使您能够将 VPC
 
 ### 服务部署链接 {#service-dep}
 
+<<<% if custom_key.brand_key == "truewatch" %>>>
+| **接入站点**      | **您的服务器所在 Region** | **接入终端节点服务的名称**                         |
+| --------          | ----------------------    | -----------                          |
+| 亚太区 1（新加坡）  | `ap-southeast-1` (新加坡)     |  `com.amazonaws.vpce.ap-southeast-1.vpce-svc-08465b643241dce58` |
+<<<% else %>>>
 | **接入站点**      | **您的服务器所在 Region** | **接入终端节点服务的名称**                         |
 | --------          | ----------------------    | -----------                          |
 | 中国区 2（宁夏）  | `cn-northwest-1` (宁夏)   | `cn.com.amazonaws.vpce.cn-northwest-1.vpce-svc-070f9283a2c0d1f0c` |
 | 海外区 1（俄勒冈）  | `us-west-2` (俄勒冈)     |  `com.amazonaws.vpce.us-west-2.vpce-svc-084745e0ec33f0b44` |
 | 亚太区 1（新加坡）  | `ap-southeast-1` (新加坡)     |  `com.amazonaws.vpce.ap-southeast-1.vpce-svc-070194ed9d834d571` |
+<<<% endif %>>>
+
 
 ### 不同 Region 的私网数据网关默认 Endpoint {#region-endpoint}
 
+<<<% if custom_key.brand_key == "truewatch" %>>>
+| **接入站点**      | **您的服务器所在 Region** | **Endpoint**                         |
+| --------          | ----------------------    | -----------                          |
+| 亚太区 1（新加坡）  |  `ap-southeast-1` (新加坡)         | `https://ap1-openway.<<<custom_key.brand_main_domain>>>` |
+<<<% else %>>>
 | **接入站点**      | **您的服务器所在 Region** | **Endpoint**                         |
 | --------          | ----------------------    | -----------                          |
 | 中国区 2（宁夏）  | `cn-northwest-1` (宁夏)   | `https://aws-openway.<<<custom_key.brand_main_domain>>>`         |
 | 海外区 1（俄勒冈）  |  `us-west-2` (俄勒冈)          | `https://us1-openway.<<<custom_key.brand_main_domain>>>` |
-| 亚太区 1（新加坡）  |  `ap-southeast-1` (新加坡)         | `https://ap1-openway.guance.one` |
+| 亚太区 1（新加坡）  |  `ap-southeast-1` (新加坡)         | `https://ap1-openway.<<<custom_key.brand_main_domain>>>` |
+<<<% endif %>>>
 
 ### 配置服务订阅 {#config-sub}
 
 #### 步骤一：帐号 ID 授权 {#accredit-id}
-
+<!-- markdownlint-disable MD032 -->
 通过以下链接打开 Amazon  控制台：
-    - [中国区](https://console.amazonaws.cn/console/home){:target="_blank"}
-    - [海外区](https://console.aws.amazon.com/console/home){:target="_blank"}
+<<<% if custom_key.brand_key == "truewatch" %>>>
+- [Console Web](https://console.aws.amazon.com/console/home){:target="_blank"}
+<<<% else %>>>
+- [中国区](https://console.amazonaws.cn/console/home){:target="_blank"}
+- [海外区](https://console.aws.amazon.com/console/home){:target="_blank"}
+<<<% endif %>>>
+获取控制台右上角账号 ID, 复制该「账号 ID」并**告知**我方<<<custom_key.brand_name>>>的客户经理，加入到我方白名单中。
 
-获取右上角账号 ID, 复制该「账号 ID」并**告知**我方<<<custom_key.brand_name>>>的客户经理，加入其到我方白名单中。
-
-![not-set](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/aws_privatelink_id.png)
 
 #### 步骤二：创建终端节点 {#create-endpoint}
 
+1. 确认业务 VPC 设置：
+    - DNS hostname: Enabled（启用 DNS 主机名）
+    - DNS resolution: Enabled（启用 DNS 支持）
 1. 通过以下链接打开 Amazon VPC 控制台：
+<<<% if custom_key.brand_key == "truewatch" %>>>
+    - [VPC](https://console.amazonaws.cn/vpc/){:target="_blank"}
+<<<% else %>>>
     - [中国区](https://console.amazonaws.cn/vpc/){:target="_blank"}
     - [海外区](https://console.amazonaws.cn/vpc/){:target="_blank"}
+<<<% endif %>>>
+<!-- markdownlint-disable MD051 -->
+1. 新建安全组：
+    - 安全组名称：private-link
+    - 入站规则：HTTPS
+    - 目标：0.0.0.0/0
 1. 在导航窗格中，选择 **Endpoint**（端点服务）。
 1. 创建终点节点
-1. **服务设置**输入服务名称，验证。选择 vpc，可用区，安全组开通 443
-1. 等待创建成功，获取终端节点服务地址
+    - 终端节点设置
+        - 类型：**Endpoint services that use NLBs and GWLBs** （使用 NLB 和 GWLB 的端点服务）
+    - 服务设置
 
-![not-set](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/aws-privatelink-dns.png)
+        - 服务名称：当前地域的[接入终端节点服务的名称](#service-dep){:target="_blank"}
+        - 验证服务
+    - 网络设置
+        - VPC：业务服务的 VPC
+        - 子网：选择业务子网
+        - 安全组：private-link
+<!-- markdownlint-enable -->
+1. 通知 <<<custom_key.brand_name>>> 的客户经理审核
+1. 等待创建成功，点击终端节点的「操作」- 「修改私有 DNS 名称」，设置「为此终端节点启用」
 
-#### 步骤三：Route 53 解析终端节点 {#route-53}
-
-1. 通过以下链接打开 Amazon Route 53 控制台：
-    - [中国区](https://console.amazonaws.cn/route53/v2/hostedzones/){:target="_blank"}
-    - [海外区](https://console.aws.amazon.com/route53/v2/hostedzones/){:target="_blank"}
-1. 创建托管区
-1. 域名：`<<<custom_key.brand_main_domain>>>`，类型：私有托管区，区域：DK 所在的区域，VPC ID：客户方 VPC ID
-1. 创建记录。
-1. 记录名称：参考 [Endpoint](aws-access.md#region-endpoint) 地址 ，记录类型：`cname`，值： [创建终端节点](aws-access.md#create-endpoint)的服务地址
-
-![not-set](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/aws_privatelink_route53.png)
+<!-- markdownlint-enable -->
 
 #### 验证 {#verify}
 
@@ -98,8 +144,7 @@ dig aws-openway.<<<custom_key.brand_main_domain>>>
 ;aws-openway.<<<custom_key.brand_main_domain>>>.      IN    A
 
 ;; ANSWER SECTION:
-aws-openway.<<<custom_key.brand_main_domain>>>. 296 IN  CNAME    vpce-0d431e354cf9ad4f1-h1y2auf6.vpce-svc-070f9283a2c0d1f0c.cn-northwest-1.vpce.amazonaws.com.cn.
-vpce-0d431e354cf9ad4f1-h1y2auf6.vpce-svc-070f9283a2c0d1f0c.cn-northwest-1.vpce.amazonaws.com.cn. 56 IN A 172.31.38.12
+aws-openway.<<<custom_key.brand_main_domain>>>. 296 IN  CNAME    172.31.16.128 
 
 ;; Query time: 0 msec
 ;; SERVER: 172.31.0.2#53(172.31.0.2)
@@ -113,13 +158,13 @@ vpce-0d431e354cf9ad4f1-h1y2auf6.vpce-svc-070f9283a2c0d1f0c.cn-northwest-1.vpce.a
 
 | 名称                                                         | 费用     | 文档                                                         | 备注                   |
 | ------------------------------------------------------------ | -------- | ------------------------------------------------------------ | ---------------------- |
-| 数据自 Amazon EC2  传出至互联网                              | $0.09/GB | [文档](https://aws.amazon.com/cn/ec2/pricing/on-demand/#Data_Transfer){:target="_blank"} | 按流量收费             |
-| 接口终端节点                                                 | $0.01/H  | [文档](https://aws.amazon.com/cn/privatelink/pricing/?nc1=h_ls){:target="_blank"} | 按可用区数量和小时收费 |
-| 终端接口节点流量传出                                         | $0.01/GB | [文档](https://aws.amazon.com/cn/privatelink/pricing/?nc1=h_ls){:target="_blank"} | 按流量收费    |
+| 数据自 Amazon EC2  传出至互联网                              | $0.09/GB | [文档](https://aws.amazon.com/ec2/pricing/on-demand/#Data_Transfer){:target="_blank"} | 按流量收费             |
+| 接口终端节点                                                 | $0.01/H  | [文档](https://aws.amazon.com/privatelink/pricing/?nc1=h_ls){:target="_blank"} | 按可用区数量和小时收费 |
+| 终端接口节点流量传出                                         | $0.01/GB | [文档](https://aws.amazon.com/privatelink/pricing/?nc1=h_ls){:target="_blank"} | 按流量收费    |
 
 资费情况主要是以下部分：
 
-1. 第一部分是接口终端节点的[服务费用](https://aws.amazon.com/cn/privatelink/pricing/?nc1=h_ls){:target="_blank"}
+1. 第一部分是接口终端节点的[服务费用](https://aws.amazon.com/privatelink/pricing/?nc1=h_ls){:target="_blank"}
 1. 第二部分是终端节点流量费用
 
 对比如下：

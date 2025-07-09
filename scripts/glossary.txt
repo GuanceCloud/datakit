@@ -215,6 +215,7 @@ tdengine
 tempdb
 tmpfs
 tracepoint
+truewatch
 unflushed
 uprobe
 usec

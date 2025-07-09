@@ -14,7 +14,7 @@ Advantages of establishing private network connection:
 - **Safer**: The data does not pass through the public network, but completely flows in Alibaba Cloud's private network, leading to safer data.
 - **Lower Cost**: Compared with the high cost of public network bandwidth, the cost of virtual Internet is lower.
 
-At present, the services that have been released are `cn-hangzhou` and `cn-beijing`, and those in other regions will be put on shelves soon. The structure is as follows:
+The structure is as follows:
 
 ![`aliyun_2`](imgs/aliyun_2.png)
 
@@ -25,6 +25,7 @@ At present, the services that have been released are `cn-hangzhou` and `cn-beiji
 | **Access Site**     | **Region Where the Server is Located** | **Compute Nest Deployment Link**                                                                                                                                                                                  |
 | ------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | China 1-Hangzhou    | `cn-hangzhou`                          | [<<<custom_key.brand_name>>> Data Gateway Virtual Internet-Hangzhou](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-68c8fee7f0554d6b9baa){:target="_blank"}                     |
+| China 1-Hangzhou    | `cn-shanghai`                          | [<<<custom_key.brand_name>>> Data Gateway Virtual Internet-from ShangHai to Hangzhou](https://computenest.console.aliyun.com/service/instance/create/cn-hangzhou?type=user&ServiceId=service-a2c410eb83254ee188ed){:target="_blank"}                     |
 | China 1-Hangzhou    | `cn-beijing`                           | [<<<custom_key.brand_name>>> Data Gateway Virtual Internet-from Beijing to Hangzhou](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-af3b4511d9214c9ebaba){:target="_blank"}     |
 | China 3-Zhangjiakou | `cn-beijing`                           | [<<<custom_key.brand_name>>> Data Gateway Virtual Internet-from Beijing to Zhangjiakou](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-a22bc59ed53c4946b8ce){:target="_blank"}  |
 | China 3-Zhangjiakou | `cn-hangzhou`                          | [<<<custom_key.brand_name>>> Data Gateway Virtual Internet-from Hangzhou to Zhangjiakou](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-87a611279d9a42ceaeb2){:target="_blank"} |
@@ -36,6 +37,7 @@ At present, the services that have been released are `cn-hangzhou` and `cn-beiji
 | **Access Site**     | **Region Where the Server is Located** | **Endpoint**                         |
 | ------------------- | -------------------------------------- | ------------------------------------ |
 | China 1-Hangzhou    | `cn-hangzhou`                          | `https://openway.<<<custom_key.brand_main_domain>>>`         |
+| China 1-Hangzhou    | `cn-shanghai`                          | `https://openway.<<<custom_key.brand_main_domain>>>`         |
 | China 1-Hangzhou    | `cn-beijing`                           | `https://beijing-openway.<<<custom_key.brand_main_domain>>>` |
 | China 3-Zhangjiakou | `cn-beijing`                           | `https://cn3-openway.<<<custom_key.brand_main_domain>>>`     |
 | China 3-Zhangjiakou | `cn-hangzhou`                          | `https://cn3-openway.<<<custom_key.brand_main_domain>>>`     |
