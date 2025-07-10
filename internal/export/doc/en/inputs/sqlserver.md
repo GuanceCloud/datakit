@@ -39,11 +39,11 @@ Linux、Windows:
 ```sql
 USE master;
 GO
-CREATE LOGIN [guance] WITH PASSWORD = N'yourpassword';
+CREATE LOGIN [datakit] WITH PASSWORD = N'yourpassword';
 GO
-GRANT VIEW SERVER STATE TO [guance];
+GRANT VIEW SERVER STATE TO [datakit];
 GO
-GRANT VIEW ANY DEFINITION TO [guance];
+GRANT VIEW ANY DEFINITION TO [datakit];
 GO
 ```
 
@@ -52,7 +52,7 @@ Aliyun RDS SQL Server:
 ```sql
 USE master;
 GO
-CREATE LOGIN [guance] WITH PASSWORD = N'yourpassword';
+CREATE LOGIN [datakit] WITH PASSWORD = N'yourpassword';
 GO
 
 ```
