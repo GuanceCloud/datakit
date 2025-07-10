@@ -40,10 +40,12 @@ type Exporter interface {
 }
 
 type exportOptions struct {
-	langs           []inputs.I18n
-	exclude         string
-	topDir          string
-	version         string
+	langs   []inputs.I18n
+	exclude string
+	topDir  string
+
+	dcaVersion, version string
+
 	datakitImageURL string
 	ignoreMissing   bool
 	allMeasurements string
@@ -81,6 +83,13 @@ func WithVersion(v string) option {
 	}
 }
 
+// WithDCAVersion set exported DCA version.
+func WithDCAVersion(v string) option {
+	return func(o *exportOptions) {
+		o.dcaVersion = v
+	}
+}
+
 // WithDatakitImageURL set datakit docker image URL.
 //
 // We need this URL to export yaml for datakit daemonset.
@@ -101,10 +110,13 @@ func WithIgnoreMissing(on bool) option {
 // and command line output.
 type Params struct {
 	// Various fields used to render meta info into markdown documents.
-	InputName           string
-	Catalog             string
-	InputSample         string
-	Version             string
+	InputName   string
+	Catalog     string
+	InputSample string
+
+	DCAVersion,
+	Version string
+
 	InputENVSample      string
 	InputENVSampleZh    string
 	NonInputENVSample   map[string]string
@@ -152,10 +164,13 @@ func buildInputDoc(inputName string, md []byte, opt *exportOptions) ([]byte, err
 	}
 
 	p := &Params{
-		InputName:      inputName,
-		InputSample:    ipt.SampleConfig(),
-		Catalog:        ipt.Catalog(),
-		Version:        opt.version,
+		InputName:   inputName,
+		InputSample: ipt.SampleConfig(),
+		Catalog:     ipt.Catalog(),
+
+		Version:    opt.version,
+		DCAVersion: opt.dcaVersion,
+
 		ReleaseDate:    git.BuildAt,
 		AvailableArchs: archs,
 		Measurements:   measurements,
@@ -178,6 +193,7 @@ func buildInputDoc(inputName string, md []byte, opt *exportOptions) ([]byte, err
 func buildNonInputDocs(fileName string, md []byte, opt *exportOptions) ([]byte, error) {
 	p := &Params{
 		Version:             opt.version,
+		DCAVersion:          opt.dcaVersion,
 		ReleaseDate:         git.BuildAt,
 		NonInputENVSample:   make(map[string]string),
 		NonInputENVSampleZh: make(map[string]string),
@@ -222,6 +238,7 @@ func buildPipelineDocs(
 
 	p := &Params{
 		Version:     opt.version,
+		DCAVersion:  opt.dcaVersion,
 		ReleaseDate: git.BuildAt,
 
 		DatakitConfSample: datakit.MainConfSample(datakit.BrandDomainTemplate),

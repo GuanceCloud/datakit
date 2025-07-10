@@ -30,6 +30,7 @@ func doExport() error {
 			export.NewGuanceDodcs(
 				export.WithTopDir(ExportDocDir),
 				export.WithVersion(ExportVersion),
+				export.WithDCAVersion(DCAVersion),
 				export.WithExclude(ExportIgnore),
 				export.WithIgnoreMissing(true),
 			))
@@ -41,6 +42,7 @@ func doExport() error {
 			export.NewIntegration(
 				export.WithTopDir(ExportIntegrationDir),
 				export.WithVersion(ExportVersion),
+				export.WithDCAVersion(DCAVersion),
 				export.WithExclude(ExportIgnore),
 				export.WithIgnoreMissing(true),
 			))
