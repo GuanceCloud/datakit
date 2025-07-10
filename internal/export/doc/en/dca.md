@@ -58,7 +58,11 @@ The DCA web service currently supports deployment via container images only, whi
     Before running the container, first download the DCA image through `docker pull`.
 
     ```shell
-    docker pull pubrepo.<<<custom_key.brand_main_domain>>>/tools/dca
+    <<<% if custom_key.brand_key == 'guance' %>>>
+    docker pull pubrepo.<<<custom_key.brand_main_domain>>>/tools/dca:{{.DCAVersion}}
+    <<<% else %>>>
+    docker pull pubrepo.<<<custom_key.brand_main_domain>>>/truewatch/dca:{{.DCAVersion}}
+    <<<% endif %>>>
     ```
 
     - Run the container
@@ -66,7 +70,11 @@ The DCA web service currently supports deployment via container images only, whi
     The DCA container is created and started with the `docker run` command, and the default exposed access port of the container is 80.
 
     ```shell
+    <<<% if custom_key.brand_key == 'guance' %>>>
     docker run -d --name dca -p 8000:80 pubrepo.<<<custom_key.brand_main_domain>>>/tools/dca
+    <<<% else %>>>
+    docker run -d --name dca -p 8000:80 pubrepo.<<<custom_key.brand_main_domain>>>/truewatch/dca
+    <<<% endif %>>>
     ```
 
     - Testing
@@ -103,7 +111,11 @@ By default, DCA will adopt the default configuration of the system. If you need 
 Example:
 
 ```shell
+<<<% if custom_key.brand_key == 'guance' %>>>
 docker run -d --name dca -p 8000:80 -e DCA_LOG_PATH=stdout -e DCA_LOG_LEVEL=info pubrepo.<<<custom_key.brand_main_domain>>>/tools/dca
+<<<% else %>>>
+docker run -d --name dca -p 8000:80 -e DCA_LOG_PATH=stdout -e DCA_LOG_LEVEL=info pubrepo.<<<custom_key.brand_main_domain>>>/truewatch/dca
+<<<% endif %>>>
 ```
 
 ### Node address {#node-address}

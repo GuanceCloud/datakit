@@ -15,6 +15,10 @@ lang=zh
 port=8000
 bind=0.0.0.0
 
+# set default verison from gitlab-ci.yml
+dca_version=`cat gitlab-ci.yml | grep -w "DCA_CI_VERSION:" | awk -F'"' '{print $2}'`
+dk_version=`cat gitlab-ci.yml | grep -w "CI_VERSION:" | awk -F'"' '{print $2}'`
+
 usage() {
 	echo "" 1>&2;
 	echo "export.sh used to build/preview/release DataKit documents." 1>&2;
@@ -32,11 +36,15 @@ usage() {
 	exit 1;
 }
 
-while getopts "V:D:L:p:b:Eh" arg; do
+while getopts "V:v:D:L:p:b:Eh" arg; do
 	case "${arg}" in
 		V)
-			version="${OPTARG}"
+			dk_version="${OPTARG}"
 			;;
+		v)
+			dca_version="${OPTARG}"
+			;;
+
 		L)
 		 lang="${OPTARG}"
 		 ;;
@@ -72,13 +80,16 @@ while getopts "V:D:L:p:b:Eh" arg; do
 done
 shift $((OPTIND-1))
 
+echo $dca_version
+echo $dk_version
+
 # if -v not set...
-if [ -z $version ]; then
+if [ -z $dk_version ]; then
 	# get online datakit version
 	latest_version=$(curl -s https://static.guance.com/datakit/version | grep '"version"' | awk -F'"' '{print $4}')
 
 	printf "${YELLOW}> Version missing, use latest version '%s'${CLR}\n" $latest_version
-	version="${latest_version}"
+	dk_version="${latest_version}"
 fi
 
 ######################################
@@ -92,7 +103,8 @@ LOGGER_PATH=$export_log go run -tags with_inputs cmd/make/make.go -export \
 	-export-doc-dir $guance_doc_dir/docs \
 	-export-integration-dir $integration_dir \
 	-ignore demo \
-	-version "${version}"
+	-dca-version "${dca_version}" \
+	-version "${dk_version}"
 
 if [ $? -ne 0 ]; then
 	printf "${RED}[E] Export docs failed, see $export_log for details.${CLR}\n"

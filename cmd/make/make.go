@@ -98,7 +98,7 @@ func init() { //nolint:gochecknoinits
 
 	flag.StringVar(&build.ExportIgnore, "ignore", "", "disable list, i.e., --ignore nginx,redis,mem")
 	flag.StringVar(&build.ExportTODO, "TODO", "TODO", "set TODO placeholder")
-	flag.StringVar(&build.ExportVersion, "version", datakit.Version, "specify version string in document's header")
+	flag.StringVar(&build.ExportVersion, "version", datakit.Version, "set DataKit version string in related documents")
 
 	flag.StringVar(&logLevel, "log-level", "info", "set log level of building log")
 }
