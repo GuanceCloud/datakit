@@ -109,7 +109,7 @@ flowchart LR
         - 类型：**Endpoint services that use NLBs and GWLBs** （使用 NLB 和 GWLB 的端点服务）
     - 服务设置
 
-        - 服务名称：当前地域的[接入终端节点服务的名称](#service-dep){:target="_blank"}
+        - 服务名称：当前地域的[接入终端节点服务的名称](aws-access.md#service-dep){:target="_blank"}
         - 验证服务
     - 网络设置
         - VPC：业务服务的 VPC

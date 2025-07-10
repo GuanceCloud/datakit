@@ -108,7 +108,7 @@ Obtain the account ID in the upper right corner of the console, copy this "Accou
     - Endpoint settings
         - Type: **Endpoint services that use NLBs and GWLBs**
     - Service settings
-        - Service name: The current AZ [Service Deployment Links](#service-dep){:target="_blank"}
+        - Service name: The current AZ [Service Deployment Links](aws-access.md#service-dep){:target="_blank"}
         - Verify service
     - Network settings
         - VPC: VPC for business services
