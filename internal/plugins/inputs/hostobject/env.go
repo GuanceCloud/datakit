@@ -306,4 +306,10 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	if str := envs["ENV_INPUT_HOSTOBJECT_IGNORE_MOUNTPOINTS"]; str != "" {
 		ipt.IgnoreMountpoints = str
 	}
+
+	if v := os.Getenv("ENV_INPUT_HOSTOBJECT_USE_NSENTER"); v != "" {
+		if b, _ := strconv.ParseBool(v); b {
+			ipt.UseNSEnterDiskstatsImpl = true
+		}
+	}
 }

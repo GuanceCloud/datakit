@@ -7,12 +7,18 @@
 package pcommon
 
 import (
+	"bytes"
 	"fmt"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/shirou/gopsutil/disk"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (
@@ -49,7 +55,7 @@ func TrimPartitionHostPath(hostpath string, p *disk.PartitionStat) *disk.Partiti
 }
 
 type DiskStats interface {
-	Usage(path string) (*disk.UsageStat, error)
+	Usage(path, hostPath string) (*disk.UsageStat, error)
 	Partitions() ([]disk.PartitionStat, error)
 }
 
@@ -58,7 +64,7 @@ type FilesystemStats struct {
 	Part  *disk.PartitionStat
 }
 
-func FilterUsage(ds DiskStats, hostRoot string) (arr []FilesystemStats, err error) {
+func FilterUsage(ds DiskStats, hostPath string) (arr []FilesystemStats, err error) {
 	parts, err := ds.Partitions()
 	if err != nil {
 		return nil, fmt.Errorf("Partitions(): %w", err)
@@ -67,13 +73,13 @@ func FilterUsage(ds DiskStats, hostRoot string) (arr []FilesystemStats, err erro
 	for i := range parts {
 		p := &parts[i]
 
-		du, err := ds.Usage(p.Mountpoint)
+		du, err := ds.Usage(p.Mountpoint, hostPath)
 		if err != nil {
 			l.Warnf("Usage on partition %+#v: %s, ignored", p, err)
 			continue
 		}
 
-		p = TrimPartitionHostPath(hostRoot, &parts[i])
+		p = TrimPartitionHostPath(hostPath, &parts[i])
 
 		// NOTE: prefer p.Path, du.Path may need to trim host-path prefix
 		du.Path = p.Mountpoint
@@ -89,13 +95,106 @@ func FilterUsage(ds DiskStats, hostRoot string) (arr []FilesystemStats, err erro
 	return arr, nil
 }
 
+type NSEnterDiskstatsImpl struct{}
+
+func (*NSEnterDiskstatsImpl) Usage(path, _ string) (*disk.UsageStat, error) {
+	// NOTE: nsenter do not need hostPath.
+	return nsenterDiskStat(path)
+}
+
+func parseStatF(output string) (*disk.UsageStat, error) {
+	var (
+		stats = &disk.UsageStat{}
+		lines = strings.Split(output, "\n")
+		blockSize,
+		freeBlocks,
+		totalInodes,
+		freeInodes,
+		totalBlocks uint64
+	)
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if len(line) == 0 {
+			continue
+		}
+
+		arr := strings.Split(line, " ")
+
+		for i, elem := range arr {
+			val, err := strconv.ParseUint(elem, 10, 64)
+			if err != nil {
+				l.Warnf("skil elem(at #%d): %s: %s, ignored", i, elem, err.Error())
+				continue
+			}
+
+			switch i {
+			case 0: // block-size
+				blockSize = val
+			case 1: // blokcs
+				totalBlocks = val
+			case 2: // blocks-free
+				freeBlocks = val
+			case 3: // inodes-total
+				totalInodes = val
+			case 4: // inodes-free
+				freeInodes = val
+			}
+		}
+	}
+
+	if blockSize == 0 {
+		return nil, fmt.Errorf("failed to parse block size from stat -f output: %s",
+			output)
+	}
+
+	stats.Total = totalBlocks * blockSize
+	stats.Used = (totalBlocks - freeBlocks) * blockSize
+	stats.Free = freeBlocks * blockSize
+	stats.InodesTotal = totalInodes
+	stats.InodesFree = freeInodes
+	stats.InodesUsed = stats.InodesTotal - stats.InodesFree
+	stats.InodesUsedPercent = 100.0 * float64(stats.InodesUsed) / float64(stats.InodesTotal)
+	return stats, nil
+}
+
+func nsenterDiskStat(path string) (*disk.UsageStat, error) {
+	if runtime.GOOS != "linux" || !datakit.Docker {
+		return nil, fmt.Errorf("nsenter not implemented under %q", runtime.GOOS)
+	}
+
+	cmd := exec.Command("nsenter", "--target", "1", "--mount", "--", "stat",
+		"-c",
+		// block-size/blocks/block-free/inodes-total/inodes-free
+		"%s %b %f %c %d",
+		"-f", path)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("failed to run nsenter command for '%s': %w, stderr: %s", path, err, stderr.String())
+	}
+
+	return parseStatF(stdout.String())
+}
+
+func (*NSEnterDiskstatsImpl) Partitions() ([]disk.PartitionStat, error) {
+	return disk.Partitions(true) // still use gopsutil
+}
+
 type DiskStatsImpl struct{}
 
-func (dk *DiskStatsImpl) Usage(path string) (*disk.UsageStat, error) {
+func (*DiskStatsImpl) Usage(path, hostPath string) (*disk.UsageStat, error) {
+	if hostPath != "" && !strings.HasPrefix(path, hostPath) {
+		// add `/rootfs' to access mountpoint within /proc/1/mountpoint.
+		path = filepath.Join(hostPath, path)
+	}
+
 	return disk.Usage(path)
 }
 
-func (dk *DiskStatsImpl) Partitions() ([]disk.PartitionStat, error) {
+func (*DiskStatsImpl) Partitions() ([]disk.PartitionStat, error) {
 	return disk.Partitions(true)
 }
 

@@ -8,6 +8,7 @@ package disk
 
 import (
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -119,5 +120,11 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 
 	if v := os.Getenv("ENV_HOST_ROOT"); v != "" {
 		ipt.hostRoot = v
+	}
+
+	if v := os.Getenv("ENV_INPUT_DISK_USE_NSENTER"); v != "" {
+		if b, _ := strconv.ParseBool(v); b {
+			ipt.UseNSEnterDiskstatsImpl = true
+		}
 	}
 }
