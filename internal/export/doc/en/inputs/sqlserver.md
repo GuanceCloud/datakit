@@ -177,7 +177,7 @@ Example of common log text:
 The list of extracted fields are as follows:
 
 | Field Name | Field Value         | Description                                                                                |
-| ---------- | ------------------- | ------------------------------------------------------------------------------------------ |
+|------------|---------------------|--------------------------------------------------------------------------------------------|
 | `msg`      | spid...             | log content                                                                                |
 | `time`     | 1622169967780000000 | nanosecond timestamp (as row protocol time)                                                |
 | `origin`   | spid10s             | source                                                                                     |

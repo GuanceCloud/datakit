@@ -65,7 +65,7 @@ After the program starts, ddtrace will collect data regularly (once every minute
 
 `py-spy` is a non-invasive Python performance metrics sampling tool provided by the open source community that runs alone and has low impact on target program load.
 
-`Py-spy` will output sample data in different formats to local files according to specified parameters by default. To simplify the integration of `py-spy` and DataKit, <<<custom_key.brand_name>>> provides a branch version [py-spy-for-DataKit](https://github.com/GuanceCloud/py-spy-for-datakit){:target="_blank"}, which is based on the original version with a few modifications and supports automatic profiling.
+`Py-spy` will output sample data in different formats to local files according to specified parameters by default. To simplify the integration of `py-spy` and DataKit.
 Data is sent to DataKit.
 
 - Installation
@@ -76,12 +76,11 @@ Pip installation is recommended
 pip3 install py-spy-for-datakit
 ```
 
-In addition, precompiled versions of some major platforms are available on the [Github Release](https://github.com/GuanceCloud/py-spy-for-datakit/releases){:target="_blank"} page, which you can also download later.
 Install with pip, let's take Linux x86_64 platform as an example (other platforms are similar), and introduce the installation steps of precompiled version.
 
+
 ```shell
-# Download the precompiled package for the corresponding platform
-curl -SL https://github.com/GuanceCloud/py-spy-for-datakit/releases/download/v0.3.15/py_spy_for_datakit-0.3.15-py2.py3-none-manylinux_2_5_x86_64.manylinux1_x86_64.whl -O
+# after download
 
 # Install with pip
 pip3 install --force-reinstall --no-index --find-links . py-spy-for-datakit
