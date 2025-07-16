@@ -22,8 +22,7 @@ const SQLProcess = `SELECT
 	nvl(pga_used_mem,0) pga_used_mem, 
 	nvl(pga_alloc_mem,0) pga_alloc_mem, 
 	nvl(pga_freeable_mem,0) pga_freeable_mem, 
-	nvl(pga_max_mem,0) pga_max_mem,
-	nvl(CPU_USED,0) cpu_used
+	nvl(pga_max_mem,0) pga_max_mem
 FROM v$process p, v$containers c
 WHERE c.con_id(+) = p.con_id`
 
@@ -43,7 +42,6 @@ type processesRowDB struct {
 	PGAUsedMem     float64        `db:"PGA_USED_MEM"`
 	PGAAllocMem    float64        `db:"PGA_ALLOC_MEM"`
 	PGAFreeableMem float64        `db:"PGA_FREEABLE_MEM"`
-	CPUUsed        int64          `db:"CPU_USED"`
 	PGAMaxMem      float64        `db:"PGA_MAX_MEM"`
 }
 
@@ -101,8 +99,7 @@ func (ipt *Input) collectOracleProcess() {
 		kvs = kvs.AddV2("pga_alloc_mem", row.PGAAllocMem, true).
 			AddV2("pga_freeable_mem", row.PGAFreeableMem, true).
 			AddV2("pga_max_mem", row.PGAMaxMem, true).
-			AddV2("pga_used_mem", row.PGAUsedMem, true).
-			AddV2("cpu_used", row.CPUUsed, true)
+			AddV2("pga_used_mem", row.PGAUsedMem, true)
 
 		if row.PID > 0 {
 			kvs = kvs.Add("pid", row.PID, false, true)
