@@ -113,7 +113,7 @@ func (k *Kube) buildEventPoints(event *kubewatch.Event) []*point.Point {
 	kvs = kvs.AddV2("status", status, false)
 	kvs = append(kvs, point.NewTags(k.cfg.ExtraTags)...)
 	pt := point.NewPointV2(eventLoggingMeasurement, kvs,
-		append(point.DefaultLoggingOptions(), point.WithTime(item.CreationTimestamp.Time))...)
+		append(point.DefaultLoggingOptions(), point.WithTime(item.LastTimestamp.Time))...)
 
 	// record resourceVersion
 	k.lastEventResourceVersion = item.ResourceVersion
