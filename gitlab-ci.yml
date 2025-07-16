@@ -425,6 +425,7 @@ build-dca-testing-image-guance:
   resource_group: production
   only:
     - /^testing-.*$/ # always build DCA for testing, we can check if it is working for daily update.
+    - /^dca-testing.*$/
   script:
     - nvm use v16.14.0
     - make clean
@@ -450,6 +451,7 @@ build-dca-testing-image-tw:
   resource_group: production
   only:
     - /^testing-.*$/ # always build DCA for testing, we can check if it is working for daily update.
+    - /^dca-testing.*$/
   script:
     - nvm use v16.14.0
     - make clean

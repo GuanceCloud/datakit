@@ -341,6 +341,7 @@ build_dca_image:
 		--platform $(DOCKER_IMAGE_ARCHS) \
 		--build-arg DIST_DIR=$(DIST_DIR) \
 		-t $(DOCKER_IMAGE_REPO):$(DCA_VERSION) \
+		-t $(DOCKER_IMAGE_REPO):latest \
 		-f dca/Dockerfile.$(DOCKERFILE_SUFFIX) . --push;
 
 deps: prepare gofmt 
