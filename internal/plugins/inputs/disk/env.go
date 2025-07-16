@@ -8,6 +8,7 @@ package disk
 
 import (
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -49,12 +50,20 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		},
 
 		{
-			FieldName: "IgnoreFSTypes",
-			Type:      doc.String,
-			ENVName:   "INPUT_DISK_IGNORE_FSTYPES",
-			Example:   "`^(tmpfs|autofs|binfmt_misc|devpts|fuse.lxcfs|overlay|proc|squashfs|sysfs)$`",
-			Desc:      "Excluded file systems",
-			DescZh:    "忽略这些文件系统对应的磁盘指标",
+			Type:    doc.String,
+			ENVName: "IGNORE_FSTYPES",
+			Example: "`^(tmpfs|autofs|binfmt_misc|devpts|fuse.lxcfs|overlay|proc|squashfs|sysfs)$`",
+			Desc:    "Excluded file systems",
+			DescZh:  "忽略这些文件系统对应的磁盘指标",
+		},
+
+		{
+			ENVName:   "USE_NSENTER",
+			ConfField: "use_nsenter",
+			Type:      doc.Boolean,
+			Example:   "`true`",
+			Desc:      "Use nsenter to collect disk usage",
+			DescZh:    "用 `nsenter` 方式来采集磁盘用量信息",
 		},
 	}
 
@@ -119,5 +128,11 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 
 	if v := os.Getenv("ENV_HOST_ROOT"); v != "" {
 		ipt.hostRoot = v
+	}
+
+	if v := os.Getenv("ENV_INPUT_DISK_USE_NSENTER"); v != "" {
+		if b, _ := strconv.ParseBool(v); b {
+			ipt.UseNSEnterDiskstatsImpl = true
+		}
 	}
 }

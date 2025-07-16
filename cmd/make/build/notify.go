@@ -34,7 +34,7 @@ var (
 {
 	"msg_type": "text",
 	"content": {
-		"text": "%s 发布了 DataKit 新版本(%s)"
+		"text": "%s Released DataKit new version(%s)"
 	}
 }`, git.Uploader, ReleaseVersion)
 
@@ -42,7 +42,7 @@ var (
 {
   "msg_type": "text",
   "content": {
-  	"text": "%s 正在执行 DataKit CI 编译，此刻请勿在分支[%s]提交代码"
+  	"text": "%s starting DataKit CI, do not push to brach [%s]"
   }
 }`, git.Uploader, git.Branch)
 
@@ -50,7 +50,7 @@ var (
 {
   "msg_type": "text",
   "content": {
-		"text": "%s 正在执行发布 DataKit:%s..."
+		"text": "%s releasing DataKit:%s..."
   }
 }`, git.Uploader, ReleaseVersion)
 
@@ -58,7 +58,7 @@ var (
 {
   "msg_type": "text",
   "content": {
-  	"text": "%s 正在执行发布 DataKit eBPF %s..."
+  	"text": "%s releasing DataKit eBPF %s..."
   }
 }`, git.Uploader, ReleaseVersion)
 )
@@ -146,7 +146,7 @@ func NotifyFail(msg string) {
 
 	tm := textMsg{
 		Content: content{
-			Text: fmt.Sprintf("%s 触发的 DataKit CI 失败:\n%s", git.Uploader, msg),
+			Text: fmt.Sprintf("%s' DataKit CI failed:\n%s", git.Uploader, msg),
 		},
 		MsgType: "text",
 	}
@@ -162,12 +162,12 @@ func NotifyFail(msg string) {
 
 func buildNotifyContent(ver, cdn, release string, archs []string) string {
 	x := []string{
-		fmt.Sprintf(`{{.Uploader}} 发布了 Datakit %d 个平台测试版({{.Version}})`, len(archs)),
+		fmt.Sprintf(`{{.Uploader}} released testing Datakit for %d platforms({{.Version}})`, len(archs)),
 	}
 
 	for _, arch := range archs {
 		x = append(x, "") // empty line
-		x = append(x, fmt.Sprintf("### %s 安装/升级：", arch))
+		x = append(x, fmt.Sprintf("### %s Install/Upgrade：", arch))
 
 		p := &export.Params{}
 
@@ -216,11 +216,11 @@ func buildNotifyContent(ver, cdn, release string, archs []string) string {
 	// under testing release, add k8s daemonset yaml
 	if release == ReleaseTesting {
 		x = append(x, "") // empty line
-		x = append(x, "### Kubernetes DaemonSet 安装")
+		x = append(x, "### Kubernetes DaemonSet install")
 		x = append(x, k8sDaemonsetTemplete)
 
 		x = append(x, "") // empty line
-		x = append(x, "### Kubernetes Datakit ELinker Deployment 安装")
+		x = append(x, "### Kubernetes Datakit ELinker Deployment install")
 		x = append(x, k8sDeploymentELinkerTemplete)
 	}
 
@@ -239,7 +239,7 @@ func buildNotifyContent(ver, cdn, release string, archs []string) string {
 			continue
 		}
 
-		x = append(x, fmt.Sprintf("- %s/%s 下载：%s", goos, goos,
+		x = append(x, fmt.Sprintf("- %s/%s: %s", goos, goarch,
 			"https://"+filepath.Join(DownloadCDN,
 				fmt.Sprintf("datakit_aws_extension-%s-%s-%s.zip", goos, goarch, ReleaseVersion))))
 	}
@@ -311,7 +311,7 @@ func NotifyPubEBpfDone() {
 	case ReleaseLocal, ReleaseTesting:
 		content := func() []string {
 			x := []string{
-				fmt.Sprintf(`{{.Uploader}} 发布了 DataKit eBPF %d 个平台测试版({{.Version}})。`, len(curEBpfArchs)),
+				fmt.Sprintf(`{{.Uploader}} released DataKit eBPF for %d platforms ({{.Version}}).`, len(curEBpfArchs)),
 			}
 
 			for _, arch := range curEBpfArchs {
@@ -323,7 +323,7 @@ func NotifyPubEBpfDone() {
 				goos, goarch := parts[0], parts[1]
 
 				x = append(x, "--------------------------")
-				x = append(x, fmt.Sprintf("%s 下载地址：", arch))
+				x = append(x, fmt.Sprintf("%s: ", arch))
 				x = append(x, "https://"+filepath.Join(DownloadCDN, fmt.Sprintf(
 					"datakit-ebpf-%s-%s-%s.tar.gz", goos, goarch, ReleaseVersion)))
 			}
@@ -357,7 +357,7 @@ func NotifyPubEBpfDone() {
 		{
 			"msg_type": "text",
 			"content": {
-				"text": "%s 发布了 DataKit eBPF %s 新版本(%s)"
+				"text": "%s released DataKit eBPF(%s) new version(%s)"
 			}
 		}`, git.Uploader, strings.Join(curEBpfArchs, ", "), ReleaseVersion))
 	}

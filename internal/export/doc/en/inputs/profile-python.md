@@ -71,7 +71,8 @@ After a minute or two, you can visualize your profiles on the [APM -> Profile](h
 
 ## Use `py-spy` {#py-spy}
 
-`py-spy`is a non-invasive Python performance metric sampling tool provided by the open source community, which has the advantages of running independently and having low impact on target program load By default, `py-spy` will output sampling data in different formats to a local file based on the specified parameters. To simplify the integration of `py-spy` and DataKit, GuanceCloud provides a branch version [`py-spy-for-datakit`]（<https://github.com/GuanceCloud/py-spy-for-datakit>）{: target="_Blank"}, with little modifications made to the original version, supporting automatic profiling send data to DataKit.
+`py-spy`is a non-invasive Python performance metric sampling tool provided by the open source community,
+which has the advantages of running independently and having low impact on target program load By default, `py-spy` will output sampling data in different formats to a local file based on the specified parameters. To simplify the integration of `py-spy` and DataKit, center provides a branch version `py-spy-for-datakit`, with little modifications made to the original version, supporting automatic profiling send data to DataKit.
 
 - Installation
 
@@ -81,11 +82,10 @@ After a minute or two, you can visualize your profiles on the [APM -> Profile](h
 pip3 install py-spy-for-datakit
 ```
 
-besides, [Github Release](https://github.com/GuanceCloud/py-spy-for-datakit/releases){:target="_blank"} page provides pre compiled versions of some mainstream platforms, which you can also download and install using PIP. Below is Linux x86_64 platform as an example (other platforms is similar), let's introduce the installation steps of the pre compiled version:
+Below is Linux x86_64 platform as an example (other platforms is similar), let's introduce the installation steps of the pre compiled version:
 
 ```shell
-# download binary
-curl -SL https://github.com/GuanceCloud/py-spy-for-datakit/releases/download/v0.3.15/py_spy_for_datakit-0.3.15-py2.py3-none-manylinux_2_5_x86_64.manylinux1_x86_64.whl -O
+# after download binary
 
 # use pip to install
 pip3 install --force-reinstall --no-index --find-links . py-spy-for-datakit

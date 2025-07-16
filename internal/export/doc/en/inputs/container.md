@@ -1,6 +1,6 @@
 ---
 title: 'Kubernetes'
-summary: 'Collect metrics, objects, and log data for Container and Kubernetes, and report them to the guance cloud.'
+summary: 'Collect metrics, objects, and log data for Container and Kubernetes'
 tags:
   - 'KUBERNETES'
   - 'CONTAINER'

@@ -35,11 +35,11 @@ Linux、Windows:
 ```sql
 USE master;
 GO
-CREATE LOGIN [guance] WITH PASSWORD = N'yourpassword';
+CREATE LOGIN [datakit] WITH PASSWORD = N'yourpassword';
 GO
-GRANT VIEW SERVER STATE TO [guance];
+GRANT VIEW SERVER STATE TO [datakit];
 GO
-GRANT VIEW ANY DEFINITION TO [guance];
+GRANT VIEW ANY DEFINITION TO [datakit];
 GO
 ```
 
@@ -48,7 +48,7 @@ Aliyun RDS SQL Server:
 ```sql
 USE master;
 GO
-CREATE LOGIN [guance] WITH PASSWORD = N'yourpassword';
+CREATE LOGIN [datakit] WITH PASSWORD = N'yourpassword';
 GO
 ```
 
@@ -176,9 +176,9 @@ SQL Server 通用日志文本示例：
 
 切割后的字段列表如下：
 
-| 字段名   | 字段值                | 说明                                          |
-| -------- | --------------------- | --------------------------------------------- |
-| `msg`    | `spid...`             | 日志内容                                      |
-| `time`   | `1622169967780000000` | 纳秒时间戳（作为行协议时间）                  |
-| `origin` | `spid10s`             | 源                                            |
+| 字段名      | 字段值                   | 说明                        |
+|----------|-----------------------|---------------------------|
+| `msg`    | `spid...`             | 日志内容                      |
+| `time`   | `1622169967780000000` | 纳秒时间戳（作为行协议时间）            |
+| `origin` | `spid10s`             | 源                         |
 | `status` | `info`                | 由于日志没有明确字段说明日志等级，默认为 info |

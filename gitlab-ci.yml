@@ -13,7 +13,7 @@ before_script:
 
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "1.77.0"
+  CI_VERSION: "1.77.1"
   CI_TESTING_VERSION: $CI_VERSION-testing_$CI_COMMIT_BRANCH
   DCA_CI_VERSION: "0.1.2"
   DCA_CI_TESTING_VERSION: $DCA_CI_VERSION-testing_$CI_COMMIT_BRANCH
@@ -425,6 +425,7 @@ build-dca-testing-image-guance:
   resource_group: production
   only:
     - /^testing-.*$/ # always build DCA for testing, we can check if it is working for daily update.
+    - /^dca-testing.*$/
   script:
     - nvm use v16.14.0
     - make clean
@@ -450,6 +451,7 @@ build-dca-testing-image-tw:
   resource_group: production
   only:
     - /^testing-.*$/ # always build DCA for testing, we can check if it is working for daily update.
+    - /^dca-testing.*$/
   script:
     - nvm use v16.14.0
     - make clean

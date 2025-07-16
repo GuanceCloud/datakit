@@ -1,6 +1,6 @@
 ---
 title: 'Kubernetes'
-summary: '采集 Container 和 Kubernetes 的指标、对象和日志数据，上报到<<<custom_key.brand_name>>>。'
+summary: '采集 Container 和 Kubernetes 的指标、对象和日志数据'
 __int_icon:    'icon/kubernetes/'  
 tags:
   - 'KUBERNETES'

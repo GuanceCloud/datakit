@@ -14,7 +14,7 @@
 - **更安全**：数据不经过公网，完全在阿里云私网内流转，数据更安全
 - **更低资费**：相比公网带宽的高费用，虚拟互联网的资费成本更低
 
-目前已上架的服务为 `cn-hangzhou/cn-beijing` 两个地域，其他地域的也即将上架，架构如下：
+架构如下：
 
 ![not-set](imgs/aliyun_1.png)
 
@@ -25,6 +25,7 @@
 | **接入站点**      | **您的服务器所在 Region** | **计算巢部署链接**                                                                                                                                                            |
 | --------          | ----------------------    | -----------                                                                                                                                                                   |
 | 中国区 1（杭州）  | `cn-hangzhou`（杭州）     | [<<<custom_key.brand_name>>>数据网关虚拟私网-杭州](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-68c8fee7f0554d6b9baa){:target="_blank"}         |
+| 中国区 1（杭州）  | `cn-shanghai`（上海）     | [<<<custom_key.brand_name>>>数据网关虚拟私网-上海到杭州](https://computenest.console.aliyun.com/service/instance/create/cn-hangzhou?type=user&ServiceId=service-a2c410eb83254ee188ed){:target="_blank"}         |
 | 中国区 1（杭州）  | `cn-beijing` （北京）     | [<<<custom_key.brand_name>>>数据网关虚拟私网-北京到杭州](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-af3b4511d9214c9ebaba){:target="_blank"}   |
 | 中国区 3（张家口）| `cn-beijing` （北京）     | [<<<custom_key.brand_name>>>数据网关虚拟私网-北京到张家口](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-a22bc59ed53c4946b8ce){:target="_blank"} |
 | 中国区 3（张家口）| `cn-hangzhou`（杭州）     | [<<<custom_key.brand_name>>>数据网关虚拟私网-杭州到张家口](https://computenest.console.aliyun.com/user/cn-hangzhou/serviceInstanceCreate?ServiceId=service-87a611279d9a42ceaeb2){:target="_blank"} |
@@ -34,6 +35,7 @@
 | **接入站点**      | **您的服务器所在 Region** | **Endpoint**                         |
 | --------          | ----------------------    | -----------                          |
 | 中国区 1（杭州）  | `cn-hangzhou` （杭州）    | `https://openway.<<<custom_key.brand_main_domain>>>`         |
+| 中国区 1（杭州）  | `cn-hangzhou` （上海）    | `https://openway.<<<custom_key.brand_main_domain>>>`         |
 | 中国区 1（杭州）  | `cn-beijing`  （北京）    | `https://beijing-openway.<<<custom_key.brand_main_domain>>>` |
 | 中国区 3（张家口）| `cn-beijing`  （北京）    | `https://cn3-openway.<<<custom_key.brand_main_domain>>>`     |
 | 中国区 3（张家口）| `cn-hangzhou` （杭州）    | `https://cn3-openway.<<<custom_key.brand_main_domain>>>`     |

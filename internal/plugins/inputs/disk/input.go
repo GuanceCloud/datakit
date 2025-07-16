@@ -52,6 +52,8 @@ type Input struct {
 
 	IgnoreZeroBytesDisk bool `toml:"ignore_zero_bytes_disk"`
 
+	UseNSEnterDiskstatsImpl bool `toml:"use_nsenter"`
+
 	IgnoreFSTypes    string `toml:"ignore_fstypes"`
 	regIgnoreFSTypes *regexp.Regexp
 
@@ -116,6 +118,15 @@ func (ipt *Input) Run() {
 
 func (ipt *Input) setup() {
 	l = logger.SLogger(inputName)
+
+	if ipt.UseNSEnterDiskstatsImpl {
+		if runtime.GOOS == datakit.OSLinux && datakit.Docker {
+			l.Info("use NSEnterDiskstatsImpl.")
+			ipt.diskStats = &pcommon.NSEnterDiskstatsImpl{}
+		} else {
+			l.Warnf("NSEnterDiskstatsImpl enabled but not working under %q or non-kubernetes daemonset", runtime.GOOS)
+		}
+	}
 
 	l.Infof("%s input started", inputName)
 	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)

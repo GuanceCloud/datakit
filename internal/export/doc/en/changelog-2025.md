@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.77.1(2025/07/16) {#cl-1.77.1}
+
+This release is a hotfix containing the following fixes:
+
+### Bug Fixes {#cl-1.77.1-fix}
+
+- Fixed Kubernetes event collection timestamp field issue (#2752)
+- Kubernetes change events now allow adding associated resource labels as tags (#2750)
+- DCA image release now includes `latest` tag (#2748)
+- Added naming for service ports in DataKit yaml (#2747)
+- Fixed Oracle collection issue with `oracle_process` field (#2746)
+- Fixed EBS/CSI disk collection failure (#2644)
+
+---
+
 ## 1.77.0(2025/07/09) {#cl-1.77.0}
 
 This release is an iterative update with the following main changes:

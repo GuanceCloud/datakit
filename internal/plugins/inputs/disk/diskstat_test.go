@@ -48,7 +48,7 @@ type diskStatsMock struct {
 	mountinfo string
 }
 
-func (m *diskStatsMock) Usage(path string) (*disk.UsageStat, error) {
+func (m *diskStatsMock) Usage(path, _ string) (*disk.UsageStat, error) {
 	return &disk.UsageStat{
 		Total:             100,
 		Free:              10,
@@ -139,10 +139,10 @@ func TestLinuxFilterUsage(t *T.T) {
 			os.Unsetenv("HOST_PROC")
 		})
 
-		fakedir := filepath.Join(tmpdir, "self")
+		fakedir := filepath.Join(tmpdir, "1")
 		require.NoError(t, os.MkdirAll(fakedir, os.ModePerm))
 
-		// create fake /proc/self/mountinfo
+		// create fake /proc/1/mountinfo
 		mountinfo, err := os.ReadFile("testdata/mountinfo.all-ignored")
 		require.NoError(t, err)
 
@@ -163,10 +163,10 @@ func TestLinuxFilterUsage(t *T.T) {
 			os.Unsetenv("HOST_PROC")
 		})
 
-		fakedir := filepath.Join(tmpdir, "self")
+		fakedir := filepath.Join(tmpdir, "1")
 		require.NoError(t, os.MkdirAll(fakedir, os.ModePerm))
 
-		// create fake /proc/self/mountinfo
+		// create fake /proc/1/mountinfo
 		mountinfo, err := os.ReadFile("testdata/mountinfo.2")
 		require.NoError(t, err)
 

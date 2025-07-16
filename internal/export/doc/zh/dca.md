@@ -58,7 +58,11 @@ DCA web 服务目前仅支持镜像安装，可通过 Docker 或 Kubernetes 来�
     运行容器之前，首先通过 `docker pull` 下载 DCA 镜像。
 
     ```shell
-    docker pull pubrepo.<<<custom_key.brand_main_domain>>>/tools/dca:latest
+    <<<% if custom_key.brand_key == 'guance' %>>>
+    docker pull pubrepo.<<<custom_key.brand_main_domain>>>/tools/dca:{{.DCAVersion}}
+    <<<% else %>>>
+    docker pull pubrepo.<<<custom_key.brand_main_domain>>>/truewatch/dca:{{.DCAVersion}}
+    <<<% endif %>>>
     ```
 
     - 运行容器
@@ -66,7 +70,11 @@ DCA web 服务目前仅支持镜像安装，可通过 Docker 或 Kubernetes 来�
     通过 `docker run` 命令来创建和启动 DCA 容器，容器默认暴露访问端口是 80。
 
     ```shell
+    <<<% if custom_key.brand_key == 'guance' %>>>
     docker run -d --name dca -p 8000:80 pubrepo.<<<custom_key.brand_main_domain>>>/tools/dca
+    <<<% else %>>>
+    docker run -d --name dca -p 8000:80 pubrepo.<<<custom_key.brand_main_domain>>>/truewatch/dca
+    <<<% endif %>>>
     ```
 
     - 测试
@@ -103,7 +111,11 @@ DCA web 服务目前仅支持镜像安装，可通过 Docker 或 Kubernetes 来�
 示例：
 
 ```shell
+<<<% if custom_key.brand_key == 'guance' %>>>
 docker run -d --name dca -p 8000:80 -e DCA_LOG_PATH=stdout -e DCA_LOG_LEVEL=info pubrepo.<<<custom_key.brand_main_domain>>>/tools/dca
+<<<% else %>>>
+docker run -d --name dca -p 8000:80 -e DCA_LOG_PATH=stdout -e DCA_LOG_LEVEL=info pubrepo.<<<custom_key.brand_main_domain>>>/truewatch/dca
+<<<% endif %>>>
 ```
 
 ### 节点地址 {#node-address}

@@ -22,9 +22,6 @@ rules:
 - apiGroups: ["batch"]
   resources: ["jobs", "cronjobs"]
   verbs: [ "get", "list", "watch"]
-- apiGroups: ["{{.BrandDomain}}"]
-  resources: ["datakits"]
-  verbs: ["get","list"]
 - apiGroups: ["monitoring.coreos.com"]
   resources: ["podmonitors", "servicemonitors"]
   verbs: ["get", "list"]
@@ -33,46 +30,6 @@ rules:
   verbs: ["get", "list"]
 - nonResourceURLs: ["/metrics"]
   verbs: ["get"]
-
----
-
-apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  name: datakits.{{.BrandDomain}}
-spec:
-  group: {{.BrandDomain}}
-  versions:
-    - name: v1beta1
-      served: true
-      storage: true
-      schema:
-        openAPIV3Schema:
-          type: object
-          properties:
-            spec:
-              type: object
-              properties:
-                instances:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      k8sNamespace:
-                        type: string
-                      k8sDeployment:
-                        type: string
-                      datakit/logs:
-                        type: string
-                      inputConf:
-                        type: string
-  scope: Namespaced
-  names:
-    plural: datakits
-    singular: datakit
-    kind: Datakit
-    shortNames:
-    - dk
 
 ---
 
@@ -93,16 +50,20 @@ spec:
   selector:
     app: daemonset-datakit
   ports:
-    - protocol: TCP # for HTTP apis and some collector(inputs) HTTP server, such as DDTrace
+    - name: svc-http-port
+      protocol: TCP # for HTTP apis and some collector(inputs) HTTP server, such as DDTrace
       port: 9529
       targetPort: http-port
-    - protocol: UDP
+    - name: svc-statsd-port
+      protocol: UDP
       port: 8125
       targetPort: statsd-port
-    - protocol: TCP
+    - name: svc-otel-grpc-port
+      protocol: TCP
       port: 4317
       targetPort: otel-grpc-port
-    - protocol: TCP
+    - name: svc-logfwd-port
+      protocol: TCP
       port: 9533
       targetPort: logfwd-port
 

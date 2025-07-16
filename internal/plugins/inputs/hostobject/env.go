@@ -21,7 +21,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 	infos := []*inputs.ENVInfo{
 		{
 			FieldName: "EnableNetVirtualInterfaces",
-			ENVName:   "INPUT_HOSTOBJECT_ENABLE_NET_VIRTUAL_INTERFACES",
+			ENVName:   "ENABLE_NET_VIRTUAL_INTERFACES",
 			ConfField: "enable_net_virtual_interfaces",
 			Type:      doc.Boolean,
 			Default:   `false`,
@@ -31,7 +31,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 
 		{
 			FieldName: "IgnoreZeroBytesDisk",
-			ENVName:   "INPUT_HOSTOBJECT_IGNORE_ZERO_BYTES_DISK",
+			ENVName:   "IGNORE_ZERO_BYTES_DISK",
 			ConfField: "ignore_zero_bytes_disk",
 			Type:      doc.Boolean,
 			Default:   `false`,
@@ -41,7 +41,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 
 		{
 			FieldName: "IgnoreFSTypes",
-			ENVName:   "INPUT_HOSTOBJECT_IGNORE_FSTYPES",
+			ENVName:   "IGNORE_FSTYPES",
 			ConfField: "ignore_fstypes",
 			Type:      doc.String,
 			Default:   "`^(tmpfs|autofs|binfmt_misc|devpts|fuse.lxcfs|overlay|proc|squashfs|sysfs)$`",
@@ -51,7 +51,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 
 		{
 			FieldName: "IgnoreMountpoints",
-			ENVName:   "INPUT_HOSTOBJECT_IGNORE_MOUNTPOINTS",
+			ENVName:   "IGNORE_MOUNTPOINTS",
 			ConfField: "ignore_mountpoints",
 			Type:      doc.String,
 			Default:   "`^(/usr/local/datakit/.*|/run/containerd/.*)$`",
@@ -61,7 +61,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 
 		{
 			FieldName: "ExcludeDevice",
-			ENVName:   "INPUT_HOSTOBJECT_EXCLUDE_DEVICE",
+			ENVName:   "EXCLUDE_DEVICE",
 			ConfField: "exclude_device",
 			Type:      doc.List,
 			Example:   "`/dev/loop0,/dev/loop1`",
@@ -71,7 +71,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 
 		{
 			FieldName: "ExtraDevice",
-			ENVName:   "INPUT_HOSTOBJECT_EXTRA_DEVICE",
+			ENVName:   "EXTRA_DEVICE",
 			ConfField: "extra_device",
 			Type:      doc.List,
 			Example:   "`/nfsdata,other`",
@@ -81,7 +81,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 
 		{
 			FieldName: "EnableCloudHostTagsGlobalElection",
-			ENVName:   "INPUT_HOSTOBJECT_CLOUD_META_AS_ELECTION_TAGS",
+			ENVName:   "CLOUD_META_AS_ELECTION_TAGS",
 			ConfField: "enable_cloud_host_tags_global_election_tags",
 			Type:      doc.Boolean,
 			Default:   "true",
@@ -91,7 +91,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 
 		{
 			FieldName: "EnableCloudHostTagsGlobalHost",
-			ENVName:   "INPUT_HOSTOBJECT_CLOUD_META_AS_HOST_TAGS",
+			ENVName:   "CLOUD_META_AS_HOST_TAGS",
 			ConfField: "enable_cloud_host_tags_global_host_tags",
 			Type:      doc.Boolean,
 			Default:   "true",
@@ -101,7 +101,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 
 		{
 			FieldName: "EnableCloudAWSIMDSv2",
-			ENVName:   "INPUT_HOSTOBJECT_CLOUD_AWS_IMDS_V2",
+			ENVName:   "CLOUD_AWS_IMDS_V2",
 			ConfField: "enable_cloud_aws_imds_v2",
 			Type:      doc.Boolean,
 			Default:   "false",
@@ -111,7 +111,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 
 		{
 			FieldName: "EnableCloudAWSIPv6",
-			ENVName:   "INPUT_HOSTOBJECT_CLOUD_AWS_IPV6",
+			ENVName:   "CLOUD_AWS_IPV6",
 			ConfField: "enable_cloud_aws_ipv6",
 			Type:      doc.Boolean,
 			Default:   "false",
@@ -121,7 +121,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 
 		{
 			FieldName: "Tags",
-			ENVName:   "INPUT_HOSTOBJECT_TAGS",
+			ENVName:   "TAGS",
 			ConfField: "tags",
 		},
 
@@ -147,7 +147,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 
 		{
 			FieldName: "CloudMetaTokenURL",
-			ENVName:   "INPUT_HOSTOBJECT_CLOUD_META_TOKEN_URL",
+			ENVName:   "CLOUD_META_TOKEN_URL",
 			ConfField: "cloud_meta_token_url",
 			Type:      doc.Map,
 			Example:   "`{\"aws\":\"xxx\",\"aliyun\":\"yyy\"}`",
@@ -157,16 +157,25 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 
 		{
 			FieldName: "DisableCloudProviderSync",
-			ENVName:   "INPUT_HOSTOBJECT_DISABLE_CLOUD_PROVIDER_SYNC",
+			ENVName:   "DISABLE_CLOUD_PROVIDER_SYNC",
 			ConfField: "disable_cloud_provider_sync",
 			Type:      doc.Boolean,
 			Example:   "`true`",
 			Desc:      "Disable cloud metadata",
 			DescZh:    "禁止同步主机云信息",
 		},
+
+		{
+			ENVName:   "USE_NSENTER",
+			ConfField: "use_nsenter",
+			Type:      doc.Boolean,
+			Example:   "`true`",
+			Desc:      "Use nsenter to collect disk usage",
+			DescZh:    "用 `nsenter` 方式来采集磁盘用量信息",
+		},
 	}
 
-	return doc.SetENVDoc("ENV_", infos)
+	return doc.SetENVDoc("ENV_INPUT_HOSTOBJECT_", infos)
 }
 
 // ReadEnv used to read ENVs while running under DaemonSet.
@@ -305,5 +314,11 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 
 	if str := envs["ENV_INPUT_HOSTOBJECT_IGNORE_MOUNTPOINTS"]; str != "" {
 		ipt.IgnoreMountpoints = str
+	}
+
+	if v := os.Getenv("ENV_INPUT_HOSTOBJECT_USE_NSENTER"); v != "" {
+		if b, _ := strconv.ParseBool(v); b {
+			ipt.UseNSEnterDiskstatsImpl = true
+		}
 	}
 }

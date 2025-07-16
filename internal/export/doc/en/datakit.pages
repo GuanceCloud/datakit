@@ -26,6 +26,7 @@ nav:
       - 'Datakit Metrics': datakit-metrics.md
     - 'Virtual Internet Access':
       - 'Alibaba Cloud': aliyun-access.md
+      - 'AWS Cloud': aws-access.md
     - 'Performance': datakit-performance.md
 
   - 'DataKit Configuration':

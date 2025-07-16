@@ -21,7 +21,7 @@ monitor   :
 
 ---
 
-Collect real-time data from the Zabbix service and send it to the GuanCe cloud center. Currently, Zabbix supports writing real-time data to files from version 4.0 to 7.0.
+Collect real-time data from the Zabbix service and send it to the center. Currently, Zabbix supports writing real-time data to files from version 4.0 to 7.0.
 ExportType allows to specify which entity types (events, history, trends) will be exported.
 
 ## Config {#config}

@@ -30,7 +30,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 			FieldName: "MatchedProcessNames",
 			ENVName:   "PROCESS_NAME",
 			Type:      doc.List,
-			Example:   "`.*datakit.*,guance`",
+			Example:   "`.*datakit.*,nginx`",
 			Desc:      "Whitelist of process",
 			DescZh:    "进程名白名单",
 		},

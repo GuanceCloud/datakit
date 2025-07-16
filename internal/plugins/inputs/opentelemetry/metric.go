@@ -158,7 +158,7 @@ func attributesToTag(src []*common.KeyValue) map[string]string {
 	for _, s := range delMetricKey {
 		delete(shadowTags, s)
 	}
-	log.Infof("shadowtags len=%d", len(shadowTags))
+
 	return shadowTags
 }
 

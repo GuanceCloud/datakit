@@ -34,3 +34,22 @@ func TestTrimPartitionHostPath(t *T.T) {
 	assert.Equal(t, p.Device, "/")
 	assert.Equal(t, p.Mountpoint, "/")
 }
+
+func Test_parseStatF(t *T.T) {
+	t.Run(`basic`, func(t *T.T) {
+		output := `1048576 10737418240 10736238651 1000000000 997250393`
+
+		stat, err := parseStatF(output)
+		assert.NoError(t, err)
+
+		t.Logf("stat: %+#v", stat)
+
+		assert.Equal(t, uint64(1048576*10737418240), stat.Total)
+		assert.Equal(t, uint64(1048576*10736238651), stat.Free)
+		assert.Equal(t, uint64(1048576*(10737418240-10736238651)), stat.Used)
+		assert.Equal(t, uint64(1000000000), stat.InodesTotal)
+		assert.Equal(t, uint64(997250393), stat.InodesFree)
+		assert.Equal(t, uint64(1000000000-997250393), stat.InodesUsed)
+		assert.Equal(t, float64(1000000000-997250393)/float64(1000000000)*100.0, stat.InodesUsedPercent)
+	})
+}

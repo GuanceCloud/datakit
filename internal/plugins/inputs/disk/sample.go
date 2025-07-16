@@ -17,6 +17,10 @@ const sampleCfg = `
   ## merge disks that with the same device name(default true)
   # merge_on_device = true
 
+  # use nsenter to get disk usage
+  # NOTE: only available under kubernetes
+  use_nsenter = false
+
   ## We collect all devices prefixed with dev by default,If you want to collect additional devices, it's in extra_device add
   # extra_device = ["/nfsdata"]
 

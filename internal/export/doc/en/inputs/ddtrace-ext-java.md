@@ -322,8 +322,6 @@ export DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED=true
 export DD_TRACE_PROPAGATION_STYLE=tracecontext
 ```
 
-This is  [GitHub issue](https://github.com/GuanceCloud/dd-trace-java/issues/37){:target="_blank"}
-
 At present, only DDTrace and OTEL are connected in series, and there is currently no testing with other APM manufacturers.
 
 
