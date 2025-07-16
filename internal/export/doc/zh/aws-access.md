@@ -106,7 +106,7 @@ flowchart LR
 1. 在导航窗格中，选择 **Endpoint**（端点服务）。
 1. 创建终点节点
     - 终端节点设置
-        - 类型：**Endpoint services that use NLBs and GWLBs** （使用 NLB 和 `GWLB` 的端点服务）
+        - 类型：**Endpoint services that use NLBs and GWLBs** （使用 NLB 和 GWLB 的端点服务）
     - 服务设置
 
         - 服务名称：当前地域的[接入终端节点服务的名称](aws-access.md#service-dep){:target="_blank"}
