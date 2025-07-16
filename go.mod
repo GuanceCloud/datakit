@@ -72,7 +72,7 @@ require (
 	github.com/pyroscope-io/pyroscope v0.36.0
 	github.com/r3labs/diff/v3 v3.0.0
 	github.com/rivo/tview v0.0.0-20220129131435-1f7581b67bd1
-	github.com/shirou/gopsutil v3.21.8+incompatible
+	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/shirou/gopsutil/v3 v3.22.7
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cast v1.5.1

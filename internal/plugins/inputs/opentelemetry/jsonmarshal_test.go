@@ -193,6 +193,31 @@ func Benchmark_golangjson(b *T.B) {
 	})
 }
 
+func Benchmark_jsonmarshal(b *T.B) {
+	traces := createTestTraceData(10)
+
+	b.Run(`jsoniter`, func(b *T.B) {
+		m := &jsoniterMarshaler{}
+		for i := 0; i < b.N; i++ {
+			m.Marshal(traces)
+		}
+	})
+
+	b.Run(`golang-json`, func(b *T.B) {
+		m := &gojsonMarshaler{}
+		for i := 0; i < b.N; i++ {
+			m.Marshal(traces)
+		}
+	})
+
+	b.Run(`pb-json`, func(b *T.B) {
+		m := &protojsonMarshaler{}
+		for i := 0; i < b.N; i++ {
+			m.Marshal(traces)
+		}
+	})
+}
+
 func Benchmark_jsoniter(b *T.B) {
 	traces := createTestTraceData(10)
 	b.Run(`jsoniter`, func(b *T.B) {

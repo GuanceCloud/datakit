@@ -35,6 +35,10 @@ only_physical_device = false
 ## Ignore the disk which space is zero
 ignore_zero_bytes_disk = true
 
+# use nsenter to get disk usage
+# NOTE: only available under kubernetes
+use_nsenter = false
+
 ## Disable cloud provider information synchronization
 disable_cloud_provider_sync = false
 

@@ -79,7 +79,8 @@ type Input struct {
 	IgnoreMountpoints    string `toml:"ignore_mountpoints"`
 	regIgnoreMountpoints *regexp.Regexp
 
-	diskStats pcommon.DiskStats
+	UseNSEnterDiskstatsImpl bool `toml:"use_nsenter"`
+	diskStats               pcommon.DiskStats
 
 	ConfigPath []string `toml:"config_path"`
 
@@ -152,6 +153,16 @@ func (ipt *Input) Run() {
 
 func (ipt *Input) setup() {
 	SetLog()
+
+	if ipt.UseNSEnterDiskstatsImpl {
+		if runtime.GOOS == datakit.OSLinux && datakit.Docker {
+			l.Infof("use NSEnterDiskstatsImpl.")
+			ipt.diskStats = &pcommon.NSEnterDiskstatsImpl{}
+		} else {
+			l.Warnf("NSEnterDiskstatsImpl enabled but not working under %q or non-kubernetes daemonset", runtime.GOOS)
+		}
+	}
+
 	ipt.EnableCloudHostTagsGlobalElection = ipt.EnableCloudHostTagsGlobalElection && ipt.EnableCloudHostTagsGlobalElectionDeprecated
 	ipt.EnableCloudHostTagsGlobalHost = ipt.EnableCloudHostTagsGlobalHost && ipt.EnableCloudHostTagsGlobalHostDeprecated
 
