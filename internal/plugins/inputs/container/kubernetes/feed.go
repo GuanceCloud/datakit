@@ -15,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/changes"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 )
@@ -93,6 +94,7 @@ func processChange(cfg *Config, class, sourceName string, diffs []FieldDiff, obj
 		kvs = kvs.AddV2("df_message", message, false)
 		kvs = kvs.AddV2("diff", df.DiffText, false)
 
+		kvs = append(kvs, pointutil.LabelsToPointKVs(obj.GetLabels(), cfg.LabelAsTagsForNonMetric.All, cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(cfg.ExtraTags)...)
 		pts = append(pts, point.NewPointV2("event", kvs, point.WithTimestamp(ntp.Now().UnixNano())))
 		collectPtsVec.WithLabelValues("k8s-change").Add(1)
