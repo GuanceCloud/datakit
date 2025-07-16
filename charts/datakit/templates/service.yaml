@@ -26,19 +26,19 @@ spec:
   selector:
     app: {{ include "datakit.fullname" . }}
   ports:
-    - port: {{ .Values.service.port }}
+    - name: svc-http-port # For all HTTP APIs
+      port: {{ .Values.service.port }}
       targetPort: {{ .Values.service.port }}
       protocol: TCP
-      name: http-port # For all HTTP APIs
-    - port: {{ .Values.statsd.port }}
+    - name: svc-statsd-port
+      port: {{ .Values.statsd.port }}
       targetPort: {{ .Values.statsd.port }}
       protocol: UDP
-      name: statsd-port
-    - port: {{ .Values.otelGRPC.port }}
+    - name: svc-otel-grpc-port
+      port: {{ .Values.otelGRPC.port }}
       targetPort: {{ .Values.otelGRPC.port }}
       protocol: TCP
-      name: otel-grpc-port
-    - port: {{ .Values.logfwdServer.port }}
+    - name: svc-logfwd-port
+      port: {{ .Values.logfwdServer.port }}
       targetPort: {{ .Values.logfwdServer.port }}
       protocol: TCP
-      name: logfwd-port
