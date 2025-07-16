@@ -50,7 +50,7 @@ const (
 
   ## customer_tags will work as a whitelist to prevent tags send to data center.
   ## All . will replace to _ ,like this :
-  ## "project.name" to send to GuanCe center is "project_name"
+  ## "project.name" to send to center is "project_name"
   # customer_tags = ["sink_project", "custom_dd_tag"]
 
   ## Keep rare tracing resources list switch.

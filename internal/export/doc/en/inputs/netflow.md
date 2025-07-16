@@ -17,7 +17,7 @@ monitor   :
 
 ---
 
-NetFlow Collector can be used to visualize and monitor Netflow-enabled devices and capture logs to the GuanCe Cloud to help monitor and analyze Netflow anomalies.
+NetFlow Collector can be used to visualize and monitor Netflow-enabled devices and capture logs to the center to help monitor and analyze Netflow anomalies.
 
 ## What is NetFlow {#what}
 

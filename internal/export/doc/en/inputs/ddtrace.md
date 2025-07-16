@@ -94,7 +94,7 @@ DDTrace Agent embedded in DataKit is used to receive, calculate and analyze Data
 
     The DataKit installation directory, under the `data` directory, has a pre-prepared `dd-java-agent.jar`(recommended). You can also download it directly from [Maven download](https://mvnrepository.com/artifact/com.datadoghq/dd-java-agent){:target="_blank"}
 
-    <<<custom_key.brand_name>>> also Fork its own branch on the basis of Ddtrace-Java, adding more functions and probes. For more version details, please see [Ddtrace Secondary Development Version Description](../developers/ddtrace-guance.md)
+    <<<custom_key.brand_name>>> also Fork its own branch on the basis of Ddtrace-Java, adding more functions and probes. For more version details.
 
 ## Configuration {#config}
 
@@ -295,7 +295,7 @@ There may be significant differences in data due to different languages and vers
 
 Starting from DataKit version [1.21.0](../datakit/changelog.md#cl-1.21.0), do not include All in Span.Mate are advanced to the first level label and only select following list labels:
 
-| Mete              | GuanCe tag        | doc                       |
+| Mete              | tag               | doc                       |
 |:------------------|:------------------|:--------------------------|
 | http.url          | http_url          | HTTP url                  |
 | http.hostname     | http_hostname     | hostname                  |

@@ -110,8 +110,7 @@ DataKit 自 [:octicons-tag-24: Version-1.39.0](../datakit/changelog.md#cl-1.39.0
 
 ### 主机环境下使用 {#py-spy-on-host}
 
-`py-spy` 是由开源社区提供的一款无侵入式的 Python 性能指标采样工具，具有单独运行和对目标程序负载影响低等优点。默认情况下 `py-spy` 会根据指定的参数输出不同格式的采样数据到本地文件，为简化 `py-spy` 和 DataKit 的集成，<<<custom_key.brand_name>>>提供了一个分支版本 [`py-spy-for-datakit`](https://github.com/GuanceCloud/py-spy-for-datakit){:target="_blank"}， 在原版本基础上做了少量修改，支持自动把 profiling
-数据发送到 DataKit。
+`py-spy` 是由开源社区提供的一款无侵入式的 Python 性能指标采样工具，具有单独运行和对目标程序负载影响低等优点。默认情况下 `py-spy` 会根据指定的参数输出不同格式的采样数据到本地文件，为简化 `py-spy` 和 DataKit 的集成。
 
 - 安装
 
@@ -121,12 +120,10 @@ DataKit 自 [:octicons-tag-24: Version-1.39.0](../datakit/changelog.md#cl-1.39.0
 pip3 install py-spy-for-datakit
 ```
 
-此外，[Github Release](https://github.com/GuanceCloud/py-spy-for-datakit/releases){:target="_blank"} 页面上提供了部分主流平台的预编译版本，你也可以下载之后
 用 pip 安装，下面以 Linux x86_64 平台为例（其他平台类似），介绍一下预编译版本的安装步骤
 
 ```shell
-# 下载对应平台的预编译包
-curl -SL https://github.com/GuanceCloud/py-spy-for-datakit/releases/download/v0.3.15/py_spy_for_datakit-0.3.15-py2.py3-none-manylinux_2_5_x86_64.manylinux1_x86_64.whl -O
+# 等待下载预编译包后
 
 # 用 pip 安装
 pip3 install --force-reinstall --no-index --find-links . py-spy-for-datakit
