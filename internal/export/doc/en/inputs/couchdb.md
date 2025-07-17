@@ -93,12 +93,6 @@ See [official document](https://docs.couchdb.org/en/stable/install/index.html){:
 
 ### `{{$m.Name}}`
 
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}

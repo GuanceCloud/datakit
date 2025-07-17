@@ -73,13 +73,7 @@ Solr 采集器，用于采集 Solr Cache 和 Request Times 等的统计信息。
 
 ### `{{$m.Name}}`
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}
 

@@ -279,13 +279,7 @@ SNMP 设备在默认情况下，一般 SNMP 协议处于关闭状态，需要进
 
 {{$m.Desc}}
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 字段列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{ end }}
@@ -300,13 +294,7 @@ SNMP 设备在默认情况下，一般 SNMP 协议处于关闭状态，需要进
 
 {{$m.Desc}}
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 字段列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{ end }}

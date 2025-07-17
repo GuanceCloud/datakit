@@ -351,13 +351,8 @@ ipnet_contains("127.0.0.0/8", ip_saddr); ipv6
 
 ### `{{$m.Name}}`
 
-- 标签列表
 
-{{$m.TagsMarkdownTable}}
-
-- 字段列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{ end }}
@@ -370,13 +365,7 @@ ipnet_contains("127.0.0.0/8", ip_saddr); ipv6
 
 ### `{{$m.Name}}`
 
-- 标签列表
-
-{{$m.TagsMarkdownTable}}
-
-- 字段列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{ end }}
 
 {{end}}
@@ -389,13 +378,7 @@ ipnet_contains("127.0.0.0/8", ip_saddr); ipv6
 
 ### `{{$m.Name}}`
 
-- 标签列表
-
-{{$m.TagsMarkdownTable}}
-
-- 字段列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{ end }}

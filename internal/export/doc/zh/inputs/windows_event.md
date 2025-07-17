@@ -49,12 +49,6 @@ Windows 事件日志采集是采集应用程序、安全、系统等 Windows 事
 
 ### `{{$m.Name}}`
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}

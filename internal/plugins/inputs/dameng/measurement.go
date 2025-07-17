@@ -14,7 +14,7 @@ type MemoryMeasurement struct{}
 
 func (m *MemoryMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "DM_memory",
+		Name: metricNameMemory,
 		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"buffer_size_mb": &inputs.FieldInfo{
@@ -47,7 +47,7 @@ type MemPoolMeasurement struct{}
 
 func (m *MemPoolMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "dameng_mem_pool",
+		Name: metricNameMemPool,
 		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"org_size_mb": &inputs.FieldInfo{
@@ -113,7 +113,7 @@ type TablespaceMeasurement struct{}
 
 func (m *TablespaceMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "dameng_tablespace",
+		Name: metricNameTablespace,
 		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"total_size_mb": &inputs.FieldInfo{
@@ -159,7 +159,7 @@ type ConnectionsMeasurement struct{}
 
 func (m *ConnectionsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "dameng_connections",
+		Name: metricNameConnection,
 		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"active_connections": &inputs.FieldInfo{
@@ -192,7 +192,7 @@ type RatesMeasurement struct{}
 
 func (m *RatesMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "dameng_rates",
+		Name: metricNameRates,
 		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"qps": &inputs.FieldInfo{
@@ -219,7 +219,7 @@ type SlowQueriesMeasurement struct{}
 
 func (m *SlowQueriesMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "dameng_slow_queries",
+		Name: metricNameSlowQueries,
 		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"exec_time": &inputs.FieldInfo{
@@ -249,7 +249,7 @@ type LocksMeasurement struct{}
 
 func (m *LocksMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "dameng_locks",
+		Name: metricNameLocks,
 		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"waiting_locks": &inputs.FieldInfo{
@@ -270,7 +270,7 @@ type DeadlockMeasurement struct{}
 
 func (m *DeadlockMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "dameng_deadlocks",
+		Name: metricNameDeadlock,
 		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"deadlock_count": &inputs.FieldInfo{
@@ -293,7 +293,7 @@ type BufferCacheMeasurement struct{}
 
 func (m *BufferCacheMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "dameng_buffer_cache",
+		Name: metricNameBufferCache,
 		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"total_size_bytes": &inputs.FieldInfo{
@@ -327,7 +327,7 @@ type BlockSessionsMeasurement struct{}
 
 func (m *BlockSessionsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "DM_block_sessions",
+		Name: metricNameBlockSessions,
 		Cat:  point.Metric,
 		Fields: map[string]interface{}{
 			"block_duration_min": &inputs.FieldInfo{

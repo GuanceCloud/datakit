@@ -55,13 +55,7 @@ The AWS Lambda collector collects AWS Lambda metrics and logs through the Lambda
 
 ### `{{$m.Name}}`
 
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}
 

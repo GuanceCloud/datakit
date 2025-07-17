@@ -200,12 +200,6 @@ NetFlow 是最广泛使用的流量数据统计标准，由 Cisco 开发，用�
 
 {{$m.Desc}}
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}

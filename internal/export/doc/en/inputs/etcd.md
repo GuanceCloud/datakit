@@ -57,12 +57,6 @@ Open etcd, the default metrics interface is `http://localhost:2379/metrics`, or 
 
 ### `{{$m.Name}}`
 
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}

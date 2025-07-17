@@ -92,13 +92,7 @@ Restart DataKit to make configuration take effect.
 
 ### `{{$m.Name}}`
 
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}
 <!-- markdownlint-enable -->

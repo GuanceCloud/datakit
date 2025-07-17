@@ -60,12 +60,6 @@ Memory 采集器用于收集系统内存信息，一些通用的指标如主机�
 
 ### `{{$m.Name}}`
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}

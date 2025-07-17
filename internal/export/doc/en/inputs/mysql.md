@@ -269,14 +269,7 @@ For all of the following data collections, the global election tags will added a
 
 {{$m.Desc}}
 
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}{{end}}
-
+{{$m.MarkdownTable}}{{end}}
 {{ end }}
 
 ## Object {#object}
@@ -289,13 +282,7 @@ For all of the following data collections, the global election tags will added a
 
 {{$m.Desc}}
 
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{ end }}
@@ -446,15 +433,7 @@ The `subpartition` information field `partitions.subpartitions` contains details
 
 ### `{{$m.Name}}`
 
-{{$m.Desc}}
-
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}{{end}}
+{{$m.MarkdownTable}}{{end}}
 
 {{ end }}
 <!-- markdownlint-enable -->

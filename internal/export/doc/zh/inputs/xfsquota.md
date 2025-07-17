@@ -39,12 +39,6 @@ xfsquota 采集器通过运行 `xfs_quota` 解析标准输出，采集 xfs 文�
 
 ### `{{$m.Name}}`
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}

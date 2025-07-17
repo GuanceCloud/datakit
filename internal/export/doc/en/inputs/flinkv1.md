@@ -89,10 +89,6 @@ Flink collects multiple metrics by default, and these [metrics](https://nightlie
 
 ### `{{$m.Name}}`
 
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
+{{$m.MarkdownTable}}
 
 {{ end }}

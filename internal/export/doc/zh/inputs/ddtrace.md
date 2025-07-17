@@ -266,26 +266,6 @@ DDTrace 探针启动后，会不断通额外的接口上报服务有关的信息
 
 语言不同和版本不同数据可能会有很大的差异，以实际收到的数据为准。
 
-
-{{range $i, $m := .Measurements}}
-
-{{if eq $m.Type "object"}}
-
-### `{{$m.Name}}`
-
-{{$m.Desc}}
-
-- 标签（String 类型）
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表（非 String 类型，或者长 String 类型）
-
-{{$m.FieldsMarkdownTable}}
-{{end}}
-
-{{end}}
-
 ### 固定提取 tag {#add-tags}
 
 从 DataKit 版本 [1.21.0](../datakit/changelog.md#cl-1.21.0) 开始，黑名单功能废弃，并且不在将 Span.Mate 中全部都提前到一级标签中，而是选择性提取。
@@ -345,13 +325,7 @@ DDTrace 在启动后会上报自身配置信息、集成列表、依赖关系以
 
 {{$m.Desc}}
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{end}}
@@ -366,13 +340,7 @@ DDTrace 在启动后会上报自身配置信息、集成列表、依赖关系以
 
 {{$m.Desc}}
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 字段列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{end}}

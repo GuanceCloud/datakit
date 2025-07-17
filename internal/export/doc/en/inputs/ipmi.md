@@ -140,13 +140,7 @@ For all of the following data collections, the global election tags will added a
 
 {{ range $i, $m := .Measurements }}
 
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}
 

@@ -98,12 +98,6 @@ PHP-FPM 采集器用于 PHP-FPM 指标采集，如活动进程总数、空闲进
 
 ### `{{$m.Name}}`
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}

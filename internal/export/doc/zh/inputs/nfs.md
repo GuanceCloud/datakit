@@ -107,12 +107,6 @@ NFSd 是 NFS 服务的守护进程，是服务器端的一个关键组件，负�
 
 ### `{{$m.Name}}`
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}

@@ -285,12 +285,12 @@ func (*statefulsetObject) Info() *inputs.MeasurementInfo {
 		Desc: "The object of the Kubernetes StatefulSet.",
 		Cat:  point.Object,
 		Tags: map[string]interface{}{
-			"name":                       inputs.NewTagInfo("The UID of StatefulSet."),
-			"uid":                        inputs.NewTagInfo("The UID of StatefulSet."),
-			"statefulset_name":           inputs.NewTagInfo("Name must be unique within a namespace."),
-			"namespace":                  inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
-			"cluster_name_k8s":           inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
-			"<all_selector_matchlabels>": inputs.NewTagInfo("Represents the selector.matchLabels for Kubernetes resources"),
+			"name":                              inputs.NewTagInfo("The UID of StatefulSet."),
+			"uid":                               inputs.NewTagInfo("The UID of StatefulSet."),
+			"statefulset_name":                  inputs.NewTagInfo("Name must be unique within a namespace."),
+			"namespace":                         inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
+			"cluster_name_k8s":                  inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
+			"&lt;ALL-SELECTOR-MATCH-LABELS&gt;": inputs.NewTagInfo("Represents the selector.matchLabels for Kubernetes resources"),
 		},
 		Fields: map[string]interface{}{
 			"age":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},

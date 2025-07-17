@@ -93,12 +93,6 @@ NetStat 指标展示，包括 Tcp 连接数、等待连接、等待处理请求�
 
 {{ range $i, $m := .Measurements }}
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}

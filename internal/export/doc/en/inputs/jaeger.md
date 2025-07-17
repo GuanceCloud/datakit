@@ -249,15 +249,7 @@ func foo() {
 
 ### `{{$m.Name}}`
 
-{{$m.Desc}}
-
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{end}}

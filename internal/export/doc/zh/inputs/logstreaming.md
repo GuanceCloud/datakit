@@ -97,12 +97,6 @@ Log-Streaming 支持在 HTTP URL 中添加参数，对日志数据进行操作�
 
 {{$m.Desc}}
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}

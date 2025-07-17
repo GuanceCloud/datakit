@@ -53,13 +53,7 @@ TDengine 采集器需要的连接 `taos_adapter` 才可以正常工作，taosAda
 
 {{$m.Desc}}
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}
 

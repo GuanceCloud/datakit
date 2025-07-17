@@ -93,12 +93,6 @@ CouchDB 采集器用于采集 CouchDB 相关的指标数据，目前只支持 Pr
 
 ### `{{$m.Name}}`
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}

@@ -148,13 +148,7 @@ SkyWalking 会上报一些 JVM 指标数据。
 
 {{$m.Desc}}
 
-- 标签（String 类型）
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表（非 String 类型，或者长 String 类型）
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{if eq $m.Type "metric"}}
@@ -163,13 +157,7 @@ SkyWalking 会上报一些 JVM 指标数据。
 
 {{$m.Desc}}
 
-- 指标标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{end}}
