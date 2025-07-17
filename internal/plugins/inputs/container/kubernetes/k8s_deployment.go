@@ -35,7 +35,6 @@ const (
 //nolint:gochecknoinits
 func init() {
 	registerResource("deployment", false, newDeployment)
-	registerMeasurements(&deploymentMetric{}, &deploymentObject{})
 }
 
 type deployment struct {
@@ -312,10 +311,10 @@ func compareDeployment(oldVal, newVal *apiappsv1.Deployment) []FieldDiff {
 	return res
 }
 
-type deploymentMetric struct{}
+type DeploymentMetric struct{}
 
 //nolint:lll
-func (*deploymentMetric) Info() *inputs.MeasurementInfo {
+func (*DeploymentMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: deploymentMetricMeasurement,
 		Desc: "The metric of the Kubernetes Deployment.",
@@ -339,10 +338,10 @@ func (*deploymentMetric) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type deploymentObject struct{}
+type DeploymentObject struct{}
 
 //nolint:lll
-func (*deploymentObject) Info() *inputs.MeasurementInfo {
+func (*DeploymentObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: deploymentObjectClass,
 		Desc: "The object of the Kubernetes Deployment.",

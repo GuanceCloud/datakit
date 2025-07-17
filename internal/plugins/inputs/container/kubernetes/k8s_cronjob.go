@@ -27,7 +27,6 @@ const (
 //nolint:gochecknoinits
 func init() {
 	registerResource("cronjob", false, newCronjob)
-	registerMeasurements(&cronjobMetric{}, &cronjobObject{})
 }
 
 type cronjob struct {
@@ -148,10 +147,10 @@ func (c *cronjob) buildObjectPoints(list *apibatchv1.CronJobList) []*point.Point
 	return pts
 }
 
-type cronjobMetric struct{}
+type CronjobMetric struct{}
 
 //nolint:lll
-func (*cronjobMetric) Info() *inputs.MeasurementInfo {
+func (*CronjobMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: cronjobMetricMeasurement,
 		Desc: "The metric of the Kubernetes CronJob.",
@@ -168,10 +167,10 @@ func (*cronjobMetric) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type cronjobObject struct{}
+type CronjobObject struct{}
 
 //nolint:lll
-func (*cronjobObject) Info() *inputs.MeasurementInfo {
+func (*CronjobObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: cronjobObjectClass,
 		Desc: "The object of the Kubernetes CronJob.",

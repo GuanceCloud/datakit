@@ -23,7 +23,6 @@ const (
 //nolint:gochecknoinits
 func init() {
 	registerResource("endpoint", false, newEndpoint)
-	registerMeasurements(&endpointMetric{})
 }
 
 type endpoint struct {
@@ -90,10 +89,10 @@ func (e *endpoint) buildMetricPoints(list *apicorev1.EndpointsList, timestamp in
 	return pts
 }
 
-type endpointMetric struct{}
+type EndpointMetric struct{}
 
 //nolint:lll
-func (*endpointMetric) Info() *inputs.MeasurementInfo {
+func (*EndpointMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: endpointMetricMeasurement,
 		Desc: "The metric of the Kubernetes Endpoints.",

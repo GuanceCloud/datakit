@@ -27,7 +27,6 @@ const (
 //nolint:gochecknoinits
 func init() {
 	registerResource("replicaset", false, newReplicaset)
-	registerMeasurements(&replicasetMetric{}, &replicasetObject{})
 }
 
 type replicaset struct {
@@ -173,10 +172,10 @@ func (r *replicaset) buildObjectPoints(list *apiappsv1.ReplicaSetList) []*point.
 	return pts
 }
 
-type replicasetMetric struct{}
+type ReplicasetMetric struct{}
 
 //nolint:lll
-func (*replicasetMetric) Info() *inputs.MeasurementInfo {
+func (*ReplicasetMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: replicasetMetricMeasurement,
 		Desc: "The metric of the Kubernetes ReplicaSet.",
@@ -197,10 +196,10 @@ func (*replicasetMetric) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type replicasetObject struct{}
+type ReplicasetObject struct{}
 
 //nolint:lll
-func (*replicasetObject) Info() *inputs.MeasurementInfo {
+func (*ReplicasetObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: replicasetObjectClass,
 		Desc: "The object of the Kubernetes ReplicaSet.",

@@ -24,7 +24,6 @@ const (
 //nolint:gochecknoinits
 func init() {
 	registerResource("dfpv", true, newDfpv)
-	registerMeasurements(&dfpvMetric{}, &dfpvObject{})
 }
 
 type dfpv struct {
@@ -143,10 +142,10 @@ func (d *dfpv) buildObjectPoints(list []*podVolumeInfo) []*point.Point {
 	return pts
 }
 
-type dfpvMetric struct{}
+type DfpvMetric struct{}
 
 //nolint:lll
-func (*dfpvMetric) Info() *inputs.MeasurementInfo {
+func (*DfpvMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: dfpvMetricMeasurement,
 		Desc: "The metric of the Kubernetes PersistentVolume.",
@@ -171,10 +170,10 @@ func (*dfpvMetric) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type dfpvObject struct{}
+type DfpvObject struct{}
 
 //nolint:lll
-func (*dfpvObject) Info() *inputs.MeasurementInfo {
+func (*DfpvObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: dfpvObjectClass,
 		Desc: "The object of the Kubernetes PersistentVolume.",

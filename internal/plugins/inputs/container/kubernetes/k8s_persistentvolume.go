@@ -28,7 +28,6 @@ const (
 //nolint:gochecknoinits
 func init() {
 	registerResource("persistentvolume", false, newPersistentvolume)
-	registerMeasurements(&persistentvolumeObject{})
 }
 
 type persistentvolume struct {
@@ -119,10 +118,10 @@ func (p *persistentvolume) buildObjectPoints(list *apicorev1.PersistentVolumeLis
 	return pts
 }
 
-type persistentvolumeObject struct{}
+type PersistentvolumeObject struct{}
 
 //nolint:lll
-func (*persistentvolumeObject) Info() *inputs.MeasurementInfo {
+func (*PersistentvolumeObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: persistentvolumeObjectClass,
 		Desc: "The object of the Kubernetes PersistentVolume.",

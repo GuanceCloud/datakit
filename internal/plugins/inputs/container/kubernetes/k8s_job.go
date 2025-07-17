@@ -27,7 +27,6 @@ const (
 //nolint:gochecknoinits
 func init() {
 	registerResource("job", false, newJob)
-	registerMeasurements(&jobMetric{}, &jobObject{})
 }
 
 type job struct {
@@ -185,10 +184,10 @@ func (j *job) buildObjectPoints(list *apibatchv1.JobList) []*point.Point {
 	return pts
 }
 
-type jobMetric struct{}
+type JobMetric struct{}
 
 //nolint:lll
-func (*jobMetric) Info() *inputs.MeasurementInfo {
+func (*JobMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: jobMetricMeasurement,
 		Desc: "The metric of the Kubernetes Job.",
@@ -209,10 +208,10 @@ func (*jobMetric) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type jobObject struct{}
+type JobObject struct{}
 
 //nolint:lll
-func (*jobObject) Info() *inputs.MeasurementInfo {
+func (*JobObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: jobObjectClass,
 		Desc: "The object of the Kubernetes Job.",

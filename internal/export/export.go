@@ -16,6 +16,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/pipeline-go/ptinput/funcs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/changes"
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
@@ -121,12 +122,15 @@ type Params struct {
 	InputENVSampleZh    string
 	NonInputENVSample   map[string]string
 	NonInputENVSampleZh map[string]string
-	ReleaseDate         string
-	AvailableArchs      string
-	PipelineFuncs       string
-	PipelineFuncsEN     string
-	DatakitConfSample   string
-	Year                string // year of current time
+
+	ChangeManifests *changes.Manifests
+
+	ReleaseDate       string
+	AvailableArchs    string
+	PipelineFuncs     string
+	PipelineFuncsEN   string
+	DatakitConfSample string
+	Year              string // year of current time
 
 	// Measurements used to render metric info into markdown documents.
 	Measurements []*inputs.MeasurementInfo
@@ -171,6 +175,8 @@ func buildInputDoc(inputName string, md []byte, opt *exportOptions) ([]byte, err
 		Version:    opt.version,
 		DCAVersion: opt.dcaVersion,
 
+		ChangeManifests: changes.MustLoadAllManifest(),
+
 		ReleaseDate:    git.BuildAt,
 		AvailableArchs: archs,
 		Measurements:   measurements,
@@ -195,6 +201,7 @@ func buildNonInputDocs(fileName string, md []byte, opt *exportOptions) ([]byte, 
 		Version:             opt.version,
 		DCAVersion:          opt.dcaVersion,
 		ReleaseDate:         git.BuildAt,
+		ChangeManifests:     changes.MustLoadAllManifest(),
 		NonInputENVSample:   make(map[string]string),
 		NonInputENVSampleZh: make(map[string]string),
 		DatakitConfSample:   datakit.MainConfSample(datakit.BrandDomainTemplate),
@@ -237,9 +244,10 @@ func buildPipelineDocs(
 	}
 
 	p := &Params{
-		Version:     opt.version,
-		DCAVersion:  opt.dcaVersion,
-		ReleaseDate: git.BuildAt,
+		Version:         opt.version,
+		DCAVersion:      opt.dcaVersion,
+		ReleaseDate:     git.BuildAt,
+		ChangeManifests: changes.MustLoadAllManifest(),
 
 		DatakitConfSample: datakit.MainConfSample(datakit.BrandDomainTemplate),
 		PipelineFuncs:     sb.String(),

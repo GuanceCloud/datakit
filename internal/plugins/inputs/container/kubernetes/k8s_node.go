@@ -30,7 +30,6 @@ const (
 //nolint:gochecknoinits
 func init() {
 	registerResource("node", false, newNode)
-	registerMeasurements(&nodeMetric{}, &nodeObject{})
 }
 
 type node struct {
@@ -206,10 +205,10 @@ func (n *node) buildObjectPoints(list *apicorev1.NodeList) []*point.Point {
 	return pts
 }
 
-type nodeMetric struct{}
+type NodeMetric struct{}
 
 //nolint:lll
-func (*nodeMetric) Info() *inputs.MeasurementInfo {
+func (*NodeMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: nodeMetricMeasurement,
 		Desc: "The metric of the Kubernetes Node.",
@@ -232,10 +231,10 @@ func (*nodeMetric) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type nodeObject struct{}
+type NodeObject struct{}
 
 //nolint:lll
-func (*nodeObject) Info() *inputs.MeasurementInfo {
+func (*NodeObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: nodeObjectClass,
 		Desc: "The object of the Kubernetes Node.",

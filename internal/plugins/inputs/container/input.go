@@ -17,6 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/container/kubernetes"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -69,14 +70,47 @@ type Input struct {
 	chPause chan bool
 }
 
-func (*Input) SampleConfig() string                    { return sampleCfg }
-func (*Input) Catalog() string                         { return "container" }
-func (*Input) PipelineConfig() map[string]string       { return nil }
-func (*Input) GetPipeline() []*tailer.Option           { return nil }
-func (*Input) RunPipeline()                            { /*nil*/ }
-func (*Input) Singleton()                              { /*nil*/ }
-func (*Input) SampleMeasurement() []inputs.Measurement { return getCollectorMeasurement() }
-func (*Input) ElectionEnabled() bool                   { return true }
+func (*Input) SampleConfig() string              { return sampleCfg }
+func (*Input) Catalog() string                   { return "container" }
+func (*Input) PipelineConfig() map[string]string { return nil }
+func (*Input) GetPipeline() []*tailer.Option     { return nil }
+func (*Input) RunPipeline()                      { /*nil*/ }
+func (*Input) Singleton()                        { /*nil*/ }
+func (*Input) SampleMeasurement() []inputs.Measurement {
+	return []inputs.Measurement{
+		&kubernetes.StatefulsetObject{},
+		&kubernetes.StatefulsetMetric{},
+		&kubernetes.ReplicasetMetric{},
+		&kubernetes.ReplicasetObject{},
+		&kubernetes.ServiceMetric{},
+		&kubernetes.ServiceObject{},
+		&kubernetes.PodMetric{},
+		&kubernetes.PodObject{},
+		&kubernetes.PersistentvolumeclaimObject{},
+		&kubernetes.PersistentvolumeObject{},
+		&kubernetes.K8sResourceCount{},
+		&kubernetes.ObjectChangeEvent{},
+		&kubernetes.CronjobMetric{},
+		&kubernetes.CronjobObject{},
+		&kubernetes.DaemonsetMetric{},
+		&kubernetes.DaemonsetObject{},
+		&kubernetes.DeploymentMetric{},
+		&kubernetes.DeploymentObject{},
+		&kubernetes.DfpvMetric{},
+		&kubernetes.DfpvObject{},
+		&kubernetes.EndpointMetric{},
+		&kubernetes.K8sEventLog{},
+		&kubernetes.JobMetric{},
+		&kubernetes.JobObject{},
+		&kubernetes.NodeMetric{},
+		&kubernetes.NodeObject{},
+
+		&containerMetric{},
+		&containerObject{},
+		&containerLog{},
+	}
+}
+func (*Input) ElectionEnabled() bool { return true }
 func (*Input) AvailableArchs() []string {
 	return []string{datakit.OSLabelLinux, datakit.LabelK8s, datakit.LabelDocker}
 }
