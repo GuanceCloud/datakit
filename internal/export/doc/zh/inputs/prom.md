@@ -107,13 +107,7 @@ http,StatusCode=404,le=0.003,method=GET,tag_exists=yes request_duration_seconds_
 
 {{$m.Desc}}
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}
 

@@ -80,13 +80,7 @@ export CATALINA_OPTS="-javaagent:dd-java-agent.jar \
 
 ### `{{$m.Name}}`
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{ end }}
@@ -304,13 +298,7 @@ Tomcat started.
 
 ### `{{$m.Name}}`
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{ end }}

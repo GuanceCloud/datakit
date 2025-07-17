@@ -65,12 +65,6 @@ UDP 指标需要操作系统有 `nc` 程序
 
 ### `{{$m.Name}}`
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}

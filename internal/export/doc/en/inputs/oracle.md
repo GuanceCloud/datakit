@@ -259,13 +259,7 @@ For all of the following data collections, the global election tags will added a
 
 {{$m.Desc}}
 
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}
 {{ end }}
@@ -280,13 +274,7 @@ For all of the following data collections, the global election tags will added a
 
 {{$m.Desc}}
 
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{ end }}
@@ -320,13 +308,7 @@ Change the value of the field `slow_query_time` from `0s` to the threshold time,
 
 {{$m.Desc}}
 
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{ end }}

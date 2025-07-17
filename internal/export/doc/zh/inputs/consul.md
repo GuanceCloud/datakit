@@ -68,13 +68,7 @@ sudo tar -zxvf consul_exporter-0.7.1.linux-amd64.tar.gz
 
 ### `{{$m.Name}}`
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}
 

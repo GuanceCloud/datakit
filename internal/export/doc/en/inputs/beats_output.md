@@ -343,13 +343,7 @@ All of the following data collections are appended by default with global tags n
 
 {{$m.Desc}}
 
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}
 

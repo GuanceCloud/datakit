@@ -61,13 +61,7 @@ Net 采集器用于采集主机网络信息，如各网络接口的流量信息�
 
 ### `{{$m.Name}}`
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}
 

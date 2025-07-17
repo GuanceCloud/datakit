@@ -272,25 +272,6 @@ It also includes host information, service information, and the number of spans 
 
 There may be significant differences in data due to different languages and versions.
 
-{{range $i, $m := .Measurements}}
-
-{{if eq $m.Type "object"}}
-
-### `{{$m.Name}}`
-
-{{$m.Desc}}
-
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}
-{{end}}
-
-{{end}}
-
 ### Add a Business Tag to your Code {#add-tags}
 
 Starting from DataKit version [1.21.0](../datakit/changelog.md#cl-1.21.0), do not include All in Span.Mate are advanced to the first level label and only select following list labels:
@@ -349,13 +330,7 @@ Currently, this feature is only supported in **Java Agent**. Below are descripti
 
 {{$m.Desc}}
 
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{end}}
@@ -370,13 +345,7 @@ Currently, this feature is only supported in **Java Agent**. Below are descripti
 
 {{$m.Desc}}
 
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{end}}

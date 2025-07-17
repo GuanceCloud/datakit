@@ -65,12 +65,6 @@ CPU 采集器用于系统 CPU 使用率等指标的采集。
 
 {{$m.Desc}}
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}

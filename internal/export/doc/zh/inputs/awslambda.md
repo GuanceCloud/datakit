@@ -54,13 +54,7 @@ AWS Lambda 采集器是通过 AWS Lambda Extension 的方式采集 AWS Lambda �
 
 ### `{{$m.Name}}`
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}
 

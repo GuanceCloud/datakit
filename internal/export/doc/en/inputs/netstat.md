@@ -94,12 +94,6 @@ Measurements for statistics regardless of port number: `netstat` ; Measurements 
 
 {{ range $i, $m := .Measurements }}
 
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}

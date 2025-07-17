@@ -104,13 +104,7 @@ Note that the tag name here is case-sensitive, and you can test the data with th
 
 {{$m.Desc}}
 
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}
 

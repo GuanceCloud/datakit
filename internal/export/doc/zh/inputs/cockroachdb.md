@@ -54,12 +54,6 @@ CockroachDB 采集器用于采集 CockroachDB 相关的指标数据，目前只�
 
 ### `{{$m.Name}}`
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}

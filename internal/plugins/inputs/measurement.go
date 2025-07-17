@@ -190,17 +190,28 @@ type CommonMeasurement struct {
 	Tags   map[string]string
 }
 
-func (m *MeasurementInfo) FieldsMarkdownTable() string {
+// MarkdownTable output tags and field in single mardkdown table.
+func (m *MeasurementInfo) MarkdownTable() string {
 	const tableHeader = `
-| Metric | Description |
+| Tags & Fields| Description |
 | ----   |:----        |`
 
-	const monoRowfmt = "|**%s**|%s<br>*Type: %s*<br>*Unit: %s*|" // 指标/标签列等宽字体展示
-
-	rowfmt := monoRowfmt
+	const tagRowfmt = "|**%s**<br>(`tag`)|%s|"
+	const fieldRowfmt = "|**%s**|%s<br>*Type: %s*<br>*Unit: %s*|"
 
 	rows := []string{tableHeader}
-	keys := sortMapKey(m.Fields)
+	// show tags before fields
+	keys := sortMapKey(m.Tags)
+	for _, key := range keys {
+		f, ok := m.Tags[key].(*TagInfo)
+		if !ok {
+			continue
+		}
+
+		rows = append(rows, fmt.Sprintf(tagRowfmt, key, f.Desc))
+	}
+
+	keys = sortMapKey(m.Fields)
 	for _, key := range keys { // XXX: f.Type not used
 		f, ok := m.Fields[key].(*FieldInfo)
 		if !ok {
@@ -212,33 +223,7 @@ func (m *MeasurementInfo) FieldsMarkdownTable() string {
 			unit = NoUnit
 		}
 
-		rows = append(rows, fmt.Sprintf(rowfmt, key, f.Desc, f.DataType, unit))
-	}
-	return strings.Join(rows, "\n")
-}
-
-func (m *MeasurementInfo) TagsMarkdownTable() string {
-	if len(m.Tags) == 0 {
-		return "NA"
-	}
-
-	tableHeader := `
-| Tag | Description |
-|  ----: | --------|`
-
-	rows := []string{tableHeader}
-	keys := sortMapKey(m.Tags)
-	for _, key := range keys {
-		desc := ""
-		switch t := m.Tags[key].(type) {
-		case *TagInfo:
-			desc = t.Desc
-		case TagInfo:
-			desc = t.Desc
-		default:
-		}
-
-		rows = append(rows, fmt.Sprintf("|**%s**|%s|", key, desc))
+		rows = append(rows, fmt.Sprintf(fieldRowfmt, key, f.Desc, f.DataType, unit))
 	}
 	return strings.Join(rows, "\n")
 }

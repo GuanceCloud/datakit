@@ -140,13 +140,7 @@ IPMI 采集器支持选举功能，当多台机器运行 DataKit 时，通过选
 
 {{ range $i, $m := .Measurements }}
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}
 

@@ -74,13 +74,7 @@ DataKit 默认开启云同步，目前支持阿里云/腾讯云/AWS/华为云/�
 
 ### `{{$m.Name}}`
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}
 

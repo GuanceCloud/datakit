@@ -165,13 +165,7 @@ jvm metrics collected by SkyWalking language agent.
 
 {{$m.Desc}}
 
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{end}}

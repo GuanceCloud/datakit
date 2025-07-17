@@ -167,13 +167,7 @@ PUT _plugins/_security/api/roles/monitor
 
 ### `{{$m.Name}}`
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}
 {{ end }}
@@ -188,13 +182,7 @@ PUT _plugins/_security/api/roles/monitor
 
 {{$m.Desc}}
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{ end }}

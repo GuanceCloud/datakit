@@ -88,13 +88,7 @@ You can specify additional tags for the Jenkins CI Event in the configuration by
 
 ### `{{$m.Name}}`
 
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}
 

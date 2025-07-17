@@ -101,12 +101,6 @@ Simply configure Output Host as a logstreaming URL (`http://Datakit_IP:PORT/v1/w
 
 {{$m.Desc}}
 
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}

@@ -65,13 +65,7 @@ The Zipkin Agent embedded in DataKit is used to receive, calculate and analyze t
 
 {{$m.Desc}}
 
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{end}}

@@ -54,12 +54,6 @@ lsblk 采集器用于 Linux 主机块设备信息采集，如设备名称、主�
 
 ### `{{$m.Name}}`
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}

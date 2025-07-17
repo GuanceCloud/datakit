@@ -57,13 +57,7 @@ Already tested CockroachDB version:
 
 ### `{{$m.Name}}`
 
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}
 <!-- markdownlint-enable -->

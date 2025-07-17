@@ -114,13 +114,7 @@ GO
 {{if eq $m.Type "metric"}}
 ### `{{$m.Name}}`
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 字段列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}
 {{ end }}
@@ -135,13 +129,7 @@ GO
 
 {{$m.Desc}}
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{ end }}
@@ -154,13 +142,7 @@ GO
 {{if eq $m.Type "logging"}}
 ### `{{$m.Name}}`
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 字段列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}
 {{ end }}

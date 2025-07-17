@@ -165,13 +165,7 @@ For all of the following data collections, the global election tags will added a
 
 ### `{{$m.Name}}`
 
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}
 {{ end }}
@@ -186,13 +180,7 @@ For all of the following data collections, the global election tags will added a
 
 {{$m.Desc}}
 
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{ end }}

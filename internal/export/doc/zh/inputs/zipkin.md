@@ -64,13 +64,7 @@ DataKit 内嵌的 Zipkin Agent 用于接收，运算，分析 Zipkin Tracing 协
 
 {{$m.Desc}}
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{ end }}

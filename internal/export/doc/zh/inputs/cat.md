@@ -122,13 +122,7 @@ Cat 通过采集系统的各种指标数据，如 CPU、内存、网络、磁盘
 
 {{$m.Desc}}
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 字段列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{ end }}
@@ -143,13 +137,7 @@ Cat 通过采集系统的各种指标数据，如 CPU、内存、网络、磁盘
 
 {{$m.Desc}}
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 字段列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{ end }}

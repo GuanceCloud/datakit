@@ -90,12 +90,6 @@ Neo4j 采集器用于采集 Neo4j 相关的指标数据，目前只支持 Promet
 
 ### `{{$m.Name}}`
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}

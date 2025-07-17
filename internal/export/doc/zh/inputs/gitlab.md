@@ -100,13 +100,7 @@ GitLab 需要开启 Prometheus 数据采集功能，开启方式如下（以英�
 
 {{$m.Desc}}
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}
 {{ end }}
@@ -121,13 +115,7 @@ GitLab 需要开启 Prometheus 数据采集功能，开启方式如下（以英�
 
 {{$m.Desc}}
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}
 {{ end }}

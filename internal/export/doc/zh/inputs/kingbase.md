@@ -68,13 +68,7 @@ sys_stat_statements.track = 'top'
 
 ### `{{$m.Name}}`
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}
 {{ end }}
@@ -87,15 +81,7 @@ sys_stat_statements.track = 'top'
 
 ### `{{$m.Name}}`
 
-{{$m.Desc}}
-
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{ end }}

@@ -112,13 +112,7 @@ slow_query_time = "10s"
 
 {{$m.Desc}}
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 字段列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{ end }}
@@ -131,15 +125,7 @@ slow_query_time = "10s"
 
 ### `{{$m.Name}}`
 
-{{$m.Desc}}
-
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 字段列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{ end }}

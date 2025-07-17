@@ -270,13 +270,7 @@ plugin_load_add ='group_replication.so'
 
 {{$m.Desc}}
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 字段列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{ end }}
@@ -291,13 +285,7 @@ plugin_load_add ='group_replication.so'
 
 {{$m.Desc}}
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 字段列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{ end }}
@@ -449,15 +437,7 @@ plugin_load_add ='group_replication.so'
 
 ### `{{$m.Name}}`
 
-{{$m.Desc}}
-
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 字段列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{ end }}

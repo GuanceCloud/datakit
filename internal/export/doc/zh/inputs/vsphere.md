@@ -75,13 +75,7 @@ monitor   :
 
 {{$m.Desc}}
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{ end }}
@@ -97,13 +91,7 @@ monitor   :
 
 {{$o.Desc}}
 
-- 标签
-
-{{$o.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$o.FieldsMarkdownTable}}
+{{$o.MarkdownTable}}
 {{end}}
 
 {{ end }}
@@ -119,13 +107,7 @@ monitor   :
 
 {{$l.Desc}}
 
-- 标签
-
-{{$l.TagsMarkdownTable}}
-
-- 字段列表
-
-{{$l.FieldsMarkdownTable}}
+{{$l.MarkdownTable}}
 {{end}}
 
 {{ end }}

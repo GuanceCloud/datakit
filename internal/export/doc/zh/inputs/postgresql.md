@@ -102,13 +102,7 @@ PostgreSQL 采集器可以从 PostgreSQL 实例中采集实例运行状态指标
 
 ### `{{$m.Name}}`
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}
 {{ end }}
@@ -123,13 +117,7 @@ PostgreSQL 采集器可以从 PostgreSQL 实例中采集实例运行状态指标
 
 {{$m.Desc}}
 
-- 标签
-
-{{$m.TagsMarkdownTable}}
-
-- 指标列表
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 {{end}}
 
 {{ end }}

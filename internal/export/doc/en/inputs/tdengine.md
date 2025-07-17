@@ -56,13 +56,7 @@ TDengine collector needs to connect `taos_adapter` can work normally, taosAdapte
 
 {{$m.Desc}}
 
-- Tags
-
-{{$m.TagsMarkdownTable}}
-
-- Metrics
-
-{{$m.FieldsMarkdownTable}}
+{{$m.MarkdownTable}}
 
 {{ end }}
 
