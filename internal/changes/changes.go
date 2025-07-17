@@ -24,6 +24,20 @@ func LoadAllManifests() error {
 	return nil
 }
 
+func MustLoadAllManifest() *Manifests {
+	m := &Manifests{}
+
+	if x, err := loadManifest("manifests/k8s.toml"); err != nil {
+		panic(fmt.Sprintf("loadManifest.k8s: %s", err.Error()))
+	} else {
+		m.K8sManifest = x
+	}
+
+	// TODO: add more
+
+	return m
+}
+
 func loadManifest(path string) (*Manifest, error) {
 	data, err := AllManifests.ReadFile(path)
 	if err != nil {

@@ -23,11 +23,6 @@ const (
 	eventLoggingMeasurement = "kubernetes_events"
 )
 
-//nolint:gochecknoinits
-func init() {
-	registerMeasurements(&event{})
-}
-
 func (k *Kube) gatherEvent(ctx context.Context) {
 	list, err := k.client.GetEvents(allNamespaces).List(context.Background(), metav1.ListOptions{Limit: 1})
 	if err != nil {
@@ -130,10 +125,10 @@ func latestResourveVersion(v1, v2 string) string {
 	return v1
 }
 
-type event struct{}
+type K8sEventLog struct{}
 
 //nolint:lll
-func (*event) Info() *inputs.MeasurementInfo {
+func (*K8sEventLog) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: eventLoggingMeasurement,
 		Desc: "The logging of the Kubernetes Event.",

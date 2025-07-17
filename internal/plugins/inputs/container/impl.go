@@ -147,13 +147,3 @@ func newK8sCollectors(ipt *Input) (Collector, error) {
 
 	return kubernetes.NewKubeCollector(client, &cfg, ipt.chPause)
 }
-
-func getCollectorMeasurement() []inputs.Measurement {
-	res := []inputs.Measurement{
-		&containerMetric{},
-		&containerObject{},
-		&containerLog{},
-	}
-	res = append(res, kubernetes.Measurements()...)
-	return res
-}

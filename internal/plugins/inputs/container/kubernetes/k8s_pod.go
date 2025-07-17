@@ -32,7 +32,6 @@ const (
 func init() {
 	registerResource("pod-local", true, newPodLocal)
 	registerResource("pod-remote", false, newPodRemote)
-	registerMeasurements(&podMetric{}, &podObject{})
 }
 
 type (
@@ -416,10 +415,10 @@ func queryPodMetrics(ctx context.Context, client PodMetricsClient, item *apicore
 	return kvs
 }
 
-type podMetric struct{}
+type PodMetric struct{}
 
 //nolint:lll
-func (*podMetric) Info() *inputs.MeasurementInfo {
+func (*PodMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: podMetricMeasurement,
 		Desc: "The metric of the Kubernetes Pod.",
@@ -466,10 +465,10 @@ func (*podMetric) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type podObject struct{}
+type PodObject struct{}
 
 //nolint:lll
-func (*podObject) Info() *inputs.MeasurementInfo {
+func (*PodObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: podObjectClass,
 		Desc: "The object of the Kubernetes Pod.",

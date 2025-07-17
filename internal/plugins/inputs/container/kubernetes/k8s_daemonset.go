@@ -31,7 +31,6 @@ const (
 //nolint:gochecknoinits
 func init() {
 	registerResource("daemonset", false, newDaemonset)
-	registerMeasurements(&daemonsetMetric{}, &daemonsetObject{})
 }
 
 type daemonset struct {
@@ -235,10 +234,10 @@ func compareDaemonSet(oldVal, newVal *apiappsv1.DaemonSet) []FieldDiff {
 	return res
 }
 
-type daemonsetMetric struct{}
+type DaemonsetMetric struct{}
 
 //nolint:lll
-func (*daemonsetMetric) Info() *inputs.MeasurementInfo {
+func (*DaemonsetMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: daemonsetMetricMeasurement,
 		Desc: "The metric of the Kubernetes DaemonSet.",
@@ -261,10 +260,10 @@ func (*daemonsetMetric) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type daemonsetObject struct{}
+type DaemonsetObject struct{}
 
 //nolint:lll
-func (*daemonsetObject) Info() *inputs.MeasurementInfo {
+func (*DaemonsetObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: daemonsetObjectClass,
 		Desc: "The object of the Kubernetes DaemonSet.",

@@ -17,9 +17,10 @@ type containerMetric struct{}
 //nolint:lll
 func (*containerMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: containerMeasurement,
-		Cat:  point.Metric,
-		Desc: "The metric of containers, only supported Running status.",
+		Name:   containerMeasurement,
+		Cat:    point.Metric,
+		Desc:   "The metric of containers, only supported Running status.",
+		DescZh: "容器指标字段（只有正在运行的容器才能采集）",
 		Tags: map[string]interface{}{
 			"container_id":              inputs.NewTagInfo(`Container ID`),
 			"container_name":            inputs.NewTagInfo("Container name from k8s (label `io.kubernetes.container.name`). If empty then use $container_runtime_name."),
@@ -73,9 +74,10 @@ type containerObject struct{}
 //nolint:lll
 func (*containerObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: containerMeasurement,
-		Desc: "The object of containers, only supported Running status.",
-		Cat:  point.Object,
+		Name:   containerMeasurement,
+		Desc:   "The object of containers, only supported Running status.",
+		DescZh: "容器对象字段（只有正在运行的容器才能采集）",
+		Cat:    point.Object,
 		Tags: map[string]interface{}{
 			"name":                      inputs.NewTagInfo(`The ID of the container.`),
 			"container_id":              inputs.NewTagInfo(`Container ID.`),
@@ -133,9 +135,10 @@ type containerLog struct{}
 //nolint:lll
 func (*containerLog) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "<CONTAINER-NAME>",
-		Desc: "The logging of the container.",
-		Cat:  point.Logging,
+		Name:   "<CONTAINER-NAME>",
+		Desc:   "The logging of the container.",
+		DescZh: "容器日志采集",
+		Cat:    point.Logging,
 		Tags: map[string]interface{}{
 			"host":            inputs.NewTagInfo(`Host name`),
 			"service":         inputs.NewTagInfo("The name of the service, if `service` is empty then use `source`."),

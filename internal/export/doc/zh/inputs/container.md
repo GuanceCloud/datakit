@@ -167,7 +167,7 @@ monitor:
 
 ### `{{$m.Name}}`
 
-{{$m.Desc}}
+{{$m.DescZh}}
 {{$m.MarkdownTable}}
 {{end}}
 
@@ -181,7 +181,7 @@ monitor:
 
 ### `{{$o.Name}}`
 
-{{$o.Desc}}
+{{$o.DescZh}}
 
 {{$o.MarkdownTable}}
 {{end}}
@@ -196,7 +196,7 @@ monitor:
 
 ### `{{$l.Name}}`
 
-{{$l.Desc}}
+{{$l.DescZh}}
 
 {{$l.MarkdownTable}}
 {{end}}
@@ -211,7 +211,7 @@ monitor:
 
 ### `{{$o.Name}}`
 
-{{$o.Desc}}
+{{$o.DescZh}}
 
 {{$o.MarkdownTable}}
 {{end}}

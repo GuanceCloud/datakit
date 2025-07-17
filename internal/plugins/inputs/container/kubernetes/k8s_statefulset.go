@@ -31,7 +31,6 @@ const (
 //nolint:gochecknoinits
 func init() {
 	registerResource("statefulset", false, newStatefulset)
-	registerMeasurements(&statefulsetMetric{}, &statefulsetObject{})
 }
 
 type statefulset struct {
@@ -251,10 +250,10 @@ func compareStatefulSet(oldVal, newVal *apiappsv1.StatefulSet) []FieldDiff {
 	return res
 }
 
-type statefulsetMetric struct{}
+type StatefulsetMetric struct{}
 
 //nolint:lll
-func (*statefulsetMetric) Info() *inputs.MeasurementInfo {
+func (*StatefulsetMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: statefulsetMetricMeasurement,
 		Desc: "The metric of the Kubernetes StatefulSet.",
@@ -276,10 +275,10 @@ func (*statefulsetMetric) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type statefulsetObject struct{}
+type StatefulsetObject struct{}
 
 //nolint:lll
-func (*statefulsetObject) Info() *inputs.MeasurementInfo {
+func (*StatefulsetObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: statefulsetObjectClass,
 		Desc: "The object of the Kubernetes StatefulSet.",

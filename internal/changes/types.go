@@ -5,6 +5,11 @@
 
 package changes
 
+import (
+	"fmt"
+	"strings"
+)
+
 type Manifests struct {
 	K8sManifest  *Manifest
 	HostManifest *Manifest
@@ -13,6 +18,29 @@ type Manifests struct {
 type Manifest struct {
 	Version string   `toml:"version"`
 	Changes []Change `toml:"change"`
+}
+
+func (m *Manifest) MDTable(lang string) string {
+	if len(m.Changes) == 0 {
+		return ""
+	}
+
+	arr := []string{
+		`| ID | Title & Message |`,
+		`|--- |--- |`,
+	}
+
+	for _, c := range m.Changes {
+		switch lang {
+		// change \n as line break in markdown table column
+		case "en":
+			arr = append(arr, fmt.Sprintf("|**%s**|**Title**: %s<br>**Message**:<br>%s|", c.ID, c.Title.En, strings.ReplaceAll(c.Message.En, "\n", "<br>")))
+		case "zh":
+			arr = append(arr, fmt.Sprintf("|**%s**|**Title**: %s<br>**Message**:<br>%s|", c.ID, c.Title.Zh, strings.ReplaceAll(c.Message.Zh, "\n", "<br>")))
+		}
+	}
+
+	return strings.Join(arr, "\n")
 }
 
 type Change struct {

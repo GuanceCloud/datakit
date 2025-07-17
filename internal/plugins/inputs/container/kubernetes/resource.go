@@ -8,7 +8,6 @@ package kubernetes
 import (
 	"context"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 )
@@ -18,17 +17,7 @@ var (
 	queryLimit         int64 = 100
 	allNamespaces            = ""
 	emptyFieldSelector       = ""
-
-	measurements []inputs.Measurement
 )
-
-func Measurements() []inputs.Measurement {
-	return measurements
-}
-
-func registerMeasurements(meas ...inputs.Measurement) {
-	measurements = append(measurements, meas...)
-}
 
 type (
 	resourceConstructor func(client k8sClient, cfg *Config) resource

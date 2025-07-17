@@ -30,7 +30,6 @@ const (
 //nolint:gochecknoinits
 func init() {
 	registerResource("service", false, newService)
-	registerMeasurements(&serviceMetric{}, &serviceObject{})
 }
 
 type service struct {
@@ -151,10 +150,10 @@ func (s *service) buildObjectPoints(list *apicorev1.ServiceList) []*point.Point 
 	return pts
 }
 
-type serviceMetric struct{}
+type ServiceMetric struct{}
 
 //nolint:lll
-func (*serviceMetric) Info() *inputs.MeasurementInfo {
+func (*ServiceMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: serviceMetricMeasurement,
 		Desc: "The metric of the Kubernetes Service.",
@@ -171,10 +170,10 @@ func (*serviceMetric) Info() *inputs.MeasurementInfo {
 	}
 }
 
-type serviceObject struct{}
+type ServiceObject struct{}
 
 //nolint:lll
-func (*serviceObject) Info() *inputs.MeasurementInfo {
+func (*ServiceObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: serviceObjectClass,
 		Desc: "The object of the Kubernetes Service.",
