@@ -7,14 +7,31 @@ package main
 
 import (
 	"net/http/httptest"
-	"testing"
+	"strings"
+	T "testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCheckIsVersion(t *testing.T) {
+func Test_trimFileName(t *T.T) {
+	t.Run(`basic`, func(t *T.T) {
+		src := " ./abc.1,  ./def.1   "
+		arr := strings.Split(src, ",")
+
+		assert.Equal(t, `abc.1`, trimFileName(arr[0], "./"))
+		assert.Equal(t, `def.1`, trimFileName(arr[1], "./"))
+
+		src = ` .\abc.1,  .\def.1   `
+		arr = strings.Split(src, ",")
+
+		assert.Equal(t, `abc.1`, trimFileName(arr[0], `\.`))
+		assert.Equal(t, `def.1`, trimFileName(arr[1], `\.`))
+	})
+}
+
+func TestCheckIsVersion(t *T.T) {
 	r := gin.New()
 	r.GET("/v1/ping", func(c *gin.Context) {
 		c.Data(200, "", []byte(`{ "content":{ "version": "1.2.3", "uptime": "30m", "host": "wtf" }}`))
@@ -40,7 +57,7 @@ func TestCheckIsVersion(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.ver, func(t *testing.T) {
+		t.Run(tc.ver, func(t *T.T) {
 			err := checkIsNewVersion(ts.URL, tc.ver)
 			if tc.fail {
 				assert.Error(t, err)

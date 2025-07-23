@@ -500,59 +500,54 @@ CPU utilization is on a percentage basis (maximum 100.0). For an 8-core CPU, if 
 
 [:octicons-tag-24: Version-1.31.0](changelog.md#cl-1.31.0)
 
-If you wish to avoid storing passwords in plain text in configuration files, you can utilize this feature.
-
-When DataKit loads the collector configuration file during startup and encounters `ENC[]`, it will replace the text with the password obtained from a file, environment variable, or AES encryption and reload it into memory to obtain the correct password.
+In configuration files, we can encrypt sensitive information like passwords. When DataKit encounters strings in the format `ENC[]` while loading collector configuration files during startup, it will automatically decrypt them to obtain the correct passwords.
 
 ENC currently supports three methods:
 
-- File Format (Recommended):
+- File-based (`ENC[file:///path/to/enc4dk]`): Simply place the correct password in the corresponding file
+- AES encryption (`ENC[aes://5w1UiRjWuVk53k96WfqEaGUYJ/Oje7zr8xmBeGa3ugI=]`): Requires configuring the key in the main *datakit.conf* file: `aes_key` or `aes_key_file`, the key length must be 16 characters
+- Environment variables: When installing DataKit on Kubernetes, we can [set via environment variables (`ENV_CRYPTO_*`)](datakit-daemonset-deploy.md#env-others)
 
-  Password format in the configuration file: `ENC[file:///path/to/enc4dk]`. Simply enter the correct password in the corresponding file.
+Here's how to configure these methods using the MySQL collector as an example:
 
-- AES Encryption Method:
+- File-based method
 
-  You need to configure the secret key in the main configuration file `datakit.conf`: `crypto_AES_key` or `crypto_AES_Key_filePath`.
-  The password should be formatted as: `ENC[aes://5w1UiRjWuVk53k96WfqEaGUYJ/Oje7zr8xmBeGa3ugI=]`
+    First, place the plaintext password in file `/usr/local/datakit/enc4mysql`, then modify the mysql.conf configuration file:
 
-Here's an example using `mysql` to illustrate how to configure and use these methods:
+    ```toml
+    # Partial configuration
+    [[inputs.mysql]]
+      host = "localhost"
+      user = "datakit"
+      pass = "ENC[file:///usr/local/datakit/enc4mysql]"
+      port = 3306
+      # sock = "<SOCK>"
+      # charset = "utf8"
+    ```
 
-1 File Format:
+    DataKit will read the password from `/usr/local/datakit/enc4mysql` and replace it, resulting in `pass = "Hello*******"`
 
-First, save the password in the file `/usr/local/datakit/enc4mysql`, then modify the configuration file mysql.conf:
+- AES encryption method
 
-```toml
-# Partial configuration
-[[inputs.mysql]]
-  host = "localhost"
-  user = "datakit"
-  pass = "ENC[file:///usr/local/datakit/enc4mysql]"
-  port = 3306
-  # sock = "<SOCK>"
-  # charset = "utf8"
-```
+    First configure the key in `datakit.conf`:
 
-DK will read the password from `/usr/local/datakit/enc4mysql` and replace it, resulting in `pass = "Hello*******"`
+    ```toml
+    # crypto key or key filePath.
+    [crypto]
+      # Configure key
+      aes_key = "0123456789abcdef"
+      # Or, place the key in a file and specify the path here
+      aes_key_file = "/usr/local/datakit/mykey"
+    ```
 
-2 AES Encryption Method
+    mysql.conf configuration file:
 
-First, configure the secret key in `datakit.conf`:
+    ```toml
+    pass = "ENC[aes://5w1UiRjWuVk53k96WfqEaGUYJ/Oje7zr8xmBeGa3ugI=]"
+    ```
 
-```toml
-# Top-level field in the configuration file
-# Secret key
-crypto_AES_key = "0123456789abcdef"
-# Or secret key file:
-crypto_AES_Key_filePath = "/usr/local/datakit/mykey"
-```
+Note: The ciphertext obtained through AES encryption must be entered completely. Here's a code example:
 
-`mysql.conf` file:
-
-```toml
-pass = "ENC[aes://5w1UiRjWuVk53k96WfqEaGUYJ/Oje7zr8xmBeGa3ugI=]"
-```
-
-Note that the cipherText obtained through AES encryption needs to be filled in completely. Here is a code example：
 <!-- markdownlint-disable MD046 -->
 === "Golang"
 

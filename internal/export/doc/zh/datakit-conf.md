@@ -8,7 +8,7 @@ DataKit 主配置用来配置 DataKit 自己的运行行为。
 === "主机部署"
 
     其目录一般位于：
-    
+
     - Linux/Mac: `/usr/local/datakit/conf.d/datakit.conf`
     - Windows: `C:\Program Files\datakit\conf.d\datakit.conf`
 
@@ -37,9 +37,9 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
 === "*datakit.conf*"
 
     ### 修改 HTTP 服务地址 {#update-http-server-host}
-    
+
     默认的 HTTP 服务地址是 `localhost:9529`，如果 9529 端口被占用，或希望从外部访问 DataKit 的 HTTP 服务（比如希望接收 [RUM](../integrations/rum.md) 或 [Tracing](../integrations/datakit-tracing.md) 数据），可将其修改成：
-    
+
     ```toml
     [http_api]
        listen = "0.0.0.0:<other-port>"
@@ -57,13 +57,13 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
        listen = "/tmp/datakit.sock"
     ```
     配置完成后可以使用 `curl` 命令测试是否配置成功：`sudo curl --no-buffer -XGET --unix-socket /tmp/datakit.sock http:/localhost/v1/ping`。更多关于 `curl` 的测试命令的信息可以参阅[这里](https://superuser.com/a/925610){:target="_blank"}。
-    
+
     ### HTTP 请求频率控制 {#set-http-api-limit}
 
     > [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0) 已经默认开启该功能。
-    
+
     由于 DataKit 需要大量接收外部数据写入，为了避免给所在节点造成巨大开销，DataKit 默认给 API 设置了 20/s 的 QPS 限制：
-    
+
     ```toml
     [http_api]
       request_rate_limit = 20.0 # 限制每个客户端（IP + API 路由）每秒发起请求的 QPS 限制
@@ -175,7 +175,7 @@ DataKit 允许给其采集的所有数据配置全局标签，全局标签分为
 
 ```toml
 [[inputs.mysql.tags]]
-  host = "real-mysql-host-name" 
+  host = "real-mysql-host-name"
 ```
 
 - 以 [HTTP API 方式往 DataKit 推送数据](apis.md#api-v1-write)时，可以通过 API 参数 `ignore_global_tags` 来屏蔽所有全局 Tag
@@ -277,7 +277,7 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 如果 DataKit 超出内存限制后，会被操作系统强制杀掉，通过命令可以看到如下结果，此时需要[手动启动服务](datakit-service-how-to.md#when-service-failed)：
 
 ```shell
-$ systemctl status datakit 
+$ systemctl status datakit
 ● datakit.service - Collects data and upload it to DataFlux.
      Loaded: loaded (/etc/systemd/system/datakit.service; enabled; vendor preset: enabled)
      Active: activating (auto-restart) (Result: signal) since Fri 2022-02-30 16:39:25 CST; 1min 40s ago
@@ -311,9 +311,9 @@ $ systemctl status datakit
     # 看看是否有 swapaccount=1 或 cgroup.memory=swapaccount=1
     cat /proc/cmdline
     ```
-    
+
     如果缺失，需要修改 */etc/default/grub* 中的 `GRUB_CMDLINE_LINUX` 或 `GRUB_CMDLINE_LINUX_DEFAULT`，在尾部添加 `swapaccount=1`，然后运行如下命令，并重启机器：
-    
+
     ```shell
     sudo update-grub # Debian/Ubuntu
     # 或
@@ -439,62 +439,54 @@ ulimit 默认配置为 64000。在 Kubernetes 中，通过[设置 `ENV_ULIMIT`](
 
 [:octicons-tag-24: Version-1.31.0](changelog.md#cl-1.31.0)
 
-
-如果您希望避免在配置文件中以明文存储密码，则可以使用该功能。
-
-DataKit 在启动加载采集器配置文件时遇到 `ENC[]` 时会在文件、env、或者 AES 加密得到密码后替换文本并重新加载到内存中，以得到正确的密码。
+在配置文件中，我们可以对敏感的密码登信息加密。DataKit 在启动加载采集器配置文件时遇到 `ENC[]` 这种形式的字符串时，会主动解密密码，以得到正确的密码。
 
 ENC 目前支持三种方式：
 
-- 文件形式（推荐）：
+- 文件形式（`ENC[file:///path/to/enc4dk]`）：在对应的文件中填写正确的密码即可
+- AES 加密方式（`ENC[aes://5w1UiRjWuVk53k96WfqEaGUYJ/Oje7zr8xmBeGa3ugI=]`）：需要在主配置文件 *datakit.conf*  中配置秘钥： `aes_key` 或者 `aes_key_file`, 秘钥长度是 16 位
+- 环境变量方式：DataKit Kubernetes 安装时可通过[环境变量（`ENV_CRYPTO_*`）来设置](datakit-daemonset-deploy.md#env-others)
 
-    配置文件中密码格式： ENC[file:///path/to/enc4dk] ，在对应的文件中填写正确的密码即可。
+接下来以 MySQL 采集器为例，说明两种方式如何配置使用：
 
-- AES 加密方式。
+- 文件形式
 
-    需要在主配置文件 `datakit.conf`  中配置秘钥： crypto_AES_key 或者 crypto_AES_Key_filePath, 秘钥长度是 16 位。
-    密码处的填写格式为： `ENC[aes://5w1UiRjWuVk53k96WfqEaGUYJ/Oje7zr8xmBeGa3ugI=]`
+    首先，将明文密码放到文件 `/usr/local/datakit/enc4mysql` 中，然后修改配置文件 mysql.conf:
 
+    ```toml
+    # 部分配置
+    [[inputs.mysql]]
+      host = "localhost"
+      user = "datakit"
+      pass = "ENC[file:///usr/local/datakit/enc4mysql]"
+      port = 3306
+      # sock = "<SOCK>"
+      # charset = "utf8"
+    ```
 
-接下来以 `mysql` 为例，说明两种方式如何配置使用：
+    DK 会从 `/usr/local/datakit/enc4mysql` 中读取密码并替换密码，替换后为 `pass = "Hello*******"`
 
-1 文件形式
+- AES 加密方式
 
-首先，将明文密码放到文件 `/usr/local/datakit/enc4mysql` 中，然后修改配置文件 mysql.conf:
+    首先在 `datakit.conf` 中配置秘钥：
 
-```toml
-# 部分配置
-[[inputs.mysql]]
-  host = "localhost"
-  user = "datakit"
-  pass = "ENC[file:///usr/local/datakit/enc4mysql]"
-  port = 3306
-  # sock = "<SOCK>"
-  # charset = "utf8"
-```
+    ```toml
+    # crypto key or key filePath.
+    [crypto]
+      # 配置秘钥
+      aes_key = "0123456789abcdef"
+      # 或者，将秘钥放到文件中并在此配置文件位置。
+      aes_Key_file = "/usr/local/datakit/mykey"
+    ```
 
-DK 会从 `/usr/local/datakit/enc4mysql` 中读取密码并替换密码，替换后为 `pass = "Hello*******"`
+    `mysql.conf` 配置文件：
 
-2 AES 加密方式
-
-首先在 `datakit.conf` 中配置秘钥：
-
-```toml
-# crypto key or key filePath.
-[crypto]
-  # 配置秘钥
-  aes_key = "0123456789abcdef"
-  # 或者，将秘钥放到文件中并在此配置文件位置。
-  aes_Key_file = "/usr/local/datakit/mykey"
-```
-
-`mysql.conf` 配置文件：
-
-```toml
-pass = "ENC[aes://5w1UiRjWuVk53k96WfqEaGUYJ/Oje7zr8xmBeGa3ugI=]"
-```
+    ```toml
+    pass = "ENC[aes://5w1UiRjWuVk53k96WfqEaGUYJ/Oje7zr8xmBeGa3ugI=]"
+    ```
 
 注意，通过 `AES` 加密得到的密文需要完整的填入。以下是代码示例：
+
 <!-- markdownlint-disable MD046 -->
 === "Golang"
 
@@ -505,7 +497,7 @@ pass = "ENC[aes://5w1UiRjWuVk53k96WfqEaGUYJ/Oje7zr8xmBeGa3ugI=]"
         if err != nil {
             return "", err
         }
-    
+
         // PKCS7 padding
         padding := aes.BlockSize - len(plaintext)%aes.BlockSize
         padtext := bytes.Repeat([]byte{byte(padding)}, padding)
@@ -517,39 +509,39 @@ pass = "ENC[aes://5w1UiRjWuVk53k96WfqEaGUYJ/Oje7zr8xmBeGa3ugI=]"
         }
         mode := cipher.NewCBCEncrypter(block, iv)
         mode.CryptBlocks(ciphertext[aes.BlockSize:], []byte(plaintext))
-    
+
         return base64.StdEncoding.EncodeToString(ciphertext), nil
     }
-    
+
     // AESDecrypt AES  解密。
     func AESDecrypt(key []byte, cryptoText string) (string, error) {
         ciphertext, err := base64.StdEncoding.DecodeString(cryptoText)
         if err != nil {
             return "", err
         }
-    
+
         block, err := aes.NewCipher(key)
         if err != nil {
             return "", err
         }
-    
+
         if len(ciphertext) < aes.BlockSize {
             return "", fmt.Errorf("ciphertext too short")
         }
-    
+
         iv := ciphertext[:aes.BlockSize]
         ciphertext = ciphertext[aes.BlockSize:]
-    
+
         mode := cipher.NewCBCDecrypter(block, iv)
         mode.CryptBlocks(ciphertext, ciphertext)
-    
+
         // Remove PKCS7 padding
         padding := int(ciphertext[len(ciphertext)-1])
         if padding > aes.BlockSize {
             return "", fmt.Errorf("invalid padding")
         }
         ciphertext = ciphertext[:len(ciphertext)-padding]
-    
+
         return string(ciphertext), nil
     }
     ```
@@ -562,12 +554,12 @@ pass = "ENC[aes://5w1UiRjWuVk53k96WfqEaGUYJ/Oje7zr8xmBeGa3ugI=]"
     import javax.crypto.spec.SecretKeySpec;
     import java.security.SecureRandom;
     import java.util.Base64;
-    
+
     public class AESUtils {
         public static String AESEncrypt(byte[] key, String plaintext) throws Exception {
             javax.crypto.Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
             SecretKeySpec secretKeySpec = new SecretKeySpec(key, "AES");
-    
+
             SecureRandom random = new SecureRandom();
             byte[] iv = new byte[16];
             random.nextBytes(iv);
@@ -577,30 +569,30 @@ pass = "ENC[aes://5w1UiRjWuVk53k96WfqEaGUYJ/Oje7zr8xmBeGa3ugI=]"
             byte[] ivAndEncrypted = new byte[iv.length + encrypted.length];
             System.arraycopy(iv, 0, ivAndEncrypted, 0, iv.length);
             System.arraycopy(encrypted, 0, ivAndEncrypted, iv.length, encrypted.length);
-    
+
             return Base64.getEncoder().encodeToString(ivAndEncrypted);
         }
-    
+
         public static String AESDecrypt(byte[] key, String cryptoText) throws Exception {
             byte[] ciphertext = Base64.getDecoder().decode(cryptoText);
-    
+
             SecretKeySpec secretKeySpec = new SecretKeySpec(key, "AES");
-    
+
             if (ciphertext.length < 16) {
                 throw new Exception("ciphertext too short");
             }
-    
+
             byte[] iv = new byte[16];
             System.arraycopy(ciphertext, 0, iv, 0, 16);
             byte[] encrypted = new byte[ciphertext.length - 16];
             System.arraycopy(ciphertext, 16, encrypted, 0, ciphertext.length - 16);
-    
+
             Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
             IvParameterSpec ivParameterSpec = new IvParameterSpec(iv);
             cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivParameterSpec);
-    
+
             byte[] decrypted = cipher.doFinal(encrypted);
-    
+
             return new String(decrypted);
         }
     }
@@ -622,8 +614,6 @@ pass = "ENC[aes://5w1UiRjWuVk53k96WfqEaGUYJ/Oje7zr8xmBeGa3ugI=]"
     }
     ```
 <!-- markdownlint-enable -->
-
-K8S 环境下可以通过环境变量方式添加私钥：`ENV_CRYPTO_AES_KEY` 和 `ENV_CRYPTO_AES_KEY_FILEPATH` 可以参考：[DaemonSet 安装-其他](datakit-daemonset-deploy.md#env-others)
 
 ### 远程任务 {#remote-job}
 
@@ -676,7 +666,7 @@ pip install boto3
       "AWS_BUCKET_NAME=bucket","AWS_ACCESS_KEY_ID=AK","AWS_SECRET_ACCESS_KEY=SK","AWS_DEFAULT_REGION=us-west-2",
     ]
   interval = "30s"
-  
+
 # or upload to OBS:
 [remote_job]
   enable = true
@@ -684,7 +674,7 @@ pip install boto3
       "REMOTE=obs",
       "OBS_BUCKET_NAME=bucket","OBS_ACCESS_KEY_ID=AK","OBS_SECRET_ACCESS_KEY=SK","OBS_SERVER=https://xxx.myhuaweicloud.com"
     ]
-  interval = "30s"    
+  interval = "30s"
 ```
 
 K8S 环境下需要调用 Kubernetes API 所以需要 RBAC 基于角色的访问控制
@@ -695,7 +685,7 @@ K8S 环境下需要调用 Kubernetes API 所以需要 RBAC 基于角色的访问
 === "主机部署"
 
     其目录一般位于：
-    
+
     - Linux/Mac: `/usr/local/datakit/conf.d/datakit.conf`
     - Windows: `C:\Program Files\datakit\conf.d\datakit.conf`
 
@@ -715,7 +705,7 @@ K8S 环境下需要调用 Kubernetes API 所以需要 RBAC 基于角色的访问
     ```yaml
 
     ---
-    
+
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
@@ -744,7 +734,7 @@ K8S 环境下需要调用 Kubernetes API 所以需要 RBAC 基于角色的访问
       verbs: ["get", "list"]
     - nonResourceURLs: ["/metrics"]
       verbs: ["get"]
-    
+
     ---
     ```
 
