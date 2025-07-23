@@ -810,7 +810,7 @@ Configuration file description:
 3. `interval ENV_REMOTE_JOB_INTERVAL` The time interval at which DataKit actively calls the interface to obtain the latest tasks.
 4. `java_home ENV_REMOTE_JOB_JAVA_HOME` The host environment is automatically obtained from the environment variable ($JAVA_HOME) and does not need to be configured.
 
-> Please note that the version of the Agent: `dd-java-agent.jar` used should not be lower than `v1.4.0-guance`.
+> Please note that the version of the Agent: `dd-java-agent.jar` used should not be lower than `v1.4.0-ext`.
 
 ### Point Pool {#point-pool}
 
