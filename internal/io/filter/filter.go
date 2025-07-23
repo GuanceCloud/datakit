@@ -171,15 +171,12 @@ func (f *filter) start() {
 
 	what := "filters=true"
 
-	// Try pull rules ASAP.
-	f.pull(what)
-
 	for {
+		l.Debugf("try pull remote filters...")
+		f.pull(what)
+
 		select {
 		case <-f.tick.C:
-			l.Debugf("try pull remote filters...")
-			f.pull(what)
-
 		case <-datakit.Exit.Wait():
 			l.Info("log filter exits")
 			return

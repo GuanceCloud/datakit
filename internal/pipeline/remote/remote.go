@@ -42,6 +42,9 @@ var (
 	runPipelineRemote sync.Once
 	isFirst           = true
 
+	// Make sure pipelineRemoteImpl implements the IPipelineRemote interface.
+	_ IPipelineRemote = (*pipelineRemoteImpl)(nil)
+
 	pathContent string
 )
 
@@ -50,18 +53,42 @@ type pipelineRemoteConfig struct {
 	UpdateTime int64
 }
 
-func StartPipelineRemote(urls []string) {
+func StartPipelineRemote(urls []string, ipr IPipelineRemote) {
 	runPipelineRemote.Do(func() {
 		l = logger.SLogger(pipelineRemoteName)
-		if runner, err := pullMain(urls, &pipelineRemoteImpl{}); err != nil {
-			l.Error(err)
-			return
-		} else if runner != nil {
-			g := datakit.G("pipeline_remote")
-			g.Go(func(ctx context.Context) error {
-				return runner()
-			})
-		}
+		g := datakit.G("pipeline_remote")
+		g.Go(func(ctx context.Context) error {
+			l.Info("start pipeline remote...")
+
+			if len(urls) == 0 {
+				return nil
+			}
+
+			pathConfig := filepath.Join(datakit.PipelineRemoteDir, pipelineRemoteConfigFile)
+			pathRelation := filepath.Join(datakit.PipelineRemoteDir, pipelineRemoteRelationDumpFile)
+			pathContent = filepath.Join(datakit.PipelineRemoteDir, pipelineRemoteContentFile)
+
+			td := ipr.GetTickerDurationAndBreak()
+			l.Infof("duration: %s", td.String())
+
+			tick := time.NewTicker(td)
+			defer tick.Stop()
+
+			for {
+				if err := doPull(pathConfig, pathRelation, urls[0], ipr); err != nil {
+					l.Warnf("doPull: %s, ignored", err.Error())
+				}
+
+				select {
+				case <-datakit.Exit.Wait():
+					l.Info("exit")
+					return nil
+
+				case <-tick.C:
+					l.Debug("triggered")
+				}
+			}
+		})
 	})
 }
 
@@ -80,17 +107,18 @@ type IPipelineRemote interface {
 	ReadDir(dirname string) ([]fs.FileInfo, error)
 	PullPipeline(int64, int64) (mFiles map[point.Category]map[string]string, plRelation map[point.Category]map[string]string,
 		defaultPl map[point.Category]string, updateTime int64, relationTS int64, err error)
-	GetTickerDurationAndBreak() (time.Duration, bool)
+	GetTickerDurationAndBreak() time.Duration
 	Remove(name string) error
 	FeedLastError(inputName string, err string)
 	ReadTarToMap(srcFile string) (map[string]string, error)
 	WriteTarFromMap(data map[string]string, dest string) error
 }
 
-// Make sure pipelineRemoteImpl implements the IPipelineRemote interface.
-var _ IPipelineRemote = (*pipelineRemoteImpl)(nil)
-
 type pipelineRemoteImpl struct{}
+
+func DefaultPipelineRemote() IPipelineRemote {
+	return &pipelineRemoteImpl{}
+}
 
 func (*pipelineRemoteImpl) FileExist(filename string) bool {
 	return datakit.FileExist(filename)
@@ -135,13 +163,19 @@ func (*pipelineRemoteImpl) PullPipeline(ts, relationTS int64) (
 	return io.PullPipeline(ts, relationTS)
 }
 
-func (*pipelineRemoteImpl) GetTickerDurationAndBreak() (time.Duration, bool) {
+func (*pipelineRemoteImpl) GetTickerDurationAndBreak() time.Duration {
 	dr, err := time.ParseDuration(config.Cfg.Pipeline.RemotePullInterval)
 	if err != nil {
 		l.Warnf("time.ParseDuration failed: err = (%v), str = (%s)", err, config.Cfg.Pipeline.RemotePullInterval)
 		dr = time.Minute
 	}
-	return dr, false
+
+	if dr < time.Second*10 {
+		dr = time.Second * 10
+		l.Infof("set pull interval to %s", dr)
+	}
+
+	return dr
 }
 
 func (*pipelineRemoteImpl) Remove(name string) error {
@@ -158,58 +192,6 @@ func (*pipelineRemoteImpl) ReadTarToMap(srcFile string) (map[string]string, erro
 
 func (*pipelineRemoteImpl) WriteTarFromMap(data map[string]string, dest string) error {
 	return targzutil.WriteTarFromMap(data, dest)
-}
-
-//------------------------------------------------------------------------------
-
-func pullMain(urls []string, ipr IPipelineRemote) (func() error, error) {
-	l.Info("start")
-
-	if len(urls) == 0 {
-		return nil, nil
-	}
-
-	pathConfig := filepath.Join(datakit.PipelineRemoteDir, pipelineRemoteConfigFile)
-	pathRelation := filepath.Join(datakit.PipelineRemoteDir, pipelineRemoteRelationDumpFile)
-	pathContent = filepath.Join(datakit.PipelineRemoteDir, pipelineRemoteContentFile)
-
-	td, isReturn := ipr.GetTickerDurationAndBreak()
-	l.Infof("duration: %s", td.String())
-
-	// first run
-	var err error
-	err = doPull(pathConfig, pathRelation, urls[0], ipr)
-	if err != nil {
-		l.Warnf("doPull: %s, ignored", err.Error())
-	}
-	if isReturn {
-		return nil, nil
-	}
-
-	return func() error {
-		tick := time.NewTicker(td)
-		defer tick.Stop()
-
-		for {
-			err = doPull(pathConfig, pathRelation, urls[0], ipr)
-			if err != nil {
-				l.Warnf("doPull: %s, ignored", err.Error())
-			}
-
-			if isReturn {
-				return nil
-			}
-
-			select {
-			case <-datakit.Exit.Wait():
-				l.Info("exit")
-				return nil
-
-			case <-tick.C:
-				l.Debug("triggered")
-			}
-		}
-	}, nil
 }
 
 func doPull(pathConfig, pathRelation, siteURL string, ipr IPipelineRemote) error {
