@@ -16,6 +16,7 @@ import (
 var (
 	inputsFeedVec,
 	flushVec,
+	adjustPointTimeVec,
 	inputsFilteredPtsVec *prometheus.CounterVec
 
 	feedCost,
@@ -102,6 +103,16 @@ func metricsSetup() {
 			Help:      "IO flush total",
 		},
 		[]string{"category"},
+	)
+
+	adjustPointTimeVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "point_time_adjusted_total",
+			Help:      "Point's time has been adjusted due to invalid timestamp(larger than 2h)",
+		},
+		[]string{"category", "name"},
 	)
 
 	queuePtsVec = prometheus.NewGaugeVec(
@@ -217,6 +228,7 @@ func Metrics() []prometheus.Collector {
 		ioChanLen,
 		ioChanCap,
 		flushVec,
+		adjustPointTimeVec,
 		flushWorkersVec,
 		feedCost,
 	}
@@ -234,6 +246,7 @@ func MetricsReset() {
 	ioChanCap.Reset()
 	ioChanLen.Reset()
 	flushVec.Reset()
+	adjustPointTimeVec.Reset()
 	flushWorkersVec.Reset()
 }
 

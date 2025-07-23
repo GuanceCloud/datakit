@@ -296,6 +296,16 @@ func (c *Config) loadPointPoolEnvs() {
 }
 
 func (c *Config) loadDatawayEnvs() {
+	if v := datakit.GetEnv("ENV_DATAWAY_DROP_EXPIRED_PACKAGE_AT"); v != "" {
+		l.Info("ENV_DATAWAY_DROP_EXPIRED_PACKAGE_AT set to %q", v)
+
+		if du, err := time.ParseDuration(v); err != nil {
+			l.Warnf("invalid ENV_DATAWAY_DROP_EXPIRED_PACKAGE_AT: %s, ignored", err.Error())
+		} else {
+			c.Dataway.DropExpiredPackageAt = du
+		}
+	}
+
 	if v := datakit.GetEnv("ENV_DATAWAY_TLS_INSECURE"); v != "" {
 		// NOTE: do not checking encoding here, invalid encoding will reset to line-protocol
 		l.Info("ENV_DATAWAY_TLS_INSECURE set to true")
@@ -587,6 +597,13 @@ func (c *Config) loadRecorderEnvs() {
 }
 
 func (c *Config) loadIOEnvs() {
+	if v := datakit.GetEnv("ENV_IO_AUTO_TIMESTAMP_CORRECTION"); v != "" {
+		if b, err := strconv.ParseBool(v); err == nil {
+			l.Infof("set auto-timestamp-correction to %v", b)
+			c.IO.AutoTimestampCorrection = b
+		}
+	}
+
 	if v := datakit.GetEnv("ENV_IO_MAX_CACHE_COUNT"); v != "" {
 		val, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {

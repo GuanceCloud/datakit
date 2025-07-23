@@ -31,6 +31,16 @@ var (
 		[]string{"category"},
 	)
 
+	flushDroppedPackageVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "flush_drop_pkg_total",
+			Help:      "WAL flush dropped packages count due to expiration",
+		},
+		[]string{"category"},
+	)
+
 	flushFailCacheVec = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
@@ -290,6 +300,7 @@ func Metrics() []prometheus.Collector {
 		groupedRequestVec,
 		flushFailCacheVec,
 		walQueueMemLenVec,
+		flushDroppedPackageVec,
 	}
 }
 
@@ -307,6 +318,7 @@ func metricsReset() {
 	httpRetry.Reset()
 	flushFailCacheVec.Reset()
 	walQueueMemLenVec.Reset()
+	flushDroppedPackageVec.Reset()
 	buildBodyCostVec.Reset()
 	buildBodyBatchBytesVec.Reset()
 	buildBodyBatchPointsVec.Reset()
@@ -329,6 +341,7 @@ func doRegister() {
 
 		flushFailCacheVec,
 		walQueueMemLenVec,
+		flushDroppedPackageVec,
 		httpRetry,
 		buildBodyCostVec,
 		buildBodyBatchBytesVec,

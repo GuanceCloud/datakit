@@ -4,7 +4,6 @@
 // Copyright 2021-present Guance, Inc.
 
 // Definition of WAL cache for body
-
 syntax = "proto3";
 
 package dataway;
@@ -19,14 +18,15 @@ message HTTPHeader {
 // fail-cache proto message.
 // NOTE: do not change field's number if you need to add more.
 message CacheData {
-  int32 category = 1;
-  int32 payloadType = 2;
-  bytes payload = 3;
+	bytes payload = 3;
+	repeated HTTPHeader headers = 6; // extra HTTP headers for the data, especially for sink header
+	string dynURL = 7; // for dial-testing body, it's url are dynamic
 
-  int32 pts = 4;
-  int32 rawLen = 5;
-  repeated HTTPHeader headers = 6; // extra HTTP headers for the data, especially for sink header
-  string dynURL = 7; // for dial-testing body, it's url are dynamic
+	int32 category = 1;
+	int32 payloadType = 2;
+	int32 pts = 4;
+	int32 rawLen = 5;
+	uint32 pkgTime = 8; // package timestamp
 }
 
-// Generate command: protoc --go_out=.  *.proto
+// Generate by ./pb.sh

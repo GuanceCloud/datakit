@@ -153,9 +153,10 @@ func DefaultConfig() *Config {
 		}, // default nothing
 
 		IO: &io.IOConf{
-			FeedChanSize:    1,
-			MaxCacheCount:   1000,
-			CompactInterval: time.Second * 10,
+			FeedChanSize:            1,
+			MaxCacheCount:           1000,
+			CompactInterval:         time.Second * 10,
+			AutoTimestampCorrection: true,
 
 			Filters: nil,
 		},

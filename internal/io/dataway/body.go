@@ -71,6 +71,7 @@ func (b *body) reset() {
 	b.CacheData.DynURL = ""
 	b.CacheData.Pts = 0
 	b.CacheData.RawLen = 0
+	b.CacheData.PkgTime = 0
 
 	if b.selfBuffer != bufOnwerSelf { // buffer not managed by itself
 		b.sendBuf = nil
@@ -144,6 +145,12 @@ func (b *body) String() string {
 		b.from, b.enc(), b.cat(), b.gzon, len(b.headers()), b.npts(), len(b.buf()), b.chksum, b.rawLen(), cap(b.sendBuf))
 }
 
+func (b *body) expired(ttl time.Duration) bool {
+	return ttl > 0 &&
+		b.CacheData.PkgTime > 0 &&
+		time.Since(time.Unix(int64(b.CacheData.PkgTime), 0)) > ttl
+}
+
 func (b *body) pretty() string {
 	var arr []string
 	arr = append(arr, fmt.Sprintf("\n%p from: %s", b, b.from))
@@ -155,6 +162,7 @@ func (b *body) pretty() string {
 	arr = append(arr, fmt.Sprintf("#mars-buf: %d", len(b.sendBuf)))
 	arr = append(arr, fmt.Sprintf("url: %s", b.url()))
 	arr = append(arr, fmt.Sprintf("raw-len: %d", b.rawLen()))
+	arr = append(arr, fmt.Sprintf("pts: %d", b.npts()))
 
 	arr = append(arr, fmt.Sprintf("headers(%d):\n", len(b.headers())))
 
@@ -272,6 +280,7 @@ func (w *writer) buildPointsBody() error {
 		b.CacheData.RawLen = int32(len(encodeBytes))
 		b.CacheData.PayloadType = int32(w.httpEncoding)
 		b.CacheData.DynURL = w.dynamicURL
+		b.CacheData.PkgTime = uint32(compactStart.Unix())
 		for k, v := range w.httpHeaders {
 			b.CacheData.Headers = append(b.CacheData.Headers, &HTTPHeader{Key: k, Value: v})
 		}

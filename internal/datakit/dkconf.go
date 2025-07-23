@@ -174,6 +174,9 @@ ulimit = 64000
   # NOTE: Global blocking mode may consume more memory on large metric points.
   global_blocking = false
 
+  # auto correct point's time.
+  auto_timestamp_correction = true
+
   # Data point filter configures.
   # NOTE: Most of the time, you should use web-side filter, it's a debug helper for developers.
   #[io.filters]

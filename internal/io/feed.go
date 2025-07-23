@@ -8,6 +8,7 @@ package io
 import (
 	"errors"
 	"fmt"
+	"math"
 	reflect "reflect"
 	"runtime"
 	"strings"
@@ -21,6 +22,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
@@ -286,14 +288,16 @@ func PLAggFeed(cat point.Category, name string, data any) error {
 }
 
 // beforeFeed apply pipeline and filter handling on pts.
-func beforeFeed(opt *feedData) ([]*point.Point, map[point.Category][]*point.Point, int, error) {
-	var plopt *lang.LogOption
+func (x *dkIO) beforeFeed(opt *feedData) ([]*point.Point, map[point.Category][]*point.Point, int, error) {
+	var (
+		plopt        *lang.LogOption
+		offloadCount int
+		ptCreate     map[point.Category][]*point.Point
+	)
+
 	if opt != nil {
 		plopt = opt.plOption
 	}
-
-	var offloadCount int
-	var ptCreate map[point.Category][]*point.Point
 
 	after := opt.pts
 
@@ -331,6 +335,29 @@ func beforeFeed(opt *feedData) ([]*point.Point, map[point.Category][]*point.Poin
 	// run filters
 	after = filter.FilterPts(opt.cat, after)
 
+	// correct point's time
+	if x.withTimeCorrect {
+		now := ntp.Now()
+		adjusted := 0
+		if len(after) > 0 {
+			n := 0
+			after, n = correctPointTime(after, now, correctPointTimeAtDuration)
+			adjusted += n
+		}
+
+		if len(ptCreate) > 0 {
+			for k, pts := range ptCreate {
+				arr, n := correctPointTime(pts, now, correctPointTimeAtDuration)
+				adjusted += n
+				ptCreate[k] = arr
+			}
+		}
+
+		if adjusted > 0 {
+			adjustPointTimeVec.WithLabelValues(opt.cat.String(), opt.input).Add(float64(adjusted))
+		}
+	}
+
 	return after, ptCreate, offloadCount, nil
 }
 
@@ -353,7 +380,7 @@ func (x *dkIO) doFeed(opt *feedData) error {
 
 	log.Debugf("io feed %s on %s", opt.input, opt.cat.String())
 
-	after, plCreate, offl, err := beforeFeed(opt)
+	after, plCreate, offl, err := x.beforeFeed(opt)
 	if err != nil {
 		return err
 	}
@@ -398,4 +425,18 @@ func (x *dkIO) doFeed(opt *feedData) error {
 		log.Warnf("feed output not set, ignored")
 		return nil
 	}
+}
+
+func correctPointTime(pts []*point.Point, now time.Time, bias float64) ([]*point.Point, int) {
+	n := 0
+	for _, pt := range pts {
+		origTime := pt.Time()
+		if math.Abs(float64(now.Sub(origTime))) > bias {
+			pt.Add("__orig_time", origTime.UnixNano())
+			pt.SetTime(now)
+			n++
+		}
+	}
+
+	return pts, n
 }

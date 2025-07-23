@@ -221,7 +221,18 @@ func (dw *Dataway) setupWAL() error {
 			diskcache.WithNoPos(dw.WAL.NoPos),
 			diskcache.WithNoLock(true),            // disable .lock file checking
 			diskcache.WithWakeup(defaultRotateAt), // short wakeup on WAL queue
-			diskcache.WithCapacity(int64(dw.WAL.MaxCapacityGB * float64(1<<30))),
+		}
+
+		switch cat { // nolint:exhaustive
+		case point.Object, point.CustomObject:
+			opts = append(opts,
+				// 128MiB: object do not need too much capacity
+				diskcache.WithCapacity(128*(1<<20)),
+			)
+		default:
+			opts = append(opts,
+				diskcache.WithCapacity(int64(dw.WAL.MaxCapacityGB*float64(1<<30))),
+			)
 		}
 
 		if dw.isNoDropWAL(cat) {

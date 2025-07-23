@@ -204,6 +204,13 @@ func (dw *Dataway) doFlush(w *writer, b *body, opts ...WriteOption) error {
 		putBody(b)
 	}()
 
+	// drop expired packages
+	if b.expired(dw.DropExpiredPackageAt) {
+		l.Warnf("drop expired package %s", b.pretty())
+		flushDroppedPackageVec.WithLabelValues(b.cat().String()).Inc()
+		return nil
+	}
+
 	for _, ep := range dw.eps {
 		if err := ep.writePointData(w, b); err != nil {
 			// 4xx error do not cache data.
@@ -259,9 +266,9 @@ func (dw *Dataway) dumpFailCache(b *body) error {
 
 func (f *flusher) cleanFailCache() error {
 	return f.dw.walFail.DiskGet(func(b *body) error {
-		l.Debugf("clean body %q", b)
+		l.Debugf("clean body %s", b)
 
-		var ( // @b will reset within f.do(), we cache it's meta for metric update.
+		var ( // @b will reset within f.do(), pre-fetch it's meta for metric update.
 			cat  = b.cat()
 			size = len(b.buf())
 		)
