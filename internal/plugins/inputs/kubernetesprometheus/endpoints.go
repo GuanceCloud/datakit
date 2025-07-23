@@ -184,7 +184,10 @@ func (e *Endpoints) startScrape(ctx context.Context, key, traits string, item *c
 	}
 
 	// clean urls
-	e.scrape.tryCleanScrapes(e.role, key, urlstrList)
+	if cleaned := e.scrape.tryCleanScrapes(e.role, key, urlstrList); cleaned {
+		e.scrape.refreshTraits(e.role, key, traits)
+		klog.Infof("cleaned up scrapers and refreshed traits for %s", key)
+	}
 }
 
 func (e *Endpoints) terminateScrape(key string) {
@@ -260,5 +263,8 @@ func tryCreateScrapeForEndpoints(
 	}
 
 	urlstrList := getURLstrListByPromConfigs(cfgs)
-	scrapeManager.tryCleanScrapes(role, key, urlstrList)
+	if cleaned := scrapeManager.tryCleanScrapes(role, key, urlstrList); cleaned {
+		scrapeManager.refreshTraits(role, key, epTraits)
+		klog.Infof("cleaned up scrapers and refreshed traits for %s", key)
+	}
 }

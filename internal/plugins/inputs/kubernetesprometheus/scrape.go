@@ -19,10 +19,11 @@ import (
 type scrapeManagerInterface interface {
 	runWorker(ctx context.Context, workerChan int, interval time.Duration)
 	registerScrape(role Role, key string, traits string, sp scraper)
+	refreshTraits(role Role, key string, traits string)
 	isTraitsExists(role Role, key string, traits string) bool
 	isScrapeExists(role Role, key string, targetURL string) bool
 	removeScrape(role Role, key string)
-	tryCleanScrapes(role Role, key string, keepTargetURLs []string)
+	tryCleanScrapes(role Role, key string, keepTargetURLs []string) bool
 }
 
 type scraper interface {
@@ -79,6 +80,13 @@ func (s *scrapeManager) registerScrape(role Role, key, traits string, sp scraper
 	scraperNumberVec.WithLabelValues(string(role), key).Add(1)
 }
 
+func (s *scrapeManager) refreshTraits(role Role, key string, traits string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.store(role).addTraits(key, traits)
+}
+
 func (s *scrapeManager) isTraitsExists(role Role, key string, traits string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -104,10 +112,11 @@ func (s *scrapeManager) removeScrape(role Role, key string) {
 	}
 }
 
-func (s *scrapeManager) tryCleanScrapes(role Role, key string, keepTargetURLs []string) {
+func (s *scrapeManager) tryCleanScrapes(role Role, key string, keepTargetURLs []string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	cleaned := false
 	for _, sp := range s.store(role).scrapers[key] {
 		found := false
 		for _, urlstr := range keepTargetURLs {
@@ -117,8 +126,10 @@ func (s *scrapeManager) tryCleanScrapes(role Role, key string, keepTargetURLs []
 		}
 		if !found {
 			sp.markAsTerminated()
+			cleaned = true
 		}
 	}
+	return cleaned
 }
 
 func (s *scrapeManager) runWorker(ctx context.Context, workerNum int, scrapeInterval time.Duration) {
