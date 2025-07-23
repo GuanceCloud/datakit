@@ -346,7 +346,12 @@ func (ipt *Input) initDB() error {
 		return err
 	}
 
+	db.SetConnMaxLifetime(10 * time.Minute)
+	db.SetMaxIdleConns(5)
+	db.SetMaxOpenConns(10)
+
 	ipt.db = db
+	
 	return nil
 }
 
