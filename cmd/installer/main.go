@@ -187,9 +187,21 @@ func setupLogging() error {
 	return nil
 }
 
+func trimFileName(fname, prefix string) string {
+	return strings.Trim(strings.TrimSpace(fname), prefix)
+}
+
 // offlineExtract extrac all downloaded files to installer dirs.
 func offlineExtract() error {
 	for _, f := range strings.Split(args.FlagSrc, ",") {
+		// people may auto-complete filename with ./ or .\
+		prefix := "./"
+		if runtime.GOOS == datakit.OSWindows {
+			prefix = `.\`
+		}
+
+		f = trimFileName(f, prefix)
+
 		fd, err := os.Open(filepath.Clean(f))
 		if err != nil {
 			return fmt.Errorf("Open(%q): %w", f, err)
@@ -234,8 +246,9 @@ func offlineExtract() error {
 		default: // pass: others are datakit.tar.gz and data.tar.gz
 		}
 
+		l.Infof("extract %q to %q...", f, destDir)
 		if err := dl.Extract(fd, destDir); err != nil {
-			return fmt.Errorf("download Extract(): %w", err)
+			return fmt.Errorf("download Extract(%q, %q): %w", f, destDir, err)
 		} else if err := fd.Close(); err != nil {
 			l.Warnf("Close: %s, ignored", err)
 		}

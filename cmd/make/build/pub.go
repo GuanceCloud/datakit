@@ -212,12 +212,14 @@ func PubDatakit() error {
 
 		// apm-auto-inject-launcher
 		if goos == datakit.OSLinux && (goarch == archAMD64 || goarch == archARM64) && runtime.GOOS == datakit.OSLinux {
-			gzName, gzPath := tarFiles(
-				DistDir, DistDir, "datakit-apm-inject", goos, goarch, tarWithReleaseVer)
+			gzName, gzPath := tarFiles(DistDir, DistDir, "datakit-apm-inject", goos, goarch, tarWithReleaseVer)
 			basics = append(basics, ossFile{gzName, gzPath})
 		}
 
 		upgraderGZFile, upgraderGZPath := tarFiles(DistDir, DistDir, upgrader.BuildBinName, parts[0], parts[1], tarNoReleaseVer)
+		// upload dk_upgrader-os-arch.tar.gz and dk_upgrader-os-arch-version.tar.gz
+		basics = append(basics, ossFile{upgraderGZFile, upgraderGZPath})
+		basics = append(basics, ossFile{fmt.Sprintf("dk_upgrader-%s-%s-%s.tar.gz", parts[0], parts[1], ReleaseVersion), upgraderGZPath})
 
 		installerExe := fmt.Sprintf("installer-%s-%s", goos, goarch)
 		installerExeWithVer := fmt.Sprintf("installer-%s-%s-%s", goos, goarch, ReleaseVersion)
@@ -227,7 +229,6 @@ func PubDatakit() error {
 		}
 
 		basics = append(basics, ossFile{gzName, gzPath})
-		basics = append(basics, ossFile{upgraderGZFile, upgraderGZPath})
 		basics = append(basics, ossFile{installerExe, path.Join(DistDir, ReleaseType, installerExe)})
 		basics = append(basics, ossFile{installerExeWithVer, path.Join(DistDir, ReleaseType, installerExe)})
 	}
