@@ -3,9 +3,6 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-//go:build !windows
-// +build !windows
-
 package dialtesting
 
 import (
@@ -351,8 +348,7 @@ func (d *dialer) checkInternalNetwork() error {
 			return fmt.Errorf("get host name error: %w", err)
 		} else if d.ipt.DisableInternalNetworkTask {
 			if isInternal, err := httpapi.IsInternalHost(hostName, d.ipt.DisabledInternalNetworkCIDRList); err != nil {
-				taskInvalidCounter.WithLabelValues(d.regionName, d.class, "host_not_valid").Inc()
-				return fmt.Errorf("dest host is not valid: %w", err)
+				l.Errorf("dest host is not valid: %s", err.Error())
 			} else if isInternal {
 				taskInvalidCounter.WithLabelValues(d.regionName, d.class, "host_not_allowed").Inc()
 				return fmt.Errorf("dest host [%s] is not allowed to be tested", hostName)

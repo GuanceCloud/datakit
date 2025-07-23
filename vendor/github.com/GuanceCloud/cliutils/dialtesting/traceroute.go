@@ -8,6 +8,7 @@ package dialtesting
 import (
 	"math"
 	"net"
+	"runtime"
 	"time"
 )
 
@@ -92,4 +93,13 @@ func std(v []float64) float64 {
 		return 0
 	}
 	return math.Sqrt(variance(v))
+}
+
+// IsEnabledTraceroute return true when traceroute enabled and not windows.
+func IsEnabledTraceroute(enabled bool) bool {
+	if runtime.GOOS == "windows" {
+		return false
+	}
+
+	return enabled
 }

@@ -105,6 +105,8 @@ func (t *ICMPTask) init() error {
 		if checker.Hops != nil {
 			t.EnableTraceroute = true
 		}
+
+		t.EnableTraceroute = IsEnabledTraceroute(t.EnableTraceroute)
 	}
 
 	t.originBytes = make([]byte, 2000)

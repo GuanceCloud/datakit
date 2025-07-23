@@ -57,9 +57,9 @@ func undefinedErr(err error) *HttpError {
 
 func (he *HttpError) Error() string {
 	if he.Err == nil {
-		return ""
+		return fmt.Sprintf("error code [%s], http code [%d]", he.ErrCode, he.HttpCode)
 	} else {
-		return he.Err.Error()
+		return fmt.Sprintf("error code [%s], http code [%d], err: %v", he.ErrCode, he.HttpCode, he.Err)
 	}
 }
 
@@ -246,8 +246,8 @@ func Error(he *HttpError, msg string) *MsgError {
 
 func (me *MsgError) Error() string {
 	if me.HttpError != nil {
-		return me.Err.Error()
+		return fmt.Sprintf(me.Fmt, me.Args...) + ", err: " + me.HttpError.Error()
 	} else {
-		return ""
+		return fmt.Sprintf(me.Fmt, me.Args...)
 	}
 }
