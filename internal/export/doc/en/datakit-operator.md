@@ -99,7 +99,7 @@ The default configuration is as follows:
             "enabled_namespaces":     [],
             "enabled_labelselectors": [],
             "images": {
-                "java_agent_image":   "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:v1.30.1-guance",
+                "java_agent_image":   "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:latest",
             },
             "envs": {
                 "DD_AGENT_HOST":           "datakit-service.datakit.svc",
@@ -111,18 +111,38 @@ The default configuration is as follows:
                 "POD_NAMESPACE":           "{fieldRef:metadata.namespace}",
                 "NODE_NAME":               "{fieldRef:spec.nodeName}",
                 "DD_TAGS":                 "pod_name:$(POD_NAME),pod_namespace:$(POD_NAMESPACE),host:$(NODE_NAME)"
+            },
+            "resources": {
+                "requests": {
+                    "cpu":    "100m",
+                    "memory": "64Mi"
+                },
+                "limits": {
+                   "cpu":    "200m",
+                   "memory": "128Mi"
+                 }
             }
         },
         "logfwd": {
             "images": {
                 "logfwd_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/logfwd:1.28.1"
+            },
+            "resources": {
+                "requests": {
+                    "cpu":    "100m",
+                    "memory": "64Mi"
+                },
+                "limits": {
+                   "cpu":    "500m",
+                   "memory": "512Mi"
+                 }
             }
         },
         "profiler": {
             "images": {
-                "java_profiler_image":   "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/async-profiler:0.1.0",
-                "python_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/py-spy:0.1.0",
-                "golang_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/go-pprof:0.1.0"
+                "java_profiler_image":   "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/async-profiler:latest",
+                "python_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/py-spy:latest",
+                "golang_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/go-pprof:latest"
             },
             "envs": {
                 "DK_AGENT_HOST":  "datakit-service.datakit.svc",
@@ -131,6 +151,16 @@ The default configuration is as follows:
                 "DK_PROFILE_ENV": "prod",
                 "DK_PROFILE_DURATION": "240",
                 "DK_PROFILE_SCHEDULE": "0 * * * *"
+            },
+            "resources": {
+                "requests": {
+                    "cpu":    "100m",
+                    "memory": "64Mi"
+                },
+                "limits": {
+                   "cpu":    "500m",
+                   "memory": "512Mi"
+                 }
             }
         }
     },
@@ -154,8 +184,8 @@ The primary function of the DataKit Operator is to inject images and environment
 
 Under normal circumstances, images are stored in `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator`. However, for some special environments where accessing this image repository is not convenient, you can use the following method (taking the `dd-lib-java-init` image as an example):
 
-1. In an environment where `pubrepo.<<<custom_key.brand_main_domain>>>` is accessible, pull the image `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:v1.30.1-guance`, and then re-store it in your own image repository, for example, `inside.image.hub/datakit-operator/dd-lib-java-init:v1.30.1-guance`.
-1. Modify the JSON configuration, changing `admission_inject`->`ddtrace`->`images`->`java_agent_image` to `inside.image.hub/datakit-operator/dd-lib-java-init:v1.30.1-guance`, and apply this YAML file.
+1. In an environment where `pubrepo.<<<custom_key.brand_main_domain>>>` is accessible, pull the image `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:v1.30.1-ext`, and then re-store it in your own image repository, for example, `inside.image.hub/datakit-operator/dd-lib-java-init:v1.30.1-ext`.
+1. Modify the JSON configuration, changing `admission_inject`->`ddtrace`->`images`->`java_agent_image` to `inside.image.hub/datakit-operator/dd-lib-java-init:v1.30.1-ext`, and apply this YAML file.
 1. After this, the DataKit Operator will use the new Java Agent image path.
 
 <!-- markdownlint-disable MD046 -->
@@ -303,10 +333,10 @@ For example, to add an annotation:
 
 ```yaml
       annotations:
-        admission.datakit/java-lib.version: "v1.36.2-guance"
+        admission.datakit/java-lib.version: "v1.36.2-ext"
 ```
 
-This indicates that the image version to be injected for this Pod is `v1.36.2-guance`. The image address is taken from the configuration `admission_inject` -> `ddtrace` -> `images` -> `java_agent_image`, where the image version is replaced with `"v1.36.2-guance"`, similar to `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:v1.36.2-guance`.
+This indicates that the image version to be injected for this Pod is `v1.36.2-ext`. The image address is taken from the configuration `admission_inject` -> `ddtrace` -> `images` -> `java_agent_image`, where the image version is replaced with `"v1.36.2-ext"`, similar to `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:v1.36.2-ext`.
 
 <!-- markdownlint-disable MD013 -->
 ## Using DataKit-Operator to Inject Files and Programs {#datakit-operator-inject-sidecar}

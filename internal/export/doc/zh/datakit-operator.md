@@ -99,7 +99,7 @@ DataKit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
             "enabled_namespaces":     [],
             "enabled_labelselectors": [],
             "images": {
-                "java_agent_image":   "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:v1.30.1-guance"
+                "java_agent_image":   "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:latest"
             },
             "envs": {
                 "DD_AGENT_HOST":           "datakit-service.datakit.svc",
@@ -111,18 +111,38 @@ DataKit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
                 "POD_NAMESPACE":           "{fieldRef:metadata.namespace}",
                 "NODE_NAME":               "{fieldRef:spec.nodeName}",
                 "DD_TAGS":                 "pod_name:$(POD_NAME),pod_namespace:$(POD_NAMESPACE),host:$(NODE_NAME)"
+            },
+            "resources": {
+                "requests": {
+                    "cpu":    "100m",
+                    "memory": "64Mi"
+                },
+                "limits": {
+                   "cpu":    "200m",
+                   "memory": "128Mi"
+                 }
             }
         },
         "logfwd": {
             "images": {
                 "logfwd_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/logfwd:1.28.1"
+            },
+            "resources": {
+                "requests": {
+                    "cpu":    "100m",
+                    "memory": "64Mi"
+                },
+                "limits": {
+                   "cpu":    "500m",
+                   "memory": "512Mi"
+                 }
             }
         },
         "profiler": {
             "images": {
-                "java_profiler_image":   "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/async-profiler:0.1.0",
-                "python_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/py-spy:0.1.0",
-                "golang_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/go-pprof:0.1.0"
+                "java_profiler_image":   "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/async-profiler:latest",
+                "python_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/py-spy:latest",
+                "golang_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/go-pprof:latest"
             },
             "envs": {
                 "DK_AGENT_HOST":  "datakit-service.datakit.svc",
@@ -131,6 +151,16 @@ DataKit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
                 "DK_PROFILE_ENV": "prod",
                 "DK_PROFILE_DURATION": "240",
                 "DK_PROFILE_SCHEDULE": "0 * * * *"
+            },
+            "resources": {
+                "requests": {
+                    "cpu":    "100m",
+                    "memory": "64Mi"
+                },
+                "limits": {
+                   "cpu":    "500m",
+                   "memory": "512Mi"
+                 }
             }
         }
     },
@@ -154,8 +184,8 @@ DataKit Operator 主要作用就是注入镜像和环境变量，使用 `images`
 
 正常情况下，镜像统一存放在 `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator`，对于一些特殊环境不方便访问此镜像库，可以使用以下方法（以 `dd-lib-java-init` 镜像为例）：
 
-1. 在可以访问 `pubrepo.<<<custom_key.brand_main_domain>>>` 的环境中，pull 镜像 `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:v1.30.1-guance`，并将其转存到自己的镜像库，例如 `inside.image.hub/datakit-operator/dd-lib-java-init:v1.30.1-guance`
-1. 修改 JSON 配置，将 `admission_inject`->`ddtrace`->`images`->`java_agent_image` 修改为 `inside.image.hub/datakit-operator/dd-lib-java-init:v1.30.1-guance`，应用此 yaml
+1. 在可以访问 `pubrepo.<<<custom_key.brand_main_domain>>>` 的环境中，pull 镜像 `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:v1.30.1-ext`，并将其转存到自己的镜像库，例如 `inside.image.hub/datakit-operator/dd-lib-java-init:v1.30.1-ext`
+1. 修改 JSON 配置，将 `admission_inject`->`ddtrace`->`images`->`java_agent_image` 修改为 `inside.image.hub/datakit-operator/dd-lib-java-init:v1.30.1-ext`，应用此 yaml
 1. 此后 DataKit Operator 会使用的新的 Java Agent 镜像路径
 
 **DataKit Operator 不检查镜像，如果该镜像路径错误，Kubernetes 创建 Pod 会报错。**
@@ -300,10 +330,10 @@ DataKit-Operator 支持两种资源输入方式，分别是“全局配置 names
 
 ```yaml
       annotations:
-        admission.datakit/java-lib.version: "v1.36.2-guance"
+        admission.datakit/java-lib.version: "v1.36.2-ext"
 ```
 
-表示这个 Pod 需要注入的镜像版本是 v1.36.2-guance，镜像地址取自配置 `admission_inject`->`ddtrace`->`images`->`java_agent_image`，替换镜像版本为"v1.36.2-guance"，即 `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:v1.36.2-guance`。
+表示这个 Pod 需要注入的镜像版本是 v1.36.2-ext，镜像地址取自配置 `admission_inject`->`ddtrace`->`images`->`java_agent_image`，替换镜像版本为"v1.36.2-ext"，即 `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:v1.36.2-ext`。
 
 ## DataKit Operator 注入 {#datakit-operator-inject-sidecar}
 

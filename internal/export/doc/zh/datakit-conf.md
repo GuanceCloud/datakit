@@ -773,7 +773,7 @@ K8S 环境下需要调用 Kubernetes API 所以需要 RBAC 基于角色的访问
 3. `interval ENV_REMOTE_JOB_INTERVAL` DataKit 主动调用接口获取最新任务的时间间隔。
 4. `java_home ENV_REMOTE_JOB_JAVA_HOME` 宿主机环境自动从环境变量（$JAVA_HOME）中获取，可以不用配置。
 
-> 注意，使用的 Agent:`dd-java-agent.jar` 版本不应低于 `v1.4.0-guance`
+> 注意，使用的 Agent:`dd-java-agent.jar` 版本不应低于 `v1.4.0-ext`
 
 ### Point 缓存 {#point-pool}
 
