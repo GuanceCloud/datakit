@@ -25,6 +25,8 @@ var (
 
 	// default dkIO singleton.
 	defIO = getIO()
+
+	correctPointTimeAtDuration = float64(time.Hour * 2)
 )
 
 type dkIO struct {
@@ -34,6 +36,7 @@ type dkIO struct {
 	dw      dataway.IDataway
 	filters map[string]filter.FilterConditions
 
+	withTimeCorrect,
 	withFilter,
 	withCompactor bool
 
@@ -67,8 +70,9 @@ func Start(opts ...IOOption) {
 
 func getIO() *dkIO {
 	x := &dkIO{
-		withFilter:    true,
-		withCompactor: true,
+		withFilter:      true,
+		withCompactor:   true,
+		withTimeCorrect: true,
 
 		flushInterval: time.Second * 10,
 		compactAt:     1024,

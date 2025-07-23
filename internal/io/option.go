@@ -64,6 +64,13 @@ func WithCompactor(on bool) IOOption {
 	}
 }
 
+// WithTimeCorrect enable or disable point's timestamp correction.
+func WithTimeCorrect(on bool) IOOption {
+	return func(x *dkIO) {
+		x.withTimeCorrect = on
+	}
+}
+
 // WithFeederOutputer used to set the output of feeder.
 func WithFeederOutputer(fo FeederOutputer) IOOption {
 	return func(x *dkIO) {

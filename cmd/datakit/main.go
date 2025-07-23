@@ -231,6 +231,7 @@ func startIO() {
 		dkio.WithRecorder(config.Cfg.Recorder),
 		dkio.WithRemoteJob(config.Cfg.RemoteJob, config.Cfg.Dataway),
 		dkio.WithAvailableCPUs(datakit.AvailableCPUs),
+		dkio.WithTimeCorrect(c.AutoTimestampCorrection),
 	}
 
 	dkio.Start(opts...)

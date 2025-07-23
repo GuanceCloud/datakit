@@ -81,15 +81,16 @@ var (
 
 func NewDefaultDataway(opts ...DWOption) *Dataway {
 	dw := &Dataway{
-		URLs:               []string{},
-		HTTPTimeout:        30 * time.Second,
-		IdleTimeout:        90 * time.Second,
-		MaxRawBodySize:     DefaultMaxRawBodySize,
-		GlobalCustomerKeys: []string{},
-		ContentEncoding:    "v2",
-		GZip:               true,
-		MaxRetryCount:      DefaultRetryCount,
-		RetryDelay:         DefaultRetryDelay,
+		URLs:                 []string{},
+		HTTPTimeout:          30 * time.Second,
+		IdleTimeout:          90 * time.Second,
+		DropExpiredPackageAt: 12 * time.Hour,
+		MaxRawBodySize:       DefaultMaxRawBodySize,
+		GlobalCustomerKeys:   []string{},
+		ContentEncoding:      "v2",
+		GZip:                 true,
+		MaxRetryCount:        DefaultRetryCount,
+		RetryDelay:           DefaultRetryDelay,
 		NTP: &ntp{
 			Enable:     true,
 			Interval:   time.Minute * 5,
@@ -146,7 +147,8 @@ type Dataway struct {
 	ContentEncoding string `toml:"content_encoding"`
 	contentEncoding point.Encoding
 
-	IdleTimeout time.Duration `toml:"idle_timeout"`
+	IdleTimeout          time.Duration `toml:"idle_timeout"`
+	DropExpiredPackageAt time.Duration `toml:"drop_expired_package_at"`
 
 	GZip bool `toml:"gzip"`
 

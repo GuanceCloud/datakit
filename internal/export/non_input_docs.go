@@ -132,6 +132,15 @@ func envDataway() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
 		{
+			ENVName: "ENV_DATAWAY_DROP_EXPIRED_PACKAGE_AT",
+			Type:    doc.TimeDuration,
+			Example: "`24h`",
+			Default: "`12h`",
+			Desc:    "Set package expiration for packages within WAL",
+			DescZh:  "设置 WAL 中数据包的超时时间",
+		},
+
+		{
 			ENVName:  "ENV_DATAWAY",
 			Type:     doc.URL,
 			Example:  "`https://openway.<<<custom_key.brand_main_domain>>>?token=xxx`",
@@ -556,6 +565,13 @@ func envSinker() []*inputs.ENVInfo {
 func envIO() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
+		{
+			ENVName: "ENV_IO_AUTO_TIMESTAMP_CORRECTION",
+			Type:    doc.Boolean,
+			Desc:    "Enable/disable point time correction",
+			DescZh:  "开启/关闭 point 时间戳自动校准（默认开启）",
+		},
+
 		{
 			ENVName: "ENV_IO_FILTERS",
 			Type:    doc.JSON,

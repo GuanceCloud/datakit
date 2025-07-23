@@ -96,32 +96,34 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_GLOBAL_HOST_TAGS": "a=b,c=d",
 				"ENV_GLOBAL_TAGS":      "x=y,m=n", // deprecated, not used
 
-				"ENV_LOG_LEVEL":                       "debug",
-				"ENV_LOG_ROTATE_BACKUP":               "10",
-				"ENV_LOG_ROTATE_SIZE_MB":              "128",
 				"ENV_DATAWAY":                         "http://host1.org,http://host2.com",
-				"ENV_HOSTNAME":                        "1024.coding",
-				"ENV_NAME":                            "testing-datakit",
-				"ENV_HTTP_LISTEN":                     "localhost:9559",
-				"ENV_HTTP_LISTEN_SOCKET":              "/var/run/datakit/datakit.sock",
-				"ENV_RUM_ORIGIN_IP_HEADER":            "not-set",
-				"ENV_ENABLE_PPROF":                    "true",
-				"ENV_DISABLE_PROTECT_MODE":            "true",
-				"ENV_DEFAULT_ENABLED_INPUTS":          "cpu,mem,disk",
-				"ENV_ENABLE_ELECTION":                 "1",
-				"ENV_NAMESPACE":                       "some-default",
-				"ENV_DISABLE_404PAGE":                 "on",
-				"ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST": "123",
-				"ENV_DATAWAY_TLS_INSECURE":            "on",
-				"ENV_REQUEST_RATE_LIMIT":              "1234",
-				"ENV_HTTP_ALLOWED_CORS_ORIGINS":       "https://foo,https://bar",
 				"ENV_DATAWAY_ENABLE_HTTPTRACE":        "any",
 				"ENV_DATAWAY_HTTP_PROXY":              "http://1.2.3.4:1234",
-				"ENV_HTTP_CLOSE_IDLE_CONNECTION":      "on",
-				"ENV_HTTP_TIMEOUT":                    "10s",
-				"ENV_HTTP_ENABLE_TLS":                 "yes",
-				"ENV_HTTP_TLS_CRT":                    "/path/to/datakit/tls.crt",
-				"ENV_HTTP_TLS_KEY":                    "/path/to/datakit/tls.key",
+				"ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST": "123",
+				"ENV_DATAWAY_TLS_INSECURE":            "on",
+				"ENV_DATAWAY_DROP_EXPIRED_PACKAGE_AT": "1h",
+
+				"ENV_DEFAULT_ENABLED_INPUTS":     "cpu,mem,disk",
+				"ENV_DISABLE_404PAGE":            "on",
+				"ENV_DISABLE_PROTECT_MODE":       "true",
+				"ENV_ENABLE_ELECTION":            "1",
+				"ENV_ENABLE_PPROF":               "true",
+				"ENV_HOSTNAME":                   "1024.coding",
+				"ENV_HTTP_ALLOWED_CORS_ORIGINS":  "https://foo,https://bar",
+				"ENV_HTTP_CLOSE_IDLE_CONNECTION": "on",
+				"ENV_HTTP_ENABLE_TLS":            "yes",
+				"ENV_HTTP_LISTEN":                "localhost:9559",
+				"ENV_HTTP_LISTEN_SOCKET":         "/var/run/datakit/datakit.sock",
+				"ENV_HTTP_TIMEOUT":               "10s",
+				"ENV_HTTP_TLS_CRT":               "/path/to/datakit/tls.crt",
+				"ENV_HTTP_TLS_KEY":               "/path/to/datakit/tls.key",
+				"ENV_LOG_LEVEL":                  "debug",
+				"ENV_LOG_ROTATE_BACKUP":          "10",
+				"ENV_LOG_ROTATE_SIZE_MB":         "128",
+				"ENV_NAME":                       "testing-datakit",
+				"ENV_NAMESPACE":                  "some-default",
+				"ENV_REQUEST_RATE_LIMIT":         "1234",
+				"ENV_RUM_ORIGIN_IP_HEADER":       "not-set",
 
 				"ENV_ENABLE_ELECTION_NAMESPACE_TAG":              "ok",
 				"ENV_PIPELINE_OFFLOAD_RECEIVER":                  offload.DKRcv,
@@ -151,6 +153,7 @@ func TestLoadEnv(t *testing.T) {
 				cfg.Dataway.MaxRawBodySize = dataway.DefaultMaxRawBodySize
 				cfg.Dataway.GlobalCustomerKeys = []string{}
 				cfg.Dataway.GZip = true
+				cfg.Dataway.DropExpiredPackageAt = time.Hour
 
 				cfg.HTTPAPI.AllowedCORSOrigins = []string{"https://foo", "https://bar"}
 				cfg.HTTPAPI.RUMOriginIPHeader = "not-set"

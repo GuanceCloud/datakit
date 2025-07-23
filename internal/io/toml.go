@@ -19,8 +19,9 @@ type IOConf struct {
 	MaxCacheCount                  int `toml:"max_cache_count"`
 	MaxDynamicCacheCountDeprecated int `toml:"max_dynamic_cache_count,omitzero"`
 
-	CompactInterval time.Duration `toml:"flush_interval"`
-	CompactWorkers  int           `toml:"flush_workers"`
+	CompactInterval         time.Duration `toml:"flush_interval"`
+	CompactWorkers          int           `toml:"flush_workers"`
+	AutoTimestampCorrection bool          `toml:"auto_timestamp_correction"`
 
 	Filters map[string]filter.FilterConditions `toml:"filters"`
 }

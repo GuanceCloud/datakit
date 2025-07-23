@@ -107,13 +107,14 @@ func TestRunpl(t *T.T) {
 				t.Error("!ok")
 			}
 
+			dkio := getIO()
+
 			fo := GetFeedData()
 			fo.input = "a"
 			fo.cat = point.Logging
 			fo.pts = c.pts
 			fo.plOption = c.option.PlOption
-			// epts, _, _, err := beforeFeed("a", point.Logging, c.pts, c.option)
-			epts, _, _, err := beforeFeed(fo)
+			epts, _, _, err := dkio.beforeFeed(fo)
 			if err != nil {
 				t.Error(err)
 			}
@@ -127,4 +128,22 @@ func TestRunpl(t *T.T) {
 			}
 		})
 	}
+}
+
+func Test_correctPointTime(t *T.T) {
+	t.Run("basic", func(t *T.T) {
+		var kvs point.KVs
+		kvs = kvs.AddV2("f1", 1, true)
+		now := time.Unix(0, 456)
+
+		pts := []*point.Point{
+			point.NewPointV2("some", kvs, point.WithTimestamp(123)),
+			point.NewPointV2("some", kvs, point.WithTime(now)), // no correction
+		}
+
+		after, n := correctPointTime(pts, now, 1)
+		assert.Equal(t, 1, n)
+		assert.Equal(t, now.UnixNano(), after[0].Time().UnixNano())
+		assert.Equal(t, int64(123), after[0].Get("__orig_time").(int64))
+	})
 }

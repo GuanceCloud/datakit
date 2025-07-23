@@ -294,6 +294,48 @@ func TestWriteWithCache(t *T.T) {
 	})
 }
 
+func TestExpiredPackage(t *T.T) {
+	t.Run(`expired`, func(t *T.T) {
+		reg := prometheus.NewRegistry()
+		reg.MustRegister(diskcache.Metrics()...)
+		reg.MustRegister(Metrics()...)
+
+		pts := point.RandPoints(10)
+
+		dw := NewDefaultDataway()
+		dw.GZip = true
+		dw.DropExpiredPackageAt = time.Second
+
+		assert.NoError(t, dw.Init())
+
+		cat := point.Logging
+
+		assert.NoError(t, dw.Write(WithCategory(cat),
+			WithPoints(pts),
+			WithHTTPEncoding(dw.contentEncoding),
+			WithBodyCallback(func(w *writer, b *body) error {
+				time.Sleep(dw.DropExpiredPackageAt * 2) // delay for expiration
+				return dw.doFlush(w, b)
+			}),
+		))
+
+		mfs, err := reg.Gather()
+		assert.NoError(t, err)
+
+		t.Logf("metrics: %s", metrics.MetricFamily2Text(mfs))
+
+		m := metrics.GetMetricOnLabels(mfs, "datakit_io_flush_drop_pkg_total", cat.String())
+
+		assert.NotNil(t, m)
+		assert.Equal(t, float64(1), m.GetCounter().GetValue())
+
+		t.Cleanup(func() {
+			metricsReset()
+			diskcache.ResetMetrics()
+		})
+	})
+}
+
 func TestX(t *T.T) {
 	t.Run("write-100pts-with-group", func(t *T.T) {
 		cat := point.Logging
