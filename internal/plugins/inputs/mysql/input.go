@@ -343,6 +343,11 @@ func (ipt *Input) initCfg() error {
 		ipt.db = db
 	}
 
+	// TODO: These settings are hardcoded for now, but may be made configurable in the future.
+	db.SetConnMaxLifetime(10 * time.Minute)
+	db.SetMaxIdleConns(5)
+	db.SetMaxOpenConns(10)
+
 	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
 	defer cancel()
 
