@@ -351,7 +351,7 @@ func (ipt *Input) initDB() error {
 	db.SetMaxOpenConns(10)
 
 	ipt.db = db
-	
+
 	return nil
 }
 

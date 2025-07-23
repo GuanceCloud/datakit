@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.78.0(2025/07/23) {#cl-1.78.0}
+
+This release is an iterative update with the following main changes:
+
+### New Features {#cl-1.78.0-new}
+
+- Network dial-testing now supports Windows platform (#2755)
+- Added SQLServer database object collection (#2728)
+- DataKit now supports automatic timestamp correction for data points. For data with time differences exceeding 2 hours, timestamps will be automatically corrected to current time (#2753)
+    - Time differences within 2 hours won't be adjusted, but this correction feature can be disabled
+    - When a data point's timestamp is corrected, an additional field (`__orig_time`) will be added to record the original timestamp
+    - Before uploading data packets, expiration checks will be performed (default expiration time is set to 12h and can be adjusted) to prevent historical data in WAL disk cache from affecting storage performance
+
+### Bug Fixes {#cl-1.78.0-fix}
+
+- Fixed installation failure caused by network unavailability during offline installation (#2757)
+- Fixed collection issues caused by service changes during KubernetesPrometheus collection (#2765)
+
+### Optimizations {#cl-1.78.0-opt}
+
+- Improved database collection connection pool settings (#2758/#2767)
+- Enhanced offline installation process (#2762)
+- Other documentation improvements (!3616)
+
+---
+
 ## 1.77.1(2025/07/16) {#cl-1.77.1}
 
 This release is a hotfix containing the following fixes:
