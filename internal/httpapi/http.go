@@ -112,10 +112,6 @@ func Start(opts ...option) {
 		}
 	}
 
-	if err := setWorkspace(hs); err != nil {
-		l.Errorf("set workspace failed: %s", err.Error())
-	}
-
 	startDCA(hs)
 
 	// start HTTP server

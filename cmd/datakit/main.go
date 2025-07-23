@@ -334,7 +334,7 @@ func doRun() error {
 
 		if len(config.Cfg.Dataway.URLs) == 1 {
 			// https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/issues/524
-			plRemote.StartPipelineRemote(config.Cfg.Dataway.URLs)
+			plRemote.StartPipelineRemote(config.Cfg.Dataway.URLs, plRemote.DefaultPipelineRemote())
 		} else {
 			l.Warn("dataway empty or multi, not run pipeline remote")
 		}

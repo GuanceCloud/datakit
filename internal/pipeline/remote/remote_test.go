@@ -170,8 +170,8 @@ func (mock *pipelineRemoteMockerTest) PullPipeline(ts, relationTS int64) (mFiles
 		}, mock.pullPipelineUpdateTime, relationUpdateAt, nil
 }
 
-func (*pipelineRemoteMockerTest) GetTickerDurationAndBreak() (time.Duration, bool) {
-	return time.Second, true
+func (*pipelineRemoteMockerTest) GetTickerDurationAndBreak() time.Duration {
+	return time.Second
 }
 
 func (mock *pipelineRemoteMockerTest) Remove(name string) error {
@@ -190,57 +190,6 @@ func (mock *pipelineRemoteMockerTest) ReadTarToMap(srcFile string) (map[string]s
 
 func (mock *pipelineRemoteMockerTest) WriteTarFromMap(data map[string]string, dest string) error {
 	return mock.errWriteTarFromMap
-}
-
-//------------------------------------------------------------------------------
-
-// go test -v -timeout 30s -run ^TestPullMain$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/remote
-func TestPullMain(t *testing.T) {
-	const dwURL = "https://openway.guance.com?token=tkn_123"
-	const configPath = "/usr/local/datakit/pipeline_remote/.config_fake"
-
-	cases := []struct {
-		name           string
-		fileExist      bool
-		urls           []string
-		pathConfig     string
-		siteURL        string
-		configContent  []byte
-		failedReadFile error
-		expectError    error
-	}{
-		{
-			name:          "normal",
-			urls:          []string{"https://openway.guance.com?token=tkn_123"},
-			pathConfig:    configPath,
-			siteURL:       dwURL,
-			configContent: []byte(`{"SiteURL":"https://openway.guance.com?token=tkn_123","UpdateTime":1644318398}`),
-		},
-		{
-			name: "urls_zero",
-		},
-		{
-			name:           "do_pull_failed",
-			urls:           []string{"https://openway.guance.com?token=tkn_123"},
-			fileExist:      true,
-			failedReadFile: errGeneral,
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			mock := newPipelineRemoteMock()
-
-			mock.isFileExist = tc.fileExist
-			mock.errReadFile = tc.failedReadFile
-
-			fn, err := pullMain(tc.urls, mock)
-			assert.Equal(t, tc.expectError, err, "pullMain found error: %v", err)
-			if fn != nil {
-				_ = fn()
-			}
-		})
-	}
 }
 
 // go test -v -timeout 30s -run ^TestDoPull$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/remote

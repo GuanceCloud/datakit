@@ -163,11 +163,7 @@ func (c *KV) Register(watcherName, conf string, reload KVReloadFunc, opt *KVOpt)
 
 func (c *KV) LoadKV() {
 	if err := c.LoadKVFile(datakit.KVFile); err != nil {
-		l.Errorf("load kv file failed: %s", err.Error())
-	}
-
-	if c.doPullKV() {
-		l.Infof("pulled new kv conf")
+		l.Warnf("load kv file failed: %s, ignored", err.Error())
 	}
 
 	g := datakit.G("io/kv")
@@ -175,6 +171,8 @@ func (c *KV) LoadKV() {
 		c.pull()
 		return nil
 	})
+
+	l.Info("LoadKV running...")
 }
 
 func (c *KV) LoadKVFile(fp string) error {
@@ -307,13 +305,13 @@ func (c *KV) pull() {
 	defer c.tick.Stop()
 
 	for {
+		l.Debugf("try pull remote kvs...")
+		if c.doPullKV() {
+			c.reload()
+		}
+
 		select {
 		case <-c.tick.C:
-			l.Debugf("try pull remote kvs...")
-			if c.doPullKV() {
-				// c.reloadInputsWithKV()
-				c.reload()
-			}
 		case <-datakit.Exit.Wait():
 			l.Info("kvs puller exits")
 			return
@@ -327,7 +325,7 @@ type pullResp struct {
 
 func (c *KV) doPullKV() (isReload bool) {
 	if len(Cfg.Dataway.URLs) == 0 {
-		l.Debugf("no dataway, skip kv pull")
+		l.Errorf("no dataway, skip kv pull")
 		return
 	}
 

@@ -50,18 +50,16 @@ func StartNTP(s syncer, syncInterval time.Duration, diffAbsRangeSecond uint64) {
 		diffAbsRangeSecond = 5
 	}
 
-	// sync ASAP
-	doSync(s.TimeDiff(), diffAbsRangeSecond)
-
 	g.Go(func(_ context.Context) error {
 		tick := time.NewTicker(syncInterval)
 		defer tick.Stop()
 
 		for {
+			// sync ASAP
+			doSync(s.TimeDiff(), diffAbsRangeSecond)
+
 			select {
 			case <-tick.C:
-				doSync(s.TimeDiff(), diffAbsRangeSecond)
-
 			case <-datakit.Exit.Wait():
 				l.Infof("ntp exit")
 				return nil
