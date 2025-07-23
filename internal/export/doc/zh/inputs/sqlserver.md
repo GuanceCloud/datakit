@@ -119,11 +119,11 @@ GO
 {{ end }}
 {{ end }}
 
-## 自定义对象 {#object}
+## 对象 {#object}
 
 {{ range $i, $m := .Measurements }}
 
-{{if eq $m.Type "custom_object"}}
+{{if eq $m.Type "object"}}
 
 ### `{{$m.Name}}`
 
@@ -133,6 +133,129 @@ GO
 {{end}}
 
 {{ end }}
+
+
+### `message` 指标字段结构 {#message-struct}
+
+`message` 字段基本结构如下：
+
+```json
+{
+  "setting": [ # settings information
+    {
+      "name": "recovery interval (min)",
+      "value": "123",
+      "value_in_use": "0",
+      "maximum": "10",
+      "minimum": "0",
+      "is_dynamic": true,
+      "is_advanced": true
+    }
+    ...
+  ],
+
+  "databases": [ # databases information
+    {
+      "name": "db1",
+      "owner_name": "dbo",
+      "collation": "SQL_Latin1_General_CP1_CI_AS",
+      "schemas": [
+        {
+          "name": "schema1",
+          "owner_name": "dbo",
+          "tables": [
+            {
+              "name": "table1",
+              "columns": [], # columns information
+              "indexes": [], # indexes information
+              "foreign_keys": [], # foreign keys information
+              "partitions": { # partitions information
+                "partition_count": 1
+              } 
+            }
+            ...
+          ]
+        }
+      ]
+    }
+    ...
+  ]
+}
+```
+
+#### `setting` {#setting}
+
+  `setting` 字段中的数据来源于 `sys.configurations` 系统视图，该表包含了 SQL Server 服务器的全局变量信息，详细字段可以参考 [SQL Server 文档](https://docs.microsoft.com/en-us/sql/relational-databases/system-catalog-views/sys-configurations-transact-sql?view=sql-server-ver16){:target="_blank"}。
+
+#### `databases` {#databases}
+
+`databases` 字段保存了 SQL Server 服务器上所有数据库的信息，每个数据库的信息如下：
+
+| 字段名             | 描述                                           |  类型  |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | 数据库名称                                         | string |
+| `owner_name`        | 数据库所有者名称（如 dbo）      | string |
+| `collation`        | 数据库默认排序规则（如 SQL_Latin1_General_CP1_CI_AS）      | string |
+| `schemas`        | 包含表信息的列表      | list |
+
+#### `schemas` {#schemas}
+
+`schemas` 字段保存了数据库中所有架构的信息，每个架构的信息如下：
+
+| 字段名             | 描述                                           |  类型  |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | 架构名称                                         | string |
+| `owner_name`        | 架构所有者名称（如 dbo）      | string |
+| `tables`        | 包含表信息的列表      | list |
+
+`tables` 字段保存了架构中包含的所有表的信息，每个表的信息如下：
+
+| 字段名             | 描述                                           |  类型  |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | 表名称                                         | string |
+| `columns`        | 包含列信息的列表      | list |
+| `indexes`        | 包含索引信息的列表      | list |
+| `foreign_keys`        | 包含外键信息的列表      | list |
+| `partitions`        | 包含分区信息的列表      | dict |
+
+`tables.columns` 字段保存了表包含的所有列的信息，每个列的信息如下：
+
+| 字段名             | 描述                                           |  类型  |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | 列名称                                         | string |
+| `data_type`        | 列数据类型      | string |
+| `nullable`        | 列是否为空      | string |
+| `default`        | 列默认值      | string |
+
+`tables.indexes` 字段保存了表包含的所有索引的信息，每个索引的信息如下：
+
+| 字段名             | 描述                                           |  类型  |
+| ------------------:| ---------------------------------------------- | :----: |
+| `name`        | 索引名称                                         | string |
+| `type`        | 索引类型      | string |
+| `is_unique`        | 索引是否唯一      | string |
+| `is_primary_key`        | 索引是否为主键      | string |
+| `column_names`        | 索引包含的列名称      | string |
+| `is_disabled`        | 索引是否被禁用      | string |
+| `is_unique_constraint`        | 索引是否为唯一约束      | string |
+
+`tables.foreign_keys` 字段保存了表包含的所有外键的信息，每个外键的信息如下：
+
+| 字段名             | 描述                                           |  类型  |
+| ------------------:| ---------------------------------------------- | :----: |
+| `foreign_key_name`        | 外键名称                                         | string |
+| `referencing_table`        | 引用表名称                                         | string |
+| `referenced_table`        | 被引用表名称                                         | string |
+| `referencing_columns`        | 引用列名称                                         | string |
+| `referenced_columns`        | 被引用列名称                                         | string |
+| `update_action`        | 更新时的级联操作      | string |
+| `delete_action`        | 删除时的级联操作      | string |
+
+`tables.partitions` 字段保存了表包含的所有分区的数量，具体字段描述如下：
+
+| 字段名             | 描述                                           |  类型  |
+| ------------------:| ---------------------------------------------- | :----: |
+| `partition_count`        | 分区数量                                         | number |
 
 ## 日志 {#logging}
 

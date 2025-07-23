@@ -116,11 +116,11 @@ For all of the following data collections, the global election tags will be adde
 {{ end }}
 {{ end }}
 
-## Custom Object {#object}
+## Object {#object}
 
 {{ range $i, $m := .Measurements }}
 
-{{if eq $m.Type "custom_object"}}
+{{if eq $m.Type "object"}}
 
 ### `{{$m.Name}}`
 
@@ -130,6 +130,128 @@ For all of the following data collections, the global election tags will be adde
 {{end}}
 
 {{ end }}
+
+### `message` Metric Field Structure {#message-struct}
+
+The basic structure of the `message` field is as follows:
+
+```json
+{
+  "setting": [ # settings information
+    {
+      "name": "recovery interval (min)",
+      "value": "123",
+      "value_in_use": "0",
+      "maximum": "10",
+      "minimum": "0",
+      "is_dynamic": true,
+      "is_advanced": true
+    }
+    ...
+  ],
+
+  "databases": [ # databases information
+    {
+      "name": "db1",
+      "owner_name": "dbo",
+      "collation": "SQL_Latin1_General_CP1_CI_AS",
+      "schemas": [
+        {
+          "name": "schema1",
+          "owner_name": "dbo",
+          "tables": [
+            {
+              "name": "table1",
+              "columns": [], # columns information
+              "indexes": [], # indexes information
+              "foreign_keys": [], # foreign keys information
+              "partitions": { # partitions information
+                "partition_count": 1
+              } 
+            }
+            ...
+          ]
+        }
+      ]
+    }
+    ...
+  ]
+}
+```
+
+#### `setting` {#setting}
+
+  The data in the `setting` field is derived from the `sys.configurations` system view, which contains information about the global variables of the SQL Server instance. For detailed fields, you can refer to the [SQL Server documentation](https://docs.microsoft.com/en-us/sql/relational-databases/system-catalog-views/sys-configurations-transact-sql?view=sql-server-ver16){:target="_blank"}.
+
+#### `databases` {#databases}
+
+The `databases` field stores information about all databases on the SQL Server instance. The information for each database is as follows:
+
+| Field Name       | Description                                 |  Type   |
+| :--------------- | :------------------------------------------ | :-----: |
+| `name`           | The name of the database                    | string  |
+| `owner_name`     | The name of the database owner (e.g., dbo)  | string  |
+| `collation`      | The default collation of the database (e.g., SQL_Latin1_General_CP1_CI_AS) | string  |
+| `schemas`        | A list containing table information         |  list   |
+
+#### `schemas` {#schemas}
+
+The `schemas` field stores information about all schemas in the database. The information for each schema is as follows:
+
+| Field Name       | Description                                         |  Type  |
+| :--------------- | :-------------------------------------------------- | :----: |
+| `name`           | The name of the schema                              | string |
+| `owner_name`     | The name of the schema owner (e.g., dbo)            | string |
+| `tables`         | A list containing table information                 |  list  |
+
+The `tables` field stores information about all tables included in the schema. The information for each table is as follows:
+
+| Field Name       | Description                                         |  Type  |
+| :--------------- | :-------------------------------------------------- | :----: |
+| `name`           | The name of the table                               | string |
+| `columns`        | A list containing column information                |  list  |
+| `indexes`        | A list containing index information                 |  list  |
+| `foreign_keys`   | A list containing foreign key information           |  list  |
+| `partitions`     | A dictionary containing partition information       |  dict  |
+
+The `tables.columns` field stores information about all columns included in the table. The information for each column is as follows:
+
+| Field Name       | Description                                         |  Type  |
+| :--------------- | :-------------------------------------------------- | :----: |
+| `name`           | The name of the column                              | string |
+| `data_type`      | The data type of the column | string |
+| `nullable`       | Whether the column allows null values | string |
+| `default`        | The default value of the column                     | string |
+
+The `tables.indexes` field stores information about all indexes included in the table. The information for each index is as follows:
+
+| Field Name             | Description                                         |  Type  |
+| :--------------------- | :-------------------------------------------------- | :----: |
+| `name`                 | The name of the index                               | string |
+| `type`                 | The type of the index                               | string |
+| `is_unique`            | Whether the index is unique                         | string |
+| `is_primary_key`       | Whether the index is a primary key                  | string |
+| `column_names`         | The names of the columns included in the index      | string |
+| `is_disabled`          | Whether the index is disabled                       | string |
+| `is_unique_constraint` | Whether the index is a unique constraint            | string |
+
+The `tables.foreign_keys` field stores information about all foreign keys included in the table. The information for each foreign key is as follows:
+
+| Field Name           | Description                                         |  Type  |
+| :------------------- | :-------------------------------------------------- | :----: |
+| `foreign_key_name`   | The name of the foreign key                         | string |
+| `referencing_table`  | The name of the referencing table                    | string |
+| `referenced_table`   | The name of the referenced table                    | string |
+| `referencing_columns`| The names of the referencing columns                | string |
+| `referenced_columns` | The names of the referenced columns                 | string |
+| `update_action`      | The cascading action for updates                    | string |
+| `delete_action`      | The cascading action for deletions                  | string |
+
+The `tables.partitions` field stores the number of all partitions included in the table. The specific field description is as follows:
+
+| Field Name         | Description                                         |  Type  |
+| :----------------- | :-------------------------------------------------- | :----: |
+| `partition_count`  | The number of partitions                            | number |
 
 ## Logging {#logging}
 

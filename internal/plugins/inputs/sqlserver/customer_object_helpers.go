@@ -6,7 +6,6 @@
 package sqlserver
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"strconv"
@@ -86,35 +85,6 @@ func getPointsFromMeasurement(ms []inputs.MeasurementV2) []*gcPoint.Point {
 	return pts
 }
 
-func (ipt *Input) getVersionAndUptime() error {
-	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
-	defer cancel()
-
-	versionQuery := "SELECT @@VERSION"
-	var version string
-	err := ipt.db.QueryRowContext(ctx, versionQuery).Scan(&version)
-	if err != nil {
-		return fmt.Errorf("failed to get SQL Server version: %w", err)
-	}
-	ipt.Version = version
-
-	// 查询 SQL Server 启动时间
-	uptimeQuery := `
-		SELECT
-			DATEDIFF(SECOND, sqlserver_start_time, GETDATE())
-		FROM
-			sys.dm_os_sys_info
-	`
-	var uptime int
-	err = ipt.db.QueryRowContext(ctx, uptimeQuery).Scan(&uptime)
-	if err != nil {
-		return fmt.Errorf("failed to get SQL Server uptime: %w", err)
-	}
-	ipt.Uptime = uptime
-
-	return nil
-}
-
 func (ipt *Input) collectCustomerObjectMeasurement() ([]*gcPoint.Point, error) {
 	ipt.setIptCOStatus()
 	ms := []inputs.MeasurementV2{}
@@ -155,12 +125,6 @@ func (ipt *Input) collectCustomerObjectMeasurement() ([]*gcPoint.Point, error) {
 }
 
 func (ipt *Input) FeedCoPts() {
-	err := ipt.getVersionAndUptime()
-	if err != nil {
-		l.Errorf("getVersionAndUptime error: %v", err)
-		ipt.FeedCoByErr(err)
-		return
-	}
 	pts, _ := ipt.collectCustomerObjectMeasurement()
 	if err := ipt.feeder.Feed(gcPoint.CustomObject, pts,
 		dkio.WithElection(ipt.Election),

@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"math"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -22,6 +23,7 @@ import (
 	mssql "github.com/microsoft/go-mssqldb"
 	"github.com/microsoft/go-mssqldb/msdsn"
 
+	"github.com/spf13/cast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
@@ -88,6 +90,30 @@ func (ipt *Input) LogExamples() map[string]map[string]string {
 	}
 }
 
+func (ipt *Input) calculateObjectMetric(m *metricValue, currentValue float64, counterType int) *metricValue {
+	now := time.Now()
+	if m == nil {
+		return &metricValue{
+			CntrType:  counterType,
+			LastValue: currentValue,
+			LastTime:  now,
+		}
+	} else {
+		if counterType == counterTypeBulkCount { // calculate rate
+			if currentValue > m.LastValue {
+				m.Value = (currentValue - m.LastValue) / now.Sub(m.LastTime).Seconds()
+			}
+		} else {
+			m.Value = currentValue
+		}
+		m.CntrType = counterType
+		m.LastTime = now
+		m.LastValue = currentValue
+	}
+
+	return m
+}
+
 func (ipt *Input) getPerformanceCounters() {
 	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
 	defer cancel()
@@ -104,6 +130,9 @@ func (ipt *Input) getPerformanceCounters() {
 		}
 	}()
 
+	transactions := &metricValue{}
+	batchRequests := &metricValue{}
+
 	// measurement, sqlserver_host, object_name, counter_name, instance_name, cntr_value
 	columns, err := rows.Columns()
 	if err != nil {
@@ -119,16 +148,16 @@ func (ipt *Input) getPerformanceCounters() {
 		scanArgs[i] = &rawBytesColumns[i]
 	}
 
-	tags := make(map[string]string)
-	for k, v := range ipt.Tags {
-		tags[k] = v
-	}
-
 	var measurement string
 	var counterName string
 
 	// metric collect
 	for rows.Next() {
+		tags := make(map[string]string)
+		for k, v := range ipt.Tags {
+			tags[k] = v
+		}
+
 		fields := make(map[string]interface{})
 		// scan for every column
 		if err := rows.Scan(scanArgs...); err != nil {
@@ -155,6 +184,8 @@ func (ipt *Input) getPerformanceCounters() {
 			l.Warnf("counter_name not found")
 		}
 
+		var cntrValue float64
+
 		for i, key := range columns {
 			if key == "measurement" {
 				continue
@@ -169,6 +200,7 @@ func (ipt *Input) getPerformanceCounters() {
 						l.Warnf("%s exceed maxint64: %d > %d, ignored", key, v, int64(math.MaxInt64))
 						continue
 					}
+					cntrValue = v
 					// store the counter_name and cntr_value as fields
 					if counterName == "buffer_cache_hit_ratio" {
 						fields[counterName] = v
@@ -190,6 +222,17 @@ func (ipt *Input) getPerformanceCounters() {
 			continue
 		}
 
+		// save the counter_value for later use, calculate tps/qps.s
+		counterType := cast.ToInt(tags["counter_type"])
+		if counterName == "transactions" {
+			transactions.CntrType = counterType
+			transactions.LastValue += cntrValue
+		}
+		if counterName == "batch_requests" {
+			batchRequests.LastValue += cntrValue
+			batchRequests.CntrType = counterType
+		}
+
 		var opts []point.Option
 
 		opts = point.DefaultMetricOptions()
@@ -207,6 +250,17 @@ func (ipt *Input) getPerformanceCounters() {
 
 		if len(fields) > 0 {
 			ipt.collectCache = append(ipt.collectCache, point)
+		}
+	}
+
+	// calculate object metric
+	if ipt.objectMetric != nil {
+		if transactions.LastValue > 0 {
+			ipt.objectMetric.Transactions = ipt.calculateObjectMetric(ipt.objectMetric.Transactions, transactions.LastValue, transactions.CntrType)
+		}
+
+		if batchRequests.LastValue > 0 {
+			ipt.objectMetric.BatchRequests = ipt.calculateObjectMetric(ipt.objectMetric.BatchRequests, batchRequests.LastValue, batchRequests.CntrType)
 		}
 	}
 }
@@ -498,6 +552,11 @@ func (ipt *Input) Run() {
 		if ipt.pause {
 			l.Debugf("not leader, skipped")
 		} else {
+			err := ipt.getVersionAndUptime()
+			if err != nil {
+				l.Errorf("getVersionAndUptime error: %s", err.Error())
+			}
+
 			ipt.setUpState()
 			l.Debugf("start to collect")
 			ipt.getMetric()
@@ -598,6 +657,11 @@ func (ipt *Input) getMetric() {
 		if err := v(); err != nil {
 			l.Warnf("collect measurement [%s] error: %s", k, err.Error())
 		}
+	}
+
+	// collect object
+	if ipt.Object.Enable {
+		ipt.metricCollectSqlserverObject()
 	}
 
 	// get performance counters metrics
@@ -731,8 +795,17 @@ func (ipt *Input) init() {
 		port = parts[1]
 	}
 
+	ipt.Object.host = host
+	ipt.Object.port = port
+	ipt.Object.name = fmt.Sprintf("%s:%s", host, port)
+
+	if ipt.Object.Enable {
+		ipt.objectMetric = &objectMertric{}
+		ipt.Object.queryCache = map[string]string{}
+	}
+
 	// set server tag
-	ipt.Tags["server"] = fmt.Sprintf("%s:%s", host, port)
+	ipt.Tags["server"] = ipt.Object.name
 
 	if len(ipt.Database) == 0 {
 		ipt.Database = "master"
@@ -838,7 +911,71 @@ func (ipt *Input) getDatabaseFilesMetrics() error {
 	return nil
 }
 
-func (ipt *Input) query(name, sql string) (resRows []map[string]*interface{}, err error) {
+var reMajor = regexp.MustCompile(`Microsoft SQL Server (\d+)`)
+
+func (ipt *Input) getMajorVersion(version string) int {
+	matches := reMajor.FindStringSubmatch(version)
+	if len(matches) == 0 {
+		return 0
+	}
+	return cast.ToInt(matches[1])
+}
+
+func (ipt *Input) getVersionAndUptime() error {
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	defer cancel()
+
+	versionQuery := "SELECT @@VERSION"
+	var version string
+	err := ipt.db.QueryRowContext(ctx, versionQuery).Scan(&version)
+	if err != nil {
+		return fmt.Errorf("failed to get SQL Server version: %w", err)
+	}
+
+	ipt.Version = version
+
+	if majorVersion := ipt.getMajorVersion(version); majorVersion != 0 {
+		ipt.MajorVersion = majorVersion
+	} else {
+		query := "SELECT CAST(ServerProperty('ProductMajorVersion') AS INT) AS MajorVersion"
+		var majorVersion int
+		if err := ipt.db.QueryRowContext(ctx, query).Scan(&majorVersion); err != nil {
+			return fmt.Errorf("failed to get SQL Server major version: %w", err)
+		}
+		ipt.MajorVersion = majorVersion
+	}
+
+	uptimeQuery := `
+		SELECT
+			DATEDIFF(SECOND, sqlserver_start_time, GETDATE())
+		FROM
+			sys.dm_os_sys_info
+	`
+	var uptime int
+	err = ipt.db.QueryRowContext(ctx, uptimeQuery).Scan(&uptime)
+	if err != nil {
+		return fmt.Errorf("failed to get SQL Server uptime: %w", err)
+	}
+	ipt.Uptime = uptime
+
+	return nil
+}
+
+func (ipt *Input) query(name, sql string, dbs ...string) (resRows []map[string]*interface{}, err error) {
+	db := ""
+	if len(dbs) > 0 {
+		db = dbs[0]
+		sql = fmt.Sprintf(
+			`
+			IF SERVERPROPERTY('EngineEdition') <> 5 /* not Azure SQL Database */
+			BEGIN
+					USE [%s];
+			END
+
+			%s
+			`, db, sql)
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
 	defer cancel()
 	start := time.Now()
@@ -911,6 +1048,7 @@ func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 		&DatabaseBackupMeasurement{},
 		&DatabaseFilesMeasurement{},
 		&customerObjectMeasurement{},
+		&sqlserverObjectMeasurement{},
 		&inputs.UpMeasurement{},
 	}
 }
@@ -951,7 +1089,11 @@ func defaultInput() *Input {
 		semStop:     cliutils.NewSem(),
 		dbFilterMap: make(map[string]struct{}, 0),
 		feeder:      dkio.DefaultFeeder(),
-		tagger:      datakit.DefaultGlobalTagger(),
+		Object: sqlserverObject{
+			Enable:   true,
+			Interval: datakit.Duration{Duration: time.Second * 600},
+		},
+		tagger: datakit.DefaultGlobalTagger(),
 	}
 }
 
