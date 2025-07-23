@@ -3,9 +3,6 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-//go:build !windows
-// +build !windows
-
 // Package dialtesting implement API dial testing.
 // nolint:gosec
 package dialtesting
@@ -389,7 +386,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (*Input) AvailableArchs() []string {
-	return []string{datakit.OSLabelLinux, datakit.OSLabelMac, datakit.LabelK8s, datakit.LabelDocker}
+	return datakit.AllOS
 }
 
 func (ipt *Input) Terminate() {

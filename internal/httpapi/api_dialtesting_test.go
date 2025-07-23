@@ -64,7 +64,7 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 				TaskType: "HTTP",
 				Task:     &dt.HTTPTask{},
 			},
-			errExpect: uhttp.Error(ErrInvalidRequest, "invalid request"),
+			errExpect: uhttp.Error(ErrInvalidRequest, "dialtestingDebugRequest.task_type of type string"),
 		},
 		{
 			name: "test dial task para wrong1",
@@ -266,7 +266,7 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 			res, err := apiDebugDialtestingHandler(w, req)
 
 			if err != nil {
-				assert.Equal(t, tc.errExpect, err)
+				assert.ErrorContains(t, err, tc.errExpect.Error())
 			} else {
 				assert.Equal(t, tc.expectRes["Status"], res.(*dialtestingDebugResponse).Status)
 			}

@@ -85,6 +85,8 @@ func (t *TCPTask) init() error {
 			t.EnableTraceroute = true
 		}
 
+		t.EnableTraceroute = IsEnabledTraceroute(t.EnableTraceroute)
+
 		for _, v := range checker.ResponseMessage {
 			err := genReg(v)
 			if err != nil {
