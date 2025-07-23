@@ -67,6 +67,13 @@ var (
   ## If leave blank, no metric from any database is filtered out.
   # db_filter = ["some_db_instance_name", "other_db_instance_name"]
 
+  ## collect object
+  [inputs.sqlserver.object]
+    # Set true to enable collecting objects
+    enabled = true
+
+    # interval to collect sqlserver object which will be greater than collection interval
+    interval = "600s"
 
   ## Run a custom SQL query and collect corresponding metrics.
   #
@@ -99,6 +106,7 @@ default_time(time, "+0")
 	customObjectFeedName = dkio.FeedSource(inputName, "CO")
 	loggingFeedName      = dkio.FeedSource(inputName, "L")
 	customQueryFeedName  = dkio.FeedSource(inputName, "custom_query")
+	objectFeedName       = dkio.FeedSource(inputName, "O")
 	catalogName          = "db"
 	l                    = logger.DefaultSLogger(inputName)
 
@@ -131,6 +139,16 @@ type customQuery struct {
 	Interval datakit.Duration `toml:"interval"`
 }
 
+type sqlserverObject struct {
+	Enable   bool             `toml:"enabled"`
+	Interval datakit.Duration `toml:"interval"`
+
+	name               string
+	host               string
+	port               string
+	lastCollectionTime time.Time
+	queryCache         map[string]string
+}
 type Input struct {
 	Host                 string            `toml:"host"`
 	User                 string            `toml:"user"`
@@ -154,7 +172,11 @@ type Input struct {
 	DBFilter    []string `toml:"db_filter,omitempty"`
 	dbFilterMap map[string]struct{}
 
+	Object       sqlserverObject `toml:"object"`
+	objectMetric *objectMertric
+
 	Version            string
+	MajorVersion       int
 	Uptime             int
 	CollectCoStatus    string
 	CollectCoErrMsg    string
