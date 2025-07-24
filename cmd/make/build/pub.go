@@ -283,7 +283,7 @@ func pubDatakitHelm() error {
 	cmdArgs := []string{
 		// TODO: we should switch to the new style: "helm push filepath.Join(DistDir, "datakit-"+ReleaseVersion+".tgz") HelmChartRepo "
 		// old-style helm push
-		"helm", "cm-push",
+		"helm", "cm-push", "-f", /* force push */
 		filepath.Join(DistDir, "datakit-"+strings.Split(ReleaseVersion, "-")[0]+".tgz"),
 		brand(Brand).chartRepoName(ReleaseType != ReleaseProduction),
 	}
