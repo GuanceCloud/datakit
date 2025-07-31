@@ -92,7 +92,7 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 	}
 
 	t.SetOption(map[string]string{"userAgent": fmt.Sprintf("datakit-%s-%s/%s/%s",
-		runtime.GOOS, runtime.GOARCH, git.Version, datakit.DatakitHostName)})
+		runtime.GOOS, runtime.GOARCH, git.Version, datakit.DKHost)})
 
 	if strings.ToLower(t.Status()) == dt.StatusStop {
 		return nil, uhttp.Error(ErrInvalidRequest, "the task status is stop")

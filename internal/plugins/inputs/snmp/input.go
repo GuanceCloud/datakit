@@ -667,7 +667,7 @@ func (ipt *Input) doCollectCore(ip string,
 		tags = append(tags, k+":"+v)
 	}
 	tags = append(tags, "ip:"+ip)
-	tags = append(tags, agentHostKey+":"+datakit.DatakitHostName)
+	tags = append(tags, agentHostKey+":"+datakit.DKHost)
 	tags = append(tags, agentVersionKey+":"+git.Version)
 	if len(device.Subnet) > 0 {
 		tags = append(tags, subnetTagKey+":"+device.Subnet)

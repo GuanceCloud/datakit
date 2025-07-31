@@ -319,7 +319,7 @@ func doRun() error {
 		electionsOpts := []election.ElectionOption{
 			election.WithElectionEnabled(config.Cfg.Election.Enable),
 			election.WithElectionWhitelist(config.Cfg.Election.NodeWhitelist),
-			election.WithID(config.Cfg.Hostname),
+			election.WithID(datakit.DKHost),
 			election.WithNamespace(config.Cfg.Election.Namespace),
 		}
 
@@ -347,7 +347,7 @@ func doRun() error {
 	usagetrace.Start(usagetrace.WithRefresher(config.Cfg.Dataway),
 		usagetrace.WithServerListens(config.Cfg.HTTPAPI.Listen),
 		usagetrace.WithCPULimits(cpuLimit),
-		usagetrace.WithDatakitHostname(config.Cfg.Hostname),
+		usagetrace.WithDatakitHostname(datakit.DKHost),
 		usagetrace.WithDatakitRuntimeID(runtimeID),
 		usagetrace.WithDatakitVersion(ReleaseVersion),
 		usagetrace.WithDatakitStartTime(metrics.Uptime.Unix()),

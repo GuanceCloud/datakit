@@ -90,7 +90,7 @@ func (ipt *Input) parseResourceSpans(resspans []*trace.ResourceSpans) itrace.Dat
 					AddV2(itrace.FieldDuration, int64(span.EndTimeUnixNano-span.StartTimeUnixNano)/int64(time.Microsecond), false).
 					AddTag(itrace.TagSpanStatus, getDKSpanStatus(span.GetStatus())).
 					AddTag(itrace.TagSpanType, itrace.FindSpanTypeStrSpanID(spanID, parenID, spanIDs, parentIDs)).
-					AddTag(itrace.TagDKFingerprintKey, datakit.DatakitHostName+"_"+datakit.Version).
+					AddTag(itrace.TagDKFingerprintKey, datakit.DKHost+"_"+datakit.Version).
 					AddTag(itrace.TagOperation, span.Name).
 					AddTag(itrace.TagSource, inputName).
 					AddTag(itrace.TagService, serviceName)

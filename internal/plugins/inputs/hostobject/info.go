@@ -146,7 +146,7 @@ func getHostMeta() (*hostMetaInfo, error) {
 	}
 
 	return &hostMetaInfo{
-		HostName:        config.Cfg.Hostname,
+		HostName:        datakit.DKHost,
 		OS:              info.OS,
 		BootTime:        info.BootTime,
 		Platform:        info.Platform,

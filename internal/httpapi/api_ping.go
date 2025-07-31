@@ -25,7 +25,7 @@ func apiPing(w http.ResponseWriter, r *http.Request, x ...interface{}) (interfac
 	return &Ping{
 		Version: datakit.Version,
 		Uptime:  fmt.Sprintf("%v", time.Since(metrics.Uptime)),
-		Host:    datakit.DatakitHostName,
+		Host:    datakit.DKHost,
 		Commit:  datakit.Commit,
 	}, nil
 }

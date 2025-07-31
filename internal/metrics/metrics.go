@@ -248,7 +248,7 @@ func (rc runtimeInfoCollector) Collect(ch chan<- p8s.Metric) {
 		float64(time.Since(Uptime)/time.Second),
 		fmt.Sprintf("%v", datakit.AutoUpdate),
 		fmt.Sprintf("%v", datakit.Docker),
-		datakit.DatakitHostName,
+		datakit.DKHost,
 		fmt.Sprintf("%v", datakit.Lite),
 		fmt.Sprintf("%v", datakit.ELinker),
 		resourcelimit.Info(),

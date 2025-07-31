@@ -449,11 +449,11 @@ func (m *mockHandle) initCfgAndTags() {
 	datakit.ClearGlobalTags()
 	config.Cfg = config.DefaultConfig()
 	config.Cfg.Election.Enable = m.args.globalElection
-	config.Cfg.Hostname = m.args.hostName
+	datakit.DKHost = m.args.hostName
 
 	// set config.Cfg and datakit global tags
 	config.Cfg.GlobalHostTags = maputil.CopyMapString(m.args.globalHostTags)
-	config.Cfg.GlobalHostTags["host"] = config.Cfg.Hostname
+	config.Cfg.GlobalHostTags["host"] = datakit.DKHost
 	datakit.SetGlobalHostTagsByMap(config.Cfg.GlobalHostTags)
 	if config.Cfg.Election.Enable {
 		config.Cfg.Election.Tags = maputil.CopyMapString(m.args.globalElectionTags)

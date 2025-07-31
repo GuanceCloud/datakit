@@ -53,7 +53,7 @@ func uploadLog(urls []string) error {
 
 	defer os.Remove(logFileName) //nolint:errcheck
 
-	hostName := config.Cfg.Hostname
+	hostName := config.Cfg.GetHostname()
 
 	resp, err := dw.UploadLog(fileReader, hostName)
 	if err != nil {

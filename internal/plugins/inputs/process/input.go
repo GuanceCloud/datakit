@@ -361,7 +361,7 @@ func (ipt *Input) collectObject(processList []*pr.Process, tn time.Time) {
 		}
 
 		// append object's tag `name': we need a `name' tag for each object.
-		kvs = kvs.MustAddTag("name", fmt.Sprintf("%s_%d", config.Cfg.Hostname, proc.Pid))
+		kvs = kvs.MustAddTag("name", fmt.Sprintf("%s_%d", datakit.DKHost, proc.Pid))
 
 		if ipt.ListenPorts {
 			if listeningPorts, err := getListeningPortsJSON(proc); err != nil {

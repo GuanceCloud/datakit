@@ -76,7 +76,7 @@ func (aga *AfterGather) AppendFilter(filter ...FilterFunc) {
 func (aga *AfterGather) doFeed(iname string, dktrace DatakitTrace) {
 	var pts []*point.Point
 	for _, span := range dktrace {
-		span.Point.AddTag(TagDKFingerprintKey, datakit.DatakitHostName)
+		span.Point.AddTag(TagDKFingerprintKey, datakit.DKHost)
 		pts = append(pts, span.Point)
 	}
 

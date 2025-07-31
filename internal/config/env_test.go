@@ -181,7 +181,7 @@ func TestLoadEnv(t *testing.T) {
 				cfg.Pipeline.HTTPRequestDisableInternalNet = true
 
 				cfg.EnablePProf = true
-				cfg.Hostname = "1024.coding"
+				cfg.hostname = "1024.coding"
 				cfg.ProtectMode = false
 				cfg.DefaultEnabledInputs = []string{"cpu", "mem", "disk"}
 
@@ -537,7 +537,7 @@ func TestLoadEnv(t *testing.T) {
 
 			expect: func() *Config {
 				cfg := DefaultConfig()
-				cfg.Hostname = "node1"
+				cfg.hostname = "node1"
 
 				return cfg
 			}(),
@@ -552,7 +552,7 @@ func TestLoadEnv(t *testing.T) {
 
 			expect: func() *Config {
 				cfg := DefaultConfig()
-				cfg.Hostname = "testing-env-node1"
+				cfg.hostname = "testing-env-node1"
 
 				return cfg
 			}(),
@@ -692,7 +692,7 @@ func TestSetNodenameAsHostname(t *testing.T) {
 
 			c.setNodenameAsHostname()
 
-			assert.Equal(t, tc.expectHostname, c.Hostname)
+			assert.Equal(t, tc.expectHostname, c.hostname)
 			assert.Equal(t, tc.expectNodeNamePrefix, nodeNamePrefix)
 			assert.Equal(t, tc.expectNodeNameSuffix, nodeNameSuffix)
 

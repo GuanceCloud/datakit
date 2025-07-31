@@ -324,7 +324,7 @@ hostname = "should-not-set"`,
 				assert.NoError(t, err)
 			}
 
-			t.Logf("hostname: %s", c.Hostname)
+			t.Logf("hostname: %s", c.hostname)
 
 			if err := os.Remove(tomlfile); err != nil {
 				t.Error(err)

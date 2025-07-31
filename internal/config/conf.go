@@ -78,7 +78,7 @@ func (c *Config) String() string {
 }
 
 func (c *Config) SetUUID() error {
-	if c.Hostname == "" {
+	if c.hostname == "" {
 		hn, err := os.Hostname()
 		if err != nil {
 			l.Errorf("get hostname failed: %s", err.Error())
@@ -87,7 +87,7 @@ func (c *Config) SetUUID() error {
 
 		c.UUID = hn
 	} else {
-		c.UUID = c.Hostname
+		c.UUID = c.hostname
 	}
 	return nil
 }
@@ -165,7 +165,7 @@ func (c *Config) TryUpgradeCfg(p string) error {
 
 	// check if the toml file has been modified
 	if ok, err := ifTOMLEqual(replacedText, string(newTomlText)); err == nil && ok {
-		if c.Hostname == "" {
+		if c.hostname == "" {
 			if err := c.SetHostname(); err != nil {
 				return err
 			}
@@ -202,7 +202,7 @@ func (c *Config) TryUpgradeCfg(p string) error {
 }
 
 func (c *Config) InitCfgOutput() ([]byte, error) {
-	if c.Hostname == "" {
+	if c.hostname == "" {
 		if err := c.SetHostname(); err != nil {
 			return nil, err
 		}
@@ -245,7 +245,7 @@ func ifTOMLEqual(toml1, toml2 string) (bool, error) {
 }
 
 func (c *Config) InitCfgWithComments(path string, meta gctoml.MetaData) error {
-	if c.Hostname == "" {
+	if c.hostname == "" {
 		if err := c.SetHostname(); err != nil {
 			return err
 		}
@@ -300,14 +300,14 @@ func (c *Config) parseGlobalHostTags() {
 		switch strings.ToLower(v) {
 		case `__datakit_hostname`, `$datakit_hostname`:
 			hostName := ""
-			if c.Hostname == "" {
+			if c.hostname == "" {
 				if err := c.SetHostname(); err != nil {
 					l.Warnf("setHostname: %s, ignored", err)
 				} else {
-					hostName = c.Hostname
+					hostName = c.hostname
 				}
 			} else {
-				if hn, err := c.getHostName(); err != nil {
+				if hn, err := c.detectHostname(); err != nil {
 					l.Errorf("get hostname failed: %s", err.Error())
 				} else {
 					hostName = hn
@@ -398,7 +398,7 @@ func (c *Config) setupGlobalTags() {
 	}
 
 	if _, ok := c.GlobalHostTags["host"]; !ok {
-		c.GlobalHostTags["host"] = c.Hostname
+		c.GlobalHostTags["host"] = c.hostname
 	}
 
 	for k, v := range c.GlobalHostTags {
@@ -407,7 +407,7 @@ func (c *Config) setupGlobalTags() {
 
 	// 此处不将 host 计入 c.GlobalHostTags，因为 c.GlobalHostTags 是读取
 	// 的用户配置，而 host 是不允许修改的, 故单独添加这个 tag 到 io 模块
-	datakit.SetGlobalHostTags("host", c.Hostname)
+	datakit.SetGlobalHostTags("host", c.hostname)
 
 	if c.Election.Enable {
 		// 开启选举且开启开关的情况下，将选举的命名空间塞到 global-election-tags 中
@@ -453,7 +453,7 @@ func (c *Config) ApplyMainConfig() error {
 
 	c.setupUlimit()
 
-	if c.Hostname == "" {
+	if c.hostname == "" {
 		if err := c.SetHostname(); err != nil {
 			return err
 		}
@@ -529,16 +529,20 @@ func (c *Config) setupUlimit() {
 }
 
 func (c *Config) SetHostname() error {
-	if hn, err := c.getHostName(); err != nil {
+	if hn, err := c.detectHostname(); err != nil {
 		return err
 	} else {
-		c.Hostname = hn
-		datakit.DatakitHostName = c.Hostname
+		c.hostname = hn
+		datakit.DKHost = c.hostname
 		return nil
 	}
 }
 
-func (c *Config) getHostName() (string, error) {
+func (c *Config) GetHostname() string {
+	return c.hostname
+}
+
+func (c *Config) detectHostname() (string, error) {
 	// try get hostname from configure
 	if v, ok := c.Environments["ENV_HOSTNAME"]; ok && v != "" {
 		return v, nil
