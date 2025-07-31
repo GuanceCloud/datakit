@@ -21,7 +21,7 @@ type netIOInfo struct {
 // ipt.lastNetIOInfo store last loop data.
 // - rate = (nowData - lastData) / duration.
 // - If has some error, will send last loop rate.
-func (ipt *Input) getNetIORate(infos []*NetInfo) {
+func (ipt *Input) getNetIORate(infos []*netInfo) {
 	var recvBytes uint64
 	var sendBytes uint64
 	ts := time.Now()
@@ -46,7 +46,7 @@ func (ipt *Input) getNetIORate(infos []*NetInfo) {
 	ipt.lastNetIOInfo.sendBytes = sendBytes
 }
 
-func filterInterface(name string, infos []*NetInfo) bool {
+func filterInterface(name string, infos []*netInfo) bool {
 	for _, info := range infos {
 		if name == info.Name {
 			return true

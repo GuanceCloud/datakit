@@ -151,10 +151,14 @@ func parseStatF(output string) (*disk.UsageStat, error) {
 	stats.Total = totalBlocks * blockSize
 	stats.Used = (totalBlocks - freeBlocks) * blockSize
 	stats.Free = freeBlocks * blockSize
+	stats.UsedPercent = float64(stats.Used) / float64(stats.Used+stats.Free) * 100
+
 	stats.InodesTotal = totalInodes
 	stats.InodesFree = freeInodes
 	stats.InodesUsed = stats.InodesTotal - stats.InodesFree
-	stats.InodesUsedPercent = 100.0 * float64(stats.InodesUsed) / float64(stats.InodesTotal)
+	if stats.InodesTotal != 0 && stats.InodesUsed != 0 { // 0.0/0.0 may cause NaN, this will lead to point encode erorr:
+		stats.InodesUsedPercent = 100.0 * float64(stats.InodesUsed) / float64(stats.InodesTotal)
+	}
 	return stats, nil
 }
 

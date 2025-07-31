@@ -18,6 +18,7 @@ const (
 
 # Do not collect disks that with these file systems
 ignore_fstypes = '''^(tmpfs|autofs|binfmt_misc|devpts|fuse.lxcfs|overlay|proc|squashfs|sysfs)$'''
+ignore_mountpoints = '''^(/usr/local/datakit/.*|/run/containerd/.*)$'''
 
 ## We collect all devices prefixed with dev by default,If you want to collect additional devices, it's in extra_device add
 # extra_device = []
