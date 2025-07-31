@@ -68,7 +68,7 @@ func promDebugger(configFile string) error {
 
 // collectorName parses given config file and returns collector name.
 func collectorName(file string) (string, error) {
-	x, err := config.LoadSingleConfFile(file, inputs.Inputs, true)
+	x, err := config.LoadSingleConfFile(file, inputs.AllInputs, true)
 	if err != nil {
 		return "", err
 	}
@@ -82,7 +82,7 @@ func collectorName(file string) (string, error) {
 
 // getPromRemoteWriteInput constructs a prom_remote_write.Input by given config file.
 func getPromRemoteWriteInput(configPath string) (*pr.Input, error) {
-	inputList, err := config.LoadSingleConfFile(configPath, inputs.Inputs, true)
+	inputList, err := config.LoadSingleConfFile(configPath, inputs.AllInputs, true)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func showPromRemoteWriteInput(input *pr.Input) error {
 }
 
 func getPromInput(configPath string) (*prom.Input, error) {
-	res, err := config.LoadSingleConfFile(configPath, inputs.Inputs, true)
+	res, err := config.LoadSingleConfFile(configPath, inputs.AllInputs, true)
 	if err != nil {
 		return nil, err
 	}

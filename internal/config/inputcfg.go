@@ -65,8 +65,8 @@ func initDatakitConfSample(name string, c inputs.Creator) error {
 }
 
 // Creata datakit input plugin's configures if not exists.
-func initPluginSamples() error {
-	for name, create := range inputs.Inputs {
+func initPluginSamples(ipts map[string]inputs.Creator) error {
+	for name, create := range ipts {
 		if err := initDatakitConfSample(name, create); err != nil {
 			return err
 		}
@@ -74,53 +74,58 @@ func initPluginSamples() error {
 	return nil
 }
 
-func initDefaultEnabledPlugins(c *Config) {
+func (c *Config) initDefaultEnabledPlugins(confDir string, ipts map[string]inputs.Creator) {
 	if len(c.DefaultEnabledInputs) == 0 {
 		l.Debug("no default inputs enabled")
 		return
 	}
 
-	if GitHasEnabled() {
-		return // #501 issue
-	}
-
 	for _, name := range c.DefaultEnabledInputs {
 		l.Debugf("init default input %s conf...", name)
 
-		var fpath, sample string
+		var (
+			confPath, sample string
+			ipt              inputs.Input
+		)
 
-		if c, ok := inputs.Inputs[name]; ok {
-			i := c()
-			sample = i.SampleConfig()
+		if c, ok := ipts[name]; ok {
+			ipt = c()
+			sample = ipt.SampleConfig()
 
-			fpath = filepath.Join(datakit.ConfdDir, i.Catalog(), name+".conf")
+			confPath = filepath.Join(confDir, ipt.Catalog(), name+".conf")
 		} else {
 			l.Warnf("input %s not found, ignored", name)
 			continue
 		}
 
-		if err := os.MkdirAll(filepath.Dir(fpath), datakit.ConfPerm); err != nil {
+		if err := os.MkdirAll(filepath.Dir(confPath), datakit.ConfPerm); err != nil {
 			l.Errorf("mkdir failed: %s, ignored", err.Error())
 			continue
 		}
 
 		// check exist
-		if _, err := os.Stat(fpath); err == nil {
-			l.Infof("default enabled input %q exists(%q), ignored", name, fpath)
-			continue
+		if fi, err := os.Stat(confPath); err == nil {
+			if fi.IsDir() { // for configmap in k8s, the conf(such as zipkin.conf) is a dir.
+				newfpath := filepath.Join(confDir, ipt.Catalog(), name+"-0xdeadbeaf"+".conf") // add suffix to filename
+				l.Warnf("%q is dir, rename conf file to %q", confPath, newfpath)
+				confPath = newfpath
+			} else {
+				l.Infof("default enabled input %q exists(%q), skipped", name, confPath)
+				continue
+			}
 		}
 
-		if err := ioutil.WriteFile(fpath, []byte(sample), datakit.ConfPerm); err != nil {
+		if err := ioutil.WriteFile(confPath, []byte(sample), datakit.ConfPerm); err != nil {
 			l.Errorf("write input %s config failed: %s, ignored", name, err.Error())
 			continue
 		}
 
-		l.Infof("enable input %s ok", name)
+		l.Infof("enable input %s(conf: %q)ok", name, confPath)
 	}
 }
 
-func inputDisabled(name string, list []string) bool {
-	for _, elem := range list {
+func (c *Config) inputDisabled(name string) bool {
+	for _, elem := range c.DefaultEnabledInputs {
 		if "-"+name == elem {
 			return true
 		}
@@ -128,13 +133,13 @@ func inputDisabled(name string, list []string) bool {
 	return false
 }
 
-func loadInputsConfFromDirs(paths []string, disabledList []string) {
+func (c *Config) loadInputsConfFromDirs(paths []string, ipts map[string]inputs.Creator) {
 	inputs.ResetInputs()
 
 	l.Infof("load input confs from %s", paths)
 	for _, rp := range paths {
-		for name, arr := range LoadInputConf(rp) {
-			if inputDisabled(name, disabledList) {
+		for name, arr := range LoadInputConf(rp, ipts) {
+			if c.inputDisabled(name) {
 				l.Infof("input %q disabled", name)
 				continue
 			}
@@ -148,17 +153,17 @@ func loadInputsConfFromDirs(paths []string, disabledList []string) {
 
 	if GitHasEnabled() {
 		l.Infof("DefaultEnabledInputs: %s", strings.Join(Cfg.DefaultEnabledInputs, ","))
-		enableDefaultInputs(Cfg.DefaultEnabledInputs)
+		enableDefaultInputs(c.DefaultEnabledInputs, ipts)
 	}
 
 	inputs.Init()
 }
 
-func enableDefaultInputs(list []string) {
+func enableDefaultInputs(list []string, ipts map[string]inputs.Creator) {
 	for _, name := range list {
-		if c, ok := inputs.Inputs[name]; ok {
+		if c, ok := ipts[name]; ok {
 			i := c()
-			inputInstances, err := LoadSingleConf(i.SampleConfig(), inputs.Inputs)
+			inputInstances, err := LoadSingleConf(i.SampleConfig(), ipts)
 			if err != nil {
 				l.Errorf("LoadSingleConf failed: %v", err)
 				continue
@@ -179,7 +184,7 @@ func ReloadCheckInputCfg() ([]*inputs.InputInfo, error) {
 	confRootPath := getConfRootPaths()
 
 	for _, rp := range confRootPath {
-		for _, arr := range LoadInputConf(rp) {
+		for _, arr := range LoadInputConf(rp, inputs.AllInputs) {
 			availableInputs = append(availableInputs, arr...)
 		}
 	}
@@ -188,6 +193,6 @@ func ReloadCheckInputCfg() ([]*inputs.InputInfo, error) {
 }
 
 func ReloadInputConfig() error {
-	loadInputsConfFromDirs(getConfRootPaths(), Cfg.DefaultEnabledInputs)
+	Cfg.loadInputsConfFromDirs(getConfRootPaths(), inputs.AllInputs)
 	return nil
 }

@@ -41,7 +41,7 @@ func debugInput(conf string) error {
 		cp.Warnf("load kv file failed: %s, ignore \n", err.Error())
 	}
 
-	loadedInputs, err := config.LoadSingleConfFile(conf, inputs.Inputs, false)
+	loadedInputs, err := config.LoadSingleConfFile(conf, inputs.AllInputs, false)
 	if err != nil {
 		return fmt.Errorf("load %s: %w", conf, err)
 	}

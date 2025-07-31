@@ -105,7 +105,7 @@ func runToolFlags() error {
 			panic(err)
 		}
 
-		for k, v := range inputs.Inputs {
+		for k, v := range inputs.AllInputs {
 			sample := v().SampleConfig()
 			if err := os.WriteFile(filepath.Join(fpath, k+".conf"),
 				[]byte(sample), datakit.ConfPerm); err != nil {

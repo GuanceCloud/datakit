@@ -201,7 +201,7 @@ func (gd *GuanceDocs) exportMeasurements() error {
 		`|---:|---|---|`,
 	}
 
-	for inputName, c := range inputs.Inputs {
+	for inputName, c := range inputs.AllInputs {
 		l.Debugf("export measurement info for %q...", inputName)
 
 		switch inputName {
@@ -293,7 +293,7 @@ func (gd *GuanceDocs) exportInputDocs(lang inputs.I18n) error {
 
 		var doc []byte
 		l.Debugf("add doc %q to integrations...", f.Name())
-		if _, ok := inputs.Inputs[name]; ok {
+		if _, ok := inputs.AllInputs[name]; ok {
 			l.Debugf("build input doc %q to integrations", name)
 			doc, err = buildInputDoc(name, md, gd.opt)
 			if err != nil {

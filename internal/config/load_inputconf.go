@@ -40,7 +40,7 @@ func reloadKVConf(changedConfs map[string]string) error {
 		}
 
 		// start inputs
-		if inputsInfo, err := getInputsFromConfData(key, confData, inputs.Inputs); err != nil {
+		if inputsInfo, err := getInputsFromConfData(key, confData, inputs.AllInputs); err != nil {
 			l.Warnf("getInputsFromConfData failed: %s, ignored", err.Error())
 			return nil
 		} else {
@@ -69,7 +69,7 @@ func reloadKVConf(changedConfs map[string]string) error {
 	return nil
 }
 
-func getInputsFromConfData(confKey string, confData string, creators map[string]inputs.Creator) (map[string][]*inputs.InputInfo, error) {
+func getInputsFromConfData(confKey string, confData string, ipts map[string]inputs.Creator) (map[string][]*inputs.InputInfo, error) {
 	var res map[string]interface{}
 	ret := map[string][]*inputs.InputInfo{}
 	if _, err := bstoml.Decode(confData, &res); err != nil {
@@ -94,7 +94,7 @@ func getInputsFromConfData(confKey string, confData string, creators map[string]
 		switch x := v.(type) {
 		case map[string]interface{}: // 第二层
 			for inputName, b := range x {
-				c, ok := creators[inputName]
+				c, ok := ipts[inputName]
 				if !ok {
 					l.Warnf("unknown input: %s, ignored", inputName)
 					continue
@@ -134,7 +134,7 @@ func getInputsFromConfData(confKey string, confData string, creators map[string]
 }
 
 // LoadSingleConf load single conf data with kv replace.
-func LoadSingleConf(confData string, creators map[string]inputs.Creator) (map[string][]*inputs.InputInfo, error) {
+func LoadSingleConf(confData string, ipts map[string]inputs.Creator) (map[string][]*inputs.InputInfo, error) {
 	var err error
 	parsedConfData := confData
 	isTemplate := IsKVTemplate(confData)
@@ -161,7 +161,7 @@ func LoadSingleConf(confData string, creators map[string]inputs.Creator) (map[st
 		}
 	}()
 
-	if v, err := getInputsFromConfData(confKey, parsedConfData, creators); err != nil {
+	if v, err := getInputsFromConfData(confKey, parsedConfData, ipts); err != nil {
 		return nil, fmt.Errorf("getInputsFromConfData: %w", err)
 	} else {
 		return v, nil
@@ -217,7 +217,7 @@ func CheckConfFileDupOrSet(data []byte) bool {
 	return false
 }
 
-func LoadSingleConfFile(fp string, creators map[string]inputs.Creator, skipChecksum bool) (map[string][]*inputs.InputInfo, error) {
+func LoadSingleConfFile(fp string, ipts map[string]inputs.Creator, skipChecksum bool) (map[string][]*inputs.InputInfo, error) {
 	data, err := os.ReadFile(filepath.Clean(fp))
 	if err != nil {
 		l.Errorf("os.ReadFile: %s", err.Error())
@@ -232,12 +232,12 @@ func LoadSingleConfFile(fp string, creators map[string]inputs.Creator, skipCheck
 
 	data = feedEnvs(data)
 	data = decodeEncs(data)
-	return LoadSingleConf(string(data), creators)
+	return LoadSingleConf(string(data), ipts)
 }
 
 // LoadInputConf read all inputs configures(toml) from @root,
 // then create various inputs object.
-func LoadInputConf(root string) map[string][]*inputs.InputInfo {
+func LoadInputConf(root string, ipts map[string]inputs.Creator) map[string][]*inputs.InputInfo {
 	confs := SearchDir(root, ".conf", ".git")
 
 	ret := map[string][]*inputs.InputInfo{}
@@ -249,7 +249,7 @@ func LoadInputConf(root string) map[string][]*inputs.InputInfo {
 			continue
 		}
 
-		x, err := LoadSingleConfFile(fp, inputs.Inputs, false)
+		x, err := LoadSingleConfFile(fp, ipts, false)
 		if err != nil {
 			l.Warnf("load conf(%s) failed: %s, ignored", fp, err)
 			continue

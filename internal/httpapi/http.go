@@ -693,7 +693,7 @@ func ReloadDataKit(ctx context.Context) error {
 				l.Info("before RunInputs")
 
 				CleanHTTPHandler()
-				if err := inputs.RunInputs(); err != nil {
+				if err := inputs.RunInputs(inputs.AllInputsInfo); err != nil {
 					l.Errorf("RunInputs failed: %v", err)
 					return err
 				}

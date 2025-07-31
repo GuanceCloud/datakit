@@ -26,7 +26,7 @@ func CompareInputs(confdInputs map[string][]*ConfdInfo, defaultEnabledInputs []s
 	handleList := make([]handle, 0)
 
 	// Make sure confdInputs have all InputsInfo inputs kind
-	for inputsName := range InputsInfo {
+	for inputsName := range AllInputsInfo {
 		if _, ok := confdInputs[inputsName]; !ok {
 			confdInputs[inputsName] = []*ConfdInfo{}
 			l.Debugf("confdInputs add non-datakit-input-kind %s", inputsName)
@@ -40,8 +40,8 @@ func CompareInputs(confdInputs map[string][]*ConfdInfo, defaultEnabledInputs []s
 		// Make sure InputsInfo have this collector kind
 		var inputsInfo []*InputInfo
 		var ok bool
-		if inputsInfo, ok = InputsInfo[confdInputName]; !ok {
-			InputsInfo[confdInputName] = []*InputInfo{}
+		if inputsInfo, ok = AllInputsInfo[confdInputName]; !ok {
+			AllInputsInfo[confdInputName] = []*InputInfo{}
 			l.Debugf("confd add non-datakit-input-kind %s", confdInputName)
 		}
 
@@ -54,7 +54,7 @@ func CompareInputs(confdInputs map[string][]*ConfdInfo, defaultEnabledInputs []s
 		// Find index if need modify
 		for i := 0; i < forLen; i++ {
 			jsonConfd, _ := json.Marshal(confdConfigs[i].Input)
-			jsonInput, _ := json.Marshal(InputsInfo[confdInputName][i].Input)
+			jsonInput, _ := json.Marshal(AllInputsInfo[confdInputName][i].Input)
 
 			jsonConfdStr := string(jsonConfd)
 			jsonInputStr := string(jsonInput)
@@ -96,7 +96,7 @@ func CompareInputs(confdInputs map[string][]*ConfdInfo, defaultEnabledInputs []s
 				if i >= len(defaultEnabledInputs) && confdInputName != "dk" {
 					// Not default enabled input
 					handleList[len(handleList)-1].deleteIndex = len(confdConfigs) // from here delete
-				} else if len(InputsInfo[confdInputName]) > 1 {
+				} else if len(AllInputsInfo[confdInputName]) > 1 {
 					// Default enabled input and must singleton and len >1
 					handleList[len(handleList)-1].deleteIndex = 1 // singleton
 				}

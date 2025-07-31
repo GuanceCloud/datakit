@@ -40,9 +40,9 @@ type ConfigInfoItem struct {
 }
 
 var (
-	Inputs     = map[string]Creator{}
-	InputsInfo = map[string][]*InputInfo{}
-	ConfigInfo = ConfigInfoItem{Inputs: map[string]*Config{}, DataKit: &Config{
+	AllInputs     = map[string]Creator{}
+	AllInputsInfo = map[string][]*InputInfo{}
+	ConfigInfo    = ConfigInfoItem{Inputs: map[string]*Config{}, DataKit: &Config{
 		ConfigPaths:  []*ConfigPathStat{{Loaded: 1, Path: datakit.MainConfPath}},
 		ConfigDir:    datakit.ConfdDir,
 		SampleConfig: datakit.MainConfSample(datakit.BrandDomain),
@@ -55,7 +55,7 @@ var (
 
 func GetElectionInputs() map[string][]ElectionInput {
 	res := make(map[string][]ElectionInput)
-	for k, arr := range InputsInfo {
+	for k, arr := range AllInputsInfo {
 		for _, x := range arr {
 			if y, ok := x.Input.(ElectionInput); ok {
 				if z, ok := x.Input.(ElectionEnabler); ok {
@@ -161,11 +161,11 @@ type LogExampler interface {
 type Creator func() Input
 
 func Add(name string, creator Creator) {
-	if _, ok := Inputs[name]; ok {
+	if _, ok := AllInputs[name]; ok {
 		l.Fatalf("inputs %s exist(from datakit)", name)
 	}
 
-	Inputs[name] = creator
+	AllInputs[name] = creator
 
 	AddConfigInfoPath(name, "", 0)
 }
@@ -196,7 +196,7 @@ func GetInput() ([]byte, error) {
 	mtx.Lock()
 	defer mtx.Unlock()
 
-	for name, info := range InputsInfo {
+	for name, info := range AllInputsInfo {
 		for _, ii := range info {
 			inputs[name] = append(inputs[name], ii.Input)
 		}
@@ -230,7 +230,7 @@ func AddConfigInfoPath(inputName string, fp string, loaded int8) {
 		}
 		c.ConfigPaths = append(c.ConfigPaths, &ConfigPathStat{Loaded: loaded, Path: fp})
 	} else {
-		creator, ok := Inputs[inputName]
+		creator, ok := AllInputs[inputName]
 		if ok {
 			config := &Config{
 				ConfigPaths:  []*ConfigPathStat{},
@@ -274,22 +274,22 @@ func AddInput(name string, input *InputInfo) {
 	if input != nil {
 		// 单例采集器只添加一次
 		if _, ok := input.Input.(Singleton); ok {
-			if len(InputsInfo[name]) > 0 {
+			if len(AllInputsInfo[name]) > 0 {
 				return
 			}
 		}
 	}
 
-	InputsInfo[name] = append(InputsInfo[name], input)
+	AllInputsInfo[name] = append(AllInputsInfo[name], input)
 
-	l.Infof("add input %q, total %d", name, len(InputsInfo[name]))
+	l.Infof("add input %q, total %d", name, len(AllInputsInfo[name]))
 }
 
 func RemoveInput(name string, input Input) {
 	mtx.Lock()
 	defer mtx.Unlock()
 
-	oldList, ok := InputsInfo[name]
+	oldList, ok := AllInputsInfo[name]
 	if !ok {
 		return
 	}
@@ -302,15 +302,15 @@ func RemoveInput(name string, input Input) {
 		}
 	}
 
-	InputsInfo[name] = newList
+	AllInputsInfo[name] = newList
 
-	l.Debugf("remove input %s, current total %d", name, len(InputsInfo[name]))
+	l.Debugf("remove input %s, current total %d", name, len(AllInputsInfo[name]))
 }
 
 func ResetInputs() {
 	mtx.Lock()
 	defer mtx.Unlock()
-	InputsInfo = map[string][]*InputInfo{}
+	AllInputsInfo = map[string][]*InputInfo{}
 
 	// only reset input config path
 	for _, v := range ConfigInfo.Inputs {
@@ -341,7 +341,7 @@ func RunInputExtra() error {
 	mtx.RLock()
 	defer mtx.RUnlock()
 
-	for name, arr := range InputsInfo {
+	for name, arr := range AllInputsInfo {
 		for _, ii := range arr {
 			if ii.Input == nil {
 				l.Debugf("skip non-datakit-input %s", name)
@@ -360,7 +360,7 @@ func StopInputs() error {
 	mtx.RLock()
 	defer mtx.RUnlock()
 
-	for name, arr := range InputsInfo {
+	for name, arr := range AllInputsInfo {
 		for _, ii := range arr {
 			if ii.Input == nil {
 				l.Debugf("skip non-datakit-input %s", name)
@@ -379,7 +379,7 @@ func StopInputs() error {
 func IterateInputs(f func(name string, i *InputInfo)) {
 	mtx.Lock()
 	defer mtx.Unlock()
-	for name, arr := range InputsInfo {
+	for name, arr := range AllInputsInfo {
 		if len(arr) > 1 {
 			if _, ok := arr[0].Input.(Singleton); ok {
 				arr = arr[:1]
@@ -402,7 +402,7 @@ func GetInputsByConfKey(confKey string) []*InputInfo {
 	mtx.RLock()
 	defer mtx.RUnlock()
 	arr := []*InputInfo{}
-	for _, v := range InputsInfo {
+	for _, v := range AllInputsInfo {
 		for _, vv := range v {
 			if vv.ConfKey == confKey {
 				arr = append(arr, vv)
@@ -517,7 +517,7 @@ func addPanic(name string) {
 func InputEnabled(name string) (n int) {
 	mtx.RLock()
 	defer mtx.RUnlock()
-	arr, ok := InputsInfo[name]
+	arr, ok := AllInputsInfo[name]
 	if !ok {
 		return
 	}
