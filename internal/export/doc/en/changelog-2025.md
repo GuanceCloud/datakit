@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.79.0(2025/07/31) {#cl-1.79.0}
+
+This release is an iterative update with the following main changes:
+
+### New Features {#cl-1.79.0-new}
+
+- Added Prometheus Service Discovery collector (#2698)
+
+### Bug Fixes {#cl-1.79.0-fix}
+
+- Fixed issue where local Pipeline might not take effect (#2721)
+- Fixed missing host information for some features when DataKit is deployed in Kubernetes (#2775)
+- Fixed potential issue where default collectors might not work (#2772)
+- Fixed disk overall usage calculation in host object metrics (#2768)
+
+---
+
 ## 1.78.0(2025/07/23) {#cl-1.78.0}
 
 This release is an iterative update with the following main changes:

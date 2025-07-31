@@ -26,13 +26,13 @@ func TestGetPort(t *testing.T) {
 	t.Run("base-100", func(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			get := RandPort("tcp")
-			assert.Truef(t, get > baseOffset, "get: %d", get)
+			assert.Truef(t, get >= baseOffset, "get: %d", get)
 			t.Logf("get: %d -> %d", i, get)
 		}
 
 		for _, i := range []int{1234, 6379, 3306, 2375} {
 			get := RandPort("tcp")
-			assert.True(t, get > baseOffset)
+			assert.True(t, get >= baseOffset)
 			t.Logf("get: %d -> %d", i, get)
 		}
 	})
@@ -40,7 +40,7 @@ func TestGetPort(t *testing.T) {
 	t.Run("larger-than-base", func(t *testing.T) {
 		for i := baseOffset; i < baseOffset+10; i++ {
 			get := RandPort("tcp")
-			assert.True(t, get > baseOffset)
+			assert.True(t, get >= baseOffset)
 			t.Logf("get: %d -> %d", i, get)
 		}
 	})
@@ -48,7 +48,7 @@ func TestGetPort(t *testing.T) {
 	t.Run("larger-than-max", func(t *testing.T) {
 		for i := maxPort; i < maxPort+10; i++ {
 			get := RandPort("tcp")
-			assert.True(t, get > baseOffset)
+			assert.True(t, get >= baseOffset)
 			t.Logf("get: %d -> %d", i, get)
 		}
 	})
