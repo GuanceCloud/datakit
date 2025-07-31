@@ -226,7 +226,8 @@ func doPull(pathConfig, pathRelation, siteURL string, ipr IPipelineRemote) error
 			l.Debug("deleteAll")
 
 			// cleanup default pipeline
-			managerWkr.UpdateDefaultScript(nil)
+			managerWkr.UpdateDefaultScript(
+				plval.GetLocalDefaultPipeline())
 			if m, ok := plval.GetManager(); ok && m != nil {
 				// cleanup all remote scripts
 				m.LoadScripts(constants.NSRemote, nil, nil)
