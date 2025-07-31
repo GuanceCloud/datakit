@@ -30,76 +30,8 @@ This document focuses on local disk log collection and Socket log collection:
 
     Go to the `conf.d/log` directory under the DataKit installation directory, copy `logging.conf.sample` and name it `logging.conf`. Examples are as follows:
     
-    ``` toml
-    [[inputs.logging]]
-      # Log file list, you can specify absolute path, support batch specification using glob rules
-      # It is recommended to use the absolute path and specify the file type suffix
-      # Please reduce the scope and do not capture to zip file or binary file
-      logfiles = [
-        "/var/log/*.log",            # All files of the log
-        "/var/log/*.txt",            # All files of the txt
-        "/var/log/sys*",             # All files prefixed with sys under the file path
-        "/var/log/syslog",           # Unix format file path
-        "C:/path/*.txt",             # Windows file paths are in the same style as Unix
-      ]
-    
-      ## socket currently supports two protocols: tcp/udp. It is recommended to open the intranet port to prevent potential safety hazards
-      ## socket and log can only be selected at present, and can not be collected by both file and socket
-      socket = [
-       "tcp://0.0.0.0:9540"
-       "udp://0.0.0.0:9541"
-      ]
-    
-      # File path filtering, using glob rules, meet any one of the filtering conditions will not be collected for the file
-      ignore = [""]
-      
-      # Data source, if empty, 'default' is used by default
-      source = ""
-      
-      # Add tag. If it is empty, $source is used by default
-      service = ""
-      
-      # if pipeline script path is empty, then $source.p will be used; and if $source.p does not exist, then pipeline will be used
-      pipeline = ""
-      
-      # Filter corresponding status:
-      #   `emerg`,`alert`,`critical`,`error`,`warning`,`info`,`debug`,`OK`
-      ignore_status = []
-      
-      # Select the code, if there is a misunderstanding in the code, the data cannot be viewed. Default to null:
-      #    `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""
-      character_encoding = ""
-      
-      ## Set regular expressions, such as ^\d{4}-\d{2}-\d{2} line headers to match the YYYY-MM-DD time format
-      ## Data that matches this regular match will be considered valid, otherwise it will be cumulatively appended to the end of the last valid data
-      ## Use three single quotation marks '''this-regexp''' to avoid escaping
-      ## Regular expression link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
-      # multiline_match = '''^\S'''
-    
-      ## Whether to turn on automatic multiline mode, it will match the applicable multiline rule in the pattern list
-      auto_multiline_detection = true
-      ## Configure the automatic multiline patterns list, which is an array of multiline rules, i.e. multiple multiline_matches. If it is empty, use the default rule. See the document for details
-      auto_multiline_extra_patterns = []
-
-      ## Removes ANSI escape codes from text strings.
-      remove_ansi_escape_codes = false
-
-      ## The maximum number of open files allowed, default is 500.
-      ## This is a global configuration, and if there are multiple values, the maximum value will be used.
-      # max_open_files = 500
-
-      ## Ignore inactive files. For example, files that were last modified 20 minutes ago and more than 10m ago will be ignored
-      ## Time unit supports "ms", "s", "m", "h"
-      ignore_dead_log = "1h"
-
-      ## Read file from beginning.
-      from_beginning = false
-    
-      ## Custom tags
-      [inputs.logging.tags]
-      # some_tag = "some_value"
-      # more_tag = "some_other_value"
-      # ...
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
     ```
 
     ???+ info "About `ignore_dead_log`"
@@ -120,10 +52,19 @@ This document focuses on local disk log collection and Socket log collection:
 
 === "TCP/UDP"
 
-    Comment out `logfiles` in conf and configure `sockets`. Take log4j2 as an example:
+    Add configure `sockets` in *logging.conf*:
+
+    ```toml
+      sockets = [
+       "tcp://0.0.0.0:9540",
+       "udp://0.0.0.0:9541", # or via UDP
+      ]
+    ```
+
+    Then configure your app's logging output, take log4j2 as an example:
     
     ``` xml
-     <!-- The socket configuration log is transmitted to the local port 9540, the protocol defaults to tcp -->
+     <!-- The socket configuration log is transmitted to the local port 9540, the protocol defaults to TCP -->
      <Socket name="name1" host="localHost" port="9540" charset="utf8">
          <!-- Output format Sequence layout-->
          <PatternLayout pattern="%d{yyyy.MM.dd 'at' HH:mm:ss z} %-5level %class{36} %L %M - %msg%xEx%n"/>
@@ -135,6 +76,8 @@ This document focuses on local disk log collection and Socket log collection:
     
     More: For configuration and code examples of Java Go Python mainstream logging components, see: [socket client configuration](logging_socket.md)
 <!-- markdownlint-enable -->
+
+---
 
 ## Advanced Topics {#deepin-topics}
 
