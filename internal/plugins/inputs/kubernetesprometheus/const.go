@@ -19,8 +19,8 @@ var (
 	annotationPrometheusioPath             = "prometheus.io/path"
 	annotationPrometheusioParamMeasurement = "prometheus.io/param_measurement"
 
-	maxTaskNumber  = 100
-	maxScrapeRetry = 10
+	maxTasksPerWorker = 100
+	maxScrapeRetry    = 10
 )
 
 var (
@@ -33,7 +33,7 @@ var (
 )
 
 const (
-	example = `
+	sampleConfig = `
 [inputs.kubernetesprometheus]
   node_local      = true
   scrape_interval = "30s"

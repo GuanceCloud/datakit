@@ -52,7 +52,7 @@ Prom 采集器支持在数据拉取的 HTTP 请求中配置额外的请求头，
 
 ```toml
   [inputs.prom.http_headers]
-    Authorization = “Basic bXl0b21jYXQ="
+    Authorization = "Bearer <TOKEN>"
 ```
 
 ### Tag 重命名 {#tag-rename}

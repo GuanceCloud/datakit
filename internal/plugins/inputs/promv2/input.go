@@ -261,7 +261,6 @@ func newProm() *Input {
 		Feeder:      dkio.DefaultFeeder(),
 		Tagger:      datakit.DefaultGlobalTagger(),
 		semStop:     cliutils.NewSem(),
-		Interval:    time.Second * 30,
 	}
 }
 
