@@ -29,7 +29,7 @@ import (
 )
 
 type (
-	HostMetaInfo struct {
+	hostMetaInfo struct {
 		HostName        string `json:"host_name"`
 		BootTime        uint64 `json:"boot_time"`
 		OS              string `json:"os"`
@@ -40,7 +40,7 @@ type (
 		Arch            string `json:"arch"`
 	}
 
-	CPUInfo struct {
+	cpuInfo struct {
 		Vendor    string  `json:"vendor_id"`
 		Module    string  `json:"module_name"`
 		Cores     int32   `json:"cores"`
@@ -49,13 +49,13 @@ type (
 		Flags     string  `json:"-"`
 	}
 
-	MemInfo struct {
+	memInfo struct {
 		MemoryTotal uint64 `json:"memory_total"`
 		SwapTotal   uint64 `json:"swap_total"`
 		usedPercent float64
 	}
 
-	NetInfo struct {
+	netInfo struct {
 		Index        int      `json:"-"`
 		MTU          int      `json:"mtu"`   // maximum transmission unit
 		Name         string   `json:"name"`  // e.g., "en0", "lo0", "eth0.100"
@@ -68,20 +68,29 @@ type (
 		Addrs        []string `json:"-"`
 	}
 
-	DiskInfo struct {
-		Device     string `json:"device"`
-		Total      uint64 `json:"total"`
+	diskInfo struct {
+		Device      string  `json:"device"`
+		Total       uint64  `json:"total"`
+		Used        uint64  `json:"used"`
+		UsedPercent float64 `json:"used_percent"`
+
+		InodesTotal       uint64  `json:"inodes_total"`
+		InodesUsed        uint64  `json:"inodes_used"`
+		InodesFree        uint64  `json:"inodes_free"`
+		InodesUsedPercent float64 `json:"inodes_used_percent"`
+
+		Free       uint64 `json:"free"`
 		Fstype     string `json:"fstype"`
 		MountPoint string `json:"mountpoint"`
 		Opts       string `json:"-"`
 	}
 
-	HostInfo struct {
-		HostMeta               *HostMetaInfo          `json:"meta"`
-		CPU                    []*CPUInfo             `json:"cpu"`
-		Mem                    *MemInfo               `json:"mem"`
-		Net                    []*NetInfo             `json:"net"`
-		Disk                   []*DiskInfo            `json:"disk"`
+	hostInfo struct {
+		HostMeta               *hostMetaInfo          `json:"meta"`
+		CPU                    []*cpuInfo             `json:"cpu"`
+		Mem                    *memInfo               `json:"mem"`
+		Net                    []*netInfo             `json:"net"`
+		Disk                   []*diskInfo            `json:"disk"`
 		Conntrack              *conntrackutil.Info    `json:"conntrack"`
 		FileFd                 *filefdutil.Info       `json:"filefd"`
 		Election               *election.ElectionInfo `json:"election"`
@@ -103,7 +112,7 @@ type (
 	}
 
 	HostObjectMessage struct {
-		Host       *HostInfo             `json:"host"`
+		Host       *hostInfo             `json:"host"`
 		Collectors []*io.CollectorStatus `json:"collectors,omitempty"`
 		Config     *HostConfig           `json:"config"`
 	}
@@ -118,7 +127,7 @@ type (
 	}
 )
 
-func (h *HostInfo) getDiskTotal() uint64 {
+func (h *hostInfo) getDiskTotal() uint64 {
 	total := uint64(0)
 	for _, disk := range h.Disk {
 		total += disk.Total
@@ -129,14 +138,14 @@ func (h *HostInfo) getDiskTotal() uint64 {
 
 var collectorStatHist []*io.CollectorStatus
 
-func getHostMeta() (*HostMetaInfo, error) {
+func getHostMeta() (*hostMetaInfo, error) {
 	info, err := hostutil.Info()
 	if err != nil {
 		l.Errorf("fail to get host info, %s", err)
 		return nil, err
 	}
 
-	return &HostMetaInfo{
+	return &hostMetaInfo{
 		HostName:        config.Cfg.Hostname,
 		OS:              info.OS,
 		BootTime:        info.BootTime,
@@ -157,17 +166,17 @@ func getCPUPercent() float64 {
 	return ps[0]
 }
 
-func getCPUInfo() []*CPUInfo {
+func getCPUInfo() []*cpuInfo {
 	infos, err := cpuutil.Info()
 	if err != nil {
 		l.Warnf("fail to get cpu info, %s", err)
 		return nil
 	}
 
-	var objs []*CPUInfo
+	var objs []*cpuInfo
 
 	for _, info := range infos {
-		objs = append(objs, &CPUInfo{
+		objs = append(objs, &cpuInfo{
 			Vendor:    info.VendorID,
 			Module:    info.ModelName,
 			Cores:     info.Cores,
@@ -190,7 +199,7 @@ func getLoad5() float64 {
 	return avgstat.Load5
 }
 
-func getMemInfo() (*MemInfo, error) {
+func getMemInfo() (*memInfo, error) {
 	minfo, err := memutil.VirtualMemory()
 	if err != nil {
 		l.Error("fail to get memory toal, %s", err)
@@ -203,20 +212,20 @@ func getMemInfo() (*MemInfo, error) {
 		return nil, err
 	}
 
-	return &MemInfo{
+	return &memInfo{
 		MemoryTotal: minfo.Total,
 		SwapTotal:   vinfo.Total,
 		usedPercent: minfo.UsedPercent,
 	}, nil
 }
 
-func getNetInfo(enableVIfaces bool) ([]*NetInfo, error) {
+func getNetInfo(enableVIfaces bool) ([]*netInfo, error) {
 	ifs, err := interfaces()
 	if err != nil {
 		l.Errorf("fail to get interfaces, %s", err)
 		return nil, err
 	}
-	var infos []*NetInfo
+	var infos []*netInfo
 
 	netVIfaces := map[string]bool{}
 	if !enableVIfaces {
@@ -227,7 +236,7 @@ func getNetInfo(enableVIfaces bool) ([]*NetInfo, error) {
 		if _, ok := netVIfaces[it.Name]; ok {
 			continue
 		}
-		i := &NetInfo{
+		i := &netInfo{
 			Index:        it.Index,
 			MTU:          it.MTU,
 			Name:         it.Name,
@@ -253,7 +262,7 @@ func getNetInfo(enableVIfaces bool) ([]*NetInfo, error) {
 	return infos, nil
 }
 
-func (ipt *Input) getDiskInfo() ([]*DiskInfo, float64, error) {
+func (ipt *Input) getDiskInfo() ([]*diskInfo, float64, error) {
 	res, err := pcommon.FilterUsage(ipt.diskStats, ipt.hostRoot)
 	if err != nil {
 		l.Errorf("fail to get disk info, %s", err)
@@ -261,9 +270,10 @@ func (ipt *Input) getDiskInfo() ([]*DiskInfo, float64, error) {
 	}
 
 	var (
-		infos []*DiskInfo
-		total = uint64(0)
-		used  = uint64(0)
+		infos []*diskInfo
+		usedPercent,
+		total, // use float64 to avoid overflow
+		used float64
 	)
 
 	for _, fs := range res {
@@ -289,25 +299,31 @@ func (ipt *Input) getDiskInfo() ([]*DiskInfo, float64, error) {
 			continue
 		}
 
-		info := &DiskInfo{
-			Device:     p.Device,
-			Fstype:     p.Fstype,
-			MountPoint: p.Mountpoint,
-			Total:      fs.Usage.Total,
+		info := &diskInfo{
+			Device:            p.Device,
+			Fstype:            p.Fstype,
+			MountPoint:        p.Mountpoint,
+			Total:             fs.Usage.Total,
+			Used:              fs.Usage.Used,
+			UsedPercent:       fs.Usage.UsedPercent,
+			Free:              fs.Usage.Free,
+			InodesTotal:       fs.Usage.InodesTotal,
+			InodesUsed:        fs.Usage.InodesUsed,
+			InodesFree:        fs.Usage.InodesFree,
+			InodesUsedPercent: fs.Usage.InodesUsedPercent,
 		}
 
 		// the sum of disk total and used.
-		total += fs.Usage.Total
-		used += fs.Usage.Used
+		total += float64(fs.Usage.Total)
+		used += float64(fs.Usage.Used)
 
-		l.Debugf("get disk %+#v", info)
+		l.Debugf("get disk %+#v, total: %f, used: %f", info, total, used)
 		infos = append(infos, info)
 	}
 
 	// disk used percent
-	usedPercent := float64(0)
 	if total > 0 {
-		usedPercent = float64(used) / float64(total) * 100
+		usedPercent = used / total * 100
 	}
 
 	return infos, usedPercent, nil
@@ -401,7 +417,7 @@ func (ipt *Input) getHostObjectMessage() (*HostObjectMessage, error) {
 	l.Debugf("get config file message...")
 	configFile := ipt.getConfigFile()
 
-	msg.Host = &HostInfo{
+	msg.Host = &hostInfo{
 		HostMeta:               hostMeta,
 		CPU:                    cpuInfo,
 		cpuPercent:             cpuPercent,

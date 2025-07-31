@@ -20,7 +20,7 @@ func TestGetNetInfo(t *T.T) {
 	if err != nil {
 		l.Errorf("fail to get interfaces, %s", err)
 	}
-	var infos []*NetInfo
+	var infos []*netInfo
 
 	// netVIfaces := map[string]bool{}
 	netVIfaces, _ := NetIgnoreIfaces()
@@ -29,7 +29,7 @@ func TestGetNetInfo(t *T.T) {
 		if _, ok := netVIfaces[it.Name]; ok {
 			continue
 		}
-		i := &NetInfo{
+		i := &netInfo{
 			Index:        it.Index,
 			MTU:          it.MTU,
 			Name:         it.Name,
