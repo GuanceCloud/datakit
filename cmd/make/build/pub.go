@@ -343,6 +343,10 @@ func uploadAWSLambdaZip(zipName string, goos string, goarch string, isUploadAWS 
 // AWS_SECRET_ACCESS_KEY
 // AWS_SESSION_TOKEN.
 func uploadAWSLayer(zipPath string, layerName string, arch string) (string, error) {
+	if os.Getenv("AWS_ACCESS_KEY_ID") == "" || os.Getenv("AWS_SECRET_ACCESS_KEY") == "" {
+		return "", fmt.Errorf("AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY not set")
+	}
+
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
