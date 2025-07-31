@@ -19,7 +19,6 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -151,7 +150,7 @@ loop:
 		}
 	}
 	if !haveHostNameArg {
-		ipt.Input.Args = append(ipt.Input.Args, "--hostname", config.Cfg.Hostname)
+		ipt.Input.Args = append(ipt.Input.Args, "--hostname", datakit.DKHost)
 	}
 
 	if ipt.URL != "" {

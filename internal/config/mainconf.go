@@ -37,8 +37,7 @@ type Config struct {
 	UUID    string `toml:"-"`
 	RunMode int    `toml:"-"`
 
-	Name     string `toml:"name,omitempty"`
-	Hostname string `toml:"-"`
+	Name string `toml:"name,omitempty"`
 
 	// http config: TODO: merge into APIConfig
 	HTTPBindDeprecated   string `toml:"http_server_addr,omitempty"`
@@ -121,6 +120,7 @@ type Config struct {
 
 	RemoteJob *io.RemoteJob `toml:"remote_job,omitempty"`
 
+	hostname    string
 	cmdlineMode bool
 }
 

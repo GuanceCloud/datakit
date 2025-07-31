@@ -102,7 +102,7 @@ func newContainerCollector(ipt *Input, endpoint string, mountPoint string, k8sCl
 		ipt:           ipt,
 		runtime:       r,
 		k8sClient:     k8sClient,
-		localNodeName: config.Cfg.Hostname,
+		localNodeName: datakit.DKHost,
 		maxConcurrent: ipt.ContainerMaxConcurrent,
 
 		enableCollectLogging:          true,

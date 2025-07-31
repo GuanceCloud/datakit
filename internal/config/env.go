@@ -745,8 +745,8 @@ func (c *Config) setNodenameAsHostname() {
 		"NODE_NAME", // Deprecated
 	} {
 		if v := datakit.GetEnv(x); v != "" {
-			datakit.DatakitHostName = c.Hostname
-			c.Hostname = v
+			c.hostname = v
+			datakit.DKHost = v
 			nodeName = v
 			break
 		}
@@ -754,8 +754,8 @@ func (c *Config) setNodenameAsHostname() {
 
 	if v := datakit.GetEnv("ENV_K8S_CLUSTER_NODE_NAME"); v != "" {
 		l.Infof("ENV_K8S_CLUSTER_NODE_NAME set to %s", v)
-		datakit.DatakitHostName = c.Hostname
-		c.Hostname = v
+		c.hostname = v
+		datakit.DKHost = v
 
 		if nodeName != "" {
 			if index := strings.Index(v, nodeName); index != -1 {
@@ -818,7 +818,7 @@ func (c *Config) LoadEnvs() error {
 
 	// misc
 	if v := datakit.GetEnv("ENV_HOSTNAME"); v != "" {
-		c.Hostname = v
+		c.hostname = v
 	}
 
 	if v := datakit.GetEnv("ENV_NAME"); v != "" {

@@ -245,7 +245,7 @@ func GetStats() (*DatakitStats, error) {
 		Elected:       fmt.Sprintf("%s::%s|%s", elecMetric.Status, elecMetric.Namespace, elecMetric.WhoElected),
 		AutoUpdate:    datakit.AutoUpdate,
 		UsageTrace:    usagetrace.GetUsageTraceInstance(),
-		HostName:      datakit.DatakitHostName,
+		HostName:      datakit.DKHost,
 		ResourceLimit: resourcelimit.Info(),
 		OpenFiles:     datakit.OpenFiles(),
 		GolangRuntime: getRuntimeInfo(),

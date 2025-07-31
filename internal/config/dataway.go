@@ -30,7 +30,7 @@ func (c *Config) setupDataway() error {
 		c.RunMode = datakit.ModeNormal
 	}
 
-	c.Dataway.Hostname = c.Hostname
+	c.Dataway.Hostname = c.hostname
 
 	if c.ProtectMode && c.Dataway.MaxRawBodySize < dataway.MinimalRawBodySize {
 		l.Infof("under protect mode, max-raw-body-size(%d) too small, reset to %d",

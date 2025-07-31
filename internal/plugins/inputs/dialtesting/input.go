@@ -876,7 +876,7 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 			}
 
 			t.SetOption(map[string]string{"userAgent": fmt.Sprintf("datakit-%s-%s/%s/%s",
-				runtime.GOOS, runtime.GOARCH, git.Version, datakit.DatakitHostName)})
+				runtime.GOOS, runtime.GOARCH, git.Version, datakit.DKHost)})
 
 			l.Debugf("unmarshal task: %+#v", t)
 

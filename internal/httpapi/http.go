@@ -154,7 +154,7 @@ func setupGinLogger(hs *httpServerConf) (gl io.Writer) {
 }
 
 func setDKInfo(c *gin.Context) {
-	c.Header("X-DataKit", fmt.Sprintf("%s/%s", datakit.Version, datakit.DatakitHostName))
+	c.Header("X-DataKit", fmt.Sprintf("%s/%s", datakit.Version, datakit.DKHost))
 }
 
 // dkHTTPTimeout Caution: this middleware must be registered as the first one.

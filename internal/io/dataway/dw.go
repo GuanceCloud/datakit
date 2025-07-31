@@ -311,7 +311,7 @@ func (dw *Dataway) doInit() error {
 				// user-agent format. See
 				// 	 https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
 				"User-Agent": fmt.Sprintf("datakit-%s-%s/%s/%s",
-					runtime.GOOS, runtime.GOARCH, git.Version, datakit.DatakitHostName),
+					runtime.GOOS, runtime.GOARCH, git.Version, datakit.DKHost),
 				"Referer": "DataKit",
 			}),
 			withHTTPTimeout(dw.HTTPTimeout),

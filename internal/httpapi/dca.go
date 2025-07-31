@@ -218,7 +218,7 @@ func getDatakitData() *ws.DataKit {
 	datakitInstance := &ws.DataKit{
 		Arch:           runtime.GOARCH,
 		OS:             runtime.GOOS,
-		HostName:       config.Cfg.Hostname,
+		HostName:       datakit.DKHost,
 		Version:        datakit.Version,
 		RunTimeID:      datakit.RuntimeID,
 		IP:             ip,

@@ -79,7 +79,7 @@ func (m *Manager) Start() {
 		select {
 		case <-ticker.C:
 			log.Debugf("-----------job-----start")
-			args := fmt.Sprintf("%s=true&host=%s", jvmMemorySnapshot, datakit.DatakitHostName)
+			args := fmt.Sprintf("%s=true&host=%s", jvmMemorySnapshot, datakit.DKHost)
 			body, err := m.PullFunc(args)
 			if err != nil {
 				log.Warnf("request remote err=%v", err)

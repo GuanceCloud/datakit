@@ -64,7 +64,7 @@ func (ipt *Input) parseLogRequest(resourceLogss []*logs.ResourceLogs) []*point.P
 						AddTag("status", getStatus(record.GetSeverityNumber(), record.GetSeverityText())).
 						AddTag("service", service).
 						AddTag(itrace.TagSource, source).
-						AddTag(itrace.TagDKFingerprintKey, datakit.DatakitHostName+"_"+datakit.Version)
+						AddTag(itrace.TagDKFingerprintKey, datakit.DKHost+"_"+datakit.Version)
 
 					if host != "" {
 						kvs = kvs.AddTag("host", host)
