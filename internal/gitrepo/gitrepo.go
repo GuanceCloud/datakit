@@ -93,7 +93,7 @@ func pullMain(cg *config.GitRepost) error {
 					if strings.Contains(err.Error(), "connect: operation timed out") {
 						isFirst = false
 
-						if err := inputs.RunInputs(); err != nil {
+						if err := inputs.RunInputs(inputs.AllInputsInfo); err != nil {
 							l.Error("error running inputs: %v", err)
 						} else {
 							l.Info("first run inputs succeeded")

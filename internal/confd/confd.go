@@ -385,7 +385,7 @@ func handleConfdData(data []map[string]string) {
 
 func appendDataToConfdInputs(keyPath, value string) {
 	// Unmarshal value to Inputs.
-	allKindInputs, err := config.LoadSingleConf(value, inputs.Inputs)
+	allKindInputs, err := config.LoadSingleConf(value, inputs.AllInputs)
 	if err != nil {
 		l.Errorf("unmarshal: %v %v", keyPath, err)
 	}
@@ -421,7 +421,7 @@ func haveSameInput(input inputs.Input, kind string) bool {
 
 func handleDefaultEnabledInputs() {
 	// Some kind inputs.InputsInfo has but confdInputs not have, append a blank in confdInputs[kind].
-	for kind := range inputs.InputsInfo {
+	for kind := range inputs.AllInputsInfo {
 		if _, ok := confdInputs[kind]; !ok {
 			isNeedDelete := true
 			for _, v := range append(config.Cfg.DefaultEnabledInputs, "dk") {

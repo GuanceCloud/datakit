@@ -111,7 +111,7 @@ func (i *Integration) Check() error { return nil }
 
 // ExportMiscs export pipeline sample/docs(base64)/metric docs.
 func (i *Integration) ExportMiscs(lang inputs.I18n) error {
-	if err := i.exportMetaInfo(inputs.Inputs, lang); err != nil {
+	if err := i.exportMetaInfo(inputs.AllInputs, lang); err != nil {
 		return err
 	}
 
@@ -156,7 +156,7 @@ type pipelineDemo struct {
 
 func getPipelineDemoMap() (map[string]pipelineDemo, error) {
 	demoMap := map[string]pipelineDemo{}
-	for _, c := range inputs.Inputs {
+	for _, c := range inputs.AllInputs {
 		if v, ok := c().(inputs.PipelineInput); ok {
 			for n, script := range v.PipelineConfig() {
 				var d pipelineDemo
@@ -277,7 +277,7 @@ func (i *Integration) exportIntegration(lang inputs.I18n) error {
 		}
 
 		var doc []byte
-		if _, ok := inputs.Inputs[name]; ok {
+		if _, ok := inputs.AllInputs[name]; ok {
 			l.Debugf("add non-input doc %q to integration", f.Name())
 			doc, err = buildInputDoc(name, md, i.opt)
 			if err != nil {
@@ -335,7 +335,7 @@ func (i *Integration) buildTemplate(templateDir, inputName string, lang inputs.I
 	p.templateDelims = [2]string{"<<", ">>"}
 
 	// inputs may specified its dashboard/monitor's specs.
-	if c, ok := inputs.Inputs[inputName]; ok && c != nil {
+	if c, ok := inputs.AllInputs[inputName]; ok && c != nil {
 		ipt := c()
 
 		if i, ok := ipt.(inputs.Dashboard); ok {

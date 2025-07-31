@@ -57,13 +57,13 @@ func checkSample() error {
 	failed = []string{}
 	unknown = []string{}
 	passed = 0
-	checked = len(inputs.Inputs)
+	checked = len(inputs.AllInputs)
 	ignored = []string{}
 
-	for k, c := range inputs.Inputs {
+	for k, c := range inputs.AllInputs {
 		i := c()
 
-		if _, err := config.LoadSingleConf(i.SampleConfig(), inputs.Inputs); err != nil {
+		if _, err := config.LoadSingleConf(i.SampleConfig(), inputs.AllInputs); err != nil {
 			cp.Errorf("[E] failed to parse %s: %s\n", k, err.Error())
 			failed = append(failed, k+": "+err.Error())
 		} else {
@@ -71,7 +71,7 @@ func checkSample() error {
 		}
 	}
 
-	l.Debugf("checked %d inptus samples", len(inputs.Inputs))
+	l.Debugf("checked %d inptus samples", len(inputs.AllInputs))
 
 	showCheckResult()
 
@@ -96,7 +96,7 @@ func checkConfig(dir, suffix string) error {
 			continue
 		}
 
-		if v, err := config.LoadSingleConfFile(fp, inputs.Inputs, false); err != nil {
+		if v, err := config.LoadSingleConfFile(fp, inputs.AllInputs, false); err != nil {
 			cp.Errorf("[E] failed to parse %s: %s, %s\n", fp, err.Error(), reflect.TypeOf(err))
 			failed = append(failed, fp+": "+err.Error())
 		} else {

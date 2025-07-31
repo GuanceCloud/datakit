@@ -12,13 +12,13 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/usagetrace"
 )
 
-func RunInputs() error {
+func RunInputs(iptInfos map[string][]*InputInfo) error {
 	mtx.RLock()
 	defer mtx.RUnlock()
 	usagetrace.ClearInputNames()
 	var utOpts []usagetrace.UsageTraceOption
 
-	for name, arr := range InputsInfo {
+	for name, arr := range iptInfos {
 		if len(arr) > 1 {
 			if _, ok := arr[0].Input.(Singleton); ok {
 				arr = arr[:1]

@@ -18,6 +18,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	plmanager "github.com/GuanceCloud/pipeline-go/manager"
 	apmInstaller "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/apminject/installer"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
@@ -97,7 +98,7 @@ func LoadCfg(c *Config, mcp string) error {
 	// clear all samples before loading
 	removeSamples()
 
-	if err := initPluginSamples(); err != nil {
+	if err := initPluginSamples(inputs.AllInputs); err != nil {
 		return err
 	}
 
@@ -105,7 +106,7 @@ func LoadCfg(c *Config, mcp string) error {
 		l.Warnf("failed to init datakit main sample config: %s, ignored", err.Error())
 	}
 
-	if err := initPluginPipeline(); err != nil {
+	if err := initPluginPipeline(inputs.AllInputs); err != nil {
 		l.Errorf("init plugin pipeline: %s", err.Error())
 		return err
 	}
@@ -121,9 +122,13 @@ func LoadCfg(c *Config, mcp string) error {
 	}
 
 	l.Infof("init %d default plugins...", len(c.DefaultEnabledInputs))
-	initDefaultEnabledPlugins(c)
 
-	loadInputsConfFromDirs(getConfRootPaths(), c.DefaultEnabledInputs)
+	if !GitHasEnabled() {
+		// #501 issue
+		c.initDefaultEnabledPlugins(datakit.ConfdDir, inputs.AllInputs)
+	}
+
+	c.loadInputsConfFromDirs(getConfRootPaths(), inputs.AllInputs)
 
 	return nil
 }

@@ -62,10 +62,10 @@ func handleInput(confdInputs map[string][]*ConfdInfo, handleList []handle, ctx c
 			defer mtx.Unlock()
 
 			// If this kind inputs is empty, delete the map
-			for name, arr := range InputsInfo {
+			for name, arr := range AllInputsInfo {
 				inputInstanceVec.WithLabelValues(name).Set(float64(len(arr)))
 				if len(arr) == 0 {
-					delete(InputsInfo, name)
+					delete(AllInputsInfo, name)
 				}
 			}
 
@@ -86,15 +86,15 @@ func stopInput(handles []handle, errs *[]error) {
 		}
 
 		// Make sure have this input kind
-		if _, ok := InputsInfo[h.name]; !ok {
+		if _, ok := AllInputsInfo[h.name]; !ok {
 			l.Debugf("confd stop skip non-datakit-input-kind %s", h.name)
 			*errs = append(*errs, fmt.Errorf("confd stop skip non-datakit-input-kind %s", h.name))
 			continue
 		}
 
 		// Walk stop all this kind inputs
-		for i := 0; i < len(InputsInfo[h.name]); i++ {
-			ii := InputsInfo[h.name][i]
+		for i := 0; i < len(AllInputsInfo[h.name]); i++ {
+			ii := AllInputsInfo[h.name][i]
 			if ii.Input == nil {
 				l.Debugf("confd stop skip datakit-input is nil %s, %d", h.name, i)
 				continue
@@ -119,7 +119,7 @@ func deleteInput(handles []handle, errs *[]error) {
 		}
 
 		// Make sure have this input kind
-		if _, ok := InputsInfo[h.name]; !ok {
+		if _, ok := AllInputsInfo[h.name]; !ok {
 			l.Debugf("confd delete skip non-datakit-input-kind %s", h.name)
 			*errs = append(*errs, fmt.Errorf("confd delete skip non-datakit-input-kind %s", h.name))
 			continue
@@ -128,7 +128,7 @@ func deleteInput(handles []handle, errs *[]error) {
 		inputInstanceVec.WithLabelValues(h.name).Set(0)
 
 		// Delete this input kind
-		delete(InputsInfo, h.name)
+		delete(AllInputsInfo, h.name)
 	}
 }
 
@@ -147,8 +147,8 @@ func addInputs(confdInputs map[string][]*ConfdInfo, handles []handle, errs *[]er
 		}
 
 		// Make sure you have this input type
-		if _, ok := InputsInfo[h.name]; !ok {
-			InputsInfo[h.name] = []*InputInfo{}
+		if _, ok := AllInputsInfo[h.name]; !ok {
+			AllInputsInfo[h.name] = []*InputInfo{}
 			l.Debugf("confd add non-datakit-input-kind %s", h.name)
 		}
 		// Make sure confd has this collector
@@ -179,7 +179,7 @@ func addInputs(confdInputs map[string][]*ConfdInfo, handles []handle, errs *[]er
 				inp.ReadEnv(envs)
 			}
 
-			InputsInfo[h.name] = append(InputsInfo[h.name], newInput)
+			AllInputsInfo[h.name] = append(AllInputsInfo[h.name], newInput)
 
 			func(name string, ii *InputInfo) {
 				g.Go(func(ctx context.Context) error {

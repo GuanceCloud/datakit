@@ -147,7 +147,7 @@ type Params struct {
 
 // buildInputDoc render inputs docs based on input document template.
 func buildInputDoc(inputName string, md []byte, opt *exportOptions) ([]byte, error) {
-	c := inputs.Inputs[inputName]
+	c := inputs.AllInputs[inputName]
 
 	var (
 		ipt          = c()

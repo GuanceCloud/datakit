@@ -421,7 +421,7 @@ func getInputsList(name string, stats *DatakitStats, pts []*dto.Metric) {
 		}
 		sort.Strings(stats.AvailableInputs)
 		stats.AvailableInputs = append(stats.AvailableInputs, fmt.Sprintf("total %d, datakit %d",
-			len(stats.AvailableInputs), len(inputs.Inputs)))
+			len(stats.AvailableInputs), len(inputs.AllInputs)))
 	}
 }
 

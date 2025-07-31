@@ -178,7 +178,7 @@ func Test_handleConfdData(t *testing.T) {
 	// cpu & mem inputs be default.
 	config.Cfg.DefaultEnabledInputs = []string{"cpu", "mem"}
 	// Existing inputs, "cpu" & "mem" be singleton, "dk" can't modify, "ipmi" be other.
-	inputs.Inputs = map[string]inputs.Creator{
+	inputs.AllInputs = map[string]inputs.Creator{
 		"cpu": func() inputs.Input {
 			return &cpu.Input{
 				Interval:          time.Second * 10,

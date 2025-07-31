@@ -159,7 +159,7 @@ func applyFlags() {
 	}
 
 	if sampleConfCheck {
-		if err := build.CheckSampleConf(inputs.Inputs); err != nil {
+		if err := build.CheckSampleConf(inputs.AllInputs); err != nil {
 			l.Errorf("sample conf check: %s", err.Error())
 			os.Exit(-1)
 		}

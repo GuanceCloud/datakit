@@ -14,14 +14,14 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
-func RunInputs() error {
+func RunInputs(iptInfos map[string][]*InputInfo) error {
 	mtx.RLock()
 	defer mtx.RUnlock()
 	g := datakit.G("inputs")
 
 	envs := getEnvs()
 
-	for name, arr := range InputsInfo {
+	for name, arr := range iptInfos {
 		if len(arr) > 1 {
 			if _, ok := arr[0].Input.(Singleton); ok {
 				arr = arr[:1]

@@ -400,7 +400,7 @@ func doRun() error {
 				return err
 			}
 		} else {
-			if err := inputs.RunInputs(); err != nil {
+			if err := inputs.RunInputs(inputs.AllInputsInfo); err != nil {
 				l.Error("error running inputs: %v", err)
 				return err
 			}
