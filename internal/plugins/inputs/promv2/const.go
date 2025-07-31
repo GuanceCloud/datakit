@@ -12,7 +12,7 @@ const sampleConfig = `
 
   url = "http://127.0.0.1:9100/metrics"
 
-  ## (Optional) Collect interval: (defaults to "30s").
+  ## Scraping interval, defaults to "30s"
   interval = "30s"
 
   ## Measurement name.
@@ -24,14 +24,18 @@ const sampleConfig = `
   ## If the keep_exist_metric_name is true, keep the raw value for field names.
   keep_exist_metric_name = true
 
-  ## The bearer_token_file specifies the token file, and the Authorization header is added automatically.
+  ## Bearer token file path for authentication (auto adds Authorization header)
   # bearer_token_file = ""
-  ## TLS config
-  # insecure_skip_verify = true
-  ## Following ca_certs/cert/cert_key are optional, if insecure_skip_verify = true.
+
+  ## --- TLS Configuration ---
+  ## [DANGER] Skip TLS verification (INSECURE, testing only!)
+  # insecure_skip_verify = false
+  ## Root CA certificates for server verification (PEM files)
   # ca_certs = ["/opt/tls/ca.crt"]
-  # cert     = "/opt/tls/client.root.crt"
-  # cert_key = "/opt/tls/client.root.key"
+  ## Client certificate for mTLS (PEM format)
+  # cert     = "/opt/tls/client.crt"
+  ## Client private key for mTLS (PEM format)
+  # cert_key = "/opt/tls/client.key"
 
   ## Set to 'true' to enable election.
   election = true

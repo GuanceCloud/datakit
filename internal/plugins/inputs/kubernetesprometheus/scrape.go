@@ -179,12 +179,12 @@ func (s *scrapeManager) doWork(ctx context.Context, name string, scrapeInterval 
 
 		case sp, ok := <-s.workerChan:
 			if !ok {
-				klog.Warnf("worker channel %s is closed, exit", name)
+				klog.Warnf("%s: channel is closed, exit", name)
 				return
 			}
 
-			if len(tasks) > maxTaskNumber {
-				klog.Warnf("tasks is over limit %d", maxTaskNumber)
+			if len(tasks) > maxTasksPerWorker {
+				klog.Warnf("%s: tasks is over limit %d", name, maxTasksPerWorker)
 			} else {
 				if _, ok := tasks[sp.targetURL()]; !ok {
 					tasks[sp.targetURL()] = sp
@@ -208,10 +208,10 @@ func (s *scrapeManager) doWork(ctx context.Context, name string, scrapeInterval 
 					}
 
 					retry, count := task.shouldRetry(maxScrapeRetry)
-					klog.Warnf("failed to scrape url %s, err %s, retry count %d of %d", task.targetURL(), err, count, maxScrapeRetry)
+					klog.Warnf("%s: failed to scrape url %s, err %s, retry count %d of %d", name, task.targetURL(), err, count, maxScrapeRetry)
 
 					if !retry {
-						klog.Warnf("task %s will be removed", task.targetURL())
+						klog.Warnf("%s: task %s will be removed", name, task.targetURL())
 						task.markAsTerminated()
 						removeTasks = append(removeTasks, task.targetURL())
 					}

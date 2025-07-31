@@ -100,6 +100,7 @@ PlOffload
 PostgreSQL
 PromQL
 Prometheus
+Promsd
 Promtail
 Protobuf
 Proxied
@@ -245,6 +246,7 @@ CNCF
 CUDA
 DCGM
 DNAT
+GWLB
 JDBC
 NVMe
 OTEL

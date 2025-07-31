@@ -43,7 +43,7 @@ type Input struct {
 	runOnce sync.Once
 }
 
-func (*Input) SampleConfig() string                    { return example }
+func (*Input) SampleConfig() string                    { return sampleConfig }
 func (*Input) Catalog() string                         { return inputName }
 func (*Input) AvailableArchs() []string                { return []string{datakit.LabelK8s} }
 func (*Input) Singleton()                              { /*nil*/ }
