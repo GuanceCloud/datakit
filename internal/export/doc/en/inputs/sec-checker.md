@@ -1,6 +1,6 @@
 ---
 title     : 'SCheck'
-summary   : '接收 SCheck 采集的数据'
+summary   : 'Collect Securiry data from SCheck'
 tags:
   - 'SECURITY'
 __int_icon: 'icon/scheck'

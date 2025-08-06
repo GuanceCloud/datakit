@@ -78,7 +78,7 @@ $ diskperf -Y
 
 ### Linux 平台下采集磁盘 `await` {#linux-await}
 
-默认情况下，DataKit 无法采集磁盘 `await` 指标，如果需要获取该指标，可以通过[自定义 Python 采集器](../developers/pythond.md)的方式来采集。
+默认情况下，DataKit 无法采集磁盘 `await` 指标，如果需要获取该指标，可以通过[自定义 Python 采集器](../integrations/pythond.md)的方式来采集。
 
 进入 DataKit 安装目录，复制 `pythond.conf.sample` 文件并将其命名为 `pythond.conf`。修改相应配置如下：
 
