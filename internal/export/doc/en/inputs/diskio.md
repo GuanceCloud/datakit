@@ -77,7 +77,7 @@ For all of the following data collections, a global tag named `host` is appended
 
 ### Collecting disk `await` for Linux {#linux-await}
 
-By default, DataKit cannot collect the disk `await` metric. If you need to obtain this metric, you can collect it by [Custom Collector with Python](../developers/pythond.md).
+By default, DataKit cannot collect the disk `await` metric. If you need to obtain this metric, you can collect it by [Custom Collector with Python](../integrations/pythond.md).
 
 Preconditions
 
