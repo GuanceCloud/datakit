@@ -75,48 +75,48 @@ func (s *snmp) CollectLogging(ip string) (pts []*point.Point) {
 func (s *snmp) systemMetric(stats *snmpStats) *point.Point {
 	var kvs point.KVs
 	kvs = kvs.AddTag("host", stats.hostname)
-	kvs = kvs.AddV2("uptime", stats.uptime, false)
+	kvs = kvs.Add("uptime", stats.uptime)
 
-	kvs = kvs.AddV2("cpu_total_usage", stats.cpuUsagePercent, false)
-	kvs = kvs.AddV2("n_cpus", stats.cpuCores, false)
-	// kvs = kvs.AddV2("process_count", len(stats.processes), false)
+	kvs = kvs.Add("cpu_total_usage", stats.cpuUsagePercent)
+	kvs = kvs.Add("n_cpus", stats.cpuCores)
+	// kvs = kvs.Add("process_count", len(stats.processes))
 
 	memUsedPercent := 0.0
 	if stats.memSize != 0 && stats.memUsed != 0 {
 		memUsedPercent = float64(stats.memUsed) / float64(stats.memSize) * 100 // unit percent
 	}
-	kvs = kvs.AddV2("memory_usage", memUsedPercent, false)
+	kvs = kvs.Add("memory_usage", memUsedPercent)
 
 	kvs = append(kvs, point.NewTags(s.cfg.extraTags)...)
-	return point.NewPointV2(systemMeasurement, kvs, point.DefaultMetricOptions()...)
+	return point.NewPoint(systemMeasurement, kvs, point.DefaultMetricOptions()...)
 }
 
 func (s *snmp) cpuMetric(stats *snmpStats) *point.Point {
 	var kvs point.KVs
 	kvs = kvs.AddTag("host", stats.hostname)
-	kvs = kvs.AddV2("usage_total", stats.cpuUsagePercent, false)
+	kvs = kvs.Add("usage_total", stats.cpuUsagePercent)
 
 	kvs = append(kvs, point.NewTags(s.cfg.extraTags)...)
-	return point.NewPointV2(cpuMeasurement, kvs, point.DefaultMetricOptions()...)
+	return point.NewPoint(cpuMeasurement, kvs, point.DefaultMetricOptions()...)
 }
 
 func (s *snmp) memMetric(stats *snmpStats) *point.Point {
 	var kvs point.KVs
 	kvs = kvs.AddTag("host", stats.hostname)
-	kvs = kvs.AddV2("total", stats.memSize, false)
-	kvs = kvs.AddV2("used", stats.memUsed, false)
-	kvs = kvs.AddV2("available", stats.memSize-stats.memUsed, false)
+	kvs = kvs.Add("total", stats.memSize)
+	kvs = kvs.Add("used", stats.memUsed)
+	kvs = kvs.Add("available", stats.memSize-stats.memUsed)
 
 	if stats.memSize != 0 && stats.memUsed != 0 {
 		usedPercent := float64(stats.memUsed) / float64(stats.memSize) * 100                    // unit percent
 		availablePercent := float64(stats.memSize-stats.memUsed) / float64(stats.memSize) * 100 // unit percent
 
-		kvs = kvs.AddV2("used_percent", usedPercent, false)
-		kvs = kvs.AddV2("available_percent", availablePercent, false)
+		kvs = kvs.Add("used_percent", usedPercent)
+		kvs = kvs.Add("available_percent", availablePercent)
 	}
 
 	kvs = append(kvs, point.NewTags(s.cfg.extraTags)...)
-	return point.NewPointV2(memoryMeasurement, kvs, point.DefaultMetricOptions()...)
+	return point.NewPoint(memoryMeasurement, kvs, point.DefaultMetricOptions()...)
 }
 
 func (s *snmp) netMetric(stats *snmpStats) []*point.Point {
@@ -126,15 +126,15 @@ func (s *snmp) netMetric(stats *snmpStats) []*point.Point {
 		kvs = kvs.AddTag("host", stats.hostname)
 		kvs = kvs.AddTag("interface", net.name)
 
-		kvs = kvs.AddV2("bytes_recv", net.inBytes, false)
-		kvs = kvs.AddV2("bytes_sent", net.outBytes, false)
-		kvs = kvs.AddV2("drop_in", net.inDiscards, false)
-		kvs = kvs.AddV2("drop_out", net.outDiscards, false)
-		kvs = kvs.AddV2("err_in", net.inErrors, false)
-		kvs = kvs.AddV2("err_out", net.outErrors, false)
+		kvs = kvs.Add("bytes_recv", net.inBytes)
+		kvs = kvs.Add("bytes_sent", net.outBytes)
+		kvs = kvs.Add("drop_in", net.inDiscards)
+		kvs = kvs.Add("drop_out", net.outDiscards)
+		kvs = kvs.Add("err_in", net.inErrors)
+		kvs = kvs.Add("err_out", net.outErrors)
 
 		kvs = append(kvs, point.NewTags(s.cfg.extraTags)...)
-		pts = append(pts, point.NewPointV2(netMeasurement, kvs, point.DefaultMetricOptions()...))
+		pts = append(pts, point.NewPoint(netMeasurement, kvs, point.DefaultMetricOptions()...))
 	}
 	return pts
 }
@@ -150,17 +150,17 @@ func (s *snmp) diskMetric(stats *snmpStats) []*point.Point {
 		kvs = kvs.AddTag("host", stats.hostname)
 		kvs = kvs.AddTag("device", storage.name)
 
-		kvs = kvs.AddV2("total", storage.size, false)
-		kvs = kvs.AddV2("used", storage.used, false)
-		kvs = kvs.AddV2("free", storage.size-storage.used, false)
+		kvs = kvs.Add("total", storage.size)
+		kvs = kvs.Add("used", storage.used)
+		kvs = kvs.Add("free", storage.size-storage.used)
 
 		if storage.size != 0 && storage.used != 0 {
 			usedPercent := float64(storage.used) / float64(storage.size) * 100 // unit percent
-			kvs = kvs.AddV2("used_percent", usedPercent, false)
+			kvs = kvs.Add("used_percent", usedPercent)
 		}
 
 		kvs = append(kvs, point.NewTags(s.cfg.extraTags)...)
-		pts = append(pts, point.NewPointV2(diskMeasurement, kvs, point.DefaultMetricOptions()...))
+		pts = append(pts, point.NewPoint(diskMeasurement, kvs, point.DefaultMetricOptions()...))
 	}
 	return pts
 }
@@ -172,13 +172,13 @@ func (s *snmp) hostprocessesObject(stats *snmpStats) []*point.Point {
 
 		kvs = kvs.AddTag("host", stats.hostname)
 		kvs = kvs.AddTag("process_name", process.name)
-		kvs = kvs.AddV2("pid", process.id, false)
+		kvs = kvs.Add("pid", process.id)
 
 		name := fmt.Sprintf("%s_%d", stats.hostname, process.id)
 		kvs = kvs.AddTag("name", name)
 
 		cmdline := fmt.Sprintf("%s%s %s", process.path, process.name, process.parameters)
-		kvs = kvs.AddV2("cmdline", cmdline, false)
+		kvs = kvs.Add("cmdline", cmdline)
 
 		msg := &HostprocessesObjectMessage{
 			Pid:         process.id,
@@ -191,10 +191,10 @@ func (s *snmp) hostprocessesObject(stats *snmpStats) []*point.Point {
 		if err != nil {
 			l.Warnf("message marshal err: %s", err)
 		}
-		kvs = kvs.AddV2("message", string(message), false)
+		kvs = kvs.Add("message", string(message))
 
 		kvs = append(kvs, point.NewTags(s.cfg.extraTags)...)
-		pts = append(pts, point.NewPointV2(hostprocessesObjectMeasurement, kvs, point.DefaultObjectOptions()...))
+		pts = append(pts, point.NewPoint(hostprocessesObjectMeasurement, kvs, point.DefaultObjectOptions()...))
 	}
 	return pts
 }
@@ -206,19 +206,19 @@ func (s *snmp) hostobject(stats *snmpStats) *point.Point {
 	kvs = kvs.AddTag("host", stats.hostname)
 	kvs = kvs.AddTag("arch", stats.arch)
 	kvs = kvs.AddTag("os", "windows")
-	kvs = kvs.AddV2("start_time", stats.startTime, false)
+	kvs = kvs.Add("start_time", stats.startTime)
 
-	kvs = kvs.AddV2("num_cpu", stats.cpuCores, false)
-	kvs = kvs.AddV2("cpu_usage", float64(stats.cpuUsagePercent), false)
+	kvs = kvs.Add("num_cpu", stats.cpuCores)
+	kvs = kvs.Add("cpu_usage", float64(stats.cpuUsagePercent))
 
-	kvs = kvs.AddV2("mem_total", stats.memSize, false)
-	kvs = kvs.AddV2("mem_used", stats.memUsed, false)
+	kvs = kvs.Add("mem_total", stats.memSize)
+	kvs = kvs.Add("mem_used", stats.memUsed)
 
 	memUsedPercent := 0.0
 	if stats.memSize != 0 && stats.memUsed != 0 {
 		memUsedPercent = float64(stats.memUsed) / float64(stats.memSize) * 100 // unit percent
 	}
-	kvs = kvs.AddV2("mem_used_percent", memUsedPercent, false)
+	kvs = kvs.Add("mem_used_percent", memUsedPercent)
 
 	msg := &HostObjectMessage{
 		Host: &HostInfo{
@@ -252,10 +252,10 @@ func (s *snmp) hostobject(stats *snmpStats) *point.Point {
 	if err != nil {
 		l.Warnf("message marshal err: %s", err)
 	}
-	kvs = kvs.AddV2("message", string(message), false)
+	kvs = kvs.Add("message", string(message))
 
 	kvs = append(kvs, point.NewTags(s.cfg.extraTags)...)
-	return point.NewPointV2(hostobjectMeasurement, kvs, point.DefaultObjectOptions()...)
+	return point.NewPoint(hostobjectMeasurement, kvs, point.DefaultObjectOptions()...)
 }
 
 type snmpClient struct {

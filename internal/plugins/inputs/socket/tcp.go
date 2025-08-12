@@ -28,19 +28,19 @@ type tcpTask struct {
 func (t *tcpTask) getResults(ts time.Time) *point.Point {
 	var kvs point.KVs
 
-	kvs = kvs.MustAddTag("dest_host", t.Host)
-	kvs = kvs.MustAddTag("dest_port", t.Port)
-	kvs = kvs.MustAddTag("proto", "tcp")
+	kvs = kvs.SetTag("dest_host", t.Host)
+	kvs = kvs.SetTag("dest_port", t.Port)
+	kvs = kvs.SetTag("proto", "tcp")
 
 	responseTime := int64(t.reqCost) / 1000                     // us
 	responseTimeWithDNS := int64(t.reqCost+t.reqDNSCost) / 1000 // us
 
 	// fields
-	kvs = kvs.Add("response_time", responseTime, false, true)
-	kvs = kvs.Add("response_time_with_dns", responseTimeWithDNS, false, true)
-	kvs = kvs.Add("success", int64(1), false, true) // default set ok
+	kvs = kvs.Set("response_time", responseTime)
+	kvs = kvs.Set("response_time_with_dns", responseTimeWithDNS)
+	kvs = kvs.Set("success", int64(1)) // default set ok
 
-	return point.NewPointV2("tcp", kvs, append(point.DefaultMetricOptions(), point.WithTime(ts))...)
+	return point.NewPoint("tcp", kvs, append(point.DefaultMetricOptions(), point.WithTime(ts))...)
 }
 
 func (t *tcpTask) run() error {

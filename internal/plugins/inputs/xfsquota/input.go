@@ -104,14 +104,14 @@ func (ipt *Input) collectXFSQuota(timestamp int64) {
 		kvs = kvs.AddTag("project_id", quota.ProjectID)
 		kvs = kvs.AddTag("filesystem_path", ipt.FilesystemPath)
 
-		kvs = kvs.Add("used", quota.UsedBlocks, false, true)
-		kvs = kvs.Add("soft", quota.SoftLimit, false, true)
-		kvs = kvs.Add("hard", quota.HardLimit, false, true)
+		kvs = kvs.Set("used", quota.UsedBlocks)
+		kvs = kvs.Set("soft", quota.SoftLimit)
+		kvs = kvs.Set("hard", quota.HardLimit)
 
 		for key, value := range ipt.Tags {
 			kvs = kvs.AddTag(key, value)
 		}
-		pts = append(pts, point.NewPointV2("xfsquota", kvs, append(opts, point.WithTimestamp(timestamp))...))
+		pts = append(pts, point.NewPoint("xfsquota", kvs, append(opts, point.WithTimestamp(timestamp))...))
 	}
 
 	if err := ipt.Feeder.Feed(

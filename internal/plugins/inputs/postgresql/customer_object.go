@@ -19,7 +19,7 @@ type customerObjectMeasurement struct {
 
 // Point implement MeasurementV2.
 func (m *customerObjectMeasurement) Point() *point.Point {
-	return point.NewPointV2(m.name,
+	return point.NewPoint(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		append(point.DefaultObjectOptions(), point.WithExtraTags(m.ipt.mergedTags))...)
 }

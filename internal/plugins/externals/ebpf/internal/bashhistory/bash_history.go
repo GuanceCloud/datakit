@@ -124,7 +124,7 @@ func (tracer *BashTracer) readlineCallBack(cpu int, data []byte,
 
 	kvs := point.NewTags(mTags)
 	kvs = append(kvs, point.NewKVs(mFields)...)
-	pt := point.NewPointV2(srcNameM, kvs, point.CommonLoggingOptions()...)
+	pt := point.NewPoint(srcNameM, kvs, point.CommonLoggingOptions()...)
 
 	select {
 	case <-tracer.stopCh:

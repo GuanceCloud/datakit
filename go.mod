@@ -373,7 +373,7 @@ require (
 )
 
 require (
-	github.com/GuanceCloud/cliutils v1.1.22-0.20250723023902-b1820fce2758
+	github.com/GuanceCloud/cliutils v1.1.22-0.20250804084823-d7a17248bfc6
 	github.com/VictoriaMetrics/easyproto v0.1.4 // indirect
 	github.com/andybalholm/brotli v1.0.4
 	github.com/avast/retry-go/v4 v4.1.0 // indirect
@@ -392,7 +392,7 @@ require (
 )
 
 require (
-	github.com/GuanceCloud/pipeline-go v1.0.9-0.20250709075953-d5939952f5b1
+	github.com/GuanceCloud/pipeline-go v1.0.9-0.20250804083758-0b4dd0f48771
 	github.com/hipages/php-fpm_exporter v1.2.1
 	github.com/shopspring/decimal v1.2.0
 )
@@ -407,7 +407,7 @@ replace (
 	github.com/fsnotify/fsnotify => github.com/GuanceCloud/fsnotify v1.8.2
 	github.com/google/gopacket => github.com/GuanceCloud/gopacket v0.0.1
 	github.com/grafana/jfr-parser => github.com/GuanceCloud/jfr-parser v0.8.6
-	github.com/influxdata/influxdb1-client => github.com/GuanceCloud/influxdb1-client v0.1.8
+	github.com/influxdata/influxdb1-client => github.com/GuanceCloud/influxdb1-client v0.1.9
 	github.com/iovisor/gobpf => github.com/DataDog/gobpf v0.0.0-20210322155958-9866ef4cd22c
 	github.com/kardianos/service => github.com/GuanceCloud/service v1.2.4
 	github.com/ory/dockertest/v3 v3.9.1 => github.com/GuanceCloud/dockertest/v3 v3.9.4

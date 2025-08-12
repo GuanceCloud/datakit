@@ -160,17 +160,17 @@ func (d *daemonset) buildMetricPoints(list *apiappsv1.DaemonSetList, timestamp i
 		kvs = kvs.AddTag("daemonset", item.Name)
 		kvs = kvs.AddTag("namespace", item.Namespace)
 
-		kvs = kvs.AddV2("desired", item.Status.DesiredNumberScheduled, false)
-		kvs = kvs.AddV2("scheduled", item.Status.CurrentNumberScheduled, false)
-		kvs = kvs.AddV2("misscheduled", item.Status.NumberMisscheduled, false)
-		kvs = kvs.AddV2("ready", item.Status.NumberReady, false)
-		kvs = kvs.AddV2("updated", item.Status.UpdatedNumberScheduled, false)
-		kvs = kvs.AddV2("daemons_available", item.Status.NumberAvailable, false)
-		kvs = kvs.AddV2("daemons_unavailable", item.Status.NumberUnavailable, false)
+		kvs = kvs.Add("desired", item.Status.DesiredNumberScheduled)
+		kvs = kvs.Add("scheduled", item.Status.CurrentNumberScheduled)
+		kvs = kvs.Add("misscheduled", item.Status.NumberMisscheduled)
+		kvs = kvs.Add("ready", item.Status.NumberReady)
+		kvs = kvs.Add("updated", item.Status.UpdatedNumberScheduled)
+		kvs = kvs.Add("daemons_available", item.Status.NumberAvailable)
+		kvs = kvs.Add("daemons_unavailable", item.Status.NumberUnavailable)
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, d.cfg.LabelAsTagsForMetric.All, d.cfg.LabelAsTagsForMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(d.cfg.ExtraTags)...)
-		pt := point.NewPointV2(daemonsetMetricMeasurement, kvs, opts...)
+		pt := point.NewPoint(daemonsetMetricMeasurement, kvs, opts...)
 		pts = append(pts, pt)
 
 		d.counter[item.Namespace]++
@@ -191,23 +191,23 @@ func (d *daemonset) buildObjectPoints(list *apiappsv1.DaemonSetList) []*point.Po
 		kvs = kvs.AddTag(daemonsetObjectResourceKey, item.Name)
 		kvs = kvs.AddTag("namespace", item.Namespace)
 
-		kvs = kvs.AddV2("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3, false)
-		kvs = kvs.AddV2("desired", item.Status.DesiredNumberScheduled, false)
-		kvs = kvs.AddV2("scheduled", item.Status.CurrentNumberScheduled, false)
-		kvs = kvs.AddV2("misscheduled", item.Status.NumberMisscheduled, false)
-		kvs = kvs.AddV2("ready", item.Status.NumberReady, false)
-		kvs = kvs.AddV2("updated", item.Status.UpdatedNumberScheduled, false)
-		kvs = kvs.AddV2("daemons_available", item.Status.NumberAvailable, false)
-		kvs = kvs.AddV2("daemons_unavailable", item.Status.NumberUnavailable, false)
+		kvs = kvs.Add("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3)
+		kvs = kvs.Add("desired", item.Status.DesiredNumberScheduled)
+		kvs = kvs.Add("scheduled", item.Status.CurrentNumberScheduled)
+		kvs = kvs.Add("misscheduled", item.Status.NumberMisscheduled)
+		kvs = kvs.Add("ready", item.Status.NumberReady)
+		kvs = kvs.Add("updated", item.Status.UpdatedNumberScheduled)
+		kvs = kvs.Add("daemons_available", item.Status.NumberAvailable)
+		kvs = kvs.Add("daemons_unavailable", item.Status.NumberUnavailable)
 
 		if y, err := yaml.Marshal(item); err == nil {
-			kvs = kvs.AddV2("yaml", string(y), false)
+			kvs = kvs.Add("yaml", string(y))
 		}
-		kvs = kvs.AddV2("annotations", pointutil.MapToJSON(item.Annotations), false)
+		kvs = kvs.Add("annotations", pointutil.MapToJSON(item.Annotations))
 		kvs = append(kvs, pointutil.ConvertDFLabels(item.Labels)...)
 
 		msg := pointutil.PointKVsToJSON(kvs)
-		kvs = kvs.AddV2("message", pointutil.TrimString(msg, maxMessageLength), false)
+		kvs = kvs.Add("message", pointutil.TrimString(msg, maxMessageLength))
 
 		kvs = kvs.Del("annotations")
 		kvs = kvs.Del("yaml")
@@ -218,7 +218,7 @@ func (d *daemonset) buildObjectPoints(list *apiappsv1.DaemonSetList) []*point.Po
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, d.cfg.LabelAsTagsForNonMetric.All, d.cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(d.cfg.ExtraTags)...)
-		pt := point.NewPointV2(daemonsetObjectClass, kvs, opts...)
+		pt := point.NewPoint(daemonsetObjectClass, kvs, opts...)
 		pts = append(pts, pt)
 	}
 

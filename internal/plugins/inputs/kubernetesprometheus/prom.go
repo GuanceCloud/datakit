@@ -120,13 +120,13 @@ func (p *promScraper) recordUp(up int, timestamp int64) {
 	kvs = kvs.AddTag("job", p.job)
 	kvs = kvs.AddTag("instance", p.instance)
 	kvs = kvs.AddTag("host", p.host)
-	kvs = kvs.AddV2("up", up, false)
+	kvs = kvs.Add("up", up)
 
 	if timestamp == 0 {
 		timestamp = ntp.Now().UnixNano()
 	}
 
-	pt := point.NewPointV2("collector", kvs, append(point.DefaultMetricOptions(), point.WithTimestamp(timestamp))...)
+	pt := point.NewPoint("collector", kvs, append(point.DefaultMetricOptions(), point.WithTimestamp(timestamp))...)
 
 	if err := p.feeder.Feed(
 		point.Metric,

@@ -77,16 +77,16 @@ func (p *persistentvolume) buildObjectPoints(list *apicorev1.PersistentVolumeLis
 		kvs = kvs.AddTag("phase", string(item.Status.Phase))
 
 		if item.Spec.ClaimRef != nil && item.Spec.ClaimRef.Kind == "PersistentVolumeClaim" {
-			kvs = kvs.AddV2("claimRef_name", item.Spec.ClaimRef.Name, false)
-			kvs = kvs.AddV2("claimRef_namespace", item.Spec.ClaimRef.Namespace, false)
+			kvs = kvs.Add("claimRef_name", item.Spec.ClaimRef.Name)
+			kvs = kvs.Add("claimRef_namespace", item.Spec.ClaimRef.Namespace)
 		}
 
-		kvs = kvs.AddV2("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3, false)
+		kvs = kvs.Add("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3)
 
 		if item.Spec.Capacity != nil {
 			storage, ok := item.Spec.Capacity["storage"]
 			if ok {
-				kvs = kvs.AddV2("capacity_storage", storage.String(), false)
+				kvs = kvs.Add("capacity_storage", storage.String())
 			}
 		}
 
@@ -95,23 +95,23 @@ func (p *persistentvolume) buildObjectPoints(list *apicorev1.PersistentVolumeLis
 			accessModes = append(accessModes, string(mode))
 		}
 		sort.Strings(accessModes)
-		kvs = kvs.AddV2("access_modes", strings.Join(accessModes, ","), false)
+		kvs = kvs.Add("access_modes", strings.Join(accessModes, ","))
 
 		if y, err := yaml.Marshal(item); err == nil {
-			kvs = kvs.AddV2("yaml", string(y), false)
+			kvs = kvs.Add("yaml", string(y))
 		}
-		kvs = kvs.AddV2("annotations", pointutil.MapToJSON(item.Annotations), false)
+		kvs = kvs.Add("annotations", pointutil.MapToJSON(item.Annotations))
 		kvs = append(kvs, pointutil.ConvertDFLabels(item.Labels)...)
 
 		msg := pointutil.PointKVsToJSON(kvs)
-		kvs = kvs.AddV2("message", pointutil.TrimString(msg, maxMessageLength), false)
+		kvs = kvs.Add("message", pointutil.TrimString(msg, maxMessageLength))
 
 		kvs = kvs.Del("annotations")
 		kvs = kvs.Del("yaml")
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, p.cfg.LabelAsTagsForNonMetric.All, p.cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(p.cfg.ExtraTags)...)
-		pt := point.NewPointV2(persistentvolumeObjectClass, kvs, opts...)
+		pt := point.NewPoint(persistentvolumeObjectClass, kvs, opts...)
 		pts = append(pts, pt)
 	}
 

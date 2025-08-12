@@ -349,24 +349,24 @@ func (dec *pgsqlDecPipe) Export(force bool) []*ProtoData {
 
 		switch dec.direction { //nolint:exhaustive
 		case comm.DIn:
-			kvs = kvs.Add(comm.FieldBytesRead, int64(inf.reqBytes), false, true)
-			kvs = kvs.Add(comm.FieldBytesWritten, int64(inf.respBytes), false, true)
+			kvs = kvs.Set(comm.FieldBytesRead, int64(inf.reqBytes))
+			kvs = kvs.Set(comm.FieldBytesWritten, int64(inf.respBytes))
 		default:
-			kvs = kvs.Add(comm.FieldBytesRead, int64(inf.respBytes), false, true)
-			kvs = kvs.Add(comm.FieldBytesWritten, int64(inf.reqBytes), false, true)
+			kvs = kvs.Set(comm.FieldBytesRead, int64(inf.respBytes))
+			kvs = kvs.Set(comm.FieldBytesWritten, int64(inf.reqBytes))
 		}
-		kvs = kvs.Add(comm.FieldResource, inf.resource, false, true)
-		kvs = kvs.Add(comm.FieldResourceType, inf.resourceType, false, true)
-		kvs = kvs.Add(comm.FieldPgsqlComment, inf.comment, false, true)
-		kvs = kvs.Add(comm.FieldPgsqlAffectedRow, inf.affectedRow, false, true)
-		kvs = kvs.Add(comm.FieldPgsqlStatusCode, inf.statusCode, false, true)
-		kvs = kvs.Add(comm.FieldStatus, toStatus(inf.status), false, true)
-		kvs = kvs.Add(comm.FieldStatusI, status2String(inf.status), false, true)
-		kvs = kvs.Add(comm.FieldPgsqlErrMsg, inf.errMsg, false, true)
-		kvs = kvs.Add(comm.FieldPgsqlMsg, inf.msg, false, true)
-		kvs = kvs.Add(comm.FieldPgsqlReqType, string(inf.reqType), false, true)
-		kvs = kvs.Add(comm.FieldPgsqlRespType, string(inf.respType), false, true)
-		kvs = kvs.Add(comm.FieldOperation, dec.Proto().String(), false, true)
+		kvs = kvs.Set(comm.FieldResource, inf.resource)
+		kvs = kvs.Set(comm.FieldResourceType, inf.resourceType)
+		kvs = kvs.Set(comm.FieldPgsqlComment, inf.comment)
+		kvs = kvs.Set(comm.FieldPgsqlAffectedRow, inf.affectedRow)
+		kvs = kvs.Set(comm.FieldPgsqlStatusCode, inf.statusCode)
+		kvs = kvs.Set(comm.FieldStatus, toStatus(inf.status))
+		kvs = kvs.Set(comm.FieldStatusI, status2String(inf.status))
+		kvs = kvs.Set(comm.FieldPgsqlErrMsg, inf.errMsg)
+		kvs = kvs.Set(comm.FieldPgsqlMsg, inf.msg)
+		kvs = kvs.Set(comm.FieldPgsqlReqType, string(inf.reqType))
+		kvs = kvs.Set(comm.FieldPgsqlRespType, string(inf.respType))
+		kvs = kvs.Set(comm.FieldOperation, dec.Proto().String())
 
 		dur := int64(inf.ktime[3] - inf.ktime[0])
 		if dur <= 0 {

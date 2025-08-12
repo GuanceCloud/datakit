@@ -103,7 +103,7 @@ func doGatherPoints(reg prometheus.Gatherer) ([]*Point, error) {
 			}
 
 			opts := append(DefaultMetricOptions(), WithTime(ts))
-			pts = append(pts, NewPointV2(name, kvs, opts...))
+			pts = append(pts, NewPoint(name, kvs, opts...))
 		}
 	}
 

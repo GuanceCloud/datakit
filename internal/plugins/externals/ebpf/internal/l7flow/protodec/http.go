@@ -286,21 +286,21 @@ func (dec *httpDecPipe) Export(force bool) []*ProtoData {
 		// 这几个字段需要与聚合函数的字段相同
 		switch dec.direction { //nolint:exhaustive
 		case comm.DIn:
-			kvs = kvs.Add(comm.FieldBytesRead, int64(inf.reqBytes), false, true)
-			kvs = kvs.Add(comm.FieldBytesWritten, int64(inf.respBytes), false, true)
+			kvs = kvs.Set(comm.FieldBytesRead, int64(inf.reqBytes))
+			kvs = kvs.Set(comm.FieldBytesWritten, int64(inf.respBytes))
 		default:
-			kvs = kvs.Add(comm.FieldBytesRead, int64(inf.respBytes), false, true)
-			kvs = kvs.Add(comm.FieldBytesWritten, int64(inf.reqBytes), false, true)
+			kvs = kvs.Set(comm.FieldBytesRead, int64(inf.respBytes))
+			kvs = kvs.Set(comm.FieldBytesWritten, int64(inf.reqBytes))
 		}
-		kvs = kvs.Add(comm.FieldHTTPMethod, inf.method, false, true)
-		kvs = kvs.Add(comm.FieldHTTPRoute, inf.path, false, true)
-		kvs = kvs.Add(comm.FieldHTTPVersion, inf.httpVersion, false, true)
-		kvs = kvs.Add(comm.FieldHTTPStatusCode, strconv.Itoa(inf.statusCode), false, true)
-		kvs = kvs.Add(comm.FieldStatus, httpCode2Status(inf.statusCode), false, true)
+		kvs = kvs.Set(comm.FieldHTTPMethod, inf.method)
+		kvs = kvs.Set(comm.FieldHTTPRoute, inf.path)
+		kvs = kvs.Set(comm.FieldHTTPVersion, inf.httpVersion)
+		kvs = kvs.Set(comm.FieldHTTPStatusCode, strconv.Itoa(inf.statusCode))
+		kvs = kvs.Set(comm.FieldStatus, httpCode2Status(inf.statusCode))
 
 		// 页面 span 上显示的是 `<opperation> <resource>`
-		kvs = kvs.Add(comm.FieldOperation, ProtoHTTP.String(), false, true)
-		kvs = kvs.Add(comm.FieldResource, inf.method+" "+inf.path, false, true)
+		kvs = kvs.Set(comm.FieldOperation, ProtoHTTP.String())
+		kvs = kvs.Set(comm.FieldResource, inf.method+" "+inf.path)
 
 		dur := int64(inf.ktime[3] - inf.ktime[0])
 		cost := int64(inf.ktime[2] - inf.ktime[1])

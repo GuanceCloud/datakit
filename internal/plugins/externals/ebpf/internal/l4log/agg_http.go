@@ -187,7 +187,7 @@ func kv2pointHTTP(key *aggHTTPKey, value *aggHTTPValue, pTime time.Time,
 
 	kvs := point.NewTags(tags)
 	kvs = append(kvs, point.NewKVs(fields)...)
-	pt := point.NewPointV2("httpflow", kvs, append(
+	pt := point.NewPoint("httpflow", kvs, append(
 		point.CommonLoggingOptions(), point.WithTime(pTime))...)
 	return pt, nil
 }

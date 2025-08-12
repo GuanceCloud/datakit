@@ -63,7 +63,7 @@ type Measurement struct {
 }
 
 func (m *Measurement) Point() *point.Point {
-	return point.NewPointV2(m.name,
+	return point.NewPoint(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		point.DefaultMetricOptions()...)
 }

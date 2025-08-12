@@ -157,7 +157,7 @@ func (ipt *Input) sessionReplayHandler() (f http.HandlerFunc, err error) {
 		service = filterKV["service"]
 
 		// apply remote or local filters
-		pt := point.NewPointV2("session_replay", point.NewTags(filterKV), point.WithTime(time.Now()))
+		pt := point.NewPoint("session_replay", point.NewTags(filterKV), point.WithTime(time.Now()))
 		if len(filter.FilterPts(point.RUM, []*point.Point{pt})) == 0 {
 			log.Infof("session replay data matched the blacklist and was dropped")
 			replayFilteredTotalCount.WithLabelValues(appID, env, version, service).Inc()

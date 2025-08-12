@@ -110,7 +110,7 @@ func pipelineDebugger(cat point.Category, plname, ns, txt string, isPt bool) err
 		fieldsSrc := map[string]any{constants.FieldMessage: txt}
 		kvs := point.NewKVs(fieldsSrc)
 		opt := append(point.DefaultLoggingOptions(), point.WithTime(time.Now()))
-		newPt := point.NewPointV2(name, kvs, opt...)
+		newPt := point.NewPoint(name, kvs, opt...)
 		pt = newPt
 
 	case point.Metric:

@@ -55,18 +55,18 @@ func (ipt *input) ElectionEnabled() bool {
 func (ipt *input) collect() error {
 	var kvs point.KVs
 
-	kvs.Add("tag_a", "a", true, false)
-	kvs.Add("tag_b", "b", true, false)
+	kvs.AddTag("tag_a", "a")
+	kvs.AddTag("tag_b", "b")
 
-	kvs.Add("usage", "12.3", false, false)
-	kvs.Add("disk_size", 5e9, false, false)
-	kvs.Add("mem_size", 1e9, false, false)
-	kvs.Add("some_string", "hello world", false, false)
-	kvs.Add("ok", true, false, false)
+	kvs.Add("usage", "12.3")
+	kvs.Add("disk_size", 5e9)
+	kvs.Add("mem_size", 1e9)
+	kvs.Add("some_string", "hello world")
+	kvs.Add("ok", true)
 
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(time.Now()))
-	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(inputName, kvs, opts...))
+	ipt.collectCache = append(ipt.collectCache, point.NewPoint(inputName, kvs, opts...))
 
 	return nil
 }

@@ -38,7 +38,7 @@ func (m *MetricMeasurment) Point() *point.Point {
 		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
 	}
 
-	return point.NewPointV2(m.name,
+	return point.NewPoint(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }
@@ -55,7 +55,7 @@ func (m *LoggingMeasurment) Point() *point.Point {
 		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
 	}
 
-	return point.NewPointV2(m.name,
+	return point.NewPoint(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }

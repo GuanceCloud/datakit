@@ -26,7 +26,7 @@ func TestNPoints(t *T.T) {
 		go func() {
 			defer wg.Done()
 
-			pt, _ := point.NewPoint(t.Name(), nil, map[string]any{"abc": 123})
+			pt := point.NewPoint(t.Name(), point.NewKVs(map[string]any{"abc": 123}))
 			pts := []*point.Point{pt}
 
 			for i := 0; i < n; i++ {
@@ -52,7 +52,7 @@ func TestNPoints(t *T.T) {
 
 		go func() {
 			defer wg.Done()
-			pt, _ := point.NewPoint(t.Name(), nil, map[string]any{"abc": 123})
+			pt := point.NewPoint(t.Name(), point.NewKVs(map[string]any{"abc": 123}))
 			pts := []*point.Point{pt}
 
 			for i := 0; i < n; i++ {
@@ -74,7 +74,7 @@ func TestNPoints(t *T.T) {
 
 		go func() {
 			defer wg.Done()
-			pt, _ := point.NewPoint(t.Name(), nil, map[string]any{"abc": 123})
+			pt := point.NewPoint(t.Name(), point.NewKVs(map[string]any{"abc": 123}))
 			pts := []*point.Point{pt}
 
 			for i := 0; i < n; i++ {
@@ -95,7 +95,7 @@ func TestNPoints(t *T.T) {
 	})
 
 	t.Run("feed-busy", func(t *T.T) {
-		pt, _ := point.NewPoint(t.Name(), nil, map[string]any{"abc": 123})
+		pt := point.NewPoint(t.Name(), point.NewKVs(map[string]any{"abc": 123}))
 		pts := []*point.Point{pt}
 
 		// cleanup chans

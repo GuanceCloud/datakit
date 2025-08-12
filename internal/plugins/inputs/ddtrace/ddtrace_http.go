@@ -334,7 +334,7 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 
 			if p, ok := itrace.DDPriorityMap[int(priority)]; ok {
 				// 在采样的结果放到行协议中，如果 DK 有配置采样，则需要该值进行过滤。
-				spanKV = spanKV.Add(itrace.SampleRateKey, p, true, true)
+				spanKV = spanKV.SetTag(itrace.SampleRateKey, p)
 			}
 		}
 
@@ -343,22 +343,22 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			resource = strings.ReplaceAll(span.Resource, "\n", " ")
 		}
 
-		spanKV = spanKV.Add(itrace.FieldTraceID, strTraceID, false, false).
-			Add(itrace.FieldParentID, strconv.FormatUint(span.ParentID, spanBase), false, false).
-			Add(itrace.FieldSpanid, strconv.FormatUint(span.SpanID, spanBase), false, false).
+		spanKV = spanKV.Add(itrace.FieldTraceID, strTraceID).
+			Add(itrace.FieldParentID, strconv.FormatUint(span.ParentID, spanBase)).
+			Add(itrace.FieldSpanid, strconv.FormatUint(span.SpanID, spanBase)).
 			AddTag(itrace.TagService, span.Service).
-			Add(itrace.FieldResource, resource, false, false).
+			Add(itrace.FieldResource, resource).
 			AddTag(itrace.TagOperation, span.Name).
 			AddTag(itrace.TagSource, inputName).
-			Add(itrace.TagSpanType,
+			AddTag(itrace.TagSpanType,
 				itrace.FindSpanTypeInMultiServersIntSpanID(span.SpanID,
 					span.ParentID,
 					span.Service,
 					spanIDs,
-					parentIDs), true, false).
+					parentIDs)).
 			AddTag(itrace.TagSourceType, itrace.GetSpanSourceType(span.Type)).
-			Add(itrace.FieldStart, span.Start/int64(time.Microsecond), false, false).
-			Add(itrace.FieldDuration, span.Duration/int64(time.Microsecond), false, false)
+			Add(itrace.FieldStart, span.Start/int64(time.Microsecond)).
+			Add(itrace.FieldDuration, span.Duration/int64(time.Microsecond))
 
 		// runtime_id 作为链路和 profiling 关联的字段，由于历史问题，需要增加一个冗余字段。
 		runTimeIDKey := "runtime-id"
@@ -375,9 +375,9 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			ddTagsLock.RLock()
 			if replace, ok := ddTags[k]; ok {
 				if len(v) > 1024 {
-					spanKV = spanKV.Add(replace, v, false, true)
+					spanKV = spanKV.Set(replace, v)
 				} else {
-					spanKV = spanKV.MustAddTag(replace, v)
+					spanKV = spanKV.SetTag(replace, v)
 				}
 				// 从 message 中删除 key.
 				delete(span.Meta, k)
@@ -398,12 +398,12 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			if buf, err := jsonIterator.Marshal(span); err != nil {
 				log.Warn(err.Error())
 			} else {
-				spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
+				spanKV = spanKV.Add(itrace.FieldMessage, string(buf))
 			}
 		}
 
 		t := time.Unix(0, span.Start)
-		pt := point.NewPointV2(inputName, spanKV, append(traceOpts, point.WithTime(t))...)
+		pt := point.NewPoint(inputName, spanKV, append(traceOpts, point.WithTime(t))...)
 		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 	}
 

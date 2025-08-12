@@ -97,7 +97,7 @@ func (m *Measurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTimestamp(m.TS))
 
-	return point.NewPointV2(m.Name,
+	return point.NewPoint(m.Name,
 		append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...),
 		opts...)
 }

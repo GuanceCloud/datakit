@@ -81,22 +81,22 @@ func (d *dfpv) buildMetricPoints(list []*podVolumeInfo, timestamp int64) []*poin
 		kvs = kvs.AddTag("namespace", item.namespace)
 		kvs = kvs.AddTag("volume_mount_name", item.volumeMountName)
 
-		kvs = kvs.AddV2("available", item.available, false)
-		kvs = kvs.AddV2("capacity", item.capacity, false)
-		kvs = kvs.AddV2("used", item.used, false)
-		kvs = kvs.AddV2("inodes", item.inodes, false)
-		kvs = kvs.AddV2("inodes_used", item.inodesUsed, false)
-		kvs = kvs.AddV2("inodes_free", item.inodesFree, false)
+		kvs = kvs.Add("available", item.available)
+		kvs = kvs.Add("capacity", item.capacity)
+		kvs = kvs.Add("used", item.used)
+		kvs = kvs.Add("inodes", item.inodes)
+		kvs = kvs.Add("inodes_used", item.inodesUsed)
+		kvs = kvs.Add("inodes_free", item.inodesFree)
 
 		if item.capacity != 0 {
-			kvs = kvs.AddV2("used_percent", float64(item.used)/float64(item.capacity)*100, false) // percent
+			kvs = kvs.Add("used_percent", float64(item.used)/float64(item.capacity)*100) // percent
 		}
 
 		//
 		// dfpv 不使用 LabelAsTagsForMetric
 		//
 		kvs = append(kvs, point.NewTags(d.cfg.ExtraTags)...)
-		pt := point.NewPointV2(dfpvMetricMeasurement, kvs, opts...)
+		pt := point.NewPoint(dfpvMetricMeasurement, kvs, opts...)
 		pts = append(pts, pt)
 	}
 
@@ -117,25 +117,25 @@ func (d *dfpv) buildObjectPoints(list []*podVolumeInfo) []*point.Point {
 		kvs = kvs.AddTag("namespace", item.namespace)
 		kvs = kvs.AddTag("volume_mount_name", item.volumeMountName)
 
-		kvs = kvs.AddV2("available", item.available, false)
-		kvs = kvs.AddV2("capacity", item.capacity, false)
-		kvs = kvs.AddV2("used", item.used, false)
-		kvs = kvs.AddV2("inodes", item.inodes, false)
-		kvs = kvs.AddV2("inodes_used", item.inodesUsed, false)
-		kvs = kvs.AddV2("inodes_free", item.inodesFree, false)
+		kvs = kvs.Add("available", item.available)
+		kvs = kvs.Add("capacity", item.capacity)
+		kvs = kvs.Add("used", item.used)
+		kvs = kvs.Add("inodes", item.inodes)
+		kvs = kvs.Add("inodes_used", item.inodesUsed)
+		kvs = kvs.Add("inodes_free", item.inodesFree)
 
 		if item.capacity != 0 {
-			kvs = kvs.AddV2("used_percent", float64(item.used)/float64(item.capacity)*100, false) // percent
+			kvs = kvs.Add("used_percent", float64(item.used)/float64(item.capacity)*100) // percent
 		}
 
 		msg := pointutil.PointKVsToJSON(kvs)
-		kvs = kvs.AddV2("message", pointutil.TrimString(msg, maxMessageLength), false)
+		kvs = kvs.Add("message", pointutil.TrimString(msg, maxMessageLength))
 
 		//
 		// dfpv 不使用 LabelAsTagsForNonMetric
 		//
 		kvs = append(kvs, point.NewTags(d.cfg.ExtraTags)...)
-		pt := point.NewPointV2(dfpvObjectClass, kvs, opts...)
+		pt := point.NewPoint(dfpvObjectClass, kvs, opts...)
 		pts = append(pts, pt)
 	}
 

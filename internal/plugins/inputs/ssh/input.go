@@ -251,7 +251,7 @@ func (ipt *Input) getMetrics(clientCfg *ssh.ClientConfig) ([]*point.Point, error
 		sshRst = true
 		defer sshClient.Close() //nolint:errcheck
 	}
-	kvs = kvs.AddV2("ssh_check", sshRst, true)
+	kvs = kvs.Set("ssh_check", sshRst)
 
 	// sftp检查
 	if ipt.SftpCheck {
@@ -267,10 +267,10 @@ func (ipt *Input) getMetrics(clientCfg *ssh.ClientConfig) ([]*point.Point, error
 					l.Errorf("Getwd: %s", err)
 				}
 
-				kvs = kvs.AddV2("sftp_response_time", getMsInterval(time.Since(t1)), true)
+				kvs = kvs.Set("sftp_response_time", getMsInterval(time.Since(t1)))
 			}
 		}
-		kvs = kvs.AddV2("sftp_check", sftpRst, true)
+		kvs = kvs.Set("sftp_check", sftpRst)
 	}
 
 	for k, v := range tags {
@@ -279,7 +279,7 @@ func (ipt *Input) getMetrics(clientCfg *ssh.ClientConfig) ([]*point.Point, error
 
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(ipt.ptsTime))
-	return []*point.Point{point.NewPointV2(ipt.MetricsName, kvs, opts...)}, err
+	return []*point.Point{point.NewPoint(ipt.MetricsName, kvs, opts...)}, err
 }
 
 func getMsInterval(d time.Duration) float64 {

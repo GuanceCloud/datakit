@@ -85,15 +85,15 @@ func (k *Kube) buildEventPoints(event *kubewatch.Event) []*point.Point {
 	kvs = kvs.AddTag("reason", item.Reason)
 	kvs = kvs.AddTag("from_node", config.RenameNode(k.cfg.NodeName))
 
-	kvs = kvs.AddV2("involved_kind", item.InvolvedObject.Kind, false)
-	kvs = kvs.AddV2("involved_uid", string(item.InvolvedObject.UID), false)
-	kvs = kvs.AddV2("involved_name", item.InvolvedObject.Name, false)
-	kvs = kvs.AddV2("involved_namespace", item.InvolvedObject.Namespace, false)
-	kvs = kvs.AddV2("source_component", item.Source.Component, false)
-	kvs = kvs.AddV2("source_host", item.Source.Host, false)
+	kvs = kvs.Add("involved_kind", item.InvolvedObject.Kind)
+	kvs = kvs.Add("involved_uid", string(item.InvolvedObject.UID))
+	kvs = kvs.Add("involved_name", item.InvolvedObject.Name)
+	kvs = kvs.Add("involved_namespace", item.InvolvedObject.Namespace)
+	kvs = kvs.Add("source_component", item.Source.Component)
+	kvs = kvs.Add("source_host", item.Source.Host)
 
-	kvs = kvs.AddV2("resource_version", item.ResourceVersion, false)
-	kvs = kvs.AddV2("message", item.Message, false)
+	kvs = kvs.Add("resource_version", item.ResourceVersion)
+	kvs = kvs.Add("message", item.Message)
 
 	status := "unknown"
 	switch item.Type {
@@ -105,9 +105,9 @@ func (k *Kube) buildEventPoints(event *kubewatch.Event) []*point.Point {
 		// nil
 	}
 
-	kvs = kvs.AddV2("status", status, false)
+	kvs = kvs.Add("status", status)
 	kvs = append(kvs, point.NewTags(k.cfg.ExtraTags)...)
-	pt := point.NewPointV2(eventLoggingMeasurement, kvs,
+	pt := point.NewPoint(eventLoggingMeasurement, kvs,
 		append(point.DefaultLoggingOptions(), point.WithTime(item.LastTimestamp.Time))...)
 
 	// record resourceVersion

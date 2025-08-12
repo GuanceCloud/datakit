@@ -47,12 +47,12 @@ func TagsFilter(source string, tags map[string]string, fields map[string]interfa
 		tkvs = tkvs.AddTag(replacer.Replace(k), v)
 	}
 	for k, i := range fields {
-		tkvs = tkvs.Add(replacer.Replace(k), i, false, false)
+		tkvs = tkvs.Add(replacer.Replace(k), i)
 	}
 	return tkvs
 }
 
 func NewAPMPoint(source string, kvs point.KVs, opts ...point.Option) *DkSpan {
-	pt := point.NewPointV2(source, kvs, opts...)
+	pt := point.NewPoint(source, kvs, opts...)
 	return &DkSpan{Point: pt}
 }

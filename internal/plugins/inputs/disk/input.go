@@ -172,32 +172,32 @@ func (ipt *Input) collect(ptTS int64) error {
 		}
 
 		var kvs point.KVs
-		kvs = kvs.Add("used_percent", float64(f.Usage.Used)/float64(f.Usage.Total)*100.0, false, true)
-		kvs = kvs.Add("device", f.Part.Device, true, true)
-		kvs = kvs.Add("fstype", f.Part.Fstype, true, true)
+		kvs = kvs.Set("used_percent", float64(f.Usage.Used)/float64(f.Usage.Total)*100.0)
+		kvs = kvs.SetTag("device", f.Part.Device)
+		kvs = kvs.SetTag("fstype", f.Part.Fstype)
 
-		kvs = kvs.Add("total", f.Usage.Total, false, true)
-		kvs = kvs.Add("free", f.Usage.Free, false, true)
-		kvs = kvs.Add("used", f.Usage.Used, false, true)
+		kvs = kvs.Set("total", f.Usage.Total)
+		kvs = kvs.Set("free", f.Usage.Free)
+		kvs = kvs.Set("used", f.Usage.Used)
 		kvs = kvs.AddTag("mount_point", f.Part.Mountpoint)
 
 		switch runtime.GOOS {
 		case datakit.OSLinux, datakit.OSDarwin:
-			kvs = kvs.Add("inodes_total_mb", f.Usage.InodesTotal/1_000_000, false, true)
-			kvs = kvs.Add("inodes_free_mb", f.Usage.InodesFree/1_000_000, false, true)
-			kvs = kvs.Add("inodes_used_mb", f.Usage.InodesUsed/1_000_000, false, true)
-			kvs = kvs.Add("inodes_used_percent", f.Usage.InodesUsedPercent, false, true) // float64
+			kvs = kvs.Set("inodes_total_mb", f.Usage.InodesTotal/1_000_000)
+			kvs = kvs.Set("inodes_free_mb", f.Usage.InodesFree/1_000_000)
+			kvs = kvs.Set("inodes_used_mb", f.Usage.InodesUsed/1_000_000)
+			kvs = kvs.Set("inodes_used_percent", f.Usage.InodesUsedPercent) // float64
 
-			kvs = kvs.Add("inodes_total", f.Usage.InodesTotal, false, true) // Deprecated
-			kvs = kvs.Add("inodes_free", f.Usage.InodesFree, false, true)   // Deprecated
-			kvs = kvs.Add("inodes_used", f.Usage.InodesUsed, false, true)   // Deprecated
+			kvs = kvs.Set("inodes_total", f.Usage.InodesTotal) // Deprecated
+			kvs = kvs.Set("inodes_free", f.Usage.InodesFree)   // Deprecated
+			kvs = kvs.Set("inodes_used", f.Usage.InodesUsed)   // Deprecated
 		}
 
 		for k, v := range ipt.mergedTags {
 			kvs = kvs.AddTag(k, v)
 		}
 
-		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(inputName, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPoint(inputName, kvs, opts...))
 	}
 
 	return nil

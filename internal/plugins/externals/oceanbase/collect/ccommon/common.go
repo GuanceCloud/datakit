@@ -138,7 +138,7 @@ func BuildPoint(l *logger.Logger, opt *BuildPointOpt) *point.Point {
 
 	newTags := MergeTags(opt.Tags, opt.TF.Tags, host)
 
-	return point.NewPointV2(opt.MetricName,
+	return point.NewPoint(opt.MetricName,
 		append(point.NewTags(newTags), point.NewKVs(opt.TF.Fields)...),
 		opts...)
 }
@@ -169,7 +169,7 @@ func BuildPointLogging(l *logger.Logger, opt *BuildPointOpt) *point.Point {
 
 	newTags := MergeTags(opt.Tags, opt.TF.Tags, host)
 
-	return point.NewPointV2(opt.MetricName,
+	return point.NewPoint(opt.MetricName,
 		append(point.NewTags(newTags), point.NewKVs(opt.TF.Fields)...),
 		opts...)
 }
@@ -183,10 +183,10 @@ func BuildPointMetric(kvs point.KVs, metricName string, tags, hostTag map[string
 	}
 
 	for k, v := range hostTag {
-		kvs = kvs.MustAddTag(k, v)
+		kvs = kvs.SetTag(k, v)
 	}
 
-	return point.NewPointV2(metricName, kvs, opts...)
+	return point.NewPoint(metricName, kvs, opts...)
 }
 
 func GetHostTag(l *logger.Logger, hostVar string) map[string]string {

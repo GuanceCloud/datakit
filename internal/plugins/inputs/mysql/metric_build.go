@@ -115,7 +115,7 @@ func (ipt *Input) buildMysql() ([]*gcPoint.Point, error) {
 				l.Errorf("buildMysql metric %v value %v parse error %v", key, value, err)
 				return pts, err
 			} else {
-				kvs = kvs.Add(key, val, false, true)
+				kvs = kvs.Set(key, val)
 			}
 		} else {
 			l.Warnf("field %q:%v not in list", key, value)
@@ -123,7 +123,7 @@ func (ipt *Input) buildMysql() ([]*gcPoint.Point, error) {
 	}
 
 	if kvs.FieldCount() > 0 {
-		pts = append(pts, gcPoint.NewPointV2(metricNameMySQL, kvs, opts...))
+		pts = append(pts, gcPoint.NewPoint(metricNameMySQL, kvs, opts...))
 	}
 
 	return pts, nil
@@ -138,16 +138,16 @@ func (ipt *Input) buildMysqlReplication() ([]*gcPoint.Point, error) {
 	kvs := ipt.getKVs()
 	// Replication
 	for k, v := range getMetricFields(ipt.mReplication, m.Info()) {
-		kvs = kvs.Add(k, v, false, true)
+		kvs = kvs.Set(k, v)
 	}
 
 	// Group Replication
 	for k, v := range getMetricFields(ipt.mGroupReplication, m.Info()) {
-		kvs = kvs.Add(k, v, false, true)
+		kvs = kvs.Set(k, v)
 	}
 
 	if kvs.FieldCount() > 0 {
-		pts = append(pts, gcPoint.NewPointV2(metricNameMySQLReplication, kvs, opts...))
+		pts = append(pts, gcPoint.NewPoint(metricNameMySQLReplication, kvs, opts...))
 	}
 
 	return pts, nil
@@ -161,11 +161,11 @@ func (ipt *Input) buildMysqlReplicationLog() ([]*gcPoint.Point, error) {
 
 	kvs := ipt.getKVs()
 	for k, v := range getMetricFields(ipt.mReplication, m.Info()) {
-		kvs = kvs.Add(k, v, false, true)
+		kvs = kvs.Set(k, v)
 	}
 
 	if kvs.FieldCount() > 0 {
-		pts = append(pts, gcPoint.NewPointV2(metricNameMySQLReplicationLog, kvs, opts...))
+		pts = append(pts, gcPoint.NewPoint(metricNameMySQLReplicationLog, kvs, opts...))
 	}
 
 	return pts, nil
@@ -182,9 +182,9 @@ func (ipt *Input) buildMysqlSchema() ([]*gcPoint.Point, error) {
 		kvs = kvs.AddTag("schema_name", k)
 
 		size := cast.ToFloat64(v)
-		kvs = kvs.Add("schema_size", size, false, true)
+		kvs = kvs.Set("schema_size", size)
 
-		pts = append(pts, gcPoint.NewPointV2(metricNameMySQLSchema, kvs, opts...))
+		pts = append(pts, gcPoint.NewPoint(metricNameMySQLSchema, kvs, opts...))
 	}
 
 	for k, v := range ipt.mSchemaQueryExecTime {
@@ -193,9 +193,9 @@ func (ipt *Input) buildMysqlSchema() ([]*gcPoint.Point, error) {
 		kvs = kvs.AddTag("schema_name", k)
 
 		size := cast.ToInt64(v)
-		kvs = kvs.Add("query_run_time_avg", size, false, true)
+		kvs = kvs.Set("query_run_time_avg", size)
 
-		pts = append(pts, gcPoint.NewPointV2(metricNameMySQLSchema, kvs, opts...))
+		pts = append(pts, gcPoint.NewPoint(metricNameMySQLSchema, kvs, opts...))
 	}
 
 	return pts, nil
@@ -208,11 +208,11 @@ func (ipt *Input) buildMysqlInnodb() ([]*gcPoint.Point, error) {
 
 	m := &innodbMeasurement{}
 	for k, v := range getMetricFields(ipt.mInnodb, m.Info()) {
-		kvs = kvs.Add(k, v, false, true)
+		kvs = kvs.Set(k, v)
 	}
 
 	if kvs.FieldCount() > 0 {
-		pts = append(pts, gcPoint.NewPointV2(metricNameMySQLInnodb, kvs, opts...))
+		pts = append(pts, gcPoint.NewPoint(metricNameMySQLInnodb, kvs, opts...))
 	}
 	return pts, nil
 }
@@ -235,12 +235,12 @@ func (ipt *Input) buildMysqlTableSchema() ([]*gcPoint.Point, error) {
 					kvs = kvs.AddTag(kk, vvv)
 				}
 			case "table_rows", "data_length", "index_length", "data_free":
-				kvs = kvs.Add(kk, vv, false, true)
+				kvs = kvs.Set(kk, vv)
 			}
 		}
 
 		if kvs.FieldCount() > 0 {
-			pts = append(pts, gcPoint.NewPointV2(metricNameMySQLTableSchema, kvs, opts...))
+			pts = append(pts, gcPoint.NewPoint(metricNameMySQLTableSchema, kvs, opts...))
 		}
 	}
 
@@ -259,19 +259,19 @@ func (ipt *Input) buildMysqlUserStatus() ([]*gcPoint.Point, error) {
 
 		// fields
 		for k, v := range ipt.mUserStatusVariable[user] {
-			kvs = kvs.Add(k, v, false, true)
+			kvs = kvs.Set(k, v)
 		}
 
 		if _, ok := ipt.mUserStatusConnection[user]["current_connect"]; ok {
-			kvs = kvs.Add("current_connect", ipt.mUserStatusConnection[user]["current_connect"], false, true)
+			kvs = kvs.Set("current_connect", ipt.mUserStatusConnection[user]["current_connect"])
 		}
 
 		if _, ok := ipt.mUserStatusConnection[user]["total_connect"]; ok {
-			kvs = kvs.Add("total_connect", ipt.mUserStatusConnection[user]["total_connect"], false, true)
+			kvs = kvs.Set("total_connect", ipt.mUserStatusConnection[user]["total_connect"])
 		}
 
 		if kvs.FieldCount() > 0 {
-			pts = append(pts, gcPoint.NewPointV2(metricNameMySQLUserStatus, kvs, opts...))
+			pts = append(pts, gcPoint.NewPoint(metricNameMySQLUserStatus, kvs, opts...))
 		}
 	}
 
@@ -296,30 +296,30 @@ func (ipt *Input) buildMysqlDbmMetric() ([]*gcPoint.Point, error) {
 
 		// fields
 		if len(row.digestText) > 0 {
-			kvs = kvs.Add("message", row.digestText, false, true)
+			kvs = kvs.Set("message", row.digestText)
 		}
 
 		if len(row.digest) > 0 {
-			kvs = kvs.Add("digest", row.digest, false, true)
+			kvs = kvs.Set("digest", row.digest)
 		}
 
 		if len(row.querySignature) > 0 {
-			kvs = kvs.Add("query_signature", row.querySignature, false, true)
+			kvs = kvs.Set("query_signature", row.querySignature)
 		}
 
-		kvs = kvs.Add("count_star", row.countStar, false, true)
-		kvs = kvs.Add("sum_timer_wait", row.sumTimerWait, false, true)
-		kvs = kvs.Add("sum_lock_time", row.sumLockTime, false, true)
-		kvs = kvs.Add("sum_errors", row.sumErrors, false, true)
-		kvs = kvs.Add("sum_rows_affected", row.sumRowsAffected, false, true)
-		kvs = kvs.Add("sum_rows_sent", row.sumRowsSent, false, true)
-		kvs = kvs.Add("sum_rows_examined", row.sumRowsExamined, false, true)
-		kvs = kvs.Add("sum_select_scan", row.sumSelectScan, false, true)
-		kvs = kvs.Add("sum_select_full_join", row.sumSelectFullJoin, false, true)
-		kvs = kvs.Add("sum_no_index_used", row.sumNoIndexUsed, false, true)
-		kvs = kvs.Add("sum_no_good_index_used", row.sumNoGoodIndexUsed, false, true)
+		kvs = kvs.Set("count_star", row.countStar)
+		kvs = kvs.Set("sum_timer_wait", row.sumTimerWait)
+		kvs = kvs.Set("sum_lock_time", row.sumLockTime)
+		kvs = kvs.Set("sum_errors", row.sumErrors)
+		kvs = kvs.Set("sum_rows_affected", row.sumRowsAffected)
+		kvs = kvs.Set("sum_rows_sent", row.sumRowsSent)
+		kvs = kvs.Set("sum_rows_examined", row.sumRowsExamined)
+		kvs = kvs.Set("sum_select_scan", row.sumSelectScan)
+		kvs = kvs.Set("sum_select_full_join", row.sumSelectFullJoin)
+		kvs = kvs.Set("sum_no_index_used", row.sumNoIndexUsed)
+		kvs = kvs.Set("sum_no_good_index_used", row.sumNoGoodIndexUsed)
 
-		pts = append(pts, gcPoint.NewPointV2(metricNameMySQLDbmMetric, kvs, opts...))
+		pts = append(pts, gcPoint.NewPoint(metricNameMySQLDbmMetric, kvs, opts...))
 	}
 
 	return pts, nil
@@ -347,27 +347,27 @@ func (ipt *Input) buildMysqlDbmSample() ([]*gcPoint.Point, error) {
 		kvs = kvs.AddTag("processlist_user", plan.processlistUser)
 		kvs = kvs.AddTag("status", "info")
 		// fields
-		kvs = kvs.Add("timestamp", plan.timestamp, false, true)
-		kvs = kvs.Add("duration", plan.duration, false, true)
-		kvs = kvs.Add("lock_time_ns", plan.lockTimeNs, false, true)
-		kvs = kvs.Add("no_good_index_used", plan.noGoodIndexUsed, false, true)
-		kvs = kvs.Add("no_index_used", plan.noIndexUsed, false, true)
-		kvs = kvs.Add("rows_affected", plan.rowsAffected, false, true)
-		kvs = kvs.Add("rows_examined", plan.rowsExamined, false, true)
-		kvs = kvs.Add("rows_sent", plan.rowsSent, false, true)
-		kvs = kvs.Add("select_full_join", plan.selectFullJoin, false, true)
-		kvs = kvs.Add("select_full_range_join", plan.selectFullRangeJoin, false, true)
-		kvs = kvs.Add("select_range", plan.selectRange, false, true)
-		kvs = kvs.Add("select_range_check", plan.selectRangeCheck, false, true)
-		kvs = kvs.Add("select_scan", plan.selectScan, false, true)
-		kvs = kvs.Add("sort_merge_passes", plan.sortMergePasses, false, true)
-		kvs = kvs.Add("sort_range", plan.sortRange, false, true)
-		kvs = kvs.Add("sort_rows", plan.sortRows, false, true)
-		kvs = kvs.Add("sort_scan", plan.sortScan, false, true)
-		kvs = kvs.Add("timer_wait_ns", plan.duration, false, true)
-		kvs = kvs.Add("message", plan.digestText, false, true)
+		kvs = kvs.Set("timestamp", plan.timestamp)
+		kvs = kvs.Set("duration", plan.duration)
+		kvs = kvs.Set("lock_time_ns", plan.lockTimeNs)
+		kvs = kvs.Set("no_good_index_used", plan.noGoodIndexUsed)
+		kvs = kvs.Set("no_index_used", plan.noIndexUsed)
+		kvs = kvs.Set("rows_affected", plan.rowsAffected)
+		kvs = kvs.Set("rows_examined", plan.rowsExamined)
+		kvs = kvs.Set("rows_sent", plan.rowsSent)
+		kvs = kvs.Set("select_full_join", plan.selectFullJoin)
+		kvs = kvs.Set("select_full_range_join", plan.selectFullRangeJoin)
+		kvs = kvs.Set("select_range", plan.selectRange)
+		kvs = kvs.Set("select_range_check", plan.selectRangeCheck)
+		kvs = kvs.Set("select_scan", plan.selectScan)
+		kvs = kvs.Set("sort_merge_passes", plan.sortMergePasses)
+		kvs = kvs.Set("sort_range", plan.sortRange)
+		kvs = kvs.Set("sort_rows", plan.sortRows)
+		kvs = kvs.Set("sort_scan", plan.sortScan)
+		kvs = kvs.Set("timer_wait_ns", plan.duration)
+		kvs = kvs.Set("message", plan.digestText)
 
-		pts = append(pts, gcPoint.NewPointV2(metricNameMySQLDbmSample, kvs, opts...))
+		pts = append(pts, gcPoint.NewPoint(metricNameMySQLDbmSample, kvs, opts...))
 	}
 
 	return pts, nil
@@ -395,12 +395,12 @@ func (ipt *Input) getCustomQueryPoints(query *customQuery, arr []map[string]inte
 		for _, fdKey := range query.Fields {
 			if value, ok := item[fdKey]; ok {
 				// transform all fields to float64
-				kvs = kvs.Add(fdKey, cast.ToFloat64(value), false, true)
+				kvs = kvs.Set(fdKey, cast.ToFloat64(value))
 			}
 		}
 
 		if kvs.FieldCount() > 0 {
-			pts = append(pts, gcPoint.NewPointV2(query.Metric, kvs, opts...))
+			pts = append(pts, gcPoint.NewPoint(query.Metric, kvs, opts...))
 		}
 	}
 

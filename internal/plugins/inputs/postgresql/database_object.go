@@ -134,30 +134,30 @@ func (ipt *Input) collectDatabaseObject() error {
 		AddTag("slow_query_log", slowQueryLog).
 		AddTag("server", ipt.Object.name).
 		AddTag("port", fmt.Sprintf("%d", ipt.port)).
-		Add("uptime", ipt.Uptime, false, true).
-		Add("message", message.String(), false, true)
+		Set("uptime", ipt.Uptime).
+		Set("message", message.String())
 
 	// qps, avg_query_time
 	if qps, err := ipt.getQPSAndAvgQueryTime(); err != nil {
 		l.Warnf("getQPS failed: %s", err.Error())
 	} else {
-		kvs = kvs.Add("qps", qps, false, true)
-		kvs = kvs.Add("avg_query_time", ipt.objectMetric.AvgQueryTime, false, true)
+		kvs = kvs.Set("qps", qps)
+		kvs = kvs.Set("avg_query_time", ipt.objectMetric.AvgQueryTime)
 	}
 
 	// tps
 	if tps, err := ipt.getTPS(); err != nil {
 		l.Warnf("getTPS failed: %s", err.Error())
 	} else {
-		kvs = kvs.Add("tps", tps, false, true)
+		kvs = kvs.Set("tps", tps)
 	}
 
 	// slow_queries
 	if slowQueryLog == "ON" {
-		kvs = kvs.Add("slow_queries", slowQueries, false, true)
+		kvs = kvs.Set("slow_queries", slowQueries)
 	}
 
-	p := point.NewPointV2("database", kvs, opts...)
+	p := point.NewPoint("database", kvs, opts...)
 	ipt.collectCache[point.Object] = []*point.Point{p}
 
 	return nil

@@ -154,7 +154,7 @@ func (ipt *Input) collect(ptTS int64) error {
 	for _, cts := range cpuTimes {
 		var kvs point.KVs
 
-		kvs = kvs.Add("cpu", cts.CPU, true, true)
+		kvs = kvs.SetTag("cpu", cts.CPU)
 
 		_, total := CPUActiveTotalTime(cts)
 
@@ -173,25 +173,25 @@ func (ipt *Input) collect(ptTS int64) error {
 		}
 		cpuUsage, _ := CalculateUsage(cts, lastCts, totalDelta)
 
-		kvs = kvs.Add("usage_user", cpuUsage.User, false, true)
-		kvs = kvs.Add("usage_system", cpuUsage.System, false, true)
-		kvs = kvs.Add("usage_idle", cpuUsage.Idle, false, true)
-		kvs = kvs.Add("usage_nice", cpuUsage.Nice, false, true)
-		kvs = kvs.Add("usage_iowait", cpuUsage.Iowait, false, true)
-		kvs = kvs.Add("usage_irq", cpuUsage.Irq, false, true)
-		kvs = kvs.Add("usage_softirq", cpuUsage.Softirq, false, true)
-		kvs = kvs.Add("usage_steal", cpuUsage.Steal, false, true)
-		kvs = kvs.Add("usage_guest", cpuUsage.Guest, false, true)
-		kvs = kvs.Add("usage_guest_nice", cpuUsage.GuestNice, false, true)
-		kvs = kvs.Add("usage_total", cpuUsage.Total, false, true)
+		kvs = kvs.Set("usage_user", cpuUsage.User)
+		kvs = kvs.Set("usage_system", cpuUsage.System)
+		kvs = kvs.Set("usage_idle", cpuUsage.Idle)
+		kvs = kvs.Set("usage_nice", cpuUsage.Nice)
+		kvs = kvs.Set("usage_iowait", cpuUsage.Iowait)
+		kvs = kvs.Set("usage_irq", cpuUsage.Irq)
+		kvs = kvs.Set("usage_softirq", cpuUsage.Softirq)
+		kvs = kvs.Set("usage_steal", cpuUsage.Steal)
+		kvs = kvs.Set("usage_guest", cpuUsage.Guest)
+		kvs = kvs.Set("usage_guest_nice", cpuUsage.GuestNice)
+		kvs = kvs.Set("usage_total", cpuUsage.Total)
 
 		if ipt.EnableLoad5s {
-			kvs = kvs.Add("load5s", ipt.getLoad5s(), false, true)
+			kvs = kvs.Set("load5s", ipt.getLoad5s())
 		}
 
 		if len(coreTemp) > 0 && cts.CPU == "cpu-total" {
 			if v, ok := coreTemp[cts.CPU]; ok {
-				kvs = kvs.Add("core_temperature", v, false, true)
+				kvs = kvs.Set("core_temperature", v)
 			}
 		}
 
@@ -199,7 +199,7 @@ func (ipt *Input) collect(ptTS int64) error {
 			kvs = kvs.AddTag(k, v)
 		}
 
-		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(inputName, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPoint(inputName, kvs, opts...))
 	}
 	// last cputimes stats
 	ipt.lastStats = make(map[string]cpu.TimesStat)

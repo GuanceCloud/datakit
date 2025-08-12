@@ -32,7 +32,7 @@ func (jp *JSONPoint) Point(opts ...Option) (*Point, error) {
 	if jp.Time != 0 {
 		opts = append(opts, WithTime(time.Unix(0, jp.Time)))
 	}
-	return NewPoint(jp.Measurement, jp.Tags, jp.Fields, opts...)
+	return NewPointDeprecated(jp.Measurement, jp.Tags, jp.Fields, opts...)
 }
 
 // MarshalJSON to protobuf json.
@@ -86,8 +86,8 @@ func fromJSONPoint(j *JSONPoint) *Point {
 	kvs := NewKVs(j.Fields)
 
 	for k, v := range j.Tags {
-		kvs = kvs.MustAddTag(k, v)
+		kvs = kvs.SetTag(k, v)
 	}
 
-	return NewPointV2(j.Measurement, kvs, WithTimestamp(j.Time))
+	return NewPoint(j.Measurement, kvs, WithTimestamp(j.Time))
 }

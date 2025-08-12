@@ -35,7 +35,7 @@ func (ipt *Input) getPts(data []byte, server string) error {
 		var kvs point.KVs
 
 		for k, v := range metric.fields {
-			kvs = kvs.Add(k, v, false, true)
+			kvs = kvs.Set(k, v)
 		}
 
 		for k, v := range metric.tags {
@@ -46,14 +46,14 @@ func (ipt *Input) getPts(data []byte, server string) error {
 			kvs = kvs.AddTag(k, v)
 		}
 
-		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(inputName, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPoint(inputName, kvs, opts...))
 	}
 
 	for i := 0; i < len(metricsLog); i++ {
 		var kvs point.KVs
 
 		for k, v := range metricsLog[i].fields {
-			kvs = kvs.Add(k, v, false, true)
+			kvs = kvs.Set(k, v)
 		}
 
 		for k, v := range metricsLog[i].tags {
@@ -64,7 +64,7 @@ func (ipt *Input) getPts(data []byte, server string) error {
 			kvs = kvs.AddTag(k, v)
 		}
 
-		ipt.collectCacheLog = append(ipt.collectCacheLog, point.NewPointV2(inputName, kvs, opts...))
+		ipt.collectCacheLog = append(ipt.collectCacheLog, point.NewPoint(inputName, kvs, opts...))
 	}
 	return nil
 }

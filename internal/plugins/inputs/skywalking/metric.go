@@ -29,9 +29,9 @@ func meterDataToPoint(data *agentv3.MeterData) *point.Point {
 		metricKV = metricKV.AddTag(label.GetName(), label.GetValue())
 	}
 
-	metricKV = metricKV.Add(singel.Name, singel.GetValue(), false, false)
+	metricKV = metricKV.Add(singel.Name, singel.GetValue())
 	ts := time.UnixMilli(data.GetTimestamp()) // time
-	return point.NewPointV2(data.Service, metricKV, append(metricOpts, point.WithTime(ts))...)
+	return point.NewPoint(data.Service, metricKV, append(metricOpts, point.WithTime(ts))...)
 }
 
 // func processMetricsV3(jvm *agentv3.JVMMetricCollection, start time.Time) []inputs.Measurement {.
@@ -72,7 +72,7 @@ type jvmMeasurement struct {
 // Point implement MeasurementV2.
 func (m *jvmMeasurement) Point() *point.Point {
 	opts := append(point.DefaultMetricOptions(), point.WithTime(m.ts), point.WithExtraTags(datakit.GlobalHostTags()))
-	return point.NewPointV2(m.name, append(point.NewTags(m.tags), point.NewKVs(m.fields)...), opts...)
+	return point.NewPoint(m.name, append(point.NewTags(m.tags), point.NewKVs(m.fields)...), opts...)
 }
 
 // nolint:lll

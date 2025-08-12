@@ -90,7 +90,7 @@ func TestGetDecodeData(t *testing.T) {
 //------------------------------------------------------------------------------
 
 func getPt(name string, tags map[string]string, fields map[string]any, opts []point.Option) string {
-	pt, _ := point.NewPoint(name, tags, fields, opts...)
+	pt := point.NewPoint(name, append(point.NewTags(tags), point.NewKVs(fields)...), opts...)
 	return pt.LineProto()
 }
 

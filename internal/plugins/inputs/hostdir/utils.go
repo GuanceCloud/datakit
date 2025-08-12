@@ -88,9 +88,9 @@ func getFileSystemInfo(path string, fileSize int64, usedInode int64, kvs *point.
 		usedPercent = float64(fileSize) /
 			(float64(usage.Used) + float64(usage.Free)) * 100
 	}
-	*kvs = kvs.Add("total", usage.Total, false, true)
-	*kvs = kvs.Add("free", usage.Free, false, true)
-	*kvs = kvs.Add("used_percent", usedPercent, false, true)
+	*kvs = kvs.Set("total", usage.Total)
+	*kvs = kvs.Set("free", usage.Free)
+	*kvs = kvs.Set("used_percent", usedPercent)
 
 	if runtime.GOOS != datakit.OSWindows {
 		var inodesUsedPercent float64
@@ -99,10 +99,10 @@ func getFileSystemInfo(path string, fileSize int64, usedInode int64, kvs *point.
 				(float64(usage.InodesTotal)) * 100
 		}
 
-		*kvs = kvs.Add("inodes_total", usage.InodesTotal, false, true)
-		*kvs = kvs.Add("inodes_free", usage.InodesFree, false, true)
-		*kvs = kvs.Add("inodes_used", usedInode, false, true)
-		*kvs = kvs.Add("inodes_used_percent", inodesUsedPercent, false, true) // float64
+		*kvs = kvs.Set("inodes_total", usage.InodesTotal)
+		*kvs = kvs.Set("inodes_free", usage.InodesFree)
+		*kvs = kvs.Set("inodes_used", usedInode)
+		*kvs = kvs.Set("inodes_used_percent", inodesUsedPercent) // float64
 
 		partitions, err := disk.Partitions(true)
 		if err != nil {
@@ -116,7 +116,7 @@ func getFileSystemInfo(path string, fileSize int64, usedInode int64, kvs *point.
 			}
 		}
 		if mountpoint != "" {
-			*kvs = kvs.Add("mount_point", mountpoint, true, true)
+			*kvs = kvs.SetTag("mount_point", mountpoint)
 		}
 	}
 

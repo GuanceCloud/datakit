@@ -60,14 +60,14 @@ func (ipt *Input) collectHTTP(ptTS int64) error {
 
 			tags, fields := task.GetResults()
 			var kvs point.KVs
-			kvs = kvs.Add("url", url, true, true)
-			kvs = kvs.Add("exception", false, false, true)
-			kvs = kvs.Add("error", "none", true, true)
+			kvs = kvs.SetTag("url", url)
+			kvs = kvs.Set("exception", false)
+			kvs = kvs.SetTag("error", "none")
 
 			if tags["status"] == "FAIL" {
-				kvs = kvs.Add("exception", true, false, true)
+				kvs = kvs.Set("exception", true)
 				if reason, ok := fields["fail_reason"].(string); ok {
-					kvs = kvs.Add("error", reason, true, true)
+					kvs = kvs.SetTag("error", reason)
 				}
 			}
 
@@ -78,7 +78,7 @@ func (ipt *Input) collectHTTP(ptTS int64) error {
 			opts := point.DefaultMetricOptions()
 			opts = append(opts, point.WithTimestamp(ptTS))
 
-			ipt.collectCache = append(ipt.collectCache, point.NewPointV2(httpMetricName, kvs, opts...))
+			ipt.collectCache = append(ipt.collectCache, point.NewPoint(httpMetricName, kvs, opts...))
 		}
 	}
 

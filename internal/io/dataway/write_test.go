@@ -382,8 +382,8 @@ func TestX(t *T.T) {
 
 		// add extra tags to match group tag key/value
 		for _, pt := range pts {
-			pt.MustAddTag("tag1", "value1")
-			pt.MustAddTag("tag2", "value2")
+			pt.SetTag("tag1", "value1")
+			pt.SetTag("tag2", "value2")
 			// NOTE: tag3 not added
 		}
 
@@ -583,8 +583,8 @@ func TestWritePoints(t *T.T) {
 
 	t.Run("write-with-sink", func(t *T.T) {
 		pts := []*point.Point{
-			point.NewPointV2("m1", point.NewKVs(nil).AddV2("tag1", "val1", true, point.WithKVTagSet(true)).AddV2("f1", 1.23, true)),
-			point.NewPointV2("m2", point.NewKVs(nil).AddV2("tag2", "val2", true, point.WithKVTagSet(true)).AddV2("f2", 3.14, true)),
+			point.NewPoint("m1", point.NewKVs(nil).SetTag("tag1", "val1").Set("f1", 1.23)),
+			point.NewPoint("m2", point.NewKVs(nil).SetTag("tag2", "val2").Set("f2", 3.14)),
 		}
 
 		requests := 0

@@ -126,7 +126,7 @@ func (t *tdEngine) getSTablesNum(alignTS int64) []*point.Point {
 			msm.tags = inputs.MergeTagsWrapper(msm.tags, t.Ipt.Tagger.HostTags(), t.Ipt.Tags, t.Ipt.AdapterEndpoint)
 		}
 
-		pt := point.NewPointV2(msm.name,
+		pt := point.NewPoint(msm.name,
 			append(point.NewTags(msm.tags), point.NewKVs(msm.fields)...),
 			opts...)
 		pts = append(pts, pt)
@@ -391,7 +391,7 @@ func makeMeasurements(subMetricName string, res restResult, sql selectSQL, ipt *
 			msm.tags = inputs.MergeTagsWrapper(msm.tags, ipt.Tagger.HostTags(), ipt.Tags, ipt.AdapterEndpoint)
 		}
 
-		pt := point.NewPointV2(msm.name,
+		pt := point.NewPoint(msm.name,
 			append(point.NewTags(msm.tags), point.NewKVs(msm.fields)...),
 			opts...)
 		pts = append(pts, pt)

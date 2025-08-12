@@ -191,7 +191,7 @@ func (ipt *Input) collectOracleSystem() {
 	)
 
 	kvs = kvs.AddTag("version", ipt.fullVersion).
-		AddV2("uptime", ipt.Uptime, true)
+		Set("uptime", ipt.Uptime)
 
 	makeTagsAndFields := func(row sysmetricsRowDB, isExistedMap map[string]bool) {
 		if metric, ok := systemCols[row.MetricName.String]; ok {
@@ -227,9 +227,9 @@ func (ipt *Input) collectOracleSystem() {
 
 			alias, ok := aliasMapping[metric]
 			if ok {
-				kvs = kvs.Add(alias, value, false, true)
+				kvs = kvs.Set(alias, value)
 			} else {
-				kvs = kvs.Add(metric, value, false, true)
+				kvs = kvs.Set(metric, value)
 			}
 
 			if isExistedMap != nil {
@@ -246,7 +246,7 @@ func (ipt *Input) collectOracleSystem() {
 	}
 
 	if kvs.FieldCount() > 0 {
-		pts = append(pts, point.NewPointV2(metricName, kvs, opts...))
+		pts = append(pts, point.NewPoint(metricName, kvs, opts...))
 	}
 
 	rows = rows[:0] // reset rows
@@ -275,7 +275,7 @@ func (ipt *Input) collectOracleSystem() {
 	}
 
 	if kvs.FieldCount() > 0 {
-		pts = append(pts, point.NewPointV2(metricName, kvs, opts...))
+		pts = append(pts, point.NewPoint(metricName, kvs, opts...))
 	}
 
 	l.Debugf("collect %d points from system(oracle version %s)", len(pts), ipt.mainVersion)

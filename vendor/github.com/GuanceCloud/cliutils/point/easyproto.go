@@ -147,7 +147,7 @@ func unmarshalPoint(src []byte) (*Point, error) {
 			}
 
 			if kv, err := unmarshalField(data); err == nil {
-				kvs = kvs.AddKV(kv, false)
+				kvs = kvs.AddKV(kv)
 			} else {
 				return nil, fmt.Errorf("cannot unmarshal field: %w", err)
 			}
@@ -180,7 +180,7 @@ func unmarshalPoint(src []byte) (*Point, error) {
 		}
 	}
 
-	pt := NewPointV2(name, kvs, WithTime(time.Unix(0, ts)))
+	pt := NewPoint(name, kvs, WithTime(time.Unix(0, ts)))
 	pt.pt.Warns = warns
 	pt.pt.Debugs = debugs
 

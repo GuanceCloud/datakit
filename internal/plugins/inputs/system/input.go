@@ -115,35 +115,35 @@ func (ipt *Input) Collect() error {
 		conntrackStat := conntrackutil.GetConntrackInfo()
 
 		var kvs point.KVs
-		kvs = kvs.AddV2("entries", conntrackStat.Current, true).
-			AddV2("entries_limit", conntrackStat.Limit, true).
-			AddV2("stat_found", conntrackStat.Found, true).
-			AddV2("stat_invalid", conntrackStat.Invalid, true).
-			AddV2("stat_ignore", conntrackStat.Ignore, true).
-			AddV2("stat_insert", conntrackStat.Insert, true).
-			AddV2("stat_insert_failed", conntrackStat.InsertFailed, true).
-			AddV2("stat_drop", conntrackStat.Drop, true).
-			AddV2("stat_early_drop", conntrackStat.EarlyDrop, true).
-			AddV2("stat_search_restart", conntrackStat.SearchRestart, true)
+		kvs = kvs.Set("entries", conntrackStat.Current).
+			Set("entries_limit", conntrackStat.Limit).
+			Set("stat_found", conntrackStat.Found).
+			Set("stat_invalid", conntrackStat.Invalid).
+			Set("stat_ignore", conntrackStat.Ignore).
+			Set("stat_insert", conntrackStat.Insert).
+			Set("stat_insert_failed", conntrackStat.InsertFailed).
+			Set("stat_drop", conntrackStat.Drop).
+			Set("stat_early_drop", conntrackStat.EarlyDrop).
+			Set("stat_search_restart", conntrackStat.SearchRestart)
 
 		for k, v := range tags {
 			kvs = kvs.AddTag(k, v)
 		}
 
-		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(metricNameConntrack, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPoint(metricNameConntrack, kvs, opts...))
 
 		filefdStat, err := filefdutil.GetFileFdInfo()
 		if err != nil {
 			l.Warnf("filefdutil.GetFileFdInfo(): %s, ignored", err.Error())
 		} else {
 			var kvs point.KVs
-			kvs = kvs.AddV2("allocated", filefdStat.Allocated, true).
-				AddV2("maximum_mega", filefdStat.MaximumMega, true)
+			kvs = kvs.Set("allocated", filefdStat.Allocated).
+				Set("maximum_mega", filefdStat.MaximumMega)
 			for k, v := range tags {
 				kvs = kvs.AddTag(k, v)
 			}
 
-			ipt.collectCache = append(ipt.collectCache, point.NewPointV2(metricNameFilefd, kvs, opts...))
+			ipt.collectCache = append(ipt.collectCache, point.NewPoint(metricNameFilefd, kvs, opts...))
 		}
 	}
 
@@ -152,7 +152,7 @@ func (ipt *Input) Collect() error {
 	if err != nil {
 		l.Warnf("CPU stat error: %s, ignored", err.Error())
 	} else if len(cpuTotal) > 0 {
-		kvs = kvs.AddV2("cpu_total_usage", cpuTotal[0], true)
+		kvs = kvs.Set("cpu_total_usage", cpuTotal[0])
 	}
 
 	if vm, err := mem.VirtualMemoryStat(); err != nil {
@@ -161,13 +161,13 @@ func (ipt *Input) Collect() error {
 		if vm == nil {
 			return errors.New("get virtual memory stat fail")
 		}
-		kvs = kvs.AddV2("memory_usage", vm.UsedPercent, true)
+		kvs = kvs.Set("memory_usage", vm.UsedPercent)
 	}
 
 	if pids, err := process.Pids(); err != nil {
 		l.Warnf("error getting Pids: %w", err)
 	} else {
-		kvs = kvs.AddV2("process_count", len(pids), true)
+		kvs = kvs.Set("process_count", len(pids))
 	}
 
 	numCPUs, err := cpu.Counts(true)
@@ -175,27 +175,27 @@ func (ipt *Input) Collect() error {
 		return err
 	}
 
-	kvs = kvs.AddV2("load1_per_core", loadAvg.Load1/float64(numCPUs), true).
-		AddV2("load1", loadAvg.Load1, true).
-		AddV2("load15_per_core", loadAvg.Load15/float64(numCPUs), true).
-		AddV2("load15", loadAvg.Load15, true).
-		AddV2("load5_per_core", loadAvg.Load5/float64(numCPUs), true).
-		AddV2("load5", loadAvg.Load5, true).
-		AddV2("n_cpus", numCPUs, true)
+	kvs = kvs.Set("load1_per_core", loadAvg.Load1/float64(numCPUs)).
+		Set("load1", loadAvg.Load1).
+		Set("load15_per_core", loadAvg.Load15/float64(numCPUs)).
+		Set("load15", loadAvg.Load15).
+		Set("load5_per_core", loadAvg.Load5/float64(numCPUs)).
+		Set("load5", loadAvg.Load5).
+		Set("n_cpus", numCPUs)
 
 	if users, err := host.Users(); err != nil {
 		l.Warnf("Users: %s, ignored", err.Error())
 	} else {
-		kvs = kvs.AddV2("n_users", len(users), true)
+		kvs = kvs.Set("n_users", len(users))
 	}
 
 	uptime, err := host.Uptime()
 	if err != nil {
 		l.Warnf("Uptime: %s, ignored", err.Error())
 	} else {
-		kvs = kvs.AddV2("uptime", uptime, true)
+		kvs = kvs.Set("uptime", uptime)
 	}
-	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(metricNameSystem, kvs, opts...))
+	ipt.collectCache = append(ipt.collectCache, point.NewPoint(metricNameSystem, kvs, opts...))
 
 	return nil
 }

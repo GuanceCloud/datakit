@@ -408,20 +408,20 @@ func (t *Single) feedToIO(pending [][]byte) {
 		t.readLines++
 
 		kvs := make(point.KVs, 0, len(t.tags)+4)
-		kvs = kvs.Add(constants.FieldMessage, string(cnt), false, false)
+		kvs = kvs.Add(constants.FieldMessage, string(cnt))
 
 		if t.shouldAddField("filepath") {
-			kvs = kvs.Add("filepath", t.filepath, false, false)
+			kvs = kvs.Add("filepath", t.filepath)
 		}
 		if t.shouldAddField("log_read_lines") {
-			kvs = kvs.Add("log_read_lines", t.readLines, false, false)
+			kvs = kvs.Add("log_read_lines", t.readLines)
 		}
 		if t.shouldAddField(constants.FieldStatus) {
 			kvs = kvs.AddTag(constants.FieldStatus, constants.DefaultStatus)
 		}
 
 		if t.shouldAddField("inside_filepath") && t.insideFilepath != "" {
-			kvs = kvs.Add("inside_filepath", t.insideFilepath, false, false)
+			kvs = kvs.Add("inside_filepath", t.insideFilepath)
 		}
 
 		for key, value := range t.tags {
@@ -429,8 +429,8 @@ func (t *Single) feedToIO(pending [][]byte) {
 		}
 
 		if t.opt.enableDebugFields {
-			kvs = kvs.Add("log_read_offset", t.offset, false, false)
-			kvs = kvs.Add("log_file_inode", t.inode, false, false)
+			kvs = kvs.Add("log_read_offset", t.offset)
+			kvs = kvs.Add("log_file_inode", t.inode)
 		}
 
 		// only the message field is present, with no match in the whitelist
@@ -440,7 +440,7 @@ func (t *Single) feedToIO(pending [][]byte) {
 			continue
 		}
 
-		pt := point.NewPointV2(t.opt.source, kvs, opts...)
+		pt := point.NewPoint(t.opt.source, kvs, opts...)
 
 		// 此处设置每条日志的时间差为 1us, 这样日志查看器中的日志显示顺序跟当前的采集顺序就保持一致了.
 		// 此处如果这批日志的时间戳都一样, 在查看器中看到日志将可能随机展示(因为查看器默认按照 point 的

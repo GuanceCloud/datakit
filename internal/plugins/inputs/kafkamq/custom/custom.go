@@ -180,18 +180,18 @@ func (mq *Custom) DoMsg(msg *sarama.ConsumerMessage) error {
 		}
 
 		kvs := point.NewTags(tags).
-			AddV2(pipeline.FieldStatus, pipeline.DefaultStatus, true).
-			AddV2("message_len", len(msgStr), true).
-			AddV2("offset", msg.Offset, true).
-			AddV2("partition", msg.Partition, true)
+			Set(pipeline.FieldStatus, pipeline.DefaultStatus).
+			Set("message_len", len(msgStr)).
+			Set("offset", msg.Offset).
+			Set("partition", msg.Partition)
 
 		if category == point.Metric { // string not allowed in metric, move to tag.
 			kvs = kvs.AddTag(pipeline.FieldMessage, msgStr)
 		} else {
-			kvs = kvs.AddV2(pipeline.FieldMessage, msgStr, true)
+			kvs = kvs.Set(pipeline.FieldMessage, msgStr)
 		}
 
-		pts = append(pts, point.NewPointV2(topic, kvs, ptopts...))
+		pts = append(pts, point.NewPoint(topic, kvs, ptopts...))
 	}
 
 	var (

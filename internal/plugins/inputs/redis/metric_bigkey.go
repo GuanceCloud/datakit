@@ -128,7 +128,7 @@ func (ipt *Input) getData(resKeys []string) ([]*point.Point, error) {
 			if err == nil && val != nil {
 				// op:"STRLEN", key:"key1", val=interface{}(int64)5
 				found = true
-				kvs = kvs.Add("value_length", val, false, true)
+				kvs = kvs.Set("value_length", val)
 				break
 			}
 		}
@@ -138,14 +138,14 @@ func (ipt *Input) getData(resKeys []string) ([]*point.Point, error) {
 				l.Warnf("%s key not found in redis", key)
 			}
 
-			kvs = kvs.Add("value_length", 0, false, true)
+			kvs = kvs.Set("value_length", 0)
 		}
 
 		if kvs.FieldCount() > 0 {
 			for k, v := range ipt.mergedTags {
 				kvs = kvs.AddTag(k, v)
 			}
-			collectCache = append(collectCache, point.NewPointV2(redisBigkey, kvs, opts...))
+			collectCache = append(collectCache, point.NewPoint(redisBigkey, kvs, opts...))
 		}
 	}
 
@@ -301,14 +301,14 @@ func (ipt *Input) parseBigData(data string, db int) ([]*point.Point, error) {
 		var kvs point.KVs
 		kvs = kvs.AddTag("db_name", strconv.Itoa(db))
 		for k, v := range kv {
-			kvs = kvs.Add(k, v, false, false)
+			kvs = kvs.Add(k, v)
 		}
 		for k, v := range ipt.mergedTags {
 			kvs = kvs.AddTag(k, v)
 		}
-		kvs = kvs.Add("message", message, false, false)
+		kvs = kvs.Add("message", message)
 
-		collectCache = append(collectCache, point.NewPointV2(redisBigkey, kvs, opts...))
+		collectCache = append(collectCache, point.NewPoint(redisBigkey, kvs, opts...))
 	}
 
 	return collectCache, nil

@@ -100,14 +100,14 @@ func (e Win32_NTLogEvent) ToPoint(tags map[string]string) *point.Point {
 		kvs = kvs.AddTag(k, v)
 	}
 	kvs = kvs.AddTag("host", strings.ToLower(e.ComputerName)).
-		AddV2("message", e.Message, false).
-		AddV2("status", eventType(e.EventType), false).
+		Add("message", e.Message).
+		Add("status", eventType(e.EventType)).
 		AddTag("user", e.User).
 		AddTag("source", e.SourceName).
 		AddTag("CategoryString", e.CategoryString).
 		AddTag("service", e.Logfile).
-		AddV2("event_code", e.EventCode, false).
-		AddV2("event_identifier", e.EventIdentifier, false)
+		Add("event_code", e.EventCode).
+		Add("event_identifier", e.EventIdentifier)
 
-	return point.NewPointV2("log_event", kvs, opts...)
+	return point.NewPoint("log_event", kvs, opts...)
 }

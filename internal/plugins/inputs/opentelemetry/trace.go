@@ -82,12 +82,12 @@ func (ipt *Input) parseResourceSpans(resspans []*trace.ResourceSpans) itrace.Dat
 				})
 
 				// commom tags & fields.
-				spanKVs = spanKVs.AddV2(itrace.FieldTraceID, traceID, false).
-					AddV2(itrace.FieldParentID, parenID, false).
-					AddV2(itrace.FieldSpanid, spanID, false).
-					AddV2(itrace.FieldResource, span.Name, false).
-					AddV2(itrace.FieldStart, int64(span.StartTimeUnixNano)/int64(time.Microsecond), false).
-					AddV2(itrace.FieldDuration, int64(span.EndTimeUnixNano-span.StartTimeUnixNano)/int64(time.Microsecond), false).
+				spanKVs = spanKVs.Add(itrace.FieldTraceID, traceID).
+					Add(itrace.FieldParentID, parenID).
+					Add(itrace.FieldSpanid, spanID).
+					Add(itrace.FieldResource, span.Name).
+					Add(itrace.FieldStart, int64(span.StartTimeUnixNano)/int64(time.Microsecond)).
+					Add(itrace.FieldDuration, int64(span.EndTimeUnixNano-span.StartTimeUnixNano)/int64(time.Microsecond)).
 					AddTag(itrace.TagSpanStatus, getDKSpanStatus(span.GetStatus())).
 					AddTag(itrace.TagSpanType, itrace.FindSpanTypeStrSpanID(spanID, parenID, spanIDs, parentIDs)).
 					AddTag(itrace.TagDKFingerprintKey, datakit.DKHost+"_"+datakit.Version).
@@ -97,13 +97,13 @@ func (ipt *Input) parseResourceSpans(resspans []*trace.ResourceSpans) itrace.Dat
 
 				// service_name from xx.system.
 				if ipt.SplitServiceName {
-					spanKVs = spanKVs.MustAddTag(itrace.TagService,
+					spanKVs = spanKVs.SetTag(itrace.TagService,
 						ipt.getServiceNameBySystem(spanAttrs, serviceName)).
 						AddTag(itrace.TagBaseService, serviceName)
 				}
 
 				for k, v := range ipt.Tags { // span.attribute 优先级大于全局tag。
-					spanKVs = spanKVs.MustAddTag(k, v)
+					spanKVs = spanKVs.SetTag(k, v)
 				}
 
 				if runtimeID == "" && !runtimeIDInitialized {
@@ -117,8 +117,8 @@ func (ipt *Input) parseResourceSpans(resspans []*trace.ResourceSpans) itrace.Dat
 				}
 
 				if runtimeID != "" {
-					spanKVs = spanKVs.AddV2(ext.RuntimeID, runtimeID, true). // NOTE: ext.RuntimeID deprecated
-													AddV2(itrace.FieldRuntimeID, runtimeID, true)
+					spanKVs = spanKVs.Set(ext.RuntimeID, runtimeID). // NOTE: ext.RuntimeID deprecated
+												Set(itrace.FieldRuntimeID, runtimeID)
 				}
 
 				// extract exception event and related fields
@@ -131,7 +131,7 @@ func (ipt *Input) parseResourceSpans(resspans []*trace.ResourceSpans) itrace.Dat
 						evtAttrs := span.Events[i].Attributes
 						for key, alias := range otelExceptionAliasMap {
 							if v, idx := getAttr(key, evtAttrs); v != nil {
-								spanKVs = spanKVs.AddV2(alias, v.Value.GetStringValue(), true)
+								spanKVs = spanKVs.Set(alias, v.Value.GetStringValue())
 								if ipt.CleanMessage {
 									evtAttrs[idx] = nil
 								}
@@ -187,11 +187,11 @@ func (ipt *Input) parseResourceSpans(resspans []*trace.ResourceSpans) itrace.Dat
 					if buf, err := ipt.jmarshaler.Marshal(span); err != nil {
 						log.Warn(err.Error())
 					} else {
-						spanKVs = spanKVs.AddV2(itrace.FieldMessage, string(buf), false)
+						spanKVs = spanKVs.Add(itrace.FieldMessage, string(buf))
 					}
 				}
 
-				pt := point.NewPointV2(inputName, spanKVs,
+				pt := point.NewPoint(inputName, spanKVs,
 					append(ipt.ptsOpts, point.WithTimestamp(spanTime))...)
 				dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 			}

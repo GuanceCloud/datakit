@@ -100,9 +100,9 @@ func (j *job) buildMetricPoints(list *apibatchv1.JobList, timestamp int64) []*po
 		kvs = kvs.AddTag("job", item.Name)
 		kvs = kvs.AddTag("namespace", item.Namespace)
 
-		kvs = kvs.AddV2("active", item.Status.Active, false)
-		kvs = kvs.AddV2("failed", item.Status.Failed, false)
-		kvs = kvs.AddV2("succeeded", item.Status.Succeeded, false)
+		kvs = kvs.Add("active", item.Status.Active)
+		kvs = kvs.Add("failed", item.Status.Failed)
+		kvs = kvs.Add("succeeded", item.Status.Succeeded)
 
 		var succeeded, failed int
 		for _, condition := range item.Status.Conditions {
@@ -115,12 +115,12 @@ func (j *job) buildMetricPoints(list *apibatchv1.JobList, timestamp int64) []*po
 				// nil
 			}
 		}
-		kvs = kvs.AddV2("completion_succeeded", succeeded, false)
-		kvs = kvs.AddV2("completion_failed", failed, false)
+		kvs = kvs.Add("completion_succeeded", succeeded)
+		kvs = kvs.Add("completion_failed", failed)
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, j.cfg.LabelAsTagsForMetric.All, j.cfg.LabelAsTagsForMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(j.cfg.ExtraTags)...)
-		pt := point.NewPointV2(jobMetricMeasurement, kvs, opts...)
+		pt := point.NewPoint(jobMetricMeasurement, kvs, opts...)
 		pts = append(pts, pt)
 
 		j.counter[item.Namespace]++
@@ -141,32 +141,32 @@ func (j *job) buildObjectPoints(list *apibatchv1.JobList) []*point.Point {
 		kvs = kvs.AddTag("job_name", item.Name)
 		kvs = kvs.AddTag("namespace", item.Namespace)
 
-		kvs = kvs.AddV2("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3, false)
-		kvs = kvs.AddV2("active", item.Status.Active, false)
-		kvs = kvs.AddV2("succeeded", item.Status.Succeeded, false)
-		kvs = kvs.AddV2("failed", item.Status.Failed, false)
+		kvs = kvs.Add("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3)
+		kvs = kvs.Add("active", item.Status.Active)
+		kvs = kvs.Add("succeeded", item.Status.Succeeded)
+		kvs = kvs.Add("failed", item.Status.Failed)
 
 		if item.Spec.Parallelism != nil {
-			kvs = kvs.AddV2("parallelism", *item.Spec.Parallelism, false)
+			kvs = kvs.Add("parallelism", *item.Spec.Parallelism)
 		}
 		if item.Spec.Completions != nil {
-			kvs = kvs.AddV2("completions", *item.Spec.Completions, false)
+			kvs = kvs.Add("completions", *item.Spec.Completions)
 		}
 		if item.Spec.ActiveDeadlineSeconds != nil {
-			kvs = kvs.AddV2("active_deadline", *item.Spec.ActiveDeadlineSeconds, false)
+			kvs = kvs.Add("active_deadline", *item.Spec.ActiveDeadlineSeconds)
 		}
 		if item.Spec.BackoffLimit != nil {
-			kvs = kvs.AddV2("backoff_limit", *item.Spec.BackoffLimit, false)
+			kvs = kvs.Add("backoff_limit", *item.Spec.BackoffLimit)
 		}
 
 		if y, err := yaml.Marshal(item); err == nil {
-			kvs = kvs.AddV2("yaml", string(y), false)
+			kvs = kvs.Add("yaml", string(y))
 		}
-		kvs = kvs.AddV2("annotations", pointutil.MapToJSON(item.Annotations), false)
+		kvs = kvs.Add("annotations", pointutil.MapToJSON(item.Annotations))
 		kvs = append(kvs, pointutil.ConvertDFLabels(item.Labels)...)
 
 		msg := pointutil.PointKVsToJSON(kvs)
-		kvs = kvs.AddV2("message", pointutil.TrimString(msg, maxMessageLength), false)
+		kvs = kvs.Add("message", pointutil.TrimString(msg, maxMessageLength))
 
 		kvs = kvs.Del("annotations")
 		kvs = kvs.Del("yaml")
@@ -177,7 +177,7 @@ func (j *job) buildObjectPoints(list *apibatchv1.JobList) []*point.Point {
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, j.cfg.LabelAsTagsForNonMetric.All, j.cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(j.cfg.ExtraTags)...)
-		pt := point.NewPointV2(jobObjectClass, kvs, opts...)
+		pt := point.NewPoint(jobObjectClass, kvs, opts...)
 		pts = append(pts, pt)
 	}
 

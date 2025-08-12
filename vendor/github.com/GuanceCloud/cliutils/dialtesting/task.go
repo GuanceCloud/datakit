@@ -128,6 +128,7 @@ type ITask interface {
 	SetChild(TaskChild)
 	SetTaskJSONString(string)
 	GetTaskJSONString() string
+	SetDisabled(uint8)
 
 	GetVariableValue(Variable) (string, error)
 	GetGlobalVars() []string
@@ -135,6 +136,8 @@ type ITask interface {
 	AddExtractedVar(*ConfigVar)
 	SetCustomVars([]*ConfigVar)
 	GetPostScriptVars() Vars
+
+	String() string
 }
 
 type Task struct {
@@ -143,6 +146,7 @@ type Task struct {
 	AK                string            `json:"access_key"`
 	PostURL           string            `json:"post_url"`
 	CurStatus         string            `json:"status"`
+	Disabled          uint8             `json:"disabled"`
 	Frequency         string            `json:"frequency"`
 	Region            string            `json:"region"`
 	OwnerExternalID   string            `json:"owner_external_id"`
@@ -164,6 +168,34 @@ type Task struct {
 	inited     bool
 	globalVars map[string]Variable
 	option     map[string]string
+}
+
+func CreateTaskChild(taskType string) (TaskChild, error) {
+	var ct TaskChild
+	switch taskType {
+	case "http", "https", ClassHTTP:
+		ct = &HTTPTask{}
+
+	case "multi", ClassMulti:
+		ct = &MultiTask{}
+
+	case "headless", "browser", ClassHeadless:
+		return nil, fmt.Errorf("headless task deprecated")
+
+	case "tcp", ClassTCP:
+		ct = &TCPTask{}
+
+	case "websocket", ClassWebsocket:
+		ct = &WebsocketTask{}
+
+	case "icmp", ClassICMP:
+		ct = &ICMPTask{}
+
+	default:
+		return nil, fmt.Errorf("unknown task type %s", taskType)
+	}
+
+	return ct, nil
 }
 
 func NewTask(taskString string, task TaskChild) (ITask, error) {
@@ -189,6 +221,11 @@ func NewTask(taskString string, task TaskChild) (ITask, error) {
 		t.SetChild(task)
 		return t, nil
 	}
+}
+
+func (t *Task) String() string {
+	b, _ := json.Marshal(t.child)
+	return string(b)
 }
 
 func (t *Task) SetChild(child TaskChild) {
@@ -242,6 +279,10 @@ func (t *Task) SetRegionID(regionID string) {
 
 func (t *Task) SetAk(ak string) {
 	t.AK = ak
+}
+
+func (t *Task) SetDisabled(disabled uint8) {
+	t.Disabled = disabled
 }
 
 func (t *Task) SetStatus(status string) {

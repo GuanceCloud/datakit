@@ -377,8 +377,8 @@ func (m *slowQueryLogging) slowQuery() ([]*point.Point, error) {
 			return nil, err
 		}
 		var kvs point.KVs
-		kvs = kvs.Add("status", "warning", false, false)
-		kvs = kvs.Add("message", string(jsn), false, false)
+		kvs = kvs.Add("status", "warning")
+		kvs = kvs.Add("message", string(jsn))
 
 		pts = append(pts, ccommon.BuildPointLogging(
 			kvs, m.x.MetricName,

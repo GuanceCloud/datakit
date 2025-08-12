@@ -95,35 +95,35 @@ func getOverview(n *Input) {
 	kvs = kvs.AddTag("url", n.URL).
 		AddTag("rabbitmq_version", overview.Version).
 		AddTag("cluster_name", overview.ClusterName).
-		AddV2("object_totals_channels", overview.ObjectTotals.Channels, true).
-		AddV2("object_totals_connections", overview.ObjectTotals.Connections, true).
-		AddV2("object_totals_consumers", overview.ObjectTotals.Consumers, true).
-		AddV2("object_totals_queues", overview.ObjectTotals.Queues, true).
-		AddV2("message_ack_count", overview.MessageStats.Ack, true).
-		AddV2("message_ack_rate", overview.MessageStats.AckDetails.Rate, true).
-		AddV2("message_confirm_count", overview.MessageStats.Confirm, true).
-		AddV2("message_confirm_rate", overview.MessageStats.ConfirmDetail.Rate, true).
-		AddV2("message_deliver_get_count", overview.MessageStats.DeliverGet, true).
-		AddV2("message_deliver_get_rate", overview.MessageStats.DeliverGetDetails.Rate, true).
-		AddV2("message_publish_count", overview.MessageStats.Publish, true).
-		AddV2("message_publish_rate", overview.MessageStats.PublishDetails.Rate, true).
-		AddV2("message_publish_in_count", overview.MessageStats.PublishIn, true).
-		AddV2("message_publish_in_rate", overview.MessageStats.PublishInDetails.Rate, true).
-		AddV2("message_publish_out_count", overview.MessageStats.PublishOut, true).
-		AddV2("message_publish_out_rate", overview.MessageStats.PublishOutDetails.Rate, true).
-		AddV2("message_redeliver_count", overview.MessageStats.Redeliver, true).
-		AddV2("message_redeliver_rate", overview.MessageStats.RedeliverDetails.Rate, true).
-		AddV2("message_return_unroutable_count", overview.MessageStats.ReturnUnroutable, true).
-		AddV2("message_return_unroutable_count_rate", overview.MessageStats.ReturnUnroutableDetails.Rate, true).
-		AddV2("queue_totals_messages_count", overview.QueueTotals.Messages, true).
-		AddV2("queue_totals_messages_rate", overview.QueueTotals.MessagesDetail.Rate, true).
-		AddV2("queue_totals_messages_ready_count", overview.QueueTotals.MessagesReady, true).
-		AddV2("queue_totals_messages_ready_rate", overview.QueueTotals.MessagesReadyDetail.Rate, true).
-		AddV2("queue_totals_messages_unacknowledged_count", overview.QueueTotals.MessagesUnacknowledged, true).
-		AddV2("queue_totals_messages_unacknowledged_rate", overview.QueueTotals.MessagesUnacknowledgedDetail.Rate, true)
+		Set("object_totals_channels", overview.ObjectTotals.Channels).
+		Set("object_totals_connections", overview.ObjectTotals.Connections).
+		Set("object_totals_consumers", overview.ObjectTotals.Consumers).
+		Set("object_totals_queues", overview.ObjectTotals.Queues).
+		Set("message_ack_count", overview.MessageStats.Ack).
+		Set("message_ack_rate", overview.MessageStats.AckDetails.Rate).
+		Set("message_confirm_count", overview.MessageStats.Confirm).
+		Set("message_confirm_rate", overview.MessageStats.ConfirmDetail.Rate).
+		Set("message_deliver_get_count", overview.MessageStats.DeliverGet).
+		Set("message_deliver_get_rate", overview.MessageStats.DeliverGetDetails.Rate).
+		Set("message_publish_count", overview.MessageStats.Publish).
+		Set("message_publish_rate", overview.MessageStats.PublishDetails.Rate).
+		Set("message_publish_in_count", overview.MessageStats.PublishIn).
+		Set("message_publish_in_rate", overview.MessageStats.PublishInDetails.Rate).
+		Set("message_publish_out_count", overview.MessageStats.PublishOut).
+		Set("message_publish_out_rate", overview.MessageStats.PublishOutDetails.Rate).
+		Set("message_redeliver_count", overview.MessageStats.Redeliver).
+		Set("message_redeliver_rate", overview.MessageStats.RedeliverDetails.Rate).
+		Set("message_return_unroutable_count", overview.MessageStats.ReturnUnroutable).
+		Set("message_return_unroutable_count_rate", overview.MessageStats.ReturnUnroutableDetails.Rate).
+		Set("queue_totals_messages_count", overview.QueueTotals.Messages).
+		Set("queue_totals_messages_rate", overview.QueueTotals.MessagesDetail.Rate).
+		Set("queue_totals_messages_ready_count", overview.QueueTotals.MessagesReady).
+		Set("queue_totals_messages_ready_rate", overview.QueueTotals.MessagesReadyDetail.Rate).
+		Set("queue_totals_messages_unacknowledged_count", overview.QueueTotals.MessagesUnacknowledged).
+		Set("queue_totals_messages_unacknowledged_rate", overview.QueueTotals.MessagesUnacknowledgedDetail.Rate)
 
 	opts := append(point.DefaultMetricOptions(), point.WithTime(n.start))
-	pt := point.NewPointV2(overviewMeasurementName, kvs, opts...)
+	pt := point.NewPoint(overviewMeasurementName, kvs, opts...)
 
 	if err := n.feeder.Feed(point.Metric, []*point.Point{pt},
 		dkio.WithCollectCost(time.Since(collectStart)),

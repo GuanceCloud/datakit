@@ -51,23 +51,23 @@ func processEvents(root *itrace.DkSpan, events []*ppv1.PSpanEvent, meta metadata
 
 		spanKV := point.KVs{}
 		spanID := strconv.FormatInt(rand.Int63(), 10) //nolint
-		spanKV = spanKV.Add(itrace.FieldTraceID, traceID, false, false).
-			Add(itrace.FieldSpanid, spanID, false, false).
-			Add(itrace.FieldParentID, parentID, false, false).
+		spanKV = spanKV.Add(itrace.FieldTraceID, traceID).
+			Add(itrace.FieldSpanid, spanID).
+			Add(itrace.FieldParentID, parentID).
 			AddTag(itrace.TagService, getServiceType(event.ServiceType)).
 			AddTag(itrace.TagSource, "pinpointV2").
 			AddTag(itrace.TagSpanType, itrace.SpanTypeLocal).
 			AddTag(itrace.TagSourceType, itrace.SpanSourceCustomer).
-			Add(itrace.FieldStart, startTime+(int64(event.StartElapsed)*int64(time.Microsecond)), false, false).
-			Add(itrace.FieldDuration, int64(event.EndElapsed)*int64(time.Microsecond), false, false).
+			Add(itrace.FieldStart, startTime+(int64(event.StartElapsed)*int64(time.Microsecond))).
+			Add(itrace.FieldDuration, int64(event.EndElapsed)*int64(time.Microsecond)).
 			AddTag("sequence", strconv.Itoa(int(event.Sequence))).
 			AddTag("depth", strconv.Itoa(int(event.Depth)))
 
 		if event.ExceptionInfo != nil {
-			spanKV = spanKV.Add(itrace.TagSpanStatus, itrace.StatusErr, true, true).
-				Add(itrace.FieldErrMessage, event.ExceptionInfo.String(), false, false)
+			spanKV = spanKV.SetTag(itrace.TagSpanStatus, itrace.StatusErr).
+				Add(itrace.FieldErrMessage, event.ExceptionInfo.String())
 		} else {
-			spanKV = spanKV.Add(itrace.TagSpanStatus, itrace.StatusOk, true, true)
+			spanKV = spanKV.SetTag(itrace.TagSpanStatus, itrace.StatusOk)
 		}
 
 		res, opt, _ := agentCache.FindAPIInfo(agentID, event.ApiId)
@@ -82,9 +82,9 @@ func processEvents(root *itrace.DkSpan, events []*ppv1.PSpanEvent, meta metadata
 		}
 
 		if res == "" {
-			spanKV = spanKV.Add(itrace.FieldResource, strconv.Itoa(int(event.ApiId)), false, false)
+			spanKV = spanKV.Add(itrace.FieldResource, strconv.Itoa(int(event.ApiId)))
 		} else {
-			spanKV = spanKV.Add(itrace.FieldResource, res, false, false)
+			spanKV = spanKV.Add(itrace.FieldResource, res)
 		}
 		spanKV = spanKV.AddTag(itrace.TagOperation, opt)
 
@@ -111,11 +111,11 @@ func processEvents(root *itrace.DkSpan, events []*ppv1.PSpanEvent, meta metadata
 		}
 		if !delMessage {
 			if bts, err := json.Marshal(event); err == nil {
-				spanKV = spanKV.Add(itrace.FieldMessage, string(bts), false, false)
+				spanKV = spanKV.Add(itrace.FieldMessage, string(bts))
 			}
 		}
 
-		pt := point.NewPointV2("pinpointV2", spanKV, traceOpts...)
+		pt := point.NewPoint("pinpointV2", spanKV, traceOpts...)
 		trace = append(trace, &itrace.DkSpan{Point: pt})
 	}
 	// 最后将 linkTrace 放进去，防止上面 for 循环过程中按照 depth 取出错误的Event。

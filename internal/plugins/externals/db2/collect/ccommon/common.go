@@ -129,7 +129,7 @@ func BuildPoint(l *logger.Logger, opt *BuildPointOpt) *point.Point {
 
 	newTags := MergeTags(opt.Tags, opt.TF.Tags, host)
 
-	return point.NewPointV2(opt.MetricName,
+	return point.NewPoint(opt.MetricName,
 		append(point.NewTags(newTags), point.NewKVs(opt.TF.Fields)...),
 		opts...)
 }

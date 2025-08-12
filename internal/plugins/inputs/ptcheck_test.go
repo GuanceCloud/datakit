@@ -37,7 +37,7 @@ func (t *testMeasurement) Info() *MeasurementInfo {
 
 func TestPointChecker(t *T.T) {
 	t.Run("base", func(t *T.T) {
-		pt := point.NewPointV2(`test-measurement-not-defined`,
+		pt := point.NewPoint(`test-measurement-not-defined`,
 			append(point.NewTags(map[string]string{"t1": "some", "t2": "some"}),
 				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
@@ -50,7 +50,7 @@ func TestPointChecker(t *T.T) {
 	})
 
 	t.Run("invalid-field-type", func(t *T.T) {
-		pt := point.NewPointV2(`test-measurement`,
+		pt := point.NewPoint(`test-measurement`,
 			append(point.NewTags(map[string]string{"t1": "some", "t2": "some"}),
 				point.NewKVs(map[string]any{`f1`: 1.414, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
@@ -63,7 +63,7 @@ func TestPointChecker(t *T.T) {
 	})
 
 	t.Run("field-missing", func(t *T.T) {
-		pt := point.NewPointV2(`test-measurement`,
+		pt := point.NewPoint(`test-measurement`,
 			append(point.NewTags(map[string]string{"t1": "some", "t2": "some"}),
 				point.NewKVs(map[string]any{`unknown`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
@@ -76,7 +76,7 @@ func TestPointChecker(t *T.T) {
 	})
 
 	t.Run("field-missing-and-field-count-not-equal", func(t *T.T) {
-		pt := point.NewPointV2(`test-measurement`,
+		pt := point.NewPoint(`test-measurement`,
 			append(point.NewTags(map[string]string{"t1": "some", "t2": "some"}),
 				point.NewKVs(map[string]any{`f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
@@ -89,7 +89,7 @@ func TestPointChecker(t *T.T) {
 	})
 
 	t.Run("tag-missing", func(t *T.T) {
-		pt := point.NewPointV2(`test-measurement`,
+		pt := point.NewPoint(`test-measurement`,
 			append(point.NewTags(map[string]string{
 				"t1": "some",
 				"t3": "some", // not expect
@@ -105,7 +105,7 @@ func TestPointChecker(t *T.T) {
 	})
 
 	t.Run("tag-count-not-equal", func(t *T.T) {
-		pt := point.NewPointV2(`test-measurement`,
+		pt := point.NewPoint(`test-measurement`,
 			append(point.NewTags(map[string]string{
 				"t1": "some",
 				"t2": "some",
@@ -127,7 +127,7 @@ func TestPointChecker(t *T.T) {
 	})
 
 	t.Run("tag-count-not-equal-and-tag-missing", func(t *T.T) {
-		pt := point.NewPointV2(`test-measurement`,
+		pt := point.NewPoint(`test-measurement`,
 			append(point.NewTags(map[string]string{"t1": "some"}),
 				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
@@ -140,7 +140,7 @@ func TestPointChecker(t *T.T) {
 	})
 
 	t.Run("extra-tags", func(t *T.T) {
-		pt := point.NewPointV2(`test-measurement`,
+		pt := point.NewPoint(`test-measurement`,
 			append(point.NewTags(map[string]string{"t1": "some", "t2": "", "tx": "xt"}),
 				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
@@ -153,7 +153,7 @@ func TestPointChecker(t *T.T) {
 	})
 
 	t.Run("optional-fields", func(t *T.T) {
-		pt := point.NewPointV2(`test-measurement`,
+		pt := point.NewPoint(`test-measurement`,
 			append(point.NewTags(map[string]string{"t1": "some", "t2": ""}),
 				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
@@ -162,11 +162,11 @@ func TestPointChecker(t *T.T) {
 	})
 
 	t.Run("with-expect-point", func(t *T.T) {
-		pt := point.NewPointV2(`test-measurement`,
+		pt := point.NewPoint(`test-measurement`,
 			append(point.NewTags(map[string]string{"t1": "some", "t2": ""}),
 				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
-		exp := point.NewPointV2(`test-measurement`,
+		exp := point.NewPoint(`test-measurement`,
 			append(point.NewTags(map[string]string{"t1": "some", "t2": ""}),
 				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
@@ -179,11 +179,11 @@ func TestPointChecker(t *T.T) {
 	})
 
 	t.Run("with-expect-point-invalid-tag-field-key", func(t *T.T) {
-		pt := point.NewPointV2(`test-measurement`,
+		pt := point.NewPoint(`test-measurement`,
 			append(point.NewTags(map[string]string{"t1": "some", "t2": ""}),
 				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
 
-		exp := point.NewPointV2(`test-measurement-invalid`, // bad measurement name
+		exp := point.NewPoint(`test-measurement-invalid`, // bad measurement name
 			append(point.NewTags(map[string]string{
 				"t1":          "some",
 				"t2":          "some",
@@ -205,7 +205,7 @@ func TestPointChecker(t *T.T) {
 	})
 
 	t.Run("with-expect-point-invalid-field-value", func(t *T.T) {
-		pt := point.NewPointV2(`test-measurement`,
+		pt := point.NewPoint(`test-measurement`,
 			append(point.NewTags(map[string]string{"t1": "some", "t2": ""}),
 				point.NewKVs(map[string]any{
 					`f1`: 123,
@@ -214,7 +214,7 @@ func TestPointChecker(t *T.T) {
 					// `f4`: false, // +2: missing/field-count-not-match
 				})...))
 
-		exp := point.NewPointV2(`test-measurement`,
+		exp := point.NewPoint(`test-measurement`,
 			append(point.NewTags(map[string]string{
 				"t1": "some",
 				"t2": "some",
@@ -235,7 +235,7 @@ func TestPointChecker(t *T.T) {
 	})
 
 	t.Run("with-value-and-type-check-off", func(t *T.T) {
-		pt := point.NewPointV2(`test-measurement`,
+		pt := point.NewPoint(`test-measurement`,
 			append(point.NewTags(map[string]string{"t1": "some", "t2": ""}),
 				point.NewKVs(map[string]any{
 					`f1`: 123,
@@ -244,7 +244,7 @@ func TestPointChecker(t *T.T) {
 					`f4`: false,
 				})...))
 
-		exp := point.NewPointV2(`test-measurement`,
+		exp := point.NewPoint(`test-measurement`,
 			append(point.NewTags(map[string]string{
 				"t1": "some",
 				"t2": "some",
@@ -269,7 +269,7 @@ func TestPointChecker(t *T.T) {
 	})
 
 	t.Run(`WithMeasurementCheckIgnored`, func(t *T.T) {
-		pt := point.NewPointV2(`test-measurement`,
+		pt := point.NewPoint(`test-measurement`,
 			append(point.NewTags(map[string]string{"t1": "some", "t2": ""}),
 				point.NewKVs(map[string]any{
 					`f1`: 123,
@@ -278,7 +278,7 @@ func TestPointChecker(t *T.T) {
 					`f4`: false,
 				})...))
 
-		exp := point.NewPointV2(`another-measurement`,
+		exp := point.NewPoint(`another-measurement`,
 			append(point.NewTags(map[string]string{"t1": "some", "t2": ""}),
 				point.NewKVs(map[string]any{
 					`f1`: 123,
@@ -292,7 +292,7 @@ func TestPointChecker(t *T.T) {
 	})
 
 	t.Run("optional-fields", func(t *T.T) {
-		pt := point.NewPointV2(`test-measurement-not-defined`,
+		pt := point.NewPoint(`test-measurement-not-defined`,
 			append(point.NewTags(map[string]string{"t1": "some", "t2": ""}),
 				point.NewKVs(map[string]any{`f1`: 123, `f2`: 3.14, `f3`: "hello", `f4`: false})...))
 

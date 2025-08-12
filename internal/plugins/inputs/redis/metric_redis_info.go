@@ -394,18 +394,18 @@ func (m *infoMeasurement) parseInfoData(info string, latencyMs float64, nextTS t
 			if strings.HasSuffix(key, "_kbps") {
 				float *= 1000
 			}
-			kvs = kvs.Add(key, float, false, false)
+			kvs = kvs.Add(key, float)
 		}
 	}
 
-	kvs = kvs.Add("info_latency_ms", latencyMs, false, false)
+	kvs = kvs.Add("info_latency_ms", latencyMs)
 
 	// Calculate CPU usage.
 	if usedCPUSys := kvs.Get("used_cpu_sys"); usedCPUSys != nil {
 		usedCPUSysFloat := usedCPUSys.GetF()
 		totElapsed := nextTS.Sub(m.lastCollect.usedCPUSysTS)
 		if !m.lastCollect.usedCPUSysTS.IsZero() {
-			kvs = kvs.Add("used_cpu_sys_percent", (usedCPUSysFloat-m.lastCollect.usedCPUSys)/totElapsed.Seconds(), false, false)
+			kvs = kvs.Add("used_cpu_sys_percent", (usedCPUSysFloat-m.lastCollect.usedCPUSys)/totElapsed.Seconds())
 		}
 		m.lastCollect.usedCPUSys = usedCPUSysFloat
 		m.lastCollect.usedCPUSysTS = nextTS
@@ -415,7 +415,7 @@ func (m *infoMeasurement) parseInfoData(info string, latencyMs float64, nextTS t
 		usedCPUUserFloat := usedCPUUser.GetF()
 		totElapsed := nextTS.Sub(m.lastCollect.usedCPUUserTS)
 		if !m.lastCollect.usedCPUUserTS.IsZero() {
-			kvs = kvs.Add("used_cpu_user_percent", (usedCPUUserFloat-m.lastCollect.usedCPUUser)/totElapsed.Seconds(), false, false)
+			kvs = kvs.Add("used_cpu_user_percent", (usedCPUUserFloat-m.lastCollect.usedCPUUser)/totElapsed.Seconds())
 		}
 		m.lastCollect.usedCPUUser = usedCPUUserFloat
 		m.lastCollect.usedCPUUserTS = nextTS
@@ -424,7 +424,7 @@ func (m *infoMeasurement) parseInfoData(info string, latencyMs float64, nextTS t
 	for k, v := range m.tags {
 		kvs = kvs.AddTag(k, v)
 	}
-	collectCache = append(collectCache, point.NewPointV2(m.name, kvs, opts...))
+	collectCache = append(collectCache, point.NewPoint(m.name, kvs, opts...))
 
 	return collectCache, nil
 }
@@ -443,7 +443,7 @@ func (m *infoMeasurement) getErrorPoints(k, v string, alignTS int64) []*point.Po
 		l.Debugf("getErrorPoints string: %s , err: %s", s, err)
 		return pts
 	}
-	kvs = kvs.Add("errorstat", value, false, true)
+	kvs = kvs.Set("errorstat", value)
 
 	s = strings.TrimPrefix(k, "errorstat_")
 	kvs = kvs.AddTag("error_type", s)
@@ -451,7 +451,7 @@ func (m *infoMeasurement) getErrorPoints(k, v string, alignTS int64) []*point.Po
 	for k, v := range m.tags {
 		kvs = kvs.AddTag(k, v)
 	}
-	pts = append(pts, point.NewPointV2(m.name, kvs, opts...))
+	pts = append(pts, point.NewPoint(m.name, kvs, opts...))
 
 	return pts
 }
@@ -486,14 +486,14 @@ func (m *infoMeasurement) getLatencyPoints(k, v string, alignTS int64) []*point.
 	// make points
 	for key, value := range tagField {
 		var kvs point.KVs
-		kvs = kvs.Add("latency_percentiles_usec", value, false, true)
+		kvs = kvs.Set("latency_percentiles_usec", value)
 		kvs = kvs.AddTag("command_type", commandType)
 		kvs = kvs.AddTag("quantile", key)
 
 		for k, v := range m.tags {
 			kvs = kvs.AddTag(k, v)
 		}
-		pts = append(pts, point.NewPointV2(m.name, kvs, opts...))
+		pts = append(pts, point.NewPoint(m.name, kvs, opts...))
 	}
 
 	return pts

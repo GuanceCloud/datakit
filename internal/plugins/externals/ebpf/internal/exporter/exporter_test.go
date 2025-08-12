@@ -17,7 +17,7 @@ func TestSampling(t *testing.T) {
 
 	var pts []*point.Point
 	for i := 1; i <= 199; i++ {
-		pt, _ := point.NewPoint("a", nil, map[string]any{"id": i})
+		pt := point.NewPoint("a", point.NewKVs(map[string]any{"id": i}))
 		pts = append(pts, pt)
 	}
 
@@ -44,7 +44,7 @@ func TestSamplingPtsLess1(t *testing.T) {
 
 	var pts []*point.Point
 	for i := 1; i <= 11; i++ {
-		pt, _ := point.NewPoint("a", nil, map[string]any{"id": i})
+		pt := point.NewPoint("a", point.NewKVs(map[string]any{"id": i}))
 		pts = append(pts, pt)
 	}
 

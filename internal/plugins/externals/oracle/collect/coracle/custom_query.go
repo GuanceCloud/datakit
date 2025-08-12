@@ -102,7 +102,7 @@ func (m *customQueryCollector) buildMysqlCustomQueries() ([]*point.Point, error)
 			for _, fdKey := range qy.Fields {
 				if value, ok := item[fdKey]; ok {
 					// transform all fields to float64
-					kvs = kvs.Add(fdKey, cast.ToFloat64(value), false, false)
+					kvs = kvs.Add(fdKey, cast.ToFloat64(value))
 				}
 			}
 

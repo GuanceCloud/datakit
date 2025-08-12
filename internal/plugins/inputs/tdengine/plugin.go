@@ -78,7 +78,7 @@ func (*tablesCount) resToMeasurement(subMetricName string, res restResult, sql s
 		msm.tags = inputs.MergeTagsWrapper(msm.tags, ipt.Tagger.HostTags(), ipt.Tags, ipt.AdapterEndpoint)
 	}
 
-	pt := point.NewPointV2(msm.name,
+	pt := point.NewPoint(msm.name,
 		append(point.NewTags(msm.tags), point.NewKVs(msm.fields)...),
 		opts...)
 
@@ -111,7 +111,7 @@ func (d *databaseCount) resToMeasurement(subMetricName string, res restResult, s
 		msm.tags = inputs.MergeTagsWrapper(msm.tags, ipt.Tagger.HostTags(), ipt.Tags, ipt.AdapterEndpoint)
 	}
 
-	pt := point.NewPointV2(msm.name,
+	pt := point.NewPoint(msm.name,
 		append(point.NewTags(msm.tags), point.NewKVs(msm.fields)...),
 		opts...)
 

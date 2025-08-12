@@ -91,7 +91,7 @@ func (m *dbmActivityMeasurement) Point() *point.Point {
 		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
 	}
 
-	return point.NewPointV2(m.name,
+	return point.NewPoint(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }
@@ -308,43 +308,43 @@ func (ipt *Input) metricCollectMysqlDbmActivity() ([]*point.Point, error) {
 			message += "\nsql_text: " + activity.SQLText.String
 		}
 
-		kvs = kvs.Add("query_signature", activity.QuerySignature, false, true)
-		kvs = kvs.Add("message", message, false, true)
-		kvs = kvs.Add("thread_id", activity.ThreadID.String, false, true)
-		kvs = kvs.Add("processlist_id", activity.ProcesslistID.String, false, true)
-		kvs = kvs.Add("processlist_user", activity.ProcesslistUser.String, false, true)
-		kvs = kvs.Add("processlist_host", activity.ProcesslistHost.String, false, true)
-		kvs = kvs.Add("processlist_db", activity.ProcesslistDB.String, false, true)
-		kvs = kvs.Add("processlist_command", activity.ProcesslistCommand.String, false, true)
-		kvs = kvs.Add("processlist_state", activity.ProcesslistState.String, false, true)
-		kvs = kvs.Add("sql_text", activity.SQLText.String, false, true)
-		kvs = kvs.Add("event_timer_start", activity.EventTimerStart.Int64/1000, false, true)
-		kvs = kvs.Add("event_timer_end", activity.EventTimerEnd.Int64/1000, false, true)
-		kvs = kvs.Add("event_timer_wait", activity.EventTimerWait.Int64/1000, false, true)
-		kvs = kvs.Add("lock_time", activity.LockTime.Int64/1000, false, true)
-		kvs = kvs.Add("current_schema", activity.CurrentSchema.String, false, true)
-		kvs = kvs.Add("wait_event", activity.WaitEvent.String, false, true)
-		kvs = kvs.Add("event_id", activity.EventID.String, false, true)
-		kvs = kvs.Add("end_event_id", activity.EndEventID.String, false, true)
-		kvs = kvs.Add("event_name", activity.EventName.String, false, true)
-		kvs = kvs.Add("wait_timer_start", activity.WaitTimerStart.Int64/1000, false, true)
-		kvs = kvs.Add("wait_timer_end", activity.WaitTimerEnd.Int64/1000, false, true)
-		kvs = kvs.Add("object_schema", activity.ObjectSchema.String, false, true)
-		kvs = kvs.Add("object_name", activity.ObjectName.String, false, true)
-		kvs = kvs.Add("index_name", activity.IndexName.String, false, true)
-		kvs = kvs.Add("object_type", activity.ObjectType.String, false, true)
-		kvs = kvs.Add("event_source", activity.Source.String, false, true)
-		kvs = kvs.Add("ip", activity.IP.String, false, true)
-		kvs = kvs.Add("port", activity.Port.String, false, true)
-		kvs = kvs.Add("socket_event_name", activity.SocketEventName.String, false, true)
-		kvs = kvs.Add("connections", 0, false, true)
+		kvs = kvs.Set("query_signature", activity.QuerySignature)
+		kvs = kvs.Set("message", message)
+		kvs = kvs.Set("thread_id", activity.ThreadID.String)
+		kvs = kvs.Set("processlist_id", activity.ProcesslistID.String)
+		kvs = kvs.Set("processlist_user", activity.ProcesslistUser.String)
+		kvs = kvs.Set("processlist_host", activity.ProcesslistHost.String)
+		kvs = kvs.Set("processlist_db", activity.ProcesslistDB.String)
+		kvs = kvs.Set("processlist_command", activity.ProcesslistCommand.String)
+		kvs = kvs.Set("processlist_state", activity.ProcesslistState.String)
+		kvs = kvs.Set("sql_text", activity.SQLText.String)
+		kvs = kvs.Set("event_timer_start", activity.EventTimerStart.Int64/1000)
+		kvs = kvs.Set("event_timer_end", activity.EventTimerEnd.Int64/1000)
+		kvs = kvs.Set("event_timer_wait", activity.EventTimerWait.Int64/1000)
+		kvs = kvs.Set("lock_time", activity.LockTime.Int64/1000)
+		kvs = kvs.Set("current_schema", activity.CurrentSchema.String)
+		kvs = kvs.Set("wait_event", activity.WaitEvent.String)
+		kvs = kvs.Set("event_id", activity.EventID.String)
+		kvs = kvs.Set("end_event_id", activity.EndEventID.String)
+		kvs = kvs.Set("event_name", activity.EventName.String)
+		kvs = kvs.Set("wait_timer_start", activity.WaitTimerStart.Int64/1000)
+		kvs = kvs.Set("wait_timer_end", activity.WaitTimerEnd.Int64/1000)
+		kvs = kvs.Set("object_schema", activity.ObjectSchema.String)
+		kvs = kvs.Set("object_name", activity.ObjectName.String)
+		kvs = kvs.Set("index_name", activity.IndexName.String)
+		kvs = kvs.Set("object_type", activity.ObjectType.String)
+		kvs = kvs.Set("event_source", activity.Source.String)
+		kvs = kvs.Set("ip", activity.IP.String)
+		kvs = kvs.Set("port", activity.Port.String)
+		kvs = kvs.Set("socket_event_name", activity.SocketEventName.String)
+		kvs = kvs.Set("connections", 0)
 
 		key := activity.ProcesslistDB.String + activity.ProcesslistHost.String + activity.ProcesslistUser.String + activity.ProcesslistState.String
 		if connections, ok := connectionsMap[key]; ok {
-			kvs = kvs.Add("connections", connections, false, true)
+			kvs = kvs.Set("connections", connections)
 		}
 
-		pts = append(pts, point.NewPointV2(metricNameMySQLDbmActivity, kvs, opts...))
+		pts = append(pts, point.NewPoint(metricNameMySQLDbmActivity, kvs, opts...))
 	}
 
 	return pts, nil

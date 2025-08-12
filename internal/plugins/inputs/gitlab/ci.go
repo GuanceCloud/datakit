@@ -525,7 +525,7 @@ func (ipt *Input) getPoint(data []byte, eventType string) ([]*point.Point, error
 		tags = inputs.MergeTagsWrapper(tags, ipt.Tagger.HostTags(), ipt.Tags, ipt.URL)
 	}
 
-	pt := point.NewPointV2(measurementName,
+	pt := point.NewPoint(measurementName,
 		append(point.NewTags(tags), point.NewKVs(fields)...), opts...)
 
 	return []*point.Point{pt}, nil

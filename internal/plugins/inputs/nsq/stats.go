@@ -106,7 +106,7 @@ func (s *stats) makePoint(addTags map[string]string, ptsTime time.Time) ([]*poin
 			}
 			fields := channelStats.ToMap()
 
-			pt := point.NewPointV2(nsqTopics,
+			pt := point.NewPoint(nsqTopics,
 				append(point.NewTags(tags), point.NewKVs(fields)...),
 				opts...,
 			)
@@ -135,7 +135,7 @@ func (s *stats) makePoint(addTags map[string]string, ptsTime time.Time) ([]*poin
 
 		fields := n.ToMap()
 
-		pt := point.NewPointV2(nsqNodes,
+		pt := point.NewPoint(nsqNodes,
 			append(point.NewTags(tags), point.NewKVs(fields)...),
 			opts...,
 		)

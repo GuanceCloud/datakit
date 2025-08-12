@@ -178,7 +178,7 @@ func RandPointV2(name string, maxTags, maxFields int) *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(time.Now()))
 
-	pnt = point.NewPointV2(name,
+	pnt = point.NewPoint(name,
 		append(point.NewTags(tags), point.NewKVs(fields)...),
 		opts...)
 

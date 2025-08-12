@@ -75,7 +75,7 @@ func Test_makeMeasurements(t *testing.T) {
 			},
 
 			wantMeasurements: []*point.Point{
-				point.NewPointV2("metric_test_name",
+				point.NewPoint("metric_test_name",
 					append(point.NewTags(map[string]string{
 						"column_bool":   "true",
 						"column_string": "zhangSan",
@@ -88,7 +88,7 @@ func Test_makeMeasurements(t *testing.T) {
 					})...),
 					opts...),
 
-				point.NewPointV2(
+				point.NewPoint(
 					"metric_test_name",
 					append(point.NewTags(map[string]string{
 						"column_bool":   "false",
@@ -102,7 +102,7 @@ func Test_makeMeasurements(t *testing.T) {
 					})...),
 					opts...),
 
-				point.NewPointV2(
+				point.NewPoint(
 					"metric_test_name",
 					append(point.NewTags(map[string]string{
 						"column_bool":   "true",
@@ -116,7 +116,7 @@ func Test_makeMeasurements(t *testing.T) {
 					})...),
 					opts...),
 
-				point.NewPointV2(
+				point.NewPoint(
 					"metric_test_name",
 					append(point.NewTags(map[string]string{
 						"column_bool":   "false",

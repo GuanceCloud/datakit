@@ -132,9 +132,9 @@ func (ipt *Input) parseReplicaData(list string) ([]*point.Point, error) {
 			if key == "master_link_status" {
 				switch value {
 				case "up":
-					kvs = kvs.Add(key, 1, false, false)
+					kvs = kvs.Add(key, 1)
 				case "down":
-					kvs = kvs.Add(key, 0, false, false)
+					kvs = kvs.Add(key, 0)
 				default:
 					l.Warnf("parseReplicaData: unexpected value for master_link_status, got %s", value)
 					continue
@@ -145,7 +145,7 @@ func (ipt *Input) parseReplicaData(list string) ([]*point.Point, error) {
 					l.Warnf("parseMasterData: %s, expect to be int, got %s", err, value)
 					continue
 				}
-				kvs = kvs.Add(key, float, false, false)
+				kvs = kvs.Add(key, float)
 			}
 		}
 		// special key for slave data
@@ -155,8 +155,8 @@ func (ipt *Input) parseReplicaData(list string) ([]*point.Point, error) {
 			kvs = kvs.AddTag("slave_id", slaveID)
 			kvs = kvs.AddTag("slave_addr", fmt.Sprintf("%s:%s", ip, port))
 			kvs = kvs.AddTag("slave_state", state)
-			kvs = kvs.Add("slave_offset", offset, false, false)
-			kvs = kvs.Add("slave_lag", lag, false, false)
+			kvs = kvs.Add("slave_offset", offset)
+			kvs = kvs.Add("slave_lag", lag)
 		}
 
 		if masterIP != "" && masterPort != "" {
@@ -167,7 +167,7 @@ func (ipt *Input) parseReplicaData(list string) ([]*point.Point, error) {
 			for k, v := range ipt.mergedTags {
 				kvs = kvs.AddTag(k, v)
 			}
-			collectCache = append(collectCache, point.NewPointV2(redisReplica, kvs, opts...))
+			collectCache = append(collectCache, point.NewPoint(redisReplica, kvs, opts...))
 		}
 	}
 	return collectCache, nil

@@ -54,27 +54,76 @@ func AnyRaw(x *types.Any) (any, error) {
 			return nil, err
 		}
 
-		var res []any
-		for _, v := range arr.Arr {
-			switch v.GetX().(type) {
-			case *BasicTypes_I:
-				res = append(res, v.GetI())
-			case *BasicTypes_U:
-				res = append(res, v.GetU())
-			case *BasicTypes_F:
-				res = append(res, v.GetF())
-			case *BasicTypes_B:
-				res = append(res, v.GetB())
-			case *BasicTypes_D:
-				res = append(res, v.GetD())
-			case *BasicTypes_S:
-				res = append(res, v.GetS())
-			default: // pass
-				return nil, fmt.Errorf("unknown type %q within array", reflect.TypeOf(v.GetX()).String())
+		if !EnableMixedArrayField {
+			if len(arr.Arr) == 0 {
+				return nil, nil
 			}
-		}
 
-		return res, nil
+			// NOTE: detect element's type and return the same []<type>{} array.
+			// i.e., element in array are int64, then we get []int64{} array.
+			switch arr.Arr[0].GetX().(type) {
+			case *BasicTypes_I:
+				res := make([]int64, 0, len(arr.Arr))
+				for _, v := range arr.Arr {
+					res = append(res, v.GetI())
+				}
+				return res, nil
+			case *BasicTypes_U:
+				res := make([]uint64, 0, len(arr.Arr))
+				for _, v := range arr.Arr {
+					res = append(res, v.GetU())
+				}
+				return res, nil
+			case *BasicTypes_F:
+				res := make([]float64, 0, len(arr.Arr))
+				for _, v := range arr.Arr {
+					res = append(res, v.GetF())
+				}
+				return res, nil
+			case *BasicTypes_B:
+				res := make([]bool, 0, len(arr.Arr))
+				for _, v := range arr.Arr {
+					res = append(res, v.GetB())
+				}
+				return res, nil
+			case *BasicTypes_D:
+				res := make([][]byte, 0, len(arr.Arr))
+				for _, v := range arr.Arr {
+					res = append(res, v.GetD())
+				}
+				return res, nil
+			case *BasicTypes_S:
+				res := make([]string, 0, len(arr.Arr))
+				for _, v := range arr.Arr {
+					res = append(res, v.GetS())
+				}
+				return res, nil
+			default:
+				return nil, fmt.Errorf("unknown type %q within array", reflect.TypeOf(arr.Arr[0].GetX()).String())
+			}
+		} else {
+			// for mix-typed element in array, we just return the []any{}.
+			var res []any
+			for _, v := range arr.Arr {
+				switch v.GetX().(type) {
+				case *BasicTypes_I:
+					res = append(res, v.GetI())
+				case *BasicTypes_U:
+					res = append(res, v.GetU())
+				case *BasicTypes_F:
+					res = append(res, v.GetF())
+				case *BasicTypes_B:
+					res = append(res, v.GetB())
+				case *BasicTypes_D:
+					res = append(res, v.GetD())
+				case *BasicTypes_S:
+					res = append(res, v.GetS())
+				default:
+					return nil, fmt.Errorf("unknown type %q within array", reflect.TypeOf(v.GetX()).String())
+				}
+			}
+			return res, nil
+		}
 
 	case DictFieldType:
 		if !EnableDictField {

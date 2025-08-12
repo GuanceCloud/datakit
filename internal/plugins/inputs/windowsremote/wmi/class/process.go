@@ -36,20 +36,20 @@ func (p Process) ToPoint(tags map[string]string) *point.Point {
 	kvs = kvs.AddTag("host", strings.ToLower(p.CSName)).
 		AddTag("name", fmt.Sprintf("%s_%d", p.CSName, p.IDProcess)).
 		AddTag("process_name", p.Name).
-		AddV2("pid", p.IDProcess, false).
-		AddV2("cmdline", p.CommandLine, false).
-		AddV2("proc_syscr", p.IODataBytesPersec, false).
-		AddV2("proc_read_bytes", p.IOReadBytesPersec, false).
-		AddV2("proc_syscw", p.IOWriteBytesPersec, false).
-		AddV2("proc_write_bytes", p.IOWriteOperationsPersec, false).
-		AddV2("rss", p.PageFileBytes, false).
-		AddV2("threads", p.ThreadCount, false).
-		AddV2("cpu_usage", float64(p.PercentProcessorTime)/100, false).
-		AddV2("start_time", startTime, false).
-		AddV2("started_duration", p.ElapsedTime, false).
-		AddV2("open_files", p.HandleCount, false)
+		Add("pid", p.IDProcess).
+		Add("cmdline", p.CommandLine).
+		Add("proc_syscr", p.IODataBytesPersec).
+		Add("proc_read_bytes", p.IOReadBytesPersec).
+		Add("proc_syscw", p.IOWriteBytesPersec).
+		Add("proc_write_bytes", p.IOWriteOperationsPersec).
+		Add("rss", p.PageFileBytes).
+		Add("threads", p.ThreadCount).
+		Add("cpu_usage", float64(p.PercentProcessorTime)/100).
+		Add("start_time", startTime).
+		Add("started_duration", p.ElapsedTime).
+		Add("open_files", p.HandleCount)
 
-	return point.NewPointV2("host_processes", kvs, opts...)
+	return point.NewPoint("host_processes", kvs, opts...)
 }
 
 type Win32_Process struct {

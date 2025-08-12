@@ -358,7 +358,7 @@ func (ipt *Input) formatPointSuffixes(pts []*point.Point) []*point.Point {
 
 		// Add average/total point.
 		pts = append(pts,
-			point.NewPointV2(clickHouseAsyncMetrics,
+			point.NewPoint(clickHouseAsyncMetrics,
 				append(point.NewTags(suffixes[j].tags), point.NewKVs(fields)...),
 				append(point.DefaultMetricOptions(), point.WithTimestamp(ptts))...))
 	}
@@ -432,7 +432,7 @@ func (ipt *Input) formatPointSuffix(suffixes []suffixInfo, pt *point.Point) {
 		tagKey := suffixes[v.suffixID].tagKey
 		tagVal := strings.TrimPrefix(v.key, suffixes[v.suffixID].name)
 		tagVal = strings.TrimPrefix(tagVal, "_") // some suffix like "_coretemp_Core_0".
-		pt.MustAddTag(tagKey, tagVal)
+		pt.SetTag(tagKey, tagVal)
 
 		// Add field(KV).
 		kv := &point.Field{

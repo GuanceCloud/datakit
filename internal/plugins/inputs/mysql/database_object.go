@@ -205,29 +205,29 @@ func (ipt *Input) metricCollectMysqlObject() ([]*point.Point, error) {
 		AddTag("host", ipt.Host).
 		AddTag("server", ipt.mergedTags["server"]).
 		AddTag("port", fmt.Sprintf("%d", ipt.Port)).
-		Add("uptime", ipt.Uptime, false, true).
-		Add("message", message.String(), false, true)
+		Set("uptime", ipt.Uptime).
+		Set("message", message.String())
 
 	// slow query log
 	if v, ok := setting["slow_query_log"]; ok {
-		kvs = kvs.Add("slow_query_log", v, false, true)
+		kvs = kvs.Set("slow_query_log", v)
 	}
 
 	// qps, tps, slow_queries, avg_query_time
 	if ipt.objectMetric != nil {
-		kvs = kvs.Add("qps", ipt.objectMetric.QPS, false, true)
-		kvs = kvs.Add("tps", ipt.objectMetric.TPS, false, true)
+		kvs = kvs.Set("qps", ipt.objectMetric.QPS)
+		kvs = kvs.Set("tps", ipt.objectMetric.TPS)
 
-		kvs = kvs.Add("slow_queries", ipt.objectMetric.SlowQueries, false, true)
+		kvs = kvs.Set("slow_queries", ipt.objectMetric.SlowQueries)
 	}
 
 	if v, err := ipt.getAverageQueryExecutionTime(); err == nil {
-		kvs = kvs.Add("avg_query_time", v, false, true)
+		kvs = kvs.Set("avg_query_time", v)
 	} else {
 		l.Warnf("getAverageQueryExecutionTime failed: %s", err.Error())
 	}
 
-	return []*point.Point{point.NewPointV2("database", kvs, opts...)}, nil
+	return []*point.Point{point.NewPoint("database", kvs, opts...)}, nil
 }
 
 const sqlGetAverageQueryExecutionTime = `

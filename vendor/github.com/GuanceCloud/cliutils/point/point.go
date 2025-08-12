@@ -206,14 +206,14 @@ func FromModelsLP(lp influxm.Point) *Point {
 
 	tags := lp.Tags()
 	for _, t := range tags {
-		kvs = kvs.MustAddTag(string(t.Key), string(t.Value))
+		kvs = kvs.SetTag(string(t.Key), string(t.Value))
 	}
 
-	return NewPointV2(string(lp.Name()), kvs, WithTime(lp.Time()))
+	return NewPoint(string(lp.Name()), kvs, WithTime(lp.Time()))
 }
 
 func FromPB(pb *PBPoint) *Point {
-	pt := NewPointV2(pb.Name, pb.Fields, WithTime(time.Unix(0, pb.Time)))
+	pt := NewPoint(pb.Name, pb.Fields, WithTime(time.Unix(0, pb.Time)))
 	if len(pb.Warns) > 0 {
 		pt.pt.Warns = pb.Warns
 	}
@@ -275,7 +275,7 @@ func (p *Point) KVs() (arr KVs) {
 func (p *Point) AddKVs(kvs ...*Field) {
 	old := KVs(p.pt.Fields)
 	for _, kv := range kvs {
-		old = old.AddKV(kv, false)
+		old = old.AddKV(kv)
 	}
 	p.pt.Fields = old
 }
@@ -293,7 +293,7 @@ func (p *Point) CopyTags(kvs ...*Field) {
 func (p *Point) CopyField(kvs ...*Field) {
 	old := KVs(p.pt.Fields)
 	for _, kv := range kvs {
-		old = old.Add(kv.Key, kv.Raw(), false, false)
+		old = old.Add(kv.Key, kv.Raw())
 	}
 	p.pt.Fields = old
 }
@@ -303,7 +303,7 @@ func (p *Point) SetKVs(kvs ...*Field) {
 	old := KVs(p.pt.Fields)
 
 	for _, kv := range kvs {
-		old = old.AddKV(kv, false)
+		old = old.AddKV(kv)
 	}
 	p.pt.Fields = old
 }
@@ -312,7 +312,7 @@ func (p *Point) SetKVs(kvs ...*Field) {
 func (p *Point) MustAddKVs(kvs ...*Field) {
 	old := KVs(p.pt.Fields)
 	for _, kv := range kvs {
-		old = old.AddKV(kv, true)
+		old = old.SetKV(kv)
 	}
 	p.pt.Fields = old
 }
@@ -347,26 +347,32 @@ func (p *Point) GetTag(k string) string {
 // MustAdd add specific key value to fields, if k exist, override it.
 func (p *Point) MustAdd(k string, v any) {
 	kvs := KVs(p.pt.Fields)
-	kvs = kvs.Add(k, v, false, true)
+	kvs = kvs.Set(k, v)
 	p.pt.Fields = kvs
 }
 
 // Add add specific key value to fields, if k exist, do nothing.
 func (p *Point) Add(k string, v any) {
 	kvs := KVs(p.pt.Fields)
-	p.pt.Fields = kvs.Add(k, v, false, false)
+	p.pt.Fields = kvs.Add(k, v)
 }
 
-// MustAddTag add specific key value to fields, if k exist, override it.
-func (p *Point) MustAddTag(k, v string) {
+// Add add specific key value to fields, if k exist, do nothing.
+func (p *Point) Set(k string, v any) {
 	kvs := KVs(p.pt.Fields)
-	p.pt.Fields = kvs.Add(k, v, true, true)
+	p.pt.Fields = kvs.Set(k, v)
+}
+
+// SetTag add specific key value to fields, if k exist, override it.
+func (p *Point) SetTag(k, v string) {
+	kvs := KVs(p.pt.Fields)
+	p.pt.Fields = kvs.SetTag(k, v)
 }
 
 // AddTag add specific key value to fields, if k exist, do nothing.
 func (p *Point) AddTag(k, v string) {
 	kvs := KVs(p.pt.Fields)
-	p.pt.Fields = kvs.Add(k, v, true, false)
+	p.pt.Fields = kvs.AddTag(k, v)
 }
 
 // Del delete specific key from tags/fields.

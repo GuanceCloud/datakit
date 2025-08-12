@@ -92,18 +92,18 @@ func (r *replicaset) buildMetricPoints(list *apiappsv1.ReplicaSetList, timestamp
 		kvs = kvs.AddTag("replica_set", item.Name) // Deprecated
 		kvs = kvs.AddTag("namespace", item.Namespace)
 
-		kvs = kvs.AddV2("replicas", item.Status.Replicas, false)
-		kvs = kvs.AddV2("replicas_ready", item.Status.ReadyReplicas, false)
-		kvs = kvs.AddV2("replicas_available", item.Status.AvailableReplicas, false)
-		kvs = kvs.AddV2("fully_labeled_replicas", item.Status.FullyLabeledReplicas, false)
+		kvs = kvs.Add("replicas", item.Status.Replicas)
+		kvs = kvs.Add("replicas_ready", item.Status.ReadyReplicas)
+		kvs = kvs.Add("replicas_available", item.Status.AvailableReplicas)
+		kvs = kvs.Add("fully_labeled_replicas", item.Status.FullyLabeledReplicas)
 
 		if item.Spec.Replicas != nil {
-			kvs = kvs.AddV2("replicas_desired", *item.Spec.Replicas, false)
+			kvs = kvs.Add("replicas_desired", *item.Spec.Replicas)
 		}
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, r.cfg.LabelAsTagsForMetric.All, r.cfg.LabelAsTagsForMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(r.cfg.ExtraTags)...)
-		pt := point.NewPointV2(replicasetMetricMeasurement, kvs, opts...)
+		pt := point.NewPoint(replicasetMetricMeasurement, kvs, opts...)
 		pts = append(pts, pt)
 
 		r.counter[item.Namespace]++
@@ -136,25 +136,25 @@ func (r *replicaset) buildObjectPoints(list *apiappsv1.ReplicaSetList) []*point.
 			}
 		}
 
-		kvs = kvs.AddV2("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3, false)
-		kvs = kvs.AddV2("replicas", item.Status.Replicas, false)
-		kvs = kvs.AddV2("replicas_ready", item.Status.ReadyReplicas, false)
-		kvs = kvs.AddV2("replicas_available", item.Status.AvailableReplicas, false)
-		kvs = kvs.AddV2("ready", item.Status.ReadyReplicas, false)         // Deprecated
-		kvs = kvs.AddV2("available", item.Status.AvailableReplicas, false) // Deprecated
+		kvs = kvs.Add("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3)
+		kvs = kvs.Add("replicas", item.Status.Replicas)
+		kvs = kvs.Add("replicas_ready", item.Status.ReadyReplicas)
+		kvs = kvs.Add("replicas_available", item.Status.AvailableReplicas)
+		kvs = kvs.Add("ready", item.Status.ReadyReplicas)         // Deprecated
+		kvs = kvs.Add("available", item.Status.AvailableReplicas) // Deprecated
 
 		if item.Spec.Replicas != nil {
-			kvs = kvs.AddV2("replicas_desired", *item.Spec.Replicas, false)
+			kvs = kvs.Add("replicas_desired", *item.Spec.Replicas)
 		}
 
 		if y, err := yaml.Marshal(item); err == nil {
-			kvs = kvs.AddV2("yaml", string(y), false)
+			kvs = kvs.Add("yaml", string(y))
 		}
-		kvs = kvs.AddV2("annotations", pointutil.MapToJSON(item.Annotations), false)
+		kvs = kvs.Add("annotations", pointutil.MapToJSON(item.Annotations))
 		kvs = append(kvs, pointutil.ConvertDFLabels(item.Labels)...)
 
 		msg := pointutil.PointKVsToJSON(kvs)
-		kvs = kvs.AddV2("message", pointutil.TrimString(msg, maxMessageLength), false)
+		kvs = kvs.Add("message", pointutil.TrimString(msg, maxMessageLength))
 
 		kvs = kvs.Del("annotations")
 		kvs = kvs.Del("yaml")
@@ -165,7 +165,7 @@ func (r *replicaset) buildObjectPoints(list *apiappsv1.ReplicaSetList) []*point.
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, r.cfg.LabelAsTagsForNonMetric.All, r.cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(r.cfg.ExtraTags)...)
-		pt := point.NewPointV2(replicasetObjectClass, kvs, opts...)
+		pt := point.NewPoint(replicasetObjectClass, kvs, opts...)
 		pts = append(pts, pt)
 	}
 

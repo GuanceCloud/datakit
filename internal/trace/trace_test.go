@@ -163,24 +163,24 @@ func randDatakitSpan(t *testing.T, opts ...randSpanOption) *DkSpan {
 
 	rand.Seed(time.Now().Local().UnixNano())
 	var spanKV point.KVs
-	spanKV = spanKV.Add(FieldTraceID, testutils.RandStrID(30), false, false).
-		Add(FieldParentID, testutils.RandStrID(30), false, false).
-		Add(FieldSpanid, testutils.RandStrID(30), false, false).
-		Add(TagService, testutils.RandString(30), true, false).
-		Add(FieldResource, testutils.RandString(30), false, false).
-		Add(TagOperation, testutils.RandString(30), true, false).
-		Add(TagSource, testutils.RandString(30), true, false).
-		Add(TagSpanType, testutils.RandString(10), true, false).
-		Add(FieldStart, testutils.RandTime().Unix(), false, false).
-		Add(FieldDuration, testutils.RandInt64(5), false, false).
-		Add(TagSpanStatus, testutils.RandString(10), true, false).
+	spanKV = spanKV.Add(FieldTraceID, testutils.RandStrID(30)).
+		Add(FieldParentID, testutils.RandStrID(30)).
+		Add(FieldSpanid, testutils.RandStrID(30)).
+		Add(FieldResource, testutils.RandString(30)).
+		Add(FieldStart, testutils.RandTime().Unix()).
+		Add(FieldDuration, testutils.RandInt64(5)).
+		AddTag(TagService, testutils.RandString(30)).
+		AddTag(TagOperation, testutils.RandString(30)).
+		AddTag(TagSource, testutils.RandString(30)).
+		AddTag(TagSpanType, testutils.RandString(10)).
+		AddTag(TagSpanStatus, testutils.RandString(10)).
 		AddTag(TagProject, testutils.RandString(10)).
 		AddTag(TagVersion, testutils.RandVersion(10)).
 		AddTag(TagEndpoint, testutils.RandEndPoint(3)).
 		AddTag(TagPid, testutils.RandInt64StrID(10)).
 		AddTag(TagContainerHost, testutils.RandString(20))
 
-	pt := point.NewPointV2("testSource", spanKV, point.CommonLoggingOptions()...)
+	pt := point.NewPoint("testSource", spanKV, point.CommonLoggingOptions()...)
 	dkSpan := &DkSpan{pt}
 	for i := range opts {
 		opts[i](dkSpan)
@@ -201,7 +201,7 @@ type randSpanOption func(dkspan *DkSpan)
 func randService(services ...string) randSpanOption {
 	return func(dkspan *DkSpan) {
 		if dkspan != nil {
-			dkspan.MustAddTag(TagService, testutils.RandWithinStrings(services))
+			dkspan.SetTag(TagService, testutils.RandWithinStrings(services))
 		}
 	}
 }
@@ -235,13 +235,13 @@ func randSpanTypes(types ...string) randSpanOption {
 
 func randHTTPMethod(methods ...string) randSpanOption {
 	return func(dkspan *DkSpan) {
-		dkspan.MustAddTag(TagHttpMethod, testutils.RandWithinStrings(methods))
+		dkspan.SetTag(TagHttpMethod, testutils.RandWithinStrings(methods))
 	}
 }
 
 func randHTTPStatusCode(codes ...string) randSpanOption {
 	return func(dkspan *DkSpan) {
-		dkspan.MustAddTag(TagHttpStatusCode, testutils.RandWithinStrings(codes))
+		dkspan.SetTag(TagHttpStatusCode, testutils.RandWithinStrings(codes))
 	}
 }
 
@@ -258,7 +258,7 @@ func randTags() randSpanOption {
 		if dkspan != nil {
 			rTags := testutils.RandTags(10, 10, 20)
 			for k, v := range rTags {
-				dkspan.MustAddTag(k, v)
+				dkspan.SetTag(k, v)
 			}
 		}
 	}

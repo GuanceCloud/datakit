@@ -80,7 +80,7 @@ func genMockTrace(direct string, appTrace bool, level, child int,
 			}
 
 			kvs := point.NewKVs(fields)
-			pt := point.NewPointV2("datakit-ebpf", kvs, point.WithTime(tn))
+			pt := point.NewPoint("datakit-ebpf", kvs, point.WithTime(tn))
 			pts = append(pts, pt)
 
 			// first span is client span
@@ -112,7 +112,7 @@ func genMockTrace(direct string, appTrace bool, level, child int,
 			}
 
 			kvs := point.NewKVs(fields)
-			pt := point.NewPointV2("datakit-ebpf", kvs, point.WithTime(tn))
+			pt := point.NewPoint("datakit-ebpf", kvs, point.WithTime(tn))
 			pts = append(pts, pt)
 		}
 	}

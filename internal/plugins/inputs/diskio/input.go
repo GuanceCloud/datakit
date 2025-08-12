@@ -178,26 +178,26 @@ func (ipt *Input) collect() error {
 			}
 		}
 
-		kvs = kvs.Add("reads", stat.ReadCount, false, true)
-		kvs = kvs.Add("writes", stat.WriteCount, false, true)
-		kvs = kvs.Add("read_bytes", stat.ReadBytes, false, true)
-		kvs = kvs.Add("write_bytes", stat.WriteBytes, false, true)
-		kvs = kvs.Add("read_time", stat.ReadTime, false, true)
-		kvs = kvs.Add("write_time", stat.WriteTime, false, true)
-		kvs = kvs.Add("io_time", stat.IoTime, false, true)
-		kvs = kvs.Add("weighted_io_time", stat.WeightedIO, false, true)
-		kvs = kvs.Add("iops_in_progress", stat.IopsInProgress, false, true)
-		kvs = kvs.Add("merged_reads", stat.MergedReadCount, false, true)
-		kvs = kvs.Add("merged_writes", stat.MergedWriteCount, false, true)
+		kvs = kvs.Set("reads", stat.ReadCount)
+		kvs = kvs.Set("writes", stat.WriteCount)
+		kvs = kvs.Set("read_bytes", stat.ReadBytes)
+		kvs = kvs.Set("write_bytes", stat.WriteBytes)
+		kvs = kvs.Set("read_time", stat.ReadTime)
+		kvs = kvs.Set("write_time", stat.WriteTime)
+		kvs = kvs.Set("io_time", stat.IoTime)
+		kvs = kvs.Set("weighted_io_time", stat.WeightedIO)
+		kvs = kvs.Set("iops_in_progress", stat.IopsInProgress)
+		kvs = kvs.Set("merged_reads", stat.MergedReadCount)
+		kvs = kvs.Set("merged_writes", stat.MergedWriteCount)
 
 		if ipt.lastStat != nil {
 			deltaTime := ipt.start.Unix() - ipt.lastTime.Unix()
 			if v, ok := ipt.lastStat[stat.Name]; ok && deltaTime > 0 {
 				if stat.ReadBytes >= v.ReadBytes {
-					kvs = kvs.Add("read_bytes/sec", int64(stat.ReadBytes-v.ReadBytes)/deltaTime, false, true)
+					kvs = kvs.Set("read_bytes/sec", int64(stat.ReadBytes-v.ReadBytes)/deltaTime)
 				}
 				if stat.WriteBytes >= v.WriteBytes {
-					kvs = kvs.Add("write_bytes/sec", int64(stat.WriteBytes-v.WriteBytes)/deltaTime, false, true)
+					kvs = kvs.Set("write_bytes/sec", int64(stat.WriteBytes-v.WriteBytes)/deltaTime)
 				}
 			}
 		}
@@ -206,7 +206,7 @@ func (ipt *Input) collect() error {
 			kvs = kvs.AddTag(k, v)
 		}
 
-		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(inputName, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPoint(inputName, kvs, opts...))
 	}
 	ipt.lastStat = diskio
 	ipt.lastTime = ipt.start

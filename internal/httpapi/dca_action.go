@@ -445,7 +445,7 @@ func testDatakitPipelineAction(_ *ws.Client, response *ws.DCAResponse, data *ws.
 			kvs = append(kvs, point.NewKVs(map[string]interface{}{
 				constants.FieldMessage: data,
 			})...)
-			pts = append(pts, point.NewPointV2(
+			pts = append(pts, point.NewPoint(
 				body.ScriptName, kvs, point.DefaultLoggingOptions()...))
 
 		case point.CustomObject,

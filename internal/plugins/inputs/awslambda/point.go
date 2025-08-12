@@ -24,7 +24,7 @@ func (ipt *Input) toLogPoint(e *telemetry.LogEvent) *point.Point {
 	opts = append(opts, point.WithTime(e.Time))
 	kvs := append(point.NewTags(ipt.tags), point.NewKV(AWSLogFrom, e.Record.GetType(), point.WithKVTagSet(true)))
 	kvs = append(kvs, point.NewKVs(e.Record.GetFields())...)
-	return point.NewPointV2(inputName, kvs, opts...)
+	return point.NewPoint(inputName, kvs, opts...)
 }
 
 func (ipt *Input) toLogPointArr(es []*telemetry.LogEvent) (pts []*point.Point) {
@@ -125,7 +125,7 @@ func (ipt *Input) toMetricPoint(e *telemetry.Event) (metric *point.Point) {
 	default:
 	}
 	kvsMetric = append(kvsMetric, point.NewTags(ipt.tags)...)
-	return point.NewPointV2(inputName, kvsMetric, optsMetric...)
+	return point.NewPoint(inputName, kvsMetric, optsMetric...)
 }
 
 func (ipt *Input) addPostRuntimeDurationMetric(v *lambdaCtx, kvsMetric point.KVs, id string) point.KVs {

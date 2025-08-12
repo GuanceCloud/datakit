@@ -55,8 +55,8 @@ func ConvertDFLabels(labels map[string]string) point.KVs {
 
 	// http://gitlab.jiagouyun.com/cloudcare-tools/kodo/-/issues/61#note_11580
 	var kvs point.KVs
-	kvs = kvs.AddV2("df_label", labelsString, false)
-	kvs = kvs.AddV2("df_label_permission", "read_only", false)
-	kvs = kvs.AddV2("df_label_source", "datakit", false)
+	kvs = kvs.Add("df_label", labelsString)
+	kvs = kvs.Add("df_label_permission", "read_only")
+	kvs = kvs.Add("df_label_source", "datakit")
 	return kvs
 }

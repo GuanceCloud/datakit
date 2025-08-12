@@ -107,16 +107,16 @@ func (ipt *Input) collectPoolsPts() ([]*point.Point, error) {
 		kvs = kvs.AddTag("address", pool.Address)
 		kvs = kvs.AddTag("process_manager", pool.ProcessManager)
 
-		kvs = kvs.Add("accepted_connections", pool.AcceptedConnections, false, true)
-		kvs = kvs.Add("active_processes", pool.ActiveProcesses, false, true)
-		kvs = kvs.Add("idle_processes", pool.IdleProcesses, false, true)
-		kvs = kvs.Add("listen_queue", pool.ListenQueue, false, true)
-		kvs = kvs.Add("listen_queue_length", pool.ListenQueueLength, false, true)
-		kvs = kvs.Add("max_active_processes", pool.MaxActiveProcesses, false, true)
-		kvs = kvs.Add("max_children_reached", pool.MaxChildrenReached, false, true)
-		kvs = kvs.Add("max_listen_queue", pool.MaxListenQueue, false, true)
-		kvs = kvs.Add("slow_requests", pool.SlowRequests, false, true)
-		kvs = kvs.Add("total_processes", pool.TotalProcesses, false, true)
+		kvs = kvs.Set("accepted_connections", pool.AcceptedConnections)
+		kvs = kvs.Set("active_processes", pool.ActiveProcesses)
+		kvs = kvs.Set("idle_processes", pool.IdleProcesses)
+		kvs = kvs.Set("listen_queue", pool.ListenQueue)
+		kvs = kvs.Set("listen_queue_length", pool.ListenQueueLength)
+		kvs = kvs.Set("max_active_processes", pool.MaxActiveProcesses)
+		kvs = kvs.Set("max_children_reached", pool.MaxChildrenReached)
+		kvs = kvs.Set("max_listen_queue", pool.MaxListenQueue)
+		kvs = kvs.Set("slow_requests", pool.SlowRequests)
+		kvs = kvs.Set("total_processes", pool.TotalProcesses)
 
 		for key, value := range ipt.Tags {
 			kvs = kvs.AddTag(key, value)
@@ -127,13 +127,13 @@ func (ipt *Input) collectPoolsPts() ([]*point.Point, error) {
 			kvs = kvs.AddTag("pid", fmt.Sprintf("%d", process.PID))
 			kvs = kvs.AddTag("process_state", process.State)
 
-			kvs = kvs.Add("process_requests", process.Requests, false, true)
-			kvs = kvs.Add("process_last_requestMemory", process.LastRequestMemory, false, true)
-			kvs = kvs.Add("process_last_request_cpu", process.LastRequestCPU, false, true)
-			kvs = kvs.Add("process_request_duration", process.RequestDuration, false, true)
+			kvs = kvs.Set("process_requests", process.Requests)
+			kvs = kvs.Set("process_last_requestMemory", process.LastRequestMemory)
+			kvs = kvs.Set("process_last_request_cpu", process.LastRequestCPU)
+			kvs = kvs.Set("process_request_duration", process.RequestDuration)
 		}
 	}
-	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(inputName, kvs, opts...))
+	ipt.collectCache = append(ipt.collectCache, point.NewPoint(inputName, kvs, opts...))
 
 	return ipt.collectCache, nil
 }

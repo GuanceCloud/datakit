@@ -114,7 +114,7 @@ func (d *Decoder) doDecode(data []byte, c *cfg) ([]*Point, error) {
 
 			for _, pbpt := range pbpts.Arr {
 				// NOTE: under gogo Unmarshal, nothing comes from point pool, so
-				// we create Point without NewPointV2(), and make the point escaped
+				// we create Point without NewPoint(), and make the point escaped
 				// from point pool(if defaultPTPool set).
 				//
 				// Although put back points that not originally from the pool is

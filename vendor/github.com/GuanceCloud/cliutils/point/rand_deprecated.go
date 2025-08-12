@@ -36,7 +36,7 @@ func doRandomPoints(count int) ([]*Point, error) {
 
 	var pts []*Point
 	for i := 0; i < count; i++ {
-		if pt, err := NewPoint(cliutils.CreateRandomString(30),
+		if pt, err := NewPointDeprecated(cliutils.CreateRandomString(30),
 			map[string]string{ // 4 tags
 				cliutils.CreateRandomString(10): sampleLogs[mrand.Int63()%int64(len(sampleLogs))],
 				cliutils.CreateRandomString(11): sampleLogs[mrand.Int63()%int64(len(sampleLogs))],

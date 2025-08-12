@@ -298,12 +298,12 @@ func (ipt *Input) handleServerDropWarn() {
 
 			// Send warning.
 			var kvs point.KVs
-			kvs = kvs.Add("host", ipt.servers[i].server, true, true)
-			kvs = kvs.Add("warning", 1, false, true)
+			kvs = kvs.SetTag("host", ipt.servers[i].server)
+			kvs = kvs.Set("warning", 1)
 			for k, v := range ipt.mergedTags {
 				kvs = kvs.AddTag(k, v)
 			}
-			pts := []*point.Point{point.NewPointV2(inputName, kvs, opts...)}
+			pts := []*point.Point{point.NewPoint(inputName, kvs, opts...)}
 			if err := ipt.feeder.Feed(point.Metric, pts,
 				dkio.WithCollectCost(time.Since(ipt.start)),
 				dkio.WithElection(ipt.Election),

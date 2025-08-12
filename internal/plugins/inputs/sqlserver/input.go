@@ -245,7 +245,7 @@ func (ipt *Input) getPerformanceCounters() {
 		m := Performance{}
 		fields = getMetricFields(fields, m.Info())
 
-		point := point.NewPointV2(measurement,
+		point := point.NewPoint(measurement,
 			append(point.NewTags(tags), point.NewKVs(fields)...), opts...)
 
 		if len(fields) > 0 {
@@ -433,14 +433,14 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 
 					for _, field := range query.Fields {
 						if _, ok := row[field]; ok {
-							kvs = kvs.Add(field, *row[field], false, true)
+							kvs = kvs.Set(field, *row[field])
 						} else {
 							l.Warn("specified field %s not found", field)
 						}
 					}
 
 					if kvs.FieldCount() > 0 {
-						pts = append(pts, point.NewPointV2(query.Metric, kvs, opt...))
+						pts = append(pts, point.NewPoint(query.Metric, kvs, opt...))
 					}
 				}
 
@@ -740,17 +740,17 @@ func (ipt *Input) handRow(name, query string, isLogging bool) {
 
 				trimText := strings.TrimSuffix(str, "\\")
 				if isLogging {
-					kvs = kvs.Add(header, trimText, false, true)
+					kvs = kvs.Set(header, trimText)
 				} else {
 					kvs = kvs.AddTag(header, trimText)
 				}
 			} else if t, ok := (*val).(time.Time); ok {
-				kvs = kvs.Add(header, t.UnixMilli(), false, true)
+				kvs = kvs.Set(header, t.UnixMilli())
 			} else {
 				if *val == nil {
 					continue
 				}
-				kvs = kvs.Add(header, *val, false, true)
+				kvs = kvs.Set(header, *val)
 			}
 		}
 		if kvs.FieldCount() == 0 {
@@ -766,7 +766,7 @@ func (ipt *Input) handRow(name, query string, isLogging bool) {
 
 		kvs = transformData(measurement, kvs)
 
-		point := point.NewPointV2(measurement,
+		point := point.NewPoint(measurement,
 			kvs, opts...)
 
 		if isLogging {

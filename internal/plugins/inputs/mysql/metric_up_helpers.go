@@ -36,10 +36,10 @@ func (ipt *Input) buildUpPoints() ([]*point.Point, error) {
 	kvs = kvs.AddTag("job", ipt.getUpJob())
 	kvs = kvs.AddTag("instance", ipt.getUpInstance())
 
-	kvs = kvs.Add("up", ipt.UpState, false, true)
+	kvs = kvs.Set("up", ipt.UpState)
 
 	if kvs.FieldCount() > 0 {
-		pts = append(pts, point.NewPointV2("collector", kvs, opts...))
+		pts = append(pts, point.NewPoint("collector", kvs, opts...))
 	}
 
 	return pts, nil

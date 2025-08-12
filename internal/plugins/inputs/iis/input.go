@@ -279,7 +279,7 @@ func (ipt *Input) Collect(ptTS int64) error {
 
 				tags = inputs.MergeTags(ipt.Tagger.HostTags(), tags, "")
 
-				pt := point.NewPointV2(mName,
+				pt := point.NewPoint(mName,
 					append(point.NewTags(tags), point.NewKVs(fields)...),
 					opts...)
 

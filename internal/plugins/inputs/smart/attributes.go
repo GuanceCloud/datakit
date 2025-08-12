@@ -106,7 +106,7 @@ var sasNvmeAttributes = map[string]struct {
 			if _, err := fmt.Sscanf(str, "0x%x", &v); err != nil {
 				return nil, err
 			} else {
-				kvs = kvs.AddV2("raw_value", v, true)
+				kvs = kvs.Set("raw_value", v)
 				return kvs, nil
 			}
 		},
@@ -210,7 +210,7 @@ func parseTemperature(key string, str string, kvs point.KVs) (point.KVs, error) 
 	if _, err := fmt.Sscanf(str, "%d C", &temp); err != nil {
 		return nil, err
 	} else {
-		kvs = kvs.AddV2(key, temp, true)
+		kvs = kvs.Set(key, temp)
 		return kvs, nil
 	}
 }
@@ -220,7 +220,7 @@ func parseCommaSeparatedInt(key string, str string, kvs point.KVs) (point.KVs, e
 	if v, err := strconv.ParseInt(strings.ReplaceAll(str, ",", ""), 10, 64); err != nil {
 		return nil, err
 	} else {
-		kvs = kvs.AddV2(key, v, true)
+		kvs = kvs.Set(key, v)
 	}
 
 	return kvs, nil
@@ -240,7 +240,7 @@ func parseTemperatureSensor(key string, str string, kvs point.KVs) (point.KVs, e
 	if _, err := fmt.Sscanf(str, "%d C", &v); err != nil {
 		return nil, err
 	} else {
-		kvs = kvs.AddV2(key, v, true)
+		kvs = kvs.Set(key, v)
 	}
 
 	return kvs, nil
@@ -310,7 +310,7 @@ func parseWearLeveling(key string, str string, kvs point.KVs) (point.KVs, error)
 
 	values := []int64{min, max, avg}
 	for i, submetricName := range []string{"Min", "Max", "Avg"} {
-		kvs = kvs.AddV2(fmt.Sprintf("%s_%s", key, submetricName), values[i], true)
+		kvs = kvs.Set(fmt.Sprintf("%s_%s", key, submetricName), values[i])
 	}
 
 	return kvs, nil
@@ -321,7 +321,7 @@ func parseTimedWorkload(key string, str string, kvs point.KVs) (point.KVs, error
 	if _, err := fmt.Sscanf(str, "%f", &value); err != nil {
 		return nil, err
 	}
-	kvs = kvs.AddV2(key, value, true)
+	kvs = kvs.Set(key, value)
 
 	return kvs, nil
 }
@@ -335,7 +335,7 @@ func parseThermalThrottle(key string, str string, kvs point.KVs) (point.KVs, err
 	if _, err := fmt.Sscanf(str, "%f%%, cnt: %d", &percentage, &count); err != nil {
 		return nil, err
 	} else {
-		kvs = kvs.AddV2(key+"_Prc", percentage, true).AddV2(key+"_Count", count, true)
+		kvs = kvs.Set(key+"_Prc", percentage).Set(key+"_Count", count)
 		return kvs, nil
 	}
 }
@@ -345,7 +345,7 @@ func parseBytesWritten(key string, str string, kvs point.KVs) (point.KVs, error)
 	if _, err := fmt.Sscanf(str, "sectors: %d", &v); err != nil {
 		return nil, err
 	} else {
-		kvs = kvs.AddV2(key, v, true)
+		kvs = kvs.Set(key, v)
 		return kvs, nil
 	}
 }
@@ -354,7 +354,7 @@ func parseCommaSeparatedIntWithCache(key string, str string, kvs point.KVs) (poi
 	if v, err := strconv.ParseInt(strings.ReplaceAll(str, ",", ""), 10, 64); err != nil {
 		return nil, err
 	} else {
-		kvs = kvs.AddV2(key, v, true)
+		kvs = kvs.Set(key, v)
 		return kvs, nil
 	}
 }

@@ -217,7 +217,7 @@ func makePts(source string, cnt []string, tags map[string]string, originFields m
 			fields[k] = v
 		}
 
-		pt := point.NewPointV2(
+		pt := point.NewPoint(
 			source,
 			append(point.NewTags(tags), point.NewKVs(fields)...),
 			opts...,

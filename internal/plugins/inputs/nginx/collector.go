@@ -108,21 +108,21 @@ func (ipt *Input) getStubStatusModuleMetric(port int) {
 	opts = append(opts, point.WithTime(ipt.ptsTime), point.WithExtraTags(ipt.mergedTags))
 
 	for k, v := range ipt.Tags {
-		kvs = kvs.MustAddTag(k, v)
+		kvs = kvs.SetTag(k, v)
 	}
-	kvs = kvs.MustAddTag("nginx_server", ipt.host)
-	kvs = kvs.MustAddTag("nginx_port", strconv.Itoa(port))
+	kvs = kvs.SetTag("nginx_server", ipt.host)
+	kvs = kvs.SetTag("nginx_port", strconv.Itoa(port))
 
-	kvs = kvs.Add("connection_active", active, false, true)
-	kvs = kvs.Add("connection_accepts", accepts, false, true)
-	kvs = kvs.Add("connection_handled", handled, false, true)
-	kvs = kvs.Add("connection_requests", requests, false, true)
-	kvs = kvs.Add("connection_reading", reading, false, true)
-	kvs = kvs.Add("connection_writing", writing, false, true)
-	kvs = kvs.Add("connection_waiting", waiting, false, true)
-	kvs = kvs.Add("connection_dropped", accepts-handled, false, true)
+	kvs = kvs.Set("connection_active", active)
+	kvs = kvs.Set("connection_accepts", accepts)
+	kvs = kvs.Set("connection_handled", handled)
+	kvs = kvs.Set("connection_requests", requests)
+	kvs = kvs.Set("connection_reading", reading)
+	kvs = kvs.Set("connection_writing", writing)
+	kvs = kvs.Set("connection_waiting", waiting)
+	kvs = kvs.Set("connection_dropped", accepts-handled)
 
-	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(measurementNginx, kvs, opts...))
+	ipt.collectCache = append(ipt.collectCache, point.NewPoint(measurementNginx, kvs, opts...))
 }
 
 func (ipt *Input) getVTSMetric(port int) {
@@ -179,19 +179,19 @@ func (ipt *Input) makeConnectionsLine(vtsResp NginxVTSResponse) {
 	opts = append(opts, point.WithTime(ipt.ptsTime), point.WithExtraTags(ipt.mergedTags))
 
 	for k, v := range vtsResp.tags {
-		kvs = kvs.MustAddTag(k, v)
+		kvs = kvs.SetTag(k, v)
 	}
 
-	kvs = kvs.Add("load_timestamp", vtsResp.LoadTimestamp, false, true)
-	kvs = kvs.Add("connection_active", vtsResp.Connections.Active, false, true)
-	kvs = kvs.Add("connection_accepts", vtsResp.Connections.Accepted, false, true)
-	kvs = kvs.Add("connection_handled", vtsResp.Connections.Handled, false, true)
-	kvs = kvs.Add("connection_requests", vtsResp.Connections.Requests, false, true)
-	kvs = kvs.Add("connection_reading", vtsResp.Connections.Reading, false, true)
-	kvs = kvs.Add("connection_writing", vtsResp.Connections.Writing, false, true)
-	kvs = kvs.Add("connection_waiting", vtsResp.Connections.Waiting, false, true)
+	kvs = kvs.Set("load_timestamp", vtsResp.LoadTimestamp)
+	kvs = kvs.Set("connection_active", vtsResp.Connections.Active)
+	kvs = kvs.Set("connection_accepts", vtsResp.Connections.Accepted)
+	kvs = kvs.Set("connection_handled", vtsResp.Connections.Handled)
+	kvs = kvs.Set("connection_requests", vtsResp.Connections.Requests)
+	kvs = kvs.Set("connection_reading", vtsResp.Connections.Reading)
+	kvs = kvs.Set("connection_writing", vtsResp.Connections.Writing)
+	kvs = kvs.Set("connection_waiting", vtsResp.Connections.Waiting)
 
-	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(measurementNginx, kvs, opts...))
+	ipt.collectCache = append(ipt.collectCache, point.NewPoint(measurementNginx, kvs, opts...))
 }
 
 func (ipt *Input) makeServerZoneLine(vtsResp NginxVTSResponse) {
@@ -201,20 +201,20 @@ func (ipt *Input) makeServerZoneLine(vtsResp NginxVTSResponse) {
 		opts = append(opts, point.WithTime(ipt.ptsTime), point.WithExtraTags(ipt.mergedTags))
 
 		for kk, vv := range vtsResp.tags {
-			kvs = kvs.MustAddTag(kk, vv)
+			kvs = kvs.SetTag(kk, vv)
 		}
-		kvs = kvs.MustAddTag("server_zone", k)
+		kvs = kvs.SetTag("server_zone", k)
 
-		kvs = kvs.Add("requests", v.RequestCounter, false, true)
-		kvs = kvs.Add("received", v.InBytes, false, true)
-		kvs = kvs.Add("send", v.OutBytes, false, true)
-		kvs = kvs.Add("response_1xx", v.Responses.OneXx, false, true)
-		kvs = kvs.Add("response_2xx", v.Responses.TwoXx, false, true)
-		kvs = kvs.Add("response_3xx", v.Responses.ThreeXx, false, true)
-		kvs = kvs.Add("response_4xx", v.Responses.FourXx, false, true)
-		kvs = kvs.Add("response_5xx", v.Responses.FiveXx, false, true)
+		kvs = kvs.Set("requests", v.RequestCounter)
+		kvs = kvs.Set("received", v.InBytes)
+		kvs = kvs.Set("send", v.OutBytes)
+		kvs = kvs.Set("response_1xx", v.Responses.OneXx)
+		kvs = kvs.Set("response_2xx", v.Responses.TwoXx)
+		kvs = kvs.Set("response_3xx", v.Responses.ThreeXx)
+		kvs = kvs.Set("response_4xx", v.Responses.FourXx)
+		kvs = kvs.Set("response_5xx", v.Responses.FiveXx)
 
-		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(measurementServerZone, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPoint(measurementServerZone, kvs, opts...))
 	}
 }
 
@@ -226,21 +226,21 @@ func (ipt *Input) makeUpstreamZoneLine(vtsResp NginxVTSResponse) {
 			opts = append(opts, point.WithTime(ipt.ptsTime), point.WithExtraTags(ipt.mergedTags))
 
 			for kk, vv := range vtsResp.tags {
-				kvs = kvs.MustAddTag(kk, vv)
+				kvs = kvs.SetTag(kk, vv)
 			}
-			kvs = kvs.MustAddTag("upstream_zone", upsteamName)
-			kvs = kvs.MustAddTag("upstream_server", upstream.Server)
+			kvs = kvs.SetTag("upstream_zone", upsteamName)
+			kvs = kvs.SetTag("upstream_server", upstream.Server)
 
-			kvs = kvs.Add("request_count", upstream.RequestCounter, false, true)
-			kvs = kvs.Add("received", upstream.InBytes, false, true)
-			kvs = kvs.Add("send", upstream.OutBytes, false, true)
-			kvs = kvs.Add("response_1xx", upstream.Responses.OneXx, false, true)
-			kvs = kvs.Add("response_2xx", upstream.Responses.TwoXx, false, true)
-			kvs = kvs.Add("response_3xx", upstream.Responses.ThreeXx, false, true)
-			kvs = kvs.Add("response_4xx", upstream.Responses.FourXx, false, true)
-			kvs = kvs.Add("response_5xx", upstream.Responses.FiveXx, false, true)
+			kvs = kvs.Set("request_count", upstream.RequestCounter)
+			kvs = kvs.Set("received", upstream.InBytes)
+			kvs = kvs.Set("send", upstream.OutBytes)
+			kvs = kvs.Set("response_1xx", upstream.Responses.OneXx)
+			kvs = kvs.Set("response_2xx", upstream.Responses.TwoXx)
+			kvs = kvs.Set("response_3xx", upstream.Responses.ThreeXx)
+			kvs = kvs.Set("response_4xx", upstream.Responses.FourXx)
+			kvs = kvs.Set("response_5xx", upstream.Responses.FiveXx)
 
-			ipt.collectCache = append(ipt.collectCache, point.NewPointV2(measurementUpstreamZone, kvs, opts...))
+			ipt.collectCache = append(ipt.collectCache, point.NewPoint(measurementUpstreamZone, kvs, opts...))
 		}
 	}
 }
@@ -252,24 +252,24 @@ func (ipt *Input) makeCacheZoneLine(vtsResp NginxVTSResponse) {
 		opts = append(opts, point.WithTime(ipt.ptsTime), point.WithExtraTags(ipt.mergedTags))
 
 		for kk, vv := range vtsResp.tags {
-			kvs = kvs.MustAddTag(kk, vv)
+			kvs = kvs.SetTag(kk, vv)
 		}
-		kvs = kvs.MustAddTag("cache_zone", cacheName)
+		kvs = kvs.SetTag("cache_zone", cacheName)
 
-		kvs = kvs.Add("max_size", cacheZone.MaxSize, false, true)
-		kvs = kvs.Add("used_size", cacheZone.UsedSize, false, true)
-		kvs = kvs.Add("received", cacheZone.InBytes, false, true)
-		kvs = kvs.Add("send", cacheZone.OutBytes, false, true)
-		kvs = kvs.Add("responses_miss", cacheZone.Responses.Miss, false, true)
-		kvs = kvs.Add("responses_bypass", cacheZone.Responses.Bypass, false, true)
-		kvs = kvs.Add("responses_expired", cacheZone.Responses.Expired, false, true)
-		kvs = kvs.Add("responses_stale", cacheZone.Responses.Stale, false, true)
-		kvs = kvs.Add("responses_updating", cacheZone.Responses.Updating, false, true)
-		kvs = kvs.Add("responses_revalidated", cacheZone.Responses.Revalidated, false, true)
-		kvs = kvs.Add("responses_hit", cacheZone.Responses.Hit, false, true)
-		kvs = kvs.Add("responses_scarce", cacheZone.Responses.Scarce, false, true)
+		kvs = kvs.Set("max_size", cacheZone.MaxSize)
+		kvs = kvs.Set("used_size", cacheZone.UsedSize)
+		kvs = kvs.Set("received", cacheZone.InBytes)
+		kvs = kvs.Set("send", cacheZone.OutBytes)
+		kvs = kvs.Set("responses_miss", cacheZone.Responses.Miss)
+		kvs = kvs.Set("responses_bypass", cacheZone.Responses.Bypass)
+		kvs = kvs.Set("responses_expired", cacheZone.Responses.Expired)
+		kvs = kvs.Set("responses_stale", cacheZone.Responses.Stale)
+		kvs = kvs.Set("responses_updating", cacheZone.Responses.Updating)
+		kvs = kvs.Set("responses_revalidated", cacheZone.Responses.Revalidated)
+		kvs = kvs.Set("responses_hit", cacheZone.Responses.Hit)
+		kvs = kvs.Set("responses_scarce", cacheZone.Responses.Scarce)
 
-		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(measurementCacheZone, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPoint(measurementCacheZone, kvs, opts...))
 	}
 }
 
@@ -344,14 +344,14 @@ func (ipt *Input) makeNginxLine(plusAPIResp NginxPlusAPIResponse) {
 	opts = append(opts, point.WithTime(ipt.ptsTime), point.WithExtraTags(ipt.mergedTags))
 
 	for k, v := range plusAPIResp.tags {
-		kvs = kvs.MustAddTag(k, v)
+		kvs = kvs.SetTag(k, v)
 	}
 
-	kvs = kvs.MustAddTag("nginx_version", plusAPIResp.General.Version)
-	kvs = kvs.Add("pid", plusAPIResp.General.Pid, false, true)
-	kvs = kvs.Add("ppid", plusAPIResp.General.Ppid, false, true)
+	kvs = kvs.SetTag("nginx_version", plusAPIResp.General.Version)
+	kvs = kvs.Set("pid", plusAPIResp.General.Pid)
+	kvs = kvs.Set("ppid", plusAPIResp.General.Ppid)
 
-	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(measurementNginx, kvs, opts...))
+	ipt.collectCache = append(ipt.collectCache, point.NewPoint(measurementNginx, kvs, opts...))
 }
 
 func (ipt *Input) makeServerLine(plusAPIResp NginxPlusAPIResponse) {
@@ -361,29 +361,29 @@ func (ipt *Input) makeServerLine(plusAPIResp NginxPlusAPIResponse) {
 		opts = append(opts, point.WithTime(ipt.ptsTime), point.WithExtraTags(ipt.mergedTags))
 
 		for kk, vv := range plusAPIResp.tags {
-			kvs = kvs.MustAddTag(kk, vv)
+			kvs = kvs.SetTag(kk, vv)
 		}
 
-		kvs = kvs.MustAddTag("server_zone", k)
-		kvs = kvs.Add("processing", v.Processing, false, true)
-		kvs = kvs.Add("requests", v.Requests, false, true)
-		kvs = kvs.Add("responses", v.Responses.Total, false, true)
-		kvs = kvs.Add("received", v.Received, false, true)
-		kvs = kvs.Add("send", v.Sent, false, true)
-		kvs = kvs.Add("discarded", v.Discarded, false, true)
+		kvs = kvs.SetTag("server_zone", k)
+		kvs = kvs.Set("processing", v.Processing)
+		kvs = kvs.Set("requests", v.Requests)
+		kvs = kvs.Set("responses", v.Responses.Total)
+		kvs = kvs.Set("received", v.Received)
+		kvs = kvs.Set("send", v.Sent)
+		kvs = kvs.Set("discarded", v.Discarded)
 
-		kvs = kvs.Add("response_1xx", v.Responses.OneXX, false, true)
-		kvs = kvs.Add("response_2xx", v.Responses.TwoXX, false, true)
-		kvs = kvs.Add("response_3xx", v.Responses.ThreeXX, false, true)
-		kvs = kvs.Add("response_4xx", v.Responses.FourXX, false, true)
-		kvs = kvs.Add("response_5xx", v.Responses.FiveXX, false, true)
+		kvs = kvs.Set("response_1xx", v.Responses.OneXX)
+		kvs = kvs.Set("response_2xx", v.Responses.TwoXX)
+		kvs = kvs.Set("response_3xx", v.Responses.ThreeXX)
+		kvs = kvs.Set("response_4xx", v.Responses.FourXX)
+		kvs = kvs.Set("response_5xx", v.Responses.FiveXX)
 
-		kvs = kvs.Add("code_200", v.Responses.Codes.Code200, false, true)
-		kvs = kvs.Add("code_301", v.Responses.Codes.Code301, false, true)
-		kvs = kvs.Add("code_404", v.Responses.Codes.Code404, false, true)
-		kvs = kvs.Add("code_503", v.Responses.Codes.Code503, false, true)
+		kvs = kvs.Set("code_200", v.Responses.Codes.Code200)
+		kvs = kvs.Set("code_301", v.Responses.Codes.Code301)
+		kvs = kvs.Set("code_404", v.Responses.Codes.Code404)
+		kvs = kvs.Set("code_503", v.Responses.Codes.Code503)
 
-		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(measurementServerZone, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPoint(measurementServerZone, kvs, opts...))
 	}
 }
 
@@ -395,27 +395,27 @@ func (ipt *Input) makeUpStreamLine(plusAPIResp NginxPlusAPIResponse) {
 			opts = append(opts, point.WithTime(ipt.ptsTime), point.WithExtraTags(ipt.mergedTags))
 
 			for kk, vv := range plusAPIResp.tags {
-				kvs = kvs.MustAddTag(kk, vv)
+				kvs = kvs.SetTag(kk, vv)
 			}
-			kvs = kvs.MustAddTag("upstream_zone", upsteamName)
-			kvs = kvs.MustAddTag("upstream_server", upstream.Server)
+			kvs = kvs.SetTag("upstream_zone", upsteamName)
+			kvs = kvs.SetTag("upstream_server", upstream.Server)
 
-			kvs = kvs.Add("backup", upstream.Backup, false, true)
-			kvs = kvs.Add("weight", upstream.Weight, false, true)
-			kvs = kvs.Add("state", upstream.State, false, true)
-			kvs = kvs.Add("active", upstream.Active, false, true)
-			kvs = kvs.Add("request_count", upstream.Requests, false, true)
-			kvs = kvs.Add("received", upstream.Received, false, true)
-			kvs = kvs.Add("send", upstream.Sent, false, true)
-			kvs = kvs.Add("fails", upstream.Fails, false, true)
-			kvs = kvs.Add("unavail", upstream.Unavail, false, true)
-			kvs = kvs.Add("response_1xx", upstream.Responses.OneXX, false, true)
-			kvs = kvs.Add("response_2xx", upstream.Responses.TwoXX, false, true)
-			kvs = kvs.Add("response_3xx", upstream.Responses.ThreeXX, false, true)
-			kvs = kvs.Add("response_4xx", upstream.Responses.FourXX, false, true)
-			kvs = kvs.Add("response_5xx", upstream.Responses.FiveXX, false, true)
+			kvs = kvs.Set("backup", upstream.Backup)
+			kvs = kvs.Set("weight", upstream.Weight)
+			kvs = kvs.Set("state", upstream.State)
+			kvs = kvs.Set("active", upstream.Active)
+			kvs = kvs.Set("request_count", upstream.Requests)
+			kvs = kvs.Set("received", upstream.Received)
+			kvs = kvs.Set("send", upstream.Sent)
+			kvs = kvs.Set("fails", upstream.Fails)
+			kvs = kvs.Set("unavail", upstream.Unavail)
+			kvs = kvs.Set("response_1xx", upstream.Responses.OneXX)
+			kvs = kvs.Set("response_2xx", upstream.Responses.TwoXX)
+			kvs = kvs.Set("response_3xx", upstream.Responses.ThreeXX)
+			kvs = kvs.Set("response_4xx", upstream.Responses.FourXX)
+			kvs = kvs.Set("response_5xx", upstream.Responses.FiveXX)
 
-			ipt.collectCache = append(ipt.collectCache, point.NewPointV2(measurementUpstreamZone, kvs, opts...))
+			ipt.collectCache = append(ipt.collectCache, point.NewPoint(measurementUpstreamZone, kvs, opts...))
 		}
 	}
 }
@@ -427,22 +427,22 @@ func (ipt *Input) makeCacheLine(plusAPIResp NginxPlusAPIResponse) {
 		opts = append(opts, point.WithTime(ipt.ptsTime), point.WithExtraTags(ipt.mergedTags))
 
 		for kk, vv := range plusAPIResp.tags {
-			kvs = kvs.MustAddTag(kk, vv)
+			kvs = kvs.SetTag(kk, vv)
 		}
-		kvs = kvs.MustAddTag("cache_zone", k)
+		kvs = kvs.SetTag("cache_zone", k)
 
-		kvs = kvs.Add("used_size", v.Size, false, true)
-		kvs = kvs.Add("max_size", v.MaxSize, false, true)
+		kvs = kvs.Set("used_size", v.Size)
+		kvs = kvs.Set("max_size", v.MaxSize)
 
-		kvs = kvs.Add("responses_hit", v.Hit.Bytes, false, true)
-		kvs = kvs.Add("responses_stale", v.Stale.Bytes, false, true)
-		kvs = kvs.Add("responses_updating", v.Updating.Bytes, false, true)
-		kvs = kvs.Add("responses_revalidated", v.Revalidated.Bytes, false, true)
-		kvs = kvs.Add("responses_miss", v.Miss.Bytes, false, true)
-		kvs = kvs.Add("responses_expired", v.Expired.Bytes, false, true)
-		kvs = kvs.Add("responses_bypass", v.Bypass.Bytes, false, true)
+		kvs = kvs.Set("responses_hit", v.Hit.Bytes)
+		kvs = kvs.Set("responses_stale", v.Stale.Bytes)
+		kvs = kvs.Set("responses_updating", v.Updating.Bytes)
+		kvs = kvs.Set("responses_revalidated", v.Revalidated.Bytes)
+		kvs = kvs.Set("responses_miss", v.Miss.Bytes)
+		kvs = kvs.Set("responses_expired", v.Expired.Bytes)
+		kvs = kvs.Set("responses_bypass", v.Bypass.Bytes)
 
-		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(measurementServerZone, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPoint(measurementServerZone, kvs, opts...))
 	}
 }
 
@@ -453,25 +453,25 @@ func (ipt *Input) makeLocationLine(plusAPIResp NginxPlusAPIResponse) {
 		opts = append(opts, point.WithTime(ipt.ptsTime), point.WithExtraTags(ipt.mergedTags))
 
 		for kk, vv := range plusAPIResp.tags {
-			kvs = kvs.MustAddTag(kk, vv)
+			kvs = kvs.SetTag(kk, vv)
 		}
-		kvs.MustAddTag("location_zone", locationName)
+		kvs.SetTag("location_zone", locationName)
 
-		kvs.Add("requests", location.Requests, false, true)
-		kvs.Add("response", location.Responses.Total, false, true)
-		kvs.Add("discarded", location.Discarded, false, true)
-		kvs.Add("received", location.Received, false, true)
-		kvs.Add("sent", location.Sent, false, true)
-		kvs.Add("response_1xx", location.Responses.OneXX, false, true)
-		kvs.Add("response_2xx", location.Responses.TwoXX, false, true)
-		kvs.Add("response_3xx", location.Responses.ThreeXX, false, true)
-		kvs.Add("response_4xx", location.Responses.FourXX, false, true)
-		kvs.Add("response_5xx", location.Responses.FiveXX, false, true)
-		kvs.Add("code_200", location.Responses.Codes.Code200, false, true)
-		kvs.Add("code_301", location.Responses.Codes.Code301, false, true)
-		kvs.Add("code_404", location.Responses.Codes.Code404, false, true)
-		kvs.Add("code_503", location.Responses.Codes.Code503, false, true)
+		kvs.Set("requests", location.Requests)
+		kvs.Set("response", location.Responses.Total)
+		kvs.Set("discarded", location.Discarded)
+		kvs.Set("received", location.Received)
+		kvs.Set("sent", location.Sent)
+		kvs.Set("response_1xx", location.Responses.OneXX)
+		kvs.Set("response_2xx", location.Responses.TwoXX)
+		kvs.Set("response_3xx", location.Responses.ThreeXX)
+		kvs.Set("response_4xx", location.Responses.FourXX)
+		kvs.Set("response_5xx", location.Responses.FiveXX)
+		kvs.Set("code_200", location.Responses.Codes.Code200)
+		kvs.Set("code_301", location.Responses.Codes.Code301)
+		kvs.Set("code_404", location.Responses.Codes.Code404)
+		kvs.Set("code_503", location.Responses.Codes.Code503)
 
-		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(measurementLocationZone, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPoint(measurementLocationZone, kvs, opts...))
 	}
 }

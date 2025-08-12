@@ -92,12 +92,12 @@ func (c *cronjob) buildMetricPoints(list *apibatchv1.CronJobList, timestamp int6
 		kvs = kvs.AddTag("namespace", item.Namespace)
 
 		if item.Spec.Suspend != nil {
-			kvs = kvs.AddV2("spec_suspend", *item.Spec.Suspend, false)
+			kvs = kvs.Add("spec_suspend", *item.Spec.Suspend)
 		}
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, c.cfg.LabelAsTagsForMetric.All, c.cfg.LabelAsTagsForMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(c.cfg.ExtraTags)...)
-		pt := point.NewPointV2(cronjobMetricMeasurement, kvs, opts...)
+		pt := point.NewPoint(cronjobMetricMeasurement, kvs, opts...)
 		pts = append(pts, pt)
 
 		c.counter[item.Namespace]++
@@ -118,29 +118,29 @@ func (c *cronjob) buildObjectPoints(list *apibatchv1.CronJobList) []*point.Point
 		kvs = kvs.AddTag("cron_job_name", item.Name)
 		kvs = kvs.AddTag("namespace", item.Namespace)
 
-		kvs = kvs.AddV2("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3, false)
-		kvs = kvs.AddV2("schedule", item.Spec.Schedule, false)
-		kvs = kvs.AddV2("active_jobs", len(item.Status.Active), false)
+		kvs = kvs.Add("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3)
+		kvs = kvs.Add("schedule", item.Spec.Schedule)
+		kvs = kvs.Add("active_jobs", len(item.Status.Active))
 
 		if item.Spec.Suspend != nil {
-			kvs = kvs.AddV2("suspend", *item.Spec.Suspend, false)
+			kvs = kvs.Add("suspend", *item.Spec.Suspend)
 		}
 
 		if y, err := yaml.Marshal(item); err == nil {
-			kvs = kvs.AddV2("yaml", string(y), false)
+			kvs = kvs.Add("yaml", string(y))
 		}
-		kvs = kvs.AddV2("annotations", pointutil.MapToJSON(item.Annotations), false)
+		kvs = kvs.Add("annotations", pointutil.MapToJSON(item.Annotations))
 		kvs = append(kvs, pointutil.ConvertDFLabels(item.Labels)...)
 
 		msg := pointutil.PointKVsToJSON(kvs)
-		kvs = kvs.AddV2("message", pointutil.TrimString(msg, maxMessageLength), false)
+		kvs = kvs.Add("message", pointutil.TrimString(msg, maxMessageLength))
 
 		kvs = kvs.Del("annotations")
 		kvs = kvs.Del("yaml")
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, c.cfg.LabelAsTagsForNonMetric.All, c.cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(c.cfg.ExtraTags)...)
-		pt := point.NewPointV2(cronjobObjectClass, kvs, opts...)
+		pt := point.NewPoint(cronjobObjectClass, kvs, opts...)
 		pts = append(pts, pt)
 	}
 

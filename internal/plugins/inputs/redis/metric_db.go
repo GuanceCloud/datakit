@@ -86,7 +86,7 @@ func (ipt *Input) parseDBData(list string) ([]*point.Point, error) {
 				continue
 			}
 
-			kvs = kvs.Add(item[0], f, false, false)
+			kvs = kvs.Add(item[0], f)
 		}
 
 		if len(ipt.DBS) == 0 {
@@ -97,13 +97,13 @@ func (ipt *Input) parseDBData(list string) ([]*point.Point, error) {
 				for k, v := range ipt.mergedTags {
 					kvs = kvs.AddTag(k, v)
 				}
-				collectCache = append(collectCache, point.NewPointV2(redisDB, kvs, opts...))
+				collectCache = append(collectCache, point.NewPoint(redisDB, kvs, opts...))
 			}
 		} else if IsSlicesHave(dbIndexSlice, dbIndex) && kvs.FieldCount() > 0 {
 			for k, v := range ipt.mergedTags {
 				kvs = kvs.AddTag(k, v)
 			}
-			collectCache = append(collectCache, point.NewPointV2(redisDB, kvs, opts...))
+			collectCache = append(collectCache, point.NewPoint(redisDB, kvs, opts...))
 		}
 	}
 

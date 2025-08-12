@@ -198,11 +198,11 @@ func (ipt *Input) parseSlowData(slowlogs any) ([]*point.Point, error) {
 			command = strings.Join(arr, " ")
 		}
 
-		kvs = kvs.Add("slowlog_micros", duration, false, false)
-		kvs = kvs.Add("slowlog_id", id, false, false)
-		kvs = kvs.Add("command", command, false, false)
-		kvs = kvs.Add("message", command+" cost time "+strconv.FormatInt(duration, 10)+"us", false, false)
-		kvs = kvs.Add("status", "WARNING", false, false)
+		kvs = kvs.Add("slowlog_micros", duration)
+		kvs = kvs.Add("slowlog_id", id)
+		kvs = kvs.Add("command", command)
+		kvs = kvs.Add("message", command+" cost time "+strconv.FormatInt(duration, 10)+"us")
+		kvs = kvs.Add("status", "WARNING")
 
 		// calculate avg, max, median, P95, count
 		maxDur, _ := stats.Max(durationList)
@@ -213,25 +213,25 @@ func (ipt *Input) parseSlowData(slowlogs any) ([]*point.Point, error) {
 			p95Dur = maxDur
 		}
 
-		kvs = kvs.Add("slowlog_avg", avgDur, false, false)
-		kvs = kvs.Add("slowlog_max", int64(maxDur), false, false)
-		kvs = kvs.Add("slowlog_median", int64(midDur), false, false)
-		kvs = kvs.Add("slowlog_95percentile", p95Dur, false, false)
+		kvs = kvs.Add("slowlog_avg", avgDur)
+		kvs = kvs.Add("slowlog_max", int64(maxDur))
+		kvs = kvs.Add("slowlog_median", int64(midDur))
+		kvs = kvs.Add("slowlog_95percentile", p95Dur)
 
 		if len(entry) >= 6 { // redis 4.0+
 			if x, ok := entry[4].(string); ok {
-				kvs = kvs.Add("client_addr", x, false, false)
+				kvs = kvs.Add("client_addr", x)
 			}
 
 			if x, ok := entry[5].(string); ok {
-				kvs = kvs.Add("client_name", x, false, false)
+				kvs = kvs.Add("client_name", x)
 			}
 		}
 
 		for k, v := range ipt.mergedTags {
 			kvs = kvs.AddTag(k, v)
 		}
-		collectCache = append(collectCache, point.NewPointV2(redisSlowlog, kvs, opts...))
+		collectCache = append(collectCache, point.NewPoint(redisSlowlog, kvs, opts...))
 	}
 	return collectCache, nil
 }

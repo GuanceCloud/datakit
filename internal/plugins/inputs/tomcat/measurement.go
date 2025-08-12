@@ -34,7 +34,7 @@ func (m *measurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts), m.opt)
 
-	return point.NewPointV2(m.name,
+	return point.NewPoint(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }
@@ -56,7 +56,7 @@ func (m *TomcatGlobalRequestProcessorM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts), m.opt)
 
-	return point.NewPointV2(m.name,
+	return point.NewPoint(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }
@@ -94,7 +94,7 @@ func (m *TomcatJspMonitorM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts), m.opt)
 
-	return point.NewPointV2(m.name,
+	return point.NewPoint(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }
@@ -126,7 +126,7 @@ func (m *TomcatThreadPoolM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts), m.opt)
 
-	return point.NewPointV2(m.name,
+	return point.NewPoint(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }
@@ -156,7 +156,7 @@ func (m *TomcatServletM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts), m.opt)
 
-	return point.NewPointV2(m.name,
+	return point.NewPoint(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }
@@ -195,7 +195,7 @@ func (m *TomcatCacheM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts), m.opt)
 
-	return point.NewPointV2(m.name,
+	return point.NewPoint(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }
@@ -254,7 +254,7 @@ func (m *TomcatM) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.ts), m.opt)
 
-	return point.NewPointV2(m.name,
+	return point.NewPoint(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }

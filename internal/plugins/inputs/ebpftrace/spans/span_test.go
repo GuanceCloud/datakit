@@ -27,7 +27,7 @@ func TestMRTrace(t *testing.T) {
 	id1, _ := uid.ID()
 	id2, _ := uid.ID()
 	pts := []*point.Point{
-		point.NewPointV2("dketrace", point.NewKVs(map[string]any{
+		point.NewPoint("dketrace", point.NewKVs(map[string]any{
 			espan.DirectionStr: espan.OUTG,
 			"__id__":           "1_1",
 			espan.ReqSeq:       1,
@@ -36,7 +36,7 @@ func TestMRTrace(t *testing.T) {
 			espan.SpanID:       int64(hash.Fnv1aU8Hash(id1.Byte())),
 			espan.EBPFSpanType: "exit",
 		})),
-		point.NewPointV2("dketrace", point.NewKVs(map[string]any{
+		point.NewPoint("dketrace", point.NewKVs(map[string]any{
 			espan.DirectionStr: espan.INCO,
 			"__id__":           "2_1",
 			espan.ReqSeq:       1,

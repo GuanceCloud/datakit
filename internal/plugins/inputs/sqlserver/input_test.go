@@ -173,7 +173,7 @@ func TestPipeline(t *testing.T) {
 					`origin`:  `spid28s`,
 					`status`:  `info`,
 				}
-				return point.NewPointV2(source,
+				return point.NewPoint(source,
 					point.NewKVs(fields),
 					opts...)
 			}(),
@@ -187,7 +187,7 @@ func TestPipeline(t *testing.T) {
 					`origin`:  `Server`,
 					`status`:  `info`,
 				}
-				return point.NewPointV2(source,
+				return point.NewPoint(source,
 					point.NewKVs(fields),
 					opts...)
 			}(),
@@ -217,7 +217,7 @@ func TestPipeline(t *testing.T) {
 		for idx, ln := range logs {
 			kvs := point.NewKVs(map[string]any{"message": ln})
 			opt := point.DefaultLoggingOptions()
-			pt := point.NewPointV2(source, kvs, opt...)
+			pt := point.NewPoint(source, kvs, opt...)
 
 			ptD := ptinput.PtWrap(point.Logging, pt)
 			err := p.Run(ptD, nil, nil)

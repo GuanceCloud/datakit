@@ -96,16 +96,16 @@ func (p *Parser) Parse(timeSeries []prompb.TimeSeries, ipt *Input, additionalTag
 					len(ipt.mergedTags)+len(additionalTags))
 
 				for k, v := range ipt.mergedTags {
-					kvs = kvs.MustAddTag(k, v)
+					kvs = kvs.SetTag(k, v)
 				}
 				for k, v := range additionalTags {
-					kvs = kvs.MustAddTag(k, v)
+					kvs = kvs.SetTag(k, v)
 				}
 				for k, v := range tags {
-					kvs = kvs.MustAddTag(k, string(v))
+					kvs = kvs.SetTag(k, string(v))
 				}
 
-				kvs = kvs.Add(metricName, s.Value, false, true)
+				kvs = kvs.Set(metricName, s.Value)
 
 				if s.Timestamp > 0 {
 					t = time.Unix(0, s.Timestamp*1000000)
@@ -117,7 +117,7 @@ func (p *Parser) Parse(timeSeries []prompb.TimeSeries, ipt *Input, additionalTag
 					noTime++
 				}
 
-				pts = append(pts, point.NewPointV2(measurementName, kvs, opts...))
+				pts = append(pts, point.NewPoint(measurementName, kvs, opts...))
 			}
 		}
 	}

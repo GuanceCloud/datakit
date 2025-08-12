@@ -157,7 +157,7 @@ func (ipt *Input) processLogBody(param *parameters) error {
 					for k, v := range v {
 						switch k {
 						case "log":
-							kvs = kvs.Add(constants.FieldMessage, v, false, true)
+							kvs = kvs.Set(constants.FieldMessage, v)
 						case "date":
 							switch v := v.(type) {
 							case float64:
@@ -169,12 +169,12 @@ func (ipt *Input) processLogBody(param *parameters) error {
 							case int32:
 								ts = int64(v) * 1e9
 							default:
-								kvs = kvs.Add(k, v, false, true)
+								kvs = kvs.Set(k, v)
 							}
 						case "source":
-							kvs = kvs.Add("firelens_source", v, false, true)
+							kvs = kvs.Set("firelens_source", v)
 						default:
-							kvs = kvs.Add(k, v, false, true)
+							kvs = kvs.Set(k, v)
 						}
 					}
 
@@ -182,7 +182,7 @@ func (ipt *Input) processLogBody(param *parameters) error {
 						ts = now.UnixNano()
 					}
 
-					pts = append(pts, point.NewPointV2(source, kvs,
+					pts = append(pts, point.NewPoint(source, kvs,
 						append(logPtOpt, point.WithExtraTags(extraTags), point.WithTimestamp(ts))...))
 				}
 				decJSON = true
@@ -191,9 +191,9 @@ func (ipt *Input) processLogBody(param *parameters) error {
 
 		if !decJSON {
 			var kvs point.KVs
-			kvs = kvs.Add(constants.FieldMessage, string(body), false, true)
+			kvs = kvs.Set(constants.FieldMessage, string(body))
 
-			pts = append(pts, point.NewPointV2(source, kvs, append(
+			pts = append(pts, point.NewPoint(source, kvs, append(
 				logPtOpt,
 				point.WithExtraTags(extraTags),
 				point.WithTime(now))...),
@@ -211,9 +211,9 @@ func (ipt *Input) processLogBody(param *parameters) error {
 		for scanner.Scan() {
 			var kvs point.KVs
 
-			kvs = kvs.AddV2(constants.FieldMessage, scanner.Text(), true).
-				AddV2(constants.FieldStatus, pipeline.DefaultStatus, true)
-			pts = append(pts, point.NewPointV2(source, kvs,
+			kvs = kvs.Set(constants.FieldMessage, scanner.Text()).
+				Set(constants.FieldStatus, pipeline.DefaultStatus)
+			pts = append(pts, point.NewPoint(source, kvs,
 				append(logPtOpt, point.WithExtraTags(extraTags), point.WithTime(now))...))
 		}
 	}

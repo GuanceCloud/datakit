@@ -31,7 +31,7 @@ func newpt(name string, tags map[string]string,
 	fields map[string]any, tn time.Time,
 ) *point.Point {
 	kvs := append(point.NewTags(tags), point.NewKVs(fields)...)
-	return point.NewPointV2(
+	return point.NewPoint(
 		name, kvs, append(point.DefaultLoggingOptions(),
 			point.WithTime(tn))...,
 	)
@@ -133,12 +133,12 @@ func TestRunpl(t *T.T) {
 func Test_correctPointTime(t *T.T) {
 	t.Run("basic", func(t *T.T) {
 		var kvs point.KVs
-		kvs = kvs.AddV2("f1", 1, true)
+		kvs = kvs.Set("f1", 1)
 		now := time.Unix(0, 456)
 
 		pts := []*point.Point{
-			point.NewPointV2("some", kvs, point.WithTimestamp(123)),
-			point.NewPointV2("some", kvs, point.WithTime(now)), // no correction
+			point.NewPoint("some", kvs, point.WithTimestamp(123)),
+			point.NewPoint("some", kvs, point.WithTime(now)), // no correction
 		}
 
 		after, n := correctPointTime(pts, now, 1)

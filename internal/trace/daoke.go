@@ -127,13 +127,13 @@ func ParseToJaeger(msg []byte) (*point.Point, error) {
 		d = 100
 	}
 	startTime := jaegerSpan.StartTime.UnixNano() / int64(time.Microsecond)
-	spanKV = spanKV.Add(FieldTraceID, decoder(jaegerSpan.TraceId), false, false).
-		Add(FieldParentID, parentID, false, false).
-		Add(FieldSpanid, decoder(jaegerSpan.SpanId), false, false).
-		Add(FieldStart, startTime, false, false).
-		Add(FieldDuration, int64(d)/int64(time.Microsecond), false, false).
+	spanKV = spanKV.Add(FieldTraceID, decoder(jaegerSpan.TraceId)).
+		Add(FieldParentID, parentID).
+		Add(FieldSpanid, decoder(jaegerSpan.SpanId)).
+		Add(FieldStart, startTime).
+		Add(FieldDuration, int64(d)/int64(time.Microsecond)).
 		AddTag(TagOperation, jaegerSpan.OperationName).
-		Add(FieldResource, jaegerSpan.OperationName, false, false).
+		Add(FieldResource, jaegerSpan.OperationName).
 		AddTag(TagService, jaegerSpan.Process.ServiceName).
 		AddTag(TagSpanType, spanType).
 		AddTag(TagSpanStatus, StatusOk)
@@ -147,12 +147,12 @@ func ParseToJaeger(msg []byte) (*point.Point, error) {
 	}
 	for _, tag := range jaegerSpan.Tags {
 		if tag.Key == "error" {
-			spanKV = spanKV.MustAddTag(TagSpanStatus, StatusErr)
+			spanKV = spanKV.SetTag(TagSpanStatus, StatusErr)
 		}
 		spanKV = spanKV.AddTag(strings.ReplaceAll(tag.Key, ".", "_"), tag.getVal())
 	}
 
-	spanKV = spanKV.Add(FieldMessage, string(msg), false, false)
-	pts := point.NewPointV2("otel_jaeger", spanKV, point.DefaultLoggingOptions()...)
+	spanKV = spanKV.Add(FieldMessage, string(msg))
+	pts := point.NewPoint("otel_jaeger", spanKV, point.DefaultLoggingOptions()...)
 	return pts, nil
 }

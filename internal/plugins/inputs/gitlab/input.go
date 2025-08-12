@@ -243,7 +243,7 @@ func (ipt *Input) gatherMetrics(ptTS int64) ([]*point.Point, error) {
 
 		opts := point.DefaultMetricOptions()
 		opts = append(opts, point.WithTimestamp(ptTS))
-		points = append(points, point.NewPointV2(measurement,
+		points = append(points, point.NewPoint(measurement,
 			append(point.NewTags(m.tags), point.NewKVs(m.fields)...), opts...),
 		)
 	}

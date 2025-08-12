@@ -25,7 +25,7 @@ func (m *Object) Point() *point.Point {
 		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
 	}
 
-	return point.NewPointV2(m.class,
+	return point.NewPoint(m.class,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }
