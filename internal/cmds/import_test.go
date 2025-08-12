@@ -55,8 +55,8 @@ func Test_adjustPointTime(t *T.T) {
 
 		pts := []*point.Point{
 			// 2 points with interval 1h
-			point.NewPointV2("p1", nil, point.WithTime(when.Add(-2*time.Hour))),
-			point.NewPointV2("p2", nil, point.WithTime(when.Add(-time.Hour))),
+			point.NewPoint("p1", nil, point.WithTime(when.Add(-2*time.Hour))),
+			point.NewPoint("p2", nil, point.WithTime(when.Add(-time.Hour))),
 		}
 
 		t.Logf("before pts: %s", pts[0].Pretty())

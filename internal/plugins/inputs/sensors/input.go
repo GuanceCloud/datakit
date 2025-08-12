@@ -145,7 +145,7 @@ func (ipt *Input) parse(output string) ([]*point.Point, error) {
 	for _, line := range lines {
 		if line == "" {
 			cache = append(cache,
-				point.NewPointV2(inputName,
+				point.NewPoint(inputName,
 					append(point.NewTags(tags), point.NewKVs(fields)...),
 					opts...))
 
@@ -164,7 +164,7 @@ func (ipt *Input) parse(output string) ([]*point.Point, error) {
 		case strings.HasSuffix(line, ":"):
 			if len(fields) != 0 {
 				cache = append(cache,
-					point.NewPointV2(inputName,
+					point.NewPoint(inputName,
 						append(point.NewTags(tags), point.NewKVs(fields)...),
 						opts...))
 
@@ -191,7 +191,7 @@ func (ipt *Input) parse(output string) ([]*point.Point, error) {
 
 	if len(fields) != 0 {
 		cache = append(cache,
-			point.NewPointV2(inputName,
+			point.NewPoint(inputName,
 				append(point.NewTags(tags), point.NewKVs(fields)...),
 				opts...))
 	}

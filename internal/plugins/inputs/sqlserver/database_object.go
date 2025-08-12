@@ -199,25 +199,25 @@ func (ipt *Input) metricCollectSqlserverObject() {
 		AddTag("host", ipt.Object.host).
 		AddTag("server", ipt.Object.name).
 		AddTag("port", ipt.Object.port).
-		AddV2("uptime", ipt.Uptime, false).
-		AddV2("message", message.String(), false)
+		Add("uptime", ipt.Uptime).
+		Add("message", message.String())
 
 	if ipt.objectMetric != nil {
 		if ipt.objectMetric.BatchRequests != nil {
-			kvs = kvs.AddV2("qps", ipt.objectMetric.BatchRequests.Value, false)
+			kvs = kvs.Add("qps", ipt.objectMetric.BatchRequests.Value)
 		}
 		if ipt.objectMetric.Transactions != nil {
-			kvs = kvs.AddV2("tps", ipt.objectMetric.Transactions.Value, false)
+			kvs = kvs.Add("tps", ipt.objectMetric.Transactions.Value)
 		}
 	}
 
 	if avgQueryTime, err := ipt.getAvgQueryTime(); err != nil {
 		l.Warnf("failed to get avg query time: %s", err)
 	} else {
-		kvs = kvs.AddV2("avg_query_time", avgQueryTime, false)
+		kvs = kvs.Add("avg_query_time", avgQueryTime)
 	}
 
-	pts := []*point.Point{point.NewPointV2("database", kvs, opts...)}
+	pts := []*point.Point{point.NewPoint("database", kvs, opts...)}
 
 	if err := ipt.feeder.Feed(point.Object,
 		pts,

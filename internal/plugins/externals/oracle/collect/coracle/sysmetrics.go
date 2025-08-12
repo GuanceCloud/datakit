@@ -183,9 +183,9 @@ func (*systemMetrics) addMetric(r sysmetricsRowDB, seen map[string]bool) point.K
 
 		alias, ok := dic[metric.DDmetric]
 		if ok {
-			kvs = kvs.Add(alias, value, false, false)
+			kvs = kvs.Add(alias, value)
 		} else {
-			kvs = kvs.Add(metric.DDmetric, value, false, false)
+			kvs = kvs.Add(metric.DDmetric, value)
 		}
 		seen[r.MetricName] = true
 	}
@@ -299,7 +299,7 @@ func (m *systemMetrics) sysMetrics() ([]*point.Point, error) {
 
 func appendKVs(in, toAdd point.KVs) point.KVs {
 	for _, v := range toAdd {
-		in = in.AddKV(v, false)
+		in = in.AddKV(v)
 	}
 	return in
 }
@@ -319,10 +319,10 @@ func (m *systemMetrics) getOverAllocationCount(kvs point.KVs) (point.KVs, error)
 
 	if previousPGAOverAllocationCount.valid {
 		v := overAllocationCount - previousPGAOverAllocationCount.value
-		kvs = kvs.Add("pga_over_allocation_count", v, false, false)
+		kvs = kvs.Add("pga_over_allocation_count", v)
 		previousPGAOverAllocationCount.value = overAllocationCount
 	} else {
-		kvs = kvs.Add("pga_over_allocation_count", float64(0), false, false)
+		kvs = kvs.Add("pga_over_allocation_count", float64(0))
 		previousPGAOverAllocationCount = pgaOverAllocationCount{value: overAllocationCount, valid: true}
 	}
 

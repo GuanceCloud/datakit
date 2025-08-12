@@ -164,11 +164,11 @@ func (r *ptRander) randTags() KVs {
 		}
 
 		if defaultPTPool == nil {
-			kvs = kvs.MustAddTag(key, val)
+			kvs = kvs.SetTag(key, val)
 		} else {
 			kv := defaultPTPool.GetKV(key, val)
 			kv.IsTag = true
-			kvs = kvs.AddKV(kv, true)
+			kvs = kvs.SetKV(kv)
 		}
 	}
 
@@ -180,11 +180,11 @@ func (r *ptRander) randTags() KVs {
 		key, val := "name", randStr(r.valLen)
 
 		if defaultPTPool == nil {
-			kvs = kvs.MustAddTag(key, val)
+			kvs = kvs.SetTag(key, val)
 		} else {
 			kv := defaultPTPool.GetKV(key, val)
 			kv.IsTag = true
-			kvs = kvs.AddKV(kv, true)
+			kvs = kvs.SetKV(kv)
 		}
 	default:
 		// TODO:
@@ -224,13 +224,13 @@ func (r *ptRander) randFields() KVs {
 		}
 
 		if defaultPTPool == nil {
-			kvs = kvs.Add(key, val, false, true) // force set field
+			kvs = kvs.Set(key, val)
 		} else {
 			kv := defaultPTPool.GetKV(key, val)
 			if kv == nil {
 				panic(fmt.Sprintf("get nil kv on %q: %v", key, val))
 			}
-			kvs = kvs.AddKV(kv, true)
+			kvs = kvs.SetKV(kv)
 		}
 	}
 
@@ -241,9 +241,9 @@ func (r *ptRander) randFields() KVs {
 			val := r.sampleText[mrand.Int63()%int64(len(r.sampleText))]
 
 			if defaultPTPool == nil {
-				kvs = kvs.Add(key, val, false, true)
+				kvs = kvs.Add(key, val)
 			} else {
-				kvs = kvs.AddKV(defaultPTPool.GetKV(key, val), true)
+				kvs = kvs.SetKV(defaultPTPool.GetKV(key, val))
 			}
 		}
 	}
@@ -260,7 +260,7 @@ func (r *ptRander) doRand() *Point {
 	}
 
 	kvs := append(r.randTags(), r.randFields()...)
-	pt := NewPointV2(ptName, kvs, WithTime(r.ts), WithKeySorted(r.kvSorted))
+	pt := NewPoint(ptName, kvs, WithTime(r.ts), WithKeySorted(r.kvSorted))
 
 	if r.pb {
 		pt.SetFlag(Ppb)

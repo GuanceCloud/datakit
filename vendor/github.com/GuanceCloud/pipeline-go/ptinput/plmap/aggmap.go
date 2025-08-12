@@ -324,7 +324,7 @@ func conv2Pt(b *bucket, tagsName []string, aggTF *aggFields) (*point.Point, bool
 
 	opt := utils.PtCatOption(b.category)
 
-	pt := point.NewPointV2(b.bukName, fieldsKV, opt...)
+	pt := point.NewPoint(b.bukName, fieldsKV, opt...)
 	return pt, true
 }
 

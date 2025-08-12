@@ -90,13 +90,13 @@ func processChange(cfg *Config, class, sourceName string, diffs []FieldDiff, obj
 		kvs = kvs.AddTag("namespace", obj.GetNamespace())
 		kvs = kvs.AddTag(sourceName, name)
 
-		kvs = kvs.AddV2("df_title", title, false)
-		kvs = kvs.AddV2("df_message", message, false)
-		kvs = kvs.AddV2("diff", df.DiffText, false)
+		kvs = kvs.Add("df_title", title)
+		kvs = kvs.Add("df_message", message)
+		kvs = kvs.Add("diff", df.DiffText)
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(obj.GetLabels(), cfg.LabelAsTagsForNonMetric.All, cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(cfg.ExtraTags)...)
-		pts = append(pts, point.NewPointV2("event", kvs, point.WithTimestamp(ntp.Now().UnixNano())))
+		pts = append(pts, point.NewPoint("event", kvs, point.WithTimestamp(ntp.Now().UnixNano())))
 		collectPtsVec.WithLabelValues("k8s-change").Add(1)
 	}
 
@@ -117,10 +117,10 @@ func processCounter(cfg *Config, name string, counter map[string]int, timestamp 
 	for ns, count := range counter {
 		var kvs point.KVs
 		kvs = kvs.AddTag("namespace", ns)
-		kvs = kvs.AddV2(name, count, false)
+		kvs = kvs.Add(name, count)
 		kvs = append(kvs, point.NewTags(cfg.ExtraTags)...)
 
-		pt := point.NewPointV2("kubernetes", kvs, append(opts, point.WithTimestamp(timestamp))...)
+		pt := point.NewPoint("kubernetes", kvs, append(opts, point.WithTimestamp(timestamp))...)
 		pts = append(pts, pt)
 	}
 

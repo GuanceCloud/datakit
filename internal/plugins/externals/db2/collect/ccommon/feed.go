@@ -101,7 +101,7 @@ func FeedEvent(l *logger.Logger, event *DFEvent, urlPath string) {
 	fields["df_status"] = event.Status
 	fields["df_title"] = event.EventPrefix + event.Title + " : " + event.Message
 
-	pt := point.NewPointV2(event.Name,
+	pt := point.NewPoint(event.Name,
 		append(point.NewTags(event.Tags), point.NewKVs(fields)...),
 		opts...)
 

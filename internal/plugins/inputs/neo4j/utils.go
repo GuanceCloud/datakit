@@ -176,11 +176,11 @@ func rebuildPoint(pt *point.Point, newMetricName string, willRenameFields, willA
 		// ts := pt.Time()
 		opts := point.DefaultMetricOptions()
 		opts = append(opts, point.WithTimestamp(ptTS))
-		*pt = *point.NewPointV2(newMetricName, kvs, opts...)
+		*pt = *point.NewPoint(newMetricName, kvs, opts...)
 	}
 
 	for k, v := range willAddTags {
-		pt.MustAddTag(k, v)
+		pt.SetTag(k, v)
 	}
 	for oldKey, newKey := range willRenameFields {
 		// Add field(KV).

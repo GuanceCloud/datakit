@@ -24,11 +24,11 @@ func TestSkipLargePoint(t *T.T) {
 		metricsReset()
 
 		var kvsLarge, kvsSmall point.KVs
-		kvsLarge = kvsLarge.Add(`large`, strings.Repeat(`x`, 1024), false, false)
-		kvsSmall = kvsSmall.Add(`small`, strings.Repeat(`x`, 10), false, false)
-		smallPt1 := point.NewPointV2(`small1`, kvsSmall)
-		largePt := point.NewPointV2(`large`, kvsLarge)
-		smallPt2 := point.NewPointV2(`small2`, kvsSmall)
+		kvsLarge = kvsLarge.Add(`large`, strings.Repeat(`x`, 1024))
+		kvsSmall = kvsSmall.Add(`small`, strings.Repeat(`x`, 10))
+		smallPt1 := point.NewPoint(`small1`, kvsSmall)
+		largePt := point.NewPoint(`large`, kvsLarge)
+		smallPt2 := point.NewPoint(`small2`, kvsSmall)
 
 		w := getWriter(WithHTTPEncoding(point.Protobuf),
 			WithMaxBodyCap(1024),
@@ -60,8 +60,8 @@ func TestSkipLargePoint(t *T.T) {
 		metricsReset()
 
 		var kvsLarge point.KVs
-		kvsLarge = kvsLarge.Add(`large`, strings.Repeat(`x`, 1024), false, false)
-		largePt := point.NewPointV2(`large`, kvsLarge)
+		kvsLarge = kvsLarge.Add(`large`, strings.Repeat(`x`, 1024))
+		largePt := point.NewPoint(`large`, kvsLarge)
 
 		w := getWriter(WithHTTPEncoding(point.Protobuf),
 			WithMaxBodyCap(1024),
@@ -93,9 +93,9 @@ func TestSkipLargePoint(t *T.T) {
 		metricsReset()
 
 		var kvsSmall point.KVs
-		kvsSmall = kvsSmall.Add(`small`, strings.Repeat(`x`, 10), false, false)
-		smallPt1 := point.NewPointV2(`small1`, kvsSmall)
-		smallPt2 := point.NewPointV2(`small2`, kvsSmall)
+		kvsSmall = kvsSmall.Add(`small`, strings.Repeat(`x`, 10))
+		smallPt1 := point.NewPoint(`small1`, kvsSmall)
+		smallPt2 := point.NewPoint(`small2`, kvsSmall)
 
 		w := getWriter(WithHTTPEncoding(point.Protobuf),
 			WithMaxBodyCap(1024),
@@ -180,29 +180,29 @@ func TestCrashBuildBody(t *T.T) {
 			kvs = kvs.AddTag("T_"+f.T2Key, f.T2)
 			kvs = kvs.AddTag("T_"+f.T3Key, f.T3)
 
-			kvs = kvs.AddV2("S_"+f.SKey, f.S, true)
+			kvs = kvs.Set("S_"+f.SKey, f.S)
 
-			kvs = kvs.AddV2("I8_"+f.I8Key, f.I8, true)
-			kvs = kvs.AddV2("I16_"+f.I16Key, f.I16, true)
-			kvs = kvs.AddV2("I32_"+f.I32Key, f.I32, true)
-			kvs = kvs.AddV2("I64_"+f.I64Key, f.I64, true)
+			kvs = kvs.Set("I8_"+f.I8Key, f.I8)
+			kvs = kvs.Set("I16_"+f.I16Key, f.I16)
+			kvs = kvs.Set("I32_"+f.I32Key, f.I32)
+			kvs = kvs.Set("I64_"+f.I64Key, f.I64)
 
-			kvs = kvs.AddV2("U8_"+f.U8Key, f.U8, true)
-			kvs = kvs.AddV2("U16_"+f.U16Key, f.U16, true)
-			kvs = kvs.AddV2("U32_"+f.U32Key, f.U32, true)
-			kvs = kvs.AddV2("U64_"+f.U64Key, f.U64, true)
+			kvs = kvs.Set("U8_"+f.U8Key, f.U8)
+			kvs = kvs.Set("U16_"+f.U16Key, f.U16)
+			kvs = kvs.Set("U32_"+f.U32Key, f.U32)
+			kvs = kvs.Set("U64_"+f.U64Key, f.U64)
 
-			kvs = kvs.AddV2("F32_"+f.F32Key, f.F32, true)
-			kvs = kvs.AddV2("F64_"+f.F64Key, f.F64, true)
+			kvs = kvs.Set("F32_"+f.F32Key, f.F32)
+			kvs = kvs.Set("F64_"+f.F64Key, f.F64)
 
-			kvs = kvs.AddV2("B_"+f.BKey, f.B, true)
-			kvs = kvs.AddV2("D_"+f.DKey, f.D, true)
+			kvs = kvs.Set("B_"+f.BKey, f.B)
+			kvs = kvs.Set("D_"+f.DKey, f.D)
 
 			if f.TS < 0 {
 				f.TS = 0
 			}
 
-			pt := point.NewPointV2(f.Measurement, kvs, point.WithTimestamp(f.TS))
+			pt := point.NewPoint(f.Measurement, kvs, point.WithTimestamp(f.TS))
 			pts = append(pts, pt)
 		}
 
@@ -249,7 +249,7 @@ func TestBuildBody(t *T.T) {
 			pts: func() []*point.Point {
 				var pts []*point.Point
 				for i := 0; i < 32; i++ {
-					pts = append(pts, point.NewPointV2("some",
+					pts = append(pts, point.NewPoint("some",
 						point.NewKVs(map[string]any{
 							"f1": 1,
 							"f2": 2,

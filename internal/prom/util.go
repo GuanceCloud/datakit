@@ -257,7 +257,7 @@ func (p *Prom) renameTags(tags point.KVs) point.KVs {
 
 			tags = tags.Del(oldKey)
 			x.Key = newKey // update key name
-			tags = tags.MustAddKV(x)
+			tags = tags.SetKV(x)
 		}
 	}
 
@@ -340,26 +340,26 @@ func (p *Prom) MetricFamilies2points(metricFamilies map[string]*dto.MetricFamily
 				kvs := p.getTags(m.GetLabel(), measurementName, u)
 
 				kvs = p.filterIgnoreTagKV(kvs)
-				kvs = kvs.Add(fieldName, v, false, false)
+				kvs = kvs.Add(fieldName, v)
 
 				if p.opt.asLogging != nil && p.opt.asLogging.Enable {
 					opts = point.DefaultLoggingOptions() // we do not need timestamp alignment on logging
-					kvs = kvs.Add("status", statusInfo, false, false)
+					kvs = kvs.Add("status", statusInfo)
 				}
 
-				pts = append(pts, point.NewPointV2(measurementName, kvs, opts...))
+				pts = append(pts, point.NewPoint(measurementName, kvs, opts...))
 			}
 
 		case dto.MetricType_SUMMARY:
 			for _, m := range value.GetMetric() {
 				kvs := p.filterIgnoreTagKV(p.getTags(m.GetLabel(), measurementName, u))
-				kvs = kvs.Add(fieldName+"_count", float64(m.GetSummary().GetSampleCount()), false, false)
-				kvs = kvs.Add(fieldName+"_sum", m.GetSummary().GetSampleSum(), false, false)
+				kvs = kvs.Add(fieldName+"_count", float64(m.GetSummary().GetSampleCount()))
+				kvs = kvs.Add(fieldName+"_sum", m.GetSummary().GetSampleSum())
 				if p.opt.asLogging != nil && p.opt.asLogging.Enable {
-					kvs = kvs.Add("status", statusInfo, false, false)
+					kvs = kvs.Add("status", statusInfo)
 				}
 
-				pts = append(pts, point.NewPointV2(measurementName, kvs, opts...))
+				pts = append(pts, point.NewPoint(measurementName, kvs, opts...))
 
 				for _, q := range m.GetSummary().Quantile {
 					v := q.GetValue()
@@ -370,34 +370,34 @@ func (p *Prom) MetricFamilies2points(metricFamilies map[string]*dto.MetricFamily
 					kvs := p.filterIgnoreTagKV(p.getTags(m.GetLabel(), measurementName, u))
 					kvs = kvs.AddTag("quantile", fmt.Sprint(q.GetQuantile()))
 					if p.opt.asLogging != nil && p.opt.asLogging.Enable {
-						kvs = kvs.Add("status", statusInfo, false, false)
+						kvs = kvs.Add("status", statusInfo)
 					}
 
-					kvs = kvs.Add(fieldName, v, false, false)
-					pts = append(pts, point.NewPointV2(measurementName, kvs, opts...))
+					kvs = kvs.Add(fieldName, v)
+					pts = append(pts, point.NewPoint(measurementName, kvs, opts...))
 				}
 			}
 
 		case dto.MetricType_HISTOGRAM:
 			for _, m := range value.GetMetric() {
 				kvs := p.filterIgnoreTagKV(p.getTags(m.GetLabel(), measurementName, u))
-				kvs = kvs.Add(fieldName+"_count", float64(m.GetHistogram().GetSampleCount()), false, false)
-				kvs = kvs.Add(fieldName+"_sum", m.GetHistogram().GetSampleSum(), false, false)
+				kvs = kvs.Add(fieldName+"_count", float64(m.GetHistogram().GetSampleCount()))
+				kvs = kvs.Add(fieldName+"_sum", m.GetHistogram().GetSampleSum())
 
 				if p.opt.asLogging != nil && p.opt.asLogging.Enable {
-					kvs = kvs.Add("status", statusInfo, false, false)
+					kvs = kvs.Add("status", statusInfo)
 				}
 
-				pts = append(pts, point.NewPointV2(measurementName, kvs, opts...))
+				pts = append(pts, point.NewPoint(measurementName, kvs, opts...))
 
 				for _, b := range m.GetHistogram().GetBucket() {
 					kvs := p.filterIgnoreTagKV(p.getTagsWithLE(m.GetLabel(), measurementName, b))
-					kvs = kvs.Add(fieldName+"_bucket", float64(b.GetCumulativeCount()), false, false)
+					kvs = kvs.Add(fieldName+"_bucket", float64(b.GetCumulativeCount()))
 					if p.opt.asLogging != nil && p.opt.asLogging.Enable {
-						kvs = kvs.Add("status", statusInfo, false, false)
+						kvs = kvs.Add("status", statusInfo)
 					}
 
-					pts = append(pts, point.NewPointV2(measurementName, kvs, opts...))
+					pts = append(pts, point.NewPoint(measurementName, kvs, opts...))
 				}
 			}
 		case dto.MetricType_GAUGE_HISTOGRAM:

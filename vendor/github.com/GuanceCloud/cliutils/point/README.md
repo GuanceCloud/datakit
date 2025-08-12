@@ -44,10 +44,8 @@ ok  	github.com/GuanceCloud/cliutils/point	8.625s
 Point 构建函数：
 
 ```golang
-pt := NewPointV2(name []byte, kvs KVs, opts... Option)
+pt := NewPoint(name []byte, kvs KVs, opts... Option)
 ```
-
-> `NewPoint()` 已 Deprecated.
 
 由于 Point 最终需要写入后端存储，故而受到后端存储的各种限制，但原则上采集端仍然做尽量少的限制，以保证数据采集的多样性和完整性。目前 Point 限制如下（本次放开/新加的约束，粗体表示）：
 

@@ -76,8 +76,8 @@ func (ipt *Input) collectWaitingEvent() {
 			AddTag("program", r.Program.String).
 			AddTag("username", r.Username.String).
 			AddTag("event_type", r.EventType.String).
-			AddV2("count", r.Count, true)
-		pts = append(pts, point.NewPointV2(name, kvs, ipt.getKVsOpts()...))
+			Set("count", r.Count)
+		pts = append(pts, point.NewPoint(name, kvs, ipt.getKVsOpts()...))
 	}
 
 	l.Debugf("%s: get %d points", name, len(pts))

@@ -30,29 +30,29 @@ func parseSegmentObjectV3(segment *agentv3.SegmentObject) itrace.DatakitTrace {
 		}
 
 		spanKV := point.KVs{}
-		spanKV = spanKV.Add(itrace.FieldTraceID, segment.TraceId, false, false).
-			Add(itrace.FieldSpanid, fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId), false, false).
+		spanKV = spanKV.Add(itrace.FieldTraceID, segment.TraceId).
+			Add(itrace.FieldSpanid, fmt.Sprintf("%s%d", segment.TraceSegmentId, span.SpanId)).
 			AddTag(itrace.TagService, segment.Service).
 			AddTag("service_instance", segment.ServiceInstance).
-			Add(itrace.FieldResource, span.OperationName, false, false).
+			Add(itrace.FieldResource, span.OperationName).
 			AddTag(itrace.TagOperation, span.OperationName).
 			AddTag(itrace.TagSource, inputName).
 			AddTag(itrace.TagSourceType, itrace.SpanSourceCustomer).
-			Add(itrace.FieldStart, span.StartTime*int64(time.Microsecond), false, false).
-			Add(itrace.FieldDuration, (span.EndTime-span.StartTime)*int64(time.Microsecond), false, false)
+			Add(itrace.FieldStart, span.StartTime*int64(time.Microsecond)).
+			Add(itrace.FieldDuration, (span.EndTime-span.StartTime)*int64(time.Microsecond))
 
 		if span.ParentSpanId < 0 {
 			if len(span.Refs) > 0 {
 				spanKV = spanKV.Add(itrace.FieldParentID,
-					fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId, span.Refs[0].ParentSpanId), false, false)
+					fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId, span.Refs[0].ParentSpanId))
 			} else {
-				spanKV = spanKV.Add(itrace.FieldParentID, "0", false, false)
+				spanKV = spanKV.Add(itrace.FieldParentID, "0")
 			}
 		} else {
 			if len(span.Refs) > 0 {
-				spanKV = spanKV.Add(itrace.FieldParentID, fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId, span.Refs[0].ParentSpanId), false, false)
+				spanKV = spanKV.Add(itrace.FieldParentID, fmt.Sprintf("%s%d", span.Refs[0].ParentTraceSegmentId, span.Refs[0].ParentSpanId))
 			} else {
-				spanKV = spanKV.Add(itrace.FieldParentID, fmt.Sprintf("%s%d", segment.TraceSegmentId, span.ParentSpanId), false, false)
+				spanKV = spanKV.Add(itrace.FieldParentID, fmt.Sprintf("%s%d", segment.TraceSegmentId, span.ParentSpanId))
 			}
 		}
 
@@ -75,13 +75,13 @@ func parseSegmentObjectV3(segment *agentv3.SegmentObject) itrace.DatakitTrace {
 
 		for i := range plugins {
 			if value, ok := getTagValue(span.Tags, plugins[i]); ok {
-				spanKV = spanKV.MustAddTag(itrace.TagService, value).
-					MustAddTag(itrace.TagSpanType, itrace.SpanTypeEntry).
-					MustAddTag(itrace.TagSourceType, mapToSpanSourceType(span.SpanLayer))
+				spanKV = spanKV.SetTag(itrace.TagService, value).
+					SetTag(itrace.TagSpanType, itrace.SpanTypeEntry).
+					SetTag(itrace.TagSourceType, mapToSpanSourceType(span.SpanLayer))
 				switch span.SpanLayer { // nolint: exhaustive
 				case agentv3.SpanLayer_Database, agentv3.SpanLayer_Cache:
 					if res, ok := getTagValue(span.Tags, "db.statement"); ok {
-						spanKV = spanKV.MustAddTag(itrace.FieldResource, res)
+						spanKV = spanKV.SetTag(itrace.FieldResource, res)
 					}
 				case agentv3.SpanLayer_MQ:
 				case agentv3.SpanLayer_Http:
@@ -111,11 +111,11 @@ func parseSegmentObjectV3(segment *agentv3.SegmentObject) itrace.DatakitTrace {
 			if buf, err := json.Marshal(span); err != nil {
 				log.Warn(err.Error())
 			} else {
-				spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
+				spanKV = spanKV.Add(itrace.FieldMessage, string(buf))
 			}
 		}
 		t := time.UnixMilli(span.StartTime)
-		pt := point.NewPointV2(inputName, spanKV, append(traceOpts, point.WithTime(t))...)
+		pt := point.NewPoint(inputName, spanKV, append(traceOpts, point.WithTime(t))...)
 		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 	}
 

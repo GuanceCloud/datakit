@@ -371,7 +371,7 @@ func decodeDataAndConv2Point(category point.Category, name string, req *pipeline
 			kvs := point.NewKVs(map[string]interface{}{
 				constants.FieldMessage: string(data),
 			})
-			pt := point.NewPointV2(name, kvs, opts...)
+			pt := point.NewPoint(name, kvs, opts...)
 			result = append(result, pt)
 		}
 	}

@@ -131,8 +131,8 @@ test-2 f1=1i,f2=false 123
 
 		w := getWriter(WithGzip(1),
 			WithPoints([]*point.Point{
-				point.NewPointV2("test-1", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
-				point.NewPointV2("test-2", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
+				point.NewPoint("test-1", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
+				point.NewPoint("test-2", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
 			}),
 			WithHTTPEncoding(point.LineProtocol),
 			WithCategory(point.Metric))
@@ -202,8 +202,8 @@ test-2 f1=1i,f2=false 123
 
 		w := getWriter(WithCategory(point.Metric),
 			WithPoints([]*point.Point{
-				point.NewPointV2("test-1", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
-				point.NewPointV2("test-2", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
+				point.NewPoint("test-1", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
+				point.NewPoint("test-2", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
 			}),
 			WithHTTPEncoding(point.LineProtocol),
 			WithGzip(1),
@@ -277,8 +277,8 @@ test-2 f1=1i,f2=false 123
 
 		w := getWriter(WithCategory(point.Metric),
 			WithPoints([]*point.Point{
-				point.NewPointV2("test-1", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
-				point.NewPointV2("test-2", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
+				point.NewPoint("test-1", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
+				point.NewPoint("test-2", point.NewKVs(map[string]any{"f1": 1, "f2": false}), point.WithTime(time.Unix(0, 123))),
 			}),
 			WithHTTPEncoding(point.LineProtocol),
 			WithGzip(1))

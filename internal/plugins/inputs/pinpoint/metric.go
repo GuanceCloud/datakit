@@ -55,37 +55,37 @@ func statBatchToPoints(md metadata.MD, batch *ppv1.PAgentStatBatch) (pts []*poin
 		var statKV point.KVs
 		cpuLoad := stat.GetCpuLoad()
 		if cpuLoad != nil {
-			statKV = statKV.Add("SystemCpuLoad", cpuLoad.GetSystemCpuLoad(), false, false).
-				Add("JvmCpuLoad", cpuLoad.GetJvmCpuLoad(), false, false).
+			statKV = statKV.Add("SystemCpuLoad", cpuLoad.GetSystemCpuLoad()).
+				Add("JvmCpuLoad", cpuLoad.GetJvmCpuLoad()).
 				AddTag("agent_id", agentID)
 		}
 
 		gc := stat.GetGc()
 		if gc != nil {
 			statKV = statKV.AddTag("agent_id", agentID).
-				Add("JvmMemoryHeapUsed", gc.GetJvmMemoryHeapUsed(), false, false).
-				Add("JvmMemoryHeapMax", gc.GetJvmMemoryHeapMax(), false, false).
-				Add("JvmMemoryNonHeapUsed", gc.GetJvmMemoryNonHeapUsed(), false, false).
-				Add("JvmMemoryNonHeapMax", gc.GetJvmMemoryNonHeapMax(), false, false).
-				Add("JvmGcOldCount", gc.GetJvmGcOldCount(), false, false).
-				Add("JvmGcOldTime", gc.GetJvmGcOldTime(), false, false)
+				Add("JvmMemoryHeapUsed", gc.GetJvmMemoryHeapUsed()).
+				Add("JvmMemoryHeapMax", gc.GetJvmMemoryHeapMax()).
+				Add("JvmMemoryNonHeapUsed", gc.GetJvmMemoryNonHeapUsed()).
+				Add("JvmMemoryNonHeapMax", gc.GetJvmMemoryNonHeapMax()).
+				Add("JvmGcOldCount", gc.GetJvmGcOldCount()).
+				Add("JvmGcOldTime", gc.GetJvmGcOldTime())
 
 			if gc.GetJvmGcDetailed() != nil {
 				detailed := gc.GetJvmGcDetailed()
-				statKV = statKV.Add("GcNewCount", detailed.GetJvmGcNewCount(), false, false).
-					Add("GcNewTime", detailed.GetJvmGcNewTime(), false, false).
-					Add("PoolCodeCacheUsed", detailed.GetJvmPoolCodeCacheUsed(), false, false).
-					Add("PoolNewGenUsed", detailed.GetJvmPoolNewGenUsed(), false, false).
-					Add("PoolOldGenUsed", detailed.GetJvmPoolOldGenUsed(), false, false).
-					Add("PoolSurvivorSpaceUsed", detailed.GetJvmPoolSurvivorSpaceUsed(), false, false).
-					Add("PoolPermGenUsed", detailed.GetJvmPoolPermGenUsed(), false, false).
-					Add("PoolMetaspaceUsed", detailed.GetJvmPoolMetaspaceUsed(), false, false)
+				statKV = statKV.Add("GcNewCount", detailed.GetJvmGcNewCount()).
+					Add("GcNewTime", detailed.GetJvmGcNewTime()).
+					Add("PoolCodeCacheUsed", detailed.GetJvmPoolCodeCacheUsed()).
+					Add("PoolNewGenUsed", detailed.GetJvmPoolNewGenUsed()).
+					Add("PoolOldGenUsed", detailed.GetJvmPoolOldGenUsed()).
+					Add("PoolSurvivorSpaceUsed", detailed.GetJvmPoolSurvivorSpaceUsed()).
+					Add("PoolPermGenUsed", detailed.GetJvmPoolPermGenUsed()).
+					Add("PoolMetaspaceUsed", detailed.GetJvmPoolMetaspaceUsed())
 			}
 		}
 		for k, v := range infoTags {
 			statKV = statKV.AddTag(k, v)
 		}
-		pt := point.NewPointV2("pp-agentStats", statKV, opts...)
+		pt := point.NewPoint("pp-agentStats", statKV, opts...)
 		pts = append(pts, pt)
 	}
 

@@ -133,10 +133,10 @@ func (p *pod) gatherMetric(ctx context.Context, fieldSelector string, timestamp 
 			var kvs point.KVs
 			kvs = kvs.AddTag("namespace", ns)
 			kvs = kvs.AddTag("node_name", config.RenameNode(nodeName))
-			kvs = kvs.AddV2("pod", n, false)
+			kvs = kvs.Add("pod", n)
 			kvs = append(kvs, point.NewTags(p.cfg.ExtraTags)...)
 
-			pt := point.NewPointV2("kubernetes", kvs, opts...)
+			pt := point.NewPoint("kubernetes", kvs, opts...)
 			counterPts = append(counterPts, pt)
 		}
 	}
@@ -226,7 +226,7 @@ func (p *pod) buildMetricPoints(list *apicorev1.PodList, metricsClient PodMetric
 		}
 
 		kvs = append(kvs, point.NewTags(p.cfg.ExtraTags)...)
-		pt := point.NewPointV2(podMetricMeasurement, kvs, opts...)
+		pt := point.NewPoint(podMetricMeasurement, kvs, opts...)
 		pts = append(pts, pt)
 	}
 
@@ -248,8 +248,8 @@ func (p *pod) buildObjectPoints(list *apicorev1.PodList, metricsClient PodMetric
 		kvs = kvs.AddTag("qos_class", string(item.Status.QOSClass))
 		kvs = kvs.AddTag("status", string(item.Status.Phase))
 
-		kvs = kvs.AddV2("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3, false)
-		kvs = kvs.AddV2("available", len(item.Status.ContainerStatuses), false)
+		kvs = kvs.Add("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3)
+		kvs = kvs.Add("available", len(item.Status.ContainerStatuses))
 
 		for _, containerStatus := range item.Status.ContainerStatuses {
 			if containerStatus.State.Waiting != nil {
@@ -259,13 +259,13 @@ func (p *pod) buildObjectPoints(list *apicorev1.PodList, metricsClient PodMetric
 		}
 
 		if y, err := yaml.Marshal(item); err == nil {
-			kvs = kvs.AddV2("yaml", string(y), false)
+			kvs = kvs.Add("yaml", string(y))
 		}
-		kvs = kvs.AddV2("annotations", pointutil.MapToJSON(item.Annotations), false)
+		kvs = kvs.Add("annotations", pointutil.MapToJSON(item.Annotations))
 		kvs = append(kvs, pointutil.ConvertDFLabels(item.Labels)...)
 
 		msg := pointutil.PointKVsToJSON(kvs)
-		kvs = kvs.AddV2("message", pointutil.TrimString(msg, maxMessageLength), false)
+		kvs = kvs.Add("message", pointutil.TrimString(msg, maxMessageLength))
 
 		kvs = kvs.Del("annotations")
 		kvs = kvs.Del("yaml")
@@ -285,7 +285,7 @@ func (p *pod) buildObjectPoints(list *apicorev1.PodList, metricsClient PodMetric
 			kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, p.cfg.LabelAsTagsForNonMetric.All, p.cfg.LabelAsTagsForNonMetric.Keys)...)
 		}
 		kvs = append(kvs, point.NewTags(p.cfg.ExtraTags)...)
-		pt := point.NewPointV2(podObjectClass, kvs, opts...)
+		pt := point.NewPoint(podObjectClass, kvs, opts...)
 		pts = append(pts, pt)
 	}
 
@@ -325,7 +325,7 @@ func buildPodKVs(item *apicorev1.Pod) point.KVs {
 			containerReadyCount++
 		}
 	}
-	kvs = kvs.AddV2("ready", containerReadyCount, false)
+	kvs = kvs.Add("ready", containerReadyCount)
 
 	maxRestarts := 0
 	for _, containerStatus := range item.Status.ContainerStatuses {
@@ -333,7 +333,7 @@ func buildPodKVs(item *apicorev1.Pod) point.KVs {
 			maxRestarts = int(containerStatus.RestartCount)
 		}
 	}
-	kvs = kvs.AddV2("restarts", maxRestarts, false)
+	kvs = kvs.Add("restarts", maxRestarts)
 
 	ownerKind, ownerName := podutil.PodOwner(item)
 	if ownerKind != "" && ownerName != "" {
@@ -363,14 +363,14 @@ func queryPodMetrics(ctx context.Context, client PodMetricsClient, item *apicore
 	var kvs point.KVs
 
 	cpuUsage := float64(podMet.cpuUsageMilliCores) / 1e3 * 100.0
-	kvs = kvs.AddV2("cpu_usage_millicores", podMet.cpuUsageMilliCores, false)
-	kvs = kvs.AddV2("cpu_usage", cpuUsage, false)
+	kvs = kvs.Add("cpu_usage_millicores", podMet.cpuUsageMilliCores)
+	kvs = kvs.Add("cpu_usage", cpuUsage)
 
-	kvs = kvs.AddV2("mem_usage", podMet.memoryUsageBytes, false)
-	kvs = kvs.AddV2("mem_rss", podMet.memoryRSSBytes, false)
-	kvs = kvs.AddV2("mem_capacity", node.memCapacity, false)
-	kvs = kvs.AddV2("memory_usage_bytes", podMet.memoryUsageBytes, false) // Retained for backward compatibility.
-	kvs = kvs.AddV2("memory_capacity", node.memCapacity, false)           // Retained for backward compatibility.
+	kvs = kvs.Add("mem_usage", podMet.memoryUsageBytes)
+	kvs = kvs.Add("mem_rss", podMet.memoryRSSBytes)
+	kvs = kvs.Add("mem_capacity", node.memCapacity)
+	kvs = kvs.Add("memory_usage_bytes", podMet.memoryUsageBytes) // Retained for backward compatibility.
+	kvs = kvs.Add("memory_capacity", node.memCapacity)           // Retained for backward compatibility.
 
 	if node.cpuCapacityMillicores != 0 {
 		cores := node.cpuCapacityMillicores / 1e3
@@ -378,39 +378,39 @@ func queryPodMetrics(ctx context.Context, client PodMetricsClient, item *apicore
 		if math.IsNaN(x) {
 			x = 0.0
 		}
-		kvs = kvs.AddV2("cpu_number", cores, false)
-		kvs = kvs.AddV2("cpu_usage_base100", x, false)
+		kvs = kvs.Add("cpu_number", cores)
+		kvs = kvs.Add("cpu_usage_base100", x)
 	}
 
 	if cpuLimit := podutil.SumCPULimits(item); cpuLimit != 0 {
-		kvs = kvs.AddV2("cpu_limit_millicores", cpuLimit, false)
-		kvs = kvs.AddV2("cpu_usage_base_limit", float64(podMet.cpuUsageMilliCores)/float64(cpuLimit)*100, false)
+		kvs = kvs.Add("cpu_limit_millicores", cpuLimit)
+		kvs = kvs.Add("cpu_usage_base_limit", float64(podMet.cpuUsageMilliCores)/float64(cpuLimit)*100)
 	}
 	if cpuRequest := podutil.SumCPURequests(item); cpuRequest != 0 {
-		kvs = kvs.AddV2("cpu_request_millicores", cpuRequest, false)
-		kvs = kvs.AddV2("cpu_usage_base_request", float64(podMet.cpuUsageMilliCores)/float64(cpuRequest)*100, false)
+		kvs = kvs.Add("cpu_request_millicores", cpuRequest)
+		kvs = kvs.Add("cpu_usage_base_request", float64(podMet.cpuUsageMilliCores)/float64(cpuRequest)*100)
 	}
 
 	if node.memCapacity != 0 {
 		x := float64(podMet.memoryUsageBytes) / float64(node.memCapacity) * 100
-		kvs = kvs.AddV2("mem_used_percent", x, false)
-		kvs = kvs.AddV2("mem_used_percent_base_100", x, false) // Retained for backward compatibility.
-		kvs = kvs.AddV2("memory_used_percent", x, false)       // Retained for backward compatibility.
+		kvs = kvs.Add("mem_used_percent", x)
+		kvs = kvs.Add("mem_used_percent_base_100", x) // Retained for backward compatibility.
+		kvs = kvs.Add("memory_used_percent", x)       // Retained for backward compatibility.
 	}
 	if memLimit := podutil.SumMemoryLimits(item); memLimit != 0 {
-		kvs = kvs.AddV2("mem_limit", memLimit, false)
-		kvs = kvs.AddV2("mem_used_percent_base_limit", float64(podMet.memoryUsageBytes)/float64(memLimit)*100, false)
+		kvs = kvs.Add("mem_limit", memLimit)
+		kvs = kvs.Add("mem_used_percent_base_limit", float64(podMet.memoryUsageBytes)/float64(memLimit)*100)
 	}
 	if memRequest := podutil.SumMemoryRequests(item); memRequest != 0 {
-		kvs = kvs.AddV2("mem_request", memRequest, false)
-		kvs = kvs.AddV2("mem_used_percent_base_request", float64(podMet.memoryUsageBytes)/float64(memRequest)*100, false)
+		kvs = kvs.Add("mem_request", memRequest)
+		kvs = kvs.Add("mem_used_percent_base_request", float64(podMet.memoryUsageBytes)/float64(memRequest)*100)
 	}
 
-	kvs = kvs.AddV2("network_bytes_rcvd", podMet.networkRcvdBytes, false)
-	kvs = kvs.AddV2("network_bytes_sent", podMet.networkSentBytes, false)
-	kvs = kvs.AddV2("ephemeral_storage_used_bytes", podMet.ephemeralStorageUsedBytes, false)
-	kvs = kvs.AddV2("ephemeral_storage_available_bytes", podMet.ephemeralStorageAvailableBytes, false)
-	kvs = kvs.AddV2("ephemeral_storage_capacity_bytes", podMet.ephemeralStorageCapacityBytes, false)
+	kvs = kvs.Add("network_bytes_rcvd", podMet.networkRcvdBytes)
+	kvs = kvs.Add("network_bytes_sent", podMet.networkSentBytes)
+	kvs = kvs.Add("ephemeral_storage_used_bytes", podMet.ephemeralStorageUsedBytes)
+	kvs = kvs.Add("ephemeral_storage_available_bytes", podMet.ephemeralStorageAvailableBytes)
+	kvs = kvs.Add("ephemeral_storage_capacity_bytes", podMet.ephemeralStorageCapacityBytes)
 
 	return kvs
 }

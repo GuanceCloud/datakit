@@ -98,12 +98,12 @@ func (ipt *Input) collectOracleTableSpace() {
 			kvs = kvs.AddTag("pdb_name", row.PdbName.String)
 		}
 
-		kvs = kvs.Add("in_use", row.InUse, false, true)
-		kvs = kvs.Add("off_use", row.Offline, false, true)
-		kvs = kvs.Add("ts_size", row.Size, false, true)
-		kvs = kvs.Add("used_space", row.Used, false, true)
+		kvs = kvs.Set("in_use", row.InUse)
+		kvs = kvs.Set("off_use", row.Offline)
+		kvs = kvs.Set("ts_size", row.Size)
+		kvs = kvs.Set("used_space", row.Used)
 
-		pts = append(pts, point.NewPointV2(metricName, kvs, opts...))
+		pts = append(pts, point.NewPoint(metricName, kvs, opts...))
 	}
 
 	if err := ipt.feeder.Feed(point.Metric,

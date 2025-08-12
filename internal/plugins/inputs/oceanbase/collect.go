@@ -667,10 +667,10 @@ func (ipt *Input) buildPoint(name string, tags map[string]string, fields map[str
 	}
 
 	for k, v := range fields {
-		kvs = kvs.Add(k, v, false, true)
+		kvs = kvs.Set(k, v)
 	}
 
-	return point.NewPointV2(name, kvs, opts...)
+	return point.NewPoint(name, kvs, opts...)
 }
 
 func selectMapWrapper(ipt *Input, sqlText string) ([]map[string]interface{}, error) {

@@ -116,7 +116,7 @@ func (ipt *Input) parseClusterData(list string) ([]*point.Point, error) {
 		}
 		if _, has := clusterFieldMap[parts[0]]; has {
 			// key in the MeasurementInfo
-			kvs = kvs.Add(parts[0], f, false, false)
+			kvs = kvs.Add(parts[0], f)
 		}
 	}
 
@@ -124,7 +124,7 @@ func (ipt *Input) parseClusterData(list string) ([]*point.Point, error) {
 		for k, v := range ipt.mergedTags {
 			kvs = kvs.AddTag(k, v)
 		}
-		collectCache = append(collectCache, point.NewPointV2(redisCluster, kvs, opts...))
+		collectCache = append(collectCache, point.NewPoint(redisCluster, kvs, opts...))
 	}
 	return collectCache, nil
 }

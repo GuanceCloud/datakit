@@ -112,7 +112,7 @@ func (ipt *Input) parseClientData(list string) ([]*point.Point, error) {
 				}
 				if _, has := clientFieldMap[key]; has {
 					// key in the MeasurementInfo
-					kvs = kvs.Add(key, f, false, false)
+					kvs = kvs.Add(key, f)
 				}
 			}
 		}
@@ -121,7 +121,7 @@ func (ipt *Input) parseClientData(list string) ([]*point.Point, error) {
 			for k, v := range ipt.mergedTags {
 				kvs = kvs.AddTag(k, v)
 			}
-			collectCache = append(collectCache, point.NewPointV2(redisClient, kvs, opts...))
+			collectCache = append(collectCache, point.NewPoint(redisClient, kvs, opts...))
 		}
 	}
 

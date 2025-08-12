@@ -69,7 +69,7 @@ func (ipt *Input) appendMeasurement(name string, tags map[string]string, fields 
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(ipt.ptsTime))
 
-	pt := point.NewPointV2(name,
+	pt := point.NewPoint(name,
 		append(point.NewTags(tags), point.NewKVs(fields)...),
 		opts...)
 

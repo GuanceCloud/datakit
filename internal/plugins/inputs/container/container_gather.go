@@ -45,10 +45,10 @@ func (c *containerCollector) gatherMetric() {
 	for ns, count := range nsCount {
 		var kvs point.KVs
 		kvs = kvs.AddTag("namespace", ns)
-		kvs = kvs.AddV2("container", count, false)
+		kvs = kvs.Add("container", count)
 		kvs = kvs.AddTag("node_name", c.localNodeName)
 
-		pt := point.NewPointV2("kubernetes", kvs, append(opts, point.WithTime(c.ptsTime))...)
+		pt := point.NewPoint("kubernetes", kvs, append(opts, point.WithTime(c.ptsTime))...)
 		pts = append(pts, pt)
 	}
 
@@ -167,7 +167,7 @@ func (c *containerCollector) buildMetricPoints(item *runtime.Container) *point.P
 	kvs = kvs.AddTag("image", image)
 	kvs = append(kvs, point.NewTags(c.extraTags)...)
 
-	return point.NewPointV2(containerMeasurement, kvs,
+	return point.NewPoint(containerMeasurement, kvs,
 		append(point.DefaultMetricOptions(), point.WithTime(c.ptsTime))...)
 }
 
@@ -208,13 +208,13 @@ func (c *containerCollector) buildObjectPoint(item *runtime.Container) *point.Po
 	}
 
 	kvs = kvs.AddTag("name", item.ID)
-	kvs = kvs.AddV2("age", time.Since(time.Unix(0, item.CreatedAt)).Milliseconds()/1e3, false)
+	kvs = kvs.Add("age", time.Since(time.Unix(0, item.CreatedAt)).Milliseconds()/1e3)
 	kvs = kvs.AddTag("image", image)
 
 	msg := pointutil.PointKVsToJSON(kvs)
-	kvs = kvs.AddV2("message", pointutil.TrimString(msg, maxMessageLength), false)
+	kvs = kvs.Add("message", pointutil.TrimString(msg, maxMessageLength))
 	kvs = append(kvs, point.NewTags(c.extraTags)...)
-	return point.NewPointV2(containerMeasurement, kvs,
+	return point.NewPoint(containerMeasurement, kvs,
 		append(point.DefaultObjectOptions(), point.WithTime(ntp.Now()))...)
 }
 
@@ -226,7 +226,7 @@ func buildInfoKVs(item *runtime.Container) point.KVs {
 	kvs = kvs.AddTag("container_runtime_version", item.RuntimeVersion)
 	kvs = kvs.AddTag("state", item.State)
 
-	kvs = kvs.AddV2("image", item.Image, true /*force*/, point.WithKVTagSet(true))
+	kvs = kvs.SetTag("image", item.Image)
 
 	if item.Name != "" {
 		kvs = kvs.AddTag("container_runtime_name", item.Name)
@@ -262,37 +262,37 @@ func buildInfoKVs(item *runtime.Container) point.KVs {
 func buildTopKVs(top *runtime.ContainerTop) point.KVs {
 	var kvs point.KVs
 
-	kvs = kvs.AddV2("cpu_usage", top.CPUPercent, false)
-	kvs = kvs.AddV2("cpu_usage_millicores", top.CPUUsageMillicores, false)
-	kvs = kvs.AddV2("cpu_numbers", top.CPUCores, false)
+	kvs = kvs.Add("cpu_usage", top.CPUPercent)
+	kvs = kvs.Add("cpu_usage_millicores", top.CPUUsageMillicores)
+	kvs = kvs.Add("cpu_numbers", top.CPUCores)
 
 	if top.CPUCores != 0 {
-		kvs = kvs.AddV2("cpu_usage_base100", top.CPUPercent/float64(top.CPUCores), false)
+		kvs = kvs.Add("cpu_usage_base100", top.CPUPercent/float64(top.CPUCores))
 	}
 	if top.CPULimitMillicores != 0 {
-		kvs = kvs.AddV2("cpu_limit_millicores", top.CPULimitMillicores, false)
-		kvs = kvs.AddV2("cpu_usage_base_limit", float64(top.CPUUsageMillicores)/float64(top.CPULimitMillicores)*100, false)
+		kvs = kvs.Add("cpu_limit_millicores", top.CPULimitMillicores)
+		kvs = kvs.Add("cpu_usage_base_limit", float64(top.CPUUsageMillicores)/float64(top.CPULimitMillicores)*100)
 	}
 
-	kvs = kvs.AddV2("mem_usage", top.MemoryWorkingSet, false)
+	kvs = kvs.Add("mem_usage", top.MemoryWorkingSet)
 	if top.MemoryCapacity != 0 && top.MemoryCapacity != math.MaxInt64 {
-		kvs = kvs.AddV2("mem_capacity", top.MemoryCapacity, false)
-		kvs = kvs.AddV2("mem_used_percent", float64(top.MemoryWorkingSet)/float64(top.MemoryCapacity)*100, false)
+		kvs = kvs.Add("mem_capacity", top.MemoryCapacity)
+		kvs = kvs.Add("mem_used_percent", float64(top.MemoryWorkingSet)/float64(top.MemoryCapacity)*100)
 	}
 	if top.MemoryLimitInBytes != 0 {
-		kvs = kvs.AddV2("mem_limit", top.MemoryLimitInBytes, false)
-		kvs = kvs.AddV2("mem_used_percent_base_limit", float64(top.MemoryWorkingSet)/float64(top.MemoryLimitInBytes)*100, false)
+		kvs = kvs.Add("mem_limit", top.MemoryLimitInBytes)
+		kvs = kvs.Add("mem_used_percent_base_limit", float64(top.MemoryWorkingSet)/float64(top.MemoryLimitInBytes)*100)
 	}
 
-	kvs = kvs.AddV2("network_bytes_rcvd", top.NetworkRcvd, false)
-	kvs = kvs.AddV2("network_bytes_sent", top.NetworkSent, false)
+	kvs = kvs.Add("network_bytes_rcvd", top.NetworkRcvd)
+	kvs = kvs.Add("network_bytes_sent", top.NetworkSent)
 
 	// only supported docker
 	if top.BlockRead != 0 {
-		kvs = kvs.AddV2("block_read_byte", top.BlockRead, false)
+		kvs = kvs.Add("block_read_byte", top.BlockRead)
 	}
 	if top.BlockWrite != 0 {
-		kvs = kvs.AddV2("block_write_byte", top.BlockWrite, false)
+		kvs = kvs.Add("block_write_byte", top.BlockWrite)
 	}
 
 	return kvs
@@ -306,34 +306,34 @@ func buildPodKVs(containerName string, pod *apicorev1.Pod, top *runtime.Containe
 	}
 
 	if image := podutil.ContainerImageFromPod(containerName, pod); image != "" {
-		kvs = kvs.AddV2("image", image, true /*force*/, point.WithKVTagSet(true))
+		kvs = kvs.SetTag("image", image)
 	}
 
 	cpuLimit, memLimit := podutil.ContainerLimitInPod(containerName, pod)
 	if cpuLimit != 0 {
-		kvs = kvs.AddV2("cpu_limit_millicores", cpuLimit, true) // use force
+		kvs = kvs.Set("cpu_limit_millicores", cpuLimit) // use force
 		if top != nil {
-			kvs = kvs.AddV2("cpu_usage_base_limit", float64(top.CPUUsageMillicores)/float64(cpuLimit)*100, true)
+			kvs = kvs.Set("cpu_usage_base_limit", float64(top.CPUUsageMillicores)/float64(cpuLimit)*100)
 		}
 	}
 	if memLimit != 0 {
-		kvs = kvs.AddV2("mem_limit", memLimit, true)
+		kvs = kvs.Set("mem_limit", memLimit)
 		if top != nil {
-			kvs = kvs.AddV2("mem_used_percent_base_limit", float64(top.MemoryWorkingSet)/float64(memLimit)*100, true)
+			kvs = kvs.Set("mem_used_percent_base_limit", float64(top.MemoryWorkingSet)/float64(memLimit)*100)
 		}
 	}
 
 	cpuRequest, memRequest := podutil.ContainerLimitInPod(containerName, pod)
 	if cpuRequest != 0 {
-		kvs = kvs.AddV2("cpu_request_millicores", cpuRequest, false)
+		kvs = kvs.Add("cpu_request_millicores", cpuRequest)
 		if top != nil {
-			kvs = kvs.AddV2("cpu_usage_base_request", float64(top.CPUUsageMillicores)/float64(cpuRequest)*100, false)
+			kvs = kvs.Add("cpu_usage_base_request", float64(top.CPUUsageMillicores)/float64(cpuRequest)*100)
 		}
 	}
 	if memRequest != 0 {
-		kvs = kvs.AddV2("mem_request", memRequest, false)
+		kvs = kvs.Add("mem_request", memRequest)
 		if top != nil {
-			kvs = kvs.AddV2("mem_used_percent_base_request", float64(top.MemoryWorkingSet)/float64(memRequest)*100, false)
+			kvs = kvs.Add("mem_used_percent_base_request", float64(top.MemoryWorkingSet)/float64(memRequest)*100)
 		}
 	}
 

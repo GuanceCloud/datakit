@@ -96,16 +96,16 @@ func (ipt *Input) collectOracleProcess() {
 			kvs = kvs.AddTag("program", row.Program.String)
 		}
 
-		kvs = kvs.AddV2("pga_alloc_mem", row.PGAAllocMem, true).
-			AddV2("pga_freeable_mem", row.PGAFreeableMem, true).
-			AddV2("pga_max_mem", row.PGAMaxMem, true).
-			AddV2("pga_used_mem", row.PGAUsedMem, true)
+		kvs = kvs.Set("pga_alloc_mem", row.PGAAllocMem).
+			Set("pga_freeable_mem", row.PGAFreeableMem).
+			Set("pga_max_mem", row.PGAMaxMem).
+			Set("pga_used_mem", row.PGAUsedMem)
 
 		if row.PID > 0 {
-			kvs = kvs.Add("pid", row.PID, false, true)
+			kvs = kvs.Set("pid", row.PID)
 		}
 
-		pts = append(pts, point.NewPointV2(metricName, kvs, opts...))
+		pts = append(pts, point.NewPoint(metricName, kvs, opts...))
 	}
 
 	if err := ipt.feeder.Feed(point.Metric,

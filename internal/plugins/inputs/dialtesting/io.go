@@ -58,7 +58,7 @@ func (d *dialer) pointsFeed(urlStr string) {
 	}
 
 	opt := append(pt.DefaultLoggingOptions(), pt.WithTime(d.dialingTime))
-	data := pt.NewPointV2(d.task.MetricName(),
+	data := pt.NewPoint(d.task.MetricName(),
 		append(pt.NewTags(tags), pt.NewKVs(fields)...), opt...)
 
 	dialWorker.addPoints(&jobData{

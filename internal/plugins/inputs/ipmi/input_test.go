@@ -275,7 +275,7 @@ func TestInput_doCollect(t *testing.T) {
 func newTestPoint(name string, tags map[string]string, fields map[string]interface{}) *point.Point {
 	opts := point.DefaultMetricOptions()
 
-	return point.NewPointV2(name,
+	return point.NewPoint(name,
 		append(point.NewTags(tags), point.NewKVs(fields)...),
 		opts...)
 }

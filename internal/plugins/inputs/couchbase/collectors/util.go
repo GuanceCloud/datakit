@@ -20,7 +20,7 @@ func (c *Client) addPoint(measurementName, field string, val any, labels []strin
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTimestamp(c.ts))
 
-	kvs = kvs.Add(field, val, false, true)
+	kvs = kvs.Set(field, val)
 
 	for k, v := range c.getTags(labels) {
 		kvs = kvs.AddTag(k, v)
@@ -30,7 +30,7 @@ func (c *Client) addPoint(measurementName, field string, val any, labels []strin
 		kvs = kvs.AddTag(k, v)
 	}
 
-	pt := point.NewPointV2(measurementName, kvs, opts...)
+	pt := point.NewPoint(measurementName, kvs, opts...)
 	c.Pts = append(c.Pts, pt)
 }
 

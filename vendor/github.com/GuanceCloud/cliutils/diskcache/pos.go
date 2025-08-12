@@ -90,7 +90,7 @@ func (p *pos) UnmarshalBinary(bin []byte) error {
 
 func (p *pos) reset() error {
 	if p.fd == nil {
-		if fd, err := os.OpenFile(p.fname, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600); err != nil {
+		if fd, err := os.OpenFile(p.fname, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600); err != nil {
 			return fmt.Errorf("open pos file(%q) failed: %w", p.fname, err)
 		} else {
 			p.fd = fd
@@ -113,7 +113,7 @@ func (p *pos) reset() error {
 
 func (p *pos) dumpFile() error {
 	if p.fd == nil {
-		if fd, err := os.OpenFile(p.fname, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600); err != nil {
+		if fd, err := os.OpenFile(p.fname, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600); err != nil {
 			return fmt.Errorf("open pos file(%q) failed: %w", p.fname, err)
 		} else {
 			p.fd = fd

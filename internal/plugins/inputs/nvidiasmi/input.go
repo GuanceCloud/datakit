@@ -304,18 +304,18 @@ func (ipt *Input) gpuOnlineInfo(uuid, server string, ptsTime time.Time) {
 	// send info
 	var kvs point.KVs
 
-	kvs = kvs.Add("uuid", uuid, false, true)
-	kvs = kvs.Add("service", "msi_service", false, true)
+	kvs = kvs.Set("uuid", uuid)
+	kvs = kvs.Set("service", "msi_service")
 
-	kvs = kvs.Add("status_gpu", 1, false, true)
-	kvs = kvs.Add("message", fmt.Sprintf("Info! GPU online! GPU UUID: %s", uuid), false, true)
-	kvs = kvs.Add("status", "info", false, true)
+	kvs = kvs.Set("status_gpu", 1)
+	kvs = kvs.Set("message", fmt.Sprintf("Info! GPU online! GPU UUID: %s", uuid))
+	kvs = kvs.Set("status", "info")
 
 	for k, v := range ipt.mergedTags[server] {
 		kvs = kvs.AddTag(k, v)
 	}
 
-	ipt.collectCacheWarn = append(ipt.collectCacheWarn, point.NewPointV2(inputName, kvs, opts...))
+	ipt.collectCacheWarn = append(ipt.collectCacheWarn, point.NewPoint(inputName, kvs, opts...))
 }
 
 // Handle GPU drop warning.
@@ -335,18 +335,18 @@ func (ipt *Input) gpuDropWarning() {
 			// warning
 			var kvs point.KVs
 
-			kvs = kvs.Add("uuid", ipt.gpus[i].uuid, false, true)
-			kvs = kvs.Add("service", "msi_service", false, true)
+			kvs = kvs.Set("uuid", ipt.gpus[i].uuid)
+			kvs = kvs.Set("service", "msi_service")
 
-			kvs = kvs.Add("status_gpu", 2, false, true)
-			kvs = kvs.Add("message", fmt.Sprintf("Warning! GPU drop! GPU UUID: %s", ipt.gpus[i].uuid), false, true)
-			kvs = kvs.Add("status", "warning", false, true)
+			kvs = kvs.Set("status_gpu", 2)
+			kvs = kvs.Set("message", fmt.Sprintf("Warning! GPU drop! GPU UUID: %s", ipt.gpus[i].uuid))
+			kvs = kvs.Set("status", "warning")
 
 			for k, v := range ipt.mergedTags[ipt.gpus[i].server] {
 				kvs = kvs.AddTag(k, v)
 			}
 
-			ipt.collectCacheWarn = append(ipt.collectCacheWarn, point.NewPointV2(inputName, kvs, opts...))
+			ipt.collectCacheWarn = append(ipt.collectCacheWarn, point.NewPoint(inputName, kvs, opts...))
 		} else {
 			i++
 		}

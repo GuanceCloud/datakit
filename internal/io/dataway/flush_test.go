@@ -191,9 +191,9 @@ func TestFlush(t *T.T) {
 		dw.setupWAL()
 
 		var kvs point.KVs
-		kvs = kvs.AddV2("f1", 123, true).
-			AddV2("f2", "abc", true)
-		pt := point.NewPointV2(t.Name(), kvs, point.WithTimestamp(123))
+		kvs = kvs.Set("f1", 123).
+			Set("f2", "abc")
+		pt := point.NewPoint(t.Name(), kvs, point.WithTimestamp(123))
 
 		t.Logf("pt: %s", pt.LineProto())
 

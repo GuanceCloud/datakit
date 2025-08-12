@@ -185,14 +185,14 @@ func (ipt *Input) parseHotData(data string, db int) ([]*point.Point, error) {
 		var kvs point.KVs
 		kvs = kvs.AddTag("db_name", strconv.Itoa(db))
 		for k, v := range kv {
-			kvs = kvs.Add(k, v, false, false)
+			kvs = kvs.Add(k, v)
 		}
 		for k, v := range ipt.mergedTags {
 			kvs = kvs.AddTag(k, v)
 		}
-		kvs = kvs.Add("message", message, false, false)
+		kvs = kvs.Add("message", message)
 
-		collectCache = append(collectCache, point.NewPointV2(redisHotkey, kvs, opts...))
+		collectCache = append(collectCache, point.NewPoint(redisHotkey, kvs, opts...))
 	}
 
 	return collectCache, nil

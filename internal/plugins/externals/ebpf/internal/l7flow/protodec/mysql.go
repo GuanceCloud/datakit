@@ -515,19 +515,19 @@ func (dec *mysqlDecPipe) Export(force bool) []*ProtoData {
 
 			switch dec.direction { //nolint:exhaustive
 			case comm.DIn:
-				kvs = kvs.Add(comm.FieldBytesRead, int64(inf.reqBytes), false, true)
-				kvs = kvs.Add(comm.FieldBytesWritten, int64(inf.respBytes), false, true)
+				kvs = kvs.Set(comm.FieldBytesRead, int64(inf.reqBytes))
+				kvs = kvs.Set(comm.FieldBytesWritten, int64(inf.respBytes))
 			default:
-				kvs = kvs.Add(comm.FieldBytesRead, int64(inf.respBytes), false, true)
-				kvs = kvs.Add(comm.FieldBytesWritten, int64(inf.reqBytes), false, true)
+				kvs = kvs.Set(comm.FieldBytesRead, int64(inf.respBytes))
+				kvs = kvs.Set(comm.FieldBytesWritten, int64(inf.reqBytes))
 			}
-			kvs = kvs.Add(comm.FieldResource, inf.resource, false, true)
-			kvs = kvs.Add(comm.FieldResourceType, inf.resourceType, false, true)
-			kvs = kvs.Add(comm.FieldMysqlComment, inf.comment, false, true)
-			kvs = kvs.Add(comm.FieldStatusCode, inf.responseCode, false, true)
-			kvs = kvs.Add(comm.FieldErrMsg, inf.errMsg, false, true)
-			kvs = kvs.Add(comm.FieldErrCode, inf.errCode, false, true)
-			kvs = kvs.Add(comm.FieldStatus, code2Status(inf.errCode), false, true)
+			kvs = kvs.Set(comm.FieldResource, inf.resource)
+			kvs = kvs.Set(comm.FieldResourceType, inf.resourceType)
+			kvs = kvs.Set(comm.FieldMysqlComment, inf.comment)
+			kvs = kvs.Set(comm.FieldStatusCode, inf.responseCode)
+			kvs = kvs.Set(comm.FieldErrMsg, inf.errMsg)
+			kvs = kvs.Set(comm.FieldErrCode, inf.errCode)
+			kvs = kvs.Set(comm.FieldStatus, code2Status(inf.errCode))
 
 			dur := int64(inf.ktime[3] - inf.ktime[0])
 			cost := int64(inf.ktime[2] - inf.ktime[1])

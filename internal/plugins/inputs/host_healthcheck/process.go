@@ -37,17 +37,17 @@ func (ipt *Input) collectProcess(ptTS int64) error {
 
 		for oldPid, oldInfo := range process.processes {
 			var kvs point.KVs
-			kvs = kvs.Add("process", oldInfo.name, true, true)
-			kvs = kvs.Add("cmd_line", oldInfo.cmdLine, true, true)
-			kvs = kvs.Add("start_duration", oldInfo.startDuration.Microseconds(), false, true)
-			kvs = kvs.Add("pid", oldPid, false, true)
-			kvs = kvs.Add("type", noneType, true, true)
-			kvs = kvs.Add("exception", false, false, true)
+			kvs = kvs.SetTag("process", oldInfo.name)
+			kvs = kvs.SetTag("cmd_line", oldInfo.cmdLine)
+			kvs = kvs.Set("start_duration", oldInfo.startDuration.Microseconds())
+			kvs = kvs.Set("pid", oldPid)
+			kvs = kvs.SetTag("type", noneType)
+			kvs = kvs.Set("exception", false)
 
 			if _, ok := runningProcesses[oldPid]; !ok {
 				l.Infof("process %s(%d) is missing", oldInfo.name, oldPid)
-				kvs = kvs.Add("type", "missing", true, true)
-				kvs = kvs.Add("exception", true, false, true)
+				kvs = kvs.SetTag("type", "missing")
+				kvs = kvs.Set("exception", true)
 			}
 			for k, v := range ipt.mergedTags {
 				kvs = kvs.AddTag(k, v)
@@ -55,7 +55,7 @@ func (ipt *Input) collectProcess(ptTS int64) error {
 
 			opts := point.DefaultMetricOptions()
 			opts = append(opts, point.WithTimestamp(ptTS))
-			ipt.collectCache = append(ipt.collectCache, point.NewPointV2(processMetricName, kvs, opts...))
+			ipt.collectCache = append(ipt.collectCache, point.NewPoint(processMetricName, kvs, opts...))
 		}
 		process.processes = runningProcesses
 		l.Debugf("got %d matched processes: %+#v", len(process.processes), process.processes)

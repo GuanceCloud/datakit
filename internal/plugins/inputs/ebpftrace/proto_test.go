@@ -83,14 +83,14 @@ func TestMR(t *testing.T) {
 
 			k += 1
 			j += 1
-			kvs = kvs.Add(espan.SpanID, k<<8+j, false, true)
-			kvs = kvs.Add(espan.SpanID+"__", espan.ID64(int64(k<<8+j)).StringHex(), false, true)
-			kvs = kvs.Add(espan.DirectionStr, d, false, true)
-			kvs = kvs.Add(espan.ReqSeq, k, false, true)
-			kvs = kvs.Add(espan.RespSeq, k, false, true)
-			kvs = kvs.Add(espan.ThrTraceID, j, false, true)
-			kvs = kvs.Add(espan.EBPFSpanType, t, false, true)
-			pts = append(pts, point.NewPointV2("dketrace", kvs))
+			kvs = kvs.Set(espan.SpanID, k<<8+j)
+			kvs = kvs.Set(espan.SpanID+"__", espan.ID64(int64(k<<8+j)).StringHex())
+			kvs = kvs.Set(espan.DirectionStr, d)
+			kvs = kvs.Set(espan.ReqSeq, k)
+			kvs = kvs.Set(espan.RespSeq, k)
+			kvs = kvs.Set(espan.ThrTraceID, j)
+			kvs = kvs.Set(espan.EBPFSpanType, t)
+			pts = append(pts, point.NewPoint("dketrace", kvs))
 		}
 	}
 

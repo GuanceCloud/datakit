@@ -81,7 +81,7 @@ func TestHTTPHandle(t *testing.T) {
 			for i := 0; i < ca.count; i++ {
 				kvs := point.NewKVs(map[string]interface{}{"a": 1})
 				kvs.AddTag("b", "2")
-				pt := point.NewPointV2("test", kvs)
+				pt := point.NewPoint("test", kvs)
 				pts = append(pts, pt)
 			}
 

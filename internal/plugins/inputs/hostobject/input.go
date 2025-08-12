@@ -212,34 +212,34 @@ func (ipt *Input) collect(ptTS int64) error {
 
 	l.Debugf("messageData len: %d", len(messageData))
 
-	kvs = kvs.Add("message", string(messageData), false, true).
-		Add("start_time", message.Host.HostMeta.BootTime*1000, false, true).
-		Add("datakit_ver", datakit.Version, false, true).
-		Add("cpu_usage", message.Host.cpuPercent, false, true).
-		Add("mem_used_percent", message.Host.Mem.usedPercent, false, true).
-		Add("load", message.Host.load5, false, true).
-		Add("disk_used_percent", message.Host.diskUsedPercent, false, true).
-		Add("diskio_read_bytes_per_sec", message.Host.diskIOReadBytesPerSec, false, true).
-		Add("diskio_write_bytes_per_sec", message.Host.diskIOWriteBytesPerSec, false, true).
-		Add("net_recv_bytes_per_sec", message.Host.netRecvBytesPerSec, false, true).
-		Add("net_send_bytes_per_sec", message.Host.netSendBytesPerSec, false, true).
-		Add("logging_level", message.Host.loggingLevel, false, true).
+	kvs = kvs.Set("message", string(messageData)).
+		Set("start_time", message.Host.HostMeta.BootTime*1000).
+		Set("datakit_ver", datakit.Version).
+		Set("cpu_usage", message.Host.cpuPercent).
+		Set("mem_used_percent", message.Host.Mem.usedPercent).
+		Set("load", message.Host.load5).
+		Set("disk_used_percent", message.Host.diskUsedPercent).
+		Set("diskio_read_bytes_per_sec", message.Host.diskIOReadBytesPerSec).
+		Set("diskio_write_bytes_per_sec", message.Host.diskIOWriteBytesPerSec).
+		Set("net_recv_bytes_per_sec", message.Host.netRecvBytesPerSec).
+		Set("net_send_bytes_per_sec", message.Host.netSendBytesPerSec).
+		Set("logging_level", message.Host.loggingLevel).
 		AddTag("name", message.Host.HostMeta.HostName).
 		AddTag("os", message.Host.HostMeta.OS).
-		Add("num_cpu", runtime.NumCPU(), false, false).
+		Add("num_cpu", runtime.NumCPU()).
 		AddTag("unicast_ip", message.Config.IP).
-		Add("disk_total", message.Host.getDiskTotal(), false, true).
+		Set("disk_total", message.Host.getDiskTotal()).
 		AddTag("arch", message.Host.HostMeta.Arch)
 
 	if !datakit.IsTestMode {
-		kvs = kvs.Add("Scheck", message.Collectors[0].Version, false, true)
+		kvs = kvs.Set("Scheck", message.Collectors[0].Version)
 	}
 
 	isDocker := 0
 	if datakit.Docker {
 		isDocker = 1
 	}
-	kvs = kvs.Add("is_docker", isDocker, false, true)
+	kvs = kvs.Set("is_docker", isDocker)
 
 	// check if dk upgrader is available
 	// TODO: check response message whether is valid
@@ -248,7 +248,7 @@ func (ipt *Input) collect(ptTS int64) error {
 		l.Warnf("get dk upgrader failed: %s", err.Error())
 	} else {
 		_ = res.Body.Close()
-		kvs = kvs.Add("dk_upgrader", fmt.Sprintf("%s:%d", config.Cfg.DKUpgrader.Host, config.Cfg.DKUpgrader.Port), false, true)
+		kvs = kvs.Set("dk_upgrader", fmt.Sprintf("%s:%d", config.Cfg.DKUpgrader.Host, config.Cfg.DKUpgrader.Port))
 	}
 
 	// append extra cloud fields: all of them as tags
@@ -256,7 +256,7 @@ func (ipt *Input) collect(ptTS int64) error {
 		switch tv := v.(type) {
 		case string:
 			if tv != Unavailable {
-				kvs = kvs.Add(k, tv, true, true)
+				kvs = kvs.SetTag(k, tv)
 			}
 		default:
 			l.Warnf("ignore non-string cloud extra field: %s: %v, ignored", k, v)
@@ -267,7 +267,7 @@ func (ipt *Input) collect(ptTS int64) error {
 		kvs = kvs.AddTag(k, v)
 	}
 
-	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(hostObjMeasurementName, kvs, opts...))
+	ipt.collectCache = append(ipt.collectCache, point.NewPoint(hostObjMeasurementName, kvs, opts...))
 
 	needUpdateGlobalTags := false
 	if field := kvs.Get("region"); field != nil {

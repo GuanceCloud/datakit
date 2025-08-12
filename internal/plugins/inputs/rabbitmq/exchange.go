@@ -54,24 +54,24 @@ func getExchange(n *Input) {
 			AddTag("internal", strconv.FormatBool(exchange.Internal)).
 			AddTag("durable", strconv.FormatBool(exchange.Durable)).
 			AddTag("auto_delete", strconv.FormatBool(exchange.AutoDelete)).
-			AddV2("message_ack_count", exchange.messageStats.Ack, true).
-			AddV2("message_ack_rate", exchange.messageStats.AckDetails.Rate, true).
-			AddV2("message_confirm_count", exchange.messageStats.Confirm, true).
-			AddV2("message_confirm_rate", exchange.messageStats.ConfirmDetail.Rate, true).
-			AddV2("message_deliver_get_count", exchange.messageStats.DeliverGet, true).
-			AddV2("message_deliver_get_rate", exchange.messageStats.DeliverGetDetails.Rate, true).
-			AddV2("message_publish_count", exchange.messageStats.Publish, true).
-			AddV2("message_publish_rate", exchange.messageStats.PublishDetails.Rate, true).
-			AddV2("message_publish_in_count", exchange.messageStats.PublishIn, true).
-			AddV2("message_publish_in_rate", exchange.messageStats.PublishInDetails.Rate, true).
-			AddV2("message_publish_out_count", exchange.messageStats.PublishOut, true).
-			AddV2("message_publish_out_rate", exchange.messageStats.PublishOutDetails.Rate, true).
-			AddV2("message_redeliver_count", exchange.messageStats.Redeliver, true).
-			AddV2("message_redeliver_rate", exchange.messageStats.RedeliverDetails.Rate, true).
-			AddV2("message_return_unroutable_count", exchange.messageStats.ReturnUnroutable, true).
-			AddV2("message_return_unroutable_count_rate", exchange.messageStats.ReturnUnroutableDetails.Rate, true)
+			Set("message_ack_count", exchange.messageStats.Ack).
+			Set("message_ack_rate", exchange.messageStats.AckDetails.Rate).
+			Set("message_confirm_count", exchange.messageStats.Confirm).
+			Set("message_confirm_rate", exchange.messageStats.ConfirmDetail.Rate).
+			Set("message_deliver_get_count", exchange.messageStats.DeliverGet).
+			Set("message_deliver_get_rate", exchange.messageStats.DeliverGetDetails.Rate).
+			Set("message_publish_count", exchange.messageStats.Publish).
+			Set("message_publish_rate", exchange.messageStats.PublishDetails.Rate).
+			Set("message_publish_in_count", exchange.messageStats.PublishIn).
+			Set("message_publish_in_rate", exchange.messageStats.PublishInDetails.Rate).
+			Set("message_publish_out_count", exchange.messageStats.PublishOut).
+			Set("message_publish_out_rate", exchange.messageStats.PublishOutDetails.Rate).
+			Set("message_redeliver_count", exchange.messageStats.Redeliver).
+			Set("message_redeliver_rate", exchange.messageStats.RedeliverDetails.Rate).
+			Set("message_return_unroutable_count", exchange.messageStats.ReturnUnroutable).
+			Set("message_return_unroutable_count_rate", exchange.messageStats.ReturnUnroutableDetails.Rate)
 
-		pts = append(pts, point.NewPointV2(exchangeMeasurementName, kvs, opts...))
+		pts = append(pts, point.NewPoint(exchangeMeasurementName, kvs, opts...))
 	}
 
 	if err := n.feeder.Feed(point.Metric, pts,

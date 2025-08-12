@@ -128,10 +128,10 @@ func (m *tablespaceMetrics) tablespaces() ([]*point.Point, error) {
 
 		kvs = kvs.AddTag(tablespaceName, r.TablespaceName)
 
-		kvs = kvs.Add("in_use", r.InUse, false, false)
-		kvs = kvs.Add("off_use", r.Offline, false, false)
-		kvs = kvs.Add("ts_size", r.Size, false, false)
-		kvs = kvs.Add("used_space", r.Used, false, false)
+		kvs = kvs.Add("in_use", r.InUse)
+		kvs = kvs.Add("off_use", r.Offline)
+		kvs = kvs.Add("ts_size", r.Size)
+		kvs = kvs.Add("used_space", r.Used)
 
 		pts = append(pts, ccommon.BuildPointMetric(
 			kvs, m.x.MetricName,

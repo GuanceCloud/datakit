@@ -392,7 +392,7 @@ func (pt *PlPoint) Point() *point.Point {
 
 	fieldsKVS := point.NewTags(pt.tags)
 	fieldsKVS = append(fieldsKVS, point.NewKVs(pt.fields)...)
-	return point.NewPointV2(pt.name, fieldsKVS, opt...)
+	return point.NewPoint(pt.name, fieldsKVS, opt...)
 }
 
 func WrapPoint(cat point.Category, pt *point.Point) PlInputPt {

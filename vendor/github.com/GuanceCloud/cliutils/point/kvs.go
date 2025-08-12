@@ -6,7 +6,6 @@
 package point
 
 import (
-	"fmt"
 	"math/rand"
 	"sort"
 	"strings"
@@ -32,14 +31,9 @@ func (kv *Field) Raw() any {
 		return kv.GetD()
 	case *Field_S:
 		return kv.GetS()
-
 	case *Field_A:
-
-		if v, err := AnyRaw(kv.GetA()); err != nil {
-			return nil
-		} else {
-			return v
-		}
+		v, _ := AnyRaw(kv.GetA())
+		return v
 	default:
 		return nil
 	}
@@ -57,15 +51,24 @@ func (x KVs) Less(i, j int) bool {
 	return strings.Compare(x[i].Key, x[j].Key) < 0 // stable sort
 }
 
-func (x KVs) Pretty() string {
-	var arr []string
-	for idx, kv := range x {
+func (x KVs) kvPretty() []string {
+	var (
+		arr []string
+	)
+
+	for _, kv := range x {
 		if kv == nil {
-			arr = append(arr, fmt.Sprintf("[%d] <nil>", idx))
+			arr = append(arr, "<nil>")
 		} else {
-			arr = append(arr, fmt.Sprintf("[%d] %s", idx, kv.String()))
+			arr = append(arr, kv.String())
 		}
 	}
+	return arr
+}
+
+// Pretty show x' key/value list in orderded(ASC) list.
+func (x KVs) Pretty() string {
+	arr := x.kvPretty()
 
 	// For key-values are not sorted while building the point, we
 	// think they are equal, so sort the string array to remove the
@@ -73,6 +76,11 @@ func (x KVs) Pretty() string {
 	sort.Strings(arr)
 
 	return strings.Join(arr, "\n")
+}
+
+// Pretty show x' key/value list in un-orderded list.
+func (x KVs) RawPretty() string {
+	return strings.Join(x.kvPretty(), "\n")
 }
 
 func (x KVs) PrettySorted() string {
@@ -341,18 +349,14 @@ func (x KVs) Del(k string) KVs {
 	return x
 }
 
-// AddV2 add new field with opts.
-// If force enabled, overwrite exist key.
-func (x KVs) AddV2(k string, v any, force bool, opts ...KVOption) KVs {
+// Set add new field with opts.
+func (x KVs) Set(k string, v any, opts ...KVOption) KVs {
 	kv := NewKV(k, v, opts...)
 
 	for i := range x {
 		if x[i].Key == k { // k exist
-			if force {
-				x[i] = kv // override exist tag/field
-			}
-
-			goto out // ignore the key
+			x[i] = kv // override exist tag/field
+			goto out  // ignore the key
 		}
 	}
 
@@ -362,27 +366,12 @@ out:
 	return x
 }
 
-// Add add new field.
-// Deprecated: use AddV2
-// If force enabled, overwrite exist key.
-func (x KVs) Add(k string, v any, isTag, force bool) KVs {
-	kv := NewKV(k, v)
-
-	if isTag {
-		switch v.(type) {
-		case string:
-			kv.IsTag = isTag
-		default:
-			// ignore isTag
-		}
-	}
+// Add add new field with opts.
+func (x KVs) Add(k string, v any, opts ...KVOption) KVs {
+	kv := NewKV(k, v, opts...)
 
 	for i := range x {
 		if x[i].Key == k { // k exist
-			if force {
-				x[i] = kv // override exist tag/field
-			}
-
 			goto out // ignore the key
 		}
 	}
@@ -394,24 +383,22 @@ out:
 }
 
 func (x KVs) AddTag(k, v string) KVs {
-	x = x.Add(k, v, true, false)
+	x = x.Add(k, v, WithKVTagSet(true))
 	return x
 }
 
-func (x KVs) MustAddTag(k, v string) KVs {
-	return x.Add(k, v, true, true)
+func (x KVs) SetTag(k, v string) KVs {
+	return x.Set(k, v, WithKVTagSet(true))
 }
 
-func (x KVs) AddKV(kv *Field, force bool) KVs {
+func (x KVs) SetKV(kv *Field) KVs {
 	if kv == nil {
 		return x
 	}
 
 	for i := range x {
 		if x[i].Key == kv.Key {
-			if force {
-				x[i] = kv
-			}
+			x[i] = kv
 			goto out
 		}
 	}
@@ -422,8 +409,20 @@ out:
 	return x
 }
 
-func (x KVs) MustAddKV(kv *Field) KVs {
-	x = x.AddKV(kv, true)
+func (x KVs) AddKV(kv *Field) KVs {
+	if kv == nil {
+		return x
+	}
+
+	for i := range x {
+		if x[i].Key == kv.Key {
+			goto out
+		}
+	}
+
+	x = append(x, kv)
+
+out:
 	return x
 }
 

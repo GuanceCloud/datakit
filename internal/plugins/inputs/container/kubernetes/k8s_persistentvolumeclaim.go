@@ -74,20 +74,20 @@ func (p *persistentvolumeclaim) buildObjectPoints(list *apicorev1.PersistentVolu
 		kvs = kvs.AddTag("namespace", item.Namespace)
 		kvs = kvs.AddTag("phase", string(item.Status.Phase))
 
-		kvs = kvs.AddV2("volume_name", item.Spec.VolumeName, false)
+		kvs = kvs.Add("volume_name", item.Spec.VolumeName)
 		if item.Spec.VolumeMode != nil {
-			kvs = kvs.AddV2("volume_mode", string(*item.Spec.VolumeMode), false)
+			kvs = kvs.Add("volume_mode", string(*item.Spec.VolumeMode))
 		}
 		if item.Spec.StorageClassName != nil {
-			kvs = kvs.AddV2("storage_class_name", *item.Spec.StorageClassName, false)
+			kvs = kvs.Add("storage_class_name", *item.Spec.StorageClassName)
 		}
 
-		kvs = kvs.AddV2("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3, false)
+		kvs = kvs.Add("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3)
 
 		if item.Spec.Resources.Requests != nil {
 			storage, ok := item.Spec.Resources.Requests["storage"]
 			if ok {
-				kvs = kvs.AddV2("requests_storage", storage.String(), false)
+				kvs = kvs.Add("requests_storage", storage.String())
 			}
 		}
 
@@ -96,16 +96,16 @@ func (p *persistentvolumeclaim) buildObjectPoints(list *apicorev1.PersistentVolu
 			accessModes = append(accessModes, string(mode))
 		}
 		sort.Strings(accessModes)
-		kvs = kvs.AddV2("access_modes", strings.Join(accessModes, ","), false)
+		kvs = kvs.Add("access_modes", strings.Join(accessModes, ","))
 
 		if y, err := yaml.Marshal(item); err == nil {
-			kvs = kvs.AddV2("yaml", string(y), false)
+			kvs = kvs.Add("yaml", string(y))
 		}
-		kvs = kvs.AddV2("annotations", pointutil.MapToJSON(item.Annotations), false)
+		kvs = kvs.Add("annotations", pointutil.MapToJSON(item.Annotations))
 		kvs = append(kvs, pointutil.ConvertDFLabels(item.Labels)...)
 
 		msg := pointutil.PointKVsToJSON(kvs)
-		kvs = kvs.AddV2("message", pointutil.TrimString(msg, maxMessageLength), false)
+		kvs = kvs.Add("message", pointutil.TrimString(msg, maxMessageLength))
 
 		kvs = kvs.Del("annotations")
 		kvs = kvs.Del("yaml")
@@ -116,7 +116,7 @@ func (p *persistentvolumeclaim) buildObjectPoints(list *apicorev1.PersistentVolu
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, p.cfg.LabelAsTagsForNonMetric.All, p.cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(p.cfg.ExtraTags)...)
-		pt := point.NewPointV2(persistentvolumeclaimObjectClass, kvs, opts...)
+		pt := point.NewPoint(persistentvolumeclaimObjectClass, kvs, opts...)
 		pts = append(pts, pt)
 	}
 

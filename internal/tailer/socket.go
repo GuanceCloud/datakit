@@ -149,7 +149,7 @@ func (sk *SocketLogger) feed(pending [][]byte) {
 			constants.FieldStatus:  pipeline.DefaultStatus,
 		}
 
-		pt := point.NewPointV2(
+		pt := point.NewPoint(
 			sk.opt.source,
 			append(point.NewTags(sk.tags), point.NewKVs(fields)...),
 			point.DefaultLoggingOptions()...,

@@ -71,7 +71,7 @@ func getPoints(pointLength int) []*point.Point {
 
 	for i := 0; i < pointLength; i++ {
 		fields := map[string]interface{}{"val": i}
-		pt := point.NewPointV2(metricName,
+		pt := point.NewPoint(metricName,
 			point.NewKVs(fields),
 			opts...)
 

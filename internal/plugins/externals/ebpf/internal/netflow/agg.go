@@ -141,7 +141,7 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 
 	kvs := point.NewTags(tags)
 	kvs = append(kvs, point.NewKVs(fields)...)
-	pt := point.NewPointV2(srcNameM, kvs, append(
+	pt := point.NewPoint(srcNameM, kvs, append(
 		point.CommonLoggingOptions(), point.WithTime(pTime))...)
 
 	return pt, nil

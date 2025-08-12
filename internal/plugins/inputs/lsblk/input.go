@@ -164,13 +164,13 @@ func (ipt *Input) collect() error {
 		kvs = kvs.AddTag("group", device.Group)
 		kvs = kvs.AddTag("parent", device.Parent)
 
-		kvs = kvs.Add("size", device.Size, false, true)
-		kvs = kvs.Add("rq_size", device.RQSize, false, true)
+		kvs = kvs.Set("size", device.Size)
+		kvs = kvs.Set("rq_size", device.RQSize)
 		if device.IsMounted {
-			kvs = kvs.Add("fs_size", device.FSSize, false, true)
-			kvs = kvs.Add("fs_avail", device.FSAvail, false, true)
-			kvs = kvs.Add("fs_used", device.FSUsed, false, true)
-			kvs = kvs.Add("fs_used_percent", device.FSUsePercent, false, true)
+			kvs = kvs.Set("fs_size", device.FSSize)
+			kvs = kvs.Set("fs_avail", device.FSAvail)
+			kvs = kvs.Set("fs_used", device.FSUsed)
+			kvs = kvs.Set("fs_used_percent", device.FSUsePercent)
 
 			kvs = kvs.AddTag("is_mounted", "是")
 			kvs = kvs.AddTag("mountpoint", device.MountPoint)
@@ -182,7 +182,7 @@ func (ipt *Input) collect() error {
 			kvs = kvs.AddTag(k, v)
 		}
 
-		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(inputName, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPoint(inputName, kvs, opts...))
 	}
 
 	return nil

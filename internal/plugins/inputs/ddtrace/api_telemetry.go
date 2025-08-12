@@ -44,14 +44,14 @@ func (ob *jvmTelemetry) toPoint() *point.Point {
 	opts := point.DefaultObjectOptions()
 	opts = append(opts, point.WithTime(ob.traceTime))
 
-	return point.NewPointV2(telemetryMeasurementName, ob.kvs, opts...)
+	return point.NewPoint(telemetryMeasurementName, ob.kvs, opts...)
 }
 
 func (ob *jvmTelemetry) setField(key string, val interface{}) {
 	ob.lock.Lock()
 	defer ob.lock.Unlock()
 
-	ob.kvs = ob.kvs.AddV2(key, val, false)
+	ob.kvs = ob.kvs.Add(key, val)
 }
 
 func (ob *jvmTelemetry) Info() *inputs.MeasurementInfo {

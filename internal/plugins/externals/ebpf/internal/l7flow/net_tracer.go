@@ -514,74 +514,74 @@ func genPts(data []*protodec.ProtoData, conn *comm.ConnectionInfo) []*point.Poin
 		}
 
 		// network tracing
-		v.KVs = v.KVs.Add(spanid.EBPFSpanType, spanType, false, true)
-		v.KVs = v.KVs.Add(spanid.ReqSeq, int64(v.Meta.ReqTCPSeq), false, true)
-		v.KVs = v.KVs.Add(spanid.RespSeq, int64(v.Meta.RespTCPSeq), false, true)
-		v.KVs = v.KVs.Add(spanid.Direction, v.Direction.String(), false, true)
+		v.KVs = v.KVs.Set(spanid.EBPFSpanType, spanType)
+		v.KVs = v.KVs.Set(spanid.ReqSeq, int64(v.Meta.ReqTCPSeq))
+		v.KVs = v.KVs.Set(spanid.RespSeq, int64(v.Meta.RespTCPSeq))
+		v.KVs = v.KVs.Set(spanid.Direction, v.Direction.String())
 		// working for process thread inner tracing
 		if v.Direction == comm.DIn {
-			v.KVs = v.KVs.Add(spanid.ThrTraceID, v.Meta.InnerID, false, true)
+			v.KVs = v.KVs.Set(spanid.ThrTraceID, v.Meta.InnerID)
 		}
-		v.KVs = v.KVs.Add(comm.FieldKernelThread, v.Meta.Threads[0][0], false, true)
+		v.KVs = v.KVs.Set(comm.FieldKernelThread, v.Meta.Threads[0][0])
 		if v.Meta.Threads[0][1] != 0 {
-			v.KVs = v.KVs.Add(comm.FieldUserThread, v.Meta.Threads[0][1], false, true)
+			v.KVs = v.KVs.Set(comm.FieldUserThread, v.Meta.Threads[0][1])
 		}
-		v.KVs = v.KVs.Add(comm.FieldKernelTime, int64(v.KTime), false, true)
+		v.KVs = v.KVs.Set(comm.FieldKernelTime, int64(v.KTime))
 
 		// app trace info
 		if !v.Meta.TraceID.Zero() && !v.Meta.ParentSpanID.Zero() {
-			v.KVs = v.KVs.Add(spanid.AppTraceIDL, int64(v.Meta.TraceID.Low), false, true)
-			v.KVs = v.KVs.Add(spanid.AppTraceIDH, int64(v.Meta.TraceID.High), false, true)
-			v.KVs = v.KVs.Add(spanid.AppParentIDL, int64(v.Meta.ParentSpanID), false, true)
+			v.KVs = v.KVs.Set(spanid.AppTraceIDL, int64(v.Meta.TraceID.Low))
+			v.KVs = v.KVs.Set(spanid.AppTraceIDH, int64(v.Meta.TraceID.High))
+			v.KVs = v.KVs.Set(spanid.AppParentIDL, int64(v.Meta.ParentSpanID))
 			var aSampled int64
 			if v.Meta.SampledSpan {
 				aSampled = 1
 			} else {
 				aSampled = -1
 			}
-			v.KVs = v.KVs.Add(spanid.AppSpanSampled, aSampled, false, true)
+			v.KVs = v.KVs.Set(spanid.AppSpanSampled, aSampled)
 			if v.Meta.SpanHexEnc {
-				v.KVs = v.KVs.Add("app_trace_id", v.Meta.TraceID.StringHex(), false, true)
-				v.KVs = v.KVs.Add("app_parent_id", v.Meta.ParentSpanID.StringHex(), false, true)
+				v.KVs = v.KVs.Set("app_trace_id", v.Meta.TraceID.StringHex())
+				v.KVs = v.KVs.Set("app_parent_id", v.Meta.ParentSpanID.StringHex())
 			} else {
-				v.KVs = v.KVs.Add("app_trace_id", v.Meta.TraceID.StringDec(), false, true)
-				v.KVs = v.KVs.Add("app_parent_id", v.Meta.ParentSpanID.StringDec(), false, true)
+				v.KVs = v.KVs.Set("app_trace_id", v.Meta.TraceID.StringDec())
+				v.KVs = v.KVs.Set("app_parent_id", v.Meta.ParentSpanID.StringDec())
 			}
 		}
 
 		// service info
-		v.KVs = v.KVs.Add("source_type", "ebpf", false, true)
-		v.KVs = v.KVs.Add("process_name", conn.ProcessName, false, true)
-		v.KVs = v.KVs.Add("thread_name", conn.TaskName, false, true)
+		v.KVs = v.KVs.Set("source_type", "ebpf")
+		v.KVs = v.KVs.Set("process_name", conn.ProcessName)
+		v.KVs = v.KVs.Set("thread_name", conn.TaskName)
 		if conn.ServiceName == "" {
 			if conn.ProcessName != "" {
-				v.KVs = v.KVs.Add("service", conn.ProcessName, false, true)
+				v.KVs = v.KVs.Set("service", conn.ProcessName)
 			} else {
-				v.KVs = v.KVs.Add("service", conn.TaskName, false, true)
+				v.KVs = v.KVs.Set("service", conn.TaskName)
 			}
 		} else {
-			v.KVs = v.KVs.Add("service", conn.ServiceName, false, true)
+			v.KVs = v.KVs.Set("service", conn.ServiceName)
 		}
-		v.KVs = v.KVs.Add(comm.FieldPid, strconv.Itoa(int(conn.Pid)), false, true)
+		v.KVs = v.KVs.Set(comm.FieldPid, strconv.Itoa(int(conn.Pid)))
 
 		// conn info
 		isV6 := !netflow.ConnAddrIsIPv4(conn.Meta)
 		ip := netflow.U32BEToIP(conn.Daddr, isV6)
-		v.KVs = v.KVs.Add("dst_ip", ip.String(), false, true)
+		v.KVs = v.KVs.Set("dst_ip", ip.String())
 		ip = netflow.U32BEToIP(conn.Saddr, isV6)
-		v.KVs = v.KVs.Add("src_ip", ip.String(), false, true)
-		v.KVs = v.KVs.Add("src_port", strconv.Itoa(int(conn.Sport)), false, true)
-		v.KVs = v.KVs.Add("dst_port", strconv.Itoa(int(conn.Dport)), false, true)
+		v.KVs = v.KVs.Set("src_ip", ip.String())
+		v.KVs = v.KVs.Set("src_port", strconv.Itoa(int(conn.Sport)))
+		v.KVs = v.KVs.Set("dst_port", strconv.Itoa(int(conn.Dport)))
 
 		// span info
-		v.KVs = v.KVs.Add("start", v.Time/1000, false, true)        // conv ns to us
-		v.KVs = v.KVs.Add("duration", v.Duration/1000, false, true) // conv ns to us
+		v.KVs = v.KVs.Set("start", v.Time/1000)        // conv ns to us
+		v.KVs = v.KVs.Set("duration", v.Duration/1000) // conv ns to us
 		// v.KVs = v.KVs.Add("cost", v.Cost, false, true)
-		v.KVs = v.KVs.Add("span_type", spanType, false, true)
+		v.KVs = v.KVs.Set("span_type", spanType)
 
 		opt := point.CommonLoggingOptions()
 		opt = append(opt, point.WithTimestamp(v.Time))
-		pt := point.NewPointV2("dketrace", v.KVs, opt...)
+		pt := point.NewPoint("dketrace", v.KVs, opt...)
 		pts = append(pts, pt)
 	}
 	return pts

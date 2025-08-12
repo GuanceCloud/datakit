@@ -651,7 +651,7 @@ func dkpt2point(pts ...*influxdb.Point) (res []*point.Point) {
 			continue
 		}
 
-		pt := point.NewPointV2(pt.Name(),
+		pt := point.NewPoint(pt.Name(),
 			append(point.NewTags(pt.Tags()), point.NewKVs(fs)...), nil)
 
 		res = append(res, pt)

@@ -164,13 +164,13 @@ func (ipt *Input) collectConnections() error {
 	for k, v := range ipt.mergedTags {
 		kvs = kvs.AddTag(k, v)
 	}
-	kvs = kvs.Add("active_connections", result.ActiveConnections, false, true)
-	kvs = kvs.Add("idle_connections", result.IdleConnections, false, true)
-	kvs = kvs.Add("max_connections", result.MaxConnections, false, true)
+	kvs = kvs.Set("active_connections", result.ActiveConnections)
+	kvs = kvs.Set("idle_connections", result.IdleConnections)
+	kvs = kvs.Set("max_connections", result.MaxConnections)
 
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(ipt.ptsTime))
-	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(metricNameConnection, kvs, opts...))
+	ipt.collectCache = append(ipt.collectCache, point.NewPoint(metricNameConnection, kvs, opts...))
 	return nil
 }
 
@@ -203,15 +203,15 @@ func (ipt *Input) collectQueryStats() error {
 			queryID = result.QueryID.String
 		}
 		kvs = kvs.AddTag("queryid", queryID)
-		kvs = kvs.Add("total_time", result.TotalTime, false, true)
-		kvs = kvs.Add("calls", result.Calls, false, true)
-		kvs = kvs.Add("rows", result.Rows, false, true)
-		kvs = kvs.Add("shared_blks_hit", result.SharedBlksHit, false, true)
-		kvs = kvs.Add("shared_blks_read", result.SharedBlksRead, false, true)
+		kvs = kvs.Set("total_time", result.TotalTime)
+		kvs = kvs.Set("calls", result.Calls)
+		kvs = kvs.Set("rows", result.Rows)
+		kvs = kvs.Set("shared_blks_hit", result.SharedBlksHit)
+		kvs = kvs.Set("shared_blks_read", result.SharedBlksRead)
 
 		opts := point.DefaultMetricOptions()
 		opts = append(opts, point.WithTime(ipt.ptsTime))
-		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(metricNameQueryStats, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPoint(metricNameQueryStats, kvs, opts...))
 	}
 	return nil
 }
@@ -229,13 +229,13 @@ func (ipt *Input) collectBufferCache() error {
 
 	var kvs point.KVs
 	kvs = ipt.addCommonTags(kvs)
-	kvs = kvs.Add("buffer_hit_ratio", result.BufferHitRatio, false, true)
-	kvs = kvs.Add("shared_blks_hit", result.SharedBlksHit, false, true)
-	kvs = kvs.Add("shared_blks_read", result.SharedBlksRead, false, true)
+	kvs = kvs.Set("buffer_hit_ratio", result.BufferHitRatio)
+	kvs = kvs.Set("shared_blks_hit", result.SharedBlksHit)
+	kvs = kvs.Set("shared_blks_read", result.SharedBlksRead)
 
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(ipt.ptsTime))
-	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(metricNameBufferCache, kvs, opts...))
+	ipt.collectCache = append(ipt.collectCache, point.NewPoint(metricNameBufferCache, kvs, opts...))
 	return nil
 }
 
@@ -252,13 +252,13 @@ func (ipt *Input) collectIndexUsage() error {
 
 	var kvs point.KVs
 	kvs = ipt.addCommonTags(kvs)
-	kvs = kvs.Add("idx_scan", result.IdxScan, false, true)
-	kvs = kvs.Add("seq_scan", result.SeqScan, false, true)
-	kvs = kvs.Add("index_hit_ratio", result.IndexHitRatio, false, true)
+	kvs = kvs.Set("idx_scan", result.IdxScan)
+	kvs = kvs.Set("seq_scan", result.SeqScan)
+	kvs = kvs.Set("index_hit_ratio", result.IndexHitRatio)
 
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(ipt.ptsTime))
-	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(metricNameIndexUsage, kvs, opts...))
+	ipt.collectCache = append(ipt.collectCache, point.NewPoint(metricNameIndexUsage, kvs, opts...))
 	return nil
 }
 
@@ -276,14 +276,14 @@ func (ipt *Input) collectBackgroundWriter() error {
 
 	var kvs point.KVs
 	kvs = ipt.addCommonTags(kvs)
-	kvs = kvs.Add("buffers_clean", result.BuffersClean, false, true)
-	kvs = kvs.Add("buffers_backend", result.BuffersBackend, false, true)
-	kvs = kvs.Add("checkpoints_timed", result.CheckpointsTimed, false, true)
-	kvs = kvs.Add("checkpoints_req", result.CheckpointsReq, false, true)
+	kvs = kvs.Set("buffers_clean", result.BuffersClean)
+	kvs = kvs.Set("buffers_backend", result.BuffersBackend)
+	kvs = kvs.Set("checkpoints_timed", result.CheckpointsTimed)
+	kvs = kvs.Set("checkpoints_req", result.CheckpointsReq)
 
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(ipt.ptsTime))
-	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(metricNameBackgroundWriter, kvs, opts...))
+	ipt.collectCache = append(ipt.collectCache, point.NewPoint(metricNameBackgroundWriter, kvs, opts...))
 	return nil
 }
 
@@ -299,12 +299,12 @@ func (ipt *Input) collectTransactions() error {
 
 	var kvs point.KVs
 	kvs = ipt.addCommonTags(kvs)
-	kvs = kvs.Add("commits", result.Commits, false, true)
-	kvs = kvs.Add("rollbacks", result.Rollbacks, false, true)
+	kvs = kvs.Set("commits", result.Commits)
+	kvs = kvs.Set("rollbacks", result.Rollbacks)
 
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(ipt.ptsTime))
-	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(metricNameTransactions, kvs, opts...))
+	ipt.collectCache = append(ipt.collectCache, point.NewPoint(metricNameTransactions, kvs, opts...))
 	return nil
 }
 
@@ -319,11 +319,11 @@ func (ipt *Input) collectLocks() error {
 
 	var kvs point.KVs
 	kvs = ipt.addCommonTags(kvs)
-	kvs = kvs.Add("waiting_locks", result.WaitingLocks, false, true)
+	kvs = kvs.Set("waiting_locks", result.WaitingLocks)
 
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(ipt.ptsTime))
-	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(metricNameLocks, kvs, opts...))
+	ipt.collectCache = append(ipt.collectCache, point.NewPoint(metricNameLocks, kvs, opts...))
 	return nil
 }
 
@@ -351,11 +351,11 @@ func (ipt *Input) collectTablespace() error {
 			spcName = result.SpcName.String
 		}
 		kvs = kvs.AddTag("spcname", spcName)
-		kvs = kvs.Add("size_bytes", result.SizeBytes, false, true)
+		kvs = kvs.Set("size_bytes", result.SizeBytes)
 
 		opts := point.DefaultMetricOptions()
 		opts = append(opts, point.WithTime(ipt.ptsTime))
-		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(metricNameTablespace, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPoint(metricNameTablespace, kvs, opts...))
 	}
 	return nil
 }
@@ -390,11 +390,11 @@ func (ipt *Input) collectQueryPerformance() error {
 		}
 		kvs = kvs.AddTag("queryid", queryID)
 		kvs = kvs.AddTag("query", query)
-		kvs = kvs.Add("mean_exec_time", result.MeanExecTime, false, true)
+		kvs = kvs.Set("mean_exec_time", result.MeanExecTime)
 
 		opts := point.DefaultMetricOptions()
 		opts = append(opts, point.WithTime(ipt.ptsTime))
-		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(metricNameQueryPerformance, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPoint(metricNameQueryPerformance, kvs, opts...))
 	}
 	return nil
 }
@@ -417,17 +417,17 @@ func (ipt *Input) collectDatabaseStatus() error {
 
 	var kvs point.KVs
 	kvs = ipt.addCommonTags(kvs)
-	kvs = kvs.Add("numbackends", result.Numbackends, false, true)
-	kvs = kvs.Add("blks_hit", result.BlksHit, false, true)
-	kvs = kvs.Add("blks_read", result.BlksRead, false, true)
-	kvs = kvs.Add("tup_inserted", result.TupInserted, false, true)
-	kvs = kvs.Add("tup_updated", result.TupUpdated, false, true)
-	kvs = kvs.Add("tup_deleted", result.TupDeleted, false, true)
-	kvs = kvs.Add("conflicts", result.Conflicts, false, true)
+	kvs = kvs.Set("numbackends", result.Numbackends)
+	kvs = kvs.Set("blks_hit", result.BlksHit)
+	kvs = kvs.Set("blks_read", result.BlksRead)
+	kvs = kvs.Set("tup_inserted", result.TupInserted)
+	kvs = kvs.Set("tup_updated", result.TupUpdated)
+	kvs = kvs.Set("tup_deleted", result.TupDeleted)
+	kvs = kvs.Set("conflicts", result.Conflicts)
 
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(ipt.ptsTime))
-	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(metricNameDatabaseStatus, kvs, opts...))
+	ipt.collectCache = append(ipt.collectCache, point.NewPoint(metricNameDatabaseStatus, kvs, opts...))
 	return nil
 }
 
@@ -455,11 +455,11 @@ func (ipt *Input) collectLockDetails() error {
 			lockType = result.LockType.String
 		}
 		kvs = kvs.AddTag("lock_type", lockType)
-		kvs = kvs.Add("lock_count", result.LockCount, false, true)
+		kvs = kvs.Set("lock_count", result.LockCount)
 
 		opts := point.DefaultMetricOptions()
 		opts = append(opts, point.WithTime(ipt.ptsTime))
-		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(metricNameLockDetails, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPoint(metricNameLockDetails, kvs, opts...))
 	}
 	return nil
 }
@@ -494,11 +494,11 @@ func (ipt *Input) collectSessionActivity() error {
 		}
 		kvs = kvs.AddTag("state", state)
 		kvs = kvs.AddTag("wait_event", waitEvent)
-		kvs = kvs.Add("session_count", result.SessionCount, false, true)
+		kvs = kvs.Set("session_count", result.SessionCount)
 
 		opts := point.DefaultMetricOptions()
 		opts = append(opts, point.WithTime(ipt.ptsTime))
-		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(metricNameSessionActivity, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPoint(metricNameSessionActivity, kvs, opts...))
 	}
 	return nil
 }
@@ -523,12 +523,12 @@ func (ipt *Input) collectQueryCancellation() error {
 
 	var kvs point.KVs
 	kvs = ipt.addCommonTags(kvs)
-	kvs = kvs.Add("temp_files", result.TempFiles, false, true)
-	kvs = kvs.Add("deadlocks", result.Deadlocks, false, true)
+	kvs = kvs.Set("temp_files", result.TempFiles)
+	kvs = kvs.Set("deadlocks", result.Deadlocks)
 
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(ipt.ptsTime))
-	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(metricNameQueryCancellation, kvs, opts...))
+	ipt.collectCache = append(ipt.collectCache, point.NewPoint(metricNameQueryCancellation, kvs, opts...))
 	return nil
 }
 
@@ -564,13 +564,13 @@ func (ipt *Input) collectFunctionStats() error {
 		}
 		kvs = kvs.AddTag("schemaname", schemaname)
 		kvs = kvs.AddTag("funcname", funcname)
-		kvs = kvs.Add("calls", result.Calls, false, true)
-		kvs = kvs.Add("total_time", result.TotalTime, false, true)
-		kvs = kvs.Add("self_time", result.SelfTime, false, true)
+		kvs = kvs.Set("calls", result.Calls)
+		kvs = kvs.Set("total_time", result.TotalTime)
+		kvs = kvs.Set("self_time", result.SelfTime)
 
 		opts := point.DefaultMetricOptions()
 		opts = append(opts, point.WithTime(ipt.ptsTime))
-		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(metricNameFunctionStats, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPoint(metricNameFunctionStats, kvs, opts...))
 	}
 	return nil
 }
@@ -611,13 +611,13 @@ func (ipt *Input) collectSlowQueries() error {
 		}
 		kvs = kvs.AddTag("queryid", queryID)
 		kvs = kvs.AddTag("query", query)
-		kvs = kvs.Add("total_exec_time", result.TotalExecTime, false, true)
-		kvs = kvs.Add("calls", result.Calls, false, true)
-		kvs = kvs.Add("mean_exec_time", result.MeanExecTime, false, true)
+		kvs = kvs.Set("total_exec_time", result.TotalExecTime)
+		kvs = kvs.Set("calls", result.Calls)
+		kvs = kvs.Set("mean_exec_time", result.MeanExecTime)
 
 		opts := point.DefaultMetricOptions()
 		opts = append(opts, point.WithTime(ipt.ptsTime))
-		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(metricNameSlowQueries, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPoint(metricNameSlowQueries, kvs, opts...))
 	}
 	return nil
 }

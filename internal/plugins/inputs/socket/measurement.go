@@ -23,13 +23,13 @@ type UDPMeasurement struct {
 }
 
 func (m *TCPMeasurement) Point() *point.Point {
-	return point.NewPointV2(m.name,
+	return point.NewPoint(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		point.DefaultMetricOptions()...)
 }
 
 func (m *UDPMeasurement) Point() *point.Point {
-	return point.NewPointV2(m.name,
+	return point.NewPoint(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		point.DefaultMetricOptions()...)
 }

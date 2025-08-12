@@ -156,28 +156,28 @@ func (s *winServer) toObjectPoints() []*point.Point {
 	for k, v := range s.tags {
 		kvs = kvs.AddTag(k, v)
 	}
-	kvs = kvs.Add("message", string(messageData), false, true).
-		Add("start_time", message.Host.HostMeta.BootTime*1000, false, true).
-		Add("datakit_ver", datakit.Version, false, true).
-		Add("cpu_usage", message.Host.cpuPercent, false, true).
-		Add("mem_used_percent", message.Host.Mem.usedPercent, false, true).
+	kvs = kvs.Set("message", string(messageData)).
+		Set("start_time", message.Host.HostMeta.BootTime*1000).
+		Set("datakit_ver", datakit.Version).
+		Set("cpu_usage", message.Host.cpuPercent).
+		Set("mem_used_percent", message.Host.Mem.usedPercent).
 		// Add("load", message.Host.load5, false, true).
-		Add("disk_used_percent", diskUsedPercent, false, true).
-		Add("diskio_read_bytes_per_sec", s.diskIOReadBytesPerSec, false, true).
-		Add("diskio_write_bytes_per_sec", s.diskIOWriteBytesPerSec, false, true).
-		Add("net_recv_bytes_per_sec", s.netRecvBytesPerSec, false, true).
-		Add("net_send_bytes_per_sec", s.netSendBytesPerSec, false, true).
+		Set("disk_used_percent", diskUsedPercent).
+		Set("diskio_read_bytes_per_sec", s.diskIOReadBytesPerSec).
+		Set("diskio_write_bytes_per_sec", s.diskIOWriteBytesPerSec).
+		Set("net_recv_bytes_per_sec", s.netRecvBytesPerSec).
+		Set("net_send_bytes_per_sec", s.netSendBytesPerSec).
 		// Add("logging_level", message.Host.loggingLevel, false, true).
 		AddTag("name", message.Host.HostMeta.HostName).
 		AddTag("os", message.Host.HostMeta.OS).
-		Add("num_cpu", s.CPU.NumberOfLogicalProcessors, false, false).
+		Add("num_cpu", s.CPU.NumberOfLogicalProcessors).
 		// AddTag("unicast_ip", message.Config.IP).
-		Add("disk_total", total, false, true).
+		Set("disk_total", total).
 		AddTag("arch", message.Host.HostMeta.Arch).
 		AddTag("host", s.host).
 		AddTag("ip", s.ip)
 	opts := point.DefaultObjectOptions()
-	pt := point.NewPointV2(hostobjectMeasurement, kvs, opts...)
+	pt := point.NewPoint(hostobjectMeasurement, kvs, opts...)
 	pt.SetTime(ntp.Now())
 	pts = append(pts, pt)
 

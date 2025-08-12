@@ -170,19 +170,19 @@ func (ipt *Input) handleEvent(event Event) {
 		return
 	}
 
-	kvs = kvs.Add("event_source", event.Source.Name, false, true)
-	kvs = kvs.Add("event_id", event.EventID.ID, false, true)
-	kvs = kvs.Add("version", event.Version, false, true)
-	kvs = kvs.Add("task", event.Task, false, true)
-	kvs = kvs.Add("keyword", event.Keywords, false, true)
-	kvs = kvs.Add("event_record_id", event.EventRecordID, false, true)
-	kvs = kvs.Add("process_id", int(event.Execution.ProcessID), false, true)
-	kvs = kvs.Add("channel", event.Channel, false, true)
-	kvs = kvs.Add("computer", event.Computer, false, true)
-	kvs = kvs.Add("message", event.Message, false, true)
-	kvs = kvs.Add("level", event.Level, false, true)
-	kvs = kvs.Add("total_message", string(msg), false, true)
-	kvs = kvs.Add("status", ipt.getEventStatus(int(event.LevelRaw)), false, true)
+	kvs = kvs.Set("event_source", event.Source.Name)
+	kvs = kvs.Set("event_id", event.EventID.ID)
+	kvs = kvs.Set("version", event.Version)
+	kvs = kvs.Set("task", event.Task)
+	kvs = kvs.Set("keyword", event.Keywords)
+	kvs = kvs.Set("event_record_id", event.EventRecordID)
+	kvs = kvs.Set("process_id", int(event.Execution.ProcessID))
+	kvs = kvs.Set("channel", event.Channel)
+	kvs = kvs.Set("computer", event.Computer)
+	kvs = kvs.Set("message", event.Message)
+	kvs = kvs.Set("level", event.Level)
+	kvs = kvs.Set("total_message", string(msg))
+	kvs = kvs.Set("status", ipt.getEventStatus(int(event.LevelRaw)))
 
 	opts := point.CommonLoggingOptions()
 	opts = append(opts, point.WithTime(ts))
@@ -191,7 +191,7 @@ func (ipt *Input) handleEvent(event Event) {
 		kvs = kvs.AddTag(k, v)
 	}
 
-	pt := point.NewPointV2("windows_event", kvs, opts...)
+	pt := point.NewPoint("windows_event", kvs, opts...)
 
 	ipt.collectCache = append(ipt.collectCache, pt)
 }

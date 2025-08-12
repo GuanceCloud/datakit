@@ -244,7 +244,7 @@ func (ipt *Input) getPts(data []*getdatassh.SSHData, ptTS int64) error {
 		var kvs point.KVs
 
 		for k, v := range fields {
-			kvs = kvs.Add(k, v, false, true)
+			kvs = kvs.Set(k, v)
 		}
 
 		for k, v := range tags {
@@ -255,7 +255,7 @@ func (ipt *Input) getPts(data []*getdatassh.SSHData, ptTS int64) error {
 			kvs = kvs.AddTag(k, v)
 		}
 
-		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(inputName, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPoint(inputName, kvs, opts...))
 	}
 
 	return nil

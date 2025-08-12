@@ -143,15 +143,15 @@ func (ipt *Input) getPoints(data []byte, metricVersion int, server string) ([]*p
 
 		var kvs point.KVs
 
-		kvs = kvs.Add("host", server, true, true)
-		kvs = kvs.Add("unit", strs[0], true, true)
-		kvs = kvs.Add(metricTypes[metricIndex].dataName, value, false, true)
+		kvs = kvs.SetTag("host", server)
+		kvs = kvs.SetTag("unit", strs[0])
+		kvs = kvs.Set(metricTypes[metricIndex].dataName, value)
 
 		for k, v := range ipt.mergedTags {
 			kvs = kvs.AddTag(k, v)
 		}
 
-		pts = append(pts, point.NewPointV2(inputName, kvs, opts...))
+		pts = append(pts, point.NewPoint(inputName, kvs, opts...))
 	}
 
 	return pts, nil

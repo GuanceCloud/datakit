@@ -64,7 +64,7 @@ func BenchmarkHandleProtobufWriteBody(b *testing.B) {
 		"f3": "strval",
 	})...)
 
-	pt := point.NewPointV2("abc", kvs, append(point.CommonLoggingOptions(), point.WithTime(
+	pt := point.NewPoint("abc", kvs, append(point.CommonLoggingOptions(), point.WithTime(
 		time.Unix(1624550216, 0)))...)
 
 	enc := point.GetEncoder(point.WithEncEncoding(point.Protobuf))
@@ -244,10 +244,10 @@ func TestHandleBody(t *testing.T) {
 
 			npts: 1,
 			expectPts: []*point.Point{
-				point.NewPointV2("abc",
-					point.NewKVs(nil).AddV2("f1", 123.0 /* int value in json are float */, true).
-						AddV2("f_2", 3.4, true).
-						AddV2("f3", "strval", true), point.WithTimestamp(123)),
+				point.NewPoint("abc",
+					point.NewKVs(nil).Set("f1", 123.0).
+						Set("f_2", 3.4).
+						Set("f3", "strval"), point.WithTimestamp(123)),
 			},
 		},
 
@@ -263,11 +263,11 @@ func TestHandleBody(t *testing.T) {
 			enc: point.JSON,
 
 			expectPts: []*point.Point{
-				point.NewPointV2("abc",
-					point.NewKVs(nil).AddV2("f1", 123.0, true).
-						AddV2("f2", 3.4, true).
-						AddV2("fx", []float64{1, 2, 3}, true).
-						AddV2("f3", "strval", true), point.WithTimestamp(123)),
+				point.NewPoint("abc",
+					point.NewKVs(nil).Set("f1", 123.0).
+						Set("f2", 3.4).
+						Set("fx", []float64{1, 2, 3}).
+						Set("f3", "strval"), point.WithTimestamp(123)),
 			},
 		},
 
@@ -1009,8 +1009,8 @@ measurement-2,t1=1,t2=2 f1=1,f2=2,f3.14=3.14 123000000000`),
 			contentType: point.Protobuf.HTTPContentType(),
 			body: func() []byte {
 				var kvs point.KVs
-				kvs = kvs.AddV2("f1", 123, true)
-				pt := point.NewPointV2("some", kvs, point.WithTimestamp(123))
+				kvs = kvs.Set("f1", 123)
+				pt := point.NewPoint("some", kvs, point.WithTimestamp(123))
 				enc := point.GetEncoder(point.WithEncEncoding(point.Protobuf))
 				defer point.PutEncoder(enc)
 
@@ -1297,19 +1297,19 @@ var (
 	// prepare 2 sample point, each point got all-types fields
 	samplePoints = func() []*point.Point {
 		var kvs point.KVs
-		kvs = kvs.Add("f_i", 123, false, false)
-		kvs = kvs.Add("f_d", []byte(`hello`), false, false)
-		kvs = kvs.Add("f_b", false, false, false)
-		kvs = kvs.Add("f_f", 3.14, false, false)
-		kvs = kvs.Add("f_s", "world", false, false)
-		kvs = kvs.Add("f_u", uint(321), false, false)
-		kvs = kvs.Add("f_a", point.MustNewAnyArray(1, 2, 3, 4, 5), false, false)
-		kvs = kvs.Add("f_d_arr", point.MustNewAnyArray([]byte("hello"), []byte("world")), false, false)
-		kvs = kvs.Add("t", "some-tag-val", true, false)
+		kvs = kvs.Add("f_i", 123)
+		kvs = kvs.Add("f_d", []byte(`hello`))
+		kvs = kvs.Add("f_b", false)
+		kvs = kvs.Add("f_f", 3.14)
+		kvs = kvs.Add("f_s", "world")
+		kvs = kvs.Add("f_u", uint(321))
+		kvs = kvs.Add("f_a", point.MustNewAnyArray(1, 2, 3, 4, 5))
+		kvs = kvs.Add("f_d_arr", point.MustNewAnyArray([]byte("hello"), []byte("world")))
+		kvs = kvs.AddTag("t", "some-tag-val")
 
 		return []*point.Point{
-			point.NewPointV2("sample_point_1", kvs, point.WithTimestamp(int64(123))),
-			point.NewPointV2("sample_point_2", kvs, point.WithTimestamp(int64(123))),
+			point.NewPoint("sample_point_1", kvs, point.WithTimestamp(int64(123))),
+			point.NewPoint("sample_point_2", kvs, point.WithTimestamp(int64(123))),
 		}
 	}()
 
@@ -1334,6 +1334,7 @@ var (
 	lineProtocol = func() []byte {
 		enc := point.GetEncoder(point.WithEncEncoding(point.LineProtocol))
 		defer point.PutEncoder(enc)
+
 		arr, _ := enc.Encode(samplePoints)
 		return arr[0]
 	}()
@@ -1357,6 +1358,8 @@ func TestPBPointEscaped(t *T.T) {
 		t.Cleanup(func() {
 			point.ClearPointPool()
 		})
+
+		require.NotEmpty(t, pb)
 
 		req := httptest.NewRequest("POST", "/v1/write/network?precision=n", bytes.NewBuffer(pb))
 		req.Header.Add("Content-Type", point.Protobuf.HTTPContentType())
@@ -1457,8 +1460,14 @@ func TestAPIV1WriteParallel(t *T.T) {
 }
 
 func TestAPIV1Write(t *T.T) {
-	t.Logf("lineProtocol:\n%s", string(lineProtocol))
-	t.Logf("JSON:\n%s", string(JSON))
+	_, err := samplePoints[0].LPPoint()
+	assert.NoError(t, err)
+
+	require.NotEmpty(t, lineProtocol)
+	require.NotEmpty(t, JSON)
+	require.NotEmpty(t, pbJSON)
+
+	t.Logf("pbjson: %s", pbJSON)
 
 	t.Run("decode-bytes-array-line-proto", func(t *T.T) {
 		dec := point.GetDecoder(point.WithDecEncoding(point.LineProtocol))
@@ -1763,6 +1772,8 @@ func TestAPIV1Write(t *T.T) {
 		{"json", "application/json", JSON},
 		{"pbjson", "application/json", pbJSON},
 	} {
+		require.NotEmpty(t, pbJSON)
+
 		t.Run("with-pt-callback-"+tc.name, func(t *T.T) {
 			ptcb := func(pt *point.Point) (*point.Point, error) {
 				pt.AddTag("added-by-callback", "some-value")

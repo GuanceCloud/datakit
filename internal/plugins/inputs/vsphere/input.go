@@ -275,13 +275,13 @@ func (ipt *Input) collectResourceEvent(resourceType string) {
 					pt.AddTag(ObjectName, eventEx.ObjectName)
 					switch eventEx.Severity {
 					case Warning:
-						pt.MustAddTag(Status, Warning)
+						pt.SetTag(Status, Warning)
 					case Error:
-						pt.MustAddTag(Status, Error)
+						pt.SetTag(Status, Error)
 					}
 				}
 
-				pt.MustAddTag(Status, Info)
+				pt.SetTag(Status, Info)
 				pt.AddTag(ObjectName, obj.name)
 				pt.AddTag(EventTypeID, fmt.Sprintf("%T", e))
 				pt.AddTag(UserName, event.UserName)

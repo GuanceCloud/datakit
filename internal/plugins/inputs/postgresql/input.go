@@ -913,9 +913,9 @@ func (ipt *Input) makePoints(columnMap map[string]*interface{}, measurementInfo 
 			} else {
 				switch {
 				case len(stringVal) > 0:
-					kvs = kvs.Add(col, cast.ToFloat64(stringVal), false, true)
+					kvs = kvs.Set(col, cast.ToFloat64(stringVal))
 				case isField:
-					kvs = kvs.Add(col, *val, false, true)
+					kvs = kvs.Set(col, *val)
 				}
 			}
 		}
@@ -930,7 +930,7 @@ func (ipt *Input) makePoints(columnMap map[string]*interface{}, measurementInfo 
 		}
 
 		opts := ipt.getKVsOpts(cat)
-		return point.NewPointV2(metricName, kvs, opts...)
+		return point.NewPoint(metricName, kvs, opts...)
 	}
 
 	return nil

@@ -81,14 +81,14 @@ func (ipt *Input) parseCommandData(list string) ([]*point.Point, error) {
 				continue
 			}
 
-			kvs = kvs.Add(arr[0], f, false, false)
+			kvs = kvs.Add(arr[0], f)
 		}
 
 		if kvs.FieldCount() > 0 {
 			for k, v := range ipt.mergedTags {
 				kvs = kvs.AddTag(k, v)
 			}
-			collectCache = append(collectCache, point.NewPointV2(redisCommandStat, kvs, opts...))
+			collectCache = append(collectCache, point.NewPoint(redisCommandStat, kvs, opts...))
 		} else {
 			l.Warnf("no field, ignored line %q", line)
 		}

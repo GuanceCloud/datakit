@@ -43,16 +43,16 @@ func (ipt *Input) selectAttrs(atts []*common.KeyValue) (kvs point.KVs, merged []
 		case *common.AnyValue_BytesValue,
 			*common.AnyValue_StringValue:
 			if s := v.Value.GetStringValue(); len(s) > 1024 { // len(tag-value) should <= 1024
-				kvs = kvs.AddV2(replaceKey, s, true) // and add it in field
+				kvs = kvs.Set(replaceKey, s) // and add it in field
 			} else {
-				kvs = kvs.MustAddTag(replaceKey, s)
+				kvs = kvs.SetTag(replaceKey, s)
 			}
 		case *common.AnyValue_DoubleValue:
-			kvs = kvs.AddV2(replaceKey, v.Value.GetDoubleValue(), true)
+			kvs = kvs.Set(replaceKey, v.Value.GetDoubleValue())
 		case *common.AnyValue_IntValue:
-			kvs = kvs.AddV2(replaceKey, v.Value.GetIntValue(), true)
+			kvs = kvs.Set(replaceKey, v.Value.GetIntValue())
 		case *common.AnyValue_BoolValue:
-			kvs = kvs.AddV2(replaceKey, v.Value.GetBoolValue(), true)
+			kvs = kvs.Set(replaceKey, v.Value.GetBoolValue())
 		default: // passed
 		}
 	}

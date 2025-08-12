@@ -112,30 +112,30 @@ func getTraceID(transid *ppv1.PTransactionId, meta metadata.MD) string {
 
 func creatRootSpan(pspan *ppv1.PSpan, meta metadata.MD) *itrace.DkSpan {
 	spanKV := point.KVs{}
-	spanKV = spanKV.Add(itrace.FieldTraceID, getTraceID(pspan.TransactionId, meta), false, false).
-		Add(itrace.FieldSpanid, strconv.FormatInt(pspan.SpanId, 10), false, false).
+	spanKV = spanKV.Add(itrace.FieldTraceID, getTraceID(pspan.TransactionId, meta)).
+		Add(itrace.FieldSpanid, strconv.FormatInt(pspan.SpanId, 10)).
 		AddTag(itrace.TagService, grpcMeta(meta).Get("applicationname")).
 		AddTag(itrace.TagSource, "pinpointV2").
 		AddTag(itrace.TagSpanType, itrace.SpanTypeEntry).
 		AddTag(itrace.TagSourceType, getServiceType(pspan.ServiceType)).
-		Add(itrace.FieldStart, pspan.StartTime*int64(time.Microsecond), false, false).
-		Add(itrace.FieldDuration, int64(pspan.Elapsed)*int64(time.Microsecond), false, false)
+		Add(itrace.FieldStart, pspan.StartTime*int64(time.Microsecond)).
+		Add(itrace.FieldDuration, int64(pspan.Elapsed)*int64(time.Microsecond))
 
 	if pspan.ParentSpanId == -1 {
-		spanKV = spanKV.Add(itrace.FieldParentID, "0", false, false)
+		spanKV = spanKV.Add(itrace.FieldParentID, "0")
 	} else {
-		spanKV = spanKV.Add(itrace.FieldParentID, strconv.FormatInt(pspan.ParentSpanId, 10), false, false)
+		spanKV = spanKV.Add(itrace.FieldParentID, strconv.FormatInt(pspan.ParentSpanId, 10))
 	}
 	if pspan.AcceptEvent != nil {
-		spanKV = spanKV.Add(itrace.FieldResource, pspan.AcceptEvent.Rpc, false, true).
-			Add(itrace.TagOperation, pspan.AcceptEvent.EndPoint, true, true)
+		spanKV = spanKV.Set(itrace.FieldResource, pspan.AcceptEvent.Rpc).
+			SetTag(itrace.TagOperation, pspan.AcceptEvent.EndPoint)
 	}
 
 	if pspan.Err != 0 {
-		spanKV = spanKV.Add(itrace.TagSpanStatus, itrace.StatusErr, true, true).
-			Add(itrace.FieldErrMessage, pspan.ExceptionInfo.String(), false, false)
+		spanKV = spanKV.SetTag(itrace.TagSpanStatus, itrace.StatusErr).
+			Add(itrace.FieldErrMessage, pspan.ExceptionInfo.String())
 	} else {
-		spanKV = spanKV.Add(itrace.TagSpanStatus, itrace.StatusOk, true, true)
+		spanKV = spanKV.SetTag(itrace.TagSpanStatus, itrace.StatusOk)
 	}
 	for k, v := range tags {
 		spanKV = spanKV.AddTag(k, v)
@@ -145,7 +145,7 @@ func creatRootSpan(pspan *ppv1.PSpan, meta metadata.MD) *itrace.DkSpan {
 	}
 
 	if bts, err := json.Marshal(pspan); err == nil {
-		spanKV = spanKV.Add(itrace.FieldMessage, string(bts), false, false)
+		spanKV = spanKV.Add(itrace.FieldMessage, string(bts))
 	}
 	if vals := meta.Get("agentid"); len(vals) > 0 {
 		info := agentCache.GetAgentInfo(vals[0])
@@ -158,7 +158,7 @@ func creatRootSpan(pspan *ppv1.PSpan, meta metadata.MD) *itrace.DkSpan {
 		}
 	}
 
-	return &itrace.DkSpan{Point: point.NewPointV2("pinpointV2", spanKV, traceOpts...)}
+	return &itrace.DkSpan{Point: point.NewPoint("pinpointV2", spanKV, traceOpts...)}
 }
 
 func fromAgentTag(agentInfo *ppv1.PAgentInfo) map[string]string {

@@ -10,29 +10,29 @@ import (
 	"time"
 )
 
-func NewPointV2(name string, kvs KVs, opts ...Option) *Point {
+func NewPoint(name string, kvs KVs, opts ...Option) *Point {
 	c := GetCfg(opts...)
 	defer PutCfg(c)
 
 	return doNewPoint(name, kvs, c)
 }
 
-// NewPoint returns a new Point given name(measurement), tags, fields and optional options.
+// NewPointDeprecated returns a new Point given name(measurement), tags, fields and optional options.
 //
 // If fields empty(or nil), error ErrNoField will returned.
 //
 // Values in fields only allowed for int/uint(8-bit/16-bit/32-bit/64-bit), string, bool,
 // float(32-bit/64-bit) and []byte, other types are ignored.
 //
-// Deprecated: use NewPointV2.
-func NewPoint(name string, tags map[string]string, fields map[string]any, opts ...Option) (*Point, error) {
+// Deprecated: use NewPoint.
+func NewPointDeprecated(name string, tags map[string]string, fields map[string]any, opts ...Option) (*Point, error) {
 	if len(fields) == 0 {
 		return nil, ErrNoFields
 	}
 
 	kvs := NewKVs(fields)
 	for k, v := range tags {
-		kvs = kvs.MustAddTag(k, v) // force add these tags
+		kvs = kvs.SetTag(k, v) // force add these tags
 	}
 
 	c := GetCfg(opts...)

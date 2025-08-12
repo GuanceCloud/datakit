@@ -195,17 +195,17 @@ func parseResourceSpans(ctx *Context, dt *Transaction) itrace.DatakitTraces {
 	}
 
 	spanKV := point.KVs{}
-	spanKV = spanKV.Add(itrace.FieldTraceID, root, false, false).
-		Add(itrace.FieldParentID, parent, false, false).
-		Add(itrace.FieldSpanid, tree.MessageID, false, false).
+	spanKV = spanKV.Add(itrace.FieldTraceID, root).
+		Add(itrace.FieldParentID, parent).
+		Add(itrace.FieldSpanid, tree.MessageID).
 		AddTag(itrace.TagService, tree.domain).
-		Add(itrace.FieldResource, dt.Name, false, false).
+		Add(itrace.FieldResource, dt.Name).
 		AddTag(itrace.TagOperation, dt.Name).
 		AddTag(itrace.TagSource, inputName).
 		AddTag(itrace.TagSourceType, dt.Type).
 		AddTag(itrace.TagSpanType, spanType).
-		Add(itrace.FieldStart, dt.durationStartInNano/1000, false, false).
-		Add(itrace.FieldDuration, dt.durationInNano/1000, false, false).
+		Add(itrace.FieldStart, dt.durationStartInNano/1000).
+		Add(itrace.FieldDuration, dt.durationInNano/1000).
 		AddTag(itrace.TagSpanStatus, status).
 		AddTag(itrace.TagHost, tree.hostName).
 		AddTag("address", tree.addr).
@@ -217,7 +217,7 @@ func parseResourceSpans(ctx *Context, dt *Transaction) itrace.DatakitTraces {
 		spanKV = spanKV.AddTag(k, v)
 	}
 
-	pt := point.NewPointV2(inputName, spanKV, traceOpts...)
+	pt := point.NewPoint(inputName, spanKV, traceOpts...)
 	dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 
 	dktraces = append(dktraces, dktrace)

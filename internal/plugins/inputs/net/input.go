@@ -145,23 +145,23 @@ func (ipt *Input) collect() error {
 	for name, ioStat := range filteredInterface {
 		var kvs point.KVs
 
-		kvs = kvs.Add("interface", ioStat.Name, true, true)
-		kvs = kvs.Add("bytes_sent", ioStat.BytesSent, false, true)
-		kvs = kvs.Add("bytes_recv", ioStat.BytesRecv, false, true)
-		kvs = kvs.Add("packets_sent", ioStat.PacketsSent, false, true)
-		kvs = kvs.Add("packets_recv", ioStat.PacketsRecv, false, true)
-		kvs = kvs.Add("err_in", ioStat.Errin, false, true)
-		kvs = kvs.Add("err_out", ioStat.Errout, false, true)
-		kvs = kvs.Add("drop_in", ioStat.Dropin, false, true)
-		kvs = kvs.Add("drop_out", ioStat.Dropout, false, true)
+		kvs = kvs.SetTag("interface", ioStat.Name)
+		kvs = kvs.Set("bytes_sent", ioStat.BytesSent)
+		kvs = kvs.Set("bytes_recv", ioStat.BytesRecv)
+		kvs = kvs.Set("packets_sent", ioStat.PacketsSent)
+		kvs = kvs.Set("packets_recv", ioStat.PacketsRecv)
+		kvs = kvs.Set("err_in", ioStat.Errin)
+		kvs = kvs.Set("err_out", ioStat.Errout)
+		kvs = kvs.Set("drop_in", ioStat.Dropin)
+		kvs = kvs.Set("drop_out", ioStat.Dropout)
 
 		if ipt.lastStats != nil {
 			if lastIOStat, ok := ipt.lastStats[name]; ok {
 				if ioStat.BytesSent >= lastIOStat.BytesSent && ts.Unix() > ipt.lastTime.Unix() {
-					kvs = kvs.Add("bytes_sent/sec", int64(ioStat.BytesSent-lastIOStat.BytesSent)/(ts.Unix()-ipt.lastTime.Unix()), false, true)
-					kvs = kvs.Add("bytes_recv/sec", int64(ioStat.BytesRecv-lastIOStat.BytesRecv)/(ts.Unix()-ipt.lastTime.Unix()), false, true)
-					kvs = kvs.Add("packets_sent/sec", int64(ioStat.PacketsSent-lastIOStat.PacketsSent)/(ts.Unix()-ipt.lastTime.Unix()), false, true)
-					kvs = kvs.Add("packets_recv/sec", int64(ioStat.PacketsRecv-lastIOStat.PacketsRecv)/(ts.Unix()-ipt.lastTime.Unix()), false, true)
+					kvs = kvs.Set("bytes_sent/sec", int64(ioStat.BytesSent-lastIOStat.BytesSent)/(ts.Unix()-ipt.lastTime.Unix()))
+					kvs = kvs.Set("bytes_recv/sec", int64(ioStat.BytesRecv-lastIOStat.BytesRecv)/(ts.Unix()-ipt.lastTime.Unix()))
+					kvs = kvs.Set("packets_sent/sec", int64(ioStat.PacketsSent-lastIOStat.PacketsSent)/(ts.Unix()-ipt.lastTime.Unix()))
+					kvs = kvs.Set("packets_recv/sec", int64(ioStat.PacketsRecv-lastIOStat.PacketsRecv)/(ts.Unix()-ipt.lastTime.Unix()))
 				}
 			}
 		}
@@ -170,7 +170,7 @@ func (ipt *Input) collect() error {
 			kvs = kvs.AddTag(k, v)
 		}
 
-		ipt.collectCache = append(ipt.collectCache, point.NewPointV2(inputName, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPoint(inputName, kvs, opts...))
 	}
 
 	// Get system wide stats for network protocols TCP and UDP(Only supports linux)
@@ -200,15 +200,15 @@ func (ipt *Input) collect() error {
 			var kvs point.KVs
 
 			for k, v := range fields {
-				kvs = kvs.Add(k, v, false, true)
+				kvs = kvs.Set(k, v)
 			}
 
-			kvs = kvs.Add("interface", "all", true, true)
+			kvs = kvs.SetTag("interface", "all")
 			for k, v := range ipt.mergedTags {
 				kvs = kvs.AddTag(k, v)
 			}
 
-			ipt.collectCache = append(ipt.collectCache, point.NewPointV2(inputName, kvs))
+			ipt.collectCache = append(ipt.collectCache, point.NewPoint(inputName, kvs))
 		}
 
 		ipt.lastProtoStats = netprotos

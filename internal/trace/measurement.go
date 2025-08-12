@@ -26,7 +26,7 @@ func (m *TraceMeasurement) Point() *point.Point {
 	opts := append(point.CommonLoggingOptions(), point.WithTime(m.TS))
 	opts = append(opts, m.BuildPointOptions...)
 
-	return point.NewPointV2(m.Name, append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...), opts...)
+	return point.NewPoint(m.Name, append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...), opts...)
 }
 
 func (m *TraceMeasurement) Info() *inputs.MeasurementInfo {

@@ -105,13 +105,13 @@ func (m *processMetrics) processMemory() ([]*point.Point, error) {
 		}
 
 		if r.PID > 0 {
-			kvs = kvs.Add("pid", r.PID, false, false)
+			kvs = kvs.Add("pid", r.PID)
 		}
 
-		kvs = kvs.Add("pga_alloc_mem", r.PGAAllocMem, false, false)
-		kvs = kvs.Add("pga_freeable_mem", r.PGAFreeableMem, false, false)
-		kvs = kvs.Add("pga_max_mem", r.PGAMaxMem, false, false)
-		kvs = kvs.Add("pga_used_mem", r.PGAUsedMem, false, false)
+		kvs = kvs.Add("pga_alloc_mem", r.PGAAllocMem)
+		kvs = kvs.Add("pga_freeable_mem", r.PGAFreeableMem)
+		kvs = kvs.Add("pga_max_mem", r.PGAMaxMem)
+		kvs = kvs.Add("pga_used_mem", r.PGAUsedMem)
 
 		pts = append(pts, ccommon.BuildPointMetric(
 			kvs, m.x.MetricName,

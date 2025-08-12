@@ -301,7 +301,7 @@ func NewPlPt(cat point.Category, name string,
 ) PlInputPt {
 	kvs := point.NewKVs(fields)
 	for k, v := range tags {
-		kvs = kvs.AddV2(k, v, true, point.WithKVTagSet(true))
+		kvs = kvs.SetTag(k, v)
 	}
 
 	opt := utils.PtCatOption(cat)
@@ -310,7 +310,7 @@ func NewPlPt(cat point.Category, name string,
 		opt = append(opt, point.WithTime(ptTime))
 	}
 
-	pt := point.NewPointV2(name, kvs, opt...)
+	pt := point.NewPoint(name, kvs, opt...)
 	return &Pt{
 		pt:       pt,
 		category: cat,

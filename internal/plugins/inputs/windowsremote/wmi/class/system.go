@@ -73,11 +73,11 @@ func (os Win32_OperatingSystem) ToMemPoint(host string) *point.Point {
 	opts := point.DefaultMetricOptions()
 	var kvs point.KVs
 	kvs = kvs.AddTag("host", host).
-		AddV2("available", os.FreePhysicalMemory*1024, false).
-		AddV2("available_percent", freePercent*100, false).
-		AddV2("total", os.TotalVisibleMemorySize*1024, false).
-		AddV2("used", used*1024, false).
-		AddV2("used_percent", usedPercent*100, false)
+		Add("available", os.FreePhysicalMemory*1024).
+		Add("available_percent", freePercent*100).
+		Add("total", os.TotalVisibleMemorySize*1024).
+		Add("used", used*1024).
+		Add("used_percent", usedPercent*100)
 
-	return point.NewPointV2("mem", kvs, opts...)
+	return point.NewPoint("mem", kvs, opts...)
 }

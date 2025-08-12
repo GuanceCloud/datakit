@@ -50,11 +50,11 @@ func (disk *Win32_LogicalDisk) ToPoint() *point.Point {
 	kvs = kvs.AddTag("device", disk.DeviceID).
 		AddTag("host", strings.ToLower(disk.SystemName)).
 		AddTag("fstype", disk.FileSystem).
-		AddV2("free", disk.FreeSpace, false).
-		AddV2("total", disk.Size, false).
-		AddV2("used", used, false).
-		AddV2("used_percent", float64(used)/float64(disk.Size), false)
-	return point.NewPointV2("disk", kvs, opts...)
+		Add("free", disk.FreeSpace).
+		Add("total", disk.Size).
+		Add("used", used).
+		Add("used_percent", float64(used)/float64(disk.Size))
+	return point.NewPoint("disk", kvs, opts...)
 }
 
 type Win32_PerfFormattedData_PerfDisk_PhysicalDisk struct {
@@ -193,13 +193,13 @@ func (perDisk *Win32_PerfFormattedData_PerfDisk_PhysicalDisk) ToPoint(host strin
 	var kvs point.KVs
 	kvs = kvs.AddTag("host", host).
 		AddTag("name", "total").
-		AddV2("read_bytes", perDisk.AvgDiskBytesPerRead, false).
-		AddV2("read_bytes/sec", perDisk.DiskReadsPersec, false).
-		AddV2("write_bytes", perDisk.AvgDiskBytesPerWrite, false).
-		AddV2("write_bytes/sec", perDisk.DiskWriteBytesPersec, false).
-		AddV2("read_time", perDisk.AvgDisksecPerRead, false).
-		AddV2("write_time", perDisk.AvgDisksecPerWrite, false).
-		AddV2("io_time", perDisk.AvgDisksecPerTransfer, false)
+		Add("read_bytes", perDisk.AvgDiskBytesPerRead).
+		Add("read_bytes/sec", perDisk.DiskReadsPersec).
+		Add("write_bytes", perDisk.AvgDiskBytesPerWrite).
+		Add("write_bytes/sec", perDisk.DiskWriteBytesPersec).
+		Add("read_time", perDisk.AvgDisksecPerRead).
+		Add("write_time", perDisk.AvgDisksecPerWrite).
+		Add("io_time", perDisk.AvgDisksecPerTransfer)
 
-	return point.NewPointV2("diskio", kvs, opts...)
+	return point.NewPoint("diskio", kvs, opts...)
 }

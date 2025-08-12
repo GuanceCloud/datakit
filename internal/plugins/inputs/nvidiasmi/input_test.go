@@ -172,14 +172,14 @@ func newPoint(name string, tags map[string]string, fields map[string]any) *point
 	var kvs point.KVs
 
 	for k, v := range fields {
-		kvs = kvs.Add(k, v, false, true)
+		kvs = kvs.Set(k, v)
 	}
 
 	for k, v := range tags {
 		kvs = kvs.AddTag(k, v)
 	}
 
-	return point.NewPointV2(inputName, kvs)
+	return point.NewPoint(inputName, kvs)
 }
 
 var gtx10501 []byte = []byte(`<nvidia_smi_log>

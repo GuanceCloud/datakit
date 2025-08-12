@@ -2773,6 +2773,8 @@ func appendField(b []byte, k string, v interface{}) ([]byte, error) {
 		b = marshalFloats(b, v)
 	case []any:
 		b = marshalAnys(b, v)
+	case [][]uint8:
+		b = marshalBytesArr(b, v)
 	case nil:
 		// skip
 	default:
@@ -2884,6 +2886,23 @@ func marshalFloats[T float32 | float64](b []byte, v []T) []byte {
 		b = strconv.AppendFloat(b, float64(i), 'f', -1, 64)
 		b = append(b, ',')
 	}
+	b[len(b)-1] = ']'
+	return b
+}
+
+func marshalBytesArr(b []byte, arr [][]uint8) []byte {
+	if len(arr) == 0 {
+		return append(b, "[]"...)
+	}
+
+	b = append(b, '[')
+
+	for _, ent := range arr {
+		b = marshalBinary(b, ent)
+		b = append(b, ',')
+	}
+
+	// replace last ',' as ']'
 	b[len(b)-1] = ']'
 	return b
 }

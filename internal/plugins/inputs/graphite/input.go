@@ -318,13 +318,13 @@ func (ipt *Input) sendMetric(measurements []*graphiteMetric, start time.Time) {
 		kvs := make(point.KVs, 0)
 
 		for k, v := range metric.Labels {
-			kvs = kvs.MustAddTag(k, v)
+			kvs = kvs.SetTag(k, v)
 		}
 
-		kvs = kvs.Add(metric.Name, metric.Value, false, true)
-		kvs = kvs.Add("timestamp", metric.Timestamp, false, true) // use client-side timestamp, do not align time here.
+		kvs = kvs.Set(metric.Name, metric.Value)
+		kvs = kvs.Set("timestamp", metric.Timestamp) // use client-side timestamp, do not align time here.
 
-		pts = append(pts, point.NewPointV2(metric.MeasurementName, kvs, opts...))
+		pts = append(pts, point.NewPoint(metric.MeasurementName, kvs, opts...))
 	}
 
 	if len(pts) > 0 {

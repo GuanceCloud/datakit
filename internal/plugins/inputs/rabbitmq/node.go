@@ -70,21 +70,21 @@ func getNode(n *Input) {
 
 		kvs = kvs.AddTag("url", n.URL).
 			AddTag("node_name", node.Name).
-			AddV2("disk_free_alarm", node.DiskFreeAlarm, true).
-			AddV2("disk_free", node.DiskFree, true).
-			AddV2("fd_used", node.FdUsed, true).
-			AddV2("mem_alarm", node.MemAlarm, true).
-			AddV2("mem_limit", node.MemLimit, true).
-			AddV2("mem_used", node.MemUsed, true).
-			AddV2("run_queue", node.RunQueue, true).
-			AddV2("running", node.Running, true).
-			AddV2("sockets_used", node.SocketsUsed, true).
-			AddV2("io_write_avg_time", node.IoWriteAvgTime, true).
-			AddV2("io_read_avg_time", node.IoReadAvgTime, true).
-			AddV2("io_sync_avg_time", node.IoSyncAvgTime, true).
-			AddV2("io_seek_avg_time", node.IoSeekAvgTime, true)
+			Set("disk_free_alarm", node.DiskFreeAlarm).
+			Set("disk_free", node.DiskFree).
+			Set("fd_used", node.FdUsed).
+			Set("mem_alarm", node.MemAlarm).
+			Set("mem_limit", node.MemLimit).
+			Set("mem_used", node.MemUsed).
+			Set("run_queue", node.RunQueue).
+			Set("running", node.Running).
+			Set("sockets_used", node.SocketsUsed).
+			Set("io_write_avg_time", node.IoWriteAvgTime).
+			Set("io_read_avg_time", node.IoReadAvgTime).
+			Set("io_sync_avg_time", node.IoSyncAvgTime).
+			Set("io_seek_avg_time", node.IoSeekAvgTime)
 
-		pts = append(pts, point.NewPointV2(nodeMeasurementName, kvs, opts...))
+		pts = append(pts, point.NewPoint(nodeMeasurementName, kvs, opts...))
 	}
 
 	if err := n.feeder.Feed(point.Metric, pts,

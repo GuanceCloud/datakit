@@ -36,7 +36,7 @@ func (m *SNMPObject) Point() *point.Point {
 	opts := point.DefaultObjectOptions()
 	opts = append(opts, point.WithTime(m.TS))
 
-	return point.NewPointV2(m.Name,
+	return point.NewPoint(m.Name,
 		append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...),
 		opts...)
 }
@@ -82,7 +82,7 @@ func (m *SNMPMetric) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(m.TS))
 
-	return point.NewPointV2(m.Name,
+	return point.NewPoint(m.Name,
 		append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...),
 		opts...)
 }

@@ -94,11 +94,11 @@ func (s *service) buildMetricPoints(list *apicorev1.ServiceList, timestamp int64
 		kvs = kvs.AddTag("service", item.Name)
 		kvs = kvs.AddTag("namespace", item.Namespace)
 
-		kvs = kvs.AddV2("ports", len(item.Spec.Ports), false)
+		kvs = kvs.Add("ports", len(item.Spec.Ports))
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, s.cfg.LabelAsTagsForMetric.All, s.cfg.LabelAsTagsForMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(s.cfg.ExtraTags)...)
-		pt := point.NewPointV2(serviceMetricMeasurement, kvs, opts...)
+		pt := point.NewPoint(serviceMetricMeasurement, kvs, opts...)
 		pts = append(pts, pt)
 
 		s.counter[item.Namespace]++
@@ -120,21 +120,21 @@ func (s *service) buildObjectPoints(list *apicorev1.ServiceList) []*point.Point 
 		kvs = kvs.AddTag("namespace", item.Namespace)
 		kvs = kvs.AddTag("type", string(item.Spec.Type))
 
-		kvs = kvs.AddV2("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3, false)
-		kvs = kvs.AddV2("cluster_ip", item.Spec.ClusterIP, false)
-		kvs = kvs.AddV2("external_name", item.Spec.ExternalName, false)
-		kvs = kvs.AddV2("external_traffic_policy", string(item.Spec.ExternalTrafficPolicy), false)
-		kvs = kvs.AddV2("session_affinity", string(item.Spec.SessionAffinity), false)
-		kvs = kvs.AddV2("external_ips", strings.Join(item.Spec.ExternalIPs, ","), false)
+		kvs = kvs.Add("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3)
+		kvs = kvs.Add("cluster_ip", item.Spec.ClusterIP)
+		kvs = kvs.Add("external_name", item.Spec.ExternalName)
+		kvs = kvs.Add("external_traffic_policy", string(item.Spec.ExternalTrafficPolicy))
+		kvs = kvs.Add("session_affinity", string(item.Spec.SessionAffinity))
+		kvs = kvs.Add("external_ips", strings.Join(item.Spec.ExternalIPs, ","))
 
 		if y, err := yaml.Marshal(item); err == nil {
-			kvs = kvs.AddV2("yaml", string(y), false)
+			kvs = kvs.Add("yaml", string(y))
 		}
-		kvs = kvs.AddV2("annotations", pointutil.MapToJSON(item.Annotations), false)
+		kvs = kvs.Add("annotations", pointutil.MapToJSON(item.Annotations))
 		kvs = append(kvs, pointutil.ConvertDFLabels(item.Labels)...)
 
 		msg := pointutil.PointKVsToJSON(kvs)
-		kvs = kvs.AddV2("message", pointutil.TrimString(msg, maxMessageLength), false)
+		kvs = kvs.Add("message", pointutil.TrimString(msg, maxMessageLength))
 
 		kvs = kvs.Del("annotations")
 		kvs = kvs.Del("yaml")
@@ -143,7 +143,7 @@ func (s *service) buildObjectPoints(list *apicorev1.ServiceList) []*point.Point 
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, s.cfg.LabelAsTagsForNonMetric.All, s.cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(s.cfg.ExtraTags)...)
-		pt := point.NewPointV2(serviceObjectClass, kvs, opts...)
+		pt := point.NewPoint(serviceObjectClass, kvs, opts...)
 		pts = append(pts, pt)
 	}
 

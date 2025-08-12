@@ -173,9 +173,9 @@ func (ipt *Input) collect() error {
 		if err != nil {
 			return err
 		}
-		kvs = kvs.Add("file_mode", dirMode, true, true)
-		kvs = kvs.Add("file_system", filesystem, true, true)
-		kvs = kvs.Add("host_directory", ipt.Dir, true, true)
+		kvs = kvs.SetTag("file_mode", dirMode)
+		kvs = kvs.SetTag("file_system", filesystem)
+		kvs = kvs.SetTag("host_directory", ipt.Dir)
 	} else {
 		filesystem, err := GetFileSystemType(path)
 		if err != nil {
@@ -189,15 +189,15 @@ func (ipt *Input) collect() error {
 		if err != nil {
 			fileownership = "N/A"
 		}
-		kvs = kvs.Add("file_mode", dirMode, true, true)
-		kvs = kvs.Add("file_system", filesystem, true, true)
-		kvs = kvs.Add("file_ownership", fileownership, true, true)
-		kvs = kvs.Add("host_directory", ipt.Dir, true, true)
+		kvs = kvs.SetTag("file_mode", dirMode)
+		kvs = kvs.SetTag("file_system", filesystem)
+		kvs = kvs.SetTag("file_ownership", fileownership)
+		kvs = kvs.SetTag("host_directory", ipt.Dir)
 	}
 
-	kvs = kvs.Add("file_size", filesize, false, true)
-	kvs = kvs.Add("file_count", filecount+dircount, false, true)
-	kvs = kvs.Add("dir_count", dircount, false, true)
+	kvs = kvs.Set("file_size", filesize)
+	kvs = kvs.Set("file_count", filecount+dircount)
+	kvs = kvs.Set("dir_count", dircount)
 
 	if err = getFileSystemInfo(path, filesize, filecount+dircount, &kvs); err != nil {
 		return err
@@ -207,7 +207,7 @@ func (ipt *Input) collect() error {
 		kvs = kvs.AddTag(k, v)
 	}
 
-	ipt.collectCache = append(ipt.collectCache, point.NewPointV2(inputName, kvs, opts...))
+	ipt.collectCache = append(ipt.collectCache, point.NewPoint(inputName, kvs, opts...))
 
 	return nil
 }

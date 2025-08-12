@@ -185,11 +185,11 @@ func (ipt *Input) collect() error {
 			var kvs point.KVs
 
 			for k, v := range netInfo.netInfo.toMap() {
-				kvs = kvs.Add(k, v, false, true)
+				kvs = kvs.Set(k, v)
 			}
 
-			kvs = kvs.Add("addr_port", netInfo.typ, true, true)
-			kvs = kvs.Add("ip_version", netInfo.ipVersion, true, true)
+			kvs = kvs.SetTag("addr_port", netInfo.typ)
+			kvs = kvs.SetTag("ip_version", netInfo.ipVersion)
 			for k, v := range netInfo.tags {
 				kvs = kvs.AddTag(k, v)
 			}
@@ -197,7 +197,7 @@ func (ipt *Input) collect() error {
 				kvs = kvs.AddTag(k, v)
 			}
 
-			ipt.collectCachePort = append(ipt.collectCachePort, point.NewPointV2(inputNamePort, kvs, opts...))
+			ipt.collectCachePort = append(ipt.collectCachePort, point.NewPoint(inputNamePort, kvs, opts...))
 		} else { // netstat all
 			fields := netInfo.netInfo.toMap()
 			delete(fields, "pid")
@@ -205,15 +205,15 @@ func (ipt *Input) collect() error {
 			var kvs point.KVs
 
 			for k, v := range fields {
-				kvs = kvs.Add(k, v, false, true)
+				kvs = kvs.Set(k, v)
 			}
 
-			kvs = kvs.Add("ip_version", netInfo.ipVersion, true, true)
+			kvs = kvs.SetTag("ip_version", netInfo.ipVersion)
 			for k, v := range ipt.mergedTags {
 				kvs = kvs.AddTag(k, v)
 			}
 
-			ipt.collectCache = append(ipt.collectCache, point.NewPointV2(inputName, kvs, opts...))
+			ipt.collectCache = append(ipt.collectCache, point.NewPoint(inputName, kvs, opts...))
 		}
 	}
 

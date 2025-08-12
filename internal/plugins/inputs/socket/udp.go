@@ -48,12 +48,12 @@ func (i *input) collectUDP(destHost string, destPort string) *point.Point {
 	args := []string{"-vuz", destHost, destPort}
 
 	var kvs point.KVs
-	kvs = kvs.MustAddTag("dest_host", destHost)
-	kvs = kvs.MustAddTag("dest_port", destPort)
-	kvs = kvs.MustAddTag("proto", "udp")
+	kvs = kvs.SetTag("dest_host", destHost)
+	kvs = kvs.SetTag("dest_port", destPort)
+	kvs = kvs.SetTag("proto", "udp")
 
 	// default set failed
-	kvs = kvs.Add("success", -1, false, true)
+	kvs = kvs.Set("success", -1)
 
 	// nolint
 	cmd := exec.Command(ncPath, args...)
@@ -74,15 +74,15 @@ func (i *input) collectUDP(destHost string, destPort string) *point.Point {
 
 	if i.platform == datakit.OSWindows {
 		if !strings.Contains(res, destPort+"(?)") {
-			kvs = kvs.Add("success", 1, false, true)
+			kvs = kvs.Set("success", 1)
 		}
 	} else {
 		if strings.Contains(res, successString) {
-			kvs = kvs.Add("success", 1, false, true)
+			kvs = kvs.Set("success", 1)
 		}
 	}
 
-	return point.NewPointV2("udp", kvs, append(point.DefaultMetricOptions(), point.WithTime(i.ptsTime))...)
+	return point.NewPoint("udp", kvs, append(point.DefaultMetricOptions(), point.WithTime(i.ptsTime))...)
 }
 
 func runTimeout(c *exec.Cmd, timeout time.Duration) error {

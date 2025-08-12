@@ -178,14 +178,14 @@ func (m *metricKVs) AddTag(k, v string) {
 }
 
 func (m *metricKVs) EasyAdd(k string, v any) {
-	m.AddV2(k, v, false)
+	m.Add(k, v)
 }
 
-func (m *metricKVs) AddV2(k string, v any, force bool, opts ...point.KVOption) {
+func (m *metricKVs) Add(k string, v any, opts ...point.KVOption) {
 	if m == nil {
 		return
 	}
-	*m = metricKVs(m.toPointKVs().AddV2(k, v, force, opts...))
+	*m = metricKVs(m.toPointKVs().Add(k, v, opts...))
 }
 
 func ExportJVMMetrics(files map[string][]*multipart.FileHeader, metadata map[string]string, customTags map[string]string) error {
@@ -334,7 +334,7 @@ func ExportJVMMetrics(files map[string][]*multipart.FileHeader, metadata map[str
 	kVs.EasyAdd(profJVMSocketIOWriteTime, totalWriteTimeNS)
 	kVs.EasyAdd(profJVMSocketIOWriteBytes, totalBytesWritten)
 
-	pt := point.NewPointV2(metricsName, kVs.toPointKVs(), point.WithPrecision(point.PrecNS), point.WithTime(jfrEnd))
+	pt := point.NewPoint(metricsName, kVs.toPointKVs(), point.WithPrecision(point.PrecNS), point.WithTime(jfrEnd))
 	if err = exportMetrics([]*point.Point{pt}); err != nil {
 		return fmt.Errorf("unable to export profiling metrics: %w", err)
 	}
@@ -512,7 +512,7 @@ func ExportPythonMetrics(files map[string][]*multipart.FileHeader, metadata map[
 		kVs.EasyAdd(profPythonLifetimeHeapBytes, heapBytes)
 	}
 
-	pt := point.NewPointV2(metricsName, kVs.toPointKVs(), point.WithPrecision(point.PrecNS), point.WithTime(pprofEnd))
+	pt := point.NewPoint(metricsName, kVs.toPointKVs(), point.WithPrecision(point.PrecNS), point.WithTime(pprofEnd))
 	if err = exportMetrics([]*point.Point{pt}); err != nil {
 		return fmt.Errorf("unable to export profiling metrics: %w", err)
 	}
@@ -671,7 +671,7 @@ func ExportGoMetrics(files map[string][]*multipart.FileHeader, metadata map[stri
 		}
 	}
 
-	pt := point.NewPointV2(metricsName, kVs.toPointKVs(), point.WithPrecision(point.PrecNS), point.WithTime(pprofEnd))
+	pt := point.NewPoint(metricsName, kVs.toPointKVs(), point.WithPrecision(point.PrecNS), point.WithTime(pprofEnd))
 	if err = exportMetrics([]*point.Point{pt}); err != nil {
 		return fmt.Errorf("unable to export profiling metrics: %w", err)
 	}

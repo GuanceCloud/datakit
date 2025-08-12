@@ -75,12 +75,12 @@ func (e *endpoint) buildMetricPoints(list *apicorev1.EndpointsList, timestamp in
 			notReady += len(subset.NotReadyAddresses)
 		}
 
-		kvs = kvs.AddV2("address_available", available, false)
-		kvs = kvs.AddV2("address_not_ready", notReady, false)
+		kvs = kvs.Add("address_available", available)
+		kvs = kvs.Add("address_not_ready", notReady)
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, e.cfg.LabelAsTagsForMetric.All, e.cfg.LabelAsTagsForMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(e.cfg.ExtraTags)...)
-		pt := point.NewPointV2(endpointMetricMeasurement, kvs, opts...)
+		pt := point.NewPoint(endpointMetricMeasurement, kvs, opts...)
 		pts = append(pts, pt)
 
 		e.counter[item.Namespace]++

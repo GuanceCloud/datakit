@@ -440,19 +440,19 @@ func (dec *amqpDecPipe) Export(force bool) []*ProtoData {
 
 		switch dec.direction { //nolint:exhaustive
 		case comm.DIn:
-			kvs = kvs.Add(comm.FieldBytesRead, int64(inf.reqBytes), false, true)
-			kvs = kvs.Add(comm.FieldBytesWritten, int64(inf.respBytes), false, true)
+			kvs = kvs.Set(comm.FieldBytesRead, int64(inf.reqBytes))
+			kvs = kvs.Set(comm.FieldBytesWritten, int64(inf.respBytes))
 		default:
-			kvs = kvs.Add(comm.FieldBytesRead, int64(inf.respBytes), false, true)
-			kvs = kvs.Add(comm.FieldBytesWritten, int64(inf.reqBytes), false, true)
+			kvs = kvs.Set(comm.FieldBytesRead, int64(inf.respBytes))
+			kvs = kvs.Set(comm.FieldBytesWritten, int64(inf.reqBytes))
 		}
-		kvs = kvs.Add(comm.FieldResource, inf.reqMethod, false, true)
-		kvs = kvs.Add(comm.FieldAMQPRespMethod, inf.respMethod, false, true)
-		kvs = kvs.Add(comm.FieldAMQPClass, toClassName(inf.classID), false, true)
-		kvs = kvs.Add(comm.FieldAMQPQueue, inf.queue, false, true)
-		kvs = kvs.Add(comm.FieldAMQPExchange, inf.exchange, false, true)
-		kvs = kvs.Add(comm.FieldAMQPRoutingKey, inf.routingKey, false, true)
-		kvs = kvs.Add(comm.FieldAMQPVhost, inf.vhost, false, true)
+		kvs = kvs.Set(comm.FieldResource, inf.reqMethod)
+		kvs = kvs.Set(comm.FieldAMQPRespMethod, inf.respMethod)
+		kvs = kvs.Set(comm.FieldAMQPClass, toClassName(inf.classID))
+		kvs = kvs.Set(comm.FieldAMQPQueue, inf.queue)
+		kvs = kvs.Set(comm.FieldAMQPExchange, inf.exchange)
+		kvs = kvs.Set(comm.FieldAMQPRoutingKey, inf.routingKey)
+		kvs = kvs.Set(comm.FieldAMQPVhost, inf.vhost)
 
 		dur := int64(inf.ktime[3] - inf.ktime[0])
 		cost := int64(inf.ktime[2] - inf.ktime[1])

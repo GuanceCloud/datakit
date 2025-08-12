@@ -193,12 +193,12 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 						if value, ok := row[fdKey]; ok {
 							switch v := value.(type) {
 							case int64:
-								kvs = kvs.Add(fdKey, float64(v), false, true)
+								kvs = kvs.Set(fdKey, float64(v))
 							case float64:
-								kvs = kvs.Add(fdKey, v, false, true)
+								kvs = kvs.Set(fdKey, v)
 							case string:
 								if f, err := strconv.ParseFloat(v, 64); err == nil {
-									kvs = kvs.Add(fdKey, f, false, true)
+									kvs = kvs.Set(fdKey, f)
 								} else {
 									l.Warnf("Field %s is string '%s', cannot convert to float64, ignored", fdKey, v)
 								}
@@ -209,7 +209,7 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 					}
 
 					if kvs.FieldCount() > 0 {
-						pts = append(pts, point.NewPointV2(query.Metric, kvs, opts...))
+						pts = append(pts, point.NewPoint(query.Metric, kvs, opts...))
 					}
 				}
 

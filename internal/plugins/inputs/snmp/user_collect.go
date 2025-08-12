@@ -530,7 +530,7 @@ func (di *deviceInfo) getUserObjectPoint(items, stringItems []*snmputil.Item, ip
 			continue
 		}
 
-		kvs = kvs.Add(fieldName, f, false, false)
+		kvs = kvs.Add(fieldName, f)
 	}
 
 	kvs = di.Ipt.AddTags(kvs, "ip", ip)
@@ -563,12 +563,12 @@ func (di *deviceInfo) getUserObjectPoint(items, stringItems []*snmputil.Item, ip
 			continue
 		}
 
-		kvs = kvs.Add(fieldName, v, false, false)
+		kvs = kvs.Add(fieldName, v)
 	}
 
 	opts := point.DefaultObjectOptions()
 	opts = append(opts, point.WithTime(tn))
-	return []*point.Point{point.NewPointV2(di.ClassName(), kvs, opts...)}
+	return []*point.Point{point.NewPoint(di.ClassName(), kvs, opts...)}
 }
 
 func (di *deviceInfo) getUserPoints(items []*snmputil.Item, ip string, tn time.Time) []*point.Point {
@@ -604,7 +604,7 @@ func (di *deviceInfo) getUserPoints(items []*snmputil.Item, ip string, tn time.T
 		}
 
 		var kvs point.KVs
-		kvs = kvs.Add(fieldName, f, false, false)
+		kvs = kvs.Add(fieldName, f)
 
 		kvs = di.Ipt.AddTags(kvs, "ip", ip)
 		kvs = di.Ipt.AddTags(kvs, "oid", item.SnmpOID)
@@ -620,7 +620,7 @@ func (di *deviceInfo) getUserPoints(items []*snmputil.Item, ip string, tn time.T
 			kvs = di.Ipt.AddTags(kvs, k, v)
 		}
 
-		points = append(points, point.NewPointV2(di.ClassName(), kvs, opts...))
+		points = append(points, point.NewPoint(di.ClassName(), kvs, opts...))
 	}
 
 	return points
@@ -689,7 +689,7 @@ func (di *deviceInfo) makeDiscoveryPoint(
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(tn))
 
-	kvs = kvs.Add(fieldName, f, false, false)
+	kvs = kvs.Add(fieldName, f)
 	kvs = di.Ipt.AddTags(kvs, "ip", ip)
 
 	// add macro tags, example: DISK_NAME=raid1-sys
@@ -716,7 +716,7 @@ func (di *deviceInfo) makeDiscoveryPoint(
 		kvs = di.Ipt.AddTags(kvs, k, v)
 	}
 
-	return []*point.Point{point.NewPointV2(di.ClassName(), kvs, opts...)}
+	return []*point.Point{point.NewPoint(di.ClassName(), kvs, opts...)}
 }
 
 func (di *deviceInfo) filterFieldName(name, oid string) string {

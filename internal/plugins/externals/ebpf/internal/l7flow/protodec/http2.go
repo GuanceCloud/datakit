@@ -232,31 +232,31 @@ func (dec *h2DecPipe) Export(force bool) []*ProtoData {
 
 			switch dec.direction { //nolint:exhaustive
 			case comm.DIn:
-				kvs = kvs.Add(comm.FieldBytesRead, int64(inf.reqBytes), false, true)
-				kvs = kvs.Add(comm.FieldBytesWritten, int64(inf.respBytes), false, true)
+				kvs = kvs.Set(comm.FieldBytesRead, int64(inf.reqBytes))
+				kvs = kvs.Set(comm.FieldBytesWritten, int64(inf.respBytes))
 			default:
-				kvs = kvs.Add(comm.FieldBytesRead, int64(inf.respBytes), false, true)
-				kvs = kvs.Add(comm.FieldBytesWritten, int64(inf.reqBytes), false, true)
+				kvs = kvs.Set(comm.FieldBytesRead, int64(inf.respBytes))
+				kvs = kvs.Set(comm.FieldBytesWritten, int64(inf.reqBytes))
 			}
 
-			kvs = kvs.Add(comm.FieldHTTPMethod, inf.method, false, true)
-			kvs = kvs.Add(comm.FieldHTTPRoute, inf.path, false, true)
-			kvs = kvs.Add(comm.FieldHTTPStatusCode, strconv.Itoa(inf.statusCode), false, true)
-			kvs = kvs.Add(comm.FieldStatus, httpCode2Status(inf.statusCode), false, true)
+			kvs = kvs.Set(comm.FieldHTTPMethod, inf.method)
+			kvs = kvs.Set(comm.FieldHTTPRoute, inf.path)
+			kvs = kvs.Set(comm.FieldHTTPStatusCode, strconv.Itoa(inf.statusCode))
+			kvs = kvs.Set(comm.FieldStatus, httpCode2Status(inf.statusCode))
 			var proto L7Protocol
 			if dec.isGRPC {
 				proto = ProtoGRPC
 				if inf.grpcMessage != "" {
-					kvs = kvs.Add(comm.FieldGRPCMessage, inf.grpcMessage, false, true)
+					kvs = kvs.Set(comm.FieldGRPCMessage, inf.grpcMessage)
 				}
-				kvs = kvs.Add(comm.FieldGRPCStatusCode, strconv.Itoa(inf.grpcStatusCode), false, true)
+				kvs = kvs.Set(comm.FieldGRPCStatusCode, strconv.Itoa(inf.grpcStatusCode))
 			} else {
 				proto = ProtoHTTP2
 			}
 
 			// 页面 span 上显示的是 `<opperation> <resource>`
-			kvs = kvs.Add(comm.FieldOperation, proto.String(), false, true)
-			kvs = kvs.Add(comm.FieldResource, inf.method+" "+inf.path, false, true)
+			kvs = kvs.Set(comm.FieldOperation, proto.String())
+			kvs = kvs.Set(comm.FieldResource, inf.method+" "+inf.path)
 
 			dur := int64(inf.ktime[3] - inf.ktime[0])
 			cost := int64(inf.ktime[2] - inf.ktime[1])

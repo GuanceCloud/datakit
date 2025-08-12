@@ -259,34 +259,34 @@ func (ipt *Input) collectSlowQuery() {
 
 		fullText, err := obfuscateSQL(r.SQL_FULLTEXT.String)
 		if err != nil {
-			kvs = kvs.AddV2("failed_obfuscate", err.Error(), true)
+			kvs = kvs.Set("failed_obfuscate", err.Error())
 		}
 
 		kvs = kvs.AddTag("sql_id", r.SQL_ID.String).
 			AddTag("module", r.MODULE.String).
 			AddTag("command_type", r.COMMAND_TYPE.String).
-			AddV2("message", fullText, true).
-			AddV2("elapsed_time", r.ELAPSED_TIME.Int64, true).
-			AddV2("cpu_time", r.CPU_TIME.Int64, true).
-			AddV2("executions", r.EXECUTIONS.Int64, true).
-			AddV2("disk_reads", r.DISK_READS.Float64, true).
-			AddV2("buffer_gets", r.BUFFER_GETS.Float64, true).
-			AddV2("rows_processed", r.ROWS_PROCESSED.Float64, true).
-			AddV2("user_io_wait_time", r.USER_IO_WAIT_TIME.Float64, true).
-			AddV2("concurrency_wait_time", r.CONCURRENCY_WAIT_TIME.Float64, true).
-			AddV2("application_wait_time", r.APPLICATION_WAIT_TIME.Float64, true).
-			AddV2("cluster_wait_time", r.CLUSTER_WAIT_TIME.Float64, true).
-			AddV2("plan_hash_value", r.PLAN_HASH_VALUE.String, true).
-			AddV2("parse_calls", r.PARSE_CALLS.Float64, true).
-			AddV2("sorts", r.SORTS.Int64, true).
-			AddV2("parsing_schema_name", r.PARSING_SCHEMA_NAME.String, true).
-			AddV2("action", r.ACTION.String, true).
-			AddV2("last_active_time", r.LAST_ACTIVE_TIME.String, true).
-			AddV2("username", r.USERNAME.String, true).
-			AddV2("avg_elapsed", r.AVG_ELAPSED.Float64, true).
-			AddV2("status", "warning", true) // add logging basic status and message field
+			Set("message", fullText).
+			Set("elapsed_time", r.ELAPSED_TIME.Int64).
+			Set("cpu_time", r.CPU_TIME.Int64).
+			Set("executions", r.EXECUTIONS.Int64).
+			Set("disk_reads", r.DISK_READS.Float64).
+			Set("buffer_gets", r.BUFFER_GETS.Float64).
+			Set("rows_processed", r.ROWS_PROCESSED.Float64).
+			Set("user_io_wait_time", r.USER_IO_WAIT_TIME.Float64).
+			Set("concurrency_wait_time", r.CONCURRENCY_WAIT_TIME.Float64).
+			Set("application_wait_time", r.APPLICATION_WAIT_TIME.Float64).
+			Set("cluster_wait_time", r.CLUSTER_WAIT_TIME.Float64).
+			Set("plan_hash_value", r.PLAN_HASH_VALUE.String).
+			Set("parse_calls", r.PARSE_CALLS.Float64).
+			Set("sorts", r.SORTS.Int64).
+			Set("parsing_schema_name", r.PARSING_SCHEMA_NAME.String).
+			Set("action", r.ACTION.String).
+			Set("last_active_time", r.LAST_ACTIVE_TIME.String).
+			Set("username", r.USERNAME.String).
+			Set("avg_elapsed", r.AVG_ELAPSED.Float64).
+			Set("status", "warning") // add logging basic status and message field
 
-		pts = append(pts, point.NewPointV2(metricName, kvs, ipt.getKVsOpts(point.Logging)...))
+		pts = append(pts, point.NewPoint(metricName, kvs, ipt.getKVsOpts(point.Logging)...))
 	}
 
 	if err := ipt.feeder.Feed(point.Logging,

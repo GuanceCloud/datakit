@@ -297,17 +297,17 @@ func randHexID(l int) string {
 
 func makeRootSpan(idLength int, service string, transaction *transaction) *itrace.DkSpan {
 	spanKV := point.KVs{}
-	spanKV = spanKV.Add(itrace.FieldTraceID, transaction.id(), false, false).
-		Add(itrace.FieldParentID, "0", false, false).
-		Add(itrace.FieldSpanid, randHexID(idLength), false, false).
+	spanKV = spanKV.Add(itrace.FieldTraceID, transaction.id()).
+		Add(itrace.FieldParentID, "0").
+		Add(itrace.FieldSpanid, randHexID(idLength)).
 		AddTag(itrace.TagService, service).
 		AddTag(itrace.TagOperation, transaction.url()).
-		Add(itrace.FieldResource, transaction.url(), false, false).
+		Add(itrace.FieldResource, transaction.url()).
 		AddTag(itrace.TagSpanType, itrace.SpanTypeEntry).
 		AddTag(itrace.TagSource, inputName).
 		AddTag(itrace.TagSourceType, itrace.SpanSourceWeb).
-		Add(itrace.FieldStart, transaction.start()*int64(time.Millisecond), false, false).
-		Add(itrace.FieldDuration, transaction.duration()*int64(time.Millisecond), false, false).
+		Add(itrace.FieldStart, transaction.start()*int64(time.Millisecond)).
+		Add(itrace.FieldDuration, transaction.duration()*int64(time.Millisecond)).
 		AddTag(itrace.TagSpanStatus, itrace.StatusOk)
 
 	if uri, err := url.ParseRequestURI(transaction.url()); err == nil {
@@ -321,12 +321,12 @@ func makeRootSpan(idLength int, service string, transaction *transaction) *itrac
 	}
 
 	if buf, err := json.Marshal(transaction.root()); err == nil {
-		spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
+		spanKV = spanKV.Add(itrace.FieldMessage, string(buf))
 	} else {
 		log.Debug(err.Error())
 	}
 
-	return &itrace.DkSpan{Point: point.NewPointV2(inputName, spanKV, point.DefaultLoggingOptions()...)}
+	return &itrace.DkSpan{Point: point.NewPoint(inputName, spanKV, point.DefaultLoggingOptions()...)}
 }
 
 var traceOpts = []point.Option{}
@@ -335,17 +335,17 @@ func makeChildrenSpan(service string, rootStart int64, idLength int, traceID, pa
 	for _, child := range children {
 		spanKV := point.KVs{}
 		spanID := randHexID(idLength)
-		spanKV = spanKV.Add(itrace.FieldTraceID, traceID, false, false).
-			Add(itrace.FieldParentID, parentID, false, false).
-			Add(itrace.FieldSpanid, spanID, false, false).
+		spanKV = spanKV.Add(itrace.FieldTraceID, traceID).
+			Add(itrace.FieldParentID, parentID).
+			Add(itrace.FieldSpanid, spanID).
 			AddTag(itrace.TagService, service).
 			AddTag(itrace.TagOperation, fmt.Sprintf("%s:%s", child.class(), child.method())).
-			Add(itrace.FieldResource, child.resource(), false, false).
+			Add(itrace.FieldResource, child.resource()).
 			AddTag(itrace.TagSpanType, itrace.SpanTypeLocal).
 			AddTag(itrace.TagSource, inputName).
 			AddTag(itrace.TagSourceType, itrace.SpanSourceWeb).
-			Add(itrace.FieldStart, (rootStart+child.startElapsed())*int64(time.Millisecond), false, false).
-			Add(itrace.FieldDuration, (child.endElapsed()-child.startElapsed())*int64(time.Millisecond), false, false).
+			Add(itrace.FieldStart, (rootStart+child.startElapsed())*int64(time.Millisecond)).
+			Add(itrace.FieldDuration, (child.endElapsed()-child.startElapsed())*int64(time.Millisecond)).
 			AddTag(itrace.TagSpanStatus, itrace.StatusOk)
 
 		if child.method() == "InvokeService" {
@@ -357,14 +357,14 @@ func makeChildrenSpan(service string, rootStart int64, idLength int, traceID, pa
 		}
 		if sql := child.meta().stringValue("sql"); sql != "" {
 			// span.Resource = sql
-			spanKV = spanKV.Add(itrace.FieldResource, sql, false, false)
+			spanKV = spanKV.Add(itrace.FieldResource, sql)
 		}
 		if buf, err := json.Marshal(child); err == nil {
-			spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
+			spanKV = spanKV.Add(itrace.FieldMessage, string(buf))
 		} else {
 			log.Debug(err.Error())
 		}
-		pt := point.NewPointV2(inputName, spanKV, traceOpts...)
+		pt := point.NewPoint(inputName, spanKV, traceOpts...)
 		*out = append(*out, &itrace.DkSpan{Point: pt})
 
 		if len(child.children()) != 0 {

@@ -110,12 +110,12 @@ func itemsToPoints(lines []string, tags map[string]string, log *logger.Logger, c
 			AddTag("applications", apps).
 			AddTag("resource", "zabbix_server").
 			AddTag("data_source", "history").
-			Add(keyName, value, false, false)
+			Add(keyName, value)
 		for k, v := range tags {
 			kvs = kvs.AddTag(k, v)
 		}
 
-		pt := point.NewPointV2("zabbix_server", kvs, opts...)
+		pt := point.NewPoint("zabbix_server", kvs, opts...)
 		pt.SetTime(t)
 		pts = append(pts, pt)
 	}
@@ -152,18 +152,18 @@ func triggerToPoints(lines [][]byte) []*point.Point { //nolint
 		if ps.PEventID != 0 {
 			var kvs point.KVs
 			kvs = kvs.
-				Add("date", ps.Clock, false, false).
-				Add("df_date_range", 0, false, false).
-				Add("df_check_range_start", ps.Clock, false, false).
-				Add("df_check_range_end", ps.Clock, false, false).
-				Add("df_issue_duration", 1, false, false).
-				Add("df_source", "custom", false, false).
-				Add("df_status", ProblemStatus[0], false, false).
-				Add("df_event_id", ps.PEventID, false, false)
+				Add("date", ps.Clock).
+				Add("df_date_range", 0).
+				Add("df_check_range_start", ps.Clock).
+				Add("df_check_range_end", ps.Clock).
+				Add("df_issue_duration", 1).
+				Add("df_source", "custom").
+				Add("df_status", ProblemStatus[0]).
+				Add("df_event_id", ps.PEventID)
 
 			opts := point.CommonLoggingOptions()
 			opts = append(opts, point.WithTime(t))
-			pt := point.NewPointV2("zabbix_server", kvs, opts...)
+			pt := point.NewPoint("zabbix_server", kvs, opts...)
 			pts = append(pts, pt)
 		}
 
@@ -175,21 +175,21 @@ func triggerToPoints(lines [][]byte) []*point.Point { //nolint
 			kvs = kvs.AddTag("host", host.Host).
 				AddTag("hostnane", host.Name).
 				AddTag("groups", groups).
-				Add("date", ps.Clock, false, false).
-				Add("df_date_range", 0, false, false).
-				Add("df_check_range_start", ps.Clock, false, false).
-				Add("df_check_range_end", ps.Clock, false, false).
-				Add("df_issue_duration", 1, false, false).
-				Add("df_source", "custom", true, false).
-				Add("df_status", ProblemStatus[ps.Severity], true, false).
-				Add("df_sub_status", ps.Severity, false, false).
-				Add("df_event_id", ps.EventID, false, false).
-				Add("df_title", ps.Name, true, false).
-				Add("df_message", ps.Name, true, false)
+				Add("date", ps.Clock).
+				Add("df_date_range", 0).
+				Add("df_check_range_start", ps.Clock).
+				Add("df_check_range_end", ps.Clock).
+				Add("df_issue_duration", 1).
+				Add("df_sub_status", ps.Severity).
+				Add("df_event_id", ps.EventID).
+				AddTag("df_source", "custom").
+				AddTag("df_status", ProblemStatus[ps.Severity]).
+				AddTag("df_title", ps.Name).
+				AddTag("df_message", ps.Name)
 
 			opts := point.CommonLoggingOptions()
 			opts = append(opts, point.WithTime(t))
-			pt := point.NewPointV2("zabbix_server", kvs, opts...)
+			pt := point.NewPoint("zabbix_server", kvs, opts...)
 
 			pts = append(pts, pt)
 		}
@@ -237,14 +237,14 @@ func trendsToPoints(lines []string, tags map[string]string, log *logger.Logger, 
 			AddTag("applications", apps).
 			AddTag("resource", "zabbix_server").
 			AddTag("item_id", strconv.Itoa(trends.ItemID)).
-			Add(keyName+"_avg", trends.Avg, false, false).
-			Add(keyName+"_max", trends.Max, false, false).
-			Add(keyName+"_min", trends.Min, false, false)
+			Add(keyName+"_avg", trends.Avg).
+			Add(keyName+"_max", trends.Max).
+			Add(keyName+"_min", trends.Min)
 		for k, v := range tags {
 			kvs = kvs.AddTag(k, v)
 		}
 
-		pt := point.NewPointV2("zabbix_server", kvs, opts...)
+		pt := point.NewPoint("zabbix_server", kvs, opts...)
 		pt.SetTime(t)
 		pts = append(pts, pt)
 	}

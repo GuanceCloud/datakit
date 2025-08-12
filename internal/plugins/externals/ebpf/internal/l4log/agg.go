@@ -90,7 +90,7 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 
 	kvs := point.NewTags(tags)
 	kvs = append(kvs, point.NewKVs(fields)...)
-	pt := point.NewPointV2("netflow", kvs, append(
+	pt := point.NewPoint("netflow", kvs, append(
 		point.CommonLoggingOptions(), point.WithTime(pTime))...)
 
 	return pt, nil

@@ -63,15 +63,15 @@ func (n *Win32_PerfFormattedData_Tcpip_NetworkInterface) ToPoint(host string) *p
 	var kvs point.KVs
 	kvs = kvs.AddTag("host", host).
 		AddTag("interface", n.Name).
-		AddV2("bytes_recv/sec", n.BytesReceivedPersec, false).
-		AddV2("bytes_sent/sec", n.BytesSentPersec, false).
-		AddV2("drop_in", n.PacketsReceivedDiscarded, false).
-		AddV2("drop_out", n.PacketsOutboundDiscarded, false).
-		AddV2("err_out", n.PacketsOutboundErrors, false).
-		AddV2("packets_recv/sec", n.PacketsReceivedPersec, false).
-		AddV2("packets_sent/sec", n.PacketsSentPersec, false)
+		Add("bytes_recv/sec", n.BytesReceivedPersec).
+		Add("bytes_sent/sec", n.BytesSentPersec).
+		Add("drop_in", n.PacketsReceivedDiscarded).
+		Add("drop_out", n.PacketsOutboundDiscarded).
+		Add("err_out", n.PacketsOutboundErrors).
+		Add("packets_recv/sec", n.PacketsReceivedPersec).
+		Add("packets_sent/sec", n.PacketsSentPersec)
 
-	return point.NewPointV2("net", kvs, opts...)
+	return point.NewPoint("net", kvs, opts...)
 }
 
 // 网卡的基本信息.

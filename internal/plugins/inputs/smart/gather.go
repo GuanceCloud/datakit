@@ -309,7 +309,7 @@ func (ipt *Input) gatherIntelNVMeDisk(device nvmeDevice) (*point.Point, error) {
 		}
 	}
 
-	return point.NewPointV2("smart", kvs, append(point.DefaultMetricOptions(), point.WithTime(ipt.ptsTime))...), nil
+	return point.NewPoint("smart", kvs, append(point.DefaultMetricOptions(), point.WithTime(ipt.ptsTime))...), nil
 }
 
 func parseInt(str string) int64 {
@@ -394,7 +394,7 @@ func (ipt *Input) gatherDisk(device string) (*point.Point, error) {
 			x := strings.ReplaceAll(arr[1], ",", "") // convert 123,456,789 -> 123456789
 
 			if c, err := strconv.Atoi(x); err == nil {
-				kvs = kvs.AddV2("capacity", c, true)
+				kvs = kvs.Set("capacity", c)
 			} else {
 				l.Warnf("invalid capacity: %q", x)
 			}
@@ -414,26 +414,26 @@ func (ipt *Input) gatherDisk(device string) (*point.Point, error) {
 			kvs = kvs.AddTag("flags", arr[3])
 
 			if i, err := strconv.ParseInt(arr[4], 10, 64); err == nil {
-				kvs = kvs.AddV2(name+"_value", i, true)
+				kvs = kvs.Set(name+"_value", i)
 			}
 
 			if i, err := strconv.ParseInt(arr[5], 10, 64); err == nil {
-				kvs = kvs.AddV2(name+"_worst", i, true)
+				kvs = kvs.Set(name+"_worst", i)
 			}
 
 			if i, err := strconv.ParseInt(arr[6], 10, 64); err == nil {
-				kvs = kvs.AddV2(name+"_threshold", i, true)
+				kvs = kvs.Set(name+"_threshold", i)
 			}
 
-			kvs = kvs.AddV2("fail", !(arr[7] == "-"), true)
+			kvs = kvs.Set("fail", !(arr[7] == "-"))
 			if val, err := parseRawValue(arr[8]); err == nil {
-				kvs = kvs.AddV2(name+"_raw_value", val, true)
+				kvs = kvs.Set(name+"_raw_value", val)
 			}
 
 			// If the attribute matches on the one in deviceFieldIds save the raw value to a field.
 			if field, ok := deviceFieldIds[arr[1]]; ok {
 				if val, err := parseRawValue(arr[8]); err == nil {
-					kvs = kvs.AddV2(field, val, true)
+					kvs = kvs.Set(field, val)
 				}
 			}
 		} else if arr := sasNvmeAttr.FindStringSubmatch(line); len(arr) > 2 {
@@ -453,5 +453,5 @@ func (ipt *Input) gatherDisk(device string) (*point.Point, error) {
 		}
 	}
 
-	return point.NewPointV2("smart", kvs, point.DefaultMetricOptions()...), nil
+	return point.NewPoint("smart", kvs, point.DefaultMetricOptions()...), nil
 }

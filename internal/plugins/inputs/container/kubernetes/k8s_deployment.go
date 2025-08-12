@@ -164,28 +164,28 @@ func (d *deployment) buildMetricPoints(list *apiappsv1.DeploymentList, timestamp
 		kvs = kvs.AddTag("deployment", item.Name)
 		kvs = kvs.AddTag("namespace", item.Namespace)
 
-		kvs = kvs.AddV2("replicas", item.Status.Replicas, false)
-		kvs = kvs.AddV2("replicas_updated", item.Status.UpdatedReplicas, false)
-		kvs = kvs.AddV2("replicas_ready", item.Status.ReadyReplicas, false)
-		kvs = kvs.AddV2("replicas_available", item.Status.AvailableReplicas, false)
-		kvs = kvs.AddV2("replicas_unavailable", item.Status.UnavailableReplicas, false)
+		kvs = kvs.Add("replicas", item.Status.Replicas)
+		kvs = kvs.Add("replicas_updated", item.Status.UpdatedReplicas)
+		kvs = kvs.Add("replicas_ready", item.Status.ReadyReplicas)
+		kvs = kvs.Add("replicas_available", item.Status.AvailableReplicas)
+		kvs = kvs.Add("replicas_unavailable", item.Status.UnavailableReplicas)
 
 		if item.Spec.Replicas != nil {
-			kvs = kvs.AddV2("replicas_desired", *item.Spec.Replicas, true)
+			kvs = kvs.Set("replicas_desired", *item.Spec.Replicas)
 		}
 
 		if item.Spec.Strategy.RollingUpdate != nil {
 			if item.Spec.Strategy.RollingUpdate.MaxUnavailable != nil {
-				kvs = kvs.AddV2("rollingupdate_max_unavailable", item.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue(), false)
+				kvs = kvs.Add("rollingupdate_max_unavailable", item.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue())
 			}
 			if item.Spec.Strategy.RollingUpdate.MaxUnavailable != nil {
-				kvs = kvs.AddV2("rollingupdate_max_surge", item.Spec.Strategy.RollingUpdate.MaxSurge.IntValue(), false)
+				kvs = kvs.Add("rollingupdate_max_surge", item.Spec.Strategy.RollingUpdate.MaxSurge.IntValue())
 			}
 		}
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, d.cfg.LabelAsTagsForMetric.All, d.cfg.LabelAsTagsForMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(d.cfg.ExtraTags)...)
-		pt := point.NewPointV2(deploymentMetricMeasurement, kvs, opts...)
+		pt := point.NewPoint(deploymentMetricMeasurement, kvs, opts...)
 		pts = append(pts, pt)
 
 		d.counter[item.Namespace]++
@@ -206,44 +206,44 @@ func (d *deployment) buildObjectPoints(list *apiappsv1.DeploymentList) []*point.
 		kvs = kvs.AddTag(deploymentObjectResourceKey, item.Name)
 		kvs = kvs.AddTag("namespace", item.Namespace)
 
-		kvs = kvs.AddV2("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3, false)
-		kvs = kvs.AddV2("paused", item.Spec.Paused, false)
-		kvs = kvs.AddV2("replicas", item.Status.Replicas, false)
-		kvs = kvs.AddV2("replicas_updated", item.Status.UpdatedReplicas, false)
-		kvs = kvs.AddV2("replicas_ready", item.Status.ReadyReplicas, false)
-		kvs = kvs.AddV2("replicas_available", item.Status.AvailableReplicas, false)
-		kvs = kvs.AddV2("replicas_unavailable", item.Status.UnavailableReplicas, false)
-		kvs = kvs.AddV2("strategy", string(item.Spec.Strategy.Type), false)
+		kvs = kvs.Add("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3)
+		kvs = kvs.Add("paused", item.Spec.Paused)
+		kvs = kvs.Add("replicas", item.Status.Replicas)
+		kvs = kvs.Add("replicas_updated", item.Status.UpdatedReplicas)
+		kvs = kvs.Add("replicas_ready", item.Status.ReadyReplicas)
+		kvs = kvs.Add("replicas_available", item.Status.AvailableReplicas)
+		kvs = kvs.Add("replicas_unavailable", item.Status.UnavailableReplicas)
+		kvs = kvs.Add("strategy", string(item.Spec.Strategy.Type))
 
 		if item.Spec.Replicas != nil {
-			kvs = kvs.AddV2("replicas_desired", *item.Spec.Replicas, false)
+			kvs = kvs.Add("replicas_desired", *item.Spec.Replicas)
 		}
 
 		if item.Spec.Strategy.RollingUpdate != nil {
 			if item.Spec.Strategy.RollingUpdate.MaxUnavailable != nil {
-				kvs = kvs.AddV2("rollingupdate_max_unavailable", item.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue(), false)
-				kvs = kvs.AddV2("max_unavailable", item.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue(), false) // Deprecated
+				kvs = kvs.Add("rollingupdate_max_unavailable", item.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue())
+				kvs = kvs.Add("max_unavailable", item.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue()) // Deprecated
 			}
 			if item.Spec.Strategy.RollingUpdate.MaxUnavailable != nil {
-				kvs = kvs.AddV2("rollingupdate_max_surge", item.Spec.Strategy.RollingUpdate.MaxSurge.IntValue(), false)
-				kvs = kvs.AddV2("max_surge", item.Spec.Strategy.RollingUpdate.MaxSurge.IntValue(), false) // Deprecated
+				kvs = kvs.Add("rollingupdate_max_surge", item.Spec.Strategy.RollingUpdate.MaxSurge.IntValue())
+				kvs = kvs.Add("max_surge", item.Spec.Strategy.RollingUpdate.MaxSurge.IntValue()) // Deprecated
 			}
 		}
 
 		// Deprecated
-		kvs = kvs.AddV2("up_dated", item.Status.UpdatedReplicas, false)
-		kvs = kvs.AddV2("ready", item.Status.ReadyReplicas, false)
-		kvs = kvs.AddV2("available", item.Status.AvailableReplicas, false)
-		kvs = kvs.AddV2("unavailable", item.Status.UnavailableReplicas, false)
+		kvs = kvs.Add("up_dated", item.Status.UpdatedReplicas)
+		kvs = kvs.Add("ready", item.Status.ReadyReplicas)
+		kvs = kvs.Add("available", item.Status.AvailableReplicas)
+		kvs = kvs.Add("unavailable", item.Status.UnavailableReplicas)
 
 		if y, err := yaml.Marshal(item); err == nil {
-			kvs = kvs.AddV2("yaml", string(y), false)
+			kvs = kvs.Add("yaml", string(y))
 		}
-		kvs = kvs.AddV2("annotations", pointutil.MapToJSON(item.Annotations), false)
+		kvs = kvs.Add("annotations", pointutil.MapToJSON(item.Annotations))
 		kvs = append(kvs, pointutil.ConvertDFLabels(item.Labels)...)
 
 		msg := pointutil.PointKVsToJSON(kvs)
-		kvs = kvs.AddV2("message", pointutil.TrimString(msg, maxMessageLength), false)
+		kvs = kvs.Add("message", pointutil.TrimString(msg, maxMessageLength))
 
 		kvs = kvs.Del("annotations")
 		kvs = kvs.Del("yaml")
@@ -255,7 +255,7 @@ func (d *deployment) buildObjectPoints(list *apiappsv1.DeploymentList) []*point.
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, d.cfg.LabelAsTagsForNonMetric.All, d.cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(d.cfg.ExtraTags)...)
-		pt := point.NewPointV2(deploymentObjectClass, kvs, opts...)
+		pt := point.NewPoint(deploymentObjectClass, kvs, opts...)
 		pts = append(pts, pt)
 	}
 

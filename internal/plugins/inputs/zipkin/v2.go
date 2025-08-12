@@ -34,31 +34,37 @@ func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 		service := getServiceFromSpanModel(span)
 		spanKV := point.KVs{}
 		spanKV = spanKV.
-			Add(itrace.FieldParentID, span.ParentID.String(), false, false).
-			Add(itrace.FieldSpanid, span.ID.String(), false, false).
+			Add(itrace.FieldParentID, span.ParentID.String()).
+			Add(itrace.FieldSpanid, span.ID.String()).
 			AddTag(itrace.TagService, service).
-			Add(itrace.FieldResource, span.Name, false, false).
+			Add(itrace.FieldResource, span.Name).
 			AddTag(itrace.TagOperation, span.Name).
-			AddTag(itrace.TagSpanType, itrace.FindSpanTypeInMultiServersStrSpanID(span.ID.String(), span.ParentID.String(), service, spanIDs, parentIDs)).
+			AddTag(itrace.TagSpanType,
+				itrace.FindSpanTypeInMultiServersStrSpanID(
+					span.ID.String(),
+					span.ParentID.String(),
+					service,
+					spanIDs,
+					parentIDs)).
 			AddTag(itrace.TagSource, inputName).
 			AddTag(itrace.TagSourceType, itrace.SpanSourceCustomer).
-			Add(itrace.FieldStart, span.Timestamp.UnixMicro(), false, false).
-			Add(itrace.FieldDuration, int64(span.Duration)/1000, false, true).
+			Add(itrace.FieldStart, span.Timestamp.UnixMicro()).
+			Set(itrace.FieldDuration, int64(span.Duration)/1000).
 			AddTag(itrace.TagSpanStatus, itrace.StatusOk)
 
 		if isRootSpan(span.ParentID.String()) {
-			spanKV = spanKV.Add(itrace.FieldParentID, "0", false, true)
+			spanKV = spanKV.Set(itrace.FieldParentID, "0")
 		}
 
 		if span.TraceID.High != 0 {
-			spanKV = spanKV.Add(itrace.FieldTraceID, fmt.Sprintf("%016x%016x", span.TraceID.High, span.TraceID.Low), false, true)
+			spanKV = spanKV.Set(itrace.FieldTraceID, fmt.Sprintf("%016x%016x", span.TraceID.High, span.TraceID.Low))
 		} else {
-			spanKV = spanKV.Add(itrace.FieldTraceID, strconv.FormatUint(span.TraceID.Low, 16), false, true)
+			spanKV = spanKV.Set(itrace.FieldTraceID, strconv.FormatUint(span.TraceID.Low, 16))
 		}
 
 		for tag := range span.Tags {
 			if tag == itrace.StatusErr {
-				spanKV = spanKV.MustAddTag(itrace.TagSpanStatus, itrace.StatusErr)
+				spanKV = spanKV.SetTag(itrace.TagSpanStatus, itrace.StatusErr)
 				break
 			}
 		}
@@ -72,11 +78,11 @@ func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 			if buf, err := json.Marshal(span); err != nil {
 				log.Warn(err.Error())
 			} else {
-				spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
+				spanKV = spanKV.Add(itrace.FieldMessage, string(buf))
 			}
 		}
 
-		pt := point.NewPointV2(inputName, spanKV, append(traceOpts, point.WithTime(span.Timestamp))...)
+		pt := point.NewPoint(inputName, spanKV, append(traceOpts, point.WithTime(span.Timestamp))...)
 		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 	}
 

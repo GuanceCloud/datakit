@@ -95,28 +95,27 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 		}
 
 		spanKV := point.KVs{}
-		spanKV = spanKV.Add(itrace.FieldParentID, strconv.FormatUint(uint64(span.ParentSpanId), 16), false, false).
-			Add(itrace.FieldSpanid, strconv.FormatUint(uint64(span.SpanId), 16), false, false).
+		spanKV = spanKV.Add(itrace.FieldParentID, strconv.FormatUint(uint64(span.ParentSpanId), 16)).
+			Add(itrace.FieldSpanid, strconv.FormatUint(uint64(span.SpanId), 16)).
 			AddTag(itrace.TagService, batch.Process.ServiceName).
-			Add(itrace.FieldResource, span.OperationName, false, false).
+			Add(itrace.FieldResource, span.OperationName).
 			AddTag(itrace.TagOperation, span.OperationName).
 			AddTag(itrace.TagSource, inputName).
 			AddTag(itrace.TagSourceType, itrace.SpanSourceCustomer).
 			AddTag(itrace.TagSpanType, itrace.FindSpanTypeIntSpanID(uint64(span.SpanId), uint64(span.ParentSpanId), spanIDs, parentIDs)).
-			Add(itrace.FieldStart, span.StartTime, false, false).
-			Add(itrace.FieldDuration, span.Duration, false, false)
+			Add(itrace.FieldStart, span.StartTime).
+			Add(itrace.FieldDuration, span.Duration)
 
 		if span.TraceIdHigh != 0 {
-			spanKV = spanKV.Add(itrace.FieldTraceID,
-				toTraceIDString(uint64(span.TraceIdHigh), uint64(span.TraceIdLow)), false, false)
+			spanKV = spanKV.Add(itrace.FieldTraceID, toTraceIDString(uint64(span.TraceIdHigh), uint64(span.TraceIdLow)))
 		} else {
-			spanKV = spanKV.Add(itrace.FieldTraceID, strconv.FormatUint(uint64(span.TraceIdLow), 16), false, false)
+			spanKV = spanKV.Add(itrace.FieldTraceID, strconv.FormatUint(uint64(span.TraceIdLow), 16))
 		}
 
 		spanKV = spanKV.AddTag(itrace.TagSpanStatus, itrace.StatusOk)
 		for _, tag := range span.Tags {
 			if tag.Key == "error" {
-				spanKV = spanKV.MustAddTag(itrace.TagSpanStatus, itrace.StatusErr)
+				spanKV = spanKV.SetTag(itrace.TagSpanStatus, itrace.StatusErr)
 				break
 			}
 		}
@@ -164,12 +163,12 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 			if buf, err := json.Marshal(dkJSpan); err != nil {
 				log.Warn(err.Error())
 			} else {
-				spanKV = spanKV.Add(itrace.FieldMessage, string(buf), false, false)
+				spanKV = spanKV.Add(itrace.FieldMessage, string(buf))
 			}
 		}
 
 		t := time.UnixMicro(span.StartTime)
-		pt := point.NewPointV2(inputName, spanKV, append(traceOpts, point.WithTime(t))...)
+		pt := point.NewPoint(inputName, spanKV, append(traceOpts, point.WithTime(t))...)
 		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 	}
 

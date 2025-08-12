@@ -94,32 +94,32 @@ func (n *node) buildMetricPoints(list *apicorev1.NodeList, timestamp int64) []*p
 		kvs = kvs.AddTag("node", config.RenameNode(item.Name))
 
 		t := item.Status.Allocatable["cpu"]
-		kvs = kvs.AddV2("cpu_allocatable", t.AsApproximateFloat64(), false)
+		kvs = kvs.Add("cpu_allocatable", t.AsApproximateFloat64())
 
 		m := item.Status.Allocatable["memory"]
-		kvs = kvs.AddV2("memory_allocatable", m.AsApproximateFloat64(), false)
+		kvs = kvs.Add("memory_allocatable", m.AsApproximateFloat64())
 
 		p := item.Status.Allocatable["pods"]
-		kvs = kvs.AddV2("pods_allocatable", p.AsApproximateFloat64(), false)
+		kvs = kvs.Add("pods_allocatable", p.AsApproximateFloat64())
 
 		e := item.Status.Allocatable["ephemeral-storage"]
-		kvs = kvs.AddV2("ephemeral_storage_allocatable", e.AsApproximateFloat64(), false)
+		kvs = kvs.Add("ephemeral_storage_allocatable", e.AsApproximateFloat64())
 
 		t2 := item.Status.Capacity["cpu"]
-		kvs = kvs.AddV2("cpu_capacity", t2.AsApproximateFloat64(), false)
+		kvs = kvs.Add("cpu_capacity", t2.AsApproximateFloat64())
 
 		m2 := item.Status.Capacity["memory"]
-		kvs = kvs.AddV2("memory_capacity", m2.AsApproximateFloat64(), false)
+		kvs = kvs.Add("memory_capacity", m2.AsApproximateFloat64())
 
 		p2 := item.Status.Capacity["pods"]
-		kvs = kvs.AddV2("pods_capacity", p2.AsApproximateFloat64(), false)
+		kvs = kvs.Add("pods_capacity", p2.AsApproximateFloat64())
 
 		e2 := item.Status.Capacity["ephemeral-storage"]
-		kvs = kvs.AddV2("ephemeral_storage_capacity", e2.AsApproximateFloat64(), false)
+		kvs = kvs.Add("ephemeral_storage_capacity", e2.AsApproximateFloat64())
 
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, n.cfg.LabelAsTagsForMetric.All, n.cfg.LabelAsTagsForMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(n.cfg.ExtraTags)...)
-		pt := point.NewPointV2(nodeMetricMeasurement, kvs, opts...)
+		pt := point.NewPoint(nodeMetricMeasurement, kvs, opts...)
 		pts = append(pts, pt)
 	}
 
@@ -158,36 +158,36 @@ func (n *node) buildObjectPoints(list *apicorev1.NodeList) []*point.Point {
 			}
 		}
 
-		kvs = kvs.AddV2("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3, false)
-		kvs = kvs.AddV2("kubelet_version", item.Status.NodeInfo.KubeletVersion, false)
+		kvs = kvs.Add("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3)
+		kvs = kvs.Add("kubelet_version", item.Status.NodeInfo.KubeletVersion)
 
 		if len(item.Spec.Taints) != 0 {
 			if taints, err := json.Marshal(item.Spec.Taints); err == nil {
-				kvs = kvs.AddV2("taints", string(taints), false)
+				kvs = kvs.Add("taints", string(taints))
 			}
 		}
 
 		if item.Spec.Unschedulable {
-			kvs = kvs.AddV2("unschedulable", "yes", false)
+			kvs = kvs.Add("unschedulable", "yes")
 		} else {
-			kvs = kvs.AddV2("unschedulable", "no", false)
+			kvs = kvs.Add("unschedulable", "no")
 		}
 
 		for _, condition := range item.Status.Conditions {
 			if condition.Type == apicorev1.NodeReady {
-				kvs = kvs.AddV2("node_ready", strings.ToLower(string(condition.Status)), false)
+				kvs = kvs.Add("node_ready", strings.ToLower(string(condition.Status)))
 				break
 			}
 		}
 
 		if y, err := yaml.Marshal(item); err == nil {
-			kvs = kvs.AddV2("yaml", string(y), false)
+			kvs = kvs.Add("yaml", string(y))
 		}
-		kvs = kvs.AddV2("annotations", pointutil.MapToJSON(item.Annotations), false)
+		kvs = kvs.Add("annotations", pointutil.MapToJSON(item.Annotations))
 		kvs = append(kvs, pointutil.ConvertDFLabels(item.Labels)...)
 
 		msg := pointutil.PointKVsToJSON(kvs)
-		kvs = kvs.AddV2("message", pointutil.TrimString(msg, maxMessageLength), false)
+		kvs = kvs.Add("message", pointutil.TrimString(msg, maxMessageLength))
 
 		kvs = kvs.Del("annotations")
 		kvs = kvs.Del("yaml")
@@ -198,7 +198,7 @@ func (n *node) buildObjectPoints(list *apicorev1.NodeList) []*point.Point {
 			kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, n.cfg.LabelAsTagsForNonMetric.All, n.cfg.LabelAsTagsForNonMetric.Keys)...)
 		}
 		kvs = append(kvs, point.NewTags(n.cfg.ExtraTags)...)
-		pt := point.NewPointV2(nodeObjectClass, kvs, opts...)
+		pt := point.NewPoint(nodeObjectClass, kvs, opts...)
 		pts = append(pts, pt)
 	}
 

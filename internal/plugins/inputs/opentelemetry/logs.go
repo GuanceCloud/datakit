@@ -56,11 +56,11 @@ func (ipt *Input) parseLogRequest(resourceLogss []*logs.ResourceLogs) []*point.P
 				for i, msg := range messages {
 					kvs := mergeTagsToField(resourceTags, scopeTags, ptTags)
 					for k, v := range ipt.Tags { // span.attribute 优先级大于全局tag。
-						kvs = kvs.AddV2(k, v, false)
+						kvs = kvs.Add(k, v)
 					}
-					kvs = kvs.Add("message", msg, false, false).
-						AddV2(itrace.FieldSpanid, ipt.convertBinID(record.GetSpanId()), false).
-						AddV2(itrace.FieldTraceID, ipt.convertBinID(record.GetTraceId()), false).
+					kvs = kvs.Add("message", msg).
+						Add(itrace.FieldSpanid, ipt.convertBinID(record.GetSpanId())).
+						Add(itrace.FieldTraceID, ipt.convertBinID(record.GetTraceId())).
 						AddTag("status", getStatus(record.GetSeverityNumber(), record.GetSeverityText())).
 						AddTag("service", service).
 						AddTag(itrace.TagSource, source).
@@ -75,7 +75,7 @@ func (ipt *Input) parseLogRequest(resourceLogss []*logs.ResourceLogs) []*point.P
 					}
 					opts := point.DefaultLoggingOptions()
 					opts = append(opts, point.WithTime(ts.Add(time.Millisecond*time.Duration(i))))
-					pts = append(pts, point.NewPointV2(source, kvs, opts...))
+					pts = append(pts, point.NewPoint(source, kvs, opts...))
 				}
 			}
 		}

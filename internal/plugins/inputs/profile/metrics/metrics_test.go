@@ -22,9 +22,9 @@ func TestMetricKVs(t *testing.T) {
 	kvs.AddTag("foo", "bar")
 	kvs.AddTag("hello", "world")
 
-	kvs.AddV2("duration", 3.1415925, false)
-	kvs.AddV2("count", 789, false)
-	kvs.AddV2("bytes", 100000, false)
+	kvs.Add("duration", 3.1415925)
+	kvs.Add("count", 789)
+	kvs.Add("bytes", 100000)
 
 	ptKVs := kvs.toPointKVs()
 
@@ -44,7 +44,7 @@ func TestMetricKVs(t *testing.T) {
 		"tag3": "value3",
 	}))
 	mKVs.AddTag("language", "java")
-	mKVs.AddV2("foobar", 3.1415, false)
+	mKVs.Add("foobar", 3.1415)
 
 	assert.Equal(t, 4, mKVs.toPointKVs().TagCount())
 	assert.Equal(t, 1, mKVs.toPointKVs().FieldCount())

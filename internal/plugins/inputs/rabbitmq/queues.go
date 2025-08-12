@@ -50,35 +50,35 @@ func getQueues(n *Input) {
 			AddTag("queue_name", queue.Name).
 			AddTag("node_name", queue.Node).
 			AddTag("vhost", queue.Vhost).
-			AddV2("consumers", queue.Consumers, true).
-			AddV2("consumer_utilization", queue.ConsumerUtilisation, true).
-			AddV2("memory", queue.Memory, true).
-			AddV2("head_message_timestamp", queue.HeadMessageTimestamp, true).
-			AddV2("messages", queue.Messages, true).
-			AddV2("messages_rate", queue.MessagesDetail.Rate, true).
-			AddV2("messages_ready", queue.MessagesReady, true).
-			AddV2("messages_ready_rate", queue.MessagesReadyDetail.Rate, true).
-			AddV2("messages_unacknowledged", queue.MessagesUnacknowledged, true).
-			AddV2("messages_unacknowledged_rate", queue.MessagesUnacknowledgedDetail.Rate, true).
-			AddV2("message_ack_count", queue.messageStats.Ack, true).
-			AddV2("message_ack_rate", queue.messageStats.AckDetails.Rate, true).
-			AddV2("message_deliver_count", queue.messageStats.Deliver, true).
-			AddV2("message_deliver_rate", queue.messageStats.DeliverDetails.Rate, true).
-			AddV2("message_deliver_get_count", queue.messageStats.DeliverGet, true).
-			AddV2("message_deliver_get_rate", queue.messageStats.DeliverGetDetails.Rate, true).
-			AddV2("message_publish_count", queue.messageStats.Publish, true).
-			AddV2("message_publish_rate", queue.messageStats.PublishDetails.Rate, true).
-			AddV2("message_redeliver_count", queue.messageStats.Redeliver, true).
-			AddV2("message_redeliver_rate", queue.messageStats.RedeliverDetails.Rate, true)
+			Set("consumers", queue.Consumers).
+			Set("consumer_utilization", queue.ConsumerUtilisation).
+			Set("memory", queue.Memory).
+			Set("head_message_timestamp", queue.HeadMessageTimestamp).
+			Set("messages", queue.Messages).
+			Set("messages_rate", queue.MessagesDetail.Rate).
+			Set("messages_ready", queue.MessagesReady).
+			Set("messages_ready_rate", queue.MessagesReadyDetail.Rate).
+			Set("messages_unacknowledged", queue.MessagesUnacknowledged).
+			Set("messages_unacknowledged_rate", queue.MessagesUnacknowledgedDetail.Rate).
+			Set("message_ack_count", queue.messageStats.Ack).
+			Set("message_ack_rate", queue.messageStats.AckDetails.Rate).
+			Set("message_deliver_count", queue.messageStats.Deliver).
+			Set("message_deliver_rate", queue.messageStats.DeliverDetails.Rate).
+			Set("message_deliver_get_count", queue.messageStats.DeliverGet).
+			Set("message_deliver_get_rate", queue.messageStats.DeliverGetDetails.Rate).
+			Set("message_publish_count", queue.messageStats.Publish).
+			Set("message_publish_rate", queue.messageStats.PublishDetails.Rate).
+			Set("message_redeliver_count", queue.messageStats.Redeliver).
+			Set("message_redeliver_rate", queue.messageStats.RedeliverDetails.Rate)
 
 		bindings, err := n.getBindingCount(queue.Vhost, queue.Name)
 		if err != nil {
 			l.Errorf("get bindings err:%s", err.Error())
 		} else {
-			kvs = kvs.AddV2("bindings_count", bindings, true)
+			kvs = kvs.Set("bindings_count", bindings)
 		}
 
-		pts = append(pts, point.NewPointV2(queueMeasurementName, kvs, opts...))
+		pts = append(pts, point.NewPoint(queueMeasurementName, kvs, opts...))
 	}
 
 	if err := n.feeder.Feed(point.Metric, pts,

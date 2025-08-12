@@ -54,7 +54,7 @@ func (conns *TCPConns) netlogConv2Point(k *PMeta, v *PValue,
 				&conns.aggHTTP, conns.nsUID, nicIPList); err != nil {
 				log.Errorf("build http log failed: %s", err.Error())
 			} else if ok && enableNetlog {
-				pts = append(pts, point.NewPointV2("bpf_net_l7_log", kvs, append(
+				pts = append(pts, point.NewPoint("bpf_net_l7_log", kvs, append(
 					opt, point.WithExtraTags(conns.tags), point.WithTime(time.Unix(0, reqTS)))...))
 			}
 		}
@@ -86,7 +86,7 @@ func (conns *TCPConns) netlogConv2Point(k *PMeta, v *PValue,
 			if err != nil {
 				log.Errorf("build tcp log failed: %s", err.Error())
 			} else if ok && enableNetlog {
-				pts = append(pts, point.NewPointV2("bpf_net_l4_log", kvs, append(
+				pts = append(pts, point.NewPoint("bpf_net_l4_log", kvs, append(
 					opt, point.WithExtraTags(conns.tags), point.WithTime(time.Unix(0, ts)))...))
 			}
 		}
@@ -247,29 +247,29 @@ func buildHTTPLog(k *PMeta, v *PValue, elem *HTTPLogElem, tags map[string]string
 	kvs := point.NewTags(tags)
 
 	// tags
-	kvs = kvs.Add("trace_id", elem.TraceID, true, true)
-	kvs = kvs.Add("parent_id", elem.ParentID, true, true)
-	kvs = kvs.Add("l7_proto", "http", true, true)
-	kvs = kvs.Add("http_path", elem.Path, true, true)
-	kvs = kvs.Add("http_status_code", elem.StatusCode, false, true)
-	kvs = kvs.Add("http_method", elem.Method, true, true)
-	kvs = kvs.Add("req_seq", strconv.FormatInt(int64(
-		elem.reqSeq), 10), false, true)
-	kvs = kvs.Add("resp_seq", strconv.FormatInt(int64(
-		elem.respSeq), 10), false, true)
-	kvs = kvs.Add("l7_traceid", fmt.Sprintf("%d_%d",
-		elem.reqSeq, elem.respSeq), true, true)
+	kvs = kvs.SetTag("trace_id", elem.TraceID)
+	kvs = kvs.SetTag("parent_id", elem.ParentID)
+	kvs = kvs.SetTag("l7_proto", "http")
+	kvs = kvs.SetTag("http_path", elem.Path)
+	kvs = kvs.Set("http_status_code", elem.StatusCode)
+	kvs = kvs.SetTag("http_method", elem.Method)
+	kvs = kvs.Set("req_seq", strconv.FormatInt(int64(
+		elem.reqSeq), 10))
+	kvs = kvs.Set("resp_seq", strconv.FormatInt(int64(
+		elem.respSeq), 10))
+	kvs = kvs.SetTag("l7_traceid", fmt.Sprintf("%d_%d",
+		elem.reqSeq, elem.respSeq))
 
 	if elem.Direction == DOutging {
-		kvs = kvs.Add("tx_seq", int64(
-			elem.reqSeq), false, true)
-		kvs = kvs.Add("rx_seq", int64(
-			elem.respSeq), false, true)
+		kvs = kvs.Set("tx_seq", int64(
+			elem.reqSeq))
+		kvs = kvs.Set("rx_seq", int64(
+			elem.respSeq))
 	} else {
-		kvs = kvs.Add("tx_seq", int64(
-			elem.respSeq), false, true)
-		kvs = kvs.Add("rx_seq", int64(
-			elem.reqSeq), false, true)
+		kvs = kvs.Set("tx_seq", int64(
+			elem.respSeq))
+		kvs = kvs.Set("rx_seq", int64(
+			elem.reqSeq))
 	}
 
 	var reqDlDur, respDlDur float64
@@ -294,8 +294,8 @@ func buildHTTPLog(k *PMeta, v *PValue, elem *HTTPLogElem, tags map[string]string
 		}
 	}
 
-	kvs = kvs.Add("cost_req_sent", reqDlDur, false, true)
-	kvs = kvs.Add("cost_cnt_dl", respDlDur, false, true)
+	kvs = kvs.Set("cost_req_sent", reqDlDur)
+	kvs = kvs.Set("cost_cnt_dl", respDlDur)
 
 	var waitRespDur int64
 	switch {
@@ -313,15 +313,15 @@ func buildHTTPLog(k *PMeta, v *PValue, elem *HTTPLogElem, tags map[string]string
 	}
 
 	// conv to millsecond
-	kvs = kvs.Add("cost_resp_wait", float64(waitRespDur)/float64(time.Millisecond), false, true)
+	kvs = kvs.Set("cost_resp_wait", float64(waitRespDur)/float64(time.Millisecond))
 
 	// same as tcp
-	kvs = kvs.Add("tx_packets", elem.txPkts, false, true)
-	kvs = kvs.Add("rx_packets", elem.rxPkts, false, true)
-	kvs = kvs.Add("tx_bytes", elem.txBytes, false, true)
-	kvs = kvs.Add("rx_bytes", elem.rxBytes, false, true)
-	kvs = kvs.Add("tx_retrans", elem.txRetransmits, false, true)
-	kvs = kvs.Add("rx_retrans", elem.rxRetransmits, false, true)
+	kvs = kvs.Set("tx_packets", elem.txPkts)
+	kvs = kvs.Set("rx_packets", elem.rxPkts)
+	kvs = kvs.Set("tx_bytes", elem.txBytes)
+	kvs = kvs.Set("rx_bytes", elem.rxBytes)
+	kvs = kvs.Set("tx_retrans", elem.txRetransmits)
+	kvs = kvs.Set("rx_retrans", elem.rxRetransmits)
 
 	msg := map[string]any{
 		"l4_proto": "tcp",
@@ -341,7 +341,7 @@ func buildHTTPLog(k *PMeta, v *PValue, elem *HTTPLogElem, tags map[string]string
 	if err != nil {
 		return nil, 0, false, err
 	}
-	kvs = kvs.Add("message", string(buf), false, true)
+	kvs = kvs.Set("message", string(buf))
 	return kvs, reqTS, true, nil
 }
 
@@ -349,38 +349,38 @@ func buildTCPLog(chunk *PktChunk, tsnow int64,
 	tags map[string]string, v *PValue,
 ) (point.KVs, int64, bool, error) {
 	kvs := point.NewTags(tags)
-	kvs = kvs.Add("l7_proto", v.tcpInfo.l7proto.String(), true, true)
-	kvs = kvs.Add("chunk_id", chunk.ChunkID, false, true)
-	kvs = kvs.Add("tx_seq_min", chunk.txSeq[0], false, true)
-	kvs = kvs.Add("tx_seq_max", chunk.txSeq[1], false, true)
-	kvs = kvs.Add("rx_seq_min", chunk.rxSeq[0], false, true)
-	kvs = kvs.Add("rx_seq_max", chunk.rxSeq[1], false, true)
+	kvs = kvs.SetTag("l7_proto", v.tcpInfo.l7proto.String())
+	kvs = kvs.Set("chunk_id", chunk.ChunkID)
+	kvs = kvs.Set("tx_seq_min", chunk.txSeq[0])
+	kvs = kvs.Set("tx_seq_max", chunk.txSeq[1])
+	kvs = kvs.Set("rx_seq_min", chunk.rxSeq[0])
+	kvs = kvs.Set("rx_seq_max", chunk.rxSeq[1])
 
 	if isSYNChunk(chunk.chunkKind) {
-		kvs = kvs.Add("chunk_syn", true, false, true)
+		kvs = kvs.Set("chunk_syn", true)
 		s0 := v.tcpInfo.synfinTS[0]
 		s1 := v.tcpInfo.synfinTS[1]
 		if s0 != 0 && s1 != 0 && s1 > s0 {
-			kvs = kvs.Add("tcp_3whs_cost", float64(s1-s0)/float64(time.Millisecond), false, true)
+			kvs = kvs.Set("tcp_3whs_cost", float64(s1-s0)/float64(time.Millisecond))
 		}
 	}
 	if isFINChunk(chunk.chunkKind) {
-		kvs = kvs.Add("chunk_fin", true, false, true)
+		kvs = kvs.Set("chunk_fin", true)
 		f0 := v.tcpInfo.synfinTS[2]
 		f1 := v.tcpInfo.synfinTS[3]
 		if f0 != 0 && f1 != 0 && f1 > f0 {
-			kvs = kvs.Add("tcp_4whs_cost", float64(f1-f0)/float64(time.Millisecond), false, true)
+			kvs = kvs.Set("tcp_4whs_cost", float64(f1-f0)/float64(time.Millisecond))
 		}
 	}
 
-	kvs = kvs.Add("tcp_rtt", float64(v.tcpInfo.rtt.getRTT())/float64(time.Millisecond), false, true)
-	kvs = kvs.Add("tx_packets", chunk.TXPacket, false, true)
-	kvs = kvs.Add("rx_packets", chunk.RXPacket, false, true)
-	kvs = kvs.Add("tx_bytes", chunk.TxBytes, false, true)
-	kvs = kvs.Add("rx_bytes", chunk.RxBytes, false, true)
-	kvs = kvs.Add("tx_retrans", chunk.RetransmitsTx, false, true)
-	kvs = kvs.Add("tx_retrans", chunk.RetransmitsRx, false, true)
-	kvs = kvs.Add("tcp_syn_retrans", v.tcpInfo.RetransmitsSYN, false, true)
+	kvs = kvs.Set("tcp_rtt", float64(v.tcpInfo.rtt.getRTT())/float64(time.Millisecond))
+	kvs = kvs.Set("tx_packets", chunk.TXPacket)
+	kvs = kvs.Set("rx_packets", chunk.RXPacket)
+	kvs = kvs.Set("tx_bytes", chunk.TxBytes)
+	kvs = kvs.Set("rx_bytes", chunk.RxBytes)
+	kvs = kvs.Set("tx_retrans", chunk.RetransmitsTx)
+	kvs = kvs.Set("tx_retrans", chunk.RetransmitsRx)
+	kvs = kvs.Set("tcp_syn_retrans", v.tcpInfo.RetransmitsSYN)
 
 	chunk.TCPColName = _colsnames
 
@@ -392,7 +392,7 @@ func buildTCPLog(chunk *PktChunk, tsnow int64,
 	if err != nil {
 		return nil, 0, false, err
 	}
-	kvs = kvs.Add("message", string(buf), false, true)
+	kvs = kvs.Set("message", string(buf))
 
 	chunk.TCPColName = nil
 
@@ -411,20 +411,20 @@ func buildH2Log(k *PMeta, v *PValue, elem *HTTP2LogElem, tags map[string]string,
 	kvs := point.NewTags(tags)
 
 	// tags
-	kvs = kvs.Add("trace_id", elem.TraceID, true, true)
-	kvs = kvs.Add("parent_id", elem.ParentID, true, true)
-	kvs = kvs.Add("l7_proto", "http2", true, true)
-	kvs = kvs.Add("req_seq", strconv.FormatInt(int64(
-		elem.reqSeq), 10), true, true)
-	kvs = kvs.Add("resp_seq", strconv.FormatInt(int64(
-		elem.respSeq), 10), true, true)
-	kvs = kvs.Add("l7_traceid", fmt.Sprintf("%d_%d",
-		elem.reqSeq, elem.respSeq), true, true)
+	kvs = kvs.SetTag("trace_id", elem.TraceID)
+	kvs = kvs.SetTag("parent_id", elem.ParentID)
+	kvs = kvs.SetTag("l7_proto", "http2")
+	kvs = kvs.SetTag("req_seq", strconv.FormatInt(int64(
+		elem.reqSeq), 10))
+	kvs = kvs.SetTag("resp_seq", strconv.FormatInt(int64(
+		elem.respSeq), 10))
+	kvs = kvs.SetTag("l7_traceid", fmt.Sprintf("%d_%d",
+		elem.reqSeq, elem.respSeq))
 
 	// fields
-	kvs = kvs.Add("http_method", elem.Method, false, true)
-	kvs = kvs.Add("http_path", elem.Path, false, true)
-	kvs = kvs.Add("http_status_code", elem.StatusCode, false, true)
+	kvs = kvs.Set("http_method", elem.Method)
+	kvs = kvs.Set("http_path", elem.Path)
+	kvs = kvs.Set("http_status_code", elem.StatusCode)
 
 	var reqDlDur, respDlDur float64
 	var reqTS int64
@@ -448,8 +448,8 @@ func buildH2Log(k *PMeta, v *PValue, elem *HTTP2LogElem, tags map[string]string,
 		}
 	}
 
-	kvs = kvs.Add("cost_req_sent", reqDlDur, false, true)
-	kvs = kvs.Add("cost_cnt_dl", respDlDur, false, true)
+	kvs = kvs.Set("cost_req_sent", reqDlDur)
+	kvs = kvs.Set("cost_cnt_dl", respDlDur)
 
 	var waitRespDur int64
 	switch {
@@ -469,7 +469,7 @@ func buildH2Log(k *PMeta, v *PValue, elem *HTTP2LogElem, tags map[string]string,
 	}
 
 	// conv to millsecond
-	kvs = kvs.Add("cost_resp_wait", float64(waitRespDur)/float64(time.Millisecond), false, true)
+	kvs = kvs.Set("cost_resp_wait", float64(waitRespDur)/float64(time.Millisecond))
 
 	msg := map[string]any{
 		"l4_proto": "tcp",
@@ -482,6 +482,6 @@ func buildH2Log(k *PMeta, v *PValue, elem *HTTP2LogElem, tags map[string]string,
 		return nil, 0, false, err
 	}
 
-	kvs = kvs.Add("message", string(buf), false, true)
+	kvs = kvs.Set("message", string(buf))
 	return kvs, reqTS, true, nil
 }

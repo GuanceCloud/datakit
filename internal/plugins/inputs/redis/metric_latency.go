@@ -101,21 +101,21 @@ func (ipt *Input) parseLatencyData(list string) ([]*point.Point, error) {
 		for index, info := range fieldName {
 			value, err := strconv.Atoi(finalPart[index])
 			if err != nil {
-				kvs = kvs.Add(info, finalPart[index], false, false)
+				kvs = kvs.Add(info, finalPart[index])
 			}
-			kvs = kvs.Add(info, value, false, false)
+			kvs = kvs.Add(info, value)
 		}
 
 		kvs = kvs.Add("message",
 			finalPart[0]+" cost time "+finalPart[2]+"ms"+",max_cost_time "+finalPart[3]+"ms",
-			false, false)
+		)
 
 		for k, v := range ipt.mergedTags {
 			kvs = kvs.AddTag(k, v)
 		}
 
 		opts = append(opts, point.WithTime(ts))
-		pt := point.NewPointV2(redisLatency, kvs, opts...)
+		pt := point.NewPoint(redisLatency, kvs, opts...)
 		collectCache = append(collectCache, pt)
 
 		ipt.latencyLastTime[typeName] = ts

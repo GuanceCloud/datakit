@@ -673,12 +673,12 @@ func (ipt *Input) handleSourcemapCheck(w http.ResponseWriter, r *http.Request, _
 	}
 
 	var kvs point.KVs
-	kvs = kvs.MustAddTag("app_id", appID)
-	kvs = kvs.MustAddTag("env", env)
-	kvs = kvs.MustAddTag("version", version)
-	kvs = kvs.Add("error_stack", query.Get("error_stack"), false, true)
+	kvs = kvs.SetTag("app_id", appID)
+	kvs = kvs.SetTag("env", env)
+	kvs = kvs.SetTag("version", version)
+	kvs = kvs.Set("error_stack", query.Get("error_stack"))
 
-	pt := point.NewPointV2("check_sourcemap", kvs, point.CommonLoggingOptions()...)
+	pt := point.NewPoint("check_sourcemap", kvs, point.CommonLoggingOptions()...)
 	pt, _ = ipt.parseSourcemap(pt, sdkName, status)
 
 	content := &sourcemapCheckRes{

@@ -55,8 +55,8 @@ func (ipt *Input) collectLockedSession() {
 	for _, r := range rows {
 		kvs := ipt.getKVs()
 		kvs = kvs.AddTag("event", r.Event.String).
-			AddV2("waiting_session_count", r.Count, true)
-		pts = append(pts, point.NewPointV2(name, kvs, ipt.getKVsOpts(point.Metric)...))
+			Set("waiting_session_count", r.Count)
+		pts = append(pts, point.NewPoint(name, kvs, ipt.getKVsOpts(point.Metric)...))
 	}
 
 	l.Debugf("%s: get %d points", name, len(pts))

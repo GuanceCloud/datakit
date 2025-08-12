@@ -60,7 +60,7 @@ func TestGroupPoint(t *T.T) {
 		assert.NoError(t, dw.Init(WithURLs("https://fake-dataway.com?token=tkn_xxxxxxxxxx")))
 
 		pts := []*point.Point{
-			point.NewPointV2("some",
+			point.NewPoint("some",
 				append(point.NewKVs(map[string]any{"f1": false}),
 					point.NewKV("category", "system", point.WithKVTagSet(true)))),
 		}
@@ -93,7 +93,7 @@ func TestGroupPoint(t *T.T) {
 		assert.NoError(t, dw.Init(WithURLs("https://fake-dataway.com?token=tkn_xxxxxxxxxx")))
 
 		pts := []*point.Point{
-			point.NewPointV2("some",
+			point.NewPoint("some",
 				append(
 					point.NewKVs(map[string]any{"f1": false}),
 					point.NewKV("t1", "v1", point.WithKVTagSet(true)),
@@ -107,24 +107,24 @@ func TestGroupPoint(t *T.T) {
 					point.NewKV("tag1", "new-value", point.WithKVTagSet(true)),
 				)),
 
-			point.NewPointV2("some",
+			point.NewPoint("some",
 				append(point.NewKVs(map[string]any{"f1": false}),
 					point.NewKV("t1", "v1", point.WithKVTagSet(true)),
 				)),
 
-			point.NewPointV2("some",
+			point.NewPoint("some",
 				append(point.NewKVs(map[string]any{"f1": false}),
 					point.NewKV("t1", "v1", point.WithKVTagSet(true)),
 					point.NewKV("tag2", "new-value", point.WithKVTagSet(true)),
 				)),
 
-			point.NewPointV2("some",
+			point.NewPoint("some",
 				append(point.NewKVs(map[string]any{"f1": false}),
 					point.NewKV("message", "ns1", point.WithKVTagSet(true)),
 					point.NewKV("tag2", "new-value", point.WithKVTagSet(true)),
 				)),
 
-			point.NewPointV2("some", point.NewKVs(map[string]any{"f1": false})), // no tags
+			point.NewPoint("some", point.NewKVs(map[string]any{"f1": false})), // no tags
 		}
 
 		ptg := getGrouper()
@@ -202,7 +202,7 @@ func TestGroupPoint(t *T.T) {
 			})))
 
 		pts := []*point.Point{
-			point.NewPointV2("some",
+			point.NewPoint("some",
 				append(
 					point.NewKVs(map[string]any{"f1": false}),
 
@@ -210,13 +210,13 @@ func TestGroupPoint(t *T.T) {
 					point.NewKV("tag1", "new-value", point.WithKVTagSet(true)),
 				)),
 
-			point.NewPointV2("some",
+			point.NewPoint("some",
 				append(
 					point.NewKVs(map[string]any{"f1": false}),
 					point.NewKV("t1", "v1", point.WithKVTagSet(true)),
 				)),
 
-			point.NewPointV2("some",
+			point.NewPoint("some",
 				append(
 					point.NewKVs(map[string]any{"f1": false}),
 
@@ -224,7 +224,7 @@ func TestGroupPoint(t *T.T) {
 					point.NewKV("tag2", "new-value", point.WithKVTagSet(true)),
 				)),
 
-			point.NewPointV2("some", point.NewKVs(map[string]any{"f1": false})), /* no tags */
+			point.NewPoint("some", point.NewKVs(map[string]any{"f1": false})), /* no tags */
 		}
 
 		ptg := getGrouper()
@@ -258,34 +258,34 @@ func TestGroupPoint(t *T.T) {
 		assert.NoError(t, dw.Init(WithURLs("https://fake-dataway.com?token=tkn_xxxxxxxxxx")))
 
 		pts := []*point.Point{
-			point.NewPointV2("some",
+			point.NewPoint("some",
 				append(
 					point.NewKVs(map[string]any{"f1": false}),
 					point.NewKV("t1", "v1", point.WithKVTagSet(true)),
 					point.NewKV("tag1", "new-value", point.WithKVTagSet(true)),
 				)),
 
-			point.NewPointV2("some",
+			point.NewPoint("some",
 				append(
 					point.NewKVs(map[string]any{"f3": false}),
 					point.NewKV("t2", "v4", point.WithKVTagSet(true)),
 				)),
 
-			point.NewPointV2("some",
+			point.NewPoint("some",
 				append(
 					point.NewKVs(map[string]any{"f1": false}),
 					point.NewKV("t1", "v1", point.WithKVTagSet(true)),
 					point.NewKV("tag2", "new-value", point.WithKVTagSet(true)),
 				)),
 
-			point.NewPointV2("some",
+			point.NewPoint("some",
 				append(
 					point.NewKVs(map[string]any{"f1": false}),
 					point.NewKV("namespace", "ns1", point.WithKVTagSet(true)),
 					point.NewKV("tag2", "new-value", point.WithKVTagSet(true)),
 				)),
 
-			point.NewPointV2("some" /* no tags */, point.NewKVs(map[string]any{"f1": false})),
+			point.NewPoint("some" /* no tags */, point.NewKVs(map[string]any{"f1": false})),
 		}
 
 		ptg := getGrouper()
@@ -313,34 +313,34 @@ func TestGroupPoint(t *T.T) {
 		assert.NoError(t, dw.Init(WithURLs("https://fake-dataway.com?token=tkn_xxxxxxxxxx")))
 
 		pts := []*point.Point{
-			point.NewPointV2("some",
+			point.NewPoint("some",
 				append(
 					point.NewKVs(map[string]any{"f1": false}),
 					point.NewKV("t1", "v1", point.WithKVTagSet(true)),
 					point.NewKV("tag1", "new-value", point.WithKVTagSet(true)),
 				)),
 
-			point.NewPointV2("some",
+			point.NewPoint("some",
 				append(
 					point.NewKVs(map[string]any{"f1": false}),
 					point.NewKV("t1", "v1", point.WithKVTagSet(true)),
 				)),
 
-			point.NewPointV2("some",
+			point.NewPoint("some",
 				append(
 					point.NewKVs(map[string]any{"f1": false}),
 					point.NewKV("t1", "v1", point.WithKVTagSet(true)),
 					point.NewKV("tag2", "new-value", point.WithKVTagSet(true)),
 				)),
 
-			point.NewPointV2("some",
+			point.NewPoint("some",
 				append(
 					point.NewKVs(map[string]any{"f1": false}),
 					point.NewKV("namespace", "ns1", point.WithKVTagSet(true)),
 					point.NewKV("tag2", "new-value", point.WithKVTagSet(true)),
 				)),
 
-			point.NewPointV2("some", point.NewKVs(map[string]any{"f1": false})), /* no tags */
+			point.NewPoint("some", point.NewKVs(map[string]any{"f1": false})), /* no tags */
 		}
 
 		ptg := getGrouper()
@@ -371,34 +371,34 @@ func TestGroupPoint(t *T.T) {
 		assert.NoError(t, dw.Init(WithURLs("https://fake-dataway.com?token=tkn_xxxxxxxxxx")))
 
 		pts := []*point.Point{
-			point.NewPointV2("some",
+			point.NewPoint("some",
 				append(
 					point.NewKVs(map[string]any{"f1": false}),
 					point.NewKV("t1", "v1", point.WithKVTagSet(true)),
 					point.NewKV("tag1", "new-value", point.WithKVTagSet(true)),
 				)),
 
-			point.NewPointV2("some",
+			point.NewPoint("some",
 				append(
 					point.NewKVs(map[string]any{"f1": false}),
 					point.NewKV("t1", "v1", point.WithKVTagSet(true)),
 				)),
 
-			point.NewPointV2("some",
+			point.NewPoint("some",
 				append(
 					point.NewKVs(map[string]any{"f1": false}),
 					point.NewKV("t1", "v1", point.WithKVTagSet(true)),
 					point.NewKV("tag2", "new-value", point.WithKVTagSet(true)),
 				)),
 
-			point.NewPointV2("some",
+			point.NewPoint("some",
 				append(
 					point.NewKVs(map[string]any{"f1": false}),
 					point.NewKV("namespace", "ns1", point.WithKVTagSet(true)),
 					point.NewKV("tag2", "new-value", point.WithKVTagSet(true)),
 				)),
 
-			point.NewPointV2("some", point.NewKVs(map[string]any{"f1": false})), /* no tags */
+			point.NewPoint("some", point.NewKVs(map[string]any{"f1": false})), /* no tags */
 		}
 
 		ptg := getGrouper()

@@ -104,7 +104,7 @@ func (p *PromScraper) callbackForRow(rows []Row) error {
 	for _, row := range rows {
 		measurementName, metricName := p.splitMetricName(row.Metric)
 		var kvs point.KVs
-		kvs = kvs.Add(metricName, row.Value, false, true)
+		kvs = kvs.Set(metricName, row.Value)
 
 		for _, tag := range row.Tags {
 			kvs = kvs.AddTag(tag.Key, tag.Value)
@@ -113,7 +113,7 @@ func (p *PromScraper) callbackForRow(rows []Row) error {
 			kvs = kvs.AddTag(key, value)
 		}
 
-		pt := point.NewPointV2(measurementName, kvs, append(opts, point.WithTimestamp(p.timestamp))...)
+		pt := point.NewPoint(measurementName, kvs, append(opts, point.WithTimestamp(p.timestamp))...)
 		pts = append(pts, pt)
 	}
 

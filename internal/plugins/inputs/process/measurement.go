@@ -24,7 +24,7 @@ func (m *processMetric) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTimestamp(m.ts))
 
-	return point.NewPointV2(m.name,
+	return point.NewPoint(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }
@@ -77,7 +77,7 @@ func (m *processObject) Point() *point.Point {
 	opts := point.DefaultObjectOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2(m.name,
+	return point.NewPoint(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }

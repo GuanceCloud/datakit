@@ -48,45 +48,42 @@ func init() { // nolint:gochecknoinits
 func TestApiDebugDialtestingHandler(t *testing.T) {
 	httpCases := []struct {
 		name        string
-		t           *dialtestingDebugRequest
+		dr          *dialtestingDebugRequest
 		body        []byte
 		errInit     error
 		errRun      error
-		errExpect   error
+		errContains string
 		expectRes   map[string]interface{}
 		debugFields map[string]interface{}
 		hook        func()
 	}{
 		{
-			name: "test dial task para wrong",
-			body: []byte(`{"task_type":9,"dd":"dd"}`),
-			t: &dialtestingDebugRequest{
+			name:        "test-dial-task-para-wrong",
+			body:        []byte(`{"task_type":9,"dd":"dd"}`),
+			dr:          &dialtestingDebugRequest{},
+			errContains: "json: cannot unmarshal",
+		},
+
+		{
+			name:        "test-dial-task-para-wrong1",
+			body:        []byte(`{"task_type":"dd","dd":"dd"}`),
+			dr:          &dialtestingDebugRequest{},
+			errContains: "unknown task type:DD",
+		},
+
+		{
+			name: "test-dial-invalid-request1",
+			dr: &dialtestingDebugRequest{
 				TaskType: "HTTP",
 				Task:     &dt.HTTPTask{},
 			},
-			errExpect: uhttp.Error(ErrInvalidRequest, "dialtestingDebugRequest.task_type of type string"),
+			errInit:     uhttp.Error(ErrInvalidRequest, "ddd"),
+			errContains: "invalid request",
 		},
+
 		{
-			name: "test dial task para wrong1",
-			body: []byte(`{"task_type":"dd","dd":"dd"}`),
-			t: &dialtestingDebugRequest{
-				TaskType: "dd",
-				Task:     &dt.HTTPTask{},
-			},
-			errExpect: uhttp.Error(ErrInvalidRequest, "unknown task type:DD"),
-		},
-		{
-			name: "test dial invalid request1",
-			t: &dialtestingDebugRequest{
-				TaskType: "HTTP",
-				Task:     &dt.HTTPTask{},
-			},
-			errInit:   uhttp.Error(ErrInvalidRequest, "ddd"),
-			errExpect: uhttp.Error(ErrInvalidRequest, "invalid request"),
-		},
-		{
-			name: "test dial status stop",
-			t: &dialtestingDebugRequest{
+			name: "test-dial-status-stop",
+			dr: &dialtestingDebugRequest{
 				TaskType: "HTTP",
 				Task: &dt.HTTPTask{
 					Task: &dt.Task{
@@ -94,11 +91,11 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 					},
 				},
 			},
-			errExpect: uhttp.Error(ErrInvalidRequest, "the task status is stop"),
+			errContains: "the task status is stop",
 		},
 		{
-			name: "test dial success1",
-			t: &dialtestingDebugRequest{
+			name: "test-dial-success1",
+			dr: &dialtestingDebugRequest{
 				TaskType: "HTTP",
 				Task:     &dt.HTTPTask{},
 			},
@@ -106,8 +103,8 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 			expectRes: map[string]interface{}{"Status": "success"},
 		},
 		{
-			name: "test dial success2",
-			t: &dialtestingDebugRequest{
+			name: "test-dial-success2",
+			dr: &dialtestingDebugRequest{
 				TaskType: "HTTP",
 				Task:     &dt.HTTPTask{},
 			},
@@ -117,8 +114,8 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 			expectRes: map[string]interface{}{"Status": "fail"},
 		},
 		{
-			name: "test dial success3",
-			t: &dialtestingDebugRequest{
+			name: "test-dial-success3",
+			dr: &dialtestingDebugRequest{
 				TaskType: "TCP",
 				Task:     &dt.TCPTask{},
 			},
@@ -126,8 +123,8 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 			expectRes: map[string]interface{}{"Status": "success"},
 		},
 		{
-			name: "test dial success4",
-			t: &dialtestingDebugRequest{
+			name: "test-dial-success4",
+			dr: &dialtestingDebugRequest{
 				TaskType: "ICMP",
 				Task: &dt.ICMPTask{
 					Host: "127.0.0.1",
@@ -137,8 +134,8 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 			expectRes: map[string]interface{}{"Status": "success"},
 		},
 		{
-			name: "test dial success5",
-			t: &dialtestingDebugRequest{
+			name: "test-dial-success5",
+			dr: &dialtestingDebugRequest{
 				TaskType: "WEBSOCKET",
 				Task:     &dt.WebsocketTask{},
 			},
@@ -146,8 +143,8 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 			expectRes: map[string]interface{}{"Status": "success"},
 		},
 		{
-			name: "test internal host - private",
-			t: &dialtestingDebugRequest{
+			name: "test-internal-host-private",
+			dr: &dialtestingDebugRequest{
 				TaskType: "ICMP",
 				Task: &dt.ICMPTask{
 					Host: "192.168.0.1",
@@ -156,26 +153,26 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 			hook: func() {
 				os.Setenv("ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK", "true")
 			},
-			errInit:   nil,
-			errExpect: uhttp.Errorf(ErrInvalidRequest, "dest host [%s] is not allowed to be tested", "192.168.0.1"),
+			errInit:     nil,
+			errContains: "is not allowed to be tested",
 		},
 		{
-			name: "test internal host - illegal host",
-			t: &dialtestingDebugRequest{
+			name: "test-internal-host-illegal-host",
+			dr: &dialtestingDebugRequest{
 				TaskType: "http",
 				Task: &dt.HTTPTask{
-					URL: "http://①0.43.239.255:5000",
+					URL: "http://①0.43.239.255:5000", // invalid URL characters
 				},
 			},
 			hook: func() {
 				os.Setenv("ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK", "true")
 			},
-			errInit:   nil,
-			errExpect: uhttp.Errorf(ErrInvalidRequest, "dest host is not valid: %s", "lookup ip failed: lookup ①0.43.239.255: no such host"),
+			errInit:     nil,
+			errContains: "lookup ip failed: lookup ①0.43.239.255: no such host",
 		},
 		{
-			name: "test internal host cidrs",
-			t: &dialtestingDebugRequest{
+			name: "test-internal-host-cidrs",
+			dr: &dialtestingDebugRequest{
 				TaskType: "ICMP",
 				Task: &dt.ICMPTask{
 					Host: "36.155.132.76",
@@ -185,12 +182,12 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 				os.Setenv("ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK", "true")
 				os.Setenv("ENV_INPUT_DIALTESTING_DISABLED_INTERNAL_NETWORK_CIDR_LIST", `["36.155.132.76/24"]`)
 			},
-			errInit:   nil,
-			errExpect: uhttp.Errorf(ErrInvalidRequest, "dest host [%s] is not allowed to be tested", "36.155.132.76"),
+			errInit:     nil,
+			errContains: "is not allowed to be tested",
 		},
 		{
-			name: "test internal host ok",
-			t: &dialtestingDebugRequest{
+			name: "test-internal-host-ok",
+			dr: &dialtestingDebugRequest{
 				TaskType: "ICMP",
 				Task: &dt.ICMPTask{
 					Host: "192.168.0.1",
@@ -203,8 +200,8 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 			expectRes: map[string]interface{}{"Status": "success"},
 		},
 		{
-			name: "test internal host loopback",
-			t: &dialtestingDebugRequest{
+			name: "test-internal-host-loopback",
+			dr: &dialtestingDebugRequest{
 				TaskType: "icmp",
 				Task: &dt.ICMPTask{
 					Host: "localhost",
@@ -213,12 +210,13 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 			hook: func() {
 				os.Setenv("ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK", "true")
 			},
-			errInit:   nil,
-			errExpect: uhttp.Errorf(ErrInvalidRequest, "dest host [%s] is not allowed to be tested", "localhost"),
+			errInit:     nil,
+			errContains: "is not allowed to be tested",
 		},
+
 		{
-			name: "test internal host unspecified",
-			t: &dialtestingDebugRequest{
+			name: "test-internal-host-unspecified",
+			dr: &dialtestingDebugRequest{
 				TaskType: "icmp",
 				Task: &dt.ICMPTask{
 					Host: "0.0.0.0",
@@ -227,8 +225,8 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 			hook: func() {
 				os.Setenv("ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK", "true")
 			},
-			errInit:   nil,
-			errExpect: uhttp.Errorf(ErrInvalidRequest, "dest host [%s] is not allowed to be tested", "0.0.0.0"),
+			errInit:     nil,
+			errContains: "is not allowed to be tested",
 		},
 	}
 
@@ -246,28 +244,35 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 			if tc.hook != nil {
 				tc.hook()
 			}
+
 			parseDialtestingEnvs()
-			var w http.ResponseWriter
+
+			var (
+				w   http.ResponseWriter
+				bys []byte
+			)
+
 			errInit = tc.errInit
 			errRun = tc.errRun
 			debugFields = tc.debugFields
-			var bys []byte
-			if tc.name == "test dial task para wrong" || tc.name == "test dial task para wrong1" {
-				var tmp map[string]interface{}
-				json.Unmarshal(tc.body, &tmp)
-				bys, _ = json.Marshal(tmp)
+
+			if tc.body != nil {
+				bys = tc.body
 			} else {
-				bys, _ = json.Marshal(tc.t)
+				bys, _ = json.Marshal(tc.dr)
 			}
-			req, err := http.NewRequest("POST", "uri", bytes.NewReader(bys))
+
+			req, err := http.NewRequest("POST", "not-set", bytes.NewReader(bys))
 			if err != nil {
 				t.Log(err)
 			}
+
 			res, err := apiDebugDialtestingHandler(w, req)
 
 			if err != nil {
-				assert.ErrorContains(t, err, tc.errExpect.Error())
+				assert.ErrorContains(t, err, tc.errContains)
 			} else {
+				assert.NoError(t, err)
 				assert.Equal(t, tc.expectRes["Status"], res.(*dialtestingDebugResponse).Status)
 			}
 		})

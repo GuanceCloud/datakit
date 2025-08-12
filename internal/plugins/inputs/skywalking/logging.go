@@ -59,7 +59,7 @@ func processLogV3(plog *loggingv3.LogData) (*point.Point, error) {
 
 	opts := point.DefaultLoggingOptions()
 	opts = append(opts, point.WithTime(time.Now()))
-	return point.NewPointV2(plog.Service,
+	return point.NewPoint(plog.Service,
 			append(point.NewTags(extraTags), point.NewKVs(map[string]interface{}{
 				constants.FieldMessage: line,
 			})...),

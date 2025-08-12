@@ -109,10 +109,10 @@ func BuildPointMetric(kvs point.KVs, metricName string, tags, hostTag map[string
 	}
 
 	for k, v := range hostTag {
-		kvs = kvs.MustAddTag(k, v)
+		kvs = kvs.SetTag(k, v)
 	}
 
-	return point.NewPointV2(metricName, kvs, opts...)
+	return point.NewPoint(metricName, kvs, opts...)
 }
 
 func BuildPointLogging(kvs point.KVs, metricName string, tags, hostTag map[string]string) *point.Point {
@@ -124,10 +124,10 @@ func BuildPointLogging(kvs point.KVs, metricName string, tags, hostTag map[strin
 	}
 
 	for k, v := range hostTag {
-		kvs = kvs.MustAddTag(k, v)
+		kvs = kvs.SetTag(k, v)
 	}
 
-	return point.NewPointV2(metricName, kvs, opts...)
+	return point.NewPoint(metricName, kvs, opts...)
 }
 
 func GetHostTag(l *logger.Logger, hostVar string) map[string]string {

@@ -143,7 +143,7 @@ func (ipt *Input) parse(reader io.Reader) ([]*point.Point, error) {
 
 			measurement.tags = inputs.MergeTags(ipt.Tagger.HostTags(), measurement.tags, ipt.URL)
 
-			pt := point.NewPointV2(measurement.name,
+			pt := point.NewPoint(measurement.name,
 				append(point.NewTags(measurement.tags), point.NewKVs(measurement.fields)...),
 				opts...)
 			pts = append(pts, pt)

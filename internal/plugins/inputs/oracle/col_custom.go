@@ -100,12 +100,12 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 				for _, fdKey := range query.Fields {
 					if value, ok := row[fdKey]; ok {
 						// transform all fields to float64
-						kvs = kvs.Add(fdKey, cast.ToFloat64(value), false, true)
+						kvs = kvs.Set(fdKey, cast.ToFloat64(value))
 					}
 				}
 
 				if kvs.FieldCount() > 0 {
-					pts = append(pts, point.NewPointV2(query.Metric, kvs, opts...))
+					pts = append(pts, point.NewPoint(query.Metric, kvs, opts...))
 				}
 			}
 			if len(pts) > 0 {

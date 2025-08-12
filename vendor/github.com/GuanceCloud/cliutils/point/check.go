@@ -375,7 +375,7 @@ func (c *checker) keyMiss(kvs KVs) KVs {
 	for _, rk := range c.cfg.requiredKeys {
 		if !kvs.Has(rk.Key()) {
 			if def := rk.Default(); def != nil {
-				kvs = kvs.MustAddKV(NewKV(rk.Key(), def))
+				kvs = kvs.SetKV(NewKV(rk.Key(), def))
 
 				c.addWarn(WarnAddRequiredKV,
 					fmt.Sprintf("add required key-value %q: %q", rk.Key(), def))

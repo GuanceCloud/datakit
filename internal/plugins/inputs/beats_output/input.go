@@ -118,7 +118,7 @@ func (m *loggingMeasurement) Point() *point.Point {
 	opts := point.DefaultLoggingOptions()
 	opts = append(opts, point.WithTime(m.ts))
 
-	return point.NewPointV2(m.name,
+	return point.NewPoint(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
 }

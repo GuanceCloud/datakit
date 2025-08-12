@@ -644,7 +644,7 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 
 func (ipt *Input) doSend(req *http.Request, body []byte, tags map[string]string) error {
 	// apply remote or local filter
-	pt := point.NewPointV2(inputName, point.NewTags(tags), point.WithTime(time.Now()))
+	pt := point.NewPoint(inputName, point.NewTags(tags), point.WithTime(time.Now()))
 	if len(filter.FilterPts(point.Profiling, []*point.Point{pt})) == 0 {
 		log.Infof("the profiling data matched the remote or local blacklist and was dropped")
 		return nil

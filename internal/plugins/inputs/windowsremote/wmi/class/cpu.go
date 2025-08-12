@@ -159,11 +159,11 @@ func (p *Win32_PerfFormattedData_PerfOS_Processor) ToPoint(host string, cpuInfo 
 	opts := point.DefaultMetricOptions()
 	var kvs point.KVs
 	kvs = kvs.AddTag("cpu", cpuInfo.Name).AddTag("host", host).
-		AddV2("usage_total", p.PercentProcessorTime, false).
-		AddV2("usage_user", p.PercentUserTime, false).
-		AddV2("usage_idle", p.PercentIdleTime, false).
-		AddV2("usage_c1", p.PercentC1Time, false).
-		AddV2("usage_c2", p.PercentC2Time, false).
-		AddV2("usage_c3", p.PercentC3Time, false)
-	return point.NewPointV2("cpu", kvs, opts...)
+		Add("usage_total", p.PercentProcessorTime).
+		Add("usage_user", p.PercentUserTime).
+		Add("usage_idle", p.PercentIdleTime).
+		Add("usage_c1", p.PercentC1Time).
+		Add("usage_c2", p.PercentC2Time).
+		Add("usage_c3", p.PercentC3Time)
+	return point.NewPoint("cpu", kvs, opts...)
 }

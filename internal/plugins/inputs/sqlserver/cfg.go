@@ -348,28 +348,28 @@ func transformData(measurement string, kvs point.KVs) point.KVs {
 		if field := kvs.Fields().Get("blocking_text"); field != nil && !field.IsTag {
 			if text, isString := field.Raw().(string); isString {
 				obfuscatedText := obfuscateSQL(text)
-				kvs = kvs.Add("message", obfuscatedText, false, true)
-				kvs = kvs.Add("blocking_text", obfuscatedText, false, true)
+				kvs = kvs.Set("message", obfuscatedText)
+				kvs = kvs.Set("blocking_text", obfuscatedText)
 			}
 		}
 	case "sqlserver_logical_io":
 		if field := kvs.Fields().Get("message"); field != nil && !field.IsTag {
 			if text, isString := field.Raw().(string); isString {
-				kvs = kvs.Add("message", obfuscateSQL(text), false, true)
+				kvs = kvs.Set("message", obfuscateSQL(text))
 			}
 		}
 	case "sqlserver_database_size":
 		if field := kvs.Fields().Get("data_size"); field != nil && !field.IsTag {
 			if data, isUint := field.Raw().([]uint8); isUint {
 				if dataSize, err := strconv.ParseFloat(string(data), 64); err == nil {
-					kvs = kvs.Add("data_size", dataSize, false, true)
+					kvs = kvs.Set("data_size", dataSize)
 				}
 			}
 
 			if field := kvs.Fields().Get("data_size"); field != nil && !field.IsTag {
 				if data, isUint := field.Raw().([]uint8); isUint {
 					if dataSize, err := strconv.ParseFloat(string(data), 64); err == nil {
-						kvs = kvs.Add("log_size", dataSize, false, true)
+						kvs = kvs.Set("log_size", dataSize)
 					}
 				}
 			}

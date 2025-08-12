@@ -76,28 +76,28 @@ func (ipt *Input) collectDatabaseObject() {
 		AddTag("name", ipt.Object.name).
 		AddTag("host", ipt.Host).
 		AddTag("port", fmt.Sprintf("%d", ipt.Port)).
-		AddV2("uptime", ipt.Uptime, false)
+		Add("uptime", ipt.Uptime)
 
 	if ipt.objectMetric != nil {
 		ipt.objectMetric.TPS = ipt.objectMetric.TranCommits + ipt.objectMetric.TranRolls
-		kvs = kvs.AddV2("qps", ipt.objectMetric.QPS, false).
-			AddV2("tps", ipt.objectMetric.TPS, false)
+		kvs = kvs.Add("qps", ipt.objectMetric.QPS).
+			Add("tps", ipt.objectMetric.TPS)
 	}
 
 	slowQueryLog := "OFF"
 	if ipt.slowQueryTime > 0 {
 		slowQueryLog = "ON"
-		kvs = kvs.AddV2("slow_queries", ipt.objectMetric.SlowQueries, false)
+		kvs = kvs.Add("slow_queries", ipt.objectMetric.SlowQueries)
 	}
-	kvs = kvs.AddV2("slow_query_log", slowQueryLog, false)
+	kvs = kvs.Add("slow_query_log", slowQueryLog)
 
 	if avgQueryTime, err := ipt.getAvgQueryTime(); err != nil {
 		l.Warnf("failed to get avg query time: %s", err)
 	} else {
-		kvs = kvs.AddV2("avg_query_time", avgQueryTime, false)
+		kvs = kvs.Add("avg_query_time", avgQueryTime)
 	}
 
-	pts := []*point.Point{point.NewPointV2("database", kvs, opts...)}
+	pts := []*point.Point{point.NewPoint("database", kvs, opts...)}
 
 	if err := ipt.feeder.Feed(point.Object,
 		pts,
