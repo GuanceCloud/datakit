@@ -62,7 +62,7 @@ func (s *dwSender) checkToken(token, scheme, host string) (bool, error) {
 const (
 	DefaultWorkerMaxJobNumber   = 10
 	DefaultWorkerChannelNumber  = 1000
-	DefaultWorkerCacheMaxPoints = 100000
+	DefaultWorkerCacheMaxPoints = 10000
 )
 
 type jobData struct {
@@ -74,14 +74,15 @@ type jobData struct {
 
 // woker collect all points and send points using sender.
 type worker struct {
-	sender           sender
-	maxJobNumber     int              // max job in parallel
-	maxJobChanNumber int              // max job chans
-	jobChans         chan *jobData    // point to be dealt
-	pointCache       []*jobData       // cache point when jobChans is full
-	flushInterval    time.Duration    // flush interval to flush cached points
-	flushChan        chan interface{} // flush points mannualy
-	mu               sync.RWMutex
+	sender               sender
+	maxJobNumber         int                   // max job in parallel
+	maxJobChanNumber     int                   // max job chans
+	maxCachePointsNumber int                   // max points number in cache
+	jobChans             chan *jobData         // point to be dealt
+	pointCache           map[string]*DataCache // cache point when jobChans is full
+	flushInterval        time.Duration         // flush interval to flush cached points
+	flushChan            chan interface{}      // flush points mannualy
+	mu                   sync.RWMutex
 
 	failInfo map[string]int
 }
@@ -119,6 +120,8 @@ func (w *worker) init() {
 		w.maxJobNumber = DefaultWorkerMaxJobNumber
 	}
 
+	w.pointCache = map[string]*DataCache{}
+
 	w.failInfo = map[string]int{}
 
 	if w.sender == nil {
@@ -131,6 +134,10 @@ func (w *worker) init() {
 
 	if w.maxJobChanNumber <= 0 {
 		w.maxJobChanNumber = DefaultWorkerChannelNumber
+	}
+
+	if w.maxCachePointsNumber <= 0 {
+		w.maxCachePointsNumber = DefaultWorkerCacheMaxPoints
 	}
 
 	w.jobChans = make(chan *jobData, w.maxJobChanNumber)
@@ -190,52 +197,130 @@ func (w *worker) runConsumer() {
 
 // addPoints add point into the jobChans or pointCache when the jobChans is full.
 func (w *worker) addPoints(data *jobData) {
+	if data == nil {
+		l.Warn("add point nil, ignored")
+		return
+	}
+	cache := w.getCache(data.class)
 	select {
 	case w.jobChans <- data:
 	default:
-		w.mu.Lock()
-
-		// drop half of the cached points when the number of the cached points is over DefaultWorkerCacheMaxPoints.
-		if len(w.pointCache) > DefaultWorkerCacheMaxPoints {
-			w.pointCache = w.pointCache[DefaultWorkerCacheMaxPoints>>1:]
-		}
-
-		w.pointCache = append(w.pointCache, data)
-		w.mu.Unlock()
-		workerCachePointsGauge.WithLabelValues(data.regionName, data.class).Add(1)
+		cache.Push(data)
 	}
 	workerJobChanGauge.WithLabelValues("used").Set(float64(len(w.jobChans)))
+	workerCachePointsGauge.WithLabelValues(data.regionName, data.class).Set(float64(cache.Len()))
+	workerCacheDropPointsGauge.WithLabelValues(data.regionName, data.class).Set(float64(cache.DropCnt()))
+}
+
+func (w *worker) getCache(class string) *DataCache {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if w.pointCache == nil {
+		w.pointCache = map[string]*DataCache{}
+	}
+
+	if _, ok := w.pointCache[class]; !ok {
+		w.pointCache[class] = NewDataCache(w.maxCachePointsNumber)
+	}
+
+	return w.pointCache[class]
 }
 
 // flush put the cached points into the jobChans. when the jobChans is full, put back into the cache.
 func (w *worker) flush() {
-	flushedPoints := [][2]string{}
-	w.mu.Lock()
-	index := 0
-out:
-	for index < len(w.pointCache) {
-		point := w.pointCache[index]
-		select {
-		case w.jobChans <- point:
-			index++
-			flushedPoints = append(flushedPoints, [2]string{point.regionName, point.class})
-		default:
-			break out
+	hasCache := false
+	defer func() {
+		// flush instanly if cache is not empty
+		if hasCache {
+			select {
+			case w.flushChan <- struct{}{}:
+			default:
+			}
+		}
+	}()
+
+	for _, cache := range w.pointCache {
+		if cache.Len() == 0 {
+			continue
+		}
+
+		for {
+			data, ok := cache.Pop()
+			if !ok {
+				break
+			}
+			// exit if job chan is full
+			select {
+			case w.jobChans <- data:
+				workerCachePointsGauge.WithLabelValues(data.regionName, data.class).Set(float64(cache.Len()))
+				workerCacheDropPointsGauge.WithLabelValues(data.regionName, data.class).Set(float64(cache.DropCnt()))
+			default:
+				cache.Push(data)
+				hasCache = true
+				return
+			}
 		}
 	}
+}
 
-	w.pointCache = w.pointCache[index:]
-	w.mu.Unlock()
-	workerJobChanGauge.WithLabelValues("used").Set(float64(len(w.jobChans)))
-	for _, v := range flushedPoints {
-		workerCachePointsGauge.WithLabelValues(v[0], v[1]).Add(-1)
+type DataCache struct {
+	mu      sync.RWMutex
+	current int
+	maxSize int    // max cache size
+	dropCnt uint64 // drop count
+	data    []*jobData
+}
+
+func NewDataCache(maxSize int) *DataCache {
+	if maxSize <= 0 {
+		maxSize = 1
 	}
 
-	// flush instanly if cache is not empty
-	if len(w.pointCache) > 0 {
-		select {
-		case w.flushChan <- struct{}{}:
-		default:
-		}
+	return &DataCache{
+		current: -1,
+		maxSize: maxSize,
+		data:    make([]*jobData, maxSize),
 	}
+}
+
+func (c *DataCache) Len() int {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.current + 1
+}
+
+func (c *DataCache) DropCnt() uint64 {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.dropCnt
+}
+
+func (c *DataCache) Push(data *jobData) {
+	if data == nil {
+		return
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.current == c.maxSize-1 {
+		c.dropCnt++
+	} else {
+		c.current++
+	}
+
+	c.data[c.current] = data
+}
+
+func (c *DataCache) Pop() (*jobData, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.current < 0 {
+		return nil, false
+	}
+
+	data := c.data[c.current]
+	c.current--
+
+	return data, true
 }

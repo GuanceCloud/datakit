@@ -23,6 +23,7 @@ import (
 	"net/http/httptrace"
 	"net/url"
 	"strings"
+	"text/template"
 	"time"
 )
 
@@ -62,9 +63,9 @@ type HTTPTask struct {
 	sslTime        float64
 	ttfbTime       float64
 	downloadTime   float64
-	rawURL         string
 
-	destIP string
+	destIP  string
+	rawTask *HTTPTask
 }
 
 func (t *HTTPTask) clear() {
@@ -102,10 +103,14 @@ func (t *HTTPTask) metricName() string {
 func (t *HTTPTask) getResults() (tags map[string]string, fields map[string]interface{}) {
 	tags = map[string]string{
 		"name":    t.Name,
-		"url":     t.rawURL,
+		"url":     t.URL,
 		"status":  "FAIL",
 		"method":  t.Method,
 		"dest_ip": t.destIP,
+	}
+
+	if t.rawTask != nil {
+		tags["url"] = t.rawTask.URL
 	}
 
 	if t.req != nil {
@@ -700,10 +705,6 @@ func (t *HTTPTask) getVariableValue(variable Variable) (string, error) {
 	}
 }
 
-func (t *HTTPTask) beforeFirstRender() {
-	t.rawURL = t.URL
-}
-
 func (t *HTTPTask) getRawTask(taskString string) (string, error) {
 	task := HTTPTask{}
 
@@ -721,4 +722,159 @@ func (t *HTTPTask) initTask() {
 	if t.Task == nil {
 		t.Task = &Task{}
 	}
+}
+
+func (t *HTTPTask) renderTemplate(fm template.FuncMap) error {
+	if t.rawTask == nil {
+		task := &HTTPTask{}
+		if err := t.NewRawTask(task); err != nil {
+			return fmt.Errorf("new raw task failed: %w", err)
+		}
+		t.rawTask = task
+	}
+
+	task := t.rawTask
+	if task == nil {
+		return fmt.Errorf("raw task is nil")
+	}
+
+	// url
+	if url, err := t.GetParsedString(task.URL, fm); err != nil {
+		return fmt.Errorf("render url failed: %w", err)
+	} else {
+		t.URL = url
+	}
+
+	// success when
+	if err := t.renderSuccessWhen(task, fm); err != nil {
+		return fmt.Errorf("render success when failed: %w", err)
+	}
+
+	// advance options
+	if err := t.renderAdvanceOptions(task, fm); err != nil {
+		return fmt.Errorf("render advance options failed: %w", err)
+	}
+
+	return nil
+}
+
+func (t *HTTPTask) renderAdvanceOptions(task *HTTPTask, fm template.FuncMap) error {
+	if task == nil || task.AdvanceOptions == nil {
+		return nil
+	}
+
+	opt := task.AdvanceOptions
+
+	// request options
+	if err := t.renderRequestOptions(opt.RequestOptions, fm); err != nil {
+		return fmt.Errorf("render request options failed: %w", err)
+	}
+
+	// request body
+	if err := t.renderRequestBody(opt.RequestBody, fm); err != nil {
+		return fmt.Errorf("render request body failed: %w", err)
+	}
+
+	return nil
+}
+
+func (t *HTTPTask) renderRequestBody(requestBody *HTTPOptBody, fm template.FuncMap) error {
+	if requestBody == nil {
+		return nil
+	}
+
+	// body
+	if text, err := t.GetParsedString(requestBody.Body, fm); err != nil {
+		return fmt.Errorf("render request body failed: %w", err)
+	} else {
+		t.AdvanceOptions.RequestBody.Body = text
+	}
+
+	// form
+	for k, v := range requestBody.Form {
+		key, err := t.GetParsedString(k, fm)
+		if err != nil {
+			return fmt.Errorf("render form failed: %w", err)
+		}
+		value, err := t.GetParsedString(v, fm)
+		if err != nil {
+			return fmt.Errorf("render form failed: %w", err)
+		}
+
+		delete(t.AdvanceOptions.RequestBody.Form, k)
+		t.AdvanceOptions.RequestBody.Form[key] = value
+	}
+
+	return nil
+}
+
+func (t *HTTPTask) renderRequestOptions(requestOpt *HTTPOptRequest, fm template.FuncMap) error {
+	if requestOpt != nil {
+		// header
+		for k, v := range requestOpt.Headers {
+			if text, err := t.GetParsedString(v, fm); err != nil {
+				return fmt.Errorf("render header failed: %w", err)
+			} else {
+				t.AdvanceOptions.RequestOptions.Headers[k] = text
+			}
+		}
+
+		// cookies
+		if text, err := t.GetParsedString(requestOpt.Cookies, fm); err != nil {
+			return fmt.Errorf("render cookies failed: %w", err)
+		} else {
+			t.AdvanceOptions.RequestOptions.Cookies = text
+		}
+
+		// auth
+		if requestOpt.Auth != nil {
+			if text, err := t.GetParsedString(requestOpt.Auth.Username, fm); err != nil {
+				return fmt.Errorf("render auth username failed: %w", err)
+			} else {
+				t.AdvanceOptions.RequestOptions.Auth.Username = text
+			}
+
+			if text, err := t.GetParsedString(requestOpt.Auth.Password, fm); err != nil {
+				return fmt.Errorf("render auth password failed: %w", err)
+			} else {
+				t.AdvanceOptions.RequestOptions.Auth.Password = text
+			}
+		}
+	}
+	return nil
+}
+
+func (t *HTTPTask) renderSuccessWhen(task *HTTPTask, fm template.FuncMap) error {
+	if task == nil {
+		return nil
+	}
+
+	if task.SuccessWhen != nil {
+		for index, checker := range task.SuccessWhen {
+			// body
+			for bodyIndex, v := range checker.Body {
+				if err := t.renderSuccessOption(v, t.SuccessWhen[index].Body[bodyIndex], fm); err != nil {
+					return fmt.Errorf("render body failed: %w", err)
+				}
+			}
+
+			// response time
+			if text, err := t.GetParsedString(checker.ResponseTime, fm); err != nil {
+				return fmt.Errorf("render response time failed: %w", err)
+			} else {
+				t.SuccessWhen[index].ResponseTime = text
+			}
+
+			// header
+			for headerIndex, v := range checker.Header {
+				for header, option := range v {
+					if err := t.renderSuccessOption(option, t.SuccessWhen[index].Header[headerIndex][header], fm); err != nil {
+						return fmt.Errorf("render header failed: %w", err)
+					}
+				}
+			}
+		}
+	}
+
+	return nil
 }

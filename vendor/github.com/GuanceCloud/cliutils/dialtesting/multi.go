@@ -8,6 +8,7 @@ package dialtesting
 import (
 	"encoding/json"
 	"fmt"
+	"text/template"
 	"time"
 )
 
@@ -377,7 +378,8 @@ func (t *MultiTask) getVariableValue(variable Variable) (string, error) {
 	return "", fmt.Errorf("not support")
 }
 
-func (t *MultiTask) beforeFirstRender() {
+func (t *MultiTask) renderTemplate(fm template.FuncMap) error {
+	return nil
 }
 
 func (t *MultiTask) getRawTask(taskString string) (string, error) {

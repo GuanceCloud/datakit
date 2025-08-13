@@ -11,6 +11,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/go-ping/ping"
@@ -69,6 +70,8 @@ type ICMPTask struct {
 	recvPackets       int
 	timeout           time.Duration
 	traceroute        []*Route
+
+	rawTask *ICMPTask
 }
 
 func (t *ICMPTask) init() error {
@@ -378,9 +381,6 @@ func (t *ICMPTask) getHostName() ([]string, error) {
 	return []string{t.Host}, nil
 }
 
-func (t *ICMPTask) beforeFirstRender() {
-}
-
 func (t *ICMPTask) getVariableValue(variable Variable) (string, error) {
 	return "", fmt.Errorf("not support")
 }
@@ -402,4 +402,28 @@ func (t *ICMPTask) initTask() {
 	if t.Task == nil {
 		t.Task = &Task{}
 	}
+}
+
+func (t *ICMPTask) renderTemplate(fm template.FuncMap) error {
+	if t.rawTask == nil {
+		task := &ICMPTask{}
+		if err := t.NewRawTask(task); err != nil {
+			return fmt.Errorf("new raw task failed: %w", err)
+		}
+		t.rawTask = task
+	}
+
+	task := t.rawTask
+	if task == nil {
+		return fmt.Errorf("raw task is nil")
+	}
+
+	// host
+	if text, err := t.GetParsedString(task.Host, fm); err != nil {
+		return fmt.Errorf("render host failed: %w", err)
+	} else {
+		t.Host = text
+	}
+
+	return nil
 }

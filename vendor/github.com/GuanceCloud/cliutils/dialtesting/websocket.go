@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -70,6 +71,8 @@ type WebsocketTask struct {
 	hostname        string
 	reqError        string
 	timeout         time.Duration
+
+	rawTask *WebsocketTask
 }
 
 func (t *WebsocketTask) init() error {
@@ -384,9 +387,6 @@ func basicAuth(username, password string) string {
 	return base64.StdEncoding.EncodeToString([]byte(auth))
 }
 
-func (t *WebsocketTask) beforeFirstRender() {
-}
-
 func (t *WebsocketTask) getVariableValue(variable Variable) (string, error) {
 	return "", fmt.Errorf("not support")
 }
@@ -408,4 +408,133 @@ func (t *WebsocketTask) initTask() {
 	if t.Task == nil {
 		t.Task = &Task{}
 	}
+}
+
+func (t *WebsocketTask) renderTemplate(fm template.FuncMap) error {
+	if t.rawTask == nil {
+		task := &WebsocketTask{}
+		if err := t.NewRawTask(task); err != nil {
+			return fmt.Errorf("new raw task failed: %w", err)
+		}
+		t.rawTask = task
+	}
+
+	task := t.rawTask
+	if task == nil {
+		return fmt.Errorf("raw task is nil")
+	}
+
+	// url
+	if url, err := t.GetParsedString(task.URL, fm); err != nil {
+		return fmt.Errorf("render url failed: %w", err)
+	} else {
+		t.URL = url
+	}
+
+	// message
+	if message, err := t.GetParsedString(task.Message, fm); err != nil {
+		return fmt.Errorf("render message failed: %w", err)
+	} else {
+		t.Message = message
+	}
+
+	// success when
+	if err := t.renderSuccessWhen(task, fm); err != nil {
+		return fmt.Errorf("render success when failed: %w", err)
+	}
+
+	// advance options
+	if err := t.renderAdvanceOptions(task, fm); err != nil {
+		return fmt.Errorf("render advance options failed: %w", err)
+	}
+
+	return nil
+}
+
+func (t *WebsocketTask) renderAdvanceOptions(task *WebsocketTask, fm template.FuncMap) error {
+	if task == nil || task.AdvanceOptions == nil {
+		return nil
+	}
+
+	opt := task.AdvanceOptions
+
+	// request options
+	if err := t.renderRequestOptions(opt.RequestOptions, fm); err != nil {
+		return fmt.Errorf("render request options failed: %w", err)
+	}
+
+	// auth
+	if err := t.renderAuth(opt.Auth, fm); err != nil {
+		return fmt.Errorf("render auth failed: %w", err)
+	}
+
+	return nil
+}
+
+func (t *WebsocketTask) renderAuth(auth *WebsocketOptAuth, fm template.FuncMap) error {
+	if auth == nil {
+		return nil
+	}
+
+	// username
+	if text, err := t.GetParsedString(auth.Username, fm); err != nil {
+		return fmt.Errorf("render auth username failed: %w", err)
+	} else {
+		t.AdvanceOptions.Auth.Username = text
+	}
+
+	// password
+	if text, err := t.GetParsedString(auth.Password, fm); err != nil {
+		return fmt.Errorf("render auth password failed: %w", err)
+	} else {
+		t.AdvanceOptions.Auth.Password = text
+	}
+
+	return nil
+}
+
+func (t *WebsocketTask) renderRequestOptions(requestOpt *WebsocketOptRequest, fm template.FuncMap) error {
+	if requestOpt != nil {
+		for k, v := range requestOpt.Headers {
+			if text, err := t.GetParsedString(v, fm); err != nil {
+				return fmt.Errorf("render header failed: %w", err)
+			} else {
+				t.AdvanceOptions.RequestOptions.Headers[k] = text
+			}
+		}
+	}
+	return nil
+}
+
+func (t *WebsocketTask) renderSuccessWhen(task *WebsocketTask, fm template.FuncMap) error {
+	if task == nil || task.SuccessWhen == nil {
+		return nil
+	}
+
+	for index, success := range task.SuccessWhen {
+		if success == nil {
+			continue
+		}
+
+		for msgIndex, msg := range success.ResponseMessage {
+			if msg == nil {
+				continue
+			}
+
+			if err := t.renderSuccessOption(msg, t.SuccessWhen[index].ResponseMessage[msgIndex], fm); err != nil {
+				return fmt.Errorf("render success when failed: %w", err)
+			}
+
+		}
+
+		// header
+		for headerIndex, v := range success.Header {
+			for header, option := range v {
+				if err := t.renderSuccessOption(option, t.SuccessWhen[index].Header[headerIndex][header], fm); err != nil {
+					return fmt.Errorf("render header failed: %w", err)
+				}
+			}
+		}
+	}
+	return nil
 }

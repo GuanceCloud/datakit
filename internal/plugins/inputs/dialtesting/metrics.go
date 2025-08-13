@@ -20,11 +20,12 @@ var (
 	taskInvalidCounter          *prometheus.CounterVec
 	taskExecTimeIntervalSummary *prometheus.SummaryVec
 
-	workerJobChanGauge     *prometheus.GaugeVec
-	workerJobGauge         prometheus.Gauge
-	workerCachePointsGauge *prometheus.GaugeVec
-	workerSendPointsGauge  *prometheus.GaugeVec
-	workerSendCost         *prometheus.SummaryVec
+	workerJobChanGauge         *prometheus.GaugeVec
+	workerJobGauge             prometheus.Gauge
+	workerCachePointsGauge     *prometheus.GaugeVec
+	workerCacheDropPointsGauge *prometheus.GaugeVec
+	workerSendPointsGauge      *prometheus.GaugeVec
+	workerSendCost             *prometheus.SummaryVec
 )
 
 func metricsSetup() {
@@ -160,6 +161,16 @@ func metricsSetup() {
 		[]string{"region", "protocol"},
 	)
 
+	workerCacheDropPointsGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "dialtesting",
+			Name:      "worker_dropped_points_number",
+			Help:      "The number of dropped points",
+		},
+		[]string{"region", "protocol"},
+	)
+
 	workerSendPointsGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "datakit",
@@ -200,6 +211,7 @@ func init() {
 		taskExecTimeIntervalSummary,
 		taskInvalidCounter,
 		workerCachePointsGauge,
+		workerCacheDropPointsGauge,
 		workerJobChanGauge,
 		workerJobGauge,
 		workerSendPointsGauge,

@@ -1010,3 +1010,54 @@ Support for common user name and password authentication (Basic access authentic
   },
 }
 ```
+
+### Template Function Usage Instructions {#template-func}
+
+[:octicons-tag-24: Version-1.80.0](../datakit/changelog.md#cl-1.80.0)
+
+When defining a monitoring task, you are allowed to embed template variables in strings.
+
+#### Function List {#template-func-list}
+
+The following template functions are currently supported:
+
+- `timestamp` function: Generate a timestamp
+  
+  Returns the timestamp of the current UTC time, supporting multiple time units (`s`, `ms`, `us`, `ns`). It returns `0` by default (when the unit parameter is invalid).
+  
+  Usage example:
+  
+  ```go
+  {{"{{ timestamp \"ns\" }}"}} //1754379375400790109
+  ```
+
+- `date` function: Format time string
+  
+  Returns the string of the current local time according to the specified format, supporting two definition formats (`rfc3339`, `iso8601`).
+  
+  Usage examples:
+  
+  ```go
+  {{"{{ date \"rfc3339\" }}"}} // 2006-01-02T15:04:05Z07:00
+  {{"{{ date \"iso8601\" }}"}} // 2006-01-02T15:04:05Z
+  ```
+
+- `urlencode` function: URL encoding
+  
+  Performs URL encoding on the input string (in compliance with the `application/x-www-form-urlencoded` specification), which is used to handle special characters in URLs.
+  
+  Usage example:
+  
+  ```go
+  {{"{{ urlencode \"hello world\" }}"}} // hello+world
+  ```
+
+#### Instructions for Nested Use of Functions {#template-func-description}
+
+Template functions support nested use, which means the return value of one function can be used as the parameter of another function.
+
+Usage example:
+
+```go
+{{"{{ urlencode (date \"iso8601\") }}"}} // 2006-01-02T15%3A04%3A05Z
+```
