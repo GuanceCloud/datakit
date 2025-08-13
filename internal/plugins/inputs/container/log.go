@@ -86,19 +86,25 @@ func (ins *logInstance) parseLogConfigs() error {
 			}
 
 			path := filepath.Clean(cfg.Path)
-			foundHostPath := false
+			maxPrefixLen := 0
 
 			for vol, hostdir := range ins.volMounts {
-				if strings.HasPrefix(path, vol) {
+				if !strings.HasPrefix(path, vol) {
+					continue
+				}
+
+				prefixLen := commonPrefixLen(path, vol)
+				if maxPrefixLen < prefixLen {
 					cfg.hostDir = hostdir
 					cfg.insideDir = vol
 					cfg.hostFilePath = joinHostFilepath(hostdir, vol, path)
 
-					foundHostPath = true
+					l.Infof("use volumeMount %s path %s for %s", vol, hostdir, path)
+					maxPrefixLen = prefixLen
 				}
 			}
 
-			if !foundHostPath {
+			if maxPrefixLen == 0 {
 				return fmt.Errorf("unexpected log path %s, no matched mounts(%d) found", cfg.Path, len(ins.volMounts))
 			}
 		}
@@ -409,4 +415,18 @@ func IsClosed(ch <-chan interface{}) bool {
 	default:
 	}
 	return false
+}
+
+func commonPrefixLen(a, b string) int {
+	minLen := len(a)
+	if len(b) < minLen {
+		minLen = len(b)
+	}
+
+	for i := 0; i < minLen; i++ {
+		if a[i] != b[i] {
+			return i
+		}
+	}
+	return minLen
 }
