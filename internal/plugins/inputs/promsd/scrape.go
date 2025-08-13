@@ -28,10 +28,12 @@ type Auth struct {
 
 type ScrapeConfig struct {
 	Scheme              string            `toml:"scheme"`
+	MetricsPath         string            `toml:"metrics_path"`
+	Params              string            `toml:"params"`
 	Interval            time.Duration     `toml:"interval"`
 	KeepExistMetricName bool              `toml:"keep_exist_metric_name"`
-	Auth                *Auth             `toml:"auth"`
 	HTTPHeaders         map[string]string `toml:"http_headers"`
+	Auth                *Auth             `toml:"auth"`
 }
 
 func startScraperConsumer(ctx context.Context, log *logger.Logger, name string, scrapeInterval time.Duration, in <-chan scraper) {
@@ -61,6 +63,7 @@ func startScraperConsumer(ctx context.Context, log *logger.Logger, name string, 
 			var activeScrapers []scraper
 			for _, sp := range scrapers {
 				if !sp.isTerminated() {
+					log.Debugf("%s: scraper terminated, target URL: %s", name, sp.targetURL())
 					activeScrapers = append(activeScrapers, sp)
 				}
 			}
