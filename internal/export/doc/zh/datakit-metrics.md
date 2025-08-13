@@ -6,9 +6,9 @@
 
 ## 指标列表 {#metrics}
 
-自 DataKit [1.5.9 版本](changelog.md#cl-1.5.9)以来，通过访问 `http://localhost:9529/metrics` 即可获取当前的指标列表，不同 DataKit 版本可能会对一些相关指标做调整，或者增删一些指标。
+自 DataKit [1.5.9 版本](changelog.md#cl-1.5.9)以来，通过访问 `http://localhost:9529/metrics` 即可获取当前的指标列表，不同 DataKit 版本可能会对一些相关指标做调整。
 
-这些指标，在 [DataKit monitor](datakit-monitor.md) 展示中也会用到，只是 monitor 中为了展示上的友好型，做了一些优化处理。如果要查看原始的指标（或者 monitor 上没有展示出来的指标），我们可以通过 `curl` 和 `watch` 命令的组合来查看，比如获取 DataKit 进程 CPU 的使用情况：
+这些指标，在 [DataKit monitor](datakit-monitor.md) 展示中也会用到，只是 monitor 中为了展示上的优化，做了一些处理。如果要查看原始的指标（或者 monitor 上没有展示出来的指标），我们可以通过 `curl` 和 `watch` 命令的组合来查看，比如获取 DataKit 进程 CPU 的使用情况：
 
 ```shell
 # 每隔 3s 获取一次 CPU 使用率指标

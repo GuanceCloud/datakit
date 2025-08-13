@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.80.0(2025/08/13) {#cl-1.80.0}
+
+This release is an iterative update with the following main changes:
+
+### New Features {#cl-1.80.0-new}
+
+- Prometheus Service Discovery collector now supports Consul (#2776)
+- Dialtesting collector now supports simple template functions in task definitions (#2771)
+- Kubernetes container metric/object collection now supports adjustable collection frequency (#2740)
+- Socket logging collection now supports character encoding and color character processing (#2739)
+- Added support for setting UDS (Unix Domain Socket) file path via environment variables during host installation (#2780)
+- OpenTelemetry now includes a collection flag (requires manual activation) to extract all attributes (#2779)
+
+### Bug Fixes {#cl-1.80.0-fix}
+
+- Fixed OpenTelemetry `base_service` field setting (#2763)
+- Fixed collector issues caused by multiple directory mounts in container logging collection (#2773)
+
+### Optimizations {#cl-1.80.0-opt}
+
+- Adjusted DNS-related tag field names in eBPF (#2781)
+- Other optimizations (#2774/#2783)
+
+---
+
 ## 1.79.0(2025/07/31) {#cl-1.79.0}
 
 This release is an iterative update with the following main changes:
