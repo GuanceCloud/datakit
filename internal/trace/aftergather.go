@@ -108,8 +108,6 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces) {
 			for i := range aga.filters {
 				var skip bool
 				if singleTrace, skip = aga.filters[i](aga.log, dktraces[k]); skip {
-					tracingSamplerCount.WithLabelValues(inputName, serviceName).Add(1)
-
 					break // skip current trace
 				}
 			}
