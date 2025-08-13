@@ -62,6 +62,7 @@ type InstallerArgs struct {
 	DCAWebsocketServer string
 
 	HTTPPort int
+	HTTPSocket,
 	HTTPListen,
 	DatakitName,
 	GlobalHostTags,

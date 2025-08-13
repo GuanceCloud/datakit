@@ -277,6 +277,7 @@ NAME1="value1" NAME2="value2"
 - `DK_UPGRADE_IP_WHITELIST`: 从 DataKit [1.5.9](changelog.md#cl-1.5.9) 开始，支持远程访问 API 的方式来升级 DataKit，此环境变量用于设置可以远程访问的客户端 IP 白名单（多个 IP 用逗号 `,` 分隔），不在白名单内的访问将被拒绝（默认是不做 IP 限制）。
 - `DK_UPGRADE_LISTEN`: 指定升级服务绑定的 HTTP 地址（默认 `0.0.0.0:9542`）[:octicons-tag-24: Version-1.38.1](changelog.md#cl-1.38.1)
 - `DK_HTTP_PUBLIC_APIS`: 设置 DataKit 允许远程访问的 HTTP API ，RUM 功能通常需要进行此配置，从 DataKit [1.9.2](changelog.md#cl-1.9.2) 开始支持。
+- `DK_HTTP_SOCKET`: 设置 HTTP 监听的本地 Socket 路径（Windows 不支持）。[:octicons-tag-24: Version-1.80.0](changelog-2025.md#cl-1.80.0)
 
 ### DCA 相关 {#env-dca}
 

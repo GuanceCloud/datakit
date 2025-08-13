@@ -431,6 +431,11 @@ func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config,
 		l.Infof("set HTTP listen to %s", mc.HTTPAPI.Listen)
 	}
 
+	if args.HTTPSocket != "" {
+		mc.HTTPAPI.ListenSocket = args.HTTPSocket
+		l.Infof("set HTTP socket to %q", mc.HTTPAPI.ListenSocket)
+	}
+
 	mc.InstallVer = args.DataKitVersion
 	l.Infof("install version %s", mc.InstallVer)
 

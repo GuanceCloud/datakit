@@ -255,6 +255,7 @@ The environment variables supported by the installation script are as follows (s
 - `DK_UPGRADE_IP_WHITELIST`: Starting from DataKit [1.5.9](changelog.md#cl-1.5.9), we can upgrade DataKit by access remote http API. This environment variable is used to set the IP whitelist of clients that can be accessed remotely(multiple IPs could be separated by commas `,`). Access outside the whitelist will be denied (default not restricted).
 - `DK_UPGRADE_LISTEN`: Specify DK-Upgrader HTTP server address(default `0.0.0.0:9542`)[:octicons-tag-24: Version-1.38.1](changelog.md#cl-1.38.1)
 - `DK_HTTP_PUBLIC_APIS`: Specify which DataKit HTTP APIs can be accessed by remote, generally config combined with RUM input，support from DataKit [1.9.2](changelog.md#cl-1.9.2).
+- `DK_HTTP_SOCKET`: Set HTTP domain socket path(not support Windows).[:octicons-tag-24: Version-1.80.0](changelog-2025.md#cl-1.80.0)
 
 ### On DCA  {#env-dca}
 
