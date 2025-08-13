@@ -64,7 +64,6 @@ type Variable struct {
 }
 type TaskChild interface {
 	ITask
-	beforeFirstRender()
 	run() error
 	init() error
 	checkResult() ([]string, bool)
@@ -77,6 +76,7 @@ type TaskChild interface {
 	metricName() string
 	getHostName() ([]string, error)
 	getRawTask(string) (string, error)
+	renderTemplate(fm template.FuncMap) error
 	initTask()
 }
 
@@ -136,6 +136,8 @@ type ITask interface {
 	AddExtractedVar(*ConfigVar)
 	SetCustomVars([]*ConfigVar)
 	GetPostScriptVars() Vars
+	GetIsTemplate() bool
+	SetIsTemplate(bool)
 
 	String() string
 }
@@ -165,9 +167,10 @@ type Task struct {
 	child                TaskChild
 
 	rawTask    string
-	inited     bool
+	isTemplate bool
 	globalVars map[string]Variable
 	option     map[string]string
+	fm         template.FuncMap
 }
 
 func CreateTaskChild(taskType string) (TaskChild, error) {
@@ -219,6 +222,7 @@ func NewTask(taskString string, task TaskChild) (ITask, error) {
 	} else {
 		t.SetTaskJSONString(taskString)
 		t.SetChild(task)
+		t.SetIsTemplate(hasTemplateTags(taskString))
 		return t, nil
 	}
 }
@@ -226,6 +230,18 @@ func NewTask(taskString string, task TaskChild) (ITask, error) {
 func (t *Task) String() string {
 	b, _ := json.Marshal(t.child)
 	return string(b)
+}
+
+func (t *Task) NewRawTask(child TaskChild) error {
+	if t.taskJSONString == "" {
+		return fmt.Errorf("task json string is empty")
+	}
+
+	if err := json.Unmarshal([]byte(t.taskJSONString), &child); err != nil {
+		return fmt.Errorf("json.Unmarshal failed: %w, task json: %s", err, t.taskJSONString)
+	}
+
+	return nil
 }
 
 func (t *Task) SetChild(child TaskChild) {
@@ -321,6 +337,14 @@ func (t *Task) GetLineData() string {
 	return ""
 }
 
+func (t *Task) GetIsTemplate() bool {
+	return t.isTemplate
+}
+
+func (t *Task) SetIsTemplate(isTemplate bool) {
+	t.isTemplate = isTemplate
+}
+
 func (t *Task) GetResults() (tags map[string]string, fields map[string]interface{}) {
 	tags, fields = t.child.getResults()
 
@@ -405,14 +429,15 @@ func (t *Task) Check() error {
 
 func (t *Task) Run() error {
 	t.Clear()
+	if t.fm != nil {
+		if err := t.child.renderTemplate(t.fm); err != nil {
+			return fmt.Errorf("render template failed: %w", err)
+		}
+	}
 	return t.child.run()
 }
 
 func (t *Task) init() error {
-	defer func() {
-		t.inited = true
-	}()
-
 	if strings.EqualFold(t.CurStatus, StatusStop) {
 		return nil
 	}
@@ -464,20 +489,50 @@ func (t *Task) GetGlobalVars() []string {
 	return vars
 }
 
+func getDefaultFunc() template.FuncMap {
+	return template.FuncMap{
+		"timestamp": func(unit string) int64 {
+			utcTime := time.Now().UTC()
+			switch unit {
+			case "s":
+				return utcTime.Unix()
+			case "ms":
+				return utcTime.UnixMilli()
+			case "us":
+				return utcTime.UnixMicro()
+			case "ns":
+				return utcTime.UnixNano()
+			default:
+				return 0
+			}
+		},
+
+		"date": func(format string) string {
+			switch format {
+			case "rfc3339":
+				format = time.RFC3339
+			case "iso8601":
+				format = "2006-01-02T15:04:05Z"
+			}
+
+			return time.Now().Format(format)
+		},
+
+		"urlencode": func(s string) string {
+			return url.QueryEscape(s)
+		},
+	}
+}
+
 // RenderTemplateAndInit render template and init task.
 func (t *Task) RenderTemplateAndInit(globalVariables map[string]Variable) error {
-	// first render
-	if !t.inited {
-		t.child.beforeFirstRender()
-	}
-
 	if globalVariables == nil {
 		globalVariables = make(map[string]Variable)
 	}
 
 	t.globalVars = globalVariables
 
-	fm := template.FuncMap{}
+	fm := getDefaultFunc()
 
 	allVars := append(t.ConfigVars, t.ExtractedVars...) // nolint:gocritic
 	allVars = append(allVars, t.CustomVars...)
@@ -498,29 +553,16 @@ func (t *Task) RenderTemplateAndInit(globalVariables map[string]Variable) error 
 		v.Value = value
 	}
 
+	t.fm = fm
+
 	// multi task does not need to render template
 	// render template only for its child task
 	if t.Class() == ClassMulti {
 		return nil
 	}
 
-	tmpl, err := template.New("task").Funcs(fm).Option("missingkey=zero").Parse(t.taskJSONString)
-	if err != nil {
-		return fmt.Errorf("parse template error: %w", getTemplateError(err))
-	}
-	var buf strings.Builder
-	if err := tmpl.Execute(&buf, nil); err != nil {
-		return fmt.Errorf("execute template error: %w", err)
-	}
-
-	parsedString := buf.String()
-
-	// no need to re-parse
-	if parsedString != t.parsedTaskJSONString {
-		t.parsedTaskJSONString = parsedString
-		if err := json.Unmarshal([]byte(parsedString), t.child); err != nil {
-			return fmt.Errorf("unmarshal parsed template error: %w", err)
-		}
+	if err := t.child.renderTemplate(fm); err != nil {
+		return fmt.Errorf("render template error: %w", err)
 	}
 
 	return t.init()
@@ -581,4 +623,66 @@ func getTemplateError(err error) error {
 	}
 
 	return err
+}
+
+func (t *Task) GetParsedString(text string, fm template.FuncMap) (string, error) {
+	if text == "" {
+		return "", nil
+	}
+
+	tmpl, err := template.New("text").Funcs(fm).Option("missingkey=zero").Parse(text)
+	if err != nil {
+		return "", fmt.Errorf("parse template error: %w", getTemplateError(err))
+	}
+	var buf strings.Builder
+	if err := tmpl.Execute(&buf, nil); err != nil {
+		return "", fmt.Errorf("execute template error: %w", err)
+	}
+
+	return buf.String(), nil
+}
+
+func hasTemplateTags(s string) bool {
+	re := regexp.MustCompile(`{{.*}}`)
+	return re.MatchString(s)
+}
+
+func (t *Task) renderSuccessOption(v, dest *SuccessOption, fm template.FuncMap) error {
+	if text, err := t.GetParsedString(v.Is, fm); err != nil {
+		return fmt.Errorf("render body is failed: %w", err)
+	} else {
+		dest.Is = text
+	}
+
+	if text, err := t.GetParsedString(v.IsNot, fm); err != nil {
+		return fmt.Errorf("render body is not failed: %w", err)
+	} else {
+		dest.IsNot = text
+	}
+
+	if text, err := t.GetParsedString(v.Contains, fm); err != nil {
+		return fmt.Errorf("render body contains failed: %w", err)
+	} else {
+		dest.Contains = text
+	}
+
+	if text, err := t.GetParsedString(v.NotContains, fm); err != nil {
+		return fmt.Errorf("render body not contains failed: %w", err)
+	} else {
+		dest.NotContains = text
+	}
+
+	if text, err := t.GetParsedString(v.MatchRegex, fm); err != nil {
+		return fmt.Errorf("render body match regex failed: %w", err)
+	} else {
+		dest.MatchRegex = text
+	}
+
+	if text, err := t.GetParsedString(v.NotMatchRegex, fm); err != nil {
+		return fmt.Errorf("render body not match regex failed: %w", err)
+	} else {
+		dest.NotMatchRegex = text
+	}
+
+	return nil
 }

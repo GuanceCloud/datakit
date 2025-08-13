@@ -79,9 +79,10 @@ type Input struct {
 	PullInterval                    string            `toml:"pull_interval,omitempty"`
 	TimeOut                         *datakit.Duration `toml:"time_out,omitempty"`
 	MaxSendFailSleepTime            *datakit.Duration `toml:"max_send_fail_sleep_time,omitempty"`
-	MaxSendFailCount                int32             `toml:"max_send_fail_count,omitempty"` // max send fail count
-	MaxJobNumber                    int               `toml:"max_job_number,omitempty"`      // max job number in parallel
-	MaxJobChanNumber                int               `toml:"max_job_chan_number,omitempty"` // max job chan number
+	MaxSendFailCount                int32             `toml:"max_send_fail_count,omitempty"`     // max send fail count
+	MaxJobNumber                    int               `toml:"max_job_number,omitempty"`          // max job number in parallel
+	MaxJobChanNumber                int               `toml:"max_job_chan_number,omitempty"`     // max job chan number
+	MaxCachePointsNumber            int               `toml:"max_cache_points_number,omitempty"` // max points number in cache
 	TaskExecTimeInterval            string            `toml:"task_exec_time_interval,omitempty"`
 	DisableInternalNetworkTask      bool              `toml:"disable_internal_network_task,omitempty"`
 	DisabledInternalNetworkCIDRList []string          `toml:"disabled_internal_network_cidr_list,omitempty"`
@@ -352,6 +353,9 @@ const sample = `
   # The max number of job chan. Default 1000.
   max_job_chan_number = 1000
 
+  # The max number of points in cache for each type of task. Default 10000.
+  max_cache_points_number = 10000
+
   # Disable internal network task.
   disable_internal_network_task = true
 
@@ -414,9 +418,10 @@ func (ipt *Input) setupWorker() {
 				s = &emptySender{}
 			}
 			dialWorker = &worker{
-				sender:           s,
-				maxJobNumber:     ipt.MaxJobNumber,
-				maxJobChanNumber: ipt.MaxJobChanNumber,
+				sender:               s,
+				maxJobNumber:         ipt.MaxJobNumber,
+				maxJobChanNumber:     ipt.MaxJobChanNumber,
+				maxCachePointsNumber: ipt.MaxCachePointsNumber,
 			}
 			dialWorker.init()
 		}
@@ -728,7 +733,7 @@ func protectedRun(d *dialer) {
 		}
 
 		if err := d.run(); err != nil {
-			l.Errorf("run: %s, ignored", err)
+			l.Errorf("run failed: %s, task: %s, ignored", err.Error(), d.task.String())
 		}
 	}
 
