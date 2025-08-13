@@ -97,9 +97,10 @@ func (ipt *Input) parseResourceSpans(resspans []*trace.ResourceSpans) itrace.Dat
 
 				// service_name from xx.system.
 				if ipt.SplitServiceName {
-					spanKVs = spanKVs.SetTag(itrace.TagService,
-						ipt.getServiceNameBySystem(spanAttrs, serviceName)).
-						AddTag(itrace.TagBaseService, serviceName)
+					baseService := ipt.getServiceNameBySystem(spanAttrs)
+					if baseService != "" { // 只有存在中间件的时候才不为空。
+						spanKVs = spanKVs.SetTag(itrace.TagService, baseService).AddTag(itrace.TagBaseService, serviceName)
+					}
 				}
 
 				for k, v := range ipt.Tags { // span.attribute 优先级大于全局tag。
