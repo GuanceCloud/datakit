@@ -20,6 +20,10 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
 		{FieldName: "Endpoints", Type: doc.List, Example: "\"`unix:///var/run/docker.sock,unix:///var/run/containerd/containerd.sock,unix:///var/run/crio/crio.sock`\"", Desc: "Append to container endpoints", DescZh: "追加多个容器运行时的 endpoint"},
+		{FieldName: "MetricCollecInterval", Type: doc.TimeDuration, Default: "60s", Desc: "The metric collection interval", DescZh: "容器/k8s 指标数据采集间隔"},
+		{FieldName: "ObjectCollecInterval", Type: doc.TimeDuration, Default: "5m", Desc: "The object collection interval", DescZh: "容器/k8s 对象数据采集间隔"},
+		{FieldName: "LoggingSearchInterval", Type: doc.TimeDuration, Default: "60s", Desc: `The time interval of log discovery, that is, how often logs are retrieved. If the interval is too long, some logs with short survival will be ignored`, DescZh: `日志发现的时间间隔，即每隔多久检索一次日志，如果间隔太长，会导致忽略了一些存活较短的日志`},
+
 		{FieldName: "EnableContainerMetric", Type: doc.Boolean, Default: "true", Desc: "Start container index collection", DescZh: "开启容器指标采集"},
 		{FieldName: "EnableK8sMetric", ENVName: "ENABLE_K8S_METRIC", Type: doc.Boolean, Default: "true", Desc: "Start k8s index collection", DescZh: "开启 k8s 指标采集"},
 		{FieldName: "EnablePodMetric", Type: doc.Boolean, Default: "false", Desc: `Turn on Pod index collection`, DescZh: `是否开启 Pod 指标采集（CPU 和内存使用情况）`},
@@ -41,7 +45,6 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "PodIncludeMetric", Type: doc.List, Example: "`\"namespace:datakit*\"`", Desc: `Include condition of pod metrics, filtering with namespace`, DescZh: `Pod 指标白名单，使用 namespace 过滤`},
 		{FieldName: "PodExcludeMetric", Type: doc.List, Example: "`\"namespace:kube-system\"`", Desc: `Exclude condition of pod metrics, filtering with namespace`, DescZh: `Pod 指标黑名单，使用 namespace 过滤`},
 
-		{FieldName: "LoggingSearchInterval", Type: doc.TimeDuration, Default: `60s`, Desc: `The time interval of log discovery, that is, how often logs are retrieved. If the interval is too long, some logs with short survival will be ignored`, DescZh: `日志发现的时间间隔，即每隔多久检索一次日志，如果间隔太长，会导致忽略了一些存活较短的日志`},
 		{FieldName: "LoggingExtraSourceMap", Type: doc.Map, Example: "`source_regex*=new_source,regex*=new_source2`", Desc: `Log collection configures additional source matching, and the regular source will be renamed`, DescZh: `日志采集配置额外的 source 匹配，符合正则的 source 会被改名`},
 		{FieldName: "LoggingSourceMultilineMap", ENVName: "LOGGING_SOURCE_MULTILINE_MAP_JSON", ConfField: "logging_source_multiline_map", Type: doc.JSON, Example: "`{\"source_nginx\":\"^\\d{4}\", \"source_redis\":\"^[A-Za-z_]\"}`", Desc: `Log collection with multiline configuration as specified by the source`, DescZh: `日志采集根据 source 指定多行配置`},
 		{FieldName: "LoggingAutoMultilineDetection", Type: doc.Boolean, Default: `false`, Desc: `Whether the automatic multi-line mode is turned on for log collection; the applicable multi-line rules will be matched in the patterns list after it is turned on`, DescZh: `日志采集是否开启自动多行模式，开启后会在 patterns 列表中匹配适用的多行规则`},

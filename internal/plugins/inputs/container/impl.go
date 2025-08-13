@@ -125,12 +125,16 @@ func newK8sCollectors(ipt *Input) (Collector, error) {
 	l.Infof("Use labels %s for k8s metric", optForMetric.keys)
 
 	cfg := kubernetes.Config{
-		NodeLocal:                     ipt.EnableK8sNodeLocal,
-		EnableK8sMetric:               ipt.EnableK8sMetric,
-		EnableK8sObject:               true,
-		EnablePodMetric:               ipt.EnablePodMetric,
-		EnableK8sEvent:                ipt.EnableK8sEvent,
-		EnableCollectJob:              ipt.EnableCollectK8sJob,
+		NodeLocal:        ipt.EnableK8sNodeLocal,
+		EnableK8sMetric:  ipt.EnableK8sMetric,
+		EnableK8sObject:  true,
+		EnablePodMetric:  ipt.EnablePodMetric,
+		EnableK8sEvent:   ipt.EnableK8sEvent,
+		EnableCollectJob: ipt.EnableCollectK8sJob,
+
+		MetricCollecInterval: ipt.MetricCollecInterval,
+		ObjectCollecInterval: ipt.ObjectCollecInterval,
+
 		PodFilterForMetric:            podFilterForMetric,
 		EnableExtractK8sLabelAsTagsV1: ipt.EnableExtractK8sLabelAsTags,
 		LabelAsTagsForMetric: kubernetes.LabelsOption{

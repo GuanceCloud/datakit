@@ -14,6 +14,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/changes"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -32,6 +33,10 @@ type Input struct {
 	Endpoints                   []string `toml:"endpoints"`
 	DeprecatedDockerEndpoint    string   `toml:"docker_endpoint"`
 	DeprecatedContainerdAddress string   `toml:"containerd_address"`
+
+	MetricCollecInterval  time.Duration `toml:"metric_collect_interval"`
+	ObjectCollecInterval  time.Duration `toml:"object_collect_interval"`
+	LoggingSearchInterval time.Duration `toml:"logging_search_interval"`
 
 	EnableContainerMetric bool `toml:"enable_container_metric"`
 	EnableK8sMetric       bool `toml:"enable_k8s_metric"`
@@ -55,7 +60,6 @@ type Input struct {
 	LoggingSourceMultilineMap             map[string]string `toml:"logging_source_multiline_map"`
 	LoggingAutoMultilineDetection         bool              `toml:"logging_auto_multiline_detection"`
 	LoggingAutoMultilineExtraPatterns     []string          `toml:"logging_auto_multiline_extra_patterns"`
-	LoggingSearchInterval                 time.Duration     `toml:"logging_search_interval"`
 	LoggingFileFromBeginning              bool              `toml:"logging_file_from_beginning"`
 	LoggingFileFromBeginningThresholdSize int               `toml:"logging_file_from_beginning_threshold_size"`
 	LoggingRemoveAnsiEscapeCodes          bool              `toml:"logging_remove_ansi_escape_codes"`
@@ -158,12 +162,13 @@ func (ipt *Input) setup() {
 	ipt.Endpoints = unique(ipt.Endpoints)
 	l.Infof("endpoints: %v", ipt.Endpoints)
 
-	if ipt.LoggingSearchInterval <= 0 {
-		ipt.LoggingSearchInterval = loggingInterval
-	}
 	if ipt.ContainerMaxConcurrent <= 0 {
 		ipt.ContainerMaxConcurrent = datakit.AvailableCPUs + 1
 	}
+
+	ipt.MetricCollecInterval = config.ProtectedInterval(minInterval, maxInterval, ipt.MetricCollecInterval)
+	ipt.ObjectCollecInterval = config.ProtectedInterval(minInterval, maxInterval, ipt.ObjectCollecInterval)
+	ipt.LoggingSearchInterval = config.ProtectedInterval(minInterval, maxInterval, ipt.LoggingSearchInterval)
 }
 
 func (ipt *Input) Terminate() {
@@ -192,6 +197,9 @@ func (ipt *Input) Resume() error {
 
 func newInput() *Input {
 	return &Input{
+		MetricCollecInterval:      time.Second * 60,
+		ObjectCollecInterval:      time.Minute * 5,
+		LoggingSearchInterval:     time.Second * 60,
 		EnableContainerMetric:     true,
 		EnableK8sMetric:           true,
 		EnableK8sEvent:            true,
