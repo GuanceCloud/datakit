@@ -8,8 +8,9 @@ package opentelemetry
 import (
 	"strings"
 
-	"github.com/GuanceCloud/cliutils/point"
+	"google.golang.org/protobuf/encoding/protojson"
 
+	"github.com/GuanceCloud/cliutils/point"
 	common "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
 )
 
@@ -49,13 +50,10 @@ func (ipt *Input) selectAttrs(atts []*common.KeyValue) (kvs point.KVs, merged []
 
 		// else
 		switch v.Value.Value.(type) {
-		case *common.AnyValue_BytesValue,
-			*common.AnyValue_StringValue:
-			if s := v.Value.GetStringValue(); len(s) > 1024 { // len(tag-value) should <= 1024
-				kvs = kvs.Set(replaceKey, s) // and add it in field
-			} else {
-				kvs = kvs.SetTag(replaceKey, s)
-			}
+		case *common.AnyValue_BytesValue:
+			kvs = kvs.Set(replaceKey, string(v.Value.GetBytesValue()))
+		case *common.AnyValue_StringValue:
+			kvs = kvs.Set(replaceKey, v.Value.GetStringValue())
 		case *common.AnyValue_DoubleValue:
 			kvs = kvs.Set(replaceKey, v.Value.GetDoubleValue())
 		case *common.AnyValue_IntValue:
@@ -63,9 +61,11 @@ func (ipt *Input) selectAttrs(atts []*common.KeyValue) (kvs point.KVs, merged []
 		case *common.AnyValue_BoolValue:
 			kvs = kvs.Set(replaceKey, v.Value.GetBoolValue())
 		case *common.AnyValue_KvlistValue:
-			kvs = kvs.Set(replaceKey, v.Value.GetKvlistValue().String())
+			bts, _ := protojson.Marshal(v.Value.GetKvlistValue())
+			kvs = kvs.Set(replaceKey, string(bts))
 		case *common.AnyValue_ArrayValue:
-			kvs = kvs.Set(replaceKey, v.Value.GetArrayValue().String())
+			bts, _ := protojson.Marshal(v.Value.GetArrayValue())
+			kvs = kvs.Set(replaceKey, string(bts))
 		default: // passed
 		}
 	}
