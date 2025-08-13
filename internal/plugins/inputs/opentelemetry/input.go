@@ -46,6 +46,9 @@ const (
   ## "project.name" to send to center is "project_name"
   # customer_tags = ["sink_project", "custom.otel.tag"]
 
+  ## If set to true, all Attributes will be extracted and message.Attributes will be empty.
+  # costomer_tags_all = false
+
   ## Keep rare tracing resources list switch.
   ## If some resources are rare enough(not presend in 1 hour), those resource will always send
   ## to data center and do not consider samplers and filters.
@@ -148,9 +151,11 @@ type Input struct {
 	Pipelines           map[string]string `toml:"pipelines"`             // deprecated
 	IgnoreAttributeKeys []string          `toml:"ignore_attribute_keys"` // deprecated
 	CustomerTags        []string          `toml:"customer_tags"`
-	LogMaxLen           int               `toml:"log_max"` // KiB
-	HTTPConfig          *httpConfig       `toml:"http"`
-	GRPCConfig          *gRPC             `toml:"grpc"`
+	CustomerTagsAll     bool              `toml:"costomer_tags_all"`
+
+	LogMaxLen  int         `toml:"log_max"` // KiB
+	HTTPConfig *httpConfig `toml:"http"`
+	GRPCConfig *gRPC       `toml:"grpc"`
 
 	CompatibleDDTrace   bool `toml:"compatible_ddtrace"`
 	CompatibleZhaoShang bool `toml:"compatible_zhaoshang"`

@@ -6,6 +6,8 @@
 package opentelemetry
 
 import (
+	"strings"
+
 	"github.com/GuanceCloud/cliutils/point"
 
 	common "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
@@ -33,9 +35,16 @@ func (ipt *Input) selectAttrs(atts []*common.KeyValue) (kvs point.KVs, merged []
 		}
 
 		replaceKey, ok := ipt.commonAttrs[v.Key]
-		if !ok {
-			merged = append(merged, v)
-			continue
+
+		if ipt.CustomerTagsAll {
+			if replaceKey == "" {
+				replaceKey = strings.ReplaceAll(v.Key, ".", "_")
+			}
+		} else {
+			if !ok {
+				merged = append(merged, v)
+				continue
+			}
 		}
 
 		// else
@@ -53,6 +62,10 @@ func (ipt *Input) selectAttrs(atts []*common.KeyValue) (kvs point.KVs, merged []
 			kvs = kvs.Set(replaceKey, v.Value.GetIntValue())
 		case *common.AnyValue_BoolValue:
 			kvs = kvs.Set(replaceKey, v.Value.GetBoolValue())
+		case *common.AnyValue_KvlistValue:
+			kvs = kvs.Set(replaceKey, v.Value.GetKvlistValue().String())
+		case *common.AnyValue_ArrayValue:
+			kvs = kvs.Set(replaceKey, v.Value.GetArrayValue().String())
 		default: // passed
 		}
 	}
