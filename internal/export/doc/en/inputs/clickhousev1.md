@@ -9,7 +9,7 @@ dashboard :
     path  : 'dashboard/en/clickhouse'
 monitor   :
   - desc  : 'ClickHouse'
-    path  : 'monitor/zh/clickhouse'
+    path  : 'monitor/en/clickhouse'
 ---
 
 

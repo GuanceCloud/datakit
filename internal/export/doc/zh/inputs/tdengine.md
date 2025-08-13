@@ -8,8 +8,8 @@ dashboard :
   - desc  : 'TDengine'
     path  : 'dashboard/zh/tdengine'
 monitor   :
-  - desc  : '暂无'
-    path  : '-'
+  - desc  : 'TDEngine'
+    path  : 'monitor/zh/tdengine'
 ---
 
 {{.AvailableArchs}}
