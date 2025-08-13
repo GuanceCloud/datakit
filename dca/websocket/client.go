@@ -28,34 +28,35 @@ import (
 )
 
 type DataKitRuntimeInfo struct {
-	GlobalHostTags map[string]string `json:"global_host_tags"`
-	DataDir        string            `json:"data_dir"`
-	ConfdDir       string            `json:"confd_dir"`
-	PipelineDir    string            `json:"pipeline_dir"`
-	InstallDir     string            `json:"install_dir"`
-	CPUUsage       string            `json:"cpu_usage"`
-	Log            string            `json:"log"`
-	GinLog         string            `json:"gin_log"`
+	GlobalHostTags map[string]string `json:"global_host_tags,omitempty"`
+	DataDir        string            `json:"data_dir,omitempty"`
+	ConfdDir       string            `json:"confd_dir,omitempty"`
+	PipelineDir    string            `json:"pipeline_dir,omitempty"`
+	InstallDir     string            `json:"install_dir,omitempty"`
+	CPUUsage       string            `json:"cpu_usage,omitempty"`
+	Log            string            `json:"log,omitempty"`
+	GinLog         string            `json:"gin_log,omitempty"`
 }
 
 type DataKit struct {
-	ID             string        `json:"id" db:"id"`
-	RunTimeID      string        `json:"runtime_id" db:"runtime_id"`
-	Arch           string        `json:"arch" db:"arch"`
-	HostName       string        `json:"host_name" db:"host_name"`
-	OS             string        `json:"os" db:"os"`
-	Version        string        `json:"version" db:"version"`
-	IP             string        `json:"ip" db:"ip"`
-	StartTime      int64         `json:"start_time" db:"start_time"`
-	UpdatedAt      int64         `json:"updated_at" db:"updated_at"` // last updated time, unix millisecond
-	RunInContainer bool          `json:"run_in_container" db:"run_in_container"`
-	RunMode        string        `json:"run_mode" db:"run_mode"`
-	UsageCores     int           `json:"usage_cores" db:"usage_cores"`
-	WorkspaceUUID  string        `json:"workspace_uuid" db:"workspace_uuid"`
-	ConnID         string        `json:"conn_id" db:"conn_id"`       // to retrieve connection
-	Status         DataKitStatus `json:"status" db:"status"`         // status of datakit
-	Upgradable     bool          `json:"upgradable" db:"upgradable"` // whether datakit can be upgraded
-	URL            string        `json:"url" db:"url"`               // url of datakit: http://localhost:9529
+	ID                   string        `json:"id" db:"id"`
+	RunTimeID            string        `json:"runtime_id" db:"runtime_id"`
+	Arch                 string        `json:"arch" db:"arch"`
+	HostName             string        `json:"host_name" db:"host_name"`
+	OS                   string        `json:"os" db:"os"`
+	Version              string        `json:"version" db:"version"`
+	IP                   string        `json:"ip" db:"ip"`
+	StartTime            int64         `json:"start_time" db:"start_time"`
+	UpdatedAt            int64         `json:"updated_at" db:"updated_at"` // last updated time, unix millisecond
+	RunInContainer       bool          `json:"run_in_container" db:"run_in_container"`
+	RunMode              string        `json:"run_mode" db:"run_mode"`
+	UsageCores           int           `json:"usage_cores" db:"usage_cores"`
+	WorkspaceUUID        string        `json:"workspace_uuid" db:"workspace_uuid"`
+	ConnID               string        `json:"conn_id" db:"conn_id"`       // to retrieve connection
+	Status               DataKitStatus `json:"status" db:"status"`         // status of datakit
+	Upgradable           bool          `json:"upgradable" db:"upgradable"` // whether datakit can be upgraded
+	URL                  string        `json:"url" db:"url"`               // url of datakit: http://localhost:9529
+	GlobalHostTagsString string        `json:"global_host_tags_string" db:"global_host_tags"`
 	DataKitRuntimeInfo
 }
 
@@ -70,6 +71,16 @@ func (dk *DataKit) GetConnID(wsAddress string) string {
 func (dk *DataKit) Bytes() []byte {
 	bytes, _ := json.Marshal(dk)
 	return bytes
+}
+
+func (dk *DataKit) GetGlobalHostTagsString() string {
+	globalHostTags := []byte{}
+
+	if dk.GlobalHostTags != nil {
+		globalHostTags, _ = json.Marshal(dk.GlobalHostTags)
+	}
+
+	return string(globalHostTags)
 }
 
 type DataKitStatus string

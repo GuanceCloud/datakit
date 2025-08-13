@@ -1,5 +1,5 @@
 import { baseApi } from "./baseApi"
-import { IDatakitResponse, IDatakit, IDatakitStat, IFilter, PageQuery, PageInfo } from "./type"
+import { IDatakitResponse, IDatakit, IDatakitStat, IFilter, PageQuery, PageInfo, ISearchValue } from "./type"
 
 const getURL = (datakit: IDatakit, url: string) => {
   return `/api/datakit/${url}?datakit_id=${datakit.id}`
@@ -16,6 +16,7 @@ interface DatakitListParams extends PageQuery {
   version?: string
   isOnline?: string
   minLastUpdateTime?: number
+  filter?: string
 }
 
 const datakitApi = baseApi.injectEndpoints({
@@ -30,13 +31,16 @@ const datakitApi = baseApi.injectEndpoints({
         }
       }),
       getDatakitList: builder.query<DatakitPageResponse<IDatakit[]>, DatakitListParams>({
-        query: ({ pageIndex = 1, pageSize = 10, search = "", minLastUpdateTime }) => {
+        query: ({ pageIndex = 1, pageSize = 10, search = "", filter = "", minLastUpdateTime }) => {
           let url = `/api/datakit/list?pageIndex=${pageIndex}&pageSize=${pageSize}`
           if (search) {
             url += `&search=${search}`
           }
           if (minLastUpdateTime) {
             url += `&minLastUpdateTime=${minLastUpdateTime}`
+          }
+          if (filter) {
+            url += `&filter=${filter}`
           }
           return {
             url,
@@ -48,6 +52,16 @@ const datakitApi = baseApi.injectEndpoints({
       getDatakitListByID: builder.query<IDatakitResponse<IDatakit[]>, { ids: string }>({
         query: ({ ids }) => {
           let url = `/api/datakit/listByID?ids=${ids}`
+          return {
+            url,
+            method: "get",
+          }
+        },
+        keepUnusedDataFor: 0,
+      }),
+      getSearchValue: builder.query<IDatakitResponse<ISearchValue>, void>({
+        query: () => {
+          let url = `/api/datakit/searchValue`
           return {
             url,
             method: "get",
@@ -85,6 +99,14 @@ const datakitApi = baseApi.injectEndpoints({
           }
         },
       }),
+      operateDatakit: builder.query<IDatakitResponse<any>, { ids: string, type: string }>({
+        query: ({ ids, type }) => {
+          return {
+            url: `/api/datakit/operation/${type}?ids=${ids}`,
+            method: "POST"
+          }
+        },
+      }),
     }
   }
 })
@@ -96,6 +118,8 @@ export const {
   useLazyUpgradeDatakitQuery,
   useLazyGetDatakitListQuery,
   useLazyGetDatakitListByIDQuery,
+  useLazyOperateDatakitQuery,
+  useLazyGetSearchValueQuery,
 } = datakitApi
 
 export default datakitApi

@@ -264,6 +264,12 @@ After connecting to DataKit remotely, click "Log" to view the logs of DataKit an
 
 ## Changelog {#change-log}
 
+### 0.1.3 (2025/08/13) {#cl-0.1.3}
+
+- Batch operations now support selecting all DataKits for batch processing.
+- When filtering the DataKit list, filtering is supported based on fields such as version, operating system, and user-configured [global tags](datakit-conf.md#set-global-tag).
+- A new column display feature is added to the DataKit list, allowing users to customize the displayed columns.
+
 ### 0.1.2(2025/07/09) {#cl-0.1.2}
 
 - Add support for English version

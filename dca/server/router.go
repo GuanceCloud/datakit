@@ -71,7 +71,7 @@ func limiterHandler(lmt *limiter.Limiter) gin.HandlerFunc {
 		h := newHandler(ctx)
 		httpError := tollbooth.LimitByRequest(lmt, ctx.Writer, ctx.Request)
 		if httpError != nil {
-			h.fail(http.StatusTooManyRequests, "too many requests")
+			h.fail(http.StatusTooManyRequests, "too.many.requests", "too many requests")
 			ctx.Abort()
 			return
 		}
@@ -101,9 +101,11 @@ func setupRouter(router *gin.Engine) error {
 	datakitRouter.GET("/stats", datakitHandler(ws.GetDatakitStatsAction))
 	datakitRouter.GET("/list", datakitListHandler)
 	datakitRouter.GET("/listByID", datakitByIDHandler)
+	datakitRouter.GET("/searchValue", datakitSearchValueHandler)
 	datakitRouter.PUT("/reload", datakitHandler(ws.ReloadDatakitAction))
 	datakitRouter.PUT("/restart", datakitHandler(ws.RestartDatakitAction))
 	datakitRouter.POST("/upgrade", datakitHandler(ws.UpgradeDatakitAction))
+	datakitRouter.POST("/operation/:type", datakitOperationHandler)
 
 	// config
 	datakitRouter.GET("/getConfig", datakitHandler(ws.GetDatakitConfigAction))
@@ -166,7 +168,7 @@ func auth(ctx *gin.Context) {
 	req, err := http.NewRequest(api[0], getConsoleAPIURL(api[1]), nil)
 	if err != nil {
 		l.Errorf("failed to new request: %s", err.Error())
-		h.fail(500, "auth failed")
+		h.fail(500, "auth.failed", "auth failed")
 		ctx.Abort()
 		return
 	}
@@ -179,7 +181,8 @@ func auth(ctx *gin.Context) {
 
 	respbody, err := h.doRequest(req)
 	if err != nil {
-		h.fail(500, err.Error())
+		l.Errorf("failed to do request: %s", err.Error())
+		h.fail(500, "auth.failed", err.Error())
 		ctx.Abort()
 		return
 	}
@@ -192,7 +195,8 @@ func auth(ctx *gin.Context) {
 	}
 
 	if err := json.Unmarshal(respbody, &resp); err != nil {
-		h.fail(500, err.Error())
+		l.Errorf("failed to decode response from console: %s", err.Error())
+		h.fail(500, "auth.failed", err.Error())
 		ctx.Abort()
 		return
 	}
