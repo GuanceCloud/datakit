@@ -138,7 +138,7 @@ var (
 	}
 )
 
-func (ipt *Input) getServiceNameBySystem(attrs []*common.KeyValue, defaultName string) string {
+func (ipt *Input) getServiceNameBySystem(attrs []*common.KeyValue) string {
 	for idx, attr := range attrs {
 		key := attr.GetKey()
 
@@ -154,5 +154,5 @@ func (ipt *Input) getServiceNameBySystem(attrs []*common.KeyValue, defaultName s
 		}
 	}
 
-	return defaultName
+	return ""
 }
