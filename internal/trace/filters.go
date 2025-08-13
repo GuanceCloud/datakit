@@ -42,10 +42,11 @@ func (cres *CloseResource) Close(log *logger.Logger, dktrace DatakitTrace) (Data
 		for service, resList := range cres.IgnoreResources {
 			if service == "*" || service == dktrace[i].GetTag(TagService) {
 				for j := range resList {
-					if resList[j].MatchString(dktrace[i].GetFiledToString(FieldResource)) {
-						log.Debugf("close trace tid: %s from  resource: %s ",
-							dktrace[i].GetFiledToString(FieldTraceID), dktrace[i].GetFiledToString(FieldResource))
-
+					resource := dktrace[i].GetFiledToString(FieldResource)
+					if resList[j].MatchString(resource) {
+						log.Debugf("close trace resource: %s ", resource)
+						source := dktrace[i].GetTag(TagSource)
+						tracingDropVec.WithLabelValues(source, service, "resource").Observe(float64(len(dktrace)))
 						return nil, true
 					}
 				}
@@ -88,7 +89,9 @@ func OmitHTTPStatusCodeFilterWrapper(statusCodeList []string) FilterFunc {
 				for j := range statusCodeList {
 					if statusCode := dktrace[i].Get(TagHttpStatusCode); statusCode == statusCodeList[j] {
 						log.Debugf("omit trace with status code: %s", statusCode)
-
+						source := dktrace[i].GetTag(TagSource)
+						service := dktrace[i].GetTag(TagService)
+						tracingDropVec.WithLabelValues(source, service, "statusCode").Observe(float64(len(dktrace)))
 						return nil, true
 					}
 				}
@@ -107,8 +110,6 @@ func PenetrateErrorTracing(log *logger.Logger, dktrace DatakitTrace) (DatakitTra
 	for i := range dktrace {
 		switch dktrace[i].GetTag(TagSpanStatus) {
 		case StatusErr, StatusCritical:
-			log.Debugf("penetrate error trace tid: %s service: %s resource: %s",
-				dktrace[i].GetTag(TagService), dktrace[i].GetFiledToString(FieldResource), dktrace[i].Get(TagSourceType))
 
 			return dktrace, true
 		}
@@ -142,8 +143,6 @@ func (kprres *KeepRareResource) Keep(log *logger.Logger, dktrace DatakitTrace) (
 
 			checksum := hashcode.GenStringsHash(sed)
 			if v, ok := kprres.presentMap.Load(checksum); !ok || time.Since(v.(time.Time)) >= kprres.Duration {
-				log.Debugf("got rare trace from service: %s resource: %s send by %s",
-					dktrace[i].GetTag(TagService), dktrace[i].GetFiledToString(FieldResource), dktrace[i].Get(TagSourceType))
 				skip = true
 			}
 			kprres.presentMap.Store(checksum, time.Now())
@@ -172,9 +171,12 @@ func (smp *Sampler) Sample(log *logger.Logger, dktrace DatakitTrace) (DatakitTra
 	if len(dktrace) == 0 {
 		return nil, true
 	}
+	source := dktrace[0].GetTag(TagSource)
+	service := dktrace[0].GetTag(TagService)
 	if str := dktrace[0].GetTag(SampleRateKey); str != "" {
 		switch str {
 		case UserDrop, SamplerDrop:
+			tracingDropVec.WithLabelValues(source, service, "sample").Observe(float64(len(dktrace)))
 			return nil, true
 		case UserKeep:
 			return dktrace, false
@@ -186,6 +188,7 @@ func (smp *Sampler) Sample(log *logger.Logger, dktrace DatakitTrace) (DatakitTra
 	if f {
 		return dktrace, false
 	} else {
+		tracingDropVec.WithLabelValues(source, service, "sample").Observe(float64(len(dktrace)))
 		return nil, true
 	}
 }

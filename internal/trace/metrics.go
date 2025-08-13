@@ -13,7 +13,7 @@ import (
 
 var (
 	TracingProcessCount *prometheus.CounterVec
-	tracingSamplerCount *prometheus.CounterVec
+	tracingDropVec      *prometheus.SummaryVec
 	grpcPayloadSizeVec  *prometheus.SummaryVec
 )
 
@@ -31,16 +31,22 @@ func metricsSetup() {
 		},
 	)
 
-	tracingSamplerCount = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
+	tracingDropVec = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "input",
-			Name:      "sampler_total",
-			Help:      "The sampler number of Trace processed by the trace module",
+			Name:      "drop_number",
+			Help:      "The drop number of Trace processed by the trace filter",
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
 		},
 		[]string{
 			"input",
 			"service",
+			"reason",
 		},
 	)
 
@@ -69,6 +75,6 @@ func init() { //nolint:gochecknoinits
 
 func Metrics() []prometheus.Collector {
 	return []prometheus.Collector{
-		TracingProcessCount, tracingSamplerCount, grpcPayloadSizeVec,
+		TracingProcessCount, tracingDropVec, grpcPayloadSizeVec,
 	}
 }
