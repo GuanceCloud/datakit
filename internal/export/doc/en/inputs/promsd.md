@@ -46,9 +46,19 @@ Configures HTTP request behavior for data collection:
 [inputs.promsd.scrape]
   ## Target connection protocol (http/https)
   scheme = "http"
+  ## Path to metrics endpoint (default is /metrics)
+  metrics_path = "/metrics"
+  ## Query parameters in URL-encoded format
+  ## Format: "key1=value1&key2=value2&key3=value3"
+  ## Example: "debug=true&module=http"
+  params = ""
 
   ## Scrape interval (default "30s")
   interval = "30s"
+
+  ## Custom HTTP headers (Example: Basic Auth)
+  [inputs.promsd.scrape.http_headers]
+    # Authorization = "Bearer <TOKEN>"
 
   ## Authentication config (Bearer Token/TLS)
   [inputs.promsd.scrape.auth]
@@ -58,10 +68,6 @@ Configures HTTP request behavior for data collection:
     # ca_certs = ["/opt/tls/ca.crt"]       # CA certificate path
     # cert = "/opt/tls/client.crt"         # Client certificate
     # cert_key = "/opt/tls/client.key"     # Client private key
-
-  ## Custom HTTP headers (Example: Basic Auth)
-  [inputs.promsd.scrape.http_headers]
-    Authorization = "Bearer <TOKEN>"
 ```
 
 Key Notes:
@@ -124,3 +130,96 @@ Supported Special Labels:
 | `__metrics_path__`  | Override default metrics path (`/metrics`) | `"/custom/metrics"`    | `http://172.16.1.1:9090/custom/metrics`        |
 | `__scheme__`        | Specify protocol (http/https)              | `"https"`              | `https://172.16.1.1:9090/metrics`              |
 | `__param_<name>`    | Add URL query parameter                    | `__param_module="cpu"` | `http://172.16.1.1:9090/metrics?module=cpu`    |
+
+Here is the professional translation of your Consul service discovery configuration documentation:
+
+---
+
+### Consul Service Discovery Configuration {#consul-sd-config}
+
+Dynamically retrieves monitoring targets from Consul's service catalog.
+
+```toml
+[inputs.promsd.consul_sd_config]
+  ## Address of the Consul server (format: host:port)
+  server = "localhost:8500"
+
+  ## API path prefix when Consul is behind a reverse proxy/API gateway
+  path_prefix = ""
+
+  ## ACL token for authentication (consider using environment variables for security)
+  token = ""
+
+  ## Specific datacenter to query (empty = default datacenter)
+  datacenter = ""
+
+  ## Namespace for tenant isolation
+  namespace = "default"
+
+  ## Administrative partition
+  partition = ""
+
+  ## Protocol scheme to use (http or https)
+  scheme = "http"
+
+  ## List of services to monitor (empty array = all services)
+  services = [ ]
+
+  ## Native Consul filter expression (replaces deprecated tags/node_meta)
+  ## Example: 'Service.Tags contains "metrics" and Node.Meta.rack == "a1"'
+  filter = ""
+
+  ## Allow stale results to reduce load on Consul cluster
+  allow_stale = true
+
+  ## Interval for refreshing service discovery targets
+  refresh_interval = "5m"
+
+  ## Authentication config (TLS)
+  [inputs.promsd.consul_sd_config.auth]
+    ## --- TLS Configuration ---
+    # insecure_skip_verify = false
+    # ca_certs = ["/opt/tls/ca.crt"]
+    # cert     = "/opt/tls/client.crt"
+```
+
+#### Consul Service Instance Processing Logic {#processing-logic}
+
+1. **Target URL Construction Rules**
+
+   Scrape URL format: `{scheme}://{host}:{port}{path}?{params}`
+   - `scheme/path/params` from `inputs.promsd.scrape` config
+   - `host` prioritizes `ServiceAddress`, falls back to `Address` if empty
+   - `port` always uses `ServicePort`
+
+1. **Service Instance Example**
+
+```json
+[
+  {
+    "ServiceName": "web-service",
+    "ServiceAddress": "192.168.10.10",  // Primary host source
+    "Address": "172.17.0.4",            // Fallback when ServiceAddress empty
+    "ServicePort": 8080,                // Always used for port
+    "ServiceTags": ["prod", "frontend"]
+  }
+]
+```
+
+Resulting scrape URL: `http://192.168.10.10:8080/metrics` (assuming base config `path=/metrics`)
+
+1. **Default Service Risk**
+
+**Always configure `services` list**. Otherwise, built-in Consul services (e.g., `consul` service) will be scraped, generating unexpected metrics.
+
+### FAQ {#faq}
+
+**What tags does Promsd collector add?**
+
+Three types of tags are added:
+
+1. Tags specified in `inputs.promsd.tags` configuration
+2. Address identifier tags:
+   - `host` (e.g., `host="192.168.10.10"`)
+   - `instance` (e.g., `instance="192.168.10.10:8080"`)
+3. DataKit global `election_tags`

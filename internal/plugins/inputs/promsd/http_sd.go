@@ -34,6 +34,8 @@ type HTTPSD struct {
 func (sd *HTTPSD) SetLogger(log *logger.Logger) { sd.log = log }
 
 func (sd *HTTPSD) StartScraperProducer(ctx context.Context, cfg *ScrapeConfig, opts []promscrape.Option, out chan<- scraper) {
+	sd.log.Infof("http_sd: start %s", sd.ServiceURL)
+
 	ticker := time.NewTicker(sd.RefreshInterval)
 	defer ticker.Stop()
 
@@ -55,7 +57,7 @@ func (sd *HTTPSD) StartScraperProducer(ctx context.Context, cfg *ScrapeConfig, o
 }
 
 func (sd *HTTPSD) produceScrapers(ctx context.Context, cfg *ScrapeConfig, opts []promscrape.Option, out chan<- scraper) error {
-	newTargetGroups, err := sd.fetchNewTargetGroups()
+	newTargetGroups, err := sd.discoveryTargetGroups()
 	if err != nil {
 		return err
 	}
@@ -84,15 +86,16 @@ func (sd *HTTPSD) produceScrapers(ctx context.Context, cfg *ScrapeConfig, opts [
 	}
 
 	sd.terminatedTasks()
+	sd.targetGroups = newTargetGroups
 	sd.tasks = scrapers
 	sd.log.Infof("http_sd: found new targetGroups and replaced")
 	return nil
 }
 
-func (sd *HTTPSD) fetchNewTargetGroups() (HTTPSDTargetGroups, error) {
+func (sd *HTTPSD) discoveryTargetGroups() (HTTPSDTargetGroups, error) {
 	clientOpts := httpcli.NewOptions()
 
-	if sd.Auth.TLSClientConfig != nil {
+	if sd.Auth != nil && sd.Auth.TLSClientConfig != nil {
 		config, err := sd.Auth.TLSClientConfig.TLSConfig()
 		if err != nil {
 			return nil, err
@@ -132,16 +135,30 @@ func (sd *HTTPSD) convertTargetGroupsToScraper(cfg *ScrapeConfig, opts []promscr
 		if scheme == "" {
 			scheme = cfg.Scheme
 		}
+
 		path := extractScrapeMetricsPathFromHTTPSDLabels(group.Labels)
+		if path == "" {
+			scheme = cfg.MetricsPath
+		}
+
 		params := extractScrapeParamsFromHTTPSDLabels(group.Labels)
-		paramsQuery := url.Values(params).Encode()
+		paramValues := url.Values(params)
+		if values, err := url.ParseQuery(cfg.Params); err != nil {
+			sd.log.Warnf("http_sd: unexpected scrape params: %s", cfg.Params)
+		} else {
+			for k, valueSlice := range values {
+				for _, value := range valueSlice {
+					paramValues.Add(k, value)
+				}
+			}
+		}
 
 		for _, target := range group.Targets {
 			u := &url.URL{
 				Scheme:   scheme,
 				Host:     target,
 				Path:     path,
-				RawQuery: paramsQuery,
+				RawQuery: paramValues.Encode(),
 			}
 			urls = append(urls, u.String())
 		}
@@ -187,10 +204,7 @@ func extractScrapeSchemeFromHTTPSDLabels(labels map[string]string) string {
 
 func extractScrapeMetricsPathFromHTTPSDLabels(labels map[string]string) string {
 	path := labels["__metrics_path__"]
-	if path == "" {
-		return "/metrics"
-	}
-	if !strings.HasPrefix(path, "/") {
+	if path != "" && !strings.HasPrefix(path, "/") {
 		return "/" + path
 	}
 	return path

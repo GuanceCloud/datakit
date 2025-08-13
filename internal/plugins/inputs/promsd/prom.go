@@ -16,6 +16,7 @@ import (
 )
 
 type scraper interface {
+	targetURL() string
 	scrape(timestamp int64) error
 	isTerminated() bool
 	markAsTerminated()
@@ -46,6 +47,7 @@ func newPromScraper(urlstr string, opts []promscrape.Option) (*promScraper, erro
 	return &p, nil
 }
 
+func (p *promScraper) targetURL() string  { return p.urlstr }
 func (p *promScraper) isTerminated() bool { return p.terminated.Load() }
 func (p *promScraper) markAsTerminated() {
 	p.terminated.Store(true)
@@ -68,7 +70,7 @@ func buildPromOptionsWithAuth(auth *Auth) ([]promscrape.Option, error) {
 		opts = append(opts, promscrape.WithBearerToken(string(bytes.TrimSpace(token)), false))
 	}
 
-	if auth.TLSClientConfig != nil {
+	if auth.TLSClientConfig != nil && len(auth.TLSClientConfig.CaCerts) > 0 {
 		opts = append(
 			opts,
 			promscrape.WithTLSOpen(true),
