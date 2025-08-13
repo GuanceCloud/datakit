@@ -347,7 +347,7 @@ func (t *Single) process(mode Mode, lines [][]byte) {
 
 		text, err := t.decode(originalText)
 		if err != nil {
-			t.log.Debugf("decode '%s' error: %s", t.opt.characterEncoding, err)
+			decodeErrors.WithLabelValues(t.opt.source, t.opt.characterEncoding, err.Error()).Inc()
 		}
 
 		text = removeAnsiEscapeCodes(text, t.opt.removeAnsiEscapeCodes)

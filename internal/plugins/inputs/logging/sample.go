@@ -28,7 +28,7 @@ var sampleCfg = `
   ## network ports for security.
   sockets = [
    #"tcp://0.0.0.0:9540",
-   #"udp://0.0.0.0:9541"
+   #"udp://0.0.0.0:9541",
   ]
 
   # File path filtering using glob patterns, any file matching these patterns will not be collected
