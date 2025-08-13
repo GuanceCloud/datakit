@@ -69,8 +69,7 @@ func init() {
 	flag.StringVar(&args.Proxy, "proxy", "", "http proxy http://ip:port for datakit")
 	flag.StringVar(&args.DatakitName, "name", "", "specify DataKit name, example: prod-env-datakit")
 	flag.StringVar(&args.EnableInputs, "enable-inputs", "", "default enable inputs(comma splited, example:cpu,mem,disk)")
-	flag.StringVar(&args.HTTPPublicAPIs, "http-public-apis", "", "set which apis can be access by remote, split by comma.")
-	flag.StringVar(&args.HTTPDisabledAPIs, "http-disabled-apis", "", "(Deprecated) set which apis are disallowed access by remote, split by comma.")
+
 	flag.IntVar(&args.InstallRUMSymbolTools, "install-rum-symbol-tools", 0, "whether to install RUM source map tools")
 	flag.BoolVar(&args.OTA, "ota", false, "auto update")
 	flag.StringVar(&args.InstallExternals, "install-externals", "", "install some external inputs")
@@ -92,6 +91,9 @@ func init() {
 	// datakit HTTP flags
 	flag.IntVar(&args.HTTPPort, "port", 0, "datakit HTTP port")
 	flag.StringVar(&args.HTTPListen, "listen", "", "datakit HTTP listen")
+	flag.StringVar(&args.HTTPPublicAPIs, "http-public-apis", "", "set which apis can be access by remote, split by comma.")
+	flag.StringVar(&args.HTTPDisabledAPIs, "http-disabled-apis", "", "(Deprecated) set which apis are disallowed access by remote, split by comma.")
+	flag.StringVar(&args.HTTPSocket, "http-socket", "", "set socket file for HTTP APIs")
 
 	flag.StringVar(&args.HostName, "env_hostname", "", "host name")
 	flag.StringVar(&args.IPDBType, "ipdb-type", "", "ipdb type")

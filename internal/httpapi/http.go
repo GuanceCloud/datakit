@@ -16,6 +16,7 @@ import (
 	"net/netip"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -405,6 +406,11 @@ func tryStartUDSServer(udsPath string, srv *http.Server,
 	semReload,
 	semReloadCompleted *cliutils.Sem,
 ) {
+	if runtime.GOOS == datakit.OSWindows {
+		l.Errorf("Unix domain socket not available on Windows, ignored")
+		return
+	}
+
 	select {
 	case <-datakit.Exit.Wait():
 		l.Info("tryStartServer exit")
@@ -425,7 +431,6 @@ func tryStartUDSServer(udsPath string, srv *http.Server,
 	}
 
 	// serve udsPath
-
 	udsListener, err := initUnixListener(udsPath)
 	if err != nil {
 		l.Errorf("init uds listener failed: %s", err)
@@ -568,7 +573,7 @@ func initUnixListener(udsPath string) (net.Listener, error) {
 
 		return listener, nil
 	} else {
-		return nil, fmt.Errorf("uds path %s is not absolute", udsPath)
+		return nil, fmt.Errorf("UDS path %s is not absolute", udsPath)
 	}
 }
 

@@ -188,49 +188,54 @@ if [ -n "$DK_UPGRADE" ]; then
 	printf "* Set upgrade => ON\n"
 fi
 
+if [ -n "$DK_HTTP_SOCKET" ]; then
+	cmd+=("--http-socket=$DK_HTTP_SOCKET")
+	printf "* Set http-socket => ${DK_HTTP_SOCKET}\n"
+fi
+
 if [ -n "$DK_UPGRADE_MANAGER" ]; then
 	cmd+=("--upgrade-manager=$DK_UPGRADE_MANAGER")
-	printf "* Set upgrade_manager => ON\n"
+	printf "* Set upgrade-manager => ON\n"
 fi
 
 if [ -n "$DK_UPGRADE_IP_WHITELIST" ]; then
 	cmd+=("--upgrade-ip-whitelist=$DK_UPGRADE_IP_WHITELIST")
-	printf "* Set upgrade_ip_whitelist => ${DK_UPGRADE_IP_WHITELIST} \n"
+	printf "* Set upgrade-ip-whitelist => ${DK_UPGRADE_IP_WHITELIST} \n"
 fi
 
 if [ -n "$DK_UPGRADE_LISTEN" ]; then
 	cmd+=("--upgrade-listen=$DK_UPGRADE_LISTEN")
-	printf "* Set upgrade_listen => ${DK_UPGRADE_LISTEN} \n"
+	printf "* Set upgrade-listen => ${DK_UPGRADE_LISTEN} \n"
 fi
 
 if [ -n "$DK_DEF_INPUTS" ]; then
 	cmd+=("--enable-inputs=$DK_DEF_INPUTS")
-	printf "* Set def_inputs => ${DK_DEF_INPUTS} \n"
+	printf "* Set def-inputs => ${DK_DEF_INPUTS} \n"
 fi
 
 if [ -n "$DK_INSTALL_RUM_SYMBOL_TOOLS" ]; then
 	cmd+=("--install-rum-symbol-tools=1")
-	printf "* Set install_rum_symbol_tools => ON\n"
+	printf "* Set install-rum-symbol-tools => ON\n"
 fi
 
 if [ -n "$DK_HTTP_PUBLIC_APIS" ]; then
 	cmd+=("--http-public-apis=$DK_HTTP_PUBLIC_APIS")
-	printf "* Set http_public_apis => ${DK_HTTP_PUBLIC_APIS} \n"
+	printf "* Set http-public-apis => ${DK_HTTP_PUBLIC_APIS} \n"
 fi
 
 if [ -n "$DK_GLOBAL_HOST_TAGS" ]; then
 	cmd+=("--global-host-tags=$DK_GLOBAL_HOST_TAGS")
-	printf "* Set global_host_tags => ${DK_GLOBAL_HOST_TAGS} \n"
+	printf "* Set global-host-tags => ${DK_GLOBAL_HOST_TAGS} \n"
 fi
 
 if [ -n "$DK_GLOBAL_ELECTION_TAGS" ]; then
 	cmd+=("--global-election-tags=$DK_GLOBAL_ELECTION_TAGS")
-	printf "* Set global_election_tags => ${DK_GLOBAL_ELECTION_TAGS} \n"
+	printf "* Set global-election-tags => ${DK_GLOBAL_ELECTION_TAGS} \n"
 fi
 
 if [ -n "$DK_CLOUD_PROVIDER" ]; then
 	cmd+=("--cloud-provider=$DK_CLOUD_PROVIDER")
-	printf "* Set cloud_provider => ${DK_CLOUD_PROVIDER} \n"
+	printf "* Set cloud-provider => ${DK_CLOUD_PROVIDER} \n"
 fi
 
 if [ -n "$DK_NAMESPACE" ]; then
@@ -240,42 +245,42 @@ fi
 
 if [ -n "$DK_HTTP_LISTEN" ]; then
 	cmd+=("--listen=$DK_HTTP_LISTEN")
-	printf "* Set http_listen => ${DK_HTTP_LISTEN} \n"
+	printf "* Set http-listen => ${DK_HTTP_LISTEN} \n"
 fi
 
 if [ -n "$DK_HTTP_PORT" ]; then
 	cmd+=("--port=$DK_HTTP_PORT")
-	printf "* Set http_port => ${DK_HTTP_PORT} \n"
+	printf "* Set http-port => ${DK_HTTP_PORT} \n"
 fi
 
 if [ -n "$DK_INSTALL_ONLY" ]; then
 	cmd+=("--install-only=1")
-	printf "* Set install_only => ON \n"
+	printf "* Set install-only => ON \n"
 fi
 
 if [ -n "$DK_DCA_WEBSOCKET_SERVER" ]; then
 	cmd+=("--dca-websocket-server=$DK_DCA_WEBSOCKET_SERVER")
-	printf "* Set dca_websocket_server => ${DK_DCA_WEBSOCKET_SERVER} \n"
+	printf "* Set dca-websocket-server => ${DK_DCA_WEBSOCKET_SERVER} \n"
 fi
 
 if [ -n "$DK_DCA_ENABLE" ]; then
 	cmd+=("--dca-enable=$DK_DCA_ENABLE")
-	printf "* Set dca_enable => ON \n"
+	printf "* Set dca-enable => ON \n"
 fi
 
 if [ -n "$DK_PPROF_LISTEN" ]; then
 	cmd+=("--pprof-listen=$DK_PPROF_LISTEN")
-	printf "* Set pprof_listen => ${DK_PPROF_LISTEN} \n"
+	printf "* Set pprof-listen => ${DK_PPROF_LISTEN} \n"
 fi
 
 if [ -n "$DK_INSTALL_IPDB" ]; then
 	cmd+=("--ipdb-type=$DK_INSTALL_IPDB")
-	printf "* Set ipdb_type => ${DK_INSTALL_IPDB} \n"
+	printf "* Set ipdb-type => ${DK_INSTALL_IPDB} \n"
 fi
 
 if [ -n "$DK_INSTALL_EXTERNALS" ]; then
 	cmd+=("--install-externals=$DK_INSTALL_EXTERNALS")
-	printf "* Set install_externals => ON \n"
+	printf "* Set install-externals => ON \n"
 fi
 
 proxy=""
@@ -318,32 +323,32 @@ fi
 
 if [ -n "$DK_HOSTNAME" ]; then
 	cmd+=("--env_hostname=$DK_HOSTNAME")
-	printf "* Set env_hostname => $DK_HOSTNAME \n"
+	printf "* Set env-hostname => $DK_HOSTNAME \n"
 fi
 
 if [ -n "$DK_LIMIT_CPUMAX" ]; then
 	cmd+=("--limit-cpumax=$DK_LIMIT_CPUMAX")
-	printf "* Set limit_cpumax => $DK_LIMIT_CPUMAX. Deprecated: use DK_LIMIT_CPUCORES \n"
+	printf "* Set limit-cpumax => $DK_LIMIT_CPUMAX. Deprecated: use DK_LIMIT_CPUCORES \n"
 fi
 
 if [ -n "$DK_LIMIT_CPUCORES" ]; then
 	cmd+=("--limit-cpucores=$DK_LIMIT_CPUCORES")
-	printf "* Set limit_cpucores => $DK_LIMIT_CPUCORES\n"
+	printf "* Set limit-cpucores => $DK_LIMIT_CPUCORES\n"
 fi
 
 if [ -n "$DK_LIMIT_MEMMAX" ]; then
 	cmd+=("--limit-memmax=$DK_LIMIT_MEMMAX")
-	printf "* Set limit_memmax => $DK_LIMIT_MEMMAX \n"
+	printf "* Set limit-memmax => $DK_LIMIT_MEMMAX \n"
 fi
 
 if [ -n "$DK_LIMIT_DISABLED" ]; then
 	cmd+=("--limit-disabled=1")
-	printf "* Set limit_disabled => ON \n"
+	printf "* Set limit-disabled => ON \n"
 fi
 
 if [ -n "$DK_INSTALL_LOG" ]; then
 	cmd+=("--install-log=$DK_INSTALL_LOG")
-	printf "* Set install_log => $DK_INSTALL_LOG \n"
+	printf "* Set install-log => $DK_INSTALL_LOG \n"
 fi
 
 if [ -n "$DK_CONFD_BACKEND" ]; then
@@ -412,47 +417,47 @@ fi
 
 if [ -n "$DK_GIT_URL" ]; then
 	cmd+=("--git-url=$DK_GIT_URL")
-	printf "* Set git_url => $DK_GIT_URL \n"
+	printf "* Set git-url => $DK_GIT_URL \n"
 fi
 
 if [ -n "$DK_GIT_KEY_PATH" ]; then
 	cmd+=("--git-key-path=$DK_GIT_KEY_PATH")
-	printf "* Set git_key_path => $DK_GIT_KEY_PATH \n"
+	printf "* Set git-key-path => $DK_GIT_KEY_PATH \n"
 fi
 
 if [ -n "$DK_GIT_KEY_PW" ]; then
 	cmd+=("--git-key-pw=$DK_GIT_KEY_PW")
-	printf "* Set git_key_pw => $DK_GIT_KEY_PW \n"
+	printf "* Set git-key-pw => $DK_GIT_KEY_PW \n"
 fi
 
 if [ -n "$DK_GIT_BRANCH" ]; then
 	cmd+=("--git-branch=$DK_GIT_BRANCH")
-	printf "* Set git_branch => $DK_GIT_BRANCH \n"
+	printf "* Set git-branch => $DK_GIT_BRANCH \n"
 fi
 
 if [ -n "$DK_GIT_INTERVAL" ]; then
 	cmd+=("--git-pull-interval=$DK_GIT_INTERVAL")
-	printf "* Set git_pull_interval => $DK_GIT_INTERVAL \n"
+	printf "* Set git-pull-interval => $DK_GIT_INTERVAL \n"
 fi
 
 if [ -n "$DK_ENABLE_ELECTION" ]; then
 	cmd+=("--enable-election=$DK_ENABLE_ELECTION")
-	printf "* Set enable_election => $DK_ENABLE_ELECTION \n"
+	printf "* Set enable-election => $DK_ENABLE_ELECTION \n"
 fi
 
 if [ -n "$DK_RUM_ORIGIN_IP_HEADER" ]; then
 	cmd+=("--rum-origin-ip-header=$DK_RUM_ORIGIN_IP_HEADER")
-	printf "* Set rum_origin_ip_header => $DK_RUM_ORIGIN_IP_HEADER \n"
+	printf "* Set rum-origin-ip-header => $DK_RUM_ORIGIN_IP_HEADER \n"
 fi
 
 if [ -n "$DK_DISABLE_404PAGE" ]; then
 	cmd+=("--disable-404page=$DK_DISABLE_404PAGE")
-	printf "* Set disable_404page => $DK_DISABLE_404PAGE \n"
+	printf "* Set disable-404page => $DK_DISABLE_404PAGE \n"
 fi
 
 if [ -n "$DK_LOG_LEVEL" ]; then
 	cmd+=("--log-level=$DK_LOG_LEVEL")
-	printf "* Set log_level => $DK_LOG_LEVEL \n"
+	printf "* Set log-level => $DK_LOG_LEVEL \n"
 fi
 
 if [ -n "$DK_LOG" ]; then
@@ -462,22 +467,22 @@ fi
 
 if [ -n "$DK_GIN_LOG" ]; then
 	cmd+=("--gin-log=$DK_GIN_LOG")
-	printf "* Set gin_log => $DK_GIN_LOG \n"
+	printf "* Set gin-log => $DK_GIN_LOG \n"
 fi
 
 if [ -n "$DK_USER_NAME" ]; then
 	cmd+=("--user-name=$DK_USER_NAME")
-	printf "* Set user_name => $DK_USER_NAME \n"
+	printf "* Set user-name => $DK_USER_NAME \n"
 fi
 
 if [ -n "$DK_CRYPTO_AES_KEY" ]; then
 	cmd+=("--crypto-aes_key=$DK_CRYPTO_AES_KEY")
-	printf "* Set aes_key => $DK_CRYPTO_AES_KEY \n"
+	printf "* Set crypto-aes_key => $DK_CRYPTO_AES_KEY \n"
 fi
 
 if [ -n "$DK_CRYPTO_AES_KEY_FILE" ]; then
 	cmd+=("--crypto-aes_key_file=$DK_CRYPTO_AES_KEY_FILE")
-	printf "* Set aes_key_file => $DK_CRYPTO_AES_KEY_FILE \n"
+	printf "* Set crypto-aes_key_file => $DK_CRYPTO_AES_KEY_FILE \n"
 fi
 
 printf "* Apply all DK_* envs done.\n"
