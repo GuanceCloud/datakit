@@ -24,6 +24,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
 		{FieldName: "CustomerTags", Type: doc.JSON, Example: `[\"project_id\", \"custom.tag\"]`, Desc: "Whitelist to tags", DescZh: "标签白名单"},
+		{FieldName: "CustomerTagsAll", Type: doc.Boolean, Default: `false`, Desc: "extracted all attributes to tags", DescZh: "提取所有标签"},
 		{FieldName: "KeepRareResource", Type: doc.Boolean, Default: `false`, Desc: "Keep rare tracing resources list switch", DescZh: "保持稀有跟踪资源列表"},
 		{
 			FieldName: "CompatibleDdTrace",
@@ -51,6 +52,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 
 // ReadEnv load config from environment values
 // ENV_INPUT_OTEL_CUSTOMER_TAGS : JSON string
+// ENV_INPUT_OTEL_CUSTOMER_TAGS_ALL : JSON string
 // ENV_INPUT_OTEL_KEEP_RARE_RESOURCE : bool
 // ENV_INPUT_OTEL_OMIT_ERR_STATUS : JSON string
 // ENV_INPUT_OTEL_CLOSE_RESOURCE : JSON string
@@ -77,7 +79,8 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	log = logger.SLogger(inputName)
 
 	for _, key := range []string{
-		"ENV_INPUT_OTEL_CUSTOMER_TAGS", "ENV_INPUT_OTEL_KEEP_RARE_RESOURCE", "ENV_INPUT_OTEL_OMIT_ERR_STATUS",
+		"ENV_INPUT_OTEL_CUSTOMER_TAGS", "ENV_INPUT_OTEL_CUSTOMER_TAGS_ALL",
+		"ENV_INPUT_OTEL_KEEP_RARE_RESOURCE", "ENV_INPUT_OTEL_OMIT_ERR_STATUS",
 		"ENV_INPUT_OTEL_CLOSE_RESOURCE", "ENV_INPUT_OTEL_SAMPLER", "ENV_INPUT_OTEL_TAGS",
 		"ENV_INPUT_OTEL_THREADS", "ENV_INPUT_OTEL_STORAGE", "ENV_INPUT_OTEL_HTTP",
 		"ENV_INPUT_OTEL_GRPC", "ENV_INPUT_OTEL_EXPECTED_HEADERS", "ENV_INPUT_OTEL_DEL_MESSAGE",
@@ -98,7 +101,12 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			} else {
 				ipt.CustomerTags = list
 			}
-
+		case "ENV_INPUT_OTEL_CUSTOMER_TAGS_ALL":
+			if x, err := strconv.ParseBool(value); err == nil {
+				ipt.CustomerTagsAll = x
+			} else {
+				log.Warnf("ParseBool(%q): %s, ignored", value, err.Error())
+			}
 		case "ENV_INPUT_OTEL_CLEAN_MESSAGE":
 			if x, err := strconv.ParseBool(value); err == nil {
 				ipt.CleanMessage = x
