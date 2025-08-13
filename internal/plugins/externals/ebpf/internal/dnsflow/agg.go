@@ -59,17 +59,36 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 		"src_ip_type": key.sType,
 		"dst_ip_type": key.dType,
 	}
+	sPort := strconv.FormatInt(int64(key.SPort), 10)
+	dPort := strconv.FormatInt(int64(key.DPort), 10)
 
 	if key.SPort == math.MaxUint32 {
+		sPort = "*"
 		tags["src_port"] = "*"
 	} else {
-		tags["src_port"] = strconv.FormatInt(int64(key.SPort), 10)
+		tags["src_port"] = sPort
 	}
 
 	if key.DPort == math.MaxUint32 {
+		dPort = "*"
 		tags["dst_port"] = "*"
 	} else {
-		tags["dst_port"] = strconv.FormatInt(int64(key.DPort), 10)
+		tags["dst_port"] = dPort
+	}
+
+	switch key.direction {
+	case dknetflow.DirectionIncoming:
+		tags["client_port"] = dPort
+		tags["server_port"] = sPort
+		tags["client_ip"] = key.DAddr
+		tags["server_ip"] = key.SAddr
+		tags["conn_side"] = "server"
+	case dknetflow.DirectionOutgoing:
+		tags["client_port"] = sPort
+		tags["server_port"] = dPort
+		tags["client_ip"] = key.SAddr
+		tags["server_ip"] = key.DAddr
+		tags["conn_side"] = "client"
 	}
 
 	for k, v := range addTags {
