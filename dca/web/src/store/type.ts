@@ -90,7 +90,11 @@ export type IDatakit = {
   status: string
   update_time: number
   workspace_uuid: string
+  global_host_tags_string: string
+  global_host_tags: Record<string, string>
 }
+
+export type ISearchValue = Record<string, string[]>
 
 type configItem = {
   catalog: string

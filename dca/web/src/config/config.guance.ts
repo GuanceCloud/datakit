@@ -17,6 +17,11 @@ const config = {
         colorPrimaryHover: "#4d7ee6",
         colorPrimaryActive: "#2F61CC",
       },
+      Switch: {
+        colorPrimary: "#2F61CC",
+        colorPrimaryHover: "#4d7ee6",
+        colorPrimaryActive: "#2F61CC",
+      },
       Divider: {
         colorSplit: "#F0F6FC"
       }

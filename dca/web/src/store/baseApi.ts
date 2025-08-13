@@ -22,7 +22,12 @@ export function getMsg(err: ResonseError, params?: Record<string, string>): stri
     return i18n.t("api.unknown_error")
   }
 
-  return i18n.t("api." + err.errorCode, params)
+  let msg = i18n.t("api." + err.errorCode, params)
+  if (err.message) {
+    msg += ": " + err.message
+  }
+
+  return msg
 }
 
 const fetchWithIntercept: BaseQueryFn<

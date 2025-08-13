@@ -14,7 +14,7 @@ import (
 )
 
 var ErrorMessage = map[string]string{
-	"server.error": "server error",
+	errorCodeServerError: "server error",
 }
 
 // handler helps to handle response.
@@ -80,20 +80,27 @@ func (h *handler) success(contents ...any) {
 	})
 }
 
-func (h *handler) fail(code int, msg string) {
+func (h *handler) fail(code int, errorCode, msg string) {
+	if errorCode == "" {
+		errorCode = errorCodeServerError
+	}
 	h.c.JSON(http.StatusOK, ws.DCAResponse{
 		Success:   false,
-		ErrorCode: "server.error",
+		ErrorCode: errorCode,
 		Message:   msg,
 		Code:      code,
 	})
+}
+
+func (h *handler) fatal(code int, msg string) {
+	h.fail(code, errorCodeServerError, msg)
 }
 
 func (h *handler) send(res *ws.DCAResponse) {
 	if res == nil {
 		res = &ws.DCAResponse{
 			Success:   false,
-			ErrorCode: "server.error",
+			ErrorCode: errorCodeServerError,
 			Message:   "server error",
 			Code:      500,
 		}

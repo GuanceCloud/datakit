@@ -292,11 +292,12 @@ func (manager *ClientManager) Start() {
 			if err := datakitDB.ForceUpdate(conn.DataKit); err != nil { // update datakit
 				l.Errorf("failed to insert datakit: %s", err.Error())
 				conn.Socket.Close() //nolint:errcheck,gosec
+			} else {
+				l.Infof("new connection registered: %s...", conn.DataKit.HostName)
+				manager.Clients[conn.ID] = conn
+				connectionTotalGauge.Set(float64(len(manager.Clients)))
 			}
 
-			l.Infof("new connection registered: %s...", conn.DataKit.HostName)
-			manager.Clients[conn.ID] = conn
-			connectionTotalGauge.Set(float64(len(manager.Clients)))
 		case conn := <-Manager.Unregister:
 			// delete hardly when run in container
 			if err := datakitDB.DeleteByConnID(conn.DataKit.ConnID, conn.DataKit.RunInContainer); err != nil {
@@ -336,7 +337,7 @@ func websocketHandler(c *gin.Context) {
 	h := newHandler(c)
 	if len(Manager.Register) == cap(Manager.Register) {
 		l.Warnf("register full, failed to register client from %s", c.ClientIP())
-		h.fail(http.StatusTooManyRequests, "too many requests")
+		h.fatal(http.StatusTooManyRequests, "too many requests")
 		return
 	}
 	var datakit *ws.DataKit

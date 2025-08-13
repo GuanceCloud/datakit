@@ -42,10 +42,18 @@ create table if not exists datakit (
 	run_in_container bool not null,
 	conn_id string,
 	url string,
-	status text not null
+	status text not null,
+	global_host_tags json
 );
 
 create unique index if not exists datakit_conn_id_index on datakit(conn_id,runtime_id);
+
+create table if not exists global_host_tags (
+	id integer primary key autoincrement not null,
+	conn_id text not null,
+	workspace_uuid text not null,
+	tags JSON not null default '{}'
+);
 `
 )
 
@@ -77,12 +85,17 @@ func (db *DB) Init() error {
 		return fmt.Errorf("delete old datakit error:%w ", err)
 	}
 
+	if _, err := db.Exec("delete from global_host_tags where conn_id not in (select conn_id from datakit)"); err != nil {
+		return fmt.Errorf("delete global host tags error:%w ", err)
+	}
+
 	l.Info("init db success")
 
 	return nil
 }
 
 func (db *DB) Select(sql string, res any, args ...interface{}) error {
+	l.Debugf("select sql: %s, args: %v", sql, args)
 	return db.db.Select(res, sql, args...)
 }
 
@@ -106,9 +119,26 @@ func (db *DB) ForceUpdate(dk *ws.DataKit) error {
 func (db *DB) Update(dk *ws.DataKit) error {
 	updatedAt := time.Now().UnixMilli()
 	//nolint:lll
-	_, err := db.Exec("update datakit set arch=?,host_name=?,os=?,version=?,ip=?,start_time=?,run_in_container=?,run_mode=?,usage_cores=?,updated_at=?,workspace_uuid=?,status=?,url=? where conn_id=?",
-		dk.Arch, dk.HostName, dk.OS, dk.Version, dk.IP, dk.StartTime, dk.RunInContainer, dk.RunMode, dk.UsageCores, updatedAt, dk.WorkspaceUUID, dk.Status.String(), dk.URL, dk.ConnID)
-	return err
+	sql := `
+		update datakit set 
+			arch=?,host_name=?,os=?,version=?,ip=?,
+			start_time=?,run_in_container=?,run_mode=?,
+			usage_cores=?,updated_at=?,
+			workspace_uuid=?,status=?,url=?,global_host_tags=?
+		where conn_id=?
+	`
+
+	globalHostTags := dk.GetGlobalHostTagsString()
+
+	_, err := db.Exec(sql, dk.Arch, dk.HostName,
+		dk.OS, dk.Version, dk.IP, dk.StartTime, dk.RunInContainer,
+		dk.RunMode, dk.UsageCores, updatedAt, dk.WorkspaceUUID,
+		dk.Status.String(), dk.URL, globalHostTags, dk.ConnID)
+	if err != nil {
+		return fmt.Errorf("execute sql failed: %w", err)
+	}
+
+	return db.UpdateGlobalHostTags(dk)
 }
 
 func (db *DB) UpdateInsert(dk *ws.DataKit) error {
@@ -122,17 +152,53 @@ func (db *DB) UpdateInsert(dk *ws.DataKit) error {
 
 func (db *DB) UpdateByConnID(dk *ws.DataKit, connID string) error {
 	updatedAt := time.Now().UnixMilli()
-	//nolint:lll
-	_, err := db.Exec("update datakit set runtime_id=?,arch=?,host_name=?,os=?,version=?,ip=?,start_time=?,run_in_container=?,run_mode=?,usage_cores=?,updated_at=?,workspace_uuid=?,status=?,url=? where conn_id=?",
-		dk.RunTimeID, dk.Arch, dk.HostName, dk.OS, dk.Version, dk.IP, dk.StartTime, dk.RunInContainer, dk.RunMode, dk.UsageCores, updatedAt, dk.WorkspaceUUID, dk.Status.String(), dk.URL, connID)
-	return err
+	sql := `
+     update datakit 
+       set runtime_id=?,arch=?,host_name=?,os=?,version=?,ip=?,
+			     start_time=?,run_in_container=?,run_mode=?,usage_cores=?,
+					 updated_at=?,workspace_uuid=?,status=?,url=?,global_host_tags=?
+				 }
+      where conn_id=?
+	`
+	_, err := db.Exec(sql,
+		dk.RunTimeID, dk.Arch, dk.HostName, dk.OS, dk.Version, dk.IP, dk.StartTime,
+		dk.RunInContainer, dk.RunMode, dk.UsageCores, updatedAt, dk.WorkspaceUUID,
+		dk.Status.String(), dk.URL, dk.GetGlobalHostTagsString(), connID)
+	if err != nil {
+		return fmt.Errorf("execute sql failed: %w", err)
+	}
+
+	return db.UpdateGlobalHostTags(dk)
 }
 
-func (db *DB) BatchUpdate(dks []*ws.DataKit) error {
-	for _, dk := range dks {
-		if err := db.UpdateInsert(dk); err != nil {
-			return fmt.Errorf("failed to update datakit: %w", err)
+func (db *DB) UpdateGlobalHostTags(dk *ws.DataKit) error {
+	if dk == nil {
+		return nil
+	}
+
+	// delete old global host tags
+	if err := db.DeleteGlobalHostTags(dk); err != nil {
+		return fmt.Errorf("failed to delete global host tags: %w", err)
+	}
+
+	tags := dk.GetGlobalHostTagsString()
+	if tags != "" {
+		if _, err := db.Exec("insert into global_host_tags(conn_id,tags,workspace_uuid) values(?,?,?)",
+			dk.ConnID, tags, dk.WorkspaceUUID); err != nil {
+			return fmt.Errorf("failed to insert global host tags: %w", err)
 		}
+	}
+
+	return nil
+}
+
+func (db *DB) DeleteGlobalHostTags(dk *ws.DataKit) error {
+	if dk == nil {
+		return nil
+	}
+
+	if _, err := db.Exec("delete from global_host_tags where conn_id=?", dk.ConnID); err != nil {
+		return fmt.Errorf("exec sql failed: %w", err)
 	}
 
 	return nil
@@ -184,38 +250,21 @@ func (db *DB) Insert(dk *ws.DataKit) error {
 	}
 
 	updatedAt := time.Now().UnixMilli()
-	//nolint:lll
-	_, err := db.Exec("insert into datakit(runtime_id,arch,host_name,os,version,ip,start_time,run_in_container,run_mode,usage_cores,updated_at,workspace_uuid,conn_id,status,url) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-		dk.RunTimeID, dk.Arch, dk.HostName, dk.OS, dk.Version, dk.IP, dk.StartTime, dk.RunInContainer, dk.RunMode, dk.UsageCores, updatedAt, dk.WorkspaceUUID, dk.ConnID, ws.StatusRunning, dk.URL)
-
-	return err
-}
-
-func (db *DB) BatchInsert(dks []*ws.DataKit) error {
-	if len(dks) == 0 {
-		l.Warnf("dks is empty")
-		return nil
-	}
-	args := []interface{}{}
-	updatedAt := time.Now().UnixMilli()
-
-	//nolint:lll
-	sql := "insert into datakit(runtime_id,arch,host_name,os,version,ip,start_time,run_in_container,run_mode,usage_cores,updated_at,workspace_uuid,conn_id,status,url) values"
-	for i, dk := range dks {
-		if i == 0 {
-			sql += "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
-		} else {
-			sql += ",(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
-		}
-		args = append(args, dk.RunTimeID, dk.Arch, dk.HostName,
-			dk.OS, dk.Version, dk.IP, dk.StartTime, dk.RunInContainer,
-			dk.RunMode, dk.UsageCores, updatedAt, dk.WorkspaceUUID, dk.ConnID,
-			ws.StatusRunning, dk.URL)
+	sql := `
+	  insert into 
+		  datakit(runtime_id,arch,host_name,os,version,ip,
+			  start_time,run_in_container,run_mode,usage_cores,updated_at,
+			   workspace_uuid,conn_id,status,url,global_host_tags) 
+		  values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+  `
+	_, err := db.Exec(sql, dk.RunTimeID, dk.Arch, dk.HostName, dk.OS,
+		dk.Version, dk.IP, dk.StartTime, dk.RunInContainer, dk.RunMode, dk.UsageCores,
+		updatedAt, dk.WorkspaceUUID, dk.ConnID, ws.StatusRunning, dk.URL, dk.GetGlobalHostTagsString())
+	if err != nil {
+		return fmt.Errorf("execute sql failed: %w", err)
 	}
 
-	_, err := db.Exec(sql, args...)
-
-	return err
+	return db.UpdateGlobalHostTags(dk)
 }
 
 // Delete update datakit status to offline when datakit is online.
@@ -226,7 +275,11 @@ func (db *DB) Delete(dk *ws.DataKit, isHard bool) error {
 	}
 	if isHard {
 		_, err := db.Exec("delete from datakit where conn_id=?", dk.ConnID)
-		return err
+		if err != nil {
+			return fmt.Errorf("execute sql failed: %w", err)
+		}
+
+		return db.DeleteGlobalHostTags(dk)
 	}
 
 	_, err := db.Exec("update datakit set status=? where conn_id=?", ws.StatusOffline, dk.ConnID)
