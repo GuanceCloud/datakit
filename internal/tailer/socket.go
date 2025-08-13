@@ -18,6 +18,7 @@ import (
 	"github.com/GuanceCloud/pipeline-go/constants"
 	"github.com/GuanceCloud/pipeline-go/lang"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/reader"
@@ -69,6 +70,14 @@ func (sk *SocketLogger) setup() error {
 		sk.log.Warn(err)
 		return err
 	}
+
+	if sk.opt.characterEncoding != "" {
+		if _, err := encoding.NewDecoder(sk.opt.characterEncoding); err != nil {
+			sk.log.Warnf("newdecoder err: %s", err)
+			return err
+		}
+	}
+
 	if err := sk.makeServer(); err != nil {
 		sk.log.Warn(err)
 		return err
@@ -91,7 +100,7 @@ func (sk *SocketLogger) makeServer() error {
 
 		// default use TCP
 		if scheme == "" {
-			scheme = "tcp"
+			scheme = "tcp" // nolint:goconst
 		}
 
 		switch scheme {
@@ -103,7 +112,7 @@ func (sk *SocketLogger) makeServer() error {
 			sk.servers = append(sk.servers, srv)
 
 		case "udp", "udp4", "udp6":
-			srv, err := newUDPServer(scheme, address)
+			srv, err := newUDPServer(scheme, address, sk.opt)
 			if err != nil {
 				return fmt.Errorf("%s-socket listen port error: %w", scheme, err)
 			}
@@ -236,13 +245,19 @@ func (s *tcpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 			continue
 		}
 
-		socketLogConnect.WithLabelValues("tcp", "ok").Add(1)
+		socketLogConnect.WithLabelValues("tcp", "ok").Inc()
 		socketGoroutine.Go(func(_ context.Context) error {
 			defer conn.Close() // nolint
 
 			rd := reader.NewReader(conn)
 			// must not error
 			mult, _ := multiline.New(s.opt.multilinePatterns, multiline.WithMaxLength(int(s.opt.maxMultilineLength)))
+
+			var decoder *encoding.Decoder
+			if s.opt.characterEncoding != "" {
+				// must not error
+				decoder, _ = encoding.NewDecoder(s.opt.characterEncoding)
+			}
 
 			for {
 				select {
@@ -258,27 +273,32 @@ func (s *tcpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 				}
 
 				var pending [][]byte
-
 				for _, line := range lines {
 					if len(line) == 0 {
 						continue
 					}
 
-					text, _ := mult.ProcessLine(multiline.TrimRightSpace(line))
+					text, err := decodingBytes(decoder, line)
+					if err != nil {
+						decodeErrors.WithLabelValues(s.opt.source, s.opt.characterEncoding, err.Error()).Inc()
+					}
+
+					text = removeAnsiEscapeCodes(text, s.opt.removeAnsiEscapeCodes)
+					text, _ = mult.ProcessLine(multiline.TrimRightSpace(text))
 					if len(text) == 0 {
 						continue
 					}
 					pending = append(pending, text)
 				}
 
-				socketLogCount.WithLabelValues("tcp").Add(1)
+				socketLogCount.WithLabelValues("tcp").Inc()
 				socketLogLength.WithLabelValues("tcp").Observe(float64(len(pending)))
 				feed(pending)
 			}
 
 			if mult.BuffLength() > 0 {
 				b := mult.Flush()
-				socketLogCount.WithLabelValues("tcp").Add(1)
+				socketLogCount.WithLabelValues("tcp").Inc()
 				socketLogLength.WithLabelValues("tcp").Observe(float64(1))
 				feed([][]byte{b})
 			}
@@ -289,9 +309,10 @@ func (s *tcpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 
 type udpServer struct {
 	conn net.Conn
+	opt  *option
 }
 
-func newUDPServer(scheme, address string) (*udpServer, error) {
+func newUDPServer(scheme, address string, opt *option) (*udpServer, error) {
 	udpAddr, err := net.ResolveUDPAddr(scheme, address)
 	if err != nil {
 		return nil, fmt.Errorf("resolve UDP addr error:%w", err)
@@ -302,7 +323,7 @@ func newUDPServer(scheme, address string) (*udpServer, error) {
 		return nil, err
 	}
 
-	return &udpServer{conn}, nil
+	return &udpServer{conn, opt}, nil
 }
 
 func (s *udpServer) close() error {
@@ -311,7 +332,13 @@ func (s *udpServer) close() error {
 
 func (s *udpServer) forwardMessage(ctx context.Context, feed func([][]byte)) error {
 	defer s.conn.Close() // nolint
+
 	rd := reader.NewReader(s.conn, reader.DisablePreviousBlock())
+	var decoder *encoding.Decoder
+	if s.opt.characterEncoding != "" {
+		// must not error
+		decoder, _ = encoding.NewDecoder(s.opt.characterEncoding)
+	}
 
 	for {
 		select {
@@ -329,12 +356,30 @@ func (s *udpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 			return err
 		}
 
-		if len(lines) == 0 {
-			continue
+		var pending [][]byte
+		for _, line := range lines {
+			if len(lines) == 0 {
+				continue
+			}
+
+			text, err := decodingBytes(decoder, line)
+			if err != nil {
+				decodeErrors.WithLabelValues(s.opt.source, s.opt.characterEncoding, err.Error()).Inc()
+			}
+
+			text = removeAnsiEscapeCodes(text, s.opt.removeAnsiEscapeCodes)
+			pending = append(pending, text)
 		}
 
-		socketLogCount.WithLabelValues("udp").Add(1)
+		socketLogCount.WithLabelValues("udp").Inc()
 		socketLogLength.WithLabelValues("udp").Observe(float64(len(lines)))
-		feed(lines)
+		feed(pending)
 	}
+}
+
+func decodingBytes(decoder *encoding.Decoder, text []byte) ([]byte, error) {
+	if decoder == nil {
+		return text, nil
+	}
+	return decoder.Bytes(text)
 }

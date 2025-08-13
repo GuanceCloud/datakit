@@ -21,6 +21,8 @@ var (
 	socketLogConnect *prometheus.CounterVec
 	socketLogCount   *prometheus.CounterVec
 	socketLogLength  *prometheus.SummaryVec
+
+	decodeErrors *prometheus.CounterVec
 )
 
 func setupMetrics() {
@@ -140,6 +142,20 @@ func setupMetrics() {
 		[]string{"network"},
 	)
 
+	decodeErrors = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "tailer",
+			Name:      "text_decode_errors_total",
+			Help:      "Total count of text decoding failures",
+		},
+		[]string{
+			"source",
+			"character_encoding",
+			"error_type",
+		},
+	)
+
 	metrics.MustRegister(
 		receiveCreateEventVec,
 		discardVec,
@@ -150,6 +166,7 @@ func setupMetrics() {
 		socketLogLength,
 		socketLogCount,
 		socketLogConnect,
+		decodeErrors,
 	)
 }
 

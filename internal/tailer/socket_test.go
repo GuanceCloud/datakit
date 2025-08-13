@@ -113,7 +113,7 @@ func TestForwardMessage(t *testing.T) {
 			address = srv.(*tcpServer).listener.Addr().(*net.TCPAddr).String()
 			t.Logf("TCP server address: %s", address)
 		case "udp":
-			srv, err = newUDPServer(tc.inScheme, address)
+			srv, err = newUDPServer(tc.inScheme, address, opt)
 			address = srv.(*udpServer).conn.LocalAddr().String()
 			t.Logf("UDP server address: %s", address)
 		default:
@@ -175,4 +175,96 @@ func send(scheme, address string, data [][]byte) error {
 		}
 	}
 	return nil
+}
+
+func TestForwardMessageWithDecode(t *testing.T) {
+	inCharacterEncoding := "gbk"
+
+	cases := []struct {
+		inScheme string
+		inData   [][]byte
+		out      [][]byte
+	}{
+		{
+			inScheme: "tcp",
+			inData: [][]byte{
+				{0xC4, 0xE3, 0xBA, 0xC3, 0x0A}, // "你好\n" 的 gbk 编码
+			},
+			out: [][]byte{
+				[]byte("你好"),
+			},
+		},
+		{
+			inScheme: "udp",
+			inData: [][]byte{
+				{0xC4, 0xE3, 0xBA, 0xC3}, // "你好" 的 gbk 编码
+			},
+			out: [][]byte{
+				[]byte("你好"),
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		var (
+			srv server
+			err error
+
+			opt     = &option{characterEncoding: inCharacterEncoding}
+			address = "127.0.0.1:0" // make server port random
+		)
+
+		switch tc.inScheme {
+		case "tcp":
+			srv, err = newTCPServer(tc.inScheme, address, opt)
+			address = srv.(*tcpServer).listener.Addr().(*net.TCPAddr).String()
+			t.Logf("TCP server address: %s", address)
+		case "udp":
+			srv, err = newUDPServer(tc.inScheme, address, opt)
+			address = srv.(*udpServer).conn.LocalAddr().String()
+			t.Logf("UDP server address: %s", address)
+		default:
+			t.Error("invalid scheme")
+		}
+
+		assert.NoError(t, err)
+		assert.NotNil(t, srv)
+
+		res := make(chan [][]byte, len(tc.out))
+		feed := func(pending [][]byte) {
+			res <- pending
+		}
+
+		ctx, cancel := context.WithCancel(context.Background())
+		listenerReady := make(chan struct{})
+		go func() {
+			close(listenerReady)
+			err := srv.forwardMessage(ctx, feed)
+			assert.ErrorIs(t, err, net.ErrClosed)
+		}()
+
+		<-listenerReady
+		err = send(tc.inScheme, address, tc.inData)
+		assert.NoError(t, err)
+
+		pending := [][]byte{}
+		count := &atomic.Int64{}
+
+		for {
+			if count.Load() == int64(len(tc.out)) {
+				break
+			}
+			x, ok := <-res
+			if !ok {
+				break
+			}
+			pending = append(pending, x...)
+			count.Add(int64(len(x)))
+		}
+
+		cancel()
+		srv.close()
+
+		assert.Equal(t, tc.out, pending)
+	}
 }
