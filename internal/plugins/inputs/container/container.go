@@ -119,9 +119,9 @@ func newContainerCollector(ipt *Input, endpoint string, mountPoint string, k8sCl
 
 func (c *containerCollector) StartCollect() {
 	tickers := []*time.Ticker{
-		time.NewTicker(metricInterval),
+		time.NewTicker(c.ipt.MetricCollecInterval),
 		time.NewTicker(c.ipt.LoggingSearchInterval),
-		time.NewTicker(objectInterval),
+		time.NewTicker(c.ipt.ObjectCollecInterval),
 	}
 
 	for _, t := range tickers {
@@ -141,7 +141,7 @@ func (c *containerCollector) StartCollect() {
 
 		case tt := <-tickers[0].C:
 			if c.ipt.EnableContainerMetric {
-				c.ptsTime = inputs.AlignTime(tt, c.ptsTime, metricInterval)
+				c.ptsTime = inputs.AlignTime(tt, c.ptsTime, c.ipt.MetricCollecInterval)
 				c.gatherMetric()
 			}
 

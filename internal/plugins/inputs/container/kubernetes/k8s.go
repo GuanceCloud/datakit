@@ -26,9 +26,6 @@ import (
 )
 
 var (
-	objectInterval = time.Minute * 5
-	metricInterval = time.Second * 60
-
 	defaultChangeLanguage = changes.LangEn
 	controllerStartTime   time.Time
 
@@ -45,6 +42,9 @@ type Config struct {
 	EnableK8sEvent   bool
 	EnablePodMetric  bool
 	EnableCollectJob bool
+
+	MetricCollecInterval time.Duration
+	ObjectCollecInterval time.Duration
 
 	PodFilterForMetric            filter.Filter
 	EnableExtractK8sLabelAsTagsV1 bool
@@ -95,8 +95,8 @@ func NewKubeCollector(client k8sclient.Client, cfg *Config, chanPause chan bool)
 
 func (k *Kube) StartCollect() {
 	tickers := []*time.Ticker{
-		time.NewTicker(metricInterval),
-		time.NewTicker(objectInterval),
+		time.NewTicker(k.cfg.MetricCollecInterval),
+		time.NewTicker(k.cfg.ObjectCollecInterval),
 	}
 	for _, t := range tickers {
 		defer t.Stop()
@@ -133,7 +133,7 @@ func (k *Kube) StartCollect() {
 
 		case tt := <-tickers[0].C:
 			if k.cfg.EnableK8sMetric {
-				start = inputs.AlignTime(tt, start, metricInterval)
+				start = inputs.AlignTime(tt, start, k.cfg.MetricCollecInterval)
 				k.gatherMetric(start.UnixNano())
 			}
 

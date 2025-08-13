@@ -12,10 +12,8 @@ import (
 const (
 	inputName = "container"
 
-	objectInterval  = time.Minute * 5
-	metricInterval  = time.Second * 60
-	loggingInterval = time.Second * 60
-
+	minInterval      = time.Second * 10
+	maxInterval      = time.Minute * 5
 	maxMessageLength = 256 * 1024 // 256KB
 )
 
@@ -26,6 +24,13 @@ const sampleCfg = `
     "unix:///var/run/containerd/containerd.sock",
     "unix:///var/run/crio/crio.sock",
   ]
+
+  ## Collect metric interval, default "60s".
+  # metric_collect_interval = "60s"
+  ## Collect object interval, default "5m".
+  # object_collect_interval = "5m"
+  ## Search logging interval, default "60s".
+  # logging_search_interval = "60s"
 
   enable_container_metric = true
   enable_k8s_metric       = true
@@ -62,9 +67,6 @@ const sampleCfg = `
 
   ## The maximum allowed number of open files, default is 500. If it is -1, it means no limit.
   # logging_max_open_files = 500
-
-  ## Search logging interval, default "60s".
-  #logging_search_interval = ""
 
   ## Log collection configures additional source matching, and the regular source will be renamed.
   [inputs.container.logging_extra_source_map]
