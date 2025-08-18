@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.80.1(2025/08/18) {#cl-1.80.1}
+
+This release is a hotfix containing the following fixes:
+
+### Bug Fixes {#cl-1.80.1-fix}
+
+- Fixed spelling error in OpenTelemetry field configuration (#2786)
+- Fixed issue where profiling upload incorrectly added a sinker flag (#2786)
+    - This issue would cause data loss on newer DataWay versions (>=1.8.0) as the requests would be processed as sharded requests
+
+---
+
 ## 1.80.0(2025/08/13) {#cl-1.80.0}
 
 This release is an iterative update with the following main changes:
