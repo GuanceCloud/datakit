@@ -651,15 +651,16 @@ func (ipt *Input) doSend(req *http.Request, body []byte, tags map[string]string)
 	}
 
 	req.Header.Set(XDataKitVersionHeader, datakit.Version)
+	if config.Cfg.Dataway.EnableSinker {
+		xGlobalTag := dataway.SinkHeaderValueFromTags(tags,
+			config.Cfg.Dataway.GlobalTags(),
+			config.Cfg.Dataway.CustomTagKeys())
+		if xGlobalTag == "" {
+			xGlobalTag = config.Cfg.Dataway.GlobalTagsHTTPHeaderValue()
+		}
 
-	xGlobalTag := dataway.SinkHeaderValueFromTags(tags,
-		config.Cfg.Dataway.GlobalTags(),
-		config.Cfg.Dataway.CustomTagKeys())
-	if xGlobalTag == "" {
-		xGlobalTag = config.Cfg.Dataway.GlobalTagsHTTPHeaderValue()
+		req.Header.Set(dataway.HeaderXGlobalTags, xGlobalTag)
 	}
-
-	req.Header.Set(dataway.HeaderXGlobalTags, xGlobalTag)
 
 	var (
 		sendErr    error
