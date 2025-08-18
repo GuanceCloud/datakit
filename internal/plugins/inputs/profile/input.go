@@ -505,15 +505,16 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 	}
 
 	req.Header.Set(XDataKitVersionHeader, datakit.Version)
+	if config.Cfg.Dataway.EnableSinker {
+		xGlobalTag := dataway.SinkHeaderValueFromTags(metadata,
+			config.Cfg.Dataway.GlobalTags(),
+			config.Cfg.Dataway.CustomTagKeys())
+		if xGlobalTag == "" {
+			xGlobalTag = config.Cfg.Dataway.GlobalTagsHTTPHeaderValue()
+		}
 
-	xGlobalTag := dataway.SinkHeaderValueFromTags(metadata,
-		config.Cfg.Dataway.GlobalTags(),
-		config.Cfg.Dataway.CustomTagKeys())
-	if xGlobalTag == "" {
-		xGlobalTag = config.Cfg.Dataway.GlobalTagsHTTPHeaderValue()
+		req.Header.Set(dataway.HeaderXGlobalTags, xGlobalTag)
 	}
-
-	req.Header.Set(dataway.HeaderXGlobalTags, xGlobalTag)
 
 	var (
 		sendErr    error

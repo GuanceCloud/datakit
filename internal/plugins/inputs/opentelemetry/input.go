@@ -47,7 +47,7 @@ const (
   # customer_tags = ["sink_project", "custom.otel.tag"]
 
   ## If set to true, all Attributes will be extracted and message.Attributes will be empty.
-  # costomer_tags_all = false
+  # customer_tags_all = false
 
   ## Keep rare tracing resources list switch.
   ## If some resources are rare enough(not presend in 1 hour), those resource will always send
@@ -151,7 +151,9 @@ type Input struct {
 	Pipelines           map[string]string `toml:"pipelines"`             // deprecated
 	IgnoreAttributeKeys []string          `toml:"ignore_attribute_keys"` // deprecated
 	CustomerTags        []string          `toml:"customer_tags"`
-	CustomerTagsAll     bool              `toml:"costomer_tags_all"`
+	CustomerTagsAll     bool              `toml:"customer_tags_all"`
+	// Deprecated: 错误拼写字段。
+	CustomerTagsAllDeprecated bool `toml:"costomer_tags_all"`
 
 	LogMaxLen  int         `toml:"log_max"` // KiB
 	HTTPConfig *httpConfig `toml:"http"`
@@ -248,7 +250,9 @@ func (ipt *Input) RegHTTPHandler() {
 			ipt.workerPool = wkpool
 		}
 	}
-
+	if ipt.CustomerTagsAllDeprecated {
+		ipt.CustomerTagsAll = true
+	}
 	var localCache *storage.Storage
 	if ipt.LocalCacheConfig != nil && ipt.HTTPConfig != nil {
 		log.Debug("start register")
