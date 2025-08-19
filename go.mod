@@ -392,7 +392,7 @@ require (
 )
 
 require (
-	github.com/GuanceCloud/pipeline-go v1.0.9-0.20250804083758-0b4dd0f48771
+	github.com/GuanceCloud/pipeline-go v1.0.9-0.20250819095325-01d2a81ed1c2
 	github.com/hipages/php-fpm_exporter v1.2.1
 	github.com/shopspring/decimal v1.2.0
 )

@@ -2,11 +2,11 @@
 
 Function prototype: `fn timestamp(precision: str = "ns") -> int`
 
-Function description: 返回当前 Unix 时间戳，默认精度为 ns
+Function description: Returns the current Unix timestamp, with a default precision of ns.
 
 Function parameters:
 
-- `precision`: 时间戳精度，取值范围为 "ns", "us", "ns", "s", 默认值 "ns"。
+- `precision`: Timestamp precision, the value range is "ns", "us", "ns", "s", the default value is "ns".
 
 Example:
 

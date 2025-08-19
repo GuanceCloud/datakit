@@ -165,8 +165,10 @@ github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b h1:9pkl38Cr
 github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b/go.mod h1:Acv+3eRHxCb4Qvs1YQcZ17X/D0H7DArQrew+WJtsLiE=
 github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386 h1:p2P0It6jjN66GO1+acZCb6JAPT9bAxNMarrIxPo+ZWk=
 github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386/go.mod h1:xrC7I8mMBOD93+A7fLJXU1lBaej49hZj7DaaFXFdSBE=
-github.com/GuanceCloud/pipeline-go v1.0.9-0.20250804083758-0b4dd0f48771 h1:70uR05fe7QevdIc6LFGh3hgwfJoiGLwAVuIGoGhnNW4=
-github.com/GuanceCloud/pipeline-go v1.0.9-0.20250804083758-0b4dd0f48771/go.mod h1:ImLVtod1YFBrmFIdhsyf/OWwnwBbXcPBldCjqB93020=
+github.com/GuanceCloud/pipeline-go v1.0.9-0.20250819094859-7ed9ba79b30c h1:v8/xzMXTNwel2EZlDEh3Auc+rzreksRJSGnTzHE0ULU=
+github.com/GuanceCloud/pipeline-go v1.0.9-0.20250819094859-7ed9ba79b30c/go.mod h1:ImLVtod1YFBrmFIdhsyf/OWwnwBbXcPBldCjqB93020=
+github.com/GuanceCloud/pipeline-go v1.0.9-0.20250819095325-01d2a81ed1c2 h1:pd1m2QlYGmAXyxRVO7cLTH+qgtIQ+KHdUwn9N/uE9nw=
+github.com/GuanceCloud/pipeline-go v1.0.9-0.20250819095325-01d2a81ed1c2/go.mod h1:ImLVtod1YFBrmFIdhsyf/OWwnwBbXcPBldCjqB93020=
 github.com/GuanceCloud/platypus v0.3.3-0.20250528074826-e3130ff5a05c h1:DE7qQ8Vw3+/sbIiRZ+43m9X0cNtfS+NrmVU0htylAao=
 github.com/GuanceCloud/platypus v0.3.3-0.20250528074826-e3130ff5a05c/go.mod h1:H9Sol/SI+A9ppJUohdn9m/UA0aiNvh+G0/GnY6IVDnI=
 github.com/GuanceCloud/promcommon v0.0.0-20230828165048-8a8ac696e616 h1:l2/OF8jg2mcvAv5OzJWyooCEEcL2b0yATSl/iXUrvQ8=
