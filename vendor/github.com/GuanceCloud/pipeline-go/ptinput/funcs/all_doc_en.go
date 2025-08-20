@@ -207,7 +207,7 @@ var (
 	//go:embed md/setopt.en.md
 	docSetoptEN string
 
-	//go:embed md/strlen.md
+	//go:embed md/strlen.en.md
 	docStrlenEN string
 )
 

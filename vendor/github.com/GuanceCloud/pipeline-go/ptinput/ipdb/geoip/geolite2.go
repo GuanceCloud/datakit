@@ -59,13 +59,15 @@ func (g *Geoip) loadIPLib(geo string, isp string) error {
 	if utils.FileExist(isp) {
 		if ispDB, err := openDB(isp); err == nil {
 			g.isp = ispDB
+		} else {
+			l.Warnf("isp file load error: %s", err.Error())
 		}
 	}
 
 	return nil
 }
 
-func NewGeoip(dir string, config map[string]string) *Geoip {
+func NewGeoip(dir string, config map[string]string, ispDir ...string) *Geoip {
 	g := Geoip{}
 
 	ipdbFile := "GeoLite2-City.mmdb"
@@ -75,6 +77,7 @@ func NewGeoip(dir string, config map[string]string) *Geoip {
 			ipdbFile = file
 		}
 	}
+	ipdbFile = filepath.Join(dir, ipdbFile)
 
 	ispFile := "GeoIP2-ISP.mmdb"
 	if file, ok := config[CfgISPFile]; ok {
@@ -82,10 +85,13 @@ func NewGeoip(dir string, config map[string]string) *Geoip {
 			ispFile = file
 		}
 	}
+	if len(ispDir) > 0 {
+		ispFile = filepath.Join(ispDir[0], ispFile)
+	} else {
+		ispFile = filepath.Join(dir, ispFile)
+	}
 
-	if err := g.loadIPLib(
-		filepath.Join(dir, ipdbFile),
-		filepath.Join(dir, ispFile)); err != nil {
+	if err := g.loadIPLib(ipdbFile, ispFile); err != nil {
 		l.Warnf("geolite2 load ip lib error: %s", err.Error())
 	}
 
