@@ -470,9 +470,9 @@ func (ipt *Input) collectMetric(processList []*pr.Process, tn time.Time) {
 	opts := point.DefaultMetricOptions()
 
 	for _, proc := range processList {
-		cmd, err := proc.Cmdline() // 无cmd的进程 没有采集指标的意义
-		if err != nil || cmd == "" {
-			l.Debugf("Cmdline(): %s, err: %v, ignored", proc.String(), err)
+		cmdline, err := proc.Cmdline() // 无cmd的进程 没有采集指标的意义
+		if err != nil || cmdline == "" {
+			l.Warnf("Cmdline(): %s, err: %v, ignored", proc.String(), err)
 			continue
 		}
 
@@ -482,7 +482,8 @@ func (ipt *Input) collectMetric(processList []*pr.Process, tn time.Time) {
 			continue
 		}
 
-		kvs = kvs.AddTag("pid", fmt.Sprintf("%d", proc.Pid)) // XXX: set pid as tag in metric
+		// XXX: set pid/cmdline as tag in metric
+		kvs = kvs.AddTag("pid", fmt.Sprintf("%d", proc.Pid)).AddTag("cmdline", cmdline)
 
 		for k, v := range ipt.Tags {
 			kvs = kvs.AddTag(k, v)
