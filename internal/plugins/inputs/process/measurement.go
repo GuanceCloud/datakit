@@ -61,6 +61,7 @@ func (m *processMetric) Info() *inputs.MeasurementInfo {
 			"pid":          inputs.NewTagInfo("Process ID"),
 			"process_name": inputs.NewTagInfo("Process name"),
 			"username":     inputs.NewTagInfo("Username"),
+			"cmdline":      inputs.NewTagInfo("Command line parameters for the process"),
 		},
 	}
 }
