@@ -249,7 +249,7 @@ func PubDatakit() error {
 			return err
 		}
 
-		l.Debugf("%s => %s(%s)...", x.local, x.remote, humanize.Bytes(uint64(fi.Size())))
+		l.Infof("upload %s => %s(%s)...", x.local, x.remote, humanize.Bytes(uint64(fi.Size())))
 
 		if err := ossRetryUpload(x.local, x.remote, 3); err != nil {
 			return err
@@ -279,6 +279,11 @@ func ossRetryUpload(local, remote string, retry int) error {
 }
 
 func pubDatakitHelm() error {
+	if SkipHelm != 0 {
+		l.Warnf("skip upload helm package")
+		return nil
+	}
+
 	// run helm push command
 	cmdArgs := []string{
 		// TODO: we should switch to the new style: "helm push filepath.Join(DistDir, "datakit-"+ReleaseVersion+".tgz") HelmChartRepo "
