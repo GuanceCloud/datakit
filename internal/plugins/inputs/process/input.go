@@ -405,8 +405,10 @@ func (ipt *Input) collectObject(processList []*pr.Process, tn time.Time) {
 			}
 		}
 
-		if cmd, err := proc.Cmdline(); err != nil {
-			l.Warnf("process: %v, proc.Cmdline(): %s", proc, err.Error())
+		if cmd, err := proc.Cmdline(); cmd == "" {
+			if err != nil {
+				l.Warnf("process: %v, proc.Cmdline(): %s", proc, err.Error())
+			}
 
 			// use proc-name as cmdline
 			kvs = kvs.Add("cmdline", fmt.Sprintf("(%s)", kvs.GetTag("process_name")))
