@@ -395,6 +395,9 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 		}
 
 		if !delMessage {
+			span.ParentID = 0
+			span.SpanID = 0
+			span.TraceID = 0
 			if buf, err := jsonIterator.Marshal(span); err != nil {
 				log.Warn(err.Error())
 			} else {

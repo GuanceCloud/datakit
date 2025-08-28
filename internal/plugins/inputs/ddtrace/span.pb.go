@@ -28,9 +28,9 @@ type DDSpan struct {
 	Service              string             `protobuf:"bytes,1,opt,name=service,proto3" json:"service" msg:"service"`
 	Name                 string             `protobuf:"bytes,2,opt,name=name,proto3" json:"name" msg:"name"`
 	Resource             string             `protobuf:"bytes,3,opt,name=resource,proto3" json:"resource" msg:"resource"`
-	TraceID              uint64             `protobuf:"varint,4,opt,name=traceID,proto3" json:"trace_id" msg:"trace_id"`
-	SpanID               uint64             `protobuf:"varint,5,opt,name=spanID,proto3" json:"span_id" msg:"span_id"`
-	ParentID             uint64             `protobuf:"varint,6,opt,name=parentID,proto3" json:"parent_id" msg:"parent_id"`
+	TraceID              uint64             `protobuf:"varint,4,opt,name=traceID,proto3" json:"trace_id,omitempty" msg:"trace_id"`
+	SpanID               uint64             `protobuf:"varint,5,opt,name=spanID,proto3" json:"span_id,omitempty" msg:"span_id"`
+	ParentID             uint64             `protobuf:"varint,6,opt,name=parentID,proto3" json:"parent_id,omitempty" msg:"parent_id"`
 	Start                int64              `protobuf:"varint,7,opt,name=start,proto3" json:"start" msg:"start"`
 	Duration             int64              `protobuf:"varint,8,opt,name=duration,proto3" json:"duration" msg:"duration"`
 	Error                int32              `protobuf:"varint,9,opt,name=error,proto3" json:"error" msg:"error"`
