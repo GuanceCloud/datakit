@@ -66,6 +66,7 @@ DOCKER_REMOTE_HOST           ?= "0.0.0.0" # default use localhost as docker serv
 DOCKER_IMAGE_PROJECT_PATH    ?= NOT_SET
 DOCKERFILE_SUFFIX            ?= NOT_SET
 HELM_CHART_DIR               ?= "charts/datakit"
+SKIP_HELM                    ?= 0
 MERGE_REQUEST_TARGET_BRANCH  ?= ""
 ONLY_BUILD_INPUTS_EXTENTIONS ?= 0
 
@@ -141,6 +142,7 @@ define build_bin
 		-brand $(BRAND)                         \
 		-docker-image-repo $(DOCKER_IMAGE_REPO) \
 		-helm-chart-dir $(HELM_CHART_DIR)       \
+		-skip-helm $(SKIP_HELM)                 \
 		-pkg-ebpf $(PKGEBPF)                    \
 		-only-external-inputs $(ONLY_BUILD_INPUTS_EXTENTIONS)
 	@tree -Csh -L 3 $(DIST_DIR)
@@ -160,6 +162,7 @@ define publish
 		-name $(NAME)                           \
 		-brand $(BRAND)                         \
 		-helm-chart-dir $(HELM_CHART_DIR)       \
+		-skip-helm $(SKIP_HELM)                 \
 		-docker-image-repo $(DOCKER_IMAGE_REPO) \
 		-download-ebpf $(DLEBPF)
 endef

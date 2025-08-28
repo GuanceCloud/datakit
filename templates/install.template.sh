@@ -133,7 +133,11 @@ installer_file="installer-${os}-${arch}-{{.Version}}"
 printf "* Detect installer ${installer_file}\n"
 
 installer_url="${installer_base_url}/${installer_file}"
-installer=/tmp/dk-installer-{{.Version}}
+
+tmpdir=$(mktemp -d -p .) # create tmpdir under current dir
+trap 'rm -rf "$tmpdir"' EXIT INT TERM
+
+installer_bin=${tmpdir}/dk-installer-{{.Version}}
 
 verbose_mode=
 if [ -n "$DK_VERBOSE" ]; then
@@ -491,20 +495,19 @@ printf "* Apply all DK_* envs done.\n"
 # Try install...
 ##################
 # shellcheck disable=SC2059
-printf "* Downloading installer ${installer} from ${installer_url}\n"
-
-rm -rf $installer
+rm -rf $installer_bin
+printf "* Downloading installer ${installer_bin} from ${installer_url}\n"
 
 if [ "$proxy" ]; then # add proxy for curl
 	# shellcheck disable=SC2086
-	curl $verbose_mode -x "$proxy" --fail --progress-bar $installer_url > $installer
+	curl $verbose_mode -x "$proxy" --fail --progress-bar $installer_url > $installer_bin
 else
 	# shellcheck disable=SC2086
-	curl $verbose_mode --fail --progress-bar $installer_url > $installer
+	curl $verbose_mode --fail --progress-bar $installer_url > $installer_bin
 fi
 
 # Set executable
-chmod +x $installer
+chmod +x $installer_bin
 
 if [ "$upgrade" ]; then
 	# shellcheck disable=SC2059
@@ -513,9 +516,7 @@ else
 	printf "* Installing DataKit...\n"
 fi
 
-$sudo_cmd $installer "${cmd[@]}"
-
-rm -rf $installer
+$sudo_cmd $installer_bin "${cmd[@]}"
 
 # install completion
 $sudo_cmd datakit tool --setup-completer-script

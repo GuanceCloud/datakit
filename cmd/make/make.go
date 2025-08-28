@@ -77,7 +77,10 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&build.UTExclude, "ut-exclude", "", "exclude packages for testing")
 	flag.StringVar(&build.UTOnly, "ut-only", "", "select packages for testing")
 	flag.IntVar(&build.OnlyExternalInputs, "only-external-inputs", 0, "only build external inputs")
+
 	flag.StringVar(&build.HelmChartDir, "helm-chart-dir", build.ValueNotSet, "set Helm workdir")
+	flag.IntVar(&build.SkipHelm, "skip-helm", 0, "skip build helm package")
+
 	flag.StringVar(&build.DockerImageRepo, "docker-image-repo", build.ValueNotSet, "set docker image repo URL")
 	flag.StringVar(&mdCheck, "mdcheck", "", "check markdown docs")
 	flag.BoolVar(&sampleConfCheck, "sample-conf-check", false, "check input's sample conf")

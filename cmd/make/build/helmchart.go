@@ -13,6 +13,11 @@ import (
 )
 
 func buildDatakitHelm() error {
+	if SkipHelm != 0 {
+		l.Warnf("build helm packages skipped")
+		return nil
+	}
+
 	files := [][2]string{
 		{filepath.Join(DistDir, "helm-values.yaml"), filepath.Join(HelmChartDir, "values.yaml")},
 		{filepath.Join(DistDir, "helm-Chart.yaml"), filepath.Join(HelmChartDir, "Chart.yaml")},

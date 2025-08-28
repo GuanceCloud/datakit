@@ -91,6 +91,7 @@ var (
 
 	DistDir      = ValueNotSet
 	HelmChartDir = ValueNotSet
+	SkipHelm     = 0
 
 	// InputsReleaseType defined which inputs are available
 	// during current release:
