@@ -163,6 +163,7 @@ func (r *replicaset) buildObjectPoints(list *apiappsv1.ReplicaSetList) []*point.
 			kvs = append(kvs, point.NewTags(item.Spec.Selector.MatchLabels)...)
 		}
 
+		kvs = append(kvs, pointutil.ExtractSourceCodeFromAnnotations(item.Annotations)...) // add source_code
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, r.cfg.LabelAsTagsForNonMetric.All, r.cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(r.cfg.ExtraTags)...)
 		pt := point.NewPoint(replicasetObjectClass, kvs, opts...)

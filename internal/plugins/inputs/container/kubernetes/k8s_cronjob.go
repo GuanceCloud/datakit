@@ -138,6 +138,7 @@ func (c *cronjob) buildObjectPoints(list *apibatchv1.CronJobList) []*point.Point
 		kvs = kvs.Del("annotations")
 		kvs = kvs.Del("yaml")
 
+		kvs = append(kvs, pointutil.ExtractSourceCodeFromAnnotations(item.Annotations)...) // add source_code
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, c.cfg.LabelAsTagsForNonMetric.All, c.cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(c.cfg.ExtraTags)...)
 		pt := point.NewPoint(cronjobObjectClass, kvs, opts...)

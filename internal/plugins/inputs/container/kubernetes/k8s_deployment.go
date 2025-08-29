@@ -253,6 +253,7 @@ func (d *deployment) buildObjectPoints(list *apiappsv1.DeploymentList) []*point.
 			kvs = append(kvs, point.NewTags(item.Spec.Selector.MatchLabels)...)
 		}
 
+		kvs = append(kvs, pointutil.ExtractSourceCodeFromAnnotations(item.Annotations)...) // add source_code
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, d.cfg.LabelAsTagsForNonMetric.All, d.cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(d.cfg.ExtraTags)...)
 		pt := point.NewPoint(deploymentObjectClass, kvs, opts...)

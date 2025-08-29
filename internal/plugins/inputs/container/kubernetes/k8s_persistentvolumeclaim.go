@@ -114,6 +114,7 @@ func (p *persistentvolumeclaim) buildObjectPoints(list *apicorev1.PersistentVolu
 			kvs = append(kvs, point.NewTags(item.Spec.Selector.MatchLabels)...)
 		}
 
+		kvs = append(kvs, pointutil.ExtractSourceCodeFromAnnotations(item.Annotations)...) // add source_code
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, p.cfg.LabelAsTagsForNonMetric.All, p.cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(p.cfg.ExtraTags)...)
 		pt := point.NewPoint(persistentvolumeclaimObjectClass, kvs, opts...)

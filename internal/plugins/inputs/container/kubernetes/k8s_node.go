@@ -192,6 +192,8 @@ func (n *node) buildObjectPoints(list *apicorev1.NodeList) []*point.Point {
 		kvs = kvs.Del("annotations")
 		kvs = kvs.Del("yaml")
 
+		kvs = append(kvs, pointutil.ExtractSourceCodeFromAnnotations(item.Annotations)...) // add source_code
+
 		if n.cfg.EnableExtractK8sLabelAsTagsV1 {
 			kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, true /*all labels*/, nil)...)
 		} else {

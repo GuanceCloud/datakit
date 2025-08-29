@@ -202,6 +202,9 @@ func (c *containerCollector) buildObjectPoint(item *runtime.Container) *point.Po
 			}
 			kvs = append(kvs, buildPodKVs(containerName, pod, top)...)
 
+			// add source_code
+			kvs = append(kvs, pointutil.ExtractSourceCodeFromAnnotations(pod.Annotations)...)
+
 			// 容器的 message 包含 Labels，k8s message 不包含 Labels
 			kvs = append(kvs, pointutil.LabelsToPointKVs(pod.Labels, c.podLabelAsTagsForNonMetric.all, c.podLabelAsTagsForNonMetric.keys)...)
 		}
