@@ -47,7 +47,6 @@ func (ipt *Input) selectAttrs(atts []*common.KeyValue) (kvs point.KVs, merged []
 				continue
 			}
 		}
-
 		// else
 		switch v.Value.Value.(type) {
 		case *common.AnyValue_BytesValue:

@@ -14,7 +14,7 @@ import (
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
-func Test_convert(t *testing.T) {
+func TestConvert(t *T.T) {
 	id, _ := hex.DecodeString("818616084f850520843d19e3936e4720")
 	t.Logf("id len=%d", len(id))
 	type args struct {

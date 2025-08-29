@@ -30,6 +30,8 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "TraceID64BitHex", ENVName: "TRACE_ID_64_BIT_HEX", Type: doc.Boolean, Default: `false`, Desc: "Compatible `B3/B3Multi TraceID` with `DDTrace`", DescZh: "将 `B3/B3Multi-TraceID` 与 `DDTrace` 兼容"},
 		{FieldName: "Trace128BitID", ENVName: "TRACE_128_BIT_ID", Type: doc.Boolean, Default: `true`, Desc: "Trace IDs as 32 lowercase hexadecimal", DescZh: "将链路 ID 转成长度为 32 的 16 进制编码的字符串"},
 		{FieldName: "DelMessage", Type: doc.Boolean, Default: `false`, Desc: "Delete trace message", DescZh: "删除 trace 消息"},
+		{FieldName: "TracingMetricsEnable", Type: doc.Boolean, Default: `true`, Desc: "These metrics capture request counts, error counts, and latency measures.", DescZh: "开启请求计数，错误计数和延迟指标的采集"},
+		{FieldName: "TracingMetricsBlackList", Type: doc.JSON, Example: `[\"tag_a\", \"tag_b\"]`, Desc: "Blacklist of tags in the metric: \"tracing_metrics\"", DescZh: "指标集 tracing_metrics 中标签的黑名单"},
 		{FieldName: "OmitErrStatus", Type: doc.JSON, Example: `["404", "403", "400"]`, Desc: "Whitelist to error status", DescZh: "错误状态白名单"},
 		{FieldName: "CloseResource", Type: doc.JSON, Example: `{"service1":["resource1","other"],"service2":["resource2","other"]}`, Desc: "Ignore tracing resources that service (regular)", DescZh: "忽略指定服务器的 tracing（正则匹配）"},
 		{FieldName: "Sampler", Type: doc.Float, Example: `0.3`, Desc: "Global sampling rate", DescZh: "全局采样率"},
@@ -103,6 +105,8 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		"ENV_INPUT_DDTRACE_MAX_SPANS",
 		"ENV_INPUT_DDTRACE_MAX_BODY_MB",
 		"ENV_INPUT_DDTRACE_TRACE_128_BIT_ID",
+		"ENV_INPUT_DDTRACE_TRACING_METRICS_ENABLE",
+		"ENV_INPUT_DDTRACE_TRACING_METRICS_BLACKLIST",
 	} {
 		value, ok := envs[key]
 		if !ok {
@@ -212,6 +216,19 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
 			} else {
 				ipt.DelMessage = ok
+			}
+		case "ENV_INPUT_DDTRACE_TRACING_METRICS_ENABLE":
+			if ok, err := strconv.ParseBool(value); err != nil {
+				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
+			} else {
+				ipt.TracingMetricsEnable = ok
+			}
+		case "ENV_INPUT_DDTRACE_TRACING_METRICS_BLACKLIST":
+			var list []string
+			if err := json.Unmarshal([]byte(value), &list); err != nil {
+				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
+			} else {
+				ipt.TracingMetricsBlackList = list
 			}
 		}
 	}

@@ -81,6 +81,17 @@ const (
   ## cleaned the top-level fields in message. Default true
   clean_message = true
 
+  ## tracing_metrics_enable: trace_hits trace_hits_by_http_status trace_latency trace_errors trace_errors_by_http_status trace_apdex.
+  ## Extract the above metrics from the collection traces.
+  ## default is true.
+  tracing_metrics_enable = true
+
+  ## Blacklist of metric tags: There are many labels in the metric: "tracing_metrics".
+  ## If you want to remove certain tag, you can use the blacklist to remove them.
+  ## By default, it includes: source,span_name,env,service,status,version,resource,http_status_code,http_status_class
+  ## and "customer_tags", k8s related tags, and others service.
+  # tracing_metrics_blacklist = ["tag_a","tag_b"]
+
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
@@ -155,6 +166,9 @@ type Input struct {
 	// Deprecated: 错误拼写字段。
 	CustomerTagsAllDeprecated bool `toml:"costomer_tags_all"`
 
+	TracingMetricsEnable    bool     `toml:"tracing_metrics_enable"`    // 开关，默认打开。
+	TracingMetricsBlackList []string `toml:"tracing_metrics_blacklist"` // 指标黑名单。
+
 	LogMaxLen  int         `toml:"log_max"` // KiB
 	HTTPConfig *httpConfig `toml:"http"`
 	GRPCConfig *gRPC       `toml:"grpc"`
@@ -185,6 +199,7 @@ type Input struct {
 
 	ptsOpts    []point.Option
 	jmarshaler jsonMarshaler
+	labels     []string
 }
 
 func (*Input) Catalog() string { return inputName }
@@ -199,6 +214,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&JVMMeasurement{},
 		&itrace.TraceMeasurement{Name: inputName},
+		&itrace.TracingMetricMeasurement{},
 	}
 }
 
@@ -236,6 +252,12 @@ func (ipt *Input) RegHTTPHandler() {
 
 		return
 	}
+
+	// 默认的标签 + custom tags
+	labels := itrace.AddLabels(itrace.DefaultLabelNames, ipt.CustomerTags)
+	labels = itrace.DelLabels(labels, ipt.TracingMetricsBlackList)
+	ipt.labels = labels
+	initP8SMetrics(labels)
 
 	var err error
 	var wkpool *workerpool.WorkerPool
@@ -371,15 +393,20 @@ func (ipt *Input) Run() {
 
 	log.Infof("%s agent is running...", inputName)
 
-	select {
-	case <-datakit.Exit.Wait():
-		ipt.exit()
-		log.Info("opentelemetry exit")
-		return
-	case <-ipt.semStop.Wait():
-		ipt.exit()
-		log.Info("opentelemetry return")
-		return
+	ticker := time.NewTicker(time.Second * 60)
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			ipt.exit()
+			log.Info("opentelemetry exit")
+			return
+		case <-ipt.semStop.Wait():
+			ipt.exit()
+			log.Info("opentelemetry return")
+			return
+		case <-ticker.C:
+			ipt.gatherMetrics()
+		}
 	}
 }
 
@@ -410,15 +437,32 @@ func (ipt *Input) Terminate() {
 	httpapi.RemoveHTTPRoute("POST", ipt.HTTPConfig.LogsAPI)
 }
 
+func (ipt *Input) gatherMetrics() {
+	startTime := time.Now()
+	// 发送指标
+	pts := itrace.GatherPoints(reg, ipt.Tags)
+	if len(pts) > 0 {
+		err := ipt.feeder.Feed(point.Metric, pts,
+			dkio.WithSource(dkio.FeedSource(inputName, itrace.TracingMetricName)),
+			dkio.WithCollectCost(time.Since(startTime)))
+		if err != nil {
+			log.Errorf("opentelemetry send metrics points error: %v", err)
+		}
+	}
+	// reset
+	reset()
+}
+
 func defaultInput() *Input {
 	return &Input{
-		feeder:           dkio.DefaultFeeder(),
-		semStop:          cliutils.NewSem(),
-		Tagger:           datakit.DefaultGlobalTagger(),
-		SplitServiceName: true,
-		commonAttrs:      map[string]string{},
-		CleanMessage:     true,
-		LogMaxLen:        500,
+		feeder:               dkio.DefaultFeeder(),
+		semStop:              cliutils.NewSem(),
+		Tagger:               datakit.DefaultGlobalTagger(),
+		SplitServiceName:     true,
+		commonAttrs:          map[string]string{},
+		CleanMessage:         true,
+		LogMaxLen:            500,
+		TracingMetricsEnable: true,
 	}
 }
 

@@ -24,6 +24,7 @@ func (ipt *Input) parseResourceSpans(resspans []*trace.ResourceSpans) itrace.Dat
 	var (
 		dktraces           itrace.DatakitTraces
 		spanIDs, parentIDs = ipt.getSpanIDsAndParentIDs(resspans)
+		values             = make([]string, len(ipt.labels))
 	)
 
 	// otel trace are 3 level:
@@ -65,6 +66,7 @@ func (ipt *Input) parseResourceSpans(resspans []*trace.ResourceSpans) itrace.Dat
 
 		for _, scopeSpans := range spans.ScopeSpans {
 			for _, span := range scopeSpans.Spans {
+				values = values[:0]
 				var (
 					spanKVs     point.KVs
 					mergedAttrs = make([]*common.KeyValue, 0)
@@ -194,6 +196,9 @@ func (ipt *Input) parseResourceSpans(resspans []*trace.ResourceSpans) itrace.Dat
 
 				pt := point.NewPoint(inputName, spanKVs,
 					append(ipt.ptsOpts, point.WithTimestamp(spanTime))...)
+				if ipt.TracingMetricsEnable {
+					spanMetrics(pt, ipt.labels, values)
+				}
 				dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 			}
 		}
