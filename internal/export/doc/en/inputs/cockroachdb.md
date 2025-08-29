@@ -3,7 +3,7 @@ title     : 'CockroachDB'
 summary   : 'Collect CockroachDB metrics'
 __int_icon      : 'icon/cockroachdb'
 tags:
-  - 'DATA STORES'
+  - 'DATABASE'
 dashboard :
   - desc  : 'CockroachDB'
     path  : 'dashboard/en/cockroachdb'

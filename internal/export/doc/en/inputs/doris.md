@@ -2,7 +2,7 @@
 title     : 'Doris'
 summary   : 'Collect metrics of Doris'
 tags:
-  - 'DATA STORES'
+  - 'DATABASE'
 __int_icon      : 'icon/doris'
 dashboard :
   - desc  : 'Doris'

@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.81.0(2025/08/29) {#cl-1.81.0}
+
+This release is an iterative update with the following main changes:
+
+### New Features {#cl-1.81.0-new}
+
+- Added configuration file change detection collection (#2797)
+- Added DDTrace/OpenTelemetry trace metrics collection (#2778)
+
+### Bug Fixes {#cl-1.81.0-fix}
+
+- Fixed logfwd multi-line collection failure issue (#2793)
+- DataKit Linux installation script no longer depends on */tmp* temporary directory (#2798)
+- When process object `cmdline` is empty, it defaults to filling with process name (#2801)
+- Kubernetes Pod/Container objects will actively collect the `source_code` field from annotations (#2803)
+- Fix eBPF trace uploading bug (#2792)
+
+### Optimizations {#cl-1.81.0-opt}
+
+- Removed `trace_id/span_id/parent_id` fields from message during DDTrace collection (#2764)
+- Added `cmdline` tag to host process metrics (#2796)
+
+### Compatibility Adjustments {#cl-1.81.0-brk}
+
+- Prometheus Exporter related collections now defaults to using the timestamp (in ms) from the payload as the data point timestamp (#2788)
+
+---
+
 ## 1.80.1(2025/08/18) {#cl-1.80.1}
 
 This release is a hotfix containing the following fixes:

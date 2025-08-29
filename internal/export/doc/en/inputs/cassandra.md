@@ -2,7 +2,7 @@
 title   : 'Cassandra'
 summary : 'Collect Cassandra metrics'
 tags    :
-  - 'DATA STORES'
+  - 'DATABASE'
 __int_icon : 'icon/cassandra'
 dashboard  :
   - desc   : 'Cassandra'

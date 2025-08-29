@@ -2,7 +2,7 @@
 title     : 'Solr'
 summary   : 'Collect Solr metrics'
 tags:
-  - 'DATA STORES'
+  - 'DATABASE'
 __int_icon      : 'icon/solr'
 dashboard :
   - desc  : 'Solr'

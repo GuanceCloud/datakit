@@ -15,7 +15,7 @@ monitor   :
 
 ---
 
-ConfigWatcher 采集器支持监控文件或目录的内容变更，构建变更事件数据并上报观测云平台。
+ConfigWatcher 采集器支持监控文件或目录的内容变更，构建变更事件数据并上报<<<custom_key.brand_name>>>平台。
 
 ## 配置 {#config}
 

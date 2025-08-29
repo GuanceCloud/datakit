@@ -2,7 +2,7 @@
 title     : 'OceanBase'
 summary   : 'Collect OceanBase metrics'
 tags:
-  - 'DATA STORES'
+  - 'DATABASE'
 __int_icon      : 'icon/oceanbase'
 dashboard :
   - desc  : 'OceanBase'

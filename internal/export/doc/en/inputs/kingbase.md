@@ -2,7 +2,7 @@
 title     : 'Kingbase'
 summary   : 'Collect Kingbase metrics'
 tags:
-  - 'DATA STORES'
+  - 'DATABASE'
 __int_icon      : 'icon/kingbase'
 dashboard :
   - desc  : 'Kingbase'

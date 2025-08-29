@@ -166,8 +166,8 @@ type Input struct {
 	// Deprecated: 错误拼写字段。
 	CustomerTagsAllDeprecated bool `toml:"costomer_tags_all"`
 
-	TracingMetricsEnable    bool     `toml:"tracing_metrics_enable"`    // 开关，默认打开。
-	TracingMetricsBlackList []string `toml:"tracing_metrics_blacklist"` // 指标黑名单。
+	TracingMetricEnable       bool     `toml:"tracing_metric_enable"`        // 开关，默认打开。
+	TracingMetricTagBlacklist []string `toml:"tracing_metric_tag_blacklist"` // 指标黑名单。
 
 	LogMaxLen  int         `toml:"log_max"` // KiB
 	HTTPConfig *httpConfig `toml:"http"`
@@ -255,7 +255,7 @@ func (ipt *Input) RegHTTPHandler() {
 
 	// 默认的标签 + custom tags
 	labels := itrace.AddLabels(itrace.DefaultLabelNames, ipt.CustomerTags)
-	labels = itrace.DelLabels(labels, ipt.TracingMetricsBlackList)
+	labels = itrace.DelLabels(labels, ipt.TracingMetricTagBlacklist)
 	ipt.labels = labels
 	initP8SMetrics(labels)
 
@@ -455,14 +455,14 @@ func (ipt *Input) gatherMetrics() {
 
 func defaultInput() *Input {
 	return &Input{
-		feeder:               dkio.DefaultFeeder(),
-		semStop:              cliutils.NewSem(),
-		Tagger:               datakit.DefaultGlobalTagger(),
-		SplitServiceName:     true,
-		commonAttrs:          map[string]string{},
-		CleanMessage:         true,
-		LogMaxLen:            500,
-		TracingMetricsEnable: true,
+		feeder:              dkio.DefaultFeeder(),
+		semStop:             cliutils.NewSem(),
+		Tagger:              datakit.DefaultGlobalTagger(),
+		SplitServiceName:    true,
+		commonAttrs:         map[string]string{},
+		CleanMessage:        true,
+		LogMaxLen:           500,
+		TracingMetricEnable: true,
 	}
 }
 

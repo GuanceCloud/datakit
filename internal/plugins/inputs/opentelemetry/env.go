@@ -23,7 +23,7 @@ var _ inputs.ReadEnv = &Input{}
 func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
-		{FieldName: "CustomerTags", Type: doc.JSON, Example: `[\"project_id\", \"custom.tag\"]`, Desc: "Whitelist to tags", DescZh: "标签白名单"},
+		{FieldName: "CustomerTags", Type: doc.JSON, Example: "`[\"project_id\", \"custom.tag\"]`", Desc: "Whitelist to tags", DescZh: "标签白名单"},
 		{FieldName: "CustomerTagsAll", Type: doc.Boolean, Default: `false`, Desc: "extracted all attributes to tags", DescZh: "提取所有标签"},
 		{FieldName: "KeepRareResource", Type: doc.Boolean, Default: `false`, Desc: "Keep rare tracing resources list switch", DescZh: "保持稀有跟踪资源列表"},
 		{
@@ -34,19 +34,19 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 			DescZh:    "将 trace_id 转成 10 进制，兼容 DDTrace",
 		},
 		{FieldName: "SplitServiceName", Type: doc.Boolean, Default: `false`, Desc: "Get xx.system from span.Attributes to replace service name", DescZh: "从 span.Attributes 中获取 xx.system 去替换服务名"},
-		{FieldName: "TracingMetricsEnable", Type: doc.Boolean, Default: `true`, Desc: "These metrics capture request counts, error counts, and latency measures.", DescZh: "开启请求计数，错误计数和延迟指标的采集"},
-		{FieldName: "TracingMetricsBlackList", Type: doc.JSON, Example: `[\"tag_a\", \"tag_b\"]`, Desc: "Blacklist of tags in the metric: \"tracing_metrics\"", DescZh: "指标集 tracing_metrics 中标签的黑名单"},
+		{FieldName: "TracingMetricEnable", Type: doc.Boolean, Default: `true`, Desc: "These metrics capture request counts, error counts, and latency measures.", DescZh: "开启请求计数，错误计数和延迟指标的采集"},
+		{FieldName: "TracingMetricTagBlacklist", Type: doc.JSON, Example: "`[\"tag_a\", \"tag_b\"]`", Desc: "Blacklist of tags in the metric: `tracing_metrics`", DescZh: "指标集 `tracing_metrics` 中标签的黑名单"},
 		{FieldName: "DelMessage", Type: doc.Boolean, Default: `false`, Desc: "Delete trace message", DescZh: "删除 trace 消息"},
-		{FieldName: "OmitErrStatus", Type: doc.JSON, Example: `["404", "403", "400"]`, Desc: "Whitelist to error status", DescZh: "错误状态白名单"},
-		{FieldName: "CloseResource", Type: doc.JSON, Example: `{"service1":["resource1","other"],"service2":["resource2","other"]}`, Desc: "Ignore tracing resources that service (regular)", DescZh: "忽略指定服务器的 tracing（正则匹配）"},
+		{FieldName: "OmitErrStatus", Type: doc.JSON, Example: "`[\"404\", \"403\", \"400\"]`", Desc: "Whitelist to error status", DescZh: "错误状态白名单"},
+		{FieldName: "CloseResource", Type: doc.JSON, Example: "`{\"service1\":[\"resource1\",\"other\"],\"service2\":[\"resource2\",\"other\"]}`", Desc: "Ignore tracing resources that service (regular)", DescZh: "忽略指定服务器的 tracing（正则匹配）"},
 		{FieldName: "Sampler", Type: doc.Float, Example: `0.3`, Desc: "Global sampling rate", DescZh: "全局采样率"},
-		{FieldName: "WPConfig", ENVName: "THREADS", Type: doc.JSON, Example: `{"buffer":1000, "threads":100}`, Desc: "Total number of threads and buffer", DescZh: "线程和缓存的数量"},
+		{FieldName: "WPConfig", ENVName: "THREADS", Type: doc.JSON, Example: "`{\"buffer\":1000, \"threads\":100}`", Desc: "Total number of threads and buffer", DescZh: "线程和缓存的数量"},
 		{FieldName: "LocalCacheConfig", ENVName: "STORAGE", Type: doc.JSON, Example: "`{\"storage\":\"./otel_storage\", \"capacity\": 5120}`", Desc: "Local cache file path and size (MB) ", DescZh: "本地缓存路径和大小（MB）"},
 		{FieldName: "HTTPConfig", ENVName: "HTTP", Type: doc.JSON, Example: "`{\"enable\":true, \"http_status_ok\": 200, \"trace_api\": \"/otel/v1/traces\", \"metric_api\": \"/otel/v1/metrics\"}`", Desc: "HTTP agent config", DescZh: "代理 HTTP 配置"},
-		{FieldName: "GRPCConfig", ENVName: "GRPC", Type: doc.JSON, Example: `{"addr": "127.0.0.1:4317", "max_payload": 16777216 }`, Desc: "GRPC agent config", DescZh: "代理 GRPC 配置"},
-		{FieldName: "ExpectedHeaders", Type: doc.JSON, Example: `{"ex_version": "1.2.3", "ex_name": "env_resource_name"}`, Desc: "If 'expected_headers' is well config, then the obligation of sending certain wanted HTTP headers is on the client side", DescZh: "配置使用客户端的 HTTP 头"},
+		{FieldName: "GRPCConfig", ENVName: "GRPC", Type: doc.JSON, Example: "`{\"addr\": \"127.0.0.1:4317\", \"max_payload\": 16777216 }`", Desc: "GRPC agent config", DescZh: "代理 GRPC 配置"},
+		{FieldName: "ExpectedHeaders", Type: doc.JSON, Example: "`{\"ex_version\": \"1.2.3\", \"ex_name\": \"env_resource_name\"}`", Desc: "If `expected_headers` is well config, then the obligation of sending certain wanted HTTP headers is on the client side", DescZh: "配置使用客户端的 HTTP 头"},
 		{FieldName: "CleanMessage", Type: doc.Boolean, Example: "`true/false`", Desc: "Clean message generate smaller `message` field", DescZh: "精简 `message` 字段大小"},
-		{FieldName: "Tags", Type: doc.JSON, Example: `{"k1":"v1", "k2":"v2", "k3":"v3"}`},
+		{FieldName: "Tags", Type: doc.JSON, Example: "`{\"k1\":\"v1\", \"k2\":\"v2\", \"k3\":\"v3\"}`"},
 	}
 
 	return doc.SetENVDoc("ENV_INPUT_OTEL_", infos)
@@ -212,14 +212,14 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			if ok, err := strconv.ParseBool(value); err != nil {
 				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
 			} else {
-				ipt.TracingMetricsEnable = ok
+				ipt.TracingMetricEnable = ok
 			}
 		case "ENV_INPUT_OTEL_TRACING_METRICS_BLACKLIST":
 			var list []string
 			if err := json.Unmarshal([]byte(value), &list); err != nil {
 				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
 			} else {
-				ipt.TracingMetricsBlackList = list
+				ipt.TracingMetricTagBlacklist = list
 			}
 		}
 	}
