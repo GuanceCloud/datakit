@@ -2,7 +2,7 @@
 title     : 'Dameng'
 summary   : 'Collect dameng database metrics'
 tags:
-  - 'DATA STORES'
+  - 'DATABASE'
 __int_icon      : 'icon/dameng'
 dashboard :
   - desc  : 'Dameng'

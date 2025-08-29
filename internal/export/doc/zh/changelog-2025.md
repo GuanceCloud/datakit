@@ -1,5 +1,33 @@
 # 更新日志
 
+## 1.81.0(2025/08/29) {#cl-1.81.0}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.81.0-new}
+
+- 新增配置文件变更检测采集（#2797）
+- 新增 DDTrace/OpenTelemetry trace 指标采集（#2778）
+
+### 问题修复 {#cl-1.81.0-fix}
+
+- 修复 logfwd 采集多行失效问题（#2793）
+- DataKit Linux 安装脚本不再依赖 */tmp* 临时目录（#2798）
+- 进程对象 `cmdline` 为空时，默认以进程名来填补（#2801）
+- Kubernetes 中的 Pod/Container 等对象会主动采集 annotation 中的 `source_code` 字段（#2803）
+- 修复 eBPF trace 数据上报问题（#2792）
+
+### 功能优化 {#cl-1.81.0-opt}
+
+- DDTrace 采集时，移除 message 中 `trace_id/span_id/parent_id` 三个字段（#2764）
+- 主机进程指标增加 `cmdline` tag（#2796）
+
+### 兼容调整 {#cl-1.81.0-brk}
+
+- Prometheus Exporter 相关的采集默认以 payload 中自带的时间戳（单位 ms）作为数据点时间戳（#2788）
+
+---
+
 ## 1.80.1(2025/08/18) {#cl-1.80.1}
 
 本次发布属于 hotfix 修复，内容如下：

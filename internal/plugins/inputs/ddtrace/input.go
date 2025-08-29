@@ -83,16 +83,16 @@ const (
   ## max trace body(Content-Length) limit. default 32MiB or set to -1 to remove this limit.
   # max_trace_body_mb = 32
 
-  ## tracing_metrics_enable: trace_hits trace_hits_by_http_status trace_latency trace_errors trace_errors_by_http_status trace_apdex.
+  ## tracing_metric_enable: trace_hits trace_hits_by_http_status trace_latency trace_errors trace_errors_by_http_status trace_apdex.
   ## Extract the above metrics from the collection traces.
   ## default is true.
-  tracing_metrics_enable = true
+  tracing_metric_enable = true
 
   ## Blacklist of metric tags: There are many labels in the metric: "tracing_metrics".
   ## If you want to remove certain tag, you can use the blacklist to remove them.
   ## By default, it includes: source,span_name,env,service,status,version,resource,http_status_code,http_status_class
   ## and "customer_tags", k8s related tags, and others service.
-  # tracing_metrics_blacklist = ["tag_a","tag_b"]
+  # tracing_metric_tag_blacklist = ["tag_a","tag_b"]
 
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
@@ -152,26 +152,26 @@ var (
 )
 
 type Input struct {
-	Path                    string                       `toml:"path,omitempty"`           // deprecated
-	TraceSampleConfs        interface{}                  `toml:"sample_configs,omitempty"` // deprecated []*itrace.TraceSampleConfig
-	TraceSampleConf         interface{}                  `toml:"sample_config"`            // deprecated *itrace.TraceSampleConfig
-	IgnoreResources         []string                     `toml:"ignore_resources"`         // deprecated []string
-	Pipelines               map[string]string            `toml:"pipelines"`                // deprecated
-	CustomerTags            []string                     `toml:"customer_tags"`
-	Endpoints               []string                     `toml:"endpoints"`
-	CompatibleOTEL          bool                         `toml:"compatible_otel"`
-	TraceID64BitHex         bool                         `toml:"trace_id_64_bit_hex"`
-	Trace128BitID           bool                         `toml:"trace_128_bit_id"`
-	TracingMetricsEnable    bool                         `toml:"tracing_metrics_enable"`    // 开关，默认打开。
-	TracingMetricsBlackList []string                     `toml:"tracing_metrics_blacklist"` // 指标黑名单。
-	DelMessage              bool                         `toml:"del_message"`
-	KeepRareResource        bool                         `toml:"keep_rare_resource"`
-	OmitErrStatus           []string                     `toml:"omit_err_status"`
-	CloseResource           map[string][]string          `toml:"close_resource"`
-	Sampler                 *itrace.Sampler              `toml:"sampler"`
-	Tags                    map[string]string            `toml:"tags"`
-	WPConfig                *workerpool.WorkerPoolConfig `toml:"threads"`
-	LocalCacheConfig        *storage.StorageConfig       `toml:"storage"`
+	Path                      string                       `toml:"path,omitempty"`           // deprecated
+	TraceSampleConfs          interface{}                  `toml:"sample_configs,omitempty"` // deprecated []*itrace.TraceSampleConfig
+	TraceSampleConf           interface{}                  `toml:"sample_config"`            // deprecated *itrace.TraceSampleConfig
+	IgnoreResources           []string                     `toml:"ignore_resources"`         // deprecated []string
+	Pipelines                 map[string]string            `toml:"pipelines"`                // deprecated
+	CustomerTags              []string                     `toml:"customer_tags"`
+	Endpoints                 []string                     `toml:"endpoints"`
+	CompatibleOTEL            bool                         `toml:"compatible_otel"`
+	TraceID64BitHex           bool                         `toml:"trace_id_64_bit_hex"`
+	Trace128BitID             bool                         `toml:"trace_128_bit_id"`
+	TracingMetricEnable       bool                         `toml:"tracing_metric_enable"`        // 开关，默认打开。
+	TracingMetricTagBlacklist []string                     `toml:"tracing_metric_tag_blacklist"` // 指标黑名单。
+	DelMessage                bool                         `toml:"del_message"`
+	KeepRareResource          bool                         `toml:"keep_rare_resource"`
+	OmitErrStatus             []string                     `toml:"omit_err_status"`
+	CloseResource             map[string][]string          `toml:"close_resource"`
+	Sampler                   *itrace.Sampler              `toml:"sampler"`
+	Tags                      map[string]string            `toml:"tags"`
+	WPConfig                  *workerpool.WorkerPoolConfig `toml:"threads"`
+	LocalCacheConfig          *storage.StorageConfig       `toml:"storage"`
 
 	TraceMaxSpans  int   `toml:"trace_max_spans"`
 	MaxTraceBodyMB int64 `toml:"max_trace_body_mb"`
@@ -221,10 +221,10 @@ func (ipt *Input) RegHTTPHandler() {
 	if ipt.MaxTraceBodyMB != 0 {
 		maxTraceBody = ipt.MaxTraceBodyMB * (1 << 20)
 	}
-	isTracingMetricsEnable = ipt.TracingMetricsEnable
+	isTracingMetricsEnable = ipt.TracingMetricEnable
 	// 默认的标签 + custom tags
 	labels = itrace.AddLabels(itrace.DefaultLabelNames, ipt.CustomerTags)
-	labels = itrace.DelLabels(labels, ipt.TracingMetricsBlackList)
+	labels = itrace.DelLabels(labels, ipt.TracingMetricTagBlacklist)
 	initP8SMetrics(labels)
 
 	trace128BitID = ipt.Trace128BitID
@@ -449,12 +449,12 @@ func (ipt *Input) string() string {
 
 func defaultInput() *Input {
 	return &Input{
-		feeder:               dkio.DefaultFeeder(),
-		semStop:              cliutils.NewSem(),
-		Tagger:               datakit.DefaultGlobalTagger(),
-		TraceMaxSpans:        traceMaxSpans,
-		Trace128BitID:        true,
-		TracingMetricsEnable: true,
+		feeder:              dkio.DefaultFeeder(),
+		semStop:             cliutils.NewSem(),
+		Tagger:              datakit.DefaultGlobalTagger(),
+		TraceMaxSpans:       traceMaxSpans,
+		Trace128BitID:       true,
+		TracingMetricEnable: true,
 	}
 }
 

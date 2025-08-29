@@ -2,7 +2,7 @@
 title     : 'ElasticSearch'
 summary   : 'Collect ElasticSearch metrics'
 tags:
-  - 'DATA STORES'
+  - 'DATABASE'
 __int_icon      : 'icon/elasticsearch'
 dashboard :
   - desc  : 'ElasticSearch'

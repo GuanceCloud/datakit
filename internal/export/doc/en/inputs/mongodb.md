@@ -2,7 +2,7 @@
 title     : 'MongoDB'
 summary   : 'Collect mongodb metrics data'
 tags:
-  - 'DATA STORES'
+  - 'DATABASE'
 __int_icon      : 'icon/mongodb'
 dashboard :
   - desc  : 'Mongodb'

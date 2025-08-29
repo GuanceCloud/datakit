@@ -2,7 +2,7 @@
 title     : 'CouchDB'
 summary   : 'Collect CouchDB server metrics'
 tags:
-  - 'DATA STORES'
+  - 'DATABASE'
 __int_icon      : 'icon/couchdb'
 dashboard :
   - desc  : 'CouchDB'

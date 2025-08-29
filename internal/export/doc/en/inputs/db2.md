@@ -2,7 +2,7 @@
 title     : 'DB2'
 summary   : 'Collect IBM DB2 metrics'
 tags:
-  - 'DATA STORES'
+  - 'DATABASE'
 __int_icon      : 'icon/db2'
 dashboard :
   - desc  : 'IBM Db2'

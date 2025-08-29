@@ -2,7 +2,7 @@
 title     : 'MySQL'
 summary   : 'Collect MySQL metrics and logs'
 tags:
-  - 'DATA STORES'
+  - 'DATABASE'
 __int_icon      : 'icon/mysql'
 dashboard :
   - desc  : 'MySQL'

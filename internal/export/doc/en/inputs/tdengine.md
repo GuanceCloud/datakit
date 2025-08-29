@@ -2,7 +2,7 @@
 title     : 'TDengine'
 summary   : 'Collect TDengine metrics'
 tags:
-  - 'DATA STORES'
+  - 'DATABASE'
 __int_icon      : 'icon/tdengine'
 dashboard :
   - desc  : 'TDengine'

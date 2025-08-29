@@ -81,16 +81,16 @@ const (
   ## cleaned the top-level fields in message. Default true
   clean_message = true
 
-  ## tracing_metrics_enable: trace_hits trace_hits_by_http_status trace_latency trace_errors trace_errors_by_http_status trace_apdex.
+  ## tracing_metric_enable: trace_hits trace_hits_by_http_status trace_latency trace_errors trace_errors_by_http_status trace_apdex.
   ## Extract the above metrics from the collection traces.
   ## default is true.
-  tracing_metrics_enable = true
+  tracing_metric_enable = true
 
   ## Blacklist of metric tags: There are many labels in the metric: "tracing_metrics".
   ## If you want to remove certain tag, you can use the blacklist to remove them.
   ## By default, it includes: source,span_name,env,service,status,version,resource,http_status_code,http_status_class
   ## and "customer_tags", k8s related tags, and others service.
-  # tracing_metrics_blacklist = ["tag_a","tag_b"]
+  # tracing_metric_tag_blacklist = ["tag_a","tag_b"]
 
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
@@ -166,8 +166,8 @@ type Input struct {
 	// Deprecated: 错误拼写字段。
 	CustomerTagsAllDeprecated bool `toml:"costomer_tags_all"`
 
-	TracingMetricsEnable    bool     `toml:"tracing_metrics_enable"`    // 开关，默认打开。
-	TracingMetricsBlackList []string `toml:"tracing_metrics_blacklist"` // 指标黑名单。
+	TracingMetricEnable       bool     `toml:"tracing_metric_enable"`        // 开关，默认打开。
+	TracingMetricTagBlacklist []string `toml:"tracing_metric_tag_blacklist"` // 指标黑名单。
 
 	LogMaxLen  int         `toml:"log_max"` // KiB
 	HTTPConfig *httpConfig `toml:"http"`
@@ -255,7 +255,7 @@ func (ipt *Input) RegHTTPHandler() {
 
 	// 默认的标签 + custom tags
 	labels := itrace.AddLabels(itrace.DefaultLabelNames, ipt.CustomerTags)
-	labels = itrace.DelLabels(labels, ipt.TracingMetricsBlackList)
+	labels = itrace.DelLabels(labels, ipt.TracingMetricTagBlacklist)
 	ipt.labels = labels
 	initP8SMetrics(labels)
 
@@ -455,14 +455,14 @@ func (ipt *Input) gatherMetrics() {
 
 func defaultInput() *Input {
 	return &Input{
-		feeder:               dkio.DefaultFeeder(),
-		semStop:              cliutils.NewSem(),
-		Tagger:               datakit.DefaultGlobalTagger(),
-		SplitServiceName:     true,
-		commonAttrs:          map[string]string{},
-		CleanMessage:         true,
-		LogMaxLen:            500,
-		TracingMetricsEnable: true,
+		feeder:              dkio.DefaultFeeder(),
+		semStop:             cliutils.NewSem(),
+		Tagger:              datakit.DefaultGlobalTagger(),
+		SplitServiceName:    true,
+		commonAttrs:         map[string]string{},
+		CleanMessage:        true,
+		LogMaxLen:           500,
+		TracingMetricEnable: true,
 	}
 }
 

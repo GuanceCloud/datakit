@@ -2,7 +2,7 @@
 title     : 'Oracle'
 summary   : 'Collect Oracle Metric'
 tags:
-  - 'DATA STORES'
+  - 'DATABASE'
 __int_icon      : 'icon/oracle'
 dashboard :
   - desc  : 'Oracle'

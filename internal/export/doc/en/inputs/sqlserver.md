@@ -2,7 +2,7 @@
 title     : 'SQLServer'
 summary   : 'Collect SQLServer Metrics'
 tags:
-  - 'DATA STORES'
+  - 'DATABASE'
 __int_icon      : 'icon/sqlserver'
 dashboard :
   - desc  : 'SQLServer'

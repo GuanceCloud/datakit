@@ -3,7 +3,7 @@ title      : 'ClickHouse'
 summary    : 'Collect metrics of ClickHouse'
 __int_icon : 'icon/clickhouse'
 tags:
-  - 'DATA STORES'
+  - 'DATABASE'
 dashboard :
   - desc  : 'ClickHouse'
     path  : 'dashboard/en/clickhouse'

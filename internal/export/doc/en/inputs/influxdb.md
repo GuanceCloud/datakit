@@ -2,7 +2,7 @@
 title     : 'InfluxDB'
 summary   : 'Collect InfluxDB metrics'
 tags:
-  - 'DATA STORES'
+  - 'DATABASE'
 __int_icon      : 'icon/influxdb'
 dashboard :
   - desc  : 'InfluxDB'

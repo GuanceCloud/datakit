@@ -2,7 +2,7 @@
 title     : 'PostgreSQL'
 summary   : 'Collect PostgreSQL metrics'
 tags:
-  - 'DATA STORES'
+  - 'DATABASE'
 __int_icon      : 'icon/postgresql'
 dashboard :
   - desc  : 'PostgrepSQL'

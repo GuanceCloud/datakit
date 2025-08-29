@@ -196,7 +196,7 @@ func (ipt *Input) parseResourceSpans(resspans []*trace.ResourceSpans) itrace.Dat
 
 				pt := point.NewPoint(inputName, spanKVs,
 					append(ipt.ptsOpts, point.WithTimestamp(spanTime))...)
-				if ipt.TracingMetricsEnable {
+				if ipt.TracingMetricEnable {
 					spanMetrics(pt, ipt.labels, values)
 				}
 				dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
