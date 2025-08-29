@@ -19,6 +19,7 @@ type option struct {
 	source, remote      string
 	measurement         string
 	keepExistMetricName bool
+	honorTimestamps     bool
 
 	extraTags map[string]string
 	callback  func([]*point.Point) error
@@ -61,6 +62,10 @@ func WithRemote(str string) Option      { return func(opt *option) { opt.remote 
 func WithMeasurement(str string) Option { return func(opt *option) { opt.measurement = str } }
 func KeepExistMetricName(b bool) Option {
 	return func(opt *option) { opt.keepExistMetricName = b }
+}
+
+func HonorTimestamps(b bool) Option {
+	return func(opt *option) { opt.honorTimestamps = b }
 }
 
 func WithTimeout(dur time.Duration) Option {

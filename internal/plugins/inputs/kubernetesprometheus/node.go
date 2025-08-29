@@ -161,6 +161,7 @@ func (n *Node) startScrape(ctx context.Context, key, traits string, item *corev1
 			promscrape.WithHTTPHeader(ins.Headers),
 			promscrape.WithMeasurement(cfg.measurement),
 			promscrape.KeepExistMetricName(cfg.keepExistMetricName),
+			promscrape.HonorTimestamps(cfg.honorTimestamps),
 			promscrape.WithExtraTags(cfg.tags))
 
 		prom, err := newPromScraper(RoleNode, key, cfg.urlstr, cfg.measurement, n.feeder, checkPausedFunc, opts)

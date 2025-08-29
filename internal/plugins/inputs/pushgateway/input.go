@@ -48,6 +48,9 @@ const (
   ## Split metric name by '_', the first field after split as measurement set name, the rest as current metric name.
   ## If the keep_exist_metric_name is true, keep the raw value for field names.
   keep_exist_metric_name = true
+
+  ## Use the timestamps provided by the target. Set to 'false' to use the scrape time.
+  honor_timestamps = true
 `
 )
 
@@ -58,6 +61,7 @@ type Input struct {
 	MeasurementName     string `toml:"measurement_name"`
 	JobAsMeasurement    bool   `toml:"job_as_measurement"`
 	KeepExistMetricName bool   `toml:"keep_exist_metric_name"`
+	HonorTimestamps     bool   `toml:"honor_timestamps"`
 	feeder              dkio.Feeder
 }
 
@@ -106,6 +110,7 @@ func (ipt *Input) newPromOptions(tags map[string]string) []iprom.PromOption {
 		iprom.WithLogger(log), // WithLogger must in the first
 		iprom.WithSource(inputName),
 		iprom.KeepExistMetricName(ipt.KeepExistMetricName),
+		iprom.HonorTimestamps(ipt.HonorTimestamps),
 		iprom.WithTags(tags),
 	}
 	if ipt.MeasurementName != "" {
@@ -170,7 +175,9 @@ func protobufProcessor(opts []iprom.PromOption, feeder dkio.Feeder, body io.Read
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			feeder: dkio.DefaultFeeder(),
+			KeepExistMetricName: true,
+			HonorTimestamps:     true,
+			feeder:              dkio.DefaultFeeder(),
 		}
 	})
 }

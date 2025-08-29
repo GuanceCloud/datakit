@@ -61,10 +61,12 @@ type (
 	}
 
 	Custom struct {
-		Measurement         string `toml:"measurement"`
-		JobAsMeasurement    bool   `toml:"job_as_measurement"`
+		Measurement      string            `toml:"measurement"`
+		JobAsMeasurement bool              `toml:"job_as_measurement"`
+		Tags             map[string]string `toml:"tags"`
+
 		keepExistMetricName bool
-		Tags                map[string]string `toml:"tags"`
+		honorTimestamps     bool
 	}
 
 	Auth struct {
@@ -78,6 +80,7 @@ type (
 		measurement         string
 		tags                map[string]string
 		keepExistMetricName bool
+		honorTimestamps     bool
 		// Only used on Endpoints.
 		nodeName string
 	}
@@ -111,6 +114,7 @@ func (ins *Instance) setDefault(ipt *Input) {
 	}
 
 	ins.keepExistMetricName = ipt.KeepExistMetricName
+	ins.honorTimestamps = ipt.HonorTimestamps
 
 	for k, v := range ipt.GlobalTags {
 		if _, ok := ins.Tags[k]; !ok {

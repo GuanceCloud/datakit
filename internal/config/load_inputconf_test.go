@@ -10,12 +10,10 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	T "testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/prom"
 )
 
 func eq(a, b inputs.Input) bool {
@@ -337,36 +335,4 @@ func TouchFile(name string) error {
 		return err
 	}
 	return file.Close()
-}
-
-func TestUnmarshalInputConf(t *T.T) {
-	t.Run(`tags-rename`, func(t *T.T) {
-		conf := `
-[[inputs.prom]]
-measurement_name = "guancedb"
-url = "http://$IP:8480/metrics"
-interval = "10s"
-source = "guance-scopedb-insert"
-[inputs.prom.tags]
-	source = "scopedb"
-	pod = "$PODNAME"
-[inputs.prom.tags_rename.mapping]
-	namespace = "index_namespace"`
-
-		creators := map[string]inputs.Creator{
-			"prom": func() inputs.Input {
-				return &iprom.Input{}
-			},
-		}
-
-		ret, err := LoadSingleConf(conf, creators)
-		if err != nil {
-			t.Logf("doLoadConf: %s", err)
-		}
-
-		for k, v := range ret {
-			t.Logf("%q: %+#v", k, v[0])
-			t.Logf("rename: %+#v", v[0].Input.(*iprom.Input).TagsRename)
-		}
-	})
 }

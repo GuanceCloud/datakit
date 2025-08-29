@@ -24,6 +24,9 @@ const sampleConfig = `
   ## If the keep_exist_metric_name is true, keep the raw value for field names.
   keep_exist_metric_name = true
 
+  ## Use the timestamps provided by the target. Set to 'false' to use the scrape time.
+  honor_timestamps = true
+
   ## Bearer token file path for authentication (auto adds Authorization header)
   # bearer_token_file = ""
 

@@ -16,6 +16,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
@@ -26,6 +27,7 @@ type Input struct {
 	NodeLocal                                     bool              `toml:"node_local"`
 	ScrapeInterval                                time.Duration     `toml:"scrape_interval"`
 	KeepExistMetricName                           bool              `toml:"keep_exist_metric_name"`
+	HonorTimestamps                               bool              `toml:"honor_timestamps"`
 	EnableDiscoveryOfPrometheusPodAnnotations     bool              `toml:"enable_discovery_of_prometheus_pod_annotations"`
 	EnableDiscoveryOfPrometheusServiceAnnotations bool              `toml:"enable_discovery_of_prometheus_service_annotations"`
 	EnableDiscoveryOfPrometheusPodMonitors        bool              `toml:"enable_discovery_of_prometheus_pod_monitors"`
@@ -100,6 +102,8 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) setup() error {
+	ipt.ScrapeInterval = config.ProtectedInterval(time.Second, time.Minute*5, ipt.ScrapeInterval)
+
 	if str := os.Getenv("ENV_INPUT_CONTAINER_ENABLE_AUTO_DISCOVERY_OF_PROMETHEUS_POD_ANNOTATIONS"); isTrue(str) {
 		ipt.EnableDiscoveryOfPrometheusPodAnnotations = true
 		klog.Info("enable pod annotations")
@@ -206,6 +210,7 @@ func init() { //nolint:gochecknoinits
 			NodeLocal:           true,
 			ScrapeInterval:      time.Second * 30,
 			KeepExistMetricName: true,
+			HonorTimestamps:     true,
 			chPause:             make(chan bool, inputs.ElectionPauseChannelLength),
 			pause:               newPauseVar(),
 			feeder:              dkio.DefaultFeeder(),

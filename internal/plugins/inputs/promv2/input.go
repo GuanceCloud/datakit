@@ -17,6 +17,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
@@ -39,6 +40,7 @@ type Input struct {
 	endpoint *url.URL // parsed URL
 
 	KeepExistMetricName bool `toml:"keep_exist_metric_name"`
+	HonorTimestamps     bool `toml:"honor_timestamps"`
 	DisableInstanceTag  bool `toml:"disable_instance_tag"`
 
 	BearerTokenFile string `toml:"bearer_token_file"`
@@ -165,6 +167,7 @@ func (ipt *Input) setup() error {
 		promscrape.WithHTTPHeader(ipt.HTTPHeaders),
 		promscrape.WithExtraTags(tags),
 		promscrape.KeepExistMetricName(ipt.KeepExistMetricName),
+		promscrape.HonorTimestamps(ipt.HonorTimestamps),
 		promscrape.WithCallback(ipt.callback),
 	}
 
@@ -187,6 +190,7 @@ func (ipt *Input) setup() error {
 	}
 
 	ipt.scraper = ps
+	ipt.Interval = config.ProtectedInterval(time.Second, time.Minute*5, ipt.Interval)
 	return nil
 }
 
@@ -253,7 +257,10 @@ func (ipt *Input) Resume() error {
 
 func newProm() *Input {
 	return &Input{
-		Source:      "not-set",
+		Source:              "not-set",
+		KeepExistMetricName: true,
+		HonorTimestamps:     true,
+
 		pause:       false,
 		chPause:     make(chan bool, inputs.ElectionPauseChannelLength),
 		HTTPHeaders: make(map[string]string),

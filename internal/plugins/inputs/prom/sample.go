@@ -10,6 +10,12 @@ const sampleCfg = `
   ## Exporter URLs.
   urls = ["http://127.0.0.1:9100/metrics", "http://127.0.0.1:9200/metrics"]
 
+  ## (Optional) Collect interval: (defaults to "30s").
+  # interval = "30s"
+
+  ## (Optional) Timeout: (defaults to "30s").
+  # timeout = "30s"
+
   ## Stream Size. 
   ## The source stream segmentation size, (defaults to 1).
   ## 0 source stream undivided. 
@@ -65,6 +71,9 @@ const sampleCfg = `
   ## Keep Exist Metric Name
   ## If the keep_exist_metric_name is true, keep the raw value for field names.
   keep_exist_metric_name = false
+
+  ## Use the timestamps provided by the target. Set to 'false' to use the scrape time.
+  honor_timestamps = true
 
   ## TLS config
   # insecure_skip_verify = true
@@ -140,10 +149,4 @@ const sampleCfg = `
   # [inputs.prom.tags]
     # some_tag = "some_value"
     # more_tag = "some_other_value"
-  
-  ## (Optional) Collect interval: (defaults to "30s").
-  # interval = "30s"
-
-  ## (Optional) Timeout: (defaults to "30s").
-  # timeout = "30s"
 `

@@ -347,7 +347,13 @@ func (p *Prom) MetricFamilies2points(metricFamilies map[string]*dto.MetricFamily
 					kvs = kvs.Add("status", statusInfo)
 				}
 
-				pts = append(pts, point.NewPoint(measurementName, kvs, opts...))
+				pt := point.NewPoint(measurementName, kvs, opts...)
+				if p.opt.honorTimestamps {
+					if ms := m.GetTimestampMs(); ms > 0 {
+						pt.SetTime(time.UnixMilli(ms))
+					}
+				}
+				pts = append(pts, pt)
 			}
 
 		case dto.MetricType_SUMMARY:
@@ -374,7 +380,13 @@ func (p *Prom) MetricFamilies2points(metricFamilies map[string]*dto.MetricFamily
 					}
 
 					kvs = kvs.Add(fieldName, v)
-					pts = append(pts, point.NewPoint(measurementName, kvs, opts...))
+					pt := point.NewPoint(measurementName, kvs, opts...)
+					if p.opt.honorTimestamps {
+						if ms := m.GetTimestampMs(); ms > 0 {
+							pt.SetTime(time.UnixMilli(ms))
+						}
+					}
+					pts = append(pts, pt)
 				}
 			}
 
@@ -397,7 +409,13 @@ func (p *Prom) MetricFamilies2points(metricFamilies map[string]*dto.MetricFamily
 						kvs = kvs.Add("status", statusInfo)
 					}
 
-					pts = append(pts, point.NewPoint(measurementName, kvs, opts...))
+					pt := point.NewPoint(measurementName, kvs, opts...)
+					if p.opt.honorTimestamps {
+						if ms := m.GetTimestampMs(); ms > 0 {
+							pt.SetTime(time.UnixMilli(ms))
+						}
+					}
+					pts = append(pts, pt)
 				}
 			}
 		case dto.MetricType_GAUGE_HISTOGRAM:

@@ -241,6 +241,7 @@ func (p *endpointsParser) parsePromConfig(ins *Instance) ([]*basePromConfig, err
 				headers:             ins.Headers,
 				measurement:         measurement,
 				keepExistMetricName: ins.keepExistMetricName,
+				honorTimestamps:     ins.honorTimestamps,
 				tags:                tags,
 				nodeName:            nodeName,
 			})

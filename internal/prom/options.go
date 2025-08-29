@@ -27,6 +27,7 @@ type option struct {
 	measurementName          string
 	measurements             []Rule
 	keepExistMetricName      bool
+	honorTimestamps          bool
 	output                   string
 	maxFileSize              int64
 
@@ -143,6 +144,11 @@ func WithMeasurementName(str string) PromOption {
 func KeepExistMetricName(b bool) PromOption {
 	return func(opt *option) { opt.keepExistMetricName = b }
 }
+
+func HonorTimestamps(b bool) PromOption {
+	return func(opt *option) { opt.honorTimestamps = b }
+}
+
 func WithMeasurements(r []Rule) PromOption    { return func(opt *option) { opt.measurements = r } }
 func WithOutput(str string) PromOption        { return func(opt *option) { opt.output = str } }
 func WithMaxFileSize(i int64) PromOption      { return func(opt *option) { opt.maxFileSize = i } }

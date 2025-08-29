@@ -165,6 +165,7 @@ func (e *Endpoints) startScrape(ctx context.Context, key, traits string, item *c
 				promscrape.WithHTTPHeader(ins.Headers),
 				promscrape.WithMeasurement(cfg.measurement),
 				promscrape.KeepExistMetricName(cfg.keepExistMetricName),
+				promscrape.HonorTimestamps(cfg.honorTimestamps),
 				promscrape.WithExtraTags(cfg.tags))
 
 			checkPausedFunc := func() bool {
@@ -247,6 +248,7 @@ func tryCreateScrapeForEndpoints(
 			promscrape.WithHTTPHeader(cfg.headers),
 			promscrape.WithMeasurement(cfg.measurement),
 			promscrape.KeepExistMetricName(cfg.keepExistMetricName),
+			promscrape.HonorTimestamps(cfg.honorTimestamps),
 			promscrape.WithExtraTags(cfg.tags))
 
 		checkPausedFunc := func() bool {

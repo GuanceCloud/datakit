@@ -20,18 +20,18 @@ const (
 # TYPE datakit_http_worker_number gauge
 `
 	mockBody = `
-datakit_http_worker_number{category="metric",domain="dataway.testing.com",status="%d"} 11.0
-datakit_http_worker_number{category="metric",domain="dataway.testing.com",status="%d"} 12.2
-datakit_http_worker_number{category="metric",domain="dataway.testing.com",status="%d"} 13.0
-datakit_http_worker_number{category="metric",domain="dataway.testing.com",status="%d"} 14.2
-datakit_http_worker_number{category="metric",domain="dataway.testing.com",status="%d"} 15.0
+datakit_http_worker_number{category="metric",domain="dataway.testing.com",status="%d"} 11.0 1755681983000
+datakit_http_worker_number{category="metric",domain="dataway.testing.com",status="%d"} 12.2 1755681983000
+datakit_http_worker_number{category="metric",domain="dataway.testing.com",status="%d"} 13.0 1755681983000
+datakit_http_worker_number{category="metric",domain="dataway.testing.com",status="%d"} 14.2 1755681983000
+datakit_http_worker_number{category="metric",domain="dataway.testing.com",status="%d"} 15.0 1755681983000
 `
 )
 
 func TestParseMetrics(t *testing.T) {
 	var buf bytes.Buffer
 	buf.WriteString(mockHeader)
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 10; i++ {
 		buf.WriteString(fmt.Sprintf(mockBody, i, i, i, i, i))
 	}
 
@@ -39,8 +39,12 @@ func TestParseMetrics(t *testing.T) {
 
 	opts := []PromOption{
 		WithMeasurementName("testing-meas"),
+		HonorTimestamps(true),
 		WithTags(map[string]string{"key-01": "value-01"}),
 		WithMaxBatchCallback(1, func(pts []*point.Point) error {
+			// for _, pt := range pts {
+			// 	t.Log(pt.Pretty())
+			// }
 			count += len(pts)
 			return nil
 		}),

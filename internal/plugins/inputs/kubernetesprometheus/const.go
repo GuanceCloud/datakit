@@ -42,6 +42,9 @@ const (
   ## If the keep_exist_metric_name is true, keep the raw value for field names.
   keep_exist_metric_name = true
 
+  ## Use the timestamps provided by the target. Set to 'false' to use the scrape time.
+  honor_timestamps = true
+
   enable_discovery_of_prometheus_pod_annotations     = false
   enable_discovery_of_prometheus_service_annotations = false
   enable_discovery_of_prometheus_pod_monitors        = false
