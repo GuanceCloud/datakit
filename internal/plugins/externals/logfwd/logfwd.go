@@ -197,6 +197,7 @@ func buildTailer(lg *logging, fn tailer.ForwardFunc) (*tailer.Tailer, error) {
 		tailer.WithIgnorePatterns(lg.Ignore),
 		tailer.WithPipeline(lg.Pipeline),
 		tailer.WithCharacterEncoding(lg.CharacterEncoding),
+		tailer.EnableMultiline(true),
 		tailer.WithMultilinePatterns([]string{lg.MultilineMatch}),
 		tailer.WithRemoveAnsiEscapeCodes(lg.RemoveAnsiEscapeCodes),
 		tailer.WithForwardFunc(fn),
