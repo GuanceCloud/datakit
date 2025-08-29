@@ -141,6 +141,7 @@ func (s *service) buildObjectPoints(list *apicorev1.ServiceList) []*point.Point 
 
 		kvs = append(kvs, point.NewTags(item.Spec.Selector)...)
 
+		kvs = append(kvs, pointutil.ExtractSourceCodeFromAnnotations(item.Annotations)...) // add source_code
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, s.cfg.LabelAsTagsForNonMetric.All, s.cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(s.cfg.ExtraTags)...)
 		pt := point.NewPoint(serviceObjectClass, kvs, opts...)

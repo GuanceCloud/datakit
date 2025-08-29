@@ -216,6 +216,7 @@ func (d *daemonset) buildObjectPoints(list *apiappsv1.DaemonSetList) []*point.Po
 			kvs = append(kvs, point.NewTags(item.Spec.Selector.MatchLabels)...)
 		}
 
+		kvs = append(kvs, pointutil.ExtractSourceCodeFromAnnotations(item.Annotations)...) // add source_code
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, d.cfg.LabelAsTagsForNonMetric.All, d.cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(d.cfg.ExtraTags)...)
 		pt := point.NewPoint(daemonsetObjectClass, kvs, opts...)

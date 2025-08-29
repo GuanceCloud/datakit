@@ -33,6 +33,14 @@ func LabelsToPointKVs(labels map[string]string, all bool, keys []string) point.K
 	return kvs
 }
 
+func ExtractSourceCodeFromAnnotations(annotations map[string]string) point.KVs {
+	var kvs point.KVs
+	if v, exists := annotations["source_code"]; exists && v != "" {
+		kvs = kvs.Add("source_code", v)
+	}
+	return kvs
+}
+
 func ReplaceLabelKey(s string) string {
 	return strings.ReplaceAll(s, ".", "_")
 }

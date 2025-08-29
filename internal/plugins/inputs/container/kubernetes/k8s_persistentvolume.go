@@ -109,6 +109,7 @@ func (p *persistentvolume) buildObjectPoints(list *apicorev1.PersistentVolumeLis
 		kvs = kvs.Del("annotations")
 		kvs = kvs.Del("yaml")
 
+		kvs = append(kvs, pointutil.ExtractSourceCodeFromAnnotations(item.Annotations)...) // add source_code
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, p.cfg.LabelAsTagsForNonMetric.All, p.cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(p.cfg.ExtraTags)...)
 		pt := point.NewPoint(persistentvolumeObjectClass, kvs, opts...)

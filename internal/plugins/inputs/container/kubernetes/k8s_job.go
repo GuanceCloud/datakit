@@ -175,6 +175,7 @@ func (j *job) buildObjectPoints(list *apibatchv1.JobList) []*point.Point {
 			kvs = append(kvs, point.NewTags(item.Spec.Selector.MatchLabels)...)
 		}
 
+		kvs = append(kvs, pointutil.ExtractSourceCodeFromAnnotations(item.Annotations)...) // add source_code
 		kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, j.cfg.LabelAsTagsForNonMetric.All, j.cfg.LabelAsTagsForNonMetric.Keys)...)
 		kvs = append(kvs, point.NewTags(j.cfg.ExtraTags)...)
 		pt := point.NewPoint(jobObjectClass, kvs, opts...)

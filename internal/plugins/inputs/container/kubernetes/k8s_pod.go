@@ -279,6 +279,8 @@ func (p *pod) buildObjectPoints(list *apicorev1.PodList, metricsClient PodMetric
 			kvs = append(kvs, metKVs...)
 		}
 
+		kvs = append(kvs, pointutil.ExtractSourceCodeFromAnnotations(item.Annotations)...) // add source_code
+
 		if p.cfg.EnableExtractK8sLabelAsTagsV1 {
 			kvs = append(kvs, pointutil.LabelsToPointKVs(item.Labels, true /*all labels*/, nil)...)
 		} else {
