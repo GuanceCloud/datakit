@@ -238,10 +238,11 @@ func init() { //nolint:gochecknoinits
 
 	inputs.Add(deprecatedInputName, func() inputs.Input {
 		return &Input{
-			Tags:      make(map[string]string),
-			inputName: deprecatedInputName,
-			Tagger:    datakit.DefaultGlobalTagger(),
-			semStop:   cliutils.NewSem(),
+			AutoMultilineDetection: true,
+			Tags:                   make(map[string]string),
+			inputName:              deprecatedInputName,
+			Tagger:                 datakit.DefaultGlobalTagger(),
+			semStop:                cliutils.NewSem(),
 		}
 	})
 }
