@@ -155,11 +155,6 @@ setenforce 0
     - 环境变量：`ENV_INPUT_EBPF_TRACE_SERVER`
     - 示例：`<ip>:<port>`
 
-- `trace_all_process`
-    - 描述：对系统内的所有进程进行跟踪
-    - 环境变量：`ENV_INPUT_EBPF_TRACE_ALL_PROCESS`
-    - 示例：`false`
-
 - `trace_name_blacklist`
     - 描述：指定进程名的进程将被禁止采集链路数据
     - 环境变量：`ENV_INPUT_EBPF_TRACE_NAME_BLACKLIST`

@@ -158,11 +158,6 @@ Configuration items:
     - Environment variable: `ENV_INPUT_EBPF_TRACE_SERVER`
     - Example: `<ip>:<port>`
 
-- `trace_all_process`
-    - Description: Trace all processes in the system
-    - Environment variable: `ENV_INPUT_EBPF_TRACE_ALL_PROCESS`
-    - Example: `false`
-
 - `trace_name_blacklist`
     - Description: The process with the specified process name will be disabled from collecting trace data
     - Environment variable: `ENV_INPUT_EBPF_TRACE_NAME_BLACKLIST`

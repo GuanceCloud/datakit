@@ -209,8 +209,6 @@ func NewRunCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&opt.Service, "service", "ebpf", "set service")
 
-	cmd.Flags().BoolVar(&opt.EBPFTrace.TraceAllProc, "trace-allprocess", false, "trace all processes directly")
-
 	cmd.Flags().StringSliceVar(&opt.EBPFTrace.TraceProtoList, "trace-protos", []string{}, "trace specified protocols")
 	cmd.Flags().StringSliceVar(&opt.EBPFTrace.TraceProtoBlacklist, "trace-protos-blacklist", []string{}, "deny tracking specified protocols")
 
