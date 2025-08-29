@@ -54,3 +54,8 @@ func buildDefaultChangeEventKVs() (kvs point.KVs) {
 	kvs = kvs.AddTag("df_sub_status", defaultStatus)
 	return
 }
+
+func isHiddenFile(path string) bool {
+	filename := filepath.Base(path)
+	return strings.HasPrefix(filename, ".")
+}

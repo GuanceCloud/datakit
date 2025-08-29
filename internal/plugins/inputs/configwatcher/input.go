@@ -118,10 +118,13 @@ func (ipt *Input) checkChanges() {
 			}
 
 			t := time.Now()
-			if event.newState != nil && !event.newState.modTime.IsZero() {
-				t = event.newState.modTime
-			} else if event.oldState != nil && !event.oldState.modTime.IsZero() {
-				t = event.oldState.modTime
+
+			if event.typ != deleted {
+				if event.newState != nil && !event.newState.modTime.IsZero() {
+					t = event.newState.modTime
+				} else if event.oldState != nil && !event.oldState.modTime.IsZero() {
+					t = event.oldState.modTime
+				}
 			}
 
 			var kvs point.KVs
