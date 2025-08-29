@@ -24,6 +24,7 @@ Codis
 Collector
 Confd
 ConfigMag
+ConfigWatcher
 Corefile # CoreDNS
 Couchbase
 DBCP
