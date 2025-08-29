@@ -164,6 +164,7 @@ func (p *podParser) parsePromConfig(ins *Instance) (*basePromConfig, error) {
 		urlstr:              u.String(),
 		measurement:         measurement,
 		keepExistMetricName: ins.keepExistMetricName,
+		honorTimestamps:     ins.honorTimestamps,
 		tags:                tags,
 	}, nil
 }

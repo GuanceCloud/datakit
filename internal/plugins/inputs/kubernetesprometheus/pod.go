@@ -161,6 +161,7 @@ func (p *Pod) startScrape(ctx context.Context, key, traits string, item *corev1.
 			promscrape.WithHTTPHeader(ins.Headers),
 			promscrape.WithMeasurement(cfg.measurement),
 			promscrape.KeepExistMetricName(cfg.keepExistMetricName),
+			promscrape.HonorTimestamps(cfg.honorTimestamps),
 			promscrape.WithExtraTags(cfg.tags))
 
 		prom, err := newPromScraper(p.role, key, cfg.urlstr, cfg.measurement, p.feeder, checkPausedFunc, opts)

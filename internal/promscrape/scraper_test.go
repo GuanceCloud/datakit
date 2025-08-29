@@ -20,11 +20,11 @@ const (
 # TYPE datakit_http_worker_number gauge
 `
 	mockBody = `
-datakit_http_worker_number{category="metric",domain="dataway.testing.com",status="%d", } 11.0
-datakit_http_worker_number{category="metric",domain="dataway.testing.com",status="%d", } 12.2
-datakit_http_worker_number{category="metric",domain="dataway.testing.com",status="%d", } 13.0
-datakit_http_worker_number{category="metric",domain="dataway.testing.com",status="%d", } 14.2
-datakit_http_worker_number{category="metric",domain="dataway.testing.com",status="%d", } 15.0
+datakit_http_worker_number{category="metric",domain="dataway.testing.com",status="%d", } 11.0 1755681983
+datakit_http_worker_number{category="metric",domain="dataway.testing.com",status="%d", } 12.2 1755681983
+datakit_http_worker_number{category="metric",domain="dataway.testing.com",status="%d", } 13.0 1755681983
+datakit_http_worker_number{category="metric",domain="dataway.testing.com",status="%d", } 14.2 1755681983
+datakit_http_worker_number{category="metric",domain="dataway.testing.com",status="%d", } 15.0 1755681983
 `
 )
 
@@ -33,14 +33,18 @@ func TestParseStream(t *testing.T) {
 	run := func() {
 		var buf bytes.Buffer
 		buf.WriteString(mockHeader)
-		for i := 0; i < 10000; i++ {
+		for i := 0; i < 100; i++ {
 			buf.WriteString(fmt.Sprintf(mockBody, i, i, i, i, i))
 		}
 		p := &PromScraper{
 			opt: &option{
-				measurement: "testing-meas",
-				extraTags:   map[string]string{"key-01": "value-01"},
+				measurement:     "testing-meas",
+				honorTimestamps: true,
+				extraTags:       map[string]string{"key-01": "value-01"},
 				callback: func(pts []*point.Point) error {
+					for _, pt := range pts {
+						t.Log(pt.Pretty())
+					}
 					count += len(pts)
 					return nil
 				},

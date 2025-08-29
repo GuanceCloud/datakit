@@ -113,7 +113,13 @@ func (p *PromScraper) callbackForRow(rows []Row) error {
 			kvs = kvs.AddTag(key, value)
 		}
 
-		pt := point.NewPoint(measurementName, kvs, append(opts, point.WithTimestamp(p.timestamp))...)
+		timeNs := p.timestamp
+		if p.opt.honorTimestamps && row.Timestamp > 0 {
+			// Convert it to nanoseconds.
+			timeNs = row.Timestamp * int64(time.Millisecond)
+		}
+
+		pt := point.NewPoint(measurementName, kvs, append(opts, point.WithTimestamp(timeNs))...)
 		pts = append(pts, pt)
 	}
 

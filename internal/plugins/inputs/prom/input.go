@@ -16,6 +16,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
@@ -56,6 +57,7 @@ type Input struct {
 	MeasurementName        string       `toml:"measurement_name"`
 	Measurements           []iprom.Rule `toml:"measurements"`
 	KeepExistMetricName    bool         `toml:"keep_exist_metric_name"`
+	HonorTimestamps        bool         `toml:"honor_timestamps"`
 	Output                 string       `toml:"output"`
 	MaxFileSize            int64        `toml:"max_file_size"`
 
@@ -130,6 +132,7 @@ func (i *Input) ElectionEnabled() bool {
 
 func (i *Input) Run() {
 	i.l = logger.SLogger(inputName + "/" + i.Source)
+	i.Interval = config.ProtectedInterval(time.Second, time.Minute*5, i.Interval)
 
 	tick := time.NewTicker(i.Interval)
 	defer tick.Stop()
@@ -470,6 +473,7 @@ func (i *Input) Init() error {
 		iprom.WithMeasurementName(i.MeasurementName),
 		iprom.WithMeasurements(i.Measurements),
 		iprom.KeepExistMetricName(i.KeepExistMetricName),
+		iprom.HonorTimestamps(i.HonorTimestamps),
 		iprom.WithOutput(i.Output),
 		iprom.WithMaxFileSize(i.MaxFileSize),
 		iprom.WithTLSOpen(i.TLSOpen),
@@ -503,21 +507,21 @@ var maxPauseCh = inputs.ElectionPauseChannelLength
 
 func NewProm() *Input {
 	return &Input{
-		chPause:     make(chan bool, maxPauseCh),
-		MaxFileSize: defaultMaxFileSize,
-		Source:      "prom",
-		Interval:    defaultIntervalDuration,
-		Timeout:     time.Second * 30,
-		StreamSize:  1,
-		Election:    true,
-		Tags:        make(map[string]string),
+		Source:          "prom",
+		Interval:        defaultIntervalDuration,
+		Timeout:         time.Second * 30,
+		StreamSize:      1,
+		HonorTimestamps: true,
+		MaxFileSize:     defaultMaxFileSize,
+		Election:        true,
+		Tags:            make(map[string]string),
 
-		urlTags: map[string]urlTags{},
-
+		urlTags:  map[string]urlTags{},
 		semStop:  cliutils.NewSem(),
 		Feeder:   dkio.DefaultFeeder(),
 		Tagger:   datakit.DefaultGlobalTagger(),
 		upStates: make(map[string]int),
+		chPause:  make(chan bool, maxPauseCh),
 	}
 }
 
