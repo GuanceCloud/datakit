@@ -56,27 +56,31 @@ const (
 	SpanSourceDb        = "db"
 	SpanSourceWeb       = "web"
 
-	TagHost             = "host"
-	TagContainerHost    = "container_host"
-	TagEndpoint         = "endpoint"
-	TagEnv              = "env"
-	TagHttpHost         = "http_host"
-	TagHttpMethod       = "http_method"
-	TagHttpRoute        = "http_route"
-	TagHttpStatusCode   = "http_status_code"
-	TagHttpUrl          = "http_url"
-	TagOperation        = "operation"
-	TagSource           = "source"
-	TagPid              = "pid"
-	TagProject          = "project"
-	TagService          = "service"
-	TagSourceType       = "source_type"
-	TagSpanStatus       = "status"
-	TagSpanType         = "span_type"
-	TagVersion          = "version"
-	TagDKFingerprintKey = "dk_fingerprint"
-	TagBaseService      = "base_service"
-	TagSpanKind         = "span_kind"
+	TagHost              = "host"
+	TagContainerHost     = "container_host"
+	TagEndpoint          = "endpoint"
+	TagEnv               = "env"
+	TagHttpHost          = "http_host"
+	TagHttpMethod        = "http_method"
+	TagHttpRoute         = "http_route"
+	TagHttpStatusCode    = "http_status_code"
+	TagHttpStatusClass   = "http_status_class"
+	TagHttpUrl           = "http_url"
+	TagOperation         = "operation"
+	TagSource            = "source"
+	TagPid               = "pid"
+	TagProject           = "project"
+	TagService           = "service"
+	TagSourceType        = "source_type"
+	TagSpanStatus        = "status"
+	TagSpanType          = "span_type"
+	TagVersion           = "version"
+	TagDKFingerprintKey  = "dk_fingerprint"
+	TagBaseService       = "base_service"
+	TagSpanKind          = "span_kind"
+	TagRpcGrpcStatusCode = "rpc_grpc_status_code"
+	TagPodName           = "pod_name"
+	TagPodNamespace      = "pod_namespace"
 
 	FieldDuration   = "duration"
 	FieldMessage    = "message"
@@ -422,4 +426,26 @@ type TraceParameters struct {
 	Media   string
 	Encode  string
 	Body    *bytes.Buffer
+}
+
+func GetClass(code string) string {
+	if code == "" {
+		return ""
+	}
+	if code[0] == '1' {
+		return "1xx"
+	}
+	if code[0] == '2' {
+		return "2xx"
+	}
+	if code[0] == '3' {
+		return "3xx"
+	}
+	if code[0] == '4' {
+		return "4xx"
+	}
+	if code[0] == '5' {
+		return "5xx"
+	}
+	return ""
 }

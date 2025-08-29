@@ -99,7 +99,6 @@ func (aga *AfterGather) Run(inputName string, dktraces DatakitTraces) {
 		afterFilters = make(DatakitTraces, 0, len(dktraces))
 
 		for k := range dktraces {
-			aga.log.Debugf("len = %d spans", len(dktraces[k]))
 			serviceName := dktraces[k][0].GetTag(TagService)
 
 			TracingProcessCount.WithLabelValues(inputName, serviceName).Add(1)

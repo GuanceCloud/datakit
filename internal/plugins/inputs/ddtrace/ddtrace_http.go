@@ -188,7 +188,7 @@ func decodeDDTraces(param *itrace.TraceParameters) (itrace.DatakitTraces, error)
 	maxBatch := 100
 
 	log.Debugf("transform ddtrace to dkspan, noStreaming=%v", noStreaming)
-
+	values := make([]string, 0, len(labels))
 	if len(traces) != 0 {
 		for _, trace := range traces {
 			if len(trace) == 0 {
@@ -197,7 +197,7 @@ func decodeDDTraces(param *itrace.TraceParameters) (itrace.DatakitTraces, error)
 			}
 
 			// decode single ddtrace into dktrace
-			dktrace := ddtraceToDkTrace(trace)
+			dktrace := ddtraceToDkTrace(trace, values)
 			if nspan := len(dktrace); nspan > 0 {
 				if nspan > maxBatch && !noStreaming { // flush large trace ASAP.
 					log.Debugf("streaming feed %d spans", nspan)
@@ -282,7 +282,7 @@ var (
 	traceOpts            = []point.Option{}
 )
 
-func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
+func ddtraceToDkTrace(trace DDTrace, values []string) itrace.DatakitTrace {
 	var (
 		parentIDs, spanIDs = gatherSpansInfo(trace) // NOTE: we should gather before truncate
 		dktrace            = make(itrace.DatakitTrace, 0, len(trace))
@@ -308,6 +308,7 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 	}
 
 	for _, span := range trace {
+		values = values[:0]
 		if span == nil {
 			continue
 		}
@@ -387,6 +388,9 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 			}
 			ddTagsLock.RUnlock()
 		}
+		if code := spanKV.GetTag(itrace.TagHttpStatusCode); code != "" {
+			spanKV = spanKV.AddTag(itrace.TagHttpStatusClass, itrace.GetClass(code))
+		}
 
 		if span.Error != 0 {
 			spanKV = spanKV.AddTag(itrace.TagSpanStatus, itrace.StatusErr)
@@ -404,6 +408,10 @@ func ddtraceToDkTrace(trace DDTrace) itrace.DatakitTrace {
 
 		t := time.Unix(0, span.Start)
 		pt := point.NewPoint(inputName, spanKV, append(traceOpts, point.WithTime(t))...)
+		if isTracingMetricsEnable {
+			spanMetrics(pt, labels, values) // span 指标化。
+		}
+
 		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 	}
 

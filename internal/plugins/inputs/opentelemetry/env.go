@@ -34,6 +34,8 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 			DescZh:    "将 trace_id 转成 10 进制，兼容 DDTrace",
 		},
 		{FieldName: "SplitServiceName", Type: doc.Boolean, Default: `false`, Desc: "Get xx.system from span.Attributes to replace service name", DescZh: "从 span.Attributes 中获取 xx.system 去替换服务名"},
+		{FieldName: "TracingMetricsEnable", Type: doc.Boolean, Default: `true`, Desc: "These metrics capture request counts, error counts, and latency measures.", DescZh: "开启请求计数，错误计数和延迟指标的采集"},
+		{FieldName: "TracingMetricsBlackList", Type: doc.JSON, Example: `[\"tag_a\", \"tag_b\"]`, Desc: "Blacklist of tags in the metric: \"tracing_metrics\"", DescZh: "指标集 tracing_metrics 中标签的黑名单"},
 		{FieldName: "DelMessage", Type: doc.Boolean, Default: `false`, Desc: "Delete trace message", DescZh: "删除 trace 消息"},
 		{FieldName: "OmitErrStatus", Type: doc.JSON, Example: `["404", "403", "400"]`, Desc: "Whitelist to error status", DescZh: "错误状态白名单"},
 		{FieldName: "CloseResource", Type: doc.JSON, Example: `{"service1":["resource1","other"],"service2":["resource2","other"]}`, Desc: "Ignore tracing resources that service (regular)", DescZh: "忽略指定服务器的 tracing（正则匹配）"},
@@ -75,6 +77,8 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 // export ENV_INPUT_OTEL_HTTP=`{"enable":true, "http_status_ok": 200, "trace_api": "/otel/v1/trace", "metric_api": "/otel/v1/metric"}`
 // export ENV_INPUT_OTEL_GRPC=`{true, "addr": "127.0.0.1:4317"}`
 // export ENV_INPUT_OTEL_EXPECTED_HEADERS=`{"ex_version": "1.2.3", "ex_name": "env_resource_name"}`.
+// export ENV_INPUT_OTEL_TRACING_METRICS_ENABLE = true
+// export ENV_INPUT_OTEL_TRACING_METRICS_BLACKLIST = `["tag_a", "tag_b"]`.
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	log = logger.SLogger(inputName)
 
@@ -88,6 +92,8 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		"ENV_INPUT_OTEL_COMPATIBLE_DDTRACE",
 		"ENV_INPUT_OTEL_SPLIT_SERVICE_NAME",
 		"ENV_INPUT_OTEL_CLEAN_MESSAGE",
+		"ENV_INPUT_OTEL_TRACING_METRICS_ENABLE",
+		"ENV_INPUT_OTEL_TRACING_METRICS_BLACKLIST",
 	} {
 		value, ok := envs[key]
 		if !ok {
@@ -201,6 +207,19 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
 			} else {
 				ipt.DelMessage = ok
+			}
+		case "ENV_INPUT_OTEL_TRACING_METRICS_ENABLE":
+			if ok, err := strconv.ParseBool(value); err != nil {
+				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
+			} else {
+				ipt.TracingMetricsEnable = ok
+			}
+		case "ENV_INPUT_OTEL_TRACING_METRICS_BLACKLIST":
+			var list []string
+			if err := json.Unmarshal([]byte(value), &list); err != nil {
+				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
+			} else {
+				ipt.TracingMetricsBlackList = list
 			}
 		}
 	}
