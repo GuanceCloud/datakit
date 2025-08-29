@@ -108,6 +108,10 @@ func (w *fileWatcher) scanPath() map[string]*fileState {
 			return nil // 忽略无法访问的文件或目录
 		}
 
+		if isHiddenFile(path) {
+			return nil
+		}
+
 		if len(states) > w.maxOpenFiles {
 			return nil
 		}
