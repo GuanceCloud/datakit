@@ -65,9 +65,11 @@ type Input struct {
 	L7NetDisabled  []string `toml:"l7net_disabled"`
 	L7NetEnabled   []string `toml:"l7net_enabled"`
 
-	TraceServer     string `toml:"trace_server"`
-	Conv2DD         bool   `toml:"conv_to_ddtrace"`
-	TraceAllProcess bool   `toml:"trace_all_process"`
+	TraceServer string `toml:"trace_server"`
+	Conv2DD     bool   `toml:"conv_to_ddtrace"`
+
+	// Deprecated
+	TraceAllProcess bool `toml:"trace_all_process"`
 
 	PprofHost string `toml:"pprof_host"`
 	PprofPort string `toml:"pprof_port"`
@@ -358,7 +360,6 @@ func (*Input) AvailableArchs() []string {
 // ENV_INPUT_EBPF_MEM_LIMIT : string
 // ENV_INPUT_EBPF_NET_LIMIT : string
 //
-// ENV_INPUT_EBPF_TRACE_ALL_PROCESS    : bool
 // ENV_INPUT_EBPF_CONV_TO_DDTRACE      : bool
 // ENV_INPUT_EBPF_TRACE_SERVER         : string
 // ENV_INPUT_EBPF_TRACE_ENV_LIST       : string
@@ -423,15 +424,6 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			ipt.IPv6Disabled = false
 		default:
 			ipt.IPv6Disabled = true
-		}
-	}
-
-	if v, ok := envs["ENV_INPUT_EBPF_TRACE_ALL_PROCESS"]; ok {
-		switch v {
-		case "", "f", "false", "FALSE", "False", "0":
-			ipt.TraceAllProcess = false
-		default:
-			ipt.TraceAllProcess = true
 		}
 	}
 

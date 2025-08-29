@@ -125,10 +125,10 @@ func (procAttach *ProcessAttachInfo) GetCannotAndAttachInfo(name string) (time.T
 	procAttach.RLock()
 	defer procAttach.RUnlock()
 	if procAttach.attach == nil {
-		procAttach.attach = lru.New(2048)
+		procAttach.attach = lru.New(100_000)
 	}
 	if procAttach.cannotAttach == nil {
-		procAttach.cannotAttach = lru.New(2048)
+		procAttach.cannotAttach = lru.New(100_000)
 	}
 	if v, ok := procAttach.attach.Get(name); ok {
 		if v, ok := v.(time.Time); ok {

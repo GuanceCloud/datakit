@@ -21,6 +21,8 @@ import (
 var (
 	defaultAPIServer        = "http://0.0.0.0:9529"
 	defaultBPFTracingServer = "http://0.0.0.0:9529"
+
+	globalSender *Sender
 )
 
 type target struct {
@@ -31,22 +33,20 @@ func (t *target) URL(cat point.Category) string {
 	return t.t[cat]
 }
 
-func buildBPFTracingTarge(bpftracingAPIServer string) *target {
-	u, err := url.JoinPath(bpftracingAPIServer, "")
-	if err != nil {
-		log.Errorf("failed to join url `%s` and `%s`: %s",
-			bpftracingAPIServer, "/v1/bpftracing", err)
-	}
-	return &target{
-		t: map[point.Category]string{
-			point.Tracing: u,
-		},
-	}
-}
-
-func buildTarget(apiServer string) *target {
+func buildTarget(apiServer string, traceServer string) *target {
 	r := map[point.Category]string{}
 	for _, cat := range point.AllCategories() {
+		if cat == point.Tracing {
+			if traceServer != "" {
+				if u, err := url.JoinPath(traceServer, "/v1/bpftracing"); err != nil {
+					log.Errorf("failed to join url `%s` and `%s`: %s",
+						traceServer, cat.URL(), err)
+				} else {
+					r[cat] = u
+				}
+			}
+			continue
+		}
 		if u, err := url.JoinPath(apiServer, cat.URL()); err != nil {
 			log.Errorf("failed to join url `%s` and `%s`: %s",
 				apiServer, cat.URL(), err)
@@ -54,6 +54,11 @@ func buildTarget(apiServer string) *target {
 			r[cat] = u
 		}
 	}
+
+	for cat, u := range r {
+		log.Infof("category: %s, target api url: %s", cat, u)
+	}
+
 	return &target{
 		t: r,
 	}
@@ -70,11 +75,6 @@ var log = logger.DefaultSLogger("ebpf")
 func SetLogger(nl *logger.Logger) {
 	log = nl
 }
-
-var (
-	globalSender           *Sender
-	globalBPFTracingSendor *Sender
-)
 
 type opt func(c *cfg)
 
@@ -140,9 +140,7 @@ func Init(ctx context.Context, opts ...opt) {
 
 		sampling := newSampling(ctx, &c)
 		globalSender = NewSender(
-			buildTarget(defaultAPIServer), sampling)
-		globalBPFTracingSendor = NewSender(
-			buildBPFTracingTarge(defaultBPFTracingServer), sampling)
+			buildTarget(c.apiServer, c.bpftracingServer), sampling)
 	}
 	initOnce.Do(fn)
 }
@@ -312,7 +310,7 @@ type ExternalLastErr struct {
 }
 
 func FeedEBPFSpan(name string, cat point.Category, data []*point.Point) error {
-	return globalBPFTracingSendor.feed(name, cat, data)
+	return globalSender.feed(name, cat, data)
 }
 
 func FeedPoint(name string, cat point.Category, data []*point.Point) error {

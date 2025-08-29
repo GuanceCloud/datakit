@@ -115,7 +115,7 @@ func WithEnvService(li []string) FilterOpt {
 func NewProcessFilter(ctx context.Context, opts ...FilterOpt) *ProcessFilter {
 	filter := &ProcessFilter{
 		procInfo: map[int]*ProcInfo{},
-		procDel:  lru.New(2048),
+		procDel:  lru.New(100_000),
 	}
 	for _, opt := range opts {
 		if opt != nil {
@@ -161,46 +161,35 @@ func (p *ProcessFilter) tryAdd(pid, ppid int, createTS int64, procName, binPath 
 
 	if pid == p.selfPid || strings.HasPrefix(procName, "datakit") {
 		keep = false
-		goto notKeep
 	}
-
-	if len(p.nameBlacklist) > 0 {
-		if _, ok := p.nameBlacklist[procName]; ok {
-			keep = false
-			goto notKeep
-		}
-	}
-	if len(p.nameWhitelist) > 0 {
-		if _, ok := p.nameWhitelist[procName]; !ok {
-			keep = false
-			goto notKeep
-		}
-	}
-
 	if p.allowTrace {
-		if len(p.envBlacklist) > 0 {
-			for envName := range p.envBlacklist {
-				if _, ok := env[envName]; ok {
-					keep = false
-					goto notKeep
-				}
+		switch {
+		case !keep:
+		case len(p.nameWhitelist) > 0:
+			if _, ok := p.nameWhitelist[procName]; !ok {
+				keep = false
 			}
-		}
-		if len(p.envWhitelist) > 0 {
-			k := false
+		case len(p.envWhitelist) > 0:
+			keep = false
 			for envName := range p.envWhitelist {
 				if _, ok := env[envName]; ok {
-					k = true
+					keep = true
 					break
 				}
 			}
-			if keep {
-				keep = k
+		case len(p.nameBlacklist) > 0:
+			if _, ok := p.nameBlacklist[procName]; ok {
+				keep = false
+			}
+		case len(p.envBlacklist) > 0:
+			for envName := range p.envBlacklist {
+				if _, ok := env[envName]; ok {
+					keep = false
+				}
 			}
 		}
 	}
 
-notKeep:
 	var serviceName string
 	for _, envName := range p.serviceEnv {
 		if v, ok := env[envName]; ok {

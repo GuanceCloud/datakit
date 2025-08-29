@@ -80,15 +80,11 @@ const configSample = `
   ## eBPF trace generation server center address.
   trace_server = ""
 
-  ## trace all processes directly
-  ##
-  trace_all_process = false
-  
   ## trace all processes containing any specified environment variable
   trace_env_list = [
-    "DK_BPFTRACE_SERVICE",
-    "DD_SERVICE",
-    "OTEL_SERVICE_NAME",
+    # "DK_BPFTRACE_SERVICE",
+    # "DD_SERVICE",
+    # "OTEL_SERVICE_NAME",
   ]
   
   ## deny tracking any process containing any specified environment variable
