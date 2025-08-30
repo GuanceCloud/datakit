@@ -26,13 +26,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "CustomerTags", Type: doc.JSON, Example: "`[\"project_id\", \"custom.tag\"]`", Desc: "Whitelist to tags", DescZh: "标签白名单"},
 		{FieldName: "CustomerTagsAll", Type: doc.Boolean, Default: `false`, Desc: "extracted all attributes to tags", DescZh: "提取所有标签"},
 		{FieldName: "KeepRareResource", Type: doc.Boolean, Default: `false`, Desc: "Keep rare tracing resources list switch", DescZh: "保持稀有跟踪资源列表"},
-		{
-			FieldName: "CompatibleDdTrace",
-			Type:      doc.Boolean,
-			Default:   `false`,
-			Desc:      "Convert trace_id to decimal, compatible with DDTrace",
-			DescZh:    "将 trace_id 转成 10 进制，兼容 DDTrace",
-		},
+		{FieldName: "CompatibleDdTrace", Type: doc.Boolean, Default: `false`, Desc: "Convert trace_id to decimal, compatible with DDTrace", DescZh: "将 trace_id 转成 10 进制，兼容 DDTrace", },
 		{FieldName: "SplitServiceName", Type: doc.Boolean, Default: `false`, Desc: "Get xx.system from span.Attributes to replace service name", DescZh: "从 span.Attributes 中获取 xx.system 去替换服务名"},
 		{FieldName: "TracingMetricEnable", Type: doc.Boolean, Default: `true`, Desc: "These metrics capture request counts, error counts, and latency measures.", DescZh: "开启请求计数，错误计数和延迟指标的采集"},
 		{FieldName: "TracingMetricTagBlacklist", Type: doc.JSON, Example: "`[\"tag_a\", \"tag_b\"]`", Desc: "Blacklist of tags in the metric: `tracing_metrics`", DescZh: "指标集 `tracing_metrics` 中标签的黑名单"},
@@ -52,48 +46,29 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 	return doc.SetENVDoc("ENV_INPUT_OTEL_", infos)
 }
 
-// ReadEnv load config from environment values
-// ENV_INPUT_OTEL_CUSTOMER_TAGS : JSON string
-// ENV_INPUT_OTEL_CUSTOMER_TAGS_ALL : JSON string
-// ENV_INPUT_OTEL_KEEP_RARE_RESOURCE : bool
-// ENV_INPUT_OTEL_OMIT_ERR_STATUS : JSON string
-// ENV_INPUT_OTEL_CLOSE_RESOURCE : JSON string
-// ENV_INPUT_OTEL_SAMPLER : float
-// ENV_INPUT_OTEL_TAGS : JSON string
-// ENV_INPUT_OTEL_THREADS : JSON string
-// ENV_INPUT_OTEL_STORAGE : JSON string
-// ENV_INPUT_OTEL_HTTP : JSON string
-// ENV_INPUT_OTEL_GRPC : JSON string
-// ENV_INPUT_OTEL_EXPECTED_HEADERS : JSON string
-// below is a complete example for env in shell
-// export ENV_INPUT_OTEL_IGNORE_TAGS=`["block1", "block2"]`
-// export ENV_INPUT_OTEL_KEEP_RARE_RESOURCE=true
-// export ENV_INPUT_OTEL_OMIT_ERR_STATUS=`["404", "403", "400"]`
-// export ENV_INPUT_OTEL_CLOSE_RESOURCE=`{"service1":["resource1"], "service2":["resource2"], "service3":["resource3"]}`
-// export ENV_INPUT_OTEL_SAMPLER=0.3
-// export ENV_INPUT_OTEL_TAGS=`{"k1":"v1", "k2":"v2", "k3":"v3"}`
-// export ENV_INPUT_OTEL_THREADS=`{"buffer":1000, "threads":100}`
-// export ENV_INPUT_OTEL_STORAGE=`{"storage":"./otel_storage", "capacity": 5120}`
-// export ENV_INPUT_OTEL_HTTP=`{"enable":true, "http_status_ok": 200, "trace_api": "/otel/v1/trace", "metric_api": "/otel/v1/metric"}`
-// export ENV_INPUT_OTEL_GRPC=`{true, "addr": "127.0.0.1:4317"}`
-// export ENV_INPUT_OTEL_EXPECTED_HEADERS=`{"ex_version": "1.2.3", "ex_name": "env_resource_name"}`.
-// export ENV_INPUT_OTEL_TRACING_METRICS_ENABLE = true
-// export ENV_INPUT_OTEL_TRACING_METRIC_BLACKLIST = `["tag_a", "tag_b"]`.
+// ReadEnv load config from environment values.
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	log = logger.SLogger(inputName)
 
 	for _, key := range []string{
-		"ENV_INPUT_OTEL_CUSTOMER_TAGS", "ENV_INPUT_OTEL_CUSTOMER_TAGS_ALL",
-		"ENV_INPUT_OTEL_KEEP_RARE_RESOURCE", "ENV_INPUT_OTEL_OMIT_ERR_STATUS",
-		"ENV_INPUT_OTEL_CLOSE_RESOURCE", "ENV_INPUT_OTEL_SAMPLER", "ENV_INPUT_OTEL_TAGS",
-		"ENV_INPUT_OTEL_THREADS", "ENV_INPUT_OTEL_STORAGE", "ENV_INPUT_OTEL_HTTP",
-		"ENV_INPUT_OTEL_GRPC", "ENV_INPUT_OTEL_EXPECTED_HEADERS", "ENV_INPUT_OTEL_DEL_MESSAGE",
-		"ENV_INPUT_OTEL_COMPATIBLE_DDTRACE",
+		"ENV_INPUT_OTEL_CUSTOMER_TAGS",
+		"ENV_INPUT_OTEL_CUSTOMER_TAGS_ALL",
+		"ENV_INPUT_OTEL_KEEP_RARE_RESOURCE",
+		"ENV_INPUT_OTEL_OMIT_ERR_STATUS",
+		"ENV_INPUT_OTEL_CLOSE_RESOURCE",
+		"ENV_INPUT_OTEL_SAMPLER",
+		"ENV_INPUT_OTEL_TAGS",
+		"ENV_INPUT_OTEL_THREADS",
+		"ENV_INPUT_OTEL_STORAGE",
+		"ENV_INPUT_OTEL_HTTP",
+		"ENV_INPUT_OTEL_GRPC",
+		"ENV_INPUT_OTEL_EXPECTED_HEADERS",
+		"ENV_INPUT_OTEL_DEL_MESSAGE",
 		"ENV_INPUT_OTEL_COMPATIBLE_DDTRACE",
 		"ENV_INPUT_OTEL_SPLIT_SERVICE_NAME",
 		"ENV_INPUT_OTEL_CLEAN_MESSAGE",
 		"ENV_INPUT_OTEL_TRACING_METRIC_ENABLE",
-		"ENV_INPUT_OTEL_TRACING_METRIC_BLACKLIST",
+		"ENV_INPUT_OTEL_TRACING_METRIC_TAG_BLACKLIST",
 	} {
 		value, ok := envs[key]
 		if !ok {
@@ -214,7 +189,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			} else {
 				ipt.TracingMetricEnable = ok
 			}
-		case "ENV_INPUT_OTEL_TRACING_METRIC_BLACKLIST":
+		case "ENV_INPUT_OTEL_TRACING_METRIC_TAG_BLACKLIST":
 			var list []string
 			if err := json.Unmarshal([]byte(value), &list); err != nil {
 				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
