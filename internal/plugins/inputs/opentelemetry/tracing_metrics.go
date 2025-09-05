@@ -68,7 +68,7 @@ func spanMetrics(span *point.Point, sourceLabels []string, values []string) {
 	duration := span.Get(itrace.FieldDuration).(int64)
 	for _, label := range sourceLabels {
 		if label == itrace.TagHttpStatusCode {
-			code := span.Get(itrace.TagHttpStatusCode)
+			code := span.GetTag(itrace.TagHttpStatusCode)
 			if code != "" {
 				span.AddTag(itrace.TagHttpStatusClass, itrace.GetClass(fmt.Sprintf("%v", code)))
 				isHTTP = true
