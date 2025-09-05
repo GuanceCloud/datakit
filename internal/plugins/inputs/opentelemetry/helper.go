@@ -6,12 +6,14 @@
 package opentelemetry
 
 import (
+	"strconv"
 	"strings"
 
-	"google.golang.org/protobuf/encoding/protojson"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 
 	"github.com/GuanceCloud/cliutils/point"
 	common "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func getAttr(key string, attributes []*common.KeyValue) (*common.KeyValue, int) {
@@ -56,7 +58,11 @@ func (ipt *Input) selectAttrs(atts []*common.KeyValue) (kvs point.KVs, merged []
 		case *common.AnyValue_DoubleValue:
 			kvs = kvs.Set(replaceKey, v.Value.GetDoubleValue())
 		case *common.AnyValue_IntValue:
-			kvs = kvs.Set(replaceKey, v.Value.GetIntValue())
+			if replaceKey == itrace.TagHttpStatusCode {
+				kvs = kvs.AddTag(replaceKey, strconv.FormatInt(v.Value.GetIntValue(), 10))
+			} else {
+				kvs = kvs.Set(replaceKey, v.Value.GetIntValue())
+			}
 		case *common.AnyValue_BoolValue:
 			kvs = kvs.Set(replaceKey, v.Value.GetBoolValue())
 		case *common.AnyValue_KvlistValue:
