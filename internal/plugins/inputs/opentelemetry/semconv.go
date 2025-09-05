@@ -81,10 +81,10 @@ var (
 		"network.transport":    "network_transport",
 
 		// HTTP
-		"http.request.method":       "http_request_method",
+		"http.request.method":       "http_method", // V2 版本重大变更。
 		"http.method":               "http_method",
 		"error.type":                "error_type",
-		"http.response.status_code": "http_response_status_code",
+		"http.response.status_code": "http_status_code", // V2 版本重大变更。
 		"http.status_code":          "http_status_code",
 		"http.route":                "http_route",
 		"http.target":               "http_target",
