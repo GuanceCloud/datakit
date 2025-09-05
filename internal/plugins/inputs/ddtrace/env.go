@@ -38,14 +38,14 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "WPConfig", ENVName: "THREADS", Type: doc.JSON, Example: "`{\"buffer\":1000, \"threads\":100}`", Desc: "Total number of threads and buffer", DescZh: "线程和缓存的数量"},
 		{FieldName: "LocalCacheConfig", ENVName: "STORAGE", Type: doc.JSON, Example: "`{\"storage\":\"./ddtrace_storage\", \"capacity\": 5120}`", Desc: "Local cache file path and size (MB) ", DescZh: "本地缓存路径和大小（MB）"},
 		{FieldName: "Tags", Type: doc.JSON, Example: "`{\"k1\":\"v1\", \"k2\":\"v2\", \"k3\":\"v3\"}`"},
-		{FieldName: "TraceMaxSpans", ENVName: "ENV_INPUT_DDTRACE_MAX_SPANS", Type: doc.Int, Example: `1000`, Default: "100000", Desc: "Max spans of single trace. Set to -1 to remove this limit", DescZh: "单个 trace 最大 span 个数，如果超过该限制，多余的 span 将截断，置为 -1 可关闭该限制", }, 
-		{FieldName: "MaxTraceBodyMB", ENVName: "ENV_INPUT_DDTRACE_MAX_BODY_MB", Type: doc.JSON, Example: `32`, Default: "10", Desc: "Max body(in MiB) of single trace POST. Set to -1 to remove this limit", DescZh: "单个 trace API 请求最大 body 字节数（单位 MiB），置为 -1 可关闭该限制",},
+		{FieldName: "TraceMaxSpans", ENVName: "ENV_INPUT_DDTRACE_MAX_SPANS", Type: doc.Int, Example: `1000`, Default: "100000", Desc: "Max spans of single trace. Set to -1 to remove this limit", DescZh: "单个 trace 最大 span 个数，如果超过该限制，多余的 span 将截断，置为 -1 可关闭该限制"},
+		{FieldName: "MaxTraceBodyMB", ENVName: "ENV_INPUT_DDTRACE_MAX_BODY_MB", Type: doc.JSON, Example: `32`, Default: "10", Desc: "Max body(in MiB) of single trace POST. Set to -1 to remove this limit", DescZh: "单个 trace API 请求最大 body 字节数（单位 MiB），置为 -1 可关闭该限制"},
 	}
 
 	return doc.SetENVDoc("ENV_INPUT_DDTRACE_", infos)
 }
 
-// ReadEnv load config from environment values
+// ReadEnv load config from environment values.
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	log = logger.SLogger(inputName)
 
