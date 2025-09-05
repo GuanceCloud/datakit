@@ -1,5 +1,18 @@
 # 更新日志
 
+## 1.81.1(2025/09/05) {#cl-1.81.1}
+
+本次发布属于 hotfix 修复，内容如下：
+
+### 问题修复 {#cl-1.81.1-fix}
+
+- 修复 Prometheus Service Discovery 中 URL 配置不生效问题（#2810）
+- DDTrace/OpenTelemetry 指标采集默认关闭，同时 `tracing_metrics` 指标集中，默认屏蔽掉 `resource/operation` 这两个 tag（#2908）
+- OpenTelemetry `http_status_code` 强制改为 string 类型（#2807）
+    - OpenTelemetry V1 SDK 在版本变更过程中，发过来的原始数据中 http-status-code 类型发生了变更（目前从 string 变成了 int），导致了这个问题。现在 DataKit 强制将该字段转成 string。
+
+---
+
 ## 1.81.0(2025/08/29) {#cl-1.81.0}
 
 本次发布属于迭代发布，主要有如下更新：
@@ -7,7 +20,7 @@
 ### 新加功能 {#cl-1.81.0-new}
 
 - 新增配置文件变更检测采集（#2797）
-- 新增 DDTrace/OpenTelemetry trace 指标采集（#2778）
+- 新增 DDTrace/OpenTelemetry trace 指标采集。*该功能默认开启，额外新增指标集名为 `tracing_metrics` 的时间线*（#2778）
 
 ### 问题修复 {#cl-1.81.0-fix}
 
