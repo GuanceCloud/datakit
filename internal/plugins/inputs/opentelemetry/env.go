@@ -26,9 +26,9 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "CustomerTags", Type: doc.JSON, Example: "`[\"project_id\", \"custom.tag\"]`", Desc: "Whitelist to tags", DescZh: "标签白名单"},
 		{FieldName: "CustomerTagsAll", Type: doc.Boolean, Default: `false`, Desc: "extracted all attributes to tags", DescZh: "提取所有标签"},
 		{FieldName: "KeepRareResource", Type: doc.Boolean, Default: `false`, Desc: "Keep rare tracing resources list switch", DescZh: "保持稀有跟踪资源列表"},
-		{FieldName: "CompatibleDdTrace", Type: doc.Boolean, Default: `false`, Desc: "Convert trace_id to decimal, compatible with DDTrace", DescZh: "将 trace_id 转成 10 进制，兼容 DDTrace", },
+		{FieldName: "CompatibleDdTrace", Type: doc.Boolean, Default: `false`, Desc: "Convert trace_id to decimal, compatible with DDTrace", DescZh: "将 trace_id 转成 10 进制，兼容 DDTrace"},
 		{FieldName: "SplitServiceName", Type: doc.Boolean, Default: `false`, Desc: "Get xx.system from span.Attributes to replace service name", DescZh: "从 span.Attributes 中获取 xx.system 去替换服务名"},
-		{FieldName: "TracingMetricEnable", Type: doc.Boolean, Default: `true`, Desc: "These metrics capture request counts, error counts, and latency measures.", DescZh: "开启请求计数，错误计数和延迟指标的采集"},
+		{FieldName: "TracingMetricEnable", Type: doc.Boolean, Default: `false`, Desc: "These metrics capture request counts, error counts, and latency measures.", DescZh: "开启请求计数，错误计数和延迟指标的采集"},
 		{FieldName: "TracingMetricTagBlacklist", Type: doc.JSON, Example: "`[\"tag_a\", \"tag_b\"]`", Desc: "Blacklist of tags in the metric: `tracing_metrics`", DescZh: "指标集 `tracing_metrics` 中标签的黑名单"},
 		{FieldName: "DelMessage", Type: doc.Boolean, Default: `false`, Desc: "Delete trace message", DescZh: "删除 trace 消息"},
 		{FieldName: "OmitErrStatus", Type: doc.JSON, Example: "`[\"404\", \"403\", \"400\"]`", Desc: "Whitelist to error status", DescZh: "错误状态白名单"},
@@ -46,7 +46,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 	return doc.SetENVDoc("ENV_INPUT_OTEL_", infos)
 }
 
-// ReadEnv load config from environment values
+// ReadEnv load config from environment values.
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	log = logger.SLogger(inputName)
 
