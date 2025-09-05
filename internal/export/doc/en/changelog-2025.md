@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.81.1 (2025/09/05) {#cl-1.81.1}
+
+This release is a hotfix update, containing the following changes:
+
+### Bug Fixes {#cl-1.81.1-fix}
+
+- Fixed an issue where URL configuration in Prometheus Service Discovery did not take effect (#2810)
+- Disabled DDTrace/OpenTelemetry metric collection by default. In the `tracing_metrics` measurement, tags `resource` and `operation` are now excluded by default (#2908)
+- Forcefully converted OpenTelemetry `http_status_code` to string type (#2807)
+    - During the version change process of the OpenTelemetry V1 SDK, the data type of `http-status-code` in the original data sent changed (from string to int), causing this issue. DataKit now enforces conversion of this field to string.
+
+---
+
 ## 1.81.0(2025/08/29) {#cl-1.81.0}
 
 This release is an iterative update with the following main changes:

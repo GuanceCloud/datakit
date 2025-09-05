@@ -138,7 +138,7 @@ func (sd *HTTPSD) convertTargetGroupsToScraper(cfg *ScrapeConfig, opts []promscr
 
 		path := extractScrapeMetricsPathFromHTTPSDLabels(group.Labels)
 		if path == "" {
-			scheme = cfg.MetricsPath
+			path = cfg.MetricsPath
 		}
 
 		params := extractScrapeParamsFromHTTPSDLabels(group.Labels)
