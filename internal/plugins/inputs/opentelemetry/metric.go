@@ -11,13 +11,15 @@ import (
 	"strings"
 	"time"
 
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
+
 	"github.com/GuanceCloud/cliutils/point"
 	common "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
 	metrics "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/metrics/v1"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
-func (ipt *Input) parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics) {
+func (ipt *Input) parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics, remoteIP string) {
 	start := time.Now()
 	var pts []*point.Point
 	for _, resmc := range resmcs {
@@ -26,6 +28,7 @@ func (ipt *Input) parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics) {
 		}
 
 		resourceTags := attributesToTag(resmc.Resource.GetAttributes())
+		resourceTags[itrace.TagRemoteIP] = remoteIP // add remote_ip to every point.
 
 		for _, scopeMetrics := range resmc.GetScopeMetrics() {
 			var scopeTags map[string]string

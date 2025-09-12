@@ -13,6 +13,7 @@ import (
 	metrics "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/collector/metrics/v1"
 	trace "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/collector/trace/v1"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -89,9 +90,9 @@ func (h *httpConfig) handleOTELTrace(resp http.ResponseWriter, req *http.Request
 
 		return
 	}
-
+	remoteIP, _ := net.RemoteAddr(req)
 	if h.afterGatherRun != nil {
-		if dktraces := h.input.parseResourceSpans(tsreq.ResourceSpans); len(dktraces) != 0 {
+		if dktraces := h.input.parseResourceSpans(tsreq.ResourceSpans, remoteIP); len(dktraces) != 0 {
 			h.afterGatherRun.Run(inputName, dktraces)
 		}
 	}
@@ -121,7 +122,8 @@ func (h *httpConfig) handleOTElMetrics(resp http.ResponseWriter, req *http.Reque
 		resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	h.input.parseResourceMetricsV2(msreq.ResourceMetrics)
+	remoteIP, _ := net.RemoteAddr(req)
+	h.input.parseResourceMetricsV2(msreq.ResourceMetrics, remoteIP)
 }
 
 func (h *httpConfig) handleOTELLogging(resp http.ResponseWriter, req *http.Request) {
@@ -147,7 +149,8 @@ func (h *httpConfig) handleOTELLogging(resp http.ResponseWriter, req *http.Reque
 		resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	pts := h.input.parseLogRequest(otelLogs.GetResourceLogs())
+	remoteIP, _ := net.RemoteAddr(req)
+	pts := h.input.parseLogRequest(otelLogs.GetResourceLogs(), remoteIP)
 	if len(pts) > 0 {
 		if err = h.input.feeder.Feed(point.Logging, pts, dkio.WithSource(inputName)); err != nil {
 			log.Errorf("feed logging to io err=%v", err)

@@ -168,7 +168,7 @@ func Test_parseResourceMetricsV2(t *testing.T) {
 
 	ipt := defaultInput()
 	ipt.feeder = &feeder{t: t}
-	ipt.parseResourceMetricsV2(msource)
+	ipt.parseResourceMetricsV2(msource, "localhost")
 }
 
 func getPtr(f float64) *float64 {

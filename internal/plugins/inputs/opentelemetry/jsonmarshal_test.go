@@ -148,7 +148,7 @@ func Benchmark_protojson(b *T.B) {
 		ipt.jmarshaler = &protojsonMarshaler{}
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			ipt.parseResourceSpans(traces.ResourceSpans)
+			ipt.parseResourceSpans(traces.ResourceSpans, "localhost")
 		}
 	})
 }
@@ -162,7 +162,7 @@ func Benchmark_protojsonCleanMessage(b *T.B) {
 		ipt.jmarshaler = &protojsonMarshaler{}
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			ipt.parseResourceSpans(traces.ResourceSpans)
+			ipt.parseResourceSpans(traces.ResourceSpans, "localhost")
 		}
 	})
 }
@@ -188,7 +188,7 @@ func Benchmark_golangjson(b *T.B) {
 		for i := 0; i < b.N; i++ {
 			tsreq := &trace.ExportTraceServiceRequest{}
 			proto.Unmarshal(pb, tsreq)
-			ipt.parseResourceSpans(tsreq.ResourceSpans)
+			ipt.parseResourceSpans(tsreq.ResourceSpans, "localhost")
 		}
 	})
 }
@@ -226,7 +226,7 @@ func Benchmark_jsoniter(b *T.B) {
 		ipt.jmarshaler = &jsoniterMarshaler{}
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			ipt.parseResourceSpans(traces.ResourceSpans)
+			ipt.parseResourceSpans(traces.ResourceSpans, "localhost")
 		}
 	})
 }
@@ -238,7 +238,7 @@ func Benchmark_jsoniterCleanMessage(b *T.B) {
 		ipt.jmarshaler = &jsoniterMarshaler{}
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			ipt.parseResourceSpans(traces.ResourceSpans)
+			ipt.parseResourceSpans(traces.ResourceSpans, "localhost")
 		}
 	})
 }
@@ -251,7 +251,7 @@ func Benchmark_dropmsg(b *T.B) {
 		ipt.DelMessage = true
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			ipt.parseResourceSpans(traces.ResourceSpans)
+			ipt.parseResourceSpans(traces.ResourceSpans, "localhost")
 		}
 	})
 }
@@ -263,7 +263,7 @@ func Test_parseResourceSpans(t *T.T) {
 		ipt := defaultInput()
 
 		ipt.jmarshaler = &jsoniterMarshaler{}
-		traces := ipt.parseResourceSpans(traces.ResourceSpans)
+		traces := ipt.parseResourceSpans(traces.ResourceSpans, "localhost")
 		assert.Len(t, traces, 1)
 	})
 
@@ -271,7 +271,7 @@ func Test_parseResourceSpans(t *T.T) {
 		ipt := defaultInput()
 
 		ipt.jmarshaler = &protojsonMarshaler{}
-		traces := ipt.parseResourceSpans(traces.ResourceSpans)
+		traces := ipt.parseResourceSpans(traces.ResourceSpans, "localhost")
 		assert.Len(t, traces, 1)
 	})
 
@@ -279,7 +279,7 @@ func Test_parseResourceSpans(t *T.T) {
 		ipt := defaultInput()
 
 		ipt.jmarshaler = &gojsonMarshaler{}
-		traces := ipt.parseResourceSpans(traces.ResourceSpans)
+		traces := ipt.parseResourceSpans(traces.ResourceSpans, "localhost")
 		assert.Len(t, traces, 1)
 	})
 }

@@ -19,6 +19,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/tinylib/msgp/msgp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
@@ -63,7 +64,7 @@ func handleDDTraces(resp http.ResponseWriter, req *http.Request) {
 
 		return
 	}
-
+	remoteIP, _ := net.RemoteAddr(req)
 	ntrace, err := strconv.ParseInt(ntraceStr, 10, 64)
 	if err != nil {
 		log.Warnf("invalid X-Datadog-Trace-Count: %q, ignored", ntraceStr)
@@ -93,9 +94,10 @@ func handleDDTraces(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	param := &itrace.TraceParameters{
-		URLPath: req.URL.Path,
-		Media:   itrace.GetContentType(req),
-		Body:    pbuf,
+		URLPath:  req.URL.Path,
+		Media:    itrace.GetContentType(req),
+		Body:     pbuf,
+		RemoteIP: remoteIP,
 	}
 
 	log.Debugf("param body len=%d", param.Body.Len())
@@ -197,7 +199,7 @@ func decodeDDTraces(param *itrace.TraceParameters) (itrace.DatakitTraces, error)
 			}
 
 			// decode single ddtrace into dktrace
-			dktrace := ddtraceToDkTrace(trace, values)
+			dktrace := ddtraceToDkTrace(trace, values, param.RemoteIP)
 			if nspan := len(dktrace); nspan > 0 {
 				if nspan > maxBatch && !noStreaming { // flush large trace ASAP.
 					log.Debugf("streaming feed %d spans", nspan)
@@ -282,7 +284,7 @@ var (
 	traceOpts            = []point.Option{}
 )
 
-func ddtraceToDkTrace(trace DDTrace, values []string) itrace.DatakitTrace {
+func ddtraceToDkTrace(trace DDTrace, values []string, remoteIP string) itrace.DatakitTrace {
 	var (
 		parentIDs, spanIDs = gatherSpansInfo(trace) // NOTE: we should gather before truncate
 		dktrace            = make(itrace.DatakitTrace, 0, len(trace))
@@ -326,6 +328,7 @@ func ddtraceToDkTrace(trace DDTrace, values []string) itrace.DatakitTrace {
 		}
 
 		var spanKV point.KVs
+		spanKV = spanKV.AddTag(itrace.TagRemoteIP, remoteIP)
 		priority, ok := span.Metrics[keyPriority]
 		if ok {
 			if priority == -1 || priority == -3 || priority == 0 {

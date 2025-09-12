@@ -18,6 +18,7 @@ import (
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 	"google.golang.org/grpc"
 	_ "google.golang.org/grpc/encoding/gzip"
+	"google.golang.org/grpc/peer"
 )
 
 type gRPC struct {
@@ -80,7 +81,7 @@ type TraceServiceServer struct {
 func (tss *TraceServiceServer) Export(ctx context.Context, tsreq *trace.ExportTraceServiceRequest) (
 	*trace.ExportTraceServiceResponse, error,
 ) {
-	if dktraces := tss.input.parseResourceSpans(tsreq.ResourceSpans); len(dktraces) != 0 {
+	if dktraces := tss.input.parseResourceSpans(tsreq.ResourceSpans, getRemoteIP(ctx)); len(dktraces) != 0 {
 		if tss.Gather != nil {
 			tss.Gather.Run(inputName, dktraces)
 		}
@@ -97,7 +98,7 @@ type MetricsServiceServer struct {
 func (mss *MetricsServiceServer) Export(ctx context.Context, msreq *metrics.ExportMetricsServiceRequest) (
 	*metrics.ExportMetricsServiceResponse, error,
 ) {
-	mss.input.parseResourceMetricsV2(msreq.ResourceMetrics)
+	mss.input.parseResourceMetricsV2(msreq.ResourceMetrics, getRemoteIP(ctx))
 
 	return &metrics.ExportMetricsServiceResponse{}, nil
 }
@@ -112,7 +113,7 @@ func (l *LogsServiceServer) Export(ctx context.Context, logsReq *logs.ExportLogs
 		return
 	}
 	start := time.Now()
-	pts := l.input.parseLogRequest(logsReq.GetResourceLogs())
+	pts := l.input.parseLogRequest(logsReq.GetResourceLogs(), getRemoteIP(ctx))
 	if len(pts) != 0 {
 		if err := l.input.feeder.Feed(point.Logging, pts,
 			dkio.WithSource(inputName),
@@ -124,4 +125,14 @@ func (l *LogsServiceServer) Export(ctx context.Context, logsReq *logs.ExportLogs
 	out = &logs.ExportLogsServiceResponse{PartialSuccess: &logs.ExportLogsPartialSuccess{}}
 
 	return out, nil
+}
+
+func getRemoteIP(ctx context.Context) string {
+	remoteIP := ""
+	p, ok := peer.FromContext(ctx)
+	if ok && p.Addr != nil {
+		remoteIP, _, _ = net.SplitHostPort(p.Addr.String()) //nolint
+	}
+
+	return remoteIP
 }
