@@ -33,7 +33,8 @@ func buildInstaller(outdir, goos, goarch string) error {
 		}
 	}
 
-	ldflags := fmt.Sprintf("-w -s -X main.DataKitBaseURL=%s -X main.DataKitVersion=%s", DownloadCDN, ReleaseVersion)
+	ldflags := fmt.Sprintf("-w -s -X main.DataKitBaseURL=%s -X main.DataKitVersion=%s -X main.BrandURL=%s",
+		DownloadCDN, ReleaseVersion, brand(Brand).staticURL())
 
 	l.Infof("set ldflags on installer: %q", ldflags)
 	cmdArgs = append(cmdArgs, []string{

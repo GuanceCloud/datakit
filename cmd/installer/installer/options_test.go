@@ -20,6 +20,7 @@ func TestUpdateDownloadURLs(t *T.T) {
 		arg := DefaultInstallArgs()
 
 		arg.DataKitBaseURL = "zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com/datakit-tw"
+		arg.BrandURL = "zhuyun-static-files-testing.oss-cn-hangzhou.aliyuncs.com"
 		arg.DataKitVersion = "1.2.3"
 		assert.NoError(t, arg.UpdateDownloadURLs())
 
@@ -30,7 +31,9 @@ func TestUpdateDownloadURLs(t *T.T) {
 				arg.DataKitBaseURL, runtime.GOOS, runtime.GOARCH, arg.DataKitVersion),
 			arg.DistDatakitURL)
 
-		assert.Equal(t, "https://static.guance.com/dd-image/dd-java-agent.jar", arg.DistDatakitAPMInjJavaLibURL)
+		assert.Equal(t,
+			fmt.Sprintf("https://%s/dd-image/dd-java-agent.jar", arg.BrandURL),
+			arg.DistDatakitAPMInjJavaLibURL)
 	})
 
 	t.Run(`with-dist-url`, func(t *T.T) {

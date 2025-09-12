@@ -29,18 +29,14 @@ import (
 
 // DefaultInstallArgs get empty installer instance.
 func DefaultInstallArgs() *InstallerArgs {
-	return &InstallerArgs{
-		// java apm 注入默认使用从这个地址下载。因为这些 lib 不是 DK 发布的，所以它们只有一个
-		// 线上版本，不用区分测试版/线上版.
-		//
-		// 如果用户离线下载，传入了 -installer_base_url，那么会有对应的调整。
-		DistDatakitAPMInjJavaLibURL: "https://static.guance.com/dd-image/dd-java-agent.jar",
-	}
+	return &InstallerArgs{}
 }
 
 type InstallerArgs struct {
 	DataKitBaseURL,
 	DataKitVersion string
+
+	BrandURL string
 
 	OTA bool
 
@@ -152,9 +148,10 @@ type InstallerArgs struct {
 
 func (args *InstallerArgs) UpdateDownloadURLs() error {
 	var (
-		prefix  = "https://"
-		baseURL = args.DataKitBaseURL
-		err     error
+		prefix   = "https://"
+		baseURL  = args.DataKitBaseURL
+		brandURL = args.BrandURL
+		err      error
 	)
 
 	if args.DistBaseURL != "" {
@@ -209,6 +206,11 @@ func (args *InstallerArgs) UpdateDownloadURLs() error {
 			runtime.GOOS,
 			runtime.GOARCH,
 			args.DataKitVersion)); err != nil {
+		return err
+	}
+
+	if args.DistDatakitAPMInjJavaLibURL, err = url.JoinPath(prefix+brandURL,
+		"dd-image/dd-java-agent.jar"); err != nil {
 		return err
 	}
 
