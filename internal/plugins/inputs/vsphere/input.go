@@ -465,7 +465,7 @@ func (ipt *Input) collectResourcePoints(specs queryChunk, res *resourceKind, int
 	}
 	ems, err := client.QueryMetrics(context.Background(), specs)
 	if err != nil {
-		l.Warnf("Failed to query metrics: %s", err.Error())
+		l.Warnf("Failed to query %s metrics: %s", resourceType, err.Error())
 		return
 	}
 
@@ -651,10 +651,10 @@ func (ipt *Input) Run() {
 
 				l.Debugf("collect object length: %d", len(ipt.collectObjects))
 				if len(ipt.collectObjects) > 0 {
-					if err := ipt.feeder.Feed(point.CustomObject, ipt.collectObjects,
+					if err := ipt.feeder.Feed(point.Object, ipt.collectObjects,
 						dkio.WithCollectCost(time.Since(collectStart)),
 						dkio.WithElection(ipt.Election),
-						dkio.WithSource(dkio.FeedSource(inputName, "CO")),
+						dkio.WithSource(dkio.FeedSource(inputName, "O")),
 					); err != nil {
 						ipt.feeder.FeedLastError(err.Error(),
 							metrics.WithLastErrorInput(inputName),

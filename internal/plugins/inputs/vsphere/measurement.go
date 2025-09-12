@@ -628,11 +628,13 @@ func (*hostObject) Info() *inputs.MeasurementInfo {
 		Desc: "The object of the ESXi host.",
 		Cat:  point.Object,
 		Tags: map[string]interface{}{
-			Name:            &inputs.TagInfo{Desc: "The name of the ESXi host"},
-			Vendor:          &inputs.TagInfo{Desc: "The hardware vendor identification"},
-			Model:           &inputs.TagInfo{Desc: "The system model identification"},
-			CPUModel:        &inputs.TagInfo{Desc: "The CPU model"},
-			ConnectionState: &inputs.TagInfo{Desc: "The host connection state"},
+			Name:              &inputs.TagInfo{Desc: "The name of the ESXi host"},
+			Vendor:            &inputs.TagInfo{Desc: "The hardware vendor identification"},
+			Model:             &inputs.TagInfo{Desc: "The system model identification"},
+			CPUModel:          &inputs.TagInfo{Desc: "The CPU model"},
+			ConnectionState:   &inputs.TagInfo{Desc: "The host connection state"},
+			InMaintenanceMode: &inputs.TagInfo{Desc: "Whether the host is in maintenance mode"},
+			PowerState:        &inputs.TagInfo{Desc: "The power state of the host"},
 		},
 		Fields: map[string]interface{}{
 			MemorySize:  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The physical memory size in bytes."},
@@ -658,6 +660,7 @@ func (*vmObject) Info() *inputs.MeasurementInfo {
 			IPAddress:       &inputs.TagInfo{Desc: "Primary IP address assigned to the guest operating system, if known"},
 			ConnectionState: &inputs.TagInfo{Desc: "Indicates whether or not the virtual machine is available for management"},
 			Template:        &inputs.TagInfo{Desc: "Flag to determine whether or not this virtual machine is a template."},
+			PowerState:      &inputs.TagInfo{Desc: "The power state of the virtual machine"},
 		},
 		Fields: map[string]interface{}{
 			BootTime:         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.TimestampNS, Desc: "The timestamp when the virtual machine was most recently powered on."},
