@@ -27,6 +27,7 @@ var sampleConfig = `
   vm_metric_include = [
     "cpu.demand.average",
     "cpu.idle.summation",
+    "cpu.usage.average",
     "cpu.latency.average",
     "cpu.readiness.average",
     "cpu.ready.summation",
