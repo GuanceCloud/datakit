@@ -301,7 +301,8 @@ func (d *dialer) run() error {
 			l.Infof("dial testing %s exit", d.task.ID())
 			return nil
 
-		case <-d.ticker.C:
+		case tt := <-d.ticker.C:
+			d.dialingTime = inputs.AlignTime(tt, d.dialingTime, taskInterval)
 
 		case <-d.stopCh:
 			l.Infof("stop dial testing %s, exit", d.task.ID())
