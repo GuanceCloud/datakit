@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.82.0 (2025/09/12) {#cl-1.82.0}
+
+This release is an iterative update with the following key changes:
+
+### New Features {#cl-1.82.0-new}
+
+- Added file-based support for Prometheus Service Discovery (#2790)
+
+### Bug Fixes {#cl-1.82.0-fix}
+
+- Fixed an issue where event and change collection in Kubernetes terminated unexpectedly (#2806)
+
+### Improvements {#cl-1.82.0-opt}
+
+- Optimized eBPF collection performance in Kubernetes to reduce pressure on the Kubernetes API server (#2782/#2756)
+- Enhanced download process for APM Automatic Instrumentation packages (#2785)
+- Unified addition of `workload_name` field in Kubernetes objects (#2818)
+- Added `remote_ip` field to trace/metric collection for OpenTelemetry/DDTrace (#2819)
+- Adjusted DataKit HTTP API rate limiting defaults from 20 to 100 requests/sec, with added `ttl` and `burst` configurations (#2817)
+- Improved vSphere data collection (#2754)
+- Optimized ICMP probing logic (#2789)
+
+---
+
 ## 1.81.1 (2025/09/05) {#cl-1.81.1}
 
 This release is a hotfix update, containing the following changes:
@@ -7,7 +31,7 @@ This release is a hotfix update, containing the following changes:
 ### Bug Fixes {#cl-1.81.1-fix}
 
 - Fixed an issue where URL configuration in Prometheus Service Discovery did not take effect (#2810)
-- Disabled DDTrace/OpenTelemetry metric collection by default. In the `tracing_metrics` measurement, tags `resource` and `operation` are now excluded by default (#2908)
+- Disabled DDTrace/OpenTelemetry metric collection by default. In the `tracing_metrics` measurement, tags `resource` and `operation` are now excluded by default (#2809)
 - Forcefully converted OpenTelemetry `http_status_code` to string type (#2807)
     - During the version change process of the OpenTelemetry V1 SDK, the data type of `http-status-code` in the original data sent changed (from string to int), causing this issue. DataKit now enforces conversion of this field to string.
 

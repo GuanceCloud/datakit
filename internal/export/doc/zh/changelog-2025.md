@@ -1,5 +1,29 @@
 # 更新日志
 
+## 1.82.0(2025/09/12) {#cl-1.82.0}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.82.0-new}
+
+- Prometheus Service Discovery 新增基于文件支持（#2790）
+
+### 问题修复 {#cl-1.82.0-fix}
+
+- 修复 Kubernetes 下 event 以及变更采集意外终止的问题（#2806）
+
+### 功能优化 {#cl-1.82.0-opt}
+
+- 优化 eBPF 在 Kubernetes 下采集性能，降低对 Kubernetes API server 压力（#2782/#2756）
+- 优化 APM Automatic Instrumentation 安装包下载（#2785）
+- Kubernetes 对象中统一增加 `workload_name` 字段（#2818）
+- OpenTelemetry/DDTrace 等 trace/指标有关采集增加 `remote_ip` 字段（#2819）
+- 调整 DataKit HTTP API 限流默认值，从 20 调整到 100，同时增加 ttl/burst 配置（#2817）
+- 完善 vSphere 采集（#2754）
+- 优化 ICMP 拨测（#2789）
+
+---
+
 ## 1.81.1(2025/09/05) {#cl-1.81.1}
 
 本次发布属于 hotfix 修复，内容如下：
@@ -7,7 +31,7 @@
 ### 问题修复 {#cl-1.81.1-fix}
 
 - 修复 Prometheus Service Discovery 中 URL 配置不生效问题（#2810）
-- DDTrace/OpenTelemetry 指标采集默认关闭，同时 `tracing_metrics` 指标集中，默认屏蔽掉 `resource/operation` 这两个 tag（#2908）
+- DDTrace/OpenTelemetry 指标采集默认关闭，同时 `tracing_metrics` 指标集中，默认屏蔽掉 `resource/operation` 这两个 tag（#2809）
 - OpenTelemetry `http_status_code` 强制改为 string 类型（#2807）
     - OpenTelemetry V1 SDK 在版本变更过程中，发过来的原始数据中 http-status-code 类型发生了变更（目前从 string 变成了 int），导致了这个问题。现在 DataKit 强制将该字段转成 string。
 
