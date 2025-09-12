@@ -123,6 +123,7 @@ func (r *replicaset) buildObjectPoints(list *apiappsv1.ReplicaSetList) []*point.
 		kvs = kvs.AddTag("uid", string(item.UID))
 		kvs = kvs.AddTag("replicaset_name", item.Name)
 		kvs = kvs.AddTag("replica_set_name", item.Name) // Deprecated
+		kvs = kvs.AddTag("workload_name", item.Name)
 		kvs = kvs.AddTag("namespace", item.Namespace)
 
 		if len(item.OwnerReferences) != 0 {
@@ -208,6 +209,7 @@ func (*ReplicasetObject) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"name":                              inputs.NewTagInfo("The UID of ReplicaSet."),
 			"uid":                               inputs.NewTagInfo("The UID of ReplicaSet."),
+			"workload_name":                     inputs.NewTagInfo("The name of the workload resource."),
 			"replicaset_name":                   inputs.NewTagInfo("Name must be unique within a namespace."),
 			"namespace":                         inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 			"deployment":                        inputs.NewTagInfo("The name of the Deployment which the object belongs to."),

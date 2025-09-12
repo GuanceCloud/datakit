@@ -95,6 +95,7 @@ func (*containerObject) Info() *inputs.MeasurementInfo {
 			"pod_name":                  inputs.NewTagInfo("The pod name of the container (label `io.kubernetes.pod.name`)."),
 			"pod_uid":                   inputs.NewTagInfo("The pod uid of the container (label `io.kubernetes.pod.uid`)."),
 			"namespace":                 inputs.NewTagInfo("The namespace of the container (label `io.kubernetes.pod.namespace`)."),
+			"workload_name":             inputs.NewTagInfo("The name of the workload resource."),
 			"deployment":                inputs.NewTagInfo("The name of the Deployment which the object belongs to."),
 			"daemonset":                 inputs.NewTagInfo("The name of the DaemonSet which the object belongs to."),
 			"statefulset":               inputs.NewTagInfo("The name of the StatefulSet which the object belongs to."),

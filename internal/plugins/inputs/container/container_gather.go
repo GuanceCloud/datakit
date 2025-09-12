@@ -158,6 +158,7 @@ func (c *containerCollector) buildMetricPoints(item *runtime.Container) *point.P
 				image = img
 			}
 			kvs = append(kvs, buildPodKVs(containerName, pod, top)...)
+			kvs = kvs.Del("workload_name") // Metric does not add a workload_name
 			kvs = append(kvs, pointutil.LabelsToPointKVs(pod.Labels,
 				c.podLabelAsTagsForMetric.all,
 				c.podLabelAsTagsForMetric.keys)...)
@@ -306,6 +307,7 @@ func buildPodKVs(containerName string, pod *apicorev1.Pod, top *runtime.Containe
 
 	if ownerKind, ownerName := podutil.PodOwner(pod); ownerKind != "" && ownerName != "" {
 		kvs = kvs.AddTag(ownerKind, ownerName)
+		kvs = kvs.AddTag("workload_name", ownerName)
 	}
 
 	if image := podutil.ContainerImageFromPod(containerName, pod); image != "" {

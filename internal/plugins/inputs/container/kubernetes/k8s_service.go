@@ -117,6 +117,7 @@ func (s *service) buildObjectPoints(list *apicorev1.ServiceList) []*point.Point 
 		kvs = kvs.AddTag("name", string(item.UID))
 		kvs = kvs.AddTag("uid", string(item.UID))
 		kvs = kvs.AddTag(serviceObjectResourceKey, item.Name)
+		kvs = kvs.AddTag("workload_name", item.Name)
 		kvs = kvs.AddTag("namespace", item.Namespace)
 		kvs = kvs.AddTag("type", string(item.Spec.Type))
 
@@ -182,6 +183,7 @@ func (*ServiceObject) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"name":                 inputs.NewTagInfo("The UID of Service"),
 			"uid":                  inputs.NewTagInfo("The UID of Service"),
+			"workload_name":        inputs.NewTagInfo("The name of the workload resource."),
 			"service_name":         inputs.NewTagInfo("Name must be unique within a namespace."),
 			"namespace":            inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 			"type":                 inputs.NewTagInfo("Type determines how the Service is exposed. Defaults to ClusterIP. (ClusterIP/NodePort/LoadBalancer/ExternalName)"),

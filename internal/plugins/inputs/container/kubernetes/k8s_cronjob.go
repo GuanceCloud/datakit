@@ -116,6 +116,7 @@ func (c *cronjob) buildObjectPoints(list *apibatchv1.CronJobList) []*point.Point
 		kvs = kvs.AddTag("name", string(item.UID))
 		kvs = kvs.AddTag("uid", string(item.UID))
 		kvs = kvs.AddTag("cron_job_name", item.Name)
+		kvs = kvs.AddTag("workload_name", item.Name)
 		kvs = kvs.AddTag("namespace", item.Namespace)
 
 		kvs = kvs.Add("age", time.Since(item.CreationTimestamp.Time).Milliseconds()/1e3)
@@ -179,6 +180,7 @@ func (*CronjobObject) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"name":             inputs.NewTagInfo("The UID of CronJob."),
 			"uid":              inputs.NewTagInfo("The UID of CronJob."),
+			"workload_name":    inputs.NewTagInfo("The name of the workload resource."),
 			"cron_job_name":    inputs.NewTagInfo("Name must be unique within a namespace."),
 			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
