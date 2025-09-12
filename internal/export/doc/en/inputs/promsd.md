@@ -131,9 +131,52 @@ Supported Special Labels:
 | `__scheme__`        | Specify protocol (http/https)              | `"https"`              | `https://172.16.1.1:9090/metrics`              |
 | `__param_<name>`    | Add URL query parameter                    | `__param_module="cpu"` | `http://172.16.1.1:9090/metrics?module=cpu`    |
 
-Here is the professional translation of your Consul service discovery configuration documentation:
 
----
+### File Service Discovery Configuration {#file-sd-config}
+
+Dynamically retrieves the list of monitoring targets by reading locally stored JSON files.
+
+```toml
+[[inputs.promsd.file_sd_config]]
+  # File path patterns from which target groups are extracted.
+  files = ["/path/to/targets/*.json"]
+
+  # Refresh interval for re-reading the files.
+  refresh_interval = "5m"
+```
+
+The configuration item `files` is an array of file paths. Wildcards (*) can be used to match multiple files, e.g., `["path/to/file.json"]` or `["/etc/telemetry/targets/*.yaml", "backups/*.json"]`.
+
+The content format of the files specified in `files` is as follows:
+
+```json
+[
+  {
+    "targets": ["10.0.0.1:9100", "10.0.0.2:9100"],
+    "labels": {
+      "env": "prod",
+      "app": "node-exporter",
+      "__scheme__": "https",
+      "__metrics_path__": "/custom/metrics",
+      "__param_module": "cpu"
+    }
+  }
+]
+```
+
+- `targets`: List of monitoring target addresses (IP/Domain + Port)
+- `labels`: Labels attached to the targets (automatically overwrite duplicate labels)
+
+Additionally, Prometheus's special double-underscore labels can also be used via the `labels` field to override default configurations. These labels have the highest priority and directly affect scraping behavior.
+
+List of supported special labels:
+
+| Label                  | Purpose                                                   | Example Value           | Actual Scrape URL (example target: `172.16.1.1:9090`) |
+| ---------------------- | -------------------------------------------------         | ----------------------- | ----------------------------------------------------- |
+| `__metrics_path__`     | Override the default metrics path (default is `/metrics`) | `/custom/metrics`       | `http://172.16.1.1:9090/custom/metrics`               |
+| `__scheme__`           | Specify the protocol (http/https)                         | `https`                 | `https://172.16.1.1:9090/metrics`                     |
+| `__param_<name>`       | Add a URL parameter                                       | `__param_module= "cpu"` | `http://172.16.1.1:9090/metrics?module=cpu`           |
+
 
 ### Consul Service Discovery Configuration {#consul-sd-config}
 

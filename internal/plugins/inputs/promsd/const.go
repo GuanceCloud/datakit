@@ -5,10 +5,15 @@
 
 package promsd
 
+import "time"
+
 var (
 	inputName            = "promsd"
 	maxScrapersPerWorker = 100
 	workerNumber         = 5
+
+	maxInterval = time.Minute * 10
+	minInterval = time.Second * 10
 )
 
 const (
@@ -16,6 +21,12 @@ const (
 [[inputs.promsd]]
   ## Collector alias.
   source = "prom_sd"
+
+  # [inputs.promsd.file_sd_config]
+  #   # Patterns for files from which target groups are extracted.
+  #   files = ["<filename_pattern>"]
+  #   # Refresh interval to re-read the files.
+  #   refresh_interval = "5m"
 
   # [inputs.promsd.http_sd_config]
   #   # Service_url of HTTP service discovery endpoint
