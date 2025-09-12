@@ -71,6 +71,7 @@ func (p *persistentvolumeclaim) buildObjectPoints(list *apicorev1.PersistentVolu
 		kvs = kvs.AddTag("name", string(item.UID))
 		kvs = kvs.AddTag("uid", string(item.UID))
 		kvs = kvs.AddTag("persistentvolumeclaim_name", item.Name)
+		kvs = kvs.AddTag("workload_name", item.Name)
 		kvs = kvs.AddTag("namespace", item.Namespace)
 		kvs = kvs.AddTag("phase", string(item.Status.Phase))
 
@@ -135,6 +136,7 @@ func (*PersistentvolumeclaimObject) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"name":                              inputs.NewTagInfo("The UID of PersistentVolume."),
 			"uid":                               inputs.NewTagInfo("The UID of PersistentVolume."),
+			"workload_name":                     inputs.NewTagInfo("The name of the workload resource."),
 			"persistentvolumeclaim_name":        inputs.NewTagInfo("Name must be unique within a namespace."),
 			"namespace":                         inputs.NewTagInfo("Namespace defines the space within each name must be unique."),
 			"cluster_name_k8s":                  inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),

@@ -138,6 +138,7 @@ func (n *node) buildObjectPoints(list *apicorev1.NodeList) []*point.Point {
 		kvs = kvs.AddTag("name", string(item.UID))
 		kvs = kvs.AddTag("uid", string(item.UID))
 		kvs = kvs.AddTag("node_name", config.RenameNode(item.Name))
+		kvs = kvs.AddTag("workload_name", config.RenameNode(item.Name))
 		for _, condition := range item.Status.Conditions {
 			if condition.Reason == "KubeletReady" {
 				kvs = kvs.AddTag("status", string(condition.Type))
@@ -244,6 +245,7 @@ func (*NodeObject) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"name":             inputs.NewTagInfo("The UID of Node."),
 			"uid":              inputs.NewTagInfo("The UID of Node."),
+			"workload_name":    inputs.NewTagInfo("The name of the workload resource."),
 			"node_name":        inputs.NewTagInfo("Name must be unique within a namespace."),
 			"internal_ip":      inputs.NewTagInfo("Node internal IP"),
 			"role":             inputs.NewTagInfo("Node role. (master/node)"),
