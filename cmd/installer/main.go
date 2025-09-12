@@ -36,6 +36,7 @@ import (
 var (
 	DataKitVersion = "not-set"
 	DataKitBaseURL = "not-set"
+	BrandURL       = "not-set"
 
 	oldInstallDir      = "/usr/local/cloudcare/dataflux/datakit"
 	oldInstallDirWin   = `C:\Program Files\dataflux\datakit`
@@ -262,6 +263,7 @@ func offlineExtract() error {
 func applyFlags(mc *config.Config) (err error) {
 	args.DataKitVersion = DataKitVersion
 	args.DataKitBaseURL = DataKitBaseURL
+	args.BrandURL = BrandURL
 
 	// NOTE: we should update base-urls before other settings
 	if err = args.UpdateDownloadURLs(); err != nil {
