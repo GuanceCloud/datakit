@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/groupcache/lru"
 	pr "github.com/shirou/gopsutil/v3/process"
 )
 
@@ -25,7 +24,6 @@ type ProcessFilter struct {
 	asynCh  chan int
 
 	procInfo map[int]*ProcInfo
-	procDel  *lru.Cache
 
 	kernerFilter kernelProcFilter
 	sync.RWMutex
@@ -40,6 +38,8 @@ type ProcInfo struct {
 	keep       bool
 	allowTrace bool
 	createTS   int64
+
+	deleted bool
 }
 
 func (p *ProcInfo) ServiceName() string {
@@ -115,7 +115,6 @@ func WithEnvService(li []string) FilterOpt {
 func NewProcessFilter(ctx context.Context, opts ...FilterOpt) *ProcessFilter {
 	filter := &ProcessFilter{
 		procInfo: map[int]*ProcInfo{},
-		procDel:  lru.New(100_000),
 	}
 	for _, opt := range opts {
 		if opt != nil {
@@ -243,8 +242,7 @@ func (p *ProcessFilter) Delete(pid int) {
 	defer p.Unlock()
 
 	if v, ok := p.procInfo[pid]; ok {
-		delete(p.procInfo, pid)
-		p.procDel.Add(pid, v)
+		v.deleted = true
 	}
 }
 
@@ -254,12 +252,6 @@ func (p *ProcessFilter) GetProcInfo(pid int) (*ProcInfo, bool) {
 
 	if v, ok := p.procInfo[pid]; ok && v != nil {
 		return v, true
-	}
-
-	if v, ok := p.procDel.Get(pid); ok {
-		if v, ok := v.(*ProcInfo); ok && v != nil {
-			return v, true
-		}
 	}
 
 	return nil, false

@@ -7,11 +7,18 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/GuanceCloud/cliutils/logger"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 )
+
+var log = logger.DefaultSLogger("k8s")
+
+func SetLogger() {
+	log = logger.SLogger("k8s")
+}
 
 type K8sConfig struct {
 	URL             string `toml:"url"`
@@ -22,7 +29,7 @@ type K8sConfig struct {
 	WorkloadLabelPrefix string   `toml:"workload_label_prefix"`
 }
 
-func NewK8sClientFromBearer(cfg K8sConfig) (*K8sClient, error) {
+func NewK8sClientFromBearer(cfg K8sConfig, stopCh <-chan struct{}) (*K8sClient, error) {
 	var (
 		k8sURL          = cfg.URL
 		bearerTokenPath = cfg.BearerTokenPath
@@ -45,13 +52,15 @@ func NewK8sClientFromBearer(cfg K8sConfig) (*K8sClient, error) {
 	var cli *K8sClient
 	var err error
 	if bearerTokenPath != "" {
-		cli, err = NewK8sClientFromBearerToken(k8sURL,
+		cli, err = NewK8sClientFromBearerToken(
+			stopCh, k8sURL,
 			bearerTokenPath, lbs, lbPrefix)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		cli, err = NewK8sClientFromBearerTokenString(k8sURL,
+		cli, err = NewK8sClientFromBearerTokenString(
+			stopCh, k8sURL,
 			bearerToken, lbs, lbPrefix)
 		if err != nil {
 			return nil, err
@@ -65,7 +74,7 @@ func NewK8sClientFromBearer(cfg K8sConfig) (*K8sClient, error) {
 	return cli, nil
 }
 
-func NewK8sClientFromKubeConfig(kubeconfig string, lbs []string, lbPrefix string) (*K8sClient, error) {
+func NewK8sClientFromKubeConfig(stopCh <-chan struct{}, kubeconfig string, lbs []string, lbPrefix string) (*K8sClient, error) {
 	if kubeconfig == "" {
 		if home := homedir.HomeDir(); home != "" {
 			kubeconfig = filepath.Join(home, ".kube", "config")
@@ -81,10 +90,10 @@ func NewK8sClientFromKubeConfig(kubeconfig string, lbs []string, lbPrefix string
 	}
 
 	// create k8s client
-	return newK8sClient(config, lbs, lbPrefix)
+	return newK8sClient(config, stopCh, lbs, lbPrefix)
 }
 
-func NewK8sClientFromBearerToken(baseURL, path string, lbs []string, lbPrefix string) (*K8sClient, error) {
+func NewK8sClientFromBearerToken(stopCh <-chan struct{}, baseURL, path string, lbs []string, lbPrefix string) (*K8sClient, error) {
 	if baseURL == "" {
 		return nil, fmt.Errorf("invalid baseURL, cannot be empty")
 	}
@@ -95,11 +104,12 @@ func NewK8sClientFromBearerToken(baseURL, path string, lbs []string, lbPrefix st
 	}
 
 	return NewK8sClientFromBearerTokenString(
+		stopCh,
 		baseURL, strings.TrimSpace(string(token)),
 		lbs, lbPrefix)
 }
 
-func NewK8sClientFromBearerTokenString(baseURL, token string, lbs []string, lbPrefix string) (*K8sClient, error) {
+func NewK8sClientFromBearerTokenString(stopCh <-chan struct{}, baseURL, token string, lbs []string, lbPrefix string) (*K8sClient, error) {
 	restConfig := &rest.Config{
 		Host:        baseURL,
 		BearerToken: token,
@@ -107,10 +117,10 @@ func NewK8sClientFromBearerTokenString(baseURL, token string, lbs []string, lbPr
 			Insecure: true,
 		},
 	}
-	return newK8sClient(restConfig, lbs, lbPrefix)
+	return newK8sClient(restConfig, stopCh, lbs, lbPrefix)
 }
 
-func newK8sClient(restConfig *rest.Config, lbs []string, lbPrefix string) (*K8sClient, error) {
+func newK8sClient(restConfig *rest.Config, stopCh <-chan struct{}, lbs []string, lbPrefix string) (*K8sClient, error) {
 	config, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return nil, err
@@ -118,6 +128,7 @@ func newK8sClient(restConfig *rest.Config, lbs []string, lbPrefix string) (*K8sC
 
 	k := &K8sClient{
 		Clientset:           config,
+		informer:            NewInformaers(config, stopCh),
 		workloadLabels:      lbs,
 		workloadLablePrefix: lbPrefix,
 	}
