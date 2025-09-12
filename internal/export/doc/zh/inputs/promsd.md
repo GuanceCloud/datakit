@@ -132,6 +132,51 @@ HTTP 接口规范：
 | `__scheme__`       | 指定协议（http/https）                | `https`                 | `https://172.16.1.1:9090/metrics`           |
 | `__param_<name>`   | 添加 URL 参数                         | `__param_module= "cpu"` | `http://172.16.1.1:9090/metrics?module=cpu` |
 
+### File 服务发现配置 {#file-sd-config}
+
+通过读取本地存储的 JSON 文件，动态获取监控目标列表。
+
+```toml
+[[inputs.promsd.file_sd_config]]
+  # 用于提取目标组的文件路径模式
+  files = ["/path/to/targets/*.json"]
+
+  # 重新读取文件的刷新间隔
+  refresh_interval = "5m"
+```
+
+配置项 `files` 是一个文件路径数组，可以使用通配符 (*) 来匹配多个文件，例如 `["path/to/file.json"]` 或 `["/etc/telemetry/targets/*.yaml", "backups/*.json"]`。
+
+files 指定的文件内容格式如下：
+
+```json
+[
+  {
+    "targets": ["10.0.0.1:9100", "10.0.0.2:9100"],
+    "labels": {
+      "env": "prod",
+      "app": "node-exporter",
+      "__scheme__": "https",
+      "__metrics_path__": "/custom/metrics",
+      "__param_module": "cpu"
+    }
+  }
+]
+```
+
+- targets：监控目标地址列表（IP/Domain + Port）
+- labels：附加到目标的标签（自动覆盖重复标签）
+
+另外，同样可通过 labels 字段使用 Prometheus 的特殊双下划线标签覆盖默认配置。这些标签优先级最高，会直接影响抓取行为。
+
+支持的特殊标签列表：
+
+| 标签               | 作用                                  | 示例值                  | 实际抓取地址，以 `172.16.1.1:9090` 为例     |
+| ----               | ----                                  | ----                    |                                             |
+| `__metrics_path__` | 覆盖默认指标路径（默认是 "/metrics"） | `/custom/metrics`       | `http://172.16.1.1:9090/custom/metrics`     |
+| `__scheme__`       | 指定协议（http/https）                | `https`                 | `https://172.16.1.1:9090/metrics`           |
+| `__param_<name>`   | 添加 URL 参数                         | `__param_module= "cpu"` | `http://172.16.1.1:9090/metrics?module=cpu` |
+
 
 ### Consul 服务发现配置 {#consul-sd-config}
 

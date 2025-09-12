@@ -16,6 +16,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -31,6 +32,7 @@ type Input struct {
 	Scrape   *ScrapeConfig `toml:"scrape"`
 	HTTPSD   *HTTPSD       `toml:"http_sd_config"`
 	ConsulSD *ConsulSD     `toml:"consul_sd_config"`
+	FileSD   *FileSD       `toml:"file_sd_config"`
 
 	Tags map[string]string `toml:"tags"`
 
@@ -101,10 +103,16 @@ func (ipt *Input) Run() {
 
 func (ipt *Input) setup() {
 	if ipt.HTTPSD != nil {
+		ipt.HTTPSD.RefreshInterval = config.ProtectedInterval(minInterval, maxInterval, ipt.HTTPSD.RefreshInterval)
 		ipt.HTTPSD.SetLogger(ipt.log)
 	}
 	if ipt.ConsulSD != nil {
+		ipt.ConsulSD.RefreshInterval = config.ProtectedInterval(minInterval, maxInterval, ipt.ConsulSD.RefreshInterval)
 		ipt.ConsulSD.SetLogger(ipt.log)
+	}
+	if ipt.FileSD != nil {
+		ipt.FileSD.RefreshInterval = config.ProtectedInterval(minInterval, maxInterval, ipt.FileSD.RefreshInterval)
+		ipt.FileSD.SetLogger(ipt.log)
 	}
 }
 
@@ -139,6 +147,13 @@ func (ipt *Input) startWorker(ctx context.Context, scraperChan chan scraper) {
 	if ipt.ConsulSD != nil {
 		g.Go(func(_ context.Context) error {
 			ipt.ConsulSD.StartScraperProducer(ctx, ipt.Scrape, promOptions, scraperChan)
+			return nil
+		})
+	}
+
+	if ipt.FileSD != nil {
+		g.Go(func(_ context.Context) error {
+			ipt.FileSD.StartScraperProducer(ctx, ipt.Scrape, promOptions, scraperChan)
 			return nil
 		})
 	}
