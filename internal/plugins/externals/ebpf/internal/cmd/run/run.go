@@ -325,15 +325,16 @@ func runCmd(cfgFile *string, fl *Flag) error {
 			fl.K8sInfo.WorkloadLabelPrefix)
 	}
 
+	stopCh := make(chan struct{})
 	var k8sinfo *cli.K8sInfo
-	if c, err := cli.NewK8sClientFromBearer(fl.K8sInfo); err != nil {
+	if c, err := cli.NewK8sClientFromBearer(fl.K8sInfo, stopCh); err != nil {
 		log.Warn(err)
 	} else {
 		criLi, _ := cli.NewCRIDefault()
 		k8sinfo = cli.NewK8sInfo(c, criLi)
 	}
 	if k8sinfo != nil {
-		k8sinfo.AutoUpdate(ctx, time.Second*60)
+		k8sinfo.AutoUpdate(ctx, time.Second*30)
 		netflow.SetK8sNetInfo(k8sinfo)
 		dnsflow.SetK8sNetInfo(k8sinfo)
 		l4log.SetK8sNetInfo(k8sinfo)

@@ -8,7 +8,6 @@ import "C"
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"math"
 	"math/rand"
@@ -19,6 +18,8 @@ import (
 	"strings"
 	"time"
 	"unsafe"
+
+	"github.com/goccy/go-json"
 
 	manager "github.com/DataDog/ebpf-manager"
 	"github.com/cilium/ebpf"

@@ -157,6 +157,31 @@ func GetAllResource(k8sCli *K8sClient, criCli []*CRIClient) (map[string]*K8sReso
 
 	ctrWithNS := PodContainerMapping(infs)
 
+	if err := k8sCli.ListAllPods(); err != nil {
+		log.Warnf("list pods failed: %s", err.Error())
+	}
+	if err := k8sCli.ListAllServices(); err != nil {
+		log.Warnf("list services failed: %s", err.Error())
+	}
+	if err := k8sCli.ListAllDeployments(); err != nil {
+		log.Warnf("list deployments failed: %s", err.Error())
+	}
+	if err := k8sCli.ListAllStatefulSets(); err != nil {
+		log.Warnf("list statefulsets failed: %s", err.Error())
+	}
+	if err := k8sCli.ListAllCronJobs(); err != nil {
+		log.Warnf("list cronjobs failed: %s", err.Error())
+	}
+	if err := k8sCli.ListAllJobs(); err != nil {
+		log.Warnf("list jobs failed: %s", err.Error())
+	}
+	if err := k8sCli.ListAllDaemonSets(); err != nil {
+		log.Warnf("list daemonsets failed: %s", err.Error())
+	}
+	if err := k8sCli.ListAllReplicaSets(); err != nil {
+		log.Warnf("list replicasets failed: %s", err.Error())
+	}
+
 	nsLi, err := k8sCli.ListNamespaces()
 	if err != nil {
 		return nil, fmt.Errorf("list namespaces failed: %w", err)

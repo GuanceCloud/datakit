@@ -13,12 +13,10 @@ import (
 	"os"
 	"runtime"
 	"sync"
-	"time"
 	"unsafe"
 
 	manager "github.com/DataDog/ebpf-manager"
 	"github.com/cilium/ebpf"
-	"github.com/golang/groupcache/lru"
 	pr "github.com/shirou/gopsutil/v3/process"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/c"
 
@@ -72,76 +70,14 @@ type ProcessInfo struct {
 }
 
 type ProcessAttachInfo struct {
-	cannotAttach *lru.Cache
-	attach       *lru.Cache
+	fileUpdater PassiveFileUpdater
 	sync.RWMutex
 }
 
-func (procAttach *ProcessAttachInfo) AddAtach(name string, tn time.Time) {
-	procAttach.Lock()
-	defer procAttach.Unlock()
-	if procAttach.attach == nil {
-		procAttach.attach = lru.New(2048)
+func NewProcessAttachInfo() *ProcessAttachInfo {
+	return &ProcessAttachInfo{
+		fileUpdater: *NewPassiveFileUpdater(),
 	}
-	if procAttach.cannotAttach == nil {
-		procAttach.cannotAttach = lru.New(2048)
-	}
-
-	procAttach.cannotAttach.Remove(name)
-	procAttach.attach.Add(name, tn)
-}
-
-func (procAttach *ProcessAttachInfo) AddCannotAttach(name string, tn time.Time) {
-	procAttach.Lock()
-	defer procAttach.Unlock()
-	if procAttach.attach == nil {
-		procAttach.attach = lru.New(2048)
-	}
-	if procAttach.cannotAttach == nil {
-		procAttach.cannotAttach = lru.New(2048)
-	}
-	procAttach.cannotAttach.Add(name, tn)
-}
-
-func (procAttach *ProcessAttachInfo) GetAttachInfo(name string) (time.Time, bool) {
-	procAttach.RLock()
-	defer procAttach.RUnlock()
-	if procAttach.attach == nil {
-		procAttach.attach = lru.New(2048)
-	}
-	if procAttach.cannotAttach == nil {
-		procAttach.cannotAttach = lru.New(2048)
-	}
-	if v, ok := procAttach.attach.Get(name); ok {
-		if v, ok := v.(time.Time); ok {
-			return v, true
-		}
-	}
-
-	return time.Time{}, false
-}
-
-func (procAttach *ProcessAttachInfo) GetCannotAndAttachInfo(name string) (time.Time, bool) {
-	procAttach.RLock()
-	defer procAttach.RUnlock()
-	if procAttach.attach == nil {
-		procAttach.attach = lru.New(100_000)
-	}
-	if procAttach.cannotAttach == nil {
-		procAttach.cannotAttach = lru.New(100_000)
-	}
-	if v, ok := procAttach.attach.Get(name); ok {
-		if v, ok := v.(time.Time); ok {
-			return v, true
-		}
-	}
-
-	if v, ok := procAttach.cannotAttach.Get(name); ok {
-		if v, ok := v.(time.Time); ok {
-			return v, true
-		}
-	}
-	return time.Time{}, false
 }
 
 var execGoFnName = []string{
@@ -151,6 +87,7 @@ var execGoFnName = []string{
 func NewProcessSchedTracer(filter *ProcessFilter) (*SchedTracer, error) {
 	tracer := SchedTracer{
 		processFilter: filter,
+		attachInfo:    NewProcessAttachInfo(),
 	}
 
 	var err error
@@ -166,7 +103,7 @@ type SchedTracer struct {
 	Manager *manager.Manager
 
 	processFilter *ProcessFilter
-	attachInfo    ProcessAttachInfo
+	attachInfo    *ProcessAttachInfo
 
 	selfPid int
 
@@ -317,30 +254,75 @@ func (tracer *SchedTracer) ProcessSchedHandler(cpu int, data []byte,
 }
 
 func (tracer *SchedTracer) attachProcess(p *pr.Process) error {
-	if p.Pid < 0 {
-		return fmt.Errorf("pid < 0")
+	if p.Pid <= 0 {
+		return fmt.Errorf("pid <= 0")
 	}
 
 	procInfo, err := tracer.processFilter.TryAdd(int(p.Pid))
 	if err != nil {
 		return err
 	}
-	if !procInfo.TraceFilterd() || procInfo.binPath == "" {
+
+	if procInfo.deleted {
 		return nil
 	}
 
-	// check file modified
+	if tracer.Manager == nil {
+		return nil
+	}
+
+	if !procInfo.TraceFilterd() {
+		return nil
+	}
 
 	binPath := procInfo.binPath
-	exeFstat, err := os.Stat(binPath)
+	if binPath == "" {
+		return nil
+	}
+
+	rec, ok, err := tracer.attachInfo.fileUpdater.Check(procInfo.binPath)
 	if err != nil {
 		return err
+	} else if !ok {
+		if rec.inj != nil {
+			emap, ok, err := tracer.Manager.GetMap(bmapProcInject)
+			if err != nil {
+				return fmt.Errorf("get bpf map bmap_proc_inject failed: %w", err)
+			}
+			if !ok {
+				log.Warn("get bpf map bmap_proc_inject failed")
+			}
+			pidU32 := (uint32)(procInfo.pid)
+			if err := emap.Update(unsafe.Pointer(&pidU32), unsafe.Pointer(&rec.inj), ebpf.UpdateAny); err != nil {
+				return err
+			}
+		}
+		return nil
 	}
-	exeModTime := exeFstat.ModTime()
 
-	if tmod, ok := tracer.attachInfo.GetCannotAndAttachInfo(binPath); ok {
-		if tmod.Equal(exeFstat.ModTime()) {
-			return nil
+	// clean old hook
+	if rec.inj != nil {
+		uid := ShortID(binPath)
+		log.Info("DetachHook: file modfied: ", binPath, " ShortID: ", uid)
+		for _, fnName := range execGoFnName {
+			p, ok := tracer.Manager.GetProbe(manager.ProbeIdentificationPair{
+				UID:          uid,
+				EBPFFuncName: fnName,
+			})
+			if !ok {
+				continue
+			}
+			if err := tracer.Manager.DetachHook(manager.ProbeIdentificationPair{
+				UID:          uid,
+				EBPFFuncName: fnName,
+			}); err != nil {
+				log.Error(err)
+			}
+			if pp := p.Program(); pp != nil {
+				if err := pp.Close(); err != nil {
+					log.Warn(err)
+				}
+			}
 		}
 	}
 
@@ -356,40 +338,18 @@ func (tracer *SchedTracer) attachProcess(p *pr.Process) error {
 		goVer, _ = parseGoVersion(inf.GoVersion)
 	}
 
-	var symbolAddr uint64 = 0
-
 	elfFile, err := elf.Open(binPath)
 	if err != nil {
-		return fmt.Errorf("nnable to open elf file %s: %w", binPath, err)
+		return fmt.Errorf("failed to open elf file %s: %w", binPath, err)
 	}
+	defer elfFile.Close() // nolint:errcheck
 
-	if syms, err := FindSymbol(elfFile, "runtime.execute"); err == nil {
-		if len(syms) != 1 {
-			log.Debugf("find symbol runtime.execute, exe %s, count %d", binPath, len(syms))
-			return nil
-		}
-		symbolAddr = syms[0].Value
-	} else {
-		sym, err := getGoUprobeSymbolFromPCLN(elfFile, goVer[1] >= 20, "runtime.execute")
-		if err != nil {
-			log.Debug(err)
-			tracer.attachInfo.AddCannotAttach(binPath, exeModTime)
-			return nil
-		}
-		symbolAddr = sym.Start
-	}
-
-	if tracer.Manager == nil {
+	sym, err := getGoUprobeSymbolFromPCLN(elfFile, goVer[1] >= 20, "runtime.execute")
+	if err != nil {
+		log.Debug(err)
 		return nil
 	}
-
-	emap, ok, err := tracer.Manager.GetMap(bmapProcInject)
-	if err != nil {
-		return fmt.Errorf("get bpf map bmap_proc_inject failed: %w", err)
-	}
-	if !ok {
-		log.Warn("get bpf map bmap_proc_inject failed")
-	}
+	symbolAddr := sym.Start
 
 	// offset, err := FindMemberOffsetFromFile(fpath, "runtime.g", "goid")
 	// if err != nil {
@@ -414,49 +374,21 @@ func (tracer *SchedTracer) attachProcess(p *pr.Process) error {
 		}
 	}
 
+	emap, ok, err := tracer.Manager.GetMap(bmapProcInject)
+	if err != nil {
+		return fmt.Errorf("get bpf map bmap_proc_inject failed: %w", err)
+	}
+	if !ok {
+		log.Warn("get bpf map bmap_proc_inject failed")
+	}
 	pidU32 := (uint32)(procInfo.pid)
 	if err := emap.Update(unsafe.Pointer(&pidU32), unsafe.Pointer(&val), ebpf.UpdateAny); err != nil {
 		return err
 	}
 
-	var uid string
-	if tmod, ok := tracer.attachInfo.GetAttachInfo(binPath); ok {
-		if tmod.Equal(exeModTime) {
-			return nil
-		}
+	tracer.attachInfo.fileUpdater.Inject(binPath, &val)
 
-		uid = ShortID(binPath)
-
-		log.Info("DetachHook: file modfied: ", binPath, " ShortID: ", uid)
-		for _, fnName := range execGoFnName {
-			p, ok := tracer.Manager.GetProbe(manager.ProbeIdentificationPair{
-				UID:          uid,
-				EBPFFuncName: fnName,
-			})
-			if !ok {
-				continue
-			}
-			if err := tracer.Manager.DetachHook(manager.ProbeIdentificationPair{
-				UID:          uid,
-				EBPFFuncName: fnName,
-			}); err != nil {
-				log.Error(err)
-			}
-			pp := p.Program()
-			if pp != nil {
-				if err := pp.Close(); err != nil {
-					log.Warn(err)
-				}
-			}
-		}
-	}
-
-	tracer.attachInfo.AddAtach(binPath, exeModTime)
-
-	if uid == "" {
-		uid = ShortID(binPath)
-	}
-
+	uid := ShortID(binPath)
 	log.Info("AddHook: ", binPath, " ShortID: ", uid)
 	for _, fnName := range execGoFnName {
 		if err := tracer.Manager.AddHook("", &manager.Probe{

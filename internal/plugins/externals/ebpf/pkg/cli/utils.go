@@ -248,7 +248,7 @@ func GetPodInfo(cli *K8sClient, ns string) ([]*PodInfo, error) {
 	}
 
 	result := []*PodInfo{}
-	for _, elem := range list.Items {
+	for _, elem := range list {
 		podIPs := []string{}
 		for _, ip := range elem.Status.PodIPs {
 			podIPs = append(podIPs, ip.IP)
@@ -303,7 +303,7 @@ func GetServiceInfo(cli *K8sClient, ns string) ([]*ServiceInfo, error) {
 		return result
 	}
 
-	for _, elem := range list.Items {
+	for _, elem := range list {
 		service := &ServiceInfo{
 			UID:             string(elem.GetUID()),
 			Name:            elem.GetName(),
@@ -334,7 +334,7 @@ func GetReplicaSetInfo(cli *K8sClient, ns string) ([]*ReplicaSetInfo, error) {
 
 	result := []*ReplicaSetInfo{}
 
-	for _, elem := range list.Items {
+	for _, elem := range list {
 		selector, _ := newSelector(elem.Spec.Selector)
 		replicaSet := &ReplicaSetInfo{
 			UID:             string(elem.GetUID()),
@@ -384,7 +384,7 @@ func GetStatefulSetInfo(cli *K8sClient, ns string) ([]*StatefulSetInfo, error) {
 
 	result := []*StatefulSetInfo{}
 
-	for _, elem := range list.Items {
+	for _, elem := range list {
 		selector, _ := newSelector(elem.Spec.Selector)
 		statefulset := &StatefulSetInfo{
 			UID:             string(elem.GetUID()),
@@ -408,7 +408,7 @@ func GetDaemonSetInfo(cli *K8sClient, ns string) ([]*DaemonSetInfo, error) {
 
 	result := []*DaemonSetInfo{}
 
-	for _, elem := range list.Items {
+	for _, elem := range list {
 		selector, _ := newSelector(elem.Spec.Selector)
 		daemonset := &DaemonSetInfo{
 			UID:             string(elem.GetUID()),
@@ -432,7 +432,7 @@ func GetCronJobInfo(cli *K8sClient, ns string) ([]*CronJobInfo, error) {
 
 	result := []*CronJobInfo{}
 
-	for _, elem := range list.Items {
+	for _, elem := range list {
 		selector, _ := newSelector(elem.Spec.JobTemplate.Spec.Selector)
 		cronjob := &CronJobInfo{
 			UID:             string(elem.GetUID()),
@@ -456,7 +456,7 @@ func GetJobInfo(cli *K8sClient, ns string) ([]*JobInfo, error) {
 
 	result := []*JobInfo{}
 
-	for _, elem := range list.Items {
+	for _, elem := range list {
 		selector, _ := newSelector(elem.Spec.Selector)
 		job := &JobInfo{
 			UID:             string(elem.GetUID()),
