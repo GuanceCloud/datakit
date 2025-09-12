@@ -143,8 +143,8 @@ github.com/DataDog/sketches-go v1.4.1 h1:j5G6as+9FASM2qC36lvpvQAj9qsv/jUs3FtO8Cw
 github.com/DataDog/sketches-go v1.4.1/go.mod h1:xJIXldczJyyjnbDop7ZZcLxJdV3+7Kra7H1KMgpgkLk=
 github.com/GuanceCloud/client_model v0.0.0-20230418154757-93bd4e878a5e h1:i34dA4kiRTfG+KdvkIXCLPDduarVeFlQhGDD3TefgS4=
 github.com/GuanceCloud/client_model v0.0.0-20230418154757-93bd4e878a5e/go.mod h1:PMnE48aPzuRu83FmWZugC0O3d54ZupJd/MmiaYxz8sM=
-github.com/GuanceCloud/cliutils v1.1.22-0.20250812093702-666ae110fe8e h1:VuZGgVAKhfZeNmPAQipBlIOnwPac1KszHFJnu80dyD0=
-github.com/GuanceCloud/cliutils v1.1.22-0.20250812093702-666ae110fe8e/go.mod h1:gx2A/FkQjFpM64/DUaiLWfcHeJ+z4FwW2cZ0JkRmc4E=
+github.com/GuanceCloud/cliutils v1.1.22-0.20250912100430-6d6393595d06 h1:d5sCuLCpKJDDIAdpu5TBYMa+gkvz2O9AASLNi6Jtjd0=
+github.com/GuanceCloud/cliutils v1.1.22-0.20250912100430-6d6393595d06/go.mod h1:gx2A/FkQjFpM64/DUaiLWfcHeJ+z4FwW2cZ0JkRmc4E=
 github.com/GuanceCloud/confd v0.1.101 h1:yjHgfl6YzAlTbFOFMTE4ERpFJzIyovOW7ZFc2/ZssL0=
 github.com/GuanceCloud/confd v0.1.101/go.mod h1:o0opIwOX+yNwV9nh56x5ymFMJ+YBD8JuPxBJ7a1mEmo=
 github.com/GuanceCloud/dockertest/v3 v3.9.4 h1:ScSNhfA2HSNLfrYoNd1KSRxkrymlKiBE60g4f6eUoOk=
@@ -165,8 +165,6 @@ github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b h1:9pkl38Cr
 github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b/go.mod h1:Acv+3eRHxCb4Qvs1YQcZ17X/D0H7DArQrew+WJtsLiE=
 github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386 h1:p2P0It6jjN66GO1+acZCb6JAPT9bAxNMarrIxPo+ZWk=
 github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386/go.mod h1:xrC7I8mMBOD93+A7fLJXU1lBaej49hZj7DaaFXFdSBE=
-github.com/GuanceCloud/pipeline-go v1.0.9-0.20250819094859-7ed9ba79b30c h1:v8/xzMXTNwel2EZlDEh3Auc+rzreksRJSGnTzHE0ULU=
-github.com/GuanceCloud/pipeline-go v1.0.9-0.20250819094859-7ed9ba79b30c/go.mod h1:ImLVtod1YFBrmFIdhsyf/OWwnwBbXcPBldCjqB93020=
 github.com/GuanceCloud/pipeline-go v1.0.9-0.20250819095325-01d2a81ed1c2 h1:pd1m2QlYGmAXyxRVO7cLTH+qgtIQ+KHdUwn9N/uE9nw=
 github.com/GuanceCloud/pipeline-go v1.0.9-0.20250819095325-01d2a81ed1c2/go.mod h1:ImLVtod1YFBrmFIdhsyf/OWwnwBbXcPBldCjqB93020=
 github.com/GuanceCloud/platypus v0.3.3-0.20250528074826-e3130ff5a05c h1:DE7qQ8Vw3+/sbIiRZ+43m9X0cNtfS+NrmVU0htylAao=

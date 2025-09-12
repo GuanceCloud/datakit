@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"sync"
 	"text/template"
 	"time"
 
@@ -30,9 +31,19 @@ const (
 	ClassOther     = "OTHER"
 	ClassWait      = "WAIT"
 	ClassMulti     = "MULTI"
-
-	MaxMsgSize = 100 * 1024
 )
+
+var (
+	setupLock         sync.Mutex // setup global variable
+	MaxMsgSize        = 100 * 1024
+	MaxICMPConcurrent = 1000             // max icmp concurrent, to avoid too many icmp packets at the same time
+	MaxICMPWaitTime   = 60 * time.Second // max time to wait to send icmp packet
+	ICMPConcurrentCh  chan struct{}
+)
+
+func init() {
+	ICMPConcurrentCh = make(chan struct{}, MaxICMPConcurrent)
+}
 
 type ConfigVar struct {
 	ID      string `json:"id,omitempty"`
@@ -162,15 +173,32 @@ type Task struct {
 	ExtractedVars     []*ConfigVar
 	CustomVars        []*ConfigVar
 
-	taskJSONString       string
-	parsedTaskJSONString string
-	child                TaskChild
+	taskJSONString string
+	child          TaskChild
 
 	rawTask    string
 	isTemplate bool
 	globalVars map[string]Variable
 	option     map[string]string
 	fm         template.FuncMap
+}
+
+type TaskConfig struct {
+	MaxMsgSize        int `json:"max_msg_size,omitempty"`
+	MaxICMPConcurrent int `json:"max_icmp_concurrent,omitempty"`
+}
+
+func Setup(c *TaskConfig) {
+	setupLock.Lock()
+	defer setupLock.Unlock()
+	if c.MaxMsgSize > 0 {
+		MaxMsgSize = c.MaxMsgSize
+	}
+
+	if c.MaxICMPConcurrent > 0 {
+		MaxICMPConcurrent = c.MaxICMPConcurrent
+		ICMPConcurrentCh = make(chan struct{}, MaxICMPConcurrent)
+	}
 }
 
 func CreateTaskChild(taskType string) (TaskChild, error) {
