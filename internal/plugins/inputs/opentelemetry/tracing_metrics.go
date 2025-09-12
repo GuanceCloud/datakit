@@ -99,7 +99,9 @@ func spanMetrics(span *point.Point, sourceLabels []string, values []string) {
 			span.GetTag(itrace.TagEnv),
 			span.GetTag(itrace.TagVersion),
 			resource,
-			span.GetTag(itrace.TagSource)).Observe(float64(duration))
+			span.GetTag(itrace.TagSource),
+			span.GetTag(itrace.TagRemoteIP),
+		).Observe(float64(duration))
 	}
 	if isError {
 		traceErrors.WithLabelValues(values...).Inc()

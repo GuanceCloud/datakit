@@ -50,7 +50,7 @@ func Test_commonTagFields(t *T.T) {
 			"foo": "bar",
 		}
 
-		arr := ipt.parseResourceSpans(traces.ResourceSpans)
+		arr := ipt.parseResourceSpans(traces.ResourceSpans, "localhost")
 
 		assert.Len(t, arr, 1)         // only 1 trace
 		assert.Len(t, arr[0], nspans) // and n spans in that trace
@@ -109,7 +109,7 @@ func Test_customTags(t *T.T) {
 
 		ipt.setup()
 
-		arr := ipt.parseResourceSpans(traces.ResourceSpans)
+		arr := ipt.parseResourceSpans(traces.ResourceSpans, "localhost")
 
 		assert.Len(t, arr, 1)
 		assert.Equal(t, "project-001", arr[0][0].Get("project_id"))

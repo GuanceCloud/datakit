@@ -77,8 +77,8 @@ func (m TracingMetricMeasurement) Info() *inputs.MeasurementInfo {
 		Desc: "This is the field description for the Tracing_metrics.You can select which tags to delete by configuring a blacklist.",
 		Cat:  point.Metric,
 		Tags: map[string]interface{}{
-			TagService:         &inputs.TagInfo{Desc: "Service name. Optional."},
-			TagSource:          &inputs.TagInfo{Desc: "Source: DDTrace or OpenTelemetry. Optional."},
+			TagService:         &inputs.TagInfo{Desc: "Service name."},
+			TagSource:          &inputs.TagInfo{Desc: "Source: DDTrace or OpenTelemetry."},
 			TagOperation:       &inputs.TagInfo{Desc: "Span name"},
 			TagEnv:             &inputs.TagInfo{Desc: "Application environment info. Available in Jaeger. Optional."},
 			TagSpanStatus:      &inputs.TagInfo{Desc: "Span status"},
@@ -90,6 +90,7 @@ func (m TracingMetricMeasurement) Info() *inputs.MeasurementInfo {
 			TagPodName:         &inputs.TagInfo{Desc: "Pod name. Optional."},
 			TagPodNamespace:    &inputs.TagInfo{Desc: "Pod namespace. Optional."},
 			TagProject:         &inputs.TagInfo{Desc: "Project name. Optional."},
+			TagRemoteIP:        &inputs.TagInfo{Desc: "Remote IP."},
 		},
 		Fields: map[string]interface{}{
 			"hits": &inputs.FieldInfo{

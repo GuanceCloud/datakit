@@ -81,21 +81,21 @@ const (
 	TagRpcGrpcStatusCode = "rpc_grpc_status_code"
 	TagPodName           = "pod_name"
 	TagPodNamespace      = "pod_namespace"
-
-	FieldDuration   = "duration"
-	FieldMessage    = "message"
-	FieldParentID   = "parent_id"
-	FieldResource   = "resource"
-	FieldSpanid     = "span_id"
-	FieldStart      = "start"
-	FieldTraceID    = "trace_id"
-	FieldErrMessage = "error_message"
-	FieldErrStack   = "error_stack"
-	FieldErrType    = "error_type"
-	FieldCallTree   = "calling_tree"
-	Trace128BitId   = "trace_128_bit_id"
-	FieldRuntimeID  = "runtime_id"
-	SampleRate      = "dk_sampling_rate"
+	TagRemoteIP          = "remote_ip"
+	FieldDuration        = "duration"
+	FieldMessage         = "message"
+	FieldParentID        = "parent_id"
+	FieldResource        = "resource"
+	FieldSpanid          = "span_id"
+	FieldStart           = "start"
+	FieldTraceID         = "trace_id"
+	FieldErrMessage      = "error_message"
+	FieldErrStack        = "error_stack"
+	FieldErrType         = "error_type"
+	FieldCallTree        = "calling_tree"
+	Trace128BitId        = "trace_128_bit_id"
+	FieldRuntimeID       = "runtime_id"
+	SampleRate           = "dk_sampling_rate"
 )
 
 // nolint:stylecheck
@@ -422,10 +422,11 @@ func GetContentType(req *http.Request) string {
 }
 
 type TraceParameters struct {
-	URLPath string
-	Media   string
-	Encode  string
-	Body    *bytes.Buffer
+	URLPath  string
+	Media    string
+	Encode   string
+	RemoteIP string
+	Body     *bytes.Buffer
 }
 
 func GetClass(code string) string {
