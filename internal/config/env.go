@@ -684,6 +684,22 @@ func (c *Config) loadHTTPAPIEnvs() {
 		}
 	}
 
+	if v := datakit.GetEnv("ENV_REQUEST_RATE_LIMIT_TTL"); v != "" {
+		if x, err := time.ParseDuration(v); err != nil {
+			l.Warnf("invalid ENV_REQUEST_RATE_LIMIT_TTL: %s", err)
+		} else {
+			c.HTTPAPI.RequestRateLimitTTL = x
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_REQUEST_RATE_LIMIT_BURST"); v != "" {
+		if x, err := strconv.ParseInt(v, 10, 64); err != nil {
+			l.Warnf("invalid ENV_REQUEST_RATE_LIMIT_BURST: %s", err)
+		} else {
+			c.HTTPAPI.RequestRateLimitBurst = int(x)
+		}
+	}
+
 	// HTTP server setting
 	if v := datakit.GetEnv("ENV_HTTP_LISTEN"); v != "" {
 		c.HTTPAPI.Listen = v

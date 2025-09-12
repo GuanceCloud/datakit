@@ -99,6 +99,25 @@ func TestUpgradeMainConfig(t *T.T) {
 		expect *config.Config
 	}{
 		{
+			name: "upgrade-http-api-limit",
+			old: func() *config.Config {
+				c := config.DefaultConfig()
+
+				// set to old version's default values
+				c.HTTPAPI.RequestRateLimit = 20.0
+
+				return c
+			}(),
+
+			expect: func() *config.Config {
+				c := config.DefaultConfig()
+
+				t.Logf("c.HTTPAPI: %+#v", c.HTTPAPI)
+				return c
+			}(),
+		},
+
+		{
 			name: "upgrade-enable-pprof",
 			old: func() *config.Config {
 				c := config.DefaultConfig()
@@ -352,17 +371,14 @@ func TestUpgradeMainConfig(t *T.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *T.T) {
 			opt := DefaultInstallArgs()
+
 			got := opt.upgradeMainConfig(tc.old)
 			assert.Equal(t, tc.expect.String(), got.String())
 
-			t.Logf("%s", got.String())
-
 			c := config.DefaultConfig()
-			if _, err := bstoml.Decode(got.String(), c); err != nil {
-				t.Errorf("bstoml.Decode: %s", err)
-			} else {
-				assert.Equal(t, tc.expect.String(), c.String())
-			}
+			_, err := bstoml.Decode(got.String(), c)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.expect.String(), c.String())
 		})
 	}
 }

@@ -143,6 +143,10 @@ func (args *InstallerArgs) upgradeMainConfig(c *config.Config) *config.Config {
 		c.Disable404PageDeprecated = false
 	}
 
+	if c.HTTPAPI.RequestRateLimit == 20.0 {
+		c.HTTPAPI.RequestRateLimit = 100.0
+	}
+
 	// upgrade IO settings
 	if c.IOCacheCountDeprecated != 0 {
 		c.IO.MaxCacheCount = c.IOCacheCountDeprecated
@@ -217,6 +221,7 @@ func (args *InstallerArgs) upgradeMainConfig(c *config.Config) *config.Config {
 			c.RemoteJob.JavaHome = javaHome
 		}
 	}
+
 	return c
 }
 

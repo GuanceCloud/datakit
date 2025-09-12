@@ -306,7 +306,7 @@ func TestLoadEnv(t *testing.T) {
 			},
 			expect: func() *Config {
 				cfg := DefaultConfig()
-				cfg.HTTPAPI.RequestRateLimit = 20.0
+				cfg.HTTPAPI.RequestRateLimit = 100.0
 				return cfg
 			}(),
 		},

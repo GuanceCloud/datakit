@@ -152,7 +152,7 @@ func setupLimiter(limit float64, ttl time.Duration) *limiter.Limiter {
 	return tollbooth.NewLimiter(limit,
 		&limiter.ExpirableOptions{
 			DefaultExpirationTTL: ttl,
-		}).SetOnLimitReached(limitReach) // .SetBurst(2)
+		}).SetOnLimitReached(limitReach)
 }
 
 // From https://github.com/DanielHeckrath/gin-prometheus/blob/master/gin_prometheus.go
@@ -178,4 +178,40 @@ func approximateRequestSize(r *http.Request) int {
 		s += int(r.ContentLength)
 	}
 	return s
+}
+
+type irate struct {
+	tick   *time.Ticker
+	values []float64
+}
+
+func newIrate() *irate {
+	return &irate{
+		tick: time.NewTicker(time.Second),
+	}
+}
+
+func (i *irate) stop() {
+	i.tick.Stop()
+}
+
+func (i *irate) feed(f float64) {
+	select {
+	case <-i.tick.C:
+		i.values = append(i.values, f)
+
+	default: // pass
+	}
+}
+
+func (i *irate) show() []float64 {
+	var arr []float64
+	for idx := 0; idx < len(i.values); idx++ {
+		if idx+1 >= len(i.values) {
+			break
+		}
+		arr = append(arr, i.values[idx+1]-i.values[idx])
+	}
+
+	return arr
 }

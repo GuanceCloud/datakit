@@ -176,17 +176,7 @@ func DefaultConfig() *Config {
 
 		ProtectMode: true,
 
-		HTTPAPI: &APIConfig{
-			RUMOriginIPHeader:   "X-Forwarded-For",
-			Listen:              "localhost:9529",
-			RUMAppIDWhiteList:   []string{},
-			PublicAPIs:          []string{},
-			RequestRateLimit:    20,
-			Timeout:             "30s",
-			CloseIdleConnection: false,
-			TLSConf:             &TLSConfig{},
-			AllowedCORSOrigins:  []string{},
-		},
+		HTTPAPI: defaultAPIConfig(),
 
 		DCAConfig: &DCAConfig{
 			Enable:          false,

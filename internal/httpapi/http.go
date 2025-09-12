@@ -31,6 +31,7 @@ import (
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/pipeline-go/constants"
 	"github.com/GuanceCloud/timeout"
+	"github.com/didip/tollbooth/v6/limiter"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	lumberjack "gopkg.in/natefinch/lumberjack.v2"
@@ -69,6 +70,8 @@ type httpServerConf struct {
 
 	pprof       bool
 	pprofListen string
+
+	reqLimiter *limiter.Limiter
 }
 
 func defaultHTTPServerConf() *httpServerConf {
@@ -97,8 +100,19 @@ func Start(opts ...option) {
 	}
 
 	if hs.apiConfig.RequestRateLimit > 0.0 {
-		l.Infof("set request limit to %f", hs.apiConfig.RequestRateLimit)
-		reqLimiter = setupLimiter(hs.apiConfig.RequestRateLimit, time.Minute)
+		ttl := hs.apiConfig.RequestRateLimitTTL
+		if ttl <= 0 {
+			ttl = time.Minute // default 1min
+		}
+
+		hs.reqLimiter = setupLimiter(hs.apiConfig.RequestRateLimit, ttl)
+
+		if hs.apiConfig.RequestRateLimitBurst > 0 {
+			hs.reqLimiter.SetBurst(hs.apiConfig.RequestRateLimitBurst)
+		}
+
+		l.Infof("set up request limit at %f, ttl: %s, burst: %d",
+			hs.apiConfig.RequestRateLimit, ttl, hs.apiConfig.RequestRateLimitBurst)
 	} else {
 		l.Infof("set request limit not set: %f", hs.apiConfig.RequestRateLimit)
 	}
@@ -211,6 +225,8 @@ func setupRouter(hs *httpServerConf) *gin.Engine {
 	createDCARouter(router, hs)
 
 	wraper1, wraper2 := &HandlerWrapper{WrappedResponse: true}, &HandlerWrapper{WrappedResponse: false}
+
+	reqLimiter := hs.reqLimiter
 
 	// For ntp api, we should keep the same response struct like
 	// dataway API /v1/ntp, and there is no outter content wrapper.
