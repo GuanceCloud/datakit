@@ -12,5 +12,6 @@ cspell lint --show-suggestions \
 if markdownlint -c scripts/markdownlint.yml $1; then \
 	printf "markdownlint check ok\n"; \
 else
+	printf "markdownlint check failed\n"; \
 	exit -1; 
 fi

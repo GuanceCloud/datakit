@@ -458,9 +458,25 @@ func envHTTPAPI() []*inputs.ENVInfo {
 		{
 			ENVName: "ENV_REQUEST_RATE_LIMIT",
 			Type:    doc.Float,
-			Default: "20.0",
+			Default: "`100.0`",
 			Desc:    "Limit 9529 [API requests per second](datakit-conf.md#set-http-api-limit).",
 			DescZh:  "限制 9529 [API 每秒请求数](datakit-conf.md#set-http-api-limit)。",
+		},
+
+		{
+			ENVName: "ENV_REQUEST_RATE_LIMIT_TTL",
+			Type:    doc.TimeDuration,
+			Default: "`60s`",
+			Desc:    "Rate limit duration window",
+			DescZh:  "9529 端口 HTTP API 限流窗口。",
+		},
+
+		{
+			ENVName: "ENV_REQUEST_RATE_LIMIT_BURST",
+			Type:    doc.Int,
+			Default: "`500`",
+			Desc:    "Rate limit burst",
+			DescZh:  "9529 端口 HTTP API 限流允许的突发流量。如果设置成 0 则禁止突发请求数。",
 		},
 
 		{

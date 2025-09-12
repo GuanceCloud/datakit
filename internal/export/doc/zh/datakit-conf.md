@@ -2,9 +2,10 @@
 # DataKit 主配置
 ---
 
+<!-- markdownlint-disable MD046 -->
+
 DataKit 主配置用来配置 DataKit 自己的运行行为。
 
-<!-- markdownlint-disable MD046 -->
 === "主机部署"
 
     其目录一般位于：
@@ -15,25 +16,21 @@ DataKit 主配置用来配置 DataKit 自己的运行行为。
 === "Kubernetes"
 
     DaemonSet 安装时，虽然在对应目录下也存在这个文件，**但实际上 DataKit 并不加载这里的配置**。这些配是通过在 *datakit.yaml* 中[注入环境变量](datakit-daemonset-deploy.md#using-k8-env)来生成的。下面所有的配置，都能在 Kubernetes 部署文档中找到[对应的环境变量](datakit-daemonset-deploy.md#using-k8-env)配置。
-<!-- markdownlint-enable -->
 
 ## DataKit 主配置示例 {#maincfg-example}
 
 DataKit 主配置示例如下，我们可以根据该示例来开启各种功能（当前版本 {{ .Version }}）：
 
-<!-- markdownlint-disable MD046 -->
 ??? info "*datakit.conf*"
 
     ```toml linenums="1"
     {{ CodeBlock .DatakitConfSample 4 }}
     ```
-<!-- markdownlint-enable -->
 
 ## HTTP 服务的配置 {#config-http-server}
 
 DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基础的数据服务。
 
-<!-- markdownlint-disable MD046 -->
 === "*datakit.conf*"
 
     ### 修改 HTTP 服务地址 {#update-http-server-host}
@@ -52,6 +49,7 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
     #### 使用 Unix domain socket {#uds}
 
     DataKit 支持 UNIX domain sockets 访问。开启方式如下：`listen` 字段配置为<b>一个不存在文件的全路径</b>，这里以 `datakit.sock` 举例，可以为任意文件名。
+
     ```toml
     [http_api]
        listen = "/tmp/datakit.sock"
@@ -60,16 +58,80 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
 
     ### HTTP 请求频率控制 {#set-http-api-limit}
 
-    > [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0) 已经默认开启该功能。
+    > - [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0) 已经默认开启该功能
+    > - [:octicons-tag-24: Version-1.82.0](changelog.md#cl-1.82.0) 调整了默认值，同时增加了限流的 burst/ttl 设置
 
-    由于 DataKit 需要大量接收外部数据写入，为了避免给所在节点造成巨大开销，DataKit 默认给 API 设置了 20/s 的 QPS 限制：
+    由于 DataKit 需要大量接收外部数据写入，为了避免给所在节点造成巨大开销，DataKit 默认给 API 设置了 100/s 的 QPS 限制，即限制每个客户端（IP + API 路由）每秒发起请求的请求数：
 
     ```toml
     [http_api]
-      request_rate_limit = 20.0 # 限制每个客户端（IP + API 路由）每秒发起请求的 QPS 限制
-
-      # 如果确实有大量数据写入，可酌情调大限制，避免数据丢失（请求超限后客户端会收到 HTTP 429 错误码）
+      request_rate_limit       = 100.0 # 默认 100
+      request_rate_limit_burst = 500   # 允许单个限流窗口中的突发请求数
+      request_rate_limit_ttl   = "1m"  # 限流窗口时长
     ```
+
+    ???+ warning "合理配置限流参数"
+        
+        - 将 `request_rate_limit` 设置为 0 即可关闭 API 限流
+        - 如果确实有大量数据写入，可酌情调大限制，避免数据丢失
+        - `request_rate_limit_burst` 可以设置为 0，即禁止突发流量
+        - `request_rate_limit_ttl` 不宜设置太大，更大的 TTL 会消耗更多的 DataKit 内存。如果设置得太小，则表明单位时间内允许的 burst 次数更多
+
+    ???+ tips "查看限流情况"
+
+        如果 API 被限流（比如 Trace、日志等数据上报类 API），会导致采集数据丢失。在 DataKit Monitor（`datakit monitor -V`） 面板「HTTP APIs」中能看到对应的限流情况（Status 列显示为 `Too Many Requests`）。同时 DataKit 自身指标中，可以查询如下指标获取是否限流的情况：
+
+        ```shell
+        # 如果是容器/Kubernetes 部署的 DataKit，需进入对应的容器。
+        curl -s http://localhost:9529/metrics | grep -a datakit_http_api_total
+        ```
+
+        其输出示例如下，此处 `api` 即具体请求路由，Trace/日志采集各不相同，`status` 即 HTTP 状态码：
+
+        ```text
+        # HELP datakit_http_api_total API request counter
+        # TYPE datakit_http_api_total counter
+        datakit_http_api_total{api="/info",method="GET",status="Not Found"} 31
+        datakit_http_api_total{api="/metrics",method="GET",status="OK"} 16579
+        datakit_http_api_total{api="/profiling/v1/input",method="POST",status="OK"} 13878
+        datakit_http_api_total{api="/telemetry/proxy/api/v2/apmtelemetry",method="POST",status="OK"} 494606
+        datakit_http_api_total{api="/v0.4/traces",method="POST",status="OK"} 500318
+        datakit_http_api_total{api="/v0.5/traces",method="PUT",status="OK"} 1.111314e+06
+        datakit_http_api_total{api="/v1/write/custom_object",method="POST",status="OK"} 78
+        datakit_http_api_total{api="/v1/write/logging",method="POST",status="OK"} 1
+        datakit_http_api_total{api="/v1/write/metric",method="POST",status="OK"} 20887
+        datakit_http_api_total{api="/v1/write/network",method="POST",status="OK"} 388933
+        ```
+
+    ### HTTP API 访问控制 {#public-apis}
+    
+    [:octicons-tag-24: Version-1.64.0](changelog.md#cl-1.64.0)
+    
+    出于安全考虑，DataKit 默认限制了一些自身 API 的访问（这些 API 只能通过 localhost 访问）。如果 DataKit 部署在公网环境，又需要通过其它机器或公网来请求这些 API，可以在 *datakit.conf* 中，修改如下 `public_apis` 字段配置：
+    
+    ```toml
+    [http_api]
+      public_apis = [
+        # 放行 DataKit 自身指标暴露接口 /metrics
+        "/metrics",
+        # ... 其它接口
+      ]
+    ```
+    
+    默认情况下，`public_apis` 为空。出于便捷和兼容性考虑，默认只开放了[部分接口](apis.md)，所有其它接口都是禁止外部访问的。而采集器对应的接口，比如 trace 类采集器，一旦开启采集器之后，其访问自动放开，默认就能外部访问。
+    
+    ???+ warning
+    
+        一旦 `public_apis` 不为空，则默认开启的那些 API 接口需要再次手动添加：
+    
+        ```toml
+        [http_api]
+          public_apis = [
+            "/v1/write/metric",
+            "/v1/write/logging",
+            # ...
+          ]
+        ```
 
     ### 其它设置 {#http-other-settings}
 
@@ -82,42 +144,6 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
 === "Kubernetes"
 
     参见[这里](datakit-daemonset-deploy.md#env-http-api)
-<!-- markdownlint-enable -->
-
-
-### HTTP API 访问控制 {#public-apis}
-
-[:octicons-tag-24: Version-1.64.0](changelog.md#cl-1.64.0)
-
-出于安全考虑，DataKit 默认限制了一些自身 API 的访问（这些 API 只能通过 localhost 访问）。如果 DataKit 部署在公网环境，又需要通过其它机器或公网来请求这些 API，可以在 *datakit.conf* 中，修改如下 `public_apis` 字段配置：
-
-```toml
-[http_api]
-  public_apis = [
-    # 放行 DataKit 自身指标暴露接口 /metrics
-    "/metrics",
-    # ... # 其它接口
-  ]
-```
-
-默认情况下，`public_apis` 为空。出于便捷和兼容性考虑，默认只开放了[部分接口](apis.md)，所有其它接口都是禁止外部访问的。而采集器对应的接口，比如 trace 类采集器，一旦开启采集器之后，其访问自动放开，默认就能外部访问。
-
-Kubernetes 中增加 API 白名单参见[这里](datakit-daemonset-deploy.md#env-http-api)。
-
-<!-- markdownlint-disable MD046 -->
-???+ warning
-
-    一旦 `public_apis` 不为空，则默认开启的那些 API 接口需要**再次手动添加**：
-
-    ```toml
-    [http_api]
-      public_apis = [
-        "/v1/write/metric",
-        "/v1/write/logging",
-        # ...
-      ]
-    ```
-<!-- markdownlint-enable -->
 
 ## 全局标签（Tag）修改 {#set-global-tag}
 
@@ -153,7 +179,6 @@ DataKit 允许给其采集的所有数据配置全局标签，全局标签分为
 1. 当没有开启选举的情况下，GET 沿用 GHT（它至少有一个 `host` 的标签）中的所有标签
 1. 选举类采集器默认追加 GET，非选举类采集器默认追加 GHT。
 
-<!-- markdownlint-disable MD046 -->
 ???+ tip "如何区分选举和非选举采集器？"
 
     在采集器文档中，在顶部有类似如下标识，它们表示当前采集器的平台适配情况以及采集特性：
@@ -161,7 +186,6 @@ DataKit 允许给其采集的所有数据配置全局标签，全局标签分为
     :fontawesome-brands-linux: :fontawesome-brands-windows: :fontawesome-brands-apple: :material-kubernetes: :material-docker:  · :fontawesome-solid-flag-checkered:
 
     若带有 :fontawesome-solid-flag-checkered: 则表示当前采集器是选举类采集器。
-<!-- markdownlint-enable -->
 
 ### 全局 Tag 在远程采集时的设置 {#notice-global-tags}
 
@@ -180,11 +204,9 @@ DataKit 允许给其采集的所有数据配置全局标签，全局标签分为
 
 - 以 [HTTP API 方式往 DataKit 推送数据](apis.md#api-v1-write)时，可以通过 API 参数 `ignore_global_tags` 来屏蔽所有全局 Tag
 
-<!-- markdownlint-disable MD046 -->
 ???+ info
 
     自 [1.4.20](changelog.md#cl-1.4.20) 之后，DataKit 默认会以被采集服务连接地址中的的 IP/Host 作为 `host` 的标签值。
-<!-- markdownlint-enable -->
 
 ## DataKit 自身运行日志配置 {#logging-config}
 
@@ -224,19 +246,16 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
     diff     = "30s"  # minimal 5s
 ```
 
-<!-- markdownlint-disable MD046 -->
 ???+ warning
 
     - 该行为默认开启，如果 DataWay 版本较低，最终效果仍旧是采用当前系统时间（即不做任何校准）
     - 目前 eBPP 相关的采集，由于其与 DataKit 是分离运行的，暂不支持时间矫正功能
-<!-- markdownlint-enable -->
 
 ### IO 模块调参 {#io-tuning}
 
 [:octicons-tag-24: Version-1.4.8](changelog.md#cl-1.4.8) ·
 [:octicons-beaker-24: Experimental](index.md#experimental)
 
-<!-- markdownlint-disable MD046 -->
 === "*datakit.conf*"
 
     某些情况下，DataKit 的单机数据采集量非常大，如果网络带宽有限，可能导致部分数据的采集中断或丢弃。可以通过配置 io 模块的一些参数来缓解这一问题：
@@ -254,7 +273,6 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 === "Kubernetes"
 
     参见[这里](datakit-daemonset-deploy.md#env-io)
-<!-- markdownlint-enable -->
 
 ### 资源限制  {#resource-limit}
 
@@ -285,7 +303,6 @@ $ systemctl status datakit
    Main PID: 3474282 (code=killed, signal=KILL)
 ```
 
-<!-- markdownlint-disable MD046 -->
 ???+ note
 
     - 资源限制只在[宿主机安装](datakit-install.md)的时候会默认开启
@@ -319,7 +336,6 @@ $ systemctl status datakit
     # 或
     sudo grub2-mkconfig -o /boot/grub2/grub.cfg # CentOS/RHEL/Fedora。
     ```
-<!-- markdownlint-enable -->
 
 ### 选举配置 {#election}
 
@@ -487,7 +503,6 @@ ENC 目前支持三种方式：
 
 注意，通过 `AES` 加密得到的密文需要完整的填入。以下是代码示例：
 
-<!-- markdownlint-disable MD046 -->
 === "Golang"
 
     ```go
@@ -613,7 +628,6 @@ ENC 目前支持三种方式：
         }
     }
     ```
-<!-- markdownlint-enable -->
 
 ### 远程任务 {#remote-job}
 
@@ -681,7 +695,6 @@ K8S 环境下需要调用 Kubernetes API 所以需要 RBAC 基于角色的访问
 
 配置相关：
 
-<!-- markdownlint-disable MD046 -->
 === "主机部署"
 
     其目录一般位于：
@@ -754,8 +767,6 @@ K8S 环境下需要调用 Kubernetes API 所以需要 RBAC 基于角色的访问
 
     ```
 
-<!-- markdownlint-enable -->
-
 配置说明：
 
 1. `enable  ENV_REMOTE_JOB_ENABLE remote_job` 功能开关。
@@ -782,12 +793,9 @@ K8S 环境下需要调用 Kubernetes API 所以需要 RBAC 基于角色的访问
 
 同时，[DataKit 配置](datakit-conf.md#dataway-settings)中可以开启 `content_encoding = "v2"` 的传输编码（[:octicons-tag-24: Version-1.32.0](changelog.md#cl-1.32.0) 已默认启用 v2），相比 v1，它的内存和 CPU 开销都更低。
 
-<!-- markdownlint-disable MD046 -->
 ???+ warning
 
     - 在低负载（DataKit 内存占用 100MB 左右）的情况下，开启 point pool 会增加 DataKit 自身的内存占用。所谓的高负载，一般指占用内存在 2GB+ 的场景。同时开启后也能改善 DataKit 自身的 CPU 消耗
-
-<!-- markdownlint-enable -->
 
 ## 延伸阅读 {#more-reading}
 
