@@ -380,8 +380,8 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
 		{FieldName: "Interval"},
-		{FieldName: "AddrPorts", Type: doc.JSON, Example: `["1.1.1.1:80","443"]`, Desc: "Groups of ports and add different tags to facilitate statistics", DescZh: "端口分组并添加不同的标签以便于统计"},
-		{FieldName: "Tags"},
+		{FieldName: "AddrPorts", Type: doc.JSON, Example: "`'[\"1.1.1.1:80\",\"443\"]'`", Desc: "Groups of ports and add different tags to facilitate statistics", DescZh: "端口分组并添加不同的标签以便于统计"},
+		{FieldName: "Tags", Type: doc.String, Example: "`'tag1=value1,tag2=value2'`"},
 	}
 
 	return doc.SetENVDoc("ENV_INPUT_NETSTAT_", infos)

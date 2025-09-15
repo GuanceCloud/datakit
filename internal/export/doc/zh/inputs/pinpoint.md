@@ -54,7 +54,7 @@ DataKit 内置的 Pinpoint Agent 用于接收，运算，分析 Pinpoint Tracing
 
     也支持以环境变量的方式修改配置参数（需要在 ENV_DEFAULT_ENABLED_INPUTS 中加为默认采集器）：
 
-{{ CodeBlock .InputENVSampleZh 4 }}                             |
+{{ CodeBlock .InputENVSampleZh 4 }}
 
 ???+ warning "DataKit 中的 Pinpoint Agent 存在以下限制"
 
