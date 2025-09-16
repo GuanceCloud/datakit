@@ -8,24 +8,25 @@ In some cases, the target machine does not have a public access exit, so you can
 
 If there is a machine in the intranet that can access the external, a proxy can be deployed at the node to proxy the access traffic of the intranet machine through the machine.
 
-At present, DataKit has a inner proxy collector; The same goal can also be achieved through Nginx forward proxy function. The basic network structure is as follows:
+At present, DataKit has a inner proxy collector; The same goal can also be achieved through Nginx forward proxy function. The basic work flow is as follows:
 
 ```mermaid
-flowchart LR
-dk1(Datakit)
-dk2(Datakit)
-dk3(Datakit)
-proxy(Nginx or Datakit.Proxy)
-cdn(<<<custom_key.brand_name>>> CDN)
-studio(openway.<<<custom_key.brand_name>>>.com)
-%%%
+sequenceDiagram
+autonumber
+participant cdn as CDN
 
-dk1--> proxy
-dk2--> proxy
-dk3--> proxy
+box Proxy
+participant proxy as Nginx Or DataKit
+end
 
-proxy --> cdn
-proxy --> studio
+participant dk as DataKit host
+participant dw as DataWay
+
+dk -->> proxy: Install packages
+proxy -->> cdn: Install via Proxy
+cdn -->> dk: Install ok
+dk -->> proxy: Upload data
+proxy -->> dw: Proxy request to DataWay
 ```
 
 ### Preconditions {#requrements}
@@ -231,23 +232,41 @@ Copy these files to the corresponding machine (via USB flash drive or `scp` and 
     ./installer-linux-amd64 --help
     ```
 
-    For example, the Dataway address we specified above is set through the `--dataway` option. Additionally, these extra command-line parameter settings are only effective in installation mode and do not take effect in (offline) upgrade mode.
+    For example, the Dataway address we specified above is set through the `--dataway` option. Additionally, these extra command-line parameter settings are only effective in installation mode and do not take effect in offline upgrade mode.
 
 <!-- markdownlint-enable -->
 
-### Advanced Mode {#offline-advanced}
+### Fully Managed Mode {#offline-advanced}
 
-DataKit is currently installed on the public web, and all binary data and installation scripts are downloaded from the static.<<<custom_key.brand_main_domain>>> site. For machines that cannot access the site, you can replace the static.<<<custom_key.brand_main_domain>>> site by deploying a file server on the intranet.
+Fully Managed Mode refers to building a file server within the user's internal network, hosting all public CDN installation packages in the user's local environment to replace the functionality of the public CDN.
 
-The network traffic topology of advanced mode is as follows:
+Currently, DataKit's installation address is a public network address, and all binary data as well as installation scripts are downloaded from the CDN site static.<<<custom_key.brand_main_domain>>>. For machines that cannot access this site, a file server can be deployed within the internal network to replace the static.<<<custom_key.brand_main_domain>>> site.
 
-<figure markdown>
-  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/nginx-file-server.png){ width="700"}
-</figure>
+The workflow of Fully Managed Mode is as follows:
+
+```mermaid
+sequenceDiagram
+autonumber
+participant cdn as CDN
+
+box Proxy
+participant fs as Nginx File Server
+participant proxy as Nginx Or DataKit
+end
+
+participant dk as DataKit
+participant dw as DataWay
+
+cdn -->> fs: Download packages
+dk -->> fs: Install packages
+fs -->> dk: Install ok
+dk -->> proxy: Upload data
+proxy -->> dw: Proxy request to DataWay
+```
 
 Prepare a machine that can be accessed on the intranet, install Nginx on the machine, and download (or copy) the files required for DataKit installation to the Nginx server, so that other machines can download the installation files from the Nginx file server to complete the installation.
 
-- Setting up the Nginx file server {#nginx-config}
+#### Setting up the Nginx file server {#nginx-config}
 
 Add configuration in nginx.conf
 
@@ -275,55 +294,87 @@ nginx -s reload # reload configuration
 
 - Download the files to the */datakit* directory where the Nginx server is located, taking wget downloading the Linux AMD64 platform installation package as an example:
 
-```shell
-#!/bin/bash
+???- Info "Download packages"
 
-mkdir -p /datakit
-mkdir -p /datakit/apm_lib
-wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh
-wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/version
-wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/data.tar.gz
-wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-amd64-{{ .Version }}
-wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-amd64-{{ .Version }}.tar.gz
-wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-amd64-{{ .Version }}.tar.gz
-wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-amd64-{{ .Version }}.tar.gz
-wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-apm-inject-linux-amd64-{{ .Version }}.tar.gz
-wget -P /datakit/apm_lib https://static.<<<custom_key.brand_main_domain>>>/dd-image/dd-java-agent.jar
-
-# Download other toolkits: sources is the installation package used to turn on the RUM sourcemap function. If this function is not turned on, you can choose not to download it.
-sources=(
-  "/datakit/sourcemap/jdk/OpenJDK11U-jdk_x64_mac_hotspot_11.0.16_8.tar.gz"
-  "/datakit/sourcemap/jdk/OpenJDK11U-jdk_aarch64_mac_hotspot_11.0.15_10.tar.gz"
-  "/datakit/sourcemap/jdk/OpenJDK11U-jdk_x64_linux_hotspot_11.0.16_8.tar.gz"
-  "/datakit/sourcemap/jdk/OpenJDK11U-jdk_aarch64_linux_hotspot_11.0.16_8.tar.gz"
-  "/datakit/sourcemap/R8/commandlinetools-mac-8512546_simplified.tar.gz"
-  "/datakit/sourcemap/R8/commandlinetools-linux-8512546_simplified.tar.gz"
-  "/datakit/sourcemap/proguard/proguard-7.2.2.tar.gz"
-  "/datakit/sourcemap/ndk/android-ndk-r22b-x64-mac-simplified.tar.gz"
-  "/datakit/sourcemap/ndk/android-ndk-r25-x64-linux-simplified.tar.gz"
-  "/datakit/sourcemap/atosl/atosl-darwin-x64"
-  "/datakit/sourcemap/atosl/atosl-darwin-arm64"
-  "/datakit/sourcemap/atosl/atosl-linux-x64"
-  "/datakit/sourcemap/atosl/atosl-linux-arm64"
-)
-
-mkdir -p /datakit/sourcemap/jdk \
-  /datakit/sourcemap/R8       \
-  /datakit/sourcemap/proguard \
-  /datakit/sourcemap/ndk      \
-  /datakit/sourcemap/atosl
-
-for((i=0;i<${#sources[@]};i++)); do
-  wget https://static.<<<custom_key.brand_main_domain>>>${sources[$i]} -O ${sources[$i]}
-done
-```
-
-<!-- markdownlint-disable MD046 -->
-???+ Attention
-
-    You must append suffix **.exe** to the download link of `Installer` on Windows, for example: [*https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-386-{{.Version}}.exe*](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-386-{{.Version}}.exe) for Windows 32bit and
-    [*https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-amd64-{{.Version}}.exe*](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-amd64-{{.Version}}.exe) for Windows 64bit.
-<!-- markdownlint-enable -->
+    ```shell
+    #!/bin/bash
+    
+    # NOTE: datakit-apm-inject not support for 32-bit platform and all Windows platform.
+    
+    mkdir -p /datakit
+    mkdir -p /datakit/apm_lib
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh  # for Linux
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/install.ps1 # for Windows
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/version
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/data.tar.gz
+    
+    # linux-amd64
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-amd64-{{.Version}}
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-amd64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-amd64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-amd64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-apm-inject-linux-amd64-{{.Version}}.tar.gz
+    
+    # linux-386
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-386-{{.Version}}
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-386-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-386-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-386-{{.Version}}.tar.gz
+    
+    # linux-arm64
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-arm64-{{.Version}}
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-arm64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-arm64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-arm64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-apm-inject-linux-arm64-{{.Version}}.tar.gz
+    
+    # linux-arm
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-arm-{{.Version}}
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-arm-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-arm-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-arm-{{.Version}}.tar.gz
+    
+    # windows-amd64
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-amd64-{{.Version}}
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-windows-amd64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-windows-amd64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-windows-amd64-{{.Version}}.tar.gz
+    
+    # windows-386
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-386-{{.Version}}
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-windows-386-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-windows-386-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-windows-386-{{.Version}}.tar.gz
+    
+    wget -P /datakit/apm_lib https://static.<<<custom_key.brand_main_domain>>>/dd-image/dd-java-agent.jar
+    
+    # Optional resource: for RUM sourcemap 
+    sources=(
+      "/datakit/sourcemap/jdk/OpenJDK11U-jdk_x64_mac_hotspot_11.0.16_8.tar.gz"
+      "/datakit/sourcemap/jdk/OpenJDK11U-jdk_aarch64_mac_hotspot_11.0.15_10.tar.gz"
+      "/datakit/sourcemap/jdk/OpenJDK11U-jdk_x64_linux_hotspot_11.0.16_8.tar.gz"
+      "/datakit/sourcemap/jdk/OpenJDK11U-jdk_aarch64_linux_hotspot_11.0.16_8.tar.gz"
+      "/datakit/sourcemap/R8/commandlinetools-mac-8512546_simplified.tar.gz"
+      "/datakit/sourcemap/R8/commandlinetools-linux-8512546_simplified.tar.gz"
+      "/datakit/sourcemap/proguard/proguard-7.2.2.tar.gz"
+      "/datakit/sourcemap/ndk/android-ndk-r22b-x64-mac-simplified.tar.gz"
+      "/datakit/sourcemap/ndk/android-ndk-r25-x64-linux-simplified.tar.gz"
+      "/datakit/sourcemap/atosl/atosl-darwin-x64"
+      "/datakit/sourcemap/atosl/atosl-darwin-arm64"
+      "/datakit/sourcemap/atosl/atosl-linux-x64"
+      "/datakit/sourcemap/atosl/atosl-linux-arm64"
+    )
+    
+    mkdir -p /datakit/sourcemap/jdk \
+      /datakit/sourcemap/R8       \
+      /datakit/sourcemap/proguard \
+      /datakit/sourcemap/ndk      \
+      /datakit/sourcemap/atosl
+    
+    for((i=0;i<${#sources[@]};i++)); do
+      wget https://static.<<<custom_key.brand_main_domain>>>${sources[$i]} -O ${sources[$i]}
+    done
+    ```
 
 #### Install {#advance-install}
 
