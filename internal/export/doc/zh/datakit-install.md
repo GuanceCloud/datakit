@@ -4,7 +4,7 @@
 
 本文介绍 DataKit 的基本安装。
 
-## 注册/登陆<<<custom_key.brand_name>>> {#login-guance}
+## 注册/登陆<<<custom_key.brand_name>>> {#regist-login}
 
 浏览器访问 [<<<custom_key.brand_name>>>注册入口](https://auth.<<<custom_key.brand_main_domain>>>/redirectpage/register){:target="_blank"}，填写对应信息之后，即可[登陆<<<custom_key.brand_name>>>](https://console.<<<custom_key.brand_main_domain>>>/pageloading/login){:target="_blank"}
 
