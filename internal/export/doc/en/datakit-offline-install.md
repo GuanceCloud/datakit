@@ -31,6 +31,8 @@ proxy -->> dw: Proxy request to DataWay
 
 ### Preconditions {#requrements}
 
+<!-- markdownlint-disable MD046 MD034 -->
+
 - Install a DataKit on a machine with a public network exit [in the normal installation mode](datakit-install.md), and turn on the proxy collector on the DataKit, assuming that the [proxy](../integrations/proxy.md) collector is located in DataKit IP 1.2. 3.4, with the following configuration:
 
 ```toml
@@ -42,7 +44,7 @@ proxy -->> dw: Proxy request to DataWay
 ```
 
 - Or Nginx ready to configure the forward proxy
-<!-- markdownlint-disable MD046 -->
+
 === "Linux/Mac"
 
     - Use the DataKit proxy
@@ -52,7 +54,7 @@ proxy -->> dw: Proxy request to DataWay
     ```shell
 {{ InstallCmd 4 (.WithPlatform "unix") (.WithEnvs "HTTPS_PROXY" "http://1.2.3.4:9530") (.WithProxy true) }}
     ```
-    
+
     - Using the Nginx proxy
     
     Add the environment variable `DK_PROXY_TYPE="nginx"; DK_NGINX_IP="1.2.3.4";`, and the installation command is as follows:
@@ -74,7 +76,7 @@ proxy -->> dw: Proxy request to DataWay
 (.WithEnvs "HTTPS_PROXY" "1.2.3.4:9530")
 }}
     ```
-    
+
     - Using the Nginx proxy
     
     Add the environment variable `$env:DK_PROXY_TYPE="nginx"; $env:DK_NGINX_IP="1.2.3.4";`, and the installation command is as follows:
@@ -87,11 +89,10 @@ proxy -->> dw: Proxy request to DataWay
 (.WithEnvs "DK_NGINX_IP" "1.2.3.4")
 }}
     ```
-    
+
     > Note: Other setup parameter settings are the same as [normal setup](datakit-install.md).
 
 ---
-<!-- markdownlint-enable -->
 
 ## Full Offline Installation {#offline}
 
@@ -105,15 +106,14 @@ There are two strategies to choose from for full offline installation:
 ### Simple Mode {#offline-simple}
 
 The address of the following files can be downloaded through wget and other download tools, or directly enter the corresponding URL to download in the browser.
-<!-- markdownlint-disable MD046 -->
+
 ???+ note
 
     When downloading from Safari browser, the suffix name may be different (for example, downloading the `. tar.gz ` file to `. tar `), which will cause the installation to fail. It is recommended to download with Chrome browser. 
-<!-- markdownlint-enable -->
+
 - Download the packet [data.tar.gz](https://static.<<<custom_key.brand_main_domain>>>/datakit/data.tar.gz) first, which is the same for every platform.
 
 - Then download more installers as below:
-<!-- markdownlint-disable MD046 -->
 
 === "Linux"
 
@@ -159,8 +159,6 @@ The address of the following files can be downloaded through wget and other down
         - [`DataKit-Lite`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-windows-amd64-{{ .Version }}.tar.gz){:target="_blank"}
         - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-windows-amd64-{{ .Version }}.tar.gz){:target="_blank"}
 
-<!-- markdownlint-enable -->
-
 After downloading, you should have a few files as below (*[OS-ARCH]* here refers to the platform-specific installation package):
 
 - *datakit-[OS-ARCH].tar.gz*
@@ -171,18 +169,15 @@ After downloading, you should have a few files as below (*[OS-ARCH]* here refers
 
 Copy these files to the corresponding machine (via USB flash drive or `scp` and other commands).
 
-<!-- markdownlint-disable MD046 -->
 ???+ note
 
     It is crucial to download each of these files completely. They may not be reusable between different versions. For example, the installer program behaves differently across various DataKit versions because it may adjust the default configurations of DataKit, which can have varying degrees of additions and deletions. It is best to use the installer program corresponding to version 1.2.3 of DataKit for the installation or upgrade of DataKit 1.2.3.
-<!-- markdownlint-enable -->
 
 #### Installation {#simple-install}
 
 > If you are performing an offline install of the lite version of DataKit, you need to specify the installation package with a `_lite` suffix, such as *datakit_lite-linux-amd64-{{.Version}}.tar.gz*.
 
 
-<!-- markdownlint-disable MD046 -->
 === "Linux"
 
     To run with root privileges:
@@ -199,12 +194,11 @@ Copy these files to the corresponding machine (via USB flash drive or `scp` and 
     ```powershell
     .\installer-windows-amd64.exe --offline --dataway "https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>" --srcs datakit-windows-amd64-{{.Version}}.tar.gz,dk_upgrader-windows-amd64-{{.Version}}.tar.gz,data.tar.gz
     ```
-<!-- markdownlint-enable -->
+
 #### Upgrade {#simple-upgrade}
 
 > If you are performing an offline upgrade of the lite version of DataKit, you need to specify the installation package with a `_lite` suffix, such as `datakit_lite-linux-amd64-{{.Version}}.tar.gz`.
 
-<!-- markdownlint-disable MD046 -->
 === "Linux"
 
     To run with root privileges:
@@ -221,9 +215,7 @@ Copy these files to the corresponding machine (via USB flash drive or `scp` and 
     ```powershell
     .\installer-windows-amd64.exe --offline --upgrade --srcs datakit-windows-amd64-{{.Version}}.tar.gz,data.tar.gz
     ```
-<!-- markdownlint-enable -->
 
-<!-- markdownlint-disable MD046 -->
 ???+ tip "How to Specify More Configuration Parameters for Offline Installation"
 
     During online installation, we can specify some default parameters through [environment variables `DK_XXX=YYY`](datakit-install.md#extra-envs). These default parameters actually take effect through the *install.sh* script (on Windows, it's *install.ps1*). However, these environment variables are ineffective for the installation program *installer-xxx*. We can only use the command-line arguments of *installer-xxx* to add these options. By using the following command, we can find out the parameters supported by the installation program:
@@ -233,8 +225,6 @@ Copy these files to the corresponding machine (via USB flash drive or `scp` and 
     ```
 
     For example, the Dataway address we specified above is set through the `--dataway` option. Additionally, these extra command-line parameter settings are only effective in installation mode and do not take effect in offline upgrade mode.
-
-<!-- markdownlint-enable -->
 
 ### Fully Managed Mode {#offline-advanced}
 
@@ -403,7 +393,6 @@ On the intranet machine, point it to the Nginx file server by setting `DK_INSTAL
 (.WithEnvs "DK_INSTALLER_BASE_URL" "http://[Nginx-Server]:8080/datakit")
 }}
     ```
-<!-- markdownlint-enable -->
 
 So far, the offline installation is complete. Note that HTTPS_PROXY is additionally set here.
 
@@ -412,7 +401,7 @@ So far, the offline installation is complete. Note that HTTPS_PROXY is additiona
 #### Upgrade {#advance-upgrade}
 
 If there is a new version of DataKit, you can download it as above and execute the following command to upgrade:
-<!-- markdownlint-disable MD046 -->
+
 === "Linux/Mac"
 
     ```shell
@@ -426,13 +415,13 @@ If there is a new version of DataKit, you can download it as above and execute t
     $env:DK_INSTALLER_BASE_URL="http://<nginxServer>:8080/datakit";
 {{ InstallCmd 4 (.WithPlatform "windows") (.WithUpgrade true) (.WithSourceURL "${DK_INSTALLER_BASE_URL}") }}
     ```
-<!-- markdownlint-enable -->
+
 ## Kubernetes Offline Deployment {#k8s-offline}
 
 ### Bash Script Assisted Installation {#Auxiliary-installation}
 
 Here is a simple script to help you complete the tasks of password free login, file distribution and image decompression.
-<!-- markdownlint-disable MD046 -->
+
 ???- note "`datakit_tools.sh` (Stand-alone open)"
     ```shell
     #!/bin/bash
@@ -530,7 +519,7 @@ Here is a simple script to help you complete the tasks of password free login, f
 chmod +x datakit_tools.sh
 ./datakit_tools.sh
 ```
-<!-- markdownlint-enable -->
+
 ### Agent Installation {#k8s-install-via-proxy}
 
 **If there is a machine in the intranet that can connect to the internet, you can deploy a nginx server on this node to use as the image acquisition.**
@@ -560,7 +549,7 @@ docker image inspect pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:
 ```
 
 - Modify Nginx configuration agent
-<!-- markdownlint-disable MD046 -->
+
 ???- note "/etc/nginx/nginx.conf"
     ```shell
     #user  nobody;
@@ -674,7 +663,7 @@ docker image inspect pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:
 
     }
     ```
-<!-- markdownlint-enable -->
+
 - Other intranet machines execute commands.
 
 ```shell

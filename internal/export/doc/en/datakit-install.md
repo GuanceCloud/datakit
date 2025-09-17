@@ -4,9 +4,13 @@
 
 This article describes the basic installation of DataKit.
 
-## Register/log in to <<<custom_key.brand_name>>> {#login-guance}
+## Register/log in to <<<custom_key.brand_name>>> {#regist-login}
 
+<<<% if custom_key.brand_key == 'guance' %>>>
 The browser visits the [<<<custom_key.brand_name>>> registration](https://auth.<<<custom_key.brand_main_domain>>>/redirectpage/register){:target="_blank"} portal, fills in the corresponding information, and then [logs in to <<<custom_key.brand_name>>>](https://console.<<<custom_key.brand_main_domain>>>/pageloading/login){:target="_blank"}.
+<<<% else %>>>
+The browser visits the [<<<custom_key.brand_name>>> registration](https://ap1-auth.<<<custom_key.brand_main_domain>>>/businessRegister){:target="_blank"} portal, fills in the corresponding information, and then [logs in to TrueWatch](https://console.<<<custom_key.brand_main_domain>>>/pageloading/login){:target="_blank"}.
+<<<% endif %>>>
 
 ## Get the Installation Command {#get-install}
 

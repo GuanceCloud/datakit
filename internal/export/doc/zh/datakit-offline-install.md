@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD046 MD034 -->
 
 # 离线部署
 ---
@@ -43,7 +44,6 @@ proxy -->> dw: Proxy request to DataWay
 
 - 或者准备配置好正向代理的 Nginx
 
-<!-- markdownlint-disable MD046 MD034 -->
 === "Linux/Mac"
 
     - 使用 DataKit 代理
@@ -103,17 +103,16 @@ proxy -->> dw: Proxy request to DataWay
 
 以下文件的地址，可通过 wget 等下载工具，也可以直接在浏览器中输入对应的 URL 下载。
 
-<!-- markdownlint-disable MD046 -->
+<!-- markdownlint-disable MD046 MD034 -->
 ???+ note
 
     Safari 浏览器下载时，后缀名可能不同（如将 `.tar.gz` 文件下载成 `.tar`），会导致安装失败。建议用 Chrome 浏览器下载。
-<!-- markdownlint-enable -->
 
 - 先下载数据包 [data.tar.gz](https://static.<<<custom_key.brand_main_domain>>>/datakit/data.tar.gz)，每个平台都一样。
 
 - 然后再下载其他所需安装程序：
 
-<!-- markdownlint-disable MD046 -->
+<!-- markdownlint-disable MD046 MD034 -->
 === "Linux"
 
     - **X86 32 位**
@@ -170,17 +169,15 @@ proxy -->> dw: Proxy request to DataWay
 
 将这些文件拷贝到对应机器上（通过 U 盘或 `scp` 等命令）。
 
-<!-- markdownlint-disable MD046 -->
+<!-- markdownlint-disable MD046 MD034 -->
 ???+ note
 
     这些文件务必每个都完整下载，在各个版本之间，它们不一定能复用，比如 installer 程序在不同的 DataKit 版本之间，其行为也不同，因为 installer 可能会调整 DataKit 的默认配置，而不同 DataKit 的配置是有不同程度的增删的。最好 1.2.3 版本的 DataKit 就用 1.2.3 版本对应的 installer 程序来安装或升级。
-<!-- markdownlint-enable -->
 
 #### 安装 {#simple-install}
 
 > 如果是离线安装精简版版本的 DataKit，需指定带 `_lite` 后缀的安装包，比如 *datakit_lite-linux-amd64-{{.Version}}.tar.gz*。
 
-<!-- markdownlint-disable MD046 -->
 === "Linux"
 
     需以 root 权限运行：
@@ -197,13 +194,11 @@ proxy -->> dw: Proxy request to DataWay
     ```powershell
     .\installer-windows-amd64.exe --offline --dataway "https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>" --srcs datakit-windows-amd64-{{.Version}}.tar.gz,dk_upgrader-windows-amd64-{{.Version}}.tar.gz,data.tar.gz
     ```
-<!-- markdownlint-enable -->
 
 #### 升级 {#simple-upgrade}
 
 > 如果是离线升级 lite 版本的 DataKit，需指定带 `_lite` 后缀的安装包，比如 `datakit_lite-linux-amd64-{{.Version}}.tar.gz`。
 
-<!-- markdownlint-disable MD046 -->
 === "Linux"
 
     需以 root 权限运行：
@@ -220,9 +215,7 @@ proxy -->> dw: Proxy request to DataWay
     ```powershell
     .\installer-windows-amd64.exe --offline --upgrade --srcs datakit-windows-amd64-{{.Version}}.tar.gz,data.tar.gz
     ```
-<!-- markdownlint-enable -->
 
-<!-- markdownlint-disable MD046 -->
 ???+ tip "离线安装如何指定更多的配置参数"
 
     非离线安装时，我们可以通过[环境变量 `DK_XXX=YYY` 的方式](datakit-install.md#extra-envs)来指定一些默认参数，这些默认参数实际上是通过 *install.sh*（Windows 下为 *install.ps1*）来生效的，但是这些环境变量对安装程序 *installer-xxx* 无效，我们只能使用 *installer-xxx* 的命令行参数来额外添加这些选项，通过如下命令，我们可以得知安装程序支持的参数：
@@ -232,7 +225,6 @@ proxy -->> dw: Proxy request to DataWay
     ```
 
     比如，上面我们指定 Dataway 地址就是通过 `--dataway` 方式来指定的。另外，这些额外的命令行参数设置，只有在安装模式才能生效，离线模式下，这些是不生效的。
-<!-- markdownlint-enable -->
 
 ### 全托管模式 {#offline-advanced}
 
@@ -401,7 +393,6 @@ nginx -s reload # reload 配置
 (.WithEnvs "DK_INSTALLER_BASE_URL" "http://[Nginx-Server]:8080/datakit")
 }}
     ```
-<!-- markdownlint-enable -->
 
 到此为止，离线安装完成。注意，此处还额外设置了 `HTTPS_PROXY` 以支持代理。
 
@@ -411,7 +402,7 @@ nginx -s reload # reload 配置
 
 如果有新的 DataKit 版本，可以将其安装上面的方式下载下来，执行如下命令来升级：
 
-<!-- markdownlint-disable MD046 MD034 -->
+<!-- markdownlint-disable MD034 -->
 === "Linux/Mac"
 
     ```shell
@@ -441,7 +432,7 @@ nginx -s reload # reload 配置
 
 这里我们提供一个简单脚本来帮助大家完成免密登录、分发文件、解压镜像的任务。
 
-<!-- markdownlint-disable MD046 -->
+<!-- markdownlint-disable MD046 MD034 -->
 ???- info "*datakit_tools.sh* (单击点开)"
 
     ```shell
@@ -535,7 +526,6 @@ nginx -s reload # reload 配置
         continue
     done
     ```
-<!-- markdownlint-enable -->
 
 ```shell
 # 需对脚本中的主机 ip 和登陆密码进行修改，之后便根据引导完成操作。
@@ -573,7 +563,7 @@ docker image inspect pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:
 
 - 修改 NGINX 配置代理
 
-<!-- markdownlint-disable MD046 -->
+<!-- markdownlint-disable MD046 MD034 -->
 ???- info "/etc/nginx/nginx.conf (单击点开)"
 
     ```shell
@@ -688,7 +678,6 @@ docker image inspect pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:
 
     }
     ```
-<!-- markdownlint-enable -->
 
 - 其余内网机器执行命令
 
