@@ -77,6 +77,7 @@ The following is a specific dialing test example:
       "url": "http://baidu.com",
       "post_url": "https://<your-dataway-host>?token=<your-token>",
       "status": "OK",
+      "schedule_type": "frequency",
       "frequency": "10s",
       "success_when_logic": "and",
       "success_when": [
@@ -146,6 +147,8 @@ The public fields of dialing test tasks are defined as follows:
 | `name`               | string | Y        | Dial test service name                                                                         |
 | `status`             | string | Y        | Dial test service status, such as "OK"/"stop"                                                         |
 | `frequency`          | string | Y        | Dial frequency                                                                             |
+| `schedule_type`      | string | Y        | The execution type of the monitoring task, such as `frequency` or `crontab`, default is `frequency` |
+| `crontab`            | string | N        | The `crontab` expression, such as `*/10 * * * *`, only valid when `schedule_type` is `crontab` |
 | `success_when_logic` | string | N        | The logical relationship between success_when conditions, such as "and"/"or", defaults to "and"                             |
 | `success_when`       | object | Y        | See below for details                                                                             |
 | `advance_options`    | object | N        | See below for details                                                                             |
