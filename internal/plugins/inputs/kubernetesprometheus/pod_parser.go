@@ -147,6 +147,13 @@ func (p *podParser) parsePromConfig(ins *Instance) (*basePromConfig, error) {
 			if v == "__kubernetes_pod_node_name" {
 				res = config.RenameNode(res)
 			}
+			if v == podAnnotationParamTags {
+				m := config.ParseGlobalTags(res)
+				for key, val := range m {
+					tags[key] = val
+				}
+				continue
+			}
 			tags[k] = res
 			continue
 		}
@@ -158,6 +165,9 @@ func (p *podParser) parsePromConfig(ins *Instance) (*basePromConfig, error) {
 	measurement := ins.Measurement
 	if matched, res := p.matches(ins.Measurement); matched && res != "" {
 		measurement = res
+	}
+	if measurement == podAnnotationParamMeasurement {
+		measurement = ""
 	}
 
 	return &basePromConfig{

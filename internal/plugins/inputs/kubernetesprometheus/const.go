@@ -18,6 +18,7 @@ var (
 	annotationPrometheusioPort             = "prometheus.io/port"
 	annotationPrometheusioPath             = "prometheus.io/path"
 	annotationPrometheusioParamMeasurement = "prometheus.io/param_measurement"
+	annotationPrometheusioParamTags        = "prometheus.io/param_tags"
 
 	maxTasksPerWorker = 100
 	maxScrapeRetry    = 10

@@ -125,8 +125,9 @@ KubernetesPrometheus 是一个只能应用在 Kubernetes 的采集器，它根�
 
 ```yaml
 [inputs.kubernetesprometheus]
-  node_local      = true   # 开启 NodeLocal 模式，将采集分散到各个节点
-  scrape_interval = "30s"  # 指定采集间隔，默认是 30 秒
+  node_local             = true   # 开启 NodeLocal 模式，将采集分散到各个节点
+  scrape_interval        = "30s"  # 指定采集间隔，默认是 30 秒
+  keep_exist_metric_name = true   # 保持原始指标名
 
   enable_discovery_of_prometheus_pod_annotations     = false  # 开启预定义的 Pod Annotations 配置
   enable_discovery_of_prometheus_service_annotations = false  # 开启预定义的 Service Annotations 配置
@@ -416,8 +417,149 @@ data:
 
 1. 最后启动 DataKit，在日志中能看到 `create prom url xxxxx for testing/prom-svc` 的内容，并在<<<custom_key.brand_name>>>页面看到 `prom-svc` 指标集。
 
+---
+
+## 基于 Annotations 的 Prometheus 指标自动发现机制 {#auto-discovery-metrics-with-prometheus}
+
+通过为 Pod 或 Service 添加特定的 Annotations，DataKit 能够自动发现并采集 Prometheus 指标。该机制会自动构建 HTTP URL 端点并创建对应的 Prometheus 指标采集任务。
+
+### 功能开启配置 {#configuration}
+
+在 DataKit 采集器配置中，通过以下两个参数分别开启 Pod 和 Service 的自动发现功能：
+
+```toml
+# 开启 Pod Annotations 自动发现
+enable_discovery_of_prometheus_pod_annotations = true
+
+# 开启 Service Annotations 自动发现
+enable_discovery_of_prometheus_service_annotations = true
+```
+
+### 配置示例 {#auto-discovery-metrics-with-prometheus-example}
+
+以下示例展示如何通过 Service Annotations 配置指标自动发现：
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  namespace: ns-testing
+  labels:
+    app.kubernetes.io/name: proxy
+spec:
+  containers:
+  - name: nginx
+    image: nginx:stable
+    ports:
+      - containerPort: 80
+        name: http-web-svc
 
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  namespace: ns-testing
+  annotations:
+    prometheus.io/scrape: "true"      # 启用指标采集
+    prometheus.io/port: "80"          # 指标端口
+    prometheus.io/scheme: "http"      # 协议类型（可选）
+    prometheus.io/path: "/metrics"    # 指标路径（可选）
+    prometheus.io/param_measurement: "nginx_metrics"  # 指标集名称（可选）
+    prometheus.io/param_tags: "service_type=web,version=1.0"  # 自定义标签（可选）
+spec:
+  selector:
+    app.kubernetes.io/name: proxy
+  ports:
+  - name: name-of-service-port
+    protocol: TCP
+    port: 8080
+    targetPort: http-web-svc
+```
+
+### Annotations 参数说明 {#annotations-parameters}
+
+DataKit 支持以下 Annotations 参数：
+
+| Annotation                        | 是否必填   | 默认值     | 说明                                        |
+| ------------                      | ---------- | --------   | ------                                      |
+| `prometheus.io/scrape`            | 是         | -          | 必须设置为 `"true"` 才会启用采集            |
+| `prometheus.io/port`              | 是         | -          | 指标暴露的端口号（必须存在于 Pod 定义中）   |
+| `prometheus.io/scheme`            | 否         | `http`     | 访问协议：`http` 或 `https`                 |
+| `prometheus.io/path`              | 否         | `/metrics` | 指标端点路径                                |
+| `prometheus.io/param_measurement` | 否         | 自动生成   | 自定义指标集名称                            |
+| `prometheus.io/param_tags`        | 否         | -          | 自定义标签，格式：`tag1=value1,tag2=value2` |
+
+### 采集目标说明 {#target-description}
+
+- **采集目标**：DataKit 实际采集的是与 Service 匹配的 Pod（PodIP），而非 Service 本身
+- **采集间隔**：使用全局配置的 `scrape_interval`，默认 30 秒
+- **服务发现**：通过 Service 的 `selector` 找到对应的 Pod 进行采集
+
+### 指标集命名规则 {#measurement-naming-rules}
+
+指标集名称按以下优先级确定：
+
+1. 手动配置（最高优先级）
+通过 Annotations 显式指定指标集名称：
+
+```yaml
+annotations:
+  prometheus.io/param_measurement: "custom_metric_set"
+```
+
+1. Prometheus CRDs 配置
+如果使用 PodMonitor/ServiceMonitor CRDs，可通过 `params` 指定：
+
+```yaml
+params:
+  measurement:
+    - "new_measurement"
+```
+
+1. 自动生成（默认行为）
+默认使用指标名称的第一个下划线前的部分作为指标集名称：
+
+- 原始指标：`promhttp_metric_handler_errors_total`
+- 指标集名称：`promhttp`
+- 字段名称：`metric_handler_errors_total`
+
+**保留原始字段名选项**：
+如需保持 Prometheus 原始指标名称完整，可开启以下配置：
+
+```toml
+# 配置文件方式
+keep_exist_metric_name = true
+```
+
+开启后，字段名将保持为完整的 `promhttp_metric_handler_errors_total`。
+
+### 自动添加的标签 {#auto-added-tags}
+
+DataKit 会自动添加以下标签用于资源定位：
+
+#### Service 采集场景 {#service-collection-scenario}
+
+- `namespace`：Pod 所在的命名空间
+- `service_name`：关联的 Service 名称
+- `pod_name`：被采集的 Pod 名称
+- `instance`：采集目标地址（PodIP:Port）
+- `host`：节点主机名
+
+#### Pod 直接采集场景 {#pod-collection-scenario}
+
+- `namespace`：Pod 所在的命名空间
+- `pod_name`：被采集的 Pod 名称
+- `instance`：采集目标地址（PodIP:Port）
+- `host`：节点主机名
+
+### 注意事项 {#notes}
+
+1. **端口验证**：`prometheus.io/port` 指定的端口必须在 Pod 容器中正确定义，否则采集会失败
+1. **指标覆盖**：避免在不同 Annotations 中配置相同的指标集名称，可能导致数据覆盖
+1. **性能考虑**：过多的自动发现目标可能影响 DataKit 性能，建议合理规划采集范围
+1. **标签冲突**：自定义标签如与系统自动添加的标签同名，自定义值将覆盖系统值
 
 ## FAQ {#faq}
 
