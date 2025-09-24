@@ -164,6 +164,102 @@ DataKit has set default Requests and Limits. If the DataKit container status cha
 
 For specific configurations, refer to the [official document](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#requests-and-limits){:target="_blank"}.
 
+### Security Restrictions {#security-context}
+
+DataKit is recommended to run as the root user and in privileged mode. However, it also supports running as a non-root user with permission controls, though this may affect the collection of some data. The following steps can be used to reduce the privilege level of the DataKit container while ensuring it can collect network data, container data, etc.
+
+**Prerequisites:**
+
+- Kubernetes cluster
+- Node access permissions (to perform host-level configuration)
+- The DataKit image includes a `datakit` user with UID 10001 (DataKit images version 1.83.0 and later have the `datakit` user created; the default user remains `root`)
+
+**Configuration Steps:**
+
+1. **Create user groups and set permissions on the host.** Execute the following commands on each Kubernetes node:
+
+    ```bash
+    # Create a dedicated user group
+    groupadd datakit-reader
+
+    # Set log directory permissions
+    chgrp -R datakit-reader /var/log/pods
+    chmod -R g+rx /var/log/pods
+
+    # Set Docker socket permissions (if used)
+    chgrp datakit-reader /var/run/docker.sock
+    chmod g+r /var/run/docker.sock
+
+    # Set Containerd socket permissions
+    chgrp datakit-reader /var/run/containerd/containerd.sock
+    chmod g+r /var/run/containerd/containerd.sock
+
+    # Set CRI-O socket permissions (if used)
+    chgrp datakit-reader /var/run/crio/crio.sock
+    chmod g+r /var/run/crio/crio.sock
+
+    # Set Kubelet directory permissions
+    chgrp -R datakit-reader /var/lib/kubelet/pods
+    chmod -R g+rx /var/lib/kubelet/pods
+    ```
+
+1. **Obtain the user group GID.** Execute the following command on each node to get the GID of the `datakit-reader` group:
+
+    ```bash
+    getent group datakit-reader | cut -d: -f3
+    ```
+
+    Note the output GID value (e.g., `12345`), which will be needed in the next step.
+
+1. **Configure the Kubernetes Deployment/DaemonSet.** Update your DataKit Kubernetes configuration file:
+
+    ```yaml
+    apiVersion: apps/v1
+    kind: DaemonSet  # Or Deployment
+    metadata:
+      name: datakit
+      namespace: monitoring
+    spec:
+      template:
+        spec:
+          # Security context configuration
+          securityContext:
+            runAsUser: 10001  # UID of the datakit user
+            runAsGroup: 10001 # GID of the datakit user
+            fsGroup: 10001    # Filesystem group
+            supplementalGroups: [12345]  # GID of the datakit-reader group obtained in the previous step
+          containers:
+          - name: datakit
+            image: your-datakit-image:tag
+            # Container security context
+            securityContext:
+              privileged: false             # Disable privileged mode
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true  # Optional: Set root filesystem as read-only
+              capabilities:
+                drop: ["ALL"]  # Drop all capabilities
+                add: ["SYS_ADMIN", "SYS_PTRACE", "DAC_READ_SEARCH", "NET_RAW"] # Add necessary capabilities
+        # Other content...
+    ```
+
+**Notes:**
+
+- When running as a non-root user, the following functionalities of DataKit may be restricted:
+    - Collection of some system metrics: Certain system files and directories requiring root permissions may be inaccessible.
+    - Limited container runtime data: If the container socket and container log directories are not at the default paths, remounting and re-authorization are required.
+    - Missing kernel-level metrics: Some system calls requiring privileged capabilities cannot be executed.
+- This configuration requires host-level permission settings on each Kubernetes node.
+- When nodes are scaled up, the permission setting steps must be repeated on the new nodes.
+- Consider using configuration management tools (Ansible, Chef, Puppet) to automate node configuration.
+
+**Reverting to Root Mode:**
+
+If the non-root mode cannot meet your monitoring requirements, you can revert to root mode at any time:
+
+1. Remove the `runAsUser`, `runAsGroup`, and `supplementalGroups` configurations from the YAML.
+1. Set `privileged` to `true`.
+1. Redeploy DataKit.
+
 ### Kubernetes Tolerance Configuration {#toleration}
 
 DataKit is deployed on all nodes in the Kubernetes cluster by default (that is, all stains are ignored). If some node nodes in Kubernetes have added stain scheduling and do not want to deploy DataKit on them, you can modify `datakit.yaml` to adjust the stain tolerance:

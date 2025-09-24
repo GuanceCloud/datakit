@@ -79,7 +79,7 @@ PostgreSQL 采集器可以从 PostgreSQL 实例中采集实例运行状态指标
 <!-- markdownlint-disable MD046 -->
 === "主机部署"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    进入 DataKit 安装目录下的 `conf.d/samples` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
     ```toml
     {{ CodeBlock .InputSample 4 }}
@@ -276,7 +276,7 @@ log_file_mode = 0644
 
 更多配置，请参考[官方文档](https://www.postgresql.org/docs/11/runtime-config-logging.html){:target="_blank"}。
 
-- PostgreSQL 采集器默认是未开启日志采集功能，可在 *conf.d/{{.Catalog}}/{{.InputName}}.conf* 中 将 `files` 打开，并写入 PostgreSQL 日志文件的绝对路径。比如：
+- PostgreSQL 采集器默认是未开启日志采集功能，可在 *conf.d/samples/{{.InputName}}.conf* 中 将 `files` 打开，并写入 PostgreSQL 日志文件的绝对路径。比如：
 
 ```toml
 [[inputs.postgresql]]

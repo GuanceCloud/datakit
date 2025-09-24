@@ -1,6 +1,6 @@
 ---
-title     : 'Prometheus Exporter'
-summary   : '采集 Prometheus Exporter 暴露的指标数据'
+title     : 'Prometheus Exporter (New)'
+summary   : '采集 Prometheus Exporter 暴露的指标数据（v2）'
 tags:
   - '外部数据接入'
   - 'PROMETHEUS'
@@ -31,7 +31,7 @@ PromV2 采集器是 Prom 采集器的升级版，简化了配置方式，提高�
 
 === "主机安装"
 
-    进入 DataKit 安装目录下的 *conf.d/{{.Catalog}}* 目录，复制 *{{.InputName}}.conf.sample* 并命名为 *{{.InputName}}.conf*。示例如下：
+    进入 DataKit 安装目录下的 *conf.d/samples* 目录，复制 *{{.InputName}}.conf.sample* 并命名为 *{{.InputName}}.conf*。示例如下：
     
     ```toml
     {{ CodeBlock .InputSample 4 }}

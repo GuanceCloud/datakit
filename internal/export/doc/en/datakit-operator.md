@@ -125,7 +125,7 @@ The default configuration is as follows:
         },
         "logfwd": {
             "images": {
-                "logfwd_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/logfwd:1.28.1"
+                "logfwd_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/logfwd:1.82.0"
             },
             "resources": {
                 "requests": {
@@ -611,3 +611,5 @@ Once DataKit Log Collection detects the Pod, it will customize the log collectio
 - How to specify that a certain Pod should not be injected? Add the annotation `"admission.datakit/enabled": "false"` to the Pod. This will prevent any actions from being performed on it, with the highest priority.
 
 - DataKit-Operator utilizes Kubernetes Admission Controller functionality for resource injection. For detailed mechanisms, please refer to the [official documentation](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/){:target="_blank"}
+
+- When deploying in an AWS EKS environment, it may cause the DataKit-Operator to not take effect. You need to open port `9543` in the security group.

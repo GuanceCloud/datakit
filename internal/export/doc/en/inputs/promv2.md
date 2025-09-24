@@ -1,6 +1,6 @@
 ---
-title     : 'Prometheus Exporter'
-summary   : 'Collect metrics exposed by Prometheus Exporter'
+title     : 'Prometheus Exporter (New)'
+summary   : 'Collect metrics exposed by Prometheus Exporter (v2)'
 tags:
   - 'PROMETHEUS'
   - 'THIRD PARTY'
@@ -30,7 +30,7 @@ The PromV2 collector is an upgraded version of the Prom collector, which simplif
 <!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
-    Navigate to the *conf.d/{{.Catalog}}* directory in your DataKit installation path, copy *{{.InputName}}.conf.sample* and rename it to *{{.InputName}}.conf*. Example:
+    Navigate to the *conf.d/samples* directory in your DataKit installation path, copy *{{.InputName}}.conf.sample* and rename it to *{{.InputName}}.conf*. Example:
 
     ```toml
     {{ CodeBlock .InputSample 4 }}

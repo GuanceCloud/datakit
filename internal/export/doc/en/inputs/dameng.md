@@ -24,7 +24,7 @@ Dameng collector can collect the running status index from Dameng database insta
 <!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
-    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
+    Go to the `conf.d/samples` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
 
     ```toml
     {{ CodeBlock .InputSample 4 }}
@@ -55,7 +55,7 @@ For all of the following data collections, the global election tags will added a
 
 - During the operation of the Dameng database, some critical information is recorded in log files located in the `log` directory under the installation directory, with the naming format `dm_<instance name>_YYYYMM.log`. For example: `dm_DMSERVER_202507.log`.
 
-- The Dameng collector does not have log collection enabled by default. You can open `files` in *conf.d/{{.Catalog}}/{{.InputName}}.conf*  and write to the absolute path of the Dameng log file. For example:
+- The Dameng collector does not have log collection enabled by default. You can open `files` in *conf.d/samples/{{.InputName}}.conf*  and write to the absolute path of the Dameng log file. For example:
 
 ```toml
 [[inputs.dameng]]

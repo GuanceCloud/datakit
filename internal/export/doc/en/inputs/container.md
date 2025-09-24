@@ -54,7 +54,7 @@ Collect indicators, objects and log data of container and Kubernetes and report 
 
     In the case of a pure Docker or Containerd environment, the DataKit can only be installed on the host machine.
     
-    Go to the *conf.d/{{.Catalog}}* directory under the DataKit installation directory, copy *{{.InputName}}.conf.sample* and name it *{{.InputName}}.conf*. Examples are as follows:
+    Go to the *conf.d/samples* directory under the DataKit installation directory, copy *{{.InputName}}.conf.sample* and name it *{{.InputName}}.conf*. Examples are as follows:
     
     ``` toml
     {{ CodeBlock .InputSample 4 }}

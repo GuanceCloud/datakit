@@ -23,7 +23,7 @@ Lsblk collector is used for Linux host block device information collection, such
 
 === "Host Installation"
 
-    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
+    Go to the `conf.d/samples` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
 
     ```toml
     {{ CodeBlock .InputSample 4 }}

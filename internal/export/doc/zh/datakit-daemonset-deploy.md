@@ -166,6 +166,101 @@ DataKit 默认设置了 Requests 和 Limits，如果 DataKit 容器状态变为 
 
 具体配置，参见[官方文档](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#requests-and-limits){:target="_blank"}。
 
+### 安全限制 {#security-context}
+
+DataKit 推荐以 root 用户和特权模式运行，同时也提供非 root 用户运行和权限控制，但这会影响部分数据采集。通过以下步骤，可以降低 DataKit 容器的权限级别，同时确保能采集网络数据、容器数据等。
+
+前提条件：
+
+- Kubernetes 集群
+- 节点访问权限（用于执行主机级配置）
+- DataKit 镜像已包含 UID 为 10001 的 `datakit` 用户（DataKit 1.83.0 及以后的镜像已创建 `datakit` 用户，默认用户仍是 `root`）
+
+配置步骤如下：
+
+1. 在宿主机上创建用户组并设置权限，在每个 Kubernetes 节点上执行以下命令：
+
+    ```bash
+    # 创建专用用户组
+    groupadd datakit-reader
+    
+    # 设置日志目录权限
+    chgrp -R datakit-reader /var/log/pods
+    chmod -R g+rx /var/log/pods
+
+    # 设置 Docker 套接字权限（如使用）
+    chgrp datakit-reader /var/run/docker.sock
+    chmod g+r /var/run/docker.sock
+    
+    # 设置 Containerd 套接字权限
+    chgrp datakit-reader /var/run/containerd/containerd.sock
+    chmod g+r /var/run/containerd/containerd.sock
+    
+    # 设置 CRI-O 套接字权限（如使用）
+    chgrp datakit-reader /var/run/crio/crio.sock
+    chmod g+r /var/run/crio/crio.sock
+    
+    # 设置 Kubelet 目录权限
+    chgrp -R datakit-reader /var/lib/kubelet/pods
+    chmod -R g+rx /var/lib/kubelet/pods
+    ```
+
+1. 获取用户组 GID，在每个节点上执行以下命令获取 `datakit-reader` 组的 GID：
+
+    ```bash
+    getent group datakit-reader | cut -d: -f3
+    ```
+
+记下输出的 GID 值（例如 `12345`），后续步骤中需要使用。
+
+1. 配置 Kubernetes Deployment/DaemonSet，更新您的 DataKit Kubernetes 配置文件：
+
+    ```yaml
+    apiVersion: apps/v1
+    kind: DaemonSet  # 或 Deployment
+    metadata:
+      name: datakit
+      namespace: monitoring
+    spec:
+      template:
+        spec:
+          # 安全上下文配置
+          securityContext:
+            runAsUser: 10001  # datakit 用户的 UID
+            runAsGroup: 10001 # datakit 用户的 GID
+            fsGroup: 10001    # 文件系统组
+            supplementalGroups: [12345]  # 上一步获取的 datakit-reader 组 GID
+          containers:
+          - name: datakit
+            image: your-datakit-image:tag
+            # 容器安全上下文
+            securityContext:
+              privileged: false             # 关闭特权模式
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true  # 可选：设置根文件系统为只读
+              capabilities:
+                drop: ["ALL"]  # 丢弃所有特权能力
+                add: ["SYS_ADMIN", "SYS_PTRACE", "DAC_READ_SEARCH", "NET_RAW"]
+          # 其他内容
+    ```
+
+注意：
+
+- 在以非 root 用户运行时，DataKit 的以下功能可能会受到限制：
+    - 部分系统指标无法采集：某些需要 root 权限的系统文件和目录可能无法访问
+    - 容器运行时数据受限：如果容器 sock 和容器日志目录不是默认路径，需要重新挂载和授权
+    - 内核级指标缺失：部分需要特权能力的系统调用无法执行
+- 此配置需要在每个 Kubernetes 节点上执行主机级权限设置
+- 当节点扩容时，需要在新节点上重复权限设置步骤
+- 考虑使用配置管理工具（Ansible、Chef、Puppet）自动化节点配置
+
+
+如果非 root 模式无法满足监控需求，可以随时回退到 root 模式：
+
+1. 从 yaml 中移除 `runAsUser`、`runAsGroup` 和 `supplementalGroups` 等配置
+1. 将 `privileged` 设置为 `true`
+1. 重新部署 DataKit
+
 ### Kubernetes 污点容忍度配置 {#toleration}
 
 DataKit 默认会在 Kubernetes 集群的所有 Node 上部署（即忽略所有污点），如果 Kubernetes 中某些 Node 节点添加了污点调度，且不希望在其上部署 DataKit，可修改 *datakit.yaml*，调整其中的污点容忍度：
