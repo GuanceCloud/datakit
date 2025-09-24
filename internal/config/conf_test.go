@@ -415,7 +415,7 @@ func TestLoadResourceLimite(t *T.T) {
 
 		_, err := bstoml.Decode(conf, c)
 		assert.NoError(t, err)
-		assert.Equal(t, 10.0, c.ResourceLimitOptions.CPUMax)
+		assert.Equal(t, 10.0, c.ResourceLimitOptions.CPUMaxDeprecated)
 	})
 }
 

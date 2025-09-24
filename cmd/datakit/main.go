@@ -448,11 +448,11 @@ func getCurrentCPULimits() float64 {
 		return 1.0
 	} else {
 		if config.Cfg.ResourceLimitOptions.Enable {
-			if config.Cfg.ResourceLimitOptions.CPUMax > 100.0 {
-				return float64(runtime.NumCPU())
-			} else {
-				return (config.Cfg.ResourceLimitOptions.CPUMax / 100.0 * float64(runtime.NumCPU()))
+			if config.Cfg.ResourceLimitOptions.CPUCores == 0.0 {
+				return resourcelimit.CPUMaxToCores(config.Cfg.ResourceLimitOptions.CPUMax())
 			}
+
+			return config.Cfg.ResourceLimitOptions.CPUCores
 		} else {
 			return float64(runtime.NumCPU()) // if no limit, set it to full-CPU cores
 		}

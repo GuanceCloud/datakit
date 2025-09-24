@@ -13,7 +13,7 @@ import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/resourcelimit/job"
 
 func run(opt *ResourceLimitOptions) error {
 	return job.Run(&job.JobOptions{
-		CPUMax: opt.CPUMax,
+		CPUMax: opt.cpuMax,
 		MemMax: opt.MemMax,
 	})
 }

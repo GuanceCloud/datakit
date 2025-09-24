@@ -78,7 +78,7 @@ func TestLimitWrap(t *testing.T) {
 		ratio := float64(passed) / expectLimited
 
 		// 此处 passed 总会高出 expectLimited 一截，不清楚是不是 TTL 边界的原因，但不会超过 expectLimited 10%
-		assert.Truef(t, ratio <= 1.1, "expected %d, passed %d", int(expectLimited), passed)
+		assert.InDelta(t, 1.0, ratio, 0.1, "expected %d, passed %d", int(expectLimited), passed)
 		// TTL 一旦小于 for 循环运行时长，此处的偏差就开始变大。当 TTL 大于 运行时长时，不管时 1min 还是 1hour，
 		// 比例都在 10% 以内。
 

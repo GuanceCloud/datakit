@@ -13,7 +13,7 @@ import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/resourcelimit/cgro
 func run(opt *ResourceLimitOptions) error {
 	return cgroup.Run(&cgroup.CgroupOptions{
 		Path:       opt.Path,
-		CPUMax:     opt.CPUMax,
+		CPUMax:     opt.cpuMax,
 		MemMax:     opt.MemMax,
 		DisableOOM: opt.DisableOOM,
 		Enable:     opt.Enable,

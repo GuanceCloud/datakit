@@ -6,10 +6,12 @@
 package resourcelimit
 
 import (
+	"bytes"
 	"runtime"
 	T "testing"
 	"time"
 
+	bstoml "github.com/BurntSushi/toml"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -60,12 +62,12 @@ func TestCPUUsage(t *T.T) {
 func TestSetup(t *T.T) {
 	t.Run("cpumax-to-cpucores", func(t *T.T) {
 		c := ResourceLimitOptions{
-			CPUMax: 10.0,
+			CPUMaxDeprecated: 10.0,
 		}
 
 		cores := float64(runtime.NumCPU())
 		c.Setup()
-		assert.Equal(t, cores*c.CPUMax/100.0, c.CPUCores)
+		assert.Equal(t, cores*c.cpuMax/100.0, c.CPUCores)
 	})
 
 	t.Run("cpucores-to-cpumax", func(t *T.T) {
@@ -75,17 +77,17 @@ func TestSetup(t *T.T) {
 
 		cores := float64(runtime.NumCPU())
 		c.Setup()
-		assert.Equal(t, c.CPUCores/cores*100.0, c.CPUMax)
+		assert.Equal(t, c.CPUCores/cores*100.0, c.cpuMax)
 	})
 
 	t.Run("100%-cpumax", func(t *T.T) {
 		c := ResourceLimitOptions{
-			CPUMax: 101.0,
+			CPUMaxDeprecated: 101.0,
 		}
 
 		cores := float64(runtime.NumCPU())
 		c.Setup()
-		assert.Equal(t, 100.0, c.CPUMax)
+		assert.Equal(t, 100.0, c.cpuMax)
 		assert.Equal(t, cores, c.CPUCores)
 	})
 
@@ -96,7 +98,20 @@ func TestSetup(t *T.T) {
 
 		cores := float64(runtime.NumCPU())
 		c.Setup()
-		assert.Equal(t, 100.0, c.CPUMax)
+		assert.Equal(t, 100.0, c.cpuMax)
 		assert.Equal(t, cores, c.CPUCores)
+	})
+
+	t.Run("marshal", func(t *T.T) {
+		c := ResourceLimitOptions{
+			CPUMaxDeprecated: 0.0,
+			CPUCores:         0.5,
+			MemMax:           1024,
+		}
+
+		buf := new(bytes.Buffer)
+		assert.NoError(t, bstoml.NewEncoder(buf).Encode(c))
+
+		t.Logf("buf: %s", buf.String())
 	})
 }

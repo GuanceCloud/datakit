@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/resourcelimit"
 )
 
 func Test_mergeDefaultInputs(t *T.T) {
@@ -173,8 +174,11 @@ func TestLoadInstallerArgs(t *T.T) {
 		assert.NoError(t, err)
 		memMax := mc.ResourceLimitOptions.MemMax
 
-		assert.Equal(t, 10.0, mc.ResourceLimitOptions.CPUMax)
+		assert.Equal(t, 0.0, mc.ResourceLimitOptions.CPUMaxDeprecated)
+		assert.Equal(t, 10.0, mc.ResourceLimitOptions.CPUMax())
+		assert.InDelta(t, resourcelimit.CPUMaxToCores(10.0), mc.ResourceLimitOptions.CPUCores, 0.1)
 		assert.Equal(t, memMax, mc.ResourceLimitOptions.MemMax)
+		t.Logf("cpu cores: %f", mc.ResourceLimitOptions.CPUCores)
 	})
 
 	t.Run(`resource-limit-cpu-args-not-set`, func(t *T.T) {
@@ -183,15 +187,19 @@ func TestLoadInstallerArgs(t *T.T) {
 		}
 
 		mc := config.DefaultConfig()
+		mc.ResourceLimitOptions.CPUMaxDeprecated = 7.0 // datakit.conf set cpu-max to %7
 		memMax := mc.ResourceLimitOptions.MemMax
-
-		mc.ResourceLimitOptions.CPUMax = 7.0
 
 		mc, err := args.LoadInstallerArgs(mc)
 		assert.NoError(t, err)
 
-		assert.Equal(t, 7.0, mc.ResourceLimitOptions.CPUMax)
+		t.Logf("cores: %f", mc.ResourceLimitOptions.CPUCores)
+
+		assert.Equal(t, 0.0, mc.ResourceLimitOptions.CPUMaxDeprecated)
+		assert.InDelta(t, 7.0, mc.ResourceLimitOptions.CPUMax(), 0.1)
+		assert.InDelta(t, resourcelimit.CPUMaxToCores(7.0), mc.ResourceLimitOptions.CPUCores, 0.1)
 		assert.Equal(t, memMax, mc.ResourceLimitOptions.MemMax) // max-mem not changed
+		t.Logf("cpu cores: %f", mc.ResourceLimitOptions.CPUCores)
 	})
 
 	t.Run(`double-load`, func(t *T.T) {
@@ -211,7 +219,7 @@ func TestLoadInstallerArgs(t *T.T) {
 		assert.Equal(t, defMemMax, mc.ResourceLimitOptions.MemMax)     // not changed
 		assert.Equal(t, defCpuCores, mc.ResourceLimitOptions.CPUCores) // not changed
 
-		mc.ResourceLimitOptions.CPUMax = 7.0
+		mc.ResourceLimitOptions.CPUMaxDeprecated = 7.0
 		mc.ResourceLimitOptions.MemMax = 11
 
 		mc, err = args.LoadInstallerArgs(mc) // 2nd load within upgrade.go/Upgrade()
@@ -219,7 +227,8 @@ func TestLoadInstallerArgs(t *T.T) {
 
 		t.Logf("ResourceLimitOptions: %+#v", mc.ResourceLimitOptions)
 
-		assert.Equal(t, 7.0, mc.ResourceLimitOptions.CPUMax)
+		assert.InDelta(t, 7.0, mc.ResourceLimitOptions.CPUMax(), 0.1)
+		assert.Equal(t, 0.0, mc.ResourceLimitOptions.CPUMaxDeprecated)
 		assert.Equal(t, int64(11), mc.ResourceLimitOptions.MemMax)
 	})
 

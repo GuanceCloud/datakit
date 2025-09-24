@@ -37,7 +37,9 @@ type ResourceLimitOptions struct {
 
 	// CPU usage percent(max is 100)
 	// Deprecated: use CPUCores
-	CPUMax   float64 `toml:"cpu_max"`
+	CPUMaxDeprecated float64 `toml:"cpu_max,omitzero"`
+
+	cpuMax   float64
 	CPUCores float64 `toml:"cpu_cores"` // CPU cores, 1.0 means 1 core
 
 	MemMax int64 `toml:"mem_max_mb"`
@@ -46,27 +48,37 @@ type ResourceLimitOptions struct {
 	Enable     bool `toml:"enable"`
 }
 
+func CPUMaxToCores(x float64) float64 {
+	if x > 100.0 {
+		x = 100.0
+	}
+	return x * float64(runtime.NumCPU()) / 100.0
+}
+
+func CPUCoresToCPUMax(x float64) float64 {
+	return x / float64(runtime.NumCPU()) * 100.0
+}
+
+func (c *ResourceLimitOptions) CPUMax() float64 {
+	return c.cpuMax
+}
+
 // Setup set internal values of resource limits.
 func (c *ResourceLimitOptions) Setup() {
-	if c.CPUMax > 0 {
-		// PASS: use old configure
-		if c.CPUMax > 100.0 {
-			c.CPUMax = 100.0
-			c.CPUCores = float64(runtime.NumCPU()) // use all CPU cores
-		} else {
-			c.CPUCores = float64(runtime.NumCPU()) * c.CPUMax / 100.0
-		}
-	} else {
-		if c.CPUCores <= 0 { // CPU-cores not set, default to 2C.
-			c.CPUCores = 2
-		}
+	if c.CPUCores <= 0 { // CPU-cores not set, default to 2C.
+		c.CPUCores = 2
+	}
 
-		if c.CPUCores > float64(runtime.NumCPU()) { // should not > 100%
-			c.CPUCores = float64(runtime.NumCPU())
-			c.CPUMax = 100.0
-		} else {
-			c.CPUMax = 100.0 * c.CPUCores / float64(runtime.NumCPU())
-		}
+	if c.CPUMaxDeprecated > 0 {
+		c.CPUCores = CPUMaxToCores(c.CPUMaxDeprecated)
+		c.CPUMaxDeprecated = 0.0
+	}
+
+	if c.CPUCores > float64(runtime.NumCPU()) { // should not > physical CPU num.
+		c.CPUCores = float64(runtime.NumCPU())
+		c.cpuMax = 100.0
+	} else {
+		c.cpuMax = 100.0 * c.CPUCores / float64(runtime.NumCPU())
 	}
 }
 
@@ -90,12 +102,7 @@ func Run(c *ResourceLimitOptions, username string) {
 		return
 	}
 
-	if c.CPUMax <= 0 || c.CPUMax > 100 {
-		l.Errorf("CPUMax and CPUMin should be in range of [0.0, 100.0]")
-		return
-	}
-
-	l.Infof("set CPU max to %f%%(%d cores)", c.CPUMax, runtime.NumCPU())
+	l.Infof("set CPU max to %f%%(%d cores)", c.CPUCores, runtime.NumCPU())
 
 	g := datakit.G("internal_resourcelimit")
 
@@ -164,8 +171,8 @@ func Info() string {
 	}
 
 	if userName != "root" {
-		return fmt.Sprintf("path: %s, mem: %dMB, cpu: %.2f",
-			resourceLimitOpt.Path, resourceLimitOpt.MemMax, resourceLimitOpt.CPUMax)
+		return fmt.Sprintf("path: %s, mem: %dMB, cpus: %.2f",
+			resourceLimitOpt.Path, resourceLimitOpt.MemMax, resourceLimitOpt.CPUCores)
 	}
 	return info()
 }

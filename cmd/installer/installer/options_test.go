@@ -80,7 +80,7 @@ func TestSetupService(t *T.T) {
 		rl := config.DefaultConfig().ResourceLimitOptions
 		rl.Setup()
 
-		assert.Equal(t, fmt.Sprintf("%f%%", rl.CPUMax), scfg.Option["CPUQuota"])
+		assert.Equal(t, fmt.Sprintf("%f%%", rl.CPUMax()), scfg.Option["CPUQuota"])
 		assert.Equal(t, fmt.Sprintf("%dM", rl.MemMax), scfg.Option["MemoryLimit"])
 	})
 

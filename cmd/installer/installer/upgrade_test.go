@@ -14,6 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/resourcelimit"
 )
 
 func Test_setupDefaultInputs(t *T.T) {
@@ -340,14 +341,15 @@ func TestUpgradeMainConfig(t *T.T) {
 			name: "apply-old-cpu-max-limit",
 			old: func() *config.Config {
 				c := config.DefaultConfig()
-				c.ResourceLimitOptions.CPUMax = 20.0 // old cpu-max exist, do not apply cpu-cores
+				c.ResourceLimitOptions.CPUCores = 0            // clear
+				c.ResourceLimitOptions.CPUMaxDeprecated = 20.0 // old cpu-max exist, do not apply cpu-cores
 				return c
 			}(),
 
 			expect: func() *config.Config {
 				c := config.DefaultConfig()
-				c.ResourceLimitOptions.CPUMax = 20.0
-				c.ResourceLimitOptions.CPUCores = 0 // exist cpu-max override cpu-cores
+				c.ResourceLimitOptions.CPUMaxDeprecated = 0.0
+				c.ResourceLimitOptions.CPUCores = resourcelimit.CPUMaxToCores(20.0) // convert cpu-max to cpu-cores
 				return c
 			}(),
 		},

@@ -24,6 +24,7 @@ import (
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/resourcelimit"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )
 
@@ -265,17 +266,18 @@ func (args *InstallerArgs) setupServiceOptions() *service.Config {
 		limitUpdated = false
 	)
 
-	// setup CPU max
-	if args.LimitCPUCores > 0.0 {
-		rl.CPUCores = args.LimitCPUCores
-		limitUpdated = true
-	}
+	// setup CPU limit
 	if args.LimitCPUMax > 0.0 {
-		rl.CPUMax = args.LimitCPUMax
+		rl.CPUCores = resourcelimit.CPUMaxToCores(args.LimitCPUMax)
 		limitUpdated = true
 	}
 
-	// setup mem max
+	if args.LimitCPUCores > 0.0 { // cpu-cores override above cpu-max
+		rl.CPUCores = args.LimitCPUCores
+		limitUpdated = true
+	}
+
+	// setup mem limit
 	if args.LimitMemMax > 0 {
 		rl.MemMax = args.LimitMemMax
 		limitUpdated = true
@@ -285,7 +287,7 @@ func (args *InstallerArgs) setupServiceOptions() *service.Config {
 
 	svcopts := []dkservice.ServiceOption{
 		dkservice.WithMemLimit(fmt.Sprintf("%dM", rl.MemMax)),
-		dkservice.WithCPULimit(fmt.Sprintf("%f%%", rl.CPUMax)),
+		dkservice.WithCPULimit(fmt.Sprintf("%f%%", rl.CPUMax())),
 	}
 
 	if runtime.GOOS == datakit.OSLinux && args.FlagUserName != "" {
