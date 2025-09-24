@@ -12,6 +12,7 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"regexp"
@@ -449,4 +450,17 @@ func GetClass(code string) string {
 		return "5xx"
 	}
 	return ""
+}
+
+// FormatSpanIDByBase 根据指定的基数格式化 span_id,parent_id.
+func FormatSpanIDByBase(id uint64, base int) string {
+	if id == 0 {
+		return "0"
+	}
+
+	if base == 10 {
+		return strconv.FormatUint(id, base)
+	} else {
+		return fmt.Sprintf("%016x", id)
+	}
 }

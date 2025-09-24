@@ -186,7 +186,7 @@ func TestStartUDPAgent(t *testing.T) {
 					assert.Len(t, p.Get(itrace.FieldTraceID), 32)
 					assert.Equal(t, p.Get(itrace.FieldParentID), "0")
 					assert.Equal(t, p.Get(itrace.Project), "project")
-					assert.Equal(t, p.Get(itrace.FieldSpanid), strconv.FormatUint(uint64(987654321), 16))
+					assert.Equal(t, p.Get(itrace.FieldSpanid), itrace.FormatSpanIDByBase(uint64(987654321), 16))
 					assert.Equal(t, p.Get(itrace.FieldDuration), int64(1000))
 				case <-ticker.C:
 					t.Errorf("timeout! count:%d != spanCount:%d", i, tt.args.spanCount)
