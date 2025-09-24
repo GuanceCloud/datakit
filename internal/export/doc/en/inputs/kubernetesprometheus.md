@@ -126,6 +126,7 @@ Additionally, there is a type of global configuration, which is the highest-leve
 [inputs.kubernetesprometheus]
   node_local      = true   # Whether to enable NodeLocal mode, distributing the collection across nodes
   scrape_interval = "30s"  # Set scrape interval, default 30 seconds
+  keep_exist_metric_name = true # If the keep_exist_metric_name is true, keep the raw value for field names.
 
   enable_discovery_of_prometheus_pod_annotations     = false  # Whether to enable config for Pod Annotations
   enable_discovery_of_prometheus_service_annotations = false  # Whether to enable config for Service Annotations
@@ -422,6 +423,150 @@ data:
 
 1. Finally, start `DataKit`. In the logs, you should see the message `create prom url xxxxx for testing/prom-svc`, and you should be able to observe the `prom-svc` metrics set on the <<<custom_key.brand_name>>> page.
 
+---
+
+<!-- markdownlint-disable MD013 -->
+## Auto-Discovery of Prometheus Metrics via Pod/Service Annotations {#auto-discovery-metrics-with-prometheus}
+<!-- markdownlint-enable -->
+
+By adding specific annotations to Pods or Services, DataKit can automatically discover and collect Prometheus metrics. This mechanism automatically constructs HTTP URL endpoints and creates corresponding Prometheus metric collection tasks.
+
+### Configuration {#configuration}
+
+Enable the auto-discovery feature for Pods and Services using the following parameters in the DataKit collector configuration:
+
+```toml
+# Enable Pod Annotations auto-discovery
+enable_discovery_of_prometheus_pod_annotations = true
+# Enable Service Annotations auto-discovery
+enable_discovery_of_prometheus_service_annotations = true
+```
+
+### Example {#auto-discovery-metrics-with-prometheus-example}
+
+The following example demonstrates how to configure metric auto-discovery through Service Annotations:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  namespace: ns-testing
+  labels:
+    app.kubernetes.io/name: proxy
+spec:
+  containers:
+  - name: nginx
+    image: nginx:stable
+    ports:
+      - containerPort: 80
+        name: http-web-svc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  namespace: ns-testing
+  annotations:
+    prometheus.io/scrape: "true"      # Enable metric collection
+    prometheus.io/port: "80"          # Metrics port
+    prometheus.io/scheme: "http"      # Protocol (optional)
+    prometheus.io/path: "/metrics"    # Metrics path (optional)
+    prometheus.io/param_measurement: "nginx_metrics"  # Measurement name (optional)
+    prometheus.io/param_tags: "service_type=web,version=1.0"  # Custom tags (optional)
+spec:
+  selector:
+    app.kubernetes.io/name: proxy
+  ports:
+  - name: name-of-service-port
+    protocol: TCP
+    port: 8080
+    targetPort: http-web-svc
+```
+
+### Annotations Parameters {#annotations-parameters}
+
+DataKit supports the following annotation parameters:
+
+| Annotation                        | Required   | Default        | Description                                                          |
+| ------------                      | ---------- | --------       | ------                                                               |
+| `prometheus.io/scrape`            | Yes        | -              | Must be set to `"true"` to enable collection                         |
+| `prometheus.io/port`              | Yes        | -              | Port number where metrics are exposed (must exist in Pod definition) |
+| `prometheus.io/scheme`            | No         | `http`         | Protocol: `http` or `https`                                          |
+| `prometheus.io/path`              | No         | `/metrics`     | Metrics endpoint path                                                |
+| `prometheus.io/param_measurement` | No         | Auto-generated | Custom measurement name                                              |
+| `prometheus.io/param_tags`        | No         | -              | Custom tags, format: `tag1=value1,tag2=value2`                       |
+
+### Target Description {#target-description}
+
+- **Collection Target**: DataKit actually collects metrics from Pods (PodIP) matched by the Service, not the Service itself
+- **Collection Interval**: Uses the globally configured `scrape_interval`, default is 30 seconds
+- **Service Discovery**: Finds corresponding Pods through Service's `selector` for collection
+
+### Measurement Naming Rules {#measurement-naming-rules}
+
+Measurement names are determined by the following priority:
+
+1. Manual Configuration (Highest Priority)
+Explicitly specify measurement name through annotations:
+
+```yaml
+annotations:
+  prometheus.io/param_measurement: "custom_metric_set"
+```
+
+1. Prometheus CRDs Configuration
+When using PodMonitor/ServiceMonitor CRDs, specify via `params`:
+
+```yaml
+params:
+  measurement:
+    - "new_measurement"
+```
+
+1. Auto-generated (Default Behavior)
+Uses the part before the first underscore in the metric name as the measurement name:
+
+- Original metric: `promhttp_metric_handler_errors_total`
+- Measurement name: `promhttp`
+- Field name: `metric_handler_errors_total`
+
+**Preserve Original Field Name Option**:
+To maintain the complete original Prometheus metric name, enable the following configuration:
+
+```toml
+# Configuration file method
+keep_exist_metric_name = true
+```
+
+When enabled, the field name will remain as the complete `promhttp_metric_handler_errors_total`.
+
+### Automatically Added Tags {#auto-added-tags}
+
+DataKit automatically adds the following tags for resource positioning:
+
+#### Service Collection Scenario {#service-collection-scenario}
+
+- `namespace`: Namespace where the Pod resides
+- `service_name`: Associated Service name
+- `pod_name`: Name of the Pod being collected
+- `instance`: Collection target address (PodIP:Port)
+- `host`: Node hostname
+
+#### Direct Pod Collection Scenario {#pod-collection-scenario}
+
+- `namespace`: Namespace where the Pod resides
+- `pod_name`: Name of the Pod being collected
+- `instance`: Collection target address (PodIP:Port)
+- `host`: Node hostname
+
+### Notes {#notes}
+
+1. **Port Verification**: The port specified by `prometheus.io/port` must be properly defined in the Pod container, otherwise collection will fail.
+1. **Metric Overlap**: Avoid configuring the same measurement name in different annotations, as this may cause data overwriting.
+1. **Performance Considerations**: Too many auto-discovery targets may impact DataKit performance; plan collection scope appropriately.
+1. **Tag Conflicts**: If custom tags have the same name as system-auto-added tags, custom values will override system values.
 
 ---
 
