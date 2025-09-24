@@ -19,6 +19,8 @@ type relationMetric struct {
 }
 
 var relationMetrics = []relationMetric{
+	// pg_class stores metadata for the entire database cluster,
+	// but query results are restricted by the currently connected database.
 	{
 		name: "lock metrics",
 		query: `
@@ -40,6 +42,8 @@ var relationMetrics = []relationMetric{
 		measurementInfo: lockMeasurement{}.Info(),
 		schemaField:     "nspname",
 	},
+	// pg_stat_user_tables is a database-specific view that only shows statistics for user tables in the currently connected database.
+	// Results will change when switching databases.
 	{
 		name: "stat metrics",
 		query: `
@@ -50,6 +54,7 @@ WHERE %s
 		schemaField:     "schemaname",
 		measurementInfo: statMeasurement{}.Info(),
 	},
+	// pg_stat_user_indexes is a database-specific view that only shows statistics for user indexes in the currently connected database.
 	{
 		name: "index metrics",
 		query: `
@@ -93,6 +98,7 @@ FROM
 		schemaField:     "nspname",
 		measurementInfo: sizeMeasurement{}.Info(),
 	},
+	// pg_statio_user_tables is a system view in PostgreSQL focused on I/O statistics for user-defined tables (excluding system tables).
 	{
 		name: "statio metrics",
 		query: `
@@ -507,7 +513,6 @@ func (m slruMeasurement) Info() *inputs.MeasurementInfo {
 			"truncates":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of truncates for this `SLRU` (simple least-recently-used) cache."},
 		},
 		Tags: map[string]interface{}{
-			"db":     inputs.NewTagInfo("The database name"),
 			"server": inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 			"name":   inputs.NewTagInfo("The name of the `SLRU`"),
 		},
@@ -537,7 +542,6 @@ func (m ioMeasurement) Info() *inputs.MeasurementInfo {
 			"writes":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of write operations, each of the size specified in op_bytes."},
 		},
 		Tags: map[string]interface{}{
-			"db":           inputs.NewTagInfo("The database name"),
 			"server":       inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 			"backend_type": inputs.NewTagInfo("Type of backend (e.g. background worker, autovacuum worker)"),
 			"object":       inputs.NewTagInfo("Target object of an I/O operation"),
@@ -569,7 +573,6 @@ func (m bgwriterMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"server": inputs.NewTagInfo("The address of the server. The value is `host:port`"),
-			"db":     inputs.NewTagInfo("The database name"),
 		},
 	}
 }
@@ -589,7 +592,6 @@ func (m connectionMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"server": inputs.NewTagInfo("The address of the server. The value is `host:port`"),
-			"db":     inputs.NewTagInfo("The database name"),
 		},
 	}
 }
@@ -633,7 +635,6 @@ func (m archiverMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"server": inputs.NewTagInfo("The address of the server. The value is `host:port`"),
-			"db":     inputs.NewTagInfo("The database name"),
 		},
 	}
 }

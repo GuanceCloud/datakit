@@ -1,0 +1,50 @@
+services:
+  database:
+    image: 'pubrepo.guance.com/image-repo-for-testing/postgres/postgres:15.3'
+    ports:
+      - 5432:5432
+    platform: linux/amd64
+    container_name: postgres15.3
+    environment:
+      POSTGRES_DB: test_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    networks:
+      - postgres-network
+    volumes:
+      - ${PWD}/data/entrypoint.sh:/docker-entrypoint-initdb.d/entrypoint.sh
+      - ${PWD}/data/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ${PWD}/data/postgresql.conf:/tmp/postgresql.conf
+    command: ["postgres"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d test_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  tool:
+    build:
+      context: .
+      dockerfile: data/Dockerfile
+      labels:
+        - "custom.project=datakit-postgres-tool"
+    container_name: postgres-test
+    platform: linux/amd64
+    depends_on:
+      database:
+        condition: service_healthy
+    command: ["sh", "-c", "python run_test.py || exit 1"]
+    volumes:
+      - ${PWD}/data/run_test.py:/app/run_test.py
+    environment:
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_NAME: test_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      NUM_THREADS: 5
+      RUN_DURATION: 300
+    networks:
+      - postgres-network
+networks: 
+  postgres-network:
+    driver: bridge
