@@ -1,5 +1,40 @@
 # 更新日志
 
+## 1.83.0(2025/09/24) {#cl-1.83.0}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.83.0-new}
+
+- 调整 DataKit 容器镜像使得其 Kubernetes 部署时可以选择[非 root 用户运行](datakit-daemonset-deploy.md#security-context)（#2665）
+- 拨测采集支持 crontab 形式的定时任务（#2811）
+- KubernetesPrometheus 采集增加 `prometheus.io/param_tags` 支持（#2834）
+
+### 问题修复 {#cl-1.83.0-fix}
+
+- 修复 OpenTelemetry 串联时 `span_id` 高位补 0 问题（#2828）
+- 修复 SQLServer `log_size` 采集问题（#2833）
+- 修复 KubernetesPrometheus 指标集命名问题（#2835）
+
+### 功能优化 {#cl-1.83.0-opt}
+
+- 优化 PostgreSQL 指标采集（#2805）
+- 除 DDTrace 外其它几个 Trace 采集均移除 `operation` 这个冗余字段（#2816）
+- 优化升级程序对 *datakit.conf* 文件的影响（#2821）
+- 优化 ICMP 拨测（#2823）
+- 优化 *datakit.conf* 配置中关于 CPU 利用率限制的设定（#2830）
+- 优化资源限制（cgroup）的设定以及 monitor 面板中的展示效果（#2827）
+- Remote Job 优化（#2824）
+    - 针对多容器的 Pod，DataKit 会选择默认容器进行 dump
+    - dump 文件的上传目录增加 service 名层级目录
+    - 优化 dump 脚本的错误处理
+
+### 兼容调整 {#cl-1.83.0-brk}
+
+- 由于修改了 DataKit 运行权限控制，所有采集器的配置示例全部转移到 *conf.d/samples* 目录下，且后续不再区分 *conf.d/* 目录下的二级目录。以 CPU 采集器为例，原来的配置示例位于 *conf.d/host/cpu.conf.sample*，现在调整为 *conf.d/samples/cpu.conf.sample*。但采集器配置仍然可以存放在 *conf.d* 下面的二级目录，此次更新只是调整了 sample 文件的存放位置。
+
+---
+
 ## 1.82.0(2025/09/12) {#cl-1.82.0}
 
 本次发布属于迭代发布，主要有如下更新：

@@ -1,5 +1,40 @@
 # Changelog
 
+## 1.83.0 (2025/09/24) {#cl-1.83.0}
+
+This release is an iterative update with the following key changes:
+
+### New Features {#cl-1.83.0-new}
+
+- Adjusted the DataKit container image to support running as a [non-root user](datakit-daemonset-deploy.md#security-context) when deployed in Kubernetes (#2665)
+- Added support for crontab-style scheduled tasks in probing collection (#2811)
+- Added `prometheus.io/param_tags` support for KubernetesPrometheus collection (#2834)
+
+### Bug Fixes {#cl-1.83.0-fix}
+
+- Fixed the issue where high-order bits of `span_id` were padded with zeros during OpenTelemetry tracing propagation (#2828)
+- Fixed the `log_size` collection issue for SQLServer (#2833)
+- Fixed the metric set naming issue in KubernetesPrometheus (#2835)
+
+### Improvements {#cl-1.83.0-opt}
+
+- Optimized PostgreSQL metric collection (#2805)
+- Removed the redundant `operation` field from all Trace collectors except DDTrace (#2816)
+- Optimized the impact of the upgrade process on the *datakit.conf* file (#2821)
+- Optimized ICMP probing (#2823)
+- Optimized the CPU utilization limit settings in the *datakit.conf* configuration (#2830)
+- Optimized resource limit (cgroup) settings and their display effect in the monitor panel (#2827)
+- Remote Job optimizations (#2824)
+    - For Pods with multiple containers, DataKit will select the default container for dumping
+    - Added a service name-level directory to the upload path of dump files
+    - Optimized error handling for dump scripts
+
+### Compatibility Adjustments {#cl-1.83.0-brk}
+
+- Due to changes in DataKit's runtime permission control, all collector configuration examples have been moved to the *conf.d/samples/* directory, and subsequent releases will no longer use subdirectories under the *conf.d/* directory. Taking the CPU collector as an example, the original configuration example, which was located at *conf.d/host/cpu.conf.sample*, has now been adjusted to *conf.d/samples/cpu.conf.sample*. However, collector configurations can still be stored in subdirectories under *conf.d*. This update only adjusts the storage location of sample files.
+
+---
+
 ## 1.82.0 (2025/09/12) {#cl-1.82.0}
 
 This release is an iterative update with the following key changes:

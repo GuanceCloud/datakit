@@ -2,6 +2,8 @@
 # Host Installation
 ---
 
+<!-- markdownlint-disable MD046 -->
+
 This article describes the basic installation of DataKit.
 
 ## Register/log in to <<<custom_key.brand_name>>> {#regist-login}
@@ -17,7 +19,7 @@ The browser visits the [<<<custom_key.brand_name>>> registration](https://ap1-au
 Log in to the workspace, click "Integration" on the left and select "DataKit" at the top, and you can see the installation commands of various platforms.
 
 > Note that the following Linux/Mac/Windows installer can automatically identify the hardware platform (arm/x86, 32bit/64bit) without making a hardware platform selection.
-<!-- markdownlint-disable MD046 -->
+
 === "Linux/macOS"
 
     The installation command supports `bash` and `ash`([:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0)), and the command is roughly as follows:
@@ -25,9 +27,9 @@ Log in to the workspace, click "Integration" on the left and select "DataKit" at
     - `bash`
     
     ```shell
-{{ InstallCmd 4 (.WithPlatform "unix") }} 
+{{ InstallCmd 4 (.WithPlatform "unix") }}
     ```
-    
+
     - `ash`
 
     ```shell
@@ -43,11 +45,11 @@ Log in to the workspace, click "Integration" on the left and select "DataKit" at
     ```powershell
 {{ InstallCmd 4 (.WithPlatform "windows") }}
     ```
-<!-- markdownlint-enable -->
+
 ### Install DataKit lite {#lite-install}
 
 You can specify the environment variable `DK_LITE` to install DataKit lite ([:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0)):
-<!-- markdownlint-disable MD046 -->
+
 === "Linux/macOS"
 
     ```shell
@@ -59,7 +61,7 @@ You can specify the environment variable `DK_LITE` to install DataKit lite ([:oc
     ```powershell
 {{ InstallCmd 4 (.WithPlatform "windows") (.WithEnvs "DK_LITE" "1" ) }}
     ```
-<!-- markdownlint-enable -->
+
 DataKit lite only contains collectors as below:
 
 | Collector Name                                                 | Description                                                                                                   |
@@ -79,11 +81,10 @@ DataKit lite only contains collectors as below:
 | [Prom (prom)](../integrations/prom.md)                         | Collect data exposed by Prometheus Exporters                                                                  |
 | [logging](../integrations/logging.md)                          | Collect file log data                                                                                         |
 
-<!-- markdownlint-enable -->
 ### Install DataKit eBPF Span Linker Version {#elinker-install}
 
 You can specify the environment variable `DK_ELINKER` to install DataKit ELinker ([:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)):
-<!-- markdownlint-disable MD046 -->
+
 === "Linux/macOS"
 
     ```shell
@@ -95,7 +96,7 @@ You can specify the environment variable `DK_ELINKER` to install DataKit ELinker
     ```powershell
 {{ InstallCmd 4 (.WithPlatform "windows") (.WithEnvs "DK_ELINKER" "1" ) }}
     ```
-<!-- markdownlint-enable -->
+
 DataKit ELinker only contains collectors as below:
 
 | Collector Name                                | Description                                                                                                   |
@@ -125,10 +126,10 @@ And the same as Windows:
 {{ InstallCmd 0 (.WithPlatform "windows") (.WithVersion "-1.2.3") }}
 ```
 
-## Additional Supported Environment Variable {#extra-envs}
+## Extra Environments {#extra-envs}
 
 If you need to define some DataKit configuration during the installation phase, you can add environment variables to the installation command, just append them before `DK_DATAWAY` For example, append the `DK_NAMESPACE` setting:
-<!-- markdownlint-disable MD046 -->
+
 === "Linux/macOS"
 
     ```shell
@@ -141,7 +142,7 @@ If you need to define some DataKit configuration during the installation phase, 
 {{ InstallCmd 4 (.WithPlatform "windows") (.WithEnvs "DK_NAMESPACE" "<namespace>" ) }}
     ```
 ---
-<!-- markdownlint-enable -->
+
 The setting format of the two environment variables is:
 
 ```shell
@@ -153,12 +154,11 @@ NAME1="value1" NAME2="value2"
 ```
 
 The environment variables supported by the installation script are as follows (supported by the whole platform).
-<!-- markdownlint-disable MD046 -->
+
 ???+ note
 
     1. These environment variable settings are not supported for [full offline installation](datakit-offline-install.md#offline). However, these environment variables can be set by [proxy](datakit-offline-install.md#with-datakit) and [setting local installation address](datakit-offline-install.md#with-nginx).
     1. These environment variables are only effective in installation mode; they do not take effect in upgrade mode.
-<!-- markdownlint-enable -->
 
 ### Most Commonly Used Environment Variables {#common-envs}
 
@@ -168,9 +168,8 @@ The environment variables supported by the installation script are as follows (s
 - `DK_GLOBAL_ELECTION_TAGS`: Support filling in the global election tag during the installation phase，format example: `project=my-porject,cluster=my-cluster` (support filling in the global election tag during the installation phase)
 - `DK_DEF_INPUTS`: List of collector names opened by default, format example: `cpu,mem,disk`. We can also ban some default inputs by putting a `-` prefix at input name, such as `-cpu,-mem,-disk`. But if mixed them, such as `cpu,mem,-disk,-system`, we only accept the banned list, the effect is only `disk` and `system` disabled, but others enabled.
 - `DK_CLOUD_PROVIDER`: Support filling in cloud vendors during installation (Currently support following clouds `aliyun/aws/tencent/hwcloud/azure`). **Deprecated:** DataKit can infer cloud type automatically.
-- `DK_USER_NAME`：DataKit service running user name. Default is `root`. More details is in *Attention* below.
 - `DK_LITE`： When installing the simplified DataKit, you can set this variable to `1`. ([:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0))
-<!-- markdownlint-disable MD046 -->
+
 ???+ tip "Disable all default inputs[:octicons-tag-24: Version-1.5.5](changelog.md#cl-1.5.5)"
 
     We can set `DK_DEF_INPUTS` to `-` to disable all default inputs:
@@ -183,78 +182,109 @@ The environment variables supported by the installation script are as follows (s
 
     Beside, if DataKit has been installed before, we must delete all default inputs *.conf* files manually. During installing, DataKit able to add new inputs configure, not cant delete them.
 
-???+ note
+### Non-Administrator User Installation {#non-admin-install}
 
-    For privilege reason, using `DK_USER_NAME` with not `root` name could cause following collector unavailable:
+DataKit installation requires relatively high user permissions, so it is installed as the `root` user by default. If necessary, it can also be installed using other high-privilege users.
 
-    - [eBPF](../integrations/ebpf.md){:target="_blank"}
+First, create the corresponding non-`root` user and user group (e.g., `datakit`). The following commands are for reference only:
 
-    In addition, the following items need to be noted.
+=== "CentOS/RedHat"
 
-    - Manually create user and group first, then start install. There are difference between Linux distribution releases, below commands are for reference:
+    ```sh
+    # Create system user group 'datakit'
+    groupadd --system datakit
 
-        === "CentOS/RedHat"
+    # Create system user 'datakit' and add it to the 'datakit' group (both username and group name are 'datakit' here)
+    adduser --system --no-create-home datakit -g datakit
 
-            ```sh
-            groupadd --system datakit
+    # Disable login for the 'datakit' user (for CentOS/RedHat-based Linux)
+    usermod -s /sbin/nologin datakit
 
-            adduser --system --no-create-home datakit -g datakit
+    # Set Docker socket permissions (if used)
+    chgrp datakit /var/run/docker.sock
+    chmod g+r /var/run/docker.sock
 
-            usermod -s /sbin/nologin datakit
+    # Set Containerd socket permissions (if used)
+    chgrp datakit /var/run/containerd/containerd.sock
+    ```
 
-            # Set Docker socket permissions (if used)
-            chgrp datakit-reader /var/run/docker.sock
-            chmod g+r /var/run/docker.sock
-            
-            # Set Containerd socket permissions
-            chgrp datakit-reader /var/run/containerd/containerd.sock
-            chmod g+r /var/run/containerd/containerd.sock
-            ```
+=== "Ubuntu/Debian"
 
-        === "Ubuntu/Debian"
+    ```sh
+    # On Ubuntu, the command to create a user and add it to a group simultaneously may report an error; in this case, split it into two steps
 
-            ```sh
-            groupadd --system datakit
+    # Create system user group 'datakit'
+    groupadd --system datakit
 
-            adduser --system --no-create-home datakit
-            
-            usermod -a -G datakit datakit
+    # Create system user 'datakit'
+    adduser --system --no-create-home datakit
 
-            usermod -s /usr/sbin/nologin datakit
+    # Add the 'datakit' user to the 'datakit' group
+    usermod -a -G datakit datakit
 
-            # Set Docker socket permissions (if used)
-            chgrp datakit-reader /var/run/docker.sock
-            chmod g+r /var/run/docker.sock
-            
-            # Set Containerd socket permissions
-            chgrp datakit-reader /var/run/containerd/containerd.sock
-            chmod g+r /var/run/containerd/containerd.sock
-            ```
+    # Disable login for the 'datakit' user (for Ubuntu/Debian-based Linux)
+    usermod -s /usr/sbin/nologin datakit
 
-        === "其它 Linux"
+    # Set Docker socket permissions (if used)
+    chgrp datakit /var/run/docker.sock
+    chmod g+r /var/run/docker.sock
 
-            ```sh
-            groupadd --system datakit
-            
-            adduser --system --no-create-home datakit
-            
-            usermod -a -G datakit datakit
-            
-            usermod -s /bin/false datakit
+    # Set Containerd socket permissions (if used)
+    chgrp datakit /var/run/containerd/containerd.sock
+    chmod g+r /var/run/containerd/containerd.sock
+    ```
 
-            # Set Docker socket permissions (if used)
-            chgrp datakit-reader /var/run/docker.sock
-            chmod g+r /var/run/docker.sock
-            
-            # Set Containerd socket permissions
-            chgrp datakit-reader /var/run/containerd/containerd.sock
-            chmod g+r /var/run/containerd/containerd.sock
-            ```
+=== "Other Linux Distributions"
 
-        ```sh
-        DK_USER_NAME="datakit" DK_DATAWAY="..." bash -c ...
-        ```
-<!-- markdownlint-enable -->
+    ```sh
+    # On other Linux distributions, the command to create a user and add it to a group simultaneously may report an error; in this case, split it into two steps
+
+    # Create system user group 'datakit'
+    groupadd --system datakit
+
+    # Create system user 'datakit'
+    adduser --system --no-create-home datakit
+
+    # Add the 'datakit' user to the 'datakit' group
+    usermod -a -G datakit datakit
+
+    # Disable login for the 'datakit' user (for other Linux distributions)
+    usermod -s /bin/false datakit
+
+    # Set Docker socket permissions (if used)
+    chgrp datakit /var/run/docker.sock
+    chmod g+r /var/run/docker.sock
+
+    # Set Containerd socket permissions (if used)
+    chgrp datakit /var/run/containerd/containerd.sock
+    chmod g+r /var/run/containerd/containerd.sock
+    ```
+
+After creating the user and user group, you can specify the `datakit` username during the installation phase to install DataKit:
+
+```sh
+DK_USER_NAME="datakit" DK_DATAWAY="..." bash -c ...
+```
+
+???+ note "Notes"
+
+    - Non-administrator user installation currently only supports Linux; the Windows platform still requires the `administrator` user for installation.
+    - Due to permission restrictions, if you modify the DataKit service runtime username to a non-`root` user via `DK_USER_NAME`, the following collectors will not be usable:
+
+        - [eBPF](../integrations/ebpf.md){:target="_blank"}
+
+    - If the previous version was installed as the `root` user and you want to switch to a non-root user midway (by changing `datakit_user` in *datakit.conf* to a non-`root` user), in addition to the above user and user group settings, you also need to perform the following additional steps:
+
+    ```shell
+    # Modify permissions for these directories
+    chown -R datakit conf.d/
+    chown -R datakit cache/
+
+    # Reinstall the DataKit service
+    datakit service -U
+    datakit service -I
+    ```
+
 ### Logging {#env-logging}
 
 - `DK_LOG_LEVEL`: Optional info/debug
@@ -326,7 +356,6 @@ The environment variables supported by the installation script are as follows (s
 
 `DK_SINKER_GLOBAL_CUSTOMER_KEYS` used to setup sinker tag/field keys, here is the example:
 
-<!-- markdownlint-disable MD046 -->
 === "Linux/macOS"
 
     ```shell
@@ -338,7 +367,6 @@ The environment variables supported by the installation script are as follows (s
     ```powershell
 {{ InstallCmd 4 (.WithPlatform "windows") (.WithEnvs "DK_SINKER_GLOBAL_CUSTOMER_KEYS" "key1,key2" ) (.WithEnvs "DK_DATAWAY_ENABLE_SINKER" "on" ) }}
     ```
-<!-- markdownlint-enable -->
 
 ### Resource Limit {#env-cgroup}
 

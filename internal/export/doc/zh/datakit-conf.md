@@ -61,7 +61,7 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
     > - [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0) 已经默认开启该功能
     > - [:octicons-tag-24: Version-1.82.0](changelog.md#cl-1.82.0) 调整了默认值，同时增加了限流的 burst/ttl 设置
 
-    由于 DataKit 需要大量接收外部数据写入，为了避免给所在节点造成巨大开销，DataKit 默认给 API 设置了 100/s 的 QPS 限制，即限制每个客户端（IP + API 路由）每秒发起请求的请求数：
+    由于 DataKit 需要大量接收外部数据写入，为了避免给所在节点造成巨大开销，DataKit 默认给 API 设置了 100/s 的 QPS 限制，即限制每个客户端（IP + API 路由）每秒发起的请求数量：
 
     ```toml
     [http_api]
@@ -69,6 +69,8 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
       request_rate_limit_burst = 500   # 允许单个限流窗口中的突发请求数
       request_rate_limit_ttl   = "1m"  # 限流窗口时长
     ```
+
+    当请求数超过设定值后，客户端会收到 HTTP 429 报错（`Too Many Requests`），错误码为 `ReachMaxAPILimit`。
 
     ???+ warning "合理配置限流参数"
         
@@ -284,9 +286,6 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 
   # 允许 CPU 核心数
   cpu_cores = 2.0
-
-  cpu_max = 20.0 # 已弃用
-
   # 默认允许 4GB 内存(memory + swap)占用
   # 如果置为 0 或负数，则不启用内存限制
   mem_max_mb = 4096
@@ -311,8 +310,7 @@ $ systemctl status datakit
     - 非 root 用户改资源限制配置时，必须重装 service。
     - CPU 核心数限制会影响 DataKit 部分子模块的 worker 数配置（一般是 CPU 核心数的整数倍）。比如数据上传 worker 就是 CPU 核心数 * 2。而单个上传 worker 会占用默认 10MB 的内存用于数据发送，故 CPU 核心数如果开放较多，会影响 DataKit 整体内存的占用
     - [:octicons-tag-24: Version-1.5.8](changelog.md#cl-1.5.8) 开始支持 cgroup v2。如果不确定 cgroup 版本，可通过命令 `mount | grep cgroup` 来确认。
-    - [:octicons-tag-24: Version-1.68.0](changelog-2025.md#cl-1.68.0) 支持在 *daktait.conf* 中配置 CPU 核心数限制，且弃用原来的百分比配置方式。百分比配置方式会因为不同主机的 CPU 核心数不同而出现 CPU 配额不同，在采集压力相同的情况下，可能会导致一些异常行为。老版本 DataKit 升级上来的时候，在升级命令中指定 `DK_LIMIT_CPUCORES` 环境变量即可。升级命令如果不指定，仍然沿用之前的百分比配置方式。如果重新安装 DataKit，则直接采用 CPU 核心数限额方式。
-    - `cpu_max`: CPU 使用率是百分比制（最大值 100.0），以一个 8 核心的 CPU 为例，如果限额 `cpu_max` 为 20.0（即 20%），则 DataKit 最大的 CPU 消耗，在 top 命令上将显示为 160% 左右。
+    - [:octicons-tag-24: Version-1.83.0](changelog-2025.md#cl-1.83.0) 优化了 CPU 限制的配置，即使配置的是百分比（cpu-max），DataKit 自动转换成对应的核心数。比如，在一台 4 核心的机器上安装 DataKit，如果我们限制 cpu-max 为 30%，那么最终的配置中生效的是 1.2 核心。
 
 ???+ failure "cgroup 设置失败"
 

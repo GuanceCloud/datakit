@@ -68,7 +68,7 @@ DataKit opens an HTTP service to receive external data or provide basic data ser
     > - [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0) This feature is enabled by default
     > - [:octicons-tag-24: Version-1.82.0](changelog.md#cl-1.82.0) Adjusted default values and added `burst`/`ttl` settings for rate limiting
 
-    Since DataKit needs to receive a large volume of external data writes, a default QPS limit of 100 requests per second is set for APIs to avoid excessive resource consumption on the host node. This limits the number of requests initiated per second by each client (IP + API route):
+    Since DataKit needs to receive a large volume of external data writes, a default QPS limit of 100 requests per second is set for APIs to avoid excessive resource consumption on the host node. This limits the number of requests create per second by each client (IP + API route):
 
     ```toml
     [http_api]
@@ -76,6 +76,8 @@ DataKit opens an HTTP service to receive external data or provide basic data ser
       request_rate_limit_burst = 500   # Allowed number of burst requests in a single rate-limiting window
       request_rate_limit_ttl   = "1m"  # Duration of the rate-limiting window
     ```
+
+    When the number of requests exceeds the limit, the client will get an HTTP 429 error (`Too Many Requests`) with the error code `ReachMaxAPILimit`.
 
     ???+ warning "Configure Rate Limiting Parameters Properly"
 
@@ -280,8 +282,8 @@ Because the amount of data processed on the DataKit cannot be estimated, if the 
 [resource_limit]
   path = "/datakit" # Linux cgroup restricts directories, such as /sys/fs/cgroup/memory/datakit, /sys/fs/cgroup/cpu/datakit
 
-  # Maximum CPU utilization allowed (percentile)
-  cpu_max = 20.0
+  # limit CPU cores
+  cpu_cores = 2.0
 
   # Allows 4GB of memory (memory + swap) by default
   # If set to 0 or negative, memory limits are not enabled
@@ -306,6 +308,7 @@ $ systemctl status datakit
     - CPU usage controls is not supported in these windows systems: Windows 7, Windows Server 2008 R2, Windows Server 2008, Windows Vista, Windows Server 2003 and Windows XP.
     - When adjusting resource limit as a non-root user, it is essential to reinstall the service.
     - The CPU core count directly influences the configuration of worker threads in certain DataKit submodules. These worker threads, which handle specific tasks like data uploads, are typically set to a quantity that is a multiple of the total CPU cores. For instance, the data upload worker is commonly configured to be twice the number of CPU cores. Given that each individual upload worker consumes a default of 10MB of memory for data transmission, allocating a substantial number of CPU cores can lead to a significant increase in DataKit's overall memory footprint.
+    - [:octicons-tag-24: Version-1.83.0](changelog-2025.md#cl-1.83.0) The configuration for CPU limits has been optimized. Even if the configuration uses a percentage (cpu-max), DataKit will automatically convert it to the corresponding number of cores. For example, if DataKit is installed on a 4-core machine and we set cpu-max to 30%, the final configuration will explicitly show 1.2 cores.
 
 ???+ tip
 
