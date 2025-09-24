@@ -44,8 +44,8 @@ func (args *InstallerArgs) Upgrade(mc *config.Config, svc service.Service) (err 
 			return err
 		}
 
-		mc = args.upgradeMainConfig(mc)
-		if err := args.WriteDefInputs(mc); err != nil {
+		mc = upgradeMainConfInstance(mc)
+		if err := args.injectDefInputs(mc); err != nil {
 			return err
 		}
 	} else {
@@ -54,7 +54,8 @@ func (args *InstallerArgs) Upgrade(mc *config.Config, svc service.Service) (err 
 	}
 
 	// build datakit main config
-	if err := mc.TryUpgradeCfg(datakit.MainConfPath); err != nil {
+	if err := mc.TryUpgradeCfg(datakit.MainConfPath,
+		config.DKConfBackupName(datakit.MainConfPath)); err != nil {
 		l.Fatalf("failed to init datakit main config: %s", err.Error())
 	}
 
@@ -67,37 +68,48 @@ func (args *InstallerArgs) Upgrade(mc *config.Config, svc service.Service) (err 
 	return nil
 }
 
-func (args *InstallerArgs) upgradeMainConfig(c *config.Config) *config.Config {
+func upgradeDataway(c *config.Config) {
+	c.Dataway.DeprecatedURL = ""
+
+	if c.Dataway.ContentEncoding == "v1" {
+		l.Infof("switch default content-encoding from v1 to v2")
+		c.Dataway.ContentEncoding = "v2"
+	}
+
+	if c.Dataway.DeprecatedHTTPTimeout != "" {
+		du, err := time.ParseDuration(c.Dataway.DeprecatedHTTPTimeout)
+		if err == nil {
+			c.Dataway.HTTPTimeout = du
+		}
+
+		c.Dataway.DeprecatedHTTPTimeout = "" // always remove the config
+	}
+
+	if c.Dataway.MaxRawBodySize >= dataway.DeprecatedDefaultMaxRawBodySize {
+		l.Infof("to save memory, set max-raw-body-size from %d to %d",
+			c.Dataway.MaxRawBodySize, dataway.DefaultMaxRawBodySize)
+
+		c.Dataway.MaxRawBodySize = dataway.DefaultMaxRawBodySize
+	}
+}
+
+// upgradeMainConfInstance try to update default settings of datakit.conf
+//   - add new default config items
+//   - update old default values in datakit.conf
+//   - remove deprecated items
+func upgradeMainConfInstance(c *config.Config) *config.Config {
+	if c.InstallVerDeprecated != "" {
+		c.InstallVerDeprecated = "" // clear deprecated field
+	}
+
 	if c.PointPool != nil {
 		l.Infof("always disable point pool by default")
 		c.PointPool.Enable = false // default disable point-pool
 	}
 
-	// setup dataway
+	// try upgrade lagacy dataway settings.
 	if c.Dataway != nil {
-		c.Dataway.DeprecatedURL = ""
-		c.Dataway.HTTPProxy = args.Proxy
-
-		if c.Dataway.ContentEncoding == "v1" {
-			l.Infof("switch default content-encoding from v1 to v2")
-			c.Dataway.ContentEncoding = "v2"
-		}
-
-		if c.Dataway.DeprecatedHTTPTimeout != "" {
-			du, err := time.ParseDuration(c.Dataway.DeprecatedHTTPTimeout)
-			if err == nil {
-				c.Dataway.HTTPTimeout = du
-			}
-
-			c.Dataway.DeprecatedHTTPTimeout = "" // always remove the config
-		}
-
-		if c.Dataway.MaxRawBodySize >= dataway.DeprecatedDefaultMaxRawBodySize {
-			l.Infof("to save memory, set max-raw-body-size from %d to %d",
-				c.Dataway.MaxRawBodySize, dataway.DefaultMaxRawBodySize)
-
-			c.Dataway.MaxRawBodySize = dataway.DefaultMaxRawBodySize
-		}
+		upgradeDataway(c)
 	}
 
 	l.Infof("Set log to %s", c.Logging.Log)
@@ -143,8 +155,9 @@ func (args *InstallerArgs) upgradeMainConfig(c *config.Config) *config.Config {
 		c.Disable404PageDeprecated = false
 	}
 
-	if c.HTTPAPI.RequestRateLimit == 20.0 {
+	if c.HTTPAPI.RequestRateLimit == 20.0 { // set default to 100
 		c.HTTPAPI.RequestRateLimit = 100.0
+		l.Infof("set RequestRateLimit to %f", c.HTTPAPI.RequestRateLimit)
 	}
 
 	// upgrade IO settings
@@ -212,7 +225,6 @@ func (args *InstallerArgs) upgradeMainConfig(c *config.Config) *config.Config {
 		}
 	}
 
-	c.InstallVer = args.DataKitVersion
 	if javaHome := getJavaHome(); javaHome != "" {
 		if c.RemoteJob == nil {
 			c.RemoteJob = &io.RemoteJob{}
@@ -221,6 +233,8 @@ func (args *InstallerArgs) upgradeMainConfig(c *config.Config) *config.Config {
 			c.RemoteJob.JavaHome = javaHome
 		}
 	}
+
+	l.Infof("configure after upgrading:\n%s", c.String())
 
 	return c
 }

@@ -89,7 +89,7 @@ func TestLimitWrap(t *testing.T) {
 	t.Run(`with-burst`, func(t *T.T) {
 		var (
 			limit   = 10.0
-			ttl     = time.Second
+			ttl     = time.Minute
 			limiter = setupLimiter(limit, ttl).SetBurst(int(limit) * 3)
 		)
 
@@ -150,7 +150,7 @@ func TestLimitWrap(t *testing.T) {
 		expectLimited := float64(time.Since(start)) / float64(time.Second) * limit
 		ratio := float64(passed) / expectLimited
 
-		assert.Truef(t, ratio >= 1.1, "expected %d, passed %d", int(expectLimited), passed)
+		assert.Truef(t, ratio >= 1.1, "with burst, ratio should >= 110%, expected %d, passed %d", int(expectLimited), passed)
 
 		t.Logf("cost %s, expected: %d, passed: %d(ratio: %f), limited: %d, total: %d",
 			time.Since(start), int(expectLimited), passed, ratio, limited, total)

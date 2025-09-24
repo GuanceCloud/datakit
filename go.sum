@@ -177,8 +177,6 @@ github.com/GuanceCloud/service v1.2.4 h1:5sQSj0S8IRidG+DFOMyMcEQeF1v/jyUez/YOfAZ
 github.com/GuanceCloud/service v1.2.4/go.mod h1:CIMRFEJVL+0DS1a3Nx06NaMn4Dz63Ng6O7dl0qH0zVM=
 github.com/GuanceCloud/timeout v1.9.1 h1:8e70bQqsybH5FSgqahBPQ7HQ9g9U6E6DNJBDmqD9Huo=
 github.com/GuanceCloud/timeout v1.9.1/go.mod h1:euv8CBpLJ81TJK8u4MHaiVVSHmbWBmj//c8xsTAwNNw=
-github.com/GuanceCloud/toml v1.2.5 h1:jBWfqFSVortEY0C4RYqFPvhDKcGxIosKzcQqTPtZMfg=
-github.com/GuanceCloud/toml v1.2.5/go.mod h1:D7S1XowYqOvMQdtsp2+lg2rKmO6RVuyekXJL+MzkD5Y=
 github.com/GuanceCloud/tracing-protos v0.0.0-20230619071516-54c8cff1b6b3 h1:+b+MkQrj/eJcODklzCSObp19TBycmfuooqCBD+89qmU=
 github.com/GuanceCloud/tracing-protos v0.0.0-20230619071516-54c8cff1b6b3/go.mod h1:5nclDehqFMaV8YMZzt1FuXz9/JRVKq0LYhmV2Djc1GU=
 github.com/GuanceCloud/zipstream v0.1.0 h1:RToNErercYk7y/nmyvshjN0Zt12lFNg2BpLh3YXXSNY=

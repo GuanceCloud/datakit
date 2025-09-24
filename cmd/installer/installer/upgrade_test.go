@@ -92,7 +92,7 @@ func Test_setupDefaultInputs(t *T.T) {
 	})
 }
 
-func TestUpgradeMainConfig(t *T.T) {
+func Test_upgradeMainConfInstance(t *T.T) {
 	cases := []struct {
 		name string
 		old,
@@ -370,9 +370,7 @@ func TestUpgradeMainConfig(t *T.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *T.T) {
-			opt := DefaultInstallArgs()
-
-			got := opt.upgradeMainConfig(tc.old)
+			got := upgradeMainConfInstance(tc.old)
 			assert.Equal(t, tc.expect.String(), got.String())
 
 			c := config.DefaultConfig()
