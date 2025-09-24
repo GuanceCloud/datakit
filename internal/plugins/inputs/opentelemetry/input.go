@@ -213,7 +213,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&JVMMeasurement{},
 		&itrace.TraceMeasurement{Name: inputName},
-		&itrace.TracingMetricMeasurement{},
+		&itrace.TracingMetricMeasurement{Source: "opentelemetry", Name: "OpenTelemetry"},
 	}
 }
 
