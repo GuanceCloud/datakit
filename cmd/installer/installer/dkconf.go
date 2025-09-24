@@ -278,6 +278,7 @@ func (args *InstallerArgs) getDataway() (*dataway.Dataway, error) {
 }
 
 // LoadInstallerArgs apply args settings to mc.
+// nolint:funlen
 func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config, error) {
 	var err error
 

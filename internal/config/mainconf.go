@@ -142,7 +142,14 @@ func DefaultConfig() *Config {
 		EnableDebugFields: false,
 		EnablePProf:       true,
 		PProfListen:       "localhost:6060",
-		DatakitUser:       "root",
+		DatakitUser: func() string {
+			switch runtime.GOOS {
+			case datakit.OSWindows:
+				return "administrator"
+			default:
+				return "root"
+			}
+		}(),
 
 		Election: &election.ElectionCfg{
 			Enable:             false,
