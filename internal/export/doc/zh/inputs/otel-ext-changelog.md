@@ -26,6 +26,8 @@ skip: 'not-searchable-on-index-page'
 </div>
 <!-- markdownlint-enable -->
 
+> V1 版本已经不再更新，V2 版本已经发布稳定版本。
+
 ## 更新历史 {#changelog}
 
 <!--
@@ -41,6 +43,14 @@ skip: 'not-searchable-on-index-page'
 ### 兼容调整 {#cl-1.2.3-brk}
 
 --->
+
+## 2.20.0-ext (2025/9/24) {#cl-2.20.0-ext}
+
+### 新加功能 {#cl-2.20.0-ext-new}
+
+- 合并 open-telemetry V2 版本最新分支
+- SQL 脱敏功能与主分支合并
+
 
 ## 1.28.0-ext (2023/7/7) {#cl-1.28.0-ext}
 

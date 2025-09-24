@@ -101,11 +101,21 @@ func (m TracingMetricMeasurement) Info() *inputs.MeasurementInfo {
 				Type: inputs.Gauge, DataType: inputs.Int,
 				Unit: inputs.NCount, Desc: "Represent the count of hits for a given span break down by HTTP status code.",
 			},
-			"latency": &inputs.FieldInfo{
+			"latency_bucket": &inputs.FieldInfo{
 				Type: inputs.Histogram, DataType: inputs.Int,
-				Unit: inputs.DurationUS,
+				Unit: inputs.NCount,
 				Desc: "Represent the latency distribution for all services, resources, and versions across different environments and additional primary tags." +
-					" Recommended for all latency measurement use cases.",
+					" Recommended for all latency measurement use cases. Use the 'le' tag for filtering",
+			},
+			"latency_sum": &inputs.FieldInfo{
+				Type: inputs.Gauge, DataType: inputs.Int,
+				Unit: inputs.DurationUS,
+				Desc: "The total latency of all web spans, corresponding to the 'latency_count'",
+			},
+			"latency_count": &inputs.FieldInfo{
+				Type: inputs.NCount, DataType: inputs.Int,
+				Unit: inputs.NCount,
+				Desc: "The number of spans is equal to the number of web type spans.",
 			},
 			"errors": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int,

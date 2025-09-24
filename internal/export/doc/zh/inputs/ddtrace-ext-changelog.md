@@ -39,6 +39,12 @@ skip: 'not-searchable-on-index-page'
 
 --->
 
+## v1.53.1-ext (2025/9/24) {#cl-1.53.1-ext}
+
+### 修复 {#cl-1.53.1-ext-fix}
+
+- 合并主分支： 1.53.0
+
 
 ## v1.47.6-ext (2025/6/4) {#cl-1.47.6-ext}
 

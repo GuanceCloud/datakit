@@ -68,14 +68,24 @@ ps.setString(2,pw);        //  替换第二个?
 
 从根本上解决脱敏问题。需要加探针加在 `set` 上。先将参数缓存之后才是 `exectue()` , 最终将参数放到 Attributes 中。
 
-### <<<custom_key.brand_name>>>扩展 {#guacne-branch}
+### 开启功能 {#obfuscation}
 
 想要获取脱敏前的数据以及后续通过 `set` 函数添加的值，就需要进行新的埋点， 并添加环境变量：
 
 ```shell
 -Dotel.jdbc.sql.obfuscation=true
 # or k8s 
-OTEL_JDBC_SQL_OBFUSCATION=true
+export OTEL_JDBC_SQL_OBFUSCATION=true
+```
+
+在 V2 版本中，OTEL 官方也做了同样的功能，为了不做同样的事情我们决定删除此功能，但依旧保留开关。
+
+所以，使用版本：`v2.20.0-ext` 及以上中的开关控制也可以实现相同的效果：
+
+```shell
+-Dotel.instrumentation.jdbc.experimental.capture-query-parameters=true
+# or k8s
+export OTEL_INSTRUMENTATION_JDBC_EXPERIMENTAL_CAPTURE_QUERY_PARAMETERS=true
 ```
 
 最终，在<<<custom_key.brand_name>>>上的链路详情里是这样的：
