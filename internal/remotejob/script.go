@@ -139,9 +139,9 @@ def upload_to_obs(file_name, path):
         obsClient = ObsClient(access_key_id=access_key, secret_access_key=secret_key, server=server)
 
         metadata = {'remote': 'job'}
-        # 文件上传
+        # upload file
         resp = obsClient.putFile(bucket_name, object_key, file_name, metadata)
-        # 返回码为2xx时，接口调用成功，否则接口调用失败
+
         if resp.status < 300:
             print('Put File Succeeded')
             print('requestId:', resp.requestId)
@@ -164,6 +164,7 @@ def main():
     parser.add_argument('-pid', '--pid', type=int, required=True, help='Process ID')
     parser.add_argument('-osspath', '--osspath', type=str, required=False, help='oss path')
     parser.add_argument("-javahome", '--javahome', type=str, required=False, help='java name')
+    parser.add_argument("-service", '--service', type=str, required=False, help='service name')
 
     args = parser.parse_args()
 
@@ -182,7 +183,7 @@ def main():
         print("set to oss remote")
 
     timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d-%H-%M")
-    filename = f"/tmp/heap-pid-{args.pid}-{timestamp}"
+    filename = f"/tmp/{args.service}-pid-{args.pid}-{timestamp}"
 
     jmap = args.javahome + "/bin/" + "jmap"
     execute_jmap_command(args.pid, filename, jmap)
@@ -212,6 +213,8 @@ import hmac
 import hashlib
 import base64
 import requests
+import time
+
 from kubernetes import client, config, stream
 
 
@@ -296,10 +299,23 @@ def exec_command_in_pod(pod_name, pid, filename, namespace):
     command = ['jmap', f"-dump:live,format=b,file={filename}", f"{pid}"]
 
     try:
+        pod = v1.read_namespaced_pod(name=pod_name, namespace=namespace)
+        # get containers in pod
+        containers = pod.spec.containers
+
+        if containers:
+            # first container as default
+            container_name = containers[0].name
+        else:
+            print("no container in pod")
+            return
+        print(f"container_name is: {container_name}")
+
         resp = stream.stream(
             v1.connect_get_namespaced_pod_exec,
             name=pod_name,
             namespace=namespace,
+            container=container_name,
             command=command,
             stderr=True,
             stdin=False,
@@ -307,11 +323,12 @@ def exec_command_in_pod(pod_name, pid, filename, namespace):
             tty=False,
             _preload_content=False
         )
-
+        time.sleep(5)
         print(f"stderr: {resp.readline_stderr(timeout=20)}")
         print(f"stdout: {resp.readline_stdout(timeout=20)}")
         print(f"peek out {resp.peek_stdout()}")
         print(f"read_all {resp.read_all()}")
+        resp.close()
     except Exception as e:
         print(f"An error occurred: {e}")
 
@@ -321,7 +338,21 @@ def copy_file_from_pod_to_container(pod_name, source_file_path, namespace):
     api_instance = client.CoreV1Api()
 
     exec_command = ['cat', source_file_path]
-    resp = stream.stream(api_instance.connect_get_namespaced_pod_exec, pod_name, namespace,
+
+    pod = api_instance.read_namespaced_pod(name=pod_name, namespace=namespace)
+    # get containers in pod
+    containers = pod.spec.containers
+
+    if containers:
+        container_name = containers[0].name
+    else:
+        print("no container in pod")
+        return
+    print(f"container_name is {container_name}")
+    resp = stream.stream(api_instance.connect_get_namespaced_pod_exec,
+                         name=pod_name,
+                         namespace=namespace,
+                         container=container_name,
                          command=exec_command,
                          stderr=True, stdin=False,
                          stdout=True, tty=False,
@@ -353,15 +384,18 @@ def upload_to_aws(file_name, path):
     access_key = os.getenv('AWS_ACCESS_KEY_ID')
     secret_key = os.getenv('AWS_SECRET_ACCESS_KEY')
     region = os.getenv('AWS_DEFAULT_REGION')
+
     fi = os.path.basename(file_name)
     object_key = f"{path}/{fi}"
     print(f"file:{file_name} upload to region/bucket {region}/{bucket_name} object_key is {object_key}")
-    # s3 bucket client
-    s3 = boto3.client('s3', aws_access_key_id=access_key,
+
+    try:
+        import boto3
+        # s3 bucket client
+        s3 = boto3.client('s3', aws_access_key_id=access_key,
                       aws_secret_access_key=secret_key,
                       region_name=region)
-    try:
-        # 执行上传操作
+        # upload file
         s3.upload_file(file_name, bucket_name, object_key)
         print(f"file: {file_name} upload to: {bucket_name} , object_key: {object_key}, ok !")
     except Exception as e:
@@ -377,13 +411,13 @@ def upload_to_obs(file_name, path):
     object_key = f"{path}/{fi}"
     print(f"file:{file_name} upload to server/bucket {server}/{bucket_name} object_key is {object_key}")
 
-    obsClient = ObsClient(access_key_id=access_key, secret_access_key=secret_key, server=server)
     try:
+        from obs import ObsClient
+        obsClient = ObsClient(access_key_id=access_key, secret_access_key=secret_key, server=server)
         bucketName = bucket_name
         metadata = {'remote': 'job'}
-        # 文件上传
+        # upload file
         resp = obsClient.putFile(bucketName, object_key, file_name, metadata)
-        # 返回码为2xx时，接口调用成功，否则接口调用失败
         if resp.status < 300:
             print('Put File Succeeded')
             print('requestId:', resp.requestId)
@@ -405,6 +439,7 @@ def main():
     parser.add_argument('-pid', type=int, required=True, help='process id')
     parser.add_argument('-osspath', type=str, required=False, help='oss oss path')
     parser.add_argument('-pod_name', type=str, required=False, help='pod name')
+    parser.add_argument("-service", '--service', type=str, required=False, help='service name')
 
     args = parser.parse_args()
 
@@ -419,7 +454,7 @@ def main():
         print("set to oss remote")
 
     timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d-%H-%M")
-    filename = f"/tmp/heap-pid-{args.pid}-{timestamp}"
+    filename = f"/tmp/{args.pod_name}-pid-{args.pid}-{timestamp}"
 
     # first get namespace
     namespace = get_pod_namespace(args.pod_name)
@@ -432,6 +467,9 @@ def main():
 
     # 3 kubectl cp
     copy_file_from_pod_to_container(args.pod_name, filename, namespace)
+
+    file_size = os.path.getsize(filename)
+    print("file size is :", file_size, "byte")
 
     # 4 upload to oss
     if remote == "oss":

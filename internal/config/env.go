@@ -516,7 +516,11 @@ func (c *Config) loadRemoteJobEnvs() {
 	}
 	c.RemoteJob.Enable = true
 	if v := datakit.GetEnv("ENV_REMOTE_JOB_ENVS"); v != "" {
-		c.RemoteJob.ENVs = strings.Split(v, ",")
+		strSlice := strings.Split(v, ",")
+		for i, str := range strSlice {
+			strSlice[i] = strings.TrimSpace(str)
+		}
+		c.RemoteJob.ENVs = strSlice
 	}
 
 	if v := datakit.GetEnv("ENV_REMOTE_JOB_JAVA_HOME"); v != "" {

@@ -641,6 +641,8 @@ DataKit 接收中心下发任务并执行。目前支持 `JVM dump` 功能。
 
 该功能是执行 `jmap` 命令，生成一个 jump 文件，并上传到 `OSS` `AWS S3 Bucket` 或者 `HuaWei Cloud OBS` 中。
 
+> 注意 `jmap` 并不是所有的 JVM 环境都自带，如果没有请自行安装。
+
 安装 DK 之后会在安装目录下 `template/service-task` 生成两个文件：`jvm_dump_host_script.py` 和 `jvm_dump_k8s_script.py` 前者是宿主机模式下的脚本，后者是 k8s 环境下的。
 
 DK 启动之后会定时执行脚本，如果修改脚本 那么 DK 重启之后会覆盖掉。
@@ -774,7 +776,7 @@ K8S 环境下需要调用 Kubernetes API 所以需要 RBAC 基于角色的访问
 3. `interval ENV_REMOTE_JOB_INTERVAL` DataKit 主动调用接口获取最新任务的时间间隔。
 4. `java_home ENV_REMOTE_JOB_JAVA_HOME` 宿主机环境自动从环境变量（$JAVA_HOME）中获取，可以不用配置。
 
-> 注意，使用的 Agent:`dd-java-agent.jar` 版本不应低于 `v1.4.0-ext`
+> 注意，使用的 Agent:`dd-java-agent.jar` 版本不应低于 `v1.4.0-ext` ，这是因为低版本的链路数据中没有 `process_id` 字段。
 
 ### Point 缓存 {#point-pool}
 
