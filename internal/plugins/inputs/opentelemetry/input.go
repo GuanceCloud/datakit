@@ -465,7 +465,7 @@ func defaultInput() *Input {
 		CleanMessage:     true,
 		LogMaxLen:        500,
 		// TracingMetricEnable: true,
-		TracingMetricTagBlacklist: []string{"resource", "operation"},
+		TracingMetricTagBlacklist: []string{"resource"},
 	}
 }
 

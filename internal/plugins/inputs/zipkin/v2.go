@@ -38,7 +38,6 @@ func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 			Add(itrace.FieldSpanid, span.ID.String()).
 			AddTag(itrace.TagService, service).
 			Add(itrace.FieldResource, span.Name).
-			AddTag(itrace.TagOperation, span.Name).
 			AddTag(itrace.TagSpanType,
 				itrace.FindSpanTypeInMultiServersStrSpanID(
 					span.ID.String(),

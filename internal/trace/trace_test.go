@@ -170,7 +170,6 @@ func randDatakitSpan(t *testing.T, opts ...randSpanOption) *DkSpan {
 		Add(FieldStart, testutils.RandTime().Unix()).
 		Add(FieldDuration, testutils.RandInt64(5)).
 		AddTag(TagService, testutils.RandString(30)).
-		AddTag(TagOperation, testutils.RandString(30)).
 		AddTag(TagSource, testutils.RandString(30)).
 		AddTag(TagSpanType, testutils.RandString(10)).
 		AddTag(TagSpanStatus, testutils.RandString(10)).
