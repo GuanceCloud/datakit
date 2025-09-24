@@ -125,7 +125,7 @@ DataKit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
         },
         "logfwd": {
             "images": {
-                "logfwd_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/logfwd:1.28.1"
+                "logfwd_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/logfwd:1.82.0"
             },
             "resources": {
                 "requests": {
@@ -799,3 +799,5 @@ DataKit 日志采集发现到 Pod 后，就会根据 `datakit/logs` 内容进行
 - 怎样指定某个 Pod 不注入？给该 Pod 添加 Annotation `"admission.datakit/enabled": "false"`，将不再为它执行任何操作，此优先级最高。
 
 - DataKit-Operator 使用 Kubernetes Admission Controller 功能进行资源注入，详细机制请查看[官方文档](https://kubernetes.io/zh-cn/docs/reference/access-authn-authz/admission-controllers/){:target="_blank"}
+
+- 在 AWS EKS 环境部署，可能导致 DataKit-Operator 不生效，需要在安全组开启 `9543` 端口。

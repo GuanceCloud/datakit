@@ -16,6 +16,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
+const catalog = "samples"
+
 func GetGitRepoDir(cloneDirName string) (string, error) {
 	if cloneDirName == "" {
 		// you shouldn't be here, check before you call this function.
@@ -38,7 +40,6 @@ var confsampleFingerprint = append([]byte(fmt.Sprintf(
 
 func initDatakitConfSample(name string, c inputs.Creator) error {
 	input := c()
-	catalog := input.Catalog()
 
 	cfgpath := filepath.Join(datakit.ConfdDir, catalog, name+".conf.sample")
 	l.Debugf("create datakit conf path %s", filepath.Join(datakit.ConfdDir, catalog))
@@ -92,7 +93,7 @@ func (c *Config) initDefaultEnabledPlugins(confDir string, ipts map[string]input
 			ipt = c()
 			sample = ipt.SampleConfig()
 
-			confPath = filepath.Join(confDir, ipt.Catalog(), name+".conf")
+			confPath = filepath.Join(confDir, catalog, name+".conf")
 		} else {
 			l.Warnf("input %s not found, ignored", name)
 			continue
@@ -106,7 +107,7 @@ func (c *Config) initDefaultEnabledPlugins(confDir string, ipts map[string]input
 		// check exist
 		if fi, err := os.Stat(confPath); err == nil {
 			if fi.IsDir() { // for configmap in k8s, the conf(such as zipkin.conf) is a dir.
-				newfpath := filepath.Join(confDir, ipt.Catalog(), name+"-0xdeadbeaf"+".conf") // add suffix to filename
+				newfpath := filepath.Join(confDir, catalog, name+"-0xdeadbeaf"+".conf") // add suffix to filename
 				l.Warnf("%q is dir, rename conf file to %q", confPath, newfpath)
 				confPath = newfpath
 			} else {

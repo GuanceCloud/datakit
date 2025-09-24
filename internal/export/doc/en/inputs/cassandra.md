@@ -70,7 +70,7 @@ Restart DataKit to make configuration take effect.
 <!-- markdownlint-disable MD046 -->
 === "Host deployment"
 
-    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
+    Go to the `conf.d/samples` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
     
     ```toml
     {{ CodeBlock .InputSample 4 }}

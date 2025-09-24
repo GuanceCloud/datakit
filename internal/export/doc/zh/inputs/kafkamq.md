@@ -26,7 +26,7 @@ DataKit 支持从 Kafka 中订阅消息采集链路、指标和日志信息。�
 <!-- markdownlint-disable MD046 -->
 === "主机安装"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    进入 DataKit 安装目录下的 `conf.d/samples` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
     
     ```toml
     {{ CodeBlock .InputSample 4 }}

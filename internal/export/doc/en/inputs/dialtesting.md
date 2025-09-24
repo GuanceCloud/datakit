@@ -24,9 +24,9 @@ The collector collects the data of network dialing test results, and all the dat
 <!-- markdownlint-disable MD046 -->
 === "host installation"
 
-    To deploy private dial-test nodes, you need to [create private dial-test nodes on <<<custom_key.brand_name>>> page](../usability-monitoring/self-node.md). When you're done, fill in the page with the relevant information in `conf.d/{{.Catalog}}/{{.InputName}}.conf`:
+    To deploy private dial-test nodes, you need to [create private dial-test nodes on <<<custom_key.brand_name>>> page](../usability-monitoring/self-node.md). When you're done, fill in the page with the relevant information in `conf.d/samples/{{.InputName}}.conf`:
     
-    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
+    Go to the `conf.d/samples` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
     
     ```toml
     {{ CodeBlock .InputSample 4 }}

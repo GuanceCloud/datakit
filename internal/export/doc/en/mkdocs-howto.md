@@ -163,7 +163,7 @@ For example, the following document is to display the Tab style document. Howeve
 <!-- markdownlint-disable MD046 -->
 === "Host Deployment"
 
-    Enter the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. The example is as follows:
+    Enter the `conf.d/samples` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. The example is as follows:
 
     ...
 === "Kubernetes"

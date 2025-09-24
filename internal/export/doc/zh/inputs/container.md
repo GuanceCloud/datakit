@@ -55,7 +55,7 @@ monitor:
 
     如果是纯 Docker 或 Containerd 环境，那么 DataKit 只能安装在宿主机上。
     
-    进入 DataKit 安装目录下的 *conf.d/{{.Catalog}}* 目录，复制 *{{.InputName}}.conf.sample* 并命名为 *{{.InputName}}.conf*。示例如下：
+    进入 DataKit 安装目录下的 *conf.d/samples* 目录，复制 *{{.InputName}}.conf.sample* 并命名为 *{{.InputName}}.conf*。示例如下：
     
     ``` toml
     {{ CodeBlock .InputSample 4 }}

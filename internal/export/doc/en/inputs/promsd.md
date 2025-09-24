@@ -24,7 +24,7 @@ The Promsd collector dynamically discovers monitoring targets through various se
 <!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
-    Navigate to the *conf.d/{{.Catalog}}* directory in your DataKit installation path, copy *{{.InputName}}.conf.sample* and rename it to *{{.InputName}}.conf*. Example:
+    Navigate to the *conf.d/samples* directory in your DataKit installation path, copy *{{.InputName}}.conf.sample* and rename it to *{{.InputName}}.conf*. Example:
 
     ```toml
     {{ CodeBlock .InputSample 4 }}

@@ -80,7 +80,7 @@ Temp             | 0Fh | ok  |  3.2 | 45 degrees C
 
 === "主机部署"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    进入 DataKit 安装目录下的 `conf.d/samples` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
     ```toml
     {{ CodeBlock .InputSample 4 }}
@@ -120,7 +120,7 @@ IPMI 采集器支持选举功能，当多台机器运行 DataKit 时，通过选
   # 允许在数据上追加选举空间的 tag
   enable_namespace_tag = false
 ```
-`conf.d/{{.Catalog}}/{{.InputName}}.conf` 文件打开选举功能：
+`conf.d/samples/{{.InputName}}.conf` 文件打开选举功能：
 ```
   ## Set true to enable election
   election = true

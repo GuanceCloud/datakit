@@ -25,7 +25,7 @@ Pushgateway 采集器会开启对应的 API 接口，用于接收 Prometheus 指
 
 === "主机部署"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    进入 DataKit 安装目录下的 `conf.d/samples` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
     ```toml
     {{ CodeBlock .InputSample 4 }}

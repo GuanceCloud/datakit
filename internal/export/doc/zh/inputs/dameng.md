@@ -25,7 +25,7 @@ monitor   :
 <!-- markdownlint-disable MD046 -->
 === "主机部署"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    进入 DataKit 安装目录下的 `conf.d/samples` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
     ```toml
     {{ CodeBlock .InputSample 4 }}
@@ -58,7 +58,7 @@ monitor   :
 - 在达梦数据库运行过程中，会将一些关键信息记录到安装目录下一级 log 目录下的名称为 `dm_<instance-name>_YYYYMM.log`
   的日志文件中。比如：`dm_DMSERVER_202507.log`
 
-- 达梦数据库采集器默认是未开启日志采集功能，可在 *conf.d/{{.Catalog}}/{{.InputName}}.conf* 中 将 `files` 打开，并写入达梦日志文件的绝对路径。比如：
+- 达梦数据库采集器默认是未开启日志采集功能，可在 *conf.d/samples/{{.InputName}}.conf* 中 将 `files` 打开，并写入达梦日志文件的绝对路径。比如：
 
 ```toml
 [[inputs.dameng]]

@@ -206,6 +206,13 @@ NAME1="value1" NAME2="value2"
 
             # 禁止用户名 datakit 用于登录（用于 CentOS/RedHat 系 Linux）
             usermod -s /sbin/nologin datakit
+
+            # 设置 Docker 套接字权限（如使用）
+            chgrp datakit /var/run/docker.sock
+            chmod g+r /var/run/docker.sock
+            
+            # 设置 Containerd 套接字权限（如使用）
+            chgrp datakit /var/run/containerd/containerd.sock
             ```
 
         === "Ubuntu/Debian"
@@ -224,6 +231,14 @@ NAME1="value1" NAME2="value2"
 
             # 禁止用户名 datakit 用于登录（用于 Ubuntu/Debian 系 Linux）
             usermod -s /usr/sbin/nologin datakit
+
+            # 设置 Docker 套接字权限（如使用）
+            chgrp datakit /var/run/docker.sock
+            chmod g+r /var/run/docker.sock
+            
+            # 设置 Containerd 套接字权限（如使用）
+            chgrp datakit /var/run/containerd/containerd.sock
+            chmod g+r /var/run/containerd/containerd.sock
             ```
 
         === "其它 Linux"
@@ -242,6 +257,14 @@ NAME1="value1" NAME2="value2"
             
             # 禁止用户名 datakit 用于登录（用于其它 Linux）
             usermod -s /bin/false datakit
+
+            # 设置 Docker 套接字权限（如使用）
+            chgrp datakit /var/run/docker.sock
+            chmod g+r /var/run/docker.sock
+            
+            # 设置 Containerd 套接字权限（如使用）
+            chgrp datakit /var/run/containerd/containerd.sock
+            chmod g+r /var/run/containerd/containerd.sock
             ```
 
         ```sh

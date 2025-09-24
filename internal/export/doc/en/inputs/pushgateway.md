@@ -26,7 +26,7 @@ The Pushgateway collector will open the corresponding API interface to receive P
 
 === "Host Deployment"
 
-    Navigate to the `conf.d/{{.Catalog}}` directory in the DataKit installation directory, copy `{{.InputName}}.conf.sample` and rename it to `{{.InputName}}.conf`. The example is as follows:
+    Navigate to the `conf.d/samples` directory in the DataKit installation directory, copy `{{.InputName}}.conf.sample` and rename it to `{{.InputName}}.conf`. The example is as follows:
 
     ```toml
     {{ CodeBlock .InputSample 4 }}

@@ -234,6 +234,7 @@ DataKit will add additional tags to locate this resource in the Kubernetes clust
 
 - For `Service`, it will add three tags: `namespace`, `service_name`, and `pod_name`.
 - For `Pod`, it will add two tags: `namespace` and `pod_name`.
+- At the same time, two tags, `instance` and `host`, are added by default.
 
 ## Extended Reading {#more-readings}
 

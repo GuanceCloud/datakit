@@ -201,6 +201,14 @@ The environment variables supported by the installation script are as follows (s
             adduser --system --no-create-home datakit -g datakit
 
             usermod -s /sbin/nologin datakit
+
+            # Set Docker socket permissions (if used)
+            chgrp datakit-reader /var/run/docker.sock
+            chmod g+r /var/run/docker.sock
+            
+            # Set Containerd socket permissions
+            chgrp datakit-reader /var/run/containerd/containerd.sock
+            chmod g+r /var/run/containerd/containerd.sock
             ```
 
         === "Ubuntu/Debian"
@@ -213,6 +221,14 @@ The environment variables supported by the installation script are as follows (s
             usermod -a -G datakit datakit
 
             usermod -s /usr/sbin/nologin datakit
+
+            # Set Docker socket permissions (if used)
+            chgrp datakit-reader /var/run/docker.sock
+            chmod g+r /var/run/docker.sock
+            
+            # Set Containerd socket permissions
+            chgrp datakit-reader /var/run/containerd/containerd.sock
+            chmod g+r /var/run/containerd/containerd.sock
             ```
 
         === "其它 Linux"
@@ -225,6 +241,14 @@ The environment variables supported by the installation script are as follows (s
             usermod -a -G datakit datakit
             
             usermod -s /bin/false datakit
+
+            # Set Docker socket permissions (if used)
+            chgrp datakit-reader /var/run/docker.sock
+            chmod g+r /var/run/docker.sock
+            
+            # Set Containerd socket permissions
+            chgrp datakit-reader /var/run/containerd/containerd.sock
+            chmod g+r /var/run/containerd/containerd.sock
             ```
 
         ```sh

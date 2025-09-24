@@ -27,7 +27,7 @@ Windows Event Log Collection is used to collect applications, security, systems 
 
 ### Collector Configuration {#input-config}
 
-Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `windows_event.conf`. Examples are as follows:
+Go to the `conf.d/samples` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `windows_event.conf`. Examples are as follows:
 
 ```toml
 {{.InputSample}}
