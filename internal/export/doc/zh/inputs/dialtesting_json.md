@@ -74,6 +74,7 @@ monitor   :
       "url": "http://baidu.com",
       "post_url": "https://<your-dataway-host>?token=<your-token>",
       "status": "OK",
+      "schedule_type": "frequency",
       "frequency": "10s",
       "success_when_logic": "and",
       "success_when": [
@@ -143,6 +144,8 @@ monitor   :
 | `name`               | string | Y        | 拨测服务名称                                                                         |
 | `status`             | string | Y        | 拨测服务状态，如 `OK/stop`                                                           |
 | `frequency`          | string | Y        | 拨测频率                                                                             |
+| `schedule_type`      | string | Y        | 拨测任务执行类型，如 `frequency` 或 `crontab`，默认为 `frequency` |
+| `crontab`            | string | N        | `crontab` 表达式，如 `*/10 * * * *`，仅当 `schedule_type` 为 `crontab` 时生效 |
 | `success_when_logic` | string | N        | `success_when` 条件之间的逻辑关系，如 `and/or`，默认为 `and`                         |
 | `success_when`       | object | Y        | 详见下文                                                                             |
 | `advance_options`    | object | N        | 详见下文                                                                             |
