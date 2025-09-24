@@ -2,6 +2,8 @@
 # 主机安装
 ---
 
+<!-- markdownlint-disable MD046 -->
+
 本文介绍 DataKit 的基本安装。
 
 ## 注册/登陆<<<custom_key.brand_name>>> {#regist-login}
@@ -14,7 +16,6 @@
 
 > 注意，以下 Linux/Mac/Windows 安装程序，能自动识别硬件平台（arm/x86, 32bit/64bit），无需做硬件平台选择。
 
-<!-- markdownlint-disable MD046 -->
 === "Linux/macOS"
 
     安装命令支持 `bash` 和 `ash`([:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0)) :
@@ -40,13 +41,10 @@
     ```powershell
 {{ InstallCmd 4 (.WithPlatform "windows") }}
     ```
-<!-- markdownlint-enable -->
-
 ### 安装精简版的 DataKit {#lite-install}
 
 可以通过在安装命令中添加 `DK_LITE` 环境变量来安装精简版的 DataKit ([:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0)) :
 
-<!-- markdownlint-disable MD046 -->
 === "Linux/macOS"
 
     ```shell
@@ -58,8 +56,6 @@
     ```powershell
 {{ InstallCmd 4 (.WithPlatform "windows") (.WithEnvs "DK_LITE" "1" ) }}
     ```
-
-<!-- markdownlint-enable -->
 
 精简版 DataKit 只包含以下采集器：
 
@@ -84,7 +80,6 @@
 
 可以通过在安装命令中添加 `DK_ELINKER` 环境变量来安装用于 eBPF Span 的连接和 eBPF Trace 生成的 DataKit ELinker 版本（[:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)）:
 
-<!-- markdownlint-disable MD046 -->
 === "Linux/macOS"
 
     ```shell
@@ -96,7 +91,7 @@
     ```powershell
 {{ InstallCmd 4 (.WithPlatform "windows") (.WithEnvs "DK_ELINKER" "1" ) }}
     ```
-<!-- markdownlint-enable -->
+
 DataKit ELinker 只包含以下采集器：
 
 | 采集器名称                                                       | 说明                                                        |
@@ -129,7 +124,6 @@ Windows 下同理：
 
 如果需要在安装阶段定义一些 DataKit 配置，可在安装命令中增加环境变量，在 `DK_DATAWAY` 前面追加即可。如追加 `DK_NAMESPACE` 设置：
 
-<!-- markdownlint-disable MD046 -->
 === "Linux/macOS"
 
     ```shell
@@ -141,7 +135,6 @@ Windows 下同理：
     ```powershell
 {{ InstallCmd 4 (.WithPlatform "windows") (.WithEnvs "DK_NAMESPACE" "[NAMESPACE]" ) }}
     ```
-<!-- markdownlint-enable -->
 
 俩种环境变量的设置格式为：
 
@@ -155,11 +148,9 @@ NAME1="value1" NAME2="value2"
 
 安装脚本支持的环境变量如下（全平台支持）。
 
-<!-- markdownlint-disable MD046 -->
 ???+ note
 
     [全离线安装](datakit-offline-install.md#offline)不支持这些环境变量设置。但可以通过[代理](datakit-offline-install.md#with-datakit)以及[设置本地安装地址](datakit-offline-install.md#with-nginx)方式来设置这些环境变量。
-<!-- markdownlint-enable -->
 
 ### 最常用环境变量 {#common-envs}
 
@@ -172,7 +163,6 @@ NAME1="value1" NAME2="value2"
 - `DK_DEF_INPUTS`：[默认开启的采集器](datakit-input-conf.md#default-enabled-inputs)配置。如果要禁用某些采集器，需手动将其屏蔽，比如，要禁用 `cpu` 和 `mem` 采集器，需这样指定：`-cpu,-mem`，即除了这两个采集器之外，其它默认采集器均开启。
 - `DK_LITE`：安装精简版 DataKit 时，可设置该变量为 `1`。([:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0))
 
-<!-- markdownlint-disable MD046 -->
 ???+ tip "禁用所有默认采集器 [:octicons-tag-24: Version-1.5.5](changelog.md#cl-1.5.5)"
 
     如果要禁用所有默认开启的采集器，可以将 `DK_DEF_INPUTS` 设置为 `-`，如
@@ -185,112 +175,126 @@ NAME1="value1" NAME2="value2"
 
     另外，如果之前有安装过 DataKit，必须将之前的默认采集器配置都删除掉，因为 DataKit 在安装的过程中只能添加采集器配置，但不能删除采集器配置。
 
+### 非管理员用户安装 {#non-admin-install}
+
+DataKit 安装需要比较高的用户权限，所以默认是 `root` 用户安装。必要的时候，我们也可以用其它的高权限用户安装。
+
+先创建好对应的非 root 用户以及用户组，比如 `datakit`。 以下命令仅供参考：
+
+=== "CentOS/RedHat"
+
+    ```sh
+    # 创建系统用户组 datakit
+    groupadd --system datakit
+
+    # 创建系统用户 datakit，并将用户 datakit 添加进组 datakit 中（这里用户名和组名都是 datakit）
+    adduser --system --no-create-home datakit -g datakit
+
+    # 禁止用户名 datakit 用于登录（用于 CentOS/RedHat 系 Linux）
+    usermod -s /sbin/nologin datakit
+
+    # 设置 Docker 套接字权限（如使用）
+    chgrp datakit /var/run/docker.sock
+    chmod g+r /var/run/docker.sock
+    
+    # 设置 Containerd 套接字权限（如使用）
+    chgrp datakit /var/run/containerd/containerd.sock
+    ```
+
+=== "Ubuntu/Debian"
+
+    ```sh
+    # 在 Ubuntu 上，同时创建用户并添加进用户组的命令可能会报错，这个时候需要分成两步
+
+    # 创建系统用户组 datakit
+    groupadd --system datakit
+
+    # 创建系统用户 datakit
+    adduser --system --no-create-home datakit
+    
+    # 将用户 datakit 添加进组 datakit
+    usermod -a -G datakit datakit
+
+    # 禁止用户名 datakit 用于登录（用于 Ubuntu/Debian 系 Linux）
+    usermod -s /usr/sbin/nologin datakit
+
+    # 设置 Docker 套接字权限（如使用）
+    chgrp datakit /var/run/docker.sock
+    chmod g+r /var/run/docker.sock
+    
+    # 设置 Containerd 套接字权限（如使用）
+    chgrp datakit /var/run/containerd/containerd.sock
+    chmod g+r /var/run/containerd/containerd.sock
+    ```
+
+=== "其它 Linux"
+
+    ```sh
+    # 在其它 Linux 上，同时创建用户并添加进用户组的命令可能会报错，这个时候需要分成两步
+
+    # 创建系统用户组 datakit
+    groupadd --system datakit
+    
+    # 创建系统用户 datakit
+    adduser --system --no-create-home datakit
+    
+    # 将用户 datakit 添加进组 datakit
+    usermod -a -G datakit datakit
+    
+    # 禁止用户名 datakit 用于登录（用于其它 Linux）
+    usermod -s /bin/false datakit
+
+    # 设置 Docker 套接字权限（如使用）
+    chgrp datakit /var/run/docker.sock
+    chmod g+r /var/run/docker.sock
+    
+    # 设置 Containerd 套接字权限（如使用）
+    chgrp datakit /var/run/containerd/containerd.sock
+    chmod g+r /var/run/containerd/containerd.sock
+    ```
+
+创建好用户以及用户组之后，我们就可以在安装阶段指定 `datakit` 这个用户名来安装：
+
+```sh
+DK_USER_NAME="datakit" DK_DATAWAY="..." bash -c ...
+```
+
 ???+ note "注意事项"
 
-    由于权限问题，如果通过 `DK_USER_NAME` 修改 DataKit 服务运行时的用户名为非 `root`，那么以下采集器将不可使用：
+    - 非管理员用户安装目前仅支持 Linux，Windows 平台仍需要 `administrator` 用户来安装。
+    - 由于权限问题，如果通过 `DK_USER_NAME` 修改 DataKit 服务运行时的用户名为非 `root`，那么以下采集器将不可使用：
 
-    - [eBPF](../integrations/ebpf.md){:target="_blank"}
+        - [eBPF](../integrations/ebpf.md){:target="_blank"}
 
-    另外，需要注意以下几项：
+    - 如果之前的版本是 `root` 用户安装的，中途想转成非 root 用户（将 *datakit.conf* 中的 `datakit_user` 改成非 `root`），除了上面的用户以及用户组设置外，还需要如下额外步骤：
 
-    - 必须先手动创建好用户和用户组，用户名和用户组名称必须一致，再进行安装。不同 Linux 发行版创建的命令可能会有差异，以下命令仅供参考：
+    ```shell
+    # 修改这些目录的权限 
+    chown -R datakit conf.d/
+    chown -R datakit cache/
 
-        === "CentOS/RedHat"
+    # 重新安装 DataKit 服务
+    datakit service -U
+    datakit service -I
+    ```
 
-            ```sh
-            # 创建系统用户组 datakit
-            groupadd --system datakit
-
-            # 创建系统用户 datakit，并将用户 datakit 添加进组 datakit 中（这里用户名和组名都是 datakit）
-            adduser --system --no-create-home datakit -g datakit
-
-            # 禁止用户名 datakit 用于登录（用于 CentOS/RedHat 系 Linux）
-            usermod -s /sbin/nologin datakit
-
-            # 设置 Docker 套接字权限（如使用）
-            chgrp datakit /var/run/docker.sock
-            chmod g+r /var/run/docker.sock
-            
-            # 设置 Containerd 套接字权限（如使用）
-            chgrp datakit /var/run/containerd/containerd.sock
-            ```
-
-        === "Ubuntu/Debian"
-
-            ```sh
-            # 在 Ubuntu 上，同时创建用户并添加进用户组的命令可能会报错，这个时候需要分成两步
-
-            # 创建系统用户组 datakit
-            groupadd --system datakit
-
-            # 创建系统用户 datakit
-            adduser --system --no-create-home datakit
-            
-            # 将用户 datakit 添加进组 datakit
-            usermod -a -G datakit datakit
-
-            # 禁止用户名 datakit 用于登录（用于 Ubuntu/Debian 系 Linux）
-            usermod -s /usr/sbin/nologin datakit
-
-            # 设置 Docker 套接字权限（如使用）
-            chgrp datakit /var/run/docker.sock
-            chmod g+r /var/run/docker.sock
-            
-            # 设置 Containerd 套接字权限（如使用）
-            chgrp datakit /var/run/containerd/containerd.sock
-            chmod g+r /var/run/containerd/containerd.sock
-            ```
-
-        === "其它 Linux"
-
-            ```sh
-            # 在其它 Linux 上，同时创建用户并添加进用户组的命令可能会报错，这个时候需要分成两步
-
-            # 创建系统用户组 datakit
-            groupadd --system datakit
-            
-            # 创建系统用户 datakit
-            adduser --system --no-create-home datakit
-            
-            # 将用户 datakit 添加进组 datakit
-            usermod -a -G datakit datakit
-            
-            # 禁止用户名 datakit 用于登录（用于其它 Linux）
-            usermod -s /bin/false datakit
-
-            # 设置 Docker 套接字权限（如使用）
-            chgrp datakit /var/run/docker.sock
-            chmod g+r /var/run/docker.sock
-            
-            # 设置 Containerd 套接字权限（如使用）
-            chgrp datakit /var/run/containerd/containerd.sock
-            chmod g+r /var/run/containerd/containerd.sock
-            ```
-
-        ```sh
-        # 安装 DataKit
-        DK_USER_NAME="datakit" DK_DATAWAY="..." bash -c ...
-        ```
-
-<!-- markdownlint-enable -->
-
-### DataKit 自身日志相关 {#env-logging}
+### 日志设置 {#env-logging}
 
 - `DK_LOG_LEVEL`: 可选值 info/debug
 - `DK_LOG`: 如果改成 stdout, 日志将不写文件，而是终端输出
 - `DK_GIN_LOG`: 如果改成 stdout, 日志将不写文件，而是终端输出
 
-### DataKit pprof 相关 {#env-pprof}
+### pprof 设置 {#env-pprof}
 
 - `DK_ENABLE_PPROF`: 是否开启 `pprof`。[:octicons-tag-24: Version-1.9.2](changelog.md#cl-1.9.2) 已默认开启。
 - `DK_PPROF_LISTEN`: `pprof` 服务监听地址
 
-### DataKit 选举相关 {#env-election}
+### 选举设置 {#env-election}
 
 - `DK_ENABLE_ELECTION`: 开启选举，默认不开启，如需开启，给该环境变量任意一个非空字符串值即可。（如 `True`/`False`）
 - `DK_NAMESPACE`：支持安装阶段指定命名空间(选举用)
 
-### HTTP/API 相关环境变量 {#env-http-api}
+### HTTP/API 设置 {#env-http-api}
 
 - `DK_HTTP_LISTEN`：支持安装阶段指定 DataKit HTTP 服务绑定的网卡（默认 `localhost`）
 - `DK_HTTP_PORT`：支持安装阶段指定 DataKit HTTP 服务绑定的端口（默认 `9529`）
@@ -302,16 +306,16 @@ NAME1="value1" NAME2="value2"
 - `DK_HTTP_PUBLIC_APIS`: 设置 DataKit 允许远程访问的 HTTP API ，RUM 功能通常需要进行此配置，从 DataKit [1.9.2](changelog.md#cl-1.9.2) 开始支持。
 - `DK_HTTP_SOCKET`: 设置 HTTP 监听的本地 Socket 路径（Windows 不支持）。[:octicons-tag-24: Version-1.80.0](changelog-2025.md#cl-1.80.0)
 
-### DCA 相关 {#env-dca}
+### DCA 设置 {#env-dca}
 
 - `DK_DCA_ENABLE`：支持安装阶段开启 DCA 服务（默认未开启）
 - `DK_DCA_WEBSOCKET_SERVER`：支持安装阶段自定义配置 DCA 的 websocket 地址
 
-### 外部采集器相关 {#env-external-inputs}
+### 外部采集器设置 {#env-external-inputs}
 
 - `DK_INSTALL_EXTERNALS`: 可用于安装未与 DataKit 一起打包的外部采集器
 
-### Confd 配置相关 {#env-connfd}
+### Confd 配置设置 {#env-connfd}
 
 | 环境变量名              | 类型   | 适用场景                        | 说明       | 样例值                                         |
 | ----------------------- | ------ | ------------------------------- | ---------- | ---------------------------------------------- |
@@ -326,7 +330,7 @@ NAME1="value1" NAME2="value2"
 | DK_CONFD_SEPARATOR      | string | `redis`                         | 可选默认 0 |                                                |
 | DK_CONFD_USERNAME       | string | `etcdv3` 或 `consul`            | 可选       |                                                |
 
-### Git 配置相关 {#env-gitrepo}
+### Git 设置 {#env-gitrepo}
 
 - `DK_GIT_URL`: 管理配置文件的远程 git repo 地址。（如 `http://username:password@github.com/username/repository.git`）
 - `DK_GIT_KEY_PATH`: 本地 PrivateKey 的全路径。（如 `/Users/username/.ssh/id_rsa`）
@@ -334,16 +338,15 @@ NAME1="value1" NAME2="value2"
 - `DK_GIT_BRANCH`: 指定拉取的分支。**为空则是默认**，默认是远程指定的主分支，一般是 `master`。
 - `DK_GIT_INTERVAL`: 定时拉取的间隔。（如 `1m`）
 
-### WAL 磁盘缓存 {#env-wal}
+### 磁盘缓存设置 {#env-wal}
 
 - `DK_WAL_WORKERS`: 设置 WAL 消费 worker 数，默认 CPU limit 核心数 * 4
 - `DK_WAL_CAPACITY`: 这是单个 WAL 最大占用磁盘大小，默认 2GB
 
-### Sinker 相关配置 {#env-sink}
+### Sinker 设置 {#env-sink}
 
 通过 `DK_SINKER_GLOBAL_CUSTOMER_KEYS` 用于设置 sinker 过滤的 tag/field key 名称，其形式如下：
 
-<!-- markdownlint-disable MD046 -->
 === "Linux/macOS"
 
     ```shell
@@ -355,9 +358,8 @@ NAME1="value1" NAME2="value2"
     ```powershell
 {{ InstallCmd 4 (.WithPlatform "windows") (.WithEnvs "DK_SINKER_GLOBAL_CUSTOMER_KEYS" "key1,key2" ) (.WithEnvs "DK_DATAWAY_ENABLE_SINKER" "on" ) }}
     ```
-<!-- markdownlint-enable -->
 
-### 资源限制配置相关 {#env-cgroup}
+### 资源限制设置 {#env-cgroup}
 
 目前仅支持 Linux 和 Windows ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.0)) 操作系统。
 
@@ -465,9 +467,7 @@ DK_APM_INSTRUMENTATION_ENABLED=docker \
 
 ## FAQ {#faq}
 
-<!-- markdownlint-disable MD013 -->
-### 如何应付不友好的主机名 {#bad-hostname}
-<!-- markdownlint-enable -->
+### 不友好的主机名 {#bad-hostname}
 
 由于 DataKit 使用主机名（Hostname）作为数据串联的依据，某些情况下，一些主机名取得不是很友好，比如 `iZbp141ahn....`，但由于某些原因，又不能修改这些主机名，这给使用带来一定的困扰。在 DataKit 中，可在主配置中覆盖这个不友好的主机名。
 
@@ -478,15 +478,11 @@ DK_APM_INSTRUMENTATION_ENABLED=docker \
     ENV_HOSTNAME = "your-fake-hostname-for-datakit"
 ```
 
-<!-- markdownlint-disable MD046 -->
 ???+ note
 
     如果之前某个主机已经采集了一段时间的数据，更改主机名后，这些历史数据将不再跟新的主机名关联。更改主机名，相当于新增了一台全新的主机。
-<!-- markdownlint-enable -->
 
-<!-- markdownlint-disable MD013 -->
 ### Mac 安装问题 {#mac-failed}
-<!-- markdownlint-enable -->
 
 Mac 上安装时，如果安装/升级过程中出现
 
@@ -506,9 +502,7 @@ sudo launchctl enable system/datakit
 sudo launchctl load -w /Library/LaunchDaemons/com.datakit.plist
 ```
 
-<!-- markdownlint-disable MD013 -->
 ### DataKit 是否有文件以及数据的高危操作？ {#danger-ops}
-<!-- markdownlint-enable -->
 
 DataKit 在运行过程中，根据采集配置不同，会读取很多系统信息，比如进程列表、软硬件信息（比如操作系统信息、CPU、内存、磁盘、网卡等）。但它不会主动执行删除、修改其自身之外的其它数据。关于文件读写，分成两个部分，一个是和数据采集有关的读文件/端口操作，一个是 DataKit 自身运行过程中一些必要的文件读写操作。
 
@@ -538,15 +532,11 @@ Linux 安装时位于 */var/log/datakit/* 目录下；Windows 位于 *C:\Program
 
 部分数据采集需要用到磁盘缓存功能（需手动开启），这部分缓存会在生成和消费过程中有文件增删。磁盘缓存也有最大 capacity 设置，数据满了之后，会自动执行 FIFO 删除操作，避免写满磁盘。
 
-<!-- markdownlint-disable MD013 -->
 ### DataKit 如何控制自身资源消耗？ {#resource-limit}
-<!-- markdownlint-enable -->
 
 可以通过 cgroup 等机制来限制 DataKit 自身资源使用，参见[这里](datakit-conf.md#resource-limit)。如果 DataKit 部署在 Kubernetes 中，参见[这里](datakit-daemonset-deploy.md#requests-limits)。
 
-<!-- markdownlint-disable MD013 -->
 ### DataKit 自身可观测性？ {#self-obs}
-<!-- markdownlint-enable -->
 
 DataKit 在运行过程中，暴露了很多[自身的指标](datakit-metrics.md)。默认情况下，DataKit 通过[内置采集器](../integrations/dk.md)会采集这些指标并上报到用户的工作空间。
 

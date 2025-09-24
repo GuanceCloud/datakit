@@ -7,6 +7,7 @@ package installer
 
 import (
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -108,6 +109,13 @@ func upgradeMainConfInstance(c *config.Config) *config.Config {
 		c.PointPool.Enable = false // default disable point-pool
 	}
 
+	if runtime.GOOS == datakit.OSWindows {
+		if c.DatakitUser == "root" { // legacy version under windows set this to root
+			c.DatakitUser = "administrator"
+		}
+	}
+
+	// setup dataway
 	// try upgrade lagacy dataway settings.
 	if c.Dataway != nil {
 		upgradeDataway(c)

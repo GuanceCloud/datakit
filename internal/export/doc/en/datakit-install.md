@@ -255,25 +255,25 @@ The environment variables supported by the installation script are as follows (s
         DK_USER_NAME="datakit" DK_DATAWAY="..." bash -c ...
         ```
 <!-- markdownlint-enable -->
-### On DataKit's Own Log  {#env-logging}
+### Logging {#env-logging}
 
 - `DK_LOG_LEVEL`: Optional info/debug
 - `DK_LOG`: If changed to stdout, the log will not be written to the file, but will be output by the terminal.
 - `DK_GIN_LOG`: If changed to stdout, the log will not be written to the file, but will be output by the terminal.
 
-### On DataKit pprof  {#env-pprof}
+### pprof {#env-pprof}
 
 - `DK_ENABLE_PPROF`(deprecated): whether to turn on `pprof`
 - `DK_PPROF_LISTEN`: `pprof` service listening address
 
 > [:octicons-tag-24: Version-1.9.2](changelog.md#cl-1.9.2) enabled pprof by default.
 
-### On DataKit Election  {#env-election}
+### Election {#env-election}
 
 - `DK_ENABLE_ELECTION`: Open the election, not by default. If you need to open it, give any non-empty string value to the environment variable. (eg `True`/`False`)
 - `DK_NAMESPACE`: Supports namespaces specified during installation (for election)
 
-### On HTTP/API  Environment {#env-http-api}
+### HTTP/API {#env-http-api}
 
 - `DK_HTTP_LISTEN`: Support the installation-stage specified DataKit HTTP service binding network card (default `localhost`)
 - `DK_HTTP_PORT`: Support specifying the port of the DataKit HTTP service binding during installation (default `9529`)
@@ -285,16 +285,16 @@ The environment variables supported by the installation script are as follows (s
 - `DK_HTTP_PUBLIC_APIS`: Specify which DataKit HTTP APIs can be accessed by remote, generally config combined with RUM input，support from DataKit [1.9.2](changelog.md#cl-1.9.2).
 - `DK_HTTP_SOCKET`: Set HTTP domain socket path(not support Windows).[:octicons-tag-24: Version-1.80.0](changelog-2025.md#cl-1.80.0)
 
-### On DCA  {#env-dca}
+### DCA {#env-dca}
 
 - `DK_DCA_ENABLE`: Support DCA service to be turned on during installation (not turned on by default)
 - `DK_DCA_WEBSOCKET_SERVER`:  DCA websocket server address that can be accessed by DataKit
 
-### On External Collector  {#env-external-inputs}
+### External Collectors {#env-external-inputs}
 
 - `DK_INSTALL_EXTERNALS`: Used to install external collectors not packaged with DataKit
 
-### On Confd Configuration  {#env-connfd}
+### Confd {#env-connfd}
 
 | Environment Variable Name | Type   | Applicable Scenario           | Description            | Sample Value                               |
 | ------------------------- | ------ | ----------------------------- | ---------------------- | ------------------------------------------ |
@@ -309,7 +309,7 @@ The environment variables supported by the installation script are as follows (s
 | DK_CONFD_SEPARATOR        | string | `redis`                       | Optional default 0     |                                            |
 | DK_CONFD_USERNAME         | string | `etcdv3`, `consul`            | Optional               |                                            |
 
-### On Git Configuration {#env-gitrepo}
+### Git {#env-gitrepo}
 
 - `DK_GIT_URL`: The remote git repo address for managing configuration files. (e.g. `http://username:password@github.com/username/repository.git`)
 - `DK_GIT_KEY_PATH`: The full path of the local PrivateKey. (e.g.  `/Users/username/.ssh/id_rsa`)
@@ -322,7 +322,7 @@ The environment variables supported by the installation script are as follows (s
 - `DK_WAL_WORKERS`: Set WAL workers, default to limited-CPU-cores * 4
 - `DK_WAL_CAPACITY`: Set single WAL max disk size, default to 2GB
 
-### On Sinker Configuration {#env-sink}
+### Sinker {#env-sink}
 
 `DK_SINKER_GLOBAL_CUSTOMER_KEYS` used to setup sinker tag/field keys, here is the example:
 
@@ -340,7 +340,7 @@ The environment variables supported by the installation script are as follows (s
     ```
 <!-- markdownlint-enable -->
 
-### On Resource Limit Configuration {#env-cgroup}
+### Resource Limit {#env-cgroup}
 
 Only Linux and Windows ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.0)) operating system are supported.
 
