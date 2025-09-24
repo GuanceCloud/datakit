@@ -6,6 +6,7 @@
 package dialtesting
 
 import (
+	dt "github.com/GuanceCloud/cliutils/dialtesting"
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -19,6 +20,8 @@ var (
 	taskRunCostSummary          *prometheus.SummaryVec
 	taskInvalidCounter          *prometheus.CounterVec
 	taskExecTimeIntervalSummary *prometheus.SummaryVec
+	taskMaxICMPConcurrency      prometheus.Gauge
+	taskICMPConcurrency         prometheus.GaugeFunc
 
 	workerJobChanGauge         *prometheus.GaugeVec
 	workerJobGauge             prometheus.Gauge
@@ -132,6 +135,27 @@ func metricsSetup() {
 		[]string{"region", "protocol"},
 	)
 
+	taskMaxICMPConcurrency = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "dialtesting",
+			Name:      "task_max_icmp_concurrency",
+			Help:      "The max number of icmp packets sent at one time",
+		},
+	)
+
+	taskICMPConcurrency = prometheus.NewGaugeFunc(
+		prometheus.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "dialtesting",
+			Name:      "task_icmp_concurrency",
+			Help:      "The current number of icmp packets sending",
+		},
+		func() float64 {
+			return float64(len(dt.ICMPConcurrentCh))
+		},
+	)
+
 	workerJobChanGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "datakit",
@@ -216,5 +240,7 @@ func init() {
 		workerJobGauge,
 		workerSendPointsGauge,
 		workerSendCost,
+		taskMaxICMPConcurrency,
+		taskICMPConcurrency,
 	}...)
 }
