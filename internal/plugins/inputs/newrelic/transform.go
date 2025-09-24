@@ -301,7 +301,6 @@ func makeRootSpan(idLength int, service string, transaction *transaction) *itrac
 		Add(itrace.FieldParentID, "0").
 		Add(itrace.FieldSpanid, randHexID(idLength)).
 		AddTag(itrace.TagService, service).
-		AddTag(itrace.TagOperation, transaction.url()).
 		Add(itrace.FieldResource, transaction.url()).
 		AddTag(itrace.TagSpanType, itrace.SpanTypeEntry).
 		AddTag(itrace.TagSource, inputName).

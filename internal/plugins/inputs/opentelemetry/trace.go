@@ -93,7 +93,6 @@ func (ipt *Input) parseResourceSpans(resspans []*trace.ResourceSpans, remoteIP s
 					AddTag(itrace.TagSpanStatus, getDKSpanStatus(span.GetStatus())).
 					AddTag(itrace.TagSpanType, itrace.FindSpanTypeStrSpanID(spanID, parenID, spanIDs, parentIDs)).
 					AddTag(itrace.TagDKFingerprintKey, datakit.DKHost+"_"+datakit.Version).
-					AddTag(itrace.TagOperation, span.Name).
 					AddTag(itrace.TagSource, inputName).
 					AddTag(itrace.TagService, serviceName).
 					AddTag(itrace.TagRemoteIP, remoteIP)

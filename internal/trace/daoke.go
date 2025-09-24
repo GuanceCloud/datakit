@@ -132,7 +132,6 @@ func ParseToJaeger(msg []byte) (*point.Point, error) {
 		Add(FieldSpanid, decoder(jaegerSpan.SpanId)).
 		Add(FieldStart, startTime).
 		Add(FieldDuration, int64(d)/int64(time.Microsecond)).
-		AddTag(TagOperation, jaegerSpan.OperationName).
 		Add(FieldResource, jaegerSpan.OperationName).
 		AddTag(TagService, jaegerSpan.Process.ServiceName).
 		AddTag(TagSpanType, spanType).

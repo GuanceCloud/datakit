@@ -67,7 +67,6 @@ func Test_commonTagFields(t *T.T) {
 			assert.NotNil(t, pt.Get(itrace.TagSpanStatus))
 			assert.NotNil(t, pt.Get(itrace.TagDKFingerprintKey))
 			assert.NotNil(t, pt.Get(itrace.TagSpanType))
-			assert.NotNil(t, pt.Get(itrace.TagOperation))
 			assert.NotNil(t, pt.Get(itrace.TagSource))
 			assert.NotNil(t, pt.Get(itrace.TagService))
 

@@ -200,7 +200,6 @@ func parseResourceSpans(ctx *Context, dt *Transaction) itrace.DatakitTraces {
 		Add(itrace.FieldSpanid, tree.MessageID).
 		AddTag(itrace.TagService, tree.domain).
 		Add(itrace.FieldResource, dt.Name).
-		AddTag(itrace.TagOperation, dt.Name).
 		AddTag(itrace.TagSource, inputName).
 		AddTag(itrace.TagSourceType, dt.Type).
 		AddTag(itrace.TagSpanType, spanType).

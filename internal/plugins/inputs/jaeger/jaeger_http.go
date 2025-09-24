@@ -99,7 +99,6 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 			Add(itrace.FieldSpanid, itrace.FormatSpanIDByBase(uint64(span.SpanId), 16)).
 			AddTag(itrace.TagService, batch.Process.ServiceName).
 			Add(itrace.FieldResource, span.OperationName).
-			AddTag(itrace.TagOperation, span.OperationName).
 			AddTag(itrace.TagSource, inputName).
 			AddTag(itrace.TagSourceType, itrace.SpanSourceCustomer).
 			AddTag(itrace.TagSpanType, itrace.FindSpanTypeIntSpanID(uint64(span.SpanId), uint64(span.ParentSpanId), spanIDs, parentIDs)).
