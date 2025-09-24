@@ -112,6 +112,17 @@ func TestLoadInstallerArgs(t *T.T) {
 
 	t.Run(`dataway-empty-token`, func(t *T.T) {
 		args := &InstallerArgs{
+			Proxy: "127.1:7890",
+		}
+
+		mc := config.DefaultConfig()
+		_, err := args.LoadInstallerArgs(mc)
+		assert.NoError(t, err)
+		assert.Equal(t, "127.1:7890", mc.Dataway.HTTPProxy)
+	})
+
+	t.Run(`dataway-proxy`, func(t *T.T) {
+		args := &InstallerArgs{
 			DatawayURLs: "https://abc.com",
 		}
 

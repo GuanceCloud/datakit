@@ -46,7 +46,7 @@ func (args *InstallerArgs) uninstallDKService(svc service.Service) {
 func (args *InstallerArgs) Install(mc *config.Config, svc service.Service) (err error) {
 	args.uninstallDKService(svc)
 
-	if err := args.WriteDefInputs(mc); err != nil {
+	if err := args.injectDefInputs(mc); err != nil {
 		l.Warnf("WriteDefInputs: %s, ignored", err)
 	}
 

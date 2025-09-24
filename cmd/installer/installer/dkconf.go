@@ -169,8 +169,8 @@ func (args *InstallerArgs) setupDefaultInputs(mc *config.Config, defaultList []s
 	}
 }
 
-// WriteDefInputs inject default inputs into datakit.con.
-func (args *InstallerArgs) WriteDefInputs(mc *config.Config) error {
+// injectDefInputs inject default inputs into datakit.conf.
+func (args *InstallerArgs) injectDefInputs(mc *config.Config) error {
 	hostInputs := defaultHostInputs
 
 	switch runtime.GOOS {
@@ -258,11 +258,6 @@ func (args *InstallerArgs) getDataway() (*dataway.Dataway, error) {
 	if args.DatawayURLs != "" {
 		urls := strings.Split(args.DatawayURLs, ",")
 
-		if args.Proxy != "" {
-			l.Debugf("set proxy to %s", args.Proxy)
-			dw.HTTPProxy = args.Proxy
-		}
-
 		if err := dw.Init(dataway.WithURLs(urls...)); err != nil {
 			return nil, err
 		} else {
@@ -287,6 +282,11 @@ func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config,
 
 	if args.FlagUserName != "" {
 		mc.DatakitUser = args.FlagUserName
+	}
+
+	if args.Proxy != "" {
+		l.Debugf("set proxy to %s", args.Proxy)
+		mc.Dataway.HTTPProxy = args.Proxy
 	}
 
 	// setup dataway and check token format
@@ -436,8 +436,7 @@ func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config,
 		l.Infof("set HTTP socket to %q", mc.HTTPAPI.ListenSocket)
 	}
 
-	mc.InstallVer = args.DataKitVersion
-	l.Infof("install version %s", mc.InstallVer)
+	l.Infof("install version %s", args.DataKitVersion)
 
 	if args.DatakitName != "" {
 		mc.Name = args.DatakitName

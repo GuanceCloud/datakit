@@ -74,7 +74,7 @@ type Config struct {
 	LogRotateDeprecated int        `toml:"log_rotate,omitzero"`
 	Logging             *LoggerCfg `toml:"logging"`
 
-	InstallVer string `toml:"install_version,omitempty"`
+	InstallVerDeprecated string `toml:"install_version,omitempty"`
 
 	HTTPAPI *APIConfig `toml:"http_api"`
 
@@ -122,6 +122,10 @@ type Config struct {
 
 	hostname    string
 	cmdlineMode bool
+}
+
+func EmptyConfig() *Config {
+	return &Config{}
 }
 
 func DefaultConfig() *Config {
