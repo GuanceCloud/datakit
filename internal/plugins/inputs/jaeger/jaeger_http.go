@@ -95,8 +95,8 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 		}
 
 		spanKV := point.KVs{}
-		spanKV = spanKV.Add(itrace.FieldParentID, strconv.FormatUint(uint64(span.ParentSpanId), 16)).
-			Add(itrace.FieldSpanid, strconv.FormatUint(uint64(span.SpanId), 16)).
+		spanKV = spanKV.Add(itrace.FieldParentID, itrace.FormatSpanIDByBase(uint64(span.ParentSpanId), 16)).
+			Add(itrace.FieldSpanid, itrace.FormatSpanIDByBase(uint64(span.SpanId), 16)).
 			AddTag(itrace.TagService, batch.Process.ServiceName).
 			Add(itrace.FieldResource, span.OperationName).
 			AddTag(itrace.TagOperation, span.OperationName).

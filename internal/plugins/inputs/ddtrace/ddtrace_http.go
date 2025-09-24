@@ -348,8 +348,8 @@ func ddtraceToDkTrace(trace DDTrace, values []string, remoteIP string) itrace.Da
 		}
 
 		spanKV = spanKV.Add(itrace.FieldTraceID, strTraceID).
-			Add(itrace.FieldParentID, strconv.FormatUint(span.ParentID, spanBase)).
-			Add(itrace.FieldSpanid, strconv.FormatUint(span.SpanID, spanBase)).
+			Add(itrace.FieldParentID, itrace.FormatSpanIDByBase(span.ParentID, spanBase)).
+			Add(itrace.FieldSpanid, itrace.FormatSpanIDByBase(span.SpanID, spanBase)).
 			AddTag(itrace.TagService, span.Service).
 			Add(itrace.FieldResource, resource).
 			AddTag(itrace.TagOperation, span.Name).

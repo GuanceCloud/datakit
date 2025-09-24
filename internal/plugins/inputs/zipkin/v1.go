@@ -62,9 +62,9 @@ func thriftV1SpansToDkTrace(zpktrace []*zipkincore.Span) itrace.DatakitTrace {
 		}
 
 		service := getServiceFromZpkCoreV1Span(span)
-		TraceID := strconv.FormatInt(span.TraceID, 16)
-		ParentID := strconv.FormatInt(span.GetParentID(), 16)
-		SpanID := strconv.FormatInt(span.ID, 16)
+		TraceID := itrace.FormatSpanIDByBase(uint64(span.TraceID), 16)
+		ParentID := itrace.FormatSpanIDByBase(uint64(span.GetParentID()), 16)
+		SpanID := itrace.FormatSpanIDByBase(uint64(span.ID), 16)
 		SpanType := itrace.FindSpanTypeInMultiServersIntSpanID(uint64(span.ID), uint64(span.GetParentID()), service, spanIDs, parentIDs)
 		SourceType := itrace.SpanSourceCustomer
 
