@@ -354,8 +354,8 @@ const sample = `
   # The max number of job chan. Default 1000.
   max_job_chan_number = 1000
 
-  # The max number of icmp packets sent at one time. Default 1000.
-  max_icmp_concurrency = 1000
+  # The max number of icmp packets sent at one time. Default 0, no limit.
+  max_icmp_concurrency = 0
 
   # The max number of points in cache for each type of task. Default 10000.
   max_cache_points_number = 10000
@@ -540,11 +540,11 @@ func (ipt *Input) Run() {
 	}
 
 	// setup dialtesting
-	if ipt.MaxICMPConcurrency > 0 {
-		dt.Setup(&dt.TaskConfig{
-			MaxICMPConcurrent: ipt.MaxICMPConcurrency,
-		})
-	}
+	dt.Setup(&dt.TaskConfig{
+		MaxICMPConcurrent: ipt.MaxICMPConcurrency,
+		Logger:            l,
+	})
+	taskMaxICMPConcurrency.Set(float64(ipt.MaxICMPConcurrency))
 
 	ipt.setupCli()
 
@@ -1128,7 +1128,6 @@ func defaultInput() *Input {
 		},
 		Election:                   false,
 		pauseCh:                    make(chan bool, inputs.ElectionPauseChannelLength),
-		MaxICMPConcurrency:         1000,
 		MaxJobChanNumber:           1000,
 		MaxCachePointsNumber:       10000,
 		DisableInternalNetworkTask: true,
