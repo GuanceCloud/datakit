@@ -345,6 +345,21 @@ DDTrace 在启动后会上报自身配置信息、集成列表、依赖关系以
 
 {{end}}
 
+## 链路数据指标  {#tracing-metric}
+
+{{range $i, $m := .Measurements}}
+
+{{if eq $m.Type "metric"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+{{$m.MarkdownTable}}
+{{end}}
+
+{{end}}
+
 ## 延伸阅读 {#more-reading}
 
 - [DataKit Tracing 字段定义](datakit-tracing-struct.md)

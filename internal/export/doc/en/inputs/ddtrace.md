@@ -350,6 +350,21 @@ Currently, this feature is only supported in **Java Agent**. Below are descripti
 
 {{end}}
 
+## Tracing metrics  {#tracing-metric}
+
+{{range $i, $m := .Measurements}}
+
+{{if eq $m.Type "metric"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+{{$m.MarkdownTable}}
+{{end}}
+
+{{end}}
+
 ## More Readings {#more-reading}
 
 - [DataKit Tracing Field definition](datakit-tracing-struct.md)

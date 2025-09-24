@@ -55,8 +55,17 @@ If you want to get the data before cleaning and the value added by the `set` fun
 ```shell
 -Dotel.jdbc.sql.obfuscation=true
 # or k8s 
-OTEL_JDBC_SQL_OBFUSCATION=true
+export OTEL_JDBC_SQL_OBFUSCATION=true
 ```
+
+Alternatively, the same effect can be achieved using the switch control in version `v2.20.0-ext` and above:
+
+```shell
+-Dotel.instrumentation.jdbc.experimental.capture-query-parameters=true
+# or k8s
+export OTEL_INSTRUMENTATION_JDBC_EXPERIMENTAL_CAPTURE_QUERY_PARAMETERS=true
+```
+
 
 In the end, the link details on <<<custom_key.brand_name>>> look like this:
 
