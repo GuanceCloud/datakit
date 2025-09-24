@@ -1,16 +1,15 @@
 ---
 title     : 'DDTrace'
-summary   : 'Receive APM data from DDTrace'
+summary   : 'Receive APM Data from DDTrace'
 __int_icon: 'icon/ddtrace'
-tags:
-  - 'APM'
-  - 'TRACING'
+tags      :
   - 'DDTRACE'
+  - 'Distributed Tracing'
 dashboard :
-  - desc  : 'N/A'
+  - desc  : 'None'
     path  : '-'
 monitor   :
-  - desc  : 'N/A'
+  - desc  : 'None'
     path  : '-'
 ---
 
@@ -19,7 +18,7 @@ monitor   :
 
 ---
 
-DDTrace Agent embedded in DataKit is used to receive, calculate and analyze DataDog Tracing protocol data.
+DDTrace is an open-source APM (Application Performance Monitoring) product by DataDog. The DDTrace Agent embedded in DataKit is used to receive, process, and analyze data in the DataDog Tracing protocol.
 
 ## DDTrace Documentation and Examples {#doc-example}
 
@@ -29,76 +28,72 @@ DDTrace Agent embedded in DataKit is used to receive, calculate and analyze Data
 
     ---
 
-    [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-py){:target="_blank"} ·
-    [:octicons-book-16: doc](https://docs.datadoghq.com/tracing/setup_overview/setup/python?tab=containers){:target="_blank"} ·
-    [:octicons-arrow-right-24: example](ddtrace-python.md)
+    [SDK :material-download:](https://github.com/DataDog/dd-trace-py){:target="_blank"} ·
+    [:octicons-book-16: Documentation](https://docs.datadoghq.com/tracing/setup_overview/setup/python?tab=containers){:target="_blank"} ·
+    [:octicons-arrow-right-24: Example](ddtrace-python.md)
 
 -   :material-language-java: **Java**
 
     ---
 
-    [:octicons-code-16: SDK](https://static.<<<custom_key.brand_main_domain>>>/dd-image/dd-java-agent.jar){:target="_blank"} ·
-    [:octicons-book-16: doc](https://docs.datadoghq.com/tracing/setup_overview/setup/java?tab=containers){:target="_blank"} ·
-    [:octicons-arrow-right-24: example](ddtrace-java.md)
+    [SDK :material-download:](https://static.<<<custom_key.brand_main_domain>>>/dd-image/dd-java-agent.jar){:target="_blank"} ·
+    [:octicons-book-16: Documentation](https://docs.datadoghq.com/tracing/setup_overview/setup/java?tab=containers){:target="_blank"} ·
+    [:octicons-arrow-right-24: Example](ddtrace-java.md)
 
 -   :material-language-ruby: **Ruby**
 
     ---
 
-    [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-rb){:target="_blank"} ·
-    [:octicons-book-16: doc](https://docs.datadoghq.com/tracing/setup_overview/setup/ruby){:target="_blank"} ·
-    [:octicons-arrow-right-24: example](ddtrace-java.md)
+    [SDK :material-download:](https://github.com/DataDog/dd-trace-rb){:target="_blank"} ·
+    [:octicons-book-16: Documentation](https://docs.datadoghq.com/tracing/setup_overview/setup/ruby){:target="_blank"} ·
+    [:octicons-arrow-right-24: Example](ddtrace-ruby.md)
 
 -   :fontawesome-brands-golang: **Golang**
 
     ---
 
-    [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-go){:target="_blank"} ·
-    [:octicons-book-16: doc](https://docs.datadoghq.com/tracing/setup_overview/setup/go?tab=containers){:target="_blank"} ·
-    [:octicons-arrow-right-24: example](ddtrace-golang.md)
+    [SDK :material-download:](https://github.com/DataDog/dd-trace-go){:target="_blank"} ·
+    [:octicons-book-16: Documentation](https://docs.datadoghq.com/tracing/setup_overview/setup/go?tab=containers){:target="_blank"} ·
+    [:octicons-arrow-right-24: Example](ddtrace-golang.md)
 
 -   :material-language-php: **PHP**
 
     ---
 
-    [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-php){:target="_blank"} ·
-    [:octicons-book-16: doc](https://docs.datadoghq.com/tracing/setup_overview/setup/php?tab=containers){:target="_blank"} ·
-    [:octicons-arrow-right-24: example](ddtrace-php.md)
+    [SDK :material-download:](https://github.com/DataDog/dd-trace-php){:target="_blank"} ·
+    [:octicons-book-16: Documentation](https://docs.datadoghq.com/tracing/setup_overview/setup/php?tab=containers){:target="_blank"} ·
+    [:octicons-arrow-right-24: Example](ddtrace-php.md)
 
 -   :fontawesome-brands-node-js: **NodeJS**
 
     ---
 
-    [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-js){:target="_blank"} ·
-    [:octicons-book-16: doc](https://docs.datadoghq.com/tracing/setup_overview/setup/nodejs?tab=containers){:target="_blank"} ·
-    [:octicons-arrow-right-24: example](ddtrace-nodejs.md)
+    [SDK :material-download:](https://github.com/DataDog/dd-trace-js){:target="_blank"} ·
+    [:octicons-book-16: Documentation](https://docs.datadoghq.com/tracing/setup_overview/setup/nodejs?tab=containers){:target="_blank"} ·
+    [:octicons-arrow-right-24: Example](ddtrace-nodejs.md)
 
--   :material-language-cpp:
-
-    ---
-
-    [:octicons-code-16: SDK](https://github.com/opentracing/opentracing-cpp){:target="_blank"} ·
-    [:octicons-book-16: doc](https://docs.datadoghq.com/tracing/setup_overview/setup/cpp?tab=containers){:target="_blank"} ·
-    [:octicons-arrow-right-24: example](ddtrace-cpp.md)
-
--   :material-dot-net:
+-   :material-language-cpp: **C++**
 
     ---
 
-    [:octicons-code-16: SDK](https://github.com/DataDog/dd-trace-dotnet){:target="_blank"} ·
-    [:octicons-book-16: doc](https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet-framework?tab=windows){:target="_blank"} ·
-    [:octicons-book-16: .Net Core doc](https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet-framework?tab=windows){:target="_blank"}
+    [SDK :material-download:](https://github.com/opentracing/opentracing-cpp){:target="_blank"} ·
+    [:octicons-book-16: Documentation](https://docs.datadoghq.com/tracing/setup_overview/setup/cpp?tab=containers){:target="_blank"} ·
+    [:octicons-arrow-right-24: Example](ddtrace-cpp.md)
+
+-   :material-dot-net: **.NET**
+
+    ---
+
+    [SDK :material-download:](https://github.com/DataDog/dd-trace-dotnet){:target="_blank"} ·
+    [:octicons-book-16: Documentation](https://docs.datadoghq.com/tracing/trace_collection/automatic_instrumentation/dd_libraries/dotnet-framework?tab=windows){:target="_blank"} ·
+    [:octicons-book-16: .NET Core Documentation](https://docs.datadoghq.com/tracing/trace_collection/automatic_instrumentation/dd_libraries/dotnet-core?tab=windows){:target="_blank"}
 </div>
 
-???+ tip
+???+ info
 
-    The DataKit installation directory, under the `data` directory, has a pre-prepared `dd-java-agent.jar`(recommended). You can also download it directly from [Maven download](https://mvnrepository.com/artifact/com.datadoghq/dd-java-agent){:target="_blank"}
-
-    <<<custom_key.brand_name>>> also Fork its own branch on the basis of Ddtrace-Java, adding more functions and probes. For more version details.
+    We have made some [functional extensions](ddtrace-ext-changelog.md) to DDTrace to support more mainstream frameworks and more granular data tracing.
 
 ## Configuration {#config}
-
-### Collector Configuration {#input-config}
 
 === "Host Installation"
 
@@ -108,38 +103,36 @@ DDTrace Agent embedded in DataKit is used to receive, calculate and analyze Data
     {{ CodeBlock .InputSample 4 }}
     ```
 
-    Once configured, [restart DataKit](../datakit/datakit-service-how-to.md#manage-service).
+    After configuration, [restart DataKit](../datakit/datakit-service-how-to.md#manage-service) to take effect.
 
 === "Kubernetes"
 
-    Can be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting) or [Config ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) .
+    You can enable the collector by [injecting collector configuration via ConfigMap](../datakit/datakit-daemonset-deploy.md#configmap-setting) or [configuring ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting).
 
-    Can also be turned on by environment variables, (needs to be added as the default collector in ENV_DEFAULT_ENABLED_INPUTS):
-    
+    You can also modify configuration parameters via environment variables (you need to add the collector to ENV_DEFAULT_ENABLED_INPUTS as a default collector):
+
 {{ CodeBlock .InputENVSample 4 }}
 
-### Notes on Linking Multiple Line Tools {#trace_propagator}
-DDTrace currently supports the following propagation protocols: `datadog/b3multi/tracecontext`. There are two things to note:
+### Notes on Multi-Tool Tracing Propagation {#trace_propagator}
 
-In the DDTrace data structure, the TraceID is of type uint64. When using the propagation protocol `tracecontext`, an additional tag `_dd.p.tid:67c573cf00000000` is added internally in the DDTrace trace details.
-This is because the `trace_id` in the `tracecontext` protocol is a 128-bit hexadecimal encoded string. To ensure compatibility, a high-order tag is added.
+The TraceID in the DDTrace data structure is of uint64 type. When using the `tracecontext` propagation protocol, a `_dd.p.tid:67c573cf00000000` field is added inside the DDTrace trace details. This is because the `trace_id` in the `tracecontext` protocol is a 128-bit hexadecimal-encoded string, and this high-bit tag is added for compatibility purposes.
 
-- When using `tracecontext`, the `compatible_otel=true` and `trace_128_bit_id` switch needs to be turned on in the configuration because the link ID is 128 bits.
-- When using `b3multi`, pay attention to the length of `trace_id`. If it is 64-bit hex encoding, the `trace_id_64_bit_hex=true` needs to be turned on in the configuration file.
-- For more propagation protocol and tool usage, please refer to: [Multi-Link Concatenation](tracing-propagator.md){:target="_blank"}
+Currently, DDTrace supports the following propagation protocols: `datadog/b3multi/tracecontext`. Note the following two scenarios:
+- When using `tracecontext`, since the trace ID is 128-bit, you need to enable the `compatible_otel=true` and `trace_128_bit_id` switches in the configuration.
+- When using `b3multi`, pay attention to the length of the `trace_id`. If it is a 64-bit hexadecimal encoding, you need to enable `trace_id_64_bit_hex=true` in the configuration file.
+- For more propagation protocols and tool usage, refer to: [Multi-Tracing Propagation](tracing-propagator.md){:target="_blank"}
 
+???+ info
 
-???+ tip
+    - `compatible_otel`: Converts `span_id` and `parent_id` to hexadecimal strings.
+    - `trace_128_bit_id`: Combines `_dd.p.tid` in `meta` with `trace_id` into a 32-character hexadecimal-encoded string.
+    - `trace_id_64_bit_hex`: Converts 64-bit `trace_id` to a hexadecimal-encoded string.
 
-    - `compatible_otel`: Converts `span_id` and `parent_id` into hexadecimal strings.
-    - `trace_128_bit_id`: Combines the `_dd.p.tid` from meta with `trace_id` to form a 32-character hexadecimal encoded string.
-    - `trace_id_64_bit_hex`: Converts a 64-bit `trace_id` into a hexadecimal encoded string.
+### Inject Pod and Node Information {#add-pod-node-info}
 
-### Add Pod and Node tags {#add-pod-node-info}
+When the application is deployed in a container environment such as Kubernetes, you can append Pod/Node information to the final Span data by modifying the application's YAML file. Below is an example YAML for a Kubernetes Deployment:
 
-When your service deployed on Kubernetes, we can add Pod/Node tags to Span, edit your Pod yaml, here is a Deployment yaml example:
-
-```yaml
+```yaml hl_lines="21-30"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -160,7 +153,7 @@ spec:
         - name: my-app
           image: my-app:v0.0.1
           env:
-            - name: POD_NAME    # <------
+            - name: POD_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
@@ -168,60 +161,60 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: DD_TAGS
+              value: pod_name:$(POD_NAME),host:$(NODE_NAME)
             - name: DD_SERVICE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.labels['service']
-            - name: DD_TAGS
-              value: pod_name:$(POD_NAME),host:$(NODE_NAME)
 ```
 
-Here we must define `POD_NAME` and `NODE_NAME` before reference them in dedicated environment keys of DDTrace:
+Note that you need to first define `POD_NAME` and `NODE_NAME`, then embed them into the DDTrace-specific environment variables.
 
-After your Pod started, enter the Pod, we can check if environment applied:
+After the application starts, enter the corresponding Pod and verify if the ENV is in effect:
 
 ```shell
 $ env | grep DD_
 ...
 ```
 
-Once environment set, the Pod/Node name will attached to related Span tags.
+Once injected successfully, you can see the Pod and Node names where the Span is located in the final Span data.
 
 ---
 
 ???+ warning
 
-    - Don't modify the `endpoints` list here.
+    - Do not modify the `endpoints` list here (unless you clearly understand the configuration logic and effects).
 
     ```toml
     endpoints = ["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]
     ```
 
-    - If you want to turn off sampling (that is, collect all data), the sampling rate field needs to be set as follows:
+    - To disable sampling (i.e., collect all data), set the sampling rate field as follows:
 
     ``` toml
     # [inputs.{{.InputName}}.sampler]
     # sampling_rate = 1.0
     ```
 
-    Don't just comment on the line `sampling_rate = 1.0` , it must be commented out along with `[inputs.{{.InputName}}.sampler]` , or the collector will assume that `sampling_rate` is set to 0.0, causing all data to be discarded.
+    Do not only comment out the line `sampling_rate = 1.0`; you must also comment out `[inputs.{{.InputName}}.sampler]`. Otherwise, the collector will treat `sampling_rate` as 0.0, resulting in all data being discarded.
 
 <!-- markdownlint-enable -->
 
 ### HTTP Settings {#http}
 
-If Trace data is sent across machines, you need to set [HTTP settings for DataKit](../datakit/datakit-conf.md#config-http-server).
+If Trace data is sent from a remote machine, you need to configure the [HTTP settings of DataKit](../datakit/datakit-conf.md#config-http-server).
 
-If you have ddtrace data sent to the DataKit, you can see it on [DataKit's monitor](../datakit/datakit-monitor.md):
+If DDTrace data is sent to DataKit, you can view it on the [DataKit monitor](../datakit/datakit-monitor.md):
 
 <figure markdown>
   ![input-ddtrace-monitor](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/input-ddtrace-monitor.png){ width="800" }
-  <figcaption> DDtrace sends data to the /v0.4/traces interface</figcaption>
+  <figcaption> DDTrace sends data to the /v0.4/traces endpoint</figcaption>
 </figure>
 
-### Turn on Disk Cache {#disk-cache}
+### Enable Disk Cache {#disk-cache}
 
-If the amount of Trace data is large, in order to avoid causing a lot of resource overhead to the host, you can temporarily cache the Trace data to disk and delay processing:
+If the volume of Trace data is large, to avoid excessive resource consumption on the host, you can temporarily cache Trace data to disk for delayed processing:
 
 ``` toml
 [inputs.{{.InputName}}.storage]
@@ -229,104 +222,94 @@ If the amount of Trace data is large, in order to avoid causing a lot of resourc
   capacity = 5120
 ```
 
-### DDtrace SDK Configuration {#sdk}
+### DDTrace SDK Configuration {#sdk}
 
-After configuring the collector, you can also do some configuration on the DDtrace SDK side.
+After configuring the collector, you can also make additional configurations on the DDTrace SDK side.
 
-### Environment Variables Setting {#sdk-envs}
+### Environment Variable Settings {#sdk-envs}
 
-- `DD_TRACE_ENABLED`: Enable global tracer (Partial language platform support)
-- `DD_AGENT_HOST`: DDtrace agent host address
-- `DD_TRACE_AGENT_PORT`: DDtrace agent host port
+- `DD_TRACE_ENABLED`: Enable global tracer (supported by some language platforms)
+- `DD_AGENT_HOST`: DDTrace agent host address
+- `DD_TRACE_AGENT_PORT`: DDTrace agent host port
 - `DD_SERVICE`: Service name
 - `DD_TRACE_SAMPLE_RATE`: Set sampling rate
 - `DD_VERSION`: Application version (optional)
-- `DD_TRACE_STARTUP_LOGS`: DDtrace logger
-- `DD_TRACE_DEBUG`: DDtrace debug mode
-- `DD_ENV`: Application env values
-- `DD_TAGS`: Application
+- `DD_TRACE_STARTUP_LOGS`: DDTrace logger
+- `DD_TRACE_DEBUG`: DDTrace debug mode
+- `DD_ENV`: Application environment value
+- `DD_TAGS`: Application tags
 
-In addition to setting the project name, environment name, and version number when initialization is applied, you can also set them in the following two ways:
+In addition to setting the project name, environment name, and version number during application initialization, you can also set them in the following two ways:
 
-- Inject environment variables from the command line
+- Inject environment variables via the command line
 
 ```shell
 DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.py
 ```
 
-- Configure custom tags directly in *ddtrace.conf*. This approach affects **all** data sends to the DataKit tracing service and should be considered carefully:
+- Configure custom tags directly in *ddtrace.conf*. This method affects all data sent to the DataKit tracing service, so use it with caution:
 
 ```toml
-# tags is ddtrace configed key value pairs
+# tags are key-value pairs configured for ddtrace
 [inputs.{{.InputName}}.tags]
   some_tag = "some_value"
   more_tag = "some_other_value"
 ```
 
-## APMTelemetry {#apm_telemetry}
+### APMTelemetry {#apm_telemetry}
 
 [:octicons-tag-24: Version-1.35.0](../datakit/changelog.md#cl-1.35.0) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
 
-This information can be viewed in the <<<custom_key.brand_name>>> central infrastructure, and the presented data is helpful for troubleshooting issues related to startup commands and referenced third-party library versions.
-It also includes host information, service information, and the number of spans created and ended.
+After the DDTrace agent starts, it continuously reports service-related information through an additional interface, such as startup configuration, heartbeat, and the list of loaded agents. You can view this information in <<<custom_key.brand_name>>> Infrastructure -> Resource Directory. The displayed data is helpful for troubleshooting issues related to startup commands and versions of referenced third-party libraries. It also includes host information, service information, and the number of Spans generated.
 
-There may be significant differences in data due to different languages and versions.
+Data may vary significantly across different languages and versions; please refer to the actual received data.
 
-### Add a Business Tag to your Code {#add-tags}
+### Fixed Tag Extraction {#add-tags}
 
-Starting from DataKit version [1.21.0](../datakit/changelog.md#cl-1.21.0), do not include All in Span.Mate are advanced to the first level label and only select following list labels:
+Starting from DataKit version [1.21.0](../datakit/changelog.md#cl-1.21.0), the blacklist function is deprecated, and not all fields in Span.Meta are extracted into top-level tags anymore—only selected fields are extracted.
 
-| Mete              | tag               | doc                       |
-|:------------------|:------------------|:--------------------------|
-| http.url          | http_url          | HTTP url                  |
-| http.hostname     | http_hostname     | hostname                  |
-| http.route        | http_route        | route                     |
-| http.status_code  | http_status_code  | status code               |
-| http.method       | http_method       | method                    |
-| http.client_ip    | http_client_ip    | client IP                 |
-| sampling.priority | sampling_priority | sample                    |
-| span.kind         | span_kind         | span kind                 |
-| error             | error             | is error                  |
-| dd.version        | dd_version        | agent version             |
-| error.message     | error_message     | error message             |
-| error.stack       | error_stack       | error stack               |
-| error.type        | error_type        | error type                |
-| system.pid        | pid               | pid                       |
-| error.msg         | error_message     | error message             |
-| project           | project           | project                   |
-| version           | version           | version                   |
-| env               | env               | env                       |
-| host              | host              | host from dd.tags         |
-| pod_name          | pod_name          | pod_name from dd.tags     |
-| _dd.base_service  | _dd_base_service  | base service              |
-| peer.hostname     | db_host           | JDBC config：ip or domain  |
-| db.type           | db_system         | DB type: mysql oracle ... |
-| db.instance       | db_name           | Database name             |
+The following is a list of tags that may be extracted:
 
-In the link interface of the <<<custom_key.brand_name>>>, tags that are not in the list can also be filtered.
+| Original Meta Field     | Extracted Field Name   | Description                                  |
+|:--------------------|:--------------------|:--------------------------------------------|
+| `http.url`          | `http_url`          | Full HTTP request path                       |
+| `http.hostname`     | `http_hostname`     | Hostname                                    |
+| `http.route`        | `http_route`        | Route                                       |
+| `http.status_code`  | `http_status_code`  | Status code                                 |
+| `http.method`       | `http_method`       | Request method                              |
+| `http.client_ip`    | `http_client_ip`    | Client IP                                   |
+| `sampling.priority` | `sampling_priority` | Sampling status                             |
+| `span.kind`         | `span_kind`         | Span type                                   |
+| `error`             | `error`             | Whether an error occurred                   |
+| `dd.version`        | `dd_version`        | Agent version                               |
+| `error.message`     | `error_message`     | Error message                               |
+| `error.stack`       | `error_stack`       | Stack trace information                     |
+| `error.type`        | `error_type`        | Error type                                  |
+| `system.pid`        | `pid`               | Process ID (pid)                            |
+| `error.msg`         | `error_message`     | Error message                               |
+| `project`           | `project`           | Project name                                |
+| `version`           | `version`           | Version                                     |
+| `env`               | `env`               | Environment                                 |
+| `host`              | `host`              | Hostname in tags                            |
+| `pod_name`          | `pod_name`          | Pod name in tags                            |
+| `_dd.base_service`  | `_dd_base_service`  | Parent service                              |
+| `peer.hostname`     | `db_host`           | May be an IP or domain name (depends on configuration) |
+| `db.type`           | `db_system`         | Database type: mysql, oracle, etc.          |
+| `db.instance`       | `db_name`           | Database name                               |
 
-Restore whitelist functionality from DataKit version [1.22.0](../datakit/changelog.md#cl-1.22.0). If there are labels that must be extracted from the first level label list, they can be found in the `customer_tags`.
+In the Studio tracing interface, tags not in the list can also be used for filtering.
 
-If the configured whitelist label is in the native `message.meta`, Will convert to replace `.` with `_`.
+Starting from DataKit version [1.22.0](../datakit/changelog.md#cl-1.22.0), the whitelist function is restored. If there are tags that must be extracted into the top-level tag list, you can configure them in `customer_tags`. If the whitelisted tags are in the original `message.meta`, the collector will use `.` as a separator and convert `.` to `_` during extraction.
 
-## Resource Catalog {#resource}
+## Collected Data Field Description {#collected-data}
 
-DDTrace reports its configuration information, integration list, dependencies, and service-related information to DataKit after initialization.  
-Currently, this feature is only supported in **Java Agent**. Below are descriptions of each field:
-
-- `app_client_configuration_change`: Contains the agent's configuration details.
-- `app_dependencies_loaded`: Dependency list, including package names and version information.
-- `app_integrations_change`: Integration list, including package names and instrumentation status (enabled/disabled).
-- Additional fields: Host metadata and service information.
-
-
-## Tracing {#tracing}
+### Tracing {#tracing}
 
 {{range $i, $m := .Measurements}}
 
 {{if eq $m.Type "tracing"}}
 
-### `{{$m.Name}}`
+#### `{{$m.Name}}`
 
 {{$m.Desc}}
 
@@ -335,28 +318,35 @@ Currently, this feature is only supported in **Java Agent**. Below are descripti
 
 {{end}}
 
-## Tracing Telemetry {#tracing-telemetry}
-
-{{range $i, $m := .Measurements}}
-
-{{if eq $m.Type "custom_object"}}
-
-### `{{$m.Name}}`
-
-{{$m.Desc}}
-
-{{$m.MarkdownTable}}
-{{end}}
-
-{{end}}
-
-## Tracing metrics  {#tracing-metric}
+### Metrics {#metric}
 
 {{range $i, $m := .Measurements}}
 
 {{if eq $m.Type "metric"}}
 
-### `{{$m.Name}}`
+#### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+{{$m.MarkdownTable}}
+{{end}}
+
+{{end}}
+
+### Custom Objects {#custom-object}
+
+After DDTrace starts, it reports its own configuration information, integration list, dependencies, and service-related information to DataKit. Currently, only Java Agent is supported. The following is a description of each field:
+
+- `app_client_configuration_change`: Contains the agent's configuration information
+- `app_dependencies_loaded`: Dependency list (including package names and version information)
+- `app_integrations_change`: Integration list (including package names and whether the agent is enabled)
+- Other host information, service information, etc.
+
+{{range $i, $m := .Measurements}}
+
+{{if eq $m.Type "custom_object"}}
+
+#### `{{$m.Name}}`
 
 {{$m.Desc}}
 
@@ -367,7 +357,9 @@ Currently, this feature is only supported in **Java Agent**. Below are descripti
 
 ## More Readings {#more-reading}
 
-- [DataKit Tracing Field definition](datakit-tracing-struct.md)
-- [DataKit general Tracing data collection instructions](datakit-tracing.md)
-- [Proper use of regular expressions to configure](../datakit/datakit-input-conf.md#debug-regex)
-- Sampling strategy considerations when DDTrace and OpenTelemetry are concatenated: [Tracing Sampled](tracing-sample.md)
+- [DataKit Tracing Field Definition](datakit-tracing-struct.md)
+- [DataKit General Tracing Data Collection Description](datakit-tracing.md)
+- [Proper Use of Regular Expressions for Configuration](../datakit/datakit-input-conf.md#debug-regex)
+- [Multi-Tracing Propagation](tracing-propagator.md)
+- [Java Integration and Exception Description](ddtrace-java.md)
+- [DDTrace Sampling Strategy and Notes on Multi-Tool Tracing Propagation](tracing-sample.md)

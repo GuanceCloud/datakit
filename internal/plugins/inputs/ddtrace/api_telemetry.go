@@ -56,9 +56,10 @@ func (ob *jvmTelemetry) setField(key string, val interface{}) {
 
 func (ob *jvmTelemetry) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: telemetryMeasurementName,
-		Desc: "Collect service, host, process APM telemetry message.",
-		Cat:  point.CustomObject,
+		Name:   telemetryMeasurementName,
+		Desc:   "Collect service, host, process APM telemetry message.",
+		DescZh: "采集 DDTrace 的 Service、Host、进程等配置信息",
+		Cat:    point.CustomObject,
 		Fields: map[string]interface{}{
 			requestTypeMap[RequestTypeAppStarted]: &inputs.FieldInfo{
 				Type:     inputs.Gauge,
@@ -107,16 +108,16 @@ func (ob *jvmTelemetry) Info() *inputs.MeasurementInfo {
 			"kernel_release":   inputs.NewTagInfo("Kernel release"),
 			"kernel_version":   inputs.NewTagInfo("Kernel version"),
 			"service":          inputs.NewTagInfo("Service"),
-			"name":             inputs.NewTagInfo("same as service name"),
+			"name":             inputs.NewTagInfo("Same as service name"),
 			"env":              inputs.NewTagInfo("Service ENV"),
 			"service_version":  inputs.NewTagInfo("Service version"),
 			"tracer_version":   inputs.NewTagInfo("DDTrace version"),
 			"language_name":    inputs.NewTagInfo("Language name"),
 			"language_version": inputs.NewTagInfo("Language version"),
 			"runtime_name":     inputs.NewTagInfo("Runtime name"),
-			"runtime_version":  inputs.NewTagInfo("Runtime_version"),
+			"runtime_version":  inputs.NewTagInfo("Runtime version"),
 			"runtime_patches":  inputs.NewTagInfo("Runtime patches"),
-			"runtime_id":       inputs.NewTagInfo("RuntimeID"),
+			"runtime_id":       inputs.NewTagInfo("Runtime ID"),
 		},
 	}
 }

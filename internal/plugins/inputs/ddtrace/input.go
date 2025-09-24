@@ -193,7 +193,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&itrace.TraceMeasurement{Name: inputName},
 		&jvmTelemetry{},
-		&itrace.TracingMetricMeasurement{},
+		&itrace.TracingMetricMeasurement{Source: "ddtrace", Name: "DDTrace"},
 	}
 }
 
