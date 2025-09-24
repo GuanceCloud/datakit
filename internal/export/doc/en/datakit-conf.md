@@ -687,6 +687,8 @@ DataKit receives tasks dispatched from the center and executes them. Currently, 
 
 It is command `jmap`,generate a jump file, and upload it to the `OSS`,`AWS S3 Bucket`, or `HuaWei Cloud OBS`.
 
+> Note: that not all JVM environments come with `jmap`. If not, please install it yourself.
+
 After installing DataKit (DK), two files will be generated in the `template/service-task` directory of the installation folder: `jvm_dump_host_script.py` and `jvm_dump_k8s_script.py`.
 The former is for the host machine mode, and the latter is for the virtual (Kubernetes) environment.
 
@@ -820,6 +822,7 @@ Configuration file description:
 4. `java_home ENV_REMOTE_JOB_JAVA_HOME` The host environment is automatically obtained from the environment variable ($JAVA_HOME) and does not need to be configured.
 
 > Please note that the version of the Agent: `dd-java-agent.jar` used should not be lower than `v1.4.0-ext`.
+> This is because the 'process_id' field is not present in the trace data of lower versions.
 
 ### Point Pool {#point-pool}
 
