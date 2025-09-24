@@ -413,8 +413,8 @@ func (m *DatabaseSize) Info() *inputs.MeasurementInfo {
 		Name: "sqlserver_database_size",
 		Cat:  point.Metric,
 		Fields: map[string]interface{}{
-			"data_size": newKByteFieldInfo("The size of file of Rows"),
-			"log_size":  newKByteFieldInfo("The size of file of Log"),
+			"data_size": newMByteFieldInfo("The size of file of Rows"),
+			"log_size":  newMByteFieldInfo("The size of file of Log"),
 		},
 		Tags: map[string]interface{}{
 			"database_name": inputs.NewTagInfo("Name of the database"),
