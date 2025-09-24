@@ -21,8 +21,8 @@ const MB = 1024 * 1024
 var jobOpt *JobOptions
 
 type JobOptions struct {
-	CPUMax float64 `toml:"cpu_max"`
-	MemMax int64   `toml:"mem_max_mb"`
+	CPUMax float64
+	MemMax int64
 
 	cpuErr error
 	memErr error

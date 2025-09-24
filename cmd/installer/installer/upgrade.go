@@ -16,6 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/resourcelimit"
 )
 
 var l = logger.DefaultSLogger("upgrade")
@@ -215,13 +216,10 @@ func upgradeMainConfInstance(c *config.Config) *config.Config {
 	}
 
 	if c.ResourceLimitOptions != nil {
-		// During upgrading, people has set limit-cpu-max in old version, so
-		// disable limit-cpu-cores.
-		//
-		// To override old limit-cpu-max, we have to set limit-cpu-max during
-		// installing or upgrading.
-		if c.ResourceLimitOptions.CPUMax > 0 {
-			c.ResourceLimitOptions.CPUCores = 0
+		// During upgrading, convert cpu-max to cpu-cores, and deprecate cpu-max.
+		if c.ResourceLimitOptions.CPUMaxDeprecated > 0 {
+			c.ResourceLimitOptions.CPUCores = resourcelimit.CPUMaxToCores(c.ResourceLimitOptions.CPUMaxDeprecated)
+			c.ResourceLimitOptions.CPUMaxDeprecated = 0.0
 		}
 	}
 

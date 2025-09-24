@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/resourcelimit"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -350,26 +351,37 @@ func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config,
 	if args.LimitDisabled != 1 {
 		if mc.ResourceLimitOptions.Enable { // resource-limit not disabled before upgrade/install
 			if args.LimitCPUMax > 0 {
-				mc.ResourceLimitOptions.CPUMax = args.LimitCPUMax
+				mc.ResourceLimitOptions.CPUCores = resourcelimit.CPUMaxToCores(args.LimitCPUMax)
+				mc.ResourceLimitOptions.CPUMaxDeprecated = 0.0 // clear old cpu-max
+
+				l.Infof("apply cpu-cores to %f based on cpu-max %f",
+					mc.ResourceLimitOptions.CPUCores, args.LimitCPUMax)
 			}
 
 			// apply args to datakit.conf or from datakit.conf to args
 			if args.LimitCPUCores > 0 {
 				mc.ResourceLimitOptions.CPUCores = args.LimitCPUCores
+				mc.ResourceLimitOptions.CPUMaxDeprecated = 0.0 // clear old cpu-max
 
-				// we passed limit-cpu-cores, so reset cpu-max config and deprecated it
-				mc.ResourceLimitOptions.CPUMax = 0
+				l.Infof("apply cpu-cores: %f", mc.ResourceLimitOptions.CPUCores)
+			}
+
+			// clear deprecated cpu-max
+			if mc.ResourceLimitOptions.CPUMaxDeprecated > 0 {
+				mc.ResourceLimitOptions.CPUCores = resourcelimit.CPUMaxToCores(mc.ResourceLimitOptions.CPUMaxDeprecated)
+				mc.ResourceLimitOptions.CPUMaxDeprecated = 0.0
 			}
 
 			if args.LimitMemMax > 0 {
 				mc.ResourceLimitOptions.MemMax = args.LimitMemMax
+
+				l.Infof("apply mem-max: %f", mc.ResourceLimitOptions.MemMax)
 			}
 
 			mc.ResourceLimitOptions.Setup()
 
-			l.Infof("resource limit enabled under %s, cpu: %f, cores: %f, mem: %dMB",
+			l.Infof("resource limit enabled under %s, cpu-cores: %f, mem: %dMB",
 				runtime.GOOS,
-				mc.ResourceLimitOptions.CPUMax,
 				mc.ResourceLimitOptions.CPUCores,
 				mc.ResourceLimitOptions.MemMax)
 		}
