@@ -8,6 +8,7 @@ package postgresql
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net"
 	"net/url"
@@ -119,15 +120,20 @@ const sampleConfig = `
 
   ## Relations config
   #
-  # The list of relations/tables can be specified to track per-relation metrics. To collect relation
+  # The list of relations/tables can be specified to track per-relation metrics. 
+  # To collect relation metrics, you need to specify the databases or database_regex field to indicate which databases to collect.
   # relation_name refer to the name of a relation, either relation_name or relation_regex must be set.
   # relation_regex is a regex rule, only takes effect when relation_name is not set.
   # schemas used for filtering, ignore this field when it is empty
   # relkind can be a list of the following options:
   #   r(ordinary table), i(index), S(sequence), t(TOAST table), p(partitioned table),
   #   m(materialized view), c(composite type), f(foreign table)
+  # Size metrics are collected only for ordinary tables. Index metrics are collected only for user indexes.
+  # Lock metrics are collected for all relation types. The rest of the metrics are collected only for user tables.
   #
   # [[inputs.postgresql.relations]]
+  # databases = ["postgres"]
+  # database_regex = "<DATABASE_PATTERN>"
   # relation_name = "<TABLE_NAME>"
   # relation_regex = "<TABLE_PATTERN>"
   # schemas = ["public"]
@@ -205,6 +211,8 @@ type scanner interface {
 }
 
 type Relation struct {
+	Databases     []string `toml:"databases"`
+	DatabaseRegex string   `toml:"database_regex"`
 	RelationName  string   `toml:"relation_name"`
 	RelationRegex string   `toml:"relation_regex"`
 	Schemas       []string `toml:"schemas"`
@@ -212,6 +220,7 @@ type Relation struct {
 }
 
 type queryCacheItem struct {
+	db              string
 	ptsTime         time.Time
 	q               string
 	measurementInfo *inputs.MeasurementInfo
@@ -398,7 +407,7 @@ func (ipt *Input) getQueryPoints(cache *queryCacheItem, dealColumnFn ...func(map
 	}
 
 	start := time.Now()
-	rows, err := ipt.service.Query(cache.q)
+	rows, err := ipt.service.QueryByDatabase(cache.q, cache.db)
 	if err != nil {
 		return nil, err
 	}
@@ -421,6 +430,9 @@ func (ipt *Input) getQueryPoints(cache *queryCacheItem, dealColumnFn ...func(map
 			}
 		}
 		if point := ipt.makePoints(columnMap, measurementInfo); point != nil {
+			if cache.db != "" {
+				point.SetTag("db", cache.db)
+			}
 			point.SetTime(cache.ptsTime)
 			points = append(points, point)
 		}
@@ -505,6 +517,7 @@ func (ipt *Input) getDynamicQueryMetrics() error {
 func (ipt *Input) getBgwMetrics() error {
 	cache, ok := ipt.metricQueryCache[BgwriterMetric]
 
+	// instance level metric
 	if !ok {
 		query := `
 		select * FROM pg_stat_bgwriter
@@ -525,27 +538,45 @@ func (ipt *Input) getRelationMetrics() error {
 		return fmt.Errorf("no relations set")
 	}
 
-	for _, relationInfo := range ipt.relationMetrics {
-		cacheName := fmt.Sprintf("%s_%s", RelationMetric, relationInfo.name)
-		cache, ok := ipt.metricQueryCache[cacheName]
-
-		if !ok {
-			query := ipt.getRelationQuery(relationInfo.query, relationInfo.schemaField)
-			if len(query) == 0 {
-				l.Warnf("relation query is empty, ignore %s", relationInfo.name)
+	for idx, relation := range ipt.Relations {
+		dbRegex := relation.DatabaseRegex
+		dbs := []string{ipt.dbName}
+		if len(relation.Databases) > 0 {
+			dbs = relation.Databases
+		} else if len(dbRegex) > 0 {
+			if dbsTmp, err := ipt.getDBNames(dbRegex); err != nil {
+				l.Warnf("getDBNames failed: %s, ignore this relation config: %+#v", err.Error(), relation)
 				continue
+			} else {
+				dbs = dbsTmp
 			}
-
-			cache = &queryCacheItem{
-				q:               query,
-				measurementInfo: relationInfo.measurementInfo,
-			}
-			ipt.metricQueryCache[cacheName] = cache
-			l.Infof("Query for metric [%s], %s", cache.measurementInfo.Name, query)
 		}
 
-		if err := ipt.executeQuery(cache); err != nil {
-			l.Warnf("collect %s error: %s", relationInfo.name, err.Error())
+		for _, db := range dbs {
+			for _, relationInfo := range ipt.relationMetrics {
+				cacheName := fmt.Sprintf("%s_%s_%d", RelationMetric, relationInfo.name, idx)
+				cache, ok := ipt.metricQueryCache[cacheName]
+
+				if !ok {
+					query := ipt.getRelationQuery(relation, relationInfo.query, relationInfo.schemaField)
+					if len(query) == 0 {
+						l.Warnf("relation query is empty, ignore %s", relationInfo.name)
+						continue
+					}
+
+					cache = &queryCacheItem{
+						q:               query,
+						measurementInfo: relationInfo.measurementInfo,
+					}
+					ipt.metricQueryCache[cacheName] = cache
+					l.Infof("Query for metric [%s], %s", cache.measurementInfo.Name, query)
+				}
+
+				cache.db = db
+				if err := ipt.executeQuery(cache); err != nil {
+					l.Warnf("collect %s error: %s", relationInfo.name, err.Error())
+				}
+			}
 		}
 	}
 
@@ -703,51 +734,82 @@ func (ipt *Input) getConnectionMetrics() error {
 	return err
 }
 
-func (ipt *Input) getRelationQuery(query, schemaField string) string {
-	relationFilters := []string{}
-	for _, relation := range ipt.Relations {
-		relationFilter := []string{}
-		switch {
-		case len(relation.RelationName) > 0:
-			relationFilter = append(relationFilter, fmt.Sprintf("( relname = '%s'", relation.RelationName))
-		case len(relation.RelationRegex) > 0:
-			relationFilter = append(relationFilter, fmt.Sprintf("( relname ~ '%s'", relation.RelationRegex))
-		default:
-			l.Warnf("relation_name and relation_regex are both empty, ignore this relation config: %+#v", relation)
-			continue
-		}
+const sqlGetDBNames = `
+SELECT datname 
+FROM pg_database 
+WHERE datname not ilike 'template%' AND datname not ilike 'rdsadmin'
+AND datname not ilike 'azure_maintenance' AND datname not ilike 'postgres'
+`
 
-		if len(relation.Schemas) > 0 {
-			schemaFilter := ""
-			comma := ""
-			for _, schema := range relation.Schemas {
-				schemaFilter += fmt.Sprintf("%s'%s'", comma, schema)
-				comma = ","
-			}
-			relationFilter = append(relationFilter, fmt.Sprintf("AND %s = ANY(array[%s]::text[])", schemaField, schemaFilter))
-		}
-
-		if strings.Contains(query, "FROM pg_locks") && len(relation.RelKind) > 0 {
-			relKindFilter := ""
-			comma := ""
-			for _, k := range relation.RelKind {
-				relKindFilter += fmt.Sprintf("%s'%s'", comma, k)
-				comma = ","
-			}
-			relationFilter = append(relationFilter, fmt.Sprintf("AND relkind = ANY(array[%s])", relKindFilter))
-		}
-
-		relationFilter = append(relationFilter, ")")
-		relationFilters = append(relationFilters, strings.Join(relationFilter, " "))
+func (ipt *Input) getDBNames(dbRegex string) ([]string, error) {
+	if len(dbRegex) == 0 {
+		return []string{}, nil
 	}
 
-	if len(relationFilters) == 0 {
+	query := fmt.Sprintf("%s AND datname ~ '%s'", sqlGetDBNames, dbRegex)
+	rows, err := ipt.service.QueryByDatabase(query, "")
+	if err != nil {
+		return nil, fmt.Errorf("query databases failed: %w", err)
+	}
+
+	defer rows.Close() //nolint:errcheck
+
+	dbs := make([]string, 0)
+	for rows.Next() {
+		var dbName sql.NullString
+
+		if err := rows.Scan(&dbName); err != nil {
+			return nil, fmt.Errorf("scan database name failed: %w", err)
+		}
+
+		if dbName.Valid {
+			dbs = append(dbs, dbName.String)
+		}
+	}
+
+	return dbs, nil
+}
+
+func (ipt *Input) getRelationQuery(relation Relation, query, schemaField string) string {
+	relationFilter := []string{}
+	switch {
+	case len(relation.RelationName) > 0:
+		relationFilter = append(relationFilter, fmt.Sprintf("( relname = '%s'", relation.RelationName))
+	case len(relation.RelationRegex) > 0:
+		relationFilter = append(relationFilter, fmt.Sprintf("( relname ~ '%s'", relation.RelationRegex))
+	default:
+		l.Warnf("relation_name and relation_regex are both empty, ignore this relation config: %+#v", relation)
 		return ""
 	}
 
-	relationQuery := fmt.Sprintf("(%s)", strings.Join(relationFilters, " OR "))
+	if len(relation.Schemas) > 0 {
+		schemaFilter := ""
+		comma := ""
+		for _, schema := range relation.Schemas {
+			schemaFilter += fmt.Sprintf("%s'%s'", comma, schema)
+			comma = ","
+		}
+		relationFilter = append(relationFilter, fmt.Sprintf("AND %s = ANY(array[%s]::text[])", schemaField, schemaFilter))
+	}
 
-	return fmt.Sprintf(query, relationQuery)
+	if strings.Contains(query, "FROM pg_locks") && len(relation.RelKind) > 0 {
+		relKindFilter := ""
+		comma := ""
+		for _, k := range relation.RelKind {
+			relKindFilter += fmt.Sprintf("%s'%s'", comma, k)
+			comma = ","
+		}
+		relationFilter = append(relationFilter, fmt.Sprintf("AND relkind = ANY(array[%s])", relKindFilter))
+	}
+
+	relationFilter = append(relationFilter, ")")
+	relationFilterString := strings.Join(relationFilter, " ")
+
+	if len(relationFilterString) == 0 {
+		return ""
+	}
+
+	return fmt.Sprintf(query, relationFilterString)
 }
 
 func (ipt *Input) setAurora() {
@@ -909,7 +971,7 @@ func (ipt *Input) makePoints(columnMap map[string]*interface{}, measurementInfo 
 			}
 
 			if isMeasurementTag {
-				kvs = kvs.AddTag(col, stringVal)
+				kvs = kvs.SetTag(col, stringVal)
 			} else {
 				switch {
 				case len(stringVal) > 0:
@@ -1044,7 +1106,6 @@ func (ipt *Input) initDB() error {
 	if ipt.Tags == nil {
 		ipt.Tags = map[string]string{}
 	}
-	ipt.Tags["db"] = dbName
 
 	return nil
 }
