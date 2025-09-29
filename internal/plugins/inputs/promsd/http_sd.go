@@ -6,11 +6,13 @@
 package promsd
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"reflect"
 	"time"
 
@@ -91,6 +93,19 @@ func (sd *HTTPSD) produceScrapers(ctx context.Context, cfg *ScrapeConfig, opts [
 }
 
 func (sd *HTTPSD) discoveryTargetGroups() (TargetGroups, error) {
+	req, err := http.NewRequest("GET", sd.ServiceURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if sd.Auth != nil && sd.Auth.BearerTokenFile != "" {
+		token, err := os.ReadFile(sd.Auth.BearerTokenFile)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Authorization", "Bearer "+string(bytes.TrimSpace(token)))
+	}
+
 	clientOpts := httpcli.NewOptions()
 
 	if sd.Auth != nil && sd.Auth.TLSClientConfig != nil {
@@ -102,7 +117,7 @@ func (sd *HTTPSD) discoveryTargetGroups() (TargetGroups, error) {
 	}
 
 	client := httpcli.Cli(clientOpts)
-	resp, err := client.Get(sd.ServiceURL)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
