@@ -93,7 +93,7 @@ func (c *Config) initDefaultEnabledPlugins(confDir string, ipts map[string]input
 			ipt = c()
 			sample = ipt.SampleConfig()
 
-			confPath = filepath.Join(confDir, catalog, name+".conf")
+			confPath = filepath.Join(confDir, name+".conf")
 		} else {
 			l.Warnf("input %s not found, ignored", name)
 			continue
@@ -107,7 +107,7 @@ func (c *Config) initDefaultEnabledPlugins(confDir string, ipts map[string]input
 		// check exist
 		if fi, err := os.Stat(confPath); err == nil {
 			if fi.IsDir() { // for configmap in k8s, the conf(such as zipkin.conf) is a dir.
-				newfpath := filepath.Join(confDir, catalog, name+"-0xdeadbeaf"+".conf") // add suffix to filename
+				newfpath := filepath.Join(confDir, name+"-0xdeadbeaf"+".conf") // add suffix to filename
 				l.Warnf("%q is dir, rename conf file to %q", confPath, newfpath)
 				confPath = newfpath
 			} else {
