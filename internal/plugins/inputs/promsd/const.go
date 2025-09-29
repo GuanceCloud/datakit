@@ -37,7 +37,9 @@ const (
   #   # Advanced HTTP configuration (TLS, proxies, etc.)
   #   # Uncomment and configure as needed:
   #   [inputs.promsd.http_sd_config.auth]
-  #     ## --- TLS Configuration ---
+  #     # Bearer token file path for authentication (auto adds Authorization header)
+  #     bearer_token_file = ""
+  #     # --- TLS Configuration ---
   #     # insecure_skip_verify = false
   #     # ca_certs = ["/opt/tls/ca.crt"]
   #     # cert     = "/opt/tls/client.crt"
