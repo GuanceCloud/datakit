@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.83.1(2025/09/30) {#cl-1.83.1}
+
+This release is a hotfix containing the following updates:
+
+### Bug Fixes {#cl-1.83.1-fix}
+
+- Fixed default collector configuration directory issue (#2810)
+- Prometheus Service Discovery now supports bearer token file configuration (#2840)
+- Fixed memory leak issue caused by DDTrace service object collection (#2841)
+
+---
+
 ## 1.83.0 (2025/09/24) {#cl-1.83.0}
 
 This release is an iterative update with the following key changes:
