@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD046 MD034 -->
 
 # 离线部署
 ---
@@ -8,24 +9,25 @@
 
 如果内网有可以通外网的机器，可以在该节点部署一个 proxy，将内网机器的访问流量通过该机器代理出来。
 
-当前 DataKit 自己内置了一个 proxy 采集器；也能通过 Nginx 正向代理功能来实现同一目的。基本网络结构如下：
+当前 DataKit 自己内置了一个 proxy 采集器；也能通过 Nginx 正向代理功能来实现同一目的。基本流程如下：
 
 ```mermaid
-flowchart LR
-dk1(Datakit)
-dk2(Datakit)
-dk3(Datakit)
-proxy(Nginx or Datakit.Proxy)
-cdn(<<<custom_key.brand_name>>> CDN)
-studio(openway.<<<custom_key.brand_name>>>.com)
-%%%
+sequenceDiagram
+autonumber
+participant cdn as CDN
 
-dk1--> proxy
-dk2--> proxy
-dk3--> proxy
+box Proxy
+participant proxy as Nginx Or DataKit
+end
 
-proxy --> cdn
-proxy --> studio
+participant dk as DataKit host
+participant dw as DataWay
+
+dk -->> proxy: Install packages
+proxy -->> cdn: Install via Proxy
+cdn -->> dk: Install ok
+dk -->> proxy: Upload data
+proxy -->> dw: Proxy request to DataWay
 ```
 
 ### 前置条件 {#requrements}
@@ -42,7 +44,6 @@ proxy --> studio
 
 - 或者准备配置好正向代理的 Nginx
 
-<!-- markdownlint-disable MD046 MD034 -->
 === "Linux/Mac"
 
     - 使用 DataKit 代理
@@ -102,17 +103,16 @@ proxy --> studio
 
 以下文件的地址，可通过 wget 等下载工具，也可以直接在浏览器中输入对应的 URL 下载。
 
-<!-- markdownlint-disable MD046 -->
+<!-- markdownlint-disable MD046 MD034 -->
 ???+ note
 
     Safari 浏览器下载时，后缀名可能不同（如将 `.tar.gz` 文件下载成 `.tar`），会导致安装失败。建议用 Chrome 浏览器下载。
-<!-- markdownlint-enable -->
 
 - 先下载数据包 [data.tar.gz](https://static.<<<custom_key.brand_main_domain>>>/datakit/data.tar.gz)，每个平台都一样。
 
 - 然后再下载其他所需安装程序：
 
-<!-- markdownlint-disable MD046 -->
+<!-- markdownlint-disable MD046 MD034 -->
 === "Linux"
 
     - **X86 32 位**
@@ -169,17 +169,15 @@ proxy --> studio
 
 将这些文件拷贝到对应机器上（通过 U 盘或 `scp` 等命令）。
 
-<!-- markdownlint-disable MD046 -->
+<!-- markdownlint-disable MD046 MD034 -->
 ???+ note
 
     这些文件务必每个都完整下载，在各个版本之间，它们不一定能复用，比如 installer 程序在不同的 DataKit 版本之间，其行为也不同，因为 installer 可能会调整 DataKit 的默认配置，而不同 DataKit 的配置是有不同程度的增删的。最好 1.2.3 版本的 DataKit 就用 1.2.3 版本对应的 installer 程序来安装或升级。
-<!-- markdownlint-enable -->
 
 #### 安装 {#simple-install}
 
 > 如果是离线安装精简版版本的 DataKit，需指定带 `_lite` 后缀的安装包，比如 *datakit_lite-linux-amd64-{{.Version}}.tar.gz*。
 
-<!-- markdownlint-disable MD046 -->
 === "Linux"
 
     需以 root 权限运行：
@@ -196,13 +194,11 @@ proxy --> studio
     ```powershell
     .\installer-windows-amd64.exe --offline --dataway "https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>" --srcs datakit-windows-amd64-{{.Version}}.tar.gz,dk_upgrader-windows-amd64-{{.Version}}.tar.gz,data.tar.gz
     ```
-<!-- markdownlint-enable -->
 
 #### 升级 {#simple-upgrade}
 
 > 如果是离线升级 lite 版本的 DataKit，需指定带 `_lite` 后缀的安装包，比如 `datakit_lite-linux-amd64-{{.Version}}.tar.gz`。
 
-<!-- markdownlint-disable MD046 -->
 === "Linux"
 
     需以 root 权限运行：
@@ -219,9 +215,7 @@ proxy --> studio
     ```powershell
     .\installer-windows-amd64.exe --offline --upgrade --srcs datakit-windows-amd64-{{.Version}}.tar.gz,data.tar.gz
     ```
-<!-- markdownlint-enable -->
 
-<!-- markdownlint-disable MD046 -->
 ???+ tip "离线安装如何指定更多的配置参数"
 
     非离线安装时，我们可以通过[环境变量 `DK_XXX=YYY` 的方式](datakit-install.md#extra-envs)来指定一些默认参数，这些默认参数实际上是通过 *install.sh*（Windows 下为 *install.ps1*）来生效的，但是这些环境变量对安装程序 *installer-xxx* 无效，我们只能使用 *installer-xxx* 的命令行参数来额外添加这些选项，通过如下命令，我们可以得知安装程序支持的参数：
@@ -230,24 +224,41 @@ proxy --> studio
     ./installer-linux-amd64 --help
     ```
 
-    比如，上面我们指定 Dataway 地址就是通过 `--dataway` 方式来指定的。另外，这些额外的命令行参数设置，只有在安装模式才能生效，（离线）模式下，这些是不生效的。
-<!-- markdownlint-enable -->
+    比如，上面我们指定 Dataway 地址就是通过 `--dataway` 方式来指定的。另外，这些额外的命令行参数设置，只有在安装模式才能生效，离线模式下，这些是不生效的。
 
-### 高级模式 {#offline-advanced}
+### 全托管模式 {#offline-advanced}
 
-DataKit 目前的安装地址是公网地址，所有二进制数据以及安装脚本都是从 static.<<<custom_key.brand_main_domain>>> 站点下载。对于不能访问该站点的机器，可以通过在内网部署一个文件服务器，以替代 static.<<<custom_key.brand_main_domain>>> 站点。
+全托管模式指，在用户内网构建一个文件服务器，将公网 CDN 安装包全部托管到用户本地环境，以替代公网 CDN 功能。
 
-高级模式的网络流量拓扑如下：
+DataKit 目前的安装地址是公网地址，所有二进制数据以及安装脚本都是从 CDN static.<<<custom_key.brand_main_domain>>> 站点下载。对于不能访问该站点的机器，可以通过在内网部署一个文件服务器，以替代 static.<<<custom_key.brand_main_domain>>> 站点。
 
-<figure markdown>
-  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/nginx-file-server.png){ width="700"}
-</figure>
+全托管模式的工作流程如下：
+
+```mermaid
+sequenceDiagram
+autonumber
+participant cdn as CDN
+
+box Proxy
+participant fs as Nginx File Server
+participant proxy as Nginx Or DataKit
+end
+
+participant dk as DataKit
+participant dw as DataWay
+
+cdn -->> fs: Download packages
+dk -->> fs: Install packages
+fs -->> dk: Install ok
+dk -->> proxy: Upload data
+proxy -->> dw: Proxy request to DataWay
+```
 
 先准备一台内网均可访问的机器，在该机器上安装 Nginx， 将 DataKit 安装所需的文件下载（或通过 U 盘拷贝）到 Nginx 服务器上，这样其它机器可以从 Nginx 文件服务器上下载安装文件来完成安装。
 
-- 设置 Nginx 文件服务器 {#nginx-config}
+#### 设置 Nginx 文件服务器 {#nginx-config}
 
-在 *nginx.conf* 中添加配置：
+- 在 *nginx.conf* 中添加配置：
 
 ``` nginx
 server {
@@ -271,57 +282,89 @@ nginx -t        # 测试配置
 nginx -s reload # reload 配置
 ```
 
-- 将文件下载到 Nginx 服务器所在的 */datakit* 目录下，这里以 wget 下载 Linux AMD64 平台的安装包为例：
+- 将文件下载到 Nginx 服务器所在的 */datakit* 目录下，这里以 wget 下载安装包为例：
 
-```shell
-#!/bin/bash
+???- Info "下载安装包脚本（点击点开）"
 
-mkdir -p /datakit
-mkdir -p /datakit/apm_lib
-wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh
-wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/version
-wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/data.tar.gz
-wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-amd64-{{.Version}}
-wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-amd64-{{.Version}}.tar.gz
-wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-amd64-{{.Version}}.tar.gz
-wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-amd64-{{ .Version }}.tar.gz
-wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-apm-inject-linux-amd64-{{.Version}}.tar.gz
-wget -P /datakit/apm_lib https://static.<<<custom_key.brand_main_domain>>>/dd-image/dd-java-agent.jar
-
-# 下载其它工具包：sources 是开启 RUM sourcemap 功能使用的安装包，如果未开启此功能，可选择不下载
-sources=(
-  "/datakit/sourcemap/jdk/OpenJDK11U-jdk_x64_mac_hotspot_11.0.16_8.tar.gz"
-  "/datakit/sourcemap/jdk/OpenJDK11U-jdk_aarch64_mac_hotspot_11.0.15_10.tar.gz"
-  "/datakit/sourcemap/jdk/OpenJDK11U-jdk_x64_linux_hotspot_11.0.16_8.tar.gz"
-  "/datakit/sourcemap/jdk/OpenJDK11U-jdk_aarch64_linux_hotspot_11.0.16_8.tar.gz"
-  "/datakit/sourcemap/R8/commandlinetools-mac-8512546_simplified.tar.gz"
-  "/datakit/sourcemap/R8/commandlinetools-linux-8512546_simplified.tar.gz"
-  "/datakit/sourcemap/proguard/proguard-7.2.2.tar.gz"
-  "/datakit/sourcemap/ndk/android-ndk-r22b-x64-mac-simplified.tar.gz"
-  "/datakit/sourcemap/ndk/android-ndk-r25-x64-linux-simplified.tar.gz"
-  "/datakit/sourcemap/atosl/atosl-darwin-x64"
-  "/datakit/sourcemap/atosl/atosl-darwin-arm64"
-  "/datakit/sourcemap/atosl/atosl-linux-x64"
-  "/datakit/sourcemap/atosl/atosl-linux-arm64"
-)
-
-mkdir -p /datakit/sourcemap/jdk \
-  /datakit/sourcemap/R8       \
-  /datakit/sourcemap/proguard \
-  /datakit/sourcemap/ndk      \
-  /datakit/sourcemap/atosl
-
-for((i=0;i<${#sources[@]};i++)); do
-  wget https://static.<<<custom_key.brand_main_domain>>>${sources[$i]} -O ${sources[$i]}
-done
-```
-
-<!-- markdownlint-disable MD046 -->
-???+ note
-
-    Windows 下的 `Installer` 程序的下载链接需添加 **.exe** 后缀，如 [*https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-386-{{.Version}}.exe*](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-386-{{.Version}}.exe) 和
-    [*https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-amd64-{{.Version}}.exe*](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-amd64-{{.Version}}.exe)。
-<!-- markdownlint-enable -->
+    ```shell
+    #!/bin/bash
+    
+    # NOTE: datakit-apm-inject not support for 32-bit platform and all Windows platform.
+    
+    mkdir -p /datakit
+    mkdir -p /datakit/apm_lib
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh  # for Linux
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/install.ps1 # for Windows
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/version
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/data.tar.gz
+    
+    # linux-amd64
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-amd64-{{.Version}}
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-amd64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-amd64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-amd64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-apm-inject-linux-amd64-{{.Version}}.tar.gz
+    
+    # linux-386
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-386-{{.Version}}
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-386-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-386-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-386-{{.Version}}.tar.gz
+    
+    # linux-arm64
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-arm64-{{.Version}}
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-arm64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-arm64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-arm64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-apm-inject-linux-arm64-{{.Version}}.tar.gz
+    
+    # linux-arm
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-arm-{{.Version}}
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-arm-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-arm-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-arm-{{.Version}}.tar.gz
+    
+    # windows-amd64
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-amd64-{{.Version}}
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-windows-amd64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-windows-amd64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-windows-amd64-{{.Version}}.tar.gz
+    
+    # windows-386
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-386-{{.Version}}
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-windows-386-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-windows-386-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-windows-386-{{.Version}}.tar.gz
+    
+    wget -P /datakit/apm_lib https://static.<<<custom_key.brand_main_domain>>>/dd-image/dd-java-agent.jar
+    
+    # Optional resource: for RUM sourcemap 
+    sources=(
+      "/datakit/sourcemap/jdk/OpenJDK11U-jdk_x64_mac_hotspot_11.0.16_8.tar.gz"
+      "/datakit/sourcemap/jdk/OpenJDK11U-jdk_aarch64_mac_hotspot_11.0.15_10.tar.gz"
+      "/datakit/sourcemap/jdk/OpenJDK11U-jdk_x64_linux_hotspot_11.0.16_8.tar.gz"
+      "/datakit/sourcemap/jdk/OpenJDK11U-jdk_aarch64_linux_hotspot_11.0.16_8.tar.gz"
+      "/datakit/sourcemap/R8/commandlinetools-mac-8512546_simplified.tar.gz"
+      "/datakit/sourcemap/R8/commandlinetools-linux-8512546_simplified.tar.gz"
+      "/datakit/sourcemap/proguard/proguard-7.2.2.tar.gz"
+      "/datakit/sourcemap/ndk/android-ndk-r22b-x64-mac-simplified.tar.gz"
+      "/datakit/sourcemap/ndk/android-ndk-r25-x64-linux-simplified.tar.gz"
+      "/datakit/sourcemap/atosl/atosl-darwin-x64"
+      "/datakit/sourcemap/atosl/atosl-darwin-arm64"
+      "/datakit/sourcemap/atosl/atosl-linux-x64"
+      "/datakit/sourcemap/atosl/atosl-linux-arm64"
+    )
+    
+    mkdir -p /datakit/sourcemap/jdk \
+      /datakit/sourcemap/R8       \
+      /datakit/sourcemap/proguard \
+      /datakit/sourcemap/ndk      \
+      /datakit/sourcemap/atosl
+    
+    for((i=0;i<${#sources[@]};i++)); do
+      wget https://static.<<<custom_key.brand_main_domain>>>${sources[$i]} -O ${sources[$i]}
+    done
+    ```
 
 #### 安装 {#advance-install}
 
@@ -350,7 +393,6 @@ done
 (.WithEnvs "DK_INSTALLER_BASE_URL" "http://[Nginx-Server]:8080/datakit")
 }}
     ```
-<!-- markdownlint-enable -->
 
 到此为止，离线安装完成。注意，此处还额外设置了 `HTTPS_PROXY` 以支持代理。
 
@@ -360,7 +402,7 @@ done
 
 如果有新的 DataKit 版本，可以将其安装上面的方式下载下来，执行如下命令来升级：
 
-<!-- markdownlint-disable MD046 MD034 -->
+<!-- markdownlint-disable MD034 -->
 === "Linux/Mac"
 
     ```shell
@@ -390,8 +432,8 @@ done
 
 这里我们提供一个简单脚本来帮助大家完成免密登录、分发文件、解压镜像的任务。
 
-<!-- markdownlint-disable MD046 -->
-???- note "*datakit_tools.sh* (单击点开)"
+<!-- markdownlint-disable MD046 MD034 -->
+???- info "*datakit_tools.sh* (单击点开)"
 
     ```shell
     #!/bin/bash
@@ -484,7 +526,6 @@ done
         continue
     done
     ```
-<!-- markdownlint-enable -->
 
 ```shell
 # 需对脚本中的主机 ip 和登陆密码进行修改，之后便根据引导完成操作。
@@ -496,13 +537,13 @@ chmod +x datakit_tools.sh
 
 **如果内网有可以通外网的机器，可以在该节点部署一个 NGINX 服务器，当作获取镜像使用。**
 
-1、下载 *datakit.yaml* 文件
+- 下载 *datakit.yaml* 文件
 
 ```shell
 wget https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit.yaml -P /home/guance/
 ```
 
-2、下载 DataKit 镜像并打包
+- 下载 DataKit 镜像并打包
 
 ```shell
 # 拉取 amd 镜像并打包
@@ -520,10 +561,10 @@ docker image inspect pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:
 
 ```
 
-3、修改 NGINX 配置代理
+- 修改 NGINX 配置代理
 
-<!-- markdownlint-disable MD046 -->
-???- note "/etc/nginx/nginx.conf (单击点开)"
+<!-- markdownlint-disable MD046 MD034 -->
+???- info "/etc/nginx/nginx.conf (单击点开)"
 
     ```shell
     #user  nobody;
@@ -637,16 +678,15 @@ docker image inspect pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:
 
     }
     ```
-<!-- markdownlint-enable -->
 
-4、其余内网机器执行命令。
+- 其余内网机器执行命令
 
 ```shell
 wget http://<nginx-server-ip>:8080/datakit.yaml 
 wget http://<nginx-server-ip>:8080/datakit-amd64-{{.Version}}.tar 
 ```
 
-5、解压镜像命令
+- 解压镜像命令
 
 ```shell
 # docker 
@@ -657,7 +697,7 @@ ctr -n=k8s.io image import /k8sdata/datakit/datakit-amd64-{{.Version}}.tar
 
 ```
 
-6、启动 DataKit 容器
+- 启动 DataKit 容器
 
 ```shell
 kubectl apply -f datakit.yaml
@@ -675,7 +715,6 @@ docker load -i datakit-amd64-{{.Version}}.tar
 
 # containerd
 ctr -n=k8s.io image import datakit-amd64-{{.Version}}.tar
-
 ```
 
 - 集群控制机执行启动命令
@@ -688,5 +727,5 @@ kubectl apply -f datakit.yaml
 
 ```shell
 # 需先解压镜像
-kubectl patch -n datakit daemonsets.apps datakit -p '{"spec": {"template": {"spec": {"containers": [{"image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:<version>","name": "datakit"}]}}}}'
+kubectl patch -n datakit daemonsets.apps datakit -p '{"spec": {"template": {"spec": {"containers": [{"image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:{{.Version}}","name": "datakit"}]}}}}'
 ```

@@ -5,10 +5,15 @@
 
 package promsd
 
+import "time"
+
 var (
 	inputName            = "promsd"
 	maxScrapersPerWorker = 100
 	workerNumber         = 5
+
+	maxInterval = time.Minute * 10
+	minInterval = time.Second * 10
 )
 
 const (
@@ -16,6 +21,12 @@ const (
 [[inputs.promsd]]
   ## Collector alias.
   source = "prom_sd"
+
+  # [inputs.promsd.file_sd_config]
+  #   # Patterns for files from which target groups are extracted.
+  #   files = ["<filename_pattern>"]
+  #   # Refresh interval to re-read the files.
+  #   refresh_interval = "5m"
 
   # [inputs.promsd.http_sd_config]
   #   # Service_url of HTTP service discovery endpoint
@@ -26,7 +37,9 @@ const (
   #   # Advanced HTTP configuration (TLS, proxies, etc.)
   #   # Uncomment and configure as needed:
   #   [inputs.promsd.http_sd_config.auth]
-  #     ## --- TLS Configuration ---
+  #     # Bearer token file path for authentication (auto adds Authorization header)
+  #     bearer_token_file = ""
+  #     # --- TLS Configuration ---
   #     # insecure_skip_verify = false
   #     # ca_certs = ["/opt/tls/ca.crt"]
   #     # cert     = "/opt/tls/client.crt"

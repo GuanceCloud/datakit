@@ -12,6 +12,7 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"regexp"
@@ -81,6 +82,12 @@ const (
 	TagRpcGrpcStatusCode = "rpc_grpc_status_code"
 	TagPodName           = "pod_name"
 	TagPodNamespace      = "pod_namespace"
+
+	TagDBHost   = "db_host"
+	TagDBSystem = "db_system"
+	TagDBName   = "db_name"
+	TagOutHost  = "out_host"
+	TagRemoteIP = "remote_ip"
 
 	FieldDuration   = "duration"
 	FieldMessage    = "message"
@@ -422,10 +429,11 @@ func GetContentType(req *http.Request) string {
 }
 
 type TraceParameters struct {
-	URLPath string
-	Media   string
-	Encode  string
-	Body    *bytes.Buffer
+	URLPath  string
+	Media    string
+	Encode   string
+	RemoteIP string
+	Body     *bytes.Buffer
 }
 
 func GetClass(code string) string {
@@ -448,4 +456,17 @@ func GetClass(code string) string {
 		return "5xx"
 	}
 	return ""
+}
+
+// FormatSpanIDByBase 根据指定的基数格式化 span_id,parent_id.
+func FormatSpanIDByBase(id uint64, base int) string {
+	if id == 0 {
+		return "0"
+	}
+
+	if base == 10 {
+		return strconv.FormatUint(id, base)
+	} else {
+		return fmt.Sprintf("%016x", id)
+	}
 }

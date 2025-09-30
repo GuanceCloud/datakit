@@ -27,6 +27,7 @@ import (
 
 var (
 	defaultChangeLanguage = changes.LangEn
+	watchRetryInterval    = time.Second * 10
 	controllerStartTime   time.Time
 
 	klog = logger.DefaultSLogger("k8s")
@@ -97,6 +98,7 @@ func (k *Kube) StartCollect() {
 	tickers := []*time.Ticker{
 		time.NewTicker(k.cfg.MetricCollecInterval),
 		time.NewTicker(k.cfg.ObjectCollecInterval),
+		time.NewTicker(watchRetryInterval),
 	}
 	for _, t := range tickers {
 		defer t.Stop()
@@ -112,8 +114,12 @@ func (k *Kube) StartCollect() {
 		k.gatherObject()
 	}
 
-	ctx, cancel := context.WithCancel(context.Background()) // nolint
-	start := ntp.Now()
+	var (
+		ctx    context.Context
+		cancel context.CancelFunc
+
+		start = ntp.Now()
+	)
 
 	for {
 		select {
@@ -124,11 +130,12 @@ func (k *Kube) StartCollect() {
 
 		case k.paused = <-k.chanPause:
 			if k.paused {
-				cancel()
+				if cancel != nil {
+					cancel()
+					cancel = nil
+					ctx = nil
+				}
 				klog.Info("not leader for election")
-			} else {
-				ctx, cancel = context.WithCancel(context.Background())
-				k.tryWatchEventAndChange(ctx)
 			}
 
 		case tt := <-tickers[0].C:
@@ -141,6 +148,15 @@ func (k *Kube) StartCollect() {
 			if k.cfg.EnableK8sObject {
 				k.gatherObject()
 			}
+
+		case <-tickers[2].C:
+			if k.paused {
+				continue
+			}
+			if ctx == nil {
+				ctx, cancel = context.WithCancel(context.Background())
+			}
+			k.tryWatchEventAndChange(ctx)
 		}
 	}
 }

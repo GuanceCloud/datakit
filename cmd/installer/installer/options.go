@@ -24,23 +24,20 @@ import (
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/resourcelimit"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )
 
 // DefaultInstallArgs get empty installer instance.
 func DefaultInstallArgs() *InstallerArgs {
-	return &InstallerArgs{
-		// java apm 注入默认使用从这个地址下载。因为这些 lib 不是 DK 发布的，所以它们只有一个
-		// 线上版本，不用区分测试版/线上版.
-		//
-		// 如果用户离线下载，传入了 -installer_base_url，那么会有对应的调整。
-		DistDatakitAPMInjJavaLibURL: "https://static.guance.com/dd-image/dd-java-agent.jar",
-	}
+	return &InstallerArgs{}
 }
 
 type InstallerArgs struct {
 	DataKitBaseURL,
 	DataKitVersion string
+
+	BrandURL string
 
 	OTA bool
 
@@ -152,9 +149,10 @@ type InstallerArgs struct {
 
 func (args *InstallerArgs) UpdateDownloadURLs() error {
 	var (
-		prefix  = "https://"
-		baseURL = args.DataKitBaseURL
-		err     error
+		prefix   = "https://"
+		baseURL  = args.DataKitBaseURL
+		brandURL = args.BrandURL
+		err      error
 	)
 
 	if args.DistBaseURL != "" {
@@ -212,6 +210,11 @@ func (args *InstallerArgs) UpdateDownloadURLs() error {
 		return err
 	}
 
+	if args.DistDatakitAPMInjJavaLibURL, err = url.JoinPath(prefix+brandURL,
+		"dd-image/dd-java-agent.jar"); err != nil {
+		return err
+	}
+
 	// 如果命令行传入 -installer_base_url，则表明是离线安装，此刻离线的 java ddtrace 库地址
 	// 是用户自己本地下载的，根据已有[文档](https://docs.guance.com/datakit/datakit-offline-install/#offline-advanced)，
 	// 这个目录是 *apm_lib*，故此处调整一下 lib 的路径。
@@ -263,17 +266,18 @@ func (args *InstallerArgs) setupServiceOptions() *service.Config {
 		limitUpdated = false
 	)
 
-	// setup CPU max
-	if args.LimitCPUCores > 0.0 {
-		rl.CPUCores = args.LimitCPUCores
-		limitUpdated = true
-	}
+	// setup CPU limit
 	if args.LimitCPUMax > 0.0 {
-		rl.CPUMax = args.LimitCPUMax
+		rl.CPUCores = resourcelimit.CPUMaxToCores(args.LimitCPUMax)
 		limitUpdated = true
 	}
 
-	// setup mem max
+	if args.LimitCPUCores > 0.0 { // cpu-cores override above cpu-max
+		rl.CPUCores = args.LimitCPUCores
+		limitUpdated = true
+	}
+
+	// setup mem limit
 	if args.LimitMemMax > 0 {
 		rl.MemMax = args.LimitMemMax
 		limitUpdated = true
@@ -283,7 +287,7 @@ func (args *InstallerArgs) setupServiceOptions() *service.Config {
 
 	svcopts := []dkservice.ServiceOption{
 		dkservice.WithMemLimit(fmt.Sprintf("%dM", rl.MemMax)),
-		dkservice.WithCPULimit(fmt.Sprintf("%f%%", rl.CPUMax)),
+		dkservice.WithCPULimit(fmt.Sprintf("%f%%", rl.CPUMax())),
 	}
 
 	if runtime.GOOS == datakit.OSLinux && args.FlagUserName != "" {

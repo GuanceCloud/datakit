@@ -30,7 +30,7 @@ The built-in Pinpoint Agent in DataKit is used to receive, calculate, and analyz
 <!-- markdownlint-disable MD046 -->
 === "Host installation"
 
-    Enter the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
+    Enter the `conf.d/samples` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
 
     ```toml
     {{ CodeBlock .InputSample 4 }}

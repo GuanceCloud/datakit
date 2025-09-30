@@ -34,7 +34,8 @@ const (
 )
 
 type CgroupOptions struct {
-	Path   string
+	version,
+	Path string
 	CPUMax float64
 	MemMax int64
 
@@ -47,6 +48,7 @@ type Cgroup struct {
 	cpuHigh   float64
 	quotaHigh int64
 	err       error
+	info      string
 }
 
 func (c *Cgroup) cpuSetup() {
@@ -136,8 +138,10 @@ func (c *Cgroup) start() error {
 	pid := os.Getpid()
 	if cgroups.Mode() == cgroups.Unified {
 		l.Infof("use cgroup V2")
+		c.opt.version = "v2"
 		c.err = c.setupV2(resource, pid)
 	} else {
+		c.opt.version = "v1"
 		l.Infof("use cgroup V1")
 		c.err = c.setupV1(resource, pid)
 	}
@@ -158,8 +162,12 @@ func Run(opt *CgroupOptions) error {
 }
 
 func (c *Cgroup) String() string {
-	return fmt.Sprintf("path: %s, mem: %dMB, cpu: %.2f",
-		c.opt.Path, c.opt.MemMax/MB, c.opt.CPUMax)
+	if c.info == "" {
+		c.info = fmt.Sprintf("%s|path:%s|mem:%dMB|cpu:%.2f",
+			c.opt.version, c.opt.Path, c.opt.MemMax/MB, c.opt.CPUMax)
+	}
+
+	return c.info
 }
 
 func Info() string {

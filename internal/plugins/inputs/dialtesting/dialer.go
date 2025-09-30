@@ -15,6 +15,7 @@ import (
 
 	dt "github.com/GuanceCloud/cliutils/dialtesting"
 	_ "github.com/go-ping/ping"
+	"github.com/robfig/cron/v3"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
@@ -28,6 +29,7 @@ type dialer struct {
 	task                 dt.ITask
 	ipt                  *Input
 	ticker               *time.Ticker
+	cronTicker           *cronTicker
 	initTime             time.Time
 	dialingTime          time.Time // time to run dialtesting test
 	taskExecTimeInterval time.Duration
@@ -160,30 +162,64 @@ func (d *dialer) getSendFailCount() int {
 	return 0
 }
 
+func (d *dialer) isCronTask() bool {
+	if d.task == nil {
+		return false
+	}
+	return d.task.GetScheduleType() == "crontab"
+}
+
 func (d *dialer) run() error {
 	_, vars := d.ipt.variables.getVariables(d.task.GetGlobalVars())
 	if err := d.task.RenderTemplateAndInit(vars); err != nil {
 		return fmt.Errorf("task render template error: %w", err)
 	}
 
-	taskInterval, err := time.ParseDuration(d.task.GetFrequency())
-	if err != nil {
-		return fmt.Errorf("invalid task frequency(%s): %w", d.task.GetFrequency(), err)
-	}
+	// Determine schedule type and initialize accordingly
+	scheduleType := d.task.GetScheduleType()
 
-	if err = d.resetTicker(d.task.GetFrequency()); err != nil {
-		return fmt.Errorf("get ticker error: %w", err)
+	var (
+		taskInterval time.Duration
+		err          error
+		failCount    int
+		tickerChan   <-chan time.Time
+	)
+
+	if scheduleType == "crontab" {
+		crontab := d.task.GetCrontab()
+		if crontab == "" {
+			return fmt.Errorf("crontab expression is required when schedule_type is crontab")
+		}
+
+		if err := d.resetCron(crontab); err != nil {
+			return fmt.Errorf("setup crontab error: %w", err)
+		}
+		defer func() {
+			if d.cronTicker != nil {
+				d.cronTicker.Stop()
+			}
+		}()
+
+		l.Debugf("dialer: %+#v, using crontab schedule: %s", d, crontab)
+	} else {
+		taskInterval, err = time.ParseDuration(d.task.GetFrequency())
+		if err != nil {
+			return fmt.Errorf("invalid task frequency(%s): %w", d.task.GetFrequency(), err)
+		}
+
+		if err = d.resetTicker(d.task.GetFrequency()); err != nil {
+			return fmt.Errorf("get ticker error: %w", err)
+		}
+		defer d.ticker.Stop()
+
+		l.Debugf("dialer: %+#v, using frequency schedule: %s", d, d.task.GetFrequency())
 	}
 
 	taskGauge.WithLabelValues(d.regionName, d.class).Inc()
-
 	defer func() {
 		taskGauge.WithLabelValues(d.regionName, d.class).Dec()
 	}()
 
-	l.Debugf("dialer: %+#v", d)
-
-	defer d.ticker.Stop()
 	defer close(d.updateCh)
 
 	if parts, err := url.Parse(d.task.PostURLStr()); err != nil {
@@ -220,8 +256,20 @@ func (d *dialer) run() error {
 	sleepTimer.Stop()
 	defer sleepTimer.Stop()
 
+	isFirstRun := true
 	for {
-		failCount := d.getSendFailCount()
+		// get ticker channel
+		tickerChan = d.getTickerChan()
+		if tickerChan == nil {
+			return fmt.Errorf("dial testing %s get ticker chan error", d.task.ID())
+		}
+
+		// cron task, wait until the time is up
+		if d.isCronTask() && isFirstRun {
+			goto wait
+		}
+
+		failCount = d.getSendFailCount()
 		taskDatawaySendFailedGauge.WithLabelValues(d.regionName, d.class).Set(float64(failCount))
 
 		// exceed max send fail count, sleep for MaxSendFailSleepTime
@@ -243,7 +291,7 @@ func (d *dialer) run() error {
 			return fmt.Errorf("headless task deprecated")
 		default:
 			now := ntp.Now()
-			if !d.dialingTime.IsZero() {
+			if !d.isCronTask() && !d.dialingTime.IsZero() {
 				lastDialingDuration := now.Sub(d.dialingTime)
 				interval := lastDialingDuration - taskInterval
 				if interval > d.taskExecTimeInterval {
@@ -301,7 +349,7 @@ func (d *dialer) run() error {
 			l.Infof("dial testing %s exit", d.task.ID())
 			return nil
 
-		case <-d.ticker.C:
+		case <-tickerChan:
 
 		case <-d.stopCh:
 			l.Infof("stop dial testing %s, exit", d.task.ID())
@@ -336,6 +384,7 @@ func (d *dialer) run() error {
 				return err
 			}
 		}
+		isFirstRun = false
 	}
 }
 
@@ -387,9 +436,38 @@ func (d *dialer) doUpdateTask(t dt.ITask) error {
 		return fmt.Errorf("render template and init error: %w", err)
 	}
 
-	if d.task.GetFrequency() != t.GetFrequency() {
-		if err := d.resetTicker(t.GetFrequency()); err != nil {
-			return fmt.Errorf("reset ticker error: %w", err)
+	scheduleType := t.GetScheduleType()
+
+	if scheduleType == "crontab" {
+		// Update crontab schedule
+		newCrontab := t.GetCrontab()
+		if newCrontab == "" {
+			return fmt.Errorf("crontab expression is required when schedule_type is crontab")
+		}
+
+		// Stop existing ticker if switching from frequency
+		if d.ticker != nil {
+			d.ticker.Stop()
+			d.ticker = nil
+		}
+
+		if d.task.GetCrontab() != newCrontab || d.task.GetScheduleType() != t.GetScheduleType() {
+			if err := d.resetCron(newCrontab); err != nil {
+				return fmt.Errorf("reset crontab error: %w", err)
+			}
+		}
+	} else {
+		// Update frequency schedule
+		// Stop existing cron ticker if switching from crontab
+		if d.cronTicker != nil {
+			d.cronTicker.Stop()
+			d.cronTicker = nil
+		}
+
+		if d.task.GetFrequency() != t.GetFrequency() || d.task.GetScheduleType() != t.GetScheduleType() {
+			if err := d.resetTicker(t.GetFrequency()); err != nil {
+				return fmt.Errorf("reset ticker error: %w", err)
+			}
 		}
 	}
 
@@ -408,6 +486,121 @@ func (d *dialer) resetTicker(frequency string) error {
 	}
 
 	d.ticker = time.NewTicker(du)
+
+	return nil
+}
+
+func (d *dialer) getTickerChan() <-chan time.Time {
+	if d.isCronTask() {
+		if d.cronTicker != nil {
+			return d.cronTicker.C
+		}
+	} else {
+		if d.ticker != nil {
+			return d.ticker.C
+		}
+	}
+	return nil
+}
+
+// resetCron resets the cron scheduler with new crontab expression.
+func (d *dialer) resetCron(crontab string) error {
+	// Stop existing cron ticker
+	if d.cronTicker != nil {
+		d.cronTicker.Stop()
+		d.cronTicker = nil
+	}
+
+	if crontab == "" {
+		return fmt.Errorf("crontab expression is empty")
+	}
+
+	// Create new cron ticker
+	ct, err := newCronTicker(crontab)
+	if err != nil {
+		return fmt.Errorf("invalid crontab expression %s: %w", crontab, err)
+	}
+
+	d.cronTicker = ct
+	return nil
+}
+
+// cronTicker wraps cron.Cron to provide Ticker-like interface.
+type cronTicker struct {
+	cron    *cron.Cron
+	entryID cron.EntryID
+	C       <-chan time.Time
+	stop    chan struct{}
+	channel chan time.Time
+}
+
+// newCronTicker creates a new cron ticker.
+func newCronTicker(crontab string) (*cronTicker, error) {
+	ct := &cronTicker{
+		stop:    make(chan struct{}),
+		channel: make(chan time.Time, 1),
+	}
+	ct.C = ct.channel
+
+	c := cron.New()
+
+	entryID, err := c.AddFunc(crontab, func() {
+		select {
+		case ct.channel <- time.Now():
+		case <-ct.stop:
+			return
+		default:
+			// channel is full, skip this tick
+		}
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	ct.cron = c
+	ct.entryID = entryID
+	c.Start()
+
+	return ct, nil
+}
+
+// Stop stops the cron ticker.
+func (ct *cronTicker) Stop() {
+	close(ct.stop)
+	if ct.cron != nil {
+		ct.cron.Remove(ct.entryID)
+		ct.cron.Stop()
+	}
+	close(ct.channel)
+}
+
+// Reset resets the cron ticker with new crontab expression.
+func (ct *cronTicker) Reset(crontab string) error {
+	// Stop current cron
+	if ct.cron != nil {
+		ct.cron.Remove(ct.entryID)
+		ct.cron.Stop()
+	}
+
+	// Create new cron instance
+	ct.cron = cron.New()
+
+	// Add new cron job
+	entryID, err := ct.cron.AddFunc(crontab, func() {
+		select {
+		case ct.channel <- time.Now():
+		case <-ct.stop:
+			return
+		default:
+			// channel is full, skip this tick
+		}
+	})
+	if err != nil {
+		return err
+	}
+
+	ct.entryID = entryID
+	ct.cron.Start()
 
 	return nil
 }

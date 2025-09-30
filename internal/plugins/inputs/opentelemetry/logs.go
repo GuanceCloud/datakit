@@ -18,7 +18,7 @@ import (
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
-func (ipt *Input) parseLogRequest(resourceLogss []*logs.ResourceLogs) []*point.Point {
+func (ipt *Input) parseLogRequest(resourceLogss []*logs.ResourceLogs, remoteIP string) []*point.Point {
 	pts := make([]*point.Point, 0)
 	for _, resourceLogs := range resourceLogss {
 		resourceTags := attributesToTag(resourceLogs.GetResource().GetAttributes()) // resource Attr
@@ -64,6 +64,7 @@ func (ipt *Input) parseLogRequest(resourceLogss []*logs.ResourceLogs) []*point.P
 						AddTag("status", getStatus(record.GetSeverityNumber(), record.GetSeverityText())).
 						AddTag("service", service).
 						AddTag(itrace.TagSource, source).
+						AddTag(itrace.TagRemoteIP, remoteIP).
 						AddTag(itrace.TagDKFingerprintKey, datakit.DKHost+"_"+datakit.Version)
 
 					if host != "" {

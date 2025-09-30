@@ -20,7 +20,7 @@ import (
 	"gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace/ext"
 )
 
-func (ipt *Input) parseResourceSpans(resspans []*trace.ResourceSpans) itrace.DatakitTraces {
+func (ipt *Input) parseResourceSpans(resspans []*trace.ResourceSpans, remoteIP string) itrace.DatakitTraces {
 	var (
 		dktraces           itrace.DatakitTraces
 		spanIDs, parentIDs = ipt.getSpanIDsAndParentIDs(resspans)
@@ -93,9 +93,9 @@ func (ipt *Input) parseResourceSpans(resspans []*trace.ResourceSpans) itrace.Dat
 					AddTag(itrace.TagSpanStatus, getDKSpanStatus(span.GetStatus())).
 					AddTag(itrace.TagSpanType, itrace.FindSpanTypeStrSpanID(spanID, parenID, spanIDs, parentIDs)).
 					AddTag(itrace.TagDKFingerprintKey, datakit.DKHost+"_"+datakit.Version).
-					AddTag(itrace.TagOperation, span.Name).
 					AddTag(itrace.TagSource, inputName).
-					AddTag(itrace.TagService, serviceName)
+					AddTag(itrace.TagService, serviceName).
+					AddTag(itrace.TagRemoteIP, remoteIP)
 
 				// service_name from xx.system.
 				if ipt.SplitServiceName {

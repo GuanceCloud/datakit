@@ -187,7 +187,7 @@ func unsetDKConfAPMInst(path string) error {
 		return nil
 	}
 
-	if err := cfg.TryUpgradeCfg(path); err != nil {
+	if err := cfg.TryUpgradeCfg(path, config.DKConfBackupName(path)); err != nil {
 		return err
 	}
 	return nil

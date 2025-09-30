@@ -1,5 +1,89 @@
 # 更新日志
 
+## 1.83.1(2025/09/30) {#cl-1.83.1}
+
+本次发布属于 hotfix 修复，内容如下：
+
+### 问题修复 {#cl-1.83.1-fix}
+
+- 修复默认采集器配置目录问题（#2810）
+- Prometheus Service Discover 支持 bearer token 文件配置（#2840）
+- 修复 DDTrace 服务对象采集导致的内存泄漏问题（#2841）
+
+---
+
+## 1.83.0(2025/09/24) {#cl-1.83.0}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.83.0-new}
+
+- 调整 DataKit 容器镜像使得其 Kubernetes 部署时可以选择[非 root 用户运行](datakit-daemonset-deploy.md#security-context)（#2665）
+- 拨测采集支持 crontab 形式的定时任务（#2811）
+- KubernetesPrometheus 采集增加 `prometheus.io/param_tags` 支持（#2834）
+
+### 问题修复 {#cl-1.83.0-fix}
+
+- 修复 OpenTelemetry 串联时 `span_id` 高位补 0 问题（#2828）
+- 修复 SQLServer `log_size` 采集问题（#2833）
+- 修复 KubernetesPrometheus 指标集命名问题（#2835）
+
+### 功能优化 {#cl-1.83.0-opt}
+
+- 优化 PostgreSQL 指标采集（#2805）
+- 除 DDTrace 外其它几个 Trace 采集均移除 `operation` 这个冗余字段（#2816）
+- 优化升级程序对 *datakit.conf* 文件的影响（#2821）
+- 优化 ICMP 拨测（#2823）
+- 优化 *datakit.conf* 配置中关于 CPU 利用率限制的设定（#2830）
+- 优化资源限制（cgroup）的设定以及 monitor 面板中的展示效果（#2827）
+- Remote Job 优化（#2824）
+    - 针对多容器的 Pod，DataKit 会选择默认容器进行 dump
+    - dump 文件的上传目录增加 service 名层级目录
+    - 优化 dump 脚本的错误处理
+
+### 兼容调整 {#cl-1.83.0-brk}
+
+- 由于修改了 DataKit 运行权限控制，所有采集器的配置示例全部转移到 *conf.d/samples* 目录下，且后续不再区分 *conf.d/* 目录下的二级目录。以 CPU 采集器为例，原来的配置示例位于 *conf.d/host/cpu.conf.sample*，现在调整为 *conf.d/samples/cpu.conf.sample*。但采集器配置仍然可以存放在 *conf.d* 下面的二级目录，此次更新只是调整了 sample 文件的存放位置。
+
+---
+
+## 1.82.0(2025/09/12) {#cl-1.82.0}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.82.0-new}
+
+- Prometheus Service Discovery 新增基于文件支持（#2790）
+
+### 问题修复 {#cl-1.82.0-fix}
+
+- 修复 Kubernetes 下 event 以及变更采集意外终止的问题（#2806）
+
+### 功能优化 {#cl-1.82.0-opt}
+
+- 优化 eBPF 在 Kubernetes 下采集性能，降低对 Kubernetes API server 压力（#2782/#2756）
+- 优化 APM Automatic Instrumentation 安装包下载（#2785）
+- Kubernetes 对象中统一增加 `workload_name` 字段（#2818）
+- OpenTelemetry/DDTrace 等 trace/指标有关采集增加 `remote_ip` 字段（#2819）
+- 调整 DataKit HTTP API 限流默认值，从 20 调整到 100，同时增加 ttl/burst 配置（#2817）
+- 完善 vSphere 采集（#2754）
+- 优化 ICMP 拨测（#2789）
+
+---
+
+## 1.81.1(2025/09/05) {#cl-1.81.1}
+
+本次发布属于 hotfix 修复，内容如下：
+
+### 问题修复 {#cl-1.81.1-fix}
+
+- 修复 Prometheus Service Discovery 中 URL 配置不生效问题（#2810）
+- DDTrace/OpenTelemetry 指标采集默认关闭，同时 `tracing_metrics` 指标集中，默认屏蔽掉 `resource/operation` 这两个 tag（#2809）
+- OpenTelemetry `http_status_code` 强制改为 string 类型（#2807）
+    - OpenTelemetry V1 SDK 在版本变更过程中，发过来的原始数据中 http-status-code 类型发生了变更（目前从 string 变成了 int），导致了这个问题。现在 DataKit 强制将该字段转成 string。
+
+---
+
 ## 1.81.0(2025/08/29) {#cl-1.81.0}
 
 本次发布属于迭代发布，主要有如下更新：
@@ -7,7 +91,7 @@
 ### 新加功能 {#cl-1.81.0-new}
 
 - 新增配置文件变更检测采集（#2797）
-- 新增 DDTrace/OpenTelemetry trace 指标采集（#2778）
+- 新增 DDTrace/OpenTelemetry trace 指标采集。*该功能默认开启，额外新增指标集名为 `tracing_metrics` 的时间线*（#2778）
 
 ### 问题修复 {#cl-1.81.0-fix}
 

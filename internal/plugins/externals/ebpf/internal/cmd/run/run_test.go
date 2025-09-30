@@ -44,7 +44,7 @@ func TestDKE(t *testing.T) {
 
 func TestXxx(t *testing.T) {
 	var k8sinfo *cli.K8sInfo
-	if c, err := cli.NewK8sClientFromKubeConfig("", []string{"app"}, "lb_"); err != nil {
+	if c, err := cli.NewK8sClientFromKubeConfig(make(<-chan struct{}), "", []string{"app"}, "lb_"); err != nil {
 		log.Warn(err)
 	} else {
 		criLi, _ := cli.NewCRIDefault()

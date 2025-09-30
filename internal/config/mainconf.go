@@ -74,7 +74,7 @@ type Config struct {
 	LogRotateDeprecated int        `toml:"log_rotate,omitzero"`
 	Logging             *LoggerCfg `toml:"logging"`
 
-	InstallVer string `toml:"install_version,omitempty"`
+	InstallVerDeprecated string `toml:"install_version,omitempty"`
 
 	HTTPAPI *APIConfig `toml:"http_api"`
 
@@ -124,6 +124,10 @@ type Config struct {
 	cmdlineMode bool
 }
 
+func EmptyConfig() *Config {
+	return &Config{}
+}
+
 func DefaultConfig() *Config {
 	c := &Config{ //nolint:dupl
 		DefaultEnabledInputs: []string{},
@@ -138,7 +142,14 @@ func DefaultConfig() *Config {
 		EnableDebugFields: false,
 		EnablePProf:       true,
 		PProfListen:       "localhost:6060",
-		DatakitUser:       "root",
+		DatakitUser: func() string {
+			switch runtime.GOOS {
+			case datakit.OSWindows:
+				return "administrator"
+			default:
+				return "root"
+			}
+		}(),
 
 		Election: &election.ElectionCfg{
 			Enable:             false,
@@ -176,17 +187,7 @@ func DefaultConfig() *Config {
 
 		ProtectMode: true,
 
-		HTTPAPI: &APIConfig{
-			RUMOriginIPHeader:   "X-Forwarded-For",
-			Listen:              "localhost:9529",
-			RUMAppIDWhiteList:   []string{},
-			PublicAPIs:          []string{},
-			RequestRateLimit:    20,
-			Timeout:             "30s",
-			CloseIdleConnection: false,
-			TLSConf:             &TLSConfig{},
-			AllowedCORSOrigins:  []string{},
-		},
+		HTTPAPI: defaultAPIConfig(),
 
 		DCAConfig: &DCAConfig{
 			Enable:          false,

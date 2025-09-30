@@ -6,14 +6,14 @@
 package promsd
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
+	"os"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -26,7 +26,7 @@ type HTTPSD struct {
 	RefreshInterval time.Duration `toml:"refresh_interval"`
 	Auth            *Auth         `toml:"auth"`
 
-	targetGroups HTTPSDTargetGroups
+	targetGroups TargetGroups
 	tasks        []scraper
 	log          *logger.Logger
 }
@@ -67,7 +67,7 @@ func (sd *HTTPSD) produceScrapers(ctx context.Context, cfg *ScrapeConfig, opts [
 		return nil
 	}
 
-	scrapers, err := sd.convertTargetGroupsToScraper(cfg, opts, newTargetGroups)
+	scrapers, err := convertTargetGroupsToScraper(cfg, opts, newTargetGroups)
 	if err != nil {
 		return err
 	}
@@ -92,7 +92,20 @@ func (sd *HTTPSD) produceScrapers(ctx context.Context, cfg *ScrapeConfig, opts [
 	return nil
 }
 
-func (sd *HTTPSD) discoveryTargetGroups() (HTTPSDTargetGroups, error) {
+func (sd *HTTPSD) discoveryTargetGroups() (TargetGroups, error) {
+	req, err := http.NewRequest("GET", sd.ServiceURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if sd.Auth != nil && sd.Auth.BearerTokenFile != "" {
+		token, err := os.ReadFile(sd.Auth.BearerTokenFile)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Authorization", "Bearer "+string(bytes.TrimSpace(token)))
+	}
+
 	clientOpts := httpcli.NewOptions()
 
 	if sd.Auth != nil && sd.Auth.TLSClientConfig != nil {
@@ -104,75 +117,25 @@ func (sd *HTTPSD) discoveryTargetGroups() (HTTPSDTargetGroups, error) {
 	}
 
 	client := httpcli.Cli(clientOpts)
-	resp, err := client.Get(sd.ServiceURL)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code returned when get %q: %d", sd.ServiceURL, resp.StatusCode)
 	}
-	defer resp.Body.Close() //nolint
+	defer resp.Body.Close() // nolint:errcheck
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	var groups HTTPSDTargetGroups
+	var groups TargetGroups
 	if err := json.Unmarshal(body, &groups); err != nil {
 		return nil, err
 	}
 	return groups, nil
-}
-
-func (sd *HTTPSD) convertTargetGroupsToScraper(cfg *ScrapeConfig, opts []promscrape.Option, newTargetGroups HTTPSDTargetGroups) ([]scraper, error) {
-	var scrapers []scraper
-
-	for _, group := range newTargetGroups {
-		var urls []string
-
-		scheme := extractScrapeSchemeFromHTTPSDLabels(group.Labels)
-		if scheme == "" {
-			scheme = cfg.Scheme
-		}
-
-		path := extractScrapeMetricsPathFromHTTPSDLabels(group.Labels)
-		if path == "" {
-			scheme = cfg.MetricsPath
-		}
-
-		params := extractScrapeParamsFromHTTPSDLabels(group.Labels)
-		paramValues := url.Values(params)
-		if values, err := url.ParseQuery(cfg.Params); err != nil {
-			sd.log.Warnf("http_sd: unexpected scrape params: %s", cfg.Params)
-		} else {
-			for k, valueSlice := range values {
-				for _, value := range valueSlice {
-					paramValues.Add(k, value)
-				}
-			}
-		}
-
-		for _, target := range group.Targets {
-			u := &url.URL{
-				Scheme:   scheme,
-				Host:     target,
-				Path:     path,
-				RawQuery: paramValues.Encode(),
-			}
-			urls = append(urls, u.String())
-		}
-
-		for _, u := range urls {
-			scraper, err := newPromScraper(u, append(opts, promscrape.WithExtraTags(group.Labels)))
-			if err != nil {
-				return nil, err
-			}
-			scrapers = append(scrapers, scraper)
-		}
-	}
-
-	return scrapers, nil
 }
 
 func (sd *HTTPSD) terminatedTasks() {
@@ -181,47 +144,6 @@ func (sd *HTTPSD) terminatedTasks() {
 	}
 }
 
-func (sd *HTTPSD) targetGroupsChanged(newTargetGroups HTTPSDTargetGroups) bool {
+func (sd *HTTPSD) targetGroupsChanged(newTargetGroups TargetGroups) bool {
 	return !reflect.DeepEqual(sd.targetGroups, newTargetGroups)
-}
-
-type HTTPSDTargetGroups []HTTPSDTargetGroup
-
-type HTTPSDTargetGroup struct {
-	Targets []string          `json:"targets"`
-	Labels  map[string]string `json:"labels"`
-}
-
-func extractScrapeSchemeFromHTTPSDLabels(labels map[string]string) string {
-	scheme := labels["__scheme__"]
-	s := strings.ToLower(scheme)
-
-	if s == "" || (s != "http" && s != "https") {
-		return ""
-	}
-	return s
-}
-
-func extractScrapeMetricsPathFromHTTPSDLabels(labels map[string]string) string {
-	path := labels["__metrics_path__"]
-	if path != "" && !strings.HasPrefix(path, "/") {
-		return "/" + path
-	}
-	return path
-}
-
-func extractScrapeParamsFromHTTPSDLabels(labels map[string]string) map[string][]string {
-	params := make(map[string][]string)
-
-	for key, value := range labels {
-		if !strings.HasPrefix(key, "__param_") {
-			continue
-		}
-		paramName := strings.TrimPrefix(key, "__param_")
-		if paramName == "" {
-			continue
-		}
-		params[paramName] = append(params[paramName], value)
-	}
-	return params
 }

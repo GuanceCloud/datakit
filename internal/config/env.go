@@ -516,7 +516,11 @@ func (c *Config) loadRemoteJobEnvs() {
 	}
 	c.RemoteJob.Enable = true
 	if v := datakit.GetEnv("ENV_REMOTE_JOB_ENVS"); v != "" {
-		c.RemoteJob.ENVs = strings.Split(v, ",")
+		strSlice := strings.Split(v, ",")
+		for i, str := range strSlice {
+			strSlice[i] = strings.TrimSpace(str)
+		}
+		c.RemoteJob.ENVs = strSlice
 	}
 
 	if v := datakit.GetEnv("ENV_REMOTE_JOB_JAVA_HOME"); v != "" {
@@ -681,6 +685,22 @@ func (c *Config) loadHTTPAPIEnvs() {
 			l.Warnf("invalid ENV_REQUEST_RATE_LIMIT, expect int or float, got %s, ignored", v)
 		} else {
 			c.HTTPAPI.RequestRateLimit = x
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_REQUEST_RATE_LIMIT_TTL"); v != "" {
+		if x, err := time.ParseDuration(v); err != nil {
+			l.Warnf("invalid ENV_REQUEST_RATE_LIMIT_TTL: %s", err)
+		} else {
+			c.HTTPAPI.RequestRateLimitTTL = x
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_REQUEST_RATE_LIMIT_BURST"); v != "" {
+		if x, err := strconv.ParseInt(v, 10, 64); err != nil {
+			l.Warnf("invalid ENV_REQUEST_RATE_LIMIT_BURST: %s", err)
+		} else {
+			c.HTTPAPI.RequestRateLimitBurst = int(x)
 		}
 	}
 

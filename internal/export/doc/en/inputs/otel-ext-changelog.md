@@ -23,6 +23,14 @@ Currently, OTEL has added the following technology stack extensions:
 
 ## changelog {#changelog}
 
+## 2.20.0-ext (2025/9/24) {#cl-2.20.0-ext}
+
+### new {#cl-2.20.0-ext-new}
+
+- Merge open-telemetry V2 tag v2.20.0
+- Fix SQL obfuscation, see [docs](otel-ext-java#sql-obfuscation){:target="_blank"}
+
+
 ## 1.28.0-ext (2023/7/7) {#cl-1.28.0-ext}
 
 ### new {#cl-1.28.0-ext-new}

@@ -1,0 +1,52 @@
+services:
+  postgres-master:
+    image: pubrepo.guance.com/image-repo-for-testing/postgres/postgres:15.3
+    container_name: postgres-master
+    platform: linux/amd64
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: testdb
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - ./master/init-scripts:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - pg-network
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 30s
+      retries: 5
+
+  postgres-slave:
+    image: pubrepo.guance.com/image-repo-for-testing/postgres/postgres:15.3
+    container_name: postgres-slave
+    platform: linux/amd64
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: testdb
+      PGDATA: /var/lib/postgresql/data/pgdata
+      REPLICATION_USER: replicator
+      REPLICATION_PASSWORD: replicatorpassword
+      MASTER_HOST: postgres-master
+      MASTER_PORT: 5432
+    volumes:
+      - ./slave/init-scripts:/docker-entrypoint-initdb.d
+      - ./slave/scripts:/scripts
+    ports:
+      - "5433:5432"
+    networks:
+      - pg-network
+    restart: always
+    depends_on:
+      postgres-master:
+        condition: service_healthy
+    command: ["bash", "-c", "until /scripts/setup-replication.sh; do echo 'Waiting for master to be ready...'; sleep 2; done && docker-entrypoint.sh postgres"]
+
+networks:
+  pg-network:
+    driver: bridge

@@ -137,7 +137,9 @@ ulimit = 64000
   close_idle_connection = false
 
   # API rate limit(QPS)
-  request_rate_limit = 20.0
+  request_rate_limit       = 100.0
+  request_rate_limit_ttl   = "60s"
+  request_rate_limit_burst = 500
 
   #
   # RUM related: we should port these configures to RUM inputs(TODO)

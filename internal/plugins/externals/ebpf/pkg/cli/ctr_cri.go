@@ -2,12 +2,13 @@ package cli
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
 	"os"
 	"time"
+
+	"github.com/goccy/go-json"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

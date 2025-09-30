@@ -25,6 +25,7 @@ type JVM struct {
 	ProcessID  int      `json:"process_id"`
 	Timeout    int      `json:"timeout"`
 	UUID       string   `json:"uuid"`
+	Service    string   `json:"service"`
 
 	javaHome string
 }
@@ -58,6 +59,11 @@ func (j *JVM) doCmd(envs []string) *jobReport {
 		jr.Reason = fmt.Sprintf("jvm check err=%s", err.Error())
 		return jr
 	}
+	path := "jvmdump"
+	if j.Service == "" {
+		j.Service = "default"
+	}
+	path = path + "/" + j.Service
 
 	var cmd *exec.Cmd
 	var name string
@@ -67,7 +73,8 @@ func (j *JVM) doCmd(envs []string) *jobReport {
 			jvmDumpHostFile,
 			"-pid", strconv.Itoa(j.ProcessID),
 			"-javahome", j.javaHome,
-			"-osspath", "jvmdump")
+			"-osspath", path,
+			"-service", j.Service)
 		cmd.Env = envs
 		log.Infof("cmd to string:%s", cmd.String())
 		name = jvmDumpHostFile
@@ -83,7 +90,8 @@ func (j *JVM) doCmd(envs []string) *jobReport {
 			jvmDumpK8SFile,
 			"-pod_name", j.PodName,
 			"-pid", strconv.Itoa(j.ProcessID),
-			"-osspath", "jvmdump")
+			"-osspath", path,
+			"-service", j.Service)
 		cmd.Env = envs
 		cmd.Env = append(cmd.Env, "KUBERNETES_SERVICE_HOST="+host, "KUBERNETES_SERVICE_PORT="+port)
 		log.Infof("cmd to string:%s", cmd.String())

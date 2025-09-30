@@ -32,6 +32,8 @@ func getHostTagsAndFields(host *mo.HostSystem) (map[string]string, map[string]in
 	if summary.Runtime != nil {
 		tags[ConnectionState] = string(summary.Runtime.ConnectionState)
 		fields[BootTime] = summary.Runtime.BootTime.UnixNano()
+		tags[PowerState] = string(summary.Runtime.PowerState)
+		tags[InMaintenanceMode] = fmt.Sprintf("%v", summary.Runtime.InMaintenanceMode)
 	}
 
 	return tags, fields
@@ -70,6 +72,8 @@ func getVMTagsAndFields(vm *mo.VirtualMachine) (map[string]string, map[string]in
 	if runtime.BootTime != nil {
 		fields[BootTime] = runtime.BootTime.UnixNano()
 	}
+
+	tags[PowerState] = string(runtime.PowerState)
 	fields[MaxCPUUsage] = runtime.MaxCpuUsage
 	fields[MaxMemoryUsage] = runtime.MaxMemoryUsage
 

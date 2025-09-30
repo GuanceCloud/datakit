@@ -22,6 +22,14 @@ Currently, DDTrace has added the following extensions to the technology stack：
 
 ## changelog {#changelog}
 
+
+## v1.53.1-ext (2025/9/24) {#cl-1.53.1-ext}
+
+### fix {#cl-1.53.1-ext-fix}
+
+- Merge DataDog DDTrace Tag: v1.53.0.
+
+
 ## v1.47.6-ext (2025/6/4) {#cl-1.47.6-ext}
 
 ### fix {#cl-1.47.6-ext-fix}

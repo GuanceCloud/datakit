@@ -23,7 +23,7 @@ type mockedInput struct{}
 	SampleConfig() string
 */
 
-func (*mockedInput) Catalog() string      { return "mocked-cat" }
+func (*mockedInput) Catalog() string      { return "samples" }
 func (*mockedInput) Run()                 {}
 func (*mockedInput) SampleConfig() string { return "test-sample" }
 
@@ -41,8 +41,8 @@ func Test_initDefaultEnabledPlugins(t *T.T) {
 
 		c.initDefaultEnabledPlugins(dir, ipts)
 
-		assert.FileExists(t, filepath.Join(dir, "mocked-cat", "cpu.conf"))
-		assert.FileExists(t, filepath.Join(dir, "mocked-cat", "mem.conf"))
+		assert.FileExists(t, filepath.Join(dir, "cpu.conf"))
+		assert.FileExists(t, filepath.Join(dir, "mem.conf"))
 	})
 
 	t.Run(`conf-exist-as-dir`, func(t *T.T) {
@@ -51,7 +51,7 @@ func Test_initDefaultEnabledPlugins(t *T.T) {
 
 		dir := t.TempDir()
 
-		assert.NoError(t, os.MkdirAll(filepath.Join(dir, "mocked-cat/cpu.conf"), os.ModePerm))
+		assert.NoError(t, os.MkdirAll(filepath.Join(dir, "cpu.conf"), os.ModePerm))
 
 		ipts := map[string]inputs.Creator{
 			"cpu": func() inputs.Input { return &mockedInput{} },
@@ -60,8 +60,8 @@ func Test_initDefaultEnabledPlugins(t *T.T) {
 
 		c.initDefaultEnabledPlugins(dir, ipts)
 
-		assert.FileExists(t, filepath.Join(dir, "mocked-cat", "cpu-0xdeadbeaf.conf"))
-		assert.FileExists(t, filepath.Join(dir, "mocked-cat", "mem.conf"))
+		assert.FileExists(t, filepath.Join(dir, "cpu-0xdeadbeaf.conf"))
+		assert.FileExists(t, filepath.Join(dir, "mem.conf"))
 	})
 
 	t.Run(`conf-exist-and-skip`, func(t *T.T) {
@@ -70,10 +70,10 @@ func Test_initDefaultEnabledPlugins(t *T.T) {
 
 		dir := t.TempDir()
 
-		assert.NoError(t, os.MkdirAll(filepath.Join(dir, "mocked-cat"), os.ModePerm))
+		assert.NoError(t, os.MkdirAll(dir, os.ModePerm))
 
 		// create file with content: should not overwrite on it
-		assert.NoError(t, os.WriteFile(filepath.Join(dir, "mocked-cat", "cpu.conf"), []byte(`123`), os.ModePerm))
+		assert.NoError(t, os.WriteFile(filepath.Join(dir, "cpu.conf"), []byte(`123`), os.ModePerm))
 
 		ipts := map[string]inputs.Creator{
 			"cpu": func() inputs.Input { return &mockedInput{} },
@@ -82,15 +82,15 @@ func Test_initDefaultEnabledPlugins(t *T.T) {
 
 		c.initDefaultEnabledPlugins(dir, ipts)
 
-		assert.FileExists(t, filepath.Join(dir, "mocked-cat", "cpu.conf"))
+		assert.FileExists(t, filepath.Join(dir, "cpu.conf"))
 
-		data, err := os.ReadFile(filepath.Join(dir, "mocked-cat", "cpu.conf"))
+		data, err := os.ReadFile(filepath.Join(dir, "cpu.conf"))
 		assert.NoError(t, err)
 		assert.Equal(t, []byte(`123`), data)
 
-		assert.FileExists(t, filepath.Join(dir, "mocked-cat", "mem.conf"))
+		assert.FileExists(t, filepath.Join(dir, "mem.conf"))
 
-		data, err = os.ReadFile(filepath.Join(dir, "mocked-cat", "mem.conf"))
+		data, err = os.ReadFile(filepath.Join(dir, "mem.conf"))
 		assert.NoError(t, err)
 		assert.Equal(t, []byte(`test-sample`), data)
 	})

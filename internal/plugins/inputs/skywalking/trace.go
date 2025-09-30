@@ -35,7 +35,6 @@ func parseSegmentObjectV3(segment *agentv3.SegmentObject) itrace.DatakitTrace {
 			AddTag(itrace.TagService, segment.Service).
 			AddTag("service_instance", segment.ServiceInstance).
 			Add(itrace.FieldResource, span.OperationName).
-			AddTag(itrace.TagOperation, span.OperationName).
 			AddTag(itrace.TagSource, inputName).
 			AddTag(itrace.TagSourceType, itrace.SpanSourceCustomer).
 			Add(itrace.FieldStart, span.StartTime*int64(time.Microsecond)).

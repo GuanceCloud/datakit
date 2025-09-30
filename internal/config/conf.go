@@ -13,7 +13,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -21,15 +20,13 @@ import (
 	bstoml "github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
-	gctoml "github.com/GuanceCloud/toml"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/operator"
 )
 
 var (
-	Cfg           = DefaultConfig()
-	l             = logger.DefaultSLogger("config")
-	versionRegExp = regexp.MustCompile(`install_version\s+=\s+"[^"]+"`)
+	Cfg = DefaultConfig()
+	l   = logger.DefaultSLogger("config")
 )
 
 func SetLog() {
@@ -92,13 +89,25 @@ func (c *Config) SetUUID() error {
 	return nil
 }
 
+func (c *Config) doLoadMainTOML(toml string) error {
+	if _, err := bstoml.Decode(toml, c); err != nil {
+		return fmt.Errorf("bstoml.Decode: %w", err)
+	} else {
+		return nil
+	}
+}
+
 func (c *Config) LoadMainTOML(p string) error {
 	cfgdata, err := os.ReadFile(filepath.Clean(p))
 	if err != nil {
 		return fmt.Errorf("os.ReadFile: %w", err)
 	}
 
-	_, err = bstoml.Decode(string(cfgdata), c)
+	return c.doLoadMainTOML(string(cfgdata))
+}
+
+func (c *Config) loadMainTOMLString(cfgData string) error {
+	_, err := bstoml.Decode(cfgData, c)
 	if err != nil {
 		return fmt.Errorf("bstoml.Decode: %w", err)
 	}
@@ -106,17 +115,6 @@ func (c *Config) LoadMainTOML(p string) error {
 	_ = c.SetUUID()
 
 	return nil
-}
-
-func (c *Config) loadMainTOMLString(cfgData string) (gctoml.MetaData, error) {
-	meta, err := gctoml.Decode(cfgData, c)
-	if err != nil {
-		return meta, fmt.Errorf("bstoml.Decode: %w", err)
-	}
-
-	_ = c.SetUUID()
-
-	return meta, nil
 }
 
 type inputHostList struct {
@@ -144,61 +142,45 @@ func (i *inputHostList) MatchInput(input string) bool {
 	return false
 }
 
-func (c *Config) TryUpgradeCfg(p string) error {
+// DKConfBackupName generate backup filename of datakit.conf.
+func DKConfBackupName(p string) string {
+	return p + ".old." + time.Now().Format("2006.01.02-15.04.05")
+}
+
+// TryUpgradeCfg apply settings in @c into filepath @p.
+// if any configure parameters changed, @p will be backuped.
+func (c *Config) TryUpgradeCfg(p, backup string) error {
 	oldData, err := os.ReadFile(filepath.Clean(p))
 	if err != nil {
 		l.Warnf("unable to open old configuration file: %s", err)
 		return c.InitCfg(p)
 	}
 
-	// replace the install_version
-	replacedText := string(oldData)
-	matches := versionRegExp.FindAllString(replacedText, -1)
-	for _, match := range matches {
-		replacedText = strings.Replace(replacedText, match, fmt.Sprintf(`install_version = "%s"`, c.InstallVer), 1)
+	// load old conf file to empty Config instance, then we'll not
+	// affected by default settings.
+	//
+	// Why: If default settings got some items added, @oldCfg should
+	// not add these items and keep them NULL, and the comparison between
+	// old/new are meaningful.
+	oldCfg := EmptyConfig()
+	if err := oldCfg.loadMainTOMLString(string(oldData)); err != nil {
+		return fmt.Errorf("unable to load old version toml: %w", err)
 	}
 
-	newTomlText, err := c.InitCfgOutput()
-	if err != nil {
-		return fmt.Errorf("unable to encode toml: %w", err)
-	}
+	if c.String() != oldCfg.String() { // configure items changed
+		l.Infof("backup datakit.conf to %s", backup)
 
-	// check if the toml file has been modified
-	if ok, err := ifTOMLEqual(replacedText, string(newTomlText)); err == nil && ok {
-		if c.hostname == "" {
-			if err := c.SetHostname(); err != nil {
-				return err
-			}
+		if err := os.WriteFile(backup, oldData, datakit.ConfPerm); err != nil {
+			l.Errorf("unable to backup old configuration file: %s", err)
+			return err
 		}
 
-		l.Infof("dump datakit.conf...")
-		if err := os.WriteFile(p, []byte(replacedText), datakit.ConfPerm); err == nil {
-			return nil
-		} else {
-			l.Warnf("unable to write the toml file: %s", err)
-		}
-	}
-
-	oldCfg := DefaultConfig()
-	// load comments from old toml data
-	meta, err := oldCfg.loadMainTOMLString(string(oldData))
-	if err != nil {
-		return fmt.Errorf("unable to load toml by gctoml: %w", err)
-	}
-	if err := c.InitCfgWithComments(p, meta); err == nil {
-		return nil
+		// override exist datakit.conf
+		return os.WriteFile(p, []byte(c.String()), datakit.ConfPerm)
 	} else {
-		l.Warnf("unable to generate toml with comments: %s", err)
+		// nothing neet to be changed within datakit.conf
+		return nil
 	}
-
-	l.Infof("Datakit main configuration file will be backup")
-	// Todo: keep comments when update toml instead
-	cp := p + ".old." + time.Now().Format("20060102150405")
-	if err := os.WriteFile(cp, oldData, datakit.ConfPerm); err != nil {
-		l.Warnf("unable to backup old configuration file: %s", err)
-		return c.InitCfg(p)
-	}
-	return c.InitCfg(p)
 }
 
 func (c *Config) InitCfgOutput() ([]byte, error) {
@@ -224,54 +206,6 @@ func (c *Config) InitCfg(p string) error {
 
 	if err := os.WriteFile(p, tomlText, datakit.ConfPerm); err != nil {
 		l.Errorf("error creating %s: %s", p, err)
-		return err
-	}
-
-	return nil
-}
-
-func ifTOMLEqual(toml1, toml2 string) (bool, error) {
-	c1, c2 := DefaultConfig(), DefaultConfig()
-
-	if _, err := bstoml.Decode(toml1, &c1); err != nil {
-		return false, fmt.Errorf("unable to decode toml: %w", err)
-	}
-
-	if _, err := bstoml.Decode(toml2, &c2); err != nil {
-		return false, fmt.Errorf("unable to decode toml: %w", err)
-	}
-
-	return c1.String() == c2.String(), nil
-}
-
-func (c *Config) InitCfgWithComments(path string, meta gctoml.MetaData) error {
-	if c.hostname == "" {
-		if err := c.SetHostname(); err != nil {
-			return err
-		}
-	}
-
-	buffer := &bytes.Buffer{}
-	if err := gctoml.NewEncoder(buffer).EncodeWithComments(c, meta); err != nil {
-		return fmt.Errorf("unable to encode by gctoml: %w", err)
-	}
-
-	// check the correctness of toml generated by GuanceCloud/toml
-	tomlWithNoComments, err := datakit.TomlMarshal(c)
-	if err != nil {
-		return fmt.Errorf("unable to generate toml data by bstoml: %w", err)
-	}
-
-	ok, err := ifTOMLEqual(buffer.String(), string(tomlWithNoComments))
-	if err != nil {
-		return fmt.Errorf("unable to compare two toml text: %w", err)
-	}
-	if !ok {
-		return fmt.Errorf("the toml generated by gctoml is incorrect, gctoml: %s, bstoml: %s", buffer.String(), string(tomlWithNoComments))
-	}
-
-	if err := os.WriteFile(path, buffer.Bytes(), datakit.ConfPerm); err != nil {
-		l.Errorf("error creating %s: %s", path, err)
 		return err
 	}
 

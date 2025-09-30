@@ -20,7 +20,7 @@ xfsquota 采集器通过运行 `xfs_quota` 解析标准输出，采集 xfs 文�
 <!-- markdownlint-disable MD046 -->
 === "主机安装"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    进入 DataKit 安装目录下的 `conf.d/samples` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
     
     ```toml
     {{ CodeBlock .InputSample 4 }}

@@ -38,7 +38,7 @@ const (
 // nolint:lll
 var defaultInfos = map[string]*inputs.ENVInfo{
 	"Interval": {Type: TimeDuration, Default: "10s", Desc: "Collect interval", DescZh: "采集器重复间隔时长"},
-	"Tags":     {Type: Map, Example: `tag1=value1,tag2=value2`, Desc: "Customize tags. If there is a tag with the same name in the configuration file, it will be overwritten", DescZh: "自定义标签。如果配置文件有同名标签，将会覆盖它"},
+	"Tags":     {Type: Map, Example: "`tag1=value1,tag2=value2`", Desc: "Customize tags. If there is a tag with the same name in the configuration file, it will be overwritten", DescZh: "自定义标签。如果配置文件有同名标签，将会覆盖它"},
 	"Election": {Type: Boolean, Default: "true", Desc: "Enable election", DescZh: "开启选举"},
 	"Timeout":  {Type: TimeDuration, Default: "30s", Desc: "Timeout", DescZh: "超时时长"},
 }

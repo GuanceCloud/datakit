@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/resourcelimit"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -169,8 +170,8 @@ func (args *InstallerArgs) setupDefaultInputs(mc *config.Config, defaultList []s
 	}
 }
 
-// WriteDefInputs inject default inputs into datakit.con.
-func (args *InstallerArgs) WriteDefInputs(mc *config.Config) error {
+// injectDefInputs inject default inputs into datakit.conf.
+func (args *InstallerArgs) injectDefInputs(mc *config.Config) error {
 	hostInputs := defaultHostInputs
 
 	switch runtime.GOOS {
@@ -258,11 +259,6 @@ func (args *InstallerArgs) getDataway() (*dataway.Dataway, error) {
 	if args.DatawayURLs != "" {
 		urls := strings.Split(args.DatawayURLs, ",")
 
-		if args.Proxy != "" {
-			l.Debugf("set proxy to %s", args.Proxy)
-			dw.HTTPProxy = args.Proxy
-		}
-
 		if err := dw.Init(dataway.WithURLs(urls...)); err != nil {
 			return nil, err
 		} else {
@@ -282,11 +278,17 @@ func (args *InstallerArgs) getDataway() (*dataway.Dataway, error) {
 }
 
 // LoadInstallerArgs apply args settings to mc.
+// nolint:funlen
 func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config, error) {
 	var err error
 
 	if args.FlagUserName != "" {
 		mc.DatakitUser = args.FlagUserName
+	}
+
+	if args.Proxy != "" {
+		l.Debugf("set proxy to %s", args.Proxy)
+		mc.Dataway.HTTPProxy = args.Proxy
 	}
 
 	// setup dataway and check token format
@@ -350,26 +352,37 @@ func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config,
 	if args.LimitDisabled != 1 {
 		if mc.ResourceLimitOptions.Enable { // resource-limit not disabled before upgrade/install
 			if args.LimitCPUMax > 0 {
-				mc.ResourceLimitOptions.CPUMax = args.LimitCPUMax
+				mc.ResourceLimitOptions.CPUCores = resourcelimit.CPUMaxToCores(args.LimitCPUMax)
+				mc.ResourceLimitOptions.CPUMaxDeprecated = 0.0 // clear old cpu-max
+
+				l.Infof("apply cpu-cores to %f based on cpu-max %f",
+					mc.ResourceLimitOptions.CPUCores, args.LimitCPUMax)
 			}
 
 			// apply args to datakit.conf or from datakit.conf to args
 			if args.LimitCPUCores > 0 {
 				mc.ResourceLimitOptions.CPUCores = args.LimitCPUCores
+				mc.ResourceLimitOptions.CPUMaxDeprecated = 0.0 // clear old cpu-max
 
-				// we passed limit-cpu-cores, so reset cpu-max config and deprecated it
-				mc.ResourceLimitOptions.CPUMax = 0
+				l.Infof("apply cpu-cores: %f", mc.ResourceLimitOptions.CPUCores)
+			}
+
+			// clear deprecated cpu-max
+			if mc.ResourceLimitOptions.CPUMaxDeprecated > 0 {
+				mc.ResourceLimitOptions.CPUCores = resourcelimit.CPUMaxToCores(mc.ResourceLimitOptions.CPUMaxDeprecated)
+				mc.ResourceLimitOptions.CPUMaxDeprecated = 0.0
 			}
 
 			if args.LimitMemMax > 0 {
 				mc.ResourceLimitOptions.MemMax = args.LimitMemMax
+
+				l.Infof("apply mem-max: %f", mc.ResourceLimitOptions.MemMax)
 			}
 
 			mc.ResourceLimitOptions.Setup()
 
-			l.Infof("resource limit enabled under %s, cpu: %f, cores: %f, mem: %dMB",
+			l.Infof("resource limit enabled under %s, cpu-cores: %f, mem: %dMB",
 				runtime.GOOS,
-				mc.ResourceLimitOptions.CPUMax,
 				mc.ResourceLimitOptions.CPUCores,
 				mc.ResourceLimitOptions.MemMax)
 		}
@@ -436,8 +449,7 @@ func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config,
 		l.Infof("set HTTP socket to %q", mc.HTTPAPI.ListenSocket)
 	}
 
-	mc.InstallVer = args.DataKitVersion
-	l.Infof("install version %s", mc.InstallVer)
+	l.Infof("install version %s", args.DataKitVersion)
 
 	if args.DatakitName != "" {
 		mc.Name = args.DatakitName

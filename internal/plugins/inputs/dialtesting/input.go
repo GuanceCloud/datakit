@@ -79,6 +79,7 @@ type Input struct {
 	PullInterval                    string            `toml:"pull_interval,omitempty"`
 	TimeOut                         *datakit.Duration `toml:"time_out,omitempty"`
 	MaxSendFailSleepTime            *datakit.Duration `toml:"max_send_fail_sleep_time,omitempty"`
+	MaxICMPConcurrency              int               `toml:"max_icmp_concurrency,omitempty"`    // max icmp packets sent at one time
 	MaxSendFailCount                int32             `toml:"max_send_fail_count,omitempty"`     // max send fail count
 	MaxJobNumber                    int               `toml:"max_job_number,omitempty"`          // max job number in parallel
 	MaxJobChanNumber                int               `toml:"max_job_chan_number,omitempty"`     // max job chan number
@@ -353,6 +354,9 @@ const sample = `
   # The max number of job chan. Default 1000.
   max_job_chan_number = 1000
 
+  # The max number of icmp packets sent at one time. Default 0, no limit.
+  max_icmp_concurrency = 0
+
   # The max number of points in cache for each type of task. Default 10000.
   max_cache_points_number = 10000
 
@@ -534,6 +538,13 @@ func (ipt *Input) Run() {
 		l.Errorf(`%s`, err.Error())
 		return
 	}
+
+	// setup dialtesting
+	dt.Setup(&dt.TaskConfig{
+		MaxICMPConcurrent: ipt.MaxICMPConcurrency,
+		Logger:            l,
+	})
+	taskMaxICMPConcurrency.Set(float64(ipt.MaxICMPConcurrency))
 
 	ipt.setupCli()
 
@@ -1115,8 +1126,12 @@ func defaultInput() *Input {
 			updateVariables:  []dt.Variable{},
 			updateVariableCh: make(chan dt.Variable, 100),
 		},
-		Election: false,
-		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+		Election:                   false,
+		pauseCh:                    make(chan bool, inputs.ElectionPauseChannelLength),
+		MaxJobChanNumber:           1000,
+		MaxCachePointsNumber:       10000,
+		DisableInternalNetworkTask: true,
+		MaxJobNumber:               10,
 	}
 }
 

@@ -209,6 +209,7 @@ func (p *pod) buildMetricPoints(list *apicorev1.PodList, metricsClient PodMetric
 
 		var kvs point.KVs
 		kvs = append(kvs, buildPodKVs(&list.Items[idx])...)
+		kvs = kvs.Del("workload_name") // Metric does not add a workload_name
 		kvs = kvs.AddTag("pod", item.Name)
 
 		if p.cfg.EnablePodMetric && shouldCollectPodMetrics(&list.Items[idx], metricsClient) {
@@ -340,6 +341,7 @@ func buildPodKVs(item *apicorev1.Pod) point.KVs {
 	ownerKind, ownerName := podutil.PodOwner(item)
 	if ownerKind != "" && ownerName != "" {
 		kvs = kvs.AddTag(ownerKind, ownerName)
+		kvs = kvs.AddTag("workload_name", ownerName)
 	}
 
 	return kvs
@@ -479,6 +481,7 @@ func (*PodObject) Info() *inputs.MeasurementInfo {
 			"name":             inputs.NewTagInfo("The UID of Pod."),
 			"uid":              inputs.NewTagInfo("The UID of Pod."),
 			"pod_name":         inputs.NewTagInfo("Name must be unique within a namespace."),
+			"workload_name":    inputs.NewTagInfo("The name of the workload resource."),
 			"host":             inputs.NewTagInfo("Pointing to the node where the pod is located."),
 			"node_name":        inputs.NewTagInfo("NodeName is a request to schedule this pod onto a specific node."),
 			"namespace":        inputs.NewTagInfo("Namespace defines the space within each name must be unique."),

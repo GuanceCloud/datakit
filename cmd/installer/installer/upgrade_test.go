@@ -14,6 +14,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/resourcelimit"
 )
 
 func Test_setupDefaultInputs(t *T.T) {
@@ -92,12 +93,31 @@ func Test_setupDefaultInputs(t *T.T) {
 	})
 }
 
-func TestUpgradeMainConfig(t *T.T) {
+func Test_upgradeMainConfInstance(t *T.T) {
 	cases := []struct {
 		name string
 		old,
 		expect *config.Config
 	}{
+		{
+			name: "upgrade-http-api-limit",
+			old: func() *config.Config {
+				c := config.DefaultConfig()
+
+				// set to old version's default values
+				c.HTTPAPI.RequestRateLimit = 20.0
+
+				return c
+			}(),
+
+			expect: func() *config.Config {
+				c := config.DefaultConfig()
+
+				t.Logf("c.HTTPAPI: %+#v", c.HTTPAPI)
+				return c
+			}(),
+		},
+
 		{
 			name: "upgrade-enable-pprof",
 			old: func() *config.Config {
@@ -321,14 +341,15 @@ func TestUpgradeMainConfig(t *T.T) {
 			name: "apply-old-cpu-max-limit",
 			old: func() *config.Config {
 				c := config.DefaultConfig()
-				c.ResourceLimitOptions.CPUMax = 20.0 // old cpu-max exist, do not apply cpu-cores
+				c.ResourceLimitOptions.CPUCores = 0            // clear
+				c.ResourceLimitOptions.CPUMaxDeprecated = 20.0 // old cpu-max exist, do not apply cpu-cores
 				return c
 			}(),
 
 			expect: func() *config.Config {
 				c := config.DefaultConfig()
-				c.ResourceLimitOptions.CPUMax = 20.0
-				c.ResourceLimitOptions.CPUCores = 0 // exist cpu-max override cpu-cores
+				c.ResourceLimitOptions.CPUMaxDeprecated = 0.0
+				c.ResourceLimitOptions.CPUCores = resourcelimit.CPUMaxToCores(20.0) // convert cpu-max to cpu-cores
 				return c
 			}(),
 		},
@@ -351,18 +372,13 @@ func TestUpgradeMainConfig(t *T.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *T.T) {
-			opt := DefaultInstallArgs()
-			got := opt.upgradeMainConfig(tc.old)
+			got := upgradeMainConfInstance(tc.old)
 			assert.Equal(t, tc.expect.String(), got.String())
 
-			t.Logf("%s", got.String())
-
 			c := config.DefaultConfig()
-			if _, err := bstoml.Decode(got.String(), c); err != nil {
-				t.Errorf("bstoml.Decode: %s", err)
-			} else {
-				assert.Equal(t, tc.expect.String(), c.String())
-			}
+			_, err := bstoml.Decode(got.String(), c)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.expect.String(), c.String())
 		})
 	}
 }

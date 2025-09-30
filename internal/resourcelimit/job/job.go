@@ -12,6 +12,7 @@ package job
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -21,8 +22,10 @@ const MB = 1024 * 1024
 var jobOpt *JobOptions
 
 type JobOptions struct {
-	CPUMax float64 `toml:"cpu_max"`
-	MemMax int64   `toml:"mem_max_mb"`
+	CPUMax float64
+	MemMax int64
+
+	info string
 
 	cpuErr error
 	memErr error
@@ -33,19 +36,24 @@ func (opt *JobOptions) String() string {
 		return "not ready"
 	}
 
-	info := ""
-	if opt.cpuErr != nil {
-		info += fmt.Sprintf("cpu limit error: %s", opt.cpuErr.Error())
-	} else {
-		info += fmt.Sprintf("cpu limit: %.2f", opt.CPUMax)
-	}
-	if opt.memErr != nil {
-		info += fmt.Sprintf("; mem limit error: %s", opt.memErr.Error())
-	} else {
-		info += fmt.Sprintf("; mem limit: %dMB", opt.MemMax)
+	if opt.info == "" {
+		var arr []string
+
+		if opt.memErr != nil {
+			arr = append(arr, fmt.Sprintf("mem error:%s", opt.memErr.Error()))
+		} else {
+			arr = append(arr, fmt.Sprintf("mem:%dMB", opt.MemMax))
+		}
+
+		if opt.cpuErr != nil {
+			arr = append(arr, fmt.Sprintf("cpu error:%s", opt.cpuErr.Error()))
+		} else {
+			arr = append(arr, fmt.Sprintf("cpu:%.2f", opt.CPUMax))
+		}
+		opt.info = strings.Join(arr, "|")
 	}
 
-	return info
+	return opt.info
 }
 
 func Run(opt *JobOptions) error {

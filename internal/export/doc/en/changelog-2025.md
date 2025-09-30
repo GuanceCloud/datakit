@@ -1,5 +1,89 @@
 # Changelog
 
+## 1.83.1(2025/09/30) {#cl-1.83.1}
+
+This release is a hotfix containing the following updates:
+
+### Bug Fixes {#cl-1.83.1-fix}
+
+- Fixed default collector configuration directory issue (#2810)
+- Prometheus Service Discovery now supports bearer token file configuration (#2840)
+- Fixed memory leak issue caused by DDTrace service object collection (#2841)
+
+---
+
+## 1.83.0 (2025/09/24) {#cl-1.83.0}
+
+This release is an iterative update with the following key changes:
+
+### New Features {#cl-1.83.0-new}
+
+- Adjusted the DataKit container image to support running as a [non-root user](datakit-daemonset-deploy.md#security-context) when deployed in Kubernetes (#2665)
+- Added support for crontab-style scheduled tasks in probing collection (#2811)
+- Added `prometheus.io/param_tags` support for KubernetesPrometheus collection (#2834)
+
+### Bug Fixes {#cl-1.83.0-fix}
+
+- Fixed the issue where high-order bits of `span_id` were padded with zeros during OpenTelemetry tracing propagation (#2828)
+- Fixed the `log_size` collection issue for SQLServer (#2833)
+- Fixed the metric set naming issue in KubernetesPrometheus (#2835)
+
+### Improvements {#cl-1.83.0-opt}
+
+- Optimized PostgreSQL metric collection (#2805)
+- Removed the redundant `operation` field from all Trace collectors except DDTrace (#2816)
+- Optimized the impact of the upgrade process on the *datakit.conf* file (#2821)
+- Optimized ICMP probing (#2823)
+- Optimized the CPU utilization limit settings in the *datakit.conf* configuration (#2830)
+- Optimized resource limit (cgroup) settings and their display effect in the monitor panel (#2827)
+- Remote Job optimizations (#2824)
+    - For Pods with multiple containers, DataKit will select the default container for dumping
+    - Added a service name-level directory to the upload path of dump files
+    - Optimized error handling for dump scripts
+
+### Compatibility Adjustments {#cl-1.83.0-brk}
+
+- Due to changes in DataKit's runtime permission control, all collector configuration examples have been moved to the *conf.d/samples/* directory, and subsequent releases will no longer use subdirectories under the *conf.d/* directory. Taking the CPU collector as an example, the original configuration example, which was located at *conf.d/host/cpu.conf.sample*, has now been adjusted to *conf.d/samples/cpu.conf.sample*. However, collector configurations can still be stored in subdirectories under *conf.d*. This update only adjusts the storage location of sample files.
+
+---
+
+## 1.82.0 (2025/09/12) {#cl-1.82.0}
+
+This release is an iterative update with the following key changes:
+
+### New Features {#cl-1.82.0-new}
+
+- Added file-based support for Prometheus Service Discovery (#2790)
+
+### Bug Fixes {#cl-1.82.0-fix}
+
+- Fixed an issue where event and change collection in Kubernetes terminated unexpectedly (#2806)
+
+### Improvements {#cl-1.82.0-opt}
+
+- Optimized eBPF collection performance in Kubernetes to reduce pressure on the Kubernetes API server (#2782/#2756)
+- Enhanced download process for APM Automatic Instrumentation packages (#2785)
+- Unified addition of `workload_name` field in Kubernetes objects (#2818)
+- Added `remote_ip` field to trace/metric collection for OpenTelemetry/DDTrace (#2819)
+- Adjusted DataKit HTTP API rate limiting defaults from 20 to 100 requests/sec, with added `ttl` and `burst` configurations (#2817)
+- Improved vSphere data collection (#2754)
+- Optimized ICMP probing logic (#2789)
+
+---
+
+## 1.81.1 (2025/09/05) {#cl-1.81.1}
+
+This release is a hotfix update, containing the following changes:
+
+### Bug Fixes {#cl-1.81.1-fix}
+
+- Fixed an issue where URL configuration in Prometheus Service Discovery did not take effect (#2810)
+- Disabled DDTrace/OpenTelemetry metric collection by default. In the `tracing_metrics` measurement, tags `resource` and `operation` are now excluded by default (#2809)
+- Forcefully converted OpenTelemetry `http_status_code` to string type (#2807)
+    - During the version change process of the OpenTelemetry V1 SDK, the data type of `http-status-code` in the original data sent changed (from string to int), causing this issue. DataKit now enforces conversion of this field to string.
+
+---
+
 ## 1.81.0(2025/08/29) {#cl-1.81.0}
 
 This release is an iterative update with the following main changes:

@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -189,9 +190,19 @@ func (s *serviceParser) transToEndpointsInstance(ins *Instance) *Instance {
 	if _, res := s.matches(ins.Custom.Measurement); res != "" {
 		newIns.Custom.Measurement = res
 	}
+	if newIns.Custom.Measurement == serviceAnnotationParamMeasurement {
+		newIns.Custom.Measurement = ""
+	}
 	for k, v := range ins.Tags {
 		value := v
 		if matched, res := s.matches(v); matched && res != "" {
+			if v == serviceAnnotationParamTags {
+				m := config.ParseGlobalTags(res)
+				for key, val := range m {
+					newIns.Custom.Tags[key] = val
+				}
+				continue
+			}
 			value = res
 		}
 		newIns.Custom.Tags[k] = value

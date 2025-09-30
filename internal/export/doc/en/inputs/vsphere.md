@@ -37,7 +37,7 @@ In the vCenter management interface, create a user `datakit` and assign `read-on
 <!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
-    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
+    Go to the `conf.d/samples` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
@@ -64,7 +64,7 @@ For all of the following data collections, a global tag named `host` is appended
 <!-- markdownlint-disable MD046 -->
 ???+ note
 
-    - Not all of the metrics listed below are collected; for specifics, refer to the explanations in the [Data Collection Levels](https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.monitoring.doc/GUID-25800DE4-68E5-41CC-82D9-8811E27924BC.html){:target="_blank"}
+    - Not all of the metrics listed below are collected; for specifics, refer to the explanations in the [Data Collection Levels](https://techdocs.broadcom.com/us/en/vmware-cis/vsphere/vsphere/9-0/vsphere-monitoring-and-performance/monitoring-inventory-objects/data-collection-levels.html){:target="_blank"}
 
 <!-- markdownlint-enable -->
 {{ range $i, $m := .Measurements }}

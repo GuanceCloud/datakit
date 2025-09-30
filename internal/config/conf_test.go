@@ -8,6 +8,7 @@ package config
 import (
 	"io"
 	"os"
+	"path/filepath"
 	"testing"
 	T "testing"
 	"time"
@@ -415,7 +416,7 @@ func TestLoadResourceLimite(t *T.T) {
 
 		_, err := bstoml.Decode(conf, c)
 		assert.NoError(t, err)
-		assert.Equal(t, 10.0, c.ResourceLimitOptions.CPUMax)
+		assert.Equal(t, 10.0, c.ResourceLimitOptions.CPUMaxDeprecated)
 	})
 }
 
@@ -444,4 +445,96 @@ func Test_setupDataway(t *testing.T) {
 			assert.Equal(t, tc.expect, err)
 		})
 	}
+}
+
+func TestTryUpgradeCfg(t *T.T) {
+	t.Run(`basic`, func(t *T.T) {
+		pwd := t.TempDir()
+		oldConfFile := filepath.Join(pwd, "datakit.conf")
+		oldConf := DefaultConfig()
+		// change some config items
+		oldConf.HTTPAPI.Listen = "localhost:1234"
+
+		assert.NoError(t, os.WriteFile(oldConfFile, []byte(oldConf.String()), datakit.ConfPerm))
+
+		newConf := DefaultConfig()
+		backup := oldConfFile + ".old"
+		newConf.TryUpgradeCfg(oldConfFile, backup)
+
+		_, err := os.Stat(backup)
+		assert.NoError(t, err)
+
+		oldConf = &Config{}
+		assert.NoError(t, oldConf.LoadMainTOML(backup))
+		assert.Equal(t, "localhost:1234", oldConf.HTTPAPI.Listen)
+	})
+
+	t.Run(`backup-conf-with-comments`, func(t *T.T) {
+		pwd := t.TempDir()
+		oldConfStr := `
+################################################
+# Global configures
+################################################
+# Default enabled input list.
+default_enabled_inputs = [
+  "cpu",
+  "disk",
+  "diskio",
+  "host_processes",
+  "hostobject",
+  "mem",
+  "net",
+  "swap",
+  "system",
+	"fake-input",
+]`
+
+		// prepare old datakit.conf
+		confPath := filepath.Join(pwd, "datakit.conf")
+		assert.NoError(t, os.WriteFile(confPath, []byte(oldConfStr), datakit.ConfPerm))
+
+		backup := confPath + ".old"
+
+		// new version of config
+		newConf := DefaultConfig()
+		// upgrade old datakit.conf and backup it if required
+		assert.NoError(t, newConf.TryUpgradeCfg(confPath, backup))
+		assert.Empty(t, newConf.DefaultEnabledInputs) // new version datakit.conf should have no default inputs
+
+		// reload backuped old datakit.conf
+		oldConf := &Config{}
+		assert.NoError(t, oldConf.LoadMainTOML(backup))
+
+		// and we got default input list
+		assert.NotEmpty(t, oldConf.DefaultEnabledInputs)
+		assert.Contains(t, oldConf.DefaultEnabledInputs, "fake-input")
+
+		oldConfBytes, err := os.ReadFile(backup)
+		assert.NoError(t, err)
+		assert.Contains(t, string(oldConfBytes), "# Default enabled input list.") // contains comments
+	})
+
+	t.Run(`with-comments-no-conf-items-changed`, func(t *T.T) {
+		pwd := t.TempDir()
+		oldConf := DefaultConfig()
+		confPath := filepath.Join(pwd, "datakit.conf")
+
+		// add comments in datakit.conf
+		oldConfBytes := "# some header comments\n" + oldConf.String() + "\n# some tail comments"
+		assert.NoError(t, os.WriteFile(confPath, []byte(oldConfBytes), datakit.ConfPerm))
+
+		newConf := DefaultConfig()
+		backup := filepath.Join(pwd, "datakit.conf.old")
+		assert.NoError(t, newConf.TryUpgradeCfg(confPath, backup))
+
+		assert.NoFileExists(t, backup) // no back
+
+		// make sure file contains comments
+		newConfBytes, err := os.ReadFile(confPath)
+		assert.NoError(t, err)
+		assert.Contains(t, string(newConfBytes), "# some header comments")
+		assert.Contains(t, string(newConfBytes), "# some tail comments")
+
+		t.Logf("%s", newConfBytes)
+	})
 }

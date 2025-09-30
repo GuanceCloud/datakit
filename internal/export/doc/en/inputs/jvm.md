@@ -211,7 +211,7 @@ Already tested version:
 - [x] JDK 11
 - [x] JDK 8
 
-Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
+Go to the `conf.d/samples` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
 
 ```toml
 {{.InputSample}}

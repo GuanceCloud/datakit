@@ -288,11 +288,11 @@ func newByteFieldInfo(desc string) *inputs.FieldInfo {
 	}
 }
 
-func newKByteFieldInfo(desc string) *inputs.FieldInfo {
+func newMByteFieldInfo(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		DataType: inputs.Float,
 		Type:     inputs.Gauge,
-		Unit:     inputs.SizeKB,
+		Unit:     inputs.SizeMB,
 		Desc:     desc,
 	}
 }
@@ -359,17 +359,13 @@ func transformData(measurement string, kvs point.KVs) point.KVs {
 			}
 		}
 	case "sqlserver_database_size":
-		if field := kvs.Fields().Get("data_size"); field != nil && !field.IsTag {
-			if data, isUint := field.Raw().([]uint8); isUint {
-				if dataSize, err := strconv.ParseFloat(string(data), 64); err == nil {
-					kvs = kvs.Set("data_size", dataSize)
-				}
-			}
-
-			if field := kvs.Fields().Get("data_size"); field != nil && !field.IsTag {
+		for _, mfield := range []string{"data_size", "log_size"} {
+			if field := kvs.Fields().Get(mfield); field != nil && !field.IsTag {
 				if data, isUint := field.Raw().([]uint8); isUint {
 					if dataSize, err := strconv.ParseFloat(string(data), 64); err == nil {
-						kvs = kvs.Set("log_size", dataSize)
+						kvs = kvs.Set(mfield, dataSize)
+					} else {
+						l.Warnf("parse %s failed: %s, ignore", mfield, err.Error())
 					}
 				}
 			}

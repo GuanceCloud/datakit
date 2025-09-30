@@ -85,14 +85,13 @@ const (
 
   ## tracing_metric_enable: trace_hits trace_hits_by_http_status trace_latency trace_errors trace_errors_by_http_status trace_apdex.
   ## Extract the above metrics from the collection traces.
-  ## default is true.
-  tracing_metric_enable = true
+  # tracing_metric_enable = true
 
   ## Blacklist of metric tags: There are many labels in the metric: "tracing_metrics".
   ## If you want to remove certain tag, you can use the blacklist to remove them.
   ## By default, it includes: source,span_name,env,service,status,version,resource,http_status_code,http_status_class
   ## and "customer_tags", k8s related tags, and others service.
-  # tracing_metric_tag_blacklist = ["tag_a","tag_b"]
+  # tracing_metric_tag_blacklist = ["resource","operation","tag_x"]
 
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
@@ -194,7 +193,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&itrace.TraceMeasurement{Name: inputName},
 		&jvmTelemetry{},
-		&itrace.TracingMetricMeasurement{},
+		&itrace.TracingMetricMeasurement{Source: "ddtrace", Name: "DDTrace"},
 	}
 }
 
@@ -221,11 +220,13 @@ func (ipt *Input) RegHTTPHandler() {
 	if ipt.MaxTraceBodyMB != 0 {
 		maxTraceBody = ipt.MaxTraceBodyMB * (1 << 20)
 	}
-	isTracingMetricsEnable = ipt.TracingMetricEnable
-	// 默认的标签 + custom tags
-	labels = itrace.AddLabels(itrace.DefaultLabelNames, ipt.CustomerTags)
-	labels = itrace.DelLabels(labels, ipt.TracingMetricTagBlacklist)
-	initP8SMetrics(labels)
+	if ipt.TracingMetricEnable {
+		isTracingMetricsEnable = ipt.TracingMetricEnable
+		// 默认的标签 + custom tags
+		labels = itrace.AddLabels(itrace.DefaultLabelNames, ipt.CustomerTags)
+		labels = itrace.DelLabels(labels, ipt.TracingMetricTagBlacklist)
+		initP8SMetrics(labels)
+	}
 
 	trace128BitID = ipt.Trace128BitID
 	noStreaming = ipt.NoStreaming
@@ -377,7 +378,9 @@ func (ipt *Input) Run() {
 
 			return
 		case <-ticker.C:
-			ipt.gatherMetrics()
+			if ipt.TracingMetricEnable {
+				ipt.gatherMetrics()
+			}
 		}
 	}
 }
@@ -449,12 +452,13 @@ func (ipt *Input) string() string {
 
 func defaultInput() *Input {
 	return &Input{
-		feeder:              dkio.DefaultFeeder(),
-		semStop:             cliutils.NewSem(),
-		Tagger:              datakit.DefaultGlobalTagger(),
-		TraceMaxSpans:       traceMaxSpans,
-		Trace128BitID:       true,
-		TracingMetricEnable: true,
+		feeder:        dkio.DefaultFeeder(),
+		semStop:       cliutils.NewSem(),
+		Tagger:        datakit.DefaultGlobalTagger(),
+		TraceMaxSpans: traceMaxSpans,
+		Trace128BitID: true,
+		// TracingMetricEnable:       true,
+		TracingMetricTagBlacklist: []string{"resource", "operation"},
 	}
 }
 

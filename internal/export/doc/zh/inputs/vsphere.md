@@ -37,7 +37,7 @@ monitor   :
 <!-- markdownlint-disable MD046 -->
 === "主机安装"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    进入 DataKit 安装目录下的 `conf.d/samples` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
@@ -64,7 +64,7 @@ monitor   :
 <!-- markdownlint-disable MD046 -->
 ???+ note
 
-    下面的指标并非全部被采集到，具体可参阅[数据集合级别](https://docs.vmware.com/cn/VMware-vSphere/7.0/com.vmware.vsphere.monitoring.doc/GUID-25800DE4-68E5-41CC-82D9-8811E27924BC.html){:target="_blank"}中的说明。
+    下面的指标并非全部被采集到，具体可参阅[数据集合级别](https://techdocs.broadcom.com/us/en/vmware-cis/vsphere/vsphere/9-0/vsphere-monitoring-and-performance/monitoring-inventory-objects/data-collection-levels.html){:target="_blank"}中的说明。
 
 <!-- markdownlint-enable -->
 {{ range $i, $m := .Measurements }}

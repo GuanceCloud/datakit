@@ -97,7 +97,7 @@ DDTrace 是 DataDog 开源的 APM 产品，DataKit 内嵌的 DDTrace Agent 用�
 
 === "主机安装"
 
-    进入 DataKit 安装目录下的 `conf.d/{{.Catalog}}` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
+    进入 DataKit 安装目录下的 `conf.d/samples` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
     ```toml
     {{ CodeBlock .InputSample 4 }}
@@ -134,7 +134,7 @@ DDTrace 目前支持的透传协议有：`datadog/b3multi/tracecontext` ，有�
 
 当应用在 Kubernetes 等容器环境部署时，我们可以在在最终的 Span 数据上追加 Pod/Node 信息，通过修改应用的 Yaml 即可，下面是一个 Kubernetes Deployment 的 yaml 示例：
 
-```yaml
+```yaml hl_lines="21-30"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -155,7 +155,7 @@ spec:
         - name: my-app
           image: my-app:v0.0.1
           env:
-            - name: POD_NAME    # <------
+            - name: POD_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
@@ -163,12 +163,12 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: DD_TAGS
+              value: pod_name:$(POD_NAME),host:$(NODE_NAME)
             - name: DD_SERVICE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.labels['service']
-            - name: DD_TAGS
-              value: pod_name:$(POD_NAME),host:$(NODE_NAME)
 ```
 
 注意，此处要先定义 `POD_NAME` 和 `NODE_NAME`，然后再将它们嵌入到到 DDTrace 专用的环境变量中。
@@ -258,7 +258,7 @@ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.p
   more_tag = "some_other_value"
 ```
 
-## APMTelemetry {#apm_telemetry}
+### APMTelemetry {#apm_telemetry}
 
 [:octicons-tag-24: Version-1.35.0](../datakit/changelog.md#cl-1.35.0) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
 
@@ -299,46 +299,58 @@ DDTrace 探针启动后，会不断通额外的接口上报服务有关的信息
 | `db.type`           | `db_system`         | 数据库类型： mysql oracle 等等 |
 | `db.instance`       | `db_name`           | 数据库名称                  |
 
+在 Studio 的链路界面，不在列表中的标签也可以进行筛选。
 
-在<<<custom_key.brand_name>>>中的链路界面，不在列表中的标签也可以进行筛选。
+从 DataKit 版本 [1.22.0](../datakit/changelog.md#cl-1.22.0) 恢复白名单功能，如果有必须要提取到一级标签列表中的标签，可以在 `customer_tags` 中配置。配置的白名单标签如果是原生的 `message.meta` 中，会使用 `.` 作为分隔符，采集器会进行转换将 `.` 替换成 `_` 。
 
-从 DataKit 版本 [1.22.0](../datakit/changelog.md#cl-1.22.0) 恢复白名单功能，如果有必须要提取到一级标签列表中的标签，可以在 `customer_tags` 中配置。
-配置的白名单标签如果是原生的 `message.meta` 中，会使用 `.` 作为分隔符，采集器会进行转换将 `.` 替换成 `_` 。
+## 数据采集字段说明 {#collected-data}
 
-## 资源目录 {#resource}
-
-DDTrace 在启动后会上报自身配置信息、集成列表、依赖关系以及服务相关信息到 DataKit 。
-目前仅支持 Java Agent ，以下是各个字段说明：
-
-- `app_client_configuration_change` 其中包含 Agent 的配置信息。
-- `app_dependencies_loaded` 依赖列表，包括包名和版本信息。
-- `app_integrations_change` 集成列表，包括包名和是否开启探针。
-- 其他：主机信息和服务信息。
-
-## 链路字段说明 {#tracing}
+### 链路 {#tracing}
 
 {{range $i, $m := .Measurements}}
 
 {{if eq $m.Type "tracing"}}
 
-### `{{$m.Name}}`
+#### `{{$m.Name}}`
 
-{{$m.Desc}}
+{{$m.DescZh}}
 
 {{$m.MarkdownTable}}
 {{end}}
 
 {{end}}
 
-## 链路资源对象字段说明 {#tracing-telemetry}
+### 指标 {#metric}
+
+{{range $i, $m := .Measurements}}
+
+{{if eq $m.Type "metric"}}
+
+#### `{{$m.Name}}`
+
+{{$m.DescZh}}
+
+{{$m.MarkdownTable}}
+{{end}}
+
+{{end}}
+
+### 资源对象 {#custom-object}
+
+DDTrace 在启动后会上报自身配置信息、集成列表、依赖关系以及服务相关信息到 DataKit 。目前仅支持 Java Agent ，以下是各个字段说明：
+
+- `app_client_configuration_change` 其中包含 Agent 的配置信息
+- `app_dependencies_loaded` 依赖列表，包括包名和版本信息
+- `app_integrations_change` 集成列表，包括包名和是否开启探针
+- 其他主机信息和服务等信息
 
 {{range $i, $m := .Measurements}}
 
 {{if eq $m.Type "custom_object"}}
 
-### `{{$m.Name}}`
+#### `{{$m.Name}}`
 
-{{$m.Desc}}
+{{$m.DescZh}}
 
 {{$m.MarkdownTable}}
 {{end}}

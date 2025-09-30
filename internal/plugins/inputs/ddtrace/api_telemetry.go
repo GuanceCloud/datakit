@@ -33,32 +33,46 @@ type jvmTelemetry struct {
 	traceTime    time.Time
 	runtimeID    string
 
-	kvs    point.KVs
+	// kvs    point.KVs
+	tags   map[string]string
+	fields map[string]interface{}
 	change bool
 	Name   string
 }
 
 func (ob *jvmTelemetry) toPoint() *point.Point {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Errorf("toPoint err:%v", err)
+		}
+	}()
 	ob.lock.RLock()
 	defer ob.lock.RUnlock()
 	opts := point.DefaultObjectOptions()
 	opts = append(opts, point.WithTime(ob.traceTime))
 
-	return point.NewPoint(telemetryMeasurementName, ob.kvs, opts...)
+	pt := point.NewPoint(telemetryMeasurementName,
+		append(point.NewTags(ob.tags), point.NewKVs(ob.fields)...), opts...)
+	if pt != nil && len(pt.Warns()) > 0 {
+		log.Errorf("toPoint err:%v", pt.Warns())
+	}
+
+	return pt
 }
 
 func (ob *jvmTelemetry) setField(key string, val interface{}) {
 	ob.lock.Lock()
 	defer ob.lock.Unlock()
 
-	ob.kvs = ob.kvs.Add(key, val)
+	ob.fields[key] = val
 }
 
 func (ob *jvmTelemetry) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: telemetryMeasurementName,
-		Desc: "Collect service, host, process APM telemetry message.",
-		Cat:  point.CustomObject,
+		Name:   telemetryMeasurementName,
+		Desc:   "Collect service, host, process APM telemetry message.",
+		DescZh: "采集 DDTrace 的 Service、Host、进程等配置信息",
+		Cat:    point.CustomObject,
 		Fields: map[string]interface{}{
 			requestTypeMap[RequestTypeAppStarted]: &inputs.FieldInfo{
 				Type:     inputs.Gauge,
@@ -107,16 +121,16 @@ func (ob *jvmTelemetry) Info() *inputs.MeasurementInfo {
 			"kernel_release":   inputs.NewTagInfo("Kernel release"),
 			"kernel_version":   inputs.NewTagInfo("Kernel version"),
 			"service":          inputs.NewTagInfo("Service"),
-			"name":             inputs.NewTagInfo("same as service name"),
+			"name":             inputs.NewTagInfo("Same as service name"),
 			"env":              inputs.NewTagInfo("Service ENV"),
 			"service_version":  inputs.NewTagInfo("Service version"),
 			"tracer_version":   inputs.NewTagInfo("DDTrace version"),
 			"language_name":    inputs.NewTagInfo("Language name"),
 			"language_version": inputs.NewTagInfo("Language version"),
 			"runtime_name":     inputs.NewTagInfo("Runtime name"),
-			"runtime_version":  inputs.NewTagInfo("Runtime_version"),
+			"runtime_version":  inputs.NewTagInfo("Runtime version"),
 			"runtime_patches":  inputs.NewTagInfo("Runtime patches"),
-			"runtime_id":       inputs.NewTagInfo("RuntimeID"),
+			"runtime_id":       inputs.NewTagInfo("Runtime ID"),
 		},
 	}
 }
@@ -139,7 +153,7 @@ func (ob *jvmTelemetry) parseEvent(requestType RequestType, payload interface{})
 		}
 		tags := getConfigTags(start.Configuration)
 		for k, v := range tags {
-			ob.kvs = ob.kvs.AddTag(k, v)
+			ob.tags[k] = v
 		}
 
 		ob.setField(requestTypeMap[requestType], string(bts))
@@ -177,7 +191,7 @@ func (ob *jvmTelemetry) parseEvent(requestType RequestType, payload interface{})
 		}
 		tags := getConfigTags(configs.Configuration)
 		for k, v := range tags {
-			ob.kvs = ob.kvs.AddTag(k, v)
+			ob.tags[k] = v
 		}
 		ob.setField(requestTypeMap[requestType], string(bts))
 		ob.change = true
@@ -242,7 +256,7 @@ func (ob *jvmTelemetry) parseEvent(requestType RequestType, payload interface{})
 			}
 		}
 	default:
-		log.Warnf("unknown telemetry request type")
+		log.Warnf("unknown telemetry request type %s", string(requestType))
 	}
 }
 
@@ -314,13 +328,13 @@ func (ipt *Input) OMInitAndRunning() {
 			select {
 			case ob := <-ipt.om.OBChan:
 				ipt.om.obsLock.Lock()
-				err := ipt.feeder.Feed(
-					point.CustomObject,
-					[]*point.Point{ob.toPoint()},
-					dkio.WithSource(customObjectFeedName),
-				)
-				if err != nil {
-					log.Errorf("feed err=%v", err)
+				pt := ob.toPoint()
+				if pt != nil {
+					err := ipt.feeder.Feed(point.CustomObject, []*point.Point{pt},
+						dkio.WithSource(customObjectFeedName))
+					if err != nil {
+						log.Errorf("feed err=%v", err)
+					}
 				}
 				ipt.om.obsLock.Unlock()
 			case <-ipt.semStop.Wait():
@@ -353,34 +367,35 @@ func (om *Manager) parseTelemetryRequest(header http.Header, bts []byte) {
 	if body.Application.LanguageName != "jvm" {
 		return
 	}
-	var kvs point.KVs
-	kvs = kvs.AddTag("hostname", body.Host.Hostname).
-		AddTag("os", body.Host.OS).
-		AddTag("os_version", body.Host.OSVersion).
-		AddTag("architecture", body.Host.Architecture).
-		AddTag("kernel_name", body.Host.KernelName).
-		AddTag("kernel_release", body.Host.KernelRelease).
-		AddTag("kernel_version", body.Host.KernelVersion).
-		AddTag("service", body.Application.ServiceName).
-		AddTag("name", body.Application.ServiceName+"-"+body.RuntimeID).
-		AddTag("env", body.Application.Env).
-		AddTag("service_version", body.Application.ServiceVersion).
-		AddTag("tracer_version", body.Application.TracerVersion).
-		AddTag("language_name", body.Application.LanguageName).
-		AddTag("language_version", body.Application.LanguageVersion).
-		AddTag("runtime_name", body.Application.RuntimeName).
-		AddTag("runtime_version", body.Application.RuntimeVersion).
-		AddTag("runtime_patches", body.Application.RuntimePatches).
-		AddTag("runtime_id", body.RuntimeID)
 
 	ob, ok := om.OBS[body.Application.ServiceName+body.RuntimeID]
 	if !ok {
+		tags := make(map[string]string)
+		tags["hostname"] = body.Host.Hostname
+		tags["os"] = body.Host.OS
+		tags["os_version"] = body.Host.OSVersion
+		tags["architecture"] = body.Host.Architecture
+		tags["kernel_name"] = body.Host.KernelName
+		tags["kernel_release"] = body.Host.KernelRelease
+		tags["kernel_version"] = body.Host.KernelVersion
+		tags["service"] = body.Application.ServiceName
+		tags["name"] = body.Application.ServiceName + "-" + body.RuntimeID
+		tags["env"] = body.Application.Env
+		tags["service_version"] = body.Application.ServiceVersion
+		tags["tracer_version"] = body.Application.TracerVersion
+		tags["language_name"] = body.Application.LanguageName
+		tags["language_version"] = body.Application.LanguageVersion
+		tags["runtime_name"] = body.Application.RuntimeName
+		tags["runtime_version"] = body.Application.RuntimeVersion
+		tags["runtime_patches"] = body.Application.RuntimePatches
+		tags["runtime_id"] = body.RuntimeID
 		ob = &jvmTelemetry{
 			host:        body.Host,
 			application: body.Application,
 			traceTime:   time.Unix(body.TracerTime, 0),
 			runtimeID:   body.RuntimeID,
-			kvs:         kvs,
+			tags:        tags,
+			fields:      make(map[string]interface{}),
 		}
 	} else {
 		ob.host = body.Host
@@ -393,10 +408,12 @@ func (om *Manager) parseTelemetryRequest(header http.Header, bts []byte) {
 	if ob.change {
 		ob.change = false
 		// 发生变化，准备发送到io.
-		om.OBChan <- ob
+		select {
+		case om.OBChan <- ob:
+		default:
+		}
 		// 及时清除已经关闭连接的 Agent.
-		f := ob.kvs.Get(requestTypeMap[RequestTypeAppClosing])
-		if f != nil {
+		if _, ok = ob.fields[requestTypeMap[RequestTypeAppClosing]]; ok {
 			log.Infof("server:%s stop,and rumtime id is:%s", body.Application.ServiceName, body.RuntimeID)
 			delete(om.OBS, body.Application.ServiceName+body.RuntimeID)
 		}

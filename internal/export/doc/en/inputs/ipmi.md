@@ -80,7 +80,7 @@ Temp             | 0Fh | ok  |  3.2 | 45 degrees C
 
 === "Host deployment"
 
-    Go to the `conf.d/{{.Catalog}}` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
+    Go to the `conf.d/samples` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. Examples are as follows:
     
     ```toml
     {{ CodeBlock .InputSample 4 }}
@@ -120,7 +120,7 @@ IPMI collector supports election function. When multiple machines run DataKit, i
   # Tag that allows election space to be appended to data
   enable_namespace_tag = false
 ```
-`conf.d/{{.Catalog}}/{{.InputName}}.conf` file opens the `election` function:
+`conf.d/samples/{{.InputName}}.conf` file opens the `election` function:
 ```
   ## Set true to enable election
   election = true

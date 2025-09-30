@@ -4,10 +4,11 @@
 package l4log
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
+
+	"github.com/goccy/go-json"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"

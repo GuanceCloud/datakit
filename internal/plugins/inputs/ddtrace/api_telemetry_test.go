@@ -116,7 +116,7 @@ func Test_parseTelemetryRequest(t *testing.T) {
 	for {
 		select {
 		case ob := <-om.OBChan:
-			t.Logf("get ob fields len=%d", ob.kvs.Len())
+			t.Logf("get ob fields len=%d", len(ob.fields))
 			isbreak++
 		default:
 			t.Logf("none")
@@ -128,17 +128,17 @@ func Test_parseTelemetryRequest(t *testing.T) {
 	}
 
 	if ob, ok := om.OBS[commonBody.Application.ServiceName+commonBody.RuntimeID]; ok && ob != nil {
-		assert.Equal(t, ob.kvs.GetTag("hostname"), commonBody.Host.Hostname)
-		assert.Equal(t, ob.kvs.GetTag("os"), commonBody.Host.OS)
-		assert.Equal(t, ob.kvs.GetTag("kernel_name"), commonBody.Host.KernelName)
-		assert.Equal(t, ob.kvs.GetTag("service"), commonBody.Application.ServiceName)
-		assert.Equal(t, ob.kvs.GetTag("service_version"), commonBody.Application.ServiceVersion)
+		assert.Equal(t, ob.tags["hostname"], commonBody.Host.Hostname)
+		assert.Equal(t, ob.tags["os"], commonBody.Host.OS)
+		assert.Equal(t, ob.tags["kernel_name"], commonBody.Host.KernelName)
+		assert.Equal(t, ob.tags["service"], commonBody.Application.ServiceName)
+		assert.Equal(t, ob.tags["service_version"], commonBody.Application.ServiceVersion)
 
-		assert.NotEmpty(t, ob.kvs.Get("app_started"))
-		assert.NotEmpty(t, ob.kvs.Get("app_integrations_change"))
+		assert.NotEmpty(t, ob.fields["app_started"])
+		assert.NotEmpty(t, ob.fields["app_integrations_change"])
 
-		assert.Equal(t, ob.kvs.Get("spans_created_type_datadog").GetF(), float64(4))
-		assert.Equal(t, ob.kvs.Get("spans_finished_type_http").GetF(), float64(4))
+		assert.Equal(t, ob.fields["spans_created_type_datadog"], float64(4))
+		assert.Equal(t, ob.fields["spans_finished_type_http"], float64(4))
 	} else {
 		t.Errorf("can find telemetry")
 	}

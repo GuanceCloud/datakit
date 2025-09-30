@@ -88,7 +88,7 @@ func TestParseLogsRequest(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ipt := defaultInput()
 
-			pts := ipt.parseLogRequest(tt.args.resourceLogss)
+			pts := ipt.parseLogRequest(tt.args.resourceLogss, "localhost")
 			for _, pt := range pts {
 				assert.Equal(t, pt.Get("service"), "tmall")
 				assert.Equal(t, pt.Get("message"), "this message")

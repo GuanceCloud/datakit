@@ -49,7 +49,7 @@ var ddTagsLock sync.RWMutex
 func setCustomTags(customTags []string) {
 	ddTagsLock.Lock()
 	for _, tag := range customTags {
-		log.Infof("set customtag key %s to ddTags", tag)
+		log.Debugf("set customtag key %s to ddTags", tag)
 		ddTags[tag] = strings.ReplaceAll(tag, ".", "_")
 	}
 	ddTagsLock.Unlock()

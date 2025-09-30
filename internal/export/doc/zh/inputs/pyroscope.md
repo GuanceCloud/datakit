@@ -25,7 +25,7 @@ DataKit 从[:octicons-tag-24: Version-1.67.0](../datakit/changelog-2025.md#cl-1.
 <!-- markdownlint-disable MD046 -->
 === "主机安装"
 
-    进入 DataKit 安装目录下的 *conf.d/{{.Catalog}}* 目录，复制 *{{.Catalog}}.conf.sample* 并命名为 *{{.Catalog}}.conf*。配置文件说明如下：
+    进入 DataKit 安装目录下的 *conf.d/samples* 目录，复制 *sample.conf.sample* 并命名为 *sample.conf*。配置文件说明如下：
     
     ```toml
     {{ CodeBlock .InputSample 4 }}

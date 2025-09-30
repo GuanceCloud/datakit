@@ -21,6 +21,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var (
+	voidTagKey                        = "__void_tag_key"
+	podAnnotationParamMeasurement     = "__kubernetes_pod_annotation_" + annotationPrometheusioParamMeasurement
+	podAnnotationParamTags            = "__kubernetes_pod_annotation_" + annotationPrometheusioParamTags
+	serviceAnnotationParamMeasurement = "__kubernetes_service_annotation_" + annotationPrometheusioParamMeasurement
+	serviceAnnotationParamTags        = "__kubernetes_service_annotation_" + annotationPrometheusioParamTags
+)
+
 func (ipt *Input) applyPredefinedInstances() {
 	keys := getExtraLabelAsTags()
 
@@ -35,13 +43,14 @@ func (ipt *Input) applyPredefinedInstances() {
 				Path:   "__kubernetes_pod_annotation_" + annotationPrometheusioPath,
 			},
 			Custom: Custom{
-				Measurement:      "__kubernetes_pod_annotation_" + annotationPrometheusioParamMeasurement,
+				Measurement:      podAnnotationParamMeasurement,
 				JobAsMeasurement: false,
 				Tags: map[string]string{
 					"instance":  "__kubernetes_mate_instance",
 					"host":      "__kubernetes_mate_host",
 					"namespace": "__kubernetes_pod_namespace",
 					"pod_name":  "__kubernetes_pod_name",
+					voidTagKey:  podAnnotationParamTags,
 				},
 			},
 		}
@@ -67,7 +76,7 @@ func (ipt *Input) applyPredefinedInstances() {
 				Path:   "__kubernetes_service_annotation_" + annotationPrometheusioPath,
 			},
 			Custom: Custom{
-				Measurement:      "__kubernetes_service_annotation_" + annotationPrometheusioParamMeasurement,
+				Measurement:      serviceAnnotationParamMeasurement,
 				JobAsMeasurement: false,
 				Tags: map[string]string{
 					"instance":     "__kubernetes_mate_instance",
@@ -75,6 +84,7 @@ func (ipt *Input) applyPredefinedInstances() {
 					"namespace":    "__kubernetes_service_namespace",
 					"service_name": "__kubernetes_service_name",
 					"pod_name":     "__kubernetes_service_target_name",
+					voidTagKey:     serviceAnnotationParamTags,
 				},
 			},
 		}

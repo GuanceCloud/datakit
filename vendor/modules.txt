@@ -37,7 +37,7 @@ github.com/DataDog/sketches-go/ddsketch/mapping
 github.com/DataDog/sketches-go/ddsketch/pb/sketchpb
 github.com/DataDog/sketches-go/ddsketch/stat
 github.com/DataDog/sketches-go/ddsketch/store
-# github.com/GuanceCloud/cliutils v1.1.22-0.20250812093702-666ae110fe8e
+# github.com/GuanceCloud/cliutils v1.1.22-0.20250924064705-964195ea7989
 ## explicit; go 1.19
 github.com/GuanceCloud/cliutils
 github.com/GuanceCloud/cliutils/dialtesting
@@ -129,10 +129,6 @@ github.com/GuanceCloud/platypus/pkg/token
 # github.com/GuanceCloud/timeout v1.9.1
 ## explicit; go 1.15
 github.com/GuanceCloud/timeout
-# github.com/GuanceCloud/toml v1.2.5
-## explicit; go 1.16
-github.com/GuanceCloud/toml
-github.com/GuanceCloud/toml/internal
 # github.com/GuanceCloud/tracing-protos v0.0.0-20230619071516-54c8cff1b6b3
 ## explicit
 github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/collector/logs/v1

@@ -7,7 +7,6 @@
 package resourcelimit
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -25,7 +24,6 @@ var (
 	self                 *process.Process
 	resourceLimitOpt     *ResourceLimitOptions
 	errProcessInitFailed = errors.New("process init failed")
-	userName             string
 )
 
 const (
@@ -37,36 +35,50 @@ type ResourceLimitOptions struct {
 
 	// CPU usage percent(max is 100)
 	// Deprecated: use CPUCores
-	CPUMax   float64 `toml:"cpu_max"`
+	CPUMaxDeprecated float64 `toml:"cpu_max,omitzero"`
+
+	cpuMax   float64
 	CPUCores float64 `toml:"cpu_cores"` // CPU cores, 1.0 means 1 core
 
 	MemMax int64 `toml:"mem_max_mb"`
 
 	DisableOOM bool `toml:"disable_oom,omitempty"`
 	Enable     bool `toml:"enable"`
+
+	info, user string
+}
+
+func CPUMaxToCores(x float64) float64 {
+	if x > 100.0 {
+		x = 100.0
+	}
+	return x * float64(runtime.NumCPU()) / 100.0
+}
+
+func CPUCoresToCPUMax(x float64) float64 {
+	return x / float64(runtime.NumCPU()) * 100.0
+}
+
+func (c *ResourceLimitOptions) CPUMax() float64 {
+	return c.cpuMax
 }
 
 // Setup set internal values of resource limits.
 func (c *ResourceLimitOptions) Setup() {
-	if c.CPUMax > 0 {
-		// PASS: use old configure
-		if c.CPUMax > 100.0 {
-			c.CPUMax = 100.0
-			c.CPUCores = float64(runtime.NumCPU()) // use all CPU cores
-		} else {
-			c.CPUCores = float64(runtime.NumCPU()) * c.CPUMax / 100.0
-		}
-	} else {
-		if c.CPUCores <= 0 { // CPU-cores not set, default to 2C.
-			c.CPUCores = 2
-		}
+	if c.CPUCores <= 0 { // CPU-cores not set, default to 2C.
+		c.CPUCores = 2
+	}
 
-		if c.CPUCores > float64(runtime.NumCPU()) { // should not > 100%
-			c.CPUCores = float64(runtime.NumCPU())
-			c.CPUMax = 100.0
-		} else {
-			c.CPUMax = 100.0 * c.CPUCores / float64(runtime.NumCPU())
-		}
+	if c.CPUMaxDeprecated > 0 {
+		c.CPUCores = CPUMaxToCores(c.CPUMaxDeprecated)
+		c.CPUMaxDeprecated = 0.0
+	}
+
+	if c.CPUCores > float64(runtime.NumCPU()) { // should not > physical CPU num.
+		c.CPUCores = float64(runtime.NumCPU())
+		c.cpuMax = 100.0
+	} else {
+		c.cpuMax = 100.0 * c.CPUCores / float64(runtime.NumCPU())
 	}
 }
 
@@ -84,30 +96,38 @@ func Run(c *ResourceLimitOptions, username string) {
 
 	c.Setup()
 
-	resourceLimitOpt = c
-	userName = username
 	if c == nil || !c.Enable {
 		return
 	}
 
-	if c.CPUMax <= 0 || c.CPUMax > 100 {
+	if c.cpuMax <= 0 || c.cpuMax > 100 {
 		l.Errorf("CPUMax and CPUMin should be in range of [0.0, 100.0]")
 		return
 	}
 
-	l.Infof("set CPU max to %f%%(%d cores)", c.CPUMax, runtime.NumCPU())
+	if datakit.IsAdminUser(username) {
+		// cgroup need admin user(root for linux, administrator for windows) to setup.
+		l.Infof("set CPU max to %f%%(%d cores)", c.CPUMax, runtime.NumCPU())
 
-	g := datakit.G("internal_resourcelimit")
-
-	g.Go(func(ctx context.Context) error {
 		if err := run(c); err != nil {
-			l.Errorf("run resource limit error: %s", err.Error())
+			l.Errorf("set resource limit failed: %s", err.Error())
 		} else {
-			l.Infof("resource limit: %s", Info())
+			resourceLimitOpt = c
+			resourceLimitOpt.user = username
+			l.Infof("set resource limit ok")
 		}
-
-		return nil
-	})
+	} else {
+		// For non-admin user under linux, we set resource limit in
+		// service file(see /etc/systemd/system/datakit.service)
+		if runtime.GOOS == datakit.OSLinux {
+			// we still set a fake limit here, we need to show cgroup info
+			// in monitor(and in datakit's metrics)
+			resourceLimitOpt = c
+			resourceLimitOpt.user = username
+		} else {
+			l.Warnf("resource limit not set for current platform on non-admin user")
+		}
+	}
 }
 
 func MyMemPercent() (float32, error) {
@@ -163,9 +183,14 @@ func Info() string {
 		return "-"
 	}
 
-	if userName != "root" {
-		return fmt.Sprintf("path: %s, mem: %dMB, cpu: %.2f",
-			resourceLimitOpt.Path, resourceLimitOpt.MemMax, resourceLimitOpt.CPUMax)
+	if datakit.IsAdminUser(resourceLimitOpt.user) {
+		return info()
+	} else {
+		if resourceLimitOpt.info == "" {
+			// for non-admin-user, we show less info
+			resourceLimitOpt.info = fmt.Sprintf("mem:%dMB|cpu:%.2f|service",
+				resourceLimitOpt.MemMax, resourceLimitOpt.cpuMax)
+		}
+		return resourceLimitOpt.info
 	}
-	return info()
 }
