@@ -67,7 +67,7 @@ func handleDDTraces(resp http.ResponseWriter, req *http.Request) {
 	remoteIP, _ := net.RemoteAddr(req)
 	ntrace, err := strconv.ParseInt(ntraceStr, 10, 64)
 	if err != nil {
-		log.Warnf("invalid X-Datadog-Trace-Count: %q, ignored", ntraceStr)
+		log.Debugf("invalid X-Datadog-Trace-Count: %q, ignored", ntraceStr)
 	}
 
 	cl, err := strconv.ParseInt(clStr, 10, 64)
@@ -123,7 +123,7 @@ func handleDDStats(resp http.ResponseWriter, req *http.Request) {
 }
 
 func handleDDInfo(resp http.ResponseWriter, req *http.Request) {
-	log.Infof("### %s unsupported yet", req.URL.Path)
+	log.Debugf("### %s unsupported yet", req.URL.Path)
 	resp.WriteHeader(http.StatusNotFound)
 }
 
