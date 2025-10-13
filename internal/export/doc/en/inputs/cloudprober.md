@@ -60,7 +60,7 @@ Running Cloudprober:
 <!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
-    Go to the `conf.d/cloudprober` directory under the DataKit installation directory, copy `cloudprober.conf.sample` and name it `cloudprober.conf`. Examples are as follows:
+    Go to the `conf.d/samples` directory under the DataKit installation directory, copy `cloudprober.conf.sample` and name it `cloudprober.conf`. Examples are as follows:
     
     ```toml
     [[inputs.cloudprober]]

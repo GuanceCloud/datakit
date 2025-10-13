@@ -28,7 +28,7 @@ This document focuses on local disk log collection and Socket log collection:
 <!-- markdownlint-disable MD046 -->
 === "Host deployment"
 
-    Go to the `conf.d/log` directory under the DataKit installation directory, copy `logging.conf.sample` and name it `logging.conf`. Examples are as follows:
+    Go to the `conf.d/samples` directory under the DataKit installation directory, copy `logging.conf.sample` and name it `logging.conf`. Examples are as follows:
     
     ```toml
     {{ CodeBlock .InputSample 4 }}

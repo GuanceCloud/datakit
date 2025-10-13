@@ -32,7 +32,7 @@ monitor   :
 <!-- markdownlint-disable MD046 -->
 === "主机安装"
 
-    需要先开启 [logfwdserver](logfwdserver.md)，进入 DataKit 安装目录下的 `conf.d/log` 目录，复制 `logfwdserver.conf.sample` 并命名为 `logfwdserver.conf`。示例如下：
+    需要先开启 [logfwdserver](logfwdserver.md)，进入 DataKit 安装目录下的 `conf.d/samples` 目录，复制 `logfwdserver.conf.sample` 并命名为 `logfwdserver.conf`。示例如下：
 
     ``` toml hl_lines="1"
     [inputs.logfwdserver] # 注意这里是 logfwdserver 的配置

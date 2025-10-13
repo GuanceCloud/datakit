@@ -30,7 +30,7 @@ It is divided into two parts, one is to configure DataKit to start the correspon
 <!-- markdownlint-disable MD046 -->
 === "Host Installation"
 
-    You need to open [logfwdserver](logfwdserver.md), go to the `conf.d/log` directory under the DataKit installation directory, copy `logfwdserver.conf.sample` and name it  `logfwdserver.conf`. Examples are as follows:
+    You need to open [logfwdserver](logfwdserver.md), go to the `conf.d/samples` directory under the DataKit installation directory, copy `logfwdserver.conf.sample` and name it  `logfwdserver.conf`. Examples are as follows:
     
     ``` toml hl_lines="1"
     [inputs.logfwdserver] # Note that this is the configuration of logfwdserver
