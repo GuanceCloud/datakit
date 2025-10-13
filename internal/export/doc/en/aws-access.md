@@ -123,13 +123,13 @@ Obtain the account ID in the upper right corner of the console, copy this "Accou
 Run the following command on EC2:
 
 ```shell
-dig us1-openway.<<<custom_key.brand_main_domain>>>
+dig xxx-openway.<<<custom_key.brand_main_domain>>>
 ```
 
 Result:
 
 ```shell
-; <<>> DiG 9.16.38-RH <<>> us1-openway.<<<custom_key.brand_main_domain>>>
+; <<>> DiG 9.16.38-RH <<>> xxx-openway.<<<custom_key.brand_main_domain>>>
 ;; global options: +cmd
 ;; Got answer:
 ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 22545
@@ -138,10 +138,10 @@ Result:
 ;; OPT PSEUDOSECTION:
 ; EDNS: version: 0, flags:; udp: 4096
 ;; QUESTION SECTION:
-;us1-openway.<<<custom_key.brand_main_domain>>>.      IN    A
+;xxx-openway.<<<custom_key.brand_main_domain>>>.      IN    A
 
 ;; ANSWER SECTION:
-us1-openway.<<<custom_key.brand_main_domain>>>. 296 IN  CNAME     172.31.16.128 
+xxx-openway.<<<custom_key.brand_main_domain>>>. 296 IN  CNAME     172.31.16.128 
 
 ;; Query time: 0 msec
 ;; SERVER: 172.31.0.2#53(172.31.0.2)

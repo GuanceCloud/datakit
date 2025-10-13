@@ -126,13 +126,13 @@ flowchart LR
 EC2 执行命令：
 
 ```shell
-dig aws-openway.<<<custom_key.brand_main_domain>>>
+dig xxx-openway.<<<custom_key.brand_main_domain>>>
 ```
 
 结果：
 
 ```shell
-; <<>> DiG 9.16.38-RH <<>> aws-openway.<<<custom_key.brand_main_domain>>>
+; <<>> DiG 9.16.38-RH <<>> xxx-openway.<<<custom_key.brand_main_domain>>>
 ;; global options: +cmd
 ;; Got answer:
 ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 22545
@@ -141,10 +141,10 @@ dig aws-openway.<<<custom_key.brand_main_domain>>>
 ;; OPT PSEUDOSECTION:
 ; EDNS: version: 0, flags:; udp: 4096
 ;; QUESTION SECTION:
-;aws-openway.<<<custom_key.brand_main_domain>>>.      IN    A
+;xxx-openway.<<<custom_key.brand_main_domain>>>.      IN    A
 
 ;; ANSWER SECTION:
-aws-openway.<<<custom_key.brand_main_domain>>>. 296 IN  CNAME    172.31.16.128 
+xxx-openway.<<<custom_key.brand_main_domain>>>. 296 IN  CNAME    172.31.16.128 
 
 ;; Query time: 0 msec
 ;; SERVER: 172.31.0.2#53(172.31.0.2)
