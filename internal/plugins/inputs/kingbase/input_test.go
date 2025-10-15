@@ -13,22 +13,31 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/kingbase/driver"
 )
 
-// func TestCollect(t *testing.T) {
+// func initIpt() *Input {
 // 	i := defaultInput()
-// 	i.Host = "localhost"
+// 	i.Host = "junlin623.cn"
 // 	i.Port = 54321
 // 	i.User = "datakit"
 // 	i.Password = "datakit"
 // 	i.Database = "test"
 
-// 	i.setup()
+// 	if err := i.setup(); err != nil {
+// 		return nil
+// 	}
 // 	i.Init()
-// 	for x := 0; x < 2; x++ {
-// 		i.ptsTime = ntp.Now()
-// 		if err := i.Collect(); err != nil {
-// 			t.Error(err)
-// 		}
-// 		time.Sleep(time.Second * 1) // with sleep to update ptsTime
+
+// 	return i
+// }
+
+// func TestCollect(t *testing.T) {
+// 	i := initIpt()
+// 	if i == nil {
+// 		t.Fatal("init ipt error")
+// 	}
+
+// 	i.ptsTime = ntp.Now()
+// 	if err := i.Collect(); err != nil {
+// 		t.Error(err)
 // 	}
 // }
 

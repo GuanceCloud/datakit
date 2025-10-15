@@ -27,16 +27,29 @@ Kingbase 采集器可以从 Kingbase 实例中采集实例运行状态指标。
 ```sql
 -- 创建监控用户
 CREATE USER datakit with password 'datakit';
--- 授权
-GRANT sys_monitor TO datakit;
+-- 授权（兼容不同版本）
+DO $$
+BEGIN
+    BEGIN
+        GRANT sys_monitor TO datakit;
+        RAISE NOTICE 'granted sys_monitor';
+    EXCEPTION WHEN undefined_object THEN
+        GRANT pg_monitor TO datakit;
+        RAISE NOTICE 'granted pg_monitor';
+    END;
+END $$;
 ```
 
 - 开启 sys_stat_statements 扩展日志记录
 
-编辑 `data` 目录下的 `kingbase.conf` 配置文件，修改 `sys_stat_statements.track` 的值为 `top`。
+编辑 `data` 目录下的 `kingbase.conf` 配置文件，修改 `sys_stat_statements.track` 的值为 `top`，如果没有找到该配置项，在最后一行添加即可。
 
 ```bash
 # 跟踪统计 SQL 语句访问，推荐 top，默认 none
+# 旧版参数（V8R5 或早期 V8R6）
+# pg_stat_statements.track = 'top'
+
+# 新版参数
 sys_stat_statements.track = 'top'
 ```
 
