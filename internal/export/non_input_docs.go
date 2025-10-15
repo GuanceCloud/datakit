@@ -693,7 +693,7 @@ func envRecorder() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
 		{ENVName: "ENV_ENABLE_RECORDER", Type: doc.Boolean, Default: "false", Desc: "To enable or disable recorder", DescZh: "设置是否开启数据录制"},
-		{ENVName: "ENV_RECORDER_PATH", Type: doc.String, Default: "*DataKit 安装目录/recorder*", Desc: "Set recorder data path", DescZh: "设置数据录制的存放目录"},
+		{ENVName: "ENV_RECORDER_PATH", Type: doc.String, Default: "*[DataKit install path]/recorder*", Desc: "Set recorder data path", DescZh: "设置数据录制的存放目录"},
 		{ENVName: "ENV_RECORDER_ENCODING", Type: doc.String, Default: "v2", Desc: "Set recorder format. v1 is lineprotocol, v2 is JSON", DescZh: "设置数据录制的存放格式，v1 为行协议格式，v2 为 JSON 格式"},
 		{ENVName: "ENV_RECORDER_DURATION", Type: doc.TimeDuration, Default: "30m", Desc: "Set recorder duration(since DataKit start). After the duration, the recorder will stop to write data to file", DescZh: "设置数据录制时长（自 DataKit 启动以后），一旦超过该时长，则不再录制"},
 		{ENVName: "ENV_RECORDER_INPUTS", Type: doc.List, Example: "cpu,mem,disk", Desc: "Set allowed input names for recording, split by comma", DescZh: "设置录制的采集器名称列表，以英文逗号分割"},
@@ -771,7 +771,7 @@ func envRemoteJob() []*inputs.ENVInfo {
 			Type:    doc.Boolean,
 			Default: "false",
 			Example: "`true`",
-			Desc:    "Enable remote_job",
+			Desc:    "Enable remote job",
 			DescZh:  "开启 remote job 功能",
 		},
 		{

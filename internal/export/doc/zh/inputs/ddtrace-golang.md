@@ -83,7 +83,7 @@ go test ./...
 
 ---
 
-## 手动方式插装 {#manual-dependence}
+## 手动方式插桩 {#manual-dependence}
 
 安装 DDTrace Golang SDK：
 

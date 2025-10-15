@@ -525,7 +525,7 @@ For more info about recorder, see [here](datakit-tools-how-to.md#record-and-repl
 [:octicons-tag-24: Version-1.63.0](changelog.md#cl-1.63.0)
 
 <!-- markdownlint-disable MD046 -->
-{{ CodeBlock .NonInputENVSampleZh.remote_job 0}}
+{{ CodeBlock .NonInputENVSample.remote_job 0}}
 <!-- markdownlint-enable -->
 
 ### Others {#env-others}
