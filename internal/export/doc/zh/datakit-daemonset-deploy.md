@@ -53,7 +53,11 @@
     
     ```shell
     helm install datakit datakit \
-         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+    <<<% if custom_key.brand_key == 'guance' %>>>
+        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+    <<<% else %>>>
+        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
+    <<<% endif %>>>
          -n datakit --create-namespace \
          --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>" 
     ```
@@ -69,7 +73,11 @@
     ```shell
     helm -n datakit get  values datakit -o yaml > values.yaml
     helm upgrade datakit datakit \
+    <<<% if custom_key.brand_key == 'guance' %>>>
         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+    <<<% else %>>>
+        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
+    <<<% endif %>>>
         -n datakit \
         -f values.yaml
     ```
@@ -88,7 +96,11 @@
 
     ```shell
     helm install datakit datakit \
-         --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+    <<<% if custom_key.brand_key == 'guance' %>>>
+        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+    <<<% else %>>>
+        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
+    <<<% endif %>>>
          -n datakit --create-namespace \
          --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<your-token>" \
          --set datakit.default_enabled_inputs="statsd\,dk\,cpu\,mem"
@@ -102,7 +114,11 @@
 
     ```shell
     helm install datakit datakit \
-        --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+    <<<% if custom_key.brand_key == 'guance' %>>>
+        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+    <<<% else %>>>
+        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
+    <<<% endif %>>>
         -n datakit --create-namespace \
         --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=tkn_xxx" \
         --set "extraEnvs[0].name=ENV_INPUT_OTEL_GRPC" \
@@ -119,7 +135,11 @@
 
     ```shell
     helm install datakit datakit \
-        --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+    <<<% if custom_key.brand_key == 'guance' %>>>
+        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+    <<<% else %>>>
+        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
+    <<<% endif %>>>
         -n datakit --create-namespace \
         --set image.tag="1.70.0" \
         ...

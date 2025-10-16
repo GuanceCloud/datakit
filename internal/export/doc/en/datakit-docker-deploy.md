@@ -10,7 +10,6 @@ The container startup command is as follows:
 > The content like `<XXX-YYY-ZZZ>` should be filled in according to the actual situation.
 
 ```shell
-<<<% if custom_key.brand_key == 'guance' %>>>
 sudo docker run \
     --hostname "$(hostname)" \
     --workdir /usr/local/datakit \
@@ -33,30 +32,9 @@ sudo docker run \
     --privileged \
     --publish 19529:9529 \
     -d \
+<<<% if custom_key.brand_key == 'guance' %>>>
     pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:{{.Version}}
 <<<% else %>>>
-sudo docker run \
-    --hostname "$(hostname)" \
-    --workdir /usr/local/datakit \
-    -v "<YOUR-HOST-DIR-FOR-CONF>":"/usr/local/datakit/conf.d/host-inputs-conf" \
-    -v "/":"/rootfs" \
-    -v /var/run/docker.sock:/var/run/docker.sock \
-    -e ENV_DATAWAY="https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-WORKSPACE-TOKEN>" \
-    -e ENV_DEFAULT_ENABLED_INPUTS='cpu,disk,diskio,mem,swap,system,net,host_processes,hostobject,container,dk' \
-    -e ENV_GLOBAL_HOST_TAGS="<TAG1=A1,TAG2=A2>" \
-    -e ENV_HTTP_LISTEN="0.0.0.0:9529" \
-    -e HOST_PROC="/rootfs/proc" \
-    -e HOST_SYS="/rootfs/sys" \
-    -e HOST_ETC="/rootfs/etc" \
-    -e HOST_VAR="/rootfs/var" \
-    -e HOST_RUN="/rootfs/run" \
-    -e HOST_DEV="/rootfs/dev" \
-    -e HOST_ROOT="/rootfs" \
-    --cpus 2 \
-    --memory 1g \
-    --privileged \
-    --publish 19529:9529 \
-    -d \
     pubrepo.<<<custom_key.brand_main_domain>>>/truewatch/datakit:{{.Version}}
 <<<% endif %>>>
 ```
