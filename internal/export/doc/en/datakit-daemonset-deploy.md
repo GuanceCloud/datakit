@@ -51,11 +51,11 @@ This document describes how to install DataKit in K8s via DaemonSet.
     
     ```shell
     helm install datakit datakit \
-    <<<% if custom_key.brand_key == 'guance' %>>>
+        <<<% if custom_key.brand_key == 'guance' -%>>>
         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
-    <<<% else %>>>
+        <<<% else -%>>>
         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
-    <<<% endif %>>>
+        <<<% endif -%>>>
         -n datakit --create-namespace \
         --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>"
     ```
@@ -71,11 +71,11 @@ This document describes how to install DataKit in K8s via DaemonSet.
     ```shell
     helm -n datakit get  values datakit -o yaml > values.yaml
     helm upgrade datakit datakit \
-    <<<% if custom_key.brand_key == 'guance' %>>>
+        <<<% if custom_key.brand_key == 'guance' -%>>>
         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
-    <<<% else %>>>
+        <<<% else -%>>>
         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
-    <<<% endif %>>>
+        <<<% endif -%>>>
         -n datakit \
         -f values.yaml
     ```
@@ -94,14 +94,14 @@ This document describes how to install DataKit in K8s via DaemonSet.
 
     ```shell
     helm install datakit datakit \
-    <<<% if custom_key.brand_key == 'guance' %>>>
+        <<<% if custom_key.brand_key == 'guance' -%>>>
         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
-    <<<% else %>>>
+        <<<% else -%>>>
         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
-    <<<% endif %>>>
-         -n datakit --create-namespace \
-         --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>" \
-         --set datakit.default_enabled_inputs="statsd\,dk\,cpu\,mem"
+        <<<% endif -%>>>
+        -n datakit --create-namespace \
+        --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>" \
+        --set datakit.default_enabled_inputs="statsd\,dk\,cpu\,mem"
     ```
 
     **Note**: The comma `,` must be escaped here; otherwise, Helm will throw an error.
@@ -112,11 +112,11 @@ This document describes how to install DataKit in K8s via DaemonSet.
 
     ```shell
     helm install datakit datakit \
-    <<<% if custom_key.brand_key == 'guance' %>>>
+        <<<% if custom_key.brand_key == 'guance' -%>>>
         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
-    <<<% else %>>>
+        <<<% else -%>>>
         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
-    <<<% endif %>>>
+        <<<% endif -%>>>
         -n datakit --create-namespace \
         --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=tkn_xxx" \
         --set "extraEnvs[0].name=ENV_INPUT_OTEL_GRPC" \
@@ -133,11 +133,11 @@ This document describes how to install DataKit in K8s via DaemonSet.
 
     ```shell
     helm install datakit datakit \
-    <<<% if custom_key.brand_key == 'guance' %>>>
+    <<<% if custom_key.brand_key == 'guance' -%>>>
         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
-    <<<% else %>>>
+    <<<% else -%>>>
         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
-    <<<% endif %>>>
+    <<<% endif -%>>>
         -n datakit --create-namespace \
         --set image.tag="1.70.0" \
         ...
@@ -379,7 +379,7 @@ spec:
           some_tag = "some_value"
 ```
 
-The injected content will be stored in the conf.d/env_datakit_inputs.conf file of the container.
+The injected content will be stored in the *conf.d/env_datakit_inputs.conf* file of the container.
 
 ## Environments about DataKit main configure {#using-k8-env}
 

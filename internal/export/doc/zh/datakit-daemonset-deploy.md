@@ -53,13 +53,13 @@
     
     ```shell
     helm install datakit datakit \
-    <<<% if custom_key.brand_key == 'guance' %>>>
+        <<<% if custom_key.brand_key == 'guance' -%>>>
         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
-    <<<% else %>>>
+        <<<% else -%>>>
         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
-    <<<% endif %>>>
-         -n datakit --create-namespace \
-         --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>" 
+        <<<% endif -%>>>
+        -n datakit --create-namespace \
+        --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>" 
     ```
     
     查看部署状态：
@@ -73,11 +73,11 @@
     ```shell
     helm -n datakit get  values datakit -o yaml > values.yaml
     helm upgrade datakit datakit \
-    <<<% if custom_key.brand_key == 'guance' %>>>
+        <<<% if custom_key.brand_key == 'guance' -%>>>
         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
-    <<<% else %>>>
+        <<<% else -%>>>
         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
-    <<<% endif %>>>
+        <<<% endif -%>>>
         -n datakit \
         -f values.yaml
     ```
@@ -96,14 +96,14 @@
 
     ```shell
     helm install datakit datakit \
-    <<<% if custom_key.brand_key == 'guance' %>>>
+        <<<% if custom_key.brand_key == 'guance' -%>>>
         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
-    <<<% else %>>>
+        <<<% else -%>>>
         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
-    <<<% endif %>>>
-         -n datakit --create-namespace \
-         --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<your-token>" \
-         --set datakit.default_enabled_inputs="statsd\,dk\,cpu\,mem"
+        <<<% endif -%>>>
+        -n datakit --create-namespace \
+        --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<your-token>" \
+        --set datakit.default_enabled_inputs="statsd\,dk\,cpu\,mem"
     ```
 
     注意，此处需要将 `,` 转义一下，不然 Helm 会报错。
@@ -114,11 +114,11 @@
 
     ```shell
     helm install datakit datakit \
-    <<<% if custom_key.brand_key == 'guance' %>>>
+        <<<% if custom_key.brand_key == 'guance' -%>>>
         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
-    <<<% else %>>>
+        <<<% else -%>>>
         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
-    <<<% endif %>>>
+        <<<% endif -%>>>
         -n datakit --create-namespace \
         --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=tkn_xxx" \
         --set "extraEnvs[0].name=ENV_INPUT_OTEL_GRPC" \
@@ -135,11 +135,11 @@
 
     ```shell
     helm install datakit datakit \
-    <<<% if custom_key.brand_key == 'guance' %>>>
+        <<<% if custom_key.brand_key == 'guance' -%>>>
         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
-    <<<% else %>>>
+        <<<% else -%>>>
         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
-    <<<% endif %>>>
+        <<<% endif -%>>>
         -n datakit --create-namespace \
         --set image.tag="1.70.0" \
         ...
@@ -380,7 +380,7 @@ spec:
           some_tag = "some_value"
 ```
 
-注入的内容，将存入容器的 conf.d/env_datakit_inputs.conf 文件中。
+注入的内容，将存入容器的 *conf.d/env_datakit_inputs.conf* 文件中。
 
 ## DataKit 主配置 {#using-k8-env}
 
