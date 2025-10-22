@@ -16,6 +16,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
 )
 
 type dbmSample struct {
@@ -38,7 +39,7 @@ type dbmSampleCache struct {
 	checkPoint        int64
 	globalStatusTable string
 	strategy          eventStrategy
-	explainCache      cacheLimit
+	explainCache      util.CacheLimit
 }
 
 type eventRow struct {
@@ -545,11 +546,11 @@ func collectPlanForStatements(i *Input, rows []eventRow) []planObj {
 
 func collectPlanForStatement(i *Input, row eventRow) (planObj, error) {
 	var plan planObj
-	obfuscatedStatement := obfuscateSQL(row.sqlText.String)
-	obfuscatedDigestText := obfuscateSQL(row.digestText.String)
+	obfuscatedStatement := util.ObfuscateSQL(row.sqlText.String)
+	obfuscatedDigestText := util.ObfuscateSQL(row.digestText.String)
 
-	apmResourceHash := computeSQLSignature(obfuscatedStatement)
-	querySignature := computeSQLSignature(obfuscatedDigestText)
+	apmResourceHash := util.ComputeSQLSignature(obfuscatedStatement)
+	querySignature := util.ComputeSQLSignature(obfuscatedDigestText)
 
 	queryCacheKey := getRowKey(row.currentSchema.String, querySignature)
 
@@ -571,8 +572,8 @@ func collectPlanForStatement(i *Input, row eventRow) (planObj, error) {
 	}
 
 	if len(planStr) > 0 {
-		normalizedPlan := obfuscatePlan(planStr)
-		planSignature := computeSQLSignature(normalizedPlan)
+		normalizedPlan := util.ObfuscateSQLExecPlan(planStr, &util.ObfuscateLogger{Log: l})
+		planSignature := util.ComputeSQLSignature(normalizedPlan)
 		plan = planObj{
 			planDefinition: normalizedPlan,
 			planSignature:  planSignature,

@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/external"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
 )
 
 func TestNeedElectionFlag(t *testing.T) {
@@ -62,6 +63,6 @@ func TestObfuscateSQL(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		assert.Equal(t, tc.want, obfuscateSQL(tc.sql))
+		assert.Equal(t, tc.want, util.ObfuscateSQL(tc.sql))
 	}
 }

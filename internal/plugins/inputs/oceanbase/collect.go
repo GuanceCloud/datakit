@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -19,7 +18,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/spf13/cast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/obfuscate"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
 )
 
 const (
@@ -624,7 +623,7 @@ func (ipt *Input) collectSlowQuery() (category point.Category, pts []*point.Poin
 	for _, v := range mResults {
 		if sql, ok := v["query_sql"]; ok {
 			if sqlStr, ok := sql.(string); ok {
-				v["query_sql"] = obfuscateSQL(sqlStr)
+				v["query_sql"] = util.ObfuscateSQL(sqlStr)
 			}
 		}
 		jsn, err := json.Marshal(v)
@@ -868,19 +867,5 @@ func normalizeResultArray(in []map[string]interface{}) {
 				l.Warnf("%s unhandled type: %s", name, reflect.TypeOf(tp).String())
 			}
 		}
-	}
-}
-
-var reg = regexp.MustCompile(`\n|\s+`)
-
-func obfuscateSQL(text string) (sql string) {
-	defer func() {
-		sql = strings.TrimSpace(reg.ReplaceAllString(sql, " "))
-	}()
-
-	if out, err := obfuscate.NewObfuscator(nil).Obfuscate("sql", text); err != nil {
-		return fmt.Sprintf("ERROR: failed to obfuscate: %s", err.Error())
-	} else {
-		return out.Query
 	}
 }

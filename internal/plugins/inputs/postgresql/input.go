@@ -22,6 +22,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/coreos/go-semver/semver"
+	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cast"
 
@@ -33,6 +34,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
 )
 
 var (
@@ -97,6 +99,21 @@ const sampleConfig = `
   #
   metric_exclude_list = [""]
 
+  ## Set dbm to true to collect database activity 
+  dbm = false
+
+  ## Config dbm metric 
+  [inputs.postgresql.dbm_metric]
+    enabled = true
+  
+  ## Config dbm sample 
+  [inputs.postgresql.dbm_sample]
+    enabled = true  
+
+  ## Config dbm activity
+  [inputs.postgresql.dbm_activity]
+    enabled = true  
+
   ## collect object
   [inputs.postgresql.object]
     # Set true to enable collecting objects
@@ -115,8 +132,8 @@ const sampleConfig = `
       # Set true to enable auto discovery database
       auto_discovery_database = false
 
-     # Maximum number of databases to collect
-     max_database = 100
+      # Maximum number of databases to collect
+      max_database = 100
 
   ## Relations config
   #
@@ -196,14 +213,21 @@ type Rows interface {
 	Scan(...interface{}) error
 }
 
+type Conn interface {
+	Close()
+	Query(context.Context, string, ...any) (Rows, error)
+	Exec(context.Context, string, ...any) error
+}
+
 type Service interface {
 	Start() error
 	Stop()
 	Ping() error
-	Query(string) (Rows, error)
+	Query(string, ...any) (Rows, error)
 	QueryByDatabase(string, string) (Rows, error)
 	SetAddress(string)
 	GetColumnMap(scanner, []string) (map[string]*interface{}, error)
+	GetConn(dbname string) (Conn, error)
 }
 
 type scanner interface {
@@ -251,6 +275,11 @@ type configCollectSchemas struct {
 	AutoDiscoveryDatabase bool `toml:"auto_discovery_database"`
 }
 
+type dbQueryCache struct {
+	PGStatActivityColumns  []string
+	ActivityLastQueryStart time.Time
+}
+
 type Input struct {
 	Address           string            `toml:"address"`
 	Outputaddress     string            `toml:"outputaddress"`
@@ -269,6 +298,11 @@ type Input struct {
 	CollectCoStatus    string
 	CollectCoErrMsg    string
 	LastCustomerObject *customerObjectMeasurement
+
+	Dbm         bool        `toml:"dbm"`
+	DbmMetric   dbmMetric   `toml:"dbm_metric"`
+	DbmSample   dbmSample   `toml:"dbm_sample"`
+	DbmActivity dbmActivity `toml:"dbm_activity"`
 
 	MaxLifetimeDeprecated string `toml:"max_lifetime,omitempty"`
 
@@ -295,9 +329,13 @@ type Input struct {
 	relationMetrics  map[string]relationMetric
 	metricQueryCache map[string]*queryCacheItem
 
+	statColumnCache map[string]bool
+	dbSetting       map[string]string
+
 	UpState int
 
 	objectMetric *objectMertric
+	dbQueryCache dbQueryCache
 }
 
 type postgresqllog struct {
@@ -336,6 +374,9 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&conflictMeasurement{},
 		&archiverMeasurement{},
 		&inputs.UpMeasurement{},
+		&dbmMetricMeasurement{},
+		&dbmSampleMeasurement{},
+		&dbmActivityMeasurement{},
 		&postgresqlObjectMeasurement{},
 	}
 }
@@ -464,8 +505,8 @@ func (ipt *Input) getDBMetrics() error {
 			pg_database_size(psd.datname) as database_size
 		FROM pg_stat_database psd
 		JOIN pg_database pd ON psd.datname = pd.datname
-		WHERE psd.datname not ilike 'template%'   AND psd.datname not ilike 'rdsadmin'
-		AND psd.datname not ilike 'azure_maintenance'   AND psd.datname not ilike 'postgres'
+		WHERE psd.datname not ilike 'template%' AND psd.datname not ilike 'rdsadmin'
+		AND psd.datname not ilike 'azure_maintenance' AND psd.datname not ilike 'postgres'
 		`
 		if len(ipt.IgnoredDatabases) != 0 {
 			query += fmt.Sprintf(` AND psd.datname NOT IN ('%s')`, strings.Join(ipt.IgnoredDatabases, "','"))
@@ -958,7 +999,6 @@ func (ipt *Input) makePoints(columnMap map[string]*interface{}, measurementInfo 
 		}
 
 		stringVal := "" // unit8 to string
-		isField := true // set isField to be true when the type is uint8 or string
 		if *val != nil {
 			switch trueVal := (*val).(type) {
 			case []uint8:
@@ -967,16 +1007,14 @@ func (ipt *Input) makePoints(columnMap map[string]*interface{}, measurementInfo 
 				stringVal = trueVal
 			default:
 				stringVal = cast.ToString(trueVal)
-				isField = true
 			}
 
 			if isMeasurementTag {
 				kvs = kvs.SetTag(col, stringVal)
 			} else {
-				switch {
-				case len(stringVal) > 0:
+				if len(stringVal) > 0 {
 					kvs = kvs.Set(col, cast.ToFloat64(stringVal))
-				case isField:
+				} else {
 					kvs = kvs.Set(col, *val)
 				}
 			}
@@ -1007,6 +1045,21 @@ func (ipt *Input) getKVs() point.KVs {
 	}
 
 	return kvs
+}
+
+func (ipt *Input) getSQLColumns(sql string) ([]string, error) {
+	rows, err := ipt.service.Query(sql)
+	if err != nil {
+		return nil, fmt.Errorf("query sql failed: %w", err)
+	}
+	defer rows.Close()
+
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, fmt.Errorf("get columns failed: %w", err)
+	}
+
+	return columns, nil
 }
 
 func (ipt *Input) getKVsOpts(categorys ...point.Category) []point.Option {
@@ -1179,6 +1232,28 @@ func (ipt *Input) initCfg() {
 	if ipt.Object.Enable {
 		ipt.objectMetric = &objectMertric{}
 		ipt.collectFuncs["database"] = ipt.collectDatabaseObject
+	}
+
+	if ipt.Dbm {
+		if ipt.DbmMetric.Enabled {
+			ipt.collectFuncs["dbm_metric"] = ipt.getDbmMetric
+		}
+
+		if ipt.DbmSample.Enabled || ipt.DbmActivity.Enabled {
+			ipt.collectFuncs["dbm_sample"] = ipt.getDbmSample
+		}
+		if ipt.DbmSample.Enabled {
+			ipt.DbmSample.explainCache = &util.CacheLimit{
+				Size: 5000,
+				TTL:  60,
+			}
+			ipt.DbmSample.explainErrorCache = expirable.NewLRU[string, struct{}](5000, nil, 24*time.Hour)
+			if i, err := NewExplainParameterizedQueries(ipt, "datakit.explain_statement"); err != nil {
+				l.Warnf("failed to init explain parameterized queries: %s", err.Error())
+			} else {
+				ipt.DbmSample.explainParameterizedInstance = i
+			}
+		}
 	}
 }
 
