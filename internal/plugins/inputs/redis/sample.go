@@ -12,109 +12,86 @@ const (
   port = 6379
 
   ## TLS connection config, redis-cli version must up 6.0+
-  ## These tls configuration files should be the same as the ones used on the server. 
   ## See also: https://redis.io/docs/latest/operate/oss_and_stack/management/security/encryption/
+  # ca_certs             = ["/opt/tls/ca.crt"]
+  # cert                 = "/opt/tls/redis.crt"
+  # cert_key             = "/opt/tls/redis.key"
+  # server_name          = "your-SNI-name"
   # insecure_skip_verify = true
-  # ca_certs = ["/opt/tls/ca.crt"]
-  # cert = "/opt/tls/redis.crt"
-  # cert_key = "/opt/tls/redis.key"
   ## we can encode these file content in base64 format:
-  # ca_certs_base64 = ["LONG_STING......"]
-  # cert_base64 = "LONG_STING......"
-  # cert_key_base64 = "LONG_STING......"
-  # server_name = "your-SNI-name"
+  # ca_certs_base64 = ['''LONG_STING......''']
+  # cert_base64     = '''LONG_STING......'''
+  # cert_key_base64 = '''LONG_STING......'''
 
+
+  # Use UDS to collect to redis server
   # unix_socket_path = "/var/run/redis/redis.sock"
-  ## Configure multiple dbs and configure dbs, and the dbs will also be placed in the collection list.
-  ## dbs=[] or not configured, all non-empty dbs in Redis will be collected
-  # dbs=[0]
+
+  # Redis user/password
   # username = "<USERNAME>"
   # password = "<PASSWORD>"
 
-  ## @param connect_timeout - number - optional - default: 10s
-  # connect_timeout = "10s"
+  connect_timeout = "10s"
 
-  ## @param service - string - optional
-  service = "redis"
+  ## Configure multiple dbs.
+  dbs = [0]
 
-  ## @param interval - number - optional - default: 15
+  ## metric collect interval.
   interval = "15s"
 
-  ## @param redis_cli_path - string - optional - default: "redis-cli"
-  ## If you want to use a custom redis-cli path for bigkey or hotkey, set this to the path of the redis-cli binary.
-  # redis_cli_path = "/usr/bin/redis-cli"
+  ## topology refresh interval for cluster/sentinel mode (default 10m)
+  topology_refresh_interval = "10m"
 
-  ## @param hotkey - boolean - optional - default: false
-  ## If you collet hotkey, set this to true
-  # hotkey = false
+  ## v2+ override all measurement names to "redis"
+  measurement_version = "v2"
 
-  ## @param bigkey - boolean - optional - default: false
-  ## If you collet bigkey, set this to true
-  # bigkey = false
+  # Slog log configurations.
+  slow_log = true       # default enable collect slow log
+  all_slow_log = false  # Collect all slowlogs returned by Redis
+  slowlog_max_len = 128 # only collect the top-128 slow logs
 
-  ## @param key_interval - number - optional - default: 5m
-  ## Interval of collet hotkey & bigkey
-  # key_interval = "5m"
+  # Collect INFO LATENCYSTATS output as metrics with quantiles.
+  latency_percentiles = false
 
-  ## @param key_timeout - number - optional - default: 5m
-  ## Timeout of collet hotkey & bigkey
-  # key_timeout = "5m"
-
-  ## @param key_scan_sleep - string - optional - default: "0.1"
-  ## Mean sleep 0.1 sec per 100 SCAN commands
-  # key_scan_sleep = "0.1"
-
-  ## @param keys - list of strings - optional
-  ## The length is 1 for strings.
-  ## The length is zero for keys that have a type other than list, set, hash, or sorted set.
-  #
-  # keys = ["KEY_1", "KEY_PATTERN"]
-
-  ## @param warn_on_missing_keys - boolean - optional - default: true
-  ## If you provide a list of 'keys', set this to true to have the Agent log a warning
-  ## when keys are missing.
-  #
-  # warn_on_missing_keys = true
-
-  ## @param slow_log - boolean - optional - default: true
-  slow_log = true
-
-  ## @param all_slow_log - boolean - optional - default: false
-  ## Collect all slowlogs returned by Redis. When set to false, will only collect slowlog
-  ## that are generated after this input starts, and collect the same slowlog only once.
-  all_slow_log = false
-
-  ## @param slowlog-max-len - integer - optional - default: 128
-  slowlog-max-len = 128
-
-  ## @param command_stats - boolean - optional - default: false
-  ## Collect INFO COMMANDSTATS output as metrics.
-  # command_stats = false
-
-  ## @param latency_percentiles - boolean - optional - default: false
-  ## Collect INFO LATENCYSTATS output as metrics.
-  # latency_percentiles = false
-
-  ## Set true to enable election
+  # Default enable election on redis collection.
   election = true
 
-  # [inputs.redis.log]
-  # #required, glob logfiles
-  # files = ["/var/log/redis/*.log"]
+  # For cluster redis
+  # [inputs.redis.cluster]
+  #   hosts = [ "localhost:6379" ]
 
-  ## glob filteer
-  #ignore = [""]
+  # For master-slave redis
+  # [inputs.redis.master_slave]
+  #   hosts       = [ "localhost:26380" ] # master or/and slave ip/host
+  #   [inputs.redis.master_slave.sentinel]
+  #     hosts       = [ "localhost:26380" ] # sentinel ip/host
+  #     master_name = "your-master-name"
+  #     password    = "sentinel-password"
 
-  ## grok pipeline script path
-  #pipeline = "redis.p"
+  # Collect hot and big keys
+  [inputs.redis.hot_big_keys]
+    enable                      = false
+    top_n                       = 10        # report top N big and hot keys, default 10
+    big_key_interval            = "3h"      # scan big keys(length and mem usage) interval, default 3 hours
+    hot_key_interval            = "15m"     # scan hot keys interval, default 15 minutes
+    scan_sleep                  = "200ms"   # sleep every 100 batches to reduce CPU impact on Redis server
+    scan_batch_size             = 100       # scan 100 keys on each iteration
+    bigkey_threshold_bytes      = 10485760  # keys larger than 10MiB
+    bigkey_threshold_len        = 5000      # or elements larger than 5000 are considered to be BIG keys.
+    mem_usage_samples           = 100       # collect key's memory usage by sample 100(MEMORY USAGE <key> SAMPLES 100)
+    target_role = "master"                  # target role for scanning: "master" or "replica". standalone and cluster modes only support "master"
 
-  ## optional encodings:
-  ##    "utf-8", "utf-16le", "utf-16le", "gbk", "gb18030" or ""
-  #character_encoding = ""
-
-  ## The pattern should be a regexp. Note the use of '''this regexp'''
-  ## regexp link: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
-  #match = '''^\S.*'''
+  # Collect redis client list
+  [inputs.redis.collect_client_list]
+    log_on_flags = "bxOR" # For more flag info, see: https://redis.io/docs/latest/commands/client-list/
+  
+  # Config on collecting Redis logging on disk
+  #[inputs.redis.log]
+  # files              = ["/var/log/redis/*.log"] # required, glob logfiles
+  # ignore             = [""]
+  # pipeline           = "redis.p"                # grok pipeline script path
+  # character_encoding = ""                       # default empty, optionals: "utf-8"/"utf-16le"/"utf-16le"/"gbk"/"gb18030"
+  # match              = '''^\S.*'''
 
   [inputs.redis.tags]
   # some_tag = "some_value"

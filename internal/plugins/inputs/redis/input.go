@@ -8,16 +8,13 @@ package redis
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
-	"os"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
-	"github.com/GuanceCloud/cliutils/point"
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -31,21 +28,43 @@ import (
 )
 
 const (
-	maxInterval         = 60 * time.Minute
-	minInterval         = 15 * time.Second
-	defaultKeyInterval  = 5 * time.Minute
-	defaultKeyScanSleep = "0.1"
+	maxInterval = 60 * time.Minute
+	minInterval = 15 * time.Second
+
+	measureuemtRedisConfig        = "redis_config"
+	measureuemtRedisHotKey        = "redis_hotkey"
+	measureuemtRedisBigKey        = "redis_bigkey"
+	measureuemtRedisClient        = "redis_client"
+	measureuemtRedisClientsStat   = "redis_clients_stat"
+	measureuemtRedisClientLogging = "redis_client"
+	measureuemtRedisCluster       = "redis_cluster"
+	measureuemtRedisCommandStat   = "redis_command_stat"
+	measureuemtRedisDB            = "redis_db"
+	measureuemtRedisLatency       = "redis_latency"
+	measurementRedisInfo          = "redis_info"
+	measureuemtRedisReplica       = "redis_replica"
+	measureuemtRedisSlowLog       = "redis_slowlog"
+	measureuemtRedisTopology      = "redis_topology"
+
+	measureuemtRedis = "redis"
+
+	modeCluster     = "cluster"
+	modeSentinel    = "sentinel"
+	modeStandalone  = "standalone"
+	modeMasterSlave = "master-slave"
+
+	targetRoleReplica = "replica"
+	targetRoleMaster  = "master"
 )
 
 var (
-	inputName                                 = "redis"
-	customObjectFeedName                      = dkio.FeedSource(inputName, "CO")
-	catalogName                               = "db"
-	l                                         = logger.DefaultSLogger("redis")
-	_                    inputs.ElectionInput = (*Input)(nil)
+	inputName                        = "redis"
+	catalogName                      = "db"
+	l                                = logger.DefaultSLogger("redis")
+	_           inputs.ElectionInput = (*Input)(nil)
 )
 
-type redislog struct {
+type redisLog struct {
 	Files             []string `toml:"files"`
 	Pipeline          string   `toml:"pipeline"`
 	IgnoreStatus      []string `toml:"ignore"`
@@ -55,179 +74,321 @@ type redislog struct {
 	MatchDeprecated string `toml:"match,omitempty"`
 }
 
+type redisCluster struct {
+	Hosts []string `toml:"hosts"`
+}
+
+type redisMasterSlave struct {
+	Hosts    []string       `toml:"hosts"`
+	Sentinel *redisSentinel `toml:"sentinel"`
+}
+
+type redisSentinel struct {
+	Hosts      []string `toml:"hosts"`
+	Password   string   `toml:"password"`
+	MasterName string   `toml:"master_name"`
+}
+
 type Input struct {
-	Username       string `toml:"username"`
 	Host           string `toml:"host"`
-	UnixSocketPath string `toml:"unix_socket_path"`
-	Password       string `toml:"password"`
-	Timeout        string `toml:"connect_timeout"`
-	Service        string `toml:"service"`
-	Addr           string `toml:"-"`
 	Port           int    `toml:"port"`
+	UnixSocketPath string `toml:"unix_socket_path"`
+
+	Cluster     *redisCluster     `toml:"cluster"`
+	MasterSlave *redisMasterSlave `toml:"master_slave"`
+
+	Username string `toml:"username"`
+	Password string `toml:"password"`
+
+	Election bool `toml:"election"`
+
+	Timeout string `toml:"connect_timeout"`
+
+	// deprecated TLS configuration, use *TLSClientConfig.
+	TLSOpenDeprecated            bool   `toml:"tls_open"`
+	CacertFileDeprecated         string `toml:"tls_ca"`               // use TLSConf.CaCerts
+	CertFileDeprecated           string `toml:"tls_cert"`             // use TLSConf.Cert
+	KeyFileDeprecated            string `toml:"tls_key"`              // use TLSConf.CertKey
+	InsecureSkipVerifyDeprecated bool   `toml:"insecure_skip_verify"` // use TLSConf.InsecureSkipVerify
+
 	*dknet.TLSClientConfig
-	TLSOpen            bool   `toml:"tls_open"`             // Deprecated
-	CacertFile         string `toml:"tls_ca"`               // Deprecated (use TLSConf.CaCerts)
-	CertFile           string `toml:"tls_cert"`             // Deprecated (use TLSConf.Cert)
-	KeyFile            string `toml:"tls_key"`              // Deprecated (use TLSConf.CertKey)
-	InsecureSkipVerify bool   `toml:"insecure_skip_verify"` // Deprecated (use TLSConf.InsecureSkipVerify)
 
-	DB                 int           `toml:"db"`
-	SocketTimeout      int           `toml:"socket_timeout"`
-	SlowlogMaxLen      int           `toml:"slowlog-max-len"`
-	Interval           time.Duration `toml:"interval"`
-	WarnOnMissingKeys  bool          `toml:"warn_on_missing_keys"`
-	CommandStats       bool          `toml:"command_stats"`
-	LatencyPercentiles bool          `toml:"latency_percentiles"`
-	Slowlog            bool          `toml:"slow_log"`
-	AllSlowLog         bool          `toml:"all_slow_log"`
-	RedisCliPath       string        `toml:"redis_cli_path"`
-	Hotkey             bool          `toml:"hotkey"`
-	BigKey             bool          `toml:"bigkey"`
-	KeyInterval        time.Duration `toml:"key_interval"`
-	KeyTimeout         time.Duration `toml:"key_timeout"`
-	KeyScanSleep       string        `toml:"key_scan_sleep"`
+	ClientListCollector *clientListCollector `toml:"collect_client_list"`
 
-	Version            string
-	Uptime             int
-	CollectCoStatus    string
-	CollectCoErrMsg    string
-	LastCustomerObject *customerObjectMeasurement
+	EnableSlowLog           bool `toml:"slow_log"`
+	CollectAllSlowLog       bool `toml:"all_slow_log"`
+	SlowlogMaxLen           int  `toml:"slowlog_max_len"`
+	SlowlogMaxLenDeprecated int  `toml:"slowlog-max-len"`
 
+	// global metric collect interval
+	Interval              time.Duration `toml:"interval"`
+	EnableLatencyQuantile bool          `toml:"latency_percentiles"`
+
+	// topology refresh interval for cluster/sentinel mode
+	TopologyRefreshInterval time.Duration `toml:"topology_refresh_interval"`
+
+	// config collect interval (less frequent than metrics)
+	ConfigCollectInterval time.Duration `toml:"config_collect_interval"`
+
+	// Deprecated: use HotBigKeys
+	HotkeyDeprecated bool           `toml:"hotkey"`
+	BigKeyDeprecated bool           `toml:"bigkey"`
+	HotBigKeys       *hotbigkeyConf `toml:"hot_big_keys"`
+
+	Log *redisLog `toml:"log"`
+
+	DBDeprecated int   `toml:"db"` // use DBs
+	DBs          []int `toml:"dbs"`
+
+	mergedTags,
 	Tags map[string]string `toml:"tags"`
-	Keys []string          `toml:"keys"`
-	DBS  []int             `toml:"dbs"`
-	Log  *redislog         `toml:"log"`
 
-	MatchDeprecated   string   `toml:"match,omitempty"`
-	ServersDeprecated []string `toml:"servers,omitempty"`
+	MeasurementVersion string `toml:"measurement_version"`
 
-	UpState int
+	instances []*instance
+	tlsConf   *tls.Config
+
+	upState int
+
+	// lastCustomerObject *customerObjectMeasurement
 
 	timeoutDuration time.Duration
-	keyDBS          []int
 
-	tail       *tailer.Tailer
-	start      time.Time
-	collectors []func() ([]*point.Point, error)
+	tail *tailer.Tailer
 
-	client        *redis.Client
-	isInitialized bool
+	crdb *redis.ClusterClient
+	srdb *redis.SentinelClient
 
-	Election        bool `toml:"election"`
-	pause           bool
-	pauseCh         chan bool
-	hashMap         [][16]byte
-	latencyLastTime map[string]time.Time
-	// a pointer, set value in m.lastCollect.*=...
-	cpuUsage redisCPUUsage
+	isInitialized, pause bool
+	pauseCh              chan bool
+	restartCh            chan struct{} // topology change restart signal
 
 	semStop *cliutils.Sem // start stop signal
 
+	// collector management
+	collectorGroup    *goroutine.Group
+	collectorCancel   context.CancelFunc
+	collectorsRunning bool
+
 	startUpUnix int64
 	feeder      dkio.Feeder
-	mergedTags  map[string]string
-	tagger      datakit.GlobalTagger
-	ptsTime     time.Time
+
+	tagger  datakit.GlobalTagger
+	ptsTime time.Time
 }
 
 type redisCPUUsage struct {
-	usedCPUSys    float64
-	usedCPUSysTS  time.Time
-	usedCPUUser   float64
-	usedCPUUserTS time.Time
+	sys,
+	user float64
 }
 
 func (ipt *Input) ElectionEnabled() bool {
 	return ipt.Election
 }
 
+func (ipt *Input) setupInstances(ctx context.Context) error {
+	if ipt.Cluster != nil {
+		return ipt.setupClusterInstances(ctx)
+	}
+	if ipt.MasterSlave != nil {
+		if ipt.MasterSlave.Sentinel != nil {
+			return ipt.setupSentinelInstances(ctx)
+		}
+		return ipt.setupMasterSlaveInstances(ctx)
+	}
+	return ipt.setupStandaloneInstances(ctx)
+}
+
+func (ipt *Input) setupClusterInstances(ctx context.Context) error {
+	if err := ipt.setupCluster(ctx); err != nil {
+		return err
+	}
+
+	arr, err := ipt.scanClusterMasters(ctx)
+	if err != nil {
+		return err
+	}
+
+	l.Infof("cluster found %d instances", len(arr))
+	ipt.instances = arr
+
+	// initialize clients
+	if err := ipt.initializeClients(ctx); err != nil {
+		l.Errorf("initialize clients failed: %s", err)
+		return err
+	}
+	return nil
+}
+
+func (ipt *Input) setupSentinelInstances(ctx context.Context) error {
+	if err := ipt.setupSentinel(ctx); err != nil {
+		return err
+	}
+
+	inst, err := ipt.sentinelDiscoverMaster(ctx)
+	if err != nil {
+		return err
+	}
+
+	l.Infof("sentinel found instance %s", inst.String())
+	ipt.instances = []*instance{inst}
+
+	// initialize clients
+	if err := ipt.initializeClients(ctx); err != nil {
+		l.Errorf("initialize clients failed: %s", err)
+		return err
+	}
+	return nil
+}
+
+func (ipt *Input) setupMasterSlaveInstances(ctx context.Context) error {
+	inst, err := ipt.setupMasterSlave(ctx)
+	if err != nil {
+		return err
+	}
+
+	l.Infof("master-slave found instance %s with %d replicas", inst.String(), len(inst.replicas))
+	ipt.instances = []*instance{inst}
+
+	// initialize clients
+	if err := ipt.initializeClients(ctx); err != nil {
+		l.Errorf("initialize clients failed: %s", err)
+		return err
+	}
+	return nil
+}
+
+func (ipt *Input) setupStandaloneInstances(ctx context.Context) error {
+	inst := newInstance()
+	inst.ipt = ipt
+	inst.mode = modeStandalone
+	inst.addr = fmt.Sprintf("%s:%d", ipt.Host, ipt.Port)
+	inst.host = ipt.Host
+	inst.setup()
+
+	// Connect to the standalone instance (no replica discovery)
+	if rdb, err := ipt.newClient(ctx, inst.addr); err == nil {
+		inst.cc = &colclient{rdb: rdb}
+	} else {
+		return fmt.Errorf("connect to standalone redis %s failed: %w", inst.addr, err)
+	}
+
+	l.Infof("standalone found instance %s", inst.String())
+	ipt.instances = []*instance{inst}
+
+	return nil
+}
+
+func (ipt *Input) initializeClients(ctx context.Context) error {
+	for _, node := range ipt.instances {
+		if rdb, err := ipt.newClient(ctx, node.addr); err == nil {
+			node.cc = &colclient{rdb: rdb}
+			l.Infof("init redis client on master/node %q ok", node.addr)
+		} else {
+			return fmt.Errorf("connect to master/node %q failed: %w", node.addr, err)
+		}
+
+		for _, rep := range node.replicas {
+			if rdb, err := ipt.newClient(ctx, rep.addr); err == nil {
+				rep.cc = &colclient{rdb: rdb}
+				l.Infof("init redis client on replica %q ok", rep.addr)
+			} else {
+				l.Warnf("init redis client on replica %q failed: %s, ignored", rep.addr, err)
+			}
+		}
+		l.Infof("redis instances: %s has %d replicas", node.addr, len(node.replicas))
+	}
+	return nil
+}
+
+func (ipt *Input) newClient(ctx context.Context, addr string) (*redis.Client, error) {
+	rdb := redis.NewClient(&redis.Options{
+		Addr:         addr,
+		ClientName:   "datakit",
+		TLSConfig:    ipt.tlsConf,
+		Username:     ipt.Username,
+		Password:     ipt.Password,     // no password set
+		DB:           ipt.DBDeprecated, // use default DB
+		PoolSize:     3,
+		MinIdleConns: 1,
+		ReadTimeout:  3 * time.Second,
+		WriteTimeout: 3 * time.Second,
+		DialTimeout:  5 * time.Second,
+	})
+
+	if _, err := rdb.Ping(ctx).Result(); err != nil {
+		l.Warnf("failed to create client on %q: %s", addr, err)
+		_ = rdb.Close()
+		return nil, err
+	} else {
+		return rdb, nil
+	}
+}
+
+func (ipt *Input) retryInitCfg() error {
+	for {
+		if err := ipt.initCfg(); err != nil {
+			l.Errorf("initCfg failed: %s, will retry", err)
+
+			select {
+			case <-datakit.Exit.Wait():
+				return fmt.Errorf("datakit is exiting, retryInitCfg failed")
+			case <-ipt.semStop.Wait():
+				return fmt.Errorf("input is stopping, retryInitCfg failed")
+			case <-time.After(5 * time.Second):
+			}
+		} else {
+			l.Info("initCfg successful")
+			return nil
+		}
+	}
+}
+
 func (ipt *Input) initCfg() error {
+	if ipt.isInitialized {
+		return nil
+	}
+
 	var err error
 	ipt.timeoutDuration, err = time.ParseDuration(ipt.Timeout)
 	if err != nil {
 		ipt.timeoutDuration = 10 * time.Second
 	}
 
-	ipt.Addr = fmt.Sprintf("%s:%d", ipt.Host, ipt.Port)
-
-	ipt.TLSClientConfig = dknet.MergeTLSConfig(
-		ipt.TLSClientConfig,
-		[]string{ipt.CacertFile},
-		ipt.CertFile,
-		ipt.KeyFile,
-		ipt.TLSOpen,
-		ipt.InsecureSkipVerify,
-	)
-
-	if ipt.RedisCliPath == "" {
-		ipt.RedisCliPath = "redis-cli"
+	if ipt.SlowlogMaxLenDeprecated > 0 {
+		ipt.SlowlogMaxLen = ipt.SlowlogMaxLenDeprecated // use old value
 	}
-
-	tlsCfg, err := ipt.TLSClientConfig.TLSConfigWithBase64()
-	if err != nil {
-		return err
-	}
-
-	client := redis.NewClient(&redis.Options{
-		Addr:      ipt.Addr,
-		TLSConfig: tlsCfg,
-		Username:  ipt.Username,
-		Password:  ipt.Password, // no password set
-		DB:        ipt.DB,       // use default DB
-	})
 
 	if ipt.SlowlogMaxLen == 0 {
 		ipt.SlowlogMaxLen = 128
 	}
 
-	// ping (todo)
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	_, err = client.Ping(ctx).Result()
+	ipt.TLSClientConfig = dknet.MergeTLSConfig(
+		ipt.TLSClientConfig,
+		[]string{ipt.CacertFileDeprecated},
+		ipt.CertFileDeprecated,
+		ipt.KeyFileDeprecated,
+		ipt.TLSOpenDeprecated,
+		ipt.InsecureSkipVerifyDeprecated,
+	)
+
+	ipt.tlsConf, err = ipt.TLSClientConfig.TLSConfigWithBase64()
 	if err != nil {
-		_ = client.Close()
+		l.Errorf("TLSConfigWithBase64 error: %s", err)
 		return err
 	}
 
-	ipt.client = client
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	defer cancel()
 
-	ipt.mergedTags["server"] = ipt.Addr
-	ipt.mergedTags["service_name"] = ipt.Service
+	// setup client
+	if err := ipt.setupInstances(ctx); err != nil {
+		return err
+	}
+
+	ipt.isInitialized = true
 
 	return nil
-}
-
-func (ipt *Input) tryInit() {
-	if ipt.isInitialized {
-		return
-	}
-	if err := ipt.initCfg(); err != nil {
-		ipt.FeedCoErr(err)
-		l.Errorf("initCfg error: %v", err)
-		ipt.feeder.FeedLastError(err.Error(),
-			metrics.WithLastErrorInput(inputName),
-		)
-		return
-	}
-	ipt.isInitialized = true
-	ipt.hashMap = make([][16]byte, ipt.SlowlogMaxLen)
-	ipt.collectors = []func() ([]*point.Point, error){
-		ipt.collectInfoMeasurement,
-		ipt.collectClientMeasurement,
-		ipt.collectCommandMeasurement,
-		ipt.collectDBMeasurement,
-		ipt.collectReplicaMeasurement,
-		ipt.collectCustomerObjectMeasurement,
-	}
-	// check if cluster
-	ctx := context.Background()
-	list1 := ipt.client.Do(ctx, "info", "cluster").String()
-	part := strings.Split(list1, ":")
-	if len(part) >= 3 {
-		if strings.Compare(part[2], "1") == 1 {
-			ipt.collectors = append(ipt.collectors, ipt.CollectClusterMeasurement)
-		}
-	}
 }
 
 func (*Input) PipelineConfig() map[string]string {
@@ -256,138 +417,21 @@ func (ipt *Input) GetPipeline() []tailer.Option {
 	return opts
 }
 
-func (ipt *Input) Collect() error {
+func (ipt *Input) Collect(ctx context.Context) error {
 	if !ipt.isInitialized {
-		return fmt.Errorf("un initialized")
+		return fmt.Errorf("redis collector not initialized")
 	}
 
-	for idx, f := range ipt.collectors {
-		pts, err := f()
-		if err != nil {
-			l.Errorf("collector %v[%d]: %s", f, idx, err)
-			ipt.feeder.FeedLastError(err.Error(),
-				metrics.WithLastErrorInput(inputName),
-			)
-		}
+	timeoutCtx, cancel := context.WithTimeout(ctx, ipt.timeoutDuration)
+	defer cancel()
 
-		if len(pts) > 0 {
-			if pts[0].Name() == "database" {
-				if err := ipt.feeder.Feed(point.CustomObject, pts,
-					dkio.WithCollectCost(time.Since(ipt.start)),
-					dkio.WithElection(ipt.Election),
-					dkio.WithSource(customObjectFeedName)); err != nil {
-					ipt.feeder.FeedLastError(err.Error(),
-						metrics.WithLastErrorInput(inputName),
-						metrics.WithLastErrorCategory(point.CustomObject),
-					)
-					l.Errorf("feed measurement: %s", err)
-				}
-			} else {
-				if err := ipt.feeder.Feed(point.Metric, pts,
-					dkio.WithCollectCost(time.Since(ipt.start)),
-					dkio.WithElection(ipt.Election),
-					dkio.WithSource(inputName)); err != nil {
-					ipt.feeder.FeedLastError(err.Error(),
-						metrics.WithLastErrorInput(inputName),
-						metrics.WithLastErrorCategory(point.Metric),
-					)
-					l.Errorf("feed measurement: %s", err)
-				}
-			}
+	for _, inst := range ipt.instances {
+		if err := inst.collect(timeoutCtx); err != nil {
+			l.Warnf("instance %s collect failed: %s", inst.String(), err)
 		}
-	}
-	if ipt.Slowlog {
-		if err := ipt.getSlowData(); err != nil {
-			return err
-		}
-	}
-
-	// Old way get big key
-	if len(ipt.Keys) > 0 {
-		err := ipt.collectBigKey()
-		if err != nil {
-			return err
-		}
-	}
-
-	if err := ipt.getLatencyData(); err != nil {
-		return err
 	}
 
 	return nil
-}
-
-func (ipt *Input) collectInfoMeasurement() ([]*point.Point, error) {
-	m := &infoMeasurement{
-		cli:                ipt.client,
-		tags:               make(map[string]string),
-		lastCollect:        &ipt.cpuUsage,
-		latencyPercentiles: ipt.LatencyPercentiles,
-	}
-
-	m.name = redisInfoM
-
-	m.tags = map[string]string{}
-	for k, v := range ipt.mergedTags {
-		m.tags[k] = v
-	}
-
-	return m.getData(ipt.ptsTime.UnixNano())
-}
-
-func (ipt *Input) collectClientMeasurement() ([]*point.Point, error) {
-	ctx := context.Background()
-	list, err := ipt.client.ClientList(ctx).Result()
-	if err != nil {
-		l.Error("client list get error,", err)
-		return nil, err
-	}
-
-	return ipt.parseClientData(list)
-}
-
-func (ipt *Input) collectCommandMeasurement() ([]*point.Point, error) {
-	ctx := context.Background()
-	list, err := ipt.client.Info(ctx, "commandstats").Result()
-	if err != nil {
-		l.Error("command stats error,", err)
-		return nil, err
-	}
-
-	return ipt.parseCommandData(list)
-}
-
-func (ipt *Input) collectCustomerObjectMeasurement() ([]*point.Point, error) {
-	err := ipt.getVersionAndUptime()
-	if err != nil {
-		l.Errorf("getVersionAndUptime err: %s", err)
-	}
-	ipt.setIptCOStatus()
-	ms := []inputs.MeasurementV2{}
-	fields := map[string]interface{}{
-		"display_name": fmt.Sprintf("%s:%d", ipt.Host, ipt.Port),
-		"uptime":       ipt.Uptime,
-		"version":      ipt.Version,
-	}
-	tags := map[string]string{
-		"name":          fmt.Sprintf("redis-%s:%d", ipt.Host, ipt.Port),
-		"host":          ipt.Host,
-		"ip":            fmt.Sprintf("%s:%d", ipt.Host, ipt.Port),
-		"col_co_status": ipt.CollectCoStatus,
-	}
-	m := &customerObjectMeasurement{
-		name:     "database",
-		tags:     tags,
-		fields:   fields,
-		election: ipt.Election,
-	}
-	ipt.setIptLastCOInfo(m)
-	ms = append(ms, m)
-	if len(ms) > 0 {
-		pts := getPointsFromMeasurement(ms)
-		return pts, nil
-	}
-	return []*point.Point{}, nil
 }
 
 func (ipt *Input) RunPipeline() {
@@ -426,100 +470,307 @@ func (ipt *Input) RunPipeline() {
 	})
 }
 
+func (ipt *Input) startHotBigKeyCollectors(ctx context.Context) {
+	if !ipt.HotBigKeys.Enable {
+		l.Info("hot/big key scanner disabled")
+		return
+	}
+	if !ipt.isInitialized {
+		l.Warn("hot/big key scanner not initialized")
+		return
+	}
+	if ipt.collectorGroup == nil {
+		l.Error("collector group not initialized")
+		return
+	}
+
+	for _, inst := range ipt.instances {
+		inst.setupHotBigKeyScanners()
+		if len(inst.hbScanners) == 0 {
+			l.Warnf("no hot/big key scanner for instance %s", inst.addr)
+			continue
+		}
+		// start one scanner for each instance
+		inst := inst
+		scanner := inst.hbScanners[0]
+		ipt.collectorGroup.Go(func(goCtx context.Context) error {
+			inst.doStartCollectHotBigKeys(ctx, scanner)
+			return nil
+		})
+	}
+	l.Infof("start hot big key collectors on %d instances", len(ipt.instances))
+}
+
 func (ipt *Input) Run() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	ipt.setup()
 
-	if ipt.TLSClientConfig != nil && (ipt.TLSClientConfig.CertBase64 != "" || ipt.TLSClientConfig.CertKeyBase64 != "") {
-		caCerts, cert, certKey, err := ipt.TLSClientConfig.Base64ToTLSFiles()
-		if err != nil {
-			l.Errorf("Collect: %s", err)
-			return
-		}
-
-		ipt.TLSClientConfig.CaCerts = caCerts
-		ipt.TLSClientConfig.Cert = cert
-		ipt.TLSClientConfig.CertKey = certKey
-
-		for _, caCert := range caCerts {
-			defer os.Remove(caCert) // nolint:errcheck
-		}
-		defer os.Remove(cert)    // nolint:errcheck
-		defer os.Remove(certKey) // nolint:errcheck
+	// non-election mode: start collectors immediately
+	if !ipt.ElectionEnabled() || config.Cfg.Election == nil || !config.Cfg.Election.Enable {
+		l.Info("election mode disabled, starting collectors")
+		ipt.startCollectors(ctx)
 	}
 
-	tick := time.NewTicker(ipt.Interval)
-	defer tick.Stop()
-
-	ctxKey, cancelKey := context.WithCancel(context.Background())
-	defer cancelKey() // To kill all in goroutineHotkey & goroutineBigKey
-	if ipt.Hotkey {
-		ipt.goroutineHotkey(ctxKey)
-	}
-	if ipt.BigKey {
-		ipt.goroutineBigKey(ctxKey)
-	}
-
-	ipt.ptsTime = ntp.Now()
 	for {
-		if !ipt.pause {
-			ipt.tryInit()
-
-			ipt.setUpState()
-
-			l.Debugf("redis input gathering...")
-			ipt.start = ntp.Now()
-			if err := ipt.Collect(); err != nil {
-				l.Errorf("Collect: %s", err)
-				ipt.setErrUpState()
-			}
-			ipt.FeedUpMetric()
-		} else {
-			l.Debugf("not leader, skipped")
-		}
-
 		select {
 		case <-datakit.Exit.Wait():
+			l.Info("received exit signal")
+			ipt.stopCollectors()
 			ipt.exit()
-			l.Info("redis exit")
 			return
 
 		case <-ipt.semStop.Wait():
+			l.Info("received stop signal")
+			ipt.stopCollectors()
 			ipt.exit()
-			l.Info("redis return")
 			return
 
-		case tt := <-tick.C:
-			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.Interval)
 		case ipt.pause = <-ipt.pauseCh:
-			// nil
+			if ipt.pause {
+				// election lost: stop collectors first, then cleanup
+				l.Info("election lost")
+				ipt.stopCollectors() // wait for all goroutines to exit
+				ipt.cleanup()        // safe to cleanup now
+			} else {
+				// election won: start collectors
+				l.Info("election won")
+				ipt.startCollectors(ctx)
+			}
+
+		case <-ipt.restartCh:
+			// topology changed: restart all collectors
+			l.Info("topology changed, restarting collectors")
+			ipt.stopCollectors()     // stop all collectors first
+			ipt.cleanup()            // cleanup old connections
+			ipt.startCollectors(ctx) // reinitialize and restart
+		}
+	}
+}
+
+func (ipt *Input) startCollectors(ctx context.Context) {
+	if ipt.collectorsRunning {
+		l.Debug("collectors already running")
+		return
+	}
+
+	l.Info("starting all collectors")
+
+	// initialize config
+	if !ipt.isInitialized {
+		if err := ipt.retryInitCfg(); err != nil {
+			return
+		}
+	}
+
+	subCtx, cancel := context.WithCancel(ctx)
+	ipt.collectorCancel = cancel
+	ipt.collectorGroup = goroutine.NewGroup(goroutine.Option{Name: "redis_collectors"})
+
+	// metrics collector
+	ipt.collectorGroup.Go(func(gCtx context.Context) error {
+		ipt.runMetricsCollector(subCtx)
+		return nil
+	})
+
+	// config collector
+	ipt.collectorGroup.Go(func(gCtx context.Context) error {
+		ipt.runConfigCollector(subCtx)
+		return nil
+	})
+
+	// topology refresher
+	if ipt.needsTopologyRefresh() {
+		ipt.collectorGroup.Go(func(gCtx context.Context) error {
+			ipt.runTopologyRefresher(subCtx)
+			return nil
+		})
+	}
+
+	// start hot/big key collectors
+	ipt.startHotBigKeyCollectors(subCtx)
+
+	ipt.collectorsRunning = true
+	l.Info("all collectors started successfully")
+}
+
+func (ipt *Input) stopCollectors() {
+	if !ipt.collectorsRunning {
+		l.Debug("collectors not running")
+		return
+	}
+
+	l.Info("stopping all collectors")
+
+	// cancel context to signal all collectors to stop
+	if ipt.collectorCancel != nil {
+		ipt.collectorCancel()
+		ipt.collectorCancel = nil
+	}
+
+	// wait for main collector goroutines to exit
+	if ipt.collectorGroup != nil {
+		if err := ipt.collectorGroup.Wait(); err != nil {
+			l.Errorf("collector group wait error: %s", err)
+		}
+		ipt.collectorGroup = nil
+	}
+
+	ipt.collectorsRunning = false
+
+	l.Info("all collectors stopped")
+}
+
+func (ipt *Input) needsTopologyRefresh() bool {
+	// cluster mode needs topology refresh
+	if ipt.Cluster != nil {
+		return true
+	}
+	// sentinel mode needs topology refresh
+	if ipt.MasterSlave != nil && ipt.MasterSlave.Sentinel != nil {
+		return true
+	}
+	// standalone mode doesn't need topology refresh
+	return false
+}
+
+func (ipt *Input) runMetricsCollector(ctx context.Context) {
+	ticker := time.NewTicker(ipt.Interval)
+	defer ticker.Stop()
+
+	ipt.ptsTime = ntp.Now()
+
+	for {
+		select {
+		case <-ctx.Done():
+			l.Info("metrics collector stopped")
+			return
+		case tt := <-ticker.C:
+			ipt.doMetricsCollect(ctx, tt)
+		}
+	}
+}
+
+func (ipt *Input) doMetricsCollect(ctx context.Context, tickTime time.Time) {
+	ipt.ptsTime = inputs.AlignTime(tickTime, ipt.ptsTime, ipt.Interval)
+
+	// collect metrics
+	ipt.upState = 1
+	if err := ipt.Collect(ctx); err != nil {
+		l.Errorf("Collect: %s", err)
+		ipt.upState = 0
+	}
+	ipt.feedUpMetric()
+}
+
+func (ipt *Input) runConfigCollector(ctx context.Context) {
+	ticker := time.NewTicker(ipt.ConfigCollectInterval)
+	defer ticker.Stop()
+
+	for {
+		ipt.doConfigCollect(ctx)
+		select {
+		case <-ctx.Done():
+			l.Info("config collector stopped")
+			return
+		case <-ticker.C:
+		}
+	}
+}
+
+func (ipt *Input) doConfigCollect(ctx context.Context) {
+	if !ipt.isInitialized {
+		l.Debug("config collector: not initialized, skipped")
+		return
+	}
+
+	timeoutCtx, cancel := context.WithTimeout(ctx, ipt.timeoutDuration)
+	defer cancel()
+
+	for _, inst := range ipt.instances {
+		for _, n := range inst.nodes() {
+			inst.setCurrentNode(n.cli, n.rep, n.host, n.addr)
+
+			inst.collectConfig(timeoutCtx)
+		}
+	}
+}
+
+func (ipt *Input) runTopologyRefresher(ctx context.Context) {
+	ticker := time.NewTicker(ipt.TopologyRefreshInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			l.Info("topology refresher stopped")
+			return
+		case <-ticker.C:
+			ipt.doTopologyRefresh(ctx)
+		}
+	}
+}
+
+func (ipt *Input) doTopologyRefresh(ctx context.Context) {
+	if !ipt.isInitialized {
+		l.Debug("topology refresher: not initialized, skipped")
+		return
+	}
+
+	if ipt.checkNodesChanged(ctx) {
+		l.Info("topology changed, sending restart signal")
+		// send restart signal to main loop (non-blocking)
+		select {
+		case ipt.restartCh <- struct{}{}:
+		default:
+			l.Debug("restart signal already pending")
 		}
 	}
 }
 
 func (ipt *Input) setup() {
-	ipt.startUpUnix = time.Now().Unix()
-
 	l = logger.SLogger(inputName)
+
 	l.Infof("%s input started", inputName)
+
+	ipt.startUpUnix = time.Now().Unix()
 	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)
-	ipt.KeyInterval = config.ProtectedInterval(minInterval, maxInterval, ipt.KeyInterval)
-	ipt.KeyTimeout = config.ProtectedInterval(minInterval, ipt.KeyInterval, ipt.KeyTimeout)
+
 	if ipt.Election {
 		ipt.mergedTags = inputs.MergeTags(ipt.tagger.ElectionTags(), ipt.Tags, ipt.Host)
 	} else {
 		ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, ipt.Host)
 	}
+
 	l.Debugf("merged tags: %+#v", ipt.mergedTags)
 
-	// config have "DB"，join DBS
-	if ipt.DB != -1 && !IsSlicesHave(ipt.DBS, ipt.DB) {
-		ipt.DBS = append(ipt.DBS, ipt.DB)
-	}
-	if len(ipt.DBS) < 1 && (ipt.Hotkey || ipt.BigKey) {
-		l.Errorf("dbs is nil in redis.conf, example: dbs=[0]")
+	// add deprecated old db.
+	if ipt.DBDeprecated != -1 && !isSlicesHave(ipt.DBs, ipt.DBDeprecated) {
+		ipt.DBs = append(ipt.DBs, ipt.DBDeprecated)
 	}
 
-	ipt.keyDBS = append(ipt.keyDBS, ipt.DBS...)
+	if len(ipt.DBs) < 1 && (ipt.HotkeyDeprecated || ipt.BigKeyDeprecated) {
+		l.Infof("no DB selected, hot/big key collect disabled")
+	}
+}
+
+// closeDBConnections closes all database connections.
+func (ipt *Input) closeDBConnections() {
+	if ipt.crdb != nil {
+		if err := ipt.crdb.Close(); err != nil {
+			l.Info("redis client.Close: %s, ignored", err.Error())
+		}
+	}
+
+	if ipt.srdb != nil {
+		if err := ipt.srdb.Close(); err != nil {
+			l.Info("redis client.Close: %s, ignored", err.Error())
+		}
+	}
+	for _, inst := range ipt.instances {
+		inst.stop()
+	}
 }
 
 func (ipt *Input) exit() {
@@ -527,6 +778,22 @@ func (ipt *Input) exit() {
 		ipt.tail.Close()
 		l.Info("redis log exit")
 	}
+
+	ipt.closeDBConnections()
+}
+
+// cleanup performs cleanup operations.
+func (ipt *Input) cleanup() {
+	if !ipt.isInitialized {
+		l.Debug("cleanup: already cleaned up, skipped")
+		return
+	}
+
+	// close db connections
+	ipt.closeDBConnections()
+
+	// reset state
+	ipt.isInitialized = false
 }
 
 func (ipt *Input) Terminate() {
@@ -543,17 +810,21 @@ func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
+		&redisMeasurement{},
+		&configMeasurement{},
 		&bigKeyMeasurement{},
 		&hotkeyMeasurement{},
-		&clientMeasurement{},
-		&clusterMeasurement{},
-		&commandMeasurement{},
-		&dbMeasurement{},
-		&infoMeasurement{},
-		&replicaMeasurement{},
+		// &clientMetricMeasurement{},
+		&clientLoggingMeasurement{},
+		// &clusterMeasurement{},
+		// &commandMeasurement{},
+		// &dbMeasurement{},
+		// &infoMeasurement{},
+		// &replicaMeasurement{},
 		&latencyMeasurement{},
 		&slowlogMeasurement{},
-		&customerObjectMeasurement{},
+		&topologyChangeMeasurement{},
+		// &customerObjectMeasurement{},
 		&inputs.UpMeasurement{},
 	}
 }
@@ -581,24 +852,30 @@ func (ipt *Input) Resume() error {
 }
 
 func defaultInput() *Input {
-	getClientFieldMap()
-	getInfoFieldMap()
 	getReplicaFieldMap()
-	getClusterFieldMap()
 
 	return &Input{
-		Timeout:         "10s",
-		pauseCh:         make(chan bool, inputs.ElectionPauseChannelLength),
-		DB:              -1,
-		Tags:            make(map[string]string),
-		KeyInterval:     defaultKeyInterval,
-		KeyTimeout:      defaultKeyInterval,
-		KeyScanSleep:    defaultKeyScanSleep,
-		latencyLastTime: map[string]time.Time{},
-		semStop:         cliutils.NewSem(),
-		Election:        true,
-		feeder:          dkio.DefaultFeeder(),
-		tagger:          datakit.DefaultGlobalTagger(),
+		Timeout:   "10s",
+		pauseCh:   make(chan bool, inputs.ElectionPauseChannelLength),
+		restartCh: make(chan struct{}, 1),
+		Tags:      make(map[string]string),
+
+		DBDeprecated: -1,
+		DBs:          []int{0},
+
+		Interval:                time.Second * 15,
+		TopologyRefreshInterval: 10 * time.Minute,
+		ConfigCollectInterval:   1 * time.Hour,
+		semStop:                 cliutils.NewSem(),
+		Election:                true,
+		feeder:                  dkio.DefaultFeeder(),
+		tagger:                  datakit.DefaultGlobalTagger(),
+		SlowlogMaxLen:           128,
+		HotBigKeys:              defaultHotBitKeyConf(),
+
+		ClientListCollector: &clientListCollector{
+			CollectLogOnFlags: "bxOR",
+		},
 	}
 }
 
@@ -608,35 +885,11 @@ func init() { //nolint:gochecknoinits
 	})
 }
 
-func getPointsFromMeasurement(ms []inputs.MeasurementV2) []*point.Point {
-	pts := []*point.Point{}
-	for _, m := range ms {
-		pts = append(pts, m.Point())
-	}
-
-	return pts
-}
-
-func parseVersion(info string) string {
-	for _, line := range strings.Split(info, "\n") {
-		if strings.HasPrefix(line, "redis_version:") {
-			return strings.TrimSpace(strings.Split(line, ":")[1])
+func isSlicesHave(s []int, index int) bool {
+	for _, i := range s {
+		if i == index {
+			return true
 		}
 	}
-	return ""
-}
-
-func parseUptime(info string) int {
-	for _, line := range strings.Split(info, "\n") {
-		if strings.HasPrefix(line, "uptime_in_seconds:") {
-			uptimeStr := strings.TrimSpace(strings.Split(line, ":")[1])
-			uptime, err := strconv.Atoi(uptimeStr)
-			if err != nil {
-				l.Error("failed to parse uptime: %v", err)
-				return 0
-			}
-			return uptime
-		}
-	}
-	return 0
+	return false
 }

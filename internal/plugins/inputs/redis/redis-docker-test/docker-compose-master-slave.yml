@@ -1,0 +1,118 @@
+#version: '3.8'
+
+services:
+  redis-master:
+    image: 'hub.cloudcarex.com/redis:7'
+    container_name: redis-master
+    hostname: redis-master
+    network_mode: host
+    volumes:
+      # 挂载主节点配置文件
+      - ./conf/master.conf:/usr/local/etc/redis/redis.conf
+      # 挂载数据卷，用于持久化数据和日志
+      - redis-master-data:/data
+    command: redis-server /usr/local/etc/redis/redis.conf
+
+  redis-slave-1:
+    image: 'hub.cloudcarex.com/redis:7'
+    container_name: redis-slave-1
+    hostname: redis-slave-1
+    network_mode: host
+    volumes:
+      # 挂载从节点配置文件
+      - ./conf/slave-1.conf:/usr/local/etc/redis/redis.conf
+      # 挂载数据卷
+      - redis-slave-1-data:/data
+    command: redis-server /usr/local/etc/redis/redis.conf
+    depends_on:
+      - redis-master # 确保主节点先于从节点启动
+
+  redis-slave-2:
+    image: 'hub.cloudcarex.com/redis:7'
+    container_name: redis-slave-2
+    hostname: redis-slave-2
+    network_mode: host
+    volumes:
+      # 挂载从节点配置文件
+      - ./conf/slave-2.conf:/usr/local/etc/redis/redis.conf
+      # 挂载数据卷
+      - redis-slave-2-data:/data
+    command: redis-server /usr/local/etc/redis/redis.conf
+    depends_on:
+      - redis-master # 确保主节点先于从节点启动
+
+  # --- 新增：3个 Sentinel 节点 ---
+  sentinel-1:
+    image: 'hub.cloudcarex.com/redis:7' # Sentinel 程序包含在 Redis 镜像中
+    container_name: sentinel-1
+    hostname: sentinel-1
+    network_mode: host
+    volumes:
+      - ./conf/sentinel-1.conf:/usr/local/etc/redis/sentinel.conf
+    # 启动命令是 redis-sentinel，并指定配置文件
+    command: >
+      sh -c "
+        # 循环等待，直到能够成功 ping 通 redis-master
+        until redis-cli -h 192.168.139.162 -p 6379 -a abc123456 PING | grep -q PONG; do
+          echo 'Waiting for redis-master to be resolvable...';
+          sleep 1;
+        done;
+        # 确认 redis-master 可解析后，再启动 sentinel
+        echo 'redis-master is up, starting sentinel...';
+        redis-sentinel /usr/local/etc/redis/sentinel.conf;
+      "
+    depends_on:
+      - redis-master
+      - redis-slave-1
+      - redis-slave-2
+
+  sentinel-2:
+    image: 'hub.cloudcarex.com/redis:7'
+    container_name: sentinel-2
+    hostname: sentinel-2
+    network_mode: host
+    volumes:
+      - ./conf/sentinel-2.conf:/usr/local/etc/redis/sentinel.conf
+    command: >
+      sh -c "
+        # 循环等待，直到能够成功 ping 通 redis-master
+        until redis-cli -h 192.168.139.162 -p 6379 -a abc123456 PING | grep -q PONG; do
+          echo 'Waiting for redis-master to be resolvable...';
+          sleep 1;
+        done;
+        # 确认 redis-master 可解析后，再启动 sentinel
+        echo 'redis-master is up, starting sentinel...';
+        redis-sentinel /usr/local/etc/redis/sentinel.conf;
+      "
+    depends_on:
+      - redis-master
+      - redis-slave-1
+      - redis-slave-2
+
+  sentinel-3:
+    image: 'hub.cloudcarex.com/redis:7'
+    container_name: sentinel-3
+    hostname: sentinel-3
+    network_mode: host
+    volumes:
+      - ./conf/sentinel-3.conf:/usr/local/etc/redis/sentinel.conf
+    command: >
+      sh -c "
+        # 循环等待，直到能够成功 ping 通 redis-master
+        until redis-cli -h 192.168.139.162 -p 6379 -a abc123456 PING | grep -q PONG; do
+          echo 'Waiting for redis-master to be resolvable...';
+          sleep 1;
+        done;
+        # 确认 redis-master 可解析后，再启动 sentinel
+        echo 'redis-master is up, starting sentinel...';
+        redis-sentinel /usr/local/etc/redis/sentinel.conf;
+      "
+    depends_on:
+      - redis-master
+      - redis-slave-1
+      - redis-slave-2
+
+volumes:
+  redis-master-data:
+  redis-slave-1-data:
+  redis-slave-2-data:

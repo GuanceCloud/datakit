@@ -25,6 +25,7 @@ Redis indicator collector, which collects the following data:
 - Slow Log monitoring metrics
 - Big Key scan monitoring
 - Master-slave replication
+- Cluster
 
 ## Configuration {#config}
 
@@ -58,16 +59,6 @@ CONFIG SET maxmemory-policy allkeys-lfu
 ACL SETUSER username on +get +@read +@connection +@keyspace ~*
 ```
 
-- collect hotkey & `bigkey` remote, need install redis-cli (collect local need not install it)
-
-```shell
-# ubuntu 
-apt-get install redis-tools
-
-# centos
-yum install -y  redis
-```
-
 ### Collector Configuration {#input-config}
 
 <!-- markdownlint-disable MD046 -->
@@ -91,6 +82,29 @@ yum install -y  redis
 
     If it is Alibaba Cloud Redis and the corresponding username and PASSWORD are set, the `<PASSWORD>` should be set to `your-user:your-password`, such as `datakit:Pa55W0rd`.
 <!-- markdownlint-enable -->
+
+#### Cluster/Master-Slave Node Collection {#cluster}
+
+The collection of Redis cluster nodes and master-slave nodes is different from standalone node configuration. Specifically, we need to configure the following two parts separately:
+
+```toml
+# cluster
+[inputs.redis.cluster]
+  hosts = [ "localhost:6379" ]
+
+# master/slave
+[inputs.redis.master_slave]
+  hosts       = [ "localhost:26380" ] # master or/and slave ip/host
+  [inputs.redis.master_slave.sentinel]
+    hosts       = [ "localhost:26380" ] # sentinel ip/host
+    master_name = "your-master-name"
+    password    = "sentinel-requirepassword"
+```
+
+For cluster/master-slave node collection, the following principles are followed by default:
+
+- For regular metric collection, such as `INFO/CLIENT LIST`, each collection will be performed on all master and slave nodes
+- For low-frequency deep collection (such as hot/big key collection), due to its high consumption (aka performance overhead on the collection target), it can be configured to randomly select a slave node for collection (not available for cluster)
 
 ### Log Collection Configuration {#logging-config}
 

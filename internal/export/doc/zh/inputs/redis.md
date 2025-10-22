@@ -24,6 +24,7 @@ Redis 指标采集器，采集以下数据：
 - Slow Log 监控指标
 - Big Key scan 监控
 - 主从 Replication
+- 集群
 
 ## 配置 {#config}
 
@@ -52,16 +53,6 @@ CONFIG SET maxmemory-policy allkeys-lfu
 ACL SETUSER username on +get +@read +@connection +@keyspace ~*
 ```
 
-- 远程采集 hotkey & `bigkey` 需要安装 redis-cli （本机采集时，redis-server 已经包含了 redis-cli）：
-
-```shell
-# ubuntu 
-apt-get install redis-tools
-
-# centos
-yum install -y  redis
-```
-
 ### 采集器配置 {#input-config}
 
 <!-- markdownlint-disable MD046 -->
@@ -85,6 +76,29 @@ yum install -y  redis
 
     如果是阿里云 Redis，且设置了对应的用户名密码，conf 中的 `<PASSWORD>` 应该设置成 `your-user:your-password`，如 `datakit:Pa55W0rd`
 <!-- markdownlint-enable -->
+
+#### 集群/主从节点采集 {#cluster}
+
+Redis 集群节点和主从节点的采集和单点节点（standalone）的配置不同，具体而言，我们需要单独配置如下两个部分：
+
+```toml
+# cluster
+[inputs.redis.cluster]
+  hosts = [ "localhost:6379" ]
+
+# master/slave
+[inputs.redis.master_slave]
+  hosts       = [ "localhost:26380" ] # master or/and slave ip/host
+  [inputs.redis.master_slave.sentinel]
+    hosts       = [ "localhost:26380" ] # sentinel ip/host
+    master_name = "your-master-name"
+    password    = "sentinel-requirepassword"
+```
+
+对集群/主从节点的采集，默认遵循如下原则：
+
+- 对于常规指标采集，比如 `INFO/CLIENT LIST` 等采集，每次采集会对主从节点都实施采集
+- 低频的深度采集（比如 hot/big key 采集），由于其消耗较大（aka 对采集目标有一定的性能开销），可配置随机选择一个从库实施采集（集群不可以）
 
 ### 日志采集配置 {#logging-config}
 
@@ -121,7 +135,7 @@ yum install -y  redis
 
 ### `{{$m.Name}}`
 
-{{$m.Desc}}
+{{$m.DescZh}}
 
 {{$m.MarkdownTable}}
 {{end}}
@@ -136,7 +150,7 @@ yum install -y  redis
 
 ### `{{$m.Name}}`
 
-{{$m.Desc}}
+{{$m.DescZh}}
 
 {{$m.MarkdownTable}}
 {{end}}
@@ -152,7 +166,7 @@ yum install -y  redis
 
 ### `{{$m.Name}}`
 
-{{$m.Desc}}
+{{$m.DescZh}}
 
 {{$m.MarkdownTable}}
 {{end}}

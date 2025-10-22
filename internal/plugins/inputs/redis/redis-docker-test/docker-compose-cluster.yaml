@@ -1,0 +1,152 @@
+version: '3.8'
+
+x-redis-node-template: &redis-node-template
+    image: 'hub.cloudcarex.com/redis:7'
+    network_mode: host
+
+services:
+  # --- 定义 n 个 Redis 节点 ---
+  redis-node-1: 
+    <<: *redis-node-template
+    container_name: redis-node-1
+    hostname: redis-node-1
+    volumes:
+      - redis-data-1:/data
+      - ./conf/redis-cluster-1.conf:/usr/local/etc/redis/redis.conf
+      - ./logs/node-1:/logs:rw
+    command: redis-server /usr/local/etc/redis/redis.conf
+
+  redis-node-2:
+    <<: *redis-node-template
+    container_name: redis-node-2
+    hostname: redis-node-2
+    volumes:
+      - ./conf/redis-cluster-2.conf:/usr/local/etc/redis/redis.conf
+      - redis-data-2:/data
+      - ./logs/node-2:/logs:rw
+    command: redis-server /usr/local/etc/redis/redis.conf
+
+  redis-node-3:
+    <<: *redis-node-template
+    container_name: redis-node-3
+    hostname: redis-node-3
+    volumes:
+      - ./conf/redis-cluster-3.conf:/usr/local/etc/redis/redis.conf
+      - redis-data-3:/data
+      - ./logs/node-3:/logs:rw
+    command: redis-server /usr/local/etc/redis/redis.conf
+
+  redis-node-4:
+    <<: *redis-node-template
+    container_name: redis-node-4
+    hostname: redis-node-4
+    volumes:
+      - ./conf/redis-cluster-4.conf:/usr/local/etc/redis/redis.conf
+      - redis-data-4:/data
+      - ./logs/node-4:/logs:rw
+    command: redis-server /usr/local/etc/redis/redis.conf
+
+  redis-node-5:
+    <<: *redis-node-template
+    container_name: redis-node-5
+    hostname: redis-node-5
+    volumes:
+      - ./conf/redis-cluster-5.conf:/usr/local/etc/redis/redis.conf
+      - redis-data-5:/data
+      - ./logs/node-5:/logs:rw
+    command: redis-server /usr/local/etc/redis/redis.conf
+
+  redis-node-6:
+    <<: *redis-node-template
+    container_name: redis-node-6
+    hostname: redis-node-6
+    volumes:
+      - ./conf/redis-cluster-6.conf:/usr/local/etc/redis/redis.conf
+      - redis-data-6:/data
+      - ./logs/node-6:/logs:rw
+    command: redis-server /usr/local/etc/redis/redis.conf
+
+  redis-node-7:
+    <<: *redis-node-template
+    container_name: redis-node-7
+    hostname: redis-node-7
+    volumes:
+      - ./conf/redis-cluster-7.conf:/usr/local/etc/redis/redis.conf
+      - redis-data-7:/data
+      - ./logs/node-7:/logs:rw
+    command: redis-server /usr/local/etc/redis/redis.conf
+
+  redis-node-8:
+    <<: *redis-node-template
+    container_name: redis-node-8
+    hostname: redis-node-8
+    volumes:
+      - ./conf/redis-cluster-8.conf:/usr/local/etc/redis/redis.conf
+      - redis-data-8:/data
+      - ./logs/node-8:/logs:rw
+    command: redis-server /usr/local/etc/redis/redis.conf
+
+  redis-node-9:
+    <<: *redis-node-template
+    container_name: redis-node-9
+    hostname: redis-node-9
+    volumes:
+      - ./conf/redis-cluster-9.conf:/usr/local/etc/redis/redis.conf
+      - redis-data-9:/data
+      - ./logs/node-9:/logs:rw
+    command: redis-server /usr/local/etc/redis/redis.conf
+
+  # --- 自动初始化集群的服务 ---
+  redis-cluster-creator:
+    image: 'hub.cloudcarex.com/redis:7'
+    container_name: redis-cluster-creator
+    network_mode: host
+    command: >
+      sh -c '
+        echo "Waiting for all redis nodes to be ready...";
+        # 在所有 6 个节点都准备好之后，它才会执行 redis-cli --cluster create 命令。
+        for port in 7001 7002 7003 7004 7005 7006; do
+          until redis-cli -h 192.168.139.162 -p $$port -a abc123456 PING | grep -q PONG; do
+            echo "Waiting for node on port $$port...";
+            sleep 1;
+          done;
+          echo "Node redis-node-$$i is ready.";
+        done;
+        echo "All nodes are ready. Creating cluster...";
+        redis-cli \
+          --cluster create \
+          192.168.139.162:7001 \
+          192.168.139.162:7002 \
+          192.168.139.162:7003 \
+          192.168.139.162:7004 \
+          192.168.139.162:7005 \
+          192.168.139.162:7006 \
+          192.168.139.162:7007 \
+          192.168.139.162:7008 \
+          192.168.139.162:7009 \
+          --cluster-replicas 2 \
+          --cluster-yes \
+          -a abc123456;
+      '
+    depends_on:
+      - redis-node-1
+      - redis-node-2
+      - redis-node-3
+      - redis-node-4
+      - redis-node-5
+      - redis-node-6
+      - redis-node-7
+      - redis-node-8
+      - redis-node-9
+
+# --- 定义数据卷 ---
+volumes:
+  redis-data-1:
+  redis-data-2:
+  redis-data-3:
+  redis-data-4:
+  redis-data-5:
+  redis-data-6:
+  redis-data-7:
+  redis-data-8:
+  redis-data-9:

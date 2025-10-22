@@ -166,6 +166,7 @@ ipfix
 jemalloc
 kafkamq
 keyevent
+keyspace
 kprobe
 kubedns
 kubelet

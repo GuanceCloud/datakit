@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -602,4 +603,27 @@ func AlignTime(now, last time.Time, interval time.Duration) (next time.Time) {
 
 func Init() {
 	l = logger.SLogger("inputs")
+}
+
+// GetOverrideMeasurement returns the override measurement name if version requires it.
+func GetOverrideMeasurement(version, measurement string) string {
+	if IsOverrideMesurementVersion(version) {
+		return measurement
+	}
+	return ""
+}
+
+// IsOverrideMesurementVersion checks if the measurement version requires override.
+func IsOverrideMesurementVersion(version string) bool {
+	version = strings.ToLower(strings.TrimSpace(version))
+
+	if !strings.HasPrefix(version, "v") {
+		return false
+	}
+	numStr := strings.TrimPrefix(version, "v")
+	num, err := strconv.Atoi(numStr)
+	if err == nil && num >= 2 {
+		return true
+	}
+	return false
 }
