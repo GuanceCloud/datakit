@@ -34,7 +34,6 @@ require (
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/go-ole/go-ole v1.2.6
 	github.com/go-ping/ping v1.1.0
-	github.com/go-redis/redis/v8 v8.11.3
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/gobwas/glob v0.2.3
@@ -138,7 +137,7 @@ require (
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
 	github.com/cespare/xxhash v1.1.0
-	github.com/cespare/xxhash/v2 v2.2.0
+	github.com/cespare/xxhash/v2 v2.3.0
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/containerd/continuity v0.3.0 // indirect
 	github.com/coreos/go-semver v0.3.0
@@ -392,7 +391,9 @@ require (
 
 require (
 	github.com/GuanceCloud/pipeline-go v1.0.9-0.20250819095325-01d2a81ed1c2
+	github.com/go-redis/redis/v8 v8.11.3
 	github.com/hipages/php-fpm_exporter v1.2.1
+	github.com/redis/go-redis/v9 v9.12.0
 	github.com/shopspring/decimal v1.2.0
 	k8s.io/code-generator v0.25.0
 )

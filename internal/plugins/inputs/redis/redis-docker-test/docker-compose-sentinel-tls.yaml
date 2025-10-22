@@ -1,0 +1,97 @@
+version: '3.8'
+
+x-redis-template: &redis-template
+  image: 'hub.cloudcarex.com/redis:7'
+  network_mode: host
+
+services:
+  # === Redis Master (TLS) ===
+  redis-tls-master:
+    <<: *redis-template
+    container_name: redis-tls-master
+    hostname: redis-tls-master
+    volumes:
+      - redis-tls-master-data:/data
+      - ./conf/master-tls.conf:/usr/local/etc/redis/redis.conf:ro
+      - ./redis-certs:/tls:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+
+  # === Redis Slave 1 (TLS) ===
+  redis-tls-slave-1:
+    <<: *redis-template
+    container_name: redis-tls-slave-1
+    hostname: redis-tls-slave-1
+    volumes:
+      - redis-tls-slave-1-data:/data
+      - ./conf/slave-1-tls.conf:/usr/local/etc/redis/redis.conf:ro
+      - ./redis-certs:/tls:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    depends_on:
+      - redis-tls-master
+
+  # === Redis Slave 2 (TLS) ===
+  redis-tls-slave-2:
+    <<: *redis-template
+    container_name: redis-tls-slave-2
+    hostname: redis-tls-slave-2
+    volumes:
+      - redis-tls-slave-2-data:/data
+      - ./conf/slave-2-tls.conf:/usr/local/etc/redis/redis.conf:ro
+      - ./redis-certs:/tls:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    depends_on:
+      - redis-tls-master
+
+  # === Redis Sentinel 1 (TLS) ===
+  redis-tls-sentinel-1:
+    <<: *redis-template
+    container_name: redis-tls-sentinel-1
+    hostname: redis-tls-sentinel-1
+    volumes:
+      - redis-tls-sentinel-1-data:/data
+      - ./conf/sentinel-1-tls.conf:/usr/local/etc/redis/sentinel.conf
+      - ./redis-certs:/tls:ro
+    command: redis-sentinel /usr/local/etc/redis/sentinel.conf
+    depends_on:
+      - redis-tls-master
+      - redis-tls-slave-1
+      - redis-tls-slave-2
+
+  # === Redis Sentinel 2 (TLS) ===
+  redis-tls-sentinel-2:
+    <<: *redis-template
+    container_name: redis-tls-sentinel-2
+    hostname: redis-tls-sentinel-2
+    volumes:
+      - redis-tls-sentinel-2-data:/data
+      - ./conf/sentinel-2-tls.conf:/usr/local/etc/redis/sentinel.conf
+      - ./redis-certs:/tls:ro
+    command: redis-sentinel /usr/local/etc/redis/sentinel.conf
+    depends_on:
+      - redis-tls-master
+      - redis-tls-slave-1
+      - redis-tls-slave-2
+
+  # === Redis Sentinel 3 (TLS) ===
+  redis-tls-sentinel-3:
+    <<: *redis-template
+    container_name: redis-tls-sentinel-3
+    hostname: redis-tls-sentinel-3
+    volumes:
+      - redis-tls-sentinel-3-data:/data
+      - ./conf/sentinel-3-tls.conf:/usr/local/etc/redis/sentinel.conf
+      - ./redis-certs:/tls:ro
+    command: redis-sentinel /usr/local/etc/redis/sentinel.conf
+    depends_on:
+      - redis-tls-master
+      - redis-tls-slave-1
+      - redis-tls-slave-2
+
+volumes:
+  redis-tls-master-data:
+  redis-tls-slave-1-data:
+  redis-tls-slave-2-data:
+  redis-tls-sentinel-1-data:
+  redis-tls-sentinel-2-data:
+  redis-tls-sentinel-3-data:
+

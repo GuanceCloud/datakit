@@ -1,0 +1,97 @@
+# Redis 单机模式 - 多版本测试（不同端口，可同时运行）
+# 使用方法：docker-compose -f docker-compose-standalone-multi-version.yml up -d
+# 停止：docker-compose -f docker-compose-standalone-multi-version.yml down
+
+services:
+  redis-7:
+    image: 'hub.cloudcarex.com/redis:7.0.11'
+    container_name: redis-standalone-7
+    network_mode: host
+    command: >
+      redis-server
+      --bind 192.168.139.162
+      --port 6379
+      --requirepass abc123456
+      --maxmemory 500mb
+      --maxmemory-policy allkeys-lfu
+      --slowlog-log-slower-than 5000
+      --slowlog-max-len 1024
+      --appendonly yes
+    volumes:
+      - redis-standalone-7-data:/data
+
+  redis-6.2:
+    image: 'hub.cloudcarex.com/redis:6.2.12'
+    container_name: redis-standalone-6.2
+    network_mode: host
+    command: >
+      redis-server
+      --bind 192.168.139.162
+      --port 6380
+      --requirepass abc123456
+      --maxmemory 500mb
+      --maxmemory-policy allkeys-lfu
+      --slowlog-log-slower-than 5000
+      --slowlog-max-len 1024
+      --appendonly yes
+    volumes:
+      - redis-standalone-6.2-data:/data
+
+  redis-6.0:
+    image: 'hub.cloudcarex.com/redis:6.0.8'
+    container_name: redis-standalone-6.0
+    network_mode: host
+    command: >
+      redis-server
+      --bind 192.168.139.162
+      --port 6381
+      --requirepass abc123456
+      --maxmemory 500mb
+      --maxmemory-policy allkeys-lfu
+      --slowlog-log-slower-than 5000
+      --slowlog-max-len 1024
+      --appendonly yes
+    volumes:
+      - redis-standalone-6.0-data:/data
+
+  redis-5:
+    image: 'hub.cloudcarex.com/redis:5.0.14'
+    container_name: redis-standalone-5
+    network_mode: host
+    command: >
+      redis-server
+      --bind 192.168.139.162
+      --port 6382
+      --requirepass abc123456
+      --maxmemory 500mb
+      --maxmemory-policy allkeys-lfu
+      --slowlog-log-slower-than 5000
+      --slowlog-max-len 1024
+      --appendonly yes
+    volumes:
+      - redis-standalone-5-data:/data
+
+  redis-4:
+    image: 'hub.cloudcarex.com/redis:4.0.14'
+    container_name: redis-standalone-4
+    network_mode: host
+    command: >
+      redis-server
+      --bind 192.168.139.162
+      --port 6383
+      --requirepass abc123456
+      --maxmemory 500mb
+      --maxmemory-policy allkeys-lfu
+      --slowlog-log-slower-than 5000
+      --slowlog-max-len 1024
+      --appendonly yes
+    volumes:
+      - redis-standalone-4-data:/data
+
+volumes:
+  redis-standalone-7-data:
+  redis-standalone-6.2-data:
+  redis-standalone-6.0-data:
+  redis-standalone-5-data:
+  redis-standalone-4-data:
+

@@ -353,6 +353,9 @@ deps: prepare gofmt
 gofmt:
 	@GO111MODULE=off gofmt -w -l $(shell find . -type f -name '*.go'| grep -v "/vendor/\|/.git/\|/git/\|.*_y.go\|packed-packr.go")
 
+#golines:
+#	@golines -w --max-len=150 --reformat-tags -shorten-comments $(shell find . -type f -name '*.go'| grep -v "/vendor/\|/.git/\|/git/\|.*_y.go\|packed-packr.go")
+
 vet:
 	@go vet ./...
 
@@ -374,10 +377,10 @@ code_lint: deps copyright_check
 	@$(GOLINT_BINARY) --version
 ifeq ($(AUTO_FIX),true)
 		@printf "$(HL)lint with auto fix...\n$(NC)"; \
-			$(GOLINT_BINARY) run --fix --allow-parallel-runners;
+			$(GOLINT_BINARY) run --fix --allow-parallel-runners -v;
 else
 		@printf "$(HL)lint without auto fix...\n$(NC)"; \
-			$(GOLINT_BINARY) run --allow-parallel-runners;
+			$(GOLINT_BINARY) run --allow-parallel-runners -v;
 endif
 
 	@if [ $$? != 0 ]; then \

@@ -19,10 +19,11 @@ import (
 var TODO = "-" // global todo string
 
 const (
-	Int    = "int"
-	Float  = "float"
-	String = "string"
-	Bool   = "bool"
+	Int        = "int"
+	Float      = "float"
+	String     = "string"
+	Bool       = "bool"
+	NoDataType = "N/A"
 
 	// TODO:
 	// Prometheus metric types: https://prometheus.io/docs/concepts/metric_types/
@@ -33,6 +34,7 @@ const (
 	Summary     = "summary"
 	Rate        = "rate"
 	UnknownType = "unknown"
+	NoType      = "N/A"
 	EnumType    = "enum"
 	// add more...
 
@@ -78,12 +80,14 @@ const (
 
 	// TODO: add more...
 	BytesPerSec    = "traffic,B/S"
+	KBytesPerSec   = "traffic,KB/S"
 	RequestsPerSec = "throughput,reqps"
 	Celsius        = "temperature,C"
 	Ampere         = "ampere"
 	Watt           = "watt"
 	Volt           = "volt"
 	FrequencyMHz   = "frequency,MHz"
+	FrequencyHz    = "frequency,Hz"
 	RPMPercent     = "RPM%"
 	RotationRete   = "RPM"
 	PartPerMillion = "PPM"
@@ -153,11 +157,12 @@ func (e *EmptyMeasurement) Info() *MeasurementInfo {
 }
 
 type FieldInfo struct {
-	Type     string `json:"type"`      // gauge/count/...
-	DataType string `json:"data_type"` // int/float/bool/...
-	Unit     string `json:"unit"`
-	Desc     string `json:"desc"` // markdown string
-	Disabled bool   `json:"disabled"`
+	Type     string   `json:"type"`      // gauge/count/...
+	DataType string   `json:"data_type"` // int/float/bool/...
+	Unit     string   `json:"unit"`
+	Desc     string   `json:"desc"` // markdown string
+	Taggedby []string `json:"taggedby,omitempty"`
+	Disabled bool     `json:"disabled"`
 }
 
 type TagInfo struct {
@@ -198,7 +203,7 @@ func (m *MeasurementInfo) MarkdownTable() string {
 | ----   |:----        |`
 
 	const tagRowfmt = "|**%s**<br>(`tag`)|%s|"
-	const fieldRowfmt = "|**%s**|%s<br>*Type: %s*<br>*Unit: %s*|"
+	const fieldRowfmt = "|**%s**|%s<br>*Type: %s*<br>*Unit: %s*%s|"
 
 	rows := []string{tableHeader}
 	// show tags before fields
@@ -213,7 +218,7 @@ func (m *MeasurementInfo) MarkdownTable() string {
 	}
 
 	keys = sortMapKey(m.Fields)
-	for _, key := range keys { // XXX: f.Type not used
+	for _, key := range keys {
 		f, ok := m.Fields[key].(*FieldInfo)
 		if !ok {
 			continue
@@ -224,7 +229,17 @@ func (m *MeasurementInfo) MarkdownTable() string {
 			unit = NoUnit
 		}
 
-		rows = append(rows, fmt.Sprintf(fieldRowfmt, key, f.Desc, f.DataType, unit))
+		typeInfo := f.DataType
+		if f.Type != "" {
+			typeInfo = fmt.Sprintf("%s &#124; (%s)", f.DataType, f.Type)
+		}
+
+		taggedByPart := ""
+		if len(f.Taggedby) > 0 {
+			taggedBy := strings.Join(f.Taggedby, ", ")
+			taggedByPart = fmt.Sprintf("<br>*Tagged by: %s*", taggedBy)
+		}
+		rows = append(rows, fmt.Sprintf(fieldRowfmt, key, f.Desc, typeInfo, unit, taggedByPart))
 	}
 	return strings.Join(rows, "\n")
 }

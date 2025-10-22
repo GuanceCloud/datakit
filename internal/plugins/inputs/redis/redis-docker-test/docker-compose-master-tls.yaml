@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  # === Redis 单机模式 (TLS) - 直接使用 master-tls 配置 ===
+  redis-standalone-tls:
+    image: 'hub.cloudcarex.com/redis:7'
+    container_name: redis-standalone-tls
+    hostname: redis-standalone-tls
+    network_mode: host
+    volumes:
+      - redis-standalone-tls-data:/data
+      - ./conf/master-tls.conf:/usr/local/etc/redis/redis.conf:ro
+      - ./redis-certs:/tls:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    restart: unless-stopped
+
+volumes:
+  redis-standalone-tls-data:
