@@ -152,9 +152,8 @@ func (col *Collector) Exit() {
 	col.stop()
 }
 
-// aggregate takes in a metric. It then
-// aggregates and caches the current value(s). It does not deal with the
-// Delete* options, because those are dealt with in the Gather function.
+// aggregate takes in a metric. It then aggregates and caches the current value(s).
+// It does not deal with the Delete* options, because those are dealt with in the Gather function.
 func (col *Collector) aggregate(m metric) {
 	col.Lock()
 	defer col.Unlock()
@@ -360,7 +359,7 @@ func NewCollector(udplistener *net.UDPConn, tcplistener *net.TCPListener, collec
 			return nil, err
 		}
 		if err := col.setupUnixServer(); err != nil {
-			col.opts.l.Warn("set up unix server failed: %s", err.Error())
+			col.opts.l.Errorf("set up unix server failed: %s", err.Error())
 		}
 	} else {
 		return nil, fmt.Errorf("TCP not supported")
@@ -374,6 +373,7 @@ func NewCollector(udplistener *net.UDPConn, tcplistener *net.TCPListener, collec
 	}
 
 	col.opts.l.Infof("starting %d parser worker...", parserGoRoutines)
+
 	for i := 1; i <= parserGoRoutines; i++ {
 		// Start the line parser
 		func(idx int) {
