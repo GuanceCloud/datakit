@@ -878,3 +878,7 @@ func (t *HTTPTask) renderSuccessWhen(task *HTTPTask, fm template.FuncMap) error 
 
 	return nil
 }
+
+func (t *HTTPTask) setReqError(err string) {
+	t.reqError = err
+}

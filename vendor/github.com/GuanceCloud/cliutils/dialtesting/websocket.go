@@ -506,6 +506,10 @@ func (t *WebsocketTask) renderRequestOptions(requestOpt *WebsocketOptRequest, fm
 	return nil
 }
 
+func (t *WebsocketTask) setReqError(err string) {
+	t.reqError = err
+}
+
 func (t *WebsocketTask) renderSuccessWhen(task *WebsocketTask, fm template.FuncMap) error {
 	if task == nil || task.SuccessWhen == nil {
 		return nil

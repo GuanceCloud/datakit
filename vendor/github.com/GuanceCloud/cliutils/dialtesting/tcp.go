@@ -360,6 +360,10 @@ func (t *TCPTask) initTask() {
 	}
 }
 
+func (t *TCPTask) setReqError(err string) {
+	t.reqError = err
+}
+
 func (t *TCPTask) renderTemplate(fm template.FuncMap) error {
 	if t.rawTask == nil {
 		task := &TCPTask{}
