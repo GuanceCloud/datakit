@@ -1,5 +1,35 @@
 # 更新日志
 
+## 1.84.0(2025/10/22) {#cl-1.84.0}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.84.0-new}
+
+- 新增一种 CRD 方式来辅助 Kubernetes 中的日志采集（#2842）
+    - 优化了 annotation 方式来配置日志采集。后续如果更新日志采集的 annotation，不再需要重启应用，DataKit 能动态加载最新的 annotation 配置。
+    - 对 Docker/Containerd 运行时的容器内日志采集，不再需要额外挂载 EmptyDir 操作。
+
+### 问题修复 {#cl-1.84.0-fix}
+
+- 修复 Kingbase 采集器数据映射问题（#2848）
+
+### 功能优化 {#cl-1.84.0-opt}
+
+- DDTrace 采集新增 `apmtelemetry_route_enable` 配置允许关闭对象采集（#2841）
+- DDTrace/OpenTelemetry 生成的时序指标中，新增 `tracing_metric_tag_whitelist` 配置允许用户在生成的时序指标中新增自定义 tag（#2854）
+- DDTrace/OpenTelemetry `custom_tags` 支持正则表达式配置（#2855）
+- 优化异常情况下的拨测结果，便于问题定位（#2844）
+- DataKit 基础镜像升级到 Ubuntu 22.04（#2846）
+- PostgreSQL 新增自身性能有关（`postgresql_dbm_metric/postgresql_dbm_sample/postgresql_dbm_activity`）的数据采集（#2847）
+- 优化 statsd 采集器中日志有关代码，避免因其采集冲掉其它重要日志（!3713）
+
+### 兼容调整 {#cl-1.84.0-brk}
+
+- 针对 Redis 采集器做了重构，新增集群采集模式和主从采集模式。**已经将其时序指标集全部命名为 `redis`**，如果要采用原有的指标集命名，可以在采集配置中将 `v2` 切换回 `v1`（#2732）
+
+---
+
 ## 1.83.1(2025/09/30) {#cl-1.83.1}
 
 本次发布属于 hotfix 修复，内容如下：

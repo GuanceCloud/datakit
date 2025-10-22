@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.84.0(2025/10/22) {#cl-1.84.0}
+
+This release is a feature update with the following changes:
+
+### New Features {#cl-1.84.0-new}
+
+- Added a CRD-based approach to assist log collection in Kubernetes (#2842)
+    - Optimized annotation-based log collection configuration. Updates to log collection annotations no longer require application restarts, as DataKit can now dynamically reload the latest annotation configurations.
+    - For container log collection under Docker/Containerd runtime, mounting EmptyDir is no longer required.
+
+### Bug Fixes {#cl-1.84.0-fix}
+
+- Fixed data mapping issues in the Kingbase collector (#2848)
+
+### Optimizations {#cl-1.84.0-opt}
+
+- DDTrace collection now includes `apmtelemetry_route_enable` configuration to disable object collection (#2841)
+- Added `tracing_metric_tag_whitelist` configuration for DDTrace/OpenTelemetry metrics, allowing users to add custom tags to generated measurement `tracing_metrics` (#2854)
+- `custom_tags` for DDTrace/OpenTelemetry added support for regex (#2855)
+- Improved dial-testing results under abnormal conditions for easier troubleshooting (#2844)
+- Upgraded DataKit docker image to Ubuntu 22.04 (#2846)
+- PostgreSQL collector now supports performance-related data collection (`postgresql_dbm_metric/postgresql_dbm_sample/postgresql_dbm_activity`) (#2847)
+- Optimized logging-related code in the statsd collector to prevent interference with other critical logs (!3713)
+
+### Breaking Changes {#cl-1.84.0-brk}
+
+- Redis collector has been refactored with new cluster mode and master-slave mode support. **All measurement names have been renamed to `redis`**. We can switch back to old measurement naming by change `v2` to `v1` (#2732)
+
+---
+
 ## 1.83.1(2025/09/30) {#cl-1.83.1}
 
 This release is a hotfix containing the following updates:
