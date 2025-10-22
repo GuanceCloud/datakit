@@ -153,6 +153,7 @@ func (ob *jvmTelemetry) parseEvent(requestType RequestType, payload interface{})
 		}
 		tags := getConfigTags(start.Configuration)
 		for k, v := range tags {
+			k = strings.ReplaceAll(k, ".", "_")
 			ob.tags[k] = v
 		}
 
@@ -191,6 +192,7 @@ func (ob *jvmTelemetry) parseEvent(requestType RequestType, payload interface{})
 		}
 		tags := getConfigTags(configs.Configuration)
 		for k, v := range tags {
+			k = strings.ReplaceAll(k, ".", "_")
 			ob.tags[k] = v
 		}
 		ob.setField(requestTypeMap[requestType], string(bts))
@@ -327,7 +329,6 @@ func (ipt *Input) OMInitAndRunning() {
 		for {
 			select {
 			case ob := <-ipt.om.OBChan:
-				ipt.om.obsLock.Lock()
 				pt := ob.toPoint()
 				if pt != nil {
 					err := ipt.feeder.Feed(point.CustomObject, []*point.Point{pt},
@@ -336,7 +337,7 @@ func (ipt *Input) OMInitAndRunning() {
 						log.Errorf("feed err=%v", err)
 					}
 				}
-				ipt.om.obsLock.Unlock()
+
 			case <-ipt.semStop.Wait():
 				return nil
 			}
@@ -405,6 +406,8 @@ func (om *Manager) parseTelemetryRequest(header http.Header, bts []byte) {
 
 	ob.parseEvent(body.RequestType, body.Payload)
 	om.OBS[body.Application.ServiceName+body.RuntimeID] = ob
+	// add metric for proxy telemetry body length.
+	proxyTelemetryBody.WithLabelValues(body.Application.ServiceName).Observe(float64(len(bts)))
 	if ob.change {
 		ob.change = false
 		// 发生变化，准备发送到io.

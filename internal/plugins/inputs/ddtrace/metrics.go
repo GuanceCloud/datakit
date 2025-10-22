@@ -13,7 +13,8 @@ import (
 var (
 	droppedTraces,
 	truncatedTraceSpans *p8s.CounterVec
-	traceSpans *p8s.SummaryVec
+	traceSpans         *p8s.SummaryVec
+	proxyTelemetryBody *p8s.SummaryVec
 )
 
 func metricsSetup() {
@@ -51,6 +52,20 @@ func metricsSetup() {
 		},
 		[]string{"input"},
 	)
+	proxyTelemetryBody = p8s.NewSummaryVec(
+		p8s.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: "input_ddtrace",
+			Name:      "proxy_body",
+			Help:      "Body length of DDTrace route:/telemetry/proxy/api/v2/apmtelemetry data",
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
+		},
+		[]string{"service"},
+	)
 }
 
 // nolint: gochecknoinits
@@ -61,5 +76,6 @@ func init() {
 		truncatedTraceSpans,
 		droppedTraces,
 		traceSpans,
+		proxyTelemetryBody,
 	)
 }
