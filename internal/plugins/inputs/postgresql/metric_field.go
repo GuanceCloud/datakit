@@ -543,7 +543,7 @@ func (m ioMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"server":       inputs.NewTagInfo("The address of the server. The value is `host:port`"),
-			"backend_type": inputs.NewTagInfo("Type of backend (e.g. background worker, autovacuum worker)"),
+			"backend_type": inputs.NewTagInfo("Type of backend (e.g. background worker, `autovacuum` worker)"),
 			"object":       inputs.NewTagInfo("Target object of an I/O operation"),
 			"context":      inputs.NewTagInfo("The context of an I/O operation"),
 		},
@@ -637,4 +637,138 @@ func (m archiverMeasurement) Info() *inputs.MeasurementInfo {
 			"server": inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
+}
+
+type dbmMetricMeasurement struct {
+	inputMeasurement
+}
+
+//nolint:lll
+var dbmMetricMeasurementInfo = &inputs.MeasurementInfo{
+	Name: "postgresql_dbm_metric",
+	Desc: "PostgreSQL database statement execution performance metrics, collected from the `pg_stat_statements` extension. Provides detailed statistics on query performance and resource usage.([:octicons-tag-24: Version-1.84.0](../datakit/changelog-2025.md#cl-1.84.0))",
+	Cat:  point.Logging,
+	Fields: map[string]interface{}{
+		"shared_blk_read_time":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Total time the statement spent reading shared blocks, in milliseconds (if track_io_timing is enabled, otherwise zero). Postgres >= 17"},
+		"shared_blk_write_time": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Total time the statement spent writing shared blocks, in milliseconds (if track_io_timing is enabled, otherwise zero). Postgres >= 17"},
+		"blk_read_time":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Total time the statement spent reading data file blocks, in milliseconds (if track_io_timing is enabled, otherwise zero). Postgres < 17"},
+		"blk_write_time":        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Total time the statement spent writing data file blocks, in milliseconds (if track_io_timing is enabled, otherwise zero). Postgres < 17"},
+		"total_exec_time":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Total time spent executing the statement, in milliseconds."},
+		"total_plan_time":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Total time spent planning the statement, in milliseconds (if pg_stat_statements.track_planning is enabled, otherwise zero)."},
+		"min_plan_time":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Minimum time spent planning the statement, in milliseconds (if pg_stat_statements.track_planning is enabled, otherwise zero)."},
+		"max_plan_time":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Maximum time spent planning the statement, in milliseconds (if pg_stat_statements.track_planning is enabled, otherwise zero)."},
+		"local_blks_dirtied":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Total number of local blocks dirtied by the statement."},
+		"local_blks_hit":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Total number of local block cache hits by the statement."},
+		"local_blks_read":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Total number of local blocks read by the statement."},
+		"local_blks_written":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Total number of local blocks written by the statement."},
+		"rows":                  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Total number of rows retrieved or affected by the statement."},
+		"shared_blks_dirtied":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Total number of shared blocks dirtied by the statement."},
+		"shared_blks_hit":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Total number of shared block cache hits by the statement."},
+		"shared_blks_read":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Total number of shared blocks read by the statement."},
+		"shared_blks_written":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Total number of shared blocks written by the statement."},
+		"temp_blks_read":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Total number of temp blocks read by the statement."},
+		"temp_blks_written":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Total number of temp blocks written by the statement."},
+		"calls":                 &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of times the statement was executed."},
+		"wal_records":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Total number of WAL records generated by the statement."},
+		"wal_fpi":               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Total number of WAL full page images generated by the statement."},
+		"wal_bytes":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total amount of WAL generated by the statement in bytes."},
+	},
+	Tags: map[string]interface{}{
+		"server":          inputs.NewTagInfo("The server address"),
+		"db":              inputs.NewTagInfo("The database name"),
+		"query_signature": inputs.NewTagInfo("The hash value computed from query"),
+		"message":         inputs.NewTagInfo("Text of a normalized statement."),
+		"status":          inputs.NewTagInfo("The status of the statement. The value is only `info` for now."),
+	},
+}
+
+func (m dbmMetricMeasurement) Info() *inputs.MeasurementInfo {
+	return dbmMetricMeasurementInfo
+}
+
+type dbmSampleMeasurement struct {
+	inputMeasurement
+}
+
+//nolint:lll
+var dbmSampleMeasurementInfo = &inputs.MeasurementInfo{
+	Name:   "postgresql_dbm_sample",
+	Desc:   "PostgreSQL database statement sample information, including statement text, execution plans, used for detailed analysis of SQL execution and performance issues.([:octicons-tag-24: Version-1.84.0](../datakit/changelog-2025.md#cl-1.84.0))",
+	Cat:    point.Logging,
+	Fields: map[string]interface{}{},
+	Tags: map[string]interface{}{
+		"server":           inputs.NewTagInfo("The server address"),
+		"query_signature":  inputs.NewTagInfo("The hash value computed from query"),
+		"message":          inputs.NewTagInfo("Text of a normalized statement."),
+		"status":           inputs.NewTagInfo("The status of the statement. The value is only `info` for now."),
+		"client_hostname":  inputs.NewTagInfo("Host name of the connected client, as reported by a reverse DNS lookup of client_addr. This field will only be non-null for IP connections, and only when log_hostname is enabled."),
+		"client_port":      inputs.NewTagInfo("TCP port number that the client is using for communication, or -1 if a Unix socket is used."),
+		"client_addr":      inputs.NewTagInfo("IP address of the client that is connected to this backend."),
+		"application_name": inputs.NewTagInfo("Name of the application that is connected to this backend."),
+		"usename":          inputs.NewTagInfo("Name of the user logged into this backend."),
+		"plan_definition":  inputs.NewTagInfo("The plan definition of the statement."),
+	},
+}
+
+func (m dbmSampleMeasurement) Info() *inputs.MeasurementInfo {
+	return dbmSampleMeasurementInfo
+}
+
+type dbmActivityMeasurement struct {
+	inputMeasurement
+}
+
+//nolint:lll
+var dbmActivityMeasurementInfo = &inputs.MeasurementInfo{
+	Name: "postgresql_dbm_activity",
+	Desc: "PostgreSQL database activity information collected from the `pg_stat_activity` view. Provides detailed information about the current activity of each backend, including query status, execution time, and resource usage.([:octicons-tag-24: Version-1.84.0](../datakit/changelog-2025.md#cl-1.84.0))",
+	Cat:  point.Logging,
+	Fields: map[string]interface{}{
+		"backend_start": &inputs.FieldInfo{
+			DataType: inputs.Int,
+			Type:     inputs.Count,
+			Unit:     inputs.TimestampUS,
+			Desc:     "Time when this process was started. For client backends, this is the time the client connected to the server.",
+		},
+		"query_start": &inputs.FieldInfo{
+			DataType: inputs.Int,
+			Type:     inputs.Count,
+			Unit:     inputs.TimestampUS,
+			Desc:     "Time when the currently active query was started, or if state is not active, when the last query was started.",
+		},
+		"xact_start": &inputs.FieldInfo{
+			DataType: inputs.Int,
+			Type:     inputs.Count,
+			Unit:     inputs.TimestampUS,
+			Desc:     "Time when this process' current transaction was started, or null if no transaction is active. If the current query is the first of its transaction, this column is equal to the query_start column.",
+		},
+		"state_change": &inputs.FieldInfo{
+			DataType: inputs.Int,
+			Type:     inputs.Count,
+			Unit:     inputs.TimestampUS,
+			Desc:     "Time when the state was last changed.",
+		},
+	},
+	Tags: map[string]interface{}{
+		"server":           inputs.NewTagInfo("The server address"),
+		"service":          inputs.NewTagInfo("The service name `postgresql`"),
+		"status":           inputs.NewTagInfo("The status of the statement. The value is only `info` for now."),
+		"query_signature":  inputs.NewTagInfo("The hash value computed from query"),
+		"message":          inputs.NewTagInfo("Text of a normalized statement."),
+		"client_hostname":  inputs.NewTagInfo("Host name of the connected client, as reported by a reverse DNS lookup of client_addr. This field will only be non-null for IP connections, and only when log_hostname is enabled."),
+		"client_port":      inputs.NewTagInfo("TCP port number that the client is using for communication, or -1 if a Unix socket is used."),
+		"client_addr":      inputs.NewTagInfo("IP address of the client that is connected to this backend. If this field is null, it indicates either that the client is connected via a Unix socket or that this is an internal process (such as `autovacuum` worker)."),
+		"application_name": inputs.NewTagInfo("Name of the application that is connected to this backend."),
+		"usename":          inputs.NewTagInfo("Name of the user logged into this backend."),
+		"datname":          inputs.NewTagInfo("Name of the database this backend is connected to."),
+		"state":            inputs.NewTagInfo("Current overall state of this backend."),
+		"pid":              inputs.NewTagInfo("Process ID of this backend."),
+		"wait_event_type":  inputs.NewTagInfo("Type of event for which the backend is waiting."),
+		"wait_event":       inputs.NewTagInfo("Wait event name if backend is currently waiting."),
+		"backend_type":     inputs.NewTagInfo("Type of current backend."),
+	},
+}
+
+func (m dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
+	return dbmActivityMeasurementInfo
 }

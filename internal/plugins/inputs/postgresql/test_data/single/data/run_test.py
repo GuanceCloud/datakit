@@ -28,7 +28,7 @@ DB_CONFIG = {
 }
 
 # Test configuration
-NUM_THREADS = int(os.getenv("NUM_THREADS", 5))
+NUM_THREADS = int(os.getenv("NUM_THREADS", 10))
 RUN_DURATION = int(os.getenv("RUN_DURATION", 300))
 MAX_RETRIES = 3  # Number of retries for database operations
 CONNECTION_POOL_SIZE = max(NUM_THREADS, 5)  # Connection pool size
@@ -44,6 +44,7 @@ OPERATIONS = [
     ("select_users", 15),
     ("large_data", 15),
     ("deadlock", 10),
+    ("prepared_statement", 10),
 ]
 
 # Connection pool initialization
@@ -231,7 +232,7 @@ def perform_large_data(conn, thread_id):
     """Insert large data"""
     with conn.cursor() as cur:
         start_time = time.time()
-        for i in range(10000):
+        for i in range(100):
             cur.execute("""
                 INSERT INTO large_data (value, num)
                 VALUES (%s, %s)
@@ -339,6 +340,26 @@ def perform_deadlock_operation(conn, thread_id):
     finally:
         conn.autocommit = original_autocommit
 
+def perform_prepared_statement(conn, thread_id):
+    with conn.cursor() as cur:
+        try:
+            query = """
+                SELECT customer_id FROM test_schema.orders 
+                WHERE status = $1 
+            """
+            logger.info(f"Thread {thread_id} prepared statement created")
+            
+            for _ in range(random.randint(3, 10)):
+                status = random.choice(["shipped", "pending", "cancelled"])
+                cur.execute(query, (status,)) 
+                cur.fetchone()
+                random_sleep(0.2, 0.5)
+            
+            logger.info(f"Thread {thread_id} completed prepared statement operations")
+        except Exception as e:
+            logger.error(f"Prepared statement operation failed: {e}")
+            raise
+
 def perform_operation(thread_id):
     """Main function for executing database operations"""
     end_time = time.time() + RUN_DURATION
@@ -373,7 +394,9 @@ def perform_operation(thread_id):
                         with_retry(perform_large_data, conn, thread_id)
                     elif operation == "deadlock":
                         with_retry(perform_deadlock_operation, conn, thread_id)
-                
+                    elif operation == "prepared_statement":
+                        with_retry(perform_prepared_statement, conn, thread_id) 
+
                 # Random interval between operations
                 time.sleep(random.uniform(1, 3))
                 

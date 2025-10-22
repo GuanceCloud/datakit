@@ -8,7 +8,6 @@ package oracle
 import (
 	"database/sql"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
@@ -16,7 +15,7 @@ import (
 	"github.com/araddon/dateparse"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/obfuscate"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
 )
 
 const SQLSlow = `SELECT 
@@ -257,11 +256,7 @@ func (ipt *Input) collectSlowQuery() {
 
 		kvs := ipt.getKVs()
 
-		fullText, err := obfuscateSQL(r.SQL_FULLTEXT.String)
-		if err != nil {
-			kvs = kvs.Set("failed_obfuscate", err.Error())
-		}
-
+		fullText := util.ObfuscateSQL(r.SQL_FULLTEXT.String)
 		kvs = kvs.AddTag("sql_id", r.SQL_ID.String).
 			AddTag("module", r.MODULE.String).
 			AddTag("command_type", r.COMMAND_TYPE.String).
@@ -329,19 +324,5 @@ func getMetricName(metricName, sqlName string) string {
 		return metricName
 	} else {
 		return metricName + ":" + sqlName
-	}
-}
-
-var reg = regexp.MustCompile(`\n|\s+`) //nolint:gocritic
-
-func obfuscateSQL(text string) (sql string, err error) {
-	defer func() {
-		sql = strings.TrimSpace(reg.ReplaceAllString(sql, " "))
-	}()
-
-	if out, err := obfuscate.NewObfuscator(nil).Obfuscate("sql", text); err != nil {
-		return text, err
-	} else {
-		return out.Query, nil
 	}
 }

@@ -93,6 +93,109 @@ PostgreSQL collector can collect the running status index from PostgreSQL instan
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 <!-- markdownlint-enable -->
 
+### Database Performance Metrics Collection {#performance-schema}
+
+[:octicons-tag-24: Version-1.84.0](../datakit/changelog-2025.md#cl-1.84.0)
+
+Database performance metrics are mainly derived from the built-in system views and extension plugins of PostgreSQL, with the most core ones including pg_stat_activity and pg_stat_statements. These tools provide methods to obtain the internal execution status of the database at runtime: pg_stat_activity displays real-time information such as the activity status of current sessions, executed queries, and waiting events; pg_stat_statements records the execution statistics of historical SQL statements, including execution times, time consumption, IO status, etc.
+Through these views and plugins, DataKit can collect real-time session activities, performance metric statistics of historical queries, and relevant execution information. The collected performance metric data is saved as logs, with the sources (source) being `postgresql_dbm_metric`, `postgresql_dbm_sample`, and `postgresql_dbm_activity` respectively.
+
+To enable this feature, the following steps need to be performed.
+
+- Modify the configuration file to enable monitoring and collection
+
+```toml
+[[inputs.postgresql]]
+
+  ## Set dbm to true to collect database activity 
+  dbm = false
+
+  ## Config dbm metric 
+  [inputs.postgresql.dbm_metric]
+    enabled = true
+  
+  ## Config dbm sample 
+  [inputs.postgresql.dbm_sample]
+    enabled = true  
+
+  ## Config dbm activity
+  [inputs.postgresql.dbm_activity]
+    enabled = true  
+
+...
+
+```
+
+- PostgreSQL Configuration
+
+Modify the configuration file (e.g., `postgresql.conf`) and configure the relevant parameters:
+
+```toml
+
+shared_preload_libraries = 'pg_stat_statements'
+track_activity_query_size = 4096 a# Required for collection of larger queries.
+
+```
+
+- Permission Configuration
+
+<!-- markdownlint-disable MD046 -->
+=== "Postgres >=15"
+
+    Account Authorization
+
+    ```sql
+    ALTER ROLE datakit INHERIT;
+    ```
+
+    Execute the following SQL in each database:
+
+    ```sql
+    CREATE SCHEMA datakit;
+    GRANT USAGE ON SCHEMA datakit TO datakit;
+    GRANT USAGE ON SCHEMA public TO datakit;
+    GRANT pg_monitor TO datakit;
+    CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+
+    ```
+
+=== "Postgres >=10"
+
+    Execute the following SQL in each database:
+
+    ```sql
+    CREATE SCHEMA datakit;
+    GRANT USAGE ON SCHEMA datakit TO datakit;
+    GRANT USAGE ON SCHEMA public TO datakit;
+    GRANT pg_monitor TO datakit;
+    CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+
+    ```
+
+=== "Postgres 9.6"
+
+    Execute the following SQL in each database:
+
+    ```sql
+    CREATE SCHEMA datakit;
+    GRANT USAGE ON SCHEMA datakit TO datakit;
+    GRANT USAGE ON SCHEMA public TO datakit;
+    GRANT SELECT ON pg_stat_database TO datakit;
+    CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+
+    CREATE OR REPLACE FUNCTION datakit.pg_stat_activity() RETURNS SETOF pg_stat_activity AS
+      $$ SELECT * FROM pg_catalog.pg_stat_activity; $$
+    LANGUAGE sql
+    SECURITY DEFINER;
+    CREATE OR REPLACE FUNCTION datakit.pg_stat_statements() RETURNS SETOF pg_stat_statements AS
+        $$ SELECT * FROM pg_stat_statements; $$
+    LANGUAGE sql
+    SECURITY DEFINER;
+
+    ```
+
+<!-- markdownlint-enable -->
+
 ## Metric {#metric}
 
 For all of the following data collections, the global election tags will added automatically, we can add extra tags in `[inputs.{{.InputName}}.tags]` if needed:
@@ -255,7 +358,24 @@ The `foreign_keys` field contains information about all the `foreign_keys` in th
 | `update_action` |Cascade update rule (such as CASCADE, RESTRICT)                                            | string |
 | `delete_action` |Cascade delete rule (such as CASCADE, SET NULL)                                            | string |
 
-## Log Collection {#logging}
+## Logging {#logging}
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "logging"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+{{$m.MarkdownTable}}
+{{end}}
+
+{{ end }}
+
+## File log {#file-log}
+
+### Log Collection {#log}
 
 - PostgreSQL logs are output to `stderr` by default. To open file logs, configure them in postgresql's configuration file `/etc/postgresql/<VERSION>/main/postgresql.conf` as follows:
 

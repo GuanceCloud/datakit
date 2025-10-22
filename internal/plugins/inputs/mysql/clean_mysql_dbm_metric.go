@@ -5,7 +5,11 @@
 
 package mysql
 
-import "database/sql"
+import (
+	"database/sql"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
+)
 
 func getCleanSummaryRows(r rows) []dbmRow {
 	if r == nil {
@@ -66,9 +70,9 @@ func getCleanSummaryRows(r rows) []dbmRow {
 			schemaNameStr = schemaName.String
 		}
 
-		digestTextStr = obfuscateSQL(digestTextStr)
+		digestTextStr = util.ObfuscateSQL(digestTextStr)
 
-		querySignature := computeSQLSignature(digestTextStr)
+		querySignature := util.ComputeSQLSignature(digestTextStr)
 
 		dbmRowItem := dbmRow{
 			digest:             digestStr,
