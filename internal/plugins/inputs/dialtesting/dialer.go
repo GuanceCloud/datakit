@@ -390,20 +390,28 @@ func (d *dialer) run() error {
 
 // checkInternalNetwork check whether the host is allowed to be tested.
 func (d *dialer) checkInternalNetwork() error {
-	hostNames, err := d.task.GetHostName()
-	for _, hostName := range hostNames {
+	d.task.SetBeforeRun(func(t *dt.Task) error {
+		if t == nil {
+			return nil
+		}
+
+		hostNames, err := t.GetHostName()
 		if err != nil {
 			l.Warnf("get host name error: %s", err.Error())
 			return fmt.Errorf("get host name error: %w", err)
-		} else if d.ipt.DisableInternalNetworkTask {
+		}
+
+		if len(hostNames) > 0 {
+			hostName := hostNames[0]
 			if isInternal, err := httpapi.IsInternalHost(hostName, d.ipt.DisabledInternalNetworkCIDRList); err != nil {
 				l.Errorf("dest host is not valid: %s", err.Error())
 			} else if isInternal {
-				taskInvalidCounter.WithLabelValues(d.regionName, d.class, "host_not_allowed").Inc()
 				return fmt.Errorf("dest host [%s] is not allowed to be tested", hostName)
 			}
 		}
-	}
+
+		return nil
+	})
 
 	return nil
 }

@@ -794,3 +794,7 @@ func pingTarget(target string, count int, interval, timeout time.Duration) (stat
 
 	return stat, nil
 }
+
+func (t *ICMPTask) setReqError(err string) {
+	t.reqError = err
+}
