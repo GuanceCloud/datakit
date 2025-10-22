@@ -69,6 +69,11 @@ const (
   ##  It is possible to compatible B3/B3Multi TraceID with DDTrace.
   # trace_id_64_bit_hex=true
 
+  ## api:/telemetry/proxy/api/v2/apmtelemetry is collect jvm metadata.
+  ## data is: app-dependencies-loaded,app-client-configuration-change,app-integrations-change ...
+  ## default is true.
+  # apmtelemetry_route_enable = true
+
   ## When true, the tracer generates 128 bit Trace IDs, 
   ## and encodes Trace IDs as 32 lowercase hexadecimal characters with zero padding.
   ## default is true.
@@ -161,7 +166,8 @@ type Input struct {
 	CompatibleOTEL            bool                         `toml:"compatible_otel"`
 	TraceID64BitHex           bool                         `toml:"trace_id_64_bit_hex"`
 	Trace128BitID             bool                         `toml:"trace_128_bit_id"`
-	TracingMetricEnable       bool                         `toml:"tracing_metric_enable"`        // 开关，默认打开。
+	TracingMetricEnable       bool                         `toml:"tracing_metric_enable"`        // 开关，默认false。
+	ApmTelemetryRouteEnable   bool                         `toml:"apmtelemetry_route_enable"`    // 是否接收 api/apmtelemetry 的JVM 数据。
 	TracingMetricTagBlacklist []string                     `toml:"tracing_metric_tag_blacklist"` // 指标黑名单。
 	DelMessage                bool                         `toml:"del_message"`
 	KeepRareResource          bool                         `toml:"keep_rare_resource"`
@@ -458,6 +464,7 @@ func defaultInput() *Input {
 		TraceMaxSpans: traceMaxSpans,
 		Trace128BitID: true,
 		// TracingMetricEnable:       true,
+		ApmTelemetryRouteEnable:   true,
 		TracingMetricTagBlacklist: []string{"resource", "operation"},
 	}
 }

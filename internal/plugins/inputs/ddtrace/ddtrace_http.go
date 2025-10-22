@@ -128,16 +128,23 @@ func handleDDInfo(resp http.ResponseWriter, req *http.Request) {
 }
 
 func (ipt *Input) handleDDProxy(resp http.ResponseWriter, req *http.Request) {
-	bts, err := io.ReadAll(req.Body)
-	defer req.Body.Close() //nolint
-	if err != nil {
+	if !ipt.ApmTelemetryRouteEnable {
+		log.Warnf("apmtelemetryRouteEnable is disable, ignore and return 200 status")
+		resp.WriteHeader(http.StatusOK)
+		return
+	}
+
+	pbuf := bufpool.GetBuffer()
+	defer bufpool.PutBuffer(pbuf)
+
+	if _, err := io.Copy(pbuf, req.Body); err != nil {
 		log.Warnf("read body err=%v", err)
 		resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	if ipt.om != nil {
-		ipt.om.parseTelemetryRequest(req.Header, bts)
+		ipt.om.parseTelemetryRequest(req.Header, pbuf.Bytes())
 	}
 
 	resp.WriteHeader(http.StatusOK)
