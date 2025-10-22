@@ -91,6 +91,9 @@ const (
   ## and "customer_tags", k8s related tags, and others service.
   # tracing_metric_tag_blacklist = ["resource", "operation", "tag_a", "tag_b"]
 
+  ## White list of metric tags: There are many labels in the metric: "tracing_metrics".
+  # tracing_metric_tag_whitelist = []
+
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
@@ -167,6 +170,7 @@ type Input struct {
 
 	TracingMetricEnable       bool     `toml:"tracing_metric_enable"`        // 开关，默认打开。
 	TracingMetricTagBlacklist []string `toml:"tracing_metric_tag_blacklist"` // 指标黑名单。
+	TracingMetricTagWhitelist []string `toml:"tracing_metric_tag_whitelist"`
 
 	LogMaxLen  int         `toml:"log_max"` // KiB
 	HTTPConfig *httpConfig `toml:"http"`
@@ -253,7 +257,7 @@ func (ipt *Input) RegHTTPHandler() {
 	}
 	if ipt.TracingMetricEnable {
 		// 默认的标签 + custom tags
-		labels := itrace.AddLabels(itrace.DefaultLabelNames, ipt.CustomerTags)
+		labels := itrace.AddLabels(itrace.DefaultLabelNames, ipt.TracingMetricTagWhitelist)
 		labels = itrace.DelLabels(labels, ipt.TracingMetricTagBlacklist)
 		ipt.labels = labels
 		initP8SMetrics(labels)

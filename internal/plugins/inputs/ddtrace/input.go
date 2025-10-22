@@ -98,6 +98,9 @@ const (
   ## and "customer_tags", k8s related tags, and others service.
   # tracing_metric_tag_blacklist = ["resource","operation","tag_x"]
 
+  ## Whitelist of metric tags: There are many labels in the metric: "tracing_metrics".
+  # tracing_metric_tag_whitelist = []
+
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
   ## The resource list is regular expressions uses to block resource names.
@@ -169,6 +172,7 @@ type Input struct {
 	TracingMetricEnable       bool                         `toml:"tracing_metric_enable"`        // 开关，默认false。
 	ApmTelemetryRouteEnable   bool                         `toml:"apmtelemetry_route_enable"`    // 是否接收 api/apmtelemetry 的JVM 数据。
 	TracingMetricTagBlacklist []string                     `toml:"tracing_metric_tag_blacklist"` // 指标黑名单。
+	TracingMetricTagWhitelist []string                     `toml:"tracing_metric_tag_whitelist"` // 指标白名单。
 	DelMessage                bool                         `toml:"del_message"`
 	KeepRareResource          bool                         `toml:"keep_rare_resource"`
 	OmitErrStatus             []string                     `toml:"omit_err_status"`
@@ -229,7 +233,7 @@ func (ipt *Input) RegHTTPHandler() {
 	if ipt.TracingMetricEnable {
 		isTracingMetricsEnable = ipt.TracingMetricEnable
 		// 默认的标签 + custom tags
-		labels = itrace.AddLabels(itrace.DefaultLabelNames, ipt.CustomerTags)
+		labels = itrace.AddLabels(itrace.DefaultLabelNames, ipt.TracingMetricTagWhitelist)
 		labels = itrace.DelLabels(labels, ipt.TracingMetricTagBlacklist)
 		initP8SMetrics(labels)
 	}

@@ -33,6 +33,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "TracingMetricEnable", Type: doc.Boolean, Default: `false`, Desc: "These metrics capture request counts, error counts, and latency measures.", DescZh: "开启请求计数，错误计数和延迟指标的采集"},
 		{FieldName: "ApmtelemetryRouteEnable", Type: doc.Boolean, Default: `true`, Desc: "Enable route `/telemetry/proxy/api/v2/apmtelemetry` and collect JVM metadata.", DescZh: "开启路由 `/telemetry/proxy/api/v2/apmtelemetry` 并接收 JVM 数据"},
 		{FieldName: "TracingMetricTagBlacklist", Type: doc.JSON, Example: "`'[\"tag_a\", \"tag_b\"]'`", Desc: "Blacklist of tags in the metric: \"tracing_metrics\"", DescZh: "指标集 tracing_metrics 中标签的黑名单"},
+		{FieldName: "TracingMetricTagWhitelist", Type: doc.JSON, Example: "`'[\"tag_c\", \"tag_d\"]'`", Desc: "Whitelist of tags in the metric: \"tracing_metrics\"", DescZh: "指标集 tracing_metrics 中标签的白名单"},
 		{FieldName: "OmitErrStatus", Type: doc.JSON, Example: "`'[\"404\", \"403\", \"400\"]'`", Desc: "Whitelist to error status", DescZh: "错误状态白名单"},
 		{FieldName: "CloseResource", Type: doc.JSON, Example: "`'{\"service1\":[\"resource1\",\"other\"],\"service2\":[\"resource2\",\"other\"]}'`", Desc: "Ignore tracing resources that service (regular)", DescZh: "忽略指定服务器的 tracing（正则匹配）"},
 		{FieldName: "Sampler", Type: doc.Float, Example: `0.3`, Desc: "Global sampling rate", DescZh: "全局采样率"},
@@ -68,6 +69,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		"ENV_INPUT_DDTRACE_TRACE_128_BIT_ID",
 		"ENV_INPUT_DDTRACE_TRACING_METRIC_ENABLE",
 		"ENV_INPUT_DDTRACE_TRACING_METRIC_TAG_BLACKLIST",
+		"ENV_INPUT_DDTRACE_TRACING_METRIC_TAG_WHITELIST",
 		"ENV_INPUT_DDTRACE_APMTELEMETRY_ROUTE_ENABLE",
 	} {
 		value, ok := envs[key]
@@ -191,6 +193,13 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
 			} else {
 				ipt.TracingMetricTagBlacklist = list
+			}
+		case "ENV_INPUT_DDTRACE_TRACING_METRIC_TAG_WHITELIST":
+			var list []string
+			if err := json.Unmarshal([]byte(value), &list); err != nil {
+				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
+			} else {
+				ipt.TracingMetricTagWhitelist = list
 			}
 		case "ENV_INPUT_DDTRACE_APMTELEMETRY_ROUTE_ENABLE":
 			if ok, err := strconv.ParseBool(value); err != nil {
