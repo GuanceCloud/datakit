@@ -15,7 +15,7 @@ variables:
   PROJECT: "datakit"
   CI_VERSION: "1.83.1"
   CI_TESTING_VERSION: $CI_VERSION-testing_$CI_COMMIT_BRANCH
-  DCA_CI_VERSION: "0.1.3"
+  DCA_CI_VERSION: "0.1.4"
   DCA_CI_TESTING_VERSION: $DCA_CI_VERSION-testing_$CI_COMMIT_BRANCH
   DISABLED_MR_TARGET_BRANCHES: "/^master|main/"
   DISABLED_MR_TITLE: '/^(\[Draft\]|\(Draft\)|Draft:)/'
@@ -427,7 +427,7 @@ build-dca-testing-image-guance:
     - /^testing-.*$/ # always build DCA for testing, we can check if it is working for daily update.
     - /^dca-testing.*$/
   script:
-    - nvm use v16.14.0
+    - nvm use v22.19.0
     - make clean
     - export OSS_HOST="$OSS_HOST_TESTING"
     - export OSS_BUCKET="$OSS_BUCKET_TESTING"
@@ -453,7 +453,7 @@ build-dca-testing-image-tw:
     - /^testing-.*$/ # always build DCA for testing, we can check if it is working for daily update.
     - /^dca-testing.*$/
   script:
-    - nvm use v16.14.0
+    - nvm use v22.19.0
     - make clean
     - export OSS_HOST="$OSS_HOST_TESTING" # we also upload truewatch DCA testing dist to the same OSS as guance, but with different subdir(dca-tw).
     - export OSS_BUCKET="$OSS_BUCKET_TESTING"
@@ -480,7 +480,7 @@ build-dca-production-image-guance:
         - dca/Dockerfile.uos
     - if: "$CI_COMMIT_BRANCH =~ /^dca-master-.*$/"
   script:
-    - nvm use v16.14.0
+    - nvm use v22.19.0
     - make clean
     - export OSS_HOST="$OSS_HOST"
     - export OSS_BUCKET="$OSS_BUCKET"
@@ -507,7 +507,7 @@ build-dca-production-image-tw:
         - dca/Dockerfile.tw
     - if: "$CI_COMMIT_BRANCH =~ /^dca-master-.*$/"
   script:
-    - nvm use v16.14.0
+    - nvm use v22.19.0
     - make clean
     - export OSS_HOST="$OSS_HOST_TW"
     - export OSS_BUCKET="$OSS_BUCKET_TW"

@@ -112,7 +112,7 @@ func Start(opt *ServerOptions) error {
 			s.Listen = opt.PromListen
 		}
 
-		l.Infof("PromListen on: %q/%s", s.Listen, s.URL)
+		l.Infof("PromListen on: %q, and the metrics route: %s", s.Listen, s.URL)
 
 		if err := s.Start(); err != nil {
 			l.Warnf("start metric server failed: %s", err.Error())

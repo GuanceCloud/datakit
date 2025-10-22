@@ -12,6 +12,12 @@ $primay-color: #ffebdf;
     overflow: auto;
     padding: 8px;
 
+    .create-folder {
+      text-align: center;
+      margin-bottom: 10px;
+      height: 30px;
+    }
+
     .title {
       font-weight: 500;
       color: #222222;
@@ -104,6 +110,23 @@ $primay-color: #ffebdf;
 
         .active {
           background: #EFF1F3;
+        }
+      }
+
+      .create-config-modal {
+        .create-config-item {
+          align-items: center;
+          margin-bottom: 12px;
+          margin-top: 20px;
+
+          .create-config-text {
+            margin-bottom: 10px;
+          }
+
+          .create-config-path {
+            padding-top: 20px;
+            color: #222;
+          }
         }
       }
     }
