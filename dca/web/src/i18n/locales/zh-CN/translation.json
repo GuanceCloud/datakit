@@ -112,9 +112,14 @@
     "get_fail": "配置获取失败，请检查路径是否正确，或重启Datakit！",
     "configured": "已配置",
     "new_config_message": "Sample 列表下都是官方提供的采集器配置文件示例，支持点击编辑另存为同名 conf 文件，并追加到已配置目录下",
-    "save_as_message": "另存为同名 conf 文件到已配置列表中",
+    "save_as_message": "在当前路径下，另存为新的 .conf 配置文件",
     "close_sample": "关闭 Sample",
-    "configure_sample": "配置 Sample"
+    "configure_sample": "配置 Sample",
+    "create_folder": "新建文件夹",
+    "sample_desc": "此列表是官方提供的采集器配置模板，可供编辑。编辑后可另存至当前目录，生成新的 .conf 文件，新文件会自动追加至您的已配置列表中。",
+    "new_config_name": "新配置名称",
+    "file_path": "文件路径",
+    "confirm_file_cover": "该路径已存在同名配置文件，确认用当前编辑的文件替换吗？替换后原文件将被覆盖。"
   },
   "pipeline": {
     "default_menu_message": "pipeline 目录下的文件，可用于日志数据处理。",
@@ -131,6 +136,7 @@
     "basic_info": "基本信息"
   },
   "api": {
+    "dir.mkdir.failed": "创建目录失败",
     "unknown_error": "未知错误",
     "innerCorestone.auth.invalidEmailOrMobile": "用户名错误，请重新输入",
     "innerCorestone.auth.passwordIncorrect": "密码错误，请重新输入",
@@ -143,6 +149,8 @@
     "server.request.error": "连接异常，请稍后再试",
     "server.error": "操作失败，请稍后再试",
     "param.invalid": "参数错误",
+    "params.invalid.dir_not_exist": "目录不存在",
+    "params.invalid.path_invalid": "路径错误",
     "server.request.timeout": "连接超时，请稍后再试",
     "toml.format.error": "当前配置文件格式错误",
     "pipeline.parse.error": "解析失败: {{msg}}",
@@ -167,6 +175,7 @@
     "network.error.timeout": "请求超时，请重试",
     "auth.failed": "当前无权限进行此操作",
     "data.fetch.failed": "数据获取失败",
-    "log.fetch.failed": "日志文件获取失败"
+    "log.fetch.failed": "日志文件获取失败",
+    "file.path.exists": "文件已存在"
   }
 }

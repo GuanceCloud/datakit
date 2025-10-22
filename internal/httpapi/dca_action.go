@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/BurntSushi/toml"
+	bstoml "github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/pipeline-go/constants"
@@ -67,9 +67,17 @@ func checkPath(path string) *ws.ResponseError {
 		return &ws.ResponseError{ErrorCode: "params.invalid.path_invalid", ErrorMsg: "invalid param 'path'"}
 	}
 
-	// check dir
+	// check dir and create if not exist
 	if _, err := os.Stat(dir); err != nil {
-		return &ws.ResponseError{ErrorCode: "params.invalid.dir_not_exist", ErrorMsg: "dir not exist"}
+		if os.IsNotExist(err) {
+			if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+				return &ws.ResponseError{ErrorCode: "dir.mkdir.failed", ErrorMsg: err.Error()}
+			} else {
+				return nil
+			}
+		}
+		l.Errorf("Stat config dir %s error: %s", dir, err.Error())
+		return &ws.ResponseError{Code: 500, ErrorCode: "file.stat.failed", ErrorMsg: err.Error()}
 	}
 
 	return nil
@@ -100,6 +108,7 @@ type saveConfigParam struct {
 	Config    string `json:"config"`
 	IsNew     bool   `json:"isNew"`
 	InputName string `json:"inputName"`
+	IsForce   bool   `json:"isForce"` // whether to force save, default false
 }
 
 func doSaveConfig(param *saveConfigParam) *ws.ResponseError {
@@ -110,22 +119,20 @@ func doSaveConfig(param *saveConfigParam) *ws.ResponseError {
 	configContent := []byte(param.Config)
 
 	// add new config
-	if param.IsNew {
-		if _, err := os.Stat(param.Path); err == nil { // exist
-			var content []byte
-			var err error
-
-			if content, err = os.ReadFile(param.Path); err != nil {
-				l.Errorf("Read file %s error: %s", param.Path, err.Error())
-				return &ws.ResponseError{Code: 500, ErrorMsg: "read file error"}
+	if param.IsNew && !param.IsForce {
+		if _, err := os.Stat(param.Path); err != nil { // exist
+			if !os.IsNotExist(err) {
+				l.Errorf("stat file %s failed, %s", param.Path, err.Error())
+				return &ws.ResponseError{Code: 500, ErrorCode: "file.stat.failed", ErrorMsg: err.Error()}
 			}
-			configContent = append(content, configContent...)
+		} else {
+			return &ws.ResponseError{Code: 400, ErrorCode: "file.path.exists", ErrorMsg: "file path exists"}
 		}
 	}
 
 	// check toml
 	var v any
-	if err := toml.Unmarshal(configContent, &v); err != nil {
+	if _, err := bstoml.Decode(param.Config, &v); err != nil {
 		l.Errorf("parse toml failed: %s", err.Error())
 		return &ws.ResponseError{ErrorCode: "toml.format.error", ErrorMsg: "toml format error"}
 	}
@@ -551,10 +558,13 @@ func newWebsocketConnectionAction(client *ws.Client, id int64, data any) error {
 				return nil
 			}
 			dk := client.GetDatakit()
-			if msg.Action == ws.GetDatakitLogTailAction {
+			switch msg.Action {
+			case ws.GetDatakitLogTailAction:
 				getDatakitLogTailAction(conn, message, dk)
-			} else if msg.Action == ws.GetDatakitLogDownloadAction {
+			case ws.GetDatakitLogDownloadAction:
 				getDatakitLogDownloadAction(conn, message, dk)
+			default:
+				l.Errorf("newWebsocketConnectionAction: unknown action: %s", msg.Action)
 			}
 
 			return nil

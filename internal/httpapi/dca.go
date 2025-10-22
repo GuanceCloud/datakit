@@ -202,6 +202,10 @@ func getDatakitStats() (*DCAstats, error) {
 	if stats, err := GetStats(); err != nil {
 		return nil, fmt.Errorf("get stats failed: %w", err)
 	} else {
+		if inputs.ConfigInfo.DataKit == nil {
+			inputs.SetDatakitConfig()
+		}
+
 		return &DCAstats{
 			DatakitStats: stats,
 			ConfigInfo:   inputs.ConfigInfo,

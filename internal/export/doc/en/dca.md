@@ -264,6 +264,10 @@ After connecting to DataKit remotely, click "Log" to view the logs of DataKit an
 
 ## Changelog {#change-log}
 
+### 0.1.4 (2025/10/14) {#cl-0.1.4}
+
+- Support creating DataKit collector configuration file.
+
 ### 0.1.3 (2025/08/13) {#cl-0.1.3}
 
 - Batch operations now support selecting all DataKits for batch processing.

@@ -40,13 +40,9 @@ type ConfigInfoItem struct {
 }
 
 var (
-	AllInputs     = map[string]Creator{}
-	AllInputsInfo = map[string][]*InputInfo{}
-	ConfigInfo    = ConfigInfoItem{Inputs: map[string]*Config{}, DataKit: &Config{
-		ConfigPaths:  []*ConfigPathStat{{Loaded: 1, Path: datakit.MainConfPath}},
-		ConfigDir:    datakit.ConfdDir,
-		SampleConfig: datakit.MainConfSample(datakit.BrandDomain),
-	}}
+	AllInputs      = map[string]Creator{}
+	AllInputsInfo  = map[string][]*InputInfo{}
+	ConfigInfo     = ConfigInfoItem{Inputs: map[string]*Config{}}
 	ConfigFileHash = map[string]struct{}{}
 	panicInputs    = map[string]int{}
 	mtx            = sync.RWMutex{}
@@ -251,6 +247,18 @@ func UpdateDatakitConfigInfo(loaded int8) {
 	defer mtx.Unlock()
 	if ConfigInfo.DataKit != nil && len(ConfigInfo.DataKit.ConfigPaths) == 1 {
 		ConfigInfo.DataKit.ConfigPaths[0].Loaded = loaded
+	}
+}
+
+func SetDatakitConfig() {
+	mtx.Lock()
+	defer mtx.Unlock()
+	if ConfigInfo.DataKit == nil {
+		ConfigInfo.DataKit = &Config{
+			ConfigPaths:  []*ConfigPathStat{{Loaded: 1, Path: datakit.MainConfPath}},
+			ConfigDir:    datakit.ConfdDir,
+			SampleConfig: datakit.MainConfSample(datakit.BrandDomain),
+		}
 	}
 }
 

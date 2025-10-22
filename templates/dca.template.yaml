@@ -30,7 +30,7 @@ spec:
             disable_instance_tag = true
           [inputs.prom.tags]
             service = "dca"
-            instance = "$PODNAME" # 此处可填写成 "guangzhou-$PODNAME" 这种形式，以区分不同节点的 DCA 实例
+            instance = "$PODNAME" # It can be filled in the form of "guangzhou-$PODNAME" here to distinguish DCA instances of different nodes.
 
     spec:
       affinity: {}
