@@ -144,6 +144,7 @@ func Benchmark_protojson(b *T.B) {
 
 	b.Run(`protojson`, func(b *T.B) {
 		ipt := defaultInput()
+		ipt.customTagsX = itrace.NewCustomTags([]string{}, otelPubAttrs)
 		ipt.CleanMessage = false
 		ipt.jmarshaler = &protojsonMarshaler{}
 		b.ResetTimer()
@@ -159,6 +160,7 @@ func Benchmark_protojsonCleanMessage(b *T.B) {
 
 	b.Run(`protojson`, func(b *T.B) {
 		ipt := defaultInput()
+		ipt.customTagsX = itrace.NewCustomTags([]string{}, otelPubAttrs)
 		ipt.jmarshaler = &protojsonMarshaler{}
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -175,6 +177,7 @@ func Benchmark_golangjson(b *T.B) {
 	assert.NoError(b, err)
 
 	ipt := defaultInput()
+	ipt.customTagsX = itrace.NewCustomTags([]string{}, otelPubAttrs)
 	if v := os.Getenv("CLEAN_MESSAGE"); v != "" {
 		if x, err := strconv.ParseBool(v); err == nil {
 			ipt.CleanMessage = x
@@ -222,6 +225,7 @@ func Benchmark_jsoniter(b *T.B) {
 	traces := createTestTraceData(10)
 	b.Run(`jsoniter`, func(b *T.B) {
 		ipt := defaultInput()
+		ipt.customTagsX = itrace.NewCustomTags([]string{}, otelPubAttrs)
 		ipt.CleanMessage = false
 		ipt.jmarshaler = &jsoniterMarshaler{}
 		b.ResetTimer()
@@ -235,6 +239,7 @@ func Benchmark_jsoniterCleanMessage(b *T.B) {
 	traces := createTestTraceData(10)
 	b.Run(`jsoniter`, func(b *T.B) {
 		ipt := defaultInput()
+		ipt.customTagsX = itrace.NewCustomTags([]string{}, otelPubAttrs)
 		ipt.jmarshaler = &jsoniterMarshaler{}
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -247,6 +252,7 @@ func Benchmark_dropmsg(b *T.B) {
 	traces := createTestTraceData(10)
 	b.Run(`del-message`, func(b *T.B) {
 		ipt := defaultInput()
+		ipt.customTagsX = itrace.NewCustomTags([]string{}, otelPubAttrs)
 		ipt.jmarshaler = &jsoniterMarshaler{}
 		ipt.DelMessage = true
 		b.ResetTimer()
@@ -261,7 +267,7 @@ func Test_parseResourceSpans(t *T.T) {
 
 	t.Run(`jsoniter`, func(t *T.T) {
 		ipt := defaultInput()
-
+		ipt.customTagsX = itrace.NewCustomTags([]string{}, otelPubAttrs)
 		ipt.jmarshaler = &jsoniterMarshaler{}
 		traces := ipt.parseResourceSpans(traces.ResourceSpans, "localhost")
 		assert.Len(t, traces, 1)
@@ -269,7 +275,7 @@ func Test_parseResourceSpans(t *T.T) {
 
 	t.Run(`protojson`, func(t *T.T) {
 		ipt := defaultInput()
-
+		ipt.customTagsX = itrace.NewCustomTags([]string{}, otelPubAttrs)
 		ipt.jmarshaler = &protojsonMarshaler{}
 		traces := ipt.parseResourceSpans(traces.ResourceSpans, "localhost")
 		assert.Len(t, traces, 1)
@@ -277,7 +283,7 @@ func Test_parseResourceSpans(t *T.T) {
 
 	t.Run(`golang-json`, func(t *T.T) {
 		ipt := defaultInput()
-
+		ipt.customTagsX = itrace.NewCustomTags([]string{}, otelPubAttrs)
 		ipt.jmarshaler = &gojsonMarshaler{}
 		traces := ipt.parseResourceSpans(traces.ResourceSpans, "localhost")
 		assert.Len(t, traces, 1)

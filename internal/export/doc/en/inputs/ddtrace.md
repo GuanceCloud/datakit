@@ -113,6 +113,8 @@ DDTrace is an open-source APM (Application Performance Monitoring) product by Da
 
 {{ CodeBlock .InputENVSample 4 }}
 
+> The `customer_tags` parameter supports regular expressions but requires a fixed prefix format `reg:`. For example, `reg:key_*` matches all keys starting with `key_`.
+
 ### Notes on Multi-Tool Tracing Propagation {#trace_propagator}
 
 The TraceID in the DDTrace data structure is of uint64 type. When using the `tracecontext` propagation protocol, a `_dd.p.tid:67c573cf00000000` field is added inside the DDTrace trace details. This is because the `trace_id` in the `tracecontext` protocol is a 128-bit hexadecimal-encoded string, and this high-bit tag is added for compatibility purposes.
