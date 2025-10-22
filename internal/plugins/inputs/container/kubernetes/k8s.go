@@ -14,6 +14,8 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/informers"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/changes"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/filter"
@@ -267,20 +269,21 @@ func (k *Kube) gatherChange(ctx context.Context) {
 	controllerStartTime = time.Now().UTC()
 	klog.Infof("controller start time is %s", controllerStartTime)
 
-	apiClient, err := k8sclient.GetAPIClient()
-	if err != nil {
-		klog.Warnf("failed of apiclient: %s", err)
-		return
-	}
+	informerFactory := informers.NewSharedInformerFactoryWithOptions(
+		k.client.KubernetesClientset(), 0,
+		informers.WithTweakListOptions(func(v *metav1.ListOptions) { v.Limit = 50 }),
+	)
 
 	for _, newResource := range nonNodeLocalResources {
 		rc := newResource(k.client, k.cfg)
-		rc.addChangeInformer(apiClient.InformerFactory)
+		rc.addChangeInformer(informerFactory)
 	}
 
-	apiClient.InformerFactory.Start(ctx.Done())
-	apiClient.InformerFactory.WaitForCacheSync(ctx.Done())
+	informerFactory.Start(ctx.Done())
+	informerFactory.WaitForCacheSync(ctx.Done())
+
 	<-ctx.Done()
+	klog.Info("collect chagnes end..")
 }
 
 type K8sResourceCount struct{}

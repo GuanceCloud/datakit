@@ -9,7 +9,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -114,6 +113,7 @@ func (d *dockerClient) ListContainers() ([]*Container, error) {
 			container.Pid = status.Pid
 			container.LogPath = status.LogPath
 			container.Envs = status.Envs
+			container.MergedDir = status.MergedDir
 			container.Mounts = status.Mounts
 		}
 
@@ -133,11 +133,19 @@ func (d *dockerClient) ContainerStatus(id string) (*ContainerStatus, error) {
 		ID:      id,
 		Name:    inspect.Name,
 		LogPath: inspect.LogPath,
-		Mounts:  make(map[string]string),
+	}
+
+	if inspect.GraphDriver.Name == "overlay2" {
+		if mergedDir, exists := inspect.GraphDriver.Data["MergedDir"]; exists {
+			status.MergedDir = mergedDir
+		}
 	}
 
 	for _, mount := range inspect.Mounts {
-		status.Mounts[filepath.Clean(mount.Destination)] = mount.Source
+		status.Mounts = append(
+			status.Mounts,
+			Mount{Type: string(mount.Type), Destination: mount.Destination, Source: mount.Source},
+		)
 	}
 
 	if inspect.Config != nil {

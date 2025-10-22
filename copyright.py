@@ -37,6 +37,7 @@ PATH_EXCLUSION_REGEX = [
     'internal/plugins/inputs/promremote/prompb',
     'internal/plugins/inputs/dameng/driver',
     'internal/plugins/inputs/kingbase/driver',
+    'internal/kubernetes/pkg',
     'internal/win_utils/pdh',
     'internal/obfuscate',
     'internal/msgpack',

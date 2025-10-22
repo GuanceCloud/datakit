@@ -27,15 +27,17 @@ type containerCollector struct {
 	runtime   runtime.ContainerRuntime
 	k8sClient k8sclient.Client
 
-	localNodeName                 string
-	maxConcurrent                 int
-	enableCollectLogging          bool
+	localNodeName        string
+	maxConcurrent        int
+	enableCollectLogging bool
+
 	enableExtractK8sLabelAsTagsV1 bool
 	podLabelAsTagsForNonMetric    labelsOption
 	podLabelAsTagsForMetric       labelsOption
 
-	logFilter filter.Filter
-	logTable  *logTable
+	logFilter      filter.Filter
+	logCoordinator *containerLogCoordinator
+
 	extraTags map[string]string
 	feeder    dkio.Feeder
 
@@ -59,106 +61,124 @@ func newECSFargate(ipt *Input, agentURL string) (Collector, error) {
 	}, nil
 }
 
-var containerExistList sync.Map
+var existingRuntimes sync.Map
 
-func newContainerCollector(ipt *Input, endpoint string, mountPoint string, k8sClient k8sclient.Client) (Collector, error) {
-	logFilter, err := filter.NewFilter(ipt.ContainerIncludeLog, ipt.ContainerExcludeLog)
+// nolint:lll
+func newContainerCollector(ipt *Input, endpoint string, mountPoint string, k8sClient k8sclient.Client, logCoordinator *containerLogCoordinator) (Collector, error) {
+	logFilter, err := createLogFilter(ipt)
 	if err != nil {
 		return nil, err
 	}
 
-	var r runtime.ContainerRuntime
-
-	// docker not supported CRI
-	if verifyErr := runtime.VerifyDockerRuntime(endpoint); verifyErr == nil {
-		r, err = runtime.NewDockerRuntime(endpoint, mountPoint)
-	} else {
-		r, err = runtime.NewCRIRuntime(endpoint, mountPoint)
-	}
-
+	runtime, err := createContainerRuntime(endpoint, mountPoint)
 	if err != nil {
 		return nil, err
 	}
 
-	version, err := r.Version()
-	if err != nil {
-		return nil, fmt.Errorf("get runtime version err: %w", err)
-	}
-	l.Infof("runtime platform %s, api-version %s", version.PlatformName, version.APIVersion)
-
-	key := fmt.Sprintf("%s:%s", version.PlatformName, version.APIVersion)
-	if _, exist := containerExistList.Load(key); exist {
-		return nil, fmt.Errorf("runtime %s already exists", key)
-	} else {
-		containerExistList.Store(key, nil)
+	if err := validateRuntimeUniqueness(runtime); err != nil {
+		return nil, err
 	}
 
-	tags := inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")
-
-	optForNonMetric := buildLabelsOption(ipt.ExtractK8sLabelAsTagsV2, config.Cfg.Dataway.GlobalCustomerKeys)
-	optForMetric := buildLabelsOption(ipt.ExtractK8sLabelAsTagsV2ForMetric, config.Cfg.Dataway.GlobalCustomerKeys)
+	labelOptions := buildLabelOptions(ipt)
 
 	return &containerCollector{
 		ipt:           ipt,
-		runtime:       r,
+		runtime:       runtime,
 		k8sClient:     k8sClient,
 		localNodeName: datakit.DKHost,
 		maxConcurrent: ipt.ContainerMaxConcurrent,
 
 		enableCollectLogging:          true,
 		enableExtractK8sLabelAsTagsV1: ipt.EnableExtractK8sLabelAsTags,
-		podLabelAsTagsForNonMetric:    optForNonMetric,
-		podLabelAsTagsForMetric:       optForMetric,
+		podLabelAsTagsForNonMetric:    labelOptions.nonMetric,
+		podLabelAsTagsForMetric:       labelOptions.metric,
 
-		logFilter: logFilter,
-		logTable:  newLogTable(),
-		extraTags: tags,
+		logFilter:      logFilter,
+		logCoordinator: logCoordinator,
+
+		extraTags: inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, ""),
 		feeder:    ipt.Feeder,
 	}, nil
 }
 
-func (c *containerCollector) StartCollect() {
-	tickers := []*time.Ticker{
-		time.NewTicker(c.ipt.MetricCollecInterval),
-		time.NewTicker(c.ipt.LoggingSearchInterval),
-		time.NewTicker(c.ipt.ObjectCollecInterval),
+func createLogFilter(ipt *Input) (filter.Filter, error) {
+	return filter.NewFilter(ipt.ContainerIncludeLog, ipt.ContainerExcludeLog)
+}
+
+func createContainerRuntime(endpoint, mountPoint string) (runtime.ContainerRuntime, error) {
+	if verifyErr := runtime.VerifyDockerRuntime(endpoint); verifyErr == nil {
+		return runtime.NewDockerRuntime(endpoint, mountPoint)
+	}
+	return runtime.NewCRIRuntime(endpoint, mountPoint)
+}
+
+func validateRuntimeUniqueness(rt runtime.ContainerRuntime) error {
+	version, err := rt.Version()
+	if err != nil {
+		return fmt.Errorf("get runtime version: %w", err)
 	}
 
-	for _, t := range tickers {
-		defer t.Stop()
+	l.Infof("runtime platform %s, api-version %s", version.PlatformName, version.APIVersion)
+
+	key := fmt.Sprintf("%s:%s", version.PlatformName, version.APIVersion)
+	if _, exist := existingRuntimes.Load(key); exist {
+		return fmt.Errorf("runtime %s already exists", key)
 	}
+
+	existingRuntimes.Store(key, nil)
+	return nil
+}
+
+type labelOptions struct {
+	nonMetric labelsOption
+	metric    labelsOption
+}
+
+func buildLabelOptions(ipt *Input) labelOptions {
+	return labelOptions{
+		nonMetric: buildLabelsOption(ipt.ExtractK8sLabelAsTagsV2, config.Cfg.Dataway.GlobalCustomerKeys),
+		metric:    buildLabelsOption(ipt.ExtractK8sLabelAsTagsV2ForMetric, config.Cfg.Dataway.GlobalCustomerKeys),
+	}
+}
+
+func (c *containerCollector) StartCollect() {
+	metricTicker := time.NewTicker(c.ipt.MetricCollecInterval)
+	loggingTicker := time.NewTicker(c.ipt.LoggingSearchInterval)
+	objectTicker := time.NewTicker(c.ipt.ObjectCollecInterval)
+
+	defer metricTicker.Stop()
+	defer loggingTicker.Stop()
+	defer objectTicker.Stop()
 
 	c.gatherLogging()
-	time.Sleep(time.Second * 3) // window time
-
+	time.Sleep(3 * time.Second)
 	c.gatherObject()
 
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			l.Info("container collect exit")
+			l.Info("container collector stopped")
 			return
 
-		case tt := <-tickers[0].C:
+		case tt := <-metricTicker.C:
 			if c.ipt.EnableContainerMetric {
 				c.ptsTime = inputs.AlignTime(tt, c.ptsTime, c.ipt.MetricCollecInterval)
 				c.gatherMetric()
 			}
 
-		case <-tickers[1].C:
+		case <-loggingTicker.C:
 			if c.enableCollectLogging {
 				c.gatherLogging()
 			}
 
-		case <-tickers[2].C:
+		case <-objectTicker.C:
 			c.gatherObject()
 		}
 	}
 }
 
 func (c *containerCollector) ReloadConfigKV(_ map[string]string) error {
-	l.Info("reload kv")
-	c.logTable.closeAll()
+	l.Info("reloading container config")
 	return nil
 }
 

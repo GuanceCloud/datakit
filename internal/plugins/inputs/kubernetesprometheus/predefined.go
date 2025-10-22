@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
+	k8sclient "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -100,7 +100,7 @@ func (ipt *Input) applyPredefinedInstances() {
 	}
 }
 
-func (ipt *Input) applyCRDs(ctx context.Context, client client.Client, scrapeManager scrapeManagerInterface) {
+func (ipt *Input) applyCRDs(ctx context.Context, client k8sclient.Client, scrapeManager scrapeManagerInterface) {
 	if ipt.EnableDiscoveryOfPrometheusPodMonitors || ipt.EnableDiscoveryOfPrometheusServiceMonitors {
 		klog.Info("apply PodMonitors and ServiceMonitors from predefined instance")
 		asTags := getExtraLabelAsTags()
@@ -136,7 +136,7 @@ func (ipt *Input) applyCRDs(ctx context.Context, client client.Client, scrapeMan
 func fetchPodMonitor(
 	ctx context.Context,
 	ipt *Input,
-	client client.Client,
+	client k8sclient.Client,
 	scrapeManager scrapeManagerInterface,
 	asTags []string,
 ) error {
@@ -244,7 +244,7 @@ func fetchPodMonitor(
 func fetchServiceMonitor(
 	ctx context.Context,
 	ipt *Input,
-	client client.Client,
+	client k8sclient.Client,
 	scrapeManager scrapeManagerInterface,
 	asTags []string,
 ) error {
@@ -337,7 +337,7 @@ func fetchServiceMonitor(
 }
 
 func getLocalPodsFromLabelSelector(
-	client client.Client,
+	client k8sclient.Client,
 	nodeName, namespace string,
 	selector *metav1.LabelSelector,
 ) (res []*apicorev1.Pod) {
@@ -363,7 +363,7 @@ func getLocalPodsFromLabelSelector(
 }
 
 func getLocalEndpointsFromLabelSelector(
-	client client.Client,
+	client k8sclient.Client,
 	nodeName, namespace string,
 	selector *metav1.LabelSelector,
 ) (res []*apicorev1.Endpoints) {

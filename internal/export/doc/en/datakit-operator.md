@@ -48,8 +48,12 @@ Prerequisites:
 
     ```shell
     $ helm install datakit-operator datakit-operator \
-         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit-operator \
-         -n datakit --create-namespace
+        <<<% if custom_key.brand_key == 'guance' -%>>>
+        --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit-operator \
+        <<<% else -%>>>
+        --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
+        <<<% endif -%>>>
+        -n datakit --create-namespace
     ```
 
     View deployment status:
@@ -63,7 +67,11 @@ Prerequisites:
     ```shell
     $ helm -n datakit get values datakit-operator -a -o yaml > values.yaml
     $ helm upgrade datakit-operator datakit-operator \
+        <<<% if custom_key.brand_key == 'guance' -%>>>
         --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit-operator \
+        <<<% else -%>>>
+        --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
+        <<<% endif -%>>>
         -n datakit \
         -f values.yaml
     ```
@@ -292,7 +300,7 @@ The `enabled_namespaces` and `enabled_labelselectors` fields are specific to `dd
         "ddtrace": {
             "enabled_namespaces": [
                 {
-                    "namespace": "testns",  # Specify the namespace
+                    "namespace": "testns",  # The namespace supports regex matching; for an exact match, the pattern must be enclosed between ^ and $ (e.g., ^testns$)
                     "language": "java"      # Specify the language for the agent to inject
                 }
             ],

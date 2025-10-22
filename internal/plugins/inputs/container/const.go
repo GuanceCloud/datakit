@@ -14,7 +14,7 @@ const (
 
 	minInterval      = time.Second * 10
 	maxInterval      = time.Minute * 5
-	maxMessageLength = 256 * 1024 // 256KB
+	maxMessageLength = 256 * 1024
 )
 
 const sampleCfg = `

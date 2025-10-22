@@ -9,7 +9,6 @@ package exporter
 import (
 	"context"
 	"fmt"
-	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -276,7 +275,6 @@ func (fr *FileReader) readFromFileV2() {
 	tailOpts := []tailer.Option{
 		tailer.WithForwardFunc(fn),
 		tailer.WithFromBeginning(false),
-		tailer.WithFileFromBeginningThresholdSize(math.MaxInt64), // 设置最大值，从不开头读。
 	}
 
 	tail, err := tailer.NewTailer([]string{fr.fileName}, tailOpts...)

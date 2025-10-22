@@ -6,6 +6,7 @@
 package container
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -28,11 +29,10 @@ func newCollectors(ipt *Input) []Collector {
 	collectors := newContainerCollectors(ipt)
 
 	if datakit.Docker && config.IsKubernetes() {
-		k8sCollectors, err := newK8sCollectors(ipt)
-		if err != nil {
-			l.Errorf("init the k8s fail, err: %s", err)
+		if k8sCollector, err := newK8sCollectors(ipt); err != nil {
+			l.Errorf("failed to init k8s collector: %s", err)
 		} else {
-			collectors = append(collectors, k8sCollectors)
+			collectors = append(collectors, k8sCollector)
 		}
 	}
 
@@ -43,55 +43,24 @@ func newContainerCollectors(ipt *Input) []Collector {
 	var collectors []Collector
 
 	if config.IsECSFargate() {
-		var baseURL string
-
-		v4 := config.ECSFargateBaseURIV4()
-		if v4 != "" {
-			baseURL = v4
-			l.Infof("connect ecsfargate v4 with url %s", v4)
-		} else {
-			v3 := config.ECSFargateBaseURIV3()
-			if v3 != "" {
-				baseURL = v3
-				l.Infof("connect ecsfargate v3 with url %s", v4)
-			}
+		collector, err := createECSFargateCollector(ipt)
+		if err != nil {
+			l.Errorf("failed to create ECS Fargate collector: %s", err)
+			return collectors
 		}
-
-		if baseURL != "" {
-			collector, err := newECSFargate(ipt, baseURL)
-			if err != nil {
-				l.Errorf("unable to connect ecsfargate url %s, err: %s", baseURL, err)
-			}
-			collectors = append(collectors, collector)
-		} else {
-			l.Errorf("unexpected ecsfargate url, version only be v3 or v4")
-		}
-
+		collectors = append(collectors, collector)
 		return collectors
 	}
 
+	logCoordinator := newLogCoordinator(ipt)
+	k8sClient := createK8sClientIfNeeded(ipt, logCoordinator)
+
 	for _, endpoint := range ipt.Endpoints {
-		if err := checkEndpoint(endpoint); err != nil {
-			l.Warnf("%s, skip", err)
-			continue
-		}
-
-		var client k8sclient.Client
-		var err error
-		if datakit.Docker && config.IsKubernetes() {
-			client, err = k8sclient.NewKubernetesClientInCluster()
-			if err != nil {
-				l.Warnf("unable to connect k8s client, err: %s, skip", err)
-			}
-		}
-
-		collector, err := newContainerCollector(ipt, endpoint, getMountPoint(), client)
+		collector, err := createContainerCollector(ipt, endpoint, k8sClient, logCoordinator)
 		if err != nil {
-			l.Warnf("cannot connect endpoint(%s), err: %s", endpoint, err)
+			l.Warnf("failed to create collector for endpoint %s: %s", endpoint, err)
 			continue
 		}
-
-		l.Infof("connect runtime with %s", endpoint)
 		collectors = append(collectors, collector)
 	}
 
@@ -101,30 +70,80 @@ func newContainerCollectors(ipt *Input) []Collector {
 func newK8sCollectors(ipt *Input) (Collector, error) {
 	client, err := k8sclient.NewKubernetesClientInCluster()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create k8s client: %w", err)
 	}
 
+	cfg := buildK8sConfig(ipt)
+	return kubernetes.NewKubeCollector(client, &cfg, ipt.chPause)
+}
+
+func createECSFargateCollector(ipt *Input) (Collector, error) {
+	var baseURL string
+
+	if v4 := config.ECSFargateBaseURIV4(); v4 != "" {
+		baseURL = v4
+		l.Infof("connecting to ECS Fargate v4 at %s", v4)
+	} else if v3 := config.ECSFargateBaseURIV3(); v3 != "" {
+		baseURL = v3
+		l.Infof("connecting to ECS Fargate v3 at %s", v3)
+	} else {
+		return nil, fmt.Errorf("no valid ECS Fargate URL found, only v3 and v4 are supported")
+	}
+
+	collector, err := newECSFargate(ipt, baseURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create ECS Fargate collector: %w", err)
+	}
+
+	return collector, nil
+}
+
+func createK8sClientIfNeeded(ipt *Input, logCoordinator *containerLogCoordinator) k8sclient.Client {
+	if !datakit.Docker || !config.IsKubernetes() {
+		return nil
+	}
+
+	client, err := k8sclient.NewKubernetesClientInCluster()
+	if err != nil {
+		l.Warnf("unable to connect k8s client: %s", err)
+		return nil
+	}
+
+	crdWatcherG.Go(func(_ context.Context) error {
+		startLoggingConfigWatcher(client, logCoordinator)
+		return nil
+	})
+
+	return client
+}
+
+func createContainerCollector(ipt *Input, endpoint string, k8sClient k8sclient.Client, logCoordinator *containerLogCoordinator) (Collector, error) {
+	if err := checkEndpoint(endpoint); err != nil {
+		return nil, fmt.Errorf("invalid endpoint %s: %w", endpoint, err)
+	}
+
+	collector, err := newContainerCollector(ipt, endpoint, getMountPoint(), k8sClient, logCoordinator)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create container collector: %w", err)
+	}
+
+	l.Infof("connected to runtime at %s", endpoint)
+	return collector, nil
+}
+
+func buildK8sConfig(ipt *Input) kubernetes.Config {
 	tags := inputs.MergeTags(ipt.Tagger.ElectionTags(), ipt.Tags, "")
 	if name := getClusterNameK8s(); name != "" {
 		tags["cluster_name_k8s"] = name
 	}
 
-	optForNonMetric := buildLabelsOption(ipt.ExtractK8sLabelAsTagsV2, config.Cfg.Dataway.GlobalCustomerKeys)
-	optForMetric := buildLabelsOption(ipt.ExtractK8sLabelAsTagsV2ForMetric, config.Cfg.Dataway.GlobalCustomerKeys)
+	labelOptions := buildLabelOptions(ipt)
+	podFilter := createPodFilter(ipt)
 
-	var podFilterForMetric filter.Filter
-	if len(ipt.PodIncludeMetric) != 0 || len(ipt.PodExcludeMetric) != 0 {
-		podFilter, err := filter.NewFilter(ipt.PodIncludeMetric, ipt.PodExcludeMetric)
-		if err != nil {
-			return nil, fmt.Errorf("new k8s collector failed, err: %w", err)
-		}
-		podFilterForMetric = podFilter
-	}
+	l.Infof("use labels %s for k8s non-metric", labelOptions.nonMetric.keys)
+	l.Infof("use labels %s for k8s metric", labelOptions.metric.keys)
 
-	l.Infof("Use labels %s for k8s non-metric", optForNonMetric.keys)
-	l.Infof("Use labels %s for k8s metric", optForMetric.keys)
-
-	cfg := kubernetes.Config{
+	return kubernetes.Config{
 		NodeLocal:        ipt.EnableK8sNodeLocal,
 		EnableK8sMetric:  ipt.EnableK8sMetric,
 		EnableK8sObject:  true,
@@ -135,19 +154,35 @@ func newK8sCollectors(ipt *Input) (Collector, error) {
 		MetricCollecInterval: ipt.MetricCollecInterval,
 		ObjectCollecInterval: ipt.ObjectCollecInterval,
 
-		PodFilterForMetric:            podFilterForMetric,
+		PodFilterForMetric:            podFilter,
 		EnableExtractK8sLabelAsTagsV1: ipt.EnableExtractK8sLabelAsTags,
 		LabelAsTagsForMetric: kubernetes.LabelsOption{
-			All:  optForMetric.all,
-			Keys: optForMetric.keys,
+			All:  labelOptions.metric.all,
+			Keys: labelOptions.metric.keys,
 		},
 		LabelAsTagsForNonMetric: kubernetes.LabelsOption{
-			All:  optForNonMetric.all,
-			Keys: optForNonMetric.keys,
+			All:  labelOptions.nonMetric.all,
+			Keys: labelOptions.nonMetric.keys,
 		},
 		ExtraTags: tags,
 		Feeder:    ipt.Feeder,
 	}
+}
 
-	return kubernetes.NewKubeCollector(client, &cfg, ipt.chPause)
+func createPodFilter(ipt *Input) filter.Filter {
+	if len(ipt.PodIncludeMetric) == 0 && len(ipt.PodExcludeMetric) == 0 {
+		return nil
+	}
+
+	podFilter, err := filter.NewFilter(ipt.PodIncludeMetric, ipt.PodExcludeMetric)
+	if err != nil {
+		l.Warnf("failed to create pod filter: %s", err)
+		return nil
+	}
+	return podFilter
+}
+
+func newLogCoordinator(ipt *Input) *containerLogCoordinator {
+	defaults := newLoggingDefaults(ipt)
+	return newContainerLogCoordinator(defaults)
 }

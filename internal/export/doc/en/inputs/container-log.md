@@ -31,7 +31,8 @@ If you want to customize the collection configuration, it can be done through ad
 <!-- markdownlint-disable MD046-->
 ???+ info
 
-    If a container has an environment variable `DATAKIT_LOGS_CONFIG` and can also find the Annotation `datakit/logs` of its corresponding Pod, the configuration from the container environment variable will take precedence.
+    - If a container has an environment variable `DATAKIT_LOGS_CONFIG` and can also find the Annotation `datakit/logs` of its corresponding Pod, the configuration from the container environment variable will take precedence.
+    - Starting from [:octicons-tag-24: Version-1.84.0](../datakit/changelog-2025.md#cl-1.84.0), container log collection configured through Pod Annotations supports dynamic hot-reload, with configuration changes taking effect within one minute.
 <!-- markdownlint-enable -->
 
 - The value for custom configurations is as follows:
@@ -66,7 +67,7 @@ Field explanations:
 | `from_beginning`           | true/false                | Whether to collect logs from the begin of the file.                                                                                                                                                                                                                                            |
 | `multiline_match`          | regular expression string | The pattern used for recognizing the first line of a [multiline log match](logging.md#multiline), e.g., `"multiline_match":"^\\d{4}"` indicates that the first line starts with four digits. In regular expression rules, `\d` represents a digit, and the preceding `\` is used for escaping. |
 | `character_encoding`       | string                    | The character encoding. If the encoding is incorrect, the data may not be viewable. Supported values are `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030`, or an empty string. The default is empty.                                                                                          |
-| `tags`                     | key/value pairs           | Additional tags to be added. If there are duplicate keys, the value in this configuration will take precedence ([:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6)).                                                                                                          |
+| `tags`                     | key/value pairs           | Additional tags to be added. If there are duplicate keys, the value in this configuration will take precedence.                                                                                                                                                                                |
 
 Below is a complete example:
 
@@ -165,6 +166,13 @@ For log files inside containers, the configuration is similar to logging console
 Similarly, you can add the configuration either as a container environment variable or a Kubernetes Pod Annotation. The key and value remain the same as mentioned earlier. Please refer to the previous section for details.
 
 Here is a complete example:
+
+<!-- markdownlint-disable MD046 -->
+???+ tip
+
+    - Starting from [:octicons-tag-24: Version-1.84.0](../datakit/changelog-2025.md#cl-1.84.0), collecting log files from within containers no longer requires an emptyDir mount for Docker or Containerd runtimes (excluding CRI-O).
+    - Starting from [:octicons-tag-24: Version-1.84.0](../datakit/changelog-2025.md#cl-1.84.0), container log collection configured through Pod Annotations supports dynamic hot-reload, with configuration changes taking effect within one minute.
+<!-- markdownlint-enable -->
 
 <!-- markdownlint-disable MD046 -->
 === "Container Environment Variables"
@@ -374,8 +382,15 @@ By default, DataKit collects stdout/stderr logs for all containers on your machi
     This configuration is closer to the container and has a higher priority. The `disable=false` in the configuration indicates that log files should be collected, overriding the global configuration.
 
     Therefore, the log files for this container will still be collected, but the stdout/stderr console output will not be collected because of `disable=true`.
-
 <!-- markdownlint-enable -->
+
+<!-- markdownlint-disable MD013 -->
+## Configuring Container Log Collection Using Kubernetes CRD {#k8s-crd-configs}
+<!-- markdownlint-enable -->
+
+DataKit provides a declarative approach for configuring container log collection through Kubernetes Custom Resource Definitions (CRD). By creating a ClusterLoggingConfig resource, users can automatically configure DataKit's log collection without manually editing configuration files or restarting the service.
+
+For specific operations, please refer to the Complete [Documentation](container-log-for-k8s-crd.md).
 
 ## FAQ {#faq}
 
@@ -476,7 +491,6 @@ For tags from other sources, the following situations apply:
 
 - The whitelist does not work on DataKit's `global tags`.
 - Debug fields enabled via `ENV_ENABLE_DEBUG_FIELDS = "true"` are not affected, including the `log_read_offset` and `log_file_inode` fields for log collection, as well as the debug fields in the `pipeline`.
-
 
 <!-- markdownlint-disable MD013 -->
 ### Wildcard Collection of Log Files in Containers {#config-logging-source}

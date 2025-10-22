@@ -190,12 +190,12 @@ func (ipt *Input) RunPipeline() {
 		tailer.WithSource(inputName),
 		tailer.WithService(inputName),
 		tailer.WithPipeline(ipt.Log.Pipeline),
-		tailer.WithIgnoreStatus(ipt.Log.IgnoreStatus),
+		tailer.WithIgnoredStatuses(ipt.Log.IgnoreStatus),
 		tailer.WithCharacterEncoding(ipt.Log.CharacterEncoding),
 		tailer.EnableMultiline(true),
 		tailer.WithMaxMultilineLength(int64(float64(config.Cfg.Dataway.MaxRawBodySize) * 0.8)),
 		tailer.WithMultilinePatterns([]string{`^\d{4}-\d{2}-\d{2}`}),
-		tailer.WithGlobalTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
+		tailer.WithExtraTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
 		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
 	}
 
