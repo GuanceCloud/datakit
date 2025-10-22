@@ -51,7 +51,7 @@ const (
   ## customer_tags will work as a whitelist to prevent tags send to data center.
   ## All . will replace to _ ,like this :
   ## "project.name" to send to center is "project_name"
-  # customer_tags = ["sink_project", "custom_dd_tag"]
+  # customer_tags = ["sink_project", "custom_dd_tag", "reg:key_*"]
 
   ## Keep rare tracing resources list switch.
   ## If some resources are rare enough(not presend in 1 hour), those resource will always send
@@ -139,23 +139,14 @@ const (
 )
 
 var (
-	log                    = logger.DefaultSLogger(inputName)
-	v1, v2, v3, v4, v5     = "/v0.1/spans", "/v0.2/traces", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces"
-	stats                  = "/v0.6/stats"
-	apmTelemetry           = "/telemetry/proxy/api/v2/apmtelemetry"
-	info                   = "/info"
-	afterGatherRun         itrace.AfterGatherHandler
-	inputTags              map[string]string
-	wkpool                 *workerpool.WorkerPool
-	localCache             *storage.Storage
-	traceBase              = 10
-	spanBase               = 10
-	delMessage             bool
-	traceMaxSpans          = 100000
-	maxTraceBody           = int64(32 * (1 << 20))
-	noStreaming            = false
-	trace128BitID          bool
-	isTracingMetricsEnable bool
+	log                = logger.DefaultSLogger(inputName)
+	v1, v2, v3, v4, v5 = "/v0.1/spans", "/v0.2/traces", "/v0.3/traces", "/v0.4/traces", "/v0.5/traces"
+	stats              = "/v0.6/stats"
+	apmTelemetry       = "/telemetry/proxy/api/v2/apmtelemetry"
+	info               = "/info"
+	afterGatherRun     itrace.AfterGatherHandler
+	wkpool             *workerpool.WorkerPool
+	localCache         *storage.Storage
 )
 
 type Input struct {
@@ -181,16 +172,18 @@ type Input struct {
 	Tags                      map[string]string            `toml:"tags"`
 	WPConfig                  *workerpool.WorkerPoolConfig `toml:"threads"`
 	LocalCacheConfig          *storage.StorageConfig       `toml:"storage"`
+	TraceMaxSpans             int                          `toml:"trace_max_spans"`
+	MaxTraceBodyMB            int64                        `toml:"max_trace_body_mb"`
+	NoStreaming               bool                         `toml:"no_streaming,omitempty"`
 
-	TraceMaxSpans  int   `toml:"trace_max_spans"`
-	MaxTraceBodyMB int64 `toml:"max_trace_body_mb"`
-
-	NoStreaming bool `toml:"no_streaming,omitempty"`
-
-	feeder  dkio.Feeder
-	semStop *cliutils.Sem // start stop signal
-	Tagger  datakit.GlobalTagger
-	om      *Manager
+	feeder              dkio.Feeder
+	semStop             *cliutils.Sem // start stop signal
+	Tagger              datakit.GlobalTagger
+	om                  *Manager
+	traceBase, spanBase int
+	traceMaxSpans       int
+	maxTraceBody        int64
+	customTagsX         *itrace.CustomTags
 }
 
 func (*Input) Catalog() string { return inputName }
@@ -210,37 +203,25 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 func (ipt *Input) RegHTTPHandler() {
 	log = logger.SLogger(inputName)
 	log.Infof("DdTrace start init and register HTTP. Input=%s", ipt.string())
-	inputTags = ipt.Tags
 	if ipt.CompatibleOTEL {
-		spanBase = 16
+		ipt.spanBase = 16
 	}
 	if ipt.TraceID64BitHex {
 		ignoreTraceIDFromTag = true
-		traceBase = 16
-		spanBase = 16
-	}
-	if len(ipt.CustomerTags) != 0 {
-		setCustomTags(ipt.CustomerTags)
-	}
-
-	if ipt.TraceMaxSpans != 0 {
-		traceMaxSpans = ipt.TraceMaxSpans
+		ipt.traceBase = 16
+		ipt.spanBase = 16
 	}
 
 	if ipt.MaxTraceBodyMB != 0 {
-		maxTraceBody = ipt.MaxTraceBodyMB * (1 << 20)
+		ipt.maxTraceBody = ipt.MaxTraceBodyMB * (1 << 20)
 	}
 	if ipt.TracingMetricEnable {
-		isTracingMetricsEnable = ipt.TracingMetricEnable
 		// 默认的标签 + custom tags
 		labels = itrace.AddLabels(itrace.DefaultLabelNames, ipt.TracingMetricTagWhitelist)
 		labels = itrace.DelLabels(labels, ipt.TracingMetricTagBlacklist)
 		initP8SMetrics(labels)
 	}
-
-	trace128BitID = ipt.Trace128BitID
-	noStreaming = ipt.NoStreaming
-	delMessage = ipt.DelMessage
+	ipt.customTagsX = itrace.NewCustomTags(ipt.CustomerTags, ddTags)
 	traceOpts = append(point.CommonLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
 
 	var err error
@@ -280,7 +261,7 @@ func (ipt *Input) RegHTTPHandler() {
 					if req.URL, err = url.Parse(reqpb.Url); err != nil {
 						log.Errorf("### parse raw URL: %s failed: %s", reqpb.Url, err.Error())
 					}
-					handleDDTraces(&httpapi.NopResponseWriter{}, req)
+					ipt.handleDDTraces(&httpapi.NopResponseWriter{}, req)
 
 					log.Debugf("### process status: buffer-size: %dkb, cost: %dms, err: %v", len(reqpb.Body)>>10, time.Since(start)/time.Millisecond, err)
 
@@ -354,10 +335,10 @@ func (ipt *Input) RegHTTPHandler() {
 		case v1, v2, v3, v4, v5:
 			httpapi.RegHTTPHandler(http.MethodPost, endpoint,
 				workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
-					httpapi.HTTPStorageWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, handleDDTraces)))
+					httpapi.HTTPStorageWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, ipt.handleDDTraces)))
 			httpapi.RegHTTPHandler(http.MethodPut, endpoint,
 				workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
-					httpapi.HTTPStorageWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, handleDDTraces)))
+					httpapi.HTTPStorageWrapper(storage.HTTP_KEY, httpStatusRespFunc, localCache, ipt.handleDDTraces)))
 			isReg = true
 			log.Debugf("### pattern %s registered for %s agent", endpoint, inputName)
 		default:
@@ -462,12 +443,13 @@ func (ipt *Input) string() string {
 
 func defaultInput() *Input {
 	return &Input{
-		feeder:        dkio.DefaultFeeder(),
-		semStop:       cliutils.NewSem(),
-		Tagger:        datakit.DefaultGlobalTagger(),
-		TraceMaxSpans: traceMaxSpans,
-		Trace128BitID: true,
-		// TracingMetricEnable:       true,
+		feeder:                    dkio.DefaultFeeder(),
+		semStop:                   cliutils.NewSem(),
+		Tagger:                    datakit.DefaultGlobalTagger(),
+		TraceMaxSpans:             100000,
+		Trace128BitID:             true,
+		traceBase:                 10,
+		spanBase:                  10,
 		ApmTelemetryRouteEnable:   true,
 		TracingMetricTagBlacklist: []string{"resource", "operation"},
 	}

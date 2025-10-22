@@ -46,10 +46,14 @@ func Marshal(src interface{}) ([]byte, error) {
 	return b, err
 }
 
-type ddHandler struct{}
+type ddHandler struct {
+	ipt *Input
+}
 
 func (d *ddHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	handleDDTraces(w, r)
+	ipt := defaultInput()
+	ipt.customTagsX = itrace.NewCustomTags([]string{}, ddTags)
+	ipt.handleDDTraces(w, r)
 }
 
 func Test_handleDDTraces(t *testing.T) {

@@ -7,7 +7,6 @@ package opentelemetry
 
 import (
 	"strconv"
-	"strings"
 
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 
@@ -36,19 +35,12 @@ func (ipt *Input) selectAttrs(atts []*common.KeyValue) (kvs point.KVs, merged []
 		if v == nil { // the attribute may have been dropped by ipt.CleanMessage
 			continue
 		}
-
-		replaceKey, ok := ipt.commonAttrs[v.Key]
-
-		if ipt.CustomerTagsAll {
-			if replaceKey == "" {
-				replaceKey = strings.ReplaceAll(v.Key, ".", "_")
-			}
-		} else {
-			if !ok {
-				merged = append(merged, v)
-				continue
-			}
+		replaceKey := ipt.customTagsX.OTELRegexKey(v.Key, ipt.CustomerTagsAll)
+		if replaceKey == "" {
+			merged = append(merged, v)
+			continue
 		}
+
 		// else
 		switch v.Value.Value.(type) {
 		case *common.AnyValue_BytesValue:

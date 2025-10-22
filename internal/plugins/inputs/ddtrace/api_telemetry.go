@@ -33,11 +33,11 @@ type jvmTelemetry struct {
 	traceTime    time.Time
 	runtimeID    string
 
-	// kvs    point.KVs
-	tags   map[string]string
-	fields map[string]interface{}
-	change bool
-	Name   string
+	tags       map[string]string
+	fields     map[string]interface{}
+	change     bool
+	Name       string
+	setTagFunc func(tags map[string]string)
 }
 
 func (ob *jvmTelemetry) toPoint() *point.Point {
@@ -156,6 +156,9 @@ func (ob *jvmTelemetry) parseEvent(requestType RequestType, payload interface{})
 			k = strings.ReplaceAll(k, ".", "_")
 			ob.tags[k] = v
 		}
+		if ob.setTagFunc != nil {
+			ob.setTagFunc(tags)
+		}
 
 		ob.setField(requestTypeMap[requestType], string(bts))
 		log.Debugf("type=%s body=%s", requestType, string(bts))
@@ -194,6 +197,9 @@ func (ob *jvmTelemetry) parseEvent(requestType RequestType, payload interface{})
 		for k, v := range tags {
 			k = strings.ReplaceAll(k, ".", "_")
 			ob.tags[k] = v
+		}
+		if ob.setTagFunc != nil {
+			ob.setTagFunc(tags)
 		}
 		ob.setField(requestTypeMap[requestType], string(bts))
 		ob.change = true
@@ -274,7 +280,6 @@ func getConfigTags(configs []Configuration) map[string]string {
 						kvs := strings.Split(st, ":")
 						if len(kvs) == 2 {
 							tags[kvs[0]] = kvs[1]
-							setCustomTags([]string{kvs[0]})
 						}
 					}
 				}
@@ -314,9 +319,10 @@ func (ob *jvmTelemetry) getDependenciesLoaded() []byte {
 }
 
 type Manager struct {
-	obsLock sync.Mutex
-	OBS     map[string]*jvmTelemetry
-	OBChan  chan *jvmTelemetry
+	obsLock    sync.Mutex
+	OBS        map[string]*jvmTelemetry
+	OBChan     chan *jvmTelemetry
+	setTagFunc func(tags map[string]string)
 }
 
 func (ipt *Input) OMInitAndRunning() {
@@ -324,6 +330,11 @@ func (ipt *Input) OMInitAndRunning() {
 		OBS:    map[string]*jvmTelemetry{},
 		OBChan: make(chan *jvmTelemetry, 10),
 	}
+
+	if ipt.customTagsX != nil {
+		ipt.om.setTagFunc = ipt.customTagsX.AddTag
+	}
+
 	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_ddtrace"})
 	g.Go(func(ctx context.Context) error {
 		for {
@@ -397,6 +408,7 @@ func (om *Manager) parseTelemetryRequest(header http.Header, bts []byte) {
 			runtimeID:   body.RuntimeID,
 			tags:        tags,
 			fields:      make(map[string]interface{}),
+			setTagFunc:  om.setTagFunc,
 		}
 	} else {
 		ob.host = body.Host

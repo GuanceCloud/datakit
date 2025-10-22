@@ -260,7 +260,9 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 }
 
 func (cs *caseSpec) tracesHandler(c *gin.Context) {
-	handleDDTraces(c.Writer, c.Request)
+	ipt := defaultInput()
+	ipt.customTagsX = itrace.NewCustomTags([]string{}, ddTags)
+	ipt.handleDDTraces(c.Writer, c.Request)
 }
 
 func (cs *caseSpec) run() error {
