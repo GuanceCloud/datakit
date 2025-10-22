@@ -36,9 +36,8 @@ type Container struct {
 	// https://github.com/moby/moby/blob/73e09ddecf03477c690b2016a613b06156b54969/container/state.go#L76
 	Status string
 
-	// Target To Source
-	// example: map["/tmp/opt"] = "/var/lib/docker/volumes/<id>/_data"
-	Mounts map[string]string
+	MergedDir string
+	Mounts    Mounts
 }
 
 type ContainerStatus struct {
@@ -52,9 +51,8 @@ type ContainerStatus struct {
 	CPULimitMillicores int64
 	MemoryLimitInBytes int64
 
-	// Target To Source
-	// example: map["/tmp/opt"] = "/var/lib/docker/volumes/<id>/_data"
-	Mounts map[string]string
+	MergedDir string
+	Mounts    Mounts
 }
 
 type ContainerTop struct {

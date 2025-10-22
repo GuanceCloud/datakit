@@ -4,9 +4,10 @@ issues-exit-code = 1
 skip-files = ["packrd"]
 go = "1.18"
 skip-dirs = [
-# TODO: we should add lint check on the package
-	"internal/obfuscate",
-	"scripts",
+  # TODO: we should add lint check on the package
+  "internal/obfuscate",
+  "internal/kubernetes/pkg",
+  "scripts",
   "internal/plugins/inputs/dameng/driver",
   "internal/plugins/inputs/kingbase/driver",
 ]

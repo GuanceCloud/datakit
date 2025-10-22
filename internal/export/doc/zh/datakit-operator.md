@@ -48,8 +48,12 @@ DataKit Operator 是 DataKit 在 Kubernetes 编排的联动项目，旨在协助
 
     ```shell
     $ helm install datakit-operator datakit-operator \
-         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit-operator \
-         -n datakit --create-namespace
+        <<<% if custom_key.brand_key == 'guance' -%>>>
+        --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit-operator \
+        <<<% else -%>>>
+        --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
+        <<<% endif -%>>>
+        -n datakit --create-namespace
     ```
 
     查看部署状态：
@@ -63,7 +67,11 @@ DataKit Operator 是 DataKit 在 Kubernetes 编排的联动项目，旨在协助
     ```shell
     $ helm -n datakit get values datakit-operator -a -o yaml > values.yaml
     $ helm upgrade datakit-operator datakit-operator \
+        <<<% if custom_key.brand_key == 'guance' -%>>>
         --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit-operator \
+        <<<% else -%>>>
+        --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
+        <<<% endif -%>>>
         -n datakit \
         -f values.yaml
     ```
@@ -291,7 +299,7 @@ DataKit-Operator 支持两种资源输入方式，分别是“全局配置 names
         "ddtrace": {
             "enabled_namespaces": [
                 {
-                    "namespace": "testns",  # 指定 namespace
+                    "namespace": "testns",  # 指定 namespace，支持正则表达式匹配。如需精确匹配，请使用 ^ 和 $ 将模式包围，例如 ^testns$
                     "language": "java"      # 指定需要注入的 agent 语言
                 }
             ],

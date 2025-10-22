@@ -394,12 +394,15 @@ require (
 	github.com/GuanceCloud/pipeline-go v1.0.9-0.20250819095325-01d2a81ed1c2
 	github.com/hipages/php-fpm_exporter v1.2.1
 	github.com/shopspring/decimal v1.2.0
+	k8s.io/code-generator v0.25.0
 )
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2 // indirect
+	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
 	github.com/speps/go-hashids v2.0.0+incompatible // indirect
 	github.com/tomasen/fcgi_client v0.0.0-20180423082037-2bb3d819fd19 // indirect
+	k8s.io/gengo v0.0.0-20211129171323-c02415ce4185 // indirect
 )
 
 replace (

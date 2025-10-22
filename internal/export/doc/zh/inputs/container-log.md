@@ -32,7 +32,8 @@ DataKit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 <!-- markdownlint-disable MD046 -->
 ???+ info
 
-    如果一个容器存在环境变量 `DATAKIT_LOGS_CONFIG`，同时又能找到它所属 Pod 的 Annotation `datakit/logs`，按照就近原则，以容器环境变量的配置为准。
+    - 如果一个容器存在环境变量 `DATAKIT_LOGS_CONFIG`，同时又能找到它所属 Pod 的 Annotation `datakit/logs`，按照就近原则，以容器环境变量的配置为准。
+    - 从[:octicons-tag-24: Version-1.84.0](../datakit/changelog-2025.md#cl-1.84.0)开始，通过 Pod Annotation 配置的容器日志采集支持动态热更新，配置变更可在 1 分钟内生效。
 <!-- markdownlint-enable -->
 
 - 自定义配置的 Value 如下：
@@ -67,7 +68,7 @@ DataKit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 | `from_beginning`           | true/false       | 是否从文件首部采集日志                                                                                                                                              |
 | `multiline_match`          | 正则表达式字符串 | 用于[多行日志匹配](logging.md#multiline)时的首行识别，例如 `"multiline_match":"^\\d{4}"` 表示行首是 4 个数字，在正则表达式规则中 `\d` 是数字，前面的 `\` 是用来转义 |
 | `character_encoding`       | 字符串           | 选择编码，如果编码有误会导致数据无法查看，支持 `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""。默认为空即可                                                |
-| `tags`                     | key/value 键值对 | 添加额外的 tags，如果已经存在同名的 key 将以此为准（[:octicons-tag-24: Version-1.4.6](../datakit/changelog.md#cl-1.4.6) ）                                          |
+| `tags`                     | key/value 键值对 | 添加额外的 tags，如果已经存在同名的 key 将以此为准                                                                                                                  |
 
 完整示例如下：
 
@@ -169,6 +170,13 @@ DataKit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 同样是添加容器环境变量或 Kubernetes Pod Annotation 的方式，Key 和 Value 基本一致，详见前文。
 
 完整示例如下：
+
+<!-- markdownlint-disable MD046 -->
+???+ info
+
+    - 从[:octicons-tag-24: Version-1.84.0](../datakit/changelog-2025.md#cl-1.84.0)开始，对于 Docker 或 Containerd 运行时（不包括 CRI-O），已无需通过挂载 `emptyDir` 来采集容器内日志文件。
+    - 从[:octicons-tag-24: Version-1.84.0](../datakit/changelog-2025.md#cl-1.84.0)开始，通过 Pod Annotation 配置的容器日志采集支持动态热更新，配置变更可在 1 分钟内生效。
+<!-- markdownlint-enable -->
 
 <!-- markdownlint-disable MD046 -->
 === "容器环境变量"
@@ -378,10 +386,21 @@ DataKit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
     这份配置距离容器更近，优先级更高。配置的 `disable=fasle` 表明要采集日志文件，把上面的全局配置覆盖了。
 
     所以这个容器日志文件最终还是会采集，但是控制台输出 stdout/stderr 不采集，因为 `disable=true`。
-
 <!-- markdownlint-enable -->
 
+## 使用 Kubernetes CRD 配置容器日志采集 {#k8s-crd-configs}
+
+DataKit 通过 Kubernetes Custom Resource Definition (CRD) 提供了一种声明式的容器日志采集配置方式。用户可以通过创建 `ClusterLoggingConfig` 资源来自动配置 DataKit 的日志采集，无需手动修改 DataKit 配置文件或重启 DataKit。
+
+具体操作请参阅[完整文档](container-log-for-k8s-crd.md)。
+
 ## FAQ {#faq}
+
+### 采集容器内的日志文件无需挂载 {#log-collection-mount-requirements}
+
+从[:octicons-tag-24: Version-1.84.0](../datakit/changelog-2025.md#cl-1.84.0)开始，对于普通 Docker 模式或 Containerd 运行时（不包括 CRI-O），无需挂载即可采集容器内日志文件。
+
+对于 CRI-O 运行时，Docker 对路径使用了 tmpfs mount，需要添加 `emptyDir` 挂载。
 
 ### 过滤指定容器不采集日志 {#filter-container-logs}
 

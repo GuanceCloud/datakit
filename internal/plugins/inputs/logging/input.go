@@ -39,7 +39,7 @@ type Input struct {
 	Service                    string            `toml:"service"`
 	Pipeline                   string            `toml:"pipeline"`
 	IgnoreStatus               []string          `toml:"ignore_status"`
-	FieldWhiteList             []string          `toml:"field_white_list"`
+	FieldWhitelist             []string          `toml:"field_white_list"`
 	CharacterEncoding          string            `toml:"character_encoding"`
 	MultilineMatch             string            `toml:"multiline_match"`
 	AutoMultilineDetection     bool              `toml:"auto_multiline_detection"`
@@ -88,9 +88,9 @@ func (ipt *Input) Run() {
 		ipt.MultilineMatch = ipt.DeprecatedMultilineMatch
 	}
 
-	fieldWhiteList := []string{}
+	fieldWhitelist := []string{}
 	if str := os.Getenv("ENV_LOGGING_FIELD_WHITE_LIST"); str != "" {
-		if err := json.Unmarshal([]byte(str), &fieldWhiteList); err != nil {
+		if err := json.Unmarshal([]byte(str), &fieldWhitelist); err != nil {
 			l.Warnf("parse ENV_INPUT_LOGGING_FIELD_WHITE_LIST to slice: %s, ignore", err)
 		}
 	}
@@ -108,17 +108,21 @@ func (ipt *Input) Run() {
 		tailer.WithPipeline(ipt.Pipeline),
 		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
 		tailer.WithSockets(ipt.Sockets),
-		tailer.WithIgnoreStatus(ipt.IgnoreStatus),
-		tailer.WithFieldWhiteList(ipt.FieldWhiteList),
+		tailer.WithIgnoredStatuses(ipt.IgnoreStatus),
 		tailer.WithMaxOpenFiles(ipt.MaxOpenFiles),
 		tailer.WithFromBeginning(ipt.FromBeginning),
 		tailer.WithCharacterEncoding(ipt.CharacterEncoding),
 		tailer.WithIgnoreDeadLog(ignoreDuration),
 		tailer.EnableMultiline(ipt.AutoMultilineDetection),
 		tailer.WithMaxMultilineLength(int64(float64(config.Cfg.Dataway.MaxRawBodySize) * 0.8)),
-		tailer.WithGlobalTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
+		tailer.WithExtraTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
 		tailer.WithRemoveAnsiEscapeCodes(ipt.RemoveAnsiEscapeCodes),
-		tailer.WithFieldWhiteList(fieldWhiteList),
+	}
+
+	if len(fieldWhitelist) != 0 {
+		opts = append(opts, tailer.WithFieldWhitelist(fieldWhitelist))
+	} else if len(ipt.FieldWhitelist) != 0 {
+		opts = append(opts, tailer.WithFieldWhitelist(ipt.FieldWhitelist))
 	}
 
 	switch ipt.Mode {

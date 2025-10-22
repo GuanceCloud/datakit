@@ -28,29 +28,28 @@ import (
 var socketGoroutine = datakit.G("socketLog")
 
 type SocketLogger struct {
-	opt *option
+	cfg      *config // 配置信息
+	feedName string  // 数据源名称
 
-	servers []server
-	tags    map[string]string
+	servers []server          // 服务器列表
+	tags    map[string]string // 标签映射
 
-	cancel context.CancelFunc
-	log    *logger.Logger
+	cancel context.CancelFunc // 取消函数
+	log    *logger.Logger     // 日志记录器
 }
 
 func NewSocketLogging(opts ...Option) (*SocketLogger, error) {
-	c := getOption(opts...)
-
-	// setup feed name
-	c.feedName = dkio.FeedSource("socketLog.", c.source)
-	if c.storageIndex != "" {
-		c.feedName = dkio.FeedSource(c.feedName, c.storageIndex)
-	}
-
 	sk := &SocketLogger{
-		opt: c,
+		cfg: buildConfig(opts),
 	}
-	sk.tags = buildTags(sk.opt.extraTags)
-	sk.log = logger.SLogger("socketLog/" + sk.opt.source)
+
+	sk.feedName = dkio.FeedSource("socketLog", sk.cfg.source)
+	if sk.cfg.storageIndex != "" {
+		sk.feedName = dkio.FeedSource(sk.feedName, sk.cfg.storageIndex)
+	}
+
+	sk.tags = buildTags(sk.cfg.extraTags)
+	sk.log = logger.SLogger("socketLog/" + sk.cfg.source)
 
 	if err := sk.setup(); err != nil {
 		sk.closeServers()
@@ -61,18 +60,18 @@ func NewSocketLogging(opts ...Option) (*SocketLogger, error) {
 }
 
 func (sk *SocketLogger) setup() error {
-	if len(sk.opt.sockets) == 0 {
+	if len(sk.cfg.sockets) == 0 {
 		sk.log.Warnf("logging sockets is empty")
 		return nil
 	}
 
-	if _, err := multiline.New(sk.opt.multilinePatterns, multiline.WithMaxLength(int(sk.opt.maxMultilineLength))); err != nil {
+	if _, err := multiline.New(sk.cfg.multilinePatterns, multiline.WithMaxLength(int(sk.cfg.maxMultilineLength))); err != nil {
 		sk.log.Warn(err)
 		return err
 	}
 
-	if sk.opt.characterEncoding != "" {
-		if _, err := encoding.NewDecoder(sk.opt.characterEncoding); err != nil {
+	if sk.cfg.characterEncoding != "" {
+		if _, err := encoding.NewDecoder(sk.cfg.characterEncoding); err != nil {
 			sk.log.Warnf("newdecoder err: %s", err)
 			return err
 		}
@@ -87,7 +86,7 @@ func (sk *SocketLogger) setup() error {
 }
 
 func (sk *SocketLogger) makeServer() error {
-	for _, socket := range sk.opt.sockets {
+	for _, socket := range sk.cfg.sockets {
 		u, err := url.Parse(socket)
 		if err != nil {
 			return fmt.Errorf("error socket config err=%w", err)
@@ -105,14 +104,14 @@ func (sk *SocketLogger) makeServer() error {
 
 		switch scheme {
 		case "tcp", "tcp4", "tcp6":
-			srv, err := newTCPServer(scheme, address, sk.opt)
+			srv, err := newTCPServer(scheme, address, sk.cfg)
 			if err != nil {
 				return fmt.Errorf("%s-socket listen port error: %w", scheme, err)
 			}
 			sk.servers = append(sk.servers, srv)
 
 		case "udp", "udp4", "udp6":
-			srv, err := newUDPServer(scheme, address, sk.opt)
+			srv, err := newUDPServer(scheme, address, sk.cfg)
 			if err != nil {
 				return fmt.Errorf("%s-socket listen port error: %w", scheme, err)
 			}
@@ -159,7 +158,7 @@ func (sk *SocketLogger) feed(pending [][]byte) {
 		}
 
 		pt := point.NewPoint(
-			sk.opt.source,
+			sk.cfg.source,
 			append(point.NewTags(sk.tags), point.NewKVs(fields)...),
 			point.DefaultLoggingOptions()...,
 		)
@@ -170,13 +169,11 @@ func (sk *SocketLogger) feed(pending [][]byte) {
 		return
 	}
 
-	if err := sk.opt.feeder.Feed(point.Logging, pts,
-		dkio.WithSource(sk.opt.feedName),
-		dkio.WithStorageIndex(sk.opt.storageIndex),
+	if err := sk.cfg.feeder.Feed(point.Logging, pts,
+		dkio.WithSource(sk.feedName),
+		dkio.WithStorageIndex(sk.cfg.storageIndex),
 		dkio.WithPipelineOption(&lang.LogOption{
-			DisableAddStatusField: sk.opt.disableAddStatusField,
-			IgnoreStatus:          sk.opt.ignoreStatus,
-			ScriptMap:             map[string]string{sk.opt.source: sk.opt.pipeline},
+			ScriptMap: map[string]string{sk.cfg.source: sk.cfg.pipeline},
 		}),
 	); err != nil {
 		sk.log.Errorf("feed %d pts failed: %s, logging block-mode off, ignored", len(pts), err)
@@ -220,15 +217,15 @@ type server interface {
 
 type tcpServer struct {
 	listener net.Listener
-	opt      *option
+	cfg      *config
 }
 
-func newTCPServer(scheme, address string, opt *option) (*tcpServer, error) {
+func newTCPServer(scheme, address string, cfg *config) (*tcpServer, error) {
 	listener, err := net.Listen(scheme, address)
 	if err != nil {
 		return nil, err
 	}
-	return &tcpServer{listener, opt}, nil
+	return &tcpServer{listener, cfg}, nil
 }
 
 func (s *tcpServer) close() error {
@@ -245,18 +242,18 @@ func (s *tcpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 			continue
 		}
 
-		socketLogConnect.WithLabelValues("tcp", "ok").Inc()
+		socketConnectCounter.WithLabelValues("tcp", "ok").Inc()
 		socketGoroutine.Go(func(_ context.Context) error {
 			defer conn.Close() // nolint
 
 			rd := reader.NewReader(conn)
 			// must not error
-			mult, _ := multiline.New(s.opt.multilinePatterns, multiline.WithMaxLength(int(s.opt.maxMultilineLength)))
+			mult, _ := multiline.New(s.cfg.multilinePatterns, multiline.WithMaxLength(int(s.cfg.maxMultilineLength)))
 
 			var decoder *encoding.Decoder
-			if s.opt.characterEncoding != "" {
+			if s.cfg.characterEncoding != "" {
 				// must not error
-				decoder, _ = encoding.NewDecoder(s.opt.characterEncoding)
+				decoder, _ = encoding.NewDecoder(s.cfg.characterEncoding)
 			}
 
 			for {
@@ -280,26 +277,28 @@ func (s *tcpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 
 					text, err := decodingBytes(decoder, line)
 					if err != nil {
-						decodeErrors.WithLabelValues(s.opt.source, s.opt.characterEncoding, err.Error()).Inc()
+						decodeErrorCounter.WithLabelValues(s.cfg.source, s.cfg.characterEncoding, err.Error()).Inc()
 					}
 
-					text = removeAnsiEscapeCodes(text, s.opt.removeAnsiEscapeCodes)
-					text, _ = mult.ProcessLine(multiline.TrimRightSpace(text))
+					text = removeAnsiEscapeCodes(text, s.cfg.removeAnsiEscapeCodes)
+					if mult != nil {
+						text, _ = mult.ProcessLine(multiline.TrimRightSpace(text))
+					}
 					if len(text) == 0 {
 						continue
 					}
 					pending = append(pending, text)
 				}
 
-				socketLogCount.WithLabelValues("tcp").Inc()
-				socketLogLength.WithLabelValues("tcp").Observe(float64(len(pending)))
+				socketMessageCounter.WithLabelValues("tcp").Inc()
+				socketLengthSummary.WithLabelValues("tcp").Observe(float64(len(pending)))
 				feed(pending)
 			}
 
-			if mult.BuffLength() > 0 {
+			if mult != nil && mult.BuffLength() > 0 {
 				b := mult.Flush()
-				socketLogCount.WithLabelValues("tcp").Inc()
-				socketLogLength.WithLabelValues("tcp").Observe(float64(1))
+				socketMessageCounter.WithLabelValues("tcp").Inc()
+				socketLengthSummary.WithLabelValues("tcp").Observe(float64(1))
 				feed([][]byte{b})
 			}
 			return nil
@@ -309,10 +308,10 @@ func (s *tcpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 
 type udpServer struct {
 	conn net.Conn
-	opt  *option
+	cfg  *config
 }
 
-func newUDPServer(scheme, address string, opt *option) (*udpServer, error) {
+func newUDPServer(scheme, address string, cfg *config) (*udpServer, error) {
 	udpAddr, err := net.ResolveUDPAddr(scheme, address)
 	if err != nil {
 		return nil, fmt.Errorf("resolve UDP addr error:%w", err)
@@ -323,7 +322,7 @@ func newUDPServer(scheme, address string, opt *option) (*udpServer, error) {
 		return nil, err
 	}
 
-	return &udpServer{conn, opt}, nil
+	return &udpServer{conn, cfg}, nil
 }
 
 func (s *udpServer) close() error {
@@ -335,9 +334,9 @@ func (s *udpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 
 	rd := reader.NewReader(s.conn, reader.DisablePreviousBlock())
 	var decoder *encoding.Decoder
-	if s.opt.characterEncoding != "" {
+	if s.cfg.characterEncoding != "" {
 		// must not error
-		decoder, _ = encoding.NewDecoder(s.opt.characterEncoding)
+		decoder, _ = encoding.NewDecoder(s.cfg.characterEncoding)
 	}
 
 	for {
@@ -364,15 +363,15 @@ func (s *udpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 
 			text, err := decodingBytes(decoder, line)
 			if err != nil {
-				decodeErrors.WithLabelValues(s.opt.source, s.opt.characterEncoding, err.Error()).Inc()
+				decodeErrorCounter.WithLabelValues(s.cfg.source, s.cfg.characterEncoding, err.Error()).Inc()
 			}
 
-			text = removeAnsiEscapeCodes(text, s.opt.removeAnsiEscapeCodes)
+			text = removeAnsiEscapeCodes(text, s.cfg.removeAnsiEscapeCodes)
 			pending = append(pending, text)
 		}
 
-		socketLogCount.WithLabelValues("udp").Inc()
-		socketLogLength.WithLabelValues("udp").Observe(float64(len(lines)))
+		socketMessageCounter.WithLabelValues("udp").Inc()
+		socketLengthSummary.WithLabelValues("udp").Observe(float64(len(lines)))
 		feed(pending)
 	}
 }

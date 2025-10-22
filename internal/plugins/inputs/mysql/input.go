@@ -714,12 +714,12 @@ func (ipt *Input) RunPipeline() {
 		tailer.WithSource("mysql"),
 		tailer.WithService("mysql"),
 		tailer.WithPipeline(ipt.Log.Pipeline),
-		tailer.WithIgnoreStatus(ipt.Log.IgnoreStatus),
+		tailer.WithIgnoredStatuses(ipt.Log.IgnoreStatus),
 		tailer.WithCharacterEncoding(ipt.Log.CharacterEncoding),
 		tailer.EnableMultiline(true),
 		tailer.WithMaxMultilineLength(int64(float64(config.Cfg.Dataway.MaxRawBodySize) * 0.8)),
 		tailer.WithMultilinePatterns([]string{ipt.Log.MultilineMatch}),
-		tailer.WithGlobalTags(inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")),
+		tailer.WithExtraTags(inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")),
 		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
 	}
 	var err error

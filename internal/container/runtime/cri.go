@@ -7,7 +7,6 @@ package runtime
 
 import (
 	"fmt"
-	"path/filepath"
 	"time"
 
 	"github.com/GuanceCloud/kubernetes/pkg/kubelet/cri/remote"
@@ -94,6 +93,7 @@ func (ct *criClient) ListContainers() ([]*Container, error) {
 			container.LogPath = status.LogPath
 			container.Envs = status.Envs
 			container.Mounts = status.Mounts
+			container.MergedDir = status.MergedDir
 			if status.Image != "" {
 				container.Image = status.Image
 			}
@@ -128,7 +128,8 @@ func (ct *criClient) ContainerStatus(id string) (*ContainerStatus, error) {
 		Pid:     info.getPid(),
 		LogPath: resp.GetStatus().GetLogPath(),
 		Envs:    info.getConfigEnvs(),
-		Mounts:  make(map[string]string),
+		// Currently containerd share similar rootfs mount base on most distros
+		MergedDir: fmt.Sprintf("/run/containerd/io.containerd.runtime.v2.task/k8s.io/%s/rootfs", id),
 	}
 
 	if metadata := resp.GetStatus().GetMetadata(); metadata != nil {
@@ -150,7 +151,10 @@ func (ct *criClient) ContainerStatus(id string) (*ContainerStatus, error) {
 	}
 
 	for _, mount := range resp.GetStatus().GetMounts() {
-		status.Mounts[filepath.Clean(mount.GetContainerPath())] = mount.GetHostPath()
+		status.Mounts = append(
+			status.Mounts,
+			Mount{Type: "bind", Destination: mount.GetContainerPath(), Source: mount.GetHostPath()},
+		)
 	}
 
 	return status, nil
