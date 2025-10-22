@@ -6,10 +6,13 @@
 package statsd
 
 import (
-	"testing"
+	T "testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestParseName(t *testing.T) {
+func TestParseName(t *T.T) {
 	cases := []struct {
 		in, out, sep string
 	}{
@@ -47,4 +50,20 @@ func TestParseName(t *testing.T) {
 		name, fields, tags := s.parseName(tc.in)
 		t.Logf("%s => name: %s, fields: %+#v, tags: %+#v", tc.in, name, fields, tags)
 	}
+}
+
+func TestParseLine(t *T.T) {
+	t.Run(`with-|T`, func(t *T.T) {
+		line := "namespace.test_gauge:21|#globalTags,globalTags2,tag1,tag2|T1658997712"
+		c, err := NewCollector(nil, nil, WithProtocol("udp"), WithDataDogExtensions(true))
+		require.NoError(t, err)
+		assert.NoError(t, c.parseStatsdLine(line))
+	})
+
+	t.Run(`with-dd-tags`, func(t *T.T) {
+		line := "namespace.test_gauge:21|g|#globalTags,globalTags2,tag1,tag2"
+		c, err := NewCollector(nil, nil, WithProtocol("udp"), WithDataDogExtensions(true))
+		require.NoError(t, err)
+		assert.NoError(t, c.parseStatsdLine(line))
+	})
 }
