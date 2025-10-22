@@ -1,4 +1,4 @@
-FROM pubrepo.truewatch.com/base/ubuntu:20.04 AS base
+FROM pubrepo.truewatch.com/base/ubuntu:22.04 AS base
 ARG TARGETARCH
 ARG DIST_DIR
 
