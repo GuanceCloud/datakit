@@ -157,8 +157,8 @@ DataKit allows you to configure global tags for all collected data. Global tags 
 
 ```toml
 [global_host_tags] # These are referred to as 'Global Host Tags'
-  ip   = "__datakit_ip"
-  host = "__datakit_hostname"
+  host_ip = "__datakit_ip"
+  host    = "__datakit_hostname"
 
 [election]
   [election.tags] # These are referred to as 'Global Election Tags'

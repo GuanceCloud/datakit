@@ -158,8 +158,8 @@ DataKit 允许给其采集的所有数据配置全局标签，全局标签分为
 
 ```toml
 [global_host_tags] # 这里面的我们称之为「全局主机标签」
-  ip   = "__datakit_ip"
-  host = "__datakit_hostname"
+  host_ip = "__datakit_ip"
+  host    = "__datakit_hostname"
 
 [election]
   [election.tags] # 这里面的我们称之为「全局选举标签」
