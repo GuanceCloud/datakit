@@ -6,44 +6,38 @@
 package redis
 
 import (
-	"strings"
-
 	"github.com/GuanceCloud/cliutils/point"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-func (ipt *Input) getUpInstance() string {
-	if ipt.Cluster != nil { // redis cluster
-		return strings.Join(ipt.Cluster.Hosts, ",")
-	}
-	if ipt.MasterSlave != nil {
-		return strings.Join(ipt.MasterSlave.Hosts, ",")
-	}
-	return ipt.Host
-}
-
-func (ipt *Input) buildUpPoints() *point.Point {
-	var kvs point.KVs
-	kvs = kvs.AddTag("job", inputName).
-		AddTag("instance", ipt.getUpInstance()).
-		Set("up", ipt.upState)
-
-	for k, v := range ipt.Tags {
-		kvs.AddTag(k, v)
-	}
-
-	opts := append(point.DefaultMetricOptions(), point.WithTime(ipt.ptsTime))
-	return point.NewPoint(inputs.CollectorUpMeasurement, kvs, opts...)
-}
-
 var upFeedSource = dkio.FeedSource(inputName, "up")
 
 func (ipt *Input) feedUpMetric() {
-	pt := ipt.buildUpPoints()
+	pts := make([]*point.Point, 0)
 
-	if err := ipt.feeder.Feed(point.Metric, []*point.Point{pt},
+	for _, inst := range ipt.instances {
+		for _, n := range inst.nodes() {
+			upState, ok := inst.nodeUpStates[n.addr]
+			if !ok {
+				continue
+			}
+			var kvs point.KVs
+			kvs = kvs.AddTag("job", inputName).
+				AddTag("instance", n.addr).
+				Set("up", upState)
+
+			for k, v := range ipt.Tags {
+				kvs.AddTag(k, v)
+			}
+
+			opts := append(point.DefaultMetricOptions(), point.WithTime(ipt.ptsTime))
+			pts = append(pts, point.NewPoint(inputs.CollectorUpMeasurement, kvs, opts...))
+		}
+	}
+
+	if err := ipt.feeder.Feed(point.Metric, pts,
 		dkio.WithElection(ipt.Election),
 		dkio.WithSource(upFeedSource),
 	); err != nil {
