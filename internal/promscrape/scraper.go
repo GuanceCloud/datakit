@@ -82,10 +82,11 @@ func (p *PromScraper) ScrapeURL(u string) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close() // nolint:errcheck
+
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unexpected status code returned when scraping %q: %d", u, resp.StatusCode)
 	}
-	defer resp.Body.Close() //nolint
 
 	return p.ParserStream(resp.Body)
 }
