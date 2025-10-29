@@ -41,6 +41,8 @@ type instance struct {
 	infoCPULast map[string]*redisCPUUsage
 
 	curCli, cc collectorClient
+
+	nodeUpStates map[string]int64
 }
 
 // node represents a concrete Redis node (master or replica) to collect from.
@@ -58,6 +60,7 @@ func newInstance() *instance {
 		infoTags:        map[string]string{},
 		mergedTags:      map[string]string{},
 		infoCPULast:     map[string]*redisCPUUsage{},
+		nodeUpStates:    map[string]int64{},
 	}
 }
 
@@ -131,7 +134,11 @@ func (i *instance) collect(ctx context.Context) error {
 		i.setCurrentNode(n.cli, n.rep, n.host, n.addr)
 
 		// metrics
-		i.collectInfo(ctx)
+		i.nodeUpStates[n.addr] = 1
+		if err := i.collectInfo(ctx); err != nil {
+			i.nodeUpStates[n.addr] = 0
+			continue
+		}
 		i.collectClientList(ctx)
 		i.collectCommandStats(ctx)
 		i.collectReplica(ctx)

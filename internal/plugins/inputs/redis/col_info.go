@@ -19,13 +19,13 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-func (i *instance) collectInfo(ctx context.Context) {
+func (i *instance) collectInfo(ctx context.Context) error {
 	i.infoTags = map[string]string{}
 	start := time.Now()
 	info, err := i.curCli.info(ctx, "ALL")
 	if err != nil {
 		l.Error("INFO All: %s", err)
-		return
+		return err
 	}
 
 	i.infoElapsed = time.Since(start)
@@ -39,6 +39,7 @@ func (i *instance) collectInfo(ctx context.Context) {
 	); err != nil {
 		l.Warnf("feed measurement: %s, ignored", err)
 	}
+	return nil
 }
 
 func infoSkippedKeys(k, _ string) bool {

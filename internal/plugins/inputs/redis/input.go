@@ -148,8 +148,6 @@ type Input struct {
 	instances []*instance
 	tlsConf   *tls.Config
 
-	upState int
-
 	// lastCustomerObject *customerObjectMeasurement
 
 	timeoutDuration time.Duration
@@ -655,11 +653,8 @@ func (ipt *Input) runMetricsCollector(ctx context.Context) {
 func (ipt *Input) doMetricsCollect(ctx context.Context, tickTime time.Time) {
 	ipt.ptsTime = inputs.AlignTime(tickTime, ipt.ptsTime, ipt.Interval)
 
-	// collect metrics
-	ipt.upState = 1
 	if err := ipt.Collect(ctx); err != nil {
 		l.Errorf("Collect: %s", err)
-		ipt.upState = 0
 	}
 	ipt.feedUpMetric()
 }
