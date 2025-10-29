@@ -432,7 +432,7 @@ func (t *Single) readOnce() error {
 	t.process(t.config.mode, lines)
 
 	t.offset += int64(readNum)
-	// t.log.Debugf("read %d bytes from file %s, offset %d", readNum, t.filepath, t.offset)
+	t.log.Debugf("read %d bytes from file %s, offset %d", readNum, t.filepath, t.offset)
 	return nil
 }
 

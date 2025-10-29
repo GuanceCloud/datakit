@@ -215,7 +215,7 @@ func newInput() *Input {
 	}
 }
 
-//nolint:gochecknoinits
+// nolint:gochecknoinits
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return newInput()

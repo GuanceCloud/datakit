@@ -150,7 +150,7 @@ func newLoggingDefaults(ipt *Input) *loggingDefaults {
 		removeAnsiEscapeCodes: ipt.LoggingRemoveAnsiEscapeCodes,
 		fieldWhitelist:        ipt.LoggingFieldWhiteList,
 		maxOpenFiles:          ipt.LoggingMaxOpenFiles,
-		ignoreDeadLog:         time.Minute * 10,
+		ignoreDeadLog:         time.Hour * 1,
 
 		insideFilepathFunc: func(hostDir, insideDir, filepath string) string {
 			pathAtInside := trimLogsFromRootfs(filepath)

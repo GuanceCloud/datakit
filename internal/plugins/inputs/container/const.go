@@ -18,67 +18,75 @@ const (
 )
 
 const sampleCfg = `
+# Container input plugin configuration
 [inputs.container]
+
+  # Container runtime endpoints to connect to
   endpoints = [
     "unix:///var/run/docker.sock",
     "unix:///var/run/containerd/containerd.sock",
     "unix:///var/run/crio/crio.sock",
   ]
 
-  ## Collect metric interval, default "60s".
-  # metric_collect_interval = "60s"
-  ## Collect object interval, default "5m".
-  # object_collect_interval = "5m"
-  ## Search logging interval, default "60s".
-  # logging_search_interval = "60s"
+  # Collection intervals (uncomment to customize)
+  # metric_collect_interval = "60s"    # Default: 60s
+  # object_collect_interval = "5m"     # Default: 5m
+  # logging_search_interval = "60s"    # Default: 60s
 
-  enable_container_metric = true
-  enable_k8s_metric       = true
-  enable_pod_metric       = false
-  enable_k8s_event        = true
-  enable_k8s_node_local   = true
-  enable_collect_k8s_job  = true
+  # Feature toggles
+  enable_container_metric = true  # Collect container metrics
+  enable_k8s_metric       = true  # Collect Kubernetes metrics
+  enable_pod_metric       = false # Collect pod-specific metrics
+  enable_k8s_event        = true  # Collect Kubernetes events
+  enable_k8s_node_local   = true  # Enable node-local collection
+  enable_collect_k8s_job  = true  # Collect Kubernetes jobs
 
-  ## Add resource Label as Tags (container use Pod Label), need to specify Label keys.
-  ## e.g. ["app", "name"]
+  # Kubernetes label extraction as tags
+  # Specify label keys to extract as tags (containers use pod labels)
+  # Example: ["app", "name", "version"]
   # extract_k8s_label_as_tags_v2            = []
   # extract_k8s_label_as_tags_v2_for_metric = []
 
-  ## Containers logs to include and exclude, default collect all containers. Globs accepted.
-  container_include_log = []
-  container_exclude_log = ["image:*logfwd*", "image:*datakit*"]
+  # Container log filtering (supports glob patterns)
+  container_include_log = []                                    # Include specific containers (empty = all)
+  container_exclude_log = ["image:*logfwd*", "image:*datakit*"] # Exclude containers by image pattern
 
-  ## Pods metric to include and exclude, default collect all pods. Globs accepted.
-  pod_include_metric = []
-  pod_exclude_metric = []
+  # Pod metric filtering (supports glob patterns)
+  pod_include_metric = [] # Include specific pods (empty = all)
+  pod_exclude_metric = [] # Exclude specific pods
 
-  logging_enable_multiline              = true
-  logging_auto_multiline_detection      = true
-  logging_auto_multiline_extra_patterns = []
+  # Logging configuration
+  logging_enable_multiline              = true  # Enable multiline log detection
+  logging_auto_multiline_detection      = true  # Auto-detect multiline patterns
+  logging_auto_multiline_extra_patterns = []    # Additional multiline patterns
 
-  ## Only retain the fields specified in the whitelist.
-  logging_field_white_list = []
+  # Log field filtering
+  logging_field_white_list = [] # Only retain specified fields (empty = all fields)
 
-  ## Removes ANSI escape codes from text strings.
-  logging_remove_ansi_escape_codes = false
+  # Log processing options
+  logging_remove_ansi_escape_codes = false # Remove ANSI escape codes from logs
+  logging_file_from_beginning      = false # Start reading from beginning of log files
 
-  ## Whether to collect logs from the begin of the file.
-  logging_file_from_beginning = false
+  # Performance tuning
+  # logging_max_open_files = 500 # Maximum open files (-1 = unlimited)
 
-  ## The maximum allowed number of open files, default is 500. If it is -1, it means no limit.
-  # logging_max_open_files = 500
-
-  ## Log collection configures additional source matching, and the regular source will be renamed.
+  # Source mapping for log collection
+  # Maps regex patterns to new source names
   [inputs.container.logging_extra_source_map]
-    # source_regexp = "new_source"
+    # ".*nginx.*" = "nginx_logs"
+    # ".*apache.*" = "apache_logs"
 
-  ## Log collection with multiline configuration as specified by the source.
+  # Multiline configuration per source
+  # Define multiline patterns for specific log sources
   [inputs.container.logging_source_multiline_map]
-    # source = '''^\d{4}'''
+    # "java_logs" = '''^\d{4}-\d{2}-\d{2}'''
+    # "python_logs" = '''^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}'''
 
+  # Global tags for all collected data
   [inputs.container.tags]
-    # some_tag = "some_value"
-    # more_tag = "some_other_value"
+    # environment = "production"
+    # cluster = "main"
+    # region = "us-west-1"
 `
 
 type DeprecatedConf struct {

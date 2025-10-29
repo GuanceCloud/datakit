@@ -198,21 +198,10 @@ func resolveHostPathFromMergedDir(mergedDir, insidePath string) (string, error) 
 		return "", fmt.Errorf("rootfs base directory not found: %s", mergedDir)
 	}
 
-	// 优先尝试 mergedDir + 相对路径
 	relInside := strings.TrimPrefix(insidePath, "/")
 	full := filepath.Join(mergedDir, relInside)
-	if fi, err := os.Stat(full); err == nil && !fi.IsDir() {
-		return full, nil
-	}
 
-	// 回退：仅拼接文件名
-	base := filepath.Base(insidePath)
-	fallback := filepath.Join(mergedDir, base)
-	if fi, err := os.Stat(fallback); err == nil && !fi.IsDir() {
-		return fallback, nil
-	}
-
-	return full, fmt.Errorf("mapped file not found under mergedDir, tried: %s and %s", full, fallback)
+	return full, nil
 }
 
 func (cfg *logConfig) addTags(m map[string]string) {

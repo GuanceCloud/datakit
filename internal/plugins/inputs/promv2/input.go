@@ -29,41 +29,39 @@ import (
 var _ inputs.ElectionInput = (*Input)(nil)
 
 const (
-	inputName = "promv2"
+	inputName     = "promv2"
+	defaultSource = "not-set"
 )
 
 type Input struct {
-	Source          string `toml:"source"`
-	MeasurementName string `toml:"measurement_name"`
-
-	URL      string   `toml:"url"`
-	endpoint *url.URL // parsed URL
+	Source          string        `toml:"source"`
+	MeasurementName string        `toml:"measurement_name"`
+	URL             string        `toml:"url"`
+	Interval        time.Duration `toml:"interval"`
+	Election        bool          `toml:"election"`
 
 	KeepExistMetricName bool `toml:"keep_exist_metric_name"`
 	HonorTimestamps     bool `toml:"honor_timestamps"`
 	DisableInstanceTag  bool `toml:"disable_instance_tag"`
 
-	BearerTokenFile string `toml:"bearer_token_file"`
+	BearerTokenFile string            `toml:"bearer_token_file"`
+	HTTPHeaders     map[string]string `toml:"http_headers"`
+	Tags            map[string]string `toml:"tags"`
 	dknet.TLSClientConfig
 
-	HTTPHeaders map[string]string `toml:"http_headers"`
-	Tags        map[string]string `toml:"tags"`
-
-	Interval time.Duration `toml:"interval"`
-	Election bool          `toml:"election"`
+	endpoint *url.URL
 
 	chPause chan bool
 	pause   bool
 
-	Feeder  dkio.Feeder
-	Tagger  datakit.GlobalTagger
-	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
+	tagger  datakit.GlobalTagger
+	semStop *cliutils.Sem
 
-	lastStart time.Time
-
-	scraper *promscrape.PromScraper
-	count   int
-	log     *logger.Logger
+	lastStart  time.Time
+	scraper    *promscrape.PromScraper
+	pointCount int
+	logger     *logger.Logger
 }
 
 func (*Input) SampleConfig() string { return sampleConfig }
@@ -81,17 +79,16 @@ func (ipt *Input) ElectionEnabled() bool {
 }
 
 func (ipt *Input) Run() {
-	ipt.log = logger.SLogger(inputName + "/" + ipt.Source)
-	ipt.log.Info("start")
+	ipt.logger = logger.SLogger(inputName + "/" + ipt.Source)
+	ipt.logger.Info("promv2 input started")
 
 	if err := ipt.setup(); err != nil {
-		ipt.log.Infof("init failure: %s", err)
-		ipt.log.Info("exit")
+		ipt.logger.Errorf("setup failed: %s", err)
+		ipt.logger.Info("promv2 input stopped")
 		return
 	}
 
 	start := ntp.Now()
-
 	tick := time.NewTicker(ipt.Interval)
 	defer tick.Stop()
 
@@ -102,15 +99,14 @@ func (ipt *Input) Run() {
 
 		select {
 		case <-datakit.Exit.Wait():
-			ipt.log.Info("promv2 exit")
+			ipt.logger.Info("promv2 input exiting")
 			return
 
 		case <-ipt.semStop.Wait():
-			ipt.log.Info("promv2 return")
+			ipt.logger.Info("promv2 input stopped")
 			return
 
 		case ipt.pause = <-ipt.chPause:
-			// nil
 
 		case tt := <-tick.C:
 			start = inputs.AlignTime(tt, start, ipt.Interval)
@@ -119,23 +115,45 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) setup() error {
-	// parse url
-	u, err := url.Parse(ipt.URL)
+	if err := ipt.parseURL(); err != nil {
+		return err
+	}
+
+	tags := ipt.buildTags()
+	if err := ipt.setupAuth(); err != nil {
+		return err
+	}
+
+	opts := ipt.buildScraperOptions(tags)
+	scraper, err := promscrape.NewPromScraper(opts...)
 	if err != nil {
 		return err
 	}
-	ipt.endpoint = u
 
+	ipt.scraper = scraper
+	ipt.Interval = config.ProtectedInterval(time.Second, time.Minute*5, ipt.Interval)
+	return nil
+}
+
+func (ipt *Input) parseURL() error {
+	endpoint, err := url.Parse(ipt.URL)
+	if err != nil {
+		return fmt.Errorf("invalid URL %s: %w", ipt.URL, err)
+	}
+	ipt.endpoint = endpoint
+	return nil
+}
+
+func (ipt *Input) buildTags() map[string]string {
 	tags := make(map[string]string)
 
-	// on production, ipt.Tagger is empty, but we may add testing tagger here.
 	var globalTags map[string]string
 	if ipt.Election {
-		globalTags = ipt.Tagger.ElectionTags()
-		ipt.log.Infof("add global election tags %q", globalTags)
+		globalTags = ipt.tagger.ElectionTags()
+		ipt.logger.Debugf("using election tags: %v", globalTags)
 	} else {
-		globalTags = ipt.Tagger.HostTags()
-		ipt.log.Infof("add global host tags %q", globalTags)
+		globalTags = ipt.tagger.HostTags()
+		ipt.logger.Debugf("using host tags: %v", globalTags)
 	}
 
 	mergedTags := inputs.MergeTags(globalTags, ipt.Tags, ipt.URL)
@@ -143,24 +161,33 @@ func (ipt *Input) setup() error {
 		tags[k] = v
 	}
 
-	// set instance tag.
-	// The `instance' tag should not override.
 	if !ipt.DisableInstanceTag {
 		if _, ok := mergedTags["instance"]; !ok {
-			tags["instance"] = u.Host
+			tags["instance"] = ipt.endpoint.Host
 		}
 	}
 
-	if ipt.BearerTokenFile != "" {
-		token, err := os.ReadFile(ipt.BearerTokenFile)
-		if err != nil {
-			return err
-		}
-		if _, exist := ipt.HTTPHeaders["Authorization"]; !exist {
-			ipt.HTTPHeaders["Authorization"] = fmt.Sprintf("Bearer %s", strings.TrimSpace(string(token)))
-		}
+	return tags
+}
+
+func (ipt *Input) setupAuth() error {
+	if ipt.BearerTokenFile == "" {
+		return nil
 	}
 
+	token, err := os.ReadFile(ipt.BearerTokenFile)
+	if err != nil {
+		return fmt.Errorf("read bearer token file failed: %w", err)
+	}
+
+	if _, exist := ipt.HTTPHeaders["Authorization"]; !exist {
+		ipt.HTTPHeaders["Authorization"] = fmt.Sprintf("Bearer %s", strings.TrimSpace(string(token)))
+	}
+
+	return nil
+}
+
+func (ipt *Input) buildScraperOptions(tags map[string]string) []promscrape.Option {
 	opts := []promscrape.Option{
 		promscrape.WithSource("promv2/" + ipt.Source),
 		promscrape.WithMeasurement(ipt.MeasurementName),
@@ -171,10 +198,7 @@ func (ipt *Input) setup() error {
 		promscrape.WithCallback(ipt.callback),
 	}
 
-	if len(ipt.CaCerts) != 0 ||
-		ipt.CertKey != "" ||
-		ipt.Cert != "" ||
-		ipt.InsecureSkipVerify {
+	if ipt.hasTLSConfig() {
 		opts = append(opts,
 			promscrape.WithTLSOpen(true),
 			promscrape.WithCacertFiles(ipt.CaCerts),
@@ -184,28 +208,27 @@ func (ipt *Input) setup() error {
 		)
 	}
 
-	ps, err := promscrape.NewPromScraper(opts...)
-	if err != nil {
-		return err
-	}
+	return opts
+}
 
-	ipt.scraper = ps
-	ipt.Interval = config.ProtectedInterval(time.Second, time.Minute*5, ipt.Interval)
-	return nil
+func (ipt *Input) hasTLSConfig() bool {
+	return len(ipt.CaCerts) != 0 ||
+		ipt.CertKey != "" ||
+		ipt.Cert != "" ||
+		ipt.InsecureSkipVerify
 }
 
 func (ipt *Input) scrape(timestamp int64) {
 	ipt.lastStart = time.Now()
-	// reset count
-	ipt.count = 0
+	ipt.pointCount = 0
 
 	ipt.scraper.SetTimestamp(timestamp)
 	if err := ipt.scraper.ScrapeURL(ipt.URL); err != nil {
-		ipt.log.Warn(err)
+		ipt.logger.Warnf("scrape failed: %s", err)
 	}
 
 	scrapeTotal.WithLabelValues(ipt.Source,
-		fmt.Sprintf(":%s%s", ipt.endpoint.Port(), ipt.endpoint.Path)).Observe(float64(ipt.count))
+		fmt.Sprintf(":%s%s", ipt.endpoint.Port(), ipt.endpoint.Path)).Observe(float64(ipt.pointCount))
 }
 
 func (ipt *Input) callback(pts []*point.Point) error {
@@ -215,16 +238,16 @@ func (ipt *Input) callback(pts []*point.Point) error {
 
 	cost := time.Since(ipt.lastStart)
 
-	if err := ipt.Feeder.Feed(
+	if err := ipt.feeder.Feed(
 		point.Metric,
 		pts,
 		dkio.WithCollectCost(cost),
 		dkio.WithSource(dkio.FeedSource(inputName, ipt.Source)),
 		dkio.WithElection(ipt.Election),
 	); err != nil {
-		ipt.log.Warnf("failed to feed prom metrics: %s", err)
+		ipt.logger.Warnf("feed metrics failed: %s", err)
 	}
-	ipt.count += len(pts)
+	ipt.pointCount += len(pts)
 
 	return nil
 }
@@ -236,28 +259,32 @@ func (ipt *Input) Terminate() {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
+	ticker := time.NewTicker(inputs.ElectionPauseTimeout)
+	defer ticker.Stop()
+
 	select {
 	case ipt.chPause <- true:
 		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
+	case <-ticker.C:
+		return fmt.Errorf("pause %s timeout", inputName)
 	}
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
+	ticker := time.NewTicker(inputs.ElectionResumeTimeout)
+	defer ticker.Stop()
+
 	select {
 	case ipt.chPause <- false:
 		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
+	case <-ticker.C:
+		return fmt.Errorf("resume %s timeout", inputName)
 	}
 }
 
 func newProm() *Input {
 	return &Input{
-		Source:              "not-set",
+		Source:              defaultSource,
 		KeepExistMetricName: true,
 		HonorTimestamps:     true,
 
@@ -265,8 +292,8 @@ func newProm() *Input {
 		chPause:     make(chan bool, inputs.ElectionPauseChannelLength),
 		HTTPHeaders: make(map[string]string),
 		Tags:        make(map[string]string),
-		Feeder:      dkio.DefaultFeeder(),
-		Tagger:      datakit.DefaultGlobalTagger(),
+		feeder:      dkio.DefaultFeeder(),
+		tagger:      datakit.DefaultGlobalTagger(),
 		semStop:     cliutils.NewSem(),
 	}
 }
