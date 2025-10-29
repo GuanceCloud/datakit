@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.84.1(2025/10/29) {#cl-1.84.1}
+
+This release is a hotfix containing the following fixes:
+
+### Bug Fixes {#cl-1.84.1-fix}
+
+- Fixed Redis collector `up` metric issue (#2863)
+- Removed noise data on field `message` for Kubernetes objects (#2859)
+- Fixed potential goroutine leak in `promv2` collector (#2864)
+- Fixed wildcard path issue in container log non-mount collection (#2861)
+
+---
+
 ## 1.84.0(2025/10/22) {#cl-1.84.0}
 
 This release is a feature update with the following changes:

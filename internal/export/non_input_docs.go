@@ -202,7 +202,7 @@ func envDataway() []*inputs.ENVInfo {
 		{
 			ENVName: "ENV_DATAWAY_MAX_RAW_BODY_SIZE",
 			Type:    doc.Int,
-			Default: `10MB`,
+			Default: `1MB`,
 			Desc:    "Set upload package size(before gzip)",
 			DescZh:  "数据上传时单包（未压缩）大小",
 		},
