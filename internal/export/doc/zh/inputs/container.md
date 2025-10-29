@@ -317,6 +317,35 @@ rules:
 ```
 
 <!-- markdownlint-disable MD013 -->
+### Kubernetes 对象 YAML 字段过滤 {#yaml-filter-fields}
+<!-- markdownlint-enable -->
+
+DataKit 在采集 Kubernetes 对象数据时，会获取并存储对应资源的 YAML 配置。为了减少存储空间占用、提高传输效率并避免包含不必要或敏感的信息，DataKit 会对原始 YAML 进行字段过滤处理。
+
+过滤的字段类型如下：
+
+1. **Status 字段**：移除所有资源的 `status` 字段，因为该字段包含的是集群计算的运行时状态信息，并非用户定义的配置内容，且在 `kubectl apply` 时会被忽略。
+
+1. **系统生成的元数据**：移除以下自动生成的 metadata 字段：
+   - `metadata.creationTimestamp`
+   - `metadata.resourceVersion`
+   - `metadata.uid`
+   - `metadata.generation`
+   - `metadata.managedFields`
+
+1. **特定注解（Annotations）**：过滤掉以下前缀的注解，这些通常是平台管理工具（如 `Rancher`、`ArgoCD`、`Flux` 等）自动添加的运维注解，不包含业务配置信息：
+
+```text
+argocd.argoproj.io/*
+cattle.io/*
+field.cattle.io/*
+fluxcd.io/*
+rancher.io/*
+kubectl.kubernetes.io/*
+nginx.ingress.kubernetes.io/*
+```
+
+<!-- markdownlint-disable MD013 -->
 ### Kubernetes YAML 敏感字段屏蔽 {#yaml-secret}
 <!-- markdownlint-enable -->
 

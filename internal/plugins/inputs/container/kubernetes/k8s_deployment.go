@@ -18,7 +18,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/diff"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-	"sigs.k8s.io/yaml"
 
 	apiappsv1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/informers"
@@ -198,7 +197,7 @@ func (d *deployment) buildObjectPoints(list *apiappsv1.DeploymentList) []*point.
 	var pts []*point.Point
 	opts := append(point.DefaultObjectOptions(), point.WithTime(ntp.Now()))
 
-	for _, item := range list.Items {
+	for idx, item := range list.Items {
 		var kvs point.KVs
 
 		kvs = kvs.AddTag("name", string(item.UID))
@@ -237,10 +236,10 @@ func (d *deployment) buildObjectPoints(list *apiappsv1.DeploymentList) []*point.
 		kvs = kvs.Add("available", item.Status.AvailableReplicas)
 		kvs = kvs.Add("unavailable", item.Status.UnavailableReplicas)
 
-		if y, err := yaml.Marshal(item); err == nil {
-			kvs = kvs.Add("yaml", string(y))
+		if yamlStr := getCleanYAML(&list.Items[idx]); yamlStr != "" {
+			kvs = kvs.Add("yaml", yamlStr)
 		}
-		kvs = kvs.Add("annotations", pointutil.MapToJSON(item.Annotations))
+		kvs = kvs.Add("annotations", pointutil.MapToJSON(filterAnnotations(item.Annotations)))
 		kvs = append(kvs, pointutil.ConvertDFLabels(item.Labels)...)
 
 		msg := pointutil.PointKVsToJSON(kvs)

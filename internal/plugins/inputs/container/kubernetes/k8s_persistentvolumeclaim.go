@@ -14,7 +14,6 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-	"sigs.k8s.io/yaml"
 
 	apicorev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
@@ -65,7 +64,7 @@ func (p *persistentvolumeclaim) buildObjectPoints(list *apicorev1.PersistentVolu
 	var pts []*point.Point
 	opts := point.DefaultObjectOptions()
 
-	for _, item := range list.Items {
+	for idx, item := range list.Items {
 		var kvs point.KVs
 
 		kvs = kvs.AddTag("name", string(item.UID))
@@ -99,10 +98,10 @@ func (p *persistentvolumeclaim) buildObjectPoints(list *apicorev1.PersistentVolu
 		sort.Strings(accessModes)
 		kvs = kvs.Add("access_modes", strings.Join(accessModes, ","))
 
-		if y, err := yaml.Marshal(item); err == nil {
-			kvs = kvs.Add("yaml", string(y))
+		if yamlStr := getCleanYAML(&list.Items[idx]); yamlStr != "" {
+			kvs = kvs.Add("yaml", yamlStr)
 		}
-		kvs = kvs.Add("annotations", pointutil.MapToJSON(item.Annotations))
+		kvs = kvs.Add("annotations", pointutil.MapToJSON(filterAnnotations(item.Annotations)))
 		kvs = append(kvs, pointutil.ConvertDFLabels(item.Labels)...)
 
 		msg := pointutil.PointKVsToJSON(kvs)

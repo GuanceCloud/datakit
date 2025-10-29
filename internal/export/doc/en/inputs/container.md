@@ -317,6 +317,33 @@ rules:
   verbs: ["get", "list", "watch"]
 ```
 
+### Kubernetes Object YAML Field Filtering {#yaml-filter-fields}
+
+When DataKit collects Kubernetes object data, it retrieves and stores the YAML configurations of the corresponding resources. To reduce storage usage, improve transmission efficiency, and avoid including unnecessary or sensitive information, DataKit performs field filtering on the original YAML.
+
+Types of Filtered Fields:
+
+1. **Status Field**: Removes the `status` field from all resources, as it contains runtime status information calculated by the cluster, not user-defined configuration content, and is ignored during `kubectl apply`.
+
+1. **System-generated Metadata**: Removes the following automatically generated metadata fields:
+    - `metadata.creationTimestamp`
+    - `metadata.resourceVersion`
+    - `metadata.uid`
+    - `metadata.generation`
+    - `metadata.managedFields`
+
+1. **Specific Annotations**: Filters out annotations with the following prefixes. These are typically operational annotations automatically added by platform management tools (such as `Rancher`, `ArgoCD`, `Flux`, etc.) and do not contain business configuration information:
+
+```text
+argocd.argoproj.io/*
+cattle.io/*
+field.cattle.io/*
+fluxcd.io/*
+rancher.io/*
+kubectl.kubernetes.io/*
+nginx.ingress.kubernetes.io/*
+```
+
 <!-- markdownlint-disable MD013 -->
 ### Kubernetes YAML Sensitive Field Mask {#yaml-secret}
 <!-- markdownlint-enable -->
