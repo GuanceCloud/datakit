@@ -33,18 +33,43 @@ func newPromScraper(urlstr string, opts []promscrape.Option) (*promScraper, erro
 	if err != nil {
 		return nil, err
 	}
-	p := promScraper{urlstr: u.String()}
 
-	tags := map[string]string{
-		"host":     splitHost(u.Host),
-		"instance": u.Host,
-	}
+	p := promScraper{urlstr: u.String()}
+	tags := buildScraperTags(u.Host)
 
 	p.pm, err = promscrape.NewPromScraper(append(opts, promscrape.WithExtraTags(tags))...)
 	if err != nil {
 		return nil, err
 	}
 	return &p, nil
+}
+
+func buildScraperTags(host string) map[string]string {
+	return map[string]string{
+		"host":     extractHostFromAddress(host),
+		"instance": host,
+	}
+}
+
+func extractHostFromAddress(address string) string {
+	host := address
+
+	if u, err := url.Parse(address); err == nil && u.Host != "" {
+		host = u.Host
+		if ip, _, err := net.SplitHostPort(u.Host); err == nil {
+			host = ip
+		}
+	} else {
+		if ip, _, err := net.SplitHostPort(address); err == nil {
+			host = ip
+		}
+	}
+
+	if host == "localhost" || net.ParseIP(host).IsLoopback() {
+		return ""
+	}
+
+	return host
 }
 
 func (p *promScraper) targetURL() string  { return p.urlstr }
@@ -82,26 +107,4 @@ func buildPromOptionsWithAuth(auth *Auth) ([]promscrape.Option, error) {
 	}
 
 	return opts, nil
-}
-
-func splitHost(remote string) string {
-	host := remote
-
-	// try get 'host' tag from remote URL.
-	if u, err := url.Parse(remote); err == nil && u.Host != "" { // like scheme://host:[port]/...
-		host = u.Host
-		if ip, _, err := net.SplitHostPort(u.Host); err == nil {
-			host = ip
-		}
-	} else { // not URL, only IP:Port
-		if ip, _, err := net.SplitHostPort(remote); err == nil {
-			host = ip
-		}
-	}
-
-	if host == "localhost" || net.ParseIP(host).IsLoopback() {
-		return ""
-	}
-
-	return host
 }

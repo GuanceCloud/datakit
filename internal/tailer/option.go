@@ -275,42 +275,6 @@ func buildConfig(opts []Option) *config {
 	return cfg
 }
 
-func mergeOptions(oldOpts, newOpts []Option) []Option {
-	cfg := buildConfig(oldOpts)
-	for _, opt := range newOpts {
-		opt(cfg)
-	}
-	return []Option{
-		WithSockets(cfg.sockets),
-		WithIgnorePatterns(cfg.ignorePatterns),
-		WithSource(cfg.source),
-		WithService(cfg.service),
-		WithPipeline(cfg.pipeline),
-		WithStorageIndex(cfg.storageIndex),
-		WithCharacterEncoding(cfg.characterEncoding),
-
-		EnableDebugFields(cfg.enableDebugFields),
-		EnableMultiline(cfg.enableMultiline),
-		WithMultilinePatterns(cfg.multilinePatterns),
-		WithMaxMultilineLength(cfg.maxMultilineLength),
-
-		WithMaxOpenFiles(cfg.maxOpenFiles),
-		WithIgnoreDeadLog(cfg.ignoreDeadLog),
-		WithFileSizeThreshold(cfg.fileSizeThreshold),
-		WithFromBeginning(cfg.fromBeginning),
-		WithRemoveAnsiEscapeCodes(cfg.removeAnsiEscapeCodes),
-
-		WithExtraTags(cfg.extraTags),
-		WithFieldWhitelist(cfg.fieldWhitelist),
-
-		WithForwardFunc(cfg.forwardFunc),
-		WithInsideFilepathFunc(cfg.insideFilepathFunc),
-
-		WithTextParserMode(cfg.mode),
-		WithFeeder(cfg.feeder),
-	}
-}
-
 type ForwardFunc func(filename, text string, fields map[string]interface{}) error
 
 type Mode uint8

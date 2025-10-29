@@ -36,51 +36,62 @@ var (
 const (
 	sampleConfig = `
 [inputs.kubernetesprometheus]
-  node_local      = true
+  # Enable node-local scraping mode
+  node_local = true
+
+  # Scraping interval for metrics collection
   scrape_interval = "30s"
 
-  ## Keep Exist Metric Name
-  ## If the keep_exist_metric_name is true, keep the raw value for field names.
+  # Keep original metric names from Prometheus targets
+  # If true, preserves the raw field names from the source metrics
   keep_exist_metric_name = true
 
-  ## Use the timestamps provided by the target. Set to 'false' to use the scrape time.
+  # Use timestamps provided by the target instead of scrape time
+  # Set to false to use the time when metrics are scraped
   honor_timestamps = true
 
-  enable_discovery_of_prometheus_pod_annotations     = false
-  enable_discovery_of_prometheus_service_annotations = false
-  enable_discovery_of_prometheus_pod_monitors        = false
-  enable_discovery_of_prometheus_service_monitors    = false
+  # Enable discovery of Prometheus annotations on pods
+  enable_discovery_of_prometheus_pod_annotations = false
 
+  # Enable discovery of Prometheus annotations on services
+  enable_discovery_of_prometheus_service_annotations = false
+
+  # Enable discovery of PodMonitor custom resources
+  enable_discovery_of_prometheus_pod_monitors = false
+
+  # Enable discovery of ServiceMonitor custom resources
+  enable_discovery_of_prometheus_service_monitors = false
+
+  # Global tags applied to all collected metrics
   [inputs.kubernetesprometheus.global_tags]
     instance = "__kubernetes_mate_instance"
     host     = "__kubernetes_mate_host"
 
-  ## Example
+  # Example instance configuration
   #[[inputs.kubernetesprometheus.instances]]
-  #  role       = "node"
+  #  role = "node"
   #  namespaces = []
-  #  selector   = ""
-  #  scrape   = "true"
-  #  scheme   = "https"
-  #  port     = "__kubernetes_node_kubelet_endpoint_port"
-  #  path     = "/metrics"
+  #  selector = ""
+  #  scrape = "true"
+  #  scheme = "https"
+  #  port = "__kubernetes_node_kubelet_endpoint_port"
+  #  path = "/metrics"
   #
-  #  # Add HTTP headers to data pulling (Example basic authentication).
   #  [inputs.kubernetesprometheus.instances.http_headers]
-  #     # Authorization = ""
+  #    # Authorization = "Bearer your-token-here"
   #
   #  [inputs.kubernetesprometheus.instances.custom]
-  #    measurement        = "kubernetes_node_metrics"
+  #    measurement = "kubernetes_node_metrics"
   #    job_as_measurement = false
   #    [inputs.kubernetesprometheus.instances.custom.tags]
-  #      node_name        = "__kubernetes_node_name"
+  #      node_name = "__kubernetes_node_name"
   #
   #  [inputs.kubernetesprometheus.instances.auth]
   #    bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
   #    [inputs.kubernetesprometheus.instances.auth.tls_config]
   #      insecure_skip_verify = true
   #      ca_certs = []
-  #      cert     = ""
+  #      cert = ""
   #      cert_key = ""
 `
 )

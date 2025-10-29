@@ -36,7 +36,7 @@ type ScrapeConfig struct {
 	Auth                *Auth             `toml:"auth"`
 }
 
-func startScraperConsumer(ctx context.Context, log *logger.Logger, name string, scrapeInterval time.Duration, in <-chan scraper) {
+func startScraperConsumer(ctx context.Context, logger *logger.Logger, workerName string, scrapeInterval time.Duration, in <-chan scraper) {
 	var scrapers []scraper
 	start := ntp.Now()
 
@@ -46,36 +46,41 @@ func startScraperConsumer(ctx context.Context, log *logger.Logger, name string, 
 	for {
 		select {
 		case <-ctx.Done():
+			logger.Infof("%s: worker stopped", workerName)
 			return
 
 		case sp, ok := <-in:
 			if !ok {
-				log.Warnf("%s: channel is closed, exit", name)
+				logger.Warnf("%s: scraper channel closed, exiting", workerName)
 				return
 			}
 			if len(scrapers) > maxScrapersPerWorker {
-				log.Warnf("%s: scrapers is over limit %d", name, maxScrapersPerWorker)
+				logger.Warnf("%s: scraper count exceeds limit (%d), dropping new scraper", workerName, maxScrapersPerWorker)
 			} else {
 				scrapers = append(scrapers, sp)
+				logger.Debugf("%s: added new scraper, total: %d", workerName, len(scrapers))
 			}
 
 		case tt := <-ticker.C:
 			var activeScrapers []scraper
 			for _, sp := range scrapers {
 				if !sp.isTerminated() {
-					log.Debugf("%s: scraper terminated, target URL: %s", name, sp.targetURL())
 					activeScrapers = append(activeScrapers, sp)
+				} else {
+					logger.Debugf("%s: removing terminated scraper: %s", workerName, sp.targetURL())
 				}
 			}
 
 			start = inputs.AlignTime(tt, start, scrapeInterval)
 			for _, sp := range activeScrapers {
 				if err := sp.scrape(start.UnixNano()); err != nil {
-					log.Warnf("%s: failed of scrape, err: %s", name, err)
+					logger.Warnf("%s: scrape failed for %s: %s", workerName, sp.targetURL(), err)
 				}
 			}
 
-			log.Infof("%s: removed terminated scrapers, count(%d-%d)", name, len(scrapers), len(activeScrapers))
+			if len(scrapers) != len(activeScrapers) {
+				logger.Infof("%s: cleaned up terminated scrapers (%d -> %d)", workerName, len(scrapers), len(activeScrapers))
+			}
 			scrapers = activeScrapers
 		}
 	}

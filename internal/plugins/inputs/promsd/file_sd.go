@@ -29,27 +29,27 @@ type FileSD struct {
 	files  []string
 	hashes []string
 
-	tasks []scraper
-	log   *logger.Logger
+	tasks  []scraper
+	logger *logger.Logger
 }
 
-func (sd *FileSD) SetLogger(log *logger.Logger) { sd.log = log }
+func (sd *FileSD) SetLogger(logger *logger.Logger) { sd.logger = logger }
 
 func (sd *FileSD) StartScraperProducer(ctx context.Context, cfg *ScrapeConfig, opts []promscrape.Option, out chan<- scraper) {
-	sd.log.Infof("file_sd: start %v", sd.Patterns)
+	sd.logger.Infof("file_sd: starting service discovery for patterns: %v", sd.Patterns)
 
 	ticker := time.NewTicker(sd.RefreshInterval)
 	defer ticker.Stop()
 
 	for {
 		if err := sd.produceScrapers(ctx, cfg, opts, out); err != nil {
-			sd.log.Warnf("file_sd: failed of produce scrapers, err: %s", err)
+			sd.logger.Warnf("file_sd: failed to produce scrapers: %s", err)
 		}
 
 		select {
 		case <-ctx.Done():
 			sd.terminatedTasks()
-			sd.log.Info("file_sd: terminating all tasks and exitting")
+			sd.logger.Info("file_sd: terminating all tasks and exiting")
 			return
 
 		case <-ticker.C:
@@ -65,7 +65,7 @@ func (sd *FileSD) produceScrapers(ctx context.Context, cfg *ScrapeConfig, opts [
 	}
 
 	if reflect.DeepEqual(sd.files, files) && reflect.DeepEqual(sd.hashes, hashes) {
-		sd.log.Debugf("file_sd: files unchanged")
+		sd.logger.Debugf("file_sd: files unchanged")
 		return nil
 	}
 
@@ -96,7 +96,7 @@ func (sd *FileSD) produceScrapers(ctx context.Context, cfg *ScrapeConfig, opts [
 	sd.files = files
 	sd.hashes = hashes
 	sd.tasks = scrapers
-	sd.log.Infof("file_sd: found new targetGroups and replaced, len(%d) files", len(sd.files))
+	sd.logger.Infof("file_sd: updated target groups, processed %d files", len(sd.files))
 	return nil
 }
 

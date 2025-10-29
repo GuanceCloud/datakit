@@ -36,13 +36,13 @@ type ConsulSD struct {
 
 	clientConfig *api.Config
 	queryOptions *api.QueryOptions
-	log          *logger.Logger
+	logger       *logger.Logger
 }
 
-func (sd *ConsulSD) SetLogger(log *logger.Logger) { sd.log = log }
+func (sd *ConsulSD) SetLogger(logger *logger.Logger) { sd.logger = logger }
 
 func (sd *ConsulSD) StartScraperProducer(ctx context.Context, cfg *ScrapeConfig, opts []promscrape.Option, out chan<- scraper) {
-	sd.log.Infof("consul_sd: start %s", sd.Server)
+	sd.logger.Infof("consul_sd: starting service discovery for %s", sd.Server)
 	sd.setup()
 
 	ticker := time.NewTicker(sd.RefreshInterval)
@@ -50,13 +50,13 @@ func (sd *ConsulSD) StartScraperProducer(ctx context.Context, cfg *ScrapeConfig,
 
 	for {
 		if err := sd.produceScrapers(ctx, cfg, opts, out); err != nil {
-			sd.log.Warnf("consul_sd: failed of produce scrapers, err: %s", err)
+			sd.logger.Warnf("consul_sd: failed to produce scrapers: %s", err)
 		}
 
 		select {
 		case <-ctx.Done():
 			sd.terminatedTasks()
-			sd.log.Info("consul_sd: terminating all tasks and exitting")
+			sd.logger.Info("consul_sd: terminating all tasks and exiting")
 			return
 
 		case <-ticker.C:
@@ -72,7 +72,7 @@ func (sd *ConsulSD) produceScrapers(ctx context.Context, cfg *ScrapeConfig, opts
 	}
 
 	if !sd.targetsChanged(newTargets) {
-		sd.log.Debugf("consul_sd: targets unchanged")
+		sd.logger.Debugf("consul_sd: targets unchanged")
 		return nil
 	}
 
@@ -97,7 +97,7 @@ func (sd *ConsulSD) produceScrapers(ctx context.Context, cfg *ScrapeConfig, opts
 	sd.terminatedTasks()
 	sd.targets = newTargets
 	sd.tasks = scrapers
-	sd.log.Infof("consul_sd: found new targets and replaced")
+	sd.logger.Infof("consul_sd: updated targets, found %d new scrapers", len(scrapers))
 	return nil
 }
 
@@ -113,7 +113,7 @@ func (sd *ConsulSD) convertTargetsToScraper(cfg *ScrapeConfig, opts []promscrape
 
 		paramValues, err := url.ParseQuery(cfg.Params)
 		if err != nil {
-			sd.log.Warnf("consul_sd: unexpected scrape params: %s", cfg.Params)
+			sd.logger.Warnf("consul_sd: unexpected scrape params: %s", cfg.Params)
 		} else {
 			u.RawQuery = paramValues.Encode()
 		}
@@ -142,7 +142,7 @@ func (sd *ConsulSD) discoveryTargets() ([]consulSDTarget, error) {
 	for _, service := range services {
 		res, err := sd.getServiceTargets(client, service)
 		if err != nil {
-			sd.log.Warnf("get service[%s] error: %s", service, err)
+			sd.logger.Warnf("consul_sd: get service[%s] error: %s", service, err)
 			continue
 		}
 		targets = append(targets, res...)
