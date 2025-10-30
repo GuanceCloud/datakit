@@ -22,48 +22,48 @@ import (
 )
 
 type HTTPSD struct {
-	ServiceURL      string        `toml:"service_url"`
-	RefreshInterval time.Duration `toml:"refresh_interval"`
-	Auth            *Auth         `toml:"auth"`
+	ServiceURL      string            `toml:"service_url"`
+	RefreshInterval time.Duration     `toml:"refresh_interval"`
+	HTTPHeaders     map[string]string `toml:"http_headers"`
+	Auth            *Auth             `toml:"auth"`
 
 	targetGroups TargetGroups
 	tasks        []scraper
-	log          *logger.Logger
+	logger       *logger.Logger
 }
 
-func (sd *HTTPSD) SetLogger(log *logger.Logger) { sd.log = log }
+func (sd *HTTPSD) SetLogger(logger *logger.Logger) { sd.logger = logger }
 
 func (sd *HTTPSD) StartScraperProducer(ctx context.Context, cfg *ScrapeConfig, opts []promscrape.Option, out chan<- scraper) {
-	sd.log.Infof("http_sd: start %s", sd.ServiceURL)
+	sd.logger.Infof("http_sd: starting service discovery for %s", sd.ServiceURL)
 
 	ticker := time.NewTicker(sd.RefreshInterval)
 	defer ticker.Stop()
 
 	for {
 		if err := sd.produceScrapers(ctx, cfg, opts, out); err != nil {
-			sd.log.Warnf("http_sd: failed of produce scrapers, err: %s", err)
+			sd.logger.Warnf("http_sd: failed to produce scrapers: %s", err)
 		}
 
 		select {
 		case <-ctx.Done():
-			sd.terminatedTasks()
-			sd.log.Info("http_sd: terminating all tasks and exitting")
+			sd.terminateTasks()
+			sd.logger.Info("http_sd: terminating all tasks and exiting")
 			return
 
 		case <-ticker.C:
-			// next
 		}
 	}
 }
 
 func (sd *HTTPSD) produceScrapers(ctx context.Context, cfg *ScrapeConfig, opts []promscrape.Option, out chan<- scraper) error {
-	newTargetGroups, err := sd.discoveryTargetGroups()
+	newTargetGroups, err := sd.discoverTargetGroups()
 	if err != nil {
 		return err
 	}
 
 	if !sd.targetGroupsChanged(newTargetGroups) {
-		sd.log.Debugf("http_sd: targetGroups unchanged")
+		sd.logger.Debugf("http_sd: target groups unchanged")
 		return nil
 	}
 
@@ -74,71 +74,96 @@ func (sd *HTTPSD) produceScrapers(ctx context.Context, cfg *ScrapeConfig, opts [
 
 	for _, scraper := range scrapers {
 		if ctx.Err() != nil {
-			return err
+			return ctx.Err()
 		}
 
 		select {
 		case out <- scraper:
-			// next
 		case <-ctx.Done():
 			return ctx.Err()
 		}
 	}
 
-	sd.terminatedTasks()
+	sd.terminateTasks()
 	sd.targetGroups = newTargetGroups
 	sd.tasks = scrapers
-	sd.log.Infof("http_sd: found new targetGroups and replaced")
+	sd.logger.Infof("http_sd: updated target groups, found %d new scrapers", len(scrapers))
 	return nil
 }
 
-func (sd *HTTPSD) discoveryTargetGroups() (TargetGroups, error) {
+func (sd *HTTPSD) discoverTargetGroups() (TargetGroups, error) {
 	req, err := http.NewRequest("GET", sd.ServiceURL, nil)
 	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	for k, v := range sd.HTTPHeaders {
+		req.Header.Set(k, v)
+	}
+
+	if err := sd.addAuthToRequest(req); err != nil {
 		return nil, err
 	}
 
-	if sd.Auth != nil && sd.Auth.BearerTokenFile != "" {
-		token, err := os.ReadFile(sd.Auth.BearerTokenFile)
-		if err != nil {
-			return nil, err
-		}
-		req.Header.Set("Authorization", "Bearer "+string(bytes.TrimSpace(token)))
-	}
-
 	clientOpts := httpcli.NewOptions()
-
-	if sd.Auth != nil && sd.Auth.TLSClientConfig != nil {
-		config, err := sd.Auth.TLSClientConfig.TLSConfig()
-		if err != nil {
-			return nil, err
-		}
-		clientOpts.TLSClientConfig = config
+	if err := sd.configureTLS(clientOpts); err != nil {
+		return nil, err
 	}
 
 	client := httpcli.Cli(clientOpts)
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code returned when get %q: %d", sd.ServiceURL, resp.StatusCode)
+		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer resp.Body.Close() // nolint:errcheck
 
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code %d for %s", resp.StatusCode, sd.ServiceURL)
+	}
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	var groups TargetGroups
 	if err := json.Unmarshal(body, &groups); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
+
+	sd.logger.Debugf("http_sd: discovered %d target groups", len(groups))
 	return groups, nil
 }
 
-func (sd *HTTPSD) terminatedTasks() {
+func (sd *HTTPSD) addAuthToRequest(req *http.Request) error {
+	if sd.Auth == nil || sd.Auth.BearerTokenFile == "" {
+		return nil
+	}
+
+	token, err := os.ReadFile(sd.Auth.BearerTokenFile)
+	if err != nil {
+		return fmt.Errorf("failed to read bearer token file: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+string(bytes.TrimSpace(token)))
+	return nil
+}
+
+func (sd *HTTPSD) configureTLS(clientOpts *httpcli.Options) error {
+	if sd.Auth == nil || sd.Auth.TLSClientConfig == nil {
+		return nil
+	}
+
+	config, err := sd.Auth.TLSClientConfig.TLSConfig()
+	if err != nil {
+		return fmt.Errorf("failed to create TLS config: %w", err)
+	}
+
+	clientOpts.TLSClientConfig = config
+	return nil
+}
+
+func (sd *HTTPSD) terminateTasks() {
 	for _, task := range sd.tasks {
 		task.markAsTerminated()
 	}

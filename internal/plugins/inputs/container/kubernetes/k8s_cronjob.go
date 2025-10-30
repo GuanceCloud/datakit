@@ -13,7 +13,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-	"sigs.k8s.io/yaml"
 
 	apibatchv1 "k8s.io/api/batch/v1"
 	"k8s.io/client-go/informers"
@@ -110,7 +109,7 @@ func (c *cronjob) buildObjectPoints(list *apibatchv1.CronJobList) []*point.Point
 	var pts []*point.Point
 	opts := append(point.DefaultObjectOptions(), point.WithTime(ntp.Now()))
 
-	for _, item := range list.Items {
+	for idx, item := range list.Items {
 		var kvs point.KVs
 
 		kvs = kvs.AddTag("name", string(item.UID))
@@ -127,10 +126,10 @@ func (c *cronjob) buildObjectPoints(list *apibatchv1.CronJobList) []*point.Point
 			kvs = kvs.Add("suspend", *item.Spec.Suspend)
 		}
 
-		if y, err := yaml.Marshal(item); err == nil {
-			kvs = kvs.Add("yaml", string(y))
+		if yamlStr := getCleanYAML(&list.Items[idx]); yamlStr != "" {
+			kvs = kvs.Add("yaml", yamlStr)
 		}
-		kvs = kvs.Add("annotations", pointutil.MapToJSON(item.Annotations))
+		kvs = kvs.Add("annotations", pointutil.MapToJSON(filterAnnotations(item.Annotations)))
 		kvs = append(kvs, pointutil.ConvertDFLabels(item.Labels)...)
 
 		msg := pointutil.PointKVsToJSON(kvs)

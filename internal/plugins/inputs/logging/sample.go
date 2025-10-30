@@ -7,80 +7,87 @@
 package logging
 
 var sampleCfg = `
+# Log collection configuration example
 [[inputs.logging]]
-  # List of log files, supports batch specification using glob patterns.
-  # It is recommended to use absolute paths and specify file extensions.
-  # Narrow the scope as much as possible to avoid collecting unexpected files.
+  # ========== File Configuration ==========
+  # List of log file paths, supports glob patterns for batch specification
+  # Recommended to use absolute paths with file extensions to avoid collecting unexpected files
   logfiles = [
-    # UNIX-like log path example:
-    # "/var/log/*.log",  # All log files in the directory
-    # "/var/log/*.txt",  # All txt files in the directory
-    # "/var/log/sys*",   # All files prefixed with sys in the directory
-    # "/var/log/syslog", # Unix-style file path
+    # Linux/Unix examples:
+    # "/var/log/*.log",     # All .log files in directory
+    # "/var/log/syslog",    # System log file
+    # "/var/log/nginx/*",   # Nginx log directory
+    # "/opt/app/logs/*.txt", # Application log files
 
-    # Windows log path example:
-    # "C:/path/to/*.txt",
-    # or like this(with space in path):
-    # '''C:\\path\\to some\\*.txt''',
+    # Windows examples:
+    # "C:/logs/*.log",
+    # "D:/app/logs/*.txt",
+    # '''C:\\Program Files\\App\\logs\\*.log''', # Use triple quotes for paths with spaces
   ]
 
-  ## Socket currently supports two protocols: tcp/udp. It is recommended to use internal
-  ## network ports for security.
+  # Socket log reception, supports tcp/udp protocols
+  # Recommended to use internal network ports for security
   sockets = [
-   #"tcp://0.0.0.0:9540",
-   #"udp://0.0.0.0:9541",
+    # "tcp://0.0.0.0:9540",  # TCP listening port
+    # "udp://0.0.0.0:9541",  # UDP listening port
   ]
 
-  # File path filtering using glob patterns, any file matching these patterns will not be collected
-  ignore = [""]
+  # File path filtering, files matching these patterns will be ignored
+  ignore = [
+    # "*.tmp",
+    # "*.swp",
+    # "/var/log/old/*",
+  ]
 
-  # Logging source, defaults to 'default' if empty
+  # ========== Log Processing Configuration ==========
+  # Log source identifier, defaults to 'default'
   source = ""
 
-  # Logging service, defaults to source name if empty
+  # Service name, defaults to source value
   service = ""
 
-  # Pipeline script path, uses <source>.p if empty.
+  # Pipeline script path, uses <source>.p if empty
   pipeline = ""
 
-  # Set index name.
+  # Storage index name
   storage_index = ""
 
-  # Ignore logging levels(status):
-  # allowed levels: emerg/alert/critical/error/warning/info/debug/OK
+  # Ignored log levels
+  # Supported levels: emerg/alert/critical/error/warning/info/debug/OK
   ignore_status = []
 
-  # Select logging encoding
-  #    utf-8/utf-16le/utf-16le/gbk/gb18030
+  # Character encoding, supports: utf-8/utf-16le/gbk/gb18030
   character_encoding = ""
 
-  # Regexp to split multiline log.
-  # Tips: use three single quotes '''this-regexp''' to avoid escaping.
-  # Regex reference: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
-  # multiline_match = '''^\S'''
-
-  # Enable automatic multiline mode
-  auto_multiline_detection = true
-
-  # Add more multiline split patterns
-  auto_multiline_extra_patterns = []
-
-  ## Whether to remove ANSI escape codes, such as text colors in standard output
+  # Whether to remove ANSI escape codes (like terminal colors)
   remove_ansi_escape_codes = false
 
-  ## Limit the maximum number of open files, default is 500
-  ## This is a global configuration; if multiple collectors configure this, the maximum value will be used
+  # ========== Multiline Log Configuration ==========
+  # Multiline log splitting regex pattern
+  # Tip: use triple quotes '''regexp''' to avoid escaping
+  # Regex reference: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
+  # multiline_match = '''^\d{4}-\d{2}-\d{2}'''
+
+  # Enable automatic multiline detection
+  auto_multiline_detection = true
+
+  # Additional multiline splitting patterns
+  auto_multiline_extra_patterns = []
+
+  # ========== Performance Configuration ==========
+  # Maximum number of open files limit, default is 500
+  # Global configuration, maximum value is used when multiple collectors configure this
   # max_open_files = 500
 
-  ## Ignore inactive files
+  # Time to ignore inactive files, default is "1h"
   ignore_dead_log = "1h"
 
-  ## Whether to read from the beginning of log files
+  # Whether to read from the beginning of log files
   from_beginning = false
 
-  # Custom tags
+  # ========== Custom Tags ==========
   [inputs.logging.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
-  # ...
+  # environment = "production"
+  # region = "us-east-1"
+  # team = "backend"
 `

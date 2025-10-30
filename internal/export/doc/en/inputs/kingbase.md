@@ -28,16 +28,29 @@ Kingbase collector can collect the running status index from Kingbase instance.
 ```sql
 -- Create monitor user
 CREATE USER datakit with password 'datakit';
--- Grant
-GRANT sys_monitor TO datakit;
+-- Grant (compatible with different versions)
+DO $$
+BEGIN
+    BEGIN
+        GRANT sys_monitor TO datakit;
+        RAISE NOTICE 'granted sys_monitor';
+    EXCEPTION WHEN undefined_object THEN
+        GRANT pg_monitor TO datakit;
+        RAISE NOTICE 'granted pg_monitor';
+    END;
+END $$;
 ```
 
 - Enable sys_stat_statements extended logging
 
-Edit the `kingbase.conf` configuration file and change the value of `sys_stat_statements.track` to `top`.
+Edit the `kingbase.conf` configuration file and change the value of `sys_stat_statements.track` to `top`. If this configuration item is not found, add it at the end of the file.
 
 ```bash
-# track statistics SQL statement access, recommended top, default none 
+# Track statistics of SQL statement access, recommended 'top', default is 'none'
+# Old parameter (V8R5 or early V8R6)
+# pg_stat_statements.track = 'top'
+
+# New parameter
 sys_stat_statements.track = 'top'
 ```
 

@@ -14,3 +14,11 @@ func SplitFilenameFromKey(key string) string {
 	}
 	return ""
 }
+
+func InodeFromKey(key string) string {
+    arr := strings.Split(key, "::")
+    if len(arr) >= 2 {
+        return arr[1]
+    }
+    return ""
+}

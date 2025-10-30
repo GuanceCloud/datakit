@@ -33,13 +33,14 @@ import (
 const (
 	inputName = "logfwdserver"
 
-	sampleCfg = `
+	sampleConfig = `
 [inputs.logfwdserver]
   address = "0.0.0.0:9533"
 
   [inputs.logfwdserver.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
+  # Add custom tags for log forwarding
+  # service = "my-service"
+  # environment = "production"
 `
 )
 
@@ -47,73 +48,50 @@ type Input struct {
 	Address string            `toml:"address"`
 	Tags    map[string]string `toml:"tags"`
 
-	srv     *ws.Server
-	semStop *cliutils.Sem // start stop signal
-
-	feeder dkio.Feeder
-	Tagger datakit.GlobalTagger
+	server  *ws.Server
+	stopSem *cliutils.Sem
+	feeder  dkio.Feeder
+	tagger  datakit.GlobalTagger
 }
 
 var (
 	_ inputs.InputV2 = (*Input)(nil)
-	l                = logger.DefaultSLogger(inputName)
+
+	log = logger.DefaultSLogger(inputName)
 )
 
-func (ipt *Input) Stop() {
-	if ipt.srv != nil {
-		ipt.srv.Stop()
-	}
-}
+func (*Input) Catalog() string { return "log" }
 
-func (ipt *Input) Terminate() {
-	if ipt.semStop != nil {
-		ipt.semStop.Close()
-	}
-}
+func (*Input) SampleConfig() string { return sampleConfig }
 
-func (*Input) Catalog() string {
-	return "log"
-}
-
-func (*Input) SampleConfig() string {
-	return sampleCfg
-}
-
-func (*Input) AvailableArchs() []string {
-	return []string{datakit.LabelK8s}
-}
+func (*Input) AvailableArchs() []string { return []string{datakit.LabelK8s} }
 
 func (*Input) SampleMeasurement() []inputs.Measurement { return nil }
 
 func (ipt *Input) Run() {
-	l = logger.SLogger(inputName)
+	log = logger.SLogger(inputName)
 
-	if ipt.setup() {
+	if ipt.initializeServer() {
 		return
 	}
 
-	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_logfwdserver"})
-	g.Go(func(ctx context.Context) error {
-		ipt.srv.Start()
-		return nil
-	})
+	ipt.startServer()
+	ipt.waitForShutdown()
+}
 
-	for {
-		select {
-		case <-datakit.Exit.Wait():
-			ipt.Stop()
-			l.Infof("%s exit", inputName)
-			return
-
-		case <-ipt.semStop.Wait():
-			ipt.Stop()
-			l.Infof("%s return", inputName)
-			return
-		}
+func (ipt *Input) Stop() {
+	if ipt.server != nil {
+		ipt.server.Stop()
 	}
 }
 
-type message struct {
+func (ipt *Input) Terminate() {
+	if ipt.stopSem != nil {
+		ipt.stopSem.Close()
+	}
+}
+
+type logMessage struct {
 	Source       string                 `json:"source"`
 	StorageIndex string                 `json:"storage_index"`
 	Pipeline     string                 `json:"pipeline"`
@@ -122,122 +100,170 @@ type message struct {
 	Log          string                 `json:"log"`
 }
 
-func (ipt *Input) setup() bool {
-	var err error
-
+func (ipt *Input) initializeServer() bool {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			l.Infof("%s exit", inputName)
+			log.Info("logfwdserver exiting during initialization")
 			return true
 		default:
-			// nil
 		}
 
 		time.Sleep(time.Second)
 
-		ipt.srv, err = ws.NewServer(ipt.Address, "/logfwd")
+		server, err := ws.NewServer(ipt.Address, "/logfwd")
 		if err != nil {
-			l.Error(err)
+			log.Error("failed to create websocket server: %v", err)
 			continue
 		}
 
+		ipt.server = server
+		ipt.setupMessageHandler()
+		ipt.setupConnectionHandler()
 		break
-	}
-
-	ipt.srv.MsgHandler = func(s *ws.Server, c net.Conn, data []byte, op gws.OpCode) error {
-		var msg message
-		if err := json.Unmarshal(data, &msg); err != nil {
-			return err
-		}
-
-		feedName := dkio.FeedSource("logfwd", msg.Source)
-		if msg.StorageIndex != "" {
-			feedName = dkio.FeedSource(feedName, msg.StorageIndex)
-		}
-
-		tags := msg.Tags
-		if tags == nil {
-			tags = make(map[string]string)
-		}
-		for k, v := range ipt.Tags {
-			if _, ok := tags[k]; !ok {
-				tags[k] = v
-			}
-		}
-
-		pts := makePts(msg.Source, []string{msg.Log}, tags, msg.Fields)
-		if len(pts) == 0 {
-			return nil
-		}
-
-		if err := ipt.feeder.Feed(point.Logging, pts,
-			dkio.WithStorageIndex(msg.StorageIndex),
-			dkio.WithSource(feedName),
-			dkio.WithPipelineOption(&lang.LogOption{
-				ScriptMap: map[string]string{msg.Source: msg.Pipeline},
-			}),
-		); err != nil {
-			l.Errorf("logfwd failed to feed log, pod_name:%s filename:%s, err: %w", tags["pod_name"], tags["filename"], err)
-			return err
-		}
-
-		return nil
-	}
-
-	// add-cli callback
-	ipt.srv.AddCli = func(w http.ResponseWriter, r *http.Request) {
-		conn, _, _, err := gws.UpgradeHTTP(r, w)
-		if err != nil {
-			l.Error("ws.UpgradeHTTP error: %s", err.Error())
-			return
-		}
-
-		if err := ipt.srv.AddConnection(conn); err != nil {
-			l.Error(err)
-		}
 	}
 
 	return false
 }
 
-func makePts(source string, cnt []string, tags map[string]string, originFields map[string]interface{}) []*point.Point {
-	pts := []*point.Point{}
+func (ipt *Input) setupMessageHandler() {
+	ipt.server.MsgHandler = func(s *ws.Server, c net.Conn, data []byte, op gws.OpCode) error {
+		var msg logMessage
+		if err := json.Unmarshal(data, &msg); err != nil {
+			log.Error("failed to unmarshal message: %v", err)
+			return err
+		}
 
+		return ipt.processLogMessage(msg)
+	}
+}
+
+func (ipt *Input) setupConnectionHandler() {
+	ipt.server.AddCli = func(w http.ResponseWriter, r *http.Request) {
+		conn, _, _, err := gws.UpgradeHTTP(r, w)
+		if err != nil {
+			log.Error("websocket upgrade failed: %v", err)
+			return
+		}
+
+		if err := ipt.server.AddConnection(conn); err != nil {
+			log.Error("failed to add connection: %v", err)
+		}
+	}
+}
+
+func (ipt *Input) processLogMessage(msg logMessage) error {
+	feedName := ipt.buildFeedName(msg.Source, msg.StorageIndex)
+	tags := ipt.mergeTags(msg.Tags)
+
+	points := ipt.createLogPoints(msg.Source, msg.Log, tags, msg.Fields)
+	if len(points) == 0 {
+		return nil
+	}
+
+	err := ipt.feeder.Feed(point.Logging, points,
+		dkio.WithStorageIndex(msg.StorageIndex),
+		dkio.WithSource(feedName),
+		dkio.WithPipelineOption(&lang.LogOption{
+			ScriptMap: map[string]string{msg.Source: msg.Pipeline},
+		}),
+	)
+	if err != nil {
+		log.Error("failed to feed log message: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+func (ipt *Input) buildFeedName(source, storageIndex string) string {
+	feedName := dkio.FeedSource("logfwd", source)
+	if storageIndex != "" {
+		feedName = dkio.FeedSource(feedName, storageIndex)
+	}
+	return feedName
+}
+
+func (ipt *Input) mergeTags(msgTags map[string]string) map[string]string {
+	if msgTags == nil {
+		msgTags = make(map[string]string)
+	}
+	for k, v := range ipt.Tags {
+		if _, exists := msgTags[k]; !exists {
+			msgTags[k] = v
+		}
+	}
+	return msgTags
+}
+
+func (ipt *Input) createLogPoints(source, logContent string, tags map[string]string, fields map[string]interface{}) []*point.Point {
+	return ipt.buildPoints(source, []string{logContent}, tags, fields)
+}
+
+func (ipt *Input) startServer() {
+	g := goroutine.NewGroup(goroutine.Option{Name: "inputs_logfwdserver"})
+	g.Go(func(ctx context.Context) error {
+		ipt.server.Start()
+		return nil
+	})
+}
+
+func (ipt *Input) waitForShutdown() {
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			ipt.Stop()
+			log.Info("logfwdserver shutting down")
+			return
+		case <-ipt.stopSem.Wait():
+			ipt.Stop()
+			log.Info("logfwdserver terminated")
+			return
+		}
+	}
+}
+
+func (ipt *Input) buildPoints(source string, logContents []string, tags map[string]string, fields map[string]interface{}) []*point.Point {
+	if len(logContents) == 0 {
+		return nil
+	}
+
+	points := make([]*point.Point, 0, len(logContents))
 	now := ntp.Now()
-	for _, cnt := range cnt {
+
+	for _, content := range logContents {
 		opts := point.DefaultLoggingOptions()
 		opts = append(opts, point.WithTime(now))
 
-		fields := map[string]interface{}{
-			pipeline.FieldMessage: cnt,
+		pointFields := map[string]interface{}{
+			pipeline.FieldMessage: content,
 			pipeline.FieldStatus:  pipeline.DefaultStatus,
 		}
-		for k, v := range originFields {
-			fields[k] = v
+		for k, v := range fields {
+			pointFields[k] = v
 		}
 
 		pt := point.NewPoint(
 			source,
-			append(point.NewTags(tags), point.NewKVs(fields)...),
+			append(point.NewTags(tags), point.NewKVs(pointFields)...),
 			opts...,
 		)
-		pts = append(pts, pt)
+		points = append(points, pt)
 	}
-	return pts
+	return points
 }
 
-func defaultInput() *Input {
+func newDefaultInput() *Input {
 	return &Input{
 		Tags:    make(map[string]string),
-		semStop: cliutils.NewSem(),
+		stopSem: cliutils.NewSem(),
 		feeder:  dkio.DefaultFeeder(),
-		Tagger:  datakit.DefaultGlobalTagger(),
+		tagger:  datakit.DefaultGlobalTagger(),
 	}
 }
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return defaultInput()
+		return newDefaultInput()
 	})
 }

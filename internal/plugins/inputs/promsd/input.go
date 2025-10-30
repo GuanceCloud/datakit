@@ -18,6 +18,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/promscrape"
@@ -36,15 +37,15 @@ type Input struct {
 
 	Tags map[string]string `toml:"tags"`
 
-	chPause       chan bool
-	pause         bool
-	workerRunning bool
+	pauseChan      chan bool
+	isPaused       bool
+	isWorkerActive bool
 
-	Feeder  dkio.Feeder
-	Tagger  datakit.GlobalTagger
-	semStop *cliutils.Sem // start stop signal
+	feeder  dkio.Feeder
+	tagger  datakit.GlobalTagger
+	stopSem *cliutils.Sem
 
-	log *logger.Logger
+	logger *logger.Logger
 }
 
 func (*Input) SampleConfig() string { return sampleConfig }
@@ -62,8 +63,8 @@ func (ipt *Input) ElectionEnabled() bool {
 }
 
 func (ipt *Input) Run() {
-	ipt.log = logger.SLogger(inputName + "/" + ipt.Source)
-	ipt.log.Info("start")
+	ipt.logger = logger.SLogger(inputName + "/" + ipt.Source)
+	ipt.logger.Info("promsd input started")
 	ipt.setup()
 
 	var ctx context.Context
@@ -71,10 +72,10 @@ func (ipt *Input) Run() {
 	scraperChan := make(chan scraper, 10)
 
 	for {
-		if !ipt.pause && !ipt.workerRunning {
+		if !ipt.isPaused && !ipt.isWorkerActive {
 			ctx, cancel = context.WithCancel(context.Background())
 			ipt.startWorker(ctx, scraperChan)
-			ipt.workerRunning = true
+			ipt.isWorkerActive = true
 		}
 
 		select {
@@ -82,20 +83,20 @@ func (ipt *Input) Run() {
 			if cancel != nil {
 				cancel()
 			}
-			ipt.log.Info("promsd exit")
+			ipt.logger.Info("promsd input exiting")
 			return
 
-		case <-ipt.semStop.Wait():
+		case <-ipt.stopSem.Wait():
 			if cancel != nil {
 				cancel()
 			}
-			ipt.log.Info("promsd return")
+			ipt.logger.Info("promsd input stopped")
 			return
 
-		case ipt.pause = <-ipt.chPause:
-			if ipt.pause && cancel != nil {
+		case ipt.isPaused = <-ipt.pauseChan:
+			if ipt.isPaused && cancel != nil {
 				cancel()
-				ipt.workerRunning = false
+				ipt.isWorkerActive = false
 			}
 		}
 	}
@@ -103,40 +104,45 @@ func (ipt *Input) Run() {
 
 func (ipt *Input) setup() {
 	if ipt.HTTPSD != nil {
-		ipt.HTTPSD.RefreshInterval = config.ProtectedInterval(minInterval, maxInterval, ipt.HTTPSD.RefreshInterval)
-		ipt.HTTPSD.SetLogger(ipt.log)
+		ipt.HTTPSD.RefreshInterval = config.ProtectedInterval(minRefreshInterval, maxRefreshInterval, ipt.HTTPSD.RefreshInterval)
+		ipt.HTTPSD.SetLogger(ipt.logger)
 	}
 	if ipt.ConsulSD != nil {
-		ipt.ConsulSD.RefreshInterval = config.ProtectedInterval(minInterval, maxInterval, ipt.ConsulSD.RefreshInterval)
-		ipt.ConsulSD.SetLogger(ipt.log)
+		ipt.ConsulSD.RefreshInterval = config.ProtectedInterval(minRefreshInterval, maxRefreshInterval, ipt.ConsulSD.RefreshInterval)
+		ipt.ConsulSD.SetLogger(ipt.logger)
 	}
 	if ipt.FileSD != nil {
-		ipt.FileSD.RefreshInterval = config.ProtectedInterval(minInterval, maxInterval, ipt.FileSD.RefreshInterval)
-		ipt.FileSD.SetLogger(ipt.log)
+		ipt.FileSD.RefreshInterval = config.ProtectedInterval(minRefreshInterval, maxRefreshInterval, ipt.FileSD.RefreshInterval)
+		ipt.FileSD.SetLogger(ipt.logger)
 	}
 }
 
 func (ipt *Input) startWorker(ctx context.Context, scraperChan chan scraper) {
 	promOptions, err := ipt.buildPromOptions()
 	if err != nil {
-		ipt.log.Warnf("failed of build prom options, err: %s", err)
+		ipt.logger.Warnf("failed to build prom options: %s", err)
 		return
 	}
 
 	g := datakit.G(inputName + "/" + ipt.Source)
 
-	for i := 0; i < workerNumber; i++ {
-		name := fmt.Sprintf("worker-%d", i)
+	for i := 0; i < workerCount; i++ {
+		workerName := fmt.Sprintf("worker-%d", i)
 
-		randSleep := rand.Intn(100 /*100 ms*/) //nolint:gosec
+		// 100ms 以内随机启动
+		randSleep := rand.Intn(100) // nolint:gosec
 		time.Sleep(time.Duration(randSleep) * time.Millisecond)
 
 		g.Go(func(_ context.Context) error {
-			startScraperConsumer(ctx, ipt.log, name, ipt.Scrape.Interval, scraperChan)
+			startScraperConsumer(ctx, ipt.logger, workerName, ipt.Scrape.Interval, scraperChan)
 			return nil
 		})
 	}
 
+	ipt.startServiceDiscovery(ctx, g, promOptions, scraperChan)
+}
+
+func (ipt *Input) startServiceDiscovery(ctx context.Context, g *goroutine.Group, promOptions []promscrape.Option, scraperChan chan scraper) {
 	if ipt.HTTPSD != nil {
 		g.Go(func(_ context.Context) error {
 			ipt.HTTPSD.StartScraperProducer(ctx, ipt.Scrape, promOptions, scraperChan)
@@ -161,16 +167,16 @@ func (ipt *Input) startWorker(ctx context.Context, scraperChan chan scraper) {
 
 func (ipt *Input) buildPromOptions() ([]promscrape.Option, error) {
 	if ipt.Scrape == nil {
-		return nil, fmt.Errorf("unexpected scrape config")
+		return nil, fmt.Errorf("scrape config is required")
 	}
 
 	var globalTags map[string]string
 	if ipt.Election {
-		globalTags = ipt.Tagger.ElectionTags()
-		ipt.log.Infof("add global election tags %q", globalTags)
+		globalTags = ipt.tagger.ElectionTags()
+		ipt.logger.Infof("using election tags: %v", globalTags)
 	} else {
-		globalTags = ipt.Tagger.HostTags()
-		ipt.log.Infof("add global host tags %q", globalTags)
+		globalTags = ipt.tagger.HostTags()
+		ipt.logger.Infof("using host tags: %v", globalTags)
 	}
 	mergedTags := inputs.MergeTags(globalTags, ipt.Tags, "")
 
@@ -197,27 +203,28 @@ func (ipt *Input) callbackFn(pts []*point.Point) error {
 	if len(pts) == 0 {
 		return nil
 	}
-	if err := ipt.Feeder.Feed(
+	if err := ipt.feeder.Feed(
 		point.Metric,
 		pts,
 		dkio.WithSource(dkio.FeedSource(inputName, ipt.Source)),
 		dkio.WithElection(ipt.Election),
 	); err != nil {
-		ipt.log.Warnf("failed to feed prom metrics: %s", err)
+		ipt.logger.Warnf("failed to feed prom metrics: %s", err)
 	}
 	return nil
 }
 
 func (ipt *Input) Terminate() {
-	if ipt.semStop != nil {
-		ipt.semStop.Close()
+	if ipt.stopSem != nil {
+		ipt.stopSem.Close()
 	}
 }
 
 func (ipt *Input) Pause() error {
 	tick := time.NewTicker(inputs.ElectionPauseTimeout)
+	defer tick.Stop()
 	select {
-	case ipt.chPause <- true:
+	case ipt.pauseChan <- true:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("pause %s failed", inputName)
@@ -226,25 +233,27 @@ func (ipt *Input) Pause() error {
 
 func (ipt *Input) Resume() error {
 	tick := time.NewTicker(inputs.ElectionResumeTimeout)
+	defer tick.Stop()
 	select {
-	case ipt.chPause <- false:
+	case ipt.pauseChan <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
 	}
 }
 
-func init() { //nolint:gochecknoinits
+// nolint:gochecknoinits
+func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
-			Source:   "not-set",
-			Election: true,
-			pause:    false,
-			chPause:  make(chan bool, inputs.ElectionPauseChannelLength),
-			Tags:     make(map[string]string),
-			Feeder:   dkio.DefaultFeeder(),
-			Tagger:   datakit.DefaultGlobalTagger(),
-			semStop:  cliutils.NewSem(),
+			Source:    "not-set",
+			Election:  true,
+			isPaused:  false,
+			pauseChan: make(chan bool, inputs.ElectionPauseChannelLength),
+			Tags:      make(map[string]string),
+			feeder:    dkio.DefaultFeeder(),
+			tagger:    datakit.DefaultGlobalTagger(),
+			stopSem:   cliutils.NewSem(),
 		}
 	})
 }

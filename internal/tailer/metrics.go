@@ -11,22 +11,26 @@ import (
 )
 
 var (
-	receiveCreateEventVec *prometheus.CounterVec
-	discardVec            *prometheus.CounterVec
-	openfilesVec          *prometheus.GaugeVec
-	rotateVec             *prometheus.CounterVec
-	parseFailVec          *prometheus.CounterVec
-	multilineStateVec     *prometheus.CounterVec
+	// 文件监控相关指标.
+	createEventCounter *prometheus.CounterVec // 接收到的文件创建事件总数
+	discardCounter     *prometheus.CounterVec // 基于白名单丢弃的日志总数
+	openFilesGauge     *prometheus.GaugeVec   // 当前打开的文件数量
+	rotateCounter      *prometheus.CounterVec // 文件轮转总数
+	parseFailCounter   *prometheus.CounterVec // 解析失败的日志总数
+	multilineCounter   *prometheus.CounterVec // 多行日志状态总数
 
-	socketLogConnect *prometheus.CounterVec
-	socketLogCount   *prometheus.CounterVec
-	socketLogLength  *prometheus.SummaryVec
+	// 套接字日志相关指标.
+	socketConnectCounter *prometheus.CounterVec // 套接字连接状态总数
+	socketMessageCounter *prometheus.CounterVec // 套接字日志消息总数
+	socketLengthSummary  *prometheus.SummaryVec // 套接字日志长度分布
 
-	decodeErrors *prometheus.CounterVec
+	// 文本处理相关指标.
+	decodeErrorCounter *prometheus.CounterVec // 文本解码错误总数
 )
 
 func setupMetrics() {
-	receiveCreateEventVec = prometheus.NewCounterVec(
+	// 文件创建事件指标
+	createEventCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
 			Subsystem: "tailer",
@@ -34,25 +38,27 @@ func setupMetrics() {
 			Help:      "Total number of received create events",
 		},
 		[]string{
-			"source",
-			"type",
+			"source", // 数据源名称
+			"type",   // 事件类型（file/directory）
 		},
 	)
 
-	discardVec = prometheus.NewCounterVec(
+	// 日志丢弃指标
+	discardCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
 			Subsystem: "tailer",
 			Name:      "discard_log_total",
-			Help:      "Total number of discarded based on the whitelist",
+			Help:      "Total number of discarded logs based on the whitelist",
 		},
 		[]string{
-			"source",
-			"filepath",
+			"source",   // 数据源名称
+			"filepath", // 文件路径
 		},
 	)
 
-	openfilesVec = prometheus.NewGaugeVec(
+	// 打开文件数量指标
+	openFilesGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "datakit",
 			Subsystem: "tailer",
@@ -60,12 +66,13 @@ func setupMetrics() {
 			Help:      "Total number of currently open files",
 		},
 		[]string{
-			"source",
-			"max",
+			"source", // 数据源名称
+			"max",    // 最大文件数限制
 		},
 	)
 
-	rotateVec = prometheus.NewCounterVec(
+	// 文件轮转指标
+	rotateCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
 			Subsystem: "tailer",
@@ -73,12 +80,13 @@ func setupMetrics() {
 			Help:      "Total number of file rotations performed",
 		},
 		[]string{
-			"source",
-			"filepath",
+			"source",   // 数据源名称
+			"filepath", // 文件路径
 		},
 	)
 
-	parseFailVec = prometheus.NewCounterVec(
+	// 解析失败指标
+	parseFailCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
 			Subsystem: "tailer",
@@ -86,13 +94,14 @@ func setupMetrics() {
 			Help:      "Total number of failed parse attempts",
 		},
 		[]string{
-			"source",
-			"filepath",
-			"mode",
+			"source",   // 数据源名称
+			"filepath", // 文件路径
+			"mode",     // 解析模式
 		},
 	)
 
-	multilineStateVec = prometheus.NewCounterVec(
+	// 多行日志状态指标
+	multilineCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
 			Subsystem: "tailer",
@@ -100,22 +109,27 @@ func setupMetrics() {
 			Help:      "Total number of multiline states encountered",
 		},
 		[]string{
-			"source",
-			"state",
+			"source", // 数据源名称
+			"state",  // 多行状态
 		},
 	)
 
-	socketLogConnect = prometheus.NewCounterVec(
+	// 套接字连接状态指标
+	socketConnectCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
 			Subsystem: "tailer",
 			Name:      "socket_connect_status_total",
 			Help:      "Total number of socket connection status events",
 		},
-		[]string{"network", "status"},
+		[]string{
+			"network", // 网络类型
+			"status",  // 连接状态
+		},
 	)
 
-	socketLogCount = prometheus.NewCounterVec(
+	// 套接字日志消息数量指标
+	socketMessageCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
 			Subsystem: "tailer",
@@ -123,26 +137,30 @@ func setupMetrics() {
 			Help:      "Total number of messages fed to the socket",
 		},
 		[]string{
-			"network",
+			"network", // 网络类型
 		},
 	)
 
-	socketLogLength = prometheus.NewSummaryVec(
+	// 套接字日志长度分布指标
+	socketLengthSummary = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
 			Subsystem: "tailer",
 			Name:      "socket_log_length",
-			Help:      "Length of the log for socket communication",
+			Help:      "Length distribution of logs for socket communication",
 			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.90: 0.01,
-				0.99: 0.001,
+				0.5:  0.05,  // 50% 分位数，误差 5%
+				0.90: 0.01,  // 90% 分位数，误差 1%
+				0.99: 0.001, // 99% 分位数，误差 0.1%
 			},
 		},
-		[]string{"network"},
+		[]string{
+			"network", // 网络类型
+		},
 	)
 
-	decodeErrors = prometheus.NewCounterVec(
+	// 文本解码错误指标
+	decodeErrorCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
 			Subsystem: "tailer",
@@ -150,23 +168,24 @@ func setupMetrics() {
 			Help:      "Total count of text decoding failures",
 		},
 		[]string{
-			"source",
-			"character_encoding",
-			"error_type",
+			"source",             // 数据源名称
+			"character_encoding", // 字符编码
+			"error_type",         // 错误类型
 		},
 	)
 
+	// 注册所有指标到 Prometheus
 	metrics.MustRegister(
-		receiveCreateEventVec,
-		discardVec,
-		openfilesVec,
-		parseFailVec,
-		multilineStateVec,
-		rotateVec,
-		socketLogLength,
-		socketLogCount,
-		socketLogConnect,
-		decodeErrors,
+		createEventCounter,
+		discardCounter,
+		openFilesGauge,
+		parseFailCounter,
+		multilineCounter,
+		rotateCounter,
+		socketLengthSummary,
+		socketMessageCounter,
+		socketConnectCounter,
+		decodeErrorCounter,
 	)
 }
 

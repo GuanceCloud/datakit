@@ -64,7 +64,7 @@ func (m *MockCollectService) GetColumnMap(row scanner, columns []string) (map[st
 	return m.mockData, nil
 }
 
-func (m *MockCollectService) Query(query string) (Rows, error) {
+func (m *MockCollectService) Query(query string, args ...any) (Rows, error) {
 	if query == "-1" {
 		return nil, mockError{}
 	}
@@ -72,6 +72,10 @@ func (m *MockCollectService) Query(query string) (Rows, error) {
 		columnError: m.columnError,
 	}
 	return rows, nil
+}
+
+func (m *MockCollectService) GetConn(dbname string) (Conn, error) {
+	return nil, nil
 }
 
 func (m *MockCollectService) QueryByDatabase(query, database string) (Rows, error) {
@@ -319,4 +323,94 @@ func (r RowScanner) Scan(dest ...interface{}) error {
 func TestTime(t *testing.T) {
 	_, err := dateparse.ParseIn("2014-12-16 06:20:00 UTC", time.Local)
 	assert.NoError(t, err)
+}
+
+func TestIsParameterizedQuery(t *testing.T) {
+	testCases := []struct {
+		name      string
+		statement string
+		expected  bool
+	}{
+		{
+			name:      "basic_parameterized",
+			statement: "SELECT * FROM users WHERE id = $1",
+			expected:  true,
+		},
+		{
+			name:      "multiple_parameters",
+			statement: "UPDATE products SET price = $10 WHERE id = $2",
+			expected:  true,
+		},
+		{
+			name:      "parameter_with_string_literal",
+			statement: "DELETE FROM orders WHERE user_id = $3 AND status = 'pending'",
+			expected:  true,
+		},
+		{
+			name:      "parameter_in_subquery",
+			statement: "WITH data AS (SELECT $4) SELECT * FROM data",
+			expected:  true,
+		},
+
+		{
+			name:      "no_parameter",
+			statement: "SELECT * FROM users",
+			expected:  false,
+		},
+		{
+			name:      "parameter_in_single_quotes",
+			statement: "SELECT * FROM users WHERE name = '$1'",
+			expected:  false,
+		},
+		{
+			name:      "parameter_in_string_literal",
+			statement: "UPDATE products SET desc = 'Value is $200'",
+			expected:  false,
+		},
+		{
+			name:      "dollar_sign_without_digits",
+			statement: "SELECT $foo FROM table",
+			expected:  false,
+		},
+		{
+			name:      "only_dollar_sign",
+			statement: "SELECT $ FROM table",
+			expected:  false,
+		},
+
+		{
+			name:      "mixed_valid_and_invalid",
+			statement: "SELECT $1, '$2'",
+			expected:  true,
+		},
+		{
+			name:      "parameter_after_quote",
+			statement: "'$1' AND $2",
+			expected:  true,
+		},
+		{
+			name:      "unclosed_quote_before_parameter",
+			statement: "SELECT * FROM t WHERE col = '$5",
+			expected:  false,
+		},
+		{
+			name:      "parameter_before_quote",
+			statement: "SELECT * FROM t WHERE col = $6'",
+			expected:  true,
+		},
+		{
+			name:      "parameter_in_comment",
+			statement: "SELECT $7 /* '$8' */",
+			expected:  true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := isParameterizedQuery(tc.statement)
+			if result != tc.expected {
+				t.Errorf("statement: %q\n expected: %v, got: %v", tc.statement, tc.expected, result)
+			}
+		})
+	}
 }

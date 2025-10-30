@@ -14,6 +14,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
 )
 
 const maxPayloadBytes = 19e6
@@ -503,8 +504,8 @@ func getNormalLizeActivityRows(rows activityRowSlice) activityRowSlice {
 
 func obfuscateRow(row activityRow) activityRow {
 	if row.SQLText.Valid && len(row.SQLText.String) > 0 {
-		row.SQLText.String = obfuscateSQL(row.SQLText.String)
-		row.QuerySignature = computeSQLSignature(row.SQLText.String)
+		row.SQLText.String = util.ObfuscateSQL(row.SQLText.String)
+		row.QuerySignature = util.ComputeSQLSignature(row.SQLText.String)
 	}
 
 	return row

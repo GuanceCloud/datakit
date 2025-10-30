@@ -8,7 +8,12 @@
 ## Architecture overview {#architecture-overview}
 <!-- markdownlint-enable -->
 
+
+<<<% if custom_key.brand_key == "truewatch" %>>>
+![overview](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/datakit-eks-architecture-overview-truewatch.png){:target="_blank"}
+<<<% else %>>>
 ![overview](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/datakit-eks-architecture-overview.png){:target="_blank"}
+<<<% endif %>>>
 
 
 ## Using Amazon EKS add-on {#add-on-install}
@@ -20,9 +25,16 @@ Deploying DataKit on an Amazon EKS cluster using Amazon EKS add-on.
 - Subscribe on the AWS Marketplace [<<<custom_key.brand_name>>> Container Agent](https://aws.amazon.com/marketplace/pp/prodview-tdwkw3qcsimso?sr=0-2&ref_=beagle&applicationId=AWSMPContessa){:target="_blank"} 。
 - You have access to an [Amazon EKS Cluster](https://aws.amazon.com/eks/){:target="_blank"} .
 - You need to get it in advance `DK_DATAWAY`. You can also obtain it by following the instructions below:
-    - You can go to [<<<custom_key.brand_name>>> official website](https://www.guance.one/){:target="_blank"}, [register now](https://auth.<<<custom_key.brand_main_domain>>>/en/businessRegister){:target="_blank"} as a user.
+<<<% if custom_key.brand_key == "truewatch" %>>>
+    - You can go to [<<<custom_key.brand_name>>> official website](https://www.<<<custom_key.brand_main_domain>>>/){:target="_blank"}, [register now](https://us1-auth.<<<custom_key.brand_main_domain>>>/en/businessRegister){:target="_blank"} as a user.
+    - Click the 「Integration」 menu, then select the 「DataKit」 TAB and copy the `DK_DATAWAY` parameter
+     ![`datakit-eks-en-get-datawayur`](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/datakit-eks-en-get-datawayurl-truewatch.png){:target="_blank"}
+<<<% else %>>>
+    - You can go to [<<<custom_key.brand_name>>> official website](https://www.guance.one/){:target="_blank"}, [register now](https://us1-auth.<<<custom_key.brand_main_domain>>>/en/businessRegister){:target="_blank"} as a user.
     - Click the 「Integration」 menu, then select the 「DataKit」 TAB and copy the `DK_DATAWAY` parameter
      ![`datakit-eks-en-get-datawayur`](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/datakit-eks-en-get-datawayurl.png){:target="_blank"}
+<<<% endif %>>>
+
 
 <!-- markdownlint-disable MD046 -->  
 === "Enable DataKit add-on from AWS console"
@@ -78,7 +90,7 @@ Deploying DataKit on an Amazon EKS cluster using Amazon EKS add-on.
 Set the `token` environment variable:
 
 ```shell
-token="https://us1-openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-WORKSPACE-TOKEN>"
+token="https://xxx-openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-WORKSPACE-TOKEN>"
 ```
 
 Add token to `env-dataway` secrets:
@@ -111,8 +123,11 @@ datakit dataki  1 2024-01-12 14:50:07.880846 +0800 CST  deployed  datakit-1.20.0
 ```
 
 - <<<custom_key.brand_name>>> verify
-
+<<<% if custom_key.brand_key == "truewatch" %>>>
+![`datakit-eks-en-verify`](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/datakit-eks-en-verify-truewatch.png){:target="_blank"}
+<<<% else %>>>
 ![`datakit-eks-en-verify`](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/datakit-eks-en-verify.png){:target="_blank"}
+<<<% endif %>>>
 
 
 <!-- markdownlint-disable MD013 -->
@@ -124,9 +139,16 @@ datakit dataki  1 2024-01-12 14:50:07.880846 +0800 CST  deployed  datakit-1.20.0
 - Install the following tools: [Helm 3.7.1](https://github.com/helm/helm/releases/tag/v3.7.1){:target="_blank"}, [kubectl](https://kubernetes.io/docs/tasks/tools/){:target="_blank"}, and [AWS CLI](https://aws.amazon.com/cli/){:target="_blank"} .
 - You have access to an [Amazon EKS Cluster](https://aws.amazon.com/eks/){:target="_blank"} .
 - You need to get it in advance `DK_DATAWAY`. You can also obtain it by following the instructions below:
-    - You can go to [<<<custom_key.brand_name>>> official website](https://www.guance.one/){:target="_blank"}, [register now](https://auth.<<<custom_key.brand_main_domain>>>/en/businessRegister){:target="_blank"} as a user.
+<<<% if custom_key.brand_key == "truewatch" %>>>
+    - You can go to [<<<custom_key.brand_name>>> official website](https://www.<<<custom_key.brand_main_domain>>>/){:target="_blank"}, [register now](https://us1-auth.<<<custom_key.brand_main_domain>>>/en/businessRegister){:target="_blank"} as a user.
+    - Click the 「Integration」 menu, then select the 「DataKit」 TAB and copy the `DK_DATAWAY` parameter
+     ![`datakit-eks-en-get-datawayur`](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/datakit-eks-en-get-datawayurl-truewatch.png){:target="_blank"}
+<<<% else %>>>
+    - You can go to [<<<custom_key.brand_name>>> official website](https://www.guance.one/){:target="_blank"}, [register now](https://us1-auth.<<<custom_key.brand_main_domain>>>/en/businessRegister){:target="_blank"} as a user.
     - Click the 「Integration」 menu, then select the 「DataKit」 TAB and copy the `DK_DATAWAY` parameter
      ![`datakit-eks-en-get-datawayur`](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/datakit-eks-en-get-datawayurl.png){:target="_blank"}
+<<<% endif %>>>
+
 
 ### Login to the ECR Registry {#login-ecr}
 
@@ -179,7 +201,7 @@ NOTES:
 Set the `token` environment variable:
 
 ```shell
-token="https://us1-openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-WORKSPACE-TOKEN>"
+token="https://xxx-openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-WORKSPACE-TOKEN>"
 ```
 
 Add token to `env-dataway` secrets:

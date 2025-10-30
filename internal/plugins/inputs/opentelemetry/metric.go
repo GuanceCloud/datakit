@@ -151,6 +151,8 @@ func attributesToTag(src []*common.KeyValue) map[string]string {
 			shadowTags[key] = fmt.Sprintf("%.3f", keyVal.Value.GetDoubleValue())
 		case *common.AnyValue_IntValue:
 			shadowTags[key] = fmt.Sprintf("%d", keyVal.Value.GetIntValue())
+		case *common.AnyValue_BoolValue:
+			shadowTags[key] = strconv.FormatBool(keyVal.Value.GetBoolValue())
 		case *common.AnyValue_KvlistValue:
 			shadowTags[key] = keyVal.Value.GetKvlistValue().String()
 		case *common.AnyValue_ArrayValue:

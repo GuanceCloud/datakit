@@ -158,6 +158,9 @@ func (t *MultiTask) runHTTPStep(step *MultiStep) (map[string]interface{}, error)
 	for runCount < maxCount {
 		httpTask := &HTTPTask{}
 		task, err = NewTask(step.TaskString, httpTask)
+		if t.beforeRun != nil {
+			task.SetBeforeRun(t.beforeRun)
+		}
 		if err != nil {
 			return nil, fmt.Errorf("new task failed: %w", err)
 		}
@@ -399,4 +402,8 @@ func (t *MultiTask) initTask() {
 	if t.Task == nil {
 		t.Task = &Task{}
 	}
+}
+
+func (t *MultiTask) setReqError(err string) {
+	// do nothing
 }

@@ -60,7 +60,7 @@ probe {
 <!-- markdownlint-disable MD046 -->
 === "主机安装"
 
-    进入 DataKit 安装目录下的 `conf.d/cloudprober` 目录，复制 `cloudprober.conf.sample` 并命名为 `cloudprober.conf`。示例如下：
+    进入 DataKit 安装目录下的 `conf.d/samples` 目录，复制 `cloudprober.conf.sample` 并命名为 `cloudprober.conf`。示例如下：
     
     ```toml
     [[inputs.cloudprober]]

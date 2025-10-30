@@ -45,6 +45,8 @@ OTEL 是一组标准和工具的集合，旨在管理观测类数据，如 trace
 
 <!-- markdownlint-enable -->
 
+> customer_tags 参数支持正则表达式，但是有固定的前缀格式 `reg:` ，例如 `reg:key_*` ，表示匹配所有以 `key_` 开头的 key 。
+
 ### 注意事项 {#attentions}
 
 1. 建议使用 gRPC 协议，gRPC 具有压缩率高、序列化快、效率更高等优点

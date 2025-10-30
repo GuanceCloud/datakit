@@ -45,6 +45,8 @@ OTEL is a collection of standards and tools designed to manage observability dat
 
 <!-- markdownlint-enable -->
 
+The `customer_tags` parameter supports regular expressions but requires a fixed prefix format `reg:`. For example, `reg:key_*` matches all keys starting with `key_`.
+
 ### Notes {#attentions}
 
 1. It is recommended to use the gRPC protocol, as gRPC offers advantages such as high compression rate, fast serialization, and higher efficiency.

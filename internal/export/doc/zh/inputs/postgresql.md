@@ -92,6 +92,110 @@ PostgreSQL 采集器可以从 PostgreSQL 实例中采集实例运行状态指标
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 <!-- markdownlint-enable -->
 
+### 数据库性能指标采集 {#performance-schema}
+
+[:octicons-tag-24: Version-1.84.0](../datakit/changelog-2025.md#cl-1.84.0)
+
+数据库性能指标主要来源于 PostgreSQL 的内置系统视图和扩展插件，其中最核心的包括 `pg_stat_activity` 和 `pg_stat_statements`。这些工具提供了在运行时获取数据库内部执行情况的方法：`pg_stat_activity` 实时展示当前会话的活动状态、执行的查询及等待事件等信息；`pg_stat_statements` 则记录历史 SQL 语句的执行统计数据，包括执行次数、耗时、IO 情况等。
+
+通过这些视图和插件，DataKit 能够采集实时会话活动、历史查询的性能指标统计以及相关执行信息。采集的性能指标数据保存为日志，source 分别为 `postgresql_dbm_metric`、`postgresql_dbm_sample` 和 `postgresql_dbm_activity`。
+
+如需开启，需要执行以下步骤。
+
+- 修改配置文件，开启监控采集
+
+```toml
+[[inputs.postgresql]]
+
+  ## Set dbm to true to collect database activity 
+  dbm = false
+
+  ## Config dbm metric 
+  [inputs.postgresql.dbm_metric]
+    enabled = true
+  
+  ## Config dbm sample 
+  [inputs.postgresql.dbm_sample]
+    enabled = true  
+
+  ## Config dbm activity
+  [inputs.postgresql.dbm_activity]
+    enabled = true  
+
+...
+
+```
+
+- PostgreSQL 配置
+
+修改配置文件（如 *postgresql.conf*），配置相关参数：
+
+```toml
+
+shared_preload_libraries = 'pg_stat_statements'
+track_activity_query_size = 4096 a# Required for collection of larger queries.
+
+```
+
+- 权限配置
+
+<!-- markdownlint-disable MD046 -->
+=== "Postgres >=15"
+
+    账号授权
+
+    ```sql
+    ALTER ROLE datakit INHERIT;
+    ```
+
+    在每个数据库中执行以下 SQL：
+
+    ```sql
+    CREATE SCHEMA datakit;
+    GRANT USAGE ON SCHEMA datakit TO datakit;
+    GRANT USAGE ON SCHEMA public TO datakit;
+    GRANT pg_monitor TO datakit;
+    CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+
+    ```
+
+=== "Postgres >=10"
+
+    在每个数据库中执行以下 SQL：
+
+    ```sql
+    CREATE SCHEMA datakit;
+    GRANT USAGE ON SCHEMA datakit TO datakit;
+    GRANT USAGE ON SCHEMA public TO datakit;
+    GRANT pg_monitor TO datakit;
+    CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+
+    ```
+
+=== "Postgres 9.6"
+
+    在每个数据库中执行以下 SQL：
+
+    ```sql
+    CREATE SCHEMA datakit;
+    GRANT USAGE ON SCHEMA datakit TO datakit;
+    GRANT USAGE ON SCHEMA public TO datakit;
+    GRANT SELECT ON pg_stat_database TO datakit;
+    CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+
+    CREATE OR REPLACE FUNCTION datakit.pg_stat_activity() RETURNS SETOF pg_stat_activity AS
+      $$ SELECT * FROM pg_catalog.pg_stat_activity; $$
+    LANGUAGE sql
+    SECURITY DEFINER;
+    CREATE OR REPLACE FUNCTION datakit.pg_stat_statements() RETURNS SETOF pg_stat_statements AS
+        $$ SELECT * FROM pg_stat_statements; $$
+    LANGUAGE sql
+    SECURITY DEFINER;
+
+    ```
+
+<!-- markdownlint-enable -->
+
 ## 指标 {#metric}
 
 以下所有数据采集，默认会追加全局选举 tag，也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
@@ -255,6 +359,23 @@ PostgreSQL 采集器可以从 PostgreSQL 实例中采集实例运行状态指标
 | `delete_action` |级联删除规则（如 CASCADE, SET NULL） | string |
 
 ## 日志 {#logging}
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "logging"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+{{$m.MarkdownTable}}
+{{end}}
+
+{{ end }}
+
+## 文件日志 {#file-log}
+
+### 日志采集 {#log}
 
 - PostgreSQL 日志默认是输出至 `stderr`，如需开启文件日志，可在 PostgreSQL 的配置文件 `/etc/postgresql/<VERSION>/main/postgresql.conf` ， 进行如下配置：
 

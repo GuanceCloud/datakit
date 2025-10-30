@@ -164,16 +164,17 @@ type DatakitApiResponse<T> = {
   success: boolean
 }
 
-export async function saveDatakitConfig(datakit: IDatakit, { path, config, isNew, inputName }): Promise<DatakitResponse<any>> {
+export async function saveDatakitConfig(datakit: IDatakit, { path, config, isNew, inputName, isForce }): Promise<DatakitResponse<any>> {
   const [err, data] = await datakitApi(datakit).post(apiPath.datakit.saveConfig, {
     path,
     config,
     isNew,
-    inputName
+    inputName,
+    isForce
   })
 
   if (err) {
-    return [getMsg(err), null]
+    return [getMsg(err), err.errorCode]
   }
 
   return [null, data]

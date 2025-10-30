@@ -3,7 +3,6 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
-// Package tailer wraps logging file collection
 package tailer
 
 import (
@@ -18,6 +17,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/fsnotify/fsnotify"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/fileprovider"
@@ -25,250 +25,390 @@ import (
 )
 
 const (
-	// 定期寻找符合条件的新文件.
-	scanIntervalShort = time.Second * 10
-	scanIntervalLong  = time.Minute * 1
+	defaultScanIntervalShort = time.Second * 10
+	defaultScanIntervalLong  = time.Minute * 1
+	defaultMaxOpenFiles      = 500
+	defaultUpdateChannelSize = 10
 )
 
-var g = datakit.G("tailer")
+var globalGoroutineGroup = datakit.G("tailer")
 
 type Tailer struct {
-	options []Option
+	initialOptions    []Option
+	additionalOptions []Option
 
 	source        string
 	fromBeginning bool
 	ignoreDeadLog time.Duration
+	maxOpenFiles  int
 
-	fileList map[string]context.CancelFunc
+	monitoredFiles map[string]*Single
+	openFileCount  atomic.Int64
+	fileMutex      sync.RWMutex
 
 	fileScanner *fileprovider.Scanner
 	fileFilter  *fileprovider.GlobFilter
-	fileInotify fileprovider.InotifyInterface
+	fileWatcher fileprovider.InotifyInterface
 
-	maxOpenFiles     int
-	currentOpenFiles atomic.Int64
-
-	done chan interface{}
-	mu   sync.Mutex
+	shutdownChan chan struct{}
+	updateChan   chan []Option
 
 	log *logger.Logger
+
+	// 状态管理
+	isRunning atomic.Bool
+	startTime time.Time
 }
 
 func NewTailer(patterns []string, opts ...Option) (*Tailer, error) {
 	_ = logtail.InitDefault()
 
-	c := getOption(opts...)
+	cfg := buildConfig(opts)
+	if err := validateConfig(cfg); err != nil {
+		return nil, fmt.Errorf("invalid configuration: %w", err)
+	}
+
 	patterns = cleanPatterns(patterns)
+	if len(patterns) == 0 {
+		return nil, fmt.Errorf("no patterns provided")
+	}
 
 	tailer := &Tailer{
-		options:       opts,
-		source:        c.source,
-		maxOpenFiles:  c.maxOpenFiles,
-		fromBeginning: c.fromBeginning,
-		ignoreDeadLog: c.ignoreDeadLog,
-		fileList:      make(map[string]context.CancelFunc),
+		initialOptions:    opts,
+		additionalOptions: nil,
+		source:            cfg.source,
+		maxOpenFiles:      cfg.maxOpenFiles,
+		fromBeginning:     cfg.fromBeginning,
+		ignoreDeadLog:     cfg.ignoreDeadLog,
+		monitoredFiles:    make(map[string]*Single),
 
-		done: make(chan interface{}),
-		log:  logger.SLogger("tailer/" + c.source),
+		shutdownChan: make(chan struct{}),
+		log:          logger.SLogger("tailer/" + cfg.source),
+		updateChan:   make(chan []Option, defaultUpdateChannelSize),
 	}
 
+	if err := tailer.initializeFileProviders(patterns, cfg); err != nil {
+		return nil, fmt.Errorf("failed to initialize file providers: %w", err)
+	}
+
+	return tailer, nil
+}
+
+func (t *Tailer) initializeFileProviders(patterns []string, cfg *config) error {
 	var err error
 
-	tailer.fileScanner, err = fileprovider.NewScanner(patterns)
+	t.fileScanner, err = fileprovider.NewScanner(patterns)
 	if err != nil {
-		return nil, fmt.Errorf("failed to new scanner, err: %w", err)
+		return fmt.Errorf("failed to create scanner: %w", err)
 	}
 
-	tailer.fileFilter, err = fileprovider.NewGlobFilter(patterns, c.ignorePatterns)
+	t.fileFilter, err = fileprovider.NewGlobFilter(patterns, cfg.ignorePatterns)
 	if err != nil {
-		return nil, fmt.Errorf("failed to new filter, err: %w", err)
+		return fmt.Errorf("failed to create filter: %w", err)
 	}
 
 	if runtime.GOOS == datakit.OSLinux {
-		tailer.fileInotify, err = fileprovider.NewInotify(patterns)
+		t.fileWatcher, err = fileprovider.NewInotify(patterns)
 		if err != nil {
-			tailer.log.Warnf("failed to new inotify, err: %s, ingored", err)
-			tailer.fileInotify = fileprovider.NewNopInotify()
-			return tailer, nil
+			t.log.Warnf("failed to create inotify: %s, using fallback", err)
+			t.fileWatcher = fileprovider.NewNopInotify()
 		}
 	} else {
-		tailer.fileInotify = fileprovider.NewNopInotify()
+		t.fileWatcher = fileprovider.NewNopInotify()
 	}
 
-	return tailer, err
+	return nil
 }
 
 func (t *Tailer) Start() {
+	if !t.isRunning.CompareAndSwap(false, true) {
+		t.log.Warn("tailer is already running")
+		return
+	}
+
+	t.startTime = time.Now()
+	t.log.Infof("starting tailer with source: %s, maxOpenFiles: %d", t.source, t.maxOpenFiles)
+
 	defer func() {
-		t.closeAllFiles()
-		_ = g.Wait()
-		t.log.Info("all exit")
+		t.isRunning.Store(false)
+		t.cleanup()
 	}()
 
-	shortTicker := time.NewTicker(scanIntervalShort)
+	shortTicker := time.NewTicker(defaultScanIntervalShort)
 	defer shortTicker.Stop()
-	longTicker := time.NewTicker(scanIntervalLong)
+	longTicker := time.NewTicker(defaultScanIntervalLong)
 	defer longTicker.Stop()
 
-	ctx := context.Background()
+	if err := t.performInitialScan(); err != nil {
+		t.log.Errorf("initial scan failed: %v", err)
+		return
+	}
 
-	// first scan
+	t.runEventLoop(shortTicker, longTicker)
+}
+
+func (t *Tailer) cleanup() {
+	t.closeAllFiles()
+	_ = globalGoroutineGroup.Wait()
+	t.log.Infof("all tailers exited, source: %s", t.source)
+}
+
+func (t *Tailer) performInitialScan() error {
+	ctx := context.Background()
 	files, err := t.fileScanner.ScanFiles()
 	if err != nil {
-		t.log.Warn(err)
-	} else {
-		t.tryCreateWorkFromFiles(ctx, files)
+		return fmt.Errorf("failed to scan files: %w", err)
 	}
+
+	t.log.Debugf("initial scan found %d files", len(files))
+	t.processFiles(ctx, files)
+	return nil
+}
+
+func (t *Tailer) runEventLoop(shortTicker, longTicker *time.Ticker) {
+	ctx := context.Background()
 
 	for {
 		select {
 		case <-datakit.Exit.Wait():
+			t.log.Info("received exit signal, stopping tailer")
 			return
-		case <-t.done:
+		case <-t.shutdownChan:
+			t.log.Info("received shutdown signal, stopping tailer")
 			return
-
-		case event, ok := <-t.fileInotify.Events():
-			if !ok {
-				continue
-			}
-			stat, err := os.Stat(event.Name)
-			if err != nil {
-				t.log.Warnf("invalid event name: %s", err)
-				continue
-			}
-			if stat.IsDir() {
-				receiveCreateEventVec.WithLabelValues(t.source, "directory").Inc()
-				continue
-			}
-			receiveCreateEventVec.WithLabelValues(t.source, "file").Inc()
-
-			file := filepath.Clean(event.Name)
-			t.tryCreateWorkFromFiles(ctx, []string{file})
-			shortTicker.Reset(scanIntervalShort)
-
+		case newOpts := <-t.updateChan:
+			t.handleConfigUpdate(newOpts)
+		case event, ok := <-t.fileWatcher.Events():
+			t.handleFileEvent(ctx, event, ok, shortTicker)
 		case <-shortTicker.C:
-			t.scanFiles(ctx)
-			longTicker.Reset(scanIntervalLong)
-
+			t.handleShortIntervalScan(ctx, longTicker)
 		case <-longTicker.C:
-			t.scanFiles(ctx)
-			shortTicker.Reset(scanIntervalShort)
+			t.handleLongIntervalScan(ctx, shortTicker)
 		}
 	}
+}
+
+func (t *Tailer) handleConfigUpdate(newOpts []Option) {
+	t.log.Info("received options update")
+	t.updateAllSingles(newOpts)
+}
+
+func (t *Tailer) handleFileEvent(ctx context.Context, event fsnotify.Event, ok bool, shortTicker *time.Ticker) {
+	if !ok {
+		t.log.Warn("file watcher events channel closed")
+		return
+	}
+
+	stat, err := os.Stat(event.Name)
+	if err != nil {
+		t.log.Warnf("invalid event name: %v", err)
+		return
+	}
+
+	if stat.IsDir() {
+		t.log.Debugf("ignoring directory event: %s", event.Name)
+		createEventCounter.WithLabelValues(t.source, "directory").Inc()
+		return
+	}
+
+	createEventCounter.WithLabelValues(t.source, "file").Inc()
+	file := filepath.Clean(event.Name)
+	t.log.Debugf("processing file event: %s", file)
+
+	t.processFiles(ctx, []string{file})
+	shortTicker.Reset(defaultScanIntervalShort)
+}
+
+func (t *Tailer) handleShortIntervalScan(ctx context.Context, longTicker *time.Ticker) {
+	t.scanFiles(ctx)
+	longTicker.Reset(defaultScanIntervalLong)
+}
+
+func (t *Tailer) handleLongIntervalScan(ctx context.Context, shortTicker *time.Ticker) {
+	t.scanFiles(ctx)
+	shortTicker.Reset(defaultScanIntervalShort)
+}
+
+func (t *Tailer) UpdateOptions(newOpts []Option) error {
+	cfg := buildConfig(newOpts)
+	if err := checkConfig(cfg); err != nil {
+		return fmt.Errorf("invalid config: %w", err)
+	}
+
+	select {
+	case t.updateChan <- newOpts:
+		t.log.Debug("options update sent to channel")
+	default:
+		t.log.Warn("update channel full, dropping options update")
+	}
+
+	return nil
+}
+
+func (t *Tailer) updateAllSingles(newOpts []Option) {
+	t.log.Infof("updating options for %d single tailers", len(t.monitoredFiles))
+	for _, single := range t.monitoredFiles {
+		single.UpdateOptions(newOpts)
+	}
+	t.additionalOptions = newOpts // 保存补充的配置选项
+	t.log.Debug("all single tailers options updated")
 }
 
 func (t *Tailer) scanFiles(ctx context.Context) {
 	files, err := t.fileScanner.ScanFiles()
 	if err != nil {
-		t.log.Warn(err)
+		t.log.Warnf("scan files failed: %v", err)
 		return
 	}
-	t.tryCreateWorkFromFiles(ctx, files)
+	t.log.Debugf("scan found %d files", len(files))
+	t.processFiles(ctx, files)
 }
 
-func (t *Tailer) tryCreateWorkFromFiles(ctx context.Context, files []string) {
+func (t *Tailer) processFiles(ctx context.Context, files []string) {
 	files = t.fileFilter.IncludeFilterFiles(files)
 	files = t.fileFilter.ExcludeFilterFiles(files)
+
+	t.log.Debugf("processing %d filtered files", len(files))
 
 	for _, file := range files {
 		if !t.shouldOpenFile(file) {
 			continue
 		}
 
-		t.log.Infof("new logging file %s with source %s", file, t.source)
-
-		single, err := NewTailerSingle(file, t.options...)
-		if err != nil {
-			t.log.Warnf("new tailer file %s error: %s", file, err)
-			continue
-		}
-
-		ctx, cancel := context.WithCancel(ctx)
-		t.addToFileList(file, cancel)
-
-		openfilesVec.WithLabelValues(t.source, strconv.Itoa(t.maxOpenFiles)).Inc()
-
-		func(file string) {
-			g.Go(func(_ context.Context) error {
-				single.Run(ctx)
-				t.removeFromFileList(file)
-				t.log.Infof("file %s exit", file)
-
-				openfilesVec.WithLabelValues(t.source, strconv.Itoa(t.maxOpenFiles)).Dec()
-				return nil
-			})
-		}(file)
+		t.log.Infof("creating new tailer for file %s with source %s", file, t.source)
+		t.createFileTailer(ctx, file)
 	}
+}
+
+func (t *Tailer) createFileTailer(ctx context.Context, file string) {
+	// 合并初始配置和补充配置
+	allOptions := make([]Option, 0, len(t.initialOptions)+len(t.additionalOptions))
+	allOptions = append(allOptions, t.initialOptions...)
+	allOptions = append(allOptions, t.additionalOptions...)
+	single, err := NewTailerSingle(file, allOptions...)
+	if err != nil {
+		t.log.Warnf("failed to create tailer for file %s: %v", file, err)
+		return
+	}
+
+	t.addToMonitoredFiles(file, single)
+	openFilesGauge.WithLabelValues(t.source, strconv.Itoa(t.maxOpenFiles)).Inc()
+
+	// 启动文件采集器协程
+	globalGoroutineGroup.Go(func(_ context.Context) error {
+		single.Run(ctx)
+		t.removeFromMonitoredFiles(file)
+		t.log.Infof("file %s tailer exited", file)
+		openFilesGauge.WithLabelValues(t.source, strconv.Itoa(t.maxOpenFiles)).Dec()
+		return nil
+	})
 }
 
 func (t *Tailer) Close() {
-	if t.fileInotify != nil {
-		if err := t.fileInotify.Close(); err != nil {
-			t.log.Warnf("close inotify error: %s", err)
+	t.log.Info("closing tailer, source: %s", t.source)
+
+	if t.fileWatcher != nil {
+		if err := t.fileWatcher.Close(); err != nil {
+			t.log.Warnf("close file watcher error: %v", err)
 		}
 	}
+
 	select {
-	case <-t.done:
+	case <-t.shutdownChan:
+		t.log.Debug("tailer already closed")
 		return
 	default:
-		close(t.done)
+		close(t.shutdownChan)
+		t.log.Debug("tailer close signal sent")
 	}
 }
 
-func (t *Tailer) addToFileList(file string, cancel context.CancelFunc) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
+func (t *Tailer) addToMonitoredFiles(file string, single *Single) {
+	t.fileMutex.Lock()
+	defer t.fileMutex.Unlock()
 
-	t.fileList[file] = cancel
-	t.currentOpenFiles.Add(1)
+	if _, exists := t.monitoredFiles[file]; exists {
+		t.log.Warnf("file %s already in monitored files, skipping", file)
+		return
+	}
+
+	t.monitoredFiles[file] = single
+	t.openFileCount.Add(1)
+	t.log.Debugf("added file %s to monitored files, current open files: %d", file, t.openFileCount.Load())
 }
 
-func (t *Tailer) removeFromFileList(file string) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
+func (t *Tailer) removeFromMonitoredFiles(file string) {
+	t.fileMutex.Lock()
+	defer t.fileMutex.Unlock()
 
-	delete(t.fileList, file)
-	t.currentOpenFiles.Add(-1)
+	if _, exists := t.monitoredFiles[file]; !exists {
+		t.log.Warnf("file %s not in monitored files, skipping removal", file)
+		return
+	}
+
+	delete(t.monitoredFiles, file)
+	t.openFileCount.Add(-1)
+	t.log.Debugf("removed file %s from monitored files, current open files: %d", file, t.openFileCount.Load())
 }
 
-func (t *Tailer) inFileList(file string) bool {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	_, ok := t.fileList[file]
+func (t *Tailer) isFileMonitored(file string) bool {
+	t.fileMutex.RLock()
+	defer t.fileMutex.RUnlock()
+	_, ok := t.monitoredFiles[file]
 	return ok
 }
 
 func (t *Tailer) closeAllFiles() {
-	t.mu.Lock()
-	defer t.mu.Unlock()
+	t.fileMutex.Lock()
+	defer t.fileMutex.Unlock()
 
-	for _, cancel := range t.fileList {
-		if cancel != nil {
-			cancel()
+	t.log.Infof("closing %d single tailers", len(t.monitoredFiles))
+	for file, single := range t.monitoredFiles {
+		if single != nil {
+			single.Close()
+			t.log.Debugf("closed tailer for file %s", file)
 		}
 	}
+	t.monitoredFiles = make(map[string]*Single)
 }
 
 func (t *Tailer) shouldOpenFile(file string) bool {
-	if t.inFileList(file) {
+	if t.isFileMonitored(file) {
 		return false
 	}
-	if t.maxOpenFiles != -1 && t.currentOpenFiles.Load() >= int64(t.maxOpenFiles) {
-		t.log.Warnf("too many open files, limit %d", t.maxOpenFiles)
+	if t.maxOpenFiles != -1 && t.openFileCount.Load() >= int64(t.maxOpenFiles) {
+		t.log.Warnf("too many open files, limit %d, current %d", t.maxOpenFiles, t.openFileCount.Load())
 		return false
 	}
 	if t.ignoreDeadLog > 0 && !openfile.FileIsActive(file, t.ignoreDeadLog) {
+		t.log.Debugf("file %s is not active, skipping", file)
 		return false
 	}
 	return true
 }
 
+func validateConfig(cfg *config) error {
+	if cfg.source == "" {
+		return fmt.Errorf("source cannot be empty")
+	}
+	if cfg.maxOpenFiles < -1 {
+		return fmt.Errorf("maxOpenFiles must be >= -1, got %d", cfg.maxOpenFiles)
+	}
+	if cfg.ignoreDeadLog < 0 {
+		return fmt.Errorf("ignoreDeadLog must be >= 0, got %v", cfg.ignoreDeadLog)
+	}
+	return nil
+}
+
 func cleanPatterns(patterns []string) []string {
-	newPatterns := make([]string, len(patterns))
-	copy(newPatterns, patterns)
-	for i := range newPatterns {
-		newPatterns[i] = filepath.Clean(newPatterns[i])
-		newPatterns[i] = filepath.ToSlash(newPatterns[i])
+	newPatterns := make([]string, 0, len(patterns))
+	for _, pattern := range patterns {
+		if pattern == "" {
+			continue
+		}
+		cleaned := filepath.Clean(pattern)
+		cleaned = filepath.ToSlash(cleaned)
+		newPatterns = append(newPatterns, cleaned)
 	}
 	return newPatterns
 }

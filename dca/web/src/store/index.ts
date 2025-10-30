@@ -9,7 +9,6 @@ import user from './user/user'
 import workspace from './workspace/workspace'
 import history from './history/history'
 import { baseApi } from 'src/store/baseApi';
-import consoleApi from 'src/store/consoleApi';
 import { setupListeners } from '@reduxjs/toolkit/query';
 
 const reducers = combineReducers({
@@ -33,13 +32,12 @@ const store = configureStore({
   middleware: (getDefaultMiddleware) => {
     return getDefaultMiddleware({
       serializableCheck: false
-    }).concat(baseApi.middleware).concat(consoleApi.middleware)
+    }).concat(baseApi.middleware)
   }
 })
 
 export type RootState = ReturnType<typeof store.getState>
 export type AppDispatch = typeof store.dispatch
-
 
 export default store
 

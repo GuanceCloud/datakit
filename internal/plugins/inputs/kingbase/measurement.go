@@ -37,8 +37,9 @@ func (m *ConnectionsMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"host":     &inputs.TagInfo{Desc: "The server address or the host name"},
-			"database": &inputs.TagInfo{Desc: "The name of the database"},
+			"host":       &inputs.TagInfo{Desc: "The server address or the host name"},
+			"db_version": &inputs.TagInfo{Desc: "The version of the database"},
+			"database":   &inputs.TagInfo{Desc: "The name of the database"},
 		},
 	}
 }
@@ -64,8 +65,9 @@ func (m *TransactionsMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"host":     &inputs.TagInfo{Desc: "The server address or the host name"},
-			"database": &inputs.TagInfo{Desc: "The name of the database"},
+			"host":       &inputs.TagInfo{Desc: "The server address or the host name"},
+			"db_version": &inputs.TagInfo{Desc: "The version of the database"},
+			"database":   &inputs.TagInfo{Desc: "The name of the database"},
 		},
 	}
 }
@@ -85,8 +87,9 @@ func (m *QueryPerformanceMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"host":     &inputs.TagInfo{Desc: "The server address or the host name"},
-			"database": &inputs.TagInfo{Desc: "The name of the database"},
+			"host":       &inputs.TagInfo{Desc: "The server address or the host name"},
+			"db_version": &inputs.TagInfo{Desc: "The version of the database"},
+			"database":   &inputs.TagInfo{Desc: "The name of the database"},
 		},
 	}
 }
@@ -106,8 +109,9 @@ func (m *LocksMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"host":     &inputs.TagInfo{Desc: "The server address or the host name"},
-			"database": &inputs.TagInfo{Desc: "The name of the database"},
+			"host":       &inputs.TagInfo{Desc: "The server address or the host name"},
+			"db_version": &inputs.TagInfo{Desc: "The version of the database"},
+			"database":   &inputs.TagInfo{Desc: "The name of the database"},
 		},
 	}
 }
@@ -151,9 +155,10 @@ func (m *QueryStatsMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"host":     &inputs.TagInfo{Desc: "The server address or the host name"},
-			"database": &inputs.TagInfo{Desc: "The name of the database"},
-			"queryid":  &inputs.TagInfo{Desc: "Unique identifier of the query"},
+			"host":       &inputs.TagInfo{Desc: "The server address or the host name"},
+			"db_version": &inputs.TagInfo{Desc: "The version of the database"},
+			"database":   &inputs.TagInfo{Desc: "The name of the database"},
+			"queryid":    &inputs.TagInfo{Desc: "Unique identifier of the query"},
 		},
 	}
 }
@@ -185,8 +190,9 @@ func (m *BufferCacheMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"host":     &inputs.TagInfo{Desc: "The server address or the host name"},
-			"database": &inputs.TagInfo{Desc: "The name of the database"},
+			"host":       &inputs.TagInfo{Desc: "The server address or the host name"},
+			"db_version": &inputs.TagInfo{Desc: "The version of the database"},
+			"database":   &inputs.TagInfo{Desc: "The name of the database"},
 		},
 	}
 }
@@ -242,8 +248,9 @@ func (m *DatabaseStatusMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"host":     &inputs.TagInfo{Desc: "The server address or the host name"},
-			"database": &inputs.TagInfo{Desc: "The name of the database"},
+			"host":       &inputs.TagInfo{Desc: "The server address or the host name"},
+			"db_version": &inputs.TagInfo{Desc: "The version of the database"},
+			"database":   &inputs.TagInfo{Desc: "The name of the database"},
 		},
 	}
 }
@@ -263,9 +270,10 @@ func (m *TablespaceMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"host":     &inputs.TagInfo{Desc: "The server address or the host name"},
-			"database": &inputs.TagInfo{Desc: "The name of the database"},
-			"spcname":  &inputs.TagInfo{Desc: "Tablespace name"},
+			"host":       &inputs.TagInfo{Desc: "The server address or the host name"},
+			"db_version": &inputs.TagInfo{Desc: "The version of the database"},
+			"database":   &inputs.TagInfo{Desc: "The name of the database"},
+			"spcname":    &inputs.TagInfo{Desc: "Tablespace name"},
 		},
 	}
 }
@@ -285,9 +293,10 @@ func (m *LockDetailsMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"host":      &inputs.TagInfo{Desc: "The server address or the host name"},
-			"database":  &inputs.TagInfo{Desc: "The name of the database"},
-			"lock_type": &inputs.TagInfo{Desc: "Type of the lock (e.g., relation, tuple)"},
+			"host":       &inputs.TagInfo{Desc: "The server address or the host name"},
+			"db_version": &inputs.TagInfo{Desc: "The version of the database"},
+			"database":   &inputs.TagInfo{Desc: "The name of the database"},
+			"lock_type":  &inputs.TagInfo{Desc: "Type of the lock (e.g., relation, tuple)"},
 		},
 	}
 }
@@ -319,8 +328,9 @@ func (m *IndexUsageMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"host":     &inputs.TagInfo{Desc: "The server address or the host name"},
-			"database": &inputs.TagInfo{Desc: "The name of the database"},
+			"host":       &inputs.TagInfo{Desc: "The server address or the host name"},
+			"db_version": &inputs.TagInfo{Desc: "The version of the database"},
+			"database":   &inputs.TagInfo{Desc: "The name of the database"},
 		},
 	}
 }
@@ -358,8 +368,9 @@ func (m *BackgroundWriterMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"host":     &inputs.TagInfo{Desc: "The server address or the host name"},
-			"database": &inputs.TagInfo{Desc: "The name of the database"},
+			"host":       &inputs.TagInfo{Desc: "The server address or the host name"},
+			"db_version": &inputs.TagInfo{Desc: "The version of the database"},
+			"database":   &inputs.TagInfo{Desc: "The name of the database"},
 		},
 	}
 }
@@ -380,6 +391,7 @@ func (m *SessionActivityMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"host":       &inputs.TagInfo{Desc: "The server address or the host name"},
+			"db_version": &inputs.TagInfo{Desc: "The version of the database"},
 			"database":   &inputs.TagInfo{Desc: "The name of the database"},
 			"state":      &inputs.TagInfo{Desc: "Session state (e.g., active, idle)"},
 			"wait_event": &inputs.TagInfo{Desc: "Wait event (e.g., LWLock, IO)"},
@@ -408,8 +420,9 @@ func (m *QueryCancellationMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"host":     &inputs.TagInfo{Desc: "The server address or the host name"},
-			"database": &inputs.TagInfo{Desc: "The name of the database"},
+			"host":       &inputs.TagInfo{Desc: "The server address or the host name"},
+			"db_version": &inputs.TagInfo{Desc: "The version of the database"},
+			"database":   &inputs.TagInfo{Desc: "The name of the database"},
 		},
 	}
 }
@@ -442,6 +455,7 @@ func (m *FunctionStatsMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"host":       &inputs.TagInfo{Desc: "The server address or the host name"},
+			"db_version": &inputs.TagInfo{Desc: "The version of the database"},
 			"database":   &inputs.TagInfo{Desc: "The name of the database"},
 			"schemaname": &inputs.TagInfo{Desc: "The schema name of the function"},
 			"funcname":   &inputs.TagInfo{Desc: "The name of the function"},
@@ -476,10 +490,11 @@ func (m *SlowQueriesMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"host":     &inputs.TagInfo{Desc: "The server address or the host name"},
-			"database": &inputs.TagInfo{Desc: "The name of the database"},
-			"queryid":  &inputs.TagInfo{Desc: "Unique identifier of the query"},
-			"query":    &inputs.TagInfo{Desc: "Truncated SQL query text"},
+			"host":       &inputs.TagInfo{Desc: "The server address or the host name"},
+			"db_version": &inputs.TagInfo{Desc: "The version of the database"},
+			"database":   &inputs.TagInfo{Desc: "The name of the database"},
+			"queryid":    &inputs.TagInfo{Desc: "Unique identifier of the query"},
+			"query":      &inputs.TagInfo{Desc: "Truncated SQL query text"},
 		},
 	}
 }

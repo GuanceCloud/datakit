@@ -74,6 +74,9 @@ func NewObfuscator(cfg *Config) *Obfuscator {
 	if cfg.SQLExecPlanNormalize.Enabled {
 		o.sqlExecPlanNormalize = newJSONObfuscator(&cfg.SQLExecPlanNormalize, &o)
 	}
+	if cfg.Log == nil {
+		cfg.Log = noOpLogger{}
+	}
 	return &o
 }
 

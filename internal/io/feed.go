@@ -68,6 +68,7 @@ func putFeedData(fd *feedData) {
 	fd.plOption = nil
 	fd.election = false
 	fd.pts = nil
+	fd.measurement = ""
 
 	feedOptionPool.Put(fd)
 }
@@ -98,6 +99,7 @@ type feedData struct {
 
 	storageIndex,
 	input,
+	measurement,
 	version string
 
 	cat      point.Category
@@ -148,6 +150,10 @@ func WithSource(name string) FeedOption    { return func(fd *feedData) { fd.inpu
 // WithStorageIndex set storage index name on curren feed.
 // Currently only category L allowed to set set storage index name.
 func WithStorageIndex(name string) FeedOption { return func(fd *feedData) { fd.storageIndex = name } }
+
+func WithMeasurement(measurement string) FeedOption {
+	return func(fd *feedData) { fd.measurement = measurement }
+}
 
 // FeedSource used to build a valid name for your WithFeedName().
 func FeedSource(arr ...string) string {
@@ -379,6 +385,13 @@ func (x *dkIO) doFeed(opt *feedData) error {
 	}
 
 	log.Debugf("io feed %s on %s", opt.input, opt.cat.String())
+
+	// set measurement name (only for metrics)
+	if opt.measurement != "" && opt.cat == point.Metric {
+		for _, pt := range opt.pts {
+			pt.SetName(opt.measurement)
+		}
+	}
 
 	after, plCreate, offl, err := x.beforeFeed(opt)
 	if err != nil {

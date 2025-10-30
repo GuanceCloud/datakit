@@ -7,10 +7,7 @@ package sqlserver
 
 import (
 	"database/sql"
-	"fmt"
-	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -18,9 +15,9 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/obfuscate"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
 )
 
 var (
@@ -324,20 +321,6 @@ func newPercentFieldInfo(desc string) *inputs.FieldInfo {
 	}
 }
 
-var reg = regexp.MustCompile(`\n|\s+`) //nolint:gocritic
-
-func obfuscateSQL(text string) (sql string) {
-	defer func() {
-		sql = strings.TrimSpace(reg.ReplaceAllString(sql, " "))
-	}()
-
-	if out, err := obfuscate.NewObfuscator(nil).Obfuscate("sql", text); err != nil {
-		return fmt.Sprintf("ERROR: failed to obfuscate: %s", err.Error())
-	} else {
-		return out.Query
-	}
-}
-
 func transformData(measurement string, kvs point.KVs) point.KVs {
 	if kvs == nil {
 		return nil
@@ -347,7 +330,7 @@ func transformData(measurement string, kvs point.KVs) point.KVs {
 	case "sqlserver_lock_dead":
 		if field := kvs.Fields().Get("blocking_text"); field != nil && !field.IsTag {
 			if text, isString := field.Raw().(string); isString {
-				obfuscatedText := obfuscateSQL(text)
+				obfuscatedText := util.ObfuscateSQL(text)
 				kvs = kvs.Set("message", obfuscatedText)
 				kvs = kvs.Set("blocking_text", obfuscatedText)
 			}
@@ -355,7 +338,7 @@ func transformData(measurement string, kvs point.KVs) point.KVs {
 	case "sqlserver_logical_io":
 		if field := kvs.Fields().Get("message"); field != nil && !field.IsTag {
 			if text, isString := field.Raw().(string); isString {
-				kvs = kvs.Set("message", obfuscateSQL(text))
+				kvs = kvs.Set("message", util.ObfuscateSQL(text))
 			}
 		}
 	case "sqlserver_database_size":

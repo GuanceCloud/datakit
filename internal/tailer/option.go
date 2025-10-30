@@ -6,200 +6,273 @@
 package tailer
 
 import (
+	"fmt"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 )
 
-type option struct {
-	// sockets
+// config 日志采集器的配置结构体.
+type config struct {
+	// 网络套接字配置
 	sockets []string
-	// 忽略这些文件
+	// 忽略的文件模式，支持通配符
 	ignorePatterns []string
-	// 忽略这些status，如果数据的status在此列表中，数据将不再上传
-	// e.g. "info","debug"
-	ignoreStatus []string
-	// 数据来源，默认值为'default'
+	// 数据源名称，用于标识日志来源
 	source string
-	// service，默认值为 $Source
+	// 服务名称，默认为 source 的值
 	service string
-	// pipeline脚本路径，如果为空则不使用pipeline
+	// Pipeline 脚本路径，用于日志处理
 	pipeline string
-
-	// set storage index name
+	// 存储索引名称
 	storageIndex string
-
-	// 解释文件内容时所使用的的字符编码，如果设置为空，将不进行转码处理
-	// e.g. "utf-8","utf-16le","utf-16be","gbk","gb18030"
+	// 字符编码，支持 utf-8、utf-16le、utf-16be、gbk、gb18030 等
 	characterEncoding string
-	// 添加 debug 字段
-	enableDebugFields bool
 
+	// 最大同时打开的文件数量，-1 表示无限制
+	maxOpenFiles int
+	// 忽略不活跃文件的时间阈值
+	ignoreDeadLog time.Duration
+	// 是否从文件开头开始读取（可能导致重复数据）
+	fromBeginning bool
+	// 文件大小阈值，小于此值的文件将从开头读取
+	fileSizeThreshold int64
+	// 是否移除 ANSI 转义码
+	removeAnsiEscapeCodes bool
+	// 是否启用多行日志处理
 	enableMultiline bool
-	// 匹配正则表达式
-	// 符合此正则匹配的数据，将被认定为有效数据。否则会累积追加到上一条有效数据的末尾
-	// 例如 ^\d{4}-\d{2}-\d{2} 行首匹配 YYYY-MM-DD 时间格式
-	// 如果为空，则默认使用 ^\S 即匹配每行开始处非空白字符
-	multilinePatterns  []string
+	// 多行日志匹配模式，用于识别日志行开始
+	// 例如：^\d{4}-\d{2}-\d{2} 匹配 YYYY-MM-DD 格式
+	multilinePatterns []string
+	// 多行日志最大长度限制
 	maxMultilineLength int64
 
-	// 最大文件打开数量
-	maxOpenFiles int
-	// 是否从文件起始处开始读取，如果打开此项，可能会导致大量数据重复
-	fromBeginning bool
-	// 是否删除文本中的ansi转义码，默认为false，即不删除
-	removeAnsiEscapeCodes bool
-	// 是否关闭添加默认status字段列，包括status字段的固定转换行为，例如'd'->'debug'
-	disableAddStatusField bool
-	// 日志文本的另一种发送方式（和Feed冲突）
+	// 自定义日志转发函数（与 Feed 冲突）
 	forwardFunc ForwardFunc
-	// 判定不活跃文件
-	ignoreDeadLog time.Duration
-	// 添加额外tag
-	extraTags map[string]string
-	//
-	fieldWhiteList map[string]interface{}
-
+	// 内部文件路径处理函数
 	insideFilepathFunc func(string) string
 
-	// 如果要采集的文件 size 小于此值，将使用 from_bgeinning，单位字节
-	fileFromBeginningThresholdSize int64
+	// 是否启用调试字段
+	enableDebugFields bool
+	// 额外的标签信息
+	extraTags map[string]string
+	// 字段白名单，只有在此列表中的字段才会被保留
+	fieldWhitelist []string
 
+	// 日志解析模式
 	mode Mode
+	// 数据输出器
+	feeder dkio.Feeder
 
-	feeder   dkio.Feeder
-	feedName string
+	// 已废弃：忽略的状态列表
+	ignoredStatuses []string
+	// 已废弃：是否禁用默认状态字段
+	disableStatusField bool
 }
 
-type Option func(*option)
-
-func WithSockets(arr []string) Option        { return func(opt *option) { opt.sockets = arr } }
-func WithIgnorePatterns(arr []string) Option { return func(opt *option) { opt.ignorePatterns = arr } }
-func WithIgnoreStatus(arr []string) Option   { return func(opt *option) { opt.ignoreStatus = arr } }
-func WithPipeline(s string) Option           { return func(opt *option) { opt.pipeline = s } }
-func WithStorageIndex(name string) Option    { return func(opt *option) { opt.storageIndex = name } }
-func WithCharacterEncoding(s string) Option  { return func(opt *option) { opt.characterEncoding = s } }
-func WithFromBeginning(b bool) Option        { return func(opt *option) { opt.fromBeginning = b } }
-func WithTextParserMode(mode Mode) Option    { return func(opt *option) { opt.mode = mode } }
-func EnableDebugFields(b bool) Option        { return func(opt *option) { opt.enableDebugFields = b } }
-
-func WithFieldWhiteList(list []string) Option {
-	return func(opt *option) {
-		opt.fieldWhiteList = make(map[string]interface{}, len(list))
-		for _, fieldKey := range list {
-			opt.fieldWhiteList[fieldKey] = nil
+// checkConfig 验证配置的有效性.
+func checkConfig(cfg *config) error {
+	// 验证字符编码
+	if cfg.characterEncoding != "" {
+		if _, err := encoding.NewDecoder(cfg.characterEncoding); err != nil {
+			return fmt.Errorf("invalid character encoding '%s': %w", cfg.characterEncoding, err)
 		}
 	}
+
+	// 验证多行模式
+	if _, err := multiline.New(cfg.multilinePatterns); err != nil {
+		return fmt.Errorf("invalid multiline patterns: %w", err)
+	}
+
+	// 验证数据源名称
+	if cfg.source == "" {
+		return fmt.Errorf("source cannot be empty")
+	}
+
+	// 验证最大打开文件数
+	if cfg.maxOpenFiles < -1 {
+		return fmt.Errorf("maxOpenFiles must be >= -1, got %d", cfg.maxOpenFiles)
+	}
+
+	// 验证文件大小阈值
+	if cfg.fileSizeThreshold < 0 {
+		return fmt.Errorf("fileSizeThreshold must be >= 0, got %d", cfg.fileSizeThreshold)
+	}
+
+	// 验证多行最大长度
+	if cfg.maxMultilineLength < 0 {
+		return fmt.Errorf("maxMultilineLength must be >= 0, got %d", cfg.maxMultilineLength)
+	}
+
+	return nil
+}
+
+// Option 配置选项函数类型.
+type Option func(*config)
+
+func WithIgnoredStatuses(arr []string) Option {
+	return func(cfg *config) { cfg.ignoredStatuses = arr }
+}
+
+func WithDisableStatusField(b bool) Option {
+	return func(cfg *config) { cfg.disableStatusField = b }
+}
+
+func WithSockets(arr []string) Option {
+	return func(cfg *config) { cfg.sockets = arr }
+}
+
+func WithIgnorePatterns(arr []string) Option {
+	return func(cfg *config) { cfg.ignorePatterns = arr }
+}
+
+func WithPipeline(s string) Option {
+	return func(cfg *config) { cfg.pipeline = s }
+}
+
+func WithStorageIndex(name string) Option {
+	return func(cfg *config) { cfg.storageIndex = name }
+}
+
+func WithCharacterEncoding(s string) Option {
+	return func(cfg *config) { cfg.characterEncoding = s }
+}
+
+func WithFromBeginning(b bool) Option {
+	return func(cfg *config) { cfg.fromBeginning = b }
+}
+
+func WithTextParserMode(mode Mode) Option {
+	return func(cfg *config) { cfg.mode = mode }
+}
+
+func EnableDebugFields(b bool) Option {
+	return func(cfg *config) { cfg.enableDebugFields = b }
+}
+
+func WithFieldWhitelist(list []string) Option {
+	return func(cfg *config) { cfg.fieldWhitelist = list }
 }
 
 func WithSource(s string) Option {
-	return func(opt *option) {
+	return func(cfg *config) {
 		if s == "" {
 			return
 		}
-		opt.source = s
-		if opt.service == "" {
-			WithService(s)
+		cfg.source = s
+		if cfg.service == "" {
+			WithService(s)(cfg)
 		}
 	}
 }
 
 func WithService(s string) Option {
-	return func(opt *option) {
+	return func(cfg *config) {
 		if s == "" {
-			s = opt.source
+			s = cfg.source
 		}
-		opt.service = s
-		if opt.extraTags == nil {
-			opt.extraTags = make(map[string]string)
+		cfg.service = s
+		if cfg.extraTags == nil {
+			cfg.extraTags = make(map[string]string)
 		}
-		opt.extraTags["service"] = opt.service
+		cfg.extraTags["service"] = cfg.service
 	}
 }
 
-func EnableMultiline(b bool) Option { return func(opt *option) { opt.enableMultiline = b } }
-func WithMultilinePatterns(arr []string) Option {
-	return func(opt *option) { opt.multilinePatterns = arr }
+func EnableMultiline(b bool) Option {
+	return func(cfg *config) { cfg.enableMultiline = b }
 }
-func WithMaxMultilineLength(n int64) Option { return func(opt *option) { opt.maxMultilineLength = n } }
+
+func WithMultilinePatterns(arr []string) Option {
+	return func(cfg *config) { cfg.multilinePatterns = arr }
+}
+
+func WithMaxMultilineLength(n int64) Option {
+	return func(cfg *config) { cfg.maxMultilineLength = n }
+}
 
 func WithRemoveAnsiEscapeCodes(b bool) Option {
-	return func(opt *option) { opt.removeAnsiEscapeCodes = b }
-}
-
-func WithDisableAddStatusField(b bool) Option {
-	return func(opt *option) { opt.disableAddStatusField = b }
+	return func(cfg *config) { cfg.removeAnsiEscapeCodes = b }
 }
 
 func WithMaxOpenFiles(n int) Option {
-	return func(opt *option) {
+	return func(cfg *config) {
 		if n > 0 || n == -1 {
-			opt.maxOpenFiles = n
+			cfg.maxOpenFiles = n
 		}
 	}
 }
 
 func WithIgnoreDeadLog(dur time.Duration) Option {
-	return func(opt *option) {
+	return func(cfg *config) {
 		if dur > 0 {
-			opt.ignoreDeadLog = dur
+			cfg.ignoreDeadLog = dur
 		}
 	}
 }
 
-func WithFileFromBeginningThresholdSize(n int64) Option {
-	return func(opt *option) {
+func WithFileSizeThreshold(n int64) Option {
+	return func(cfg *config) {
 		if n > 0 {
-			opt.fileFromBeginningThresholdSize = n
+			cfg.fileSizeThreshold = n
 		}
 	}
 }
 
-func WithGlobalTags(m map[string]string) Option {
-	return func(opt *option) {
+func WithExtraTags(m map[string]string) Option {
+	return func(cfg *config) {
+		// 保留 service 标签，删除其他标签
+		service := cfg.extraTags["service"]
+		cfg.extraTags = map[string]string{"service": service}
 		for k, v := range m {
-			opt.extraTags[k] = v
+			cfg.extraTags[k] = v
 		}
 	}
 }
 
-func WithTag(key, value string) Option {
-	return func(opt *option) {
-		if opt.extraTags == nil {
-			opt.extraTags = make(map[string]string)
+func AddTag(key, value string) Option {
+	return func(cfg *config) {
+		if cfg.extraTags == nil {
+			cfg.extraTags = make(map[string]string)
 		}
-		opt.extraTags[key] = value
+		cfg.extraTags[key] = value
 	}
 }
 
 func WithInsideFilepathFunc(fn func(path string) string) Option {
-	return func(opt *option) {
-		opt.insideFilepathFunc = fn
+	return func(cfg *config) {
+		cfg.insideFilepathFunc = fn
 	}
 }
 
-func WithForwardFunc(fn ForwardFunc) Option { return func(opt *option) { opt.forwardFunc = fn } }
-func WithFeeder(feeder dkio.Feeder) Option  { return func(opt *option) { opt.feeder = feeder } }
+func WithForwardFunc(fn ForwardFunc) Option {
+	return func(cfg *config) { cfg.forwardFunc = fn }
+}
 
-func defaultOption() *option {
-	return &option{
-		source:                         "default",
-		extraTags:                      map[string]string{"service": "default"},
-		fileFromBeginningThresholdSize: 1000 * 1000 * 20, // 20 MB
-		maxOpenFiles:                   500,
-		feeder:                         dkio.DefaultFeeder(),
+func WithFeeder(feeder dkio.Feeder) Option {
+	return func(cfg *config) { cfg.feeder = feeder }
+}
+
+func defaultConfig() *config {
+	return &config{
+		source:            "default",
+		extraTags:         map[string]string{"service": "default"},
+		fileSizeThreshold: 1000 * 1000 * 20, // 20 MB
+		maxOpenFiles:      defaultMaxOpenFiles,
+		feeder:            dkio.DefaultFeeder(),
 	}
 }
 
-func getOption(opts ...Option) *option {
-	with := defaultOption()
-	for _, o := range opts {
-		if o != nil {
-			o(with)
+func buildConfig(opts []Option) *config {
+	cfg := defaultConfig()
+	for _, opt := range opts {
+		if opt != nil {
+			opt(cfg)
 		}
 	}
-
-	return with
+	return cfg
 }
 
 type ForwardFunc func(filename, text string, fields map[string]interface{}) error
@@ -207,8 +280,11 @@ type ForwardFunc func(filename, text string, fields map[string]interface{}) erro
 type Mode uint8
 
 const (
+	// FileMode 普通文件模式.
 	FileMode Mode = iota + 1
+	// DockerJSONLogMode Docker JSON 日志模式.
 	DockerJSONLogMode
+	// CriLogdMode CRI 日志模式.
 	CriLogdMode
 )
 

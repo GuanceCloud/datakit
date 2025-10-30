@@ -55,7 +55,7 @@ func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) 
 	}
 }
 
-func handleDDTraces(resp http.ResponseWriter, req *http.Request) {
+func (ipt *Input) handleDDTraces(resp http.ResponseWriter, req *http.Request) {
 	clStr := req.Header.Get("Content-Length")
 	ntraceStr := req.Header.Get("X-Datadog-Trace-Count")
 	if clStr == "0" || ntraceStr == "0" {
@@ -73,12 +73,12 @@ func handleDDTraces(resp http.ResponseWriter, req *http.Request) {
 	cl, err := strconv.ParseInt(clStr, 10, 64)
 	if err != nil {
 		log.Warnf("invalid Content-Length: %q, ignored", clStr)
-	} else if maxTraceBody > 0 && cl > maxTraceBody {
+	} else if ipt.maxTraceBody > 0 && cl > ipt.maxTraceBody {
 		if ntrace > 0 {
 			droppedTraces.WithLabelValues(req.URL.Path).Add(float64(ntrace))
 		}
 
-		log.Warnf("dropped %d trace: too large request body(%q bytes > %d bytes)", ntrace, clStr, maxTraceBody)
+		log.Warnf("dropped %d trace: too large request body(%q bytes > %d bytes)", ntrace, clStr, ipt.maxTraceBody)
 		return
 	}
 
@@ -102,7 +102,7 @@ func handleDDTraces(resp http.ResponseWriter, req *http.Request) {
 
 	log.Debugf("param body len=%d", param.Body.Len())
 
-	if err = parseDDTraces(param); err != nil {
+	if err = ipt.parseDDTraces(param); err != nil {
 		if errors.Is(err, msgp.ErrShortBytes) {
 			log.Warn(err.Error())
 		} else {
@@ -128,23 +128,30 @@ func handleDDInfo(resp http.ResponseWriter, req *http.Request) {
 }
 
 func (ipt *Input) handleDDProxy(resp http.ResponseWriter, req *http.Request) {
-	bts, err := io.ReadAll(req.Body)
-	defer req.Body.Close() //nolint
-	if err != nil {
+	if !ipt.ApmTelemetryRouteEnable {
+		log.Warnf("apmtelemetryRouteEnable is disable, ignore and return 200 status")
+		resp.WriteHeader(http.StatusOK)
+		return
+	}
+
+	pbuf := bufpool.GetBuffer()
+	defer bufpool.PutBuffer(pbuf)
+
+	if _, err := io.Copy(pbuf, req.Body); err != nil {
 		log.Warnf("read body err=%v", err)
 		resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	if ipt.om != nil {
-		ipt.om.parseTelemetryRequest(req.Header, bts)
+		ipt.om.parseTelemetryRequest(req.Header, pbuf.Bytes())
 	}
 
 	resp.WriteHeader(http.StatusOK)
 }
 
-func parseDDTraces(param *itrace.TraceParameters) error {
-	dktraces, err := decodeDDTraces(param)
+func (ipt *Input) parseDDTraces(param *itrace.TraceParameters) error {
+	dktraces, err := ipt.decodeDDTraces(param)
 	if err != nil {
 		return err
 	}
@@ -157,7 +164,7 @@ func parseDDTraces(param *itrace.TraceParameters) error {
 	return nil
 }
 
-func decodeDDTraces(param *itrace.TraceParameters) (itrace.DatakitTraces, error) {
+func (ipt *Input) decodeDDTraces(param *itrace.TraceParameters) (itrace.DatakitTraces, error) {
 	var (
 		err      error
 		dktraces itrace.DatakitTraces
@@ -189,7 +196,7 @@ func decodeDDTraces(param *itrace.TraceParameters) (itrace.DatakitTraces, error)
 	curSpans := 0
 	maxBatch := 100
 
-	log.Debugf("transform ddtrace to dkspan, noStreaming=%v", noStreaming)
+	log.Debugf("transform ddtrace to dkspan, noStreaming=%v", ipt.NoStreaming)
 	values := make([]string, 0, len(labels))
 	if len(traces) != 0 {
 		for _, trace := range traces {
@@ -199,16 +206,16 @@ func decodeDDTraces(param *itrace.TraceParameters) (itrace.DatakitTraces, error)
 			}
 
 			// decode single ddtrace into dktrace
-			dktrace := ddtraceToDkTrace(trace, values, param.RemoteIP)
+			dktrace := ipt.ddtraceToDkTrace(trace, values, param.RemoteIP)
 			if nspan := len(dktrace); nspan > 0 {
-				if nspan > maxBatch && !noStreaming { // flush large trace ASAP.
+				if nspan > maxBatch && !ipt.NoStreaming { // flush large trace ASAP.
 					log.Debugf("streaming feed %d spans", nspan)
 					afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace})
 				} else {
 					dktraces = append(dktraces, dktrace)
 					curSpans += nspan
 
-					if curSpans > maxBatch && !noStreaming { // multiple traces got too many spans, flush ASAP.
+					if curSpans > maxBatch && !ipt.NoStreaming { // multiple traces got too many spans, flush ASAP.
 						log.Debugf("streaming feed %d spans within %d traces", curSpans, len(dktraces))
 						afterGatherRun.Run(inputName, dktraces)
 
@@ -284,7 +291,7 @@ var (
 	traceOpts            = []point.Option{}
 )
 
-func ddtraceToDkTrace(trace DDTrace, values []string, remoteIP string) itrace.DatakitTrace {
+func (ipt *Input) ddtraceToDkTrace(trace DDTrace, values []string, remoteIP string) itrace.DatakitTrace {
 	var (
 		parentIDs, spanIDs = gatherSpansInfo(trace) // NOTE: we should gather before truncate
 		dktrace            = make(itrace.DatakitTrace, 0, len(trace))
@@ -294,19 +301,19 @@ func ddtraceToDkTrace(trace DDTrace, values []string, remoteIP string) itrace.Da
 	traceSpans.WithLabelValues(inputName).Observe(float64(len(trace)))
 
 	// truncate too large spans
-	if traceMaxSpans > 0 && len(trace) > traceMaxSpans {
+	if ipt.traceMaxSpans > 0 && len(trace) > ipt.traceMaxSpans {
 		// append info to last span's meta
-		lastSpan := trace[traceMaxSpans-1]
+		lastSpan := trace[ipt.traceMaxSpans-1]
 		if lastSpan.Meta == nil {
 			lastSpan.Meta = map[string]string{}
 		}
 
 		lastSpan.Meta["__datakit_span_truncated"] = fmt.Sprintf("large trace that got spans %d, max span limit is %d(%d spans truncated)",
-			len(trace), traceMaxSpans, len(trace)-traceMaxSpans)
+			len(trace), ipt.traceMaxSpans, len(trace)-ipt.traceMaxSpans)
 
-		log.Warnf("truncate %d spans from service %q", len(trace)-traceMaxSpans, trace[0].Service)
-		truncatedTraceSpans.WithLabelValues(inputName).Add(float64(len(trace) - traceMaxSpans))
-		trace = trace[:traceMaxSpans] // truncated too large spans
+		log.Warnf("truncate %d spans from service %q", len(trace)-ipt.traceMaxSpans, trace[0].Service)
+		truncatedTraceSpans.WithLabelValues(inputName).Add(float64(len(trace) - ipt.traceMaxSpans))
+		trace = trace[:ipt.traceMaxSpans] // truncated too large spans
 	}
 
 	for _, span := range trace {
@@ -316,9 +323,8 @@ func ddtraceToDkTrace(trace DDTrace, values []string, remoteIP string) itrace.Da
 		}
 
 		if strTraceID == "" {
-			strTraceID = strconv.FormatUint(span.TraceID, traceBase)
-
-			if v, ok := span.Meta[TraceIDUpper]; trace128BitID && ok {
+			strTraceID = strconv.FormatUint(span.TraceID, ipt.traceBase)
+			if v, ok := span.Meta[TraceIDUpper]; ipt.Trace128BitID && ok {
 				strTraceID = v + Int64ToPaddedString(span.TraceID)
 			}
 
@@ -348,8 +354,8 @@ func ddtraceToDkTrace(trace DDTrace, values []string, remoteIP string) itrace.Da
 		}
 
 		spanKV = spanKV.Add(itrace.FieldTraceID, strTraceID).
-			Add(itrace.FieldParentID, itrace.FormatSpanIDByBase(span.ParentID, spanBase)).
-			Add(itrace.FieldSpanid, itrace.FormatSpanIDByBase(span.SpanID, spanBase)).
+			Add(itrace.FieldParentID, itrace.FormatSpanIDByBase(span.ParentID, ipt.spanBase)).
+			Add(itrace.FieldSpanid, itrace.FormatSpanIDByBase(span.SpanID, ipt.spanBase)).
 			AddTag(itrace.TagService, span.Service).
 			Add(itrace.FieldResource, resource).
 			AddTag(itrace.TagOperation, span.Name).
@@ -364,33 +370,14 @@ func ddtraceToDkTrace(trace DDTrace, values []string, remoteIP string) itrace.Da
 			Add(itrace.FieldStart, span.Start/int64(time.Microsecond)).
 			Add(itrace.FieldDuration, span.Duration/int64(time.Microsecond))
 
-		// runtime_id 作为链路和 profiling 关联的字段，由于历史问题，需要增加一个冗余字段。
-		runTimeIDKey := "runtime-id"
-		if v, ok := span.Meta[runTimeIDKey]; ok {
-			spanKV = spanKV.AddTag("runtime_id", v).AddTag(runTimeIDKey, v)
-			delete(span.Meta, runTimeIDKey)
-		}
-
-		for k, v := range inputTags {
+		for k, v := range ipt.Tags {
 			spanKV = spanKV.AddTag(k, v)
 		}
 
-		for k, v := range span.Meta {
-			ddTagsLock.RLock()
-			if replace, ok := ddTags[k]; ok {
-				if len(v) > 1024 {
-					spanKV = spanKV.Set(replace, v)
-				} else {
-					spanKV = spanKV.SetTag(replace, v)
-				}
-				// 从 message 中删除 key.
-				delete(span.Meta, k)
-			}
-			if k == "db.type" { // db 类型。
-				spanKV = spanKV.AddTag("db_host", span.Meta["peer.hostname"])
-			}
-			ddTagsLock.RUnlock()
-		}
+		meta, kvs := ipt.customTagsX.DDTraceRegexKey(span.Meta)
+		span.Meta = meta
+		spanKV = append(spanKV, kvs...)
+
 		if code := spanKV.GetTag(itrace.TagHttpStatusCode); code != "" {
 			spanKV = spanKV.AddTag(itrace.TagHttpStatusClass, itrace.GetClass(code))
 		}
@@ -401,7 +388,7 @@ func ddtraceToDkTrace(trace DDTrace, values []string, remoteIP string) itrace.Da
 			spanKV = spanKV.AddTag(itrace.TagSpanStatus, itrace.StatusOk)
 		}
 
-		if !delMessage {
+		if !ipt.DelMessage {
 			span.ParentID = 0
 			span.SpanID = 0
 			span.TraceID = 0
@@ -414,7 +401,7 @@ func ddtraceToDkTrace(trace DDTrace, values []string, remoteIP string) itrace.Da
 
 		t := time.Unix(0, span.Start)
 		pt := point.NewPoint(inputName, spanKV, append(traceOpts, point.WithTime(t))...)
-		if isTracingMetricsEnable {
+		if ipt.TracingMetricEnable {
 			spanMetrics(pt, labels, values) // span 指标化。
 		}
 

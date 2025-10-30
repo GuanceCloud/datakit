@@ -134,3 +134,33 @@ CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 create user datakit with password '123456';
 grant pg_monitor to datakit;
 grant SELECT ON pg_stat_database to datakit;
+
+-- DBM role
+
+\c test_db;
+CREATE SCHEMA datakit;
+GRANT USAGE ON SCHEMA datakit TO datakit;
+GRANT USAGE ON SCHEMA public TO datakit;
+GRANT USAGE ON SCHEMA test_schema TO datakit;
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+
+CREATE OR REPLACE FUNCTION datakit.explain_statement(
+   l_query TEXT,
+   OUT explain JSON
+)
+RETURNS SETOF JSON AS
+$$
+DECLARE
+curs REFCURSOR;
+plan JSON;
+
+BEGIN
+   OPEN curs FOR EXECUTE pg_catalog.concat('EXPLAIN (FORMAT JSON) ', l_query);
+   FETCH curs INTO plan;
+   CLOSE curs;
+   RETURN QUERY SELECT plan;
+END;
+$$
+LANGUAGE 'plpgsql'
+RETURNS NULL ON NULL INPUT
+SECURITY DEFINER;

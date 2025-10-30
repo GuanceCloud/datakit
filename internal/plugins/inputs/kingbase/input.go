@@ -11,14 +11,12 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
-	"github.com/coreos/go-semver/semver"
 	"github.com/jmoiron/sqlx"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
@@ -81,7 +79,7 @@ type Input struct {
 
 	collectFuncs map[string]func() error
 	collectCache []*point.Point
-	Version      *semver.Version
+	Version      string
 
 	semStop    *cliutils.Sem
 	pause      bool
@@ -118,6 +116,19 @@ func (ipt *Input) checkSysStatStatements() error {
 	return nil
 }
 
+func (ipt *Input) setKBVersion() error {
+	var versionStr string
+	if err := ipt.db.Get(&versionStr, "SELECT version()"); err != nil {
+		return fmt.Errorf("failed to get version: %w", err)
+	}
+	version, err := extractVersion(versionStr)
+	if err != nil {
+		return fmt.Errorf("failed to extract version: %w", err)
+	}
+	ipt.Version = version
+	return nil
+}
+
 // init db connect.
 func (ipt *Input) initDBConnect() error {
 	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
@@ -130,31 +141,6 @@ func (ipt *Input) initDBConnect() error {
 		return fmt.Errorf("failed to ping Kingbase: %w", err)
 	}
 	ipt.db = db
-
-	// Detect version
-	var version string
-	err = ipt.db.Get(&version, "SELECT version()")
-	if err != nil {
-		return fmt.Errorf("failed to get version: %w", err)
-	}
-
-	re := regexp.MustCompile(`V(\d{3})R(\d{3})`)
-	matches := re.FindStringSubmatch(version)
-	if len(matches) < 3 {
-		return fmt.Errorf("invalid version format: %s", version)
-	}
-	major, minor := matches[1], matches[2]
-	semVersion := fmt.Sprintf("%s.%s.0", strings.TrimLeft(major, "0"), strings.TrimLeft(minor, "0"))
-
-	ipt.Version, err = semver.NewVersion(semVersion)
-	if err != nil {
-		return fmt.Errorf("failed to parse version %s: %w", semVersion, err)
-	}
-
-	// 检查 sys_stat_statements 扩展
-	if err := ipt.checkSysStatStatements(); err != nil {
-		l.Warnf("sys_stat_statements check failed: %w", err)
-	}
 	return nil
 }
 
@@ -223,6 +209,16 @@ func (ipt *Input) setup() error {
 	if err := ipt.initDBConnect(); err != nil {
 		// l.Errorf("Failed to initialize DB connection: %v", err)
 		return fmt.Errorf("failed to initialize DB connection: %w", err)
+	}
+
+	// set version
+	if err := ipt.setKBVersion(); err != nil {
+		l.Warnf("kingbase version set error: %w", err)
+	}
+
+	// 检查 sys_stat_statements 扩展
+	if err := ipt.checkSysStatStatements(); err != nil {
+		l.Warnf("sys_stat_statements check failed: %w", err)
 	}
 	return nil
 }
@@ -353,12 +349,12 @@ func (ipt *Input) RunPipeline() {
 		tailer.WithSource(inputName),
 		tailer.WithService(inputName),
 		tailer.WithPipeline(ipt.Log.Pipeline),
-		tailer.WithIgnoreStatus(ipt.Log.IgnoreStatus),
+		tailer.WithIgnoredStatuses(ipt.Log.IgnoreStatus),
 		tailer.WithCharacterEncoding(ipt.Log.CharacterEncoding),
 		tailer.EnableMultiline(true),
 		tailer.WithMaxMultilineLength(int64(float64(config.Cfg.Dataway.MaxRawBodySize) * 0.8)),
 		tailer.WithMultilinePatterns([]string{ipt.Log.MultilineMatch}),
-		tailer.WithGlobalTags(inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")),
+		tailer.WithExtraTags(inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")),
 		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
 	}
 

@@ -1,4 +1,4 @@
-FROM pubrepo.guance.com/base/ubuntu:20.04 AS base
+FROM pubrepo.guance.com/base/ubuntu:22.04 AS base
 
 ARG TARGETARCH
 

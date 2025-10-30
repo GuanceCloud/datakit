@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  redis-master:
+    image: hub.cloudcarex.com/redis:7-alpine
+    container_name: redis-master
+    network_mode: host
+    volumes:
+      - ./conf/master.conf:/usr/local/etc/redis/redis.conf:ro
+      - redis-data:/data
+    command: redis-server /usr/local/etc/redis/redis.conf
+    restart: unless-stopped
+
+volumes:
+  redis-data:

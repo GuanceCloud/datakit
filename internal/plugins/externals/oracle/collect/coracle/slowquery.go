@@ -9,13 +9,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/araddon/dateparse"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/obfuscate"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/oracle/collect/ccommon"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
 )
 
 type slowQueryLogging struct {
@@ -337,10 +336,8 @@ func (m *slowQueryLogging) slowQuery() ([]*point.Point, error) {
 		mRes["io_cell_uncompressed_bytes"] = r.IO_CELL_UNCOMPRESSED_BYTES.String
 		mRes["io_cell_offload_returned_bytes"] = r.IO_CELL_OFFLOAD_RETURNED_BYTES.String
 
-		fullText, err := obfuscateSQL(r.SQL_FULLTEXT.String)
-		if err != nil {
-			mRes["failed_obfuscate"] = err.Error()
-		}
+		fullText := util.ObfuscateSQL(r.SQL_FULLTEXT.String)
+
 		mRes["sql_fulltext"] = fullText
 
 		mRes["sql_id"] = r.SQL_ID.String
@@ -400,18 +397,4 @@ func getOracleTimeString(in string) string {
 		out = t.Format(("2006-01-02 15:04:05"))
 	}
 	return out
-}
-
-var reg = regexp.MustCompile(`\n|\s+`) //nolint:gocritic
-
-func obfuscateSQL(text string) (sql string, err error) {
-	defer func() {
-		sql = strings.TrimSpace(reg.ReplaceAllString(sql, " "))
-	}()
-
-	if out, err := obfuscate.NewObfuscator(nil).Obfuscate("sql", text); err != nil {
-		return text, err
-	} else {
-		return out.Query, nil
-	}
 }

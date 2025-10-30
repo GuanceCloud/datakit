@@ -6,84 +6,41 @@
 package redis
 
 import (
-	"time"
-
 	"github.com/GuanceCloud/cliutils/point"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-func (ipt *Input) setUpState() {
-	ipt.UpState = 1
-}
+var upFeedSource = dkio.FeedSource(inputName, "up")
 
-func (ipt *Input) setErrUpState() {
-	ipt.UpState = 0
-}
+func (ipt *Input) feedUpMetric() {
+	pts := make([]*point.Point, 0)
 
-func (ipt *Input) getUpJob() string {
-	return inputName
-}
-
-func (ipt *Input) getUpInstance() string {
-	return ipt.Addr
-}
-
-func (ipt *Input) buildUpPoints() ([]*point.Point, error) {
-	ms := []inputs.MeasurementV2{}
-	tags := map[string]string{
-		"job":      ipt.getUpJob(),
-		"instance": ipt.getUpInstance(),
-	}
-	fields := map[string]interface{}{
-		"up": ipt.UpState,
-	}
-	m := &inputs.UpMeasurement{
-		Name:     inputs.CollectorUpMeasurement,
-		Tags:     tags,
-		Fields:   fields,
-		Election: ipt.Election,
-	}
-
-	ms = append(ms, m)
-	if len(ms) > 0 {
-		pts := getPointsFromMeasurement2(ms)
-		for k, v := range ipt.Tags {
-			for _, pt := range pts {
-				pt.AddTag(k, v)
+	for _, inst := range ipt.instances {
+		for _, n := range inst.nodes() {
+			upState, ok := inst.nodeUpStates[n.addr]
+			if !ok {
+				continue
 			}
+			var kvs point.KVs
+			kvs = kvs.AddTag("job", inputName).
+				AddTag("instance", n.addr).
+				Set("up", upState)
+
+			for k, v := range ipt.Tags {
+				kvs.AddTag(k, v)
+			}
+
+			opts := append(point.DefaultMetricOptions(), point.WithTime(ipt.ptsTime))
+			pts = append(pts, point.NewPoint(inputs.CollectorUpMeasurement, kvs, opts...))
 		}
-		return pts, nil
 	}
 
-	return []*point.Point{}, nil
-}
-
-func getPointsFromMeasurement2(ms []inputs.MeasurementV2) []*point.Point {
-	pts := []*point.Point{}
-	for _, m := range ms {
-		pts = append(pts, m.Point())
-	}
-
-	return pts
-}
-
-func (ipt *Input) FeedUpMetric() {
-	pts, _ := ipt.buildUpPoints()
-	if len(pts) > 0 {
-		l.Debug("feed up metric")
-		if err := ipt.feeder.Feed(point.Metric, pts,
-			dkio.WithCollectCost(time.Since(ipt.start)),
-			dkio.WithElection(ipt.Election),
-			dkio.WithSource(inputName),
-		); err != nil {
-			ipt.feeder.FeedLastError(err.Error(),
-				metrics.WithLastErrorInput(inputName),
-				metrics.WithLastErrorCategory(point.Metric),
-			)
-			l.Errorf("feed : %s", err)
-		}
+	if err := ipt.feeder.Feed(point.Metric, pts,
+		dkio.WithElection(ipt.Election),
+		dkio.WithSource(upFeedSource),
+	); err != nil {
+		l.Warnf("feed : %s, ignored", err)
 	}
 }

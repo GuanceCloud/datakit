@@ -17,7 +17,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/podutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-	"sigs.k8s.io/yaml"
 
 	apicorev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
@@ -259,10 +258,10 @@ func (p *pod) buildObjectPoints(list *apicorev1.PodList, metricsClient PodMetric
 			}
 		}
 
-		if y, err := yaml.Marshal(item); err == nil {
-			kvs = kvs.Add("yaml", string(y))
+		if yamlStr := getCleanYAML(&list.Items[idx]); yamlStr != "" {
+			kvs = kvs.Add("yaml", yamlStr)
 		}
-		kvs = kvs.Add("annotations", pointutil.MapToJSON(item.Annotations))
+		kvs = kvs.Add("annotations", pointutil.MapToJSON(filterAnnotations(item.Annotations)))
 		kvs = append(kvs, pointutil.ConvertDFLabels(item.Labels)...)
 
 		msg := pointutil.PointKVsToJSON(kvs)

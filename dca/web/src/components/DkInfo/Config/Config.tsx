@@ -1,7 +1,8 @@
 import { CSSProperties, MouseEvent, useContext, useEffect, useState } from 'react'
-import { CaretRightOutlined, CaretDownOutlined, ExclamationCircleOutlined, EditOutlined } from '@ant-design/icons'
-import { Button, message, Modal, Space, Tooltip, Typography } from 'antd'
+import { CaretRightOutlined, CaretDownOutlined, ExclamationCircleOutlined, EditOutlined, QuestionCircleFilled } from '@ant-design/icons'
+import { Button, Input, message, Modal, Space, Tooltip, Typography } from 'antd'
 import toml from 'toml'
+import path from 'path-browserify'
 import { useBlocker } from "react-router-dom"
 
 import './Config.scss'
@@ -28,6 +29,7 @@ type ConfigInfo = {
   sampleConfig: string
   realConfig?: string
   path?: string
+  dir?: string
   config?: string
   children?: ConfigInfo[]
   loaded?: number // 0: failed 1: success 2: modified
@@ -38,9 +40,25 @@ type ConfigInfo = {
   isMainConf?: boolean
 }
 
+function getConfigNameFromPath(path: string, os: string): string {
+  if (!path) {
+    return ""
+  }
+  const separator = getSeparator(os)
+
+  return path.split(separator).pop() || ""
+}
+
+function getSeparator(os: string): string {
+  return !os.includes("windows") ? "/" : "\\"
+}
+
 export default function Config() {
   const { t } = useTranslation()
   const [code, setCode] = useState<string>("")
+  const [createConfigVisible, setCreateConfigVisible] = useState<boolean>(false)
+  const [configSaveName, setConfigSaveName] = useState<string>("")
+  const [configSavePath, setConfigSavePath] = useState<string>("")
   const [enabledConfig, setEnabledConfig] = useState<ConfigInfo[]>([])
   const [datakitConfig, setDatakitConfig] = useState<ConfigInfo | undefined>()
   const [configSelected, setConfigSelected] = useState<ConfigInfo | null>(null)
@@ -160,6 +178,10 @@ export default function Config() {
         message.success(t("delete_success"))
         setIsEdit(false)
         setConfigSelected(null)
+        enabledConfig.forEach((v) => {
+          v.children = v.children?.filter((c) => c.path !== path)
+        })
+        setEnabledConfig([...enabledConfig])
       } else {
         alertError(err)
       }
@@ -177,9 +199,19 @@ export default function Config() {
   }
 
   const saveConfig = async () => {
-    if (!configSelected || !datakit) {
+    if (configSelected?.isNew) {
+      setCreateConfigVisible(true)
       return
     }
+
+    doSaveConfig()
+  }
+
+  const doSaveConfig = async (isForce: boolean = false): Promise<boolean> => {
+    if (!configSelected || !datakit) {
+      return false
+    }
+
     let [isCorrectToml, checkErr] = checkToml(code)
     if (!isCorrectToml) {
       Modal.info({
@@ -189,41 +221,126 @@ export default function Config() {
         okText: t("confirm"),
         centered: true,
       })
-      return
+      return false
     }
+
     let path = configSelected?.path || ""
-    if (!path) {
-      return alertError(t("config.file_not_exists"))
+    let isNew = configSelected?.isNew || false
+
+    if (!isNew) {
+      isForce = false
+    } else {
+      path = configSavePath
     }
-    const [err] = await saveDatakitConfig(datakit, { path, config: code, inputName: configSelected.inputName, isNew: configSelected.isNew })
+
+    if (!path) {
+      alertError(t("config.file_not_exists"))
+      return false
+    }
+
+    const [err, data] = await saveDatakitConfig(datakit, { path, config: code, inputName: configSelected.inputName, isNew: configSelected.isNew, isForce })
     if (!err) {
       message.success(t("save_success"))
       setIsEdit(false)
       setConfigSelected({
         inputName: configSelected.inputName,
-        path: configSelected.path,
+        path,
         sampleConfig: configSelected.sampleConfig,
         config: configSelected.sampleConfig,
         isNew: configSelected.isNew,
+        dir: configSelected.dir,
       })
       if (datakitConfig?.path === path) {
         datakitConfig.loaded = 2
         setDatakitConfig(datakitConfig)
       } else {
-        enabledConfig.forEach((v) => {
+        let isFound = false
+        let configIndex = -1
+        let selectedConfig: ConfigInfo | null = null
+        enabledConfig.forEach((v, index) => {
+          if (v.inputName === configSelected.inputName) {
+            configIndex = index
+          }
+
           v.children?.forEach((c) => {
             if (c.path === path) {
+              isFound = true
+              selectedConfig = c
               c.loaded = 2
             }
           })
         })
 
+        if (isNew && !isFound) {
+          // add to enabled list
+          selectedConfig = {
+            name: getConfigNameFromPath(path, datakitStat?.os_arch || ""),
+            inputName: configSelected.inputName,
+            path,
+            sampleConfig: configSelected.sampleConfig,
+            loaded: 2,
+            dir: configSelected.dir,
+          }
+
+          if (configIndex > -1) {
+            if (!enabledConfig[configIndex].children) {
+              enabledConfig[configIndex].children = []
+            }
+            enabledConfig[configIndex].children?.push(selectedConfig)
+          } else {
+            // not found, add new input
+            enabledConfig.push({
+              inputName: configSelected.inputName,
+              sampleConfig: configSelected.sampleConfig,
+              expand: true,
+              children: [selectedConfig]
+            })
+          }
+        }
+
+        if (selectedConfig) {
+          checkConfig(selectedConfig)
+        }
         setEnabledConfig([...enabledConfig])
+        setCreateConfigVisible(false)
       }
     } else {
+      // overwrite confirm
+      if (!isForce && data === "file.path.exists") {
+        Modal.confirm({
+          title: t("confirm"),
+          icon: <ExclamationCircleOutlined />,
+          content: t("config.confirm_file_cover"),
+          okText: t("confirm"),
+          cancelText: t("cancel"),
+          centered: true,
+          onOk: async () => {
+            isForce = true
+            return doSaveConfig(true)
+          }
+        })
+        return false
+      }
       alertError(err)
+      return false
     }
+
+    return true
   }
+
+  const onConfigSaveNameChange = (e) => {
+    let name = e.target.value
+    setConfigSaveName(name)
+  }
+
+  useEffect(() => {
+    const separator = getSeparator(datakitStat?.os_arch || "")
+    if (configSelected && configSelected.dir && configSaveName) {
+      setConfigSavePath(`${configSelected.dir}${separator}${configSaveName}`)
+    } else {
+      setConfigSavePath("")
+    }
+  }, [configSaveName, configSelected, datakitStat])
 
   const checkConfig = async (config: ConfigInfo) => {
     if (!config.path) {
@@ -294,12 +411,26 @@ export default function Config() {
     setNewConfigSelected(config)
     setConfigSelected(null)
     setCode(config.sampleConfig)
+    const separator = getSeparator(datakitStat?.os_arch || "")
+    let dir = config.configDir
     setConfigSelected({
       inputName: config.inputName,
-      path: `${config.configDir}/${config.catalog ? config.catalog + '/' : ''}${config.inputName}.conf`,
+      path: `${config.configDir}${separator}${config.catalog ? config.catalog + separator : ''}${config.inputName}.conf`,
       sampleConfig: config.sampleConfig,
       config: config.sampleConfig,
+      dir,
       isNew: true
+    })
+
+    setConfigSaveName(config.inputName + ".conf")
+  }
+
+  const onSaveConfig = async () => {
+    doSaveConfig().then((isSuccess) => {
+      isSuccess && setCreateConfigVisible(false)
+    }).catch((err) => {
+      alertError(err)
+      return false
     })
   }
 
@@ -324,11 +455,12 @@ export default function Config() {
         catalog: info.catalog,
         children: info.config_paths.map((c) => {
           return {
-            name: !stat.os_arch.includes("windows") ? c.path.split("/").pop() : c.path.split("\\").pop(),
+            name: getConfigNameFromPath(c.path, stat.os_arch),
             inputName,
             path: c.path,
             sampleConfig: info.sample_config,
             loaded: c.loaded,
+            dir: path.dirname(c.path),
             selected: configSelected?.name === inputName && c.path === configSelected.path
           }
         })
@@ -438,6 +570,9 @@ export default function Config() {
             <Space size={4}>
               <span className="fth-iconfont-Sample"></span>
               <span>Sample {t("list")}</span>
+              <Tooltip title={t("config.sample_desc")} style={{ maxWidth: '300px' }} placement="right">
+                <QuestionCircleFilled style={{ cursor: 'pointer', fontSize: '14px' }} />
+              </Tooltip>
             </Space>
           </div>
           <ul className="list">
@@ -449,6 +584,29 @@ export default function Config() {
               })
             }
           </ul>
+          <Modal
+            title={t("save_as")}
+            open={createConfigVisible}
+            onOk={onSaveConfig}
+            onCancel={() => setCreateConfigVisible(false)}
+            destroyOnHidden={true}
+            okText={t("confirm")}
+            cancelText={t("cancel")}
+          >
+            <div style={{ padding: '10px 0' }}>
+              <div style={{ marginBottom: '10px' }} >{t("config.new_config_name")}：</div>
+              <div>
+                <Input
+                  value={configSaveName}
+                  onChange={onConfigSaveNameChange}
+                />
+              </div>
+              <div style={{ marginTop: '10px', color: '#888' }}>
+                <Text  >{t("config.file_path")}: {configSavePath}</Text>
+              </div>
+            </div>
+          </Modal >
+
         </div>
       </div>
       <ResizeBar

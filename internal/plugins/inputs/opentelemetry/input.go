@@ -12,7 +12,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strings"
+	"regexp"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -44,7 +44,7 @@ const (
   ## customer_tags will work as a whitelist to prevent tags send to data center.
   ## All . will replace to _ ,like this :
   ## "project.name" to send to center is "project_name"
-  # customer_tags = ["sink_project", "custom.otel.tag"]
+  # customer_tags = ["sink_project", "custom.otel.tag", "reg:key_*"]
 
   ## If set to true, all Attributes will be extracted and message.Attributes will be empty.
   # customer_tags_all = false
@@ -90,6 +90,9 @@ const (
   ## By default, it includes: source,span_name,env,service,status,version,resource,http_status_code,http_status_class
   ## and "customer_tags", k8s related tags, and others service.
   # tracing_metric_tag_blacklist = ["resource", "operation", "tag_a", "tag_b"]
+
+  ## White list of metric tags: There are many labels in the metric: "tracing_metrics".
+  # tracing_metric_tag_whitelist = []
 
   ## Ignore tracing resources map like service:[resources...].
   ## The service name is the full service name in current application.
@@ -167,6 +170,7 @@ type Input struct {
 
 	TracingMetricEnable       bool     `toml:"tracing_metric_enable"`        // 开关，默认打开。
 	TracingMetricTagBlacklist []string `toml:"tracing_metric_tag_blacklist"` // 指标黑名单。
+	TracingMetricTagWhitelist []string `toml:"tracing_metric_tag_whitelist"`
 
 	LogMaxLen  int         `toml:"log_max"` // KiB
 	HTTPConfig *httpConfig `toml:"http"`
@@ -189,16 +193,17 @@ type Input struct {
 
 	JSONMarshaler string `toml:"jmarshaler"`
 
-	feeder      dkio.Feeder
-	semStop     *cliutils.Sem // start stop signal
-	Tagger      datakit.GlobalTagger
-	workerPool  *workerpool.WorkerPool
-	localCache  *storage.Storage
-	commonAttrs map[string]string
-
-	ptsOpts    []point.Option
-	jmarshaler jsonMarshaler
-	labels     []string
+	feeder          dkio.Feeder
+	semStop         *cliutils.Sem // start stop signal
+	Tagger          datakit.GlobalTagger
+	workerPool      *workerpool.WorkerPool
+	localCache      *storage.Storage
+	commonAttrs     map[string]string
+	customTagsX     *itrace.CustomTags
+	commonAttrsRegs []*regexp.Regexp
+	ptsOpts         []point.Option
+	jmarshaler      jsonMarshaler
+	labels          []string
 }
 
 func (*Input) Catalog() string { return inputName }
@@ -228,16 +233,7 @@ func (ipt *Input) setup() *Input {
 	default:
 		ipt.jmarshaler = &protojsonMarshaler{}
 	}
-
-	// setup common attributes.
-	for k, v := range otelPubAttrs { // deep copy
-		ipt.commonAttrs[k] = v
-	}
-
-	// NOTE: CustomerTags may overwrite public common attribytes
-	for _, key := range ipt.CustomerTags {
-		ipt.commonAttrs[key] = strings.ReplaceAll(key, ".", "_")
-	}
+	ipt.customTagsX = itrace.NewCustomTags(ipt.CustomerTags, otelPubAttrs)
 
 	ipt.ptsOpts = append(point.CommonLoggingOptions(), point.WithExtraTags(ipt.Tagger.HostTags()))
 	return ipt
@@ -253,7 +249,7 @@ func (ipt *Input) RegHTTPHandler() {
 	}
 	if ipt.TracingMetricEnable {
 		// 默认的标签 + custom tags
-		labels := itrace.AddLabels(itrace.DefaultLabelNames, ipt.CustomerTags)
+		labels := itrace.AddLabels(itrace.DefaultLabelNames, ipt.TracingMetricTagWhitelist)
 		labels = itrace.DelLabels(labels, ipt.TracingMetricTagBlacklist)
 		ipt.labels = labels
 		initP8SMetrics(labels)
@@ -462,6 +458,7 @@ func defaultInput() *Input {
 		Tagger:           datakit.DefaultGlobalTagger(),
 		SplitServiceName: true,
 		commonAttrs:      map[string]string{},
+		commonAttrsRegs:  make([]*regexp.Regexp, 0),
 		CleanMessage:     true,
 		LogMaxLen:        500,
 		// TracingMetricEnable: true,

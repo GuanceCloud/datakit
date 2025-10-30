@@ -36,8 +36,14 @@ type SQLService struct {
 	mu   sync.RWMutex
 }
 
+type pgxConn struct {
+	*pgxpool.Conn
+}
 type pgxRow struct {
 	pgx.Rows
+}
+type pgxDirectConn struct {
+	*pgx.Conn
 }
 
 func (r *pgxRow) Columns() ([]string, error) {
@@ -90,14 +96,14 @@ func (p *SQLService) Ping() error {
 	return p.pool.Ping(context.Background())
 }
 
-func (p *SQLService) Query(query string) (Rows, error) {
+func (p *SQLService) Query(query string, args ...any) (Rows, error) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 	if p.pool == nil {
 		return nil, fmt.Errorf("pool is nil")
 	}
 
-	rows, err := p.pool.Query(context.Background(), query)
+	rows, err := p.pool.Query(context.Background(), query, args...)
 	if err != nil {
 		return nil, err
 	} else if err := rows.Err(); err != nil {
@@ -160,4 +166,74 @@ func (p *SQLService) QueryByDatabase(query, db string) (Rows, error) {
 	}
 
 	return &pgxRow{rows}, nil
+}
+
+func (p *SQLService) GetConn(database string) (Conn, error) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	if p.pool == nil {
+		return nil, fmt.Errorf("pool is nil")
+	}
+
+	if database == "" {
+		conn, err := p.pool.Acquire(context.Background())
+		if err != nil {
+			return nil, fmt.Errorf("connect config error: %w", err)
+		}
+
+		return &pgxConn{conn}, nil
+	}
+	baseConfig := p.pool.Config().ConnConfig.Copy()
+	baseConfig.Database = database
+
+	conn, err := pgx.ConnectConfig(context.Background(), baseConfig)
+	if err != nil {
+		return nil, fmt.Errorf("create direct conn failed: %w", err)
+	}
+	return &pgxDirectConn{conn}, nil
+}
+
+func (c *pgxConn) Query(ctx context.Context, sql string, args ...any) (Rows, error) {
+	rows, err := c.Conn.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, err
+	} else if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows.Err: %w", err)
+	}
+	return &pgxRow{rows}, nil
+}
+
+func (c *pgxConn) Exec(ctx context.Context, sql string, args ...any) error {
+	_, err := c.Conn.Exec(ctx, sql, args...)
+	return err
+}
+
+func (c *pgxConn) Close() {
+	if c.Conn == nil {
+		return
+	}
+	c.Conn.Release()
+}
+
+func (c *pgxDirectConn) Close() {
+	if c.Conn == nil {
+		return
+	}
+	_ = c.Conn.Close(context.Background()) // nolint:gosec
+}
+
+func (c *pgxDirectConn) Query(ctx context.Context, sql string, args ...any) (Rows, error) {
+	rows, err := c.Conn.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, err
+	} else if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows.Err: %w", err)
+	}
+	return &pgxRow{rows}, nil
+}
+
+func (c *pgxDirectConn) Exec(ctx context.Context, sql string, args ...any) error {
+	_, err := c.Conn.Exec(ctx, sql, args...)
+	return err
 }

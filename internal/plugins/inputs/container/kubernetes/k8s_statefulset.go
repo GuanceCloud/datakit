@@ -18,7 +18,6 @@ import (
 	apiappsv1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
-	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -185,7 +184,7 @@ func (s *statefulset) buildObjectPoints(list *apiappsv1.StatefulSetList) []*poin
 	var pts []*point.Point
 	opts := append(point.DefaultObjectOptions(), point.WithTime(ntp.Now()))
 
-	for _, item := range list.Items {
+	for idx, item := range list.Items {
 		var kvs point.KVs
 
 		kvs = kvs.AddTag("name", string(item.UID))
@@ -205,10 +204,10 @@ func (s *statefulset) buildObjectPoints(list *apiappsv1.StatefulSetList) []*poin
 			kvs = kvs.Add("replicas_desired", *item.Spec.Replicas)
 		}
 
-		if y, err := yaml.Marshal(item); err == nil {
-			kvs = kvs.Add("yaml", string(y))
+		if yamlStr := getCleanYAML(&list.Items[idx]); yamlStr != "" {
+			kvs = kvs.Add("yaml", yamlStr)
 		}
-		kvs = kvs.Add("annotations", pointutil.MapToJSON(item.Annotations))
+		kvs = kvs.Add("annotations", pointutil.MapToJSON(filterAnnotations(item.Annotations)))
 		kvs = append(kvs, pointutil.ConvertDFLabels(item.Labels)...)
 
 		msg := pointutil.PointKVsToJSON(kvs)

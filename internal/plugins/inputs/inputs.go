@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -40,13 +41,9 @@ type ConfigInfoItem struct {
 }
 
 var (
-	AllInputs     = map[string]Creator{}
-	AllInputsInfo = map[string][]*InputInfo{}
-	ConfigInfo    = ConfigInfoItem{Inputs: map[string]*Config{}, DataKit: &Config{
-		ConfigPaths:  []*ConfigPathStat{{Loaded: 1, Path: datakit.MainConfPath}},
-		ConfigDir:    datakit.ConfdDir,
-		SampleConfig: datakit.MainConfSample(datakit.BrandDomain),
-	}}
+	AllInputs      = map[string]Creator{}
+	AllInputsInfo  = map[string][]*InputInfo{}
+	ConfigInfo     = ConfigInfoItem{Inputs: map[string]*Config{}}
 	ConfigFileHash = map[string]struct{}{}
 	panicInputs    = map[string]int{}
 	mtx            = sync.RWMutex{}
@@ -251,6 +248,18 @@ func UpdateDatakitConfigInfo(loaded int8) {
 	defer mtx.Unlock()
 	if ConfigInfo.DataKit != nil && len(ConfigInfo.DataKit.ConfigPaths) == 1 {
 		ConfigInfo.DataKit.ConfigPaths[0].Loaded = loaded
+	}
+}
+
+func SetDatakitConfig() {
+	mtx.Lock()
+	defer mtx.Unlock()
+	if ConfigInfo.DataKit == nil {
+		ConfigInfo.DataKit = &Config{
+			ConfigPaths:  []*ConfigPathStat{{Loaded: 1, Path: datakit.MainConfPath}},
+			ConfigDir:    datakit.ConfdDir,
+			SampleConfig: datakit.MainConfSample(datakit.BrandDomain),
+		}
 	}
 }
 
@@ -594,4 +603,27 @@ func AlignTime(now, last time.Time, interval time.Duration) (next time.Time) {
 
 func Init() {
 	l = logger.SLogger("inputs")
+}
+
+// GetOverrideMeasurement returns the override measurement name if version requires it.
+func GetOverrideMeasurement(version, measurement string) string {
+	if IsOverrideMesurementVersion(version) {
+		return measurement
+	}
+	return ""
+}
+
+// IsOverrideMesurementVersion checks if the measurement version requires override.
+func IsOverrideMesurementVersion(version string) bool {
+	version = strings.ToLower(strings.TrimSpace(version))
+
+	if !strings.HasPrefix(version, "v") {
+		return false
+	}
+	numStr := strings.TrimPrefix(version, "v")
+	num, err := strconv.Atoi(numStr)
+	if err == nil && num >= 2 {
+		return true
+	}
+	return false
 }

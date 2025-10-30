@@ -113,6 +113,8 @@ DDTrace 是 DataDog 开源的 APM 产品，DataKit 内嵌的 DDTrace Agent 用�
 
 {{ CodeBlock .InputENVSampleZh 4 }}
 
+> customer_tags 参数支持正则表达式，但是有固定的前缀格式 `reg:` ，例如 `reg:key_*` ，表示匹配所有以 `key_` 开头的 key 。
+
 ### 多线路工具串联注意事项 {#trace_propagator}
 
 DDTrace 数据结构中 TraceID 是 uint64 类型，在使用透传协议 `tracecontext` 时，DDTrace 链路详情内部会增加一个 `_dd.p.tid:67c573cf00000000` 原因是因为 `tracecontext` 协议

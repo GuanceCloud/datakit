@@ -26,7 +26,7 @@ monitor   :
 <!-- markdownlint-disable MD046 -->
 === "主机部署"
 
-    进入 DataKit 安装目录下的 `conf.d/log` 目录，复制 `logging.conf.sample` 并命名为 `logging.conf`。示例如下：
+    进入 DataKit 安装目录下的 `conf.d/samples` 目录，复制 `logging.conf.sample` 并命名为 `logging.conf`。示例如下：
     
     ``` toml
     {{ CodeBlock .InputSample 4 }}

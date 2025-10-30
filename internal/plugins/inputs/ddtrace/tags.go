@@ -6,11 +6,6 @@
 // Package ddtrace tags.
 package ddtrace
 
-import (
-	"strings"
-	"sync"
-)
-
 // ddTags DDtrace.
 var ddTags = map[string]string{
 	"http.url":          "http_url",
@@ -42,15 +37,4 @@ var ddTags = map[string]string{
 	"db.instance":  "db_name",
 	"db.operation": "db_operation",
 	"out.host":     "out_host",
-}
-
-var ddTagsLock sync.RWMutex
-
-func setCustomTags(customTags []string) {
-	ddTagsLock.Lock()
-	for _, tag := range customTags {
-		log.Debugf("set customtag key %s to ddTags", tag)
-		ddTags[tag] = strings.ReplaceAll(tag, ".", "_")
-	}
-	ddTagsLock.Unlock()
 }

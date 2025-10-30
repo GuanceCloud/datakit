@@ -9,10 +9,11 @@ import (
 	"testing"
 
 	common "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
 func TestInput_selectAttrs(t *testing.T) {
-	ipt := &Input{commonAttrs: map[string]string{}, CustomerTagsAll: true}
+	ipt := &Input{commonAttrs: map[string]string{}, CustomerTagsAll: true, customTagsX: itrace.NewCustomTags([]string{}, otelPubAttrs)}
 
 	atts := make([]*common.KeyValue, 0)
 

@@ -112,9 +112,14 @@
     "get_fail": "Configuration acquisition failed, please check if the path is correct or restart Datakit!",
     "configured": "Configured",
     "new_config_message": "The Sample list contains configuration file examples provided by the official. You can click to edit and save as a conf file with the same name, and append it to the configured directory",
-    "save_as_message": "Save as a conf file with the same name to the configured list",
+    "save_as_message": "Save as a new .conf configuration file in the current path",
     "close_sample": "Close Sample",
-    "configure_sample": "Configure Sample"
+    "configure_sample": "Configure Sample",
+    "create_folder": "New folder",
+    "sample_desc": "This list is a collection of official collector configuration templates for editing. After editing, you can save it to the current directory to generate a new .conf file, which will be automatically added to your configured list.",
+    "new_config_name": "New configuration name",
+    "file_path": "File path",
+    "confirm_file_cover": "The file path already exists, confirm to cover the original file?"
   },
   "pipeline": {
     "default_menu_message": "Files in the pipeline directory can be used for log data processing.",
@@ -131,6 +136,7 @@
     "basic_info": "Basic information"
   },
   "api": {
+    "dir.mkdir.failed": "Directory creation failed",
     "unknown_error": "Unknown error",
     "innerCorestone.auth.invalidEmailOrMobile": "Invalid username, please re-enter",
     "innerCorestone.auth.passwordIncorrect": "Incorrect password, please re-enter",
@@ -143,6 +149,8 @@
     "server.request.error": "Connection exception, please try again later",
     "server.error": "Operation failed, please try again later",
     "param.invalid": "Parameter error",
+    "params.invalid.dir_not_exist": "Directory does not exist",
+    "params.invalid.path_invalid": "Path error",
     "server.request.timeout": "Connection timeout, please try again later",
     "toml.format.error": "Current configuration file format error",
     "pipeline.parse.error": "Parsing failed: {{msg}}",
@@ -167,6 +175,7 @@
     "network.error.timeout": "Request timeout, please try again",
     "auth.failed": "Current permission is insufficient to perform this operation",
     "data.fetch.failed": "Data acquisition failed",
-    "log.fetch.failed": "Log file acquisition failed"
+    "log.fetch.failed": "Log file acquisition failed",
+    "file.path.exists": "File already exists"
   }
 }

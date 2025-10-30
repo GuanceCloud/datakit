@@ -1,0 +1,228 @@
+# Redis 主从复制模式 - 多版本测试（不同端口，可同时运行）
+# 使用方法：docker-compose -f docker-compose-replication-multi-version.yml up -d
+
+services:
+  # ===== Redis 7.0.11 主从集群 (6379/6479/6579) =====
+  redis-7-master:
+    image: 'hub.cloudcarex.com/redis:7.0.11'
+    container_name: redis-replication-7-master
+    network_mode: host
+    command: >
+      redis-server --bind 192.168.139.162 --port 6379
+      --requirepass abc123456 --masterauth abc123456
+      --maxmemory 500mb --maxmemory-policy allkeys-lfu
+      --slowlog-log-slower-than 5000 --slowlog-max-len 1024 --appendonly yes
+      --enable-debug-command yes
+    volumes:
+      - redis-replication-7-master-data:/data
+
+  redis-7-slave-1:
+    image: 'hub.cloudcarex.com/redis:7.0.11'
+    container_name: redis-replication-7-slave-1
+    network_mode: host
+    command: >
+      redis-server --bind 192.168.139.162 --port 6479
+      --requirepass abc123456 --masterauth abc123456 --slaveof 192.168.139.162 6379
+      --maxmemory 500mb --maxmemory-policy allkeys-lfu
+      --slowlog-log-slower-than 5000 --slowlog-max-len 1024 --appendonly yes
+      --enable-debug-command yes
+    volumes:
+      - redis-replication-7-slave-1-data:/data
+    depends_on:
+      - redis-7-master
+
+  redis-7-slave-2:
+    image: 'hub.cloudcarex.com/redis:7.0.11'
+    container_name: redis-replication-7-slave-2
+    network_mode: host
+    command: >
+      redis-server --bind 192.168.139.162 --port 6579
+      --requirepass abc123456 --masterauth abc123456 --slaveof 192.168.139.162 6379
+      --maxmemory 500mb --maxmemory-policy allkeys-lfu
+      --slowlog-log-slower-than 5000 --slowlog-max-len 1024 --appendonly yes
+      --enable-debug-command yes
+    volumes:
+      - redis-replication-7-slave-2-data:/data
+    depends_on:
+      - redis-7-master
+
+  # ===== Redis 6.2.12 主从集群 (6380/6480/6580) =====
+  redis-6.2-master:
+    image: 'hub.cloudcarex.com/redis:6.2.12'
+    container_name: redis-replication-6.2-master
+    network_mode: host
+    command: >
+      redis-server --bind 192.168.139.162 --port 6380
+      --requirepass abc123456 --masterauth abc123456
+      --maxmemory 500mb --maxmemory-policy allkeys-lfu
+      --slowlog-log-slower-than 5000 --slowlog-max-len 1024 --appendonly yes
+    volumes:
+      - redis-replication-6.2-master-data:/data
+
+  redis-6.2-slave-1:
+    image: 'hub.cloudcarex.com/redis:6.2.12'
+    container_name: redis-replication-6.2-slave-1
+    network_mode: host
+    command: >
+      redis-server --bind 192.168.139.162 --port 6480
+      --requirepass abc123456 --masterauth abc123456 --slaveof 192.168.139.162 6380
+      --maxmemory 500mb --maxmemory-policy allkeys-lfu
+      --slowlog-log-slower-than 5000 --slowlog-max-len 1024 --appendonly yes
+    volumes:
+      - redis-replication-6.2-slave-1-data:/data
+    depends_on:
+      - redis-6.2-master
+
+  redis-6.2-slave-2:
+    image: 'hub.cloudcarex.com/redis:6.2.12'
+    container_name: redis-replication-6.2-slave-2
+    network_mode: host
+    command: >
+      redis-server --bind 192.168.139.162 --port 6580
+      --requirepass abc123456 --masterauth abc123456 --slaveof 192.168.139.162 6380
+      --maxmemory 500mb --maxmemory-policy allkeys-lfu
+      --slowlog-log-slower-than 5000 --slowlog-max-len 1024 --appendonly yes
+    volumes:
+      - redis-replication-6.2-slave-2-data:/data
+    depends_on:
+      - redis-6.2-master
+
+  # ===== Redis 6.0.8 主从集群 (6381/6481/6581) =====
+  redis-6.0-master:
+    image: 'hub.cloudcarex.com/redis:6.0.8'
+    container_name: redis-replication-6.0-master
+    network_mode: host
+    command: >
+      redis-server --bind 192.168.139.162 --port 6381
+      --requirepass abc123456 --masterauth abc123456
+      --maxmemory 500mb --maxmemory-policy allkeys-lfu
+      --slowlog-log-slower-than 5000 --slowlog-max-len 1024 --appendonly yes
+    volumes:
+      - redis-replication-6.0-master-data:/data
+
+  redis-6.0-slave-1:
+    image: 'hub.cloudcarex.com/redis:6.0.8'
+    container_name: redis-replication-6.0-slave-1
+    network_mode: host
+    command: >
+      redis-server --bind 192.168.139.162 --port 6481
+      --requirepass abc123456 --masterauth abc123456 --slaveof 192.168.139.162 6381
+      --maxmemory 500mb --maxmemory-policy allkeys-lfu
+      --slowlog-log-slower-than 5000 --slowlog-max-len 1024 --appendonly yes
+    volumes:
+      - redis-replication-6.0-slave-1-data:/data
+    depends_on:
+      - redis-6.0-master
+
+  redis-6.0-slave-2:
+    image: 'hub.cloudcarex.com/redis:6.0.8'
+    container_name: redis-replication-6.0-slave-2
+    network_mode: host
+    command: >
+      redis-server --bind 192.168.139.162 --port 6581
+      --requirepass abc123456 --masterauth abc123456 --slaveof 192.168.139.162 6381
+      --maxmemory 500mb --maxmemory-policy allkeys-lfu
+      --slowlog-log-slower-than 5000 --slowlog-max-len 1024 --appendonly yes
+    volumes:
+      - redis-replication-6.0-slave-2-data:/data
+    depends_on:
+      - redis-6.0-master
+
+  # ===== Redis 5.0.14 主从集群 (6382/6482/6582) =====
+  redis-5-master:
+    image: 'hub.cloudcarex.com/redis:5.0.14'
+    container_name: redis-replication-5-master
+    network_mode: host
+    command: >
+      redis-server --bind 192.168.139.162 --port 6382
+      --requirepass abc123456 --masterauth abc123456
+      --maxmemory 500mb --maxmemory-policy allkeys-lfu
+      --slowlog-log-slower-than 5000 --slowlog-max-len 1024 --appendonly yes
+    volumes:
+      - redis-replication-5-master-data:/data
+
+  redis-5-slave-1:
+    image: 'hub.cloudcarex.com/redis:5.0.14'
+    container_name: redis-replication-5-slave-1
+    network_mode: host
+    command: >
+      redis-server --bind 192.168.139.162 --port 6482
+      --requirepass abc123456 --masterauth abc123456 --slaveof 192.168.139.162 6382
+      --maxmemory 500mb --maxmemory-policy allkeys-lfu
+      --slowlog-log-slower-than 5000 --slowlog-max-len 1024 --appendonly yes
+    volumes:
+      - redis-replication-5-slave-1-data:/data
+    depends_on:
+      - redis-5-master
+
+  redis-5-slave-2:
+    image: 'hub.cloudcarex.com/redis:5.0.14'
+    container_name: redis-replication-5-slave-2
+    network_mode: host
+    command: >
+      redis-server --bind 192.168.139.162 --port 6582
+      --requirepass abc123456 --masterauth abc123456 --slaveof 192.168.139.162 6382
+      --maxmemory 500mb --maxmemory-policy allkeys-lfu
+      --slowlog-log-slower-than 5000 --slowlog-max-len 1024 --appendonly yes
+    volumes:
+      - redis-replication-5-slave-2-data:/data
+    depends_on:
+      - redis-5-master
+
+  # ===== Redis 4.0.14 主从集群 (6383/6483/6583) =====
+  redis-4-master:
+    image: 'hub.cloudcarex.com/redis:4.0.14'
+    container_name: redis-replication-4-master
+    network_mode: host
+    command: >
+      redis-server --bind 192.168.139.162 --port 6383
+      --requirepass abc123456 --masterauth abc123456
+      --maxmemory 500mb --maxmemory-policy allkeys-lfu
+      --slowlog-log-slower-than 5000 --slowlog-max-len 1024 --appendonly yes
+    volumes:
+      - redis-replication-4-master-data:/data
+
+  redis-4-slave-1:
+    image: 'hub.cloudcarex.com/redis:4.0.14'
+    container_name: redis-replication-4-slave-1
+    network_mode: host
+    command: >
+      redis-server --bind 192.168.139.162 --port 6483
+      --requirepass abc123456 --masterauth abc123456 --slaveof 192.168.139.162 6383
+      --maxmemory 500mb --maxmemory-policy allkeys-lfu
+      --slowlog-log-slower-than 5000 --slowlog-max-len 1024 --appendonly yes
+    volumes:
+      - redis-replication-4-slave-1-data:/data
+    depends_on:
+      - redis-4-master
+
+  redis-4-slave-2:
+    image: 'hub.cloudcarex.com/redis:4.0.14'
+    container_name: redis-replication-4-slave-2
+    network_mode: host
+    command: >
+      redis-server --bind 192.168.139.162 --port 6583
+      --requirepass abc123456 --masterauth abc123456 --slaveof 192.168.139.162 6383
+      --maxmemory 500mb --maxmemory-policy allkeys-lfu
+      --slowlog-log-slower-than 5000 --slowlog-max-len 1024 --appendonly yes
+    volumes:
+      - redis-replication-4-slave-2-data:/data
+    depends_on:
+      - redis-4-master
+
+volumes:
+  redis-replication-7-master-data:
+  redis-replication-7-slave-1-data:
+  redis-replication-7-slave-2-data:
+  redis-replication-6.2-master-data:
+  redis-replication-6.2-slave-1-data:
+  redis-replication-6.2-slave-2-data:
+  redis-replication-6.0-master-data:
+  redis-replication-6.0-slave-1-data:
+  redis-replication-6.0-slave-2-data:
+  redis-replication-5-master-data:
+  redis-replication-5-slave-1-data:
+  redis-replication-5-slave-2-data:
+  redis-replication-4-master-data:
+  redis-replication-4-slave-1-data:
+  redis-replication-4-slave-2-data:
