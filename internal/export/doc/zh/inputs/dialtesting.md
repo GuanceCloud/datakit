@@ -25,7 +25,7 @@ monitor   :
 <!-- markdownlint-disable MD046 -->
 === "主机安装"
 
-    私有拨测节点部署，需在 [<<<custom_key.brand_name>>>页面创建私有拨测节点](../usability-monitoring/self-node.md)。创建完成后，将页面上相关信息填入 `conf.d/samples/{{.InputName}}.conf` 即可：
+    私有拨测节点部署，需在 [<<<custom_key.brand_name>>>页面创建私有拨测节点](../synthetic-tests/self-node.md)。创建完成后，将页面上相关信息填入 `conf.d/samples/{{.InputName}}.conf` 即可：
 
     进入 DataKit 安装目录下的 `conf.d/samples` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
     
