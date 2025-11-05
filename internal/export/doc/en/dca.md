@@ -192,10 +192,6 @@ docker run -d --name dca -p 8000:80 -e DCA_LOG_PATH=stdout -e DCA_LOG_LEVEL=info
 
 After the DCA is enabled and installed, you can access it by entering the address `localhost:8000` in your browser. When you visit it for the first time, the page will redirect you to a login transition page. After clicking the "Go Now" button at the bottom of the page, you will be guided to the <<<custom_key.brand_name>>>. Then, follow the instructions on the page to configure the DCA address. Once the configuration is completed, you will be able to directly access the DCA platform through the <<<custom_key.brand_name>>> platform without logging in.
 
-<figure markdown>
-  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dca/dca-login-redirect.png){ width="800" }
-</figure>
-
 ### View DataKit list {#datakit-list}
 
 After logging in to DCA, you can select the workspace in the upper left corner to manage its corresponding DataKit and collector, which supports quick filtering of host names to be viewed and managed by searching keywords.
@@ -210,17 +206,9 @@ Hosts remotely managed through DCA are divided into three states:
 
 By default, you can only view information of the DataKit in the current workspace. If you need to manage DataKit, such as upgrading it, creating, deleting, or modifying DataKit collector config file, pipelines, you need to grant current user DCA configuration management permission. Please refer to [role management](../management/role-management.md) for specific settings.
 
-<figure markdown>
-  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dca/dca-list.png){ width="800" }
-</figure>
-
 ### View How DataKit is Running {#view-runtime}
 
 After logging in to DCA, select a workspace to view the hostname and IP information of all DataKits installed in that workspace. Click on the DataKit host to connect to the DataKit remotely, and view the running status of the DataKit on the host, including version, running time, publishing data and collector running status.
-
-<figure markdown>
-  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dca/dca-run-info-1.png){ width="800" }
-</figure>
 
 ### View Collector Configuration {#view-inputs-conf}
 
@@ -232,17 +220,9 @@ After connecting to the DataKit remotely, click "Collector Configuration" to vie
 
 Note: DCA does not support configuration of collector at present, so it is necessary to login to the host remotely for configuration operation.
 
-<figure markdown>
-  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dca/dca-input-conf-1.png){ width="800" }
-</figure>
-
 ### View Log Pipeline {#view-pipeline}
 
 After connecting to the DataKit remotely, click「Pipelines」to view the Pipeline file that comes with the DataKit by default. Refer to the document [text data processing](../pipeline/index.md) for Pipeline.
-
-<figure markdown>
-  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dca/dca-pipeline-1.png){ width="800" }
-</figure>
 
 ### View the Blacklist {#view-filters}
 
@@ -250,17 +230,9 @@ After connecting to DataKit remotely, click "Blacklist" to view the blacklist co
 
 Note: The blacklist files created through <<<custom_key.brand_name>>> are stored in the path: `/usr/local/datakit/data/.pull`.
 
-<figure markdown>
-  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dca/dca-filter-1.png){ width="800" }
-</figure>
-
 ### View DataKit log {#view-log}
 
 After connecting to DataKit remotely, click "Log" to view the logs of DataKit and also the logs can be exported.
-
-<figure markdown>
-  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dca/dca-log-1.png){ width="800" }
-</figure>
 
 ## Changelog {#change-log}
 
