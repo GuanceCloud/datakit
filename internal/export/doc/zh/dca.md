@@ -200,10 +200,6 @@ docker run -d --name dca -p 8000:80 -e DCA_LOG_PATH=stdout -e DCA_LOG_LEVEL=info
 
 DCA 开启和安装以后，您可在浏览器输入 DCA web 服务地址进行访问。首次访问时，页面将导向一个登录跳转中转页面。点击页面下方「立即前往」按钮后，您将被引导至<<<custom_key.brand_name>>>平台。接下来，按照页面上的说明指引，配置 DCA 的地址。一旦配置完成，您便能够直接通过<<<custom_key.brand_name>>>平台实现无需登录即可访问 DCA 平台的功能。
 
-<figure markdown>
-  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dca/dca-login-redirect.png){ width="800" }
-</figure>
-
 ### 查看 DataKit 列表 {#datakit-list}
 
 登录到 DCA 后，可在左上角选择工作空间管理其对应 DataKit 及采集器，支持通过搜索关键字快速筛选需要查看和管理的主机名称。
@@ -218,17 +214,9 @@ DCA 开启和安装以后，您可在浏览器输入 DCA web 服务地址进行�
 
 默认情况下，只能查看当前工作空间里的 DataKit 相关信息，如果需要对 DataKit 进行管理，如 DataKit 升级、采集器、Pipeline 的 新建、删除、修改等，则需要赋予当前帐号**DCA 配置管理**权限，具体设置可参考[角色管理](../management/role-management.md)。
 
-<figure markdown>
-  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dca/dca-list.png){ width="800" }
-</figure>
-
 ### 查看 DataKit 运行情况 {#view-runtime}
 
 登录到 DCA 后，选择工作空间，即可查看该工作空间下所有已经安装 DataKit 的主机名和 IP 信息。点击 DataKit 主机，即可远程连接到 DataKit ，查看该主机上 DataKit 的运行情况，包括版本、运行时间、发布日期、采集器运行情况等，以及可以对 DataKit 进行重新加载操作。
-
-<figure markdown>
-  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dca/dca-run-info-1.png){ width="800" }
-</figure>
 
 ### 采集器配置管理 {#view-inputs-conf}
 
@@ -238,17 +226,9 @@ DCA 开启和安装以后，您可在浏览器输入 DCA web 服务地址进行�
 - Sample 列表：可查看和编辑其下所有的 sample 文件。
 - 帮助：可查看对应的采集器帮助文档
 
-<figure markdown>
-  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dca/dca-input-conf-1.png){ width="800" }
-</figure>
-
 ### Pipelines 管理 {#view-pipeline}
 
 远程连接到 DataKit 以后，点击「Pipelines」，即可查看，编辑和测试 DataKit 默认自带的 Pipeline 文件。关于 Pipeline 可参考文档 [文本数据处理](../pipeline/use-pipeline/index.md) 。
-
-<figure markdown>
-  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dca/dca-pipeline-1.png){ width="800" }
-</figure>
 
 ### 查看黑名单 {#view-filters}
 
@@ -256,17 +236,9 @@ DCA 开启和安装以后，您可在浏览器输入 DCA web 服务地址进行�
 
 注意：通过<<<custom_key.brand_name>>>创建的黑名单文件统一保存在路径：`/usr/local/datakit/data/.pull` 。
 
-<figure markdown>
-  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dca/dca-filter-1.png){ width="800" }
-</figure>
-
 ### 查看日志 {#view-log}
 
 远程连接到 DataKit 以后，点击「日志」，即可实时查看 DataKit 的日志，并且可以导出相应的日志到本地。
-
-<figure markdown>
-  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dca/dca-log-1.png){ width="800" }
-</figure>
 
 ## 更新日志 {#change-log}
 
