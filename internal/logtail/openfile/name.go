@@ -16,9 +16,9 @@ func SplitFilenameFromKey(key string) string {
 }
 
 func InodeFromKey(key string) string {
-    arr := strings.Split(key, "::")
-    if len(arr) >= 2 {
-        return arr[1]
-    }
-    return ""
+	arr := strings.Split(key, "::")
+	if len(arr) >= 2 {
+		return arr[1]
+	}
+	return ""
 }
