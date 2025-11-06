@@ -216,7 +216,7 @@ func applyFlags() {
 
 	vi := version.VerInfo{VersionString: build.ReleaseVersion}
 	if err := vi.Parse(); err != nil {
-		l.Fatalf("invalid version %s", build.ReleaseVersion)
+		l.Fatalf("invalid version(%s): %s", build.ReleaseVersion, err.Error())
 	}
 
 	switch build.ReleaseType {

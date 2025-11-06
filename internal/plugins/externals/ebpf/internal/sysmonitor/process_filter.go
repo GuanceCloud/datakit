@@ -124,8 +124,8 @@ func WithEnvService(li []string) FilterOpt {
 
 func NewProcessFilter(ctx context.Context, opts ...FilterOpt) *ProcessFilter {
 	filter := &ProcessFilter{
-		procInfo: newRistrettoCache(100_000_000, 2_000_000*10),
-		procDel:  newRistrettoCache(10_000_000, 200_000*10),
+		procInfo: newRistrettoCache(10_000_000, 500_000),
+		procDel:  newRistrettoCache(10_000_000, 500_000),
 	}
 	for _, opt := range opts {
 		if opt != nil {
