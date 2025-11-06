@@ -253,6 +253,66 @@ SNMP 设备在默认情况下，一般 SNMP 协议处于关闭状态，需要进
     # v3_context_name      = "" # optional
     ```
 
+## LLDP 网络拓扑采集 {#lldp-topology}
+
+DataKit 支持通过 SNMP 协议采集网络设备的 LLDP（Link Layer Discovery Protocol，链路层发现协议）邻居信息，用于自动构建网络拓扑。
+
+### 什么是 LLDP {#what-is-lldp}
+
+LLDP 是一个标准化的链路层协议，允许网络设备（如交换机、路由器）向直连的邻居设备广播自己的身份和能力信息。通过采集 LLDP 数据，可以：
+
+- 自动发现网络拓扑关系
+- 了解设备间的物理连接情况
+- 获取邻居设备的端口、主机名、系统描述等信息
+- 构建可视化的网络拓扑图
+
+### 启用 LLDP 采集 {#enable-lldp}
+
+在 DataKit 的 SNMP 配置中启用 LLDP 采集：
+
+```toml
+[[inputs.snmp]]
+  ## 启用 LLDP 拓扑采集
+  enable_lldp = true
+
+  ## LLDP 采集间隔（可选，默认 10 分钟）
+  lldp_interval = "10m"
+```
+
+### 被采集设备配置要求 {#lldp-device-config}
+
+网络设备端需要：
+
+- **启用 LLDP**
+
+- **配置 SNMP 访问 LLDP MIB 权限**
+
+
+### 验证配置 {#lldp-verify}
+
+**在设备上验证 LLDP 邻居：**
+
+```bash
+# 华为设备
+display lldp neighbor
+
+# Cisco 设备
+show lldp neighbor
+```
+
+**从 DataKit 主机验证 SNMP 能否查询 LLDP 数据：**
+
+```bash
+# SNMPv2c 验证
+snmpwalk -v2c -c [COMMUNITY_STRING] [DEVICE_IP] 1.0.8802.1.1.2.1.4.1
+
+# SNMPv3 验证
+snmpwalk -v3 -u [USERNAME] -l authPriv \
+  -a SHA -A [AUTH_PASSWORD] \
+  -x AES -X [PRIV_PASSWORD] \
+  [DEVICE_IP] 1.0.8802.1.1.2.1.4.1
+```
+
 ## 指标 {#metric}
 
 以下所有数据采集，默认会追加全局选举 tag，也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
@@ -289,6 +349,22 @@ SNMP 设备在默认情况下，一般 SNMP 协议处于关闭状态，需要进
 {{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "object"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+{{$m.MarkdownTable}}
+{{end}}
+
+{{ end }}
+
+## 日志 {#logging}
+
+<!-- markdownlint-disable MD024 -->
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "logging"}}
 
 ### `{{$m.Name}}`
 

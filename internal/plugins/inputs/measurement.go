@@ -236,6 +236,7 @@ func (m *MeasurementInfo) MarkdownTable() string {
 
 		taggedByPart := ""
 		if len(f.Taggedby) > 0 {
+			sort.Strings(f.Taggedby)
 			taggedBy := strings.Join(f.Taggedby, ", ")
 			taggedByPart = fmt.Sprintf("<br>*Tagged by: %s*", taggedBy)
 		}

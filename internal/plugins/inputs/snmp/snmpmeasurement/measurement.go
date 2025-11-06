@@ -19,6 +19,7 @@ const (
 	InputName      = "snmp"
 	SNMPObjectName = "snmp_object"
 	SNMPMetricName = "snmp_metric"
+	SNMPLLDPName   = "snmp_lldp"
 )
 
 //------------------------------------------------------------------------------
@@ -223,6 +224,51 @@ func (m *SNMPMetric) Info() *inputs.MeasurementInfo {
 		},
 	}
 }
+
+//------------------------------------------------------------------------------
+
+// SNMPLLDP ...
+type SNMPLLDP struct {
+	Name   string
+	Tags   map[string]string
+	Fields map[string]interface{}
+	TS     time.Time
+}
+
+// Point implement MeasurementV2.
+func (m *SNMPLLDP) Point() *point.Point {
+	opts := point.DefaultLoggingOptions()
+	opts = append(opts, point.WithTime(m.TS))
+
+	return point.NewPoint(m.Name,
+		append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...),
+		opts...)
+}
+
+//nolint:lll
+func (m *SNMPLLDP) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: SNMPLLDPName,
+		Desc: "SNMP LLDP (Link Layer Discovery Protocol) topology data.",
+		Cat:  point.Logging,
+		Fields: map[string]interface{}{
+			"remote_system":      newOtherFieldInfo(inputs.String, inputs.String, inputs.NoUnit, "Name of the remote system."),
+			"remote_system_desc": newOtherFieldInfo(inputs.String, inputs.String, inputs.NoUnit, "Description of the remote system."),
+		},
+		Tags: map[string]interface{}{
+			"local_ip":               inputs.NewTagInfo("IP address of the local device (string)."),
+			"local_chassis_id":       inputs.NewTagInfo("Chassis ID of the local device (string)."),
+			"local_interface":        inputs.NewTagInfo("Local interface name."),
+			"local_chassis_subtype":  inputs.NewTagInfo("Local chassis ID subtype string (e.g., 'mac_address', 'network_address', 'chassis_component', 'locally_assigned', etc.)."),
+			"remote_chassis_id":      inputs.NewTagInfo("Chassis ID of the remote device (string)."),
+			"remote_interface":       inputs.NewTagInfo("Interface ID of the remote device."),
+			"remote_chassis_subtype": inputs.NewTagInfo("Remote chassis ID subtype string (e.g., 'mac_address', 'network_address', 'chassis_component', 'locally_assigned', etc.)."),
+			"remote_port_subtype":    inputs.NewTagInfo("Remote port ID subtype string (e.g., 'mac_address', 'network_address', 'interface_alias', 'agent_circuit_id', 'locally_assigned', etc.)."),
+		},
+	}
+}
+
+//------------------------------------------------------------------------------
 
 func newOtherFieldInfo(datatype, ftype, unit, desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{

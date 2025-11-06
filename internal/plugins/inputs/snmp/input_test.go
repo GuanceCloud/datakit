@@ -31,7 +31,11 @@ func Test_AvailableArchs(t *testing.T) {
 func Test_SampleMeasurement(t *testing.T) {
 	ipt := &Input{}
 	out := ipt.SampleMeasurement()
-	assert.Equal(t, []inputs.Measurement{&snmpmeasurement.SNMPObject{}, &snmpmeasurement.SNMPMetric{}}, out)
+	assert.Equal(t, []inputs.Measurement{
+		&snmpmeasurement.SNMPObject{},
+		&snmpmeasurement.SNMPMetric{},
+		&snmpmeasurement.SNMPLLDP{},
+	}, out)
 }
 
 // go test -v -timeout 30s -run ^Test_calcTagsHash$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp
