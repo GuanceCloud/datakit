@@ -318,10 +318,11 @@ func (t *Single) forwardMessage(ctx context.Context) {
 	checkTicker := time.NewTicker(checkInterval)
 	defer checkTicker.Stop()
 
+	defer t.handleContextCancellation()
+
 	for {
 		select {
 		case <-ctx.Done():
-			t.handleContextCancellation()
 			return
 		case newOpts := <-t.updateChan:
 			t.handleConfigUpdate(newOpts)
@@ -357,7 +358,10 @@ func (t *Single) handleFileCheck() bool {
 
 	if did || !exist {
 		t.log.Debugf("file %s rotated or removed, reading to EOF", t.filepath)
-		if shouldExit := t.readToEOF(context.Background()); shouldExit {
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+		defer cancel()
+		if shouldExit := t.readToEOF(ctx); shouldExit {
 			t.log.Debugf("readToEOF indicated exit, stopping forwardMessage for file: %s", t.filepath)
 			return true
 		}
@@ -403,7 +407,7 @@ func (t *Single) readToEOF(ctx context.Context) (shouldExit bool) {
 	for {
 		select {
 		case <-ctx.Done():
-			t.log.Debugf("context canceled during readToEOF for file %s", t.filepath)
+			t.log.Warnf("readToEOF timed out after 1 minute for file %s", t.filepath)
 			return true
 
 		case <-datakit.Exit.Wait():
