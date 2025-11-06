@@ -117,7 +117,11 @@ The following configurations are commonly used when starting an application:
 | `OTEL_TRACES_EXPORTER(otel.traces.exporter)`               | Trace exporter; default is `otlp`.                                                                           |
 | `OTEL_LOGS_EXPORTER(otel.logs.exporter)`                   | Log exporter; default is `otlp`. Note: Explicit configuration is required for OTEL V1 version; otherwise, it is disabled by default. |
 
-> You can pass the `otel.javaagent.debug=true` parameter to the Agent to view debug logs. Note that these logs are quite verbose; use them with caution in production environments.
+Starting from DataKit version [1.85.0](../datakit/changelog.md#cl-1.85.0), the protocol `http/json` is removed. Please use `http/protobuf`, otherwise an error will be reported.
+DataKit ERROR log: `unrecognized Content-Type application/json, please use http/protobuf` and status code 400 will be returned.
+
+You can pass the `otel.javaagent.debug=true` parameter to the Agent to view debug logs. Note that these logs are quite verbose; use them with caution in production environments.
+
 
 ### Trace Sampling {#sample}
 

@@ -20,6 +20,8 @@ import (
 	"strconv"
 	"strings"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
@@ -409,10 +411,15 @@ func ParseTracerRequest(req *http.Request) (contentType, encode string, buf []by
 		body = req.Body
 	}
 
-	if buf, err = io.ReadAll(body); err != nil {
+	pbuf := bufpool.GetBuffer()
+	defer bufpool.PutBuffer(pbuf)
+
+	_, err = io.Copy(pbuf, body) //nolint
+	if err != nil {
 		return
 	}
 
+	buf = pbuf.Bytes()
 	contentType = GetContentType(req)
 
 	return
