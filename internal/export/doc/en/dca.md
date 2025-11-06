@@ -236,6 +236,10 @@ After connecting to DataKit remotely, click "Log" to view the logs of DataKit an
 
 ## Changelog {#change-log}
 
+### 0.1.5 (2025/11/06) {#cl-0.1.5}
+
+- Add DCA service Prometheus metrics, including DataKit count and network request metrics.
+
 ### 0.1.4 (2025/10/14) {#cl-0.1.4}
 
 - Support creating DataKit collector configuration file.
