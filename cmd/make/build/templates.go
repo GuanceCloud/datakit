@@ -76,14 +76,15 @@ func buildTemplates() error {
 	l.Infof("generating install scripts on %+#v", x)
 
 	for k, v := range map[string]string{
-		"templates/install.template.sh":           filepath.Join(DistDir, "install.sh"),
-		"templates/install.template.ps1":          filepath.Join(DistDir, "install.ps1"),
-		"templates/datakit.template.yaml":         filepath.Join(DistDir, "datakit.yaml"),
-		"templates/datakit-elinker.template.yaml": filepath.Join(DistDir, "datakit-elinker.yaml"),
-		"templates/charts-values.template.yaml":   filepath.Join(DistDir, "helm-values.yaml"),
-		"templates/charts-Chart.template.yaml":    filepath.Join(DistDir, "helm-Chart.yaml"),
-		"templates/charts-readme.template.md":     filepath.Join(DistDir, "helm-README.md"),
-		"templates/charts-questions.template.yml": filepath.Join(DistDir, "helm-questions.md"),
+		"templates/install.template.sh":              filepath.Join(DistDir, "install.sh"),
+		"templates/install.template.ps1":             filepath.Join(DistDir, "install.ps1"),
+		"templates/datakit.template.yaml":            filepath.Join(DistDir, "datakit.yaml"),
+		"templates/datakit-deployment.template.yaml": filepath.Join(DistDir, "datakit-deployment.yaml"),
+		"templates/datakit-elinker.template.yaml":    filepath.Join(DistDir, "datakit-elinker.yaml"),
+		"templates/charts-values.template.yaml":      filepath.Join(DistDir, "helm-values.yaml"),
+		"templates/charts-Chart.template.yaml":       filepath.Join(DistDir, "helm-Chart.yaml"),
+		"templates/charts-readme.template.md":        filepath.Join(DistDir, "helm-README.md"),
+		"templates/charts-questions.template.yml":    filepath.Join(DistDir, "helm-questions.md"),
 	} {
 		txt, err := os.ReadFile(filepath.Clean(k))
 		if err != nil {

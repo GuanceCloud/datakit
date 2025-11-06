@@ -144,6 +144,11 @@
         --set image.tag="1.70.0" \
         ...
     ```
+
+=== "Deployment"
+
+    也可以将 DataKit 部署成普通的 Deployment，下载 [*datakit-deployment.yaml*](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-deployment.yaml){:target="_blank"}。相比 DaemonSet 部署，只是稍作调整，其可用的配置参数基本一致。
+
 <!-- markdownlint-enable -->
 
 ### 资源限制 {#requests-limits}

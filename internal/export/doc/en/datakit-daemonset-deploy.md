@@ -142,6 +142,11 @@ This document describes how to install DataKit in K8s via DaemonSet.
         --set image.tag="1.70.0" \
         ...
     ```
+
+=== "Deployment"
+
+    DataKit can also be deployed as a regular Deployment by downloading [*datakit-deployment.yaml*](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-deployment.yaml){:target="_blank"}. Compared to DaemonSet deployment, only minor adjustments are required while maintaining essentially the same configuration parameters.
+
 <!-- markdownlint-enable -->
 
 ### Resource Limits {#requests-limits}
