@@ -17,6 +17,7 @@ import (
 
 	manager "github.com/DataDog/ebpf-manager"
 	"github.com/cilium/ebpf"
+	"github.com/josharian/intern"
 	pr "github.com/shirou/gopsutil/v3/process"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/c"
 
@@ -258,7 +259,7 @@ func (tracer *SchedTracer) attachProcess(p *pr.Process) error {
 		return fmt.Errorf("pid <= 0")
 	}
 
-	procInfo, err := tracer.processFilter.TryAdd(int(p.Pid))
+	binPath, procInfo, err := tracer.processFilter.TryAdd(int(p.Pid))
 	if err != nil {
 		return err
 	}
@@ -275,12 +276,11 @@ func (tracer *SchedTracer) attachProcess(p *pr.Process) error {
 		return nil
 	}
 
-	binPath := procInfo.binPath
 	if binPath == "" {
 		return nil
 	}
 
-	rec, ok, err := tracer.attachInfo.fileUpdater.Check(procInfo.binPath)
+	rec, ok, err := tracer.attachInfo.fileUpdater.Check(binPath, procInfo.binPath)
 	if err != nil {
 		return err
 	} else if !ok {
@@ -292,7 +292,7 @@ func (tracer *SchedTracer) attachProcess(p *pr.Process) error {
 			if !ok {
 				log.Warn("get bpf map bmap_proc_inject failed")
 			}
-			pidU32 := (uint32)(procInfo.pid)
+			pidU32 := (uint32)(p.Pid)
 			if err := emap.Update(unsafe.Pointer(&pidU32), unsafe.Pointer(&rec.inj), ebpf.UpdateAny); err != nil {
 				return err
 			}
@@ -381,12 +381,12 @@ func (tracer *SchedTracer) attachProcess(p *pr.Process) error {
 	if !ok {
 		log.Warn("get bpf map bmap_proc_inject failed")
 	}
-	pidU32 := (uint32)(procInfo.pid)
+	pidU32 := (uint32)(p.Pid)
 	if err := emap.Update(unsafe.Pointer(&pidU32), unsafe.Pointer(&val), ebpf.UpdateAny); err != nil {
 		return err
 	}
 
-	tracer.attachInfo.fileUpdater.Inject(binPath, &val)
+	tracer.attachInfo.fileUpdater.Inject(procInfo.binPath, &val)
 
 	uid := ShortID(binPath)
 	log.Info("AddHook: ", binPath, " ShortID: ", uid)
@@ -397,7 +397,7 @@ func (tracer *SchedTracer) attachProcess(p *pr.Process) error {
 				EBPFFuncName: fnName,
 			},
 			UprobeOffset: symbolAddr,
-			BinaryPath:   binPath,
+			BinaryPath:   intern.String(binPath),
 		}); err != nil {
 			log.Warn(err)
 		}
