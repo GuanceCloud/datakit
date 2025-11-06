@@ -347,6 +347,13 @@ build_dca_image:
 		-t $(DOCKER_IMAGE_REPO):latest \
 		-f dca/Dockerfile.$(DOCKERFILE_SUFFIX) . --push;
 
+build_dca_image_test:
+	sudo docker buildx build \
+		--platform $(DOCKER_IMAGE_ARCHS) \
+		--build-arg DIST_DIR=$(DIST_DIR) \
+		-t $(DOCKER_IMAGE_REPO):$(DCA_VERSION) \
+		-f dca/Dockerfile.$(DOCKERFILE_SUFFIX) . --push;
+
 deps: prepare gofmt 
 
 # ignore files under vendor/.git/git

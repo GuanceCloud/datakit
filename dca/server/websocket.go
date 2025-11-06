@@ -295,7 +295,10 @@ func (manager *ClientManager) Start() {
 			} else {
 				l.Infof("new connection registered: %s...", conn.DataKit.HostName)
 				manager.Clients[conn.ID] = conn
-				connectionTotalGauge.Set(float64(len(manager.Clients)))
+				datakitTotalGauge.WithLabelValues(
+					conn.DataKit.HostName,
+					conn.DataKit.OS,
+				).Inc()
 			}
 
 		case conn := <-Manager.Unregister:
@@ -306,7 +309,10 @@ func (manager *ClientManager) Start() {
 			delete(manager.Clients, conn.ID)
 			l.Infof("connection unregistered: %s", conn.DataKit.HostName)
 			conn.Socket.Close() //nolint:errcheck,gosec
-			connectionTotalGauge.Set(float64(len(manager.Clients)))
+			datakitTotalGauge.WithLabelValues(
+				conn.DataKit.HostName,
+				conn.DataKit.OS,
+			).Dec()
 		}
 	}
 }
@@ -319,8 +325,14 @@ func (manager *ClientManager) Action(action string, datakit *ws.DataKit, ctx *gi
 	if client, ok := manager.Clients[datakit.ConnID]; !ok {
 		return nil, fmt.Errorf("datakit not available")
 	} else {
+		start := time.Now()
 		res, err := client.doAction(action, datakit, ctx)
 		if v, ok := res.(*ws.DCAResponse); ok {
+			websocketElapsedVec.WithLabelValues(
+				datakit.HostName,
+				action,
+				fmt.Sprintf("%d", v.Code),
+			).Observe(time.Since(start).Seconds())
 			return v, err
 		} else {
 			return nil, fmt.Errorf("operation failed: %w", err)

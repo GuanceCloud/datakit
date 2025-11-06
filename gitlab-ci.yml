@@ -435,11 +435,11 @@ build-dca-testing-image-guance:
     - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TESTING"
     - export OSS_PATH="dca"
     - make build_dca DCA_VERSION="$DCA_CI_TESTING_VERSION" BRAND="guance"
-    - make build_dca_image \
+    - make build_dca_image_test \
       DOCKER_IMAGE_REPO="pubrepo.guance.com/tools/dca" \
       DOCKERFILE_SUFFIX="guance" \
       DCA_VERSION="$DCA_CI_TESTING_VERSION"
-    - make build_dca_image \
+    - make build_dca_image_test \
       DOCKER_IMAGE_REPO="pubrepo.guance.com/tools/dca-uos" \
       DOCKERFILE_SUFFIX="uos" \
       DCA_VERSION="$DCA_CI_TESTING_VERSION"
@@ -461,7 +461,7 @@ build-dca-testing-image-tw:
     - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TESTING"
     - export OSS_PATH="dca-tw"
     - make build_dca DCA_VERSION="$DCA_CI_TESTING_VERSION" BRAND="truewatch"
-    - make build_dca_image \
+    - make build_dca_image_test \
       DOCKER_IMAGE_REPO="pubrepo.guance.com/truewatch/dca" \
       DOCKERFILE_SUFFIX="tw" \
       DCA_VERSION="$DCA_CI_TESTING_VERSION"
