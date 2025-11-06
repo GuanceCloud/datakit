@@ -17,7 +17,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/operator"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/recorder"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/resourcelimit"
@@ -84,8 +83,7 @@ type Config struct {
 	IO                     *io.IOConf         `toml:"io"`
 	IOCacheCountDeprecated int                `toml:"io_cache_count,omitzero"`
 
-	Dataway  *dataway.Dataway   `toml:"dataway"`
-	Operator *operator.Operator `toml:"-"`
+	Dataway *dataway.Dataway `toml:"dataway"`
 
 	GlobalHostTags       map[string]string `toml:"global_host_tags"`
 	GlobalTagsDeprecated map[string]string `toml:"global_tags,omitempty"`
@@ -182,8 +180,6 @@ func DefaultConfig() *Config {
 		},
 
 		Dataway: dataway.NewDefaultDataway(),
-
-		Operator: &operator.Operator{},
 
 		ProtectMode: true,
 

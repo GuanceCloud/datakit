@@ -59,20 +59,8 @@ func Start(opts ...ElectionOption) {
 		return
 	}
 
-	var electionInstance Election
-
-	switch opt.mode {
-	case modeDataway:
-		electionInstance = newLeaderElection(&opt, inputs.GetElectionInputs())
-		log.Info("election mode with Dataway")
-	case modeOperator:
-		electionInstance = newTaskElection(&opt, inputs.GetElectionInputs())
-		opt.namespace = "N/A"
-		log.Info("election mode with Operator")
-	default:
-		log.Info("invalid election mode, election not enabled")
-		return
-	}
+	electionInstance := newLeaderElection(&opt, inputs.GetElectionInputs())
+	log.Info("election mode with Dataway")
 
 	log.Infof("namespace: %s, id: %s", opt.namespace, opt.id)
 	// log.Infof("get %d election inputs", len(x.plugins))

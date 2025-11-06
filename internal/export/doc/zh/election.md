@@ -6,36 +6,20 @@
 
 ---
 
-当集群中只有一个被采集对象（如 Kubernetes），但是在批量部署情况下，多个 DataKit 的配置完全相同，都开启了对该中心对象的采集，为了避免重复采集，我们可以开启 DataKit 的选举功能。
+当集群中只有一个被采集对象（例如 Kubernetes），但在批量部署场景下，多个 DataKit 使用相同的配置并同时开启对该中心对象的采集时，为避免数据重复，可以启用 DataKit 的选举功能。
 
-DataKit 有两种选举模式，即：
+目前 DataKit 仅支持“自选举”模式。在同一选举命名空间下，只有一个 DataKit 实例会被选举为主节点，负责全部数据采集工作，其余实例则处于待命状态。
 
-- DataKit 自选举：在同一个选举命名空间下，当选的 DataKit 负责全部采集，其他 DataKit 处于待定状态。优点是配置简单，不需要额外部署应用；缺点是对当选者的资源占用较大，所有的采集器都在这台 DataKit 上运行，系统资源占用增多。
-- 采集器任务选举[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0)：只适用于 Kubernetes 环境，通过部署 [DataKit Operator](datakit-operator.md#datakit-operator-overview-and-install) 程序，实现对 DataKit 各个采集器的任务分发。优点是各个 DataKit 的资源占用较为平均，缺点是需要在本集群额外部署一个程序。
+该模式的优缺点如下：
 
-## 采集器任务选举模式 {#plugins-election}
-
-### 部署 DataKit Operator {#install-operator}
-
-采集器选举模式需要用到 DataKit Operator v1.0.5 及以上版本，部署文档参见[此处](datakit-operator.md#datakit-operator-install)。
-
-### 选举配置 {#plugins-election-config}
-
-在 DataKit 安装 yaml 中添加一项环境变量 `ENV_DATAKIT_OPERATOR`，值为 DataKit Operator 地址，例如：
-
-```yaml
-      containers:
-      - env:
-        - name: ENV_DATAKIT_OPERATOR
-          value: https://datakit-operator.datakit.svc:443
-```
-
-DataKit Operator 默认的 Service 地址是 `datakit-operator.datakit.svc:443`。
+- 优点：配置简单，不需要额外部署应用
+- 缺点：对当选者的资源占用较大，所有的采集器都在这台 DataKit 上运行，系统资源占用增多
 
 <!-- markdownlint-disable MD046 -->
-???+ note
+???+ warning
 
-    采集器任务选举的优先级高于 DataKit 自选举。如果配置可用的 DataKit Operator 地址，会优先使用任务选举，否则会使用 DataKit 自选举。
+    从 DataKit [ :octicons-tag-24: Version-1.85.0 ](changelog.md#cl-1.85.0) 起，采集器任务选举功能已被移除，同时 DataKit-Operator v1.6.0 也不再支持相关选举接口。
+
 
 ## DataKit 自选举模式 {#self-election}
 

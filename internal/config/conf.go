@@ -21,7 +21,6 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/operator"
 )
 
 var (
@@ -428,8 +427,6 @@ func (c *Config) ApplyMainConfig() error {
 	}
 
 	InitGitreposDir()
-	// Operator 使用 ENV 初始化
-	c.Operator = operator.NewOperatorClientFromEnv()
 	// 初始化 ENC 密码加密功能。
 	initCrypto(c)
 	//
