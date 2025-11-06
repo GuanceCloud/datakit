@@ -30,6 +30,17 @@ func (i *instance) collectConfig(ctx context.Context) {
 
 	l.Debugf("config get *:\n%+#v", allConf)
 
+	// cache specified fields for supplementing INFO
+	if nodeAddr := i.mergedTags["server"]; nodeAddr != "" {
+		nodeCache := make(map[string]string)
+		for _, field := range infoConfigFieldsToCache {
+			if val := allConf[field]; val != "" {
+				nodeCache[field] = val
+			}
+		}
+		i.infoConfigCache[nodeAddr] = nodeCache
+	}
+
 	pts := i.parseConfigAll(allConf)
 
 	if err := i.ipt.feeder.Feed(point.Logging, pts,

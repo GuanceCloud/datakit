@@ -43,6 +43,9 @@ type instance struct {
 	curCli, cc collectorClient
 
 	nodeUpStates map[string]int64
+
+	// infoConfigCache caches config fields by node address for supplementing INFO
+	infoConfigCache map[string]map[string]string
 }
 
 // node represents a concrete Redis node (master or replica) to collect from.
@@ -61,6 +64,7 @@ func newInstance() *instance {
 		mergedTags:      map[string]string{},
 		infoCPULast:     map[string]*redisCPUUsage{},
 		nodeUpStates:    map[string]int64{},
+		infoConfigCache: make(map[string]map[string]string),
 	}
 }
 
