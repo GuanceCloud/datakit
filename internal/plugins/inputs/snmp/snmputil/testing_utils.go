@@ -90,6 +90,12 @@ func (s *MockSession) GetVersion() gosnmp.SnmpVersion {
 	return s.Version
 }
 
+// BulkWalk will send a SNMP BulkWalk command (mock implementation).
+func (s *MockSession) BulkWalk(rootOid string, walkFn gosnmp.WalkFunc) error {
+	args := s.Mock.Called(rootOid, walkFn)
+	return args.Error(0)
+}
+
 // CreateMockSession creates a mock session.
 func CreateMockSession() *MockSession {
 	session := &MockSession{}

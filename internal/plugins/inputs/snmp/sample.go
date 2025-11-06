@@ -82,6 +82,12 @@ const sampleCfg = `
   ## Collect object interval, default is 5m. (optional)
   # object_interval = "5m"
 
+  ## Enable LLDP topology collection. Default is false. (optional)
+  # enable_lldp = false
+
+  ## LLDP collection interval, default is 10m. (optional)
+  # lldp_interval = "10m"
+
   ## Filling in excluded device IP address, example ["10.200.10.220", "10.200.10.221"].
   ## Only worked in auto discovery feature.
   ## This is optional.

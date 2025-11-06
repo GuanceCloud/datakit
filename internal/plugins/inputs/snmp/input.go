@@ -29,6 +29,7 @@ import (
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/lldp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmpmeasurement"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmprefiles"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmputil"
@@ -41,6 +42,7 @@ const (
 	defaultDiscoveryInterval = time.Hour
 	defaultObjectInterval    = 5 * time.Minute
 	defaultMetricInterval    = 10 * time.Second
+	defaultLLDPInterval      = 10 * time.Minute
 
 	// Using high oid batch size might lead to snmp calls timing out.
 	// For some devices, the default oid_batch_size of 5 might be high (leads to timeouts),
@@ -103,6 +105,8 @@ type Input struct {
 	PickingExtra        []string          `toml:"extra"`
 	ObjectInterval      time.Duration     `toml:"object_interval,omitempty"`
 	MetricInterval      time.Duration     `toml:"metric_interval,omitempty"`
+	EnableLLDP          bool              `toml:"enable_lldp"`
+	LLDPInterval        time.Duration     `toml:"lldp_interval,omitempty"`
 
 	Profiles       snmputil.ProfileDefinitionMap
 	CustomProfiles snmputil.ProfileConfigMap `toml:"custom_profiles,omitempty"`
@@ -157,12 +161,17 @@ func (*Input) SampleConfig() string { return sampleCfg }
 func (*Input) AvailableArchs() []string { return datakit.AllOS }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
-	return []inputs.Measurement{&snmpmeasurement.SNMPObject{}, &snmpmeasurement.SNMPMetric{}}
+	return []inputs.Measurement{
+		&snmpmeasurement.SNMPObject{},
+		&snmpmeasurement.SNMPMetric{},
+		&snmpmeasurement.SNMPLLDP{},
+	}
 }
 
 func (ipt *Input) setup() {
 	l = logger.SLogger(snmpmeasurement.InputName)
 	snmputil.SetLog()
+	lldp.SetLog()
 	l.Info("Run entry")
 
 	for _, s := range ipt.TagsIgnoreRegexp {
@@ -284,6 +293,7 @@ func (ipt *Input) Run() {
 	ipt.autoDiscovery()
 	ipt.collectObject()
 	ipt.collectMetrics()
+	ipt.collectLLDP()
 
 	tickerObject := time.NewTicker(ipt.ObjectInterval)
 	tickerMetric := time.NewTicker(ipt.MetricInterval)
@@ -291,6 +301,9 @@ func (ipt *Input) Run() {
 	defer tickerObject.Stop()
 	defer tickerMetric.Stop()
 	defer tickerDiscovery.Stop()
+
+	tickerLLDP := time.NewTicker(ipt.LLDPInterval)
+	defer tickerLLDP.Stop()
 
 	ipt.ptsTime = ntp.Now()
 
@@ -307,6 +320,9 @@ func (ipt *Input) Run() {
 		case <-tickerDiscovery.C:
 			ipt.userAutoDiscovery()
 			ipt.autoDiscovery()
+
+		case <-tickerLLDP.C:
+			ipt.collectLLDP()
 
 		case <-datakit.Exit.Wait():
 			ipt.exit()
@@ -421,6 +437,75 @@ func (ipt *Input) collectMetrics() {
 	})
 }
 
+// collectLLDP sends LLDP collection jobs for all devices.
+func (ipt *Input) collectLLDP() {
+	if !ipt.EnableLLDP {
+		return
+	}
+
+	l.Debugf("Starting LLDP collection cycle")
+
+	// Collect from user-specific devices (user profiles mode)
+	ipt.userSpecificDevices.Range(func(k, v interface{}) bool {
+		deviceIP, ok := k.(string)
+		if !ok {
+			l.Errorf("invalid device IP type")
+			return true
+		}
+		device, ok := v.(*deviceInfo)
+		if !ok {
+			l.Errorf("invalid device info type")
+			return true
+		}
+
+		if err := ipt.sendJob(&snmpJob{
+			ID:     COLLECT_LLDP,
+			IP:     deviceIP,
+			Device: device,
+		}); err != nil {
+			l.Warnf("sendJob LLDP failed: %s", err.Error())
+			return false
+		}
+		return true
+	})
+
+	// Collect from specific devices (standard mode)
+	for deviceIP, device := range ipt.mSpecificDevices {
+		if err := ipt.sendJob(&snmpJob{
+			ID:     COLLECT_LLDP,
+			IP:     deviceIP,
+			Device: device,
+		}); err != nil {
+			l.Errorf("sendJob LLDP failed: %s", err.Error())
+			return
+		}
+	}
+
+	// Collect from dynamic devices (auto-discovered)
+	ipt.mDynamicDevices.Range(func(k, v interface{}) bool {
+		deviceIP, ok := k.(string)
+		if !ok {
+			l.Errorf("should not be here")
+			return true
+		}
+		device, ok := v.(*deviceInfo)
+		if !ok {
+			l.Errorf("should not be here")
+			return true
+		}
+
+		if err := ipt.sendJob(&snmpJob{
+			ID:     COLLECT_LLDP,
+			IP:     deviceIP,
+			Device: device,
+		}); err != nil {
+			l.Errorf("sendJob LLDP: %s", err.Error())
+			return false
+		}
+		return true
+	})
+}
+
 func (ipt *Input) autoDiscovery() {
 	if ipt.ZabbixProfiles != nil || ipt.PromeProfiles != nil || ipt.DatadogProfiles != nil || len(ipt.mAutoDiscovery) == 0 {
 		return
@@ -490,6 +575,8 @@ func (ipt *Input) doJob(job snmpJob) {
 		ipt.doCollectUserMetrics(job.IP, job.Device)
 	case USER_DISCOVERY:
 		ipt.doAfterDiscovery(job.Idx, job.IP, job.DeviceType, job.Tags)
+	case COLLECT_LLDP:
+		ipt.doCollectLLDP(job.IP, job.Device)
 	}
 }
 
@@ -563,6 +650,42 @@ func (ipt *Input) doCollectMetrics(deviceIP string, device *deviceInfo) {
 		ipt.feeder.FeedLastError(err.Error(),
 			metrics.WithLastErrorInput(snmpmeasurement.InputName),
 			metrics.WithLastErrorSource(snmpmeasurement.SNMPMetricName),
+		)
+	}
+}
+
+func (ipt *Input) doCollectLLDP(deviceIP string, device *deviceInfo) {
+	if device == nil {
+		l.Errorf("device is nil for IP %s", deviceIP)
+		return
+	}
+
+	collectStart := time.Now()
+	l.Debugf("Starting LLDP collection for device %s", deviceIP)
+
+	// Call device-specific LLDP collection
+	points, err := device.CollectLLDP(deviceIP)
+	if err != nil {
+		l.Errorf("CollectLLDP failed for device %s: %v", deviceIP, err)
+		return
+	}
+
+	l.Infof("Collected %d LLDP neighbors from device %s in %v", len(points), deviceIP, time.Since(collectStart))
+	if len(points) == 0 {
+		return
+	}
+
+	// Feed as Logging type
+	if err := ipt.feeder.Feed(point.Logging, points,
+		dkio.WithCollectCost(time.Since(collectStart)),
+		dkio.WithElection(ipt.Election),
+		dkio.WithSource(snmpmeasurement.SNMPLLDPName),
+	); err != nil {
+		l.Errorf("FeedLLDP err for device %s: %v", deviceIP, err)
+		ipt.feeder.FeedLastError(err.Error(),
+			metrics.WithLastErrorInput(snmpmeasurement.InputName),
+			metrics.WithLastErrorSource(snmpmeasurement.SNMPLLDPName),
+			metrics.WithLastErrorCategory(point.Logging),
 		)
 	}
 }
@@ -1072,11 +1195,15 @@ func (ipt *Input) ValidateConfig() error {
 	if ipt.DiscoveryInterval == 0 {
 		ipt.DiscoveryInterval = defaultDiscoveryInterval
 	}
+	if ipt.LLDPInterval == 0 {
+		ipt.LLDPInterval = defaultLLDPInterval
+	}
 	if len(ipt.DeviceNamespace) == 0 {
 		ipt.DeviceNamespace = defaultDeviceNamespace
 	}
 
-	l.Info(ipt.Port, ipt.ObjectInterval, ipt.MetricInterval, ipt.Workers, ipt.DiscoveryInterval, ipt.DeviceNamespace)
+	l.Info(ipt.Port, ipt.ObjectInterval, ipt.MetricInterval, ipt.Workers,
+		ipt.DiscoveryInterval, ipt.LLDPInterval, ipt.EnableLLDP, ipt.DeviceNamespace)
 
 	if err := ipt.validateNetAddress(); err != nil {
 		return err
