@@ -14,6 +14,7 @@ import (
 	"net/http/httptrace"
 	"net/url"
 	reflect "reflect"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -39,16 +40,19 @@ type endPoint struct {
 	httpCli *http.Client
 
 	// optionals
-	proxy       string
-	apis        []string
-	httpTimeout time.Duration
+	proxy string
+	apis  []string
 
 	maxHTTPIdleConnectionPerHost int
 	maxHTTPConnections           int
-	httpIdleTimeout              time.Duration
 	maxRetryCount                int
-	retryDelay                   time.Duration
 
+	httpTimeout,
+	mockedDelay,
+	httpIdleTimeout,
+	retryDelay time.Duration
+
+	nullTransport,
 	insecureSkipVerify,
 	httpTrace bool
 }
@@ -162,6 +166,27 @@ func newEndpoint(urlstr string, opts ...endPointOption) (*endPoint, error) {
 		scheme:      u.Scheme,
 	}
 
+	// setup options on dataway URL string.
+	if x := u.Query().Get("mocked-delay"); x != "" {
+		if du, err := time.ParseDuration(x); err == nil {
+			l.Infof("set mocked-delay to %s", du)
+			ep.mockedDelay = du
+		} else {
+			l.Warnf("invalid arg value for mocked-delay=%s: %s, expect duration string, ignored", x, err)
+		}
+	}
+
+	if x := u.Query().Get("null-transport"); x != "" {
+		if b, err := strconv.ParseBool(x); err == nil {
+			l.Info("set null-transport on")
+			ep.nullTransport = b
+		} else {
+			l.Warnf("invalid arg value for null-transport=%s: %s, "+
+				"expect boolean string(1, t, T, TRUE, true, True, 0, f, F, FALSE, false, False), ignored",
+				x, err)
+		}
+	}
+
 	// apply options
 	for _, opt := range opts {
 		if opt != nil {
@@ -210,7 +235,10 @@ func (ep *endPoint) getHTTPCliOpts() *httpcli.Options {
 		MaxIdleConns:        ep.maxHTTPConnections,
 		MaxIdleConnsPerHost: ep.maxHTTPIdleConnectionPerHost,
 		IdleConnTimeout:     ep.httpIdleTimeout,
+		NullTransport:       ep.nullTransport,
+		MockedDelay:         ep.mockedDelay,
 		DialContext:         dialContext,
+		Logger:              l,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: ep.insecureSkipVerify, // nolint: gosec
 		},

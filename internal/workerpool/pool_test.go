@@ -7,7 +7,6 @@ package workerpool
 
 import (
 	"fmt"
-	"log"
 	"sync"
 	"testing"
 	"time"
@@ -35,12 +34,12 @@ func TestWorkerPool(t *testing.T) {
 				job, err := NewJob(
 					WithInput(fmt.Sprintf("goroutine %d, job %d\n", i, j)),
 					WithProcess(func(input interface{}) (output interface{}) {
-						log.Printf("start process input %d:%d\n", i, j)
+						t.Logf("start process input %d:%d\n", i, j)
 
 						return fmt.Sprintf("finish process %d:%d\n", i, j)
 					}),
 					WithProcessCallback(func(input, output interface{}, cost time.Duration) {
-						log.Printf("finish process and callback, input: %v output: %v cost: %dms\n", input, output, cost/time.Millisecond)
+						t.Logf("finish process and callback, input: %v output: %v cost: %dms\n", input, output, cost/time.Millisecond)
 					}),
 				)
 				if err != nil {
@@ -49,14 +48,14 @@ func TestWorkerPool(t *testing.T) {
 				}
 
 				if err = wpool.MoreJob(job); err != nil {
-					log.Println(err.Error())
+					t.Log(err.Error())
 				}
 			}
 		}(i)
 	}
 	wg.Wait()
 
-	log.Printf("send jobs finished, cost %dms\n", time.Since(start)/time.Millisecond)
+	t.Logf("send jobs finished, cost %dms\n", time.Since(start)/time.Millisecond)
 
 	time.Sleep(1 * time.Second)
 	wpool.Shutdown()

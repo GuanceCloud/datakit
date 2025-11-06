@@ -46,8 +46,7 @@ func EncodingStr(s string) Encoding {
 		return JSON
 	case encPBJSON:
 		return PBJSON
-	case encLineprotocol,
-		encLineprotocolAlias:
+	case encLineprotocol, encLineprotocolAlias:
 		return LineProtocol
 	default:
 		return LineProtocol

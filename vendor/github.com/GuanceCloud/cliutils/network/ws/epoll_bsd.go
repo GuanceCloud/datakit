@@ -36,7 +36,6 @@ func MkEpoll() (*epoll, error) {
 			Flags:  syscall.EV_ADD | syscall.EV_CLEAR,
 		},
 	}, nil, nil)
-
 	if err != nil {
 		return nil, err
 	}

@@ -6,6 +6,7 @@
 package diskcache
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -106,7 +107,7 @@ func (c *DiskCache) doSwitchNextFile() error {
 func (c *DiskCache) openWriteFile() error {
 	if fi, err := os.Stat(c.curWriteFile); err == nil { // file exists
 		if fi.IsDir() {
-			return fmt.Errorf("data file should not be dir")
+			return errors.New("data file should not be dir")
 		}
 
 		c.curBatchSize = fi.Size()

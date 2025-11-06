@@ -269,8 +269,13 @@ type HTTPSecret struct {
 }
 
 func (t *HTTPTask) run() error {
-	var t1, connect, dns, tlsHandshake time.Time
-	var body io.Reader = nil
+	var (
+		t1,
+		connect,
+		dns,
+		tlsHandshake time.Time
+		body io.Reader
+	)
 
 	trace := &httptrace.ClientTrace{
 		DNSStart: func(dsi httptrace.DNSStartInfo) { dns = time.Now() },
@@ -398,13 +403,11 @@ func (t *HTTPTask) getRequestBody() (io.Reader, error) {
 				}
 			}
 		}
-		writer.Close()
+		writer.Close() // nolint: errcheck,gosec
 		requestBody.bodyType = writer.FormDataContentType()
 		body = buf
-	} else {
-		if requestBody.Body != "" {
-			body = bytes.NewBufferString(requestBody.Body)
-		}
+	} else if requestBody.Body != "" {
+		body = bytes.NewBufferString(requestBody.Body)
 	}
 
 	t.reqBodyBytesBuffer = body

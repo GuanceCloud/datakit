@@ -39,15 +39,23 @@ func (c *DiskCache) skipBadFile() error {
 // Get is safe to call concurrently with other operations and will
 // block until all other operations finish.
 func (c *DiskCache) Get(fn Fn) error {
-	return c.doGet(nil, fn)
+	return c.doGet(nil, fn, nil)
+}
+
+type BufFunc func() []byte
+
+// BufCallbackGet fetch new data from disk cache, and read into buffer that returned by bfn.
+// If there is nothing to read, the bfn will not be called.
+func (c *DiskCache) BufCallbackGet(bfn BufFunc, fn Fn) error {
+	return c.doGet(nil, fn, bfn)
 }
 
 // BufGet fetch new data from disk cache, and read into buf.
 func (c *DiskCache) BufGet(buf []byte, fn Fn) error {
-	return c.doGet(buf, fn)
+	return c.doGet(buf, fn, nil)
 }
 
-func (c *DiskCache) doGet(buf []byte, fn Fn) error {
+func (c *DiskCache) doGet(buf []byte, fn Fn, bfn BufFunc) error {
 	var (
 		n, nbytes int
 		err       error
@@ -60,10 +68,8 @@ func (c *DiskCache) doGet(buf []byte, fn Fn) error {
 
 	defer func() {
 		if uint32(nbytes) != EOFHint {
-			getBytesVec.WithLabelValues(c.path).Observe(float64(nbytes))
-
 			// get on EOF not counted as a real Get
-			getLatencyVec.WithLabelValues(c.path).Observe(float64(time.Since(start)) / float64(time.Second))
+			getLatencyVec.WithLabelValues(c.path).Observe(time.Since(start).Seconds())
 		}
 	}()
 
@@ -80,7 +86,7 @@ func (c *DiskCache) doGet(buf []byte, fn Fn) error {
 		}
 	}
 
-	if c.rfd == nil {
+	if c.rfd == nil { // no file reading, reading on the first file
 		if err = c.switchNextFile(); err != nil {
 			return err
 		}
@@ -111,11 +117,18 @@ retry:
 		goto retry // read next new file to save another Get() calling.
 	}
 
-	if buf == nil {
-		buf = make([]byte, nbytes)
+	var readbuf []byte
+
+	switch {
+	case buf == nil && bfn == nil: // malloc memory locally
+		readbuf = make([]byte, nbytes)
+	case buf == nil && bfn != nil:
+		readbuf = bfn()
+	default:
+		readbuf = buf
 	}
 
-	if len(buf) < nbytes {
+	if len(readbuf) < nbytes {
 		// seek to next read position
 		if _, err := c.rfd.Seek(int64(nbytes), io.SeekCurrent); err != nil {
 			return fmt.Errorf("rfd.Seek(%d): %w", nbytes, err)
@@ -125,8 +138,8 @@ retry:
 		return ErrTooSmallReadBuf
 	}
 
-	if n, err := c.rfd.Read(buf[:nbytes]); err != nil {
-		return fmt.Errorf("rfd.Read(%d buf): %w", len(buf[:nbytes]), err)
+	if n, err := c.rfd.Read(readbuf[:nbytes]); err != nil {
+		return fmt.Errorf("rfd.Read(%d buf): %w", len(readbuf[:nbytes]), err)
 	} else if n != nbytes {
 		return ErrUnexpectedReadSize
 	}
@@ -135,7 +148,7 @@ retry:
 		goto __updatePos
 	}
 
-	if err = fn(buf[:nbytes]); err != nil {
+	if err = fn(readbuf[:nbytes]); err != nil {
 		// seek back
 		if !c.noFallbackOnError {
 			if _, serr := c.rfd.Seek(-int64(dataHeaderLen+nbytes), io.SeekCurrent); serr != nil {

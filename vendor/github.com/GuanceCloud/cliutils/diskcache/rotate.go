@@ -31,7 +31,6 @@ func (c *DiskCache) rotate() error {
 
 	defer func() {
 		rotateVec.WithLabelValues(c.path).Inc()
-		sizeVec.WithLabelValues(c.path).Set(float64(c.size.Load()))
 		datafilesVec.WithLabelValues(c.path).Set(float64(len(c.dataFiles)))
 	}()
 
@@ -74,6 +73,15 @@ func (c *DiskCache) rotate() error {
 		return fmt.Errorf("rotate on Rename(%q, %q): %w", c.curWriteFile, newfile, err)
 	}
 
+	// new file added, plus it's size to cache size
+	if fi, err := os.Stat(newfile); err == nil {
+		if fi.Size() > dataHeaderLen {
+			c.size.Add(fi.Size())
+			sizeVec.WithLabelValues(c.path).Add(float64(fi.Size()))
+			putBytesVec.WithLabelValues(c.path).Observe(float64(fi.Size()))
+		}
+	}
+
 	c.dataFiles = append(c.dataFiles, newfile)
 	sort.Strings(c.dataFiles)
 
@@ -91,7 +99,6 @@ func (c *DiskCache) removeCurrentReadingFile() error {
 	defer c.rwlock.Unlock()
 
 	defer func() {
-		sizeVec.WithLabelValues(c.path).Set(float64(c.size.Load()))
 		removeVec.WithLabelValues(c.path).Inc()
 		datafilesVec.WithLabelValues(c.path).Set(float64(len(c.dataFiles)))
 	}()
@@ -105,8 +112,11 @@ func (c *DiskCache) removeCurrentReadingFile() error {
 
 	if fi, err := os.Stat(c.curReadfile); err == nil { // file exist
 		if fi.Size() > dataHeaderLen {
-			c.size.Add(-(fi.Size() - dataHeaderLen)) // EOF bytes do not counted in size
+			c.size.Add(-fi.Size())
+			sizeVec.WithLabelValues(c.path).Sub(float64(fi.Size()))
 		}
+
+		getBytesVec.WithLabelValues(c.path).Observe(float64(fi.Size()))
 
 		if err := os.Remove(c.curReadfile); err != nil {
 			return fmt.Errorf("removeCurrentReadingFile: %q: %w", c.curReadfile, err)

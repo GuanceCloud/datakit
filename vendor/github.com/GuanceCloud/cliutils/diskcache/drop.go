@@ -5,7 +5,9 @@
 
 package diskcache
 
-import "os"
+import (
+	"os"
+)
 
 const (
 	reasonExceedCapacity     = "exceed-max-capacity"
@@ -38,12 +40,11 @@ func (c *DiskCache) dropBatch() error {
 		}
 
 		c.size.Add(-fi.Size())
-
 		c.dataFiles = c.dataFiles[1:]
 
 		droppedDataVec.WithLabelValues(c.path, reasonExceedCapacity).Observe(float64(fi.Size()))
 		datafilesVec.WithLabelValues(c.path).Set(float64(len(c.dataFiles)))
-		sizeVec.WithLabelValues(c.path).Set(float64(c.size.Load()))
+		sizeVec.WithLabelValues(c.path).Sub(float64(fi.Size()))
 	}
 
 	return nil

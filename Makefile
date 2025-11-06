@@ -380,7 +380,7 @@ ut: deps
 			echo "######################"; \
 		fi
 
-code_lint: deps copyright_check
+code_lint: deps copyright_check disable_funcs
 	@$(GOLINT_BINARY) --version
 ifeq ($(AUTO_FIX),true)
 		@printf "$(HL)lint with auto fix...\n$(NC)"; \
@@ -395,6 +395,8 @@ endif
 		exit -1; \
 	fi
 
+
+disable_funcs:
 	# check print/printf
 	go run scripts/disable-funcs/main.go -config scripts/disable-funcs/conf.toml;
 	@if [ $$? != 0 ]; then \

@@ -357,7 +357,7 @@ func (p *Point) Add(k string, v any) {
 	p.pt.Fields = kvs.Add(k, v)
 }
 
-// Add add specific key value to fields, if k exist, do nothing.
+// Set add specific key value to fields, if k exist, do nothing.
 func (p *Point) Set(k string, v any) {
 	kvs := KVs(p.pt.Fields)
 	p.pt.Fields = kvs.Set(k, v)
@@ -418,9 +418,7 @@ func (p *Point) Size() int {
 		n += len(kv.Unit)
 
 		switch kv.Val.(type) {
-		case *Field_I,
-			*Field_F,
-			*Field_U:
+		case *Field_I, *Field_F, *Field_U:
 			n += 8
 
 		case *Field_B:

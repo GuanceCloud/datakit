@@ -10,7 +10,6 @@ docker run --rm -it -w /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
 package sensors
 
 import (
-	"log"
 	"strconv"
 	"strings"
 	T "testing"
@@ -18,7 +17,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/command"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
@@ -213,12 +211,4 @@ Core 3:
 		assert.Equalf(t, 100.0, pt.Get("temp5_crit"), "got %s", pt.Pretty())
 		assert.Equalf(t, 0.0, pt.Get("temp5_crit_alarm"), "got %s", pt.Pretty())
 	})
-}
-
-func TestRunCommand(t *T.T) {
-	output, err := command.RunWithTimeout(3*time.Second, false, defPath, "-u")
-	if err != nil {
-		log.Println(err.Error())
-	}
-	log.Println(string(output))
 }

@@ -20,11 +20,6 @@ type flusher struct {
 	wal *WALQueue
 	dw  *Dataway // refer to dataway instance
 	idx int
-
-	// sendBuf and marshalBuf reused during read WAL from disk-queue.
-	// When read from mem-queue, these 2 buffer not used.
-	sendBuf,
-	marshalBuf []byte // buffer reusable during send & read HTTP body
 }
 
 // StartFlushWorkers init wal-queue on each category.
@@ -71,14 +66,10 @@ func (dw *Dataway) StartFlushWorkers() error {
 }
 
 func (dw *Dataway) newFlusher(cat point.Category) *flusher {
-	// we need extra spaces to read body and it's mata info from disk cache.
-	extra := int(float64(dw.MaxRawBodySize) * .1)
 	return &flusher{
-		cat:        cat,
-		wal:        dw.walq[cat],
-		sendBuf:    make([]byte, dw.MaxRawBodySize),
-		marshalBuf: make([]byte, dw.MaxRawBodySize+extra),
-		dw:         dw,
+		cat: cat,
+		wal: dw.walq[cat],
+		dw:  dw,
 	}
 }
 
@@ -88,7 +79,7 @@ func (dw *Dataway) enqueueBody(w *writer, b *body) error {
 		return fmt.Errorf("WAL on %s not set, should not been here", w.category)
 	}
 
-	l.Debugf("walq pub %s to %s(q: %+#v)", b, w.category.Alias(), q)
+	l.Debugf("walq pub %s to %s(q: %+#v)", b, w.category, q)
 
 	walQueueMemLenVec.WithLabelValues(w.category.Alias()).Set(float64(len(q.mem)))
 
@@ -100,6 +91,8 @@ func (f *flusher) start() {
 	defer cleanFailCacheTick.Stop()
 
 	l.Infof("flushWorker on %s starting...", f.cat.Alias())
+
+	caller := f.cat.String() + "_flusher"
 
 	for {
 		select {
@@ -114,7 +107,7 @@ func (f *flusher) start() {
 			}
 
 		default: // get from WAL queue(form chan or diskcache)
-			b, err := f.wal.Get(withReusableBuffer(f.sendBuf, f.marshalBuf))
+			b, err := f.wal.Get(withNewBuffer(f.dw.MaxRawBodySize), withCaller(caller))
 			if err != nil {
 				l.Warnf("Get() from wal-queue: %s, ignored", err)
 			}
@@ -122,7 +115,7 @@ func (f *flusher) start() {
 			if b == nil { // sleep when there is nothing to flush.
 				time.Sleep(time.Second)
 			} else {
-				l.Debugf("walq get on %s, got body %s(from %s) payload", f.cat.Alias(), b, b.from)
+				l.Debugf("walq get on %s, got body %s(from %s) payload", f.cat, b, b.from)
 
 				if err := f.do(b); err != nil {
 					l.Warnf("do: %s, b: %s, ignored", err, b)
@@ -265,20 +258,26 @@ func (dw *Dataway) dumpFailCache(b *body) error {
 }
 
 func (f *flusher) cleanFailCache() error {
-	return f.dw.walFail.DiskGet(func(b *body) error {
-		l.Debugf("clean body %s", b)
+	return f.dw.walFail.DiskGet(
+		func(b *body) error {
+			l.Debugf("clean body %s", b)
 
-		var ( // @b will reset within f.do(), pre-fetch it's meta for metric update.
-			cat  = b.cat()
-			size = len(b.buf())
-		)
+			var ( // @b will reset within f.do(), pre-fetch it's meta for metric update.
+				cat  = b.cat()
+				size = len(b.buf())
+			)
 
-		if err := f.do(b, WithCacheClean(true), WithHTTPHeader("X-Fail-Cache-Retry", "1")); err != nil {
-			return err
-		}
+			if err := f.do(b, WithCacheClean(true), WithHTTPHeader("X-Fail-Cache-Retry", "1")); err != nil {
+				l.Warnf("cleaning body %s failed: %s", b, err.Error())
+				return err
+			}
 
-		// only update metric on clean-ok
-		flushFailCacheVec.WithLabelValues(cat.Alias()).Observe(float64(size))
-		return nil
-	}, withReusableBuffer(f.sendBuf, f.marshalBuf))
+			l.Debugf("cleaning body ok: %s", b)
+
+			// only update metric on clean-ok
+			flushFailCacheVec.WithLabelValues(cat.Alias()).Observe(float64(size))
+			return nil
+		},
+		withNewBuffer(f.dw.MaxRawBodySize),
+		withCaller("cleanFailCache"))
 }

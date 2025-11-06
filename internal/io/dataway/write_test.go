@@ -129,7 +129,7 @@ func TestFailCache(t *T.T) {
 			assert.Len(t, got, len(pts))
 
 			return nil
-		}, withReusableBuffer(f.sendBuf, f.marshalBuf)))
+		}, withNewBuffer(dw.MaxRawBodySize)))
 
 		assert.Equal(t, diskcache.ErrNoData, dc.BufGet(nil, func([]byte) error {
 			return nil // make sure no data available in fail-cache
@@ -153,6 +153,7 @@ func TestWriteWithCache(t *T.T) {
 
 		time.Sleep(time.Second)
 
+		metricsReset()
 		reg := prometheus.NewRegistry()
 
 		reg.MustRegister(diskcache.Metrics()...)
@@ -205,14 +206,14 @@ func TestWriteWithCache(t *T.T) {
 			`datakit_io_dataway_point_total`,
 			point.Metric.String(),
 			http.StatusText(http.StatusServiceUnavailable))
-		assert.NotNil(t, m)
+		require.NotNilf(t, m, metrics.MetricFamily2Text(mfs))
 		assert.Equalf(t, float64(100), m.GetCounter().GetValue(), metrics.MetricFamily2Text(mfs))
 
 		m = metrics.GetMetricOnLabels(mfs,
 			`datakit_io_dataway_point_total`,
 			point.DynamicDWCategory.String(),
 			http.StatusText(http.StatusServiceUnavailable))
-		assert.NotNil(t, m)
+		require.NotNilf(t, m, metrics.MetricFamily2Text(mfs))
 		assert.Equal(t, float64(100), m.GetCounter().GetValue(), metrics.MetricFamily2Text(mfs))
 
 		t.Cleanup(func() {
@@ -261,8 +262,7 @@ func TestWriteWithCache(t *T.T) {
 
 		// check cache content
 		dc := dw.walFail.disk.(*diskcache.DiskCache)
-		dc.Size()
-		assert.NoError(t, dc.Rotate()) // force rotate
+		assert.NoError(t, dc.Rotate()) // force rotate, ready for Get()
 
 		f := dw.newFlusher(cat)
 
@@ -274,18 +274,22 @@ func TestWriteWithCache(t *T.T) {
 
 		t.Logf("metrics: %s", metrics.MetricFamily2Text(mfs))
 
-		m := metrics.GetMetricOnLabels(mfs, "diskcache_get_bytes", dc.Path())
+		m := metrics.GetMetricOnLabels(mfs, "diskcache_get_latency", dc.Path()) // we have 1 Get on fail cache
 		// only 1 get(in dw.Write with-cache-clean)
-		assert.Equal(t, uint64(1), m.GetSummary().GetSampleCount())
+		require.Equal(t, uint64(1), m.GetSummary().GetSampleCount())
 
 		// 1 put(dw.Write with-cache-clean failed do not add another Put)
 		m = metrics.GetMetricOnLabels(mfs, "diskcache_put_bytes", dc.Path())
 		assert.Equal(t, uint64(1), m.GetSummary().GetSampleCount())
 
-		// put-bytes same as get-bytes: 2 puts only trigger 1 cache,the 2nd do nothing
-		mput := metrics.GetMetricOnLabels(mfs, "diskcache_put_bytes", dc.Path()).GetSummary().GetSampleSum()
-		mget := metrics.GetMetricOnLabels(mfs, "diskcache_get_bytes", dc.Path()).GetSummary().GetSampleSum()
-		assert.Equal(t, 1.0, mput/mget)
+		// 1 Put: Put to fail cache on dataway 5xx
+		// 1 Get: Get from failed cache
+		// seekback: retry send to dataway fail too, cache seek back, no Put any more
+		mput := metrics.GetMetricOnLabels(mfs, "diskcache_put_bytes", dc.Path()).GetSummary().GetSampleCount()
+		mget := metrics.GetMetricOnLabels(mfs, "diskcache_get_latency", dc.Path()).GetSummary().GetSampleCount()
+		require.Equal(t, uint64(1), mput/mget)
+		mseek := metrics.GetMetricOnLabels(mfs, "diskcache_seek_back_total", dc.Path()).GetCounter().GetValue()
+		require.Equal(t, 1.0, mseek)
 
 		t.Cleanup(func() {
 			metricsReset()

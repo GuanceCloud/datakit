@@ -132,6 +132,10 @@ func (x *dkIO) compact(c *compactor) {
 		// put back these points.
 		datakit.PutbackPoints(c.arrPoints...)
 
+		for i := range c.arrPoints {
+			c.arrPoints[i] = nil // NOTE: manually release reference on points
+		}
+
 		c.arrPoints = c.arrPoints[:0] // clear
 	}
 
@@ -148,7 +152,10 @@ func (x *dkIO) compact(c *compactor) {
 
 		// put back these points.
 		datakit.PutbackPoints(arr...)
-		c.indexedPoints[k] = c.indexedPoints[k][:0] // clear: should we delete the key in map?
+		for i := range c.indexedPoints[k] {
+			c.indexedPoints[k][i] = nil // NOTE: manually release reference on points
+		}
+		c.indexedPoints[k] = c.indexedPoints[k][:0]
 	}
 }
 

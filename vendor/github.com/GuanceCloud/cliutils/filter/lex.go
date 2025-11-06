@@ -458,22 +458,22 @@ func lexLineComment(l *Lexer) stateFn {
 func lexEscape(l *Lexer) stateFn {
 	ch := l.next()
 	var n int
-	var base, max uint32
+	var base, _max uint32
 
 	switch ch {
 	case 'a', 'b', 'f', 'n', 'r', 't', 'v', '\\', l.stringOpen, l.backquoteOpen:
 		return lexString
 	case '0', '1', '2', '3', '4', '5', '6', '7':
-		n, base, max = 3, 8, 255
+		n, base, _max = 3, 8, 255
 	case 'x', 'X':
 		ch = l.next()
-		n, base, max = 2, 16, 255
+		n, base, _max = 2, 16, 255
 	case 'u':
 		ch = l.next()
-		n, base, max = 4, 16, unicode.MaxRune
+		n, base, _max = 4, 16, unicode.MaxRune
 	case 'U':
 		ch = l.next()
-		n, base, max = 8, 16, unicode.MaxRune
+		n, base, _max = 8, 16, unicode.MaxRune
 	case eof:
 		l.errorf("escape squence not terminated")
 		return lexString
@@ -498,7 +498,7 @@ func lexEscape(l *Lexer) stateFn {
 		n--
 	}
 
-	if x > max || 0xD800 <= x && x < 0xE000 {
+	if x > _max || 0xD800 <= x && x < 0xE000 {
 		l.errorf("escape sequence is an invalid Unicode code point")
 	}
 

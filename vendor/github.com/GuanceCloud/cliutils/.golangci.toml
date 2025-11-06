@@ -2,7 +2,7 @@
 timeout = "10m"
 issues-exit-code = 1
 skip-files = ["packrd"]
-go = "1.18"
+go = "1.19"
 skip-dirs = [
 	# TODO: we should add lint check on the package
 	"internal/obfuscate",
@@ -78,6 +78,7 @@ tab-width = 2
 enable-all = true
 disable = [
   # 权且放开他们
+	"nakedret",
   "testpackage",      # Too strict
   "wrapcheck",        # 不便于错误处理
   "tagliatelle",      # 跟现有 json tag 命名方式
@@ -128,6 +129,7 @@ exclude = []
 [[issues.exclude-rules]]
 path = "(.+)_test.go"
 linters = [
+	"perfsprint",
 	"errcheck",
 	"goconst",
 	"funlen",

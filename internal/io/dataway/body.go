@@ -55,6 +55,7 @@ type body struct {
 	marshalBuf []byte // buffer used for dump pb binary
 	sendBuf    []byte // buffer used for encoding points to pb/line-proto
 
+	caller,
 	chksum string
 
 	selfBuffer bufOnwer // buffer that belongs to itself, and we should not drop it when putback
@@ -63,6 +64,7 @@ type body struct {
 }
 
 func (b *body) reset() {
+	b.caller = "-"
 	b.CacheData.Payload = nil
 	b.CacheData.PayloadType = int32(encNotSet)
 	b.CacheData.Category = int32(point.UnknownCategory)
@@ -240,7 +242,7 @@ func (w *writer) buildPointsBody() error {
 	for {
 		var (
 			compactStart = time.Now()
-			b            = getNewBufferBody(withNewBuffer(w.batchBytesSize))
+			b            = getNewBufferBody(withNewBuffer(w.batchBytesSize), withCaller("buildPointsBody"))
 		)
 
 		encodeBytes, ok := enc.Next(b.sendBuf)

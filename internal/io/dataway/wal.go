@@ -20,7 +20,7 @@ type Cache interface {
 	// NOTE: reuse callback in diskcache to keep interface ok
 	// it's better to define Get as
 	//   Get() []byte
-	BufGet([]byte, diskcache.Fn) error
+	BufCallbackGet(diskcache.BufFunc, diskcache.Fn) error
 	Put([]byte) error
 	Size() int64
 	Close() error
@@ -109,6 +109,7 @@ func (q *WALQueue) Put(b *body) error {
 				l.Warnf("WAL retried %d times", retried)
 				walPutRetriedVec.WithLabelValues(b.cat().Alias()).Observe(float64(retried))
 			}
+
 			// NOTE: do not set putStatus here, we'll update walPointCounterVec during Get().
 			return nil
 		}
@@ -125,35 +126,42 @@ func (q *WALQueue) Get(opts ...bodyOpt) (*body, error) {
 	default: // pass: then read from disk queue.
 	}
 
-	// slow path: we get body from WAL.disk
-	b = getReuseBufferBody(opts...)
-
+	// slow path: we try get body from WAL.disk
 	defer func() {
-		if len(b.buf()) == 0 { // no data read from disk
-			putBody(b)
-		} else {
-			// Update the metric within Get,because after datakit start, there may be old
-			// cached data in WAL.disk, we'd add them to current running datakit's metric.
-			walPointCounterVec.WithLabelValues(b.cat().Alias(), "D").Add(float64(b.npts()))
+		if b != nil {
+			if len(b.buf()) == 0 { // no data read from disk
+				putBody(b)
+			} else {
+				// Update the metric within Get,because after datakit start, there may be old
+				// cached data in WAL.disk, we'd add them to current running datakit's metric.
+				walPointCounterVec.WithLabelValues(b.cat().Alias(), "D").Add(float64(b.npts()))
+			}
 		}
 	}()
 
 	var raw []byte
-	if err := q.disk.BufGet(b.marshalBuf, func(x []byte) error {
-		raw = x
-		// ASAP ok on Get: we should not occupy the Get lock here, and other flush workers
-		// need to read next raw body.
-		return nil
-	}); err != nil {
+	if err := q.disk.BufCallbackGet(
+		func() []byte {
+			b = getNewBufferBody(opts...) // delay get new buffer
+			return b.marshalBuf
+		},
+		func(x []byte) error {
+			raw = x
+			// ASAP ok on Get: we should not occupy the Get lock here, and other flush workers
+			// need to read next raw body.
+			return nil
+		}); err != nil {
 		if errors.Is(err, diskcache.ErrNoData) {
+			l.Debug("BufCallbackGet: EOF")
 			return nil, nil
 		}
 
-		l.Errorf("BufGet: %s", err)
+		l.Errorf("BufCallbackGet: %s", err)
 		return nil, err
 	}
 
-	if len(raw) == 0 { // no job available
+	if len(raw) == 0 || b == nil { // no job available
+		l.Debug("no data available")
 		return nil, nil
 	}
 
@@ -173,27 +181,37 @@ type walBodyCallback func(*body) error
 
 // DiskGet will fallback if callback failed.
 func (q *WALQueue) DiskGet(fn walBodyCallback, opts ...bodyOpt) error {
-	b := getReuseBufferBody(opts...)
+	var b *body
 
-	if err := q.disk.BufGet(b.marshalBuf, func(x []byte) error {
-		if len(x) == 0 {
-			return nil
-		}
+	if err := q.disk.BufCallbackGet(
+		func() []byte {
+			b = getNewBufferBody(opts...)
+			return b.marshalBuf
+		},
 
-		if err := b.loadCache(x); err != nil {
-			l.Warnf("load cache failed: %s, ignored", err)
-			return nil
-		}
+		func(x []byte) error {
+			if len(x) == 0 {
+				return nil
+			}
 
-		b.from = walFromDisk
-		b.gzon = isGzip(b.buf())
-		if err := fn(b); err != nil {
-			l.Warnf("walBodyCallback: %s, we try again, ignored", err)
-			return err
-		} else {
-			return nil
-		}
-	}); err != nil {
+			if b == nil {
+				return nil
+			}
+
+			if err := b.loadCache(x); err != nil {
+				l.Warnf("load cache failed: %s, ignored", err)
+				return nil
+			}
+
+			b.from = walFromDisk
+			b.gzon = isGzip(b.buf())
+			if err := fn(b); err != nil {
+				l.Warnf("walBodyCallback: %s, we try again, ignored", err)
+				return err
+			} else {
+				return nil
+			}
+		}); err != nil {
 		if errors.Is(err, diskcache.ErrNoData) {
 			return nil
 		} else {
