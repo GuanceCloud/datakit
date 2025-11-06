@@ -206,6 +206,8 @@ track_activity_query_size = 4096 a# Required for collection of larger queries.
 
 ### `{{$m.Name}}`
 
+{{$m.Desc}}
+
 {{$m.MarkdownTable}}
 
 {{ end }}

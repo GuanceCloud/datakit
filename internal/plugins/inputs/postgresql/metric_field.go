@@ -165,6 +165,32 @@ func (m inputMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
+type functionMeasurement struct {
+	inputMeasurement
+}
+
+//nolint:lll
+var functionMeasurementInfo = &inputs.MeasurementInfo{
+	Name: "postgresql_function",
+	Desc: "Enabled with `collect_function_metrics`. The metrics related to PostgreSQL functions are derived from the `pg_stat_user_functions` system view([:octicons-tag-24: Version-1.85.0](../datakit/changelog-2025.md#cl-1.85.0)).",
+	Cat:  point.Metric,
+	Fields: map[string]interface{}{
+		"function_calls":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of times this function has been called."},
+		"function_total_time": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.TimestampMS, Unit: inputs.NCount, Desc: "Total time spent in this function, in milliseconds."},
+		"function_self_time":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.TimestampMS, Unit: inputs.NCount, Desc: "Time spent in this function, not including time spent in called functions, in milliseconds."},
+	},
+	Tags: map[string]interface{}{
+		"server":   inputs.NewTagInfo("The address of the server. The value is `host:port`"),
+		"db":       inputs.NewTagInfo("The database name"),
+		"schema":   inputs.NewTagInfo("The schema name"),
+		"function": inputs.NewTagInfo("The function name"),
+	},
+}
+
+func (m functionMeasurement) Info() *inputs.MeasurementInfo {
+	return functionMeasurementInfo
+}
+
 type lockMeasurement struct {
 	inputMeasurement
 }

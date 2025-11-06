@@ -45,6 +45,7 @@ OPERATIONS = [
     ("large_data", 15),
     ("deadlock", 10),
     ("prepared_statement", 10),
+    ("call_user_function", 10),
 ]
 
 # Connection pool initialization
@@ -359,6 +360,23 @@ def perform_prepared_statement(conn, thread_id):
         except Exception as e:
             logger.error(f"Prepared statement operation failed: {e}")
             raise
+def perform_call_user_function(conn, thread_id):
+    with conn.cursor() as cur:
+        queries = [
+            "SELECT * FROM test_schema.inventory WHERE product_id = 1",
+            "SELECT * FROM test_schema.orders WHERE status = 'pending'",
+            "SELECT COUNT(*) FROM users WHERE created_at > CURRENT_DATE - INTERVAL '1 day'",
+            "SELECT product_id, SUM(quantity) FROM test_schema.orders GROUP BY product_id"
+        ]
+        query = random.choice(queries)
+        
+        # 正确调用返回JSON结果集的函数
+        cur.execute("SELECT explain FROM datakit.explain_statement(%s)", (query,))
+        result = cur.fetchall()
+        
+        random_sleep(0.5, 2.0)
+        
+        logger.info(f"Thread {thread_id} called user function with query: {query[:50]}...")
 
 def perform_operation(thread_id):
     """Main function for executing database operations"""
@@ -395,7 +413,9 @@ def perform_operation(thread_id):
                     elif operation == "deadlock":
                         with_retry(perform_deadlock_operation, conn, thread_id)
                     elif operation == "prepared_statement":
-                        with_retry(perform_prepared_statement, conn, thread_id) 
+                        with_retry(perform_prepared_statement, conn, thread_id)
+                    elif operation == "call_user_function":
+                        with_retry(perform_call_user_function, conn, thread_id)
 
                 # Random interval between operations
                 time.sleep(random.uniform(1, 3))
