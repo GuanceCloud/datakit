@@ -323,13 +323,7 @@ func doRun() error {
 			election.WithNamespace(config.Cfg.Election.Namespace),
 		}
 
-		if err := config.Cfg.Operator.Ping(); err == nil {
-			l.Infof("datakit-operator connection successed.")
-			electionsOpts = append(electionsOpts, election.WithOperatorPuller(config.Cfg.Operator))
-		} else {
-			l.Infof("datakit-operator connection refused, reason: %s", err)
-			electionsOpts = append(electionsOpts, election.WithDatawayPuller(config.Cfg.Dataway))
-		}
+		electionsOpts = append(electionsOpts, election.WithDatawayPuller(config.Cfg.Dataway))
 
 		election.Start(electionsOpts...)
 
