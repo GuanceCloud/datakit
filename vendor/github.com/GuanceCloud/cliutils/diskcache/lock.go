@@ -63,14 +63,14 @@ func (l *flock) lock() error {
 	}
 
 write:
-	return os.WriteFile(l.file, []byte(fmt.Sprintf("%d", curPid)), 0o600)
+	return os.WriteFile(l.file, []byte(strconv.Itoa(curPid)), 0o600)
 }
 
 func (l *flock) unlock() error {
 	l.mtx.Lock()
 	defer l.mtx.Unlock()
 
-	return os.WriteFile(l.file, []byte(fmt.Sprintf("%d", -1)), 0o600)
+	return os.WriteFile(l.file, []byte(strconv.Itoa(-1)), 0o600)
 }
 
 func pidAlive(pid int) bool {

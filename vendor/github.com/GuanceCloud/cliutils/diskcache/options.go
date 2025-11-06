@@ -149,11 +149,3 @@ func WithPath(x string) CacheOption {
 		c.path = filepath.Clean(x)
 	}
 }
-
-func WithStreamSize(x int32) CacheOption {
-	return func(c *DiskCache) {
-		if x > 0 {
-			c.streamBuf = make([]byte, x)
-		}
-	}
-}

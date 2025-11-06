@@ -194,7 +194,7 @@ func CORSMiddleware(c *gin.Context) {
 	// The default value is only 5 seconds, so we explicitly set it to reduce the count of OPTIONS requests.
 	// see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Max-Age#directives
 	c.Writer.Header().Set("Access-Control-Max-Age", "7200")
-	if c.Request.Method == "OPTIONS" {
+	if c.Request.Method == http.MethodOptions {
 		c.Status(http.StatusNoContent)
 		c.Abort()
 		return
@@ -223,7 +223,7 @@ func CORSMiddlewareV2(allowedOrigins []string) gin.HandlerFunc {
 			// see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Max-Age#directives
 			c.Writer.Header().Set("Access-Control-Max-Age", "7200")
 		}
-		if c.Request.Method == "OPTIONS" {
+		if c.Request.Method == http.MethodOptions {
 			c.Status(http.StatusNoContent)
 			c.Abort()
 			return

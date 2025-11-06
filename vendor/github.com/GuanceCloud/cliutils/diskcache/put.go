@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"time"
 )
 
@@ -29,9 +28,7 @@ func (c *DiskCache) Put(data []byte) error {
 	defer c.wlock.Unlock()
 
 	defer func() {
-		putBytesVec.WithLabelValues(c.path).Observe(float64(len(data)))
-		putLatencyVec.WithLabelValues(c.path).Observe(float64(time.Since(start)) / float64(time.Second))
-		sizeVec.WithLabelValues(c.path).Set(float64(c.size.Load()))
+		putLatencyVec.WithLabelValues(c.path).Observe(time.Since(start).Seconds())
 	}()
 
 	if c.IsFull(data) {
@@ -71,7 +68,6 @@ func (c *DiskCache) Put(data []byte) error {
 	}
 
 	c.curBatchSize += int64(len(data) + dataHeaderLen)
-	c.size.Add(int64(len(data) + dataHeaderLen))
 	c.wfdLastWrite = time.Now()
 
 	// rotate new file
@@ -84,19 +80,6 @@ func (c *DiskCache) Put(data []byte) error {
 	return nil
 }
 
-func (c *DiskCache) putPart(part []byte) error {
-	if _, err := c.wfd.Write(part); err != nil {
-		return err
-	}
-
-	if !c.noSync {
-		if err := c.wfd.Sync(); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // StreamPut read from r for bytes and write to storage.
 //
 // If we read the data from some network stream(such as HTTP response body),
@@ -104,13 +87,15 @@ func (c *DiskCache) putPart(part []byte) error {
 func (c *DiskCache) StreamPut(r io.Reader, size int) error {
 	var (
 		//nolint:ineffassign
-		n           = 0
-		total       = 0
+		total       int64
 		err         error
 		startOffset int64
 		start       = time.Now()
-		round       = 0
 	)
+
+	if size <= 0 {
+		return ErrInvalidStreamSize
+	}
 
 	c.wlock.Lock()
 	defer c.wlock.Unlock()
@@ -119,7 +104,11 @@ func (c *DiskCache) StreamPut(r io.Reader, size int) error {
 		return ErrCacheFull
 	}
 
-	if startOffset, err = c.wfd.Seek(0, os.SEEK_CUR); err != nil {
+	if c.maxDataSize > 0 && size > int(c.maxDataSize) {
+		return ErrTooLargeData
+	}
+
+	if startOffset, err = c.wfd.Seek(0, io.SeekCurrent); err != nil {
 		return fmt.Errorf("Seek(0, SEEK_CUR): %w", err)
 	}
 
@@ -130,36 +119,26 @@ func (c *DiskCache) StreamPut(r io.Reader, size int) error {
 			}
 		}
 
-		putBytesVec.WithLabelValues(c.path).Observe(float64(size))
-		putLatencyVec.WithLabelValues(c.path).Observe(float64(time.Since(start)) / float64(time.Second))
-		sizeVec.WithLabelValues(c.path).Set(float64(c.size.Load()))
-		streamPutVec.WithLabelValues(c.path).Observe(float64(round))
+		putLatencyVec.WithLabelValues(c.path).Observe(time.Since(start).Seconds())
 	}()
 
-	binary.LittleEndian.PutUint32(c.batchHeader, uint32(size))
-	if _, err := c.wfd.Write(c.batchHeader); err != nil {
+	if size > 0 {
+		binary.LittleEndian.PutUint32(c.batchHeader, uint32(size))
+		if _, err := c.wfd.Write(c.batchHeader); err != nil {
+			return err
+		}
+	}
+
+	total, err = io.CopyN(c.wfd, r, int64(size))
+	if err != nil && !errors.Is(err, io.EOF) {
 		return err
 	}
 
-	for {
-		n, err = r.Read(c.streamBuf)
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			} else {
-				return err
-			}
-		}
+	c.curBatchSize += (total + dataHeaderLen)
 
-		if n == 0 {
-			break
-		}
-
-		if err = c.putPart(c.streamBuf); err != nil {
+	if c.curBatchSize >= c.batchSize {
+		if err := c.rotate(); err != nil {
 			return err
-		} else {
-			total += n
-			round++
 		}
 	}
 

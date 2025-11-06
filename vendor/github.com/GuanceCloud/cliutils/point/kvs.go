@@ -52,9 +52,7 @@ func (x KVs) Less(i, j int) bool {
 }
 
 func (x KVs) kvPretty() []string {
-	var (
-		arr []string
-	)
+	var arr []string
 
 	for _, kv := range x {
 		if kv == nil {
@@ -78,7 +76,7 @@ func (x KVs) Pretty() string {
 	return strings.Join(arr, "\n")
 }
 
-// Pretty show x' key/value list in un-orderded list.
+// RawPretty show x' key/value list in un-orderded list.
 func (x KVs) RawPretty() string {
 	return strings.Join(x.kvPretty(), "\n")
 }
@@ -464,7 +462,7 @@ func (x KVs) Keys() *Keys {
 }
 
 func (x KVs) shuffle() KVs {
-	rand.Seed(time.Now().UnixNano())
+	rand.Seed(time.Now().UnixNano()) // nolint: staticcheck
 	n := len(x)
 	for i := 0; i < n; i++ {
 		j := rand.Intn(n) // nolint:gosec

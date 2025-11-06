@@ -8,11 +8,14 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/ddtrace"
 )
 
@@ -21,6 +24,9 @@ var (
 	flagCount = flag.Int("count", 3, "generated data count")
 	flagP8s   = flag.Bool("p8s", false, "generate promethues metric text")
 	flagFile  = flag.String("output", "v1.data", "data output to file")
+
+	flagLineProtocol = flag.Bool("lineproto", false, "generate line protocol based on point.Rander")
+	flagPBPoints     = flag.Bool("pbpoint", false, "generate protobuf points based on point.Rander")
 
 	flagDDTrace         = flag.Bool("ddtrace", false, "generate ddtrace msgpack payload file")
 	flagDDTraceTrace    = flag.Uint64("ddtrace-trace", 100, "generate N ddtrace trace")
@@ -190,6 +196,40 @@ func genLargeDDTrace() {
 	}
 }
 
+func genLargeLineProto() {
+	ptr := point.NewRander()
+
+	log.Printf("random %d lineproto...", *flagCount)
+	pts := ptr.Rand(*flagCount)
+	arr := []string{}
+	for _, pt := range pts {
+		arr = append(arr, pt.LineProto())
+	}
+
+	if err := os.WriteFile(*flagFile, []byte(strings.Join(arr, "\n")), 0600); err != nil {
+		panic(fmt.Sprintf("error: %s", err.Error()))
+	}
+}
+
+func genLargePBPoints() {
+	ptr := point.NewRander()
+
+	log.Printf("random %d points...", *flagCount)
+	pts := ptr.Rand(*flagCount)
+
+	enc := point.GetEncoder(point.WithEncEncoding(point.Protobuf))
+	defer point.PutEncoder(enc)
+
+	arr, err := enc.Encode(pts)
+	if err != nil {
+		panic(fmt.Sprintf("error: %s", err.Error()))
+	}
+
+	if err := os.WriteFile(*flagFile, arr[0], 0600); err != nil {
+		panic(fmt.Sprintf("error: %s", err.Error()))
+	}
+}
+
 // nolint: typecheck
 func main() {
 	flag.Parse()
@@ -203,5 +243,15 @@ func main() {
 		return
 	}
 
-	genLargeLog()
+	if *flagLineProtocol {
+		genLargeLineProto()
+		return
+	}
+
+	if *flagPBPoints {
+		genLargePBPoints()
+		return
+	}
+
+	//genLargeLog()
 }

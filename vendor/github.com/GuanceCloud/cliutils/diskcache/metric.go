@@ -28,7 +28,6 @@ var (
 	droppedDataVec,
 	putBytesVec,
 	getBytesVec,
-	streamPutVec,
 	getLatencyVec,
 	putLatencyVec *prometheus.SummaryVec
 
@@ -36,20 +35,6 @@ var (
 )
 
 func setupMetrics() {
-	streamPutVec = prometheus.NewSummaryVec(
-		prometheus.SummaryOpts{
-			Namespace: ns,
-			Name:      "stream_put",
-			Help:      "Stream put times",
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
-		},
-		[]string{"path"},
-	)
-
 	getLatencyVec = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
 			Namespace: ns,
@@ -196,7 +181,7 @@ func setupMetrics() {
 		prometheus.GaugeOpts{
 			Namespace: ns,
 			Name:      "size",
-			Help:      "Current cache size(in bytes)",
+			Help:      "Current cache size that waiting to be consumed(get)",
 		},
 		[]string{"path"},
 	)
@@ -240,7 +225,6 @@ func setupMetrics() {
 
 // ResetMetrics used to cleanup exist metrics of diskcache.
 func ResetMetrics() {
-	streamPutVec.Reset()
 	droppedDataVec.Reset()
 	rotateVec.Reset()
 	wakeupVec.Reset()

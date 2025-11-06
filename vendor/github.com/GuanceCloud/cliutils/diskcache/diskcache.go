@@ -49,6 +49,8 @@ var (
 	// Diskcache full, no data can be write now.
 	ErrCacheFull = errors.New("cache full")
 
+	ErrInvalidStreamSize = errors.New("invalid stream size")
+
 	// Invalid cache filename.
 	ErrInvalidDataFileName       = errors.New("invalid datafile name")
 	ErrInvalidDataFileNameSuffix = errors.New("invalid datafile name suffix")
@@ -95,7 +97,6 @@ type DiskCache struct {
 	maxDataSize int32 // max data size of single Put()
 
 	batchHeader []byte
-	streamBuf   []byte
 
 	// File permission, default 0750/0640
 	dirPerms,
@@ -153,7 +154,7 @@ func (c *DiskCache) Pretty() string {
 	}
 
 	if c.rfd != nil {
-		arr = append(arr, fmt.Sprintf("cur-read: %s", c.rfd.Name()))
+		arr = append(arr, "cur-read: "+c.rfd.Name())
 	} else {
 		arr = append(arr, "no-Get()")
 	}

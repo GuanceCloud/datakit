@@ -10,6 +10,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -88,7 +89,7 @@ func (t *WebsocketTask) init() error {
 	}
 
 	if len(t.SuccessWhen) == 0 {
-		return fmt.Errorf(`no any check rule`)
+		return errors.New(`no any check rule`)
 	}
 
 	for _, checker := range t.SuccessWhen {
@@ -140,7 +141,7 @@ func (t *WebsocketTask) init() error {
 
 func (t *WebsocketTask) check() error {
 	if len(t.URL) == 0 {
-		return fmt.Errorf("URL should not be empty")
+		return errors.New("URL should not be empty")
 	}
 
 	return nil
@@ -388,7 +389,7 @@ func basicAuth(username, password string) string {
 }
 
 func (t *WebsocketTask) getVariableValue(variable Variable) (string, error) {
-	return "", fmt.Errorf("not support")
+	return "", errors.New("not support")
 }
 
 func (t *WebsocketTask) getRawTask(taskString string) (string, error) {
@@ -421,7 +422,7 @@ func (t *WebsocketTask) renderTemplate(fm template.FuncMap) error {
 
 	task := t.rawTask
 	if task == nil {
-		return fmt.Errorf("raw task is nil")
+		return errors.New("raw task is nil")
 	}
 
 	// url
@@ -528,7 +529,6 @@ func (t *WebsocketTask) renderSuccessWhen(task *WebsocketTask, fm template.FuncM
 			if err := t.renderSuccessOption(msg, t.SuccessWhen[index].ResponseMessage[msgIndex], fm); err != nil {
 				return fmt.Errorf("render success when failed: %w", err)
 			}
-
 		}
 
 		// header

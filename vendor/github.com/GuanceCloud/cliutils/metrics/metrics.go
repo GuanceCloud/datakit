@@ -69,11 +69,11 @@ func sameLabels(got []*dto.LabelPair, wanted ...string) bool {
 // GetMetricOnLabels search mfs with wanted labels. wanted values order must be same as label names.
 func GetMetricOnLabels(mfs []*dto.MetricFamily, name string, wanted ...string) *dto.Metric {
 	for _, mf := range mfs {
-		if *mf.Name != name {
+		if mf.GetName() != name {
 			continue
 		}
 
-		for _, m := range mf.Metric {
+		for _, m := range mf.GetMetric() {
 			if sameLabels(m.GetLabel(), wanted...) {
 				return m
 			}
@@ -86,11 +86,11 @@ func GetMetricOnLabels(mfs []*dto.MetricFamily, name string, wanted ...string) *
 // GetMetric with specific idx.
 func GetMetric(mfs []*dto.MetricFamily, name string, idx int) *dto.Metric {
 	for _, mf := range mfs {
-		if *mf.Name == name {
-			if len(mf.Metric) < idx {
+		if mf.GetName() == name {
+			if len(mf.GetMetric()) < idx {
 				return nil
 			}
-			return mf.Metric[idx]
+			return mf.GetMetric()[idx]
 		}
 	}
 	return nil

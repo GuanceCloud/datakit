@@ -27,7 +27,9 @@ const (
 	ExecuteUpdate
 )
 
-var idGenerator int64 = 0
+var (
+	idGenerator int64 = 0
+)
 
 func generateId() string {
 	return time.Now().String() + strconv.Itoa(int(atomic.AddInt64(&idGenerator, 1)))

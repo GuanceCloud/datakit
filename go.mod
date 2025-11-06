@@ -371,7 +371,7 @@ require (
 )
 
 require (
-	github.com/GuanceCloud/cliutils v1.1.22-0.20251016031643-25f6b60f8ebf
+	github.com/GuanceCloud/cliutils v1.1.22-0.20251029081900-5614df09766b
 	github.com/VictoriaMetrics/easyproto v0.1.4 // indirect
 	github.com/andybalholm/brotli v1.0.4
 	github.com/avast/retry-go/v4 v4.1.0 // indirect
@@ -390,6 +390,7 @@ require (
 )
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/GuanceCloud/pipeline-go v1.0.9-0.20250819095325-01d2a81ed1c2
 	github.com/go-redis/redis/v8 v8.11.3
 	github.com/hipages/php-fpm_exporter v1.2.1
@@ -399,7 +400,6 @@ require (
 )
 
 require (
-	github.com/DATA-DOG/go-sqlmock v1.5.2 // indirect
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
 	github.com/speps/go-hashids v2.0.0+incompatible // indirect
 	github.com/tomasen/fcgi_client v0.0.0-20180423082037-2bb3d819fd19 // indirect

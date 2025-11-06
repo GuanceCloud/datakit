@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -95,7 +96,7 @@ type BoolLiteral struct {
 
 func (n *BoolLiteral) Pos() *PositionRange { return nil }
 func (n *BoolLiteral) String() string {
-	return fmt.Sprintf("%v", n.Val)
+	return strconv.FormatBool(n.Val)
 }
 
 type NilLiteral struct{}

@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"math/rand"
@@ -96,7 +97,7 @@ func (t *ICMPTask) init() error {
 	}
 
 	if len(t.SuccessWhen) == 0 {
-		return fmt.Errorf(`no any check rule`)
+		return errors.New(`no any check rule`)
 	}
 
 	if t.PacketCount <= 0 {
@@ -129,7 +130,7 @@ func (t *ICMPTask) init() error {
 
 func (t *ICMPTask) check() error {
 	if len(t.Host) == 0 {
-		return fmt.Errorf("host should not be empty")
+		return errors.New("host should not be empty")
 	}
 
 	return nil
@@ -170,7 +171,7 @@ func (t *ICMPTask) checkResult() (reasons []string, succFlag bool) {
 		// check packet loss
 		for _, v := range chk.PacketLossPercent {
 			if err := v.check(t.packetLossPercent); err != nil {
-				reasons = append(reasons, fmt.Sprintf("packet_loss_percent check failed: %s", err.Error()))
+				reasons = append(reasons, "packet_loss_percent check failed: "+err.Error())
 			} else {
 				succFlag = true
 			}
@@ -179,7 +180,7 @@ func (t *ICMPTask) checkResult() (reasons []string, succFlag bool) {
 		// check packets received
 		for _, v := range chk.Packets {
 			if err := v.check(float64(t.recvPackets)); err != nil {
-				reasons = append(reasons, fmt.Sprintf("packets received check failed: %s", err.Error()))
+				reasons = append(reasons, "packets received check failed: "+err.Error())
 			} else {
 				succFlag = true
 			}
@@ -193,7 +194,7 @@ func (t *ICMPTask) checkResult() (reasons []string, succFlag bool) {
 			} else {
 				for _, v := range chk.Hops {
 					if err := v.check(hops); err != nil {
-						reasons = append(reasons, fmt.Sprintf("traceroute hops check failed: %s", err.Error()))
+						reasons = append(reasons, "traceroute hops check failed: "+err.Error())
 					} else {
 						succFlag = true
 					}
@@ -379,7 +380,7 @@ func (t *ICMPTask) getHostName() ([]string, error) {
 }
 
 func (t *ICMPTask) getVariableValue(variable Variable) (string, error) {
-	return "", fmt.Errorf("not support")
+	return "", errors.New("not support")
 }
 
 func (t *ICMPTask) getRawTask(taskString string) (string, error) {
@@ -412,7 +413,7 @@ func (t *ICMPTask) renderTemplate(fm template.FuncMap) error {
 
 	task := t.rawTask
 	if task == nil {
-		return fmt.Errorf("raw task is nil")
+		return errors.New("raw task is nil")
 	}
 
 	// host
@@ -434,8 +435,9 @@ var (
 	icmpSequenceMutex sync.Mutex
 )
 
+// nolint: gochecknoinits
 func init() {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	r := rand.New(rand.NewSource(time.Now().UnixNano())) // nolint: gosec
 	// PID is typically 1 when running in a container; in that case, set
 	// the ICMP echo ID to a random value to avoid potential clashes with
 	// other blackbox_exporter instances. See #411.
@@ -521,7 +523,7 @@ func doPing(timeout time.Duration, target string) (rtt time.Duration, err error)
 					return 0, fmt.Errorf("error listening to socket: %w", err)
 				}
 			}
-			defer icmpConn.Close()
+			defer icmpConn.Close() // nolint: errcheck
 
 			if err := icmpConn.IPv6PacketConn().SetControlMessage(ipv6.FlagHopLimit, true); err != nil {
 				logger.Debug("Failed to set Control Message for retrieving Hop Limit", "err", err)
@@ -543,7 +545,7 @@ func doPing(timeout time.Duration, target string) (rtt time.Duration, err error)
 					return 0, fmt.Errorf("error listening to socket: %w", err)
 				}
 			}
-			defer icmpConn.Close()
+			defer icmpConn.Close() // nolint: errcheck
 
 			if err := icmpConn.IPv4PacketConn().SetControlMessage(ipv4.FlagTTL, true); err != nil {
 				logger.Debug("Failed to set Control Message for retrieving TTL", "err", err)
@@ -570,7 +572,7 @@ func doPing(timeout time.Duration, target string) (rtt time.Duration, err error)
 
 		wb, err = wm.Marshal(nil)
 		if err != nil {
-			return 0, fmt.Errorf("error marshalling packet: %w", err)
+			return 0, fmt.Errorf("error marshaling packet: %w", err)
 		}
 
 		rttStart = time.Now()
@@ -590,7 +592,7 @@ func doPing(timeout time.Duration, target string) (rtt time.Duration, err error)
 		}
 		wb, err = wm.Marshal(nil)
 		if err != nil {
-			return 0, fmt.Errorf("error marshalling packet: %w", err)
+			return 0, fmt.Errorf("error marshaling packet: %w", err)
 		}
 
 		if idUnknown {
@@ -606,7 +608,6 @@ func doPing(timeout time.Duration, target string) (rtt time.Duration, err error)
 		if err != nil {
 			return 0, fmt.Errorf("error setting socket deadline: %w", err)
 		}
-
 	}
 
 	for {
@@ -619,7 +620,7 @@ func doPing(timeout time.Duration, target string) (rtt time.Duration, err error)
 			n, _, peer, err = icmpConn.IPv4PacketConn().ReadFrom(rb)
 		}
 		if err != nil {
-			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
+			if nerr, ok := err.(net.Error); ok && nerr.Timeout() { // nolint: errorlint
 				logger.Debugf("timeout reading from socket: %s", err.Error())
 				return 0, nil
 			}
@@ -654,12 +655,12 @@ func doPing(timeout time.Duration, target string) (rtt time.Duration, err error)
 	}
 }
 
-// Returns the IP for the IPProtocol and lookup time.
-func chooseProtocol(timeout time.Duration, IPProtocol string, fallbackIPProtocol bool, target string) (ip *net.IPAddr, lookupTime float64, err error) {
-	if IPProtocol == "ip6" || IPProtocol == "" {
-		IPProtocol = "ip6"
+// Returns the IP for the ipproto and lookup time.
+func chooseProtocol(timeout time.Duration, ipproto string, fallbackIPProtocol bool, target string) (ip *net.IPAddr, lookupTime float64, err error) {
+	if ipproto == "ip6" || ipproto == "" {
+		ipproto = "ip6"
 	} else {
-		IPProtocol = "ip4"
+		ipproto = "ip4"
 	}
 
 	resolveStart := time.Now()
@@ -672,7 +673,7 @@ func chooseProtocol(timeout time.Duration, IPProtocol string, fallbackIPProtocol
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	if !fallbackIPProtocol {
-		ips, err := resolver.LookupIP(ctx, IPProtocol, target)
+		ips, err := resolver.LookupIP(ctx, ipproto, target)
 		if err == nil {
 			for _, ip := range ips {
 				return &net.IPAddr{IP: ip}, lookupTime, nil
@@ -688,15 +689,15 @@ func chooseProtocol(timeout time.Duration, IPProtocol string, fallbackIPProtocol
 
 	// Return the IP in the requested protocol.
 	var fallback *net.IPAddr
-	for _, ip := range ips {
-		switch IPProtocol {
+	for i, ip := range ips {
+		switch ipproto {
 		case "ip4":
 			if ip.IP.To4() != nil {
 				return &ip, lookupTime, nil
 			}
 
 			// ip4 as fallback
-			fallback = &ip
+			fallback = &ips[i]
 
 		case "ip6":
 			if ip.IP.To4() == nil {
@@ -704,7 +705,7 @@ func chooseProtocol(timeout time.Duration, IPProtocol string, fallbackIPProtocol
 			}
 
 			// ip6 as fallback
-			fallback = &ip
+			fallback = &ips[i]
 		}
 	}
 
@@ -778,7 +779,7 @@ func pingTarget(target string, count int, interval, timeout time.Duration) (stat
 
 			oldAvg := stat.AvgRtt
 			stat.AvgRtt += (rtt - stat.AvgRtt) / time.Duration(i+1)
-			m2 += float64((rtt - oldAvg) * (rtt - stat.AvgRtt))
+			m2 += (float64(rtt-oldAvg) * float64(rtt-stat.AvgRtt))
 		}
 		if pktCount > 1 {
 			stat.StdDevRtt = time.Duration(math.Sqrt(m2 / float64(pktCount)))

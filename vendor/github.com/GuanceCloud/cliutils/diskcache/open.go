@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -31,10 +32,10 @@ func Open(opts ...CacheOption) (*DiskCache, error) {
 
 	defer func() {
 		c.labels = append(c.labels,
-			fmt.Sprintf("%v", c.noFallbackOnError),
-			fmt.Sprintf("%v", c.noLock),
-			fmt.Sprintf("%v", c.noPos),
-			fmt.Sprintf("%v", c.noSync),
+			strconv.FormatBool(c.noFallbackOnError),
+			strconv.FormatBool(c.noLock),
+			strconv.FormatBool(c.noPos),
+			strconv.FormatBool(c.noSync),
 			c.path,
 		)
 
@@ -48,7 +49,6 @@ func defaultInstance() *DiskCache {
 	return &DiskCache{
 		noSync: false,
 
-		streamBuf:   make([]byte, 4*1024),
 		batchHeader: make([]byte, dataHeaderLen),
 
 		batchSize:   20 * 1024 * 1024,
@@ -131,10 +131,14 @@ func (c *DiskCache) doOpen() error {
 
 			switch filepath.Base(path) {
 			case ".lock", ".pos": // ignore them
-			case "data": // count on size
+			case "data": // not rotated writing file, do not count on sizeVec.
 				c.size.Add(fi.Size())
+				// NOTE: c.size not always equal to sizeVec. c.size used to limit
+				// total bytes used for Put(), but sizeVec used to count size that
+				// waiting to be Get().
 			default:
 				c.size.Add(fi.Size())
+				sizeVec.WithLabelValues(c.path).Add(float64(fi.Size()))
 				c.dataFiles = append(c.dataFiles, path)
 			}
 

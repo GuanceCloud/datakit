@@ -142,7 +142,7 @@ func TestFlush(t *T.T) {
 				f := dw.newFlusher(cat)
 
 				for {
-					b, err := f.wal.Get(withReusableBuffer(f.sendBuf, f.marshalBuf))
+					b, err := f.wal.Get(withNewBuffer(dw.MaxRawBodySize))
 					assert.NoError(t, err)
 					if b == nil {
 						break

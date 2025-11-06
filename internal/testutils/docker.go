@@ -8,7 +8,6 @@ package testutils
 import (
 	"errors"
 	"fmt"
-	"log"
 	"math/rand"
 	"net"
 	"os"
@@ -17,9 +16,12 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 )
+
+var l = logger.DefaultSLogger("testutils")
 
 type RemoteInfo struct {
 	// docker info
@@ -57,23 +59,23 @@ func (i *RemoteInfo) PortOK(port string, args ...time.Duration) bool {
 				return false
 
 			case <-iter.C:
-				log.Printf("check port %s...", addr)
+				l.Infof("check port %s...", addr)
 				con, err = net.DialTimeout("tcp", addr, time.Second)
 				if err == nil {
 					goto end
 				} else {
-					log.Printf("check port: %s", err)
+					l.Errorf("check port: %s", err)
 				}
 			}
 		}
 	} else {
 		for { // wait until ok
-			log.Printf("check port %s...", addr)
+			l.Infof("check port %s...", addr)
 			con, err = net.DialTimeout("tcp", addr, time.Second)
 			if err == nil {
 				goto end
 			} else {
-				log.Printf("check port: %s", err)
+				l.Errorf("check port: %s", err)
 			}
 			time.Sleep(time.Second)
 		}
@@ -227,7 +229,7 @@ func RetryTestRun(f func() error) error {
 		}
 
 		if err := f(); err != nil {
-			log.Printf("RetryTestRun, err = %v\n", err)
+			l.Errorf("RetryTestRun, err = %v\n", err)
 			switch {
 			case strings.Contains(err.Error(), "already"):
 				// API error (500): driver failed programming external connectivity on endpoint memcached (7bdcaf6b4a5dba4fa54c118e455a9f0220f9d3514e682f0dfdb92fddebc6823f): Error starting userland proxy: listen tcp4 0.0.0.0:10828: bind: address already in use
@@ -287,7 +289,7 @@ func PurgeRemoteByName(name string) error {
 	r := GetRemote()
 	dockerTCP := r.TCPURL()
 
-	log.Printf("get remote: %+#v, TCP: %s", r, dockerTCP)
+	l.Infof("get remote: %+#v, TCP: %s", r, dockerTCP)
 
 	p, err := GetPool(dockerTCP)
 	if err != nil {
@@ -326,7 +328,7 @@ func PurgeRemoteByName(name string) error {
 	}
 	if len(errs) > 0 {
 		for _, v := range errs {
-			log.Printf("RemoveContainer failed: %v", v)
+			l.Infof("RemoveContainer failed: %v", v)
 		}
 		return fmt.Errorf("error while removing container with name %s: %s", containerName, errs[0].Error()) //nolint:errorlint
 	}
@@ -342,7 +344,7 @@ func GetPool(endpoint string) (*dockertest.Pool, error) {
 	}
 	err = p.Client.Ping()
 	if err != nil {
-		log.Printf("Could not connect to Docker: %v", err)
+		l.Errorf("Could not connect to Docker: %v", err)
 		return nil, err
 	}
 	return p, nil
@@ -418,7 +420,7 @@ func RunOraemon(endpoint string) (p *dockertest.Pool, resource *dockertest.Resou
 
 func RemoveOraemon(p *dockertest.Pool, res *dockertest.Resource) error {
 	if err := p.Purge(res); err != nil {
-		log.Println("p.Purge failed:", err.Error())
+		l.Errorf("p.Purge failed:", err.Error())
 	}
 	return p.Client.RemoveVolumeWithOptions(docker.RemoveVolumeOptions{
 		Name: volumeName,

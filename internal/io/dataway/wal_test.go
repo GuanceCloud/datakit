@@ -75,7 +75,7 @@ func TestWALLoad(t *T.T) {
 
 		f := dw.newFlusher(cat)
 
-		b, err := f.wal.Get(withReusableBuffer(f.sendBuf, f.marshalBuf))
+		b, err := f.wal.Get(withNewBuffer(dw.MaxRawBodySize))
 		require.NoError(t, err)
 		require.NotNil(t, b)
 		assert.Equal(t, walFromDisk, b.from)
@@ -113,7 +113,7 @@ func TestWALLoad(t *T.T) {
 
 		f := dw.newFlusher(cat)
 
-		b, err := f.wal.Get(withReusableBuffer(f.sendBuf, f.marshalBuf))
+		b, err := f.wal.Get(withNewBuffer(dw.MaxRawBodySize))
 		require.NoError(t, err)
 		require.NotNil(t, b)
 		assert.Equal(t, walFromDisk, b.from)
@@ -152,7 +152,7 @@ func TestWALLoad(t *T.T) {
 		f := dw.newFlusher(cat)
 
 		for i := 0; i < 2; i++ {
-			b, err := f.wal.Get(withReusableBuffer(f.sendBuf, f.marshalBuf))
+			b, err := f.wal.Get(withNewBuffer(dw.MaxRawBodySize))
 			require.NoError(t, err)
 			require.NotNil(t, b)
 
@@ -172,7 +172,7 @@ func TestWALLoad(t *T.T) {
 			putBody(b)
 		}
 
-		b, err := f.wal.Get(withReusableBuffer(f.sendBuf, f.marshalBuf)) // no data any more
+		b, err := f.wal.Get(withNewBuffer(dw.MaxRawBodySize)) // no data any more
 		assert.Nil(t, b)
 		assert.NoError(t, err)
 	})
@@ -223,7 +223,7 @@ func TestNoDrop(t *T.T) {
 				default:
 				}
 
-				b, err := f.wal.Get(withReusableBuffer(f.sendBuf, f.marshalBuf))
+				b, err := f.wal.Get(withNewBuffer(dw.MaxRawBodySize))
 
 				require.NoError(t, err)
 				if b != nil {

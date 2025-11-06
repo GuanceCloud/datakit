@@ -19,6 +19,12 @@ var (
 
 type bodyOpt func(*body)
 
+func withCaller(c string) bodyOpt {
+	return func(b *body) {
+		b.caller = c
+	}
+}
+
 func withNewBuffer(n int) bodyOpt {
 	return func(b *body) {
 		if n > 0 && b.sendBuf == nil && b.marshalBuf == nil {
@@ -46,20 +52,26 @@ func withReusableBuffer(send, marshal []byte) bodyOpt {
 }
 
 func getNewBufferBody(opts ...bodyOpt) *body {
-	var b *body
-	if x := newBufferBodyPool.Get(); x == nil {
-		b = &body{
-			selfBuffer: bufOnwerSelf,
-		}
+	var (
+		b      *body
+		malloc bool
+	)
 
-		bodyCounterVec.WithLabelValues("malloc", "get", "new").Inc()
+	if x := newBufferBodyPool.Get(); x == nil {
+		malloc = true
+		b = &body{selfBuffer: bufOnwerSelf}
 	} else {
-		bodyCounterVec.WithLabelValues("pool", "get", "new").Inc()
 		b = x.(*body)
 	}
 
 	for _, opt := range opts {
 		opt(b)
+	}
+
+	if malloc {
+		bodyCounterVec.WithLabelValues(b.caller, "malloc", "get", "new").Inc()
+	} else {
+		bodyCounterVec.WithLabelValues(b.caller, "pool", "get", "new").Inc()
 	}
 
 	if len(b.sendBuf) == 0 || len(b.marshalBuf) == 0 {
@@ -70,20 +82,28 @@ func getNewBufferBody(opts ...bodyOpt) *body {
 }
 
 func getReuseBufferBody(opts ...bodyOpt) *body {
-	var b *body
+	var (
+		b      *body
+		malloc bool
+	)
+
 	if x := reuseBufferBodyPool.Get(); x == nil {
 		b = &body{
 			selfBuffer: bufOnwerOthers,
 		}
-
-		bodyCounterVec.WithLabelValues("malloc", "get", "reuse").Inc()
+		malloc = true
 	} else {
-		bodyCounterVec.WithLabelValues("pool", "get", "reuse").Inc()
 		b = x.(*body)
 	}
 
 	for _, opt := range opts {
 		opt(b)
+	}
+
+	if malloc {
+		bodyCounterVec.WithLabelValues(b.caller, "malloc", "get", "reuse").Inc()
+	} else {
+		bodyCounterVec.WithLabelValues(b.caller, "pool", "get", "reuse").Inc()
 	}
 
 	if len(b.sendBuf) == 0 || len(b.marshalBuf) == 0 {
@@ -95,14 +115,15 @@ func getReuseBufferBody(opts ...bodyOpt) *body {
 
 func putBody(b *body) {
 	if b != nil {
+		caller := b.caller
 		b.reset()
 
 		if b.selfBuffer == bufOnwerSelf {
 			newBufferBodyPool.Put(b)
-			bodyCounterVec.WithLabelValues("pool", "put", "new").Inc()
+			bodyCounterVec.WithLabelValues(caller, "pool", "put", "new").Inc()
 		} else {
 			reuseBufferBodyPool.Put(b)
-			bodyCounterVec.WithLabelValues("pool", "put", "reuse").Inc()
+			bodyCounterVec.WithLabelValues(caller, "pool", "put", "reuse").Inc()
 		}
 	}
 }
