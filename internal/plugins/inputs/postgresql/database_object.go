@@ -312,11 +312,11 @@ func (ipt *Input) getSchemas() ([]*databaseInfo, error) {
 	return dbInfoList, nil
 }
 
-const sqlGetDatabaseList = `
-select datname from pg_catalog.pg_database where datistemplate = false;
-`
-
 func (ipt *Input) getDatabaseList() ([]string, error) {
+	// If database auto-discovery is enabled, use the discovered databases
+	if ipt.DatabaseAutoDiscovery.Enabled {
+		return ipt.DatabaseAutoDiscovery.GetDatabases(), nil
+	}
 	dbs := []string{}
 	if ipt.Object.CollectSchemas.AutoDiscoveryDatabase {
 		rows, err := ipt.service.QueryByDatabase(sqlGetDatabaseList, "")

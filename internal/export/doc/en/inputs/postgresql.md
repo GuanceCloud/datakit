@@ -205,6 +205,8 @@ For all of the following data collections, the global election tags will added a
 
 ### `{{$m.Name}}`
 
+{{$m.Desc}}
+
 {{$m.MarkdownTable}}
 
 {{ end }}

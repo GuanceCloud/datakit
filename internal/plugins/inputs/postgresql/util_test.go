@@ -103,3 +103,168 @@ func TestTrimLeadingSetStmts(t *testing.T) {
 		})
 	}
 }
+
+func TestFilter(t *testing.T) {
+	// Test cases grouped by scenario
+	testCases := []struct {
+		name    string
+		include []string
+		exclude []string
+		target  string
+		want    bool
+		wantErr bool // Whether NewFilter should return error
+	}{
+		// Basic include/exclude logic
+		{
+			name:    "matched by exclude pattern",
+			include: []string{".*"},
+			exclude: []string{"model"},
+			target:  "model",
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name:    "matched by include and not excluded",
+			include: []string{"user_.*"},
+			exclude: []string{"test"},
+			target:  "user_db",
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "not matched by any include",
+			include: []string{"prod_.*"},
+			exclude: []string{},
+			target:  "test_db",
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name:    "matched by one of multiple excludes",
+			include: []string{".*"},
+			exclude: []string{"msdb", "rdsadmin"},
+			target:  "rdsadmin",
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name:    "matched by one of multiple includes",
+			include: []string{"a.*", "b.*"},
+			exclude: []string{},
+			target:  "b_test",
+			want:    true,
+			wantErr: false,
+		},
+
+		// Empty include scenarios
+		{
+			name:    "empty include and not excluded",
+			include: []string{},
+			exclude: []string{"model"},
+			target:  "user_db",
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "empty include but excluded",
+			include: []string{},
+			exclude: []string{"model"},
+			target:  "model",
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name:    "both include and exclude empty",
+			include: []string{},
+			exclude: []string{},
+			target:  "any_db",
+			want:    true,
+			wantErr: false,
+		},
+
+		// Regex pattern matching details
+		{
+			name:    "partial match in exclude",
+			include: []string{".*"},
+			exclude: []string{"model"},
+			target:  "model_test",
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name:    "exact match with anchors",
+			include: []string{".*"},
+			exclude: []string{"^model$"},
+			target:  "model_test",
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "wildcard pattern match",
+			include: []string{"db_\\d+"},
+			exclude: []string{},
+			target:  "db_123",
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "wildcard pattern no match",
+			include: []string{"db_\\d+"},
+			exclude: []string{},
+			target:  "db_abc",
+			want:    false,
+			wantErr: false,
+		},
+
+		// Invalid regex patterns
+		{
+			name:    "invalid include regex",
+			include: []string{"[a-z"}, // Unclosed bracket
+			exclude: []string{},
+			target:  "",
+			want:    false,
+			wantErr: true,
+		},
+		{
+			name:    "invalid exclude regex",
+			include: []string{".*"},
+			exclude: []string{"(abc"}, // Unclosed bracket
+			target:  "",
+			want:    false,
+			wantErr: true,
+		},
+		{
+			name:    "valid regex patterns",
+			include: []string{"a.*b"},
+			exclude: []string{"^\\d+"},
+			target:  "a123b",
+			want:    true,
+			wantErr: false,
+		},
+	}
+
+	// Execute all test cases
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create filter configuration
+			config := FilterConfig{
+				Include: tc.include,
+				Exclude: tc.exclude,
+			}
+
+			// Initialize filter and check for errors
+			filter, err := NewFilter(config)
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("NewFilter() error = %v, wantErr %v", err, tc.wantErr)
+			}
+			if tc.wantErr {
+				return // No need to check Allow() if initialization failed
+			}
+
+			// Verify Allow() result
+			if got := filter.Allow(tc.target); got != tc.want {
+				t.Errorf("Allow(%q) = %v, want %v", tc.target, got, tc.want)
+			}
+		})
+	}
+}

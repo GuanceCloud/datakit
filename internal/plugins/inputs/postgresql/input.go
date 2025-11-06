@@ -58,6 +58,7 @@ const (
 	SlruMetric        = "slru"
 	RelationMetric    = "relation"
 	DynamicMetric     = "dynamic"
+	FunctionMetric    = "function"
 	ArchiverMetric    = "archiver"
 	ReplicationSlot   = "replication_slot"
 	IOMetric          = "io"
@@ -95,6 +96,10 @@ const sampleConfig = `
   #
   election = true
 
+  ## Set true to enable collecting function metrics from pg_stat_user_functions.
+  #
+  collect_function_metrics = false
+
   ## Metric name in metric_exclude_list will not be collected.
   #
   metric_exclude_list = [""]
@@ -114,6 +119,26 @@ const sampleConfig = `
   [inputs.postgresql.dbm_activity]
     enabled = true  
 
+  ## Config database discovery. 
+  # Discovered databases will be used to for database specific metric collection, 
+  # such as object collection and function metrics collection.
+  #
+  [inputs.postgresql.auto_discovery_database]
+    # Set true to enable database discovery
+    enabled = false
+
+    # Maximum number of databases to discover
+    max_databases = 100
+
+    # Regex pattern to include databases
+    include = [".*"]
+
+    # Regex pattern to exclude databases. The pattern in "exclude" takes precedence over "include". 
+    exclude = ["model", "msdb", "cloudsqladmin", "rdsadmin"]
+
+    #Discovery interval
+    interval = "600s"
+
   ## collect object
   [inputs.postgresql.object]
     # Set true to enable collecting objects
@@ -128,9 +153,6 @@ const sampleConfig = `
 
       # Maximum number of tables to collect
       max_tables = 300
-
-      # Set true to enable auto discovery database
-      auto_discovery_database = false
 
       # Maximum number of databases to collect
       max_database = 100
@@ -281,18 +303,20 @@ type dbQueryCache struct {
 }
 
 type Input struct {
-	Address           string            `toml:"address"`
-	Outputaddress     string            `toml:"outputaddress"`
-	IgnoredDatabases  []string          `toml:"ignored_databases"`
-	Databases         []string          `toml:"databases"`
-	Interval          datakit.Duration  `toml:"interval"`
-	MetricExcludeList []string          `toml:"metric_exclude_list"`
-	Tags              map[string]string `toml:"tags"`
-	mergedTags        map[string]string
-	Relations         []Relation     `toml:"relations"`
-	CustomQuery       []*customQuery `toml:"custom_queries"`
-	Log               *postgresqllog `toml:"log"`
-	Object            pgObject       `toml:"object"`
+	Address                string            `toml:"address"`
+	Outputaddress          string            `toml:"outputaddress"`
+	IgnoredDatabases       []string          `toml:"ignored_databases"`
+	Databases              []string          `toml:"databases"`
+	Interval               datakit.Duration  `toml:"interval"`
+	MetricExcludeList      []string          `toml:"metric_exclude_list"`
+	Tags                   map[string]string `toml:"tags"`
+	mergedTags             map[string]string
+	Relations              []Relation        `toml:"relations"`
+	CustomQuery            []*customQuery    `toml:"custom_queries"`
+	Log                    *postgresqllog    `toml:"log"`
+	Object                 pgObject          `toml:"object"`
+	CollectFunctionMetrics bool              `toml:"collect_function_metrics"`
+	DatabaseAutoDiscovery  DatabaseDiscovery `toml:"auto_discovery_database"`
 
 	Uptime             int
 	CollectCoStatus    string
@@ -378,6 +402,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&dbmSampleMeasurement{},
 		&dbmActivityMeasurement{},
 		&postgresqlObjectMeasurement{},
+		&functionMeasurement{},
 	}
 }
 
@@ -523,6 +548,57 @@ func (ipt *Input) getDBMetrics() error {
 	}
 
 	return ipt.executeQuery(cache)
+}
+
+func (ipt *Input) getAvailableDatabases() []string {
+	if ipt.DatabaseAutoDiscovery.Enabled {
+		return ipt.DatabaseAutoDiscovery.GetDatabases()
+	} else {
+		return []string{ipt.dbName}
+	}
+}
+
+func (ipt *Input) getFunctionMetrics() error {
+	if !ipt.CollectFunctionMetrics {
+		return nil
+	}
+
+	cache, ok := ipt.metricQueryCache[FunctionMetric]
+	if !ok {
+		query := `
+		WITH overloaded_funcs AS (
+			SELECT funcname
+				FROM pg_stat_user_functions s
+				GROUP BY s.funcname
+			HAVING COUNT(*) > 1
+			)
+		SELECT s.schemaname as schema,
+					CASE WHEN o.funcname IS NULL OR p.proargnames IS NULL THEN p.proname
+								ELSE p.proname || '_' || array_to_string(p.proargnames, '_')
+						END function,
+					s.calls as function_calls, s.total_time as function_total_time, s.self_time as function_self_time	
+			FROM pg_proc p
+			JOIN pg_stat_user_functions s
+				ON p.oid = s.funcid
+			LEFT JOIN overloaded_funcs o
+				ON o.funcname = s.funcname;
+		`
+		cache = &queryCacheItem{
+			q:               query,
+			measurementInfo: functionMeasurementInfo,
+		}
+		ipt.metricQueryCache[FunctionMetric] = cache
+		l.Infof("Query for metric [%s]: %s", cache.measurementInfo.Name, query)
+	}
+
+	for _, db := range ipt.getAvailableDatabases() {
+		cache.db = db
+		if err := ipt.executeQuery(cache); err != nil {
+			l.Warnf("collect function metrics from database %s error: %s", db, err.Error())
+		}
+	}
+
+	return nil
 }
 
 func (ipt *Input) getDynamicQueryMetrics() error {
@@ -1188,6 +1264,7 @@ func (ipt *Input) initCfg() {
 	// setup collectors
 	ipt.collectFuncs = map[string]func() error{
 		"postgresql":             ipt.getDBMetrics,
+		"postgresql_function":    ipt.getFunctionMetrics,
 		"postgresql_replication": ipt.getReplicationMetrics,
 		"postgresql_bgwriter":    ipt.getBgwMetrics,
 		"postgresql_connection":  ipt.getConnectionMetrics,
@@ -1297,6 +1374,15 @@ func (ipt *Input) Run() {
 	ipt.initCfg()
 
 	defer ipt.service.Stop() //nolint:errcheck
+
+	// discovery databases
+	if ipt.DatabaseAutoDiscovery.Enabled {
+		if err := ipt.DatabaseAutoDiscovery.init(ipt); err != nil {
+			l.Errorf("failed to init database auto discovery: %s", err.Error())
+			return
+		}
+		ipt.DatabaseAutoDiscovery.Start()
+	}
 
 	// run custom queries
 	ipt.runCustomQueries()
@@ -1469,11 +1555,12 @@ var maxPauseCh = inputs.ElectionPauseChannelLength
 
 func NewInput(service Service) *Input {
 	input := &Input{
-		pauseCh:  make(chan bool, maxPauseCh),
-		Election: true,
-		feeder:   dkio.DefaultFeeder(),
-		tagger:   datakit.DefaultGlobalTagger(),
-		semStop:  cliutils.NewSem(),
+		pauseCh:                make(chan bool, maxPauseCh),
+		Election:               true,
+		feeder:                 dkio.DefaultFeeder(),
+		tagger:                 datakit.DefaultGlobalTagger(),
+		semStop:                cliutils.NewSem(),
+		CollectFunctionMetrics: false,
 		Object: pgObject{
 			Enable:   true,
 			Interval: datakit.Duration{Duration: 600 * time.Second},
@@ -1483,6 +1570,9 @@ func NewInput(service Service) *Input {
 				MaxDatabases:          100,
 				AutoDiscoveryDatabase: false,
 			},
+		},
+		DatabaseAutoDiscovery: DatabaseDiscovery{
+			Enabled: false,
 		},
 	}
 	input.service = service
