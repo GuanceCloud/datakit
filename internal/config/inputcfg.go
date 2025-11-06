@@ -85,18 +85,28 @@ func (c *Config) initDefaultEnabledPlugins(confDir string, ipts map[string]input
 		l.Debugf("init default input %s conf...", name)
 
 		var (
-			confPath, sample string
-			ipt              inputs.Input
+			legacyConfPath,
+			confPath string
+			sample string
+			ipt    inputs.Input
 		)
 
 		if c, ok := ipts[name]; ok {
 			ipt = c()
 			sample = ipt.SampleConfig()
 
+			legacyConfPath = filepath.Join(confDir, ipt.Catalog(), name+".conf")
 			confPath = filepath.Join(confDir, name+".conf")
 		} else {
 			l.Warnf("input %s not found, ignored", name)
 			continue
+		}
+
+		if fi, err := os.Stat(legacyConfPath); err == nil { // lagacy conf exist, such as conf.d/host/cpu.conf
+			if !fi.IsDir() {
+				l.Infof("ignore release %s conf, legacy path %s exists", name, legacyConfPath)
+				continue
+			} // else: ignore invalid legacy conf, and fall through to create new conf.d/cpu.conf
 		}
 
 		if err := os.MkdirAll(filepath.Dir(confPath), datakit.ConfPerm); err != nil {
