@@ -6,10 +6,13 @@ package sysmonitor
 import (
 	"context"
 	"strings"
-	"sync"
 	"time"
+	"unsafe"
 
+	"github.com/dgraph-io/ristretto"
+	"github.com/josharian/intern"
 	pr "github.com/shirou/gopsutil/v3/process"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/hash"
 )
 
 type ProcessFilter struct {
@@ -23,23 +26,30 @@ type ProcessFilter struct {
 	selfPid int
 	asynCh  chan int
 
-	procInfo map[int]*ProcInfo
+	procInfo *ristretto.Cache
+	procDel  *ristretto.Cache
 
 	kernerFilter kernelProcFilter
-	sync.RWMutex
 }
 
 type ProcInfo struct {
-	pid         int
+	binPath uint64
+
 	name        string
-	binPath     string
 	serviceName string
 
 	keep       bool
 	allowTrace bool
-	createTS   int64
+	deleted    bool
+}
 
-	deleted bool
+const (
+	StructBaseCost = int64(unsafe.Sizeof(ProcInfo{})) //nolint:gosec
+)
+
+func (p *ProcInfo) CalculateCost() int64 {
+	structBaseCost := StructBaseCost // struct base cost
+	return structBaseCost
 }
 
 func (p *ProcInfo) ServiceName() string {
@@ -114,7 +124,8 @@ func WithEnvService(li []string) FilterOpt {
 
 func NewProcessFilter(ctx context.Context, opts ...FilterOpt) *ProcessFilter {
 	filter := &ProcessFilter{
-		procInfo: map[int]*ProcInfo{},
+		procInfo: newRistrettoCache(100_000_000, 2_000_000*10),
+		procDel:  newRistrettoCache(10_000_000, 200_000*10),
 	}
 	for _, opt := range opts {
 		if opt != nil {
@@ -132,21 +143,21 @@ func (p *ProcessFilter) setKernelProcFilter(fn kernelProcFilter) {
 }
 
 func (p *ProcessFilter) asynTryAddLoop(ctx context.Context) {
-	pidSet := map[int]struct{}{}
+	pidSet := make([]int, 0, 128)
 	tk := time.NewTicker(time.Second)
 	defer tk.Stop()
 	for {
 		select {
 		case pid := <-p.asynCh:
-			pidSet[pid] = struct{}{}
+			pidSet = append(pidSet, pid)
 		case <-tk.C:
 			if len(pidSet) > 0 {
 				for pid := range pidSet {
-					if _, err := p.TryAdd(pid); err != nil {
-						log.Debug(err)
+					if _, _, err := p.TryAdd(pid); err != nil {
+						log.Warnf("tryAdd: %s", err.Error())
 					}
 				}
-				pidSet = map[int]struct{}{}
+				pidSet = make([]int, 0, 128)
 			}
 		case <-ctx.Done():
 			return
@@ -154,7 +165,7 @@ func (p *ProcessFilter) asynTryAddLoop(ctx context.Context) {
 	}
 }
 
-func (p *ProcessFilter) tryAdd(pid, ppid int, createTS int64, procName, binPath string, env map[string]string) *ProcInfo {
+func (p *ProcessFilter) tryAdd(pid, ppid int, procName, binPath string, env map[string]string) *ProcInfo {
 	keep := true
 	allowTraceAttach := p.allowTrace
 
@@ -215,56 +226,59 @@ func (p *ProcessFilter) tryAdd(pid, ppid int, createTS int64, procName, binPath 
 		allowTraceAttach = false
 	}
 
-	p.Lock()
-	defer p.Unlock()
 	if !keep && ppid != 0 {
 		// inherits the state of the parent process
-		if v, ok := p.procInfo[ppid]; ok && v.name == procName {
-			keep = v.keep
+		if v, ok := p.procInfo.Get(ppid); ok {
+			if v, ok := v.(*ProcInfo); ok && v != nil {
+				keep = v.keep
+			}
 		}
 	}
 
 	inf := &ProcInfo{
-		pid:         pid,
-		name:        procName,
-		binPath:     binPath,
-		serviceName: serviceName,
+		name:        intern.String(procName),
+		binPath:     hash.Fnv1aStrHash(binPath),
+		serviceName: intern.String(serviceName),
 		keep:        keep,
 		allowTrace:  allowTraceAttach,
-		createTS:    createTS,
 	}
-	p.procInfo[pid] = inf
+	p.procInfo.Set(pid, inf, inf.CalculateCost())
 	return inf
 }
 
 func (p *ProcessFilter) Delete(pid int) {
-	p.Lock()
-	defer p.Unlock()
-
-	if v, ok := p.procInfo[pid]; ok {
-		v.deleted = true
+	if v, ok := p.procInfo.Get(pid); ok {
+		if v, ok := v.(*ProcInfo); ok && v != nil {
+			p.procDel.Set(pid, v, v.CalculateCost())
+		}
+		p.procInfo.Del(pid)
 	}
 }
 
 func (p *ProcessFilter) GetProcInfo(pid int) (*ProcInfo, bool) {
-	p.RLock()
-	defer p.RUnlock()
+	if v, ok := p.procInfo.Get(pid); ok {
+		if v, ok := v.(*ProcInfo); ok && v != nil {
+			return v, true
+		}
+	}
 
-	if v, ok := p.procInfo[pid]; ok && v != nil {
-		return v, true
+	if v, ok := p.procDel.Get(pid); ok {
+		if v, ok := v.(*ProcInfo); ok && v != nil {
+			return v, true
+		}
 	}
 
 	return nil, false
 }
 
-func (p *ProcessFilter) TryAdd(pid int) (*ProcInfo, error) {
+func (p *ProcessFilter) TryAdd(pid int) (string, *ProcInfo, error) {
 	proc, err := pr.NewProcess(int32(pid))
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
-	pname, err := proc.Name()
+	pname, err := (proc.Name())
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
 	var ppid int
@@ -283,7 +297,7 @@ func (p *ProcessFilter) TryAdd(pid int) (*ProcInfo, error) {
 
 	exePath, err := proc.Exe()
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
 	exeResolvePath := resolveBinPath(pid, exePath)
@@ -294,8 +308,7 @@ func (p *ProcessFilter) TryAdd(pid int) (*ProcInfo, error) {
 		exeResolvePath = HostRoot(exeResolvePath)
 	}
 
-	ts, _ := proc.CreateTime()
-	return p.tryAdd(pid, ppid, ts, pname, exeResolvePath, envMap), nil
+	return exeResolvePath, p.tryAdd(pid, ppid, pname, exeResolvePath, envMap), nil
 }
 
 func (p *ProcessFilter) AsyncTryAdd(pid int) {

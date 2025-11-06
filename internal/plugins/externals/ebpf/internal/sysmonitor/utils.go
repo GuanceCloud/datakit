@@ -14,6 +14,7 @@ import (
 	"syscall"
 
 	ddfp "github.com/DataDog/gopsutil/process/filepath"
+	"github.com/dgraph-io/ristretto"
 
 	"github.com/GuanceCloud/cliutils/logger"
 )
@@ -109,4 +110,20 @@ func HostProc(combineWith ...string) string {
 
 func HostRoot(combineWith ...string) string {
 	return GetEnv("HOST_ROOT", "/", combineWith...)
+}
+
+func newRistrettoCache(maxcost int64, numcounters int64) *ristretto.Cache {
+	cfg := &ristretto.Config{
+		MaxCost:     maxcost,
+		NumCounters: numcounters,
+
+		BufferItems: 64,   // default recommended value
+		Metrics:     true, // enable hit/miss counters
+	}
+	cache, err := ristretto.NewCache(cfg)
+	if err != nil {
+		panic(fmt.Errorf("create ristretto cache: %w", err))
+	}
+
+	return cache
 }

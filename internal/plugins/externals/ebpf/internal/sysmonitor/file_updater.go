@@ -10,23 +10,22 @@ import (
 )
 
 type probeInfo struct {
-	absPath string
 	modTime time.Time
 	inj     *ProcInjectC
 }
 type PassiveFileUpdater struct {
-	fileRecords map[string]*probeInfo
+	fileRecords map[uint64]*probeInfo
 	mu          sync.RWMutex
 }
 
 func NewPassiveFileUpdater() *PassiveFileUpdater {
 	return &PassiveFileUpdater{
-		fileRecords: make(map[string]*probeInfo),
+		fileRecords: make(map[uint64]*probeInfo),
 	}
 }
 
-func (p *PassiveFileUpdater) Check(absPath string) (*probeInfo, bool, error) {
-	fileInfo, err := os.Stat(absPath)
+func (p *PassiveFileUpdater) Check(binpath string, absPath uint64) (*probeInfo, bool, error) {
+	fileInfo, err := os.Stat(binpath)
 	if err != nil {
 		return nil, false, err
 	}
@@ -39,7 +38,6 @@ func (p *PassiveFileUpdater) Check(absPath string) (*probeInfo, bool, error) {
 	if !exists {
 		p.mu.Lock()
 		v := &probeInfo{
-			absPath: absPath,
 			modTime: currentModTime,
 		}
 		p.fileRecords[absPath] = v
@@ -51,7 +49,6 @@ func (p *PassiveFileUpdater) Check(absPath string) (*probeInfo, bool, error) {
 		// 更新记录的修改时间
 		p.mu.Lock()
 		v := &probeInfo{
-			absPath: absPath,
 			modTime: currentModTime,
 			inj:     lastRec.inj,
 		}
@@ -65,7 +62,7 @@ func (p *PassiveFileUpdater) Check(absPath string) (*probeInfo, bool, error) {
 	return lastRec, false, nil
 }
 
-func (p *PassiveFileUpdater) Inject(absPath string, injO *ProcInjectC) {
+func (p *PassiveFileUpdater) Inject(absPath uint64, injO *ProcInjectC) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if rec, ok := p.fileRecords[absPath]; ok {
@@ -73,7 +70,7 @@ func (p *PassiveFileUpdater) Inject(absPath string, injO *ProcInjectC) {
 	}
 }
 
-func (p *PassiveFileUpdater) Forget(absPath string) error {
+func (p *PassiveFileUpdater) Forget(absPath uint64) error {
 	p.mu.Lock()
 	delete(p.fileRecords, absPath)
 	p.mu.Unlock()
@@ -82,6 +79,6 @@ func (p *PassiveFileUpdater) Forget(absPath string) error {
 
 func (p *PassiveFileUpdater) ForgetAll() {
 	p.mu.Lock()
-	p.fileRecords = make(map[string]*probeInfo)
+	p.fileRecords = make(map[uint64]*probeInfo)
 	p.mu.Unlock()
 }
