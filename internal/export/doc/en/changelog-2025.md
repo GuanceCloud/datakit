@@ -1,5 +1,38 @@
 # Changelog
 
+## 1.85.0(2025/11/06) {#cl-1.85.0}
+
+This release is a feature update with the following changes:
+
+### New Features {#cl-1.85.0-new}
+
+- DCA server now exposes Prometheus metrics and includes built-in dashboard (#2638)
+- SNMP collector adds LLDP-based network neighbor discovery collection (#2829)
+
+### Bug Fixes {#cl-1.85.0-fix}
+
+- Fixed default collector configuration file generation issue introduced since version 1.83.0 (#2867)
+- Fixed OpenTelemetry invalid fields processing (#2869)
+- Fixed SNMP collector issue that can't find profiles on Windows (#2877)
+
+### Optimizations {#cl-1.85.0-opt}
+
+- Added `change_id` field to Kubernetes change events (#2866)
+- Optimized DataKit memory usage (#2862)
+- PostgreSQL adds database auto-discovery and function-related metric collection (#2856)
+- Added Kubernetes Deployment documentation for DataKit (#2617)
+- Redis collector now collects `maxclients` metric for Redis old versions (#2873)
+- Added protection in log collection to prevent files from being locked by DataKit indefinitely (#2874)
+- Optimized eBPF collection memory usage (#2875)
+- Other documentation updates (#2843)
+
+### Breaking Changes {#cl-1.85.0-brk}
+
+- Removed HTTP JSON body support in OpenTelemetry collection, now only supports Protobuf body for HTTP (#2869)
+- Removed collector-level cluster election feature (coordinating collector behavior across DataKit instances via DataKit operator), retaining only central election functionality (#2872)
+
+---
+
 ## 1.84.1(2025/10/29) {#cl-1.84.1}
 
 This release is a hotfix containing the following fixes:
