@@ -122,7 +122,11 @@ func (ipt *Input) Catalog() string {
 }
 
 func (ipt *Input) SampleMeasurement() []inputs.Measurement {
-	return nil
+	return []inputs.Measurement{
+		&istatsd.JVMMeasurement{},
+		&istatsd.JMXMeasurement{},
+		&istatsd.DDtraceMeasurement{},
+	}
 }
 
 func (ipt *Input) AvailableArchs() []string {

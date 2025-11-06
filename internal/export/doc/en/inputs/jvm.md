@@ -149,41 +149,7 @@ When turned on, you can collect jvm metrics exposed by DDTrace.
 
 ### Metric {#metric}
 
-- Tags
-
-Each metric has the following tags (the actual tags are affected by Java startup parameters and statsd configuration).
-
-| Tag Name        | Description          |
-| ----          | --------      |
-| `env`         | corresponding `DD_ENV` |
-| `host`        | hostname        |
-| `instance`    | example          |
-| `jmx_domain`  |               |
-| `metric_type` |               |
-| `name`        |               |
-| `service`     |               |
-| `type`        |               |
-| `version`     |               |
-
-- Metrics
-
-| Metrics                        | Description                                                                                                                          | Data Type | Unit   |
-| ----                        | ----                                                                                                                          | :---:    | :----: |
-| `heap_memory`               | The total Java heap memory used                                                                                               | int      | B      |
-| `heap_memory_committed`     | The total Java heap memory committed to be used                                                                               | int      | B      |
-| `heap_memory_init`          | The initial Java heap memory allocated                                                                                        | int      | B      |
-| `heap_memory_max`           | The maximum Java heap memory available                                                                                        | int      | B      |
-| `non_heap_memory`           | The total Java non-heap memory used. Non-heap memory is calculated as follows: `Metaspace + CompressedClassSpace + CodeCache` | int      | B      |
-| `non_heap_memory_committed` | The total Java non-heap memory committed to be used                                                                           | int      | B      |
-| `non_heap_memory_init`      | The initial Java non-heap memory allocated                                                                                    | int      | B      |
-| `non_heap_memory_max`       | The maximum Java non-heap memory available                                                                                    | int      | B      |
-| `thread_count`              | The number of live threads                                                                                                    | int      | count  |
-| `gc_cms_count`              | The total number of garbage collections that have occurred                                                                    | int      | count  |
-| `gc_major_collection_count` | The number of major garbage collections that have occurred. Set `new_gc_metrics: true` to receive this metric                 | int      | count  |
-| `gc_minor_collection_count` | The number of minor garbage collections that have occurred. Set `new_gc_metrics: true` to receive this metric                 | int      | count  |
-| `gc_parnew_time`            | The approximate accumulated garbage collection time elapsed                                                                   | int      | ms     |
-| `gc_major_collection_time`  | The approximate major garbage collection time elapsed. Set `new_gc_metrics: true` to receive this metric                      | int      | ms     |
-| `gc_minor_collection_time`  | The approximate minor garbage collection time elapsed. Set `new_gc_metrics: true` to receive this metric                      | int      | ms     |
+See [here](statsd.md#metric)
 
 Focus on explaining the following indicators: `gc_major_collection_count` `gc_minor_collection_count` `gc_major_collection_time` `gc_minor_collection_time`:
 

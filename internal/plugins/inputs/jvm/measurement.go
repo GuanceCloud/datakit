@@ -94,8 +94,8 @@ func (*JavaRuntimeMemt) Info() *inputs.MeasurementInfo {
 			"CollectionUsageused":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of used memory in bytes."},
 		},
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.TagInfo{Desc: "Jolokia agent url path."},
-			"host":              inputs.TagInfo{Desc: "The hostname of the Jolokia agent/proxy running on."},
+			"jolokia_agent_url": &inputs.TagInfo{Desc: "Jolokia agent url path."},
+			"host":              &inputs.TagInfo{Desc: "The hostname of the Jolokia agent/proxy running on."},
 		},
 	}
 }
