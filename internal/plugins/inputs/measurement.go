@@ -7,6 +7,7 @@ package inputs
 
 import (
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 	"testing"
@@ -211,7 +212,7 @@ func (m *MeasurementInfo) MarkdownTable() string {
 	for _, key := range keys {
 		f, ok := m.Tags[key].(*TagInfo)
 		if !ok {
-			continue
+			panic(fmt.Sprintf("expect type *TagInfo, got type %s", reflect.TypeOf(m.Tags[key])))
 		}
 
 		rows = append(rows, fmt.Sprintf(tagRowfmt, key, f.Desc))
@@ -221,7 +222,7 @@ func (m *MeasurementInfo) MarkdownTable() string {
 	for _, key := range keys {
 		f, ok := m.Fields[key].(*FieldInfo)
 		if !ok {
-			continue
+			panic(fmt.Sprintf("expect type *FieldInfo, got type %s", reflect.TypeOf(m.Fields[key])))
 		}
 
 		unit := f.Unit

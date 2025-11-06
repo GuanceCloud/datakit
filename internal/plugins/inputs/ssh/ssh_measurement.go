@@ -38,7 +38,7 @@ func (s *SSHMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"host": inputs.TagInfo{
+			"host": &inputs.TagInfo{
 				Desc: "The host of ssh",
 			},
 		},

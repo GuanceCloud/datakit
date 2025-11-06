@@ -22,8 +22,9 @@ type (
 // nolint:lll
 func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "jvm",
-		Cat:  point.Metric,
+		Name:           "jvm",
+		MetaDuplicated: true,
+		Cat:            point.Metric,
 		Fields: map[string]interface{}{
 			"heap_memory":                 &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java heap memory used."}, // down jvm & jmx mertrics
 			"heap_memory_committed":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java heap memory committed to be used."},
@@ -47,13 +48,17 @@ func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 			"buffer_pool_mapped_used":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Measure of memory used by mapped buffers."},
 			"buffer_pool_mapped_count":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of mapped buffers in the pool."},
 			"buffer_pool_mapped_capacity": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Measure of total memory capacity of mapped buffers."},
-			"gc_parnew_time":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "The approximate accumulated garbage collection time elapsed."},
-			"gc_cms_count":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The total number of garbage collections that have occurred."},
-			"gc_major_collection_count":   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The rate of major garbage collections. Set new_gc_metrics: true to receive this metric."},                          // jmx
-			"gc_minor_collection_count":   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The rate of minor garbage collections. Set new_gc_metrics: true to receive this metric."},                          // jmx
-			"gc_major_collection_time":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.PartPerMillion, Desc: "The fraction of time spent in major garbage collection. Set new_gc_metrics: true to receive this metric."}, // jmx
-			"gc_minor_collection_time":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.PartPerMillion, Desc: "The fraction of time spent in minor garbage collection. Set new_gc_metrics: true to receive this metric."}, // jmx
-			"os_open_file_descriptors":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of file descriptors used by this process (only available for processes run as the dd-agent user)"},
+
+			// Not available, this metric should collect via jmx featch, see:
+			//   https://github.com/DataDog/datadog-agent/blob/main/cmd/agent/dist/conf.d/jmx.d/conf.yaml.example
+			// "gc_parnew_time":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "The approximate accumulated garbage collection time elapsed."},
+			// "gc_cms_count":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The total number of garbage collections that have occurred."},
+
+			"gc_major_collection_count": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The rate of major garbage collections."},                            // jmx
+			"gc_minor_collection_count": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The rate of minor garbage collections."},                            // jmx
+			"gc_major_collection_time":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "The fraction of time spent(rate) in major garbage collection."}, // jmx
+			"gc_minor_collection_time":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "The fraction of time spent(rate) in minor garbage collection."}, // jmx
+			"os_open_file_descriptors":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of file descriptors used by this process (only available for processes run as the dd-agent user)"},
 
 			// Following metrics not found in official docs
 			"daemon_code_cache_used": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of daemon threads."},
@@ -63,14 +68,14 @@ func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 			"daemon_thread_count":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Daemon thread count."},
 		},
 		Tags: map[string]interface{}{
-			"host":        inputs.TagInfo{Desc: "Host name."},
-			"instance":    inputs.TagInfo{Desc: "Instance name."},
-			"jmx_domain":  inputs.TagInfo{Desc: "JMX domain."},
-			"metric_type": inputs.TagInfo{Desc: "Metric type."},
-			"name":        inputs.TagInfo{Desc: "Type name."},
-			"runtime-id":  inputs.TagInfo{Desc: "Runtime id."},
-			"service":     inputs.TagInfo{Desc: "Service name."},
-			"type":        inputs.TagInfo{Desc: "Object type."},
+			"host":        &inputs.TagInfo{Desc: "Host name."},
+			"instance":    &inputs.TagInfo{Desc: "Instance name."},
+			"jmx_domain":  &inputs.TagInfo{Desc: "JMX domain."},
+			"metric_type": &inputs.TagInfo{Desc: "Metric type."},
+			"name":        &inputs.TagInfo{Desc: "Type name."},
+			"runtime-id":  &inputs.TagInfo{Desc: "Runtime id."},
+			"service":     &inputs.TagInfo{Desc: "Service name."},
+			"type":        &inputs.TagInfo{Desc: "Object type."},
 		},
 	}
 }
@@ -81,8 +86,9 @@ func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 // nolint:lll
 func (m *JMXMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "jmx",
-		Cat:  point.Metric,
+		Name:           "jmx",
+		MetaDuplicated: true,
+		Cat:            point.Metric,
 		Fields: map[string]interface{}{
 			// buffer_pool_direct_capacity 这个没找到解释
 			"heap_memory":               &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java heap memory used."},
@@ -95,21 +101,21 @@ func (m *JMXMeasurement) Info() *inputs.MeasurementInfo {
 			"non_heap_memory_max":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The maximum Java non-heap memory available."},
 			"thread_count":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of live threads."},
 			"gc_cms.count":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The total number of garbage collections that have occurred."},
-			"gc_major_collection_count": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The rate of major garbage collections. Set new_gc_metrics: true to receive this metric."},
-			"gc_minor_collection_count": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The rate of minor garbage collections. Set new_gc_metrics: true to receive this metric."},
 			"gc_parnew.time":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "The approximate accumulated garbage collection time elapsed."},
+			"gc_major_collection_count": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The rate of major garbage collections."},
+			"gc_minor_collection_count": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The rate of minor garbage collections."},
 			"gc_major_collection_time":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.PartPerMillion, Desc: "The fraction of time spent in major garbage collection. Set new_gc_metrics: true to receive this metric."},
 			"gc_minor_collection_time":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.PartPerMillion, Desc: "The fraction of time spent in minor garbage collection. Set new_gc_metrics: true to receive this metric."},
 		},
 		Tags: map[string]interface{}{
-			"host":        inputs.TagInfo{Desc: "Host name."},
-			"instance":    inputs.TagInfo{Desc: "Instance name."},
-			"jmx_domain":  inputs.TagInfo{Desc: "JMX domain."},
-			"metric_type": inputs.TagInfo{Desc: "Metric type."},
-			"name":        inputs.TagInfo{Desc: "Type name."},
-			"runtime-id":  inputs.TagInfo{Desc: "Runtime id."},
-			"service":     inputs.TagInfo{Desc: "Service name."},
-			"type":        inputs.TagInfo{Desc: "Object type."},
+			"host":        &inputs.TagInfo{Desc: "Host name."},
+			"instance":    &inputs.TagInfo{Desc: "Instance name."},
+			"jmx_domain":  &inputs.TagInfo{Desc: "JMX domain."},
+			"metric_type": &inputs.TagInfo{Desc: "Metric type."},
+			"name":        &inputs.TagInfo{Desc: "Type name."},
+			"runtime-id":  &inputs.TagInfo{Desc: "Runtime id."},
+			"service":     &inputs.TagInfo{Desc: "Service name."},
+			"type":        &inputs.TagInfo{Desc: "Object type."},
 		},
 	}
 }
@@ -121,8 +127,9 @@ func (m *JMXMeasurement) Info() *inputs.MeasurementInfo {
 // nolint:lll
 func (m *DDtraceMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "ddtrace",
-		Cat:  point.Metric,
+		Name:           "ddtrace",
+		MetaDuplicated: true,
+		Cat:            point.Metric,
 		Fields: map[string]interface{}{
 			"tracer_queue_enqueued_spans":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Tracer queue enqueued spans."},
 			"tracer_queue_enqueued_traces":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Tracer queue enqueued traces."},
@@ -143,17 +150,17 @@ func (m *DDtraceMeasurement) Info() *inputs.MeasurementInfo {
 			"tracer_queue_max_length":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Tracer queue max length."},
 		},
 		Tags: map[string]interface{}{
-			"host":                    inputs.TagInfo{Desc: "Host name."},
-			"lang_interpreter":        inputs.TagInfo{Desc: "Lang interpreter."},
-			"service":                 inputs.TagInfo{Desc: "Service name."},
-			"tracer_version":          inputs.TagInfo{Desc: "Tracer version."},
-			"lang_version":            inputs.TagInfo{Desc: "Lang version."},
-			"metric_type":             inputs.TagInfo{Desc: "Metric type."},
-			"stat":                    inputs.TagInfo{Desc: "Stat."},
-			"priority":                inputs.TagInfo{Desc: "Priority."},
-			"lang_interpreter_vendor": inputs.TagInfo{Desc: "Lang interpreter vendor."},
-			"lang":                    inputs.TagInfo{Desc: "Lang type."},
-			"endpoint":                inputs.TagInfo{Desc: "Endpoint."},
+			"host":                    &inputs.TagInfo{Desc: "Host name."},
+			"lang_interpreter":        &inputs.TagInfo{Desc: "Lang interpreter."},
+			"service":                 &inputs.TagInfo{Desc: "Service name."},
+			"tracer_version":          &inputs.TagInfo{Desc: "Tracer version."},
+			"lang_version":            &inputs.TagInfo{Desc: "Lang version."},
+			"metric_type":             &inputs.TagInfo{Desc: "Metric type."},
+			"stat":                    &inputs.TagInfo{Desc: "Stat."},
+			"priority":                &inputs.TagInfo{Desc: "Priority."},
+			"lang_interpreter_vendor": &inputs.TagInfo{Desc: "Lang interpreter vendor."},
+			"lang":                    &inputs.TagInfo{Desc: "Lang type."},
+			"endpoint":                &inputs.TagInfo{Desc: "Endpoint."},
 		},
 	}
 }
