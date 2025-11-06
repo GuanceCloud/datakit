@@ -13,6 +13,7 @@ import (
 	"io/fs"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -95,7 +96,7 @@ func releaseEmbedFiles(dest, embDir string, emdFS *embed.FS) error {
 	for _, file := range files {
 		var (
 			releasePath = filepath.Join(dest, file.Name())
-			embPath     = filepath.Join(embDir, file.Name())
+			embPath     = path.Join(embDir, file.Name())
 		)
 
 		l.Debugf("read %q to %q...", embPath, releasePath)
