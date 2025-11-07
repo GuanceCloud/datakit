@@ -35,6 +35,7 @@ var (
 	flagWorker         = flag.Int("worker", 10, "set to 0 to disable workers")
 	flagWrokerSleep    = flag.Duration("worker-sleep", 10*time.Millisecond, "worker sleep during request")
 	flagBeyondUsage    = flag.Bool("beyond-usage", false, "mock beyond-usage error on every /v1/write/:category API")
+	flagDatakit        = flag.String("datakit", "localhost:9529", "datakit address")
 
 	errBeyoundUsage = uhttp.NewNamespaceErr(errors.New(`beyond data usage`), http.StatusForbidden, "kodo")
 )
@@ -127,25 +128,32 @@ func main() {
 	time.Sleep(time.Second)
 
 	reqs := map[string][]byte{
-		fmt.Sprintf("http://localhost:9529/v1/write/logstreaming?type=influxdb&size=%d",
+		fmt.Sprintf("http://%s/v1/write/logstreaming?type=influxdb&size=%d",
+			*flagDatakit,
 			len(loggingData)): []byte(loggingData),
 
-		fmt.Sprintf("http://localhost:9529/v1/write/logging?input=post-v1-write-logging&size=%d",
+		fmt.Sprintf("http://%s/v1/write/logging?input=post-v1-write-logging&size=%d",
+			*flagDatakit,
 			len(loggingData)): []byte(loggingData),
 
-		fmt.Sprintf("http://localhost:9529/v1/write/logging?input=post-v1-write-logging-large&size=%d",
+		fmt.Sprintf("http://%s/v1/write/logging?input=post-v1-write-logging-large&size=%d",
+			*flagDatakit,
 			len(loggingData)*100): []byte(strings.Repeat(loggingData, 100)),
 
-		fmt.Sprintf("http://localhost:9529/v1/write/metric?input=post-v1-write-metric&size=%d",
+		fmt.Sprintf("http://%s/v1/write/metric?input=post-v1-write-metric&size=%d",
+			*flagDatakit,
 			len(metricData)): []byte(metricData),
 
-		fmt.Sprintf("http://localhost:9529/v1/write/metric?input=post-v1-write-metric-large&size=%d",
+		fmt.Sprintf("http://%s/v1/write/metric?input=post-v1-write-metric-large&size=%d",
+			*flagDatakit,
 			len(metricData)*500): []byte(strings.Repeat(metricData, 500)),
 
-		fmt.Sprintf("http://localhost:9529/v1/write/object?input=post-v1-write&size=%d",
+		fmt.Sprintf("http://%s/v1/write/object?input=post-v1-write&size=%d",
+			*flagDatakit,
 			len(objectData)): []byte(objectData),
 
-		fmt.Sprintf("http://localhost:9529/v1/write/rum?precision=ms&input=post-v1-write-rum&size=%d",
+		fmt.Sprintf("http://%s/v1/write/rum?precision=ms&input=post-v1-write-rum&size=%d",
+			*flagDatakit,
 			len(rumData)): []byte(rumData),
 	}
 
