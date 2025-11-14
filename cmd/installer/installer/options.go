@@ -261,41 +261,43 @@ func (args *InstallerArgs) SetDatakitLiteAndELinker() {
 
 func (args *InstallerArgs) setupServiceOptions() *service.Config {
 	var (
-		def          = config.DefaultConfig()
-		rl           = def.ResourceLimitOptions // use cpu/mem limit from default configure
-		limitUpdated = false
+		def           = config.DefaultConfig()
+		rl            = def.ResourceLimitOptions // use cpu/mem limit from default configure
+		cgroupUpdated = false
 	)
 
 	// setup CPU limit
 	if args.LimitCPUMax > 0.0 {
 		rl.CPUCores = resourcelimit.CPUMaxToCores(args.LimitCPUMax)
-		limitUpdated = true
+		cgroupUpdated = true
 	}
 
 	if args.LimitCPUCores > 0.0 { // cpu-cores override above cpu-max
 		rl.CPUCores = args.LimitCPUCores
-		limitUpdated = true
+		cgroupUpdated = true
 	}
 
 	// setup mem limit
 	if args.LimitMemMax > 0 {
 		rl.MemMax = args.LimitMemMax
-		limitUpdated = true
+		cgroupUpdated = true
 	}
 
 	rl.Setup() // apply
 
 	svcopts := []dkservice.ServiceOption{
 		dkservice.WithMemLimit(fmt.Sprintf("%dM", rl.MemMax)),
-		dkservice.WithCPULimit(fmt.Sprintf("%f%%", rl.CPUMax())),
+		// see https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html#CPUQuota=
+		dkservice.WithCPULimit(fmt.Sprintf("%f%%", rl.CPUCores*100.0)),
 	}
 
 	if runtime.GOOS == datakit.OSLinux && args.FlagUserName != "" {
 		svcopts = append(svcopts, dkservice.WithUser(args.FlagUserName))
 
-		if !datakit.IsAdminUser(args.FlagUserName) && limitUpdated && args.FlagDKUpgrade {
+		if !datakit.IsAdminUser(args.FlagUserName) && cgroupUpdated && args.FlagDKUpgrade {
 			// for non-admin user, during upgrade, if user specified new cpu/mem limit, we should
 			// apply them to datakit.service.
+			l.Infof("cgroup configure updated, we should re-install datakit service")
 			args.shouldReinstallService = true
 		}
 	}
