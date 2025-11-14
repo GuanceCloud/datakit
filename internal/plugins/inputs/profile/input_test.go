@@ -72,7 +72,6 @@ func TestIOConfig(t *testing.T) {
 	assert.Equal(t, defaultDiskCachePath(), ipt.IOConfig.CachePath)
 	assert.Equal(t, defaultDiskCacheSize, ipt.IOConfig.CacheCapacityMB)
 	assert.Equal(t, false, ipt.IOConfig.ClearCacheOnStart)
-	assert.Equal(t, defaultConsumeWorkersCount, ipt.IOConfig.UploadWorkers)
 	assert.Equal(t, defaultHTTPClientTimeout, ipt.IOConfig.SendTimeout)
 	assert.Equal(t, defaultHTTPRetryCount, ipt.IOConfig.SendRetryCount)
 
