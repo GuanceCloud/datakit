@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.85.1(2025/11/14) {#cl-1.85.1}
+
+This release is a hotfix containing the following fixes:
+
+### Bug Fixes {#cl-1.85.1-fix}
+
+- Fixed Profile collector disk cache issue that could cause failures in container deployment mode. Also reduced the default disk cache worker count to 1 (#2885/#2881)
+- Fixed dial testing collector that failed on internal network task, a bug introduced since version 1.84.0 (#2887)
+- Fixed CPU limit configuration error in *datakit.service* file (#2888)
+- Fixed container log filtering priority issue, a bug introduced since version 1.85.0 (#2890)
+- Started actively collecting logs for cronjob/job containers, no longer ignoring log collection for these container types (#2891)
+
+---
+
 ## 1.85.0(2025/11/06) {#cl-1.85.0}
 
 This release is a feature update with the following changes:
