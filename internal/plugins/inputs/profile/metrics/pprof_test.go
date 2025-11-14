@@ -9,23 +9,29 @@ import (
 	"encoding/json"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestResolveMetricsJSONFile(t *testing.T) {
-	f, err := os.Open("testdata/metrics.json")
-	if err != nil {
-		t.Fatal(err)
-	}
+	for _, f := range []string{
+		"testdata/metrics.json",
+	} {
+		t.Logf("%s =>", f)
 
-	defer f.Close()
+		f, err := os.Open(f)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	metering, err := parseMetricsJSONFile(f)
-	if err != nil {
-		t.Fatal(err)
-	}
+		defer f.Close()
 
-	for name, number := range metering {
-		t.Logf("[%s]: [%s]", name, number)
+		metering, err := parseMetricsJSONFile(f)
+		assert.NoError(t, err)
+
+		for name, number := range metering {
+			t.Logf("[%s]: [%s]", name, number)
+		}
 	}
 }
 
@@ -89,19 +95,29 @@ func TestPprofSummary(t *testing.T) {
 	  pprof_test.go:86: metric name: lock-release-hold, value: 0, unit: nanoseconds
 	*/
 
-	f, err := os.Open("testdata/python.pprof")
-	if err != nil {
-		t.Fatal(err)
-	}
+	for _, f := range []string{
+		"testdata/cpu.pprof",
+		"testdata/delta-block.pprof",
+		"testdata/delta-heap.pprof",
+		"testdata/delta-mutex.pprof",
+		"testdata/goroutines.pprof",
+		"testdata/python.pprof",
+	} {
+		t.Logf("========================================")
+		t.Logf("%s => ", f)
 
-	defer f.Close()
+		f, err := os.Open(f)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	summaries, err := pprofSummary(f)
-	if err != nil {
-		t.Fatal(err)
-	}
+		defer f.Close()
 
-	for metricType, quantity := range summaries {
-		t.Logf("metric name: %s, value: %d, unit: %s", metricType, quantity.Value, quantity.Unit)
+		summaries, err := pprofSummary(f)
+		assert.NoError(t, err)
+
+		for metricType, quantity := range summaries {
+			t.Logf("%s: %d | unit: %s", metricType, quantity.Value, quantity.Unit)
+		}
 	}
 }

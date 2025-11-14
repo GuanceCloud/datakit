@@ -171,11 +171,11 @@ type TagInfo struct {
 }
 
 type MeasurementInfo struct {
-	Name   string                 `json:"-"`
-	Desc   string                 `json:"desc"`
-	DescZh string                 `json:"desc_zh"`
-	Fields map[string]interface{} `json:"fields"`
-	Tags   map[string]interface{} `json:"tags"`
+	Name   string         `json:"-"`
+	Desc   string         `json:"desc"`
+	DescZh string         `json:"desc_zh"`
+	Fields map[string]any `json:"fields"`
+	Tags   map[string]any `json:"tags"`
 
 	Cat point.Category `json:"-"`
 
