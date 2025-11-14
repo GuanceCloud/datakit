@@ -19,7 +19,6 @@ import (
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/resourcelimit"
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )
 
@@ -211,7 +210,8 @@ func reinstallDatakit(mc *config.Config) error {
 		opts = append(opts,
 			dkservice.WithMemLimit(fmt.Sprintf("%dM", mc.ResourceLimitOptions.MemMax)),
 			dkservice.WithCPULimit(fmt.Sprintf("%f%%",
-				resourcelimit.CPUCoresToCPUMax(mc.ResourceLimitOptions.CPUCores))),
+				// see https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html#CPUQuota=
+				mc.ResourceLimitOptions.CPUCores*100.0)),
 		)
 	}
 
