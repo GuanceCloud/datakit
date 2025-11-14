@@ -401,7 +401,7 @@ func (d *dialer) checkInternalNetwork() error {
 			return fmt.Errorf("get host name error: %w", err)
 		}
 
-		if len(hostNames) > 0 {
+		if len(hostNames) > 0 && d.ipt.DisableInternalNetworkTask {
 			hostName := hostNames[0]
 			if isInternal, err := httpapi.IsInternalHost(hostName, d.ipt.DisabledInternalNetworkCIDRList); err != nil {
 				l.Errorf("dest host is not valid: %s", err.Error())
