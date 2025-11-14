@@ -294,25 +294,23 @@ DataKit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 
     现支持以下 4 个字段规则，这 4 个字段都是基础设施的属性字段：
 
-    - image : `image:pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:1.18.0`
-    - image_name : `image_name:pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit`
-    - image_short_name : `image_short_name:datakit`
+    - image : `image:pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:1.85.0`
     - namespace : `namespace:datakit-ns`
 
     对于同一类规则（`image` 或 `namespace`），如果同时存在 `include` 和 `exclude`，需要同时满足 `include` 成立，且 `exclude` 不成立的条件。例如：
     ```toml
     ## 这会导致所有容器都被过滤。如果有一个容器 `datakit`，它满足 include，同时又满足 exclude，那么它会被过滤，不采集日志；如果一个容器 `nginx`，首先它不满足 include，它会被过滤掉不采集。
 
-    container_include_log = ["image_name:datakit"]
-    container_exclude_log = ["image_name:*"]
+    container_include_log = ["image:datakit"]
+    container_exclude_log = ["image:*"]
     ```
 
     多种类型的字段规则有任意一条匹配，就不再采集它的日志。例如：
     ```toml
-    ## 容器只需要满足 `image_name` 和 `namespace` 任意一个，就不再采集日志。
+    ## 容器只需要满足 `image` 和 `namespace` 任意一个，就不再采集日志。
 
     container_include_log = []
-    container_exclude_log = ["image_name:datakit", "namespace:datakit-ns"]
+    container_exclude_log = ["image:datakit", "namespace:datakit-ns"]
     ```
 
     `container_include_log` 和 `container_exclude_log` 的配置规则比较复杂，同时使用会有多种优先级情况。建议只使用 `container_exclude_log` 一种。
@@ -409,7 +407,6 @@ DataKit 提供两种方式来过滤指定容器，防止采集其日志。分别
 过滤过程如下：
 
 1. 如果容器存在 `datakit/logs` 注解或环境变量，并且所有的 `"disable": true` 设置都生效，表示该容器的日志不需要采集，直接忽略。
-1. 如果容器所属的 Pod 是由 `Job` 或 `CronJob` 创建的，则不采集该容器的日志。
 1. `container_include_log` 和 `container_exclude_log` 配置项只有在容器满足所有条件时，才会采集日志：
    - 例如，配置 `container_include_log = ["image:redis*"]` 和 `container_exclude_log = ["namespace:middleware*"]`，只有当容器的 `image` 匹配 `redis*`，且 `namespace` 不匹配 `middleware*` 时，才会采集日志。
    - 如果只配置 `container_include_log = ["image:redis*"]`，只要容器满足该条件，日志就会被采集。

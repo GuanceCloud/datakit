@@ -288,25 +288,23 @@ By default, DataKit collects stdout/stderr logs for all containers on your machi
 
     The following 4 field rules are now supported, all of which are infrastructure attribute fields:
 
-    - image : `image:pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:1.18.0`
-    - image_name : `image_name:pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit`
-    - image_short_name : `image_short_name:datakit`
+    - image : `image:pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:1.85.0`
     - namespace : `namespace:datakit-ns`
 
     For the same type of rule (`image` or `namespace`), if both `include` and `exclude` exist, the condition that `include` holds and `exclude` does not hold needs to be satisfied. For example:
     ```toml
     ## This causes all containers to be filtered. If there is a container ``datakit`` that satisfies both ``include`` and ``exclude``, then it will be filtered out of log collection; if there is a container ``nginx`` that does not satisfy ``include`` in the first place, it will be filtered out of log collection.
 
-    container_include_log = ["image_name:datakit"]
-    container_exclude_log = ["image_name:*"]
+    container_include_log = ["image:datakit"]
+    container_exclude_log = ["image:*"]
     ```
 
     Any one of the field rules for multiple types matches and its logs are no longer captured. Example:
     ```toml
-    ## The container only needs to match either `image_name` and `namespace` to stop collecting logs.
+    ## The container only needs to match either `image` and `namespace` to stop collecting logs.
 
     container_include_log = []
-    container_exclude_log = ["image_name:datakit", "namespace:datakit-ns"]
+    container_exclude_log = ["image:datakit", "namespace:datakit-ns"]
     ```
 
     The configuration rules for `container_include_log` and `container_exclude_log` are complex, and their simultaneous use can result in a variety of priority cases. It is recommended to use only `container_exclude_log`.
@@ -403,7 +401,6 @@ DataKit offers two methods for filtering specific containers and preventing thei
 The filtering process works as follows:
 
 1. If a container has a `datakit/logs` annotation or environment variable, and all `"disable": true` settings are active, the container's logs will be ignored and not collected.
-1. If the Pod to which the container belongs is created by a `Job` or `CronJob`, the container's logs will not be collected.
 1. The `container_include_log` and `container_exclude_log` settings only apply when all conditions are met:
    - For example, with `container_include_log = ["image:redis*"]` and `container_exclude_log = ["namespace:middleware*"]`, logs will only be collected if the container's `image` matches `redis*` and the `namespace` does not match `middleware*`.
    - If only `container_include_log = ["image:redis*"]` is specified, logs will be collected as long as this condition is met.
