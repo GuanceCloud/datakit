@@ -69,6 +69,29 @@ DD_ENV=testing DD_SERVICE=python-profiling-manual DD_VERSION=1.2.3 python3 app.p
 
 After a minute or two, you can visualize your profiles on the [APM -> Profile](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile){:target="_blank"} .
 
+### Generated Metrics {#metrics}
+
+Starting from [:octicons-tag-24: Version-1.39.0](../datakit/changelog.md#cl-1.39.0), DataKit supports extracting a set of Python runtime-related metrics from `dd-trace-py` output. These metrics are placed under the `profiling_metrics` metric set. Below are some key metrics with explanations:
+
+| Tags & Fields | Description |
+| ----------: | :------------ |
+| `language`<br>(`tag`) | Language of current profile |
+| `host`<br>(`tag`) | Hostname of current profile |
+| `service`<br>(`tag`) | Service name of current profile |
+| `env`<br>(`tag`) | Env settings of current profile |
+| `version`<br>(`tag`) | Version of current profile |
+| `prof_python_cpu_cores` | Number of CPU cores consumed <br>*Unit: core* |
+| `prof_python_alloc_bytes_per_sec` | Memory allocation rate per second <br>*Unit: byte* |
+| `prof_python_allocs_per_sec` | Memory allocation operations per second <br>*Unit: count* |
+| `prof_python_alloc_bytes_total` | Total memory allocated during a single profiling period (dd-trace defaults to 60-second collection cycles) <br>*Unit: byte* |
+| `prof_python_lock_acquisition_time` | Total time spent waiting for locks during a profiling period <br>*Unit: nanosecond* |
+| `prof_python_lock_acquisitions_per_sec` | Number of lock contentions per second <br>*Unit: count* |
+| `prof_python_lock_hold_time` | Total time spent holding locks during a profiling period <br>*Unit: nanosecond* |
+| `prof_python_exceptions_per_sec` | Number of exceptions thrown per second <br>*Unit: count* |
+| `prof_python_exceptions_total` | Total number of exceptions thrown during a profiling period <br>*Unit: count* |
+| `prof_python_lifetime_heap_bytes` | Total memory size occupied by heap objects <br>*Unit: byte* |
+| `prof_python_wall_time` | Wall clock time duration <br>*Unit: nanosecond* |
+
 ## Use `py-spy` {#py-spy}
 
 `py-spy`is a non-invasive Python performance metric sampling tool provided by the open source community,

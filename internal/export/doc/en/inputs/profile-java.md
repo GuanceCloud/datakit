@@ -81,6 +81,68 @@ Explanation of some parameters:
 | `-Ddd.profiling.ddprof.liveheap.enabled`  | `DD_PROFILING_DDPROF_LIVEHEAP_ENABLED`  | Whether to enable the analysis of the currently live Heap by the `Datadog Profiler` engine.                                                                                                                                                                                           |
 | `-Ddd.profiling.ddprof.memleak.enabled`   | `DD_PROFILING_DDPROF_MEMLEAK_ENABLED`   | Whether to enable the memory leak analysis of the `Datadog Profiler` engine.                                                                                                                                                                                                          |
 
+### Generated Metrics {#metrics}
+
+Starting from [:octicons-tag-24: Version-1.39.0](../datakit/changelog.md#cl-1.39.0), DataKit supports extracting a set of JVM runtime-related metrics from `dd-trace-java` output. These metrics are placed under the `profiling_metrics` metric set. Below are some key metrics with explanations:
+
+ | Tags & Fields                         | Description                                                                                                                            |
+ | ----------:                           | :------------                                                                                                                          |
+ | `language`<br>(`tag`)                 | Language of current profile                                                                                                            |
+ | `host`<br>(`tag`)                     | Hostname of current profile                                                                                                            |
+ | `service`<br>(`tag`)                  | Service name of current profile                                                                                                        |
+ | `env`<br>(`tag`)                      | Env settings of current profile                                                                                                        |
+ | `version`<br>(`tag`)                  | Version of current profile                                                                                                             |
+ | `prof_jvm_cpu_cores`                  | Total CPU cores consumed by the application<br>*Unit: core*                                                                            |
+ | `prof_jvm_alloc_bytes_per_sec`        | Total memory allocated per second by the program<br>*Unit: byte*                                                                       |
+ | `prof_jvm_allocs_per_sec`             | Number of memory allocation operations per second<br>*Unit: count*                                                                     |
+ | `prof_jvm_alloc_bytes_total`          | Total memory allocated during a single profiling period<br>*Unit: byte*                                                                |
+ | `prof_jvm_class_loads_per_sec`        | Number of class loading operations per second<br>*Unit: count*                                                                         |
+ | `prof_jvm_compilation_time`           | Total time spent on JIT compilation during a profiling period (dd-trace defaults to 60-second collection cycles)<br>*Unit: nanosecond* |
+ | `prof_jvm_context_switches_per_sec`   | Number of thread context switches per second<br>*Unit: count*                                                                          |
+ | `prof_jvm_direct_alloc_bytes_per_sec` | Direct memory allocation size per second<br>*Unit: byte*                                                                               |
+ | `prof_jvm_throws_per_sec`             | Number of exceptions thrown per second<br>*Unit: count*                                                                                |
+ | `prof_jvm_throws_total`               | Total number of exceptions thrown during a profiling period<br>*Unit: count*                                                           |
+ | `prof_jvm_file_io_max_read_bytes`     | Maximum bytes read in a single file operation during profiling<br>*Unit: byte*                                                         |
+ | `prof_jvm_file_io_max_read_time`      | Maximum duration of a single file read operation during profiling<br>*Unit: nanosecond*                                                |
+ | `prof_jvm_file_io_max_write_bytes`    | Maximum bytes written in a single file operation during profiling<br>*Unit: byte*                                                      |
+ | `prof_jvm_file_io_max_write_time`     | Maximum duration of a single file write operation during profiling<br>*Unit: nanosecond*                                               |
+ | `prof_jvm_file_io_read_bytes`         | Total bytes read from files during profiling<br>*Unit: byte*                                                                           |
+ | `prof_jvm_file_io_time`               | Total time spent on file I/O operations during profiling<br>*Unit: nanosecond*                                                         |
+ | `prof_jvm_file_io_read_time`          | Total time spent on file read operations during profiling<br>*Unit: nanosecond*                                                        |
+ | `prof_jvm_file_io_write_time`         | Total time spent on file write operations during profiling<br>*Unit: nanosecond*                                                       |
+ | `prof_jvm_file_io_write_bytes`        | Total bytes written to files during profiling<br>*Unit: byte*                                                                          |
+ | `prof_jvm_avg_gc_pause_time`          | Average duration of GC-induced application pauses<br>*Unit: nanosecond*                                                                |
+ | `prof_jvm_max_gc_pause_time`          | Maximum GC pause duration during profiling<br>*Unit: nanosecond*                                                                       |
+ | `prof_jvm_gc_pauses_per_sec`          | Number of GC pauses per second<br>*Unit: count*                                                                                        |
+ | `prof_jvm_gc_pause_time`              | Total time spent in GC pauses during profiling<br>*Unit: nanosecond*                                                                   |
+ | `prof_jvm_lifetime_heap_bytes`        | Total memory occupied by live heap objects<br>*Unit: byte*                                                                             |
+ | `prof_jvm_lifetime_heap_objects`      | Total number of live heap objects<br>*Unit: count*                                                                                     |
+ | `prof_jvm_locks_max_wait_time`        | Maximum lock contention wait time during profiling<br>*Unit: nanosecond*                                                               |
+ | `prof_jvm_locks_per_sec`              | Number of lock contentions per second<br>*Unit: count*                                                                                 |
+ | `prof_jvm_socket_io_max_read_time`    | Maximum socket read operation duration during profiling<br>*Unit: nanosecond*                                                          |
+ | `prof_jvm_socket_io_max_write_bytes`  | Maximum bytes sent in a single socket operation during profiling<br>*Unit: byte*                                                       |
+ | `prof_jvm_socket_io_max_write_time`   | Maximum socket write operation duration during profiling<br>*Unit: nanosecond*                                                         |
+ | `prof_jvm_socket_io_read_bytes`       | Total bytes received via sockets during profiling<br>*Unit: byte*                                                                      |
+ | `prof_jvm_socket_io_read_time`        | Total time spent on socket read operations during profiling<br>*Unit: nanosecond*                                                      |
+ | `prof_jvm_socket_io_write_time`       | Total time spent on socket write operations during profiling<br>*Unit: nanosecond*                                                     |
+ | `prof_jvm_socket_io_write_bytes`      | Total bytes sent via sockets during profiling<br>*Unit: byte*                                                                          |
+ | `prof_jvm_threads_created_per_sec`    | Number of threads created per second<br>*Unit: count*                                                                                  |
+ | `prof_jvm_threads_deadlocked`         | Number of threads in deadlock state<br>*Unit: count*                                                                                   |
+ | `prof_jvm_uptime_nanoseconds`         | Application uptime duration<br>*Unit: nanosecond*                                                                                      |
+
+<!-- markdownlint-disable MD046 -->
+???+ note
+
+    This feature is enabled by default. If not needed, you can disable it by modifying the collector configuration file `<DATAKIT_INSTALL_DIR>/conf.d/profile/profile.conf` and setting the `generate_metrics` option to false, then restart DataKit.
+
+    toml
+    [[inputs.profile]]
+
+    ## Set to false to stop generating APM metrics from dd-trace output.
+    generate_metrics = false
+
+<!-- markdownlint-enable -->
+
 ## Async Profiler {#async-profiler}
 
 async-profiler is an open source Java profiler Based on HotSpot API, it can collect information such as stack and memory allocation during program operation.

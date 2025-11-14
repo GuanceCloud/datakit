@@ -410,7 +410,9 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 		return fmt.Errorf("unable to unmarshal profiling request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, ipt.profileSendingAPI.String(), bytes.NewReader(reqPB.Body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
+		ipt.profileSendingAPI.String(),
+		bytes.NewReader(reqPB.Body))
 	if err != nil {
 		return fmt.Errorf("unable to create http request: %w", err)
 	}
@@ -439,7 +441,13 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 	globalHostTags := datakit.GlobalHostTags()
 	language := metrics.ResolveLang(metadata)
 	if ipt.GenerateMetrics {
-		allCustomTags := make(map[string]string, len(ipt.Tags)+len(subCustomTags)+len(globalHostTags))
+		var (
+			start         = time.Now()
+			pts           []*point.Point
+			allCustomTags = make(map[string]string,
+				len(ipt.Tags)+len(subCustomTags)+len(globalHostTags))
+		)
+
 		// global host tags have the lowest priority.
 		for k, v := range globalHostTags {
 			allCustomTags[k] = v
@@ -450,18 +458,28 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 		for k, v := range subCustomTags {
 			allCustomTags[k] = v
 		}
+
 		switch language { // nolint:exhaustive
 		case metrics.Java:
-			if err = metrics.ExportJVMMetrics(req.MultipartForm.File, metadata, allCustomTags); err != nil {
+			if pts, err = metrics.ExtractJVMMetrics(req.MultipartForm.File, metadata, allCustomTags); err != nil {
 				log.Errorf("unable to export java ddtrace profiling metrics: %v", err)
 			}
 		case metrics.Golang:
-			if err = metrics.ExportGoMetrics(req.MultipartForm.File, metadata, allCustomTags); err != nil {
+			if pts, err = metrics.ExtractGoMetrics(req.MultipartForm.File, metadata, allCustomTags); err != nil {
 				log.Errorf("unable to export golang ddtrace profiling metrics: %v", err)
 			}
 		case metrics.Python:
-			if err = metrics.ExportPythonMetrics(req.MultipartForm.File, metadata, allCustomTags); err != nil {
+			if pts, err = metrics.ExtractPythonMetrics(req.MultipartForm.File, metadata, allCustomTags); err != nil {
 				log.Errorf("unable to export python ddtrace profiling metrics: %v", err)
+			}
+		}
+
+		if len(pts) > 0 {
+			if err := ipt.feeder.Feed(point.Metric, pts,
+				dkio.WithSource(dkio.FeedSource("profile", "extracted", "metrics")),
+				dkio.WithCollectCost(time.Since(start)),
+			); err != nil {
+				log.Warnf("feed: %s, ignored", err.Error())
 			}
 		}
 	}

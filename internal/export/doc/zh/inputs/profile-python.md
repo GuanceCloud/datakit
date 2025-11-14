@@ -75,19 +75,24 @@ DD_ENV=testing DD_SERVICE=python-profiling-manual DD_VERSION=1.2.3 python3 app.p
 
 DataKit 自 [:octicons-tag-24: Version-1.39.0](../datakit/changelog.md#cl-1.39.0) 开始支持从 `dd-trace-py` 的输出信息中抽取一组 Python 运行时的相关指标，该组指标被置于 `profiling_metrics` 指标集下，下面列举其中部分指标加以说明：
 
-| 指标名称                                  | 说明                                                     | 单位         |
-|---------------------------------------|--------------------------------------------------------|------------|
-| prof_python_cpu_cores                 | 消耗 CPU 核心数                                             | core       |
-| prof_python_alloc_bytes_per_sec       | 每秒分配内存字节数大小                                            | byte       |
-| prof_python_allocs_per_sec            | 每秒分配内存次数                                               | count      |
-| prof_python_alloc_bytes_total         | 单次 profiling 持续期间（dd-trace 默认以 60 秒为一个采集周期，下同）分配的总内存大小 | byte       |
-| prof_python_lock_acquisition_time     | 单次 profiling 持续期间用于等待锁所消耗的总时间                          | nanosecond |
-| prof_python_lock_acquisitions_per_sec | 每秒发生锁争用的次数                                             | count      |
-| prof_python_lock_hold_time            | 单次 profiling 持续期间持有锁的总和时长                              | nanosecond |
-| prof_python_exceptions_per_sec        | 每秒抛出的异常数                                               | count      |
-| prof_python_exceptions_total          | 单次 profiling 持续期间抛出的异常总数                               | count      |
-| prof_python_lifetime_heap_bytes       | 当前堆内存对象占用的内存总大小                                        | byte       |
-| prof_python_wall_time                 | 时钟时长                                                   | nanosecond |
+| Tags & Fields | Description |
+| ----------: | :------------ |
+| `language`<br>(`tag`) | Language of current profile |
+| `host`<br>(`tag`) | Hostname of current profile |
+| `service`<br>(`tag`) | Service name of current profile |
+| `env`<br>(`tag`) | Env settings of current profile |
+| `version`<br>(`tag`) | Version of current profile |
+| `prof_python_cpu_cores` | Number of CPU cores consumed <br>*Unit: core* |
+| `prof_python_alloc_bytes_per_sec` | Memory allocation rate per second <br>*Unit: byte* |
+| `prof_python_allocs_per_sec` | Memory allocation operations per second <br>*Unit: count* |
+| `prof_python_alloc_bytes_total` | Total memory allocated during a single profiling period (dd-trace defaults to 60-second collection cycles) <br>*Unit: byte* |
+| `prof_python_lock_acquisition_time` | Total time spent waiting for locks during a profiling period <br>*Unit: nanosecond* |
+| `prof_python_lock_acquisitions_per_sec` | Number of lock contentions per second <br>*Unit: count* |
+| `prof_python_lock_hold_time` | Total time spent holding locks during a profiling period <br>*Unit: nanosecond* |
+| `prof_python_exceptions_per_sec` | Number of exceptions thrown per second <br>*Unit: count* |
+| `prof_python_exceptions_total` | Total number of exceptions thrown during a profiling period <br>*Unit: count* |
+| `prof_python_lifetime_heap_bytes` | Total memory size occupied by heap objects <br>*Unit: byte* |
+| `prof_python_wall_time` | Wall clock time duration <br>*Unit: nanosecond* |
 
 
 <!-- markdownlint-disable MD046 -->
