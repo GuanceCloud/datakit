@@ -44,17 +44,16 @@ import (
 )
 
 const (
-	MiB                        = 1 << 20 // 1MB
-	inputName                  = "profile"
-	defaultProfileMaxSize      = 32    // 32MB
-	defaultDiskCacheSize       = 10240 // 10240MB, 10GB
-	defaultDiskCacheFileName   = "profile_inputs"
-	defaultConsumeWorkersCount = 8
-	defaultHTTPClientTimeout   = time.Second * 75
-	defaultHTTPRetryCount      = 4
-	XDataKitVersionHeader      = "X-Datakit-Version"
-	timestampHeaderKey         = "X-Datakit-UnixNano"
-	sampleConfig               = `
+	MiB                      = 1 << 20 // 1MB
+	inputName                = "profile"
+	defaultProfileMaxSize    = 32    // 32MB
+	defaultDiskCacheSize     = 10240 // 10240MB, 10GB
+	defaultDiskCacheFileName = "profile_inputs"
+	defaultHTTPClientTimeout = time.Second * 75
+	defaultHTTPRetryCount    = 4
+	XDataKitVersionHeader    = "X-Datakit-Version"
+	timestampHeaderKey       = "X-Datakit-UnixNano"
+	sampleConfig             = `
 [[inputs.profile]]
   ## profile Agent endpoints register by version respectively.
   ## Endpoints can be skipped listen by remove them from the list.
@@ -195,7 +194,7 @@ func DefaultInput() *Input {
 			CachePath:         defaultDiskCachePath(),
 			CacheCapacityMB:   defaultDiskCacheSize,
 			ClearCacheOnStart: false,
-			UploadWorkers:     defaultConsumeWorkersCount,
+			UploadWorkers:     datakit.AvailableCPUs,
 			SendTimeout:       defaultHTTPClientTimeout,
 			SendRetryCount:    defaultHTTPRetryCount,
 		},
@@ -632,6 +631,8 @@ func (ipt *Input) InitDiskQueueIO() error {
 	}
 
 	dc, err := diskcache.Open(
+		// if running within docker, disable pid lock.
+		diskcache.WithNoLock(datakit.Docker),
 		diskcache.WithPath(ipt.IOConfig.CachePath),
 		diskcache.WithCapacity(ipt.getDiskCacheCapacity()),
 		diskcache.WithNoFallbackOnError(true),
