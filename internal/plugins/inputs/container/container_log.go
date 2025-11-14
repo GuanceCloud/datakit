@@ -37,20 +37,17 @@ func (c *containerCollector) gatherLogging() {
 		}
 
 		info, configStr := c.queryContainerLogInfoAndConfig(item)
-		if info.ownerKind == "job" || info.ownerKind == "cronjob" {
-			continue
-		}
 
 		// l.Debugf("find container %s info: %#v", item.Name, info)
 
+		// 检查容器是否匹配日志采集的过滤规则（镜像和命名空间）
 		imageMatch := c.logFilter.Match(filter.FilterImage, info.image)
 		nsMatch := c.logFilter.Match(filter.FilterNamespace, info.podNamespace)
-		if !(imageMatch && nsMatch) {
-			l.Debugf("log filter matched: containerID=%s, namespace=%s, image=%s, skip", item.ID, info.podNamespace, info.image)
-			continue
-		}
 
-		c.logCoordinator.addTask(item.ID, info, configStr)
+		// 将过滤结果传递给 addTask，用于决定在没有显式配置时是否创建日志采集任务
+		shouldFilter := !(imageMatch && nsMatch)
+
+		c.logCoordinator.addTask(item.ID, info, configStr, shouldFilter)
 		activeContainers = append(activeContainers, item.ID)
 	}
 

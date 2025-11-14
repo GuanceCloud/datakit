@@ -52,7 +52,7 @@ func newContainerLogCoordinator(defaults *loggingDefaults) *containerLogCoordina
 	}
 }
 
-func (c *containerLogCoordinator) addTask(containerID string, info *containerLogInfo, configStr string) {
+func (c *containerLogCoordinator) addTask(containerID string, info *containerLogInfo, configStr string, shouldFilter bool) {
 	c.taskMutex.Lock()
 	defer c.taskMutex.Unlock()
 
@@ -81,15 +81,26 @@ func (c *containerLogCoordinator) addTask(containerID string, info *containerLog
 	var err error
 
 	if !task.useAnnotationOrEnvLogConfigs {
+		// 容器没有通过 Annotation 或环境变量配置日志采集
 		if crd := c.matchCRDConfigs(task); crd != nil {
+			// 匹配到了 CRD 配置，使用 CRD 配置进行日志采集
 			configs = crd
 		} else {
+			// 既没有 Annotation/Env 配置，也没有匹配到 CRD 配置
+			// 此时需要根据日志过滤规则（include/exclude）决定是否采集日志
+			// shouldFilter 为 true 表示容器的镜像或命名空间不匹配过滤规则，应该跳过采集
+			if shouldFilter {
+				l.Debugf("log filter matched: containerID=%s, namespace=%s, image=%s, skip", containerID, info.podNamespace, info.image)
+				return
+			}
+
+			// 容器通过了过滤规则，使用默认配置创建日志采集任务
+			// 传入空的 configStr 会创建一个只采集 stdout 的默认配置
 			configs, err = newLogConfigs(c.defaults, info, configStr)
 			if err != nil {
 				l.Errorf("failed to parse log configs for container %s: %v", containerID, err)
 				return
 			}
-			// no-op
 		}
 	} else {
 		configs, err = newLogConfigs(c.defaults, info, configStr)
