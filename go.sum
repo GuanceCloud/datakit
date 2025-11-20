@@ -145,8 +145,10 @@ github.com/DataDog/sketches-go v1.4.1 h1:j5G6as+9FASM2qC36lvpvQAj9qsv/jUs3FtO8Cw
 github.com/DataDog/sketches-go v1.4.1/go.mod h1:xJIXldczJyyjnbDop7ZZcLxJdV3+7Kra7H1KMgpgkLk=
 github.com/GuanceCloud/client_model v0.0.0-20230418154757-93bd4e878a5e h1:i34dA4kiRTfG+KdvkIXCLPDduarVeFlQhGDD3TefgS4=
 github.com/GuanceCloud/client_model v0.0.0-20230418154757-93bd4e878a5e/go.mod h1:PMnE48aPzuRu83FmWZugC0O3d54ZupJd/MmiaYxz8sM=
-github.com/GuanceCloud/cliutils v1.1.22-0.20251029081900-5614df09766b h1:+YXXCv5gkZtyI+2BvbH+pUlr17yrkRNiaXXVFvb8qWc=
-github.com/GuanceCloud/cliutils v1.1.22-0.20251029081900-5614df09766b/go.mod h1:gx2A/FkQjFpM64/DUaiLWfcHeJ+z4FwW2cZ0JkRmc4E=
+github.com/GuanceCloud/cliutils v1.1.22-0.20251118015129-deb2d64faacf h1:EN534+UwnDc8OMZyUUdVfcN5tAWUO5fEt1g0067paXU=
+github.com/GuanceCloud/cliutils v1.1.22-0.20251118015129-deb2d64faacf/go.mod h1:zqhGJB5pvTg+Weysq1331hjnMy11GtRk9Jcr57d/k8M=
+github.com/GuanceCloud/cliutils v1.1.22-0.20251118024540-01621a95a4db h1:zjF9Bqg7X37FSnpIm62A1ajVXumLQnhEDhwripyC764=
+github.com/GuanceCloud/cliutils v1.1.22-0.20251118024540-01621a95a4db/go.mod h1:zqhGJB5pvTg+Weysq1331hjnMy11GtRk9Jcr57d/k8M=
 github.com/GuanceCloud/confd v0.1.101 h1:yjHgfl6YzAlTbFOFMTE4ERpFJzIyovOW7ZFc2/ZssL0=
 github.com/GuanceCloud/confd v0.1.101/go.mod h1:o0opIwOX+yNwV9nh56x5ymFMJ+YBD8JuPxBJ7a1mEmo=
 github.com/GuanceCloud/dockertest/v3 v3.9.4 h1:ScSNhfA2HSNLfrYoNd1KSRxkrymlKiBE60g4f6eUoOk=

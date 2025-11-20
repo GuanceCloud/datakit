@@ -49,6 +49,56 @@ func main() {
 }
 ```
 
+### 增加频率控制
+
+如果某些日志比较高频但又不能完全移除，可以用带频率控制的日志函数。
+
+```golang
+import (
+	"github.com/GuanceCloud/cliutils/logger"
+)
+
+logRate := 1.0
+log = logger.SLogger("module-name", logger.WithRateLimiter(logRate, "")) // 每秒最多输出一条日志
+
+// busy loop...
+for {
+    log.RLInfof(logRate, "this is high frequency log: %d", 1024)
+    // 其它代码...
+}
+```
+
+如果希望有多种频率，那么多加几个即可：
+
+```golang
+logRate1_0 := 1.0
+logRate0_5 := .5
+log = logger.SLogger("module-name",
+        logger.WithRateLimiter(logRate1_0, ""),
+        logger.WithRateLimiter(logRate0_5, ""))
+
+for {
+    log.RLInfof(logRate1_0, "this is 1 log/sec high frequency log: %d", 1024)
+    log.RLInfof(logRate0_5, "this is 0.5 log/sec high frequency log: %d", 1024)
+}
+```
+
+其它几个常规日志函数，只需加上 `RL` 前缀即可：
+
+```golang
+log.RLWarnf()
+log.RLWarn()
+log.RLDebugf()
+log.RLDebug()
+log.RLErrorf()
+log.RLError()
+```
+
+注意事项：
+
+- 如果 logger 没有设置 rate limit，或者指定频率的 limiter 不存在，那么调用 `RLXXX()` 函数等价于调用 `XXX()`
+- 重复追加同样频率的控制，只有一个会生效
+
 ## 关于自动切割
 
 默认情况下，会按照 32MB（大约） 一个文件来切割，最大保持 5 个切片，保存时长为 30 天。

@@ -30,6 +30,8 @@ const (
 	inputName                  = "statsd"
 	catalog                    = "statsd"
 	defaultIOName              = "statsd/-/-"
+
+	logRate = 1.0
 )
 
 // Input statsd allows the importing of statsd and dogstatsd data.
@@ -139,7 +141,7 @@ func (ipt *Input) setup() error {
 	}
 
 	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)
-	ipt.l = logger.SLogger(ipt.Source)
+	ipt.l = logger.SLogger(ipt.Source, logger.WithRateLimiter(1, ""))
 
 	if ipt.ParseDataDogTags {
 		ipt.DataDogExtensions = true
@@ -147,7 +149,7 @@ func (ipt *Input) setup() error {
 	}
 
 	opts := []istatsd.CollectorOption{
-		istatsd.WithLogger(ipt.l),
+		istatsd.WithLogger(ipt.l, logRate),
 		istatsd.WithProtocol(ipt.Protocol),
 		istatsd.WithServiceUnixAddress(ipt.ServiceUnixAddress),
 		istatsd.WithServiceAddress(ipt.ServiceAddress),

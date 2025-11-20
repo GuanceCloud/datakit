@@ -53,7 +53,8 @@ type Tailer struct {
 	shutdownChan chan struct{}
 	updateChan   chan []Option
 
-	log *logger.Logger
+	log   *logger.Logger
+	lrate float64
 
 	// 状态管理
 	isRunning atomic.Bool
@@ -83,7 +84,8 @@ func NewTailer(patterns []string, opts ...Option) (*Tailer, error) {
 		monitoredFiles:    make(map[string]*Single),
 
 		shutdownChan: make(chan struct{}),
-		log:          logger.SLogger("tailer/" + cfg.source),
+		lrate:        1.0,
+		log:          logger.SLogger("tailer/"+cfg.source, logger.WithRateLimiter(1.0, "")),
 		updateChan:   make(chan []Option, defaultUpdateChannelSize),
 	}
 
@@ -257,7 +259,7 @@ func (t *Tailer) updateAllSingles(newOpts []Option) {
 func (t *Tailer) scanFiles(ctx context.Context) {
 	files, err := t.fileScanner.ScanFiles()
 	if err != nil {
-		t.log.Warnf("scan files failed: %v", err)
+		t.log.RLWarnf(t.lrate, "scan files failed: %v", err)
 		return
 	}
 	t.log.Debugf("scan found %d files", len(files))
