@@ -33,33 +33,60 @@ type parameters struct {
 	ignoreURLTags bool
 	url           *url.URL
 	queryValues   url.Values
-	body          *bytes.Buffer
+	body          io.ReadCloser // 接口，bytes.buffer或者网络流
 }
 
 func (ipt *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request) {
 	log.Debugf("### Log request from %s", req.URL.String())
 
-	pbuf := bufpool.GetBuffer()
-	defer bufpool.PutBuffer(pbuf)
+	reqType := req.URL.Query().Get("type")
+	var (
+		param *parameters
+		err   error
+	)
 
-	_, err := io.Copy(pbuf, req.Body)
-	if err != nil {
-		log.Error(err.Error())
-		resp.WriteHeader(http.StatusBadRequest)
+	switch reqType {
+	case "influxdb", "firelens":
+		// 保持原有行为：完整读取 body 到内存（仅对需要完整 payload 的类型）
+		pbuf := bufpool.GetBuffer()
+		_, err = io.Copy(pbuf, req.Body)
+		if err != nil {
+			log.Error(err.Error())
+			resp.WriteHeader(http.StatusBadRequest)
+			bufpool.PutBuffer(pbuf)
+			return
+		}
 
-		return
+		// 拷贝一份数据，随后释放 pool buffer
+		bodyBytes := append([]byte(nil), pbuf.Bytes()...)
+		bufpool.PutBuffer(pbuf)
+
+		param = &parameters{
+			ignoreURLTags: ipt.IgnoreURLTags,
+			url:           req.URL,
+			queryValues:   req.URL.Query(),
+			body:          io.NopCloser(bytes.NewReader(bodyBytes)), // 满足接口数据类型，无操作
+		}
+	default:
+		// 流式处理：直接传递 req.Body，避免一次性读入内存
+		param = &parameters{
+			ignoreURLTags: ipt.IgnoreURLTags,
+			url:           req.URL,
+			queryValues:   req.URL.Query(),
+			body:          req.Body,
+		}
 	}
 
-	param := &parameters{
-		ignoreURLTags: ipt.IgnoreURLTags,
-		url:           req.URL,
-		queryValues:   req.URL.Query(),
-		body:          pbuf,
-	}
-	if err = ipt.processLogBody(param); err != nil {
-		log.Error(err.Error())
-		resp.WriteHeader(http.StatusBadRequest)
+	// 确保关闭 body
+	defer func() {
+		if param != nil && param.body != nil {
+			_ = param.body.Close()
+		}
+	}()
 
+	if err := ipt.processLogBody(param); err != nil {
+		log.Errorf("process log body error: %v", err)
+		resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -209,12 +236,22 @@ func (ipt *Input) processLogBody(param *parameters) error {
 		scanner.Buffer(scanBuffer, maxLogLen)
 
 		for scanner.Scan() {
+			line := scanner.Text()
+			if line == "" {
+				continue
+			}
 			var kvs point.KVs
 
-			kvs = kvs.Set(constants.FieldMessage, scanner.Text()).
+			kvs = kvs.Set(constants.FieldMessage, line).
 				Set(constants.FieldStatus, pipeline.DefaultStatus)
 			pts = append(pts, point.NewPoint(source, kvs,
 				append(logPtOpt, point.WithExtraTags(extraTags), point.WithTime(now))...))
+		}
+
+		// scan error
+		if err := scanner.Err(); err != nil {
+			log.Errorf("url %s scanner error: %v", urlstr, err)
+			return err
 		}
 	}
 
