@@ -132,12 +132,29 @@ func hasDuplicatePath(configs []*logConfig) bool {
 	return false
 }
 
-func fillLogConfigs(defaults *loggingDefaults, info *containerLogInfo, configs []*logConfig) ([]*logConfig, error) {
-	b, err := json.Marshal(configs)
+func fillLogConfigsWithCRDLogging(
+	defaults *loggingDefaults,
+	info *containerLogInfo,
+	crdConfigs *crdLoggingConfig,
+) ([]*logConfig, error) {
+	b, err := json.Marshal(crdConfigs.configs)
 	if err != nil {
 		return nil, err
 	}
-	return newLogConfigs(defaults, info, string(b))
+
+	configs, err := newLogConfigs(defaults, info, string(b))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, cfg := range configs {
+		if cfg.Disable {
+			continue
+		}
+		cfg.addTags(setLabelAsTags(false, labelsOption{keys: crdConfigs.podTargetLabels}, info.podLabels))
+	}
+
+	return configs, nil
 }
 
 func (cfg *logConfig) getStructHash() string {
