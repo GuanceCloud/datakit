@@ -390,6 +390,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&icmpMeasurement{},
 		&websocketMeasurement{},
 		&multiMeasurement{},
+		&grpcMeasurement{},
 	}
 }
 
@@ -692,6 +693,8 @@ func (ipt *Input) newTaskRun(t dt.ITask) (*dialer, error) {
 		// TODO
 	case dt.ClassMulti:
 		// TODO
+	case dt.ClassGRPC:
+		// TODO
 	case dt.ClassOther:
 		// TODO
 	case RegionInfo:
@@ -867,6 +870,8 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 				ct = &dt.WebsocketTask{}
 			case dt.ClassICMP:
 				ct = &dt.ICMPTask{}
+			case dt.ClassGRPC:
+				ct = &dt.GRPCTask{}
 			case dt.ClassOther:
 				// TODO
 				l.Warnf("OTHER task deprecated, ignored")

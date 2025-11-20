@@ -40,7 +40,7 @@ github.com/DataDog/sketches-go/ddsketch/mapping
 github.com/DataDog/sketches-go/ddsketch/pb/sketchpb
 github.com/DataDog/sketches-go/ddsketch/stat
 github.com/DataDog/sketches-go/ddsketch/store
-# github.com/GuanceCloud/cliutils v1.1.22-0.20251118024540-01621a95a4db
+# github.com/GuanceCloud/cliutils v1.1.22-0.20251120071054-139ec74a4d22
 ## explicit; go 1.19
 github.com/GuanceCloud/cliutils
 github.com/GuanceCloud/cliutils/dialtesting
@@ -382,6 +382,18 @@ github.com/bmatcuk/doublestar/v4
 ## explicit; go 1.21
 github.com/brianvoe/gofakeit/v6
 github.com/brianvoe/gofakeit/v6/data
+# github.com/bufbuild/protocompile v0.4.0
+## explicit; go 1.18
+github.com/bufbuild/protocompile
+github.com/bufbuild/protocompile/ast
+github.com/bufbuild/protocompile/internal
+github.com/bufbuild/protocompile/linker
+github.com/bufbuild/protocompile/options
+github.com/bufbuild/protocompile/parser
+github.com/bufbuild/protocompile/protoutil
+github.com/bufbuild/protocompile/reporter
+github.com/bufbuild/protocompile/sourceinfo
+github.com/bufbuild/protocompile/walk
 # github.com/buger/jsonparser v1.1.1
 ## explicit; go 1.13
 github.com/buger/jsonparser
@@ -1141,6 +1153,20 @@ github.com/jcmturner/rpc/v2/ndr
 # github.com/jessevdk/go-flags v1.5.0
 ## explicit; go 1.15
 github.com/jessevdk/go-flags
+# github.com/jhump/protoreflect v1.15.1
+## explicit; go 1.18
+github.com/jhump/protoreflect/codec
+github.com/jhump/protoreflect/desc
+github.com/jhump/protoreflect/desc/internal
+github.com/jhump/protoreflect/desc/protoparse
+github.com/jhump/protoreflect/desc/protoparse/ast
+github.com/jhump/protoreflect/desc/sourceinfo
+github.com/jhump/protoreflect/dynamic
+github.com/jhump/protoreflect/dynamic/grpcdynamic
+github.com/jhump/protoreflect/grpcreflect
+github.com/jhump/protoreflect/grpcreflect/internal/grpc_reflection_v1
+github.com/jhump/protoreflect/internal
+github.com/jhump/protoreflect/internal/codec
 # github.com/jmespath/go-jmespath v0.4.0
 ## explicit; go 1.14
 github.com/jmespath/go-jmespath
@@ -2115,12 +2141,19 @@ google.golang.org/protobuf/reflect/protoregistry
 google.golang.org/protobuf/runtime/protoiface
 google.golang.org/protobuf/runtime/protoimpl
 google.golang.org/protobuf/types/descriptorpb
+google.golang.org/protobuf/types/dynamicpb
 google.golang.org/protobuf/types/gofeaturespb
 google.golang.org/protobuf/types/known/anypb
+google.golang.org/protobuf/types/known/apipb
 google.golang.org/protobuf/types/known/durationpb
 google.golang.org/protobuf/types/known/emptypb
+google.golang.org/protobuf/types/known/fieldmaskpb
+google.golang.org/protobuf/types/known/sourcecontextpb
+google.golang.org/protobuf/types/known/structpb
 google.golang.org/protobuf/types/known/timestamppb
+google.golang.org/protobuf/types/known/typepb
 google.golang.org/protobuf/types/known/wrapperspb
+google.golang.org/protobuf/types/pluginpb
 # gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.18
 ## explicit; go 1.12
 gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace

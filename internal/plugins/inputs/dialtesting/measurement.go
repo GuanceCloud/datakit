@@ -509,3 +509,74 @@ func (m *multiMeasurement) Info() *inputs.MeasurementInfo {
 		},
 	}
 }
+
+type grpcMeasurement struct{}
+
+//nolint:lll
+func (m *grpcMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "grpc_dial_testing",
+		Cat:  point.DialTesting,
+		Tags: map[string]interface{}{
+			"name":            &inputs.TagInfo{Desc: "The name of the task"},
+			"server":          &inputs.TagInfo{Desc: "The gRPC server address"},
+			"dest_host":       &inputs.TagInfo{Desc: "The name of the host to be monitored"},
+			"method":          &inputs.TagInfo{Desc: "The gRPC method name"},
+			"node_name":       &inputs.TagInfo{Desc: "The name of the node"},
+			"country":         &inputs.TagInfo{Desc: "The name of the country"},
+			"province":        &inputs.TagInfo{Desc: "The name of the province"},
+			"city":            &inputs.TagInfo{Desc: "The name of the city"},
+			"internal":        &inputs.TagInfo{Desc: "The boolean value, true for domestic and false for overseas"},
+			"isp":             &inputs.TagInfo{Desc: "ISP, such as `chinamobile`, `chinaunicom`, `chinatelecom`"},
+			"status":          &inputs.TagInfo{Desc: "The status of the task, either 'OK' or 'FAIL'"},
+			"proto":           &inputs.TagInfo{Desc: "The protocol of the task"},
+			"owner":           &inputs.TagInfo{Desc: "The owner name"},
+			"datakit_version": &inputs.TagInfo{Desc: "The DataKit version"},
+			LabelDF:           &inputs.TagInfo{Desc: "The label of the task"},
+		},
+		Fields: map[string]interface{}{
+			"message": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "The message string includes the response time or the failure reason",
+			},
+			"task": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "The raw task string",
+			},
+			"fail_reason": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "The reason that leads to the failure of the task",
+			},
+			"response_time": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationUS,
+				Desc:     "The time of the response",
+			},
+			"success": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "The number to specify whether is successful, 1 for success, -1 for failure",
+			},
+			"seq_number": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.Count,
+				Desc:     "The sequence number of the test",
+			},
+			"config_vars": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "The configuration variables of the task",
+			},
+		},
+	}
+}

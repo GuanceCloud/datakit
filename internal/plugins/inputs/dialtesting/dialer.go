@@ -131,6 +131,8 @@ func newDialer(t dt.ITask, ipt *Input) *dialer {
 		info = (&icmpMeasurement{}).Info()
 	case dt.ClassWebsocket:
 		info = (&websocketMeasurement{}).Info()
+	case dt.ClassGRPC:
+		info = (&grpcMeasurement{}).Info()
 	}
 
 	tags := make(map[string]string)
@@ -426,7 +428,7 @@ func (d *dialer) feedIO() error {
 	urlStr := u.String()
 
 	switch d.task.Class() {
-	case dt.ClassHTTP, dt.ClassTCP, dt.ClassICMP, dt.ClassWebsocket, dt.ClassMulti:
+	case dt.ClassHTTP, dt.ClassTCP, dt.ClassICMP, dt.ClassWebsocket, dt.ClassMulti, dt.ClassGRPC:
 		d.category = urlStr
 		d.pointsFeed(urlStr)
 	case dt.ClassHeadless:
