@@ -389,10 +389,7 @@ func (ipt *Input) ddtraceToDkTrace(trace DDTrace, values []string, remoteIP stri
 		}
 
 		if !ipt.DelMessage {
-			span.ParentID = 0
-			span.SpanID = 0
-			span.TraceID = 0
-			if buf, err := jsonIterator.Marshal(span); err != nil {
+			if buf, err := jsonIterator.Marshal(&wrapMessage{Meta: span.Meta, Metrics: span.Metrics}); err != nil {
 				log.Warn(err.Error())
 			} else {
 				spanKV = spanKV.Add(itrace.FieldMessage, string(buf))
