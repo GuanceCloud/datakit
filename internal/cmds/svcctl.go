@@ -209,9 +209,7 @@ func reinstallDatakit(mc *config.Config) error {
 	if mc.ResourceLimitOptions.Enable {
 		opts = append(opts,
 			dkservice.WithMemLimit(fmt.Sprintf("%dM", mc.ResourceLimitOptions.MemMax)),
-			dkservice.WithCPULimit(fmt.Sprintf("%f%%",
-				// see https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html#CPUQuota=
-				mc.ResourceLimitOptions.CPUCores*100.0)),
+			dkservice.WithCPULimit(mc.ResourceLimitOptions.CPUCores),
 		)
 	}
 

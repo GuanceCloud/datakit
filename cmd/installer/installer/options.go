@@ -288,7 +288,7 @@ func (args *InstallerArgs) setupServiceOptions() *service.Config {
 	svcopts := []dkservice.ServiceOption{
 		dkservice.WithMemLimit(fmt.Sprintf("%dM", rl.MemMax)),
 		// see https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html#CPUQuota=
-		dkservice.WithCPULimit(fmt.Sprintf("%f%%", rl.CPUCores*100.0)),
+		dkservice.WithCPULimit(rl.CPUCores),
 	}
 
 	if runtime.GOOS == datakit.OSLinux && args.FlagUserName != "" {
