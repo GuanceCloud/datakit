@@ -56,8 +56,9 @@ var (
 
 	DCAVersion = ValueNotSet
 
-	AppName = "datakit"
-	AppBin  = "datakit"
+	AppName   = "datakit"
+	AppBin    = "datakit"
+	DDAppName = "datadog-agent"
 
 	StandaloneApps = []string{
 		"datakit-ebpf",
@@ -349,11 +350,16 @@ func Compile() error {
 			(goarch == archAMD64 || goarch == archARM64) && /* enable build under macOS for debugging. */
 			goos != "windows" { // windows not need currently
 			var (
-				dir       = fmt.Sprintf("%s/%s_aws_lambda-%s-%s/extensions", DistDir, AppName, goos, goarch)
-				mainEntry = filepath.Join(filepath.Dir(filepath.Dir(MainEntry)), "awslambda", "main.go")
+				dir         = fmt.Sprintf("%s/%s_aws_lambda-%s-%s/extensions", DistDir, AppName, goos, goarch)
+				mainDKEntry = filepath.Join(filepath.Dir(filepath.Dir(MainEntry)), "awslambda", "datakit/main.go")
+				mainDDEntry = filepath.Join(filepath.Dir(filepath.Dir(MainEntry)), "awslambda", "datadog/main.go")
 			)
 
-			if err := compileArch(AppBin, goos, goarch, dir, mainEntry, "datakit_aws_lambda && with_inputs"); err != nil {
+			if err := compileArch(AppBin, goos, goarch, dir, mainDKEntry, "datakit_aws_lambda && with_inputs"); err != nil {
+				return err
+			}
+
+			if err := compileArch(DDAppName, goos, goarch, dir, mainDDEntry, ""); err != nil {
 				return err
 			}
 
