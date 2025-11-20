@@ -55,10 +55,12 @@ func WithMemLimit(mem string) ServiceOption {
 	}
 }
 
-func WithCPULimit(cpu string) ServiceOption {
+func WithCPULimit(cpuCores float64) ServiceOption {
 	return func(sconf *service.Config) {
-		if cpu != "" {
-			sconf.Option[ServiceOptCPU] = cpu
+		if cpuCores > 0 {
+			// see https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html#CPUQuota=
+			// only support max 2 decimal places
+			sconf.Option[ServiceOptCPU] = fmt.Sprintf("%.2f%%", cpuCores*100.0)
 		}
 	}
 }

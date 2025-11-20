@@ -80,7 +80,7 @@ func TestSetupService(t *T.T) {
 		rl := config.DefaultConfig().ResourceLimitOptions
 		rl.Setup()
 
-		assert.Equal(t, fmt.Sprintf("%f%%", rl.CPUCores*100), scfg.Option["CPUQuota"])
+		assert.Equal(t, fmt.Sprintf("%.2f%%", rl.CPUCores*100), scfg.Option["CPUQuota"])
 		assert.Equal(t, fmt.Sprintf("%dM", rl.MemMax), scfg.Option["MemoryLimit"])
 	})
 
@@ -98,7 +98,7 @@ func TestSetupService(t *T.T) {
 		scfg := args.setupServiceOptions()
 		t.Logf("service config: %+#v", scfg)
 
-		assert.Equal(t, fmt.Sprintf("%f%%", args.LimitCPUMax*float64(runtime.NumCPU())), scfg.Option["CPUQuota"])
+		assert.Equal(t, fmt.Sprintf("%.2f%%", args.LimitCPUMax*float64(runtime.NumCPU())), scfg.Option["CPUQuota"])
 		assert.Equal(t, "1024M", scfg.Option["MemoryLimit"])
 	})
 
@@ -153,7 +153,7 @@ func TestSetupService(t *T.T) {
 		scfg := args.setupServiceOptions()
 		t.Logf("service config: %+#v", scfg)
 
-		assert.Equal(t, fmt.Sprintf("%f%%", args.LimitCPUMax*float64(runtime.NumCPU())), scfg.Option["CPUQuota"])
+		assert.Equal(t, fmt.Sprintf("%.2f%%", args.LimitCPUMax*float64(runtime.NumCPU())), scfg.Option["CPUQuota"])
 		assert.Equal(t, "1024M", scfg.Option["MemoryLimit"])
 		assert.True(t, args.shouldReinstallService)
 	})
