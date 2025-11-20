@@ -70,6 +70,8 @@ SKIP_HELM                    ?= 0
 MERGE_REQUEST_TARGET_BRANCH  ?= ""
 ONLY_BUILD_INPUTS_EXTENTIONS ?= 0
 
+AWS_REGIONS ?= ""
+
 # Generate 'internal/git' package
 define GIT_INFO
 // Package git used to define basic git info abount current version.
@@ -158,6 +160,7 @@ define publish
 		-archs $(2)                             \
 		-pub                                    \
 		-enable-upload-aws                      \
+		-aws-regions $(AWS_REGIONS)             \
 		-dist-dir $(DIST_DIR)                   \
 		-name $(NAME)                           \
 		-brand $(BRAND)                         \
