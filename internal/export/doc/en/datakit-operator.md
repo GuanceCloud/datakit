@@ -432,7 +432,219 @@ datakit-lib-init
 1. The DataKit `logfwdserver` collector is enabled, for example, listening on port `9533`.
 2. The DataKit service needs to open port `9533` to allow other Pods to access `datakit-service.datakit.svc:9533`.
 
-#### Instructions {#datakit-operator-inject-logfwd-instructions}
+#### Instructions (1.6.0 and later) {#datakit-operator-1-6-0-inject-logfwd-instructions}
+
+DataKit-Operator 1.6.0 delivers major improvements to the logfwd injection workflow:
+
+- **Centralized configuration management**: the Operator watches Kubernetes `ClusterLoggingConfig` CRDs and exposes the matched results for sidecars to poll. logfwd sidecars (>= 1.86.0) send an HTTP request to the Operator endpoint every 60 seconds to fetch the latest configurations.
+- **Hot reload & fine-grained matching**: CRD selectors (namespace, Pod name, labels, containers) take effect immediately without recreating workloads.
+- **Compatibility with manual overrides**: annotations can still override individual Pods, which is handy for debugging or special cases.
+
+> If you are not familiar with `ClusterLoggingConfig`, read the [Container Log Collection via CRD guide](../integrations/container-log-for-k8s-crd.md) first.
+
+Workflow:
+
+1. Register the `ClusterLoggingConfig` CRD (see the DataKit documentation).
+1. Install/upgrade DataKit-Operator 1.6.0 and grant it read-only RBAC permissions on the CRD.
+1. Add logfwd annotations to the target Pods (enable flag plus optional overrides).
+1. Create `ClusterLoggingConfig` resources. logfwd sidecars will poll the Operator endpoint every 60 seconds to obtain the matching log collection configs.
+
+The latest `datakit-operator.yaml` already contains the required permissions. You can also apply the minimal manifest below:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: datakit-operator
+rules:
+- apiGroups: ["logging.datakits.io"]
+  resources: ["clusterloggingconfigs"]
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: datakit-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: datakit-operator
+subjects:
+- kind: ServiceAccount
+  name: datakit-operator
+  namespace: datakit
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: datakit-operator
+  namespace: datakit
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: datakit-operator
+  namespace: datakit
+  labels:
+    app: datakit-operator
+spec:
+  replicas: 1  # Do not change the ReplicaSet number!
+  selector:
+     matchLabels:
+       app: datakit-operator
+  template:
+    metadata:
+      labels:
+        app: datakit-operator
+    spec:
+      # Add serviceAccountName
+      serviceAccountName: datakit-operator
+      containers:
+      - name: operator
+        # other..
+```
+
+logfwd injection introduces several mandatory environment variables and image requirements. Configure them in the `datakit-operator-config` ConfigMap:
+
+```json
+            "logfwd": {
+                "images": {
+                    "logfwd_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/logfwd:1.86.0"
+                },
+                "envs": {
+                    "LOGFWD_DATAKIT_HOST":              "{fieldRef:status.hostIP}",
+                    "LOGFWD_DATAKIT_PORT":              "9533",
+                    "LOGFWD_DATAKIT_OPERATOR_ENDPOINT": "datakit-operator.datakit.svc:443",
+                    "LOGFWD_GLOBAL_SERVICE":            "{fieldRef:metadata.labels['app']}",
+                    "LOGFWD_POD_NAME":                  "{fieldRef:metadata.name}",
+                    "LOGFWD_POD_NAMESPACE":             "{fieldRef:metadata.namespace}",
+                    "LOGFWD_POD_IP":                    "{fieldRef:status.podIP}"
+                }
+            }
+```
+
+| Env var                            | Description                                                                                                                                      |
+| :---                               | :---                                                                                                                                             |
+| `LOGFWD_DATAKIT_HOST`              | DataKit instance address (IP or resolvable hostname).                                                                                            |
+| `LOGFWD_DATAKIT_PORT`              | DataKit `logfwdserver` listening port, e.g. `9533`.                                                                                              |
+| `LOGFWD_DATAKIT_OPERATOR_ENDPOINT` | DataKit-Operator endpoint, such as `datakit-operator.datakit.svc:443` or `https://datakit-operator.datakit.svc:443`, used when polling CRD data. |
+| `LOGFWD_GLOBAL_SOURCE`             | Global `source`, which overrides the `source` field in individual configs.                                                                       |
+| `LOGFWD_GLOBAL_SERVICE`            | Global `service`. If a config omits `service`, this global value is used; if empty, it falls back to `source`.                                   |
+| `LOGFWD_GLOBAL_STORAGE_INDEX`      | Global `storage_index`, with higher priority than per-config values.                                                                             |
+| `LOGFWD_POD_NAME`                  | Automatically adds the `pod_name` tag (injected via Downward API).                                                                               |
+| `LOGFWD_POD_NAMESPACE`             | Automatically adds the `namespace` tag.                                                                                                          |
+| `LOGFWD_POD_IP`                    | Automatically adds the `pod_ip` tag for locating container instances.                                                                            |
+
+Even with CRDs enabled, Pods must explicitly opt in to logfwd sidecars. Annotations can also override CRD-delivered configs:
+
+- `admission.datakit/logfwd.enabled`: only `"true"` triggers injection.
+- `admission.datakit/logfwd.log_configs`: optional JSON array to override configs (handy for debugging). Example:
+
+```json
+[
+  {
+    "type": "file",
+    "disable": false,
+    "source": "nginx-access",
+    "service": "nginx",
+    "path": "/var/log/nginx/access.log",
+    "pipeline": "nginx-access.p",
+    "storage_index": "app-logs",
+    "multiline_match": "^\\d{4}-\\d{2}-\\d{2}",
+    "remove_ansi_escape_codes": false,
+    "from_beginning": false,
+    "character_encoding": "utf-8",
+    "tags": {
+      "env": "production",
+      "team": "backend"
+    }
+  }
+]
+```
+
+| Field                       | Type    | Required | Description                                                                                                             | Example                    |
+| ------                      | ------  | ------   | ------                                                                                                                 | ------                     |
+| `type`                      | string  | Yes      | logfwd input type. Only `"file"` is supported.                                                                          | `"file"`                   |
+| `disable`                   | boolean | No       | Whether to disable the config.                                                                                           | `false`                    |
+| `source`                    | string  | Yes      | Log source identifier, used to distinguish log streams.                                                                  | `"nginx-access"`           |
+| `service`                   | string  | No       | Service name. Defaults to `source`.                                                                                      | `"nginx"`                  |
+| `path`                      | string  | Cond     | File path (supports glob). Required when `type=file`.                                                                    | `"/var/log/nginx/*.log"`   |
+| `multiline_match`           | string  | No       | Regex for multiline start. Remember to escape backslashes in JSON.                                                       | `"^\\d{4}-\\d{2}-\\d{2}"`  |
+| `pipeline`                  | string  | No       | Pipeline script name configured on DataKit.                                                                              | `"nginx-access.p"`         |
+| `storage_index`             | string  | No       | Target storage index.                                                                                                    | `"app-logs"`               |
+| `remove_ansi_escape_codes`  | boolean | No       | Remove ANSI escape codes (colors, etc.).                                                                                 | `false`                    |
+| `from_beginning`            | boolean | No       | Whether to start reading from the beginning of the file (default: tail).                                                 | `false`                    |
+| `character_encoding`        | string  | No       | Encoding. Supports `utf-8`, `utf-16le`, `utf-16be`, `gbk`, `gb18030`, or empty string for auto-detect.                   | `"utf-8"`                  |
+| `tags`                      | object  | No       | Extra tags attached to each log.                                                                                         | `{"env": "prod"}`          |
+
+- `admission.datakit/logfwd.volume_paths`: JSON array that declares host paths to mount so the sidecar can read log files, e.g. `'["/var/log", "/data/log"]'`. Avoid nested parent/child directories to prevent conflicts.
+
+ClusterLoggingConfig example:
+
+```yaml
+apiVersion: logging.datakits.io/v1alpha1
+kind: ClusterLoggingConfig
+metadata:
+  name: nginx-logs
+spec:
+  selector:
+    namespaceRegex: "^(middleware)$"
+    podLabelSelector: "app=logging"
+  podTargetLabels:
+    - app
+    - env
+  configs:
+    - type: file
+      source: nginx-access
+      service: nginx
+      path: /var/log/nginx/access.log
+      pipeline: nginx-access.p
+      storage_index: app-logs
+      multiline_match: "^\\d{4}-\\d{2}-\\d{2}"
+      tags:
+        team: web
+```
+
+The following Deployment shows how CRDs and annotations work together:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logging-demo
+  namespace: middleware
+  labels:
+    app: logging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logging
+  template:
+    metadata:
+      labels:
+        app: logging
+      annotations:
+        admission.datakit/logfwd.enabled: "true"
+        admission.datakit/logfwd.volume_paths: '["/var/log/nginx"]'
+        # Override CRD configs only when necessary:
+        # admission.datakit/logfwd.log_configs: '[{...}]'
+    spec:
+      containers:
+      - name: log-app
+        image: nginx:1.25
+```
+
+After applying these manifests, DataKit-Operator will:
+
+1. Watch the Deployment and inject the `datakit-logfwd` container.
+1. Maintain the CRD match results for the Pod so that sidecars can read them during polling.
+1. Serve sidecar requests via `LOGFWD_DATAKIT_OPERATOR_ENDPOINT`; each sidecar pulls configs every 60 seconds and forwards log tasks to DataKit `logfwdserver`.
+
+#### Instructions (before 1.6.0) {#datakit-operator-1-6-0-inject-logfwd-instructions-legacy}
 
 1. On the target Kubernetes cluster, [download and install DataKit-Operator](datakit-operator.md#datakit-operator-overview-and-install).
 1. In the deployment, add the specified Annotation to indicate that a logfwd sidecar needs to be mounted. Note that the Annotation should be added in the template.
@@ -481,7 +693,7 @@ Parameter explanation can refer to [logfwd configuration](../integrations/logfwd
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    That there is a difference between paths with and without a trailing slash. `/var/log` and `/var/log/` are considered different paths and cannot be reused.
+    There is a difference between paths with and without a trailing slash. `/var/log` and `/var/log/` are considered different paths and cannot be reused.
 <!-- markdownlint-enable -->
 
 #### Example {#datakit-operator-inject-logfwd-example}

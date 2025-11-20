@@ -307,7 +307,7 @@ func (t *Tailer) createFileTailer(ctx context.Context, file string) {
 }
 
 func (t *Tailer) Close() {
-	t.log.Info("closing tailer, source: %s", t.source)
+	t.log.Infof("closing tailer, source: %s", t.source)
 
 	if t.fileWatcher != nil {
 		if err := t.fileWatcher.Close(); err != nil {

@@ -284,7 +284,7 @@ func (c *containerLogCoordinator) updateTailerForTask(task *containerLogTask, ne
 	// 配置存在差异，执行更新
 	l.Infof("config changed for container %s, path %s, will update", task.containerID, targetPath)
 
-	opts := c.buildTailerOptions(task.info, newCfg)
+	opts := c.buildTailerOptions(newCfg)
 	if err := existing.UpdateOptions(opts); err != nil {
 		l.Errorf("failed to update tailer options for container %s: %v", task.containerID, err)
 		return false, tailerIndex
@@ -320,7 +320,7 @@ func (c *containerLogCoordinator) createTailerForTask(task *containerLogTask, cf
 }
 
 func (c *containerLogCoordinator) createTailer(info *containerLogInfo, cfg *logConfig) (*tailer.Tailer, error) {
-	opts := c.buildTailerOptions(info, cfg)
+	opts := c.buildTailerOptions(cfg)
 	opts = append(opts, tailer.WithInsideFilepathFunc(func(filepath string) string {
 		return c.defaults.insideFilepathFunc(cfg.hostDir, cfg.insideDir, filepath)
 	}))
@@ -433,7 +433,7 @@ func (c *containerLogCoordinator) closeTailersForDisabledPaths(task *containerLo
 	return true
 }
 
-func (c *containerLogCoordinator) buildTailerOptions(info *containerLogInfo, cfg *logConfig) []tailer.Option {
+func (c *containerLogCoordinator) buildTailerOptions(cfg *logConfig) []tailer.Option {
 	opts := []tailer.Option{
 		tailer.WithStorageIndex(cfg.StorageIndex),
 		tailer.WithSource(cfg.Source),

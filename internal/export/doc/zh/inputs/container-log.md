@@ -42,6 +42,7 @@ DataKit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 [
   {
     "disable" : false,
+    "type"    : "stdout",
     "source"  : "<your-source>",
     "service" : "<your-service>",
     "pipeline": "<your-pipeline.p>",

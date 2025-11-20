@@ -74,7 +74,7 @@ var externals = []*dkexternal{
 		name: "logfwd",
 		lang: "go",
 
-		entry: "logfwd.go",
+		entry: "cmd/main.go",
 		osarchs: map[string]bool{
 			"linux/amd64": true,
 			"linux/arm64": true,

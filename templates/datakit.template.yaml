@@ -215,6 +215,7 @@ spec:
           name: debugfs
         - mountPath: /var/lib/containerd/container_logs
           name: container-logs
+          mountPropagation: HostToContainer
         # # ---iploc-start
         #- mountPath: /usr/local/datakit/data/ipdb/iploc/
         #  name: datakit-ipdb
