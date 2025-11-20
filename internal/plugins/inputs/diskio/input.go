@@ -200,6 +200,25 @@ func (ipt *Input) collect() error {
 					kvs = kvs.Set("write_bytes/sec", int64(stat.WriteBytes-v.WriteBytes)/deltaTime)
 				}
 			}
+
+			// Calculate await metric: average time for I/O requests to be served (ms)
+			// Use delta values between current and last collection for real-time measurement
+			if lastStat, ok := ipt.lastStat[stat.Name]; ok {
+				if stat.WeightedIO >= lastStat.WeightedIO &&
+					stat.ReadCount >= lastStat.ReadCount &&
+					stat.WriteCount >= lastStat.WriteCount {
+					deltaWeightedIO := stat.WeightedIO - lastStat.WeightedIO
+					deltaReads := stat.ReadCount - lastStat.ReadCount
+					deltaWrites := stat.WriteCount - lastStat.WriteCount
+					deltaRequests := deltaReads + deltaWrites
+
+					awaitValue := 0.0
+					if deltaRequests > 0 {
+						awaitValue = float64(deltaWeightedIO) / float64(deltaRequests)
+					}
+					kvs = kvs.Set("await", awaitValue)
+				}
+			}
 		}
 
 		for k, v := range ipt.mergedTags {

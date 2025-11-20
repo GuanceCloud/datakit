@@ -28,6 +28,7 @@ func (*docMeasurement) Info() *inputs.MeasurementInfo {
 			"write_time":       newFieldsInfoMS("Time spent writing."),
 			"io_time":          newFieldsInfoMS("Time spent doing I/Os. Linux only"),
 			"weighted_io_time": newFieldsInfoMS("Weighted time spent doing I/Os. Linux only"),
+			"await":            newFieldsInfoFloatMS("Average time for I/O requests to be served (ms). Linux only"),
 			"iops_in_progress": newFieldsInfoCount("I/Os currently in progress. Linux only"),
 			"merged_reads":     newFieldsInfoCount("The number of merged read requests. Linux only"),
 			"merged_writes":    newFieldsInfoCount("The number of merged write requests. Linux only"),
@@ -70,6 +71,15 @@ func newFieldsInfoMS(desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{
 		Type:     inputs.Gauge,
 		DataType: inputs.Int,
+		Unit:     inputs.DurationMS,
+		Desc:     desc,
+	}
+}
+
+func newFieldsInfoFloatMS(desc string) *inputs.FieldInfo {
+	return &inputs.FieldInfo{
+		Type:     inputs.Gauge,
+		DataType: inputs.Float,
 		Unit:     inputs.DurationMS,
 		Desc:     desc,
 	}
