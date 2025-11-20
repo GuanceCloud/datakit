@@ -132,6 +132,8 @@ var (
 		profGoLifetimeHeapBytes:     "go_lifetime_heap_bytes",
 		profGoLifetimeHeapObjects:   "go_lifetime_heap_objects",
 	}
+
+	commonTags = []string{"host", "service", "env", "version"}
 )
 
 func InitLog() {
@@ -198,11 +200,15 @@ func ExtractJVMMetrics(files map[string][]*multipart.FileHeader,
 
 	var kvs point.KVs
 
-	kvs = kvs.AddTag("language", Java.String()).
-		AddTag("host", metadata["host"]).
-		AddTag("service", metadata["service"]).
-		AddTag("env", metadata["env"]).
-		AddTag("version", metadata["version"])
+	kvs = kvs.AddTag("language", Java.String())
+
+	for _, key := range commonTags {
+		if v, ok := metadata[key]; ok && v != "" {
+			kvs = kvs.AddTag(key, v)
+		} else {
+			l.Warnf("common tag %s not found", key)
+		}
+	}
 
 	for k, v := range customTags {
 		kvs = kvs.AddTag(k, v)
@@ -320,11 +326,15 @@ func ExtractPythonMetrics(files map[string][]*multipart.FileHeader,
 ) ([]*point.Point, error) {
 	var kvs point.KVs
 
-	kvs = kvs.AddTag("language", Python.String()).
-		AddTag("host", metadata["host"]).
-		AddTag("service", metadata["service"]).
-		AddTag("env", metadata["env"]).
-		AddTag("version", metadata["version"])
+	kvs = kvs.AddTag("language", Python.String())
+
+	for _, key := range commonTags {
+		if v, ok := metadata[key]; ok && v != "" {
+			kvs = kvs.AddTag(key, v)
+		} else {
+			l.Warnf("common tag %s not found", key)
+		}
+	}
 
 	for k, v := range customTags {
 		kvs = kvs.AddTag(k, v)
@@ -473,11 +483,15 @@ func ExtractGoMetrics(files map[string][]*multipart.FileHeader,
 ) ([]*point.Point, error) {
 	var kvs point.KVs
 
-	kvs = kvs.AddTag("language", Golang.String()).
-		AddTag("host", metadata["host"]).
-		AddTag("service", metadata["service"]).
-		AddTag("env", metadata["env"]).
-		AddTag("version", metadata["version"])
+	kvs = kvs.AddTag("language", Golang.String())
+
+	for _, key := range commonTags {
+		if v, ok := metadata[key]; ok && v != "" {
+			kvs = kvs.AddTag(key, v)
+		} else {
+			l.Warnf("common tag %s not found", key)
+		}
+	}
 
 	for k, v := range customTags {
 		kvs = kvs.AddTag(k, v)
