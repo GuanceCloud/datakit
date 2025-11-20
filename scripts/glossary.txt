@@ -140,6 +140,7 @@ clidriver
 configfile
 containerd
 datagram
+datakit
 ddtrace
 dfpv
 diskcache
@@ -197,6 +198,7 @@ nullable
 nvme
 ondemand
 oplog
+pipeline
 ppid
 pprof
 promremote

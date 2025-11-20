@@ -179,7 +179,7 @@ func (t *Single) Run(ctx context.Context) {
 }
 
 func (t *Single) Close() {
-	t.log.Infof("closing tailer for file: %s, source: %s", t.filepath, t.config.source)
+	t.log.Infof("closing tailer for file: %s, source: %s, seekOffset: %d", t.filepath, t.config.source, t.offset)
 	if t.cancelFunc != nil {
 		t.cancelFunc()
 	}
