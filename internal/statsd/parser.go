@@ -78,7 +78,7 @@ func (col *Collector) parseStatsdLine(line string) error {
 	// Validate splitting the line on ":"
 	bits := strings.Split(line, ":")
 	if len(bits) < 2 {
-		col.opts.l.Debugf("Splitting ':', unable to parse metric: %s", line)
+		col.opts.l.RLWarnf(col.opts.lrate, "Splitting ':', unable to parse metric: %s", line)
 		return nil
 	}
 
@@ -94,7 +94,7 @@ func (col *Collector) parseStatsdLine(line string) error {
 		// Validate splitting the bit on "|"
 		pipesplit := strings.Split(bit, "|")
 		if len(pipesplit) < 2 {
-			col.opts.l.Debugf("splitting '|', unable to parse metric: %s, ignored", line)
+			col.opts.l.RLWarnf(col.opts.lrate, "splitting '|', unable to parse metric: %s, ignored", line)
 			return nil
 		} else if len(pipesplit) > 2 { // with sample rate
 			sr := pipesplit[2]
@@ -108,7 +108,7 @@ func (col *Collector) parseStatsdLine(line string) error {
 					m.samplerate = samplerate
 				}
 			} else {
-				col.opts.l.Debugf("sample rate must be in format like: "+
+				col.opts.l.RLWarnf(col.opts.lrate, "sample rate must be in format like: "+
 					"@0.1, @0.5, etc. Ignoring sample rate for line: %s", line)
 			}
 		}
@@ -118,7 +118,7 @@ func (col *Collector) parseStatsdLine(line string) error {
 		case "g", "c", "s", "ms", "h", "d":
 			m.mtype = pipesplit[1]
 		default:
-			col.opts.l.Debugf("metric type %q unsupported, line: %s", pipesplit[1], line)
+			col.opts.l.RLWarnf(col.opts.lrate, "metric type %q unsupported, line: %s", pipesplit[1], line)
 			return nil
 		}
 

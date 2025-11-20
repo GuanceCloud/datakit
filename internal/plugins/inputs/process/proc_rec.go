@@ -41,11 +41,11 @@ func (p *procRecorder) flush(process []*pr.Process, recTime time.Time) {
 	for _, ps := range process {
 		cputime, err := ps.Times()
 		if err != nil {
-			l.Warnf("pid: %d, err: %v, ignored", ps.Pid, err)
+			l.RLWarnf(logRate, "pid: %d, err: %v, ignored", ps.Pid, err)
 			continue
 		}
 		if cputime == nil {
-			l.Warnf("pid: %d, err: nil cputime, ignored", ps.Pid)
+			l.RLWarnf(logRate, "pid: %d, err: nil cputime, ignored", ps.Pid)
 			continue
 		}
 		p.recorder[ps.Pid] = procRecStat{

@@ -39,7 +39,8 @@ type option struct {
 	tcpKeepAlive           bool
 	maxTTL                 time.Duration
 
-	l *logger.Logger
+	l     *logger.Logger
+	lrate float64
 }
 
 type CollectorOption func(opt *option)
@@ -150,6 +151,9 @@ func WithMaxTTL(args time.Duration) CollectorOption {
 	}
 }
 
-func WithLogger(args *logger.Logger) CollectorOption {
-	return func(opt *option) { opt.l = args }
+func WithLogger(args *logger.Logger, rate float64) CollectorOption {
+	return func(opt *option) {
+		opt.l = args
+		opt.lrate = rate
+	}
 }

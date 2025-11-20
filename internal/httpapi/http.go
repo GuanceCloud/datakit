@@ -201,6 +201,7 @@ func setupRouter(hs *httpServerConf) *gin.Engine {
 
 	router.Use(setDKInfo)
 
+	// should we disable gin log when under ReleaseMode?
 	router.Use(gin.LoggerWithConfig(gin.LoggerConfig{
 		Formatter: uhttp.GinLogFormatter,
 		Output:    setupGinLogger(hs),

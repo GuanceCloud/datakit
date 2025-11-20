@@ -214,3 +214,12 @@ func GZip(data []byte) ([]byte, error) {
 	}
 	return z.Bytes(), nil
 }
+
+// A small tolerance for float comparisons.
+const epsilon = 1e-9 // 0.000000001
+
+// FloatEquals checks if two float64 numbers are "close enough".
+func FloatEquals(a, b float64) bool {
+	// math.Abs returns the absolute value of the difference.
+	return math.Abs(a-b) < epsilon
+}
