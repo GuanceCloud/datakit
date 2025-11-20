@@ -186,10 +186,10 @@ func TestInput_rw_rate(t *testing.T) {
 				mergedTags: make(map[string]string),
 			},
 			want: []string{
-				"diskio,host=HOST,name=/dev/sdb,serial=unknown io_time=643584u,iops_in_progress=0u,merged_reads=392242u,merged_writes=1217830u,read_bytes=26472676050u,read_bytes/sec=1234i,read_time=409419u,reads=1000749u,weighted_io_time=904930u,write_bytes=39289734144u,write_bytes/sec=0i,write_time=488838u,writes=552776u",
-				"diskio,host=HOST,name=/dev/sdb1,serial=unknown io_time=184u,iops_in_progress=0u,merged_reads=29u,merged_writes=0u,read_bytes=6110208u,read_bytes/sec=0i,read_time=202u,reads=198u,weighted_io_time=206u,write_bytes=1024u,write_bytes/sec=0i,write_time=3u,writes=2u",
-				"diskio,host=HOST,name=/dev/sdb2,serial=unknown io_time=36u,iops_in_progress=0u,merged_reads=0u,merged_writes=0u,read_bytes=2138112u,read_bytes/sec=0i,read_time=31u,reads=58u,weighted_io_time=31u,write_bytes=5678u,write_bytes/sec=5678i,write_time=0u,writes=0u",
-				"diskio,host=HOST,name=/dev/sdb3,serial=unknown io_time=500292u,iops_in_progress=0u,merged_reads=253655u,merged_writes=1079685u,read_bytes=11279713280u,read_bytes/sec=0i,read_time=191469u,reads=503575u,weighted_io_time=632923u,write_bytes=35390902272u,write_bytes/sec=0i,write_time=441453u,writes=437354u",
+				"diskio,host=HOST,name=/dev/sdb,serial=unknown await=0,io_time=643584u,iops_in_progress=0u,merged_reads=392242u,merged_writes=1217830u,read_bytes=26472676050u,read_bytes/sec=1234i,read_time=409419u,reads=1000749u,weighted_io_time=904930u,write_bytes=39289734144u,write_bytes/sec=0i,write_time=488838u,writes=552776u",
+				"diskio,host=HOST,name=/dev/sdb1,serial=unknown await=0,io_time=184u,iops_in_progress=0u,merged_reads=29u,merged_writes=0u,read_bytes=6110208u,read_bytes/sec=0i,read_time=202u,reads=198u,weighted_io_time=206u,write_bytes=1024u,write_bytes/sec=0i,write_time=3u,writes=2u",
+				"diskio,host=HOST,name=/dev/sdb2,serial=unknown await=0,io_time=36u,iops_in_progress=0u,merged_reads=0u,merged_writes=0u,read_bytes=2138112u,read_bytes/sec=0i,read_time=31u,reads=58u,weighted_io_time=31u,write_bytes=5678u,write_bytes/sec=5678i,write_time=0u,writes=0u",
+				"diskio,host=HOST,name=/dev/sdb3,serial=unknown await=0,io_time=500292u,iops_in_progress=0u,merged_reads=253655u,merged_writes=1079685u,read_bytes=11279713280u,read_bytes/sec=0i,read_time=191469u,reads=503575u,weighted_io_time=632923u,write_bytes=35390902272u,write_bytes/sec=0i,write_time=441453u,writes=437354u",
 			},
 			wantErr: false,
 		},
@@ -217,6 +217,7 @@ func TestInput_rw_rate(t *testing.T) {
 
 			ipt.setup()
 			ipt.ioCounters = DiskIO4Test
+			// First collect - initialize lastStat
 			ipt.start = time.Now()
 			err := ipt.collect()
 			if (err != nil) != tt.wantErr {
@@ -227,9 +228,8 @@ func TestInput_rw_rate(t *testing.T) {
 				return
 			}
 
-			// 2nd loop
+			// 2nd loop with updated data
 			time.Sleep(time.Second * 1)
-
 			ipt.start = time.Now()
 			temp01 := testData["sdb"]
 			temp01.ReadBytes += 1234
@@ -240,6 +240,9 @@ func TestInput_rw_rate(t *testing.T) {
 			testData["sdb2"] = temp02
 
 			ipt.ioCounters = DiskIO4Test
+
+			// Clear cache before second collect to ensure we only have the latest data
+			ipt.collectCache = make([]*point.Point, 0)
 			err = ipt.collect()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
