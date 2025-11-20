@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.86.0(2025/11/20) {#cl-1.86.0}
+
+This release is a feature update with the following changes:
+
+### New Features {#cl-1.86.0-new}
+
+- Added gRPC dial testing (#2862)[^2862]
+- logfwd collection configuration now supports hot updates via CRD (#2858)
+
+[^2862]: Currently, Studio does not support creating gRPC dial testing tasks yet. Only local DataKit configuration is available for now.
+
+### Bug Fixes {#cl-1.86.0-fix}
+
+- Fixed `PodTargetLabel` issue in log collection CRD (#2880)
+- Fixed CPU usage limit failure for cgroup on Ubuntu (#2894)
+- Fixed tag setting issue in profile metric generation (!3757)
+
+### Optimizations {#cl-1.86.0-opt}
+
+- diskio collector now supports direct calculation of iowait-related disk metrics, no longer requiring pythond plugin (#2878)
+- Removed already extracted fields from `message` in DDTrace collection (#2879)
+- Optimized DataKit's own logging behavior, applying rate limiting to high-frequency but important logs (#2886)
+- Enhanced DataKit Lambda extension (#2893)
+
+---
+
 ## 1.85.1(2025/11/14) {#cl-1.85.1}
 
 This release is a hotfix containing the following fixes:

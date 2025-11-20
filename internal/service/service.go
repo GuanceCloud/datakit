@@ -60,7 +60,10 @@ func WithCPULimit(cpuCores float64) ServiceOption {
 		if cpuCores > 0 {
 			// see https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html#CPUQuota=
 			// only support max 2 decimal places
-			sconf.Option[ServiceOptCPU] = fmt.Sprintf("%.2f%%", cpuCores*100.0)
+
+			// trim all decimal: 3.14 -> 3
+			// on some old systemd platform, decimal values may cause CPU limit fail
+			sconf.Option[ServiceOptCPU] = fmt.Sprintf("%.0f%%", cpuCores*100.0)
 		}
 	}
 }
