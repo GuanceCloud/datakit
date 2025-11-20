@@ -9,7 +9,6 @@ import (
 	"context"
 	"regexp"
 	"sync"
-	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -211,7 +210,7 @@ func (c *containerLogCoordinator) matchCRDConfigs(task *containerLogTask) []*log
 	// 遍历 CRD 配置，返回第一个匹配项，以确保匹配顺序稳定
 	for _, crdConfig := range c.crdConfigs {
 		if c.matchesCRDConfig(task, crdConfig) {
-			newConfigs, err := fillLogConfigs(c.defaults, task.info, crdConfig.configs)
+			newConfigs, err := fillLogConfigsWithCRDLogging(c.defaults, task.info, crdConfig)
 			if err != nil {
 				l.Warnf("apply CRD config failed: key=%s container=%s err=%v", crdConfig.key, task.containerID, err)
 				break
@@ -459,8 +458,7 @@ func (c *containerLogCoordinator) buildTailerOptions(info *containerLogInfo, cfg
 }
 
 type crdLoggingConfig struct {
-	key        string
-	lastUpdate time.Time
+	key string
 
 	namespaceRegex   string
 	podRegex         string
@@ -472,18 +470,20 @@ type crdLoggingConfig struct {
 	containerMatch        *regexp.Regexp
 	podLabelSelectorMatch labels.Selector
 
-	configs []*logConfig
+	podTargetLabels []string
+	configs         []*logConfig
 }
 
 func newCRDLoggingConfig(key string, item *loggingv1alpha1.ClusterLoggingConfig) (*crdLoggingConfig, error) {
 	cfg := &crdLoggingConfig{
 		key:              key,
-		lastUpdate:       time.Now(),
 		namespaceRegex:   item.Spec.Selector.NamespaceRegex,
 		podRegex:         item.Spec.Selector.PodRegex,
 		podLabelSelector: item.Spec.Selector.PodLabelSelector,
 		containerRegex:   item.Spec.Selector.ContainerRegex,
+		podTargetLabels:  make([]string, len(item.Spec.PodTargetLabels)),
 	}
+	_ = copy(cfg.podTargetLabels, item.Spec.PodTargetLabels)
 
 	var err error
 
