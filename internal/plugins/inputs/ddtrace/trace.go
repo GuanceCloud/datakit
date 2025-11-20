@@ -43,3 +43,12 @@ func (t DDTraces) reset() {
 		// trace = trace[:0]
 	}
 }
+
+// wrapMessage DataKit issue:#2879
+// 其他字段都已经提取，除了这两个 map:
+// meta 是提取到一级字段之后剩余的字段
+// metrics 是没有提取过一级字段的。
+type wrapMessage struct {
+	Meta    map[string]string  `json:"meta"`
+	Metrics map[string]float64 `json:"metrics"`
+}
