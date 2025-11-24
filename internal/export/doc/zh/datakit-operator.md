@@ -110,9 +110,9 @@ DataKit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
                 "java_agent_image":   "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:latest"
             },
             "envs": {
-                "DD_AGENT_HOST":           "datakit-service.datakit.svc",
+                "DD_AGENT_HOST":           "datakit-service.datakit.svc.cluster.local",
                 "DD_TRACE_AGENT_PORT":     "9529",
-                "DD_JMXFETCH_STATSD_HOST": "datakit-service.datakit.svc",
+                "DD_JMXFETCH_STATSD_HOST": "datakit-service.datakit.svc.cluster.local",
                 "DD_JMXFETCH_STATSD_PORT": "8125",
                 "DD_SERVICE":              "{fieldRef:metadata.labels['service']}",
                 "POD_NAME":                "{fieldRef:metadata.name}",
@@ -131,9 +131,19 @@ DataKit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
                  }
             }
         },
-        "logfwd": {
+        "profiler": {
             "images": {
-                "logfwd_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/logfwd:1.82.0"
+                "java_profiler_image":   "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/async-profiler:0.5.0",
+                "python_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/py-spy:0.1.0",
+                "golang_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/go-pprof:0.1.0"
+            },
+            "envs": {
+                "DK_AGENT_HOST":  "datakit-service.datakit.svc.cluster.local",
+                "DK_AGENT_PORT":  "9529",
+                "DK_PROFILE_VERSION":  "1.2.333",
+                "DK_PROFILE_ENV":      "prod",
+                "DK_PROFILE_DURATION": "240",
+                "DK_PROFILE_SCHEDULE": "0 * * * *"
             },
             "resources": {
                 "requests": {
@@ -146,19 +156,18 @@ DataKit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
                  }
             }
         },
-        "profiler": {
+        "logfwd": {
             "images": {
-                "java_profiler_image":   "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/async-profiler:latest",
-                "python_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/py-spy:latest",
-                "golang_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/go-pprof:latest"
+                "logfwd_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/logfwd:1.86.0"
             },
             "envs": {
-                "DK_AGENT_HOST":  "datakit-service.datakit.svc",
-                "DK_AGENT_PORT":  "9529",
-                "DK_PROFILE_VERSION": "1.2.333",
-                "DK_PROFILE_ENV": "prod",
-                "DK_PROFILE_DURATION": "240",
-                "DK_PROFILE_SCHEDULE": "0 * * * *"
+                "LOGFWD_DATAKIT_HOST":              "{fieldRef:status.hostIP}",
+                "LOGFWD_DATAKIT_PORT":              "9533",
+                "LOGFWD_DATAKIT_OPERATOR_ENDPOINT": "datakit-operator.datakit.svc:443",
+                "LOGFWD_GLOBAL_SERVICE":            "{fieldRef:metadata.labels['app']}",
+                "LOGFWD_POD_NAME":                  "{fieldRef:metadata.name}",
+                "LOGFWD_POD_NAMESPACE":             "{fieldRef:metadata.namespace}",
+                "LOGFWD_POD_IP":                    "{fieldRef:status.podIP}"
             },
             "resources": {
                 "requests": {
