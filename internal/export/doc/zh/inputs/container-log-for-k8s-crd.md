@@ -78,20 +78,28 @@ spec:
                       - source
                       - type
                     properties:
-                      source:
-                        type: string
                       type:
+                        type: string
+                      source:
                         type: string
                       disable:
                         type: boolean
                       path:
                         type: string
-                      multiline_match:
+                      storage_index:
+                        type: string
+                      service:
                         type: string
                       pipeline:
                         type: string
-                      storage_index:
+                      multiline_match:
                         type: string
+                      character_encoding:
+                        type: string
+                      remove_ansi_escape_codes:
+                        type: boolean
+                      from_beginning:
+                        type: boolean
                       tags:
                         type: object
                         additionalProperties:
@@ -138,6 +146,7 @@ spec:
   configs:
     - source: "nginx-access"
       type: "file"
+      service: "nginx-logging"
       path: "/var/log/nginx/access.log"
       pipeline: "nginx-access.p"
       tags:

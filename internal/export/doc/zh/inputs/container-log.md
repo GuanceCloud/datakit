@@ -41,13 +41,14 @@ DataKit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 ``` json
 [
   {
-    "disable" : false,
-    "type"    : "stdout",
-    "source"  : "<your-source>",
-    "service" : "<your-service>",
+    "disable":  false,
+    "type":     "stdout",
+    "source":   "<your-source>",
+    "service":  "<your-service>",
     "pipeline": "<your-pipeline.p>",
+    "storage_index": "<your-storage-index>",
     "remove_ansi_escape_codes": false,
-    "from_beginning"          : false,
+    "from_beginning": false,
     "tags" : {
       "<some-key>" : "<some_other_value>"
     }
@@ -65,6 +66,7 @@ DataKit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 | `source`                   | 字符串           | 日志来源，参见[容器日志采集的 source 设置](container.md#config-logging-source)                                                                                      |
 | `service`                  | 字符串           | 日志隶属的服务，默认值为日志来源（source）                                                                                                                          |
 | `pipeline`                 | 字符串           | 适用该日志的 Pipeline 脚本，默认值为与日志来源匹配的脚本名（`<source>.p`）                                                                                          |
+| `storage_index`            | 字符串           | 日志存储的索引名称                                                                                                                                                  |
 | `remove_ansi_escape_codes` | true/false       | 是否删除日志数据的颜色字符                                                                                                                                          |
 | `from_beginning`           | true/false       | 是否从文件首部采集日志                                                                                                                                              |
 | `multiline_match`          | 正则表达式字符串 | 用于[多行日志匹配](logging.md#multiline)时的首行识别，例如 `"multiline_match":"^\\d{4}"` 表示行首是 4 个数字，在正则表达式规则中 `\d` 是数字，前面的 `\` 是用来转义 |
