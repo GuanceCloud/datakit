@@ -319,6 +319,7 @@ Pipeline 的几个注意事项：
 
 - 优先使用该文件的 position cache，如果能够得到 position 值，且该值小于等于文件大小（说明这是一个没有被 truncated 的文件），使用这个 position 作为读取的偏移位置
 - 其次是配置 `from_beginning` 为 `true`，会从文件首部读取
+- 然后是配置 `from_beginning_threshold_size`，搜寻到文件时，如果文件 size 小于此值就从文件首部采集日志，单位字节，默认 20MB
 - 最后是默认的 `tail` 模式，即从尾部读取
 
 <!-- markdownlint-disable MD046 -->

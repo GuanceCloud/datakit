@@ -34,9 +34,11 @@ type Input struct {
 	LogFiles      []string `toml:"logfiles"`
 	Sockets       []string `toml:"sockets,omitempty"`
 	Ignore        []string `toml:"ignore"`
-	FromBeginning bool     `toml:"from_beginning,omitempty"`
 	MaxOpenFiles  int      `toml:"max_open_files"`
 	IgnoreDeadLog string   `toml:"ignore_dead_log"`
+
+	FromBeginning              bool  `toml:"from_beginning,omitempty"`
+	FromBeginningThresholdSize int64 `toml:"from_beginning_threshold_size,omitempty"`
 
 	Source                string   `toml:"source"`
 	Service               string   `toml:"service"`
@@ -191,22 +193,28 @@ func (ipt *Input) parseIgnoreDuration() time.Duration {
 
 func (ipt *Input) buildTailerOptions(fieldWhitelist []string, ignoreDuration time.Duration) []tailer.Option {
 	opts := []tailer.Option{
-		tailer.WithStorageIndex(ipt.StorageIndex),
-		tailer.WithIgnorePatterns(ipt.Ignore),
 		tailer.WithSource(ipt.Source),
 		tailer.WithService(ipt.Service),
+		tailer.WithStorageIndex(ipt.StorageIndex),
+		tailer.WithIgnorePatterns(ipt.Ignore),
 		tailer.WithPipeline(ipt.Pipeline),
+
 		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
 		tailer.WithSockets(ipt.Sockets),
 		tailer.WithIgnoredStatuses(ipt.IgnoreStatus),
+
 		tailer.WithMaxOpenFiles(ipt.MaxOpenFiles),
-		tailer.WithFromBeginning(ipt.FromBeginning),
 		tailer.WithCharacterEncoding(ipt.CharacterEncoding),
 		tailer.WithIgnoreDeadLog(ignoreDuration),
+		tailer.WithRemoveAnsiEscapeCodes(ipt.RemoveAnsiEscapeCodes),
+
+		tailer.WithFromBeginning(ipt.FromBeginning),
+		tailer.WithFileSizeThreshold(ipt.FromBeginningThresholdSize),
+
 		tailer.EnableMultiline(ipt.AutoMultilineDetection),
 		tailer.WithMaxMultilineLength(int64(float64(config.Cfg.Dataway.MaxRawBodySize) * 0.8)),
+
 		tailer.WithExtraTags(inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")),
-		tailer.WithRemoveAnsiEscapeCodes(ipt.RemoveAnsiEscapeCodes),
 	}
 
 	if len(fieldWhitelist) != 0 {

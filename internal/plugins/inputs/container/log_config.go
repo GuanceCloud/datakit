@@ -52,18 +52,19 @@ func (info *containerLogInfo) buildTags() map[string]string {
 }
 
 type logConfig struct {
-	Disable               bool              `json:"disable"`
-	Type                  string            `json:"type"`
-	Path                  string            `json:"path"`
-	Source                string            `json:"source"`
-	StorageIndex          string            `json:"storage_index"`
-	Service               string            `json:"service"`
-	CharacterEncoding     string            `json:"character_encoding"`
-	Pipeline              string            `json:"pipeline"`
-	Multiline             string            `json:"multiline_match"`
-	RemoveAnsiEscapeCodes bool              `json:"remove_ansi_escape_codes"`
-	FromBeginning         bool              `json:"from_beginning"`
-	Tags                  map[string]string `json:"tags"`
+	Disable                    bool              `json:"disable"`
+	Type                       string            `json:"type"`
+	Path                       string            `json:"path"`
+	Source                     string            `json:"source"`
+	StorageIndex               string            `json:"storage_index"`
+	Service                    string            `json:"service"`
+	CharacterEncoding          string            `json:"character_encoding"`
+	Pipeline                   string            `json:"pipeline"`
+	Multiline                  string            `json:"multiline_match"`
+	RemoveAnsiEscapeCodes      bool              `json:"remove_ansi_escape_codes"`
+	FromBeginning              bool              `json:"from_beginning"`
+	FromBeginningThresholdSize int64             `json:"from_beginning_threshold_size"`
+	Tags                       map[string]string `json:"tags"`
 
 	multilinePatterns []string `json:"-"`
 	hostDir           string   `json:"-"`

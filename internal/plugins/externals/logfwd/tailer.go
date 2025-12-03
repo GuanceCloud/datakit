@@ -25,6 +25,7 @@ func buildTailerOptions(cfg *logConfig, fn tailer.ForwardFunc) []tailer.Option {
 		tailer.EnableMultiline(true),
 		tailer.WithMultilinePatterns(cfg.multilinePatterns),
 		tailer.WithFromBeginning(cfg.FromBeginning),
+		tailer.WithFileSizeThreshold(cfg.FromBeginningThresholdSize),
 		tailer.WithRemoveAnsiEscapeCodes(cfg.RemoveAnsiEscapeCodes),
 		tailer.WithIgnoreDeadLog(time.Hour * 12),
 		tailer.WithExtraTags(cfg.Tags),

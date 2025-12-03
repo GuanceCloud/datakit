@@ -574,20 +574,21 @@ Even with CRDs enabled, Pods must explicitly opt in to logfwd sidecars. Annotati
 ]
 ```
 
-| Field                       | Type    | Required | Description                                                                                                             | Example                    |
-| ------                      | ------  | ------   | ------                                                                                                                 | ------                     |
-| `type`                      | string  | Yes      | logfwd input type. Only `"file"` is supported.                                                                          | `"file"`                   |
-| `disable`                   | boolean | No       | Whether to disable the config.                                                                                           | `false`                    |
-| `source`                    | string  | Yes      | Log source identifier, used to distinguish log streams.                                                                  | `"nginx-access"`           |
-| `service`                   | string  | No       | Service name. Defaults to `source`.                                                                                      | `"nginx"`                  |
-| `path`                      | string  | Cond     | File path (supports glob). Required when `type=file`.                                                                    | `"/var/log/nginx/*.log"`   |
-| `multiline_match`           | string  | No       | Regex for multiline start. Remember to escape backslashes in JSON.                                                       | `"^\\d{4}-\\d{2}-\\d{2}"`  |
-| `pipeline`                  | string  | No       | Pipeline script name configured on DataKit.                                                                              | `"nginx-access.p"`         |
-| `storage_index`             | string  | No       | Target storage index.                                                                                                    | `"app-logs"`               |
-| `remove_ansi_escape_codes`  | boolean | No       | Remove ANSI escape codes (colors, etc.).                                                                                 | `false`                    |
-| `from_beginning`            | boolean | No       | Whether to start reading from the beginning of the file (default: tail).                                                 | `false`                    |
-| `character_encoding`        | string  | No       | Encoding. Supports `utf-8`, `utf-16le`, `utf-16be`, `gbk`, `gb18030`, or empty string for auto-detect.                   | `"utf-8"`                  |
-| `tags`                      | object  | No       | Extra tags attached to each log.                                                                                         | `{"env": "prod"}`          |
+| Field                           | Type    | Required | Description                                                                                                                               | Example                   |
+| ------                          | ------  | ------   | ------                                                                                                                                    | ------                    |
+| `type`                          | string  | Yes      | logfwd input type. Only `"file"` is supported.                                                                                            | `"file"`                  |
+| `disable`                       | boolean | No       | Whether to disable the config.                                                                                                            | `false`                   |
+| `source`                        | string  | Yes      | Log source identifier, used to distinguish log streams.                                                                                   | `"nginx-access"`          |
+| `service`                       | string  | No       | Service name. Defaults to `source`.                                                                                                       | `"nginx"`                 |
+| `path`                          | string  | Cond     | File path (supports glob). Required when `type=file`.                                                                                     | `"/var/log/nginx/*.log"`  |
+| `multiline_match`               | string  | No       | Regex for multiline start. Remember to escape backslashes in JSON.                                                                        | `"^\\d{4}-\\d{2}-\\d{2}"` |
+| `pipeline`                      | string  | No       | Pipeline script name configured on DataKit.                                                                                               | `"nginx-access.p"`        |
+| `storage_index`                 | string  | No       | Target storage index.                                                                                                                     | `"app-logs"`              |
+| `remove_ansi_escape_codes`      | boolean | No       | Remove ANSI escape codes (colors, etc.).                                                                                                  | `false`                   |
+| `from_beginning`                | boolean | No       | Whether to start reading from the beginning of the file (default: tail).                                                                  | `false`                   |
+| `from_beginning_threshold_size` | int     | No       | When a file is discovered, if the file size is less than this value, start reading from the beginning of the file, in bytes, default 20MB | `1000`                    |
+| `character_encoding`            | string  | No       | Encoding. Supports `utf-8`, `utf-16le`, `utf-16be`, `gbk`, `gb18030`, or empty string for auto-detect.                                    | `"utf-8"`                 |
+| `tags`                          | object  | No       | Extra tags attached to each log.                                                                                                          | `{"env": "prod"}`         |
 
 - `admission.datakit/logfwd.volume_paths`: JSON array that declares host paths to mount so the sidecar can read log files, e.g. `'["/var/log", "/data/log"]'`. Avoid nested parent/child directories to prevent conflicts.
 
