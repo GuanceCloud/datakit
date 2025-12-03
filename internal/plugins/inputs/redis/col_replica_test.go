@@ -70,6 +70,7 @@ func Test_parseReplicData(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ipt := defaultInput()
 			ipt.Tags = tt.fields.tags
+			ipt.MeasurementVersion = "v1"
 
 			inst := newInstance()
 			inst.ipt = ipt

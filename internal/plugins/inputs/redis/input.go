@@ -361,6 +361,12 @@ func (ipt *Input) initCfg() error {
 		ipt.SlowlogMaxLen = 128
 	}
 
+	// if insecure_skip_verify is true and TLSClientConfig is nil, set it to true
+	if ipt.InsecureSkipVerifyDeprecated && ipt.TLSClientConfig == nil {
+		ipt.TLSClientConfig = &dknet.TLSClientConfig{
+			InsecureSkipVerify: true,
+		}
+	}
 	ipt.TLSClientConfig = dknet.MergeTLSConfig(
 		ipt.TLSClientConfig,
 		[]string{ipt.CacertFileDeprecated},
@@ -855,9 +861,9 @@ func defaultInput() *Input {
 		restartCh: make(chan struct{}, 1),
 		Tags:      make(map[string]string),
 
-		DBDeprecated: -1,
-		DBs:          []int{0},
-
+		DBDeprecated:            -1,
+		DBs:                     []int{0},
+		MeasurementVersion:      "v2", // default: v2
 		Interval:                time.Second * 15,
 		TopologyRefreshInterval: 10 * time.Minute,
 		ConfigCollectInterval:   1 * time.Hour,
