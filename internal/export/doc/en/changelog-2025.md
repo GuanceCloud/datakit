@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.86.1 (2025/12/03) {#cl-1.86.1}
+
+This release is a hotfix with the following updates:
+
+### Bug Fixes {#cl-1.86.1-fix}
+
+- Fixed metric statistics issue during OpenTelemetry/DDtrace sampling (#2896)
+- Prioritize cgroup v2 to avoid cgroup failure in certain scenarios (#2897)
+- Added more timeout protection for 9529 API and removed the original gin timeout middleware (#2901)
+- Redis collector configuration now uses v2 metric set naming by default (#2903)
+- Optimized eBPF collection's consumption of Kubernetes API resources (#2907)
+- Added missing `from-beginning` related configurations for logfwd (#2902)
+- Fix typo `split_service_name` in OpenTelemetry collector (!3781)
+- Other documentation fixes (#2898)
+
+---
+
 ## 1.86.0(2025/11/20) {#cl-1.86.0}
 
 This release is a feature update with the following changes:
@@ -19,7 +36,7 @@ This release is a feature update with the following changes:
 
 ### Optimizations {#cl-1.86.0-opt}
 
-- diskio collector now supports direct calculation of iowait-related disk metrics, no longer requiring pythond plugin (#2878)
+- diskio collector now supports direct calculation of IOWait-related disk metrics, no longer requiring pythond plugin (#2878)
 - Removed already extracted fields from `message` in DDTrace collection (#2879)
 - Optimized DataKit's own logging behavior, applying rate limiting to high-frequency but important logs (#2886)
 - Enhanced DataKit Lambda extension (#2893)

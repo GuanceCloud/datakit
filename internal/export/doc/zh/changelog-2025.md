@@ -1,5 +1,22 @@
 # 更新日志
 
+## 1.86.1(2025/12/03) {#cl-1.86.1}
+
+本次发布属于 hotfix 修复，内容如下：
+
+### 问题修复 {#cl-1.86.1-fix}
+
+- 修复 OpenTelemetry/DDtrace 采样时指标统计问题（#2896）
+- cgroup 优先使用 v2 版本，避免某些情况下 cgroup 不生效问题（#2897）
+- 9529 API 增加更多超时保护，移除原来 gin timeout 中间件（#2901）
+- Redis 采集器配置中，默认使用 v2 指标集命名（#2903）
+- 优化 eBPF 采集对 Kubernetes API 的消耗（#2907）
+- logfwd 补全 from-beginning 有关的配置（#2902）
+- 修正 OpenTelemetry 采集器配置中的拼写错误 `split_service_name`（!3781）
+- 其它文档修复（#2898）
+
+---
+
 ## 1.86.0(2025/11/20) {#cl-1.86.0}
 
 本次发布属于迭代发布，主要有如下更新：
@@ -19,7 +36,7 @@
 
 ### 功能优化 {#cl-1.86.0-opt}
 
-- diskio 采集器支持直接通过计算得到 iowait 有关的磁盘指标，不再需要 pythond 插件来采集（#2878）
+- diskio 采集器支持直接通过计算得到 IOWait 有关的磁盘指标，不再需要 pythond 插件来采集（#2878）
 - 移除 DDTrace 采集的 `message` 中已经提取的字段（#2879）
 - 优化 DataKit 自身日志行为，不分高频但重要的日志做了 rate limit 处理（#2886）
 - 优化 DataKit Lambda 扩展（#2893）
