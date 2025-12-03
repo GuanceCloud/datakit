@@ -573,7 +573,7 @@ DataKit 对采集的起始位置有几个判断方案，按照优先级依次是
   当 `from_beginning` 为 `true`，且没有找到该文件的 position 记录时，从 head 开始采集。
 
 1. 配置 `from_beginning_threshold_size` 根据文件大小判断是否从 head 采集
-  `from_beginning_threshold_size` 是一个整数值。DataKit 发现到新文件时，如果文件 size 小于 `from_beginning_threshold_size` 就从文件 head 开始采集，否则从 tail 采集。默认值是 `2e7`（即 20 mb）。
+  `from_beginning_threshold_size` 是一个整数值。DataKit 发现到新文件时，如果文件 size 小于 `from_beginning_threshold_size` 就从文件 head 开始采集，否则从 tail 采集。默认值是 `1000*1000*20`（即 20MB）。
 
 1. 从 tail 开始采集
   默认情况下，从 tail 采集文件。

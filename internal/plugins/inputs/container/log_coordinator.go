@@ -444,6 +444,7 @@ func (c *containerLogCoordinator) buildTailerOptions(cfg *logConfig) []tailer.Op
 		tailer.WithCharacterEncoding(cfg.CharacterEncoding),
 		tailer.WithExtraTags(cfg.Tags),
 		tailer.WithFromBeginning(cfg.FromBeginning || c.defaults.fileFromBeginning),
+		tailer.WithFileSizeThreshold(c.defaults.fileSizeThreshold),
 		tailer.WithRemoveAnsiEscapeCodes(cfg.RemoveAnsiEscapeCodes || c.defaults.removeAnsiEscapeCodes),
 
 		tailer.EnableMultiline(c.defaults.enableMultiline),
@@ -451,9 +452,12 @@ func (c *containerLogCoordinator) buildTailerOptions(cfg *logConfig) []tailer.Op
 		tailer.WithMaxMultilineLength(c.defaults.maxMultilineLength),
 
 		tailer.WithMaxOpenFiles(c.defaults.maxOpenFiles),
-		tailer.WithFileSizeThreshold(c.defaults.fileSizeThreshold),
 		tailer.WithIgnoreDeadLog(c.defaults.ignoreDeadLog),
 		tailer.WithFieldWhitelist(c.defaults.fieldWhitelist),
+	}
+
+	if cfg.FromBeginningThresholdSize > 0 {
+		opts = append(opts, tailer.WithFileSizeThreshold(cfg.FromBeginningThresholdSize))
 	}
 
 	switch cfg.Type {

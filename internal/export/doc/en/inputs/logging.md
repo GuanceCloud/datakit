@@ -314,6 +314,30 @@ Use glob rules to specify log files more conveniently, as well as automatic disc
 
 Also, in addition to the glob standard rules described above, the collector also supports `**` recursive file traversal, as shown in the sample configuration. For more information on Grok, see [here](https://rgb-24bit.github.io/blog/2018/glob.html){:target="_blank"}。
 
+### File Read Offset Position {#read-position}
+
+*Supported in DataKit [:octicons-tag-24: Version-1.5.5](../datakit/changelog.md#cl-1.5.5) and above.*
+
+File read offset refers to the position from which to start reading after opening a file. Generally, it is either "head" or "tail".
+
+In DataKit, there are mainly 3 scenarios, prioritized as follows:
+
+- First, use the file's position cache. If a position value can be obtained and it is less than or equal to the file size (indicating the file has not been truncated), use this position as the read offset
+- Second, configure `from_beginning` to `true`, which will read from the beginning of the file
+- Then, configure `from_beginning_threshold_size`. When a file is discovered, if the file size is less than this value, start reading from the beginning of the file, in bytes, default 20MB
+- Finally, the default `tail` mode, which reads from the end
+
+<!-- markdownlint-disable MD046 -->
+???+ info "About `position cache`"
+
+    `position cache` is a built-in feature of log collection. It consists of multiple K/V key-value pairs stored in the `cache/logtail.history` file:
+
+    - key is a unique value generated based on log file path, inode, and other information
+    - value is the read offset position (position) of this file, which is updated in real-time
+
+    When log collection starts, it retrieves the position based on the key as the read offset to avoid missing or duplicate collection.
+<!-- markdownlint-enable -->
+
 ### Special Bytecode Filtering for Logs {#ansi-decode}
 
 The log may contain some unreadable bytecode (such as the color of terminal output, etc.), which can be deleted and filtered by setting `remove_ansi_escape_codes` to true.

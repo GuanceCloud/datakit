@@ -294,7 +294,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		if size, err := strconv.ParseInt(str, 10, 64); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_FILE_FROM_BEGINNING_THRESHOLD_SIZE to int64: %s, ignore", err)
 		} else {
-			ipt.LoggingFileFromBeginningThresholdSize = int(size)
+			ipt.LoggingFileFromBeginningThresholdSize = size
 		}
 	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES"]; ok {
