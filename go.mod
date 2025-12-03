@@ -10,7 +10,6 @@ require (
 	github.com/GuanceCloud/confd v0.1.101
 	github.com/GuanceCloud/grok v1.1.5-0.20250416104424-34917bd63e69
 	github.com/GuanceCloud/platypus v0.3.3-0.20250528074826-e3130ff5a05c
-	github.com/GuanceCloud/timeout v1.9.1
 	github.com/IBM/sarama v1.41.2
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible // indirect
 	github.com/antchfx/xmlquery v1.3.18 // indirect

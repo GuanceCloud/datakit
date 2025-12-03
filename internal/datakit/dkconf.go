@@ -133,8 +133,10 @@ ulimit = 64000
   public_apis = []
 
   # Datakit server-side timeout
-  timeout = "30s"
-  close_idle_connection = false
+  http_read_timeout      = "30s" # slow client send body timeout
+  http_read_head_timeout = "30s" # slow client send head timeout
+  http_write_timeout     = "30s" # slow client read-response timeout
+  http_idle_timeout      = "60s" # idle client connection timeout
 
   # API rate limit(QPS)
   request_rate_limit       = 100.0

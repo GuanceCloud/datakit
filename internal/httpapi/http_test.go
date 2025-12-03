@@ -9,11 +9,12 @@
 package httpapi
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -153,25 +154,156 @@ func TestRestartAPI(t *T.T) {
 func TestCORS(t *T.T) {
 }
 
-func TestTimeout(t *T.T) {
+// slowReader wraps a standard reader and adds a delay to every Read call
+type slowReader struct {
+	r     io.Reader
+	delay time.Duration
+}
+
+func (s *slowReader) Read(p []byte) (n int, err error) {
+	if s.delay > 0 {
+		time.Sleep(s.delay) // The delay happens here!
+	}
+
+	// For demo purposes, we only read 1 byte at a time to force many Read calls
+	// and make the total duration longer.
+	if len(p) > 0 {
+		return s.r.Read(p[:1])
+	}
+	return s.r.Read(p)
+}
+
+func Test_serverSideTimeout(t *T.T) {
 	hs := defaultHTTPServerConf()
-	hs.timeout = 100 * time.Millisecond
+	hs.apiConfig.ReadTimeout = 100 * time.Millisecond
+	hs.apiConfig.IdleTimeout = time.Second
+	hs.apiConfig.ReadHeaderTimeout = time.Second * 2
+	hs.apiConfig.WriteTimeout = time.Second * 2
 
 	router := gin.New()
-	router.Use(dkHTTPTimeout(hs.timeout))
-
-	ts := httptest.NewServer(router)
-	defer ts.Close()
 
 	router.POST("/timeout", func(c *gin.Context) {
-		x := c.Query("x")
-		du, err := time.ParseDuration(x)
+		defer c.Request.Body.Close()
+
+		_, err := io.ReadAll(c.Request.Body)
 		if err != nil {
-			du = 10 * time.Millisecond
+			var netErr net.Error
+			if errors.As(err, &netErr) && netErr.Timeout() {
+				c.Status(http.StatusRequestTimeout)
+			} else {
+				c.Status(http.StatusInternalServerError) // should not been here
+			}
+
+			t.Logf("ReadAll: %s", err.Error())
+			return
 		}
 
-		time.Sleep(du)
+		if f, ok := c.Writer.(http.Flusher); ok {
+			f.Flush()
+		}
+
+		chunk := make([]byte, 64*1024)
+
+		for i := 0; i < 1000; i++ {
+			_, err := c.Writer.Write(chunk)
+			if err != nil {
+				t.Logf("[%d] server write failed: (timeout triggered): %s", i, err.Error())
+				return
+			}
+		}
+
 		c.Status(http.StatusOK)
+	})
+
+	ts := httptest.NewUnstartedServer(router)
+	ts.Config = hs.setupServer(ts.Config)
+
+	ts.Start()
+	defer ts.Close()
+
+	t.Run("write-timeout", func(t *T.T) {
+		// mock a slow read client
+		conn, err := net.Dial("tcp", ts.Listener.Addr().String())
+		require.NoError(t, err)
+
+		defer conn.Close()
+
+		req := fmt.Sprintf("POST /timeout HTTP/1.1\r\nHost: %s\r\n\r\n", ts.Listener.Addr().String())
+		_, err = conn.Write([]byte(req))
+		require.NoError(t, err)
+
+		headerBuf := make([]byte, 4096)
+		_, err = conn.Read(headerBuf)
+		require.NoError(t, err)
+
+		time.Sleep(time.Second * 3) // stop reading, trigger server side wirte timeout
+
+		// check if read fail
+		conn.SetReadDeadline(time.Now().Add(time.Second))
+		buf := make([]byte, 1024)
+
+		i := 0
+		for {
+			// because TCP buffering, we should read more times to consume server's send buffer.
+			_, err = conn.Read(buf)
+			if err != nil {
+				t.Logf("[%d] error: %s", i, err.Error())
+				require.Equal(t, "EOF", err.Error())
+				break
+			}
+			i++
+		}
+	})
+
+	t.Run("read-header-timeout", func(t *T.T) {
+		conn, err := net.Dial("tcp", ts.Listener.Addr().String())
+		require.NoError(t, err)
+
+		defer conn.Close()
+
+		httpParts := []string{
+			"POST / HTTP/1.1\r\n",
+			"HOST: " + ts.Listener.Addr().String() + "\r\n",
+			"User-Agent: Slow-Client\r\n",
+		}
+
+		delay := time.Second * 1
+		for _, x := range httpParts {
+			_, err := conn.Write([]byte(x))
+			require.NoError(t, err)
+			t.Logf("-> send: %q, sleeping %v...", x, delay)
+			time.Sleep(delay)
+		}
+
+		time.Sleep(time.Second)
+
+		// write body
+		_, err = conn.Write([]byte("\r\n"))
+		assert.Error(t, err)
+		t.Logf("write body error: %s", err)
+		if errors.Is(err, syscall.ECONNRESET) {
+			t.Logf("err: connection reset")
+		} else if errors.Is(err, syscall.EPIPE) {
+			t.Logf("err: broken pipe")
+		}
+	})
+
+	t.Run("idle-timeout", func(t *T.T) {
+		conn, err := net.Dial("tcp", ts.Listener.Addr().String())
+		require.NoError(t, err)
+
+		defer conn.Close()
+
+		time.Sleep(time.Second * 2) // idle
+
+		buf := make([]byte, 1024)
+		_, err = conn.Read(buf)
+		require.Error(t, err)
+		require.Equal(t, "EOF", err.Error())
+
+		if err != nil {
+			t.Logf("read: %s", err)
+		}
 	})
 
 	cases := []struct {
@@ -180,21 +312,26 @@ func TestTimeout(t *T.T) {
 		expectStatusCode int
 	}{
 		{
-			name:             "timeout",
+			name:             "read-timeout",
 			timeout:          105 * time.Millisecond,
 			expectStatusCode: http.StatusRequestTimeout,
 		},
 
 		{
+			// no timeout
 			name:             "ok",
-			timeout:          10 * time.Millisecond,
 			expectStatusCode: http.StatusOK,
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *T.T) {
-			req, err := http.NewRequest("POST", fmt.Sprintf("%s/timeout?x=%s", ts.URL, tc.timeout), nil)
+			slowbody := &slowReader{
+				r:     bytes.NewBuffer([]byte("this is a very long string that will send very slow...")),
+				delay: tc.timeout,
+			}
+
+			req, err := http.NewRequest("POST", fmt.Sprintf("%s/timeout?x=%s", ts.URL, tc.timeout), slowbody)
 			if err != nil {
 				t.Errorf("http.NewRequest: %s", err)
 				return
@@ -211,13 +348,11 @@ func TestTimeout(t *T.T) {
 
 			defer resp.Body.Close()
 
-			respBody, err := io.ReadAll(resp.Body)
+			_, err = io.ReadAll(resp.Body)
 			if err != nil {
 				t.Errorf("cli.Do: %s", err)
 				return
 			}
-
-			t.Logf("body: %s", string(respBody))
 		})
 	}
 }
@@ -249,10 +384,10 @@ func TestTimeoutOnConcurrentIdleTCPConnection(t *T.T) {
 	setulimit(t)
 	router := gin.New()
 
-	idleSec := time.Duration(1)
+	idleDuration := time.Duration(1)
 
 	ts := httptest.NewUnstartedServer(router)
-	ts.Config.ReadTimeout = idleSec * time.Second //nolint:durationcheck
+	ts.Config.ReadTimeout = idleDuration * time.Second //nolint:durationcheck
 	ts.Start()
 	defer ts.Close()
 
@@ -283,7 +418,7 @@ func TestTimeoutOnConcurrentIdleTCPConnection(t *T.T) {
 			defer conn.Close() //nolint:errcheck
 
 			// idle and timeout
-			time.Sleep((idleSec + 3) * time.Second) //nolint:durationcheck
+			time.Sleep((idleDuration + 3) * time.Second) //nolint:durationcheck
 
 			closed := false
 
@@ -310,10 +445,10 @@ nothing`))
 func TestTimeoutOnIdleTCPConnection(t *T.T) {
 	router := gin.New()
 
-	idleSec := time.Duration(3)
+	idleDuration := time.Duration(3)
 
 	ts := httptest.NewUnstartedServer(router)
-	ts.Config.ReadTimeout = idleSec * time.Second
+	ts.Config.ReadTimeout = idleDuration * time.Second
 	ts.Start()
 	defer ts.Close()
 
@@ -334,7 +469,7 @@ func TestTimeoutOnIdleTCPConnection(t *T.T) {
 		t.Errorf("Dial %s failed: %s", tcpserver, err.Error())
 	}
 
-	time.Sleep((idleSec + 1) * time.Second) // idle and timeout
+	time.Sleep((idleDuration + 1) * time.Second) // idle and timeout
 
 	closed := false
 
@@ -566,7 +701,7 @@ func TestSetuptRouter(t *T.T) {
 
 		assert.Equal(t, http.StatusForbidden, resp.StatusCode)
 
-		respBody, err := ioutil.ReadAll(resp.Body)
+		respBody, err := io.ReadAll(resp.Body)
 		assert.NoError(t, err)
 
 		assert.Contains(t, string(respBody), "datakit.publicAccessDisabled")
@@ -584,7 +719,7 @@ func TestSetuptRouter(t *T.T) {
 
 		assert.Equal(t, http.StatusForbidden, resp.StatusCode)
 
-		respBody, err = ioutil.ReadAll(resp.Body)
+		respBody, err = io.ReadAll(resp.Body)
 		assert.NoError(t, err)
 
 		assert.Contains(t, string(respBody), "datakit.publicAccessDisabled")
@@ -601,7 +736,7 @@ func TestSetuptRouter(t *T.T) {
 
 		assert.Equal(t, http.StatusForbidden, resp.StatusCode)
 
-		respBody, err = ioutil.ReadAll(resp.Body)
+		respBody, err = io.ReadAll(resp.Body)
 		assert.NoError(t, err)
 
 		t.Logf("resp body: %s", string(respBody))
@@ -615,7 +750,7 @@ func TestSetuptRouter(t *T.T) {
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		respBody, err = ioutil.ReadAll(resp.Body)
+		respBody, err = io.ReadAll(resp.Body)
 		assert.NoError(t, err)
 
 		t.Logf("resp body: %s", string(respBody))
@@ -631,7 +766,7 @@ func TestSetuptRouter(t *T.T) {
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		respBody, err = ioutil.ReadAll(resp.Body)
+		respBody, err = io.ReadAll(resp.Body)
 		assert.NoError(t, err)
 
 		t.Logf("resp body: %s", string(respBody))
@@ -647,7 +782,7 @@ func TestSetuptRouter(t *T.T) {
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		respBody, err = ioutil.ReadAll(resp.Body)
+		respBody, err = io.ReadAll(resp.Body)
 		assert.NoError(t, err)
 
 		t.Logf("resp body: %s", string(respBody))
@@ -692,7 +827,7 @@ func TestSetuptRouter(t *T.T) {
 
 		assert.Equal(t, http.StatusForbidden, resp.StatusCode)
 
-		respBody, err := ioutil.ReadAll(resp.Body)
+		respBody, err := io.ReadAll(resp.Body)
 		assert.NoError(t, err)
 
 		assert.Contains(t, string(respBody), "datakit.publicAccessDisabled")
