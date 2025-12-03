@@ -424,11 +424,35 @@ func envHTTPAPI() []*inputs.ENVInfo {
 		},
 
 		{
-			ENVName: "ENV_HTTP_CLOSE_IDLE_CONNECTION",
-			Type:    doc.Boolean,
-			Default: "-",
-			Desc:    "If turned on, the 9529 HTTP server actively closes idle connections(idle time equal to `ENV_HTTP_TIMEOUT`) [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)",
-			DescZh:  "如果开启，则 9529 HTTP server 会主动关闭闲置连接（闲置时间等同于 `ENV_HTTP_TIMEOUT`） [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)",
+			ENVName: "ENV_HTTP_IDLE_TIMEOUT",
+			Type:    doc.TimeDuration,
+			Default: "60s",
+			Desc:    "Set idle timeout for 9529 HTTP client connections [:octicons-tag-24: Version-1.86.1](changelog.md#cl-1.86.1)",
+			DescZh:  "空闲连接闲置超时时长 [:octicons-tag-24: Version-1.86.1](changelog.md#cl-1.85.1)",
+		},
+
+		{
+			ENVName: "ENV_HTTP_READ_TIMEOUT",
+			Type:    doc.TimeDuration,
+			Default: "30s",
+			Desc:    "Set read body timeout for slow HTTP client on 9529 [:octicons-tag-24: Version-1.86.1](changelog.md#cl-1.86.1)",
+			DescZh:  "设置慢客户端上传 body 超时时长 [:octicons-tag-24: Version-1.86.1](changelog.md#cl-1.86.1)",
+		},
+
+		{
+			ENVName: "ENV_HTTP_READ_HEADER_TIMEOUT",
+			Type:    doc.TimeDuration,
+			Default: "30s",
+			Desc:    "Set read header timeout for slow HTTP client on 9529 [:octicons-tag-24: Version-1.86.1](changelog.md#cl-1.86.1)",
+			DescZh:  "设置慢客户端上传 header 超时时长 [:octicons-tag-24: Version-1.86.1](changelog.md#cl-1.86.1)",
+		},
+
+		{
+			ENVName: "ENV_HTTP_WRITE_TIMEOUT",
+			Type:    doc.TimeDuration,
+			Default: "30s",
+			Desc:    "Set response timeout for slow read HTTP client on 9529 [:octicons-tag-24: Version-1.86.1](changelog.md#cl-1.86.1)",
+			DescZh:  "设置慢读取客户端返回发送超时时长 [:octicons-tag-24: Version-1.86.1](changelog.md#cl-1.86.1)",
 		},
 
 		{

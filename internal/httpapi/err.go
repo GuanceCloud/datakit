@@ -50,6 +50,7 @@ var (
 	ErrInvalidLinePoint     = newErr(errors.New("invalid line point"), http.StatusBadRequest)
 	ErrInvalidProtobufPoint = newErr(errors.New("invalid protobuf point"), http.StatusBadRequest)
 	ErrStrictPoint          = newErr(errors.New("point got warning"), http.StatusBadRequest)
+	ErrReadTimeout          = newErr(errors.New("read timeout"), http.StatusRequestTimeout)
 )
 
 func newErr(err error, code int) *uhttp.HttpError {

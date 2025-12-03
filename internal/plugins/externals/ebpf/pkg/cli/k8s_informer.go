@@ -1,8 +1,6 @@
 package cli
 
 import (
-	"time"
-
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -62,9 +60,7 @@ func createPodInformer(clientset *kubernetes.Clientset, stopCh <-chan struct{}) 
 		clientset.CoreV1().RESTClient(),
 		"pods",
 		&corev1.Pod{},
-		clientset,
 		stopCh,
-		ResourceTypePod,
 	)
 }
 
@@ -73,9 +69,7 @@ func createServiceInformer(clientset *kubernetes.Clientset, stopCh <-chan struct
 		clientset.CoreV1().RESTClient(),
 		"services",
 		&corev1.Service{},
-		clientset,
 		stopCh,
-		ResourceTypeService,
 	)
 }
 
@@ -84,9 +78,7 @@ func createDeploymentInformer(clientset *kubernetes.Clientset, stopCh <-chan str
 		clientset.AppsV1().RESTClient(),
 		"deployments",
 		&appsv1.Deployment{},
-		clientset,
 		stopCh,
-		ResourceTypeDeployment,
 	)
 }
 
@@ -95,9 +87,7 @@ func createStatefulSetInformer(clientset *kubernetes.Clientset, stopCh <-chan st
 		clientset.AppsV1().RESTClient(),
 		"statefulsets",
 		&appsv1.StatefulSet{},
-		clientset,
 		stopCh,
-		ResourceTypeStatefulSet,
 	)
 }
 
@@ -106,9 +96,7 @@ func createDaemonSetInformer(clientset *kubernetes.Clientset, stopCh <-chan stru
 		clientset.AppsV1().RESTClient(),
 		"daemonsets",
 		&appsv1.DaemonSet{},
-		clientset,
 		stopCh,
-		ResourceTypeDaemonSet,
 	)
 }
 
@@ -117,9 +105,7 @@ func createReplicaSetInformer(clientset *kubernetes.Clientset, stopCh <-chan str
 		clientset.AppsV1().RESTClient(),
 		"replicasets",
 		&appsv1.ReplicaSet{},
-		clientset,
 		stopCh,
-		ResourceTypeReplicaSet,
 	)
 }
 
@@ -128,9 +114,7 @@ func createJobInformer(clientset *kubernetes.Clientset, stopCh <-chan struct{}) 
 		clientset.BatchV1().RESTClient(),
 		"jobs",
 		&batchv1.Job{},
-		clientset,
 		stopCh,
-		ResourceTypeJob,
 	)
 }
 
@@ -139,9 +123,7 @@ func createCronJobInformer(clientset *kubernetes.Clientset, stopCh <-chan struct
 		clientset.BatchV1().RESTClient(),
 		"cronjobs",
 		&batchv1.CronJob{},
-		clientset,
 		stopCh,
-		ResourceTypeCronJob,
 	)
 }
 
@@ -149,9 +131,7 @@ func createInformer(
 	restClient cache.Getter,
 	resourceName string,
 	objType apiRuntime.Object,
-	clientset *kubernetes.Clientset,
 	stopCh <-chan struct{},
-	resourceType string,
 ) cache.SharedIndexInformer {
 	lw := cache.NewListWatchFromClient(
 		restClient,
@@ -163,7 +143,7 @@ func createInformer(
 	informer := cache.NewSharedIndexInformer(
 		lw,
 		objType,
-		5*time.Minute, // 重同步间隔
+		0, // 重同步间隔
 		cache.Indexers{},
 	)
 

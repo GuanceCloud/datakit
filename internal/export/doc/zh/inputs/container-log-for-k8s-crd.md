@@ -78,20 +78,28 @@ spec:
                       - source
                       - type
                     properties:
-                      source:
-                        type: string
                       type:
+                        type: string
+                      source:
                         type: string
                       disable:
                         type: boolean
                       path:
                         type: string
-                      multiline_match:
+                      storage_index:
+                        type: string
+                      service:
                         type: string
                       pipeline:
                         type: string
-                      storage_index:
+                      multiline_match:
                         type: string
+                      character_encoding:
+                        type: string
+                      remove_ansi_escape_codes:
+                        type: boolean
+                      from_beginning:
+                        type: boolean
                       tags:
                         type: object
                         additionalProperties:
@@ -138,6 +146,7 @@ spec:
   configs:
     - source: "nginx-access"
       type: "file"
+      service: "nginx-logging"
       path: "/var/log/nginx/access.log"
       pipeline: "nginx-access.p"
       tags:
@@ -189,20 +198,21 @@ selector:
 
 - `configs` 采集配置
 
-| 字段                       | 类型              | 必填     | 说明                                                                                                                 | 示例                                           |
-| ------                     | ------            | ------   | ------                                                                                                               | ------                                         |
-| `disable`                  | boolean           | 否       | 是否禁用此采集配置                                                                                                   | `false`                                        |
-| `type`                     | string            | 是       | 采集类型：`file` - 文件日志，`stdout` - 标准输出                                                                     | `"file"`                                       |
-| `source`                   | string            | 是       | 日志来源标识，用于区分不同日志流                                                                                     | `"nginx-access"`                               |
-| `service`                  | string            | 否       | 日志隶属的服务，默认值为日志来源（source）                                                                           | `"nginx"`                                      |
-| `path`                     | string            | 条件必填 | 日志文件路径（支持 glob 模式），type=file 时必填                                                                     | `"/var/log/nginx/*.log"`                       |
-| `multiline_match`          | string            | 否       | 多行日志起始行的正则表达式                                                                                           | `"^\\d{4}-\\d{2}-\\d{2}"`                      |
-| `pipeline`                 | string            | 否       | 日志解析管道配置文件名称                                                                                             | `"nginx-access.p"`                             |
-| `storage_index`            | string            | 否       | 日志存储的索引名称                                                                                                   | `"app-logs"`                                   |
-| `remove_ansi_escape_codes` | boolean           | 否       | 是否删除日志数据的颜色字符                                                                                           | `false`                                        |
-| `from_beginning`           | boolean           | 否       | 是否从文件首部采集日志                                                                                               | `false`                                        |
-| `character_encoding`       | string            | 否       | 选择编码，如果编码有误会导致数据无法查看，支持 `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""。默认为空即可 | `"utf-8"`                                      |
-| `tags`                     | map[string]string | 否       | 附加到日志的标签键值对                                                                                               | `{"log_type": "access", "component": "nginx"}` |
+| 字段                            | 类型              | 必填     | 说明                                                                                                                 | 示例                                           |
+| ------                          | ------            | ------   | ------                                                                                                               | ------                                         |
+| `disable`                       | boolean           | 否       | 是否禁用此采集配置                                                                                                   | `false`                                        |
+| `type`                          | string            | 是       | 采集类型：`file` - 文件日志，`stdout` - 标准输出                                                                     | `"file"`                                       |
+| `source`                        | string            | 是       | 日志来源标识，用于区分不同日志流                                                                                     | `"nginx-access"`                               |
+| `service`                       | string            | 否       | 日志隶属的服务，默认值为日志来源（source）                                                                           | `"nginx"`                                      |
+| `path`                          | string            | 条件必填 | 日志文件路径（支持 glob 模式），type=file 时必填                                                                     | `"/var/log/nginx/*.log"`                       |
+| `multiline_match`               | string            | 否       | 多行日志起始行的正则表达式                                                                                           | `"^\\d{4}-\\d{2}-\\d{2}"`                      |
+| `pipeline`                      | string            | 否       | 日志解析管道配置文件名称                                                                                             | `"nginx-access.p"`                             |
+| `storage_index`                 | string            | 否       | 日志存储的索引名称                                                                                                   | `"app-logs"`                                   |
+| `remove_ansi_escape_codes`      | boolean           | 否       | 是否删除日志数据的颜色字符                                                                                           | `false`                                        |
+| `from_beginning`                | boolean           | 否       | 是否从文件首部采集日志                                                                                               | `false`                                        |
+| `from_beginning_threshold_size` | int               | 否       | 搜寻到文件时，如果文件 size 小于此值就从文件首部采集日志，单位字节，默认 20MB                                        | `1000`                                         |
+| `character_encoding`            | string            | 否       | 选择编码，如果编码有误会导致数据无法查看，支持 `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""。默认为空即可 | `"utf-8"`                                      |
+| `tags`                          | map[string]string | 否       | 附加到日志的标签键值对                                                                                               | `{"log_type": "access", "component": "nginx"}` |
 
 ### 添加相关 RBAC 配置 {#add-rbac-configuration}
 

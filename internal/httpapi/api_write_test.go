@@ -491,6 +491,38 @@ func (x *apiWriteMock) GetSourceIP(req *http.Request) (string, string) {
 	return "", ""
 }
 
+func TestReadTimeout(t *T.T) {
+	hs := defaultHTTPServerConf()
+	hs.apiConfig.ReadTimeout = 10 * time.Millisecond
+
+	ts := httptest.NewServer(setupRouter(hs))
+	ts.Config = hs.setupServer(ts.Config)
+	defer ts.Close()
+
+	t.Run("slow client", func(t *T.T) {
+		slowbody := &slowReader{
+			r:     bytes.NewBuffer([]byte("this is a very long string that will send very slow...")),
+			delay: time.Millisecond * 10, // fast timeout
+		}
+
+		req, err := http.NewRequest("POST", fmt.Sprintf("%s/v1/write/metric", ts.URL), slowbody)
+		require.NoError(t, err)
+
+		cli := http.Client{}
+		resp, err := cli.Do(req)
+		require.NoError(t, err)
+
+		assert.Equal(t, http.StatusRequestTimeout, resp.StatusCode)
+
+		defer resp.Body.Close()
+
+		respBody, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+
+		t.Logf("body: %s", string(respBody))
+	})
+}
+
 func TestAPIWrite(t *testing.T) {
 	router := gin.New()
 	router.Use(uhttp.RequestLoggerMiddleware)

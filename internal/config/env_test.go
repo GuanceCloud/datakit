@@ -103,27 +103,32 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_DATAWAY_TLS_INSECURE":            "on",
 				"ENV_DATAWAY_DROP_EXPIRED_PACKAGE_AT": "1h",
 
-				"ENV_DEFAULT_ENABLED_INPUTS":     "cpu,mem,disk",
-				"ENV_DISABLE_404PAGE":            "on",
-				"ENV_DISABLE_PROTECT_MODE":       "true",
-				"ENV_ENABLE_ELECTION":            "1",
-				"ENV_ENABLE_PPROF":               "true",
-				"ENV_HOSTNAME":                   "1024.coding",
-				"ENV_HTTP_ALLOWED_CORS_ORIGINS":  "https://foo,https://bar",
-				"ENV_HTTP_CLOSE_IDLE_CONNECTION": "on",
-				"ENV_HTTP_ENABLE_TLS":            "yes",
-				"ENV_HTTP_LISTEN":                "localhost:9559",
-				"ENV_HTTP_LISTEN_SOCKET":         "/var/run/datakit/datakit.sock",
-				"ENV_HTTP_TIMEOUT":               "10s",
-				"ENV_HTTP_TLS_CRT":               "/path/to/datakit/tls.crt",
-				"ENV_HTTP_TLS_KEY":               "/path/to/datakit/tls.key",
-				"ENV_LOG_LEVEL":                  "debug",
-				"ENV_LOG_ROTATE_BACKUP":          "10",
-				"ENV_LOG_ROTATE_SIZE_MB":         "128",
-				"ENV_NAME":                       "testing-datakit",
-				"ENV_NAMESPACE":                  "some-default",
-				"ENV_REQUEST_RATE_LIMIT":         "1234",
-				"ENV_RUM_ORIGIN_IP_HEADER":       "not-set",
+				"ENV_DEFAULT_ENABLED_INPUTS": "cpu,mem,disk",
+				"ENV_DISABLE_404PAGE":        "on",
+				"ENV_DISABLE_PROTECT_MODE":   "true",
+				"ENV_ENABLE_ELECTION":        "1",
+				"ENV_ENABLE_PPROF":           "true",
+				"ENV_HOSTNAME":               "1024.coding",
+
+				"ENV_HTTP_ALLOWED_CORS_ORIGINS": "https://foo,https://bar",
+				"ENV_HTTP_ENABLE_TLS":           "yes",
+				"ENV_HTTP_LISTEN":               "localhost:9559",
+				"ENV_HTTP_LISTEN_SOCKET":        "/var/run/datakit/datakit.sock",
+				"ENV_HTTP_TIMEOUT":              "10s",
+				"ENV_HTTP_TLS_CRT":              "/path/to/datakit/tls.crt",
+				"ENV_HTTP_TLS_KEY":              "/path/to/datakit/tls.key",
+				"ENV_HTTP_IDLE_TIMEOUT":         "3s",
+				"ENV_HTTP_READ_TIMEOUT":         "3s",
+				"ENV_HTTP_READ_HEADER_TIMEOUT":  "3s",
+				"ENV_HTTP_WRITE_TIMEOUT":        "3s",
+
+				"ENV_LOG_LEVEL":            "debug",
+				"ENV_LOG_ROTATE_BACKUP":    "10",
+				"ENV_LOG_ROTATE_SIZE_MB":   "128",
+				"ENV_NAME":                 "testing-datakit",
+				"ENV_NAMESPACE":            "some-default",
+				"ENV_REQUEST_RATE_LIMIT":   "1234",
+				"ENV_RUM_ORIGIN_IP_HEADER": "not-set",
 
 				"ENV_ENABLE_ELECTION_NAMESPACE_TAG":              "ok",
 				"ENV_PIPELINE_OFFLOAD_RECEIVER":                  offload.DKRcv,
@@ -161,8 +166,12 @@ func TestLoadEnv(t *testing.T) {
 				cfg.HTTPAPI.ListenSocket = "/var/run/datakit/datakit.sock"
 				cfg.HTTPAPI.Disable404Page = true
 				cfg.HTTPAPI.RequestRateLimit = 1234.0
-				cfg.HTTPAPI.Timeout = "10s"
-				cfg.HTTPAPI.CloseIdleConnection = true
+
+				cfg.HTTPAPI.IdleTimeout = 3 * time.Second
+				cfg.HTTPAPI.ReadTimeout = 3 * time.Second
+				cfg.HTTPAPI.ReadHeaderTimeout = 3 * time.Second
+				cfg.HTTPAPI.WriteTimeout = 3 * time.Second
+
 				cfg.HTTPAPI.TLSConf.Cert = "/path/to/datakit/tls.crt"
 				cfg.HTTPAPI.TLSConf.PrivKey = "/path/to/datakit/tls.key"
 

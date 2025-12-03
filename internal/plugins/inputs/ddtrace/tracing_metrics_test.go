@@ -29,7 +29,6 @@ func Test_initP8SMetrics(t *testing.T) {
 			AddTag("env", "prod").
 			AddTag("version", "v1.0.0").
 			AddTag("status", "ok").
-			AddTag(itrace.TagRemoteIP, "localhost").
 			AddTag("host", "localhost").
 			Add("resource", "selece * from db").
 			Add("message", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx").
@@ -54,7 +53,6 @@ func Test_initP8SMetrics(t *testing.T) {
 			assert.NotEmpty(t, pt.GetTag(itrace.TagEnv))
 			assert.NotEmpty(t, pt.GetTag(itrace.TagVersion))
 			assert.NotEmpty(t, pt.GetTag(itrace.FieldResource))
-			assert.NotEmpty(t, pt.GetTag(itrace.TagRemoteIP))
 		}
 	}
 }

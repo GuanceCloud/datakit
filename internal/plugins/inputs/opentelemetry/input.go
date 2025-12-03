@@ -180,7 +180,7 @@ type Input struct {
 	CompatibleZhaoShang bool `toml:"compatible_zhaoshang"`
 	CleanMessage        bool `toml:"clean_message"`
 
-	SplitServiceName bool                         `toml:"spilt_service_name"`
+	SplitServiceName bool                         `toml:"split_service_name"`
 	DelMessage       bool                         `toml:"del_message"`
 	ExpectedHeaders  map[string]string            `toml:"expected_headers"`
 	KeepRareResource bool                         `toml:"keep_rare_resource"`

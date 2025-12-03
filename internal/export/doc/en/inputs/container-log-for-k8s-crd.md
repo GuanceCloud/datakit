@@ -78,20 +78,28 @@ spec:
                       - source
                       - type
                     properties:
-                      source:
-                        type: string
                       type:
+                        type: string
+                      source:
                         type: string
                       disable:
                         type: boolean
                       path:
                         type: string
-                      multiline_match:
+                      storage_index:
+                        type: string
+                      service:
                         type: string
                       pipeline:
                         type: string
-                      storage_index:
+                      multiline_match:
                         type: string
+                      character_encoding:
+                        type: string
+                      remove_ansi_escape_codes:
+                        type: boolean
+                      from_beginning:
+                        type: boolean
                       tags:
                         type: object
                         additionalProperties:
@@ -139,6 +147,7 @@ spec:
     - source: "nginx-access"
       type: "file"
       path: "/var/log/nginx/access.log"
+      service: "nginx-logging"
       pipeline: "nginx-access.p"
       tags:
         log_type: "access"
@@ -189,16 +198,21 @@ kubectl apply -f logging-config.yaml
 
 - `configs` Collection Configuration
 
-  | Field              | Type              | Required               | Description                                                           | Example                                           |
-  | ------------------ | ----------------- | ---------              | --------------------------------------------------------------------- | ------------------------------------------------- |
-  | `type`             | string            | Yes                    | Collection type: `file` - file logs, `stdout` - standard output       | `"file"`                                          |
-  | `source`           | string            | Yes                    | Log source identifier, used to distinguish different log streams      | `"nginx-access"`                                  |
-  | `path`             | string            | Conditionally Required | Log file path (supports glob patterns), required when type=file       | `"/var/log/nginx/*.log"`                          |
-  | `disable`          | boolean           | No                     | Whether to disable this collection configuration                      | `false`                                           |
-  | `multiline_match`  | string            | No                     | Regular expression for the starting line of multi-line logs           | `"^\\d{4}-\\d{2}-\\d{2}"`                         |
-  | `pipeline`         | string            | No                     | Name of the log parsing pipeline configuration file                   | `"nginx-access.p"`                                |
-  | `storage_index`    | string            | No                     | Index name for log storage                                            | `"app-logs"`                                      |
-  | `tags`             | map[string]string | No                     | Key-value pairs of tags attached to the logs                          | `{"log_type": "access", "component": "nginx"}`    |
+  | Field                           | Type              | Required               | Description                                                                                                                                       | Example                                           |
+  | ---------------------------     | ----------------- | ---------------------- | -----------------------------------------------------------------------------------------------------------------------------------               | ------------------------------------------------- |
+  | `disable`                       | boolean           | No                     | Whether to disable this collection configuration                                                                                                  | `false`                                           |
+  | `type`                          | string            | Yes                    | Collection type: `file` - file logs, `stdout` - standard output                                                                                   | `"file"`                                          |
+  | `source`                        | string            | Yes                    | Log source identifier, used to distinguish different log streams                                                                                  | `"nginx-access"`                                  |
+  | `service`                       | string            | No                     | Service to which the logs belong, default value is the log source (source)                                                                        | `"nginx"`                                         |
+  | `path`                          | string            | Conditionally Required | Log file path (supports glob patterns), required when type=file                                                                                   | `"/var/log/nginx/*.log"`                          |
+  | `multiline_match`               | string            | No                     | Regular expression for the starting line of multi-line logs                                                                                       | `"^\\d{4}-\\d{2}-\\d{2}"`                         |
+  | `pipeline`                      | string            | No                     | Name of the log parsing pipeline configuration file                                                                                               | `"nginx-access.p"`                                |
+  | `storage_index`                 | string            | No                     | Index name for log storage                                                                                                                        | `"app-logs"`                                      |
+  | `remove_ansi_escape_codes`      | boolean           | No                     | Whether to remove ANSI escape codes from log data                                                                                                 | `false`                                           |
+  | `from_beginning`                | boolean           | No                     | Whether to collect logs from the beginning of the file                                                                                            | `false`                                           |
+  | `from_beginning_threshold_size` | int               | No                     | When a file is discovered, if the file size is less than this value, start reading from the beginning of the file, in bytes, default 20MB         | `1000`                                            |
+  | `character_encoding`            | string            | No                     | Character encoding selection. Incorrect encoding may prevent data viewing. Supports `utf-8`, `utf-16le`, `gbk`, `gb18030` or "". Default is empty | `"utf-8"`                                         |
+  | `tags`                          | map[string]string | No                     | Key-value pairs of tags attached to the logs                                                                                                      | `{"log_type": "access", "component": "nginx"}`    |
 
 ### Add Relevant RBAC Configuration {#add-rbac-configuration}
 

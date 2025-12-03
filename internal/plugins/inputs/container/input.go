@@ -61,7 +61,7 @@ type Input struct {
 	LoggingAutoMultilineDetection         bool              `toml:"logging_auto_multiline_detection"`
 	LoggingAutoMultilineExtraPatterns     []string          `toml:"logging_auto_multiline_extra_patterns"`
 	LoggingFileFromBeginning              bool              `toml:"logging_file_from_beginning"`
-	LoggingFileFromBeginningThresholdSize int               `toml:"logging_file_from_beginning_threshold_size"`
+	LoggingFileFromBeginningThresholdSize int64             `toml:"logging_file_from_beginning_threshold_size"`
 	LoggingRemoveAnsiEscapeCodes          bool              `toml:"logging_remove_ansi_escape_codes"`
 	LoggingFieldWhiteList                 []string          `toml:"logging_field_white_list"`
 	LoggingMaxOpenFiles                   int               `toml:"logging_max_open_files"`

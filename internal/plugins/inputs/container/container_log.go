@@ -143,7 +143,7 @@ func newLoggingDefaults(ipt *Input) *loggingDefaults {
 		maxMultilineLength:         int64(float64(config.Cfg.Dataway.MaxRawBodySize) * 0.8),
 
 		fileFromBeginning:     ipt.LoggingFileFromBeginning,
-		fileSizeThreshold:     int64(ipt.LoggingFileFromBeginningThresholdSize),
+		fileSizeThreshold:     ipt.LoggingFileFromBeginningThresholdSize,
 		removeAnsiEscapeCodes: ipt.LoggingRemoveAnsiEscapeCodes,
 		fieldWhitelist:        ipt.LoggingFieldWhiteList,
 		maxOpenFiles:          ipt.LoggingMaxOpenFiles,

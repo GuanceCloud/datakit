@@ -334,7 +334,7 @@ func runCmd(cfgFile *string, fl *Flag) error {
 		k8sinfo = cli.NewK8sInfo(c, criLi)
 	}
 	if k8sinfo != nil {
-		k8sinfo.AutoUpdate(ctx, time.Second*30)
+		k8sinfo.AutoUpdate(ctx, time.Minute*2)
 		netflow.SetK8sNetInfo(k8sinfo)
 		dnsflow.SetK8sNetInfo(k8sinfo)
 		l4log.SetK8sNetInfo(k8sinfo)

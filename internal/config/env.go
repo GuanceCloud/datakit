@@ -713,12 +713,36 @@ func (c *Config) loadHTTPAPIEnvs() {
 		c.HTTPAPI.ListenSocket = v
 	}
 
-	if v := datakit.GetEnv("ENV_HTTP_TIMEOUT"); v != "" {
-		c.HTTPAPI.Timeout = v
+	if v := datakit.GetEnv("ENV_HTTP_IDLE_TIMEOUT"); v != "" {
+		if x, err := time.ParseDuration(v); err != nil {
+			l.Warnf("invalid ENV_HTTP_IDLE_TIMEOUT: %s", err)
+		} else {
+			c.HTTPAPI.IdleTimeout = x
+		}
 	}
 
-	if v := datakit.GetEnv("ENV_HTTP_CLOSE_IDLE_CONNECTION"); v != "" {
-		c.HTTPAPI.CloseIdleConnection = true
+	if v := datakit.GetEnv("ENV_HTTP_READ_TIMEOUT"); v != "" {
+		if x, err := time.ParseDuration(v); err != nil {
+			l.Warnf("invalid ENV_HTTP_READ_TIMEOUT: %s", err)
+		} else {
+			c.HTTPAPI.ReadTimeout = x
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_HTTP_WRITE_TIMEOUT"); v != "" {
+		if x, err := time.ParseDuration(v); err != nil {
+			l.Warnf("invalid ENV_HTTP_WRITE_TIMEOUT: %s", err)
+		} else {
+			c.HTTPAPI.WriteTimeout = x
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_HTTP_READ_HEADER_TIMEOUT"); v != "" {
+		if x, err := time.ParseDuration(v); err != nil {
+			l.Warnf("invalid ENV_HTTP_READ_HEADER_TIMEOUT: %s", err)
+		} else {
+			c.HTTPAPI.ReadHeaderTimeout = x
+		}
 	}
 
 	if v := datakit.GetEnv("ENV_HTTP_PUBLIC_APIS"); v != "" {

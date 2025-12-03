@@ -64,7 +64,7 @@ func (ipt *Input) parseLogRequest(resourceLogss []*logs.ResourceLogs, remoteIP s
 						AddTag("status", getStatus(record.GetSeverityNumber(), record.GetSeverityText())).
 						AddTag("service", service).
 						AddTag(itrace.TagSource, source).
-						AddTag(itrace.TagRemoteIP, remoteIP).
+						AddTag(itrace.TagCollectorSourceIP, remoteIP).
 						AddTag(itrace.TagDKFingerprintKey, datakit.DKHost+"_"+datakit.Version)
 
 					if host != "" {

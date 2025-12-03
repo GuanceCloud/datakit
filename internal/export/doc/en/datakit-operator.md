@@ -131,9 +131,19 @@ The default configuration is as follows:
                  }
             }
         },
-        "logfwd": {
+        "profiler": {
             "images": {
-                "logfwd_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/logfwd:1.82.0"
+                "java_profiler_image":   "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/async-profiler:0.5.0",
+                "python_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/py-spy:0.1.0",
+                "golang_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/go-pprof:0.1.0"
+            },
+            "envs": {
+                "DK_AGENT_HOST":  "datakit-service.datakit.svc.cluster.local",
+                "DK_AGENT_PORT":  "9529",
+                "DK_PROFILE_VERSION":  "1.2.333",
+                "DK_PROFILE_ENV":      "prod",
+                "DK_PROFILE_DURATION": "240",
+                "DK_PROFILE_SCHEDULE": "0 * * * *"
             },
             "resources": {
                 "requests": {
@@ -146,19 +156,18 @@ The default configuration is as follows:
                  }
             }
         },
-        "profiler": {
+        "logfwd": {
             "images": {
-                "java_profiler_image":   "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/async-profiler:latest",
-                "python_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/py-spy:latest",
-                "golang_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/go-pprof:latest"
+                "logfwd_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/logfwd:1.86.0"
             },
             "envs": {
-                "DK_AGENT_HOST":  "datakit-service.datakit.svc",
-                "DK_AGENT_PORT":  "9529",
-                "DK_PROFILE_VERSION": "1.2.333",
-                "DK_PROFILE_ENV": "prod",
-                "DK_PROFILE_DURATION": "240",
-                "DK_PROFILE_SCHEDULE": "0 * * * *"
+                "LOGFWD_DATAKIT_HOST":              "{fieldRef:status.hostIP}",
+                "LOGFWD_DATAKIT_PORT":              "9533",
+                "LOGFWD_DATAKIT_OPERATOR_ENDPOINT": "datakit-operator.datakit.svc:443",
+                "LOGFWD_GLOBAL_SERVICE":            "{fieldRef:metadata.labels['app']}",
+                "LOGFWD_POD_NAME":                  "{fieldRef:metadata.name}",
+                "LOGFWD_POD_NAMESPACE":             "{fieldRef:metadata.namespace}",
+                "LOGFWD_POD_IP":                    "{fieldRef:status.podIP}"
             },
             "resources": {
                 "requests": {
@@ -565,20 +574,21 @@ Even with CRDs enabled, Pods must explicitly opt in to logfwd sidecars. Annotati
 ]
 ```
 
-| Field                       | Type    | Required | Description                                                                                                             | Example                    |
-| ------                      | ------  | ------   | ------                                                                                                                 | ------                     |
-| `type`                      | string  | Yes      | logfwd input type. Only `"file"` is supported.                                                                          | `"file"`                   |
-| `disable`                   | boolean | No       | Whether to disable the config.                                                                                           | `false`                    |
-| `source`                    | string  | Yes      | Log source identifier, used to distinguish log streams.                                                                  | `"nginx-access"`           |
-| `service`                   | string  | No       | Service name. Defaults to `source`.                                                                                      | `"nginx"`                  |
-| `path`                      | string  | Cond     | File path (supports glob). Required when `type=file`.                                                                    | `"/var/log/nginx/*.log"`   |
-| `multiline_match`           | string  | No       | Regex for multiline start. Remember to escape backslashes in JSON.                                                       | `"^\\d{4}-\\d{2}-\\d{2}"`  |
-| `pipeline`                  | string  | No       | Pipeline script name configured on DataKit.                                                                              | `"nginx-access.p"`         |
-| `storage_index`             | string  | No       | Target storage index.                                                                                                    | `"app-logs"`               |
-| `remove_ansi_escape_codes`  | boolean | No       | Remove ANSI escape codes (colors, etc.).                                                                                 | `false`                    |
-| `from_beginning`            | boolean | No       | Whether to start reading from the beginning of the file (default: tail).                                                 | `false`                    |
-| `character_encoding`        | string  | No       | Encoding. Supports `utf-8`, `utf-16le`, `utf-16be`, `gbk`, `gb18030`, or empty string for auto-detect.                   | `"utf-8"`                  |
-| `tags`                      | object  | No       | Extra tags attached to each log.                                                                                         | `{"env": "prod"}`          |
+| Field                           | Type    | Required | Description                                                                                                                               | Example                   |
+| ------                          | ------  | ------   | ------                                                                                                                                    | ------                    |
+| `type`                          | string  | Yes      | logfwd input type. Only `"file"` is supported.                                                                                            | `"file"`                  |
+| `disable`                       | boolean | No       | Whether to disable the config.                                                                                                            | `false`                   |
+| `source`                        | string  | Yes      | Log source identifier, used to distinguish log streams.                                                                                   | `"nginx-access"`          |
+| `service`                       | string  | No       | Service name. Defaults to `source`.                                                                                                       | `"nginx"`                 |
+| `path`                          | string  | Cond     | File path (supports glob). Required when `type=file`.                                                                                     | `"/var/log/nginx/*.log"`  |
+| `multiline_match`               | string  | No       | Regex for multiline start. Remember to escape backslashes in JSON.                                                                        | `"^\\d{4}-\\d{2}-\\d{2}"` |
+| `pipeline`                      | string  | No       | Pipeline script name configured on DataKit.                                                                                               | `"nginx-access.p"`        |
+| `storage_index`                 | string  | No       | Target storage index.                                                                                                                     | `"app-logs"`              |
+| `remove_ansi_escape_codes`      | boolean | No       | Remove ANSI escape codes (colors, etc.).                                                                                                  | `false`                   |
+| `from_beginning`                | boolean | No       | Whether to start reading from the beginning of the file (default: tail).                                                                  | `false`                   |
+| `from_beginning_threshold_size` | int     | No       | When a file is discovered, if the file size is less than this value, start reading from the beginning of the file, in bytes, default 20MB | `1000`                    |
+| `character_encoding`            | string  | No       | Encoding. Supports `utf-8`, `utf-16le`, `utf-16be`, `gbk`, `gb18030`, or empty string for auto-detect.                                    | `"utf-8"`                 |
+| `tags`                          | object  | No       | Extra tags attached to each log.                                                                                                          | `{"env": "prod"}`         |
 
 - `admission.datakit/logfwd.volume_paths`: JSON array that declares host paths to mount so the sidecar can read log files, e.g. `'["/var/log", "/data/log"]'`. Avoid nested parent/child directories to prevent conflicts.
 
