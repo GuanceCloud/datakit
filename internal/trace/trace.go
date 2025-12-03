@@ -85,11 +85,11 @@ const (
 	TagPodName           = "pod_name"
 	TagPodNamespace      = "pod_namespace"
 
-	TagDBHost   = "db_host"
-	TagDBSystem = "db_system"
-	TagDBName   = "db_name"
-	TagOutHost  = "out_host"
-	TagRemoteIP = "remote_ip"
+	TagDBHost            = "db_host"
+	TagDBSystem          = "db_system"
+	TagDBName            = "db_name"
+	TagOutHost           = "out_host"
+	TagCollectorSourceIP = "collector_source_ip"
 
 	FieldDuration   = "duration"
 	FieldMessage    = "message"

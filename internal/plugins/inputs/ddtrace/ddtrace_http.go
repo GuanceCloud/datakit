@@ -315,7 +315,10 @@ func (ipt *Input) ddtraceToDkTrace(trace DDTrace, values []string, remoteIP stri
 		truncatedTraceSpans.WithLabelValues(inputName).Add(float64(len(trace) - ipt.traceMaxSpans))
 		trace = trace[:ipt.traceMaxSpans] // truncated too large spans
 	}
-
+	if ipt.TracingMetricEnable {
+		// 统计指标。
+		traceMetric(trace, labels, values)
+	}
 	for _, span := range trace {
 		values = values[:0]
 		if span == nil {
@@ -334,7 +337,7 @@ func (ipt *Input) ddtraceToDkTrace(trace DDTrace, values []string, remoteIP stri
 		}
 
 		var spanKV point.KVs
-		spanKV = spanKV.AddTag(itrace.TagRemoteIP, remoteIP)
+		spanKV = spanKV.AddTag(itrace.TagCollectorSourceIP, remoteIP)
 		priority, ok := span.Metrics[keyPriority]
 		if ok {
 			if priority == -1 || priority == -3 || priority == 0 {
@@ -398,9 +401,6 @@ func (ipt *Input) ddtraceToDkTrace(trace DDTrace, values []string, remoteIP stri
 
 		t := time.Unix(0, span.Start)
 		pt := point.NewPoint(inputName, spanKV, append(traceOpts, point.WithTime(t))...)
-		if ipt.TracingMetricEnable {
-			spanMetrics(pt, labels, values) // span 指标化。
-		}
 
 		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 	}

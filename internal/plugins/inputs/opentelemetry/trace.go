@@ -95,7 +95,7 @@ func (ipt *Input) parseResourceSpans(resspans []*trace.ResourceSpans, remoteIP s
 					AddTag(itrace.TagDKFingerprintKey, datakit.DKHost+"_"+datakit.Version).
 					AddTag(itrace.TagSource, inputName).
 					AddTag(itrace.TagService, serviceName).
-					AddTag(itrace.TagRemoteIP, remoteIP)
+					AddTag(itrace.TagCollectorSourceIP, remoteIP)
 
 				// service_name from xx.system.
 				if ipt.SplitServiceName {

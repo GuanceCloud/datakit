@@ -28,7 +28,7 @@ func (ipt *Input) parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics, remo
 		}
 
 		resourceTags := attributesToTag(resmc.Resource.GetAttributes())
-		resourceTags[itrace.TagRemoteIP] = remoteIP // add remote_ip to every point.
+		resourceTags[itrace.TagCollectorSourceIP] = remoteIP // add collector_source_ip to every point.
 
 		for _, scopeMetrics := range resmc.GetScopeMetrics() {
 			var scopeTags map[string]string
