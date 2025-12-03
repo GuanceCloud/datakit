@@ -9,7 +9,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"testing"
 	T "testing"
 	"time"
 
@@ -22,7 +21,7 @@ import (
 )
 
 // TestDefaultMainConf used to keep default config and default config sample equal.
-func TestDefaultMainConf(t *testing.T) {
+func TestDefaultMainConf(t *T.T) {
 	c := DefaultConfig()
 	c.Ulimit = 0 // ulimit diff among OS platforms
 
@@ -34,10 +33,15 @@ func TestDefaultMainConf(t *testing.T) {
 	x.GlobalHostTags = map[string]string{}              // clear:  host tags setted on default conf sample
 	x.Ulimit = 0
 
+	assert.Equal(t, 60*time.Second, x.HTTPAPI.IdleTimeout)
+	assert.Equal(t, 30*time.Second, x.HTTPAPI.ReadHeaderTimeout)
+	assert.Equal(t, 30*time.Second, x.HTTPAPI.ReadTimeout)
+	assert.Equal(t, 30*time.Second, x.HTTPAPI.WriteTimeout)
+
 	assert.Equal(t, c.String(), x.String())
 }
 
-func TestEnableDefaultsInputs(t *testing.T) {
+func TestEnableDefaultsInputs(t *T.T) {
 	cases := []struct {
 		list   string
 		expect []string
@@ -60,7 +64,7 @@ func TestEnableDefaultsInputs(t *testing.T) {
 	}
 }
 
-func TestSetupGlobalTags(t *testing.T) {
+func TestSetupGlobalTags(t *T.T) {
 	localIP, err := datakit.LocalIP()
 	if err != nil {
 		t.Fatal(err)
@@ -152,7 +156,7 @@ func TestSetupGlobalTags(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *T.T) {
 			c := DefaultConfig()
 			for k, v := range tc.hosttags {
 				c.GlobalHostTags[k] = v
@@ -182,7 +186,7 @@ func TestSetupGlobalTags(t *testing.T) {
 	}
 }
 
-func TestProtectedInterval(t *testing.T) {
+func TestProtectedInterval(t *T.T) {
 	cases := []struct {
 		enabled              bool
 		min, max, in, expect time.Duration
@@ -227,7 +231,7 @@ func TestProtectedInterval(t *testing.T) {
 	}
 }
 
-func TestUnmarshalCfg(t *testing.T) {
+func TestUnmarshalCfg(t *T.T) {
 	cases := []struct {
 		name string
 		raw  string
@@ -310,7 +314,7 @@ hostname = "should-not-set"`,
 	}()
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *T.T) {
 			c := DefaultConfig()
 
 			if err := os.WriteFile(tomlfile, []byte(tc.raw), 0o600); err != nil {
@@ -334,7 +338,7 @@ hostname = "should-not-set"`,
 	}
 }
 
-func TestLoadDWRetry(t *testing.T) {
+func TestLoadDWRetry(t *T.T) {
 	type Case struct {
 		name       string
 		confText   string
@@ -379,8 +383,8 @@ func TestLoadDWRetry(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			f, err := os.CreateTemp("./", "test.main.*.conf")
+		f, err := os.CreateTemp("./", "test.main.*.conf")
+		t.Run(tc.name, func(t *T.T) {
 			assert.NoError(t, err)
 
 			defer os.Remove(f.Name())
@@ -420,7 +424,7 @@ func TestLoadResourceLimite(t *T.T) {
 	})
 }
 
-func Test_setupDataway(t *testing.T) {
+func Test_setupDataway(t *T.T) {
 	cases := []struct {
 		name   string
 		dw     *dataway.Dataway
@@ -437,7 +441,7 @@ func Test_setupDataway(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *T.T) {
 			c := DefaultConfig()
 			c.Dataway = tc.dw
 

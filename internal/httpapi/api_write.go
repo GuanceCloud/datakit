@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -379,7 +380,12 @@ func (wr *APIWriteResult) APIV1Write(req *http.Request) (err error) {
 	defer bufpool.PutBuffer(buf)
 
 	if _, err := io.Copy(buf, req.Body); err != nil {
-		return err
+		var netErr net.Error
+		if errors.As(err, &netErr) && netErr.Timeout() {
+			return ErrReadTimeout
+		} else {
+			return err
+		}
 	}
 
 	body = buf.Bytes()

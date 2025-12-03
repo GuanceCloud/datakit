@@ -183,7 +183,7 @@ func DefaultConfig() *Config {
 
 		ProtectMode: true,
 
-		HTTPAPI: defaultAPIConfig(),
+		HTTPAPI: DefaultAPIConfig(),
 
 		DCAConfig: &DCAConfig{
 			Enable:          false,

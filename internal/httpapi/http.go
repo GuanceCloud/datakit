@@ -13,16 +13,14 @@ import (
 	"io"
 	"net"
 	"net/http"
+	_ "net/http/pprof" // nolint:gosec
 	"net/netip"
+	"os"
 	"path/filepath"
 	"reflect"
 	"runtime"
 	"strings"
 	"sync"
-
-	// nolint:gosec
-	_ "net/http/pprof"
-	"os"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -30,10 +28,10 @@ import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/pipeline-go/constants"
-	"github.com/GuanceCloud/timeout"
 	"github.com/didip/tollbooth/v6/limiter"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.uber.org/zap/zapcore"
 	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
@@ -66,8 +64,6 @@ type httpServerConf struct {
 	dw        *dataway.Dataway
 	dcaConfig *config.DCAConfig
 
-	timeout time.Duration
-
 	pprof       bool
 	pprofListen string
 
@@ -75,11 +71,45 @@ type httpServerConf struct {
 }
 
 func defaultHTTPServerConf() *httpServerConf {
+	c := config.DefaultAPIConfig()
+
+	// Default enable APIs.
+	c.PublicAPIs = []string{"/v1/ping", "/v1/ntp"}
+
 	return &httpServerConf{
-		apiConfig: &config.APIConfig{
-			PublicAPIs: []string{"/v1/ping", "/v1/ntp"}, // Default enable APIs.
-		},
+		apiConfig: c,
 	}
+}
+
+func (hs *httpServerConf) setupServer(srv *http.Server) *http.Server {
+	srv.Addr = hs.apiConfig.Listen
+	if srv.Handler == nil {
+		srv.Handler = setupRouter(hs)
+	}
+
+	srv.ReadTimeout = hs.apiConfig.ReadTimeout
+	srv.IdleTimeout = hs.apiConfig.IdleTimeout
+	srv.ReadHeaderTimeout = hs.apiConfig.ReadHeaderTimeout
+	srv.WriteTimeout = hs.apiConfig.WriteTimeout
+
+	srv.ConnState = func(c net.Conn, s http.ConnState) {
+		if l.Level() == zapcore.DebugLevel {
+			switch s {
+			case http.StateClosed:
+				l.Debugf("connection %s closed", c.RemoteAddr())
+			case http.StateNew:
+				l.Debugf("new connection from %s", c.RemoteAddr())
+			case http.StateActive:
+				l.Debugf("connection %s active", c.RemoteAddr())
+			case http.StateIdle:
+				l.Debugf("connection %s idle", c.RemoteAddr())
+			case http.StateHijacked:
+				l.Debugf("connection %s hijacked", c.RemoteAddr())
+			}
+		}
+	}
+
+	return srv
 }
 
 func Start(opts ...option) {
@@ -115,16 +145,6 @@ func Start(opts ...option) {
 			hs.apiConfig.RequestRateLimit, ttl, hs.apiConfig.RequestRateLimitBurst)
 	} else {
 		l.Infof("set request limit not set: %f", hs.apiConfig.RequestRateLimit)
-	}
-
-	hs.timeout = 30 * time.Second
-	switch hs.apiConfig.Timeout {
-	case "":
-	default:
-		du, err := time.ParseDuration(hs.apiConfig.Timeout)
-		if err == nil {
-			hs.timeout = du
-		}
 	}
 
 	startDCA(hs)
@@ -165,26 +185,11 @@ func setupGinLogger(hs *httpServerConf) (gl io.Writer) {
 		}
 	}
 
-	return
+	return gl
 }
 
 func setDKInfo(c *gin.Context) {
 	c.Header("X-DataKit", fmt.Sprintf("%s/%s", datakit.Version, datakit.DKHost))
-}
-
-// dkHTTPTimeout Caution: this middleware must be registered as the first one.
-func dkHTTPTimeout(du time.Duration) gin.HandlerFunc {
-	return timeout.New(
-		timeout.WithTimeout(du),
-
-		timeout.WithHandler(func(c *gin.Context) {
-			c.Next()
-		}),
-
-		timeout.WithResponse(func(c *gin.Context) {
-			c.String(http.StatusRequestTimeout, fmt.Sprintf("timeout(%s)", du))
-		}),
-	)
 }
 
 func setupRouter(hs *httpServerConf) *gin.Engine {
@@ -194,11 +199,6 @@ func setupRouter(hs *httpServerConf) *gin.Engine {
 	}
 
 	router := gin.New()
-
-	// Caution: timeout middleware MUST be registered as the first one, or may crash the process.
-	// DON'T CHANGE ITS ORDER!
-	router.Use(dkHTTPTimeout(hs.timeout))
-
 	router.Use(setDKInfo)
 
 	// should we disable gin log when under ReleaseMode?
@@ -316,15 +316,7 @@ func apiWhiteListMiddleware(apis []string) gin.HandlerFunc {
 func HTTPStart(hs *httpServerConf) {
 	refreshRebootSem()
 	l.Debugf("HTTP bind addr:%s", hs.apiConfig.Listen)
-
-	srv := &http.Server{
-		Addr:    hs.apiConfig.Listen,
-		Handler: setupRouter(hs),
-	}
-
-	if hs.apiConfig.CloseIdleConnection {
-		srv.ReadTimeout = hs.timeout
-	}
+	srv := hs.setupServer(&http.Server{})
 
 	g.Go(func(ctx context.Context) error {
 		tryStartServer(hs, srv, true, semReload, semReloadCompleted)
