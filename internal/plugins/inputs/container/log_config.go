@@ -25,6 +25,7 @@ type containerLogInfo struct {
 	image         string
 	logPath       string
 
+	podUID                string
 	podNamespace, podName string
 	podIP                 string
 	podLabels             map[string]string
