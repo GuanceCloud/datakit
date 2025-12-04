@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.86.2 (2025/12/04) {#cl-1.86.2}
+
+This release is a hotfix with the following updates:
+
+### Bug Fixes {#cl-1.86.2-fix}
+
+- Fixed issue where log collection was preventing pod deletion (#2908)
+
+---
+
 ## 1.86.1 (2025/12/03) {#cl-1.86.1}
 
 This release is a hotfix with the following updates:
