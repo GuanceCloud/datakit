@@ -15,6 +15,10 @@
 - 修正 OpenTelemetry 采集器配置中的拼写错误 `split_service_name`（!3781）
 - 其它文档修复（#2898）
 
+### 兼容调整 {#cl-1.86.1-brk}
+
+- trace 数据中的 `remote_ip` 字段已经重命名为 `collector_source_ip`，同时 `tracing_metrics` 中移除了 `remote_ip` 字段，重命名之后的 `collector_source_ip` 也没有加入到 `tracing_metrics` 中（#2896）
+
 ---
 
 ## 1.86.0(2025/11/20) {#cl-1.86.0}

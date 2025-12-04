@@ -15,6 +15,10 @@ This release is a hotfix with the following updates:
 - Fix typo `split_service_name` in OpenTelemetry collector (!3781)
 - Other documentation fixes (#2898)
 
+### Compatibility Changes {#cl-1.86.1-brk}
+
+- The `remote_ip` field in trace data has been renamed to `collector_source_ip`. The `remote_ip` field has been removed from `tracing_metrics`, and the renamed `collector_source_ip` is also not included in `tracing_metrics` (#2896)
+
 ---
 
 ## 1.86.0(2025/11/20) {#cl-1.86.0}
