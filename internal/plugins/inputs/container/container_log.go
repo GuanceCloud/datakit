@@ -66,6 +66,7 @@ func (c *containerCollector) queryContainerLogInfoAndConfig(item *runtime.Contai
 		runtime:       item.RuntimeName,
 		image:         item.Image,
 		logPath:       item.LogPath,
+		podUID:        getPodUIDForLabels(item.Labels),
 		podName:       podName,
 		podNamespace:  namespace,
 		mergedDir:     item.MergedDir,

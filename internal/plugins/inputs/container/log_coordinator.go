@@ -29,6 +29,7 @@ type containerLogCoordinator struct {
 
 type containerLogTask struct {
 	containerID                  string
+	podUID                       string
 	info                         *containerLogInfo
 	useAnnotationOrEnvLogConfigs bool
 	configStr                    string
@@ -61,6 +62,7 @@ func (c *containerLogCoordinator) addTask(containerID string, info *containerLog
 	if !exists {
 		task = &containerLogTask{
 			containerID: containerID,
+			podUID:      info.podUID,
 			info:        info,
 		}
 	}
