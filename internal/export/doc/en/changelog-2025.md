@@ -178,7 +178,6 @@ This release is an iterative update with the following key changes:
 ### Improvements {#cl-1.83.0-opt}
 
 - Optimized PostgreSQL metric collection (#2805)
-- Removed the redundant `operation` field from all Trace collectors except DDTrace (#2816)
 - Optimized the impact of the upgrade process on the *datakit.conf* file (#2821)
 - Optimized ICMP probing (#2823)
 - Optimized the CPU utilization limit settings in the *datakit.conf* configuration (#2830)
@@ -190,6 +189,7 @@ This release is an iterative update with the following key changes:
 
 ### Compatibility Adjustments {#cl-1.83.0-brk}
 
+- Removed the redundant `operation` field from all Trace collectors except DDTrace (#2816)
 - Due to changes in DataKit's runtime permission control, all collector configuration examples have been moved to the *conf.d/samples/* directory, and subsequent releases will no longer use subdirectories under the *conf.d/* directory. Taking the CPU collector as an example, the original configuration example, which was located at *conf.d/host/cpu.conf.sample*, has now been adjusted to *conf.d/samples/cpu.conf.sample*. However, collector configurations can still be stored in subdirectories under *conf.d*. This update only adjusts the storage location of sample files.
 
 ---

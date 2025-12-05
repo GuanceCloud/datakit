@@ -178,7 +178,6 @@
 ### 功能优化 {#cl-1.83.0-opt}
 
 - 优化 PostgreSQL 指标采集（#2805）
-- 除 DDTrace 外其它几个 Trace 采集均移除 `operation` 这个冗余字段（#2816）
 - 优化升级程序对 *datakit.conf* 文件的影响（#2821）
 - 优化 ICMP 拨测（#2823）
 - 优化 *datakit.conf* 配置中关于 CPU 利用率限制的设定（#2830）
@@ -190,6 +189,7 @@
 
 ### 兼容调整 {#cl-1.83.0-brk}
 
+- 除 DDTrace 外其它几个 Trace 采集均移除 `operation` 这个冗余字段（#2816）
 - 由于修改了 DataKit 运行权限控制，所有采集器的配置示例全部转移到 *conf.d/samples* 目录下，且后续不再区分 *conf.d/* 目录下的二级目录。以 CPU 采集器为例，原来的配置示例位于 *conf.d/host/cpu.conf.sample*，现在调整为 *conf.d/samples/cpu.conf.sample*。但采集器配置仍然可以存放在 *conf.d* 下面的二级目录，此次更新只是调整了 sample 文件的存放位置。
 
 ---
