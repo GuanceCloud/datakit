@@ -25,13 +25,13 @@ type instance struct {
 	mergedTags,
 	infoTags map[string]string // tags during parsing redis info
 
-	latencyLastTime map[string]time.Time
+	latencyLastTime map[string]map[string]time.Time
 
 	infoElapsed time.Duration
 
 	version, role string
 
-	slowlogHash [][16]byte
+	slowlogHash map[string][][16]byte
 
 	hbScanners      []*hotbigkeyScanner
 	connectedSlaves int64
@@ -59,7 +59,8 @@ type node struct {
 
 func newInstance() *instance {
 	return &instance{
-		latencyLastTime: map[string]time.Time{},
+		slowlogHash:     make(map[string][][16]byte),
+		latencyLastTime: make(map[string]map[string]time.Time),
 		infoTags:        map[string]string{},
 		mergedTags:      map[string]string{},
 		infoCPULast:     map[string]*redisCPUUsage{},
@@ -69,8 +70,6 @@ func newInstance() *instance {
 }
 
 func (i *instance) setup() {
-	i.slowlogHash = make([][16]byte, i.ipt.SlowlogMaxLen)
-
 	i.mergedTags["host"] = i.host
 	i.mergedTags["server"] = i.addr
 
