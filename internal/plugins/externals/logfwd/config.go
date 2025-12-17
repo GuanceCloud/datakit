@@ -152,7 +152,7 @@ func setConfigDefaults(cfg *logConfig) {
 	}
 
 	if globalService != "" {
-		cfg.Source = globalService
+		cfg.Service = globalService
 	}
 	if cfg.Service == "" {
 		cfg.Service = cfg.Source
