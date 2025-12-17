@@ -17,15 +17,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	"github.com/hashicorp/go-retryablehttp"
 )
-
-// _plReferTables PlReferTables
-// _runner        = &Runner{
-// 	initFinished: make(chan struct{}),
-// }
-
-var l = logger.DefaultSLogger("refer-table")
 
 const (
 	SchemeHTTP  = "http"
@@ -34,25 +26,20 @@ const (
 	PullDuration = time.Second
 )
 
-// func QueryReferTable(referTb PlReferTables, tableName string, colName []string, colValue []any,
-// 	selected []string,
-// ) (map[string]any, bool) {
-// 	defer func() {
-// 		if err := recover(); err != nil {
-// 			l.Error(fmt.Errorf("run pl: %s", err))
-// 		}
-// 	}()
+var (
+	l                = logger.DefaultSLogger("refer-table")
+	defaultTransport = &http.Transport{
+		DialContext: ((&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext),
 
-// 	if referTb == nil {
-// 		return nil, false
-// 	}
-
-// 	return referTb.query(tableName, colName, colValue, selected)
-// }
-
-// func InitFinished(interval time.Duration) bool {
-// 	return _runner.InitFinished(interval)
-// }
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
+)
 
 func InitLog() {
 	l = logger.SLogger("refer-table")
@@ -76,7 +63,6 @@ type RefTbCfg struct {
 
 type ReferTable struct {
 	inConfig     InConfig
-	cli          *retryablehttp.Client
 	initFinished chan struct{}
 	tables       PlReferTables
 }
@@ -126,20 +112,8 @@ func NewReferTable(cfg RefTbCfg) (*ReferTable, error) {
 
 	switch scheme {
 	case SchemeHTTP, SchemeHTTPS:
-		cli := http.Client{
-			Transport: &http.Transport{
-				DialContext: (&net.Dialer{
-					Timeout:   time.Second * 30,
-					KeepAlive: time.Second * 90,
-				}).DialContext,
-				MaxIdleConns:          100,
-				MaxConnsPerHost:       64,
-				IdleConnTimeout:       time.Second * 90,
-				TLSHandshakeTimeout:   time.Second * 10,
-				ExpectContinueTimeout: time.Second,
-			},
-		}
-		ref.cli = newRetryCli(&cli, time.Minute)
+	default:
+		return nil, fmt.Errorf("unsupported scheme: %s", scheme)
 	}
 
 	return ref, nil
@@ -196,7 +170,7 @@ func (refT *ReferTable) PullWorker(ctx context.Context) {
 }
 
 func (refT *ReferTable) getAndUpdate() error {
-	if tables, err := httpGet(refT.cli, refT.inConfig.URL); err != nil {
+	if tables, err := httpGet(context.Background(), refT.inConfig.URL); err != nil {
 		return fmt.Errorf("get table data from URL: %w", err)
 	} else {
 		if refT.tables == nil {
@@ -217,12 +191,14 @@ func (refT *ReferTable) getAndUpdate() error {
 	return nil
 }
 
-func httpGet(cli *retryablehttp.Client, url string) ([]referTable, error) {
-	resp, err := cli.Get(url)
-	defer func() { _ = resp.Body.Close() }()
+func httpGet(ctx context.Context, url string) ([]referTable, error) {
+	resp, err := DoRequestWithRetry(ctx,
+		"GET", url, nil, nil,
+		&DefaultRetryConfig, defaultTransport)
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("url: %s, status: %s", url, resp.Status)
