@@ -107,6 +107,6 @@ func (c *CustomTags) DDTraceRegexKey(meta map[string]string) (map[string]string,
 			delete(meta, k)
 		}
 	}
-
+	kvs = kvs.AddTag("sdk_name", "ddtrace")
 	return meta, kvs
 }

@@ -121,6 +121,10 @@ var (
 		"host":           "host",
 		"pod_name":       "pod_name",
 		"pod_namespace":  "pod_namespace",
+
+		"telemetry.sdk.language": "sdk_language",
+		"telemetry.sdk.name":     "sdk_name",
+		"telemetry.sdk.version":  "sdk_version",
 	}
 
 	// delMetricKey: 删除无效的key，节省内存空间。
