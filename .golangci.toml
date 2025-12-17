@@ -134,6 +134,7 @@ disable = [
   "contextcheck",    # [升级 Go1.18 后加入] 函数参数必须传入 context
   "errchkjson",      # [升级 Go1.18 后加入] json 序列化/反序列化必须检查
   "nilnil",          # [升级 Go1.18 后加入] 函数返回 nil, nil 检查
+
 ]
 
 [issues]

@@ -15,7 +15,6 @@ type TLSConfig struct {
 	PrivKey string `toml:"privkey"`
 }
 
-// APIConfig used to unmarshal HTTP API server configurations.
 type APIConfig struct {
 	RUMOriginIPHeader string   `toml:"rum_origin_ip_header"`
 	ListenSocket      string   `toml:"listen_socket"`
@@ -34,6 +33,7 @@ type APIConfig struct {
 	WriteTimeout      time.Duration `toml:"http_write_timeout"`
 
 	TLSConf            *TLSConfig `toml:"tls"`
+	DisableWhitelist   bool       `toml:"disable_whitelist"`
 	AllowedCORSOrigins []string   `toml:"allowed_cors_origins"`
 }
 
@@ -44,6 +44,7 @@ func DefaultAPIConfig() *APIConfig {
 		RUMAppIDWhiteList: []string{},
 		PublicAPIs:        []string{},
 
+		DisableWhitelist:  false, // 添加这一行
 		IdleTimeout:       time.Second * 60,
 		ReadTimeout:       time.Second * 30,
 		ReadHeaderTimeout: time.Second * 30,
