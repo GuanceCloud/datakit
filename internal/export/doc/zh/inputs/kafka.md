@@ -64,12 +64,98 @@ java -jar </path/to/jolokia-jvm-agent.jar> --host 127.0.0.1 --port=8080 start <K
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 <!-- markdownlint-enable -->
 
+### 采集模式 {#collection-mode}
+
+Kafka 采集器支持两种采集模式：
+
+1. **自动采集模式**（默认）：自动发现并采集所有 Kafka 相关的 MBean 指标（``kafka.*:*``），无需手动配置。
+2. **手动模式**：需要手动配置要采集的 MBean 指标，通过 `[[inputs.kafka.metric]]` 配置项指定。
+
+#### 自动采集模式（默认） {#enable-auto-collect-mode}
+
+默认情况下，Kafka 采集器使用自动采集模式，会自动发现并采集所有 Kafka MBean 指标。无需额外配置即可使用：
+
+```toml
+[[inputs.kafka]]
+  urls = ["http://localhost:8080/jolokia"]
+  enable_auto_collect = true  # 默认已启用
+```
+
+> **重要提示**：启用自动采集模式后，所有指标会统一上报到指标集 `kafka`，以及指标名（字段名）会按照 `domain.type.name.attr` 格式命名。如果需要使用之前的指标集（如 `kafka_controller`、`kafka_replica_manager`、`kafka_topic` 等）以及指标名，请设置 `enable_auto_collect = false` 并使用手动模式进行配置。
+
+##### MBean 黑名单 {#mbean-blacklist}
+
+在自动采集模式下，可以通过 `mbean_blacklist` 配置项排除不需要采集的 MBean（支持通配符 `*` 和 `?`）：
+
+```toml
+[[inputs.kafka]]
+  mbean_blacklist = [
+    "kafka.log:*",  # 排除 kafka.log 域下的所有 MBean
+    "kafka.server:name=*,topic=*,type=BrokerTopicMetrics",  # 排除所有 topic 级别的 BrokerTopicMetrics MBean
+  ]
+```
+
+##### 字段命名规则 {#field-naming-rules}
+
+在自动采集模式下，字段名遵循以下格式：`domain.type.name.attr`
+
+- `domain`：MBean 的域名（如 `kafka.server`、`kafka.controller`）
+- `type`：MBean 的 type 属性值（如 `BrokerTopicMetrics`、`ReplicaManager`）
+- `name`：MBean 的 name 属性值（如 `MessagesInPerSec`、`BytesInPerSec`）
+- `attr`：MBean 的属性名（如 `Count`、`Value`、`MeanRate`、`OneMinuteRate`、`FiveMinuteRate`、`FifteenMinuteRate`）
+
+常见的 MBean 属性包括：
+
+- `Count`：自启动以来的累计值
+- `Value`：当前值（用于 Gauge 类型指标）
+- `MeanRate`：自启动以来的平均速率
+- `OneMinuteRate`：过去一分钟的平均速率
+- `FiveMinuteRate`：过去五分钟的平均速率
+- `FifteenMinuteRate`：过去十五分钟的平均速率
+
+示例字段名：
+
+- `kafka.controller.KafkaController.GlobalTopicCount.Value`：全局 Topic 数
+- `kafka.server.ReplicaManager.PartitionCount.Value`：分区数
+
+##### 标签提取规则 {#tag-extraction-rules}
+
+自动采集模式会从 MBean 的属性中提取标签，常见的标签包括：
+
+- `request`：请求类型
+- `topic`：Kafka topic 名称
+- `delayedOperation`：延迟操作类型
+- `error`：错误类型
+- `version`：版本信息
+- `partition`：Kafka 分区 ID
+
+> 注意：`domain`、`type`、`name` 默认不会作为标签。这些信息会作为字段名的一部分（格式：`domain.type.name.attr`）。
+
+???+ tip "MBean 参考文档"
+
+关于 Kafka MBean 的详细说明和含义，建议参考 [Kafka 官方文档](https://kafka.apache.org/documentation/#monitoring){:target="_blank"} 中的监控指标部分。
+
+#### 使用手动模式 {#manual-mode}
+
+如果需要使用手动模式，可以设置 `enable_auto_collect = false` 并配置 `[[inputs.kafka.metric]]` 项：
+
+```toml
+[[inputs.kafka]]
+  urls = ["http://localhost:8080/jolokia"]
+  enable_auto_collect = false
+
+  [[inputs.kafka.metric]]
+    name         = "kafka_controller"
+    mbean        = "kafka.controller:name=*,type=*"
+    field_prefix = "#1."
+```
+
 ## 指标 {#metric}
 
 以下所有数据采集，默认会追加全局选举 tag，也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
-``` toml
- [inputs.{{.InputName}}.tags]
+```toml
+[inputs.{{.InputName}}.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...
@@ -79,7 +165,7 @@ java -jar </path/to/jolokia-jvm-agent.jar> --host 127.0.0.1 --port=8080 start <K
 
 ### `{{$m.Name}}`
 
-{{$m.Desc}}
+{{$m.DescZh}}
 
 {{$m.MarkdownTable}}
 
