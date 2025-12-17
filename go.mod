@@ -390,7 +390,7 @@ require (
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
-	github.com/GuanceCloud/pipeline-go v1.1.1-0.20251214033512-38115f7ac0a7
+	github.com/GuanceCloud/pipeline-go v1.1.1
 	github.com/go-redis/redis/v8 v8.11.3
 	github.com/hipages/php-fpm_exporter v1.2.1
 	github.com/redis/go-redis/v9 v9.12.0
