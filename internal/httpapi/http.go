@@ -18,6 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"runtime"
 	"strings"
 	"sync"
@@ -68,6 +69,13 @@ type httpServerConf struct {
 	pprofListen string
 
 	reqLimiter *limiter.Limiter
+}
+
+// WhiteListItem 白名单条目，支持普通字符串和正则表达式.
+type WhiteListItem struct {
+	IsRegex bool
+	Path    string
+	Regex   *regexp.Regexp
 }
 
 func defaultHTTPServerConf() *httpServerConf {
@@ -171,21 +179,18 @@ func Start(opts ...option) {
 	}
 }
 
-func setupGinLogger(hs *httpServerConf) (gl io.Writer) {
+func setupGinLogger(hs *httpServerConf) io.Writer {
 	// set gin logger
 	l.Infof("set gin log to %s", hs.ginLog)
 	if hs.ginLog == "stdout" {
-		gl = os.Stdout
-	} else {
-		gl = &lumberjack.Logger{
-			Filename:   hs.ginLog,
-			MaxSize:    hs.ginRotate, // MB
-			MaxBackups: 5,
-			MaxAge:     30, // day
-		}
+		return os.Stdout
 	}
-
-	return gl
+	return &lumberjack.Logger{
+		Filename:   hs.ginLog,
+		MaxSize:    hs.ginRotate, // MB
+		MaxBackups: 5,
+		MaxAge:     30, // day
+	}
 }
 
 func setDKInfo(c *gin.Context) {
@@ -215,9 +220,14 @@ func setupRouter(hs *httpServerConf) *gin.Engine {
 		router.NoRoute(page404)
 	}
 
-	addNewRegistedAPIs(hs)
+	//
+
 	// use whitelist config
-	if len(hs.apiConfig.PublicAPIs) != 0 {
+	if !hs.apiConfig.DisableWhitelist {
+		// 添加新注册的API到白名单
+		addNewRegistedAPIs(hs)
+
+		// 应用白名单中间件（即使白名单为空，也需要应用以拦截外部访问）
 		router.Use(apiWhiteListMiddleware(hs.apiConfig.PublicAPIs))
 	}
 
@@ -290,22 +300,43 @@ func isLoopbackClient(c *gin.Context) bool {
 }
 
 func apiWhiteListMiddleware(apis []string) gin.HandlerFunc {
-	publicAPITable := make(map[string]struct{}, len(apis))
-	for _, apiPath := range apis {
-		l.Infof("apply API %q to white list(maybe duplicated)", apiPath)
-
-		apiPath = strings.TrimSpace(apiPath)
-		if len(apiPath) > 0 && apiPath[0] != '/' {
-			apiPath = "/" + apiPath
-		}
-		publicAPITable[apiPath] = struct{}{}
+	// 解析白名单配置，支持正则表达式
+	whiteList := make([]*WhiteListItem, 0, len(apis))
+	for _, apiPattern := range apis {
+		item := NewWhiteListItem(apiPattern)
+		whiteList = append(whiteList, item)
+		l.Infof("apply API %q to white list, is regex: %v", apiPattern, item.IsRegex)
 	}
 
 	return func(c *gin.Context) {
-		if _, ok := publicAPITable[c.Request.URL.Path]; !ok && !isLoopbackClient(c) {
+		// 如果白名单为空，只允许本地访问
+		if len(whiteList) == 0 {
+			if !isLoopbackClient(c) {
+				uhttp.HttpErr(c, uhttp.Errorf(ErrPublicAccessDisabled,
+					"api %s disabled from external IP, only loopback(localhost) allowed (empty whitelist)",
+					c.Request.URL.Path))
+				c.Abort()
+				return
+			}
+			c.Next()
+			return
+		}
+
+		// 检查是否匹配白名单中的任一条目
+		path := c.Request.URL.Path
+		matched := false
+		for _, item := range whiteList {
+			if item.Match(path) {
+				matched = true
+				break
+			}
+		}
+
+		// 如果不匹配白名单且不是本地请求，则拒绝访问
+		if !matched && !isLoopbackClient(c) {
 			uhttp.HttpErr(c, uhttp.Errorf(ErrPublicAccessDisabled,
 				"api %s disabled from external IP, only loopback(localhost) allowed",
-				c.Request.URL.Path))
+				path))
 			c.Abort()
 			return
 		}
@@ -737,4 +768,36 @@ func ReloadHTTPServer() {
 		WithPProf(config.Cfg.EnablePProf),
 		WithPProfListen(config.Cfg.PProfListen),
 	)
+}
+
+// NewWhiteListItem 从字符串创建白名单条目，支持普通字符串和正则表达式.
+func NewWhiteListItem(pattern string) *WhiteListItem {
+	pattern = strings.TrimSpace(pattern)
+
+	// 处理正则表达式模式
+	if strings.HasPrefix(pattern, "reg:") {
+		regexPattern := strings.TrimPrefix(pattern, "reg:")
+		return &WhiteListItem{
+			IsRegex: true,
+			Path:    regexPattern,
+			Regex:   regexp.MustCompile(regexPattern),
+		}
+	}
+
+	// 处理普通字符串路径
+	if len(pattern) > 0 && pattern[0] != '/' {
+		pattern = "/" + pattern
+	}
+	return &WhiteListItem{
+		IsRegex: false,
+		Path:    pattern,
+	}
+}
+
+// Match 检查给定路径是否与白名单条目匹配.
+func (item *WhiteListItem) Match(path string) bool {
+	if item.IsRegex {
+		return item.Regex.MatchString(path)
+	}
+	return item.Path == path
 }
