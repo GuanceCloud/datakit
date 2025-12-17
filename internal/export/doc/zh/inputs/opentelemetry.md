@@ -176,6 +176,9 @@ java -javaagent:/usr/local/ddtrace/opentelemetry-javaagent-2.5.0.jar \
  | `host`                  | `host`                  | Attributes 中的 host 标签            |
  | `pod_name`              | `pod_name`              | Attributes 中的 `pod_name` 标签      |
  | `pod_namespace`         | `pod_namespace`         | Attributes 中的 `pod_namespace` 标签 |
+ | `telemetry.sdk.language` | `sdk_language`          | SDK language                      |
+ | `telemetry.sdk.name`     | `sdk_name`              | OpenTelemetry                     |
+ | `telemetry.sdk.version`  | `sdk_version`           | SDK version                       |
 
 如果想要增加自定义标签，可使用环境变量：
 

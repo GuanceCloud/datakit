@@ -272,32 +272,37 @@ Starting from DataKit version [1.21.0](../datakit/changelog.md#cl-1.21.0), the b
 
 The following is a list of tags that may be extracted:
 
-| Original Meta Field     | Extracted Field Name   | Description                                  |
-|:--------------------|:--------------------|:--------------------------------------------|
-| `http.url`          | `http_url`          | Full HTTP request path                       |
-| `http.hostname`     | `http_hostname`     | Hostname                                    |
-| `http.route`        | `http_route`        | Route                                       |
-| `http.status_code`  | `http_status_code`  | Status code                                 |
-| `http.method`       | `http_method`       | Request method                              |
-| `http.client_ip`    | `http_client_ip`    | Client IP                                   |
-| `sampling.priority` | `sampling_priority` | Sampling status                             |
-| `span.kind`         | `span_kind`         | Span type                                   |
-| `error`             | `error`             | Whether an error occurred                   |
-| `dd.version`        | `dd_version`        | Agent version                               |
-| `error.message`     | `error_message`     | Error message                               |
-| `error.stack`       | `error_stack`       | Stack trace information                     |
-| `error.type`        | `error_type`        | Error type                                  |
-| `system.pid`        | `pid`               | Process ID (pid)                            |
-| `error.msg`         | `error_message`     | Error message                               |
-| `project`           | `project`           | Project name                                |
-| `version`           | `version`           | Version                                     |
-| `env`               | `env`               | Environment                                 |
-| `host`              | `host`              | Hostname in tags                            |
-| `pod_name`          | `pod_name`          | Pod name in tags                            |
-| `_dd.base_service`  | `_dd_base_service`  | Parent service                              |
-| `peer.hostname`     | `db_host`           | May be an IP or domain name (depends on configuration) |
-| `db.type`           | `db_system`         | Database type: mysql, oracle, etc.          |
-| `db.instance`       | `db_name`           | Database name                               |
+| Original Meta Field | Extracted Field Name | Description                                            |
+|:--------------------|:---------------------|:-------------------------------------------------------|
+| `http.url`          | `http_url`           | Full HTTP request path                                 |
+| `http.hostname`     | `http_hostname`      | Hostname                                               |
+| `http.route`        | `http_route`         | Route                                                  |
+| `http.status_code`  | `http_status_code`   | Status code                                            |
+| `http.method`       | `http_method`        | Request method                                         |
+| `http.client_ip`    | `http_client_ip`     | Client IP                                              |
+| `sampling.priority` | `sampling_priority`  | Sampling status                                        |
+| `span.kind`         | `span_kind`          | Span type                                              |
+| `error`             | `error`              | Whether an error occurred                              |
+| `runtime.name`      | `runtime_name`       | Runtime name                                           |
+| `dd.version`        | `dd_version`         | Agent version                                          |
+| `error.message`     | `error_message`      | Error message                                          |
+| `error.stack`       | `error_stack`        | Stack trace information                                |
+| `error.type`        | `error_type`         | Error type                                             |
+| `system.pid`        | `pid`                | Process ID (pid)                                       |
+| `error.msg`         | `error_message`      | Error message                                          |
+| `project`           | `project`            | Project name                                           |
+| `version`           | `version`            | Version                                                |
+| `env`               | `env`                | Environment                                            |
+| `host`              | `host`               | Hostname in tags                                       |
+| `pod_name`          | `pod_name`           | Pod name in tags                                       |
+| `pod_namespace`     | `pod_namespace`      | pod namespace                                          |
+| `_dd.base_service`  | `_dd_base_service`   | Parent service                                         |
+| `peer.hostname`     | `db_host`            | May be an IP or domain name (depends on configuration) |
+| `db.type`           | `db_system`          | Database type: mysql, oracle, etc.                     |
+| `db.instance`       | `db_name`            | Database name                                          |
+| `out.host`          | `out_host`           | Database or Middleware host                            |
+| `dd_ext_version`    | `sdk_version`        | SDK extend version                                     |
+| `language`          | `sdk_language`       | SDK language                                           |
 
 In the Studio tracing interface, tags not in the list can also be used for filtering.
 

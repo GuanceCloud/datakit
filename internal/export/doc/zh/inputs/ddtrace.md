@@ -285,6 +285,7 @@ DDTrace 探针启动后，会不断通额外的接口上报服务有关的信息
 | `sampling.priority` | `sampling_priority` | 采样                     |
 | `span.kind`         | `span_kind`         | span 类型                |
 | `error`             | `error`             | 是否错误                   |
+| `runtime.name`      | `runtime_name`      | 运行时名称                  |
 | `dd.version`        | `dd_version`        | agent 版本               |
 | `error.message`     | `error_message`     | 错误信息                   |
 | `error.stack`       | `error_stack`       | 堆栈信息                   |
@@ -296,10 +297,14 @@ DDTrace 探针启动后，会不断通额外的接口上报服务有关的信息
 | `env`               | `env`               | 环境                     |
 | `host`              | `host`              | tag 中的主机名              |
 | `pod_name`          | `pod_name`          | tag 中的 pod 名称          |
+| `pod_namespace`     | `pod_namespace`     | tag 中的 pod 名称          |
 | `_dd.base_service`  | `_dd_base_service`  | 上级服务                   |
 | `peer.hostname`     | `db_host`           | 可能是 IP 或者域名，这取决于配置     |
 | `db.type`           | `db_system`         | 数据库类型： mysql oracle 等等 |
 | `db.instance`       | `db_name`           | 数据库名称                  |
+| `out.host`          | `out_host`          | 链接中间件的 Host            |
+| `dd_ext_version`    | `sdk_version`       | SDK 扩展版本号              |
+| `language`          | `sdk_language`      | SDK 语言                 |
 
 在 Studio 的链路界面，不在列表中的标签也可以进行筛选。
 

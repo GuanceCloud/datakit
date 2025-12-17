@@ -134,49 +134,53 @@ You can use head-based sampling or tail-based sampling. For details, refer to th
 
 Starting from DataKit version [1.22.0](../datakit/changelog.md#cl-1.22.0), the blacklist function is deprecated. A fixed tag list is added, and only tags in this list will be extracted into top-level tags. The fixed list is as follows:
 
-| Attributes              | Tags                    | Description                         |
-| ----------------------: | :---------------------- | :---------------------------------- |
-| `http.url`              | `http_url`              | Full HTTP request path              |
-| `http.hostname`         | `http_hostname`         | Hostname                            |
-| `http.route`            | `http_route`            | Route                               |
-| `http.status_code`      | `http_status_code`      | Status code                         |
-| `http.request.method`   | `http_request_method`   | Request method                      |
-| `http.method`           | `http_method`           | Same as above                       |
-| `http.client_ip`        | `http_client_ip`        | Client IP                           |
-| `http.scheme`           | `http_scheme`           | Request protocol                    |
-| `url.full`              | `url_full`              | Full request URL                    |
-| `url.scheme`            | `url_scheme`            | Request protocol                    |
-| `url.path`              | `url_path`              | Request path                        |
-| `url.query`             | `url_query`             | Request parameters                  |
-| `span_kind`             | `span_kind`             | Span type                           |
-| `db.system`             | `db_system`             | Span type                           |
-| `db.operation`          | `db_operation`          | DB action                           |
-| `db.name`               | `db_name`               | Database name                       |
-| `db.statement`          | `db_statement`          | Detailed information                |
-| `server.address`        | `server_address`        | Service address                     |
-| `net.host.name`         | `net_host_name`         | Requested host                      |
-| `server.port`           | `server_port`           | Service port number                 |
-| `net.host.port`         | `net_host_port`         | Same as above                       |
-| `network.peer.address`  | `network_peer_address`  | Network address                     |
-| `network.peer.port`     | `network_peer_port`     | Network port                        |
-| `network.transport`     | `network_transport`     | Protocol                            |
-| `messaging.system`      | `messaging_system`      | Message queue name                  |
-| `messaging.operation`   | `messaging_operation`   | Message action                      |
-| `messaging.message`     | `messaging_message`     | Message                             |
-| `messaging.destination` | `messaging_destination` | Message details                     |
-| `rpc.service`           | `rpc_service`           | RPC service address                 |
-| `rpc.system`            | `rpc_system`            | RPC service name                    |
-| `error`                 | `error`                 | Whether an error occurred           |
-| `error.message`         | `error_message`         | Error message                       |
-| `error.stack`           | `error_stack`           | Stack trace information             |
-| `error.type`            | `error_type`            | Error type                          |
-| `error.msg`             | `error_message`         | Error message                       |
-| `project`               | `project`               | Project                             |
-| `version`               | `version`               | Version                             |
-| `env`                   | `env`                   | Environment                         |
-| `host`                  | `host`                  | Host tag in Attributes              |
-| `pod_name`              | `pod_name`              | `pod_name` tag in Attributes        |
-| `pod_namespace`         | `pod_namespace`         | `pod_namespace` tag in Attributes   |
+| Attributes               | Tags                    | Description                       |
+|:-------------------------|:------------------------|:----------------------------------|
+| `http.url`               | `http_url`              | Full HTTP request path            |
+| `http.hostname`          | `http_hostname`         | Hostname                          |
+| `http.route`             | `http_route`            | Route                             |
+| `http.status_code`       | `http_status_code`      | Status code                       |
+| `http.request.method`    | `http_request_method`   | Request method                    |
+| `http.method`            | `http_method`           | Same as above                     |
+| `http.client_ip`         | `http_client_ip`        | Client IP                         |
+| `http.scheme`            | `http_scheme`           | Request protocol                  |
+| `url.full`               | `url_full`              | Full request URL                  |
+| `url.scheme`             | `url_scheme`            | Request protocol                  |
+| `url.path`               | `url_path`              | Request path                      |
+| `url.query`              | `url_query`             | Request parameters                |
+| `span_kind`              | `span_kind`             | Span type                         |
+| `db.system`              | `db_system`             | Span type                         |
+| `db.operation`           | `db_operation`          | DB action                         |
+| `db.name`                | `db_name`               | Database name                     |
+| `db.statement`           | `db_statement`          | Detailed information              |
+| `server.address`         | `server_address`        | Service address                   |
+| `net.host.name`          | `net_host_name`         | Requested host                    |
+| `server.port`            | `server_port`           | Service port number               |
+| `net.host.port`          | `net_host_port`         | Same as above                     |
+| `network.peer.address`   | `network_peer_address`  | Network address                   |
+| `network.peer.port`      | `network_peer_port`     | Network port                      |
+| `network.transport`      | `network_transport`     | Protocol                          |
+| `messaging.system`       | `messaging_system`      | Message queue name                |
+| `messaging.operation`    | `messaging_operation`   | Message action                    |
+| `messaging.message`      | `messaging_message`     | Message                           |
+| `messaging.destination`  | `messaging_destination` | Message details                   |
+| `rpc.service`            | `rpc_service`           | RPC service address               |
+| `rpc.system`             | `rpc_system`            | RPC service name                  |
+| `error`                  | `error`                 | Whether an error occurred         |
+| `error.message`          | `error_message`         | Error message                     |
+| `error.stack`            | `error_stack`           | Stack trace information           |
+| `error.type`             | `error_type`            | Error type                        |
+| `error.msg`              | `error_message`         | Error message                     |
+| `project`                | `project`               | Project                           |
+| `version`                | `version`               | Version                           |
+| `env`                    | `env`                   | Environment                       |
+| `host`                   | `host`                  | Host tag in Attributes            |
+| `pod_name`               | `pod_name`              | `pod_name` tag in Attributes      |
+| `pod_namespace`          | `pod_namespace`         | `pod_namespace` tag in Attributes |
+| `telemetry.sdk.language` | `sdk_language`          | SDK language                      |
+| `telemetry.sdk.name`     | `sdk_name`              | OpenTelemetry                     |
+| `telemetry.sdk.version`  | `sdk_version`           | SDK version                       |
+
 
 To add custom tags, use the following environment variable:
 
