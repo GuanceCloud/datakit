@@ -567,6 +567,12 @@ func lexEscape(l *Lexer) stateFn {
 		l.errorf("escape sequence is an invalid Unicode code point")
 	}
 
+	// Backup one position since we've read the character after the escape sequence
+	// (which should be handled by lexString, e.g., the closing quote)
+	if ch != eof {
+		l.backup()
+	}
+
 	log.Debugf("get number %d", x)
 	return lexString
 }
@@ -677,7 +683,6 @@ func (l *Lexer) acceptRun(valid string) {
 func (l *Lexer) NextItem(itemp *Item) {
 	l.scannedItem = false
 	l.itemp = itemp
-
 	if l.state != nil {
 		for !l.scannedItem {
 			l.state = l.state(l)

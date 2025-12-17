@@ -100,7 +100,7 @@ github.com/GuanceCloud/kubernetes/pkg/probe/exec
 # github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386
 ## explicit; go 1.18
 github.com/GuanceCloud/mdcheck/check
-# github.com/GuanceCloud/pipeline-go v1.0.9-0.20250819095325-01d2a81ed1c2
+# github.com/GuanceCloud/pipeline-go v1.1.1-0.20251214033512-38115f7ac0a7
 ## explicit; go 1.19
 github.com/GuanceCloud/pipeline-go
 github.com/GuanceCloud/pipeline-go/constants
@@ -119,7 +119,7 @@ github.com/GuanceCloud/pipeline-go/ptinput/ptwindow
 github.com/GuanceCloud/pipeline-go/ptinput/refertable
 github.com/GuanceCloud/pipeline-go/ptinput/utils
 github.com/GuanceCloud/pipeline-go/stats
-# github.com/GuanceCloud/platypus v0.3.3-0.20250528074826-e3130ff5a05c
+# github.com/GuanceCloud/platypus v0.3.3
 ## explicit; go 1.19
 github.com/GuanceCloud/platypus/internal/logger
 github.com/GuanceCloud/platypus/pkg/ast

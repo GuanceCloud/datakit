@@ -15,7 +15,7 @@ grok(_, pattern)    #Use the entered text directly as raw data
 grok(key, pattern)  # For a key that has been extracted before, do grok again
 ```
 
-示例：
+Example:
 
 ```python
 # input data: "12/01/2021 21:13:14.123"
