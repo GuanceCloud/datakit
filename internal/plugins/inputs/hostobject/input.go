@@ -64,6 +64,12 @@ type Input struct {
 	EnableCloudHostTagsGlobalHost               bool              `toml:"enable_cloud_host_tags_as_global_host_tags"`
 	EnableCloudHostTagsGlobalHostDeprecated     bool              `toml:"enable_cloud_host_tags_global_host"` // deprecated
 
+	// 虚拟机/物理机检测相关字段
+	VirtualTags    map[string]string `toml:"virtual,omitempty"`  // Tags to add when running on virtual machine
+	PhysicalTags   map[string]string `toml:"physical,omitempty"` // Tags to add when running on physical machine
+	isVirtual      bool              // Cached detection result
+	hypervisorType string            // Cached hypervisor type
+
 	Interval                 time.Duration `toml:"interval,omitempty"`
 	IgnoreInputsErrorsBefore time.Duration `toml:"ignore_inputs_errors_before,omitempty"`
 	DeprecatedIOTimeout      time.Duration `toml:"io_timeout,omitempty"`
@@ -171,6 +177,11 @@ func (ipt *Input) setup() {
 	ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")
 	l.Debugf("merged tags: %+#v", ipt.mergedTags)
 
+	// 检测虚拟机类型并缓存结果
+	ipt.isVirtual = IsVirtual()
+	ipt.hypervisorType = GetHypervisorType()
+	l.Infof("host type detected: virtual=%v, hypervisor=%s", ipt.isVirtual, ipt.hypervisorType)
+
 	if ipt.IgnoreFSTypes != "" {
 		if re, err := regexp.Compile(ipt.IgnoreFSTypes); err != nil {
 			l.Warnf("regexp.Compile(%q): %s, ignored", ipt.IgnoreFSTypes, err.Error())
@@ -211,6 +222,16 @@ func (ipt *Input) collect(ptTS int64) error {
 	}
 
 	l.Debugf("messageData len: %d", len(messageData))
+
+	// 根据虚拟机检测结果合并对应的标签
+	finalTags := ipt.mergedTags
+	if ipt.isVirtual {
+		finalTags = inputs.MergeTags(finalTags, ipt.VirtualTags, "")
+		l.Debugf("applied virtual machine tags: %+#v", ipt.VirtualTags)
+	} else {
+		finalTags = inputs.MergeTags(finalTags, ipt.PhysicalTags, "")
+		l.Debugf("applied physical machine tags: %+#v", ipt.PhysicalTags)
+	}
 
 	kvs = kvs.Set("message", string(messageData)).
 		Set("start_time", message.Host.HostMeta.BootTime*1000).
@@ -263,7 +284,8 @@ func (ipt *Input) collect(ptTS int64) error {
 		}
 	}
 
-	for k, v := range ipt.mergedTags {
+	// 使用finalTags而不是ipt.mergedTags，这样虚拟机/物理机标签才会被应用
+	for k, v := range finalTags {
 		kvs = kvs.AddTag(k, v)
 	}
 

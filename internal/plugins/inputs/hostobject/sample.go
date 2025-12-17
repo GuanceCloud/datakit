@@ -55,6 +55,19 @@ enable_cloud_aws_imds_v2 = false
 ## Enable AWS IPv6
 enable_cloud_aws_ipv6 = false
 
+## Automatically add tags based on whether the host is a physical machine or virtual machine
+## Tags in [inputs.hostobject.virtual] section will be added when running on virtual machines
+## Tags in [inputs.hostobject.physical] section will be added when running on physical machines
+# [inputs.hostobject.virtual]
+  # host_type = "virtual"
+  # env = "cloud"
+  # monitoring_mode = "vm"
+
+# [inputs.hostobject.physical]
+  # host_type = "physical"
+  # env = "on-premise"
+  # hardware_optimized = "true"
+
 ## [inputs.hostobject.tags] # (optional) custom tags
   # cloud_provider = "aliyun" # aliyun/tencent/aws/hwcloud/azure/volcengine, probe automatically if not set
   # some_tag = "some_value"
