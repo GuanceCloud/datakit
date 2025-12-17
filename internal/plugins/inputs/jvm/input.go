@@ -7,16 +7,26 @@
 package jvm
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
+	"github.com/influxdata/telegraf/plugins/common/tls"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/jolokia"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/jolokia"
 )
 
 const (
-	defaultInterval   = "60s"
+	defaultInterval   = time.Second * 60
 	MaxGatherInterval = 30 * time.Minute
 	MinGatherInterval = 1 * time.Second
 	inputName         = "jvm"
@@ -43,6 +53,10 @@ const (
 
   # Add agents URLs to query
   urls = ["http://localhost:8080/jolokia"]
+
+  ## v2+ override all measurement names to "jvm", default: v2
+  ## If you want to use the old metric set, you can change it to "v1"
+  measurement_version = "v2"
 
   ## Add metrics to read
   [[inputs.jvm.metric]]
@@ -114,36 +128,185 @@ var jvmTypeMap = map[string]string{
 }
 
 type Input struct {
-	jolokia.JolokiaAgent
+	URLs            []string      `toml:"urls"`
+	Username        string        `toml:"username"`
+	Password        string        `toml:"password"`
+	ResponseTimeout time.Duration `toml:"response_timeout"`
+	Interval        string        `toml:"interval"`
+	Election        bool          `toml:"election"`
+
+	tls.ClientConfig
+
+	Metrics            []MetricConfig `toml:"metric"`
+	MeasurementVersion string         `toml:"measurement_version"`
+
+	DefaultTagPrefix      string `toml:"default_tag_prefix"`
+	DefaultFieldPrefix    string `toml:"default_field_prefix"`
+	DefaultFieldSeparator string `toml:"default_field_separator"`
+
 	Tags map[string]string `toml:"tags"`
+
+	duration time.Duration
+	clients  []*jolokia.Client
+	Types    map[string]string
+	SemStop  *cliutils.Sem
+	Feeder   dkio.Feeder
+	Tagger   datakit.GlobalTagger
+	g        *goroutine.Group
+	pause    bool
+	pauseCh  chan bool
 }
 
-var log = logger.DefaultSLogger(inputName)
+type MetricConfig struct {
+	Name           string   `toml:"name"`
+	Mbean          string   `toml:"mbean"`
+	Paths          []string `toml:"paths"`
+	FieldName      *string  `toml:"field_name"`
+	FieldPrefix    *string  `toml:"field_prefix"`
+	FieldSeparator *string  `toml:"field_separator"`
+	TagPrefix      *string  `toml:"tag_prefix"`
+	TagKeys        []string `toml:"tag_keys"`
+}
+
+var l = logger.DefaultSLogger(inputName)
 
 func (ipt *Input) Run() {
-	log = logger.SLogger(inputName)
-	if ipt.JolokiaAgent.Interval == "" {
-		ipt.JolokiaAgent.Interval = defaultInterval
+	if err := ipt.setup(); err != nil {
+		l.Errorf("setup failed: %v", err)
+		return
+	}
+	duration := ipt.duration
+
+	tick := time.NewTicker(duration)
+	defer tick.Stop()
+	start := ntp.Now()
+
+	l.Infof("%s input started...", inputName)
+	l.Debugf("jvm urls:%v", ipt.URLs)
+
+	for {
+		if ipt.pause {
+			l.Debugf("JVM plugin %s paused", inputName)
+		} else {
+			if err := ipt.collect(start.UnixNano()); err != nil {
+				ipt.Feeder.FeedLastError(err.Error(),
+					metrics.WithLastErrorInput(inputName),
+					metrics.WithLastErrorCategory(point.Metric),
+				)
+			}
+		}
+
+		select {
+		case tt := <-tick.C:
+			start = inputs.AlignTime(tt, start, duration)
+
+		case <-datakit.Exit.Wait():
+			l.Infof("input %s exit", inputName)
+			ipt.exit()
+			return
+
+		case <-ipt.SemStop.Wait():
+			l.Infof("input %s return", inputName)
+			ipt.exit()
+			return
+
+		case ipt.pause = <-ipt.pauseCh:
+			l.Infof("JVM plugin %q paused? %v", inputName, ipt.pause)
+		}
+	}
+}
+
+func (ipt *Input) setup() error {
+	l = logger.SLogger(inputName)
+
+	// Adapt metrics: replace # with $ in FieldPrefix, FieldSeparator, and FieldName
+	ipt.adaptor()
+
+	if ipt.g == nil {
+		ipt.g = goroutine.NewGroup(goroutine.Option{Name: "jvm_collectors"})
 	}
 
-	ipt.JolokiaAgent.PluginName = inputName
+	// Initialize clients
+	if err := ipt.initClients(); err != nil {
+		return fmt.Errorf("initClients failed: %w", err)
+	}
 
-	ipt.JolokiaAgent.Tags = ipt.Tags
-	ipt.JolokiaAgent.Types = jvmTypeMap
-	ipt.JolokiaAgent.L = log
-	ipt.JolokiaAgent.Collect()
+	var duration time.Duration
+	var err error
+	if len(ipt.Interval) > 0 {
+		duration, err = time.ParseDuration(ipt.Interval)
+		if err != nil {
+			return fmt.Errorf("time.ParseDuration: %w", err)
+		}
+	} else {
+		duration = defaultInterval
+	}
+
+	ipt.duration = duration
+	ipt.Types = jvmTypeMap
+
+	return nil
+}
+
+func (ipt *Input) adaptor() {
+	for i, m := range ipt.Metrics {
+		if m.FieldPrefix != nil {
+			t := strings.ReplaceAll(*m.FieldPrefix, "#", "$")
+			m.FieldPrefix = &t
+		}
+
+		if m.FieldSeparator != nil {
+			t := strings.ReplaceAll(*m.FieldSeparator, "#", "$")
+			m.FieldSeparator = &t
+		}
+
+		if m.FieldName != nil {
+			t := strings.ReplaceAll(*m.FieldName, "#", "$")
+			m.FieldName = &t
+		}
+
+		ipt.Metrics[i] = m
+	}
+}
+
+func (ipt *Input) initClients() error {
+	ipt.clients = make([]*jolokia.Client, 0, len(ipt.URLs))
+	for _, url := range ipt.URLs {
+		config := jolokia.Config{
+			URL:             url,
+			Username:        ipt.Username,
+			Password:        ipt.Password,
+			ResponseTimeout: ipt.ResponseTimeout,
+			TLS:             ipt.ClientConfig,
+			Input:           inputName,
+		}
+
+		client, err := jolokia.NewClient(config)
+		if err != nil {
+			return fmt.Errorf("create client for %s: %w", url, err)
+		}
+
+		ipt.clients = append(ipt.clients, client)
+	}
+	return nil
+}
+
+func (ipt *Input) Terminate() {
+	if ipt.SemStop != nil {
+		ipt.SemStop.Close()
+	}
+}
+
+func (ipt *Input) exit() {
+	// JVM doesn't have tailer or other resources to clean up
 }
 
 func (ipt *Input) Catalog() string      { return inputName }
 func (ipt *Input) SampleConfig() string { return confSample }
 func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&JavaRuntimeMemt{},
-		&JavaMemoryMemt{},
-		&JavaGcMemt{},
-		&JavaThreadMemt{},
-		&JavaClassLoadMemt{},
-		&JavaMemoryPoolMemt{},
+		&jvmMeasurement{}, // Unified v2 measurement
+		&inputs.UpMeasurement{},
 	}
 }
 
@@ -153,7 +316,14 @@ func (ipt *Input) AvailableArchs() []string {
 
 func defaultInput() *Input {
 	return &Input{
-		JolokiaAgent: *jolokia.DefaultInput(),
+		SemStop:            cliutils.NewSem(),
+		pauseCh:            make(chan bool, inputs.ElectionPauseChannelLength),
+		Election:           true,
+		Tagger:             datakit.DefaultGlobalTagger(),
+		Feeder:             dkio.DefaultFeeder(),
+		Types:              jvmTypeMap,
+		ResponseTimeout:    5 * time.Second,
+		MeasurementVersion: "v2",
 	}
 }
 

@@ -200,6 +200,8 @@ For all the following data collections, a global tag named `host` is appended by
 
 #### `{{$m.Name}}`
 
+{{$m.Desc}}
+
 {{$m.MarkdownTable}}
 
 {{ end }}
