@@ -369,7 +369,7 @@ func (ep *endPoint) writePointData(w *writer, b *body) error {
 	}
 
 	if err != nil {
-		l.Errorf("sendReq: request url %s failed(proxy: %s): %s, resp: %v", requrl, ep.proxy, err, resp)
+		l.Errorf("sendReq: request url %s failed(proxy: %q): %s, resp: %v", requrl, ep.proxy, err, resp)
 		// do not return here, we need more details about the fail from @resp.
 	}
 

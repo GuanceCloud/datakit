@@ -425,6 +425,86 @@ func TestX(t *T.T) {
 }
 
 func TestWritePoints(t *T.T) {
+	t.Run("write-with-sink-fail-cache", func(t *T.T) {
+		r := point.NewRander()
+		n := 100
+		pts := r.Rand(n)
+
+		for i, pt := range pts {
+			if i%2 == 0 {
+				pt.SetTag("tag1", "v1")
+			} else {
+				pt.SetTag("tag2", "v2")
+			}
+		}
+
+		requests := 0
+
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			requests++
+
+			t.Logf("X-Point: %s", r.Header.Get("X-Points"))
+			t.Logf("X-Global-Tags: %s", r.Header.Get("X-Global-Tags"))
+
+			if r.Header.Get("X-Fail-Cache-Retry") == "" { // not a retry request, fail it
+				w.WriteHeader(http.StatusInternalServerError) // mocked dataway fail
+				return
+			} else {
+				assert.Equal(t, point.Protobuf.HTTPContentType(), r.Header.Get("Content-Type"))
+				assert.Equal(t, "gzip", r.Header.Get("Content-Encoding"))
+
+				body, err := io.ReadAll(r.Body)
+				assert.NoError(t, err)
+				x, err := uhttp.Unzip(body)
+				assert.NoError(t, err)
+
+				dec := point.GetDecoder(point.WithDecEncoding(point.Protobuf))
+				defer point.PutDecoder(dec)
+
+				pts, err := dec.Decode(x)
+				assert.NoError(t, err)
+
+				assert.Len(t, pts, n/2)
+
+				t.Logf("body size: %d/%d, pts: %d", len(body), len(x), len(pts))
+			}
+		}))
+
+		dw := NewDefaultDataway()
+		dw.ContentEncoding = "protobuf"
+		dw.EnableSinker = true
+		dw.GlobalCustomerKeys = []string{"tag1", "tag2"}
+		dw.GZip = true
+		dw.WAL.Path = t.TempDir()
+		dw.MaxRetryCount = 1
+
+		assert.NoError(t, dw.Init(WithURLs(fmt.Sprintf("%s?token=tkn_some", ts.URL))))
+		require.NoError(t, dw.setupWAL())
+
+		assert.NoError(t, dw.Write(
+			WithBodyCallback(func(w *writer, b *body) error {
+				return dw.doFlush(w, b)
+			}),
+			WithHTTPEncoding(dw.contentEncoding),
+			WithPoints(pts),
+			WithCategory(point.Logging)))
+
+		// len(pts) == 2, sinked into 2 requests according to the tags.
+		assert.Equal(t, 2, requests)
+
+		// make the cache readable
+		dw.walFail.disk.(*diskcache.DiskCache).Rotate()
+
+		// load fail cache
+		f := dw.newFlusher(point.Metric) // any category is ok
+		assert.NoError(t, f.cleanFailCache())
+
+		t.Cleanup(func() {
+			ts.Close()
+			metricsReset()
+		})
+	})
+
 	t.Run("write-100pts", func(t *T.T) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, datakit.Logging, r.URL.Path)
