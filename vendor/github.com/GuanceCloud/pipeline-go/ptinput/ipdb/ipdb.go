@@ -12,9 +12,12 @@ import (
 	"strings"
 )
 
+type CheckData func(*IPdbRecord) *IPdbRecord
+
 type IPdb interface {
 	Init(dataDir string, config map[string]string) //deprecated
 	Geo(ip string) (*IPdbRecord, error)
+	GeoWithChecker(ip string, check CheckData) (*IPdbRecord, error)
 	SearchIsp(ip string) string
 }
 

@@ -9,7 +9,7 @@ require (
 	github.com/DataDog/gopsutil v1.2.1
 	github.com/GuanceCloud/confd v0.1.101
 	github.com/GuanceCloud/grok v1.1.5-0.20250416104424-34917bd63e69
-	github.com/GuanceCloud/platypus v0.3.3-0.20250528074826-e3130ff5a05c
+	github.com/GuanceCloud/platypus v0.3.3
 	github.com/IBM/sarama v1.41.2
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible // indirect
 	github.com/antchfx/xmlquery v1.3.18 // indirect
@@ -390,7 +390,7 @@ require (
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
-	github.com/GuanceCloud/pipeline-go v1.0.9-0.20250819095325-01d2a81ed1c2
+	github.com/GuanceCloud/pipeline-go v1.1.1-0.20251214033512-38115f7ac0a7
 	github.com/go-redis/redis/v8 v8.11.3
 	github.com/hipages/php-fpm_exporter v1.2.1
 	github.com/redis/go-redis/v9 v9.12.0

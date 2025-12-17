@@ -126,6 +126,10 @@ func (g *Geoip) Init(dataDir string, config map[string]string) {
 }
 
 func (g *Geoip) Geo(ip string) (*ipdb.IPdbRecord, error) {
+	return g.GeoWithChecker(ip, nil)
+}
+
+func (g *Geoip) GeoWithChecker(ip string, check ipdb.CheckData) (*ipdb.IPdbRecord, error) {
 	record := &ipdb.IPdbRecord{}
 	if g.geo == nil {
 		return record, nil
@@ -153,7 +157,11 @@ func (g *Geoip) Geo(ip string) (*ipdb.IPdbRecord, error) {
 		}
 		record.Country = r.Country.IsoCode
 		record.Isp = g.searchISP(ipParse)
-		return record.CheckData(), err
+		if check != nil {
+			return check(record), err
+		} else {
+			return record.CheckData(), err
+		}
 	}
 }
 
