@@ -29,6 +29,7 @@ scripts/v1.data
 *.zip
 test.*/
 *.test
+.trae
 ddtrace.test
 # to ignore all test generated files
 ag.sh
