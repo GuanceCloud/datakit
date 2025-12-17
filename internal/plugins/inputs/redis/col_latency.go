@@ -47,6 +47,11 @@ func (i *instance) parseLatencyData(list string) []*point.Point {
 		return nil
 	}
 
+	addr := i.mergedTags["server"]
+	if _, ok := i.latencyLastTime[addr]; !ok {
+		i.latencyLastTime[addr] = make(map[string]time.Time)
+	}
+
 	line := strings.Split(part[1], "] [")
 	for _, finalParts := range line {
 		var kvs point.KVs
@@ -69,7 +74,7 @@ func (i *instance) parseLatencyData(list string) []*point.Point {
 		}
 
 		ts := time.Unix(startTime, 0)
-		if ts == i.latencyLastTime[typeName] {
+		if ts == i.latencyLastTime[addr][typeName] {
 			continue
 		}
 
@@ -96,7 +101,7 @@ func (i *instance) parseLatencyData(list string) []*point.Point {
 		pt := point.NewPoint(measureuemtRedisLatency, kvs, opts...)
 		pts = append(pts, pt)
 
-		i.latencyLastTime[typeName] = ts
+		i.latencyLastTime[addr][typeName] = ts
 	}
 
 	return pts
