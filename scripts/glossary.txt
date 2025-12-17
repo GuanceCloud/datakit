@@ -121,6 +121,7 @@ Sink
 Sinked
 Sinker
 SkyWalking
+SLOWLOG
 Solr
 Stddev
 Tablespace
