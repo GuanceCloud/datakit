@@ -212,6 +212,35 @@ func CompileDCA() error {
 	return nil
 }
 
+func CompileFlameshot() error {
+	curArchs = ParseArchs(Archs)
+	l.Debugf("curArchs = %v", curArchs)
+
+	for _, arch := range curArchs {
+		parts := strings.Split(arch, "/")
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid arch: %s", arch)
+		}
+
+		goos, goarch := parts[0], parts[1]
+
+		flameshotDir := fmt.Sprintf("%s/%s-%s-%s", DistDir, "flameshot", goos, goarch)
+		l.Debugf("build flameshot for %s/%s to %s", goos, goarch, flameshotDir)
+		if goos != "linux" {
+			l.Infof("skip build flameshot for %s/%s", goos, goarch)
+			continue
+		}
+		if goarch == "amd64" || goarch == "arm64" {
+			if err := compileArch("flameshot", goos, goarch, flameshotDir, "cmd/flameshot/main.go", ValueNotSet); err != nil {
+				return fmt.Errorf("unable to build flameshot : %w", err)
+			}
+			l.Infof("build flameshot %s/%s ok", goos, goarch)
+		}
+	}
+
+	return nil
+}
+
 func prepare() error {
 	if err := os.RemoveAll(DistDir); err != nil {
 		l.Warnf("os.RemoveAll: %s, ignored", err.Error())

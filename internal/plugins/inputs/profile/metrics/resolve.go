@@ -360,7 +360,7 @@ func ParseMetadata(req *http.Request) (map[string]string, int64, error) {
 			tags = strings.Split(eventFormValues[eventFileTagsKey][0], ",")
 			delete(eventFormValues, eventFileTagsKey)
 		}
-
+		l.Debugf("parse metadata tags len :%d", len(tags))
 		return mixFormValueToTags(NewTags(tags), eventFormValues), filesize, nil
 	}
 	return nil, filesize, fmt.Errorf("the profiling data format not supported, check your datadog trace library version")

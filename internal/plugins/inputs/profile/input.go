@@ -705,6 +705,7 @@ func (ipt *Input) InitDiskQueueIO() error {
 							}
 							return
 						}
+						log.Debugf("got profiling data from disk cache: %d bytes", len(reqData))
 						if err := ipt.sendRequestToDW(ctx, reqData); err != nil {
 							log.Errorf("fail to send profiling data: %s", err)
 						}

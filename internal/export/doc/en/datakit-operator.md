@@ -46,7 +46,7 @@ Prerequisites:
     * Kubernetes >= 1.14
     * Helm >= 3.0+
 
-    ```shell
+    ``` shell
     $ helm install datakit-operator datakit-operator \
         <<<% if custom_key.brand_key == 'guance' -%>>>
         --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit-operator \
@@ -58,13 +58,13 @@ Prerequisites:
 
     View deployment status:
 
-    ```shell
+    ``` shell
     $ helm -n datakit list
     ```
 
     Upgrade with the following command:
 
-    ```shell
+    ``` shell
     $ helm -n datakit get values datakit-operator -a -o yaml > values.yaml
     $ helm upgrade datakit-operator datakit-operator \
         <<<% if custom_key.brand_key == 'guance' -%>>>
@@ -78,7 +78,7 @@ Prerequisites:
 
     Uninstall with the following command:
 
-    ```shell
+    ``` shell
     $ helm uninstall datakit-operator -n datakit
     ```
 <!-- markdownlint-enable -->
@@ -92,108 +92,243 @@ Prerequisites:
 
 ## Configuration Explanation {#datakit-operator-jsonconfig}
 
-[:octicons-tag-24: Version-1.4.2](changelog.md#cl-1.4.2)
-
 The DataKit Operator configuration is in JSON format and is stored in Kubernetes as a separate ConfigMap. It is loaded into the container as environment variables.
 
-The default configuration is as follows:
+<!-- markdownlint-disable MD046 -->
+=== "DataKit-Operator v1.7.0 and later (Recommended)"
 
-```json
-{
-    "server_listen": "0.0.0.0:9543",
-    "log_level":     "info",
-    "admission_inject": {
-        "ddtrace": {
-            "enabled_namespaces":     [],
-            "enabled_labelselectors": [],
-            "images": {
-                "java_agent_image":   "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:latest",
-            },
-            "envs": {
-                "DD_AGENT_HOST":           "datakit-service.datakit.svc",
-                "DD_TRACE_AGENT_PORT":     "9529",
-                "DD_JMXFETCH_STATSD_HOST": "datakit-service.datakit.svc",
-                "DD_JMXFETCH_STATSD_PORT": "8125",
-                "DD_SERVICE":              "{fieldRef:metadata.labels['service']}",
-                "POD_NAME":                "{fieldRef:metadata.name}",
-                "POD_NAMESPACE":           "{fieldRef:metadata.namespace}",
-                "NODE_NAME":               "{fieldRef:spec.nodeName}",
-                "DD_TAGS":                 "pod_name:$(POD_NAME),pod_namespace:$(POD_NAMESPACE),host:$(NODE_NAME)"
-            },
-            "resources": {
-                "requests": {
-                    "cpu":    "100m",
-                    "memory": "64Mi"
-                },
-                "limits": {
-                   "cpu":    "200m",
-                   "memory": "128Mi"
-                 }
-            }
+    Starting from DataKit-Operator v1.7.0, it is recommended to use the `admission_inject_v2` configuration item. The new configuration adopts an array structure, supporting more flexible configuration methods.
+
+    Default configuration:
+
+    ``` json
+    {
+        "server_listen": "0.0.0.0:9543",
+        "log_level":     "info",
+        "admission_inject_v2": {
+            "ddtraces": [
+                {
+                    "namespace_selectors": [],
+                    "label_selectors":     [],
+                    "image":    "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:latest",
+                    "language": "java",
+                    "envs": {
+                        "DD_AGENT_HOST":           "datakit-service.datakit.svc.cluster.local",
+                        "DD_TRACE_AGENT_PORT":     "9529",
+                        "DD_JMXFETCH_STATSD_HOST": "datakit-service.datakit.svc.cluster.local",
+                        "DD_JMXFETCH_STATSD_PORT": "8125",
+                        "DD_SERVICE":              "{fieldRef:metadata.labels['app']}",
+                        "POD_NAME":                "{fieldRef:metadata.name}",
+                        "POD_NAMESPACE":           "{fieldRef:metadata.namespace}",
+                        "NODE_NAME":               "{fieldRef:spec.nodeName}",
+                        "DD_TAGS":                 "pod_name:$(POD_NAME),pod_namespace:$(POD_NAMESPACE),host:$(NODE_NAME)"
+                    },
+                    "resources": {
+                        "requests": {
+                            "cpu":    "100m",
+                            "memory": "64Mi"
+                        },
+                        "limits": {
+                           "cpu":    "200m",
+                           "memory": "128Mi"
+                         }
+                    }
+                }
+            ],
+            "logfwds": [
+                {
+                    "namespace_selectors": [],
+                    "label_selectors":     [],
+                    "image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/logfwd:1.86.0",
+                    "envs": {
+                        "LOGFWD_DATAKIT_HOST":              "{fieldRef:status.hostIP}",
+                        "LOGFWD_DATAKIT_PORT":              "9533",
+                        "LOGFWD_DATAKIT_OPERATOR_ENDPOINT": "datakit-operator.datakit.svc:443",
+                        "LOGFWD_GLOBAL_SERVICE":            "{fieldRef:metadata.labels['app']}",
+                        "LOGFWD_POD_NAME":                  "{fieldRef:metadata.name}",
+                        "LOGFWD_POD_NAMESPACE":             "{fieldRef:metadata.namespace}",
+                        "LOGFWD_POD_IP":                    "{fieldRef:status.podIP}"
+                    },
+                    "resources": {
+                        "requests": {
+                            "cpu":    "100m",
+                            "memory": "128Mi"
+                        },
+                        "limits": {
+                           "cpu":    "200m",
+                           "memory": "256Mi"
+                        }
+                    },
+                    "log_configs": "",
+                    "log_volume_paths": []
+                }
+            ],
+            "flameshots": [
+                {
+                    "namespace_selectors": [],
+                    "label_selectors":     [],
+                    "image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/flameshot:latest",
+                    "envs": {
+                        "FLAMESHOT_DATAKIT_ADDR":     "http://datakit-service.datakit:9529/profiling/v1/input",
+                        "FLAMESHOT_MONITOR_INTERVAL": "10s",
+                        "FLAMESHOT_LOG_LEVEL":        "info",
+                        "FLAMESHOT_PROFILING_PATH":   "/flameshot-data",
+                        "FLAMESHOT_LOG_PATH":         "/var/log/flameshot.log",
+                        "FLAMESHOT_HTTP_LOCAL_IP":    "{fieldRef:status.podIP}",
+                        "FLAMESHOT_HTTP_LOCAL_PORT":  "8089"
+                    },
+                    "resources": {
+                        "requests": {
+                            "cpu":    "100m",
+                            "memory": "128Mi"
+                        },
+                        "limits": {
+                           "cpu":    "200m",
+                           "memory": "256Mi"
+                        }
+                    },
+                    "processes": "",
+                    "enable_prometheus_annotations": true
+                }
+            ]
         },
-        "profiler": {
-            "images": {
-                "java_profiler_image":   "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/async-profiler:0.5.0",
-                "python_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/py-spy:0.1.0",
-                "golang_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/go-pprof:0.1.0"
-            },
-            "envs": {
-                "DK_AGENT_HOST":  "datakit-service.datakit.svc.cluster.local",
-                "DK_AGENT_PORT":  "9529",
-                "DK_PROFILE_VERSION":  "1.2.333",
-                "DK_PROFILE_ENV":      "prod",
-                "DK_PROFILE_DURATION": "240",
-                "DK_PROFILE_SCHEDULE": "0 * * * *"
-            },
-            "resources": {
-                "requests": {
-                    "cpu":    "100m",
-                    "memory": "64Mi"
-                },
-                "limits": {
-                   "cpu":    "500m",
-                   "memory": "512Mi"
-                 }
-            }
-        },
-        "logfwd": {
-            "images": {
-                "logfwd_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/logfwd:1.86.0"
-            },
-            "envs": {
-                "LOGFWD_DATAKIT_HOST":              "{fieldRef:status.hostIP}",
-                "LOGFWD_DATAKIT_PORT":              "9533",
-                "LOGFWD_DATAKIT_OPERATOR_ENDPOINT": "datakit-operator.datakit.svc:443",
-                "LOGFWD_GLOBAL_SERVICE":            "{fieldRef:metadata.labels['app']}",
-                "LOGFWD_POD_NAME":                  "{fieldRef:metadata.name}",
-                "LOGFWD_POD_NAMESPACE":             "{fieldRef:metadata.namespace}",
-                "LOGFWD_POD_IP":                    "{fieldRef:status.podIP}"
-            },
-            "resources": {
-                "requests": {
-                    "cpu":    "100m",
-                    "memory": "64Mi"
-                },
-                "limits": {
-                   "cpu":    "500m",
-                   "memory": "512Mi"
-                 }
-            }
+        "admission_mutate": {
+            "loggings": [
+                {
+                    "namespace_selectors": [],
+                    "label_selectors":     [],
+                    "config": ""
+                }
+            ]
         }
-    },
-    "admission_mutate": {
-        "loggings": [
-            {
-                "namespace_selectors": ["test01"],
-                "label_selectors":     ["app=logging"],
-                "config":"[{\"disable\":false,\"type\":\"file\",\"path\":\"/tmp/opt/**/*.log\",\"storage_index\":\"logging-index\"\"source\":\"logging-tmp\"},{\"disable\":true,\"type\":\"file\",\"path\":\"/var/log/opt/**/*.log\",\"source\":\"logging-var\"}]"
-            }
-        ]
     }
-}
-```
+    ```
 
-The main configuration items are `ddtrace`, `logfwd`, and `profiler`, which specify the injected images and environment variables. In addition, `ddtrace` also supports batch injection based on `enabled_namespaces` and `enabled_selectors`, as detailed in the section below.
+    Main configuration items:
+
+    - `ddtraces`: DDTrace injection configuration array, currently only supports Java language trace agent
+    - `logfwds`: logfwd sidecar injection configuration array, supports configuring multiple log collection rules
+    - `flameshots`: Flameshot injection configuration array (replacing the original profiler), used for performance analysis data collection
+
+    Configuration features:
+
+    - Uses array structure, supports configuring multiple injection rules of the same type
+    - When `namespace_selectors` and `label_selectors` are configured together, their relationship is "AND" (both must be satisfied)
+    - Image configuration is directly specified through the `image` field in the array items, no longer using nested `images` objects
+
+=== "DataKit-Operator before v1.7.0 (Compatible)"
+
+    <!-- markdownlint-disable MD046 -->
+    ???+ attention
+
+        This configuration method was used before DataKit-Operator v1.7.0. v1.7.0 and later versions recommend using the `admission_inject_v2` configuration. The old configuration remains backward compatible in v1.7.0.
+    <!-- markdownlint-enable -->
+
+    Default configuration:
+
+    ```json
+    {
+        "server_listen": "0.0.0.0:9543",
+        "log_level":     "info",
+        "admission_inject": {
+            "ddtrace": {
+                "enabled_namespaces":     [],
+                "enabled_labelselectors": [],
+                "images": {
+                    "java_agent_image":   "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:latest"
+                },
+                "envs": {
+                    "DD_AGENT_HOST":           "datakit-service.datakit.svc",
+                    "DD_TRACE_AGENT_PORT":     "9529",
+                    "DD_JMXFETCH_STATSD_HOST": "datakit-service.datakit.svc",
+                    "DD_JMXFETCH_STATSD_PORT": "8125",
+                    "DD_SERVICE":              "{fieldRef:metadata.labels['service']}",
+                    "POD_NAME":                "{fieldRef:metadata.name}",
+                    "POD_NAMESPACE":           "{fieldRef:metadata.namespace}",
+                    "NODE_NAME":               "{fieldRef:spec.nodeName}",
+                    "DD_TAGS":                 "pod_name:$(POD_NAME),pod_namespace:$(POD_NAMESPACE),host:$(NODE_NAME)"
+                },
+                "resources": {
+                    "requests": {
+                        "cpu":    "100m",
+                        "memory": "64Mi"
+                    },
+                    "limits": {
+                        "cpu":    "200m",
+                        "memory": "128Mi"
+                    }
+                }
+            },
+            "profiler": {
+                "images": {
+                    "java_profiler_image":   "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/async-profiler:0.5.0",
+                    "python_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/py-spy:0.1.0",
+                    "golang_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/go-pprof:0.1.0"
+                },
+                "envs": {
+                    "DK_AGENT_HOST":  "datakit-service.datakit.svc.cluster.local",
+                    "DK_AGENT_PORT":  "9529",
+                    "DK_PROFILE_VERSION":  "1.2.333",
+                    "DK_PROFILE_ENV":      "prod",
+                    "DK_PROFILE_DURATION": "240",
+                    "DK_PROFILE_SCHEDULE": "0 * * * *"
+                },
+                "resources": {
+                    "requests": {
+                        "cpu":    "100m",
+                        "memory": "64Mi"
+                    },
+                    "limits": {
+                        "cpu":    "500m",
+                        "memory": "512Mi"
+                    }
+                }
+            },
+            "logfwd": {
+                "images": {
+                    "logfwd_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/logfwd:1.86.0"
+                },
+                "envs": {
+                    "LOGFWD_DATAKIT_HOST":              "{fieldRef:status.hostIP}",
+                    "LOGFWD_DATAKIT_PORT":              "9533",
+                    "LOGFWD_DATAKIT_OPERATOR_ENDPOINT": "datakit-operator.datakit.svc:443",
+                    "LOGFWD_GLOBAL_SERVICE":            "{fieldRef:metadata.labels['app']}",
+                    "LOGFWD_POD_NAME":                  "{fieldRef:metadata.name}",
+                    "LOGFWD_POD_NAMESPACE":             "{fieldRef:metadata.namespace}",
+                    "LOGFWD_POD_IP":                    "{fieldRef:status.podIP}"
+                },
+                "resources": {
+                    "requests": {
+                        "cpu":    "100m",
+                        "memory": "64Mi"
+                    },
+                    "limits": {
+                        "cpu":    "500m",
+                        "memory": "512Mi"
+                    }
+                }
+            }
+        },
+        "admission_mutate": {
+            "loggings": [
+                {
+                    "namespace_selectors": ["test01"],
+                    "label_selectors":     ["app=logging"],
+                    "config":"[{\"disable\":false,\"type\":\"file\",\"path\":\"/tmp/opt/**/*.log\",\"storage_index\":\"logging-index\"\"source\":\"logging-tmp\"},{\"disable\":true,\"type\":\"file\",\"path\":\"/var/log/opt/**/*.log\",\"source\":\"logging-var\"}]"
+                }
+            ]
+        }
+    }
+    ```
+
+    The main configuration items are `ddtrace`, `logfwd`, and `profiler`, which specify the injected images and environment variables. In addition, ddtrace also supports batch injection based on `enabled_namespaces` and `enabled_selectors`, as detailed in the "Injection Methods" section below.
+
+    <!-- markdownlint-disable MD046 -->
+    ???+ note
+
+        In the old configuration, when `namespace_selectors` and `label_selectors` are configured together, their relationship is "OR" (satisfying either condition is sufficient). In the new configuration of DataKit-Operator v1.7.0, the relationship is changed to "AND" (both must be satisfied).
+    <!-- markdownlint-enable -->
+<!-- markdownlint-enable -->
 
 ### Configuration of Images {#datakit-operator-config-images}
 
@@ -219,7 +354,7 @@ The environment variable configuration is called `envs`, `envs` consists of mult
 
 For example, to add an environment variable `testing-env` in `envs`:
 
-```json
+``` json
     "admission_inject": {
         "ddtrace": {
             # other..
@@ -250,7 +385,7 @@ In DataKit Operator v1.4.2 and later versions, `envs` `envs` support for the Kub
 
 For example, if there is a Pod with the name `nginx-123` and the namespace `middleware`, and you want to inject the environment variables `POD_NAME` and `POD_NAMESPACE`, refer to the following configuration:
 
-```json
+``` json
 {
     "admission_inject": {
         "ddtrace": {
@@ -301,7 +436,7 @@ DataKit-Operator supports two methods for resource injection `global configurati
 
 The `enabled_namespaces` and `enabled_labelselectors` fields are specific to `ddtrace`. They are object arrays that require the specification of `namespace` and `language`. The relationships between the arrays are "OR" (i.e., any match in the array will trigger injection). The configuration is written as follows (refer to the configuration details later):
 
-```json
+``` json
 {
     "server_listen": "0.0.0.0:9543",
     "log_level":     "info",
@@ -348,7 +483,7 @@ The annotation format is as follows:
 
 For example, to add an annotation:
 
-```yaml
+``` yaml
       annotations:
         admission.datakit/java-lib.version: "v1.36.2-ext"
 ```
@@ -387,7 +522,7 @@ The following functions are currently supported:
 
 The following is an example of Deployment that injects `dd-java-lib` into all Pods created by Deployment:
 
-```yaml
+``` yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -415,13 +550,13 @@ spec:
 
 Create a resource using yaml file:
 
-```shell
+``` shell
 kubectl apply -f nginx.yaml
 ```
 
 Verify as follows:
 
-```shell
+``` shell
 $ kubectl get pod
 NAME                                   READY   STATUS    RESTARTS      AGE
 nginx-deployment-7bd8dd85f-fzmt2       1/1     Running   0             4s
@@ -460,7 +595,7 @@ Workflow:
 
 The latest `datakit-operator.yaml` already contains the required permissions. You can also apply the minimal manifest below:
 
-```yaml
+``` yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -518,7 +653,7 @@ spec:
 
 logfwd injection introduces several mandatory environment variables and image requirements. Configure them in the `datakit-operator-config` ConfigMap:
 
-```json
+``` json
             "logfwd": {
                 "images": {
                     "logfwd_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/logfwd:1.86.0"
@@ -552,7 +687,7 @@ Even with CRDs enabled, Pods must explicitly opt in to logfwd sidecars. Annotati
 - `admission.datakit/logfwd.enabled`: only `"true"` triggers injection.
 - `admission.datakit/logfwd.log_configs`: optional JSON array to override configs (handy for debugging). Example:
 
-```json
+``` json
 [
   {
     "type": "file",
@@ -594,7 +729,7 @@ Even with CRDs enabled, Pods must explicitly opt in to logfwd sidecars. Annotati
 
 ClusterLoggingConfig example:
 
-```yaml
+``` yaml
 apiVersion: logging.datakits.io/v1alpha1
 kind: ClusterLoggingConfig
 metadata:
@@ -620,7 +755,7 @@ spec:
 
 The following Deployment shows how CRDs and annotations work together:
 
-```yaml
+``` yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -661,7 +796,7 @@ After applying these manifests, DataKit-Operator will:
     - The key is uniformly `admission.datakit/logfwd.instances`.
     - The value is a JSON string of specific logfwd configuration, as shown below:
 
-```json
+``` json
 [
     {
         "datakit_addr": "datakit-service.datakit.svc:9533",
@@ -710,7 +845,7 @@ Parameter explanation can refer to [logfwd configuration](../integrations/logfwd
 
 Here is an example Deployment that continuously writes data to a file using shell and configures the collection of that file:
 
-```yaml
+``` yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -737,14 +872,14 @@ spec:
 
 Creating Resources Using yaml File:
 
-```shell
+``` shell
 $ kubectl apply -f logging.yaml
 ...
 ```
 
 Verify as follows:
 
-```shell
+``` shell
 $ kubectl get pod
 NAME                                   READY   STATUS    RESTARTS      AGE
 logging-deployment-5d48bf9995-vt6bb       1/1     Running   0             4s
@@ -755,6 +890,194 @@ log-container datakit-logfwd
 
 Finally, you can check whether the logs have been collected on the <<<custom_key.brand_name>>> Log Platform.
 
+### Flameshot {#inject-flameshot}
+
+<!-- markdownlint-disable MD046 -->
+???+ attention
+
+    Flameshot is a performance analysis tool introduced in DataKit-Operator v1.7.0, used to replace the original Profiler (async-profiler, py-spy, etc.). The original Profiler injection functionality has been removed in v1.7.0.
+<!-- markdownlint-enable -->
+
+#### Prerequisites {#flameshot-prerequisites}
+
+- The cluster has [DataKit](https://docs.<<<custom_key.brand_main_domain>>>/datakit/datakit-daemonset-deploy/){:target="_blank"} installed.
+- [Enable profile](https://docs.<<<custom_key.brand_main_domain>>>/datakit/datakit-daemonset-deploy/#using-k8-env){:target="_blank"} collector.
+- (Optional) To use the Prometheus Annotations auto-injection feature, you need to enable DataKit's KubernetesPrometheus collector and configure `EnableDiscoveryOfPrometheusPodAnnotations = true` to enable Pod Annotations auto-discovery.
+
+#### Usage {#flameshot-usage}
+
+<!-- markdownlint-disable MD046 -->
+=== "DataKit-Operator v1.7.0 and later"
+
+    1. On the target Kubernetes cluster, [download and install DataKit-Operator](datakit-operator.md#datakit-operator-overview-and-install)
+    1. Configure the `flameshots` array in DataKit-Operator configuration, set `namespace_selectors`/`label_selectors` matching rules and `processes` field to specify processes to monitor.
+    1. Add the Annotation `admission.datakit/flameshot.enabled: "true"` in deployment to allow Flameshot injection (if set to `"false"`, injection will be disabled).
+
+    Flameshot configuration example:
+
+    ``` json
+    {
+        "admission_inject_v2": {
+            "flameshots": [
+                {
+                    "namespace_selectors": [],
+                    "label_selectors":     [],
+                    "image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/flameshot:latest",
+                    "envs": {
+                        "FLAMESHOT_DATAKIT_ADDR":     "http://datakit-service.datakit:9529/profiling/v1/input",
+                        "FLAMESHOT_MONITOR_INTERVAL": "10s",
+                        "FLAMESHOT_LOG_LEVEL":        "info",
+                        "FLAMESHOT_PROFILING_PATH":   "/flameshot-data",
+                        "FLAMESHOT_LOG_PATH":         "/var/log/flameshot.log",
+                        "FLAMESHOT_HTTP_LOCAL_IP":    "{fieldRef:status.podIP}",
+                        "FLAMESHOT_HTTP_LOCAL_PORT":  "8089",
+                        "FLAMESHOT_SERVICE":  "{fieldRef:metadata.labels['app']}",
+                        "FLAMESHOT_TAGS": "pod_name:$(POD_NAME),pod_namespace:$(POD_NAMESPACE),host:$(NODE_NAME)"
+                    },
+                    "resources": {
+                        "requests": {
+                            "cpu":    "100m",
+                            "memory": "128Mi"
+                        },
+                        "limits": {
+                           "cpu":    "200m",
+                           "memory": "256Mi"
+                        }
+                    },
+                    "processes": "",
+                    "enable_prometheus_annotations": true
+                }
+            ]
+        }
+    }
+    ```
+
+    Configuration field descriptions:
+
+    | Field                            | Type    | Required | Description                                                                                                  |
+    | ------                          | ------  | ------   | ------                                                                                                |
+    | `namespace_selectors`           | array   | No       | Namespace selector array, supports regex matching                                                                |
+    | `label_selectors`               | array   | No       | Label selector array, uses Kubernetes Label Selector syntax                                                  |
+    | `image`                         | string  | Yes      | Flameshot container image address                                                                                |
+    | `envs`                          | object  | No       | Environment variable configuration, supports Downward API                                                                       |
+    | `resources`                     | object  | No       | Resource limit configuration (requests and limits)                                                                   |
+    | `processes`                     | string  | Yes      | Process monitoring configuration (JSON string), will be injected as `FLAMESHOT_PROCESSES` environment variable into Flameshot container. Format please refer to [Flameshot documentation](../integrations/flameshot.md) |
+    | `enable_prometheus_annotations` | boolean | No       | Whether to automatically add Prometheus-related Annotations. In the default configuration template, it is `true`. If users customize the configuration and do not set this field, it defaults to `false`. If the Pod already has any Annotation starting with `prometheus.io/`, it will not be injected |
+
+    <!-- markdownlint-disable MD046 -->
+    ???+ important
+
+        **Important**: The `processes` field is a JSON string that will be directly injected as the `FLAMESHOT_PROCESSES` environment variable into the Flameshot container. The format and meaning of the `processes` field please refer to [Flameshot documentation](../integrations/flameshot.md). If `processes` is empty, Flameshot injection will be skipped.
+    <!-- markdownlint-enable -->
+
+    Environment variable descriptions:
+
+    | Environment Variable                    | Description                                                                                                 |
+    | :---                          | :---                                                                                                 |
+    | `FLAMESHOT_DATAKIT_ADDR`     | DataKit profiling receive address, e.g. `http://datakit-service.datakit:9529/profiling/v1/input`          |
+    | `FLAMESHOT_MONITOR_INTERVAL`  | Monitoring interval, e.g. `10s`                                                                                 |
+    | `FLAMESHOT_LOG_LEVEL`        | Log level, e.g. `info`                                                                                |
+    | `FLAMESHOT_PROFILING_PATH`    | Profiling data storage path, e.g. `/flameshot-data`                                                       |
+    | `FLAMESHOT_LOG_PATH`          | Log file path, e.g. `/var/log/flameshot.log`                                                          |
+    | `FLAMESHOT_HTTP_LOCAL_IP`     | HTTP service local IP, usually injected via Downward API, e.g. `{fieldRef:status.podIP}`                       |
+    | `FLAMESHOT_HTTP_LOCAL_PORT`   | HTTP service port, e.g. `8089`                                            |
+    | `FLAMESHOT_PROCESSES`         | Process monitoring configuration (automatically injected from `processes` field), JSON string format                                        |
+
+    **Prometheus Annotations Auto-injection**:
+
+    When `enable_prometheus_annotations` is set to `true` (it is `true` in the default configuration template), DataKit-Operator will automatically add the following Prometheus-related Annotations to Pods injected with Flameshot, facilitating DataKit's KubernetesPrometheus collector to automatically discover and collect metrics exposed by Flameshot:
+
+    - `prometheus.io/scrape: "true"`: Identifies that this Pod needs to be scraped
+    - `prometheus.io/port: "<port>"`: Metrics exposure port, value comes from environment variable `FLAMESHOT_HTTP_LOCAL_PORT` (e.g. `"8089"`)
+    - `prometheus.io/scheme: "http"`: Metrics collection protocol
+    - `prometheus.io/path: "/metrics"`: Metrics path
+    - `prometheus.io/param_measurement: "flameshot"`: Specifies measurement name
+
+    <!-- markdownlint-disable MD046 -->
+    ???+ important
+
+        **Important Notes**:
+        
+        1. If the Pod already has any Annotation starting with `prometheus.io/`, DataKit-Operator will not inject the above Prometheus Annotations to avoid overwriting existing metrics collection configuration.
+        2. To use this feature, you need to enable DataKit's KubernetesPrometheus collector and configure `EnableDiscoveryOfPrometheusPodAnnotations = true` to enable Pod Annotations auto-discovery.
+    <!-- markdownlint-enable -->
+
+=== "DataKit-Operator before v1.7.0"
+
+    <!-- markdownlint-disable MD046 -->
+    ???+ attention
+
+        Before DataKit-Operator v1.7.0, async-profiler (Java) and py-spy (Python) were used for performance analysis. These features have been removed in v1.7.0, please use Flameshot instead.
+    <!-- markdownlint-enable -->
+<!-- markdownlint-enable -->
+
+#### Example {#flameshot-example}
+
+<!-- markdownlint-disable MD046 -->
+???+ note
+
+    Note: Adding only the `admission.datakit/flameshot.enabled: "true"` Annotation is not sufficient to trigger injection. You also need to set matching `flameshots` rules in DataKit-Operator configuration (including `namespace_selectors`/`label_selectors` and `processes` field). If the `processes` field is empty, injection will be skipped.
+<!-- markdownlint-enable -->
+
+Below is a Deployment example that injects Flameshot into all Pods created by the Deployment (assuming matching rules are already set in DataKit-Operator configuration):
+
+``` yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-deployment
+  labels:
+    app: myapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+      annotations:
+        admission.datakit/flameshot.enabled: "true"
+    spec:
+      containers:
+      - name: app
+        image: myapp:latest
+        ports:
+        - containerPort: 8080
+```
+
+Create resources using yaml file:
+
+``` shell
+$ kubectl apply -f app-deployment.yaml
+...
+```
+
+Verify as follows:
+
+``` shell
+$ kubectl get pod
+
+NAME                                   READY   STATUS    RESTARTS      AGE
+app-deployment-7bd8dd85f-fzmt2          2/2     Running   0             4s
+
+$ kubectl get pod app-deployment-7bd8dd85f-fzmt2 -o=jsonpath={.spec.containers\[\*\].name}
+app datakit-flameshot
+```
+
+After a few minutes, you can view application performance data in the <<<custom_key.brand_name>>> console [Application Performance Monitoring-Profiling](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile){:target="_blank"} page.
+
+<!-- markdownlint-disable MD046 -->
+???+ note
+
+    If you cannot see data, you can enter the `datakit-flameshot` container to check the logs for troubleshooting:
+    ``` shell
+    $ kubectl exec -it app-deployment-7bd8dd85f-fzmt2 -c datakit-flameshot -- bash
+    $ cat /var/log/flameshot.log
+    ```
+<!-- markdownlint-enable -->
+
 ## DataKit Operator Resource Changes {#datakit-operator-mutate-resource}
 
 ### Adding Configuration for DataKit Logging {#add-logging-configs}
@@ -763,7 +1086,7 @@ The DataKit Operator can automatically add the configuration required for DataKi
 
 Below is an example of a configuration that shows how to implement the automatic injection of log collection configuration through the DataKit Operator's `admission_mutate` configuration:
 
-```json
+``` json
 {
     "server_listen": "0.0.0.0:9543",
     "log_level":     "info",
@@ -792,7 +1115,7 @@ The DataKit Operator will automatically parse the `config` configuration and cre
 
 Taking the above DataKit Operator configuration as an example, if a Pod's Namespace is middleware or its Labels match app=logging, an annotation and mount will be added to the Pod. For example:
 
-```yaml
+``` yaml
 apiVersion: v1
 kind: Pod
 metadata:

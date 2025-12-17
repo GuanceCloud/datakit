@@ -103,7 +103,7 @@ disable = [
   "exhaustivestruct", # 结构体初始化字段是否完整
   "golint",           # Too strict
   "scopelint",        # obsoluted: https://github.com/kyoh86/scopelint#obsoleted
-
+  "ifshort",
   # 以下俩个 link 检查代码(函数)复杂度
   "gocognit", 
   "gocyclo",
