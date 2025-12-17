@@ -14,10 +14,12 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
@@ -57,7 +59,7 @@ const (
 
 var (
 	inputName                = "external"
-	l                        = logger.DefaultSLogger(inputName)
+	log                      = logger.DefaultSLogger(inputName)
 	_         inputs.InputV2 = (*Input)(nil)
 )
 
@@ -129,7 +131,7 @@ func (ipt *Input) precheck() error {
 	if ipt.Interval != "" {
 		du, err := time.ParseDuration(ipt.Interval)
 		if err != nil {
-			l.Errorf("parse external input %s interval failed: %s", ipt.Name, err.Error())
+			log.Errorf("parse external input %s interval failed: %s", ipt.Name, err.Error())
 			return err
 		}
 
@@ -144,7 +146,7 @@ func (ipt *Input) precheck() error {
 func (ipt *Input) start() error {
 	ipt.getCustomQuery()
 
-	l.Infof("starting %s cmd %s %s, envs: %+#v", ipt.Name, ipt.Cmd, strings.Join(ipt.Args, " "), ipt.Envs)
+	log.Infof("starting %s cmd %s %s, envs: %+#v", ipt.Name, ipt.Cmd, strings.Join(ipt.Args, " "), ipt.Envs)
 	ipt.cmd = exec.Command(ipt.Cmd, ipt.Args...) //nolint:gosec
 	if ipt.Envs != nil {
 		ipt.cmd.Env = ipt.Envs
@@ -153,13 +155,13 @@ func (ipt *Input) start() error {
 	if !ipt.Daemon {
 		res, err := ipt.cmd.CombinedOutput()
 		if err == nil {
-			l.Debugf("command output: %s", string(res))
+			log.Debugf("command output: %s", string(res))
 		} else {
 			return fmt.Errorf("command failed: %w, %s", err, res)
 		}
 	} else {
 		if err := ipt.cmd.Start(); err != nil {
-			l.Errorf("start external input %s failed: %s", ipt.Name, err.Error())
+			log.Errorf("start external input %s failed: %s", ipt.Name, err.Error())
 			return err
 		}
 	}
@@ -178,10 +180,15 @@ func NeedElectionFlag(name string) bool {
 	return false
 }
 
-func (ipt *Input) Run() {
-	l = logger.SLogger(inputName)
+var once sync.Once
 
-	l.Infof("starting external input %s...", ipt.Name)
+func (ipt *Input) Run() {
+	once.Do(func() {
+		log = logger.SLogger(inputName)
+		// Start the global process monitor
+	})
+
+	log.Infof("starting external input %s...", ipt.Name)
 
 	tagsStr := ""
 	arr := []string{}
@@ -213,33 +220,33 @@ func (ipt *Input) Run() {
 
 	for {
 		if ipt.pause {
-			l.Debugf("%s not leader, skipped", ipt.Name)
+			log.Debugf("%s not leader, skipped", ipt.Name)
 		} else {
 			if ipt.Daemon {
 				ipt.daemonRun()
 			} else {
 				// run as new process
-				l.Debug("non-daemon starting")
+				log.Debug("non-daemon starting")
 				if err := ipt.start(); err != nil {
-					l.Warnf("exec cmd[%s] failed: %s\n", ipt.Cmd, err.Error())
+					log.Warnf("exec cmd[%s] failed: %s\n", ipt.Cmd, err.Error())
 				}
 			}
 		}
 
 		select {
 		case <-datakit.Exit.Wait():
-			l.Infof("external input %s exiting", ipt.Name)
+			log.Infof("external input %s exiting", ipt.Name)
 			ipt.semStopProcess.Close()
 			return
 
 		case <-ipt.semStop.Wait():
-			l.Infof("external input %s stopped", ipt.Name)
+			log.Infof("external input %s stopped", ipt.Name)
 			ipt.semStopProcess.Close()
 			return
 
 		case ipt.pause = <-ipt.pauseCh:
 			if ipt.pause {
-				l.Infof("%s paused", ipt.Name)
+				log.Infof("%s paused", ipt.Name)
 				if ipt.Daemon && ipt.daemonStarted { // stop the daemon running process
 					ipt.semStopProcess.Close() // trigger the daemon process exit
 					<-ipt.procExitReply        // sync with goroutine monitoring external input process
@@ -257,7 +264,7 @@ func (ipt *Input) queryToBytes() []byte {
 	var buffer bytes.Buffer
 	enc := gob.NewEncoder(&buffer)
 	if err := enc.Encode(ipt.Query); err != nil {
-		l.Errorf("Encode() error: %v", err)
+		log.Errorf("Encode() error: %v", err)
 		return nil
 	}
 	return buffer.Bytes()
@@ -265,28 +272,28 @@ func (ipt *Input) queryToBytes() []byte {
 
 func (ipt *Input) getCustomQuery() {
 	if len(ipt.Query) == 0 {
-		l.Debug("ipt.Query empty")
+		log.Debug("ipt.Query empty")
 		return
 	}
 
 	tmpFile, err := os.CreateTemp(os.TempDir(), "custom_query")
 	if err != nil {
-		l.Errorf("os.CreateTemp() failed: %v", err)
+		log.Errorf("os.CreateTemp() failed: %v", err)
 		return
 	}
 
 	bys := ipt.queryToBytes()
 	if len(bys) == 0 {
-		l.Debug("bytes empty")
+		log.Debug("bytes empty")
 		return
 	}
 
 	cnt, err := tmpFile.Write(bys)
 	if err != nil {
-		l.Errorf("Write() failed: %v", err)
+		log.Errorf("Write() failed: %v", err)
 		return
 	}
-	l.Infof("Wrote file %s, wrote %d bytes.", tmpFile.Name(), cnt)
+	log.Infof("Wrote file %s, wrote %d bytes.", tmpFile.Name(), cnt)
 
 	ipt.Args = append(ipt.Args, "--custom-query", tmpFile.Name())
 }
@@ -298,7 +305,7 @@ func (ipt *Input) daemonRun() {
 
 	// start failed, retry
 	for {
-		l.Debug("daemon starting")
+		log.Debug("daemon starting")
 		if err := ipt.start(); err != nil {
 			time.Sleep(time.Second)
 			continue
@@ -314,7 +321,7 @@ func (ipt *Input) daemonRun() {
 	if ipt.cmd != nil && ipt.cmd.Process != nil {
 		monitor := GetProcessMonitor()
 		monitor.RegisterProcess(ipt.Name, ipt.cmd.Process)
-		l.Infof("Registered external process %s (PID: %d) for monitoring", ipt.Name, ipt.cmd.Process.Pid)
+		log.Infof("Registered external process %s (PID: %d) for monitoring", ipt.Name, ipt.cmd.Process.Pid)
 	}
 
 	func(process *os.Process, name string, semStopProcess *cliutils.Sem, procExitReply chan struct{}) {
@@ -323,11 +330,11 @@ func (ipt *Input) daemonRun() {
 				// Unregister the process when it exits
 				monitor := GetProcessMonitor()
 				monitor.UnregisterProcess(name)
-				l.Infof("Unregistered external process %s from monitoring", name)
+				log.Infof("Unregistered external process %s from monitoring", name)
 			}()
 
 			if err := datakit.MonitProc(process, name, semStopProcess); err != nil { // blocking here...
-				l.Errorf("datakit.MonitProc: %s", err.Error())
+				log.Errorf("datakit.MonitProc: %s", err.Error())
 			}
 			close(procExitReply)
 			return nil
@@ -368,15 +375,9 @@ func (ipt *Input) Terminate() {
 }
 
 func init() { //nolint:gochecknoinits
+	metrics.MustRegister(metricCollector{})
+
 	inputs.Add(inputName, func() inputs.Input {
 		return NewInput()
-	})
-
-	// Start the global process monitor
-	monitor := GetProcessMonitor()
-	g := datakit.G("external_proc_monitor")
-	g.Go(func(ctx context.Context) error {
-		monitor.StartMonitoring(10 * time.Second) // Collect metrics every 10 seconds
-		return nil
 	})
 }
