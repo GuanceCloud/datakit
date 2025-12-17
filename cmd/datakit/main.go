@@ -19,6 +19,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/checkutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/confd"
@@ -84,6 +85,7 @@ func main() {
 	tryLoadConfig()
 
 	datakit.SetLog()
+	service.SetLog()
 
 	if datakit.Docker {
 		// This may throw `Unix syslog delivery error` within docker, so we just
@@ -108,7 +110,7 @@ func main() {
 			run()
 		} else { // running as system service
 			if err := service.StartService(serviceEntry); err != nil {
-				l.Errorf("start service failed: %s", err.Error())
+				l.Errorf("service.StartService: %s", err.Error())
 				return
 			}
 		}
