@@ -259,7 +259,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		cloudProvider := dkstring.TrimString(tagsStr)
 		cloudProvider = strings.ToLower(cloudProvider)
 		switch cloudProvider {
-		case "aliyun", "tencent", "aws", "hwcloud", "azure":
+		case "aliyun", "tencent", "aws", "hwcloud", "azure", "gcp":
 			ipt.Tags["cloud_provider"] = cloudProvider
 		}
 	} // ENV_CLOUD_PROVIDER

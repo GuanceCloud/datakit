@@ -23,6 +23,7 @@ func (x *tencent) Sync() (map[string]interface{}, error) {
 		"private_ip":            x.PrivateIP(),
 		"zone_id":               x.ZoneID(),
 		"region":                x.Region(),
+		"project_id":            x.ProjectID(),
 	}, nil
 }
 
@@ -68,4 +69,8 @@ func (x *tencent) ZoneID() string {
 
 func (x *tencent) Region() string {
 	return metaGet(x.baseURL + "/placement/region")
+}
+
+func (x *tencent) ProjectID() string {
+	return Unavailable
 }
