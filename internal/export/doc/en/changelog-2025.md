@@ -1,5 +1,40 @@
 # Changelog
 
+---
+
+## 1.87.0(2025/12/17) {#cl-1.87.0}
+
+This release is an iterative release, with the following main updates:
+
+### New Features {#cl-1.87.0-new}
+
+- Added Flameshot to support dynamic Profile collection (#2876)
+- Cloud meta synchronization added support for Google Cloud hosts (#2895)
+
+### Bug Fixes {#cl-1.87.0-fix}
+
+- Optimized Pipeline handling of null characters (#2870)
+- Fixed slow log collection issue in Redis master-slave mode (#2895)
+- Fixed potential crash issue in Pipeline Refer table (#2921)
+- Fixed bug on logfwd service/source configure error (#2922)
+
+### Improvements {#cl-1.87.0-opt}
+
+- Optimized service startup behavior. If an error occurs during startup, context information related to service startup will be output to facilitate troubleshooting (#2111)
+- Optimized Jolokia-based JVM and Kafka metric collection (#2852)
+- Optimized HTTP API whitelist function, added regex-based whitelist configuration and option to disable whitelist (#2860)
+- Optimized error log handling in MongoDB collection (#2916)
+- Optimized permission instructions in Redis collection document (#2911)
+- Optimized DataKit self-metric collection configuration, added `interval` configuration entry; meanwhile, added eBPF process-related CPU/memory metric collection to self-metrics (#2825)
+- Added extraction of Trace SDK name/version/language common fields in DDTrace/OpenTelemetry trace collection (#2920)
+- Host object collection supports virtual/physical machine detection, allowing different collection tags to be set accordingly (#2795)
+
+### Compatibility Adjustments {#cl-1.87.0-brk}
+
+- The Kafka collector has undergone major adjustments. In this version, all metrics are grouped under the `kafka` measurement, and all metrics are automatically derived based on corresponding MBean names, without requiring manual configuration of collected MBeans and their corresponding metric naming (#2852)
+
+---
+
 ## 1.86.2 (2025/12/04) {#cl-1.86.2}
 
 This release is a hotfix with the following updates:
