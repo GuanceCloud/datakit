@@ -102,6 +102,8 @@ extraEnvs:
 #    value: k8s
 #  - name: "NODE_OPTIONS"
 #    value: "--max-old-space-size=1800"
+#  - name: ENV_INPUT_DK_INTERVAL  # DataKit self-monitoring interval
+#    value: "30s"
 
 
 resources:

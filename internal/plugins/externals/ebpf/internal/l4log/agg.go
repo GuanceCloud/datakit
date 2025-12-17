@@ -16,8 +16,6 @@ import (
 
 type aggKey struct {
 	netflow.BaseKey
-	pid int
-
 	family      string
 	direction   string
 	processName string
@@ -47,8 +45,6 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 
 		"src_ip": key.SAddr,
 		"dst_ip": key.DAddr,
-
-		"pid": strconv.FormatInt(int64(key.pid), 10),
 
 		"netns": key.NetNS,
 	}

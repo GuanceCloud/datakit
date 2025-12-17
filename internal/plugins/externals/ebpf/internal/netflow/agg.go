@@ -79,8 +79,6 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 		"src_ip_type": key.sType,
 		"dst_ip_type": key.dType,
 
-		"pid": strconv.FormatInt(int64(key.PID), 10),
-
 		"netns": key.NetNS,
 	}
 
