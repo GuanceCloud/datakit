@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -23,6 +24,7 @@ const (
 	Azure       = "azure"
 	Hwcloud     = "hwcloud"
 	VolcEngine  = "volcengine"
+	GCP         = "gcp"
 )
 
 var cloudCli = &http.Client{Timeout: 3 * time.Second}
@@ -41,6 +43,7 @@ type synchronizer interface {
 	PrivateIP() string
 	Region() string
 	ZoneID() string
+	ProjectID() string
 }
 
 type AuthConfig struct {
@@ -110,6 +113,14 @@ func (ipt *Input) SyncCloudInfo(provider string) (map[string]interface{}, error)
 			p = &volcEcs{baseURL: volcMetaRootURL}
 		}
 		return p.Sync()
+	case GCP:
+		var p *gcp
+		if url, ok := ipt.CloudMetaURL[GCP]; ok {
+			p = &gcp{baseURL: url}
+		} else {
+			p = &gcp{baseURL: "http://169.254.169.254/computeMetadata/v1"}
+		}
+		return p.Sync()
 	default:
 		return nil, fmt.Errorf("unknown cloud_provider: %s", provider)
 	}
@@ -153,7 +164,7 @@ func (ipt *Input) matchCloudProvider(cloudProvider string) bool {
 }
 
 func (ipt *Input) SetCloudProvider() error {
-	cloudProviders := []string{Aliyun, AWS, Tencent, Azure, Hwcloud, VolcEngine}
+	cloudProviders := []string{Aliyun, AWS, Tencent, Azure, Hwcloud, VolcEngine, GCP}
 	for _, cp := range cloudProviders {
 		if ipt.matchCloudProvider(cp) {
 			ipt.Tags["cloud_provider"] = cp
@@ -261,4 +272,21 @@ func metadataGetToken(authConfig AuthConfig) []byte {
 	}
 	req.Header.Set(authConfig.TTLHeader, fmt.Sprintf("%.0f", ttl.Seconds()))
 	return clientDo(req, authConfig.TokenURL)
+}
+
+func metadataGetByHeaderGCP(metaURL string) (res string) {
+	req, err := http.NewRequest("GET", metaURL, nil)
+	if err != nil {
+		l.Errorf("http.NewRequest: %s", err)
+		return Unavailable
+	}
+	// set metadata flavor header
+	req.Header.Set("Metadata-Flavor", "Google")
+
+	if x := clientDo(req, metaURL); x != nil {
+		res = string(bytes.ReplaceAll(x, []byte{'\n'}, []byte{' '}))
+		return strings.TrimSpace(res)
+	}
+
+	return Unavailable
 }

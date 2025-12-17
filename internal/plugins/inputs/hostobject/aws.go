@@ -57,6 +57,7 @@ func (x *aws) Sync() (map[string]interface{}, error) {
 		"private_ip":            x.PrivateIP(),
 		"zone_id":               x.ZoneID(),
 		"region":                x.Region(),
+		"project_id":            x.ProjectID(),
 	}, nil
 }
 
@@ -104,4 +105,8 @@ func (x *aws) Region() string {
 	// 这个在 AWS 文档是没有的：
 	//  https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-retrieval.html
 	return metaGetV2(x.baseURL+"/placement/region", x.authConfig)
+}
+
+func (x *aws) ProjectID() string {
+	return Unavailable
 }

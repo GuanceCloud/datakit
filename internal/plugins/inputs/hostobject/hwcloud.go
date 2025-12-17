@@ -54,6 +54,7 @@ func (x *hwcloud) Sync() (map[string]interface{}, error) {
 		"private_ip":            x.PrivateIP(),
 		"zone_id":               x.ZoneID(),
 		"region":                x.Region(),
+		"project_id":            x.ProjectID(),
 	}, nil
 }
 
@@ -161,5 +162,9 @@ func (x *hwcloud) Region() string {
 	if hwmetadata := x.getHwMetaData(); hwmetadata != nil {
 		return hwmetadata.Region
 	}
+	return Unavailable
+}
+
+func (x *hwcloud) ProjectID() string {
 	return Unavailable
 }

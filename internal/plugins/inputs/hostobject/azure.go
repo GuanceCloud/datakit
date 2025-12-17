@@ -37,6 +37,7 @@ func (x *azure) Sync() (map[string]interface{}, error) {
 		"private_ip":            x.PrivateIP(),
 		"zone_id":               x.ZoneID(),
 		"region":                x.Region(),
+		"project_id":            x.ProjectID(),
 	}, nil
 }
 
@@ -112,5 +113,9 @@ func (x *azure) Region() string {
 	if azureMetaData := x.getAzureMetaData(); azureMetaData != nil {
 		return azureMetaData.Compute.Region
 	}
+	return Unavailable
+}
+
+func (x *azure) ProjectID() string {
 	return Unavailable
 }

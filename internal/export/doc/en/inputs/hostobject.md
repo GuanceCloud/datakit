@@ -47,11 +47,11 @@ In general, the host object is turned on by default and does not need to be conf
 
 ### Turn on Cloud Synchronization {#cloudinfo}
 
-DataKit turns on cloud synchronization by default, and currently supports Alibaba Cloud/Tencent Cloud/AWS/Huawei Cloud/Microsoft Cloud/Volcano Engine. You can specify the cloud vendor explicitly by setting the cloud_provider tag, or you can detect it automatically by DataKit:
+DataKit turns on cloud synchronization by default, and currently supports Alibaba Cloud/Tencent Cloud/AWS/Huawei Cloud/Microsoft Cloud/Volcano Engine/Google Cloud. You can specify the cloud vendor explicitly by setting the cloud_provider tag, or you can detect it automatically by DataKit:
 
 ```toml
 [inputs.hostobject.tags]
-  # There are several kinds of aliyun/tencent/aws/hwcloud/azure supported at present. If not set, DataKit will detect and set this tag automatically
+  # There are several kinds of aliyun/tencent/aws/hwcloud/azure/gcp supported at present. If not set, DataKit will detect and set this tag automatically
   cloud_provider = "aliyun"
 ```
 
@@ -98,6 +98,7 @@ If cloud synchronization is turned on, the following additional fields will be a
 | `private_ip`            | Instance private network IP | string |
 | `zone_id`               | Instance Zone ID            | string |
 | `region`                | Instance Region ID          | string |
+| `project_id`            | Project ID                  | string |
 
 ### `message` Metric Field Structure {#message-struct}
 
