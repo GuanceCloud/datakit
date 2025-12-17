@@ -210,9 +210,7 @@ func (svr *MongodbServer) gatherData(gatherReplicaSetStats bool, gatherClusterSt
 	start := time.Now()
 	serverStatus, err := svr.gatherServerStats()
 	if err != nil {
-		log.Debugf("gathering server failed: %s", err.Error())
-
-		return err
+		log.Errorf("gathering server failed: %s", err.Error())
 	}
 
 	// Get replica set status, an error indicates that the server is not a member of a replica set.
@@ -222,12 +220,12 @@ func (svr *MongodbServer) gatherData(gatherReplicaSetStats bool, gatherClusterSt
 	)
 	if gatherReplicaSetStats {
 		if ReplSetStats, err = svr.gatherReplSetStats(); err != nil {
-			log.Debugf("Unable to gather replica set status: %s", err.Error())
+			log.Errorf("Unable to gather replica set status: %s", err.Error())
 		}
 		// Gather the oplog if we are a member of a replica set. Non-replica set members do not have the oplog collections.
 		if ReplSetStats != nil {
 			if oplogStats, err = svr.gatherOplogStats(); err != nil {
-				log.Errorf("Unable to get oplog stats: %w", err)
+				log.Errorf("Unable to get oplog stats: %s", err.Error())
 			}
 		}
 	}
@@ -236,29 +234,27 @@ func (svr *MongodbServer) gatherData(gatherReplicaSetStats bool, gatherClusterSt
 	if gatherClusterStats {
 		status, err := svr.gatherClusterStats()
 		if err != nil {
-			log.Debugf("Unable to gather cluster status: %w", err)
+			log.Errorf("Unable to gather cluster status: %s", err.Error())
 		}
 		clusterStats = status
 	}
 
 	shardStats, err := svr.gatherShardConnPoolStats()
 	if err != nil {
-		log.Warnf("Unable to gather shard connection pool stats: %w", err)
+		log.Errorf("Unable to gather shard connection pool stats: %s", err.Error())
 	}
 
 	dbStats := &DBStats{}
 	if gatherPerDBStats {
 		dbNames, err := svr.cli.ListDatabaseNames(context.TODO(), bson.M{})
 		if err != nil {
-			log.Errorf("list database names failed with error: %w", err)
-
-			return err
+			log.Errorf("list database names failed with error: %s", err.Error())
 		}
 
 		for _, dbName := range dbNames {
 			db, err := svr.gatherDBStats(dbName)
 			if err != nil {
-				log.Debugf("gather db stats from [%s] failed with error: %s", dbName, err.Error())
+				log.Errorf("gather db stats from [%s] failed with error: %s", dbName, err.Error())
 				continue
 			}
 			dbStats.DBs = append(dbStats.DBs, *db)
@@ -269,22 +265,20 @@ func (svr *MongodbServer) gatherData(gatherReplicaSetStats bool, gatherClusterSt
 	if gatherPerColStats {
 		stats, err := svr.gatherCollectionStats(colStatsDBs)
 		if err != nil {
-			log.Debugf("Unable to gather collection stats: %w", err)
-
-			return err
+			log.Errorf("Unable to gather collection stats: %s", err.Error())
+		} else {
+			colStats = stats
 		}
-		colStats = stats
 	}
 
-	topStatData := &TopStats{}
+	var topStatData *TopStats
 	if gatherTopStat {
 		topStats, err := svr.gatherTopStatData()
 		if err != nil {
-			log.Debugf("Unable to gather top stat data: %w", err)
-
-			return err
+			log.Errorf("Unable to gather top stat data: %s", err.Error())
+		} else {
+			topStatData = topStats
 		}
-		topStatData = topStats
 	}
 
 	result := &MongoStatus{
@@ -318,7 +312,6 @@ func (svr *MongodbServer) gatherData(gatherReplicaSetStats bool, gatherClusterSt
 	}
 
 	svr.lastResult = result
-
 	return nil
 }
 
