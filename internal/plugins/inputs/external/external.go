@@ -310,8 +310,22 @@ func (ipt *Input) daemonRun() {
 
 	ipt.procExitReply = make(chan struct{})
 
+	// Register the process for monitoring
+	if ipt.cmd != nil && ipt.cmd.Process != nil {
+		monitor := GetProcessMonitor()
+		monitor.RegisterProcess(ipt.Name, ipt.cmd.Process)
+		l.Infof("Registered external process %s (PID: %d) for monitoring", ipt.Name, ipt.cmd.Process.Pid)
+	}
+
 	func(process *os.Process, name string, semStopProcess *cliutils.Sem, procExitReply chan struct{}) {
 		g.Go(func(ctx context.Context) error {
+			defer func() {
+				// Unregister the process when it exits
+				monitor := GetProcessMonitor()
+				monitor.UnregisterProcess(name)
+				l.Infof("Unregistered external process %s from monitoring", name)
+			}()
+
 			if err := datakit.MonitProc(process, name, semStopProcess); err != nil { // blocking here...
 				l.Errorf("datakit.MonitProc: %s", err.Error())
 			}
@@ -356,5 +370,13 @@ func (ipt *Input) Terminate() {
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return NewInput()
+	})
+
+	// Start the global process monitor
+	monitor := GetProcessMonitor()
+	g := datakit.G("external_proc_monitor")
+	g.Go(func(ctx context.Context) error {
+		monitor.StartMonitoring(10 * time.Second) // Collect metrics every 10 seconds
+		return nil
 	})
 }

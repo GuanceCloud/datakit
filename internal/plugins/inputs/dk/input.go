@@ -138,6 +138,16 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 			Desc:      "Only enable metrics",
 			DescZh:    "只开启指定指标",
 		},
+
+		{
+			ENVName:   "INTERVAL",
+			Type:      doc.TimeDuration,
+			ConfField: "interval",
+			Example:   "`10s`",
+			Default:   "`30s`",
+			Desc:      "Collect interval",
+			DescZh:    "采集间隔",
+		},
 	}
 
 	return doc.SetENVDoc("ENV_INPUT_DK_", infos)
@@ -148,6 +158,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 //	ENV_INPUT_DK_ENABLE_ALL_METRICS(bool)
 //	ENV_INPUT_DK_ADD_METRICS(json-string-list)
 //	ENV_INPUT_DK_ONLY_METRICS(json-string-list)
+//	ENV_INPUT_DK_INTERVAL(duration)
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if _, ok := envs["ENV_INPUT_DK_ENABLE_ALL_METRICS"]; ok {
 		ipt.MetricFilter = nil
@@ -168,6 +179,14 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			l.Warnf("json.Unmarshal: %s, ignored", err)
 		} else {
 			ipt.MetricFilter = arr
+		}
+	}
+
+	if x := envs["ENV_INPUT_DK_INTERVAL"]; x != "" {
+		if du, err := time.ParseDuration(x); err != nil {
+			l.Warnf("parse ENV_INPUT_DK_INTERVAL %s failed: %s, ignored", x, err)
+		} else {
+			ipt.Interval = du
 		}
 	}
 }

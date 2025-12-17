@@ -38,8 +38,6 @@ type aggKey struct {
 	family    string
 	direction string
 
-	pid int64
-
 	processName string
 
 	pathTrunc bool
@@ -89,7 +87,6 @@ func (agg *HTTPAggP) Obs(conn *comm.ConnectionInfo, data *ProtoData) {
 	var key aggKey
 	key.NetNS = strconv.FormatUint(uint64(conn.Netns), 10)
 	key.processName = conn.ProcessName
-	key.pid = int64(conn.Pid)
 
 	// direction
 	key.direction = data.Direction.String()
@@ -214,8 +211,6 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 
 		"src_ip": key.SAddr,
 		"dst_ip": key.DAddr,
-
-		"pid": strconv.FormatInt(key.pid, 10),
 
 		"src_ip_type": key.sType,
 		"dst_ip_type": key.dType,
