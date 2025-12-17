@@ -39,6 +39,7 @@ var (
 	buildISP         = false
 	ut               = false
 	dca              = false
+	flameshot        = false
 	export           = false
 	dwURL            = "not-set"
 	mdSkip           = ""
@@ -104,6 +105,7 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&build.ExportVersion, "version", datakit.Version, "set DataKit version string in related documents")
 
 	flag.StringVar(&logLevel, "log-level", "info", "set log level of building log")
+	flag.BoolVar(&flameshot, "flameshot", false, "build flameshot plugin")
 }
 
 func applyFlags() {
@@ -276,6 +278,11 @@ func applyFlags() {
 			if err := build.PackageEBPF(); err != nil {
 				l.Errorf("build.PackageeBPF: %s", err)
 				return
+			}
+		}
+		if flameshot {
+			if err := build.CompileFlameshot(); err != nil {
+				l.Error(err)
 			}
 		}
 		return

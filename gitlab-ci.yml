@@ -19,6 +19,7 @@ variables:
   DCA_CI_TESTING_VERSION: $DCA_CI_VERSION-testing_$CI_COMMIT_BRANCH
   DISABLED_MR_TARGET_BRANCHES: "/^master|main/"
   DISABLED_MR_TITLE: '/^(\[Draft\]|\(Draft\)|Draft:)/'
+  FLAMESHOT_VERSION: "0.1.0"
 
 stages:
   - _test_guance
@@ -351,6 +352,7 @@ release-prod-guance: # CI for guance packages
       HELM_CHART_REPO="datakit-chart-cn"
     - make production_image GIT_BRANCH=$CI_COMMIT_BRANCH \
       VERSION="$CI_VERSION" \
+      FLAMESHOT_VERSION="$FLAMESHOT_VERSION" \
       BRAND="guance" \
       DOCKER_IMAGE_REPO="pubrepo.guance.com/datakit" \
       DOCKERFILE_SUFFIX="guance"

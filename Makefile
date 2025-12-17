@@ -20,6 +20,8 @@ MAC_ARCHS              = darwin/amd64
 DOCKER_IMAGE_ARCHS     = linux/arm64,linux/amd64
 UOS_DOCKER_IMAGE_ARCHS = linux/arm64,linux/amd64
 DCA_BUILD_ARCH         = linux/arm64,linux/amd64
+FLAMESHOT_NAME        = flameshot
+FLAMESHOT_ARCHS       = linux/amd64,linux/arm64
 GOLINT_BINARY         ?= golangci-lint
 CGO_FLAGS              = "-Wno-undef-prefix -Wno-deprecated-declarations" # to disable warnings from gopsutil on macOS
 HL                     = \033[0;32m # high light
@@ -51,6 +53,7 @@ GOLINT_VERSION_ERR_MSG := golangci-lint version($(GOLINT_VERSION)) is not suppor
 
 # These can be override at runtime by make variables
 VERSION                      ?= $(shell git describe --always --tags)
+FLAMESHOT_VERSION            ?= NOT_SET
 DCA_VERSION                  ?= NOT_SET
 DATAWAY_URL                  ?= NOT_SET
 GIT_BRANCH                   ?= $(shell git rev-parse --abbrev-ref HEAD)
@@ -146,7 +149,8 @@ define build_bin
 		-helm-chart-dir $(HELM_CHART_DIR)       \
 		-skip-helm $(SKIP_HELM)                 \
 		-pkg-ebpf $(PKGEBPF)                    \
-		-only-external-inputs $(ONLY_BUILD_INPUTS_EXTENTIONS)
+		-only-external-inputs $(ONLY_BUILD_INPUTS_EXTENTIONS) \
+		-flameshot
 	@tree -Csh -L 3 $(DIST_DIR)
 endef
 
@@ -197,6 +201,10 @@ define build_docker_image
 			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/logfwd:$(VERSION) \
 			-f dockerfiles/Dockerfile_logfwd.$(DOCKERFILE_SUFFIX) . --push; \
+		sudo docker buildx build --platform $(1) \
+			--build-arg DIST_DIR=$(DIST_DIR) \
+			-t $(2)/flameshot:$(FLAMESHOT_VERSION) \
+			-f dockerfiles/Dockerfile_flameshot.$(DOCKERFILE_SUFFIX) . --push; \
 	else \
 		sudo docker buildx build --platform $(1) \
 			--build-arg DIST_DIR=$(DIST_DIR) \
@@ -210,6 +218,10 @@ define build_docker_image
 			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/logfwd:$(VERSION) \
 			-f dockerfiles/Dockerfile_logfwd.$(DOCKERFILE_SUFFIX) . --push; \
+		sudo docker buildx build --platform $(1) \
+			--build-arg DIST_DIR=$(DIST_DIR) \
+			-t $(2)/flameshot:$(FLAMESHOT_VERSION) \
+			-f dockerfiles/Dockerfile_flameshot.$(DOCKERFILE_SUFFIX) . --push; \
 	fi
 endef
 

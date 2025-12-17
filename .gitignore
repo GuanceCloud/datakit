@@ -47,6 +47,7 @@ cmd/datakit/gitrepos/
 cmd/datakit/pipeline/
 cmd/datakit/python.d/
 cmd/installer/bin/
+cmd/flameshot/flameshot
 config.d/
 config.json
 cspell.lint

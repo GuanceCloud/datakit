@@ -115,6 +115,7 @@ ReplicaSet
 SIGQUIT
 SQLServer
 SQLite
+Safepoint
 Scheck
 Servlet
 Sink
@@ -243,6 +244,8 @@ xpack
 xfsquota
 zabbix
 zhangsan
+Proto
+proto
 
 ##############################################
 # 缩写
@@ -339,6 +342,9 @@ mspan
 refactorings
 spid
 subtransactions
+flameshot
+alloc
+nativemem
 
 ##############################################
 # 连词

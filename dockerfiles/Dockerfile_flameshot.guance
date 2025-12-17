@@ -1,0 +1,30 @@
+FROM pubrepo.guance.com/base/ubuntu:22.04 AS base
+WORKDIR /flameshot
+
+ARG DIST_DIR
+ARG TARGETARCH
+
+
+RUN mkdir -p /opt/async-profiler
+RUN mkdir -p /flameshot
+
+RUN apt-get update && apt-get install -y --no-install-recommends wget curl
+
+RUN \
+    if [ "$TARGETARCH" = "amd64" ]; then \
+        PROFILER_PACKAGE="async-profiler-4.2.1-linux-x64.tar.gz"; \
+    elif [ "$TARGETARCH" = "arm64" ]; then \
+        PROFILER_PACKAGE="async-profiler-4.2.1-linux-arm64.tar.gz"; \
+    else \
+        echo "error: '$TARGETARCH'not in 'amd64,arm64'."; \
+        exit 1; \
+    fi && \
+    echo "download $PROFILER_PACKAGE ..." && \
+    wget --no-check-certificate -O /opt/async-profiler.tar.gz "https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/async-profiler/$PROFILER_PACKAGE" && \
+    cd /opt && ls -l && tar -xzf async-profiler.tar.gz && \
+    rm async-profiler.tar.gz && mv async-profiler-*/* async-profiler/ &&  \
+    echo "${TARGETARCH} async-profiler install to /opt/async-profiler"
+
+COPY ${DIST_DIR}/flameshot-linux-${TARGETARCH}/ /flameshot/
+
+CMD ["./flameshot", "-config", "flameshot.conf"]
