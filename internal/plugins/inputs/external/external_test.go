@@ -242,7 +242,7 @@ func bytesToQuery(bys []byte) []*customQuery {
 	dec := gob.NewDecoder(bytes.NewReader(bys))
 	var query []*customQuery
 	if err := dec.Decode(&query); err != nil {
-		l.Errorf("dec.Decode() failed: %v", err)
+		log.Errorf("dec.Decode() failed: %v", err)
 		return nil
 	}
 	return query

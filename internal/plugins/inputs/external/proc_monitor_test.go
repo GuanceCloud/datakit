@@ -10,6 +10,8 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	p8s "github.com/prometheus/client_golang/prometheus"
 )
 
 func TestProcessMonitor(t *testing.T) {
@@ -32,9 +34,15 @@ func TestProcessMonitor(t *testing.T) {
 	if !exists {
 		t.Error("Process was not registered")
 	}
+	ch := make(chan p8s.Metric, 10)
+	go func() {
+		for range ch {
+		}
+	}()
+	defer close(ch)
 
 	// Collect metrics
-	monitor.CollectMetrics()
+	monitor.CollectMetrics(ch)
 
 	// Wait a bit for metrics collection
 	time.Sleep(100 * time.Millisecond)
@@ -73,7 +81,15 @@ func TestProcessMonitorMultiple(t *testing.T) {
 	}
 
 	// Collect metrics for all
-	monitor.CollectMetrics()
+	ch := make(chan p8s.Metric, 10)
+	go func() {
+		for range ch {
+		}
+	}()
+	defer close(ch)
+
+	// Collect metrics
+	monitor.CollectMetrics(ch)
 
 	// Clean up
 	monitor.UnregisterProcess("test_proc_1")
@@ -109,7 +125,15 @@ func TestProcessMonitorMetricsCollection(t *testing.T) {
 	defer monitor.UnregisterProcess(processName)
 
 	// Collect metrics
-	monitor.CollectMetrics()
+	ch := make(chan p8s.Metric, 10)
+	go func() {
+		for range ch {
+		}
+	}()
+	defer close(ch)
+
+	// Collect metrics
+	monitor.CollectMetrics(ch)
 
 	// Wait for metrics to be collected
 	time.Sleep(200 * time.Millisecond)
@@ -195,7 +219,16 @@ func TestProcessMonitorConcurrentAccess(t *testing.T) {
 
 	for i := 0; i < 5; i++ {
 		go func() {
-			monitor.CollectMetrics()
+			ch := make(chan p8s.Metric, 10)
+			go func() {
+				for range ch {
+				}
+			}()
+			defer close(ch)
+
+			// Collect metrics
+			monitor.CollectMetrics(ch)
+
 			done <- true
 		}()
 	}
