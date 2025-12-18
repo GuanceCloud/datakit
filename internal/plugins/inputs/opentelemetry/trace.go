@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"time"
 
+	"go.uber.org/zap/zapcore"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 
 	"github.com/GuanceCloud/cliutils/point"
@@ -32,6 +34,9 @@ func (ipt *Input) parseResourceSpans(resspans []*trace.ResourceSpans, remoteIP s
 	//   level-2: scope spans
 	//   level-3: spans within a single scope
 	for _, spans := range resspans {
+		if log.Level() == zapcore.DebugLevel {
+			log.Debugf("parseResourceSpans: %s", spans.String())
+		}
 		var (
 			serviceName          = "unknown_service"
 			runtimeIDInitialized = false

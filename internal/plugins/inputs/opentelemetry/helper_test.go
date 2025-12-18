@@ -8,6 +8,8 @@ package opentelemetry
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	common "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
@@ -81,4 +83,77 @@ func TestInput_selectAttrs(t *testing.T) {
 
 	f = kvs.Get("test_kvlist")
 	t.Log(f.GetS())
+}
+
+func Test_getDBHost(t *testing.T) {
+	type args struct {
+		atts []*common.KeyValue
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "db",
+			args: args{
+				atts: []*common.KeyValue{
+					{
+						Key: "db.system",
+						Value: &common.AnyValue{
+							Value: &common.AnyValue_StringValue{StringValue: "mysql"},
+						},
+					},
+					{
+						Key: "language",
+						Value: &common.AnyValue{
+							Value: &common.AnyValue_StringValue{StringValue: "java"},
+						},
+					},
+					{
+						Key: "server.address",
+						Value: &common.AnyValue{
+							Value: &common.AnyValue_StringValue{StringValue: "localhost"},
+						},
+					},
+					nil,
+					nil,
+				},
+			},
+			want: "localhost",
+		},
+		{
+			name: "empty",
+			args: args{
+				atts: []*common.KeyValue{
+					{
+						Key: "db.name",
+						Value: &common.AnyValue{
+							Value: &common.AnyValue_StringValue{StringValue: "mysql"},
+						},
+					},
+					{
+						Key: "language",
+						Value: &common.AnyValue{
+							Value: &common.AnyValue_StringValue{StringValue: "java"},
+						},
+					},
+					{
+						Key: "server.address",
+						Value: &common.AnyValue{
+							Value: &common.AnyValue_StringValue{StringValue: "localhost"},
+						},
+					},
+					nil,
+					nil,
+				},
+			},
+			want: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, getDBHost(tt.args.atts), "getDBHost(%v)", tt.args.atts)
+		})
+	}
 }
