@@ -72,25 +72,21 @@ func (ipt *Input) selectAttrs(atts []*common.KeyValue) (kvs point.KVs, merged []
 
 func getDBHost(atts []*common.KeyValue) string {
 	var isDB bool
+	host := ""
 	for _, v := range atts {
 		if v == nil {
 			continue
 		}
-
 		if v.Key == "db.system" {
 			isDB = true
-			break
+		}
+		if v.Key == "net.peer.name" || v.Key == "server.address" {
+			host = v.Value.GetStringValue()
 		}
 	}
-
 	if !isDB {
 		return ""
 	}
 
-	for _, attr := range atts {
-		if attr.Key == "net.peer.name" || attr.Key == "server.address" {
-			return attr.Value.GetStringValue()
-		}
-	}
-	return ""
+	return host
 }
