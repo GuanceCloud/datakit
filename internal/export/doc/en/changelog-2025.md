@@ -2,6 +2,16 @@
 
 ---
 
+## 1.87.1(2025/12/19) {#cl-1.87.1}
+
+This release is a hotfix with the following updates:
+
+### Bug Fixes {#cl-1.87.1-fix}
+
+- Fixed bug on OpenTelemetry crash (#2924)
+
+---
+
 ## 1.87.0(2025/12/17) {#cl-1.87.0}
 
 This release is an iterative release, with the following main updates:
