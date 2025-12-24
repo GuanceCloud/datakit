@@ -81,7 +81,9 @@ type TraceServiceServer struct {
 func (tss *TraceServiceServer) Export(ctx context.Context, tsreq *trace.ExportTraceServiceRequest) (
 	*trace.ExportTraceServiceResponse, error,
 ) {
-	if dktraces := tss.input.parseResourceSpans(tsreq.ResourceSpans, getRemoteIP(ctx)); len(dktraces) != 0 {
+	remoteIP := getRemoteIP(ctx)
+	log.Debugf("get gRPC trace from %s", remoteIP)
+	if dktraces := tss.input.parseResourceSpans(tsreq.ResourceSpans, remoteIP); len(dktraces) != 0 {
 		if tss.Gather != nil {
 			tss.Gather.Run(inputName, dktraces)
 		}
@@ -98,7 +100,9 @@ type MetricsServiceServer struct {
 func (mss *MetricsServiceServer) Export(ctx context.Context, msreq *metrics.ExportMetricsServiceRequest) (
 	*metrics.ExportMetricsServiceResponse, error,
 ) {
-	mss.input.parseResourceMetricsV2(msreq.ResourceMetrics, getRemoteIP(ctx))
+	remoteIP := getRemoteIP(ctx)
+	log.Debugf("get gRPC metric from %s", remoteIP)
+	mss.input.parseResourceMetricsV2(msreq.ResourceMetrics, remoteIP)
 
 	return &metrics.ExportMetricsServiceResponse{}, nil
 }
@@ -113,7 +117,11 @@ func (l *LogsServiceServer) Export(ctx context.Context, logsReq *logs.ExportLogs
 		return
 	}
 	start := time.Now()
-	pts := l.input.parseLogRequest(logsReq.GetResourceLogs(), getRemoteIP(ctx))
+
+	remoteIP := getRemoteIP(ctx)
+	log.Debugf("get gRPC logging from %s", remoteIP)
+
+	pts := l.input.parseLogRequest(logsReq.GetResourceLogs(), remoteIP)
 	if len(pts) != 0 {
 		if err := l.input.feeder.Feed(point.Logging, pts,
 			dkio.WithSource(inputName),

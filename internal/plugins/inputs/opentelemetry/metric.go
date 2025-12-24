@@ -48,11 +48,22 @@ func (ipt *Input) parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics, remo
 						pts = append(pts, pt)
 					}
 				case *metrics.Metric_Sum:
+					temporality := t.Sum.GetAggregationTemporality()
 					for _, dataPoint := range t.Sum.GetDataPoints() {
 						ptTags := attributesToTag(dataPoint.GetAttributes())
 						kvs := mergeTags(resourceTags, scopeTags, ptTags)
 						kvs = kvs.AddTag(unitTag, metric.GetUnit())
 						pt := numberDataToPoint(kvs, dataPoint, metric.GetName())
+
+						switch temporality {
+						case metrics.AggregationTemporality_AGGREGATION_TEMPORALITY_DELTA:
+							pt.SetTag("__temporality", "delta")
+						case metrics.AggregationTemporality_AGGREGATION_TEMPORALITY_CUMULATIVE:
+							pt.SetTag("__temporality", "cumulative")
+						case metrics.AggregationTemporality_AGGREGATION_TEMPORALITY_UNSPECIFIED:
+							pt.SetTag("__temporality", "unspecified")
+						}
+
 						pts = append(pts, pt)
 					}
 				case *metrics.Metric_Summary:
@@ -100,6 +111,7 @@ func (ipt *Input) parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics, remo
 							}
 						}
 					}
+
 				case *metrics.Metric_ExponentialHistogram:
 					for _, his := range t.ExponentialHistogram.GetDataPoints() {
 						hisTags := attributesToTag(his.GetAttributes())
@@ -120,9 +132,10 @@ func (ipt *Input) parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics, remo
 					}
 				}
 
-				if len(pts) >= 100 {
+				if len(pts) >= 1000 {
 					if err := ipt.feeder.Feed(point.Metric, pts,
 						dkio.WithSource(inputName),
+						dkio.DisableGlobalTags(true),
 						dkio.WithCollectCost(time.Since(start)),
 					); err != nil {
 						log.Errorf("feed err=%s", err.Error())
@@ -133,7 +146,12 @@ func (ipt *Input) parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics, remo
 		}
 	}
 
-	_ = ipt.feeder.Feed(point.Metric, pts, dkio.WithSource(inputName), dkio.WithCollectCost(time.Since(start)))
+	if len(pts) > 0 {
+		_ = ipt.feeder.Feed(point.Metric, pts,
+			dkio.WithSource(inputName),
+			dkio.DisableGlobalTags(true),
+			dkio.WithCollectCost(time.Since(start)))
+	}
 }
 
 func attributesToTag(src []*common.KeyValue) map[string]string {
@@ -194,6 +212,7 @@ func numberDataToPoint(kvs point.KVs, pt *metrics.NumberDataPoint, name string) 
 	} else if v, ok := pt.Value.(*metrics.NumberDataPoint_AsInt); ok {
 		kvs = kvs.Add(name, v.AsInt)
 	}
+
 	ts := time.Unix(0, int64(pt.GetTimeUnixNano()))
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(ts))
