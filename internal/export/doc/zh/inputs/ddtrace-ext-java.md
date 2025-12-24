@@ -213,7 +213,8 @@ DDTrace 最低版本支持： [:octicons-tag-24: v0.113.0](ddtrace-ext-changelog
 由于获取 `response body` 对 `response` 造成破坏，所以 `response body` 的编码调整默认为 `utf-8`，如需调整，则使用 `-Ddd.trace.response.body.encoding=gbk`.
 
 获取 response body 需要对响应流进行读取操作，会占用一定的 Java 内存空间，建议对响应体较大的请求(如文件下载接口)加上黑名单处理，防止 OOM，黑名上的 URL 将不再解析响应体内容。
-黑名单配置如下：
+
+**黑名单**配置如下：
 
 ```shell
 #参数方式
@@ -222,6 +223,18 @@ DDTrace 最低版本支持： [:octicons-tag-24: v0.113.0](ddtrace-ext-changelog
 #环境变量方式
 export DD_TRACE_RESPONSE_BODY_BLACKLIST_URLS="/auth,/download/file"
 ```
+
+**白名单**配置：
+
+```shell
+#参数方式
+-Ddd.trace.response.body.whitelist.urls="/auth,/download/file"
+
+#环境变量方式
+export DD_TRACE_RESPONSE_BODY_WHITELIST_URLS="/user/*,/system"
+```
+
+DDTrace supported version: [:octicons-tag-24:  v1.55.6-ext](ddtrace-ext-changelog.md#cl-1.55.6-ext)
 
 ### 链路数据中添加 HTTP Header 信息 {#trace_header}
 

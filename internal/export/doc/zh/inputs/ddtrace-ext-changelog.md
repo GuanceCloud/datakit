@@ -39,6 +39,27 @@ skip: 'not-searchable-on-index-page'
 
 --->
 
+
+## v1.55.6-ext (2025/12/22) {#cl-1.55.6-ext}
+
+### 修复 {#cl-1.55.6-ext-fix}
+
+- 修复：RocketMQ scope limit error.
+- 添加 Response Body 白名单 [配置并开启](ddtrace-ext-java.md#response_body) 功能。
+
+## v1.55.2-ext (2025/11/28) {#cl-1.55.2-ext}
+
+### 修复 {#cl-1.55.2-ext-fix}
+
+- fix:RocketMQ scope limit error.
+- Merge latest branch v1.55.0
+
+## v1.53.7-ext (2025/11/28) {#cl-1.53.7-ext}
+
+### 修复 {#cl-1.53.7-ext-fix}
+
+- support **Apache Dubbo** stream version 3.2
+
 ## v1.53.1-ext (2025/9/24) {#cl-1.53.1-ext}
 
 ### 修复 {#cl-1.53.1-ext-fix}

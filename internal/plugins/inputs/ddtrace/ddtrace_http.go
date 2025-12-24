@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"go.uber.org/zap/zapcore"
+
 	"github.com/GuanceCloud/cliutils/point"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/tinylib/msgp/msgp"
@@ -324,7 +326,11 @@ func (ipt *Input) ddtraceToDkTrace(trace DDTrace, values []string, remoteIP stri
 		if span == nil {
 			continue
 		}
-
+		if log.Level() == zapcore.DebugLevel {
+			// 排查问题专用，打印前后信息。
+			log.Debugf("span:  trace_id: %d,span_id=%d parent_id=%d service=%s meta:%+v metrics=%+v",
+				span.TraceID, span.SpanID, span.ParentID, span.Service, span.Meta, span.Metrics)
+		}
 		if strTraceID == "" {
 			strTraceID = strconv.FormatUint(span.TraceID, ipt.traceBase)
 			if v, ok := span.Meta[TraceIDUpper]; ipt.Trace128BitID && ok {
@@ -401,7 +407,9 @@ func (ipt *Input) ddtraceToDkTrace(trace DDTrace, values []string, remoteIP stri
 
 		t := time.Unix(0, span.Start)
 		pt := point.NewPoint(inputName, spanKV, append(traceOpts, point.WithTime(t))...)
-
+		if log.Level() == zapcore.DebugLevel {
+			log.Debugf("point: %s", pt.LineProto())
+		}
 		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 	}
 
