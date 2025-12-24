@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.87.2(2025/12/24) {#cl-1.87.2}
+
+This release is a hotfix release, contents are as follows:
+
+### Bug Fixes {#cl-1.87.2-fix}
+
+- Fixed OpenTelemetry metric collection handling for count-type metrics by adding an extra tag `__temporality` to facilitate GuanceDB processing (#2929)
+- Fixed the issue where DDTrace collector custom tags were invalid; this issue was introduced in version 1.85.0 (#2926)
+
+### Compatibility Adjustments {#cl-1.87.2-brk}
+
+- Removed global tag appending during OpenTelemetry metric collection (#2929)
+
 ---
 
 ## 1.87.1(2025/12/19) {#cl-1.87.1}
