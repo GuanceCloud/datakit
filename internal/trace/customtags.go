@@ -44,7 +44,7 @@ func NewCustomTags(configTags []string, publicTags map[string]string) *CustomTag
 func (c *CustomTags) AddTag(configTags map[string]string) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	for _, key := range configTags {
+	for key := range configTags {
 		if _, ok := c.commonTags[key]; !ok {
 			c.commonTags[key] = strings.ReplaceAll(key, ".", "_")
 		}

@@ -35,7 +35,7 @@ Here we mainly introduce some extended functions of DDTrace-Java. List of main f
 
 ## Third party agent {#third-party}
 
-### Dubbo supported {#dubbo}
+**Dubbo**:
 
 Dubbo is an open source framework of Alibaba Cloud, which currently supports Dubbo2 and Dubbo3.
 
@@ -43,7 +43,7 @@ supported version: Dubbo2: 2.7.0 and above, Dubbo3 has no version restrictions.
 
 DDTrace supported version: [:octicons-tag-24:  v1.30.4](ddtrace-ext-changelog.md#cl-1.30.4-ext)
 
-### RocketMQ {#rocketmq}
+**RocketMQ**:
 
 RocketMQ is an open source message queuing framework contributed by Alibaba Cloud to the Apache Foundation. Note: Alibaba Cloud RocketMQ 5.0 and the Apache Foundation are two different libraries.
 
@@ -53,7 +53,7 @@ supported version: Currently supports version 4.8.0 and above. Alibaba Cloud Roc
 
 DDTrace supported version: [:octicons-tag-24:  v1.4.1](ddtrace-ext-changelog.md#cl-1.4.1-ext)
 
-### Thrift supported {#thrift}
+**Thrift**:
 
 Thrift is an apache project. Some customers use thrift RPC for communication in the project, and we support it.
 
@@ -61,7 +61,7 @@ supported version: 0.9.3 and above.
 
 DDTrace supported version: [:octicons-tag-24:  v0.113.0](ddtrace-ext-changelog.md#cl-0.113.0)
 
-### redis command args {#redis-command-args}
+**Redis command args**:
 
 The Resource in the redis link will only display redis.command information, and will not display parameter information.
 
@@ -233,15 +233,25 @@ Since getting `response body` causes damage to `response`, the encoding adjustme
 Obtaining the response body requires reading the response stream, which will occupy a certain amount of Java memory space. It is recommended to add blacklist processing to requests with large response bodies (such as file download interfaces) to prevent OOM. The URLs on the blacklist will not be Then parse the response body content.
 The blacklist configuration is as follows:
 
-- Command
+```shell
+# Command
+-Ddd.trace.response.body.blacklist.urls="/auth,/download/file"
 
-> -Ddd.trace.response.body.blacklist.urls="/auth,/download/file"
+# ENV:
+export DD_TRACE_RESPONSE_BODY_BLACKLIST_URLS="/auth,/download/file"
+```
 
-- ENV
+**whitelist**config:
 
-> DD_TRACE_RESPONSE_BODY_BLACKLIST_URLS
+```shell
+# command line:
+-Ddd.trace.response.body.whitelist.urls="/auth,/download/file"
 
-DDTrace supported version: [:octicons-tag-24:  v1.47.1](ddtrace-ext-changelog.md#cl-1.47.1-ext)
+# ENV
+export DD_TRACE_RESPONSE_BODY_WHITELIST_URLS="/user/*,/system"
+```
+
+DDTrace supported version: [:octicons-tag-24:  v1.55.6-ext](ddtrace-ext-changelog.md#cl-1.55.6-ext)
 
 ### Tracing Header {#trace_header}
 

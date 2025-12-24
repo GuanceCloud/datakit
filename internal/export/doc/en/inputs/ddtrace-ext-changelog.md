@@ -23,6 +23,28 @@ Currently, DDTrace has added the following extensions to the technology stack：
 ## changelog {#changelog}
 
 
+## v1.55.6-ext (2025/12/22) {#cl-1.55.6-ext}
+
+### fix {#cl-1.55.6-ext-fix}
+
+- RocketMQ scope limit error.
+- Add Response Body whitelist [config](ddtrace-ext-java.md#response_body)
+
+## v1.55.2-ext (2025/11/28) {#cl-1.55.2-ext}
+
+### fix {#cl-1.55.2-ext-fix}
+
+- fix:RocketMQ scope limit error.
+- Merge latest branch v1.55.0
+
+## v1.53.7-ext (2025/11/28) {#cl-1.53.7-ext}
+
+### fix {#cl-1.53.7-ext-fix}
+
+- support apache Dubbo stream version 3.2
+- add `rocketmq.consume.ignore`
+
+
 ## v1.53.1-ext (2025/9/24) {#cl-1.53.1-ext}
 
 ### fix {#cl-1.53.1-ext-fix}
