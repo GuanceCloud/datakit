@@ -31,65 +31,98 @@ Use `dd-trace-go` in conjunction with our integration packages to automatically 
 - Applications must be managed using Go modules. Module vendoring is supported.
 - Go Tracer requires **Go 1.18+**.
 
----
+<!-- markdownlint-disable MD046 -->
 
-### Install Orchestrion {#install-orchestrion}
+=== "≥1.24"
 
-```shell
-go install github.com/DataDog/orchestrion@latest
-```
+    1. Install Orchestrion
 
-If the installation fails, try cloning the project locally and compiling it again.
+    ```shell
+    go install github.com/DataDog/orchestrion@latest
+    ```
 
-```shell
-git clone https://github.com/DataDog/orchestrion.git
-cd orchestrion/
-go build
-cp orchestrion $GOPATH/bin/
-```
+    If installation fails, try cloning the project locally and then compiling.
 
-Register Orchestrion in your project’s **go.mod**:
+    ```shell
+    git clone https://github.com/DataDog/orchestrion.git
+    cd orchestrion/
+    go build
+    cp orchestrion $GOPATH/bin/
+    ```
 
-```shell
-orchestrion pin
-```
+    2. Initialize Orchestrion
 
-```shell
-# commit changelog
-git add go.mod go.sum orchestrion.tool.go
-git commit -m "chore: enable orchestrion"
-```
+    ```shell
+    orchestrion pin
+    ```
 
-### Usage {#usage}
+    3. Compile & Run
 
-Use one of these methods to enable Orchestrion in your build process:
+    Use one of the following three methods to compile your project:
 
-1 **Prepend `orchestrion` to your usual go commands**:
+    - **Before the `go build` command**:
 
-```shell
-orchestrion go build .
-orchestrion go run .
-orchestrion go test ./...
-```
+    ```shell
+    orchestrion go build .
+    orchestrion go run .
+    orchestrion go test ./...
+    ```
 
-2 **Add the `-toolexec="orchestrion toolexec"` argument to your go commands**:
+    - **Using the `-toolexec` method**:
 
-```shell
-go build -toolexec="orchestrion toolexec" .
-go run -toolexec="orchestrion toolexec" .
-go test -toolexec="orchestrion toolexec" ./...
-```
+    ```shell
+    go build -toolexec="orchestrion toolexec" .
+    go run -toolexec="orchestrion toolexec" .
+    go test -toolexec="orchestrion toolexec" ./...
+    ```
 
-3 **Modify the `$GOFLAGS` environment variable to inject `Orchestrion`, and use go commands normally**:
+    - **Modify the environment variable `$GOFLAGS`**:
 
-```shell
-# Make sure to include the quotes as shown below, as these are required for
-# the Go toolchain to parse GOFLAGS properly!
-export GOFLAGS="${GOFLAGS} '-toolexec=orchestrion toolexec'"
-go build .
-go run .
-go test ./...
-```
+    ```shell
+    # Make sure to include the quotes as shown below, as these are required for
+    # the Go toolchain to parse GOFLAGS properly!
+    export GOFLAGS="${GOFLAGS} '-toolexec=orchestrion toolexec'"
+    go build .
+    go run .
+    go test ./...
+    ```
+
+=== "≥1.18 && <1.24"
+
+    1. Install Orchestrion
+
+    ```shell
+    # Install dependencies
+    go install github.com/datadog/orchestrion@v0.6.0
+    ```
+    
+    2. Initialize Orchestrion
+
+    ```shell
+    # Execute the initialization command in the root directory of the current project
+    orchestrion -w ./ 
+    ```
+
+    3. Download dependencies
+    
+    ```shell
+    go get github.com/datadog/orchestrion@v0.6.0
+    ```
+    4. Build
+
+    ```shell
+    go mod tidy
+    go build .
+    ```
+
+    5. Run
+
+    ```shell
+    export DD_SERVICE=<service-name>
+    export DD_TRACE_AGENT_PORT=9529
+    ./<application-name>
+    ```
+<!-- markdownlint-enable -->
 
 ### More Documentation {#docs}
 
