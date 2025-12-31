@@ -66,9 +66,9 @@ See [official configuration doc](https://docs.gitlab.com/ee/administration/monit
 
 ### Turn on GitLab CI Visualization {#ci-visible}
 
-By configuring GitLab Webhook, GitLab CI visualization can be achieved, the steps to enable it are as follows:
+By configuring GitLab Webhook, GitLab CI visualization can be achieved. On DataKit, the default URL for receiving GitLab Webhook is `http://DataKit-IP:9529/v1/gitlab`.
 
-In GitLab go to {{ UISteps "Settings,Webhooks" ","}}, configure the URL to the API address obtained from step one. Trigger configure **Job events** and **Pipeline events**, and click Add webhook to confirm the addition;
+In the left sidebar of GitLab, go to {{ UISteps "Settings,Webhooks" ","}}, configure the URL as the address above, check the {{ UISteps "Job events" ","}} and {{ UISteps "Pipeline events" ","}} options in Trigger configuration, and click {{ UISteps "Add webhook" "," }} to confirm addition.
 
 ## Metric {#metric}
 
