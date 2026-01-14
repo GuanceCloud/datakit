@@ -24,6 +24,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/GuanceCloud/cliutils/logger"
 )
 
 const (
@@ -57,6 +59,9 @@ var (
 
 	// Invalid file header.
 	ErrBadHeader = errors.New("bad header")
+
+	l    = logger.DefaultSLogger("diskcache")
+	once sync.Once
 )
 
 // DiskCache is the representation of a disk cache.
@@ -81,15 +86,16 @@ type DiskCache struct {
 	// how long to wakeup a sleeping write-file
 	wakeup time.Duration
 
-	wlock, // write-lock: used to exclude concurrent Put to the header file.
-	rlock *sync.Mutex // read-lock: used to exclude concurrent Get on the tail file.
-	rwlock *sync.Mutex // used to exclude switch/rotate/drop/Close on current disk cache instance.
+	wlock  *InstrumentedMutex // write-lock: used to exclude concurrent Put to the header file.
+	rlock  *InstrumentedMutex // read-lock: used to exclude concurrent Get on the tail file.
+	rwlock *InstrumentedMutex // used to exclude switch/rotate/drop/Close on current disk cache instance.
 
 	flock *flock // disabled multi-Open on same path
 	pos   *pos   // current read fd position info
 
 	// specs of current diskcache
-	size          atomic.Int64 // current byte size
+	size atomic.Int64 // current byte size
+
 	curBatchSize, // current writing file's size
 	curReadSize, // current reading file's size
 	batchSize, // current batch size(static)
@@ -117,8 +123,10 @@ type DiskCache struct {
 }
 
 func (c *DiskCache) String() string {
-	c.rwlock.Lock()
-	defer c.rwlock.Unlock()
+	if c.rwlock != nil {
+		c.rwlock.Lock()
+		defer c.rwlock.Unlock()
+	}
 
 	// nolint: lll
 	// if there too many files(>10), only print file count
@@ -135,8 +143,10 @@ func (c *DiskCache) String() string {
 }
 
 func (c *DiskCache) Pretty() string {
-	c.rwlock.Lock()
-	defer c.rwlock.Unlock()
+	if c.rwlock != nil {
+		c.rwlock.Lock()
+		defer c.rwlock.Unlock()
+	}
 
 	arr := []string{}
 

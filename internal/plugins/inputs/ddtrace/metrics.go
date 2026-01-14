@@ -57,7 +57,7 @@ func metricsSetup() {
 			Namespace: "datakit",
 			Subsystem: "input_ddtrace",
 			Name:      "proxy_body",
-			Help:      "Body length of DDTrace route:/telemetry/proxy/api/v2/apmtelemetry data",
+			Help:      "Body length of DDTrace route `/telemetry/proxy/api/v2/apmtelemetry` data",
 			Objectives: map[float64]float64{
 				0.5:  0.05,
 				0.9:  0.01,

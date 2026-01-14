@@ -23,7 +23,7 @@ func metricsSetup() {
 			Namespace: "datakit",
 			Subsystem: "jolokia",
 			Name:      "request_total",
-			Help:      "Total number of jolokia requests",
+			Help:      "Total number of Jolokia requests",
 		},
 		[]string{"url", "input"},
 	)
@@ -48,7 +48,7 @@ func metricsSetup() {
 			Namespace: "datakit",
 			Subsystem: "jolokia",
 			Name:      "request_error_total",
-			Help:      "Total number of jolokia request errors",
+			Help:      "Total number of Jolokia request errors",
 		},
 		[]string{"url", "input", "error_type"},
 	)

@@ -28,7 +28,8 @@ func (c *DiskCache) dropBatch() error {
 
 	if c.rfd != nil && c.curReadfile == fname {
 		if err := c.rfd.Close(); err != nil {
-			return err
+			return WrapFileOperationError(OpClose, err, c.path, fname).
+				WithDetails("failed_to_close_read_file_during_drop")
 		}
 
 		c.rfd = nil
@@ -36,7 +37,8 @@ func (c *DiskCache) dropBatch() error {
 
 	if fi, err := os.Stat(fname); err == nil {
 		if err := os.Remove(fname); err != nil {
-			return err
+			return WrapFileOperationError(OpRemove, err, c.path, fname).
+				WithDetails("failed_to_remove_file_during_drop")
 		}
 
 		c.size.Add(-fi.Size())
@@ -45,6 +47,9 @@ func (c *DiskCache) dropBatch() error {
 		droppedDataVec.WithLabelValues(c.path, reasonExceedCapacity).Observe(float64(fi.Size()))
 		datafilesVec.WithLabelValues(c.path).Set(float64(len(c.dataFiles)))
 		sizeVec.WithLabelValues(c.path).Sub(float64(fi.Size()))
+	} else {
+		return WrapFileOperationError(OpStat, err, c.path, fname).
+			WithDetails("failed_to_stat_file_during_drop")
 	}
 
 	return nil

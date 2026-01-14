@@ -38,7 +38,8 @@ func (l *flock) lock() error {
 	} else {
 		x, err := os.ReadFile(l.file)
 		if err != nil {
-			return err
+			return WrapFileOperationError(OpRead, err, "", l.file).
+				WithDetails("failed_to_read_lock_file")
 		}
 
 		if len(x) == 0 {
@@ -47,30 +48,42 @@ func (l *flock) lock() error {
 
 		pidInFile, err := strconv.Atoi(string(x))
 		if err != nil {
-			return err
+			return NewCacheError(OpLock, err,
+				fmt.Sprintf("failed_to_parse_pid_from_lock_file: content=%q", string(x))).
+				WithFile(l.file)
 		} else {
 			switch pidInFile {
 			case -1: // unlocked
 				goto write
 			case curPid:
-				return fmt.Errorf("lock failed(locked by pid %d)", curPid)
+				return NewCacheError(OpLock, fmt.Errorf("already_locked_by_current_process"), "").
+					WithFile(l.file).WithDetails(fmt.Sprintf("current_pid=%d", curPid))
 			default: // other pid, may terminated
 				if pidAlive(pidInFile) {
-					return fmt.Errorf("lock failed(locked by alive %d)", pidInFile)
+					return WrapLockError(fmt.Errorf("process_already_has_lock"), "", pidInFile).
+						WithFile(l.file)
 				}
 			}
 		}
 	}
 
 write:
-	return os.WriteFile(l.file, []byte(strconv.Itoa(curPid)), 0o600)
+	if err := os.WriteFile(l.file, []byte(strconv.Itoa(curPid)), 0o600); err != nil {
+		return WrapFileOperationError(OpWrite, err, "", l.file).
+			WithDetails(fmt.Sprintf("failed_to_write_pid_to_lock_file: pid=%d", curPid))
+	}
+	return nil
 }
 
 func (l *flock) unlock() error {
 	l.mtx.Lock()
 	defer l.mtx.Unlock()
 
-	return os.WriteFile(l.file, []byte(strconv.Itoa(-1)), 0o600)
+	if err := os.WriteFile(l.file, []byte(strconv.Itoa(-1)), 0o600); err != nil {
+		return WrapFileOperationError(OpWrite, err, "", l.file).
+			WithDetails("failed_to_write_unlock_marker")
+	}
+	return nil
 }
 
 func pidAlive(pid int) bool {

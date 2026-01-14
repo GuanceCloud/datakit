@@ -11,12 +11,21 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
-	"sync"
 	"time"
+
+	"github.com/GuanceCloud/cliutils/logger"
 )
+
+func setupLogger() {
+	once.Do(func() {
+		l = logger.SLogger("diskcache")
+	})
+}
 
 // Open init and create a new disk cache. We can set other options with various options.
 func Open(opts ...CacheOption) (*DiskCache, error) {
+	setupLogger()
+
 	c := defaultInstance()
 
 	// apply extra options
@@ -27,7 +36,7 @@ func Open(opts ...CacheOption) (*DiskCache, error) {
 	}
 
 	if err := c.doOpen(); err != nil {
-		return nil, err
+		return nil, WrapOpenError(err, c.path).WithDetails("failed_to_open_diskcache")
 	}
 
 	defer func() {
@@ -54,9 +63,9 @@ func defaultInstance() *DiskCache {
 		batchSize:   20 * 1024 * 1024,
 		maxDataSize: 0, // not set
 
-		wlock:  &sync.Mutex{},
-		rlock:  &sync.Mutex{},
-		rwlock: &sync.Mutex{},
+		wlock:  nil, // Will be initialized in doOpen() when path is known
+		rlock:  nil, // Will be initialized in doOpen() when path is known
+		rwlock: nil, // Will be initialized in doOpen() when path is known
 
 		wakeup:    time.Second * 3,
 		dirPerms:  0o750,
@@ -64,6 +73,10 @@ func defaultInstance() *DiskCache {
 		pos: &pos{
 			Seek: 0,
 			Name: nil,
+
+			// dump position each 100ms or 100 update
+			dumpInterval: time.Millisecond * 100,
+			dumpCount:    100,
 		},
 	}
 }
@@ -87,14 +100,15 @@ func (c *DiskCache) doOpen() error {
 	}
 
 	if err := os.MkdirAll(c.path, c.dirPerms); err != nil {
-		return err
+		return NewCacheError(OpCreate, err, fmt.Sprintf("failed_to_create_directory: perms=%o", c.dirPerms)).
+			WithPath(c.path)
 	}
 
 	// disable open multiple times
 	if !c.noLock {
 		fl := newFlock(c.path)
 		if err := fl.lock(); err != nil {
-			return fmt.Errorf("lock: %w", err)
+			return WrapLockError(err, c.path, 0).WithDetails("failed_to_acquire_directory_lock")
 		} else {
 			c.flock = fl
 		}
@@ -113,16 +127,29 @@ func (c *DiskCache) doOpen() error {
 	maxDataVec.WithLabelValues(c.path).Set(float64(c.maxDataSize))
 	batchSizeVec.WithLabelValues(c.path).Set(float64(c.batchSize))
 
+	// Initialize instrumented locks now that we have the path
+	if c.wlock == nil {
+		c.wlock = NewInstrumentedMutex(LockTypeWrite, c.path, lockWaitTimeVec, lockContentionVec)
+	}
+	if c.rlock == nil {
+		c.rlock = NewInstrumentedMutex(LockTypeRead, c.path, lockWaitTimeVec, lockContentionVec)
+	}
+	if c.rwlock == nil {
+		c.rwlock = NewInstrumentedMutex(LockTypeRW, c.path, lockWaitTimeVec, lockContentionVec)
+	}
+
 	// write append fd, always write to the same-name file
 	if err := c.openWriteFile(); err != nil {
-		return err
+		return NewCacheError(OpOpen, err, "failed_to_open_write_file").
+			WithPath(c.path).WithFile(c.curWriteFile)
 	}
 
 	// list files under @path
 	if err := filepath.Walk(c.path,
 		func(path string, fi os.FileInfo, err error) error {
 			if err != nil {
-				return err
+				return NewCacheError(OpOpen, err, "failed_to_walk_directory").
+					WithPath(c.path).WithFile(path)
 			}
 
 			if fi.IsDir() {
@@ -132,10 +159,6 @@ func (c *DiskCache) doOpen() error {
 			switch filepath.Base(path) {
 			case ".lock", ".pos": // ignore them
 			case "data": // not rotated writing file, do not count on sizeVec.
-				c.size.Add(fi.Size())
-				// NOTE: c.size not always equal to sizeVec. c.size used to limit
-				// total bytes used for Put(), but sizeVec used to count size that
-				// waiting to be Get().
 			default:
 				c.size.Add(fi.Size())
 				sizeVec.WithLabelValues(c.path).Add(float64(fi.Size()))
@@ -148,11 +171,14 @@ func (c *DiskCache) doOpen() error {
 	}
 
 	sort.Strings(c.dataFiles) // make file-name sorted for FIFO Get()
+	l.Infof("on open loaded %d files", len(c.dataFiles))
+	datafilesVec.WithLabelValues(c.path).Set(float64(len(c.dataFiles)))
 
 	// first get, try load .pos
 	if !c.noPos {
 		if err := c.loadUnfinishedFile(); err != nil {
-			return err
+			return NewCacheError(OpOpen, err, "failed_to_load_position_file").
+				WithPath(c.path)
 		}
 	}
 
@@ -172,7 +198,7 @@ func (c *DiskCache) Close() error {
 
 	if c.rfd != nil {
 		if err := c.rfd.Close(); err != nil {
-			return err
+			return WrapCloseError(err, c.path, "read_fd")
 		}
 		c.rfd = nil
 	}
@@ -180,21 +206,21 @@ func (c *DiskCache) Close() error {
 	if !c.noLock {
 		if c.flock != nil {
 			if err := c.flock.unlock(); err != nil {
-				return err
+				return WrapLockError(err, c.path, 0).WithDetails("failed_to_release_directory_lock")
 			}
 		}
 	}
 
 	if c.wfd != nil {
 		if err := c.wfd.Close(); err != nil {
-			return err
+			return WrapCloseError(err, c.path, "write_fd")
 		}
 		c.wfd = nil
 	}
 
 	if c.pos != nil {
 		if err := c.pos.close(); err != nil {
-			return err
+			return WrapPosError(err, c.path, c.pos.Seek).WithDetails("failed_to_close_position_file")
 		}
 	}
 

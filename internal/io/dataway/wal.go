@@ -27,9 +27,13 @@ type Cache interface {
 }
 
 type WALConf struct {
-	MaxCapacityGB          float64       `toml:"max_capacity_gb"`
-	Path                   string        `toml:"path,omitempty"`
-	NoPos                  bool          `toml:"no_pos"`
+	MaxCapacityGB float64 `toml:"max_capacity_gb"`
+	Path          string  `toml:"path,omitempty"`
+
+	NoPos           bool          `toml:"no_pos"`
+	PosDumpAt       int           `toml:"pos_dump_at"`
+	PosDumpInterval time.Duration `toml:"pos_dump_interval"`
+
 	FailCacheCleanInterval time.Duration `toml:"fail_cache_clean_interval"`
 
 	NoDropCategories []string `toml:"no_drop_categories"`
@@ -95,9 +99,8 @@ func (q *WALQueue) Put(b *body) error {
 	__retry:
 		if err := q.disk.Put(x); err != nil {
 			if errors.Is(err, diskcache.ErrCacheFull) && q.noDrop {
-				time.Sleep(time.Second)
+				time.Sleep(time.Second) // wait WAL to free space
 				retried++
-				l.Warnf("WAL full, %d retrying...", retried)
 				goto __retry
 			} else {
 				putStatus = "drop"
@@ -106,7 +109,6 @@ func (q *WALQueue) Put(b *body) error {
 			return err
 		} else {
 			if retried > 0 {
-				l.Warnf("WAL retried %d times", retried)
 				walPutRetriedVec.WithLabelValues(b.cat().Alias()).Observe(float64(retried))
 			}
 
@@ -236,7 +238,10 @@ func (dw *Dataway) setupWAL() error {
 		cacheDir := filepath.Join(dw.WAL.Path, cat.String())
 		opts := []diskcache.CacheOption{
 			diskcache.WithPath(cacheDir),
+
 			diskcache.WithNoPos(dw.WAL.NoPos),
+			diskcache.WithPosUpdate(dw.WAL.PosDumpAt, dw.WAL.PosDumpInterval),
+
 			diskcache.WithNoLock(true),            // disable .lock file checking
 			diskcache.WithWakeup(defaultRotateAt), // short wakeup on WAL queue
 		}
@@ -278,7 +283,7 @@ func (dw *Dataway) setupWAL() error {
 		diskcache.WithPath(filepath.Join(dw.WAL.Path, "fc")),
 		diskcache.WithFILODrop(true), // under fail-cache, still drop data if WAL disk full(no matter which category)
 		diskcache.WithNoLock(true),
-		diskcache.WithNoPos(dw.WAL.NoPos),
+
 		diskcache.WithWakeup(defaultRotateAt),
 		diskcache.WithCapacity(int64(dw.WAL.MaxCapacityGB*float64(1<<30)))); err != nil {
 		return err
