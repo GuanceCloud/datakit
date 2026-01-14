@@ -24,6 +24,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	dkzip "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
 
@@ -302,6 +303,13 @@ func (wr *APIWriteResult) APIV1Write(req *http.Request) (err error) {
 		opts = append(opts, point.DefaultMetricOptions()...)
 	case point.Logging:
 		opts = append(opts, point.DefaultLoggingOptions()...)
+		// 获取远端 IP 并添加 collector_source_ip tag
+		remoteIP, _ := dknet.RemoteAddr(req)
+		if remoteIP != "" {
+			opts = append(opts, point.WithExtraTags(map[string]string{
+				"collector_source_ip": remoteIP,
+			}))
+		}
 	case point.Object:
 		opts = append(opts, point.DefaultObjectOptions()...)
 
