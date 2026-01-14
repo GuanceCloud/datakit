@@ -43,7 +43,8 @@ create table if not exists datakit (
 	conn_id string,
 	url string,
 	status text not null,
-	global_host_tags json
+	global_host_tags json,
+	config json
 );
 
 create unique index if not exists datakit_conn_id_index on datakit(conn_id,runtime_id);
@@ -124,7 +125,7 @@ func (db *DB) Update(dk *ws.DataKit) error {
 			arch=?,host_name=?,os=?,version=?,ip=?,
 			start_time=?,run_in_container=?,run_mode=?,
 			usage_cores=?,updated_at=?,
-			workspace_uuid=?,status=?,url=?,global_host_tags=?
+			workspace_uuid=?,status=?,url=?,global_host_tags=?,config=?
 		where conn_id=?
 	`
 
@@ -133,7 +134,7 @@ func (db *DB) Update(dk *ws.DataKit) error {
 	_, err := db.Exec(sql, dk.Arch, dk.HostName,
 		dk.OS, dk.Version, dk.IP, dk.StartTime, dk.RunInContainer,
 		dk.RunMode, dk.UsageCores, updatedAt, dk.WorkspaceUUID,
-		dk.Status.String(), dk.URL, globalHostTags, dk.ConnID)
+		dk.Status.String(), dk.URL, globalHostTags, dk.Config, dk.ConnID)
 	if err != nil {
 		return fmt.Errorf("execute sql failed: %w", err)
 	}
@@ -156,14 +157,14 @@ func (db *DB) UpdateByConnID(dk *ws.DataKit, connID string) error {
      update datakit 
        set runtime_id=?,arch=?,host_name=?,os=?,version=?,ip=?,
 			     start_time=?,run_in_container=?,run_mode=?,usage_cores=?,
-					 updated_at=?,workspace_uuid=?,status=?,url=?,global_host_tags=?
+					 updated_at=?,workspace_uuid=?,status=?,url=?,global_host_tags=?,config=?
 				 }
       where conn_id=?
 	`
 	_, err := db.Exec(sql,
 		dk.RunTimeID, dk.Arch, dk.HostName, dk.OS, dk.Version, dk.IP, dk.StartTime,
 		dk.RunInContainer, dk.RunMode, dk.UsageCores, updatedAt, dk.WorkspaceUUID,
-		dk.Status.String(), dk.URL, dk.GetGlobalHostTagsString(), connID)
+		dk.Status.String(), dk.URL, dk.GetGlobalHostTagsString(), dk.Config, connID)
 	if err != nil {
 		return fmt.Errorf("execute sql failed: %w", err)
 	}
@@ -254,12 +255,12 @@ func (db *DB) Insert(dk *ws.DataKit) error {
 	  insert into 
 		  datakit(runtime_id,arch,host_name,os,version,ip,
 			  start_time,run_in_container,run_mode,usage_cores,updated_at,
-			   workspace_uuid,conn_id,status,url,global_host_tags) 
-		  values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+			   workspace_uuid,conn_id,status,url,global_host_tags,config) 
+		  values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
   `
 	_, err := db.Exec(sql, dk.RunTimeID, dk.Arch, dk.HostName, dk.OS,
 		dk.Version, dk.IP, dk.StartTime, dk.RunInContainer, dk.RunMode, dk.UsageCores,
-		updatedAt, dk.WorkspaceUUID, dk.ConnID, ws.StatusRunning, dk.URL, dk.GetGlobalHostTagsString())
+		updatedAt, dk.WorkspaceUUID, dk.ConnID, ws.StatusRunning, dk.URL, dk.GetGlobalHostTagsString(), dk.Config)
 	if err != nil {
 		return fmt.Errorf("execute sql failed: %w", err)
 	}

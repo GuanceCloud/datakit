@@ -219,6 +219,17 @@ func getDatakitData() *ws.DataKit {
 		l.Warnf("get local ip failed: %s", err.Error())
 	}
 
+	dkConfig := map[string]string{}
+
+	if config.Cfg.Dataway != nil && len(config.Cfg.Dataway.URLs) > 0 {
+		dkConfig["dataway_url"] = config.Cfg.Dataway.URLs[0]
+	}
+
+	configJSON, err := json.Marshal(dkConfig)
+	if err != nil {
+		l.Warnf("marshal dkConfig failed: %s", err.Error())
+	}
+
 	datakitInstance := &ws.DataKit{
 		Arch:           runtime.GOARCH,
 		OS:             runtime.GOOS,
@@ -239,6 +250,7 @@ func getDatakitData() *ws.DataKit {
 			Log:            config.Cfg.Logging.Log,
 			GinLog:         config.Cfg.Logging.GinLog,
 		},
+		Config: string(configJSON),
 	}
 
 	ut := usagetrace.GetUsageTraceInstance()

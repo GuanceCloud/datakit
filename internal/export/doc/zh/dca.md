@@ -107,6 +107,8 @@ DCA web 服务目前仅支持镜像安装，可通过 Docker 或 Kubernetes 来�
  | `DCA_TLS_CERT_FILE`   | string | 无                                                              | 证书文件路径，如： `/etc/ssl/certs/server.crt`                                     |
  | `DCA_TLS_KEY_FILE`    | string | 无                                                              | 私钥文件路径，如： `/etc/ssl/certs/server.key`                                     |
  | `DCA_PROM_LISTEN`     | string | `localhost:9090`，指标暴露的请求路由为 `localhost:9090/metrics` | DCA backend 指标暴露地址                                                           |
+ | `DCA_UPLOAD_HOST_STATUS` | string | 否                                                              | 是否开启上传主机状态功能，设置该值表示开启                                         |
+ | `DCA_UPLOAD_HOST_STATUS_INTERVAL` | string | `30s`                                                              | 上传主机状态的时间间隔，如： `30s`、 `1m`、 `1h`                                     |
 
 示例：
 
