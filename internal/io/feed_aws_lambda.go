@@ -7,6 +7,7 @@ package io
 
 import (
 	"context"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -66,12 +67,18 @@ func NewAwsLambdaOutput() *awsLambdaOutput {
 	}
 	g := datakit.G("io/aws_lambda_output")
 	g.Go(func(ctx context.Context) error {
-		select {
-		case <-ctx.Done():
-		case <-datakit.Exit.Wait():
+		defer fo.flush()
+		for {
+			fo.flush()
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-datakit.Exit.Wait():
+				return nil
+			default:
+				time.Sleep(time.Second)
+			}
 		}
-		fo.flush()
-		return nil
 	})
 	return fo
 }
