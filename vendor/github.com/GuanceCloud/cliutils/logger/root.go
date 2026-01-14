@@ -38,7 +38,7 @@ const (
 	NameKeyPos   = "pos"
 )
 
-func doSetGlobalRootLogger(fpath, level string, options int) error {
+func doSetGlobalRootLogger(fpath, errorPath, level string, options int) error {
 	if fpath == "" {
 		return fmt.Errorf("fpath should not empty")
 	}
@@ -51,7 +51,7 @@ func doSetGlobalRootLogger(fpath, level string, options int) error {
 	}
 
 	var err error
-	root, err = newRootLogger(fpath, level, options)
+	root, err = newRootLogger(fpath, errorPath, level, options)
 	if err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func doSetGlobalRootLogger(fpath, level string, options int) error {
 
 // SetGlobalRootLogger deprecated, use InitRoot() instead.
 func SetGlobalRootLogger(fpath, level string, options int) error {
-	return doSetGlobalRootLogger(fpath, level, options)
+	return doSetGlobalRootLogger(fpath, "", level, options)
 }
 
 // InitRoot used to setup global root logger, include
@@ -102,13 +102,13 @@ func InitRoot(opt *Option) error {
 		return doSetStdoutLogger(opt)
 
 	default:
-		return doSetGlobalRootLogger(opt.Path, opt.Level, opt.Flags)
+		return doSetGlobalRootLogger(opt.Path, opt.ErrorPath, opt.Level, opt.Flags)
 	}
 }
 
-func newRootLogger(fpath, level string, options int) (*zap.Logger, error) {
+func newRootLogger(fpath, errorPath, level string, options int) (*zap.Logger, error) {
 	if fpath == "" {
-		return newNormalRootLogger(fpath, level, options)
+		return newNormalRootLogger(fpath, errorPath, level, options)
 	}
 
 	u, err := url.Parse(fpath)
@@ -118,6 +118,7 @@ func newRootLogger(fpath, level string, options int) (*zap.Logger, error) {
 
 	switch strings.ToLower(u.Scheme) {
 	case SchemeTCP, SchemeUDP: // logs sending to some remote TCP/UDP server
+		// For remote logging, errorPath is ignored - both go to same endpoint
 		return newCustomizeRootLogger(level,
 			options,
 			&remoteEndpoint{protocol: u.Scheme, host: u.Host})
@@ -139,6 +140,11 @@ func newRootLogger(fpath, level string, options int) (*zap.Logger, error) {
 	if options&OPT_ROTATE != 0 &&
 		options&OPT_STDOUT == 0 && // can't rotate stdout
 		fpath != os.DevNull { // can't rotate(rename) /dev/null
+		if errorPath != "" {
+			// Create separate rotating logger for errors
+			return newMultiWriterRootLogger(fpath, errorPath, level, options)
+		}
+
 		return newCustomizeRootLogger(level, options, &lumberjack.Logger{
 			Filename:   fpath,
 			MaxSize:    MaxSize,
@@ -147,7 +153,7 @@ func newRootLogger(fpath, level string, options int) (*zap.Logger, error) {
 		})
 	}
 
-	return newNormalRootLogger(fpath, level, options)
+	return newNormalRootLogger(fpath, errorPath, level, options)
 }
 
 // InitCustomizeRoot used to setup global root logger, include
@@ -158,6 +164,10 @@ func newRootLogger(fpath, level string, options int) (*zap.Logger, error) {
 func InitCustomizeRoot(opt *Option) (*zap.Logger, error) {
 	mtx.Lock()
 	defer mtx.Unlock()
+
+	if opt.ErrorPath != "" {
+		return newMultiWriterRootLogger(opt.Path, opt.ErrorPath, opt.Level, opt.Flags)
+	}
 
 	lumberLog := &lumberjack.Logger{
 		Filename: opt.Path,

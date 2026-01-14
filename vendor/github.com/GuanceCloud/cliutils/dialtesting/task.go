@@ -114,6 +114,7 @@ type ITask interface {
 	ID() string
 	Status() string
 	Run() error
+	Clear()
 	CheckResult() ([]string, bool)
 	Class() string
 	GetResults() (map[string]string, map[string]interface{})

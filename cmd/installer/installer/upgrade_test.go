@@ -242,6 +242,7 @@ func Test_upgradeMainConfInstance(t *T.T) {
 				c := config.DefaultConfig()
 				c.Logging = &config.LoggerCfg{
 					Log:           "/some/path",
+					ErrorLog:      "/var/log/datakit/error.log",
 					GinLog:        "/some/gin/log",
 					Level:         "debug",
 					Rotate:        128,

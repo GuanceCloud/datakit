@@ -171,7 +171,6 @@ func (info *datakitInfo) collectMetrics(round int) error {
 		}
 
 		err = os.WriteFile(filepath.Join(metricsDir, fmt.Sprintf("metric-%d", time.Now().UnixMilli())), bodyBytes, os.ModePerm)
-
 		if err != nil {
 			cp.Warnf("write metric file error: %s\n", err.Error())
 			errMsg += fmt.Sprintf("write metric file error: %s\n", err.Error())
@@ -234,7 +233,6 @@ func getProfile(profileDir, addr string) string {
 		}
 
 		err = os.WriteFile(filepath.Join(profileDir, name), bodyBytes, os.ModePerm)
-
 		if err != nil {
 			cp.Warnf("write profile file %s error: %s\n", name, err.Error())
 			errMsg += fmt.Sprintf("write profile file %s error: %s\n", name, err.Error())
@@ -312,7 +310,6 @@ func (info *datakitInfo) collectConfig() error {
 		}, func(s string) string {
 			return info.escapeString(s, []string{"dataway", "password", "uri"})
 		})
-
 	if err != nil {
 		info.errList = append(info.errList, fmt.Sprintf("collect config error: %s\n", err.Error()))
 		return err
@@ -374,23 +371,35 @@ func (info *datakitInfo) makeDir(name string) (string, error) {
 }
 
 func (info *datakitInfo) collectLog() error {
-	log := config.Cfg.Logging
+	logConf := config.Cfg.Logging
+
 	logDir, err := info.makeDir("log")
 	if err != nil {
 		return err
 	}
+
 	errMsg := ""
+
 	// copy main log
-	if len(log.Log) > 0 && log.Log != "stdout" {
-		if err := info.copyFile(log.Log, filepath.Join(logDir, "log"), nil); err != nil {
+	if len(logConf.Log) > 0 && logConf.Log != "stdout" {
+		if err := info.copyFile(logConf.Log, filepath.Join(logDir, "log"), nil); err != nil {
 			cp.Warnf("Collect log error: %s\n", err.Error())
 			errMsg += fmt.Sprintf("Collect log error: %s\n", err.Error())
 		}
 	}
 
+	// copy error log
+	if len(logConf.ErrorLog) > 0 && logConf.ErrorLog != "stdout" {
+		if err := info.copyFile(logConf.ErrorLog,
+			filepath.Join(logDir, "error.log"), nil); err != nil {
+			cp.Warnf("Collect error.log error: %s\n", err.Error())
+			errMsg += fmt.Sprintf("Collect error.log error: %s\n", err.Error())
+		}
+	}
+
 	// copy gin log
-	if len(log.GinLog) > 0 && log.GinLog != "stdout" {
-		if err := info.copyFile(log.GinLog, filepath.Join(logDir, "gin.log"), nil); err != nil {
+	if len(logConf.GinLog) > 0 && logConf.GinLog != "stdout" {
+		if err := info.copyFile(logConf.GinLog, filepath.Join(logDir, "gin.log"), nil); err != nil {
 			cp.Warnf("Collect gin.log error: %s\n", err.Error())
 			errMsg += fmt.Sprintf("Collect gin.log error: %s\n", err.Error())
 		}
@@ -723,7 +732,6 @@ func (info *datakitInfo) compressDir() (string, error) {
 
 		return nil
 	})
-
 	if err != nil {
 		return "", err
 	}

@@ -621,7 +621,6 @@ func doPing(timeout time.Duration, target string) (rtt time.Duration, err error)
 		}
 		if err != nil {
 			if nerr, ok := err.(net.Error); ok && nerr.Timeout() { // nolint: errorlint
-				logger.Debugf("timeout reading from socket: %s", err.Error())
 				return 0, nil
 			}
 			return 0, fmt.Errorf("error reading from socket: %w", err)

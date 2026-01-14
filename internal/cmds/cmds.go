@@ -70,7 +70,7 @@ func setCmdRootLog(rl string) {
 		Level: logger.DEBUG,
 	}
 
-	if rl == "stdout" {
+	if rl == "stdout" { // nolint:goconst
 		lopt.Path = ""
 		lopt.Flags = logger.OPT_DEFAULT | logger.OPT_STDOUT | logger.OPT_COLOR
 	}
