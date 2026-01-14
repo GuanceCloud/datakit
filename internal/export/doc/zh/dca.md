@@ -244,6 +244,10 @@ DCA 开启和安装以后，您可在浏览器输入 DCA web 服务地址进行�
 
 ## 更新日志 {#change-log}
 
+### 0.1.6(2026/01/14) {#cl-0.1.6}
+
+- 新增支持上报 DataKit 存活指标 `dk_host_available`
+
 ### 0.1.5(2025/11/06) {#cl-0.1.5}
 
 - 增加 DCA 服务 Prometheus 指标，包括 DataKit 数量和网络请求等指标

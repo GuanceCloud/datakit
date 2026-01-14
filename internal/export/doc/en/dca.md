@@ -238,6 +238,10 @@ After connecting to DataKit remotely, click "Log" to view the logs of DataKit an
 
 ## Changelog {#change-log}
 
+### 0.1.6 (2026/01/14) {#cl-0.1.6}
+
+- Add support for reporting DataKit availability metric `dk_host_available`
+
 ### 0.1.5 (2025/11/06) {#cl-0.1.5}
 
 - Add DCA service Prometheus metrics, including DataKit count and network request metrics.
