@@ -122,6 +122,7 @@ func (e *Endpoints) process(ctx context.Context) bool {
 	}
 
 	klog.Infof("discovered Endpoints %s", key)
+	e.terminateScrape(key)
 	e.startScrape(ctx, key, traits, ep)
 	return true
 }
@@ -199,7 +200,11 @@ func endpointsTraits(item *corev1.Endpoints) string {
 	var ips []string
 	for _, sub := range item.Subsets {
 		for _, address := range sub.Addresses {
-			ips = append(ips, address.IP)
+			id := "uid"
+			if address.TargetRef != nil {
+				id = string(address.TargetRef.UID)
+			}
+			ips = append(ips, id+":"+address.IP)
 		}
 	}
 	return strconv.Itoa(len(ips)) + "::" + strings.Join(ips, ",")
