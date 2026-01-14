@@ -82,8 +82,6 @@ type Input struct {
 	ptsTime time.Time
 	tail    *tailer.Tailer
 
-	lastErr error
-
 	collectCache []*point.Point
 
 	Election bool `toml:"election"`
