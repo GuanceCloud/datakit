@@ -214,6 +214,7 @@ func DefaultConfig() *Config {
 			Rotate:        logger.MaxSize,
 			RotateBackups: logger.MaxBackups,
 			Log:           filepath.Join("/var/log/datakit", "log"),
+			ErrorLog:      filepath.Join("/var/log/datakit", "error.log"),
 			GinLog:        filepath.Join("/var/log/datakit", "gin.log"),
 		},
 
@@ -261,9 +262,10 @@ func DefaultConfig() *Config {
 		},
 	}
 
-	// windows 下，日志继续跟 datakit 放在一起
+	// for windows, logging set to install dir
 	if runtime.GOOS == datakit.OSWindows {
 		c.Logging.Log = filepath.Join(datakit.InstallDir, "log")
+		c.Logging.ErrorLog = filepath.Join(datakit.InstallDir, "error.log")
 		c.Logging.GinLog = filepath.Join(datakit.InstallDir, "gin.log")
 	}
 

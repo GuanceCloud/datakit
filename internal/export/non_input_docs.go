@@ -313,6 +313,13 @@ func envLog() []*inputs.ENVInfo {
 			DescZh:  "如果改成 `stdout`，DataKit 自身日志将不写文件，而是终端输出",
 		},
 		{
+			ENVName: "ENV_ERROR_LOG",
+			Type:    doc.String,
+			Default: `*/var/log/datakit/error.log*`,
+			Desc:    "Log file for error. If it is changed to `stdout`, DataKit's own error log will not be written to the file, but will be output by the terminal.",
+			DescZh:  "单独的错误日志。如果改成 `stdout`，DataKit 自身错误日志将不写文件，而是终端输出",
+		},
+		{
 			ENVName: "ENV_LOG_LEVEL",
 			Type:    doc.String,
 			Default: `info`,

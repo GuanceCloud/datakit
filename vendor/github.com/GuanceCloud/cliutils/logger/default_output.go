@@ -19,7 +19,7 @@ const (
 	STDOUT = "stdout" // log output to stdout
 )
 
-func newNormalRootLogger(fpath, level string, options int) (*zap.Logger, error) {
+func newNormalRootLogger(fpath, errorPath, level string, options int) (*zap.Logger, error) {
 	cfg := &zap.Config{
 		Encoding: `json`,
 		EncoderConfig: zapcore.EncoderConfig{
@@ -45,6 +45,21 @@ func newNormalRootLogger(fpath, level string, options int) (*zap.Logger, error) 
 
 			cfg.OutputPaths = []string{
 				"winfile:///" + fpath,
+			}
+		}
+	}
+
+	// Set up separate error output path
+	if errorPath != "" {
+		cfg.ErrorOutputPaths = []string{errorPath}
+
+		if runtime.GOOS == "windows" {
+			if err := zap.RegisterSink("winfile", newWinFileSink); err != nil {
+				return nil, err
+			}
+
+			cfg.ErrorOutputPaths = []string{
+				"winfile:///" + errorPath,
 			}
 		}
 	}

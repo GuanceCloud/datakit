@@ -160,6 +160,10 @@ func (c *Config) loadLogEnvs() {
 		c.Logging.Log = v
 	}
 
+	if v := datakit.GetEnv("ENV_ERROR_LOG"); v != "" {
+		c.Logging.ErrorLog = v
+	}
+
 	if v := datakit.GetEnv("ENV_GIN_LOG"); v != "" {
 		c.Logging.GinLog = v
 	}

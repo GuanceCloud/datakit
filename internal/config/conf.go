@@ -34,6 +34,7 @@ func SetLog() {
 
 type LoggerCfg struct {
 	Log           string `toml:"log"`
+	ErrorLog      string `toml:"error_log"`
 	GinLog        string `toml:"gin_log"`
 	Level         string `toml:"level"`
 	DisableColor  bool   `toml:"disable_color"`
@@ -311,6 +312,7 @@ func (c *Config) setLogging() {
 		}
 
 		lopt.Path = c.Logging.Log
+		lopt.ErrorPath = c.Logging.ErrorLog
 	}
 
 	if err := logger.InitRoot(lopt); err != nil {

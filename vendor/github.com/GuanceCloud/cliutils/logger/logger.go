@@ -224,11 +224,12 @@ func (l *Logger) Level() zapcore.Level {
 }
 
 type Option struct {
-	Path     string
-	Level    string
-	MaxSize  int
-	Flags    int
-	Compress bool
+	Path      string
+	ErrorPath string
+	Level     string
+	MaxSize   int
+	Flags     int
+	Compress  bool
 }
 
 func Reset() {
