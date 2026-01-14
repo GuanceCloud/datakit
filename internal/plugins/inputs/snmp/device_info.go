@@ -22,6 +22,22 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmputil"
 )
 
+var supportedDeviceTypes = map[string]bool{
+	"access_point":  true,
+	"firewall":      true,
+	"load_balancer": true,
+	"pdu":           true,
+	"printer":       true,
+	"router":        true,
+	"sd-wan":        true,
+	"sensor":        true,
+	"server":        true,
+	"storage":       true,
+	"switch":        true,
+	"ups":           true,
+	"wlc":           true,
+}
+
 type deviceInfo struct {
 	Ipt                   *Input
 	IP                    string
@@ -218,20 +234,26 @@ func (di *deviceInfo) ReportNetworkDeviceMetadata(store *snmputil.ResultValueSto
 
 	metadataStore := snmputil.BuildMetadataStore(metadataConfigs, store)
 
+	uptime := getUptime(store)
+	l.Debugf("snmp uptime: %f", uptime)
+
 	deviceID := di.getDeviceID()
 	deviceIDTags := snmputil.SortUniqInPlace(di.getDeviceIDTags())
 	tags = append(tags, deviceIDTags...)
 
-	device := di.buildNetworkDeviceMetadata(deviceID, deviceIDTags, metadataStore, tags, deviceStatus)
+	device := di.buildNetworkDeviceMetadata(deviceID, deviceIDTags, metadataStore, tags, deviceStatus, uptime)
 
 	interfaces := snmputil.BuildNetworkInterfacesMetadata(deviceID, metadataStore)
+
+	ipAddresses := snmputil.BuildNetworkIPAddressesMetadata(deviceID, metadataStore)
 
 	metadataPayloads := snmputil.BatchPayloads(di.Namespace,
 		di.Subnet,
 		collectTime,
 		snmputil.PayloadMetadataBatchSize,
 		device,
-		interfaces)
+		interfaces,
+		ipAddresses)
 
 	for _, payload := range metadataPayloads {
 		payloadBytes, err := json.Marshal(payload)
@@ -243,9 +265,26 @@ func (di *deviceInfo) ReportNetworkDeviceMetadata(store *snmputil.ResultValueSto
 	}
 }
 
+func getUptime(store *snmputil.ResultValueStore) float64 {
+	if store == nil {
+		return 0
+	}
+	uptime, err := store.GetScalarValue("1.3.6.1.2.1.1.3.0")
+	if err != nil {
+		l.Warnf("failed to get uptime: %v", err)
+		return 0
+	}
+	uptimeFloat, err := uptime.ToFloat64()
+	if err != nil {
+		l.Warnf("failed to convert uptime to float64: %v", err)
+		return 0
+	}
+	return uptimeFloat
+}
+
 // nolint:lll
-func (di *deviceInfo) buildNetworkDeviceMetadata(deviceID string, idTags []string, store *snmputil.Store, tags []string, deviceStatus snmputil.DeviceStatus) snmputil.DeviceMetadata {
-	var vendor, sysName, sysDescr, sysObjectID, location, serialNumber, version, productName, model, osName, osVersion, osHostname string
+func (di *deviceInfo) buildNetworkDeviceMetadata(deviceID string, idTags []string, store *snmputil.Store, tags []string, deviceStatus snmputil.DeviceStatus, uptime float64) snmputil.DeviceMetadata {
+	var vendor, sysName, sysDescr, sysObjectID, location, serialNumber, version, productName, model, osName, osVersion, osHostname, deviceType string
 	if store != nil {
 		sysName = store.GetScalarAsString("device.name")
 		sysDescr = store.GetScalarAsString("device.description")
@@ -259,6 +298,7 @@ func (di *deviceInfo) buildNetworkDeviceMetadata(deviceID string, idTags []strin
 		osName = store.GetScalarAsString("device.os_name")
 		osVersion = store.GetScalarAsString("device.os_version")
 		osHostname = store.GetScalarAsString("device.os_hostname")
+		deviceType = getDeviceType(store)
 	}
 
 	// fallback to Device.Vendor for backward compatibility
@@ -286,7 +326,21 @@ func (di *deviceInfo) buildNetworkDeviceMetadata(deviceID string, idTags []strin
 		OsName:       osName,
 		OsVersion:    osVersion,
 		OsHostname:   osHostname,
+		Type:         deviceType,
+		Uptime:       uptime,
 	}
+}
+
+func getDeviceType(store *snmputil.Store) string {
+	deviceType := strings.ToLower(store.GetScalarAsString("device.type"))
+	if deviceType == "" {
+		return "other"
+	}
+	_, isValidType := supportedDeviceTypes[deviceType]
+	if isValidType {
+		return deviceType
+	}
+	return "other"
 }
 
 func (di *deviceInfo) getDeviceID() string {

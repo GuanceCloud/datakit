@@ -20,16 +20,19 @@ import (
 //------------------------------------------------------------------------------
 
 type MetricDatas struct {
-	Data []*MetricData
+	Data     []*MetricData
+	TaskType string
 }
 
 func (md *MetricDatas) Add(name string, value float64, tags []string) {
 	now := timeNowNano()
 
 	switch name {
-	case "ifBandwidthInUsage.rate", "ifBandwidthOutUsage.rate":
+	case "ifBandwidthInUsage.rate", "ifBandwidthOutUsage.rate",
+		"ifInErrors.rate", "ifInDiscards.rate", "ifOutErrors.rate", "ifOutDiscards.rate",
+		"ifHCInOctets.rate", "ifHCOutOctets.rate":
 		ip, inf := getIPInterfaceByTags(tags)
-		newVal, err := calculateBandwidthUtilization(ip, inf, name, value, now)
+		newVal, err := calculateBandwidthUtilization(ip, inf, name, md.TaskType, value, now)
 		if err != nil {
 			l.Errorf("calculateBandwidthUtilization failed: %v", err)
 		} else {
@@ -79,11 +82,11 @@ func getIPInterfaceByTags(tags []string) (ip, inf string) {
 	return
 }
 
-func getPreviousBandwidthUsageRateKeyName(ip, inf, metricName string) string {
+func getPreviousBandwidthUsageRateKeyName(ip, inf, metricName, taskType string) string {
 	if len(ip) == 0 || len(inf) == 0 || len(metricName) == 0 {
 		return ""
 	}
-	return ip + "_" + inf + "_" + metricName
+	return ip + "_" + inf + "_" + metricName + "_" + taskType
 }
 
 type valueItem struct {
@@ -99,7 +102,7 @@ func newValueItem(value, timestamp float64) *valueItem {
 }
 
 // https://www.cisco.com/c/en/us/support/docs/ip/simple-network-management-protocol-snmp/8141-calculate-bandwidth-snmp.html
-func calculateBandwidthUtilization(ip, inf, metricName string, metricValue, timestamp float64) (float64, error) {
+func calculateBandwidthUtilization(ip, inf, metricName, taskType string, metricValue, timestamp float64) (float64, error) {
 	if metricValue == 0 {
 		return 0, nil
 	}
@@ -108,7 +111,7 @@ func calculateBandwidthUtilization(ip, inf, metricName string, metricValue, time
 		return 0, fmt.Errorf("unexpected ip and interface")
 	}
 
-	mapKey := getPreviousBandwidthUsageRateKeyName(ip, inf, metricName)
+	mapKey := getPreviousBandwidthUsageRateKeyName(ip, inf, metricName, taskType)
 	if len(mapKey) == 0 {
 		return 0, fmt.Errorf("unexpected key name")
 	}

@@ -8,6 +8,22 @@ package snmputil
 
 import "fmt"
 
+type ProfileMetricType string
+
+const (
+	ProfileMetricTypeGauge ProfileMetricType = "gauge"
+
+	ProfileMetricTypeMonotonicCount ProfileMetricType = "monotonic_count"
+
+	ProfileMetricTypeMonotonicCountAndRate ProfileMetricType = "monotonic_count_and_rate"
+
+	ProfileMetricTypeRate ProfileMetricType = "rate"
+
+	ProfileMetricTypeCounter ProfileMetricType = "counter"
+
+	ProfileMetricTypePercent ProfileMetricType = "percent"
+)
+
 // MetricSample is a collected metric sample with its metadata, ready to be submitted through the metric sender.
 type MetricSample struct {
 	value      ResultValue
@@ -56,11 +72,16 @@ func GetCheckInstanceMetricTags(metricTags []MetricTagConfig, values *ResultValu
 
 	for _, metricTag := range metricTags {
 		// TODO: Support extract value see II-635
-		value, err := values.GetScalarValue(metricTag.OID)
+		value, err := values.GetScalarValue(metricTag.Symbol.OID)
 		if err != nil {
 			continue
 		}
-		strValue, err := value.ToString()
+		newValue, err := processValueUsingSymbolConfig(value, SymbolConfig(metricTag.Symbol))
+		if err != nil {
+			l.Debugf("error processing value using symbol config (%#v) to string : %v", value, err)
+			continue
+		}
+		strValue, err := newValue.ToString()
 		if err != nil {
 			l.Debugf("error converting value (%#v) to string : %v", value, err)
 			continue
@@ -83,7 +104,7 @@ func reportScalarMetrics(metric MetricsConfig, values *ResultValueStore, tags []
 		value:      value,
 		tags:       scalarTags,
 		symbol:     metric.Symbol,
-		forcedType: metric.ForcedType,
+		forcedType: metric.MetricType,
 		options:    metric.Options,
 	}
 	sendMetric(sample, outData)
@@ -95,9 +116,16 @@ func reportColumnMetrics(metricConfig MetricsConfig, values *ResultValueStore, t
 	rowTagsCache := make(map[string][]string)
 	samples := map[string]map[string]MetricSample{}
 	for _, symbol := range metricConfig.Symbols {
-		metricValues, err := getColumnValueFromSymbol(values, symbol)
-		if err != nil {
-			continue
+		var metricValues map[string]ResultValue
+		if symbol.ConstantValueOne {
+			metricValues = getConstantMetricValues(metricConfig.MetricTags, values)
+		} else {
+			var err error
+			metricValues, err = getColumnValueFromSymbol(values, symbol)
+			if err != nil {
+				l.Debugf("report column: error getting column value: %v", err)
+				continue
+			}
 		}
 		for fullIndex, value := range metricValues {
 			// cache row tags by fullIndex to avoid rebuilding it for every column rows
@@ -112,7 +140,7 @@ func reportColumnMetrics(metricConfig MetricsConfig, values *ResultValueStore, t
 				value:      value,
 				tags:       rowTags,
 				symbol:     symbol,
-				forcedType: metricConfig.ForcedType,
+				forcedType: metricConfig.MetricType,
 				options:    metricConfig.Options,
 			}
 			sendMetric(sample, outData)
@@ -126,9 +154,39 @@ func reportColumnMetrics(metricConfig MetricsConfig, values *ResultValueStore, t
 	return samples
 }
 
+// getConstantMetricValues retrieve all metric tags indexes and set their value as 1.
+func getConstantMetricValues(mtcl MetricTagConfigList, values *ResultValueStore) map[string]ResultValue {
+	constantValues := make(map[string]ResultValue)
+	for _, metricTag := range mtcl {
+		if len(metricTag.IndexTransform) > 0 {
+			// If index transform is set, indexes are from another table, we don't want to collect them
+			continue
+		}
+		if metricTag.Symbol.OID != "" {
+			columnValues, err := getColumnValueFromSymbol(values, SymbolConfig(metricTag.Symbol))
+			if err != nil {
+				l.Debugf("error getting column value: %v", err)
+				continue
+			}
+			for index := range columnValues {
+				if _, ok := constantValues[index]; ok {
+					continue
+				}
+				constantValues[index] = ResultValue{
+					Value: float64(1),
+				}
+			}
+		}
+	}
+	return constantValues
+}
+
 func sendMetric(metricSample MetricSample, outData *MetricDatas) {
 	metricFullName := metricSample.symbol.Name
 	forcedType := metricSample.forcedType
+	if metricSample.symbol.MetricType != "" {
+		forcedType = metricSample.symbol.MetricType
+	}
 	if forcedType == "" {
 		if metricSample.value.SubmissionType != "" {
 			forcedType = metricSample.value.SubmissionType
@@ -163,12 +221,13 @@ func sendMetric(metricSample MetricSample, outData *MetricDatas) {
 		floatValue *= scaleFactor
 	}
 
-	switch forcedType {
-	case "gauge", "counter", "monotonic_count":
+	profileMetricType := ProfileMetricType(forcedType)
+	switch profileMetricType {
+	case ProfileMetricTypeGauge, ProfileMetricTypeCounter, ProfileMetricTypeMonotonicCount, ProfileMetricTypeRate:
 		outData.Add(metricFullName, floatValue, metricSample.tags)
-	case "percent":
+	case ProfileMetricTypePercent:
 		outData.Add(metricFullName, floatValue*100, metricSample.tags)
-	case "monotonic_count_and_rate":
+	case ProfileMetricTypeMonotonicCountAndRate:
 		outData.Add(metricFullName, floatValue, metricSample.tags)
 		outData.Add(metricFullName+".rate", floatValue, metricSample.tags)
 	default:

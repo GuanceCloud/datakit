@@ -220,10 +220,10 @@ func (w *Watcher) registerSubWatcher(serviceName string, client *consulapi.Clien
 		}
 	}
 
-	g.Go(func(ctx context.Context) error {
+	w.Ipt.g.Go(func(ctx context.Context) error {
 		defer wp.Stop()
 
-		g.Go(func(ctx context.Context) error {
+		w.Ipt.g.Go(func(ctx context.Context) error {
 			if err = wp.RunWithClientAndHclog(client, nil); err != nil {
 				l.Errorf("sub watch %s Run fail: %w", serviceName, err)
 				return fmt.Errorf("sub watch %s Run fail: %w", serviceName, err)
@@ -333,7 +333,7 @@ func (ipt *Input) consulDiscovery() {
 		return
 	}
 
-	g.Go(func(ctx context.Context) error {
+	ipt.g.Go(func(ctx context.Context) error {
 		opts := map[string]interface{}{
 			"type": "services",
 		}
@@ -350,7 +350,7 @@ func (ipt *Input) consulDiscovery() {
 
 		defer w.Wp.Stop()
 
-		g.Go(func(ctx context.Context) error {
+		ipt.g.Go(func(ctx context.Context) error {
 			if err = w.Wp.RunWithClientAndHclog(client, nil); err != nil {
 				l.Errorf("total watch %s Run fail: %w", ipt.ConsulDiscoveryURL, err)
 				return fmt.Errorf("total watch %s Run fail: %w", ipt.ConsulDiscoveryURL, err)

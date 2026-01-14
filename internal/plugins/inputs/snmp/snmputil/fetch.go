@@ -175,7 +175,8 @@ func retryFailedScalarOids(sess Session, results *gosnmp.SnmpPacket, valuesToUpd
 	retryOids := make(map[string]string)
 	for _, variable := range results.Variables {
 		oid := strings.TrimLeft(variable.Name, ".")
-		if (variable.Type == gosnmp.NoSuchObject || variable.Type == gosnmp.NoSuchInstance) && !strings.HasSuffix(oid, ".0") {
+		//nolint:lll
+		if (variable.Type == gosnmp.NoSuchObject || variable.Type == gosnmp.NoSuchInstance || variable.Type == gosnmp.Null) && !strings.HasSuffix(oid, ".0") {
 			retryOids[oid] = oid + ".0"
 		}
 	}
@@ -199,8 +200,10 @@ func retryFailedScalarOids(sess Session, results *gosnmp.SnmpPacket, valuesToUpd
 	}
 }
 
-func doFetchScalarOids(session Session, oids []string) (*gosnmp.SnmpPacket, error) {
+func doFetchScalarOids(session Session, origOids []string) (*gosnmp.SnmpPacket, error) {
 	var results *gosnmp.SnmpPacket
+	oids := make([]string, len(origOids))
+	copy(oids, origOids)
 	if session.GetVersion() == gosnmp.Version1 {
 		// When using snmp v1, if one of the oids return a NoSuchName, all oids will have value of Null.
 		// The response will contain Error=NoSuchName and ErrorIndex with index of the erroneous oid.

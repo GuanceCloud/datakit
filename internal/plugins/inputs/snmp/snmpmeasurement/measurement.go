@@ -55,7 +55,7 @@ func (m *SNMPObject) Info() *inputs.MeasurementInfo {
 			"mems":           newOtherFieldInfo(inputs.String, inputs.String, inputs.NoUnit, "Device memories (JSON format)."),
 			"mem_pool_names": newOtherFieldInfo(inputs.String, inputs.String, inputs.NoUnit, "Device memory pool names (JSON format)."),
 			"cpus":           newOtherFieldInfo(inputs.String, inputs.String, inputs.NoUnit, "Device CPUs (JSON format)."),
-			"all":            newOtherFieldInfo(inputs.String, inputs.String, inputs.NoUnit, "Device all data (JSON format)."),
+			"all":            newOtherFieldInfo(inputs.String, inputs.String, inputs.NoUnit, "Device all data (JSON format). (Deprecated)"),
 		},
 		Tags: map[string]interface{}{
 			"device_vendor": inputs.NewTagInfo("Device vendor."),
@@ -190,6 +190,7 @@ func (m *SNMPMetric) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"device_vendor":      inputs.NewTagInfo("Device vendor."),
+			"device_namespace":   inputs.NewTagInfo("Device namespace."),
 			"host":               inputs.NewTagInfo("Device host, replace with IP."),
 			"ip":                 inputs.NewTagInfo("Device IP."),
 			"name":               inputs.NewTagInfo("Device name and IP."),

@@ -24,6 +24,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
@@ -67,7 +68,6 @@ var (
 	// Make sure Input implements the inputs.InputV2 interface.
 	_                   inputs.InputV2 = &Input{}
 	l                                  = logger.DefaultSLogger(snmpmeasurement.InputName)
-	g                                  = datakit.G("inputs_snmp_")
 	onceReleasePrefiles sync.Once
 )
 
@@ -145,6 +145,8 @@ type Input struct {
 	Tagger               datakit.GlobalTagger
 
 	ptsTime time.Time
+
+	g *goroutine.Group
 }
 
 type TrapsConfig struct {
@@ -169,6 +171,8 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (ipt *Input) setup() {
+	ipt.g = datakit.G(snmpmeasurement.InputName)
+
 	l = logger.SLogger(snmpmeasurement.InputName)
 	snmputil.SetLog()
 	lldp.SetLog()
@@ -264,7 +268,7 @@ func (ipt *Input) Run() {
 	}
 
 	workerFunc := func(idx int) {
-		g.Go(func(ctx context.Context) error {
+		ipt.g.Go(func(ctx context.Context) error {
 			for {
 				select {
 				case job := <-ipt.jobs:
@@ -345,7 +349,7 @@ func (ipt *Input) sendJob(j *snmpJob) error {
 		return fmt.Errorf("on semStop")
 
 	case <-datakit.Exit.Wait():
-		return fmt.Errorf("on datakit eixt")
+		return fmt.Errorf("on datakit exit")
 	}
 }
 
@@ -516,7 +520,7 @@ func (ipt *Input) autoDiscovery() {
 		mSpecificDevices[deviceIP] = struct{}{}
 	}
 
-	g.Go(func(ctx context.Context) error {
+	ipt.g.Go(func(ctx context.Context) error {
 		for subnet, discovery := range ipt.mAutoDiscovery {
 			ipt.dispatchDiscovery(subnet, discovery, mSpecificDevices)
 
@@ -797,6 +801,10 @@ func (ipt *Input) doCollectCore(ip string,
 	}
 
 	var metricData snmputil.MetricDatas
+	metricData.TaskType = "metric"
+	if collectObject {
+		metricData.TaskType = "object"
+	}
 	if values != nil {
 		snmputil.ReportMetrics(device.Metrics, values, tags, &metricData)
 	}
@@ -969,6 +977,7 @@ var reservedKeys = []string{
 	"name",
 	"snmp_host",
 	"snmp_profile",
+	"device_hostname",
 }
 
 func isReservedKeys(checkName string, customTags map[string]string) bool {
@@ -1005,7 +1014,6 @@ func getFieldTagArr(metricData *snmputil.MetricDatas,
 	var objectFieldmems []*memAttribute                 // mems
 	var objectFieldMemPoolNames []*memPoolNameAttribute // mem_pool_names
 	var objectFieldcCPUs []*cpuAttribute                // cpus
-	var objectFieldAll []*tagField                      // all
 
 	for hash, fields := range mHash {
 		tags := make(map[string]string)
@@ -1018,7 +1026,7 @@ func getFieldTagArr(metricData *snmputil.MetricDatas,
 		} // for data
 
 		tags["host"] = tags["ip"] // replace host as ip.
-		tags["name"] = tags["ip"] // replace name as ip.
+		tags["name"] = ipt.getDeviceName(tags)
 
 		if metaData.collectMeta {
 			// collect object.
@@ -1035,8 +1043,6 @@ func getFieldTagArr(metricData *snmputil.MetricDatas,
 					}
 				} else {
 					if !isCreated {
-						isCreated = true
-
 						// gathering specific.
 						switch tagK {
 						case "interface":
@@ -1045,40 +1051,33 @@ func getFieldTagArr(metricData *snmputil.MetricDatas,
 								InterfaceAlias: tags["interface_alias"],
 								Fields:         fields,
 							})
+							isCreated = true
 						case "sensor_id":
 							objectFieldSensors = append(objectFieldSensors, &sensorAttribute{
 								SensorID:   tagV,
 								SensorType: tags["sensor_type"],
 								Fields:     fields,
 							})
+							isCreated = true
 						case "mem":
 							objectFieldmems = append(objectFieldmems, &memAttribute{
 								Mem:    tagV,
 								Fields: fields,
 							})
+							isCreated = true
 						case "mem_pool_name":
 							objectFieldMemPoolNames = append(objectFieldMemPoolNames, &memPoolNameAttribute{
 								MemPoolName: tagV,
 								Fields:      fields,
 							})
+							isCreated = true
 						case "cpu":
 							objectFieldcCPUs = append(objectFieldcCPUs, &cpuAttribute{
 								CPU:    tagV,
 								Fields: fields,
 							})
+							isCreated = true
 						} // switch tagK
-
-						// gathering all.
-						unknownTags := make(map[string]string)
-						for tagKK, tagVV := range tags {
-							if !isReservedKeys(tagKK, ipt.Tags) {
-								unknownTags[tagKK] = tagVV
-							}
-						}
-						objectFieldAll = append(objectFieldAll, &tagField{
-							Tags:   unknownTags,
-							Fields: fields,
-						})
 					} // if !isCreated
 				}
 			}
@@ -1124,7 +1123,7 @@ func getFieldTagArr(metricData *snmputil.MetricDatas,
 		objectFields["mems"] = beJSON(objectFieldmems)
 		objectFields["mem_pool_names"] = beJSON(objectFieldMemPoolNames)
 		objectFields["cpus"] = beJSON(objectFieldcCPUs)
-		objectFields["all"] = beJSON(objectFieldAll)
+		// objectFields["all"] = beJSON(objectFieldAll)
 
 		tags := make(map[string]string)
 		getDatakitStyleTags(origTags, tags)
@@ -1137,6 +1136,20 @@ func getFieldTagArr(metricData *snmputil.MetricDatas,
 			Fields: objectFields,
 		})
 	}
+}
+
+func (ipt *Input) getDeviceName(tags map[string]string) string {
+	var parts []string
+	if ipt.DeviceNamespace != "" {
+		parts = append(parts, ipt.DeviceNamespace)
+	}
+	if ip := tags["ip"]; ip != "" {
+		parts = append(parts, ip)
+	}
+	if hostname := tags["device_hostname"]; hostname != "" {
+		parts = append(parts, hostname)
+	}
+	return strings.Join(parts, "_")
 }
 
 func beJSON(in interface{}) interface{} {
@@ -1256,6 +1269,13 @@ func (ipt *Input) initializeSpecificDevices() error {
 	snmputil.NormalizeMetrics(ipt.Metrics)
 	ipt.Metrics = append(ipt.Metrics, snmputil.UptimeMetricConfig) // addUptimeMetric
 	ipt.Metadata = snmputil.UpdateMetadataDefinitionWithLegacyFallback(nil)
+
+	errors := snmputil.ValidateEnrichMetrics(ipt.Metrics)
+	errors = append(errors, snmputil.ValidateEnrichMetricTags(ipt.MetricTags)...)
+	if len(errors) > 0 {
+		return fmt.Errorf("validation errors: %s", strings.Join(errors, "\n"))
+	}
+
 	ipt.OidConfig.AddScalarOids(snmputil.ParseScalarOids(ipt.Metrics, ipt.MetricTags, ipt.Metadata, true))
 	ipt.OidConfig.AddColumnOids(snmputil.ParseColumnOids(ipt.Metrics, ipt.Metadata, true))
 
@@ -1283,12 +1303,6 @@ func (ipt *Input) initializeSpecificDevices() error {
 	}
 
 	ipt.Profiles = profiles
-
-	errors := snmputil.ValidateEnrichMetrics(ipt.Metrics)
-	errors = append(errors, snmputil.ValidateEnrichMetricTags(ipt.MetricTags)...)
-	if len(errors) > 0 {
-		return fmt.Errorf("validation errors: %s", strings.Join(errors, "\n"))
-	}
 
 	// init session
 	for deviceIP := range ipt.mSpecificDevices {
