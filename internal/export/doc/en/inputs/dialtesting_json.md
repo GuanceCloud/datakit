@@ -1273,6 +1273,106 @@ if body["message"] == "Hello world" {
 
 In the above example, the response content (`response["body"]`) is initially parsed into a JSON object using `load_json`. Subsequently, it checks whether the message field in the response is "Hello world". If it is, the `is_failed` attribute of `result` is set to false. If the message is not "Hello world", the `is_failed` attribute of `result` is set to true, and the `error_message` is assigned the error message.
 
+#### Multi-Step Dial Test {#multi}
+
+[:octicons-tag-24: Version-1.68.0](../datakit/changelog-2025.md#cl-1.68.0)
+
+Multi-step dial testing allows you to define a sequence of dial test steps that are executed in order. It supports HTTP requests and wait operations, and can pass variables between steps.
+
+Additional fields:
+
+| Field        | Type   | Whether Required | Description                                      |
+| :---        | ---    | ---      | ---                                       |
+| `steps`     | array  | Y        | List of dial test steps, must contain at least one step            |
+
+The overall JSON structure is as follows:
+
+```json
+{
+  "MULTI": [
+    {
+      "name": "multi-step-test",
+      "status": "OK",
+      "post_url": "https://<your-dataway-host>?token=<your-token>",
+      "frequency": "10s",
+      "steps": [
+        {
+          "type": "http",
+          "name": "step1",
+          "task": "{\"name\": \"step1\", \"method\": \"GET\", \"url\": \"http://api.example.com/resource\", \"post_script\": \"vars[\\\"token\\\"] = \\\"token_value\\\"\"}",
+          "allow_failure": false,
+          "retry": {
+            "retry": 3,
+            "interval": 1000
+          },
+          "extracted_vars": [
+            {
+              "name": "token",
+              "field": "token",
+              "secure": false
+            }
+          ]
+        },
+        {
+          "type": "wait",
+          "name": "step2",
+          "value": 5
+        },
+        {
+          "type": "http",
+          "name": "step3",
+          "task": "{\"name\": \"step3\", \"method\": \"POST\", \"url\": \"http://127.0.0.1:9000?token={{`{{token}}`}}\", \"post_script\":\"result[\\\"is_failed\\\"]=true\"}",
+          "allow_failure": false
+        }
+      ]
+    }
+  ]
+}
+```
+
+##### `steps` Definition {#multi-steps}
+
+`steps` is an array of dial test steps. Each step can be one of the following two types:
+
+- HTTP Step (`type: "http"`)
+
+   | Field              | Type   | Whether Required | Description                                      |
+   | :---              | ---    | ---      | ---                                       |
+   | `type`            | string | Y        | Step type, must be `http`                   |
+   | `name`            | string | Y        | Step name                                  |
+   | `task`            | string | Y        | JSON string of the HTTP dial test task               |
+   | `allow_failure`   | bool   | N        | Whether to allow the step to fail, default is `false`            |
+   | `retry`           | object | N        | Retry configuration, see below for details                        |
+   | `extracted_vars`  | array  | N        | List of extracted variables for use in subsequent steps      |
+
+- Wait Step (`type: "wait"`)
+
+   | Field              | Type   | Whether Required | Description                                      |
+   | :---              | ---    | ---      | ---                                       |
+   | `type`            | string | Y        | Step type, must be `wait`                   |
+   | `name`            | string | Y        | Step name                                  |
+   | `value`           | int    | Y        | Wait time in seconds                        |
+   | `allow_failure`   | bool   | N        | Whether to allow the step to fail, default is `false`            |
+
+##### `retry` Definition {#multi-retry}
+
+Retry configuration is used to set the retry strategy when a step fails.
+
+| Field              | Type   | Whether Required | Description                                      |
+| :---              | ---    | ---      | ---                                       |
+| `retry`           | int    | Y        | Number of retries, must be between 0-5                 |
+| `interval`        | int    | Y        | Retry interval in milliseconds, must be between 0-5000  |
+
+##### `extracted_vars` Definition {#multi-extracted-vars}
+
+Extract variables from the `vars` defined in the HTTP `post_script` for template substitution in subsequent steps.
+
+| Field              | Type   | Whether Required | Description                                      |
+| :---              | ---    | ---      | ---                                       |
+| `name`            | string | Y        | Variable name used for template substitution in subsequent steps          |
+| `field`           | string | Y        | Variable name defined in `vars`    |
+| `secure`          | bool   | N        | Whether it is a secure variable. Secure variables will not be displayed in results  |
+
 ### Template Function Usage Instructions {#template-func}
 
 [:octicons-tag-24: Version-1.80.0](../datakit/changelog.md#cl-1.80.0)
