@@ -17,7 +17,7 @@ import (
 
 var traceOpts = []point.Option{}
 
-func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
+func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel, remoteIP string) itrace.DatakitTrace {
 	var (
 		dktrace            itrace.DatakitTrace
 		parentIDs, spanIDs = gatherSpanModelsInfo(zpktrace)
@@ -46,6 +46,7 @@ func spanModeleV2ToDkTrace(zpktrace []*zpkmodel.SpanModel) itrace.DatakitTrace {
 					parentIDs)).
 			AddTag(itrace.TagSource, inputName).
 			AddTag(itrace.TagSourceType, itrace.SpanSourceCustomer).
+			AddTag(itrace.TagCollectorSourceIP, remoteIP).
 			Add(itrace.FieldStart, span.Timestamp.UnixMicro()).
 			Set(itrace.FieldDuration, int64(span.Duration)/1000).
 			AddTag(itrace.TagSpanStatus, itrace.StatusOk)

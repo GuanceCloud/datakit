@@ -21,6 +21,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 )
@@ -34,10 +35,14 @@ type parameters struct {
 	url           *url.URL
 	queryValues   url.Values
 	body          io.ReadCloser // 接口，bytes.buffer或者网络流
+	remoteIP      string        // 远端 IP 地址
 }
 
 func (ipt *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request) {
 	log.Debugf("### Log request from %s", req.URL.String())
+
+	// 获取远端 IP
+	remoteIP, _ := dknet.RemoteAddr(req)
 
 	reqType := req.URL.Query().Get("type")
 	var (
@@ -66,6 +71,7 @@ func (ipt *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request
 			url:           req.URL,
 			queryValues:   req.URL.Query(),
 			body:          io.NopCloser(bytes.NewReader(bodyBytes)), // 满足接口数据类型，无操作
+			remoteIP:      remoteIP,
 		}
 	default:
 		// 流式处理：直接传递 req.Body，避免一次性读入内存
@@ -74,6 +80,7 @@ func (ipt *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request
 			url:           req.URL,
 			queryValues:   req.URL.Query(),
 			body:          req.Body,
+			remoteIP:      remoteIP,
 		}
 	}
 
@@ -133,6 +140,11 @@ func (ipt *Input) processLogBody(param *parameters) error {
 	if !param.ignoreURLTags {
 		extraTags["ip_or_hostname"] = param.url.Hostname()
 		extraTags["service"] = completeService(source, param.queryValues.Get("service"))
+	}
+
+	// 添加远端 IP 作为 collector_source_ip tag
+	if param.remoteIP != "" {
+		extraTags["collector_source_ip"] = param.remoteIP
 	}
 
 	if scriptName := param.queryValues.Get("pipeline"); scriptName != "" {

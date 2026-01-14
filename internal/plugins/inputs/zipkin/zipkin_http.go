@@ -16,6 +16,7 @@ import (
 	zpkmodel "github.com/openzipkin/zipkin-go/model"
 	zpkprotov2 "github.com/openzipkin/zipkin-go/proto/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
+	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/zipkin/compiled/thrift-0.16.0/zipkincore"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
@@ -31,6 +32,9 @@ func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) 
 func handleZipkinTraceV1(resp http.ResponseWriter, req *http.Request) {
 	log.Debugf("### receiving trace data from path: %s", req.URL.Path)
 
+	// 获取远端 IP
+	remoteIP, _ := dknet.RemoteAddr(req)
+
 	pbuf := bufpool.GetBuffer()
 	defer bufpool.PutBuffer(pbuf)
 
@@ -43,10 +47,11 @@ func handleZipkinTraceV1(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	param := &itrace.TraceParameters{
-		URLPath: apiv1Path,
-		Media:   itrace.GetContentType(req),
-		Encode:  req.Header.Get("Content-Encoding"),
-		Body:    pbuf,
+		URLPath:  apiv1Path,
+		Media:    itrace.GetContentType(req),
+		Encode:   req.Header.Get("Content-Encoding"),
+		Body:     pbuf,
+		RemoteIP: remoteIP,
 	}
 	if err = parseZipkinTraceV1(param); err != nil {
 		log.Errorf("### parse zipkin trace v1 failed: %s", err.Error())
@@ -77,12 +82,12 @@ func parseZipkinTraceV1(param *itrace.TraceParameters) error {
 	case "application/x-thrift":
 		var zspans []*zipkincore.Span
 		if zspans, err = unmarshalZipkinThriftV1(body); err == nil {
-			dktrace = thriftV1SpansToDkTrace(zspans)
+			dktrace = thriftV1SpansToDkTrace(zspans, param.RemoteIP)
 		}
 	case "application/json":
 		var zspans []*ZipkinSpanV1
 		if err = json.NewDecoder(body).Decode(&zspans); err == nil {
-			dktrace = jsonV1SpansToDkTrace(zspans)
+			dktrace = jsonV1SpansToDkTrace(zspans, param.RemoteIP)
 		}
 	default:
 		err = fmt.Errorf("### zipkin V1 unsupported Content-Type: %s", param.Media)
@@ -101,6 +106,9 @@ func parseZipkinTraceV1(param *itrace.TraceParameters) error {
 func handleZipkinTraceV2(resp http.ResponseWriter, req *http.Request) {
 	log.Debugf("### receiving trace data from path: %s", req.URL.Path)
 
+	// 获取远端 IP
+	remoteIP, _ := dknet.RemoteAddr(req)
+
 	pbuf := bufpool.GetBuffer()
 	defer bufpool.PutBuffer(pbuf)
 
@@ -113,10 +121,11 @@ func handleZipkinTraceV2(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	param := &itrace.TraceParameters{
-		URLPath: apiv2Path,
-		Media:   itrace.GetContentType(req),
-		Encode:  req.Header.Get("Content-Encoding"),
-		Body:    pbuf,
+		URLPath:  apiv2Path,
+		Media:    itrace.GetContentType(req),
+		Encode:   req.Header.Get("Content-Encoding"),
+		Body:     pbuf,
+		RemoteIP: remoteIP,
 	}
 	if err = parseZipkinTraceV2(param); err != nil {
 		log.Errorf("### parse zipkin trace v2 failed: %s", err.Error())
@@ -164,7 +173,7 @@ func parseZipkinTraceV2(param *itrace.TraceParameters) error {
 		return err
 	}
 
-	dktrace = spanModeleV2ToDkTrace(zpkmodels)
+	dktrace = spanModeleV2ToDkTrace(zpkmodels, param.RemoteIP)
 	if len(dktrace) != 0 && afterGatherRun != nil {
 		afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace})
 	}

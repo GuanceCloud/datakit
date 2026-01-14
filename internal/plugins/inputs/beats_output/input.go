@@ -161,7 +161,7 @@ func (ipt *Input) Run() {
 		l.Warn(inputName + ".Run() exit")
 		return
 	}
-	server, _ := v2.NewWithListener(opServer.Listener)
+	server, _ := v2.NewWithListener(opServer)
 	defer server.Close() //nolint:errcheck
 
 	l.Debug("listening " + ipt.Listen + "...")
@@ -179,6 +179,9 @@ func (ipt *Input) Run() {
 				continue
 			}
 
+			// 获取当前连接的远端 IP
+			remoteIP := opServer.RemoteIP
+
 			// host.name
 			// log.file.path
 			// message
@@ -187,7 +190,7 @@ func (ipt *Input) Run() {
 				dataPiece := getDataPieceFromEvent(v)
 				pending = append(pending, dataPiece)
 			}
-			ipt.feed(pending)
+			ipt.feed(pending, remoteIP)
 
 			batch.ACK()
 		}
@@ -245,7 +248,7 @@ func (ipt *Input) getNewTags(dataPiece *DataStruct) map[string]string {
 	return newTags
 }
 
-func (ipt *Input) feed(pending []*DataStruct) {
+func (ipt *Input) feed(pending []*DataStruct, remoteIP string) {
 	pts := []*point.Point{}
 	now := ntp.Now()
 	for _, v := range pending {
@@ -254,6 +257,12 @@ func (ipt *Input) feed(pending []*DataStruct) {
 		}
 
 		newTags := ipt.getNewTags(v)
+
+		// 添加 collector_source_ip tag
+		if remoteIP != "" {
+			newTags["collector_source_ip"] = remoteIP
+		}
+
 		l.Debugf("newTags = %#v", newTags)
 
 		logging := &loggingMeasurement{
@@ -331,22 +340,24 @@ func NewOutputServerTCP(listen string) (*OutputServer, error) {
 
 type OutputServer struct {
 	net.Listener
-	Timeout time.Duration
-	Err     error
+	Timeout  time.Duration
+	RemoteIP string // 当前连接的远端 IP
 }
 
-func (m *OutputServer) Addr() string {
-	return m.Listener.Addr().String()
-}
-
-func (m *OutputServer) Accept() net.Conn {
-	if m.Err != nil {
-		return nil
+func (m *OutputServer) Accept() (net.Conn, error) {
+	client, err := m.Listener.Accept()
+	if err != nil {
+		return nil, err
 	}
 
-	client, err := m.Listener.Accept()
-	m.Err = err
-	return client
+	// 获取远端 IP
+	if client != nil {
+		if addr, ok := client.RemoteAddr().(*net.TCPAddr); ok {
+			m.RemoteIP = addr.IP.String()
+		}
+	}
+
+	return client, nil
 }
 
 //------------------------------------------------------------------------------

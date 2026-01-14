@@ -19,6 +19,7 @@ import (
 	"github.com/uber/jaeger-client-go/thrift"
 	"github.com/uber/jaeger-client-go/thrift-gen/jaeger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
+	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
@@ -28,6 +29,9 @@ func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) 
 
 func handleJaegerTrace(resp http.ResponseWriter, req *http.Request) {
 	log.Debugf("### receiving trace data from path: %s", req.URL.Path)
+
+	// 获取远端 IP
+	remoteIP, _ := dknet.RemoteAddr(req)
 
 	pbuf := bufpool.GetBuffer()
 	defer bufpool.PutBuffer(pbuf)
@@ -40,7 +44,7 @@ func handleJaegerTrace(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	param := &itrace.TraceParameters{Body: pbuf}
+	param := &itrace.TraceParameters{Body: pbuf, RemoteIP: remoteIP}
 	if err = parseJaegerTrace(param); err != nil {
 		log.Errorf("### parse jaeger trace from HTTP failed: %s", err.Error())
 		resp.WriteHeader(http.StatusBadRequest)
@@ -66,7 +70,7 @@ func parseJaegerTrace(param *itrace.TraceParameters) error {
 		return err
 	}
 
-	if dktrace := batchToDkTrace(batch); len(dktrace) != 0 && afterGatherRun != nil {
+	if dktrace := batchToDkTrace(batch, param.RemoteIP); len(dktrace) != 0 && afterGatherRun != nil {
 		afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace})
 	}
 
@@ -83,7 +87,7 @@ type DkJaegerSpan struct {
 
 var traceOpts = []point.Option{}
 
-func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
+func batchToDkTrace(batch *jaeger.Batch, remoteIP string) itrace.DatakitTrace {
 	var (
 		project, version, env = getExpandInfo(batch)
 		dktrace               itrace.DatakitTrace
@@ -102,6 +106,7 @@ func batchToDkTrace(batch *jaeger.Batch) itrace.DatakitTrace {
 			AddTag(itrace.TagSource, inputName).
 			AddTag(itrace.TagSourceType, itrace.SpanSourceCustomer).
 			AddTag(itrace.TagSpanType, itrace.FindSpanTypeIntSpanID(uint64(span.SpanId), uint64(span.ParentSpanId), spanIDs, parentIDs)).
+			AddTag(itrace.TagCollectorSourceIP, remoteIP).
 			Add(itrace.FieldStart, span.StartTime).
 			Add(itrace.FieldDuration, span.Duration)
 

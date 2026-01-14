@@ -51,7 +51,7 @@ func unmarshalZipkinThriftV1(body io.ReadCloser) ([]*zipkincore.Span, error) {
 	return spans, transport.ReadListEnd(ctx)
 }
 
-func thriftV1SpansToDkTrace(zpktrace []*zipkincore.Span) itrace.DatakitTrace {
+func thriftV1SpansToDkTrace(zpktrace []*zipkincore.Span, remoteIP string) itrace.DatakitTrace {
 	var (
 		dktrace            itrace.DatakitTrace
 		parentIDs, spanIDs = gatherZpkCoreV1SpansInfo(zpktrace)
@@ -100,6 +100,7 @@ func thriftV1SpansToDkTrace(zpktrace []*zipkincore.Span) itrace.DatakitTrace {
 			AddTag(itrace.TagSpanType, SpanType).
 			AddTag(itrace.TagSource, inputName).
 			AddTag(itrace.TagSourceType, SourceType).
+			AddTag(itrace.TagCollectorSourceIP, remoteIP).
 			Add(itrace.FieldStart, start).
 			Add(itrace.FieldDuration, Duration).AddTag(itrace.TagSpanStatus, Status)
 
@@ -326,7 +327,7 @@ type ZipkinSpanV1 struct {
 	Debug             bool                `thrift:"debug,9" db:"debug" json:"debug,omitempty"`
 }
 
-func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
+func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1, remoteIP string) itrace.DatakitTrace {
 	var (
 		dktrace            itrace.DatakitTrace
 		parentIDs, spanIDs = gatherZpkV1SpansInfo(zpktrace)
@@ -346,6 +347,7 @@ func jsonV1SpansToDkTrace(zpktrace []*ZipkinSpanV1) itrace.DatakitTrace {
 			AddTag(itrace.TagSpanType, itrace.FindSpanTypeInMultiServersStrSpanID(span.ID, span.ParentID, service, spanIDs, parentIDs)).
 			AddTag(itrace.TagSource, inputName).
 			AddTag(itrace.TagSourceType, itrace.SpanSourceCustomer).
+			AddTag(itrace.TagCollectorSourceIP, remoteIP).
 			Add(itrace.FieldStart, getFirstTimestamp(span))
 
 		if isRootSpan(span.ParentID) {
