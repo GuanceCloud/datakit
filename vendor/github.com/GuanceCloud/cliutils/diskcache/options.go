@@ -67,6 +67,24 @@ func WithNoPos(on bool) CacheOption {
 	}
 }
 
+// WithPosUpdate set .pos update intervals.
+//
+// cnt used to specify how many update on .pos triger a real disk update.
+// We can set cnt = 0 to force update .pos on every Get action.
+//
+// du used to specify how often to triger a real disk update on file .pos.
+func WithPosUpdate(cnt int, du time.Duration) CacheOption {
+	return func(c *DiskCache) {
+		if cnt >= 0 {
+			c.pos.dumpCount = cnt
+		}
+
+		if du >= 0 {
+			c.pos.dumpInterval = du
+		}
+	}
+}
+
 // WithWakeup set duration on wakeup(default 3s), this wakeup time
 // used to shift current-writing-file to ready-to-reading-file.
 //

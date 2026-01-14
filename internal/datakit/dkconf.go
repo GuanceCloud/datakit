@@ -280,7 +280,6 @@ ulimit = 64000
     #fail_cache_clean_interval = "30s" # duration for clean fail uploaded data
     #no_drop_categories = ["L"]        # category list that disable drop data when disk cache full
 
-
 ################################################
 # Datakit logging configure
 ################################################

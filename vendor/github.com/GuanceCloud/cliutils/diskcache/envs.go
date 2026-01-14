@@ -8,6 +8,7 @@ package diskcache
 import (
 	"os"
 	"strconv"
+	"time"
 )
 
 func (c *DiskCache) syncEnv() {
@@ -35,6 +36,18 @@ func (c *DiskCache) syncEnv() {
 
 	if v, ok := os.LookupEnv("ENV_DISKCACHE_NO_POS"); ok && v != "" {
 		c.noPos = true
+	}
+
+	if v, ok := os.LookupEnv("ENV_DISKCACHE_POS_DUMP_INTERVAL"); ok && v != "" {
+		if du, err := time.ParseDuration(v); err == nil && du > 0 {
+			c.pos.dumpInterval = du
+		}
+	}
+
+	if v, ok := os.LookupEnv("ENV_DISKCACHE_POS_DUMP_AT"); ok && v != "" {
+		if n, err := strconv.ParseInt(v, 10, 64); err == nil && n > 0 {
+			c.pos.dumpCount = int(n)
+		}
 	}
 
 	if v, ok := os.LookupEnv("ENV_DISKCACHE_NO_LOCK"); ok && v != "" {

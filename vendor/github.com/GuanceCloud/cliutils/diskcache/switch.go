@@ -21,7 +21,8 @@ func (c *DiskCache) loadUnfinishedFile() error {
 
 	pos, err := posFromFile(c.pos.fname)
 	if err != nil {
-		return fmt.Errorf("posFromFile: %w", err)
+		return NewCacheError(OpPos, err, "failed_to_load_position_file").
+			WithPath(c.path).WithFile(c.pos.fname)
 	}
 
 	if pos == nil {
@@ -31,7 +32,8 @@ func (c *DiskCache) loadUnfinishedFile() error {
 	// check file's healty
 	if _, err := os.Stat(string(pos.Name)); err != nil { // not exist
 		if err := c.pos.reset(); err != nil {
-			return err
+			return NewCacheError(OpPos, err, "failed_to_reset_position_after_missing_file").
+				WithPath(c.path).WithFile(c.pos.fname)
 		}
 
 		return nil
@@ -44,11 +46,13 @@ func (c *DiskCache) loadUnfinishedFile() error {
 
 	fd, err := os.OpenFile(string(pos.Name), os.O_RDONLY, c.filePerms)
 	if err != nil {
-		return fmt.Errorf("OpenFile: %w", err)
+		return WrapFileOperationError(OpOpen, err, c.path, string(pos.Name)).
+			WithDetails(fmt.Sprintf("failed_to_open_position_file: seek=%d", pos.Seek))
 	}
 
 	if _, err := fd.Seek(pos.Seek, io.SeekStart); err != nil {
-		return fmt.Errorf("Seek(%q: %d, 0): %w", pos.Name, pos.Seek, err)
+		return WrapFileOperationError(OpSeek, err, c.path, string(pos.Name)).
+			WithDetails(fmt.Sprintf("failed_to_seek_to_position: seek=%d", pos.Seek))
 	}
 
 	c.rfd = fd
@@ -67,7 +71,8 @@ func (c *DiskCache) doSwitchNextFile() error {
 	// clear .pos: prepare for new .pos for next new file.
 	if !c.noPos {
 		if err := c.pos.reset(); err != nil {
-			return err
+			return NewCacheError(OpSwitch, err, "failed_to_reset_position_for_switch").
+				WithPath(c.path)
 		}
 	}
 
@@ -79,13 +84,15 @@ func (c *DiskCache) doSwitchNextFile() error {
 
 	fd, err := os.OpenFile(c.curReadfile, os.O_RDONLY, c.filePerms)
 	if err != nil {
-		return fmt.Errorf("under switchNextFile, OpenFile: %w, datafile: %+#v, ", err, c.dataFiles)
+		return WrapFileOperationError(OpOpen, err, c.path, c.curReadfile).
+			WithDetails(fmt.Sprintf("failed_to_open_next_read_file: available_files=%v", c.dataFiles))
 	}
 
 	c.rfd = fd
 
 	if fi, err := c.rfd.Stat(); err != nil {
-		return fmt.Errorf("on rfd.Stat(): %w", err)
+		return WrapFileOperationError(OpStat, err, c.path, c.curReadfile).
+			WithDetails("failed_to_stat_read_file")
 	} else {
 		c.curReadSize = fi.Size()
 	}
@@ -93,8 +100,9 @@ func (c *DiskCache) doSwitchNextFile() error {
 	if !c.noPos {
 		c.pos.Name = []byte(c.curReadfile)
 		c.pos.Seek = 0
-		if err := c.pos.dumpFile(); err != nil {
-			return err
+		if err := c.pos.doDumpFile(); err != nil {
+			return NewCacheError(OpSwitch, err, "failed_to_dump_position_after_switch").
+				WithPath(c.path).WithFile(c.curReadfile)
 		}
 
 		posUpdatedVec.WithLabelValues("switch", c.path).Inc()
@@ -107,7 +115,8 @@ func (c *DiskCache) doSwitchNextFile() error {
 func (c *DiskCache) openWriteFile() error {
 	if fi, err := os.Stat(c.curWriteFile); err == nil { // file exists
 		if fi.IsDir() {
-			return errors.New("data file should not be dir")
+			return NewCacheError(OpCreate, errors.New("data file should not be dir"), "").
+				WithPath(c.path).WithFile(c.curWriteFile)
 		}
 
 		c.curBatchSize = fi.Size()
@@ -119,7 +128,8 @@ func (c *DiskCache) openWriteFile() error {
 	// write append fd, always write to the same-name file
 	wfd, err := os.OpenFile(c.curWriteFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, c.filePerms)
 	if err != nil {
-		return fmt.Errorf("under openWriteFile, OpenFile(%q): %w", c.curWriteFile, err)
+		return WrapFileOperationError(OpCreate, err, c.path, c.curWriteFile).
+			WithDetails("failed_to_open_write_file")
 	}
 
 	c.wfdLastWrite = time.Now()

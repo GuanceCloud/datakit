@@ -311,7 +311,6 @@ func (c *Config) loadDatawayEnvs() {
 	}
 
 	if v := datakit.GetEnv("ENV_DATAWAY_TLS_INSECURE"); v != "" {
-		// NOTE: do not checking encoding here, invalid encoding will reset to line-protocol
 		l.Info("ENV_DATAWAY_TLS_INSECURE set to true")
 		c.Dataway.InsecureSkipVerify = true
 	}

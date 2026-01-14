@@ -37,7 +37,8 @@ func (c *DiskCache) rotate() error {
 	eof := make([]byte, dataHeaderLen)
 	binary.LittleEndian.PutUint32(eof, EOFHint)
 	if _, err := c.wfd.Write(eof); err != nil { // append EOF to file end
-		return fmt.Errorf("rotate on write EOF: %w", err)
+		return WrapFileOperationError(OpWrite, err, c.path, c.wfd.Name()).
+			WithDetails("failed_to_write_eof_marker_during_rotate")
 	}
 
 	// NOTE: EOF bytes do not count to size
@@ -51,11 +52,15 @@ func (c *DiskCache) rotate() error {
 		last := c.dataFiles[len(c.dataFiles)-1]
 		arr := strings.Split(filepath.Base(last), ".")
 		if len(arr) != 2 {
-			return ErrInvalidDataFileName
+			return NewCacheError(OpRotate, ErrInvalidDataFileName,
+				fmt.Sprintf("invalid_filename_format: %s", last)).
+				WithPath(c.path).WithFile(last)
 		}
 		x, err := strconv.ParseInt(arr[1], 10, 64)
 		if err != nil {
-			return ErrInvalidDataFileNameSuffix
+			return NewCacheError(OpRotate, ErrInvalidDataFileNameSuffix,
+				fmt.Sprintf("failed_to_parse_sequence_from_filename: %s, error: %v", arr[1], err)).
+				WithPath(c.path).WithFile(last)
 		}
 
 		// data.0003 -> data.0004
@@ -64,22 +69,27 @@ func (c *DiskCache) rotate() error {
 
 	// close current writing file
 	if err := c.wfd.Close(); err != nil {
-		return fmt.Errorf("rotate on close wfd: %w", err)
+		return WrapFileOperationError(OpClose, err, c.path, c.wfd.Name()).
+			WithDetails("failed_to_close_write_file_during_rotate")
 	}
 	c.wfd = nil
 
 	// rename data -> data.0004
 	if err := os.Rename(c.curWriteFile, newfile); err != nil {
-		return fmt.Errorf("rotate on Rename(%q, %q): %w", c.curWriteFile, newfile, err)
+		return WrapRotateError(err, c.path, c.curWriteFile, newfile).
+			WithDetails("failed_to_rename_file_during_rotate")
 	}
 
-	// new file added, plus it's size to cache size
+	// new file added, add it's size to cache size
 	if fi, err := os.Stat(newfile); err == nil {
 		if fi.Size() > dataHeaderLen {
 			c.size.Add(fi.Size())
 			sizeVec.WithLabelValues(c.path).Add(float64(fi.Size()))
 			putBytesVec.WithLabelValues(c.path).Observe(float64(fi.Size()))
 		}
+	} else {
+		// Non-critical error: log but don't fail rotation
+		l.Warnf("failed to stat rotated file %s: %v", newfile, err)
 	}
 
 	c.dataFiles = append(c.dataFiles, newfile)
@@ -87,7 +97,8 @@ func (c *DiskCache) rotate() error {
 
 	// reopen new write file
 	if err := c.openWriteFile(); err != nil {
-		return err
+		return NewCacheError(OpRotate, err, "failed_to_open_new_write_file").
+			WithPath(c.path)
 	}
 
 	return nil
@@ -105,7 +116,8 @@ func (c *DiskCache) removeCurrentReadingFile() error {
 
 	if c.rfd != nil {
 		if err := c.rfd.Close(); err != nil {
-			return err
+			return WrapFileOperationError(OpClose, err, c.path, c.rfd.Name()).
+				WithDetails("failed_to_close_read_file_during_removal")
 		}
 		c.rfd = nil
 	}
@@ -119,7 +131,8 @@ func (c *DiskCache) removeCurrentReadingFile() error {
 		getBytesVec.WithLabelValues(c.path).Observe(float64(fi.Size()))
 
 		if err := os.Remove(c.curReadfile); err != nil {
-			return fmt.Errorf("removeCurrentReadingFile: %q: %w", c.curReadfile, err)
+			return WrapFileOperationError(OpRemove, err, c.path, c.curReadfile).
+				WithDetails("failed_to_remove_consumed_file")
 		}
 	}
 

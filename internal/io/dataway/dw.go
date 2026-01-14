@@ -99,8 +99,12 @@ func NewDefaultDataway(opts ...DWOption) *Dataway {
 
 		walq: map[point.Category]*WALQueue{},
 		WAL: &WALConf{
-			MaxCapacityGB:          2.0,
-			NoPos:                  false,
+			MaxCapacityGB: 2.0,
+
+			NoPos:           false,
+			PosDumpAt:       100,
+			PosDumpInterval: 100 * time.Millisecond,
+
 			Path:                   filepath.Join(datakit.CacheDir, "dw-wal"),
 			FailCacheCleanInterval: time.Second * 30,
 		},
