@@ -322,7 +322,7 @@ func Test_ValidateEnrichMetrics(t *testing.T) {
 			},
 			expectedErrors: []string{
 				"symbol name missing: name=`` oid=`1.2`",
-				"symbol oid missing: name=`abc` oid=``",
+				"symbol oid or send_as_one missing: name=`abc` oid=``",
 			},
 		},
 		{
@@ -368,7 +368,7 @@ func Test_ValidateEnrichMetrics(t *testing.T) {
 				},
 			},
 			expectedErrors: []string{
-				"column symbols [{1.2 abc  <nil>   <nil> 0 }] doesn't have a 'metric_tags' section",
+				"column symbols [{1.2 abc  <nil>   <nil> 0  false }] doesn't have a 'metric_tags' section",
 			},
 		},
 		{
@@ -534,7 +534,7 @@ func Test_ValidateEnrichMetrics(t *testing.T) {
 					},
 					MetricTags: MetricTagConfigList{
 						MetricTagConfig{
-							Column: SymbolConfig{
+							Symbol: SymbolConfigCompat{
 								OID:                  "1.2.3",
 								Name:                 "abc",
 								ExtractValue:         `(\d+)C`,
@@ -561,6 +561,285 @@ func Test_ValidateEnrichMetrics(t *testing.T) {
 			expectedErrors: []string{
 				"cannot compile `extract_value`",
 			},
+		},
+		{
+			name: "constant_value_one valid for column symbol",
+			metrics: []MetricsConfig{
+				{
+					Symbols: []SymbolConfig{
+						{
+							OID:              "1.2.3.4.5",
+							Name:             "testMetric",
+							ConstantValueOne: true,
+						},
+					},
+					MetricTags: MetricTagConfigList{
+						MetricTagConfig{
+							Tag: "index",
+							Symbol: SymbolConfigCompat(SymbolConfig{
+								OID:  "1.3.6.1.2.1.2.2.1.1",
+								Name: "ifIndex",
+							}),
+						},
+					},
+				},
+			},
+			expectedErrors: []string{},
+		},
+		{
+			name: "constant_value_one invalid for scalar symbol",
+			metrics: []MetricsConfig{
+				{
+					Symbol: SymbolConfig{
+						OID:              "1.2.3.4.5",
+						Name:             "testMetric",
+						ConstantValueOne: true,
+					},
+				},
+			},
+			expectedErrors: []string{
+				"`constant_value_one` cannot be used outside of tables",
+			},
+		},
+		{
+			name: "metric_type valid for scalar symbol",
+			metrics: []MetricsConfig{
+				{
+					Symbol: SymbolConfig{
+						OID:  "1.2.3.4.5",
+						Name: "testMetric",
+					},
+					MetricType: "gauge",
+				},
+			},
+			expectedErrors: []string{},
+		},
+		{
+			name: "metric_type valid for column symbol",
+			metrics: []MetricsConfig{
+				{
+					Symbols: []SymbolConfig{
+						{
+							OID:  "1.2.3.4.5",
+							Name: "testMetric",
+						},
+					},
+					MetricType: "monotonic_count",
+					MetricTags: MetricTagConfigList{
+						MetricTagConfig{
+							Tag: "index",
+							Symbol: SymbolConfigCompat(SymbolConfig{
+								OID:  "1.3.6.1.2.1.2.2.1.1",
+								Name: "ifIndex",
+							}),
+						},
+					},
+				},
+			},
+			expectedErrors: []string{},
+		},
+		{
+			name: "symbol.MetricType valid",
+			metrics: []MetricsConfig{
+				{
+					Symbols: []SymbolConfig{
+						{
+							OID:        "1.2.3.4.5",
+							Name:       "testMetric",
+							MetricType: "rate",
+						},
+					},
+					MetricTags: MetricTagConfigList{
+						MetricTagConfig{
+							Tag: "index",
+							Symbol: SymbolConfigCompat(SymbolConfig{
+								OID:  "1.3.6.1.2.1.2.2.1.1",
+								Name: "ifIndex",
+							}),
+						},
+					},
+				},
+			},
+			expectedErrors: []string{},
+		},
+		{
+			name: "forced_type migration to metric_type",
+			metrics: []MetricsConfig{
+				{
+					Symbol: SymbolConfig{
+						OID:  "1.2.3.4.5",
+						Name: "testMetric",
+					},
+					ForcedType: "counter",
+				},
+			},
+			expectedErrors: []string{},
+			expectedMetrics: []MetricsConfig{
+				{
+					Symbol: SymbolConfig{
+						OID:  "1.2.3.4.5",
+						Name: "testMetric",
+					},
+					MetricType: "counter",
+				},
+			},
+		},
+		{
+			name: "metric_tag Column and Symbol both declared",
+			metrics: []MetricsConfig{
+				{
+					Symbols: []SymbolConfig{
+						{
+							OID:  "1.2.3.4.5",
+							Name: "testMetric",
+						},
+					},
+					MetricTags: MetricTagConfigList{
+						MetricTagConfig{
+							Column: SymbolConfig{
+								OID:  "1.3.6.1.2.1.2.2.1.1",
+								Name: "ifIndex",
+							},
+							Symbol: SymbolConfigCompat(SymbolConfig{
+								OID:  "1.3.6.1.2.1.2.2.1.2",
+								Name: "ifDescr",
+							}),
+							Tag: "interface",
+						},
+					},
+				},
+			},
+			expectedErrors: []string{
+				"metric tag symbol and column cannot be both declared",
+			},
+		},
+		{
+			name: "metric_tag OID and Symbol.OID both declared",
+			metrics: []MetricsConfig{
+				{
+					Symbols: []SymbolConfig{
+						{
+							OID:  "1.2.3.4.5",
+							Name: "testMetric",
+						},
+					},
+					MetricTags: MetricTagConfigList{
+						MetricTagConfig{
+							OID:  "1.3.6.1.2.1.2.2.1.1",
+							Name: "ifIndex",
+							Symbol: SymbolConfigCompat(SymbolConfig{
+								OID:  "1.3.6.1.2.1.2.2.1.2",
+								Name: "ifDescr",
+							}),
+							Tag: "interface",
+						},
+					},
+				},
+			},
+			expectedErrors: []string{
+				"metric tag OID and symbol.OID cannot be both declared",
+			},
+		},
+		{
+			name: "metric_tag mapping without tag",
+			metrics: []MetricsConfig{
+				{
+					Symbols: []SymbolConfig{
+						{
+							OID:  "1.2.3.4.5",
+							Name: "testMetric",
+						},
+					},
+					MetricTags: MetricTagConfigList{
+						MetricTagConfig{
+							Symbol: SymbolConfigCompat(SymbolConfig{
+								OID:  "1.3.6.1.2.1.2.2.1.7",
+								Name: "ifAdminStatus",
+							}),
+							Mapping: map[string]string{
+								"1": "up",
+								"2": "down",
+							},
+							// Tag is missing
+						},
+					},
+				},
+			},
+			expectedErrors: []string{
+				"`tag` must be provided if `mapping`",
+			},
+		},
+		{
+			name: "metric_tag match without tags",
+			metrics: []MetricsConfig{
+				{
+					Symbols: []SymbolConfig{
+						{
+							OID:  "1.2.3.4.5",
+							Name: "testMetric",
+						},
+					},
+					MetricTags: MetricTagConfigList{
+						MetricTagConfig{
+							Symbol: SymbolConfigCompat(SymbolConfig{
+								OID:  "1.3.6.1.2.1.2.2.1.2",
+								Name: "ifDescr",
+							}),
+							Match: "([a-z]+)",
+							// Tags is missing
+						},
+					},
+				},
+			},
+			expectedErrors: []string{
+				"`tags` mapping must be provided if `match`",
+			},
+		},
+		{
+			name: "metric_tag Column migration to Symbol",
+			metrics: []MetricsConfig{
+				{
+					Symbols: []SymbolConfig{
+						{
+							OID:  "1.2.3.4.5",
+							Name: "testMetric",
+						},
+					},
+					MetricTags: MetricTagConfigList{
+						MetricTagConfig{
+							Column: SymbolConfig{
+								OID:  "1.3.6.1.2.1.2.2.1.1",
+								Name: "ifIndex",
+							},
+							Tag: "interface",
+						},
+					},
+				},
+			},
+			expectedErrors: []string{},
+			// Column should be migrated to Symbol
+		},
+		{
+			name: "metric_tag OID/Name migration to Symbol",
+			metrics: []MetricsConfig{
+				{
+					Symbols: []SymbolConfig{
+						{
+							OID:  "1.2.3.4.5",
+							Name: "testMetric",
+						},
+					},
+					MetricTags: MetricTagConfigList{
+						MetricTagConfig{
+							OID:  "1.3.6.1.2.1.2.2.1.1",
+							Name: "ifIndex",
+							Tag:  "interface",
+						},
+					},
+				},
+			},
+			expectedErrors: []string{},
+			// OID/Name should be migrated to Symbol
 		},
 	}
 	for _, tt := range tests {

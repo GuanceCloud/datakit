@@ -83,6 +83,23 @@ func (b *Boolean) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+func (s *SymbolConfigCompat) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var symbol SymbolConfig
+	err := unmarshal(&symbol)
+	if err != nil {
+		// Try to unmarshal as string
+		var str string
+		err := unmarshal(&str)
+		if err != nil {
+			return err
+		}
+		*s = SymbolConfigCompat(SymbolConfig{Name: str})
+	} else {
+		*s = SymbolConfigCompat(symbol)
+	}
+	return nil
+}
+
 func (mtcl *MetricTagConfigList) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var multi []MetricTagConfig
 	err := unmarshal(&multi)

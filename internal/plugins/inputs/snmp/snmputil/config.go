@@ -31,7 +31,7 @@ func ParseScalarOids(metrics []MetricsConfig, metricTags []MetricTagConfig, meta
 		oids = append(oids, metric.Symbol.OID)
 	}
 	for _, metricTag := range metricTags {
-		oids = append(oids, metricTag.OID)
+		oids = append(oids, metricTag.Symbol.OID)
 	}
 	if collectDeviceMetadata {
 		for resource, metadataConfig := range metadataConfigs {
@@ -49,7 +49,19 @@ func ParseScalarOids(metrics []MetricsConfig, metricTags []MetricTagConfig, meta
 			// can be used instead
 		}
 	}
-	return oids
+	newOids := make([]string, 0, len(oids))
+	oidsMap := make(map[string]struct{}, len(oids))
+	for _, oid := range oids {
+		if oid == "" {
+			continue
+		}
+		if _, ok := oidsMap[oid]; ok {
+			continue
+		}
+		oidsMap[oid] = struct{}{}
+		newOids = append(newOids, oid)
+	}
+	return newOids
 }
 
 func ParseColumnOids(metrics []MetricsConfig, metadataConfigs MetadataConfig, collectDeviceMetadata bool) []string {
@@ -59,7 +71,7 @@ func ParseColumnOids(metrics []MetricsConfig, metadataConfigs MetadataConfig, co
 			oids = append(oids, symbol.OID)
 		}
 		for _, metricTag := range metric.MetricTags {
-			oids = append(oids, metricTag.Column.OID)
+			oids = append(oids, metricTag.Symbol.OID)
 		}
 	}
 	if collectDeviceMetadata {
@@ -74,11 +86,23 @@ func ParseColumnOids(metrics []MetricsConfig, metadataConfigs MetadataConfig, co
 				}
 			}
 			for _, tagConfig := range metadataConfig.IDTags {
-				oids = append(oids, tagConfig.Column.OID)
+				oids = append(oids, tagConfig.Symbol.OID)
 			}
 		}
 	}
-	return oids
+	newOids := make([]string, 0, len(oids))
+	oidsMap := make(map[string]struct{}, len(oids))
+	for _, oid := range oids {
+		if oid == "" {
+			continue
+		}
+		if _, ok := oidsMap[oid]; ok {
+			continue
+		}
+		oidsMap[oid] = struct{}{}
+		newOids = append(newOids, oid)
+	}
+	return newOids
 }
 
 // GetProfileForSysObjectID return a profile for a sys object id.
@@ -184,9 +208,25 @@ var LegacyMetadataConfig = MetadataConfig{
 		IDTags: MetricTagConfigList{
 			{
 				Tag: "interface",
-				Column: SymbolConfig{
+				Symbol: SymbolConfigCompat{
 					OID:  "1.3.6.1.2.1.31.1.1.1.1",
 					Name: "ifName",
+				},
+			},
+		},
+	},
+	"ip_addresses": {
+		Fields: map[string]MetadataField{
+			"if_index": {
+				Symbol: SymbolConfig{
+					OID:  "1.3.6.1.2.1.4.20.1.2",
+					Name: "ipAdEntIfIndex",
+				},
+			},
+			"netmask": {
+				Symbol: SymbolConfig{
+					OID:  "1.3.6.1.2.1.4.20.1.3",
+					Name: "ipAdEntNetMask",
 				},
 			},
 		},
@@ -265,8 +305,15 @@ type SymbolConfig struct {
 	MatchValue           string `yaml:"match_value"`
 	MatchPatternCompiled *regexp.Regexp
 
-	ScaleFactor float64 `yaml:"scale_factor"`
-	Format      string  `yaml:"format"`
+	ScaleFactor      float64 `yaml:"scale_factor"`
+	Format           string  `yaml:"format"`
+	ConstantValueOne bool    `yaml:"constant_value_one,omitempty"`
+
+	// `metric_type` is used for force the metric type
+	//   When empty, by default, the metric type is derived from SNMP OID value type.
+	//   Valid `metric_type` types: `gauge`, `rate`, `monotonic_count`, `monotonic_count_and_rate`
+	//   Deprecated types: `counter` (use `rate` instead), percent (use `scale_factor` instead)
+	MetricType string `yaml:"metric_type,omitempty"`
 }
 
 func (sc *SymbolConfig) Copy() SymbolConfig {
@@ -288,7 +335,27 @@ func (sc *SymbolConfig) Copy() SymbolConfig {
 		MatchPatternCompiled: matchPatternCompiled,
 		ScaleFactor:          sc.ScaleFactor,
 		Format:               sc.Format,
+		ConstantValueOne:     sc.ConstantValueOne,
+		MetricType:           sc.MetricType,
 	}
+}
+
+// SymbolConfigCompat is used to deserialize string field or SymbolConfig.
+// For OID/Name to Symbol harmonization:
+// When users declare metric tag like:
+//
+//	metric_tags:
+//	  - OID: 1.2.3
+//	    symbol: aSymbol
+//
+// this will lead to OID stored as MetricTagConfig.OID and name stored as MetricTagConfig.Symbol.Name
+// When this happens, in ValidateEnrichMetricTags we harmonize by moving MetricTagConfig.OID to MetricTagConfig.Symbol.OID.
+type SymbolConfigCompat SymbolConfig
+
+// Copy creates a duplicate of this SymbolConfigCompat.
+func (s SymbolConfigCompat) Copy() SymbolConfigCompat {
+	sc := SymbolConfig(s)
+	return SymbolConfigCompat((&sc).Copy())
 }
 
 // MetricTagConfig holds metric tag info.
@@ -298,12 +365,13 @@ type MetricTagConfig struct {
 	// Table config
 	Index uint `yaml:"index"`
 
-	// TODO: refactor to rename to `symbol` instead (keep backward compat with `column`)
-	Column SymbolConfig `yaml:"column"`
+	// Deprecated: Use .Symbol instead.
+	Column SymbolConfig       `yaml:"column"`
+	Symbol SymbolConfigCompat `yaml:"symbol,omitempty"`
 
 	// Symbol config
 	OID  string `yaml:"OID"`
-	Name string `yaml:"symbol"`
+	Name string `yaml:"name"`
 
 	IndexTransform []MetricIndexTransform `yaml:"index_transform"`
 
@@ -327,6 +395,7 @@ func (mtc *MetricTagConfig) Copy() MetricTagConfig {
 		Tag:            mtc.Tag,
 		Index:          mtc.Index,
 		Column:         mtc.Column.Copy(),
+		Symbol:         mtc.Symbol.Copy(),
 		OID:            mtc.OID,
 		Name:           mtc.Name,
 		IndexTransform: CopyMetricIndexTransforms(mtc.IndexTransform),
@@ -382,8 +451,11 @@ type MetricsConfig struct {
 	StaticTags []string            `yaml:"static_tags"`
 	MetricTags MetricTagConfigList `yaml:"metric_tags"`
 
-	ForcedType string              `yaml:"forced_type"`
-	Options    MetricsConfigOption `yaml:"options"`
+	// Deprecated: use Symbol.MetricType instead
+	ForcedType string `yaml:"forced_type"`
+	MetricType string `yaml:"metric_type,omitempty"`
+
+	Options MetricsConfigOption `yaml:"options"`
 }
 
 func (m *MetricsConfig) Copy() MetricsConfig {
@@ -395,6 +467,7 @@ func (m *MetricsConfig) Copy() MetricsConfig {
 		StaticTags: CopyStrings(m.StaticTags),
 		MetricTags: CopyMetricTagConfigs(m.MetricTags),
 		ForcedType: m.ForcedType,
+		MetricType: m.MetricType,
 		Options:    m.Options.Copy(),
 	}
 }
@@ -422,7 +495,16 @@ func (m *MetricsConfig) IsScalar() bool {
 func (mtc *MetricTagConfig) GetTags(value string) []string {
 	var tags []string
 	if mtc.Tag != "" {
-		tags = append(tags, mtc.Tag+":"+value)
+		if len(mtc.Mapping) > 0 {
+			mappedValue, err := GetMappedValue(value, mtc.Mapping)
+			if err != nil {
+				l.Debugf("error getting tags. mapping for `%s` does not exist. mapping=`%v`", value, mtc.Mapping)
+			} else {
+				tags = append(tags, mtc.Tag+":"+mappedValue)
+			}
+		} else {
+			tags = append(tags, mtc.Tag+":"+value)
+		}
 	} else if mtc.Match != "" {
 		if mtc.pattern == nil {
 			l.Warnf("match pattern must be present: match=%s", mtc.Match)
@@ -441,6 +523,19 @@ func (mtc *MetricTagConfig) GetTags(value string) []string {
 		}
 	}
 	return tags
+}
+
+// GetMappedValue retrieves mapped value from a given mapping.
+// If mapping is empty, it will return the index.
+func GetMappedValue(index string, mapping map[string]string) (string, error) {
+	if len(mapping) > 0 {
+		mappedValue, ok := mapping[index]
+		if !ok {
+			return "", fmt.Errorf("mapping for `%s` does not exist. mapping=`%v`", index, mapping)
+		}
+		return mappedValue, nil
+	}
+	return index, nil
 }
 
 // RegexReplaceValue replaces a value using a regex and template.
@@ -559,6 +654,7 @@ var validMetadataResources = map[string]map[string]bool{
 		"os_name":       true,
 		"os_version":    true,
 		"os_hostname":   true,
+		"type":          true,
 	},
 	"interface": {
 		"name":         true,
@@ -593,11 +689,11 @@ func ValidateEnrichMetrics(metrics []MetricsConfig) []string {
 			errors = append(errors, fmt.Sprintf("table symbol and scalar symbol cannot be both provided: %#v", metricConfig))
 		}
 		if metricConfig.IsScalar() {
-			errors = append(errors, validateEnrichSymbol(&metricConfig.Symbol)...)
+			errors = append(errors, validateEnrichSymbol(&metricConfig.Symbol, ScalarSymbol)...)
 		}
 		if metricConfig.IsColumn() {
 			for j := range metricConfig.Symbols {
-				errors = append(errors, validateEnrichSymbol(&metricConfig.Symbols[j])...)
+				errors = append(errors, validateEnrichSymbol(&metricConfig.Symbols[j], ColumnSymbol)...)
 			}
 			if len(metricConfig.MetricTags) == 0 {
 				errors = append(errors, fmt.Sprintf("column symbols %v doesn't have a 'metric_tags' section, all its metrics will use the same tags; "+
@@ -609,6 +705,10 @@ func ValidateEnrichMetrics(metrics []MetricsConfig) []string {
 				metricTag := &metricConfig.MetricTags[i]
 				errors = append(errors, validateEnrichMetricTag(metricTag)...)
 			}
+		}
+		if metricConfig.MetricType == "" && metricConfig.ForcedType != "" {
+			metricConfig.MetricType = metricConfig.ForcedType
+			metricConfig.ForcedType = ""
 		}
 	}
 	return errors
@@ -631,10 +731,10 @@ func validateEnrichMetadata(metadata MetadataConfig) []string {
 				}
 				field := res.Fields[fieldName]
 				for i := range field.Symbols {
-					errors = append(errors, validateEnrichSymbol(&field.Symbols[i])...)
+					errors = append(errors, validateEnrichSymbol(&field.Symbols[i], MetadataSymbol)...)
 				}
 				if field.Symbol.OID != "" {
-					errors = append(errors, validateEnrichSymbol(&field.Symbol)...)
+					errors = append(errors, validateEnrichSymbol(&field.Symbol, MetadataSymbol)...)
 				}
 				res.Fields[fieldName] = field
 			}
@@ -651,13 +751,29 @@ func validateEnrichMetadata(metadata MetadataConfig) []string {
 	return errors
 }
 
-func validateEnrichSymbol(symbol *SymbolConfig) []string {
+// SymbolContext represent the context in which the symbol is used.
+type SymbolContext int64
+
+// ScalarSymbol enums.
+const (
+	ScalarSymbol SymbolContext = iota
+	ColumnSymbol
+	MetricTagSymbol
+	MetadataSymbol
+)
+
+// validateEnrichSymbol validates and enrich symbol.
+func validateEnrichSymbol(symbol *SymbolConfig, symbolContext SymbolContext) []string {
 	var errors []string
 	if symbol.Name == "" {
 		errors = append(errors, fmt.Sprintf("symbol name missing: name=`%s` oid=`%s`", symbol.Name, symbol.OID))
 	}
 	if symbol.OID == "" {
-		errors = append(errors, fmt.Sprintf("symbol oid missing: name=`%s` oid=`%s`", symbol.Name, symbol.OID))
+		if symbolContext == ColumnSymbol && !symbol.ConstantValueOne {
+			errors = append(errors, fmt.Sprintf("symbol oid or send_as_one missing: name=`%s` oid=`%s`", symbol.Name, symbol.OID))
+		} else if symbolContext != ColumnSymbol {
+			errors = append(errors, fmt.Sprintf("symbol oid missing: name=`%s` oid=`%s`", symbol.Name, symbol.OID))
+		}
 	}
 	if symbol.ExtractValue != "" {
 		pattern, err := regexp.Compile(symbol.ExtractValue)
@@ -675,13 +791,46 @@ func validateEnrichSymbol(symbol *SymbolConfig) []string {
 			symbol.MatchPatternCompiled = pattern
 		}
 	}
+	if symbolContext != ColumnSymbol && symbol.ConstantValueOne {
+		errors = append(errors, "`constant_value_one` cannot be used outside of tables")
+	}
+	if (symbolContext != ColumnSymbol && symbolContext != ScalarSymbol) && symbol.MetricType != "" {
+		errors = append(errors, "`metric_type` cannot be used outside scalar/table metric symbols and metrics root")
+	}
 	return errors
 }
 
 func validateEnrichMetricTag(metricTag *MetricTagConfig) []string {
 	var errors []string
+	if (metricTag.Column.OID != "" || metricTag.Column.Name != "") && (metricTag.Symbol.OID != "" || metricTag.Symbol.Name != "") {
+		//nolint:lll
+		errors = append(errors, fmt.Sprintf("metric tag symbol and column cannot be both declared: symbol=%v, column=%v", metricTag.Symbol, metricTag.Column))
+	}
 	if metricTag.Column.OID != "" || metricTag.Column.Name != "" {
-		errors = append(errors, validateEnrichSymbol(&metricTag.Column)...)
+		metricTag.Symbol = SymbolConfigCompat(metricTag.Column.Copy())
+		metricTag.Column = SymbolConfig{}
+	}
+	// OID/Name to Symbol harmonization:
+	// When users declare metric tag like:
+	//   metric_tags:
+	//     - OID: 1.2.3
+	//       symbol: aSymbol
+	// this will lead to OID stored as MetricTagConfig.OID  and name stored as MetricTagConfig.Symbol.Name
+	// When this happens, we harmonize by moving MetricTagConfig.OID to MetricTagConfig.Symbol.OID.
+	if metricTag.OID != "" && metricTag.Symbol.OID != "" {
+		//nolint:lll
+		errors = append(errors, fmt.Sprintf("metric tag OID and symbol.OID cannot be both declared: OID=%s, symbol.OID=%s", metricTag.OID, metricTag.Symbol.OID))
+	}
+	if metricTag.OID != "" && metricTag.Symbol.OID == "" {
+		metricTag.Symbol.OID = metricTag.OID
+	}
+	if metricTag.Name != "" && metricTag.Symbol.Name == "" {
+		metricTag.Symbol.Name = metricTag.Name
+	}
+	if metricTag.Symbol.OID != "" || metricTag.Symbol.Name != "" {
+		symbol := SymbolConfig(metricTag.Symbol)
+		errors = append(errors, validateEnrichSymbol(&symbol, MetricTagSymbol)...)
+		metricTag.Symbol = SymbolConfigCompat(symbol)
 	}
 	if metricTag.Match != "" {
 		pattern, err := regexp.Compile(metricTag.Match)
@@ -693,6 +842,9 @@ func validateEnrichMetricTag(metricTag *MetricTagConfig) []string {
 		if len(metricTag.Tags) == 0 {
 			errors = append(errors, fmt.Sprintf("`tags` mapping must be provided if `match` (`%s`) is defined", metricTag.Match))
 		}
+	}
+	if len(metricTag.Mapping) > 0 && metricTag.Tag == "" {
+		errors = append(errors, fmt.Sprintf("`tag` must be provided if `mapping` (`%s`) is defined", metricTag.Mapping))
 	}
 	for _, transform := range metricTag.IndexTransform {
 		if transform.Start > transform.End {

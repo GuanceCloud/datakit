@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -45,13 +46,25 @@ type TrapServer struct {
 }
 
 var (
-	serverInstance *TrapServer
-	errStart       error
+	serverInstances []*TrapServer
+	serverLock      sync.Mutex
+	errStart        error
 )
 
 // StartServer starts the global trap server.
 func StartServer(c *TrapsServerOpt) error {
+	serverLock.Lock()
+	defer serverLock.Unlock()
+
 	l = logger.SLogger(packageName)
+
+	addr := c.Addr()
+	for _, s := range serverInstances {
+		if s.config.Addr() == addr {
+			l.Infof("trap server on %s already running, sharing instance", addr)
+			return nil
+		}
+	}
 
 	// internal initialize
 	if err := checkDefaultConfig(c, defaultAgentHostname); err != nil {
@@ -67,9 +80,12 @@ func StartServer(c *TrapsServerOpt) error {
 		return err
 	}
 	server, err := NewTrapServer(*c, formatter)
-	serverInstance = server
-	errStart = err
-	return err
+	if err != nil {
+		errStart = err
+		return err
+	}
+	serverInstances = append(serverInstances, server)
+	return nil
 }
 
 func checkDefaultConfig(c *TrapsServerOpt, agentHostName string) error {
@@ -129,16 +145,22 @@ func checkDefaultConfig(c *TrapsServerOpt, agentHostName string) error {
 
 // StopServer stops the global trap server, if it is running.
 func StopServer() {
-	if serverInstance != nil {
-		serverInstance.Stop()
-		serverInstance = nil
-		errStart = nil
+	serverLock.Lock()
+	defer serverLock.Unlock()
+
+	for _, serverInstance := range serverInstances {
+		if serverInstance != nil {
+			serverInstance.Stop()
+			serverInstance = nil
+			errStart = nil
+		}
 	}
+	serverInstances = nil
 }
 
 // IsRunning returns whether the trap server is currently running.
 func IsRunning() bool {
-	return serverInstance != nil
+	return len(serverInstances) > 0
 }
 
 // NewTrapServer configures and returns a running SNMP traps server.

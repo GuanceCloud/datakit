@@ -7,6 +7,7 @@
 package snmputil
 
 import (
+	"net"
 	"sort"
 	"strconv"
 	"time"
@@ -110,6 +111,49 @@ func BuildNetworkInterfacesMetadata(deviceID string, store *Store) []InterfaceMe
 	return interfaces
 }
 
+func BuildNetworkIPAddressesMetadata(deviceID string, store *Store) []IPAddressMetadata {
+	if store == nil {
+		// it's expected that the value store is nil if we can't reach the device
+		// in that case, we just return a nil slice.
+		return nil
+	}
+	indexes := store.GetColumnIndexes("ip_addresses.if_index")
+	if len(indexes) == 0 {
+		l.Debugf("Unable to build ip addresses metadata: no ip_addresses.if_index found")
+		return nil
+	}
+	sort.Strings(indexes)
+	var ipAddresses []IPAddressMetadata
+	for _, strIndex := range indexes {
+		index := store.GetColumnAsString("ip_addresses.if_index", strIndex)
+		Netmask := store.GetColumnAsString("ip_addresses.netmask", strIndex)
+		ipAddress := IPAddressMetadata{
+			InterfaceID: deviceID + ":" + index,
+			IPAddress:   strIndex,
+			Prefixlen:   int32(netmaskToPrefixlen(Netmask)),
+		}
+		ipAddresses = append(ipAddresses, ipAddress)
+	}
+	return ipAddresses
+}
+
+func netmaskToPrefixlen(netmask string) int {
+	if netmask == "" {
+		return 0
+	}
+	ip := net.ParseIP(netmask)
+	if ip == nil {
+		return 0
+	}
+	ipv4 := ip.To4()
+	if ipv4 == nil {
+		return 0
+	}
+	stringMask := net.IPMask(ipv4)
+	length, _ := stringMask.Size()
+	return length
+}
+
 //nolint:lll
 func BatchPayloads(namespace string,
 	subnet string,
@@ -117,6 +161,7 @@ func BatchPayloads(namespace string,
 	batchSize int,
 	device DeviceMetadata,
 	interfaces []InterfaceMetadata,
+	ipAddresses []IPAddressMetadata,
 ) []NetworkDevicesMetadata {
 	var payloads []NetworkDevicesMetadata
 	var resourceCount int
@@ -142,6 +187,20 @@ func BatchPayloads(namespace string,
 		}
 		resourceCount++
 		payload.Interfaces = append(payload.Interfaces, interfaceMetadata)
+	}
+
+	for _, ipAddressMetadata := range ipAddresses {
+		if resourceCount == batchSize {
+			payloads = append(payloads, payload)
+			payload = NetworkDevicesMetadata{
+				Subnet:           subnet,
+				Namespace:        namespace,
+				CollectTimestamp: collectTime.Unix(),
+			}
+			resourceCount = 0
+		}
+		resourceCount++
+		payload.IPAddresses = append(payload.IPAddresses, ipAddressMetadata)
 	}
 
 	payloads = append(payloads, payload)

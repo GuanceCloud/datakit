@@ -26,6 +26,7 @@ type NetworkDevicesMetadata struct {
 	Namespace        string              `json:"namespace"`
 	Devices          []DeviceMetadata    `json:"devices,omitempty"`
 	Interfaces       []InterfaceMetadata `json:"interfaces,omitempty"`
+	IPAddresses      []IPAddressMetadata `json:"ip_addresses,omitempty"`
 	CollectTimestamp int64               `json:"collect_timestamp"`
 }
 
@@ -50,6 +51,8 @@ type DeviceMetadata struct {
 	OsName       string       `json:"os_name,omitempty"`
 	OsVersion    string       `json:"os_version,omitempty"`
 	OsHostname   string       `json:"os_hostname,omitempty"`
+	Type         string       `json:"type,omitempty"`
+	Uptime       float64      `json:"uptime,omitempty"`
 }
 
 // InterfaceMetadata contains interface metadata.
@@ -63,4 +66,11 @@ type InterfaceMetadata struct {
 	MacAddress  string   `json:"mac_address,omitempty"`
 	AdminStatus int32    `json:"admin_status,omitempty"` // IF-MIB ifAdminStatus type is INTEGER
 	OperStatus  int32    `json:"oper_status,omitempty"`  // IF-MIB ifOperStatus type is INTEGER
+}
+
+// IPAddressMetadata contains ip address metadata.
+type IPAddressMetadata struct {
+	InterfaceID string `json:"interface_id"`
+	IPAddress   string `json:"ip_address"`
+	Prefixlen   int32  `json:"prefixlen,omitempty"`
 }
