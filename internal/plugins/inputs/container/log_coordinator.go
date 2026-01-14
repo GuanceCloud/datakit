@@ -531,18 +531,19 @@ func newCRDLoggingConfig(key string, item *loggingv1alpha1.ClusterLoggingConfig)
 
 	for _, config := range item.Spec.Configs {
 		cfg.configs = append(cfg.configs, &logConfig{
-			Type:                  config.Type,
-			Source:                config.Source,
-			Disable:               config.Disable,
-			Path:                  config.Path,
-			StorageIndex:          config.StorageIndex,
-			Service:               config.Service,
-			CharacterEncoding:     config.CharacterEncoding,
-			Pipeline:              config.Pipeline,
-			Multiline:             config.Multiline,
-			RemoveAnsiEscapeCodes: config.RemoveAnsiEscapeCodes,
-			FromBeginning:         config.FromBeginning,
-			Tags:                  config.Tags,
+			Type:                       config.Type,
+			Source:                     config.Source,
+			Disable:                    config.Disable,
+			Path:                       config.Path,
+			StorageIndex:               config.StorageIndex,
+			Service:                    config.Service,
+			CharacterEncoding:          config.CharacterEncoding,
+			Pipeline:                   config.Pipeline,
+			Multiline:                  config.Multiline,
+			RemoveAnsiEscapeCodes:      config.RemoveAnsiEscapeCodes,
+			FromBeginning:              config.FromBeginning,
+			FromBeginningThresholdSize: config.FromBeginningThresholdSize,
+			Tags:                       config.Tags,
 		})
 	}
 
