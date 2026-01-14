@@ -107,6 +107,8 @@ By default, DCA will adopt the default configuration of the system. If you need 
  | `DCA_TLS_CERT_FILE`       | string | None                                                             | the cert file path, such as `/etc/ssl/certs/server.crt`                                    |
  | `DCA_TLS_KEY_FILE`        | string | None                                                             | the key file path, such as `/etc/ssl/certs/server.key`                                     |
  | `DCA_PROM_LISTEN`         | string | `localhost:9090`, metrics scrape URL is `localhost:9090/metrics` | DCA backend metrics export HTTP listen |
+ | `DCA_UPLOAD_HOST_STATUS`  | string | no                                                             | enable host status upload function when the value is not empty                             |
+ | `DCA_UPLOAD_HOST_STATUS_INTERVAL` | string | `30s`                                                         | interval for uploading host status, such as `30s`, `1m`, `1h`                               |
 
 Example:
 

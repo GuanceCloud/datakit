@@ -24,16 +24,18 @@ import (
 var l = logger.DefaultSLogger("server")
 
 type ServerOptions struct {
-	HTTPPort        string // HTTPPort is the port of HTTP server
-	PromListen      string // Prometheus metric export URL
-	ConsoleWebURL   string // ConsoleWebURL is the URL of console web page
-	ConsoleAPIURL   string // ConsoleAPIURL is the URL of console API
-	StaticBaseURL   string
-	ConsoleAPIProxy string
-	DBPath          string
-	TLSEnable       bool
-	TLSCertFile     string
-	TLSKeyFile      string
+	HTTPPort                 string // HTTPPort is the port of HTTP server
+	PromListen               string // Prometheus metric export URL
+	ConsoleWebURL            string // ConsoleWebURL is the URL of console web page
+	ConsoleAPIURL            string // ConsoleAPIURL is the URL of console API
+	StaticBaseURL            string
+	ConsoleAPIProxy          string
+	UploadHostStatus         bool
+	UploadHostStatusInterval time.Duration
+	DBPath                   string
+	TLSEnable                bool
+	TLSCertFile              string
+	TLSKeyFile               string
 }
 
 // Manager define a ws server manager.
@@ -45,19 +47,23 @@ var Manager = ClientManager{
 }
 
 var (
-	dbPath        = DefaultDBPath
-	enableTLS     = false
-	tlsCertFile   string
-	tlsKeyFile    string
-	datakitDB     = NewDB()
-	g             = goroutine.NewGroup(goroutine.Option{Name: "dca-server"})
-	consoleClient = http.Client{
+	dbPath                          = DefaultDBPath
+	enableTLS                       = false
+	tlsCertFile                     string
+	tlsKeyFile                      string
+	datakitDB                       = NewDB()
+	defaultUploadHostStatusInterval = 30 * time.Second
+	g                               = goroutine.NewGroup(goroutine.Option{Name: "dca-server"})
+	consoleClient                   = http.Client{
 		Timeout: 30 * time.Second,
 	}
 )
 
 func Start(opt *ServerOptions) error {
 	l = logger.SLogger("server")
+
+	closeCh := make(chan struct{})
+	defer close(closeCh)
 
 	if opt != nil {
 		if opt.HTTPPort != "" {
@@ -126,6 +132,17 @@ func Start(opt *ServerOptions) error {
 	})
 	l.Infof("start HTTP server on port %s", dcaHTTPPort)
 	addr := fmt.Sprintf(":%s", dcaHTTPPort)
+
+	if opt.UploadHostStatus {
+		interval := opt.UploadHostStatusInterval
+		if interval <= 0 {
+			interval = defaultUploadHostStatusInterval
+		}
+		g.Go(func(ctx context.Context) error {
+			UploadHostStatus(interval, closeCh)
+			return nil
+		})
+	}
 
 	if enableTLS {
 		l.Infof("enable TLS mode")
