@@ -100,6 +100,8 @@ spec:
                         type: boolean
                       from_beginning:
                         type: boolean
+                      from_beginning_threshold_size:
+                        type: integer
                       tags:
                         type: object
                         additionalProperties:
