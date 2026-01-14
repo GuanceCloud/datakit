@@ -1265,6 +1265,106 @@ if body["message"] == "Hello world" {
 
 上面的脚本中，首先使用 `load_json` 将响应内容（`response["body"]`）解析为 JSON 对象，然后判断响应中的 message 字段是否为 "Hello world"，如果是，则将 `result` 的 `is_failed` 设置为 false，否则将 `result` 的 `is_failed` 设置为 true，且 `error_message` 设置为错误信息。
 
+#### 多步拨测 {#multi}
+
+[:octicons-tag-24: Version-1.68.0](../datakit/changelog-2025.md#cl-1.68.0)
+
+多步拨测允许您定义一系列按顺序执行的拨测步骤，支持 HTTP 请求和等待操作，并可以在步骤之间传递变量。
+
+额外字段
+
+| 字段        | 类型   | 是否必须 | 说明                                      |
+| :---        | ---    | ---      | ---                                       |
+| `steps`     | array  | Y        | 拨测步骤列表，至少包含一个步骤            |
+
+总体的 JSON 结构如下：
+
+``` json
+{
+  "MULTI": [
+    {
+      "name": "multi-step-test",
+      "status": "OK",
+      "post_url": "https://<your-dataway-host>?token=<your-token>",
+      "frequency": "10s",
+      "steps": [
+        {
+          "type": "http",
+          "name": "step1",
+          "task": "{\"name\": \"step1\", \"method\": \"GET\", \"url\": \"http://api.example.com/resource\", \"post_script\": \"vars[\\\"token\\\"] = \\\"token_value\\\"\"}",
+          "allow_failure": false,
+          "retry": {
+            "retry": 3,
+            "interval": 1000
+          },
+          "extracted_vars": [
+            {
+              "name": "token",
+              "field": "token",
+              "secure": false
+            }
+          ]
+        },
+        {
+          "type": "wait",
+          "name": "step2",
+          "value": 5
+        },
+        {
+          "type": "http",
+          "name": "step3",
+          "task": "{\"name\": \"step3\", \"method\": \"POST\", \"url\": \"http://127.0.0.1:9000?token={{`{{token}}`}}\", \"post_script\":\"result[\\\"is_failed\\\"]=true\"}",
+          "allow_failure": false
+        }
+      ]
+    }
+  ]
+}
+```
+
+##### `steps` 定义 {#multi-steps}
+
+`steps` 是一个拨测步骤数组，每个步骤可以是以下两种类型之一：
+
+- HTTP 步骤 (`type: "http"`)
+
+   | 字段              | 类型   | 是否必须 | 说明                                      |
+   | :---              | ---    | ---      | ---                                       |
+   | `type`            | string | Y        | 步骤类型，必须为 `http`                   |
+   | `name`            | string | Y        | 步骤名称                                  |
+   | `task`            | string | Y        | HTTP 拨测任务的 JSON 字符串               |
+   | `allow_failure`   | bool   | N        | 是否允许步骤失败，默认 `false`            |
+   | `retry`           | object | N        | 重试配置，详见下文                        |
+   | `extracted_vars`  | array  | N        | 提取的变量列表，用于后续步骤      |
+
+- 等待步骤 (`type: "wait"`)
+
+   | 字段              | 类型   | 是否必须 | 说明                                      |
+   | :---              | ---    | ---      | ---                                       |
+   | `type`            | string | Y        | 步骤类型，必须为 `wait`                   |
+   | `name`            | string | Y        | 步骤名称                                  |
+   | `value`           | int    | Y        | 等待时间，单位为秒                        |
+   | `allow_failure`   | bool   | N        | 是否允许步骤失败，默认 `false`            |
+
+##### `retry` 定义 {#multi-retry}
+
+重试配置用于设置当步骤失败时的重试策略。
+
+| 字段              | 类型   | 是否必须 | 说明                                      |
+| :---              | ---    | ---      | ---                                       |
+| `retry`           | int    | Y        | 重试次数，必须在 0-5 之间                 |
+| `interval`        | int    | Y        | 重试间隔，单位为毫秒，必须在 0-5000 之间  |
+
+##### `extracted_vars` 定义 {#multi-extracted-vars}
+
+从 HTTP `post_script` 中定义的 `vars` 中提取变量，用于后续步骤的模板替换。
+
+| 字段              | 类型   | 是否必须 | 说明                                      |
+| :---              | ---    | ---      | ---                                       |
+| `name`            | string | Y        | 变量名称，用于后续步骤的模板替换          |
+| `field`           | string | Y        | `vars` 中定义的变量名    |
+| `secure`          | bool   | N        | 是否为安全变量，安全变量不会在结果中显示  |
+
 ### 模板函数使用说明 {#template-func}
 
 [:octicons-tag-24: Version-1.80.0](../datakit/changelog.md#cl-1.80.0)

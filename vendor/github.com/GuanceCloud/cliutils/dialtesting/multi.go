@@ -164,11 +164,12 @@ func (t *MultiTask) runHTTPStep(step *MultiStep) (map[string]interface{}, error)
 	for runCount < maxCount {
 		httpTask := &HTTPTask{}
 		task, err = NewTask(step.TaskString, httpTask)
-		if t.beforeRun != nil {
-			task.SetBeforeRun(t.beforeRun)
-		}
 		if err != nil {
 			return nil, fmt.Errorf("new task failed: %w", err)
+		}
+
+		if t.beforeRun != nil {
+			task.SetBeforeRun(t.beforeRun)
 		}
 		task.SetOption(t.GetOption())
 		for _, v := range t.extractedVars {
@@ -220,6 +221,10 @@ func (t *MultiTask) runHTTPStep(step *MultiStep) (map[string]interface{}, error)
 			}
 		}
 		task.Stop()
+
+		if err == nil && result["status"] == "OK" {
+			break
+		}
 
 		runCount++
 		if runCount < maxCount {

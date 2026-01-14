@@ -177,6 +177,7 @@ func (v *Variable) getTaskKey(ownerExternalID, externalID string) string {
 	return ownerExternalID + "-" + externalID
 }
 
+// updateVariableValue update variable value.
 func (v *Variable) updateVariableValue(variable dt.Variable, value string, failCount int) {
 	g.Go(func(ctx context.Context) error {
 		ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
