@@ -219,7 +219,7 @@ func ResolveLanguage(runtimes []string) Language {
 	for _, r := range runtimes {
 		r = strings.ToLower(r)
 		for name, lang := range LangMaps {
-			if strings.Contains(r, name) {
+			if r == name {
 				return lang
 			}
 		}
