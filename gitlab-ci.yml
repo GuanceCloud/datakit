@@ -20,6 +20,7 @@ variables:
   DISABLED_MR_TARGET_BRANCHES: "/^master|main/"
   DISABLED_MR_TITLE: '/^(\[Draft\]|\(Draft\)|Draft:)/'
   FLAMESHOT_VERSION: "0.1.0"
+  FLAMESHOT_TESTING_VERSION: $FLAMESHOT_VERSION-testing_$CI_COMMIT_BRANCH
 
 stages:
   - _test_guance
@@ -283,7 +284,8 @@ release-testing-guance: # release testing packages to guance
     - make testing_image VERSION="$CI_TESTING_VERSION" \
         BRAND="guance" \
         DOCKER_IMAGE_REPO="pubrepo.guance.com/datakit" \
-        DOCKERFILE_SUFFIX="guance"
+        DOCKERFILE_SUFFIX="guance" \
+        FLAMESHOT_VERSION="$FLAMESHOT_TESTING_VERSION"
     - make uos_image_testing GIT_BRANCH=$CI_COMMIT_BRANCH \
         PKGEBPF=1 \
         VERSION="$CI_TESTING_VERSION" \
@@ -320,7 +322,8 @@ release-testing-tw: # release testing packages to truewatch
     - make testing_image VERSION="$CI_TESTING_VERSION" \
       BRAND="truewatch" \
       DOCKER_IMAGE_REPO="pubrepo.guance.com/truewatch" \
-      DOCKERFILE_SUFFIX="tw"
+      DOCKERFILE_SUFFIX="tw" \
+      FLAMESHOT_VERSION="$FLAMESHOT_TESTING_VERSION"
   tags:
     - cloudcare-ft
 
