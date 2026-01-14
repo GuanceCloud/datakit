@@ -1,7 +1,8 @@
 nav:
   - index.md
   - 'Changelog':
-    - changelog-2025.md
+    - changelog-2026.md
+    - '2025': changelog-2025.md
     - '2021~2024': changelog.md
 
   - 'DataKit Installation':
