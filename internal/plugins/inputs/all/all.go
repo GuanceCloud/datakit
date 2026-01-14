@@ -53,6 +53,7 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/host_healthcheck"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/hostdir"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/influxdb"
+	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/ingestion_canary"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/ipmi"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/jaeger"
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/jenkins"

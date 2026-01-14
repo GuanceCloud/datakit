@@ -242,6 +242,9 @@ var (
 	flagToolChangeDockerContainersRuntime = fsTool.String("change-docker-containers-runtime", "",
 		"change the runtime of the created container, the value is runc or dk-runc")
 
+	flagToolIngestionCanary      = fsTool.Bool("ingestion-canary", false, "test ingestion latency for metric/logging/tracing data")
+	flagToolIngestionCanaryIndex = fsTool.String("ingestion-canary-index", "default", "storage index for logging data (only for ingestion-canary)")
+
 	fsToolUsage = func() {
 		cp.Printf("usage: datakit tool [options]\n\n")
 		cp.Printf("Various tools for DataKit\n\n")
