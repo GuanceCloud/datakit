@@ -12,11 +12,13 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"syscall"
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/gin-gonic/gin"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -55,7 +57,8 @@ type Input struct {
 	nextEventChan     <-chan *extension.NextEventResponse
 	eventDoneChan     chan struct{}
 
-	g *goroutine.Group
+	g            *goroutine.Group
+	lambdaServer *http.Server
 }
 
 func (ipt *Input) Catalog() string {
@@ -78,6 +81,7 @@ func (ipt *Input) Run() {
 		ipt.collect()
 		return nil
 	})
+
 	for {
 		select {
 		case eventResponse, ok := <-ipt.nextEventChan:
@@ -104,32 +108,42 @@ func (ipt *Input) collect() {
 		logEvents    []*telemetry.LogEvent
 	)
 
-	for arr := range ipt.telemetryListener.GetPullChan() {
-		arr, delData := telemetry.SeparateEvents(arr)
-		logEvents = append(logEvents, delData...)
-		metricEvents = append(metricEvents, arr...)
+	defer func() {
+		l.Debugf("tail size of log events: %d, size of metric events: %d", len(logEvents), len(metricEvents))
+		ipt.feedLog(logEvents, true)
+		ipt.feedMetric(metricEvents, true)
+	}()
 
-		sizeL, sizeM := len(logEvents), len(metricEvents)
-		l.Debugf("size of log events: %d, size of metric events: %d", sizeL, sizeM)
+	for {
+		select {
+		case arr := <-ipt.telemetryListener.GetPullChan():
+			arr, delData := telemetry.SeparateEvents(arr)
+			logEvents = append(logEvents, delData...)
+			metricEvents = append(metricEvents, arr...)
 
-		if slicesContainsWithType(arr, telemetry.TypePlatformRuntimeDone) {
+			sizeL, sizeM := len(logEvents), len(metricEvents)
 			l.Debugf("size of log events: %d, size of metric events: %d", sizeL, sizeM)
 
-			syncFeed := ipt.feedControl.ShouldFeed()
+			if slicesContainsWithType(arr, telemetry.TypePlatformRuntimeDone) {
+				l.Debugf("size of log events: %d, size of metric events: %d", sizeL, sizeM)
 
-			ipt.feedMetric(metricEvents, syncFeed)
-			ipt.feedLog(logEvents, syncFeed)
+				syncFeed := ipt.feedControl.ShouldFeed()
 
-			logEvents = make([]*telemetry.LogEvent, 0, sizeL)
-			metricEvents = make([]*telemetry.Event, 0, sizeM)
+				ipt.feedMetric(metricEvents, syncFeed)
+				ipt.feedLog(logEvents, syncFeed)
 
-			ipt.eventDoneChan <- struct{}{}
+				logEvents = make([]*telemetry.LogEvent, 0, sizeL)
+				metricEvents = make([]*telemetry.Event, 0, sizeM)
+			}
+		case ipt.eventDoneChan <- struct{}{}:
+		case <-ipt.ctx.Done():
+			l.Infof("collect loop context done")
+			return
+		case <-datakit.Exit.Wait():
+			l.Infof("collect loop datakit exit")
+			return
 		}
 	}
-
-	l.Debugf("tail size of log events: %d, size of metric events: %d", len(logEvents), len(metricEvents))
-	ipt.feedLog(logEvents, true)
-	ipt.feedMetric(metricEvents, true)
 }
 
 func slicesContainsWithType(events []*telemetry.Event, typ string) bool {
@@ -211,7 +225,58 @@ func (ipt *Input) AvailableArchs() []string {
 func (ipt *Input) Terminate() {
 	ipt.telemetryListener.Shutdown()
 	ipt.cancel()
+	if ipt.lambdaServer != nil {
+		if err := ipt.lambdaServer.Shutdown(ipt.ctx); err != nil {
+			l.Errorf("lambda server shutdown failed: %s", err.Error())
+		}
+	}
 	httpapi.RemoveHTTPRoute(http.MethodPost, "/awslambda")
+}
+
+func (ipt *Input) startDDLambdaExtensionService() {
+	if tracingEnabled, err := strconv.ParseBool(os.Getenv("DD_TRACE_ENABLED")); err == nil {
+		if !tracingEnabled {
+			l.Debugf("DD_TRACE_ENABLED is false, skip lambda extesion service")
+			return
+		}
+	} else {
+		l.Warnf("parse DD_TRACE_ENABLED failed: %s", err.Error())
+		return
+	}
+
+	ipt.g.Go(func(ctx context.Context) error {
+		router := gin.Default()
+		// TODO: implement these api
+		router.POST("/lambda/start-invocation", func(ctx *gin.Context) {
+			l.Debugf("receive lambda start-invocation")
+			ctx.JSON(http.StatusOK, nil)
+		})
+		router.POST("/lambda/end-invocation", func(ctx *gin.Context) {
+			l.Debugf("receive lambda end-invocation")
+			ctx.JSON(http.StatusOK, nil)
+		})
+
+		router.GET("/hello", func(ctx *gin.Context) {
+			ctx.JSON(http.StatusOK, nil)
+		})
+
+		router.GET("/flush", func(ctx *gin.Context) {
+			ctx.JSON(http.StatusOK, nil)
+		})
+
+		ipt.lambdaServer = &http.Server{
+			Addr:    ":8124", // TODO: configure the port through env
+			Handler: router,
+		}
+
+		l.Infof("start lambda extension server at addr: %s", ipt.lambdaServer.Addr)
+
+		if err := ipt.lambdaServer.ListenAndServe(); err != nil {
+			l.Errorf("start lambda extension server failed: %s", err.Error())
+		}
+
+		return nil
+	})
 }
 
 func (ipt *Input) setup() error {
@@ -260,6 +325,8 @@ func (ipt *Input) setup() error {
 		return err
 	}
 	ipt.eventDoneChan <- struct{}{}
+
+	ipt.startDDLambdaExtensionService()
 
 	l.Infof("setup ok")
 	return nil
