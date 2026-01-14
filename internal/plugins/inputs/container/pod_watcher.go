@@ -87,34 +87,18 @@ func (w *podWatcher) setupInformer() {
 
 	w.informer = informerFactory.Core().V1().Pods().Informer()
 
+	// 只关心 Pod 是否被删除，关闭对应的日志采集任务
+
 	w.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			newPod := newObj.(*corev1.Pod)
-			oldPod := oldObj.(*corev1.Pod)
 
 			// 检查 Pod 是否进入 Terminating 状态
-			// 1. 检查 DeletionTimestamp 是否刚刚被设置（从 nil 变为非 nil）
-			// 2. 或者检查 DeletionTimestamp 是否存在（Pod 处于 Terminating 状态）
-			oldDeleting := oldPod.DeletionTimestamp != nil
-			newDeleting := newPod.DeletionTimestamp != nil
-
-			// Pod 刚刚进入 Terminating 状态（DeletionTimestamp 刚刚被设置）
-			// 或者已经处于 Terminating 状态（DeletionTimestamp 已存在）
-			if newDeleting {
-				if !oldDeleting {
-					// 刚刚进入 Terminating 状态
-					l.Infof("Pod %s/%s is entering terminating state (DeletionTimestamp just set), removing log tasks, podUID=%s",
-						newPod.Namespace, newPod.Name, string(newPod.UID))
-				} else {
-					// 已经处于 Terminating 状态
-					l.Debugf("Pod %s/%s is already terminating (DeletionTimestamp exists), removing log tasks, podUID=%s",
-						newPod.Namespace, newPod.Name, string(newPod.UID))
-				}
+			if newPod.DeletionTimestamp != nil {
 				w.enqueue(newPod, "update")
 			}
 		},
-		// DeleteFunc 通常是在 Pod 彻底消失后触发，
-		// 作为兜底，确保即使 UpdateFunc 没有捕获到，也能执行清理
+		// DeleteFunc 通常是在 Pod 彻底消失后触发
 		DeleteFunc: func(obj interface{}) {
 			w.enqueue(obj, "delete")
 		},
