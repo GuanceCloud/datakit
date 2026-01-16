@@ -122,6 +122,11 @@ func (fd *feedData) GetFeedSource() string {
 	return fd.input
 }
 
+// NoGlobalTags used to test if global tag disabled.
+func (fd *feedData) NoGlobalTags() bool {
+	return fd.noGlobalTags
+}
+
 // FeedOption used to define various feed options.
 type FeedOption func(*feedData)
 
