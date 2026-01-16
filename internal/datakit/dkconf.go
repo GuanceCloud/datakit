@@ -287,6 +287,7 @@ ulimit = 64000
 
   # log path
   log = "/var/log/datakit/log"
+  error_log = "/var/log/datakit/error.log"
 
   # HTTP access log
   gin_log = "/var/log/datakit/gin.log"

@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.88.1(2026/01/16) {#cl-1.88.1}
+
+This release is a hotfix release, contents are as follows:
+
+### Bug Fixes {#cl-1.88.1-fix}
+
+- In version 1.87.2, the appending of global host tags for OpenTelemetry metrics was removed, which caused significant impact. By default, these tags are now appended again; if removal is required, a new flag has been added in this version for configuration (#2942)
+- Fixed trigger threshold evaluation issue in Flameshot (#2943)
+- Added IPDB configuration capability in Pipeline debugging (#2944)
+
+---
+
 ## 1.88.0(2026/01/14) {#cl-1.88.0}
 
 This release is an iterative release, with the following main updates:
