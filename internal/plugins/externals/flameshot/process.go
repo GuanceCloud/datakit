@@ -128,17 +128,17 @@ func (pm *processM) isTrigger() (bool, []string) {
 	tags := make([]string, 0)
 
 	cpuAvg := getListAvg(pm.CPUHistory, 5)
-	if cpuAvg >= float64(pm.configProcess.CPUUsagePercent) {
+	if pm.configProcess.CPUUsagePercent > 0 && cpuAvg >= float64(pm.configProcess.CPUUsagePercent) {
 		trigger = true
 		tags = append(tags, fmt.Sprintf("cpu_avg:%0.2f", cpuAvg))
 	}
 	memAvg := getListAvg(pm.MemHistory, 5)
-	if memAvg >= float64(pm.configProcess.MEMUsageMB) {
+	if pm.configProcess.MEMUsageMB > 0 && memAvg >= float64(pm.configProcess.MEMUsageMB) {
 		trigger = true
 		tags = append(tags, fmt.Sprintf("mem_used:%0.2f", memAvg))
 	}
 	memPercAvg := getListAvg(pm.MemPercentHistory, 5)
-	if memPercAvg >= float64(pm.configProcess.MEMUsagePercent) {
+	if pm.configProcess.MEMUsagePercent > 0 && memPercAvg >= float64(pm.configProcess.MEMUsagePercent) {
 		trigger = true
 		tags = append(tags, fmt.Sprintf("mem_perc_avg:%0.2f", memPercAvg))
 	}

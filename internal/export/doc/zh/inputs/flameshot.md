@@ -88,6 +88,8 @@ Flameshot 的所有行为均通过环境变量进行控制。配置分为 **全�
 - **`cpu_usage_percent`** (Int): CPU 触发阈值 (0-N)。多核环境下数值可能超过 100。
 - **`mem_usage_percent`** (Int): 内存使用率触发阈值 (0-100)。
 - **`mem_usage_mb`** (Int): 内存使用量绝对值触发阈值 (MB)。
+- 这三个配置： **`cpu_usage_percent`** **`mem_usage_percent`** **`mem_usage_mb`** 不配置或者配置 0 都会略过该项的阈值检查。
+
 
 ---
 
