@@ -28,6 +28,7 @@ import (
 	"github.com/GuanceCloud/platypus/pkg/token"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
 )
@@ -174,6 +175,12 @@ func apiPipelineDebugHandler(w http.ResponseWriter, req *http.Request, whatever 
 	for _, pt := range pts {
 		// run pipeline
 		plpt := ptinput.PtWrap(category, pt)
+
+		// set ipdb
+		if v, ok := plval.GetIPDB(); ok {
+			plpt.SetIPDB(v)
+		}
+
 		err := plRunner.Run(plpt, newPlTestSingal(), nil)
 
 		if err != nil {
