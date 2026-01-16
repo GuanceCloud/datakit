@@ -135,7 +135,7 @@ func (ipt *Input) parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics, remo
 				if len(pts) >= 1000 {
 					if err := ipt.feeder.Feed(point.Metric, pts,
 						dkio.WithSource(inputName),
-						dkio.DisableGlobalTags(true),
+						dkio.DisableGlobalTags(ipt.TracingMetricDisableGlobalHostTags),
 						dkio.WithCollectCost(time.Since(start)),
 					); err != nil {
 						log.Errorf("feed err=%s", err.Error())
@@ -149,7 +149,7 @@ func (ipt *Input) parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics, remo
 	if len(pts) > 0 {
 		_ = ipt.feeder.Feed(point.Metric, pts,
 			dkio.WithSource(inputName),
-			dkio.DisableGlobalTags(true),
+			dkio.DisableGlobalTags(ipt.TracingMetricDisableGlobalHostTags),
 			dkio.WithCollectCost(time.Since(start)))
 	}
 }

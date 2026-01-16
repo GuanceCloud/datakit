@@ -85,6 +85,9 @@ const (
   ## Extract the above metrics from the collection traces.
   # tracing_metric_enable = true
 
+  # disable global host tags
+  tracing_metric_disable_global_host_tags = false
+
   ## Blacklist of metric tags: There are many labels in the metric: "tracing_metrics".
   ## If you want to remove certain tag, you can use the blacklist to remove them.
   ## By default, it includes: source,span_name,env,service,status,version,resource,http_status_code,http_status_class
@@ -165,10 +168,13 @@ type Input struct {
 	IgnoreAttributeKeys []string          `toml:"ignore_attribute_keys"` // deprecated
 	CustomerTags        []string          `toml:"customer_tags"`
 	CustomerTagsAll     bool              `toml:"customer_tags_all"`
+
 	// Deprecated: 错误拼写字段。
 	CustomerTagsAllDeprecated bool `toml:"costomer_tags_all"`
 
-	TracingMetricEnable       bool     `toml:"tracing_metric_enable"`        // 开关，默认打开。
+	TracingMetricEnable                bool `toml:"tracing_metric_enable"`
+	TracingMetricDisableGlobalHostTags bool `toml:"tracing_metric_disable_global_host_tags"`
+
 	TracingMetricTagBlacklist []string `toml:"tracing_metric_tag_blacklist"` // 指标黑名单。
 	TracingMetricTagWhitelist []string `toml:"tracing_metric_tag_whitelist"`
 
