@@ -89,6 +89,7 @@ To maintain readability in Kubernetes YAML, it is **strongly recommended** to us
 - **`cpu_usage_percent`** (Int): CPU trigger threshold (0-N). Values may exceed 100 in multi-core environments.
 - **`mem_usage_percent`** (Int): Memory usage percentage trigger threshold (0-100).
 - **`mem_usage_mb`** (Int): Memory usage absolute value trigger threshold (MB).
+- These three configurations: **`cpu_usage_percent`**, **`mem_usage_percent`**, **`mem_usage_mb`** will skip the threshold check for this item if not configured or set to 0.
 
 ---
 
