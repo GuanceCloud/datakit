@@ -352,7 +352,25 @@ func (ipt *Input) initDB() error {
 
 	ipt.db = db
 
+	// set sqlserver_host tag
+	ipt.setServerHostTag()
+
 	return nil
+}
+
+func (ipt *Input) setServerHostTag() {
+	var hostName string
+	query := `SELECT REPLACE(@@SERVERNAME, '\', ':')`
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	defer cancel()
+
+	if err := ipt.db.QueryRowContext(ctx, query).Scan(&hostName); err != nil {
+		l.Warnf("failed to get sqlserver host name: %s", err)
+	}
+
+	if len(hostName) > 0 {
+		ipt.Tags["sqlserver_host"] = hostName
+	}
 }
 
 func (ipt *Input) RunPipeline() {
