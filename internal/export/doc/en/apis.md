@@ -154,6 +154,16 @@ The complete description of URL parameters is as follows:
 
 The HTTP body supports the line protocol and two JSON forms.
 
+<!-- markdownlint-disable MD046 -->
+???+ info
+
+    For different data types (metrics/logs and all other types), the following top-level field definitions in the HTTP body are consistent.
+
+    In simple JSON, regardless of whether it is a metric or a log, the top-level fields are always `measurement/tags/fields/time`. The `source` of a log commonly seen on the studio page is actually the `measurement` here. In short, the body defined here is merely the protocol encapsulation, while the field names seen on the studio page have undergone certain transformations targeting different data attributes.
+
+    In PBJSON, for different data types, the top-level fields are all the same, namely `name/fields/time`, where the `name` field is ultimately mapped to `measurement` in metrics and `source` in logs.
+<!-- markdownlint-enable -->
+
 ##### Line Protocol Body {#api-v1-write-body-line-protocol}
 
 The form of a single line protocol is as follows:

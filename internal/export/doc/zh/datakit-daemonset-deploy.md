@@ -286,6 +286,8 @@ DataKit 推荐以 root 用户和特权模式运行，同时也提供非 root 用
 1. 将 `privileged` 设置为 `true`
 1. 重新部署 DataKit
 
+更多关于 DataKit 安全要求的说明，参见[这里](datakit-security.md)。
+
 ### Kubernetes 污点容忍度配置 {#toleration}
 
 DataKit 默认会在 Kubernetes 集群的所有 Node 上部署（即忽略所有污点），如果 Kubernetes 中某些 Node 节点添加了污点调度，且不希望在其上部署 DataKit，可修改 *datakit.yaml*，调整其中的污点容忍度：
