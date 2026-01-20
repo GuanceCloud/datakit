@@ -153,6 +153,16 @@ curl -X POST -H "Content-Type: application/pbjson; proto=com.guance.Point" -d '<
 
 HTTP body 支持行协议以及两种 JSON 俩种形式。
 
+<!-- markdownlint-disable MD046 -->
+???+ info
+
+    针对不同的数据类型（指标/日志等所有其它类型），以下关于 HTTP body 的一级字段定义都是一致的。
+
+    在简单 JSON 中，不管是指标还是日志，其一级字段都是 `measurement/tags/fields/time`，我们日常在 studio 页面中看到的日志的 `source` 实际上就是这里的 `measurement`。总而言之，这里定义的 body 只是协议封装，而 studio 页面中看到的字段名称是针对不同的数据属性，做了一定的转换。
+
+    在 PBJSON 中，不同数据类型，其一级字段都是一样的，即 `name/fields/time`，其中 `name` 字段最终映射成指标中的 `measurement`、日志中的 `source`。
+<!-- markdownlint-enable -->
+
 ##### 行协议 Body {#api-v1-write-body-line-protocol}
 
 单条行协议形式如下：

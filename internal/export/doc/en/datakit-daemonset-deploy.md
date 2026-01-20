@@ -285,6 +285,8 @@ If the non-root mode cannot meet your monitoring requirements, you can revert to
 1. Set `privileged` to `true`.
 1. Redeploy DataKit.
 
+For more Datakit security related information, see [here](datakit-security.md).
+
 ### Kubernetes Tolerance Configuration {#toleration}
 
 DataKit is deployed on all nodes in the Kubernetes cluster by default (that is, all stains are ignored). If some node nodes in Kubernetes have added stain scheduling and do not want to deploy DataKit on them, you can modify `datakit.yaml` to adjust the stain tolerance:
