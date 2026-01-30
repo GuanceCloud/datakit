@@ -342,7 +342,7 @@ SELECT
 	,REPLACE(@@SERVERNAME,'\',':') AS [sqlserver_host]
 	,pc.[object_name]
 	,pc.[counter_name]
-	,CASE pc.[instance_name] WHEN '_Total' THEN 'Total' ELSE ISNULL(pc.[instance_name],'') END AS [instance]
+	,CASE pc.[instance_name] WHEN '_Total' THEN 'Total' ELSE ISNULL(pc.[instance_name],'') END AS [counter_instance]
 	,CAST(CASE WHEN pc.[cntr_type] = 537003264 AND pc1.[cntr_value] > 0 THEN (pc.[cntr_value] * 1.0) / (pc1.[cntr_value] * 1.0) * 100 ELSE pc.[cntr_value] END AS float(10)) AS [cntr_value]
 	,CAST(pc.[cntr_type] AS varchar(25)) AS [counter_type]
 FROM @PCounters AS pc
