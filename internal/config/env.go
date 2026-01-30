@@ -361,7 +361,9 @@ func (c *Config) loadDatawayEnvs() {
 	}
 
 	if v := datakit.GetEnv("ENV_DATAWAY_ENABLE_HTTPTRACE"); v != "" {
-		c.Dataway.EnableHTTPTrace = true
+		if b, err := strconv.ParseBool(v); err == nil {
+			c.Dataway.EnableHTTPTrace = b
+		}
 	}
 
 	if v := datakit.GetEnv("ENV_DATAWAY_HTTP_PROXY"); v != "" {

@@ -271,7 +271,7 @@ func Test_serverSideTimeout(t *T.T) {
 		for _, x := range httpParts {
 			_, err := conn.Write([]byte(x))
 			require.NoError(t, err)
-			t.Logf("-> send: %q, sleeping %v...", x, delay)
+			t.Logf("[%s] -> send: %q, sleeping %v...", time.Now(), x, delay)
 			time.Sleep(delay)
 		}
 

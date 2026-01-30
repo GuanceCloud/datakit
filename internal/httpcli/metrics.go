@@ -18,6 +18,7 @@ var (
 	httpClientDNSCost,
 	httpClientTLSHandshakeCost,
 	httpClientConnectCost,
+	httpClientBodyTransferCost,
 	httpClientGotFirstResponseByteCost *prometheus.SummaryVec
 )
 
@@ -111,6 +112,22 @@ func init() {
 		[]string{"from"},
 	)
 
+	httpClientBodyTransferCost = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: subsystem,
+			Name:      "http_body_cost_seconds",
+			Help:      "HTTP body transfer cost",
+
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
+		},
+		[]string{"from", "url"},
+	)
+
 	httpClientGotFirstResponseByteCost = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
 			Namespace: "datakit",
@@ -127,7 +144,7 @@ func init() {
 			MaxAge:     prometheus.DefMaxAge, // 10min
 			AgeBuckets: prometheus.DefAgeBuckets,
 		},
-		[]string{"from"},
+		[]string{"from", "url"},
 	)
 
 	metrics.MustRegister(
@@ -137,6 +154,7 @@ func init() {
 		httpClientDNSCost,
 		httpClientTLSHandshakeCost,
 		httpClientConnectCost,
+		httpClientBodyTransferCost,
 		httpClientGotFirstResponseByteCost,
 	)
 }
