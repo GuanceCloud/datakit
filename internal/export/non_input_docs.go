@@ -161,6 +161,7 @@ func envDataway() []*inputs.ENVInfo {
 			ENVName: "ENV_DATAWAY_ENABLE_HTTPTRACE",
 			Type:    doc.Boolean,
 			Desc:    "Enable metrics on DataWay HTTP request",
+			Default: "`true`",
 			DescZh:  "开启 DataWay 请求时 HTTP 层面的指标暴露",
 		},
 

@@ -89,6 +89,7 @@ func NewDefaultDataway(opts ...DWOption) *Dataway {
 		GlobalCustomerKeys:   []string{},
 		ContentEncoding:      "v2",
 		GZip:                 true,
+		EnableHTTPTrace:      true,
 		MaxRetryCount:        DefaultRetryCount,
 		RetryDelay:           DefaultRetryDelay,
 		NTP: &ntp{

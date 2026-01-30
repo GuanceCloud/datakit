@@ -78,6 +78,10 @@ func (p *PromScraper) ScrapeURL(u string) error {
 		return err
 	}
 
+	s := httpcli.GetTracer(p.opt.source, p.opt.remote, "")
+	defer s.Metrics()
+	req = req.WithContext(httptrace.WithClientTrace(req.Context(), s.Trace()))
+
 	resp, err := p.client.Do(req)
 	if err != nil {
 		return err
@@ -133,10 +137,6 @@ func (p *PromScraper) newRequest(u string) (*http.Request, error) {
 	for k, v := range p.opt.httpHeaders {
 		req.Header.Set(k, v)
 	}
-
-	s := httpcli.NewHTTPClientTraceStat(p.opt.source, p.opt.remote)
-	defer s.Metrics()
-	req = req.WithContext(httptrace.WithClientTrace(req.Context(), s.Trace()))
 
 	return req, err
 }
