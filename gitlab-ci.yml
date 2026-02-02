@@ -1,16 +1,3 @@
-before_script:
-  - rm -rf /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
-  - mkdir -p /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
-  - cp -r ./. /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
-  - cd /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
-  #- source ~/.ossenv
-  - uname -a
-  - echo $DK_BPF_KERNEL_SRC_PATH
-  - env | grep ^OSS_
-  - export PATH=/usr/local/go1.19.12/bin:$PATH
-  - export GOROOT=/usr/local/go1.19.12
-  - go version
-
 variables:
   PROJECT: "datakit"
   CI_VERSION: "1.88.1"
@@ -21,6 +8,22 @@ variables:
   DISABLED_MR_TITLE: '/^(\[Draft\]|\(Draft\)|Draft:)/'
   FLAMESHOT_VERSION: "0.1.0"
   FLAMESHOT_TESTING_VERSION: $FLAMESHOT_VERSION-testing_$CI_COMMIT_BRANCH
+  GOLANGCI_LINT_VERSION: "v1.46.2"
+  GOLANGCI_LINT_BIN: "./bin/golangci-lint"
+
+before_script:
+  - rm -rf /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
+  - mkdir -p /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
+  - cp -r ./. /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
+  - cd /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
+  - uname -a
+  - echo $DK_BPF_KERNEL_SRC_PATH
+  - echo $CC_HTTP_PROXY
+  - env | grep ^OSS_
+  - export PATH=/usr/local/go1.19.12/bin:$PATH
+  - export GOROOT=/usr/local/go1.19.12
+  - go version
+  - https_proxy="$CC_HTTP_PROXY" curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | https_proxy="$CC_HTTP_PROXY" sh -s -- -b ./bin ${GOLANGCI_LINT_VERSION}
 
 stages:
   - _test_guance
@@ -47,7 +50,7 @@ ci_lint_and_ut:
     - make clean
     - make detect_mr_target_branch MERGE_REQUEST_TARGET_BRANCH="$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
     - make local # build binary
-    - make lint AUTO_FIX=false
+    - make lint GOLINT_BINARY="$GOLANGCI_LINT_BIN" AUTO_FIX=false
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE" UT_ONLY="$UT_ONLY" UT_PARALLEL="$UT_PARALLEL"
   tags:
     - cloudcare-ft
@@ -61,7 +64,7 @@ ut-datakit-production:
     - nvm use v16.14.0
     - make clean
     - make production_notify GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_VERSION"
-    - make lint AUTO_FIX=false
+    - make lint GOLINT_BINARY="$GOLANGCI_LINT_BIN" AUTO_FIX=false
     - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE" UT_PARALLEL="$UT_PARALLEL"
   tags:
     - cloudcare-ft
@@ -76,7 +79,7 @@ ut-datakit-testing:
     - nvm use v16.14.0
     - make clean
     - make testing_notify GIT_BRANCH=$CI_COMMIT_BRANCH VERSION="$CI_TESTING_VERSION"
-    #- make lint AUTO_FIX=false
+    #- make lint GOLINT_BINARY="$GOLANGCI_LINT_BIN" AUTO_FIX=false
     #- make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE"
   tags:
     - cloudcare-ft
