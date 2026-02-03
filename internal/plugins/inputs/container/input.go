@@ -125,7 +125,7 @@ func (ipt *Input) Run() {
 	l.Info("container input start")
 	ipt.setup()
 
-	if err := changes.LoadAllManifests(); err != nil {
+	if err := changes.LoadK8sManifest(); err != nil {
 		l.Errorf("load manifests fail, err: %s", err)
 		return
 	}

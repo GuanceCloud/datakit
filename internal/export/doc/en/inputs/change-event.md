@@ -3,8 +3,9 @@
 This document provides the types of object changes supported by the system and their configuration templates, helping users understand and manage the following categories of resource changes:
 
 1. **Kubernetes Resource Objects**: Including changes to core K8s resources such as Pods, Deployments, Services, etc.
+2. **Host Configuration Changes**: Including changes to host resources such as users and groups, Crontab, file content, services, and network configurations
 
-The system currently supports the following object change types, each corresponding to specific manifest configuration templates.
+The system currently supports the following object change types, each corresponding to a specific manifest configuration template.
 
 {{ if eq .ChangeManifests.K8sManifest nil }}
 {{ else }}
