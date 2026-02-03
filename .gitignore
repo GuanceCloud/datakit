@@ -5,6 +5,7 @@ __debug_bin*
 .DS_Store
 .idea/
 .orig
+.trae
 .pid
 bin
 .suite.json
