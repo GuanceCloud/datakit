@@ -122,7 +122,7 @@ func (m *processObject) Info() *inputs.MeasurementInfo {
 			"host":         inputs.NewTagInfo("Host name"),
 			"name":         inputs.NewTagInfo("Process object name field, consisting of `[host-name]_[pid]`"),
 			"process_name": inputs.NewTagInfo("Process name"),
-			"state":        inputs.NewTagInfo("Process status. Linux only"),
+			"state":        inputs.NewTagInfo("Process status. Supported on Linux and Windows"),
 			"username":     inputs.NewTagInfo("Username"),
 		},
 	}

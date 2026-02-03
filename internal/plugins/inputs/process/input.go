@@ -381,7 +381,7 @@ func (ipt *Input) collectObject(processList []*pr.Process, tn time.Time) {
 		}
 
 		// Add extra tag/field to process object
-		if x, err := proc.Status(); err != nil {
+		if x, err := getProcessStatus(proc); err != nil {
 			l.RLWarnf(logRate, "process: %v, proc.Status(): %s", proc, err.Error())
 		} else {
 			kvs = kvs.AddTag("state", x[0])
