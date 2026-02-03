@@ -779,6 +779,7 @@ func (ipt *Input) InitDiskQueueIO() error {
 	}
 
 	dc, err := diskcache.Open(
+		diskcache.WithNoLock(datakit.Docker),
 		diskcache.WithPath(ipt.IOConfig.CachePath),
 		diskcache.WithCapacity(ipt.getDiskCacheCapacity()),
 		diskcache.WithNoFallbackOnError(true),

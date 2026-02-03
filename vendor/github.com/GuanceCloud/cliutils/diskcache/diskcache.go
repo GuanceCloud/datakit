@@ -90,8 +90,8 @@ type DiskCache struct {
 	rlock  *InstrumentedMutex // read-lock: used to exclude concurrent Get on the tail file.
 	rwlock *InstrumentedMutex // used to exclude switch/rotate/drop/Close on current disk cache instance.
 
-	flock *flock // disabled multi-Open on same path
-	pos   *pos   // current read fd position info
+	flock *walLock // disabled multi-Open on same path
+	pos   *pos     // current read fd position info
 
 	// specs of current diskcache
 	size atomic.Int64 // current byte size
