@@ -67,6 +67,18 @@ func (info *datakitInfo) collect() error {
 		cp.Warnf("collect config files error: %s\n", err.Error())
 	}
 
+	cp.Infof("collect git repos files...\n")
+	if config.Cfg.GitRepos != nil {
+		if err := info.collectGitRepos(); err != nil {
+			cp.Warnf("collect git repos files error: %s\n", err.Error())
+		}
+	}
+
+	cp.Infof("collect config files...\n")
+	if err := info.collectConfig(); err != nil {
+		cp.Warnf("collect config files error: %s\n", err.Error())
+	}
+
 	cp.Infof("collect data files...\n")
 	if err := info.collectData(); err != nil {
 		cp.Warnf("collect data files error: %s\n", err.Error())
@@ -296,6 +308,26 @@ func (info *datakitInfo) collectInfo() error {
 	infoString += fmt.Sprintf("[environment variables]\n%s\n", strings.Join(envs, "\n"))
 
 	return os.WriteFile(filepath.Join(basicDir, "info"), []byte(infoString), os.ModePerm)
+}
+
+func (info *datakitInfo) collectGitRepos() error {
+	configDir, err := info.makeDir("gitrepos")
+	if err != nil {
+		return err
+	}
+
+	err = info.copyDir(datakit.GitReposDir, configDir,
+		func(fileName string) bool {
+			return strings.HasSuffix(fileName, ".conf")
+		}, func(s string) string {
+			return info.escapeString(s, []string{"dataway", "password", "uri"})
+		})
+	if err != nil {
+		info.errList = append(info.errList, fmt.Sprintf("collect git repos error: %s\n", err.Error()))
+		return err
+	}
+
+	return nil
 }
 
 func (info *datakitInfo) collectConfig() error {
