@@ -103,6 +103,24 @@ spec:
     metadata:
       labels:
         app: daemonset-datakit
+      annotations:
+        datakit/logs: |
+          [
+            {
+              "disable":       true,
+              "type":          "file",
+              "path":          "/var/log/datakit/log",
+              "source":        "datakit",
+              "storage_index": ""
+            },
+            {
+              "disable":       true,
+              "type":          "file",
+              "path":          "/var/log/datakit/gin.log",
+              "source":        "datakit-gin",
+              "storage_index": ""
+            }
+          ]
     spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet

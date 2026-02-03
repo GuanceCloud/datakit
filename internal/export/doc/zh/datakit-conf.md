@@ -225,6 +225,10 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 - `level`：置为 `debug` 后，即可看到更多日志（目前只支持 `debug/info` 两个级别）。
 - `rotate`：DataKit 默认会对日志进行分片，默认分片大小为 32MB，总共 6 个分片（1 个当前写入分片加上 5 个切割分片，分片个数尚不支持配置）。如果嫌弃 DataKit 日志占用太多磁盘空间（最多 32 x 6 = 192MB），可减少 `rotate` 大小（比如改成 4，单位为 MB）。HTTP 访问日志也按照同样的方式自动切割。
 
+???+ topic
+
+    DataKit 默认不采集自身日志，可以通过配置打开，详见[DataKit 采集自身日志最佳实践](datakit-self-logs.md)。
+
 ## 高级配置 {#advance-config}
 
 下面涉及的内容涉及一些高级配置，如果对配置不是很有把握，建议咨询我们的技术专家。
