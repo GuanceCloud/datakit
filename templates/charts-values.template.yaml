@@ -127,7 +127,23 @@ fullnameOverride: ""
 
 podAnnotations:
   datakit/logs: |
-    [{"disable": true}]
+    [
+      {
+        "disable":       true,
+        "type":          "file",
+        "path":          "/var/log/datakit/log",
+        "source":        "datakit",
+        "storage_index": ""
+      },
+      {
+        "disable":       true,
+        "type":          "file",
+        "path":          "/var/log/datakit/gin.log",
+        "source":        "datakit-gin",
+        "storage_index": ""
+      }
+    ]
+
 
 ## @param tolerations - array - optional
 ## Allow the DaemonSet to schedule on tainted nodes (requires Kubernetes >= 1.6)
