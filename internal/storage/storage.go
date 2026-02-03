@@ -51,6 +51,7 @@ func NewStorage(config *StorageConfig, log *logger.Logger) (*Storage, error) {
 	}
 
 	cache, err := dc.Open(
+		dc.WithNoLock(datakit.Docker),
 		dc.WithPath(datakit.JoinToCacheDir(config.Path)),
 		dc.WithCapacity(int64(config.Capacity)<<20))
 	if err != nil {

@@ -86,6 +86,12 @@ func (dw *Dataway) enqueueBody(w *writer, b *body) error {
 	return q.Put(b)
 }
 
+func (f *flusher) close() {
+	if err := f.wal.disk.Close(); err != nil {
+		l.Warnf("flush close WAL failed: %s, ignored", err.Error())
+	}
+}
+
 func (f *flusher) start() {
 	cleanFailCacheTick := time.NewTicker(f.dw.WAL.FailCacheCleanInterval)
 	defer cleanFailCacheTick.Stop()
@@ -98,6 +104,7 @@ func (f *flusher) start() {
 		select {
 		case <-datakit.Exit.Wait():
 			l.Infof("dataway flush worker(%dth) on %s exit", f.idx, f.cat.Alias())
+			f.close()
 			return
 
 		case <-cleanFailCacheTick.C:

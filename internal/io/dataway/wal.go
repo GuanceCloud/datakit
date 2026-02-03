@@ -12,6 +12,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/diskcache"
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var defaultRotateAt = 3 * time.Second
@@ -235,6 +236,11 @@ func (dw *Dataway) doSetupWAL(opts ...diskcache.CacheOption) (*WALQueue, error) 
 
 func (dw *Dataway) setupWAL() error {
 	for _, cat := range point.AllCategories() {
+		if cat == point.DialTesting {
+			l.Info("ignore WAL on dial-testing")
+			continue
+		}
+
 		cacheDir := filepath.Join(dw.WAL.Path, cat.String())
 		opts := []diskcache.CacheOption{
 			diskcache.WithPath(cacheDir),
@@ -242,7 +248,7 @@ func (dw *Dataway) setupWAL() error {
 			diskcache.WithNoPos(dw.WAL.NoPos),
 			diskcache.WithPosUpdate(dw.WAL.PosDumpAt, dw.WAL.PosDumpInterval),
 
-			diskcache.WithNoLock(true),            // disable .lock file checking
+			diskcache.WithNoLock(datakit.Docker),
 			diskcache.WithWakeup(defaultRotateAt), // short wakeup on WAL queue
 		}
 
@@ -282,7 +288,7 @@ func (dw *Dataway) setupWAL() error {
 	if wal, err := dw.doSetupWAL(
 		diskcache.WithPath(filepath.Join(dw.WAL.Path, "fc")),
 		diskcache.WithFILODrop(true), // under fail-cache, still drop data if WAL disk full(no matter which category)
-		diskcache.WithNoLock(true),
+		diskcache.WithNoLock(datakit.Docker),
 
 		diskcache.WithWakeup(defaultRotateAt),
 		diskcache.WithCapacity(int64(dw.WAL.MaxCapacityGB*float64(1<<30)))); err != nil {

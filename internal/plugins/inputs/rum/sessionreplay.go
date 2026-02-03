@@ -399,6 +399,7 @@ func (ipt *Input) initReplayDiskQueue() error {
 	}
 
 	queue, err := diskcache.Open(
+		diskcache.WithNoLock(datakit.Docker),
 		diskcache.WithPath(ipt.SessionReplayCfg.CachePath),
 		diskcache.WithCapacity(ipt.SessionReplayCfg.CacheCapacity*MiB),
 		diskcache.WithNoFallbackOnError(true),
