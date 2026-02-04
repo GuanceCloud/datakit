@@ -73,8 +73,9 @@ type logConfig struct {
 	hostFilePath      string   `json:"-"`
 }
 
-func newLogConfigs(defaults *loggingDefaults, info *containerLogInfo, str string) ([]*logConfig, error) {
+func newLogConfigs(defaults *loggingDefaults, info *containerLogInfo, str string) ([]*logConfig, bool, error) {
 	var configs []*logConfig
+	var useDefaultStdoutConfigs bool
 
 	// add default stdout
 	if str == "" {
@@ -83,9 +84,10 @@ func newLogConfigs(defaults *loggingDefaults, info *containerLogInfo, str string
 			Path:   info.logPath,
 			Source: info.containerName,
 		})
+		useDefaultStdoutConfigs = true
 	} else {
 		if err := json.Unmarshal([]byte(str), &configs); err != nil {
-			return nil, fmt.Errorf("faild to parse log configs, container %s, err %w", info.containerName, err)
+			return nil, false, fmt.Errorf("faild to parse log configs, container %s, err %w", info.containerName, err)
 		}
 	}
 
@@ -117,10 +119,10 @@ func newLogConfigs(defaults *loggingDefaults, info *containerLogInfo, str string
 	}
 
 	if hasDuplicatePath(configs) {
-		return nil, fmt.Errorf("configs(len=%d) has duplicate path", len(configs))
+		return nil, false, fmt.Errorf("configs(len=%d) has duplicate path", len(configs))
 	}
 
-	return configs, nil
+	return configs, useDefaultStdoutConfigs, nil
 }
 
 func hasDuplicatePath(configs []*logConfig) bool {
@@ -144,7 +146,7 @@ func fillLogConfigsWithCRDLogging(
 		return nil, err
 	}
 
-	configs, err := newLogConfigs(defaults, info, string(b))
+	configs, _, err := newLogConfigs(defaults, info, string(b))
 	if err != nil {
 		return nil, err
 	}

@@ -63,7 +63,7 @@ func TestParseLogConfigs(t *testing.T) {
 			logPath: "/var/log/container.log",
 		}
 
-		configs, err := newLogConfigs(defaults, info, tc.in)
+		configs, _, err := newLogConfigs(defaults, info, tc.in)
 		if tc.parseFail && assert.Error(t, err) {
 			t.Logf("[%d][OK   ] %s\n", idx, err)
 			continue
