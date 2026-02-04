@@ -5,7 +5,7 @@
 # Copyright 2021-present Guance, Inc.
 
 WORK_DIR=$(cd "$(dirname "$0")" && pwd)
-CMD="$WORK_DIR"/profiler.sh
+CMD="$WORK_DIR"/bin/asprof
 OUTPUT_DIR="$WORK_DIR"/output
 LOG_DIR=$WORK_DIR/log
 LOCKER_DIR=$WORK_DIR/locks
@@ -77,6 +77,7 @@ Usage: [env1=val1 env2=val2 ...] $0 [options]
    DK_PROFILE_PID          Your application process PID, default: read from ps command.
    DK_PROFILE_EVENT        Profiling event: cpu|alloc|lock|cache-misses etc, default: cpu,alloc,lock.
    DK_PROFILE_SCHEDULE     Your profiling schedule, use setting like crontab (for example, "* */5 * * *", "00 02 * * *").
+   DK_PROFILE_TAGS         Set custom tags like "tag1:val1,tag2:val2".
 
  Example:
    ./profiling.sh --host 192.168.1.1 --service my-app --ver 1.0.0 --env test --duration 300 --interval 30 --pid 13 --events cpu,alloc
@@ -86,11 +87,17 @@ EOT
 }
 
 
-if ! opts=$(getopt -o H:P:S:V:E:D:I:hvas -l host:,port:,service:,ver:,env:,duration:,interval:,hostname:,pid:,schedule:,events:,help,version,add-crontab,show-all-events -- "$@"); then
+if ! opts=$(getopt -o H:P:S:V:E:D:I:hvas -l host:,port:,service:,ver:,env:,duration:,interval:,hostname:,pid:,schedule:,events:,alloc:,lock:,tags:,all-events,help,version,add-crontab,show-all-events -- "$@"); then
   exit 1
 fi
 
 eval set -- "$opts"
+
+file_creation_time_available=1
+
+if [ "$(stat --printf "%W" "$0")" -eq 0 ]; then
+  file_creation_time_available=0
+fi
 
 add_crontab=0
 datakit_host=""
@@ -103,6 +110,10 @@ interval=60
 hostname=$(hostname)
 pid=0
 profiling_events="cpu,alloc,lock"
+profiling_alloc=""
+profiling_lock=""
+extra_tags=""
+collect_all_events=0
 
 
 while true; do
@@ -150,6 +161,21 @@ while true; do
     --events)
       shift
       profiling_events="$1"
+      ;;
+    --alloc)
+      shift
+      profiling_alloc="$1"
+      ;;
+    --lock)
+      shift
+      profiling_lock="$1"
+      ;;
+    --tags)
+      shift
+      extra_tags="$1"
+      ;;
+    --all-events)
+      collect_all_events=1
       ;;
     -h|--help)
       show_help
@@ -222,8 +248,23 @@ if [ -n "$DK_PROFILE_EVENT" ]; then
     profiling_events=$DK_PROFILE_EVENT
 fi
 
+if [ -n "$DK_PROFILE_ALLOC" ]; then
+    profiling_alloc=$DK_PROFILE_ALLOC
+fi
 
-# 允许上传至 DataKit 的 jfr 文件大小 (6 M)，请勿修改
+if [ -n "$DK_PROFILE_LOCK" ]; then
+    profiling_lock=$DK_PROFILE_LOCK
+fi
+
+if [ -n "$DK_PROFILE_TAGS" ]; then
+  extra_tags="$DK_PROFILE_TAGS"
+fi
+
+if [ -n "$DK_PROFILE_ALL_EVENTS" ] && [ "$DK_PROFILE_ALL_EVENTS" != "0" ] && [ "$DK_PROFILE_ALL_EVENTS" != "false" ]; then
+  collect_all_events=1
+fi
+
+
 MAX_JFR_FILE_SIZE=6000000
 
 if [ -z "$datakit_host" ]; then
@@ -231,14 +272,11 @@ if [ -z "$datakit_host" ]; then
   exit 1
 fi
 
-# DataKit 服务地址
 datakit_url=http://"$datakit_host":"$datakit_port"
 
-# 上传 profiling 数据的完整地址
 datakit_profiling_url=$datakit_url/profiling/v1/input
 
 
-# 采集的 java 应用进程 ID，此处可以自定义需要采集的 java 进程，比如可以根据进程名称过滤
 if { [[ "$pid" =~ ^[0-9]+$ ]] && [ "$pid" -gt 0 ]; } || [[ "$pid" =~ ^([1-9][0-9]*[[:blank:]]+)+[1-9][0-9]*$ ]]; then
   java_process_id=$pid
 else
@@ -257,10 +295,21 @@ is_valid_process_id() {
 
 install_crontab() {
   if [ ! -d "$LOG_DIR" ]; then
-    mkdir -p "$LOG_DIR"
+    # shellcheck disable=SC2174
+    mkdir -p -m 0777 "$LOG_DIR"
   fi
   if [ -n "$schedule" ]; then
-    echo "${schedule} ${SHELL_PATH} --host $datakit_host --port $datakit_port --service $app_service --env $app_env --ver $app_version --duration $duration --interval $interval --pid $pid --hostname $hostname >> $LOG_DIR/main.log 2>&1 " | crontab -u root -
+    event_arguments=""
+    if [ -n "$profiling_alloc" ]; then
+      event_arguments="$event_arguments --alloc $profiling_alloc"
+    fi
+    if [ -n "$profiling_lock" ]; then
+      event_arguments="$event_arguments --lock $profiling_lock"
+    fi
+    if [ $collect_all_events -ne 0 ]; then
+      event_arguments="$event_arguments --all-events"
+    fi
+    echo "${schedule} ${SHELL_PATH} --host $datakit_host --port $datakit_port --service $app_service --env $app_env --ver $app_version --events $profiling_events --tags $extra_tags $event_arguments --duration $duration --interval $interval --pid $pid --hostname $hostname >> $LOG_DIR/main.log 2>&1 " | crontab -u root -
   fi
 }
 
@@ -295,6 +344,13 @@ upload_profiling() {
     Error "Unable to enter dir %s" "$jfr_output_dir" >&2
     return 1
   fi
+
+  tags="library_version:$ASYNC_PROFILER_VERSION,library_type:async_profiler,process_id:$process_id,process_name:$process_name,service:$app_service,host:$hostname,env:$app_env,version:$app_version"
+  if [ -n "$extra_tags" ]; then
+    tags="$tags,$extra_tags"
+  fi
+
+
   while ((1))
    do
        if [ "$total_wait_time" -ge $MAX_WAIT_TIME ]; then
@@ -302,8 +358,14 @@ upload_profiling() {
        fi
        sleep 10
        ((total_wait_time += 10))
+
       # shellcheck disable=SC2012
-      mapfile -t files < <(ls -tr1 --time=creation -- *.jfr 2>/dev/null | head -n 20)
+      if [ $file_creation_time_available -eq 0 ]; then
+        mapfile -t files < <(ls -tr1 -- *.jfr 2>/dev/null | head -n 20)
+      else
+        mapfile -t files < <(ls -tr1 --time=creation -- *.jfr 2>/dev/null | head -n 20)
+      fi 
+
       for ((i=0; i < ${#files[@]}; i++))
       do
         file=${files[i]}
@@ -320,8 +382,18 @@ upload_profiling() {
                   if [ "$interval" -gt 2 ]; then
                     least_time=$((interval-2))
                   fi
-                  if [ $(($(date +%s) - start_time_seconds)) -lt $((interval+5)) ] || [ $((end_time_seconds - start_time_seconds)) -le $least_time ]; then
-                    continue 2
+                  if [ "$start_time_seconds" -gt 0 ]; then
+                    if [ $(($(date +%s) - start_time_seconds)) -lt $((interval+5)) ] || [ $((end_time_seconds - start_time_seconds)) -le $least_time ]; then
+                      continue 2
+                    fi
+                  else
+                    # This platform doesn't support to stat file creation time
+                    if [ $(($(date +%s) - end_time_seconds)) -lt "$interval" ]; then
+                      continue 2
+                    else
+                      start_time_seconds=$((end_time_seconds - interval))
+                      start_time=$(date --date="@$start_time_seconds" +%FT%T.%N%:z)
+                    fi
                   fi
                 fi
                 jfr_gzip_file="$file".gz
@@ -335,7 +407,7 @@ upload_profiling() {
                     cat >"$event_json_file" <<END
             {
                 "attachments": ["main.jfr"],
-                "tags_profiler": "library_version:$ASYNC_PROFILER_VERSION,library_type:async_profiler,process_id:$process_id,process_name:$process_name,service:$app_service,host:$hostname,env:$app_env,version:$app_version",
+                "tags_profiler": "$tags",
                 "start": "$start_time",
                 "end": "$end_time",
                 "family": "java",
@@ -343,12 +415,12 @@ upload_profiling() {
             }
 END
                   Info "start to upload profile file %s to DataKit" "$file"
-                  res=$(curl -s "$datakit_profiling_url" \
+                  res=$(curl -s -i "$datakit_profiling_url" \
                       -F "main=@$jfr_gzip_file;filename=main.jfr" \
-                      -F "event=@$event_json_file;filename=event.json;type=application/json"  )
+                      -F "event=@$event_json_file;filename=event.json;type=application/json" | head -n 1)
 
-                  if [[ $res != *ProfileID* ]]; then
-                      Error "send profile file to datakit failed" >&2
+                  if [[ ! $res =~ 2[0-9][0-9] ]]; then
+                      Error "send profile file to datakit failed: %s" "$res" >&2
                       echo "$res" >&2
                   else
                       Info "Successfully send profile file to datakit"
@@ -373,7 +445,8 @@ bootstrap_profiling() {
     fi
 
     if [ ! -d "$LOCKER_DIR" ]; then
-      mkdir -p "$LOCKER_DIR"
+      # shellcheck disable=SC2174
+      mkdir -p -m 0777 "$LOCKER_DIR"
     fi
 
     lock_file=$LOCKER_DIR/async-profiler-$process_id.lock
@@ -381,13 +454,13 @@ bootstrap_profiling() {
     if ! flock -xn "$locker_fd"; then
       Warn "Unable to get lock of file: %s, probably profiling on the target process is already running" "$lock_file" >&2
       exec {locker_fd}>&-
-      rm -f "$lock_file"
       return 1
     fi
 
     jfr_output_dir=$OUTPUT_DIR/output-$process_id-$(date +%s%N)
     if [ ! -d "$jfr_output_dir" ]; then
-      mkdir -p "$jfr_output_dir"
+      # shellcheck disable=SC2174
+      mkdir -p -m 0777 "$jfr_output_dir"
     fi
     jfr_filename="${jfr_output_dir}/%n{100000000}.jfr"
 
@@ -405,15 +478,27 @@ bootstrap_profiling() {
       app_service=$process_name
     fi
 
+    event_arguments=""
+    if [ -n "$profiling_alloc" ]; then
+      event_arguments="$event_arguments --alloc $profiling_alloc"
+    fi
+    if [ -n "$profiling_lock" ]; then
+      event_arguments="$event_arguments --lock $profiling_lock"
+    fi
+    if [ $collect_all_events -ne 0 ]; then
+      event_arguments="$event_arguments --all" # collect all available events
+    else
+      event_arguments="$event_arguments -e $profiling_events"
+    fi
     start_time=$(date +%FT%T.%N%:z)
     if [ "$duration" -gt 0 ]; then
-      if ! $CMD --fdtransfer --loop "$interval"s --ttl "$duration"s -e "$profiling_events" -o jfr -f "$jfr_filename" "$process_id"; then
+      if ! $CMD --fdtransfer --loop "$interval"s --ttl "$duration"s $event_arguments -o jfr -f "$jfr_filename" "$process_id"; then
         Error "Unable to start async profiler with loop" >&2
         return 2
       fi
       sleep "$duration" &
     else
-      if ! $CMD --timeout "$interval"s --fdtransfer -e "$profiling_events" -o jfr -f "$jfr_filename" "$process_id"; then
+      if ! $CMD --fdtransfer --timeout "$interval"s $event_arguments -o jfr -f "$jfr_filename" "$process_id"; then
         Error "Unable to run async_profiler with timeout" >&2
         return 2
       fi
@@ -431,10 +516,11 @@ bootstrap_profiling() {
 }
 
 if [ ! -d "$OUTPUT_DIR" ]; then
-  mkdir -p "$OUTPUT_DIR"
+  # shellcheck disable=SC2174
+  mkdir -p -m 0777 "$OUTPUT_DIR"
 fi
 
-# 并行采集 profiling 数据
+
 for process_id in $java_process_id; do
   if [ "$duration" -gt 0 ]; then
     time_span=$duration
@@ -445,5 +531,5 @@ for process_id in $java_process_id; do
   bootstrap_profiling "$process_id" &
 done
 
-# 等待所有任务结束
+
 wait
