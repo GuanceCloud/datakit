@@ -24,26 +24,32 @@ func (col *Collector) parser(idx int) {
 			return
 
 		case in := <-col.in:
+			col.doJob(idx, in)
+		}
+	}
+}
 
-			lines := strings.Split(in.Buffer.String(), "\n")
+func (col *Collector) doJob(idx int, in *job) {
+	lines := strings.Split(in.Buffer.String(), "\n")
+	col.bufPool.Put(in.Buffer)
 
-			col.bufPool.Put(in.Buffer)
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		col.opts.l.Debugf("[%d] statsd line: %s", idx, line)
 
-			for _, line := range lines {
-				line = strings.TrimSpace(line)
-				col.opts.l.Debugf("[%d] statsd line: %s", idx, line)
-
-				switch {
-				case line == "": // pass
-				case col.opts.dataDogExtensions && strings.HasPrefix(line, "_e"):
-					if err := col.parseEventMessage(in.Time, line, in.Addr); err != nil {
-						col.opts.l.Warnf("[%d] parseEventMessage: %s, ignored", idx, err.Error())
-					}
-				default:
-					if err := col.parseStatsdLine(line); err != nil {
-						col.opts.l.Warnf("[%d] parseEventMessage: %s, ignored", idx, err.Error())
-					}
-				}
+		switch {
+		case line == "": // pass
+		case col.opts.dataDogExtensions && strings.HasPrefix(line, "_e"):
+			if err := col.parseEventMessage(in.Time, line, in.Addr); err != nil {
+				col.opts.l.Warnf("[%d] parseEventMessage: %s, ignored", idx, err.Error())
+			}
+		case col.opts.dataDogExtensions && strings.HasPrefix(line, "_sc"): // service check
+			if err := col.parseServiceCheck(in.Time, line); err != nil {
+				col.opts.l.Warnf("[%d] parseServiceCheck: %s, ignored", idx, err.Error())
+			}
+		default:
+			if err := col.parseStatsdLine(line); err != nil {
+				col.opts.l.Warnf("[%d] parseEventMessage: %s, ignored", idx, err.Error())
 			}
 		}
 	}
@@ -67,7 +73,7 @@ func (col *Collector) parseStatsdLine(line string) error {
 		for _, segment := range pipesplit {
 			if len(segment) > 0 && segment[0] == '#' {
 				// we have ourselves a tag; they are comma separated
-				parseDataDogTags(lineTags, segment[1:])
+				col.parseDataDogTags(lineTags, segment[1:])
 			} else {
 				recombinedSegments = append(recombinedSegments, segment)
 			}

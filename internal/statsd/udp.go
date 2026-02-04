@@ -85,7 +85,7 @@ func (col *Collector) udpListen(conn *net.UDPConn) error {
 				return err
 			}
 			select {
-			case col.in <- job{
+			case col.in <- &job{
 				Buffer: b,
 				Time:   ntp.Now(),
 				Addr:   addr.IP.String(),

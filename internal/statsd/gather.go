@@ -12,6 +12,18 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 )
 
+func (col *Collector) GetLoggings() []*point.Point {
+	if len(col.loggingPts) > 0 {
+		var arr []*point.Point
+		arr = append(arr, col.loggingPts...)
+
+		col.loggingPts = col.loggingPts[:0]
+		return arr
+	}
+
+	return nil
+}
+
 func (col *Collector) GetPoints() ([]*point.Point, error) {
 	col.opts.l.Debugf("try locking...")
 	col.Lock()
@@ -19,19 +31,20 @@ func (col *Collector) GetPoints() ([]*point.Point, error) {
 	now := time.Now()
 
 	for _, m := range col.distributions {
-		fields := map[string]interface{}{
+		fields := map[string]any{
 			defaultFieldName: m.value,
 		}
-		col.opts.l.Debugf("[distributions] add %s, fields: %+#v, tags: %+#v", m.name, fields, m.tags)
+		col.opts.l.Debugf("[on distributions] add %s, fields: %+#v, tags: %+#v", m.name, fields, m.tags)
 		col.acc.addFields(m.name, fields, m.tags, now)
 	}
+
 	col.distributions = make([]cacheddistributions, 0)
 
 	for _, m := range col.timings {
 		// Defining a template to parse field names for timers allows us to split
 		// out multiple fields per timer. In this case we prefix each stat with the
 		// field name and store these all in a single measurement.
-		fields := make(map[string]interface{})
+		fields := make(map[string]any)
 		for fieldName, stats := range m.fields {
 			var prefix string
 			if fieldName != defaultFieldName {
@@ -49,15 +62,16 @@ func (col *Collector) GetPoints() ([]*point.Point, error) {
 			}
 		}
 
-		col.opts.l.Debugf("[timings] add %s, fields: %+#v, tags: %+#v", m.name, fields, m.tags)
+		col.opts.l.Debugf("[on timings] add %s, fields: %+#v, tags: %+#v", m.name, fields, m.tags)
 		col.acc.addFields(m.name, fields, m.tags, now)
 	}
+
 	if col.opts.deleteTimings {
 		col.timings = make(map[string]cachedtimings)
 	}
 
 	for _, m := range col.gauges {
-		col.opts.l.Debugf("[gauges] add %s, fields: %+#v, tags: %+#v", m.name, m.fields, m.tags)
+		col.opts.l.Debugf("[on gauges] add %s, fields: %+#v, tags: %+#v", m.name, m.fields, m.tags)
 		col.acc.addFields(m.name, m.fields, m.tags, now)
 	}
 	if col.opts.deleteGauges {
@@ -65,7 +79,7 @@ func (col *Collector) GetPoints() ([]*point.Point, error) {
 	}
 
 	for _, m := range col.counters {
-		col.opts.l.Debugf("[counters] add %s, fields: %+#v, tags: %+#v", m.name, m.fields, m.tags)
+		col.opts.l.Debugf("[on counters] add %s, fields: %+#v, tags: %+#v", m.name, m.fields, m.tags)
 		col.acc.addFields(m.name, m.fields, m.tags, now)
 	}
 	if col.opts.deleteCounters {
@@ -73,11 +87,11 @@ func (col *Collector) GetPoints() ([]*point.Point, error) {
 	}
 
 	for _, m := range col.sets {
-		fields := make(map[string]interface{})
+		fields := make(map[string]any)
 		for field, set := range m.fields {
 			fields[field] = int64(len(set))
 		}
-		col.opts.l.Debugf("[sets] add %s, fields: %+#v, tags: %+#v", m.name, m.fields, m.tags)
+		col.opts.l.Debugf("[on sets] add %s, fields: %+#v, tags: %+#v", m.name, m.fields, m.tags)
 		col.acc.addFields(m.name, fields, m.tags, now)
 	}
 

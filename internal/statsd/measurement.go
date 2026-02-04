@@ -14,60 +14,319 @@ type (
 	JVMMeasurement     struct{}
 	JMXMeasurement     struct{}
 	DDtraceMeasurement struct{}
+	StatsdEvent        struct{}
+	StatsdServiceCheck struct{}
 )
 
-// See also https://docs.datadoghq.com/opentelemetry/runtime_metrics/java/#runtime-metric-mappings
+func (m *StatsdServiceCheck) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name:           serviceCheckMeasurementName,
+		MetaDuplicated: true,
+		Cat:            point.Logging,
+		Fields: map[string]any{
+			"message": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.NoType,
+				Unit:     inputs.NoUnit,
+				Desc:     "Service check text message",
+			},
+			"status": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.NoType,
+				Unit:     inputs.NoUnit,
+				Desc:     "Service check type(`0/1/2/3`), we mapped them as logging status(`ok/warn/critical/unknown`)",
+			},
+		},
+		Tags: map[string]any{
+			"check_name": &inputs.TagInfo{Desc: "Service check name"},
+		},
+	}
+}
 
-// Info ...
-// nolint:lll
+func (m *StatsdEvent) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name:           eventMeasurementName,
+		MetaDuplicated: true,
+		Cat:            point.Logging,
+		Fields: map[string]any{
+			"title": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.NoType,
+				Unit:     inputs.NoUnit,
+				Desc:     "Event title",
+			},
+			"message": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.NoType,
+				Unit:     inputs.NoUnit,
+				Desc:     "Event text message",
+			},
+			"status": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.NoType,
+				Unit:     inputs.NoUnit,
+				Desc:     "Alert type of the event(`success/info/warning/error`), we mapped them as logging status",
+			},
+		},
+		Tags: map[string]any{
+			"host":             &inputs.TagInfo{Desc: "Host name where the event triggered."},
+			"priority":         &inputs.TagInfo{Desc: "Priority of the event(`normal/low`)"},
+			"source_type_name": &inputs.TagInfo{Desc: "Good for identifying the origin of events."},
+			"aggregation_key":  &inputs.TagInfo{Desc: "Perfect for grouping similar events; a key use case for tags."},
+		},
+	}
+}
+
+//nolint:funlen
 func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
+	// See also https://docs.datadoghq.com/opentelemetry/runtime_metrics/java/#runtime-metric-mappings
 	return &inputs.MeasurementInfo{
 		Name:           "jvm",
 		MetaDuplicated: true,
 		Cat:            point.Metric,
-		Fields: map[string]interface{}{
-			"heap_memory":                 &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java heap memory used."}, // down jvm & jmx mertrics
-			"heap_memory_committed":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java heap memory committed to be used."},
-			"heap_memory_init":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The initial Java heap memory allocated."},
-			"heap_memory_max":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The maximum Java heap memory available."},
-			"non_heap_memory":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java non-heap memory used. Non-heap memory is: `Metaspace + CompressedClassSpace + CodeCache`."},
-			"non_heap_memory_committed":   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java non-heap memory committed to be used."},
-			"non_heap_memory_init":        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The initial Java non-heap memory allocated."},
-			"non_heap_memory_max":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The maximum Java non-heap memory available."},
-			"gc_old_gen_size":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The ond gen size in garbage collection."},
-			"gc_eden_size":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The 'eden' size in garbage collection."},
-			"gc_survivor_size":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The survivor size in garbage collection."},
-			"gc_metaspace_size":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The `metaspace` size in garbage collection."},
-			"thread_count":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of live threads."},
-			"loaded_classes":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of classes currently loaded."}, // up jvm & jmx mertrics
-			"cpu_load_system":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Recent CPU utilization for the whole system."},
-			"cpu_load_process":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Recent CPU utilization for the process."},
-			"buffer_pool_direct_used":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Measure of memory used by direct buffers."},
-			"buffer_pool_direct_count":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of direct buffers in the pool."},
-			"buffer_pool_direct_capacity": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Measure of total memory capacity of direct buffers."},
-			"buffer_pool_mapped_used":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Measure of memory used by mapped buffers."},
-			"buffer_pool_mapped_count":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of mapped buffers in the pool."},
-			"buffer_pool_mapped_capacity": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Measure of total memory capacity of mapped buffers."},
+		Fields: map[string]any{
+			"heap_memory": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "The total Java heap memory used.",
+			},
+			// down jvm & jmx mertrics
+			"heap_memory_committed": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "The total Java heap memory committed to be used.",
+			},
 
-			// Not available, this metric should collect via jmx featch, see:
-			//   https://github.com/DataDog/datadog-agent/blob/main/cmd/agent/dist/conf.d/jmx.d/conf.yaml.example
-			// "gc_parnew_time":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "The approximate accumulated garbage collection time elapsed."},
-			// "gc_cms_count":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The total number of garbage collections that have occurred."},
+			"heap_memory_init": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "The initial Java heap memory allocated.",
+			},
 
-			"gc_major_collection_count": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The rate of major garbage collections."},                            // jmx
-			"gc_minor_collection_count": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The rate of minor garbage collections."},                            // jmx
-			"gc_major_collection_time":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "The fraction of time spent(rate) in major garbage collection."}, // jmx
-			"gc_minor_collection_time":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "The fraction of time spent(rate) in minor garbage collection."}, // jmx
-			"os_open_file_descriptors":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of file descriptors used by this process (only available for processes run as the dd-agent user)"},
+			"heap_memory_max": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "The maximum Java heap memory available.",
+			},
+
+			"non_heap_memory": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "The total Java non-heap memory used. Non-heap memory is: `Metaspace + CompressedClassSpace + CodeCache`.",
+			},
+
+			"non_heap_memory_committed": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "The total Java non-heap memory committed to be used.",
+			},
+
+			"non_heap_memory_init": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "The initial Java non-heap memory allocated.",
+			},
+
+			"non_heap_memory_max": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "The maximum Java non-heap memory available.",
+			},
+
+			"gc_old_gen_size": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "The ond gen size in garbage collection.",
+			},
+
+			"gc_eden_size": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "The 'eden' size in garbage collection.",
+			},
+
+			"gc_survivor_size": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "The survivor size in garbage collection.",
+			},
+
+			"gc_metaspace_size": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "The `metaspace` size in garbage collection.",
+			},
+
+			"thread_count": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Count,
+				Unit:     inputs.NCount,
+				Desc:     "The number of live threads.",
+			},
+
+			"loaded_classes": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Number of classes currently loaded.",
+			},
+			// up jvm & jmx mertrics
+			"cpu_load_system": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.Percent,
+				Desc:     "Recent CPU utilization for the whole system.",
+			},
+
+			"cpu_load_process": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.Percent,
+				Desc:     "Recent CPU utilization for the process.",
+			},
+
+			"buffer_pool_direct_used": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "Measure of memory used by direct buffers.",
+			},
+
+			"buffer_pool_direct_count": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Number of direct buffers in the pool.",
+			},
+
+			"buffer_pool_direct_capacity": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "Measure of total memory capacity of direct buffers.",
+			},
+
+			"buffer_pool_mapped_used": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "Measure of memory used by mapped buffers.",
+			},
+
+			"buffer_pool_mapped_count": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Number of mapped buffers in the pool.",
+			},
+
+			"buffer_pool_mapped_capacity": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "Measure of total memory capacity of mapped buffers.",
+			},
+
+			/* Not available,
+			 this metric should collect via jmx featch,
+			 see:
+						     https://github.com/DataDog/datadog-agent/blob/main/cmd/agent/dist/conf.d/jmx.d/conf.yaml.example
+						   "gc_parnew_time":              &inputs.FieldInfo{DataType: inputs.Float,
+			 Type: inputs.Gauge,
+			 Unit: inputs.DurationMS,
+			 Desc: "The approximate accumulated garbage collection time elapsed."},
+
+						   "gc_cms_count":                &inputs.FieldInfo{DataType: inputs.Float,
+			 Type: inputs.Count,
+			 Unit: inputs.NCount,
+			 Desc: "The total number of garbage collections that have occurred."},
+			*/
+
+			"gc_major_collection_count": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The rate of major garbage collections.",
+			},
+			// jmx
+			"gc_minor_collection_count": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The rate of minor garbage collections.",
+			},
+			// jmx
+			"gc_major_collection_time": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationMS,
+				Desc:     "The fraction of time spent(rate) in major garbage collection.",
+			},
+			// jmx
+			"gc_minor_collection_time": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationMS,
+				Desc:     "The fraction of time spent(rate) in minor garbage collection.",
+			},
+			// jmx
+			"os_open_file_descriptors": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The number of file descriptors used by this process (only available for processes run as the dd-agent user)",
+			},
 
 			// Following metrics not found in official docs
-			"daemon_code_cache_used": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of daemon threads."},
-			"total_thread_count":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of total threads."},
-			"peak_thread_count":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The peak number of live threads."},
-			"gc_code_cache_used":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "GC code cache used."},
-			"daemon_thread_count":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Daemon thread count."},
+			"daemon_code_cache_used": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Count,
+				Unit:     inputs.NCount,
+				Desc:     "The number of daemon threads.",
+			},
+
+			"total_thread_count": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Count,
+				Unit:     inputs.NCount,
+				Desc:     "The number of total threads.",
+			},
+
+			"peak_thread_count": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Count,
+				Unit:     inputs.NCount,
+				Desc:     "The peak number of live threads.",
+			},
+
+			"gc_code_cache_used": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "GC code cache used.",
+			},
+
+			"daemon_thread_count": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Daemon thread count.",
+			},
 		},
-		Tags: map[string]interface{}{
+
+		Tags: map[string]any{
 			"host":        &inputs.TagInfo{Desc: "Host name."},
 			"instance":    &inputs.TagInfo{Desc: "Instance name."},
 			"jmx_domain":  &inputs.TagInfo{Desc: "JMX domain."},
@@ -80,34 +339,125 @@ func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-// See also https://docs.datadoghq.com/integrations/java/?tab=host#metrics
-
-// Info ...
-// nolint:lll
+//nolint:funlen
 func (m *JMXMeasurement) Info() *inputs.MeasurementInfo {
+	// See also https://docs.datadoghq.com/integrations/java/?tab=host#metrics
 	return &inputs.MeasurementInfo{
-		Name:           "jmx",
+		Name: "jmx",
+
 		MetaDuplicated: true,
-		Cat:            point.Metric,
-		Fields: map[string]interface{}{
+
+		Cat: point.Metric,
+
+		Fields: map[string]any{
 			// buffer_pool_direct_capacity 这个没找到解释
-			"heap_memory":               &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java heap memory used."},
-			"heap_memory_committed":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java heap memory committed to be used."},
-			"heap_memory_init":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The initial Java heap memory allocated."},
-			"heap_memory_max":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The maximum Java heap memory available."},
-			"non_heap_memory":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java non-heap memory used. Non-heap memory is calculated as follows: 'Metaspace' + CompressedClassSpace + CodeCache"},
-			"non_heap_memory_committed": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java non-heap memory committed to be used."},
-			"non_heap_memory_init":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The initial Java non-heap memory allocated."},
-			"non_heap_memory_max":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The maximum Java non-heap memory available."},
-			"thread_count":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of live threads."},
-			"gc_cms.count":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The total number of garbage collections that have occurred."},
-			"gc_parnew.time":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "The approximate accumulated garbage collection time elapsed."},
-			"gc_major_collection_count": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The rate of major garbage collections."},
-			"gc_minor_collection_count": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The rate of minor garbage collections."},
-			"gc_major_collection_time":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.PartPerMillion, Desc: "The fraction of time spent in major garbage collection. Set new_gc_metrics: true to receive this metric."},
-			"gc_minor_collection_time":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.PartPerMillion, Desc: "The fraction of time spent in minor garbage collection. Set new_gc_metrics: true to receive this metric."},
+			"heap_memory": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "The total Java heap memory used.",
+			},
+
+			"heap_memory_committed": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "The total Java heap memory committed to be used.",
+			},
+
+			"heap_memory_init": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "The initial Java heap memory allocated.",
+			},
+
+			"heap_memory_max": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "The maximum Java heap memory available.",
+			},
+
+			"non_heap_memory": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "The total Java non-heap memory used. Non-heap memory is calculated as follows: 'Metaspace' + CompressedClassSpace + CodeCache",
+			},
+
+			"non_heap_memory_committed": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "The total Java non-heap memory committed to be used.",
+			},
+
+			"non_heap_memory_init": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "The initial Java non-heap memory allocated.",
+			},
+
+			"non_heap_memory_max": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.SizeByte,
+				Desc:     "The maximum Java non-heap memory available.",
+			},
+
+			"thread_count": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Count,
+				Unit:     inputs.NCount,
+				Desc:     "The number of live threads.",
+			},
+
+			"gc_cms.count": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Count,
+				Unit:     inputs.NCount,
+				Desc:     "The total number of garbage collections that have occurred.",
+			},
+
+			"gc_parnew.time": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationMS,
+				Desc:     "The approximate accumulated garbage collection time elapsed.",
+			},
+
+			"gc_major_collection_count": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The rate of major garbage collections.",
+			},
+
+			"gc_minor_collection_count": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The rate of minor garbage collections.",
+			},
+
+			"gc_major_collection_time": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.PartPerMillion,
+				Desc:     "The fraction of time spent in major garbage collection. Set new_gc_metrics: true to receive this metric.",
+			},
+
+			"gc_minor_collection_time": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.PartPerMillion,
+				Desc:     "The fraction of time spent in minor garbage collection. Set new_gc_metrics: true to receive this metric.",
+			},
 		},
-		Tags: map[string]interface{}{
+
+		Tags: map[string]any{
 			"host":        &inputs.TagInfo{Desc: "Host name."},
 			"instance":    &inputs.TagInfo{Desc: "Instance name."},
 			"jmx_domain":  &inputs.TagInfo{Desc: "JMX domain."},
@@ -120,36 +470,136 @@ func (m *JMXMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
-// See also https://docs.datadoghq.com/opentelemetry/runtime_metrics/java/
-// See also https://docs.datadoghq.com/developers/metrics/types/?tab=count#metric-types
-
-// Info ...
-// nolint:lll
+//nolint:funlen
 func (m *DDtraceMeasurement) Info() *inputs.MeasurementInfo {
+	// See also https://docs.datadoghq.com/opentelemetry/runtime_metrics/java/
+	// See also https://docs.datadoghq.com/developers/metrics/types/?tab=count#metric-types
 	return &inputs.MeasurementInfo{
 		Name:           "ddtrace",
 		MetaDuplicated: true,
 		Cat:            point.Metric,
-		Fields: map[string]interface{}{
-			"tracer_queue_enqueued_spans":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Tracer queue enqueued spans."},
-			"tracer_queue_enqueued_traces":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Tracer queue enqueued traces."},
-			"tracer_scope_activate_count":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Tracer scope activate count."},
-			"tracer_scope_close_count":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Tracer scope close count."},
-			"tracer_span_pending_created":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Tracer span pending created."},
-			"tracer_span_pending_finished":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Tracer span pending finished."},
-			"tracer_trace_pending_created":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Tracer trace pending created."},
-			"tracer_agent_discovery_time":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Tracer agent discovery time."},
-			"tracer_trace_agent_discovery_time":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Tracer trace agent discovery time."},
-			"tracer_tracer_trace_buffer_fill_time": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Tracer trace buffer fill time."},
-			"tracer_trace_agent_send_time":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Tracer trace agent send time."},
-			"tracer_api_errors_total":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Tracer api errors total."},
-			"tracer_flush_bytes_total":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Tracer flush bytes total."},
-			"tracer_flush_traces_total":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Tracer flush traces total."},
-			"tracer_api_requests_total":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Tracer api requests total."},
-			"tracer_queue_enqueued_bytes":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Tracer queue enqueued bytes."},
-			"tracer_queue_max_length":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Tracer queue max length."},
+		Fields: map[string]any{
+			"tracer_queue_enqueued_spans": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Tracer queue enqueued spans.",
+			},
+
+			"tracer_queue_enqueued_traces": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Tracer queue enqueued traces.",
+			},
+
+			"tracer_scope_activate_count": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Tracer scope activate count.",
+			},
+
+			"tracer_scope_close_count": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Tracer scope close count.",
+			},
+
+			"tracer_span_pending_created": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Tracer span pending created.",
+			},
+
+			"tracer_span_pending_finished": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Tracer span pending finished.",
+			},
+
+			"tracer_trace_pending_created": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Tracer trace pending created.",
+			},
+
+			"tracer_agent_discovery_time": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationMS,
+				Desc:     "Tracer agent discovery time.",
+			},
+
+			"tracer_trace_agent_discovery_time": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Tracer trace agent discovery time.",
+			},
+
+			"tracer_tracer_trace_buffer_fill_time": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Tracer trace buffer fill time.",
+			},
+
+			"tracer_trace_agent_send_time": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Tracer trace agent send time.",
+			},
+
+			"tracer_api_errors_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Tracer api errors total.",
+			},
+
+			"tracer_flush_bytes_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Tracer flush bytes total.",
+			},
+
+			"tracer_flush_traces_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Tracer flush traces total.",
+			},
+
+			"tracer_api_requests_total": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Tracer api requests total.",
+			},
+
+			"tracer_queue_enqueued_bytes": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Tracer queue enqueued bytes.",
+			},
+
+			"tracer_queue_max_length": &inputs.FieldInfo{
+				DataType: inputs.Float,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Tracer queue max length.",
+			},
 		},
-		Tags: map[string]interface{}{
+
+		Tags: map[string]any{
 			"host":                    &inputs.TagInfo{Desc: "Host name."},
 			"lang_interpreter":        &inputs.TagInfo{Desc: "Lang interpreter."},
 			"service":                 &inputs.TagInfo{Desc: "Service name."},

@@ -126,6 +126,8 @@ func (ipt *Input) Catalog() string {
 func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&istatsd.JVMMeasurement{},
+		&istatsd.StatsdEvent{},
+		&istatsd.StatsdServiceCheck{},
 		&istatsd.JMXMeasurement{},
 		&istatsd.DDtraceMeasurement{},
 	}
@@ -199,36 +201,33 @@ func (ipt *Input) Collect() error {
 	}
 
 	if len(points) > 0 {
-		ipt.feedBatch(points)
+		ipt.feedBatch(point.Metric, points)
 	} else {
 		ipt.l.Debug("GetPoints 0 pts")
+	}
+
+	loggings := ipt.Col.GetLoggings()
+	if len(loggings) > 0 {
+		ipt.feedBatch(point.Logging, loggings)
 	}
 
 	return nil
 }
 
-func (ipt *Input) feedBatch(points []*point.Point) {
-	pts := []*point.Point{}
-	for i, v := range points {
-		for kk, vv := range ipt.taggerTags {
-			v.AddTag(kk, vv)
+func (ipt *Input) feedBatch(cat point.Category, points []*point.Point) {
+	for kk, vv := range ipt.taggerTags {
+		for _, pt := range points {
+			pt.AddTag(kk, vv)
 		}
-		pts = append(pts, v)
+	}
 
-		// i >= len(points)-1 --> last batch
-		// len(pts) >= 1024 --> 1024 pts per batch
-		if i >= len(points)-1 || len(pts) >= 1024 {
-			if err := ipt.Feeder.Feed(point.Metric, pts,
-				dkio.WithSource(ipt.Source)); err != nil {
-				ipt.Feeder.FeedLastError(err.Error(),
-					metrics.WithLastErrorInput(inputName),
-					metrics.WithLastErrorSource(ipt.Source),
-				)
-				ipt.l.Errorf("feed measurement: %s", err)
-			}
-
-			pts = []*point.Point{}
-		}
+	if err := ipt.Feeder.Feed(cat, points,
+		dkio.WithSource(ipt.Source)); err != nil {
+		ipt.Feeder.FeedLastError(err.Error(),
+			metrics.WithLastErrorInput(inputName),
+			metrics.WithLastErrorSource(ipt.Source),
+		)
+		ipt.l.Errorf("feed measurement: %s", err)
 	}
 }
 
