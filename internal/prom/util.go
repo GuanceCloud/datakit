@@ -180,14 +180,14 @@ func (p *Prom) getTags(labels []*dto.LabelPair, measurementName string, u string
 		}
 	}
 
-	// Add custom tags.
-	for k, v := range p.opt.tags {
-		kvs = kvs.AddTag(k, v)
-	}
-
 	// Add prometheus labels as tags.
 	for _, l := range labels {
 		kvs = kvs.AddTag(l.GetName(), l.GetValue())
+	}
+
+	// Add custom tags.
+	for k, v := range p.opt.tags {
+		kvs = kvs.AddTag(k, v)
 	}
 
 	kvs = p.removeIgnoredTags(kvs)
