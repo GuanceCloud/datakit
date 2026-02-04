@@ -40,6 +40,20 @@ skip: 'not-searchable-on-index-page'
 --->
 
 
+## v1.55.10-ext (2026/2/1) {#cl-1.55.10-ext}
+
+### 新增 {#cl-1.55.10-ext-fix}
+
+- 增加 `java-websocket` 探针支持。
+
+
+## v1.55.7-ext (2025/12/30) {#cl-1.55.7-ext}
+
+### 修复 {#cl-1.55.7-ext-fix}
+
+- 修复：Redis 参数没有正确显示问题。
+
+
 ## v1.55.6-ext (2025/12/22) {#cl-1.55.6-ext}
 
 ### 修复 {#cl-1.55.6-ext-fix}

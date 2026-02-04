@@ -14,11 +14,6 @@ DataKit now supports two Java profiling tools: [dd-trace-java](https://github.co
 
 Download `dd-trace-java` from the page [`dd-trace-java`](https://github.com/DataDog/dd-trace-java/releases){:target="_blank"}.
 
-<!-- markdownlint-disable MD046 -->
-???+ note
-
-    DataKit currently supports `dd-trace-java 1.47.x` and lower versions. Higher versions have not been tested, and their compatibility is unknown. If you encounter any issues during use, please feel free to provide feedback to us.
-<!-- markdownlint-enable -->
 
 Currently, `dd-trace-java` integrates two sets of analysis engines: [`Datadog Profiler`](https://github.com/datadog/java-profiler){:target="_blank"} and the built - in [`JFR (Java Flight Recorder)`](https://docs.oracle.com/javacomponents/jmc-5-4/jfr-runtime-guide/about.htm){:target="_blank"} in the JDK.
 Both engines have their own requirements for the platform and JDK version, which are listed as follows:
