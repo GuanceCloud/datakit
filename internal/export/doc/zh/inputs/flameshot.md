@@ -22,6 +22,7 @@ Flameshot 采用 **Sidecar 容器** 模式部署。它必须与业务主容器�
 1. **触发 (Trigger)**：当满足阈值（如 CPU > 80%）或收到 HTTP API 请求时，触发采集任务。
 1. **执行 (Execute)**：根据配置的语言类型（目前支持 Java），调用对应的 Profiler 工具 attach 到目标进程。
 1. **收集 (Collect)**：生成的 Profile 文件（如 `.jfr`）存储于共享卷中，随后上传至数据观测中心。
+1. **定时**: 配置 `FLAMESHOT_AUTO_PROFILING` 后，会定时对所有匹配到的进程采集一次 30s 的 Profiling 数据。
 
 ### 适用场景 {#use-cases}
 
@@ -46,6 +47,7 @@ Flameshot 的所有行为均通过环境变量进行控制。配置分为 **全�
 | `FLAMESHOT_LOG_LEVEL`        | 否     | `info`  | 日志级别，可选：`debug`, `info`, `warn`, `error`。                                 |
 | `FLAMESHOT_HTTP_LOCAL_IP`    | **是** | `-`     | Sidecar 自身 HTTP 服务监听地址。                                                   |
 | `FLAMESHOT_HTTP_LOCAL_PORT`  | **是** | `8089`  | Sidecar 自身 HTTP 服务监听端口。                                                   |
+| `FLAMESHOT_AUTO_PROFILING`   | 否     | -       | 定时对所有匹配到的进程采集一次 30s 的 Profiling 数据。最小不得低于一分钟，如五分钟："5m" 或者一小时 "1h"         |
 | `FLAMESHOT_SERVICE`          | 否     | -       | 可以不用在 `FLAMESHOT_PROCESSES` 中配置 `service`, 会全部替换。                         |
 | `FLAMESHOT_TAGS`             | 否     | -       | 建议配置 `host` `pod_name` `pod_namespace` 如： "host:host_name,pod_name:pod_a" |
 
@@ -248,6 +250,23 @@ Flameshot 提供了 HTTP 接口，允许用户或自动化运维脚本**主动�
 
 ---
 
+## JFR 数据格式 {#jfr-format}
+
+以下是几种核心事件类型的详细说明：
+
+| 事件类型 (Event)   | 对应参数             | 核心原理                                 | 适用场景                                          | 备注                         |
+|:---------------|:-----------------|:-------------------------------------|:----------------------------------------------|:---------------------------|
+| CPU Time       | cpu              | 通过内核采样或 itimer 定期查看 CPU 正在处理哪些代码指令。  | 性能优化：寻找计算密集型的“热点方法”，优化算法逻辑。                   | 只记录线程在 CPU 上运行的时间。         |
+| Wall-clock     | wall             | 无论线程状态如何（运行、睡眠、阻塞），均按固定频率采样。         | 响应耗时诊断：排查 I/O 阻塞、数据库调用慢、网络延迟等。                | 能够反映出线程在“等什么”。             |
+| Allocation     | alloc            | 记录 TLAB（线程本地分配缓存）的分配情况及大对象分配。        | 内存优化：定位内存抖动、减少频繁 GC 导致的停顿。                    | 记录的是分配动作，而不是当前内存存活量。       |
+| Lock           | lock             | 记录线程在 synchronized 关键字上的竞争和等待耗时。     | 并发瓶颈：排查锁竞争激烈、线程死锁或同步块执行过慢。                    | 默认通常记录超过一定阈值的阻塞事件。         |
+| Cache Misses   | cache-misses     | 利用硬件性能计数器 (PMU) 统计 L1/L2/L3 缓存未命中次数。 | 底层调优：优化数据结构（如 CPU 亲和性、伪共享问题）。                 | 需要 Linux 内核支持 perf_events。 |
+| Context Switch | context-switches | 记录操作系统调度线程切换的频率。                     | 资源调度优化：排查线程数是否过多、系统负荷是否超载。                    | 频繁切换会导致 CPU 时间浪费在管理开销上。    |
+| Java Methods   | itimer           | 基于内核计时器的采样。                          | 兼容性模式：在无法使用 perf_events 的环境（如部分容器）下替代 CPU 采样。 | 精度略低于硬件采样，但兼容性极好。          |
+
+`alloc` 并非当前所有内存的总和，而是当前采样期间内所分配的内存大小。
+
+---
 ## 常见问题与排查 {#troubleshooting}
 
 1. **无法采集数据？**
@@ -255,10 +274,16 @@ Flameshot 提供了 HTTP 接口，允许用户或自动化运维脚本**主动�
     - 检查 Pod 是否开启了 `shareProcessNamespace: true`。
     - 检查 Sidecar 是否拥有 `SYS_PTRACE` 权限。
 
-1. **文件未上传？**
+2. **文件未上传？**
 
     - 检查 `FLAMESHOT_PROFILING_PATH` 是否在两个容器间正确挂载。
     - 系统会自动管理文件生命周期，采集完成后会尝试删除临时文件。
+
+3. **配置正则太麻烦**
+
+    - JAVA 应用的进程名都是 `java`, 所以配置 `"command":"java"` `"language": "java"` 即可匹配所有的 JAVA 应用。
+    - 想要配置特定的应用而不是所有，正则是必须要配置的。
+
 
 ## 更新日志 (Changelog) {#changelog}
 

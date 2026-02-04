@@ -6,6 +6,7 @@
 package flameshot
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"regexp"
@@ -22,6 +23,7 @@ func TestConfigMarshal(t *testing.T) {
 		ProfilingPath:   "/profiling/v1/input",
 		MonitorInterval: "1s",
 		Tags:            []string{"host:my_host"},
+		AutoProfiling:   "5m",
 		Processes: []*Process{
 			{
 				Service:         "tmall",
@@ -63,12 +65,14 @@ func TestConfigMarshal(t *testing.T) {
 
 	// --- test unmarshal ---
 	c2 := &Config{}
-	err = toml.Unmarshal([]byte(defaultConfig), c2)
+
+	err = toml.NewDecoder(bytes.NewBuffer([]byte(defaultConfig))).Decode(c2)
 	assert.NoError(t, err)
 	assert.NotNil(t, c2)
 	assert.NotEmpty(t, c2.DataKitAddr)
 	assert.NotEmpty(t, c2.ProfilingPath)
 	assert.NotEmpty(t, c2.MonitorInterval)
+	assert.NotEmpty(t, c2.AutoProfiling)
 	assert.NotEmpty(t, c2.Tags)
 	assert.NotEmpty(t, c2.Processes)
 	assert.NotEmpty(t, c2.HTTPConfig)
@@ -177,6 +181,7 @@ func TestConfig_FromEnv(t *testing.T) {
 	t.Setenv("FLAMESHOT_HTTP_LOCAL_IP", "0.0.0.0")
 	t.Setenv("FLAMESHOT_HTTP_LOCAL_PORT", "8089")
 	t.Setenv("FLAMESHOT_TAGS", "env:env,version:1.0.0")
+	t.Setenv("FLAMESHOT_AUTO_PROFILING", "30s")
 
 	c.fromEnv()
 	assert.NotEmpty(t, c.DataKitAddr)
@@ -188,6 +193,8 @@ func TestConfig_FromEnv(t *testing.T) {
 	assert.NotEmpty(t, c.Log.Level)
 	assert.NotEmpty(t, c.HTTPConfig.LocalPort)
 	assert.NotEmpty(t, c.HTTPConfig.LocalHost)
+	t.Logf("config AutoProfiling %+v", c.AutoProfiling)
+	assert.Equal(t, c.AutoProfiling, "5m")
 }
 
 func TestRegex(t *testing.T) {

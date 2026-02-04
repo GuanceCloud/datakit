@@ -29,6 +29,8 @@ var (
   # The time interval for monitoring the program, in seconds
   monitor_interval = "1s"
   tags = ["globle_tag_1:xxx","other_tag:aaa"]
+  auto_profiling = "10m"
+
   [[processes]]
     ## service name for profiling
     service = "default_service_name"
@@ -87,6 +89,7 @@ type Config struct {
 	ProfilingPath   string      `toml:"profiling_path"`   // 虚拟环境下必须保证是共享目录
 	MonitorInterval string      `toml:"monitor_interval"` // 监控间隔，单位 秒
 	Tags            []string    `toml:"tags"`             // 全局自定义标签
+	AutoProfiling   string      `toml:"auto_profiling"`   // 开关定时自动执行, 配置 0 则关闭
 	Processes       []*Process  `toml:"processes"`        // 监控的进程列表
 	HTTPConfig      *HTTPConfig `toml:"http"`             // http 配置
 	Log             *Logging    `toml:"logging"`          // 日志配置
@@ -133,6 +136,18 @@ func (c *Config) fromEnv() {
 			c.Log = &Logging{}
 		}
 		c.Log.Path = x
+	}
+	if x := os.Getenv("FLAMESHOT_AUTO_PROFILING"); x != "" {
+		auto, err := time.ParseDuration(x)
+		if err != nil {
+			log.Warnf("parse %s=%s failed: %s", "FLAMESHOT_AUTO_PROFILING", x, err.Error())
+		} else {
+			if auto > 0 && auto < time.Minute {
+				x = "5m"
+				log.Warnf("parse %s=%s failed: %s", "FLAMESHOT_AUTO_PROFILING", x, "auto profiling time must >= 1 minute, use default 5 minute")
+			}
+			c.AutoProfiling = x
+		}
 	}
 
 	// 数组配置使用for循环

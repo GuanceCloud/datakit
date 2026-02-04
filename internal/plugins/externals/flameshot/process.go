@@ -120,7 +120,7 @@ func (pm *processM) AddMemPercent(perc float64) {
 }
 
 func (pm *processM) isTrigger() (bool, []string) {
-	if time.Since(pm.lastProfileTime) < time.Minute*5 {
+	if time.Since(pm.lastProfileTime) < time.Minute {
 		return false, nil
 	}
 
