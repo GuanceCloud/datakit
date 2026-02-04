@@ -14,44 +14,96 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/GuanceCloud/cliutils/point"
 )
 
 const (
-	priorityNormal = "normal"
-	priorityLow    = "low"
-
-	eventInfo    = "info"
-	eventWarning = "warning"
-	eventError   = "error"
-	eventSuccess = "success"
+	priorityNormal              = "normal"
+	eventInfo                   = "info"
+	eventMeasurementName        = "dogstatsd_event"
+	serviceCheckMeasurementName = "dogstatsd_service_check"
 )
 
 var uncommenter = strings.NewReplacer("\\n", "\n")
 
-func (col *Collector) parseEventMessage(now time.Time, message string, defaultHostname string) error {
-	// _e{title.length,text.length}:title|text
-	//  [
-	//   |d:date_happened
-	//   |p:priority
-	//   |h:hostname
-	//   |t:alert_type
-	//   |s:source_type_nam
-	//   |#tag1,tag2
-	//  ]
-	//
-	//
-	// tag is key:value
-	messageRaw := strings.SplitN(message, ":", 2)
-	if len(messageRaw) < 2 || len(messageRaw[0]) < 7 || len(messageRaw[1]) < 3 {
-		col.opts.l.Warnf("invalid message format: %s", message)
+func (col *Collector) parseServiceCheck(now time.Time, message string) error {
+	// syntax: _sc|<CHECK_NAME>|<STATUS>|d:<TIMESTAMP>|m:<MESSAGE>|#<TAGS>
+
+	arr := strings.Split(message[4:] /* skip `_sc|` */, "|")
+
+	if len(arr) < 2 {
+		col.opts.l.Warnf("invalid service check message format: %s", message)
 		return fmt.Errorf("invalid message format")
 	}
-	header := messageRaw[0]
-	message = messageRaw[1]
 
+	var (
+		kvs       point.KVs
+		checkName = arr[0]
+		status    = arr[1]
+		ts        = now.UnixNano()
+	)
+
+	kvs = kvs.AddTag("check_name", checkName)
+
+	switch status {
+	case "0":
+		kvs = kvs.Add("status", "ok")
+	case "1":
+		kvs = kvs.Add("status", "warn")
+	case "2":
+		kvs = kvs.Add("status", "critical")
+	case "3":
+		kvs = kvs.Add("status", "unknown")
+	}
+
+	for _, elem := range arr[2:] {
+		switch {
+		case strings.HasPrefix(elem, "d:"):
+			if x, err := strconv.ParseInt(elem[2:], 10, 64); err == nil {
+				ts = time.Unix(x, 0).UnixNano() // d: unit is second
+			} else {
+				col.opts.l.Warn("invalid timestamp: %q", elem)
+			}
+		case strings.HasPrefix(elem, "m:"):
+			kvs = kvs.Add("message", elem[2:])
+		case strings.HasPrefix(elem, "#"):
+			tags := map[string]string{}
+			col.parseDataDogTags(tags, elem[1:])
+			for k, v := range tags {
+				kvs = kvs.AddTag(k, v)
+			}
+		}
+	}
+
+	col.loggingPts = append(col.loggingPts, point.NewPoint(serviceCheckMeasurementName, kvs, point.WithTimestamp(ts)))
+
+	return nil
+}
+
+// parseEventMessage parse datadog event payload.
+//
+// example payload:
+//  _e{title.length,text.length}:title|text|d:date_happened|p:priority|h:hostname|t:alert_type|s:source_type_nam|#tag1,tag2
+
+func (col *Collector) parseEventMessage(now time.Time, message string, defaultHostname string) error {
+	var (
+		arr = strings.SplitN(message, ":", 2)
+		ts  = now.UnixNano()
+	)
+
+	if len(arr) < 2 || len(arr[0]) < 7 || len(arr[1]) < 3 {
+		col.opts.l.Warnf("invalid event message format: %s", message)
+		return fmt.Errorf("invalid message format")
+	}
+
+	header := arr[0]
+	message = arr[1]
+
+	// parse title and text len
 	rawLen := strings.SplitN(header[3:], ",", 2)
 	if len(rawLen) != 2 {
-		col.opts.l.Warnf("invalid message format: %s", message)
+		col.opts.l.Warnf("invalid message format: %s, header should contains 2 length", message)
 		return fmt.Errorf("invalid message format")
 	}
 
@@ -60,19 +112,24 @@ func (col *Collector) parseEventMessage(now time.Time, message string, defaultHo
 		col.opts.l.Warnf("invalid message format: %s", message)
 		return fmt.Errorf("invalid message format, could not parse title.length: '%s'", rawLen[0])
 	}
+
 	if len(rawLen[1]) < 1 {
 		col.opts.l.Warnf("invalid message format: %s", message)
 		return fmt.Errorf("invalid message format, could not parse text.length: '%s'", rawLen[0])
 	}
+
 	textLen, err := strconv.ParseInt(rawLen[1][:len(rawLen[1])-1], 10, 64)
 	if err != nil {
 		col.opts.l.Warnf("invalid message format: %s", message)
 		return fmt.Errorf("invalid message format, could not parse text.length: '%s'", rawLen[0])
 	}
+
 	if titleLen+textLen+1 > int64(len(message)) {
 		col.opts.l.Warnf("invalid message format: %s", message)
 		return fmt.Errorf("invalid message format, title.length and text.length exceed total message length")
 	}
+
+	var kvs point.KVs
 
 	rawTitle := message[:titleLen]
 	rawText := message[titleLen+1 : titleLen+1+textLen]
@@ -83,114 +140,84 @@ func (col *Collector) parseEventMessage(now time.Time, message string, defaultHo
 		return fmt.Errorf("invalid event message format: empty 'title' or 'text' field")
 	}
 
-	name := rawTitle
-	tags := make(map[string]string, strings.Count(message, ",")+2) // allocate for the approximate number of tags
-	fields := make(map[string]interface{}, 9)
-	fields["alert_type"] = eventInfo // default event type
-	fields["text"] = uncommenter.Replace(rawText)
+	kvs = kvs.Add("title", rawTitle).
+		Add("message", uncommenter.Replace(rawText)).
+		Add("status", eventInfo).
+		AddTag("priority", priorityNormal)
+
 	if defaultHostname != "" {
-		tags["source"] = defaultHostname
+		kvs = kvs.Add("host", defaultHostname)
 	}
-	fields["priority"] = priorityNormal
-	ts := now
+
 	if len(message) < 2 {
-		col.acc.addFields(name, fields, tags, ts)
+		col.loggingPts = append(col.loggingPts, point.NewPoint(eventMeasurementName, kvs, point.WithTimestamp(ts)))
 		return nil
 	}
 
 	rawMetadataFields := strings.Split(message[1:], "|")
 	for i := range rawMetadataFields {
 		if len(rawMetadataFields[i]) < 2 {
-			col.opts.l.Warnf("invalid message format: %s", message)
+			col.opts.l.Warnf("invalid message format: %s, rawMetadataFields[%d]: %+#v", message, i, rawMetadataFields[i])
 			return errors.New("too short metadata field")
 		}
 		switch rawMetadataFields[i][:2] {
 		case "d:":
-			ts, err := strconv.ParseInt(rawMetadataFields[i][2:], 10, 64)
-			if err != nil {
-				continue
+			if x, err := strconv.ParseInt(rawMetadataFields[i][2:], 10, 64); err == nil {
+				ts = time.Unix(x, 0).UnixNano() // d: unit is second
+			} else {
+				col.opts.l.Warn("invalid timestamp: %q", rawMetadataFields[i][2:])
 			}
-			fields["ts"] = ts
 		case "p:":
 			switch rawMetadataFields[i][2:] {
-			case priorityLow:
-				fields["priority"] = priorityLow
-			case priorityNormal: // we already used this as a default
+			case priorityNormal: // default set
 			default:
-				continue
+				kvs = kvs.SetTag("priority", rawMetadataFields[i][2:])
 			}
 		case "h:":
-			tags["source"] = rawMetadataFields[i][2:]
+			kvs = kvs.SetTag("host", rawMetadataFields[i][2:])
 		case "t:":
 			switch rawMetadataFields[i][2:] {
-			case eventError, eventWarning, eventSuccess, eventInfo:
-				fields["alert_type"] = rawMetadataFields[i][2:] // already set for info
+			case eventInfo: // default set
 			default:
-				continue
+				kvs = kvs.Set("status", rawMetadataFields[i][2:])
 			}
 		case "k:":
-			tags["aggregation_key"] = rawMetadataFields[i][2:]
+			kvs = kvs.SetTag("aggregation_key", rawMetadataFields[i][2:])
 		case "s:":
-			fields["source_type_name"] = rawMetadataFields[i][2:]
+			kvs = kvs.SetTag("source_type_name", rawMetadataFields[i][2:])
 		default:
 			if rawMetadataFields[i][0] == '#' {
-				parseDataDogTags(tags, rawMetadataFields[i][1:])
+				tags := map[string]string{}
+				col.parseDataDogTags(tags, rawMetadataFields[i][1:])
+				for k, v := range tags {
+					kvs = kvs.AddTag(k, v)
+				}
 			} else {
 				col.opts.l.Warnf("invalid message format: %s", message)
 				return fmt.Errorf("unknown metadata type: '%s'", rawMetadataFields[i])
 			}
 		}
 	}
-	// Use source tag because host is reserved tag key in Telegraf.
-	// In datadog the host tag and `h:` are interchangeable, so we have to chech for the host tag.
-	if host, ok := tags["host"]; ok {
-		delete(tags, "host")
-		tags["source"] = host
-	}
-	col.acc.addFields(name, fields, tags, ts)
+
+	col.loggingPts = append(col.loggingPts, point.NewPoint(eventMeasurementName, kvs, point.WithTimestamp(ts)))
+
 	return nil
 }
 
-func parseDataDogTags(tags map[string]string, message string) {
+func (col *Collector) parseDataDogTags(tags map[string]string, message string) {
 	if len(message) == 0 {
 		return
 	}
 
-	const TrueVal = "true"
+	col.opts.l.Debugf("parse dd tags: %s", message)
 
-	start, i := 0, 0
-	var k string
-	var inVal bool // check if we are parsing the value part of the tag
-	for i = range message {
-		if message[i] == ',' {
-			if k == "" {
-				k = message[start:i]
-				tags[k] = TrueVal // this is because influx doesn't support empty tags
-				start = i + 1
-				continue
-			}
-			v := message[start:i]
-			if v == "" {
-				v = TrueVal
-			}
-			tags[k] = v
-			start = i + 1
-			k, inVal = "", false // reset state vars
-		} else if message[i] == ':' && !inVal {
-			k = message[start:i]
-			start = i + 1
-			inVal = true
+	arr := strings.Split(message, ",")
+	for _, elem := range arr {
+		kv := strings.SplitN(elem, ":", 2)
+		if len(kv) != 2 {
+			tags[kv[0]] = "" // for tag that missing value, we default set to ""
+		} else {
+			tags[kv[0]] = kv[1]
 		}
-	}
-	if k == "" && start < i+1 {
-		tags[message[start:i+1]] = TrueVal
-	}
-	// grab the last value
-	if k != "" {
-		if start < i+1 {
-			tags[k] = message[start : i+1]
-			return
-		}
-		tags[k] = TrueVal
 	}
 }

@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/influxdata/telegraf/plugins/parsers/graphite"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
@@ -49,7 +50,7 @@ type Collector struct {
 	drops int
 
 	// Channel for all incoming statsd packets
-	in   chan job
+	in   chan *job
 	done chan struct{}
 
 	// Cache gauges, counters & sets so they can be aggregated as they arrive
@@ -61,6 +62,8 @@ type Collector struct {
 	sets          map[string]cachedset
 	timings       map[string]cachedtimings
 	distributions []cacheddistributions
+
+	loggingPts []*point.Point
 
 	// bucket -> influx templates
 	Templates []string // NOTE: Deprecated
@@ -109,14 +112,14 @@ type cachedset struct {
 
 type cachedgauge struct {
 	name      string
-	fields    map[string]interface{}
+	fields    map[string]any
 	tags      map[string]string
 	expiresAt time.Time
 }
 
 type cachedcounter struct {
 	name      string
-	fields    map[string]interface{}
+	fields    map[string]any
 	tags      map[string]string
 	expiresAt time.Time
 }
@@ -178,6 +181,7 @@ func (col *Collector) aggregate(m metric) {
 				tags:   m.tags,
 			}
 		}
+
 		// Check if the field exists. If we've not enabled multiple fields per timer
 		// this will be the default field name, eg. "value"
 		field, ok := cached.fields[m.field]
@@ -195,6 +199,9 @@ func (col *Collector) aggregate(m metric) {
 		}
 		cached.fields[m.field] = field
 		cached.expiresAt = time.Now().Add(col.opts.maxTTL)
+
+		col.opts.l.Debugf("cached: %+#v", cached)
+
 		col.timings[m.hash] = cached
 	case "c":
 		// check if the measurement exists
@@ -202,7 +209,7 @@ func (col *Collector) aggregate(m metric) {
 		if !ok {
 			cached = cachedcounter{
 				name:   m.name,
-				fields: make(map[string]interface{}),
+				fields: make(map[string]any),
 				tags:   m.tags,
 			}
 		}
@@ -228,7 +235,7 @@ func (col *Collector) aggregate(m metric) {
 		if !ok {
 			cached = cachedgauge{
 				name:   m.name,
-				fields: make(map[string]interface{}),
+				fields: make(map[string]any),
 				tags:   m.tags,
 			}
 		}
@@ -329,12 +336,12 @@ func NewCollector(udplistener *net.UDPConn, tcplistener *net.TCPListener, collec
 	col.Lock()
 	defer col.Unlock()
 
-	col.in = make(chan job, col.opts.allowedPendingMessages)
+	col.in = make(chan *job, col.opts.allowedPendingMessages)
 	col.done = make(chan struct{})
 	col.accept = make(chan bool, col.opts.maxTCPConnections)
 	col.conns = make(map[string]*net.TCPConn)
 	col.bufPool = sync.Pool{
-		New: func() interface{} {
+		New: func() any {
 			return new(bytes.Buffer)
 		},
 	}

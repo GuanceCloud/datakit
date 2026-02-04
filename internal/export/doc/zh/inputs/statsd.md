@@ -95,8 +95,25 @@ DD_JMXFETCH_STATSD_PORT=8125
 
 {{ range $i, $m := .Measurements }}
 
+{{if eq $m.Type "metric"}}
+
 ### `{{$m.Name}}`
 
 {{$m.MarkdownTable}}
 
+{{ end }}
+{{ end }}
+
+## 日志 {#logging}
+
+statsd 会将部分 event 的数据发送过来，DataKit 目前将其以日志形式来采集。
+
+{{ range $i, $m := .Measurements }}
+{{if eq $m.Type "logging"}}
+
+### `{{$m.Name}}`
+
+{{$m.MarkdownTable}}
+
+{{ end }}
 {{ end }}

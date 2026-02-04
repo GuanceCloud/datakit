@@ -96,9 +96,25 @@ For all of the following data collections, a global tag named `host` is appended
 ```
 
 {{ range $i, $m := .Measurements }}
+{{if eq $m.Type "metric"}}
 
 ### `{{$m.Name}}`
 
 {{$m.MarkdownTable}}
 
+{{ end }}
+{{ end }}
+
+## Logging {#logging}
+
+statsd will export some event data, DataKit collect them as logging.
+
+{{ range $i, $m := .Measurements }}
+{{if eq $m.Type "logging"}}
+
+### `{{$m.Name}}`
+
+{{$m.MarkdownTable}}
+
+{{ end }}
 {{ end }}

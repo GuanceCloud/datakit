@@ -7,6 +7,7 @@ package statsd
 
 import (
 	"testing"
+	T "testing"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -16,9 +17,10 @@ import (
 
 func TestAddFields(t *testing.T) {
 	cases := []struct {
-		name   string
+		tname,
+		name string
 		tags   map[string]string
-		fields map[string]interface{}
+		fields map[string]any
 
 		mmap        []string
 		dropTags    []string
@@ -30,7 +32,7 @@ func TestAddFields(t *testing.T) {
 
 			name:        `jvm_cpu_load_process`,
 			tags:        map[string]string{"a": "b", "c": "d"},
-			fields:      map[string]interface{}{"value": 1024},
+			fields:      map[string]any{"value": 1024},
 			expectPoint: 1,
 		},
 
@@ -40,7 +42,7 @@ func TestAddFields(t *testing.T) {
 
 			name:        `jvm_cpu_load_process`,
 			tags:        map[string]string{"a": "b", "c": "d"},
-			fields:      map[string]interface{}{"value": 1024},
+			fields:      map[string]any{"value": 1024},
 			expectPoint: 1,
 		},
 
@@ -48,10 +50,11 @@ func TestAddFields(t *testing.T) {
 			mmap:     nil,
 			dropTags: []string{"c"},
 
+			tname: "no_sep",
 			// warning name, no `_'(the default) seprator, we choose accept it
 			name:        `jvmcpuloadprocess`,
 			tags:        map[string]string{"a": "b", "c": "d"},
-			fields:      map[string]interface{}{"value": 1024},
+			fields:      map[string]any{"value": 1024},
 			expectPoint: 1,
 		},
 
@@ -59,10 +62,9 @@ func TestAddFields(t *testing.T) {
 			mmap:     []string{"net:set"},
 			dropTags: []string{"c"},
 
-			// warning name, no `_'(the default) seprator, we choose accept it
 			name:        `dotnet_cpu_load_process`,
 			tags:        map[string]string{"a": "b", "c": "d"},
-			fields:      map[string]interface{}{"value": 1024},
+			fields:      map[string]any{"value": 1024},
 			expectPoint: 1,
 		},
 
@@ -72,7 +74,7 @@ func TestAddFields(t *testing.T) {
 
 			name:        `jvm_cpu_load_process`,
 			tags:        map[string]string{"a": "b", "c": "d"},
-			fields:      map[string]interface{}{"value": 1024},
+			fields:      map[string]any{"value": 1024},
 			expectPoint: 1,
 		},
 
@@ -80,20 +82,11 @@ func TestAddFields(t *testing.T) {
 			mmap:     []string{"jvm_:jvm"},
 			dropTags: []string{"c"},
 
+			tname:       "multiple-fields",
 			name:        `jvm_cpu_load_process`,
 			tags:        map[string]string{"a": "b", "c": "d"},
-			fields:      map[string]interface{}{"invalid-field": 1024},
-			expectPoint: 0,
-		},
-
-		{
-			mmap:     []string{"jvm_:jvm"},
-			dropTags: []string{"c"},
-
-			name:        `jvm_cpu_load_process`,
-			tags:        map[string]string{"a": "b", "c": "d"},
-			fields:      map[string]interface{}{"invalid-field": 1024, "field": 42},
-			expectPoint: 0,
+			fields:      map[string]any{"invalid-field": 1024, "field": 42},
+			expectPoint: 2,
 		},
 	}
 
@@ -106,21 +99,23 @@ func TestAddFields(t *testing.T) {
 	s.acc = acc
 
 	for _, tc := range cases {
-		acc.points = acc.points[:0] // clear cache
+		t.Run(tc.tname, func(t *T.T) {
+			acc.points = acc.points[:0] // clear cache
 
-		s.opts.metricMapping = tc.mmap
-		s.opts.dropTags = tc.dropTags
-		s.setupMmap()
+			s.opts.metricMapping = tc.mmap
+			s.opts.dropTags = tc.dropTags
+			s.setupMmap()
 
-		acc.addFields(tc.name, tc.fields, tc.tags, time.Now())
+			acc.addFields(tc.name, tc.fields, tc.tags, time.Now())
 
-		assert.Truef(t, len(acc.points) == tc.expectPoint,
-			"expect %d point, got %d: %+#v",
-			tc.expectPoint, len(acc.points), acc.points)
+			assert.Truef(t, len(acc.points) == tc.expectPoint,
+				"expect %d point, got %d: %s",
+				tc.expectPoint, len(acc.points), acc.points[0].Pretty())
 
-		if len(acc.points) > 0 {
-			t.Logf("%#v", acc.points[len(acc.points)-1])
-		}
+			for _, pt := range acc.points {
+				t.Logf("%s", pt.Pretty())
+			}
+		})
 	}
 }
 
@@ -146,7 +141,7 @@ func TestDoFeedMetricName(t *testing.T) {
 				"source_key": "tomcat",
 				"host_key":   "cn-shanghai-sq5ei",
 			},
-			expectFeedMetricName: "statsd/tomcat/cn-shanghai-sq5ei",
+			expectFeedMetricName: "statsd.tomcat.cn-shanghai-sq5ei",
 		},
 
 		{
@@ -157,7 +152,7 @@ func TestDoFeedMetricName(t *testing.T) {
 				},
 			},
 			tags:                 map[string]string{},
-			expectFeedMetricName: "statsd/-/-",
+			expectFeedMetricName: "statsd.x.x",
 		},
 
 		{
@@ -171,7 +166,7 @@ func TestDoFeedMetricName(t *testing.T) {
 				},
 			},
 			tags:                 map[string]string{},
-			expectFeedMetricName: "statsd/-/-",
+			expectFeedMetricName: "statsd.x.x",
 		},
 
 		{
@@ -185,7 +180,7 @@ func TestDoFeedMetricName(t *testing.T) {
 				"source_key": "tomcat",
 				"host_key":   "cn-shanghai-sq5ei",
 			},
-			expectFeedMetricName: "statsd/-/-",
+			expectFeedMetricName: "statsd.x.x",
 		},
 
 		{
@@ -201,7 +196,7 @@ func TestDoFeedMetricName(t *testing.T) {
 			tags: map[string]string{
 				"host_key": "cn-shanghai-sq5ei",
 			},
-			expectFeedMetricName: "statsd/-/cn-shanghai-sq5ei",
+			expectFeedMetricName: "statsd.x.cn-shanghai-sq5ei",
 		},
 
 		{
@@ -216,7 +211,7 @@ func TestDoFeedMetricName(t *testing.T) {
 			tags: map[string]string{
 				"source_key": "tomcat",
 			},
-			expectFeedMetricName: "statsd/tomcat/-",
+			expectFeedMetricName: "statsd.tomcat.x",
 		},
 	}
 

@@ -11,30 +11,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
-
-type statsdMeasurement struct {
-	name   string
-	tags   map[string]string
-	fields map[string]interface{}
-	ts     time.Time
-}
-
-// Point implement MeasurementV2.
-func (m *statsdMeasurement) Point() *point.Point {
-	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(m.ts))
-
-	return point.NewPoint(m.name,
-		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
-		opts...)
-}
-
-func (m *statsdMeasurement) Info() *inputs.MeasurementInfo {
-	return nil
-}
 
 type accumulator struct {
 	ref            *Collector
@@ -43,7 +20,7 @@ type accumulator struct {
 	l              *logger.Logger
 }
 
-func (a *accumulator) addFields(name string, fields map[string]interface{}, tags map[string]string, ts time.Time) {
+func (a *accumulator) addFields(name string, fields map[string]any, tags map[string]string, ts time.Time) {
 	for k, v := range a.ref.opts.tags {
 		tags[k] = v // may override tags in real-data
 	}
@@ -55,71 +32,75 @@ func (a *accumulator) addFields(name string, fields map[string]interface{}, tags
 
 	a.doFeedMetricName(tags)
 
-	// Requrements: there shoule be only 1 field, the field key should be 'value'
-	if len(fields) != 1 {
-		a.l.Warnf("drop metric %s, got %d fields: %+#v", name, len(fields), fields)
-		return
-	}
+	a.l.Debugf("on metric %s, got %d fields: %+#v", name, len(fields), fields)
 
-	fval, ok := fields["value"]
-	if !ok {
-		a.l.Warnf("drop metric %s, field 'value' missing", name)
-		return
-	}
+	ptsopt := point.DefaultMetricOptions()
 
-	metricName := name
-	fieldKey := name // we choose metric name as field name in influxdb's line protocol
+	for k, v := range fields {
+		metricName := name
+		fieldKey := name // we choose metric name as field name in influxdb's line protocol
 
-	if len(a.ref.mmap) > 0 {
-		for from, to := range a.ref.mmap {
-			if strings.HasPrefix(name, from) {
-				metricName = to
-				fieldKey = strings.TrimPrefix(name, from)
-				break
+		if len(a.ref.mmap) > 0 {
+			for from, to := range a.ref.mmap {
+				if strings.HasPrefix(name, from) {
+					metricName = to
+					fieldKey = strings.TrimPrefix(name, from)
+
+					a.l.Debugf("renaming: %s | %s", metricName, fieldKey)
+					break
+				}
 			}
-		}
-	} else {
-		arr := strings.SplitN(name, a.ref.opts.metricSeparator, 2)
-		if len(arr) < 2 {
-			a.l.Warnf("got metric '%s', accept it", name)
-			metricName = name
 		} else {
-			metricName = arr[0]
-			fieldKey = arr[1]
+			arr := strings.SplitN(name, a.ref.opts.metricSeparator, 2)
+			if len(arr) < 2 {
+				a.l.Warnf("got metric '%s', accept it", name)
+				metricName = name
+			} else {
+				metricName = arr[0]
+				fieldKey = arr[1]
+			}
+
+			a.l.Debugf("update naming %s | %s", metricName, fieldKey)
 		}
-	}
 
-	// Check metric
-	if len(metricName) == 0 || len(fieldKey) == 0 {
-		a.l.Warnf("error metricName|fieldKey: %s|%s", metricName, fieldKey)
-		return
-	}
+		// Check metric
+		if len(metricName) == 0 || len(fieldKey) == 0 {
+			a.l.Warnf("error metricName|fieldKey: %s|%s", metricName, fieldKey)
+			return
+		}
 
-	a.l.Debugf("addFields: %s|%s", metricName, fieldKey)
-	metric := &statsdMeasurement{
-		name: metricName,
-		fields: map[string]interface{}{
-			fieldKey: fval,
-		},
-		tags: tags,
-		ts:   ts,
-	}
+		switch k {
+		case "value":
+		default:
+			// fieldKey append with _mean/_stddev/_sum/... suffix
+			fieldKey = fieldKey + "_" + k
+		}
 
-	a.points = append(a.points, metric.Point())
+		a.l.Debugf("addFields: %s|%s: %v", metricName, fieldKey, v)
+		var kvs point.KVs
+		kvs = kvs.Add(fieldKey, v)
+		for tk, tv := range tags {
+			kvs = kvs.SetTag(tk, tv)
+		}
+
+		pt := point.NewPoint(metricName, kvs, append(ptsopt, point.WithTime(ts))...)
+
+		a.points = append(a.points, pt)
+	}
 }
 
 func (a *accumulator) doFeedMetricName(tags map[string]string) {
-	a.feedMetricName = "statsd/-/-" // default
+	a.feedMetricName = "statsd.x.x" // default
 	if len(a.ref.opts.statsdSourceKey) > 0 || len(a.ref.opts.statsdHostKey) > 0 {
 		sourceKey := tags[a.ref.opts.statsdSourceKey]
 		hostKey := tags[a.ref.opts.statsdHostKey]
 		if len(sourceKey) == 0 {
-			sourceKey = "-"
+			sourceKey = "x"
 		}
 		if len(hostKey) == 0 {
-			hostKey = "-"
+			hostKey = "x"
 		}
-		a.feedMetricName = "statsd/" + sourceKey + "/" + hostKey
+		a.feedMetricName = "statsd." + sourceKey + "." + hostKey
 
 		if !a.ref.opts.saveAboveKey {
 			delete(tags, a.ref.opts.statsdSourceKey)

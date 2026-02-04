@@ -85,7 +85,7 @@ func (col *Collector) unixListen(conn *net.UnixConn) error {
 				return err
 			}
 			select {
-			case col.in <- job{
+			case col.in <- &job{
 				Buffer: b,
 				Time:   time.Now(),
 				Addr:   addr.String(),
