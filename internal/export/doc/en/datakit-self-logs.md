@@ -107,7 +107,7 @@ By default, the DataKit main log path is `/var/log/datakit/log`, and the GIN log
 
 ## Configuration Details {#config-details}
 
-For detailed configuration field descriptions and advanced configuration options, see the [Log Collection Configuration Documentation](inputs/datakit-logging.md#config).
+For detailed configuration field descriptions and advanced configuration options, see the [Log Collection Configuration Documentation](datakit-logging.md#config).
 
 ## Notes {#notes}
 
