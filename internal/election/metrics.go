@@ -15,9 +15,8 @@ import (
 
 var (
 	inputsPauseVec,
+	electionStatusSwitched,
 	inputsResumeVec *p8s.CounterVec
-
-	electionVec *p8s.SummaryVec
 
 	electionInputs,
 	electionStatusVec *p8s.GaugeVec
@@ -77,17 +76,11 @@ func metricsSetup() {
 		},
 	)
 
-	electionVec = p8s.NewSummaryVec(
-		p8s.SummaryOpts{
+	electionStatusSwitched = p8s.NewCounterVec(
+		p8s.CounterOpts{
 			Namespace: "datakit",
-			Name:      "election_seconds",
-			Help:      "Election latency",
-
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Name:      "election_switched_total",
+			Help:      "Election status switch count",
 		}, []string{
 			"namespace",
 			"status",
@@ -97,7 +90,7 @@ func metricsSetup() {
 	metrics.MustRegister(
 		inputsPauseVec,
 		inputsResumeVec,
-		electionVec,
+		electionStatusSwitched,
 		electionStatusVec,
 		electionInputs,
 	)

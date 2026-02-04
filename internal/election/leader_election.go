@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -31,8 +30,9 @@ import (
 
 type leaderElection struct {
 	*option
-	status  electionStatus
-	plugins []inputs.ElectionInput
+	lastElected time.Time
+	status      electionStatus
+	plugins     []inputs.ElectionInput
 }
 
 func newLeaderElection(opt *option, plugins map[string][]inputs.ElectionInput) *leaderElection {
@@ -67,16 +67,17 @@ func (x *leaderElection) Run() {
 			return
 
 		case <-tick.C:
-			electionInterval := x.runOnce()
-			if electionInterval != electionIntervalDefault {
-				tick.Reset(time.Second * time.Duration(electionInterval))
-				electionIntervalDefault = electionInterval
+			if electionInterval, err := x.runOnce(); err == nil {
+				if electionInterval != electionIntervalDefault {
+					tick.Reset(time.Second * time.Duration(electionInterval))
+					electionIntervalDefault = electionInterval
+				}
 			}
 		}
 	}
 }
 
-func (x *leaderElection) runOnce() int {
+func (x *leaderElection) runOnce() (int, error) {
 	var (
 		elecIntv int
 		err      error
@@ -85,17 +86,19 @@ func (x *leaderElection) runOnce() int {
 	switch x.status {
 	case statusSuccess:
 		elecIntv, err = x.keepalive()
+		if err != nil {
+			log.Errorf("keepalive: %s", err)
+		}
 	case statusFail:
 		elecIntv, err = x.tryElection()
+		if err != nil {
+			log.Errorf("tryElection: %s", err)
+		}
 	case statusDisabled, statusBanned: // pass
-		return electionIntervalDefault
+		return electionIntervalDefault, nil
 	}
 
-	if err != nil {
-		metrics.FeedLastError("election", err.Error())
-	}
-
-	return elecIntv
+	return elecIntv, err
 }
 
 type leaderElectionResult struct {
@@ -110,11 +113,6 @@ type leaderElectionResult struct {
 }
 
 func (x *leaderElection) tryElection() (int, error) {
-	var (
-		electedTime int64
-		start       = time.Now()
-	)
-
 	body, err := x.puller.Election(x.namespace, x.id, nil)
 	if err != nil {
 		log.Errorf("puller.Election: %s", err)
@@ -122,17 +120,12 @@ func (x *leaderElection) tryElection() (int, error) {
 	}
 
 	defer func() {
-		electionVec.WithLabelValues(
-			x.namespace,
-			x.status.String(),
-		).Observe(float64(time.Since(start)) / float64(time.Second))
-
 		electionStatusVec.WithLabelValues(
 			CurrentElected,
 			x.id,
 			x.namespace,
 			x.status.String(),
-		).Set(float64(electedTime))
+		).Set(float64(x.lastElected.Unix()))
 	}()
 
 	e := leaderElectionResult{}
@@ -149,6 +142,13 @@ func (x *leaderElection) tryElection() (int, error) {
 		electionStatusVec.Reset() // cleanup election status metrics
 	}
 
+	if e.Content.Status != x.status.String() {
+		electionStatusSwitched.WithLabelValues(
+			x.namespace,
+			e.Content.Status,
+		).Inc()
+	}
+
 	switch e.Content.Status {
 	case statusFail.String():
 		electionStatusVec.Reset() // cleanup election status if election failed
@@ -156,11 +156,12 @@ func (x *leaderElection) tryElection() (int, error) {
 		x.status = statusFail
 
 	case statusSuccess.String():
+		log.Info("elected as leader")
 		electionStatusVec.Reset() // cleanup election status if election ok
 
 		x.status = statusSuccess
+		x.lastElected = time.Now()
 		x.resumePlugins()
-		electedTime = time.Now().Unix()
 
 	default:
 		log.Warnf("unknown election status: %s", e.Content.Status)
@@ -184,10 +185,19 @@ func (x *leaderElection) keepalive() (int, error) {
 
 	log.Debugf("result body: %s", body)
 
+	if e.Content.Status != x.status.String() {
+		electionStatusSwitched.WithLabelValues(
+			x.namespace,
+			e.Content.Status,
+		).Inc()
+	}
+
 	CurrentElected = e.Content.IncumbencyID
 
 	switch e.Content.Status {
 	case statusFail.String():
+		log.Errorf("election keepalive failed, leader dropped(live: %s)", time.Since(x.lastElected))
+
 		electionStatusVec.Reset() // cleanup election status if election fail
 		x.status = statusFail
 		x.pausePlugins()
