@@ -106,6 +106,8 @@ func getUpAttachArgs(binPath string, conf []UprobeConf) ([]uprobeAttachArg, erro
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close() //nolint:errcheck
+
 	var upArgs []uprobeAttachArg
 	for _, conf := range conf {
 		if conf.AttachDynamicLib {

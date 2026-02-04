@@ -107,6 +107,13 @@ func readSeqOffset(m *ebpf.Map) (*OffsetTCPSeqC, error) {
 }
 
 func GuessOffsetTCPSeq(netflowOffset []manager.ConstantEditor) ([]manager.ConstantEditor, *OffsetTCPSeqC, error) {
+	seqEditor, seqOffset, err := TryGetTCPSeqOffsetFromBTF()
+	if err == nil && seqEditor != nil {
+		l.Info("TCP seq offset obtained from BTF successfully")
+		return seqEditor, seqOffset, nil
+	}
+	l.Debugf("get TCP seq offset from BTF failed: %v, fallback to guess", err)
+
 	// current netns
 
 	rawSocket, err := afpacket.NewTPacket()
@@ -161,7 +168,7 @@ func GuessOffsetTCPSeq(netflowOffset []manager.ConstantEditor) ([]manager.Consta
 
 	var okTimes int
 	status := newGuessTCPSeq()
-	for i := 0; i < 1024; i++ {
+	for i := 0; i < 2048; i++ {
 		if err := updateSeqOffsetMap(bpfmapTCPSeq, &status); err != nil {
 			return nil, nil, err
 		}
@@ -185,7 +192,8 @@ func GuessOffsetTCPSeq(netflowOffset []manager.ConstantEditor) ([]manager.Consta
 	}
 
 	if okTimes == 0 {
-		return nil, nil, fmt.Errorf("guess tcp seq offset failed")
+		l.Warn("guess tcp seq offset failed, trying BTF")
+		return TryGetTCPSeqOffsetFromBTF()
 	}
 
 	seqConstEditor := NewConstEditorTCPSeq(&offset)

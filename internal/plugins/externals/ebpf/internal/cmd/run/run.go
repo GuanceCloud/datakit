@@ -226,6 +226,8 @@ func NewRunCmd() *cobra.Command {
 
 	cmd.Flags().BoolVar(&opt.EBPFTrace.ConvTraceToDD, "conv-to-ddtrace", false, "conv trace id to ddtrace")
 
+	cmd.Flags().StringVar(&opt.K8sInfo.KubeConfig, "kubeconfig", "", "kubeconfig file path")
+
 	cmd.Flags().Float64Var(&opt.ResourceLimit.LimitCPU, "res-cpu", 0, "set max cpu resource limit")
 	cmd.Flags().StringVar(&opt.ResourceLimit.LimitMem, "res-mem", "", "set max memory resource limit")
 	cmd.Flags().StringVar(&opt.ResourceLimit.LimitBandwidth, "res-bandwidth", "", "set max bandwidth resource limit")
@@ -327,9 +329,27 @@ func runCmd(cfgFile *string, fl *Flag) error {
 
 	stopCh := make(chan struct{})
 	var k8sinfo *cli.K8sInfo
-	if c, err := cli.NewK8sClientFromBearer(fl.K8sInfo, stopCh); err != nil {
-		log.Warn(err)
+	var c *cli.K8sClient
+
+	if fl.K8sInfo.KubeConfig != "" {
+		c, err = cli.NewK8sClientFromKubeConfig(
+			stopCh,
+			fl.K8sInfo.KubeConfig,
+			fl.K8sInfo.WorkloadLabels,
+			fl.K8sInfo.WorkloadLabelPrefix)
+		if err != nil {
+			log.Warn(err)
+		}
+		log.Info("use kubeconfig to connect to k8s cluster")
 	} else {
+		c, err = cli.NewK8sClientFromBearer(fl.K8sInfo, stopCh)
+		if err != nil {
+			log.Warn(err)
+		}
+		log.Info("use bearer token to connect to k8s cluster")
+	}
+
+	if c != nil {
 		criLi, _ := cli.NewCRIDefault()
 		k8sinfo = cli.NewK8sInfo(c, criLi)
 	}

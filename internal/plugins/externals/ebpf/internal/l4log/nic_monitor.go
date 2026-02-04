@@ -135,6 +135,11 @@ func (m *netlogMonitor) Run(ctx context.Context, containerCtr []cruntime.Contain
 		m.CmpAndAddNIC(netnsInfo)
 		select {
 		case <-ctx.Done():
+			// 彻底清理所有资源
+			for _, infom := range m.netnsInfo {
+				infom.Close()
+			}
+			m.netnsInfo = make(map[string]*netnsInformation)
 			return
 		case <-ticker.C:
 		}

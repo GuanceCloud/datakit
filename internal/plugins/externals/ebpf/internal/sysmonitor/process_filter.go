@@ -152,9 +152,9 @@ func (p *ProcessFilter) asynTryAddLoop(ctx context.Context) {
 			pidSet = append(pidSet, pid)
 		case <-tk.C:
 			if len(pidSet) > 0 {
-				for pid := range pidSet {
+				for _, pid := range pidSet {
 					if _, _, err := p.TryAdd(pid); err != nil {
-						log.Warnf("tryAdd: %s", err.Error())
+						log.Errorf("tryAdd pid %d: %s", pid, err.Error())
 					}
 				}
 				pidSet = make([]int, 0, 128)
@@ -297,6 +297,7 @@ func (p *ProcessFilter) TryAdd(pid int) (string, *ProcInfo, error) {
 
 	exePath, err := proc.Exe()
 	if err != nil {
+		log.Debugf("get exe failed for pid %d (%s): %v", pid, pname, err)
 		return "", nil, err
 	}
 

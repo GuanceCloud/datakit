@@ -120,6 +120,7 @@ func FindMemberOffsetFromFile(fp string, typeName, memberName string) (int64, er
 	if err != nil {
 		return 0, err
 	}
+	defer f.Close() //nolint:errcheck
 
 	dw, err := f.DWARF()
 	if err != nil {
