@@ -1,5 +1,38 @@
 # Changelog
 
+## 1.89.0(2026/02/04) {#cl-1.89.0}
+
+This release is an iterative release, with the following main updates:
+
+### New Features {#cl-1.89.0-new}
+
+- Added host change detection functionality, supporting user, crontab, service, and file change monitoring (#2917)
+- Flameshot now supports continuous collection mode, with default scheduled collection and threshold-triggered continuous collection (#2953)
+- Added DataKit self log collection configuration functionality (#2950)
+
+### Bug Fixes {#cl-1.89.0-fix}
+
+- Fixed Prometheus collector tags priority error (#2960)
+- Fixed issue where global host tag setting `host=__datakit_ip` was ineffective (#2956)
+- Fixed issue where eBPF collector caused `istio-init`` containers to not exit (#2955)
+- Fixed unnecessary operations in container log collection when using default stdout configuration (#2962)
+- Fixed WAL lock file issue using PID that prevented reuse after DataKit exit (#2948)
+- Fixed profile collector initialization timing to avoid panic due to uninitialized disk cache (#2946)
+- Fixed Statsd collector, add event/service-check collection (#2941)[^2941]
+
+[^2941]: We collect them into logging.
+
+### Improvements {#cl-1.89.0-opt}
+
+- Added more logs and metrics to the election module for detecting frequent election switching and collector pause failures (#2957)
+- Updated DataKit HTTP client metrics, adding URL path tags and request body transfer summary metrics (#2952)
+- SQLServer collector added `sqlserver_host` tag and changed `instance` tag to `counter_instance` (#2951)
+- Bug report now collects git configuration files (#2939)
+- Windows process collector added status field support (#2927)
+- DDTrace added more `source_type` support（#2958）
+
+---
+
 ## 1.88.1(2026/01/16) {#cl-1.88.1}
 
 This release is a hotfix release, contents are as follows:
