@@ -281,6 +281,16 @@ Flameshot provides an HTTP interface allowing users or automated O&M scripts to 
 
 ## Changelog {#changelog}
 
+
+### 0.2.0 (2026-2-4) {#cl-0.2.0}
+
+#### New Features {#cl-0.2.0-new}
+
+- **Add config**
+    - Support configuring scheduled Profiling execution via the environment variable `FLAMESHOT_AUTO_PROFILING`
+- **optimize**
+    - Optimize the threshold processing logic for configuration.
+
 ### 0.1.0 (2025-12-17) {#cl-0.1.0}
 
 The first official release of Flameshot, focusing on providing automated profiling capabilities for Java applications in containerized environments.
