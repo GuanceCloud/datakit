@@ -80,6 +80,7 @@ func (c *containerLogCoordinator) addTask(containerID string, info *containerLog
 
 	var configs []*logConfig
 	var err error
+	var useDefaultStdoutConfigs bool
 
 	if !task.useAnnotationOrEnvLogConfigs {
 		// 容器没有通过 Annotation 或环境变量配置日志采集
@@ -97,18 +98,23 @@ func (c *containerLogCoordinator) addTask(containerID string, info *containerLog
 
 			// 容器通过了过滤规则，使用默认配置创建日志采集任务
 			// 传入空的 configStr 会创建一个只采集 stdout 的默认配置
-			configs, err = newLogConfigs(c.defaults, info, configStr)
+			configs, useDefaultStdoutConfigs, err = newLogConfigs(c.defaults, info, configStr)
 			if err != nil {
 				l.Errorf("failed to parse log configs for container %s: %v", containerID, err)
 				return
 			}
 		}
 	} else {
-		configs, err = newLogConfigs(c.defaults, info, configStr)
+		configs, useDefaultStdoutConfigs, err = newLogConfigs(c.defaults, info, configStr)
 		if err != nil {
 			l.Errorf("failed to parse log configs for container %s: %v", containerID, err)
 			return
 		}
+	}
+
+	if exists && useDefaultStdoutConfigs {
+		l.Debugf("task exists for container=%s, using default stdout config, skip", containerID)
+		return
 	}
 
 	l.Debugf("task exists for container %s but config changed, updating task", containerID)
