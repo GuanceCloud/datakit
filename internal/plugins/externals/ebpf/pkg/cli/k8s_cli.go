@@ -24,6 +24,7 @@ type K8sConfig struct {
 	URL             string `toml:"url"`
 	BearerToken     string `toml:"bearer_token"`
 	BearerTokenPath string `toml:"bearer_token_path"`
+	KubeConfig      string `toml:"kubeconfig"`
 
 	WorkloadLabels      []string `toml:"workload_labels"`
 	WorkloadLabelPrefix string   `toml:"workload_label_prefix"`

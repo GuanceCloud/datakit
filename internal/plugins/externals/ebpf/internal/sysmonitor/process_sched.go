@@ -15,7 +15,7 @@ import (
 	"sync"
 	"unsafe"
 
-	manager "github.com/DataDog/ebpf-manager"
+	ebpfmanager "github.com/DataDog/ebpf-manager"
 	"github.com/cilium/ebpf"
 	"github.com/josharian/intern"
 	pr "github.com/shirou/gopsutil/v3/process"
@@ -31,6 +31,10 @@ type ProcessSchedC C.struct_rec_process_sched_status
 
 type ProcFilterInfoC C.struct_proc_filter_info
 
+func (sc *ProcessSchedC) Comm() string {
+	return fmt.Sprint(*(*[16]byte)(unsafe.Pointer(&sc.comm[0])))
+}
+
 func (sc *ProcessSchedC) String() string {
 	comm := *(*[16]byte)(unsafe.Pointer(&sc.comm[0]))
 	return fmt.Sprintf("st %d, prv %d, nxt %d, name `%s`", sc.status,
@@ -42,7 +46,7 @@ type ProcInjectC C.struct_proc_inject
 
 type ProcessSchedWithFNameC C.struct_rec_process_sched_status_with_filename
 
-type perfHandler func(cpu int, data []byte, perfmap *manager.PerfMap, manager *manager.Manager)
+type perfHandler func(cpu int, data []byte, perfmap *ebpfmanager.PerfMap, manager *ebpfmanager.Manager)
 
 const (
 	SchedFork = 0b1 << iota
@@ -101,7 +105,7 @@ func NewProcessSchedTracer(filter *ProcessFilter) (*SchedTracer, error) {
 }
 
 type SchedTracer struct {
-	Manager *manager.Manager
+	Manager *ebpfmanager.Manager
 
 	processFilter *ProcessFilter
 	attachInfo    *ProcessAttachInfo
@@ -173,45 +177,45 @@ func (tracer *SchedTracer) Start(ctx context.Context) error {
 }
 
 func (tracer *SchedTracer) Stop() error {
-	if err := tracer.Manager.Stop(manager.CleanAll); err != nil {
+	if err := tracer.Manager.Stop(ebpfmanager.CleanAll); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func NewSchedManger(handler perfHandler) (*manager.Manager, error) {
-	m := &manager.Manager{
-		Probes: []*manager.Probe{
+func NewSchedManger(handler perfHandler) (*ebpfmanager.Manager, error) {
+	m := &ebpfmanager.Manager{
+		Probes: []*ebpfmanager.Probe{
 			{
-				ProbeIdentificationPair: manager.ProbeIdentificationPair{
+				ProbeIdentificationPair: ebpfmanager.ProbeIdentificationPair{
 					EBPFFuncName: "tracepoint__sched_process_fork",
 				},
 			},
 			{
-				ProbeIdentificationPair: manager.ProbeIdentificationPair{
+				ProbeIdentificationPair: ebpfmanager.ProbeIdentificationPair{
 					EBPFFuncName: "tracepoint__sched_process_exec",
 				},
 			},
 			{
-				ProbeIdentificationPair: manager.ProbeIdentificationPair{
+				ProbeIdentificationPair: ebpfmanager.ProbeIdentificationPair{
 					EBPFFuncName: "tracepoint__sched_process_exit",
 				},
 			},
 		},
-		PerfMaps: []*manager.PerfMap{
+		PerfMaps: []*ebpfmanager.PerfMap{
 			{
-				Map: manager.Map{
+				Map: ebpfmanager.Map{
 					Name: "process_sched_event",
 				},
-				PerfMapOptions: manager.PerfMapOptions{
+				PerfMapOptions: ebpfmanager.PerfMapOptions{
 					PerfRingBufferSize: 32 * os.Getpagesize(),
 					DataHandler:        handler,
 				},
 			},
 		},
 	}
-	mOpts := manager.Options{
+	mOpts := ebpfmanager.Options{
 		RLimit: &unix.Rlimit{
 			Cur: math.MaxUint64,
 			Max: math.MaxUint64,
@@ -231,7 +235,7 @@ func NewSchedManger(handler perfHandler) (*manager.Manager, error) {
 }
 
 func (tracer *SchedTracer) ProcessSchedHandler(cpu int, data []byte,
-	perfmap *manager.PerfMap, manager *manager.Manager) {
+	perfmap *ebpfmanager.PerfMap, manager *ebpfmanager.Manager) {
 	evetC := (*ProcessSchedC)(unsafe.Pointer(&data[0]))
 
 	switch evetC.status {
@@ -247,6 +251,24 @@ func (tracer *SchedTracer) ProcessSchedHandler(cpu int, data []byte,
 		}
 	case SchedExit:
 		if tracer.processFilter != nil {
+			if procInfo, ok := tracer.processFilter.GetProcInfo(int(evetC.nxt_pid)); ok {
+				if procInfo.binPath != 0 {
+					if binPath, shouldDetach := tracer.attachInfo.fileUpdater.Forget(procInfo.binPath); shouldDetach {
+						uid := ShortID(binPath)
+						for _, fnName := range execGoFnName {
+							if err := tracer.Manager.DetachHook(ebpfmanager.ProbeIdentificationPair{
+								UID:          uid,
+								EBPFFuncName: fnName,
+							}); err != nil {
+								log.Warn(err)
+							} else {
+								log.Infof("DetachHook: %s, ShortID: %s, name: %s",
+									binPath, uid, procInfo.name)
+							}
+						}
+					}
+				}
+			}
 			tracer.processFilter.Delete(int(evetC.nxt_pid))
 		}
 	default:
@@ -305,14 +327,14 @@ func (tracer *SchedTracer) attachProcess(p *pr.Process) error {
 		uid := ShortID(binPath)
 		log.Info("DetachHook: file modfied: ", binPath, " ShortID: ", uid)
 		for _, fnName := range execGoFnName {
-			p, ok := tracer.Manager.GetProbe(manager.ProbeIdentificationPair{
+			p, ok := tracer.Manager.GetProbe(ebpfmanager.ProbeIdentificationPair{
 				UID:          uid,
 				EBPFFuncName: fnName,
 			})
 			if !ok {
 				continue
 			}
-			if err := tracer.Manager.DetachHook(manager.ProbeIdentificationPair{
+			if err := tracer.Manager.DetachHook(ebpfmanager.ProbeIdentificationPair{
 				UID:          uid,
 				EBPFFuncName: fnName,
 			}); err != nil {
@@ -330,10 +352,6 @@ func (tracer *SchedTracer) attachProcess(p *pr.Process) error {
 	inf, err := buildinfo.ReadFile(binPath)
 	if err != nil {
 		log.Debug(err)
-		// if the go version is greater than 1.13+, this function can get the go version
-
-		// do not return, if we can find the symbol, just attach
-		// we tested go1.5+(amd64)
 	} else {
 		goVer, _ = parseGoVersion(inf.GoVersion)
 	}
@@ -389,10 +407,9 @@ func (tracer *SchedTracer) attachProcess(p *pr.Process) error {
 	tracer.attachInfo.fileUpdater.Inject(procInfo.binPath, &val)
 
 	uid := ShortID(binPath)
-	log.Info("AddHook: ", binPath, " ShortID: ", uid)
 	for _, fnName := range execGoFnName {
-		if err := tracer.Manager.AddHook("", &manager.Probe{
-			ProbeIdentificationPair: manager.ProbeIdentificationPair{
+		if err := tracer.Manager.AddHook("", &ebpfmanager.Probe{
+			ProbeIdentificationPair: ebpfmanager.ProbeIdentificationPair{
 				UID:          uid,
 				EBPFFuncName: fnName,
 			},
@@ -400,6 +417,9 @@ func (tracer *SchedTracer) attachProcess(p *pr.Process) error {
 			BinaryPath:   intern.String(binPath),
 		}); err != nil {
 			log.Warn(err)
+		} else {
+			log.Infof("AddHooK: %s, ShortID: %s, name: %s, pid: %d",
+				binPath, uid, procInfo.name, pidU32)
 		}
 	}
 

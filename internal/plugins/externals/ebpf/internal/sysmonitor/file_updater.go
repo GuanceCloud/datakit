@@ -12,15 +12,19 @@ import (
 type probeInfo struct {
 	modTime time.Time
 	inj     *ProcInjectC
+	refCnt  int
 }
+
 type PassiveFileUpdater struct {
-	fileRecords map[uint64]*probeInfo
-	mu          sync.RWMutex
+	fileRecords   map[uint64]*probeInfo
+	binPathHashes map[uint64]string
+	mu            sync.RWMutex
 }
 
 func NewPassiveFileUpdater() *PassiveFileUpdater {
 	return &PassiveFileUpdater{
-		fileRecords: make(map[uint64]*probeInfo),
+		fileRecords:   make(map[uint64]*probeInfo),
+		binPathHashes: make(map[uint64]string),
 	}
 }
 
@@ -39,26 +43,27 @@ func (p *PassiveFileUpdater) Check(binpath string, absPath uint64) (*probeInfo, 
 		p.mu.Lock()
 		v := &probeInfo{
 			modTime: currentModTime,
+			refCnt:  0,
 		}
 		p.fileRecords[absPath] = v
+		p.binPathHashes[absPath] = binpath
 		p.mu.Unlock()
 		return v, true, nil
 	}
 
 	if !currentModTime.Equal(lastRec.modTime) {
-		// 更新记录的修改时间
 		p.mu.Lock()
 		v := &probeInfo{
 			modTime: currentModTime,
 			inj:     lastRec.inj,
+			refCnt:  lastRec.refCnt,
 		}
 		p.fileRecords[absPath] = v
-
+		p.binPathHashes[absPath] = binpath
 		p.mu.Unlock()
 		return v, true, nil
 	}
 
-	// 未更新
 	return lastRec, false, nil
 }
 
@@ -70,15 +75,34 @@ func (p *PassiveFileUpdater) Inject(absPath uint64, injO *ProcInjectC) {
 	}
 }
 
-func (p *PassiveFileUpdater) Forget(absPath uint64) error {
+func (p *PassiveFileUpdater) AddRef(absPath uint64) {
 	p.mu.Lock()
-	delete(p.fileRecords, absPath)
-	p.mu.Unlock()
-	return nil
+	defer p.mu.Unlock()
+	if rec, ok := p.fileRecords[absPath]; ok {
+		rec.refCnt++
+	}
+}
+
+func (p *PassiveFileUpdater) Forget(absPath uint64) (string, bool) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if rec, ok := p.fileRecords[absPath]; ok {
+		rec.refCnt--
+		if rec.refCnt <= 0 {
+			binPath := p.binPathHashes[absPath]
+			delete(p.fileRecords, absPath)
+			delete(p.binPathHashes, absPath)
+			return binPath, true
+		}
+		return p.binPathHashes[absPath], false
+	}
+	return "", false
 }
 
 func (p *PassiveFileUpdater) ForgetAll() {
 	p.mu.Lock()
 	p.fileRecords = make(map[uint64]*probeInfo)
+	p.binPathHashes = make(map[uint64]string)
 	p.mu.Unlock()
 }

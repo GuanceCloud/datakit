@@ -17,6 +17,7 @@ var (
 	EnvBearerToken = "K8S_BEARER_TOKEN"
 	//nolint:gosec
 	EnvBearerTokenPath = "K8S_BEARER_TOKEN_PATH"
+	EnvKubeConfig      = "K8S_KUBECONFIG"
 
 	EnvWorkloadLabels      = "K8S_WORKLOAD_LABELS"
 	EnvWorkloadLablePrefix = "K8S_WORKLOAD_LABEL_PREFIX"
@@ -121,6 +122,8 @@ func readEnv(flag *Flag) {
 			flag.K8sInfo.BearerToken = v
 		case EnvBearerTokenPath:
 			flag.K8sInfo.BearerTokenPath = v
+		case EnvKubeConfig:
+			flag.K8sInfo.KubeConfig = v
 		case EnvWorkloadLabels:
 			s := strings.Split(v, ",")
 			for i := range s {
