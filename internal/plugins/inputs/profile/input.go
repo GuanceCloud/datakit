@@ -631,6 +631,14 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 
 // RegHTTPHandler simply proxy profiling request to dataway.
 func (ipt *Input) RegHTTPHandler() {
+	log = logger.SLogger(inputName)
+	log.Infof("the input %s is running...", inputName)
+
+	metrics.InitLog()
+
+	if err := ipt.InitDiskQueueIO(); err != nil {
+		log.Errorf("unable to start IO process for profiling: %s", err)
+	}
 	for _, endpoint := range ipt.Endpoints {
 		httpapi.RegHTTPHandler(http.MethodPost, endpoint, ipt.ServeHTTP)
 		log.Infof("pattern: %s registered", endpoint)
@@ -718,15 +726,6 @@ func (ipt *Input) InitDiskQueueIO() error {
 }
 
 func (ipt *Input) Run() {
-	log = logger.SLogger(inputName)
-	log.Infof("the input %s is running...", inputName)
-
-	metrics.InitLog()
-
-	if err := ipt.InitDiskQueueIO(); err != nil {
-		log.Errorf("unable to start IO process for profiling: %s", err)
-	}
-
 	groupPull := goroutine.NewGroup(goroutine.Option{
 		Name: PullInputMode,
 		PanicCb: func(b []byte) bool {
