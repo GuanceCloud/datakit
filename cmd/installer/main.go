@@ -68,7 +68,6 @@ func init() {
 	flag.StringVar(&args.InstrumentationEnabled, "apm-instrumentation-enabled", "", "enable APM instrumentation")
 	flag.StringVar(&args.DatawayURLs, "dataway", "", "DataWay host(https://guance.openway.com?token=xxx)")
 	flag.StringVar(&args.Proxy, "proxy", "", "http proxy http://ip:port for datakit")
-	flag.StringVar(&args.DatakitName, "name", "", "specify DataKit name, example: prod-env-datakit")
 	flag.StringVar(&args.EnableInputs, "enable-inputs", "", "default enable inputs(comma splited, example:cpu,mem,disk)")
 
 	flag.IntVar(&args.InstallRUMSymbolTools, "install-rum-symbol-tools", 0, "whether to install RUM source map tools")

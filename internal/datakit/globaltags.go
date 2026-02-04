@@ -71,6 +71,7 @@ func (g *emptyGlobalTager) Updated() bool { return false }
 func SetGlobalHostTags(k, v string) {
 	rw.Lock()
 	defer rw.Unlock()
+
 	globalHostTags[k] = v
 	tagVersion.Add(1)
 }

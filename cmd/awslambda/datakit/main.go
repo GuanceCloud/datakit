@@ -115,7 +115,7 @@ func quit() {
 func tryLoadConfig() {
 	l.Infof("load config from %s...", datakit.MainConfPath)
 	checkutil.CheckConditionExit(func() bool {
-		if err := config.LoadCfg(config.Cfg, datakit.MainConfPath); err != nil {
+		if err := config.LoadCfg(config.Cfg, datakit.MainConfPath, datakit.Docker); err != nil {
 			l.Errorf("load config failed: %s", err)
 			return false
 		}

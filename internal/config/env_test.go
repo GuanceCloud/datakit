@@ -108,7 +108,7 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_DISABLE_PROTECT_MODE":   "true",
 				"ENV_ENABLE_ELECTION":        "1",
 				"ENV_ENABLE_PPROF":           "true",
-				"ENV_HOSTNAME":               "1024.coding",
+				envManualHostname:            "1024.coding",
 
 				"ENV_HTTP_ALLOWED_CORS_ORIGINS": "https://foo,https://bar",
 				"ENV_HTTP_ENABLE_TLS":           "yes",
@@ -141,8 +141,6 @@ func TestLoadEnv(t *testing.T) {
 			},
 			expect: func() *Config {
 				cfg := DefaultConfig()
-
-				cfg.Name = "testing-datakit"
 
 				cfg.Dataway.URLs = []string{"http://host1.org", "http://host2.com"}
 

@@ -142,7 +142,11 @@ var (
 
 	InstallDir = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
 
+	// DKHost is the true hosthost.
 	DKHost = "not-set"
+
+	// RenamedHostname is user renamed hostname, this hostname should only used in point's tag `host`.
+	RenamedHostname = ""
 
 	optionalInstallDir = map[string]string{
 		OSArchWinAmd64: `C:\Program Files\datakit`,

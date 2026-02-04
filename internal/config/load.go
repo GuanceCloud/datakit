@@ -49,10 +49,10 @@ func isValidDataway(c *Config) error {
 	return nil
 }
 
-func LoadCfg(c *Config, mcp string) error {
+func LoadCfg(c *Config, mcp string, withinDocker bool) error {
 	datakit.InitDirs()
 
-	if datakit.Docker { // only accept configs from ENV under docker(or daemon-set) mode
+	if withinDocker { // only accept configs from ENV under docker(or daemon-set) mode
 		if runtime.GOOS == datakit.OSWindows {
 			return fmt.Errorf("docker mode not supported under %s", runtime.GOOS)
 		}
@@ -60,15 +60,6 @@ func LoadCfg(c *Config, mcp string) error {
 		if err := c.LoadEnvs(); err != nil {
 			return err
 		}
-
-		// 这里暂时用 hostname 当做 datakit ID, 后续肯定会移除掉, 即 datakit ID 基本已经废弃不用了,
-		// 中心最终将通过统计主机个数作为 datakit 数量来收费.
-		// 由于 datakit UUID 不再重要, 出错也不管了
-		_ = c.SetUUID()
-
-		// if err := CreateSymlinks(); err != nil {
-		// 	l.Warnf("CreateSymlinks: %s, ignored", err)
-		// }
 
 		// We need a datakit.conf in docker mode when run datakit commands.
 		// See cmd/datakit/cmds/flags.go

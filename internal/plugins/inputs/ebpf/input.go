@@ -152,7 +152,11 @@ loop:
 		}
 	}
 	if !haveHostNameArg {
-		ipt.Input.Args = append(ipt.Input.Args, "--hostname", datakit.DKHost)
+		if datakit.RenamedHostname != "" {
+			ipt.Input.Args = append(ipt.Input.Args, "--hostname", datakit.RenamedHostname)
+		} else {
+			ipt.Input.Args = append(ipt.Input.Args, "--hostname", datakit.DKHost)
+		}
 	}
 
 	if ipt.URL != "" {

@@ -451,11 +451,6 @@ func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config,
 
 	l.Infof("install version %s", args.DataKitVersion)
 
-	if args.DatakitName != "" {
-		mc.Name = args.DatakitName
-		l.Infof("set datakit name to %s", mc.Name)
-	}
-
 	if args.CryptoAESKey != "" || args.CryptoAESKeyFile != "" {
 		if mc.Crypto != nil {
 			mc.Crypto.AESKey = args.CryptoAESKey

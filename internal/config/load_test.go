@@ -7,6 +7,7 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/GuanceCloud/cliutils/point"
@@ -88,8 +89,11 @@ func TestGetPipelinePath(t *testing.T) {
 	}
 }
 
-// go test -v -timeout 30s -run ^Test_getConfRootPaths$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config
 func Test_getConfRootPaths(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	datakit.SetWorkDir(tmpDir)
+
 	cases := []struct {
 		name                 string
 		gitReposRepoName     string
@@ -98,13 +102,13 @@ func Test_getConfRootPaths(t *testing.T) {
 	}{
 		{
 			name:                 "git_enabled",
-			gitReposRepoName:     "conf",
-			gitReposRepoFullPath: "/usr/local/datakit/gitrepos/conf",
-			expect:               []string{"/usr/local/datakit/gitrepos/conf/conf.d"},
+			gitReposRepoName:     "myrepo",
+			gitReposRepoFullPath: filepath.Join(tmpDir, "gitrepos/myrepo"),
+			expect:               []string{filepath.Join(tmpDir, "gitrepos/myrepo/conf.d")},
 		},
 		{
 			name:   "git_disabled",
-			expect: []string{"/usr/local/datakit/conf.d"},
+			expect: []string{filepath.Join(tmpDir, "conf.d")},
 		},
 	}
 
