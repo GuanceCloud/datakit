@@ -139,6 +139,9 @@ func (p *promScraper) recordUp(up int, timestamp int64) {
 }
 
 func buildPromOptions(role Role, key string, auth *Auth, feeder dkio.Feeder, opts ...promscrape.Option) []promscrape.Option {
+	// source 由 key 拼接而来，作为 feed 参数传入
+	// 如果 role 是 Pod，对应的 key 就是 pod_name，且每次重启都会变化，可能影响到 dkio metrics 数量
+	// key 的传值链路特别长，无法精确还原它的 owner_name，或许使用中横线切割取前半部分是可行方案
 	source := fmt.Sprintf("kubernetesprometheus/%s::%s", role, key)
 	remote := key
 

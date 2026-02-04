@@ -17,6 +17,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/podutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
@@ -102,8 +103,13 @@ func newPromRunnersForPod(pod *apicorev1.Pod, inputConfig string, cfg *Config) [
 			continue
 		}
 
+		name := pod.Name
+		if _, ownerName := podutil.PodOwner(pod); ownerName != "" {
+			name = ownerName
+		}
+
 		if runners[idx].conf.Source == "" {
-			runners[idx].conf.Source = pod.Namespace + "/" + pod.Name
+			runners[idx].conf.Source = pod.Namespace + "/" + name
 		}
 
 		for _, key := range cfg.LabelAsTagsForMetric.Keys {
