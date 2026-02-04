@@ -31,9 +31,28 @@ tags      :
 - 支持将请求的请求体 `Request Body` 放到链路标签中
 - http 4xx 相关的链设置为 error ，开启参数： `-Ddd.http.error.enabled=true`
 - 支持 `Mybatis-plus:batch` 的使用。
-- redis 集群支持获取 peer_ip
+- redis 集群支持获取 peer_ip.
+- 支持 `KingBase` 数据库驱动。
+- 支持 `java-websocket` 框架。
 
 ## 三方库插桩 {#third-party-agent}
+
+### 支持 Java-WebSocket {#java-websocket}
+
+- 新增 `java-websocket` 模块用于追踪 WebSocket 连接、消息发送接收和关闭事件
+- 实现 WebSocket 客户端和服务器端的装饰器类进行操作追踪
+- 添加握手、消息传输和连接状态变更的分布式追踪支持
+- 集成 `TraceDraft_6455` 类以支持 WebSocket 协议草案的追踪
+- 创建 WebsocketAgentSpanContext 管理 WebSocket 连接的追踪上下文
+- 实现 WebSocket 消息类型和大小的标签记录功能
+- 添加 WebSocket 错误处理和异常追踪机制
+- 默认关闭 websocket 链路追踪，如需开启，需要使用参数 **-Ddd.trace.websocket.messages.enabled=true**
+
+支持的版本：
+
+- [x] all
+
+DDTrace 最低支持版本： [:octicons-tag-24:  v1.55.10-ext](ddtrace-ext-changelog.md#cl-1.55.10-ext)
 
 ### 支持 MongoDB 数据库脱敏 {#mongo-obfuscation}
 

@@ -35,7 +35,25 @@ Here we mainly introduce some extended functions of DDTrace-Java. List of main f
 
 ## Third party agent {#third-party}
 
-**Dubbo**:
+### Java-WebSocket {#java-websocket}
+
+- Added the `java-websocket` module for tracking WebSocket connections, message sending and receiving, and close events
+- Implement decorator classes for tracking operations in WebSocket clients and servers
+- Add distributed tracing support for handshakes, message transmission, and connection state changes
+- Integrate the `TraceDraft_6455` class to support tracing the WebSocket protocol draft
+- Create a WebsocketAgentSpanContext to manage the tracing context of WebSocket connections
+- Implement tag-based recording of WebSocket message types and sizes
+- Add WebSocket error handling and exception tracking mechanism
+- WebSocket link tracing is disabled by default. To enable it, use the parameter **-Ddd.trace.websocket.messages.enabled=true**
+
+supported version:
+
+- [x] all
+
+DDTrace supported version: [:octicons-tag-24:  v1.55.10-ext](ddtrace-ext-changelog.md#cl-1.55.10-ext)
+
+
+### Dubbo {#dubbo}
 
 Dubbo is an open source framework of Alibaba Cloud, which currently supports Dubbo2 and Dubbo3.
 
@@ -43,7 +61,7 @@ supported version: Dubbo2: 2.7.0 and above, Dubbo3 has no version restrictions.
 
 DDTrace supported version: [:octicons-tag-24:  v1.30.4](ddtrace-ext-changelog.md#cl-1.30.4-ext)
 
-**RocketMQ**:
+### RocketMQ {#rocketmq}
 
 RocketMQ is an open source message queuing framework contributed by Alibaba Cloud to the Apache Foundation. Note: Alibaba Cloud RocketMQ 5.0 and the Apache Foundation are two different libraries.
 
@@ -53,7 +71,7 @@ supported version: Currently supports version 4.8.0 and above. Alibaba Cloud Roc
 
 DDTrace supported version: [:octicons-tag-24:  v1.4.1](ddtrace-ext-changelog.md#cl-1.4.1-ext)
 
-**Thrift**:
+### Thrift {#thrift}
 
 Thrift is an apache project. Some customers use thrift RPC for communication in the project, and we support it.
 
@@ -61,7 +79,7 @@ supported version: 0.9.3 and above.
 
 DDTrace supported version: [:octicons-tag-24:  v0.113.0](ddtrace-ext-changelog.md#cl-0.113.0)
 
-**Redis command args**:
+### Redis Command Args {#redis-command-args}
 
 The Resource in the redis link will only display redis.command information, and will not display parameter information.
 

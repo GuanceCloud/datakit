@@ -56,8 +56,10 @@ const (
 	SpanSourceCache     = "cache"
 	SpanSourceMsgque    = "message_queue"
 	SpanSourceCustomer  = "custom"
+	SpanSourceLLM       = "llm"
 	SpanSourceDb        = "db"
 	SpanSourceWeb       = "web"
+	SpanSourceRPC       = "rpc"
 
 	TagHost              = "host"
 	TagContainerHost     = "container_host"
@@ -142,6 +144,7 @@ var (
 	// SampleRateKey 采样的值.
 	SampleRateKey = "sampling_rate"
 
+	//nolint
 	sourceTypes = map[string]string{
 		"consul": SpanSourceApp,
 
@@ -160,6 +163,7 @@ var (
 		"cache":     SpanSourceCache,
 		"memcached": SpanSourceCache,
 		"redis":     SpanSourceCache,
+		"redisson":  SpanSourceCache,
 
 		"aerospike":     SpanSourceDb,
 		"cassandra":     SpanSourceDb,
@@ -171,28 +175,40 @@ var (
 		"mysql":         SpanSourceDb,
 		"pymysql":       SpanSourceDb,
 		"sql":           SpanSourceDb,
+		"kingbase":      SpanSourceDb,
 
-		"go-nsq":   SpanSourceMsgque,
-		"kafka":    SpanSourceMsgque,
-		"mqtt":     SpanSourceMsgque,
-		"queue":    SpanSourceMsgque,
-		"rabbitmq": SpanSourceMsgque,
-		"rocketmq": SpanSourceMsgque,
+		"go-nsq":       SpanSourceMsgque,
+		"kafka":        SpanSourceMsgque,
+		"mqtt":         SpanSourceMsgque,
+		"queue":        SpanSourceMsgque,
+		"rabbitmq":     SpanSourceMsgque,
+		"rocketmq":     SpanSourceMsgque,
+		"rocketmq-5.0": SpanSourceMsgque,
+		"pulsar":       SpanSourceMsgque,
 
 		"dns":   SpanSourceWeb,
-		"grpc":  SpanSourceWeb,
 		"http":  SpanSourceWeb,
 		"http2": SpanSourceWeb,
-		"rpc":   SpanSourceWeb,
 		"web":   SpanSourceWeb,
 
-		"":          SpanSourceCustomer,
-		"benchmark": SpanSourceCustomer,
-		"build":     SpanSourceCustomer,
-		"custom":    SpanSourceCustomer,
-		"template":  SpanSourceCustomer,
-		"test":      SpanSourceCustomer,
-		"worker":    SpanSourceCustomer,
+		"thrift":        SpanSourceRPC,
+		"taobao-hsf":    SpanSourceRPC,
+		"grpc":          SpanSourceRPC,
+		"rpc":           SpanSourceRPC,
+		"dubbo-apache":  SpanSourceRPC,
+		"dubbo-alibaba": SpanSourceRPC,
+		"one-client":    SpanSourceRPC,
+
+		"":            SpanSourceCustomer,
+		"benchmark":   SpanSourceCustomer,
+		"build":       SpanSourceCustomer,
+		"custom":      SpanSourceCustomer,
+		"template":    SpanSourceCustomer,
+		"test":        SpanSourceCustomer,
+		"worker":      SpanSourceCustomer,
+		"xxl-job-2.3": SpanSourceCustomer,
+
+		"llm": SpanSourceLLM,
 	}
 
 	DefaultGRPCServerOpts = []grpc.ServerOption{

@@ -22,6 +22,19 @@ Currently, DDTrace has added the following extensions to the technology stack：
 
 ## changelog {#changelog}
 
+## v1.55.10-ext (2026/2/1) {#cl-1.55.10-ext}
+
+### New {#cl-1.55.10-ext-fix}
+
+- Add `java-websocket` instrumentation
+
+
+## v1.55.7-ext (2025/12/30) {#cl-1.55.7-ext}
+
+### fix {#cl-1.55.7-ext-fix}
+
+- Fix `Redis` command list type error.
+
 
 ## v1.55.6-ext (2025/12/22) {#cl-1.55.6-ext}
 

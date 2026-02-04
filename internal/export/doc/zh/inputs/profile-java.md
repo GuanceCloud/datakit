@@ -13,12 +13,6 @@ DataKit 支持两种采集器来采集 Java profiling 数据， [`dd-trace-java`
 
 从页面 [`dd-trace-java`](https://github.com/DataDog/dd-trace-java/releases){:target="_blank"} 下载 `dd-trace-java`.
 
-<!-- markdownlint-disable MD046 -->
-???+ note
-
-    DataKit 目前支持 `dd-trace-java 1.47.x` 及以下版本，更高版本未经测试，兼容性未知，如使用上遇到问题，可向我们反馈。
-<!-- markdownlint-enable -->
-
 `dd-trace-java` 目前集成了两套分析引擎：[`Datadog Profiler`](https://github.com/datadog/java-profiler){:target="_blank"} 和 JDK 内置的 [`JFR(Java Flight Recorder)`](https://docs.oracle.com/javacomponents/jmc-5-4/jfr-runtime-guide/about.htm){:target="_blank"}，
 两种引擎对平台和 JDK 版本都有各自的一些要求，列举如下：
 
