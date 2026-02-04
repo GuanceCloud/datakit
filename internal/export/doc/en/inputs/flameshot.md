@@ -22,6 +22,7 @@ Flameshot is deployed using the **Sidecar Container** pattern. It must run in th
 1. **Trigger**: When thresholds are met (e.g., CPU > 80%) or an HTTP API request is received, a collection task is triggered.
 1. **Execute**: Based on the configured language type (currently supporting Java), it invokes the corresponding Profiler tool to attach to the target process.
 1. **Collect**: The generated Profile files (e.g., `.jfr`) are stored in a shared volume and subsequently uploaded to the data observability center.
+1. **Timed**: After configuring `FLAMESHOT_AUTO_PROFILING`, it will periodically collect a 30-second Profiling data for all matched processes.
 
 ### Use Cases {#use-cases}
 
@@ -38,16 +39,17 @@ All Flameshot behaviors are controlled via environment variables. Configuration 
 
 These variables control the basic behavior of the Sidecar container.
 
-| Variable Name                | Required | Default Value | Description                                                                                                                    |
-|:-----------------------------|:---------|:--------------|:-------------------------------------------------------------------------------------------------------------------------------|
-| `FLAMESHOT_DATAKIT_ADDR`     | **Yes**  | -             | DataKit's Profiling data receiving interface address.                                                                          |
-| `FLAMESHOT_PROFILING_PATH`   | **Yes**  | `/data`       | **Shared directory path**. Used to store tools and generated temporary files; must match the mount path in the main container. |
-| `FLAMESHOT_MONITOR_INTERVAL` | No       | `1`           | Monitoring polling interval (seconds).                                                                                         |
-| `FLAMESHOT_LOG_LEVEL`        | No       | `info`        | Log level. Options: `debug`, `info`, `warn`, `error`.                                                                          |
-| `FLAMESHOT_HTTP_LOCAL_IP`    | **是**    | `-`           | The Sidecar's own HTTP service listening host.                                                                                 |
-| `FLAMESHOT_HTTP_LOCAL_PORT`  | **是**    | `8089`        | The Sidecar's own HTTP service listening port.                                                                                 |
-| `FLAMESHOT_SERVICE`          | 否        | -             | Will replace the 'service' configuration in 'FLAMESHOT_PROCESSES'                                                              |
-| `FLAMESHOT_TAGS`             | 否        | -             | Suggest configuring `host` `pod_name` `pod_namespace`, such as: "host: host_name,pod_name:pod_a"                               |
+| Variable Name                | Required | Default Value | Description                                                                                                                                                                               |
+|:-----------------------------|:---------|:--------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `FLAMESHOT_DATAKIT_ADDR`     | **Yes**  | -             | DataKit's Profiling data receiving interface address.                                                                                                                                     |
+| `FLAMESHOT_PROFILING_PATH`   | **Yes**  | `/data`       | **Shared directory path**. Used to store tools and generated temporary files; must match the mount path in the main container.                                                            |
+| `FLAMESHOT_MONITOR_INTERVAL` | No       | `1`           | Monitoring polling interval (seconds).                                                                                                                                                    |
+| `FLAMESHOT_LOG_LEVEL`        | No       | `info`        | Log level. Options: `debug`, `info`, `warn`, `error`.                                                                                                                                     |
+| `FLAMESHOT_AUTO_PROFILING`   | No       | -             | Collect Profiling data for 30 seconds at regular intervals for all matched processes. The minimum interval must not be less than one minute, such as five minutes: "5m" or one hour: "1h" |
+| `FLAMESHOT_HTTP_LOCAL_IP`    | **Yes**  | `-`           | The Sidecar's own HTTP service listening host.                                                                                                                                            |
+| `FLAMESHOT_HTTP_LOCAL_PORT`  | **Yes**  | `8089`        | The Sidecar's own HTTP service listening port.                                                                                                                                            |
+| `FLAMESHOT_SERVICE`          | No       | -             | Will replace the 'service' configuration in 'FLAMESHOT_PROCESSES'                                                                                                                         |
+| `FLAMESHOT_TAGS`             | No       | -             | Suggest configuring `host` `pod_name` `pod_namespace`, such as: "host: host_name,pod_name:pod_a"                                                                                          |
 
 
 ### Profiling Policy Configuration {#profiling-policy}
@@ -245,6 +247,23 @@ Flameshot provides an HTTP interface allowing users or automated O&M scripts to 
     # Collect data for the process matching tmall.jar for the default duration
     curl "http://localhost:8089/v1/profile?command=^java\\b.*tmall\\.jar$"
     ```
+
+---
+
+## JFR format {#jfr-format}
+
+**async-profiler** events notes:
+
+| Event Type     | Command Flag | Mechanism                                                                                      | Best Use Case                                                                                                 | Key Note                                                                                     |
+|:---------------|:-------------|:-----------------------------------------------------------------------------------------------|:--------------------------------------------------------------------------------------------------------------|:---------------------------------------------------------------------------------------------|
+| CPU Time       | cpu          | Uses kernel sampling or itimer to see which code is currently on the CPU.                      | "Performance Tuning: Finding ""hotspots"" in calculation-heavy logic or algorithms."                          | Only tracks time when the thread is actively running on a CPU.                               |
+| Wall-clock     | wall         | "Samples all threads at fixed intervals regardless of their state (running,sleeping,blocked)." | "Latency Diagnosis: Finding delays in I/O, database calls or external network requests."                      | "Shows what threads are doing while they are ""waiting."""                                   |
+| Allocation     | alloc        | Samples `TLAB` (Thread Local Allocation Buffer) refills and large object allocations.            | Memory Optimization: Reducing GC pressure by finding code that creates excessive temporary objects.           | "Measures the rate of allocation ,not the current heap usage/liveness."                      |
+| Lock           | lock         | Tracks contention and wait time on intrinsic JVM monitors (synchronized).                      | Concurrency Bottlenecks: Identifying lock contention or threads blocked by synchronization.                   | Usually filtered to record only events exceeding a certain duration threshold.               |
+| Cache Misses   | cache-misses | Utilizes Hardware Performance Counters (PMU) to track L1/L2/L3 cache misses.                   | "Low-level Tuning: Optimizing data structures for CPU cache friendliness (e.g., avoiding false sharing)."     | Requires Linux perf_events support and specific hardware access.                             |
+| Context Switch | cs           | Tracks how often the OS scheduler swaps threads in and out of the CPU.                         | Resource Scaling: Identifying if you have too many active threads for your CPU core count.                    | "High context switching leads to ""wasted"" CPU cycles spent on management."                 |
+| Java Methods   | itimer       | A timer-based sampling approach provided by the OS kernel.                                     | "Compatibility Mode: Used when perf_events is unavailable (e.g. in some restricted Docker/K8s environments)." | "Good fallback for CPU profiling,though slightly less precise than hardware-based sampling." |
+
 
 ---
 
