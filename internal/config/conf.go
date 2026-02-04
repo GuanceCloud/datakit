@@ -74,21 +74,6 @@ func (c *Config) String() string {
 	return buf.String()
 }
 
-func (c *Config) SetUUID() error {
-	if c.hostname == "" {
-		hn, err := os.Hostname()
-		if err != nil {
-			l.Errorf("get hostname failed: %s", err.Error())
-			return err
-		}
-
-		c.UUID = hn
-	} else {
-		c.UUID = c.hostname
-	}
-	return nil
-}
-
 func (c *Config) doLoadMainTOML(toml string) error {
 	if _, err := bstoml.Decode(toml, c); err != nil {
 		return fmt.Errorf("bstoml.Decode: %w", err)
@@ -111,8 +96,6 @@ func (c *Config) loadMainTOMLString(cfgData string) error {
 	if err != nil {
 		return fmt.Errorf("bstoml.Decode: %w", err)
 	}
-
-	_ = c.SetUUID()
 
 	return nil
 }
@@ -248,18 +231,16 @@ func (c *Config) parseGlobalHostTags() {
 				}
 			}
 
+			l.Infof("set global tag %s: %s", k, hostName)
 			c.GlobalHostTags[k] = hostName
-			l.Debugf("set global tag %s: %s", k, hostName)
 
 		case `__datakit_ip`, `$datakit_ip`:
-			c.GlobalHostTags[k] = getLocalIPUntilOK()
+			ip := getLocalIPUntilOK()
+			l.Infof("set global tag %s: %s", k, ip)
 
-		case `__datakit_uuid`, `__datakit_id`, `$datakit_uuid`, `$datakit_id`:
-			c.GlobalHostTags[k] = c.UUID
-			l.Debugf("set global tag %s: %s", k, c.UUID)
+			c.GlobalHostTags[k] = ip
 
 		default:
-			// pass
 		}
 	}
 }
@@ -337,12 +318,14 @@ func (c *Config) setupGlobalTags() {
 	}
 
 	for k, v := range c.GlobalHostTags {
+		l.Infof("set global feed tag: %s:%s", k, v)
 		datakit.SetGlobalHostTags(k, v)
 	}
 
-	// 此处不将 host 计入 c.GlobalHostTags，因为 c.GlobalHostTags 是读取
-	// 的用户配置，而 host 是不允许修改的, 故单独添加这个 tag 到 io 模块
-	datakit.SetGlobalHostTags("host", c.hostname)
+	if c.GlobalHostTags["host"] != c.hostname {
+		l.Infof("global host tag(%q) not equal to true hostname %q", c.GlobalHostTags["host"], c.hostname)
+		datakit.RenamedHostname = c.GlobalHostTags["host"]
+	}
 
 	if c.Election.Enable {
 		// 开启选举且开启开关的情况下，将选举的命名空间塞到 global-election-tags 中
@@ -477,7 +460,7 @@ func (c *Config) GetHostname() string {
 
 func (c *Config) detectHostname() (string, error) {
 	// try get hostname from configure
-	if v, ok := c.Environments["ENV_HOSTNAME"]; ok && v != "" {
+	if v, ok := c.Environments[envManualHostname]; ok && v != "" {
 		return v, nil
 	}
 

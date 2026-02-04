@@ -50,10 +50,6 @@ var (
 
 func InitOffload() {
 	l = logger.SLogger("pl-offload")
-
-	metrics.MustRegister(ptOffloadCountVec)
-	metrics.MustRegister(ptOffloadErrorCountVec)
-	metrics.MustRegister(ptOffloadCostVec)
 }
 
 type OffloadConfig struct {
@@ -249,4 +245,10 @@ func (offload *OffloadWorker) Stop() {
 	if offload.stopChan != nil {
 		close(offload.stopChan)
 	}
+}
+
+func init() { //nolint: gochecknoinits
+	metrics.MustRegister(ptOffloadCountVec)
+	metrics.MustRegister(ptOffloadErrorCountVec)
+	metrics.MustRegister(ptOffloadCostVec)
 }

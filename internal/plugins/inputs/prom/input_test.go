@@ -41,20 +41,106 @@ func (m *taggerMock) ElectionTags() map[string]string {
 func (g *taggerMock) UpdateVersion() {}
 func (g *taggerMock) Updated() bool  { return false }
 
-func TestInputNoBatch(t *T.T) {
-	t.Run("basic", func(t *T.T) {
-		body := `# HELP promhttp_metric_handler_errors_total Total number of internal errors encountered by the promhttp metric handler.
+func TestStreamMode(t *T.T) {
+	body := `# HELP promhttp_metric_handler_errors_total Total number of internal errors encountered by the promhttp metric handler.
 # TYPE promhttp_metric_handler_errors_total counter
 promhttp_metric_handler_errors_total{cause="encoding"} 0
 `
-		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprint(w, body)
-		}))
-		t.Log(srv.URL)
-		defer srv.Close()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, body)
+	}))
+	defer srv.Close()
 
-		t.Logf("url: %s", srv.URL)
+	t.Run("input-tags-on-non-stream-mode", func(t *T.T) {
+		inp := NewProm()
+		feeder := dkio.NewMockedFeeder()
 
+		inp.Feeder = feeder
+		inp.URLs = []string{srv.URL}
+		inp.MeasurementName = "abc"
+		inp.StreamSize = 0
+		inp.Tags = map[string]string{
+			"cause":     "should-not-override", // should not override tag `cause` in raw prometheus data.
+			"added-tag": "value-new-added",     // should add this tag
+		}
+
+		inp.tryInit()
+
+		assert.NoError(t, inp.collectFormURLs())
+
+		for {
+			pts, err := feeder.AnyPoints()
+			assert.NoError(t, err)
+
+			if pts[0].Name() == "abc" { // we should ignore the up metric here
+				assert.Equal(t, "encoding", pts[0].GetTag("cause"))
+				assert.Equal(t, "value-new-added", pts[0].GetTag("added-tag"))
+				break
+			}
+		}
+	})
+
+	t.Run("input-tags-on-stream-mode", func(t *T.T) {
+		feeder := dkio.NewMockedFeeder()
+
+		inp := NewProm()
+
+		inp.Feeder = feeder
+		inp.URLs = []string{srv.URL}
+		inp.StreamSize = 1
+		inp.Tags = map[string]string{
+			"cause":     "value-from-input-tags", // should not override tag `cause` in raw prometheus data.
+			"added-tag": "value-new-added",       // should add this tag
+		}
+
+		inp.tryInit()
+
+		assert.NoError(t, inp.collectFormURLs())
+
+		pts, err := feeder.AnyPoints()
+		assert.NoError(t, err)
+
+		t.Logf("%p", pts[0])
+
+		assert.Equal(t, "encoding", pts[0].GetTag("cause"))
+		assert.Equal(t, "value-new-added", pts[0].GetTag("added-tag"))
+	})
+}
+
+func TestInputNoBatch(t *T.T) {
+	body := `# HELP promhttp_metric_handler_errors_total Total number of internal errors encountered by the promhttp metric handler.
+# TYPE promhttp_metric_handler_errors_total counter
+promhttp_metric_handler_errors_total{cause="encoding"} 0
+`
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, body)
+	}))
+	t.Log(srv.URL)
+	defer srv.Close()
+
+	t.Logf("url: %s", srv.URL)
+
+	t.Run("input-tags", func(t *T.T) {
+		inp := NewProm()
+		inp.URLs = []string{srv.URL}
+		inp.StreamSize = 0
+		inp.Tags = map[string]string{
+			"cauase": "value-from-input-tags",
+		}
+
+		inp.tryInit()
+
+		pts, err := inp.collectFormSource(inp.URLs[0])
+		assert.NoError(t, err)
+
+		if len(pts) == 0 {
+			t.Errorf("got nil pts error.")
+		}
+
+		assert.Equal(t, "encoding", pts[0].GetTag("cause"))
+	})
+
+	t.Run("basic", func(t *T.T) {
 		inp := NewProm()
 		inp.URLs = []string{srv.URL}
 		inp.StreamSize = 0
@@ -271,7 +357,6 @@ promhttp_metric_handler_errors_total{cause="encoding"} 0
 		t.Logf("url: %s", srv.URL)
 
 		inp := NewProm()
-		inp.StreamSize = 0
 		inp.StreamSize = 0
 		inp.URLs = []string{srv.URL}
 		inp.MeasurementName = "some"

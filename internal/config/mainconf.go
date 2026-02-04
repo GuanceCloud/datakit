@@ -33,10 +33,7 @@ type Config struct {
 	BlackList []*inputHostList `toml:"black_lists,omitempty"`
 	WhiteList []*inputHostList `toml:"white_lists,omitempty"`
 
-	UUID    string `toml:"-"`
-	RunMode int    `toml:"-"`
-
-	Name string `toml:"name,omitempty"`
+	RunMode int `toml:"-"`
 
 	// http config: TODO: merge into APIConfig
 	HTTPBindDeprecated   string `toml:"http_server_addr,omitempty"`
@@ -158,7 +155,7 @@ func DefaultConfig() *Config {
 		},
 
 		Environments: map[string]string{
-			"ENV_HOSTNAME": "", // not set
+			envManualHostname: "", // not set
 		}, // default nothing
 
 		IO: &io.IOConf{

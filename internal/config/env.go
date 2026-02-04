@@ -22,6 +22,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 )
 
+const envManualHostname = "ENV_HOSTNAME"
+
 func (c *Config) loadConfdEnvs() {
 	// k8s ENV confd
 	if backend := datakit.GetEnv("ENV_CONFD_BACKEND"); backend != "" {
@@ -866,12 +868,9 @@ func (c *Config) LoadEnvs() error {
 	}
 
 	// misc
-	if v := datakit.GetEnv("ENV_HOSTNAME"); v != "" {
+	if v := datakit.GetEnv(envManualHostname); v != "" {
 		c.hostname = v
-	}
-
-	if v := datakit.GetEnv("ENV_NAME"); v != "" {
-		c.Name = v
+		datakit.DKHost = v
 	}
 
 	c.loadDCAEnvs()

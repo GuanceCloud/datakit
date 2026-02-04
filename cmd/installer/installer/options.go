@@ -61,7 +61,6 @@ type InstallerArgs struct {
 	HTTPPort int
 	HTTPSocket,
 	HTTPListen,
-	DatakitName,
 	GlobalHostTags,
 	HostName,
 	IPDBType string
