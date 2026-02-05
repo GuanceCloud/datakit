@@ -55,6 +55,7 @@ flowchart LR
 | 中国区 2（宁夏）  | `cn-northwest-1` (宁夏)   | `cn.com.amazonaws.vpce.cn-northwest-1.vpce-svc-070f9283a2c0d1f0c` |
 | 海外区 1（俄勒冈）  | `us-west-2` (俄勒冈)     |  `com.amazonaws.vpce.us-west-2.vpce-svc-084745e0ec33f0b44` |
 | 亚太区 1（新加坡）  | `ap-southeast-1` (新加坡)     |  `com.amazonaws.vpce.ap-southeast-1.vpce-svc-070194ed9d834d571` |
+| 欧洲区 1（法兰克福） | `eu-central-1` (法兰克福)     |  `com.amazonaws.vpce.eu-central-1.vpce-svc-062049100de283a62` |
 <<<% endif %>>>
 
 
@@ -70,6 +71,7 @@ flowchart LR
 | 中国区 2（宁夏）  | `cn-northwest-1` (宁夏)   | `https://aws-openway.<<<custom_key.brand_main_domain>>>`         |
 | 海外区 1（俄勒冈）  |  `us-west-2` (俄勒冈)          | `https://us1-openway.<<<custom_key.brand_main_domain>>>` |
 | 亚太区 1（新加坡）  |  `ap-southeast-1` (新加坡)         | `https://ap1-openway.<<<custom_key.brand_main_domain>>>` |
+| 欧洲区 1（法兰克福）  |  `eu-central-1` (法兰克福)         | `https://eu1-openway.<<<custom_key.brand_main_domain>>>` |
 <<<% endif %>>>
 
 ### 配置服务订阅 {#config-sub}
