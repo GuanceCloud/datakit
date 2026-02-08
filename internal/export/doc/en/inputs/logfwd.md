@@ -201,7 +201,7 @@ Configuration Hot Update Mechanism:
 
     - Log directories need to be shared in advance using `volumes`/`volumeMounts` in the business Pod/sidecar (such as `emptyDir`), otherwise logfwd cannot access log files.
     - `LOGFWD_LOG_CONFIGS` and CRD configurations are independent of each other. If both point to the same path, duplicate collection will occur.
-    - DataKit-Operator supports automatic injection of logfwd sidecar and mounts for target Pods. For details, please refer to the DataKit-Operator [documentation](../datakit/datakit-operator.md).
+    - DataKit Operator supports automatic injection of logfwd sidecar and mounts for target Pods. For details, please refer to the DataKit Operator [documentation](../datakit/operator-logfwd.md).
 <!-- markdownlint-enable -->
 
 <!-- markdownlint-disable MD013 -->

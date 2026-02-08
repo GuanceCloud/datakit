@@ -28,9 +28,10 @@ func doExport() error {
 		l.Debugf("export guance docs to %q...", ExportDocDir)
 		exporters = append(exporters,
 			export.NewGuanceDodcs(
+				export.WithVersionsInDoc(VersionsInDoc),
 				export.WithTopDir(ExportDocDir),
 				export.WithVersion(ExportVersion),
-				export.WithDCAVersion(DCAVersion),
+				// export.WithDCAVersion(DCAVersion),
 				export.WithExclude(ExportIgnore),
 				export.WithIgnoreMissing(true),
 			))
@@ -40,6 +41,7 @@ func doExport() error {
 		l.Debugf("export integrations to %q...", ExportIntegrationDir)
 		exporters = append(exporters,
 			export.NewIntegration(
+				export.WithVersionsInDoc(VersionsInDoc),
 				export.WithTopDir(ExportIntegrationDir),
 				export.WithVersion(ExportVersion),
 				export.WithDCAVersion(DCAVersion),

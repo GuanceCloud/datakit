@@ -92,6 +92,9 @@ func init() { //nolint:gochecknoinits
 	flag.BoolVar(&dca, "dca", false, "build DCA only")
 	flag.StringVar(&build.DCAVersion, "dca-version", build.ValueNotSet, "specify DCA version string")
 
+	flag.StringVar(&build.VersionsInDoc, "versions-in-doc", build.ValueNotSet,
+		"specify all versions of various components, such as datakit:1.2.3,dca:1.2.3,ddtrace-ext:1.2.3")
+
 	//
 	// export related flags.
 	//

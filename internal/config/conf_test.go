@@ -211,6 +211,15 @@ func TestSetupGlobalTags(t *T.T) {
 		expectEnvTags map[string]string
 	}{
 		{
+			name: "config-ip-as-host",
+			hosttags: map[string]string{
+				"ip":   "__datakit_ip",
+				"host": "__datakit_ip",
+			},
+
+			expectHostTags: map[string]string{"ip": localIP, "host": localIP},
+		},
+		{
 			name: "mixed-host-and-evn-tags",
 			hosttags: map[string]string{
 				"ip":   "__datakit_ip",

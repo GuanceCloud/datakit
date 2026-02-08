@@ -194,4 +194,4 @@ py-spy-for-datakit datakit \
 
 ### k8s 环境下使用 {#py-spy-on-k8s}
 
-请参考 [使用 `datakit-operator` 注入 `py-spy`](../datakit/datakit-operator.md#inject-py-spy){:target="_blank"}。
+请参考 [使用 `datakit-operator` 注入 `py-spy`](../datakit/operator-pyspy.md){:target="_blank"}。

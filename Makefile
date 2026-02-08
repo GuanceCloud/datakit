@@ -495,7 +495,7 @@ md_export:
 		--mdcheck $(docs_template_dir) \
 		--mdcheck-no-autofix $(AUTO_FIX);
 	@rm -rf $(exportdir) && mkdir -p $(exportdir)
-	@bash export.sh -D $(exportdir) -E -V 0.0.0
+	@bash export.sh -D $(exportdir) -E
 
 sample_conf_lint:
 	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run -tags with_inputs cmd/make/make.go \

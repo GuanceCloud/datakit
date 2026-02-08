@@ -262,7 +262,7 @@ java -Ddk.service=<service-name> ... -jar <your-jar>
 
 - [自动化脚本（推荐）](profile-java.md#script)
 - [手动操作](profile-java.md#manual)
-- [k8s 环境下使用](../datakit/datakit-operator.md#inject-async-profiler)
+- [k8s 环境下使用](../datakit/operator-asyncprofile.md)
 
 #### 自动化脚本 {#script}
 
@@ -537,4 +537,4 @@ $ curl http://localhost:9529/profiling/v1/input \
 
 #### Kubernetes 环境下使用 {#under-k8s}
 
-请参考 [使用 `datakit-operator` 注入 `async-profiler`](../datakit/datakit-operator.md#inject-async-profiler){:target="_blank"}。
+请参考 [使用 `datakit-operator` 注入 `async-profiler`](../datakit/operator-asyncprofile.md){:target="_blank"}。

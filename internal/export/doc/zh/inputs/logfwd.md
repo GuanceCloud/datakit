@@ -204,7 +204,7 @@ CRD 选择器说明：
 
     - 需要在业务 Pod/sidecar 中预先用 `volumes`/`volumeMounts` 共享日志目录（如 `emptyDir`），否则 logfwd 无法访问日志文件。
     - `LOGFWD_LOG_CONFIGS` 与 CRD 配置相互独立，若两者指向同一路径会导致重复采集。
-    - DataKit-Operator 支持为目标 Pod 自动注入 logfwd sidecar 及挂载，具体请查看 DataKit-Operator [文档](../datakit/datakit-operator.md)。
+    - DataKit-Operator 支持为目标 Pod 自动注入 logfwd sidecar 及挂载，具体请查看 DataKit-Operator [文档](../datakit/operator-logfwd.md)。
 <!-- markdownlint-enable -->
 
 #### ClusterLoggingConfig CRD 选择器支持 {#config-1-86-0-crd-selector}

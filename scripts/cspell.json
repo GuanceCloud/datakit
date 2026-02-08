@@ -6,7 +6,7 @@
   "dictionaryDefinitions": [
     {
       "name": "glossary",
-      "path": "scripts/glossary.txt",
+      "path": "glossary.txt",
       "addWords": true
     }
   ],

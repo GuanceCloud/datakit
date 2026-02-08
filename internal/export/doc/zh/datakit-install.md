@@ -444,7 +444,7 @@ DK_APM_INSTRUMENTATION_ENABLED=docker \
     - Java 8 及以上版本
     - Python 3.7 及以上版本
 
-在 Kubernetes 中，可以通过 [DataKit Operator 来注入 APM](datakit-operator.md#datakit-operator-inject-lib)。
+在 Kubernetes 中，可以通过 [DataKit Operator 来注入 APM](operator-ddtrace.md)。
 
 ### 其它安装选项 {#env-others}
 
