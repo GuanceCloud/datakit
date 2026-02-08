@@ -96,7 +96,7 @@ Java 的 APM 接入很方便，无需修改业务代码，只需要注入对应�
 
 === "Kubernetes"
 
-    在 Kubernetes 中，可以通过 [DataKit Operator 来注入 trace agent](../datakit/datakit-operator.md#datakit-operator-inject-lib)，也可以手动挂载 trace agent 到应用容器中。
+    在 Kubernetes 中，可以通过 [DataKit Operator 来注入 trace agent](../datakit/operator-ddtrace.md)，也可以手动挂载 trace agent 到应用容器中。
 
     ```yaml hl_lines="10-19" linenums="1"
     apiVersion: apps/v1

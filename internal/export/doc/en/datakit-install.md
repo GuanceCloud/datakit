@@ -453,7 +453,7 @@ Operating environment requirements:
     - Java 8 and above
     - Python 3.7 and above
 
-In Kubernetes, you can inject APM through the [DataKit Operator](datakit-operator.md#datakit-operator-inject-lib).
+In Kubernetes, you can inject APM through the [DataKit Operator](operator-ddtrace.md).
 
 ### Other Installation Options {#env-others}
 

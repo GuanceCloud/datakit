@@ -96,7 +96,7 @@ Require JDK version 1.8 or above.
 
 === "Kubernetes"
 
-    In Kubernetes, you can inject the trace agent through the [DataKit Operator](../datakit/datakit-operator.md#datakit-operator-inject-lib), or manually mount the trace agent into the application container.
+    In Kubernetes, you can inject the trace agent through the [DataKit Operator](../datakit/operator-ddtrace.md), or manually mount the trace agent into the application container.
 
     ```yaml hl_lines="10-19" linenums="1"
     apiVersion: apps/v1

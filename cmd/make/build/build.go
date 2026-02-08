@@ -54,7 +54,9 @@ var (
 	// can override this by set environment VERSION.
 	ReleaseVersion = git.Version
 
-	DCAVersion = ValueNotSet
+	DCAVersion = ValueNotSet // deprecated
+
+	VersionsInDoc = ValueNotSet
 
 	AppName   = "datakit"
 	AppBin    = "datakit"

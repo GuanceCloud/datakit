@@ -1,4 +1,4 @@
-# DataKit Operator User Guide
+# DataKit Operator
 
 ---
 
@@ -6,28 +6,36 @@
 
 ---
 
-## Overview and Installation {#datakit-operator-overview-and-install}
+DataKit Operator is a project integrated with DataKit in Kubernetes orchestration, aimed at facilitating easier deployment of DataKit, as well as providing other functions such as verification and injection.
 
-DataKit Operator is a collaborative project between DataKit and Kubernetes orchestration. It aims to assist the deployment of DataKit as well as other functions such as verification and injection.
+## Overview {#overview}
 
-Currently, DataKit Operator provides the following functions:
+DataKit Operator provides automated injection capabilities for Kubernetes clusters through the Kubernetes Admission Controller mechanism, helping users integrate observability more easily. Key features include:
 
-- Injection DDTrace Java SDK and related environments. See [documentation](datakit-operator.md#datakit-operator-inject-lib).
-- Injection Sidecar logfwd to collect Pod logging. See [documentation](datakit-operator.md#datakit-operator-inject-logfwd).
-- Support task distribution for DataKit plugins. See [documentation](election.md#plugins-election).
+- **DDTrace Injection**: Automatically inject APM tracing agents for Java applications
+- **Log Collection**: Automatically collect container logs via logfwd sidecar
+- **Performance Profiling**: Inject Flameshot or Profiler components for application performance monitoring
+- **Configuration Management**: Support both global configuration and declarative configuration injection methods
 
-Prerequisites:
+**Core Advantages**:
 
-- Recommended Kubernetes version 1.24.1 or above and internet access (to download yaml file and pull images).
-- Ensure `MutatingAdmissionWebhook` and `ValidatingAdmissionWebhook` [controllers](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites){:target="_blank"} are enabled.
-- Ensure `admissionregistration.k8s.io/v1` API is enabled.
+- **Automated Deployment**: No need to manually modify application YAML, reducing configuration errors
+- **Batch Management**: Implement batch injection through namespace and label selectors
+- **Flexible Configuration**: Support JSON configuration and fine-grained control via Annotations
+- **Version Compatibility**: Maintain backward compatibility and support smooth upgrades
 
-### Installation Steps {#datakit-operator-install}
+## Prerequisites {#prerequisites}
+
+- Kubernetes v1.24.1 or higher is recommended, with internet access (to download yaml files and pull corresponding images)
+- Ensure `MutatingAdmissionWebhook` and `ValidatingAdmissionWebhook` [controllers](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#prerequisites){:target="_blank"} are enabled
+- Ensure `admissionregistration.k8s.io/v1` API is enabled
+
+## Installation {#install}
 
 <!-- markdownlint-disable MD046 -->
 === "Deployment"
 
-    Download [*datakit-operator.yaml*](https://static.<<<custom_key.brand_main_domain>>>/datakit-operator/datakit-operator.yaml){:target="_blank"}, and follow these steps:
+    Download [*datakit-operator.yaml*](https://static.<<<custom_key.brand_main_domain>>>/datakit-operator/datakit-operator.yaml){:target="_blank"}, follow these steps:
     
     ``` shell
     $ kubectl create namespace datakit
@@ -41,12 +49,12 @@ Prerequisites:
 
 === "Helm"
 
-    Precondition:
+    Prerequisites
 
     * Kubernetes >= 1.14
     * Helm >= 3.0+
 
-    ``` shell
+    ```shell
     $ helm install datakit-operator datakit-operator \
         <<<% if custom_key.brand_key == 'guance' -%>>>
         --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit-operator \
@@ -56,15 +64,15 @@ Prerequisites:
         -n datakit --create-namespace
     ```
 
-    View deployment status:
+    Check deployment status:
 
-    ``` shell
+    ```shell
     $ helm -n datakit list
     ```
 
-    Upgrade with the following command:
+    Upgrade using the following command:
 
-    ``` shell
+    ```shell
     $ helm -n datakit get values datakit-operator -a -o yaml > values.yaml
     $ helm upgrade datakit-operator datakit-operator \
         <<<% if custom_key.brand_key == 'guance' -%>>>
@@ -76,316 +84,174 @@ Prerequisites:
         -f values.yaml
     ```
 
-    Uninstall with the following command:
+    Uninstall using the following command:
 
-    ``` shell
+    ```shell
     $ helm uninstall datakit-operator -n datakit
     ```
-<!-- markdownlint-enable -->
 
-<!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    - There is a strict correspondence between DataKit-Operator's program and yaml files. If an outdated yaml file is used, it may not be possible to install the new version of DataKit-Operator. Please download the latest yaml file.
-    - If you encounter `InvalidImageName` error, you can manually pull the image.
+    - DataKit Operator has a strict correspondence between the program and yaml. If an outdated yaml is used, the new version of DataKit-Operator may not be installed. Please download the latest yaml.
+    - If `InvalidImageName` error occurs, you can manually pull the image.
 <!-- markdownlint-enable -->
 
-## Configuration Explanation {#datakit-operator-jsonconfig}
+### Configuration Explanation {#jsonconfig}
 
-The DataKit Operator configuration is in JSON format and is stored in Kubernetes as a separate ConfigMap. It is loaded into the container as environment variables.
+DataKit Operator configuration is in JSON format, stored separately as a ConfigMap in Kubernetes, and loaded into the container as environment variables.
 
 <!-- markdownlint-disable MD046 -->
-=== "DataKit-Operator v1.7.0 and later (Recommended)"
+=== "DataKit Operator >= v1.7.0"
 
-    Starting from DataKit-Operator v1.7.0, it is recommended to use the `admission_inject_v2` configuration item. The new configuration adopts an array structure, supporting more flexible configuration methods.
+    Starting from DataKit-Operator v1.7.0, it is recommended to use the `admission_inject_v2` configuration item. The new configuration uses an array structure, supporting more flexible configuration methods.
 
-    Default configuration:
-
-    ``` json
+    ```json
     {
-        "server_listen": "0.0.0.0:9543",
-        "log_level":     "info",
-        "admission_inject_v2": {
-            "ddtraces": [
-                {
-                    "namespace_selectors": [],
-                    "label_selectors":     [],
-                    "image":    "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:latest",
-                    "language": "java",
-                    "envs": {
-                        "DD_AGENT_HOST":           "datakit-service.datakit.svc.cluster.local",
-                        "DD_TRACE_AGENT_PORT":     "9529",
-                        "DD_JMXFETCH_STATSD_HOST": "datakit-service.datakit.svc.cluster.local",
-                        "DD_JMXFETCH_STATSD_PORT": "8125",
-                        "DD_SERVICE":              "{fieldRef:metadata.labels['app']}",
-                        "POD_NAME":                "{fieldRef:metadata.name}",
-                        "POD_NAMESPACE":           "{fieldRef:metadata.namespace}",
-                        "NODE_NAME":               "{fieldRef:spec.nodeName}",
-                        "DD_TAGS":                 "pod_name:$(POD_NAME),pod_namespace:$(POD_NAMESPACE),host:$(NODE_NAME)"
-                    },
-                    "resources": {
-                        "requests": {
-                            "cpu":    "100m",
-                            "memory": "64Mi"
-                        },
-                        "limits": {
-                           "cpu":    "200m",
-                           "memory": "128Mi"
-                         }
-                    }
-                }
-            ],
-            "logfwds": [
-                {
-                    "namespace_selectors": [],
-                    "label_selectors":     [],
-                    "image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/logfwd:1.86.0",
-                    "envs": {
-                        "LOGFWD_DATAKIT_HOST":              "{fieldRef:status.hostIP}",
-                        "LOGFWD_DATAKIT_PORT":              "9533",
-                        "LOGFWD_DATAKIT_OPERATOR_ENDPOINT": "datakit-operator.datakit.svc:443",
-                        "LOGFWD_GLOBAL_SERVICE":            "{fieldRef:metadata.labels['app']}",
-                        "LOGFWD_POD_NAME":                  "{fieldRef:metadata.name}",
-                        "LOGFWD_POD_NAMESPACE":             "{fieldRef:metadata.namespace}",
-                        "LOGFWD_POD_IP":                    "{fieldRef:status.podIP}"
-                    },
-                    "resources": {
-                        "requests": {
-                            "cpu":    "100m",
-                            "memory": "128Mi"
-                        },
-                        "limits": {
-                           "cpu":    "200m",
-                           "memory": "256Mi"
-                        }
-                    },
-                    "log_configs": "",
-                    "log_volume_paths": []
-                }
-            ],
-            "flameshots": [
-                {
-                    "namespace_selectors": [],
-                    "label_selectors":     [],
-                    "image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/flameshot:latest",
-                    "envs": {
-                        "FLAMESHOT_DATAKIT_ADDR":     "http://datakit-service.datakit:9529/profiling/v1/input",
-                        "FLAMESHOT_MONITOR_INTERVAL": "10s",
-                        "FLAMESHOT_LOG_LEVEL":        "info",
-                        "FLAMESHOT_PROFILING_PATH":   "/flameshot-data",
-                        "FLAMESHOT_LOG_PATH":         "/var/log/flameshot.log",
-                        "FLAMESHOT_HTTP_LOCAL_IP":    "{fieldRef:status.podIP}",
-                        "FLAMESHOT_HTTP_LOCAL_PORT":  "8089"
-                    },
-                    "resources": {
-                        "requests": {
-                            "cpu":    "100m",
-                            "memory": "128Mi"
-                        },
-                        "limits": {
-                           "cpu":    "200m",
-                           "memory": "256Mi"
-                        }
-                    },
-                    "processes": "",
-                    "enable_prometheus_annotations": true
-                }
-            ]
+        "server_listen": "0.0.0.0:9543", // Operator service listening address
+        "log_level": "info",             // Operator log level
+        "admission_inject_v2": {         // Injection configuration v2
+            "ddtraces": [...],           // DDTrace configuration array
+            "logfwds": [...],            // Log forwarding configuration array
+            "flameshots": [...]          // Profiling configuration array
         },
-        "admission_mutate": {
-            "loggings": [
-                {
-                    "namespace_selectors": [],
-                    "label_selectors":     [],
-                    "config": ""
-                }
-            ]
+        "admission_mutate": {            // Configuration mutation
+            "loggings": [...]            // Log configuration mutation
         }
     }
     ```
 
-    Main configuration items:
-
-    - `ddtraces`: DDTrace injection configuration array, currently only supports Java language trace agent
-    - `logfwds`: logfwd sidecar injection configuration array, supports configuring multiple log collection rules
-    - `flameshots`: Flameshot injection configuration array (replacing the original profiler), used for performance analysis data collection
-
-    Configuration features:
-
-    - Uses array structure, supports configuring multiple injection rules of the same type
-    - When `namespace_selectors` and `label_selectors` are configured together, their relationship is "AND" (both must be satisfied)
-    - Image configuration is directly specified through the `image` field in the array items, no longer using nested `images` objects
-
-=== "DataKit-Operator before v1.7.0 (Compatible)"
-
-    <!-- markdownlint-disable MD046 -->
-    ???+ attention
-
-        This configuration method was used before DataKit-Operator v1.7.0. v1.7.0 and later versions recommend using the `admission_inject_v2` configuration. The old configuration remains backward compatible in v1.7.0.
-    <!-- markdownlint-enable -->
-
-    Default configuration:
+=== "DataKit Operator < v1.7.0"
 
     ```json
     {
         "server_listen": "0.0.0.0:9543",
         "log_level":     "info",
         "admission_inject": {
-            "ddtrace": {
-                "enabled_namespaces":     [],
-                "enabled_labelselectors": [],
-                "images": {
-                    "java_agent_image":   "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:latest"
-                },
-                "envs": {
-                    "DD_AGENT_HOST":           "datakit-service.datakit.svc",
-                    "DD_TRACE_AGENT_PORT":     "9529",
-                    "DD_JMXFETCH_STATSD_HOST": "datakit-service.datakit.svc",
-                    "DD_JMXFETCH_STATSD_PORT": "8125",
-                    "DD_SERVICE":              "{fieldRef:metadata.labels['service']}",
-                    "POD_NAME":                "{fieldRef:metadata.name}",
-                    "POD_NAMESPACE":           "{fieldRef:metadata.namespace}",
-                    "NODE_NAME":               "{fieldRef:spec.nodeName}",
-                    "DD_TAGS":                 "pod_name:$(POD_NAME),pod_namespace:$(POD_NAMESPACE),host:$(NODE_NAME)"
-                },
-                "resources": {
-                    "requests": {
-                        "cpu":    "100m",
-                        "memory": "64Mi"
-                    },
-                    "limits": {
-                        "cpu":    "200m",
-                        "memory": "128Mi"
-                    }
-                }
-            },
-            "profiler": {
-                "images": {
-                    "java_profiler_image":   "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/async-profiler:0.5.0",
-                    "python_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/py-spy:0.1.0",
-                    "golang_profiler_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/go-pprof:0.1.0"
-                },
-                "envs": {
-                    "DK_AGENT_HOST":  "datakit-service.datakit.svc.cluster.local",
-                    "DK_AGENT_PORT":  "9529",
-                    "DK_PROFILE_VERSION":  "1.2.333",
-                    "DK_PROFILE_ENV":      "prod",
-                    "DK_PROFILE_DURATION": "240",
-                    "DK_PROFILE_SCHEDULE": "0 * * * *"
-                },
-                "resources": {
-                    "requests": {
-                        "cpu":    "100m",
-                        "memory": "64Mi"
-                    },
-                    "limits": {
-                        "cpu":    "500m",
-                        "memory": "512Mi"
-                    }
-                }
-            },
-            "logfwd": {
-                "images": {
-                    "logfwd_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/logfwd:1.86.0"
-                },
-                "envs": {
-                    "LOGFWD_DATAKIT_HOST":              "{fieldRef:status.hostIP}",
-                    "LOGFWD_DATAKIT_PORT":              "9533",
-                    "LOGFWD_DATAKIT_OPERATOR_ENDPOINT": "datakit-operator.datakit.svc:443",
-                    "LOGFWD_GLOBAL_SERVICE":            "{fieldRef:metadata.labels['app']}",
-                    "LOGFWD_POD_NAME":                  "{fieldRef:metadata.name}",
-                    "LOGFWD_POD_NAMESPACE":             "{fieldRef:metadata.namespace}",
-                    "LOGFWD_POD_IP":                    "{fieldRef:status.podIP}"
-                },
-                "resources": {
-                    "requests": {
-                        "cpu":    "100m",
-                        "memory": "64Mi"
-                    },
-                    "limits": {
-                        "cpu":    "500m",
-                        "memory": "512Mi"
-                    }
-                }
-            }
+            "ddtrace": {...},
+            "profiler": {...},
+            "logfwd": {...}
         },
         "admission_mutate": {
-            "loggings": [
-                {
-                    "namespace_selectors": ["test01"],
-                    "label_selectors":     ["app=logging"],
-                    "config":"[{\"disable\":false,\"type\":\"file\",\"path\":\"/tmp/opt/**/*.log\",\"storage_index\":\"logging-index\"\"source\":\"logging-tmp\"},{\"disable\":true,\"type\":\"file\",\"path\":\"/var/log/opt/**/*.log\",\"source\":\"logging-var\"}]"
-                }
-            ]
+            "loggings": [...]
         }
     }
     ```
-
-    The main configuration items are `ddtrace`, `logfwd`, and `profiler`, which specify the injected images and environment variables. In addition, ddtrace also supports batch injection based on `enabled_namespaces` and `enabled_selectors`, as detailed in the "Injection Methods" section below.
-
-    <!-- markdownlint-disable MD046 -->
-    ???+ note
-
-        In the old configuration, when `namespace_selectors` and `label_selectors` are configured together, their relationship is "OR" (satisfying either condition is sufficient). In the new configuration of DataKit-Operator v1.7.0, the relationship is changed to "AND" (both must be satisfied).
-    <!-- markdownlint-enable -->
 <!-- markdownlint-enable -->
 
-### Configuration of Images {#datakit-operator-config-images}
+## Injection Methods {#datakit-operator-inject}
 
-The primary function of the DataKit Operator is to inject images and environment variables, using the `images` configuration to specify the image addresses. The `images` configuration consists of multiple Key/Value pairs, where the Key is fixed, and the Value is modified to specify the image address.
+DataKit Operator supports two resource input methods:
 
-Under normal circumstances, images are stored in `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator`. However, for some special environments where accessing this image repository is not convenient, you can use the following method (taking the `dd-lib-java-init` image as an example):
+1. Selector Configuration Injection (Imperative)
 
-1. In an environment where `pubrepo.<<<custom_key.brand_main_domain>>>` is accessible, pull the image `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:v1.30.1-ext`, and then re-store it in your own image repository, for example, `inside.image.hub/datakit-operator/dd-lib-java-init:v1.30.1-ext`.
-1. Modify the JSON configuration, changing `admission_inject`->`ddtrace`->`images`->`java_agent_image` to `inside.image.hub/datakit-operator/dd-lib-java-init:v1.30.1-ext`, and apply this YAML file.
-1. After this, the DataKit Operator will use the new Java Agent image path.
+    Specify the Namespace and Selector of the target Pod by modifying the DataKit-Operator config. If a Pod meets the conditions, injection is performed.
 
-<!-- markdownlint-disable MD046 -->
-???+ attention
+    **Advantages**: No need to add Annotations to the target Pod (but the target Pod needs to be restarted)
 
-    The DataKit Operator does not validate the image. If the image path is incorrect, Kubernetes will throw an error when creating the Pod.**
-<!-- markdownlint-enable -->
+    **Disadvantages**: Scope is not precise enough, potentially leading to invalid injections
 
-### Adding Environment Variables {#datakit-operator-config-envs}
+2. Annotation Configuration Injection (Declarative)
 
-All environment variables that need to be injected must be specified in the configuration file, as the DataKit Operator does not add any environment variables by default.
+    Add Annotations to the target Pod to enable its own injection.
 
-The environment variable configuration is called `envs`, `envs` consists of multiple Key/Value pairs: the Key is a fixed value, and the Value can either be a fixed value or a placeholder, depending on the actual situation.
+    **Advantages**: Injection rejection can be precisely controlled via Annotation
 
-For example, to add an environment variable `testing-env` in `envs`:
+    **Disadvantages**: Injection cannot be triggered solely by Annotation; matching rules still need to be configured, meaning besides enabling injection in the target Pod annotation, other fields in the Operator configuration are also required.
 
-``` json
-    "admission_inject": {
-        "ddtrace": {
-            # other..
-            "envs": {
-                "DD_AGENT_HOST":           "datakit-service.datakit.svc",
-                "DD_TRACE_AGENT_PORT":     "9529",
-                "FAKE_ENV":                "ok"
+### Selector Configuration Injection {#selectors-injection}
+
+Batch injection can be achieved by configuring `namespace_selectors` and `label_selectors`.
+
+In the `admission_inject_v2` configuration, `namespace_selectors` and `label_selectors` are configured directly in the array item. Taking DDTrace injection as an example:
+
+```json
+{
+    "admission_inject_v2": {
+        "ddtraces": [
+            {
+                "namespace_selectors": ["testns"],
+                "label_selectors":     ["app=log-output"],
+                ...
             }
-        }
+        ]
     }
+}
 ```
 
-All containers that have `ddtrace` agent injected into them will have five environment variables added to their `envs`.
+- `namespace_selectors`: Namespace selector array, supports regular expression matching. For exact matching, surround the pattern with `^` and `$`, e.g., `^testns$`
+- `label_selectors`: Label selector array, uses Kubernetes Label Selector syntax
 
-In DataKit Operator v1.4.2 and later versions, `envs` `envs` support for the Kubernetes Downward API [environment variable fetch field](https://kubernetes.io/docs/concepts/workloads/pods/downward-api/#available-fields). The following are now supported:
+If both selectors are configured, the target Pod must satisfy both conditions simultaneously. For guidelines on writing label selectors, refer to this [official documentation](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors){:target="_blank"}.
 
-- `metadata.name`: The pod's name.
-- `metadata.namespace`:  The pod's namespace.
-- `metadata.uid`:  The pod's unique ID.
-- `metadata.annotations['<KEY>']`:  The value of the pod's annotation named `<KEY>` (for example, metadata.annotations['myannotation']).
-- `metadata.labels['<KEY>']`:  The text value of the pod's label named `<KEY>` (for example, metadata.labels['mylabel']).
-- `spec.serviceAccountName`:  The name of the pod's service account.
-- `spec.nodeName`:  The name of the node where the Pod is executing.
-- `status.hostIP`:  The primary IP address of the node to which the Pod is assigned.
-- `status.hostIPs`:  The IP addresses is a dual-stack version of status.hostIP, the first is always the same as status.hostIP. The field is available if you enable the PodHostIPs feature gate.
-- `status.podIP`:  The pod's primary IP address (usually, its IPv4 address).
-- `status.podIPs`:  The IP addresses is a dual-stack version of status.podIP, the first is always the same as status.podIP.
+### Annotation Configuration Injection {#annotation-injection}
 
-For example, if there is a Pod with the name `nginx-123` and the namespace `middleware`, and you want to inject the environment variables `POD_NAME` and `POD_NAMESPACE`, refer to the following configuration:
+Adding specific Annotations to Deployment can control whether injection is allowed. Note that Annotations should be added in the template.
 
-``` json
+Supported Annotations are as follows:
+
+| Annotation | Description | Values | Priority |
+|------------|-------------|--------|----------|
+| `admission.datakit/ddtrace.enabled` | Controls ddtrace injection | `"true"/"false"` | Medium |
+| `admission.datakit/logfwd.enabled` | Controls logfwd injection | `"true"/"false"` | Medium |
+| `admission.datakit/flameshot.enabled` | Controls flameshot injection | `"true"/"false"` | Medium |
+| `admission.datakit/enabled` | Controls all injection functions | `"true"/"false"` | **Highest** |
+
+Example:
+
+```yaml
+    annotations:
+    admission.datakit/ddtrace.enabled: "true"
+    admission.datakit/logfwd.enabled: "true"
+```
+
+<!-- markdownlint-disable MD046 -->
+???+ tip
+
+    Annotations can be used to reject injection (set to `"false"`), but for active injection, the following configuration is required:
+
+    1. Set matching rules (`namespace_selectors`/`label_selectors`) and corresponding configuration fields in DataKit-Operator configuration
+    2. Pod matches configured selectors
+<!-- markdownlint-enable -->
+
+Injection Method Summary
+
+- **Global Configuration**: Suitable for batch scenarios, controlling injection scope via Operator configuration
+- **Annotation Configuration**: Suitable for fine-grained control, deciding whether to inject via Pod annotations
+- **Priority**: Annotation configuration takes precedence over global configuration, useful for rejecting injection
+- **Compatibility**: Supported features vary slightly across versions, please refer to specific version notes
+
+## Supported Injection Function List {#supported-operator}
+
+| Function | Brief Description |
+|--- |--- |
+| DDtrace Agent | Inject DDTrace component, see [DDTrace](operator-ddtrace.md) |
+| logfwd | Inject logfwd component to collect logs inside containers, see [logfwd](operator-logfwd.md) |
+| Flameshot | Inject Flameshot component for dynamic application Profiling, see [Flameshot](operator-flameshot.md) |
+| async-profiler | Inject async-profiler for periodic Profiling of Java applications, see [async-profile](operator-asyncprofile.md) |
+| py-spy | Inject py-spy for Profiling of Python applications, see [py-spy](operator-pyspy.md) |
+| logging | Inject log collection configuration, see [Logging](operator-logging.md) |
+
+## Downward API {#downwardapi}
+
+In DataKit Operator [:octicons-tag-24: v1.4.2](operator-changelog.md#cl-1.4.2) and later versions, `envs` supports Kubernetes Downward API [environment variable value fields](https://kubernetes.io/docs/concepts/workloads/pods/downward-api/#downwardapi-fieldRef). The following are currently supported:
+
+| Field | Description | Example |
+| ------: | :------ | :------ |
+| `metadata.name` | The name of the Pod | nginx-123 |
+| `metadata.namespace` | The namespace of the Pod | middleware |
+| `metadata.uid` | The unique ID of the Pod | 12345678-1234-1234-1234-123456789abc |
+| `metadata.annotations['<KEY>']` | The value of the Pod's annotation `<KEY>` | metadata.annotations['myannotation'] |
+| `metadata.labels['<KEY>']` | The value of the Pod's label `<KEY>` | metadata.labels['app'] |
+| `spec.serviceAccountName` | The name of the Pod's service account | default |
+| `spec.nodeName` | The name of the node where the Pod is running | node-01 |
+| `status.hostIP` | The primary IP address of the node where the Pod is located | 192.168.1.1 |
+| `status.hostIPs` | Dual-stack version of status.hostIP | ["192.168.1.1", "2001:db8::1"] |
+| `status.podIP` | The primary IP address of the Pod | 10.0.0.1 |
+| `status.podIPs` | Dual-stack version of status.podIP | ["10.0.0.1", "2001:db8::2"] |
+
+For example, if there is a Pod named `nginx-123` in the `middleware` namespace, and you want to inject the environment variables `POD_NAME` and `POD_NAMESPACE`, refer to the following:
+
+```json
 {
     "admission_inject": {
         "ddtrace": {
@@ -398,7 +264,7 @@ For example, if there is a Pod with the name `nginx-123` and the namespace `midd
 }
 ```
 
-Eventually, the environment variables can be seen in the Pod:
+Ultimately, in that Pod you can see:
 
 ``` shell
 $ env | grep POD
@@ -407,762 +273,29 @@ POD_NAMESPACE=middleware
 ```
 
 <!-- markdownlint-disable MD046 -->
-???+ attention
-
-    If the placeholder in the Value is unrecognized, it will be added to the environment variable as a plain string. For example, `"POD_NAME": "{fieldRef:metadata.PODNAME}"` is incorrect, and the environment variable will be set as `POD_NAME={fieldRef:metadata.PODNAME}`.
-<!-- markdownlint-enable -->
-
-## Injection Methods {#datakit-operator-inject}
-
-DataKit-Operator supports two methods for resource injection `global configuration namespaces and selectors`, and adding specific annotations to target Pods. The differences between them are as follows:
-
-- Global Configuration: Namespace and Selector: By modifying the DataKit-Operator configuration, you specify the target Pod's Namespace and Selector. If a Pod matches the criteria, the resource injection will occur.
-    - Advantages: No need to add annotations to the target Pod (but the target Pod must be restarted).
-    - Disadvantages: The scope is not precise enough, which may lead to unnecessary injections.
-
-- Adding Annotations to Target Pods: Add annotations to the target Pod, and DataKit-Operator will check the Pod's annotations to decide whether to perform the injection based on the conditions.
-    - Advantages: Precise scope, preventing unnecessary injections.
-    - Disadvantages: You must manually add annotations to the target Pod, and the Pod needs to be restarted.
-
-<!-- markdownlint-disable MD046 -->
-???+ attention
-
-    As of DataKit-Operator v1.5.8, the `global configuration namespaces and selectors` method only applies to `DDtrace injection`. It does not apply to `logfwd` and `profiler`, for which annotations are still required.
-<!-- markdownlint-enable -->
-
-<!-- markdownlint-disable MD013 -->
-### Global Configuration: Namespaces and Selectors {#datakit-operator-config-ddtrace-enabled}
-<!-- markdownlint-enable -->
-
-The `enabled_namespaces` and `enabled_labelselectors` fields are specific to `ddtrace`. They are object arrays that require the specification of `namespace` and `language`. The relationships between the arrays are "OR" (i.e., any match in the array will trigger injection). The configuration is written as follows (refer to the configuration details later):
-
-``` json
-{
-    "server_listen": "0.0.0.0:9543",
-    "log_level":     "info",
-    "admission_inject": {
-        "ddtrace": {
-            "enabled_namespaces": [
-                {
-                    "namespace": "testns",  # The namespace supports regex matching; for an exact match, the pattern must be enclosed between ^ and $ (e.g., ^testns$)
-                    "language": "java"      # Specify the language for the agent to inject
-                }
-            ],
-            "enabled_labelselectors": [
-                {
-                    "labelselector": "app=log-output",  # Specify the label selector
-                    "language": "java"                  # Specify the language for the agent to inject
-                }
-            ]
-            # other..
-        }
-    }
-}
-```
-
-If a Pod satisfies both the `enabled_namespaces` rule and the `enabled_labelselectors` rule, the configuration in `enabled_labelselectors` will take precedence (usually applied when the `language` value is used).
-
-For guidelines on how to write `labelselector`, please refer to the [official documentation](https://kubernetes.io/en/docs/concepts/overview/working-with-objects/labels/#label-selectors).
-
-<!-- markdownlint-disable MD046 -->
 ???+ note
 
-    - In Kubernetes versions 1.16.9 or earlier, Admission does not record the Pod Namespace, so the `enabled_namespaces` feature cannot be used.
+    If the Value placeholder is unrecognizable, it will be added to the environment variable as a plain string. For example, `"POD_NAME": "{fieldRef:metadata.PODNAME}"` is an incorrect syntax; the environment variable will be `POD_NAME={fieldRef:metadata.PODNAME}`.
 <!-- markdownlint-enable -->
 
-<!-- markdownlint-disable MD013 -->
-### Adding Annotation Configuration for Injection {#datakit-operator-config-annotation}
-<!-- markdownlint-enable -->
+## FAQ {#faq}
 
-To inject the `ddtrace` file into a Pod, add the specified annotation to the Deployment. Make sure to add the annotation to the `template` section.
+### How to disable injection for a specific Pod? {#disable-inject}
 
-The annotation format is as follows:
+Add Annotation `"admission.datakit/enabled": "false"` to that Pod, and no operations will be performed for it. This has the highest priority.
 
-- The key is `admission.datakit/%s-lib.version`, where `%s` should be replaced with the desired language. Currently, it supports `java`.
-- The value is the specified version number. By default, it uses the version specified by the DataKit-Operator configuration in the `java_agent_image` setting. For more details, see the configuration explanation below.
+### How does it work? {#principles}
 
-For example, to add an annotation:
+DataKit-Operator uses Kubernetes Admission Controller function for resource injection. For detailed mechanisms, please check the [official documentation](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/){:target="_blank"}
 
-``` yaml
-      annotations:
-        admission.datakit/java-lib.version: "v1.36.2-ext"
-```
+### What to note in AWS EKS environment? {#aws-eks}
 
-This indicates that the image version to be injected for this Pod is `v1.36.2-ext`. The image address is taken from the configuration `admission_inject` -> `ddtrace` -> `images` -> `java_agent_image`, where the image version is replaced with `"v1.36.2-ext"`, similar to `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-java-init:v1.36.2-ext`.
+Deploying in an AWS EKS environment may cause DataKit-Operator not to take effect; you need to open port `9543` in the security group.
 
-<!-- markdownlint-disable MD013 -->
-## Using DataKit-Operator to Inject Files and Programs {#datakit-operator-inject-sidecar}
-<!-- markdownlint-enable -->
+### Troubleshooting Guide {#debug}
 
-In large Kubernetes clusters, it can be quite difficult to make bulk configuration changes. DataKit-Operator will determine whether or not to modify or inject data based on Annotation configuration.
-
-The following functions are currently supported:
-
-- Injection of `ddtrace` agent and environment
-- Mounting of `logfwd` sidecar and enabling log collection
-- Inject [`async-profiler`](https://github.com/async-profiler/async-profiler){:target="_blank"} for JVM profiling [:octicons-beaker-24: Experimental](index.md#experimental)
-- Inject [`py-spy`](https://github.com/benfred/py-spy){:target="_blank"} for Python profiling [:octicons-beaker-24: Experimental](index.md#experimental)
-
-<!-- markdownlint-disable MD046 -->
-???+ info
-
-    Only version v1 of `deployments/daemonsets/cronjobs/jobs/statefulsets` Kind is supported, and because DataKit-Operator actually operates on the PodTemplate, Pod is not supported. In this article, we will use `Deployment` to describe these five kinds of Kind.
-<!-- markdownlint-enable -->
-
-<!-- markdownlint-disable MD013 -->
-### DDTrace Agent {#datakit-operator-inject-lib}
-<!-- markdownlint-enable -->
-
-#### Usage {#datakit-operator-inject-lib-usage}
-
-1. On the target Kubernetes cluster, [download and install DataKit-Operator](datakit-operator.md#datakit-operator-overview-and-install).
-1. Add a Annotation `admission.datakit/java-lib.version: ""` in deployment.
-
-#### Example {#datakit-operator-inject-lib-example}
-
-The following is an example of Deployment that injects `dd-java-lib` into all Pods created by Deployment:
-
-``` yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nginx-deployment
-  labels:
-    app: nginx
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: nginx
-  template:
-    metadata:
-      labels:
-        app: nginx
-      annotations:
-        admission.datakit/java-lib.version: ""
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.22
-        ports:
-        - containerPort: 80
-```
-
-Create a resource using yaml file:
-
-``` shell
-kubectl apply -f nginx.yaml
-```
-
-Verify as follows:
-
-``` shell
-$ kubectl get pod
-NAME                                   READY   STATUS    RESTARTS      AGE
-nginx-deployment-7bd8dd85f-fzmt2       1/1     Running   0             4s
-
-$ kubectl get pod nginx-deployment-7bd8dd85f-fzmt2 -o=jsonpath={.spec.initContainers\[\*\].name}
-datakit-lib-init
-```
-
-<!-- markdownlint-disable MD013 -->
-### logfwd {#datakit-operator-inject-logfwd}
-<!-- markdownlint-enable -->
-
-#### Prerequisites {#datakit-operator-inject-logfwd-prerequisites}
-
-[logfwd](../integrations/logfwd.md#using) is a proprietary log collection application for DataKit. To use it, you need to first deploy DataKit in the same Kubernetes cluster and satisfy the following two conditions:
-
-1. The DataKit `logfwdserver` collector is enabled, for example, listening on port `9533`.
-2. The DataKit service needs to open port `9533` to allow other Pods to access `datakit-service.datakit.svc:9533`.
-
-#### Instructions (1.6.0 and later) {#datakit-operator-1-6-0-inject-logfwd-instructions}
-
-DataKit-Operator 1.6.0 delivers major improvements to the logfwd injection workflow:
-
-- **Centralized configuration management**: the Operator watches Kubernetes `ClusterLoggingConfig` CRDs and exposes the matched results for sidecars to poll. logfwd sidecars (>= 1.86.0) send an HTTP request to the Operator endpoint every 60 seconds to fetch the latest configurations.
-- **Hot reload & fine-grained matching**: CRD selectors (namespace, Pod name, labels, containers) take effect immediately without recreating workloads.
-- **Compatibility with manual overrides**: annotations can still override individual Pods, which is handy for debugging or special cases.
-
-> If you are not familiar with `ClusterLoggingConfig`, read the [Container Log Collection via CRD guide](../integrations/container-log-for-k8s-crd.md) first.
-
-Workflow:
-
-1. Register the `ClusterLoggingConfig` CRD (see the DataKit documentation).
-1. Install/upgrade DataKit-Operator 1.6.0 and grant it read-only RBAC permissions on the CRD.
-1. Add logfwd annotations to the target Pods (enable flag plus optional overrides).
-1. Create `ClusterLoggingConfig` resources. logfwd sidecars will poll the Operator endpoint every 60 seconds to obtain the matching log collection configs.
-
-The latest `datakit-operator.yaml` already contains the required permissions. You can also apply the minimal manifest below:
-
-``` yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: datakit-operator
-rules:
-- apiGroups: ["logging.datakits.io"]
-  resources: ["clusterloggingconfigs"]
-  verbs: ["get", "list", "watch"]
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: datakit-operator
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: datakit-operator
-subjects:
-- kind: ServiceAccount
-  name: datakit-operator
-  namespace: datakit
-
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: datakit-operator
-  namespace: datakit
-
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: datakit-operator
-  namespace: datakit
-  labels:
-    app: datakit-operator
-spec:
-  replicas: 1  # Do not change the ReplicaSet number!
-  selector:
-     matchLabels:
-       app: datakit-operator
-  template:
-    metadata:
-      labels:
-        app: datakit-operator
-    spec:
-      # Add serviceAccountName
-      serviceAccountName: datakit-operator
-      containers:
-      - name: operator
-        # other..
-```
-
-logfwd injection introduces several mandatory environment variables and image requirements. Configure them in the `datakit-operator-config` ConfigMap:
-
-``` json
-            "logfwd": {
-                "images": {
-                    "logfwd_image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/logfwd:1.86.0"
-                },
-                "envs": {
-                    "LOGFWD_DATAKIT_HOST":              "{fieldRef:status.hostIP}",
-                    "LOGFWD_DATAKIT_PORT":              "9533",
-                    "LOGFWD_DATAKIT_OPERATOR_ENDPOINT": "datakit-operator.datakit.svc:443",
-                    "LOGFWD_GLOBAL_SERVICE":            "{fieldRef:metadata.labels['app']}",
-                    "LOGFWD_POD_NAME":                  "{fieldRef:metadata.name}",
-                    "LOGFWD_POD_NAMESPACE":             "{fieldRef:metadata.namespace}",
-                    "LOGFWD_POD_IP":                    "{fieldRef:status.podIP}"
-                }
-            }
-```
-
-| Env var                            | Description                                                                                                                                      |
-| :---                               | :---                                                                                                                                             |
-| `LOGFWD_DATAKIT_HOST`              | DataKit instance address (IP or resolvable hostname).                                                                                            |
-| `LOGFWD_DATAKIT_PORT`              | DataKit `logfwdserver` listening port, e.g. `9533`.                                                                                              |
-| `LOGFWD_DATAKIT_OPERATOR_ENDPOINT` | DataKit-Operator endpoint, such as `datakit-operator.datakit.svc:443` or `https://datakit-operator.datakit.svc:443`, used when polling CRD data. |
-| `LOGFWD_GLOBAL_SOURCE`             | Global `source`, which overrides the `source` field in individual configs.                                                                       |
-| `LOGFWD_GLOBAL_SERVICE`            | Global `service`. If a config omits `service`, this global value is used; if empty, it falls back to `source`.                                   |
-| `LOGFWD_GLOBAL_STORAGE_INDEX`      | Global `storage_index`, with higher priority than per-config values.                                                                             |
-| `LOGFWD_POD_NAME`                  | Automatically adds the `pod_name` tag (injected via Downward API).                                                                               |
-| `LOGFWD_POD_NAMESPACE`             | Automatically adds the `namespace` tag.                                                                                                          |
-| `LOGFWD_POD_IP`                    | Automatically adds the `pod_ip` tag for locating container instances.                                                                            |
-
-Even with CRDs enabled, Pods must explicitly opt in to logfwd sidecars. Annotations can also override CRD-delivered configs:
-
-- `admission.datakit/logfwd.enabled`: only `"true"` triggers injection.
-- `admission.datakit/logfwd.log_configs`: optional JSON array to override configs (handy for debugging). Example:
-
-``` json
-[
-  {
-    "type": "file",
-    "disable": false,
-    "source": "nginx-access",
-    "service": "nginx",
-    "path": "/var/log/nginx/access.log",
-    "pipeline": "nginx-access.p",
-    "storage_index": "app-logs",
-    "multiline_match": "^\\d{4}-\\d{2}-\\d{2}",
-    "remove_ansi_escape_codes": false,
-    "from_beginning": false,
-    "character_encoding": "utf-8",
-    "tags": {
-      "env": "production",
-      "team": "backend"
-    }
-  }
-]
-```
-
-| Field                           | Type    | Required | Description                                                                                                                               | Example                   |
-| ------                          | ------  | ------   | ------                                                                                                                                    | ------                    |
-| `type`                          | string  | Yes      | logfwd input type. Only `"file"` is supported.                                                                                            | `"file"`                  |
-| `disable`                       | boolean | No       | Whether to disable the config.                                                                                                            | `false`                   |
-| `source`                        | string  | Yes      | Log source identifier, used to distinguish log streams.                                                                                   | `"nginx-access"`          |
-| `service`                       | string  | No       | Service name. Defaults to `source`.                                                                                                       | `"nginx"`                 |
-| `path`                          | string  | Cond     | File path (supports glob). Required when `type=file`.                                                                                     | `"/var/log/nginx/*.log"`  |
-| `multiline_match`               | string  | No       | Regex for multiline start. Remember to escape backslashes in JSON.                                                                        | `"^\\d{4}-\\d{2}-\\d{2}"` |
-| `pipeline`                      | string  | No       | Pipeline script name configured on DataKit.                                                                                               | `"nginx-access.p"`        |
-| `storage_index`                 | string  | No       | Target storage index.                                                                                                                     | `"app-logs"`              |
-| `remove_ansi_escape_codes`      | boolean | No       | Remove ANSI escape codes (colors, etc.).                                                                                                  | `false`                   |
-| `from_beginning`                | boolean | No       | Whether to start reading from the beginning of the file (default: tail).                                                                  | `false`                   |
-| `from_beginning_threshold_size` | int     | No       | When a file is discovered, if the file size is less than this value, start reading from the beginning of the file, in bytes, default 20MB | `1000`                    |
-| `character_encoding`            | string  | No       | Encoding. Supports `utf-8`, `utf-16le`, `utf-16be`, `gbk`, `gb18030`, or empty string for auto-detect.                                    | `"utf-8"`                 |
-| `tags`                          | object  | No       | Extra tags attached to each log.                                                                                                          | `{"env": "prod"}`         |
-
-- `admission.datakit/logfwd.volume_paths`: JSON array that declares host paths to mount so the sidecar can read log files, e.g. `'["/var/log", "/data/log"]'`. Avoid nested parent/child directories to prevent conflicts.
-
-ClusterLoggingConfig example:
-
-``` yaml
-apiVersion: logging.datakits.io/v1alpha1
-kind: ClusterLoggingConfig
-metadata:
-  name: nginx-logs
-spec:
-  selector:
-    namespaceRegex: "^(middleware)$"
-    podLabelSelector: "app=logging"
-  podTargetLabels:
-    - app
-    - env
-  configs:
-    - type: file
-      source: nginx-access
-      service: nginx
-      path: /var/log/nginx/access.log
-      pipeline: nginx-access.p
-      storage_index: app-logs
-      multiline_match: "^\\d{4}-\\d{2}-\\d{2}"
-      tags:
-        team: web
-```
-
-The following Deployment shows how CRDs and annotations work together:
-
-``` yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: logging-demo
-  namespace: middleware
-  labels:
-    app: logging
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: logging
-  template:
-    metadata:
-      labels:
-        app: logging
-      annotations:
-        admission.datakit/logfwd.enabled: "true"
-        admission.datakit/logfwd.volume_paths: '["/var/log/nginx"]'
-        # Override CRD configs only when necessary:
-        # admission.datakit/logfwd.log_configs: '[{...}]'
-    spec:
-      containers:
-      - name: log-app
-        image: nginx:1.25
-```
-
-After applying these manifests, DataKit-Operator will:
-
-1. Watch the Deployment and inject the `datakit-logfwd` container.
-1. Maintain the CRD match results for the Pod so that sidecars can read them during polling.
-1. Serve sidecar requests via `LOGFWD_DATAKIT_OPERATOR_ENDPOINT`; each sidecar pulls configs every 60 seconds and forwards log tasks to DataKit `logfwdserver`.
-
-#### Instructions (before 1.6.0) {#datakit-operator-1-6-0-inject-logfwd-instructions-legacy}
-
-1. On the target Kubernetes cluster, [download and install DataKit-Operator](datakit-operator.md#datakit-operator-overview-and-install).
-1. In the deployment, add the specified Annotation to indicate that a logfwd sidecar needs to be mounted. Note that the Annotation should be added in the template.
-    - The key is uniformly `admission.datakit/logfwd.instances`.
-    - The value is a JSON string of specific logfwd configuration, as shown below:
-
-``` json
-[
-    {
-        "datakit_addr": "datakit-service.datakit.svc:9533",
-        "loggings": [
-            {
-                "logfiles":      ["<your-logfile-path>"],
-                "ignore":        [],
-                "storage_index": "<your-storage-index>",
-                "source":        "<your-source>",
-                "service":       "<your-service>",
-                "pipeline":      "<your-pipeline.p>",
-                "character_encoding": "",
-                "multiline_match": "<your-match>",
-                "tags": {}
-            },
-            {
-                "logfiles": ["<your-logfile-path-2>"],
-                "source": "<your-source-2>"
-            }
-        ]
-    }
-]
-```
-
-Parameter explanation can refer to [logfwd configuration](../integrations/logfwd.md#config):
-
-- `datakit_addr` is the DataKit logfwdserver address.
-- `loggings` is the main configuration and is an array that can refer to [DataKit logging collector](../integrations/logging.md).
-    - `logfiles` is a list of log files, which can specify absolute paths and support batch specification using glob rules. Absolute paths are recommended.
-    - `ignore` filters file paths using glob rules. If it meets any filtering condition, the file will not be collected.
-    - `storage_index` set storage index.
-    - `source` is the data source. If it is empty, `'default'` will be used by default.
-    - `service` adds a new tag. If it is empty, `$source` will be used by default.
-    - `pipeline` is the Pipeline script path. If it is empty, `$source.p` will be used. If `$source.p` does not exist, the Pipeline will not be used. (This script file exists on the DataKit side.)
-    - `character_encoding` selects an encoding. If the encoding is incorrect, the data cannot be viewed. It is recommended to leave it blank. Supported encodings include `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030`, or "".
-    - `multiline_match` is for multiline matching, as described in [DataKit Log Multiline Configuration](../integrations/logging.md#multiline). Note that since it is in the JSON format, it does not support the "unescaped writing method" of three single quotes. The regex `^\d{4}` needs to be written as `^\\d{4}` with an escape character.
-    - `tags` adds additional tags in JSON map format, such as `{ "key1":"value1", "key2":"value2" }`.
-
-<!-- markdownlint-disable MD046 -->
-???+ attention
-
-    There is a difference between paths with and without a trailing slash. `/var/log` and `/var/log/` are considered different paths and cannot be reused.
-<!-- markdownlint-enable -->
-
-#### Example {#datakit-operator-inject-logfwd-example}
-
-Here is an example Deployment that continuously writes data to a file using shell and configures the collection of that file:
-
-``` yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: logging-deployment
-  labels:
-    app: logging
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: logging
-  template:
-    metadata:
-      labels:
-        app: logging
-      annotations:
-        admission.datakit/logfwd.instances: '[{"datakit_addr":"datakit-service.datakit.svc:9533","loggings":[{"logfiles":["/var/log/log-test/*.log"],"source":"deployment-logging","tags":{"key01":"value01"}}]}]'
-    spec:
-      containers:
-      - name: log-container
-        image: busybox
-        args: [/bin/sh, -c, 'mkdir -p /var/log/log-test; i=0; while true; do printf "$(date "+%F %H:%M:%S") [%-8d] Bash For Loop Examples.\\n" $i >> /var/log/log-test/1.log; i=$((i+1)); sleep 1; done']
-```
-
-Creating Resources Using yaml File:
-
-``` shell
-$ kubectl apply -f logging.yaml
-...
-```
-
-Verify as follows:
-
-``` shell
-$ kubectl get pod
-NAME                                   READY   STATUS    RESTARTS      AGE
-logging-deployment-5d48bf9995-vt6bb       1/1     Running   0             4s
-
-$ kubectl get pod logging-deployment-5d48bf9995-vt6bb -o=jsonpath={.spec.containers\[\*\].name}
-log-container datakit-logfwd
-```
-
-Finally, you can check whether the logs have been collected on the <<<custom_key.brand_name>>> Log Platform.
-
-### Flameshot {#inject-flameshot}
-
-<!-- markdownlint-disable MD046 -->
-???+ attention
-
-    Flameshot is a performance analysis tool introduced in DataKit-Operator v1.7.0, used to replace the original Profiler (async-profiler, py-spy, etc.). The original Profiler injection functionality has been removed in v1.7.0.
-<!-- markdownlint-enable -->
-
-#### Prerequisites {#flameshot-prerequisites}
-
-- The cluster has [DataKit](https://docs.<<<custom_key.brand_main_domain>>>/datakit/datakit-daemonset-deploy/){:target="_blank"} installed.
-- [Enable profile](https://docs.<<<custom_key.brand_main_domain>>>/datakit/datakit-daemonset-deploy/#using-k8-env){:target="_blank"} collector.
-- (Optional) To use the Prometheus Annotations auto-injection feature, you need to enable DataKit's KubernetesPrometheus collector and configure `EnableDiscoveryOfPrometheusPodAnnotations = true` to enable Pod Annotations auto-discovery.
-
-#### Usage {#flameshot-usage}
-
-<!-- markdownlint-disable MD046 -->
-=== "DataKit-Operator v1.7.0 and later"
-
-    1. On the target Kubernetes cluster, [download and install DataKit-Operator](datakit-operator.md#datakit-operator-overview-and-install)
-    1. Configure the `flameshots` array in DataKit-Operator configuration, set `namespace_selectors`/`label_selectors` matching rules and `processes` field to specify processes to monitor.
-    1. Add the Annotation `admission.datakit/flameshot.enabled: "true"` in deployment to allow Flameshot injection (if set to `"false"`, injection will be disabled).
-
-    Flameshot configuration example:
-
-    ``` json
-    {
-        "admission_inject_v2": {
-            "flameshots": [
-                {
-                    "namespace_selectors": [],
-                    "label_selectors":     [],
-                    "image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit/flameshot:latest",
-                    "envs": {
-                        "FLAMESHOT_DATAKIT_ADDR":     "http://datakit-service.datakit:9529/profiling/v1/input",
-                        "FLAMESHOT_MONITOR_INTERVAL": "10s",
-                        "FLAMESHOT_LOG_LEVEL":        "info",
-                        "FLAMESHOT_PROFILING_PATH":   "/flameshot-data",
-                        "FLAMESHOT_LOG_PATH":         "/var/log/flameshot.log",
-                        "FLAMESHOT_HTTP_LOCAL_IP":    "{fieldRef:status.podIP}",
-                        "FLAMESHOT_HTTP_LOCAL_PORT":  "8089",
-                        "FLAMESHOT_SERVICE":  "{fieldRef:metadata.labels['app']}",
-                        "FLAMESHOT_TAGS": "pod_name:$(POD_NAME),pod_namespace:$(POD_NAMESPACE),host:$(NODE_NAME)"
-                    },
-                    "resources": {
-                        "requests": {
-                            "cpu":    "100m",
-                            "memory": "128Mi"
-                        },
-                        "limits": {
-                           "cpu":    "200m",
-                           "memory": "256Mi"
-                        }
-                    },
-                    "processes": "",
-                    "enable_prometheus_annotations": true
-                }
-            ]
-        }
-    }
-    ```
-
-    Configuration field descriptions:
-
-    | Field                            | Type    | Required | Description                                                                                                  |
-    | ------                          | ------  | ------   | ------                                                                                                |
-    | `namespace_selectors`           | array   | No       | Namespace selector array, supports regex matching                                                                |
-    | `label_selectors`               | array   | No       | Label selector array, uses Kubernetes Label Selector syntax                                                  |
-    | `image`                         | string  | Yes      | Flameshot container image address                                                                                |
-    | `envs`                          | object  | No       | Environment variable configuration, supports Downward API                                                                       |
-    | `resources`                     | object  | No       | Resource limit configuration (requests and limits)                                                                   |
-    | `processes`                     | string  | Yes      | Process monitoring configuration (JSON string), will be injected as `FLAMESHOT_PROCESSES` environment variable into Flameshot container. Format please refer to [Flameshot documentation](../integrations/flameshot.md) |
-    | `enable_prometheus_annotations` | boolean | No       | Whether to automatically add Prometheus-related Annotations. In the default configuration template, it is `true`. If users customize the configuration and do not set this field, it defaults to `false`. If the Pod already has any Annotation starting with `prometheus.io/`, it will not be injected |
-
-    <!-- markdownlint-disable MD046 -->
-    ???+ important
-
-        **Important**: The `processes` field is a JSON string that will be directly injected as the `FLAMESHOT_PROCESSES` environment variable into the Flameshot container. The format and meaning of the `processes` field please refer to [Flameshot documentation](../integrations/flameshot.md). If `processes` is empty, Flameshot injection will be skipped.
-    <!-- markdownlint-enable -->
-
-    Environment variable descriptions:
-
-    | Environment Variable                    | Description                                                                                                 |
-    | :---                          | :---                                                                                                 |
-    | `FLAMESHOT_DATAKIT_ADDR`     | DataKit profiling receive address, e.g. `http://datakit-service.datakit:9529/profiling/v1/input`          |
-    | `FLAMESHOT_MONITOR_INTERVAL`  | Monitoring interval, e.g. `10s`                                                                                 |
-    | `FLAMESHOT_LOG_LEVEL`        | Log level, e.g. `info`                                                                                |
-    | `FLAMESHOT_PROFILING_PATH`    | Profiling data storage path, e.g. `/flameshot-data`                                                       |
-    | `FLAMESHOT_LOG_PATH`          | Log file path, e.g. `/var/log/flameshot.log`                                                          |
-    | `FLAMESHOT_HTTP_LOCAL_IP`     | HTTP service local IP, usually injected via Downward API, e.g. `{fieldRef:status.podIP}`                       |
-    | `FLAMESHOT_HTTP_LOCAL_PORT`   | HTTP service port, e.g. `8089`                                            |
-    | `FLAMESHOT_PROCESSES`         | Process monitoring configuration (automatically injected from `processes` field), JSON string format                                        |
-
-    **Prometheus Annotations Auto-injection**:
-
-    When `enable_prometheus_annotations` is set to `true` (it is `true` in the default configuration template), DataKit-Operator will automatically add the following Prometheus-related Annotations to Pods injected with Flameshot, facilitating DataKit's KubernetesPrometheus collector to automatically discover and collect metrics exposed by Flameshot:
-
-    - `prometheus.io/scrape: "true"`: Identifies that this Pod needs to be scraped
-    - `prometheus.io/port: "<port>"`: Metrics exposure port, value comes from environment variable `FLAMESHOT_HTTP_LOCAL_PORT` (e.g. `"8089"`)
-    - `prometheus.io/scheme: "http"`: Metrics collection protocol
-    - `prometheus.io/path: "/metrics"`: Metrics path
-    - `prometheus.io/param_measurement: "flameshot"`: Specifies measurement name
-
-    <!-- markdownlint-disable MD046 -->
-    ???+ important
-
-        **Important Notes**:
-        
-        1. If the Pod already has any Annotation starting with `prometheus.io/`, DataKit-Operator will not inject the above Prometheus Annotations to avoid overwriting existing metrics collection configuration.
-        2. To use this feature, you need to enable DataKit's KubernetesPrometheus collector and configure `EnableDiscoveryOfPrometheusPodAnnotations = true` to enable Pod Annotations auto-discovery.
-    <!-- markdownlint-enable -->
-
-=== "DataKit-Operator before v1.7.0"
-
-    <!-- markdownlint-disable MD046 -->
-    ???+ attention
-
-        Before DataKit-Operator v1.7.0, async-profiler (Java) and py-spy (Python) were used for performance analysis. These features have been removed in v1.7.0, please use Flameshot instead.
-    <!-- markdownlint-enable -->
-<!-- markdownlint-enable -->
-
-#### Example {#flameshot-example}
-
-<!-- markdownlint-disable MD046 -->
-???+ note
-
-    Note: Adding only the `admission.datakit/flameshot.enabled: "true"` Annotation is not sufficient to trigger injection. You also need to set matching `flameshots` rules in DataKit-Operator configuration (including `namespace_selectors`/`label_selectors` and `processes` field). If the `processes` field is empty, injection will be skipped.
-<!-- markdownlint-enable -->
-
-Below is a Deployment example that injects Flameshot into all Pods created by the Deployment (assuming matching rules are already set in DataKit-Operator configuration):
-
-``` yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: app-deployment
-  labels:
-    app: myapp
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: myapp
-  template:
-    metadata:
-      labels:
-        app: myapp
-      annotations:
-        admission.datakit/flameshot.enabled: "true"
-    spec:
-      containers:
-      - name: app
-        image: myapp:latest
-        ports:
-        - containerPort: 8080
-```
-
-Create resources using yaml file:
-
-``` shell
-$ kubectl apply -f app-deployment.yaml
-...
-```
-
-Verify as follows:
-
-``` shell
-$ kubectl get pod
-
-NAME                                   READY   STATUS    RESTARTS      AGE
-app-deployment-7bd8dd85f-fzmt2          2/2     Running   0             4s
-
-$ kubectl get pod app-deployment-7bd8dd85f-fzmt2 -o=jsonpath={.spec.containers\[\*\].name}
-app datakit-flameshot
-```
-
-After a few minutes, you can view application performance data in the <<<custom_key.brand_name>>> console [Application Performance Monitoring-Profiling](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile){:target="_blank"} page.
-
-<!-- markdownlint-disable MD046 -->
-???+ note
-
-    If you cannot see data, you can enter the `datakit-flameshot` container to check the logs for troubleshooting:
-    ``` shell
-    $ kubectl exec -it app-deployment-7bd8dd85f-fzmt2 -c datakit-flameshot -- bash
-    $ cat /var/log/flameshot.log
-    ```
-<!-- markdownlint-enable -->
-
-## DataKit Operator Resource Changes {#datakit-operator-mutate-resource}
-
-### Adding Configuration for DataKit Logging {#add-logging-configs}
-
-The DataKit Operator can automatically add the configuration required for DataKit Logging collection to the specified Pods, including the `datakit/logs` annotation and the corresponding file path volume/volumeMount. This simplifies the tedious manual configuration steps. As a result, users do not need to manually intervene in each Pod's configuration to enable log collection functionality automatically.
-
-Below is an example of a configuration that shows how to implement the automatic injection of log collection configuration through the DataKit Operator's `admission_mutate` configuration:
-
-``` json
-{
-    "server_listen": "0.0.0.0:9543",
-    "log_level":     "info",
-    "admission_inject": {
-        # Other configurations...
-    },
-    "admission_mutate": {
-        "loggings": [
-            {
-                "namespace_selectors": ["middleware"],
-                "label_selectors":     ["app=logging"],
-                "config": "[{\"disable\":false,\"type\":\"file\",\"path\":\"/tmp/opt/**/*.log\",\"source\":\"logging-tmp\"}]"
-            }
-        ]
-    }
-}
-```
-
-`admission_mutate.loggings`: This is an array of objects that contains multiple log collection configurations. Each log configuration includes the following fields:
-
-- `namespace_selectors`: Specifies the namespaces where Pods must be located to meet the criteria. Multiple namespaces can be set, and a Pod must match at least one namespace to be selected. It operates as an "OR" relation with `label_selectors`.
-- `label_selectors`: Specifies the labels of Pods that must meet the criteria. A Pod must match at least one label selector to be selected. It operates as an "OR" relation with `namespace_selectors`.
-- `config`: This is a JSON string that will be added to the Pod's annotation under the key `datakit/logs`. If the key already exists, it will not be overwritten or added again. This configuration tells DataKit how to collect logs.
-
-The DataKit Operator will automatically parse the `config` configuration and create corresponding volumes and volumeMounts for the Pod based on the paths (`path`) specified within.
-
-Taking the above DataKit Operator configuration as an example, if a Pod's Namespace is middleware or its Labels match app=logging, an annotation and mount will be added to the Pod. For example:
-
-``` yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  annotations:
-    datakit/logs: '[{"disable":false,"type":"file","path":"/tmp/opt/**/*.log","source":"logging-tmp"}]'
-  labels:
-    app: logging
-  name: logging-test
-  namespace: default
-spec:
-  containers:
-  - args:
-    - |
-      mkdir -p /tmp/opt/log1;
-      i=1;
-      while true; do
-        echo "Writing logs to file ${i}.log";
-        for ((j=1;j<=10000000;j++)); do
-          echo "$(date +'%F %H:%M:%S')  [$j]  Bash For Loop Examples. Hello, world! Testing output." >> /tmp/opt/log1/file_${i}.log;
-          sleep 1;
-        done;
-        echo "Finished writing 5000000 lines to file_${i}.log";
-        i=$((i+1));
-      done
-    command:
-    - /bin/bash
-    - -c
-    - --
-    image: pubrepo.<<<custom_key.brand_main_domain>>>/base/ubuntu:18.04
-    imagePullPolicy: IfNotPresent
-    name: demo
-    volumeMounts:
-    - mountPath: /tmp/opt
-      name: datakit-logs-volume-0
-  volumes:
-  - emptyDir: {}
-    name: datakit-logs-volume-0
-```
-
-This Pod has the label `app=logging`, which allows it to match the selector. As a result, DataKit Operator adds the `datakit/logs` annotation and mounts an EmptyDir volume at the path `/tmp/opt`.
-
-Once DataKit Log Collection detects the Pod, it will customize the log collection according to the contents of the `datakit/logs` annotation.
-
-### FAQ {#datakit-operator-faq}
-
-- How to specify that a certain Pod should not be injected? Add the annotation `"admission.datakit/enabled": "false"` to the Pod. This will prevent any actions from being performed on it, with the highest priority.
-
-- DataKit-Operator utilizes Kubernetes Admission Controller functionality for resource injection. For detailed mechanisms, please refer to the [official documentation](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/){:target="_blank"}
-
-- When deploying in an AWS EKS environment, it may cause the DataKit-Operator to not take effect. You need to open port `9543` in the security group.
+| Issue | Possible Cause | Solution |
+|------|----------|----------|
+| Injection not taking effect | Webhook not configured correctly | Check `MutatingAdmissionWebhook` and `ValidatingAdmissionWebhook` |
+| Image pull failed | Image address or permission issue | Verify image address, check image repository access permissions |
+| Port unreachable | Network or security group configuration | Open port `9543`, check network policies |
