@@ -23,6 +23,10 @@ import (
 )
 
 func (c *containerCollector) gatherLogging() {
+	if !c.enableCollectLogging {
+		return
+	}
+
 	list, err := c.runtime.ListContainers()
 	if err != nil {
 		l.Warn("not found containers, err: %s", err)
