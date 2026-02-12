@@ -185,6 +185,28 @@ func TestHostTags(t *T.T) {
 		t.Logf("conf.global-host-tags: %+#v", conf.GlobalHostTags)
 		t.Logf("DKHost: %s", datakit.DKHost)
 	})
+
+	t.Run("node-name:docker-mode", func(t *T.T) {
+		conf := DefaultConfig()
+
+		t.Setenv("ENV_K8S_NODE_NAME", "some-k8s-node-name")
+		conf.GlobalHostTags["host"] = "__datakit_hostname"
+
+		conf.Dataway.URLs = []string{"https://some.dataway.com?token=tkn_2dc4xxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
+
+		tmpDir := t.TempDir()
+		datakit.SetWorkDir(tmpDir)
+
+		assert.NoError(t, LoadCfg(conf, "", true))
+
+		assert.Equal(t, "some-k8s-node-name", conf.GlobalHostTags["host"])
+		assert.Equal(t, "some-k8s-node-name", conf.hostname)
+		assert.Equal(t, datakit.DKHost, conf.hostname) // they should always the same
+
+		t.Logf("conf.hostname: %s", conf.hostname)
+		t.Logf("conf.global-host-tags: %+#v", conf.GlobalHostTags)
+		t.Logf("DKHost: %s", datakit.DKHost)
+	})
 }
 
 func TestSetupGlobalTags(t *T.T) {
