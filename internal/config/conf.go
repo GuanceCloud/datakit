@@ -224,11 +224,7 @@ func (c *Config) parseGlobalHostTags() {
 					hostName = c.hostname
 				}
 			} else {
-				if hn, err := c.detectHostname(); err != nil {
-					l.Errorf("get hostname failed: %s", err.Error())
-				} else {
-					hostName = hn
-				}
+				hostName = c.hostname
 			}
 
 			l.Infof("set global tag %s: %s", k, hostName)
@@ -323,7 +319,7 @@ func (c *Config) setupGlobalTags() {
 	}
 
 	if c.GlobalHostTags["host"] != c.hostname {
-		l.Infof("global host tag(%q) not equal to true hostname %q", c.GlobalHostTags["host"], c.hostname)
+		l.Infof("global host tag(%q) not equal to detected hostname %q", c.GlobalHostTags["host"], c.hostname)
 		datakit.RenamedHostname = c.GlobalHostTags["host"]
 	}
 
@@ -459,6 +455,11 @@ func (c *Config) GetHostname() string {
 }
 
 func (c *Config) detectHostname() (string, error) {
+	// try get node name from k8s env
+	if v := doGetNodename(); v != "" {
+		return v, nil
+	}
+
 	// try get hostname from configure
 	if v, ok := c.Environments[envManualHostname]; ok && v != "" {
 		return v, nil
