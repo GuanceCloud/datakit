@@ -182,6 +182,8 @@ func TestConfig_FromEnv(t *testing.T) {
 	t.Setenv("FLAMESHOT_HTTP_LOCAL_PORT", "8089")
 	t.Setenv("FLAMESHOT_TAGS", "env:env,version:1.0.0")
 	t.Setenv("FLAMESHOT_AUTO_PROFILING", "30s")
+	t.Setenv("FLAMESHOT_POD_CPU_LIMIT", "1000")
+	t.Setenv("FLAMESHOT_POD_MEM_LIMIT", "1000")
 
 	c.fromEnv()
 	assert.NotEmpty(t, c.DataKitAddr)
@@ -195,6 +197,8 @@ func TestConfig_FromEnv(t *testing.T) {
 	assert.NotEmpty(t, c.HTTPConfig.LocalHost)
 	t.Logf("config AutoProfiling %+v", c.AutoProfiling)
 	assert.Equal(t, c.AutoProfiling, "5m")
+	assert.Equal(t, c.PodCPULimit, "1000m")
+	assert.Equal(t, c.PodMEMLimit, "1000Mi")
 }
 
 func TestRegex(t *testing.T) {

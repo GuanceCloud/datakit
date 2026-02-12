@@ -281,6 +281,12 @@ Flameshot provides an HTTP interface allowing users or automated O&M scripts to 
 
 ## Changelog {#changelog}
 
+### 0.2.1 (2026-2-11) {#cl-0.2.1}
+
+#### Optimize {#cl-0.2.1-new}
+
+- **optimize**
+    - In a container environment, use the configured resource size as the base value for threshold calculation.
 
 ### 0.2.0 (2026-2-4) {#cl-0.2.0}
 

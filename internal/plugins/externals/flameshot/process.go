@@ -8,9 +8,11 @@ package flameshot
 import (
 	"container/list"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/shirou/gopsutil/v3/process"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 // 资源监控对象.
@@ -28,6 +30,9 @@ type processM struct {
 	MemHistory        *list.List // 内存使用历史记录（环形缓冲区）
 	lastCPUTimes      time.Time
 	lastCPUTotal      float64
+
+	podCPULimit string
+	podMEMLimit string
 }
 
 // 创建新的监控对象.
@@ -53,47 +58,104 @@ func newProcessM(name, cmdline string, pid int32, cp *Process) *processM {
 }
 
 func (pm *processM) updateProcessStats() error {
-	// todo 修改cpu使用率 计算方式
-	if perc := pm.cpuPercent(); perc != 0 {
-		lastCollect := time.Since(pm.lastCPUTimes).Seconds()
-		cpuPercent := perc / lastCollect
-		log.Debugf("pid %d cpu percent is %f", pm.Pid, cpuPercent)
-		pm.AddCPUUsage(cpuPercent)
-	}
-	pm.lastCPUTimes = time.Now()
+	// 1. 获取两次采集之间的时间间隔（秒）
+	now := time.Now()
+	interval := now.Sub(pm.lastCPUTimes).Seconds()
+	pm.lastCPUTimes = now
+	cpuTimeDelta := pm.getCPUTimeDelta()
 
+	if interval > 0 {
+		// 计算物理层面的真实核心占用
+		// 例如：1秒内消耗了0.5秒CPU时间，说明占用了0.5个核心
+		realCoresUsed := cpuTimeDelta / interval
+
+		// 3. 结合 K8s Limit 进行归一化
+		limitCores := parseCPULimit(pm.podCPULimit)
+		var containerCPUPercent float64
+		if limitCores > 0 {
+			// 核心公式：实际占用 / 额度
+			containerCPUPercent = (realCoresUsed / limitCores) * 100
+		} else {
+			// 如果没设 limit，可以按物理机单核 100% 展示
+			containerCPUPercent = realCoresUsed * 100
+		}
+
+		log.Debugf("Real Cores: %.3f, Limit: %.3f, Container CPU: %.2f%%",
+			realCoresUsed, limitCores, containerCPUPercent)
+
+		pm.AddCPUUsage(containerCPUPercent)
+	}
+
+	// 2. 获取内存使用情况
 	memInfo, err := pm.p.MemoryInfo()
 	if err != nil {
 		return fmt.Errorf("get memoryInfo err: %w", err)
 	}
+
 	memUsage := float64(memInfo.RSS) / 1024 / 1024
 	pm.AddMemUsage(memUsage)
 
-	memPercent, err := pm.p.MemoryPercent()
-	if err != nil {
-		return fmt.Errorf("get memoryPercent err: %w", err)
+	// 3. 计算基于 Limit 的真实百分比
+	memLimitBytes := parseMemoryLimit(pm.podMEMLimit)
+	var containerMemPercent float64
+
+	if memLimitBytes > 0 {
+		// 公式：(实际占用字节 / Limit字节) * 100
+		containerMemPercent = (float64(memInfo.RSS) / float64(memLimitBytes)) * 100
+	} else {
+		if p, err := pm.p.MemoryPercent(); err == nil {
+			containerMemPercent = float64(p)
+		}
 	}
-	log.Debugf("pid %d mem percent is %f , mem used is %f (MB)", pm.Pid, memPercent, memUsage)
-	pm.AddMemPercent(float64(memPercent))
+
+	log.Debugf("pid %d: RSS=%d Bytes, Limit=%d Bytes, Usage=%.2f%%",
+		pm.Pid, memInfo.RSS, memLimitBytes, containerMemPercent)
+	pm.AddMemPercent(containerMemPercent)
 
 	return nil
 }
 
-func (pm *processM) cpuPercent() float64 {
-	times, err := pm.p.Times()
-	if err != nil {
-		log.Errorf("get cpu times err: %v", err)
+// 将 "500m" 转为 0.5, 将 "2" 转为 2.0.
+func parseCPULimit(limitStr string) float64 {
+	if limitStr == "" {
 		return 0
 	}
-	// 采样时已经消耗的时间
+	limitStr = strings.TrimSpace(limitStr)
+	q, err := resource.ParseQuantity(limitStr)
+	if err != nil {
+		return 0
+	}
+	// AsApproximateFloat64 是最方便的转换方式
+	return q.AsApproximateFloat64()
+}
+
+// 修改后的 cpuPercent 返回这段时间内消耗的 CPU 秒数.
+func (pm *processM) getCPUTimeDelta() float64 {
+	times, err := pm.p.Times()
+	if err != nil {
+		return 0
+	}
 	current := times.User + times.System
 	if pm.lastCPUTotal == 0 {
 		pm.lastCPUTotal = current
 		return 0
 	}
-	proc := 100 * (current - pm.lastCPUTotal)
+	delta := current - pm.lastCPUTotal
 	pm.lastCPUTotal = current
-	return proc
+	return delta // 单位是秒
+}
+
+// parseMemoryLimit 将 K8s 内存字符串（如 100Mi, 1G）转换为字节数 (int64).
+func parseMemoryLimit(limitStr string) int64 {
+	if limitStr == "" {
+		return 0
+	}
+	q, err := resource.ParseQuantity(limitStr)
+	if err != nil {
+		return 0
+	}
+	// Value() 返回字节数，例如 1Mi 返回 1048576
+	return q.Value()
 }
 
 // 添加CPU数据到环形缓冲区.
