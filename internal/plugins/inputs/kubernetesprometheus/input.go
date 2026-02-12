@@ -52,6 +52,7 @@ func (*Input) Catalog() string                         { return inputName }
 func (*Input) AvailableArchs() []string                { return []string{datakit.LabelK8s} }
 func (*Input) Singleton()                              { /*nil*/ }
 func (*Input) SampleMeasurement() []inputs.Measurement { return nil /* no measurement docs exported */ }
+func (*Input) ElectionEnabled() bool                   { return true } // always on
 
 func (ipt *Input) Run() {
 	klog = logger.SLogger("kubernetesprometheus")
@@ -185,7 +186,7 @@ func (ipt *Input) Terminate() {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
+	tick := time.NewTicker(time.Second * 3)
 	select {
 	case ipt.chPause <- true:
 		return nil
@@ -195,7 +196,7 @@ func (ipt *Input) Pause() error {
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
+	tick := time.NewTicker(time.Second * 3)
 	select {
 	case ipt.chPause <- false:
 		return nil
@@ -218,7 +219,7 @@ func init() { //nolint:gochecknoinits
 			ScrapeInterval:      time.Second * 30,
 			KeepExistMetricName: true,
 			HonorTimestamps:     true,
-			chPause:             make(chan bool, inputs.ElectionPauseChannelLength),
+			chPause:             make(chan bool, 8),
 			pause:               newPauseVar(),
 			feeder:              dkio.DefaultFeeder(),
 			semStop:             cliutils.NewSem(),

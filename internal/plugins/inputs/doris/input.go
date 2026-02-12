@@ -22,14 +22,10 @@ type Input struct{}
 
 var _ inputs.InputV2 = (*Input)(nil)
 
-func (*Input) Run() { /*nil*/ }
-
-func (*Input) Catalog() string { return catalogName }
-
-func (*Input) Terminate() { /*do nothing*/ }
-
-func (*Input) SampleConfig() string { return sampleCfg }
-
+func (*Input) Run()                     { /*nil*/ }
+func (*Input) Catalog() string          { return catalogName }
+func (*Input) Terminate()               { /*do nothing*/ }
+func (*Input) SampleConfig() string     { return sampleCfg }
 func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {

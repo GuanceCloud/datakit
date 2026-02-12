@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -199,7 +200,6 @@ func DefaultInput() *Input {
 			SendRetryCount:    defaultHTTPRetryCount,
 		},
 		GenerateMetrics: true,
-		pauseCh:         make(chan bool, inputs.ElectionPauseChannelLength),
 		Election:        true,
 		semStop:         cliutils.NewSem(),
 		feeder:          dkio.DefaultFeeder(),
@@ -224,8 +224,7 @@ type Input struct {
 	Election        bool              `toml:"election"`
 	GenerateMetrics bool              `toml:"generate_metrics"`
 
-	pause   bool
-	pauseCh chan bool
+	pause atomic.Bool
 
 	profileSendingAPI *url.URL
 	httpClient        *http.Client
@@ -244,25 +243,13 @@ func (ipt *Input) getDiskCacheCapacity() int64 {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func (ipt *Input) ElectionEnabled() bool {

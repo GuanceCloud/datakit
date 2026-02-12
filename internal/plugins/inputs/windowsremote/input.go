@@ -8,6 +8,7 @@ package windowsremote
 
 import (
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -33,9 +34,8 @@ type Input struct {
 	targetPorts []int
 	protocol    string
 
-	feeder  dkio.Feeder
-	chPause chan bool
-	pause   bool
+	feeder dkio.Feeder
+	pause  atomic.Bool
 }
 
 type WmiConfig struct {
@@ -108,30 +108,14 @@ func (ipt *Input) setup() error {
 	return nil
 }
 
-func (ipt *Input) isPause() bool {
-	return ipt.Election && ipt.pause
-}
-
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	select {
-	case ipt.chPause <- true:
-		l.Info("pause %s paused", inputName)
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	select {
-	case ipt.chPause <- false:
-		l.Infof("resume %s false", inputName)
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func init() { //nolint:gochecknoinits
@@ -141,7 +125,7 @@ func init() { //nolint:gochecknoinits
 			Tags:     map[string]string{},
 			instance: nil,
 			feeder:   dkio.DefaultFeeder(),
-			chPause:  make(chan bool, inputs.ElectionPauseChannelLength),
+			pause:    atomic.Bool{},
 			Election: true,
 		}
 	})

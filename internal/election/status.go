@@ -5,26 +5,29 @@
 
 package election
 
-type electionStatus int
+type ElectionStatus int
 
-func (e electionStatus) String() string {
+func (e ElectionStatus) String() string {
 	switch e {
-	case statusDisabled:
+	case StatusDisabled:
 		return "disabled"
-	case statusSuccess:
+	case StatusSuccess:
 		return "success"
-	case statusFail:
+	case StatusFail:
 		return "defeat"
-	case statusBanned:
+	case StatusBanned:
 		return "banned"
+	case StatusImpeached:
+		return "impeached"
 	default:
 		return "unknown" // should not been here
 	}
 }
 
 const (
-	statusDisabled electionStatus = iota
-	statusSuccess
-	statusFail
-	statusBanned
+	StatusDisabled ElectionStatus = iota
+	StatusSuccess
+	StatusFail
+	StatusBanned
+	StatusImpeached
 )

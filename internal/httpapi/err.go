@@ -51,6 +51,8 @@ var (
 	ErrInvalidProtobufPoint = newErr(errors.New("invalid protobuf point"), http.StatusBadRequest)
 	ErrStrictPoint          = newErr(errors.New("point got warning"), http.StatusBadRequest)
 	ErrReadTimeout          = newErr(errors.New("read timeout"), http.StatusRequestTimeout)
+
+	ErrInvalidElectionStatus = newErr(errors.New("invalid election status"), http.StatusBadRequest)
 )
 
 func newErr(err error, code int) *uhttp.HttpError {

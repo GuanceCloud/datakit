@@ -176,7 +176,7 @@ func (ipt *Input) Terminate() {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
+	tick := time.NewTicker(time.Second * 3)
 	select {
 	case ipt.chPause <- true:
 		return nil
@@ -186,7 +186,7 @@ func (ipt *Input) Pause() error {
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
+	tick := time.NewTicker(time.Second * 3)
 	select {
 	case ipt.chPause <- false:
 		return nil
@@ -211,7 +211,7 @@ func newInput() *Input {
 		LoggingSourceMultilineMap: make(map[string]string),
 		Feeder:                    dkio.DefaultFeeder(),
 		Tagger:                    datakit.DefaultGlobalTagger(),
-		chPause:                   make(chan bool, inputs.ElectionPauseChannelLength),
+		chPause:                   make(chan bool, 8),
 	}
 }
 

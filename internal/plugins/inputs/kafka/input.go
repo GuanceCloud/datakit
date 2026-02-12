@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -36,7 +37,11 @@ const (
 	kafkaAppInfoMBean   = "kafka.server:type=app-info"
 )
 
-var l = logger.DefaultSLogger(inputName)
+var (
+	l                      = logger.DefaultSLogger(inputName)
+	_ inputs.ElectionInput = (*Input)(nil)
+	_ inputs.InputV2       = (*Input)(nil)
+)
 
 type Input struct {
 	URLs            []string      `toml:"urls"`
@@ -68,8 +73,7 @@ type Input struct {
 	Feeder   dkio.Feeder
 	Tagger   datakit.GlobalTagger
 	g        *goroutine.Group
-	pause    bool
-	pauseCh  chan bool
+	pause    atomic.Bool
 	tail     *tailer.Tailer
 }
 
@@ -107,7 +111,7 @@ func (ipt *Input) Run() {
 	l.Debugf("kafka urls:%v", ipt.URLs)
 
 	for {
-		if ipt.pause {
+		if ipt.pause.Load() {
 			l.Debugf("Kafka plugin %s paused", inputName)
 		} else {
 			if err := ipt.collect(start.UnixNano()); err != nil {
@@ -131,9 +135,6 @@ func (ipt *Input) Run() {
 			l.Infof("input %s return", inputName)
 			ipt.exit()
 			return
-
-		case ipt.pause = <-ipt.pauseCh:
-			l.Infof("Kafka plugin %q paused? %v", inputName, ipt.pause)
 		}
 	}
 }
@@ -228,6 +229,20 @@ func (*Input) PipelineConfig() map[string]string {
 	return pipelineMap
 }
 
+func (ipt *Input) Pause() error {
+	ipt.pause.Store(true)
+	return nil
+}
+
+func (ipt *Input) Resume() error {
+	ipt.pause.Store(false)
+	return nil
+}
+
+func (ipt *Input) ElectionEnabled() bool {
+	return ipt.Election
+}
+
 //nolint:lll
 func (ipt *Input) LogExamples() map[string]map[string]string {
 	return map[string]map[string]string{
@@ -265,7 +280,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 func defaultInput() *Input {
 	return &Input{
 		SemStop:           cliutils.NewSem(),
-		pauseCh:           make(chan bool, inputs.ElectionPauseChannelLength),
+		pause:             atomic.Bool{},
 		Election:          true,
 		Tagger:            datakit.DefaultGlobalTagger(),
 		Feeder:            dkio.DefaultFeeder(),

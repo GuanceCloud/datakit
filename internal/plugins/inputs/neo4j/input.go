@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -91,8 +92,7 @@ type (
 		tagger datakit.GlobalTagger
 
 		Election bool `toml:"election"`
-		pauseCh  chan bool
-		pause    bool
+		pause    atomic.Bool
 
 		ptsTime time.Time
 
@@ -116,7 +116,7 @@ func (ipt *Input) Run() {
 	ipt.ptsTime = ntp.Now()
 
 	for {
-		if ipt.pause {
+		if ipt.pause.Load() {
 			l.Debug("%s election paused", inputName)
 		} else {
 			if err := ipt.collect(); err != nil {
@@ -133,7 +133,6 @@ func (ipt *Input) Run() {
 		case <-ipt.semStop.Wait():
 			l.Infof("%s input return", inputName)
 			return
-		case ipt.pause = <-ipt.pauseCh:
 		}
 	}
 }
@@ -353,32 +352,18 @@ func (ipt *Input) ElectionEnabled() bool {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
-
-var maxPauseCh = inputs.ElectionPauseChannelLength
 
 func NewInput() *Input {
 	return &Input{
-		pauseCh:     make(chan bool, maxPauseCh),
+		pause:       atomic.Bool{},
 		MaxFileSize: defaultMaxFileSize,
 		Interval:    defaultIntervalDuration,
 		Timeout:     time.Second * 30,

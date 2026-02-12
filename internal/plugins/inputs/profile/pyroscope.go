@@ -77,11 +77,6 @@ func (p *pyroscopeOpts) run(input *Input) error {
 		return fmt.Errorf("input expected not to be nil")
 	}
 
-	if input.pause {
-		log.Debugf("not leader, skipped")
-		return nil
-	}
-
 	p.input = input
 	if err := p.init(); err != nil {
 		return fmt.Errorf("init pyroscope profiler error: %w", err)
@@ -91,7 +86,7 @@ func (p *pyroscopeOpts) run(input *Input) error {
 	router.Use(APIMiddleware(p))
 	router.POST("/ingest", ingestHandle)
 
-	log.Debugf("HTTP bind addr:%s", p.URL)
+	log.Infof("HTTP bind addr:%s", p.URL)
 
 	srv := &http.Server{
 		Addr:    p.URL,

@@ -59,7 +59,7 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 	ptsTime := ntp.Now()
 
 	for {
-		if ipt.pause {
+		if ipt.pause.Load() {
 			l.Debugf("not leader, custom query skipped")
 		} else {
 			collectStart := time.Now()

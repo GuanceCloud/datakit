@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -69,8 +70,7 @@ type Input struct {
 	duration   time.Duration
 
 	Election bool `toml:"election"`
-	pauseCh  chan bool
-	pause    bool
+	pause    atomic.Bool
 
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
@@ -80,17 +80,10 @@ type Input struct {
 	UpState int
 }
 
-var maxPauseCh = inputs.ElectionPauseChannelLength
-
-func (ipt *Input) ElectionEnabled() bool {
-	return ipt.Election
-}
-
-func (*Input) SampleConfig() string { return sampleCfg }
-
-func (*Input) Catalog() string { return catalog }
-
-func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
+func (ipt *Input) ElectionEnabled() bool { return ipt.Election }
+func (*Input) SampleConfig() string      { return sampleCfg }
+func (*Input) Catalog() string           { return catalog }
+func (*Input) AvailableArchs() []string  { return datakit.AllOSWithElection }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
@@ -117,7 +110,7 @@ func (ipt *Input) Run() {
 	ipt.ptsTime = ntp.Now()
 
 	for {
-		if ipt.pause {
+		if ipt.pause.Load() {
 			l.Debugf("not leader, skipped")
 		} else {
 			ipt.setUpState()
@@ -159,7 +152,7 @@ func (ipt *Input) Run() {
 			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.duration)
 
 		case <-updateListTicker.C:
-			if ipt.pause {
+			if ipt.pause.Load() {
 				l.Debugf("not leader, skipped")
 				continue
 			}
@@ -173,9 +166,6 @@ func (ipt *Input) Run() {
 				}
 				l.Debugf("nsqd endpoint list: %v", ipt.nsqdEndpointList)
 			}
-
-		case ipt.pause = <-ipt.pauseCh:
-			// nil
 		}
 	}
 }
@@ -368,25 +358,13 @@ func (ipt *Input) httpGet(u string) ([]byte, error) {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func buildURL(u string) (*url.URL, error) {
@@ -414,7 +392,7 @@ func defaultInput() *Input {
 	return &Input{
 		Tags:             make(map[string]string),
 		nsqdEndpointList: make(map[string]interface{}),
-		pauseCh:          make(chan bool, maxPauseCh),
+		pause:            atomic.Bool{},
 		httpClient:       &http.Client{Timeout: 5 * time.Second},
 		Election:         true,
 		semStop:          cliutils.NewSem(),

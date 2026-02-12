@@ -24,6 +24,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -92,8 +93,7 @@ type Input struct {
 	Tags       map[string]string
 	RegionTags map[string]string
 
-	pause   bool
-	pauseCh chan bool
+	pause atomic.Bool
 
 	semStop              *cliutils.Sem // start stop signal
 	cli                  *http.Client  // class string
@@ -496,25 +496,13 @@ func (ipt *Input) ElectionEnabled() bool {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func (ipt *Input) Run() {
@@ -607,7 +595,7 @@ func (ipt *Input) doServerTask() {
 		ipt.variables.run()
 
 		for {
-			if !ipt.pause {
+			if !ipt.pause.Load() {
 				l.Debug("try pull tasks...")
 				startPullTime := time.Now()
 				j, err := ipt.pullTask()
@@ -642,7 +630,6 @@ func (ipt *Input) doServerTask() {
 				return
 
 			case <-tick.C:
-			case ipt.pause = <-ipt.pauseCh:
 			}
 		}
 	}
@@ -1133,7 +1120,7 @@ func defaultInput() *Input {
 			updateVariableCh: make(chan dt.Variable, 100),
 		},
 		Election:                   false,
-		pauseCh:                    make(chan bool, inputs.ElectionPauseChannelLength),
+		pause:                      atomic.Bool{},
 		MaxJobChanNumber:           1000,
 		MaxCachePointsNumber:       10000,
 		DisableInternalNetworkTask: true,

@@ -94,12 +94,15 @@ func (app *monitorAPP) renderBasicInfoTable(mfs map[string]*dto.MetricFamily) {
 	// show election info
 	mf = mfs["datakit_election_status"]
 	if mf != nil {
-		table.SetCell(row, 0, tview.NewTableCell("Elected").SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+		table.SetCell(row, 0,
+			tview.NewTableCell("Elected").
+				SetMaxWidth(app.maxTableWidth).
+				SetAlign(tview.AlignRight))
 		str := "not-ready"
 		if ei := election.MetricElectionInfo(mf); ei != nil {
-			if ei.ElectedTime > 0 {
-				str = fmt.Sprintf("%s::%s|%s(elected: %s)",
-					ei.Namespace, ei.Status, ei.WhoElected, ei.ElectedTime.String())
+			if ei.UpdateTime > 0 {
+				str = fmt.Sprintf("%s::%s|%s(%s)",
+					ei.Namespace, ei.Status, ei.WhoElected, time.Unix(ei.UpdateTime, 0))
 			} else {
 				str = fmt.Sprintf("%s::%s|%s", ei.Namespace, ei.Status, ei.WhoElected)
 			}

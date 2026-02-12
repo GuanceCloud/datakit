@@ -184,7 +184,7 @@ func (ipt *Input) exit() {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
+	tick := time.NewTicker(3 * time.Second)
 	defer tick.Stop()
 	select {
 	case ipt.pauseCh <- true:
@@ -195,7 +195,7 @@ func (ipt *Input) Pause() error {
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
+	tick := time.NewTicker(3 * time.Second)
 	defer tick.Stop()
 	select {
 	case ipt.pauseCh <- false:
@@ -244,7 +244,7 @@ func init() { //nolint:gochecknoinits
 			Tags:      map[string]string{},
 			inputName: inputName,
 			Election:  true,
-			pauseCh:   make(chan bool, inputs.ElectionPauseChannelLength),
+			pauseCh:   make(chan bool, 8),
 			semStop:   cliutils.NewSem(),
 			feeder:    dkio.DefaultFeeder(),
 			Tagger:    datakit.DefaultGlobalTagger(),

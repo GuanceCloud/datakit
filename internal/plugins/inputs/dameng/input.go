@@ -13,6 +13,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -82,8 +83,7 @@ type Input struct {
 	LastStatTime   time.Time
 
 	semStop    *cliutils.Sem
-	pause      bool
-	pauseCh    chan bool
+	pause      atomic.Bool
 	tail       *tailer.Tailer
 	feeder     dkio.Feeder
 	tagger     datakit.GlobalTagger
@@ -195,7 +195,7 @@ func (ipt *Input) Run() {
 
 	for {
 		start := time.Now()
-		if ipt.pause {
+		if ipt.pause.Load() {
 			l.Debugf("not leader, skipped")
 		} else {
 			if err := ipt.Collect(); err != nil {
@@ -230,8 +230,6 @@ func (ipt *Input) Run() {
 			ipt.exit()
 			l.Infof("%s input return", inputName)
 			return
-		case ipt.pause = <-ipt.pauseCh:
-			// nil
 		}
 	}
 }
@@ -369,25 +367,13 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func (ipt *Input) ElectionEnabled() bool {
@@ -397,7 +383,7 @@ func (ipt *Input) ElectionEnabled() bool {
 func defaultInput() *Input {
 	ipt := &Input{
 		Interval:   datakit.Duration{Duration: time.Second * 10},
-		pauseCh:    make(chan bool, inputs.ElectionPauseChannelLength),
+		pause:      atomic.Bool{},
 		Election:   true,
 		Tags:       make(map[string]string),
 		feeder:     dkio.DefaultFeeder(),

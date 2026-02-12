@@ -64,9 +64,6 @@ const (
   ## Default value set as below. DO NOT MODIFY THESE ENDPOINTS if not necessary.
   endpoints = ["/ingest"]
 
-  ## set true to enable election, pull mode only
-  election = true
-
   ## the max allowed size of http request body (of MB), 32MB by default.
   body_size_limit_mb = 32 # MB
 
@@ -98,9 +95,8 @@ const (
 var (
 	log = logger.DefaultSLogger(inputName)
 
-	_ inputs.HTTPInput     = (*Input)(nil)
-	_ inputs.InputV2       = (*Input)(nil)
-	_ inputs.ElectionInput = (*Input)(nil)
+	_ inputs.HTTPInput = (*Input)(nil)
+	_ inputs.InputV2   = (*Input)(nil)
 
 	diskQueue          *diskcache.DiskCache
 	queueConsumerGroup *goroutine.Group
@@ -149,7 +145,7 @@ func defaultDiskCachePath() string {
 	return filepath.Join(datakit.CacheDir, defaultDiskCacheFileName)
 }
 
-func DefaultInput() *Input {
+func defaultInput() *Input {
 	return &Input{
 		BodySizeLimitMB: defaultPyroscopeMaxSize,
 		IOConfig: ioConfig{
@@ -161,18 +157,17 @@ func DefaultInput() *Input {
 			SendRetryCount:    defaultHTTPRetryCount,
 		},
 		GenerateMetrics: true,
-		pauseCh:         make(chan bool, inputs.ElectionPauseChannelLength),
-		Election:        true,
-		semStop:         cliutils.NewSem(),
-		feeder:          dkio.DefaultFeeder(),
-		Tagger:          datakit.DefaultGlobalTagger(),
-		httpClient:      http.DefaultClient,
+
+		semStop:    cliutils.NewSem(),
+		feeder:     dkio.DefaultFeeder(),
+		Tagger:     datakit.DefaultGlobalTagger(),
+		httpClient: http.DefaultClient,
 	}
 }
 
 func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
-		return DefaultInput()
+		return defaultInput()
 	})
 }
 
@@ -181,10 +176,8 @@ type Input struct {
 	BodySizeLimitMB int               `toml:"body_size_limit_mb"`
 	IOConfig        ioConfig          `toml:"io_config"`
 	Tags            map[string]string `toml:"tags"`
-	Election        bool              `toml:"election"`
 	GenerateMetrics bool              `toml:"generate_metrics"`
 
-	pauseCh           chan bool
 	profileSendingAPI *url.URL
 	httpClient        *http.Client
 	semStop           *cliutils.Sem // start stop signal
@@ -198,32 +191,6 @@ func (ipt *Input) GetBodySizeLimit() int64 {
 
 func (ipt *Input) getDiskCacheCapacity() int64 {
 	return int64(ipt.IOConfig.CacheCapacityMB) * MiB
-}
-
-func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
-}
-
-func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
-}
-
-func (ipt *Input) ElectionEnabled() bool {
-	return ipt.Election
 }
 
 func profilingProxyURL() (*url.URL, *http.Transport, error) {

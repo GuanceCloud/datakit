@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -41,25 +42,13 @@ func (ipt *Input) ElectionEnabled() bool {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func (*Input) SampleConfig() string {
@@ -426,7 +415,7 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 
 	ptsTime := ntp.Now()
 	for {
-		if ipt.pause {
+		if ipt.pause.Load() {
 			l.Debugf("not leader, custom query skipped")
 		} else {
 			start := time.Now()
@@ -555,8 +544,6 @@ func (ipt *Input) Run() {
 		case <-ipt.semStop.Wait():
 			l.Info("sqlserver exit")
 			return
-		case ipt.pause = <-ipt.pauseCh:
-			// nil
 		}
 	}
 
@@ -572,7 +559,7 @@ func (ipt *Input) Run() {
 	ipt.ptsTime = ntp.Now()
 
 	for {
-		if ipt.pause {
+		if ipt.pause.Load() {
 			l.Debugf("not leader, skipped")
 		} else {
 			err := ipt.getVersionAndUptime()
@@ -1108,7 +1095,7 @@ func defaultInput() *Input {
 	return &Input{
 		Interval:    datakit.Duration{Duration: time.Second * 10},
 		Election:    true,
-		pauseCh:     make(chan bool, inputs.ElectionPauseChannelLength),
+		pause:       atomic.Bool{},
 		semStop:     cliutils.NewSem(),
 		dbFilterMap: make(map[string]struct{}, 0),
 		feeder:      dkio.DefaultFeeder(),

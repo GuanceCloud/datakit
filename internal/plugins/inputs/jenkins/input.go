@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -110,7 +111,7 @@ func (ipt *Input) Run() {
 
 	ipt.ptsTime = ntp.Now()
 	for {
-		if ipt.pause {
+		if ipt.pause.Load() {
 			l.Debug("%s election paused", inputName)
 		} else if ipt.EnableCollect {
 			collectStart := time.Now()
@@ -271,26 +272,18 @@ func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	}
 }
 
+func (ipt *Input) ElectionEnabled() bool {
+	return ipt.Election
+}
+
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func defaultInput() *Input {
@@ -301,7 +294,7 @@ func defaultInput() *Input {
 		Tagger:     datakit.DefaultGlobalTagger(),
 		DDInfoResp: `{"endpoints": ["/v0.3/traces"]}`,
 
-		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+		pause:    atomic.Bool{},
 		Election: true, // default enable election
 	}
 }

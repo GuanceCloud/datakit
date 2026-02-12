@@ -12,6 +12,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -63,13 +64,14 @@ type Input struct {
 	Election        bool              `toml:"election"`
 	Tags            map[string]string `toml:"tags"`
 
-	semStop            *cliutils.Sem // start stop signal
-	pauseCh            chan bool
+	semStop *cliutils.Sem // start stop signal
+
+	pause atomic.Bool
+
 	feeder             dkio.Feeder
 	tagger             datakit.GlobalTagger
 	mergedTags         map[string]string
 	db                 *sqlx.DB
-	pause              bool
 	start              time.Time
 	slowQueryStartTime time.Time
 	slowQueryTime      time.Duration
@@ -289,7 +291,7 @@ func (ipt *Input) Run() {
 
 	ipt.ptsTime = ntp.Now()
 	for {
-		if ipt.pause {
+		if ipt.pause.Load() {
 			l.Debugf("not leader, skipped")
 		} else {
 			l.Debugf("oceanbase input gathering...")
@@ -329,9 +331,6 @@ func (ipt *Input) Run() {
 
 		case tt := <-tick.C:
 			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.Interval.Duration)
-
-		case ipt.pause = <-ipt.pauseCh:
-			// nil
 		}
 	}
 }
@@ -357,25 +356,17 @@ func (ipt *Input) AvailableArchs() []string {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
+}
+
+func (ipt *Input) ElectionEnabled() bool {
+	return ipt.Election
 }
 
 func (ipt *Input) Terminate() {
@@ -388,7 +379,7 @@ func defaultInput() *Input {
 	return &Input{
 		Tags:     make(map[string]string),
 		Timeout:  "10s",
-		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+		pause:    atomic.Bool{},
 		Election: true,
 		feeder:   dkio.DefaultFeeder(),
 		tagger:   datakit.DefaultGlobalTagger(),

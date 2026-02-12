@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
@@ -91,11 +92,12 @@ type Input struct {
 	HistoricalInterval      datakit.Duration `toml:"historical_interval"`
 	ObjectDiscoveryInterval datakit.Duration `toml:"object_discovery_interval"`
 
-	Tags           map[string]string `toml:"tags"`
-	client         *Client
-	tail           *tailer.Tailer
-	pause          bool
-	pauseCh        chan bool
+	Tags   map[string]string `toml:"tags"`
+	client *Client
+	tail   *tailer.Tailer
+
+	pause atomic.Bool
+
 	semStop        *cliutils.Sem // start stop signal
 	feeder         dkio.Feeder
 	collectCache   []*point.Point
@@ -175,10 +177,9 @@ func (ipt *Input) startDiscovery() error {
 				case <-ipt.semStop.Wait():
 					return nil
 				case <-ticker.C:
-				case ipt.pause = <-ipt.pauseCh:
 				}
 
-				if !ipt.pause {
+				if !ipt.pause.Load() {
 					if err := ipt.client.discover(context.Background()); err != nil {
 						l.Errorf("failed to discover: %w", err)
 					}
@@ -603,14 +604,13 @@ func (ipt *Input) Run() {
 
 			return
 		case <-tick.C:
-		case ipt.pause = <-ipt.pauseCh:
 		}
 	}
 
 	ipt.ptsTime = ntp.Now()
 
 	for {
-		if !ipt.pause {
+		if !ipt.pause.Load() {
 			collectStart := time.Now()
 			l.Debugf("vsphere input gathering...")
 
@@ -683,7 +683,6 @@ func (ipt *Input) Run() {
 			return
 		case tt := <-tick.C:
 			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.Interval.Duration)
-		case ipt.pause = <-ipt.pauseCh:
 		}
 	}
 }
@@ -695,35 +694,18 @@ func (ipt *Input) ElectionEnabled() bool {
 func (ipt *Input) setup() {
 	l = logger.SLogger(inputName)
 
-	ipt.pauseCh = make(chan bool, inputs.ElectionPauseChannelLength)
+	ipt.pause = atomic.Bool{}
 	ipt.semStop = cliutils.NewSem()
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-
-	case <-datakit.Exit.Wait():
-		log.Info("pause vsphere interrupted by global exit.")
-		return nil
-
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func (ipt *Input) exit() {

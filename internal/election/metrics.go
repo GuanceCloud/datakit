@@ -6,8 +6,6 @@
 package election
 
 import (
-	"time"
-
 	"github.com/GuanceCloud/cliutils/metrics"
 	p8s "github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
@@ -107,30 +105,33 @@ type ElectionInfo struct {
 	WhoElected string `json:"elected_hostname"`
 
 	// elected ok duration
-	ElectedTime time.Duration `json:"elected_time"`
-	Status      string        `json:"status"`
+	UpdateTime int64  `json:"elected_time"`
+	Status     string `json:"status"`
 }
 
-func MetricElectionInfo(mf *dto.MetricFamily) *ElectionInfo {
-	if len(mf.Metric) != 1 {
-		return nil
-	}
+func MetricElectionInfo(mf *dto.MetricFamily) (res *ElectionInfo) {
+	for _, m := range mf.Metric {
+		lps := m.GetLabel()
+		if len(lps) != 4 {
+			// should not been here
+			log.Warn("invalid labels, got %+#v", lps)
+			continue
+		}
 
-	m := mf.Metric[0]
-	lps := m.GetLabel()
-	if len(lps) != 4 {
-		return nil
-	}
+		ei := &ElectionInfo{
+			WhoElected: lps[0].GetValue(),
+			Namespace:  lps[2].GetValue(),
+			Status:     lps[3].GetValue(),
+			UpdateTime: int64(m.GetGauge().GetValue()),
+		}
 
-	res := &ElectionInfo{
-		WhoElected: lps[0].GetValue(),
-		Namespace:  lps[2].GetValue(),
-		Status:     lps[3].GetValue(),
-	}
+		if res == nil {
+			res = ei
+		} else if ei.UpdateTime > res.UpdateTime { // use latest updated value
+			res = ei
+		}
 
-	x := int64(m.GetGauge().GetValue())
-	if x > int64(statusFail) { // elected ok: if elect ok, there is a unix timestamp
-		res.ElectedTime = time.Since(time.Unix(x, 0))
+		log.Debugf("election info: %+#v", res)
 	}
 
 	return res

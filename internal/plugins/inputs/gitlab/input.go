@@ -8,10 +8,10 @@ package gitlab
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/http"
 	"net/url"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -81,8 +81,7 @@ type Input struct {
 	duration   time.Duration
 
 	Election bool `toml:"election"`
-	pause    bool
-	pauseCh  chan bool
+	pause    atomic.Bool
 
 	semStop *cliutils.Sem // start stop signal
 	reqMemo requestMemo
@@ -104,8 +103,6 @@ func (ipt *Input) RegHTTPHandler() {
 		httpapi.RegHTTPHandler("POST", "/v1/gitlab", httpapi.ProtectedHandlerFunc(ipt.ServeHTTP, l))
 	}
 }
-
-var maxPauseCh = inputs.ElectionPauseChannelLength
 
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
@@ -132,15 +129,12 @@ func (ipt *Input) Run() {
 			return
 
 		case tt := <-ticker.C:
-			if ipt.pause {
+			if ipt.pause.Load() {
 				l.Debugf("not leader, skipped")
 				continue
 			}
 			start = inputs.AlignTime(tt, start, ipt.duration)
 			ipt.gather(start.UnixNano())
-
-		case ipt.pause = <-ipt.pauseCh:
-			// nil
 		}
 	}
 }
@@ -156,25 +150,13 @@ func (ipt *Input) Terminate() {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func (ipt *Input) loadCfg() {
@@ -288,7 +270,7 @@ func defaultInput() *Input {
 	return &Input{
 		EnableCollect: true,
 		Tags:          make(map[string]string),
-		pauseCh:       make(chan bool, maxPauseCh),
+		pause:         atomic.Bool{},
 		Election:      true,
 		duration:      time.Second * 10,
 		httpClient:    &http.Client{Timeout: 5 * time.Second},

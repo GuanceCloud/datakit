@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/url"
 	"runtime"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -52,8 +53,7 @@ type input struct {
 	platform     string
 
 	Election bool `toml:"election"`
-	pause    bool
-	pauseCh  chan bool
+	pause    atomic.Bool
 
 	feeder dkio.Feeder
 	tagger datakit.GlobalTagger
@@ -102,7 +102,7 @@ func (i *input) Run() {
 	i.ptsTime = ntp.Now()
 
 	for {
-		if i.pause {
+		if i.pause.Load() {
 			l.Debugf("election failed, skipped")
 		} else {
 			i.collectCache = i.collectCache[:0]
@@ -124,9 +124,6 @@ func (i *input) Run() {
 		select {
 		case tt := <-tick.C:
 			i.ptsTime = inputs.AlignTime(tt, i.ptsTime, i.Interval.Duration)
-
-		case i.pause = <-i.pauseCh:
-			l.Infof("set input %q paused?(%v)", inputName, i.pause)
 
 		case <-datakit.Exit.Wait():
 			l.Infof("socket input exit")
@@ -206,7 +203,7 @@ func init() { //nolint:gochecknoinits
 			feeder: dkio.DefaultFeeder(),
 
 			Election: true,
-			pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+			pause:    atomic.Bool{},
 
 			Interval: datakit.Duration{Duration: time.Second * 30},
 			semStop:  cliutils.NewSem(),

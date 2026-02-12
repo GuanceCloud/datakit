@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -154,8 +155,7 @@ type Input struct {
 	Tags     map[string]string `toml:"tags"`
 	mgoSvrs  []*MongodbServer
 	tail     *tailer.Tailer
-	pause    bool
-	pauseCh  chan bool
+	pause    atomic.Bool
 	semStop  *cliutils.Sem // start stop signal
 	feeder   dkio.Feeder
 	Tagger   datakit.GlobalTagger
@@ -317,7 +317,7 @@ func (ipt *Input) Run() {
 	log.Infof("%s input started", inputName)
 
 	for {
-		if !ipt.pause {
+		if !ipt.pause.Load() {
 			ipt.tryInitServers()
 
 			ipt.setUpState()
@@ -349,8 +349,6 @@ func (ipt *Input) Run() {
 
 		case tt := <-tick.C:
 			start = inputs.AlignTime(tt, start, ipt.Interval.Duration)
-
-		case ipt.pause = <-ipt.pauseCh:
 		}
 	}
 }
@@ -358,7 +356,7 @@ func (ipt *Input) Run() {
 func (ipt *Input) setup() {
 	log = logger.SLogger(inputName)
 
-	ipt.pauseCh = make(chan bool, inputs.ElectionPauseChannelLength)
+	ipt.pause = atomic.Bool{}
 	ipt.semStop = cliutils.NewSem()
 	defTags = ipt.Tags
 }
@@ -416,30 +414,13 @@ func (ipt *Input) gather(ptTS int64) error {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-
-	case <-datakit.Exit.Wait():
-		log.Info("pause mongodb interrupted by global exit.")
-		return nil
-
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func (ipt *Input) exit() {

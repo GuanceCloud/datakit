@@ -68,7 +68,7 @@ func TestIOConfig(t *testing.T) {
      send_retry_count = 5
 `
 
-	ipt := DefaultInput()
+	ipt := defaultInput()
 	assert.Equal(t, defaultDiskCachePath(), ipt.IOConfig.CachePath)
 	assert.Equal(t, defaultDiskCacheSize, ipt.IOConfig.CacheCapacityMB)
 	assert.Equal(t, false, ipt.IOConfig.ClearCacheOnStart)
@@ -196,7 +196,7 @@ func TestInput_sendRequestToDW(t *testing.T) {
     "end": "2024-12-19T10:10:00Z"
 }`
 
-	ipt := DefaultInput()
+	ipt := defaultInput()
 
 	buf := &bytes.Buffer{}
 	mw := multipart.NewWriter(buf)

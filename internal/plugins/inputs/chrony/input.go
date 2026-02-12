@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -68,8 +69,7 @@ type (
 		tagger       datakit.GlobalTagger
 
 		Election bool `toml:"election"`
-		pause    bool
-		pauseCh  chan bool
+		pause    atomic.Bool
 	}
 )
 
@@ -87,7 +87,7 @@ func (ipt *Input) Run() {
 	start := ntp.Now()
 
 	for {
-		if ipt.pause {
+		if ipt.pause.Load() {
 			l.Debugf("not leader, %s skipped", inputName)
 		} else {
 			collectStart := time.Now()
@@ -123,7 +123,6 @@ func (ipt *Input) Run() {
 		case <-ipt.semStop.Wait():
 			l.Infof("%s input return", inputName)
 			return
-		case ipt.pause = <-ipt.pauseCh:
 		}
 	}
 }
@@ -337,25 +336,13 @@ func (ipt *Input) ElectionEnabled() bool {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
@@ -472,7 +459,7 @@ func newDefaultInput() *Input {
 		feeder:   dkio.DefaultFeeder(),
 
 		semStop:    cliutils.NewSem(),
-		pauseCh:    make(chan bool, inputs.ElectionPauseChannelLength),
+		pause:      atomic.Bool{},
 		tagger:     datakit.DefaultGlobalTagger(),
 		mergedTags: make(map[string]urlTags),
 	}
