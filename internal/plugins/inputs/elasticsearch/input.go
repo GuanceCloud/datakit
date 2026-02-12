@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -243,8 +244,7 @@ type Input struct {
 	collectCache []*point.Point
 
 	Election bool `toml:"election"`
-	pause    bool
-	pauseCh  chan bool
+	pause    atomic.Bool
 
 	feeder dkio.Feeder
 	tagger datakit.GlobalTagger
@@ -290,14 +290,12 @@ func (i serverInfo) isMaster() bool {
 	return i.nodeID == i.masterID
 }
 
-var maxPauseCh = inputs.ElectionPauseChannelLength
-
 func defaultInput() *Input {
 	return &Input{
 		httpTimeout:                Duration{Duration: time.Second * 5},
 		ClusterStatsOnlyFromMaster: true,
 		ClusterHealthLevel:         "indices",
-		pauseCh:                    make(chan bool, maxPauseCh),
+		pause:                      atomic.Bool{},
 		Election:                   true,
 		semStop:                    cliutils.NewSem(),
 		feeder:                     dkio.DefaultFeeder(),
@@ -587,7 +585,7 @@ func (ipt *Input) Run() {
 	start := ntp.Now()
 
 	for {
-		if ipt.pause {
+		if ipt.pause.Load() {
 			l.Debugf("not leader, skipped")
 		} else {
 			collectStart := time.Now()
@@ -622,9 +620,6 @@ func (ipt *Input) Run() {
 
 		case tt := <-tick.C:
 			start = inputs.AlignTime(tt, start, ipt.duration)
-
-		case ipt.pause = <-ipt.pauseCh:
-			// nil
 		}
 	}
 }
@@ -1248,25 +1243,13 @@ func (ipt *Input) getCatMaster(url string) (string, error) {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func init() { //nolint:gochecknoinits

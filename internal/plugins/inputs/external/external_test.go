@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 func TestInput(t *testing.T) {
@@ -40,7 +39,7 @@ func TestInput(t *testing.T) {
 					Args:           []string{"ipt1-instance1"},
 					semStop:        cliutils.NewSem(),
 					semStopProcess: cliutils.NewSem(),
-					pauseCh:        make(chan bool, inputs.ElectionPauseChannelLength),
+					pauseCh:        make(chan bool, 8),
 				},
 
 				{
@@ -51,7 +50,7 @@ func TestInput(t *testing.T) {
 					Args:           []string{"ipt-instance2"},
 					semStop:        cliutils.NewSem(),
 					semStopProcess: cliutils.NewSem(),
-					pauseCh:        make(chan bool, inputs.ElectionPauseChannelLength),
+					pauseCh:        make(chan bool, 8),
 				},
 
 				{
@@ -62,7 +61,7 @@ func TestInput(t *testing.T) {
 					Args:           []string{"ipt-instance3"},
 					semStop:        cliutils.NewSem(),
 					semStopProcess: cliutils.NewSem(),
-					pauseCh:        make(chan bool, inputs.ElectionPauseChannelLength),
+					pauseCh:        make(chan bool, 8),
 				},
 			},
 		},
@@ -81,7 +80,7 @@ func TestInput(t *testing.T) {
 
 					semStop:        cliutils.NewSem(),
 					semStopProcess: cliutils.NewSem(),
-					pauseCh:        make(chan bool, inputs.ElectionPauseChannelLength),
+					pauseCh:        make(chan bool, 8),
 				},
 
 				{
@@ -95,7 +94,7 @@ func TestInput(t *testing.T) {
 
 					semStop:        cliutils.NewSem(),
 					semStopProcess: cliutils.NewSem(),
-					pauseCh:        make(chan bool, inputs.ElectionPauseChannelLength),
+					pauseCh:        make(chan bool, 8),
 				},
 
 				{
@@ -109,7 +108,7 @@ func TestInput(t *testing.T) {
 
 					semStop:        cliutils.NewSem(),
 					semStopProcess: cliutils.NewSem(),
-					pauseCh:        make(chan bool, inputs.ElectionPauseChannelLength),
+					pauseCh:        make(chan bool, 8),
 				},
 			},
 		},
@@ -125,7 +124,7 @@ func TestInput(t *testing.T) {
 					Args:           []string{"ipt1-instance1"},
 					semStop:        cliutils.NewSem(),
 					semStopProcess: cliutils.NewSem(),
-					pauseCh:        make(chan bool, inputs.ElectionPauseChannelLength),
+					pauseCh:        make(chan bool, 8),
 				},
 
 				{
@@ -135,7 +134,7 @@ func TestInput(t *testing.T) {
 					Args:           []string{"ipt-instance2"},
 					semStop:        cliutils.NewSem(),
 					semStopProcess: cliutils.NewSem(),
-					pauseCh:        make(chan bool, inputs.ElectionPauseChannelLength),
+					pauseCh:        make(chan bool, 8),
 				},
 
 				{
@@ -145,7 +144,7 @@ func TestInput(t *testing.T) {
 					Args:           []string{"ipt-instance3"},
 					semStop:        cliutils.NewSem(),
 					semStopProcess: cliutils.NewSem(),
-					pauseCh:        make(chan bool, inputs.ElectionPauseChannelLength),
+					pauseCh:        make(chan bool, 8),
 				},
 			},
 		},

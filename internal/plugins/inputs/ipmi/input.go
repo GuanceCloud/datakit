@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -37,11 +38,10 @@ const (
 )
 
 var (
-	_ inputs.ReadEnv = (*Input)(nil)
-	l                = logger.DefaultSLogger(inputName)
-	g                = datakit.G("inputs_" + inputName)
-
+	_ inputs.ReadEnv       = (*Input)(nil)
 	_ inputs.ElectionInput = (*Input)(nil)
+	l                      = logger.DefaultSLogger(inputName)
+	g                      = datakit.G("inputs_" + inputName)
 )
 
 // be used for server drop warning.
@@ -80,8 +80,7 @@ type Input struct {
 	tagger     datakit.GlobalTagger
 
 	Election bool `toml:"election"`
-	pause    bool
-	pauseCh  chan bool
+	pause    atomic.Bool
 
 	servers   []ipmiServer // List of active ipmi servers, alarm after service failure
 	serversMu sync.Mutex
@@ -95,7 +94,7 @@ func (ipt *Input) Run() {
 	defer tick.Stop()
 
 	for {
-		if ipt.pause {
+		if ipt.pause.Load() {
 			l.Debug("%s election paused", inputName)
 		} else {
 			ipt.handleServerDropWarn()
@@ -342,25 +341,13 @@ func (ipt *Input) ElectionEnabled() bool {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
@@ -612,7 +599,7 @@ func newDefaultInput() *Input {
 		MetricVersions:   []int{1},
 		DropWarningDelay: time.Second * 300,
 		servers:          make([]ipmiServer, 0, 1),
-		pauseCh:          make(chan bool, inputs.ElectionPauseChannelLength),
+		pause:            atomic.Bool{},
 		Election:         true,
 		feeder:           dkio.DefaultFeeder(),
 		tagger:           datakit.DefaultGlobalTagger(),

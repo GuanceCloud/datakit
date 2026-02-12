@@ -12,6 +12,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -29,8 +30,6 @@ import (
 	_ "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/kingbase/driver"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 )
-
-var _ inputs.ElectionInput = (*Input)(nil)
 
 const (
 	maxInterval = 15 * time.Minute
@@ -59,6 +58,9 @@ var (
 	catalogName         = "db"
 	customQueryFeedName = dkio.FeedSource(inputName, "custom_query")
 	l                   = logger.DefaultSLogger(inputName)
+
+	_ inputs.ElectionInput = (*Input)(nil)
+	_ inputs.InputV2       = (*Input)(nil)
 )
 
 type Input struct {
@@ -82,8 +84,7 @@ type Input struct {
 	Version      string
 
 	semStop    *cliutils.Sem
-	pause      bool
-	pauseCh    chan bool
+	pause      atomic.Bool
 	tail       *tailer.Tailer
 	feeder     dkio.Feeder
 	tagger     datakit.GlobalTagger
@@ -245,7 +246,7 @@ func (ipt *Input) Run() {
 
 	for {
 		start := time.Now()
-		if ipt.pause {
+		if ipt.pause.Load() {
 			l.Debugf("not leader, skipped")
 		} else {
 			if err := ipt.Collect(); err != nil {
@@ -280,8 +281,6 @@ func (ipt *Input) Run() {
 			ipt.exit()
 			l.Infof("%s input return", inputName)
 			return
-		case ipt.pause = <-ipt.pauseCh:
-			// nil
 		}
 	}
 }
@@ -423,25 +422,13 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func (ipt *Input) ElectionEnabled() bool {
@@ -451,7 +438,7 @@ func (ipt *Input) ElectionEnabled() bool {
 func defaultInput() *Input {
 	ipt := &Input{
 		Interval:   datakit.Duration{Duration: time.Second * 10},
-		pauseCh:    make(chan bool, inputs.ElectionPauseChannelLength),
+		pause:      atomic.Bool{},
 		Election:   true,
 		Tags:       make(map[string]string),
 		feeder:     dkio.DefaultFeeder(),

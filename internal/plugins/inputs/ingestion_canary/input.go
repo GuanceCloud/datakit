@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -31,7 +32,10 @@ const (
 	inputName = "ingestion_canary"
 )
 
-var l = logger.DefaultSLogger(inputName)
+var (
+	_ inputs.ElectionInput = (*Input)(nil)
+	l                      = logger.DefaultSLogger(inputName)
+)
 
 type Input struct {
 	Interval        datakit.Duration  `toml:"interval"`
@@ -48,8 +52,7 @@ type Input struct {
 	feeder  dkio.Feeder
 	tagger  datakit.GlobalTagger
 
-	pauseCh chan bool
-	pause   bool
+	pause atomic.Bool
 
 	round     int64
 	canary    *ingestioncanary.Canary
@@ -185,7 +188,7 @@ func (ipt *Input) Run() {
 	start := ntp.Now()
 
 	for {
-		if !ipt.pause {
+		if !ipt.pause.Load() {
 			if err := ipt.Collect(start.UnixNano()); err != nil {
 				l.Errorf("collect failed: %s", err)
 			}
@@ -204,7 +207,6 @@ func (ipt *Input) Run() {
 			l.Info("ingestion_canary return")
 			ipt.exit()
 			return
-		case ipt.pause = <-ipt.pauseCh:
 		}
 	}
 }
@@ -223,25 +225,13 @@ func (ipt *Input) ElectionEnabled() bool {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func defaultInput() *Input {
@@ -254,7 +244,7 @@ func defaultInput() *Input {
 		Tags:         make(map[string]string),
 		feeder:       dkio.DefaultFeeder(),
 		tagger:       datakit.DefaultGlobalTagger(),
-		pauseCh:      make(chan bool, inputs.ElectionPauseChannelLength),
+		pause:        atomic.Bool{},
 		Election:     true,
 	}
 

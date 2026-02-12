@@ -831,7 +831,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
+	tick := time.NewTicker(3 * time.Second)
 	defer tick.Stop()
 	select {
 	case ipt.pauseCh <- true:
@@ -842,7 +842,7 @@ func (ipt *Input) Pause() error {
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
+	tick := time.NewTicker(3 * time.Second)
 	defer tick.Stop()
 	select {
 	case ipt.pauseCh <- false:
@@ -857,7 +857,7 @@ func defaultInput() *Input {
 
 	return &Input{
 		Timeout:   "10s",
-		pauseCh:   make(chan bool, inputs.ElectionPauseChannelLength),
+		pauseCh:   make(chan bool, 8),
 		restartCh: make(chan struct{}, 1),
 		Tags:      make(map[string]string),
 

@@ -8,6 +8,7 @@ package sqlserver
 import (
 	"database/sql"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -185,8 +186,7 @@ type Input struct {
 	db      *sql.DB
 
 	Election bool `toml:"election"`
-	pauseCh  chan bool
-	pause    bool
+	pause    atomic.Bool
 
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder

@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -70,8 +71,7 @@ type Input struct {
 	client *http.Client
 
 	Election bool `toml:"election"`
-	pause    bool
-	pauseCh  chan bool
+	pause    atomic.Bool
 
 	feeder  dkio.Feeder
 	semStop *cliutils.Sem // start stop signal
@@ -91,8 +91,6 @@ func (ipt *Input) LogExamples() map[string]map[string]string {
 		},
 	}
 }
-
-var maxPauseCh = inputs.ElectionPauseChannelLength
 
 func (*Input) SampleConfig() string { return sample }
 
@@ -192,7 +190,7 @@ func (ipt *Input) Run() {
 			return
 
 		case tt := <-tick.C:
-			if ipt.pause {
+			if ipt.pause.Load() {
 				l.Debugf("not leader, skipped")
 				continue
 			}
@@ -220,9 +218,6 @@ func (ipt *Input) Run() {
 			}
 
 			ipt.FeedUpMetric()
-
-		case ipt.pause = <-ipt.pauseCh:
-			// nil
 		}
 	}
 }
@@ -410,31 +405,19 @@ func (ipt *Input) setHost() error {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func defaultInput() *Input {
 	return &Input{
 		Interval: datakit.Duration{Duration: time.Second * 30},
-		pauseCh:  make(chan bool, maxPauseCh),
+		pause:    atomic.Bool{},
 		Election: true,
 		feeder:   dkio.DefaultFeeder(),
 		semStop:  cliutils.NewSem(),

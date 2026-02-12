@@ -150,7 +150,7 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 
 	for {
 		collectStart := time.Now()
-		if ipt.pause {
+		if ipt.pause.Load() {
 			l.Debugf("not leader, custom query %s skipped", query.Metric)
 		} else {
 			l.Debugf("start collecting custom query, metric name: %s", query.Metric)

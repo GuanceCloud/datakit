@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"reflect"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -67,15 +68,12 @@ type Input struct {
 	collectCache []*point.Point
 
 	Election bool `toml:"election"`
-	pause    bool
-	pauseCh  chan bool
+	pause    atomic.Bool
 
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
 	Tagger  datakit.GlobalTagger
 }
-
-var maxPauseCh = inputs.ElectionPauseChannelLength
 
 func (ipt *Input) ElectionEnabled() bool {
 	return ipt.Election
@@ -186,7 +184,7 @@ func (ipt *Input) Run() {
 	start := ntp.Now()
 
 	for {
-		if !ipt.pause {
+		if !ipt.pause.Load() {
 			collectStart := time.Now()
 			if err := ipt.Collect(start.UnixNano()); err != nil {
 				l.Errorf("Collect: %s", err)
@@ -225,9 +223,6 @@ func (ipt *Input) Run() {
 
 		case tt := <-tick.C:
 			start = inputs.AlignTime(tt, start, ipt.Interval.Duration)
-
-		case ipt.pause = <-ipt.pauseCh:
-			// nil
 		}
 	}
 }
@@ -312,32 +307,20 @@ func (ipt *Input) Collect(ptTS int64) error {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func defaultInput() *Input {
 	return &Input{
 		Interval: datakit.Duration{Duration: time.Second * 15},
 		Timeout:  datakit.Duration{Duration: time.Second * 5},
-		pauseCh:  make(chan bool, maxPauseCh),
+		pause:    atomic.Bool{},
 		Election: true,
 
 		semStop: cliutils.NewSem(),

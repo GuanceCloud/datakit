@@ -220,8 +220,6 @@ func setupRouter(hs *httpServerConf) *gin.Engine {
 		router.NoRoute(page404)
 	}
 
-	//
-
 	// use whitelist config
 	if !hs.apiConfig.DisableWhitelist {
 		// 添加新注册的API到白名单
@@ -264,6 +262,8 @@ func setupRouter(hs *httpServerConf) *gin.Engine {
 	router.GET("/v1/global/election/tags", ginLimiter(reqLimiter), getElectionTags)
 	router.POST("/v1/global/election/tags", ginLimiter(reqLimiter), postElectionTags)
 	router.DELETE("/v1/global/election/tags", ginLimiter(reqLimiter), deleteElectionTags)
+
+	router.POST("/v1/election", wraper1.RawHTTPWrapper(reqLimiter, apiElectionStatus, nil))
 
 	return router
 }

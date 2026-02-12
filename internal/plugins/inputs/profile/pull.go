@@ -175,7 +175,7 @@ func (g *GoProfiler) run(i *Input) error {
 	once := new(sync.Once)
 
 	for {
-		if i.pause {
+		if i.pause.Load() {
 			log.Debugf("not leader, skipped")
 		} else {
 			once.Do(func() {
@@ -191,8 +191,6 @@ func (g *GoProfiler) run(i *Input) error {
 			log.Info("go profiler exit")
 			return nil
 		case <-tick.C:
-
-		case i.pause = <-i.pauseCh:
 		}
 	}
 }

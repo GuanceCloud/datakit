@@ -37,7 +37,7 @@ func (ipt *Input) startCollect() {
 	}
 	l.Infof("windows_remote collect start")
 	var ips []string
-	if !ipt.isPause() {
+	if !ipt.pause.Load() {
 		l.Infof("ips=%+v, cidrs=%+v", ipt.IPList, ipt.CIDRs)
 		ips = getIPsInRange(ipt.IPList, ipt.CIDRs, ipt.protocol, ipt.targetPorts)
 		ipt.collectObjectFromIPs(ips)
@@ -47,7 +47,7 @@ func (ipt *Input) startCollect() {
 	ptsTime := ntp.Now()
 
 	for {
-		if !ipt.isPause() {
+		if !ipt.pause.Load() {
 			ipt.collectMetricFromIPs(ips, ptsTime.UnixNano())
 		}
 
@@ -59,22 +59,19 @@ func (ipt *Input) startCollect() {
 			ptsTime = inputs.AlignTime(tt, ptsTime, metricInterval)
 
 		case <-tickers[1].C:
-			if !ipt.isPause() {
+			if !ipt.pause.Load() {
 				ipt.collectObjectFromIPs(ips)
 			}
 
 		case <-tickers[2].C:
-			if !ipt.isPause() {
+			if !ipt.pause.Load() {
 				ipt.collectLoggingFromIPs(ips)
 			}
 
 		case <-tickers[3].C:
-			if !ipt.isPause() {
+			if !ipt.pause.Load() {
 				ips = getIPsInRange(ipt.IPList, ipt.CIDRs, ipt.protocol, ipt.targetPorts)
 			}
-
-		case ipt.pause = <-ipt.chPause:
-			// nil
 		}
 	}
 }

@@ -8,6 +8,7 @@ package election
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -19,6 +20,8 @@ var (
 	log                     = logger.DefaultSLogger("dk-election")
 	electionIntervalDefault = 4
 	CurrentElected          = "<checking...>"
+
+	chStatus = make(chan ElectionStatus) // blocking
 )
 
 type Puller interface {
@@ -30,8 +33,12 @@ type Election interface {
 	Run()
 }
 
-func Start(opts ...ElectionOption) {
+func SetLog() {
 	log = logger.SLogger("dk-election")
+}
+
+func Start(opts ...ElectionOption) {
+	SetLog()
 
 	opt := option{}
 	for idx := range opts {
@@ -39,7 +46,7 @@ func Start(opts ...ElectionOption) {
 	}
 
 	if !opt.enabled {
-		status := statusDisabled
+		status := StatusDisabled
 		electionStatusVec.WithLabelValues(CurrentElected, opt.id, opt.namespace, status.String()).Set(float64(status))
 		log.Info("election not enabled.")
 		return
@@ -53,21 +60,27 @@ func Start(opts ...ElectionOption) {
 	}
 
 	if isBanned {
-		status := statusBanned
+		status := StatusBanned
 		electionStatusVec.WithLabelValues(CurrentElected, opt.id, opt.namespace, status.String()).Set(float64(status))
 		log.Info("node is not whitelisted.")
 		return
 	}
 
-	electionInstance := newLeaderElection(&opt, inputs.GetElectionInputs())
-	log.Info("election mode with Dataway")
-
-	log.Infof("namespace: %s, id: %s", opt.namespace, opt.id)
-	// log.Infof("get %d election inputs", len(x.plugins))
+	instance := newLeaderElection(&opt, inputs.GetElectionInputs())
+	log.Infof("election mode with Dataway ,namespace: %s, id: %s", opt.namespace, opt.id)
 
 	g := datakit.G("election")
 	g.Go(func(ctx context.Context) error {
-		electionInstance.Run()
+		instance.Run()
 		return nil
 	})
+}
+
+func SetStatus(s ElectionStatus) error {
+	select {
+	case chStatus <- s:
+		return nil
+	default:
+		return fmt.Errorf("busy or election not enabled")
+	}
 }

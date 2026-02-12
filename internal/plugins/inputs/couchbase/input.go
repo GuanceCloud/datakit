@@ -9,6 +9,7 @@ package couchbase
 import (
 	"fmt"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -68,8 +69,7 @@ type Input struct {
 	tagger     datakit.GlobalTagger
 
 	Election bool `toml:"election"`
-	pause    bool
-	pauseCh  chan bool
+	pause    atomic.Bool
 }
 
 func (ipt *Input) Run() {
@@ -86,7 +86,7 @@ func (ipt *Input) Run() {
 	defer tick.Stop()
 
 	for {
-		if ipt.pause {
+		if ipt.pause.Load() {
 			l.Debug("%s election paused", inputName)
 		} else {
 			costStart := time.Now()
@@ -120,7 +120,6 @@ func (ipt *Input) Run() {
 		case <-ipt.semStop.Wait():
 			l.Infof("%s input return", inputName)
 			return
-		case ipt.pause = <-ipt.pauseCh:
 		}
 	}
 }
@@ -194,25 +193,13 @@ func (ipt *Input) ElectionEnabled() bool {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
@@ -376,11 +363,9 @@ func (ipt *Input) newClient() (*collectors.Client, error) {
 	return client, nil
 }
 
-var maxPauseCh = inputs.ElectionPauseChannelLength
-
 func NewInput() *Input {
 	return &Input{
-		pauseCh:  make(chan bool, maxPauseCh),
+		pause:    atomic.Bool{},
 		Interval: defaultIntervalDuration,
 		Timeout:  defaultTimeout,
 		Election: true,

@@ -9,6 +9,7 @@ package jvm
 import (
 	"fmt"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -97,36 +98,6 @@ const (
   # ...`
 )
 
-var jvmTypeMap = map[string]string{
-	"Uptime":                         "int",
-	"HeapMemoryUsageinit":            "int",
-	"HeapMemoryUsageused":            "int",
-	"HeapMemoryUsagemax":             "int",
-	"HeapMemoryUsagecommitted":       "int",
-	"NonHeapMemoryUsageinit":         "int",
-	"NonHeapMemoryUsageused":         "int",
-	"NonHeapMemoryUsagemax":          "int",
-	"NonHeapMemoryUsagecommitted":    "int",
-	"ObjectPendingFinalizationCount": "int",
-	"CollectionTime":                 "int",
-	"CollectionCount":                "int",
-	"DaemonThreadCount":              "int",
-	"PeakThreadCount":                "int",
-	"ThreadCount":                    "int",
-	"TotalStartedThreadCount":        "int",
-	"LoadedClassCount":               "int",
-	"TotalLoadedClassCount":          "int",
-	"UnloadedClassCount":             "int",
-	"Usageinit":                      "int",
-	"Usagemax":                       "int",
-	"Usagecommitted":                 "int",
-	"Usageused":                      "int",
-	"PeakUsageinit":                  "int",
-	"PeakUsagemax":                   "int",
-	"PeakUsagecommitted":             "int",
-	"PeakUsageused":                  "int",
-}
-
 type Input struct {
 	URLs            []string      `toml:"urls"`
 	Username        string        `toml:"username"`
@@ -153,8 +124,8 @@ type Input struct {
 	Feeder   dkio.Feeder
 	Tagger   datakit.GlobalTagger
 	g        *goroutine.Group
-	pause    bool
-	pauseCh  chan bool
+
+	paused atomic.Bool
 }
 
 type MetricConfig struct {
@@ -168,7 +139,53 @@ type MetricConfig struct {
 	TagKeys        []string `toml:"tag_keys"`
 }
 
-var l = logger.DefaultSLogger(inputName)
+var (
+	jvmTypeMap = map[string]string{
+		"Uptime":                         "int",
+		"HeapMemoryUsageinit":            "int",
+		"HeapMemoryUsageused":            "int",
+		"HeapMemoryUsagemax":             "int",
+		"HeapMemoryUsagecommitted":       "int",
+		"NonHeapMemoryUsageinit":         "int",
+		"NonHeapMemoryUsageused":         "int",
+		"NonHeapMemoryUsagemax":          "int",
+		"NonHeapMemoryUsagecommitted":    "int",
+		"ObjectPendingFinalizationCount": "int",
+		"CollectionTime":                 "int",
+		"CollectionCount":                "int",
+		"DaemonThreadCount":              "int",
+		"PeakThreadCount":                "int",
+		"ThreadCount":                    "int",
+		"TotalStartedThreadCount":        "int",
+		"LoadedClassCount":               "int",
+		"TotalLoadedClassCount":          "int",
+		"UnloadedClassCount":             "int",
+		"Usageinit":                      "int",
+		"Usagemax":                       "int",
+		"Usagecommitted":                 "int",
+		"Usageused":                      "int",
+		"PeakUsageinit":                  "int",
+		"PeakUsagemax":                   "int",
+		"PeakUsagecommitted":             "int",
+		"PeakUsageused":                  "int",
+	}
+	l                      = logger.DefaultSLogger(inputName)
+	_ inputs.ElectionInput = (*Input)(nil)
+)
+
+func (ipt *Input) Resume() error {
+	ipt.paused.Store(false)
+	return nil
+}
+
+func (ipt *Input) Pause() error {
+	ipt.paused.Store(true)
+	return nil
+}
+
+func (ipt *Input) ElectionEnabled() bool {
+	return ipt.Election
+}
 
 func (ipt *Input) Run() {
 	if err := ipt.setup(); err != nil {
@@ -185,7 +202,7 @@ func (ipt *Input) Run() {
 	l.Debugf("jvm urls:%v", ipt.URLs)
 
 	for {
-		if ipt.pause {
+		if ipt.paused.Load() {
 			l.Debugf("JVM plugin %s paused", inputName)
 		} else {
 			if err := ipt.collect(start.UnixNano()); err != nil {
@@ -209,9 +226,6 @@ func (ipt *Input) Run() {
 			l.Infof("input %s return", inputName)
 			ipt.exit()
 			return
-
-		case ipt.pause = <-ipt.pauseCh:
-			l.Infof("JVM plugin %q paused? %v", inputName, ipt.pause)
 		}
 	}
 }
@@ -317,7 +331,7 @@ func (ipt *Input) AvailableArchs() []string {
 func defaultInput() *Input {
 	return &Input{
 		SemStop:            cliutils.NewSem(),
-		pauseCh:            make(chan bool, inputs.ElectionPauseChannelLength),
+		paused:             atomic.Bool{},
 		Election:           true,
 		Tagger:             datakit.DefaultGlobalTagger(),
 		Feeder:             dkio.DefaultFeeder(),

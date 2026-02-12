@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -26,7 +27,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/promscrape"
 )
 
-var _ inputs.ElectionInput = (*Input)(nil)
+var (
+	_ inputs.ElectionInput = (*Input)(nil)
+	_ inputs.InputV2       = (*Input)(nil)
+)
 
 const (
 	inputName     = "promv2"
@@ -51,8 +55,7 @@ type Input struct {
 
 	endpoint *url.URL
 
-	chPause chan bool
-	pause   bool
+	pause atomic.Bool
 
 	feeder  dkio.Feeder
 	tagger  datakit.GlobalTagger
@@ -93,7 +96,7 @@ func (ipt *Input) Run() {
 	defer tick.Stop()
 
 	for {
-		if !ipt.pause {
+		if !ipt.pause.Load() {
 			ipt.scrape(start.UnixNano())
 		}
 
@@ -105,8 +108,6 @@ func (ipt *Input) Run() {
 		case <-ipt.semStop.Wait():
 			ipt.logger.Info("promv2 input stopped")
 			return
-
-		case ipt.pause = <-ipt.chPause:
 
 		case tt := <-tick.C:
 			start = inputs.AlignTime(tt, start, ipt.Interval)
@@ -259,27 +260,13 @@ func (ipt *Input) Terminate() {
 }
 
 func (ipt *Input) Pause() error {
-	ticker := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer ticker.Stop()
-
-	select {
-	case ipt.chPause <- true:
-		return nil
-	case <-ticker.C:
-		return fmt.Errorf("pause %s timeout", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	ticker := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer ticker.Stop()
-
-	select {
-	case ipt.chPause <- false:
-		return nil
-	case <-ticker.C:
-		return fmt.Errorf("resume %s timeout", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func newProm() *Input {
@@ -288,8 +275,7 @@ func newProm() *Input {
 		KeepExistMetricName: true,
 		HonorTimestamps:     true,
 
-		pause:       false,
-		chPause:     make(chan bool, inputs.ElectionPauseChannelLength),
+		pause:       atomic.Bool{},
 		HTTPHeaders: make(map[string]string),
 		Tags:        make(map[string]string),
 		feeder:      dkio.DefaultFeeder(),

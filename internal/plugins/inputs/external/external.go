@@ -104,7 +104,7 @@ func NewInput() *Input {
 		semStopProcess: cliutils.NewSem(),
 		Tagger:         datakit.DefaultGlobalTagger(),
 		Election:       true,
-		pauseCh:        make(chan bool, inputs.ElectionPauseChannelLength),
+		pauseCh:        make(chan bool, 8),
 	}
 }
 
@@ -347,7 +347,7 @@ func (ipt *Input) daemonRun() {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
+	tick := time.NewTicker(time.Second * 3)
 	defer tick.Stop()
 	select {
 	case ipt.pauseCh <- true:
@@ -358,7 +358,7 @@ func (ipt *Input) Pause() error {
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
+	tick := time.NewTicker(time.Second * 3)
 	defer tick.Stop()
 	select {
 	case ipt.pauseCh <- false:

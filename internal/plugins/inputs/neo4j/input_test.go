@@ -346,8 +346,6 @@ func Test_collect(t *testing.T) {
 		pm                     *iprom.Prom
 		Feeder                 io.Feeder
 		Election               bool
-		pauseCh                chan bool
-		pause                  bool
 		Tagger                 datakit.GlobalTagger
 		urls                   []*url.URL
 		semStop                *cliutils.Sem
@@ -381,7 +379,6 @@ func Test_collect(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.fields = fields{
 				Election:           true,
-				pauseCh:            make(chan bool, maxPauseCh),
 				Tags:               make(map[string]string),
 				DisableInstanceTag: true,
 				mergedTags:         map[string]urlTags{},
@@ -420,8 +417,6 @@ func Test_collect(t *testing.T) {
 				pm:                     tt.fields.pm,
 				feeder:                 tt.fields.Feeder,
 				Election:               tt.fields.Election,
-				pauseCh:                tt.fields.pauseCh,
-				pause:                  tt.fields.pause,
 				tagger:                 tt.fields.Tagger,
 				urls:                   tt.fields.urls,
 				semStop:                tt.fields.semStop,

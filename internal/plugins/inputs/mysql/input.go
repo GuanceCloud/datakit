@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -143,8 +144,8 @@ type Input struct {
 	collectors map[string]func() ([]*point.Point, error)
 
 	Election bool `toml:"election"`
-	pause    bool
-	pauseCh  chan bool
+	pause    atomic.Bool
+
 	binLogOn bool
 
 	semStop *cliutils.Sem // start stop signal
@@ -155,28 +156,28 @@ type Input struct {
 	objectMetric *objectMertric
 
 	// collected metrics - mysql
-	globalStatus    map[string]interface{}
-	globalVariables map[string]interface{}
-	binlog          map[string]interface{}
+	globalStatus    map[string]any
+	globalVariables map[string]any
+	binlog          map[string]any
 
 	// collected metrics - mysql_replication
-	mReplication      map[string]interface{}
-	mGroupReplication map[string]interface{}
+	mReplication      map[string]any
+	mGroupReplication map[string]any
 
 	// collected metrics - mysql_schema
-	mSchemaSize          map[string]interface{}
-	mSchemaQueryExecTime map[string]interface{}
+	mSchemaSize          map[string]any
+	mSchemaQueryExecTime map[string]any
 
 	// collected metrics - mysql_innodb
-	mInnodb map[string]interface{}
+	mInnodb map[string]any
 
 	// collected metrics - mysql_table_schema
-	mTableSchema []map[string]interface{}
+	mTableSchema []map[string]any
 
 	// collected metrics - mysql_user_status
-	mUserStatusName       map[string]interface{}
-	mUserStatusVariable   map[string]map[string]interface{}
-	mUserStatusConnection map[string]map[string]interface{}
+	mUserStatusName       map[string]any
+	mUserStatusVariable   map[string]map[string]any
+	mUserStatusConnection map[string]map[string]any
 
 	// collected metrics - mysql_dbm_metric
 	dbmMetricRows []dbmRow
@@ -780,7 +781,7 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 	for {
 		collectStart := time.Now()
 
-		if ipt.pause {
+		if ipt.pause.Load() {
 			l.Debugf("not leader, custom query skipped")
 		} else {
 			l.Debugf("start collecting custom query, metric name: %s", query.Metric)
@@ -909,7 +910,7 @@ func (ipt *Input) Run() {
 	ipt.runCustomQueries()
 
 	for {
-		if ipt.pause {
+		if ipt.pause.Load() {
 			l.Debugf("not leader, skipped")
 		} else {
 			l.Debugf("mysql input gathering...")
@@ -974,7 +975,6 @@ func (ipt *Input) Run() {
 
 		case tt := <-tick.C:
 			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.Interval.Duration)
-		case ipt.pause = <-ipt.pauseCh:
 			// nil
 		}
 	}
@@ -1018,32 +1018,20 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func defaultInput() *Input {
 	return &Input{
 		Tags:     make(map[string]string),
 		Timeout:  "10s",
-		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+		pause:    atomic.Bool{},
 		Election: true,
 		feeder:   dkio.DefaultFeeder(),
 		tagger:   datakit.DefaultGlobalTagger(),
