@@ -55,6 +55,7 @@ func newECSFargate(ipt *Input, agentURL string) (Collector, error) {
 	return &containerCollector{
 		ipt:                  ipt,
 		runtime:              r,
+		maxConcurrent:        ipt.ContainerMaxConcurrent,
 		enableCollectLogging: false,
 		extraTags:            tags,
 		feeder:               ipt.Feeder,
