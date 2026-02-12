@@ -90,6 +90,8 @@ type Config struct {
 	MonitorInterval string      `toml:"monitor_interval"` // 监控间隔，单位 秒
 	Tags            []string    `toml:"tags"`             // 全局自定义标签
 	AutoProfiling   string      `toml:"auto_profiling"`   // 开关定时自动执行, 配置 0 则关闭
+	PodCPULimit     string      `toml:"pod_cpu_limit"`    // pod resource limit
+	PodMEMLimit     string      `toml:"pod_mem_limit"`    // pod resource limit
 	Processes       []*Process  `toml:"processes"`        // 监控的进程列表
 	HTTPConfig      *HTTPConfig `toml:"http"`             // http 配置
 	Log             *Logging    `toml:"logging"`          // 日志配置
@@ -148,6 +150,14 @@ func (c *Config) fromEnv() {
 			}
 			c.AutoProfiling = x
 		}
+	}
+
+	if x := os.Getenv("FLAMESHOT_POD_CPU_LIMIT"); x != "" {
+		c.PodCPULimit = fmt.Sprintf("%sm", x)
+	}
+
+	if x := os.Getenv("FLAMESHOT_POD_MEM_LIMIT"); x != "" {
+		c.PodMEMLimit = fmt.Sprintf("%sMi", x)
 	}
 
 	// 数组配置使用for循环

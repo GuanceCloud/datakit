@@ -105,6 +105,8 @@ func (m *monitor) Start(osSignal chan os.Signal) {
 				// 添加到监控列表
 				log.Infof("match: PID=%d, name=%s or cmd=%s", pm.Pid, pm.Name, pm.Cmdline)
 				pidCount.WithLabelValues(pm.configProcess.Language)
+				pm.podMEMLimit = m.config.PodMEMLimit
+				pm.podCPULimit = m.config.PodCPULimit
 				m.cs = append(m.cs, pm)
 			}
 		case <-monitorCommandTicker.C:

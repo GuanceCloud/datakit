@@ -15,7 +15,7 @@ import (
 	"github.com/shirou/gopsutil/v3/process"
 )
 
-var test_tmall_pid = int32(182882)
+var test_tmall_pid = int32(41255)
 
 func Test_newProcessM(t *testing.T) {
 	tmallPID := test_tmall_pid
@@ -69,6 +69,8 @@ func Test_processM_updateProcessStats(t *testing.T) {
 		t.Logf("newProcessM nil, retrun")
 		return
 	}
+	pm.podCPULimit = "1"
+	pm.podMEMLimit = "600Mi"
 	err := pm.updateProcessStats()
 	assert.NoError(t, err)
 	if e := pm.CPUHistory.Front(); e != nil {
@@ -121,5 +123,57 @@ func Test_processM_isTrigger(t *testing.T) {
 			t.Logf("trigger is %v, tags is %v  count:%f", trigger, tags, i)
 			return
 		}
+	}
+}
+
+func TestParseCPULimit(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected float64
+	}{
+		{"m core", "500m", 0.5},
+		{"1", "1", 1.0},
+		{"4", "4", 4.0},
+		{"0.25", "0.25", 0.25},
+		{"2.0", "2000m", 2.0},
+		{"0.01", "10m", 0.01},
+		{"null", "", 0.0},
+		{"invalid", "invalid", 0.0},
+		{"space", " 1000m ", 1.0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := parseCPULimit(tt.input)
+			if got != tt.expected {
+				t.Errorf("parseCPULimit(%q) = %v; want %v", tt.input, got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestParseMemoryLimit(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected int64 // 字节数
+	}{
+		{"Mi", "1Mi", 1024 * 1024},
+		{"M", "1M", 1000 * 1000},
+		{"Gi", "1Gi", 1024 * 1024 * 1024},
+		{"G", "1G", 1000 * 1000 * 1000},
+		{"Ki", "512Ki", 512 * 1024},
+		{"int(byte)", "1024", 1024},
+		{"invalid", "abc", 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := parseMemoryLimit(tt.input)
+			if got != tt.expected {
+				t.Errorf("parseMemoryLimit(%q) = %v; want %v", tt.input, got, tt.expected)
+			}
+		})
 	}
 }
