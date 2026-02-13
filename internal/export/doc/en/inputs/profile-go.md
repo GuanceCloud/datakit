@@ -1,5 +1,5 @@
 ---
-title     : 'Profiling C++'
+title     : 'Profiling Golang'
 summary   : 'Profling Golang applications'
 tags:
   - 'GOLANG'
