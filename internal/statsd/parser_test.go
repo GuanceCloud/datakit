@@ -102,12 +102,20 @@ auth.logins:user-a1|s|#tenant:a`
 		require.Len(t, pts, 2)
 
 		// for tenant a, there are 2 logings(for user a1/a2), same user(user-a1) only count 1 time
-		assert.Equal(t, "a", pts[0].GetTag("tenant"))
-		assert.Equal(t, int64(2), pts[0].Get("logins"))
-
 		// for tenant b, there are 1 logings(for user b1~b5)
-		assert.Equal(t, "b", pts[1].GetTag("tenant"))
-		assert.Equal(t, int64(5), pts[1].Get("logins"))
+		// Map iteration order is non-deterministic, so we need to check both points
+		var tenantAPoint, tenantBPoint *point.Point
+		for _, pt := range pts {
+			if tenant := pt.GetTag("tenant"); tenant == "a" {
+				tenantAPoint = pt
+			} else if tenant == "b" {
+				tenantBPoint = pt
+			}
+		}
+		require.NotNil(t, tenantAPoint)
+		require.NotNil(t, tenantBPoint)
+		assert.Equal(t, int64(2), tenantAPoint.Get("logins"))
+		assert.Equal(t, int64(5), tenantBPoint.Get("logins"))
 	})
 
 	t.Run(`with-dd-tags`, func(t *T.T) {

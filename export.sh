@@ -22,7 +22,7 @@ dk_version=$(cat gitlab-ci.yml | grep -w "CI_VERSION:" | awk -F'"' '{print $2}')
 # manually set these versions
 ddtrace_java_ext_version="v1.55.10-ext"
 otel_java_ext_version="2.20.0-ext"
-flameshot_version="0.1.0"
+flameshot_version="0.2.1"
 k8s_profilers_asyncprofile_version="0.6.0"
 k8s_profilers_pyspy_version="0.1.0"
 k8s_profilers_pprof_version="0.1.0"

@@ -1,5 +1,16 @@
 # Operator Changelog
 
+## 1.8.1(2026-02-11) {#cl-1.8.1}
+
+- Added support for injecting environment variables in `resourceFieldRef` format, now allowing reference to container resource limits and requests, including limits.cpu, limits.memory, requests.cpu, and requests.memory (#84)
+- Added support for injecting Python ddtrace agent (#81)
+- Provided proxy API interface for retrieving related data of Pods within the cluster (#79)
+
+## 1.8.0(2026-01-29) {#cl-1.8.0}
+
+- Added `check_annotation` field to `admission_inject_v2` configuration item to support compatibility with `admission.datakit/java-lib.version` usage (#81)
+- Maintained compatibility with old configuration `admission_inject.profiler` for injecting Profiler (#81)
+
 ## 1.7.3(2026-01-08) {#cl-1.7.3}
 
 - Added support for `from_beginning_threshold_size` configuration in ClusterLoggingConfig CRD (#80)

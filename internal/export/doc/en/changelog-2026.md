@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.89.1(2026/02/12) {#cl-1.89.1}
+
+This release is a hotfix release, contents are as follows:
+
+### Bug Fixes {#cl-1.89.1-fix}
+
+- Fixed issue in DK 1.89.0 where global host tag setting `host=__datakit_hostname` did not correctly use k8s node name (#2971)
+- Fixed collector resume failure blocking election heartbeat, avoiding frequent election switching (#2970)
+- Fixed error triggered when accidentally collecting ECSFargate container logs (#2964)
+- Fixed election module state management to ensure metric timestamp updates accurately (#2970)
+
+### Improvements {#cl-1.89.1-opt}
+
+- Flameshot supports obtaining container resource limit information, optimizing threshold calculation accuracy in container environments (#2966)
+- DataKit supports accessing k8s Pod data through datakit-operator, providing API Server pressure relief solution for large-scale clusters (#2931)
+
+---
+
 ## 1.89.0(2026/02/04) {#cl-1.89.0}
 
 This release is an iterative release, with the following main updates:
