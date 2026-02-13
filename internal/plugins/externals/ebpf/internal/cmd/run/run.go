@@ -282,8 +282,8 @@ func runCmd(cfgFile *string, fl *Flag) error {
 	}
 
 	var (
-		pidFile        = filepath.Join(InstallDir, "externals", "datakit-ebpf.pid")
-		signaIterrrupt = make(chan os.Signal)
+		pidFile         = filepath.Join(InstallDir, "externals", "datakit-ebpf.pid")
+		signalInterrupt = make(chan os.Signal)
 	)
 
 	if fl.PIDFile != "" {
@@ -304,7 +304,7 @@ func runCmd(cfgFile *string, fl *Flag) error {
 		exporter.WithSamplingRatePtsPerMin(fl.Sampling.RatePtsPerMinute),
 	)
 
-	initResLitmiter(fl, signaIterrrupt)
+	initResLimiter(fl, signalInterrupt)
 
 	interval := time.Minute
 	if v, err := time.ParseDuration(fl.Interval); err == nil {
@@ -327,26 +327,44 @@ func runCmd(cfgFile *string, fl *Flag) error {
 			fl.K8sInfo.WorkloadLabelPrefix)
 	}
 
+	ApplyDefaultOperatorURLIfReachable(fl)
+
 	stopCh := make(chan struct{})
 	var k8sinfo *cli.K8sInfo
 	var c *cli.K8sClient
 
 	if fl.K8sInfo.KubeConfig != "" {
-		c, err = cli.NewK8sClientFromKubeConfig(
-			stopCh,
-			fl.K8sInfo.KubeConfig,
-			fl.K8sInfo.WorkloadLabels,
-			fl.K8sInfo.WorkloadLabelPrefix)
+		c, err = cli.NewK8sClientFromKubeConfig(stopCh, fl.K8sInfo)
 		if err != nil {
 			log.Warn(err)
+		} else if c != nil {
+			if fl.K8sInfo.OperatorURL != "" {
+				log.Info("use kubeconfig + datakit-operator k8s api for cluster info")
+			} else {
+				log.Info("use kubeconfig to connect to k8s cluster")
+			}
 		}
-		log.Info("use kubeconfig to connect to k8s cluster")
 	} else {
 		c, err = cli.NewK8sClientFromBearer(fl.K8sInfo, stopCh)
 		if err != nil {
 			log.Warn(err)
+		} else if c != nil {
+			if fl.K8sInfo.OperatorURL != "" {
+				log.Info("use bearer token + datakit-operator k8s api for cluster info")
+			} else {
+				log.Info("use bearer token to connect to k8s cluster")
+			}
 		}
-		log.Info("use bearer token to connect to k8s cluster")
+	}
+
+	if fl.K8sInfo.OperatorURL != "" {
+		if err := cli.AttachOperator(c, fl.K8sInfo.OperatorURL); err != nil {
+			log.Warnf("attach operator failed: %v", err)
+		} else {
+			log.Info("attach operator success")
+		}
+	} else {
+		log.Info("attach operator skipped")
 	}
 
 	if c != nil {
@@ -431,11 +449,11 @@ func runCmd(cfgFile *string, fl *Flag) error {
 		schedTracer, err := sysmonitor.NewProcessSchedTracer(procFilter)
 		if err != nil {
 			log.Error(err)
-			// feedLastErrorLoop(err, signaIterrrupt)
+			// feedLastErrorLoop(err, signalInterrupt)
 		} else {
 			if err := schedTracer.Start(ctx); err != nil {
 				log.Error(err)
-				feedLastErrorLoop(err, signaIterrrupt)
+				feedLastErrorLoop(err, signalInterrupt)
 			}
 			defer schedTracer.Stop() //nolint:errcheck
 		}
@@ -470,7 +488,7 @@ func runCmd(cfgFile *string, fl *Flag) error {
 		if enableEbpfConntrack {
 			ctOffset, _, err := guessOffsetConntrack(nil)
 			if err != nil {
-				feedLastErrorLoop(err, signaIterrrupt)
+				feedLastErrorLoop(err, signalInterrupt)
 			} else {
 				log.Debugf("%v", ctOffset)
 			}
@@ -478,16 +496,16 @@ func runCmd(cfgFile *string, fl *Flag) error {
 			ctManager, err := dkct.NewConntrackManger(ctOffset)
 			if err != nil {
 				err = fmt.Errorf("new conntrack manager: %w", err)
-				feedLastErrorLoop(err, signaIterrrupt)
+				feedLastErrorLoop(err, signalInterrupt)
 			}
 			if err := ctManager.Start(); err != nil {
-				feedLastErrorLoop(err, signaIterrrupt)
+				feedLastErrorLoop(err, signalInterrupt)
 			} else {
 				defer ctManager.Stop(manager.CleanAll) //nolint:errcheck
 			}
 			ctmap, ok, err := ctManager.GetMap("bpfmap_conntrack_tuple")
 			if err != nil {
-				feedLastErrorLoop(err, signaIterrrupt)
+				feedLastErrorLoop(err, signalInterrupt)
 			}
 			if !ok {
 				ctMap = nil
@@ -539,7 +557,7 @@ func runCmd(cfgFile *string, fl *Flag) error {
 			httpConst, err := guessOffsetHTTP(offset)
 			if err != nil {
 				err = fmt.Errorf("get http offset failed: %w", err)
-				feedLastErrorLoop(err, signaIterrrupt)
+				feedLastErrorLoop(err, signalInterrupt)
 			}
 			constEditor = append(constEditor, httpConst...)
 
@@ -598,7 +616,7 @@ func runCmd(cfgFile *string, fl *Flag) error {
 	}
 
 	if enableEbpfBash || enableEbpfNet || enableBpfNetlog {
-		<-signaIterrrupt
+		<-signalInterrupt
 	}
 
 	log.Info("datakit-ebpf exit")
@@ -679,7 +697,7 @@ func initLogger(log **logger.Logger, name, path, level string) error {
 	return nil
 }
 
-func initResLitmiter(fl *Flag, signaIterrrupt chan os.Signal) {
+func initResLimiter(fl *Flag, signalInterrupt chan os.Signal) {
 	if resLimiter, err := sysmonitor.NewResLimiter(
 		fl.ResourceLimit.LimitCPU,
 		fl.ResourceLimit.LimitMem,
@@ -692,7 +710,7 @@ func initResLitmiter(fl *Flag, signaIterrrupt chan os.Signal) {
 			case <-ch:
 				log.Error("resource limit exceed")
 				os.Exit(1)
-			case <-signaIterrrupt:
+			case <-signalInterrupt:
 			}
 		}()
 	}
