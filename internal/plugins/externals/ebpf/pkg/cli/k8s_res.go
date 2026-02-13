@@ -4,11 +4,11 @@ package cli
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"sync"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type Tag struct {
@@ -30,122 +30,58 @@ type Tag struct {
 }
 
 type K8sResource struct {
-	Namespace   string
-	Container   map[string]*ContainerInfo
-	Pod         []*PodInfo
-	Service     []*ServiceInfo
-	Deployment  []*DeploymentInfo
-	ReplicaSet  []*ReplicaSetInfo
-	StatefulSet []*StatefulSetInfo
-	Job         []*JobInfo
-	CronJob     []*CronJobInfo
-	DaemonSet   []*DaemonSetInfo
+	Namespace string
+	Container map[string]*ContainerInfo
+	Pod       []*PodInfo
+	Service   []*ServiceInfo
 }
 
-func GetRef(p *PodChain, refs []metav1.OwnerReference, res *K8sResource, dp int, lb []string, lbPrefix string) error {
-	for _, ref := range refs {
-		for {
-			dp++
-			if dp > 64 {
-				return fmt.Errorf("exceeded the maximum number of traversals")
-			}
+// replicaSetNameDeploySuffix 匹配 ReplicaSet 名称末尾的 pod-template-hash（约 5–10 位小写十六进制）。
+var replicaSetNameDeploySuffix = regexp.MustCompile(`-[a-z0-9]{5,10}$`)
 
-			switch ref.Kind {
-			case "ReplicaSet":
-				for _, v := range res.ReplicaSet {
-					if v.Name == ref.Name {
-						if len(v.OwnerReferences) > 0 {
-							if err := GetRef(p, v.OwnerReferences, res, dp, lb, lbPrefix); err == nil {
-								return nil
-							}
-						}
-						p.Rp = v
-						p.Tag.Kind = Rp
-						p.Tag.WorkloadName = v.Name
-						p.Tag.Labels = getLBs(v.Labels, p.Tag.Labels, lb, lbPrefix)
-						return nil
-					}
-				}
-			case "Deployment":
-				for _, v := range res.Deployment {
-					if v.Name == ref.Name {
-						if len(v.OwnerReferences) > 0 {
-							if err := GetRef(p, v.OwnerReferences, res, dp, lb, lbPrefix); err == nil {
-								return nil
-							}
-						}
-						p.De = v
-						p.Tag.Kind = De
-						p.Tag.WorkloadName = v.Name
-						p.Tag.Labels = getLBs(v.Labels, p.Tag.Labels, lb, lbPrefix)
-						return nil
-					}
-				}
-			case "Job":
-				for _, v := range res.Job {
-					if v.Name == ref.Name {
-						if len(v.OwnerReferences) > 0 {
-							if err := GetRef(p, v.OwnerReferences, res, dp, lb, lbPrefix); err == nil {
-								return nil
-							}
-						}
-						p.Jb = v
-						p.Tag.Kind = Rp
-						p.Tag.WorkloadName = v.Name
-						p.Tag.Labels = getLBs(v.Labels, p.Tag.Labels, lb, lbPrefix)
-						return nil
-					}
-				}
-			case "CronJob":
-				for _, v := range res.CronJob {
-					if v.Name == ref.Name {
-						if len(v.OwnerReferences) > 0 {
-							if err := GetRef(p, v.OwnerReferences, res, dp, lb, lbPrefix); err == nil {
-								return nil
-							}
-						}
-						p.Cr = v
-						p.Tag.Kind = Cr
-						p.Tag.WorkloadName = v.Name
-						p.Tag.Labels = getLBs(v.Labels, p.Tag.Labels, lb, lbPrefix)
-						return nil
-					}
-				}
-			case "StatefulSet":
-				for _, v := range res.StatefulSet {
-					if v.Name == ref.Name {
-						if len(v.OwnerReferences) > 0 {
-							if err := GetRef(p, v.OwnerReferences, res, dp, lb, lbPrefix); err == nil {
-								return nil
-							}
-						}
-						p.St = v
-						p.Tag.Kind = St
-						p.Tag.WorkloadName = v.Name
-						p.Tag.Labels = getLBs(v.Labels, p.Tag.Labels, lb, lbPrefix)
-						return nil
-					}
-				}
-			case "DaemonSet":
-				for _, v := range res.DaemonSet {
-					if v.Name == ref.Name {
-						if len(v.OwnerReferences) > 0 {
-							if err := GetRef(p, v.OwnerReferences, res, dp, lb, lbPrefix); err == nil {
-								return nil
-							}
-						}
-						p.Ds = v
-						p.Tag.Kind = Ds
-						p.Tag.WorkloadName = v.Name
-						p.Tag.Labels = getLBs(v.Labels, p.Tag.Labels, lb, lbPrefix)
-						return nil
-					}
-				}
-			default:
-			}
+// GetRefFromPodOnly 仅根据 Pod 的 OwnerReferences 和 Labels 解析 workload，不依赖 Deployment/ReplicaSet/Job 等列表。
+// 用于仅能访问 Pod API（如 operator 仅暴露 Pod）时：直接 workload（StatefulSet/DaemonSet/Job）可得到 Kind+Name；
+// 由 ReplicaSet 管理的 Pod 会从 RS 名推断 Deployment 名（去掉末尾 -<hash>）；CronJob 的 Pod 只能得到 Job 名。
+func GetRefFromPodOnly(p *PodChain, lb []string, lbPrefix string) {
+	if p == nil || p.Po == nil || p.Tag == nil || len(p.Po.OwnerReferences) == 0 {
+		return
+	}
+	ref := p.Po.OwnerReferences[0]
+	// 可选：优先用 Controller 指向的 owner
+	for i := range p.Po.OwnerReferences {
+		if p.Po.OwnerReferences[i].Controller != nil && *p.Po.OwnerReferences[i].Controller {
+			ref = p.Po.OwnerReferences[i]
+			break
 		}
 	}
-	return fmt.Errorf("not found")
+
+	workloadName := ref.Name
+	var kind Kind
+	switch ref.Kind {
+	case "StatefulSet":
+		kind = St
+	case "DaemonSet":
+		kind = Ds
+	case "Job":
+		kind = Jb
+	case "CronJob":
+		kind = Cr
+	case "ReplicaSet":
+		kind = Rp
+		// 推断 Deployment 名：ReplicaSet 名通常为 <deployment-name>-<pod-template-hash>
+		if inferred := replicaSetNameDeploySuffix.ReplaceAllString(ref.Name, ""); inferred != "" && inferred != ref.Name {
+			workloadName = inferred
+			kind = De
+		}
+	case "Deployment":
+		kind = De
+	default:
+		return
+	}
+
+	p.Tag.Kind = kind
+	p.Tag.WorkloadName = workloadName
+	p.Tag.Labels = getLBs(p.Po.Labels, p.Tag.Labels, lb, lbPrefix)
 }
 
 func GetAllResource(k8sCli *K8sClient, criCli []*CRIClient) (map[string]*K8sResource, error) {
@@ -163,24 +99,6 @@ func GetAllResource(k8sCli *K8sClient, criCli []*CRIClient) (map[string]*K8sReso
 	if err := k8sCli.ListAllServices(); err != nil {
 		log.Warnf("list services failed: %s", err.Error())
 	}
-	if err := k8sCli.ListAllDeployments(); err != nil {
-		log.Warnf("list deployments failed: %s", err.Error())
-	}
-	if err := k8sCli.ListAllStatefulSets(); err != nil {
-		log.Warnf("list statefulsets failed: %s", err.Error())
-	}
-	if err := k8sCli.ListAllCronJobs(); err != nil {
-		log.Warnf("list cronjobs failed: %s", err.Error())
-	}
-	if err := k8sCli.ListAllJobs(); err != nil {
-		log.Warnf("list jobs failed: %s", err.Error())
-	}
-	if err := k8sCli.ListAllDaemonSets(); err != nil {
-		log.Warnf("list daemonsets failed: %s", err.Error())
-	}
-	if err := k8sCli.ListAllReplicaSets(); err != nil {
-		log.Warnf("list replicasets failed: %s", err.Error())
-	}
 
 	nsLi, err := k8sCli.ListNamespaces()
 	if err != nil {
@@ -197,12 +115,6 @@ func GetAllResource(k8sCli *K8sClient, criCli []*CRIClient) (map[string]*K8sReso
 
 		r.Pod, _ = GetPodInfo(k8sCli, namespace)
 		r.Service, _ = GetServiceInfo(k8sCli, namespace)
-		r.Deployment, _ = GetDeploymentInfo(k8sCli, namespace)
-		r.StatefulSet, _ = GetStatefulSetInfo(k8sCli, namespace)
-		r.CronJob, _ = GetCronJobInfo(k8sCli, namespace)
-		r.Job, _ = GetJobInfo(k8sCli, namespace)
-		r.DaemonSet, _ = GetDaemonSetInfo(k8sCli, namespace)
-		r.ReplicaSet, _ = GetReplicaSetInfo(k8sCli, namespace)
 		rWithNS[namespace] = r
 	}
 
@@ -256,14 +168,7 @@ type K8sTag struct {
 type PodChain struct {
 	Po  *PodInfo
 	Co  *ContainerInfo
-	Cr  *CronJobInfo
-	Jb  *JobInfo
-	Ds  *DaemonSetInfo
 	Svc []*ServiceInfo
-	St  *StatefulSetInfo
-	De  *DeploymentInfo
-	Rp  *ReplicaSetInfo
-
 	Tag *K8sTag
 }
 
@@ -474,9 +379,9 @@ func GetPidAndIPMapping(resWithNS map[string]*K8sResource, lb []string, lbPrefix
 				}
 			}
 
-			// K8s Workload
+			// K8s Workload：有完整资源列表时用 GetRef 解析到顶层 workload；否则仅用 Pod API（OwnerReferences+Labels）
 			if p.Po != nil {
-				_ = GetRef(p, p.Po.OwnerReferences, res, 0, lb, lbPrefix)
+				GetRefFromPodOnly(p, lb, lbPrefix)
 			}
 
 			li = append(li, p)
@@ -534,7 +439,7 @@ func (inf *K8sInfo) IsServer(pid int, protocol, ip string, port int) (bool, bool
 		return false, false
 	}
 
-	return inf.mapping.IsServer(pid, protocol, ip, pid), true
+	return inf.mapping.IsServer(pid, protocol, ip, port), true
 }
 
 func (inf *K8sInfo) QuerySvcInfo(protocol, ip string, port int) (*PodChainSvc, bool) {
@@ -555,7 +460,7 @@ func (inf *K8sInfo) Update() error {
 	defer inf.Unlock()
 	inf.mapping = GetPidAndIPMapping(v,
 		inf.k8sCli.workloadLabels,
-		inf.k8sCli.workloadLablePrefix)
+		inf.k8sCli.workloadLabelPrefix)
 
 	return nil
 }

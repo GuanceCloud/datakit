@@ -1,8 +1,6 @@
 package cli
 
 import (
-	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	apiRuntime "k8s.io/apimachinery/pkg/runtime"
@@ -26,17 +24,13 @@ type ResourceEvent struct {
 	Key          string
 }
 
-func NewInformaers(clientset *kubernetes.Clientset, stopCh <-chan struct{}) map[string]cache.SharedIndexInformer {
+func NewInformers(clientset *kubernetes.Clientset, podInformer bool, stopCh <-chan struct{}) map[string]cache.SharedIndexInformer {
 	// 为每种资源创建Informer
 	informers := map[string]cache.SharedIndexInformer{
-		ResourceTypePod:         createPodInformer(clientset, stopCh),
-		ResourceTypeService:     createServiceInformer(clientset, stopCh),
-		ResourceTypeDeployment:  createDeploymentInformer(clientset, stopCh),
-		ResourceTypeStatefulSet: createStatefulSetInformer(clientset, stopCh),
-		ResourceTypeDaemonSet:   createDaemonSetInformer(clientset, stopCh),
-		ResourceTypeReplicaSet:  createReplicaSetInformer(clientset, stopCh),
-		ResourceTypeCronJob:     createCronJobInformer(clientset, stopCh),
-		ResourceTypeJob:         createJobInformer(clientset, stopCh),
+		ResourceTypeService: createServiceInformer(clientset, stopCh),
+	}
+	if podInformer {
+		informers[ResourceTypePod] = createPodInformer(clientset, stopCh)
 	}
 
 	// 等待所有缓存同步完成
@@ -69,60 +63,6 @@ func createServiceInformer(clientset *kubernetes.Clientset, stopCh <-chan struct
 		clientset.CoreV1().RESTClient(),
 		"services",
 		&corev1.Service{},
-		stopCh,
-	)
-}
-
-func createDeploymentInformer(clientset *kubernetes.Clientset, stopCh <-chan struct{}) cache.SharedIndexInformer {
-	return createInformer(
-		clientset.AppsV1().RESTClient(),
-		"deployments",
-		&appsv1.Deployment{},
-		stopCh,
-	)
-}
-
-func createStatefulSetInformer(clientset *kubernetes.Clientset, stopCh <-chan struct{}) cache.SharedIndexInformer {
-	return createInformer(
-		clientset.AppsV1().RESTClient(),
-		"statefulsets",
-		&appsv1.StatefulSet{},
-		stopCh,
-	)
-}
-
-func createDaemonSetInformer(clientset *kubernetes.Clientset, stopCh <-chan struct{}) cache.SharedIndexInformer {
-	return createInformer(
-		clientset.AppsV1().RESTClient(),
-		"daemonsets",
-		&appsv1.DaemonSet{},
-		stopCh,
-	)
-}
-
-func createReplicaSetInformer(clientset *kubernetes.Clientset, stopCh <-chan struct{}) cache.SharedIndexInformer {
-	return createInformer(
-		clientset.AppsV1().RESTClient(),
-		"replicasets",
-		&appsv1.ReplicaSet{},
-		stopCh,
-	)
-}
-
-func createJobInformer(clientset *kubernetes.Clientset, stopCh <-chan struct{}) cache.SharedIndexInformer {
-	return createInformer(
-		clientset.BatchV1().RESTClient(),
-		"jobs",
-		&batchv1.Job{},
-		stopCh,
-	)
-}
-
-func createCronJobInformer(clientset *kubernetes.Clientset, stopCh <-chan struct{}) cache.SharedIndexInformer {
-	return createInformer(
-		clientset.BatchV1().RESTClient(),
-		"cronjobs",
-		&batchv1.CronJob{},
 		stopCh,
 	)
 }
