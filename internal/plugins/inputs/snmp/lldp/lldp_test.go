@@ -149,9 +149,8 @@ func Test_doParseLLDPData(t *T.T) {
 
 func TestLLDP(t *T.T) {
 	t.Run("basic", func(t *T.T) {
-		// targetIP := "192.168.139.162"
+		t.Skip("skip hard-coded target IP test")
 		targetIP := "10.100.67.254"
-		// targetIP := "10.200.10.253"
 
 		session, err := snmputil.NewGosnmpSession(&snmputil.SessionOpts{
 			IPAddress:       targetIP,
