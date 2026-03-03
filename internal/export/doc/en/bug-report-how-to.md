@@ -6,6 +6,8 @@
 
 As DataKit is typically deployed in user environments, various on-site data are required for troubleshooting. A Bug Report (hereinafter referred to as BR) is used to collect this information while minimizing the operations performed by on-site support engineers or users, thus reducing communication costs.
 
+> For how to collect bug reports, see [here](why-no-data.md#bug-report).
+
 Through BR, we can obtain various on-site data of DataKit during its operation phase, according to the data directory below BR:
 
 - *basic*: Basic machine environment information

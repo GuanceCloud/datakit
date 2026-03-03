@@ -325,13 +325,13 @@ nginx -s reload # reload configuration
     wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-arm-{{.Version}}.tar.gz
     
     # windows-amd64
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-amd64-{{.Version}}
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-amd64-{{.Version}}.exe
     wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-windows-amd64-{{.Version}}.tar.gz
     wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-windows-amd64-{{.Version}}.tar.gz
     wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-windows-amd64-{{.Version}}.tar.gz
     
     # windows-386
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-386-{{.Version}}
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-386-{{.Version}}.exe
     wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-windows-386-{{.Version}}.tar.gz
     wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-windows-386-{{.Version}}.tar.gz
     wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-windows-386-{{.Version}}.tar.gz
@@ -340,14 +340,10 @@ nginx -s reload # reload configuration
     
     # Optional resource: for RUM sourcemap 
     sources=(
-      "/datakit/sourcemap/jdk/OpenJDK11U-jdk_x64_mac_hotspot_11.0.16_8.tar.gz"
-      "/datakit/sourcemap/jdk/OpenJDK11U-jdk_aarch64_mac_hotspot_11.0.15_10.tar.gz"
       "/datakit/sourcemap/jdk/OpenJDK11U-jdk_x64_linux_hotspot_11.0.16_8.tar.gz"
       "/datakit/sourcemap/jdk/OpenJDK11U-jdk_aarch64_linux_hotspot_11.0.16_8.tar.gz"
-      "/datakit/sourcemap/R8/commandlinetools-mac-8512546_simplified.tar.gz"
       "/datakit/sourcemap/R8/commandlinetools-linux-8512546_simplified.tar.gz"
       "/datakit/sourcemap/proguard/proguard-7.2.2.tar.gz"
-      "/datakit/sourcemap/ndk/android-ndk-r22b-x64-mac-simplified.tar.gz"
       "/datakit/sourcemap/ndk/android-ndk-r25-x64-linux-simplified.tar.gz"
       "/datakit/sourcemap/atosl/atosl-darwin-x64"
       "/datakit/sourcemap/atosl/atosl-darwin-arm64"

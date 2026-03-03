@@ -404,7 +404,7 @@ File description
 | `syslog`        | Yes              | Only supports `linux`, based on `journalctl` to obtain related logs                                                     |
 | `error.log`     | No               | Records error information that occurs during the command output process                                            |
 
-### Sensitive Information Processing {#sensitive}
+#### Sensitive Information Processing {#sensitive}
 
 When collecting information, sensitive information (such as tokens, passwords, etc.) will be automatically filtered and replaced, with specific rules as follows:
 

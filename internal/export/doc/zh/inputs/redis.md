@@ -8,9 +8,13 @@ __int_icon      : 'icon/redis'
 dashboard :
   - desc  : 'Redis'
     path  : 'dashboard/zh/redis'
+  - desc  : 'Redis-v2'
+    path  : 'dashboard/zh/redis-v2'
 monitor:
   - desc: 'Redis'
     path: 'monitor/zh/redis'
+  - desc: 'Redis-v2'
+    path: 'monitor/zh/redis-v2'
 ---
 
 {{.AvailableArchs}}
