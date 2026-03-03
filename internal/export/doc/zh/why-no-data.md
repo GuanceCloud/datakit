@@ -410,7 +410,7 @@ $ datakit debug --bug-report
 | `syslog`      | 是       | 仅支持 `linux`, 基于 `journalctl` 来获取相关日志                                                        |
 | `error.log`   | 否       | 记录命令输出过程中出现的错误信息                                                        |
 
-### 敏感信息处理 {#sensitive}
+#### 敏感信息处理 {#sensitive}
 
 信息收集时，敏感信息（如 token、密码等）会被自动过滤替换，具体规则如下：
 
