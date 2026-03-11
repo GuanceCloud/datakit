@@ -89,7 +89,10 @@ func (ipt *Input) getOracleVersion() {
 		return
 	} else if ipt.mainVersion == "" {
 		if x := oracleVersionRe.FindStringSubmatch(ipt.fullVersion); len(x) > 1 {
-			ipt.mainVersion = strings.Split(x[1], ".")[0]
+			versionParts := strings.Split(x[1], ".")
+			ipt.mainVersion = versionParts[0]
+			ipt.dbVersion = x[1]
+			l.Debugf("Oracle Version: %s, DB Version: %s", ipt.fullVersion, ipt.dbVersion)
 		}
 	}
 }

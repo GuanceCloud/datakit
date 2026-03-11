@@ -241,6 +241,74 @@ apt-get install -y libaio-dev libaio1
         The environment variable has highest priority, which means if existed that environment variable, the value in the environment variable will always treated as the password.
 <!-- markdownlint-enable -->
 
+## Database Monitoring (DBM) {#dbm}
+
+Database Monitoring (DBM) provides deep visibility into Oracle database performance by collecting query metrics, activity sessions, and execution plans to help analyze and optimize database performance.
+
+### Enable DBM {#dbm-enabled}
+
+```toml
+[inputs.oracle.dbm]
+  # Enable DBM feature (default: false)
+  enabled = true
+```
+
+### Query Metrics {#dbm-metric}
+
+Collects cumulative execution statistics of SQL queries aggregated by SQL ID, plan hash value, and PDB. Contains execution count, CPU time, logical reads, physical reads, wait time, etc. Reflects actual query execution through derivative metrics (differences between two collections).
+
+> Note: Only queries that appear in two consecutive collection windows will report metrics. Queries collected for the first time are only used as a baseline and will not report metrics.
+
+```toml
+[inputs.oracle.dbm.metric]
+  # Enable query metrics collection (default: false)
+  enabled = true
+  # Collection interval (default: 60s)
+  collection_interval = "60s"
+  # Maximum number of rows to collect (default: 10000)
+  db_rows_limit = 10000
+  # Maximum number of queries to report per collection interval (default: 250)
+  # Only the top N queries (sorted by derivative elapsed time) will be reported as metrics
+  max_queries = 250
+  # Lookback window in seconds for filtering queries (default: 120)
+  # Only queries that executed within this time window will be collected
+  lookback_window = 120
+  # Enable plan collection (default: true)
+  plan_enabled = true
+  # Plan object cache TTL (default: 1h)
+  plan_cache_ttl = "1h"
+  # Maximum runtime in seconds for plan collection (default: 30)
+  # If collection takes longer than this, plan collection will be skipped
+  max_run_time = 30
+  # Disable last active time filter (default: false)
+  # If set to true, all queries will be collected, not just recently active ones
+  disable_last_active = false
+```
+
+**Execution Plans**: When `plan_enabled = true`, execution plans will also be collected.
+
+### Activity Queries {#dbm-activity}
+
+Collects information about currently executing queries and active sessions. Records session ID, serial number, status, wait events, blocking information, SQL text (obfuscated), etc., used for real-time monitoring of current database activity and problem diagnosis.
+
+**Session Metrics**: Session metrics are automatically generated based on activity query data.
+
+**Connection Metrics**: Independently queries database connection information, aggregating connection count by dimensions such as username, status, PDB.
+
+```toml
+[inputs.oracle.dbm.activity]
+  # Enable active query information collection (default: false)
+  enabled = true
+  # Collection interval for activity metrics (default: 10s)
+  collection_interval = "10s"
+  # Maximum number of rows to collect (default: 1000)
+  db_rows_limit = 1000
+  # Include all sessions (default: false)
+  # If set to true, all sessions will be collected, not just active sessions
+  include_all_sessions = false
+```
+
+
 ## Metric {#metric}
 
 For all of the following data collections, the global election tags will added automatically, we can add extra tags in `[inputs.{{.InputName}}.tags]` if needed:
@@ -300,6 +368,8 @@ Change the value of the field `slow_query_time` from `0s` to the threshold time,
 
 <!-- markdownlint-enable -->
 
+## Logging {#logging}
+
 {{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "logging"}}
@@ -309,8 +379,8 @@ Change the value of the field `slow_query_time` from `0s` to the threshold time,
 {{$m.Desc}}
 
 {{$m.MarkdownTable}}
-{{end}}
 
+{{ end }}
 {{ end }}
 
 ## FAQ {#faq}
