@@ -277,19 +277,8 @@ func (args *InstallerArgs) getDataway() (*dataway.Dataway, error) {
 	}
 }
 
-// LoadInstallerArgs apply args settings to mc.
-// nolint:funlen
-func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config, error) {
+func (args *InstallerArgs) loadDataway(mc *config.Config) (*config.Config, error) {
 	var err error
-
-	if args.FlagUserName != "" {
-		mc.DatakitUser = args.FlagUserName
-	}
-
-	if args.Proxy != "" {
-		l.Debugf("set proxy to %s", args.Proxy)
-		mc.Dataway.HTTPProxy = args.Proxy
-	}
 
 	// setup dataway and check token format
 	if len(args.DatawayURLs) != 0 {
@@ -306,6 +295,108 @@ func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config,
 		l.Infof("Set dataway global sinker customer keys: %+#v", mc.Dataway.GlobalCustomerKeys)
 	}
 
+	if args.Proxy != "" {
+		l.Debugf("set proxy to %s", args.Proxy)
+		mc.Dataway.HTTPProxy = args.Proxy
+	}
+
+	return mc, nil
+}
+
+func (args *InstallerArgs) loadResourceLimit(mc *config.Config) *config.Config {
+	if mc.ResourceLimitOptions.Enable { // resource-limit not disabled before upgrade/install
+		if args.LimitCPUMax > 0 {
+			mc.ResourceLimitOptions.CPUCores = resourcelimit.CPUMaxToCores(args.LimitCPUMax)
+			mc.ResourceLimitOptions.CPUMaxDeprecated = 0.0 // clear old cpu-max
+
+			l.Infof("apply cpu-cores to %f based on cpu-max %f",
+				mc.ResourceLimitOptions.CPUCores, args.LimitCPUMax)
+		}
+
+		// apply args to datakit.conf or from datakit.conf to args
+		if args.LimitCPUCores > 0 {
+			mc.ResourceLimitOptions.CPUCores = args.LimitCPUCores
+			mc.ResourceLimitOptions.CPUMaxDeprecated = 0.0 // clear old cpu-max
+
+			l.Infof("apply cpu-cores: %f", mc.ResourceLimitOptions.CPUCores)
+		}
+
+		// clear deprecated cpu-max
+		if mc.ResourceLimitOptions.CPUMaxDeprecated > 0 {
+			mc.ResourceLimitOptions.CPUCores = resourcelimit.CPUMaxToCores(mc.ResourceLimitOptions.CPUMaxDeprecated)
+			mc.ResourceLimitOptions.CPUMaxDeprecated = 0.0
+		}
+
+		if args.LimitMemMax > 0 {
+			mc.ResourceLimitOptions.MemMax = args.LimitMemMax
+
+			l.Infof("apply mem-max: %f", mc.ResourceLimitOptions.MemMax)
+		}
+
+		mc.ResourceLimitOptions.Setup()
+
+		l.Infof("resource limit enabled under %s, cpu-cores: %f, mem: %dMB",
+			runtime.GOOS,
+			mc.ResourceLimitOptions.CPUCores,
+			mc.ResourceLimitOptions.MemMax)
+	}
+
+	return mc
+}
+
+func (args *InstallerArgs) loadHTTPPublicAPIs(mc *config.Config) *config.Config {
+	apis := strings.Split(args.HTTPPublicAPIs, ",")
+	idx := 0
+	for _, api := range apis {
+		api = strings.TrimSpace(api)
+		if api != "" {
+			if !strings.HasPrefix(api, "/") {
+				api = "/" + api
+			}
+			apis[idx] = api
+			idx++
+		}
+	}
+
+	mc.HTTPAPI.PublicAPIs = apis[:idx]
+	l.Infof("set PublicAPIs to %s", strings.Join(apis[:idx], ","))
+	return mc
+}
+
+func (args *InstallerArgs) loadHTTPServerSet(mc *config.Config) *config.Config {
+	taddr, err := net.ResolveTCPAddr("tcp", mc.HTTPAPI.Listen)
+	if err != nil {
+		l.Warnf("invalid lagacy HTTP listen %q", mc.HTTPAPI.Listen)
+		return mc
+	} else {
+		if args.HTTPPort == 0 && taddr.Port != 0 { // use lagacy port
+			args.HTTPPort = taddr.Port
+		}
+
+		if args.HTTPListen == "" && taddr.IP.String() != "" {
+			args.HTTPListen = taddr.IP.String() // use lagacy ip
+		}
+	}
+
+	mc.HTTPAPI.Listen = fmt.Sprintf("%s:%d", args.HTTPListen, args.HTTPPort)
+	l.Infof("set HTTP listen to %s", mc.HTTPAPI.Listen)
+	return mc
+}
+
+// LoadInstallerArgs apply args settings to mc.
+// nolint:funlen
+func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config, error) {
+	var err error
+
+	mc, err = args.loadDataway(mc)
+	if err != nil {
+		return mc, err
+	}
+
+	if args.FlagUserName != "" {
+		mc.DatakitUser = args.FlagUserName
+	}
+
 	if args.InstrumentationEnabled != "" {
 		mc.HTTPAPI.ListenSocket = "/var/run/datakit/datakit.sock"
 		mc.APMInject.InstrumentationEnabled = args.InstrumentationEnabled
@@ -317,20 +408,7 @@ func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config,
 	}
 
 	if args.HTTPPublicAPIs != "" {
-		apis := strings.Split(args.HTTPPublicAPIs, ",")
-		idx := 0
-		for _, api := range apis {
-			api = strings.TrimSpace(api)
-			if api != "" {
-				if !strings.HasPrefix(api, "/") {
-					api = "/" + api
-				}
-				apis[idx] = api
-				idx++
-			}
-		}
-		mc.HTTPAPI.PublicAPIs = apis[:idx]
-		l.Infof("set PublicAPIs to %s", strings.Join(apis[:idx], ","))
+		mc = args.loadHTTPPublicAPIs(mc)
 	}
 
 	if args.DCAEnable != "" {
@@ -350,42 +428,7 @@ func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config,
 	}
 
 	if args.LimitDisabled != 1 {
-		if mc.ResourceLimitOptions.Enable { // resource-limit not disabled before upgrade/install
-			if args.LimitCPUMax > 0 {
-				mc.ResourceLimitOptions.CPUCores = resourcelimit.CPUMaxToCores(args.LimitCPUMax)
-				mc.ResourceLimitOptions.CPUMaxDeprecated = 0.0 // clear old cpu-max
-
-				l.Infof("apply cpu-cores to %f based on cpu-max %f",
-					mc.ResourceLimitOptions.CPUCores, args.LimitCPUMax)
-			}
-
-			// apply args to datakit.conf or from datakit.conf to args
-			if args.LimitCPUCores > 0 {
-				mc.ResourceLimitOptions.CPUCores = args.LimitCPUCores
-				mc.ResourceLimitOptions.CPUMaxDeprecated = 0.0 // clear old cpu-max
-
-				l.Infof("apply cpu-cores: %f", mc.ResourceLimitOptions.CPUCores)
-			}
-
-			// clear deprecated cpu-max
-			if mc.ResourceLimitOptions.CPUMaxDeprecated > 0 {
-				mc.ResourceLimitOptions.CPUCores = resourcelimit.CPUMaxToCores(mc.ResourceLimitOptions.CPUMaxDeprecated)
-				mc.ResourceLimitOptions.CPUMaxDeprecated = 0.0
-			}
-
-			if args.LimitMemMax > 0 {
-				mc.ResourceLimitOptions.MemMax = args.LimitMemMax
-
-				l.Infof("apply mem-max: %f", mc.ResourceLimitOptions.MemMax)
-			}
-
-			mc.ResourceLimitOptions.Setup()
-
-			l.Infof("resource limit enabled under %s, cpu-cores: %f, mem: %dMB",
-				runtime.GOOS,
-				mc.ResourceLimitOptions.CPUCores,
-				mc.ResourceLimitOptions.MemMax)
-		}
+		mc = args.loadResourceLimit(mc)
 	} else {
 		mc.ResourceLimitOptions.Enable = false
 		l.Infof("resource limit disabled, OS: %s", runtime.GOOS)
@@ -427,21 +470,7 @@ func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config,
 	}
 
 	if args.HTTPListen != "" || args.HTTPPort != 0 {
-		taddr, err := net.ResolveTCPAddr("tcp", mc.HTTPAPI.Listen)
-		if err != nil {
-			l.Warnf("invalid lagacy HTTP listen %q", mc.HTTPAPI.Listen)
-		} else {
-			if args.HTTPPort == 0 && taddr.Port != 0 { // use lagacy port
-				args.HTTPPort = taddr.Port
-			}
-
-			if args.HTTPListen == "" && taddr.IP.String() != "" {
-				args.HTTPListen = taddr.IP.String() // use lagacy ip
-			}
-		}
-
-		mc.HTTPAPI.Listen = fmt.Sprintf("%s:%d", args.HTTPListen, args.HTTPPort)
-		l.Infof("set HTTP listen to %s", mc.HTTPAPI.Listen)
+		mc = args.loadHTTPServerSet(mc)
 	}
 
 	if args.HTTPSocket != "" {
@@ -471,9 +500,9 @@ func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config,
 					SSHPrivateKeyPath:     args.GitKeyPath,
 					SSHPrivateKeyPassword: args.GitKeyPW,
 					Branch:                args.GitBranch,
-				}, // GitRepository
-			}, // Repos
-		} // GitRepost
+				},
+			},
+		}
 	}
 
 	if args.RumDisable404Page != "" {
