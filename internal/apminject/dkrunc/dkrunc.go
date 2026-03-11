@@ -373,7 +373,7 @@ func (log *Log) Info(val string) {
 
 func (log *Log) Close() {
 	if log.file != nil {
-		log.Close() //nolint:gosec,errcheck
+		log.file.Close() //nolint:gosec,errcheck
 	}
 }
 

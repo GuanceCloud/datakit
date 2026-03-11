@@ -83,6 +83,7 @@ func (args *InstallerArgs) DownloadFiles(to string) error {
 		if args.InstrumentationEnabled != "" {
 			opts = append(opts,
 				apmInstaller.WithJavaLibURL(args.DistDatakitAPMInjJavaLibURL),
+				apmInstaller.WithPhpLibURL(args.DistDatakitAPMInjPHPLibURL),
 				apmInstaller.WithPythonLib(true))
 		}
 

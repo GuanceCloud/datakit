@@ -143,6 +143,7 @@ type InstallerArgs struct {
 	DistDatakitELinkerURL,
 	DistDatakitAPMInjectURL,
 	DistDatakitAPMInjJavaLibURL,
+	DistDatakitAPMInjPHPLibURL,
 	DistDatakitURL string
 }
 
@@ -211,6 +212,11 @@ func (args *InstallerArgs) UpdateDownloadURLs() error {
 
 	if args.DistDatakitAPMInjJavaLibURL, err = url.JoinPath(prefix+brandURL,
 		"dd-image/dd-java-agent.jar"); err != nil {
+		return err
+	}
+
+	if args.DistDatakitAPMInjPHPLibURL, err = url.JoinPath(prefix+baseURL,
+		"ddtrace-lib/dd-trace-php/"); err != nil {
 		return err
 	}
 

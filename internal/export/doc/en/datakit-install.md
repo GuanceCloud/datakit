@@ -380,7 +380,7 @@ Only Linux and Windows ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.
 
 [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0) · [:octicons-beaker-24: Experimental](index.md#experimental)
 
-By specifying `DK_APM_INSTRUMENTATION_ENABLED` in the installation command, you can automatically inject APM for Java/Python applications:
+By specifying `DK_APM_INSTRUMENTATION_ENABLED` in the installation command, you can automatically inject APM for Java/Python/PHP applications:
 
 - Enable host inject
 
@@ -398,7 +398,9 @@ DK_APM_INSTRUMENTATION_ENABLED=docker \
   bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
 ```
 
-For host deployment, after DataKit is installed, reopen a terminal and restart the corresponding Java/Python application.
+For host deployment, after DataKit is installed, reopen a terminal and restart the corresponding Java/Python/PHP application.
+
+For containerized PHP and Python applications, the corresponding APM libraries need to be packaged into the image.
 
 For a specific process on the host or in a container, you can disable the automatic injection feature by injecting the environment variable `ENV_DATAKIT_DISABLE_APM_INS` and setting the value to `true`.
 
@@ -452,6 +454,7 @@ Operating environment requirements:
     - C standard library: glibc 2.4 and above, or musl
     - Java 8 and above
     - Python 3.7 and above
+    - PHP 7 and above
 
 In Kubernetes, you can inject APM through the [DataKit Operator](operator-ddtrace.md).
 

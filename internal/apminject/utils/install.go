@@ -8,8 +8,10 @@ package utils
 import (
 	"debug/elf"
 	"fmt"
+	"os"
 	"os/exec"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 )
@@ -48,6 +50,72 @@ func LddInfo() (string, Version, error) {
 		}
 		return v1, version, nil
 	}
+}
+
+// DetectLibcType 检测系统的 libc 类型（musl 或 glibc）
+// 通过检查动态链接器路径来判断
+// glibc 使用 ld-linux-{arch}.so.*，musl 使用 ld-musl-{arch}.so.1
+// 优先检查 glibc，因为大多数系统使用 glibc.
+func DetectLibcType() string {
+	// 根据架构确定链接器名称
+	arch := "x86_64"
+	if runtime.GOARCH == "arm64" {
+		arch = "aarch64"
+	}
+
+	// 先检查 glibc 动态链接器（更常见）
+	// glibc: /lib64/ld-linux-x86-64.so.2, /lib/ld-linux.so.2 (32-bit)
+	glibcPaths := []string{
+		fmt.Sprintf("/lib64/ld-linux-%s.so.2", arch),
+		fmt.Sprintf("/lib/ld-linux-%s.so.2", arch),
+		fmt.Sprintf("/lib/ld-linux-%s.so.1", arch),
+	}
+	for _, p := range glibcPaths {
+		if _, err := os.Stat(p); err == nil {
+			return GLibc
+		}
+	}
+
+	// 检查 musl 动态链接器
+	muslPaths := []string{
+		fmt.Sprintf("/lib/ld-musl-%s.so.1", arch),
+		fmt.Sprintf("/lib64/ld-musl-%s.so.1", arch),
+	}
+	for _, p := range muslPaths {
+		if _, err := os.Stat(p); err == nil {
+			return Muslc
+		}
+	}
+
+	// 默认返回 glibc
+	return GLibc
+}
+
+// DetectLibcTypeFromBinary 检测指定二进制文件链接的 libc 类型（musl 或 glibc）
+// 通过 ldd 命令查看它依赖的动态库，更准确地判断该二进制需要哪个版本的 ddtrace.
+func DetectLibcTypeFromBinary(binaryPath string) string {
+	//nolint:gosec
+	cmd := exec.Command("ldd", binaryPath)
+	output, err := cmd.Output()
+	if err != nil {
+		// 如果 ldd 失败，回退到系统检测
+		return DetectLibcType()
+	}
+
+	outputStr := string(output)
+
+	// musl 的动态链接器路径
+	if strings.Contains(outputStr, "ld-musl") {
+		return Muslc
+	}
+
+	// glibc 的动态链接器路径
+	if strings.Contains(outputStr, "ld-linux") {
+		return GLibc
+	}
+
+	// 回退到系统检测
+	return DetectLibcType()
 }
 
 func libcInfo(text string) (string, string, bool) {

@@ -371,7 +371,7 @@ DK_USER_NAME="datakit" DK_DATAWAY="..." bash -c ...
 
 [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0) · [:octicons-beaker-24: Experimental](index.md#experimental)
 
-在安装命令中，指定 `DK_APM_INSTRUMENTATION_ENABLED` 可针对 Java/Python 等应用自动注入 APM：
+在安装命令中，指定 `DK_APM_INSTRUMENTATION_ENABLED` 可针对 Java/Python/PHP 等应用自动注入 APM：
 
 - 开启主机注入：
 
@@ -389,7 +389,7 @@ DK_APM_INSTRUMENTATION_ENABLED=docker \
   bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
 ```
 
-对于主机部署，在 DataKit 安装完成后，重新开启一个终端，并重启对应的 Java/Python 应用即可。
+对于主机部署，在 DataKit 安装完成后，重新开启一个终端，并重启对应的 Java/Python/PHP 应用即可。
 
 开启和关闭该功能，修改 `datakit.conf` 文件中 `[apm_inject]` 下的 `instrumentation_enabled` 配置的值：
 
@@ -397,6 +397,8 @@ DK_APM_INSTRUMENTATION_ENABLED=docker \
 - 值 `""` 或者 `"disable"`，关闭
 
 针对特定的主机上的进程或者容器内的进程，可以通过注入环境变量 `ENV_DATAKIT_DISABLE_APM_INS`，并把值设置为 `true` 来关闭自动注入功能。
+
+对于容器部署的 PHP 和 Python 应用，需要将对应语言的 APM 库打包到镜像中。
 
 注意事项：
 
@@ -443,6 +445,7 @@ DK_APM_INSTRUMENTATION_ENABLED=docker \
     - C 标准库：glibc 2.4 及以上版本，或 musl
     - Java 8 及以上版本
     - Python 3.7 及以上版本
+    - PHP 7 及以上版本
 
 在 Kubernetes 中，可以通过 [DataKit Operator 来注入 APM](operator-ddtrace.md)。
 
