@@ -466,6 +466,70 @@ DK_APM_INSTRUMENTATION_ENABLED=docker \
 
 ## FAQ {#faq}
 
+### 使用 Kubernetes Secret 保护 Dataway Token {#secure-dataway}
+
+DataKit 支持两种方式来保护 `dataway_token` 在 Kubernetes 配置中的安全。
+
+- 使用 Helm 安装 DataKit 时，可以通过配置 Secret 来隐藏 `dataway_token`：
+
+    **使用 Helm 命令安装，启用 Secret 模式**
+
+    ```bash
+    helm install datakit charts/datakit \
+      --set datakit.dataway_url="https://openway.example.com?token=tkn_xxxxxxxxxxxx" \
+      --set datakit.dataway_secret_enabled=true
+    ```
+
+    这种方式下：
+    - Helm 会自动创建一个 Kubernetes Secret 存储加密后的 `dataway_url`
+    - Pod 中的 `ENV_DATAWAY` 环境变量从 Secret 引用
+
+- 使用原生 YAML 文件安装时，需要手动创建 Secret 并修改环境变量引用：
+
+    1. **创建 Secret**
+        创建一个包含 ENV_DATAWAY 的 Secret：
+
+        ```yaml
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: datakit-dataway-secret
+          namespace: datakit
+        type: Opaque
+        data:
+          ENV_DATAWAY: <base64-encoded-dataway-url>
+        ```
+
+        使用 base64 编码你的 `dataway_url`：
+
+        ```bash
+        echo -n "https://openway.example.com?token=tkn_xxxxxxxxxxxx" | base64
+        ```
+
+    2. **修改环境变量引用**
+        在 `datakit.template.yaml` 或 `datakit-deployment.template.yaml` 中，将 `ENV_DATAWAY` 的环境变量定义从：
+
+        ```yaml
+        - name: ENV_DATAWAY
+          value: "https://openway.example.com?token=tkn_xxxxxxxxxxxx"
+        ```
+
+        改为：
+
+        ```yaml
+        - name: ENV_DATAWAY
+          valueFrom:
+            secretKeyRef:
+              name: datakit-dataway-secret
+              key: ENV_DATAWAY
+        ```
+
+    3. **应用配置**
+
+       ```bash
+       kubectl apply -f datakit.yaml
+       ```
+
 ### 不友好的主机名 {#bad-hostname}
 
 由于 DataKit 使用主机名（Hostname）作为数据串联的依据，某些情况下，一些主机名取得不是很友好，比如 `iZbp141ahn....`，但由于某些原因，又不能修改这些主机名，这给使用带来一定的困扰。在 DataKit 中，可在主配置中覆盖这个不友好的主机名。

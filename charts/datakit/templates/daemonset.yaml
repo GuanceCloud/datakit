@@ -43,8 +43,16 @@ spec:
                   fieldPath: spec.nodeName
             - name: ENV_CLUSTER_NAME_K8S
               value: {{ .Values.datakit.cluster_name_k8s}}
+            {{- if .Values.datakit.dataway_secret_enabled }}
+            - name: ENV_DATAWAY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.datakit.dataway_secret_name | quote }}
+                  key: {{ .Values.datakit.dataway_secret_key | quote }}
+            {{- else }}
             - name: ENV_DATAWAY
               value: {{ .Values.datakit.dataway_url }}
+            {{- end }}
             - name: ENV_GLOBAL_TAGS
               value: {{ .Values.datakit.global_tags }}
             - name: ENV_DEFAULT_ENABLED_INPUTS
