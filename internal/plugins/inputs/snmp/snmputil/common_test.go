@@ -376,9 +376,9 @@ func Test_calculateBandwidthUtilization(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.previous()
 
-			out, err := calculateBandwidthUtilization(tc.ip, tc.inf, tc.metricName, "metric", tc.metricValue, tc.timestamp)
+			rate, _, err := calculateBandwidthUtilization(tc.ip, tc.inf, tc.metricName, "metric", tc.metricValue, tc.timestamp)
 			assert.Equal(t, tc.expectErr, err)
-			assert.Equal(t, tc.expect, out)
+			assert.Equal(t, tc.expect, rate)
 		})
 	}
 }

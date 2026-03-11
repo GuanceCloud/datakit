@@ -801,9 +801,9 @@ func (ipt *Input) doCollectCore(ip string,
 	}
 
 	var metricData snmputil.MetricDatas
-	metricData.TaskType = "metric"
+	metricData.TaskType = snmputil.TaskTypeMetric
 	if collectObject {
-		metricData.TaskType = "object"
+		metricData.TaskType = snmputil.TaskTypeObject
 	}
 	if values != nil {
 		snmputil.ReportMetrics(device.Metrics, values, tags, &metricData)
@@ -943,6 +943,42 @@ type interfaceAttribute struct {
 	Interface      string                 `json:"interface"`
 	InterfaceAlias string                 `json:"interface_alias"`
 	Fields         map[string]interface{} `json:"fields"`
+}
+
+// mergeInterfacesByInterface merges entries with the same Interface into one, combining their Fields.
+func mergeInterfacesByInterface(list []*interfaceAttribute) []*interfaceAttribute {
+	if len(list) == 0 {
+		return list
+	}
+	merged := make(map[string]*interfaceAttribute)
+	for _, iface := range list {
+		if iface == nil {
+			continue
+		}
+		if existing, ok := merged[iface.Interface]; ok {
+			for k, v := range iface.Fields {
+				existing.Fields[k] = v
+			}
+			if existing.InterfaceAlias == "" && iface.InterfaceAlias != "" {
+				existing.InterfaceAlias = iface.InterfaceAlias
+			}
+		} else {
+			fields := make(map[string]interface{}, len(iface.Fields))
+			for k, v := range iface.Fields {
+				fields[k] = v
+			}
+			merged[iface.Interface] = &interfaceAttribute{
+				Interface:      iface.Interface,
+				InterfaceAlias: iface.InterfaceAlias,
+				Fields:         fields,
+			}
+		}
+	}
+	result := make([]*interfaceAttribute, 0, len(merged))
+	for _, v := range merged {
+		result = append(result, v)
+	}
+	return result
 }
 
 // sensors.
@@ -1118,6 +1154,7 @@ func getFieldTagArr(metricData *snmputil.MetricDatas,
 	if metaData.collectMeta {
 		// collect object.
 
+		objectFieldInterfaces = mergeInterfacesByInterface(objectFieldInterfaces)
 		objectFields["interfaces"] = beJSON(objectFieldInterfaces)
 		objectFields["sensors"] = beJSON(objectFieldSensors)
 		objectFields["mems"] = beJSON(objectFieldmems)
@@ -1127,9 +1164,12 @@ func getFieldTagArr(metricData *snmputil.MetricDatas,
 
 		tags := make(map[string]string)
 		getDatakitStyleTags(origTags, tags)
+		objectTags["device_type"] = metaData.Type
+		objectTags["device_vendor"] = metaData.Vendor
 
 		metaAll := strings.Join(metaData.data, ", ")
 		objectFields["device_meta"] = metaAll
+		objectFields["uptime"] = metaData.Uptime
 
 		fts.Add(&tagField{
 			Tags:   objectTags,
