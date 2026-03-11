@@ -9,6 +9,16 @@ datakit:
   ## @param dataway_url - string - optional
   ## The host of the DataKit intake server to send Agent data to, only set this option
   dataway_url: https://openway.{{.BrandDomain}}?token=<YOUR-Token>
+  ## @param dataway_secret_enabled - boolean - optional - default: false
+  ## Whether to create a Kubernetes Secret to store ENV_DATAWAY value
+  dataway_secret_enabled: false
+  ## @param dataway_secret_name - string - optional
+  ## Name of the Kubernetes Secret containing ENV_DATAWAY value.
+  ## If dataway_secret_enabled is true, a Secret will be created with this name.
+  dataway_secret_name: "datakit-dataway-secret"
+  ## @param dataway_secret_key - string - optional
+  ## Key in the Kubernetes Secret containing ENV_DATAWAY value
+  dataway_secret_key: "ENV_DATAWAY"
   ## @param global_tags - string - optional - default: 'host=__datakit_hostname,host_ip=__datakit_ip'
   ## It supports filling in global tags in the installation phase. The format example is: Project = ABC, owner = Zhang San (multiple tags are separated by English commas)
   global_tags: host=__datakit_hostname,host_ip=__datakit_ip
