@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/pipeline-go/constants"
@@ -26,6 +27,12 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 )
 
+const (
+	InfluxDBType = "influxdb"
+	FireLensType = "firelens"
+	FireHoseType = "firehose"
+)
+
 func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) {
 	resp.Write([]byte(`{"status":"success"}`)) // nolint: errcheck,gosec
 }
@@ -36,6 +43,7 @@ type parameters struct {
 	queryValues   url.Values
 	body          io.ReadCloser // 接口，bytes.buffer或者网络流
 	remoteIP      string        // 远端 IP 地址
+	headers       map[string]string
 }
 
 func (ipt *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request) {
@@ -49,9 +57,9 @@ func (ipt *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request
 		param *parameters
 		err   error
 	)
-
+	var requestID string
 	switch reqType {
-	case "influxdb", "firelens":
+	case InfluxDBType, FireLensType, FireHoseType:
 		// 保持原有行为：完整读取 body 到内存（仅对需要完整 payload 的类型）
 		pbuf := bufpool.GetBuffer()
 		_, err = io.Copy(pbuf, req.Body)
@@ -66,6 +74,16 @@ func (ipt *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request
 		bodyBytes := append([]byte(nil), pbuf.Bytes()...)
 		bufpool.PutBuffer(pbuf)
 
+		encoding := resolveBodyEncoding(req)
+		if encoding == "gzip" {
+			bodyBytes, err = gzipDecompress(bodyBytes)
+			if err != nil {
+				log.Errorf("gzipDecompress error: %s", err)
+				resp.Write(respData(requestID, err.Error())) //nolint:errcheck,gosec
+				return
+			}
+		}
+
 		param = &parameters{
 			ignoreURLTags: ipt.IgnoreURLTags,
 			url:           req.URL,
@@ -73,6 +91,11 @@ func (ipt *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request
 			body:          io.NopCloser(bytes.NewReader(bodyBytes)), // 满足接口数据类型，无操作
 			remoteIP:      remoteIP,
 		}
+		if reqType == FireHoseType {
+			param.headers = getHeaders(req.Header)
+			requestID = param.headers["request_id"]
+		}
+
 	default:
 		// 流式处理：直接传递 req.Body，避免一次性读入内存
 		param = &parameters{
@@ -91,13 +114,17 @@ func (ipt *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request
 		}
 	}()
 
-	if err := ipt.processLogBody(param); err != nil {
+	if err = ipt.processLogBody(param); err != nil {
 		log.Errorf("process log body error: %v", err)
 		resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	resp.Write([]byte(`{"status":"success"}`)) //nolint:errcheck,gosec
+	if reqType == FireHoseType {
+		resp.Write(respData(requestID, "")) //nolint:errcheck,gosec
+	} else {
+		resp.Write([]byte(`{"status":"success"}`)) //nolint:errcheck,gosec
+	}
 }
 
 func getSourceName(source string) string {
@@ -156,7 +183,7 @@ func (ipt *Input) processLogBody(param *parameters) error {
 	}
 
 	switch param.queryValues.Get("type") {
-	case "influxdb":
+	case InfluxDBType:
 		body, err := ioutil.ReadAll(param.body)
 		if err != nil {
 			log.Errorf("url %s failed to read body: %s", urlstr, err)
@@ -176,7 +203,7 @@ func (ipt *Input) processLogBody(param *parameters) error {
 			return err
 		}
 
-	case "firelens":
+	case FireLensType:
 
 		body, err := ioutil.ReadAll(param.body)
 		if err != nil {
@@ -238,7 +265,40 @@ func (ipt *Input) processLogBody(param *parameters) error {
 				point.WithTime(now))...),
 			)
 		}
+	case FireHoseType:
+		// firehose data
+		body, err := ioutil.ReadAll(param.body)
+		if err != nil {
+			log.Errorf("url %s failed to read body: %s", urlstr, err)
+			return err
+		}
+		rd := &requestData{}
+		err = json.Unmarshal(body, rd)
+		if err != nil {
+			log.Warnf("unmarshal err %v ", err)
+			return err
+		}
+		if rd.Timestamp == 0 {
+			rd.Timestamp = time.Now().UnixMilli()
+		}
+		t := time.UnixMilli(rd.Timestamp)
 
+		for _, record := range rd.Records {
+			var kvs point.KVs
+			kvs = kvs.Set(constants.FieldMessage, string(record.Data)).
+				AddTag("status", "unknown")
+
+			for k, v := range param.headers {
+				kvs = kvs.AddTag(k, v)
+			}
+			if s, ok := param.headers["source"]; ok {
+				source = s // 重置 source 防止使用 default。
+			}
+			pt := point.NewPoint(source, kvs,
+				append(point.DefaultLoggingOptions(), point.WithExtraTags(extraTags), point.WithTime(t))...)
+
+			pts = append(pts, pt)
+		}
 	default:
 
 		scanBuffer := ipt.getScanbuf()

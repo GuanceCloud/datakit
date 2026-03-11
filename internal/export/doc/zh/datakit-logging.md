@@ -420,7 +420,7 @@ Connection to 127.1 (127.0.0.1) 9531 port [udp/*] succeeded!
 Logstreaming 支持在 http url 中，通过添加参数可实现对日志数据的灵活操作。以下是支持的参数及其作用：
 
 - `type`：数据格式，目前只支持 `influxdb` 和 `firelens`。
-    - 当 `type` 为 `inflxudb` 时（`/v1/write/logstreaming?type=influxdb`），说明数据本身就是行协议格式（默认 precision 是 `s`），将只添加内置 tags，不再做其他操作
+    - 当 `type` 为 `influxdb` 时（`/v1/write/logstreaming?type=influxdb`），说明数据本身就是行协议格式（默认 precision 是 `s`），将只添加内置 tags，不再做其他操作
     - 当 `type` 为 `firelens` 时 (`/v1/write/logstreaming?type=firelens`)，数据格式应是 JSON 格式的多条日志
     - 当此值为空时，会对数据做分行和 Pipeline 等处理
 - `source`：标识数据来源，即行协议的 measurement。例如 `nginx` 或者 `redis`（`/v1/write/logstreaming?source=nginx`）
