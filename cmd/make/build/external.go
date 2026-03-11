@@ -7,7 +7,6 @@ package build
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -71,6 +70,22 @@ var externals = []*dkexternal{
 		},
 	},
 	{
+		// requirement: libsystemd-dev for journald CGO bindings
+		name: "journald",
+		lang: "go",
+
+		entry: "main.go",
+		osarchs: map[string]bool{
+			"linux/amd64": true,
+			"linux/arm64": true,
+		},
+
+		buildArgs: nil,
+		envs: []string{
+			"CGO_ENABLED=1",
+		},
+	},
+	{
 		name: "logfwd",
 		lang: "go",
 
@@ -105,7 +120,7 @@ func doBuildExternal(ex *dkexternal, dir, goos, goarch string, standalone bool) 
 		return nil
 	}
 
-	l.Debugf("building %s-%s/%s", goos, goarch, ex.name)
+	l.Infof("building %s-%s/%s", goos, goarch, ex.name)
 
 	if _, ok := ex.osarchs[curOSArch]; !ok {
 		l.Warnf("skip build %s under %s", ex.name, curOSArch)
@@ -117,21 +132,21 @@ func doBuildExternal(ex *dkexternal, dir, goos, goarch string, standalone bool) 
 		return nil
 	}
 
-	switch ex.name {
-	case "db2", "oracle":
-		if env := os.Getenv("ENABLE_DOCKER_BUILD_INPUTS"); len(env) == 0 {
-			l.Warnf("WARNING: skip build %s because env not specified!", ex.name)
-			return nil
-		}
+	// switch ex.name {
+	// case "db2", "oracle", "journald":
+	//	if env := os.Getenv("ENABLE_DOCKER_BUILD_INPUTS"); len(env) == 0 {
+	//		l.Warnf("WARNING: skip build %s because env not specified!", ex.name)
+	//		return nil
+	//	}
 
-		str, err := exec.LookPath("docker")
-		if err != nil {
-			l.Warnf("WARNING: skip build %s because docker is NOT exist!", ex.name)
-			return nil
-		}
+	//	str, err := exec.LookPath("docker")
+	//	if err != nil {
+	//		l.Warnf("WARNING: skip build %s because docker is NOT exist!", ex.name)
+	//		return nil
+	//	}
 
-		l.Infof("Found docker in %s", str)
-	}
+	//	l.Infof("Found docker in %s", str)
+	//}
 
 	if goarch != runtime.GOARCH {
 		switch ex.name { //nolint:gocritic
@@ -185,65 +200,16 @@ func doBuildExternal(ex *dkexternal, dir, goos, goarch string, standalone bool) 
 		envs = append(envs, "GOOS="+goos, "GOARCH="+goarch) //nolint:makezero
 
 		switch ex.name {
-		case "db2", "oracle":
-			// x86
-			// docker run --rm \
-			//   --name $DOCKER_IMAGE_NAME \
-			//   -e BUILD_PROJECT=oceanbase \
-			//   -e BUILD_ARCH=amd64 \
-			//   -e BUILD_SOURCE=internal/plugins/externals/oceanbase/oceanbase.go \
-			//   -e BUILD_DEST=dist/datakit-linux-amd64/externals/oceanbase \
-			//   -v /root/gopath/src:/tmp/gopath/src \
-			//   $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG
-
-			// arm
-			//  docker run --rm \
-			//    --name $DOCKER_IMAGE_NAME \
-			//    -e BUILD_PROJECT=oceanbase \
-			//    -e BUILD_ARCH=arm64 \
-			//    -e BUILD_SOURCE=internal/plugins/externals/oceanbase/oceanbase.go \
-			//    -e BUILD_DEST=dist/datakit-linux-arm64/externals/oceanbase \
-			//    -v /root/gopath/src:/tmp/gopath/src \
-			//    $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG
-
-			wd, err := os.Getwd()
-			if err != nil {
-				l.Errorf("os.Getwd() failed: %v", err)
-				return err
-			}
-			l.Infof("current directory: %s", wd)
-
-			projectPrefix := getProjectPrefix(wd)
-			if len(projectPrefix) == 0 {
-				l.Errorf("projectPrefix emptry")
-				return fmt.Errorf("path error")
-			}
-
-			distOut := getProjectSuffix(outPath)
-			if len(distOut) == 0 {
-				l.Errorf("distOut emptry")
-				return fmt.Errorf("path error")
-			}
-
-			if err := cleanDocker(); err != nil {
-				return err
-			}
-
+		case "journald", "db2", "oracle":
 			args := []string{
-				"docker", "run", "--rm",
-				"--name", "builder-plus",
-				"-e", "BUILD_PROJECT=" + ex.name,
-				"-e", "BUILD_ARCH=" + goarch,
-				"-e", "BUILD_SOURCE=" + entryPath,
-				"-e", "BUILD_DEST=" + distOut,
-				"-v", projectPrefix + ":" + "/tmp/gopath/src",
-				"pubrepo.jiagouyun.com/image-repo-for-testing/builder-plus:1.1",
+				"./scripts/build-external-collector.sh", "--input", ex.name, "-a", goarch,
 			}
-			envs := []string{}
-			msg, err := runEnv(args, envs)
+
+			// we do not need extra envs here, all envs has set in build-external-collector.sh.
+			msg, err := runEnv(args, nil)
 			if err != nil {
-				return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s",
-					args, envs, err, string(msg))
+				return fmt.Errorf("failed to run %v: %w, msg: %s",
+					args, err, string(msg))
 			}
 
 		default:
@@ -275,7 +241,7 @@ func doBuildExternal(ex *dkexternal, dir, goos, goarch string, standalone bool) 
 		buildArgs = append(buildArgs, filepath.Join(outdir, "externals")) //nolint:makezero
 		cmd := exec.Command(ex.buildCmd, buildArgs...)                    //nolint:gosec
 		if len(envs) > 0 {
-			cmd.Env = append(os.Environ(), envs...)
+			cmd.Env = envs
 		}
 
 		res, err := cmd.CombinedOutput()
@@ -315,36 +281,4 @@ func getProjectSuffix(str string) string {
 	}
 
 	return str[nIdx+len(projectName):]
-}
-
-func cleanDocker() error {
-	stopDocker()
-
-	rmDocker()
-
-	return nil
-}
-
-func stopDocker() {
-	args := []string{
-		"docker", "stop", "builder-plus",
-	}
-
-	msg, err := runEnv(args, os.Environ())
-	if err != nil && !strings.Contains(string(msg), "No such container") {
-		l.Info(string(msg))
-		l.Warnf("stop docker failed: %v", err)
-	}
-}
-
-func rmDocker() {
-	args := []string{
-		"docker", "rm", "builder-plus",
-	}
-
-	msg, err := runEnv(args, os.Environ())
-	if err != nil && !strings.Contains(string(msg), "No such container") {
-		l.Info(string(msg))
-		l.Warnf("rm docker failed: %v", err)
-	}
 }

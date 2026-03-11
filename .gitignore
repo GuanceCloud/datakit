@@ -128,5 +128,6 @@ charts/datakit/Chart.yaml
 charts/datakit/values.yaml
 charts/datakit/questions.yml
 charts/datakit/README.md
-
 AGENTS_PERSONAL.md
+iss-docs-*/
+worktrees/

@@ -6,7 +6,7 @@ RUN mkdir -p /usr/local/datakit \
     && mkdir -p /usr/local/datakit/externals \
     && mkdir -p /opt/oracle
 
-RUN yum install -y libaio-devel libaio unzip wget curl python3 python3-pip \
+RUN yum install -y libaio-devel libaio unzip wget curl python3 python3-pip systemd-devel \
     && pip3 install requests -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
 
 # download 3rd party libraries

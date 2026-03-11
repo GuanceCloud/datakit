@@ -1,0 +1,189 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
+//go:build linux
+// +build linux
+
+package collect
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/GuanceCloud/cliutils/point"
+)
+
+func TestFeedPoint(t *testing.T) {
+	tests := []struct {
+		name       string
+		points     []*point.Point
+		serverResp string
+		wantErr    bool
+	}{
+		{
+			name:       "empty points",
+			points:     []*point.Point{},
+			serverResp: "OK",
+			wantErr:    false,
+		},
+		{
+			name: "single point",
+			points: []*point.Point{
+				point.NewPoint("test", point.KVs{
+					point.NewKV("message", "test message"),
+					point.NewKV("status", "info"),
+				}),
+			},
+			serverResp: "OK",
+			wantErr:    false,
+		},
+		{
+			name: "multiple points",
+			points: []*point.Point{
+				point.NewPoint("test", point.KVs{
+					point.NewKV("message", "message 1"),
+					point.NewKV("status", "info"),
+				}),
+				point.NewPoint("test", point.KVs{
+					point.NewKV("message", "message 2"),
+					point.NewKV("status", "warning"),
+				}),
+			},
+			serverResp: "OK",
+			wantErr:    false,
+		},
+		{
+			name: "server error",
+			points: []*point.Point{
+				point.NewPoint("test", point.KVs{
+					point.NewKV("message", "test message"),
+					point.NewKV("status", "info"),
+				}),
+			},
+			serverResp: "Internal Server Error",
+			wantErr:    true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if tt.serverResp == "Internal Server Error" {
+					w.WriteHeader(http.StatusInternalServerError)
+					w.Write([]byte("Internal Server Error"))
+					return
+				}
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte("OK"))
+			}))
+			defer server.Close()
+
+			ipt := &Input{
+				dkURLPath: server.URL,
+			}
+
+			err := ipt.feedPoint(tt.points)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("feedPoint() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestWriteData(t *testing.T) {
+	tests := []struct {
+		name       string
+		data       []byte
+		serverResp string
+		statusCode int
+		wantErr    bool
+	}{
+		{
+			name:       "successful write",
+			data:       []byte("test data"),
+			serverResp: "OK",
+			statusCode: http.StatusOK,
+			wantErr:    false,
+		},
+		{
+			name:       "empty data",
+			data:       []byte{},
+			serverResp: "OK",
+			statusCode: http.StatusOK,
+			wantErr:    false,
+		},
+		{
+			name:       "server error",
+			data:       []byte("test data"),
+			serverResp: "Internal Server Error",
+			statusCode: http.StatusInternalServerError,
+			wantErr:    true,
+		},
+		{
+			name:       "bad request",
+			data:       []byte("invalid data"),
+			serverResp: "Bad Request",
+			statusCode: http.StatusBadRequest,
+			wantErr:    true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(tt.statusCode)
+				w.Write([]byte(tt.serverResp))
+			}))
+			defer server.Close()
+
+			ipt := &Input{
+				dkURLPath: server.URL,
+			}
+
+			err := ipt.writeData(tt.data)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("writeData() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestInput_NoURLPath(t *testing.T) {
+	points := []*point.Point{
+		point.NewPoint("test", point.KVs{
+			point.NewKV("message", "test message"),
+		}),
+	}
+
+	ipt := &Input{
+		dkURLPath: "",
+	}
+
+	err := ipt.feedPoint(points)
+	if err != nil {
+		t.Errorf("feedPoint() with empty URL should not return error, got %v", err)
+	}
+}
+
+func TestInput_ContextTimeout(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	}))
+	defer server.Close()
+
+	ipt := &Input{
+		dkURLPath: server.URL,
+	}
+
+	data := []byte("test data")
+	err := ipt.writeData(data)
+	if err != nil {
+		t.Errorf("writeData() unexpected error: %v", err)
+	}
+}

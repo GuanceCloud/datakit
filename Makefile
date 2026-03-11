@@ -319,12 +319,10 @@ production_image:
 	$(call build_docker_image,$(DOCKER_IMAGE_ARCHS),$(DOCKER_IMAGE_REPO))
 
 uos_image_testing: deps
-	$(call build_bin,testing,$(DOCKER_IMAGE_ARCHS))
 	$(call build_uos_image,$(UOS_DOCKER_IMAGE_ARCHS),'registry.jiagouyun.com/uos-dataflux') # testing image always push to registry.jiagouyun.com
 	$(call build_uos_image,$(UOS_DOCKER_IMAGE_ARCHS),$(DOCKER_IMAGE_REPO)) # we also publishing testing image to public image repo
 
 uos_image_production: deps
-	$(call build_bin,production,$(DOCKER_IMAGE_ARCHS))
 	$(call build_uos_image,$(UOS_DOCKER_IMAGE_ARCHS),$(DOCKER_IMAGE_REPO))
 
 production_mac: deps
@@ -369,7 +367,7 @@ build_dca_image_test:
 		-t $(DOCKER_IMAGE_REPO):$(DCA_VERSION) \
 		-f dca/Dockerfile.$(DOCKERFILE_SUFFIX) . --push;
 
-deps: prepare gofmt 
+deps: prepare
 
 # ignore files under vendor/.git/git
 gofmt:
