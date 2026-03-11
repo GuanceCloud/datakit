@@ -47,7 +47,7 @@ func (w *websocketClient) start() {
 	for data := range w.dataCh {
 		if err := w.conn.WriteMessage(websocket.TextMessage, data); err != nil {
 			log.Errorf("client write failed: %s", err.Error())
-			w.tryConnectWebsocketSrv()
+			w.tryConnectWebsocketServer()
 		}
 	}
 }
@@ -59,7 +59,7 @@ func (w *websocketClient) close() error {
 	return w.conn.Close()
 }
 
-func (w *websocketClient) tryConnectWebsocketSrv() {
+func (w *websocketClient) tryConnectWebsocketServer() {
 	for {
 		wscli, _, err := websocket.DefaultDialer.Dial(w.u.String(), nil)
 		if err != nil {

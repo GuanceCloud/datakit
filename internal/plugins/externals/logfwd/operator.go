@@ -26,13 +26,13 @@ type operatorAPIResponse struct {
 	Error           string   `json:"error,omitempty"`
 }
 
-// operatorClient datakit-operator HTTP 客户端.
+// operatorClient is an HTTP client for datakit-operator.
 type operatorClient struct {
-	baseURL string // 完整的 base URL，如 https://datakit-operator.datakit.svc:443
+	baseURL string // Full base URL, e.g., https://datakit-operator.datakit.svc:443
 	client  *http.Client
 }
 
-// newOperatorClient 创建新的 operator 客户端.
+// newOperatorClient creates a new operator client.
 func newOperatorClient(baseURL string) *operatorClient {
 	if strings.TrimSpace(baseURL) == "" {
 		return nil
@@ -53,7 +53,7 @@ func newOperatorClient(baseURL string) *operatorClient {
 	}
 }
 
-// fetchOperatorResponse 从 datakit-operator 获取响应.
+// fetchOperatorResponse fetches response from datakit-operator.
 func (oc *operatorClient) fetchOperatorResponse(namespace, podName, podLabels string) (*operatorAPIResponse, error) {
 	if oc.baseURL == "" {
 		return nil, fmt.Errorf("operator base URL not configured")
@@ -78,7 +78,7 @@ func (oc *operatorClient) fetchOperatorResponse(namespace, podName, podLabels st
 	}
 
 	if resp.StatusCode == http.StatusNotFound {
-		// 没有找到配置是正常的，返回空的响应
+		// Not finding configuration is normal, return empty response
 		return &operatorAPIResponse{}, nil
 	}
 

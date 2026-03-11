@@ -186,6 +186,8 @@ func (r *runner) createTailers(configs []*logConfig, name string) ([]*tailer.Tai
 			continue
 		}
 
+		log.Infof("creating tailer for path: %s", cfg.Path)
+
 		t, err := r.createAndStartTailer(cfg)
 		if err != nil {
 			errMsg := fmt.Sprintf("failed to create tailer for path %s: %v", cfg.Path, err)
@@ -250,9 +252,12 @@ func (r *runner) handleOperatorConfigs() {
 		return
 	}
 
+	log.Debugf("fetching operator configs for pod: namespace=%s, name=%s, labels=%s",
+		podNamespace, podName, r.podLabelsStr)
+
 	apiResp, err := r.operatorClient.fetchOperatorResponse(podNamespace, podName, r.podLabelsStr)
 	if err != nil {
-		log.Errorf("failed to fetch operator configs: %v", err)
+		log.Errorf("failed to fetch operator configs for pod %s/%s: %v", podNamespace, podName, err)
 		return
 	}
 
@@ -265,8 +270,9 @@ func (r *runner) handleOperatorConfigs() {
 		}
 	}
 
+	configName := "unknown"
 	if apiResp.Name != "" {
-		log.Infof("pod %s/%s found %d configs from %s", podNamespace, podName, len(loggingConfigs), apiResp.Name)
+		configName = apiResp.Name
 	}
 
 	// Calculate MD5 of new configs (marshal parsed configs to ensure consistent hash)
@@ -285,10 +291,11 @@ func (r *runner) handleOperatorConfigs() {
 	r.mutex.RUnlock()
 
 	if newMD5 == currentMD5 {
+		log.Debugf("operator configs unchanged for pod %s/%s, configName=%s, MD5: %s", podNamespace, podName, configName, currentMD5)
 		return
 	}
 
-	log.Infof("operator configs changed, updating tailers")
+	log.Infof("operator configs changed for pod %s/%s, configName=%s, updating tailers", podNamespace, podName, configName)
 
 	// Process configs
 	configs := make([]*logConfig, len(loggingConfigs))
@@ -310,7 +317,8 @@ func (r *runner) handleOperatorConfigs() {
 	r.operatorConfigMD5 = newMD5
 	r.mutex.Unlock()
 
-	log.Infof("operator configs updated successfully, %d configs processed", len(configs))
+	log.Infof("operator configs updated successfully for pod %s/%s, configName=%s, %d configs processed",
+		podNamespace, podName, configName, len(configs))
 }
 
 func (r *runner) startOperatorWatcher() {
@@ -360,7 +368,7 @@ func createWebsocketClient(endpoint string) (*websocketClient, error) {
 	}
 
 	wsClient := newWebsocketClient(u)
-	wsClient.tryConnectWebsocketSrv()
+	wsClient.tryConnectWebsocketServer()
 
 	wsGo := goroutine.NewGroup(goroutine.Option{Name: "websocket"})
 	wsGo.Go(func(ctx context.Context) error {
