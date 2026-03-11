@@ -19,49 +19,6 @@ const (
 	measurementWaitingEvent     = "oracle_waiting_event"
 )
 
-type lockMeasurement struct{}
-
-func (*lockMeasurement) Point() *point.Point { return nil }
-
-func (*lockMeasurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: measurementLockedSession,
-		Desc: `[:octicons-tag-24: Version-1.74.0](../datakit/changelog-2025.md#cl-1.74.0)`,
-		Cat:  point.Metric,
-		Tags: map[string]any{
-			"event":          &inputs.TagInfo{Desc: "Locked session that waiting the specified event name"},
-			"host":           &inputs.TagInfo{Desc: "Host name"},
-			"oracle_server":  &inputs.TagInfo{Desc: "Server addr. Deprecated. Please use `server`"},
-			"server":         &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"},
-			"oracle_service": &inputs.TagInfo{Desc: "Server service"},
-		},
-		Fields: map[string]any{
-			"waiting_session_count": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Locked session count"},
-		},
-	}
-}
-
-type waitingEventMeasurement struct{}
-
-func (*waitingEventMeasurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{
-		Name: measurementWaitingEvent,
-		Desc: `[:octicons-tag-24: Version-1.74.0](../datakit/changelog-2025.md#cl-1.74.0)`,
-		Cat:  point.Metric,
-		Tags: map[string]any{
-			"event":         &inputs.TagInfo{Desc: "Event name"},
-			"oracle_server": &inputs.TagInfo{Desc: "Server addr. Deprecated. Please use `server`"},
-			"server":        &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"},
-			"event_type":    &inputs.TagInfo{Desc: "Event type, such as `USER/BACKGROUND`"},
-			"program":       &inputs.TagInfo{Desc: "Program(process) name that waiting the event"},
-			"username":      &inputs.TagInfo{Desc: "Oracle username that waiting the event"},
-		},
-		Fields: map[string]any{
-			"count": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Waiting event count"},
-		},
-	}
-}
-
 type processMeasurement struct{}
 
 // Point implement MeasurementV2.

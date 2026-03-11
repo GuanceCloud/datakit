@@ -452,6 +452,7 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 				}
 
 				if len(pts) > 0 {
+					// custom query measurement name is not unified
 					if err := ipt.feeder.Feed(point.Metric, pts,
 						dkio.WithCollectCost(time.Since(start)),
 						dkio.WithElection(ipt.Election),
@@ -556,6 +557,9 @@ func (ipt *Input) Run() {
 	// run custom queries
 	ipt.runCustomQueries()
 
+	// run DBM
+	ipt.runDbmCollectors()
+
 	ipt.ptsTime = ntp.Now()
 
 	for {
@@ -575,6 +579,7 @@ func (ipt *Input) Run() {
 					dkio.WithCollectCost(time.Since(ipt.start)),
 					dkio.WithElection(ipt.Election),
 					dkio.WithSource(inputName),
+					dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementSQLServer)),
 				)
 				ipt.collectCache = ipt.collectCache[:0]
 				if err != nil {
@@ -676,6 +681,128 @@ func (ipt *Input) getMetric() {
 
 	// get performance counters metrics
 	ipt.getPerformanceCounters()
+}
+
+func (ipt *Input) runDbmCollectors() {
+	// Check if DBM is enabled at the top level
+	if ipt.Dbm == nil || !ipt.Dbm.Enabled {
+		return
+	}
+
+	ipt.dbmGroup = goroutine.NewGroup(goroutine.Option{Name: "sqlserver_dbm"})
+
+	// Start DBM metric collection (query metrics) with its own interval
+	if ipt.Dbm.Metric != nil && ipt.Dbm.Metric.Enabled {
+		ipt.dbmGroup.Go(func(ctx context.Context) error {
+			ipt.runDbmMetric()
+			return nil
+		})
+	}
+
+	// Start DBM activity collection with its own interval
+	if ipt.Dbm.Activity != nil && ipt.Dbm.Activity.Enabled {
+		ipt.dbmGroup.Go(func(ctx context.Context) error {
+			ipt.runDbmActivity()
+			return nil
+		})
+	}
+}
+
+// runDbmMetric runs DBM metric.
+func (ipt *Input) runDbmMetric() {
+	duration := ipt.Dbm.Metric.CollectionInterval.Duration
+
+	tick := time.NewTicker(duration)
+	defer tick.Stop()
+
+	ptsTime := ntp.Now()
+	for {
+		if ipt.pause.Load() {
+			l.Debugf("not leader, DBM metric collection skipped")
+		} else {
+			l.Debugf("start collecting DBM metric")
+			ipt.collectDbmMetricAndPlans(duration, ptsTime)
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("DBM metric collection exit")
+			return
+		case <-ipt.semStop.Wait():
+			l.Info("DBM metric collection return")
+			return
+		case tt := <-tick.C:
+			ptsTime = inputs.AlignTime(tt, ptsTime, duration)
+		}
+	}
+}
+
+// collectDbmMetricAndPlans collects DBM metric and plan objects.
+func (ipt *Input) collectDbmMetricAndPlans(duration time.Duration, ptsTime time.Time) {
+	ctx, cancel := context.WithTimeout(context.Background(), duration)
+	defer cancel()
+
+	statementRows, err := ipt.collectDbmMetric(ctx, ptsTime)
+	if err != nil {
+		l.Errorf("collectDbmMetric failed: %s", err.Error())
+		return
+	}
+
+	if len(statementRows) > 0 {
+		// sql
+		ipt.collectDbmQueries(statementRows, ptsTime)
+
+		// plan (only if enabled)
+		if ipt.Dbm.Metric.PlanEnabled {
+			ipt.collectDbmPlans(ctx, statementRows, ptsTime)
+		}
+	}
+}
+
+// runDbmActivity runs DBM activity.
+func (ipt *Input) runDbmActivity() {
+	duration := ipt.Dbm.Activity.CollectionInterval.Duration
+
+	tick := time.NewTicker(duration)
+	defer tick.Stop()
+
+	ptsTime := ntp.Now()
+	for {
+		if ipt.pause.Load() {
+			l.Debugf("not leader, DBM activity collection skipped")
+		} else {
+			start := time.Now()
+			l.Debugf("start collecting DBM activity")
+
+			pts, err := ipt.collectDbmActivity(duration, ptsTime)
+			if err != nil {
+				l.Errorf("collectDbmActivity failed: %s", err.Error())
+			} else if len(pts) > 0 {
+				if err := ipt.feeder.Feed(point.Logging, pts,
+					dkio.WithCollectCost(time.Since(start)),
+					dkio.WithElection(ipt.Election),
+					dkio.WithSource(dbmFeedName),
+				); err != nil {
+					ipt.feeder.FeedLastError(err.Error(),
+						metrics.WithLastErrorInput(inputName),
+						metrics.WithLastErrorCategory(point.Logging),
+					)
+					l.Errorf("feed dbm activity failed: %s", err.Error())
+				}
+			}
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("DBM activity collection exit")
+			return
+		case <-ipt.semStop.Wait():
+			l.Info("DBM activity collection return")
+			return
+		case tt := <-tick.C:
+			ptsTime = inputs.AlignTime(tt, ptsTime, duration)
+		}
+	}
 }
 
 func (ipt *Input) handRow(name, query string, isLogging bool) {
@@ -870,7 +997,7 @@ func (ipt *Input) init() {
 
 func (ipt *Input) getDatabaseFilesMetrics() error {
 	data, err := ipt.query("sqlserver_database_files", fmt.Sprintf(`use [%s];
-		select file_id,type as file_type,physical_name,state_desc,size,state
+		select file_id,type as file_type_code,physical_name,state_desc,size,state
 		from sys.database_files
 	`, ipt.Database))
 	if err != nil {
@@ -890,7 +1017,7 @@ func (ipt *Input) getDatabaseFilesMetrics() error {
 			tags[k] = v
 		}
 
-		tags["database"] = ipt.Database
+		tags["database_name"] = ipt.Database
 
 		for k, v := range row {
 			switch k {
@@ -1043,23 +1170,20 @@ func (ipt *Input) initDBFilterMap() {
 
 func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&SqlserverMeasurment{},
-		&Performance{},
-		&WaitStatsCategorized{},
-		&DatabaseIO{},
-		&Schedulers{},
-		&VolumeSpace{},
+		&sqlserverMeasurement{},
+		&inputs.UpMeasurement{},
+		// Logging measurements are not unified
 		&LockRow{},
 		&LockTable{},
 		&LockDead{},
 		&LogicalIO{},
 		&WorkerTime{},
-		&DatabaseSize{},
-		&DatabaseBackupMeasurement{},
-		&DatabaseFilesMeasurement{},
+		&dbmActivityMeasurement{},
+		// Object measurements are not unified
 		&customerObjectMeasurement{},
 		&sqlserverObjectMeasurement{},
-		&inputs.UpMeasurement{},
+		&dbmQueryObjectMeasurement{},
+		&dbmPlanObjectMeasurement{},
 	}
 }
 
@@ -1093,17 +1217,38 @@ func getMetricNames(name string) (string, string) {
 
 func defaultInput() *Input {
 	return &Input{
-		Interval:    datakit.Duration{Duration: time.Second * 10},
-		Election:    true,
-		pause:       atomic.Bool{},
-		semStop:     cliutils.NewSem(),
-		dbFilterMap: make(map[string]struct{}, 0),
-		feeder:      dkio.DefaultFeeder(),
+		Interval:           datakit.Duration{Duration: time.Second * 10},
+		Election:           true,
+		MeasurementVersion: "v2", // default: v2
+		pause:              atomic.Bool{},
+		semStop:            cliutils.NewSem(),
+		dbFilterMap:        make(map[string]struct{}, 0),
+		feeder:             dkio.DefaultFeeder(),
 		Object: sqlserverObject{
 			Enable:   true,
 			Interval: datakit.Duration{Duration: time.Second * 600},
 		},
 		tagger: datakit.DefaultGlobalTagger(),
+		Dbm: &dbmConfig{
+			Enabled:                        false,
+			StoredProcedureCharactersLimit: 500,
+			Metric: &dbmMetricConfig{
+				Enabled:                  false,
+				CollectionInterval:       dbmMetricInterval,
+				DmExecQueryStatsRowLimit: 10000,
+				MaxQueries:               500,
+				LookbackWindow:           300,
+				PlanEnabled:              true,
+				PlanCacheTTL:             dbmPlanCacheTTL,
+			},
+			Activity: &dbmActivityConfig{
+				Enabled:                false,
+				CollectionInterval:     dbmActivityInterval,
+				DmExecSessionsRowLimit: 1000,
+			},
+		},
+		dbmColumnsCache: make(map[string][]string),
+		dbmMetricCache:  make(map[string]*dbmMetricCache),
 	}
 }
 

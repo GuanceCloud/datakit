@@ -12,6 +12,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 // SQLProcess for Oracle 11g+.
@@ -112,7 +113,8 @@ func (ipt *Input) collectOracleProcess() {
 		pts,
 		dkio.WithCollectCost(time.Since(start)),
 		dkio.WithElection(ipt.Election),
-		dkio.WithSource(inputName)); err != nil {
+		dkio.WithSource(inputName),
+		dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementOracle))); err != nil {
 		l.Warnf("feeder.Feed: %s, ignored", err)
 	}
 }

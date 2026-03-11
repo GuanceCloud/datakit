@@ -99,7 +99,7 @@ type Performance struct {
 var performanceMeasurementInfo = &inputs.MeasurementInfo{
 	Name: "sqlserver_performance",
 	Cat:  point.Metric,
-	Desc: "performance counter maintained by the server,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-performance-counters-transact-sql?view=sql-server-ver15)",
+	Desc: "performance counter maintained by the server,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-performance-counters-transact-sql?view=sql-server-ver15){:target=\"_blank\"}",
 	Fields: map[string]interface{}{
 		"cntr_value":                       newCountFieldInfo("Current value of the counter"),
 		"processes_blocked":                newCountFieldInfo("The number of processes blocked."),
@@ -171,7 +171,7 @@ func (m *WaitStatsCategorized) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_waitstats",
 		Cat:  point.Metric,
-		Desc: "information about all the waits encountered by threads that executed,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-wait-stats-transact-sql?view=sql-server-ver15)",
+		Desc: "information about all the waits encountered by threads that executed,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-wait-stats-transact-sql?view=sql-server-ver15){:target=\"_blank\"}",
 		Fields: map[string]interface{}{
 			"max_wait_time_ms":    newTimeFieldInfo("Maximum wait time on this wait type."),
 			"wait_time_ms":        newTimeFieldInfo("Total wait time for this wait type in milliseconds. This time is inclusive of signal_wait_time_ms"),
@@ -182,7 +182,7 @@ func (m *WaitStatsCategorized) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"sqlserver_host": inputs.NewTagInfo("Host name which installed SQLServer"),
 			"wait_type":      inputs.NewTagInfo("Name of the wait type. For more information, see Types of Waits, later in this topic"),
-			"wait_category":  inputs.NewTagInfo("Wait category info"),
+			"wait_category":  inputs.NewTagInfo("Wait category info (e.g., Other Disk IO, Network IO, Parallelism, SQL CLR, Service Broker, etc.)"),
 			"server":         inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
@@ -197,7 +197,7 @@ func (m *DatabaseIO) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_database_io",
 		Cat:  point.Metric,
-		Desc: "I/O statistics for data and log files,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-io-virtual-file-stats-transact-sql?view=sql-server-ver15)",
+		Desc: "I/O statistics for data and log files,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-io-virtual-file-stats-transact-sql?view=sql-server-ver15){:target=\"_blank\"}",
 		Fields: map[string]interface{}{
 			"read_bytes":        newByteFieldInfo("Total number of bytes read on this file"),
 			"write_bytes":       newByteFieldInfo("Total number of bytes written to the file"),
@@ -228,7 +228,7 @@ func (m *Schedulers) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_schedulers",
 		Cat:  point.Metric,
-		Desc: "One row per scheduler in SQL Server where each scheduler is mapped to an individual processor,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-schedulers-transact-sql?view=sql-server-ver15)",
+		Desc: "One row per scheduler in SQL Server where each scheduler is mapped to an individual processor,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-schedulers-transact-sql?view=sql-server-ver15){:target=\"_blank\"}",
 		Fields: map[string]interface{}{
 			"active_workers_count":      newCountFieldInfo("Number of workers that are active. An active worker is never preemptive, must have an associated task, and is either running, runnable, or suspended. Is not nullable."),
 			"context_switches_count":    newCountFieldInfo("Number of context switches that have occurred on this scheduler"),
@@ -446,12 +446,12 @@ var DatabaseFilesMeasurementInfo = &inputs.MeasurementInfo{
 		},
 	},
 	Tags: map[string]interface{}{
-		"database":       inputs.NewTagInfo("Database name"),
+		"database_name":  inputs.NewTagInfo("Database name"),
 		"state":          inputs.NewTagInfo("Database file state: 0 = Online, 1 = Restoring, 2 = Recovering, 3 = Recovery_Pending, 4 = Suspect, 5 = Unknown, 6 = Offline, 7 = Defunct"),
 		"physical_name":  inputs.NewTagInfo("Operating-system file name"),
 		"state_desc":     inputs.NewTagInfo("Description of the file state"),
 		"file_id":        inputs.NewTagInfo("ID of the file within database"),
-		"file_type":      inputs.NewTagInfo("File type: 0 = Rows, 1 = Log, 2 = File-Stream, 3 = Identified for informational purposes only, 4 = Full-text"),
+		"file_type_code": inputs.NewTagInfo("File type code: 0 = Rows, 1 = Log, 2 = File-Stream, 3 = Identified for informational purposes only, 4 = Full-text"),
 		"sqlserver_host": inputs.NewTagInfo("Host name which installed SQLServer"),
 		"server":         inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 	},
@@ -479,7 +479,7 @@ func (m *DatabaseBackupMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"database":       inputs.NewTagInfo("Database name"),
+			"database_name":  inputs.NewTagInfo("Database name"),
 			"server":         inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 			"sqlserver_host": inputs.NewTagInfo("Host name which installed SQLServer"),
 		},

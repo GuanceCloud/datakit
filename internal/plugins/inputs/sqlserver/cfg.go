@@ -8,13 +8,16 @@ package sqlserver
 import (
 	"database/sql"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/hashicorp/golang-lru/v2/expirable"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
@@ -61,6 +64,10 @@ var (
   ## Set true to enable election
   election = true
 
+  ## v2+ override all measurement names to "sqlserver_metric", default: v2
+  ## If you want to use the old metric set, you can change it to "v1"
+  measurement_version = "v2"
+
   ## configure db_filter to filter out metrics from certain databases according to their database_name tag.
   ## If leave blank, no metric from any database is filtered out.
   # db_filter = ["some_db_instance_name", "other_db_instance_name"]
@@ -72,6 +79,48 @@ var (
 
     # interval to collect sqlserver object which will be greater than collection interval
     interval = "600s"
+
+  ## Database Monitoring (DBM) configuration
+  ## DBM provides deep visibility into database performance by collecting query metrics, activity, and execution plans
+  [inputs.sqlserver.dbm]
+    # Set true to enable DBM metrics collection
+    enabled = false
+    # Maximum number of characters to collect from stored procedures (default: 500)
+    stored_procedure_characters_limit = 500
+
+  ## Config DBM metric (query metrics)
+  ## Collects cumulative execution statistics of SQL queries aggregated by query signature, query plan hash, and database
+  [inputs.sqlserver.dbm.metric]
+    # Set true to enable collecting query metrics
+    enabled = true
+    # Collection interval for query metrics (default: 60s)
+    collection_interval = "60s"
+    # Maximum number of rows to collect from sys.dm_exec_query_stats (default: 10000)
+    # This limits the initial query result size before aggregation
+    dm_exec_query_stats_row_limit = 10000
+    # Maximum number of queries to report per collection interval (default: 500)
+    # Only the top N queries (sorted by derivative elapsed time) will be reported as metrics
+    max_queries = 500
+    # Lookback window in seconds for filtering queries (default: 300)
+    # Only queries that executed within this time window (based on last_execution_time + last_elapsed_time) will be collected
+    lookback_window = 300
+    # Enable plan collection (default: true)
+    plan_enabled = true
+    # Plan object cache TTL (default: 1h)
+    plan_cache_ttl = "1h"
+    # Maximum runtime in seconds for plan collection (default: 30)
+    # If collection takes longer than this, plan collection will be skipped
+    max_run_time = 30
+
+  ## Config DBM activity (current active queries)
+  ## Collects information about currently executing queries and active sessions
+  [inputs.sqlserver.dbm.activity]
+    # Set true to enable collecting active query information
+    enabled = true
+    # Collection interval for activity metrics (default: 10s)
+    collection_interval = "10s"
+    # Maximum number of rows to collect from sys.dm_exec_sessions (default: 1000)
+    dm_exec_sessions_row_limit = 1000
 
   ## Run a custom SQL query and collect corresponding metrics.
   #
@@ -101,16 +150,21 @@ default_time(time, "+0")
 `
 
 	inputName            = `sqlserver`
+	measurementSQLServer = "sqlserver_metric"
 	customObjectFeedName = dkio.FeedSource(inputName, "CO")
 	loggingFeedName      = dkio.FeedSource(inputName, "L")
 	customQueryFeedName  = dkio.FeedSource(inputName, "custom_query")
 	objectFeedName       = dkio.FeedSource(inputName, "O")
+	dbmFeedName          = dkio.FeedSource(inputName, "DBM")
 	catalogName          = "db"
 	l                    = logger.DefaultSLogger(inputName)
 
-	minInterval = time.Second * 5
-	maxInterval = time.Minute * 10
-	query       = map[string]string{
+	minInterval         = time.Second * 5
+	maxInterval         = time.Minute * 10
+	dbmMetricInterval   = datakit.Duration{Duration: time.Second * 60}
+	dbmActivityInterval = datakit.Duration{Duration: time.Second * 10}
+	dbmPlanCacheTTL     = datakit.Duration{Duration: time.Hour} // Default plan cache TTL: 1 hour
+	query               = map[string]string{
 		"sqlserver_waitstats":       sqlServerWaitStatsCategorized,
 		"sqlserver_database_io":     sqlServerDatabaseIO,
 		"sqlserver":                 sqlServerProperties,
@@ -147,6 +201,34 @@ type sqlserverObject struct {
 	lastCollectionTime time.Time
 	queryCache         map[string]string
 }
+
+// dbmConfig represents the top-level DBM configuration.
+type dbmConfig struct {
+	Enabled                        bool               `toml:"enabled"`
+	StoredProcedureCharactersLimit int                `toml:"stored_procedure_characters_limit"`
+	Metric                         *dbmMetricConfig   `toml:"metric"`
+	Activity                       *dbmActivityConfig `toml:"activity"`
+}
+
+// dbmMetricConfig represents DBM metric (query metrics) configuration.
+type dbmMetricConfig struct {
+	Enabled                  bool             `toml:"enabled"`
+	CollectionInterval       datakit.Duration `toml:"collection_interval"`
+	DmExecQueryStatsRowLimit int              `toml:"dm_exec_query_stats_row_limit"`
+	MaxQueries               int              `toml:"max_queries"`
+	LookbackWindow           int              `toml:"lookback_window"`
+	PlanEnabled              bool             `toml:"plan_enabled"`   // Enable plan collection
+	PlanCacheTTL             datakit.Duration `toml:"plan_cache_ttl"` // Plan object cache TTL
+	MaxRunTime               int              `toml:"max_run_time"`   // Maximum runtime in seconds for plan collection
+}
+
+// dbmActivityConfig represents DBM activity (current active queries) configuration.
+type dbmActivityConfig struct {
+	Enabled                bool             `toml:"enabled"`
+	CollectionInterval     datakit.Duration `toml:"collection_interval"`
+	DmExecSessionsRowLimit int              `toml:"dm_exec_sessions_row_limit"`
+}
+
 type Input struct {
 	Host                 string            `toml:"host"`
 	User                 string            `toml:"user"`
@@ -173,6 +255,9 @@ type Input struct {
 	Object       sqlserverObject `toml:"object"`
 	objectMetric *objectMertric
 
+	// DBM configuration
+	Dbm *dbmConfig `toml:"dbm"`
+
 	Version            string
 	MajorVersion       int
 	Uptime             int
@@ -185,8 +270,9 @@ type Input struct {
 	start   time.Time
 	db      *sql.DB
 
-	Election bool `toml:"election"`
-	pause    atomic.Bool
+	Election           bool   `toml:"election"`
+	MeasurementVersion string `toml:"measurement_version"` // v1 or v2, default: v2
+	pause              atomic.Bool
 
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
@@ -201,6 +287,14 @@ type Input struct {
 	ptsTime             time.Time
 	collectCache        []*point.Point
 	loggingCollectCache []*point.Point
+
+	// DBM caches
+	dbmGroup            *goroutine.Group
+	dbmColumnsCacheMu   sync.Mutex
+	dbmColumnsCache     map[string][]string              // Caches available columns for DBM queries
+	dbmMetricCache      map[string]*dbmMetricCache       // Cache for previous statement cumulative values to compute derivatives
+	dbmQueryObjectCache *expirable.LRU[string, struct{}] // Cache for reported SQL DBO objects
+	dbmPlanObjectCache  *expirable.LRU[string, struct{}] // Cache for reported Plan DBO objects
 }
 
 func (ipt *Input) getKVsOpts(categorys ...point.Category) []point.Option {

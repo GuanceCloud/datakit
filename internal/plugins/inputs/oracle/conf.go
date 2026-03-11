@@ -38,6 +38,10 @@ const (
   ## Set true to enable election
   election = true
 
+  ## v2+ override all measurement names to "oracle_metric", default: v2
+  ## If you want to use the old metric set, you can change it to "v1"
+  measurement_version = "v2"
+
   ## collect object
   [inputs.oracle.object]
     # Set true to enable collecting objects
@@ -45,6 +49,49 @@ const (
 
     # interval to collect oracle object which will be greater than collection interval
     interval = "600s"
+
+  ## Database Monitoring (DBM) configuration
+  ## DBM provides deep visibility into database performance by collecting query metrics, activity, and execution plans
+  [inputs.oracle.dbm]
+    # Set true to enable DBM metrics collection
+    enabled = false
+
+  ## Config DBM metric (query metrics)
+  ## Collects cumulative execution statistics of SQL queries aggregated by query signature, plan hash, and PDB
+  [inputs.oracle.dbm.metric]
+    # Set true to enable collecting query metrics
+    enabled = true
+    # Collection interval for query metrics (default: 60s)
+    collection_interval = "60s"
+    # Maximum number of rows to collect from V$SQLSTATS (default: 10000)
+    # This limits the initial query result size before aggregation
+    db_rows_limit = 10000
+    # Maximum number of queries to report per collection interval (default: 500)
+    # Only the top N queries (sorted by derivative elapsed time) will be reported as metrics
+    max_queries = 500
+    # Lookback window in seconds for filtering queries (default: 300)
+    # Only queries that executed within this time window will be collected
+    lookback_window = 300
+    # Enable plan collection (default: true)
+    plan_enabled = true
+    # Plan object cache TTL (default: 1h)
+    plan_cache_ttl = "1h"
+    # Maximum runtime in seconds for statement metrics collection (default: 30)
+    # If collection takes longer than this, plan collection will be skipped
+    max_run_time = 30
+    # Disable last active time filter (default: false)
+    # If true, queries will be selected randomly instead of by last active time
+    disable_last_active = false
+
+  ## Config DBM activity (current active queries)
+  ## Collects information about currently executing queries and active sessions
+  [inputs.oracle.dbm.activity]
+    # Set true to enable collecting active query information
+    enabled = true
+    # Collection interval for activity metrics (default: 10s)
+    collection_interval = "10s"
+    # Maximum number of rows to collect from V$SESSION (default: 1000)
+    db_rows_limit = 1000
 
   ## Run a custom SQL query and collect corresponding metrics.
   # [[inputs.oracle.custom_queries]]

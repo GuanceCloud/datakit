@@ -98,6 +98,70 @@ GO
 
 开启日志采集以后，默认会产生日志来源（*source*）为 `sqlserver` 的日志。
 
+## 数据库监控 (DBM) {#dbm}
+
+数据库监控（Database Monitoring，DBM）功能提供对 SQL Server 数据库性能的深度可见性，通过收集查询指标、活动会话和执行计划来帮助分析和优化数据库性能。
+
+### 启用 DBM {#dbm-enabled}
+
+```toml
+[inputs.sqlserver.dbm]
+  # 启用 DBM 功能（默认：false）
+  enabled = true
+  # 存储过程字符数限制（默认：500）
+  stored_procedure_characters_limit = 500
+```
+
+### 查询指标 (Metric) {#dbm-metric}
+
+收集 SQL 查询的累积执行统计信息，按查询签名、执行计划哈希和数据库进行聚合。包含执行次数、CPU 时间、逻辑读取、物理读取、等待时间等，通过计算导数指标（两次采集之间的差值）来反映查询的实际执行情况。
+
+> 注意：只有连续两个采集窗口都出现的查询才会上报指标。首次采集到的查询仅作为基线，不会上报指标。
+
+```toml
+[inputs.sqlserver.dbm.metric]
+  # 启用查询指标采集（默认： true）
+  enabled = true
+  # 采集间隔（默认： 60s）
+  collection_interval = "60s"
+  # sys.dm_exec_query_stats 查询的最大行数限制（默认： 10000）
+  # 这限制了聚合前的初始查询结果大小
+  dm_exec_query_stats_row_limit = 10000
+  # 每个采集间隔报告的最大查询数（默认： 250）
+  # 按导数执行时间排序后，只报告前 N 个查询
+  max_queries = 250
+  # 查询过滤的回看窗口（秒，默认： 120）
+  # 只收集在此时间窗口内执行的查询（基于 last_execution_time + last_elapsed_time）
+  lookback_window = 120
+  # 启用执行计划采集（默认： true）
+  plan_enabled = true
+  # 执行计划对象缓存 TTL（默认： 1h）
+  plan_cache_ttl = "1h"
+  # 执行计划采集的最大运行时间（秒，默认： 30）
+  # 如果采集时间超过此值，将跳过执行计划采集
+  max_run_time = 30
+```
+
+**执行计划 (Plan)**：当 `plan_enabled = true` 时，会同时采集执行计划。
+
+### 活动查询 (Activity) {#dbm-activity}
+
+收集当前正在执行的查询和活动会话信息。记录会话状态、等待事件、阻塞信息、SQL 文本（已脱敏）等，用于实时监控数据库的当前活动状态。
+
+**会话指标 (Session)**：基于活动查询数据，会自动生成会话指标。
+
+**连接指标 (Connection)**：独立查询数据库连接信息，按用户名、状态、数据库等维度统计连接数。
+
+```toml
+[inputs.sqlserver.dbm.activity]
+  # 启用活动查询信息采集（默认： true）
+  enabled = true
+  # 活动指标采集间隔（默认： 10s）
+  collection_interval = "10s"
+  # sys.dm_exec_sessions 查询的最大行数限制（默认： 1000）
+  dm_exec_sessions_row_limit = 1000
+```
+
 ## 指标 {#metric}
 
 以下所有数据采集，默认会追加全局选举 tag，也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
@@ -113,6 +177,8 @@ GO
 {{ range $i, $m := .Measurements }}
 {{if eq $m.Type "metric"}}
 ### `{{$m.Name}}`
+
+{{$m.DescZh}}
 
 {{$m.MarkdownTable}}
 
@@ -264,6 +330,8 @@ GO
 {{ range $i, $m := .Measurements }}
 {{if eq $m.Type "logging"}}
 ### `{{$m.Name}}`
+
+{{$m.DescZh}}
 
 {{$m.MarkdownTable}}
 

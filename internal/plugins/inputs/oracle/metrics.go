@@ -10,7 +10,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-var sqlQueryCostSummary *prometheus.SummaryVec
+var (
+	sqlQueryCostSummary *prometheus.SummaryVec
+	dbmSQLQueryDuration *prometheus.SummaryVec
+)
 
 func metricsSetup() {
 	sqlQueryCostSummary = prometheus.NewSummaryVec(
@@ -28,6 +31,22 @@ func metricsSetup() {
 		},
 		[]string{"metric_name", "sql_name"},
 	)
+
+	dbmSQLQueryDuration = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: "input_oracle",
+			Name:      "dbm_sql_query_duration_seconds",
+			Help:      "Time cost to query database for DBM metrics",
+
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
+		},
+		[]string{"dbm_type", "sql_type"},
+	)
 }
 
 //nolint:gochecknoinits
@@ -35,5 +54,6 @@ func init() {
 	metricsSetup()
 	metrics.MustRegister([]prometheus.Collector{
 		sqlQueryCostSummary,
+		dbmSQLQueryDuration,
 	}...)
 }
