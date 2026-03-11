@@ -1,5 +1,32 @@
 # 更新日志
 
+## 1.90.0(2026/03/11) {#cl-1.90.0}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.90.0-new}
+
+- APM 注入器新增 PHP 应用自动注入支持，包括 PHP 解释器检测、ddtrace 扩展安装和配置管理（#2986）
+- Logstreaming 输入新增 AWS Firehose 数据源类型支持，接收并处理来自 AWS Firehose HTTP 端点的日志（#2979）
+- Oracle 和 SQLServer 采集器新增 DBM（数据库监控）功能，包括查询指标、活动监控、会话聚合、连接指标、查询对象存储和执行计划存储（#2904）
+- 主机安装器支持在安装时添加采集器配置，通过 `DK_INPUT_CONFIGS` 环境变量传递采集器配置（#2967）
+- Journald 新增外部采集器实现（#2974）
+
+### 问题修复 {#cl-1.90.0-fix}
+
+- 修复 logfwd storage_index 配置优先级错误，环境变量 `LOGFWD_GLOBAL_STORAGE_INDEX` 现在优先于 CRD 配置（#2985）
+- 修复 Helm chart DataWay token 明文暴露问题，支持自动创建 Kubernetes Secret 安全存储 token（#2981）
+- 修复 OpenTelemetry 指标缺少 unit 和 description 字段问题，现在从 OTEL 指标中提取并传播这些字段（#2977）
+
+### 功能优化 {#cl-1.90.0-opt}
+
+- SNMP object 采集器暴露设备信息（device_type、device_vendor、device_hostname）并按接口名称合并接口条目（#2978）
+- DataKit 安装器支持安装时配置采集器（#2967）
+- 更新 APM 注入文档，包含 PHP 支持（#2986）
+- 其他优化和问题修复
+
+---
+
 ## 1.89.1(2026/02/12) {#cl-1.89.1}
 
 本次发布属于 hotfix 修复，内容如下：

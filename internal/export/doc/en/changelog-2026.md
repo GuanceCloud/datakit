@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.90.0(2026/03/11) {#cl-1.90.0}
+
+This release is an iterative release, with the following main updates:
+
+### New Features {#cl-1.90.0-new}
+
+- APM injector added PHP application automatic injection support, including PHP interpreter detection, ddtrace extension installation, and configuration management (#2986)
+- Logstreaming input added AWS Firehose data source type support, receiving and processing logs from AWS Firehose HTTP endpoints (#2979)
+- Oracle and SQLServer collectors added DBM (Database Monitoring) functionality, including query metrics, activity monitoring, session aggregation, connection metrics, query object storage, and execution plan storage (#2904)
+- Host installer added collector configuration support during installation, passing collector configs via `DK_INPUT_CONFIGS` environment variable (#2967)
+- Journald input added external collector implementation (#2974)
+
+### Bug Fixes {#cl-1.90.0-fix}
+
+- Fixed logfwd storage_index configuration priority error, environment variable `LOGFWD_GLOBAL_STORAGE_INDEX` now takes priority over CRD configuration (#2985)
+- Fixed Helm chart DataWay token plaintext exposure issue, supporting automatic creation of Kubernetes Secrets to store tokens securely (#2981)
+- Fixed OpenTelemetry metrics missing unit and description fields, now extracting and propagating these fields from OTEL metrics (#2977)
+
+### Improvements {#cl-1.90.0-opt}
+
+- SNMP object collector exposed device information (device_type, device_vendor, device_hostname) and merged interface entries by interface name (#2978)
+- DataKit installer added collector configuration support during installation (#2967)
+- Updated APM injection documentation to include PHP support (#2986)
+- Other optimizations and bug fixes
+
+---
+
 ## 1.89.1(2026/02/12) {#cl-1.89.1}
 
 This release is a hotfix release, contents are as follows:

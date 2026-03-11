@@ -99,6 +99,7 @@ PBJSON
 POSTGRESQL
 Paho
 PlOffload
+Pluggable
 PostgreSQL
 PromQL
 Prometheus

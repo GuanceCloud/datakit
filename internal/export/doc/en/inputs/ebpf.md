@@ -233,6 +233,11 @@ Configuration items:
     - Environment variable: `ENV_INPUT_EBPF_WORKLOAD_LABEL_PREFIX`
     - Example: `k8s_workload_label_`
 
+- `operator_url`
+    - Description: Sets the operator address used to collect workload tags from the Kubernetes cluster.
+    - Environment variable: `ENV_INPUT_EBPF_OPERATOR_URL`
+    - Example: `https://datakit-operator.datakit.svc:443`
+
 <!-- markdownlint-enable -->
 
 ## eBPF Tracing function {#ebpf-tracing}

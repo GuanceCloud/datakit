@@ -227,6 +227,7 @@ func NewRunCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&opt.EBPFTrace.ConvTraceToDD, "conv-to-ddtrace", false, "conv trace id to ddtrace")
 
 	cmd.Flags().StringVar(&opt.K8sInfo.KubeConfig, "kubeconfig", "", "kubeconfig file path")
+	cmd.Flags().StringVar(&opt.K8sInfo.OperatorURL, "operator-url", "", "operator url")
 
 	cmd.Flags().Float64Var(&opt.ResourceLimit.LimitCPU, "res-cpu", 0, "set max cpu resource limit")
 	cmd.Flags().StringVar(&opt.ResourceLimit.LimitMem, "res-mem", "", "set max memory resource limit")
@@ -339,7 +340,7 @@ func runCmd(cfgFile *string, fl *Flag) error {
 			log.Warn(err)
 		} else if c != nil {
 			if fl.K8sInfo.OperatorURL != "" {
-				log.Info("use kubeconfig + datakit-operator k8s api for cluster info")
+				log.Infof("use kubeconfig + datakit-operator k8s api for cluster info")
 			} else {
 				log.Info("use kubeconfig to connect to k8s cluster")
 			}
@@ -361,7 +362,7 @@ func runCmd(cfgFile *string, fl *Flag) error {
 		if err := cli.AttachOperator(c, fl.K8sInfo.OperatorURL); err != nil {
 			log.Warnf("attach operator failed: %v", err)
 		} else {
-			log.Info("attach operator success")
+			log.Infof("attach operator(%s) success", fl.K8sInfo.OperatorURL)
 		}
 	} else {
 		log.Info("attach operator skipped")
