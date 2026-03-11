@@ -1,3 +1,6 @@
+//go:build linux
+// +build linux
+
 // Package run implements datakit-ebpf run command
 package run
 
