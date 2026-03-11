@@ -9,6 +9,7 @@ package logstreaming
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/url"
@@ -17,6 +18,7 @@ import (
 	"time"
 
 	influxdb "github.com/influxdata/influxdb1-client/v2"
+	"github.com/stretchr/testify/assert"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/storage"
@@ -363,4 +365,60 @@ func TestFirelensStillReadsFullBody(t *testing.T) {
 	}
 
 	t.Logf("TestFirelensStillReadsFullBody: processed %d firelens points successfully", len(pts))
+}
+
+func TestFirehoseBody(t *testing.T) {
+	rd := requestData{
+		RequestID: "xxxxx-001",
+		Timestamp: time.Now().UnixMilli(),
+		Records: []*Record{
+			{
+				Data: []byte("hello data 1111111111"),
+			},
+			{
+				Data: []byte("hello data 2222222222"),
+			},
+		},
+	}
+	bts, err := json.Marshal(rd)
+	assert.Nil(t, err)
+	assert.NotNil(t, bts)
+
+	param := &parameters{
+		ignoreURLTags: false,
+		url:           &url.URL{Scheme: "http", Host: "127.0.0.1", Path: "/"},
+		queryValues:   url.Values{"type": []string{"firehose"}, "source": []string{"test"}},
+		body:          io.NopCloser(bytes.NewBuffer(bts)),
+		remoteIP:      "127.0.0.1",
+		headers: map[string]string{
+			"arn":                       "arn",
+			"request_id":                "xxxxx-0001",
+			"firehose_protocol_version": "1.0.0",
+		},
+	}
+
+	feeder := dkio.NewMockedFeeder()
+	ipt := &Input{
+		IgnoreURLTags:  false,
+		feeder:         feeder,
+		scanbufPool:    &sync.Pool{},
+		ScanBufferSize: 4 * 1024,
+	}
+
+	err = ipt.processLogBody(param)
+	assert.Nil(t, err)
+
+	pts, err := feeder.AnyPoints(time.Second * 2)
+	if err != nil {
+		t.Errorf("feeder err = %v", err)
+		return
+	}
+
+	if len(pts) != 2 {
+		t.Errorf("expected 2 points for firelens, got %d", len(pts))
+	}
+
+	for _, pt := range pts {
+		t.Logf("firehose log : %s", pt.LineProto())
+	}
 }

@@ -44,8 +44,9 @@ monitor   :
 Log-Streaming 支持在 HTTP URL 中添加参数，对日志数据进行操作。参数列表如下：
 
 - `type`：数据格式，目前只支持 `influxdb` 和 `firelens`。
-    - 当 `type` 为 `inflxudb` 时（`/v1/write/logstreaming?type=influxdb`），说明数据本身就是行协议格式（默认 precision 是 `s`），将只添加内置 Tags，不再做其他操作
+    - 当 `type` 为 `influxdb` 时（`/v1/write/logstreaming?type=influxdb`），说明数据本身就是行协议格式（默认 precision 是 `s`），将只添加内置 Tags，不再做其他操作
     - 当 `type` 为 `firelens` 时 (`/v1/write/logstreaming?type=firelens`)，数据格式应是 JSON 格式的多条日志
+    - 当 `type` 为 `firehose` 时 (`/v1/write/logstreaming?type=firehose`)，数据格式为 AWS Firehose 格式。
     - 当此值为空时，会对数据做分行和 Pipeline 等处理
 - `source`：标识数据来源，即行协议的 measurement。例如 `nginx` 或者 `redis`（`/v1/write/logstreaming?source=nginx`）。当 `type` 是 `influxdb` 时，此值无效。默认为 `default`
 - `service`：添加 service 标签字段，例如（`/v1/write/logstreaming?service=nginx_service`）。默认为 `source` 参数值。
@@ -79,6 +80,29 @@ Log-Streaming 支持在 HTTP URL 中添加参数，对日志数据进行操作�
 ```
 
 在提取出列表中的两条日志后，其中 `log` 将作为数据的 `message` 字段，`date` 将转换为日志的时间，`source` 将被重命名为 `firelens_source`。
+
+#### AWS Firehose 数据源类型 {#firehose}
+
+Firehose 数据格式为：
+
+```json
+{
+  "requestId": "ed46c141-8086-455a-85bc-6644837c7875",
+  "timestamp": 1677654321000,
+  "records": [
+    {
+      "data": "this is log message"
+    },
+    {
+      "data": "log data..."
+    }
+  ]
+}
+```
+
+接入文档请查看 [AWS Firehose HTTP Endpoint](./aws_firehose_http_endpoint.md#stream) ，注意：区分 **DataKit** 和 **DataWay** 接口区别。
+
+建议在接口调用时，增加 `source`, `service` 字段，方便匹配到对应 Pipeline 脚本。其中 `source` 优先级由大到小为：请求头，请求参数。
 
 ### 使用方式 {#usage}
 

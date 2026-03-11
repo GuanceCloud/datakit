@@ -48,8 +48,9 @@ Note: If DataKit is deployed in Kubernetes as a daemonset, it can be accessed as
 logstreaming supports adding parameters to the HTTP URL to manipulate log data. The list of parameters is as follows:
 
 - `type`: Data format, currently only supports `influxdb` and `firelens`.
-    - When `type` is `inflxudb` (`/v1/write/logstreaming?type=influxdb`), the data itself is in row protocol format (default precision is `s`), and only built-in Tags will be added and nothing else will be done
+    - When `type` is `influxdb` (`/v1/write/logstreaming?type=influxdb`), the data itself is in row protocol format (default precision is `s`), and only built-in Tags will be added and nothing else will be done
     - When `type` is `firelens` (`/v1/write/logstreaming?type=firelens`), the data format should be multiple logs in JSON format
+    - When `type` is `firehose` (`/v1/write/logstreaming?type=firehose`), the data format is AWS Firehose data source types.
     - When this value is empty, the data will be processed such as branching and Pipeline
 - `source`: Identify the source of the data, that is, the measurement of the line protocol. Such as `nginx` or `redis` (`/v1/write/logstreaming?source=nginx`). This value is not valid when `type` is `influxdb`. Default is `default`.
 - `service`: Add a service label field, such as (`/v1/write/logstreaming?service=nginx_service`). Default to `source` value.
@@ -83,6 +84,32 @@ The `log`, `source`, and `date` fields in this type of data will be treated spec
 ```
 
 After extracting the two logs in the list, `log` will be used as the `message` field of the data, `date` will be converted to the time of the log, and `source` will be renamed to `firelens_source`.
+
+#### AWS Firehose Data Source Type {#firehose}
+
+The Firehose data format is:
+
+```json
+{
+  "requestId": "ed46c141-8086-455a-85bc-6644837c7875",
+  "timestamp": 1677654321000,
+  "records": [
+    {
+      "data": "this is log message"
+    },
+    {
+      "data": "log data..."
+    }
+  ]
+}
+```
+
+For integration documentation, please refer to [AWS Firehose HTTP Endpoint](./aws_firehose_http_endpoint.md#stream).
+
+Note: Distinguish between **DataKit** and **DataWay** interface differences.
+
+**Best Practice**: To ensure proper processing of log data, it is recommended to include both `source` and `service` parameters in your API calls. These fields help DataKit correctly route and process the logs through the appropriate Pipeline scripts.
+Among these, the priority of `source` in descending order is: request header, request parameter.
 
 ### Usage {#usage}
 
