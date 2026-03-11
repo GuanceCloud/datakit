@@ -230,6 +230,11 @@ setenforce 0
     - 环境变量：`ENV_INPUT_EBPF_WORKLOAD_LABEL_PREFIX`
     - 示例：`k8s_workload_label_`
 
+- `operator_url`
+    - 描述：设置 operator 地址，用于采集 k8s 集群的 workload 标签
+    - 环境变量：`ENV_INPUT_EBPF_OPERATOR_URL`
+    - 示例：`https://datakit-operator.datakit.svc:443`
+
 <!-- markdownlint-enable -->
 
 ## eBPF 链路功能 {#ebpf-tracing}

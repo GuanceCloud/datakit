@@ -89,6 +89,8 @@ type Input struct {
 	SamplingRate          string `toml:"sampling_rate"`
 	SamplingRatePtsPerMin string `toml:"sampling_rate_pts_per_min"`
 
+	OperatorURL string `toml:"operator_url"`
+
 	semStop *cliutils.Sem // start stop signal
 }
 
@@ -181,11 +183,17 @@ loop:
 		if ipt.WorkloadLabelPrefix != "" {
 			ipt.Input.Envs = append(
 				ipt.Input.Envs,
-				fmt.Sprintf("K8S_WORKLOAD_LABEL_PREFIX=%s",
+				fmt.Sprintf("DKE_K8S_WORKLOAD_LABEL_PREFIX=%s",
 					ipt.WorkloadLabelPrefix),
 			)
 		}
 	}
+
+	if ipt.OperatorURL != "" {
+		ipt.Input.Envs = append(ipt.Input.Envs,
+			fmt.Sprintf("DKE_K8S_OPERATOR_URL=%s", ipt.OperatorURL))
+	}
+
 	if ipt.NetlogBlacklist != "" {
 		ipt.Input.Envs = append(ipt.Input.Envs,
 			fmt.Sprintf("DKE_NETLOG_NET_FILTER=%s", ipt.NetlogBlacklist))
@@ -376,6 +384,10 @@ func (*Input) AvailableArchs() []string {
 //
 // ENV_INPUT_EBPF_WORKLOAD_LABELS      : []string
 // ENV_INPUT_EBPF_WORKLOAD_LABEL_PREFIX: string.
+//
+// ENV_INPUT_EBPF_OPERATOR_URL : string
+//
+//   - Example: `https://datakit-operator.datakit.svc:443`
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if v, ok := envs["ENV_INPUT_EBPF_PPROF_HOST"]; ok {
 		ipt.PprofHost = v
@@ -536,6 +548,10 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 
 	if v, ok := envs["ENV_INPUT_EBPF_SAMPLING_RATE_PTSPERMIN"]; ok {
 		ipt.SamplingRatePtsPerMin = v
+	}
+
+	if v, ok := envs["ENV_INPUT_EBPF_OPERATOR_URL"]; ok {
+		ipt.OperatorURL = strings.TrimSpace(v)
 	}
 }
 

@@ -38,6 +38,10 @@ const configSample = `
   # workload_labels = ["app"]  
   # workload_label_prefix = ""
 
+  ## operator url
+  ##
+  # operator_url = "https://datakit-operator.datakit.svc:443"
+
   ## all supported plugins:
   ## - "ebpf-net"  :
   ##     contains L4-network(netflow), L7-network(httpflow, dnsflow) collection
