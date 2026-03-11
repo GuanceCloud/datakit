@@ -32,7 +32,7 @@ var (
 	podName      = os.Getenv("LOGFWD_POD_NAME")
 	podIP        = os.Getenv("LOGFWD_POD_IP")
 	podNamespace = os.Getenv("LOGFWD_POD_NAMESPACE")
-	// podLabels    string // 从 /etc/podinfo/labels 文件加载或环境变量.
+	// podLabels is loaded from /etc/podinfo/labels file or environment variables.
 
 	// Global defaults.
 	globalSource       = os.Getenv("LOGFWD_GLOBAL_SOURCE")
@@ -159,7 +159,7 @@ func setConfigDefaults(cfg *logConfig) {
 	}
 	cfg.Tags["service"] = cfg.Service
 
-	if globalStorageIndex == "" {
+	if globalStorageIndex != "" {
 		cfg.StorageIndex = globalStorageIndex
 	}
 }
