@@ -87,6 +87,7 @@ type InstallerArgs struct {
 	ConfdPipelineNamespace,
 	ConfdRegion string
 	ConfdCircleInterval int
+	InputConfigs        string
 
 	GitURL,
 	GitKeyPath,

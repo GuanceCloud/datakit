@@ -466,6 +466,12 @@ if ($x -ne $null) {
 	Write-COutput green "* Set crypto_aes_key_file => $x"
 }
 
+$x = [Environment]::GetEnvironmentVariable("DK_INPUT_CONFIGS")
+if ($x -ne $null) {
+	$cmd += "--input-configs='$x'"
+	Write-COutput green "* Set input_configs => $x"
+}
+
 Write-COutput green "* Apply all DK_* envs done."
 
 ##########################
