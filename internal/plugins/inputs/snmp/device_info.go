@@ -214,6 +214,9 @@ func (di *deviceInfo) doAutodetectProfile() error {
 type deviceMetaData struct {
 	collectMeta bool // collect meta is needed when collecting object.
 	data        []string
+	Type        string  // device type, same as in device_meta
+	Vendor      string  // device vendor, same as in device_meta
+	Uptime      float64 // device uptime in seconds, same as in device_meta
 }
 
 func (dmd *deviceMetaData) Add(bys []byte) {
@@ -242,6 +245,11 @@ func (di *deviceInfo) ReportNetworkDeviceMetadata(store *snmputil.ResultValueSto
 	tags = append(tags, deviceIDTags...)
 
 	device := di.buildNetworkDeviceMetadata(deviceID, deviceIDTags, metadataStore, tags, deviceStatus, uptime)
+
+	// expose type, vendor, uptime on outData for outer object fields
+	outData.Type = device.Type
+	outData.Vendor = device.Vendor
+	outData.Uptime = device.Uptime
 
 	interfaces := snmputil.BuildNetworkInterfacesMetadata(deviceID, metadataStore)
 
@@ -279,7 +287,8 @@ func getUptime(store *snmputil.ResultValueStore) float64 {
 		l.Warnf("failed to convert uptime to float64: %v", err)
 		return 0
 	}
-	return uptimeFloat
+	// sysUpTime (1.3.6.1.2.1.1.3.0) is in hundredths of a second; convert to integer seconds for object/device_meta
+	return float64(int64(uptimeFloat / 100))
 }
 
 // nolint:lll
