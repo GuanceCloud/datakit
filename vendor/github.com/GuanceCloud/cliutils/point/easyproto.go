@@ -72,6 +72,7 @@ func (kv *Field) marshalProtobuf(mm *easyproto.MessageMarshaler) {
 	mm.AppendBool(8, kv.IsTag)
 	mm.AppendInt32(9, int32(kv.Type))
 	mm.AppendString(10, kv.Unit)
+	mm.AppendString(12, kv.Description)
 }
 
 func (w *Warn) marshalProtobuf(mm *easyproto.MessageMarshaler) {
@@ -240,12 +241,12 @@ func unmarshalDebug(src []byte) (*Debug, error) {
 
 func unmarshalField(src []byte) (*Field, error) {
 	var (
-		fc         easyproto.FieldContext
-		key, unit  string
-		isTag      bool
-		f          *Field
-		metricType MetricType
-		err        error
+		fc              easyproto.FieldContext
+		key, unit, desc string
+		isTag           bool
+		f               *Field
+		metricType      MetricType
+		err             error
 	)
 
 	for len(src) > 0 {
@@ -304,12 +305,17 @@ func unmarshalField(src []byte) (*Field, error) {
 			if x, ok := fc.String(); ok {
 				unit = x
 			}
+		case 12:
+			if x, ok := fc.String(); ok {
+				desc = x
+			}
 		default: // pass
 		}
 	}
 
 	if f != nil {
 		f.Unit = unit
+		f.Description = desc
 		f.Type = metricType
 		f.IsTag = isTag
 	}

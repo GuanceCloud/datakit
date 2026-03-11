@@ -87,6 +87,7 @@ message Field {
 
 	// field unit name
 	string unit = 10; // metric unit, such as bytes(B), duration(ms/us) and so on.
+	string description = 12; // metric desc.
 }
 
 // Warn used to attach some warning message during building the point.

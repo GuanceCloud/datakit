@@ -320,11 +320,12 @@ JSON 形式的 body 相比行协议，它无需做太多的转义，一个简单
 
 ```json
 {
-  "key"    : "field-name",        # 字段名（必填）
-  "x"      : <value>,             # 字段值，其类型视 x 而定（必填）
-  "type"   : "<COUNT/GAUGE/...>", # 指标类型（选填）
-  "unit"   : "<kb/s/...>"         # 指标单位（选填）
-  "is_tag" : true/false           # 是否是 tag（选填）
+  "key"           : "field-name",        # 字段名（必填）
+  "x"             : <value>,             # 字段值，其类型视 x 而定（必填）
+  "type"          : "<COUNT/GAUGE/...>", # 指标类型（选填）
+  "unit"          : "<kb/s/...>"         # 指标单位（选填）
+  "description"   : "<metric desc>"      # 指标说明（选填）
+  "is_tag"        : true/false           # 是否是 tag（选填）
 }
 ```
 
@@ -384,7 +385,8 @@ JSON 形式的 body 相比行协议，它无需做太多的转义，一个简单
         "key": "large-bytes",
         "u": "1234567890",
         "type": "COUNT",
-        "unit": "kb"
+        "unit": "kb",
+        "description": "desc of this metric"
       },
       {
         "key": "some-tag",

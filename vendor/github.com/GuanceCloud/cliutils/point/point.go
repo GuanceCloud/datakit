@@ -416,6 +416,7 @@ func (p *Point) Size() int {
 		n += 8 // time
 		n += 4 // MetricType: uint32
 		n += len(kv.Unit)
+		n += len(kv.Description)
 
 		switch kv.Val.(type) {
 		case *Field_I, *Field_F, *Field_U:

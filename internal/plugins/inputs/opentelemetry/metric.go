@@ -38,13 +38,19 @@ func (ipt *Input) parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics, remo
 			}
 
 			for _, metric := range scopeMetrics.GetMetrics() {
+				name := metric.GetName()
+				unit := metric.GetUnit()
+				desc := metric.GetDescription()
+				// set to all Field:unit,description
+				kvsOpts := []point.KVOption{point.WithKVDesc(desc), point.WithKVUnit(unit)}
+
 				switch t := metric.Data.(type) {
 				case *metrics.Metric_Gauge:
 					for _, dataPoint := range t.Gauge.GetDataPoints() {
 						ptTags := attributesToTag(dataPoint.GetAttributes())
 						kvs := mergeTags(resourceTags, scopeTags, ptTags)
 						kvs = kvs.AddTag(unitTag, metric.GetUnit())
-						pt := numberDataToPoint(kvs, dataPoint, metric.GetName())
+						pt := numberDataToPoint(kvs, dataPoint, name, kvsOpts)
 						pts = append(pts, pt)
 					}
 				case *metrics.Metric_Sum:
@@ -53,8 +59,7 @@ func (ipt *Input) parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics, remo
 						ptTags := attributesToTag(dataPoint.GetAttributes())
 						kvs := mergeTags(resourceTags, scopeTags, ptTags)
 						kvs = kvs.AddTag(unitTag, metric.GetUnit())
-						pt := numberDataToPoint(kvs, dataPoint, metric.GetName())
-
+						pt := numberDataToPoint(kvs, dataPoint, name, kvsOpts)
 						switch temporality {
 						case metrics.AggregationTemporality_AGGREGATION_TEMPORALITY_DELTA:
 							pt.SetTag("__temporality", "delta")
@@ -71,17 +76,17 @@ func (ipt *Input) parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics, remo
 						ptTags := attributesToTag(dataPoint.GetAttributes())
 						kvs := mergeTags(resourceTags, scopeTags, ptTags)
 						kvs = kvs.AddTag(unitTag, metric.GetUnit())
-						pt := summaryToPoint(kvs, dataPoint, metric.GetName())
+						pt := summaryToPoint(kvs, dataPoint, name, kvsOpts)
 						pts = append(pts, pt)
 					}
 				case *metrics.Metric_Histogram:
 					for _, his := range t.Histogram.GetDataPoints() {
 						hisTags := attributesToTag(his.GetAttributes())
 						kvs := mergeTags(resourceTags, scopeTags, hisTags)
-						kvs = kvs.Add(metric.Name+minSuffix, his.GetMin()).
-							Add(metric.Name+maxSuffix, his.GetMax()).
-							Add(metric.Name+countSuffix, his.GetCount()).
-							Add(metric.Name+sumSuffix, his.GetSum()).
+						kvs = kvs.Add(name+minSuffix, his.GetMin(), kvsOpts...).
+							Add(name+maxSuffix, his.GetMax(), kvsOpts...).
+							Add(name+countSuffix, his.GetCount(), kvsOpts...).
+							Add(name+sumSuffix, his.GetSum(), kvsOpts...).
 							AddTag(unitTag, metric.GetUnit())
 
 						ts := time.Unix(0, int64(his.GetTimeUnixNano()))
@@ -97,13 +102,13 @@ func (ipt *Input) parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics, remo
 
 								if len(his.GetExplicitBounds()) > i {
 									bKvs := mergeTags(resourceTags, scopeTags, hisTags)
-									bKvs = bKvs.Add(metric.Name+bucketSuffix, bucketSum).
+									bKvs = bKvs.Add(name+bucketSuffix, bucketSum, kvsOpts...).
 										AddTag(leTag, strconv.FormatFloat(his.ExplicitBounds[i], 'f', -1, 64)).
 										AddTag(unitTag, metric.GetUnit())
 									pts = append(pts, point.NewPoint(metricName, bKvs, opts...))
 								} else {
 									bKvs := mergeTags(resourceTags, scopeTags, hisTags)
-									bKvs = bKvs.Add(metric.Name+bucketSuffix, bucketSum).
+									bKvs = bKvs.Add(name+bucketSuffix, bucketSum, kvsOpts...).
 										AddTag(leTag, infSuffix).
 										AddTag(unitTag, metric.GetUnit())
 									pts = append(pts, point.NewPoint(metricName, bKvs, opts...))
@@ -117,13 +122,16 @@ func (ipt *Input) parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics, remo
 						hisTags := attributesToTag(his.GetAttributes())
 						kvs := mergeTags(resourceTags, scopeTags, hisTags)
 
-						kvs = kvs.Add(metric.Name+minSuffix, his.GetMin()).
-							Add(metric.Name+maxSuffix, his.GetMax()).
-							Add(metric.Name+countSuffix, his.GetCount()).
-							Add(metric.Name+sumSuffix, his.GetSum()).
+						kvs = kvs.Add(name+minSuffix, his.GetMin(), kvsOpts...).
+							Add(name+maxSuffix, his.GetMax(), kvsOpts...).
+							Add(name+countSuffix, his.GetCount(), kvsOpts...).
+							Add(name+sumSuffix, his.GetSum(), kvsOpts...).
 							AddTag(unitTag, metric.GetUnit())
 						if his.GetCount() > 0 {
-							kvs = kvs.Add(metric.Name+avgSuffix, fmt.Sprintf("%.3f", his.GetSum()/float64(his.GetCount())))
+							kvs = kvs.Add(
+								name+avgSuffix,
+								fmt.Sprintf("%.3f", his.GetSum()/float64(his.GetCount())),
+								kvsOpts...)
 						}
 						ts := time.Unix(0, int64(his.GetTimeUnixNano()))
 						opts := point.DefaultMetricOptions()
@@ -138,7 +146,7 @@ func (ipt *Input) parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics, remo
 						dkio.DisableGlobalTags(ipt.TracingMetricDisableGlobalHostTags),
 						dkio.WithCollectCost(time.Since(start)),
 					); err != nil {
-						log.Errorf("feed err=%s", err.Error())
+						log.Errorf("feed err=%v", err)
 					}
 					pts = make([]*point.Point, 0, cap(pts))
 				}
@@ -206,11 +214,13 @@ func mergeTagsToField(resource, scope, pt map[string]string) point.KVs {
 	return kv
 }
 
-func numberDataToPoint(kvs point.KVs, pt *metrics.NumberDataPoint, name string) *point.Point {
+func numberDataToPoint(kvs point.KVs, pt *metrics.NumberDataPoint,
+	name string, kvOpts []point.KVOption,
+) *point.Point {
 	if v, ok := pt.Value.(*metrics.NumberDataPoint_AsDouble); ok {
-		kvs = kvs.Add(name, v.AsDouble)
+		kvs = kvs.Add(name, v.AsDouble, kvOpts...)
 	} else if v, ok := pt.Value.(*metrics.NumberDataPoint_AsInt); ok {
-		kvs = kvs.Add(name, v.AsInt)
+		kvs = kvs.Add(name, v.AsInt, kvOpts...)
 	}
 
 	ts := time.Unix(0, int64(pt.GetTimeUnixNano()))
@@ -220,9 +230,11 @@ func numberDataToPoint(kvs point.KVs, pt *metrics.NumberDataPoint, name string) 
 	return point.NewPoint(metricName, kvs, opts...)
 }
 
-func summaryToPoint(kvs point.KVs, summary *metrics.SummaryDataPoint, name string) *point.Point {
-	kvs = kvs.Add(name+countSuffix, summary.GetCount()).
-		Add(name+sumSuffix, summary.GetSum())
+func summaryToPoint(kvs point.KVs, summary *metrics.SummaryDataPoint,
+	name string, kvOpts []point.KVOption,
+) *point.Point {
+	kvs = kvs.Add(name+countSuffix, summary.GetCount(), kvOpts...).
+		Add(name+sumSuffix, summary.GetSum(), kvOpts...)
 	ts := time.Unix(0, int64(summary.GetTimeUnixNano()))
 	opts := point.DefaultMetricOptions()
 	opts = append(opts, point.WithTime(ts))

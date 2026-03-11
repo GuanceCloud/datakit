@@ -237,6 +237,7 @@ func (ipt *Input) setup() *Input {
 	case "jsoniter":
 		ipt.jmarshaler = &jsoniterMarshaler{}
 	default:
+		log.Infof("unknown marshaler, use default protojsonMarshaler")
 		ipt.jmarshaler = &protojsonMarshaler{}
 	}
 	ipt.customTagsX = itrace.NewCustomTags(ipt.CustomerTags, otelPubAttrs)
@@ -415,6 +416,10 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) exit() {
+	if ipt.GRPCConfig != nil {
+		ipt.GRPCConfig.stop()
+		log.Info("grpc server stop")
+	}
 	if ipt.workerPool != nil {
 		ipt.workerPool.Shutdown()
 		log.Info("workerpool closed")
@@ -424,10 +429,6 @@ func (ipt *Input) exit() {
 			log.Errorf("close localCache err=%v", err)
 		}
 		log.Info("storage closed")
-	}
-	if ipt.GRPCConfig != nil {
-		ipt.GRPCConfig.stop()
-		log.Info("grpc server stop")
 	}
 }
 
