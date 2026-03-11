@@ -163,6 +163,7 @@ func getHostName(attr []*common.KeyValue) (hostName string) {
 	for _, keyValue := range attr {
 		if keyValue.GetKey() == "host.name" {
 			hostName = keyValue.GetValue().GetStringValue()
+			break
 		}
 	}
 

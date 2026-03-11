@@ -156,6 +156,7 @@ func clearKV(kv *Field) *Field {
 	kv.IsTag = false
 	kv.Type = UNSPECIFIED
 	kv.Unit = ""
+	kv.Description = ""
 	return kv
 }
 
@@ -483,6 +484,13 @@ type KVOption func(kv *Field)
 func WithKVUnit(u string) KVOption {
 	return func(kv *Field) {
 		kv.Unit = u
+	}
+}
+
+// WithKVDesc set value's description.
+func WithKVDesc(desc string) KVOption {
+	return func(kv *Field) {
+		kv.Description = desc
 	}
 }
 

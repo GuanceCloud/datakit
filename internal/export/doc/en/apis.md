@@ -314,11 +314,12 @@ The structure of a single field is as follows:
 
 ```json
 {
-  "key"    : "field-name",        // Field name (required)
-  "x"      : <value>,             // Field value, and its type depends on x (required)
-  "type"   : "<COUNT/GAUGE/...>", // Metric type (optional)
-  "unit"   : "<kb/s/...>",         // Metric unit (optional)
-  "is_tag" : true/false           // Whether it is a tag (optional)
+  "key"           : "field-name",        // Field name (required)
+  "x"             : <value>,             // Field value, and its type depends on x (required)
+  "type"          : "<COUNT/GAUGE/...>", // Metric type (optional)
+  "unit"          : "<kb/s/...>",        // Metric unit (optional)
+  "description"   : "<Metric Desc>"      // Metric description  (optional)
+  "is_tag"        : true/false           // Whether it is a tag (optional)
 }
 ```
 
@@ -378,7 +379,8 @@ The following is a specific JSON example:
         "key": "large-bytes",
         "u": "1234567890",
         "type": "COUNT",
-        "unit": "kb"
+        "unit": "kb",
+        "description": "desc of this metric"
       },
       {
         "key": "some-tag",

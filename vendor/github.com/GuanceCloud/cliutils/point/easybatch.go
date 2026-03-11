@@ -36,6 +36,7 @@ func (bp *BatchPoints) Reset() {
 		field.IsTag = false
 		field.Type = MetricType(0)
 		field.Unit = ""
+		field.Description = ""
 		field.Key = ""
 		field.Val = nil
 	}
@@ -257,6 +258,12 @@ func (bp *BatchPoints) unmarshalField(fc *easyproto.FieldContext, field *Field, 
 				return fmt.Errorf("cannot unmarshal unit for Field")
 			}
 			field.Unit = s
+		case 12:
+			s, ok := fc.String()
+			if !ok {
+				return fmt.Errorf("cannot unmarshal Description for Field")
+			}
+			field.Description = s
 		}
 	}
 	return nil
