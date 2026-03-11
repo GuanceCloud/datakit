@@ -119,6 +119,7 @@ func init() {
 	flag.StringVar(&args.ConfdPipelineNamespace, "confd-pipeline-namespace", "", "pipeline config namespace id")
 	flag.StringVar(&args.ConfdRegion, "confd-region", "", "aws region")
 	flag.IntVar(&args.ConfdCircleInterval, "confd-circle-interval", 60, "backend loop search interval second")
+	flag.StringVar(&args.InputConfigs, "input-configs", "", "Specify multiple inputs config items")
 
 	// gitrepo flags
 	flag.StringVar(&args.GitURL, "git-url", "", "git repository url")

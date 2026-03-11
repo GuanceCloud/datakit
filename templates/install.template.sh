@@ -489,6 +489,11 @@ if [ -n "$DK_CRYPTO_AES_KEY_FILE" ]; then
 	printf "* Set crypto-aes_key_file => $DK_CRYPTO_AES_KEY_FILE \n"
 fi
 
+if [ -n "$DK_INPUT_CONFIGS" ]; then
+	cmd+=("--input-configs=$DK_INPUT_CONFIGS")
+	printf "* Set input-configs => $DK_INPUT_CONFIGS \n"
+fi
+
 printf "* Apply all DK_* envs done.\n"
 
 ##################

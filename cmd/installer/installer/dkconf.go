@@ -7,6 +7,7 @@ package installer
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"net"
 	"os"
@@ -205,12 +206,7 @@ func (args *InstallerArgs) injectCloudProvider() error {
 
 		conf := args.preEnableHostobjectInput()
 
-		if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, "host"), datakit.ConfPerm); err != nil {
-			l.Errorf("failed to init hostobject conf: %s", err.Error())
-			return err
-		}
-
-		cfgpath := filepath.Join(datakit.ConfdDir, "host", "hostobject.conf")
+		cfgpath := filepath.Join(datakit.ConfdDir, "hostobject.conf")
 		if err := os.WriteFile(cfgpath, conf, datakit.ConfPerm); err != nil {
 			l.Errorf("WriteFile: %s", err.Error())
 			return err
@@ -537,5 +533,70 @@ func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config,
 		mc.RemoteJob.JavaHome = javaHome
 	}
 
+	// Process InputConfigs parameter
+	if args.InputConfigs != "" {
+		if err := args.processInputConfigs(); err != nil {
+			l.Warnf("process InputConfigs failed: %s, ignored", err.Error())
+		}
+	}
+
 	return mc, nil
+}
+
+// processInputConfigs processes InputConfigs parameter.
+func (args *InstallerArgs) processInputConfigs() error {
+	if args.InputConfigs == "" {
+		return nil
+	}
+
+	// Format: filename:base64;filename:base64
+	// Split multiple config items
+	configItems := strings.Split(args.InputConfigs, ";")
+	for _, item := range configItems {
+		if item == "" {
+			continue
+		}
+
+		// Split filename and base64 content
+		parts := strings.SplitN(item, ":", 2)
+		if len(parts) != 2 {
+			l.Warnf("invalid input config format: %s, expected 'filename:base64'", item)
+			continue
+		}
+
+		filename := strings.TrimSpace(parts[0])
+		base64Content := strings.TrimSpace(parts[1])
+		if filename == "" || base64Content == "" {
+			l.Warnf("empty filename or content in: %s", item)
+			continue
+		}
+
+		filename = filepath.Base(filename)
+		if filename == "." || filename == ".." || filename == "/" {
+			l.Warnf("invalid filename after sanitization: %s", parts[0])
+			continue
+		}
+		// Ensure filename ends with .conf
+		if !strings.HasSuffix(filename, ".conf") {
+			filename += ".conf"
+		}
+
+		cfgpath := filepath.Join(datakit.ConfdDir, filename)
+
+		// Base64 decode
+		decoded, err := base64.StdEncoding.DecodeString(base64Content)
+		if err != nil {
+			l.Errorf("base64 decode failed for file %s: %s", filename, err.Error())
+			continue
+		}
+
+		if err := os.WriteFile(cfgpath, decoded, datakit.ConfPerm); err != nil {
+			l.Errorf("write file %s failed: %s", cfgpath, err.Error())
+			return err
+		}
+
+		l.Infof("created/updated config file: %s", cfgpath)
+	}
+
+	return nil
 }
