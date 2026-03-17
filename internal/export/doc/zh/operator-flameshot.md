@@ -131,6 +131,8 @@ Flameshot 配置示例：
 
 ## 用例 {#flameshot-example}
 
+> **注解使用说明**：关于 `check_annotation` 配置如何影响版本注解的行为，以及各种注解的详细说明，请参考 [Annotation 配置注入](datakit-operator.md#annotation-injection) 和 [`check_annotation` 配置项说明](datakit-operator.md#check-annotation-config)。
+
 <!-- markdownlint-disable MD046 -->
 ???+ warning
 

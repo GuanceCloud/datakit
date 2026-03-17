@@ -25,6 +25,8 @@
 `.spec.template.metadata.annotations` 节点下添加如下 annotation，然后应用该资源配置文件，
 DataKit-Operator 会自动在相应的 Pod 中创建一个名为 `datakit-profiler` 的容器来辅助进行 profiling。
 
+> **注解使用说明**：关于 `check_annotation` 配置如何影响版本注解的行为，以及各种注解的详细说明，请参考 [Annotation 配置注入](datakit-operator.md#annotation-injection) 和 [`check_annotation` 配置项说明](datakit-operator.md#check-annotation-config)。
+
 以如下 Deployment 资源配置文件为例进行说明：
 
 ```yaml hl_lines="17"

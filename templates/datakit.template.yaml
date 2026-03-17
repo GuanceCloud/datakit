@@ -238,15 +238,15 @@ spec:
         #- mountPath: /usr/local/datakit/data/ipdb/iploc/
         #  name: datakit-ipdb
         # # ---iploc-end
-        #- mountPath: /usr/local/datakit/conf.d/db/mysql.conf
+        #- mountPath: /usr/local/datakit/conf.d/mysql.conf
         #  name: datakit-conf
         #  subPath: mysql.conf
         #  readOnly: true
-        #- mountPath: /usr/local/datakit/conf.d/db/redis.conf
+        #- mountPath: /usr/local/datakit/conf.d/redis.conf
         #  name: datakit-conf
         #  subPath: redis.conf
         #  readOnly: true
-        # - mountPath: /usr/local/datakit/conf.d/pythond/pythond.conf
+        # - mountPath: /usr/local/datakit/conf.d/pythond.conf
         #   name: datakit-conf
         #   subPath: pythond.conf
         #   readOnly: true

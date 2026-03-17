@@ -6,6 +6,8 @@
 
 Add the following annotation under the `.spec.template.metadata.annotations` node in your [Pod Controller](https://kubernetes.io/docs/concepts/workloads/controllers/){:target="_blank"} resource configuration file, then apply the resource configuration file. DataKit-Operator will automatically create a container named `datakit-profiler` in the corresponding Pod to assist with profiling.
 
+> **Annotation Usage Instructions**: For how `check_annotation` configuration affects version annotation behavior, and detailed explanations of various annotations, please refer to [Annotation Configuration Injection](datakit-operator.md#annotation-injection) and [`check_annotation` Configuration Item Explanation](datakit-operator.md#check-annotation-config).
+
 The following uses a `Deployment` resource configuration file named "movies-python" as an example.
 
 ```yaml hl_lines="17"

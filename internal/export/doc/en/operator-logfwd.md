@@ -42,7 +42,7 @@ logfwd ->> logfwds: Collect and report logs
 
 > For Operator versions <= v1.6.0, please refer to [here](operator-v1.6.0-logfwd.md) for logfwd injection usage.
 
-Use `ClusterLoggingConfig` CRD for centralized log collection management: [:octicons-tag-24: Version-1.7.0](operator-changelog.md#cl-1.7.0)
+Use `ClusterLoggingConfig` CRD for centralized log collection management: [:octicons-tag-24: Version-1.8.0](operator-changelog.md#cl-1.8.0)
 
 - **Centralized Collection Configuration Management**: Supports listening to Kubernetes `ClusterLoggingConfig` CRD and exposing matching results for logfwd sidecar polling (sidecar defaults to making an HTTP request to Operator every 60 seconds, logfwd requires [:octicons-tag-24: Version-1.86.0](changelog-2025.md#cl-1.86.0)).
 - **Hot Updates & Granular Matching**: CRD selector (Namespace/Pod/Label/Container) changes take effect immediately without rebuilding Workloads.
@@ -179,8 +179,14 @@ The fields supported by a single logfwd configuration are as follows:
 | `log_volume_paths`    | array    | Log volume mount paths  | Y        | `["/var/log/app"]`           |
 | `namespace_selectors` | array    | Namespace selectors     | Y        | `["default"]`                |
 | `resources`           | object   | Resource limit configuration | N   | See example below |
+| `check_annotation`    | boolean  | Annotation check switch (backward compatibility) | N | `false` |
 
 [^log_configs]: Is a complex JSON string; needs escaping when embedded.
+
+`check_annotation`: **Mainly used for backward compatibility**:
+    - When set to `true`: Requires Pod to have `admission.datakit/logfwd.instances` annotation for injection
+    - When set to `false` or not set: Determines whether to inject based on `admission.datakit/logfwd.enabled` annotation and selector rules
+    - **v1.8.0+ version recommends keeping `false`**, using CRD method for log collection configuration management
 
 ### Environment Variable Configuration {#envs}
 
