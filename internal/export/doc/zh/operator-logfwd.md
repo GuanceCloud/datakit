@@ -54,7 +54,7 @@ logfwd ->> logfwds: 采集日志并上报
 操作流程：
 
 1. 注册 `ClusterLoggingConfig` CRD（如 DataKit 文档中所述）
-1. 升级/安装 DataKit Operator v1.7.0，并添加 CRD 的 RBAC 读权限
+1. 升级/安装 DataKit Operator v1.8.0，并添加 CRD 的 RBAC 读权限
 1. 在 DataKit Operator 配置中设置 `logfwds` 数组，配置 `namespace_selectors`/`label_selectors` 匹配规则和 `log_configs` 字段
 1. （可选）在目标 Pod 添加 Annotation `admission.datakit/logfwd.enabled: "true"` 允许注入（如果设置为 `"false"` 则会拒绝注入）
 1. 创建 `ClusterLoggingConfig` 资源，logfwd sidecar 将定期（默认 60 秒）拉取采集配置
@@ -180,8 +180,14 @@ Operator 注入 logfwd，需在 Operator 的 ConfigMap 中增加如下结构的�
 | `log_volume_paths`    | array    | 日志卷挂载路径         | Y        | `["/var/log/app"]`           |
 | `namespace_selectors` | array    | 命名空间选择器         | Y        | `["default"]`                |
 | `resources`           | object   | 资源限制配置           | N        | 见下方示例                   |
+| `check_annotation`    | boolean  | 注解检查开关（旧版兼容） | N        | `false`                      |
 
 [^log_configs]: 是一个复杂的 JSON 字符串，内嵌的时候，需要做转义。
+
+check_annotation: **logfwd 的 `check_annotation` 主要用于旧版兼容**：
+    - 当设置为 `true` 时：需要 Pod 上存在 `admission.datakit/logfwd.instances` 注解才会注入
+    - 当设置为 `false` 或未设置时：根据 `admission.datakit/logfwd.enabled` 注解和选择器规则决定是否注入
+    - **v1.8.0+ 版本建议保持 `false`**，使用 CRD 方式管理日志采集配置
 
 ### 环境变量配置 {#envs}
 
@@ -275,6 +281,8 @@ Operator logfwd 注入支持在应用 Pod 上增加如下 Annotation：
 - `admission.datakit/logfwd.enabled`：控制是否允许注入，值为 `"false"` 时拒绝注入，值为 `"true"` 或不设置时允许注入（但需配置匹配规则和 `log_configs` 字段才能实际触发注入）
 - ~~`admission.datakit/logfwd.log_configs`~~：[:octicons-tag-24: Version-1.7.0](operator-changelog.md#cl-1.7.0) 已移除，日志采集配置应完全通过 `ClusterLoggingConfig` CRD 进行管理
 - ~~`admission.datakit/logfwd.volume_paths`~~：[:octicons-tag-24: Version-1.7.0](operator-changelog.md#cl-1.7.0) 已移除，日志采集配置应完全通过 `ClusterLoggingConfig` CRD 进行管理
+
+> **注解使用说明**：关于 `check_annotation` 配置如何影响版本注解的行为，以及各种注解的详细说明，请参考 [Annotation 配置注入](datakit-operator.md#annotation-injection) 和 [`check_annotation` 配置项说明](datakit-operator.md#check-annotation-config)。
 
 <!-- markdownlint-disable MD046 -->
 ???+ warning

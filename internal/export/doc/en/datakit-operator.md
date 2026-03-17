@@ -101,9 +101,9 @@ DataKit Operator provides automated injection capabilities for Kubernetes cluste
 DataKit Operator configuration is in JSON format, stored separately as a ConfigMap in Kubernetes, and loaded into the container as environment variables.
 
 <!-- markdownlint-disable MD046 -->
-=== "DataKit Operator >= v1.7.0"
+=== "DataKit Operator >= v1.8.0"
 
-    Starting from DataKit-Operator v1.7.0, it is recommended to use the `admission_inject_v2` configuration item. The new configuration uses an array structure, supporting more flexible configuration methods.
+    Starting from DataKit-Operator v1.8.0, it is recommended to use the `admission_inject_v2` configuration item. The new configuration uses an array structure, supporting more flexible configuration methods.
 
     ```json
     {
@@ -120,7 +120,7 @@ DataKit Operator configuration is in JSON format, stored separately as a ConfigM
     }
     ```
 
-=== "DataKit Operator < v1.7.0"
+=== "DataKit Operator < v1.8.0"
 
     ```json
     {
@@ -213,12 +213,67 @@ Example:
     2. Pod matches configured selectors
 <!-- markdownlint-enable -->
 
-Injection Method Summary
+<!-- markdownlint-disable MD013 -->
+### `check_annotation` Configuration Item Explanation {#check-annotation-config}
+<!-- markdownlint-enable -->
 
-- **Global Configuration**: Suitable for batch scenarios, controlling injection scope via Operator configuration
-- **Annotation Configuration**: Suitable for fine-grained control, deciding whether to inject via Pod annotations
-- **Priority**: Annotation configuration takes precedence over global configuration, useful for rejecting injection
-- **Compatibility**: Supported features vary slightly across versions, please refer to specific version notes
+`check_annotation` is a configuration field used to control how DataKit Operator handles **version annotations** on Pods. The values and behaviors of this field are as follows:
+
+| Value | Behavior Description |
+|----------|--------------------------------------------------------------------------|
+| `false`  | **(Default)** Ignores **version annotation** checks on Pods, injects directly based on selector rules |
+| `true`   | Enables **version annotation** checks, only injects if version annotations exist on matching Pods |
+
+#### Annotation Type Explanation {#annotation-types}
+
+DataKit Operator supports two types of annotations with different behaviors:
+
+**1. Enable/Disable Annotations (unaffected by `check_annotation`)**
+These annotations are used to control whether to enable or disable specific functions, **unaffected by `check_annotation` configuration**:
+
+| Annotation | Description | Values | Priority |
+| ------------ | ---------- | ------ | -------- |
+| `admission.datakit/enabled` | Controls all injection functions | `"true"/"false"` | **Highest** |
+| `admission.datakit/ddtrace.enabled` | Controls ddtrace injection | `"true"/"false"` | Medium |
+| `admission.datakit/logfwd.enabled` | Controls logfwd injection | `"true"/"false"` | Medium |
+| `admission.datakit/flameshot.enabled` | Controls flameshot injection | `"true"/"false"` | Medium |
+
+**2. Version Annotations (affected by `check_annotation`)**
+These annotations are used to specify component versions, **controlled by `check_annotation` configuration**:
+
+| Annotation | Description | Values |
+| -------------------------------------- | ------------------------------ | ------------ |
+| `admission.datakit/java-lib.version` | Specifies DDTrace Java Agent version | Version string |
+| `admission.datakit/python-lib.version` | Specifies DDTrace Python Agent version | Version string |
+| `admission.datakit/java-profiler.version` | Specifies Java Profiler version | Version string |
+| `admission.datakit/python-profiler.version` | Specifies Python Profiler version | Version string |
+| `admission.datakit/golang-profiler.version` | Specifies Golang Profiler version | Version string |
+| `admission.datakit/logfwd.instances` | Specifies logfwd Sidecar version | JSON configuration string |
+
+#### Injection Logic Explanation {#injection-logic}
+
+**Core Rules**:
+
+- `admission.datakit/enabled:"false"` rejects all injections (highest priority)
+- Function-specific enable annotations (e.g., `admission.datakit/ddtrace.enabled: "false"`) reject that function's injection
+- When `check_annotation: true`, corresponding version annotations must exist to inject
+- When `check_annotation: false`, version annotation checks are ignored
+
+**Injection Condition Comparison**:
+
+| Condition | `check_annotation: true` | `check_annotation: false` |
+|-------------------------------|--------------------------|---------------------------|
+| Configuration matches (selector rules) | ✓ Must satisfy | ✓ Must satisfy |
+| Enable annotation not `"false"` | ✓ Must satisfy | ✓ Must satisfy |
+| Version annotation exists | ✓ Must exist | ✗ Can be ignored |
+
+#### Use Case Examples {#use-case-examples}
+
+1. **Batch Injection** (`check_annotation: false`):
+   Suitable for scenarios requiring automatic injection for large numbers of Pods, without adding version annotations to each Pod.
+
+2. **Precise Control** (`check_annotation: true`):
+   Suitable for scenarios requiring strict version control, injecting only for explicitly marked Pods.
 
 ## Supported Injection Function List {#supported-operator}
 
@@ -237,27 +292,35 @@ In DataKit Operator [:octicons-tag-24: v1.4.2](operator-changelog.md#cl-1.4.2) a
 
 | Field | Description | Example |
 | ------: | :------ | :------ |
-| `metadata.name` | The name of the Pod | nginx-123 |
-| `metadata.namespace` | The namespace of the Pod | middleware |
-| `metadata.uid` | The unique ID of the Pod | 12345678-1234-1234-1234-123456789abc |
-| `metadata.annotations['<KEY>']` | The value of the Pod's annotation `<KEY>` | metadata.annotations['myannotation'] |
-| `metadata.labels['<KEY>']` | The value of the Pod's label `<KEY>` | metadata.labels['app'] |
-| `spec.serviceAccountName` | The name of the Pod's service account | default |
-| `spec.nodeName` | The name of the node where the Pod is running | node-01 |
-| `status.hostIP` | The primary IP address of the node where the Pod is located | 192.168.1.1 |
-| `status.hostIPs` | Dual-stack version of status.hostIP | ["192.168.1.1", "2001:db8::1"] |
-| `status.podIP` | The primary IP address of the Pod | 10.0.0.1 |
-| `status.podIPs` | Dual-stack version of status.podIP | ["10.0.0.1", "2001:db8::2"] |
+| `{fieldRef.metadata.name}` | The name of the Pod | nginx-123 |
+| `{fieldRef.metadata.namespace}` | The namespace of the Pod | middleware |
+| `{fieldRef.metadata.uid}` | The unique ID of the Pod | 12345678-1234-1234-1234-123456789abc |
+| `{fieldRef.metadata.annotations['<KEY>']}` | The value of the Pod's annotation `<KEY>` | metadata.annotations['myannotation'] |
+| `{fieldRef.metadata.labels['<KEY>']}` | The value of the Pod's label `<KEY>` | metadata.labels['app'] |
+| `{fieldRef.spec.serviceAccountName}` | The name of the Pod's service account | default |
+| `{fieldRef.spec.nodeName}` | The name of the node where the Pod is running | node-01 |
+| `{fieldRef.status.hostIP}` | The primary IP address of the node where the Pod is located | 192.168.1.1 |
+| `{fieldRef.status.hostIPs}` | Dual-stack version of status.hostIP | ["192.168.1.1", "2001:db8::1"] |
+| `{fieldRef.status.podIP}` | The primary IP address of the Pod | 10.0.0.1 |
+| `{resourceFieldRef:limits.cpu}` | CPU Limit of the Pod's first container (unit: millicores) | 500 |
+| `{resourceFieldRef:limits.memory}` | Memory Limit of the Pod's first container (unit: MiB) | 1024 |
+| `{resourceFieldRef:requests.cpu}` | CPU Request of the Pod's first container (unit: millicores) | 200 |
+| `{resourceFieldRef:requests.memory}` | Memory Request of the Pod's first container (unit: MiB) | 512 |
 
 For example, if there is a Pod named `nginx-123` in the `middleware` namespace, and you want to inject the environment variables `POD_NAME` and `POD_NAMESPACE`, refer to the following:
 
 ```json
 {
-    "admission_inject": {
-        "ddtrace": {
-            "envs": {
-                "POD_NAME":      "{fieldRef:metadata.name}",
-                "POD_NAMESPACE": "{fieldRef:metadata.namespace}"
+    "admission_inject_v2": {
+        "ddtraces": [
+            {
+                "namespace_selectors": ["middleware"],
+                "language":            "java",
+                "image":               "dd-lib-java-init:latest",
+                "envs": {
+                    "POD_NAME":      "{fieldRef:metadata.name}",
+                    "POD_NAMESPACE": "{fieldRef:metadata.namespace}"
+                }
             }
         }
     }
@@ -276,6 +339,39 @@ POD_NAMESPACE=middleware
 ???+ note
 
     If the Value placeholder is unrecognizable, it will be added to the environment variable as a plain string. For example, `"POD_NAME": "{fieldRef:metadata.PODNAME}"` is an incorrect syntax; the environment variable will be `POD_NAME={fieldRef:metadata.PODNAME}`.
+
+### Important Notes on `{resourceFieldRef:*}` {#resourcefieldref-important-notes}
+
+`{resourceFieldRef:*}` placeholders are used to reference resource limits (limits) and requests (requests) of the **first container** in a Pod. Note the following when using them:
+
+1. **Resource Check**: If the Pod's first container does not have the corresponding resource limit or request configured, environment variables using this placeholder will **not be injected**. For example:
+   - If the container does not have `limits.cpu` set, the `{resourceFieldRef:limits.cpu}` environment variable will be ignored
+   - If the container does not have `requests.memory` set, the `{resourceFieldRef:requests.memory}` environment variable will be ignored
+
+1. **Unit Explanation**:
+   - CPU unit is **millicores (m)**, e.g., `500` means 500m (i.e., 0.5 CPU)
+   - Memory unit is **MiB**, e.g., `1024` means 1024Mi (i.e., 1GiB)
+
+1. **Only Supports First Container**: `{resourceFieldRef:*}` can only reference resources of the first container in the Pod, not resources of other containers.
+
+1. **Usage Example**:
+
+```json
+{
+    "envs": {
+        "APP_CPU_LIMIT": "{resourceFieldRef:limits.cpu}",
+        "APP_MEMORY_REQUEST": "{resourceFieldRef:requests.memory}"
+    }
+}
+```
+
+1. **Verification Method**: You can confirm whether resource placeholders are correctly parsed by checking the injected Pod's environment variables:
+
+```shell
+kubectl exec <pod-name> -- env | grep APP_
+APP_CPU_LIMIT=500
+APP_MEMORY_REQUEST=512
+```
 <!-- markdownlint-enable -->
 
 ## FAQ {#faq}

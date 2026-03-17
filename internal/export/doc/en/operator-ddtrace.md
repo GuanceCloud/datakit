@@ -10,7 +10,7 @@
         "server_listen": "0.0.0.0:9543", // Service listening address
         "log_level": "info", // Log level
 
-        "admission_inject_v2": { // Injection config v2 (operator version >= v1.7.0)
+        "admission_inject_v2": { // Injection config v2 (operator version >= v1.8.0)
             "ddtraces": [ // DDTrace configuration array
                 {
                   // Fill in DDTrace injection config here...
@@ -50,7 +50,111 @@
     [^lang]: The language selected here must match the content of the corresponding DDTrace image. If it does not match, the injection will fail.
     [^envs]: These environment variable settings are crucial and directly affect the final data outcome. For the supported `fieldRef` list here, see [here](datakit-operator.md#downwardapi).
 
-    Here is an example:
+<!-- markdownlint-disable MD013 -->
+### `check_annotation` Configuration Item Explanation {#check-annotation-config}
+<!-- markdownlint-enable -->
+
+`check_annotation` is an important configuration field used to control how DataKit Operator handles **version annotations** on Pods (e.g., `admission.datakit/java-lib.version`). The values and behaviors of this field are as follows:
+
+| Value | Behavior Description |
+|----------|--------------------------------------------------------------------------|
+| `false`  | **(Default)** Ignores **version annotation** checks on Pods, injects directly based on selector rules |
+| `true`   | Enables **version annotation** checks, only injects if version annotations exist on matching Pods |
+
+#### Important Logic Explanation {#important-logic}
+
+1. **Function-specific annotations always effective**:
+   - `admission.datakit/ddtrace.enabled` is **not affected** by `check_annotation` configuration
+   - Regardless of whether `check_annotation` is `true` or `false`, `admission.datakit/ddtrace.enabled` will be checked
+   - If `admission.datakit/ddtrace.enabled: "false"`, injection will be directly rejected
+
+2. **Version annotations controlled by `check_annotation`**:
+   - `admission.datakit/java-lib.version` **is affected** by `check_annotation` configuration
+   - When `check_annotation: true`, version annotations must exist to inject
+   - When `check_annotation: false`, version annotation checks are ignored
+
+3. **Global annotations always effective**:
+   - `admission.datakit/enabled` is **not affected** by `check_annotation` configuration
+   - If `admission.datakit/enabled: "false"`, all injections will be completely rejected (highest priority)
+
+Supported DDTrace-related Annotations:
+
+| Annotation | Description | Values | Affected by `check_annotation` | Explanation |
+|--------------------------------------|----------------------------------------|------------------|---------------------------|----------------------------------------------------------------------|
+| `admission.datakit/ddtrace.enabled` | Controls DDTrace injection | `"true"`/`"false"` | **No** | `"true"`: allows injection; `"false"`: rejects injection; not set: determined by rule matching |
+| `admission.datakit/java-lib.version` | Specifies DDTrace Java Agent version | Version string | **Yes** | e.g., `"1.12.0"`, used to override default image version in configuration |
+| `admission.datakit/enabled` | Controls all injection functions (highest priority) | `"true"`/`"false"` | **No** | `"false"`: completely rejects any injection, highest priority |
+
+#### When `check_annotation: true` {#when-check-annotation-true}
+
+The following conditions must be simultaneously met to perform injection:
+
+1. **Configuration matches**: Pod must match `namespace_selectors` and `label_selectors` rules
+2. **Function annotation allows**: `admission.datakit/ddtrace.enabled` is not `"false"` (if exists)
+3. **Version annotation exists**: Version annotations must exist on Pod (e.g., `admission.datakit/java-lib.version`)
+
+#### When `check_annotation: false` {#when-check-annotation-false}
+
+The following conditions must be met to perform injection:
+
+1. **Configuration matches**: Pod must match `namespace_selectors` and `label_selectors` rules
+2. **Function annotation allows**: `admission.datakit/ddtrace.enabled` is not `"false"` (if exists)
+3. **Ignore version annotations**: Injection occurs even without version annotations
+
+#### Use Case Examples {#use-case-examples}
+
+1. **Strict version control scenario** (`check_annotation: true`):
+
+   ```json
+   {
+       "namespace_selectors": ["prod"],
+       "label_selectors": ["app=backend"],
+       "check_annotation": true,
+       "image": "internal-registry/dd-lib-java:{{.DDTraceJavaExtVersion}}",
+       "language": "java"
+   }
+   ```
+
+   **Injection conditions**:
+   - Pod is in `prod` namespace with `app=backend` label
+   - Pod **does not have** `admission.datakit/ddtrace.enabled: "false"` (if exists)
+   - Pod **must have** `admission.datakit/java-lib.version` annotation
+
+2. **Batch injection scenario** (`check_annotation: false`):
+
+   ```json
+   {
+       "namespace_selectors": ["staging"],
+       "label_selectors": ["env=test"],
+       "check_annotation": false,
+       "image": "internal-registry/dd-lib-java:latest",
+       "language": "java"
+   }
+   ```
+
+   **Injection conditions**:
+   - Pod is in `staging` namespace with `env=test` label
+   - Pod **does not have** `admission.datakit/ddtrace.enabled: "false"` (if exists)
+   - **Ignore** `admission.datakit/java-lib.version` annotation check
+
+3. **Selective rejection scenario**:
+
+   ```json
+   {
+       "namespace_selectors": ["prod"],
+       "label_selectors": ["app=java-app"],
+       "check_annotation": false,
+       "image": "internal-registry/dd-lib-java:latest",
+       "language": "java"
+   }
+   ```
+
+   **Injection logic**:
+   - All matching Pods will be injected
+   - If a Pod has `admission.datakit/ddtrace.enabled: "false"`, that Pod will be excluded
+   - Version annotation `admission.datakit/java-lib.version: "1.15.0"` can be used to override image version, but won't affect injection decision
+
+   Here is an example:
 
     ```json
     {
@@ -90,6 +194,8 @@ The Operator can recognize the following two Annotations:
 
 - `admission.datakit/ddtrace.enabled`: Marks whether to enable injection in a single Deployment standard. Fill in `"true"` to enable injection, `"false"` to block injection. If blocked, the Operator will ignore injecting this Deployment.
 - `admission.datakit/java-lib.version`: Specifies a specific DDTrace version.
+
+> **Annotation Usage Instructions**: For how `check_annotation` configuration affects version annotation behavior, please refer to [Annotation Configuration Injection](datakit-operator.md#annotation-injection) and [`check_annotation` Configuration Item Explanation](datakit-operator.md#check-annotation-config).
 
 ### Annotation Example {#anno-demo}
 

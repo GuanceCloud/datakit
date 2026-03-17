@@ -1,6 +1,6 @@
 # Injecting Flameshot via DataKit Operator
 
-[:octicons-tag-24: Operator Version-1.7.0](operator-changelog.md#cl-1.7.0)
+[:octicons-tag-24: Operator Version-1.8.0](operator-changelog.md#cl-1.8.0)
 
 ---
 
