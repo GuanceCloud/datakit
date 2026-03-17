@@ -1,26 +1,24 @@
+# Managing Configuration with Helm
 
-# 使用 Helm 管理配置
----
+This document describes how to use Helm to manage DataKit environment variables and collection configurations. We can maintain DataKit configuration changes through Helm.
 
-本文介绍如何使用 helm 来管理 DataKit 的环境变量和采集配置。我们可以通过维护 helm 管理 DataKit 的配置变更。
+## Installation and Configuration {#install-config}
 
-## 安装和配置 {#instal-config}
-
-### helm 下载 DataKit Charts 包 {#dowbload-config}
+### Download DataKit Charts Package with Helm {#download-config}
 
 ```shell
 helm pull datakit --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit --untar
 ```
 
-### 修改 values.yaml {#values-configuration}
+### Modify values.yaml {#values-configuration}
 
 <!-- markdownlint-disable MD046 -->
 ???+ info
 
-     `values.yaml` 在 `datakit` 目录下。
+     `values.yaml` is located in the `datakit` directory.
 <!-- markdownlint-enable -->
 
-#### 修改 `dataway url`  {#helm-dataway}
+#### Modify `dataway url`  {#helm-dataway}
 
 ```yaml
 ...
@@ -32,9 +30,9 @@ datakit:
 ...
 ```
 
-#### 添加默认采集器  {#helm-default-config}
+#### Add Default Collectors  {#helm-default-config}
   
-添加 `rum`，在 `default_enabled_inputs` 最后追加参数。
+Add `rum` by appending the parameter to the end of `default_enabled_inputs`.
 
 ```yaml
 ..
@@ -46,9 +44,9 @@ datakit:
 ....
 ```
 
-#### 添加全局 tag {#helm-tag}
+#### Add Global Tags {#helm-tag}
 
-添加 `cluster_name_k8s` 全局 tag。
+Add `cluster_name_k8s` global tag.
 
 ```yaml
 datakit:
@@ -58,9 +56,9 @@ datakit:
   global_tags: host=__datakit_hostname,host_ip=__datakit_ip,cluster_name_k8s=prod  
 ```
 
-#### 添加 DataKit 环境变量 {#helm-env}
+#### Add DataKit Environment Variables {#helm-env}
 
-更多环境变量可参考[容器环境变量](datakit-daemonset-deploy.md#using-k8-env)
+For more environment variables, refer to [Container Environment Variables](datakit-daemonset-deploy.md#using-k8-env)
 
 ```yaml
 # @param extraEnvs - array - optional
@@ -74,9 +72,9 @@ extraEnvs:
    value: cluster_name_k8s=government-prod
 ```
 
-#### 挂载采集器配置 {#helm-config}
+#### Mount Collector Configurations {#helm-config}
   
-以采集容器主机系统日志为例，`path` 为容器路径，必须在 `/usr/local/datakit/conf.d/` 下。`name` 为配置名称。`value` 为采集配置内容。采集器的 sample 文件，您可以进入容器的 `/usr/local/datakit/conf.d/` 目录下获取。
+Taking container host system log collection as an example, `path` is the container path and must be under `/usr/local/datakit/conf.d/`. `name` is the configuration name. `value` is the collection configuration content. You can obtain the collector's sample files by entering the `/usr/local/datakit/conf.d/` directory in the container.
 
 ```yaml
 dkconfig:   
@@ -102,9 +100,9 @@ dkconfig:
        [inputs.logging.tags]
 ```
 
-#### 挂载 Pipeline  {#helm-pipeline}
+#### Mount Pipeline  {#helm-pipeline}
 
-以 `test.p` 为例，`path` 为配置文件绝对路径，必须在 */usr/local/datakit/pipeline/* 下。`name` 为 Pipeline 名称。`value` 为 Pipeline 内容。
+Taking `test.p` as an example, `path` is the absolute path of the configuration file and must be under */usr/local/datakit/pipeline/*. `name` is the Pipeline name. `value` is the Pipeline content.
 
 ```yaml
 dkconfig:
@@ -123,7 +121,7 @@ dkconfig:
      default_time(time)
 ```
 
-### 安装 DataKit {#datakit-install}
+### Install DataKit {#datakit-install}
 
 ```shell
 helm install datakit datakit \
@@ -132,7 +130,7 @@ helm install datakit datakit \
          -f values.yaml
 ```
 
-输出结果：
+Output:
 
 ```shell
 NAME: datakit
@@ -148,7 +146,7 @@ NOTES:
   kubectl --namespace datakit port-forward $POD_NAME 9527:$CONTAINER_PORT
 ```
 
-## 指定版本安装 {#version-install}
+## Install Specific Version {#version-install}
 
 ```shell
 helm install datakit datakit \
@@ -158,12 +156,12 @@ helm install datakit datakit \
          --version 1.5.x
 ```
 
-## 升级 {#datakit-upgrade}
+## Upgrade {#datakit-upgrade}
 
 <!-- markdownlint-disable MD046 -->
 ???+ info
 
-    如果 *values.yaml* 丢失，可执行 `helm -n datakit get values datakit -o yaml > values.yaml` 获取。
+     If *values.yaml* is lost, you can execute `helm -n datakit get values datakit -o yaml > values.yaml` to retrieve it.
 <!-- markdownlint-enable -->
 
 ```shell
@@ -173,13 +171,13 @@ helm upgrade datakit datakit \
          -f values.yaml
 ```
 
-## 卸载 {#datakit-uninstall}
+## Uninstall {#datakit-uninstall}
 
 ```shell
 helm uninstall datakit -n datakit 
 ```
 
-## 配置文件参考 {#config-reference}
+## Configuration File Reference {#config-reference}
 
 <!-- markdownlint-disable MD046 -->
 ???- info "values.yaml"
@@ -375,13 +373,13 @@ helm uninstall datakit -n datakit
 
 ## FAQ {#faq}
 
-### 使用 Kubernetes Secret 保护 Dataway Token {#secure-dataway}
+### Securing Dataway Token with Kubernetes Secret {#secure-dataway}
 
-DataKit 支持两种方式来保护 `dataway_token` 在 Kubernetes 配置中的安全。
+DataKit supports two methods to secure `dataway_token` in Kubernetes configuration.
 
-- 使用 Helm 安装 DataKit 时，可以通过配置 Secret 来隐藏 `dataway_token`：
+- When installing DataKit with Helm, you can hide `dataway_token` by configuring Secret:
 
-    **使用 Helm 命令安装，启用 Secret 模式**
+    **Install with Helm command, enable Secret mode**
 
     ```bash
     helm install datakit charts/datakit \
@@ -389,14 +387,14 @@ DataKit 支持两种方式来保护 `dataway_token` 在 Kubernetes 配置中的�
       --set datakit.dataway_secret_enabled=true
     ```
 
-    这种方式下：
-    - Helm 会自动创建一个 Kubernetes Secret 存储加密后的 `dataway_url`
-    - Pod 中的 `ENV_DATAWAY` 环境变量从 Secret 引用
+    With this approach:
+    - Helm automatically creates a Kubernetes Secret to store the encrypted `dataway_url`
+    - The `ENV_DATAWAY` environment variable in the Pod references the Secret
 
-- 使用原生 YAML 文件安装时，需要手动创建 Secret 并修改环境变量引用：
+- When installing with native YAML files, you need to manually create the Secret and modify environment variable references:
 
-    1. **创建 Secret**
-        创建一个包含 ENV_DATAWAY 的 Secret：
+    1. **Create Secret**
+        Create a Secret containing ENV_DATAWAY:
 
         ```yaml
         apiVersion: v1
@@ -409,21 +407,21 @@ DataKit 支持两种方式来保护 `dataway_token` 在 Kubernetes 配置中的�
           ENV_DATAWAY: <base64-encoded-dataway-url>
         ```
 
-        使用 base64 编码你的 `dataway_url`：
+        Base64 encode your `dataway_url`:
 
         ```bash
         echo -n "https://openway.example.com?token=tkn_xxxxxxxxxxxx" | base64
         ```
 
-    2. **修改环境变量引用**
-        在 `datakit.template.yaml` 或 `datakit-deployment.template.yaml` 中，将 `ENV_DATAWAY` 的环境变量定义从：
+    2. **Modify Environment Variable Reference**
+        In `datakit.template.yaml` or `datakit-deployment.template.yaml`, change the `ENV_DATAWAY` environment variable definition from:
 
         ```yaml
         - name: ENV_DATAWAY
           value: "https://openway.example.com?token=tkn_xxxxxxxxxxxx"
         ```
 
-        改为：
+        to:
 
         ```yaml
         - name: ENV_DATAWAY
@@ -433,16 +431,16 @@ DataKit 支持两种方式来保护 `dataway_token` 在 Kubernetes 配置中的�
               key: ENV_DATAWAY
         ```
 
-    3. **应用配置**
+    3. **Apply Configuration**
 
        ```bash
        kubectl apply -f datakit.yaml
        ```
 
-### PodSecurityPolicy 问题 {#pod-security-policy}
+### PodSecurityPolicy Issue {#pod-security-policy}
 
-`PodSecurityPolicy` 已在 [Kubernetes`1.21`](https://kubernetes.io/blog/2021/04/06/podsecuritypolicy-deprecation-past-present-and-future/){:target="_blank"} 中弃用，并且已在 Kubernetes`1.25` 中移除。
-如果强行升级集群版本，Helm 部署 `kube-state-metrics` 会报错：
+`PodSecurityPolicy` was deprecated in [Kubernetes`1.21`](https://kubernetes.io/blog/2021/04/06/podsecuritypolicy-deprecation-past-present-and-future/){:target="_blank"} and removed in Kubernetes`1.25`.
+If you forcibly upgrade the cluster version, Helm deployment of `kube-state-metrics` will report an error:
 
 ```shell
 Error: UPGRADE FAILED: current release manifest 
@@ -453,17 +451,17 @@ kubernetes: unable to recognize "": no matches for kind
 "PodSecurityPolicy" in version "policy/v1beta1"
 ```
 
-#### 备份 Helm values {#get-values}
+#### Backup Helm Values {#get-values}
 
 ```shell
 helm get values -n datakit datakit -o yaml > values.yaml
 ```
 
-#### 清空 Helm 信息 {#delete-values}
+#### Clear Helm Information {#delete-values}
 
-删除 DataKit namespace 的 secrets Helm 信息。
+Delete Helm information secrets in the DataKit namespace.
 
-- 获取 secrets
+- Get secrets
 
   ```shell
   $ kubectl get secrets -n datakit
@@ -473,13 +471,13 @@ helm get values -n datakit datakit -o yaml > values.yaml
   sh.helm.release.v1.datakit.v3   helm.sh/release.v1   1      4h16m
   ```
 
-- 删除带有 `sh.helm.release.v1.datakit` 的 secrets
+- Delete secrets with `sh.helm.release.v1.datakit`
 
   ```shell
   kubectl delete  secrets sh.helm.release.v1.datakit.v1 sh.helm.release.v1.datakit.v2 sh.helm.release.v1.datakit.v3   -n datakit
   ```
 
-#### 重新升级或安装 {#reinstall}
+#### Re-upgrade or Install {#reinstall}
 
 ```shell
 helm upgrade -i -n datakit datakit  --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit  -f values.yaml
