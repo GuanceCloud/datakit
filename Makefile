@@ -28,6 +28,8 @@ HL                     = \033[0;32m # high light
 NC                     = \033[0m    # no color
 RED                    = \033[31m   # red
 LOG_LEVEL             ?= "info"
+GO_MODULE_MODE        ?= vendor
+GO_MODULE_ENV         = GO111MODULE=on GOFLAGS=-mod=$(GO_MODULE_MODE)
 
 SUPPORTED_GOLINT_VERSION         = 1.46.2
 SUPPORTED_GOLINT_VERSION_ANOTHER = v1.46.2
@@ -108,7 +110,7 @@ define notify_build
 		exit 1; \
 	fi
 	@echo "===== notify $(BIN) $(1) ===="
-	GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run -tags with_inputs cmd/make/make.go \
+	$(GO_MODULE_ENV) CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run -tags with_inputs cmd/make/make.go \
 		-log-level $(LOG_LEVEL) \
 		-main $(ENTRY) \
 		-binary $(BIN) \
@@ -134,7 +136,7 @@ define build_bin
 	@rm -rf $(DIST_DIR)/$(1)/*
 	@mkdir -p $(DIST_DIR)/$(1)
 	@echo "===== building $(BIN) $(1) ====="
-	GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run \
+	$(GO_MODULE_ENV) CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run \
 		-tags with_inputs cmd/make/make.go      \
 		-log-level $(LOG_LEVEL)                 \
 		-release $(1)                           \
@@ -157,7 +159,7 @@ endef
 # pub used to publish datakit version(for release/testing/local)
 define publish
 	@echo "===== publishing $(1) $(NAME) ====="
-	GO111MODULE=off CGO_CFLAGS=$(CGO_FLAGS) go run \
+	$(GO_MODULE_ENV) CGO_CFLAGS=$(CGO_FLAGS) go run \
 		-tags with_inputs cmd/make/make.go      \
 		-log-level $(LOG_LEVEL)                 \
 		-release $(1)                           \
@@ -176,7 +178,7 @@ endef
 
 define pub_ebpf
 	@echo "===== publishing $(1) $(NAME_EBPF) ====="
-	@GO111MODULE=off CGO_CFLAGS=$(CGO_FLAGS) go run \
+	@$(GO_MODULE_ENV) CGO_CFLAGS=$(CGO_FLAGS) go run \
 		-tags with_inputs cmd/make/make.go \
 		-log-level $(LOG_LEVEL) \
 		-release $(1)           \
@@ -268,7 +270,7 @@ endef
 define build_ip2isp
 	rm -rf china-operator-ip
 	git clone -b ip-lists https://github.com/gaoyifan/china-operator-ip.git
-	@GO111MODULE=off CGO_ENABLED=0 go run -tags with_inputs cmd/make/make.go -build-isp -log-level $(LOG_LEVEL)
+	@$(GO_MODULE_ENV) CGO_ENABLED=0 go run -tags with_inputs cmd/make/make.go -build-isp -log-level $(LOG_LEVEL)
 endef
 
 ##############################################################################
@@ -343,7 +345,7 @@ build_dca_web:
 build_dca: deps build_dca_web
 	@echo "===== building $(BRAND).dca ====="
 	@mv dca/web/build $(DIST_DIR)/dca-web # move DCA web(build during build_dca_web) to $(DIST_DIR)
-	@CGO_CFLAGS=$(CGO_FLAGS) GO111MODULE=off CGO_ENABLED=0 \
+	@CGO_CFLAGS=$(CGO_FLAGS) $(GO_MODULE_ENV) CGO_ENABLED=0 \
 		go run cmd/make/make.go -dca \
 		-log-level $(LOG_LEVEL) \
 		-archs $(DCA_BUILD_ARCH) \
@@ -371,7 +373,7 @@ deps: prepare
 
 # ignore files under vendor/.git/git
 gofmt:
-	@GO111MODULE=off gofmt -w -l $(shell find . -type f -name '*.go'| grep -v "/vendor/\|/.git/\|/git/\|.*_y.go\|packed-packr.go")
+	@gofmt -w -l $(shell find . -type f -name '*.go'| grep -v "/vendor/\|/.git/\|/git/\|.*_y.go\|packed-packr.go")
 
 #golines:
 #	@golines -w --max-len=150 --reformat-tags -shorten-comments $(shell find . -type f -name '*.go'| grep -v "/vendor/\|/.git/\|/git/\|.*_y.go\|packed-packr.go")
@@ -380,7 +382,7 @@ vet:
 	@go vet ./...
 
 ut: deps
-	CGO_CFLAGS=$(CGO_FLAGS) GO111MODULE=off CGO_ENABLED=1 \
+	CGO_CFLAGS=$(CGO_FLAGS) $(GO_MODULE_ENV) CGO_ENABLED=1 \
 	REMOTE_HOST=$(DOCKER_REMOTE_HOST) \
 	go run cmd/make/make.go \
 	--log-level $(LOG_LEVEL) \
@@ -479,7 +481,7 @@ md_lint: md_export
 	# Check on generated docs
 	# Disable autofix on checking generated documents.
 	# Also disable section check on generated docs(there are sections that rended in measurement name)
-	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
+	@$(GO_MODULE_ENV) CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
 		go run cmd/make/make.go \
 		--log-level $(LOG_LEVEL) \
 		--mdcheck $(docs_dir) \
@@ -487,7 +489,7 @@ md_lint: md_export
 	$(call check_docs,$(docs_dir))
 
 md_export:
-	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
+	@$(GO_MODULE_ENV) CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
 		go run cmd/make/make.go \
 		--log-level $(LOG_LEVEL) \
 		--mdcheck $(docs_template_dir) \
@@ -496,7 +498,7 @@ md_export:
 	@bash export.sh -D $(exportdir) -E
 
 sample_conf_lint:
-	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run -tags with_inputs cmd/make/make.go \
+	@$(GO_MODULE_ENV) CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run -tags with_inputs cmd/make/make.go \
 		--sample-conf-check --log-level $(LOG_LEVEL)
 
 project_words:

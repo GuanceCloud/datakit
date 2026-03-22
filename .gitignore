@@ -131,3 +131,4 @@ charts/datakit/README.md
 AGENTS_PERSONAL.md
 iss-docs-*/
 worktrees/
+.gocache/
