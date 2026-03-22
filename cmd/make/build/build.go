@@ -515,7 +515,8 @@ func compileArch(bin, goos, goarch, dir, mainEntranceFile, tags string) error {
 		envs = []string{
 			"GOOS=" + goos,
 			"GOARCH=" + goarch,
-			`GO111MODULE=off`,
+			`GO111MODULE=on`,
+			`GOFLAGS=-mod=vendor`,
 			"CGO_ENABLED=on",
 			"CGO_CFLAGS=-Wno-undef-prefix",
 		}
@@ -523,7 +524,8 @@ func compileArch(bin, goos, goarch, dir, mainEntranceFile, tags string) error {
 		envs = []string{
 			"GOOS=" + goos,
 			"GOARCH=" + goarch,
-			`GO111MODULE=off`,
+			`GO111MODULE=on`,
+			`GOFLAGS=-mod=vendor`,
 			"CGO_CFLAGS=-Wno-undef-prefix",
 			"CGO_ENABLED=" + cgoEnabled,
 		}

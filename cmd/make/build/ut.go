@@ -270,7 +270,8 @@ func (ut *unitTest) doWork(j *job) {
 
 	tcmd := exec.Command("go", "test", "-count=1", "-timeout", "1h", "-cover", j.pkg) //nolint:gosec
 	tcmd.Env = append(os.Environ(), []string{
-		"GO111MODULE=off",
+		"GO111MODULE=on",
+		"GOFLAGS=-mod=vendor",
 		"CGO_ENABLED=1",
 		"LOGGER_PATH=nul", // disable logging
 	}...)

@@ -8,20 +8,37 @@ variables:
   DISABLED_MR_TITLE: '/^(\[Draft\]|\(Draft\)|Draft:)/'
   FLAMESHOT_VERSION: "0.2.1"
   FLAMESHOT_TESTING_VERSION: $FLAMESHOT_VERSION-testing_$CI_COMMIT_BRANCH
+  DK_GO_VERSION: "1.19.12"
   GOLANGCI_LINT_VERSION: "v1.46.2"
   GOLANGCI_LINT_BIN: "./bin/golangci-lint"
 
 before_script:
-  - rm -rf /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
-  - mkdir -p /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
-  - cp -r ./. /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
-  - cd /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
   - uname -a
   - echo $DK_BPF_KERNEL_SRC_PATH
   - echo $CC_HTTP_PROXY
   - env | grep ^OSS_
-  - export PATH=/usr/local/go1.19.12/bin:$PATH
-  - export GOROOT=/usr/local/go1.19.12
+  - |
+    export GO_DIST_ARCH="$(uname -m)"
+    if [ "$GO_DIST_ARCH" = "x86_64" ] || [ "$GO_DIST_ARCH" = "amd64" ]; then
+      export GO_DIST_ARCH="amd64"
+    elif [ "$GO_DIST_ARCH" = "aarch64" ] || [ "$GO_DIST_ARCH" = "arm64" ]; then
+      export GO_DIST_ARCH="arm64"
+    else
+      echo "unsupported architecture: $GO_DIST_ARCH"
+      exit 1
+    fi
+    export GO_VERSION_NORMALIZED="${DK_GO_VERSION#go}"
+    export GO_DIST_TARBALL="go${GO_VERSION_NORMALIZED}.linux-${GO_DIST_ARCH}.tar.gz"
+    export GO_DIST_URL="https://dl.google.com/go/${GO_DIST_TARBALL}"
+    export GO_CACHE_ROOT="/tmp/datakit-ci/go"
+    export GOROOT="${GO_CACHE_ROOT}/${GO_VERSION_NORMALIZED}"
+    mkdir -p "$GO_CACHE_ROOT"
+    rm -rf "$GOROOT"
+    echo "download golang from $GO_DIST_URL"
+    https_proxy="$CC_HTTP_PROXY" curl -sSfL "$GO_DIST_URL" -o "${GO_CACHE_ROOT}/${GO_DIST_TARBALL}"
+    tar -C "$GO_CACHE_ROOT" -xzf "${GO_CACHE_ROOT}/${GO_DIST_TARBALL}"
+    mv "${GO_CACHE_ROOT}/go" "$GOROOT"
+    export PATH="$GOROOT/bin:$PATH"
   - go version
   - https_proxy="$CC_HTTP_PROXY" curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | https_proxy="$CC_HTTP_PROXY" sh -s -- -b ./bin ${GOLANGCI_LINT_VERSION}
   # Install systemd development headers for journald collector (CGO dependency)
@@ -102,7 +119,6 @@ release-ebpf-amd64-testing-guance:
     - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TESTING"
     - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TESTING"
     - export OSS_PATH="datakit"
-    - export GOROOT=/usr/local/go1.19.12
     - make pub_ebpf_testing DATAKIT_EBPF_ARCHS="linux/amd64" \
       GIT_BRANCH="$CI_COMMIT_BRANCH" \
       ONLY_BUILD_INPUTS_EXTENTIONS=1 \
@@ -147,7 +163,6 @@ release-ebpf-amd64-testing-tw:
     - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TESTING"
     - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TESTING"
     - export OSS_PATH="datakit-tw"
-    - export GOROOT=/usr/local/go1.19.12
     - make pub_ebpf_testing DATAKIT_EBPF_ARCHS="linux/amd64" \
       GIT_BRANCH="$CI_COMMIT_BRANCH" \
       ONLY_BUILD_INPUTS_EXTENTIONS=1 \
