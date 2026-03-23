@@ -251,11 +251,21 @@ func (ipt *Input) getSpanIDsAndParentIDs(resspans []*trace.ResourceSpans) (map[s
 }
 
 func byteToString(buf []byte) string {
-	if len(buf) == 0 || string(buf) == "0" {
+	if len(buf) == 0 || string(buf) == "0" || isZeroID(buf) {
 		return "0"
 	}
 
 	return hex.EncodeToString(buf)
+}
+
+func isZeroID(buf []byte) bool {
+	for _, b := range buf {
+		if b != 0 {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (ipt *Input) convertBinID(id []byte) string {

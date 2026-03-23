@@ -39,6 +39,13 @@ func TestConvert(t *T.T) {
 	}
 }
 
+func TestConvertZeroParentID(t *T.T) {
+	zeroParentID := make([]byte, 8)
+	assert.Equal(t, "0000000000000000", hex.EncodeToString(zeroParentID))
+
+	assert.Equal(t, "0", byteToString(make([]byte, 8)))
+}
+
 func Test_commonTagFields(t *T.T) {
 	t.Run("tag-fields", func(t *T.T) {
 		nspans := 10
