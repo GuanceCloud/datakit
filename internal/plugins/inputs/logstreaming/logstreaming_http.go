@@ -147,6 +147,17 @@ const (
 	maxLogLen = 32 * 1024 * 1024
 )
 
+func normalizeFireLensFieldValue(v any) any {
+	switch x := v.(type) {
+	case map[string]any, []any:
+		if b, err := json.Marshal(x); err == nil {
+			return string(b)
+		}
+	}
+
+	return v
+}
+
 func (ipt *Input) processLogBody(param *parameters) error {
 	var (
 		source       = getSourceName(param.queryValues.Get("source"))
@@ -205,7 +216,7 @@ func (ipt *Input) processLogBody(param *parameters) error {
 
 	case FireLensType:
 
-		body, err := ioutil.ReadAll(param.body)
+		body, err := io.ReadAll(param.body)
 		if err != nil {
 			log.Errorf("url %s failed to read body: %s", urlstr, err)
 			return err
@@ -221,9 +232,11 @@ func (ipt *Input) processLogBody(param *parameters) error {
 					kvs := make(point.KVs, 0, len(v))
 					var ts int64
 					for k, v := range v {
+						nv := normalizeFireLensFieldValue(v)
+
 						switch k {
 						case "log":
-							kvs = kvs.Set(constants.FieldMessage, v)
+							kvs = kvs.Set(constants.FieldMessage, nv)
 						case "date":
 							switch v := v.(type) {
 							case float64:
@@ -235,12 +248,12 @@ func (ipt *Input) processLogBody(param *parameters) error {
 							case int32:
 								ts = int64(v) * 1e9
 							default:
-								kvs = kvs.Set(k, v)
+								kvs = kvs.Set(k, nv)
 							}
 						case "source":
-							kvs = kvs.Set("firelens_source", v)
+							kvs = kvs.Set("firelens_source", nv)
 						default:
-							kvs = kvs.Set(k, v)
+							kvs = kvs.Set(k, nv)
 						}
 					}
 

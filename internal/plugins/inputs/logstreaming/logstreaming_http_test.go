@@ -367,6 +367,47 @@ func TestFirelensStillReadsFullBody(t *testing.T) {
 	t.Logf("TestFirelensStillReadsFullBody: processed %d firelens points successfully", len(pts))
 }
 
+func TestFirelensKeepsNestedMapAndListFields(t *testing.T) {
+	body := `[
+  {
+    "log": {"msg": "request completed", "code": 200},
+    "date": 1633078496000,
+    "source": "cwlogs",
+    "attrs": {"cluster": "prod", "pod": "api-1"},
+    "items": [1, "two", {"nested": true}]
+  }
+]`
+
+	feeder := dkio.NewMockedFeeder()
+	ipt := &Input{
+		IgnoreURLTags:  false,
+		feeder:         feeder,
+		scanbufPool:    &sync.Pool{},
+		ScanBufferSize: 4 * 1024,
+	}
+
+	param := &parameters{
+		ignoreURLTags: false,
+		url:           &url.URL{Scheme: "http", Host: "127.0.0.1", Path: "/"},
+		queryValues:   url.Values{"type": []string{"firelens"}, "source": []string{"test"}},
+		body:          io.NopCloser(bytes.NewBufferString(body)),
+	}
+
+	err := ipt.processLogBody(param)
+	assert.NoError(t, err)
+
+	pts, err := feeder.AnyPoints(time.Second * 2)
+	assert.NoError(t, err)
+	if assert.Len(t, pts, 1) {
+		pt := pts[0]
+
+		assert.Equal(t, `{"cluster":"prod","pod":"api-1"}`, pt.Get("attrs"))
+		assert.Equal(t, `[1,"two",{"nested":true}]`, pt.Get("items"))
+		assert.Equal(t, `{"code":200,"msg":"request completed"}`, pt.Get("message"))
+		assert.Equal(t, "cwlogs", pt.Get("firelens_source"))
+	}
+}
+
 func TestFirehoseBody(t *testing.T) {
 	rd := requestData{
 		RequestID: "xxxxx-001",
