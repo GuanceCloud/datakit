@@ -12,6 +12,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -57,10 +58,12 @@ var (
 	metricName          = inputName
 	catalogName         = "db"
 	customQueryFeedName = dkio.FeedSource(inputName, "custom_query")
-	l                   = logger.DefaultSLogger(inputName)
+	log                 = logger.DefaultSLogger(inputName)
 
 	_ inputs.ElectionInput = (*Input)(nil)
 	_ inputs.InputV2       = (*Input)(nil)
+
+	logInitOnce sync.Once
 )
 
 type Input struct {
@@ -171,7 +174,7 @@ func (ipt *Input) Init() {
 	if ipt.Timeout != "" {
 		dur, err := time.ParseDuration(ipt.Timeout)
 		if err != nil {
-			l.Warnf("Invalid timeout %s, using default 10s: %v", ipt.Timeout, err)
+			log.Warnf("Invalid timeout %s, using default 10s: %v", ipt.Timeout, err)
 			ipt.timeoutDuration = 10 * time.Second
 		} else {
 			ipt.timeoutDuration = dur
@@ -183,8 +186,11 @@ func (ipt *Input) Init() {
 
 func (ipt *Input) setup() error {
 	var err error
-	l = logger.SLogger(inputName)
-
+	logInitOnce.Do(
+		func() {
+			log = logger.SLogger(inputName)
+		},
+	)
 	setHost := false
 	host := strings.ToLower(ipt.Host)
 	switch host {
@@ -198,14 +204,14 @@ func (ipt *Input) setup() error {
 	if setHost {
 		host, err = os.Hostname()
 		if err != nil {
-			l.Errorf("os.Hostname failed: %v", err)
+			log.Errorf("os.Hostname failed: %v", err)
 		}
 	}
 
-	l.Infof("%s input started", inputName)
+	log.Infof("%s input started", inputName)
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, host)
-	l.Debugf("merged tags: %+#v", ipt.mergedTags)
+	log.Debugf("merged tags: %+#v", ipt.mergedTags)
 
 	if err := ipt.initDBConnect(); err != nil {
 		// l.Errorf("Failed to initialize DB connection: %v", err)
@@ -214,19 +220,19 @@ func (ipt *Input) setup() error {
 
 	// set version
 	if err := ipt.setKBVersion(); err != nil {
-		l.Warnf("kingbase version set error: %w", err)
+		log.Warnf("kingbase version set error: %w", err)
 	}
 
 	// 检查 sys_stat_statements 扩展
 	if err := ipt.checkSysStatStatements(); err != nil {
-		l.Warnf("sys_stat_statements check failed: %w", err)
+		log.Warnf("sys_stat_statements check failed: %w", err)
 	}
 	return nil
 }
 
 func (ipt *Input) Run() {
 	if err := ipt.setup(); err != nil {
-		l.Errorf("Setup failed: %v", err)
+		log.Errorf("Setup failed: %v", err)
 		ipt.feeder.FeedLastError(err.Error(),
 			metrics.WithLastErrorInput(inputName),
 			metrics.WithLastErrorCategory(point.Metric),
@@ -247,10 +253,10 @@ func (ipt *Input) Run() {
 	for {
 		start := time.Now()
 		if ipt.pause.Load() {
-			l.Debugf("not leader, skipped")
+			log.Debugf("not leader, skipped")
 		} else {
 			if err := ipt.Collect(); err != nil {
-				l.Errorf("collect: %s", err)
+				log.Errorf("collect: %s", err)
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
 					metrics.WithLastErrorCategory(point.Metric),
@@ -266,7 +272,7 @@ func (ipt *Input) Run() {
 						metrics.WithLastErrorInput(inputName),
 						metrics.WithLastErrorCategory(point.Metric),
 					)
-					l.Errorf("feed measurement: %s", err)
+					log.Errorf("feed measurement: %s", err)
 				}
 			}
 		}
@@ -275,11 +281,11 @@ func (ipt *Input) Run() {
 			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.Interval.Duration)
 		case <-datakit.Exit.Wait():
 			ipt.exit()
-			l.Infof("%s input exit", inputName)
+			log.Infof("%s input exit", inputName)
 			return
 		case <-ipt.semStop.Wait():
 			ipt.exit()
-			l.Infof("%s input return", inputName)
+			log.Infof("%s input return", inputName)
 			return
 		}
 	}
@@ -289,7 +295,7 @@ func (ipt *Input) Collect() error {
 	ipt.collectCache = make([]*point.Point, 0)
 	for name, fn := range ipt.collectFuncs {
 		if err := fn(); err != nil {
-			l.Errorf("Failed to collect %s: %v", name, err)
+			log.Errorf("Failed to collect %s: %v", name, err)
 			ipt.feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),
 				metrics.WithLastErrorCategory(point.Metric),
@@ -360,7 +366,7 @@ func (ipt *Input) RunPipeline() {
 	var err error
 	ipt.tail, err = tailer.NewTailer(ipt.Log.Files, opts...)
 	if err != nil {
-		l.Error(err)
+		log.Error(err)
 		ipt.feeder.FeedLastError(err.Error(),
 			metrics.WithLastErrorInput(inputName),
 		)
@@ -377,11 +383,9 @@ func (ipt *Input) RunPipeline() {
 func (ipt *Input) exit() {
 	if ipt.tail != nil {
 		ipt.tail.Close()
-		l.Info("kingbase log exit")
+		log.Info("kingbase log exit")
 	}
 }
-
-func (*Input) Singleton() {}
 
 func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
@@ -389,7 +393,7 @@ func (ipt *Input) Terminate() {
 	}
 	if ipt.db != nil {
 		if err := ipt.db.Close(); err != nil {
-			l.Error(err)
+			log.Error(err)
 		}
 	}
 }
