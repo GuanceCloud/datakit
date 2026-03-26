@@ -36,6 +36,15 @@ type leaderElection struct {
 	plugins     []inputs.ElectionInput
 }
 
+func (x *leaderElection) reportStatus(status string) {
+	electionStatusVec.WithLabelValues(
+		CurrentElected,
+		x.id,
+		x.namespace,
+		status,
+	).Set(float64(time.Now().Unix()))
+}
+
 func newLeaderElection(opt *option, plugins map[string][]inputs.ElectionInput) *leaderElection {
 	x := &leaderElection{
 		option: opt,
@@ -49,6 +58,7 @@ func newLeaderElection(opt *option, plugins map[string][]inputs.ElectionInput) *
 
 func (x *leaderElection) Run() {
 	x.pausePlugins()
+	x.reportStatus(x.status.String())
 	tick := time.NewTicker(time.Second * time.Duration(electionIntervalDefault))
 	defer tick.Stop()
 
@@ -68,12 +78,7 @@ func (x *leaderElection) Run() {
 					x.status.String(),
 				).Inc()
 
-				electionStatusVec.WithLabelValues(
-					CurrentElected,
-					x.id,
-					x.namespace,
-					x.status.String(),
-				).Set(float64(time.Now().Unix()))
+				x.reportStatus(x.status.String())
 			}
 
 		case <-tick.C:
@@ -139,22 +144,20 @@ func (x *leaderElection) tryElection() (int, error) {
 
 	log.Debugf("result body: %s", body)
 
-	if CurrentElected != e.Content.IncumbencyID {
+	electedChanged := CurrentElected != e.Content.IncumbencyID
+	if electedChanged {
 		CurrentElected = e.Content.IncumbencyID
 	}
 
-	if e.Content.Status != x.status.String() {
+	statusChanged := e.Content.Status != x.status.String()
+	if statusChanged {
 		electionStatusSwitched.WithLabelValues(
 			x.namespace,
 			e.Content.Status,
 		).Inc()
-
-		electionStatusVec.WithLabelValues(
-			CurrentElected,
-			x.id,
-			x.namespace,
-			e.Content.Status,
-		).Set(float64(time.Now().Unix()))
+	}
+	if statusChanged || electedChanged {
+		x.reportStatus(e.Content.Status)
 	}
 
 	switch e.Content.Status {
@@ -191,14 +194,19 @@ func (x *leaderElection) keepalive() (int, error) {
 
 	log.Debugf("result body: %s", body)
 
-	if e.Content.Status != x.status.String() {
+	statusChanged := e.Content.Status != x.status.String()
+	if statusChanged {
 		electionStatusSwitched.WithLabelValues(
 			x.namespace,
 			e.Content.Status,
 		).Inc()
 	}
 
+	electedChanged := CurrentElected != e.Content.IncumbencyID
 	CurrentElected = e.Content.IncumbencyID
+	if statusChanged || electedChanged {
+		x.reportStatus(e.Content.Status)
+	}
 
 	switch e.Content.Status {
 	case StatusFail.String():
