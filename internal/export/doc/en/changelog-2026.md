@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.91.0(2026/03/26) {#cl-1.91.0}
+
+This release is an iterative release, with the following main updates:
+
+### New Features {#cl-1.91.0-new}
+
+- Kingbase collector added `server` field configuration support, allowing explicit server identification, defaults to `host:port` format (#3002)
+- Bug report now collects external collector logs, automatically gathering `.log` files from `[DataKit Install Dir]/externals` directory (#2989)
+- SQLServer and Oracle collectors added `database_instance` dimension, querying database to obtain instance identifier and write as tag (#2999)
+- Monitor command added `-Q (--quantile)` option, supporting quantile selection from summary metrics (#2968)
+
+### Bug Fixes {#cl-1.91.0-fix}
+
+- Fixed FireLens log streaming support for nested map/list types, now serializing complex types to JSON strings (#3000)
+- Fixed Kingbase collector singleton mode limitation, now supporting multiple concurrent instances (#2995)
+- Fixed logfwd 1.86.0 configuration compatibility issue, supporting deprecated `LOGFWD_JSON_CONFIG` environment variable with automatic conversion to new format (#2993)
+- Fixed missing election status metrics in DataKit, ensuring election status is reported even when not elected as leader (#2992)
+- Fixed OpenTelemetry collector parent_span_id handling when zero value, normalizing `0000000000000000` to `0` (#2987)
+- Fixed WAL infinite loop issue caused by malformed HTTP payload during data upload, now identifying and dropping dirty data (#2949)
+- Fixed sinker header value containing invalid characters (e.g., `\n`), now URL-encoding header values (#2947)
+
+### Improvements {#cl-1.91.0-opt}
+
+- Improved log collection multiline matching logic, removed deprecated `logging_auto_multiline_detection` config option, optimized multiline pattern validation flow (#2990)
+- External collectors now support cross-compilation, improving multi-platform build efficiency (#2994)
+- Oracle collector upgraded metrics to v2, supporting grouped collection with configurable intervals by metric type (tablespace/slow_query/process/system) (#2938)
+
+---
+
 ## 1.90.0(2026/03/11) {#cl-1.90.0}
 
 This release is an iterative release, with the following main updates:

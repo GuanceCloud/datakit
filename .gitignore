@@ -130,5 +130,5 @@ charts/datakit/questions.yml
 charts/datakit/README.md
 AGENTS_PERSONAL.md
 iss-docs-*/
-worktrees/
+.worktrees/
 .gocache/
