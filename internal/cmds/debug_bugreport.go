@@ -74,11 +74,6 @@ func (info *datakitInfo) collect() error {
 		}
 	}
 
-	cp.Infof("collect config files...\n")
-	if err := info.collectConfig(); err != nil {
-		cp.Warnf("collect config files error: %s\n", err.Error())
-	}
-
 	cp.Infof("collect data files...\n")
 	if err := info.collectData(); err != nil {
 		cp.Warnf("collect data files error: %s\n", err.Error())
@@ -306,7 +301,6 @@ func (info *datakitInfo) collectInfo() error {
 		}
 	}
 	infoString += fmt.Sprintf("[environment variables]\n%s\n", strings.Join(envs, "\n"))
-
 	return os.WriteFile(filepath.Join(basicDir, "info"), []byte(infoString), os.ModePerm)
 }
 
@@ -437,6 +431,31 @@ func (info *datakitInfo) collectLog() error {
 		}
 	}
 
+	// copy externals logs
+	externalsLogDir, err := info.makeDir(filepath.Join("log", "externals"))
+	if err != nil {
+		cp.Warnf("Create externals log dir error: %s\n", err.Error())
+		errMsg += fmt.Sprintf("Create externals log dir error: %s\n", err.Error())
+	} else {
+		externalsDir := filepath.Join(datakit.InstallDir, "externals")
+		files, err := os.ReadDir(externalsDir)
+		if err != nil {
+			cp.Warnf("Read externals dir error: %s\n", err.Error())
+			errMsg += fmt.Sprintf("Read externals dir error: %s\n", err.Error())
+		} else {
+			for _, file := range files {
+				if !file.IsDir() && strings.HasSuffix(file.Name(), ".log") {
+					srcPath := filepath.Join(externalsDir, file.Name())
+					dstPath := filepath.Join(externalsLogDir, file.Name())
+					if err := info.copyFile(srcPath, dstPath, nil); err != nil {
+						cp.Warnf("Collect externals log %s error: %s\n", file.Name(), err.Error())
+						errMsg += fmt.Sprintf("Collect externals log %s error: %s\n", file.Name(), err.Error())
+					}
+				}
+			}
+		}
+	}
+
 	if len(errMsg) > 0 {
 		info.errList = append(info.errList, fmt.Sprintf("Collect log error: %s\n", errMsg))
 	}
@@ -449,11 +468,11 @@ func (info *datakitInfo) collectPipeline() error {
 	if err != nil {
 		return err
 	}
-	localDst, err := info.makeDir("pipeline/local_scripts")
+	localDst, err := info.makeDir(filepath.Join("pipeline", "local_scripts"))
 	if err != nil {
 		return err
 	}
-	remoteDst, err := info.makeDir("pipeline/remote_scripts")
+	remoteDst, err := info.makeDir(filepath.Join("pipeline", "remote_scripts"))
 	if err != nil {
 		return err
 	}
@@ -497,7 +516,7 @@ func (info *datakitInfo) collectExternals(enableProfile bool) error {
 		return nil
 	}
 
-	dstBase, err := info.makeDir("externals/ebpf")
+	dstBase, err := info.makeDir(filepath.Join("externals", "ebpf"))
 	if err != nil {
 		return err
 	}
@@ -560,7 +579,7 @@ func (info *datakitInfo) collectExternals(enableProfile bool) error {
 				IP:   net.ParseIP(pprofHost),
 				Port: port,
 			}
-			profileDir, err := info.makeDir("externals/ebpf/profile")
+			profileDir, err := info.makeDir(filepath.Join("externals", "ebpf", "profile"))
 			if err != nil {
 				return err
 			}
