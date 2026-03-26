@@ -54,12 +54,13 @@ func (*sqlserverObjectMeasurement) Info() *inputs.MeasurementInfo {
 		Cat:  point.Object,
 		Desc: "SQLServer object metrics([:octicons-tag-24: Version-1.78.0](../datakit/changelog-2025.md#cl-1.78.0))",
 		Tags: map[string]interface{}{
-			"host":          &inputs.TagInfo{Desc: "The hostname of the SQLServer server"},
-			"server":        &inputs.TagInfo{Desc: "The server address of the SQLServer server"},
-			"version":       &inputs.TagInfo{Desc: "The version of the SQLServer server"},
-			"name":          &inputs.TagInfo{Desc: "The name of the database. The value is `host:port` in default"},
-			"database_type": &inputs.TagInfo{Desc: "The type of the database. The value is `SQLServer`"},
-			"port":          &inputs.TagInfo{Desc: "The port of the SQLServer server"},
+			"host":              &inputs.TagInfo{Desc: "The hostname of the SQLServer server"},
+			"server":            &inputs.TagInfo{Desc: "The server address of the SQLServer server"},
+			"version":           &inputs.TagInfo{Desc: "The version of the SQLServer server"},
+			"database_instance": &inputs.TagInfo{Desc: "SQL Server instance identifier derived from server name"},
+			"name":              &inputs.TagInfo{Desc: "The object identifier. The value is `<server>-<database_instance>`"},
+			"database_type":     &inputs.TagInfo{Desc: "The type of the database. The value is `SQLServer`"},
+			"port":              &inputs.TagInfo{Desc: "The port of the SQLServer server"},
 		},
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Summary of database information"},
@@ -195,8 +196,7 @@ func (ipt *Input) metricCollectSqlserverObject() {
 
 	kvs = kvs.AddTag("version", version).
 		AddTag("database_type", sqlserverType).
-		AddTag("name", ipt.Object.name).
-		AddTag("host", ipt.Object.host).
+		AddTag("name", fmt.Sprintf("%s-%s", ipt.Object.name, ipt.databaseInstance)).
 		AddTag("server", ipt.Object.name).
 		AddTag("port", ipt.Object.port).
 		Add("uptime", ipt.Uptime).

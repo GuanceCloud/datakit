@@ -9,7 +9,6 @@ package oracle
 import (
 	"context"
 	"fmt"
-	"net"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -114,10 +113,12 @@ type Input struct {
 
 	mainVersion, // simple version like 11
 	fullVersion string // full version like 'Oracle Database 11g Express Edition Release 11.2.0.2.0 - 64bit Production'
-	dbVersion     string // database version like '11.2.0.2.0' (extracted from version_full or fullVersion)
-	cdbName       string // CDB name from v$database
-	isMultitenant bool
-	objectMetric  *objectMertric
+	dbVersion        string // database version like '11.2.0.2.0' (extracted from version_full or fullVersion)
+	cdbName          string // CDB name from v$database
+	isMultitenant    bool
+	databaseInstance string
+
+	objectMetric *objectMertric
 
 	Uptime             int
 	CollectCoStatus    string
@@ -276,6 +277,8 @@ func (ipt *Input) setupDB() error {
 
 	ipt.getOracleVersion()
 
+	ipt.getDatabaseInstance(ctx)
+
 	// Query v$database to get CDB information
 	if err := ipt.queryCDBInfo(ctx); err != nil {
 		l.Warnf("failed to query v$database: %v", err)
@@ -283,6 +286,20 @@ func (ipt *Input) setupDB() error {
 	}
 
 	return nil
+}
+
+type hostNameRow struct {
+	HostName string `db:"HOST_NAME"`
+}
+
+func (ipt *Input) getDatabaseInstance(ctx context.Context) {
+	var hn hostNameRow
+	err := ipt.db.GetContext(ctx, &hn, "SELECT host_name FROM v$instance")
+	if err != nil {
+		l.Warnf("failed to get oracle host name: %s", err)
+		return
+	}
+	ipt.databaseInstance = hn.HostName
 }
 
 func (ipt *Input) getConnString() string {
@@ -379,11 +396,6 @@ func (ipt *Input) Init() error {
 	if ipt.Tags == nil {
 		ipt.Tags = make(map[string]string)
 	}
-	if _, ok := ipt.Tags["host"]; !ok {
-		if ipt.Host != "localhost" && !net.ParseIP(ipt.Host).IsLoopback() {
-			ipt.Tags["host"] = ipt.Host
-		}
-	}
 	if ipt.Election {
 		ipt.mergedTags = inputs.MergeTags(ipt.tagger.ElectionTags(), ipt.Tags, ipt.Host)
 	} else {
@@ -444,6 +456,11 @@ func (ipt *Input) Init() error {
 		// on init failing, we still upload up metric to show that the oracle input not working.
 		ipt.FeedUpMetric()
 	}
+
+	if ipt.databaseInstance != "" {
+		ipt.mergedTags["database_instance"] = ipt.databaseInstance
+	}
+
 	return nil
 }
 

@@ -150,6 +150,7 @@ func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"server":                   inputs.NewTagInfo("The server address (host:port)"),
+			"database_instance":        inputs.NewTagInfo("Oracle instance identifier, derived from v$instance.host_name"),
 			"cdb_name":                 inputs.NewTagInfo("The name of the CDB (Container Database)"),
 			"con_id":                   inputs.NewTagInfo("The container ID (con_id) in Oracle multi tenant architecture"),
 			"pdb_name":                 inputs.NewTagInfo("The name of the PDB (Pluggable Database)"),

@@ -41,6 +41,7 @@ func (*dbmPlanObjectMeasurement) Info() *inputs.MeasurementInfo {
 			"query_signature":          inputs.NewTagInfo("Hash signature generated from pdb_name:query_hash to link metrics and objects"),
 			"plan_hash_value":          inputs.NewTagInfo("The hash value of the query execution plan"),
 			"server":                   inputs.NewTagInfo("The server address (host:port)"),
+			"database_instance":        inputs.NewTagInfo("Oracle instance identifier, derived from v$instance.host_name"),
 			"database_type":            inputs.NewTagInfo("The type of the database. The value is `Oracle`"),
 			"plan_type":                inputs.NewTagInfo("The format of the plan content. The value is `JSON`"),
 			"con_id":                   inputs.NewTagInfo("The container ID (con_id) in Oracle multi tenant architecture"),

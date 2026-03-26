@@ -175,13 +175,14 @@ func (x *slowQueryMeasurement) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]any{
-			`sql_id`:        &inputs.TagInfo{Desc: "SQL identifier of the parent cursor in the library cache"},
-			`module`:        &inputs.TagInfo{Desc: "Contains the name of the module that was executing when the SQL statement was first parsed as set by calling `DBMS_APPLICATION_INFO.SET_MODULE`"},
-			`action`:        &inputs.TagInfo{Desc: "Contains the name of the action that was executing when the SQL statement was first parsed as set by calling `DBMS_APPLICATION_INFO.SET_ACTION`"},
-			`command_type`:  &inputs.TagInfo{Desc: "Oracle command type definition"},
-			`status`:        &inputs.TagInfo{Desc: "Log level, always `warning` here"},
-			"oracle_server": &inputs.TagInfo{Desc: "Server addr. Deprecated. Please use `server`"},
-			"server":        &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"},
+			`sql_id`:            &inputs.TagInfo{Desc: "SQL identifier of the parent cursor in the library cache"},
+			`module`:            &inputs.TagInfo{Desc: "Contains the name of the module that was executing when the SQL statement was first parsed as set by calling `DBMS_APPLICATION_INFO.SET_MODULE`"},
+			`action`:            &inputs.TagInfo{Desc: "Contains the name of the action that was executing when the SQL statement was first parsed as set by calling `DBMS_APPLICATION_INFO.SET_ACTION`"},
+			`command_type`:      &inputs.TagInfo{Desc: "Oracle command type definition"},
+			`status`:            &inputs.TagInfo{Desc: "Log level, always `warning` here"},
+			"oracle_server":     &inputs.TagInfo{Desc: "Server addr. Deprecated. Please use `server`"},
+			"database_instance": &inputs.TagInfo{Desc: "Oracle instance identifier, derived from v$instance.host_name"},
+			"server":            &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"},
 		},
 	}
 }

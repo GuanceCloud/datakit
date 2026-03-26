@@ -358,7 +358,10 @@ func (ipt *Input) setServerHostTag() {
 	}
 
 	if len(hostName) > 0 {
+		ipt.databaseInstance = hostName
+
 		ipt.Tags["sqlserver_host"] = hostName
+		ipt.Tags["database_instance"] = hostName
 	}
 }
 
