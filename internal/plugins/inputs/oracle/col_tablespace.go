@@ -51,7 +51,7 @@ type tableSpaceRowDB struct {
 	Offline        float64        `db:"OFFLINE_"`
 }
 
-func (ipt *Input) collectOracleTableSpace() {
+func (ipt *Input) collectOracleTableSpace(ptsTime time.Time) {
 	var (
 		start      = time.Now()
 		metricName = "oracle_tablespace"
@@ -91,7 +91,7 @@ func (ipt *Input) collectOracleTableSpace() {
 		}
 	}
 
-	opts := ipt.getKVsOpts()
+	opts := ipt.getKVsOptsWithTime(ptsTime)
 	for _, row := range rows {
 		kvs := ipt.getKVs()
 		kvs = kvs.AddTag("tablespace_name", row.TablespaceName)
