@@ -72,6 +72,7 @@ type Input struct {
 	User               string           `toml:"user"`
 	Password           string           `toml:"password"`
 	Database           string           `toml:"database"`
+	Server             string           `toml:"server"`
 	Interval           datakit.Duration `toml:"interval"`
 	MetricExcludeList  []string         `toml:"metric_exclude_list"`
 	Timeout            string           `toml:"connect_timeout"`
@@ -185,32 +186,16 @@ func (ipt *Input) Init() {
 }
 
 func (ipt *Input) setup() error {
-	var err error
 	logInitOnce.Do(
 		func() {
 			log = logger.SLogger(inputName)
 		},
 	)
-	setHost := false
-	host := strings.ToLower(ipt.Host)
-	switch host {
-	case "", "localhost":
-		setHost = true
-	default:
-		if net.ParseIP(host).IsLoopback() {
-			setHost = true
-		}
-	}
-	if setHost {
-		host, err = os.Hostname()
-		if err != nil {
-			log.Errorf("os.Hostname failed: %v", err)
-		}
-	}
+	host := ipt.resolvedHost()
 
 	log.Infof("%s input started", inputName)
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
-	ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, host)
+	ipt.mergedTags = ipt.extraTags(host)
 	log.Debugf("merged tags: %+#v", ipt.mergedTags)
 
 	if err := ipt.initDBConnect(); err != nil {
@@ -228,6 +213,58 @@ func (ipt *Input) setup() error {
 		log.Warnf("sys_stat_statements check failed: %w", err)
 	}
 	return nil
+}
+
+func (ipt *Input) resolvedHost() string {
+	host := strings.ToLower(ipt.Host)
+	setHost := false
+
+	switch host {
+	case "", "localhost":
+		setHost = true
+	default:
+		if net.ParseIP(host).IsLoopback() {
+			setHost = true
+		}
+	}
+
+	if !setHost {
+		return host
+	}
+
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.Errorf("os.Hostname failed: %v", err)
+		return host
+	}
+
+	return hostname
+}
+
+func (ipt *Input) extraTags(host string) map[string]string {
+	tagger := ipt.tagger
+	if tagger == nil {
+		tagger = datakit.DefaultGlobalTagger()
+	}
+
+	tags := inputs.MergeTags(tagger.HostTags(), ipt.Tags, host)
+	if _, ok := tags["server"]; !ok {
+		tags["server"] = ipt.serverTag(host)
+	}
+	return tags
+}
+
+func (ipt *Input) serverTag(host string) string {
+	if ipt.Server != "" {
+		return ipt.Server
+	}
+
+	serverHost := strings.TrimSpace(ipt.Host)
+	if serverHost == "" {
+		serverHost = host
+	}
+
+	return fmt.Sprintf("%s:%d", serverHost, ipt.Port)
 }
 
 func (ipt *Input) Run() {
@@ -359,7 +396,7 @@ func (ipt *Input) RunPipeline() {
 		tailer.EnableMultiline(true),
 		tailer.WithMaxMultilineLength(int64(float64(config.Cfg.Dataway.MaxRawBodySize) * 0.8)),
 		tailer.WithMultilinePatterns([]string{ipt.Log.MultilineMatch}),
-		tailer.WithExtraTags(inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")),
+		tailer.WithExtraTags(ipt.extraTags(ipt.resolvedHost())),
 		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
 	}
 

@@ -22,6 +22,9 @@ const sampleCfg = `
   ## database name
   database = "test"
 
+  ## Specify the value used as the "server" tag.
+  # server = "db01"
+
   ## Slow query threshold in milliseconds, default 1000
   slow_query_threshold = 1000
 
