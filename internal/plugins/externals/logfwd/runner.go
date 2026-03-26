@@ -62,7 +62,11 @@ func StartLogForwarding(ctx context.Context) error {
 	// Read and parse pod labels from /etc/podinfo/labels
 	podLabels, podLabelsStr, err := readPodLabels("/etc/podinfo/labels")
 	if err != nil {
-		log.Warnf("failed to read pod labels: %v", err)
+		if operatorURL != "" {
+			log.Warnf("failed to read pod labels: %v", err)
+		} else {
+			log.Debugf("pod labels file not found, skip: %v", err)
+		}
 		podLabels = make(map[string]string)
 		podLabelsStr = ""
 	} else {
@@ -159,12 +163,17 @@ func (r *runner) Stop() error {
 }
 
 func (r *runner) handleEnvConfigs() error {
-	if envLogConfigsStr == "" {
+	logConfigsStr, err := getEffectiveEnvLogConfigs()
+	if err != nil {
+		return fmt.Errorf("failed to resolve env log configs: %w", err)
+	}
+
+	if logConfigsStr == "" {
 		return nil
 	}
 
 	log.Info("processing environment log configs")
-	configs, err := parseLogConfigs(envLogConfigsStr)
+	configs, err := parseLogConfigs(logConfigsStr)
 	if err != nil {
 		return fmt.Errorf("failed to parse env log configs: %w", err)
 	}
@@ -262,7 +271,7 @@ func (r *runner) handleOperatorConfigs() {
 	}
 
 	// Parse configs from response
-	var loggingConfigs []loggingConfig
+	var loggingConfigs []logConfig
 	if apiResp.Configs != "" {
 		if err := json.Unmarshal([]byte(apiResp.Configs), &loggingConfigs); err != nil {
 			log.Errorf("failed to unmarshal configs: %v", err)
@@ -368,7 +377,9 @@ func createWebsocketClient(endpoint string) (*websocketClient, error) {
 	}
 
 	wsClient := newWebsocketClient(u)
-	wsClient.tryConnectWebsocketServer()
+	if err := wsClient.tryConnectWebsocketServer(); err != nil {
+		return nil, fmt.Errorf("failed to connect websocket server: %w", err)
+	}
 
 	wsGo := goroutine.NewGroup(goroutine.Option{Name: "websocket"})
 	wsGo.Go(func(ctx context.Context) error {

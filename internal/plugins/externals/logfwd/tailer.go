@@ -9,6 +9,7 @@
 package logfwd
 
 import (
+	"errors"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
@@ -70,6 +71,10 @@ func forwardFunc(cfg *logConfig, fn writeMessageFunc) tailer.ForwardFunc {
 		}
 
 		if err := fn(data); err != nil {
+			if errors.Is(err, errWebsocketQueueFull) || errors.Is(err, errWebsocketClientClosed) {
+				log.Debugf("drop log message: %v", err)
+				return err
+			}
 			log.Errorf("failed to send message: %v", err)
 			return err
 		}
