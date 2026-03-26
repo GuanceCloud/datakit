@@ -39,12 +39,13 @@ func (*oracleObjectMeasurement) Info() *inputs.MeasurementInfo {
 		Cat:  point.Object,
 		Desc: "Oracle object metrics([:octicons-tag-24: Version-1.77.0](../datakit/changelog-2025.md#cl-1.77.0))",
 		Tags: map[string]interface{}{
-			"host":          &inputs.TagInfo{Desc: "The hostname of the Oracle server"},
-			"server":        &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"},
-			"version":       &inputs.TagInfo{Desc: "The version of the Oracle server"},
-			"name":          &inputs.TagInfo{Desc: "The name of the database. The value is `host:port` in default"},
-			"database_type": &inputs.TagInfo{Desc: "The type of the database. The value is `Oracle`"},
-			"port":          &inputs.TagInfo{Desc: "The port of the Oracle server"},
+			"host":              &inputs.TagInfo{Desc: "The hostname of the Oracle server"},
+			"server":            &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"},
+			"version":           &inputs.TagInfo{Desc: "The version of the Oracle server"},
+			"database_instance": &inputs.TagInfo{Desc: "Oracle instance identifier, derived from v$instance.host_name"},
+			"name":              &inputs.TagInfo{Desc: "The object identifier. The value is `<server>-<database_instance>`"},
+			"database_type":     &inputs.TagInfo{Desc: "The type of the database. The value is `Oracle`"},
+			"port":              &inputs.TagInfo{Desc: "The port of the Oracle server"},
 		},
 		Fields: map[string]interface{}{
 			"uptime":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "The number of seconds that the server has been up"},
@@ -73,8 +74,7 @@ func (ipt *Input) collectDatabaseObject() {
 
 	kvs = kvs.AddTag("version", ipt.mainVersion).
 		AddTag("database_type", oracleType).
-		AddTag("name", ipt.Object.name).
-		AddTag("host", ipt.Host).
+		AddTag("name", fmt.Sprintf("%s-%s", ipt.Object.name, ipt.databaseInstance)).
 		AddTag("port", fmt.Sprintf("%d", ipt.Port)).
 		Add("uptime", ipt.Uptime)
 

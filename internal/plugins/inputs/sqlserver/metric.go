@@ -85,8 +85,9 @@ func (m *SqlserverMeasurment) Info() *inputs.MeasurementInfo {
 			"server_memory":       newByteFieldInfo("Memory used"),
 		},
 		Tags: map[string]interface{}{
-			"sqlserver_host": inputs.NewTagInfo("Host name which installed SQLServer"),
-			"server":         inputs.NewTagInfo("The address of the server. The value is `host:port`"),
+			"sqlserver_host":    inputs.NewTagInfo("Host name which installed SQLServer"),
+			"database_instance": inputs.NewTagInfo("SQL Server instance identifier derived from server name"),
+			"server":            inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
 }
@@ -301,8 +302,9 @@ func (m *LockRow) Info() *inputs.MeasurementInfo {
 			"message":                 newStringFieldInfo("Text of the SQL query"),
 		},
 		Tags: map[string]interface{}{
-			"sqlserver_host": inputs.NewTagInfo("Host name which installed SQLServer"),
-			"server":         inputs.NewTagInfo("The address of the server. The value is `host:port`"),
+			"sqlserver_host":    inputs.NewTagInfo("Host name which installed SQLServer"),
+			"database_instance": inputs.NewTagInfo("SQL Server instance identifier derived from server name"),
+			"server":            inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
 }
@@ -325,8 +327,9 @@ func (m *LockTable) Info() *inputs.MeasurementInfo {
 			"request_status":     newStringFieldInfo("Current status of this request"),
 		},
 		Tags: map[string]interface{}{
-			"sqlserver_host": inputs.NewTagInfo("Host name which installed SQLServer"),
-			"server":         inputs.NewTagInfo("The address of the server. The value is `host:port`"),
+			"sqlserver_host":    inputs.NewTagInfo("Host name which installed SQLServer"),
+			"database_instance": inputs.NewTagInfo("SQL Server instance identifier derived from server name"),
+			"server":            inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
 }
@@ -352,8 +355,9 @@ func (m *LockDead) Info() *inputs.MeasurementInfo {
 			"message":              newStringFieldInfo("Text of the SQL query which is blocking"),
 		},
 		Tags: map[string]interface{}{
-			"sqlserver_host": inputs.NewTagInfo("Host name which installed SQLServer"),
-			"server":         inputs.NewTagInfo("The address of the server. The value is `host:port`"),
+			"sqlserver_host":    inputs.NewTagInfo("Host name which installed SQLServer"),
+			"database_instance": inputs.NewTagInfo("SQL Server instance identifier derived from server name"),
+			"server":            inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
 }
@@ -378,8 +382,9 @@ func (m *LogicalIO) Info() *inputs.MeasurementInfo {
 			"message":              newStringFieldInfo("Text of the SQL query"),
 		},
 		Tags: map[string]interface{}{
-			"sqlserver_host": inputs.NewTagInfo("Host name which installed SQLServer"),
-			"server":         inputs.NewTagInfo("The address of the server. The value is `host:port`"),
+			"sqlserver_host":    inputs.NewTagInfo("Host name which installed SQLServer"),
+			"database_instance": inputs.NewTagInfo("SQL Server instance identifier derived from server name"),
+			"server":            inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
 }

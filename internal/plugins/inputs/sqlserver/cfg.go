@@ -264,6 +264,7 @@ type Input struct {
 	CollectCoStatus    string
 	CollectCoErrMsg    string
 	LastCustomerObject *customerObjectMeasurement
+	databaseInstance   string
 
 	lastErr error
 	tail    *tailer.Tailer

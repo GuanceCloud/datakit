@@ -36,6 +36,7 @@ func (*dbmQueryObjectMeasurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"query_signature":          inputs.NewTagInfo("Hash signature generated from pdb_name:query_hash to link metrics and objects"),
 			"server":                   inputs.NewTagInfo("The server address (host:port)"),
+			"database_instance":        inputs.NewTagInfo("Oracle instance identifier, derived from v$instance.host_name"),
 			"database_type":            inputs.NewTagInfo("The type of the database. The value is `Oracle`"),
 			"con_id":                   inputs.NewTagInfo("The container ID (con_id) in Oracle multi tenant architecture"),
 			"cdb_name":                 inputs.NewTagInfo("The name of the CDB (Container Database)"),

@@ -54,6 +54,7 @@ func (m *oracleMeasurement) getTags() map[string]interface{} {
 func (m *oracleMeasurement) getCommonTags() map[string]interface{} {
 	tags := make(map[string]interface{})
 	tags["host"] = &inputs.TagInfo{Desc: "Host name"}
+	tags["database_instance"] = &inputs.TagInfo{Desc: "Oracle instance identifier, derived from v$instance.host_name"}
 	tags["server"] = &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"}
 	tags["oracle_server"] = &inputs.TagInfo{Desc: "Server addr. Deprecated. Please use `server`"}
 	tags["oracle_service"] = &inputs.TagInfo{Desc: "Server service"}
