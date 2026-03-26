@@ -81,9 +81,11 @@ func checkConfig(cfg *config) error {
 		}
 	}
 
-	// 验证多行模式
-	if _, err := multiline.New(cfg.multilinePatterns); err != nil {
-		return fmt.Errorf("invalid multiline patterns: %w", err)
+	// 验证多行模式，仅在开启时检查
+	if cfg.enableMultiline {
+		if _, err := multiline.New(cfg.multilinePatterns); err != nil {
+			return fmt.Errorf("invalid multiline patterns: %w", err)
+		}
 	}
 
 	// 验证数据源名称

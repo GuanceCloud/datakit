@@ -186,3 +186,32 @@ func TestSocketLoggerClose(t *testing.T) {
 	sk.Close()
 	// 注意：cancel 可能为 nil，这是正常的
 }
+
+func TestSocketLoggerMultilineValidationByEnabled(t *testing.T) {
+	t.Run("disabled-skip-invalid-pattern", func(t *testing.T) {
+		opts := []Option{
+			WithSource("testing"),
+			WithSockets([]string{"tcp://127.0.0.1:0"}),
+			EnableMultiline(false),
+			WithMultilinePatterns([]string{`(?invalid`}),
+		}
+
+		sk, err := NewSocketLogging(opts...)
+		require.NoError(t, err)
+		require.NotNil(t, sk)
+		sk.Close()
+	})
+
+	t.Run("enabled-validate-invalid-pattern", func(t *testing.T) {
+		opts := []Option{
+			WithSource("testing"),
+			WithSockets([]string{"tcp://127.0.0.1:0"}),
+			EnableMultiline(true),
+			WithMultilinePatterns([]string{`(?invalid`}),
+		}
+
+		sk, err := NewSocketLogging(opts...)
+		require.Error(t, err)
+		assert.Nil(t, sk)
+	})
+}

@@ -110,9 +110,24 @@ func (t *Single) applyOptions(opts []Option) error {
 	}
 
 	if t.config.characterEncoding != "" {
-		t.decoder, _ = encoding.NewDecoder(t.config.characterEncoding)
+		decoder, err := encoding.NewDecoder(t.config.characterEncoding)
+		if err != nil {
+			return fmt.Errorf("new decoder failed: %w", err)
+		}
+		t.decoder = decoder
+	} else {
+		t.decoder = nil
 	}
-	t.multiline, _ = multiline.New(t.config.multilinePatterns, multiline.WithMaxLength(int(t.config.maxMultilineLength)))
+
+	if t.config.enableMultiline {
+		multi, err := multiline.New(t.config.multilinePatterns, multiline.WithMaxLength(int(t.config.maxMultilineLength)))
+		if err != nil {
+			return fmt.Errorf("new multiline failed: %w", err)
+		}
+		t.multiline = multi
+	} else {
+		t.multiline = nil
+	}
 
 	t.extraTags = make(map[string]string)
 	for k, v := range t.config.extraTags {

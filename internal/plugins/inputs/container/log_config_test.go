@@ -78,3 +78,30 @@ func TestParseLogConfigs(t *testing.T) {
 		t.Logf("[%d][OK   ] parsed %d configs\n", idx, len(configs))
 	}
 }
+
+func TestSetAutoMultiline(t *testing.T) {
+	t.Run("disabled-without-explicit-multiline", func(t *testing.T) {
+		cfg := &logConfig{}
+		defaults := &loggingDefaults{
+			enableMultiline:            false,
+			autoMultilineExtraPatterns: []string{`^EXTRA`},
+		}
+		cfg.setAutoMultiline(defaults)
+		assert.Nil(t, cfg.multilinePatterns)
+	})
+
+	t.Run("enabled-builds-independent-slice", func(t *testing.T) {
+		extra := []string{`^EXTRA`}
+		cfg := &logConfig{}
+		defaults := &loggingDefaults{
+			enableMultiline:            true,
+			autoMultilineExtraPatterns: extra,
+		}
+		cfg.setAutoMultiline(defaults)
+		assert.Greater(t, len(cfg.multilinePatterns), len(extra))
+		assert.Equal(t, `^EXTRA`, cfg.multilinePatterns[0])
+
+		cfg.multilinePatterns[0] = `^CHANGED`
+		assert.Equal(t, `^EXTRA`, defaults.autoMultilineExtraPatterns[0])
+	})
+}

@@ -58,7 +58,6 @@ type Input struct {
 	LoggingEnableMultline                 bool              `toml:"logging_enable_multiline"`
 	LoggingExtraSourceMap                 map[string]string `toml:"logging_extra_source_map"`
 	LoggingSourceMultilineMap             map[string]string `toml:"logging_source_multiline_map"`
-	LoggingAutoMultilineDetection         bool              `toml:"logging_auto_multiline_detection"`
 	LoggingAutoMultilineExtraPatterns     []string          `toml:"logging_auto_multiline_extra_patterns"`
 	LoggingFileFromBeginning              bool              `toml:"logging_file_from_beginning"`
 	LoggingFileFromBeginningThresholdSize int64             `toml:"logging_file_from_beginning_threshold_size"`
