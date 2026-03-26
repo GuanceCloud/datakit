@@ -219,6 +219,13 @@ func (dw *Dataway) doFlush(w *writer, b *body, opts ...WriteOption) error {
 				continue // current endpoint POST 4xx ignored, but other endpoint maybe ok.
 			}
 
+			// Dirty request data(e.g. bad HTTP header) should be dropped directly.
+			if errors.Is(err, errDirtyUpload) {
+				writeDropPointsCounterVec.WithLabelValues(w.category.String(), errDirtyUpload.Error()).Add(float64(b.npts()))
+				l.Debugf("drop %d pts on %s due to dirty upload request: %s", b.npts(), w.category, err)
+				continue
+			}
+
 			l.Errorf("writePointData: %s", err)
 
 			// For a exist failed-cache, we do not need to re-cache it.
@@ -238,7 +245,7 @@ func (dw *Dataway) doFlush(w *writer, b *body, opts ...WriteOption) error {
 
 				if !w.cacheAll {
 					writeDropPointsCounterVec.WithLabelValues(w.category.String(), err.Error()).Add(float64(b.npts()))
-					l.Warnf("drop %d pts on %s, not cached", b.npts, w.category)
+					l.Warnf("drop %d pts on %s, not cached", b.npts(), w.category)
 					continue
 				}
 
@@ -275,6 +282,11 @@ func (f *flusher) cleanFailCache() error {
 			)
 
 			if err := f.do(b, WithCacheClean(true), WithHTTPHeader("X-Fail-Cache-Retry", "1")); err != nil {
+				if errors.Is(err, errDirtyUpload) {
+					l.Debugf("drop dirty fail-cache body %s: %s", b, err)
+					return nil
+				}
+
 				l.Warnf("cleaning body %s failed: %s", b, err.Error())
 				return err
 			}

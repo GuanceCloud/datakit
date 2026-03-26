@@ -374,6 +374,9 @@ func (ep *endPoint) writePointData(w *writer, b *body) error {
 	}
 
 	if resp == nil {
+		if err != nil {
+			return err
+		}
 		return errRequestTerminated
 	}
 
@@ -475,6 +478,7 @@ func (ep *endPoint) datakitPull(args string) ([]byte, error) {
 
 func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) {
 	status := "unknown"
+	var dirtyErr error
 
 	// Generally, the req.GetBody in DK should not be nil, while we do this to avoid accidents.
 	if ep.maxRetryCount > 1 && req.GetBody == nil && req.Body != nil {
@@ -523,6 +527,11 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 			}()
 
 			if resp, err = ep.doSendReq(req); err != nil {
+				if isDirtyUploadError(err) {
+					dirtyErr = fmt.Errorf("%w: %v", errDirtyUpload, err)
+					return retry.Unrecoverable(dirtyErr)
+				}
+
 				return err
 			}
 
@@ -562,6 +571,8 @@ func (ep *endPoint) sendReq(req *http.Request) (resp *http.Response, err error) 
 		l.Errorf("retry.Do: %s", err.Error())
 
 		switch {
+		case dirtyErr != nil:
+			return resp, dirtyErr
 		case strings.Contains(err.Error(), "All attempts fail"):
 			return resp, fmt.Errorf("all-retry-failed")
 		default:
