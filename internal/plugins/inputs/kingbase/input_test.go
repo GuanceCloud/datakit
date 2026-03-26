@@ -109,3 +109,93 @@ func TestGetHost(t *testing.T) {
 		})
 	}
 }
+
+func TestServerTag(t *testing.T) {
+	tests := []struct {
+		name     string
+		cfgHost  string
+		host     string
+		port     int
+		server   string
+		expected string
+	}{
+		{
+			name:     "default server tag",
+			cfgHost:  "db.example.com",
+			host:     "db.example.com",
+			port:     54321,
+			expected: "db.example.com:54321",
+		},
+		{
+			name:     "custom server",
+			cfgHost:  "db.example.com",
+			host:     "db.example.com",
+			port:     54321,
+			server:   "kingbase-prod-01",
+			expected: "kingbase-prod-01",
+		},
+		{
+			name:     "prefer configured host over hostname",
+			cfgHost:  "localhost",
+			host:     "real-hostname",
+			port:     54321,
+			expected: "localhost:54321",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ipt := &Input{
+				Host:   tt.cfgHost,
+				Port:   tt.port,
+				Server: tt.server,
+			}
+
+			if got := ipt.serverTag(tt.host); got != tt.expected {
+				t.Fatalf("expected %q, got %q", tt.expected, got)
+			}
+		})
+	}
+}
+
+func TestExtraTags(t *testing.T) {
+	tests := []struct {
+		name     string
+		server   string
+		tags     map[string]string
+		expected string
+	}{
+		{
+			name:     "default server tag in extra tags",
+			expected: "db.example.com:54321",
+		},
+		{
+			name:     "top level server overrides default",
+			server:   "kingbase-prod-01",
+			expected: "kingbase-prod-01",
+		},
+		{
+			name: "custom tags server has highest priority",
+			tags: map[string]string{
+				"server": "kingbase-tag-01",
+			},
+			server:   "kingbase-prod-01",
+			expected: "kingbase-tag-01",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ipt := &Input{
+				Port:   54321,
+				Server: tt.server,
+				Tags:   tt.tags,
+			}
+
+			got := ipt.extraTags("db.example.com")
+			if got["server"] != tt.expected {
+				t.Fatalf("expected server tag %q, got %q", tt.expected, got["server"])
+			}
+		})
+	}
+}
