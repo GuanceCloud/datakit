@@ -141,6 +141,45 @@ func TestFailCache(t *T.T) {
 		assert.NoError(t, err)
 		t.Logf("metrics:\n%s", metrics.MetricFamily2Text(mfs))
 	})
+
+	t.Run("clean-fail-cache-dirty-drop-directly", func(t *T.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			t.Fatalf("unexpected request on dirty fail-cache body: %s", r.URL.Path)
+		}))
+		defer ts.Close()
+
+		dw := NewDefaultDataway()
+		dw.WAL.Path = t.TempDir()
+		dw.MaxRetryCount = 1
+
+		require.NoError(t, dw.Init(WithURLs(fmt.Sprintf("%s?token=tkn_some", ts.URL))))
+		require.NoError(t, dw.setupWAL())
+
+		b := getNewBufferBody(withNewBuffer(dw.MaxRawBodySize), withCaller("test-dirty-fail-cache"))
+		b.CacheData.Payload = []byte("x")
+		b.CacheData.PayloadType = int32(point.Protobuf)
+		b.CacheData.Category = int32(point.Logging)
+		b.CacheData.Pts = 1
+		b.CacheData.RawLen = 1
+		b.CacheData.PkgTime = uint32(time.Now().Unix())
+		b.CacheData.Headers = append(b.CacheData.Headers, &HTTPHeader{
+			Key:   "X-Bad-Header",
+			Value: "bad\nheader",
+		})
+
+		require.NoError(t, dw.dumpFailCache(b))
+		putBody(b)
+
+		dc := dw.walFail.disk.(*diskcache.DiskCache)
+		require.NoError(t, dc.Rotate())
+
+		f := dw.newFlusher(point.Logging)
+		require.NoError(t, f.cleanFailCache())
+
+		assert.Equal(t, diskcache.ErrNoData, dc.BufGet(nil, func([]byte) error {
+			return nil
+		}))
+	})
 }
 
 func TestWriteWithCache(t *T.T) {
@@ -425,6 +464,77 @@ func TestX(t *T.T) {
 }
 
 func TestWritePoints(t *T.T) {
+	t.Run("write-drop-dirty-header", func(t *T.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			t.Fatalf("unexpected request on dirty header: %s", r.URL.Path)
+		}))
+		defer ts.Close()
+
+		dw := NewDefaultDataway()
+		dw.ContentEncoding = "protobuf"
+		dw.GZip = true
+		dw.WAL.Path = t.TempDir()
+		dw.MaxRetryCount = 1
+
+		assert.NoError(t, dw.Init(WithURLs(fmt.Sprintf("%s?token=tkn_some", ts.URL))))
+		require.NoError(t, dw.setupWAL())
+
+		assert.NoError(t, dw.Write(
+			WithBodyCallback(func(w *writer, b *body) error {
+				return dw.doFlush(w, b)
+			}),
+			WithHTTPEncoding(dw.contentEncoding),
+			WithCategory(point.Logging),
+			WithHTTPHeader("X-Bad-Header", "bad\nheader"),
+			WithPoints(point.RandPoints(10))))
+
+		dc := dw.walFail.disk.(*diskcache.DiskCache)
+		assert.NoError(t, dc.Rotate())
+		assert.Equal(t, diskcache.ErrNoData, dc.BufGet(nil, func([]byte) error {
+			return nil
+		}))
+
+		t.Cleanup(func() {
+			metricsReset()
+			diskcache.ResetMetrics()
+		})
+	})
+
+	t.Run("write-drop-dirty-unsupported-protocol", func(t *T.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			t.Fatalf("unexpected request on unsupported protocol: %s", r.URL.Path)
+		}))
+		defer ts.Close()
+
+		dw := NewDefaultDataway()
+		dw.ContentEncoding = "protobuf"
+		dw.GZip = true
+		dw.WAL.Path = t.TempDir()
+		dw.MaxRetryCount = 1
+
+		assert.NoError(t, dw.Init(WithURLs(fmt.Sprintf("%s?token=tkn_some", ts.URL))))
+		require.NoError(t, dw.setupWAL())
+
+		assert.NoError(t, dw.Write(
+			WithBodyCallback(func(w *writer, b *body) error {
+				return dw.doFlush(w, b, WithDynamicURL("ftp://127.0.0.1:1234/v1/write/logging?token=tkn_some"))
+			}),
+			WithHTTPEncoding(dw.contentEncoding),
+			WithCategory(point.DynamicDWCategory),
+			WithPoints(point.RandPoints(10))))
+
+		dc := dw.walFail.disk.(*diskcache.DiskCache)
+		assert.NoError(t, dc.Rotate())
+		assert.Equal(t, diskcache.ErrNoData, dc.BufGet(nil, func([]byte) error {
+			return nil
+		}))
+
+		t.Cleanup(func() {
+			metricsReset()
+			diskcache.ResetMetrics()
+		})
+	})
+
 	t.Run("write-with-sink-fail-cache", func(t *T.T) {
 		r := point.NewRander()
 		n := 100
