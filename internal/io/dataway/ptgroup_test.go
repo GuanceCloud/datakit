@@ -6,7 +6,12 @@
 package dataway
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strings"
 	T "testing"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/GuanceCloud/cliutils/point"
@@ -40,15 +45,117 @@ func BenchmarkGroup(b *T.B) {
 
 	b.Run("multiple-tpgrouper", func(b *T.B) {
 		b.ResetTimer()
+		ptg := getGrouper()
 		for i := 0; i < b.N; i++ {
-			ptg := getGrouper()
+			ptg.safe = true
 			dw.doGroupPoints(ptg, point.Logging, pts)
-			putGrouper(ptg)
+			ptg.reset()
 		}
+		putGrouper(ptg)
+	})
+
+	b.Run("multiple-tpgrouper-unsafe", func(b *T.B) {
+		b.ResetTimer()
+		ptg := getGrouper()
+		for i := 0; i < b.N; i++ {
+			ptg.safe = false
+			dw.doGroupPoints(ptg, point.Logging, pts)
+			ptg.reset()
+		}
+		putGrouper(ptg)
+	})
+}
+
+func TestSinkHeader(t *T.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK) // mocked dataway fail
+	}))
+
+	defer ts.Close()
+	time.Sleep(time.Second)
+
+	t.Run("new-line", func(t *T.T) {
+		cli := http.Client{}
+		req, err := http.NewRequest(http.MethodPost, ts.URL, nil)
+		assert.NoError(t, err)
+		req.Header.Set(HeaderXGlobalTags, "tag1=123,tag2=12\n3")
+
+		_, err = cli.Do(req)
+		assert.Error(t, err)
+		t.Logf("got error: %s", err)
+	})
+
+	t.Run("encoded-new-line", func(t *T.T) {
+		cli := http.Client{}
+		req, err := http.NewRequest(http.MethodPost, ts.URL, nil)
+		assert.NoError(t, err)
+		req.Header.Set(HeaderXGlobalTags, "tag1=123,tag2="+url.QueryEscape("12\n3"))
+
+		_, err = cli.Do(req)
+		assert.NoError(t, err)
+	})
+
+	t.Run("cjk", func(t *T.T) {
+		cli := http.Client{}
+		req, err := http.NewRequest(http.MethodPost, ts.URL, nil)
+		assert.NoError(t, err)
+		req.Header.Set(HeaderXGlobalTags, "tag1=123,tag2=中")
+
+		_, err = cli.Do(req)
+		assert.NoError(t, err)
+	})
+
+	t.Run("space", func(t *T.T) {
+		cli := http.Client{}
+		req, err := http.NewRequest(http.MethodPost, ts.URL, nil)
+		assert.NoError(t, err)
+		req.Header.Set(HeaderXGlobalTags, "tag1=123,tag2=中 二")
+
+		_, err = cli.Do(req)
+		assert.NoError(t, err)
+	})
+
+	t.Run("emoji", func(t *T.T) {
+		cli := http.Client{}
+		req, err := http.NewRequest(http.MethodPost, ts.URL, nil)
+		assert.NoError(t, err)
+		req.Header.Set(HeaderXGlobalTags, "tag1=123,tag2=🙂")
+
+		_, err = cli.Do(req)
+		assert.NoError(t, err)
 	})
 }
 
 func TestGroupPoint(t *T.T) {
+	t.Run("mal-formmed-key-value", func(t *T.T) {
+		metricsReset()
+		dw := NewDefaultDataway()
+		dw.GlobalCustomerKeys = []string{"nr", "cjk"}
+		dw.EnableSinker = true
+		dw.GZip = true
+		dw.SinkerHeaderVersion = "v2"
+
+		assert.NoError(t, dw.Init(WithURLs("https://fake-dataway.com?token=tkn_xxxxxxxxxx")))
+
+		ptr := point.NewRander()
+		pts := ptr.Rand(100)
+		for i := 0; i < 100; i++ {
+			pts[i].SetTag("nr", strings.Join([]string{"a", "b", "c"}, "\n"))
+			pts[i].SetTag("cjk", "中")
+		}
+
+		ptg := getGrouper()
+		defer putGrouper(ptg)
+		dw.groupPoints(ptg, point.Logging, pts)
+		res := ptg.groupedPts
+
+		for k := range res {
+			t.Logf("key: %s, pts: %d", k, len(res[k]))
+		}
+
+		assert.Len(t, res["nr=a%0Ab%0Ac,cjk=%E4%B8%AD"], 100)
+	})
+
 	t.Run("duplicate-keys", func(t *T.T) {
 		metricsReset()
 

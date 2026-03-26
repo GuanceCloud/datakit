@@ -152,12 +152,13 @@ func (dw *Dataway) doGroupPoints(ptg *ptGrouper, cat point.Category, points []*p
 
 		ptg.pt = pt
 		ptg.cat = cat
+		ptg.safe = (dw.SinkerHeaderVersion == "v2")
 
-		tv := ptg.sinkHeaderValue(dw.globalTags, dw.GlobalCustomerKeys)
+		sinkHeaderValue := ptg.sinkHeaderValue(dw.globalTags, dw.GlobalCustomerKeys)
 
-		l.Debugf("add point to group %q", tv)
+		l.Debugf("add point to group %q", sinkHeaderValue)
 
-		ptg.groupedPts[tv] = append(ptg.groupedPts[tv], pt)
+		ptg.groupedPts[sinkHeaderValue] = append(ptg.groupedPts[sinkHeaderValue], pt)
 	}
 }
 
@@ -222,7 +223,13 @@ func (dw *Dataway) Write(opts ...WriteOption) error {
 		dw.groupPoints(ptg, w.category, w.points)
 
 		for k, points := range ptg.groupedPts {
-			WithHTTPHeader(HeaderXGlobalTags, k)(w)
+			switch dw.SinkerHeaderVersion {
+			case "v2":
+				WithHTTPHeader(HeaderXGlobalTagsV2, k)(w)
+			default:
+				WithHTTPHeader(HeaderXGlobalTags, k)(w)
+			}
+
 			WithPoints(points)(w)
 
 			if err := w.buildPointsBody(); err != nil {

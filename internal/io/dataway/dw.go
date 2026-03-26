@@ -22,7 +22,9 @@ import (
 )
 
 const (
-	HeaderXGlobalTags       = "X-Global-Tags"
+	HeaderXGlobalTags   = "X-Global-Tags"
+	HeaderXGlobalTagsV2 = "X-Global-Tags-V2" // with header key/value URL encoded
+
 	HeaderXStorageIndexName = "X-Storage-Index-Name"
 	DefaultRetryCount       = 1
 	DefaultRetryDelay       = time.Second
@@ -157,12 +159,14 @@ type Dataway struct {
 
 	GZip bool `toml:"gzip"`
 
-	EnableHTTPTrace    bool `toml:"enable_httptrace"`
-	EnableSinker       bool `toml:"enable_sinker"`
+	EnableHTTPTrace bool `toml:"enable_httptrace"`
+	EnableSinker    bool `toml:"enable_sinker"`
+
 	InsecureSkipVerify bool `toml:"tls_insecure"`
 
-	GlobalCustomerKeys []string `toml:"global_customer_keys"`
-	WAL                *WALConf `toml:"wal"`
+	SinkerHeaderVersion string   `toml:"sinker_header_version"`
+	GlobalCustomerKeys  []string `toml:"global_customer_keys"`
+	WAL                 *WALConf `toml:"wal"`
 
 	eps []*endPoint
 
@@ -333,7 +337,12 @@ func (dw *Dataway) doInit() error {
 		}
 
 		if dw.EnableSinker {
-			ep.httpHeaders[HeaderXGlobalTags] = dw.globalTagsHTTPHeaderValue
+			switch dw.SinkerHeaderVersion {
+			case "v2":
+				ep.httpHeaders[HeaderXGlobalTagsV2] = dw.globalTagsHTTPHeaderValue
+			default:
+				ep.httpHeaders[HeaderXGlobalTags] = dw.globalTagsHTTPHeaderValue
+			}
 		}
 
 		dw.eps = append(dw.eps, ep)
