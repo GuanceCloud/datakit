@@ -302,6 +302,11 @@ func (c *Config) loadPointPoolEnvs() {
 }
 
 func (c *Config) loadDatawayEnvs() {
+	if v := datakit.GetEnv("ENV_DATAWAY_SINKER_HEADER_VERSION"); v != "" {
+		l.Info("ENV_DATAWAY_SINKER_HEADER_VERSION set to %q", v)
+		c.Dataway.SinkerHeaderVersion = v
+	}
+
 	if v := datakit.GetEnv("ENV_DATAWAY_DROP_EXPIRED_PACKAGE_AT"); v != "" {
 		l.Info("ENV_DATAWAY_DROP_EXPIRED_PACKAGE_AT set to %q", v)
 

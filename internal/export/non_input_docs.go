@@ -132,6 +132,14 @@ func envDataway() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
 		{
+			ENVName: "ENV_DATAWAY_SINKER_HEADER_VERSION",
+			Type:    doc.String,
+			Example: "`v2`",
+			Default: "`-`",
+			Desc:    "Set sinker header version. If choose version `v2`, we should upgrade DataWay to specific version.[:octicons-tag-24: Version-1.91.0](changelog-2026.md#cl-1.91.0)",
+			DescZh:  "设置分流 header 版本。注意，如果要设置 v2 版本的 header，需配合升级 DataWay 到对应版本。[:octicons-tag-24: Version-1.91.0](changelog-2026.md#cl-1.91.0)",
+		},
+		{
 			ENVName: "ENV_DATAWAY_DROP_EXPIRED_PACKAGE_AT",
 			Type:    doc.TimeDuration,
 			Example: "`24h`",

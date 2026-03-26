@@ -264,7 +264,7 @@ func Test_serverSideTimeout(t *T.T) {
 		httpParts := []string{
 			"POST / HTTP/1.1\r\n",
 			"HOST: " + ts.Listener.Addr().String() + "\r\n",
-			"User-Agent: Slow-Client\r\n",
+			"User-Agent: Slow-Header-Client\r\n",
 		}
 
 		delay := time.Second * 1

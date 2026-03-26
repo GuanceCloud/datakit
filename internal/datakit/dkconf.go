@@ -259,9 +259,10 @@ ulimit = 64000
   max_raw_body_size = 1048576 # max body size(before gizp) in bytes
 
   # Customer tag or field keys that will extract from exist points
-  # to build the X-Global-Tags HTTP header value.
-  global_customer_keys = []
-  enable_sinker        = false # disable sinker
+  # to build the sinker HTTP header.
+  global_customer_keys  = []
+  enable_sinker         = false # disable sinker
+  # sinker_header_version = "v2" # v2 header will URL encode all sinker key/value
 
   # use dataway as NTP server
   [dataway.ntp]
