@@ -47,9 +47,7 @@ before_script:
 
 stages:
   - _test_guance
-  - _deploy_ebpf_guance
   - _deploy_guance
-  - _deploy_ebpf_truewatch
   - _deploy_truewatch
 
 # run lint and unit test for most of the branches
@@ -104,187 +102,10 @@ ut-datakit-testing:
   tags:
     - cloudcare-ft
 
-release-ebpf-amd64-testing-guance:
-  stage: _deploy_ebpf_guance
-  resource_group: production
-  needs: [ut-datakit-testing]
-  image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.9
-  only:
-    - testing
-    - /^testing-.*$/
-  script:
-    - make clean
-    - export OSS_HOST="$OSS_HOST_TESTING"
-    - export OSS_BUCKET="$OSS_BUCKET_TESTING"
-    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TESTING"
-    - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TESTING"
-    - export OSS_PATH="datakit"
-    - make pub_ebpf_testing DATAKIT_EBPF_ARCHS="linux/amd64" \
-      GIT_BRANCH="$CI_COMMIT_BRANCH" \
-      ONLY_BUILD_INPUTS_EXTENTIONS=1 \
-      VERSION="$CI_TESTING_VERSION"
-  tags:
-    - cloudcare-ft-docker
-
-release-ebpf-aarch64-testing-guance:
-  stage: _deploy_ebpf_guance
-  resource_group: production
-  needs: [ut-datakit-testing]
-  image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.9
-  only:
-    - testing
-    - /^testing-.*$/
-  script:
-    - make clean
-    - export OSS_HOST="$OSS_HOST_TESTING"
-    - export OSS_BUCKET="$OSS_BUCKET_TESTING"
-    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TESTING"
-    - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TESTING"
-    - export OSS_PATH="datakit"
-    - make pub_ebpf_testing DATAKIT_EBPF_ARCHS="linux/arm64" \
-      GIT_BRANCH="$CI_COMMIT_BRANCH" \
-      ONLY_BUILD_INPUTS_EXTENTIONS=1 \
-      VERSION="$CI_TESTING_VERSION"
-  tags:
-    - dk-arm-docker-runner
-
-release-ebpf-amd64-testing-tw:
-  stage: _deploy_ebpf_truewatch
-  resource_group: production
-  needs: [ut-datakit-testing]
-  image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.9
-  only:
-    - testing
-    - /^testing-.*$/
-  script:
-    - make clean
-    - export OSS_HOST="$OSS_HOST_TESTING" # NOTE: we upload truewatch datakit dist to same OSS bucket as guance, but with different subdir(datakit-tw)
-    - export OSS_BUCKET="$OSS_BUCKET_TESTING"
-    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TESTING"
-    - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TESTING"
-    - export OSS_PATH="datakit-tw"
-    - make pub_ebpf_testing DATAKIT_EBPF_ARCHS="linux/amd64" \
-      GIT_BRANCH="$CI_COMMIT_BRANCH" \
-      ONLY_BUILD_INPUTS_EXTENTIONS=1 \
-      VERSION="$CI_TESTING_VERSION"
-  tags:
-    - cloudcare-ft-docker
-
-release-ebpf-aarch64-testing-tw:
-  stage: _deploy_ebpf_truewatch
-  resource_group: production
-  needs: [ut-datakit-testing]
-  image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.9
-  only:
-    - testing
-    - /^testing-.*$/
-  script:
-    - make clean
-    - export OSS_HOST="$OSS_HOST_TESTING"
-    - export OSS_BUCKET="$OSS_BUCKET_TESTING"
-    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TESTING"
-    - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TESTING"
-    - export OSS_PATH="datakit-tw"
-    - make pub_ebpf_testing DATAKIT_EBPF_ARCHS="linux/arm64" \
-      GIT_BRANCH=$CI_COMMIT_BRANCH \
-      ONLY_BUILD_INPUTS_EXTENTIONS=1 \
-      VERSION="$CI_TESTING_VERSION"
-  tags:
-    - dk-arm-docker-runner
-
-release-ebpf-amd64-production-guance:
-  stage: _deploy_ebpf_guance
-  resource_group: production
-  needs: [ut-datakit-production]
-  image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.9
-  only:
-    - master
-  script:
-    - make clean
-    - export OSS_HOST="$OSS_HOST_PROD"
-    - export OSS_BUCKET="$OSS_BUCKET_PROD"
-    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_PROD"
-    - export OSS_SECRET_KEY="$OSS_SECRET_KEY_PROD"
-    - export OSS_PATH="datakit"
-    - make pub_ebpf_production DATAKIT_EBPF_ARCHS="linux/amd64" \
-      GIT_BRANCH=$CI_COMMIT_BRANCH \
-      ONLY_BUILD_INPUTS_EXTENTIONS=1 \
-      VERSION="$CI_VERSION"
-  tags:
-    - cloudcare-ft-docker
-
-release-ebpf-aarch64-production-guance:
-  stage: _deploy_ebpf_guance
-  resource_group: production
-  needs: [ut-datakit-production]
-  image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.9
-  only:
-    - master
-  script:
-    - make clean
-    - export OSS_HOST="$OSS_HOST_PROD"
-    - export OSS_BUCKET="$OSS_BUCKET_PROD"
-    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_PROD"
-    - export OSS_SECRET_KEY="$OSS_SECRET_KEY_PROD"
-    - export OSS_PATH="datakit"
-    - make pub_ebpf_production DATAKIT_EBPF_ARCHS="linux/arm64" \
-      GIT_BRANCH=$CI_COMMIT_BRANCH \
-      ONLY_BUILD_INPUTS_EXTENTIONS=1 \
-      VERSION="$CI_VERSION"
-  tags:
-    - dk-arm-docker-runner
-
-release-ebpf-amd64-production-tw:
-  stage: _deploy_ebpf_truewatch
-  resource_group: production
-  needs: [ut-datakit-production]
-  image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.9
-  only:
-    - master
-  script:
-    - make clean
-    - export OSS_HOST="$OSS_HOST_TW"
-    - export OSS_BUCKET="$OSS_BUCKET_TW"
-    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TW"
-    - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TW"
-    - export OSS_PATH="datakit"
-    - make pub_ebpf_production DATAKIT_EBPF_ARCHS="linux/amd64" \
-      GIT_BRANCH=$CI_COMMIT_BRANCH \
-      ONLY_BUILD_INPUTS_EXTENTIONS=1 \
-      VERSION="$CI_VERSION"
-  tags:
-    - cloudcare-ft-docker
-
-release-ebpf-aarch64-production-tw:
-  stage: _deploy_ebpf_truewatch
-  resource_group: production
-  needs: [ut-datakit-production]
-  image: pubrepo.jiagouyun.com/ebpf-dev/datakit-developer:1.9
-  only:
-    - master
-  script:
-    - make clean
-    - export OSS_HOST="$OSS_HOST_TW"
-    - export OSS_BUCKET="$OSS_BUCKET_TW"
-    - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TW"
-    - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TW"
-    - export OSS_PATH="datakit"
-    - make pub_ebpf_production DATAKIT_EBPF_ARCHS="linux/arm64" \
-      GIT_BRANCH=$CI_COMMIT_BRANCH \
-      ONLY_BUILD_INPUTS_EXTENTIONS=1 \
-      VERSION="$CI_VERSION"
-  tags:
-    - dk-arm-docker-runner
-
 release-testing-guance: # release testing packages to guance
   stage: _deploy_guance
   resource_group: production
-  needs:
-    [
-      ut-datakit-testing,
-      release-ebpf-amd64-testing-guance,
-      release-ebpf-aarch64-testing-guance,
-    ]
+  needs: [ut-datakit-testing]
   only:
     - testing
     - /^testing-.*$/
@@ -300,7 +121,6 @@ release-testing-guance: # release testing packages to guance
     - export OSS_PATH="datakit"
     - make testing GIT_BRANCH=$CI_COMMIT_BRANCH \
         VERSION="$CI_TESTING_VERSION" \
-        PKGEBPF=1 \
         BRAND="guance"
     - make testing_image VERSION="$CI_TESTING_VERSION" \
         BRAND="guance" \
@@ -315,12 +135,7 @@ release-testing-guance: # release testing packages to guance
 release-testing-tw: # release testing packages to truewatch
   stage: _deploy_truewatch
   resource_group: production
-  needs:
-    [
-      ut-datakit-testing,
-      release-ebpf-amd64-testing-tw,
-      release-ebpf-aarch64-testing-tw,
-    ]
+  needs: [ut-datakit-testing]
   only:
     - testing
     - /^testing-.*$/
@@ -336,7 +151,6 @@ release-testing-tw: # release testing packages to truewatch
     - export OSS_PATH="datakit-tw"
     - make testing GIT_BRANCH=$CI_COMMIT_BRANCH \
       VERSION="$CI_TESTING_VERSION" \
-      PKGEBPF=1 \
       BRAND="truewatch"
     - make testing_image VERSION="$CI_TESTING_VERSION" \
       BRAND="truewatch" \
@@ -349,12 +163,7 @@ release-testing-tw: # release testing packages to truewatch
 release-prod-guance: # CI for guance packages
   stage: _deploy_guance
   resource_group: production
-  needs:
-    [
-      ut-datakit-production,
-      release-ebpf-amd64-production-guance,
-      release-ebpf-aarch64-production-guance,
-    ]
+  needs: [ut-datakit-production]
   only:
     - master
   except: # disable CI on tag push
@@ -369,7 +178,6 @@ release-prod-guance: # CI for guance packages
     - export OSS_PATH="datakit"
     - make production GIT_BRANCH=$CI_COMMIT_BRANCH \
       VERSION="$CI_VERSION" \
-      PKGEBPF=1 \
       BRAND="guance" \
       HELM_CHART_REPO="datakit-chart-cn"
     - make production_image VERSION="$CI_VERSION" \
@@ -388,12 +196,7 @@ release-prod-guance: # CI for guance packages
 release-prod-tw: # CI for truewatch packages
   stage: _deploy_truewatch
   resource_group: production
-  needs:
-    [
-      ut-datakit-production,
-      release-ebpf-amd64-production-tw,
-      release-ebpf-aarch64-production-tw,
-    ]
+  needs: [ut-datakit-production]
   only:
     - master
   except: # disable CI on tag push
@@ -406,7 +209,6 @@ release-prod-tw: # CI for truewatch packages
     - export OSS_PATH="datakit"
     - make production GIT_BRANCH=$CI_COMMIT_BRANCH \
       VERSION="$CI_VERSION" \
-      PKGEBPF=1 \
       BRAND="truewatch" \
       HELM_CHART_REPO="datakit-chart-intl"
     - make production_image GIT_BRANCH=$CI_COMMIT_BRANCH \

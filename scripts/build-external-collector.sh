@@ -1,11 +1,11 @@
 #!/bin/bash
 # Build DataKit external collector binaries for specified architectures
-# Uses Docker Buildx for reliable cross-compilation
+# using a prebuilt docker build environment image.
 #
 # Usage:
 #   ./scripts/build-external-collector.sh --input <collector-name>
 #   ./scripts/build-external-collector.sh --input journald --arch amd64,arm64
-#   ./scripts/build-external-collector.sh -i journald -o journald-collector
+#   ./scripts/build-external-collector.sh --input ebpf --output-dir dist/datakit-linux-arm64/externals --arch arm64
 #
 # Examples:
 #   # Build journald collector for current architecture
@@ -16,12 +16,11 @@
 #
 #   # Build with custom output name
 #   ./scripts/build-external-collector.sh --input journald --output journald-bin
+#
+#   # Build standalone datakit-ebpf
+#   ./scripts/build-external-collector.sh --input ebpf --arch arm64
 
-set -e
-
-# Note: Uses Docker Buildx for cross-compilation which provides better stability
-# and caching compared to raw QEMU emulation. Buildx handles platform emulation
-# more reliably and supports multi-arch builds in a single command.
+set -euo pipefail
 
 # Default values
 COLLECTOR_NAME=""
@@ -29,13 +28,17 @@ OUTPUT_NAME=""
 ARCHS=${BUILD_ARCH:-"amd64"}
 CGO_CFLAGS=${CGO_CFLAGS:-"-Wno-undef-prefix"}
 LDFLAGS=${LDFLAGS:--w -s}
+GOFLAGS_VALUE=${GOFLAGS:-"-mod=mod"}
 VERBOSE=${VERBOSE:-false}
 PROJECT_ROOT=$(pwd)
 HOST_ARCH=$(uname -m)
-# Default CGO_ENABLED=1, but can be overridden via --cgo-enabled flag
 CGO_ENABLED="1"
-# Force buildx usage (no fallback to legacy build)
-FORCE_BUILDX=${FORCE_BUILDX:-false}
+OUTPUT_DIR=""
+BUILD_ENV_IMAGE=${DK_BUILD_ENV_IMAGE:-"pubrepo.jiagouyun.com/ebpf-dev/dk_build_env:latest"}
+DOCKER_CMD=${DK_BUILD_DOCKER_CMD:-"sudo docker"}
+read -r -a DOCKER_CMD_ARR <<< "${DOCKER_CMD}"
+LEGACY_SYSROOT_BASE=${DK_LEGACY_SYSROOT_BASE:-"/opt/sysroots/debian10"}
+GO_BUILD_TAGS=""
 
 # Convert host architecture to GOARCH format
 if [ "${HOST_ARCH}" = "x86_64" ]; then
@@ -52,22 +55,25 @@ Usage: $0 --input <collector-name> [OPTIONS]
 Build DataKit external collector binaries for specified architectures.
 
 Required:
-  -i, --input <name>        Collector name (e.g., journald, syslog)
-                            Maps to: internal/plugins/externals/<name>/main.go
+  -i, --input <name>        Collector name (e.g., journald, db2, oracle, logfwd, ebpf)
 
 Optional:
    -o, --output <name>       Output binary name (default: same as --input)
    -a, --arch <archs>        Architectures to build, comma-separated (default: amd64)
                              Can also use BUILD_ARCH environment variable
+   --output-dir <path>       Output directory for the binary
    --cgo-enabled <0|1>       Enable CGO (default: 1)
    --cgo-flags <flags>       CGO compiler flags (default: -Wno-undef-prefix)
    --ldflags <flags>         Go linker flags (default: -w -s)
-   --force-buildx            Force use of buildx (no fallback to legacy build)
+   --image <name>            Build environment image (default: pubrepo.jiagouyun.com/ebpf-dev/dk_build_env:latest)
+   --docker-cmd <cmd>        Docker runner command (default: sudo docker)
    -v, --verbose             Enable verbose build output
    -h, --help                Show this help message
 
 Environment Variables:
   BUILD_ARCH               Alternative to --arch
+  DK_BUILD_ENV_IMAGE       Alternative to --image
+  DK_BUILD_DOCKER_CMD      Alternative to --docker-cmd
   CGO_ENABLED              Alternative to --cgo-enabled
   CGO_CFLAGS               Alternative to --cgo-flags
   LDFLAGS                  Alternative to --ldflags
@@ -80,14 +86,8 @@ Examples:
   # Build for multiple architectures
   BUILD_ARCH=amd64,arm64 $0 --input journald
 
-  # Build with custom settings
-  $0 --input journald --output journald-collector --arch arm64 --verbose
-
-  # Build without CGO (if collector supports it)
-  CGO_ENABLED=0 $0 --input journald
-
-Output:
-  Binaries are placed in: dist/datakit-linux-<arch>/externals/<output-name>
+  # Build datakit-ebpf to the regular externals directory
+  $0 --input ebpf --arch arm64 --output-dir dist/datakit-linux-arm64/externals
 EOF
     exit 1
 }
@@ -119,9 +119,18 @@ while [[ $# -gt 0 ]]; do
             LDFLAGS="$2"
             shift 2
             ;;
-        --force-buildx)
-            FORCE_BUILDX=true
-            shift
+        --output-dir)
+            OUTPUT_DIR="$2"
+            shift 2
+            ;;
+        --image)
+            BUILD_ENV_IMAGE="$2"
+            shift 2
+            ;;
+        --docker-cmd)
+            DOCKER_CMD="$2"
+            read -r -a DOCKER_CMD_ARR <<< "${DOCKER_CMD}"
+            shift 2
             ;;
         -v|--verbose)
             VERBOSE=true
@@ -143,11 +152,6 @@ if [ -z "${COLLECTOR_NAME}" ]; then
     usage
 fi
 
-# Set output name if not specified
-if [ -z "${OUTPUT_NAME}" ]; then
-    OUTPUT_NAME="${COLLECTOR_NAME}"
-fi
-
 # Set verbose flag
 if [ "${VERBOSE}" = "true" ]; then
     set -x
@@ -156,10 +160,29 @@ else
     VERBOSE_FLAG=""
 fi
 
-# Source and output paths
-SOURCE_PATH="internal/plugins/externals/${COLLECTOR_NAME}/main.go"
-OUTPUT_DIR="dist/datakit-linux-\${ARCH}/externals"
-OUTPUT_BINARY="${OUTPUT_NAME}"
+ENTRY_PATH=""
+COLLECTOR_KIND="go"
+if [ -z "${OUTPUT_NAME}" ]; then
+    OUTPUT_NAME="${COLLECTOR_NAME}"
+fi
+
+case "${COLLECTOR_NAME}" in
+    ebpf)
+        COLLECTOR_KIND="ebpf"
+        OUTPUT_NAME="datakit-ebpf"
+        ENTRY_PATH="internal/plugins/externals/ebpf/Makefile"
+        ;;
+    db2|journald|oracle)
+        GO_BUILD_TAGS="netgo"
+        ENTRY_PATH="internal/plugins/externals/${COLLECTOR_NAME}/main.go"
+        ;;
+    logfwd)
+        ENTRY_PATH="internal/plugins/externals/logfwd/cmd/main.go"
+        ;;
+    *)
+        ENTRY_PATH="internal/plugins/externals/${COLLECTOR_NAME}/main.go"
+        ;;
+esac
 
 echo "=========================================="
 echo "DataKit External Collector Builder"
@@ -170,6 +193,11 @@ echo "Architectures: ${ARCHS}"
 echo "Host Architecture: ${HOST_ARCH}"
 echo "CGO Enabled: ${CGO_ENABLED}"
 echo "CGO CFLAGS: ${CGO_CFLAGS}"
+echo "GOFLAGS: ${GOFLAGS_VALUE}"
+echo "Build env image: ${BUILD_ENV_IMAGE}"
+echo "Docker command: ${DOCKER_CMD}"
+echo "Legacy sysroot base: ${LEGACY_SYSROOT_BASE}"
+echo "Go build tags: ${GO_BUILD_TAGS:-<none>}"
 echo "Project Root: ${PROJECT_ROOT}"
 echo "Script called from: $(pwd)"
 echo "Environment check:"
@@ -178,184 +206,185 @@ echo "  CGO_CFLAGS (env): ${CGO_CFLAGS}"
 echo
 
 # Verify source file exists
-if [ ! -f "${PROJECT_ROOT}/${SOURCE_PATH}" ]; then
-    echo "✗ Source file not found: ${PROJECT_ROOT}/${SOURCE_PATH}"
-    echo "  Expected location: ${SOURCE_PATH}"
+if [ ! -f "${PROJECT_ROOT}/${ENTRY_PATH}" ]; then
+    echo "✗ Source file not found: ${PROJECT_ROOT}/${ENTRY_PATH}"
+    echo "  Expected location: ${ENTRY_PATH}"
     exit 1
 fi
 
-echo "✓ Source file found: ${SOURCE_PATH}"
+echo "✓ Source file found: ${ENTRY_PATH}"
 echo
 
-# Check if Docker is available
-DOCKER_AVAILABLE=false
-BUILDX_AVAILABLE=false
-if command -v docker &>/dev/null; then
-    if sudo docker info &>/dev/null; then
-        DOCKER_AVAILABLE=true
-        if sudo docker buildx version &>/dev/null; then
-            BUILDX_AVAILABLE=true
-            echo "Docker: Available with Buildx (recommended for cross-compilation)"
-        else
-            echo "Docker: Available (will use legacy build for cross-compilation)"
-        fi
-    else
-        echo "Docker: Installed but not running (will use native builds where possible)"
-    fi
-else
-    echo "Docker: Not available (will use native builds where possible)"
+if ! "${DOCKER_CMD_ARR[@]}" info &>/dev/null; then
+    echo "✗ Docker is not available via: ${DOCKER_CMD}"
+    exit 1
 fi
-echo
+
+if ! "${DOCKER_CMD_ARR[@]}" image inspect "${BUILD_ENV_IMAGE}" &>/dev/null; then
+    echo "! Build environment image not found locally, pulling: ${BUILD_ENV_IMAGE}"
+    if ! "${DOCKER_CMD_ARR[@]}" pull "${BUILD_ENV_IMAGE}"; then
+        echo "✗ Failed to pull build environment image: ${BUILD_ENV_IMAGE}"
+        exit 1
+    fi
+fi
+
+build_in_container() {
+    local arch="$1"
+    local output_path="$2"
+    local output_path_container=""
+    local container_cmd=""
+    local cross_env=""
+    local triplet=""
+    local sysroot_env=""
+    local go_tags_arg=""
+
+    mkdir -p "$(dirname "$(abs_output_path "${output_path}")")"
+
+    if [[ "${output_path}" = /* ]]; then
+        output_path_container="${output_path/#${PROJECT_ROOT}/\/work}"
+    else
+        output_path_container="/work/${output_path}"
+    fi
+
+    case "${arch}" in
+        amd64)
+            triplet="x86_64-linux-gnu"
+            ;;
+        arm64)
+            triplet="aarch64-linux-gnu"
+            ;;
+        *)
+            triplet=""
+            ;;
+    esac
+
+    if [ -n "${triplet}" ]; then
+        sysroot_env=$(cat <<EOF
+if [ -d '${LEGACY_SYSROOT_BASE}/${arch}' ]; then
+export SYSROOT='${LEGACY_SYSROOT_BASE}/${arch}'
+export PKG_CONFIG_SYSROOT_DIR="\${SYSROOT}"
+export PKG_CONFIG_LIBDIR="\${SYSROOT}/usr/lib/${triplet}/pkgconfig:\${SYSROOT}/usr/lib/pkgconfig:\${SYSROOT}/usr/share/pkgconfig"
+export PKG_CONFIG_PATH=
+export PKG_CONFIG_ALLOW_CROSS=1
+export CGO_CPPFLAGS="--sysroot=\${SYSROOT}"
+export CGO_CFLAGS="--sysroot=\${SYSROOT} ${CGO_CFLAGS}"
+export CGO_CXXFLAGS="--sysroot=\${SYSROOT}"
+export CGO_LDFLAGS="--sysroot=\${SYSROOT} -L\${SYSROOT}/lib/${triplet} -L\${SYSROOT}/usr/lib/${triplet} -Wl,-rpath-link,\${SYSROOT}/lib/${triplet} -Wl,-rpath-link,\${SYSROOT}/usr/lib/${triplet}"
+fi
+EOF
+)
+    fi
+
+    if [ -n "${GO_BUILD_TAGS}" ]; then
+        go_tags_arg="-tags '${GO_BUILD_TAGS}'"
+    fi
+
+    if [ "${arch}" = "arm64" ]; then
+        cross_env=$(cat <<EOF
+export CC=aarch64-linux-gnu-gcc
+export CXX=aarch64-linux-gnu-g++
+EOF
+)
+    elif [ "${arch}" = "amd64" ]; then
+        cross_env=$(cat <<EOF
+export CC=gcc
+export CXX=g++
+EOF
+)
+    fi
+
+    case "${COLLECTOR_KIND}" in
+        ebpf)
+            local kernel_headers="/usr/src/linux-headers-${arch}"
+            local ebpf_args=""
+            if [ "${arch}" = "arm64" ]; then
+                ebpf_args="ARGS='--target=aarch64-linux-gnu'"
+            fi
+            container_cmd=$(cat <<EOF
+set -euo pipefail
+git config --global --add safe.directory /work
+git config --global --add safe.directory /work/internal/plugins/externals/ebpf
+cd /work/internal/plugins/externals/ebpf
+export GOOS=linux
+export GOARCH=${arch}
+export CGO_ENABLED=1
+unset GOFLAGS
+${cross_env}
+${sysroot_env}
+make -j8 \
+  SRCPATH=. \
+  OUTPATH='${output_path_container}' \
+  ARCH=${arch} \
+  DK_BPF_KERNEL_SRC_PATH='${kernel_headers}' \
+  ${ebpf_args}
+EOF
+)
+            ;;
+        *)
+            container_cmd=$(cat <<EOF
+set -euo pipefail
+export CGO_ENABLED=${CGO_ENABLED}
+export GOOS=linux
+export GOARCH=${arch}
+export GOFLAGS='${GOFLAGS_VALUE}'
+${cross_env}
+${sysroot_env}
+go build ${VERBOSE_FLAG} \
+  ${go_tags_arg} \
+  -o '${output_path_container}' \
+  -ldflags '${LDFLAGS}' \
+  '${ENTRY_PATH}'
+EOF
+)
+            ;;
+    esac
+
+    "${DOCKER_CMD_ARR[@]}" run --rm \
+        -v "${PROJECT_ROOT}:/work" \
+        -w /work \
+        "${BUILD_ENV_IMAGE}" \
+        bash -lc "${container_cmd}"
+
+    "${DOCKER_CMD_ARR[@]}" run --rm \
+        -v "${PROJECT_ROOT}:/work" \
+        -w /work \
+        "${BUILD_ENV_IMAGE}" \
+        chown -R "$(id -u):$(id -g)" "$(dirname "${output_path}")" >/dev/null 2>&1 || true
+}
+
+abs_output_path() {
+    local path="$1"
+    if [[ "${path}" = /* ]]; then
+        printf '%s\n' "${path}"
+    else
+        printf '%s\n' "${PROJECT_ROOT}/${path}"
+    fi
+}
 
 # Parse architectures
 IFS=',' read -ra ARCH_ARRAY <<<"${ARCHS}"
 
 for ARCH in "${ARCH_ARRAY[@]}"; do
     ARCH=$(echo "${ARCH}" | xargs) # Trim whitespace
+    CURRENT_OUTPUT_DIR="${OUTPUT_DIR}"
+    if [ -z "${CURRENT_OUTPUT_DIR}" ]; then
+        CURRENT_OUTPUT_DIR="dist/datakit-linux-${ARCH}/externals"
+    fi
+
     echo "=========================================="
     echo "Building for linux/${ARCH}"
     echo "=========================================="
 
-    # Create output directory
-    mkdir -p "${PROJECT_ROOT}/dist/datakit-linux-${ARCH}/externals"
+    echo "Build Method: Docker image ${BUILD_ENV_IMAGE}"
+    echo
+    echo "Step 1: Building ${OUTPUT_NAME} binary in container..."
 
-    # Determine build method
-    if [ "${ARCH}" = "${HOST_ARCH}" ]; then
-        # Native build
-        echo "Build Method: Native (host architecture matches)"
-        if [ "${CGO_ENABLED}" = "1" ]; then
-            echo "Note: CGO_ENABLED=1 (required for collectors using CGO)"
-        fi
-        echo
-        echo "Step 1: Building ${OUTPUT_NAME} binary..."
-        
-        export CGO_ENABLED="${CGO_ENABLED}"
-        export CGO_CFLAGS="${CGO_CFLAGS}"
-        export GOOS=linux
-        export GOARCH="${ARCH}"
-        
-        go build ${VERBOSE_FLAG} \
-            -o "dist/datakit-linux-${ARCH}/externals/${OUTPUT_BINARY}" \
-            -ldflags "${LDFLAGS}" \
-            "${SOURCE_PATH}"
-
-    elif [ "${DOCKER_AVAILABLE}" = "true" ]; then
-        # Docker build for cross-compilation with QEMU
-        echo "Build Method: Docker with QEMU (cross-compilation)"
-        echo
-        echo "Step 1: Building Docker image for ${ARCH}..."
-        
-        # Use buildx if available or forced
-        USE_BUILDX=false
-        
-        if [ "${BUILDX_AVAILABLE}" = "true" ] || [ "${FORCE_BUILDX}" = "true" ]; then
-            # Ensure binfmt is installed for QEMU
-            echo "  Checking QEMU binfmt support..."
-            if ! ls /proc/sys/fs/binfmt_misc/ | grep -q qemu; then
-                echo "  Installing QEMU binfmt support..."
-                sudo docker run --privileged --rm tonistiigi/binfmt --install all 2>/dev/null || \
-                    echo "  Warning: Could not install binfmt, will try anyway..."
-            fi
-            
-            if [ "${FORCE_BUILDX}" = "true" ]; then
-                echo "  Building with Docker Buildx (forced, no fallback)..."
-            else
-                echo "  Building with Docker Buildx..."
-            fi
-            
-            # Build image using buildx (uses local moby/buildkit image, no network pull needed)
-            if sudo docker buildx build \
-                --platform linux/${ARCH} \
-                --build-arg TARGETARCH=${ARCH} \
-                -f "${PROJECT_ROOT}/dockerfiles/Dockerfile_externals" \
-                -t dk-external-collector-builder:${ARCH} \
-                --load \
-                "${PROJECT_ROOT}"; then
-                USE_BUILDX=true
-            else
-                if [ "${FORCE_BUILDX}" = "true" ]; then
-                    echo "✗ Buildx failed and --force-buildx is set, aborting..."
-                    exit 1
-                else
-                    echo "  Buildx failed, falling back to legacy build..."
-                fi
-            fi
-        fi
-        
-        # Fallback to legacy build if buildx failed or not available
-        if [ "${USE_BUILDX}" != "true" ]; then
-            echo "  Using legacy docker build..."
-            sudo docker build \
-                --platform linux/${ARCH} \
-                --build-arg TARGETARCH=${ARCH} \
-                -f "${PROJECT_ROOT}/dockerfiles/Dockerfile_externals" \
-                -t dk-external-collector-builder:${ARCH} \
-                "${PROJECT_ROOT}" || {
-                echo "✗ Docker build failed for ${ARCH}"
-                echo "  Note: Cross-compilation requires QEMU support"
-                echo "  Try: sudo pacman -S qemu-user-static"
-                exit 1
-            }
-        fi
-
-        echo "Step 2: Building ${OUTPUT_NAME} binary in container..."
-        echo "  Docker env vars: CGO_ENABLED=${CGO_ENABLED}, CGO_CFLAGS=${CGO_CFLAGS}, GOOS=linux, GOARCH=${ARCH}"
-        
-        # Retry logic for QEMU instability (GCC sometimes crashes under emulation)
-        MAX_RETRIES=3
-        RETRY_COUNT=0
-        BUILD_SUCCESS=false
-        
-        while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            RETRY_COUNT=$((RETRY_COUNT + 1))
-            echo "  Build attempt $RETRY_COUNT of $MAX_RETRIES..."
-            
-            if sudo docker run --rm \
-                -v "${PROJECT_ROOT}:/root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit" \
-                -w /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit \
-                -e CGO_ENABLED="${CGO_ENABLED}" \
-                -e CGO_CFLAGS="${CGO_CFLAGS}" \
-                -e GOOS=linux \
-                -e GOARCH="${ARCH}" \
-                dk-external-collector-builder:${ARCH} \
-                bash -c "go build ${VERBOSE_FLAG} \
-                    -o \"dist/datakit-linux-${ARCH}/externals/${OUTPUT_BINARY}\" \
-                    -ldflags \"${LDFLAGS}\" \
-                    \"${SOURCE_PATH}\""; then
-                BUILD_SUCCESS=true
-                echo "  ✓ Build succeeded on attempt $RETRY_COUNT"
-                break
-            else
-                BUILD_EXIT_CODE=$?
-                echo "  ✗ Build failed on attempt $RETRY_COUNT (exit code: $BUILD_EXIT_CODE)"
-                
-                if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-                    echo "  Retrying in 2 seconds..."
-                    sleep 2
-                fi
-            fi
-        done
-        
-        if [ "$BUILD_SUCCESS" = false ]; then
-            echo "✗ Build failed after $MAX_RETRIES attempts"
-            echo "  This is likely due to QEMU emulation instability (GCC crashes under emulation)"
-            echo "  Consider building on native ARM64 hardware or in CI with ARM64 runners"
-            exit 1
-        fi
-
-        # Fix permissions
-        sudo chown $(whoami):$(whoami) "dist/datakit-linux-${ARCH}/externals/${OUTPUT_BINARY}" 2>/dev/null || true
-    else
-        echo "✗ Cannot build for ${ARCH}: Docker required for cross-compilation"
-        echo "  Host: ${HOST_ARCH}, Target: ${ARCH}"
-        echo "  Solution: Install and start Docker, or build on native hardware"
-        exit 1
-    fi
+    BINARY_PATH="$(abs_output_path "${CURRENT_OUTPUT_DIR}/${OUTPUT_NAME}")"
+    build_in_container "${ARCH}" "${CURRENT_OUTPUT_DIR}/${OUTPUT_NAME}"
 
     # Verify binary
     echo
-    echo "Step 3: Verifying binary..."
-    BINARY_PATH="${PROJECT_ROOT}/dist/datakit-linux-${ARCH}/externals/${OUTPUT_BINARY}"
+    echo "Step 2: Verifying binary..."
 
     if [ ! -f "${BINARY_PATH}" ]; then
         echo "✗ Binary not found: ${BINARY_PATH}"
@@ -383,26 +412,13 @@ for ARCH in "${ARCH_ARRAY[@]}"; do
         fi
     fi
 
-    # Step 4: Clean up Docker image to save disk space (only for Docker builds)
-    if [ "${DOCKER_AVAILABLE}" = "true" ] && [ "${ARCH}" != "${HOST_ARCH}" ]; then
-        echo
-        echo "Step 4: Cleaning up Docker image..."
-        sudo docker rmi dk-external-collector-builder:${ARCH} 2>/dev/null &&
-            echo "✓ Removed Docker image: dk-external-collector-builder:${ARCH}" ||
-            echo "  Note: Docker image cleanup skipped (may be in use or already removed)"
-    fi
+
 
     echo "✓ Build complete for linux/${ARCH}"
     echo
 done
 
-# Clean up buildx builder if it was created
-if [ "${BUILDX_AVAILABLE}" = "true" ] || [ "${FORCE_BUILDX}" = "true" ]; then
-    echo "Cleaning up Docker Buildx builder..."
-    sudo docker buildx rm datakit-builder 2>/dev/null &&
-        echo "✓ Removed buildx builder: datakit-builder" ||
-        echo "  Note: Buildx builder cleanup skipped (may not exist)"
-fi
+
 
 echo "=========================================="
 echo "✓ All builds completed successfully!"
@@ -411,11 +427,15 @@ echo
 echo "Built binaries:"
 for ARCH in "${ARCH_ARRAY[@]}"; do
     ARCH=$(echo "${ARCH}" | xargs)
-    echo "  - dist/datakit-linux-${ARCH}/externals/${OUTPUT_BINARY}"
+    if [ -n "${OUTPUT_DIR}" ]; then
+        echo "  - ${OUTPUT_DIR}/${OUTPUT_NAME}"
+    else
+        echo "  - dist/datakit-linux-${ARCH}/externals/${OUTPUT_NAME}"
+    fi
 done
 echo
 echo "Next steps:"
-echo "  1. Test binary: ./dist/datakit-linux-<arch>/externals/${OUTPUT_BINARY} --help"
+echo "  1. Test binary: ./dist/datakit-linux-<arch>/externals/${OUTPUT_NAME} --help"
 echo "  2. Build Docker image with the binary"
 echo "  3. Deploy to target environment"
 echo

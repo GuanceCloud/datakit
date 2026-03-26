@@ -61,8 +61,6 @@ DATAWAY_URL                  ?= NOT_SET
 GIT_BRANCH                   ?= $(shell git rev-parse --abbrev-ref HEAD)
 DATAKIT_EBPF_ARCHS           ?= linux/arm64,linux/amd64
 RACE_DETECTION               ?= off
-PKGEBPF                      ?= 0
-DLEBPF                       ?= 0
 AUTO_FIX                     ?= true
 UT_EXCLUDE                   ?= "-"
 UT_ONLY                      ?= "-"
@@ -150,7 +148,6 @@ define build_bin
 		-docker-image-repo $(DOCKER_IMAGE_REPO) \
 		-helm-chart-dir $(HELM_CHART_DIR)       \
 		-skip-helm $(SKIP_HELM)                 \
-		-pkg-ebpf $(PKGEBPF)                    \
 		-only-external-inputs $(ONLY_BUILD_INPUTS_EXTENTIONS) \
 		-flameshot
 	@tree -Csh -L 3 $(DIST_DIR)
@@ -172,20 +169,7 @@ define publish
 		-brand $(BRAND)                         \
 		-helm-chart-dir $(HELM_CHART_DIR)       \
 		-skip-helm $(SKIP_HELM)                 \
-		-docker-image-repo $(DOCKER_IMAGE_REPO) \
-		-download-ebpf $(DLEBPF)
-endef
-
-define pub_ebpf
-	@echo "===== publishing $(1) $(NAME_EBPF) ====="
-	@$(GO_MODULE_ENV) CGO_CFLAGS=$(CGO_FLAGS) go run \
-		-tags with_inputs cmd/make/make.go \
-		-log-level $(LOG_LEVEL) \
-		-release $(1)           \
-		-archs $(2)             \
-		-pub-ebpf               \
-		-dist-dir $(DIST_DIR)   \
-		-name $(NAME_EBPF)
+		-docker-image-repo $(DOCKER_IMAGE_REPO)
 endef
 
 define build_docker_image
@@ -194,15 +178,15 @@ define build_docker_image
 		sudo docker buildx build --platform $(1) \
 			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/datakit:$(VERSION) \
-			-f dockerfiles/Dockerfile.$(DOCKERFILE_SUFFIX) . --push; \
+			-f dockerfiles/Dockerfile.$(DOCKERFILE_SUFFIX) . --push && \
 		sudo docker buildx build --platform $(1) \
 			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/datakit-elinker:$(VERSION) \
-			-f dockerfiles/Dockerfile_elinker.$(DOCKERFILE_SUFFIX) . --push; \
+			-f dockerfiles/Dockerfile_elinker.$(DOCKERFILE_SUFFIX) . --push && \
 		sudo docker buildx build --platform $(1) \
 			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/logfwd:$(VERSION) \
-			-f dockerfiles/Dockerfile_logfwd.$(DOCKERFILE_SUFFIX) . --push; \
+			-f dockerfiles/Dockerfile_logfwd.$(DOCKERFILE_SUFFIX) . --push && \
 		sudo docker buildx build --platform $(1) \
 			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/flameshot:$(FLAMESHOT_VERSION) \
@@ -211,15 +195,15 @@ define build_docker_image
 		sudo docker buildx build --platform $(1) \
 			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/datakit:$(VERSION) \
-			-f dockerfiles/Dockerfile.$(DOCKERFILE_SUFFIX) . --push; \
+			-f dockerfiles/Dockerfile.$(DOCKERFILE_SUFFIX) . --push && \
 		sudo docker buildx build --platform $(1) \
 			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/datakit-elinker:$(VERSION) \
-			-f dockerfiles/Dockerfile_elinker.$(DOCKERFILE_SUFFIX) . --push; \
+			-f dockerfiles/Dockerfile_elinker.$(DOCKERFILE_SUFFIX) . --push && \
 		sudo docker buildx build --platform $(1) \
 			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/logfwd:$(VERSION) \
-			-f dockerfiles/Dockerfile_logfwd.$(DOCKERFILE_SUFFIX) . --push; \
+			-f dockerfiles/Dockerfile_logfwd.$(DOCKERFILE_SUFFIX) . --push && \
 		sudo docker buildx build --platform $(1) \
 			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/flameshot:$(FLAMESHOT_VERSION) \
@@ -232,11 +216,11 @@ define build_uos_image
 	sudo docker buildx build --platform $(1) \
 	--build-arg DIST_DIR=$(DIST_DIR) \
 	-t $(2)/datakit:$(VERSION) \
-	-f dockerfiles/Dockerfile.uos . --push; \
+	-f dockerfiles/Dockerfile.uos . --push && \
 	sudo docker buildx build --platform $(1) \
 	--build-arg DIST_DIR=$(DIST_DIR) \
 	-t $(2)/datakit-elinker:$(VERSION) \
-	-f dockerfiles/Dockerfile_elinker.uos . --push; \
+	-f dockerfiles/Dockerfile_elinker.uos . --push && \
 	sudo docker buildx build --platform $(1) \
 	--build-arg DIST_DIR=$(DIST_DIR) \
 	-t $(2)/logfwd:$(VERSION) \
@@ -282,21 +266,6 @@ local: deps
 
 pub_local: deps
 	$(call publish,local,$(LOCAL_ARCHS))
-
-pub_ebpf_local: deps
-	$(call build_bin,local,$(LOCAL_ARCHS))
-	$(call pub_ebpf,local,$(LOCAL_ARCHS))
-
-pub_ebpf_local_nobuild: deps
-	$(call pub_ebpf,local,$(LOCAL_ARCHS))
-
-pub_ebpf_testing: deps
-	$(call build_bin,testing,$(DATAKIT_EBPF_ARCHS))
-	$(call pub_ebpf,testing,$(DATAKIT_EBPF_ARCHS))
-
-pub_ebpf_production: deps
-	$(call build_bin,production,$(DATAKIT_EBPF_ARCHS))
-	$(call pub_ebpf,production,$(DATAKIT_EBPF_ARCHS))
 
 testing_notify: deps
 	$(call notify_build,testing,$(DEFAULT_ARCHS))

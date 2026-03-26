@@ -1,3 +1,5 @@
+MAKEFILE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+
 .PHONY: all debug rewriter dkrunc test
 
 ARCH ?= $(shell uname -m | sed -e s/x86_64/x86_64/ \
@@ -10,7 +12,7 @@ ifeq ($(ARCH), aarch64)
 	ARCH = arm64
 endif
 
-REPO_PATH   ?= ${HOME}/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
+REPO_PATH   ?= $(abspath $(MAKEFILE_DIR)/../..)
 SOURCE_PATH := $(REPO_PATH)/internal/apminject
 DIST_DIR    ?= $(REPO_PATH)/internal/apminject/dist/datakit-apm-inject-linux-$(ARCH)
 
@@ -20,11 +22,11 @@ all: dkrunc rewriter launcher
 
 rewriter:
 	CGO_ENABLED=0 GOOS=linux GOARCH=$(ARCH) go build -o $(DIST_DIR)/rewriter \
-		$(SOURCE_PATH)/rewriter/rewriter.go
+		./internal/apminject/rewriter
 
 dkrunc:
 	CGO_ENABLED=0 GOOS=linux GOARCH=$(ARCH) go build -o $(DIST_DIR)/dkrunc \
-		$(SOURCE_PATH)/dkrunc/dkrunc.go
+		./internal/apminject/dkrunc
 
 launcher:
 	mkdir -p $(DIST_DIR)

@@ -62,9 +62,7 @@ var (
 	AppBin    = "datakit"
 	DDAppName = "datadog-agent"
 
-	StandaloneApps = []string{
-		"datakit-ebpf",
-	}
+	StandaloneApps = []string{}
 
 	// Architectures and OS distributions, i.e,
 	// darwin/amd64
@@ -312,8 +310,6 @@ func ParseArchs(s string) (archs []string) {
 
 var curArchs []string
 
-var curEBpfArchs []string
-
 func Compile() error {
 	start := time.Now()
 
@@ -410,7 +406,7 @@ func Compile() error {
 		}
 
 		if err := compileAPMInject(goos, goarch, DistDir); err != nil {
-			l.Warnf("build APM inject failed: %s, ignored", err)
+			return fmt.Errorf("build APM inject failed: %w", err)
 		}
 
 		upgraderDir := fmt.Sprintf("%s/%s-%s-%s", DistDir, upgrader.BuildBinName, goos, goarch)

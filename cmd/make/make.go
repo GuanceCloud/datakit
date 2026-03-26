@@ -33,9 +33,6 @@ var (
 	mdNoSectionCheck = false
 	sampleConfCheck  = false
 	doPub            = false
-	doPubeBPF        = false
-	pkgEBPF          = 0
-	downloadEBPF     = 0
 	buildISP         = false
 	ut               = false
 	dca              = false
@@ -66,10 +63,6 @@ func init() { //nolint:gochecknoinits
 
 	flag.BoolVar(&build.NotifyOnly, "notify-only", false, "notify CI process")
 	flag.BoolVar(&doPub, "pub", false, `publish binaries to OSS: local/testing/production`)
-	flag.BoolVar(&doPubeBPF, "pub-ebpf", false, `publish datakit-ebpf to OSS: local/testing/production`)
-
-	flag.IntVar(&pkgEBPF, "pkg-ebpf", 0, `add datakit-ebpf to datakit tar.gz`)
-	flag.IntVar(&downloadEBPF, "download-ebpf", 0, `download datakit-ebpf from OSS: local/testing/production`)
 
 	flag.BoolVar(&buildISP, "build-isp", false, "generate ISP data")
 
@@ -244,26 +237,9 @@ func applyFlags() {
 		return
 	}
 
-	if doPubeBPF {
-		build.NotifyStartPubEBpf()
-		if err := build.PubDatakitEBpf(); err != nil {
-			l.Errorf("build.PubDatakiteBPF: %s", err)
-			build.NotifyFail(err.Error())
-		} else {
-			build.NotifyPubEBpfDone()
-		}
-		return
-	}
-
 	if doPub {
 		l.Infof("under publishing...")
 		build.NotifyStartPub()
-		if downloadEBPF != 0 {
-			if err := build.PackageEBPF(); err != nil {
-				l.Errorf("build.PackageeBPF: %s", err)
-				return
-			}
-		}
 
 		if err := build.PubDatakit(); err != nil {
 			l.Errorf("build.PubDatakit: %s", err)
@@ -277,11 +253,6 @@ func applyFlags() {
 		if err := build.Compile(); err != nil {
 			l.Errorf("build.Compile: %s", err)
 			build.NotifyFail(err.Error())
-		} else if pkgEBPF != 0 {
-			if err := build.PackageEBPF(); err != nil {
-				l.Errorf("build.PackageeBPF: %s", err)
-				return
-			}
 		}
 		if flameshot {
 			if err := build.CompileFlameshot(); err != nil {

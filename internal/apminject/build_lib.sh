@@ -5,6 +5,8 @@ docker run --privileged --rm pubrepo.jiagouyun.com/ebpf-dev/binfmt:qemu-v7.0.0 \
     --install all
 
 repo_name="gitlab.jiagouyun.com/cloudcare-tools/datakit"
+script_dir=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+repo_root=$(CDPATH= cd -- "$script_dir/../.." && pwd)
 container_repo_dir=/root/go/src/$repo_name
 
 target_arch=$1
@@ -30,14 +32,14 @@ docker_build() {
     fi
 
     docker run --rm --platform "$arch" \
-        -v "$(go env GOPATH)"/src/$repo_name:$container_repo_dir \
+        -v "$repo_root":$container_repo_dir \
         -w$container_repo_dir/internal/apminject \
         $image make $target DIST_DIR="$container_repo_dir"/"$dist_rela_dir" || exit $?
 }
 
-make -f "$(go env GOPATH)"/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/apminject/Makefile \
-    rewriter dkrunc DIST_DIR="$(go env GOPATH)"/src/gitlab.jiagouyun.com/cloudcare-tools/datakit/"$dist_rela_dir" \
-    ARCH="$target_arch" REPO_PATH="$(go env GOPATH)"/src/gitlab.jiagouyun.com/cloudcare-tools/datakit || exit $?
+make -f "$repo_root"/internal/apminject/Makefile \
+    rewriter dkrunc DIST_DIR="$repo_root"/"$dist_rela_dir" \
+    ARCH="$target_arch" REPO_PATH="$repo_root" || exit $?
 
 docker_build "$target_arch" glibc
 docker_build "$target_arch" musl
