@@ -142,12 +142,14 @@ var aliasMapping = map[string]string{
 var (
 	sqlSystemMetric = map[string]string{
 		// for oracle 11g
-		"11": `SELECT VALUE, METRIC_NAME 
-FROM GV$SYSMETRIC ORDER BY BEGIN_TIME`,
+		"11": `SELECT metric_name, value, metric_unit
+FROM v$sysmetric
+ORDER BY begin_time DESC, metric_name ASC`,
 
 		"default": `SELECT metric_name, value, metric_unit, name pdb_name 
 FROM v$sysmetric s, v$containers c 
-WHERE s.con_id = c.con_id(+)`,
+WHERE s.con_id = c.con_id(+)
+ORDER BY begin_time DESC, metric_name ASC`,
 	}
 
 	sqlConSystemMetric = map[string]string{
@@ -164,7 +166,7 @@ type sysmetricsRowDB struct {
 	PdbName    sql.NullString  `db:"PDB_NAME,omitempty"`
 }
 
-func (ipt *Input) collectOracleSystem() {
+func (ipt *Input) collectOracleSystem(ptsTime time.Time) {
 	var (
 		metricName = "oracle_system"
 		start      = time.Now()
@@ -176,18 +178,16 @@ func (ipt *Input) collectOracleSystem() {
 		return
 	}
 
-	sql := sqlConSystemMetric["default"]
-	if x, ok := sqlConSystemMetric[ipt.mainVersion]; ok { // use version specific SQL.
-		sql = x
-	}
-
 	rows := []sysmetricsRowDB{}
-	if err := selectWrapper(ipt, &rows, sql, getMetricName(metricName, "oracle_system")); err != nil {
-		l.Warnf("failed to collect system metrics(%q): %s, oracle version %s", sql, err, ipt.mainVersion)
+	if isDBVersionGreaterOrEqualThan(ipt.dbVersion, "12.2") {
+		sql := sqlConSystemMetric["default"]
+		if err := selectWrapper(ipt, &rows, sql, getMetricName(metricName, "oracle_con_system")); err != nil {
+			l.Warnf("failed to collect system metrics(%q): %s, oracle version %s", sql, err, ipt.mainVersion)
+		}
 	}
 
 	var (
-		opts = ipt.getKVsOpts()
+		opts = ipt.getKVsOptsWithTime(ptsTime)
 		kvs  = ipt.getKVs()
 	)
 
@@ -253,12 +253,12 @@ func (ipt *Input) collectOracleSystem() {
 	rows = rows[:0] // reset rows
 	kvs = ipt.getKVs()
 
-	sql = sqlSystemMetric["default"]
-	if x, ok := sqlSystemMetric[ipt.mainVersion]; ok { // use version specific SQL.
-		sql = x
+	sql := sqlSystemMetric["default"]
+	if isDBVersionLessThan(ipt.dbVersion, "12") {
+		sql = sqlSystemMetric["11"]
 	}
 
-	if err := selectWrapper(ipt, &rows, sql, getMetricName(metricName, "oracle_con_system")); err != nil {
+	if err := selectWrapper(ipt, &rows, sql, getMetricName(metricName, "oracle_system")); err != nil {
 		l.Warnf("failed to collect system metrics(%q): %s, oracle version %s", sql, err, ipt.mainVersion)
 	}
 

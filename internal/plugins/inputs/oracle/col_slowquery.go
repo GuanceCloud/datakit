@@ -197,7 +197,7 @@ type maxQueryRowDB struct {
 	MAX_LAST_ACTIVE_TIME sql.NullString `db:"MAX_LAST_ACTIVE_TIME"`
 }
 
-func (ipt *Input) collectSlowQuery() {
+func (ipt *Input) collectSlowQuery(ptsTime time.Time) {
 	if ipt.slowQueryTime == 0 {
 		return
 	}
@@ -281,7 +281,7 @@ func (ipt *Input) collectSlowQuery() {
 			Set("avg_elapsed", r.AVG_ELAPSED.Float64).
 			Set("status", "warning") // add logging basic status and message field
 
-		pts = append(pts, point.NewPoint(metricName, kvs, ipt.getKVsOpts(point.Logging)...))
+		pts = append(pts, point.NewPoint(metricName, kvs, ipt.getKVsOptsWithTime(ptsTime, point.Logging)...))
 	}
 
 	if err := ipt.feeder.Feed(point.Logging,

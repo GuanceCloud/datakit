@@ -23,7 +23,7 @@ const (
   ## service
   service = "XE"
 
-  ## interval
+  ## Interval (waiting event, locked session metrics).
   interval = "10s"
 
   ## connection timeout
@@ -49,6 +49,34 @@ const (
 
     # interval to collect oracle object which will be greater than collection interval
     interval = "600s"
+
+  ## tablespace collection
+  [inputs.oracle.tablespace]
+    # Set true to enable collecting tablespace metrics (default: true)
+    enabled = true
+    # Collection interval for tablespace metrics (default: 600s)
+    interval = "600s"
+
+  ## slow query collection
+  [inputs.oracle.slow_query]
+    # Set true to enable collecting slow query metrics (default: true)
+    enabled = true
+    # Collection interval for slow query metrics (default: 60s)
+    interval = "60s"
+
+  ## process collection
+  [inputs.oracle.process]
+    # Set true to enable collecting process metrics (default: true)
+    enabled = true
+    # Collection interval for process metrics (default: 60s)
+    interval = "60s"
+
+  ## system metrics collection
+  [inputs.oracle.system]
+    # Set true to enable collecting system metrics (default: true)
+    enabled = true
+    # Collection interval for system metrics (default: 60s)
+    interval = "60s"
 
   ## Database Monitoring (DBM) configuration
   ## DBM provides deep visibility into database performance by collecting query metrics, activity, and execution plans

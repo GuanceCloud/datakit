@@ -62,6 +62,30 @@ type oracleObject struct {
 	lastCollectionTime time.Time
 }
 
+// tablespaceConfig holds tablespace collection config (runs in separate goroutine with own interval).
+type tablespaceConfig struct {
+	Enable   bool             `toml:"enabled"`
+	Interval datakit.Duration `toml:"interval"`
+}
+
+// slowQueryConfig holds slow query collection config (runs in separate goroutine with own interval).
+type slowQueryConfig struct {
+	Enable   bool             `toml:"enabled"`
+	Interval datakit.Duration `toml:"interval"`
+}
+
+// processConfig holds process collection config (runs in separate goroutine with own interval).
+type processConfig struct {
+	Enable   bool             `toml:"enabled"`
+	Interval datakit.Duration `toml:"interval"`
+}
+
+// systemConfig holds system metrics collection config (runs in separate goroutine with own interval).
+type systemConfig struct {
+	Enable   bool             `toml:"enabled"`
+	Interval datakit.Duration `toml:"interval"`
+}
+
 type Input struct {
 	Host               string           `toml:"host"`
 	Port               int              `toml:"port"`
@@ -79,6 +103,11 @@ type Input struct {
 	MeasurementVersion string            `toml:"measurement_version"` // v1 or v2, default: v2
 
 	Object oracleObject `toml:"object"`
+
+	Tablespace *tablespaceConfig `toml:"tablespace"`
+	SlowQuery  *slowQueryConfig  `toml:"slow_query"`
+	Process    *processConfig    `toml:"process"`
+	System     *systemConfig     `toml:"system"`
 
 	// DBM configuration
 	Dbm *dbmConfig `toml:"dbm"`
@@ -108,6 +137,8 @@ type Input struct {
 	slowQueryTime  time.Duration
 	lastActiveTime string
 	cacheSQL       map[string]string
+
+	collectorsGroup *goroutine.Group
 
 	// DBM
 	dbmGroup                                *goroutine.Group
@@ -325,10 +356,6 @@ func (ipt *Input) Collect() {
 	ipt.setUpState()
 	ipt.FeedCoPts()
 
-	ipt.collectOracleProcess()
-	ipt.collectOracleTableSpace()
-	ipt.collectOracleSystem()
-	ipt.collectSlowQuery()
 	ipt.collectWaitingEvent()
 	ipt.collectLockedSession()
 
@@ -438,6 +465,9 @@ func (ipt *Input) Run() {
 	// run custom queries
 	ipt.runCustomQueries()
 
+	// run low-frequency collectors
+	ipt.runLowFrequencyCollectors()
+
 	// run DBM
 	ipt.runDbmCollectors()
 
@@ -513,6 +543,159 @@ func (ipt *Input) exit() {
 func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
+	}
+}
+
+func (ipt *Input) runLowFrequencyCollectors() {
+	ipt.collectorsGroup = goroutine.NewGroup(goroutine.Option{Name: "oracle_collectors"})
+
+	if ipt.Tablespace != nil && ipt.Tablespace.Enable {
+		ipt.collectorsGroup.Go(func(ctx context.Context) error {
+			ipt.runTablespaceCollector()
+			return nil
+		})
+	}
+	if ipt.SlowQuery != nil && ipt.SlowQuery.Enable {
+		ipt.collectorsGroup.Go(func(ctx context.Context) error {
+			ipt.runSlowQueryCollector()
+			return nil
+		})
+	}
+	if ipt.Process != nil && ipt.Process.Enable {
+		ipt.collectorsGroup.Go(func(ctx context.Context) error {
+			ipt.runProcessCollector()
+			return nil
+		})
+	}
+	if ipt.System != nil && ipt.System.Enable {
+		ipt.collectorsGroup.Go(func(ctx context.Context) error {
+			ipt.runSystemCollector()
+			return nil
+		})
+	}
+}
+
+// runTablespaceCollector runs tablespace collection in its own goroutine with dedicated interval.
+func (ipt *Input) runTablespaceCollector() {
+	duration := ipt.Tablespace.Interval.Duration
+	if duration <= 0 {
+		duration = 600 * time.Second
+	}
+
+	tick := time.NewTicker(duration)
+	defer tick.Stop()
+
+	ptsTime := ntp.Now()
+	for {
+		if ipt.pause.Load() {
+			l.Debugf("not leader, tablespace collection skipped")
+		} else {
+			ipt.collectOracleTableSpace(ptsTime)
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("tablespace collection exit")
+			return
+		case <-ipt.semStop.Wait():
+			l.Info("tablespace collection return")
+			return
+		case tt := <-tick.C:
+			ptsTime = inputs.AlignTime(tt, ptsTime, duration)
+		}
+	}
+}
+
+// runProcessCollector runs process collection in its own goroutine with dedicated interval (default 60s).
+func (ipt *Input) runProcessCollector() {
+	duration := ipt.Process.Interval.Duration
+	if duration <= 0 {
+		duration = 60 * time.Second
+	}
+
+	tick := time.NewTicker(duration)
+	defer tick.Stop()
+
+	ptsTime := ntp.Now()
+	for {
+		if ipt.pause.Load() {
+			l.Debugf("not leader, process collection skipped")
+		} else {
+			ipt.collectOracleProcess(ptsTime)
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("process collection exit")
+			return
+		case <-ipt.semStop.Wait():
+			l.Info("process collection return")
+			return
+		case tt := <-tick.C:
+			ptsTime = inputs.AlignTime(tt, ptsTime, duration)
+		}
+	}
+}
+
+// runSystemCollector runs system metrics collection in its own goroutine with dedicated interval (default 60s).
+func (ipt *Input) runSystemCollector() {
+	duration := ipt.System.Interval.Duration
+	if duration <= 0 {
+		duration = 60 * time.Second
+	}
+
+	tick := time.NewTicker(duration)
+	defer tick.Stop()
+
+	ptsTime := ntp.Now()
+	for {
+		if ipt.pause.Load() {
+			l.Debugf("not leader, system collection skipped")
+		} else {
+			ipt.collectOracleSystem(ptsTime)
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("system collection exit")
+			return
+		case <-ipt.semStop.Wait():
+			l.Info("system collection return")
+			return
+		case tt := <-tick.C:
+			ptsTime = inputs.AlignTime(tt, ptsTime, duration)
+		}
+	}
+}
+
+// runSlowQueryCollector runs slow query collection in its own goroutine with dedicated interval.
+func (ipt *Input) runSlowQueryCollector() {
+	duration := ipt.SlowQuery.Interval.Duration
+	if duration <= 0 {
+		duration = 60 * time.Second
+	}
+
+	tick := time.NewTicker(duration)
+	defer tick.Stop()
+
+	ptsTime := ntp.Now()
+	for {
+		if ipt.pause.Load() {
+			l.Debugf("not leader, slow query collection skipped")
+		} else {
+			ipt.collectSlowQuery(ptsTime)
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("slow query collection exit")
+			return
+		case <-ipt.semStop.Wait():
+			l.Info("slow query collection return")
+			return
+		case tt := <-tick.C:
+			ptsTime = inputs.AlignTime(tt, ptsTime, duration)
+		}
 	}
 }
 
@@ -716,6 +899,35 @@ func (ipt *Input) getKVsOpts(categorys ...point.Category) []point.Option {
 	return opts
 }
 
+// getKVsOptsWithTime returns point options with the given ptsTime.
+func (ipt *Input) getKVsOptsWithTime(ptsTime time.Time, categorys ...point.Category) []point.Option {
+	var opts []point.Option
+
+	category := point.Metric
+	if len(categorys) > 0 {
+		category = categorys[0]
+	}
+
+	switch category { //nolint:exhaustive
+	case point.Logging:
+		opts = point.DefaultLoggingOptions()
+	case point.Metric:
+		opts = point.DefaultMetricOptions()
+	case point.Object:
+		opts = point.DefaultObjectOptions()
+	default:
+		opts = point.DefaultMetricOptions()
+	}
+
+	if ipt.Election {
+		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
+	}
+
+	opts = append(opts, point.WithTime(ptsTime))
+
+	return opts
+}
+
 func defaultInput() *Input {
 	return &Input{
 		Tags:               make(map[string]string),
@@ -723,6 +935,22 @@ func defaultInput() *Input {
 		pause:              atomic.Bool{},
 		Election:           true,
 		MeasurementVersion: "v2", // default: v2
+		Tablespace: &tablespaceConfig{
+			Enable:   true,
+			Interval: datakit.Duration{Duration: 600 * time.Second},
+		},
+		SlowQuery: &slowQueryConfig{
+			Enable:   true,
+			Interval: datakit.Duration{Duration: 60 * time.Second},
+		},
+		Process: &processConfig{
+			Enable:   true,
+			Interval: datakit.Duration{Duration: 60 * time.Second},
+		},
+		System: &systemConfig{
+			Enable:   true,
+			Interval: datakit.Duration{Duration: 60 * time.Second},
+		},
 		Object: oracleObject{
 			Enable:   true,
 			Interval: datakit.Duration{Duration: 600 * time.Second},
