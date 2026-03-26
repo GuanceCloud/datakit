@@ -20,7 +20,9 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/pipeline-go/lang"
 	v2 "github.com/elastic/go-lumber/server/v2"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
@@ -62,7 +64,7 @@ const (
 `
 )
 
-var g = datakit.G("inputs_beats_output")
+var g = goroutine.G("inputs_beats_output")
 
 type Input struct {
 	Listen        string            `toml:"listen"`

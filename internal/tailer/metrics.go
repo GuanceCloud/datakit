@@ -8,6 +8,8 @@ package tailer
 import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (
@@ -144,15 +146,11 @@ func setupMetrics() {
 	// 套接字日志长度分布指标
 	socketLengthSummary = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
-			Namespace: "datakit",
-			Subsystem: "tailer",
-			Name:      "socket_log_length",
-			Help:      "Length distribution of logs for socket communication",
-			Objectives: map[float64]float64{
-				0.5:  0.05,  // 50% 分位数，误差 5%
-				0.90: 0.01,  // 90% 分位数，误差 1%
-				0.99: 0.001, // 99% 分位数，误差 0.1%
-			},
+			Namespace:  "datakit",
+			Subsystem:  "tailer",
+			Name:       "socket_log_length",
+			Help:       "Length distribution of logs for socket communication",
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{
 			"network", // 网络类型

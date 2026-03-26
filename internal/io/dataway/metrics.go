@@ -8,6 +8,8 @@ package dataway
 import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (
@@ -48,11 +50,7 @@ var (
 			Name:      "flush_failcache_bytes",
 			Help:      "IO flush fail-cache bytes(in gzip) summary",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"category"},
 	)
@@ -64,11 +62,7 @@ var (
 			Name:      "build_body_cost_seconds",
 			Help:      "Build point HTTP body cost",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"category", "encoding", "stage"},
 	)
@@ -80,11 +74,7 @@ var (
 			Name:      "build_body_batches",
 			Help:      "Batch HTTP body batches",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"category", "encoding"},
 	)
@@ -96,11 +86,7 @@ var (
 			Name:      "build_body_points",
 			Help:      "Point count for single compact",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"category", "encoding"},
 	)
@@ -112,11 +98,7 @@ var (
 			Name:      "build_body_batch_bytes",
 			Help:      "Batch HTTP body size",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"category", "encoding", "type"},
 	)
@@ -128,26 +110,18 @@ var (
 			Name:      "build_body_batch_points",
 			Help:      "Batch HTTP body points",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"category", "encoding"},
 	)
 
 	walWorkerFlush = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
-			Namespace: "datakit",
-			Subsystem: "io",
-			Name:      "dataway_wal_flush",
-			Help:      "Dataway WAL worker flushed bytes",
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Namespace:  "datakit",
+			Subsystem:  "io",
+			Name:       "dataway_wal_flush",
+			Help:       "Dataway WAL worker flushed bytes",
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{
 			"category",
@@ -198,13 +172,21 @@ var (
 			Name:      "wal_put_retried",
 			Help:      "WAL put retried on disk full",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"category"},
+	)
+
+	apiSumVec = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "dataway_api_latency_seconds",
+			Help:      "Dataway HTTP request latency partitioned by HTTP API(method@url) and HTTP status",
+
+			Objectives: datakit.P8sStandardObjectives,
+		},
+		[]string{"api", "status"},
 	)
 
 	bytesCounterVec = prometheus.NewCounterVec(
@@ -227,22 +209,6 @@ var (
 		[]string{"category", "error"},
 	)
 
-	apiSumVec = prometheus.NewSummaryVec(
-		prometheus.SummaryOpts{
-			Namespace: "datakit",
-			Subsystem: "io",
-			Name:      "dataway_api_latency_seconds",
-			Help:      "Dataway HTTP request latency partitioned by HTTP API(method@url) and HTTP status",
-
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
-		},
-		[]string{"api", "status"},
-	)
-
 	httpRetry = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
@@ -260,11 +226,7 @@ var (
 			Name:      "grouped_request",
 			Help:      "Grouped requests under sinker",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{
 			"category",

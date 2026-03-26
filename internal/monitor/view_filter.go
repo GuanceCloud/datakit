@@ -7,6 +7,7 @@ package monitor
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
@@ -88,9 +89,14 @@ func (app *monitorAPP) renderFilterRulesStatsTable(mfs map[string]*dto.MetricFam
 				table.SetCell(row, col, tview.NewTableCell("-").
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
 			} else {
-				cost := time.Duration(float64(time.Second) * x.GetSummary().GetSampleSum())
-				table.SetCell(row, col, tview.NewTableCell(cost.String()).
-					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
+				cost := nan
+				if v := app.getSummaryValue(x); !math.IsNaN(v) {
+					cost = time.Duration(float64(time.Second) * v).String()
+				}
+				table.SetCell(row, col,
+					tview.NewTableCell(cost).
+						SetMaxWidth(app.maxTableWidth).
+						SetAlign(tview.AlignCenter))
 			}
 		}
 

@@ -80,7 +80,7 @@ func (fo *datawayOutput) Write(data *feedData) error {
 	case ch <- data:
 		feedCost.WithLabelValues(
 			category, inputName,
-		).Observe(float64(time.Since(start)) / float64(time.Second))
+		).Observe(time.Since(start).Seconds())
 		return nil
 	case <-datakit.Exit.Wait():
 		log.Warnf("%s/%s feed skipped on global exit", data.cat, data.input)

@@ -11,8 +11,9 @@ import (
 	"fmt"
 	"io"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
+
 	"github.com/GuanceCloud/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -69,7 +70,7 @@ func Start(opts ...ElectionOption) {
 	instance := newLeaderElection(&opt, inputs.GetElectionInputs())
 	log.Infof("election mode with Dataway ,namespace: %s, id: %s", opt.namespace, opt.id)
 
-	g := datakit.G("election")
+	g := goroutine.G("election")
 	g.Go(func(ctx context.Context) error {
 		instance.Run()
 		return nil

@@ -118,25 +118,25 @@ func (app *monitorAPP) renderInputsFeedTable(mfs map[string]*dto.MetricFamily, c
 			x := metricWithLabel(feedCost, cat, inputName)
 			feedLat := "-"
 			if x != nil {
-				q := x.GetSummary().GetQuantile()[1] // p90
-				if v := q.GetValue(); math.IsNaN(v) {
-					feedLat = "NaN"
+				if v := app.getSummaryValue(x); math.IsNaN(v) {
+					feedLat = nan
 				} else {
 					feedLat = time.Duration(v * float64(time.Second)).String()
 				}
 			}
-			table.SetCell(row, col, tview.NewTableCell(feedLat).SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+			table.SetCell(row, col, tview.NewTableCell(feedLat).
+				SetMaxWidth(app.maxTableWidth).
+				SetAlign(tview.AlignRight))
 		}
 		col++
 
-		// P90Pts
 		if ptsSum != nil {
 			x := metricWithLabel(ptsSum, cat, inputName)
-			p90pts := "-"
+			npts := "-"
 			if x != nil {
-				p90pts = number(x.GetSummary().GetQuantile()[1].GetValue())
+				npts = number(app.getSummaryValue(x))
 			}
-			table.SetCell(row, col, tview.NewTableCell(p90pts).
+			table.SetCell(row, col, tview.NewTableCell(npts).
 				SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
 		}
 		col++
@@ -168,17 +168,19 @@ func (app *monitorAPP) renderInputsFeedTable(mfs map[string]*dto.MetricFamily, c
 		}
 		col++
 
-		// AvgCost
+		// collect Cost
 		if cost != nil {
 			x := metricWithLabel(cost, cat, inputName)
 			if x == nil {
 				table.SetCell(row, col, tview.NewTableCell("-").
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
 			} else {
-				cost := time.Duration(
-					float64(time.Second) * x.GetSummary().GetSampleSum() /
-						float64(x.GetSummary().GetSampleCount()))
-				table.SetCell(row, col, tview.NewTableCell(cost.String()).
+				q := app.getSummaryValue(x)
+				collectCost := nan
+				if !math.IsNaN(q) {
+					collectCost = time.Duration(q * float64(time.Second)).String()
+				}
+				table.SetCell(row, col, tview.NewTableCell(collectCost).
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 			}
 		}

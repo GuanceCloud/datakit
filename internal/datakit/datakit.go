@@ -22,7 +22,6 @@ import (
 	"github.com/shirou/gopsutil/v3/process"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 )
 
 const (
@@ -121,6 +120,8 @@ const (
 	SinkCategoryRUM          = "R"
 	SinkCategorySecurity     = "S"
 	SinkCategoryProfiling    = "P"
+
+	ConfPerm = os.ModePerm
 )
 
 var (
@@ -226,6 +227,8 @@ var (
 	// can be encrypted using AES and used in ENC[xxx] mode.
 	// see: config/enc.go
 	ConfigAESKey string
+
+	l = logger.DefaultSLogger("datakit")
 )
 
 func CategoryList() (map[string]struct{}, map[string]struct{}) {
@@ -316,58 +319,8 @@ func InitDirs() {
 	}
 }
 
-const (
-	ConfPerm = os.ModePerm
-)
-
-var (
-	// goroutines caches  goroutine.
-	goroutines = []*goroutine.Group{}
-
-	l = logger.DefaultSLogger("datakit")
-)
-
 func SetLog() {
 	l = logger.SLogger("datakit")
-}
-
-// G create a goroutine group, with namespace datakit.
-func G(name string) *goroutine.Group {
-	panicCb := func(b []byte) bool {
-		l.Errorf("recover panic: %s", string(b))
-		select {
-		case <-Exit.Wait(): // don't continue when exit
-			return false
-		default:
-			return true
-		}
-	}
-
-	g := goroutine.NewGroup(goroutine.Option{
-		Name:         name,
-		PanicTimes:   6,
-		PanicCb:      panicCb,
-		PanicTimeout: 10 * time.Millisecond,
-	})
-	var mu sync.Mutex
-	mu.Lock()
-	goroutines = append(goroutines, g)
-	mu.Unlock()
-	return g
-}
-
-// GWait wait all goroutine group exit.
-func GWait() {
-	for _, g := range goroutines {
-		if err := g.Wait(); err != nil {
-			l.Warnf("wait %q failed: %s, ignored", g.Name(), err.Error())
-		}
-
-		// logging exit waiting time to find these slow-exit modules
-		l.Infof("goroutine Group %q exit, wait %s", g.Name(), time.Since(GlobalExitTime))
-	}
-
-	l.Infof("all goroutine group exited, total wait %s", time.Since(GlobalExitTime))
 }
 
 func PID() (int, error) {

@@ -22,6 +22,7 @@ import (
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 )
 
 const (
@@ -70,7 +71,7 @@ var (
 		cp.Println(fsService.FlagUsagesWrapped(0))
 	}
 
-	g = datakit.G("control")
+	g = goroutine.G("control")
 )
 
 func setENVVariables() {

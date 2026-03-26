@@ -347,7 +347,7 @@ func init() { //nolint:gochecknoinits
 			tags:                   make(map[string]string),
 		}
 		ipt.initTags()
-		ipt.g = datakit.G(inputName)
+		ipt.g = goroutine.G(inputName)
 		return ipt
 	})
 }

@@ -18,7 +18,9 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/fsnotify/fsnotify"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/fileprovider"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/openfile"
@@ -31,7 +33,7 @@ const (
 	defaultUpdateChannelSize = 10
 )
 
-var globalGoroutineGroup = datakit.G("tailer")
+var globalGoroutineGroup = goroutine.G("tailer")
 
 type Tailer struct {
 	initialOptions    []Option

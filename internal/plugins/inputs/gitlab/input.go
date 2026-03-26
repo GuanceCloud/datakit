@@ -17,7 +17,9 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
@@ -27,7 +29,7 @@ import (
 var (
 	_ inputs.ElectionInput = (*Input)(nil)
 	l                      = logger.DefaultSLogger(inputName)
-	g                      = datakit.G("inputs_gitlab")
+	g                      = goroutine.G("inputs_gitlab")
 )
 
 const (

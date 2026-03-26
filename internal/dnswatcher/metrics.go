@@ -8,6 +8,8 @@ package dnswatcher
 import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 // Unless explicitly stated otherwise all files in this repository are licensed
@@ -66,11 +68,7 @@ func init() {
 			Name:      "cost_seconds",
 			Help:      "DNS IP lookup cost",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{
 			"domain",

@@ -36,14 +36,15 @@ import (
 	"github.com/pyroscope-io/pyroscope/pkg/util/attime"
 	"github.com/pyroscope-io/pyroscope/pkg/util/cumulativepprof"
 	"github.com/sirupsen/logrus"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/profile/metrics"
 	"golang.org/x/exp/maps"
 	"google.golang.org/protobuf/proto"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/profile/metrics"
 )
 
-var g = datakit.G("pyroscope")
+var g = goroutine.G("pyroscope")
 
 const (
 	pyroscopeFilename = "prof"

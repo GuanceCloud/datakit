@@ -13,8 +13,10 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/compareutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 )
 
 const (
@@ -39,7 +41,7 @@ type IDNSWatcher interface {
 func StartWatch() error {
 	runDNSWatcher.Do(func() {
 		l = logger.SLogger(packageName)
-		g := datakit.G("io_dnswatcher")
+		g := goroutine.G("io_dnswatcher")
 
 		// Uncomment this when you wanna get check interval from config file.
 		// For now we write it permanently in the code.

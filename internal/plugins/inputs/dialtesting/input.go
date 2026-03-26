@@ -15,9 +15,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -32,10 +32,12 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/cliutils/system/rtpanic"
+
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpcli"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -45,7 +47,7 @@ var ( // type assertions
 	_          inputs.ReadEnv       = (*Input)(nil)
 	_          inputs.InputV2       = (*Input)(nil)
 	_          inputs.ElectionInput = (*Input)(nil)
-	g                               = datakit.G("inputs_dialtesting")
+	g                               = goroutine.G("inputs_dialtesting")
 	dialWorker *worker
 )
 
@@ -638,7 +640,7 @@ func (ipt *Input) doServerTask() {
 }
 
 func (ipt *Input) doLocalTask(path string) {
-	data, err := ioutil.ReadFile(filepath.Clean(path))
+	data, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
 		return
@@ -1029,7 +1031,7 @@ func (ipt *Input) pullHTTPTask(reqURL *url.URL, sinceUs, variableSinceUs int64) 
 		return nil, 5, err
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
 		return nil, 0, err

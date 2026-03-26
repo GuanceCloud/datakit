@@ -10,6 +10,7 @@ package inputs
 
 import (
 	"context"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
@@ -17,7 +18,7 @@ import (
 func RunInputs(iptInfos map[string][]*InputInfo) error {
 	mtx.RLock()
 	defer mtx.RUnlock()
-	g := datakit.G("inputs")
+	g := goroutine.G("inputs")
 
 	envs := getEnvs()
 

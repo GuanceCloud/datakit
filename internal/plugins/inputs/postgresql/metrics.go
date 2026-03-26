@@ -8,6 +8,8 @@ package postgresql
 import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var sqlQueryCostSummary *prometheus.SummaryVec
@@ -20,11 +22,7 @@ func metricsSetup() {
 			Name:      "sql_query_cost_seconds",
 			Help:      "Time cost to query SQL",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"metric_name", "sql_name"},
 	)

@@ -22,6 +22,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (
@@ -51,13 +52,9 @@ var (
 
 	proxyReqLatencyVec = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
-			Name: "api_latency_seconds",
-			Help: "Proxied API latency",
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Name:       "api_latency_seconds",
+			Help:       "Proxied API latency",
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{
 			"api",

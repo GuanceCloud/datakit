@@ -13,7 +13,9 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 )
 
 var (
@@ -37,7 +39,7 @@ func doSync(diffSec int64, abs uint64) {
 
 // StartNTP start sync on dataway's timestamp.
 func StartNTP(s syncer, syncInterval time.Duration, diffAbsRangeSecond uint64) {
-	g := datakit.G("ntp")
+	g := goroutine.G("ntp")
 	l = logger.SLogger("ntp")
 
 	if syncInterval <= time.Minute {

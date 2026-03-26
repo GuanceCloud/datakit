@@ -17,15 +17,16 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/pipeline-go/constants"
 	"github.com/GuanceCloud/pipeline-go/lang"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/reader"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 )
 
-var socketGoroutine = datakit.G("socketLog")
+var socketGoroutine = goroutine.G("socketLog")
 
 type SocketLogger struct {
 	cfg      *config // 配置信息

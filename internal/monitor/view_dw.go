@@ -6,6 +6,7 @@
 package monitor
 
 import (
+	"math"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -76,9 +77,17 @@ func (app *monitorAPP) renderDatawayTable(mfs map[string]*dto.MetricFamily, colA
 		col := 3
 
 		if x := metricWithLabel(apiLatency, api, status); x != nil {
-			lat := x.GetSummary().GetSampleSum() / float64(x.GetSummary().GetSampleCount())
-			table.SetCell(row, col, tview.NewTableCell(time.Duration(lat*float64(time.Second)).String()).
-				SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+			var lat string
+			if x := app.getSummaryValue(x); math.IsNaN(x) {
+				lat = nan
+			} else {
+				lat = time.Duration(x * float64(time.Second)).String()
+			}
+
+			table.SetCell(row, col,
+				tview.NewTableCell(lat).
+					SetMaxWidth(app.maxTableWidth).
+					SetAlign(tview.AlignRight))
 		}
 
 		col++

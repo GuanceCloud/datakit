@@ -13,7 +13,8 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/recorder"
@@ -85,7 +86,7 @@ func getIO() *dkIO {
 
 func (x *dkIO) start() {
 	if x.withFilter {
-		g := datakit.G("io/filter")
+		g := goroutine.G("io/filter")
 		g.Go(func(_ context.Context) error {
 			if defIO.filters != nil {
 				log.Infof("use local filters")
@@ -102,7 +103,7 @@ func (x *dkIO) start() {
 	if x.withCompactor {
 		compactorWorker := func(cat point.Category, n int) {
 			log.Infof("start %dth workers on %q", n, cat)
-			g := datakit.G("io/compactor/" + cat.Alias())
+			g := goroutine.G("io/compactor/" + cat.Alias())
 			for i := 0; i < n; i++ {
 				g.Go(func(_ context.Context) error {
 					x.runCompactor(cat)
@@ -138,7 +139,7 @@ func (x *dkIO) start() {
 	}
 	log.Infof("remote_job x.remotemanager %v", x.remoteManager == nil)
 	if x.remoteManager != nil {
-		g := datakit.G("io/remote_job")
+		g := goroutine.G("io/remote_job")
 		g.Go(func(_ context.Context) error {
 			// x.remoteManager.AddJob(remotejob.NewJVMJob(x.remoteManager.Envs, ""))
 			x.remoteManager.Start()

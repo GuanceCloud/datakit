@@ -21,50 +21,40 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (
 	keyBatchScanCostVec = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
-			Namespace: "datakit",
-			Subsystem: "input_redis",
-			Name:      "key_scan_seconds",
-			Help:      "Batch key scan cost in seconds.",
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Namespace:  "datakit",
+			Subsystem:  "input_redis",
+			Name:       "key_scan_seconds",
+			Help:       "Batch key scan cost in seconds.",
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"jobs"},
 	)
 
 	keyScannedVec = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
-			Namespace: "datakit",
-			Subsystem: "input_redis",
-			Name:      "scanned_keys",
-			Help:      "Number of keys scanned.",
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Namespace:  "datakit",
+			Subsystem:  "input_redis",
+			Name:       "scanned_keys",
+			Help:       "Number of keys scanned.",
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"job"},
 	)
 
 	dbScanCostVec = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
-			Namespace: "datakit",
-			Subsystem: "input_redis",
-			Name:      "db_scan_seconds",
-			Help:      "Total DB scan cost in seconds.",
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Namespace:  "datakit",
+			Subsystem:  "input_redis",
+			Name:       "db_scan_seconds",
+			Help:       "Total DB scan cost in seconds.",
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"job"},
 	)

@@ -26,6 +26,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
@@ -37,7 +38,7 @@ var _ inputs.ElectionInput = (*Input)(nil)
 
 var (
 	l = logger.DefaultSLogger(inputName)
-	g = datakit.G("inputs_apache")
+	g = goroutine.G("inputs_apache")
 )
 
 type Input struct {

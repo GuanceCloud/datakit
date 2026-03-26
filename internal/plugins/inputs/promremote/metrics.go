@@ -8,6 +8,8 @@ package promremote
 import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	p8s "github.com/prometheus/client_golang/prometheus"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (
@@ -24,11 +26,7 @@ func metricsSetup() {
 			Name:      "collect_points",
 			Help:      "Total number of promremote collection points",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.90: 0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 
 		[]string{"source"},
@@ -41,11 +39,7 @@ func metricsSetup() {
 			Name:      "time_diff_in_second",
 			Help:      "Time diff with local time",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.90: 0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 
 			MaxAge:     p8s.DefMaxAge, // 10min
 			AgeBuckets: p8s.DefAgeBuckets,

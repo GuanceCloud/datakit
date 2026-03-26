@@ -16,6 +16,16 @@ import (
 
 type APPOption func(app *monitorAPP)
 
+func WithQuantile(q string) APPOption {
+	return func(app *monitorAPP) {
+		switch q {
+		case "50", "90", "99":
+			app.quantile = q
+		default: // default to avg
+		}
+	}
+}
+
 func WithProxy(p string) APPOption {
 	return func(app *monitorAPP) {
 		if len(p) > 0 {
@@ -89,7 +99,7 @@ func WithSource(str string) APPOption {
 	}
 }
 
-func WithDumMetrics(on bool) APPOption {
+func WithDumpMetrics(on bool) APPOption {
 	return func(app *monitorAPP) {
 		app.dumpMetrics = on
 	}

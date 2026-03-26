@@ -9,6 +9,7 @@ package cmds
 import (
 	"github.com/GuanceCloud/cliutils/logger"
 	prompt "github.com/c-bata/go-prompt"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -26,7 +27,7 @@ var (
 	}
 
 	l = logger.DefaultSLogger("cmds")
-	g = datakit.G("cmds")
+	g = goroutine.G("cmds")
 )
 
 type completer struct{}

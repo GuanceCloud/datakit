@@ -26,6 +26,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/path"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -59,7 +60,7 @@ type authOpt struct {
 func StartPull() error {
 	runGit.Do(func() {
 		l = logger.SLogger("gitrepo")
-		g := datakit.G("gitrepo")
+		g := goroutine.G("gitrepo")
 
 		g.Go(func(ctx context.Context) error {
 			return pullMain(config.Cfg.GitRepos)

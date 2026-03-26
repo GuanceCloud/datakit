@@ -7,10 +7,10 @@ import (
 
 	"github.com/DataDog/datadog-go/statsd"
 	"github.com/dgraph-io/ristretto"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 )
 
-var g = datakit.G("internal_obfuscate")
+var g = goroutine.G("internal_obfuscate")
 
 // measuredCache is a wrapper on top of *ristretto.Cache which additionally
 // sends metrics (hits and misses) every 10 seconds.

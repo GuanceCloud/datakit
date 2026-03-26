@@ -8,6 +8,8 @@ package kubernetes
 import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (
@@ -27,11 +29,7 @@ func setupMetrics() {
 			Name:      "kubernetes_collect_cost_seconds",
 			Help:      "Total time (in seconds) spent collecting metrics from Kubernetes",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{
 			"category",
@@ -57,11 +55,7 @@ func setupMetrics() {
 			Name:      "kubernetes_collect_resource_cost_seconds",
 			Help:      "Total time (in seconds) spent collecting resource metrics from Kubernetes",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{
 			"category",
@@ -88,11 +82,7 @@ func setupMetrics() {
 			Name:      "kubernetes_pod_annotation_prom_count",
 			Help:      "The number of Prometheus-related annotations found in Kubernetes Pods",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{
 			"name",

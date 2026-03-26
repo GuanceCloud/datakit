@@ -242,7 +242,7 @@ func (k *Kube) gatherObject() {
 func (k *Kube) tryWatchEventAndChange(ctx context.Context) {
 	if k.cfg.EnableK8sEvent && !k.onWatchingEvent.Load() {
 		klog.Info("collect k8s event starting")
-		g := datakit.G("k8s-event")
+		g := goroutine.G("k8s-event")
 
 		k.onWatchingEvent.Store(true)
 		g.Go(func(_ context.Context) error {
@@ -254,7 +254,7 @@ func (k *Kube) tryWatchEventAndChange(ctx context.Context) {
 
 	if !k.onWatchingChange.Load() {
 		klog.Info("collect k8s object-change starting")
-		g := datakit.G("k8s-object-change")
+		g := goroutine.G("k8s-object-change")
 
 		k.onWatchingChange.Store(true)
 		g.Go(func(_ context.Context) error {

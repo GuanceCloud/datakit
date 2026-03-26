@@ -5,7 +5,28 @@
 
 package monitor
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
+
+// setupCols reset column names when quantile set.
+func (app *monitorAPP) setupCols() {
+	if app.quantile != "" {
+		inputsFeedCols[3] = fmt.Sprintf("Lat(p%s)", app.quantile)
+		inputsFeedCols[4] = fmt.Sprintf("Pts(p%s)", app.quantile)
+		inputsFeedCols[7] = fmt.Sprintf("Cost(p%s)", app.quantile)
+
+		httpAPIStatCols[3] = fmt.Sprintf("Lat(p%s)", app.quantile)
+		httpAPIStatCols[4] = fmt.Sprintf("Body(p%s)", app.quantile)
+
+		filterRuleCols[3] = fmt.Sprintf("Cost(p%s)", app.quantile)
+
+		plStatsCols[7] = fmt.Sprintf("Cost(p%s)", app.quantile)
+
+		dwCols[3] = fmt.Sprintf("Lat(p%s)", app.quantile)
+	}
+}
 
 func (app *monitorAPP) render() {
 	app.anyErrorPrompt.Clear()

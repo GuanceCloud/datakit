@@ -12,7 +12,9 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 )
 
 type flusher struct {
@@ -30,7 +32,7 @@ func (dw *Dataway) StartFlushWorkers() error {
 
 	worker := func(cat point.Category, n int) {
 		l.Infof("start %dth workers on %q", n, cat)
-		dwFlusher := datakit.G("dw-flusher/" + cat.Alias())
+		dwFlusher := goroutine.G("dw-flusher/" + cat.Alias())
 		for i := 0; i < n; i++ {
 			dwFlusher.Go(func(_ context.Context) error {
 				f := dw.newFlusher(cat)

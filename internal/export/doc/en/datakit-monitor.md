@@ -58,10 +58,10 @@ The information of each UI block in the above figure is:
     - `Input`: Refer to the collector name. In some cases, this name is collector-specific (such as Log Collector/Prom Collector)
     - `Cat`: Refer to the type of data collected by the collector (M (metrics)/L (logs)/O (objects...)
     - `Feeds`: Total updates(collects) since DataKit started
-    - `P90Lat`: Feed latency(blocked on queue) time(p90). The longer the duration, the slower the upload workers [:octicons-tag-24: Version-1.36.0](../datakit/changelog.md#cl-1.36.0)
-    - `P90Pts`: Points(P90) collected of the collector [:octicons-tag-24: Version-1.36.0](../datakit/changelog.md#cl-1.36.0)
+    - `Lat(...)`: Feed latency (blocked on queue) time. By default, it shows average (avg), and you can use `-Q/--quantile` to select a quantile (P50/P90/P99). The longer the duration, the slower the upload workers [:octicons-tag-24: Version-1.91.0](../datakit/changelog-2026.md#cl-1.91.0)
+    - `Pts(...)`: Points collected by the collector. By default, it shows average (avg), and you can use `-Q/--quantile` to select a quantile (P50/P90/P99) [:octicons-tag-24: Version-1.91.0](../datakit/changelog-2026.md#cl-1.91.0)
     - `Last Feed`: Time of last update(collect), relative to current time
-    - `Avg Cost`: Average cost of each collect
+    - `Cost(...)`: Cost of each collect. By default, it shows average (avg), and you can use `-Q/--quantile` to select a quantile (P50/P90/P99)
     - `Errors`: Collect error count(if no error, empty here)
 
 - The prompt text at the bottom tells you how to exit the current Monitor program and displays the current Monitor refresh rate.
@@ -137,6 +137,25 @@ datakit monitor --refresh 1s
 
     Note that the units here must be the following: s (seconds)/m (minutes)/h (hours). If the time range is less than 1s, refresh according to 1s. 
 <!-- markdownlint-enable -->
+
+<!-- markdownlint-disable MD013 -->
+### How to select a quantile (P50/P90/P99) for display? {#quantile}
+<!-- markdownlint-enable -->
+
+Monitor shows average (avg) for Summary metrics by default. If you want to display quantile values, use `-Q/--quantile`:
+
+```shell
+# Show P90 (commonly used)
+datakit monitor -Q 90
+# or
+datakit monitor --quantile 90
+
+# Show P50 / P99
+datakit monitor -Q 50
+datakit monitor -Q 99
+```
+
+This option affects Summary columns such as `Lat(...)`, `Pts(...)`, `Cost(...)`, and `Body(...)` (for example, `Lat(p90)` and `Cost(p99)`). Without `-Q/--quantile`, it remains avg.
 
 <!-- markdownlint-disable MD013 -->
 ### How to Monitor other DataKits? {#remote-monitor}

@@ -7,6 +7,7 @@ package monitor
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -78,11 +79,14 @@ func (app *monitorAPP) renderHTTPStatTable(mfs map[string]*dto.MetricFamily, col
 				table.SetCell(row, col, tview.NewTableCell("-").
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 			} else {
-				sum := x.GetSummary()
-				avg := time.Duration(float64(time.Second) * sum.GetSampleSum() / float64(sum.GetSampleCount()))
+				lat := nan
+				if v := app.getSummaryValue(x); !math.IsNaN(v) {
+					lat = time.Duration(float64(time.Second) * v).String()
+				}
 
-				table.SetCell(row, col, tview.NewTableCell(avg.String()).
-					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+				table.SetCell(row, col, tview.NewTableCell(lat).
+					SetMaxWidth(app.maxTableWidth).
+					SetAlign(tview.AlignRight))
 			}
 		}
 		col++
@@ -93,11 +97,10 @@ func (app *monitorAPP) renderHTTPStatTable(mfs map[string]*dto.MetricFamily, col
 				table.SetCell(row, col, tview.NewTableCell("-").
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 			} else {
-				p90 := x.GetSummary().GetQuantile()[1]
-				cellVal := fmt.Sprintf("%s/%s",
-					number(p90.GetValue()),
-					number(x.GetSummary().GetSampleSum()),
-				)
+				cellVal := nan
+				if v := app.getSummaryValue(x); !math.IsNaN(v) {
+					cellVal = number(v)
+				}
 
 				table.SetCell(row, col, tview.NewTableCell(cellVal).
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))

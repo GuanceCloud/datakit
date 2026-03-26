@@ -11,11 +11,22 @@ import (
 
 func (app *monitorAPP) setup() {
 	// basic info
-	app.basicInfoTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false)
-	app.basicInfoTable.SetBorder(true).SetTitle("[red]B[white]asic Info").SetTitleAlign(tview.AlignLeft)
+	app.basicInfoTable = tview.NewTable().
+		SetFixed(1, 1).
+		SetSelectable(true, false).
+		SetBorders(false)
+	app.basicInfoTable.
+		SetBorder(true).
+		SetTitle("[red]B[white]asic Info").
+		SetTitleAlign(tview.AlignLeft)
 
-	app.golangRuntime = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false)
-	app.golangRuntime.SetBorder(true).SetTitle("[red]R[white]untime Info").SetTitleAlign(tview.AlignLeft)
+	app.golangRuntime = tview.NewTable().
+		SetFixed(1, 1).
+		SetSelectable(true, false).
+		SetBorders(false)
+	app.golangRuntime.SetBorder(true).
+		SetTitle("[red]R[white]untime Info").
+		SetTitleAlign(tview.AlignLeft)
 
 	// inputs running stats
 	app.inputsStatTable = tview.NewTable().
@@ -23,7 +34,9 @@ func (app *monitorAPP) setup() {
 		SetSelectable(true, false).
 		SetBorders(false).
 		SetSeparator(tview.Borders.Vertical)
-	app.inputsStatTable.SetBorder(true).SetTitle("[red]In[white]puts Info").SetTitleAlign(tview.AlignLeft)
+	app.inputsStatTable.SetBorder(true).
+		SetTitle("[red]In[white]puts Info").
+		SetTitleAlign(tview.AlignLeft)
 
 	// pipeline running stats
 	app.plStatTable = tview.NewTable().
@@ -48,7 +61,10 @@ func (app *monitorAPP) setup() {
 		SetTitleAlign(tview.AlignLeft)
 
 	// enabled inputs
-	app.enabledInputTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false)
+	app.enabledInputTable = tview.NewTable().
+		SetFixed(1, 1).
+		SetSelectable(true, false).
+		SetBorders(false)
 	app.enabledInputTable.
 		SetBorder(true).
 		SetTitle("Enabled [red]In[white]puts").
@@ -93,11 +109,19 @@ func (app *monitorAPP) setup() {
 		SetSelectable(true, false).
 		SetBorders(false).
 		SetSeparator(tview.Borders.Vertical)
-	app.dwTable.SetBorder(true).SetTitle("Data[red]W[white]ay APIs").SetTitleAlign(tview.AlignLeft)
+	app.dwTable.SetBorder(true).
+		SetTitle("Data[red]W[white]ay APIs").
+		SetTitleAlign(tview.AlignLeft)
 
 	// filter stats
-	app.filterStatsTable = tview.NewTable().SetFixed(1, 1).SetSelectable(true, false).SetBorders(false)
-	app.filterStatsTable.SetBorder(true).SetTitle("[red]F[white]ilter").SetTitleAlign(tview.AlignLeft)
+	app.filterStatsTable = tview.NewTable().
+		SetFixed(1, 1).
+		SetSelectable(true, false).
+		SetBorders(false)
+	app.filterStatsTable.
+		SetBorder(true).
+		SetTitle("[red]F[white]ilter").
+		SetTitleAlign(tview.AlignLeft)
 
 	app.filterRulesStatsTable = tview.NewTable().
 		SetFixed(1, 1).
@@ -118,4 +142,6 @@ func (app *monitorAPP) setup() {
 	app.setupFlex()
 
 	app.app.SetRoot(app.flex, true).EnableMouse(true)
+
+	app.setupCols()
 }
