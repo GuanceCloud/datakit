@@ -41,10 +41,9 @@ var (
 
 	// Configuration source.
 	envLogConfigsStr = os.Getenv("LOGFWD_LOG_CONFIGS")
+	// deprecated.
+	deprecatedJSONConfig = os.Getenv("LOGFWD_JSON_CONFIG")
 )
-
-// loggingConfig is an alias for logConfig for operator API compatibility.
-type loggingConfig = logConfig
 
 type logConfig struct {
 	Disable                    bool              `json:"disable"`
@@ -64,19 +63,52 @@ type logConfig struct {
 	multilinePatterns []string `json:"-"`
 }
 
-func getEndpointConfig() (string, string, error) {
-	if datakitHost == "" || datakitPort == "" {
-		return "", "", fmt.Errorf("datakit host and port are required")
-	}
+type deprecatedLogConfig struct {
+	DataKitAddr string `json:"datakit_addr"`
+	Loggings    []struct {
+		LogFiles              []string          `json:"logfiles"`
+		Ignore                []string          `json:"-"`
+		Source                string            `json:"source"`
+		StorageIndex          string            `json:"storage_index,omitempty"`
+		Service               string            `json:"service"`
+		Pipeline              string            `json:"pipeline"`
+		CharacterEncoding     string            `json:"character_encoding"`
+		MultilineMatch        string            `json:"multiline_match"`
+		RemoveAnsiEscapeCodes bool              `json:"remove_ansi_escape_codes"`
+		Tags                  map[string]string `json:"tags"`
+	} `json:"loggings"`
+}
 
-	if net.ParseIP(datakitHost) == nil {
-		if _, err := net.ResolveIPAddr("ip", datakitHost); err != nil {
-			return "", "", fmt.Errorf("invalid datakit host: %s", datakitHost)
+func getEndpointConfig() (string, string, error) {
+	host := datakitHost
+	port := datakitPort
+
+	if host == "" || port == "" {
+		deprecatedHost, deprecatedPort, err := getDeprecatedDataKitEndpoint()
+		if err != nil {
+			return "", "", err
+		}
+
+		if host == "" {
+			host = deprecatedHost
+		}
+		if port == "" {
+			port = deprecatedPort
 		}
 	}
 
-	if portNum, err := strconv.Atoi(datakitPort); err != nil || portNum < 1 || portNum > 65535 {
-		return "", "", fmt.Errorf("invalid datakit port: %s", datakitPort)
+	if host == "" || port == "" {
+		return "", "", fmt.Errorf("datakit host and port are required")
+	}
+
+	if net.ParseIP(host) == nil {
+		if _, err := net.ResolveIPAddr("ip", host); err != nil {
+			return "", "", fmt.Errorf("invalid datakit host: %s", host)
+		}
+	}
+
+	if portNum, err := strconv.Atoi(port); err != nil || portNum < 1 || portNum > 65535 {
+		return "", "", fmt.Errorf("invalid datakit port: %s", port)
 	}
 
 	operatorURL := ""
@@ -88,7 +120,7 @@ func getEndpointConfig() (string, string, error) {
 		}
 	}
 
-	return fmt.Sprintf("%s:%s", datakitHost, datakitPort), operatorURL, nil
+	return fmt.Sprintf("%s:%s", host, port), operatorURL, nil
 }
 
 func normalizeOperatorEndpoint(endpoint string) (string, error) {
@@ -131,6 +163,138 @@ func parseLogConfigs(str string) ([]*logConfig, error) {
 	}
 
 	return configs, nil
+}
+
+func getEffectiveEnvLogConfigs() (string, error) {
+	if envLogConfigsStr != "" {
+		return envLogConfigsStr, nil
+	}
+
+	if deprecatedJSONConfig == "" {
+		return "", nil
+	}
+
+	return convertDeprecatedJSONConfig(deprecatedJSONConfig)
+}
+
+func convertDeprecatedJSONConfig(str string) (string, error) {
+	deprecatedConfigs, err := parseDeprecatedLogConfigs(str)
+	if err != nil {
+		return "", err
+	}
+
+	configs := make([]*logConfig, 0)
+	for _, deprecatedCfg := range deprecatedConfigs {
+		configs = append(configs, convertDeprecatedLoggings(deprecatedCfg)...)
+	}
+
+	data, err := json.Marshal(configs)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal converted deprecated log configs: %w", err)
+	}
+
+	return string(data), nil
+}
+
+func parseDeprecatedLogConfigs(str string) ([]*deprecatedLogConfig, error) {
+	if str == "" {
+		return nil, fmt.Errorf("invalid deprecated logConfigs data")
+	}
+
+	var configs []*deprecatedLogConfig
+	errArray := json.Unmarshal([]byte(str), &configs)
+	if errArray == nil {
+		return configs, nil
+	}
+
+	var single deprecatedLogConfig
+	errSingle := json.Unmarshal([]byte(str), &single)
+	if errSingle == nil {
+		return []*deprecatedLogConfig{&single}, nil
+	}
+
+	return nil, fmt.Errorf("failed to parse deprecated log configs as array (%w) or object (%v)", errArray, errSingle)
+}
+
+func convertDeprecatedLoggings(cfg *deprecatedLogConfig) []*logConfig {
+	if cfg == nil {
+		return nil
+	}
+
+	configs := make([]*logConfig, 0)
+	for _, logging := range cfg.Loggings {
+		for _, path := range logging.LogFiles {
+			configs = append(configs, &logConfig{
+				Type:                  "file",
+				Source:                logging.Source,
+				Path:                  path,
+				StorageIndex:          logging.StorageIndex,
+				Service:               logging.Service,
+				CharacterEncoding:     logging.CharacterEncoding,
+				Pipeline:              logging.Pipeline,
+				Multiline:             logging.MultilineMatch,
+				RemoveAnsiEscapeCodes: logging.RemoveAnsiEscapeCodes,
+				Tags:                  cloneTags(logging.Tags),
+			})
+		}
+	}
+
+	return configs
+}
+
+func cloneTags(tags map[string]string) map[string]string {
+	if tags == nil {
+		return nil
+	}
+
+	cloned := make(map[string]string, len(tags))
+	for k, v := range tags {
+		cloned[k] = v
+	}
+
+	return cloned
+}
+
+func getDeprecatedDataKitEndpoint() (string, string, error) {
+	if deprecatedJSONConfig == "" {
+		return "", "", nil
+	}
+
+	deprecatedConfigs, err := parseDeprecatedLogConfigs(deprecatedJSONConfig)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to parse deprecated datakit_addr: %w", err)
+	}
+
+	for _, cfg := range deprecatedConfigs {
+		if cfg == nil || cfg.DataKitAddr == "" {
+			continue
+		}
+
+		host, port, err := splitHostPort(cfg.DataKitAddr)
+		if err != nil {
+			return "", "", fmt.Errorf("invalid deprecated datakit_addr: %s", cfg.DataKitAddr)
+		}
+
+		return host, port, nil
+	}
+
+	return "", "", nil
+}
+
+func splitHostPort(addr string) (string, string, error) {
+	host, port, err := net.SplitHostPort(addr)
+	if err == nil {
+		return host, port, nil
+	}
+
+	if strings.Count(addr, ":") == 1 {
+		parts := strings.SplitN(addr, ":", 2)
+		if len(parts) == 2 && parts[0] != "" && parts[1] != "" {
+			return parts[0], parts[1], nil
+		}
+	}
+
+	return "", "", fmt.Errorf("invalid host:port: %s", addr)
 }
 
 func processConfig(cfg *logConfig) {

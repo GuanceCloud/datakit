@@ -18,14 +18,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/logfwd"
 )
 
-var (
-	log         = logger.DefaultSLogger("main")
-	loggerLevel = os.Getenv("LOGFWD_LOG_LEVEL")
-)
+var log = logger.DefaultSLogger("main")
 
 func main() {
-	initLogger()
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -40,22 +35,4 @@ func main() {
 		log.Errorf("logfwd failed: %v", err)
 		return
 	}
-}
-
-func initLogger() {
-	lopt := &logger.Option{
-		Level: "info",
-		Flags: (logger.OPT_DEFAULT | logger.OPT_STDOUT),
-	}
-
-	if loggerLevel == "debug" {
-		lopt.Level = "debug"
-	}
-
-	if err := logger.InitRoot(lopt); err != nil {
-		log.Errorf("failed to init logger: %s", err.Error())
-		return
-	}
-
-	log = logger.SLogger("logfwd")
 }
