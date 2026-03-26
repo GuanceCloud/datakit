@@ -358,9 +358,6 @@ func (ipt *Input) entryToPoints(entry *sdjournal.JournalEntry) *point.Point {
 		// entry.RealtimeTimestamp is microseconds since epoch
 		ts = int64(entry.RealtimeTimestamp) * int64(time.Microsecond)
 
-		// Track if we've added pid field
-		pidAdded = false
-
 		// Add service tag based on available identifiers
 		// Priority: SYSLOG_IDENTIFIER -> _SYSTEMD_UNIT -> _COMM
 		service = ""
@@ -373,6 +370,18 @@ func (ipt *Input) entryToPoints(entry *sdjournal.JournalEntry) *point.Point {
 	}
 
 	kvs = kvs.Add("journald_timestamp", ts)
+
+	// Resolve PID before iterating the map so _PID consistently wins over
+	// SYSLOG_PID regardless of Go's randomized map iteration order.
+	if pidValue, ok := entry.Fields["_PID"]; ok {
+		if pid, err := strconv.ParseInt(pidValue, 10, 64); err == nil {
+			kvs = kvs.Add("pid", pid)
+		}
+	} else if pidValue, ok := entry.Fields["SYSLOG_PID"]; ok {
+		if pid, err := strconv.ParseInt(pidValue, 10, 64); err == nil {
+			kvs = kvs.Add("pid", pid)
+		}
+	}
 
 	// Add journal-specific fields
 	for key, value := range entry.Fields {
@@ -390,20 +399,9 @@ func (ipt *Input) entryToPoints(entry *sdjournal.JournalEntry) *point.Point {
 				ts = x * int64(time.Microsecond)
 			}
 
-		case "_PID":
-			// Add PID as numeric field
-			if pid, err := strconv.ParseInt(value, 10, 64); err == nil {
-				kvs = kvs.Add("pid", pid)
-				pidAdded = true
-			}
 		case "SYSLOG_PID":
-			// Add syslog PID as field if _PID not already present
-			if !pidAdded {
-				if pid, err := strconv.ParseInt(value, 10, 64); err == nil {
-					kvs = kvs.Add("pid", pid)
-					pidAdded = true
-				}
-			}
+		case "_PID":
+			// PID is already handled before the loop to keep the precedence stable.
 		case "PRIORITY":
 			if prio, err := strconv.Atoi(value); err == nil {
 				// Map journald priority to Guance status field

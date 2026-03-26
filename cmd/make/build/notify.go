@@ -53,14 +53,6 @@ var (
 		"text": "%s releasing DataKit:%s..."
   }
 }`, git.Uploader, ReleaseVersion)
-
-	CINotifyStartPubEBpfMsg = fmt.Sprintf(`
-{
-  "msg_type": "text",
-  "content": {
-  	"text": "%s releasing DataKit eBPF %s..."
-  }
-}`, git.Uploader, ReleaseVersion)
 )
 
 type content struct {
@@ -114,15 +106,6 @@ func NotifyStartPub() {
 
 	l.Debugf("NotifyStartPub...")
 	doNotify(NotifyToken, CINotifyStartPubMsg)
-}
-
-func NotifyStartPubEBpf() {
-	if NotifyToken == "" {
-		return
-	}
-
-	l.Debugf("NotifyStartPubEBpf...")
-	doNotify(NotifyToken, CINotifyStartPubEBpfMsg)
 }
 
 func NotifyStartBuild() {
@@ -291,74 +274,5 @@ func NotifyPubDone() {
 	case ReleaseProduction:
 		l.Debugf("NotifyPubDone for release...")
 		doNotify(NotifyToken, CIOnlineNewVersion)
-	}
-}
-
-func NotifyPubEBpfDone() {
-	if NotifyToken == "" {
-		return
-	}
-
-	x := struct {
-		Uploader, Version, DownloadCDN string
-	}{
-		Uploader:    git.Uploader,
-		Version:     ReleaseVersion,
-		DownloadCDN: DownloadCDN,
-	}
-
-	switch ReleaseType {
-	case ReleaseLocal, ReleaseTesting:
-		content := func() []string {
-			x := []string{
-				fmt.Sprintf(`{{.Uploader}} released DataKit eBPF for %d platforms ({{.Version}}).`, len(curEBpfArchs)),
-			}
-
-			for _, arch := range curEBpfArchs {
-				parts := strings.Split(arch, "/")
-				if len(parts) != 2 {
-					l.Fatalf(fmt.Sprintf("invalid arch: %s", arch))
-				}
-
-				goos, goarch := parts[0], parts[1]
-
-				x = append(x, "--------------------------")
-				x = append(x, fmt.Sprintf("%s: ", arch))
-				x = append(x, "https://"+filepath.Join(DownloadCDN, fmt.Sprintf(
-					"datakit-ebpf-%s-%s-%s.tar.gz", goos, goarch, ReleaseVersion)))
-			}
-			return x
-		}()
-
-		CINotifyNewEBpfVersion := fmt.Sprintf(`
-{
-	"msg_type": "text",
-	"content": {
-		"text": "%s"
-		}
-}`, strings.Join(content, "\n"))
-
-		var buf bytes.Buffer
-		t, err := template.New("").Parse(CINotifyNewEBpfVersion)
-		if err != nil {
-			l.Fatal(err)
-		}
-
-		if err := t.Execute(&buf, x); err != nil {
-			l.Fatal(err)
-		}
-
-		l.Debugf("NotifyPubEBpfDone...")
-		doNotify(NotifyToken, buf.String())
-	case ReleaseProduction:
-
-		l.Debugf("NotifyPubEBpfDone for release...")
-		doNotify(NotifyToken, fmt.Sprintf(`
-		{
-			"msg_type": "text",
-			"content": {
-				"text": "%s released DataKit eBPF(%s) new version(%s)"
-			}
-		}`, git.Uploader, strings.Join(curEBpfArchs, ", "), ReleaseVersion))
 	}
 }

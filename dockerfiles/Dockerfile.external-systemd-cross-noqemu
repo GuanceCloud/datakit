@@ -1,0 +1,175 @@
+FROM pubrepo.guance.com/base/ubuntu:22.04 AS builder
+
+ARG http_proxy
+ARG https_proxy
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN dpkg --add-architecture arm64 && \
+    printf '%s\n' \
+      'deb [arch=amd64] http://mirrors.aliyun.com/ubuntu/ jammy main restricted universe multiverse' \
+      'deb [arch=amd64] http://mirrors.aliyun.com/ubuntu/ jammy-updates main restricted universe multiverse' \
+      'deb [arch=amd64] http://mirrors.aliyun.com/ubuntu/ jammy-backports main restricted universe multiverse' \
+      'deb [arch=amd64] http://mirrors.aliyun.com/ubuntu/ jammy-security main restricted universe multiverse' \
+      '' \
+      'deb [arch=arm64] http://mirrors.aliyun.com/ubuntu-ports/ jammy main restricted universe multiverse' \
+      'deb [arch=arm64] http://mirrors.aliyun.com/ubuntu-ports/ jammy-updates main restricted universe multiverse' \
+      'deb [arch=arm64] http://mirrors.aliyun.com/ubuntu-ports/ jammy-backports main restricted universe multiverse' \
+      'deb [arch=arm64] http://mirrors.aliyun.com/ubuntu-ports/ jammy-security main restricted universe multiverse' \
+      > /etc/apt/sources.list && \
+    apt-get update && apt-get install -y --no-install-recommends \
+      build-essential \
+      ca-certificates \
+      clang \
+      file \
+      gnupg \
+      libaio-dev \
+      libaio-dev:arm64 \
+      linux-libc-dev \
+      linux-libc-dev-arm64-cross \
+      pkg-config \
+      software-properties-common \
+      wget \
+      xz-utils \
+      llvm \
+      gcc-aarch64-linux-gnu \
+      libc6-dev-arm64-cross \
+      libsystemd-dev \
+      libsystemd-dev:arm64 \
+      curl \
+      git \
+      make \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN set -eux; \
+    apt-get update && \
+    apt-get install -y --no-install-recommends linux-headers-generic && \
+    amd64_hdr="$(find /usr/src -maxdepth 1 -type d -name 'linux-headers-*-generic' | sort | tail -n 1)" && \
+    test -n "${amd64_hdr}" && ln -sfn "${amd64_hdr}" /usr/src/linux-headers-amd64 && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN set -eux; \
+    base_url="http://mirrors.aliyun.com/ubuntu-ports"; \
+    amd64_hdr="$(readlink -f /usr/src/linux-headers-amd64)" && \
+    ver="$(basename "${amd64_hdr}" | sed 's/^linux-headers-//; s/-generic$//')" && \
+    test -n "${ver}" && \
+    curl -fsSL -o /tmp/arm64-packages.gz "${base_url}/dists/jammy-updates/main/binary-arm64/Packages.gz" && \
+    hdr_file="$(gzip -dc /tmp/arm64-packages.gz | awk -v pkg="linux-headers-"${ver}"-generic" '$1=="Package:" && $2==pkg {found=1; next} found && $1=="Filename:" {print $2; exit}')" && \
+    common_file="$(gzip -dc /tmp/arm64-packages.gz | awk -v pkg="linux-headers-"${ver} '$1=="Package:" && $2==pkg {found=1; next} found && $1=="Filename:" {print $2; exit}')" && \
+    test -n "${hdr_file}" && test -n "${common_file}" && \
+    curl -fsSL -o /tmp/arm64-headers.deb "${base_url}/${hdr_file}" && \
+    curl -fsSL -o /tmp/arm64-headers-common.deb "${base_url}/${common_file}" && \
+    rm -rf /opt/arm64-kheaders && mkdir -p /opt/arm64-kheaders && \
+    dpkg-deb -x /tmp/arm64-headers.deb /opt/arm64-kheaders && \
+    dpkg-deb -x /tmp/arm64-headers-common.deb /opt/arm64-kheaders && \
+    rm -f /tmp/arm64-packages.gz /tmp/arm64-headers.deb /tmp/arm64-headers-common.deb && \
+    arm64_hdr="/opt/arm64-kheaders/usr/src/linux-headers-${ver}-generic" && \
+    test -d "${arm64_hdr}" && ln -sfn "${arm64_hdr}" /usr/src/linux-headers-arm64
+
+RUN ln -sfn /usr/bin/llc /usr/local/bin/llc && \
+    ln -sfn /usr/bin/llvm-strip /usr/local/bin/llvm-strip
+
+ARG LEGACY_SYSROOT_DIST=buster
+ARG LEGACY_SYSROOT_MIRROR=https://archive.debian.org/debian
+
+RUN set -eux; \
+    fetch_pkg() { \
+      local packages_gz="$1"; \
+      local mirror="$2"; \
+      local pkg="$3"; \
+      local file; \
+      file="$(gzip -dc "${packages_gz}" | awk -v pkg="${pkg}" '$1=="Package:" && $2==pkg {found=1; next} found && $1=="Filename:" {print $2; exit}')"; \
+      test -n "${file}"; \
+      curl -fsSL -o "/tmp/${pkg}.deb" "${mirror}/${file}"; \
+    }; \
+    for arch in amd64 arm64; do \
+      case "${arch}" in \
+        amd64) triplet=x86_64-linux-gnu ;; \
+        arm64) triplet=aarch64-linux-gnu ;; \
+      esac; \
+      root="/opt/sysroots/debian10/${arch}"; \
+      packages_gz="/tmp/debian10-${arch}-Packages.gz"; \
+      curl -fsSL -o "${packages_gz}" "${LEGACY_SYSROOT_MIRROR}/dists/${LEGACY_SYSROOT_DIST}/main/binary-${arch}/Packages.gz"; \
+      rm -rf "${root}" && mkdir -p "${root}"; \
+      for pkg in \
+        libc6 libc6-dev linux-libc-dev \
+        libsystemd0 libsystemd-dev \
+        libaio1 libaio-dev \
+        libcap2 liblzma5 libzstd1 liblz4-1 \
+        libgcrypt20 libgpg-error0 \
+        libgcc1 libstdc++6; do \
+        fetch_pkg "${packages_gz}" "${LEGACY_SYSROOT_MIRROR}" "${pkg}"; \
+        dpkg-deb -x "/tmp/${pkg}.deb" "${root}"; \
+        rm -f "/tmp/${pkg}.deb"; \
+      done; \
+      find "${root}/lib" "${root}/lib64" "${root}/usr/lib" -type l 2>/dev/null | while read -r link; do \
+        target="$(readlink "${link}")"; \
+        case "${target}" in \
+          /*) \
+            rel_target="$(realpath --no-symlinks --relative-to="$(dirname "${link}")" "${root}${target}")"; \
+            ln -sfn "${rel_target}" "${link}"; \
+            ;; \
+        esac; \
+      done; \
+      find "${root}/usr/lib/${triplet}" -maxdepth 1 -type f -name '*.so' | while read -r script; do \
+        if grep -qE '^(GROUP|INPUT)[[:space:]]*[(]' "${script}"; then \
+          sed -i 's#\\([[:space:]]*/#\\1=/#g' "${script}"; \
+        fi; \
+      done; \
+      mkdir -p "${root}/usr/lib/${triplet}/pkgconfig" "${root}/usr/share/pkgconfig"; \
+      test -f "${root}/usr/lib/${triplet}/pkgconfig/libsystemd.pc"; \
+      test -f "${root}/lib/${triplet}/libsystemd.so"; \
+      test -f "${root}/usr/lib/${triplet}/libaio.so"; \
+      test -f "${root}/usr/lib/${triplet}/libc.so"; \
+      test -f "${root}/usr/lib/${triplet}/crt1.o"; \
+      test -f "${root}/lib/${triplet}/libc.so.6"; \
+      ln -sfn "${root}" "/opt/sysroots/debian10-${arch}"; \
+      rm -f "${packages_gz}"; \
+    done
+
+ARG GO_VERSION_DEFAULT=1.19.13
+ARG GO_VERSION_EBPF=1.26.1
+ARG GO_DOWNLOAD_BASE=https://mirrors.aliyun.com/golang
+ENV GOPROXY="https://goproxy.cn,direct"
+
+RUN set -eux; \
+    arch="$(dpkg --print-architecture)"; \
+    for ver in "${GO_VERSION_DEFAULT}" "${GO_VERSION_EBPF}"; do \
+      curl -fsSL "${GO_DOWNLOAD_BASE}/go${ver}.linux-${arch}.tar.gz" -o "/tmp/go${ver}.tar.gz"; \
+      rm -rf "/usr/local/go${ver}"; \
+      mkdir -p "/usr/local/go${ver}"; \
+      tar -C /usr/local -xzf "/tmp/go${ver}.tar.gz"; \
+      mv /usr/local/go "/usr/local/go${ver}"; \
+      rm -f "/tmp/go${ver}.tar.gz"; \
+    done
+
+RUN mkdir -p /cache/gomod /cache/go-build
+
+ENV GOMODCACHE=/cache/gomod
+ENV GOCACHE=/cache/go-build
+
+RUN --mount=type=bind,source=.,target=/src,readonly \
+    set -eux; \
+    rm -rf /tmp/modprep && mkdir -p /tmp/modprep/root /tmp/modprep/ebpf; \
+    cp /src/go.mod /src/go.sum /tmp/modprep/root/; \
+    cp /src/internal/plugins/externals/ebpf/go.mod /tmp/modprep/ebpf/; \
+    cp /src/internal/plugins/externals/ebpf/go.sum /tmp/modprep/ebpf/; \
+    cp /src/internal/plugins/externals/ebpf/go.work /tmp/modprep/ebpf/; \
+    cp /src/internal/plugins/externals/ebpf/go.work.sum /tmp/modprep/ebpf/; \
+    cd /tmp/modprep/root; \
+    GOSUMDB=off /usr/local/go1.19.13/go/bin/go mod download; \
+    cd /tmp/modprep/ebpf; \
+    GOSUMDB=off /usr/local/go1.26.1/go/bin/go mod download; \
+    du -sh /cache/gomod /cache/go-build; \
+    find /cache/gomod -maxdepth 3 | sed -n '1,20p'; \
+    rm -rf /tmp/modprep
+
+ENV GOROOT_119=/usr/local/go1.19.13/go
+ENV GOROOT_126=/usr/local/go1.26.1/go
+ENV PATH=/usr/local/go1.26.1/go/bin:/usr/local/go1.19.13/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+WORKDIR /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
+
+CMD ["bash"]

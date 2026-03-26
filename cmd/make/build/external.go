@@ -55,7 +55,7 @@ var externals = []*dkexternal{
 		// requirement: apt install clang llvm linux-headers-$(uname -r)
 		name:       "ebpf",
 		out:        "datakit-ebpf",
-		standalone: true,
+		standalone: false,
 		lang:       "makefile",
 
 		entry: "Makefile",
@@ -114,8 +114,6 @@ func doBuildExternal(ex *dkexternal, dir, goos, goarch string, standalone bool) 
 	copy(envs, ex.envs)
 	copy(buildArgs, ex.buildArgs)
 
-	var tags string
-
 	if ex.standalone != standalone {
 		return nil
 	}
@@ -148,14 +146,6 @@ func doBuildExternal(ex *dkexternal, dir, goos, goarch string, standalone bool) 
 	//	l.Infof("Found docker in %s", str)
 	//}
 
-	if goarch != runtime.GOARCH {
-		switch ex.name { //nolint:gocritic
-		case "ebpf":
-			l.Warnf("skip, " + ex.name + " does not support cross compilation")
-			return nil
-		}
-	}
-
 	out := ex.name
 	if ex.out != "" {
 		out = ex.out
@@ -170,71 +160,25 @@ func doBuildExternal(ex *dkexternal, dir, goos, goarch string, standalone bool) 
 
 	l.Info("lang = ", ex.lang)
 	switch strings.ToLower(ex.lang) {
-	case "go", "golang":
-		switch osarch {
-		case "windows/amd64", "windows/386":
-			out += ".exe"
-		default: // pass
-		}
-
-		args := []string{"go", "build"}
-		if len(tags) > 0 {
-			args = append(args, "-tags")
-			args = append(args, tags)
-		}
-
-		entryPath := filepath.Join("internal", "plugins", "externals", ex.name, ex.entry)
-		l.Infof("entryPath = %s", entryPath)
-
-		outPath := filepath.Join(outdir, out)
-		l.Infof("outPath = %s", outPath)
-
-		moreBuild := []string{
-			"-o", outPath,
-			"-ldflags",
-			"-w -s",
-			entryPath,
-		}
-		args = append(args, moreBuild...)
-
-		envs = append(envs, "GOOS="+goos, "GOARCH="+goarch) //nolint:makezero
-
-		switch ex.name {
-		case "journald", "db2", "oracle":
-			args := []string{
-				"./scripts/build-external-collector.sh", "--input", ex.name, "-a", goarch,
-			}
-
-			// we do not need extra envs here, all envs has set in build-external-collector.sh.
-			msg, err := runEnv(args, nil)
-			if err != nil {
-				return fmt.Errorf("failed to run %v: %w, msg: %s",
-					args, err, string(msg))
-			}
-
-		default:
-			msg, err := runEnv(args, envs)
-			if err != nil {
-				return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s",
-					args, envs, err, string(msg))
-			}
-		}
-
 	case "makefile", "Makefile":
+		fallthrough
+	case "go", "golang":
 		args := []string{
-			"make",
-			"-j8",
-			"--file=" + filepath.Join("internal", "plugins", "externals", ex.name, ex.entry),
-			"SRCPATH=" + "internal/plugins/externals/" + ex.name,
-			"OUTPATH=" + filepath.Join(outdir, out),
-			"ARCH=" + runtime.GOARCH,
+			"./scripts/build-external-collector.sh",
+			"--input", ex.name,
+			"--output", out,
+			"--output-dir", outdir,
+			"-a", goarch,
 		}
 
-		envs = append(envs, "GOOS="+goos, "GOARCH="+goarch) //nolint:makezero
-		msg, err := runEnv(args, envs)
+		if cgoEnabled := envValue(envs, "CGO_ENABLED"); cgoEnabled != "" {
+			args = append(args, "--cgo-enabled", cgoEnabled)
+		}
+
+		msg, err := runEnv(args, nil)
 		if err != nil {
-			return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s",
-				args, envs, err, string(msg))
+			return fmt.Errorf("failed to run %v: %w, msg: %s",
+				args, err, string(msg))
 		}
 
 	default: // for python, just copy source code into build dir
@@ -252,6 +196,17 @@ func doBuildExternal(ex *dkexternal, dir, goos, goarch string, standalone bool) 
 	}
 
 	return nil
+}
+
+func envValue(envs []string, key string) string {
+	prefix := key + "="
+	for _, env := range envs {
+		if strings.HasPrefix(env, prefix) {
+			return strings.TrimPrefix(env, prefix)
+		}
+	}
+
+	return ""
 }
 
 func BuidlExternals(dir, goos, goarch string, standalone bool) error {

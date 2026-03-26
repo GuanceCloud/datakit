@@ -1,5 +1,9 @@
 .PHONY: all clean cleancache
 
+GO ?= go
+GOTOOLCHAIN ?= go1.26.1
+export GOTOOLCHAIN
+
 ARCH ?= $(shell uname -m | sed -e s/x86_64/x86_64/ \
 				  -e s/aarch64.\*/arm64/)
 
@@ -23,6 +27,7 @@ DKE_COMMIT  := $(shell git rev-parse --short HEAD)
 DKE_DATE    := $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 
 ARGS ?= ""
+GO_BUILD_TAGS ?= ebpf netgo
 
 SRCPATH ?= .
 SRC_PATH := $(SRCPATH)
@@ -67,7 +72,7 @@ BUILD_TAGS := -D__KERNEL__ -D__BPF_TRACING__ $(ARGS) \
 all: build
 
 cleancache:
-	go clean -cache gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf
+	$(GO) clean -cache gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf
 
 apiflow.o: 
 	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
@@ -127,7 +132,7 @@ bindata: offset_guess.o offset_httpflow.o offset_conntrack.o offset_tcp_seq.o \
 	llvm-strip $(EBPF_BIN_PATH)/*.o --no-strip-all -R .BTF
 
 build: bindata
-	go build -tags="ebpf" -ldflags "-w -s \
+	$(GO) build -tags="$(GO_BUILD_TAGS)" -ldflags "-w -s \
 		-X 'main.Arch=${DKE_ARCH}' \
         -X 'main.Date=${DKE_DATE}'" -o $(OUT_PATH) $(SRC_PATH)/cmd/datakit-ebpf/datakit-ebpf.go
 
