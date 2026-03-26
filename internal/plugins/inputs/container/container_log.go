@@ -117,7 +117,6 @@ type loggingDefaults struct {
 	extraSourceMap    map[string]string
 
 	sourceMultilineMap         map[string]string
-	autoMultilineDetection     bool
 	autoMultilineExtraPatterns []string
 	maxMultilineLength         int64
 
@@ -143,7 +142,6 @@ func newLoggingDefaults(ipt *Input) *loggingDefaults {
 		extraSourceMap:    ipt.LoggingExtraSourceMap,
 
 		sourceMultilineMap:         ipt.LoggingSourceMultilineMap,
-		autoMultilineDetection:     ipt.LoggingAutoMultilineDetection,
 		autoMultilineExtraPatterns: ipt.LoggingAutoMultilineExtraPatterns,
 		maxMultilineLength:         int64(float64(config.Cfg.Dataway.MaxRawBodySize) * 0.8),
 

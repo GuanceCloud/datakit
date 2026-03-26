@@ -187,6 +187,16 @@ func TestMatchNoPattern(t *testing.T) {
 	}
 }
 
+func TestMatchFallbackToPrefixWhenAllPatternsMiss(t *testing.T) {
+	m, err := NewMatcher([]string{`^ERROR:`})
+	assert.NoError(t, err)
+
+	assert.True(t, m.MatchString("panic happened"))   // fallback to non-space prefix
+	assert.False(t, m.MatchString("  stack line"))    // fallback rejects leading spaces
+	assert.True(t, m.Match([]byte("panic happened"))) // []byte path has same fallback
+	assert.False(t, m.Match([]byte("  stack line")))
+}
+
 func TestNewMatcher(t *testing.T) {
 	t.Run("ok-patterns", func(t *testing.T) {
 		patterns := []string{

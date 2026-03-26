@@ -147,6 +147,29 @@ func TestCheckConfig(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "maxMultilineLength must be >= 0")
 	})
+
+	t.Run("multiline-disabled-skip-pattern-validation", func(t *testing.T) {
+		cfg := &config{
+			source:            "test-source",
+			enableMultiline:   false,
+			multilinePatterns: []string{`(?invalid`},
+		}
+
+		err := checkConfig(cfg)
+		assert.NoError(t, err)
+	})
+
+	t.Run("multiline-enabled-validates-pattern", func(t *testing.T) {
+		cfg := &config{
+			source:            "test-source",
+			enableMultiline:   true,
+			multilinePatterns: []string{`(?invalid`},
+		}
+
+		err := checkConfig(cfg)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid multiline patterns")
+	})
 }
 
 func TestComplexScenarios(t *testing.T) {

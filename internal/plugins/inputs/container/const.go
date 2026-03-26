@@ -57,7 +57,6 @@ const sampleCfg = `
 
   # Logging configuration
   logging_enable_multiline              = true  # Enable multiline log detection
-  logging_auto_multiline_detection      = true  # Auto-detect multiline patterns
   logging_auto_multiline_extra_patterns = []    # Additional multiline patterns
 
   # Log field filtering
@@ -90,6 +89,7 @@ const sampleCfg = `
 `
 
 type DeprecatedConf struct {
+	LoggingAutoMultilineDetection                     bool          `toml:"logging_auto_multiline_detection"`
 	LoggingMinFlushInterval                           time.Duration `toml:"logging_min_flush_interval"`
 	LoggingMaxMultilineLifeDuration                   time.Duration `toml:"logging_max_multiline_life_duration"`
 	LoggingBlockingMode                               bool          `toml:"logging_blocking_mode"`

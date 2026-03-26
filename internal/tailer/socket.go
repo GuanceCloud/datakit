@@ -65,9 +65,11 @@ func (sk *SocketLogger) setup() error {
 		return nil
 	}
 
-	if _, err := multiline.New(sk.cfg.multilinePatterns, multiline.WithMaxLength(int(sk.cfg.maxMultilineLength))); err != nil {
-		sk.log.Warn(err)
-		return err
+	if sk.cfg.enableMultiline {
+		if _, err := multiline.New(sk.cfg.multilinePatterns, multiline.WithMaxLength(int(sk.cfg.maxMultilineLength))); err != nil {
+			sk.log.Warn(err)
+			return err
+		}
 	}
 
 	if sk.cfg.characterEncoding != "" {
@@ -247,8 +249,11 @@ func (s *tcpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 			defer conn.Close() // nolint
 
 			rd := reader.NewReader(conn)
-			// must not error
-			mult, _ := multiline.New(s.cfg.multilinePatterns, multiline.WithMaxLength(int(s.cfg.maxMultilineLength)))
+			var mult *multiline.Multiline
+			if s.cfg.enableMultiline {
+				// validated in setup(), should not fail here
+				mult, _ = multiline.New(s.cfg.multilinePatterns, multiline.WithMaxLength(int(s.cfg.maxMultilineLength)))
+			}
 
 			var decoder *encoding.Decoder
 			if s.cfg.characterEncoding != "" {
@@ -281,7 +286,7 @@ func (s *tcpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 					}
 
 					text = removeAnsiEscapeCodes(text, s.cfg.removeAnsiEscapeCodes)
-					if mult != nil {
+					if s.cfg.enableMultiline && mult != nil {
 						text, _ = mult.ProcessLine(multiline.TrimRightSpace(text))
 					}
 					if len(text) == 0 {
@@ -295,12 +300,7 @@ func (s *tcpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 				feed(pending)
 			}
 
-			if mult != nil && mult.BuffLength() > 0 {
-				b := mult.Flush()
-				socketMessageCounter.WithLabelValues("tcp").Inc()
-				socketLengthSummary.WithLabelValues("tcp").Observe(float64(1))
-				feed([][]byte{b})
-			}
+			flushMultilineBuffer("tcp", mult, feed)
 			return nil
 		})
 	}
@@ -333,6 +333,13 @@ func (s *udpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 	defer s.conn.Close() // nolint
 
 	rd := reader.NewReader(s.conn, reader.DisablePreviousBlock())
+	var mult *multiline.Multiline
+	if s.cfg.enableMultiline {
+		// validated in setup(), should not fail here
+		mult, _ = multiline.New(s.cfg.multilinePatterns, multiline.WithMaxLength(int(s.cfg.maxMultilineLength)))
+	}
+	defer flushMultilineBuffer("udp", mult, feed)
+
 	var decoder *encoding.Decoder
 	if s.cfg.characterEncoding != "" {
 		// must not error
@@ -367,6 +374,12 @@ func (s *udpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 			}
 
 			text = removeAnsiEscapeCodes(text, s.cfg.removeAnsiEscapeCodes)
+			if s.cfg.enableMultiline && mult != nil {
+				text, _ = mult.ProcessLine(multiline.TrimRightSpace(text))
+			}
+			if len(text) == 0 {
+				continue
+			}
 			pending = append(pending, text)
 		}
 
@@ -381,4 +394,15 @@ func decodingBytes(decoder *encoding.Decoder, text []byte) ([]byte, error) {
 		return text, nil
 	}
 	return decoder.Bytes(text)
+}
+
+func flushMultilineBuffer(protocol string, mult *multiline.Multiline, feed func([][]byte)) {
+	if mult == nil || mult.BuffLength() == 0 {
+		return
+	}
+
+	b := mult.Flush()
+	socketMessageCounter.WithLabelValues(protocol).Inc()
+	socketLengthSummary.WithLabelValues(protocol).Observe(float64(1))
+	feed([][]byte{b})
 }

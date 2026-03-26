@@ -253,10 +253,13 @@ func (cfg *logConfig) setAutoMultiline(defaults *loggingDefaults) {
 		return
 	}
 
-	if !defaults.autoMultilineDetection {
+	if !defaults.enableMultiline {
+		cfg.multilinePatterns = nil
 		return
 	}
-	cfg.multilinePatterns = defaults.autoMultilineExtraPatterns
+
+	cfg.multilinePatterns = make([]string, 0, len(defaults.autoMultilineExtraPatterns)+len(multiline.GlobalPatterns))
+	cfg.multilinePatterns = append(cfg.multilinePatterns, defaults.autoMultilineExtraPatterns...)
 	cfg.multilinePatterns = append(cfg.multilinePatterns, multiline.GlobalPatterns...)
 }
 
