@@ -22,7 +22,7 @@ import (
 	"github.com/GuanceCloud/pipeline-go/lang"
 	"github.com/GuanceCloud/pipeline-go/ptinput/ipdb"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
-	dkzip "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
@@ -462,10 +462,10 @@ func decodeBody(body []byte, decodeType string) ([]byte, error) {
 	}
 
 	decoders := map[string]func([]byte) ([]byte, error){
-		"gzip":    dkzip.UnGZip,
-		"deflate": dkzip.UnDeflateZip,
-		"br":      dkzip.UnBrotliZip,
-		"zstd":    dkzip.UnZstdZip,
+		"gzip":    datakit.UnGZip,
+		"deflate": datakit.UnDeflateZip,
+		"br":      datakit.UnBrotliZip,
+		"zstd":    datakit.UnZstdZip,
 	}
 
 	if decodeFunc, exists := decoders[decodeType]; exists {

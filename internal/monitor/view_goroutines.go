@@ -7,6 +7,7 @@ package monitor
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -89,8 +90,11 @@ func (app *monitorAPP) renderGoroutineTable(mfs map[string]*dto.MetricFamily, co
 				table.SetCell(row, col, tview.NewTableCell("-").
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
 			} else {
-				avg := time.Duration(float64(time.Second) * x.GetSummary().GetSampleSum() / float64(x.GetSummary().GetSampleCount()))
-				table.SetCell(row, col, tview.NewTableCell(avg.String()).
+				cost := nan
+				if v := app.getSummaryValue(x); !math.IsNaN(v) {
+					cost = time.Duration(float64(time.Second) * v).String()
+				}
+				table.SetCell(row, col, tview.NewTableCell(cost).
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 			}
 		}

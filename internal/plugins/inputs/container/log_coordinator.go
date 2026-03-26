@@ -11,7 +11,7 @@ import (
 	"sync"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	loggingv1alpha1 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/pkg/apis/datakits/v1alpha1"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/pkg/labels"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
@@ -319,7 +319,7 @@ func (c *containerLogCoordinator) createTailerForTask(task *containerLogTask, cf
 
 	task.tailers = append(task.tailers, TailerItem{path: path, configHash: cfg.getStructHash(), tailer: tailer})
 
-	datakit.G("container-log-tailer").Go(func(ctx context.Context) error {
+	goroutine.G("container-log-tailer").Go(func(ctx context.Context) error {
 		tailer.Start()
 		return nil
 	})

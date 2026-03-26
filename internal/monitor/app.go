@@ -8,7 +8,7 @@ package monitor
 
 import (
 	"fmt"
-	"io/ioutil"
+	"math"
 	"os"
 	"strings"
 	"time"
@@ -23,15 +23,15 @@ import (
 var (
 	l = logger.DefaultSLogger("monitor")
 
-	inputsFeedCols   = strings.Split(`Source|Cat|Feeds|P90Lat|P90Pts|Filtered|LastFeed|AvgCost|Errors`, "|")
-	plStatsCols      = strings.Split("Script|Cat|Namespace|TotalPts|DropPts|ErrPts|PLUpdate|AvgCost", "|")
+	inputsFeedCols   = strings.Split(`Source|Cat|Feeds|Lat(avg)|Pts(avg)|Filtered|LastFeed|Cost(avg)|Errors`, "|")
+	plStatsCols      = strings.Split("Script|Cat|Namespace|Pts|DropPts|ErrPts|Update|Cost(avg)", "|")
 	walStatsCols     = strings.Split("Cat|Points(mem/disk/drop/total)", "|")
 	enabledInputCols = strings.Split(`Input|Count|Crashed`, "|")
 	goroutineCols    = strings.Split(`Name|Running|Done|TotalCost`, "|")
-	httpAPIStatCols  = strings.Split(`API|Status|Total|Latency|BodySize(P90/Total)`, "|")
-	filterRuleCols   = strings.Split("Cat|Total|Filtered(%)|Cost", "|")
+	httpAPIStatCols  = strings.Split(`API|Status|Total|Lat(avg)|Body(avg)`, "|")
+	filterRuleCols   = strings.Split("Cat|Total|Filtered(%)|Cost(avg)", "|")
 	dwptsStatCols    = strings.Split(`Cat|Points(ok/total)|Bytes(ok/total/gz)`, "|")
-	dwCols           = strings.Split(`API|Status|Count|Latency|Retry`, "|")
+	dwCols           = strings.Split(`API|Status|Count|Lat(avg)|Retry`, "|")
 
 	moduleGoroutine = []string{"G", "goroutine"}
 	moduleBasic     = []string{"B", "basic"}
@@ -46,6 +46,7 @@ var (
 
 	labelCategory = "category"
 	labelName     = "name"
+	nan           = "NaN"
 )
 
 type monitorAPP struct {
@@ -87,7 +88,8 @@ type monitorAPP struct {
 	maxRun        int
 	refresh       time.Duration
 
-	url string
+	quantile string
+	url      string
 
 	// If now not set, we refresh now each loop.
 	// For replay exist metrics, now will be specified by bug report time.
@@ -147,7 +149,7 @@ func (app *monitorAPP) refreshData() {
 				arr = append(arr, v)
 			}
 
-			if err := ioutil.WriteFile(".monitor-metrics", []byte(metrics.MetricFamily2Text(arr)), os.ModePerm); err != nil {
+			if err := os.WriteFile(".monitor-metrics", []byte(metrics.MetricFamily2Text(arr)), os.ModePerm); err != nil {
 				l.Warnf("dumpMetrics: %s, ignored", err.Error())
 			} else {
 				l.Debug("dump to .monitor-metrics ok")
@@ -185,7 +187,7 @@ func (app *monitorAPP) inputClicked(input string) func() bool {
 	}
 }
 
-func number(i interface{}) string {
+func number(i any) string {
 	switch x := i.(type) {
 	case int:
 		return humanize.SIWithDigits(float64(x), 3, "")
@@ -228,4 +230,38 @@ func metricWithLabel(mf *dto.MetricFamily, vals ...string) *dto.Metric {
 		}
 	}
 	return nil
+}
+
+func (app *monitorAPP) getSummaryValue(m *dto.Metric) float64 {
+	var (
+		sum   = m.GetSummary().GetSampleSum()
+		count = m.GetSummary().GetSampleCount()
+		arr   = m.GetSummary().GetQuantile()
+	)
+
+	getQuantile := func(q float64) float64 {
+		for _, x := range arr {
+			if x.GetQuantile() == q {
+				return x.GetValue()
+			}
+		}
+
+		// if the quantile not exist, we assume it NaN
+		return math.NaN()
+	}
+
+	var q float64
+
+	switch app.quantile {
+	case "50":
+		q = getQuantile(0.5)
+	case "90":
+		q = getQuantile(0.9)
+	case "99":
+		q = getQuantile(0.99)
+	default: // avg
+		return sum / float64(count)
+	}
+
+	return q
 }

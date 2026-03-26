@@ -9,6 +9,8 @@ package exporter
 import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (
@@ -44,15 +46,11 @@ func metricsSetup() {
 
 	RequestAPIVec = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
-			Namespace: "datakit",
-			Subsystem: "input_zabbix_exporter",
-			Name:      "request_api",
-			Help:      "The time of success or failed API requests",
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Namespace:  "datakit",
+			Subsystem:  "input_zabbix_exporter",
+			Name:       "request_api",
+			Help:       "The time of success or failed API requests",
+			Objectives: datakit.P8sStandardObjectives,
 		}, []string{
 			"status",
 		})

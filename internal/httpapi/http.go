@@ -13,7 +13,7 @@ import (
 	"io"
 	"net"
 	"net/http"
-	_ "net/http/pprof" // nolint:gosec
+	_ "net/http/pprof" //nolint:gosec
 	"net/netip"
 	"os"
 	"path/filepath"
@@ -37,6 +37,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
@@ -48,7 +49,7 @@ var (
 
 	pprofServer *http.Server
 
-	g = datakit.G("http")
+	g = goroutine.G("http")
 
 	semReload          *cliutils.Sem // [http server](the normal one, not dca nor pprof) reload signal
 	semReloadCompleted *cliutils.Sem // [http server](the normal one, not dca nor pprof) reload completed signal

@@ -8,6 +8,8 @@ package jvm
 import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var collectDurationVec *prometheus.SummaryVec
@@ -15,15 +17,11 @@ var collectDurationVec *prometheus.SummaryVec
 func setupMetrics() {
 	collectDurationVec = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
-			Namespace: "datakit",
-			Subsystem: "input_jvm",
-			Name:      "collect_duration_seconds",
-			Help:      "JVM input collect duration in seconds",
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Namespace:  "datakit",
+			Subsystem:  "input_jvm",
+			Name:       "collect_duration_seconds",
+			Help:       "JVM input collect duration in seconds",
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{
 			"url",

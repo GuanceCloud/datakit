@@ -8,6 +8,8 @@ package httpapi
 import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	p8s "github.com/prometheus/client_golang/prometheus"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (
@@ -27,11 +29,7 @@ func metricsSetup() {
 			Name:      "api_elapsed_seconds",
 			Help:      "API request cost",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 
 			MaxAge:     p8s.DefMaxAge,
 			AgeBuckets: p8s.DefAgeBuckets,
@@ -50,11 +48,7 @@ func metricsSetup() {
 			Name:      "api_req_size_bytes",
 			Help:      "API request body size",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{
 			"api",

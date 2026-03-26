@@ -10,7 +10,9 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 )
 
@@ -65,7 +67,7 @@ func NewAwsLambdaOutput() *awsLambdaOutput {
 		}
 		fo.cache[category] = NewSafeSlice[[]*point.Point](0)
 	}
-	g := datakit.G("io/aws_lambda_output")
+	g := goroutine.G("io/aws_lambda_output")
 	g.Go(func(ctx context.Context) error {
 		defer fo.flush()
 		for {

@@ -12,8 +12,10 @@ import (
 	"time"
 
 	pt "github.com/GuanceCloud/cliutils/point"
+
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
@@ -149,7 +151,7 @@ func (w *worker) init() {
 }
 
 func (w *worker) runConsumer() {
-	g := datakit.G("dialtesting_worker")
+	g := goroutine.G("dialtesting_worker")
 	for i := 0; i < w.maxJobNumber; i++ {
 		g.Go(func(ctx context.Context) error {
 			for {

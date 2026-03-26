@@ -171,7 +171,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (ipt *Input) setup() {
-	ipt.g = datakit.G(snmpmeasurement.InputName)
+	ipt.g = goroutine.G(snmpmeasurement.InputName)
 
 	l = logger.SLogger(snmpmeasurement.InputName)
 	snmputil.SetLog()

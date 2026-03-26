@@ -22,8 +22,10 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+
 	"github.com/GuanceCloud/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
@@ -458,7 +460,7 @@ func RunInput(name string, ii *InputInfo) {
 		l.Warnf("run input failed: nil input")
 		return
 	}
-	g := datakit.G("inputs")
+	g := goroutine.G("inputs")
 
 	if ii.Input == nil {
 		l.Debugf("skip non-datakit-input %s", name)

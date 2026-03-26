@@ -10,7 +10,9 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	k8sclient "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
+
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,7 +21,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 )
 
-var podWatcherG = datakit.G("pod-watcher")
+var podWatcherG = goroutine.G("pod-watcher")
 
 type podWatcher struct {
 	client      k8sclient.Client

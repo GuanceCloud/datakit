@@ -10,16 +10,18 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	k8sclient "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
 	loggingv1alpha1 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/pkg/apis/datakits/v1alpha1"
 	externalversions "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/pkg/client/informers/externalversions"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 )
 
-var crdWatcherG = datakit.G("crd-watcher")
+var crdWatcherG = goroutine.G("crd-watcher")
 
 type loggingConfigWatcher struct {
 	client      k8sclient.Client

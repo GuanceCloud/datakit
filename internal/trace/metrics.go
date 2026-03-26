@@ -9,6 +9,8 @@ package trace
 import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (
@@ -33,15 +35,11 @@ func metricsSetup() {
 
 	tracingDropVec = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
-			Namespace: "datakit",
-			Subsystem: "input",
-			Name:      "drop_number",
-			Help:      "The drop number of Trace processed by the trace filter",
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Namespace:  "datakit",
+			Subsystem:  "input",
+			Name:       "drop_number",
+			Help:       "The drop number of Trace processed by the trace filter",
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{
 			"input",
@@ -52,15 +50,11 @@ func metricsSetup() {
 
 	grpcPayloadSizeVec = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
-			Namespace: "datakit",
-			Subsystem: "grpc",
-			Name:      "trace_payload_bytes",
-			Help:      "The payload size of gRPC request send to DataKit",
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Namespace:  "datakit",
+			Subsystem:  "grpc",
+			Name:       "trace_payload_bytes",
+			Help:       "The payload size of gRPC request send to DataKit",
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{
 			"method",

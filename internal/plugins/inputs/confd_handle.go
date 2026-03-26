@@ -14,7 +14,9 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/pipeline-go/constants"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
 
@@ -137,7 +139,7 @@ func addInputs(confdInputs map[string][]*ConfdInfo, handles []handle, errs *[]er
 	envs := getEnvs()
 	mtx.Lock()
 	defer mtx.Unlock()
-	g := datakit.G("confd_inputs")
+	g := goroutine.G("confd_inputs")
 
 	// Recreate this input kind, and append form confdInputs,
 	// When insertIndex and deleteIndex any not be -1

@@ -124,7 +124,7 @@ func (ipt *Input) startWorker(ctx context.Context, scraperChan chan scraper) {
 		return
 	}
 
-	g := datakit.G(inputName + "/" + ipt.Source)
+	g := goroutine.G(inputName + "/" + ipt.Source)
 
 	for i := 0; i < workerCount; i++ {
 		workerName := fmt.Sprintf("worker-%d", i)

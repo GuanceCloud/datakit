@@ -24,6 +24,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
@@ -41,7 +42,7 @@ var (
 	_ inputs.ReadEnv       = (*Input)(nil)
 	_ inputs.ElectionInput = (*Input)(nil)
 	l                      = logger.DefaultSLogger(inputName)
-	g                      = datakit.G("inputs_" + inputName)
+	g                      = goroutine.G("inputs_" + inputName)
 )
 
 // be used for server drop warning.

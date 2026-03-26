@@ -8,6 +8,8 @@ package snmp
 import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	p8s "github.com/prometheus/client_golang/prometheus"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (
@@ -25,11 +27,7 @@ func metricsSetup() {
 			Name:      "discovery_cost",
 			Help:      "Discovery cost(in second)",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"profile_type"},
 	)
@@ -41,11 +39,7 @@ func metricsSetup() {
 			Name:      "collect_cost",
 			Help:      "Every loop collect cost(in second)",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{},
 	)
@@ -57,11 +51,7 @@ func metricsSetup() {
 			Name:      "device_collect_cost",
 			Help:      "Device collect cost(in second)",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"class"},
 	)

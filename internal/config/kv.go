@@ -166,7 +166,7 @@ func (c *KV) LoadKV() {
 		l.Warnf("load kv file failed: %s, ignored", err.Error())
 	}
 
-	g := datakit.G("io/kv")
+	g := goroutine.G("io/kv")
 	g.Go(func(ctx context.Context) error {
 		c.pull()
 		return nil

@@ -9,6 +9,8 @@ package traps
 import (
 	"fmt"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
+
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -18,7 +20,7 @@ const packageName = "snmp"
 
 var (
 	l = logger.DefaultSLogger(packageName)
-	g = datakit.G("snmp_traps")
+	g = goroutine.G("snmp_traps")
 )
 
 type TrapsServerOpt struct {

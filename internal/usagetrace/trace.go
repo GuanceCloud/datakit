@@ -20,13 +20,14 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"golang.org/x/exp/slices"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 )
 
 var (
 	l = logger.DefaultSLogger("usage_trace")
-	g = datakit.G("usage_trace")
+	g = goroutine.G("usage_trace")
 
 	traceOptionCh = make(chan []UsageTraceOption, runtime.NumCPU())
 )

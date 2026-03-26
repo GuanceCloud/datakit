@@ -8,6 +8,8 @@ package ingestioncanary
 import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (
@@ -18,15 +20,11 @@ var (
 func setupMetrics() {
 	dqlQueryDurationVec = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
-			Namespace: "datakit",
-			Subsystem: "ingestion_canary",
-			Name:      "dql_query_duration_seconds",
-			Help:      "DQL query duration in seconds",
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Namespace:  "datakit",
+			Subsystem:  "ingestion_canary",
+			Name:       "dql_query_duration_seconds",
+			Help:       "DQL query duration in seconds",
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{
 			"category",      // M, L, T

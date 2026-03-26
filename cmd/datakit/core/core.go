@@ -23,6 +23,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmds"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/resourcelimit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
@@ -199,7 +200,7 @@ func (c *Core) quit() {
 
 	datakit.Exit.Close()
 	datakit.WG.Wait()
-	datakit.GWait()
+	goroutine.GWait()
 	service.Stop()
 }
 

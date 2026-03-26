@@ -24,6 +24,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
@@ -103,7 +104,7 @@ func (ipt *Input) Run() {
 	tick := time.NewTicker(ipt.ObjectInterval.Duration)
 	defer tick.Stop()
 	if ipt.OpenMetric {
-		g := datakit.G("inputs_process")
+		g := goroutine.G("inputs_process")
 		g.Go(func(ctx context.Context) error {
 			ipt.MetricInterval.Duration = config.ProtectedInterval(minMetricInterval,
 				maxMetricInterval,

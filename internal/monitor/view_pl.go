@@ -7,6 +7,7 @@ package monitor
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
@@ -48,23 +49,26 @@ func (app *monitorAPP) renderPLStatTable(mfs map[string]*dto.MetricFamily, colAr
 		var cat, name, ns string
 
 		for _, lp := range lps {
-			val := lp.GetValue()
+			cell := lp.GetValue()
 			switch lp.GetName() {
 			case labelName:
-				name = val
+				name = cell
 				table.SetCell(row, 0,
-					tview.NewTableCell(val).
-						SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+					tview.NewTableCell(cell).
+						SetMaxWidth(app.maxTableWidth).
+						SetAlign(tview.AlignRight))
 			case labelCategory:
-				cat = val
+				cat = cell
 				table.SetCell(row, 1,
-					tview.NewTableCell(point.CatString(val).Alias()).
-						SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+					tview.NewTableCell(point.CatString(cell).Alias()).
+						SetMaxWidth(app.maxTableWidth).
+						SetAlign(tview.AlignRight))
 			case "namespace":
-				ns = val
+				ns = cell
 				table.SetCell(row, 2,
-					tview.NewTableCell(val).
-						SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+					tview.NewTableCell(cell).
+						SetMaxWidth(app.maxTableWidth).
+						SetAlign(tview.AlignRight))
 			}
 		}
 
@@ -79,7 +83,8 @@ func (app *monitorAPP) renderPLStatTable(mfs map[string]*dto.MetricFamily, colAr
 				table.SetCell(row, col, tview.NewTableCell("-").
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
 			} else {
-				table.SetCell(row, col, tview.NewTableCell(number(x.GetCounter().GetValue())).
+				cell := number(x.GetCounter().GetValue())
+				table.SetCell(row, col, tview.NewTableCell(cell).
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 			}
 		} else {
@@ -94,7 +99,8 @@ func (app *monitorAPP) renderPLStatTable(mfs map[string]*dto.MetricFamily, colAr
 				table.SetCell(row, col, tview.NewTableCell("-").
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
 			} else {
-				table.SetCell(row, col, tview.NewTableCell(number(x.GetCounter().GetValue())).
+				cell := number(x.GetCounter().GetValue())
+				table.SetCell(row, col, tview.NewTableCell(cell).
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 			}
 		} else {
@@ -109,8 +115,8 @@ func (app *monitorAPP) renderPLStatTable(mfs map[string]*dto.MetricFamily, colAr
 				table.SetCell(row, col, tview.NewTableCell("-").
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
 			} else {
-				since := fmt.Sprintf("%s ago", app.now.Sub(time.Unix(int64(x.GetGauge().GetValue()), 0)))
-				table.SetCell(row, col, tview.NewTableCell(since).
+				cell := fmt.Sprintf("%s ago", app.now.Sub(time.Unix(int64(x.GetGauge().GetValue()), 0)))
+				table.SetCell(row, col, tview.NewTableCell(cell).
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 			}
 		} else {
@@ -125,8 +131,11 @@ func (app *monitorAPP) renderPLStatTable(mfs map[string]*dto.MetricFamily, colAr
 				table.SetCell(row, col, tview.NewTableCell("-").
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignCenter))
 			} else {
-				avg := x.GetSummary().GetSampleSum() / float64(x.GetSummary().GetSampleCount())
-				table.SetCell(row, col, tview.NewTableCell(time.Duration(avg*float64(time.Second)).String()).
+				cell := nan
+				if v := app.getSummaryValue(x); !math.IsNaN(v) {
+					cell = time.Duration(v * float64(time.Second)).String()
+				}
+				table.SetCell(row, col, tview.NewTableCell(cell).
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 			}
 		} else {

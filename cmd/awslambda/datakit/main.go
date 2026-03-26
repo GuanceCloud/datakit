@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -109,7 +110,7 @@ func quit() {
 	datakit.GlobalExitTime = time.Now()
 	datakit.Exit.Close()
 	datakit.WG.Wait()
-	datakit.GWait()
+	goroutine.GWait()
 }
 
 func tryLoadConfig() {
