@@ -32,6 +32,8 @@ func doSync(diffSec int64, abs uint64) {
 		localTimeSecDiff.Store(diffSec)
 		ntpSyncCount.Add(1)
 		l.Infof("update local time diff %s", time.Duration(localTimeSecDiff.Load())*time.Second)
+	} else {
+		localTimeSecDiff.Store(0)
 	}
 
 	ntpSyncSummary.Observe(float64(diffSec))
