@@ -139,6 +139,7 @@ func (ipt *Input) getPerformanceCounters() {
 
 	var measurement string
 	var counterName string
+	opts := ipt.getKVsOpts(point.Metric)
 
 	// metric collect
 	for rows.Next() {
@@ -220,14 +221,6 @@ func (ipt *Input) getPerformanceCounters() {
 		if counterName == "batch_requests" {
 			batchRequests.LastValue += cntrValue
 			batchRequests.CntrType = counterType
-		}
-
-		var opts []point.Option
-
-		opts = point.DefaultMetricOptions()
-
-		if ipt.Election {
-			opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
 		}
 
 		// metric build
@@ -515,12 +508,6 @@ func (ipt *Input) Run() {
 	l.Info("sqlserver start")
 
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
-
-	if ipt.Election {
-		ipt.opt = point.WithExtraTags(datakit.GlobalElectionTags())
-	} else {
-		ipt.opt = point.WithExtraTags(datakit.GlobalHostTags())
-	}
 
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()

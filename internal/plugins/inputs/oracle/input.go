@@ -907,10 +907,6 @@ func (ipt *Input) getKVsOpts(categorys ...point.Category) []point.Option {
 		opts = point.DefaultMetricOptions()
 	}
 
-	if ipt.Election {
-		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
-	}
-
 	opts = append(opts, point.WithTime(ipt.ptsTime))
 
 	return opts
@@ -934,10 +930,6 @@ func (ipt *Input) getKVsOptsWithTime(ptsTime time.Time, categorys ...point.Categ
 		opts = point.DefaultObjectOptions()
 	default:
 		opts = point.DefaultMetricOptions()
-	}
-
-	if ipt.Election {
-		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
 	}
 
 	opts = append(opts, point.WithTime(ptsTime))

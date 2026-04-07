@@ -14,8 +14,9 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/araddon/dateparse"
 
+	"github.com/DataDog/datadog-agent/pkg/obfuscate"
+
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
 )
 
 const SQLSlow = `SELECT 
@@ -239,6 +240,7 @@ func (ipt *Input) collectSlowQuery(ptsTime time.Time) {
 		ipt.objectMetric.SlowQueries += int64(len(rows))
 	}
 
+	obfuscator := obfuscate.NewObfuscator(obfuscate.Config{})
 	for _, r := range rows {
 		gotlastActiveTime, err := dateparse.ParseAny(r.LAST_ACTIVE_TIME.String)
 		if err != nil {
@@ -256,7 +258,15 @@ func (ipt *Input) collectSlowQuery(ptsTime time.Time) {
 
 		kvs := ipt.getKVs()
 
-		fullText := util.ObfuscateSQL(r.SQL_FULLTEXT.String)
+		fullText := r.SQL_FULLTEXT.String
+		if fullText != "" {
+			obfResult, err := obfuscator.ObfuscateSQLString(fullText)
+			if err != nil {
+				l.Warnf("failed to obfuscate SQL for sql_id %s: %v", r.SQL_ID.String, err)
+			} else {
+				fullText = obfResult.Query
+			}
+		}
 		kvs = kvs.AddTag("sql_id", r.SQL_ID.String).
 			AddTag("module", r.MODULE.String).
 			AddTag("command_type", r.COMMAND_TYPE.String).

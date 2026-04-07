@@ -1157,10 +1157,6 @@ func (ipt *Input) getKVsOpts(categorys ...point.Category) []point.Option {
 		opts = point.DefaultMetricOptions()
 	}
 
-	if ipt.Election {
-		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
-	}
-
 	return opts
 }
 

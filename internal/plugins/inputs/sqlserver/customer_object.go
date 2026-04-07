@@ -7,7 +7,6 @@ package sqlserver
 
 import (
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -21,12 +20,6 @@ type customerObjectMeasurement struct {
 // Point implement MeasurementV2.
 func (m *customerObjectMeasurement) Point() *point.Point {
 	opts := point.DefaultObjectOptions()
-	if m.election {
-		opts = append(opts,
-			point.WithExtraTags(datakit.GlobalElectionTags()),
-		)
-		point.DefaultObjectOptions()
-	}
 	return point.NewPoint(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
