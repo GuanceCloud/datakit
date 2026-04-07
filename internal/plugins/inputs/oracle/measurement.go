@@ -181,7 +181,7 @@ func (x *slowQueryMeasurement) Info() *inputs.MeasurementInfo {
 			`command_type`:      &inputs.TagInfo{Desc: "Oracle command type definition"},
 			`status`:            &inputs.TagInfo{Desc: "Log level, always `warning` here"},
 			"oracle_server":     &inputs.TagInfo{Desc: "Server addr. Deprecated. Please use `server`"},
-			"database_instance": &inputs.TagInfo{Desc: "Oracle instance identifier, derived from v$instance.host_name"},
+			"database_instance": &inputs.TagInfo{Desc: "Oracle instance identifier from configured tag or v$instance.host_name."},
 			"server":            &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"},
 		},
 	}

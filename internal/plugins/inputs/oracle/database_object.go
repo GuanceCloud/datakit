@@ -42,7 +42,7 @@ func (*oracleObjectMeasurement) Info() *inputs.MeasurementInfo {
 			"host":              &inputs.TagInfo{Desc: "The hostname of the Oracle server"},
 			"server":            &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"},
 			"version":           &inputs.TagInfo{Desc: "The version of the Oracle server"},
-			"database_instance": &inputs.TagInfo{Desc: "Oracle instance identifier, derived from v$instance.host_name"},
+			"database_instance": &inputs.TagInfo{Desc: "Oracle instance identifier from configured tag or v$instance.host_name."},
 			"name":              &inputs.TagInfo{Desc: "The object identifier. The value is `<server>-<database_instance>`"},
 			"database_type":     &inputs.TagInfo{Desc: "The type of the database. The value is `Oracle`"},
 			"port":              &inputs.TagInfo{Desc: "The port of the Oracle server"},

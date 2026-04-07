@@ -185,7 +185,8 @@ func TestBuildAndFeedDatabasePlanObjects(t *testing.T) {
 		Object: oracleObject{
 			name: "testhost:1521",
 		},
-		cdbName: "TESTCDB",
+		cdbName:          "TESTCDB",
+		databaseInstance: "testdb",
 	}
 
 	tests := []struct {
@@ -230,7 +231,7 @@ func TestBuildAndFeedDatabasePlanObjects(t *testing.T) {
 				fields := pt.Fields()
 
 				planKey := generatePlanCacheKey("abc123def456", "987654321")
-				assert.Equal(t, planKey, tags.GetTag("name"))
+				assert.Equal(t, "testhost:1521-testdb-"+planKey, tags.GetTag("name"))
 				assert.Equal(t, "abc123def456", tags.GetTag("query_signature"))
 				assert.Equal(t, "987654321", tags.GetTag("plan_hash_value"))
 				assert.Equal(t, "Oracle", tags.GetTag("database_type"))

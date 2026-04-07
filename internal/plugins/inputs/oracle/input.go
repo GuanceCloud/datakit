@@ -293,13 +293,23 @@ type hostNameRow struct {
 }
 
 func (ipt *Input) getDatabaseInstance(ctx context.Context) {
+	if v, ok := ipt.mergedTags["database_instance"]; ok && v != "" {
+		ipt.databaseInstance = v
+		return
+	}
+
 	var hn hostNameRow
 	err := ipt.db.GetContext(ctx, &hn, "SELECT host_name FROM v$instance")
 	if err != nil {
 		l.Warnf("failed to get oracle host name: %s", err)
 		return
 	}
-	ipt.databaseInstance = hn.HostName
+	if hn.HostName != "" {
+		ipt.databaseInstance = hn.HostName
+		if ipt.mergedTags != nil {
+			ipt.mergedTags["database_instance"] = hn.HostName
+		}
+	}
 }
 
 func (ipt *Input) getConnString() string {
@@ -455,10 +465,6 @@ func (ipt *Input) Init() error {
 
 		// on init failing, we still upload up metric to show that the oracle input not working.
 		ipt.FeedUpMetric()
-	}
-
-	if ipt.databaseInstance != "" {
-		ipt.mergedTags["database_instance"] = ipt.databaseInstance
 	}
 
 	return nil

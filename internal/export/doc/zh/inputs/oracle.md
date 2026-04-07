@@ -270,12 +270,12 @@ apt-get install -y libaio-dev libaio1
   collection_interval = "60s"
   # 查询的最大行数限制（默认： 10000）
   db_rows_limit = 10000
-  # 每个采集间隔报告的最大查询数（默认： 250）
+  # 每个采集间隔报告的最大查询数（默认： 500）
   # 按导数执行时间排序后，只报告前 N 个查询
-  max_queries = 250
-  # 查询过滤的回看窗口（秒，默认： 120）
+  max_queries = 500
+  # 查询过滤的回看窗口（秒，默认： 300）
   # 只收集在此时间窗口内执行的查询
-  lookback_window = 120
+  lookback_window = 300
   # 启用执行计划采集（默认： true）
   plan_enabled = true
   # 执行计划对象缓存 TTL（默认： 1h）

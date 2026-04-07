@@ -216,7 +216,7 @@ func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"server":            inputs.NewTagInfo("The server address (host:port)"),
 			"sqlserver_host":    inputs.NewTagInfo("Host name which installed SQLServer"),
-			"database_instance": inputs.NewTagInfo("SQL Server instance identifier derived from server name"),
+			"database_instance": inputs.NewTagInfo("SQL Server instance identifier from configured tag or SQL Server server name."),
 			"database_name":     inputs.NewTagInfo("The name of the database"),
 			"user_name":         inputs.NewTagInfo("The login name of the user"),
 			"host_name":         inputs.NewTagInfo("The host name of the client"),

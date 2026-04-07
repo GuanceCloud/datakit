@@ -31,12 +31,13 @@ func (*dbmQueryObjectMeasurement) Info() *inputs.MeasurementInfo {
 		Name: dbmQueryObjectName,
 		Cat:  point.Object,
 		//nolint:lll
-		Desc:   "Oracle DBM query objects. Each object represents a unique SQL query identified by query_signature, containing the obfuscated SQL text.",
-		DescZh: "Oracle DBM SQL 文本对象。每个对象代表一个由 query_signature 唯一标识的 SQL 查询，包含脱敏后的 SQL 文本。",
+		Desc:   "Oracle DBM query objects. Each object represents a unique SQL query identified by server:database_instance:query_signature, containing the obfuscated SQL text.",
+		DescZh: "Oracle DBM SQL 文本对象。每个对象代表一个由 server:database_instance:query_signature 唯一标识的 SQL 查询，包含脱敏后的 SQL 文本。",
 		Tags: map[string]interface{}{
+			"name":                     inputs.NewTagInfo("Object identifier generated from server:database_instance:query_signature"),
 			"query_signature":          inputs.NewTagInfo("Hash signature generated from pdb_name:query_hash to link metrics and objects"),
 			"server":                   inputs.NewTagInfo("The server address (host:port)"),
-			"database_instance":        inputs.NewTagInfo("Oracle instance identifier, derived from v$instance.host_name"),
+			"database_instance":        inputs.NewTagInfo("Oracle instance identifier from configured tag or v$instance.host_name."),
 			"database_type":            inputs.NewTagInfo("The type of the database. The value is `Oracle`"),
 			"con_id":                   inputs.NewTagInfo("The container ID (con_id) in Oracle multi tenant architecture"),
 			"cdb_name":                 inputs.NewTagInfo("The name of the CDB (Container Database)"),
@@ -90,9 +91,9 @@ func (ipt *Input) collectDbmQueries(oracleRows []*OracleRow, ptsTime time.Time) 
 		}
 
 		kvs := ipt.getKVs()
-
 		// Tags
-		kvs = kvs.AddTag("name", querySignature)
+		objectName := fmt.Sprintf("%s-%s-%s", ipt.Object.name, ipt.databaseInstance, querySignature)
+		kvs = kvs.AddTag("name", objectName)
 		kvs = kvs.AddTag("query_signature", querySignature)
 		kvs = kvs.AddTag("server", ipt.Object.name)
 		kvs = kvs.AddTag("database_type", "Oracle")

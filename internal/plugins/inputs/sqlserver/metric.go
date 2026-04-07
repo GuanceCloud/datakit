@@ -77,7 +77,7 @@ func (m *SqlserverMeasurment) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"sqlserver_host":    inputs.NewTagInfo("Host name which installed SQLServer"),
-			"database_instance": inputs.NewTagInfo("SQL Server instance identifier derived from server name"),
+			"database_instance": inputs.NewTagInfo("SQL Server instance identifier from configured tag or SQL Server server name."),
 			"server":            inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
@@ -294,7 +294,7 @@ func (m *LockRow) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"sqlserver_host":    inputs.NewTagInfo("Host name which installed SQLServer"),
-			"database_instance": inputs.NewTagInfo("SQL Server instance identifier derived from server name"),
+			"database_instance": inputs.NewTagInfo("SQL Server instance identifier from configured tag or SQL Server server name."),
 			"server":            inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
@@ -319,7 +319,7 @@ func (m *LockTable) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"sqlserver_host":    inputs.NewTagInfo("Host name which installed SQLServer"),
-			"database_instance": inputs.NewTagInfo("SQL Server instance identifier derived from server name"),
+			"database_instance": inputs.NewTagInfo("SQL Server instance identifier from configured tag or SQL Server server name."),
 			"server":            inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
@@ -347,7 +347,7 @@ func (m *LockDead) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"sqlserver_host":    inputs.NewTagInfo("Host name which installed SQLServer"),
-			"database_instance": inputs.NewTagInfo("SQL Server instance identifier derived from server name"),
+			"database_instance": inputs.NewTagInfo("SQL Server instance identifier from configured tag or SQL Server server name."),
 			"server":            inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
@@ -374,7 +374,7 @@ func (m *LogicalIO) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"sqlserver_host":    inputs.NewTagInfo("Host name which installed SQLServer"),
-			"database_instance": inputs.NewTagInfo("SQL Server instance identifier derived from server name"),
+			"database_instance": inputs.NewTagInfo("SQL Server instance identifier from configured tag or SQL Server server name."),
 			"server":            inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
