@@ -62,3 +62,12 @@ func TestDWInit(t *T.T) {
 		assert.Equal(t, 1, dw.MaxRetryCount)
 	})
 }
+
+func TestTagHeaderValueV2(t *T.T) {
+	headerVal := TagHeaderValueV2(map[string]string{
+		"tag1": "abc",
+		"tag2": "12\n3",
+	})
+
+	assert.Equal(t, "tag1=abc,tag2=12%0A3", headerVal)
+}

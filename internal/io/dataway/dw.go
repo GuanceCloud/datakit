@@ -8,6 +8,7 @@ package dataway
 
 import (
 	"fmt"
+	"net/url"
 	"path/filepath"
 	"runtime"
 	"sort"
@@ -201,7 +202,7 @@ func (dw *Dataway) UpdateGlobalTags(tags map[string]string) {
 	dw.globalTags = tags
 	l.Infof("set %d global tags to dataway", len(dw.globalTags))
 	if len(dw.globalTags) > 0 && dw.EnableSinker {
-		dw.globalTagsHTTPHeaderValue = TagHeaderValue(dw.globalTags)
+		dw.globalTagsHTTPHeaderValue = dw.sinkHeaderValueFromGlobalTags()
 	}
 }
 
@@ -266,6 +267,22 @@ func TagHeaderValue(tags map[string]string) string {
 	return strings.Join(arr, ",")
 }
 
+func TagHeaderValueV2(tags map[string]string) string {
+	var arr []string
+	for k, v := range tags {
+		arr = append(arr, fmt.Sprintf("%s=%s", url.QueryEscape(k), url.QueryEscape(v)))
+	}
+	sort.Strings(arr)
+	return strings.Join(arr, ",")
+}
+
+func (dw *Dataway) sinkHeaderValueFromGlobalTags() string {
+	if dw.SinkerHeaderVersion == "v2" {
+		return TagHeaderValueV2(dw.globalTags)
+	}
+	return TagHeaderValue(dw.globalTags)
+}
+
 var defaultInvalidDatawayURL = "https://guance.openway.com?token=YOUR-WORKSPACE-TOKEN"
 
 func (dw *Dataway) doInit() error {
@@ -305,7 +322,7 @@ func (dw *Dataway) doInit() error {
 
 	l.Infof("set %d global tags to dataway", len(dw.globalTags))
 	if len(dw.globalTags) > 0 && dw.EnableSinker {
-		dw.globalTagsHTTPHeaderValue = TagHeaderValue(dw.globalTags)
+		dw.globalTagsHTTPHeaderValue = dw.sinkHeaderValueFromGlobalTags()
 	}
 
 	for _, u := range dw.URLs {
