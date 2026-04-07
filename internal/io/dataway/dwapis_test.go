@@ -103,4 +103,51 @@ func TestDWAPIs(t *T.T) {
 			ts.Close()
 		})
 	})
+
+	t.Run("apis-with-global-tags-v2", func(t *T.T) {
+		dw := NewDefaultDataway()
+		dw.EnableSinker = true
+		dw.SinkerHeaderVersion = "v2"
+		dw.NTP = &ntp{
+			Interval:   time.Second,
+			SyncOnDiff: time.Second,
+		}
+
+		expectedHeader := "tag1=value1,tag2=12%0A3"
+
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equalf(t, expectedHeader, r.Header.Get(HeaderXGlobalTagsV2), "failed on request %s", r.URL.Path)
+
+			if r.URL.Path == "/v1/ntp" {
+				n := ntpResp{
+					TimestampSec: time.Now().Unix(),
+				}
+				j, err := json.Marshal(n)
+				assert.NoError(t, err)
+				w.WriteHeader(200)
+				_, _ = w.Write(j)
+				return
+			}
+
+			w.WriteHeader(200)
+			_, _ = w.Write([]byte("ok"))
+		}))
+
+		assert.NoError(t, dw.Init(
+			WithURLs(fmt.Sprintf("%s?token=tkn_11111111111111111111", ts.URL)),
+			WithGlobalTags(map[string]string{
+				"tag1": "value1",
+				"tag2": "12\n3",
+			})))
+
+		_, err := dw.Pull("some-args")
+		assert.NoError(t, err)
+
+		_, err = dw.doTimeDiff()
+		assert.NoError(t, err)
+
+		t.Cleanup(func() {
+			ts.Close()
+		})
+	})
 }
