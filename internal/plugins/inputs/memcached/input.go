@@ -433,12 +433,6 @@ func (ipt *Input) init() {
 			l.Warnf("Invalid extra stats type: %s, items or slabs expected", statType)
 		}
 	}
-
-	if ipt.Election {
-		ipt.opt = point.WithExtraTags(datakit.GlobalElectionTags())
-	} else {
-		ipt.opt = point.WithExtraTags(datakit.GlobalHostTags())
-	}
 }
 
 func (ipt *Input) Run() {

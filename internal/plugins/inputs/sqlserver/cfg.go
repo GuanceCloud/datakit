@@ -278,7 +278,6 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
 	tagger  datakit.GlobalTagger
-	opt     point.Option
 
 	collectFuncs        map[string]func() error
 	collectQuery        map[string]string
@@ -315,10 +314,6 @@ func (ipt *Input) getKVsOpts(categorys ...point.Category) []point.Option {
 		opts = point.DefaultObjectOptions()
 	default:
 		opts = point.DefaultMetricOptions()
-	}
-
-	if ipt.Election {
-		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
 	}
 
 	opts = append(opts, point.WithTimestamp(ipt.start.UnixNano()))

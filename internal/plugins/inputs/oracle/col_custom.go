@@ -80,9 +80,6 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 			pts := []*point.Point{}
 			opts := point.DefaultMetricOptions()
 			opts = append(opts, point.WithTime(ptsTime))
-			if ipt.Election {
-				opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
-			}
 			for _, row := range arr {
 				var kvs point.KVs
 				// add extended tags
