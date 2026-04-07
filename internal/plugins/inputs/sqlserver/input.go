@@ -348,6 +348,10 @@ func (ipt *Input) initDB() error {
 }
 
 func (ipt *Input) setServerHostTag() {
+	if instance, ok := ipt.Tags["database_instance"]; ok && instance != "" {
+		ipt.databaseInstance = instance
+	}
+
 	var hostName string
 	query := `SELECT REPLACE(@@SERVERNAME, '\', ':')`
 	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
@@ -358,10 +362,12 @@ func (ipt *Input) setServerHostTag() {
 	}
 
 	if len(hostName) > 0 {
-		ipt.databaseInstance = hostName
-
 		ipt.Tags["sqlserver_host"] = hostName
-		ipt.Tags["database_instance"] = hostName
+
+		if ipt.databaseInstance == "" {
+			ipt.databaseInstance = hostName
+			ipt.Tags["database_instance"] = hostName
+		}
 	}
 }
 

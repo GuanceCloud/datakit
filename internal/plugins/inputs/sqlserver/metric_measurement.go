@@ -62,7 +62,7 @@ func (m *sqlserverMeasurement) getTags() map[string]interface{} {
 func (m *sqlserverMeasurement) getCommonTags() map[string]interface{} {
 	tags := make(map[string]interface{})
 	tags["sqlserver_host"] = &inputs.TagInfo{Desc: "Host name which installed SQLServer"}
-	tags["database_instance"] = &inputs.TagInfo{Desc: "SQL Server instance identifier derived from server name"}
+	tags["database_instance"] = &inputs.TagInfo{Desc: "SQL Server instance identifier from configured tag or SQL Server server name."}
 	tags["server"] = &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"}
 	return tags
 }

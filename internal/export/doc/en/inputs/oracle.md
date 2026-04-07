@@ -267,12 +267,12 @@ Collects cumulative execution statistics of SQL queries aggregated by SQL ID, pl
   collection_interval = "60s"
   # Maximum number of rows to collect (default: 10000)
   db_rows_limit = 10000
-  # Maximum number of queries to report per collection interval (default: 250)
+  # Maximum number of queries to report per collection interval (default: 500)
   # Only the top N queries (sorted by derivative elapsed time) will be reported as metrics
-  max_queries = 250
-  # Lookback window in seconds for filtering queries (default: 120)
+  max_queries = 500
+  # Lookback window in seconds for filtering queries (default: 300)
   # Only queries that executed within this time window will be collected
-  lookback_window = 120
+  lookback_window = 300
   # Enable plan collection (default: true)
   plan_enabled = true
   # Plan object cache TTL (default: 1h)

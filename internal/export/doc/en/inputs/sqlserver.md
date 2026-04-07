@@ -123,12 +123,12 @@ Collects cumulative execution statistics of SQL queries aggregated by query sign
   # Maximum number of rows to collect from sys.dm_exec_query_stats (default: 10000)
   # This limits the initial query result size before aggregation
   dm_exec_query_stats_row_limit = 10000
-  # Maximum number of queries to report per collection interval (default: 250)
+  # Maximum number of queries to report per collection interval (default: 500)
   # Only the top N queries (sorted by derivative elapsed time) will be reported as metrics
-  max_queries = 250
-  # Lookback window in seconds for filtering queries (default: 120)
+  max_queries = 500
+  # Lookback window in seconds for filtering queries (default: 300)
   # Only queries that executed within this time window (based on last_execution_time + last_elapsed_time) will be collected
-  lookback_window = 120
+  lookback_window = 300
   # Enable plan collection (default: true)
   plan_enabled = true
   # Plan object cache TTL (default: 1h)

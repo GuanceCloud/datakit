@@ -34,14 +34,14 @@ func (*dbmPlanObjectMeasurement) Info() *inputs.MeasurementInfo {
 		Name: dbmPlanObjectName,
 		Cat:  point.Object,
 		//nolint:lll
-		Desc:   "Oracle DBM plan objects. Each object represents a unique execution plan identified by query_signature:plan_hash_value, containing the obfuscated plan content.",
-		DescZh: "Oracle DBM 执行计划对象。每个对象代表一个由 query_signature:plan_hash_value 唯一标识的执行计划，包含脱敏后的计划内容。",
+		Desc:   "Oracle DBM plan objects. Each object represents a unique execution plan identified by server:database_instance:query_signature:plan_hash_value, containing the obfuscated plan content.",
+		DescZh: "Oracle DBM 执行计划对象。每个对象代表一个由 server:database_instance:query_signature:plan_hash_value 唯一标识的执行计划，包含脱敏后的计划内容。",
 		Tags: map[string]interface{}{
-			"name":                     inputs.NewTagInfo("Hash signature generated from query_signature:plan_hash_value"),
+			"name":                     inputs.NewTagInfo("Object identifier generated from server:database_instance:query_signature:plan_hash_value"),
 			"query_signature":          inputs.NewTagInfo("Hash signature generated from pdb_name:query_hash to link metrics and objects"),
 			"plan_hash_value":          inputs.NewTagInfo("The hash value of the query execution plan"),
 			"server":                   inputs.NewTagInfo("The server address (host:port)"),
-			"database_instance":        inputs.NewTagInfo("Oracle instance identifier, derived from v$instance.host_name"),
+			"database_instance":        inputs.NewTagInfo("Oracle instance identifier from configured tag or v$instance.host_name."),
 			"database_type":            inputs.NewTagInfo("The type of the database. The value is `Oracle`"),
 			"plan_type":                inputs.NewTagInfo("The format of the plan content. The value is `JSON`"),
 			"con_id":                   inputs.NewTagInfo("The container ID (con_id) in Oracle multi tenant architecture"),
@@ -459,12 +459,12 @@ func (ipt *Input) buildAndFeedDatabasePlanObjects(rowsWithPlans []*statementRowW
 	var pts []*point.Point
 
 	for _, row := range rowsWithPlans {
-		// Tags - name is query_signature:plan_hash_value
+		// Tags - include instance dimension to avoid cross-node collision.
 		planName := generatePlanCacheKey(row.querySignature, fmt.Sprintf("%d", row.RawData.PlanHashValue))
 
 		kvs := ipt.getKVs()
-
-		kvs = kvs.AddTag("name", planName)
+		objectName := fmt.Sprintf("%s-%s-%s", ipt.Object.name, ipt.databaseInstance, planName)
+		kvs = kvs.AddTag("name", objectName)
 		kvs = kvs.AddTag("query_signature", row.querySignature)
 		kvs = kvs.AddTag("plan_hash_value", fmt.Sprintf("%d", row.RawData.PlanHashValue))
 		kvs = kvs.AddTag("server", ipt.Object.name)

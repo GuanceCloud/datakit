@@ -57,7 +57,7 @@ func (*sqlserverObjectMeasurement) Info() *inputs.MeasurementInfo {
 			"host":              &inputs.TagInfo{Desc: "The hostname of the SQLServer server"},
 			"server":            &inputs.TagInfo{Desc: "The server address of the SQLServer server"},
 			"version":           &inputs.TagInfo{Desc: "The version of the SQLServer server"},
-			"database_instance": &inputs.TagInfo{Desc: "SQL Server instance identifier derived from server name"},
+			"database_instance": &inputs.TagInfo{Desc: "SQL Server instance identifier from configured tag or SQL Server server name."},
 			"name":              &inputs.TagInfo{Desc: "The object identifier. The value is `<server>-<database_instance>`"},
 			"database_type":     &inputs.TagInfo{Desc: "The type of the database. The value is `SQLServer`"},
 			"port":              &inputs.TagInfo{Desc: "The port of the SQLServer server"},
