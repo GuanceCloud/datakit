@@ -41,6 +41,11 @@ var GlobalPatterns = []string{
 	`^\d{4}-(0?[1-9]|1[012])-(0?[1-9]|[12][0-9]|3[01])`,
 	// gin log, [GIN] 2006/01/02 - 08:53:39
 	`^\[GIN\] \d+/\d+/\d+ - \d+:\d+:\d+`,
+	// slow log, # Time: 2026-03-25T13:30:55.776770239Z
+	`^# Time: \d{4}`,
+	// JSON object/array format. Avoid treating generic bracket-prefixed stack lines
+	// such as "[signal SIGSEGV...]" as a new multiline entry.
+	`^\s*(\{|\[\s*[\{"])`,
 }
 
 type scoredPattern struct {

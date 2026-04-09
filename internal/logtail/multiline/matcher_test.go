@@ -197,6 +197,15 @@ func TestMatchFallbackToPrefixWhenAllPatternsMiss(t *testing.T) {
 	assert.False(t, m.Match([]byte("  stack line")))
 }
 
+func TestMatchJSONPatternDoesNotSwallowBracketStackLines(t *testing.T) {
+	m, err := NewMatcher(GlobalPatterns)
+	assert.NoError(t, err)
+
+	assert.True(t, m.MatchString(`{"msg":"hello"}`))
+	assert.True(t, m.MatchString(`[{"msg":"hello"}]`))
+	assert.False(t, m.MatchString(`[signal SIGSEGV: segmentation violation code=0x1 addr=0x90 pc=0xa2ed0]`))
+}
+
 func TestNewMatcher(t *testing.T) {
 	t.Run("ok-patterns", func(t *testing.T) {
 		patterns := []string{
