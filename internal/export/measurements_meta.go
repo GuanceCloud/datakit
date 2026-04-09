@@ -188,6 +188,9 @@ func doExportMetaInfo(ipts map[string]inputs.Creator) ([]byte, error) {
 						defaultMetaInfo.DTMetaInfo[measurement.Name] = im
 					}
 
+				case point.ExecutionLog, point.LLM:
+					continue
+
 				case point.DynamicDWCategory, point.MetricDeprecated, point.UnknownCategory:
 					l.Warnf("should not use category(%s) from %q, name: %q", measurement.Cat, inputName, measurement.Name)
 					return nil, fmt.Errorf("invalid category")

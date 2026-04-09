@@ -477,6 +477,9 @@ func testDatakitPipelineAction(_ *ws.Client, response *ws.DCAResponse, data *ws.
 				break
 			}
 			pts = append(pts, arr...)
+
+		case point.ExecutionLog, point.LLM:
+			continue
 		}
 	}
 

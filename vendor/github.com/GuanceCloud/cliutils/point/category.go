@@ -24,7 +24,7 @@ func (c Category) URL() string {
 }
 
 func (c Category) Alias() string {
-	if x, ok := categoryAias[c]; !ok {
+	if x, ok := categoryAlias[c]; !ok {
 		return CUnknown
 	} else {
 		return x
@@ -32,7 +32,7 @@ func (c Category) Alias() string {
 }
 
 func CatAlias(c string) Category {
-	for k, v := range categoryAias {
+	for k, v := range categoryAlias {
 		if c == v {
 			return k
 		}
@@ -73,6 +73,8 @@ func AllCategories() []Category {
 		Profiling,
 		DynamicDWCategory,
 		DialTesting,
+		ExecutionLog,
+		LLM,
 	}
 }
 
@@ -93,6 +95,8 @@ const (
 	Security
 	Profiling
 	DialTesting
+	ExecutionLog
+	LLM
 
 	SUnknownCategory   = "unknown"
 	SDynamicDWCategory = "dynamic_dw" // NOTE: not used
@@ -109,6 +113,8 @@ const (
 	SSecurity          = "security"
 	SProfiling         = "profiling"
 	SDialTesting       = "dialtesting"
+	SExecutionLog      = "execution_log"
+	SLlm               = "llm"
 
 	URLUnknownCategory   = "/v1/write/unknown"
 	URLDynamicDWCategory = "/v1/write/dynamic_dw" // NOTE: not used
@@ -125,6 +131,8 @@ const (
 	URLSecurity          = "/v1/write/security"
 	URLProfiling         = "/v1/write/profiling"
 	URLDialTesting       = "/v1/write/dialtesting" // NOTE: not used
+	URLExecutionLog      = "/v1/write/siem_logging"
+	URLLlm               = "/v1/write/langfuse-v2"
 
 	CUnknown   = "UNKNOWN"
 	CDynamicDW = "DYNAMIC_DW"
@@ -140,6 +148,8 @@ const (
 	CS         = "S"
 	CP         = "P"
 	CDT        = "DT"
+	CEL        = "EL"
+	CLlm       = "LLM"
 )
 
 var (
@@ -160,12 +170,15 @@ var (
 
 		DialTesting: URLDialTesting,
 
+		ExecutionLog: URLExecutionLog,
+		LLM:          URLLlm,
+
 		DynamicDWCategory: URLDynamicDWCategory,
 
 		UnknownCategory: URLUnknownCategory,
 	}
 
-	categoryAias = map[Category]string{
+	categoryAlias = map[Category]string{
 		Metric:            CM,
 		Network:           CN,
 		KeyEvent:          CE,
@@ -178,6 +191,8 @@ var (
 		Security:          CS,
 		Profiling:         CP,
 		DialTesting:       CDT,
+		ExecutionLog:      CEL,
+		LLM:               CLlm,
 		UnknownCategory:   CUnknown,
 		DynamicDWCategory: CDynamicDW,
 	}
@@ -196,6 +211,8 @@ var (
 		Security:          SSecurity,
 		Profiling:         SProfiling,
 		DialTesting:       SDialTesting,
+		ExecutionLog:      SExecutionLog,
+		LLM:               SLlm,
 		UnknownCategory:   SUnknownCategory,
 		DynamicDWCategory: SDynamicDWCategory,
 	}

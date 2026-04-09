@@ -9,11 +9,10 @@ import (
 	"os"
 	"sync"
 
+	"github.com/GuanceCloud/cliutils"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"golang.org/x/time/rate"
-
-	"github.com/GuanceCloud/cliutils"
 )
 
 const (
@@ -71,6 +70,14 @@ func (l *Logger) allowed(r float64) (string, bool) {
 
 func (l *Logger) Name() string {
 	return l.name
+}
+
+func (l *Logger) Sugar() *zap.SugaredLogger {
+	return l.zsl
+}
+
+func (l *Logger) SetSugar(sugar *zap.SugaredLogger) {
+	l.zsl = sugar
 }
 
 func (l *Logger) Infof(fmt string, args ...any) {
