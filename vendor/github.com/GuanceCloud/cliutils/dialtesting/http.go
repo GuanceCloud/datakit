@@ -64,8 +64,10 @@ type HTTPTask struct {
 	ttfbTime       float64
 	downloadTime   float64
 
-	destIP  string
-	rawTask *HTTPTask
+	destIP           string
+	rawTask          *HTTPTask
+	sslCertNotBefore int64
+	sslCertNotAfter  int64
 }
 
 func (t *HTTPTask) clear() {
@@ -80,6 +82,8 @@ func (t *HTTPTask) clear() {
 	t.respBody = []byte(``)
 	t.reqError = ""
 	t.reqBodyBytesBuffer = nil
+	t.sslCertNotBefore = 0
+	t.sslCertNotAfter = 0
 
 	if t.reqBody != nil {
 		t.reqBody.bodyType = t.reqBody.BodyType
@@ -118,7 +122,7 @@ func (t *HTTPTask) getResults() (tags map[string]string, fields map[string]inter
 	}
 
 	fields = map[string]interface{}{
-		"response_time":      int64(t.reqCost) / 1000, // 单位为us
+		"response_time":      int64(t.reqCost) / 1000, // unit: us
 		"response_body_size": int64(len(t.respBody)),
 		"success":            int64(-1),
 	}
@@ -183,6 +187,11 @@ func (t *HTTPTask) getResults() (tags map[string]string, fields map[string]inter
 	fields[`response_ttfb`] = t.ttfbTime
 	fields[`response_download`] = t.downloadTime
 
+	if t.sslCertNotAfter > 0 {
+		fields[`ssl_cert_not_after`] = t.sslCertNotAfter
+		fields[`ssl_cert_expires_in_days`] = (t.sslCertNotAfter - time.Now().UnixMicro()) / (24 * time.Hour).Microseconds()
+	}
+
 	message["status"] = tags["status"]
 	data, err := json.Marshal(message)
 	if err != nil {
@@ -212,7 +221,7 @@ type HTTPOptAuth struct {
 	// basic auth
 	Username string `json:"username,omitempty"`
 	Password string `json:"password,omitempty"`
-	// TODO: 支持更多的 auth 选项
+	// TODO: support more auth options
 }
 
 type HTTPOptRequest struct {
@@ -286,6 +295,10 @@ func (t *HTTPTask) run() error {
 		TLSHandshakeStart: func() { tlsHandshake = time.Now() },
 		TLSHandshakeDone: func(cs tls.ConnectionState, err error) {
 			t.sslTime = float64(time.Since(tlsHandshake)) / float64(time.Microsecond)
+			// Extract SSL certificate validity information only if TLS handshake was successful
+			if err == nil {
+				t.extractSSLCertificateValidity(cs)
+			}
 		},
 
 		ConnectStart: func(network, addr string) { connect = time.Now() },
@@ -884,4 +897,13 @@ func (t *HTTPTask) renderSuccessWhen(task *HTTPTask, fm template.FuncMap) error 
 
 func (t *HTTPTask) setReqError(err string) {
 	t.reqError = err
+}
+
+// extractSSLCertificateValidity extracts SSL certificate validity information from the given connection state
+func (t *HTTPTask) extractSSLCertificateValidity(cs tls.ConnectionState) {
+	if len(cs.PeerCertificates) > 0 {
+		cert := cs.PeerCertificates[0] // Use the first certificate in the chain (server certificate)
+		t.sslCertNotBefore = cert.NotBefore.UnixMicro()
+		t.sslCertNotAfter = cert.NotAfter.UnixMicro()
+	}
 }

@@ -122,6 +122,18 @@ func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.NoUnit,
 				Desc:     "The configuration variables of the task",
 			},
+			"ssl_cert_not_after": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.TimestampUS,
+				Desc:     "The SSL certificate not after time",
+			},
+			"ssl_cert_expires_in_days": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationDay,
+				Desc:     "The SSL certificate expires in days",
+			},
 		},
 	}
 }
@@ -427,6 +439,18 @@ func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.NoUnit,
 				Desc:     "The configuration variables of the task",
 			},
+			"ssl_cert_not_after": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.TimestampUS,
+				Desc:     "The SSL certificate not after time",
+			},
+			"ssl_cert_expires_in_days": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationDay,
+				Desc:     "The SSL certificate expires in days",
+			},
 		},
 	}
 }
@@ -576,6 +600,18 @@ func (m *grpcMeasurement) Info() *inputs.MeasurementInfo {
 				Type:     inputs.Gauge,
 				Unit:     inputs.NoUnit,
 				Desc:     "The configuration variables of the task",
+			},
+			"ssl_cert_not_after": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.TimestampUS,
+				Desc:     "The SSL certificate not after time",
+			},
+			"ssl_cert_expires_in_days": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationDay,
+				Desc:     "The SSL certificate expires in days",
 			},
 		},
 	}
