@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	T "testing"
 	"time"
 
@@ -248,6 +249,83 @@ func TestWriteWithCache(t *T.T) {
 }
 
 func TestWritePoints(t *T.T) {
+	t.Run("write-with-sink-newline-tag-v1-v2", func(t *T.T) {
+		t.Run("v1-dirty-upload", func(t *T.T) {
+			pts := []*point.Point{
+				point.NewPoint("m1", point.NewKVs(nil).SetTag("tag1", "a\nb").Set("f1", 1.23)),
+			}
+
+			requests := 0
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				requests++
+				assert.Equal(t, "tag1=a b", r.Header.Get(HeaderXGlobalTags))
+				assert.Empty(t, r.Header.Get(HeaderXGlobalTagsV2))
+				w.WriteHeader(http.StatusOK)
+			}))
+
+			dw := NewDefaultDataway()
+			dw.ContentEncoding = "protobuf"
+			dw.EnableSinker = true
+			dw.GlobalCustomerKeys = []string{"tag1"}
+			dw.GZip = true
+			dw.WAL.Path = t.TempDir()
+			dw.MaxRetryCount = 1
+
+			require.NoError(t, dw.Init(WithURLs(fmt.Sprintf("%s?token=tkn_some", ts.URL))))
+			require.NoError(t, dw.setupWAL())
+
+			err := dw.Write(
+				compact.WithBodyCallback(func(w *compact.Writer, b *compact.Body) error {
+					return dw.doFlush(w, b)
+				}),
+				compact.WithHTTPEncoding(dw.contentEncoding),
+				compact.WithPoints(pts),
+				compact.WithCategory(point.Logging))
+
+			require.NoError(t, err)
+			require.Equal(t, 1, requests)
+		})
+
+		t.Run("v2-encode-dynamic-sink-header", func(t *T.T) {
+			pts := []*point.Point{
+				point.NewPoint("m1", point.NewKVs(nil).SetTag("tag1", "a\nb").Set("f1", 1.23)),
+			}
+
+			requests := 0
+			expectedHeader := "tag1=" + url.QueryEscape("a b")
+
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				requests++
+				assert.Equal(t, expectedHeader, r.Header.Get(HeaderXGlobalTagsV2))
+				assert.Empty(t, r.Header.Get(HeaderXGlobalTags))
+				w.WriteHeader(http.StatusOK)
+			}))
+
+			dw := NewDefaultDataway()
+			dw.ContentEncoding = "protobuf"
+			dw.EnableSinker = true
+			dw.SinkerHeaderVersion = "v2"
+			dw.GlobalCustomerKeys = []string{"tag1"}
+			dw.GZip = true
+			dw.WAL.Path = t.TempDir()
+			dw.MaxRetryCount = 1
+
+			require.NoError(t, dw.Init(WithURLs(fmt.Sprintf("%s?token=tkn_some", ts.URL))))
+			require.NoError(t, dw.setupWAL())
+
+			err := dw.Write(
+				compact.WithBodyCallback(func(w *compact.Writer, b *compact.Body) error {
+					return dw.doFlush(w, b)
+				}),
+				compact.WithHTTPEncoding(dw.contentEncoding),
+				compact.WithPoints(pts),
+				compact.WithCategory(point.Logging))
+
+			require.NoError(t, err)
+			require.Equal(t, 1, requests)
+		})
+	})
+
 	t.Run("write-100pts", func(t *T.T) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, datakit.Logging, r.URL.Path)
