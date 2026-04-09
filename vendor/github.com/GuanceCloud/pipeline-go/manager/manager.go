@@ -138,6 +138,8 @@ func CategoryDirName() map[point.Category]string {
 		point.Security:     "security",
 		point.Profiling:    "profiling",
 		point.DialTesting:  "dialtesting",
+		point.ExecutionLog: "execution_log",
+		point.LLM:          "llm",
 	}
 }
 

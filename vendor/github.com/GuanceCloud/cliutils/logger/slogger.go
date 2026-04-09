@@ -73,6 +73,10 @@ func DefaultSLogger(name string) *Logger {
 	return &Logger{zsl: slogger(name, 1)}
 }
 
+func DefaultSloggerSkipN(name string, callerSkip int) *Logger {
+	return &Logger{zsl: slogger(name, callerSkip)}
+}
+
 func TotalSLoggers() int64 {
 	return atomic.LoadInt64(&totalSloggers)
 }
@@ -88,9 +92,10 @@ func slogger(name string, callerSkip int) *zap.SugaredLogger {
 		panic("should not been here")
 	}
 
+	cacheKey := sloggerCacheKey(name, callerSkip)
 	newlog := getSugarLogger(r, name, callerSkip)
 	if root != nil {
-		l, loaded := slogs.LoadOrStore(name, newlog)
+		l, loaded := slogs.LoadOrStore(cacheKey, newlog)
 		if !loaded {
 			atomic.AddInt64(&totalSloggers, 1)
 		}
@@ -107,4 +112,8 @@ func getSugarLogger(l *zap.Logger, name string, callerSkip int) *zap.SugaredLogg
 	} else {
 		return l.Sugar().Named(name)
 	}
+}
+
+func sloggerCacheKey(name string, callerSkip int) string {
+	return fmt.Sprintf("%s|skip=%d", name, callerSkip)
 }

@@ -239,14 +239,22 @@ func CheckPassParam(ctx *Task, expr *ast.CallExpr, params []*Param) *errchain.Pl
 				return NewRunError(ctx,
 					"the name of a named parameter needs to be an identifier", p.StartPos())
 			}
+			pName := ass.LHS[0].String()
+			found := false
 			for pi := range params {
-				if params[pi].Name == ass.LHS[0].String() {
+				if params[pi].Name == pName {
+					found = true
 					if newArgs[pi] != nil {
 						return NewRunError(ctx, fmt.Sprintf(
 							"duplicate parameters %s", params[pi].Name), p.StartPos())
 					}
 					newArgs[pi] = ass.RHS[0]
+					break
 				}
+			}
+			if !found {
+				return NewRunError(ctx, fmt.Sprintf(
+					"unknown parameter %s", pName), p.StartPos())
 			}
 		} else { // pos param
 			if namedParam {

@@ -203,6 +203,18 @@ func getPtKey(in any, key string) (any, ast.DType, error) {
 	return pt.Get(key)
 }
 
+func getPtKeyRaw(in any, key string) (any, ast.DType, error) {
+	pt, err := getPoint(in)
+	if err != nil {
+		return nil, ast.Invalid, err
+	}
+
+	if key == "_" {
+		key = ptinput.Originkey
+	}
+	return pt.GetRaw(key)
+}
+
 func deletePtKey(in any, key string) {
 	pt, err := getPoint(in)
 	if err != nil {

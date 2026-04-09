@@ -23,6 +23,99 @@ import (
 	"github.com/spf13/cast"
 )
 
+func normalizeListValue(v any) ([]any, bool) {
+	switch arr := v.(type) {
+	case []any:
+		return arr, true
+	case []int:
+		res := make([]any, len(arr))
+		for i, x := range arr {
+			res[i] = int64(x)
+		}
+		return res, true
+	case []int8:
+		res := make([]any, len(arr))
+		for i, x := range arr {
+			res[i] = int64(x)
+		}
+		return res, true
+	case []int16:
+		res := make([]any, len(arr))
+		for i, x := range arr {
+			res[i] = int64(x)
+		}
+		return res, true
+	case []int32:
+		res := make([]any, len(arr))
+		for i, x := range arr {
+			res[i] = int64(x)
+		}
+		return res, true
+	case []int64:
+		res := make([]any, len(arr))
+		for i, x := range arr {
+			res[i] = x
+		}
+		return res, true
+	case []uint:
+		res := make([]any, len(arr))
+		for i, x := range arr {
+			res[i] = int64(x)
+		}
+		return res, true
+	case []uint16:
+		res := make([]any, len(arr))
+		for i, x := range arr {
+			res[i] = int64(x)
+		}
+		return res, true
+	case []uint32:
+		res := make([]any, len(arr))
+		for i, x := range arr {
+			res[i] = int64(x)
+		}
+		return res, true
+	case []uint64:
+		res := make([]any, len(arr))
+		for i, x := range arr {
+			res[i] = int64(x)
+		}
+		return res, true
+	case []float32:
+		res := make([]any, len(arr))
+		for i, x := range arr {
+			res[i] = float64(x)
+		}
+		return res, true
+	case []float64:
+		res := make([]any, len(arr))
+		for i, x := range arr {
+			res[i] = x
+		}
+		return res, true
+	case []string:
+		res := make([]any, len(arr))
+		for i, x := range arr {
+			res[i] = x
+		}
+		return res, true
+	case []bool:
+		res := make([]any, len(arr))
+		for i, x := range arr {
+			res[i] = x
+		}
+		return res, true
+	case [][]byte:
+		res := make([]any, len(arr))
+		for i, x := range arr {
+			res[i] = string(x)
+		}
+		return res, true
+	default:
+		return nil, false
+	}
+}
+
 type (
 	KeyKind uint
 	PtFlag  uint
@@ -35,6 +128,7 @@ type PlInputPt interface {
 	SetPtName(m string)
 
 	Get(key string) (any, ast.DType, error)
+	GetRaw(key string) (any, ast.DType, error)
 	Set(key string, value any, dtype ast.DType) bool
 
 	Delete(key string)
@@ -159,6 +253,10 @@ func NewPlPoint(category point.Category, name string,
 }
 
 func valueDtype(v any) (any, ast.DType) {
+	return valueDtypeComposite(v, false)
+}
+
+func valueDtypeComposite(v any, allowComposite bool) (any, ast.DType) {
 	switch v := v.(type) {
 	case int32, int8, int16, int,
 		uint, uint16, uint32, uint64, uint8:
@@ -175,6 +273,24 @@ func valueDtype(v any) (any, ast.DType) {
 		return string(v), ast.String
 	case string:
 		return v, ast.String
+	case map[string]any:
+		if allowComposite {
+			return v, ast.Map
+		}
+		if s, err := Conv2String(v, ast.Map); err == nil {
+			return s, ast.String
+		}
+		return nil, ast.Nil
+	}
+
+	if arr, ok := normalizeListValue(v); ok {
+		if allowComposite {
+			return arr, ast.List
+		}
+		if s, err := Conv2String(arr, ast.List); err == nil {
+			return s, ast.String
+		}
+		return nil, ast.Nil
 	}
 
 	// ignore unknown type
@@ -212,12 +328,20 @@ func (pt *PlPoint) Category() point.Category {
 var ErrKeyNotExist = errors.New("key not exist")
 
 func (pt *PlPoint) Get(key string) (any, ast.DType, error) {
+	return pt.get(key, false)
+}
+
+func (pt *PlPoint) GetRaw(key string) (any, ast.DType, error) {
+	return pt.get(key, true)
+}
+
+func (pt *PlPoint) get(key string, allowComposite bool) (any, ast.DType, error) {
 	if v, ok := pt.tags[key]; ok {
 		return v, ast.String, nil
 	}
 
 	if v, ok := pt.fields[key]; ok {
-		v, dtype := valueDtype(v)
+		v, dtype := valueDtypeComposite(v, allowComposite)
 		return v, dtype, nil
 	}
 	return nil, ast.Nil, ErrKeyNotExist

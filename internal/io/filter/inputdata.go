@@ -49,7 +49,7 @@ func (d *KVs) Setup(category point.Category, pt *point.Point) {
 		// set measurement name as tag `class'
 		d.extKVs = append(d.extKVs, [2]string{"class", pt.Name()})
 
-	case point.DynamicDWCategory, point.UnknownCategory:
+	case point.ExecutionLog, point.LLM, point.DynamicDWCategory, point.UnknownCategory:
 		// pass
 	}
 }
