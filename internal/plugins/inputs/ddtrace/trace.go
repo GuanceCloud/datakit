@@ -14,33 +14,106 @@ type DDTrace []*DDSpan
 
 type DDTraces []DDTrace
 
+const (
+	maxPooledTraceCount     = 512
+	maxPooledTraceSpanSlots = 4096
+	maxPooledTotalSpanSlots = 16384
+	maxPooledMapEntries     = 64
+)
+
 var ddtracePool = &sync.Pool{
 	New: func() interface{} {
 		return DDTraces{}
 	},
 }
 
-func (t DDTraces) reset() {
-	for _, trace := range t {
-		for _, span := range trace {
-			span.Service = ""
-			span.Name = ""
-			span.Resource = ""
-			span.TraceID = 0
-			span.SpanID = 0
-			span.ParentID = 0
-			span.Start = 0
-			span.Duration = 0
-			span.Error = 0
-			for s := range span.Meta {
-				span.Meta[s] = ""
-			}
-			for s := range span.Metrics {
-				span.Metrics[s] = 0
-			}
-			span.Type = ""
+func (t DDTraces) shouldKeepInPool() bool {
+	if cap(t) > maxPooledTraceCount {
+		return false
+	}
+
+	totalSpanSlots := 0
+	for i := range t {
+		if cap(t[i]) > maxPooledTraceSpanSlots {
+			return false
 		}
-		// trace = trace[:0]
+
+		totalSpanSlots += cap(t[i])
+		if totalSpanSlots > maxPooledTotalSpanSlots {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (t *DDTraces) reset(keepInPool bool) {
+	if t == nil {
+		return
+	}
+
+	for i := range *t {
+		trace := (*t)[i]
+		for j := range trace {
+			if trace[j] == nil {
+				continue
+			}
+
+			resetDDSpan(trace[j], keepInPool)
+			if !keepInPool {
+				trace[j] = nil
+			}
+		}
+
+		if keepInPool {
+			(*t)[i] = trace[:0]
+		} else {
+			(*t)[i] = nil
+		}
+	}
+
+	if keepInPool {
+		*t = (*t)[:0]
+	} else {
+		*t = nil
+	}
+}
+
+func resetDDSpan(span *DDSpan, keepInPool bool) {
+	if span == nil {
+		return
+	}
+
+	if !keepInPool {
+		*span = DDSpan{}
+		return
+	}
+
+	span.Service = ""
+	span.Name = ""
+	span.Resource = ""
+	span.TraceID = 0
+	span.SpanID = 0
+	span.ParentID = 0
+	span.Start = 0
+	span.Duration = 0
+	span.Error = 0
+	span.Type = ""
+
+	if len(span.Meta) > maxPooledMapEntries {
+		span.Meta = nil
+	} else {
+		for k := range span.Meta {
+			delete(span.Meta, k)
+		}
+	}
+
+	if len(span.Metrics) > maxPooledMapEntries {
+		span.Metrics = nil
+	} else {
+		for k := range span.Metrics {
+			delete(span.Metrics, k)
+		}
 	}
 }
 
