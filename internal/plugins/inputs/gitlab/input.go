@@ -425,3 +425,34 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
+
+func defaultInput() *Input {
+	sem := cliutils.NewSem()
+	return &Input{
+		EnableCollect: true,
+		Tags:          make(map[string]string),
+		pause:         atomic.Bool{},
+		Election:      true,
+		interval:      time.Second * 10,
+
+		semStop: sem,
+		feeder:  dkio.DefaultFeeder(),
+		Tagger:  datakit.DefaultGlobalTagger(),
+
+		EnableCIVisibility: true,
+		CIExtraTags:        make(map[string]string),
+		reqMemo: requestMemo{
+			memoMap:     map[[16]byte]time.Time{},
+			hasReqCh:    make(chan hasRequest),
+			addReqCh:    make(chan [16]byte),
+			removeReqCh: make(chan [16]byte),
+			semStop:     sem,
+		},
+	}
+}
+
+func init() { //nolint:gochecknoinits
+	inputs.Add(inputName, func() inputs.Input {
+		return defaultInput()
+	})
+}

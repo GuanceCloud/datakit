@@ -24,7 +24,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 )
 
-func defaultInput() *Input {
+func defaultInputEx() *Input {
 	ipt := &Input{
 		EnableCollect:      true,
 		URL:                "http://127.0.0.1:80/-/metrics",
@@ -800,7 +800,7 @@ func TestAddExtraTags(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ipt := defaultInput()
+			ipt := defaultInputEx()
 			ipt.CIExtraTags = tc.extra
 			tags := tc.existing
 			ipt.addExtraTags(tags)
@@ -810,7 +810,7 @@ func TestAddExtraTags(t *testing.T) {
 }
 
 func getInput(expired time.Duration) *Input {
-	ipt := defaultInput()
+	ipt := defaultInputEx()
 	ipt.feeder = NewMockedFeederEmpty()
 	go ipt.reqMemo.memoMaintainer(expired)
 	return ipt
