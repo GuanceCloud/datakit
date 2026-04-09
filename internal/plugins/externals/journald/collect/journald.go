@@ -9,6 +9,7 @@
 package collect
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"os"
@@ -26,6 +27,12 @@ var (
 	logRate = 1.0
 	l       = logger.DefaultSLogger("cjournal")
 	ptsOpts = point.DefaultLoggingOptions()
+
+	systemdCheckFn       = checkSystemd
+	probeJournalTargetFn = probeJournalTarget
+	openJournalDirFn     = sdjournal.NewJournalFromDir
+	initJournalFn        = func(ipt *Input) error { return ipt.initJournal() }
+	doCollectFn          = func(ipt *Input) []*point.Point { return ipt.doCollect() }
 )
 
 // checkSystemd verifies that libsystemd is available before attempting to use it.
@@ -133,10 +140,15 @@ func (ipt *Input) Run() {
 	l.Info("journald input starting")
 
 	// Pre-flight check: verify libsystemd is available
-	if err := checkSystemd(); err != nil {
+	if err := systemdCheckFn(); err != nil {
 		l.Errorf("systemd pre-flight check failed: %v", err)
 		l.Error(" journald collector requires systemd (libsystemd.so.0) to be installed")
 		l.Error(" On custom Linux distributions, install systemd or use alternative log collection")
+		return
+	}
+
+	if result := ipt.preflightCompatibility(); result.reason != reasonOK {
+		ipt.logCompatibilityFailure(result)
 		return
 	}
 
@@ -146,13 +158,13 @@ func (ipt *Input) Run() {
 	}
 
 	// Initialize journal reader
-	if err := ipt.initJournal(); err != nil {
+	if err := initJournalFn(ipt); err != nil {
 		l.Errorf("failed to initialize journal: %v", err)
 		return
 	}
 
 	for {
-		pts := ipt.doCollect()
+		pts := doCollectFn(ipt)
 		if len(pts) > 0 {
 			if ipt.totalCollected == 0 {
 				l.Infof("first collected log is %s", pts[0].Pretty())
@@ -179,29 +191,33 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) initJournal() error {
-	resolvedPaths := ipt.resolvePaths()
-	if len(resolvedPaths) == 0 {
+	openDir, candidates := ipt.resolveOpenDirectory()
+	if openDir == "" {
 		return fmt.Errorf("no accessible journal paths found")
 	}
 
-	l.Infof("resolved journal paths: %v", resolvedPaths)
+	l.Infof("resolved journal directory: target=%s candidates=%v", openDir, candidates)
 
-	// Open journal
-	var err error
-	if len(resolvedPaths) == 1 {
-		ipt.journal, err = sdjournal.NewJournalFromDir(resolvedPaths[0])
-		l.Infof("opening journal from single directory: %s", resolvedPaths[0])
-	} else {
-		// For multiple directories, use the default system journal
-		ipt.journal, err = sdjournal.NewJournal()
-		l.Info("opening default system journal")
+	var openErrs []string
+	for _, candidate := range candidates {
+		l.Infof("opening journal from directory: %s", candidate)
+		journal, err := openJournalDirFn(candidate)
+		if err != nil {
+			openErrs = append(openErrs, fmt.Sprintf("%s: %v", candidate, err))
+			l.Warnf("failed to open journal directory %s: %v", candidate, err)
+			continue
+		}
+
+		ipt.journal = journal
+		break
 	}
 
-	if err != nil {
-		return fmt.Errorf("failed to open journal: %w", err)
+	if ipt.journal == nil {
+		return fmt.Errorf("failed to open journal from candidates: %s", strings.Join(openErrs, "; "))
 	}
 
 	l.Info("journal opened successfully")
+	logLoadedLibsystemd()
 
 	// Apply filters
 	if err := ipt.applyFilters(); err != nil {
@@ -248,6 +264,119 @@ func (ipt *Input) resolvePaths() []string {
 		}
 	}
 	return resolved
+}
+
+func (ipt *Input) resolveOpenDirectory() (string, []string) {
+	resolvedPaths := ipt.resolvePaths()
+	if len(resolvedPaths) == 0 {
+		return "", nil
+	}
+
+	seen := make(map[string]struct{})
+	var candidates []string
+
+	addCandidate := func(path string) {
+		if _, ok := seen[path]; ok {
+			return
+		}
+		seen[path] = struct{}{}
+		candidates = append(candidates, path)
+	}
+
+	for _, path := range resolvedPaths {
+		info, err := os.Stat(path)
+		if err != nil {
+			continue
+		}
+
+		if !info.IsDir() {
+			if strings.HasSuffix(path, ".journal") {
+				addCandidate(filepath.Dir(path))
+			}
+			continue
+		}
+
+		if directoryHasJournalFiles(path) {
+			addCandidate(path)
+			continue
+		}
+
+		entries, err := os.ReadDir(path)
+		if err != nil {
+			continue
+		}
+
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				continue
+			}
+
+			target := filepath.Join(path, entry.Name())
+			if directoryHasJournalFiles(target) {
+				addCandidate(target)
+			}
+		}
+	}
+
+	if len(candidates) == 0 {
+		return "", nil
+	}
+
+	return candidates[0], candidates
+}
+
+func logLoadedLibsystemd() {
+	paths, err := loadedSharedObjectPaths("/proc/self/maps", "libsystemd")
+	if err != nil {
+		l.Debugf("failed to inspect loaded libsystemd path: %v", err)
+		return
+	}
+	if len(paths) == 0 {
+		l.Warn("libsystemd path not found in /proc/self/maps after journal open")
+		return
+	}
+
+	l.Infof("loaded libsystemd paths: %v", paths)
+}
+
+func loadedSharedObjectPaths(procMapsPath, needle string) ([]string, error) {
+	f, err := os.Open(procMapsPath) //nolint:gosec
+	if err != nil {
+		return nil, err
+	}
+
+	scanner := bufio.NewScanner(f)
+	seen := make(map[string]struct{})
+	var paths []string
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		idx := strings.Index(line, "/")
+		if idx < 0 {
+			continue
+		}
+
+		path := strings.TrimSpace(line[idx:])
+		if !strings.Contains(path, needle) {
+			continue
+		}
+		if _, ok := seen[path]; ok {
+			continue
+		}
+		seen[path] = struct{}{}
+		paths = append(paths, path)
+	}
+
+	if err := scanner.Err(); err != nil {
+		_ = f.Close()
+		return nil, err
+	}
+
+	if err := f.Close(); err != nil {
+		return nil, err
+	}
+
+	return paths, nil
 }
 
 func (ipt *Input) applyFilters() error {

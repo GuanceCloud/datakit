@@ -25,9 +25,14 @@ var sampleConfig = `
   ## Interval to check external process (for non-daemon mode)
   # interval = "10s"
 
+  ## Rootfs mount point for container/Kubernetes mode only
+  ## DataKit uses this as the host root prefix when auto-prefixing absolute paths
+  ## and preparing host-side systemd libraries (copy_node_libs).
+  mount_dir = "/rootfs"
+
   ## Journal directory paths
   ## Host installation: use default paths
-  ## Kubernetes: use /rootfs prefixed paths (e.g., /rootfs/var/log/journal)
+  ## Container/Kubernetes: DataKit auto-prefixes absolute paths with mount_dir.
   paths = [
     "/var/log/journal",      # Persistent storage
     "/run/log/journal",      # Runtime storage
@@ -62,6 +67,30 @@ var sampleConfig = `
   ## Environment variables for external binary
   # envs = [
   #   "LD_LIBRARY_PATH=/usr/local/datakit/externals:$LD_LIBRARY_PATH",
+  # ]
+
+  ## Host-side systemd library prepare:
+  ## - Container/Kubernetes (Docker or Kubernetes): auto forced to true.
+  ## - Non-container host: disabled by default. If enabled manually, set copy_node_libs_files explicitly.
+  ## - In container/kubernetes mode, when copy_node_libs_files is empty, DataKit first copies
+  ##   libsystemd.so* then runs "LD_LIBRARY_PATH=<dst> ldd libsystemd.so.0"
+  ##   style dependency probing and copies missing .so files automatically.
+  # copy_node_libs = true
+  ## Optional override file list. If set, only these patterns/files are copied.
+  # copy_node_libs_files = [
+  #   "libsystemd.so*",
+  #   "liblz4.so*",
+  #   "libzstd.so*",
+  #   "liblzma.so*",
+  #   "libcap.so*",
+  #   "libgcrypt.so*",
+  #   "libgpg-error.so*",
+  #   "libselinux.so*",
+  #   "libmount.so*",
+  #   "libblkid.so*",
+  #   "libacl.so*",
+  #   "libpcre2-8.so*",
+  #   "libpcre.so*",
   # ]
 
   ## Additional arguments for external binary

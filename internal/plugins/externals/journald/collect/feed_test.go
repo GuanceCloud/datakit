@@ -9,12 +9,19 @@
 package collect
 
 import (
+	"io"
 	"net/http"
-	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/GuanceCloud/cliutils/point"
 )
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
 
 func TestFeedPoint(t *testing.T) {
 	tests := []struct {
@@ -70,19 +77,26 @@ func TestFeedPoint(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			oldTransport := http.DefaultClient.Transport
+			t.Cleanup(func() {
+				http.DefaultClient.Transport = oldTransport
+			})
+
+			http.DefaultClient.Transport = roundTripFunc(func(*http.Request) (*http.Response, error) {
+				statusCode := http.StatusOK
 				if tt.serverResp == "Internal Server Error" {
-					w.WriteHeader(http.StatusInternalServerError)
-					w.Write([]byte("Internal Server Error"))
-					return
+					statusCode = http.StatusInternalServerError
 				}
-				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("OK"))
-			}))
-			defer server.Close()
+
+				return &http.Response{
+					StatusCode: statusCode,
+					Body:       io.NopCloser(strings.NewReader(tt.serverResp)),
+					Header:     make(http.Header),
+				}, nil
+			})
 
 			ipt := &Input{
-				dkURLPath: server.URL,
+				dkURLPath: "http://datakit.test/v1/write/logging",
 			}
 
 			err := ipt.feedPoint(tt.points)
@@ -134,14 +148,21 @@ func TestWriteData(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(tt.statusCode)
-				w.Write([]byte(tt.serverResp))
-			}))
-			defer server.Close()
+			oldTransport := http.DefaultClient.Transport
+			t.Cleanup(func() {
+				http.DefaultClient.Transport = oldTransport
+			})
+
+			http.DefaultClient.Transport = roundTripFunc(func(*http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: tt.statusCode,
+					Body:       io.NopCloser(strings.NewReader(tt.serverResp)),
+					Header:     make(http.Header),
+				}, nil
+			})
 
 			ipt := &Input{
-				dkURLPath: server.URL,
+				dkURLPath: "http://datakit.test/v1/write/logging",
 			}
 
 			err := ipt.writeData(tt.data)
@@ -171,14 +192,21 @@ func TestInput_NoURLPath(t *testing.T) {
 }
 
 func TestInput_ContextTimeout(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-	}))
-	defer server.Close()
+	oldTransport := http.DefaultClient.Transport
+	t.Cleanup(func() {
+		http.DefaultClient.Transport = oldTransport
+	})
+
+	http.DefaultClient.Transport = roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader("OK")),
+			Header:     make(http.Header),
+		}, nil
+	})
 
 	ipt := &Input{
-		dkURLPath: server.URL,
+		dkURLPath: "http://datakit.test/v1/write/logging",
 	}
 
 	data := []byte("test data")
