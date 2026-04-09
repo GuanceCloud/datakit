@@ -88,8 +88,10 @@ func (tss *TraceServiceServer) Export(ctx context.Context, tsreq *trace.ExportTr
 			tss.Gather.Run(inputName, dktraces)
 		}
 	}
-
-	return &trace.ExportTraceServiceResponse{}, nil
+	return &trace.ExportTraceServiceResponse{PartialSuccess: &trace.ExportTracePartialSuccess{
+		RejectedSpans: 0,
+		ErrorMessage:  "",
+	}}, nil
 }
 
 type MetricsServiceServer struct {
@@ -104,7 +106,10 @@ func (mss *MetricsServiceServer) Export(ctx context.Context, msreq *metrics.Expo
 	log.Debugf("get gRPC metric from %s", remoteIP)
 	mss.input.parseResourceMetricsV2(msreq.ResourceMetrics, remoteIP)
 
-	return &metrics.ExportMetricsServiceResponse{}, nil
+	return &metrics.ExportMetricsServiceResponse{PartialSuccess: &metrics.ExportMetricsPartialSuccess{
+		RejectedDataPoints: 0,
+		ErrorMessage:       "",
+	}}, nil
 }
 
 type LogsServiceServer struct {
@@ -130,8 +135,9 @@ func (l *LogsServiceServer) Export(ctx context.Context, logsReq *logs.ExportLogs
 			log.Error(err.Error())
 		}
 	}
-	out = &logs.ExportLogsServiceResponse{PartialSuccess: &logs.ExportLogsPartialSuccess{}}
-
+	out = &logs.ExportLogsServiceResponse{PartialSuccess: &logs.ExportLogsPartialSuccess{
+		RejectedLogRecords: 0,
+	}}
 	return out, nil
 }
 
