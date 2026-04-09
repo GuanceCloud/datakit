@@ -18,7 +18,7 @@ flowchart LR;
 
 dca_server(DCA Server);
 dca_web(DCA Web);
-dk_upgrader1(Upgrader);
+dk_upgrader1("Upgrade Manager");
 
 dk1(DataKit);
 

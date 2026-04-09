@@ -184,14 +184,6 @@ func (c *Core) startUsageTrace(cpuLimit float64) {
 		usagetrace.WithExitChan(datakit.Exit.Wait()),
 		usagetrace.WithRefreshDuration(time.Minute*5),
 
-		usagetrace.WithUpgraderServer(func() string {
-			if c.cfg.DKUpgrader != nil {
-				return fmt.Sprintf("%s:%d", c.cfg.DKUpgrader.Host, c.cfg.DKUpgrader.Port)
-			} else {
-				return ""
-			}
-		}()),
-
 		usagetrace.WithMainIP(func() string {
 			if ip, err := datakit.LocalIP(); err != nil {
 				return fmt.Sprintf("get datakit local IP failed: %s", err.Error())

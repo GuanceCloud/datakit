@@ -202,16 +202,6 @@ if [ -n "$DK_UPGRADE_MANAGER" ]; then
 	printf "* Set upgrade-manager => ON\n"
 fi
 
-if [ -n "$DK_UPGRADE_IP_WHITELIST" ]; then
-	cmd+=("--upgrade-ip-whitelist=$DK_UPGRADE_IP_WHITELIST")
-	printf "* Set upgrade-ip-whitelist => ${DK_UPGRADE_IP_WHITELIST} \n"
-fi
-
-if [ -n "$DK_UPGRADE_LISTEN" ]; then
-	cmd+=("--upgrade-listen=$DK_UPGRADE_LISTEN")
-	printf "* Set upgrade-listen => ${DK_UPGRADE_LISTEN} \n"
-fi
-
 if [ -n "$DK_DEF_INPUTS" ]; then
 	cmd+=("--enable-inputs=$DK_DEF_INPUTS")
 	printf "* Set def-inputs => ${DK_DEF_INPUTS} \n"

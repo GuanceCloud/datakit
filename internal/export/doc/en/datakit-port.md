@@ -19,5 +19,5 @@ DataKit need to open several local ports to serve it's features, We may open the
 | 9531          | TCP             | DCA Server                    | N/A                                         |
 | 9531          | UDP             | Logging on Socket(UDP)        | N/A                                         |
 | 9533          | WebSocket       | SideCar logfwdserver          | N/A                                         |
-| 9542          | HTTP            | Remote upgrading              | `/v1/datakit/version,/v1/datakit/upgrade`   |
+
 | 9539          | HTTP            | Serving Jenkins CI webhook    | `/info,/v0.3/traces`                        |

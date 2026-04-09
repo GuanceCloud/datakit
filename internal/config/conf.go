@@ -42,11 +42,6 @@ type LoggerCfg struct {
 	RotateBackups int    `toml:"rotate_backups"`
 }
 
-type DKUpgraderCfg struct {
-	Host string `toml:"host"`
-	Port int    `toml:"port"`
-}
-
 type GitRepository struct {
 	Enable                bool   `toml:"enable"`
 	URL                   string `toml:"url"`

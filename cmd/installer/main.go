@@ -52,8 +52,6 @@ func init() {
 	flag.BoolVar(&args.FlagDKUpgrade, "upgrade", false, "")
 
 	flag.IntVar(&args.FlagUpgraderEnabled, "upgrade-manager", 0, "whether we should upgrade the Datakit upgrade service")
-	flag.StringVar(&args.FlagUpgraderIPWhiteList, "upgrade-ip-whitelist", "", "set datakit upgrade http service allowed request client ip, split by ','")
-	flag.StringVar(&args.FlagUpgraderListen, "upgrade-listen", "0.0.0.0:9542", "set datakit upgrade HTTP server bind ip:port")
 
 	flag.StringVar(&args.FlagInstallLog, "install-log", "dk-install-upgrade.log", "log file during install or upgrade")
 	flag.StringVar(&args.FlagSrc, "srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion), `local path of install files`)

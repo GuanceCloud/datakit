@@ -310,8 +310,6 @@ DK_USER_NAME="datakit" DK_DATAWAY="..." bash -c ...
 - `DK_RUM_ORIGIN_IP_HEADER`: RUM-specific
 - `DK_DISABLE_404PAGE`: Disable the DataKit 404 page (commonly used when deploying DataKit RUM on the public network. Such as `True`/`False`)
 - `DK_INSTALL_IPDB`: Specify the IP library at installation time (currently only `iploc` and `geolite2` is supported)
-- `DK_UPGRADE_IP_WHITELIST`: Starting from DataKit [1.5.9](changelog.md#cl-1.5.9), we can upgrade DataKit by access remote http API. This environment variable is used to set the IP whitelist of clients that can be accessed remotely(multiple IPs could be separated by commas `,`). Access outside the whitelist will be denied (default not restricted).
-- `DK_UPGRADE_LISTEN`: Specify DK-Upgrader HTTP server address(default `0.0.0.0:9542`)[:octicons-tag-24: Version-1.38.1](changelog.md#cl-1.38.1)
 - `DK_HTTP_PUBLIC_APIS`: Specify which DataKit HTTP APIs can be accessed by remote, generally config combined with RUM input，support from DataKit [1.9.2](changelog.md#cl-1.9.2).
 - `DK_HTTP_SOCKET`: Set HTTP domain socket path(not support Windows).[:octicons-tag-24: Version-1.80.0](changelog-2025.md#cl-1.80.0)
 
@@ -465,7 +463,7 @@ In Kubernetes, you can inject APM through the [DataKit Operator](operator-ddtrac
 | `DK_INSTALL_ONLY`                | `on`                        | Install only, not run                                                                                                                                                                       |
 | `DK_HOSTNAME`                    | `some-host-name`            | Support custom configuration hostname during installation                                                                                                                                   |
 | `DK_UPGRADE`                     | `1`                         | Upgrade to the latest version                                                               |
-| `DK_UPGRADE_MANAGER`             | `on`                        | Whether we upgrade the **Remote Upgrade Service** when upgrading DataKit, it's used in conjunction with `DK_UPGRADE`, supported start from [1.5.9](changelog.md#cl-1.5.9)                   |
+| `DK_UPGRADE_MANAGER`             | `on`                        | Whether to also install or upgrade the **DataKit upgrade management service** when upgrading DataKit. Used together with `DK_UPGRADE`, supported since [1.5.9](changelog.md#cl-1.5.9) |
 | `DK_INSTALLER_BASE_URL`          | `https://your-url`          | You can choose the installation script for different environments, default to `https://static.<<<custom_key.brand_main_domain>>>/datakit`                                                                           |
 | `DK_PROXY_TYPE`                  | -                           | Proxy type. The options are: `datakit` or `nginx`, both lowercase                                                                                                                           |
 | `DK_NGINX_IP`                    | -                           | Proxy server IP address (only need to fill in IP but not port). With the highest priority, this is mutually exclusive with the above "HTTP_PROXY" and "HTTPS_PROXY" and will override both. |
