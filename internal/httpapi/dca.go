@@ -109,8 +109,12 @@ func createGetDCAInfoHandler(hs *httpServerConf) gin.HandlerFunc {
 }
 
 type DCAInfo struct {
-	DataKit *ws.DataKit   `json:"datakit"`
-	Config  config.Config `json:"config"`
+	DataKit *ws.DataKit     `json:"datakit"`
+	Config  DCAConfigCompat `json:"config"`
+}
+
+type DCAConfigCompat struct {
+	DCAConfig *config.DCAConfig `json:"DCAConfig"`
 }
 
 func getDCAInfo(c *gin.Context) {
@@ -120,7 +124,9 @@ func getDCAInfo(c *gin.Context) {
 
 	dcaCtx.success(DCAInfo{
 		DataKit: dk,
-		Config:  *config.Cfg,
+		Config: DCAConfigCompat{
+			DCAConfig: config.Cfg.DCAConfig,
+		},
 	})
 }
 
@@ -286,6 +292,7 @@ type dcaContext struct {
 func (d *dcaContext) send(response *ws.DCAResponse) {
 	body, err := json.Marshal(response)
 	if err != nil {
+		l.Errorf("marshal response failed: %s", err.Error())
 		d.fail()
 		return
 	}
