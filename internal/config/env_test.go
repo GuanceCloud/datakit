@@ -581,6 +581,34 @@ func TestLoadEnv(t *testing.T) {
 				return cfg
 			}(),
 		},
+		{
+			name: "test-aggregator-envs",
+			envs: map[string]string{
+				"ENV_AGGREGATOR_ENDPOINTS":                       "http://10.0.0.1:9529?token=t1, http://10.0.0.2:9529?token=t2",
+				"ENV_AGGREGATOR_TIMEOUT":                         "9s",
+				"ENV_AGGREGATOR_MAX_RAW_BODY_SIZE":               "2097152",
+				"ENV_AGGREGATOR_USE_LOCAL_CONFIG":                "false",
+				"ENV_AGGREGATOR_LOCAL_CONFIG_DIR":                "/tmp/aggr",
+				"ENV_AGGREGATOR_LOCAL_METRIC_CONFIG_FILE":        "metric-rules.toml",
+				"ENV_AGGREGATOR_LOCAL_TAIL_SAMPLING_CONFIG_FILE": "tail-rules.toml",
+			},
+
+			expect: func() *Config {
+				cfg := DefaultConfig()
+				cfg.Aggregator.Endpoints = []string{
+					"http://10.0.0.1:9529?token=t1",
+					"http://10.0.0.2:9529?token=t2",
+				}
+				cfg.Aggregator.Timeout = 9 * time.Second
+				cfg.Aggregator.MaxRawBodySize = 2097152
+				cfg.Aggregator.UseLocalConfig = false
+				cfg.Aggregator.LocalConfigDir = "/tmp/aggr"
+				cfg.Aggregator.LocalMetricConfigFile = "metric-rules.toml"
+				cfg.Aggregator.LocalTailSamplingConfigFile = "tail-rules.toml"
+
+				return cfg
+			}(),
+		},
 	}
 
 	for _, tc := range cases {

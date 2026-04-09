@@ -7,9 +7,7 @@ skip: 'not-searchable-on-index-page'
 
 ## 简介 {#intro}
 
-原生 DDTrace 对部分熟知的主流框架支持不够完善，我们在这个基础上，对其做了一些改进，以支持更多的主流框架和关键的数据追踪。
-
-当前 DDTrace 已增加了如下技术栈的扩展：
+本文记录 DataKit 中用于兼容 DDTrace Java 探针接入场景的 Java 扩展包更新内容。
 
 <!-- markdownlint-disable MD046 MD030 -->
 <div class="grid cards" markdown>

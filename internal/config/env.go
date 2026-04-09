@@ -18,6 +18,7 @@ import (
 	"github.com/GuanceCloud/pipeline-go/offload"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/aggr"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 )
@@ -827,6 +828,60 @@ func (c *Config) setNodenameAsHostname() {
 	}
 }
 
+func (c *Config) loadAggregatorEnvs() {
+	if c.Aggregator == nil {
+		c.Aggregator = &aggr.Aggregator{}
+	}
+
+	if v := datakit.GetEnv("ENV_AGGREGATOR_ENDPOINTS"); v != "" {
+		parts := strings.Split(v, ",")
+		endpoints := make([]string, 0, len(parts))
+		for _, part := range parts {
+			if s := strings.TrimSpace(part); s != "" {
+				endpoints = append(endpoints, s)
+			}
+		}
+		c.Aggregator.Endpoints = endpoints
+	}
+
+	if v := datakit.GetEnv("ENV_AGGREGATOR_TIMEOUT"); v != "" {
+		if du, err := time.ParseDuration(v); err != nil {
+			l.Warnf("invalid ENV_AGGREGATOR_TIMEOUT: %s, ignored", err)
+		} else {
+			c.Aggregator.Timeout = du
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_AGGREGATOR_MAX_RAW_BODY_SIZE"); v != "" {
+		value, err := strconv.ParseInt(v, 10, 64)
+		if err != nil || value <= 0 {
+			l.Warnf("invalid ENV_AGGREGATOR_MAX_RAW_BODY_SIZE: %s, ignored", v)
+		} else {
+			c.Aggregator.MaxRawBodySize = int(value)
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_AGGREGATOR_USE_LOCAL_CONFIG"); v != "" {
+		if b, err := strconv.ParseBool(v); err != nil {
+			l.Warnf("invalid ENV_AGGREGATOR_USE_LOCAL_CONFIG: %s, ignored", err)
+		} else {
+			c.Aggregator.UseLocalConfig = b
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_AGGREGATOR_LOCAL_CONFIG_DIR"); v != "" {
+		c.Aggregator.LocalConfigDir = v
+	}
+
+	if v := datakit.GetEnv("ENV_AGGREGATOR_LOCAL_METRIC_CONFIG_FILE"); v != "" {
+		c.Aggregator.LocalMetricConfigFile = v
+	}
+
+	if v := datakit.GetEnv("ENV_AGGREGATOR_LOCAL_TAIL_SAMPLING_CONFIG_FILE"); v != "" {
+		c.Aggregator.LocalTailSamplingConfigFile = v
+	}
+}
+
 //nolint:funlen
 func (c *Config) LoadEnvs() error {
 	if c.IO == nil {
@@ -852,6 +907,7 @@ func (c *Config) LoadEnvs() error {
 	c.loadPipelineEnvs()
 	c.loadHTTPAPIEnvs()
 	c.loadElectionEnvs()
+	c.loadAggregatorEnvs()
 
 	for _, x := range []string{
 		"ENV_GLOBAL_HOST_TAGS",

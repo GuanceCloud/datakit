@@ -15,7 +15,7 @@ var otelMetricPoints = prometheus.NewSummaryVec(
 		Namespace: "datakit",
 		Subsystem: "input_opentelemetry",
 		Name:      "metric_points",
-		Help:      "Input opentelemetry collected metric points on single HTTP/gRPC request",
+		Help:      "Input OpenTelemetry collected metric points on single HTTP/gRPC request",
 		Objectives: map[float64]float64{
 			0.5:  0.05,
 			0.9:  0.01,

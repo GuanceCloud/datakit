@@ -7,14 +7,47 @@ package monitor
 
 import (
 	"fmt"
-	"net/http"
+	"sort"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/gdamore/tcell/v2"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/rivo/tview"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/strarr"
 )
+
+func metricLabelValue(m *dto.Metric, name string) string {
+	for _, lp := range m.GetLabel() {
+		if lp.GetName() == name {
+			return lp.GetValue()
+		}
+	}
+
+	return ""
+}
+
+func sumCounterByLabels(mf *dto.MetricFamily, labels map[string]string) float64 {
+	var sum float64
+
+	if mf == nil {
+		return sum
+	}
+
+	for _, m := range mf.Metric {
+		matched := true
+		for k, v := range labels {
+			if metricLabelValue(m, k) != v {
+				matched = false
+				break
+			}
+		}
+
+		if matched {
+			sum += m.GetCounter().GetValue()
+		}
+	}
+
+	return sum
+}
 
 func (app *monitorAPP) renderDWPointsTable(mfs map[string]*dto.MetricFamily, colArr []string) {
 	table := app.dwptsTable
@@ -37,48 +70,44 @@ func (app *monitorAPP) renderDWPointsTable(mfs map[string]*dto.MetricFamily, col
 			SetTextColor(tcell.ColorGreen).SetAlign(tview.AlignRight))
 	}
 
-	dwPtsTotal := mfs["datakit_io_dataway_point_total"]
-	dwBytesTotal := mfs["datakit_io_dataway_point_bytes_total"]
+	dwPtsTotal := mfs["datakit_io_endpoint_point_total"]
+	dwBytesTotal := mfs["datakit_io_endpoint_point_bytes_total"]
 
 	if dwPtsTotal == nil {
 		return
 	}
 
 	var (
-		ptsTotal,
-		ptsOK float64
 		row  = 1
-		cats = []string{}
+		cats = map[string]struct{}{}
 	)
 
 	for _, m := range dwPtsTotal.Metric {
-		for _, lp := range m.GetLabel() {
-			val := lp.GetValue()
-			if lp.GetName() == labelCategory && !strarr.Contains(cats, val) {
-				cats = append(cats, val)
-				break
-			}
+		if cat := metricLabelValue(m, labelCategory); cat != "" {
+			cats[cat] = struct{}{}
 		}
 	}
 
-	for _, cat := range cats {
+	keys := make([]string, 0, len(cats))
+	for k := range cats {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, cat := range keys {
+		var (
+			ptsTotal       = sumCounterByLabels(dwPtsTotal, map[string]string{labelCategory: cat, "status": "total"})
+			ptsOK          = sumCounterByLabels(dwPtsTotal, map[string]string{labelCategory: cat, "status": "OK"})
+			bytesTotal     = sumCounterByLabels(dwBytesTotal, map[string]string{labelCategory: cat, "enc": "raw", "status": "total"})
+			bytesOK        = sumCounterByLabels(dwBytesTotal, map[string]string{labelCategory: cat, "enc": "raw", "status": "OK"})
+			bytesGzipTotal = sumCounterByLabels(dwBytesTotal, map[string]string{labelCategory: cat, "enc": "gzip", "status": "total"})
+		)
+
 		table.SetCell(row,
 			0,
 			tview.NewTableCell(point.CatString(cat).Alias()).
 				SetMaxWidth(app.maxTableWidth).
 				SetAlign(tview.AlignRight))
-
-		// ok points
-		if x := metricWithLabel(dwPtsTotal,
-			point.CatString(cat).String(), http.StatusText(http.StatusOK)); x != nil {
-			ptsOK = x.GetCounter().GetValue()
-		}
-
-		// total points
-		if x := metricWithLabel(dwPtsTotal,
-			point.CatString(cat).String(), "total"); x != nil {
-			ptsTotal = x.GetCounter().GetValue()
-		}
 
 		// only show ok points and total points.
 		table.SetCell(row, 1,
@@ -87,28 +116,10 @@ func (app *monitorAPP) renderDWPointsTable(mfs map[string]*dto.MetricFamily, col
 				SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 
 		if dwBytesTotal != nil {
-			var bytesOk, bytesTotal, bytesGzipTotal float64
-			if x := metricWithLabel(dwBytesTotal,
-				point.CatString(cat).String(), "raw", http.StatusText(http.StatusOK)); x != nil {
-				bytesOk = x.GetCounter().GetValue()
-			}
-
-			// total raw bytes
-			if x := metricWithLabel(dwBytesTotal,
-				point.CatString(cat).String(), "raw", "total"); x != nil {
-				bytesTotal = x.GetCounter().GetValue()
-			}
-
-			// total gzip bytes
-			if x := metricWithLabel(dwBytesTotal,
-				point.CatString(cat).String(), "gzip", "total"); x != nil {
-				bytesGzipTotal = x.GetCounter().GetValue()
-			}
-
 			// only show ok points and total points.
 			table.SetCell(row, 2,
 				tview.NewTableCell(fmt.Sprintf("%s/%s(%s)",
-					number(bytesOk), number(bytesTotal), number(bytesGzipTotal))).
+					number(bytesOK), number(bytesTotal), number(bytesGzipTotal))).
 					SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
 		}
 

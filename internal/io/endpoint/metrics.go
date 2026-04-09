@@ -93,7 +93,7 @@ func Metrics() []prometheus.Collector {
 }
 
 func doRegister() {
-	metrics.MustRegister()
+	metrics.MustRegister(Metrics()...)
 }
 
 func MetricsReset() {
