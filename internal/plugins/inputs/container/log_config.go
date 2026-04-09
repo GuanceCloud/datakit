@@ -219,8 +219,24 @@ func resolveHostPathFromMergedDir(mergedDir, insidePath string) (string, error) 
 		return "", fmt.Errorf("rootfs base directory not found: %s", mergedDir)
 	}
 
-	relInside := strings.TrimPrefix(insidePath, "/")
-	full := filepath.Join(mergedDir, relInside)
+	baseDir, err := filepath.Abs(mergedDir)
+	if err != nil {
+		return "", fmt.Errorf("abs rootfs base directory failed: %w", err)
+	}
+
+	cleanInside := filepath.Clean(insidePath)
+	if filepath.IsAbs(cleanInside) {
+		cleanInside = strings.TrimPrefix(cleanInside, string(filepath.Separator))
+	}
+
+	full := filepath.Join(baseDir, cleanInside)
+	rel, err := filepath.Rel(baseDir, full)
+	if err != nil {
+		return "", fmt.Errorf("calc relative path failed: %w", err)
+	}
+	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("resolved path escaped rootfs base directory: %s", insidePath)
+	}
 
 	return full, nil
 }
