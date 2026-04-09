@@ -81,7 +81,12 @@ func (ipt *Input) handleDDTraces(resp http.ResponseWriter, req *http.Request) {
 		}
 
 		log.Warnf("dropped %d trace: too large request body(%q bytes > %d bytes)", ntrace, clStr, ipt.maxTraceBody)
+		resp.WriteHeader(http.StatusRequestEntityTooLarge)
 		return
+	}
+
+	if ipt.maxTraceBody > 0 {
+		req.Body = http.MaxBytesReader(resp, req.Body, ipt.maxTraceBody)
 	}
 
 	pbuf := bufpool.GetBuffer()
@@ -89,6 +94,17 @@ func (ipt *Input) handleDDTraces(resp http.ResponseWriter, req *http.Request) {
 
 	_, err = io.Copy(pbuf, req.Body)
 	if err != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			if ntrace > 0 {
+				droppedTraces.WithLabelValues(req.URL.Path).Add(float64(ntrace))
+			}
+
+			log.Warnf("dropped %d trace: request body exceeded limit(%d bytes)", ntrace, ipt.maxTraceBody)
+			resp.WriteHeader(http.StatusRequestEntityTooLarge)
+			return
+		}
+
 		log.Error(err.Error())
 		resp.WriteHeader(http.StatusBadRequest)
 
@@ -170,12 +186,9 @@ func (ipt *Input) decodeDDTraces(param *itrace.TraceParameters) (itrace.DatakitT
 	var (
 		err      error
 		dktraces itrace.DatakitTraces
+		traces   DDTraces
+		pooled   DDTraces
 	)
-	traces := ddtracePool.Get().(DDTraces)
-	defer func() {
-		traces.reset()
-		ddtracePool.Put(traces) //nolint
-	}()
 
 	switch param.URLPath {
 	case v1:
@@ -185,14 +198,21 @@ func (ipt *Input) decodeDDTraces(param *itrace.TraceParameters) (itrace.DatakitT
 		}
 		traces = mergeSpans(spans)
 	case v5:
-		if err = traces.UnmarshalMsgDictionary(param.Body.Bytes()); err == nil {
-			traces = mergeTraces(traces)
+		pooled = ddtracePool.Get().(DDTraces)
+		defer recycleDDTracesFunc(pooled)
+
+		if err = pooled.UnmarshalMsgDictionary(param.Body.Bytes()); err == nil {
+			traces = mergeTraces(pooled)
 		}
 	default:
-		if err = decodeRequest(param, &traces); err != nil {
+		pooled = ddtracePool.Get().(DDTraces)
+		defer recycleDDTracesFunc(pooled)
+
+		if err = decodeRequest(param, &pooled); err != nil {
 			// traces = mergeTraces(traces)
 			return nil, err
 		}
+		traces = pooled
 	}
 
 	curSpans := 0
@@ -232,6 +252,16 @@ func (ipt *Input) decodeDDTraces(param *itrace.TraceParameters) (itrace.DatakitT
 
 	log.Debugf("curSpans: %d", curSpans)
 	return dktraces, err
+}
+
+var recycleDDTracesFunc = recycleDDTraces
+
+func recycleDDTraces(traces DDTraces) {
+	keepInPool := traces.shouldKeepInPool()
+	traces.reset(keepInPool)
+	if keepInPool {
+		ddtracePool.Put(traces) //nolint
+	}
 }
 
 func decodeRequest(param *itrace.TraceParameters, out *DDTraces) error {
