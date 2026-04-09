@@ -112,18 +112,6 @@ if ( ($x -ne $null) -and ($x -gt 0) ) {
 	Write-COutput green ("* Set upgrade_manager => ON" )
 }
 
-$x = [Environment]::GetEnvironmentVariable("DK_UPGRADE_IP_WHITELIST")
-if ($x -ne $null) {
-	$cmd += "--upgrade-ip-whitelist='$x'"
-	Write-COutput green ("* Set upgrade_ip_whitelist => $x" )
-}
-
-$x = [Environment]::GetEnvironmentVariable("DK_UPGRADE_LISTEN")
-if ($x -ne $null) {
-	$cmd += "--upgrade-listen='$x'"
-	Write-COutput green ("* Set upgrade_listen => $x" )
-}
-
 $x = [Environment]::GetEnvironmentVariable("DK_DATAWAY")
 if ($x -ne $null) {
 	$cmd += "--dataway='$x'"

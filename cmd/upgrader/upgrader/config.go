@@ -26,13 +26,11 @@ type LoggerCfg struct {
 }
 
 type MainConfig struct {
-	Listen string `toml:"listen"`
-	Proxy  string `toml:"proxy"`
+	Proxy string `toml:"proxy"`
 
 	DatakitAPIHTTPS  bool   `toml:"datakit_api_https"`
 	DatakitAPIListen string `toml:"datakit_api_listen"`
 
-	IPWhiteList      []string   `toml:"ip_whitelist"`
 	InstallerBaseURL string     `toml:"install_base_url"`
 	Logging          *LoggerCfg `toml:"logging"`
 	InstallDir       string     `toml:"install_dir"`
@@ -76,12 +74,6 @@ func WithInstallUserName(name string) UpgraderOpt {
 	}
 }
 
-func WithListen(listen string) UpgraderOpt {
-	return func(mc *MainConfig) {
-		mc.Listen = listen
-	}
-}
-
 func WithDatakitAPIHTTPS(on bool) UpgraderOpt {
 	return func(mc *MainConfig) {
 		mc.DatakitAPIHTTPS = on
@@ -91,12 +83,6 @@ func WithDatakitAPIHTTPS(on bool) UpgraderOpt {
 func WithDatakitAPIListen(listen string) UpgraderOpt {
 	return func(mc *MainConfig) {
 		mc.DatakitAPIListen = listen
-	}
-}
-
-func WithIPWhiteList(list []string) UpgraderOpt {
-	return func(mc *MainConfig) {
-		mc.IPWhiteList = list
 	}
 }
 
@@ -168,8 +154,6 @@ func (c *MainConfig) createCfgFile() error {
 
 func defaultMainConfig() *MainConfig {
 	conf := &MainConfig{
-		Listen:           "0.0.0.0:9542",
-		IPWhiteList:      []string{},
 		InstallerBaseURL: "",
 		Logging: &LoggerCfg{
 			LoggerCfg: &config.LoggerCfg{

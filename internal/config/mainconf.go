@@ -57,9 +57,6 @@ type Config struct {
 	// DCA config
 	DCAConfig *DCAConfig `toml:"dca"`
 
-	// dk_upgrader
-	DKUpgrader *DKUpgraderCfg `toml:"dk_upgrader"`
-
 	// pipeline
 	Pipeline *plval.PipelineCfg `toml:"pipeline"`
 
@@ -188,11 +185,6 @@ func DefaultConfig() *Config {
 		},
 
 		APMInject: &APMInject{},
-
-		DKUpgrader: &DKUpgraderCfg{
-			Host: "0.0.0.0",
-			Port: 9542,
-		},
 
 		Pipeline: &plval.PipelineCfg{
 			IPdbType:               "iploc",

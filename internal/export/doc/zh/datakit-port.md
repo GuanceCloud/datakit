@@ -20,5 +20,5 @@
 | 9531               | TCP         | DCA Server                    | N/A                                         |
 | 9531               | UDP         | Socket（UDP）日志接入         | N/A                                         |
 | 9533               | WebSocket   | SideCar logfwdserver 数据接入 | N/A                                         |
-| 9542               | HTTP        | 远程升级                      | `/v1/datakit/version,/v1/datakit/upgrade`   |
+
 | 9539               | HTTP        | 接收 Jenkins CI 数据          | `/info,/v0.3/traces`                        |

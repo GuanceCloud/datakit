@@ -8,9 +8,6 @@ package hostobject
 
 import (
 	"encoding/json"
-	"fmt"
-	"net"
-	"net/http"
 	"regexp"
 	"runtime"
 	"time"
@@ -261,16 +258,6 @@ func (ipt *Input) collect(ptTS int64) error {
 		isDocker = 1
 	}
 	kvs = kvs.Set("is_docker", isDocker)
-
-	// check if dk upgrader is available
-	// TODO: check response message whether is valid
-	if res, err := http.Get(fmt.Sprintf("http://%s",
-		net.JoinHostPort(config.Cfg.DKUpgrader.Host, fmt.Sprintf("%d", config.Cfg.DKUpgrader.Port)))); err != nil {
-		l.Warnf("get dk upgrader failed: %s", err.Error())
-	} else {
-		_ = res.Body.Close()
-		kvs = kvs.Set("dk_upgrader", fmt.Sprintf("%s:%d", config.Cfg.DKUpgrader.Host, config.Cfg.DKUpgrader.Port))
-	}
 
 	// append extra cloud fields: all of them as tags
 	for k, v := range message.Host.cloudInfo {

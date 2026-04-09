@@ -132,8 +132,6 @@ type InstallerArgs struct {
 	IsELinker,
 	IsLite bool
 
-	FlagUpgraderIPWhiteList,
-	FlagUpgraderListen string
 	FlagUpgraderEnabled,
 	FlagInstallOnly int
 
@@ -344,11 +342,6 @@ func (args *InstallerArgs) SetupService() (service.Service, error) {
 }
 
 func (args *InstallerArgs) SetupUpgraderService() {
-	var wlist []string
-	if len(args.FlagUpgraderIPWhiteList) > 0 {
-		wlist = strings.Split(strings.TrimSpace(args.FlagUpgraderIPWhiteList), ",")
-	}
-
 	// Apply options from exist datakit.conf.
 	// During upgrade, we still able to re-install dk-upgrader service, at the
 	// time, we should reuse datakit's exist configures(such as datakit HTTP API host),
@@ -359,8 +352,6 @@ func (args *InstallerArgs) SetupUpgraderService() {
 		upgrader.WithDKUpgrade(args.FlagDKUpgrade),
 		upgrader.WithUpgradeService(args.FlagUpgraderEnabled != 0),
 		upgrader.WithInstallOnly(args.FlagInstallOnly != 0),
-		upgrader.WithListen(args.FlagUpgraderListen),
-		upgrader.WithIPWhiteList(wlist),
 		upgrader.WithInstallBaseURL(args.DistBaseURL),
 		upgrader.WithDatakitAPIListen(mc.HTTPAPI.Listen),
 		upgrader.WithProxy(mc.Dataway.HTTPProxy),

@@ -23,7 +23,7 @@ DataKit 支持手动更新和自动更新两种方式。
 
     ``` shell
     $ datakit version
-    
+
            Version: 1.2.8
             Commit: e9ccdfbae4
             Branch: testing
@@ -84,7 +84,7 @@ DataKit 支持手动更新和自动更新两种方式。
 
 > 注意：伺服服务不支持 k8s 中安装的 DataKit。
 
-在 DataKit 安装过程中，默认会安装一个远程更新的伺服服务，专用于升级 DataKit 版本。如果是较老的 DataKit 版本，则在 DataKit 升级命令中，可以额外指定参数来安装该伺服服务：
+在 DataKit 安装过程中，默认会安装一个升级管理服务，专用于管理和升级 DataKit 版本。如果是较老的 DataKit 版本，则在 DataKit 升级命令中，可以额外指定参数来安装该服务：
 
 <!-- markdownlint-disable MD046 -->
 
@@ -109,67 +109,15 @@ DataKit 支持手动更新和自动更新两种方式。
       bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
     ```
 
-???+ note
-
-    伺服服务默认会绑定在 `0.0.0.0:9542` 地址上，如果该地址被占用，可以额外指定：
-    
-    ```shell hl_lines="3"
-    DK_UPGRADE=1 \
-      DK_UPGRADE_MANAGER=1 \
-      DK_UPGRADE_LISTEN=0.0.0.0:19542 \
-      bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
-    ```
-
----
-
-由于伺服服务提供了 HTTP API，它有如下参数可选（[:octicons-tag-24: Version-1.38.0](changelog.md#cl-1.38.0)）：
-
-- **`version`**：将 DataKit 升级/降级到指定的版本号（如果是离线安装，需确保指定的版本是否已经同步）
-- **`force`**：如果当前 DataKit 尚未启动或行为异常，我们可以通过该参数强制升级它并且拉起服务
-
-我们可以手动调用其接口来实现远程更新，或者通过 DCA 来实现远程更新。
-
-=== "手动调用"
-
-    ```shell
-    # 更新到最新 DataKit 版本
-    curl -XPOST "http://<datakit-ip>:9542/v1/datakit/upgrade"
-
-    {"msg":"success"}
-
-    # 更新到指定 DataKit 版本
-    curl -XPOST "http://<datakit-ip>:9542/v1/datakit/upgrade?version=3.4.5"
-
-    # 强制升级一个 DataKit 版本
-    curl -XPOST "http://<datakit-ip>:9542/v1/datakit/upgrade?force=1"
-    ```
-
-=== "DCA"
-
-    参见 [DCA 文档](../dca/index.md)。
+我们可以通过 DCA 来实现远程更新，具体参见 [DCA 文档](../dca/index.md)。
 
 ---
 
 ???+ info
 
-    - 升级过程根据网络带宽情况，可能耗时较长（基本等同于手动调用 DataKit 升级命令），请耐心等待 API 返回。如果中途中断，**其行为是未定义的**。
-    - 升级过程中，如果指定版本不存在，请求会报错（`3.4.5` 这个版本不存在）：
+    - 升级过程根据网络带宽情况，可能耗时较长（基本等同于手动调用 DataKit 升级命令），请耐心等待。
+    - 自版本 [Version-1.91.1](changelog-2026.md#cl-1.91.1) 开始，移除了直接通过 HTTP 服务升级 DataKit 的功能。
 
-    ```json
-    {
-      "error_code": "datakit.upgradeFailed",
-      "message": "unable to download script file http://my.static.com/datakit/install-3.4.5.sh: resonse status: 404 Not Found"
-    }
-    ```
-
-    - 如果当前 DataKit 未启动，则会报错：
-
-    ```json
-    {
-      "error_code": "datakit.upgradeFailed",
-      "message": "get datakit version failed: unable to query current DataKit version: Get \"http://localhost:9529/v1/ping\": dial tcp localhost:9529 connect: connection refused)"
-    }
-    ```
 <!-- markdownlint-enable -->
 
 ### 离线更新 {#offline-upgrade}
