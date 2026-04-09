@@ -10,11 +10,13 @@ import (
 	"math"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	T "testing"
 	"time"
 
 	"github.com/prometheus/common/expfmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_number(t *T.T) {
@@ -115,6 +117,43 @@ datakit_io_feed_cost_seconds_count{category="custom_object",from="mysql"} 193
 			t.Logf("%d: %f", idx, q.GetValue())
 		}
 	})
+}
+
+func TestRenderDWPointsTableWithOwner(t *T.T) {
+	normalize := func(s string) string {
+		return strings.ReplaceAll(strings.TrimSpace(s), " ", "")
+	}
+
+	var psr expfmt.TextParser
+
+	mfs, err := psr.TextToMetricFamilies(bytes.NewBuffer([]byte(`
+# HELP datakit_io_endpoint_point_total Uploaded points, partitioned by category and send status(HTTP status)
+# TYPE datakit_io_endpoint_point_total counter
+datakit_io_endpoint_point_total{category="metric",owner="dk",status="OK"} 10
+datakit_io_endpoint_point_total{category="metric",owner="dk",status="total"} 12
+datakit_io_endpoint_point_total{category="metric",owner="obs",status="OK"} 20
+datakit_io_endpoint_point_total{category="metric",owner="obs",status="total"} 24
+# HELP datakit_io_endpoint_point_bytes_total Uploaded points bytes, partitioned by category and pint send status(HTTP status)
+# TYPE datakit_io_endpoint_point_bytes_total counter
+datakit_io_endpoint_point_bytes_total{category="metric",enc="raw",owner="dk",status="OK"} 100
+datakit_io_endpoint_point_bytes_total{category="metric",enc="raw",owner="dk",status="total"} 120
+datakit_io_endpoint_point_bytes_total{category="metric",enc="gzip",owner="dk",status="total"} 40
+datakit_io_endpoint_point_bytes_total{category="metric",enc="raw",owner="obs",status="OK"} 200
+datakit_io_endpoint_point_bytes_total{category="metric",enc="raw",owner="obs",status="total"} 240
+datakit_io_endpoint_point_bytes_total{category="metric",enc="gzip",owner="obs",status="total"} 80
+`)))
+	require.NoError(t, err)
+
+	app := defaultApp()
+	app.setup()
+	app.renderDWPointsTable(mfs, dwptsStatCols)
+
+	require.Equal(t, "Cat", normalize(app.dwptsTable.GetCell(0, 0).Text))
+	require.Equal(t, "M", normalize(app.dwptsTable.GetCell(1, 0).Text))
+	require.Equal(t, "Points(ok/total)", normalize(app.dwptsTable.GetCell(0, 1).Text))
+	require.Equal(t, "Bytes(ok/total/gz)", normalize(app.dwptsTable.GetCell(0, 2).Text))
+	require.Equal(t, "30/36", normalize(app.dwptsTable.GetCell(1, 1).Text))
+	require.Equal(t, "300/360(120)", normalize(app.dwptsTable.GetCell(1, 2).Text))
 }
 
 func TestAppOnNilData(t *T.T) {

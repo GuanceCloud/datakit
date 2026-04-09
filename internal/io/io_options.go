@@ -86,15 +86,6 @@ func WithDataway(dw dataway.IDataway) IOOption {
 	}
 }
 
-/*
-// WithOTELAggregator setup metric aggregator for OTEL metrics.
-func WithOTELAggregator(aggr *aggr.OTELAggrOutputer) IOOption {
-	return func(x *dkIO) {
-		x.otelAggrOutput = aggr
-	}
-}
-*/
-
 func WithAggr(aggrConfig *aggr.Aggregator, dw *dataway.Dataway) IOOption {
 	log.Infof("new dkio aggr pull and push ")
 	return func(x *dkIO) {

@@ -132,10 +132,7 @@ func Metrics() []prometheus.Collector {
 }
 
 func doRegister() {
-	metrics.MustRegister(
-		buildBodyPointsVec,
-		BuildBodyCostVec,
-	)
+	metrics.MustRegister(Metrics()...)
 }
 
 func MetricsReset() {

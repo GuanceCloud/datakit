@@ -5,9 +5,9 @@ title: 'DDTrace Extension Changelog'
 
 ## Introduction {#intro}
 
-Native DDTrace does not support some well-known mainstream frameworks perfectly. On this basis, we have made some improvements to support more mainstream frameworks and key data tracking.
+This changelog records updates to the Java extension package used with DDTrace-compatible instrumentation in DataKit.
 
-Currently, DDTrace has added the following extensions to the technology stack：
+The current extension package is available for the following technology stack:
 <!-- markdownlint-disable MD046 MD030 -->
 <div class="grid cards" markdown>
 

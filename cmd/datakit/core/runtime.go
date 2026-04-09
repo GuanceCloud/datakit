@@ -115,6 +115,7 @@ func (c *Core) startIO() {
 		dkio.WithRemoteJob(c.cfg.RemoteJob, c.cfg.Dataway),
 		dkio.WithAvailableCPUs(datakit.AvailableCPUs),
 		dkio.WithTimeCorrect(ioCfg.AutoTimestampCorrection),
+		dkio.WithAggr(c.cfg.Aggregator, c.cfg.Dataway),
 	}
 
 	dkio.Start(opts...)

@@ -316,7 +316,9 @@ func (ipt *Input) sendMetric(measurements []*graphiteMetric, start time.Time) {
 	for i := range measurements {
 		metric := measurements[i]
 		kvs := make(point.KVs, 0)
-
+		if metric == nil {
+			continue
+		}
 		for k, v := range metric.Labels {
 			kvs = kvs.SetTag(k, v)
 		}
