@@ -1,5 +1,55 @@
 # 更新日志
 
+## 1.92.0(2026/04/09) {#cl-1.92.0}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.92.0-new}
+
+- 新增数据预聚合处理支持，覆盖聚合与尾采样链路（#2892）
+- Pipeline 新增对 `llm` 类型数据的处理支持（#3001）
+- 拨测采集器新增 SSL 证书有效期字段上报，支持输出证书过期时间和剩余天数（#3003）
+
+### 问题修复 {#cl-1.92.0-fix}
+
+- 修复 OpenTelemetry 在新版本校验下响应体过小导致的兼容性问题，完善 gRPC 响应内容（#3017）
+- 修复 DDTrace 内存泄漏问题，优化大 trace 回收逻辑，避免 OOM（#3012）
+- 修复日志采集中的 goroutine 泄漏问题，避免 Tailer 关闭路径跨实例等待导致资源无法回收（#3010）
+- 修复 datakit sinker v2 中 `X-Global-Tags-V2` 未编码导致的 wrapped-url-error 问题（#3009）
+- 修复 NTP 时间差在系统时间恢复后未自动清零的问题（#3006）
+
+### 功能优化 {#cl-1.92.0-opt}
+
+- 优化 SQLServer 和 Oracle 的 `database_instance` 优先级与 DBM 对象命名规则，避免跨节点数据混淆（#3011）
+- 清理多个数据库采集器在 NewPoint 阶段注入 election tag 的逻辑，减少额外开销，并优化 Oracle 慢查询脱敏实现（#3004）
+- 日志多行匹配新增 TiDB 慢日志默认规则（#3005）
+- Journald 支持兼容更高版本的 systemd 库（#2996）
+- 重构 GitLab 采集器 Prometheus 指标分类逻辑，补全指标字段并统一指标集命名（#2988）
+
+### 兼容调整 {#cl-1.92.0-brk}
+
+- 移除 upgrade 服务中的 HTTP Web 服务，升级管理统一转由 DCA 方式处理（#3007）
+
+---
+
+## 1.91.1(2026/04/07) {#cl-1.91.1}
+
+本次发布属于 hotfix 修复，内容如下：
+
+### 问题修复 {#cl-1.91.1-fix}
+
+- 修复 DDTrace 内存泄漏问题：DDTraces.reset() 未正确释放内存导致 OOM，添加 shouldKeepInPool() 智能回收大 traces（#3012）
+- 修复容器日志采集资源占用异常问题：修复 addTask 竞态条件，移除全局 goroutine group，优化 inotify 不可用时的扫描策略（#3010）
+- 修复 NTP 时间差在系统时间恢复后仍被沿用的问题，现在时间差恢复时会自动清零（#3006）
+- 修复 datakit sinker v2 中 X-Global-Tags-V2 header 值未编码导致的 wrapped-url-error 问题（#3009）
+
+### 功能优化 {#cl-1.91.1-opt}
+
+- SQLServer 和 Oracle 采集器优化 database_instance 优先级，优先使用配置中的标签，避免多节点数据混淆；max_queries 调整为 500，lookback_window 调整为 300s（#3011）
+- 优化 SQLServer 和 Oracle 创建 point 时添加 election tag 的逻辑，减少每次创建的额外开销（#3004）
+
+---
+
 ## 1.91.0(2026/03/26) {#cl-1.91.0}
 
 本次发布属于迭代发布，主要有如下更新：

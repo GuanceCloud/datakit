@@ -1,5 +1,55 @@
 # Changelog
 
+## 1.92.0(2026/04/09) {#cl-1.92.0}
+
+This release is an iterative release, with the following main updates:
+
+### New Features {#cl-1.92.0-new}
+
+- Added support for data pre-aggregation, covering aggregation and tail-sampling flows (#2892)
+- Pipeline now supports processing `llm` data type inputs (#3001)
+- Dial testing now reports SSL certificate validity fields, including certificate expiration time and remaining days (#3003)
+
+### Bug Fixes {#cl-1.92.0-fix}
+
+- Fixed OpenTelemetry compatibility issue where newer clients require a non-trivial response body, by completing the gRPC response payload (#3017)
+- Fixed DDTrace memory leak by improving large trace recycling logic to avoid OOM (#3012)
+- Fixed goroutine leak in log collection, preventing Tailer shutdown paths from blocking on cross-instance waits (#3010)
+- Fixed wrapped-url-error caused by an unencoded `X-Global-Tags-V2` header in datakit sinker v2 (#3009)
+- Fixed NTP time diff not being cleared automatically after system clock recovery (#3006)
+
+### Improvements {#cl-1.92.0-opt}
+
+- Optimized `database_instance` priority and DBM object naming for SQLServer and Oracle to avoid cross-node data confusion (#3011)
+- Removed election tag injection from the NewPoint stage across several database collectors to reduce overhead, and improved Oracle slow query obfuscation (#3004)
+- Added a default multiline rule for TiDB slow logs (#3005)
+- Added compatibility for higher-version systemd libraries in Journald (#2996)
+- Refactored GitLab collector Prometheus metric classification, completed metric fields, and unified measurement naming (#2988)
+
+### Compatibility Adjustments {#cl-1.92.0-brk}
+
+- Removed the HTTP web service from upgrade; upgrade management is now handled through DCA (#3007)
+
+---
+
+## 1.91.1(2026/04/07) {#cl-1.91.1}
+
+This release is a hotfix release with the following fixes:
+
+### Bug Fixes {#cl-1.91.1-fix}
+
+- Fixed DDTrace memory leak: DDTraces.reset() not properly releasing memory causing OOM, added shouldKeepInPool() for smart recycling of large traces (#3012)
+- Fixed container log collection resource usage issue: fixed addTask race condition, removed global goroutine group, optimized scan strategy when inotify unavailable (#3010)
+- Fixed NTP time diff not cleared after system clock recovery, now automatically resets when time diff recovers (#3006)
+- Fixed datakit sinker v2 X-Global-Tags-V2 header value not URL-encoded causing wrapped-url-error (#3009)
+
+### Improvements {#cl-1.91.1-opt}
+
+- SQLServer and Oracle collectors optimized database_instance priority, prioritizing configured tags to avoid cross-node data confusion; adjusted max_queries to 500, lookback_window to 300s (#3011)
+- Optimized SQLServer and Oracle point creation logic to reduce overhead when adding election tags (#3004)
+
+---
+
 ## 1.91.0(2026/03/26) {#cl-1.91.0}
 
 This release is an iterative release, with the following main updates:

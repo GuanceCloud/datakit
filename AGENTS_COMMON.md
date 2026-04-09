@@ -2,6 +2,9 @@
 
 This document provides essential information for AI coding agents working on the DataKit repository. It contains build commands, test commands, linting rules, and coding conventions.
 
+**[~/.ai/prompts/AGENTS_PERSONAL.md](file://$HOME/.ai/prompts/AGENTS_PERSONAL.md)** - Person-specific AI agent prompts and customizations
+
+
 > NOTE: **Read this entirely before suggesting or modifying any code.**
 
 ## Agent Role
@@ -186,7 +189,11 @@ Review milestone code with the following requirements:
 - Read Gitlab milestone `https://gitlab.jiagouyun.com/cloudcare-tools/datakit/-/milestones`, select the milestone same as {{.Version}}
 - For all issue:
     - Read the issue and it's related merge request(closed or open), one issue may have one or more merge request(ignore the closed merge request)
-    - Review the code for the issue, give advice to code lines if any.
+    - Review the code for the issue, give advice to code lines if any. we care issues related to following aspects:
+        - Security: DataKit running within client-side production environment, there should be no security issues.
+        - Performance/efficiency: DataKit running on client production environment, we should cost as less as possible.
+        - Code simplicity
+        - Log/metric for observability
     - Add or update a comment(conclusion) for the issue's merge request
 
 ### Version Management
