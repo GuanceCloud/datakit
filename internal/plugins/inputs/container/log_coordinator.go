@@ -28,6 +28,8 @@ type containerLogCoordinator struct {
 }
 
 type containerLogTask struct {
+	mu sync.Mutex
+
 	containerID                  string
 	podUID                       string
 	info                         *containerLogInfo
@@ -44,6 +46,8 @@ type TailerItem struct {
 	tailer     *tailer.Tailer
 }
 
+var containerLogTailerG = goroutine.G("container-log-tailer")
+
 func newContainerLogCoordinator(defaults *loggingDefaults) *containerLogCoordinator {
 	return &containerLogCoordinator{
 		containerTasks: make(map[string]*containerLogTask),
@@ -53,18 +57,54 @@ func newContainerLogCoordinator(defaults *loggingDefaults) *containerLogCoordina
 }
 
 func (c *containerLogCoordinator) addTask(containerID string, info *containerLogInfo, configStr string, shouldFilter bool) {
-	c.taskMutex.Lock()
-	defer c.taskMutex.Unlock()
-
-	l.Debugf("addTask start - containerID=%s, existingTasks=%d", containerID, len(c.containerTasks))
-
+	c.taskMutex.RLock()
 	task, exists := c.containerTasks[containerID]
+	c.taskMutex.RUnlock()
+
+	created := false
 	if !exists {
 		task = &containerLogTask{
 			containerID: containerID,
 			podUID:      info.podUID,
 			info:        info,
 		}
+		c.taskMutex.Lock()
+		if existing, ok := c.containerTasks[containerID]; ok {
+			task = existing
+			exists = true
+		} else {
+			c.containerTasks[containerID] = task
+			created = true
+		}
+		currentTasks := len(c.containerTasks)
+		c.taskMutex.Unlock()
+
+		l.Debugf("addTask start - containerID=%s, existingTasks=%d", containerID, currentTasks)
+	} else {
+		c.taskMutex.RLock()
+		currentTasks := len(c.containerTasks)
+		c.taskMutex.RUnlock()
+		l.Debugf("addTask start - containerID=%s, existingTasks=%d", containerID, currentTasks)
+	}
+
+	task.mu.Lock()
+	defer task.mu.Unlock()
+
+	committed := false
+	defer func() {
+		if !created || committed {
+			return
+		}
+
+		c.taskMutex.Lock()
+		if existing, ok := c.containerTasks[containerID]; ok && existing == task {
+			delete(c.containerTasks, containerID)
+		}
+		c.taskMutex.Unlock()
+	}()
+
+	if created {
+		l.Infof("creating new log task for container %s", containerID)
 	}
 	task.useAnnotationOrEnvLogConfigs = configStr != ""
 
@@ -72,8 +112,6 @@ func (c *containerLogCoordinator) addTask(containerID string, info *containerLog
 		if task.useAnnotationOrEnvLogConfigs && task.configStr != configStr {
 			return
 		}
-	} else {
-		l.Infof("creating new log task for container %s", containerID)
 	}
 
 	task.configStr = configStr
@@ -143,7 +181,7 @@ func (c *containerLogCoordinator) addTask(containerID string, info *containerLog
 		task.configs = append(task.configs, cfg)
 	}
 
-	c.containerTasks[containerID] = task
+	committed = true
 	l.Infof("added task for container %s, tailers=%d", containerID, len(task.tailers))
 }
 
@@ -175,17 +213,29 @@ func (c *containerLogCoordinator) cleanMissingContainerLog(activeContainers []st
 
 func (c *containerLogCoordinator) removeTask(containerID string) {
 	c.taskMutex.Lock()
-	defer c.taskMutex.Unlock()
-
-	if task, exists := c.containerTasks[containerID]; exists {
-		for _, it := range task.tailers {
-			if it.tailer != nil {
-				it.tailer.Close()
-			}
-		}
+	task, exists := c.containerTasks[containerID]
+	if exists {
 		delete(c.containerTasks, containerID)
-		l.Infof("removed task for container %s", containerID)
 	}
+	c.taskMutex.Unlock()
+
+	if !exists {
+		return
+	}
+
+	task.mu.Lock()
+	tailers := make([]TailerItem, len(task.tailers))
+	copy(tailers, task.tailers)
+	task.tailers = nil
+	task.configs = nil
+	task.mu.Unlock()
+
+	for _, it := range tailers {
+		if it.tailer != nil {
+			it.tailer.Close()
+		}
+	}
+	l.Infof("removed task for container %s", containerID)
 }
 
 func (c *containerLogCoordinator) updateCRDLoggingConfig(key string, config *crdLoggingConfig) {
@@ -319,7 +369,7 @@ func (c *containerLogCoordinator) createTailerForTask(task *containerLogTask, cf
 
 	task.tailers = append(task.tailers, TailerItem{path: path, configHash: cfg.getStructHash(), tailer: tailer})
 
-	goroutine.G("container-log-tailer").Go(func(ctx context.Context) error {
+	containerLogTailerG.Go(func(ctx context.Context) error {
 		tailer.Start()
 		return nil
 	})

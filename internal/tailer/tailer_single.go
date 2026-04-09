@@ -36,6 +36,7 @@ import (
 const (
 	defaultSleepDuration = time.Second
 	checkInterval        = time.Second * 3
+	emptyReadSleep       = checkInterval
 	maxRetryAttempts     = 3
 )
 
@@ -368,8 +369,11 @@ func (t *Single) handleConfigUpdate(newOpts []Option) {
 }
 
 func (t *Single) handleFileCheck() bool {
-	did, _ := openfile.DidRotate(t.file, t.offset)
-	exist := openfile.FileExists(t.filepath)
+	did, err := openfile.DidRotate(t.file, t.offset)
+	exist := err == nil
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		t.log.Debugf("check rotate failed for file %s: %s", t.filepath, err)
+	}
 
 	if did || !exist {
 		t.log.Debugf("file %s rotated or removed, reading to EOF", t.filepath)
@@ -390,7 +394,7 @@ func (t *Single) handleFileCheck() bool {
 		}
 	}
 
-	if !openfile.FileIsActive(t.filepath, t.config.ignoreDeadLog) {
+	if t.config.ignoreDeadLog > 0 && !openfile.FileIsActive(t.filepath, t.config.ignoreDeadLog) {
 		t.log.Infof("file %s has been inactive for longer than %s or has been removed, exiting", t.filepath, t.config.ignoreDeadLog)
 		return true
 	}
@@ -400,15 +404,19 @@ func (t *Single) handleFileCheck() bool {
 
 func (t *Single) handleFileRead() bool {
 	if err := t.readOnce(); err != nil {
-		if !errors.Is(err, reader.ErrReadEmpty) {
-			t.log.Warnf("failed to read data from file %s, error: %s", t.filepath, err)
-			// 如果是文件读取错误，尝试重新打开文件
-			if t.shouldRetryRead(err) {
-				t.log.Debugf("attempting to recover from read error for file: %s", t.filepath)
-				if reopenErr := t.reopen(); reopenErr != nil {
-					t.log.Errorf("failed to reopen file %s after read error: %s", t.filepath, reopenErr)
-					return true
-				}
+		if errors.Is(err, reader.ErrReadEmpty) {
+			t.flushCache()
+			time.Sleep(emptyReadSleep)
+			return false
+		}
+
+		t.log.Warnf("failed to read data from file %s, error: %s", t.filepath, err)
+		// 如果是文件读取错误，尝试重新打开文件
+		if t.shouldRetryRead(err) {
+			t.log.Debugf("attempting to recover from read error for file: %s", t.filepath)
+			if reopenErr := t.reopen(); reopenErr != nil {
+				t.log.Errorf("failed to reopen file %s after read error: %s", t.filepath, reopenErr)
+				return true
 			}
 		}
 		t.flushCache()
