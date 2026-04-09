@@ -289,6 +289,14 @@ func (dw *Dataway) sinkHeaderValueFromGlobalTags() string {
 	return TagHeaderValue(dw.globalTags)
 }
 
+func (dw *Dataway) sinkHeaderKey() string {
+	if dw.SinkerHeaderVersion == "v2" {
+		return HeaderXGlobalTagsV2
+	}
+
+	return HeaderXGlobalTags
+}
+
 var defaultInvalidDatawayURL = "https://guance.openway.com?token=YOUR-WORKSPACE-TOKEN"
 
 func (dw *Dataway) doInit() error {
@@ -497,11 +505,13 @@ func (dw *Dataway) Write(opts ...compact.WriteOption) error {
 
 		ptg := getGrouper()
 		defer putGrouper(ptg)
+		ptg.safe = dw.SinkerHeaderVersion == "v2"
 
 		dw.groupPoints(ptg, w.Category, w.Points)
 
+		headerKey := dw.sinkHeaderKey()
 		for k, points := range ptg.groupedPts {
-			compact.WithHTTPHeader(HeaderXGlobalTags, k)(w)
+			compact.WithHTTPHeader(headerKey, k)(w)
 			compact.WithPoints(points)(w)
 
 			if err := w.BuildPointsBody(); err != nil {
