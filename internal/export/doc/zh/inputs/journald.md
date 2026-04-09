@@ -172,6 +172,9 @@ chmod +x journald-prereq-check.sh
 | `max_entries_per_batch` | int | `1000` | 每批收集的最大条目数 |
 | `save_cursor` | bool | `true` | 持久化读取位置以便重启后恢复 |
 | `cursor_file` | string | `/usr/local/datakit/cache/journald.pos` | 存储游标位置的路径 |
+| `mount_dir` | string | `"/rootfs"` | 仅在容器/Kubernetes 模式使用的 rootfs 挂载目录。DataKit 会用它作为绝对 `paths` 的前缀，以及宿主机动态库准备的源目录根路径 |
+| `copy_node_libs` | bool | `false`（容器或 Kubernetes 下自动强制为 `true`） | 启动 external collector 前，是否从 mount_dir 复制宿主机动态库到 DataKit 自己的 `external-libs` 目录。在容器或 Kubernetes 环境（`datakit.Docker || config.IsKubernetes()`）中会自动启用 |
+| `copy_node_libs_files` | []string | `[]` | 要复制的动态库文件名或 glob 列表。若显式配置则只复制该列表。若容器/Kubernetes 自动模式下为空，DataKit 会先复制 `libsystemd.so*`，再执行 `LD_LIBRARY_PATH=/usr/local/datakit/externals/systemd-libs ldd libsystemd.so.0` 风格依赖探测并自动补齐缺失 `.so`。若在非容器/Kubernetes 且 `copy_node_libs=true` 时留空，会以配置错误方式启动失败 |
 
 ## 日志字段 {#logging}
 
@@ -209,12 +212,45 @@ chmod +x journald-prereq-check.sh
   ]
 ```
 
-- Kubernetes 节点 journal 收集
+- Kubernetes 节点 journal 收集（自动模式）
 
 ```toml
 [[inputs.journald]]
-  paths = ["/rootfs/var/log/journal", "/rootfs/run/log/journal"]
+  paths = ["/var/log/journal", "/run/log/journal"]
   tail_only = true
+```
+
+说明：
+
+- collector 会按配置顺序解析候选目录，并优先尝试打开第一个可读的 journal 目录
+- 在容器或 Kubernetes 环境（`datakit.Docker || config.IsKubernetes()`）中，DataKit 会自动启用 journald rootfs 模式
+- 在容器/Kubernetes 模式下，绝对路径会自动加上 `mount_dir` 前缀（默认 `"/rootfs"`）
+- 如果路径本身是 `<mount_dir>/var/log/journal` 这类 journal 根目录，collector 会自动下钻到 machine-id 子目录后再打开
+- 在 kind、k3d 等容器化节点环境中，要在 node 容器内验证 `logger`/`journalctl`，不要在宿主机直接验证
+
+- Kubernetes 节点 journal 收集，并在启动前准备宿主机 systemd 相关库
+
+```toml
+[[inputs.journald]]
+  mount_dir = "/rootfs"
+  paths = ["/var/log/journal", "/run/log/journal"]
+  tail_only = true
+  copy_node_libs = true
+  copy_node_libs_files = [
+    "libsystemd.so*",
+    "liblz4.so*",
+    "libzstd.so*",
+    "liblzma.so*",
+    "libcap.so*",
+    "libgcrypt.so*",
+    "libgpg-error.so*",
+    "libselinux.so*",
+    "libmount.so*",
+    "libblkid.so*",
+    "libacl.so*",
+    "libpcre2-8.so*",
+    "libpcre.so*",
+  ]
 ```
 
 - 收集所有日志（调试）
@@ -255,11 +291,58 @@ ls -la /var/log/journal/
 ls -la /run/log/journal/
 ```
 
-1. 使用 `journalctl` 测试：
+1. 如果当前环境安装了 `journalctl`，可继续使用它做额外验证；如果容器里没有 `journalctl`，直接查看 DataKit 的兼容性告警和 probe 结果即可：
 
 ```bash
 journalctl -n 10
 ```
+
+如果启动日志中出现 `reason=unsupported-format`，说明当前 collector 运行时使用的 `libsystemd` 版本低于目标 journal 文件格式。此时 DataKit 会记录告警并让 journald collector 保持 inactive，而不是继续输出部分或具有误导性的采集结果。
+
+这种情况并不只出现在 EKS。在 Kubernetes 中，只要 DataKit 需要采集 node 上的 journal，而容器镜像自带的 `libsystemd` 版本低于宿主机 journal 文件格式所需版本，就可能出现这个问题。典型现象包括：
+
+- 如果 Pod 内安装了 `journalctl`，执行后可能报 `unsupported feature`
+- DataKit 已启动，但 journald collector 在兼容性告警后保持 inactive
+
+在容器或 Kubernetes 环境（`datakit.Docker || config.IsKubernetes()`）中，DataKit 已经自动启用宿主机 `systemd` 相关动态库准备能力；如果你希望在非容器场景也启用，可配置：
+
+```toml
+[[inputs.journald]]
+  copy_node_libs = true
+```
+
+启用后，DataKit 会在启动 collector 前，从 `mount_dir`（默认 `"/rootfs"`）下的候选系统库目录复制动态库到自己的 `external-libs` 目录，并自动把该目录前置到 `LD_LIBRARY_PATH`。
+
+复制行为细节：
+
+- 如果 `copy_node_libs_files` 已配置且非空，则只复制该列表。
+- 如果容器/Kubernetes 自动模式下 `copy_node_libs_files` 为空，DataKit 会先复制 `libsystemd.so*`，然后在复制目录下对 `libsystemd.so.0` 做 `ldd` 依赖探测，并自动补齐缺失 `.so`。
+- 如果非容器且非 Kubernetes 且 `copy_node_libs=true` 且 `copy_node_libs_files` 为空，DataKit 会报配置错误并保持 collector inactive。
+- 启用 `copy_node_libs` 后如果库准备失败，journald 采集器会保持 inactive（不影响 DataKit 其他采集器）。
+
+collector 成功打开 journal 后，会在 external `journald.log` 中打印类似如下日志，帮助确认运行时到底加载了哪一套 `libsystemd`：
+
+```text
+loaded libsystemd paths: [/usr/local/datakit/externals/systemd-libs/libsystemd.so.0.35.0]
+```
+
+约束说明：
+
+- 宿主机上的 `libsystemd` 并不保证一定兼容 DataKit 当前使用的 journald external binary
+- 如果宿主机上的 `libsystemd` 版本过低，external binary 可能在动态链接阶段就因为符号或版本不匹配而无法启动
+- 如果宿主机上的 `libsystemd` 版本更高，则也可能在读取 journal 文件时出现 `unsupported feature`
+- 因此，`copy_node_libs` 只是一个前置准备能力，不代表复制后的库一定兼容；最终仍需结合启动日志与 probe 结果判断
+
+不要把整个宿主机 `/usr/lib64` 直接加入 `LD_LIBRARY_PATH`。这样可能把不兼容的 glibc 组件一并带入 collector 进程，导致更难诊断的问题。
+
+如果启动日志显示：
+
+```text
+resolved journal directory: target=...
+opening journal from directory: ...
+```
+
+说明 collector 当前是按目录方式打开 journal，这也是当前 live journal 的推荐路径；不要手动把单个 `.journal` 文件路径作为主要配置方式。
 
 ### 游标文件问题 {#troubleshoot-cursor}
 

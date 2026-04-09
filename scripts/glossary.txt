@@ -208,6 +208,7 @@ pprof
 promremote
 pythond
 quantile
+rootfs
 runtimes
 rwlock
 schedulability

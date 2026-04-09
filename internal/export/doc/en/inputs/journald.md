@@ -172,6 +172,9 @@ After successfully installing and starting DataKit, enable the Journald collecto
 | `max_entries_per_batch` | int | `1000` | Maximum number of entries to collect per batch |
 | `save_cursor` | bool | `true` | Persist read position to resume after restart |
 | `cursor_file` | string | `/usr/local/datakit/cache/journald.pos` | Path to store cursor position |
+| `mount_dir` | string | `"/rootfs"` | Rootfs mount directory used in container/Kubernetes mode only. DataKit uses this prefix for absolute `paths` and as source root for host-side library prepare |
+| `copy_node_libs` | bool | `false` (auto forced to `true` in container or Kubernetes mode) | Whether to copy host-side dynamic libraries from mount dir into DataKit-managed `external-libs` before starting the external collector. In container or Kubernetes environments (`datakit.Docker || config.IsKubernetes()`), DataKit auto-enables this |
+| `copy_node_libs_files` | []string | `[]` | Dynamic library file names or glob patterns to copy. If configured, only these are copied. If empty in container/Kubernetes auto mode, DataKit first copies `libsystemd.so*`, then runs `LD_LIBRARY_PATH=/usr/local/datakit/externals/systemd-libs ldd libsystemd.so.0`-style dependency probing and copies missing `.so` automatically. If empty outside container/Kubernetes mode while `copy_node_libs=true`, startup fails with configuration error |
 
 ## Log Fields {#logging}
 
@@ -209,12 +212,45 @@ After successfully installing and starting DataKit, enable the Journald collecto
   ]
 ```
 
-- Kubernetes node journal collection
+- Kubernetes node journal collection (auto mode)
 
 ```toml
 [[inputs.journald]]
-  paths = ["/rootfs/var/log/journal", "/rootfs/run/log/journal"]
+  paths = ["/var/log/journal", "/run/log/journal"]
   tail_only = true
+```
+
+Notes:
+
+- The collector resolves candidate directories in configuration order and tries to open the first readable journal directory first
+- In container or Kubernetes environments (`datakit.Docker || config.IsKubernetes()`), DataKit auto-enables journald rootfs mode
+- In container/Kubernetes mode, absolute paths are automatically prefixed with `mount_dir` (default `"/rootfs"`)
+- If the configured path is a journal root such as `<mount_dir>/var/log/journal`, the collector automatically descends into the machine-id subdirectory before opening it
+- In containerized node environments such as kind or k3d, validate `logger` and `journalctl` inside the node container rather than on the outer host
+
+- Kubernetes node journal collection with host-side systemd library prepare
+
+```toml
+[[inputs.journald]]
+  mount_dir = "/rootfs"
+  paths = ["/var/log/journal", "/run/log/journal"]
+  tail_only = true
+  copy_node_libs = true
+  copy_node_libs_files = [
+    "libsystemd.so*",
+    "liblz4.so*",
+    "libzstd.so*",
+    "liblzma.so*",
+    "libcap.so*",
+    "libgcrypt.so*",
+    "libgpg-error.so*",
+    "libselinux.so*",
+    "libmount.so*",
+    "libblkid.so*",
+    "libacl.so*",
+    "libpcre2-8.so*",
+    "libpcre.so*",
+  ]
 ```
 
 - Collect all logs (debugging)
@@ -255,11 +291,58 @@ ls -la /var/log/journal/
 ls -la /run/log/journal/
 ```
 
-1. Test with `journalctl`:
+1. If `journalctl` is available in the current environment, use it for extra validation; if the container does not ship `journalctl`, rely on the DataKit compatibility warning and probe result directly:
 
 ```bash
 journalctl -n 10
 ```
+
+If startup logs report `reason=unsupported-format`, the collector runtime is older than the target journal file format. In this case DataKit keeps the journald collector inactive and logs a warning instead of collecting partial or misleading results.
+
+This can happen in Kubernetes whenever DataKit collects journal files from the node while the container image ships an older `libsystemd` than the host journal format requires. Typical symptoms are:
+
+- If `journalctl` is installed inside the Pod, it may report `unsupported feature`
+- DataKit starts, but the journald collector stays inactive after the compatibility warning
+
+In container or Kubernetes environments (`datakit.Docker || config.IsKubernetes()`), DataKit already auto-enables host-side `systemd` library prepare. If you need this behavior on non-container hosts, enable:
+
+```toml
+[[inputs.journald]]
+  copy_node_libs = true
+```
+
+When enabled, DataKit copies dynamic libraries from candidate system library directories under `mount_dir` (default `"/rootfs"`) into its own `external-libs` directory, then prepends that directory to `LD_LIBRARY_PATH` automatically.
+
+Copy behavior details:
+
+- If `copy_node_libs_files` is configured and non-empty, DataKit copies only that list.
+- If `copy_node_libs_files` is empty in container/Kubernetes auto mode, DataKit first copies `libsystemd.so*`, then probes missing dependencies with `ldd libsystemd.so.0` under the copied library path, and copies the missing `.so` files automatically.
+- If `copy_node_libs_files` is empty on non-container and non-Kubernetes hosts while `copy_node_libs=true`, DataKit reports a configuration error and keeps the collector inactive.
+- If library prepare fails while `copy_node_libs` is enabled, the journald collector stays inactive (other DataKit collectors are not affected).
+
+After the collector opens the journal successfully, it also logs the effective `libsystemd` path in external `journald.log`, for example:
+
+```text
+loaded libsystemd paths: [/usr/local/datakit/externals/systemd-libs/libsystemd.so.0.35.0]
+```
+
+Constraints:
+
+- The host `libsystemd` is not guaranteed to be compatible with the journald external binary currently shipped in DataKit
+- If the host `libsystemd` is too old, the external binary may fail during dynamic linking because of missing symbols or version mismatches
+- If the host `libsystemd` is newer, it may still fail later with `unsupported feature` when reading journal files
+- Therefore, `copy_node_libs` is only a preparation mechanism, not a guarantee that the copied libraries are compatible; the final result still needs to be verified from startup logs and probe results
+
+Do not point `LD_LIBRARY_PATH` at the entire host `/usr/lib64` directory. That can also pull incompatible glibc components into the collector process and create a less predictable failure mode.
+
+If startup logs contain:
+
+```text
+resolved journal directory: target=...
+opening journal from directory: ...
+```
+
+the collector is using directory-based journal opening, which is the recommended path for live journals. Avoid configuring individual `.journal` files as the primary input path.
 
 ### Cursor file issues {#troubleshoot-cursor}
 

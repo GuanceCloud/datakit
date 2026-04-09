@@ -9,6 +9,7 @@
 package collect
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/coreos/go-systemd/v22/sdjournal"
+	"github.com/stretchr/testify/require"
 )
 
 func TestShouldExcludeField(t *testing.T) {
@@ -66,6 +68,92 @@ func TestResolvePaths(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestResolveOpenDirectory(t *testing.T) {
+	t.Run("single directory uses directory mode", func(t *testing.T) {
+		dir := t.TempDir()
+		require.NoError(t, os.WriteFile(filepath.Join(dir, "system.journal"), []byte("x"), 0o644))
+
+		ipt := &Input{config: &config{Paths: []string{dir}}}
+		target, candidates := ipt.resolveOpenDirectory()
+
+		require.Equal(t, dir, target)
+		require.Equal(t, []string{dir}, candidates)
+	})
+
+	t.Run("multiple directories keep directory candidates", func(t *testing.T) {
+		root := t.TempDir()
+		dir1 := filepath.Join(root, "var", "log", "journal")
+		dir2 := filepath.Join(root, "run", "log", "journal")
+		require.NoError(t, os.MkdirAll(dir1, 0o755))
+		require.NoError(t, os.MkdirAll(dir2, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(dir1, "system.journal"), []byte("x"), 0o644))
+		require.NoError(t, os.WriteFile(filepath.Join(dir2, "runtime.journal"), []byte("x"), 0o644))
+
+		ipt := &Input{config: &config{Paths: []string{dir1, dir2}}}
+		target, candidates := ipt.resolveOpenDirectory()
+
+		require.Equal(t, dir1, target)
+		require.Equal(t, []string{dir1, dir2}, candidates)
+	})
+
+	t.Run("machine-id subdirectories are expanded to directories", func(t *testing.T) {
+		root := t.TempDir()
+		dir := filepath.Join(root, "var", "log", "journal")
+		machineDir := filepath.Join(dir, "machine-id-1")
+		require.NoError(t, os.MkdirAll(machineDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(machineDir, "system.journal"), []byte("x"), 0o644))
+
+		ipt := &Input{config: &config{Paths: []string{dir}}}
+		target, candidates := ipt.resolveOpenDirectory()
+
+		require.Equal(t, machineDir, target)
+		require.Equal(t, []string{machineDir}, candidates)
+	})
+}
+
+func TestLoadedSharedObjectPaths(t *testing.T) {
+	maps := filepath.Join(t.TempDir(), "maps")
+	content := strings.Join([]string{
+		"7f00000000-7f00001000 r--p 00000000 00:00 0 /usr/lib/libsystemd.so.0",
+		"7f00001000-7f00002000 r-xp 00001000 00:00 0 /usr/lib/libsystemd.so.0",
+		"7f00002000-7f00003000 r--p 00002000 00:00 0 /usr/lib/libzstd.so.1",
+		"",
+	}, "\n")
+	require.NoError(t, os.WriteFile(maps, []byte(content), 0o644))
+
+	paths, err := loadedSharedObjectPaths(maps, "libsystemd")
+	require.NoError(t, err)
+	require.Equal(t, []string{"/usr/lib/libsystemd.so.0"}, paths)
+}
+
+func TestInitJournal_TriesCandidateDirectoriesInOrder(t *testing.T) {
+	dir1 := t.TempDir()
+	dir2 := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir1, "system.journal"), []byte("x"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(dir2, "system.journal"), []byte("x"), 0o644))
+
+	ipt := &Input{
+		config: &config{Paths: []string{dir1, dir2}},
+		done:   make(chan bool),
+	}
+
+	callOrder := make([]string, 0, 2)
+	openJournalDirFn = func(path string) (*sdjournal.Journal, error) {
+		callOrder = append(callOrder, path)
+		if path == dir1 {
+			return nil, fmt.Errorf("boom")
+		}
+		return &sdjournal.Journal{}, nil
+	}
+	t.Cleanup(func() {
+		openJournalDirFn = sdjournal.NewJournalFromDir
+	})
+
+	require.NoError(t, ipt.initJournal())
+	require.Equal(t, []string{dir1, dir2}, callOrder)
+	require.NotNil(t, ipt.journal)
 }
 
 func TestLoadCursor(t *testing.T) {
