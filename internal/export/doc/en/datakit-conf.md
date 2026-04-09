@@ -232,6 +232,13 @@ The default logging level for DataKit is `info`. Edit `datakit.conf` to modify t
 
 The following content involves some advanced configuration. If you are not sure about the configuration, it is recommended to consult our technical experts.
 
+### Aggregation and Tail Sampling {#aggregator-tail-sampling}
+
+If you need to continue configuring `Aggregator`, `aggr.toml`, or `tail-sampling.toml`, see the following documents:
+
+- [Aggregator Configuration](aggregator.md)
+- [Tail Sampling Configuration](aggregator.md#tail-sampling-config)
+
 ### Time Calibration {#ntp}
 
 [:octicons-tag-24: Version-1.75.0](../datakit/changelog-2025.md#cl-1.75.0)

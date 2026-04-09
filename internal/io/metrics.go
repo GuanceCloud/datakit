@@ -18,11 +18,15 @@ var (
 	inputsFeedVec,
 	flushVec,
 	adjustPointTimeVec,
+	aggrSelectedPtsVec,
+	aggrBatchPkgVec,
+	tailSamplingPkgVec,
 	inputsFilteredPtsVec *prometheus.CounterVec
 
 	feedCost,
 	inputsFeedPtsVec,
-	inputsCollectLatencyVec *prometheus.SummaryVec
+	inputsCollectLatencyVec,
+	aggrProcessCostVec *prometheus.SummaryVec
 
 	queuePtsVec,
 	flushWorkersVec,
@@ -145,6 +149,45 @@ func metricsSetup() {
 		},
 	)
 
+	aggrSelectedPtsVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "aggr_selected_point_total",
+			Help:      "Points selected by aggregation",
+		},
+		[]string{
+			"name",
+			"category",
+		},
+	)
+
+	aggrBatchPkgVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "aggr_batch_package_total",
+			Help:      "Aggregation metric batch packages",
+		},
+		[]string{
+			"name",
+			"category",
+		},
+	)
+
+	tailSamplingPkgVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "aggr_tail_sampling_package_total",
+			Help:      "Aggregation tail sampling packages",
+		},
+		[]string{
+			"name",
+			"category",
+		},
+	)
+
 	inputsLastFeedVec = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "datakit",
@@ -166,6 +209,25 @@ func metricsSetup() {
 			Help:      "Input collect latency",
 
 			Objectives: datakit.P8sStandardObjectives,
+		},
+		[]string{
+			"name",
+			"category",
+		},
+	)
+
+	aggrProcessCostVec = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: "io",
+			Name:      "aggr_process_cost_seconds",
+			Help:      "Aggregation process cost",
+
+			Objectives: map[float64]float64{
+				0.5:  0.05,
+				0.9:  0.01,
+				0.99: 0.001,
+			},
 		},
 		[]string{
 			"name",
@@ -211,8 +273,12 @@ func Metrics() []prometheus.Collector {
 		inputsFeedVec,
 		inputsFeedPtsVec,
 		inputsFilteredPtsVec,
+		aggrSelectedPtsVec,
+		aggrBatchPkgVec,
+		tailSamplingPkgVec,
 		inputsLastFeedVec,
 		inputsCollectLatencyVec,
+		aggrProcessCostVec,
 		queuePtsVec,
 		ioChanLen,
 		ioChanCap,
@@ -227,8 +293,12 @@ func MetricsReset() {
 	inputsFeedVec.Reset()
 	inputsFeedPtsVec.Reset()
 	inputsFilteredPtsVec.Reset()
+	aggrSelectedPtsVec.Reset()
+	aggrBatchPkgVec.Reset()
+	tailSamplingPkgVec.Reset()
 
 	inputsCollectLatencyVec.Reset()
+	aggrProcessCostVec.Reset()
 
 	queuePtsVec.Reset()
 	inputsLastFeedVec.Reset()

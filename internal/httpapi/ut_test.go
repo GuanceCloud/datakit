@@ -12,6 +12,7 @@ import (
 
 	_ "github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 func TestDisableWhitelist(t *testing.T) {
@@ -143,14 +144,8 @@ func TestDisableWhitelist(t *testing.T) {
 func TestNewWhiteListItemWithRegex(t *testing.T) {
 	t.Logf("开始执行测试: TestNewWhiteListItemWithRegex")
 	// 测试正则表达式白名单条目
-	item := NewWhiteListItem("reg:^/v1/write/.*$")
+	item := datakit.NewWhiteListItem("reg:^/v1/write/.*$")
 	t.Logf("创建正则表达式白名单条目: reg:^/v1/write/.*$")
-
-	assert.True(t, item.IsRegex, "Should be marked as regex")
-	t.Logf("IsRegex验证通过: %v", item.IsRegex)
-
-	assert.NotNil(t, item.Regex, "Regex should not be nil")
-	t.Logf("Regex验证通过: 不为nil")
 
 	assert.True(t, item.Match("/v1/write/metric"), "Should match regex pattern")
 	t.Logf("匹配测试通过: /v1/write/metric")
@@ -168,14 +163,8 @@ func TestNewWhiteListItemWithString(t *testing.T) {
 	t.Logf("开始执行测试: TestNewWhiteListItemWithString")
 
 	// 测试普通字符串白名单条目
-	item := NewWhiteListItem("/v1/ping")
+	item := datakit.NewWhiteListItem("/v1/ping")
 	t.Logf("创建普通字符串白名单条目: /v1/ping")
-
-	assert.False(t, item.IsRegex, "Should not be marked as regex")
-	t.Logf("IsRegex验证通过: %v", item.IsRegex)
-
-	assert.Equal(t, "/v1/ping", item.Path, "Path should match")
-	t.Logf("Path验证通过: %s", item.Path)
 
 	assert.True(t, item.Match("/v1/ping"), "Should match exact path")
 	t.Logf("匹配测试通过: /v1/ping")

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	protojson "github.com/gogo/protobuf/jsonpb"
+	types "github.com/gogo/protobuf/types"
 	influxm "github.com/influxdata/influxdb1-client/models"
 )
 
@@ -226,6 +227,13 @@ func FromPB(pb *PBPoint) *Point {
 	return pt
 }
 
+func WrapPB(pt *Point, pb *PBPoint) *Point {
+	if pt == nil {
+		return &Point{pt: pb}
+	}
+	return &Point{pt: pb}
+}
+
 // LineProto convert point to text lineprotocol(both for
 // lineproto point and protobuf point).
 func (p *Point) LineProto(prec ...Precision) string {
@@ -335,6 +343,85 @@ func (p *Point) Get(k string) any {
 		return kv.Raw()
 	}
 	return nil
+}
+
+// Following GetX() get the exact key's value, this is faster than Get() that no alloc are required.
+
+func (p *Point) GetI(k string) (int64, bool) {
+	kvs := KVs(p.pt.Fields)
+
+	if kv := kvs.Get(k); kv != nil {
+		if _, ok := kv.Val.(*Field_I); ok {
+			return kv.GetI(), true
+		}
+	}
+	return 0, false
+}
+
+func (p *Point) GetU(k string) (uint64, bool) {
+	kvs := KVs(p.pt.Fields)
+
+	if kv := kvs.Get(k); kv != nil {
+		if _, ok := kv.Val.(*Field_U); ok {
+			return kv.GetU(), true
+		}
+	}
+	return 0, false
+}
+
+func (p *Point) GetF(k string) (float64, bool) {
+	kvs := KVs(p.pt.Fields)
+
+	if kv := kvs.Get(k); kv != nil {
+		if _, ok := kv.Val.(*Field_F); ok {
+			return kv.GetF(), true
+		}
+	}
+	return 0, false
+}
+
+func (p *Point) GetS(k string) (string, bool) {
+	kvs := KVs(p.pt.Fields)
+
+	if kv := kvs.Get(k); kv != nil {
+		if _, ok := kv.Val.(*Field_S); ok {
+			return kv.GetS(), true
+		}
+	}
+	return "", false
+}
+
+func (p *Point) GetD(k string) ([]byte, bool) {
+	kvs := KVs(p.pt.Fields)
+
+	if kv := kvs.Get(k); kv != nil {
+		if _, ok := kv.Val.(*Field_D); ok {
+			return kv.GetD(), true
+		}
+	}
+	return nil, false
+}
+
+func (p *Point) GetB(k string) (bool, bool) {
+	kvs := KVs(p.pt.Fields)
+
+	if kv := kvs.Get(k); kv != nil {
+		if _, ok := kv.Val.(*Field_B); ok {
+			return kv.GetB(), true
+		}
+	}
+	return false, false
+}
+
+func (p *Point) GetA(k string) (*types.Any, bool) {
+	kvs := KVs(p.pt.Fields)
+
+	if kv := kvs.Get(k); kv != nil {
+		if _, ok := kv.Val.(*Field_A); ok {
+			return kv.GetA(), true
+		}
+	}
+	return nil, false
 }
 
 // GetTag get value of tag k.

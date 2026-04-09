@@ -60,7 +60,9 @@ func (fo *datawayOutput) Write(data *feedData) error {
 	}
 
 	if data.syncSend {
+		// on sync-send mode, we still try to record collected data for debugging if enabled.
 		defIO.recordPoints(data)
+
 		err := defIO.doCompact(data.pts, data.cat, "")
 		if err != nil {
 			log.Warnf("post %d points to %s failed: %s, ignored", len(data.pts), data.cat, err)

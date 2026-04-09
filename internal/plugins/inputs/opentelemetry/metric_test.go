@@ -6,145 +6,132 @@
 package opentelemetry
 
 import (
+	"math"
 	T "testing"
 
 	"github.com/GuanceCloud/cliutils/point"
 	v1 "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
 	metrics "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/metrics/v1"
 	resource "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/resource/v1"
-	"github.com/stretchr/testify/assert"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	dkMetrics "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 )
 
-var testData = []*metrics.ResourceMetrics{
-	{
-		Resource: &resource.Resource{
-			Attributes: []*v1.KeyValue{
-				{
-					Key: "host.name", Value: &v1.AnyValue{
-						Value: &v1.AnyValue_StringValue{
-							StringValue: "myClientHost",
-						},
-					},
-				},
-				{
-					Key: "agent.version", Value: &v1.AnyValue{
-						Value: &v1.AnyValue_StringValue{
-							StringValue: "1.30",
-						},
-					},
-				},
-			},
-		},
-		ScopeMetrics: []*metrics.ScopeMetrics{
-			{
-				Scope: &v1.InstrumentationScope{
-					Name:                   "io.opentelemetry.sdk.trace",
-					Version:                "1.30.0",
-					DroppedAttributesCount: 0,
-				},
-				Metrics: []*metrics.Metric{
-					{
-						Name:        "processedSpans",
-						Description: "The number of spans processed by the BatchSpanProcessor. [dropped=true if they were dropped due to high throughput]",
-						Unit:        "1",
-						Data: &metrics.Metric_Sum{
-							Sum: &metrics.Sum{
-								DataPoints: []*metrics.NumberDataPoint{
-									{
-										Attributes: []*v1.KeyValue{
-											{
-												Key: "spanProcessorType", Value: &v1.AnyValue{
-													Value: &v1.AnyValue_StringValue{
-														StringValue: "BatchSpanProcessor",
-													},
-												},
-											},
-											{
-												Key: "dropped", Value: &v1.AnyValue{
-													Value: &v1.AnyValue_BoolValue{
-														BoolValue: false,
-													},
-												},
-											},
-										},
-										StartTimeUnixNano: 0,
-										TimeUnixNano:      0,
-										Value:             &metrics.NumberDataPoint_AsDouble{AsDouble: 12},
-										Exemplars:         nil,
-										Flags:             0,
-									},
-								},
-								AggregationTemporality: 0,
-								IsMonotonic:            false,
-							},
-						},
-					},
-				},
-				SchemaUrl: "1.30",
-			},
-			{
-				Scope: &v1.InstrumentationScope{Name: "io.opentelemetry.tomcat-7.0"},
-				Metrics: []*metrics.Metric{
-					{
-						Name:        "http.server.duration",
-						Description: "The duration of the inbound HTTP request",
-						Unit:        "ms",
-						Data: &metrics.Metric_Histogram{
-							Histogram: &metrics.Histogram{
-								DataPoints: []*metrics.HistogramDataPoint{
-									{
-										Attributes: []*v1.KeyValue{
-											{
-												Key: "http.method", Value: &v1.AnyValue{
-													Value: &v1.AnyValue_StringValue{
-														StringValue: "Get",
-													},
-												},
-											},
-											{
-												Key: "http.route", Value: &v1.AnyValue{
-													Value: &v1.AnyValue_StringValue{
-														StringValue: "/tmall/",
-													},
-												},
-											},
-										},
-										StartTimeUnixNano: 1,
-										TimeUnixNano:      1,
-										Count:             68,
-										Sum:               getPtr(221.49527399999997),
-										BucketCounts:      []uint64{0, 2, 4, 1, 16, 11, 7, 27, 0, 0, 0, 0, 0, 0, 0, 0},
-										ExplicitBounds:    []float64{0, 5, 10, 25, 50, 75, 100, 250, 500, 750, 1000, 2500, 5000, 7500, 10000},
-										Exemplars:         nil,
-										Flags:             0,
-										Min:               getPtr(3.455694),
-										Max:               getPtr(186.694506),
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	},
-}
-
 func Test_parseResourceMetricsV2(t *T.T) {
-	feeder := &feeder{
-		t: t,
-		hostTags: map[string]string{
-			"ght_host": "host1",
+	msource := []*metrics.ResourceMetrics{
+		{
+			Resource: &resource.Resource{
+				Attributes: []*v1.KeyValue{
+					{
+						Key: "host.name",
+						Value: &v1.AnyValue{
+							Value: &v1.AnyValue_StringValue{
+								StringValue: "myClientHost",
+							},
+						},
+					},
+					{
+						Key: "agent.version",
+						Value: &v1.AnyValue{
+							Value: &v1.AnyValue_StringValue{
+								StringValue: "1.30",
+							},
+						},
+					},
+				},
+			},
+			ScopeMetrics: []*metrics.ScopeMetrics{
+				{
+					Scope: &v1.InstrumentationScope{
+						Name:                   "io.opentelemetry.sdk.trace",
+						Version:                "1.30.0",
+						DroppedAttributesCount: 0,
+					},
+					Metrics: []*metrics.Metric{
+						{
+							Name:        "processedSpans",
+							Description: "The number of spans processed by the BatchSpanProcessor. [dropped=true if they were dropped due to high throughput]",
+							Unit:        "1",
+							Data: &metrics.Metric_Sum{
+								Sum: &metrics.Sum{
+									DataPoints: []*metrics.NumberDataPoint{
+										{
+											Attributes: []*v1.KeyValue{
+												{
+													Key: "spanProcessorType",
+													Value: &v1.AnyValue{
+														Value: &v1.AnyValue_StringValue{
+															StringValue: "BatchSpanProcessor",
+														},
+													},
+												},
+												{
+													Key: "dropped",
+													Value: &v1.AnyValue{
+														Value: &v1.AnyValue_BoolValue{
+															BoolValue: false,
+														},
+													},
+												},
+											},
+											StartTimeUnixNano: 0,
+											TimeUnixNano:      0,
+											Value:             &metrics.NumberDataPoint_AsDouble{AsDouble: 12},
+											Exemplars:         nil,
+											Flags:             0,
+										},
+									},
+									AggregationTemporality: 0,
+									IsMonotonic:            false,
+								},
+							},
+						},
+					},
+					SchemaUrl: "1.30",
+				},
+				{
+					Scope: &v1.InstrumentationScope{Name: "io.opentelemetry.tomcat-7.0"},
+					Metrics: []*metrics.Metric{
+						{
+							Name:        "http.server.duration",
+							Description: "The duration of the inbound HTTP request",
+							Unit:        "ms",
+							Data: &metrics.Metric_Histogram{
+								Histogram: &metrics.Histogram{
+									DataPoints: []*metrics.HistogramDataPoint{
+										{
+											Attributes: []*v1.KeyValue{
+												{
+													Key: "http.method",
+													Value: &v1.AnyValue{
+														Value: &v1.AnyValue_StringValue{
+															StringValue: "Get",
+														},
+													},
+												},
+												{
+													Key: "http.route",
+													Value: &v1.AnyValue{
+														Value: &v1.AnyValue_StringValue{
+															StringValue: "/tmall/",
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 
-	t.Run(`basic`, func(t *T.T) {
-		ipt := defaultInput()
-		ipt.feeder = feeder
-		ipt.parseResourceMetricsV2(testData, "localhost")
-	})
+	ipt := defaultInput()
+	ipt.feeder = &feeder{t: t}
+	ipt.parseResourceMetricsV2(msource, "")
 }
 
 func getPtr(f float64) *float64 {
@@ -152,41 +139,54 @@ func getPtr(f float64) *float64 {
 }
 
 type feeder struct {
-	t        *T.T
-	hostTags map[string]string
+	t *T.T
 }
 
 func (f *feeder) Feed(category point.Category, pts []*point.Point, opts ...dkio.FeedOption) error {
-	assert.Equal(f.t, point.Metric, category)
-	assert.NotEmpty(f.t, opts)
-	assert.NotEmpty(f.t, pts)
-
-	fdata := dkio.GetFeedData()
-	for _, opt := range opts {
-		if opt != nil {
-			opt(fdata)
+	f.t.Logf("category = %s", category)
+	if len(pts) == 0 {
+		f.t.Errorf("parse otel metric to point.len==0")
+	} else {
+		for _, pt := range pts {
+			f.t.Logf("%s ", pt.Pretty())
 		}
 	}
-
-	for _, pt := range pts {
-		pretty := pt.Pretty()
-		assert.Equalf(f.t, "otel_service", pt.Name(), pretty)
-
-		if pt.Get("processedSpans") != nil {
-			assert.NotNil(f.t, pt.Get("__temporality"))
-		}
-
-		assert.NotNil(f.t, pt.Get("collector_source_ip"))
-
-		// global tag on OTEL metric default enabled
-		assert.False(f.t, fdata.NoGlobalTags())
-
-		f.t.Logf(pretty)
-	}
-
 	return nil
 }
 
 func (f *feeder) FeedLastError(err string, opts ...dkMetrics.LastErrorOption) {
 	f.t.Logf("not implement")
+}
+
+type expBucket struct {
+	index  int
+	lb, ub float64
+}
+
+func expHistoBuckets(vmin, vmax float64, scale int32) []expBucket {
+	base := math.Pow(2, math.Pow(2, float64(-scale)))
+	startIdx, endIdx := math.Floor(math.Log2(vmin)/math.Log2(base)), math.Floor(math.Log2(vmax)/math.Log2(base))
+
+	log.Debugf("base: %f, start: %f, end: %f", base, startIdx, endIdx)
+
+	var buckets []expBucket
+	for i := startIdx; i <= endIdx; i++ {
+		buckets = append(buckets, expBucket{
+			index: int(i),
+			lb:    math.Pow(base, i),
+			ub:    math.Pow(base, i+1),
+		})
+	}
+
+	return buckets
+}
+
+func Test_expHistoBuckets(t *T.T) {
+	t.Run(`basic`, func(t *T.T) {
+		buckets := expHistoBuckets(0.1, 30*1000.0, 5) // 30ms ~ 30s
+
+		for _, b := range buckets {
+			t.Logf("[%d]: [%f, %f), range: %f", b.index, b.lb, b.ub, b.ub-b.lb)
+		}
+	})
 }

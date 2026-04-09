@@ -18,7 +18,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"regexp"
 	"runtime"
 	"strings"
 	"sync"
@@ -70,13 +69,6 @@ type httpServerConf struct {
 	pprofListen string
 
 	reqLimiter *limiter.Limiter
-}
-
-// WhiteListItem 白名单条目，支持普通字符串和正则表达式.
-type WhiteListItem struct {
-	IsRegex bool
-	Path    string
-	Regex   *regexp.Regexp
 }
 
 func defaultHTTPServerConf() *httpServerConf {
@@ -302,11 +294,16 @@ func isLoopbackClient(c *gin.Context) bool {
 
 func apiWhiteListMiddleware(apis []string) gin.HandlerFunc {
 	// 解析白名单配置，支持正则表达式
-	whiteList := make([]*WhiteListItem, 0, len(apis))
+	whiteList := make([]*datakit.WhiteListItem, 0, len(apis))
 	for _, apiPattern := range apis {
-		item := NewWhiteListItem(apiPattern)
+		// 处理普通字符串路径
+		if len(apiPattern) > 0 && apiPattern[0] != '/' {
+			apiPattern = "/" + apiPattern
+		}
+
+		item := datakit.NewWhiteListItem(apiPattern)
 		whiteList = append(whiteList, item)
-		l.Infof("apply API %q to white list, is regex: %v", apiPattern, item.IsRegex)
+		l.Infof("apply API %q to white list, is regex: %v", apiPattern, item.IsRegex())
 	}
 
 	return func(c *gin.Context) {
@@ -769,36 +766,4 @@ func ReloadHTTPServer() {
 		WithPProf(config.Cfg.EnablePProf),
 		WithPProfListen(config.Cfg.PProfListen),
 	)
-}
-
-// NewWhiteListItem 从字符串创建白名单条目，支持普通字符串和正则表达式.
-func NewWhiteListItem(pattern string) *WhiteListItem {
-	pattern = strings.TrimSpace(pattern)
-
-	// 处理正则表达式模式
-	if strings.HasPrefix(pattern, "reg:") {
-		regexPattern := strings.TrimPrefix(pattern, "reg:")
-		return &WhiteListItem{
-			IsRegex: true,
-			Path:    regexPattern,
-			Regex:   regexp.MustCompile(regexPattern),
-		}
-	}
-
-	// 处理普通字符串路径
-	if len(pattern) > 0 && pattern[0] != '/' {
-		pattern = "/" + pattern
-	}
-	return &WhiteListItem{
-		IsRegex: false,
-		Path:    pattern,
-	}
-}
-
-// Match 检查给定路径是否与白名单条目匹配.
-func (item *WhiteListItem) Match(path string) bool {
-	if item.IsRegex {
-		return item.Regex.MatchString(path)
-	}
-	return item.Path == path
 }

@@ -15,11 +15,13 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/compact"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/endpoint"
 )
 
 // DialtestingSender used for dialtesting collector.
 type DialtestingSender struct {
-	ep *endPoint
+	ep *endpoint.EndPoint
 }
 
 type DialtestingSenderOpt struct {
@@ -28,12 +30,12 @@ type DialtestingSenderOpt struct {
 }
 
 func (d *DialtestingSender) Init(opt *DialtestingSenderOpt) error {
-	d.ep = &endPoint{}
+	d.ep = &endpoint.EndPoint{}
 	if opt != nil {
-		withHTTPTimeout(opt.HTTPTimeout)(d.ep)
-		withProxy(opt.HTTPProxy)(d.ep)
+		endpoint.WithHTTPTimeout(opt.HTTPTimeout)(d.ep)
+		endpoint.WithProxy(opt.HTTPProxy)(d.ep)
 	}
-	return d.ep.setupHTTP()
+	return d.ep.SetupHTTP()
 }
 
 func (d *DialtestingSender) WriteData(url string, pts []*point.Point) error {
@@ -41,26 +43,27 @@ func (d *DialtestingSender) WriteData(url string, pts []*point.Point) error {
 
 	// return write error or build error
 	var writeError error
-	w := getWriter(WithPoints(pts),
-		WithDynamicURL(url),
-		WithCategory(point.DynamicDWCategory),
-		WithHTTPEncoding(point.LineProtocol),
-		WithBodyCallback(func(w *writer, b *body) error {
-			err := d.ep.writePointData(w, b)
+	w := compact.GetWriter(
+		compact.WithPoints(pts),
+		compact.WithDynamicURL(url),
+		compact.WithCategory(point.DynamicDWCategory),
+		compact.WithHTTPEncoding(point.LineProtocol),
+		compact.WithBodyCallback(func(w *compact.Writer, b *compact.Body) error {
+			err := d.ep.WritePointData(w, b)
 			if err != nil {
 				writeError = err
 			}
 
 			return err
 		}),
-		WithHTTPHeader("X-Sub-Category", "dialtesting"))
-	defer putWriter(w)
+		compact.WithHTTPHeader("X-Sub-Category", "dialtesting"))
+	defer compact.PutWriter(w)
 
 	if d.ep == nil {
 		return fmt.Errorf("endpoint is not set correctly")
 	}
 
-	buildErr := w.buildPointsBody()
+	buildErr := w.BuildPointsBody()
 
 	if buildErr != nil {
 		return buildErr
@@ -82,7 +85,7 @@ func (d *DialtestingSender) CheckToken(token, scheme, host string) (bool, error)
 		return false, err
 	}
 
-	resp, err := d.ep.sendReq(req)
+	resp, err := d.ep.SendReq(req)
 	if err != nil {
 		return false, err
 	}

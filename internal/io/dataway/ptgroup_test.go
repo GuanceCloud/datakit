@@ -153,7 +153,7 @@ func TestGroupPoint(t *T.T) {
 			t.Logf("key: %s, pts: %d", k, len(res[k]))
 		}
 
-		assert.Len(t, res["nr=a%0Ab%0Ac,cjk=%E4%B8%AD"], 100)
+		assert.Len(t, res["nr=a\nb\nc,cjk=中"], 100)
 	})
 
 	t.Run("duplicate-keys", func(t *T.T) {

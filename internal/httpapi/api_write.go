@@ -152,6 +152,7 @@ type APIWriteResult struct {
 
 	PointCallback point.Callback
 
+	CustomeURL,
 	inputVersion,
 	plName,
 	SrcIP,
@@ -184,9 +185,10 @@ func (wr *APIWriteResult) reset() {
 	wr.IPQuerier = nil
 	wr.IPInfo = nil
 
-	wr.globalElectionTags = false
-	wr.inputVersion = ""
 	wr.ignoreGlobalTags = false
+	wr.globalElectionTags = false
+	wr.CustomeURL = ""
+	wr.inputVersion = ""
 	wr.SrcIP = ""
 	wr.APPID = ""
 	wr.IPStatus = ""
@@ -324,8 +326,10 @@ func (wr *APIWriteResult) APIV1Write(req *http.Request) (err error) {
 		opts = append(opts, point.WithExtraTags(wr.ipTags()))
 
 	default:
-		l.Debugf("invalid category: %q", categoryURL)
-		return uhttp.Errorf(ErrInvalidCategory, "invalid URL %q", categoryURL)
+		if wr.CustomeURL == "" && categoryURL != wr.CustomeURL {
+			l.Debugf("invalid category: %q", categoryURL)
+			return uhttp.Errorf(ErrInvalidCategory, "invalid URL %q", categoryURL)
+		}
 	}
 
 	// API can set input name via query args.

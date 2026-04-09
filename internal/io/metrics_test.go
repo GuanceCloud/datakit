@@ -124,3 +124,23 @@ func TestFeedMetrics(t *T.T) {
 		})
 	})
 }
+
+func TestAggrProcessCostMetric(t *T.T) {
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(Metrics()...)
+
+	aggrProcessCostVec.WithLabelValues("test-input", point.Metric.String()).Observe(0.123)
+
+	mfs, err := reg.Gather()
+	require.NoError(t, err)
+
+	metric := metrics.GetMetricOnLabels(mfs,
+		"datakit_io_aggr_process_cost_seconds", point.Metric.String(), "test-input")
+	require.NotNil(t, metric)
+	assert.Equal(t, uint64(1), metric.GetSummary().GetSampleCount())
+	assert.InDelta(t, 0.123, metric.GetSummary().GetSampleSum(), 0.000001)
+
+	t.Cleanup(func() {
+		MetricsReset()
+	})
+}

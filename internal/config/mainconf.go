@@ -16,6 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/aggr"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/recorder"
@@ -77,7 +78,8 @@ type Config struct {
 	IO                     *io.IOConf         `toml:"io"`
 	IOCacheCountDeprecated int                `toml:"io_cache_count,omitzero"`
 
-	Dataway *dataway.Dataway `toml:"dataway"`
+	Dataway    *dataway.Dataway `toml:"dataway"`
+	Aggregator *aggr.Aggregator `toml:"aggregator"`
 
 	GlobalHostTags       map[string]string `toml:"global_host_tags"`
 	GlobalTagsDeprecated map[string]string `toml:"global_tags,omitempty"`
@@ -248,6 +250,15 @@ func DefaultConfig() *Config {
 			},
 			Interval: "30s",
 			JavaHome: "",
+		},
+		Aggregator: &aggr.Aggregator{
+			Endpoints:                   []string{},
+			Timeout:                     0,
+			MaxRawBodySize:              0,
+			UseLocalConfig:              true,
+			LocalConfigDir:              filepath.Join(datakit.ConfdDir, "aggr"),
+			LocalMetricConfigFile:       "aggr.toml",
+			LocalTailSamplingConfigFile: "tail-sampling.toml",
 		},
 	}
 

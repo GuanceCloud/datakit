@@ -66,6 +66,7 @@ func putFeedData(fd *feedData) {
 	fd.cat = point.UnknownCategory
 	fd.postTimeout = 0
 	fd.plOption = nil
+	fd.otelAggr = false
 	fd.election = false
 	fd.pts = nil
 	fd.measurement = ""
@@ -105,6 +106,7 @@ type feedData struct {
 	cat      point.Category
 	plOption *lang.LogOption
 
+	otelAggr,
 	noGlobalTags,
 	syncSend,
 	election bool
@@ -129,6 +131,12 @@ func (fd *feedData) NoGlobalTags() bool {
 
 // FeedOption used to define various feed options.
 type FeedOption func(*feedData)
+
+func WithOTELAggr(on bool) FeedOption {
+	return func(fd *feedData) {
+		fd.otelAggr = on
+	}
+}
 
 // DisableGlobalTags used to enable/disable adding global host/election tags.
 func DisableGlobalTags(on bool) FeedOption {
@@ -177,8 +185,8 @@ type ioFeeder struct{}
 // FeedLastError report any error message, these messages will show in monitor
 // and integration view.
 func (*ioFeeder) FeedLastError(err string, opts ...metrics.LastErrorOption) {
-	if defIO.fo != nil {
-		defIO.fo.WriteLastError(err, opts...)
+	if defIO.foDataway != nil {
+		defIO.foDataway.WriteLastError(err, opts...)
 	} else {
 		log.Warnf("feed output not set, ignored")
 	}
@@ -290,8 +298,8 @@ func PLAggFeed(cat point.Category, name string, data any) error {
 	fd.cat = cat
 	fd.input = name
 
-	if defIO.fo != nil {
-		return defIO.fo.Write(fd)
+	if defIO.foDataway != nil {
+		return defIO.foDataway.Write(fd)
 	} else {
 		log.Warnf("feed output not set, ignored")
 		return nil
@@ -372,16 +380,18 @@ func (x *dkIO) beforeFeed(opt *feedData) ([]*point.Point, map[point.Category][]*
 	return after, ptCreate, offloadCount, nil
 }
 
-func (x *dkIO) doFeed(opt *feedData) error {
-	if len(opt.pts) == 0 {
-		if opt.syncSend {
-			return x.fo.Write(opt)
+func (x *dkIO) doFeed(fd *feedData) error {
+	if len(fd.pts) == 0 {
+		if fd.syncSend {
+			defer putFeedData(fd)
+			return x.foDataway.Write(fd)
 		}
-		log.Warnf("no point from %q", opt.input)
+
+		log.Warnf("no point from %q", fd.input)
 		return nil
 	}
 
-	if opt.input == "" {
+	if fd.input == "" {
 		pc, src, ln, ok := runtime.Caller(2) // skip 2 level: current doFeed and uplevel Feed
 		if ok {
 			fn := runtime.FuncForPC(pc).Name()
@@ -389,40 +399,70 @@ func (x *dkIO) doFeed(opt *feedData) error {
 		}
 	}
 
-	log.Debugf("io feed %s on %s", opt.input, opt.cat.String())
+	log.Debugf("io feed %s on %s", fd.input, fd.cat.String())
 
 	// set measurement name (only for metrics)
-	if opt.measurement != "" && opt.cat == point.Metric {
-		for _, pt := range opt.pts {
-			pt.SetName(opt.measurement)
+	if fd.measurement != "" && fd.cat == point.Metric {
+		for _, pt := range fd.pts {
+			pt.SetName(fd.measurement)
 		}
 	}
 
-	after, plCreate, offl, err := x.beforeFeed(opt)
+	if x.Aggr != nil {
+		origPts := fd.pts
+		processStart := time.Now()
+		result, err := x.Aggr.Process(fd.cat, fd.input, fd.pts)
+		aggrProcessCostVec.WithLabelValues(fd.input, fd.cat.String()).Observe(time.Since(processStart).Seconds())
+		if err != nil {
+			log.Warnf("aggr process err=%v", err)
+		} else if result != nil {
+			if result.SelectedPoints > 0 {
+				aggrSelectedPtsVec.WithLabelValues(fd.input, fd.cat.String()).Add(float64(result.SelectedPoints))
+			}
+			if result.BatchPackages > 0 {
+				aggrBatchPkgVec.WithLabelValues(fd.input, fd.cat.String()).Add(float64(result.BatchPackages))
+			}
+			if result.TailSamplingPackages > 0 {
+				tailSamplingPkgVec.WithLabelValues(fd.input, fd.cat.String()).Add(float64(result.TailSamplingPackages))
+			}
+
+			fd.pts = result.Points
+			if result.Consumed {
+				fd.pts = origPts
+				defIO.recordPoints(fd)
+				log.Debugf("aggr process consumed points, input=%s cat=%s", fd.input, fd.cat)
+				putFeedData(fd)
+				return nil
+			}
+		}
+	}
+
+	after, plCreate, offl, err := x.beforeFeed(fd)
 	if err != nil {
 		return err
 	}
 
-	filtered := len(opt.pts) - len(after) - offl
+	filtered := len(fd.pts) - len(after) - offl
 
-	opt.pts = after
+	fd.pts = after
+	log.Debugf("after filtered, fd.pts len=%s", len(fd.pts))
 
 	if filtered >= 0 {
 		inputsFilteredPtsVec.WithLabelValues(
-			opt.input,
-			opt.cat.String(),
+			fd.input,
+			fd.cat.String(),
 		).Add(float64(filtered))
 	} else {
-		log.Errorf("invalid filtered: pts: %d, after: %d, offl: %d", len(opt.pts), len(after), offl)
+		log.Errorf("invalid filtered: pts: %d, after: %d, offl: %d", len(fd.pts), len(after), offl)
 	}
 
 	// Maybe all points been filtered, but we still send the feeding into io.
 	// We can still see some inputs/data are sending to io in monitor. Do not
 	// optimize the feeding, or we see nothing on monitor about these filtered
 	// points.
-	if x.fo != nil {
+	if x.foDataway != nil {
 		for cat, v := range plCreate {
-			crName := "create_point/" + opt.input
+			crName := "create_point/" + fd.input
 			crCat := cat.String()
 			inputsFeedVec.WithLabelValues(crName, crCat).Inc()
 			inputsFeedPtsVec.WithLabelValues(crName, crCat).Observe(float64(len(v)))
@@ -433,12 +473,12 @@ func (x *dkIO) doFeed(opt *feedData) error {
 			ptsCreateOpt.cat = cat
 			ptsCreateOpt.pts = v
 
-			if err := x.fo.Write(ptsCreateOpt); err != nil {
+			if err := x.foDataway.Write(ptsCreateOpt); err != nil {
 				log.Warnf("send pts created by the script: %s", err.Error())
 			}
 		}
 
-		return x.fo.Write(opt)
+		return x.foDataway.Write(fd)
 	} else {
 		log.Warnf("feed output not set, ignored")
 		return nil

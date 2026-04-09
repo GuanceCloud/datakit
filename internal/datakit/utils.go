@@ -13,11 +13,13 @@ import (
 	"io/fs"
 	"net"
 	"os"
+	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
+	"unsafe"
 
 	bstoml "github.com/BurntSushi/toml"
 	pr "github.com/shirou/gopsutil/v3/process"
@@ -422,4 +424,21 @@ func StrInclude(x string, arr []string) bool {
 		}
 	}
 	return false
+}
+
+// ToUnsafeBytes converts s to a byte slice without memory allocations.
+// The returned byte slice is valid only until s is reachable and unmodified.
+func ToUnsafeBytes(s string) (b []byte) {
+	sh := (*reflect.StringHeader)(unsafe.Pointer(&s)) // nolint:gosec
+	slh := (*reflect.SliceHeader)(unsafe.Pointer(&b)) // nolint:gosec
+	slh.Data = sh.Data
+	slh.Len = sh.Len
+	slh.Cap = sh.Len
+	return b
+}
+
+// ToUnsafeString converts b to string without memory allocations.
+// The returned string is valid only until b is reachable and unmodified.
+func ToUnsafeString(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b)) // nolint:gosec
 }

@@ -73,22 +73,25 @@ const (
 	CategoryProfiling    = "profiling"
 
 	// other APIS.
-	HeartBeat         = "/v1/write/heartbeat"
-	Ping              = "/ping"
-	Election          = "/v1/election"
-	ElectionHeartbeat = "/v1/election/heartbeat"
-	QueryRaw          = "/v1/query/raw"
-	Workspace         = "/v1/workspace"
-	ObjectLabel       = "/v1/object/labels" // object label
-	LogUpload         = "/v1/log"
-	PipelinePull      = "/v1/pipeline/pull"  // deprecated
-	LogFilter         = "/v2/logfilter/pull" // deprecated
-	DatakitPull       = "/v1/datakit/pull"
-	ListDataWay       = "/v2/list/dataway"
-	TokenCheck        = "/v1/check/token"
-	UsageTrace        = "/v1/datakit/usage_trace"
-	NTPSync           = "/v1/ntp"
-	EnvVariable       = "/v1/env_variable"
+	HeartBeat          = "/v1/write/heartbeat"
+	Ping               = "/ping"
+	Election           = "/v1/election"
+	ElectionHeartbeat  = "/v1/election/heartbeat"
+	QueryRaw           = "/v1/query/raw"
+	Workspace          = "/v1/workspace"
+	ObjectLabel        = "/v1/object/labels" // object label
+	LogUpload          = "/v1/log"
+	PipelinePull       = "/v1/pipeline/pull"  // deprecated
+	LogFilter          = "/v2/logfilter/pull" // deprecated
+	DatakitPull        = "/v1/datakit/pull"
+	ListDataWay        = "/v2/list/dataway"
+	TokenCheck         = "/v1/check/token"
+	UsageTrace         = "/v1/datakit/usage_trace"
+	NTPSync            = "/v1/ntp"
+	EnvVariable        = "/v1/env_variable"
+	Aggregate          = "/v1/aggregate"
+	TailSampling       = "/v1/tail_sampling"
+	TailSamplingConfig = "/v1/tail_sampling_config"
 
 	StrGitRepos           = "gitrepos"
 	StrPipelineRemote     = "pipeline_remote"

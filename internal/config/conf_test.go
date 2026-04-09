@@ -18,6 +18,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/endpoint"
 )
 
 // TestDefaultMainConf used to keep default config and default config sample equal.
@@ -508,8 +509,8 @@ func TestLoadDWRetry(t *T.T) {
   urls = ["http://testing-openway.cloudcare.cn?token=tkn_2dc4xxxxxxxxxxxxxxxxxxxxxxxxxxxx"]
   timeout = "30s"
 `,
-			retryCount: dataway.DefaultRetryCount,
-			retryDelay: dataway.DefaultRetryDelay,
+			retryCount: endpoint.DefaultRetryCount,
+			retryDelay: endpoint.DefaultRetryDelay,
 		},
 		{
 			name: "manualSetting",
@@ -531,7 +532,7 @@ func TestLoadDWRetry(t *T.T) {
   timeout = "30s"
   retry_delay = "0s"
 `,
-			retryCount: dataway.DefaultRetryCount,
+			retryCount: endpoint.DefaultRetryCount,
 			retryDelay: 0,
 		},
 	}

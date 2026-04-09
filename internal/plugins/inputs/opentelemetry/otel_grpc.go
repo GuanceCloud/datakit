@@ -103,6 +103,7 @@ func (mss *MetricsServiceServer) Export(ctx context.Context, msreq *metrics.Expo
 	*metrics.ExportMetricsServiceResponse, error,
 ) {
 	remoteIP := getRemoteIP(ctx)
+
 	log.Debugf("get gRPC metric from %s", remoteIP)
 	mss.input.parseResourceMetricsV2(msreq.ResourceMetrics, remoteIP)
 

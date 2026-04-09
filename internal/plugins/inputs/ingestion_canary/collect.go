@@ -16,7 +16,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	ingestioncanary "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ingestion_canary"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/compact"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 )
 
@@ -203,11 +203,11 @@ func (ipt *Input) reportToWorkspace(pts ...*point.Point) error {
 	}
 
 	return ipt.resultDataway.Write(
-		dataway.WithPoints(pts),
-		dataway.WithDynamicURL(ipt.writeURL),
-		dataway.WithCategory(point.DynamicDWCategory),
-		dataway.WithNoWAL(true),
-		dataway.WithGzipDuringBuildBody(true),
-		dataway.WithHTTPHeader("X-Sub-Category", inputName),
+		compact.WithPoints(pts),
+		compact.WithDynamicURL(ipt.writeURL),
+		compact.WithCategory(point.DynamicDWCategory),
+		compact.WithNoWAL(true),
+		compact.WithGzipDuringBuildBody(true),
+		compact.WithHTTPHeader("X-Sub-Category", inputName),
 	)
 }

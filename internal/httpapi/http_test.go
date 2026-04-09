@@ -277,15 +277,51 @@ func Test_serverSideTimeout(t *T.T) {
 
 		time.Sleep(time.Second)
 
-		// write body
+		// The server should close the connection after read-header-timeout.
+		// Depending on the kernel/TCP stack, the first write after peer close may
+		// still succeed and the error only becomes visible on a later read/write.
 		_, err = conn.Write([]byte("\r\n"))
-		assert.Error(t, err)
-		t.Logf("write body error: %s", err)
-		if errors.Is(err, syscall.ECONNRESET) {
-			t.Logf("err: connection reset")
-		} else if errors.Is(err, syscall.EPIPE) {
-			t.Logf("err: broken pipe")
+		if err != nil {
+			t.Logf("write body error: %s", err)
+			if errors.Is(err, syscall.ECONNRESET) {
+				t.Logf("err: connection reset")
+			} else if errors.Is(err, syscall.EPIPE) {
+				t.Logf("err: broken pipe")
+			}
+			return
 		}
+
+		var finalErr error
+		require.Eventually(t, func() bool {
+			_ = conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
+
+			buf := make([]byte, 1)
+			_, readErr := conn.Read(buf)
+			if readErr != nil {
+				var netErr net.Error
+				if errors.As(readErr, &netErr) && netErr.Timeout() {
+					_, writeErr := conn.Write([]byte("x"))
+					if writeErr != nil {
+						finalErr = writeErr
+						return true
+					}
+					return false
+				}
+
+				finalErr = readErr
+				return true
+			}
+
+			_, writeErr := conn.Write([]byte("x"))
+			if writeErr != nil {
+				finalErr = writeErr
+				return true
+			}
+
+			return false
+		}, 2*time.Second, 50*time.Millisecond, "expected server to close connection after read-header-timeout")
+
+		t.Logf("connection closed with error: %v", finalErr)
 	})
 
 	t.Run("idle-timeout", func(t *T.T) {
@@ -652,6 +688,13 @@ func newPubListener(t *T.T) net.Listener {
 	return ln
 }
 
+func loopbackURL(t *T.T, ts *httptest.Server, path string) string {
+	t.Helper()
+	_, port, err := net.SplitHostPort(ts.Listener.Addr().String())
+	require.NoError(t, err)
+	return fmt.Sprintf("http://127.0.0.1:%s%s", port, path)
+}
+
 func TestSetuptRouter(t *T.T) {
 	t.Run("api-white-list-on-xforward", func(t *T.T) {
 		hs := defaultHTTPServerConf()
@@ -742,9 +785,11 @@ func TestSetuptRouter(t *T.T) {
 		t.Logf("resp body: %s", string(respBody))
 
 		// real loopback
-		req, err = http.NewRequest("POST", fmt.Sprintf("%s/disabled_api", ts.URL), nil)
+		req, err = http.NewRequest("POST", loopbackURL(t, ts, "/disabled_api"), nil)
 		assert.NoError(t, err)
-		localcli := http.Client{}
+		localcli := http.Client{
+			Transport: &http.Transport{Proxy: nil},
+		}
 		resp, err = localcli.Do(req)
 		assert.NoError(t, err)
 
@@ -850,7 +895,7 @@ func TestSetuptRouter(t *T.T) {
 		t.Logf("test server: %q", ts.URL)
 		time.Sleep(time.Second)
 
-		req, err := http.NewRequest("POST", ts.URL+"/some-404-page", nil)
+		req, err := http.NewRequest("POST", loopbackURL(t, ts, "/some-404-page"), nil)
 		if err != nil {
 			t.Error(err)
 		}
@@ -858,7 +903,9 @@ func TestSetuptRouter(t *T.T) {
 		origin := "http://foobar.com"
 		req.Header.Set("Origin", origin)
 
-		c := &http.Client{}
+		c := &http.Client{
+			Transport: &http.Transport{Proxy: nil},
+		}
 
 		resp, err := c.Do(req)
 		if err != nil {

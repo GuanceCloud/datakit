@@ -207,6 +207,47 @@ ulimit = 64000
   ]
 
 ################################################
+# Aggregator configure(metric aggregation + tail sampling)
+################################################
+# Aggregator needs TWO files:
+# 1) aggr.toml           : metric aggregation rules
+# 2) tail-sampling.toml  : tracing/logging/rum tail-sampling rules
+#
+# Data flow order in IO:
+# - match aggregation rules first and send matched packages to /v1/aggregate
+# - then apply tail-sampling rules(tracing/logging/rum) and send to /v1/tail_sampling
+#
+# Quick start(local mode):
+# - keep use_local_config = true
+# - create/update these files:
+#   /usr/local/datakit/conf.d/aggr/aggr.toml
+#   /usr/local/datakit/conf.d/aggr/tail-sampling.toml
+#
+# Remote mode(use_local_config = false):
+# - DataKit pulls rule files from Dataway via:
+#   aggr=true and tail-sampling=true
+# - local files are ignored in this mode
+#
+# endpoints:
+# - optional downstream Dataway URLs with token query parameter
+# - if empty, DataKit reuses [dataway] URLs automatically
+#
+# max_raw_body_size:
+# - max package size before gzip
+# - priority:
+#   aggregator.max_raw_body_size > dataway.max_raw_body_size > default
+[aggregator]
+  #endpoints = [
+  #  "https://openway.example.com?token=<YOUR-WORKSPACE-TOKEN>",
+  #]
+  #max_raw_body_size = 1048576 # 1MB
+
+  use_local_config = true
+  local_config_dir = "/usr/local/datakit/conf.d/aggr"
+  local_metric_config_file = "aggr.toml"
+  local_tail_sampling_config_file = "tail-sampling.toml"
+
+################################################
 # Dataway configure
 ################################################
 [dataway]
