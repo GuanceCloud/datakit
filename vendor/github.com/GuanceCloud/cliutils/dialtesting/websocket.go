@@ -73,7 +73,9 @@ type WebsocketTask struct {
 	reqError        string
 	timeout         time.Duration
 
-	rawTask *WebsocketTask
+	rawTask          *WebsocketTask
+	sslCertNotBefore int64
+	sslCertNotAfter  int64
 }
 
 func (t *WebsocketTask) init() error {
@@ -213,6 +215,12 @@ func (t *WebsocketTask) getResults() (tags map[string]string, fields map[string]
 		"success":                int64(-1),
 	}
 
+	// add SSL certificate validity dates
+	if t.sslCertNotAfter > 0 {
+		fields[`ssl_cert_not_after`] = t.sslCertNotAfter
+		fields[`ssl_cert_expires_in_days`] = (t.sslCertNotAfter - time.Now().UnixMicro()) / (24 * time.Hour).Microseconds()
+	}
+
 	for k, v := range t.Tags {
 		tags[k] = v
 	}
@@ -272,7 +280,25 @@ func (t *WebsocketTask) metricName() string {
 
 func (t *WebsocketTask) clear() {
 	t.reqCost = 0
+	t.reqDNSCost = 0
 	t.reqError = ""
+	t.sslCertNotBefore = 0
+	t.sslCertNotAfter = 0
+}
+
+// extractCertificateInfo extracts SSL certificate validity information from the underlying connection
+func (t *WebsocketTask) extractCertificateInfo(conn net.Conn) {
+	// Check if the underlying connection is a TLS connection
+	if tlsConn, ok := conn.(*tls.Conn); ok {
+		// Get the TLS connection state
+		state := tlsConn.ConnectionState()
+		// Extract certificate information from the connection state
+		if len(state.PeerCertificates) > 0 {
+			cert := state.PeerCertificates[0] // first certificate in the chain is the server's certificate
+			t.sslCertNotBefore = cert.NotBefore.UnixMicro()
+			t.sslCertNotAfter = cert.NotAfter.UnixMicro()
+		}
+	}
 }
 
 func (t *WebsocketTask) run() error {
@@ -280,6 +306,7 @@ func (t *WebsocketTask) run() error {
 	defer cancel()
 
 	hostIP := net.ParseIP(t.hostname)
+	dialTarget := t.parsedURL.Host
 
 	if hostIP == nil { // host name
 		start := time.Now()
@@ -294,6 +321,7 @@ func (t *WebsocketTask) run() error {
 			} else {
 				t.reqDNSCost = time.Since(start)
 				hostIP = ips[0] // TODO: support mutiple ip for one host
+				dialTarget = net.JoinHostPort(hostIP.String(), t.parsedURL.Port())
 			}
 		}
 	}
@@ -305,15 +333,23 @@ func (t *WebsocketTask) run() error {
 		header.Add("Host", t.hostname)
 	}
 
-	t.parsedURL.Host = net.JoinHostPort(hostIP.String(), t.parsedURL.Port())
+	// Create a dialer with appropriate TLS configuration
+	dialer := *websocket.DefaultDialer // Create a copy to avoid modifying the global default
+	dialer.NetDialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+		return (&net.Dialer{}).DialContext(ctx, network, dialTarget)
+	}
 
+	// For wss scheme, we need to set InsecureSkipVerify to true for self-signed certificates
 	if t.parsedURL.Scheme == "wss" {
-		websocket.DefaultDialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} // nolint:gosec
+		dialer.TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: true, // nolint:gosec
+			ServerName:         t.hostname,
+		}
 	}
 
 	start := time.Now()
 
-	c, resp, err := websocket.DefaultDialer.DialContext(ctx, t.parsedURL.String(), header)
+	c, resp, err := dialer.DialContext(ctx, t.parsedURL.String(), header)
 	if err != nil {
 		t.reqError = err.Error()
 		t.reqDNSCost = 0
@@ -328,6 +364,13 @@ func (t *WebsocketTask) run() error {
 	}()
 
 	t.resp = resp
+
+	// Extract SSL certificate validity information from the underlying connection for wss
+	if t.parsedURL.Scheme == "wss" {
+		if underlyingConn := c.UnderlyingConn(); underlyingConn != nil {
+			t.extractCertificateInfo(underlyingConn)
+		}
+	}
 
 	t.getMessage(c)
 	return nil

@@ -102,11 +102,47 @@ type GRPCTask struct {
 	reqCost          time.Duration
 	timeout          time.Duration
 	postScriptResult *ScriptResult
+	sslCertNotBefore int64
+	sslCertNotAfter  int64
 
 	rawTask                    *GRPCTask
 	healthMethodDescriptor     *pdesc.MethodDescriptor // cached method descriptor for HealthCheck discovery
 	protoFilesMethodDescriptor *pdesc.MethodDescriptor // cached method descriptor for ProtoFiles discovery
 	reflectionMethodDescriptor *pdesc.MethodDescriptor // cached method descriptor for Reflection discovery
+}
+
+type certCaptureTransportCredentials struct {
+	credentials.TransportCredentials
+	onTLSInfo func(credentials.TLSInfo)
+}
+
+func (c *certCaptureTransportCredentials) ClientHandshake(ctx context.Context, authority string, rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
+	if c.TransportCredentials == nil {
+		return nil, nil, errors.New("no underlying credentials")
+	}
+
+	conn, authInfo, err := c.TransportCredentials.ClientHandshake(ctx, authority, rawConn)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if tlsInfo, ok := authInfo.(credentials.TLSInfo); ok && c.onTLSInfo != nil {
+		c.onTLSInfo(tlsInfo)
+	}
+
+	return conn, authInfo, nil
+}
+
+func (c *certCaptureTransportCredentials) Clone() credentials.TransportCredentials {
+	cloned := c.TransportCredentials.Clone()
+	if cloned == nil {
+		return nil
+	}
+
+	return &certCaptureTransportCredentials{
+		TransportCredentials: cloned,
+		onTLSInfo:            c.onTLSInfo,
+	}
 }
 
 func (t *GRPCTask) initTask() {
@@ -213,7 +249,7 @@ func (t *GRPCTask) buildTLSCredentials() (credentials.TransportCredentials, erro
 		config := &tls.Config{
 			InsecureSkipVerify: true, //nolint:gosec
 		}
-		return credentials.NewTLS(config), nil
+		return t.wrapTLSCredentials(credentials.NewTLS(config)), nil
 	}
 
 	// if CA cert is provided, setup mTLS
@@ -237,10 +273,23 @@ func (t *GRPCTask) buildTLSCredentials() (credentials.TransportCredentials, erro
 			config.Certificates = []tls.Certificate{clientCert}
 		}
 
-		return credentials.NewTLS(config), nil
+		return t.wrapTLSCredentials(credentials.NewTLS(config)), nil
 	}
 
 	return insecure.NewCredentials(), nil
+}
+
+func (t *GRPCTask) wrapTLSCredentials(creds credentials.TransportCredentials) credentials.TransportCredentials {
+	if creds == nil {
+		return nil
+	}
+
+	return &certCaptureTransportCredentials{
+		TransportCredentials: creds,
+		onTLSInfo: func(tlsInfo credentials.TLSInfo) {
+			t.extractSSLCertificateValidity(tlsInfo.State)
+		},
+	}
 }
 
 func (t *GRPCTask) findMethod(ctx context.Context, conn *grpc.ClientConn) (*pdesc.MethodDescriptor, error) {
@@ -613,6 +662,8 @@ func (t *GRPCTask) clear() {
 	t.reqError = ""
 	t.reqCost = 0
 	t.postScriptResult = nil
+	t.sslCertNotBefore = 0
+	t.sslCertNotAfter = 0
 	if t.timeout == 0 {
 		t.timeout = DefaultGRPCTimeout
 	}
@@ -694,6 +745,11 @@ func (t *GRPCTask) getResults() (tags map[string]string, fields map[string]inter
 		"success":       int64(-1),
 	}
 
+	if t.sslCertNotAfter > 0 {
+		fields["ssl_cert_not_after"] = t.sslCertNotAfter
+		fields["ssl_cert_expires_in_days"] = (t.sslCertNotAfter - time.Now().UnixMicro()) / (24 * time.Hour).Microseconds()
+	}
+
 	if hostnames, err := t.getHostName(); err == nil && len(hostnames) > 0 {
 		tags["dest_host"] = hostnames[0]
 	}
@@ -749,6 +805,14 @@ func (t *GRPCTask) getResults() (tags map[string]string, fields map[string]inter
 	}
 
 	return tags, fields
+}
+
+func (t *GRPCTask) extractSSLCertificateValidity(cs tls.ConnectionState) {
+	if len(cs.PeerCertificates) > 0 {
+		cert := cs.PeerCertificates[0]
+		t.sslCertNotBefore = cert.NotBefore.UnixMicro()
+		t.sslCertNotAfter = cert.NotAfter.UnixMicro()
+	}
 }
 
 func (t *GRPCTask) getVariableValue(variable Variable) (string, error) {
