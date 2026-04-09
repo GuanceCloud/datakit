@@ -36,13 +36,14 @@ const (
 	metricName   = "otel_service"
 	unitTag      = "unit"
 	bucketSuffix = "_bucket"
-	sumSuffix    = "_sum"
-	countSuffix  = "_count"
-	avgSuffix    = "_avg"
-	minSuffix    = "_min"
-	maxSuffix    = "_max"
-	leTag        = "le"
-	infSuffix    = "+Inf" // 固定且大小写敏感
+	// boundsSuffix    = "_bounds".
+	sumSuffix   = "_sum"
+	countSuffix = "_count"
+	avgSuffix   = "_avg"
+	minSuffix   = "_min"
+	maxSuffix   = "_max"
+	leTag       = "le"
+	infSuffix   = "+Inf" // 固定且大小写敏感
 )
 
 var (

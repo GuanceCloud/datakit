@@ -40,6 +40,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpcli"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/endpoint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -482,7 +483,7 @@ func (ipt *Input) setupCli() {
 		if u, err := url.ParseRequestURI(proxy); err != nil {
 			l.Warnf("invalid http_proxy: %s", proxy)
 		} else {
-			if dataway.ProxyURLOK(u) {
+			if endpoint.ProxyURLOK(u) {
 				opt.ProxyURL = u
 			} else {
 				l.Warnf("invalid proxy URL: %s, ignored", u)

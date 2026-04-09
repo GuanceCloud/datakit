@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/endpoint"
 )
 
 type checkTokenResult struct {
@@ -29,7 +30,7 @@ func (dw *Dataway) UsageTrace(body []byte) error {
 	}
 
 	ep := dw.eps[0]
-	requrl, ok := ep.categoryURL[datakit.UsageTrace]
+	requrl, ok := ep.CategoryURL[datakit.UsageTrace]
 	if !ok {
 		return fmt.Errorf("no workspace query URL available")
 	}
@@ -41,11 +42,11 @@ func (dw *Dataway) UsageTrace(body []byte) error {
 	}
 
 	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
-	for k, v := range ep.httpHeaders {
+	for k, v := range ep.HTTPHeaders {
 		req.Header.Set(k, v)
 	}
 
-	resp, err := ep.sendReq(req)
+	resp, err := ep.SendReq(req)
 	if err != nil {
 		return err
 	}
@@ -71,7 +72,7 @@ func (dw *Dataway) WorkspaceQuery(body []byte) (*http.Response, error) {
 	}
 
 	ep := dw.eps[0]
-	requrl, ok := ep.categoryURL[datakit.Workspace]
+	requrl, ok := ep.CategoryURL[datakit.Workspace]
 	if !ok {
 		return nil, fmt.Errorf("no workspace query URL available")
 	}
@@ -83,11 +84,11 @@ func (dw *Dataway) WorkspaceQuery(body []byte) (*http.Response, error) {
 	}
 
 	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
-	for k, v := range ep.httpHeaders {
+	for k, v := range ep.HTTPHeaders {
 		req.Header.Set(k, v)
 	}
 
-	return ep.sendReq(req)
+	return ep.SendReq(req)
 }
 
 func (dw *Dataway) DQLQuery(body []byte) (*http.Response, error) {
@@ -96,7 +97,7 @@ func (dw *Dataway) DQLQuery(body []byte) (*http.Response, error) {
 	}
 
 	ep := dw.eps[0]
-	requrl, ok := ep.categoryURL[datakit.QueryRaw]
+	requrl, ok := ep.CategoryURL[datakit.QueryRaw]
 	if !ok {
 		return nil, fmt.Errorf("no DQL query URL available")
 	}
@@ -107,11 +108,11 @@ func (dw *Dataway) DQLQuery(body []byte) (*http.Response, error) {
 	}
 
 	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
-	for k, v := range ep.httpHeaders {
+	for k, v := range ep.HTTPHeaders {
 		req.Header.Set(k, v)
 	}
 
-	return dw.eps[0].sendReq(req)
+	return dw.eps[0].SendReq(req)
 }
 
 func (dw *Dataway) Election(namespace, id string, reqBody io.Reader) ([]byte, error) {
@@ -121,7 +122,7 @@ func (dw *Dataway) Election(namespace, id string, reqBody io.Reader) ([]byte, er
 
 	ep := dw.eps[0]
 
-	requrl, ok := ep.categoryURL[datakit.Election]
+	requrl, ok := ep.CategoryURL[datakit.Election]
 	if !ok {
 		return nil, fmt.Errorf("no election URL available")
 	}
@@ -141,18 +142,18 @@ func (dw *Dataway) Election(namespace, id string, reqBody io.Reader) ([]byte, er
 	}
 
 	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
-	for k, v := range ep.httpHeaders {
+	for k, v := range ep.HTTPHeaders {
 		req.Header.Set(k, v)
 	}
 
-	resp, err := ep.sendReq(req)
+	resp, err := ep.SendReq(req)
 	if err != nil {
 		l.Error(err)
 		return nil, err
 	}
 
 	if resp == nil {
-		return nil, errRequestTerminated
+		return nil, endpoint.ErrRequestTerminated
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -179,7 +180,7 @@ func (dw *Dataway) ElectionHeartbeat(namespace, id string, reqBody io.Reader) ([
 
 	ep := dw.eps[0]
 
-	requrl, ok := ep.categoryURL[datakit.ElectionHeartbeat]
+	requrl, ok := ep.CategoryURL[datakit.ElectionHeartbeat]
 	if !ok {
 		return nil, fmt.Errorf("no election URL available")
 	}
@@ -199,18 +200,18 @@ func (dw *Dataway) ElectionHeartbeat(namespace, id string, reqBody io.Reader) ([
 	}
 
 	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
-	for k, v := range ep.httpHeaders {
+	for k, v := range ep.HTTPHeaders {
 		req.Header.Set(k, v)
 	}
 
-	resp, err := ep.sendReq(req)
+	resp, err := ep.SendReq(req)
 	if err != nil {
 		l.Error(err)
 		return nil, err
 	}
 
 	if resp == nil {
-		return nil, errRequestTerminated
+		return nil, endpoint.ErrRequestTerminated
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -234,7 +235,7 @@ func (dw *Dataway) DatawayList() ([]string, int, error) {
 	}
 
 	ep := dw.eps[0]
-	requrl, ok := ep.categoryURL[datakit.ListDataWay]
+	requrl, ok := ep.CategoryURL[datakit.ListDataWay]
 	if !ok {
 		return nil, datawayListIntervalDefault, fmt.Errorf("dataway list API not available")
 	}
@@ -245,17 +246,17 @@ func (dw *Dataway) DatawayList() ([]string, int, error) {
 	}
 
 	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
-	for k, v := range ep.httpHeaders {
+	for k, v := range ep.HTTPHeaders {
 		req.Header.Set(k, v)
 	}
 
-	resp, err := ep.sendReq(req)
+	resp, err := ep.SendReq(req)
 	if err != nil {
 		return nil, datawayListIntervalDefault, err
 	}
 
 	if resp == nil {
-		return nil, -1, errRequestTerminated
+		return nil, -1, endpoint.ErrRequestTerminated
 	}
 
 	defer resp.Body.Close() //nolint:errcheck
@@ -289,7 +290,7 @@ func (dw *Dataway) UpsertObjectLabels(tkn string, body []byte) (*http.Response, 
 	}
 
 	ep := dw.eps[0]
-	requrl, ok := ep.categoryURL[datakit.ObjectLabel]
+	requrl, ok := ep.CategoryURL[datakit.ObjectLabel]
 	if !ok {
 		return nil, fmt.Errorf("no object labels URL available")
 	}
@@ -300,11 +301,11 @@ func (dw *Dataway) UpsertObjectLabels(tkn string, body []byte) (*http.Response, 
 	}
 
 	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
-	for k, v := range ep.httpHeaders {
+	for k, v := range ep.HTTPHeaders {
 		req.Header.Set(k, v)
 	}
 
-	return ep.sendReq(req)
+	return ep.SendReq(req)
 }
 
 // DeleteObjectLabels used to delete object labels.
@@ -314,7 +315,7 @@ func (dw *Dataway) DeleteObjectLabels(tkn string, body []byte) (*http.Response, 
 	}
 
 	ep := dw.eps[0]
-	requrl, ok := ep.categoryURL[datakit.ObjectLabel]
+	requrl, ok := ep.CategoryURL[datakit.ObjectLabel]
 	if !ok {
 		return nil, fmt.Errorf("no object labels URL available")
 	}
@@ -326,11 +327,11 @@ func (dw *Dataway) DeleteObjectLabels(tkn string, body []byte) (*http.Response, 
 	}
 
 	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
-	for k, v := range ep.httpHeaders {
+	for k, v := range ep.HTTPHeaders {
 		req.Header.Set(k, v)
 	}
 
-	return ep.sendReq(req)
+	return ep.SendReq(req)
 }
 
 // GetEnvVariable used to get env variable.
@@ -340,7 +341,7 @@ func (dw *Dataway) GetEnvVariable(param map[string]string) (*http.Response, erro
 	}
 
 	ep := dw.eps[0]
-	requrl, ok := ep.categoryURL[datakit.EnvVariable]
+	requrl, ok := ep.CategoryURL[datakit.EnvVariable]
 	if !ok {
 		return nil, fmt.Errorf("no env_variable URL available")
 	}
@@ -359,14 +360,14 @@ func (dw *Dataway) GetEnvVariable(param map[string]string) (*http.Response, erro
 	}
 
 	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
-	for k, v := range ep.httpHeaders {
+	for k, v := range ep.HTTPHeaders {
 		req.Header.Set(k, v)
 	}
 
-	return ep.sendReq(req)
+	return ep.SendReq(req)
 }
 
-func (dw *Dataway) GetEndpoints() []*endPoint {
+func (dw *Dataway) GetEndpoints() []*endpoint.EndPoint {
 	return dw.eps
 }
 
@@ -376,7 +377,7 @@ func (dw *Dataway) UploadLog(r io.Reader, hostName string) (*http.Response, erro
 	}
 
 	ep := dw.eps[0]
-	reqURL, ok := ep.categoryURL[datakit.LogUpload]
+	reqURL, ok := ep.CategoryURL[datakit.LogUpload]
 	if !ok {
 		return nil, fmt.Errorf("no file upload URL available")
 	}
@@ -387,12 +388,12 @@ func (dw *Dataway) UploadLog(r io.Reader, hostName string) (*http.Response, erro
 	}
 
 	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
-	for k, v := range ep.httpHeaders {
+	for k, v := range ep.HTTPHeaders {
 		req.Header.Set(k, v)
 	}
 
 	req.Header.Add("Host-Name", hostName)
-	return ep.sendReq(req)
+	return ep.SendReq(req)
 }
 
 func (dw *Dataway) Pull(args string) ([]byte, error) {
@@ -400,7 +401,7 @@ func (dw *Dataway) Pull(args string) ([]byte, error) {
 		return nil, fmt.Errorf("dataway URL not set")
 	}
 
-	return dw.eps[0].datakitPull(args)
+	return dw.eps[0].DatakitPull(args)
 }
 
 type ntpResp struct {
@@ -423,7 +424,7 @@ func (dw *Dataway) doTimeDiff() (int64, error) {
 	}
 
 	ep := dw.eps[0]
-	requrl, ok := ep.categoryURL[datakit.NTPSync]
+	requrl, ok := ep.CategoryURL[datakit.NTPSync]
 	if !ok {
 		return 0, fmt.Errorf("url %s not available", datakit.NTPSync)
 	}
@@ -435,11 +436,11 @@ func (dw *Dataway) doTimeDiff() (int64, error) {
 	}
 
 	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
-	for k, v := range ep.httpHeaders {
+	for k, v := range ep.HTTPHeaders {
 		req.Header.Set(k, v)
 	}
 
-	resp, err := ep.sendReq(req)
+	resp, err := ep.SendReq(req)
 	if err != nil {
 		return 0, fmt.Errorf("doSendReq: %w", err)
 	}
@@ -475,7 +476,7 @@ func (dw *Dataway) RemoteJob(bts []byte) (resp *http.Response, err error) {
 	}
 
 	ep := dw.eps[0]
-	reqURL, ok := ep.categoryURL[datakit.RemoteJob]
+	reqURL, ok := ep.CategoryURL[datakit.RemoteJob]
 	if !ok {
 		return nil, fmt.Errorf("no file upload URL available")
 	}
@@ -486,9 +487,9 @@ func (dw *Dataway) RemoteJob(bts []byte) (resp *http.Response, err error) {
 	}
 
 	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
-	for k, v := range ep.httpHeaders {
+	for k, v := range ep.HTTPHeaders {
 		req.Header.Set(k, v)
 	}
 
-	return ep.sendReq(req)
+	return ep.SendReq(req)
 }

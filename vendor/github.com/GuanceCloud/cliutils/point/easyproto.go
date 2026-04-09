@@ -49,6 +49,32 @@ func marshalPoint(pt *Point, mm *easyproto.MessageMarshaler) {
 	}
 }
 
+func marshalPBPoint(pb *PBPoint, mm *easyproto.MessageMarshaler) {
+	mm.AppendString(1, pb.Name)
+	for _, f := range pb.Fields {
+		if f == nil {
+			continue
+		}
+		f.marshalProtobuf(mm.AppendMessage(2))
+	}
+
+	mm.AppendInt64(3, pb.Time)
+
+	for _, w := range pb.Warns {
+		if w == nil {
+			continue
+		}
+		w.marshalProtobuf(mm.AppendMessage(4))
+	}
+
+	for _, d := range pb.Debugs {
+		if d == nil {
+			continue
+		}
+		d.marshalProtobuf(mm.AppendMessage(5))
+	}
+}
+
 func (kv *Field) marshalProtobuf(mm *easyproto.MessageMarshaler) {
 	mm.AppendString(1, kv.Key)
 
@@ -86,35 +112,91 @@ func (d *Debug) marshalProtobuf(mm *easyproto.MessageMarshaler) {
 
 type Points []*Point
 
+// AppendPointToPBPointsPayload appends one point into a PBPoints payload.
+func AppendPointToPBPointsPayload(dst []byte, pt *Point) []byte {
+	if pt == nil || pt.pt == nil {
+		return dst
+	}
+
+	m := mp.Get()
+	mm := m.MessageMarshaler()
+	marshalPoint(pt, mm.AppendMessage(1))
+
+	dst = m.Marshal(dst)
+	mp.Put(m)
+	return dst
+}
+
+// AppendPBPointToPBPointsPayload appends one PBPoint into a PBPoints payload.
+func AppendPBPointToPBPointsPayload(dst []byte, pb *PBPoint) []byte {
+	if pb == nil {
+		return dst
+	}
+
+	m := mp.Get()
+	mm := m.MessageMarshaler()
+	marshalPBPoint(pb, mm.AppendMessage(1))
+
+	dst = m.Marshal(dst)
+	mp.Put(m)
+	return dst
+}
+
+// WalkPBPointsPayload iterates all raw PBPoint message bodies in a PBPoints payload.
+func WalkPBPointsPayload(payload []byte, fn func(rawPBPoint []byte) bool) error {
+	if fn == nil {
+		return nil
+	}
+
+	var (
+		fc  easyproto.FieldContext
+		err error
+	)
+
+	for len(payload) > 0 {
+		payload, err = fc.NextField(payload)
+		if err != nil {
+			return fmt.Errorf("read next field for PBPoints failed: %w", err)
+		}
+
+		if fc.FieldNum != 1 {
+			continue
+		}
+
+		data, ok := fc.MessageData()
+		if !ok {
+			return fmt.Errorf("cannot read Arr for PBPoints")
+		}
+
+		if !fn(data) {
+			return nil
+		}
+	}
+
+	return nil
+}
+
 // unmarshal.
 func unmarshalPoints(src []byte) ([]*Point, error) {
 	var (
-		fc  easyproto.FieldContext
 		pts []*Point
 		err error
 	)
 
-	for len(src) > 0 {
-		src, err = fc.NextField(src)
-		if err != nil {
-			return nil, fmt.Errorf("read next field for PBPoints failed: %w", err)
+	err = WalkPBPointsPayload(src, func(rawPBPoint []byte) bool {
+		pt, walkErr := unmarshalPoint(rawPBPoint)
+		if walkErr != nil {
+			err = fmt.Errorf("unmarshal point failed: %w", walkErr)
+			return false
 		}
-
-		if fc.FieldNum == 1 {
-			data, ok := fc.MessageData()
-			if !ok {
-				return nil, fmt.Errorf("cannot read read Arr for PBPoints")
-			}
-
-			if pt, err := unmarshalPoint(data); err != nil {
-				return nil, fmt.Errorf("unmarshal point failed: %w", err)
-			} else {
-				pts = append(pts, pt)
-			}
-		}
+		pts = append(pts, pt)
+		return true
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	return pts, nil
+	return pts, err
 }
 
 func unmarshalPoint(src []byte) (*Point, error) {

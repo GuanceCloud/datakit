@@ -63,6 +63,7 @@ type configCrpto struct {
 func (c *Config) String() string {
 	buf := new(bytes.Buffer)
 	if err := bstoml.NewEncoder(buf).Encode(c); err != nil {
+		l.Errorf("encode config to TOML failed: %s", err)
 		return ""
 	}
 

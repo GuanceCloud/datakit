@@ -20,6 +20,8 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/compact"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/endpoint"
 )
 
 const (
@@ -27,8 +29,6 @@ const (
 	HeaderXGlobalTagsV2 = "X-Global-Tags-V2" // with header key/value URL encoded
 
 	HeaderXStorageIndexName = "X-Storage-Index-Name"
-	DefaultRetryCount       = 1
-	DefaultRetryDelay       = time.Second
 
 	// DeprecatedDefaultMaxRawBodySize will cause too many memory, we set it to
 	// 1MB. Set 1MB because the max-log length(message) is 1MB at storage side.
@@ -38,12 +38,12 @@ const (
 )
 
 type IDataway interface {
-	Write(...WriteOption) error
+	Write(...compact.WriteOption) error
 	Pull(what string) ([]byte, error)
 }
 
 var (
-	dwAPIs = []string{
+	datawayAPIs = []string{
 		point.MetricDeprecated.URL(),
 		point.Metric.URL(),
 		point.Network.URL(),
@@ -75,6 +75,9 @@ var (
 		datakit.NTPSync,
 		datakit.RemoteJob,
 		datakit.EnvVariable,
+		datakit.Aggregate,
+		datakit.TailSamplingConfig,
+		datakit.TailSampling,
 	}
 
 	AvailableDataways          = []string{}
@@ -92,9 +95,12 @@ func NewDefaultDataway(opts ...DWOption) *Dataway {
 		GlobalCustomerKeys:   []string{},
 		ContentEncoding:      "v2",
 		GZip:                 true,
-		EnableHTTPTrace:      true,
-		MaxRetryCount:        DefaultRetryCount,
-		RetryDelay:           DefaultRetryDelay,
+
+		MaxRetryCount: endpoint.DefaultRetryCount,
+		RetryDelay:    endpoint.DefaultRetryDelay,
+
+		EnableHTTPTrace: true,
+
 		NTP: &ntp{
 			Enable:     true,
 			Interval:   time.Minute * 5,
@@ -169,13 +175,13 @@ type Dataway struct {
 	GlobalCustomerKeys  []string `toml:"global_customer_keys"`
 	WAL                 *WALConf `toml:"wal"`
 
-	eps []*endPoint
+	eps []*endpoint.EndPoint
 
 	walq    map[point.Category]*WALQueue
 	walFail *WALQueue
 
 	locker     sync.RWMutex
-	dnsCachers []*dnsCacher
+	dnsCachers []*endpoint.DNSCacher
 
 	globalTags                map[string]string
 	globalTagsHTTPHeaderValue string
@@ -230,7 +236,7 @@ func (dw *Dataway) String() string {
 
 	for _, x := range dw.eps {
 		arr = append(arr, "---------------------------------")
-		for k, v := range x.categoryURL {
+		for k, v := range x.CategoryURL {
 			arr = append(arr, fmt.Sprintf("% 24s: %s", k, v))
 		}
 	}
@@ -248,8 +254,8 @@ func (dw *Dataway) ClientsCount() int {
 func (dw *Dataway) GetTokens() []string {
 	var arr []string
 	for _, ep := range dw.eps {
-		if ep.token != "" {
-			arr = append(arr, ep.token)
+		if ep.Token != "" {
+			arr = append(arr, ep.Token)
 		}
 	}
 
@@ -286,6 +292,7 @@ func (dw *Dataway) sinkHeaderValueFromGlobalTags() string {
 var defaultInvalidDatawayURL = "https://guance.openway.com?token=YOUR-WORKSPACE-TOKEN"
 
 func (dw *Dataway) doInit() error {
+	l = logger.SLogger("dataway")
 	// 如果 env 已传入了 dataway 配置, 则不再追加老的 dataway 配置,
 	// 避免俩边配置了同样的 dataway, 造成数据混乱
 	if dw.DeprecatedURL != "" && len(dw.URLs) == 0 {
@@ -326,11 +333,12 @@ func (dw *Dataway) doInit() error {
 	}
 
 	for _, u := range dw.URLs {
-		ep, err := newEndpoint(u,
-			withProxy(dw.HTTPProxy),
-			withInsecureSkipVerify(dw.InsecureSkipVerify),
-			withAPIs(dwAPIs),
-			withHTTPHeaders(map[string]string{
+		ep, err := endpoint.NewEndpoint(u,
+			endpoint.WithOwner("dataway"),
+			endpoint.WithProxy(dw.HTTPProxy),
+			endpoint.WithInsecureSkipVerify(dw.InsecureSkipVerify),
+			endpoint.WithAPIs(datawayAPIs),
+			endpoint.WithHTTPHeaders(map[string]string{
 				// HeaderXGlobalTags: dw.globalTagsHTTPHeaderValue,
 
 				// DatakitUserAgent define HTTP User-Agent header.
@@ -340,13 +348,13 @@ func (dw *Dataway) doInit() error {
 					runtime.GOOS, runtime.GOARCH, git.Version, datakit.DKHost),
 				"Referer": "DataKit",
 			}),
-			withHTTPTimeout(dw.HTTPTimeout),
-			withHTTPTrace(dw.EnableHTTPTrace),
-			withMaxHTTPIdleConnectionPerHost(dw.MaxIdleConnsPerHost),
-			withMaxHTTPConnections(dw.MaxIdleConns),
-			withHTTPIdleTimeout(dw.IdleTimeout),
-			withMaxRetryCount(dw.MaxRetryCount),
-			withRetryDelay(dw.RetryDelay),
+			endpoint.WithHTTPTimeout(dw.HTTPTimeout),
+			endpoint.WithHTTPTrace(dw.EnableHTTPTrace),
+			endpoint.WithMaxHTTPIdleConnectionPerHost(dw.MaxIdleConnsPerHost),
+			endpoint.WithMaxHTTPConnections(dw.MaxIdleConns),
+			endpoint.WithHTTPIdleTimeout(dw.IdleTimeout),
+			endpoint.WithMaxRetryCount(dw.MaxRetryCount),
+			endpoint.WithRetryDelay(dw.RetryDelay),
 		)
 		if err != nil {
 			l.Errorf("init dataway url %s failed: %s", u, err.Error())
@@ -356,20 +364,20 @@ func (dw *Dataway) doInit() error {
 		if dw.EnableSinker {
 			switch dw.SinkerHeaderVersion {
 			case "v2":
-				ep.httpHeaders[HeaderXGlobalTagsV2] = dw.globalTagsHTTPHeaderValue
+				ep.HTTPHeaders[HeaderXGlobalTagsV2] = dw.globalTagsHTTPHeaderValue
 			default:
-				ep.httpHeaders[HeaderXGlobalTags] = dw.globalTagsHTTPHeaderValue
+				ep.HTTPHeaders[HeaderXGlobalTags] = dw.globalTagsHTTPHeaderValue
 			}
 		}
 
 		dw.eps = append(dw.eps, ep)
 
-		dw.addDNSCache(ep.host)
+		dw.addDNSCache(ep.Host)
 	}
 
 	// set main token
 	if len(dw.eps) > 0 {
-		dw.Token = dw.eps[0].token
+		dw.Token = dw.eps[0].Token
 	}
 
 	return nil
@@ -396,8 +404,8 @@ func (dw *Dataway) addDNSCache(host string) {
 		}
 	}
 
-	dnsCache := &dnsCacher{}
-	dnsCache.initDNSCache(host, dw.initEndpoints)
+	dnsCache := &endpoint.DNSCacher{}
+	dnsCache.InitDNSCache(host, dw.initEndpoints)
 
 	dw.dnsCachers = append(dw.dnsCachers, dnsCache)
 }
@@ -407,10 +415,110 @@ func (dw *Dataway) initEndpoints() error {
 	defer dw.locker.Unlock()
 
 	for _, ep := range dw.eps {
-		if err := ep.setupHTTP(); err != nil {
+		if err := ep.SetupHTTP(); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func (dw *Dataway) doGroupPoints(ptg *ptGrouper, cat point.Category, points []*point.Point) {
+	for _, pt := range points {
+		// clear kvs for current pt
+		ptg.kvarr = ptg.kvarr[:0]
+		ptg.extKVs = ptg.extKVs[:0]
+
+		ptg.pt = pt
+		ptg.cat = cat
+
+		tv := ptg.sinkHeaderValue(dw.globalTags, dw.GlobalCustomerKeys)
+
+		l.Debugf("add point to group %q", tv)
+
+		ptg.groupedPts[tv] = append(ptg.groupedPts[tv], pt)
+	}
+}
+
+func (dw *Dataway) groupPoints(ptg *ptGrouper,
+	cat point.Category,
+	points []*point.Point,
+) {
+	dw.doGroupPoints(ptg, cat, points)
+	groupedRequestVec.WithLabelValues(cat.String()).Observe(float64(len(ptg.groupedPts)))
+}
+
+func (dw *Dataway) Write(opts ...compact.WriteOption) error {
+	gzOn := compact.GzipNotSet
+	if dw.GZip {
+		gzOn = compact.GzipSet
+	}
+
+	w := compact.GetWriter(
+		// set content encoding(protobuf/line-protocol/json)
+		compact.WithHTTPEncoding(dw.contentEncoding),
+		// setup gzip on or off
+		compact.WithGzip(gzOn),
+		// set raw body size limit
+		compact.WithMaxBodyCap(dw.MaxRawBodySize),
+	)
+
+	defer compact.PutWriter(w)
+
+	// Append extra wirte options from caller
+	for _, opt := range opts {
+		if opt != nil {
+			opt(w)
+		}
+	}
+
+	// apply index name to HTTP header.
+	if w.IndexName != "" {
+		compact.WithHTTPHeader(HeaderXStorageIndexName, w.IndexName)(w)
+	}
+
+	if w.Callback == nil { // set default callback
+		if w.NoWAL {
+			if len(dw.eps) == 0 {
+				return fmt.Errorf("no endpoints on dataway, should not been here")
+			}
+
+			// NOTE: only send to 1st dataway endpoint.
+			w.Callback = dw.eps[0].WritePointData
+		} else {
+			w.Callback = dw.enqueueBody // enqueu to WAL
+		}
+	}
+
+	// split single point array into multiple part according to
+	// different X-Global-Tags.
+	if dw.sinkEnabled() {
+		l.Debugf("under sinker...")
+
+		ptg := getGrouper()
+		defer putGrouper(ptg)
+
+		dw.groupPoints(ptg, w.Category, w.Points)
+
+		for k, points := range ptg.groupedPts {
+			compact.WithHTTPHeader(HeaderXGlobalTags, k)(w)
+			compact.WithPoints(points)(w)
+
+			if err := w.BuildPointsBody(); err != nil {
+				return err
+			}
+		}
+	} else {
+		if err := w.BuildPointsBody(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (dw *Dataway) sinkEnabled() bool {
+	return dw.EnableSinker &&
+		(len(dw.globalTags) > 0 || len(dw.GlobalCustomerKeys) > 0) &&
+		len(dw.eps) > 0
 }

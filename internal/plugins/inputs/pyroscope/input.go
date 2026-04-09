@@ -38,6 +38,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/endpoint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 	dkMetrics "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -638,7 +639,7 @@ func (ipt *Input) doSend(req *http.Request, body []byte, tags map[string]string)
 	)
 
 	defer func() {
-		dataway.APISumVec().WithLabelValues(req.URL.Path, statusCode).Observe(reqCost.Seconds())
+		endpoint.APISumVec().WithLabelValues(req.URL.Path, inputName, statusCode).Observe(reqCost.Seconds())
 	}()
 
 	reqStart := time.Now()
@@ -693,7 +694,7 @@ func (ipt *Input) doSend(req *http.Request, body []byte, tags map[string]string)
 
 		// Log IO retry metrics
 		if i > 0 {
-			dataway.HTTPRetry().WithLabelValues(req.URL.Path, statusCode).Inc()
+			endpoint.HTTPRetry().WithLabelValues(req.URL.Path, inputName, statusCode).Inc()
 		}
 
 		if sendErr != nil {

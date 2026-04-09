@@ -14,6 +14,7 @@ import (
 	"github.com/GuanceCloud/pipeline-go/offload"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/endpoint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 )
 
@@ -150,9 +151,9 @@ func TestLoadEnv(t *testing.T) {
 				cfg.Dataway.IdleTimeout = 90 * time.Second
 				cfg.Dataway.HTTPTimeout = 30 * time.Second
 				cfg.Dataway.ContentEncoding = "v2"
-				cfg.Dataway.MaxRetryCount = dataway.DefaultRetryCount
+				cfg.Dataway.MaxRetryCount = endpoint.DefaultRetryCount
 				cfg.Dataway.InsecureSkipVerify = true
-				cfg.Dataway.RetryDelay = dataway.DefaultRetryDelay
+				cfg.Dataway.RetryDelay = endpoint.DefaultRetryDelay
 				cfg.Dataway.MaxRawBodySize = dataway.DefaultMaxRawBodySize
 				cfg.Dataway.GlobalCustomerKeys = []string{}
 				cfg.Dataway.GZip = true

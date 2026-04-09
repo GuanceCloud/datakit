@@ -795,6 +795,32 @@ func envIO() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
 		{
+			ENVName: "ENV_OTEL_AGGR_TAG_KEYS",
+			Type:    doc.URL,
+			Example: "`service,url,status_code`",
+			Default: "`-`",
+			Desc:    "Configure the aggregate tag keys",
+			DescZh:  "设置 OpenTelemetry 指标聚合的 tag key 列表，以英文逗号分割",
+		},
+
+		{
+			ENVName: "ENV_OTEL_AGGR_TIMEOUT",
+			Type:    doc.TimeDuration,
+			Example: "`5s`",
+			Default: "`3s`",
+			Desc:    "Configure the HTTP timeout when on POST request to aggregate endpoints",
+			DescZh:  "设置发送给下游 DataKit 的 HTTP 超时",
+		},
+
+		{
+			ENVName: "ENV_OTEL_AGGR_MAX_RAW_BODY_SIZE",
+			Type:    doc.TimeDuration,
+			Example: "`4294304`",
+			Default: "`1048576`",
+			Desc:    "Configure the HTTP max body size on POST request to aggregate endpoints",
+			DescZh:  "设置发送给下游 DataKit 的 HTTP 最大 Body 大小",
+		},
+		{
 			ENVName: "ENV_IO_AUTO_TIMESTAMP_CORRECTION",
 			Type:    doc.Boolean,
 			Desc:    "Enable/disable point time correction",

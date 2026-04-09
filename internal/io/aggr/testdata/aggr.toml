@@ -1,0 +1,144 @@
+# aggr.toml 负责"聚合规则"：
+# - 只定义如何把原始点匹配成聚合包并发送到 /v1/aggregate
+# - 不负责 trace/logging/rum 的尾采样(尾采样在 tail-sampling.toml)
+#
+# 配置生效前提：
+# - datakit.conf 中 [aggregator] 已开启 use_local_config = true
+# - local_metric_config_file 指向本文件
+#
+# 顶层参数：
+# - default_window: 规则未单独指定窗口时的默认聚合窗口
+# - action: 全局默认动作，通常留空
+# - delete_rules_point: 是否删除命中聚合规则的原始点(通常 false)
+default_window = "15s"
+action = ""
+delete_rules_point = false
+
+# 规则结构说明：
+# [[aggregate_rules]]
+# name = "rule_name"          # 规则名(便于排查)
+# group_by = ["tag_a","tag_b"]# 按哪些 tag 聚合
+#
+# [aggregate_rules.select]
+# category = "metric|tracing|logging|rum"
+# measurements = ["..."]      # measurement 白名单
+# metric_name = ["..."]       # 字段名白名单
+# condition = ""              # 进一步过滤条件，可留空
+#
+# [aggregate_rules.algorithms."<output_field>"]
+# method = "sum|max|min|avg|count|..."
+# source_field = "<input_field>"
+#
+# [aggregate_rules.algorithms."<output_field>".add_tags]
+# metric = "<new_measurement_or_metric_name>"
+#
+# 示例 1：对 OTEL JVM 指标做最大值聚合。
+[[aggregate_rules]]
+name = "otel-jvm-memory"
+group_by = ["service_name", "id"]
+
+[aggregate_rules.select]
+category = "metric"
+measurements = ["otel_service"]
+metric_name = ["jvm.buffer.memory.used"]
+condition = ""
+
+[aggregate_rules.algorithms."jvm.buffer.memory.used.max"]
+method = "max"
+source_field = "jvm.buffer.memory.used"
+
+[aggregate_rules.algorithms."jvm.buffer.memory.used.max".add_tags]
+method = "max"
+
+# 示例 2：在 tracing 数据中统计 root span 数量。
+# 这里通过 parent_id == "0" 近似识别 root span，
+# 再对 span_id 做 COUNT，得到 root span 总数。
+[[aggregate_rules]]
+name = "trace_root_span_count"
+group_by = ["service", "resource"]
+
+[aggregate_rules.select]
+category = "tracing"
+measurements = ["opentelemetry"]
+metric_name = ["span_id"]
+condition = '{ parent_id = "0" }'
+
+[aggregate_rules.algorithms."root_span.count"]
+method = "count"
+source_field = "span_id"
+
+[aggregate_rules.algorithms."root_span.count".add_tags]
+metric = "root_span_count"
+
+# 示例 3：对 OTEL 日志做计数聚合。
+# 这里按 service 和 status 聚合 message 条数。
+[[aggregate_rules]]
+name = "otel_logging_count"
+group_by = ["service", "status"]
+
+[aggregate_rules.select]
+category = "logging"
+measurements = ["tmall"]
+metric_name = ["message"]
+condition = ""
+
+[aggregate_rules.algorithms."message_count"]
+method = "count"
+source_field = "message"
+
+[aggregate_rules.algorithms."message_count".add_tags]
+metric = "logging_count"
+
+# 示例 4：按 service_name 汇总 JVM 当前已加载类数量。
+[[aggregate_rules]]
+name = "otel_jvm_class_loaded_sum"
+group_by = ["service_name"]
+
+[aggregate_rules.select]
+category = "metric"
+measurements = ["otel_service"]
+metric_name = ["jvm.classes.loaded"]
+condition = ""
+
+[aggregate_rules.algorithms."jvm_class_loaded_sum"]
+method = "sum"
+source_field = "jvm.classes.loaded"
+
+[aggregate_rules.algorithms."jvm_class_loaded_sum".add_tags]
+metric = "jvm_class_loaded_sum"
+
+# 示例 5：按 service_name 汇总 JVM 累计卸载类数量。
+[[aggregate_rules]]
+name = "otel_jvm_class_unloaded_sum"
+group_by = ["service_name"]
+
+[aggregate_rules.select]
+category = "metric"
+measurements = ["otel_service"]
+metric_name = ["jvm.classes.unloaded"]
+condition = ""
+
+[aggregate_rules.algorithms."jvm_class_unloaded_sum"]
+method = "sum"
+source_field = "jvm.class.unloaded"
+
+[aggregate_rules.algorithms."jvm_class_unloaded_sum".add_tags]
+metric = "jvm_class_unloaded_sum"
+
+# 示例 6：按 service_name 汇总 JVM 活跃线程数。
+[[aggregate_rules]]
+name = "otel_jvm_threads_live_sum"
+group_by = ["service_name"]
+
+[aggregate_rules.select]
+category = "metric"
+measurements = ["otel_service"]
+metric_name = ["jvm.threads.live"]
+condition = ""
+
+[aggregate_rules.algorithms."jvm_threads_live_sum"]
+method = "sum"
+source_field = "jvm.threads.live"
+
+[aggregate_rules.algorithms."jvm_threads_live_sum".add_tags]
+metric = "jvm_threads_live_sum"

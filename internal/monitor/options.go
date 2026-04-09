@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/endpoint"
 )
 
 type APPOption func(app *monitorAPP)
@@ -31,7 +31,7 @@ func WithProxy(p string) APPOption {
 		if len(p) > 0 {
 			app.proxy = "invalid proxy URL"
 			if u, err := url.ParseRequestURI(p); err == nil {
-				if dataway.ProxyURLOK(u) {
+				if endpoint.ProxyURLOK(u) {
 					app.proxy = p
 				}
 			}

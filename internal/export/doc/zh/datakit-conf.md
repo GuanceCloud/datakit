@@ -233,6 +233,13 @@ DataKit 默认日志等级为 `info`。编辑 `datakit.conf`，可修改日志�
 
 下面涉及的内容涉及一些高级配置，如果对配置不是很有把握，建议咨询我们的技术专家。
 
+### 聚合与尾采样 {#aggregator-tail-sampling}
+
+如果需要继续配置 `Aggregator`、`aggr.toml` 或 `tail-sampling.toml`，可进一步参阅以下文档：
+
+- [Aggregator 配置说明](aggregator.md)
+- [尾采样配置说明](aggregator.md#tail-sampling-config)
+
 ### 时间校准 {#ntp}
 
 [:octicons-tag-24: Version-1.75.0](../datakit/changelog-2025.md#cl-1.75.0)

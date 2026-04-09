@@ -73,7 +73,7 @@ func (h *httpConfig) handleOTELTrace(resp http.ResponseWriter, req *http.Request
 
 	tsreq := &trace.ExportTraceServiceRequest{}
 	switch media {
-	case "application/x-protobuf":
+	case "application/x-protobuf": // nolint: goconst
 		err = proto.Unmarshal(buf, tsreq)
 	default:
 		log.Errorf("unrecognized Content-Type:%s , please use http/protobuf", media)
@@ -117,7 +117,9 @@ func (h *httpConfig) handleOTElMetrics(resp http.ResponseWriter, req *http.Reque
 		resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
 	remoteIP, _ := net.RemoteAddr(req)
+
 	h.input.parseResourceMetricsV2(msreq.ResourceMetrics, remoteIP)
 }
 

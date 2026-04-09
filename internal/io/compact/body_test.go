@@ -1,0 +1,732 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the MIT License.
+// This product includes software developed at Guance Cloud (https://www.guance.com/).
+// Copyright 2021-present Guance, Inc.
+
+package compact
+
+import (
+	"strings"
+	sync "sync"
+	T "testing"
+
+	"github.com/GuanceCloud/cliutils/metrics"
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
+	"github.com/GuanceCloud/cliutils/point"
+	gofakeit "github.com/brianvoe/gofakeit/v6"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestSkipLargePoint(t *T.T) {
+	t.Run(`basic`, func(t *T.T) {
+		MetricsReset()
+
+		var kvsLarge, kvsSmall point.KVs
+		kvsLarge = kvsLarge.Add(`large`, strings.Repeat(`x`, 1024))
+		kvsSmall = kvsSmall.Add(`small`, strings.Repeat(`x`, 10))
+		smallPt1 := point.NewPoint(`small1`, kvsSmall)
+		largePt := point.NewPoint(`large`, kvsLarge)
+		smallPt2 := point.NewPoint(`small2`, kvsSmall)
+
+		w := GetWriter(WithHTTPEncoding(point.Protobuf),
+			WithMaxBodyCap(1024),
+			WithPoints([]*point.Point{smallPt1, largePt, smallPt2, largePt}),
+			WithCategory(point.Logging),
+			WithBodyCallback(func(w *Writer, b *Body) error {
+				// TODO
+				return nil
+			}))
+		defer PutWriter(w)
+
+		assert.NoError(t, w.BuildPointsBody())
+
+		reg := prometheus.NewRegistry()
+		reg.MustRegister(Metrics()...)
+
+		mfs, err := reg.Gather()
+		require.NoError(t, err)
+		t.Logf("get metrics:\n%s", metrics.MetricFamily2Text(mfs))
+
+		m := metrics.GetMetricOnLabels(mfs,
+			`datakit_io_compact_skipped_point_total`,
+			`logging`)
+		require.NotNil(t, m)
+		assert.Equal(t, float64(2), m.GetCounter().GetValue())
+	})
+
+	t.Run(`skip-all`, func(t *T.T) {
+		MetricsReset()
+
+		var kvsLarge point.KVs
+		kvsLarge = kvsLarge.Add(`large`, strings.Repeat(`x`, 1024))
+		largePt := point.NewPoint(`large`, kvsLarge)
+
+		w := GetWriter(WithHTTPEncoding(point.Protobuf),
+			WithMaxBodyCap(1024),
+			WithPoints([]*point.Point{largePt, largePt}),
+			WithCategory(point.Logging),
+			WithBodyCallback(func(w *Writer, b *Body) error {
+				// TODO
+				return nil
+			}))
+		defer PutWriter(w)
+
+		assert.NoError(t, w.BuildPointsBody())
+
+		reg := prometheus.NewRegistry()
+		reg.MustRegister(Metrics()...)
+
+		mfs, err := reg.Gather()
+		require.NoError(t, err)
+		t.Logf("get metrics:\n%s", metrics.MetricFamily2Text(mfs))
+
+		m := metrics.GetMetricOnLabels(mfs,
+			`datakit_io_compact_skipped_point_total`,
+			`logging`)
+		require.NotNil(t, m)
+		assert.Equal(t, float64(2), m.GetCounter().GetValue())
+	})
+
+	t.Run(`skip-nothing`, func(t *T.T) {
+		MetricsReset()
+
+		var kvsSmall point.KVs
+		kvsSmall = kvsSmall.Add(`small`, strings.Repeat(`x`, 10))
+		smallPt1 := point.NewPoint(`small1`, kvsSmall)
+		smallPt2 := point.NewPoint(`small2`, kvsSmall)
+
+		w := GetWriter(WithHTTPEncoding(point.Protobuf),
+			WithMaxBodyCap(1024),
+			WithPoints([]*point.Point{smallPt1, smallPt2}),
+			WithCategory(point.Logging),
+			WithBodyCallback(func(w *Writer, b *Body) error {
+				// TODO
+				return nil
+			}))
+		defer PutWriter(w)
+
+		assert.NoError(t, w.BuildPointsBody())
+
+		reg := prometheus.NewRegistry()
+		reg.MustRegister(Metrics()...)
+
+		mfs, err := reg.Gather()
+		require.NoError(t, err)
+		t.Logf("get metrics:\n%s", metrics.MetricFamily2Text(mfs))
+
+		m := metrics.GetMetricOnLabels(mfs,
+			`datakit_io_compact_skipped_point_total`,
+			`logging`)
+		require.NotNil(t, m)
+		assert.Equal(t, float64(0), m.GetCounter().GetValue())
+	})
+}
+
+func TestCrashBuildBody(t *T.T) {
+	t.Run("test-build-random-points", func(t *T.T) {
+		type Foo struct {
+			Measurement string
+
+			TS int64
+
+			// tags
+			T1Key string `fake:"{regex:[a-zA-Z0-9_]{64}}"`
+			T2Key string `fake:"{regex:[a-zA-Z0-9_]{64}}"`
+			T3Key string `fake:"{regex:[a-zA-Z0-9_]{64}}"`
+
+			T1 string
+			T2 string
+			T3 string
+
+			SKey, S string `fake:"{regex:[a-zA-Z0-9]{128}}"`
+
+			I8Key  string `fake:"{regex:[a-zA-Z0-9_]{64}}"`
+			I16Key string `fake:"{regex:[a-zA-Z0-9_]{64}}"`
+			I32Key string `fake:"{regex:[a-zA-Z0-9_]{64}}"`
+			I64Key string `fake:"{regex:[a-zA-Z0-9_]{64}}"`
+			I64    int64
+			I8     int8
+			I16    int16
+			I32    int32
+
+			U8Key  string `fake:"{regex:[a-zA-Z0-9_]{64}}"`
+			U16Key string `fake:"{regex:[a-zA-Z0-9_]{64}}"`
+			U32Key string `fake:"{regex:[a-zA-Z0-9_]{64}}"`
+			U64Key string `fake:"{regex:[a-zA-Z0-9_]{64}}"`
+
+			U8  uint8
+			U16 uint16
+			U32 uint32
+			U64 uint64
+
+			BKey   string `fake:"{regex:[a-zA-Z0-9_]{64}}"`
+			DKey   string `fake:"{regex:[a-zA-Z0-9_]{64}}"`
+			F64Key string `fake:"{regex:[a-zA-Z0-9_]{64}}"`
+			F32Key string `fake:"{regex:[a-zA-Z0-9_]{64}}"`
+			B      bool
+			D      []byte
+			F64    float64
+			F32    float32
+		}
+
+		var pts []*point.Point
+		for i := 0; i < 1000; i++ {
+			var f Foo
+			assert.NoError(t, gofakeit.Struct(&f))
+			var kvs point.KVs
+			kvs = kvs.AddTag("T_"+f.T1Key, f.T1)
+			kvs = kvs.AddTag("T_"+f.T2Key, f.T2)
+			kvs = kvs.AddTag("T_"+f.T3Key, f.T3)
+
+			kvs = kvs.Set("S_"+f.SKey, f.S)
+
+			kvs = kvs.Set("I8_"+f.I8Key, f.I8)
+			kvs = kvs.Set("I16_"+f.I16Key, f.I16)
+			kvs = kvs.Set("I32_"+f.I32Key, f.I32)
+			kvs = kvs.Set("I64_"+f.I64Key, f.I64)
+
+			kvs = kvs.Set("U8_"+f.U8Key, f.U8)
+			kvs = kvs.Set("U16_"+f.U16Key, f.U16)
+			kvs = kvs.Set("U32_"+f.U32Key, f.U32)
+			kvs = kvs.Set("U64_"+f.U64Key, f.U64)
+
+			kvs = kvs.Set("F32_"+f.F32Key, f.F32)
+			kvs = kvs.Set("F64_"+f.F64Key, f.F64)
+
+			kvs = kvs.Set("B_"+f.BKey, f.B)
+			kvs = kvs.Set("D_"+f.DKey, f.D)
+
+			if f.TS < 0 {
+				f.TS = 0
+			}
+
+			pt := point.NewPoint(f.Measurement, kvs, point.WithTimestamp(f.TS))
+			pts = append(pts, pt)
+		}
+
+		var wg sync.WaitGroup
+
+		reg := prometheus.NewRegistry()
+		reg.MustRegister(Metrics()...)
+
+		wg.Add(32)
+		for i := 0; i < 32; i++ {
+			go func(idx int) {
+				defer wg.Done()
+				for i := 0; i < 100; i++ {
+					w := GetWriter()
+
+					WithPoints(pts)(w)
+					WithMaxBodyCap(10 * 1024 * 1024)(w)
+					WithHTTPEncoding(point.LineProtocol)(w)
+
+					assert.NoError(t, w.BuildPointsBody())
+					PutWriter(w)
+				}
+			}(i)
+		}
+
+		t.Logf("wait...")
+		wg.Wait()
+
+		mfs, err := reg.Gather()
+		require.NoError(t, err)
+		t.Logf("get metrics:\n%s", metrics.MetricFamily2Text(mfs))
+	})
+}
+
+func TestBuildBody(t *T.T) {
+	cases := []struct {
+		name string
+		enc  point.Encoding
+		pts  []*point.Point
+	}{
+		{
+			name: "short",
+			enc:  point.Protobuf,
+			pts: func() []*point.Point {
+				var pts []*point.Point
+				for i := 0; i < 32; i++ {
+					pts = append(pts, point.NewPoint("some",
+						point.NewKVs(map[string]any{
+							"f1": 1,
+							"f2": 2,
+						}), point.WithTimestamp(1)))
+				}
+				return pts
+			}(),
+		},
+
+		{
+			name: "rand-large",
+			enc:  point.Protobuf,
+			pts: func() []*point.Point {
+				r := point.NewRander()
+				return r.Rand(1000)
+			}(),
+		},
+	}
+
+	batchSize := 8
+
+	for _, tc := range cases {
+		t.Run("build-"+tc.name, func(t *T.T) {
+			w := GetWriter()
+			defer PutWriter(w)
+
+			WithPoints(tc.pts)(w)
+			WithBatchSize(batchSize)
+			WithHTTPEncoding(tc.enc)(w)
+
+			assert.NoError(t, w.BuildPointsBody())
+		})
+	}
+
+	// test body == pts
+	for _, tc := range cases {
+		t.Run("point-checking-"+tc.name, func(t *T.T) {
+			w := GetWriter()
+			defer PutWriter(w)
+
+			WithPoints(tc.pts)(w)
+			WithBatchSize(batchSize)(w)
+			WithHTTPEncoding(tc.enc)(w)
+
+			var arr []*Body
+			WithBodyCallback(func(_ *Writer, b *Body) error {
+				arr = append(arr, b)
+				return nil
+			})(w)
+
+			w.BuildPointsBody()
+
+			var (
+				extractPts []*point.Point
+				dec        *point.Decoder
+			)
+
+			dec = point.GetDecoder(point.WithDecEncoding(tc.enc))
+			defer point.PutDecoder(dec)
+
+			t.Logf("decoded into %d parts", len(arr))
+
+			for _, x := range arr {
+				assert.True(t, x.Npts() > 0)
+				assert.True(t, x.RawLen() > 0)
+				assert.Equal(t, tc.enc, x.Enc())
+
+				var (
+					raw = x.Buf()
+					err error
+				)
+
+				if x.Gzon == 1 {
+					raw, err = uhttp.Unzip(x.Buf())
+					require.NoError(t, err)
+				}
+
+				pts, err := dec.Decode(raw)
+				assert.NoErrorf(t, err, "decode %q failed", raw)
+				extractPts = append(extractPts, pts...)
+			}
+
+			assert.Equal(t, len(tc.pts), len(extractPts))
+			for i, got := range extractPts {
+				assert.Equal(t, tc.pts[i].Pretty(), got.Pretty())
+			}
+		})
+	}
+
+	for _, tc := range cases {
+		bodyByteBatch := 10 * 1024
+		t.Run("body-size-decode-"+tc.name, func(t *T.T) {
+			w := GetWriter()
+			defer PutWriter(w)
+
+			t.Logf("enc: %s", tc.enc)
+
+			WithPoints(tc.pts)(w)
+			WithMaxBodyCap(bodyByteBatch)(w)
+			WithHTTPEncoding(tc.enc)(w)
+
+			var arr []*Body
+			WithBodyCallback(func(_ *Writer, b *Body) error {
+				arr = append(arr, b)
+				return nil
+			})(w)
+
+			w.BuildPointsBody()
+
+			assert.True(t, len(arr) > 0)
+
+			var (
+				extractPts []*point.Point
+				dec        *point.Decoder
+			)
+
+			dec = point.GetDecoder(point.WithDecEncoding(tc.enc))
+			defer point.PutDecoder(dec)
+
+			t.Logf("decoded into %d parts(byte size: %d)", len(arr), bodyByteBatch)
+
+			for _, x := range arr {
+				assert.True(t, x.Npts() > 0)
+				assert.True(t, x.RawLen() > 0)
+				assert.Equal(t, tc.enc, x.Enc())
+
+				var (
+					raw = x.Buf()
+					err error
+				)
+				if x.Gzon == 1 {
+					raw, err = uhttp.Unzip(x.Buf())
+					if err != nil {
+						assert.NoError(t, err)
+					}
+				}
+
+				pts, err := dec.Decode(raw)
+				assert.NoErrorf(t, err, "decode %q failed", raw)
+				extractPts = append(extractPts, pts...)
+			}
+
+			assert.Equal(t, len(tc.pts), len(extractPts))
+
+			for i, got := range extractPts {
+				eq, why := tc.pts[i].EqualWithReason(got)
+				assert.Truef(t, eq, why)
+				assert.Equal(t, tc.pts[i].Pretty(), got.Pretty())
+			}
+		})
+	}
+}
+
+func BenchmarkBuildBody(b *T.B) {
+	r := point.NewRander(point.WithRandText(3))
+
+	cases := []struct {
+		name  string
+		pts   []*point.Point
+		batch int
+		gz    GzipFlag
+		enc   point.Encoding
+	}{
+		{
+			name:  "1k-pts-on-json-batch256",
+			pts:   r.Rand(1024),
+			batch: 256,
+			enc:   point.JSON,
+		},
+
+		{
+			name:  "1k-pts-on-json-batch1024",
+			pts:   r.Rand(1024),
+			batch: 1024,
+			enc:   point.JSON,
+		},
+
+		{
+			name:  "1k-pts-on-line-proto-batch256",
+			pts:   r.Rand(1024),
+			batch: 256,
+			enc:   point.LineProtocol,
+		},
+
+		{
+			name:  "1k-pts-on-line-protocol-batch1024",
+			pts:   r.Rand(1024),
+			batch: 1024,
+			enc:   point.LineProtocol,
+		},
+
+		{
+			name:  "1k-pts-on-protobuf-batch256",
+			pts:   r.Rand(1024),
+			batch: 256,
+			enc:   point.Protobuf,
+		},
+
+		{
+			name:  "1k-pts-on-protobuf-batch1024",
+			pts:   r.Rand(1024),
+			batch: 1024,
+			enc:   point.Protobuf,
+		},
+
+		{
+			name:  "gz-1k-pts-on-protobuf-batch1024",
+			pts:   r.Rand(1024),
+			batch: 1024,
+			enc:   point.Protobuf,
+			gz:    1,
+		},
+
+		{
+			name:  "10k-pts-on-protobuf-batch4k",
+			pts:   r.Rand(10240),
+			batch: 4096,
+			enc:   point.Protobuf,
+		},
+
+		{
+			name:  "10k-pts-on-protobuf-batch10k",
+			pts:   r.Rand(10240),
+			batch: 10240,
+			enc:   point.Protobuf,
+		},
+	}
+
+	for _, bc := range cases {
+		b.ResetTimer()
+		b.Run(bc.name, func(b *T.B) {
+			w := GetWriter(WithBodyCallback(func(w *Writer, body *Body) error {
+				PutBody(body) // release body
+				return nil
+			}))
+			defer PutWriter(w)
+
+			WithBatchSize(bc.batch)(w)
+			WithPoints(bc.pts)(w)
+			WithHTTPEncoding(bc.enc)(w)
+			WithGzip(bc.gz)(w)
+
+			for i := 0; i < b.N; i++ {
+				w.BuildPointsBody()
+			}
+		})
+	}
+}
+
+func TestBodyCacheData(t *T.T) {
+	t.Run(`basic`, func(t *T.T) {
+		cb := func(w *Writer, b *Body) error {
+			t.Logf("send-buf: %p/%d", b.SendBuf, len(b.SendBuf))
+			t.Logf("buf(): %p/%d", b.Buf(), len(b.Buf()))
+			t.Logf("payload: %p/%d", b.CacheData.Payload, len(b.CacheData.Payload))
+
+			assert.Equal(t, len(b.SendBuf), cap(b.SendBuf))       // b.sendBuf should always equal to it's cap
+			assert.Equal(t, len(b.MarshalBuf), cap(b.MarshalBuf)) // b.sendBuf should always equal to it's cap
+
+			// b.buf() should point to b.sendBuf
+			assert.Equal(t, b.SendBuf[:len(b.Buf())], b.Buf())
+
+			return nil
+		}
+
+		r := point.NewRander()
+		pts := r.Rand(1000)
+
+		w := GetWriter(WithBodyCallback(cb))
+		defer PutWriter(w)
+		WithPoints(pts)(w)
+		WithMaxBodyCap(10 * 1024 * 1024)(w)
+		WithHTTPEncoding(point.LineProtocol)(w)
+
+		w.BuildPointsBody()
+	})
+
+	t.Run(`body-dump-and-load`, func(t *T.T) {
+		cb := func(w *Writer, b *Body) error {
+			t.Logf("send-buf: %p/%d", b.SendBuf, len(b.SendBuf))
+			t.Logf("buf(): %p/%d", b.Buf(), len(b.Buf()))
+			t.Logf("payload: %p/%d", b.CacheData.Payload, len(b.CacheData.Payload))
+
+			pb, err := b.Dump()
+			assert.NoError(t, err)
+			t.Logf("marshal-buf: %p?/%d", b.MarshalBuf, len(b.MarshalBuf))
+			t.Logf("pb: %p?/%d", pb, len(pb))
+
+			assert.Equal(t, len(b.SendBuf), cap(b.SendBuf))       // b.sendBuf should always equal to it's cap
+			assert.Equal(t, len(b.MarshalBuf), cap(b.MarshalBuf)) // b.sendBuf should always equal to it's cap
+
+			// b.buf() should point to b.sendBuf
+			assert.Equal(t, b.MarshalBuf[:len(pb)], pb)
+
+			newBody := GetNewBufferBody(WithNewBuffer(defaultBatchSize))
+			defer PutBody(newBody)
+
+			assert.NoError(t, newBody.LoadCache(pb)) // newBody load pb data
+			assert.Equal(t, newBody.CacheData, b.CacheData)
+			assert.Equal(t, b.Buf(), newBody.Buf())
+
+			t.Logf("body: %s", newBody.Pretty())
+
+			assert.Len(t, newBody.GetHeaders(), 2)
+			for _, h := range newBody.GetHeaders() {
+				switch h.Key {
+				case "header-1":
+					assert.Equal(t, `value-1`, h.Value)
+				case "header-2":
+					assert.Equal(t, `value-2`, h.Value)
+				default:
+					assert.Truef(t, false, "should not been here")
+				}
+			}
+
+			assert.Equal(t, "http://some.dynamic.url?token=tkn_xyz", b.url())
+
+			t.Logf("buf: %q", newBody.Buf()[:10])
+
+			PutBody(b)
+
+			return nil
+		}
+
+		pts := point.RandPoints(100)
+		w := GetWriter(WithBodyCallback(cb),
+			WithHTTPHeader("header-1", "value-1"),
+			WithHTTPHeader("header-2", "value-2"),
+			WithDynamicURL("http://some.dynamic.url?token=tkn_xyz"),
+			WithPoints(pts),
+			WithHTTPEncoding(point.LineProtocol),
+		)
+		defer PutWriter(w)
+
+		w.BuildPointsBody()
+	})
+}
+
+func TestPBMarshalSize(t *T.T) {
+	someHeader := "some-header"
+
+	t.Run(`basic-1mb-body`, func(t *T.T) {
+		sendBuf := make([]byte, 1<<20)
+		marshalBuf := make([]byte, 1<<20+100*(1<<10))
+		b := getReuseBufferBody(withReusableBuffer(sendBuf, marshalBuf))
+
+		b.CacheData.Category = int32(point.Metric)
+		b.CacheData.PayloadType = int32(point.Protobuf)
+		b.CacheData.Payload = sendBuf // we really get 1MB body to send
+		b.CacheData.Pts = 10000
+		b.CacheData.RawLen = (1 << 20)
+		b.Headers = append(b.Headers, &HTTPHeader{Key: someHeader, Value: "looooooooooooooooooooooong value"})
+		b.DynURL = "https://openway.guance.com/v1/write/logging?token=tkn_11111111111111111111111"
+
+		pbbuf, err := b.Dump()
+		assert.NoError(t, err)
+
+		t.Logf("#pbbuf: %d, raised: %.8f", len(pbbuf), float64(len(pbbuf)-len(b.Buf()))/float64(len(b.Buf())))
+	})
+
+	t.Run(`basic-4mb-body`, func(t *T.T) {
+		size := 4 * (1 << 20)
+		sendBuf := make([]byte, size)
+		marshalBuf := make([]byte, size+int(float64(size)*.1))
+		b := getReuseBufferBody(withReusableBuffer(sendBuf, marshalBuf))
+
+		b.CacheData.Category = int32(point.Metric)
+		b.CacheData.PayloadType = int32(point.Protobuf)
+		b.CacheData.Payload = sendBuf // we really get 1MB body to send
+		b.CacheData.Pts = 10000
+		b.CacheData.RawLen = int32(size)
+		b.Headers = append(b.Headers, &HTTPHeader{Key: someHeader, Value: "looooooooooooooooooooooong value"})
+		b.DynURL = "https://openway.guance.com/v1/write/logging?token=tkn_11111111111111111111111"
+
+		pbbuf, err := b.Dump()
+		assert.NoError(t, err)
+
+		t.Logf("#pbbuf: %d, raised: %.8f", len(pbbuf), float64(len(pbbuf)-len(b.Buf()))/float64(len(b.Buf())))
+	})
+
+	t.Run(`basic-10mb-body`, func(t *T.T) {
+		size := 10 * (1 << 20)
+		sendBuf := make([]byte, size)
+		marshalBuf := make([]byte, size+int(float64(size)*.1))
+		b := getReuseBufferBody(withReusableBuffer(sendBuf, marshalBuf))
+
+		b.CacheData.Category = int32(point.Metric)
+		b.CacheData.PayloadType = int32(point.Protobuf)
+		b.CacheData.Payload = sendBuf // we really get 1MB body to send
+		b.CacheData.Pts = 10000
+		b.CacheData.RawLen = int32(size)
+		b.Headers = append(b.Headers, &HTTPHeader{Key: someHeader, Value: "looooooooooooooooooooooong value"})
+		b.DynURL = "https://openway.guance.com/v1/write/logging?token=tkn_11111111111111111111111"
+
+		pbbuf, err := b.Dump()
+		assert.NoError(t, err)
+
+		t.Logf("#pbbuf: %d, raised: %.8f", len(pbbuf), float64(len(pbbuf)-len(b.Buf()))/float64(len(b.Buf())))
+	})
+
+	t.Run(`error`, func(t *T.T) {
+		size := 1 << 20
+		sendBuf := make([]byte, size)
+		marshalBuf := make([]byte, size)
+		b := getReuseBufferBody(withReusableBuffer(sendBuf, marshalBuf))
+
+		b.CacheData.Category = int32(point.Metric)
+		b.CacheData.PayloadType = int32(point.Protobuf)
+		b.CacheData.Payload = sendBuf // we really get 1MB body to send
+		b.CacheData.Pts = 10000
+		b.CacheData.RawLen = int32(size)
+		b.Headers = append(b.Headers, &HTTPHeader{Key: someHeader, Value: "looooooooooooooooooooooong value"})
+		b.DynURL = "https://openway.guance.com/v1/write/logging?token=tkn_11111111111111111111111"
+
+		_, err := b.Dump()
+		assert.Error(t, err)
+		t.Logf("[expected] dump error: %s", err.Error())
+	})
+}
+
+func BenchmarkBodyDumpAndLoad(b *T.B) {
+	b.Run(`get-CacheData-size`, func(b *T.B) {
+		size := 1 << 20
+		sendBuf := make([]byte, size)
+		marshalBuf := make([]byte, size)
+		_b := getReuseBufferBody(withReusableBuffer(sendBuf, marshalBuf))
+
+		_b.CacheData.Category = int32(point.Metric)
+		_b.CacheData.PayloadType = int32(point.Protobuf)
+		_b.CacheData.Payload = sendBuf // we really get 1MB body to send
+		_b.CacheData.Pts = 10000
+		_b.CacheData.RawLen = int32(size)
+		_b.Headers = append(_b.Headers, &HTTPHeader{Key: "some-header", Value: "looooooooooooooooooooooong value"})
+		_b.DynURL = "https://openway.guance.com/v1/write/logging?token=tkn_11111111111111111111111"
+
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			_b.Size()
+		}
+	})
+
+	b.Run(`dump-and-load`, func(b *T.B) {
+		cb := func(w *Writer, x *Body) error {
+			defer PutBody(x)
+
+			func() { // check if any error
+				pb, err := x.Dump()
+				assert.NoError(b, err)
+
+				newBody := GetNewBufferBody(WithNewBuffer(defaultBatchSize))
+				assert.NoError(b, newBody.LoadCache(pb))
+				PutBody(newBody)
+			}()
+
+			b.ResetTimer()
+			// reuse @x during benchmark
+			for i := 0; i < b.N; i++ {
+				pb, _ := x.Dump()
+
+				newBody := GetNewBufferBody(WithNewBuffer(defaultBatchSize))
+				newBody.LoadCache(pb)
+				PutBody(newBody)
+			}
+			return nil
+		}
+
+		pts := point.RandPoints(100)
+		w := GetWriter(WithBodyCallback(cb),
+			WithHTTPHeader("header-1", "value-1"),
+			WithHTTPHeader("header-2", "value-2"),
+			WithDynamicURL("http://some.dynamic.url?token=tkn_xyz"),
+			WithPoints(pts),
+			WithBodyCallback(cb),
+		)
+
+		defer PutWriter(w)
+
+		w.BuildPointsBody()
+	})
+}

@@ -23,6 +23,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/endpoint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 	"golang.org/x/exp/maps"
 	"golang.org/x/time/rate"
@@ -344,7 +345,7 @@ func (ipt *Input) uploadSessionReplay(msg []byte) (err error) {
 	defer func() {
 		reqCost := time.Since(startTime).Seconds()
 		replayUploadingDurationSummary.WithLabelValues(appID, env, version, service, statusCode).Observe(reqCost)
-		dataway.APISumVec().WithLabelValues(req.URL.Path, statusCode).Observe(reqCost)
+		endpoint.APISumVec().WithLabelValues(req.URL.Path, inputName, statusCode).Observe(reqCost)
 	}()
 
 	for i := 0; i < ipt.SessionReplayCfg.SendRetryCount; i++ {
@@ -381,7 +382,7 @@ func (ipt *Input) uploadSessionReplay(msg []byte) (err error) {
 
 		// Log IO retry metrics
 		if i > 0 {
-			dataway.HTTPRetry().WithLabelValues(req.URL.Path, statusCode).Inc()
+			endpoint.HTTPRetry().WithLabelValues(req.URL.Path, inputName, statusCode).Inc()
 		}
 
 		if lastErr == nil {

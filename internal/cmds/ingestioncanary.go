@@ -15,6 +15,8 @@ import (
 	"syscall"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/compact"
+
 	"github.com/GuanceCloud/cliutils/point"
 
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
@@ -167,15 +169,15 @@ func (t *ingestionCanaryTool) runTestRound(ctx context.Context) error {
 }
 
 func (t *ingestionCanaryTool) feedCategory(cat point.Category, pt *point.Point) error {
-	opts := []dataway.WriteOption{
-		dataway.WithPoints([]*point.Point{pt}),
-		dataway.WithCategory(cat),
-		dataway.WithNoWAL(true),
-		dataway.WithGzipDuringBuildBody(true),
-		dataway.WithHTTPHeader("X-Sub-Category", toolName),
+	opts := []compact.WriteOption{
+		compact.WithPoints([]*point.Point{pt}),
+		compact.WithCategory(cat),
+		compact.WithNoWAL(true),
+		compact.WithGzipDuringBuildBody(true),
+		compact.WithHTTPHeader("X-Sub-Category", toolName),
 	}
 	if t.storageIndex != "" && cat == point.Logging {
-		opts = append(opts, dataway.WithStorageIndex(t.storageIndex))
+		opts = append(opts, compact.WithStorageIndex(t.storageIndex))
 	}
 	return t.dw.Write(opts...)
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/compact"
 )
 
 func TestWALLoad(t *T.T) {
@@ -29,25 +30,26 @@ func TestWALLoad(t *T.T) {
 
 		cat := point.Logging
 		pts := point.RandPoints(100)
-		w := getWriter(WithPoints(pts),
-			WithCategory(cat),
-			WithBodyCallback(dw.enqueueBody),
-			WithHTTPEncoding(dw.contentEncoding))
+		w := compact.GetWriter(
+			compact.WithPoints(pts),
+			compact.WithCategory(cat),
+			compact.WithBodyCallback(dw.enqueueBody),
+			compact.WithHTTPEncoding(dw.contentEncoding))
 
-		w.buildPointsBody()
+		w.BuildPointsBody()
 
 		b, err := dw.walq[cat].Get()
 		require.NoError(t, err)
 		require.NotNil(t, b)
-		assert.Equal(t, walFromMem, b.from)
+		assert.Equal(t, compact.WalFromMem, b.From)
 
-		defer putBody(b)
+		defer compact.PutBody(b)
 
 		dec := point.GetDecoder(point.WithDecEncoding(dw.contentEncoding))
 		defer point.PutDecoder(dec)
 
 		// check if body in WAL are the same as @pts
-		got, err := dec.Decode(b.buf())
+		got, err := dec.Decode(b.Buf())
 		assert.NoError(t, err)
 		assert.Equal(t, len(pts), len(got))
 	})
@@ -63,30 +65,31 @@ func TestWALLoad(t *T.T) {
 
 		cat := point.Logging
 		pts := point.RandPoints(100)
-		w := getWriter(WithPoints(pts),
-			WithCategory(cat),
-			WithBodyCallback(dw.enqueueBody),
-			WithHTTPEncoding(dw.contentEncoding))
+		w := compact.GetWriter(
+			compact.WithPoints(pts),
+			compact.WithCategory(cat),
+			compact.WithBodyCallback(dw.enqueueBody),
+			compact.WithHTTPEncoding(dw.contentEncoding))
 
-		w.buildPointsBody()
+		w.BuildPointsBody()
 
 		dc := dw.walq[cat].disk.(*diskcache.DiskCache)
 		assert.NoError(t, dc.Rotate()) // force rotate
 
 		f := dw.newFlusher(cat)
 
-		b, err := f.wal.Get(withNewBuffer(dw.MaxRawBodySize))
+		b, err := f.wal.Get(compact.WithNewBuffer(dw.MaxRawBodySize))
 		require.NoError(t, err)
 		require.NotNil(t, b)
-		assert.Equal(t, walFromDisk, b.from)
+		assert.Equal(t, compact.WalFromDisk, b.From)
 
-		defer putBody(b)
+		defer compact.PutBody(b)
 
 		dec := point.GetDecoder(point.WithDecEncoding(dw.contentEncoding))
 		defer point.PutDecoder(dec)
 
 		// check if body in WAL are the same as @pts
-		got, err := dec.Decode(b.buf())
+		got, err := dec.Decode(b.Buf())
 		assert.NoError(t, err)
 		assert.Equal(t, len(pts), len(got))
 	})
@@ -102,29 +105,30 @@ func TestWALLoad(t *T.T) {
 
 		cat := point.Logging
 		pts := point.RandPoints(100)
-		w := getWriter(WithPoints(pts),
-			WithCategory(cat),
-			WithBodyCallback(dw.enqueueBody),
-			WithHTTPEncoding(dw.contentEncoding))
+		w := compact.GetWriter(
+			compact.WithPoints(pts),
+			compact.WithCategory(cat),
+			compact.WithBodyCallback(dw.enqueueBody),
+			compact.WithHTTPEncoding(dw.contentEncoding))
 
-		w.buildPointsBody()
+		w.BuildPointsBody()
 
 		time.Sleep(time.Second * 4) // default auto rotate is 3sec
 
 		f := dw.newFlusher(cat)
 
-		b, err := f.wal.Get(withNewBuffer(dw.MaxRawBodySize))
+		b, err := f.wal.Get(compact.WithNewBuffer(dw.MaxRawBodySize))
 		require.NoError(t, err)
 		require.NotNil(t, b)
-		assert.Equal(t, walFromDisk, b.from)
+		assert.Equal(t, compact.WalFromDisk, b.From)
 
-		defer putBody(b)
+		defer compact.PutBody(b)
 
 		dec := point.GetDecoder(point.WithDecEncoding(dw.contentEncoding))
 		defer point.PutDecoder(dec)
 
 		// check if body in WAL are the same as @pts
-		got, err := dec.Decode(b.buf())
+		got, err := dec.Decode(b.Buf())
 		assert.NoError(t, err)
 		assert.Equal(t, len(pts), len(got))
 	})
@@ -139,20 +143,21 @@ func TestWALLoad(t *T.T) {
 
 		cat := point.Logging
 		pts := point.RandPoints(100)
-		w := getWriter(WithPoints(pts),
-			WithCategory(cat),
-			WithBodyCallback(dw.enqueueBody),
-			WithHTTPEncoding(dw.contentEncoding))
+		w := compact.GetWriter(
+			compact.WithPoints(pts),
+			compact.WithCategory(cat),
+			compact.WithBodyCallback(dw.enqueueBody),
+			compact.WithHTTPEncoding(dw.contentEncoding))
 
-		w.buildPointsBody()
-		w.buildPointsBody() // 2nd write will dump to disk
+		w.BuildPointsBody()
+		w.BuildPointsBody() // 2nd write will dump to disk
 
 		time.Sleep(time.Second * 4) // default auto rotate is 3sec
 
 		f := dw.newFlusher(cat)
 
 		for i := 0; i < 2; i++ {
-			b, err := f.wal.Get(withNewBuffer(dw.MaxRawBodySize))
+			b, err := f.wal.Get(compact.WithNewBuffer(dw.MaxRawBodySize))
 			require.NoError(t, err)
 			require.NotNil(t, b)
 
@@ -160,19 +165,19 @@ func TestWALLoad(t *T.T) {
 			defer point.PutDecoder(dec)
 
 			// check if body in WAL are the same as @pts
-			got, err := dec.Decode(b.buf())
+			got, err := dec.Decode(b.Buf())
 			assert.NoError(t, err)
 			assert.Equal(t, len(pts), len(got))
 			if i == 0 { // from mem
-				assert.Equal(t, walFromMem, b.from)
+				assert.Equal(t, compact.WalFromMem, b.From)
 			} else { // from disk
-				assert.Equal(t, walFromDisk, b.from)
+				assert.Equal(t, compact.WalFromDisk, b.From)
 			}
 
-			putBody(b)
+			compact.PutBody(b)
 		}
 
-		b, err := f.wal.Get(withNewBuffer(dw.MaxRawBodySize)) // no data any more
+		b, err := f.wal.Get(compact.WithNewBuffer(dw.MaxRawBodySize)) // no data any more
 		assert.Nil(t, b)
 		assert.NoError(t, err)
 	})
@@ -196,13 +201,14 @@ func TestNoDrop(t *T.T) {
 		exit := make(chan any)
 
 		compactor := func(cat point.Category) {
-			w := getWriter(WithPoints(pts),
-				WithCategory(cat),
-				WithBodyCallback(dw.enqueueBody),
-				WithHTTPEncoding(dw.contentEncoding))
+			w := compact.GetWriter(
+				compact.WithPoints(pts),
+				compact.WithCategory(cat),
+				compact.WithBodyCallback(dw.enqueueBody),
+				compact.WithHTTPEncoding(dw.contentEncoding))
 
 			for {
-				w.buildPointsBody()
+				w.BuildPointsBody()
 				time.Sleep(time.Millisecond * 10) // quick compactor
 
 				select {
@@ -223,7 +229,7 @@ func TestNoDrop(t *T.T) {
 				default:
 				}
 
-				b, err := f.wal.Get(withNewBuffer(dw.MaxRawBodySize))
+				b, err := f.wal.Get(compact.WithNewBuffer(dw.MaxRawBodySize))
 
 				require.NoError(t, err)
 				if b != nil {
@@ -231,11 +237,11 @@ func TestNoDrop(t *T.T) {
 					defer point.PutDecoder(dec)
 
 					// check if body in WAL are the same as @pts
-					got, err := dec.Decode(b.buf())
+					got, err := dec.Decode(b.Buf())
 					assert.NoError(t, err)
 					assert.Equal(t, len(pts), len(got))
 
-					putBody(b)
+					compact.PutBody(b)
 				}
 
 				time.Sleep(time.Millisecond * 30) // slower flusher

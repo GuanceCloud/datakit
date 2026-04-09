@@ -37,6 +37,7 @@ func (ipt *Input) parseResourceSpans(resspans []*trace.ResourceSpans, remoteIP s
 		if log.Level() == zapcore.DebugLevel {
 			log.Debugf("parseResourceSpans: %s", spans.String())
 		}
+
 		var (
 			serviceName          = "unknown_service"
 			runtimeIDInitialized = false

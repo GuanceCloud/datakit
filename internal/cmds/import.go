@@ -17,6 +17,7 @@ import (
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/compact"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/recorder"
 )
@@ -34,14 +35,15 @@ func (u *uploaderImpl) upload(pts []*point.Point, cat point.Category) error {
 		return nil
 	}
 
-	return u.dw.Write(dataway.WithPoints(pts),
-		dataway.WithCategory(cat),
-		dataway.WithNoWAL(true), // upload to dataway directly
+	return u.dw.Write(
+		compact.WithPoints(pts),
+		compact.WithCategory(cat),
+		compact.WithNoWAL(true), // upload to dataway directly
 		// gzip the body during building body.
 		//
 		// dataway's default GZip is true, so we must gzip the body within body-building.
 		// or the endpoint HTTP POST will set gzip header.
-		dataway.WithGzipDuringBuildBody(true),
+		compact.WithGzipDuringBuildBody(true),
 	)
 }
 

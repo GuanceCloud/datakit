@@ -13,9 +13,12 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/aggr"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/compact"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/endpoint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/recorder"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/remotejob"
@@ -31,9 +34,6 @@ var (
 )
 
 type dkIO struct {
-	//////////////////////////
-	// optional fields
-	//////////////////////////
 	dw      dataway.IDataway
 	filters map[string]filter.FilterConditions
 
@@ -49,9 +49,9 @@ type dkIO struct {
 
 	compactAt int
 
-	fo FeederOutputer
+	foDataway FeederOutputer
+	Aggr      *aggr.Aggregator
 
-	// fcs           map[string]failcache.Cache
 	remoteManager *remotejob.Manager
 	lock          sync.RWMutex
 }
@@ -85,6 +85,9 @@ func getIO() *dkIO {
 }
 
 func (x *dkIO) start() {
+	compact.Setup()
+	endpoint.Setup()
+
 	if x.withFilter {
 		g := goroutine.G("io/filter")
 		g.Go(func(_ context.Context) error {
@@ -137,7 +140,7 @@ func (x *dkIO) start() {
 			}
 		}
 	}
-	log.Infof("remote_job x.remotemanager %v", x.remoteManager == nil)
+
 	if x.remoteManager != nil {
 		g := goroutine.G("io/remote_job")
 		g.Go(func(_ context.Context) error {
@@ -146,4 +149,15 @@ func (x *dkIO) start() {
 			return nil
 		})
 	}
+	// 定时下拉聚合配置
+	g := goroutine.G("io/aggr")
+	g.Go(func(_ context.Context) error {
+		if x.Aggr == nil {
+			log.Warnf("aggr is nil,return")
+		} else {
+			x.Aggr.StartAggr()
+		}
+
+		return nil
+	})
 }

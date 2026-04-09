@@ -74,24 +74,100 @@ func (KeyType) EnumDescriptor() ([]byte, []int) {
 type MetricType int32
 
 const (
+	// 0~9
 	UNSPECIFIED MetricType = 0
 	COUNT       MetricType = 1
 	RATE        MetricType = 2
 	GAUGE       MetricType = 3
+	// 10~19
+	SUM_DELTA        MetricType = 10
+	SUM_CUMULATIVE   MetricType = 11
+	SUMMARY_COUNT    MetricType = 12
+	SUMMARY_SUM      MetricType = 13
+	SUMMARY_QUANTILE MetricType = 14
+	// 20~29
+	HISTOGRAM_MAX           MetricType = 20
+	HISTOGRAM_MIN           MetricType = 21
+	HISTOGRAM_COUNT         MetricType = 22
+	HISTOGRAM_SUM           MetricType = 23
+	HISTOGRAM_BUCKET_COUNTS MetricType = 24
+	HISTOGRAM_BUCKET_BOUNDS MetricType = 25
+	// 30 ~ 49
+	EXPONENTIAL_HISTOGRAM_MAX               MetricType = 30
+	EXPONENTIAL_HISTOGRAM_MIN               MetricType = 31
+	EXPONENTIAL_HISTOGRAM_COUNT             MetricType = 32
+	EXPONENTIAL_HISTOGRAM_SUM               MetricType = 33
+	EXPONENTIAL_HISTOGRAM_AVG               MetricType = 34
+	EXPONENTIAL_HISTOGRAM_SCALE             MetricType = 35
+	EXPONENTIAL_HISTOGRAM_ZERO_COUNT        MetricType = 36
+	EXPONENTIAL_HISTOGRAM_POS_OFFSET        MetricType = 37
+	EXPONENTIAL_HISTOGRAM_POS_BUCKET_COUNTS MetricType = 38
+	EXPONENTIAL_HISTOGRAM_NEG_OFFSET        MetricType = 39
+	EXPONENTIAL_HISTOGRAM_NEG_BUCKET_COUNTS MetricType = 40
+	EXPONENTIAL_HISTOGRAM_FLAGS             MetricType = 41
+	EXPONENTIAL_HISTOGRAM_START_TIME        MetricType = 42
 )
 
 var MetricType_name = map[int32]string{
-	0: "UNSPECIFIED",
-	1: "COUNT",
-	2: "RATE",
-	3: "GAUGE",
+	0:  "UNSPECIFIED",
+	1:  "COUNT",
+	2:  "RATE",
+	3:  "GAUGE",
+	10: "SUM_DELTA",
+	11: "SUM_CUMULATIVE",
+	12: "SUMMARY_COUNT",
+	13: "SUMMARY_SUM",
+	14: "SUMMARY_QUANTILE",
+	20: "HISTOGRAM_MAX",
+	21: "HISTOGRAM_MIN",
+	22: "HISTOGRAM_COUNT",
+	23: "HISTOGRAM_SUM",
+	24: "HISTOGRAM_BUCKET_COUNTS",
+	25: "HISTOGRAM_BUCKET_BOUNDS",
+	30: "EXPONENTIAL_HISTOGRAM_MAX",
+	31: "EXPONENTIAL_HISTOGRAM_MIN",
+	32: "EXPONENTIAL_HISTOGRAM_COUNT",
+	33: "EXPONENTIAL_HISTOGRAM_SUM",
+	34: "EXPONENTIAL_HISTOGRAM_AVG",
+	35: "EXPONENTIAL_HISTOGRAM_SCALE",
+	36: "EXPONENTIAL_HISTOGRAM_ZERO_COUNT",
+	37: "EXPONENTIAL_HISTOGRAM_POS_OFFSET",
+	38: "EXPONENTIAL_HISTOGRAM_POS_BUCKET_COUNTS",
+	39: "EXPONENTIAL_HISTOGRAM_NEG_OFFSET",
+	40: "EXPONENTIAL_HISTOGRAM_NEG_BUCKET_COUNTS",
+	41: "EXPONENTIAL_HISTOGRAM_FLAGS",
+	42: "EXPONENTIAL_HISTOGRAM_START_TIME",
 }
 
 var MetricType_value = map[string]int32{
-	"UNSPECIFIED": 0,
-	"COUNT":       1,
-	"RATE":        2,
-	"GAUGE":       3,
+	"UNSPECIFIED":                             0,
+	"COUNT":                                   1,
+	"RATE":                                    2,
+	"GAUGE":                                   3,
+	"SUM_DELTA":                               10,
+	"SUM_CUMULATIVE":                          11,
+	"SUMMARY_COUNT":                           12,
+	"SUMMARY_SUM":                             13,
+	"SUMMARY_QUANTILE":                        14,
+	"HISTOGRAM_MAX":                           20,
+	"HISTOGRAM_MIN":                           21,
+	"HISTOGRAM_COUNT":                         22,
+	"HISTOGRAM_SUM":                           23,
+	"HISTOGRAM_BUCKET_COUNTS":                 24,
+	"HISTOGRAM_BUCKET_BOUNDS":                 25,
+	"EXPONENTIAL_HISTOGRAM_MAX":               30,
+	"EXPONENTIAL_HISTOGRAM_MIN":               31,
+	"EXPONENTIAL_HISTOGRAM_COUNT":             32,
+	"EXPONENTIAL_HISTOGRAM_SUM":               33,
+	"EXPONENTIAL_HISTOGRAM_AVG":               34,
+	"EXPONENTIAL_HISTOGRAM_SCALE":             35,
+	"EXPONENTIAL_HISTOGRAM_ZERO_COUNT":        36,
+	"EXPONENTIAL_HISTOGRAM_POS_OFFSET":        37,
+	"EXPONENTIAL_HISTOGRAM_POS_BUCKET_COUNTS": 38,
+	"EXPONENTIAL_HISTOGRAM_NEG_OFFSET":        39,
+	"EXPONENTIAL_HISTOGRAM_NEG_BUCKET_COUNTS": 40,
+	"EXPONENTIAL_HISTOGRAM_FLAGS":             41,
+	"EXPONENTIAL_HISTOGRAM_START_TIME":        42,
 }
 
 func (MetricType) EnumDescriptor() ([]byte, []int) {
