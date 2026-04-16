@@ -5,9 +5,10 @@ title: 'DDTrace Extension Changelog'
 
 ## Introduction {#intro}
 
-This changelog records updates to the Java extension package used with DDTrace-compatible instrumentation in DataKit.
+This document records updates to the Java extension package used in DataKit for DDTrace Java instrumentation compatibility scenarios.
+This extension is developed based on `DataDog/dd-trace-java` and follows the `Apache License 2.0`.
+For legal files, checksums, and source code change details, see the <<<custom_key.brand_name>>> [Java Tracer Extension Notice](../application-performance-monitoring/java-tracer-extension).
 
-The current extension package is available for the following technology stack:
 <!-- markdownlint-disable MD046 MD030 -->
 <div class="grid cards" markdown>
 
