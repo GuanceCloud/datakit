@@ -4,69 +4,102 @@ ARG http_proxy
 ARG https_proxy
 ARG HTTP_PROXY
 ARG HTTPS_PROXY
+ARG TARGETARCH
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN dpkg --add-architecture arm64 && \
+RUN set -eux; \
+    native_arch="$(dpkg --print-architecture)"; \
+    case "${native_arch}" in \
+      amd64) \
+        foreign_arch=arm64; \
+        native_mirror=http://mirrors.aliyun.com/ubuntu; \
+        foreign_mirror=http://mirrors.aliyun.com/ubuntu-ports; \
+        cross_compilers="gcc-aarch64-linux-gnu g++-aarch64-linux-gnu"; \
+        cross_sysroot_pkgs="libc6-dev-arm64-cross linux-libc-dev-arm64-cross"; \
+        ;; \
+      arm64) \
+        foreign_arch=amd64; \
+        native_mirror=http://mirrors.aliyun.com/ubuntu-ports; \
+        foreign_mirror=http://mirrors.aliyun.com/ubuntu; \
+        cross_compilers="gcc-x86-64-linux-gnu g++-x86-64-linux-gnu"; \
+        cross_sysroot_pkgs="libc6-dev-amd64-cross linux-libc-dev-amd64-cross"; \
+        ;; \
+      *) echo "unsupported native arch: ${native_arch}"; exit 1 ;; \
+    esac; \
+    dpkg --add-architecture "${foreign_arch}"; \
     printf '%s\n' \
-      'deb [arch=amd64] http://mirrors.aliyun.com/ubuntu/ jammy main restricted universe multiverse' \
-      'deb [arch=amd64] http://mirrors.aliyun.com/ubuntu/ jammy-updates main restricted universe multiverse' \
-      'deb [arch=amd64] http://mirrors.aliyun.com/ubuntu/ jammy-backports main restricted universe multiverse' \
-      'deb [arch=amd64] http://mirrors.aliyun.com/ubuntu/ jammy-security main restricted universe multiverse' \
-      '' \
-      'deb [arch=arm64] http://mirrors.aliyun.com/ubuntu-ports/ jammy main restricted universe multiverse' \
-      'deb [arch=arm64] http://mirrors.aliyun.com/ubuntu-ports/ jammy-updates main restricted universe multiverse' \
-      'deb [arch=arm64] http://mirrors.aliyun.com/ubuntu-ports/ jammy-backports main restricted universe multiverse' \
-      'deb [arch=arm64] http://mirrors.aliyun.com/ubuntu-ports/ jammy-security main restricted universe multiverse' \
-      > /etc/apt/sources.list && \
-    apt-get update && apt-get install -y --no-install-recommends \
-      build-essential \
+      "deb [arch=${native_arch}] ${native_mirror} jammy main restricted universe multiverse" \
+      "deb [arch=${native_arch}] ${native_mirror} jammy-updates main restricted universe multiverse" \
+      "deb [arch=${native_arch}] ${native_mirror} jammy-backports main restricted universe multiverse" \
+      "deb [arch=${native_arch}] ${native_mirror} jammy-security main restricted universe multiverse" \
+      "" \
+      "deb [arch=${foreign_arch}] ${foreign_mirror} jammy main restricted universe multiverse" \
+      "deb [arch=${foreign_arch}] ${foreign_mirror} jammy-updates main restricted universe multiverse" \
+      "deb [arch=${foreign_arch}] ${foreign_mirror} jammy-backports main restricted universe multiverse" \
+      "deb [arch=${foreign_arch}] ${foreign_mirror} jammy-security main restricted universe multiverse" \
+      > /etc/apt/sources.list; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
       ca-certificates \
       clang \
-      file \
-      gnupg \
-      libaio-dev \
-      libaio-dev:arm64 \
-      linux-libc-dev \
-      linux-libc-dev-arm64-cross \
-      pkg-config \
-      software-properties-common \
-      wget \
-      xz-utils \
-      llvm \
-      gcc-aarch64-linux-gnu \
-      libc6-dev-arm64-cross \
-      libsystemd-dev \
-      libsystemd-dev:arm64 \
       curl \
-      git \
       make \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN set -eux; \
-    apt-get update && \
-    apt-get install -y --no-install-recommends linux-headers-generic && \
-    amd64_hdr="$(find /usr/src -maxdepth 1 -type d -name 'linux-headers-*-generic' | sort | tail -n 1)" && \
-    test -n "${amd64_hdr}" && ln -sfn "${amd64_hdr}" /usr/src/linux-headers-amd64 && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN set -eux; \
-    base_url="http://mirrors.aliyun.com/ubuntu-ports"; \
-    amd64_hdr="$(readlink -f /usr/src/linux-headers-amd64)" && \
-    ver="$(basename "${amd64_hdr}" | sed 's/^linux-headers-//; s/-generic$//')" && \
-    test -n "${ver}" && \
-    curl -fsSL -o /tmp/arm64-packages.gz "${base_url}/dists/jammy-updates/main/binary-arm64/Packages.gz" && \
-    hdr_file="$(gzip -dc /tmp/arm64-packages.gz | awk -v pkg="linux-headers-"${ver}"-generic" '$1=="Package:" && $2==pkg {found=1; next} found && $1=="Filename:" {print $2; exit}')" && \
-    common_file="$(gzip -dc /tmp/arm64-packages.gz | awk -v pkg="linux-headers-"${ver} '$1=="Package:" && $2==pkg {found=1; next} found && $1=="Filename:" {print $2; exit}')" && \
-    test -n "${hdr_file}" && test -n "${common_file}" && \
-    curl -fsSL -o /tmp/arm64-headers.deb "${base_url}/${hdr_file}" && \
-    curl -fsSL -o /tmp/arm64-headers-common.deb "${base_url}/${common_file}" && \
-    rm -rf /opt/arm64-kheaders && mkdir -p /opt/arm64-kheaders && \
-    dpkg-deb -x /tmp/arm64-headers.deb /opt/arm64-kheaders && \
-    dpkg-deb -x /tmp/arm64-headers-common.deb /opt/arm64-kheaders && \
-    rm -f /tmp/arm64-packages.gz /tmp/arm64-headers.deb /tmp/arm64-headers-common.deb && \
-    arm64_hdr="/opt/arm64-kheaders/usr/src/linux-headers-${ver}-generic" && \
-    test -d "${arm64_hdr}" && ln -sfn "${arm64_hdr}" /usr/src/linux-headers-arm64
+      pkg-config \
+      llvm \
+      gcc \
+      g++ \
+      linux-headers-generic \
+      ${cross_compilers} \
+      ${cross_sysroot_pkgs}; \
+    case "${native_arch}" in \
+      amd64) foreign_triplet=aarch64-linux-gnu ;; \
+      arm64) foreign_triplet=x86_64-linux-gnu ;; \
+    esac; \
+    command -v gcc; \
+    command -v g++; \
+    command -v "${foreign_triplet}-gcc"; \
+    command -v "${foreign_triplet}-g++"; \
+    native_hdr="$(find /usr/src -maxdepth 1 -type d -name 'linux-headers-*-generic' | sort | tail -n 1)"; \
+    test -n "${native_hdr}"; \
+    ln -sfn "${native_hdr}" "/usr/src/linux-headers-${native_arch}"; \
+    foreign_hdr_mirror="${foreign_mirror}"; \
+    ver="$(basename "${native_hdr}" | sed 's/^linux-headers-//; s/-generic$//')"; \
+    packages_gz="/tmp/${foreign_arch}-Packages.gz"; \
+    curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors -o "${packages_gz}" "${foreign_hdr_mirror}/dists/jammy-updates/main/binary-${foreign_arch}/Packages.gz"; \
+    hdr_pkg_name="linux-headers-${ver}-generic"; \
+    hdr_pkg="$(gzip -dc "${packages_gz}" | awk -v pkg="${hdr_pkg_name}" '$1=="Package:" {found=($2==pkg); next} found && $1=="Filename:" {print $2; exit}')"; \
+    common_pkg_name="$(gzip -dc "${packages_gz}" | awk -v pkg="${hdr_pkg_name}" '\
+      $1=="Package:" {found=($2==pkg); next} \
+      found && $1=="Depends:" { \
+        deps=substr($0, index($0, $2)); \
+        n=split(deps, items, ", "); \
+        for (i=1; i<=n; i++) { \
+          dep=items[i]; \
+          sub(/ .*/, "", dep); \
+          if (dep ~ /^linux-.*headers-[0-9]/) { print dep; exit } \
+        } \
+      }' \
+    )"; \
+    common_pkg="$(gzip -dc "${packages_gz}" | awk -v pkg="${common_pkg_name}" '$1=="Package:" {found=($2==pkg); next} found && $1=="Filename:" {print $2; exit}')"; \
+    test -n "${hdr_pkg}" && test -n "${common_pkg_name}" && test -n "${common_pkg}"; \
+    curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors -o "/tmp/${foreign_arch}-headers.deb" "${foreign_hdr_mirror}/${hdr_pkg}"; \
+    curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors -o "/tmp/${foreign_arch}-headers-common.deb" "${foreign_hdr_mirror}/${common_pkg}"; \
+    extract_root="/opt/${foreign_arch}-kheaders"; \
+    rm -rf "${extract_root}" && mkdir -p "${extract_root}"; \
+    dpkg-deb -x "/tmp/${foreign_arch}-headers.deb" "${extract_root}"; \
+    dpkg-deb -x "/tmp/${foreign_arch}-headers-common.deb" "${extract_root}"; \
+    test -d "${extract_root}/usr/src/linux-headers-${ver}-generic"; \
+    ln -sfn "${extract_root}/usr/src/linux-headers-${ver}-generic" "/usr/src/linux-headers-${foreign_arch}"; \
+    rm -rf \
+      /var/lib/apt/lists/* \
+      /tmp/"${foreign_arch}"-Packages.gz \
+      /tmp/"${foreign_arch}"-headers.deb \
+      /tmp/"${foreign_arch}"-headers-common.deb \
+      /usr/share/doc/* \
+      /usr/share/info/* \
+      /usr/share/locale/* \
+      /usr/share/man/*
 
 RUN ln -sfn /usr/bin/llc /usr/local/bin/llc && \
     ln -sfn /usr/bin/llvm-strip /usr/local/bin/llvm-strip
@@ -82,7 +115,7 @@ RUN set -eux; \
       local file; \
       file="$(gzip -dc "${packages_gz}" | awk -v pkg="${pkg}" '$1=="Package:" && $2==pkg {found=1; next} found && $1=="Filename:" {print $2; exit}')"; \
       test -n "${file}"; \
-      curl -fsSL -o "/tmp/${pkg}.deb" "${mirror}/${file}"; \
+      curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors -o "/tmp/${pkg}.deb" "${mirror}/${file}"; \
     }; \
     for arch in amd64 arm64; do \
       case "${arch}" in \
@@ -91,7 +124,7 @@ RUN set -eux; \
       esac; \
       root="/opt/sysroots/debian10/${arch}"; \
       packages_gz="/tmp/debian10-${arch}-Packages.gz"; \
-      curl -fsSL -o "${packages_gz}" "${LEGACY_SYSROOT_MIRROR}/dists/${LEGACY_SYSROOT_DIST}/main/binary-${arch}/Packages.gz"; \
+      curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors -o "${packages_gz}" "${LEGACY_SYSROOT_MIRROR}/dists/${LEGACY_SYSROOT_DIST}/main/binary-${arch}/Packages.gz"; \
       rm -rf "${root}" && mkdir -p "${root}"; \
       for pkg in \
         libc6 libc6-dev linux-libc-dev \
@@ -137,38 +170,23 @@ ENV GOPROXY="https://goproxy.cn,direct"
 RUN set -eux; \
     arch="$(dpkg --print-architecture)"; \
     for ver in "${GO_VERSION_DEFAULT}" "${GO_VERSION_EBPF}"; do \
-      curl -fsSL "${GO_DOWNLOAD_BASE}/go${ver}.linux-${arch}.tar.gz" -o "/tmp/go${ver}.tar.gz"; \
+      curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors "${GO_DOWNLOAD_BASE}/go${ver}.linux-${arch}.tar.gz" -o "/tmp/go${ver}.tar.gz"; \
       rm -rf "/usr/local/go${ver}"; \
       mkdir -p "/usr/local/go${ver}"; \
       tar -C /usr/local -xzf "/tmp/go${ver}.tar.gz"; \
       mv /usr/local/go "/usr/local/go${ver}"; \
       rm -f "/tmp/go${ver}.tar.gz"; \
-    done
+    done; \
+    case "${arch}" in \
+      arm64) default_go="/usr/local/go${GO_VERSION_DEFAULT}/go" ;; \
+      *) default_go="/usr/local/go${GO_VERSION_EBPF}/go" ;; \
+    esac; \
+    ln -sfn "${default_go}" /usr/local/go-default
 
-RUN mkdir -p /cache/gomod /cache/go-build
-
-ENV GOMODCACHE=/cache/gomod
-ENV GOCACHE=/cache/go-build
-
-RUN --mount=type=bind,source=.,target=/src,readonly \
-    set -eux; \
-    rm -rf /tmp/modprep && mkdir -p /tmp/modprep/root /tmp/modprep/ebpf; \
-    cp /src/go.mod /src/go.sum /tmp/modprep/root/; \
-    cp /src/internal/plugins/externals/ebpf/go.mod /tmp/modprep/ebpf/; \
-    cp /src/internal/plugins/externals/ebpf/go.sum /tmp/modprep/ebpf/; \
-    cp /src/internal/plugins/externals/ebpf/go.work /tmp/modprep/ebpf/; \
-    cp /src/internal/plugins/externals/ebpf/go.work.sum /tmp/modprep/ebpf/; \
-    cd /tmp/modprep/root; \
-    GOSUMDB=off /usr/local/go1.19.13/go/bin/go mod download; \
-    cd /tmp/modprep/ebpf; \
-    GOSUMDB=off /usr/local/go1.26.1/go/bin/go mod download; \
-    du -sh /cache/gomod /cache/go-build; \
-    find /cache/gomod -maxdepth 3 | sed -n '1,20p'; \
-    rm -rf /tmp/modprep
-
-ENV GOROOT_119=/usr/local/go1.19.13/go
-ENV GOROOT_126=/usr/local/go1.26.1/go
-ENV PATH=/usr/local/go1.26.1/go/bin:/usr/local/go1.19.13/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV GOROOT_119=/usr/local/go${GO_VERSION_DEFAULT}/go
+ENV GOROOT_126=/usr/local/go${GO_VERSION_EBPF}/go
+ENV GOROOT_DEFAULT=/usr/local/go-default
+ENV PATH=/usr/local/go-default/bin:/usr/local/go${GO_VERSION_EBPF}/go/bin:/usr/local/go${GO_VERSION_DEFAULT}/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 WORKDIR /root/go/src/gitlab.jiagouyun.com/cloudcare-tools/datakit
 

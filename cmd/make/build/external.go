@@ -7,6 +7,7 @@ package build
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -27,6 +28,8 @@ type dkexternal struct {
 	envs    []string
 
 	buildCmd string
+
+	tags string
 }
 
 var externals = []*dkexternal{
@@ -35,10 +38,15 @@ var externals = []*dkexternal{
 		name: "oracle",
 		lang: "go",
 
-		entry: "oracle.go",
+		entry: "internal/plugins/externals/oracle/main.go",
+		tags:  "netgo",
 		osarchs: map[string]bool{
 			"linux/amd64": true,
 			"linux/arm64": true,
+		},
+
+		envs: []string{
+			"CGO_ENABLED=1",
 		},
 	},
 	{
@@ -46,9 +54,14 @@ var externals = []*dkexternal{
 		name: "db2",
 		lang: "go",
 
-		entry: "db2.go",
+		entry: "internal/plugins/externals/db2/main.go",
+		tags:  "netgo",
 		osarchs: map[string]bool{
 			"linux/amd64": true,
+		},
+
+		envs: []string{
+			"CGO_ENABLED=1",
 		},
 	},
 	{
@@ -58,7 +71,7 @@ var externals = []*dkexternal{
 		standalone: false,
 		lang:       "makefile",
 
-		entry: "Makefile",
+		entry: "internal/plugins/externals/ebpf/Makefile",
 		osarchs: map[string]bool{
 			"linux/amd64": true,
 			"linux/arm64": true,
@@ -74,7 +87,8 @@ var externals = []*dkexternal{
 		name: "journald",
 		lang: "go",
 
-		entry: "main.go",
+		entry: "internal/plugins/externals/journald/main.go",
+		tags:  "netgo",
 		osarchs: map[string]bool{
 			"linux/amd64": true,
 			"linux/arm64": true,
@@ -89,7 +103,7 @@ var externals = []*dkexternal{
 		name: "logfwd",
 		lang: "go",
 
-		entry: "cmd/main.go",
+		entry: "internal/plugins/externals/logfwd/cmd/main.go",
 		osarchs: map[string]bool{
 			"linux/amd64": true,
 			"linux/arm64": true,
@@ -159,26 +173,15 @@ func doBuildExternal(ex *dkexternal, dir, goos, goarch string, standalone bool) 
 	}
 
 	l.Info("lang = ", ex.lang)
-	switch strings.ToLower(ex.lang) {
-	case "makefile", "Makefile":
-		fallthrough
-	case "go", "golang":
-		args := []string{
-			"./scripts/build-external-collector.sh",
-			"--input", ex.name,
-			"--output", out,
-			"--output-dir", outdir,
-			"-a", goarch,
+	switch {
+	case needContainerBuild(ex, envs):
+		if err := buildExternalInContainer(ex, outdir, out, goos, goarch); err != nil {
+			return err
 		}
 
-		if cgoEnabled := envValue(envs, "CGO_ENABLED"); cgoEnabled != "" {
-			args = append(args, "--cgo-enabled", cgoEnabled)
-		}
-
-		msg, err := runEnv(args, nil)
-		if err != nil {
-			return fmt.Errorf("failed to run %v: %w, msg: %s",
-				args, err, string(msg))
+	case strings.EqualFold(ex.lang, "go") || strings.EqualFold(ex.lang, "golang"):
+		if err := buildExternalWithGo(ex, outdir, out, goos, goarch, envs); err != nil {
+			return err
 		}
 
 	default: // for python, just copy source code into build dir
@@ -196,6 +199,176 @@ func doBuildExternal(ex *dkexternal, dir, goos, goarch string, standalone bool) 
 	}
 
 	return nil
+}
+
+func needContainerBuild(ex *dkexternal, envs []string) bool {
+	if strings.EqualFold(ex.lang, "makefile") {
+		return true
+	}
+
+	return envValue(envs, "CGO_ENABLED") == "1"
+}
+
+func buildExternalWithGo(ex *dkexternal, outdir, out, goos, goarch string, envs []string) error {
+	args := []string{
+		"go",
+		"build",
+	}
+
+	if ex.tags != "" {
+		args = append(args, "-tags", ex.tags)
+	}
+
+	args = append(args,
+		"-buildvcs=false",
+		"-o", filepath.Join(outdir, out),
+		"-ldflags", "-w -s",
+		ex.entry,
+	)
+
+	buildEnv := append([]string{
+		"GO111MODULE=on",
+		fmt.Sprintf("GOOS=%s", goos),
+		fmt.Sprintf("GOARCH=%s", goarch),
+	}, envs...)
+
+	if envValue(buildEnv, "GOFLAGS") == "" {
+		buildEnv = append(buildEnv, "GOFLAGS=-mod=vendor")
+	}
+
+	msg, err := runEnv(args, buildEnv)
+	if err != nil {
+		return fmt.Errorf("failed to build external %s: %w, msg: %s", ex.name, err, string(msg))
+	}
+
+	return nil
+}
+
+func buildExternalInContainer(ex *dkexternal, outdir, out, goos, goarch string) error {
+	projectRoot, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("os.Getwd: %w", err)
+	}
+
+	outputDir, err := filepath.Abs(outdir)
+	if err != nil {
+		return fmt.Errorf("filepath.Abs(%q): %w", outdir, err)
+	}
+
+	var containerOutDir string
+	mountArgs := []string{"-v", projectRoot + ":/work"}
+	if rel, relErr := filepath.Rel(projectRoot, outputDir); relErr == nil && !strings.HasPrefix(rel, "..") {
+		containerOutDir = filepath.ToSlash(filepath.Join("/work", rel))
+	} else {
+		mountArgs = append(mountArgs, "-v", filepath.Dir(outputDir)+":/out")
+		containerOutDir = "/out"
+	}
+
+	dockerCmd, err := resolveDockerCmd()
+	if err != nil {
+		return err
+	}
+
+	platform := os.Getenv("DK_BUILD_DOCKER_PLATFORM")
+	if platform == "" {
+		platform = "linux/" + runtime.GOARCH
+	}
+
+	buildImage := os.Getenv("DK_BUILD_ENV_IMAGE")
+	if buildImage == "" {
+		return fmt.Errorf("DK_BUILD_ENV_IMAGE is required")
+	}
+
+	containerCmd := fmt.Sprintf(
+		"make --no-print-directory build_external_local "+
+			"EXTERNAL_NAME=%s EXTERNAL_GOOS=%s EXTERNAL_ARCH=%s "+
+			"EXTERNAL_OUTDIR=%s EXTERNAL_OUTPUT=%s GO_MODULE_MODE=%s%s",
+		shQuote(ex.name),
+		shQuote(goos),
+		shQuote(goarch),
+		shQuote(containerOutDir),
+		shQuote(out),
+		shQuote(goModuleMode()),
+		ebpfKernelArg(ex.name, goarch),
+	)
+
+	args := append([]string{}, dockerCmd...)
+	args = append(args,
+		"run", "--rm",
+		"--platform", platform,
+	)
+	args = append(args, mountArgs...)
+	args = append(args,
+		"-w", "/work",
+		buildImage,
+		"bash", "-lc", containerCmd,
+	)
+
+	msg, err := runEnv(args, nil)
+	if err != nil {
+		return fmt.Errorf("failed to build external %s in container: %w, msg: %s", ex.name, err, string(msg))
+	}
+
+	chownArgs := append([]string{}, dockerCmd...)
+	chownArgs = append(chownArgs,
+		"run", "--rm",
+		"--platform", platform,
+	)
+	chownArgs = append(chownArgs, mountArgs...)
+	chownArgs = append(chownArgs,
+		"-w", "/work",
+		buildImage,
+		"chown", "-R", fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid()), containerOutDir,
+	)
+
+	_, _ = runEnv(chownArgs, nil)
+
+	return nil
+}
+
+func resolveDockerCmd() ([]string, error) {
+	if cmd := os.Getenv("DK_BUILD_DOCKER_CMD"); cmd != "" {
+		return strings.Fields(cmd), nil
+	}
+
+	candidates := [][]string{
+		{"docker"},
+		{"sudo", "-n", "docker"},
+	}
+
+	for _, candidate := range candidates {
+		args := append([]string{}, candidate...)
+		args = append(args, "info")
+		if _, err := runEnv(args, nil); err == nil {
+			return candidate, nil
+		}
+	}
+
+	return nil, fmt.Errorf("docker is not available for non-interactive use")
+}
+
+func goModuleMode() string {
+	if mode := os.Getenv("GO_MODULE_MODE"); mode != "" {
+		return mode
+	}
+
+	return "vendor"
+}
+
+func ebpfKernelArg(name, goarch string) string {
+	if name != "ebpf" {
+		return ""
+	}
+
+	return " DK_BPF_KERNEL_SRC_PATH=" + shQuote("/usr/src/linux-headers-"+goarch)
+}
+
+func shQuote(s string) string {
+	if s == "" {
+		return "''"
+	}
+
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
 }
 
 func envValue(envs []string, key string) string {

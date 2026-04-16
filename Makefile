@@ -1,4 +1,4 @@
-.PHONY: default testing local deps prepare cspell
+.PHONY: default testing local deps prepare cspell build_external_local
 
 default: local
 
@@ -30,6 +30,8 @@ RED                    = \033[31m   # red
 LOG_LEVEL             ?= "info"
 GO_MODULE_MODE        ?= vendor
 GO_MODULE_ENV         = GO111MODULE=on GOFLAGS=-mod=$(GO_MODULE_MODE)
+DK_BUILD_ENV_IMAGE    ?= pubrepo.jiagouyun.com/ebpf-dev/dk_build_env:3.1
+export DK_BUILD_ENV_IMAGE
 
 SUPPORTED_GOLINT_VERSION         = 1.46.2
 SUPPORTED_GOLINT_VERSION_ANOTHER = v1.46.2
@@ -72,6 +74,15 @@ HELM_CHART_DIR               ?= "charts/datakit"
 SKIP_HELM                    ?= 0
 MERGE_REQUEST_TARGET_BRANCH  ?= ""
 ONLY_BUILD_INPUTS_EXTENTIONS ?= 0
+EXTERNAL_NAME                ?=
+EXTERNAL_GOOS                ?= linux
+EXTERNAL_ARCH                ?= $(shell go env GOARCH)
+EXTERNAL_OUTDIR              ?=
+EXTERNAL_OUTPUT              ?=
+EXTERNAL_LDFLAGS             ?= -w -s
+EXTERNAL_EBPF_ARGS           ?=
+DK_BPF_KERNEL_SRC_PATH       ?=
+EXTERNAL_SYSROOT_BASE        ?= /opt/sysroots/debian10
 
 AWS_REGIONS ?= ""
 
@@ -256,6 +267,19 @@ define build_ip2isp
 	git clone -b ip-lists https://github.com/gaoyifan/china-operator-ip.git
 	@$(GO_MODULE_ENV) CGO_ENABLED=0 go run -tags with_inputs cmd/make/make.go -build-isp -log-level $(LOG_LEVEL)
 endef
+
+build_external_local:
+	@$(MAKE) --no-print-directory -C externals build_external_local \
+		GO_MODULE_MODE="$(GO_MODULE_MODE)" \
+		EXTERNAL_NAME="$(EXTERNAL_NAME)" \
+		EXTERNAL_GOOS="$(EXTERNAL_GOOS)" \
+		EXTERNAL_ARCH="$(EXTERNAL_ARCH)" \
+		EXTERNAL_OUTDIR="$(EXTERNAL_OUTDIR)" \
+		EXTERNAL_OUTPUT="$(EXTERNAL_OUTPUT)" \
+		EXTERNAL_LDFLAGS="$(EXTERNAL_LDFLAGS)" \
+		EXTERNAL_EBPF_ARGS="$(EXTERNAL_EBPF_ARGS)" \
+		DK_BPF_KERNEL_SRC_PATH="$(DK_BPF_KERNEL_SRC_PATH)" \
+		EXTERNAL_SYSROOT_BASE="$(EXTERNAL_SYSROOT_BASE)"
 
 ##############################################################################
 # Rules in the Makefile
