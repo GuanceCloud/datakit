@@ -101,7 +101,7 @@ github.com/GuanceCloud/kubernetes/pkg/probe/exec
 # github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386
 ## explicit; go 1.18
 github.com/GuanceCloud/mdcheck/check
-# github.com/GuanceCloud/pipeline-go v1.2.3-0.20260401094002-13ed699eb68c
+# github.com/GuanceCloud/pipeline-go v1.2.3-hotfix.1
 ## explicit; go 1.19
 github.com/GuanceCloud/pipeline-go
 github.com/GuanceCloud/pipeline-go/constants
