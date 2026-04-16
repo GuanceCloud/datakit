@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.92.1(2026/04/16) {#cl-1.92.1}
+
+This release is a hotfix release, contents are as follows:
+
+### Bug Fixes {#cl-1.92.1-fix}
+
+- Fixed the Pipeline `add_key` path not serializing `list/map` values, and now normalizes composite values into strings before writing them (#3035)
+- Fixed SQLServer and Oracle `object` collection not strictly honoring the configured collection interval, preventing collection from still running before the next window is reached (#3034)
+- Fixed incorrect k8s `requests` field values in container metric collection, ensuring container resource requests are reported correctly (#3033)
+- Fixed `datakit import` replay not inheriting DataWay settings from `datakit.conf`, while still keeping command-line URL overrides available (#3030)
+
+### Improvements {#cl-1.92.1-opt}
+
+- Adjusted DK external collector and related component build flows, improving multi-architecture build paths and compilation compatibility (#3013)
+
+---
+
 ## 1.92.0(2026/04/09) {#cl-1.92.0}
 
 This release is an iterative release, with the following main updates:
