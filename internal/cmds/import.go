@@ -174,25 +174,34 @@ func findDataFiles(p string) (arr []string) {
 }
 
 func setupUploader() (uploader, error) {
-	var dwURLS []string
+	dw := dataway.NewDefaultDataway()
 
-	if len(*flagImportDatawayURL) == 0 {
-		if err := config.Cfg.LoadMainTOML(datakit.MainConfPath); err != nil {
+	if err := config.Cfg.LoadMainTOML(datakit.MainConfPath); err != nil {
+		if len(*flagImportDatawayURL) == 0 {
 			return nil, err
 		}
 
-		dwURLS = config.Cfg.Dataway.URLs
-	} else {
-		dwURLS = *flagImportDatawayURL
+		l.Warnf("load config %s failed: %s, use import defaults", datakit.MainConfPath, err)
+	} else if config.Cfg.Dataway != nil {
+		dw = config.Cfg.Dataway
+
+		// Keep CLI import consistent with the runtime dataway config.
+		if dw.DeprecatedURL != "" && len(dw.URLs) == 0 {
+			dw.URLs = []string{dw.DeprecatedURL}
+		}
+
+		if config.Cfg.ProtectMode && dw.MaxRawBodySize < dataway.MinimalRawBodySize {
+			l.Infof("under protect mode, max-raw-body-size(%d) too small, reset to %d",
+				dw.MaxRawBodySize, dataway.MinimalRawBodySize)
+			dw.MaxRawBodySize = dataway.MinimalRawBodySize
+		}
 	}
 
-	u := &uploaderImpl{
-		dw: func() *dataway.Dataway {
-			x := dataway.NewDefaultDataway()
-			x.URLs = dwURLS
-			return x
-		}(),
+	if len(*flagImportDatawayURL) > 0 {
+		dw.URLs = *flagImportDatawayURL
 	}
+
+	u := &uploaderImpl{dw: dw}
 
 	if err := u.dw.Init(); err != nil {
 		return nil, err
