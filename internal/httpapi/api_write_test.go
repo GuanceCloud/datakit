@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 	T "testing"
@@ -510,7 +511,17 @@ func TestReadTimeout(t *T.T) {
 
 		cli := http.Client{}
 		resp, err := cli.Do(req)
-		require.NoError(t, err)
+		if err != nil {
+			// A read timeout may close the socket before the client finishes
+			// streaming the request body, which surfaces as a transport error
+			// instead of an HTTP 408 on some Linux runners.
+			require.True(t,
+				strings.Contains(err.Error(), "connection reset by peer") ||
+					strings.Contains(err.Error(), "broken pipe") ||
+					strings.Contains(err.Error(), "EOF"),
+				"unexpected transport error: %v", err)
+			return
+		}
 
 		assert.Equal(t, http.StatusRequestTimeout, resp.StatusCode)
 
