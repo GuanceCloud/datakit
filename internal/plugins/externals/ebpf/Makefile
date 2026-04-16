@@ -4,6 +4,9 @@ GO ?= go
 GOTOOLCHAIN ?= go1.26.1
 export GOTOOLCHAIN
 
+GOOS ?= linux
+GOARCH ?=
+
 ARCH ?= $(shell uname -m | sed -e s/x86_64/x86_64/ \
 				  -e s/aarch64.\*/arm64/)
 
@@ -21,9 +24,23 @@ ifeq ($(MACHINE_ARCH),amd64)
 		GO_ARCH := amd64
 endif
 
-DKE_ARCH    := linux/$(GO_ARCH)
-DKE_VERSION := $(shell git describe --tags)
-DKE_COMMIT  := $(shell git rev-parse --short HEAD)
+ifneq ($(GOARCH),)
+	GO_ARCH := $(GOARCH)
+endif
+
+ifeq ($(GO_ARCH),amd64)
+	MACHINE_ARCH := x86
+	CLANG_TARGET ?= x86_64-linux-gnu
+endif
+
+ifeq ($(GO_ARCH),arm64)
+	MACHINE_ARCH := arm64
+	CLANG_TARGET ?= aarch64-linux-gnu
+endif
+
+DKE_ARCH    := $(GOOS)/$(GO_ARCH)
+DKE_VERSION := $(shell sh -c 'command -v git >/dev/null 2>&1 && git describe --tags || echo unknown')
+DKE_COMMIT  := $(shell sh -c 'command -v git >/dev/null 2>&1 && git rev-parse --short HEAD || echo unknown')
 DKE_DATE    := $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 
 ARGS ?= ""
@@ -58,7 +75,9 @@ BPF_INCLUDE := $(KERNEL_INCLUDE) \
 		-I$(INTERNAL_PATH)/c/common \
 		-include asm_goto_workaround.h
 
-BUILD_TAGS := -D__KERNEL__ -D__BPF_TRACING__ $(ARGS) \
+BUILD_TAGS := -D__KERNEL__ -D__BPF_TRACING__ \
+		$(if $(CLANG_TARGET),--target=$(CLANG_TARGET)) \
+		$(ARGS) \
 		-fno-stack-protector -g \
 		-Wno-unused-value \
 		-Wno-pointer-sign \
@@ -132,6 +151,7 @@ bindata: offset_guess.o offset_httpflow.o offset_conntrack.o offset_tcp_seq.o \
 	llvm-strip $(EBPF_BIN_PATH)/*.o --no-strip-all -R .BTF
 
 build: bindata
+	GO111MODULE=on CGO_ENABLED=1 GOOS=$(GOOS) GOARCH=$(GO_ARCH) \
 	$(GO) build -tags="$(GO_BUILD_TAGS)" -ldflags "-w -s \
 		-X 'main.Arch=${DKE_ARCH}' \
         -X 'main.Date=${DKE_DATE}'" -o $(OUT_PATH) $(SRC_PATH)/cmd/datakit-ebpf/datakit-ebpf.go

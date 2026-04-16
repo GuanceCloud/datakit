@@ -328,7 +328,7 @@ func buildPodKVs(containerName string, pod *apicorev1.Pod, top *runtime.Containe
 		}
 	}
 
-	cpuRequest, memRequest := podutil.ContainerLimitInPod(containerName, pod)
+	cpuRequest, memRequest := podutil.ContainerRequestInPod(containerName, pod)
 	if cpuRequest != 0 {
 		kvs = kvs.Add("cpu_request_millicores", cpuRequest)
 		if top != nil {
