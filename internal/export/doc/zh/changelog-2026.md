@@ -32,24 +32,6 @@
 
 ---
 
-## 1.91.1(2026/04/07) {#cl-1.91.1}
-
-本次发布属于 hotfix 修复，内容如下：
-
-### 问题修复 {#cl-1.91.1-fix}
-
-- 修复 DDTrace 内存泄漏问题：DDTraces.reset() 未正确释放内存导致 OOM，添加 shouldKeepInPool() 智能回收大 traces（#3012）
-- 修复容器日志采集资源占用异常问题：修复 addTask 竞态条件，移除全局 goroutine group，优化 inotify 不可用时的扫描策略（#3010）
-- 修复 NTP 时间差在系统时间恢复后仍被沿用的问题，现在时间差恢复时会自动清零（#3006）
-- 修复 datakit sinker v2 中 X-Global-Tags-V2 header 值未编码导致的 wrapped-url-error 问题（#3009）
-
-### 功能优化 {#cl-1.91.1-opt}
-
-- SQLServer 和 Oracle 采集器优化 database_instance 优先级，优先使用配置中的标签，避免多节点数据混淆；max_queries 调整为 500，lookback_window 调整为 300s（#3011）
-- 优化 SQLServer 和 Oracle 创建 point 时添加 election tag 的逻辑，减少每次创建的额外开销（#3004）
-
----
-
 ## 1.91.0(2026/03/26) {#cl-1.91.0}
 
 本次发布属于迭代发布，主要有如下更新：

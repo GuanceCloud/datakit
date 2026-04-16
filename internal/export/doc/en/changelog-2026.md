@@ -32,24 +32,6 @@ This release is an iterative release, with the following main updates:
 
 ---
 
-## 1.91.1(2026/04/07) {#cl-1.91.1}
-
-This release is a hotfix release with the following fixes:
-
-### Bug Fixes {#cl-1.91.1-fix}
-
-- Fixed DDTrace memory leak: DDTraces.reset() not properly releasing memory causing OOM, added shouldKeepInPool() for smart recycling of large traces (#3012)
-- Fixed container log collection resource usage issue: fixed addTask race condition, removed global goroutine group, optimized scan strategy when inotify unavailable (#3010)
-- Fixed NTP time diff not cleared after system clock recovery, now automatically resets when time diff recovers (#3006)
-- Fixed datakit sinker v2 X-Global-Tags-V2 header value not URL-encoded causing wrapped-url-error (#3009)
-
-### Improvements {#cl-1.91.1-opt}
-
-- SQLServer and Oracle collectors optimized database_instance priority, prioritizing configured tags to avoid cross-node data confusion; adjusted max_queries to 500, lookback_window to 300s (#3011)
-- Optimized SQLServer and Oracle point creation logic to reduce overhead when adding election tags (#3004)
-
----
-
 ## 1.91.0(2026/03/26) {#cl-1.91.0}
 
 This release is an iterative release, with the following main updates:
