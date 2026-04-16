@@ -62,6 +62,7 @@ func (ipt *Input) collectDatabaseObject() {
 	if !ipt.Object.lastCollectionTime.IsZero() &&
 		ipt.Object.lastCollectionTime.Add(ipt.Object.Interval.Duration).After(time.Now()) {
 		l.Debugf("skip oracle_object collection, time interval not reached")
+		return
 	}
 	start := time.Now()
 
