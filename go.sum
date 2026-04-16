@@ -169,6 +169,8 @@ github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386 h1:p2P0It6jj
 github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386/go.mod h1:xrC7I8mMBOD93+A7fLJXU1lBaej49hZj7DaaFXFdSBE=
 github.com/GuanceCloud/pipeline-go v1.2.3-0.20260401094002-13ed699eb68c h1:50m6z6Cx5Pyk0zk+ZsQ1dnCuMzRmkbm914J5e5IY3iw=
 github.com/GuanceCloud/pipeline-go v1.2.3-0.20260401094002-13ed699eb68c/go.mod h1:pzPpMMEfxspV2suDEOfQPM31jqwvGlX3MIR/MDT9vDA=
+github.com/GuanceCloud/pipeline-go v1.2.3-hotfix.1 h1:81fCfPDY15iK8UgeZbk5yu4I4ZcYxJRQNlULqBsPpiY=
+github.com/GuanceCloud/pipeline-go v1.2.3-hotfix.1/go.mod h1:pzPpMMEfxspV2suDEOfQPM31jqwvGlX3MIR/MDT9vDA=
 github.com/GuanceCloud/platypus v0.3.4 h1:eukTGJbnzNi2pvWZ0Qo0bxmLctv8HUbZYejZSQK7jNM=
 github.com/GuanceCloud/platypus v0.3.4/go.mod h1:H9Sol/SI+A9ppJUohdn9m/UA0aiNvh+G0/GnY6IVDnI=
 github.com/GuanceCloud/promcommon v0.0.0-20230828165048-8a8ac696e616 h1:l2/OF8jg2mcvAv5OzJWyooCEEcL2b0yATSl/iXUrvQ8=
