@@ -167,6 +167,7 @@ func (ipt *Input) metricCollectSqlserverObject() {
 	if !ipt.Object.lastCollectionTime.IsZero() &&
 		ipt.Object.lastCollectionTime.Add(ipt.Object.Interval.Duration).After(start) {
 		l.Debugf("skip sqlserver_object collection, time interval not reached")
+		return
 	}
 
 	ipt.Object.lastCollectionTime = start
