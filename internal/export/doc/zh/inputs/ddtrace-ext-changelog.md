@@ -7,7 +7,7 @@ skip: 'not-searchable-on-index-page'
 ## 简介 {#intro}
 
 本文记录 DataKit 中用于兼容 DDTrace Java 探针接入场景的 Java 扩展包更新内容。该扩展基于 `DataDog/dd-trace-java` 开发，遵循 `Apache License 2.0`。
-有关法律文件、校验和及源代码变更信息，请参阅<<<custom_key.brand_name>>> [Java Tracer 扩展声明](../application-performance-monitoring/java-tracer-extension)
+有关法律文件、校验和及源代码变更信息，请参阅<<<custom_key.brand_name>>> [Java Tracer 扩展声明](../../application-performance-monitoring/java-tracer-extension)
 
 <!-- markdownlint-disable MD046 MD030 -->
 <div class="grid cards" markdown>
