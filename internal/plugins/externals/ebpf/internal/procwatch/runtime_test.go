@@ -1,5 +1,5 @@
-//go:build linux
-// +build linux
+//go:build linux && cgo
+// +build linux,cgo
 
 package procwatch
 
@@ -7,9 +7,12 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 	"unsafe"
+
+	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/c"
 )
 
 func TestNewProbeWatcherLazyLoad(t *testing.T) {
@@ -33,6 +36,13 @@ func TestNewProbeWatcherWithAllowTraceButNoTarget(t *testing.T) {
 
 	if os.Geteuid() != 0 {
 		t.Skip("skip privileged procwatch runtime load test on non-root")
+	}
+
+	if _, err := dkebpf.ProcessSchedBin(); err != nil {
+		if os.IsNotExist(err) || strings.Contains(err.Error(), "file does not exist") {
+			t.Skipf("skip procwatch runtime load test without embedded process_sched.o: %v", err)
+		}
+		t.Fatalf("load embedded process_sched.o: %v", err)
 	}
 
 	w, err = NewProbeWatcher(&Catalog{allowTrace: true, traceAllProc: true})
