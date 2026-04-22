@@ -6,9 +6,8 @@
 package aggr
 
 import (
-	"bytes"
+	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"strconv"
 	"sync"
@@ -18,6 +17,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/endpoint"
 )
 
 const (
@@ -49,6 +49,15 @@ type tailSamplingSendTask struct {
 type metricBatchSendTask struct {
 	pickKey uint64
 	batch   *aggregate.Batchs
+}
+
+type sendStatusError struct {
+	reason string
+	msg    string
+}
+
+func (e *sendStatusError) Error() string {
+	return e.msg
 }
 
 func (ag *Aggregator) SendTailSamplingPackages(packages map[uint64]*aggregate.DataPacket) error {
@@ -83,6 +92,8 @@ func (ag *Aggregator) SendTailSamplingPackages(packages map[uint64]*aggregate.Da
 		return nil
 	}
 
+	recordGeneratedBatches("tail_sampling", tasks[0].packet.DataType, len(tasks))
+
 	if err := ag.runAsyncSend(len(tasks), func(i int) error {
 		task := tasks[i]
 		return ag.sendTailSamplingPackage(task.pickKey, task.packet)
@@ -106,8 +117,8 @@ func (ag *Aggregator) sendTailSamplingPackage(pickKey uint64, pkg *aggregate.Dat
 	}
 	defer putMarshalBody(body)
 
-	u := ag.getEndpoint(pickKey, tailSamplingRoute)
-	if u == "" {
+	eps := ag.endpointsForPickKey(pickKey)
+	if len(eps) == 0 {
 		err := fmt.Errorf("tail sampling endpoint is empty")
 		log.Errorf("%v", err)
 		recordSendFailed("tail_sampling", category, "transport")
@@ -115,61 +126,81 @@ func (ag *Aggregator) sendTailSamplingPackage(pickKey uint64, pkg *aggregate.Dat
 		return err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, u, bytes.NewReader(body.buf))
-	if err != nil {
-		log.Errorf("create tail sampling request failed: %v", err)
-		recordSendFailed("tail_sampling", category, "other")
-		recordLostPoints("tail_sampling", category, "other", pointsCount)
-		return err
+	var firstErr error
+	success := false
+	attempted := false
+	for _, ep := range eps {
+		if ep == nil {
+			continue
+		}
+		attempted = true
+
+		resp, _, err := ep.WriteAggrData(&endpoint.AggrData{
+			API:             datakit.TailSampling,
+			Category:        category,
+			ContentType:     aggregatePayloadContentType,
+			ContentEncoding: identityContentEncoding,
+			Body:            body.buf,
+			RawLen:          len(body.buf),
+			Points:          pointsCount,
+			Headers: map[string]string{
+				aggregate.GuancePickKey: strconv.FormatUint(pickKey, 10),
+				payloadSizeHeader:       strconv.Itoa(len(body.buf)),
+			},
+		})
+		if resp == nil {
+			if err != nil {
+				log.Errorf("send tail sampling package failed: %v", err)
+			}
+			if firstErr == nil {
+				if err != nil {
+					firstErr = err
+				} else {
+					firstErr = endpoint.ErrRequestTerminated
+				}
+			}
+			continue
+		}
+
+		switch resp.StatusCode {
+		case http.StatusOK:
+			// log.Debugf("send tail sampling package success: status=%d", resp.StatusCode)
+			success = true
+		case http.StatusPreconditionFailed:
+			ag.sendTSConfigToDW()
+			log.Infof("send tail sampling package got status=%d, resend tail sampling config", resp.StatusCode)
+			success = true
+		default:
+			err = &sendStatusError{
+				reason: "server",
+				msg:    fmt.Sprintf("unexpected status code: %d", resp.StatusCode),
+			}
+			log.Errorf("send tail sampling package got unexpected status=%d", resp.StatusCode)
+			if firstErr == nil {
+				firstErr = err
+			}
+		}
 	}
-	setPayloadHeaders(req, len(body.buf))
-	setPickKeyHeader(req, pickKey)
-	if ag.Transport == nil {
-		err := fmt.Errorf("tail sampling transport is nil")
-		log.Errorf("%v", err)
-		recordSendFailed("tail_sampling", category, "transport")
-		recordLostPoints("tail_sampling", category, "transport", pointsCount)
-		return err
+	if !attempted && firstErr == nil {
+		firstErr = endpoint.ErrRequestTerminated
 	}
 
-	resp, err := ag.Transport.RoundTrip(req)
-	latency := time.Since(startTime)
-
-	if err != nil {
-		log.Errorf("send tail sampling package failed: %v", err)
-		recordSendFailed("tail_sampling", category, "network")
-		recordLostPoints("tail_sampling", category, "network", pointsCount)
-		recordSendLatency("tail_sampling", category, latency)
-		return err
-	}
-	defer resp.Body.Close() //nolint
-	_, _ = io.Copy(io.Discard, resp.Body)
-
-	// Record latency
-	recordSendLatency("tail_sampling", category, latency)
-
-	switch resp.StatusCode {
-	case http.StatusOK:
-		// log.Debugf("send tail sampling package success: status=%d", resp.StatusCode)
+	recordSendLatency("tail_sampling", category, time.Since(startTime))
+	if success {
 		recordSendSuccess("tail_sampling", category)
 		recordSendPoints("tail_sampling", category, pointsCount)
-	case http.StatusPreconditionFailed:
-		ag.sendTSConfigToDW()
-		log.Infof("send tail sampling package got status=%d, resend tail sampling config", resp.StatusCode)
-		// This is not a failure, just need to resend config
-		recordSendSuccess("tail_sampling", category)
-		recordSendPoints("tail_sampling", category, pointsCount)
-	default:
-		log.Errorf("send tail sampling package got unexpected status=%d", resp.StatusCode)
-		recordSendFailed("tail_sampling", category, "server")
-		recordLostPoints("tail_sampling", category, "server", pointsCount)
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+	if firstErr != nil {
+		recordSendFailed("tail_sampling", category, sendFailureReason(firstErr, "server"))
+		if !success {
+			recordLostPoints("tail_sampling", category, sendFailureReason(firstErr, "server"), pointsCount)
+		}
 	}
 
-	return nil
+	return firstErr
 }
 
-func (ag *Aggregator) SendMetricBatches(batchMap map[uint64]*aggregate.Batchs) error {
+func (ag *Aggregator) SendMetricBatches(category string, batchMap map[uint64]*aggregate.Batchs) error {
 	if len(batchMap) == 0 {
 		log.Debugf("skip sending metric batches: no batches")
 		return nil
@@ -177,7 +208,6 @@ func (ag *Aggregator) SendMetricBatches(batchMap map[uint64]*aggregate.Batchs) e
 
 	maxRawBodySize := ag.maxRawBodySize()
 	tasks := make([]metricBatchSendTask, 0, len(batchMap))
-	totalPoints := 0
 
 	for pickKey, batch := range batchMap {
 		if batch == nil || len(batch.Batchs) == 0 {
@@ -191,7 +221,6 @@ func (ag *Aggregator) SendMetricBatches(batchMap map[uint64]*aggregate.Batchs) e
 		}
 		for _, splitBatch := range splitBatches {
 			tasks = append(tasks, metricBatchSendTask{pickKey: pickKey, batch: splitBatch})
-			totalPoints += countSelectedMetricPointsInBatch(splitBatch)
 		}
 	}
 
@@ -200,9 +229,11 @@ func (ag *Aggregator) SendMetricBatches(batchMap map[uint64]*aggregate.Batchs) e
 		return nil
 	}
 
+	recordGeneratedBatches("metric", category, len(tasks))
+
 	if err := ag.runAsyncSend(len(tasks), func(i int) error {
 		task := tasks[i]
-		return ag.sendMetricBatch(task.pickKey, task.batch)
+		return ag.sendMetricBatch(category, task.pickKey, task.batch)
 	}); err != nil {
 		log.Errorf("send metric batches failed: %v", err)
 		return err
@@ -211,84 +242,101 @@ func (ag *Aggregator) SendMetricBatches(batchMap map[uint64]*aggregate.Batchs) e
 	return nil
 }
 
-func (ag *Aggregator) sendMetricBatch(pickKey uint64, batch *aggregate.Batchs) error {
+func (ag *Aggregator) sendMetricBatch(category string, pickKey uint64, batch *aggregate.Batchs) error {
 	startTime := time.Now()
 	pointsCount := countSelectedMetricPointsInBatch(batch)
 
 	body, err := marshalBatchsWithPool(batch)
 	if err != nil {
 		log.Errorf("marshal metric batches failed: %v", err)
-		ag.recordSendFailed("metric", "unknown", "marshal")
-		ag.recordLostPoints("metric", "unknown", "marshal", pointsCount)
+		recordSendFailed("metric", category, "marshal")
+		recordLostPoints("metric", category, "marshal", pointsCount)
 		return err
 	}
 	defer putMarshalBody(body)
 
-	endpoint := ag.getEndpoint(pickKey, aggregateRoute)
-	if endpoint == "" {
+	eps := ag.endpointsForPickKey(pickKey)
+	if len(eps) == 0 {
 		err := fmt.Errorf("aggregate endpoint is empty")
 		log.Errorf("%v", err)
-		ag.recordSendFailed("metric", "unknown", "transport")
-		ag.recordLostPoints("metric", "unknown", "transport", pointsCount)
+		recordSendFailed("metric", category, "transport")
+		recordLostPoints("metric", category, "transport", pointsCount)
 		return err
 	}
 
-	log.Debugf("send metric batches: url=%s pick_key=%d batches=%d body_size=%d",
-		endpoint, pickKey, len(batch.Batchs), len(body.buf))
+	var firstErr error
+	success := false
+	attempted := false
+	for _, ep := range eps {
+		if ep == nil {
+			continue
+		}
+		attempted = true
 
-	req, err := http.NewRequest(http.MethodPost, endpoint, bytes.NewReader(body.buf))
-	if err != nil {
-		log.Errorf("create metric batch request failed: %v", err)
-		ag.recordSendFailed("metric", "unknown", "other")
-		ag.recordLostPoints("metric", "unknown", "other", pointsCount)
-		return err
+		log.Debugf("send metric batches: url=%s pick_key=%d batches=%d body_size=%d",
+			ep.CategoryURL[datakit.Aggregate], pickKey, len(batch.Batchs), len(body.buf))
+
+		resp, respBody, err := ep.WriteAggrData(&endpoint.AggrData{
+			API:             datakit.Aggregate,
+			Category:        category,
+			ContentType:     aggregatePayloadContentType,
+			ContentEncoding: identityContentEncoding,
+			Body:            body.buf,
+			RawLen:          len(body.buf),
+			Points:          pointsCount,
+			Headers: map[string]string{
+				aggregate.GuancePickKey:    strconv.FormatUint(pickKey, 10),
+				aggregate.GuanceRoutingKey: strconv.FormatUint(pickKey, 10),
+				payloadSizeHeader:          strconv.Itoa(len(body.buf)),
+			},
+		})
+		if resp == nil {
+			if err != nil {
+				log.Errorf("send metric batches failed: %v", err)
+			}
+			if firstErr == nil {
+				if err != nil {
+					firstErr = err
+				} else {
+					firstErr = endpoint.ErrRequestTerminated
+				}
+			}
+			continue
+		}
+
+		switch resp.StatusCode / 100 {
+		case 2:
+			log.Debugf("send metric batches success: status=%d", resp.StatusCode)
+			success = true
+		default:
+			err = &sendStatusError{
+				reason: "other",
+				msg:    fmt.Sprintf("metric batches got unexpected status=%d", resp.StatusCode),
+			}
+			if firstErr == nil {
+				firstErr = err
+			}
+		}
+
+		log.Debugf("metric batch response body=%s", string(respBody))
 	}
-	setPayloadHeaders(req, len(body.buf))
-	setPickKeyHeader(req, pickKey)
-	req.Header.Set(aggregate.GuanceRoutingKey, strconv.FormatUint(pickKey, 10))
-
-	if ag.Transport == nil {
-		err := fmt.Errorf("aggregate transport is nil")
-		log.Errorf("%v", err)
-		ag.recordSendFailed("metric", "unknown", "transport")
-		ag.recordLostPoints("metric", "unknown", "transport", pointsCount)
-		return err
+	if !attempted && firstErr == nil {
+		firstErr = endpoint.ErrRequestTerminated
 	}
 
-	resp, err := ag.Transport.RoundTrip(req)
-	latency := time.Since(startTime)
-
-	if err != nil {
-		log.Errorf("send metric batches failed: %v", err)
-		ag.recordSendFailed("metric", "unknown", "network")
-		ag.recordLostPoints("metric", "unknown", "network", pointsCount)
-		ag.recordSendLatency("metric", "unknown", latency)
-		return err
+	recordSendLatency("metric", category, time.Since(startTime))
+	if success {
+		recordSendSuccess("metric", category)
+		recordSendPoints("metric", category, pointsCount)
 	}
-	defer resp.Body.Close() //nolint
-
-	// Record latency
-	ag.recordSendLatency("metric", "unknown", latency)
-
-	switch resp.StatusCode / 100 {
-	case 2:
-		log.Debugf("send metric batches success: status=%d", resp.StatusCode)
-		ag.recordSendSuccess("metric", "unknown")
-		ag.recordSendPoints("metric", "unknown", pointsCount)
-	default:
-		ag.recordSendFailed("metric", "unknown", "other")
-		ag.recordLostPoints("metric", "unknown", "other", pointsCount)
-		return fmt.Errorf("metric batches got unexpected status=%d", resp.StatusCode)
+	if firstErr != nil {
+		recordSendFailed("metric", category, sendFailureReason(firstErr, "other"))
+		if !success {
+			recordLostPoints("metric", category, sendFailureReason(firstErr, "other"), pointsCount)
+		}
 	}
 
-	bs, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Errorf("read metric batch response failed: %v", err)
-		return err
-	}
-	log.Debugf("metric batch response body=%s", string(bs))
-
-	return nil
+	return firstErr
 }
 
 func (ag *Aggregator) runAsyncSend(taskCount int, sendFn func(taskIndex int) error) error {
@@ -343,6 +391,23 @@ func (ag *Aggregator) sendWorkerCount(taskCount int) int {
 	}
 
 	return workerCount
+}
+
+func sendFailureReason(err error, statusReason string) string {
+	if err == nil {
+		return statusReason
+	}
+
+	if errors.Is(err, endpoint.ErrRequestTerminated) {
+		return "transport"
+	}
+
+	var statusErr *sendStatusError
+	if ok := errors.As(err, &statusErr); ok && statusErr != nil && statusErr.reason != "" {
+		return statusErr.reason
+	}
+
+	return "network"
 }
 
 func (ag *Aggregator) maxRawBodySize() int {
@@ -618,24 +683,4 @@ func minInt(a, b int) int {
 		return a
 	}
 	return b
-}
-
-func setPayloadHeaders(req *http.Request, bodySize int) {
-	if req == nil {
-		return
-	}
-
-	size := strconv.Itoa(bodySize)
-	req.Header.Set("Content-Length", size)
-	req.Header.Set("Content-Type", aggregatePayloadContentType)
-	req.Header.Set("Content-Encoding", identityContentEncoding)
-	req.Header.Set(payloadSizeHeader, size)
-}
-
-func setPickKeyHeader(req *http.Request, pickKey uint64) {
-	if req == nil {
-		return
-	}
-
-	req.Header.Set(aggregate.GuancePickKey, strconv.FormatUint(pickKey, 10))
 }

@@ -145,8 +145,8 @@ github.com/DataDog/sketches-go v1.4.1 h1:j5G6as+9FASM2qC36lvpvQAj9qsv/jUs3FtO8Cw
 github.com/DataDog/sketches-go v1.4.1/go.mod h1:xJIXldczJyyjnbDop7ZZcLxJdV3+7Kra7H1KMgpgkLk=
 github.com/GuanceCloud/client_model v0.0.0-20230418154757-93bd4e878a5e h1:i34dA4kiRTfG+KdvkIXCLPDduarVeFlQhGDD3TefgS4=
 github.com/GuanceCloud/client_model v0.0.0-20230418154757-93bd4e878a5e/go.mod h1:PMnE48aPzuRu83FmWZugC0O3d54ZupJd/MmiaYxz8sM=
-github.com/GuanceCloud/cliutils v1.1.22-0.20260409051744-3dcd6a69494e h1:EQmwHhwUenIYvIWa0AAWpcoazZi9UB2WEnSaGPeUGuk=
-github.com/GuanceCloud/cliutils v1.1.22-0.20260409051744-3dcd6a69494e/go.mod h1:YZyd9YsTCK5jqIwq0suC+eDa6mQvtYQFZAhYthpqC1E=
+github.com/GuanceCloud/cliutils v1.1.22-0.20260421085720-c22683f8683e h1:hdB+KgnL7E7m+p7nXGmPnveLbcOCajqiyrZM4HejXcM=
+github.com/GuanceCloud/cliutils v1.1.22-0.20260421085720-c22683f8683e/go.mod h1:Ad/7AO+6PN7w4vVfLNtysNCt5M46DG6wYBeEKr1Xg4g=
 github.com/GuanceCloud/confd v0.1.101 h1:yjHgfl6YzAlTbFOFMTE4ERpFJzIyovOW7ZFc2/ZssL0=
 github.com/GuanceCloud/confd v0.1.101/go.mod h1:o0opIwOX+yNwV9nh56x5ymFMJ+YBD8JuPxBJ7a1mEmo=
 github.com/GuanceCloud/dockertest/v3 v3.9.4 h1:ScSNhfA2HSNLfrYoNd1KSRxkrymlKiBE60g4f6eUoOk=
@@ -167,8 +167,6 @@ github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b h1:9pkl38Cr
 github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b/go.mod h1:Acv+3eRHxCb4Qvs1YQcZ17X/D0H7DArQrew+WJtsLiE=
 github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386 h1:p2P0It6jjN66GO1+acZCb6JAPT9bAxNMarrIxPo+ZWk=
 github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386/go.mod h1:xrC7I8mMBOD93+A7fLJXU1lBaej49hZj7DaaFXFdSBE=
-github.com/GuanceCloud/pipeline-go v1.2.3-0.20260401094002-13ed699eb68c h1:50m6z6Cx5Pyk0zk+ZsQ1dnCuMzRmkbm914J5e5IY3iw=
-github.com/GuanceCloud/pipeline-go v1.2.3-0.20260401094002-13ed699eb68c/go.mod h1:pzPpMMEfxspV2suDEOfQPM31jqwvGlX3MIR/MDT9vDA=
 github.com/GuanceCloud/pipeline-go v1.2.3-hotfix.1 h1:81fCfPDY15iK8UgeZbk5yu4I4ZcYxJRQNlULqBsPpiY=
 github.com/GuanceCloud/pipeline-go v1.2.3-hotfix.1/go.mod h1:pzPpMMEfxspV2suDEOfQPM31jqwvGlX3MIR/MDT9vDA=
 github.com/GuanceCloud/platypus v0.3.4 h1:eukTGJbnzNi2pvWZ0Qo0bxmLctv8HUbZYejZSQK7jNM=

@@ -7,7 +7,6 @@
 package aggr
 
 import (
-	"net/http"
 	"path/filepath"
 	"sync"
 	"time"
@@ -18,25 +17,10 @@ import (
 	"github.com/cespare/xxhash/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/endpoint"
 )
 
-type endpointRoute string
-
-const (
-	aggregateRoute          endpointRoute = "aggregate"
-	tailSamplingRoute       endpointRoute = "tail_sampling"
-	tailSamplingConfigRoute endpointRoute = "tail_sampling_config"
-)
-
-var (
-	log = logger.DefaultSLogger("aggr")
-
-	routePathByType = map[endpointRoute]string{
-		aggregateRoute:          datakit.Aggregate,
-		tailSamplingRoute:       datakit.TailSampling,
-		tailSamplingConfigRoute: datakit.TailSamplingConfig,
-	}
-)
+var log = logger.DefaultSLogger("aggr")
 
 type Aggregator struct {
 	Endpoints                   []string                          `toml:"endpoints"`
@@ -55,11 +39,8 @@ type Aggregator struct {
 	metricEnabled       bool
 	tailSamplingEnabled bool
 
-	aggrURL               string
-	tailSamplingURL       string
-	tailSamplingConfigURL string
-	Transport             *http.Transport `toml:"-"`
-	lastSendTime          time.Time
+	eps          []*endpoint.EndPoint `toml:"-"`
+	lastSendTime time.Time
 
 	stateMu        sync.RWMutex
 	tsConfigSendMu sync.Mutex
@@ -82,6 +63,12 @@ func (ag *Aggregator) StartAggr() {
 	ag.initHTTP()
 	ag.reloadConfigs()
 	aggregate.SetLogging(log)
+
+	if ag.UseLocalConfig {
+		<-datakit.Exit.Wait()
+		return
+	}
+
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
 
@@ -183,6 +170,12 @@ func (ag *Aggregator) reloadConfigs() {
 func (ag *Aggregator) Process(cat point.Category, input string, pts []*point.Point) (*ProcessResult, error) {
 	res := &ProcessResult{Points: pts}
 	snapshot := ag.snapshotState()
+	recordFilterPoints("input", cat.String(), len(pts))
+	defer func() {
+		if res.SelectedPoints > 0 {
+			recordFilterPoints("selected", cat.String(), res.SelectedPoints)
+		}
+	}()
 
 	if snapshot.metricEnabled {
 		batchMap := ag.pickMetricWithConfig(snapshot.metricConfig, cat.String(), pts)
@@ -192,9 +185,8 @@ func (ag *Aggregator) Process(cat point.Category, input string, pts []*point.Poi
 			log.Debugf("metric enable,pick metric batch len=%d for category =%s", len(batchMap), cat.String())
 		}
 
-		if err := ag.SendMetricBatches(batchMap); err != nil {
+		if err := ag.SendMetricBatches(cat.String(), batchMap); err != nil {
 			log.Errorf("send metric batches failed: %v", err)
-			// Metrics are already recorded in SendMetricBatches
 		}
 	}
 
@@ -469,25 +461,4 @@ func tailSamplingPacketPickKey(packet *aggregate.DataPacket) uint64 {
 	key = aggregate.HashCombine(key, xxhash.Sum64String(packet.GroupKey))
 
 	return key
-}
-
-// Metrics wrapper methods for Aggregator.
-func (ag *Aggregator) recordSendSuccess(sendType, category string) {
-	recordSendSuccess(sendType, category)
-}
-
-func (ag *Aggregator) recordSendFailed(sendType, category, reason string) {
-	recordSendFailed(sendType, category, reason)
-}
-
-func (ag *Aggregator) recordSendPoints(sendType, category string, points int) {
-	recordSendPoints(sendType, category, points)
-}
-
-func (ag *Aggregator) recordLostPoints(sendType, category, reason string, points int) {
-	recordLostPoints(sendType, category, reason, points)
-}
-
-func (ag *Aggregator) recordSendLatency(sendType, category string, latency time.Duration) {
-	recordSendLatency(sendType, category, latency)
 }

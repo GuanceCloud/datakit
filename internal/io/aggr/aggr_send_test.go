@@ -14,7 +14,10 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -252,7 +255,7 @@ func TestSendMetricBatchHeaders(t *testing.T) {
 		item.PickKey = 7
 	}
 
-	err := ag.sendMetricBatch(7, batch)
+	err := ag.sendMetricBatch(point.SMetric, 7, batch)
 	require.NoError(t, err)
 
 	assert.Equal(t, int64(bodySize), gotContentLength)
@@ -261,6 +264,265 @@ func TestSendMetricBatchHeaders(t *testing.T) {
 	assert.Equal(t, "7", gotPickKey)
 	assert.Equal(t, strconv.Itoa(bodySize), gotPayloadSize)
 	assert.Equal(t, "7", gotRoutingKey)
+}
+
+func TestSendMetricBatchesRunConcurrently(t *testing.T) {
+	origCPUs := datakit.AvailableCPUs
+	t.Cleanup(func() { datakit.AvailableCPUs = origCPUs })
+	datakit.AvailableCPUs = 1
+
+	var (
+		inflight    int32
+		maxInflight int32
+	)
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != datakit.Aggregate {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		cur := atomic.AddInt32(&inflight, 1)
+		for {
+			prev := atomic.LoadInt32(&maxInflight)
+			if cur <= prev || atomic.CompareAndSwapInt32(&maxInflight, prev, cur) {
+				break
+			}
+		}
+
+		time.Sleep(100 * time.Millisecond)
+		atomic.AddInt32(&inflight, -1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	ag := &Aggregator{
+		Endpoints: []string{ts.URL + "?token=tkn_metric"},
+	}
+	ag.initHTTP()
+
+	first := buildMetricBatchs(1, 32)
+	second := buildMetricBatchs(1, 32)
+
+	require.NoError(t, ag.SendMetricBatches(point.SMetric, map[uint64]*aggregate.Batchs{
+		1: first,
+		2: second,
+	}))
+	assert.Greater(t, atomic.LoadInt32(&maxInflight), int32(1))
+}
+
+func TestSendTailSamplingPackagesRunConcurrently(t *testing.T) {
+	origCPUs := datakit.AvailableCPUs
+	t.Cleanup(func() { datakit.AvailableCPUs = origCPUs })
+	datakit.AvailableCPUs = 1
+
+	var (
+		inflight    int32
+		maxInflight int32
+	)
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != datakit.TailSampling {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		cur := atomic.AddInt32(&inflight, 1)
+		for {
+			prev := atomic.LoadInt32(&maxInflight)
+			if cur <= prev || atomic.CompareAndSwapInt32(&maxInflight, prev, cur) {
+				break
+			}
+		}
+
+		time.Sleep(100 * time.Millisecond)
+		atomic.AddInt32(&inflight, -1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	ag := &Aggregator{
+		Endpoints: []string{ts.URL + "?token=tkn_trace"},
+	}
+	ag.initHTTP()
+
+	require.NoError(t, ag.SendTailSamplingPackages(map[uint64]*aggregate.DataPacket{
+		1: buildTailSamplingDataPacket(2, 32),
+		2: buildTailSamplingDataPacket(2, 32),
+	}))
+	assert.Greater(t, atomic.LoadInt32(&maxInflight), int32(1))
+}
+
+func TestSendMetricBatchSelectsConfiguredEndpointByPickKey(t *testing.T) {
+	var (
+		firstReqs  int32
+		secondReqs int32
+	)
+
+	first := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == datakit.Aggregate {
+			atomic.AddInt32(&firstReqs, 1)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer first.Close()
+
+	second := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == datakit.Aggregate {
+			atomic.AddInt32(&secondReqs, 1)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer second.Close()
+
+	ag := &Aggregator{
+		Endpoints: []string{
+			first.URL + "?token=tkn_metric_1",
+			second.URL + "?token=tkn_metric_2",
+		},
+	}
+	ag.initHTTP()
+
+	batch := buildMetricBatchs(1, 32)
+	require.NoError(t, ag.sendMetricBatch(point.SMetric, 1, batch))
+
+	assert.Equal(t, int32(0), atomic.LoadInt32(&firstReqs))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&secondReqs))
+}
+
+func TestSendMetricBatchRecordsCompatibilityMetrics(t *testing.T) {
+	category := "compat_metric_success"
+	batch := buildMetricBatchs(2, 32)
+	points := countSelectedMetricPointsInBatch(batch)
+
+	successBefore := counterValue(t, aggrSendSuccess.WithLabelValues("metric", category))
+	pointsBefore := counterValue(t, aggrSendPoints.WithLabelValues("metric", category))
+	latencyBefore := summaryCount(t, aggrSendLatency.WithLabelValues("metric", category))
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != datakit.Aggregate {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	ag := &Aggregator{
+		Endpoints: []string{ts.URL + "?token=tkn_metric"},
+	}
+	ag.initHTTP()
+
+	require.NoError(t, ag.sendMetricBatch(category, 1, batch))
+
+	assert.Equal(t, successBefore+1, counterValue(t, aggrSendSuccess.WithLabelValues("metric", category)))
+	assert.Equal(t, pointsBefore+float64(points), counterValue(t, aggrSendPoints.WithLabelValues("metric", category)))
+	assert.Equal(t, latencyBefore+1, summaryCount(t, aggrSendLatency.WithLabelValues("metric", category)))
+}
+
+func TestSendMetricBatchRecordsCompatibilityFailureMetrics(t *testing.T) {
+	category := "compat_metric_failure"
+	batch := buildMetricBatchs(2, 32)
+	points := countSelectedMetricPointsInBatch(batch)
+
+	failedBefore := counterValue(t, aggrSendFailed.WithLabelValues("metric", category, "other"))
+	lostBefore := counterValue(t, aggrLostPoints.WithLabelValues("metric", category, "other"))
+	latencyBefore := summaryCount(t, aggrSendLatency.WithLabelValues("metric", category))
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != datakit.Aggregate {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusBadGateway)
+	}))
+	defer ts.Close()
+
+	ag := &Aggregator{
+		Endpoints: []string{ts.URL + "?token=tkn_metric"},
+	}
+	ag.initHTTP()
+
+	require.Error(t, ag.sendMetricBatch(category, 1, batch))
+
+	assert.Equal(t, failedBefore+1, counterValue(t, aggrSendFailed.WithLabelValues("metric", category, "other")))
+	assert.Equal(t, lostBefore+float64(points), counterValue(t, aggrLostPoints.WithLabelValues("metric", category, "other")))
+	assert.Equal(t, latencyBefore+1, summaryCount(t, aggrSendLatency.WithLabelValues("metric", category)))
+}
+
+func TestSendMetricBatchFallsBackToDatawayEndpoints(t *testing.T) {
+	var (
+		firstReqs  int32
+		secondReqs int32
+	)
+
+	first := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == datakit.Aggregate {
+			atomic.AddInt32(&firstReqs, 1)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer first.Close()
+
+	second := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == datakit.Aggregate {
+			atomic.AddInt32(&secondReqs, 1)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer second.Close()
+
+	dw := dataway.NewDefaultDataway()
+	require.NoError(t, dw.Init(dataway.WithURLs(
+		first.URL+"?token=tkn_metric_1",
+		second.URL+"?token=tkn_metric_2",
+	)))
+
+	ag := &Aggregator{DW: dw}
+	ag.initHTTP()
+
+	batch := buildMetricBatchs(1, 32)
+	require.NoError(t, ag.sendMetricBatch(point.SMetric, 1, batch))
+
+	assert.Equal(t, int32(1), atomic.LoadInt32(&firstReqs))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&secondReqs))
+}
+
+func TestSendTailSamplingPackageFallsBackToAllDatawayEndpoints(t *testing.T) {
+	var (
+		firstReqs  int32
+		secondReqs int32
+	)
+
+	first := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == datakit.TailSampling {
+			atomic.AddInt32(&firstReqs, 1)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer first.Close()
+
+	second := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == datakit.TailSampling {
+			atomic.AddInt32(&secondReqs, 1)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer second.Close()
+
+	dw := dataway.NewDefaultDataway()
+	require.NoError(t, dw.Init(dataway.WithURLs(
+		first.URL+"?token=tkn_trace_1",
+		second.URL+"?token=tkn_trace_2",
+	)))
+
+	ag := &Aggregator{DW: dw}
+	ag.initHTTP()
+
+	require.NoError(t, ag.sendTailSamplingPackage(1, buildTailSamplingDataPacket(4, 32)))
+
+	assert.Equal(t, int32(1), atomic.LoadInt32(&firstReqs))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&secondReqs))
 }
 
 func TestSendTailSamplingConfigHeaders(t *testing.T) {
@@ -370,4 +632,23 @@ func buildMetricBatchs(batchCount int, payloadSize int) *aggregate.Batchs {
 		PickKey: 1,
 		Batchs:  arr,
 	}
+}
+
+func counterValue(t *testing.T, collector prometheus.Counter) float64 {
+	t.Helper()
+
+	m := &dto.Metric{}
+	require.NoError(t, collector.Write(m))
+	return m.GetCounter().GetValue()
+}
+
+func summaryCount(t *testing.T, observer prometheus.Observer) uint64 {
+	t.Helper()
+
+	metric, ok := observer.(prometheus.Metric)
+	require.True(t, ok)
+
+	m := &dto.Metric{}
+	require.NoError(t, metric.Write(m))
+	return m.GetSummary().GetSampleCount()
 }

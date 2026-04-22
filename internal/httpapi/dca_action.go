@@ -467,6 +467,7 @@ func testDatakitPipelineAction(_ *ws.Client, response *ws.DCAResponse, data *ws.
 			point.RUM,
 			point.Security,
 			point.Tracing,
+			point.AgentLLM,
 			point.DialTesting,
 			point.UnknownCategory:
 

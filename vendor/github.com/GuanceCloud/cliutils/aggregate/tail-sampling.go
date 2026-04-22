@@ -84,39 +84,20 @@ func evaluatePipelines(td *DataPacket, pipelines []*SamplingPipeline) (bool, *Da
 	}
 
 	ptw := &ptWrap{}
-	matched := false
-	var keptPacket *DataPacket
+	matchedPipelines := make([]bool, len(pipelines))
 
 	walkErr := td.WalkRawPBPoints(func(raw []byte) bool {
 		if err := ptw.Reset(raw); err != nil {
 			l.Errorf("decode datapacket point failed: %v", err)
-			keptPacket = nil
-			matched = false
 			return false
 		}
 
-		for _, pipeline := range pipelines {
-			if pipeline == nil {
+		for idx, pipeline := range pipelines {
+			if matchedPipelines[idx] {
 				continue
 			}
 
-			if pipeline.conds == nil && !pipeline.isMatchAllSampling() {
-				continue
-			}
-
-			if pipeline.conds != nil {
-				if x := pipeline.conds.Eval(ptw); x < 0 {
-					continue
-				}
-			}
-
-			if pipeline.Type == PipelineTypeSampling && pipeline.Rate <= 0 {
-				continue
-			}
-
-			matched = true
-			keptPacket = pipelineMatchedPacket(td, pipeline)
-			return false
+			matchedPipelines[idx] = pipelineMatchesPoint(ptw, pipeline)
 		}
 
 		return true
@@ -126,11 +107,41 @@ func evaluatePipelines(td *DataPacket, pipelines []*SamplingPipeline) (bool, *Da
 		return false, nil
 	}
 
-	return matched, keptPacket
+	for idx, matched := range matchedPipelines {
+		if !matched {
+			continue
+		}
+
+		return true, pipelineMatchedPacket(td, pipelines[idx])
+	}
+
+	return false, nil
 }
 
 func (sp *SamplingPipeline) isMatchAllSampling() bool {
 	return sp != nil && sp.Type == PipelineTypeSampling && sp.Condition == "" && sp.Rate > 0
+}
+
+func pipelineMatchesPoint(ptw *ptWrap, pipeline *SamplingPipeline) bool {
+	if ptw == nil || pipeline == nil {
+		return false
+	}
+
+	if pipeline.conds == nil && !pipeline.isMatchAllSampling() {
+		return false
+	}
+
+	if pipeline.conds != nil {
+		if x := pipeline.conds.Eval(ptw); x < 0 {
+			return false
+		}
+	}
+
+	if pipeline.Type == PipelineTypeSampling && pipeline.Rate <= 0 {
+		return false
+	}
+
+	return true
 }
 
 func pipelineMatchedPacket(td *DataPacket, pipeline *SamplingPipeline) *DataPacket {

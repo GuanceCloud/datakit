@@ -85,7 +85,7 @@ func (g *ptGrouper) setExtraKVs() {
 		// set measurement name as tag `class'
 		g.extKVs = append(g.extKVs, [2]string{"class", g.pt.Name()})
 
-	case point.ExecutionLog, point.LLM, point.DynamicDWCategory, point.UnknownCategory:
+	case point.ExecutionLog, point.LLM, point.AgentLLM, point.DynamicDWCategory, point.UnknownCategory:
 		// pass
 	}
 }

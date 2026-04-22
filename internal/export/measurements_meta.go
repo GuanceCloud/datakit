@@ -188,7 +188,7 @@ func doExportMetaInfo(ipts map[string]inputs.Creator) ([]byte, error) {
 						defaultMetaInfo.DTMetaInfo[measurement.Name] = im
 					}
 
-				case point.ExecutionLog, point.LLM:
+				case point.ExecutionLog, point.LLM, point.AgentLLM:
 					continue
 
 				case point.DynamicDWCategory, point.MetricDeprecated, point.UnknownCategory:

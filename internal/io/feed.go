@@ -479,10 +479,9 @@ func (x *dkIO) doFeed(fd *feedData) error {
 		}
 
 		return x.foDataway.Write(fd)
-	} else {
-		log.Warnf("feed output not set, ignored")
-		return nil
 	}
+	log.Warnf("feed output not set, ignored")
+	return nil
 }
 
 func correctPointTime(pts []*point.Point, now time.Time, bias float64) ([]*point.Point, int) {

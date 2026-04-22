@@ -234,8 +234,6 @@ func NewEndpoint(urlstr string, opts ...endPointOption) (*EndPoint, error) {
 				ep.Host,
 				api)
 		}
-
-		l.Infof("endpoint regist API %q:%q ok", api, ep.CategoryURL[api])
 	}
 
 	switch ep.scheme {
@@ -307,112 +305,77 @@ func (ep *EndPoint) Transport() *http.Transport {
 	return httpcli.Transport(ep.getHTTPCliOpts())
 }
 
+func (ep *EndPoint) CloseIdleConnections() {
+	if ep.httpCli != nil {
+		ep.httpCli.CloseIdleConnections()
+	}
+}
+
+type AggrData struct {
+	API,
+	Category,
+	ContentType,
+	ContentEncoding string
+
+	Body    []byte
+	RawLen  int
+	Points  int
+	Headers map[string]string
+}
+
+type writePayloadRequest struct {
+	api,
+	dynamicURL,
+	category,
+	contentType,
+	contentEncoding,
+	sentEncodingLabel string
+
+	body        []byte
+	rawLen      int
+	points      int
+	httpHeaders map[string]string
+
+	cacheClean,
+	addPackageID,
+	addPointsHeader,
+	recordPointMetrics bool
+}
+
 func (ep *EndPoint) writePoints(w *compact.Writer) error {
 	compact.WithBodyCallback(ep.WritePointData)(w)
 	return w.BuildPointsBody()
 }
 
 func (ep *EndPoint) WritePointData(w *compact.Writer, b *compact.Body) error {
-	httpCodeStr := "unknown"
-	requrl, catNotFound := ep.CategoryURL[b.Cat().URL()]
-
-	if !catNotFound {
-		l.Debugf("cat %q not found, w.DynamicURL: %s", b.Cat(), w.DynamicURL)
-
-		if w.DynamicURL != "" {
-			// for dialtesting, there are dynamic URL to post
-			if _, err := url.ParseRequestURI(w.DynamicURL); err != nil {
-				return err
-			} else {
-				l.Debugf("try use dynamic URL %s", w.DynamicURL)
-				requrl = w.DynamicURL
-			}
-		} else {
-			return fmt.Errorf("invalid url %s", w.DynamicURL)
-		}
+	cat := b.Cat().String()
+	if b.Cat() == point.DynamicDWCategory {
+		// NOTE: datakit category deprecated, we use point category
+		cat = point.DynamicDWCategory.String()
 	}
 
-	defer func() {
-		if w.CacheClean { // ignore metrics on cache clean operation
-			l.Debug("on cache clean, no metric applied")
-			return
-		}
-
-		// /v1/write/metric -> metric
-		cat := b.Cat().String()
-
-		if b.Cat() == point.DynamicDWCategory {
-			// NOTE: datakit category deprecated, we use point category
-			cat = point.DynamicDWCategory.String()
-		}
-
-		bytesCounterVec.WithLabelValues(cat, "gzip", ep.owner, "total").Add(float64(len(b.Buf())))
-		bytesCounterVec.WithLabelValues(cat, "gzip", ep.owner, httpCodeStr).Add(float64(len(b.Buf())))
-		bytesCounterVec.WithLabelValues(cat, "raw", ep.owner, "total").Add(float64(b.RawLen()))
-		bytesCounterVec.WithLabelValues(cat, "raw", ep.owner, httpCodeStr).Add(float64(b.RawLen()))
-
-		if b.Npts() > 0 {
-			ptsCounterVec.WithLabelValues(cat, ep.owner, "total").Add(float64(b.Npts()))
-			ptsCounterVec.WithLabelValues(cat, ep.owner, httpCodeStr).Add(float64(b.Npts()))
-		} else {
-			l.Warnf("npts not set, body from %q", b.From)
-		}
-	}()
-
-	l.Debugf("post %d bytes to %s...", len(b.Buf()), requrl)
-	req, err := http.NewRequest("POST", requrl, bytes.NewBuffer(b.Buf()))
-	if err != nil {
-		l.Error("new request to %s: %s", requrl, err)
-		return err
-	}
-
-	req.Header.Set("X-Points", fmt.Sprintf("%d", b.Npts()))
-	req.Header.Set("Content-Length", fmt.Sprintf("%d", len(b.Buf())))
-	req.Header.Set("Content-Type", b.Enc().HTTPContentType())
-	if w.Gzip == 1 {
-		req.Header.Set("Content-Encoding", "gzip")
-	}
-
-	// add package id
-	if !ep.disablePkgID {
-		req.Header.Set("X-Pkg-Id", cliutils.XID("dk_"))
-	}
-
-	// Common HTTP headers appended, such as User-Agent, X-Global-Tags
-	for k, v := range ep.HTTPHeaders {
-		l.Debugf("set %s:%s HTTP header comes from endpoint", k, v)
-		req.Header.Set(k, v)
-	}
-
-	// Append extra HTTP headers to request.
-	// Here may attach X-Global-Tags again.
-	for k, v := range w.HTTPHeaders {
-		l.Debugf("set %s:%s HTTP header comes from writer", k, v)
-		req.Header.Set(k, v)
-	}
-
-	resp, err := ep.SendReq(req)
-	// NOTE: resp maybe not nil, we need HTTP status info to fill HTTP metrics before exit.
-	if resp != nil {
-		httpCodeStr = http.StatusText(resp.StatusCode)
-	}
-
+	requrl, resp, body, err := ep.sendPayload(&writePayloadRequest{
+		api:                b.Cat().URL(),
+		dynamicURL:         w.DynamicURL,
+		category:           cat,
+		contentType:        b.Enc().HTTPContentType(),
+		contentEncoding:    payloadContentEncoding(w.Gzip == 1),
+		sentEncodingLabel:  "gzip",
+		body:               b.Buf(),
+		rawLen:             int(b.RawLen()),
+		points:             int(b.Npts()),
+		httpHeaders:        w.HTTPHeaders,
+		cacheClean:         w.CacheClean,
+		addPackageID:       true,
+		addPointsHeader:    true,
+		recordPointMetrics: true,
+	})
 	if err != nil {
 		l.Errorf("sendReq: request url %s failed(proxy: %q): %s, resp: %v", requrl, ep.proxy, err, resp)
 		// do not return here, we need more details about the fail from @resp.
 	}
 
 	if resp == nil {
-		if err != nil {
-			return err
-		}
-		return ErrRequestTerminated
-	}
-
-	defer resp.Body.Close() //nolint:errcheck
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		l.Errorf("io.ReadAll: %s", err)
 		return err
 	}
 
@@ -458,6 +421,164 @@ func (ep *EndPoint) WritePointData(w *compact.Writer, b *compact.Body) error {
 
 		return fmt.Errorf("endpoint internal error")
 	}
+}
+
+func (ep *EndPoint) WriteAggrData(data *AggrData) (*http.Response, []byte, error) {
+	if data == nil {
+		return nil, nil, fmt.Errorf("aggr data is nil")
+	}
+
+	requrl, resp, body, err := ep.sendPayload(&writePayloadRequest{
+		api:                data.API,
+		category:           data.Category,
+		contentType:        data.ContentType,
+		contentEncoding:    data.ContentEncoding,
+		sentEncodingLabel:  payloadMetricEncodingLabel(data.ContentEncoding),
+		body:               data.Body,
+		rawLen:             data.RawLen,
+		points:             data.Points,
+		httpHeaders:        data.Headers,
+		addPackageID:       true,
+		recordPointMetrics: true,
+	})
+	if err != nil {
+		l.Errorf("write aggr data: request url %s failed(proxy: %q): %s, resp: %v", requrl, ep.proxy, err, resp)
+	}
+
+	return resp, body, err
+}
+
+func payloadContentEncoding(gzip bool) string {
+	if gzip {
+		return "gzip"
+	}
+	return ""
+}
+
+func payloadMetricEncodingLabel(contentEncoding string) string {
+	if contentEncoding == "" {
+		return "identity"
+	}
+	return contentEncoding
+}
+
+func (ep *EndPoint) resolveRequestURL(api, dynamicURL string) (string, error) {
+	requrl, ok := ep.CategoryURL[api]
+	if ok {
+		return requrl, nil
+	}
+
+	l.Debugf("api %q not found, dynamic URL: %s", api, dynamicURL)
+	if dynamicURL == "" {
+		return "", fmt.Errorf("invalid url %s", dynamicURL)
+	}
+
+	if _, err := url.ParseRequestURI(dynamicURL); err != nil {
+		return "", err
+	}
+
+	l.Debugf("try use dynamic URL %s", dynamicURL)
+	return dynamicURL, nil
+}
+
+func (ep *EndPoint) observePayloadMetrics(p *writePayloadRequest, httpCodeStr string) {
+	if p == nil || p.cacheClean {
+		if p != nil && p.cacheClean {
+			l.Debug("on cache clean, no metric applied")
+		}
+		return
+	}
+	if !p.recordPointMetrics {
+		return
+	}
+
+	cat := p.category
+	if cat == "" {
+		cat = "unknown"
+	}
+
+	rawLen := p.rawLen
+	if rawLen <= 0 {
+		rawLen = len(p.body)
+	}
+
+	sentLabel := p.sentEncodingLabel
+	if sentLabel == "" {
+		sentLabel = payloadMetricEncodingLabel(p.contentEncoding)
+	}
+
+	bytesCounterVec.WithLabelValues(cat, sentLabel, ep.owner, "total").Add(float64(len(p.body)))
+	bytesCounterVec.WithLabelValues(cat, sentLabel, ep.owner, httpCodeStr).Add(float64(len(p.body)))
+	bytesCounterVec.WithLabelValues(cat, "raw", ep.owner, "total").Add(float64(rawLen))
+	bytesCounterVec.WithLabelValues(cat, "raw", ep.owner, httpCodeStr).Add(float64(rawLen))
+
+	if p.points > 0 {
+		ptsCounterVec.WithLabelValues(cat, ep.owner, "total").Add(float64(p.points))
+		ptsCounterVec.WithLabelValues(cat, ep.owner, httpCodeStr).Add(float64(p.points))
+	}
+}
+
+func (ep *EndPoint) sendPayload(p *writePayloadRequest) (requrl string, resp *http.Response, body []byte, err error) {
+	httpCodeStr := "unknown"
+	requrl, err = ep.resolveRequestURL(p.api, p.dynamicURL)
+	if err != nil {
+		return "", nil, nil, err
+	}
+
+	defer func() {
+		ep.observePayloadMetrics(p, httpCodeStr)
+	}()
+
+	l.Debugf("post %d bytes to %s...", len(p.body), requrl)
+	req, err := http.NewRequest(http.MethodPost, requrl, bytes.NewBuffer(p.body))
+	if err != nil {
+		l.Errorf("new request to %s: %s", requrl, err)
+		return requrl, nil, nil, err
+	}
+
+	if p.addPointsHeader && p.points > 0 {
+		req.Header.Set("X-Points", fmt.Sprintf("%d", p.points))
+	}
+	req.Header.Set("Content-Length", fmt.Sprintf("%d", len(p.body)))
+	req.Header.Set("Content-Type", p.contentType)
+	if p.contentEncoding != "" {
+		req.Header.Set("Content-Encoding", p.contentEncoding)
+	}
+
+	if p.addPackageID && !ep.disablePkgID {
+		req.Header.Set("X-Pkg-Id", cliutils.XID("dk_"))
+	}
+
+	for k, v := range ep.HTTPHeaders {
+		l.Debugf("set %s:%s HTTP header comes from endpoint", k, v)
+		req.Header.Set(k, v)
+	}
+
+	for k, v := range p.httpHeaders {
+		l.Debugf("set %s:%s HTTP header comes from payload", k, v)
+		req.Header.Set(k, v)
+	}
+
+	resp, err = ep.SendReq(req)
+	if resp != nil {
+		httpCodeStr = http.StatusText(resp.StatusCode)
+	}
+
+	if resp == nil {
+		if err != nil {
+			return requrl, nil, nil, err
+		}
+		return requrl, nil, nil, ErrRequestTerminated
+	}
+
+	defer resp.Body.Close() //nolint:errcheck
+	body, readErr := io.ReadAll(resp.Body)
+	if readErr != nil {
+		l.Errorf("io.ReadAll: %s", readErr)
+		return requrl, resp, nil, readErr
+	}
+
+	return requrl, resp, body, err
 }
 
 func (ep *EndPoint) GetCategoryURL() map[string]string {

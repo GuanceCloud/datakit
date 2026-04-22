@@ -116,7 +116,9 @@ type certCaptureTransportCredentials struct {
 	onTLSInfo func(credentials.TLSInfo)
 }
 
-func (c *certCaptureTransportCredentials) ClientHandshake(ctx context.Context, authority string, rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
+func (c *certCaptureTransportCredentials) ClientHandshake(
+	ctx context.Context, authority string, rawConn net.Conn,
+) (net.Conn, credentials.AuthInfo, error) {
 	if c.TransportCredentials == nil {
 		return nil, nil, errors.New("no underlying credentials")
 	}
