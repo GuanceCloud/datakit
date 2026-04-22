@@ -18,8 +18,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 )
 
 var (
@@ -60,7 +58,8 @@ type logConfig struct {
 	FromBeginningThresholdSize int64             `json:"from_beginning_threshold_size"`
 	Tags                       map[string]string `json:"tags"`
 
-	multilinePatterns []string `json:"-"`
+	multilinePattern string `json:"-"`
+	autoMultiline    bool   `json:"-"`
 }
 
 type deprecatedLogConfig struct {
@@ -356,9 +355,11 @@ func setTagsFromPodLabels(cfg *logConfig, podLabels map[string]string, podTarget
 
 func setMultilinePatterns(cfg *logConfig) {
 	if cfg.Multiline != "" {
-		cfg.multilinePatterns = []string{cfg.Multiline}
+		cfg.multilinePattern = cfg.Multiline
+		cfg.autoMultiline = false
 	} else {
-		cfg.multilinePatterns = multiline.GlobalPatterns
+		cfg.multilinePattern = ""
+		cfg.autoMultiline = true
 	}
 }
 

@@ -12,42 +12,6 @@ import (
 	"unicode"
 )
 
-var GlobalPatterns = []string{
-	// time.RFC3339, "2006-01-02T15:04:05Z07:00"
-	`^\d+-\d+-\d+T\d+:\d+:\d+(\.\d+)?(Z\d*:?\d*)?`,
-	// time.ANSIC, "Mon Jan _2 15:04:05 2006"
-	`^[A-Za-z_]+ [A-Za-z_]+ +\d+ \d+:\d+:\d+ \d+`,
-	// time.RubyDate, "Mon Jan 02 15:04:05 -0700 2006"
-	`^[A-Za-z_]+ [A-Za-z_]+ \d+ \d+:\d+:\d+ [\-\+]\d+ \d+`,
-	// time.UnixDate, "Mon Jan _2 15:04:05 MST 2006"
-	`^[A-Za-z_]+ [A-Za-z_]+ +\d+ \d+:\d+:\d+( [A-Za-z_]+ \d+)?`,
-	// time.RFC822, "02 Jan 06 15:04 MST"
-	`^\d+ [A-Za-z_]+ \d+ \d+:\d+ [A-Za-z_]+`,
-	// time.RFC822Z, "02 Jan 06 15:04 -0700" // RFC822 with numeric zone
-	`^\d+ [A-Za-z_]+ \d+ \d+:\d+ -\d+`,
-	// time.RFC850, "Monday, 02-Jan-06 15:04:05 MST"
-	`^[A-Za-z_]+, \d+-[A-Za-z_]+-\d+ \d+:\d+:\d+ [A-Za-z_]+`,
-	// time.RFC1123, "Mon, 02 Jan 2006 15:04:05 MST"
-	`^[A-Za-z_]+, \d+ [A-Za-z_]+ \d+ \d+:\d+:\d+ [A-Za-z_]+`,
-	// time.RFC1123Z, "Mon, 02 Jan 2006 15:04:05 -0700" // RFC1123 with numeric zone
-	`^[A-Za-z_]+, \d+ [A-Za-z_]+ \d+ \d+:\d+:\d+ -\d+`,
-	// time.RFC3339Nano, "2006-01-02T15:04:05.999999999Z07:00"
-	`^\d+-\d+-\d+[A-Za-z_]+\d+:\d+:\d+\.\d+[A-Za-z_]+\d+:\d+`,
-	// 2021-07-08 05:08:19,214
-	`^\d+-\d+-\d+ \d+:\d+:\d+(,\d+)?`,
-	// Default java logging SimpleFormatter date format
-	`^[A-Za-z_]+ \d+, \d+ \d+:\d+:\d+ (AM|PM)`,
-	// 2021-01-31 - with stricter matching around the months/days
-	`^\d{4}-(0?[1-9]|1[012])-(0?[1-9]|[12][0-9]|3[01])`,
-	// gin log, [GIN] 2006/01/02 - 08:53:39
-	`^\[GIN\] \d+/\d+/\d+ - \d+:\d+:\d+`,
-	// slow log, # Time: 2026-03-25T13:30:55.776770239Z
-	`^# Time: \d{4}`,
-	// JSON object/array format. Avoid treating generic bracket-prefixed stack lines
-	// such as "[signal SIGSEGV...]" as a new multiline entry.
-	`^\s*(\{|\[\s*[\{"])`,
-}
-
 type scoredPattern struct {
 	score  int
 	regexp *regexp.Regexp
@@ -68,8 +32,14 @@ func (s *scoredPattern) String() string {
 }
 
 type Matcher struct {
-	patterns  []*scoredPattern
-	noPattern bool
+	patterns       []*scoredPattern
+	noPattern      bool
+	autoMatch      bool
+	digitPatterns  []*scoredPattern
+	letterPatterns []*scoredPattern
+	symbolPatterns []*scoredPattern
+	extraPatterns  []*scoredPattern
+	maxScore       int
 }
 
 func NewMatcher(additionalPatterns []string) (*Matcher, error) {
@@ -77,23 +47,59 @@ func NewMatcher(additionalPatterns []string) (*Matcher, error) {
 		return &Matcher{noPattern: true}, nil
 	}
 
-	m := &Matcher{
-		patterns: make([]*scoredPattern, len(additionalPatterns)),
+	patterns, err := compilePatterns(additionalPatterns)
+	if err != nil {
+		return nil, err
 	}
 
-	for idx, pattern := range additionalPatterns {
+	m := &Matcher{
+		patterns: patterns,
+	}
+
+	return m, nil
+}
+
+func NewAutoMatcher(extraPatterns []string) (*Matcher, error) {
+	digitPatterns, err := compilePatterns(GlobalDigitPatterns)
+	if err != nil {
+		return nil, err
+	}
+	letterPatterns, err := compilePatterns(GlobalLetterPatterns)
+	if err != nil {
+		return nil, err
+	}
+	symbolPatterns, err := compilePatterns(GlobalSymbolPatterns)
+	if err != nil {
+		return nil, err
+	}
+	extraScoredPatterns, err := compilePatterns(extraPatterns)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Matcher{
+		autoMatch:      true,
+		digitPatterns:  digitPatterns,
+		letterPatterns: letterPatterns,
+		symbolPatterns: symbolPatterns,
+		extraPatterns:  extraScoredPatterns,
+	}, nil
+}
+
+func compilePatterns(patterns []string) ([]*scoredPattern, error) {
+	scoredPatterns := make([]*scoredPattern, len(patterns))
+	for idx, pattern := range patterns {
 		r, err := regexp.Compile(pattern)
 		if err != nil {
 			return nil, fmt.Errorf("invalid argument, idx:%d, pattern:'%s', error %w", idx, pattern, err)
 		}
 
-		m.patterns[idx] = &scoredPattern{
+		scoredPatterns[idx] = &scoredPattern{
 			score:  0,
 			regexp: r,
 		}
 	}
-
-	return m, nil
+	return scoredPatterns, nil
 }
 
 func (m *Matcher) MatchString(content string) bool {
@@ -103,7 +109,7 @@ func (m *Matcher) MatchString(content string) bool {
 	if m.doMatch(nil, content) {
 		return true
 	}
-	if m.patterns[0].score == 0 {
+	if m.maxScore == 0 {
 		// use default pattern
 		return !prefixIsSpace(nil, content)
 	}
@@ -117,7 +123,7 @@ func (m *Matcher) Match(content []byte) bool {
 	if m.doMatch(content, "") {
 		return true
 	}
-	if m.patterns[0].score == 0 {
+	if m.maxScore == 0 {
 		// use default pattern
 		return !prefixIsSpace(content, "")
 	}
@@ -125,13 +131,24 @@ func (m *Matcher) Match(content []byte) bool {
 }
 
 func (m *Matcher) doMatch(b []byte, str string) bool {
-	for idx, scoredPattern := range m.patterns {
+	if m.autoMatch {
+		return m.matchAutoPatterns(b, str)
+	}
+
+	return m.doMatchPatterns(m.patterns, b, str)
+}
+
+func (m *Matcher) doMatchPatterns(patterns []*scoredPattern, b []byte, str string) bool {
+	for idx, scoredPattern := range patterns {
 		match := scoredPattern.doMatch(b, str)
 		if match {
 			scoredPattern.score++
+			if scoredPattern.score > m.maxScore {
+				m.maxScore = scoredPattern.score
+			}
 			if idx != 0 {
-				sort.Slice(m.patterns, func(i, j int) bool {
-					return m.patterns[i].score > m.patterns[j].score
+				sort.Slice(patterns, func(i, j int) bool {
+					return patterns[i].score > patterns[j].score
 				})
 			}
 			return true

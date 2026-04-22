@@ -67,9 +67,12 @@
    ## 正则表达式链接：https://golang.org/pkg/regexp/syntax/#hdr-syntax
    # multiline_match = '''^\s'''
 
-   ## 是否开启自动多行模式，开启后会在 patterns 列表中匹配适用的多行规则
-   auto_multiline_detection = true
-   ## 配置自动多行的 patterns 列表，内容是多行规则的数组，即多个 multiline_match，如果为空则使用默认规则详见文档
+   ## 是否开启多行模式
+   enable_multiline = true
+   ## 已废弃：请使用 enable_multiline，旧配置仍兼容
+   # auto_multiline_detection = true
+   ## 自动多行的补充 patterns 列表；仅在默认自动多行规则未命中后再匹配
+   ## 如果为空，则只使用默认自动多行规则，详见文档
    auto_multiline_extra_patterns = []
 
    ## 是否删除 ansi 转义码，例如标准输出的文本颜色等
@@ -603,6 +606,7 @@ DataKit 支持采集 `utf-8` 和 `gbk` 编码的文件。
 在 `logging.conf` 中，修改如下配置：
 
 ```toml
+  enable_multiline = true
   multiline_match = '''这里填写具体的正则表达式''' # 正则表达式建议用三个“英文单引号”括起来
 ```
 
@@ -635,57 +639,30 @@ zerodivisionerror: division by zero
 testing,filename=/tmp/094318188 message="2020-10-23 06:41:56,688 info demo.py 5.0" 1611746443938917265
 ```
 
-除了手写多行匹配规则之外，还有自动多行模式，开启此模式后，每一行日志数据都会在多行列表中匹配。如果匹配成功，就将当前的多行规则权重加一，以便后面能更快速的匹配到，然后退出匹配循环；如果整个列表结束依然没有匹配到，则认为匹配失败。
+除了手写多行匹配规则之外，还有自动多行模式。开启 `enable_multiline` 后，如果未配置 `multiline_match`，DataKit 会先使用内置默认规则判断日志首行；默认规则未命中时，再使用 `auto_multiline_extra_patterns` 中配置的补充规则。旧配置项 `auto_multiline_detection` 已废弃，但仍然兼容；如果旧配置为 `true`，也会开启多行模式。
+
+自动多行匹配时，内置规则会按行首字符分为数字、字母、符号三类，只匹配对应分组。空格、Tab 等空白字符通常是调用栈或异常栈的续行前缀，不会进入内置规则分组；如果确实需要识别空白开头的新日志，可通过 `auto_multiline_extra_patterns` 显式补充。`auto_multiline_extra_patterns` 是客户补充规则组，不和默认规则同优先级混排；只有内置规则未命中时，或行首为空格、Tab 时，才会进入该规则组。如果整个匹配流程结束依然没有命中，则认为匹配失败。
 
 匹配成功与失败，后续操作和正常的多行日志采集是一样的：匹配成功，会将现存的多行数据发送出去，并将本条数据填入；匹配失败，会追加到现存数据的尾端。
 
 因为日志存在多个多行配置，它们的优先级如下：
 
-1. `multiline_match` 不为空，只使用当前规则
-1. 使用 source 到 `multiline_match` 的映射配置（只在容器日志配置存在 `logging_source_multiline_map`），如果使用 source 能找到对应的多行规则，只使用此规则
-1. 开启 `auto_multiline_detection`，如果 `auto_multiline_extra_patterns` 不为空，会在这些多行规则中匹配
-1. 开启 `auto_multiline_detection`，如果 `auto_multiline_extra_patterns` 为空，使用默认的自动多行匹配规则列表，即：
+1. 未开启 `enable_multiline` 时，不启用多行处理。旧字段 `auto_multiline_detection = true` 会按兼容逻辑开启多行处理。
+1. 开启多行处理且 `multiline_match` 不为空时，只使用当前规则。
+1. 开启多行处理且 `multiline_match` 为空时，先使用默认自动多行规则列表；默认规则未命中后，再使用 `auto_multiline_extra_patterns`。
+1. 使用 source 到 `multiline_match` 的映射配置（只在容器日志配置存在 `logging_source_multiline_map`），如果使用 source 能找到对应的多行规则，只使用此规则。
 
-```not-set
-// time.rfc3339, "2006-01-02t15:04:05z07:00"
-`^\d+-\d+-\d+t\d+:\d+:\d+(\.\d+)?(z\d*:?\d*)?`,
+默认自动多行规则主要覆盖常见日志首行格式，包括：
 
-// time.ansic, "mon jan _2 15:04:05 2006"
-`^[a-za-z_]+ [a-za-z_]+ +\d+ \d+:\d+:\d+ \d+`,
+- RFC3339/ISO8601、`yyyy-mm-dd HH:MM:SS`、斜杠日期、点分日期、紧凑日期等时间戳开头格式；
+- `[]`、`()` 包裹的时间戳或日志级别；
+- Syslog、Apache/Nginx access/error、Kubernetes glog/klog、Android logcat、kernel ring buffer 等格式；
+- `time=...`、`ts=...`、`level=...` 等 logfmt/key-value 风格；
+- `INFO`、`ERROR`、`WARN` 等级别开头格式；
+- Redis、MongoDB、RabbitMQ/Erlang、Ruby logger、Gin、MySQL/TiDB 慢日志等常见组件格式；
+- JSON object/array 开头，以及 Go `panic:`/`fatal error:` 等明确的堆栈首行。
 
-// time.rubydate, "mon jan 02 15:04:05 -0700 2006"
-`^[a-za-z_]+ [a-za-z_]+ \d+ \d+:\d+:\d+ [\-\+]\d+ \d+`,
-
-// time.unixdate, "mon jan _2 15:04:05 mst 2006"
-`^[a-za-z_]+ [a-za-z_]+ +\d+ \d+:\d+:\d+( [a-za-z_]+ \d+)?`,
-
-// time.rfc822, "02 jan 06 15:04 mst"
-`^\d+ [a-za-z_]+ \d+ \d+:\d+ [a-za-z_]+`,
-
-// time.rfc822z, "02 jan 06 15:04 -0700" // rfc822 with numeric zone
-`^\d+ [a-za-z_]+ \d+ \d+:\d+ -\d+`,
-
-// time.rfc850, "monday, 02-jan-06 15:04:05 mst"
-`^[a-za-z_]+, \d+-[a-za-z_]+-\d+ \d+:\d+:\d+ [a-za-z_]+`,
-
-// time.rfc1123, "mon, 02 jan 2006 15:04:05 mst"
-`^[a-za-z_]+, \d+ [a-za-z_]+ \d+ \d+:\d+:\d+ [a-za-z_]+`,
-
-// time.rfc1123z, "mon, 02 jan 2006 15:04:05 -0700" // rfc1123 with numeric zone
-`^[a-za-z_]+, \d+ [a-za-z_]+ \d+ \d+:\d+:\d+ -\d+`,
-
-// time.rfc3339nano, "2006-01-02t15:04:05.999999999z07:00"
-`^\d+-\d+-\d+[a-za-z_]+\d+:\d+:\d+\.\d+[a-za-z_]+\d+:\d+`,
-
-// 2021-07-08 05:08:19,214
-`^\d+-\d+-\d+ \d+:\d+:\d+(,\d+)?`,
-
-// default java logging simpleformatter date format
-`^[a-za-z_]+ \d+, \d+ \d+:\d+:\d+ (am|pm)`,
-
-// 2021-01-31 - with stricter matching around the months/days
-`^\d{4}-(0?[1-9]|1[012])-(0?[1-9]|[12][0-9]|3[01])`,
-```
+默认规则用于识别“新日志首行”，不是完整字段解析规则。Python/Java 中常见的 `Traceback`、`Exception`、`Caused by` 等行通常是上一条错误日志的续行，因此不会作为默认首行规则。
 
 ### 特殊字节码过滤 {#escaping}
 

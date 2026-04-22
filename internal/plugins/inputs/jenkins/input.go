@@ -195,7 +195,7 @@ func (ipt *Input) RunPipeline() {
 		tailer.WithCharacterEncoding(ipt.Log.CharacterEncoding),
 		tailer.EnableMultiline(true),
 		tailer.WithMaxMultilineLength(int64(float64(config.Cfg.Dataway.MaxRawBodySize) * 0.8)),
-		tailer.WithMultilinePatterns([]string{`^\d{4}-\d{2}-\d{2}`}),
+		tailer.WithMultilinePattern(`^\d{4}-\d{2}-\d{2}`),
 		tailer.WithExtraTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
 		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
 	}

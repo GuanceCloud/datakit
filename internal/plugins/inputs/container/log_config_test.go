@@ -87,7 +87,7 @@ func TestSetAutoMultiline(t *testing.T) {
 			autoMultilineExtraPatterns: []string{`^EXTRA`},
 		}
 		cfg.setAutoMultiline(defaults)
-		assert.Nil(t, cfg.multilinePatterns)
+		assert.Empty(t, cfg.multilinePattern)
 	})
 
 	t.Run("enabled-builds-independent-slice", func(t *testing.T) {
@@ -98,10 +98,11 @@ func TestSetAutoMultiline(t *testing.T) {
 			autoMultilineExtraPatterns: extra,
 		}
 		cfg.setAutoMultiline(defaults)
-		assert.Greater(t, len(cfg.multilinePatterns), len(extra))
-		assert.Equal(t, `^EXTRA`, cfg.multilinePatterns[0])
+		assert.Empty(t, cfg.multilinePattern)
+		assert.True(t, cfg.autoMultiline)
+		assert.Equal(t, []string{`^EXTRA`}, cfg.extraPatterns)
 
-		cfg.multilinePatterns[0] = `^CHANGED`
+		cfg.extraPatterns[0] = `^CHANGED`
 		assert.Equal(t, `^EXTRA`, defaults.autoMultilineExtraPatterns[0])
 	})
 }

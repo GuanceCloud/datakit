@@ -121,7 +121,7 @@ func (t *Single) applyOptions(opts []Option) error {
 	}
 
 	if t.config.enableMultiline {
-		multi, err := multiline.New(t.config.multilinePatterns, multiline.WithMaxLength(int(t.config.maxMultilineLength)))
+		multi, err := newMultiline(t.config)
 		if err != nil {
 			return fmt.Errorf("new multiline failed: %w", err)
 		}
