@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/vmware/govmomi"
+	"github.com/vmware/govmomi/event"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/performance"
 	"github.com/vmware/govmomi/session"
@@ -41,6 +42,10 @@ const maxSampleConst = 10 // Absolute maximum number of samples regardless of pe
 const maxMetadataSamples = 100 // Number of resources to sample for metric metadata
 
 const maxRealtimeMetrics = 50000 // Absolute maximum metrics per realtime query
+
+var queryEvents = func(ctx context.Context, client *Client, filter types.EventFilterSpec) ([]types.BaseEvent, error) {
+	return event.NewManager(client.Client.Client).QueryEvents(ctx, filter)
+}
 
 type Client struct {
 	Client           *govmomi.Client
@@ -146,6 +151,7 @@ func (c *Client) discover(ctx context.Context) error {
 
 	// Populate resource objects, and endpoint instance info.
 	newObjects := make(map[string]objectMap)
+	newMetrics := make(map[string]performance.MetricList)
 
 	for k, res := range c.resourceKinds {
 		// Need to do this for all resource types even if they are not enabled
@@ -174,13 +180,15 @@ func (c *Client) discover(ctx context.Context) error {
 				}
 			}
 
-			// No need to collect metric metadata if resource type is not enabled
+			// No need to collect metric metadata if resource type is not enabled.
+			discoveredRes := *res
 			if res.enabled {
-				if res.simple {
-					c.simpleMetadataSelect(ctx, res)
+				if discoveredRes.simple {
+					c.simpleMetadataSelect(ctx, &discoveredRes)
 				} else {
-					c.complexMetadataSelect(ctx, res, objects)
+					c.complexMetadataSelect(ctx, &discoveredRes, objects)
 				}
+				newMetrics[k] = discoveredRes.metrics
 			}
 			newObjects[k] = objects
 
@@ -205,6 +213,9 @@ func (c *Client) discover(ctx context.Context) error {
 
 	for k, v := range newObjects {
 		c.resourceKinds[k].objects = v
+		if metrics, ok := newMetrics[k]; ok {
+			c.resourceKinds[k].metrics = metrics
+		}
 	}
 	c.lun2ds = l2d
 
@@ -213,23 +224,34 @@ func (c *Client) discover(ctx context.Context) error {
 
 // CounterInfoByName wraps performance.CounterInfoByName to give it proper timeouts.
 func (c *Client) CounterInfoByName(ctx context.Context) (map[string]*types.PerfCounterInfo, error) {
-	ctx1, cancel1 := context.WithTimeout(ctx, c.Timeout)
+	ctx1, cancel1 := c.timeoutContext(ctx)
 	defer cancel1()
 	return c.Perf.CounterInfoByName(ctx1)
 }
 
 // QueryMetrics wraps performance.Query to give it proper timeouts.
 func (c *Client) QueryMetrics(ctx context.Context, pqs []types.PerfQuerySpec) ([]performance.EntityMetric, error) {
-	ctx1, cancel1 := context.WithTimeout(ctx, c.Timeout)
+	ctx1, cancel1 := c.timeoutContext(ctx)
 	defer cancel1()
 	metrics, err := c.Perf.Query(ctx1, pqs)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx2, cancel2 := context.WithTimeout(ctx, c.Timeout)
+	ctx2, cancel2 := c.timeoutContext(ctx)
 	defer cancel2()
 	return c.Perf.ToMetricSeries(ctx2, metrics)
+}
+
+// QueryEvents wraps event.Manager.QueryEvents to give it proper timeouts.
+func (c *Client) QueryEvents(ctx context.Context, filter types.EventFilterSpec) ([]types.BaseEvent, error) {
+	ctx1, cancel1 := c.timeoutContext(ctx)
+	defer cancel1()
+	return queryEvents(ctx1, c, filter)
+}
+
+func (c *Client) timeoutContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(ctx, c.Timeout)
 }
 
 func (c *Client) populateTags(objectRef *objectRef, resource *resourceKind, t map[string]string, v performance.MetricSeries) {
@@ -273,6 +295,10 @@ func (c *Client) populateTags(objectRef *objectRef, resource *resourceKind, t ma
 }
 
 func (c *Client) getParent(obj *objectRef, res *resourceKind) (*objectRef, bool) {
+	if c == nil || obj == nil || obj.parentRef == nil || res == nil {
+		return nil, false
+	}
+
 	if pKind, ok := c.resourceKinds[res.parent]; ok {
 		if p, ok := pKind.objects[obj.parentRef.Value]; ok {
 			return p, true
@@ -518,8 +544,9 @@ func (ipt *Input) createVSphereClient(vSphereURL string) (*Client, error) {
 	perf := performance.NewManager(govmomiClient.Client)
 
 	client := &Client{
-		Client: govmomiClient,
-		Perf:   perf,
+		Client:  govmomiClient,
+		Perf:    perf,
+		Timeout: ipt.timeout,
 	}
 
 	return client, nil
@@ -704,60 +731,11 @@ func getVMs(ctx context.Context, client *Client, resourceFilter *ResourceFilter)
 	for i := range resources {
 		r := &resources[i]
 
-		guest := "unknown"
-		uuid := ""
-		lookup := make(map[string]string)
+		guest, uuid, lookup := getVMGuestInfo(r)
 		// Get the name of the VM resource pool
 		rpname := ""
 		if r.ResourcePool != nil {
 			rpname = getResourcePoolName(*r.ResourcePool, resourcePools)
-		}
-
-		// Extract host name
-		if r.Guest != nil && r.Guest.HostName != "" {
-			lookup["guesthostname"] = r.Guest.HostName
-		}
-
-		// Collect network information
-		for _, net := range r.Guest.Net {
-			if net.DeviceConfigId == -1 {
-				continue
-			}
-			if net.IpConfig == nil || net.IpConfig.IpAddress == nil {
-				continue
-			}
-			ips := make(map[string][]string)
-			for _, ip := range net.IpConfig.IpAddress {
-				addr := ip.IpAddress
-				for _, ipType := range []string{"ipv6", "ipv4"} {
-					if !(ipType == "ipv4" && isIPv4.MatchString(addr) ||
-						ipType == "ipv6" && isIPv6.MatchString(addr)) {
-						continue
-					}
-
-					// By convention, we want the preferred addresses to appear first in the array.
-					if _, ok := ips[ipType]; !ok {
-						ips[ipType] = make([]string, 0)
-					}
-					if ip.State == "preferred" {
-						ips[ipType] = append([]string{addr}, ips[ipType]...)
-					} else {
-						ips[ipType] = append(ips[ipType], addr)
-					}
-				}
-			}
-			for ipType, ipList := range ips {
-				lookup["nic/"+strconv.Itoa(int(net.DeviceConfigId))+"/"+ipType] = strings.Join(ipList, ",")
-			}
-		}
-
-		// Sometimes Config is unknown and returns a nil pointer
-		if r.Config != nil {
-			guest = cleanGuestID(r.Config.GuestId)
-			if r.Guest.GuestId != "" {
-				guest = cleanGuestID(r.Guest.GuestId)
-			}
-			uuid = r.Config.Uuid
 		}
 		tags, fields := getVMTagsAndFields(r)
 		m[r.ExtensibleManagedObject.Reference().Value] = &objectRef{
@@ -773,6 +751,67 @@ func getVMs(ctx context.Context, client *Client, resourceFilter *ResourceFilter)
 		}
 	}
 	return m, nil
+}
+
+func getVMGuestInfo(vm *mo.VirtualMachine) (string, string, map[string]string) {
+	guest := "unknown"
+	uuid := ""
+	lookup := make(map[string]string)
+
+	if vm == nil {
+		return guest, uuid, lookup
+	}
+
+	// Sometimes Config is unknown and returns a nil pointer.
+	if vm.Config != nil {
+		guest = cleanGuestID(vm.Config.GuestId)
+		uuid = vm.Config.Uuid
+	}
+
+	if vm.Guest == nil {
+		return guest, uuid, lookup
+	}
+
+	if vm.Guest.GuestId != "" {
+		guest = cleanGuestID(vm.Guest.GuestId)
+	}
+	if vm.Guest.HostName != "" {
+		lookup["guesthostname"] = vm.Guest.HostName
+	}
+
+	for _, net := range vm.Guest.Net {
+		if net.DeviceConfigId == -1 {
+			continue
+		}
+		if net.IpConfig == nil || net.IpConfig.IpAddress == nil {
+			continue
+		}
+		ips := make(map[string][]string)
+		for _, ip := range net.IpConfig.IpAddress {
+			addr := ip.IpAddress
+			for _, ipType := range []string{"ipv6", "ipv4"} {
+				if !(ipType == "ipv4" && isIPv4.MatchString(addr) ||
+					ipType == "ipv6" && isIPv6.MatchString(addr)) {
+					continue
+				}
+
+				// By convention, we want the preferred addresses to appear first in the array.
+				if _, ok := ips[ipType]; !ok {
+					ips[ipType] = make([]string, 0)
+				}
+				if ip.State == "preferred" {
+					ips[ipType] = append([]string{addr}, ips[ipType]...)
+				} else {
+					ips[ipType] = append(ips[ipType], addr)
+				}
+			}
+		}
+		for ipType, ipList := range ips {
+			lookup["nic/"+strconv.Itoa(int(net.DeviceConfigId))+"/"+ipType] = strings.Join(ipList, ",")
+		}
+	}
+
+	return guest, uuid, lookup
 }
 
 func (ipt *Input) getClient() (*Client, error) {
