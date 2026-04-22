@@ -101,7 +101,7 @@ DCA web 服务目前仅支持镜像安装，可通过 Docker 或 Kubernetes 来�
  | `DCA_CONSOLE_WEB_URL` | string | `https://console.<<<custom_key.brand_main_domain>>>`            | <<<custom_key.brand_name>>>平台地址，参考 [节点地址](dca.md#node-address)          |
  | `DCA_STATIC_BASE_URL` | string | `https://static.<<<custom_key.brand_main_domain>>>`             | 静态文件服务器地址                                                                 |
  | `DCA_CONSOLE_PROXY`   | string | 无                                                              | <<<custom_key.brand_name>>> API 代理，不代理 DataKit 接口                          |
- | `DCA_LOG_LEVEL`       | string | info                                                            | 日志等级，取值为 debug/info/warn/error                                             |
+ | `DCA_LOG_LEVEL`       | string | info                                                            | 日志等级，取值为 debug/info/warn/error（小写）                                         |
  | `DCA_LOG_PATH`        | string | 无                                                              | 日志路径，如果需要输出到 stdout，则设置为 `stdout`                                 |
  | `DCA_TLS_ENABLE`      | string | 无                                                              | 是否开启 TLS，设置该值表示开启                                                     |
  | `DCA_TLS_CERT_FILE`   | string | 无                                                              | 证书文件路径，如： `/etc/ssl/certs/server.crt`                                     |

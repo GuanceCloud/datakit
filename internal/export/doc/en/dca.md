@@ -101,7 +101,7 @@ By default, DCA will adopt the default configuration of the system. If you need 
  | `DCA_CONSOLE_WEB_URL`     | string | `https://console.<<<custom_key.brand_main_domain>>>`             | <<<custom_key.brand_name>>> page address, refer [node address](dca.md#node-address)        |
  | `DCA_STATIC_BASE_URL`     | string | `https://static.<<<custom_key.brand_main_domain>>>`              | static resource address                                                                    |
  | `DCA_CONSOLE_PROXY`       | string | None                                                             | <<<custom_key.brand_name>>> API proxy, but does not proxy the DataKit API                  |
- | `DCA_LOG_LEVEL`           | string | info                                                             | Log level, the value is debug/info/warn/error.                                             |
+ | `DCA_LOG_LEVEL`           | string | info                                                             | Log level, the value is debug/info/warn/error (lowercase).                                   |
  | `DCA_LOG_PATH`            | string | None                                                             | The log path. If you need to write the log to `stdout`, you can set it to `stdout`         |
  | `DCA_TLS_ENABLE`          | string | None                                                             | enable TLS when the value is not empty                                                     |
  | `DCA_TLS_CERT_FILE`       | string | None                                                             | the cert file path, such as `/etc/ssl/certs/server.crt`                                    |

@@ -42,7 +42,7 @@ $ docker run -d --name dca -p 8000:80 pubrepo.<<<custom_key.brand_main_domain>>>
 
 - **`DCA_LOG_LEVEL`**
 
-  日志等级，取值为 `NONE | DEBUG | INFO | WARN | ERROR`，如果不需要记录日志，可设置为 `NONE`
+  日志等级，取值为 `debug | info | warn | error`
 
 - **`DCA_LOG_ENABLE_STDOUT`**
 
@@ -51,6 +51,6 @@ $ docker run -d --name dca -p 8000:80 pubrepo.<<<custom_key.brand_main_domain>>>
 示例：
 
 ```shell
-$ docker run -d --name dca -p 8000:80 -e DCA_LOG_ENABLE_STDOUT=true -e DCA_LOG_LEVEL=WARN pubrepo.<<<custom_key.brand_main_domain>>>/tools/dca
+$ docker run -d --name dca -p 8000:80 -e DCA_LOG_ENABLE_STDOUT=true -e DCA_LOG_LEVEL=warn pubrepo.<<<custom_key.brand_main_domain>>>/tools/dca
 ```
 
