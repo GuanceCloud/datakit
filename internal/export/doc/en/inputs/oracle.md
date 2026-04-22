@@ -243,6 +243,41 @@ apt-get install -y libaio-dev libaio1
         The environment variable has highest priority, which means if existed that environment variable, the value in the environment variable will always treated as the password.
 <!-- markdownlint-enable -->
 
+### Oracle RAC {#rac}
+
+For Oracle RAC, the current collector is intended to be deployed in a per-instance mode instead of using a single input with `GV$` views to aggregate the whole RAC.
+
+- Configure one `[[inputs.oracle]]` for each RAC node or instance
+- Each input should connect to a fixed node address, VIP, or instance-specific service
+- Avoid SCAN, load balancers, or connection pools, otherwise a single input may drift between instances
+- Connect to the CDB service instead of creating separate connections to individual PDBs
+
+You can use custom tags to associate multiple inputs from the same RAC cluster, for example:
+
+```toml
+[[inputs.oracle]]
+  host = "rac-node-1-vip"
+  port = 1521
+  user = "datakit"
+  password = "<PASS>"
+  service = "CDB1_NODE1"
+  ...
+
+  [inputs.oracle.tags]
+    rac_cluster = "prod-rac"
+
+[[inputs.oracle]]
+  host = "rac-node-2-vip"
+  port = 1521
+  user = "datakit"
+  password = "<PASS>"
+  service = "CDB1_NODE2"
+  ...
+
+  [inputs.oracle.tags]
+    rac_cluster = "prod-rac"
+```
+
 ## Database Monitoring (DBM) {#dbm}
 
 Database Monitoring (DBM) provides deep visibility into Oracle database performance by collecting query metrics, activity sessions, and execution plans to help analyze and optimize database performance.
