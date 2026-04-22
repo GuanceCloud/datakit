@@ -18,6 +18,8 @@ import (
 
 const (
 	metricNameSQLServerDbmSession = "sqlserver_dbm_session"
+	waitTypeCPU                   = "CPU"
+	waitTypeWaitingOnCPU          = "WAITING_ON_CPU"
 )
 
 // aggregatedSession stores aggregated values for sessions grouped by dimensions.
@@ -30,8 +32,11 @@ type aggregatedSession struct {
 	sqlserverHost string
 	databaseName  string
 	userName      string
+	programName   string
+	clientAddress string
 	status        string // active/idle/blocked
 	waitCategory  string // CPU/IO/Lock/Network/Other
+	waitType      string
 
 	// Aggregated fields
 	sessionCount              int64
@@ -48,7 +53,7 @@ type aggregatedSession struct {
 }
 
 // aggregateSessions aggregates activity rows into session metrics.
-// Aggregates by: database_name + status + wait_class
+// Aggregates by: database_name + user_name + program_name + client_address + session_status + wait_group + wait_type
 // Center platform can sum these metrics by any subset of tags as needed.
 func (ipt *Input) aggregateSessions(activityRows []*dbmActivityRow) []*aggregatedSession {
 	if len(activityRows) == 0 {
@@ -89,7 +94,8 @@ func (ipt *Input) aggregateSessions(activityRows []*dbmActivityRow) []*aggregate
 		}
 
 		// Generate aggregation key
-		aggKey := fmt.Sprintf("%s|%s|%s|%s", row.databaseName, row.userName, status, waitCategory)
+		aggKey := fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s", row.databaseName, row.userName, row.programName,
+			row.clientAddress, status, waitCategory, row.waitType)
 
 		if _, ok := mergedMap[aggKey]; !ok {
 			mergedMap[aggKey] = &aggregatedSession{
@@ -98,8 +104,11 @@ func (ipt *Input) aggregateSessions(activityRows []*dbmActivityRow) []*aggregate
 				sqlserverHost: row.sqlserverHost,
 				databaseName:  row.databaseName,
 				userName:      row.userName,
+				programName:   row.programName,
+				clientAddress: row.clientAddress,
 				status:        status,
 				waitCategory:  waitCategory,
+				waitType:      row.waitType,
 			}
 		}
 		agg := mergedMap[aggKey]
@@ -137,16 +146,40 @@ func (ipt *Input) aggregateSessions(activityRows []*dbmActivityRow) []*aggregate
 	return result
 }
 
-// categorizeWaitType maps SQL Server wait types to categories.
-func categorizeWaitType(sessionStatus, waitType string) string {
-	s := strings.ToLower(strings.TrimSpace(sessionStatus))
+// normalizeWaitType synthesizes CPU-related wait labels so wait-event
+// dimensions remain visible even when SQL Server reports an empty wait_type.
+func normalizeWaitType(sessionStatus, requestStatus, waitType string) string {
+	wt := strings.TrimSpace(waitType)
+	if wt != "" {
+		return wt
+	}
+
+	rs := strings.ToLower(strings.TrimSpace(requestStatus))
+	switch rs {
+	case "runnable":
+		return waitTypeWaitingOnCPU
+	case "running":
+		return waitTypeCPU
+	}
+
+	if rs == "" && strings.ToLower(strings.TrimSpace(sessionStatus)) == "running" {
+		return waitTypeCPU
+	}
+
+	return ""
+}
+
+// categorizeWaitType maps a normalized SQL Server wait type to a unified category.
+func categorizeWaitType(waitType string) string {
 	wt := strings.ToUpper(strings.TrimSpace(waitType))
 
-	if s == "running" && wt == "" {
+	if wt == waitTypeCPU || wt == waitTypeWaitingOnCPU {
 		return "CPU"
 	}
 
 	switch {
+	case wt == "SOS_SCHEDULER_YIELD":
+		return "CPU"
 	case strings.HasPrefix(wt, "LCK_"):
 		return "Lock"
 	case wt == "RESOURCE_SEMAPHORE_QUERY_COMPILE" || strings.HasPrefix(wt, "LATCH_") || strings.HasPrefix(wt, "PAGELATCH_"):
@@ -189,7 +222,16 @@ func (ipt *Input) buildSessionPoints(rows []*aggregatedSession, ptsTime time.Tim
 		kvs = kvs.AddTag("sqlserver_host", row.sqlserverHost)
 		kvs = kvs.AddTag("database_name", row.databaseName)
 		kvs = kvs.AddTag("user_name", row.userName)
+		if row.programName != "" {
+			kvs = kvs.AddTag("program_name", row.programName)
+		}
+		if row.clientAddress != "" {
+			kvs = kvs.AddTag("client_address", row.clientAddress)
+		}
 		kvs = kvs.AddTag("session_status", row.status)
+		if row.waitType != "" {
+			kvs = kvs.AddTag("wait_type", row.waitType)
+		}
 		kvs = kvs.AddTag("wait_group", row.waitCategory)
 
 		// Fields

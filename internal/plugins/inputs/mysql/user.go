@@ -73,13 +73,13 @@ func (m *userMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
-				Desc:     "The number of sorted rows.",
+				Desc:     "Sorted rows for this user (from user_stats).",
 			},
 			"sort_scan": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
-				Desc:     "The number of sorts that were done by scanning the table.",
+				Desc:     "Sorts done by table scan for this user (from user_stats).",
 			},
 			"table_open_cache_hits": &inputs.FieldInfo{
 				DataType: inputs.Int,

@@ -6,13 +6,17 @@
 package mysql
 
 import (
+	"time"
+
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 type dbmMetric struct {
-	Enabled bool `toml:"enabled"`
+	Enabled  bool             `toml:"enabled"`
+	Interval datakit.Duration `toml:"interval"`
+	Limit    int              `toml:"limit"`
 }
 
 type dbmStateMeasurement struct {
@@ -24,7 +28,7 @@ type dbmStateMeasurement struct {
 
 // Point implement MeasurementV2.
 func (m *dbmStateMeasurement) Point() *point.Point {
-	opts := point.DefaultLoggingOptions()
+	opts := point.DefaultMetricOptions()
 
 	if m.election {
 		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
@@ -39,88 +43,158 @@ func (m *dbmStateMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Desc: "Record the number of executions of the query statement, wait time, lock time, and the number of rows queried.",
 		Name: metricNameMySQLDbmMetric,
-		Cat:  point.Logging,
+		Cat:  point.Metric,
 		Fields: map[string]interface{}{
-			"sum_timer_wait": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
-				Desc:     "The total query execution time(nanosecond) per normalized query and schema.",
-			},
+			// Total values (cumulative values from MySQL)
 			"count_star": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
-				Desc:     "The total count of executed queries per normalized query and schema.",
+				Desc:     "The total count of executed queries per normalized query and schema (cumulative).",
 			},
-			"sum_errors": &inputs.FieldInfo{
+			"sum_timer_wait": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
-				Desc:     "The total count of queries run with an error per normalized query and schema.",
+				Desc:     "The total query execution time(nanosecond) per normalized query and schema (cumulative).",
 			},
 			"sum_lock_time": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
-				Desc:     "The total time(nanosecond) spent waiting on locks per normalized query and schema.",
+				Desc:     "The total time(nanosecond) spent waiting on locks per normalized query and schema (cumulative).",
 			},
-			"sum_rows_sent": &inputs.FieldInfo{
+			"sum_errors": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
-				Desc:     "The number of rows sent per normalized query and schema.",
-			},
-			"sum_select_scan": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
-				Desc:     "The total count of full table scans on the first table per normalized query and schema.",
-			},
-			"sum_no_index_used": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
-				Desc:     "The total count of queries which do not use an index per normalized query and schema.",
+				Desc:     "The total count of queries run with an error per normalized query and schema (cumulative).",
 			},
 			"sum_rows_affected": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
-				Desc:     "The number of rows mutated per normalized query and schema.",
+				Desc:     "The number of rows mutated per normalized query and schema (cumulative).",
+			},
+			"sum_rows_sent": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The number of rows sent per normalized query and schema (cumulative).",
 			},
 			"sum_rows_examined": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
-				Desc:     "The number of rows examined per normalized query and schema.",
+				Desc:     "The number of rows examined per normalized query and schema (cumulative).",
+			},
+			"sum_select_scan": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The total count of full table scans on the first table per normalized query and schema (cumulative).",
 			},
 			"sum_select_full_join": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
-				Desc:     "The total count of full table scans on a joined table per normalized query and schema.",
+				Desc:     "The total count of full table scans on a joined table per normalized query and schema (cumulative).",
+			},
+			"sum_no_index_used": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The total count of queries which do not use an index per normalized query and schema (cumulative).",
 			},
 			"sum_no_good_index_used": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
-				Desc:     "The total count of queries which used a sub-optimal index per normalized query and schema.",
+				Desc:     "The total count of queries which used a sub-optimal index per normalized query and schema (cumulative).",
 			},
-			"message": &inputs.FieldInfo{
-				DataType: inputs.String,
-				Type:     inputs.String,
-				Unit:     inputs.NoUnit,
-				Desc:     "The text of the normalized statement digest.",
+			// Delta values (change between collection intervals)
+			"delta_count_star": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The change in count of executed queries per normalized query and schema between collection intervals.",
+			},
+			"delta_timer_wait": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The change in query execution time(nanosecond) per normalized query and schema between collection intervals.",
+			},
+			"delta_lock_time": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The change in time(nanosecond) spent waiting on locks per normalized query and schema between collection intervals.",
+			},
+			"delta_errors": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The change in count of queries run with an error per normalized query and schema between collection intervals.",
+			},
+			"delta_rows_affected": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The change in number of rows mutated per normalized query and schema between collection intervals.",
+			},
+			"delta_rows_sent": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The change in number of rows sent per normalized query and schema between collection intervals.",
+			},
+			"delta_rows_examined": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The change in number of rows examined per normalized query and schema between collection intervals.",
+			},
+			"delta_select_scan": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The change in count of full table scans on the first table per normalized query and schema between collection intervals.",
+			},
+			"delta_select_full_join": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The change in count of full table scans on a joined table per normalized query and schema between collection intervals.",
+			},
+			"delta_no_index_used": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The change in count of queries which do not use an index per normalized query and schema between collection intervals.",
+			},
+			"delta_no_good_index_used": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The change in count of queries which used a sub-optimal index per normalized query and schema between collection intervals.",
+			},
+			// Average values (calculated from delta values)
+			"avg_timer_wait": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationNS,
+				//nolint:lll
+				Desc: "The average query execution time (nanoseconds) per query execution during the collection interval (calculated from delta_timer_wait / delta_count_star).",
 			},
 		},
 		Tags: map[string]interface{}{
-			"server":          &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"},
-			"host":            &inputs.TagInfo{Desc: "The server host address"},
-			"service":         &inputs.TagInfo{Desc: "The service name and the value is 'mysql'"},
-			"digest":          &inputs.TagInfo{Desc: "The digest hash value computed from the original normalized statement. "},
-			"query_signature": &inputs.TagInfo{Desc: "The hash value computed from digest_text"},
-			"schema_name":     &inputs.TagInfo{Desc: "The schema name"},
+			"server":            &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"},
+			"host":              &inputs.TagInfo{Desc: "The server host address"},
+			"database_instance": &inputs.TagInfo{Desc: "MySQL instance identifier from configured tag or @@server_uuid."},
+			"digest":            &inputs.TagInfo{Desc: "The digest hash value computed from the original normalized statement. "},
+			"query_signature":   &inputs.TagInfo{Desc: "The hash value computed from digest_text"},
+			"schema_name":       &inputs.TagInfo{Desc: "The schema name."},
 		},
 	}
 }
@@ -131,6 +205,35 @@ type dbmRow struct {
 	digestText     string
 	querySignature string
 
+	// Total values (cumulative values from MySQL)
+	countStar          uint64
+	sumTimerWait       uint64
+	sumLockTime        uint64
+	sumErrors          uint64
+	sumRowsAffected    uint64
+	sumRowsSent        uint64
+	sumRowsExamined    uint64
+	sumSelectScan      uint64
+	sumSelectFullJoin  uint64
+	sumNoIndexUsed     uint64
+	sumNoGoodIndexUsed uint64
+
+	// Delta values (change between collection intervals)
+	deltaCountStar       uint64
+	deltaTimerWait       uint64
+	deltaLockTime        uint64
+	deltaErrors          uint64
+	deltaRowsAffected    uint64
+	deltaRowsSent        uint64
+	deltaRowsExamined    uint64
+	deltaSelectScan      uint64
+	deltaSelectFullJoin  uint64
+	deltaNoIndexUsed     uint64
+	deltaNoGoodIndexUsed uint64
+}
+
+// dbmMetricCache stores cumulative values needed to compute derivatives.
+type dbmMetricCache struct {
 	countStar          uint64
 	sumTimerWait       uint64
 	sumLockTime        uint64
@@ -166,6 +269,7 @@ func mergeDuplicateRows(rows []dbmRow) []dbmRow {
 			keyRow.sumSelectFullJoin += row.sumSelectFullJoin
 			keyRow.sumNoIndexUsed += row.sumNoIndexUsed
 			keyRow.sumNoGoodIndexUsed += row.sumNoGoodIndexUsed
+			keyRows[keyStr] = keyRow
 		} else {
 			keyRows[keyStr] = row
 		}
@@ -180,135 +284,155 @@ func mergeDuplicateRows(rows []dbmRow) []dbmRow {
 	return dbmRows
 }
 
-// calculate metric based on previous row identified by row key.
-func getMetricRows(dbmRows []dbmRow, dbmCache *map[string]dbmRow) ([]dbmRow, map[string]dbmRow) {
-	newDbmCache := make(map[string]dbmRow)
+// getMetricRows computes deltas against the previous full snapshot and returns the next snapshot.
+func getMetricRows(dbmRows []dbmRow, prevSnapshot map[string]dbmMetricCache) ([]dbmRow, map[string]dbmMetricCache) {
 	metricRows := []dbmRow{}
+	nextSnapshot := make(map[string]dbmMetricCache, len(dbmRows))
+
 	for _, row := range dbmRows {
 		rowKey := getRowKey(row.schemaName, row.querySignature)
-		if _, ok := newDbmCache[rowKey]; ok {
-			l.Warnf("Duplicate querySignature: %s, using the new one", row.querySignature)
+		nextSnapshot[rowKey] = dbmMetricCache{
+			countStar:          row.countStar,
+			sumTimerWait:       row.sumTimerWait,
+			sumLockTime:        row.sumLockTime,
+			sumErrors:          row.sumErrors,
+			sumRowsAffected:    row.sumRowsAffected,
+			sumRowsSent:        row.sumRowsSent,
+			sumRowsExamined:    row.sumRowsExamined,
+			sumSelectScan:      row.sumSelectScan,
+			sumSelectFullJoin:  row.sumSelectFullJoin,
+			sumNoIndexUsed:     row.sumNoIndexUsed,
+			sumNoGoodIndexUsed: row.sumNoGoodIndexUsed,
 		}
-		newDbmCache[rowKey] = row
 
-		if oldRow, ok := (*dbmCache)[rowKey]; ok {
-			diffRow := dbmRow{
-				digest:         row.digest,
-				digestText:     row.digestText,
-				schemaName:     row.schemaName,
-				querySignature: row.querySignature,
-			}
-			isChange := false
-			if row.countStar >= oldRow.countStar {
-				value := row.countStar - oldRow.countStar
-				diffRow.countStar = value
-				if value > 0 {
-					isChange = true
-				}
-			} else {
-				continue
-			}
-			if row.sumTimerWait >= oldRow.sumTimerWait {
-				value := row.sumTimerWait - oldRow.sumTimerWait
-				diffRow.sumTimerWait = value / 1000 // nanosecond
-				if value > 0 {
-					isChange = true
-				}
-			} else {
-				continue
-			}
-			if row.sumLockTime >= oldRow.sumLockTime {
-				value := row.sumLockTime - oldRow.sumLockTime
-				diffRow.sumLockTime = value / 1000 // nanosecond
-				if value > 0 {
-					isChange = true
-				}
-			} else {
-				continue
-			}
-			if row.sumErrors >= oldRow.sumErrors {
-				value := row.sumErrors - oldRow.sumErrors
-				diffRow.sumErrors = value
-				if value > 0 {
-					isChange = true
-				}
-			} else {
-				continue
-			}
-			if row.sumRowsAffected >= oldRow.sumRowsAffected {
-				value := row.sumRowsAffected - oldRow.sumRowsAffected
-				diffRow.sumRowsAffected = value
-				if value > 0 {
-					isChange = true
-				}
-			} else {
-				continue
-			}
-			if row.sumRowsSent >= oldRow.sumRowsSent {
-				value := row.sumRowsSent - oldRow.sumRowsSent
-				diffRow.sumRowsSent = value
-				if value > 0 {
-					isChange = true
-				}
-			} else {
-				continue
-			}
-			if row.sumRowsExamined >= oldRow.sumRowsExamined {
-				value := row.sumRowsExamined - oldRow.sumRowsExamined
-				diffRow.sumRowsExamined = value
-				if value > 0 {
-					isChange = true
-				}
-			} else {
-				continue
-			}
-			if row.sumSelectScan >= oldRow.sumSelectScan {
-				value := row.sumSelectScan - oldRow.sumSelectScan
-				diffRow.sumSelectScan = value
-				if value > 0 {
-					isChange = true
-				}
-			} else {
-				continue
-			}
-			if row.sumSelectFullJoin >= oldRow.sumSelectFullJoin {
-				value := row.sumSelectFullJoin - oldRow.sumSelectFullJoin
-				diffRow.sumSelectFullJoin = value
-				if value > 0 {
-					isChange = true
-				}
-			} else {
-				continue
-			}
-			if row.sumNoIndexUsed >= oldRow.sumNoIndexUsed {
-				value := row.sumNoIndexUsed - oldRow.sumNoIndexUsed
-				diffRow.sumNoIndexUsed = value
-				if value > 0 {
-					isChange = true
-				}
-			} else {
-				continue
-			}
-			if row.sumNoGoodIndexUsed >= oldRow.sumNoGoodIndexUsed {
-				value := row.sumNoGoodIndexUsed - oldRow.sumNoGoodIndexUsed
-				diffRow.sumNoGoodIndexUsed = value
-				if value > 0 {
-					isChange = true
-				}
-			} else {
-				continue
-			}
+		old, ok := prevSnapshot[rowKey]
+		if !ok {
+			// First time seeing this query in the previous snapshot: baseline only.
+			continue
+		}
 
-			// No changes, no metric collected
-			if !isChange {
-				continue
-			}
+		// Calculate derivatives for all fields.
+		// Guard against counter reset/wraparound to avoid uint64 underflow.
+		if row.countStar < old.countStar {
+			continue
+		}
+		diffCountStar := row.countStar - old.countStar
+		if diffCountStar <= 0 {
+			continue
+		}
 
-			metricRows = append(metricRows, diffRow)
+		// Calculate and store delta values directly in the row
+		row.deltaCountStar = diffCountStar
+		if row.sumTimerWait >= old.sumTimerWait {
+			row.deltaTimerWait = (row.sumTimerWait - old.sumTimerWait) / 1000 // nanosecond
 		} else {
 			continue
 		}
+		if row.sumLockTime >= old.sumLockTime {
+			row.deltaLockTime = (row.sumLockTime - old.sumLockTime) / 1000 // nanosecond
+		} else {
+			continue
+		}
+		if row.sumErrors >= old.sumErrors {
+			row.deltaErrors = row.sumErrors - old.sumErrors
+		} else {
+			continue
+		}
+		if row.sumRowsAffected >= old.sumRowsAffected {
+			row.deltaRowsAffected = row.sumRowsAffected - old.sumRowsAffected
+		} else {
+			continue
+		}
+		if row.sumRowsSent >= old.sumRowsSent {
+			row.deltaRowsSent = row.sumRowsSent - old.sumRowsSent
+		} else {
+			continue
+		}
+		if row.sumRowsExamined >= old.sumRowsExamined {
+			row.deltaRowsExamined = row.sumRowsExamined - old.sumRowsExamined
+		} else {
+			continue
+		}
+		if row.sumSelectScan >= old.sumSelectScan {
+			row.deltaSelectScan = row.sumSelectScan - old.sumSelectScan
+		} else {
+			continue
+		}
+		if row.sumSelectFullJoin >= old.sumSelectFullJoin {
+			row.deltaSelectFullJoin = row.sumSelectFullJoin - old.sumSelectFullJoin
+		} else {
+			continue
+		}
+		if row.sumNoIndexUsed >= old.sumNoIndexUsed {
+			row.deltaNoIndexUsed = row.sumNoIndexUsed - old.sumNoIndexUsed
+		} else {
+			continue
+		}
+		if row.sumNoGoodIndexUsed >= old.sumNoGoodIndexUsed {
+			row.deltaNoGoodIndexUsed = row.sumNoGoodIndexUsed - old.sumNoGoodIndexUsed
+		} else {
+			continue
+		}
+
+		// Report both total (from query) and delta (calculated) values
+		metricRows = append(metricRows, row)
 	}
 
-	return metricRows, newDbmCache
+	return metricRows, nextSnapshot
+}
+
+func (ipt *Input) buildMysqlDbmMetric(rows []dbmRow, ptsTime time.Time) ([]*point.Point, error) {
+	var pts []*point.Point
+	opts := append(point.DefaultMetricOptions(), point.WithTime(ptsTime))
+
+	for _, row := range rows {
+		kvs := ipt.getKVs()
+
+		// tags
+		if len(row.schemaName) > 0 {
+			kvs = kvs.AddTag("schema_name", row.schemaName)
+		}
+		if len(row.digest) > 0 {
+			kvs = kvs.AddTag("digest", row.digest)
+		}
+		if len(row.querySignature) > 0 {
+			kvs = kvs.AddTag("query_signature", row.querySignature)
+		}
+
+		// Fields - report both total and delta values
+		// Total values (cumulative values from MySQL)
+		kvs = kvs.Set("count_star", row.countStar)
+		kvs = kvs.Set("sum_timer_wait", row.sumTimerWait)
+		kvs = kvs.Set("sum_lock_time", row.sumLockTime)
+		kvs = kvs.Set("sum_errors", row.sumErrors)
+		kvs = kvs.Set("sum_rows_affected", row.sumRowsAffected)
+		kvs = kvs.Set("sum_rows_sent", row.sumRowsSent)
+		kvs = kvs.Set("sum_rows_examined", row.sumRowsExamined)
+		kvs = kvs.Set("sum_select_scan", row.sumSelectScan)
+		kvs = kvs.Set("sum_select_full_join", row.sumSelectFullJoin)
+		kvs = kvs.Set("sum_no_index_used", row.sumNoIndexUsed)
+		kvs = kvs.Set("sum_no_good_index_used", row.sumNoGoodIndexUsed)
+
+		// Delta values (change between collection intervals)
+		kvs = kvs.Set("delta_count_star", row.deltaCountStar)
+		kvs = kvs.Set("delta_timer_wait", row.deltaTimerWait)
+		kvs = kvs.Set("delta_lock_time", row.deltaLockTime)
+		kvs = kvs.Set("delta_errors", row.deltaErrors)
+		kvs = kvs.Set("delta_rows_affected", row.deltaRowsAffected)
+		kvs = kvs.Set("delta_rows_sent", row.deltaRowsSent)
+		kvs = kvs.Set("delta_rows_examined", row.deltaRowsExamined)
+		kvs = kvs.Set("delta_select_scan", row.deltaSelectScan)
+		kvs = kvs.Set("delta_select_full_join", row.deltaSelectFullJoin)
+		kvs = kvs.Set("delta_no_index_used", row.deltaNoIndexUsed)
+		kvs = kvs.Set("delta_no_good_index_used", row.deltaNoGoodIndexUsed)
+
+		// Calculate average timer wait per execution
+		if row.deltaCountStar > 0 {
+			kvs = kvs.Set("avg_timer_wait", row.deltaTimerWait/row.deltaCountStar)
+		}
+
+		pts = append(pts, point.NewPoint(metricNameMySQLDbmMetric, kvs, opts...))
+	}
+
+	return pts, nil
 }

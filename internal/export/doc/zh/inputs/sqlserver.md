@@ -7,9 +7,13 @@ __int_icon      : 'icon/sqlserver'
 dashboard :
   - desc  : 'SQLServer'
     path  : 'dashboard/zh/sqlserver'
+  - desc  : 'SQLServer-v2'
+    path  : 'dashboard/zh/sqlserver-v2'
 monitor   :
   - desc  : 'SQLServer 监控器'
     path  : 'monitor/zh/sqlserver'
+  - desc  : 'SQLServer 监控器-v2'
+    path  : 'monitor/zh/sqlserver-v2'
 ---
 
 {{.AvailableArchs}}

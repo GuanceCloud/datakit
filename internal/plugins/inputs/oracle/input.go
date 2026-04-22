@@ -278,6 +278,11 @@ func (ipt *Input) setupDB() error {
 	ipt.getOracleVersion()
 
 	ipt.getDatabaseInstance(ctx)
+	if ipt.databaseInstance != "" {
+		ipt.mergedTags["database_instance"] = ipt.databaseInstance
+	} else {
+		ipt.mergedTags["database_instance"] = ipt.mergedTags["server"]
+	}
 
 	// Query v$database to get CDB information
 	if err := ipt.queryCDBInfo(ctx); err != nil {
@@ -306,9 +311,6 @@ func (ipt *Input) getDatabaseInstance(ctx context.Context) {
 	}
 	if hn.HostName != "" {
 		ipt.databaseInstance = hn.HostName
-		if ipt.mergedTags != nil {
-			ipt.mergedTags["database_instance"] = hn.HostName
-		}
 	}
 }
 
@@ -750,6 +752,10 @@ func (ipt *Input) runDbmCollectors() {
 // runDbmMetric runs DBM metric.
 func (ipt *Input) runDbmMetric() {
 	duration := ipt.Dbm.Metric.CollectionInterval.Duration
+	if duration <= 0 {
+		duration = dbmMetricInterval.Duration
+	}
+	duration = config.ProtectedInterval(minInterval, maxInterval, duration)
 
 	tick := time.NewTicker(duration)
 	defer tick.Stop()
@@ -802,6 +808,10 @@ func (ipt *Input) collectDbmMetricAndPlans(duration time.Duration, ptsTime time.
 // runDbmActivity runs DBM activity.
 func (ipt *Input) runDbmActivity() {
 	duration := ipt.Dbm.Activity.CollectionInterval.Duration
+	if duration <= 0 {
+		duration = dbmActivityInterval.Duration
+	}
+	duration = config.ProtectedInterval(minInterval, maxInterval, duration)
 
 	tick := time.NewTicker(duration)
 	defer tick.Stop()

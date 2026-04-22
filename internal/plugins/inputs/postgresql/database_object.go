@@ -6,6 +6,7 @@
 package postgresql
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -59,12 +60,13 @@ func (*postgresqlObjectMeasurement) Info() *inputs.MeasurementInfo {
 		Cat:  point.Object,
 		Desc: "PostgreSQL object metrics([:octicons-tag-24: Version-1.76.0](../datakit/changelog-2025.md#cl-1.76.0))",
 		Tags: map[string]interface{}{
-			"host":          &inputs.TagInfo{Desc: "The hostname of the PostgreSQL server"},
-			"server":        &inputs.TagInfo{Desc: "The server address of the PostgreSQL server. The value is `host:port`"},
-			"version":       &inputs.TagInfo{Desc: "The version of the PostgreSQL server"},
-			"name":          &inputs.TagInfo{Desc: "The name of the database. The value is `host:port` in default"},
-			"database_type": &inputs.TagInfo{Desc: "The type of the database. The value is `PostgreSQL`"},
-			"port":          &inputs.TagInfo{Desc: "The port of the PostgreSQL server"},
+			"host":              &inputs.TagInfo{Desc: "The hostname of the PostgreSQL server"},
+			"server":            &inputs.TagInfo{Desc: "The server address of the PostgreSQL server. The value is `host:port`"},
+			"version":           &inputs.TagInfo{Desc: "The version of the PostgreSQL server"},
+			"database_instance": &inputs.TagInfo{Desc: "PostgreSQL instance identifier from configured tag `database_instance` or system_identifier."},
+			"name":              &inputs.TagInfo{Desc: "The object identifier. The value is `<server>-<database_instance>` when `database_instance` is configured, otherwise `host:port`."},
+			"database_type":     &inputs.TagInfo{Desc: "The type of the database. The value is `PostgreSQL`"},
+			"port":              &inputs.TagInfo{Desc: "The port of the PostgreSQL server"},
 		},
 		Fields: map[string]interface{}{
 			"message":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Summary of database information"},
@@ -127,10 +129,14 @@ func (ipt *Input) collectDatabaseObject() error {
 		}
 	}
 
+	objectName := ipt.Object.name
+	if ipt.databaseInstance != "" {
+		objectName = fmt.Sprintf("%s-%s", ipt.Object.name, ipt.databaseInstance)
+	}
+
 	kvs = kvs.AddTag("version", ipt.version.String()).
 		AddTag("database_type", postgresqlType).
-		AddTag("name", ipt.Object.name).
-		AddTag("host", ipt.host).
+		AddTag("name", objectName).
 		AddTag("slow_query_log", slowQueryLog).
 		AddTag("server", ipt.Object.name).
 		AddTag("port", fmt.Sprintf("%d", ipt.port)).
@@ -239,7 +245,10 @@ func (ipt *Input) getQueryResult(query string, dbs ...string) ([]map[string]*int
 	}
 
 	result := make([]map[string]*interface{}, 0)
-	rows, err := ipt.service.QueryByDatabase(query, db)
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.Timeout.Duration)
+	defer cancel()
+
+	rows, err := ipt.service.QueryByDatabase(ctx, query, db)
 	if err != nil {
 		return nil, fmt.Errorf("query sqlExtensions failed: %w", err)
 	}
@@ -277,7 +286,10 @@ func (ipt *Input) getSlowQueries(minDurationMilliseconds int64) (int, error) {
 	}
 
 	query := fmt.Sprintf(sqlGetSlowQueries, minDurationMilliseconds)
-	rows, err := ipt.service.QueryByDatabase(query, "")
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.Timeout.Duration)
+	defer cancel()
+
+	rows, err := ipt.service.QueryByDatabase(ctx, query, "")
 	if err != nil {
 		return 0, fmt.Errorf("get slow queries failed: %w", err)
 	}
@@ -319,7 +331,10 @@ func (ipt *Input) getDatabaseList() ([]string, error) {
 	}
 	dbs := []string{}
 	if ipt.Object.CollectSchemas.AutoDiscoveryDatabase {
-		rows, err := ipt.service.QueryByDatabase(sqlGetDatabaseList, "")
+		ctx, cancel := context.WithTimeout(context.Background(), ipt.Timeout.Duration)
+		defer cancel()
+
+		rows, err := ipt.service.QueryByDatabase(ctx, sqlGetDatabaseList, "")
 		if err != nil {
 			return nil, fmt.Errorf("query failed: %w", err)
 		}
@@ -516,7 +531,10 @@ WHERE  nspname NOT IN ( 'information_schema', 'pg_catalog' )
 `
 
 func (ipt *Input) getSchemaInfo(database string) ([]*schemaInfo, error) {
-	rows, err := ipt.service.QueryByDatabase(sqlSchemaInfo, database)
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.Timeout.Duration)
+	defer cancel()
+
+	rows, err := ipt.service.QueryByDatabase(ctx, sqlSchemaInfo, database)
 	if err != nil {
 		return nil, fmt.Errorf("getSchemaInfo failed: %w", err)
 	}
@@ -585,7 +603,10 @@ func (ipt *Input) getSchemaTables(schemaID int64, database string) ([]*tableInfo
 	}
 	query = fmt.Sprintf(query, schemaID)
 
-	rows, err := ipt.service.QueryByDatabase(query, database)
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.Timeout.Duration)
+	defer cancel()
+
+	rows, err := ipt.service.QueryByDatabase(ctx, query, database)
 	if err != nil {
 		return nil, fmt.Errorf("getSchemaTables failed: %w", err)
 	}
@@ -771,7 +792,10 @@ func (ipt *Input) getTableIndexes(tableIDs []string, database string) ([]*indexI
 	}
 
 	query := fmt.Sprintf(sqlTableIndexes, strings.Join(tableIDs, ","))
-	rows, err := ipt.service.QueryByDatabase(query, database)
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.Timeout.Duration)
+	defer cancel()
+
+	rows, err := ipt.service.QueryByDatabase(ctx, query, database)
 	if err != nil {
 		return nil, fmt.Errorf("get table indexes failed: %w", err)
 	}
@@ -829,7 +853,10 @@ func (ipt *Input) getPartitionKeys(tableIDs []string, database string) ([]*parti
 	}
 
 	query := fmt.Sprintf(sqlPartitionKeys, strings.Join(tableIDs, ","))
-	rows, err := ipt.service.QueryByDatabase(query, database)
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.Timeout.Duration)
+	defer cancel()
+
+	rows, err := ipt.service.QueryByDatabase(ctx, query, database)
 	if err != nil {
 		return nil, fmt.Errorf("query partion keys failed: %w", err)
 	}
@@ -868,7 +895,10 @@ func (ipt *Input) getNumPartitions(tableIDs []string, database string) ([]*numPa
 	}
 
 	query := fmt.Sprintf(sqlNumPartition, strings.Join(tableIDs, ","))
-	rows, err := ipt.service.QueryByDatabase(query, database)
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.Timeout.Duration)
+	defer cancel()
+
+	rows, err := ipt.service.QueryByDatabase(ctx, query, database)
 	if err != nil {
 		return nil, fmt.Errorf("query num partition failed: %w", err)
 	}
@@ -957,7 +987,10 @@ func (ipt *Input) getForeignKeys(tableIDs []string, database string) ([]*foreign
 	}
 
 	query := fmt.Sprintf(sqlForeignKeys, strings.Join(tableIDs, ","))
-	rows, err := ipt.service.QueryByDatabase(query, database)
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.Timeout.Duration)
+	defer cancel()
+
+	rows, err := ipt.service.QueryByDatabase(ctx, query, database)
 	if err != nil {
 		return nil, fmt.Errorf("query foreign keys failed: %w", err)
 	}
@@ -1016,7 +1049,10 @@ func (ipt *Input) getColumns(tableIDs []string, database string) ([]*columnInfo,
 	}
 
 	query := fmt.Sprintf(sqlColumns, strings.Join(tableIDs, ","))
-	rows, err := ipt.service.QueryByDatabase(query, database)
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.Timeout.Duration)
+	defer cancel()
+
+	rows, err := ipt.service.QueryByDatabase(ctx, query, database)
 	if err != nil {
 		return nil, fmt.Errorf("query columns failed: %w", err)
 	}
@@ -1051,7 +1087,10 @@ select sum(calls) as calls, sum(total_exec_time) as total_exec_time from pg_stat
 `
 
 func (ipt *Input) getQPSAndAvgQueryTime() (float64, error) {
-	rows, err := ipt.service.QueryByDatabase(sqlGetCalls, "")
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.Timeout.Duration)
+	defer cancel()
+
+	rows, err := ipt.service.QueryByDatabase(ctx, sqlGetCalls, "")
 	if err != nil {
 		return 0, fmt.Errorf("query columns failed: %w", err)
 	}
@@ -1088,7 +1127,10 @@ func (ipt *Input) getQPSAndAvgQueryTime() (float64, error) {
 const sqlGetTPS = `select sum(xact_commit) + sum(xact_rollback) from pg_stat_database;`
 
 func (ipt *Input) getTPS() (float64, error) {
-	rows, err := ipt.service.QueryByDatabase(sqlGetTPS, "")
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.Timeout.Duration)
+	defer cancel()
+
+	rows, err := ipt.service.QueryByDatabase(ctx, sqlGetTPS, "")
 	if err != nil {
 		return 0, fmt.Errorf("query columns failed: %w", err)
 	}

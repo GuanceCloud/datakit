@@ -7,6 +7,8 @@ __int_icon      : 'icon/oracle'
 dashboard :
   - desc  : 'Oracle'
     path  : 'dashboard/zh/oracle'
+  - desc  : 'Oracle-v2'
+    path  : 'dashboard/zh/oracle-v2'
 monitor   :
   - desc  : 'Oracle 监控器'
     path  : 'monitor/zh/oracle'

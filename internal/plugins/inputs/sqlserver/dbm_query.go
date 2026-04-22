@@ -95,7 +95,10 @@ func (ipt *Input) collectDbmQueries(statementRows []*dbmStatementRow, ptsTime ti
 		}
 
 		kvs := ipt.getKVs()
-		objectName := fmt.Sprintf("%s-%s-%s", ipt.Object.name, ipt.databaseInstance, row.querySignature)
+		objectName := fmt.Sprintf("%s-%s", ipt.Object.name, row.querySignature)
+		if ipt.databaseInstance != "" {
+			objectName = fmt.Sprintf("%s-%s-%s", ipt.Object.name, ipt.databaseInstance, row.querySignature)
+		}
 
 		kvs = kvs.AddTag("name", objectName)
 		kvs = kvs.AddTag("query_signature", row.querySignature)

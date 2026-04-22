@@ -6,6 +6,7 @@
 package mysql
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -33,12 +34,13 @@ func (*mysqlObjectMeasurement) Info() *inputs.MeasurementInfo {
 		Cat:  point.Object,
 		Desc: "MySQL object metrics([:octicons-tag-24: Version-1.74.0](../datakit/changelog-2025.md#cl-1.74.0))",
 		Tags: map[string]interface{}{
-			"host":          &inputs.TagInfo{Desc: "The hostname of the MySQL server"},
-			"server":        &inputs.TagInfo{Desc: "The server address of the MySQL server"},
-			"version":       &inputs.TagInfo{Desc: "The version of the MySQL server"},
-			"name":          &inputs.TagInfo{Desc: "The name of the database. The value is `host:port` in default"},
-			"database_type": &inputs.TagInfo{Desc: "The type of the database. The value is `MySQL`"},
-			"port":          &inputs.TagInfo{Desc: "The port of the MySQL server"},
+			"host":              &inputs.TagInfo{Desc: "The hostname of the MySQL server"},
+			"server":            &inputs.TagInfo{Desc: "The server address of the MySQL server"},
+			"version":           &inputs.TagInfo{Desc: "The version of the MySQL server"},
+			"database_instance": &inputs.TagInfo{Desc: "MySQL instance identifier from configured tag or @@server_uuid."},
+			"name":              &inputs.TagInfo{Desc: "The object identity built from server and database_instance"},
+			"database_type":     &inputs.TagInfo{Desc: "The type of the database. The value is `MySQL`"},
+			"port":              &inputs.TagInfo{Desc: "The port of the MySQL server"},
 		},
 		Fields: map[string]interface{}{
 			"message":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Summary of database information"},
@@ -64,7 +66,10 @@ type objectMertric struct {
 // nolint:execinquery
 func (ipt *Input) collectMysqlBasicInfo() error {
 	const sqlSelectUptime = "SHOW GLOBAL STATUS LIKE 'Uptime';"
-	rows, err := ipt.db.Query(sqlSelectUptime)
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	defer cancel()
+
+	rows, err := ipt.db.QueryContext(ctx, sqlSelectUptime)
 	if err != nil {
 		l.Error("collectMysqlBasicInfo fail:", err.Error())
 		return fmt.Errorf("query failed: %w", err)
@@ -198,11 +203,15 @@ func (ipt *Input) metricCollectMysqlObject() ([]*point.Point, error) {
 		message.Databases = databases
 	}
 
+	objectName := ipt.Object.name
+	if ipt.InstanceName != "" {
+		objectName = fmt.Sprintf("%s-%s", ipt.Object.name, ipt.InstanceName)
+	}
+
 	kvs = kvs.AddTag("version", ipt.getVersion()).
 		AddTag("type", mysqlType). // deprecated
 		AddTag("database_type", mysqlType).
-		AddTag("name", ipt.Object.name).
-		AddTag("host", ipt.Host).
+		AddTag("name", objectName).
 		AddTag("server", ipt.mergedTags["server"]).
 		AddTag("port", fmt.Sprintf("%d", ipt.Port)).
 		Set("uptime", ipt.Uptime).
@@ -237,7 +246,10 @@ SELECT ROUND((SUM(sum_timer_wait) / SUM(count_star)) / 1000000) AS avg_us
 `
 
 func (ipt *Input) getAverageQueryExecutionTime() (float64, error) {
-	rows := ipt.q(sqlGetAverageQueryExecutionTime, getMetricName("mysql_object", "mysql_average_query_execution_time"))
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	defer cancel()
+
+	rows := ipt.q(ctx, sqlGetAverageQueryExecutionTime, getMetricName("mysql_object", "mysql_average_query_execution_time"))
 	if rows == nil {
 		return 0, errors.New("query average query execution time failed: nil rows")
 	}
@@ -266,7 +278,10 @@ func (ipt *Input) getMysqlSetting() (map[string]string, error) {
 
 	query := fmt.Sprintf("SELECT variable_name, variable_value FROM %s", tableName)
 
-	rows := ipt.q(query, getMetricName("mysql_object", "global_variables"))
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	defer cancel()
+
+	rows := ipt.q(ctx, query, getMetricName("mysql_object", "global_variables"))
 
 	if rows == nil {
 		return nil, errors.New("query global variables failed: nil rows")
@@ -300,7 +315,10 @@ const sqlGetDatabases = `
 			 `
 
 func (ipt *Input) getMysqlDatabases() ([]*mysqlDatabase, error) {
-	rows := ipt.q(sqlGetDatabases, getMetricName("mysql_object", "mysql_databases"))
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	defer cancel()
+
+	rows := ipt.q(ctx, sqlGetDatabases, getMetricName("mysql_object", "mysql_databases"))
 
 	if rows == nil {
 		return nil, errors.New("query databases failed: nil rows")
@@ -350,7 +368,10 @@ const sqlGetDatabaseTables = `
 
 func (ipt *Input) getDatabaseTables(databaseName string) ([]*mysqlTable, error) {
 	query := fmt.Sprintf(sqlGetDatabaseTables, databaseName)
-	rows := ipt.q(query, getMetricName("mysql_object", "mysql_databases"))
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	defer cancel()
+
+	rows := ipt.q(ctx, query, getMetricName("mysql_object", "mysql_databases"))
 	if rows == nil {
 		return nil, errors.New("query tables failed: nil rows")
 	}
@@ -447,7 +468,10 @@ WHERE table_schema = "%s" AND table_name IN (%s)
 
 func (ipt *Input) populateColumns(tableNameToTableIndex map[string]int, tables []*mysqlTable, tableNamesString string, databaseName string) error {
 	query := fmt.Sprintf(sqlGetTableColumns, databaseName, tableNamesString)
-	rows := ipt.q(query, getMetricName("mysql_object", "table_columns"))
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	defer cancel()
+
+	rows := ipt.q(ctx, query, getMetricName("mysql_object", "table_columns"))
 	if rows == nil {
 		return errors.New("query failed: nil rows")
 	}
@@ -501,7 +525,10 @@ WHERE
 
 func (ipt *Input) populatePartitions(tableNameToTableIndex map[string]int, tables []*mysqlTable, tableNamesString string, databaseName string) error {
 	query := fmt.Sprintf(sqlGetTablePartitions, databaseName, tableNamesString)
-	rows := ipt.q(query, getMetricName("mysql_object", "table_partitions"))
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	defer cancel()
+
+	rows := ipt.q(ctx, query, getMetricName("mysql_object", "table_partitions"))
 	if rows == nil {
 		return errors.New("query failed: nil rows")
 	}
@@ -606,7 +633,10 @@ func (ipt *Input) populateForeignKeys(tableNameToTableIndex map[string]int,
 	tables []*mysqlTable, tableNamesString string, databaseName string,
 ) error {
 	query := fmt.Sprintf(sqlGetTableForeignKeys, databaseName, tableNamesString)
-	rows := ipt.q(query, getMetricName("mysql_object", "table_foreign_keys"))
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	defer cancel()
+
+	rows := ipt.q(ctx, query, getMetricName("mysql_object", "table_foreign_keys"))
 	if rows == nil {
 		return errors.New("query failed: nil rows")
 	}
@@ -682,7 +712,10 @@ func (ipt *Input) populateIndex(tableNameToTableIndex map[string]int, tables []*
 
 	query = fmt.Sprintf(query, databaseName, tableNamesString)
 
-	rows := ipt.q(query, getMetricName("mysql_object", "table_indexes"))
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	defer cancel()
+
+	rows := ipt.q(ctx, query, getMetricName("mysql_object", "table_indexes"))
 	if rows == nil {
 		return errors.New("query failed: nil rows")
 	}
@@ -753,7 +786,10 @@ const sqlIndexesExpressionColumnCheck = `
 `
 
 func (ipt *Input) getIndexQuery() (string, error) {
-	rows := ipt.q(sqlIndexesExpressionColumnCheck, getMetricName("mysql_object", "indexes_expression_column_check"))
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	defer cancel()
+
+	rows := ipt.q(ctx, sqlIndexesExpressionColumnCheck, getMetricName("mysql_object", "indexes_expression_column_check"))
 
 	if rows == nil {
 		return "", errors.New("query failed: nil rows")

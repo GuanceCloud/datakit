@@ -6,6 +6,7 @@
 package postgresql
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/url"
@@ -101,7 +102,10 @@ func getPointsFromMeasurement(ms []inputs.MeasurementV2) []*gcPoint.Point {
 }
 
 func (ipt *Input) getUptime() error {
-	rows, err := ipt.service.Query("SELECT pg_postmaster_start_time();")
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.Timeout.Duration)
+	defer cancel()
+
+	rows, err := ipt.service.Query(ctx, "SELECT pg_postmaster_start_time();")
 	if err != nil {
 		return fmt.Errorf("failed to query PostgreSQL start time: %w", err)
 	}

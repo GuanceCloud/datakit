@@ -9,10 +9,13 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/coreos/go-semver/semver"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (
@@ -31,6 +34,7 @@ var (
 
 type SQLService struct {
 	Address string
+	Timeout datakit.Duration
 
 	pool          *pgxpool.Pool
 	mu            sync.RWMutex
@@ -42,6 +46,17 @@ type pgxConn struct {
 }
 type pgxRow struct {
 	pgx.Rows
+}
+
+func (p *SQLService) SetTimeout(timeout datakit.Duration) {
+	p.Timeout = timeout
+}
+
+func (p *SQLService) timeoutDuration() time.Duration {
+	if p.Timeout.Duration <= 0 {
+		return 10 * time.Second
+	}
+	return p.Timeout.Duration
 }
 
 func (r *pgxRow) Columns() ([]string, error) {
@@ -66,7 +81,10 @@ func (p *SQLService) Start() (err error) {
 		return fmt.Errorf("parse config error: %w", err)
 	}
 	config.MaxConns = 5
-	pool, err := pgxpool.NewWithConfig(context.Background(), config)
+	ctx, cancel := context.WithTimeout(context.Background(), p.timeoutDuration())
+	defer cancel()
+
+	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		return fmt.Errorf("new pool error: %w", err)
 	}
@@ -96,17 +114,20 @@ func (p *SQLService) Ping() error {
 		return fmt.Errorf("pool is nil")
 	}
 
-	return p.pool.Ping(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), p.timeoutDuration())
+	defer cancel()
+
+	return p.pool.Ping(ctx)
 }
 
-func (p *SQLService) Query(query string, args ...any) (Rows, error) {
+func (p *SQLService) Query(ctx context.Context, query string, args ...any) (Rows, error) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 	if p.pool == nil {
 		return nil, fmt.Errorf("pool is nil")
 	}
 
-	rows, err := p.pool.Query(context.Background(), query, args...)
+	rows, err := p.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	} else if err := rows.Err(); err != nil {
@@ -130,7 +151,10 @@ func (p *SQLService) getDBConnection(db string) (*pgxpool.Pool, error) {
 	defer p.mu.Unlock()
 
 	if pool, exists := p.dbConnections[db]; exists {
-		if err := pool.Ping(context.Background()); err == nil {
+		ctx, cancel := context.WithTimeout(context.Background(), p.timeoutDuration())
+		err := pool.Ping(ctx)
+		cancel()
+		if err == nil {
 			return pool, nil
 		}
 		pool.Close()
@@ -138,7 +162,10 @@ func (p *SQLService) getDBConnection(db string) (*pgxpool.Pool, error) {
 
 	config := p.pool.Config().Copy()
 	config.ConnConfig.Database = db
-	pool, err := pgxpool.NewWithConfig(context.Background(), config)
+	ctx, cancel := context.WithTimeout(context.Background(), p.timeoutDuration())
+	defer cancel()
+
+	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		return nil, err
 	}
@@ -166,9 +193,9 @@ func (p *SQLService) GetColumnMap(row scanner, columns []string) (map[string]*in
 	return columnMap, nil
 }
 
-func (p *SQLService) QueryByDatabase(query, db string) (Rows, error) {
+func (p *SQLService) QueryByDatabase(ctx context.Context, query, db string) (Rows, error) {
 	if db == "" {
-		return p.Query(query)
+		return p.Query(ctx, query)
 	}
 
 	pool, err := p.getDBConnection(db)
@@ -176,7 +203,7 @@ func (p *SQLService) QueryByDatabase(query, db string) (Rows, error) {
 		return nil, err
 	}
 
-	rows, err := pool.Query(context.Background(), query)
+	rows, err := pool.Query(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("pool query failed: %w", err)
 	} else if err := rows.Err(); err != nil {
@@ -188,14 +215,18 @@ func (p *SQLService) QueryByDatabase(query, db string) (Rows, error) {
 
 func (p *SQLService) GetConn(database string) (Conn, error) {
 	p.mu.RLock()
-	defer p.mu.RUnlock()
+	pool := p.pool
+	p.mu.RUnlock()
 
-	if p.pool == nil {
+	if pool == nil {
 		return nil, fmt.Errorf("pool is nil")
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), p.timeoutDuration())
+	defer cancel()
+
 	if database == "" {
-		conn, err := p.pool.Acquire(context.Background())
+		conn, err := pool.Acquire(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("connect config error: %w", err)
 		}
@@ -208,7 +239,7 @@ func (p *SQLService) GetConn(database string) (Conn, error) {
 		return nil, fmt.Errorf("get db connection error: %w", err)
 	}
 
-	conn, err := pool.Acquire(context.Background())
+	conn, err := pool.Acquire(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("connect config error: %w", err)
 	}

@@ -7,9 +7,13 @@ __int_icon      : 'icon/mysql'
 dashboard :
   - desc  : 'MySQL'
     path  : 'dashboard/zh/mysql'
+  - desc  : 'MySQL-v2'
+    path  : 'dashboard/zh/mysql-v2'
 monitor   :
   - desc  : 'MySQL'
     path  : 'monitor/zh/mysql'
+  - desc  : 'MySQL-v2'
+    path  : 'monitor/zh/mysql-v2'
 ---
 
 {{.AvailableArchs}}
@@ -91,18 +95,22 @@ SHOW VARIABLES LIKE 'log_bin';
 
 Binlog 开启，参见[这个问答](https://stackoverflow.com/questions/40682381/how-do-i-enable-mysql-binary-logging){:target="_blank"}，或者[这个问答](https://serverfault.com/questions/706699/enable-binlog-in-mysql-on-ubuntu){:target="_blank"}
 
-### 数据库性能指标采集 {#performance-schema}
+### 数据库监控 (DBM) {#dbm}
 
-数据库性能指标主要来源于 MySQL 的内置数据库 `performance_schema`, 该数据库提供了一个能够在运行时获取服务器内部执行情况的方法。通过该数据库，DataKit 能够采集历史查询语句的各种指标统计和查询语句的执行计划，以及其他相关性能指标。采集的性能指标数据保存为日志，source 分别为 `mysql_dbm_metric`, `mysql_dbm_sample` 和 `mysql_dbm_activity`。
+数据库监控（Database Monitoring，DBM）基于 MySQL 的内置数据库 `performance_schema`，通过收集历史查询指标、执行计划采样对象以及当前线程等待事件，帮助分析和优化数据库性能。
+
+通常可以通过 `query_signature`（以及 `plan_signature` 用于计划对象）将指标与执行计划进行关联。
 
 如需开启，需要执行以下步骤。
+
+#### 启用 DBM {#dbm-enabled}
 
 - 修改配置文件，开启监控采集
 
 ```toml
 [[inputs.mysql]]
 
-# 开启数据库性能指标采集
+# 开启数据库监控 DBM
 dbm = true
 
 ...
@@ -215,6 +223,60 @@ GRANT EXECUTE ON PROCEDURE datakit.enable_events_statements_consumers TO datakit
 ```sql
 UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name LIKE 'events_statements_%';
 UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name = 'events_waits_current';
+```
+
+#### 查询指标 (Metric) {#dbm-metric}
+
+`mysql_dbm_metric` 采集历史查询的累积执行统计，并在相邻采集窗口之间计算差值（增量/派生指标）。
+
+> 注意：首次采集到的查询仅作为基线，不会上报差值派生字段，下一次采集才会输出 `delta_*` 等派生指标。
+
+```toml
+[inputs.mysql.dbm_metric]
+  enabled = true
+  interval = "10s"
+  ## 每次采集读取的 statement 行上限。
+  limit = 10000
+```
+
+主要包含：
+
+- 查询执行次数与耗时（`count_star`、`sum_timer_wait`、`delta_timer_wait`）
+
+- 锁等待耗时（`sum_lock_time`、`delta_lock_time`）
+
+- ...
+
+#### 活动查询 (Activity) {#dbm-activity}
+
+`mysql_dbm_activity` 采集当前线程的等待事件与会话信息，包含 `wait_event`、统一后的 `wait_group`、阻塞线程信息，以及线程/进程列表维度数据。
+
+**会话指标 (Session)**：基于活动查询数据，自动聚合生成会话维度指标（按 user/host/db/processlist_state/wait_event/wait_group 等维度聚合）。
+
+**连接指标 (Connection)**：独立统计连接信息，按 `processlist_user`、`processlist_host`、`processlist_db`、`processlist_state` 等维度聚合连接数。
+
+```toml
+[inputs.mysql.dbm_activity]
+  enabled = true
+  interval = "10s"
+  ## 每次采集从 performance_schema 读取的 activity 行上限。
+  limit = 1000
+```
+
+#### 执行计划 (Plan) {#dbm-plan}
+
+`mysql_dbm_sample` 采集采样到的查询执行计划对象。每个对象由 `plan_signature` 和 `query_signature` 共同标识，`message` 字段为执行计划的脱敏/归一化 JSON 表达。
+
+```toml
+[inputs.mysql.dbm_sample]
+  enabled = true
+  interval = "10s"
+  ## explain-rate 缓存 TTL。
+  explain_cache_ttl = "10m"
+  ## 在该时间窗口内，不重复上报相同执行计划。
+  plan_cache_ttl = "1h"
+  ## 每次采集从 events_statements* 读取的行上限。
+  events_statements_limit = 10
 ```
 
 ### 主从复制指标采集 {#replication_metrics}

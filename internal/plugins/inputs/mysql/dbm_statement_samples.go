@@ -10,17 +10,33 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/cespare/xxhash/v2"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
+
+	"github.com/DataDog/datadog-agent/pkg/obfuscate"
+
+	"github.com/hashicorp/golang-lru/v2/expirable"
+)
+
+const (
+	dbmExecPlanObjectName   = "db_exec_plan"
+	defaultExplainCacheSize = 10000
 )
 
 type dbmSample struct {
-	Enabled bool `toml:"enabled"`
+	Enabled               bool             `toml:"enabled"`
+	Interval              datakit.Duration `toml:"interval"`
+	ExplainCacheTTL       datakit.Duration `toml:"explain_cache_ttl"`
+	PlanCacheTTL          datakit.Duration `toml:"plan_cache_ttl"`
+	EventsStatementsLimit int              `toml:"events_statements_limit"`
 }
 
 type dbmSampleMeasurement struct {
@@ -30,16 +46,10 @@ type dbmSampleMeasurement struct {
 	election bool
 }
 
-type eventStrategy struct {
-	table    string
-	interval int
-}
-
 type dbmSampleCache struct {
-	checkPoint        int64
-	globalStatusTable string
-	strategy          eventStrategy
-	explainCache      util.CacheLimit
+	globalStatusTable     string
+	eventsStatementsTable string
+	explainCache          *util.CacheLimit
 }
 
 type eventRow struct {
@@ -47,8 +57,11 @@ type eventRow struct {
 	sqlText             sql.NullString
 	digest              sql.NullString
 	digestText          sql.NullString
+	endEventID          sql.NullInt64
 	timerStart          sql.NullInt64
-	timerEndTimeS       sql.NullString
+	uptime              sql.NullString // @uptime (seconds since server start)
+	now                 sql.NullInt64  // unix_timestamp()
+	timerEnd            sql.NullInt64  // picoseconds
 	timerWaitNs         sql.NullString
 	lockTimeNs          sql.NullString
 	rowsAffected        sql.NullInt64
@@ -78,10 +91,8 @@ type planObj struct {
 	planDefinition      string
 	planSignature       string
 	querySignature      string
-	resourceHash        string
 	statement           string
 	digestText          string
-	queryTruncated      string
 	digest              string
 	lockTimeNs          int64
 	noGoodIndexUsed     int64
@@ -102,30 +113,29 @@ type planObj struct {
 	sortScan            int64
 }
 
-//nolint:lll
 func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Desc: "Select some of the SQL statements with high execution time, collect their execution plans, and collect various performance indicators during the actual execution process.",
-		Name: metricNameMySQLDbmSample,
-		Cat:  point.Logging,
+		Desc: "MySQL DBM execution plan objects. Each object represents a sampled query execution plan identified by query_signature and plan_signature.",
+		Name: dbmExecPlanObjectName,
+		Cat:  point.Object,
 		Fields: map[string]interface{}{
 			"timestamp": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Unit:     inputs.TimestampMS,
-				Desc:     "The timestamp(millisecond) when then the event ends.",
+				Desc:     "The timestamp (millisecond) when the statement finished executing.",
 			},
 			"duration": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
-				Desc:     "Value in nanoseconds of the event's duration.",
+				Unit:     inputs.DurationNS,
+				Desc:     "Execution time of the statement (nanoseconds).",
 			},
 			"lock_time_ns": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
-				Desc:     "Time in nanoseconds spent waiting for locks. ",
+				Unit:     inputs.DurationNS,
+				Desc:     "Time in nanoseconds spent waiting for locks.",
 			},
 			"no_good_index_used": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -137,7 +147,7 @@ func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.EnumValue,
-				Desc:     "0 if the statement performed a table scan with an index, 1 if without an index.",
+				Desc:     "0 if an index was used for the statement, 1 if no index was used.",
 			},
 			"rows_affected": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -155,97 +165,38 @@ func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
-				Desc:     "Number of rows returned. ",
-			},
-			"select_full_join": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
-				Desc:     "Number of joins performed by the statement which did not use an index.",
-			},
-			"select_full_range_join": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
-				Desc:     "Number of joins performed by the statement which used a range search of the int first table. ",
-			},
-			"select_range": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
-				Desc:     "Number of joins performed by the statement which used a range of the first table. ",
-			},
-			"select_range_check": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
-				Desc:     "Number of joins without keys performed by the statement that check for key usage after int each row. ",
-			},
-			"select_scan": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
-				Desc:     "Number of joins performed by the statement which used a full scan of the first table.",
-			},
-			"sort_merge_passes": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
-				Desc:     "Number of merge passes by the sort algorithm performed by the statement. ",
-			},
-			"sort_range": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
-				Desc:     "Number of sorts performed by the statement which used a range.",
-			},
-			"sort_rows": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
-				Desc:     "Number of rows sorted by the statement. ",
-			},
-			"sort_scan": &inputs.FieldInfo{
-				DataType: inputs.Int,
-				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
-				Desc:     "Number of sorts performed by the statement which used a full table scan.",
-			},
-			"timer_wait_ns": &inputs.FieldInfo{
-				DataType: inputs.Float,
-				Type:     inputs.Gauge,
-				Unit:     inputs.DurationNS,
-				Desc:     "Value in nanoseconds of the event's duration ",
+				Desc:     "Number of rows returned to the client.",
 			},
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
-				Desc:     "The text of the normalized statement digest.",
+				Desc:     "The obfuscated/normalized JSON execution plan definition.",
+			},
+			"statement": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.String,
+				Unit:     inputs.NoUnit,
+				Desc:     "The obfuscated/normalized SQL text corresponding to this execution plan.",
 			},
 		},
 		Tags: map[string]interface{}{
-			"host":              &inputs.TagInfo{Desc: " The server host address"},
-			"server":            &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"},
-			"service":           &inputs.TagInfo{Desc: "The service name and the value is 'mysql'"},
-			"current_schema":    &inputs.TagInfo{Desc: "The name of the current schema."},
-			"plan_definition":   &inputs.TagInfo{Desc: "The plan definition of JSON format."},
-			"plan_signature":    &inputs.TagInfo{Desc: "The hash value computed from plan definition."},
-			"query_signature":   &inputs.TagInfo{Desc: "The hash value computed from digest_text."},
-			"resource_hash":     &inputs.TagInfo{Desc: "The hash value computed from SQL text."},
-			"query_truncated":   &inputs.TagInfo{Desc: "It indicates whether the query is truncated."},
-			"network_client_ip": &inputs.TagInfo{Desc: "The ip address of the client"},
-			"digest":            &inputs.TagInfo{Desc: "The digest hash value computed from the original normalized statement. "},
-			"digest_text":       &inputs.TagInfo{Desc: "The digest_text of the statement."},
-			"processlist_db":    &inputs.TagInfo{Desc: "The name of the database."},
-			"processlist_user":  &inputs.TagInfo{Desc: "The user name of the client."},
+			"name":              &inputs.TagInfo{Desc: "Object identity built from server, database_instance, and query_signature:plan_signature."},
+			"server":            &inputs.TagInfo{Desc: "The server address (host:port)."},
+			"database_instance": &inputs.TagInfo{Desc: "MySQL instance identifier from configured tag or @@server_uuid."},
+			"database_type":     &inputs.TagInfo{Desc: "The type of the database. The value is `MySQL`."},
+			"plan_type":         &inputs.TagInfo{Desc: "The format of the plan content. The value is `JSON`."},
+			"schema_name":       &inputs.TagInfo{Desc: "The schema name."},
+			"plan_signature":    &inputs.TagInfo{Desc: "Hash of the normalized execution plan to group identical plans."},
+			"query_signature":   &inputs.TagInfo{Desc: "Hash from schema+digest_text, used to link with metrics and query objects."},
+			"digest":            &inputs.TagInfo{Desc: "The digest hash from the original normalized statement (performance_schema)."},
 		},
 	}
 }
 
 // Point implement MeasurementV2.
 func (m *dbmSampleMeasurement) Point() *point.Point {
-	opts := point.DefaultLoggingOptions()
+	opts := point.DefaultObjectOptions()
 
 	if m.election {
 		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
@@ -256,54 +207,46 @@ func (m *dbmSampleMeasurement) Point() *point.Point {
 		opts...)
 }
 
-var eventsStatementsCollectionInterval = map[string]int{
-	"events_statements_history_long": 10,
-	"events_statements_history":      10,
-	"events_statements_current":      1,
-}
-
 // get the table from which samples should be collected.
-func getSampleCollectionStrategy(i *Input) (eventStrategy, error) {
-	var strategy eventStrategy
-	if len(i.dbmSampleCache.strategy.table) > 0 {
-		return i.dbmSampleCache.strategy, nil
+func getSampleCollectionStrategy(i *Input) (string, error) {
+	if len(i.dbmSampleCache.eventsStatementsTable) > 0 {
+		return i.dbmSampleCache.eventsStatementsTable, nil
 	}
 
 	var eventsStatementsTable string
 
 	enabledSQL := `SELECT name
 	FROM performance_schema.setup_consumers
-	WHERE enabled = 'YES' AND name LIKE 'events_statements_%'`
-	enabledConsumers := getCleanEnabledPerformanceSchemaConsumers(i.q(enabledSQL, getMetricName(metricNameMySQLDbmSample, "setup_consumers")))
+	WHERE enabled = 'YES' AND name LIKE 'events_statements_%' AND name != 'events_statements_cpu'`
+	ctx, cancel := context.WithTimeout(context.Background(), i.timeoutDuration)
+	enabledConsumers := getCleanEnabledPerformanceSchemaConsumers(i.q(ctx, enabledSQL, getMetricName(metricNameMySQLDbmSample, "setup_consumers")))
+	cancel()
 
 	if len(enabledConsumers) < 3 {
 		err := enablePerformanceSchemaConsumers(i)
 		if err != nil {
 			l.Warn(err)
 		} else {
-			enabledConsumers = getCleanEnabledPerformanceSchemaConsumers(i.q(enabledSQL, getMetricName(metricNameMySQLDbmSample, "setup_consumers")))
+			ctx, cancel := context.WithTimeout(context.Background(), i.timeoutDuration)
+			enabledConsumers = getCleanEnabledPerformanceSchemaConsumers(i.q(ctx, enabledSQL, getMetricName(metricNameMySQLDbmSample, "setup_consumers")))
+			cancel()
 		}
 	}
 
 	if len(enabledConsumers) == 0 {
-		return strategy, errors.New("no events_statements consumer")
+		return "", errors.New("no events_statements consumer")
 	}
 
 	l.Debugf("enabled performance_schema statements consumers: %s", enabledConsumers)
 
 	tables := []string{
-		"events_statements_history_long",
+		// "events_statements_history_long",
 		"events_statements_current",
-		"events_statements_history",
+		// "events_statements_history",
 	}
 
 	for _, table := range tables {
 		if !isListHasStr(enabledConsumers, table) {
-			continue
-		}
-
-		rows, err := getNewEventsStatements(i, table, 1)
-		if err != nil || (len(rows) == 0) {
 			continue
 		}
 
@@ -312,31 +255,31 @@ func getSampleCollectionStrategy(i *Input) (eventStrategy, error) {
 	}
 
 	if len(eventsStatementsTable) == 0 {
-		return strategy, fmt.Errorf("all enabled events_statements_consumers %v are empty", enabledConsumers)
+		return "", fmt.Errorf("all enabled events_statements_consumers %v are empty", enabledConsumers)
 	}
 
-	currentStrategy := eventStrategy{
-		table:    eventsStatementsTable,
-		interval: eventsStatementsCollectionInterval[eventsStatementsTable],
-	}
+	i.dbmSampleCache.eventsStatementsTable = eventsStatementsTable
 
-	i.dbmSampleCache.strategy = currentStrategy
-
-	return currentStrategy, nil
+	return eventsStatementsTable, nil
 }
 
 // enable consumers at runtime.
 func enablePerformanceSchemaConsumers(i *Input) error {
+	ctx, cancel := context.WithTimeout(context.Background(), i.timeoutDuration)
+	defer cancel()
+
 	sqlStr := "CALL datakit.enable_events_statements_consumers()"
-	if _, err := i.db.Exec(sqlStr); err != nil {
+	if _, err := i.db.ExecContext(ctx, sqlStr); err != nil {
 		return err
 	}
 	return nil
 }
 
 // collect events.
-func getNewEventsStatements(i *Input, eventTable string, rowLimit int) ([]eventRow, error) {
-	ctx := context.Background()
+func getNewEventsStatements(i *Input, eventsStatementsTable string, rowLimit int) ([]eventRow, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), i.timeoutDuration)
+	defer cancel()
+
 	var rows []eventRow
 	conn, err := i.db.Conn(ctx)
 	if err != nil {
@@ -344,89 +287,27 @@ func getNewEventsStatements(i *Input, eventTable string, rowLimit int) ([]eventR
 	}
 	defer conn.Close() //nolint:errcheck
 
-	// silence warnings
-	if _, err := conn.ExecContext(ctx, "SET @@SESSION.sql_notes = 0"); err != nil {
-		return rows, err
+	if len(i.dbmSampleCache.globalStatusTable) == 0 {
+		return rows, errors.New("globalStatusTable not set")
 	}
 
-	// drop temp table
-	dropTempTableQuerySQL := "DROP TEMPORARY TABLE IF EXISTS datakit.temp_events"
-	if _, err := conn.ExecContext(ctx, dropTempTableQuerySQL); err != nil {
-		return rows, err
-	}
-
-	// create temp table
-	createTempTableSQLTemplate := `
-	CREATE TEMPORARY TABLE datakit.temp_events SELECT
-        current_schema,
-        sql_text,
-        digest,
-        digest_text,
-        timer_start,
-        timer_end,
-        timer_wait,
-        lock_time,
-        rows_affected,
-        rows_sent,
-        rows_examined,
-        select_full_join,
-        select_full_range_join,
-        select_range,
-        select_range_check,
-        select_scan,
-        sort_merge_passes,
-        sort_range,
-        sort_rows,
-        sort_scan,
-        no_index_used,
-        no_good_index_used,
-        event_name,
-        thread_id
-     FROM performance_schema.%v
-        WHERE sql_text IS NOT NULL
-        AND event_name like 'statement/%%'
-        AND digest_text is NOT NULL
-        AND digest_text NOT LIKE 'EXPLAIN %%'
-        AND timer_start > %v
-    LIMIT %v
-	`
-
-	createTempTableSQL := fmt.Sprintf(createTempTableSQLTemplate, eventTable, i.dbmSampleCache.checkPoint, rowLimit)
-
-	if _, err := conn.ExecContext(ctx, createTempTableSQL); err != nil {
-		return rows, err
-	}
-
-	var subSelect string
-	if i.Version.versionCompatible([]int{8, 0, 0}) {
-		subSelect = "(SELECT *,row_number() over (partition by digest order by timer_wait desc) as row_num FROM %s)"
-	} else {
-		if _, err := conn.ExecContext(ctx, "set @row_num = 0"); err != nil {
-			return rows, err
-		}
-		if _, err := conn.ExecContext(ctx, "set @current_digest = ''"); err != nil {
-			return rows, err
-		}
-		subSelect = `(SELECT *,
-			@row_num := IF(@current_digest = digest, @row_num + 1, 1) AS row_num,
-			@current_digest := digest
-			FROM %s ORDER BY digest, timer_wait)`
-	}
-
-	startupSQL := "(SELECT UNIX_TIMESTAMP()-VARIABLE_VALUE FROM %s WHERE VARIABLE_NAME='UPTIME')"
-	startupTimeSubquery := fmt.Sprintf(startupSQL, i.dbmSampleCache.globalStatusTable)
-	if _, err := conn.ExecContext(ctx, fmt.Sprintf("set @startup_time_s=%s", startupTimeSubquery)); err != nil {
+	// Datadog EVENTS_STATEMENTS_CURRENT_QUERY: set @uptime first
+	uptimeSQL := fmt.Sprintf("SET @uptime = (SELECT VARIABLE_VALUE FROM %s WHERE VARIABLE_NAME='UPTIME')", i.dbmSampleCache.globalStatusTable)
+	if _, err := conn.ExecContext(ctx, uptimeSQL); err != nil {
 		return rows, err
 	}
 
 	eventsStatementsQuery := `
-		SELECT
+	SELECT
 		current_schema,
 		sql_text,
 		digest,
 		digest_text,
+		end_event_id,
 		timer_start,
-		@startup_time_s+timer_end*1e-12 as timer_end_time_s,
+		@uptime AS uptime,
+		unix_timestamp() AS now,
+		timer_end,
 		timer_wait / 1000 AS timer_wait_ns,
 		lock_time / 1000 AS lock_time_ns,
 		rows_affected,
@@ -446,26 +327,23 @@ func getNewEventsStatements(i *Input, eventTable string, rowLimit int) ([]eventR
 		processlist_user,
 		processlist_host,
 		processlist_db
-	FROM %v as E
-	LEFT JOIN performance_schema.threads as T
-		ON E.thread_id = T.thread_id
+	FROM performance_schema.%s E
+	LEFT JOIN performance_schema.threads AS T ON E.thread_id = T.thread_id
 	WHERE sql_text IS NOT NULL
-		AND timer_start > %v
-		AND row_num = 1
+		AND event_name LIKE 'statement/%%'
+		AND digest_text IS NOT NULL
+		AND digest_text NOT LIKE 'EXPLAIN %%'
 	ORDER BY timer_wait DESC
-	LIMIT %v
+	LIMIT %d
 `
-	subSelectSQL := fmt.Sprintf(subSelect, "datakit.temp_events")
-	eventsStatementsQuerySQL := fmt.Sprintf(eventsStatementsQuery, subSelectSQL, i.dbmSampleCache.checkPoint, rowLimit)
+	eventsStatementsQuerySQL := fmt.Sprintf(eventsStatementsQuery, eventsStatementsTable, rowLimit)
 	rawRows, err := conn.QueryContext(ctx, eventsStatementsQuerySQL)
 	if err != nil {
 		return rows, err
 	}
-
 	if rawRows.Err() != nil {
 		return rows, rawRows.Err()
 	}
-
 	defer rawRows.Close() // nolint: errcheck
 
 	for rawRows.Next() {
@@ -475,8 +353,11 @@ func getNewEventsStatements(i *Input, eventTable string, rowLimit int) ([]eventR
 			&row.sqlText,
 			&row.digest,
 			&row.digestText,
+			&row.endEventID,
 			&row.timerStart,
-			&row.timerEndTimeS,
+			&row.uptime,
+			&row.now,
+			&row.timerEnd,
 			&row.timerWaitNs,
 			&row.lockTimeNs,
 			&row.rowsAffected,
@@ -501,27 +382,26 @@ func getNewEventsStatements(i *Input, eventTable string, rowLimit int) ([]eventR
 		}
 		rows = append(rows, row)
 	}
-
-	if _, err := conn.ExecContext(ctx, dropTempTableQuerySQL); err != nil {
-		return rows, err
-	}
-
 	return rows, nil
 }
 
 func filterValidStatementRows(i *Input, rows []eventRow) []eventRow {
 	var filterRows []eventRow
-
+	eventTimestampMs := time.Now().UnixMilli()
+	windowMs := i.DbmSample.PlanCacheTTL.Duration.Milliseconds()
+	if windowMs <= 0 {
+		windowMs = 3600 * 1000 // 1 hour
+	}
 	for _, row := range rows {
-		if row.sqlText.Valid && len(row.sqlText.String) > 0 {
-			filterRows = append(filterRows, row)
+		if !row.sqlText.Valid || len(row.sqlText.String) == 0 {
+			continue
 		}
-
-		if row.timerStart.Valid {
-			if row.timerStart.Int64 > i.dbmSampleCache.checkPoint {
-				i.dbmSampleCache.checkPoint = row.timerStart.Int64
-			}
+		// Skip completed queries past window
+		if hasSampledSinceCompletion(row, eventTimestampMs, windowMs) {
+			l.Debugf("skip completed query past window: %s", row.sqlText.String)
+			continue
 		}
+		filterRows = append(filterRows, row)
 	}
 
 	return filterRows
@@ -529,8 +409,10 @@ func filterValidStatementRows(i *Input, rows []eventRow) []eventRow {
 
 func collectPlanForStatements(i *Input, rows []eventRow) []planObj {
 	var plans []planObj
+	sqlObfuscator := newMySQLSQLObfuscator()
+	obfuscator := util.NewSQLPlanObfuscator()
 	for _, row := range rows {
-		plan, err := collectPlanForStatement(i, row)
+		plan, err := collectPlanForStatement(i, row, sqlObfuscator, obfuscator)
 		if err != nil {
 			l.Warnf("collect plan error: %s", err.Error())
 			continue
@@ -544,17 +426,26 @@ func collectPlanForStatements(i *Input, rows []eventRow) []planObj {
 	return plans
 }
 
-func collectPlanForStatement(i *Input, row eventRow) (planObj, error) {
+func collectPlanForStatement(i *Input, row eventRow, sqlObfuscator, planObfuscator *obfuscate.Obfuscator) (planObj, error) {
 	var plan planObj
-	obfuscatedStatement := util.ObfuscateSQL(row.sqlText.String)
-	obfuscatedDigestText := util.ObfuscateSQL(row.digestText.String)
+	obfSQLResult, err := sqlObfuscator.ObfuscateSQLString(row.sqlText.String)
+	if err != nil {
+		l.Warnf("obfuscate sql text failed: %s", err.Error())
+		return plan, nil
+	}
+	obfuscatedStatement := obfSQLResult.Query
 
-	apmResourceHash := util.ComputeSQLSignature(obfuscatedStatement)
-	querySignature := util.ComputeSQLSignature(obfuscatedDigestText)
+	obfDigestResult, err := sqlObfuscator.ObfuscateSQLString(row.digestText.String)
+	if err != nil {
+		l.Warnf("obfuscate digest text failed: %s", err.Error())
+		return plan, nil
+	}
+	obfuscatedDigestText := obfDigestResult.Query
 
-	queryCacheKey := getRowKey(row.currentSchema.String, querySignature)
+	// querySignature: keep consistent with other MySQL DBM places (schema + digest_text via xxhash)
+	querySignature := generateQuerySignature(row.currentSchema.String, obfuscatedDigestText)
 
-	if !checkLimitRate(i, queryCacheKey) {
+	if !checkLimitRate(i, querySignature) {
 		l.Debugf("check limit rate failed, ignore plan: %s", obfuscatedStatement)
 		return plan, nil
 	}
@@ -572,27 +463,31 @@ func collectPlanForStatement(i *Input, row eventRow) (planObj, error) {
 	}
 
 	if len(planStr) > 0 {
-		normalizedPlan := util.ObfuscateSQLExecPlan(planStr, &util.ObfuscateLogger{Log: l})
-		planSignature := util.ComputeSQLSignature(normalizedPlan)
+		normalizedPlan, err := planObfuscator.ObfuscateSQLExecPlan(planStr, true)
+		if err != nil {
+			return plan, fmt.Errorf("failed to normalize obfuscate: %w", err)
+		}
+		obfuscatedPlan, err := planObfuscator.ObfuscateSQLExecPlan(planStr, false)
+		if err != nil {
+			return plan, fmt.Errorf("failed to obfuscate: %w", err)
+		}
+
+		planSignature := ComputeSQLPlanSignature(normalizedPlan)
+		planKey := generatePlanCacheKey(querySignature, planSignature)
+		if !checkPlanSignatureRate(i, planKey) {
+			return plan, nil
+		}
 		plan = planObj{
-			planDefinition: normalizedPlan,
+			planDefinition: obfuscatedPlan,
 			planSignature:  planSignature,
 			querySignature: querySignature,
 			digestText:     obfuscatedDigestText,
-			resourceHash:   apmResourceHash,
 			statement:      obfuscatedStatement,
 		}
 
-		if truncated {
-			plan.queryTruncated = "truncated"
-		} else {
-			plan.queryTruncated = "not_truncated"
-		}
-
-		if row.timerEndTimeS.Valid {
-			if timerEndTimeS, err := strconv.ParseFloat(row.timerEndTimeS.String, 64); err == nil {
-				plan.timestamp = timerEndTimeS * 1000
-			}
+		// Reuse overflow-safe timer_end conversion.
+		if tsMs, ok := calculateTimerEndMs(row); ok {
+			plan.timestamp = float64(tsMs)
 		}
 		if row.timerWaitNs.Valid {
 			if timerWaitNs, err := strconv.ParseFloat(row.timerWaitNs.String, 64); err == nil {
@@ -613,8 +508,8 @@ func collectPlanForStatement(i *Input, row eventRow) (planObj, error) {
 		}
 
 		if row.lockTimeNs.Valid {
-			if lockTimeNs, err := strconv.Atoi(row.lockTimeNs.String); err == nil {
-				plan.lockTimeNs = int64(lockTimeNs)
+			if lockTimeNs, err := strconv.ParseInt(row.lockTimeNs.String, 10, 64); err == nil {
+				plan.lockTimeNs = lockTimeNs
 			}
 		}
 		if row.noGoodIndexUsed.Valid {
@@ -672,7 +567,75 @@ func collectPlanForStatement(i *Input, row eventRow) (planObj, error) {
 
 // limit the explain rate of the same statement.
 func checkLimitRate(i *Input, key string) bool {
+	if i.dbmSampleCache.explainCache == nil {
+		ttl := i.DbmSample.ExplainCacheTTL.Duration
+		if ttl <= 0 {
+			ttl = 10 * time.Minute
+		}
+		i.dbmSampleCache.explainCache = &util.CacheLimit{
+			Size: 1000,
+			TTL:  int64(ttl.Seconds()),
+		}
+	}
 	return i.dbmSampleCache.explainCache.Acquire(key)
+}
+
+// checkPlanSignatureRate returns true if this plan object key should be reported (not seen recently).
+// Uses an expirable LRU to limit how often the same plan object is reported.
+func checkPlanSignatureRate(i *Input, planKey string) bool {
+	if planKey == "" {
+		return false
+	}
+	if i.planSignatureCache == nil {
+		ttl := i.DbmSample.PlanCacheTTL.Duration
+		if ttl <= 0 {
+			ttl = time.Hour
+		}
+		i.planSignatureCache = expirable.NewLRU[string, struct{}](defaultExplainCacheSize, nil, ttl)
+	}
+	if _, ok := i.planSignatureCache.Get(planKey); ok {
+		l.Debugf("skip duplicate plan object (LRU): %s", planKey)
+		return false
+	}
+	return true
+}
+
+// recordReportedPlanSignature records the plan object key in the LRU cache after the plan object is actually reported.
+func (ipt *Input) recordReportedPlanSignature(planKey string) {
+	if planKey == "" {
+		return
+	}
+	ipt.planSignatureCache.Add(planKey, struct{}{})
+}
+
+func calculateTimerEndMs(row eventRow) (int64, bool) {
+	if !row.now.Valid || !row.uptime.Valid || row.uptime.String == "" || !row.timerEnd.Valid {
+		return 0, false
+	}
+	uptimeSec, err := strconv.ParseInt(row.uptime.String, 10, 64)
+	if err != nil {
+		return 0, false
+	}
+	// timer_end is picoseconds;
+	bigintMaxInSeconds := float64(math.MaxUint64) * 1e-12
+	secondsToAdd := math.Floor(float64(uptimeSec)/bigintMaxInSeconds) * bigintMaxInSeconds
+	timerEndTimeS := float64(row.now.Int64) - float64(uptimeSec) + secondsToAdd + float64(row.timerEnd.Int64)*1e-12
+	return int64(timerEndTimeS * 1000), true
+}
+
+func hasSampledSinceCompletion(row eventRow, eventTimestampMs int64, windowMs int64) bool {
+	if !row.endEventID.Valid {
+		return false
+	}
+	queryEndMs, ok := calculateTimerEndMs(row)
+	if !ok {
+		return false
+	}
+	timeDiff := eventTimestampMs - queryEndMs
+	if timeDiff < 0 {
+		timeDiff = -timeDiff
+	}
+	return timeDiff > windowMs
 }
 
 func isTruncated(statement string) bool {
@@ -681,14 +644,14 @@ func isTruncated(statement string) bool {
 
 func explainStatement(i *Input, statement string, schema string, obfuscatedStatement string) (string, error) {
 	var plan string
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), i.timeoutDuration)
+	defer cancel()
+
 	conn, err := i.db.Conn(ctx)
 	if err != nil {
 		return plan, err
 	}
 	defer conn.Close() //nolint:errcheck
-
-	l.Debugf("explaining statement. schema=%s, statement='%s'", schema, statement)
 
 	if !canExplain(obfuscatedStatement) {
 		l.Debugf("ignore explain statement: %s", obfuscatedStatement)
@@ -710,16 +673,24 @@ func explainStatement(i *Input, statement string, schema string, obfuscatedState
 			continue
 		}
 		if strategy == "PROCEDURE" {
-			plan, err = runExplainProcedure(conn, statement)
+			plan, err = runExplainProcedure(ctx, conn, statement)
+			if err != nil {
+				l.Debugf("explain procedure error: %s", err.Error())
+			}
 		}
 		if strategy == "FQ_PROCEDURE" {
-			plan, err = runFullyQualifiedExplainProcedure(conn, statement)
+			plan, err = runFullyQualifiedExplainProcedure(ctx, conn, statement)
+			if err != nil {
+				l.Debugf("explain fully qualified procedure error: %s", err.Error())
+			}
 		}
 		if strategy == "STATEMENT" {
-			plan, err = runExplain(conn, statement)
+			plan, err = runExplain(ctx, conn, statement)
+			if err != nil {
+				l.Debugf("explain statement error: %s", err.Error())
+			}
 		}
 		if err != nil {
-			l.Debug(err)
 			continue
 		}
 		if len(plan) > 0 {
@@ -729,9 +700,10 @@ func explainStatement(i *Input, statement string, schema string, obfuscatedState
 	return plan, nil
 }
 
-func runExplainProcedure(conn *sql.Conn, statement string) (string, error) {
-	ctx := context.Background()
-	row := conn.QueryRowContext(ctx, fmt.Sprintf("CALL explain_statement('%s')", statement))
+// runExplainProcedure calls explain_statement(?) with statement as a bound parameter, so no manual.
+func runExplainProcedure(ctx context.Context, conn *sql.Conn, statement string) (string, error) {
+	//nolint:execinquery
+	row := conn.QueryRowContext(ctx, "CALL explain_statement(?)", statement)
 	var plan string
 	if row.Err() != nil {
 		return plan, row.Err()
@@ -743,9 +715,10 @@ func runExplainProcedure(conn *sql.Conn, statement string) (string, error) {
 	return plan, nil
 }
 
-func runFullyQualifiedExplainProcedure(conn *sql.Conn, statement string) (string, error) {
-	ctx := context.Background()
-	row := conn.QueryRowContext(ctx, fmt.Sprintf("CALL datakit.explain_statement('%s')", escapeQuote(statement)))
+// runFullyQualifiedExplainProcedure calls datakit.explain_statement(?) with statement as a bound parameter.
+func runFullyQualifiedExplainProcedure(ctx context.Context, conn *sql.Conn, statement string) (string, error) {
+	//nolint:execinquery
+	row := conn.QueryRowContext(ctx, "CALL datakit.explain_statement(?)", statement)
 	var plan string
 	if row.Err() != nil {
 		return plan, row.Err()
@@ -757,9 +730,9 @@ func runFullyQualifiedExplainProcedure(conn *sql.Conn, statement string) (string
 	return plan, nil
 }
 
-func runExplain(conn *sql.Conn, statement string) (string, error) {
-	ctx := context.Background()
-	row := conn.QueryRowContext(ctx, fmt.Sprintf("EXPLAIN FORMAT=json %s", escapeQuote(statement)))
+func runExplain(ctx context.Context, conn *sql.Conn, statement string) (string, error) {
+	//nolint:execinquery
+	row := conn.QueryRowContext(ctx, "EXPLAIN FORMAT=json "+statement)
 	var plan string
 	if row.Err() != nil {
 		return plan, row.Err()
@@ -771,10 +744,16 @@ func runExplain(conn *sql.Conn, statement string) (string, error) {
 	return plan, nil
 }
 
-// escapeQuote replaces all double quotes and single quotes with escaped ones.
-func escapeQuote(str string) string {
-	str = strings.ReplaceAll(str, `"`, `\"`)
-	str = strings.ReplaceAll(str, `'`, `\'`)
+func ComputeSQLPlanSignature(normalizedPlan string) string {
+	h := xxhash.New()
+	_, _ = h.WriteString(normalizedPlan)
+	return fmt.Sprintf("%016x", h.Sum64())
+}
 
-	return str
+func generatePlanCacheKey(querySignature, planSignature string) string {
+	h := xxhash.New()
+	_, _ = h.WriteString(querySignature)
+	_, _ = h.WriteString(":")
+	_, _ = h.WriteString(planSignature)
+	return fmt.Sprintf("%016x", h.Sum64())
 }

@@ -6,6 +6,7 @@
 package mysql
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -65,13 +66,16 @@ func (ipt *Input) collectMysql() error {
 	ipt.binlog = map[string]interface{}{}
 
 	// We should first collect global MySQL metrics
-	if res := globalStatusMetrics(ipt.q("SHOW /*!50002 GLOBAL */ STATUS;", getMetricName(metricNameMySQL, "show_global_status"))); res != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	if res := globalStatusMetrics(ipt.q(ctx, "SHOW /*!50002 GLOBAL */ STATUS;", getMetricName(metricNameMySQL, "show_global_status"))); res != nil {
 		ipt.globalStatus = res
 	} else {
 		l.Warn("collect_show_status_failed")
 	}
+	cancel()
 
-	if res := globalVariablesMetrics(ipt.q("SHOW GLOBAL VARIABLES;", getMetricName(metricNameMySQL, "show_global_variables"))); res != nil {
+	ctx, cancel = context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	if res := globalVariablesMetrics(ipt.q(ctx, "SHOW GLOBAL VARIABLES;", getMetricName(metricNameMySQL, "show_global_variables"))); res != nil {
 		ipt.globalVariables = res
 
 		// Detect if binlog enabled
@@ -84,13 +88,16 @@ func (ipt *Input) collectMysql() error {
 	} else {
 		l.Warn("collect_show_variables_failed")
 	}
+	cancel()
 
 	if ipt.binLogOn {
-		if res := binlogMetrics(ipt.q("SHOW BINARY LOGS;", getMetricName(metricNameMySQL, "show_binary_logs"))); res != nil {
+		ctx, cancel = context.WithTimeout(context.Background(), ipt.timeoutDuration)
+		if res := binlogMetrics(ipt.q(ctx, "SHOW BINARY LOGS;", getMetricName(metricNameMySQL, "show_binary_logs"))); res != nil {
 			ipt.binlog = res
 		} else {
 			l.Warn("collect_show_binlog_failed")
 		}
+		cancel()
 	}
 
 	return err
@@ -108,7 +115,8 @@ func (ipt *Input) collectMysqlReplication() error {
 	}
 	queryReplicationSQL := "SHOW SLAVE STATUS;"
 	if ipt.Replica {
-		if res := replicationMetrics(ipt.q(queryReplicationSQL, getMetricName(metricNameMySQLReplication, "show_slave_status"))); res != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+		if res := replicationMetrics(ipt.q(ctx, queryReplicationSQL, getMetricName(metricNameMySQLReplication, "show_slave_status"))); res != nil {
 			ipt.mReplication = res
 			// change Slave_IO_Running and Slave_SQL_Running to bool
 			if hasKey(ipt.mReplication, "Slave_IO_Running") {
@@ -120,6 +128,7 @@ func (ipt *Input) collectMysqlReplication() error {
 		} else {
 			l.Warn("collect_replica_status_failed")
 		}
+		cancel()
 		queryWorkerThreadsSQL := `SELECT THREAD_ID, NAME FROM performance_schema.threads WHERE NAME LIKE '%worker';`
 		if res, err := ipt.getQueryRows(queryWorkerThreadsSQL, getMetricName(metricNameMySQLReplication, "replica_threads")); err != nil {
 			return err
@@ -137,11 +146,14 @@ func (ipt *Input) collectMysqlReplication() error {
 	`
 
 	if ipt.GroupReplica {
-		if res := replicationMetrics(ipt.q(queryGroupReplicationSQL, getMetricName(metricNameMySQLReplication, "group_replica_status"))); res != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+		res := replicationMetrics(ipt.q(ctx, queryGroupReplicationSQL, getMetricName(metricNameMySQLReplication, "group_replica_status")))
+		if res != nil {
 			ipt.mGroupReplication = res
 		} else {
 			l.Warn("collect_group_replica_status_failed")
 		}
+		cancel()
 	}
 
 	return nil
@@ -156,11 +168,13 @@ func (ipt *Input) collectMysqlSchema() error {
 		FROM     information_schema.tables
 		GROUP BY table_schema;
 	`
-	if res := getCleanSchemaData(ipt.q(querySizePerschemaSQL, getMetricName(metricNameMySQLSchema, "table_schema_size"))); res != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	if res := getCleanSchemaData(ipt.q(ctx, querySizePerschemaSQL, getMetricName(metricNameMySQLSchema, "table_schema_size"))); res != nil {
 		ipt.mSchemaSize = res
 	} else {
 		l.Warn("collect_schema_size_failed")
 	}
+	cancel()
 
 	queryExecPerTimeSQL := `
 	SELECT schema_name, ROUND((SUM(sum_timer_wait) / SUM(count_star)) / 1000000) AS avg_us
@@ -168,11 +182,14 @@ func (ipt *Input) collectMysqlSchema() error {
 	WHERE schema_name IS NOT NULL
 	GROUP BY schema_name;
 	`
-	if res := getCleanSchemaData(ipt.q(queryExecPerTimeSQL, getMetricName(metricNameMySQLSchema, "events_statements_summary_by_digest"))); res != nil {
+	ctx, cancel = context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	res := getCleanSchemaData(ipt.q(ctx, queryExecPerTimeSQL, getMetricName(metricNameMySQLSchema, "events_statements_summary_by_digest")))
+	if res != nil {
 		ipt.mSchemaQueryExecTime = res
 	} else {
 		l.Warn("collect_schema_failed")
 	}
+	cancel()
 
 	return nil
 }
@@ -182,11 +199,13 @@ func (ipt *Input) collectMysqlInnodb() error {
 
 	globalInnodbSQL := `SELECT NAME, COUNT FROM information_schema.INNODB_METRICS WHERE status='enabled'`
 
-	if res := getCleanInnodb(ipt.q(globalInnodbSQL, getMetricName(metricNameMySQLInnodb, "innodb_metrics"))); res != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	if res := getCleanInnodb(ipt.q(ctx, globalInnodbSQL, getMetricName(metricNameMySQLInnodb, "innodb_metrics"))); res != nil {
 		ipt.mInnodb = res
 	} else {
 		l.Warnf("collect_innodb_failed")
 	}
+	cancel()
 
 	if res, err := ipt.getInnodbStatus(); err != nil {
 		l.Warnf("collect_innodb_status_failed: %s", err.Error())
@@ -628,7 +647,10 @@ func (ipt *Input) getQueryRows(sqlText string, names ...string) (res rowResponse
 	}
 
 	start := time.Now()
-	rows, err := ipt.db.Query(sqlText)
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	defer cancel()
+
+	rows, err := ipt.db.QueryContext(ctx, sqlText)
 	if err != nil {
 		return
 	}
@@ -706,7 +728,8 @@ func (ipt *Input) collectMysqlTableSchema() error {
 		tableSchemaSQL = fmt.Sprintf("%s and TABLE_NAME in (%s);", tableSchemaSQL, filterStr)
 	}
 
-	if res := getCleanTableSchema(ipt.q(tableSchemaSQL, getMetricName(metricNameMySQLTableSchema, "table_schema"))); res != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	if res := getCleanTableSchema(ipt.q(ctx, tableSchemaSQL, getMetricName(metricNameMySQLTableSchema, "table_schema"))); res != nil {
 		ipt.mTableSchema = res
 	} else {
 		l.Warnf("collect_table_schema_failed")
@@ -714,6 +737,7 @@ func (ipt *Input) collectMysqlTableSchema() error {
 			ipt.mTableSchema = []map[string]interface{}{}
 		}
 	}
+	cancel()
 
 	return nil
 }
@@ -735,11 +759,13 @@ func (ipt *Input) collectMysqlUserStatus() error {
 		userSQL = fmt.Sprintf("%s where user in (%s);", userSQL, filterStr)
 	}
 
-	if res := getCleanUserStatusName(ipt.q(userSQL, getMetricName(metricNameMySQLUserStatus, "mysql_user"))); res != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	if res := getCleanUserStatusName(ipt.q(ctx, userSQL, getMetricName(metricNameMySQLUserStatus, "mysql_user"))); res != nil {
 		ipt.mUserStatusName = res
 	} else {
 		l.Warn("collect_user_name_failed")
 	}
+	cancel()
 
 	userQuerySQL := `
 	select VARIABLE_NAME, VARIABLE_VALUE
@@ -753,19 +779,23 @@ func (ipt *Input) collectMysqlUserStatus() error {
     `
 
 	for user := range ipt.mUserStatusName {
+		ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
 		if res := getCleanUserStatusVariable(
-			ipt.q(fmt.Sprintf(userQuerySQL, user),
+			ipt.q(ctx, fmt.Sprintf(userQuerySQL, user),
 				getMetricName(metricNameMySQLUserStatus, "user_status"))); res != nil {
 			ipt.mUserStatusVariable = make(map[string]map[string]interface{})
 			ipt.mUserStatusVariable[user] = res
 		}
+		cancel()
 
+		ctx, cancel = context.WithTimeout(context.Background(), ipt.timeoutDuration)
 		if res := getCleanUserStatusConnection(
-			ipt.q(fmt.Sprintf(userConnSQL, user),
+			ipt.q(ctx, fmt.Sprintf(userConnSQL, user),
 				getMetricName(metricNameMySQLUserStatus, "users_connection"))); res != nil {
 			ipt.mUserStatusConnection = make(map[string]map[string]interface{})
 			ipt.mUserStatusConnection[user] = res
 		}
+		cancel()
 	}
 
 	if len(ipt.mUserStatusVariable) == 0 {
@@ -779,54 +809,56 @@ func (ipt *Input) collectMysqlUserStatus() error {
 	return nil
 }
 
-func (ipt *Input) collectMysqlDbmMetric() error {
+func (ipt *Input) collectMysqlDbmMetric() ([]dbmRow, error) {
 	var err error
-	defer func() {
-		if err != nil {
-			ipt.dbmMetricRows = []dbmRow{}
 
-			// dbmCache cannot reset
-		}
-	}()
-
-	statementSummarySQL := `
-		SELECT schema_name,digest,digest_text,count_star,
-		sum_timer_wait,sum_lock_time,sum_errors,sum_rows_affected,
-		sum_rows_sent,sum_rows_examined,sum_select_scan,sum_select_full_join,
-		sum_no_index_used,sum_no_good_index_used
-		FROM performance_schema.events_statements_summary_by_digest
-		WHERE digest_text NOT LIKE 'EXPLAIN %' OR digest_text IS NULL
-		ORDER BY count_star DESC LIMIT 10000`
-
-	dbmRows := getCleanSummaryRows(ipt.q(statementSummarySQL, getMetricName(metricNameMySQLDbmMetric, "events_statements_summary_by_digest")))
-	if dbmRows == nil {
-		err = fmt.Errorf("collect_summary_rows_failed")
-		return err
+	limit := ipt.DbmMetric.Limit
+	if limit <= 0 {
+		limit = 10000
 	}
 
-	metricRows, newDbmCache := getMetricRows(dbmRows, &ipt.dbmCache)
-	ipt.dbmMetricRows = metricRows
+	statementSummarySQL := fmt.Sprintf(`
+		SELECT
+			schema_name,
+			digest,
+			digest_text,
+			count_star,
+			sum_timer_wait,
+			sum_lock_time,
+			sum_errors,
+			sum_rows_affected,
+			sum_rows_sent,
+			sum_rows_examined,
+			sum_select_scan,
+			sum_select_full_join,
+			sum_no_index_used,
+			sum_no_good_index_used
+		FROM performance_schema.events_statements_summary_by_digest
+		WHERE digest_text NOT LIKE 'EXPLAIN %%' OR digest_text IS NULL
+		ORDER BY count_star DESC
+		LIMIT %d`, limit)
 
-	// save dbm rows
-	ipt.dbmCache = newDbmCache
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	dbmRows := getCleanSummaryRows(ipt.q(ctx, statementSummarySQL, getMetricName(metricNameMySQLDbmMetric, "events_statements_summary_by_digest")))
+	cancel()
+	if dbmRows == nil {
+		err = fmt.Errorf("collect_summary_rows_failed")
+		return nil, err
+	}
 
-	return err
+	metricRows, nextSnapshot := getMetricRows(dbmRows, ipt.dbmCache)
+	ipt.dbmCache = nextSnapshot
+
+	return metricRows, err
 }
 
 // mysql_dbm_sample
 //----------------------------------------------------------------------
 
-func (ipt *Input) collectMysqlDbmSample() error {
-	var err error
-	defer func() {
-		if err != nil {
-			ipt.dbmSamplePlans = []planObj{}
-		}
-	}()
-
+func (ipt *Input) collectMysqlDbmSample() ([]planObj, error) {
 	if len(ipt.dbmSampleCache.globalStatusTable) == 0 {
 		if ipt.Version == nil || ipt.Version.version == "" {
-			return errors.New("version is empty")
+			return nil, errors.New("version is empty")
 		}
 
 		if ipt.Version.flavor == strMariaDB || !(ipt.Version.versionCompatible([]int{5, 7, 0})) {
@@ -836,22 +868,23 @@ func (ipt *Input) collectMysqlDbmSample() error {
 		}
 	}
 
-	strategy, err := getSampleCollectionStrategy(ipt)
+	eventsStatementsTable, err := getSampleCollectionStrategy(ipt)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	rows, err := getNewEventsStatements(ipt, strategy.table, 5000)
-	if err != nil {
-		return err
+	limit := ipt.DbmSample.EventsStatementsLimit
+	if limit <= 0 {
+		limit = 10
 	}
+	rows, err := getNewEventsStatements(ipt, eventsStatementsTable, limit)
+	if err != nil {
+		return nil, err
+	}
+	l.Debugf("getNewEventsStatements: %d", len(rows))
 
 	rows = filterValidStatementRows(ipt, rows)
 
 	plans := collectPlanForStatements(ipt, rows)
-	if len(plans) > 0 {
-		ipt.dbmSamplePlans = plans
-	}
-
-	return nil
+	return plans, nil
 }

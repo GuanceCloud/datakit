@@ -195,9 +195,14 @@ func (ipt *Input) metricCollectSqlserverObject() {
 		version = fmt.Sprintf("%d", ipt.MajorVersion)
 	}
 
+	objectName := ipt.Object.name
+	if ipt.databaseInstance != "" {
+		objectName = fmt.Sprintf("%s-%s", ipt.Object.name, ipt.databaseInstance)
+	}
+
 	kvs = kvs.AddTag("version", version).
 		AddTag("database_type", sqlserverType).
-		AddTag("name", fmt.Sprintf("%s-%s", ipt.Object.name, ipt.databaseInstance)).
+		AddTag("name", objectName).
 		AddTag("server", ipt.Object.name).
 		AddTag("port", ipt.Object.port).
 		Add("uptime", ipt.Uptime).

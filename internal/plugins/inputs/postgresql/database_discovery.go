@@ -82,7 +82,10 @@ func (dd *DatabaseDiscovery) Start() {
 func (dd *DatabaseDiscovery) discoverDatabases() {
 	ipt := dd.ipt
 	dbs := []string{}
-	rows, err := ipt.service.QueryByDatabase(sqlGetDatabaseList, "")
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.Timeout.Duration)
+	defer cancel()
+
+	rows, err := ipt.service.QueryByDatabase(ctx, sqlGetDatabaseList, "")
 	if err != nil {
 		l.Errorf("query failed: %s", err.Error())
 		return

@@ -228,9 +228,10 @@ func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 			"session_status":    inputs.NewTagInfo("The status of the session."),
 			"request_status":    inputs.NewTagInfo("The status of the request."),
 			"command":           inputs.NewTagInfo("The type of command being executed."),
-			"wait_type":         inputs.NewTagInfo("The type of wait."),
-			"wait_group":        inputs.NewTagInfo("Datakit unified wait group: Lock, I/O, Concurrency, Memory, Network, CPU, Commit/Log, Other."),
-			"query_signature":   inputs.NewTagInfo("Hash signature generated from database_name:procedure_name:query_hash to link metrics and objects"),
+			//nolint:lll
+			"wait_type":       inputs.NewTagInfo("The wait type from SQL Server, or a derived CPU sentinel such as CPU / WAITING_ON_CPU when the request is runnable without a reported wait."),
+			"wait_group":      inputs.NewTagInfo("Datakit unified wait group: Lock, I/O, Concurrency, Memory, Network, CPU, Commit/Log, Other."),
+			"query_signature": inputs.NewTagInfo("Hash signature generated from database_name:procedure_name:query_hash to link metrics and objects"),
 		},
 	}
 }
@@ -453,14 +454,14 @@ func buildDbmActivityRow(columnMap map[string]*interface{}, obfuscator *obfuscat
 	row.percentComplete = getInt64Field(columnMap, "percent_complete")
 	row.estimatedCompletionTime = getInt64Field(columnMap, "estimated_completion_time")
 
-	// Wait information
-	row.waitType = getStringField(columnMap, "wait_type")
+	// Normalize wait_type so CPU and runnable requests remain visible in wait-event dimensions.
+	row.waitType = normalizeWaitType(row.sessionStatus, row.requestStatus, getStringField(columnMap, "wait_type"))
 	row.waitTime = getInt64Field(columnMap, "wait_time")
 	row.waitResource = getStringField(columnMap, "wait_resource")
 	row.blockingSessionID = getInt64Field(columnMap, "blocking_session_id")
 
 	// Calculate wait category
-	row.waitCategory = categorizeWaitType(row.sessionStatus, row.waitType)
+	row.waitCategory = categorizeWaitType(row.waitType)
 
 	// Additional fields from sys.dm_exec_requests
 	row.lastWaitType = getStringField(columnMap, "last_wait_type")
@@ -650,10 +651,10 @@ func buildIdleBlockingActivityRow(rawRow *rawIdleBlockingSessionRow, obfuscator 
 	row.sessionStatus = rawRow.SessionStatus.String
 
 	// Idle blocking sessions don't have wait_type (they are sleeping)
-	row.waitType = ""
+	row.waitType = normalizeWaitType(row.sessionStatus, "", "")
 
 	// Calculate wait category
-	row.waitCategory = categorizeWaitType(row.sessionStatus, row.waitType)
+	row.waitCategory = categorizeWaitType(row.waitType)
 
 	// Procedure name (merge schema_name and procedure_name)
 	procedureName := rawRow.ProcedureName.String
