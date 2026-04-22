@@ -203,6 +203,8 @@ nvme
 ondemand
 oplog
 pipeline
+processlist
+processor
 ppid
 pprof
 promremote
@@ -350,6 +352,7 @@ alloc
 nativemem
 itimer
 TLAB
+rolname
 ##############################################
 # 连词
 ##############################################

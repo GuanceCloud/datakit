@@ -448,8 +448,6 @@ func TestMetricCollectMysqlGeneral(t *testing.T) {
 	err := input.initCfg()
 	assert.NoError(t, err)
 
-	input.initDbm()
-
 	cases := []struct {
 		name string
 		fun  func() ([]*point.Point, error)
@@ -480,11 +478,16 @@ func TestMetricCollectMysqlGeneral(t *testing.T) {
 		},
 		{
 			name: "CollectMysqlDbmMetric",
-			fun:  input.metricCollectMysqlDbmMetric,
+			fun: func() ([]*point.Point, error) {
+				pts, _, err := input.metricCollectMysqlDbmMetric(time.Now())
+				return pts, err
+			},
 		},
 		{
 			name: "CollectMysqlDbmSample",
-			fun:  input.metricCollectMysqlDbmSample,
+			fun: func() ([]*point.Point, error) {
+				return input.metricCollectMysqlDbmSample(time.Now())
+			},
 		},
 	}
 

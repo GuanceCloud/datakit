@@ -5,11 +5,15 @@ tags:
   - '数据库'
 __int_icon      : 'icon/postgresql'
 dashboard :
-  - desc  : 'PostgrepSQL'
+  - desc  : 'PostgreSQL'
     path  : 'dashboard/zh/postgresql'
+  - desc  : 'PostgreSQL-v2'
+    path  : 'dashboard/zh/postgresql-v2'
 monitor   :
-  - desc  : '暂无'
-    path  : '-'
+  - desc  : 'PostgreSQL'
+    path  : 'monitor/zh/postgresql'
+  - desc  : 'PostgreSQL-v2'
+    path  : 'monitor/zh/postgresql-v2'
 ---
 
 {{.AvailableArchs}}
@@ -98,7 +102,7 @@ PostgreSQL 采集器可以从 PostgreSQL 实例中采集实例运行状态指标
 
 数据库性能指标主要来源于 PostgreSQL 的内置系统视图和扩展插件，其中最核心的包括 `pg_stat_activity` 和 `pg_stat_statements`。这些工具提供了在运行时获取数据库内部执行情况的方法：`pg_stat_activity` 实时展示当前会话的活动状态、执行的查询及等待事件等信息；`pg_stat_statements` 则记录历史 SQL 语句的执行统计数据，包括执行次数、耗时、IO 情况等。
 
-通过这些视图和插件，DataKit 能够采集实时会话活动、历史查询的性能指标统计以及相关执行信息。采集的性能指标数据保存为日志，source 分别为 `postgresql_dbm_metric`、`postgresql_dbm_sample` 和 `postgresql_dbm_activity`。
+通过这些视图和插件，DataKit 能够采集 PostgreSQL DBM 所需的 statement metric、query sample、execution plan、实时会话活动，以及由 activity 快照派生出来的 session/connection 指标。
 
 如需开启，需要执行以下步骤。
 
@@ -108,23 +112,29 @@ PostgreSQL 采集器可以从 PostgreSQL 实例中采集实例运行状态指标
 [[inputs.postgresql]]
 
   ## Set dbm to true to collect database activity 
-  dbm = false
+  dbm = true
 
   ## Config dbm metric 
   [inputs.postgresql.dbm_metric]
     enabled = true
+    interval = "60s"
   
   ## Config dbm sample 
   [inputs.postgresql.dbm_sample]
-    enabled = true  
+    enabled = true
+    explain_cache_ttl = "10m"
+    plan_cache_ttl = "1h"
 
   ## Config dbm activity
   [inputs.postgresql.dbm_activity]
-    enabled = true  
+    enabled = true
+    interval = "10s"
 
 ...
 
 ```
+
+开启 DBM 后，DataKit 还会自动采集 `postgresql_dbm_session` 和 `postgresql_dbm_connection` 两组指标。其中 `postgresql_dbm_session` 是基于 DBM activity 行聚合得到的，而 `postgresql_dbm_connection` 是通过单独查询 `pg_stat_activity` 并分组统计得到的，无需额外配置开关。
 
 - PostgreSQL 配置
 
@@ -133,7 +143,7 @@ PostgreSQL 采集器可以从 PostgreSQL 实例中采集实例运行状态指标
 ```toml
 
 shared_preload_libraries = 'pg_stat_statements'
-track_activity_query_size = 4096 a# Required for collection of larger queries.
+track_activity_query_size = 4096 # Required for collection of larger queries.
 
 ```
 
@@ -195,6 +205,32 @@ track_activity_query_size = 4096 a# Required for collection of larger queries.
     ```
 
 <!-- markdownlint-enable -->
+
+- 额外权限与执行计划 helper 函数
+
+    如果开启了 `dbm_sample.enabled = true`，则需要在每个需要采集执行计划的数据库中创建以下 helper 函数：
+
+    ```sql
+    CREATE OR REPLACE FUNCTION datakit.explain_statement(
+       l_query TEXT,
+       OUT explain JSON
+    )
+    RETURNS SETOF JSON AS
+    $$
+    DECLARE
+      curs REFCURSOR;
+      plan JSON;
+    BEGIN
+      OPEN curs FOR EXECUTE pg_catalog.concat('EXPLAIN (FORMAT JSON) ', l_query);
+      FETCH curs INTO plan;
+      CLOSE curs;
+      RETURN QUERY SELECT plan;
+    END;
+    $$
+    LANGUAGE 'plpgsql'
+    RETURNS NULL ON NULL INPUT
+    SECURITY DEFINER;
+    ```
 
 ## 指标 {#metric}
 

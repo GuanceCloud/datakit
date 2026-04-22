@@ -53,11 +53,11 @@ func (m *oracleMeasurement) getTags() map[string]interface{} {
 
 func (m *oracleMeasurement) getCommonTags() map[string]interface{} {
 	tags := make(map[string]interface{})
-	tags["host"] = &inputs.TagInfo{Desc: "Host name"}
-	tags["database_instance"] = &inputs.TagInfo{Desc: "Oracle instance identifier from configured tag or v$instance.host_name."}
-	tags["server"] = &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"}
-	tags["oracle_server"] = &inputs.TagInfo{Desc: "Server addr. Deprecated. Please use `server`"}
-	tags["oracle_service"] = &inputs.TagInfo{Desc: "Server service"}
+	tags["host"] = &inputs.TagInfo{Desc: "Host name. Common tag."}
+	tags["database_instance"] = &inputs.TagInfo{Desc: "Oracle instance identifier from configured tag or v$instance.host_name. Common tag."}
+	tags["server"] = &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`. Common tag."}
+	tags["oracle_server"] = &inputs.TagInfo{Desc: "Server addr. Deprecated. Please use `server`. Common tag."}
+	tags["oracle_service"] = &inputs.TagInfo{Desc: "Server service. Common tag."}
 	return tags
 }
 
@@ -83,13 +83,13 @@ func (m *oracleMeasurement) getSystemTags() map[string]interface{} {
 
 func (m *oracleMeasurement) getLockedSessionTags() map[string]interface{} {
 	tags := make(map[string]interface{})
-	tags["event"] = &inputs.TagInfo{Desc: "Locked session that waiting the specified event name"}
+	tags["event"] = &inputs.TagInfo{Desc: "The wait event name."}
 	return tags
 }
 
 func (m *oracleMeasurement) getWaitingEventTags() map[string]interface{} {
 	tags := make(map[string]interface{})
-	tags["event"] = &inputs.TagInfo{Desc: "Event name"}
+	tags["event"] = &inputs.TagInfo{Desc: "The wait event name."}
 	tags["event_type"] = &inputs.TagInfo{Desc: "Event type, such as `USER/BACKGROUND`"}
 	tags["program"] = &inputs.TagInfo{Desc: "Program(process) name that waiting the event"}
 	tags["username"] = &inputs.TagInfo{Desc: "Oracle username that waiting the event"}
@@ -112,7 +112,11 @@ func (m *oracleMeasurement) getDbmSessionTags() map[string]interface{} {
 	tags["cdb_name"] = &inputs.TagInfo{Desc: "The name of the CDB (Container Database)"}
 	tags["pdb_name"] = &inputs.TagInfo{Desc: "The name of the PDB (Pluggable Database)"}
 	tags["username"] = &inputs.TagInfo{Desc: "The name of the database user"}
+	tags["program"] = &inputs.TagInfo{Desc: "The program name"}
+	tags["client"] = &inputs.TagInfo{Desc: "The client machine name"}
 	tags["session_status"] = &inputs.TagInfo{Desc: "Session status: active (ACTIVE status), idle (INACTIVE status), blocked (being blocked)"}
+	tags["wait_class"] = &inputs.TagInfo{Desc: "The wait event class."}
+	tags["event"] = &inputs.TagInfo{Desc: "The wait event name."}
 	tags["wait_group"] = &inputs.TagInfo{Desc: "Datakit unified wait group: Lock, I/O, Concurrency, Memory, Network, CPU, Commit/Log, Other."}
 	return tags
 }

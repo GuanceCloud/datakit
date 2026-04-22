@@ -29,8 +29,12 @@ type aggregatedSession struct {
 	server    string
 	pdbName   string
 	username  string
+	program   string
+	client    string
 	status    string // active/idle/blocked
 	waitClass string // Wait event class from Oracle
+	waitEvent string
+	waitGroup string
 
 	// Aggregated fields
 	sessionCount  int64
@@ -56,7 +60,7 @@ func (ipt *Input) aggregateSessions(activityRows []*OracleActivityRow) []*aggreg
 		}
 	}
 
-	// Second pass: aggregate by pdb_name + username + status + wait_class
+	// Second pass: aggregate by pdb_name + username + program + client + status + wait_group + wait_class + wait_event
 	mergedMap := make(map[string]*aggregatedSession)
 
 	for _, row := range activityRows {
@@ -71,9 +75,8 @@ func (ipt *Input) aggregateSessions(activityRows []*OracleActivityRow) []*aggreg
 
 		// Use wait_class from activity row
 		waitClass := row.WaitEventClass
-		if waitClass == "" {
-			waitClass = "Other"
-		}
+		waitEvent := row.WaitEvent
+		waitGroup := mapOracleWaitClassToGroup(waitClass)
 
 		// Calculate is_blocker
 		isBlocker := false
@@ -82,7 +85,7 @@ func (ipt *Input) aggregateSessions(activityRows []*OracleActivityRow) []*aggreg
 		}
 
 		// Generate aggregation key
-		aggKey := fmt.Sprintf("%s|%s|%s|%s", row.PdbName, row.User, status, waitClass)
+		aggKey := fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s|%s", row.PdbName, row.User, row.Program, row.Client, status, waitGroup, waitClass, waitEvent)
 
 		if _, ok := mergedMap[aggKey]; !ok {
 			mergedMap[aggKey] = &aggregatedSession{
@@ -90,8 +93,12 @@ func (ipt *Input) aggregateSessions(activityRows []*OracleActivityRow) []*aggreg
 				server:    ipt.Object.name,
 				pdbName:   row.PdbName,
 				username:  row.User,
+				program:   row.Program,
+				client:    row.Client,
 				status:    status,
 				waitClass: waitClass,
+				waitEvent: waitEvent,
+				waitGroup: waitGroup,
 			}
 		}
 		agg := mergedMap[aggKey]
@@ -150,9 +157,21 @@ func (ipt *Input) buildSessionPoints(rows []*aggregatedSession, ptsTime time.Tim
 		if row.username != "" {
 			kvs = kvs.AddTag("username", row.username)
 		}
+		if row.program != "" {
+			kvs = kvs.AddTag("program", row.program)
+		}
+		if row.client != "" {
+			kvs = kvs.AddTag("client", row.client)
+		}
 		kvs = kvs.AddTag("session_status", row.status)
 		if row.waitClass != "" {
-			kvs = kvs.AddTag("wait_group", mapOracleWaitClassToGroup(row.waitClass))
+			kvs = kvs.AddTag("wait_class", row.waitClass)
+		}
+		if row.waitGroup != "" {
+			kvs = kvs.AddTag("wait_group", row.waitGroup)
+		}
+		if row.waitEvent != "" {
+			kvs = kvs.AddTag("event", row.waitEvent)
 		}
 
 		// Fields

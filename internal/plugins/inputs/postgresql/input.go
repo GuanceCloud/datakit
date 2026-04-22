@@ -43,6 +43,7 @@ var (
 	customObjectFeedName = dkio.FeedSource(inputName, "CO")
 	objectFeedName       = dkio.FeedSource(inputName, "O")
 	loggingFeedName      = dkio.FeedSource(inputName, "L")
+	dbmFeedName          = dkio.FeedSource(inputName, "DBM")
 	customQueryFeedName  = dkio.FeedSource(inputName, "custom_query")
 
 	catalogName                      = "db"
@@ -64,6 +65,9 @@ const (
 	ReplicationSlot   = "replication_slot"
 	IOMetric          = "io"
 	DBMMetric         = "dbm_metric"
+
+	defaultDbmMetricInterval   = 60 * time.Second
+	defaultDbmActivityInterval = 10 * time.Second
 )
 
 const sampleConfig = `
@@ -93,9 +97,20 @@ const sampleConfig = `
   #
   interval = "10s"
 
+  ## @param connect_timeout - duration - optional - default: "10s"
+  ## Timeout for connecting to PostgreSQL and executing collector queries.
+  # connect_timeout = "10s"
+
   ## Set true to enable election
   #
   election = true
+
+  ## v2+ overrides metric-category measurement names to "postgresql_metric". Default: v2
+  ## Set to "v1" to keep legacy names: postgresql, postgresql_function, postgresql_lock, postgresql_stat,
+  ## postgresql_index, postgresql_size, postgresql_statio, postgresql_replication, postgresql_replication_slot,
+  ## postgresql_slru, postgresql_io, postgresql_bgwriter, postgresql_connection, postgresql_conflict,
+  ## postgresql_archiver, postgresql_dbm_metric, postgresql_dbm_session, postgresql_dbm_connection
+  measurement_version = "v2"
 
   ## Set true to enable collecting function metrics from pg_stat_user_functions.
   #
@@ -111,14 +126,22 @@ const sampleConfig = `
   ## Config dbm metric 
   [inputs.postgresql.dbm_metric]
     enabled = true
+    interval = "60s"
   
   ## Config dbm sample 
   [inputs.postgresql.dbm_sample]
-    enabled = true  
+    enabled = true
+    ## @param explain_cache_ttl - duration - optional - default: "10m"
+    ## TTL for explain-rate cache.
+    explain_cache_ttl = "10m"
+    ## @param plan_cache_ttl - duration - optional - default: "1h"
+    ## Do not re-emit the same execution plan within this window.
+    plan_cache_ttl = "1h"
 
   ## Config dbm activity
   [inputs.postgresql.dbm_activity]
-    enabled = true  
+    enabled = true
+    interval = "10s"
 
   ## Config database discovery. 
   # Discovered databases will be used to for database specific metric collection, 
@@ -246,9 +269,10 @@ type Service interface {
 	Start() error
 	Stop()
 	Ping() error
-	Query(string, ...any) (Rows, error)
-	QueryByDatabase(string, string) (Rows, error)
+	Query(context.Context, string, ...any) (Rows, error)
+	QueryByDatabase(context.Context, string, string) (Rows, error)
 	SetAddress(string)
+	SetTimeout(datakit.Duration)
 	GetColumnMap(scanner, []string) (map[string]*interface{}, error)
 	GetConn(dbname string) (Conn, error)
 }
@@ -308,7 +332,9 @@ type Input struct {
 	Outputaddress          string            `toml:"outputaddress"`
 	IgnoredDatabases       []string          `toml:"ignored_databases"`
 	Databases              []string          `toml:"databases"`
+	Timeout                datakit.Duration  `toml:"connect_timeout"`
 	Interval               datakit.Duration  `toml:"interval"`
+	MeasurementVersion     string            `toml:"measurement_version"`
 	MetricExcludeList      []string          `toml:"metric_exclude_list"`
 	Tags                   map[string]string `toml:"tags"`
 	mergedTags             map[string]string
@@ -331,12 +357,13 @@ type Input struct {
 
 	MaxLifetimeDeprecated string `toml:"max_lifetime,omitempty"`
 
-	service      Service
-	tail         *tailer.Tailer
-	collectCache map[point.Category][]*point.Point
-	host         string
-	port         uint16
-	dbName       string
+	service          Service
+	tail             *tailer.Tailer
+	collectCache     map[point.Category][]*point.Point
+	host             string
+	port             uint16
+	dbName           string
+	databaseInstance string
 
 	Election bool `toml:"election"`
 	pause    atomic.Bool
@@ -349,9 +376,12 @@ type Input struct {
 	semStop  *cliutils.Sem // start stop signal
 	ptsTime  time.Time
 
-	collectFuncs     map[string]func() error
-	relationMetrics  map[string]relationMetric
-	metricQueryCache map[string]*queryCacheItem
+	collectFuncs        map[string]func() error
+	relationMetrics     map[string]relationMetric
+	metricQueryCache    map[string]*queryCacheItem
+	dbmMetricCache      *queryCacheItem
+	dbmMetricValueCache map[string]*dbmMetricValueCache
+	dbmQueryObjectCache *expirable.LRU[string, struct{}]
 
 	statColumnCache map[string]bool
 	dbSetting       map[string]string
@@ -360,6 +390,7 @@ type Input struct {
 
 	objectMetric *objectMertric
 	dbQueryCache dbQueryCache
+	dbmGroup     *goroutine.Group
 }
 
 type postgresqllog struct {
@@ -384,25 +415,12 @@ func (*Input) AvailableArchs() []string {
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&inputMeasurement{},
-		&lockMeasurement{},
-		&indexMeasurement{},
-		&replicationMeasurement{},
-		&replicationSlotMeasurement{},
-		&sizeMeasurement{},
-		&statIOMeasurement{},
-		&statMeasurement{},
-		&slruMeasurement{},
-		&bgwriterMeasurement{},
-		&connectionMeasurement{},
-		&conflictMeasurement{},
-		&archiverMeasurement{},
+		&postgresqlMeasurement{},
 		&inputs.UpMeasurement{},
-		&dbmMetricMeasurement{},
-		&dbmSampleMeasurement{},
+		&dbmQueryObjectMeasurement{},
+		&dbmPlanObjectMeasurement{},
 		&dbmActivityMeasurement{},
 		&postgresqlObjectMeasurement{},
-		&functionMeasurement{},
 	}
 }
 
@@ -473,7 +491,10 @@ func (ipt *Input) getQueryPoints(cache *queryCacheItem, dealColumnFn ...func(map
 	}
 
 	start := time.Now()
-	rows, err := ipt.service.QueryByDatabase(cache.q, cache.db)
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.Timeout.Duration)
+	defer cancel()
+
+	rows, err := ipt.service.QueryByDatabase(ctx, cache.q, cache.db)
 	if err != nil {
 		return nil, err
 	}
@@ -864,7 +885,10 @@ func (ipt *Input) getDBNames(dbRegex string) ([]string, error) {
 	}
 
 	query := fmt.Sprintf("%s AND datname ~ '%s'", sqlGetDBNames, dbRegex)
-	rows, err := ipt.service.QueryByDatabase(query, "")
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.Timeout.Duration)
+	defer cancel()
+
+	rows, err := ipt.service.QueryByDatabase(ctx, query, "")
 	if err != nil {
 		return nil, fmt.Errorf("query databases failed: %w", err)
 	}
@@ -930,7 +954,10 @@ func (ipt *Input) getRelationQuery(relation Relation, query, schemaField string)
 }
 
 func (ipt *Input) setAurora() {
-	rows, err := ipt.service.Query("select AURORA_VERSION();")
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.Timeout.Duration)
+	defer cancel()
+
+	rows, err := ipt.service.Query(ctx, "select AURORA_VERSION();")
 	if err != nil {
 		l.Debugf("The db is not aurora")
 		return
@@ -942,7 +969,10 @@ func (ipt *Input) setAurora() {
 }
 
 func (ipt *Input) setVersion() error {
-	rows, err := ipt.service.Query("SHOW SERVER_VERSION;")
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.Timeout.Duration)
+	defer cancel()
+
+	rows, err := ipt.service.Query(ctx, "SHOW SERVER_VERSION;")
 	if err != nil {
 		return fmt.Errorf("query version failed: %w", err)
 	}
@@ -1124,7 +1154,10 @@ func (ipt *Input) getKVs() point.KVs {
 }
 
 func (ipt *Input) getSQLColumns(sql string) ([]string, error) {
-	rows, err := ipt.service.Query(sql)
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.Timeout.Duration)
+	defer cancel()
+
+	rows, err := ipt.service.Query(ctx, sql)
 	if err != nil {
 		return nil, fmt.Errorf("query sql failed: %w", err)
 	}
@@ -1201,6 +1234,10 @@ const (
 )
 
 func (ipt *Input) initDB() error {
+	if ipt.Timeout.Duration <= 0 {
+		ipt.Timeout.Duration = 10 * time.Second
+	}
+
 	config, err := pgxpool.ParseConfig(ipt.Address)
 	if err != nil {
 		return fmt.Errorf("parse config error: %w", err)
@@ -1208,6 +1245,7 @@ func (ipt *Input) initDB() error {
 	ipt.port = config.ConnConfig.Port
 	ipt.host = config.ConnConfig.Host
 
+	ipt.service.SetTimeout(ipt.Timeout)
 	ipt.service.SetAddress(ipt.Address)
 	err = ipt.service.Start()
 	if err != nil {
@@ -1244,12 +1282,19 @@ func (ipt *Input) initCfg() {
 		ipt.mergedTags = inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, ipt.host)
 	}
 
-	if v, ok := ipt.mergedTags["host"]; ok {
-		ipt.host = v
-	}
-
 	if _, ok := ipt.mergedTags["server"]; !ok {
 		ipt.mergedTags["server"] = fmt.Sprintf("%s:%d", ipt.host, ipt.port)
+	}
+
+	if instanceTag, ok := ipt.Tags["database_instance"]; ok && instanceTag != "" {
+		ipt.databaseInstance = instanceTag
+	} else if instanceID := ipt.getDatabaseInstance(); instanceID != "" {
+		ipt.databaseInstance = instanceID
+	}
+	if ipt.databaseInstance != "" {
+		ipt.mergedTags["database_instance"] = ipt.databaseInstance
+	} else {
+		ipt.mergedTags["database_instance"] = fmt.Sprintf("%s:%d", ipt.host, ipt.port)
 	}
 
 	l.Infof("merged tags: %+#v", ipt.mergedTags)
@@ -1308,17 +1353,24 @@ func (ipt *Input) initCfg() {
 	}
 
 	if ipt.Dbm {
-		if ipt.DbmMetric.Enabled {
-			ipt.collectFuncs["dbm_metric"] = ipt.getDbmMetric
+		if ipt.DbmMetric.Interval.Duration <= 0 {
+			ipt.DbmMetric.Interval.Duration = defaultDbmMetricInterval
 		}
+		ipt.DbmMetric.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.DbmMetric.Interval.Duration)
 
-		if ipt.DbmSample.Enabled || ipt.DbmActivity.Enabled {
-			ipt.collectFuncs["dbm_sample"] = ipt.getDbmSample
+		if ipt.DbmActivity.Interval.Duration <= 0 {
+			ipt.DbmActivity.Interval.Duration = defaultDbmActivityInterval
 		}
+		ipt.DbmActivity.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.DbmActivity.Interval.Duration)
+
 		if ipt.DbmSample.Enabled {
+			explainCacheTTL := ipt.DbmSample.ExplainCacheTTL.Duration
+			if explainCacheTTL <= 0 {
+				explainCacheTTL = 10 * time.Minute
+			}
 			ipt.DbmSample.explainCache = &util.CacheLimit{
-				Size: 5000,
-				TTL:  60,
+				Size: 1000,
+				TTL:  int64(explainCacheTTL.Seconds()),
 			}
 			ipt.DbmSample.explainErrorCache = expirable.NewLRU[string, struct{}](5000, nil, 24*time.Hour)
 			if i, err := NewExplainParameterizedQueries(ipt, "datakit.explain_statement"); err != nil {
@@ -1328,6 +1380,28 @@ func (ipt *Input) initCfg() {
 			}
 		}
 	}
+}
+
+func (ipt *Input) getDatabaseInstance() string {
+	ctx, cancel := context.WithTimeout(context.Background(), ipt.Timeout.Duration)
+	defer cancel()
+
+	rows, err := ipt.service.Query(ctx, "SELECT system_identifier FROM pg_control_system()")
+	if err != nil {
+		l.Warnf("get postgresql system_identifier failed: %s", err.Error())
+		return ""
+	}
+	defer rows.Close()
+
+	var systemIdentifier string
+	if rows.Next() {
+		if err := rows.Scan(&systemIdentifier); err != nil {
+			l.Warnf("scan postgresql system_identifier failed: %s", err.Error())
+			return ""
+		}
+	}
+
+	return systemIdentifier
 }
 
 func (ipt *Input) Run() {
@@ -1382,6 +1456,10 @@ func (ipt *Input) Run() {
 
 	// run custom queries
 	ipt.runCustomQueries()
+
+	// run dbm collectors
+	ipt.runDbmCollectors()
+
 	ipt.ptsTime = ntp.Now()
 
 	for {
@@ -1411,11 +1489,17 @@ func (ipt *Input) Run() {
 						feedName = objectFeedName
 					}
 
-					if err := ipt.feeder.Feed(category, points,
+					opts := []dkio.FeedOption{
 						dkio.WithCollectCost(time.Since(start)),
 						dkio.WithElection(ipt.Election),
 						dkio.WithSource(feedName),
-					); err != nil {
+					}
+					if category == point.Metric {
+						opts = append(opts, dkio.WithMeasurement(
+							inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementPostgreSQL)))
+					}
+
+					if err := ipt.feeder.Feed(category, points, opts...); err != nil {
 						ipt.feeder.FeedLastError(err.Error(),
 							metrics.WithLastErrorInput(inputName),
 						)
@@ -1444,6 +1528,165 @@ func (ipt *Input) Run() {
 
 		case tt := <-tick.C:
 			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.Interval.Duration)
+		}
+	}
+}
+
+func (ipt *Input) runDbmCollectors() {
+	if !ipt.Dbm {
+		return
+	}
+
+	dbmMetricEnabled := ipt.DbmMetric.Enabled
+	dbmSampleEnabled := ipt.DbmSample.Enabled
+	dbmActivityEnabled := ipt.DbmActivity.Enabled
+	if !dbmMetricEnabled && !dbmSampleEnabled && !dbmActivityEnabled {
+		return
+	}
+
+	if err := ipt.loadDbmPgSettings(); err != nil {
+		l.Warnf("load dbm pg_settings failed: %s", err.Error())
+	}
+
+	ipt.dbmGroup = goroutine.NewGroup(goroutine.Option{Name: "postgresql_dbm"})
+
+	if dbmMetricEnabled {
+		ipt.dbmGroup.Go(func(ctx context.Context) error {
+			ipt.runDbmMetricCollector()
+			return nil
+		})
+	}
+
+	if dbmSampleEnabled || dbmActivityEnabled {
+		ipt.dbmGroup.Go(func(ctx context.Context) error {
+			ipt.runDbmSampleActivityCollector()
+			return nil
+		})
+	}
+}
+
+func (ipt *Input) runDbmMetricCollector() {
+	duration := ipt.DbmMetric.Interval.Duration
+	if duration <= 0 {
+		duration = defaultDbmMetricInterval
+	}
+
+	tick := time.NewTicker(duration)
+	defer tick.Stop()
+
+	ptsTime := ntp.Now()
+	for {
+		if ipt.pause.Load() {
+			l.Debugf("not leader, DBM metric collection skipped")
+		} else {
+			collectStart := time.Now()
+			points, rows, err := ipt.collectDbmMetricWithRows(ptsTime, duration)
+			if err != nil {
+				l.Errorf("collectDbmMetric failed: %s", err.Error())
+			} else {
+				ipt.collectDbmQueries(rows, ptsTime)
+			}
+
+			if len(points) > 0 {
+				if err := ipt.feeder.Feed(point.Metric, points,
+					dkio.WithCollectCost(time.Since(collectStart)),
+					dkio.WithElection(ipt.Election),
+					dkio.WithSource(dbmFeedName),
+					dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementPostgreSQL)),
+				); err != nil {
+					ipt.feeder.FeedLastError(err.Error(),
+						metrics.WithLastErrorInput(inputName),
+						metrics.WithLastErrorCategory(point.Metric),
+					)
+					l.Errorf("feed dbm metric failed: %s", err.Error())
+				}
+			}
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("DBM metric collection exit")
+			return
+		case <-ipt.semStop.Wait():
+			l.Info("DBM metric collection return")
+			return
+		case tt := <-tick.C:
+			ptsTime = inputs.AlignTime(tt, ptsTime, duration)
+		}
+	}
+}
+
+func (ipt *Input) runDbmSampleActivityCollector() {
+	duration := ipt.DbmActivity.Interval.Duration
+	if duration <= 0 {
+		duration = defaultDbmActivityInterval
+	}
+
+	tick := time.NewTicker(duration)
+	defer tick.Stop()
+
+	ptsTime := ntp.Now()
+	for {
+		if ipt.pause.Load() {
+			l.Debugf("not leader, DBM sample/activity collection skipped")
+		} else {
+			rows, err := ipt.collectDbmActivityRows()
+			if err != nil {
+				l.Errorf("collectDbmActivityRows failed: %s", err.Error())
+			} else {
+				activityStart := time.Now()
+				if ipt.DbmActivity.Enabled {
+					activityPts := ipt.collectSampleActivity(rows, ptsTime)
+					if len(activityPts) > 0 {
+						if err := ipt.feeder.Feed(point.Logging, activityPts,
+							dkio.WithCollectCost(time.Since(activityStart)),
+							dkio.WithElection(ipt.Election),
+							dkio.WithSource(loggingFeedName),
+						); err != nil {
+							ipt.feeder.FeedLastError(err.Error(),
+								metrics.WithLastErrorInput(inputName),
+								metrics.WithLastErrorCategory(point.Logging),
+							)
+							l.Errorf("feed dbm activity failed: %s", err.Error())
+						}
+					}
+				}
+
+				ipt.collectDbmSessionMetrics(rows, ptsTime)
+
+				if ipt.DbmSample.Enabled {
+					planStart := time.Now()
+					samplePts := ipt.collectSamplePlans(rows, ptsTime, duration)
+					if len(samplePts) > 0 {
+						if err := ipt.feeder.Feed(point.Object, samplePts,
+							dkio.WithCollectCost(time.Since(planStart)),
+							dkio.WithElection(ipt.Election),
+							dkio.WithSource(dbmFeedName),
+						); err != nil {
+							ipt.feeder.FeedLastError(err.Error(),
+								metrics.WithLastErrorInput(inputName),
+								metrics.WithLastErrorCategory(point.Object),
+							)
+							l.Errorf("feed dbm sample(plan object) failed: %s", err.Error())
+						}
+					}
+				}
+			}
+
+			if err := ipt.collectDbmConnections(ptsTime); err != nil {
+				l.Errorf("collectDbmConnections failed: %s", err.Error())
+			}
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("DBM sample/activity collection exit")
+			return
+		case <-ipt.semStop.Wait():
+			l.Info("DBM sample/activity collection return")
+			return
+		case tt := <-tick.C:
+			ptsTime = inputs.AlignTime(tt, ptsTime, duration)
 		}
 	}
 }
@@ -1535,6 +1778,8 @@ func parseURL(uri string) (string, error) {
 func NewInput(service Service) *Input {
 	input := &Input{
 		Election:               true,
+		MeasurementVersion:     "v2",
+		Timeout:                datakit.Duration{Duration: 10 * time.Second},
 		feeder:                 dkio.DefaultFeeder(),
 		tagger:                 datakit.DefaultGlobalTagger(),
 		semStop:                cliutils.NewSem(),
@@ -1552,6 +1797,20 @@ func NewInput(service Service) *Input {
 		},
 		DatabaseAutoDiscovery: DatabaseDiscovery{
 			Enabled: false,
+		},
+		Dbm: false,
+		DbmMetric: dbmMetric{
+			Enabled:  true,
+			Interval: datakit.Duration{Duration: defaultDbmMetricInterval},
+		},
+		DbmActivity: dbmActivity{
+			Enabled:  true,
+			Interval: datakit.Duration{Duration: defaultDbmActivityInterval},
+		},
+		DbmSample: dbmSample{
+			Enabled:         true,
+			ExplainCacheTTL: datakit.Duration{Duration: 10 * time.Minute},
+			PlanCacheTTL:    datakit.Duration{Duration: time.Hour},
 		},
 	}
 	input.service = service

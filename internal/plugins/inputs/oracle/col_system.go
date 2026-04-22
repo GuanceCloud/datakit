@@ -166,6 +166,49 @@ type sysmetricsRowDB struct {
 	PdbName    sql.NullString  `db:"PDB_NAME,omitempty"`
 }
 
+func getSystemMetricFieldAndValue(row sysmetricsRowDB) (string, float64, bool) {
+	metric, ok := systemCols[row.MetricName.String]
+	if !ok {
+		return "", 0, false
+	}
+
+	value := row.Value.Float64
+	switch row.MetricUnit.String {
+	case "CentiSeconds Per Second":
+		value /= 100
+	case "SQL Service Response Time":
+		value *= 10.0 // ds -> ms
+	}
+
+	if alias, ok := aliasMapping[metric]; ok {
+		return alias, value, true
+	}
+
+	return metric, value, true
+}
+
+func (ipt *Input) updateObjectMetricFromSystemRow(row sysmetricsRowDB) {
+	if ipt.objectMetric == nil {
+		return
+	}
+
+	metric, ok := systemCols[row.MetricName.String]
+	if !ok {
+		return
+	}
+
+	switch metric {
+	case "executions_per_sec":
+		ipt.objectMetric.QPS = row.Value.Float64
+	case "executions_per_txn":
+		ipt.objectMetric.TPS = row.Value.Float64
+	case "user_commits":
+		ipt.objectMetric.TranCommits = row.Value.Float64
+	case "user_rollbacks":
+		ipt.objectMetric.TranRolls = row.Value.Float64
+	}
+}
+
 func (ipt *Input) collectOracleSystem(ptsTime time.Time) {
 	var (
 		metricName = "oracle_system"
@@ -191,67 +234,30 @@ func (ipt *Input) collectOracleSystem(ptsTime time.Time) {
 		kvs  = ipt.getKVs()
 	)
 
-	kvs = kvs.AddTag("version", ipt.fullVersion).
-		Set("uptime", ipt.Uptime)
-
-	makeTagsAndFields := func(row sysmetricsRowDB, isExistedMap map[string]bool) {
-		if metric, ok := systemCols[row.MetricName.String]; ok {
-			value := row.Value.Float64
-
-			if ipt.objectMetric != nil {
-				if metric == "executions_per_sec" {
-					ipt.objectMetric.QPS = value
-				}
-				if metric == "executions_per_txn" {
-					ipt.objectMetric.TPS = value
-				}
-				switch metric {
-				case "executions_per_sec":
-					ipt.objectMetric.QPS = value
-				case "user_commits":
-					ipt.objectMetric.TranCommits = value
-				case "user_rollbacks":
-					ipt.objectMetric.TranRolls = value
-				}
-			}
-
-			switch row.MetricUnit.String {
-			case "CentiSeconds Per Second":
-				value /= 100
-			case "SQL Service Response Time":
-				value *= 10.0 // ds -> ms
-			}
-
-			if row.PdbName.Valid {
-				kvs = kvs.AddTag("pdb_name", row.PdbName.String)
-			}
-
-			alias, ok := aliasMapping[metric]
-			if ok {
-				kvs = kvs.Set(alias, value)
-			} else {
-				kvs = kvs.Set(metric, value)
-			}
-
-			if isExistedMap != nil {
-				isExistedMap[row.MetricName.String] = true
-			}
-		} else {
-			l.Debugf("skip metric %q", row.MetricName.String)
-		}
-	}
-
 	isExistedContainerMetric := map[string]bool{}
 	for _, row := range rows {
-		makeTagsAndFields(row, isExistedContainerMetric)
-	}
+		fieldName, value, ok := getSystemMetricFieldAndValue(row)
+		if !ok {
+			l.Debugf("skip metric %q", row.MetricName.String)
+			continue
+		}
 
-	if kvs.FieldCount() > 0 {
-		pts = append(pts, point.NewPoint(metricName, kvs, opts...))
+		containerKVs := ipt.getKVs().
+			AddTag("version", ipt.fullVersion)
+
+		if row.PdbName.Valid {
+			containerKVs = containerKVs.AddTag("pdb_name", row.PdbName.String)
+		}
+
+		containerKVs = containerKVs.Set(fieldName, value)
+		pts = append(pts, point.NewPoint(metricName, containerKVs, opts...))
+		isExistedContainerMetric[row.MetricName.String] = true
 	}
 
 	rows = rows[:0] // reset rows
-	kvs = ipt.getKVs()
+	kvs = ipt.getKVs().
+		AddTag("version", ipt.fullVersion).
+		Set("uptime", ipt.Uptime)
 
 	sql := sqlSystemMetric["default"]
 	if isDBVersionLessThan(ipt.dbVersion, "12") {
@@ -263,31 +269,44 @@ func (ipt *Input) collectOracleSystem(ptsTime time.Time) {
 	}
 
 	isExistedGlobalMetric := map[string]bool{}
+	hasGlobalMetric := false
 	for _, row := range rows {
+		if _, ok := isExistedGlobalMetric[row.MetricName.String]; ok {
+			continue
+		}
+		isExistedGlobalMetric[row.MetricName.String] = true
+
+		ipt.updateObjectMetricFromSystemRow(row)
+
 		if _, ok := isExistedContainerMetric[row.MetricName.String]; ok {
 			continue
 		}
 
-		if _, ok := isExistedGlobalMetric[row.MetricName.String]; ok {
+		fieldName, value, ok := getSystemMetricFieldAndValue(row)
+		if !ok {
+			l.Debugf("skip metric %q", row.MetricName.String)
 			continue
 		}
 
-		makeTagsAndFields(row, isExistedGlobalMetric)
+		kvs = kvs.Set(fieldName, value)
+		hasGlobalMetric = true
 	}
 
-	if kvs.FieldCount() > 0 {
+	if hasGlobalMetric {
 		pts = append(pts, point.NewPoint(metricName, kvs, opts...))
 	}
 
 	l.Debugf("collect %d points from system(oracle version %s)", len(pts), ipt.mainVersion)
 
-	if err := ipt.feeder.Feed(point.Metric,
-		pts,
-		dkio.WithCollectCost(time.Since(start)),
-		dkio.WithElection(ipt.Election),
-		dkio.WithSource(inputName),
-		dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementOracle))); err != nil {
-		l.Warnf("feeder.Feed: %s, ignored", err)
+	if len(pts) > 0 {
+		if err := ipt.feeder.Feed(point.Metric,
+			pts,
+			dkio.WithCollectCost(time.Since(start)),
+			dkio.WithElection(ipt.Election),
+			dkio.WithSource(inputName),
+			dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementOracle))); err != nil {
+			l.Warnf("feeder.Feed: %s, ignored", err)
+		}
 	}
 }
 

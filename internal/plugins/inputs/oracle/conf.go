@@ -38,7 +38,7 @@ const (
   ## Set true to enable election
   election = true
 
-  ## v2+ override all measurement names to "oracle_metric", default: v2
+  ## v2+ override all metric measurements to "oracle", default: v2
   ## If you want to use the old metric set, you can change it to "v1"
   measurement_version = "v2"
 

@@ -278,6 +278,8 @@ dbm = true
 
 			_, err := toml.Decode(base.conf, ipt)
 			assert.NoError(t, err)
+			// Integration checks points by v1 measurement names (mysql, mysql_schema, ...).
+			ipt.MeasurementVersion = "v1"
 
 			envs := []string{
 				fmt.Sprintf("MYSQL_ROOT_PASSWORD=%s", MySQLPassword),
@@ -472,9 +474,6 @@ func assertMeasurements(pts []*point.Point, cs *caseSpec) error {
 		}
 		mtMap["mysql_dbm_activity"] = measurementInfo{
 			measurement: &dbmActivityMeasurement{},
-			extraTags: map[string]string{
-				"status": "info",
-			},
 		}
 	}
 

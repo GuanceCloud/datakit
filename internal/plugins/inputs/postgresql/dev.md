@@ -23,6 +23,9 @@ address = "postgres://postgres@localhost/test?sslmode=disable"
 # 单位 "ns", "us" (or "µs"), "ms", "s", "m", "h"
 interval = "10s"
 
+## 查询与连接超时，默认 10s
+# connect_timeout = "10s"
+
 ## 自定义Tag
 [inputs.postgresql.tags]
 # a = "b"

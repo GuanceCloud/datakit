@@ -356,11 +356,15 @@ func (ipt *Input) setServerHostTag() {
 
 	if len(hostName) > 0 {
 		ipt.Tags["sqlserver_host"] = hostName
-
 		if ipt.databaseInstance == "" {
 			ipt.databaseInstance = hostName
-			ipt.Tags["database_instance"] = hostName
 		}
+	}
+
+	if ipt.databaseInstance != "" {
+		ipt.Tags["database_instance"] = ipt.databaseInstance
+	} else {
+		ipt.Tags["database_instance"] = ipt.Tags["server"]
 	}
 }
 
@@ -707,6 +711,10 @@ func (ipt *Input) runDbmCollectors() {
 // runDbmMetric runs DBM metric.
 func (ipt *Input) runDbmMetric() {
 	duration := ipt.Dbm.Metric.CollectionInterval.Duration
+	if duration <= 0 {
+		duration = dbmMetricInterval.Duration
+	}
+	duration = config.ProtectedInterval(minInterval, maxInterval, duration)
 
 	tick := time.NewTicker(duration)
 	defer tick.Stop()
@@ -758,6 +766,10 @@ func (ipt *Input) collectDbmMetricAndPlans(duration time.Duration, ptsTime time.
 // runDbmActivity runs DBM activity.
 func (ipt *Input) runDbmActivity() {
 	duration := ipt.Dbm.Activity.CollectionInterval.Duration
+	if duration <= 0 {
+		duration = dbmActivityInterval.Duration
+	}
+	duration = config.ProtectedInterval(minInterval, maxInterval, duration)
 
 	tick := time.NewTicker(duration)
 	defer tick.Stop()

@@ -7,6 +7,8 @@ __int_icon      : 'icon/oracle'
 dashboard :
   - desc  : 'Oracle'
     path  : 'dashboard/en/oracle'
+  - desc  : 'Oracle-v2'
+    path  : 'dashboard/en/oracle-v2'
 monitor   :
   - desc  : 'N/A'
     path  : '-'

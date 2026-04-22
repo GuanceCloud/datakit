@@ -416,12 +416,48 @@ func TestBuildDbmActivityRow(t *testing.T) {
 				assert.Equal(t, "running", row.sessionStatus)
 				assert.Equal(t, "running", row.requestStatus)
 				assert.Equal(t, "SELECT", row.command)
+				assert.Equal(t, waitTypeCPU, row.waitType)
+				assert.Equal(t, "CPU", row.waitCategory)
 				assert.Equal(t, int64(100), row.cpuTime)
 				assert.Equal(t, "dbo.testproc", row.procedureName)
 				assert.Equal(t, "dbo", row.schemaName)
 				assert.Equal(t, "testapp", row.programName)
 				assert.Equal(t, "0x0102", row.queryHash)
 				assert.Equal(t, "0x0304", row.queryPlanHash)
+			},
+		},
+		{
+			name: "runnable request with empty wait type gets waiting_on_cpu",
+			columnMap: map[string]*interface{}{
+				"id":             intPtr(int64(456)),
+				"statement_text": strPtr("SELECT 1"),
+				"session_status": strPtr("running"),
+				"request_status": strPtr("runnable"),
+				"wait_type":      strPtr(""),
+			},
+			wantNil: false,
+			wantErr: false,
+			validate: func(t *testing.T, row *dbmActivityRow) {
+				t.Helper()
+				assert.Equal(t, waitTypeWaitingOnCPU, row.waitType)
+				assert.Equal(t, "CPU", row.waitCategory)
+			},
+		},
+		{
+			name: "suspended request with empty wait type stays empty",
+			columnMap: map[string]*interface{}{
+				"id":             intPtr(int64(789)),
+				"statement_text": strPtr("SELECT 1"),
+				"session_status": strPtr("running"),
+				"request_status": strPtr("suspended"),
+				"wait_type":      strPtr(""),
+			},
+			wantNil: false,
+			wantErr: false,
+			validate: func(t *testing.T, row *dbmActivityRow) {
+				t.Helper()
+				assert.Empty(t, row.waitType)
+				assert.Equal(t, "Other", row.waitCategory)
 			},
 		},
 		{
@@ -516,6 +552,8 @@ func TestBuildIdleBlockingActivityRow(t *testing.T) {
 				assert.Equal(t, "testhost", row.hostName)
 				assert.Equal(t, "testdb", row.databaseName)
 				assert.Equal(t, "sleeping", row.sessionStatus)
+				assert.Empty(t, row.waitType)
+				assert.Equal(t, "Other", row.waitCategory)
 				assert.NotEmpty(t, row.obfuscatedText)
 				assert.Equal(t, "dbo.testproc", row.procedureName)
 				assert.Equal(t, "dbo", row.schemaName)
@@ -1873,13 +1911,25 @@ func TestCategorizeWaitType(t *testing.T) {
 			name:          "running with empty wait type",
 			sessionStatus: "running",
 			waitType:      "",
+			want:          "Other",
+		},
+		{
+			name:          "running with CPU wait type",
+			sessionStatus: "running",
+			waitType:      waitTypeCPU,
 			want:          "CPU",
 		},
 		{
-			name:          "running with CPU wait type (not recognized, should be Other)",
+			name:          "running with waiting_on_cpu wait type",
 			sessionStatus: "running",
-			waitType:      "CPU",
-			want:          "Other",
+			waitType:      waitTypeWaitingOnCPU,
+			want:          "CPU",
+		},
+		{
+			name:          "sos_scheduler_yield",
+			sessionStatus: "running",
+			waitType:      "SOS_SCHEDULER_YIELD",
+			want:          "CPU",
 		},
 		// Lock related (Highest priority)
 		{
@@ -1987,8 +2037,68 @@ func TestCategorizeWaitType(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := categorizeWaitType(tt.sessionStatus, tt.waitType)
+			result := categorizeWaitType(tt.waitType)
 			assert.Equal(t, tt.want, result, "sessionStatus: %s, waitType: %s", tt.sessionStatus, tt.waitType)
+		})
+	}
+}
+
+func TestNormalizeWaitType(t *testing.T) {
+	tests := []struct {
+		name          string
+		sessionStatus string
+		requestStatus string
+		waitType      string
+		want          string
+	}{
+		{
+			name:          "preserve explicit wait type",
+			sessionStatus: "running",
+			requestStatus: "suspended",
+			waitType:      "PAGEIOLATCH_SH",
+			want:          "PAGEIOLATCH_SH",
+		},
+		{
+			name:          "runnable request becomes waiting_on_cpu",
+			sessionStatus: "running",
+			requestStatus: "runnable",
+			waitType:      "",
+			want:          waitTypeWaitingOnCPU,
+		},
+		{
+			name:          "running request becomes cpu",
+			sessionStatus: "running",
+			requestStatus: "running",
+			waitType:      "",
+			want:          waitTypeCPU,
+		},
+		{
+			name:          "running session without request becomes cpu",
+			sessionStatus: "running",
+			requestStatus: "",
+			waitType:      "",
+			want:          waitTypeCPU,
+		},
+		{
+			name:          "suspended request does not become cpu from session status",
+			sessionStatus: "running",
+			requestStatus: "suspended",
+			waitType:      "",
+			want:          "",
+		},
+		{
+			name:          "sleeping session with empty wait type stays empty",
+			sessionStatus: "sleeping",
+			requestStatus: "",
+			waitType:      "",
+			want:          "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := normalizeWaitType(tt.sessionStatus, tt.requestStatus, tt.waitType)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

@@ -73,9 +73,14 @@ func (ipt *Input) collectDatabaseObject() {
 
 	opts = append(opts, point.WithTimestamp(ipt.ptsTime.UnixNano()))
 
+	objectName := ipt.Object.name
+	if ipt.databaseInstance != "" {
+		objectName = fmt.Sprintf("%s-%s", ipt.Object.name, ipt.databaseInstance)
+	}
+
 	kvs = kvs.AddTag("version", ipt.mainVersion).
 		AddTag("database_type", oracleType).
-		AddTag("name", fmt.Sprintf("%s-%s", ipt.Object.name, ipt.databaseInstance)).
+		AddTag("name", objectName).
 		AddTag("port", fmt.Sprintf("%d", ipt.Port)).
 		Add("uptime", ipt.Uptime)
 

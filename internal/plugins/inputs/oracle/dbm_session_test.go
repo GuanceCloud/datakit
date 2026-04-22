@@ -200,7 +200,7 @@ func TestAggregateSessions(t *testing.T) {
 				t.Helper()
 				assert.Len(t, agg, 1)
 				session := agg[0]
-				assert.Equal(t, "Other", session.waitClass)
+				assert.Equal(t, "Other", session.waitGroup)
 			},
 		},
 		{
@@ -264,8 +264,11 @@ func TestBuildSessionPoints(t *testing.T) {
 					server:        "testhost:1521",
 					pdbName:       "TESTPDB",
 					username:      "testuser",
+					program:       "sqlplus",
+					client:        "client-host",
 					status:        "active",
 					waitClass:     "CPU",
+					waitGroup:     "CPU",
 					sessionCount:  5,
 					totalWaitTime: 1000,
 					blockedCount:  0,
@@ -284,6 +287,8 @@ func TestBuildSessionPoints(t *testing.T) {
 				assert.Equal(t, "TESTCDB", tags.GetTag("cdb_name"))
 				assert.Equal(t, "TESTPDB", tags.GetTag("pdb_name"))
 				assert.Equal(t, "testuser", tags.GetTag("username"))
+				assert.Equal(t, "sqlplus", tags.GetTag("program"))
+				assert.Equal(t, "client-host", tags.GetTag("client"))
 				assert.Equal(t, "active", tags.GetTag("session_status"))
 				assert.Equal(t, "CPU", tags.GetTag("wait_group"))
 

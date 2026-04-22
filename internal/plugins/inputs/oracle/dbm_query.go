@@ -92,7 +92,10 @@ func (ipt *Input) collectDbmQueries(oracleRows []*OracleRow, ptsTime time.Time) 
 
 		kvs := ipt.getKVs()
 		// Tags
-		objectName := fmt.Sprintf("%s-%s-%s", ipt.Object.name, ipt.databaseInstance, querySignature)
+		objectName := fmt.Sprintf("%s-%s", ipt.Object.name, querySignature)
+		if ipt.databaseInstance != "" {
+			objectName = fmt.Sprintf("%s-%s-%s", ipt.Object.name, ipt.databaseInstance, querySignature)
+		}
 		kvs = kvs.AddTag("name", objectName)
 		kvs = kvs.AddTag("query_signature", querySignature)
 		kvs = kvs.AddTag("server", ipt.Object.name)

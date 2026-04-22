@@ -61,9 +61,9 @@ func (m *sqlserverMeasurement) getTags() map[string]interface{} {
 
 func (m *sqlserverMeasurement) getCommonTags() map[string]interface{} {
 	tags := make(map[string]interface{})
-	tags["sqlserver_host"] = &inputs.TagInfo{Desc: "Host name which installed SQLServer"}
-	tags["database_instance"] = &inputs.TagInfo{Desc: "SQL Server instance identifier from configured tag or SQL Server server name."}
-	tags["server"] = &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"}
+	tags["sqlserver_host"] = &inputs.TagInfo{Desc: "Host name which installed SQLServer. Common tag."}
+	tags["database_instance"] = &inputs.TagInfo{Desc: "SQL Server instance identifier from configured tag or SQL Server server name. Common tag."}
+	tags["server"] = &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`. Common tag."}
 	return tags
 }
 
@@ -147,7 +147,10 @@ func (m *sqlserverMeasurement) getDbmSessionTags() map[string]interface{} {
 	tags := make(map[string]interface{})
 	tags["database_name"] = &inputs.TagInfo{Desc: "The name of the database"}
 	tags["user_name"] = &inputs.TagInfo{Desc: "The name of the database user"}
+	tags["program_name"] = &inputs.TagInfo{Desc: "The name of the client program"}
+	tags["client_address"] = &inputs.TagInfo{Desc: "The client network address"}
 	tags["session_status"] = &inputs.TagInfo{Desc: "Session status: active (has active request), idle (sleeping session), blocked (being blocked)"}
+	tags["wait_type"] = &inputs.TagInfo{Desc: "The wait type from SQL Server, or a derived CPU sentinel such as CPU / WAITING_ON_CPU when the request is runnable without a reported wait."}
 	tags["wait_group"] = &inputs.TagInfo{Desc: "Datakit unified wait group: Lock, I/O, Concurrency, Memory, Network, CPU, Commit/Log, Other."}
 	return tags
 }

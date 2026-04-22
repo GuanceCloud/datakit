@@ -463,7 +463,10 @@ func (ipt *Input) buildAndFeedDatabasePlanObjects(rowsWithPlans []*statementRowW
 		planName := generatePlanCacheKey(row.querySignature, fmt.Sprintf("%d", row.RawData.PlanHashValue))
 
 		kvs := ipt.getKVs()
-		objectName := fmt.Sprintf("%s-%s-%s", ipt.Object.name, ipt.databaseInstance, planName)
+		objectName := fmt.Sprintf("%s-%s", ipt.Object.name, planName)
+		if ipt.databaseInstance != "" {
+			objectName = fmt.Sprintf("%s-%s-%s", ipt.Object.name, ipt.databaseInstance, planName)
+		}
 		kvs = kvs.AddTag("name", objectName)
 		kvs = kvs.AddTag("query_signature", row.querySignature)
 		kvs = kvs.AddTag("plan_hash_value", fmt.Sprintf("%d", row.RawData.PlanHashValue))
