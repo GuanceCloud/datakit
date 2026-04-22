@@ -145,6 +145,23 @@
         ...
     ```
 
+    **GKE Autopilot**
+
+    GKE Autopilot 请使用单独发布的 `datakit-gke-autopilot` chart。安装时不需要额外指定镜像版本，默认使用该 chart 中声明的镜像版本：
+
+    ```shell
+    helm install datakit datakit-gke-autopilot \
+        <<<% if custom_key.brand_key == 'guance' -%>>>
+        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+        <<<% else -%>>>
+        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
+        <<<% endif -%>>>
+        -n datakit --create-namespace \
+        --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<your-token>"
+    ```
+
+    该 chart 会以非特权、非 root 的方式运行 DataKit，并减少宿主机挂载能力。详细差异、升级和排查方式，参见 [GKE Autopilot Helm 安装](datakit-helm.md#gke-autopilot)。
+
 === "Deployment"
 
     也可以将 DataKit 部署成普通的 Deployment，下载 [*datakit-deployment.yaml*](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-deployment.yaml){:target="_blank"}。相比 DaemonSet 部署，只是稍作调整，其可用的配置参数基本一致。
