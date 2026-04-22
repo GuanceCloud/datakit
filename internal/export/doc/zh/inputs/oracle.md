@@ -246,6 +246,41 @@ apt-get install -y libaio-dev libaio1
 
 <!-- markdownlint-enable -->
 
+### Oracle RAC {#rac}
+
+对于 Oracle RAC，当前采集器推荐按“每实例一个 input”的方式部署，而不是通过单个 input 查询 `GV$` 视图来聚合整个 RAC。
+
+- 为每个 RAC 节点或实例分别配置一个 `[[inputs.oracle]]`
+- 每个 input 应连接固定节点地址、VIP 或实例专属 service
+- 不建议通过 SCAN、负载均衡或连接池连接，否则同一个 input 可能漂移到不同实例
+- 建议连接 CDB service，不要分别连接单独 PDB
+
+可以通过自定义 tag 将同一套 RAC 的多个 input 关联起来，例如：
+
+```toml
+[[inputs.oracle]]
+  host = "rac-node-1-vip"
+  port = 1521
+  user = "datakit"
+  password = "<PASS>"
+  service = "CDB1_NODE1"
+  ...
+
+  [inputs.oracle.tags]
+    rac_cluster = "prod-rac"
+
+[[inputs.oracle]]
+  host = "rac-node-2-vip"
+  port = 1521
+  user = "datakit"
+  password = "<PASS>"
+  service = "CDB1_NODE2"
+  ...
+
+  [inputs.oracle.tags]
+    rac_cluster = "prod-rac"
+```
+
 ## 数据库监控 (DBM) {#dbm}
 
 数据库监控（Database Monitoring，DBM）功能提供对 Oracle 数据库性能的深度可见性，通过收集查询指标、活动会话和执行计划来帮助分析和优化数据库性能。
