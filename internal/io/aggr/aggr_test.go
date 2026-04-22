@@ -22,6 +22,7 @@ import (
 	"github.com/GuanceCloud/cliutils/aggregate"
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 )
 
 func TestReadConfig(t *testing.T) {
@@ -49,12 +50,25 @@ func TestReadTailSamplingConfig(t *testing.T) {
 	require.NotNil(t, ag.tailSamplingConfig.Logging)
 	assert.Equal(t, int64(2), ag.tailSamplingConfig.Version)
 	assert.Equal(t, "trace_id", ag.tailSamplingConfig.Tracing.GroupKey)
-	require.Len(t, ag.tailSamplingConfig.Tracing.Pipelines, 5)
+	require.Len(t, ag.tailSamplingConfig.Tracing.Pipelines, 6)
 	assert.Equal(t, "server_key", ag.tailSamplingConfig.Tracing.Pipelines[0].Name)
+	assert.Equal(t, "sample-rest", ag.tailSamplingConfig.Tracing.Pipelines[5].Name)
 	require.Len(t, ag.tailSamplingConfig.Logging.GroupDimensions, 1)
 	assert.Equal(t, "trace_id", ag.tailSamplingConfig.Logging.GroupDimensions[0].GroupKey)
 	require.Len(t, ag.tailSamplingConfig.Logging.GroupDimensions[0].Pipelines, 1)
-	assert.Equal(t, "sample-by-trace-id", ag.tailSamplingConfig.Logging.GroupDimensions[0].Pipelines[0].Name)
+	assert.Equal(t, "keep-logs-with-trace-id", ag.tailSamplingConfig.Logging.GroupDimensions[0].Pipelines[0].Name)
+}
+
+func TestDefaultTokenPrefersAggrEndpoints(t *testing.T) {
+	ag := &Aggregator{
+		Endpoints: []string{"http://127.0.0.1:9528?token=tkn_aggr"},
+		DW: &dataway.Dataway{
+			Token: "tkn_dw",
+		},
+	}
+	ag.initHTTP()
+
+	assert.Equal(t, "tkn_aggr", ag.defaultToken())
 }
 
 func TestPickMetric(t *testing.T) {
@@ -383,7 +397,7 @@ func TestSendMetricBatchesSplit(t *testing.T) {
 	ag.initHTTP()
 
 	batchMap := ag.PickMetric(point.SMetric, newLargeMetricPoints(200, 128))
-	ag.SendMetricBatches(batchMap)
+	ag.SendMetricBatches(point.SMetric, batchMap)
 
 	require.Greater(t, len(reqLens), 1)
 	for _, n := range reqLens {

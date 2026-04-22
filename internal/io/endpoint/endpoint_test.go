@@ -322,6 +322,61 @@ test-2 f1=1i,f2=false 123
 			MetricsReset()
 		})
 	})
+
+	t.Run("write-aggr-data-records-endpoint-metrics", func(t *T.T) {
+		MetricsReset()
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, datakit.Aggregate, r.URL.Path)
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer ts.Close()
+
+		reg := prometheus.NewRegistry()
+		reg.MustRegister(Metrics()...)
+
+		urlstr := fmt.Sprintf("%s?token=abc", ts.URL)
+		ep, err := NewEndpoint(urlstr, WithAPIs([]string{datakit.Aggregate}))
+		require.NoError(t, err)
+
+		resp, body, err := ep.WriteAggrData(&AggrData{
+			API:             datakit.Aggregate,
+			Category:        point.SMetric,
+			ContentType:     "application/x-protobuf",
+			ContentEncoding: "identity",
+			Body:            []byte("mock-aggr-payload"),
+			RawLen:          len("mock-aggr-payload"),
+			Points:          3,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Empty(t, body)
+
+		mfs, err := reg.Gather()
+		require.NoError(t, err)
+
+		m := metrics.GetMetricOnLabels(mfs,
+			`datakit_io_endpoint_api_latency_seconds`,
+			datakit.Aggregate, "NOT-SET",
+			http.StatusText(http.StatusOK))
+		require.NotNil(t, m)
+		assert.Equal(t, uint64(1), m.GetSummary().GetSampleCount())
+
+		m = metrics.GetMetricOnLabels(mfs,
+			`datakit_io_endpoint_point_total`,
+			point.Metric.String(), "NOT-SET",
+			http.StatusText(http.StatusOK))
+		require.NotNil(t, m)
+		assert.Equal(t, 3.0, m.GetCounter().GetValue())
+
+		m = metrics.GetMetricOnLabels(mfs,
+			`datakit_io_endpoint_point_bytes_total`,
+			point.Metric.String(),
+			"identity", "NOT-SET",
+			http.StatusText(http.StatusOK))
+		require.NotNil(t, m)
+		assert.True(t, m.GetCounter().GetValue() > 0)
+	})
 }
 
 func TestRetryGetBodyNil(t *T.T) {

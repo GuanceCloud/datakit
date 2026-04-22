@@ -899,7 +899,7 @@ func (t *HTTPTask) setReqError(err string) {
 	t.reqError = err
 }
 
-// extractSSLCertificateValidity extracts SSL certificate validity information from the given connection state
+// extractSSLCertificateValidity extracts SSL certificate validity information from the given connection state.
 func (t *HTTPTask) extractSSLCertificateValidity(cs tls.ConnectionState) {
 	if len(cs.PeerCertificates) > 0 {
 		cert := cs.PeerCertificates[0] // Use the first certificate in the chain (server certificate)

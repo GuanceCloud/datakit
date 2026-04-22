@@ -370,7 +370,7 @@ require (
 )
 
 require (
-	github.com/GuanceCloud/cliutils v1.1.22-0.20260409051744-3dcd6a69494e
+	github.com/GuanceCloud/cliutils v1.1.22-0.20260421085720-c22683f8683e
 	github.com/VictoriaMetrics/easyproto v0.1.4 // indirect
 	github.com/andybalholm/brotli v1.0.4
 	github.com/avast/retry-go/v4 v4.1.0 // indirect

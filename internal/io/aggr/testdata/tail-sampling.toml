@@ -55,7 +55,13 @@ type = "condition"
 condition = '{ http_route = "/tmall/**" }'
 action = "drop"
 
-# logging 规则：按 trace_id 分组后做确定性百分比采样。
+[[trace.sampling_pipeline]]
+name = "sample-rest"
+type = "probabilistic"
+condition = '{ 1 = 1 }'
+rate = 0.1
+
+# logging 规则：只要日志带 trace_id，就进入尾采样链路并保留。
 # 没有 trace_id 的日志会直接透传，不进入该分组采样逻辑。
 [logging]
 data_ttl = "1m"
@@ -64,10 +70,10 @@ data_ttl = "1m"
 group_key = "trace_id"
 
 [[logging.group_dimensions.pipelines]]
-name = "sample-by-trace-id"
+name = "keep-logs-with-trace-id"
 type = "probabilistic"
 condition = '{ 1 = 1 }'
-rate = 0.1
+rate = 1.0
 
 # rum 配置结构和 logging 一致(按 group_dimensions 分组采样)：
 #

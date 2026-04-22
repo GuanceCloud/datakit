@@ -3,7 +3,6 @@ title: 'DDTrace Java 扩展更新日志'
 skip: 'not-searchable-on-index-page'
 ---
 
-
 ## 简介 {#intro}
 
 本文记录 DataKit 中用于兼容 DDTrace Java 探针接入场景的 Java 扩展包更新内容。该扩展基于 `DataDog/dd-trace-java` 开发，遵循 `Apache License 2.0`。

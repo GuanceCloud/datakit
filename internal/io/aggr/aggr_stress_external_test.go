@@ -652,10 +652,15 @@ func stressSyntheticSpanID(round uint64, traceIdx, spanIdx int) string {
 
 func stressReleaseSenderResources(ags []*Aggregator) {
 	for _, ag := range ags {
-		if ag == nil || ag.Transport == nil {
+		if ag == nil {
 			continue
 		}
-		ag.Transport.CloseIdleConnections()
+		for _, ep := range ag.eps {
+			if ep == nil {
+				continue
+			}
+			ep.CloseIdleConnections()
+		}
 	}
 }
 

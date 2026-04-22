@@ -286,7 +286,7 @@ func (t *WebsocketTask) clear() {
 	t.sslCertNotAfter = 0
 }
 
-// extractCertificateInfo extracts SSL certificate validity information from the underlying connection
+// extractCertificateInfo extracts SSL certificate validity information from the underlying connection.
 func (t *WebsocketTask) extractCertificateInfo(conn net.Conn) {
 	// Check if the underlying connection is a TLS connection
 	if tlsConn, ok := conn.(*tls.Conn); ok {
@@ -331,6 +331,7 @@ func (t *WebsocketTask) run() error {
 			return nil
 		}
 		t.reqDNSCost = time.Since(start)
+		// nolint
 		hostIP = ips[0] // TODO: support mutiple ip for one host
 	}
 

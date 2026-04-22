@@ -34,7 +34,8 @@ func (rs *RuleSelector) Setup() error {
 		point.RUM,
 		point.Security,
 		point.Profiling,
-		point.DialTesting:
+		point.DialTesting,
+		point.AgentLLM:
 	case point.UnknownCategory,
 		point.DynamicDWCategory,
 		point.MetricDeprecated,
