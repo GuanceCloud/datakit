@@ -87,6 +87,11 @@ struct connection_tcp_stats
     __s32 retransmits;
     __u32 rtt;
     __u32 rtt_var;
+    __u32 connect_attempts;
+    __u32 connect_failures;
+    __u32 close_wait;
+    __u32 last_ack;
+    __u32 time_wait;
 };
 
 struct connection_closed_info
@@ -100,6 +105,7 @@ struct port_bind
 {
     __u32 netns;
     __u16 port;
+    __u16 _pad;
 };
 
 struct pid_fd

@@ -6,11 +6,12 @@ package l4log
 
 import (
 	"context"
+	"encoding/binary"
+	"net"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/goccy/go-json"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/platypus/pkg/ast"
@@ -23,6 +24,273 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/spanid"
 	"golang.org/x/sys/unix"
 )
+
+func ancillaryDirection(data []interface{}) (int8, string) {
+	for _, v := range data {
+		if v, ok := v.(afpacket.AncillaryPktType); ok {
+			if v.Type == unix.PACKET_OUTGOING {
+				return directionTX, "tx"
+			}
+
+			return directionRX, "rx"
+		}
+	}
+
+	return 0, ""
+}
+
+type packetStringCache struct {
+	mac  map[[6]byte]string
+	ipv4 map[[4]byte]string
+	ipv6 map[[16]byte]string
+}
+
+const (
+	packetStringCacheMaxMAC  = 256
+	packetStringCacheMaxIPv4 = 4096
+	packetStringCacheMaxIPv6 = 2048
+)
+
+func newPacketStringCache() *packetStringCache {
+	return &packetStringCache{
+		mac:  make(map[[6]byte]string, 32),
+		ipv4: make(map[[4]byte]string, 256),
+		ipv6: make(map[[16]byte]string, 64),
+	}
+}
+
+func (c *packetStringCache) macString(addr net.HardwareAddr) string {
+	if len(addr) != 6 {
+		return addr.String()
+	}
+
+	var key [6]byte
+	copy(key[:], addr)
+	if v, ok := c.mac[key]; ok {
+		return v
+	}
+
+	if len(c.mac) >= packetStringCacheMaxMAC {
+		c.mac = make(map[[6]byte]string, 32)
+	}
+
+	v := addr.String()
+	c.mac[key] = v
+	return v
+}
+
+func (c *packetStringCache) ipString(ip net.IP) string {
+	if v4 := ip.To4(); len(v4) == 4 {
+		var key [4]byte
+		copy(key[:], v4)
+		if v, ok := c.ipv4[key]; ok {
+			return v
+		}
+
+		if len(c.ipv4) >= packetStringCacheMaxIPv4 {
+			c.ipv4 = make(map[[4]byte]string, 256)
+		}
+
+		v := v4.String()
+		c.ipv4[key] = v
+		return v
+	}
+
+	if len(ip) == net.IPv6len {
+		var key [16]byte
+		copy(key[:], ip)
+		if v, ok := c.ipv6[key]; ok {
+			return v
+		}
+
+		if len(c.ipv6) >= packetStringCacheMaxIPv6 {
+			c.ipv6 = make(map[[16]byte]string, 64)
+		}
+
+		v := ip.String()
+		c.ipv6[key] = v
+		return v
+	}
+
+	return ip.String()
+}
+
+type fastPacketInfo struct {
+	key        PMeta
+	tcpHdr     PktTCPHdr
+	payload    []byte
+	scale      int
+	ipv6       bool
+	payloadLen int64
+}
+
+const (
+	etherTypeIPv4 = 0x0800
+	etherTypeIPv6 = 0x86DD
+	etherTypeVLAN = 0x8100
+	etherTypeQinQ = 0x88a8
+
+	minEthernetHeader = 14
+	minIPv4Header     = 20
+	minIPv6Header     = 40
+	minTCPHeader      = 20
+)
+
+func parseFastTCPPacket(buf []byte, ts int64, cache *packetStringCache) (fastPacketInfo, bool) {
+	var info fastPacketInfo
+
+	if len(buf) < minEthernetHeader+minIPv4Header+minTCPHeader || cache == nil {
+		return info, false
+	}
+
+	etherType := binary.BigEndian.Uint16(buf[12:14])
+	switch etherType {
+	case etherTypeVLAN, etherTypeQinQ:
+		return info, false
+	}
+
+	info.tcpHdr = PktTCPHdr{
+		SrcMAC: cache.macString(net.HardwareAddr(buf[6:12])),
+		DstMAC: cache.macString(net.HardwareAddr(buf[0:6])),
+		TS:     ts,
+	}
+
+	switch etherType {
+	case etherTypeIPv4:
+		if !parseFastIPv4Packet(buf, cache, &info) {
+			return fastPacketInfo{}, false
+		}
+	case etherTypeIPv6:
+		if !parseFastIPv6Packet(buf, cache, &info) {
+			return fastPacketInfo{}, false
+		}
+	default:
+		return info, false
+	}
+
+	return info, true
+}
+
+func parseFastIPv4Packet(buf []byte, cache *packetStringCache, info *fastPacketInfo) bool {
+	if len(buf) < minEthernetHeader+minIPv4Header+minTCPHeader {
+		return false
+	}
+
+	ipStart := minEthernetHeader
+	if version := buf[ipStart] >> 4; version != 4 {
+		return false
+	}
+
+	ihl := int(buf[ipStart]&0x0f) * 4
+	if ihl < minIPv4Header || len(buf) < ipStart+ihl+minTCPHeader {
+		return false
+	}
+
+	totalLen := int(binary.BigEndian.Uint16(buf[ipStart+2 : ipStart+4]))
+	if totalLen < ihl+minTCPHeader || len(buf) < ipStart+totalLen {
+		return false
+	}
+
+	frag := binary.BigEndian.Uint16(buf[ipStart+6 : ipStart+8])
+	if frag&0x3fff != 0 {
+		return false
+	}
+
+	if buf[ipStart+9] != byte(layers.IPProtocolTCP) {
+		return false
+	}
+
+	tcpStart := ipStart + ihl
+	return parseFastTCPHeader(buf[tcpStart:ipStart+totalLen], cache.ipString(net.IP(buf[ipStart+12:ipStart+16])),
+		cache.ipString(net.IP(buf[ipStart+16:ipStart+20])), false, info)
+}
+
+func parseFastIPv6Packet(buf []byte, cache *packetStringCache, info *fastPacketInfo) bool {
+	if len(buf) < minEthernetHeader+minIPv6Header+minTCPHeader {
+		return false
+	}
+
+	ipStart := minEthernetHeader
+	if version := buf[ipStart] >> 4; version != 6 {
+		return false
+	}
+
+	payloadLen := int(binary.BigEndian.Uint16(buf[ipStart+4 : ipStart+6]))
+	if payloadLen < minTCPHeader || len(buf) < ipStart+minIPv6Header+payloadLen {
+		return false
+	}
+
+	if buf[ipStart+6] != byte(layers.IPProtocolTCP) {
+		return false
+	}
+
+	tcpStart := ipStart + minIPv6Header
+	return parseFastTCPHeader(buf[tcpStart:ipStart+minIPv6Header+payloadLen],
+		cache.ipString(net.IP(buf[ipStart+8:ipStart+24])),
+		cache.ipString(net.IP(buf[ipStart+24:ipStart+40])), true, info)
+}
+
+func parseFastTCPHeader(seg []byte, srcIP, dstIP string, ipv6 bool, info *fastPacketInfo) bool {
+	if len(seg) < minTCPHeader {
+		return false
+	}
+
+	dataOffset := int(seg[12]>>4) * 4
+	if dataOffset < minTCPHeader || len(seg) < dataOffset {
+		return false
+	}
+
+	info.key.SrcIP = srcIP
+	info.key.DstIP = dstIP
+	info.key.SrcPort = binary.BigEndian.Uint16(seg[0:2])
+	info.key.DstPort = binary.BigEndian.Uint16(seg[2:4])
+	info.ipv6 = ipv6
+
+	info.tcpHdr.Seq = binary.BigEndian.Uint32(seg[4:8])
+	info.tcpHdr.AckSeq = binary.BigEndian.Uint32(seg[8:12])
+	info.tcpHdr.Flags = TCPFlag(seg[13])
+	info.tcpHdr.Win = uint32(binary.BigEndian.Uint16(seg[14:16]))
+
+	info.payload = seg[dataOffset:]
+	info.payloadLen = int64(len(info.payload))
+	info.tcpHdr.TCPPayloadSize = len(info.payload)
+
+	if info.tcpHdr.Flags.HasFlag(TCPSYN) {
+		info.scale = parseTCPWindowScale(seg[minTCPHeader:dataOffset])
+	}
+
+	return true
+}
+
+func parseTCPWindowScale(opts []byte) int {
+	for idx := 0; idx < len(opts); {
+		kind := opts[idx]
+		switch kind {
+		case 0:
+			return 0
+		case 1:
+			idx++
+			continue
+		}
+
+		if idx+1 >= len(opts) {
+			return 0
+		}
+
+		ln := int(opts[idx+1])
+		if ln < 2 || idx+ln > len(opts) {
+			return 0
+		}
+
+		if kind == uint8(layers.TCPOptionKindWindowScale) && ln >= 3 {
+			return int(opts[idx+2])
+		}
+
+		idx += ln
+	}
+
+	return 0
+}
 
 type NetProtoTyp string
 
@@ -69,7 +337,32 @@ type PktTCPHdr struct {
 }
 
 func (f PktTCPHdr) MarshalJSON() ([]byte, error) {
-	return json.Marshal([]any{f.TXRX, f.SrcMAC, f.DstMAC, f.Flags.String(), f.Seq, f.AckSeq, f.TCPPayloadSize, f.Win, f.TS})
+	buf := make([]byte, 0, 96)
+	buf = appendPktTCPHdrJSON(buf, f)
+	return buf, nil
+}
+
+func appendPktTCPHdrJSON(buf []byte, f PktTCPHdr) []byte {
+	buf = append(buf, '[')
+	buf = strconv.AppendQuote(buf, f.TXRX)
+	buf = append(buf, ',')
+	buf = strconv.AppendQuote(buf, f.SrcMAC)
+	buf = append(buf, ',')
+	buf = strconv.AppendQuote(buf, f.DstMAC)
+	buf = append(buf, ',')
+	buf = strconv.AppendQuote(buf, f.Flags.String())
+	buf = append(buf, ',')
+	buf = strconv.AppendUint(buf, uint64(f.Seq), 10)
+	buf = append(buf, ',')
+	buf = strconv.AppendUint(buf, uint64(f.AckSeq), 10)
+	buf = append(buf, ',')
+	buf = strconv.AppendInt(buf, int64(f.TCPPayloadSize), 10)
+	buf = append(buf, ',')
+	buf = strconv.AppendUint(buf, uint64(f.Win), 10)
+	buf = append(buf, ',')
+	buf = strconv.AppendInt(buf, f.TS, 10)
+	buf = append(buf, ']')
+	return buf
 }
 
 type PValue struct {
@@ -82,8 +375,36 @@ type PValue struct {
 
 	httpInfo HTTPLog
 
-	lastGetTS int64
+	tlsSNI tlsClientHelloState
+
+	lastGetTS            int64
+	directionLastProbeTS int64
+	directionProbeMisses uint8
+
+	baseKVsCache     point.KVs
+	baseTagsCacheTS  int64
+	baseTagsCacheDir string
 }
+
+type blacklistCacheEntry struct {
+	drop   bool
+	lastTS int64
+}
+
+type blacklistCacheKey struct {
+	meta   PMeta
+	srcPod string
+	dstPod string
+}
+
+const (
+	blacklistCacheTTL             = defaultTCPKeepAlive
+	blacklistCacheCleanupInterval = 30 * time.Second
+	blacklistCacheCleanupMinSize  = 512
+
+	directionProbeBaseInterval = 200 * time.Millisecond
+	directionProbeMaxInterval  = 5 * time.Second
+)
 
 type conns struct {
 	poolCreateTime int64 // unix timestamp ns
@@ -101,13 +422,21 @@ type TCPConns struct {
 
 	conns conns
 
+	blacklistMu               sync.Mutex
+	blacklistCache            map[blacklistCacheKey]blacklistCacheEntry
+	blacklistCacheLastCleanup int64
+	blacklistCacheRuleFirst   any
+	blacklistCacheRuleLen     int
+
 	portListen   *portListen
 	ifaceNameMAC [2]string
 
 	hostNetwork bool
+	trustLocal  bool
 	virtualNIC  bool
 
-	tags map[string]string
+	tagsMu sync.RWMutex
+	tags   map[string]string
 
 	started int64 // -1 stop, 0 wait init, 1 started
 
@@ -117,7 +446,10 @@ type TCPConns struct {
 	agg     FlowAggTCP
 	aggHTTP FlowAggHTTP
 
-	stop chan struct{}
+	lastTPacketStats tpacketStatsSnapshot
+
+	stop     chan struct{}
+	stopOnce sync.Once
 
 	runtime   *filterRuntime
 	blacklist ast.Stmts
@@ -129,19 +461,13 @@ type TCPConns struct {
 func NewTCPConns(gtags map[string]string, ctrID, nsUID string,
 	nameAddr [2]string, pr *portListen, bl ast.Stmts, runtime *filterRuntime,
 ) *TCPConns {
-	tags := map[string]string{}
-
-	for k, v := range gtags {
-		tags[k] = v
-	}
-
 	return &TCPConns{
 		runtime:   runtime,
 		blacklist: bl,
 
 		ifaceNameMAC: nameAddr,
 		portListen:   pr,
-		tags:         tags,
+		tags:         cloneStringMap(gtags),
 		ctrID:        ctrID,
 		nsUID:        nsUID,
 		conns: conns{
@@ -155,32 +481,104 @@ func NewTCPConns(gtags map[string]string, ctrID, nsUID string,
 	}
 }
 
-func (conns *TCPConns) getVal(k *PMeta, ts int64, syncFlagOnly bool) (*PValue, bool) {
+func cloneStringMap(src map[string]string) map[string]string {
+	if len(src) == 0 {
+		return nil
+	}
+
+	dst := make(map[string]string, len(src))
+	for k, v := range src {
+		dst[k] = v
+	}
+	return dst
+}
+
+func (conns *TCPConns) runtimeTags() map[string]string {
+	if conns == nil {
+		return nil
+	}
+
+	conns.tagsMu.RLock()
+	tags := conns.tags
+	conns.tagsMu.RUnlock()
+	return tags
+}
+
+func (conns *TCPConns) UpdateTags(tags map[string]string) {
+	if conns == nil {
+		return
+	}
+
+	next := cloneStringMap(tags)
+
+	conns.tagsMu.Lock()
+	conns.tags = next
+	conns.tagsMu.Unlock()
+
+	conns.conns.Lock()
+	defer conns.conns.Unlock()
+
+	reset := func(pool *connsMaps) {
+		if pool == nil {
+			return
+		}
+		for _, mps := range pool.maps {
+			if mps == nil {
+				continue
+			}
+			for _, v := range mps.m {
+				if v == nil {
+					continue
+				}
+				v.baseKVsCache = nil
+				v.baseTagsCacheTS = 0
+			}
+		}
+	}
+
+	reset(&conns.conns.pool)
+	reset(&conns.conns.twoMSLPool)
+}
+
+func (conns *TCPConns) signalStop() {
+	if conns == nil {
+		return
+	}
+
+	conns.stopOnce.Do(func() {
+		if conns.stop != nil {
+			close(conns.stop)
+		}
+	})
+}
+
+func (conns *TCPConns) getVal(k *PMeta, ts int64, syncFlagOnly bool) (*PValue, *connMap, bool) {
 	if k == nil {
-		return nil, false
+		return nil, nil, false
 	}
 
 	key := *k
 
-	if _, v, ok := conns.conns.pool.getMapAndV(key); ok {
+	if mps, v, ok := conns.conns.pool.getMapAndV(key); ok {
 		v.lastGetTS = ts
-		return v, true
+		return v, mps, true
 	}
 
 	var tcpReuse bool
 
-	if _, v, ok := conns.conns.twoMSLPool.getMapAndV(key); ok {
+	if mps, v, ok := conns.conns.twoMSLPool.getMapAndV(key); ok {
 		if syncFlagOnly && v.tcpInfo.RetransmitsSYN < 3 { // maybe resuse
 			v.reuseByNxt = true
 			tcpReuse = true
 			v.tcpInfo.RetransmitsSYN = 0
 		} else if !v.reuseByNxt {
 			v.lastGetTS = ts
-			return v, true
+			return v, mps, true
 		}
 	}
 
 	v := &PValue{
+		sMACEQ: conns.trustLocal,
 		tcpInfo: TCPLog{
 			metric: TCPMetrics{
 				recEstab: true,
@@ -197,8 +595,8 @@ func (conns *TCPConns) getVal(k *PMeta, ts int64, syncFlagOnly bool) (*PValue, b
 		v.tcpInfo.reuseConn = tcpReuse
 	}
 
-	conns.conns.pool.insert2LastMap(key, v)
-	return v, true
+	mps := conns.conns.pool.insert2LastMap(key, v)
+	return v, mps, true
 }
 
 func (conns *TCPConns) markTCPTimeWait(k *PMeta) {
@@ -225,8 +623,10 @@ func (conns *TCPConns) markTCPTimeWait(k *PMeta) {
 			// 写回
 			mps2msl.insert(nk, e)
 			mps2msl.insert(key, val)
+			mps2msl.markDirty(key)
 		} else {
-			conns.conns.twoMSLPool.insert2LastMap(key, val)
+			mps2msl := conns.conns.twoMSLPool.insert2LastMap(key, val)
+			mps2msl.markDirty(key)
 		}
 
 		return
@@ -251,32 +651,8 @@ func (conns *TCPConns) update(txRx int8, k *PMeta, ln *PktTCPHdr, pktLen,
 		smac = ln.SrcMAC
 	}
 
-	if conns.runtime != nil && len(conns.blacklist) > 0 {
-		var sPod, dPod string
-		if k8sNetInfo != nil {
-			sPod = k8sNetInfo.QueryPodName(0, k.SrcIP)
-			dPod = k8sNetInfo.QueryPodName(0, k.DstIP)
-		}
-		elem := &netParams{
-			tcp:       true,
-			k8sSrcPod: sPod,
-			k8sDstPod: dPod,
-			sPort:     int64(k.SrcPort),
-			dPort:     int64(k.DstPort),
-		}
-		if v6 {
-			elem.ipv4 = false
-			elem.ip6SAddr = k.SrcIP
-			elem.ip6DAddr = k.DstIP
-		} else {
-			elem.ipv4 = true
-			elem.ipSAddr = k.SrcIP
-			elem.ipDAddr = k.DstIP
-		}
-
-		if conns.runtime.runNetFilterDrop(conns.blacklist, elem) {
-			return
-		}
+	if conns.shouldDropByBlacklist(k, v6, ln.TS) {
+		return
 	}
 
 	conns.conns.Lock()
@@ -285,9 +661,12 @@ func (conns *TCPConns) update(txRx int8, k *PMeta, ln *PktTCPHdr, pktLen,
 	// get conn stautus
 
 	synOnly := ln.Flags.HasFlag(TCPSYN) && !ln.Flags.HasFlag(TCPACK)
-	pktVal, _ := conns.getVal(k, ln.TS, synOnly)
+	pktVal, pktMap, _ := conns.getVal(k, ln.TS, synOnly)
 	if pktVal == nil {
 		return
+	}
+	if pktMap != nil {
+		pktMap.markDirty(*k)
 	}
 
 	if !pktVal.sMACEQ && conns.ifaceNameMAC[1] == smac {
@@ -300,8 +679,8 @@ func (conns *TCPConns) update(txRx int8, k *PMeta, ln *PktTCPHdr, pktLen,
 
 	pktState := pktVal.tcpInfo.Handle(txRx, payload, tcpPayloadSize, ln, k, scale)
 
-	if pktVal.tcpInfo.tcpStatusRec.tcpStatus == TCPTimeWait ||
-		pktVal.tcpInfo.tcpStatusRec.tcpStatus == TCPClose {
+	if pktVal.tcpInfo.tcpState == TCPTimeWait ||
+		pktVal.tcpInfo.tcpState == TCPClose {
 		conns.markTCPTimeWait(k)
 		if !pktVal.tcpInfo.metric.recClose[0] {
 			pktVal.tcpInfo.metric.recClose[0] = true
@@ -311,12 +690,12 @@ func (conns *TCPConns) update(txRx int8, k *PMeta, ln *PktTCPHdr, pktLen,
 		conns.markTCPTimeWait(k)
 	}
 
-	if pktVal.tcpInfo.tcpStatusRec.tcpStatus == TCPEstablished || tcpPayloadSize > 0 {
-		if enableL7HTTP {
-			_ = pktVal.httpInfo.Handle(pktVal, txRx, payload, tcpPayloadSize, ln, k,
-				pktState, pktVal.tcpInfo.GetPktChunk(false).ChunkID)
-		}
+	if enableL7HTTP && pktVal.httpInfo.ShouldHandle(payload) {
+		_ = pktVal.httpInfo.Handle(pktVal, txRx, payload, tcpPayloadSize, ln, k,
+			pktState, pktVal.tcpInfo.GetPktChunk(false, false).ChunkID)
 	}
+
+	pktVal.observeTLSSNI(txRx, payload, k, conns.nsUID)
 
 	// maybe proto will change
 	if pktVal.httpInfo.isHTTP {
@@ -327,31 +706,195 @@ func (conns *TCPConns) update(txRx int8, k *PMeta, ln *PktTCPHdr, pktLen,
 	case directionIncoming:
 	case directionOutgoing:
 	case directionUnknown:
-		d := conns.portListen.Query(conns.nsUID, k, v6, pktVal.sMACEQ)
-		if d == directionUnknown {
-			if len((pktVal.httpInfo.elems)) > 0 {
-				if v := pktVal.httpInfo.elems[0]; v != nil {
-					switch v.Direction {
-					case DOutging:
-						pktVal.tcpInfo.direction = directionOutgoing
-					case DIncoming:
-						pktVal.tcpInfo.direction = directionIncoming
-					}
-				}
+		if pktVal.shouldProbeDirection(ln.TS, synOnly) {
+			d := conns.portListen.Query(conns.nsUID, k, v6, pktVal.sMACEQ)
+			pktVal.recordDirectionProbe(ln.TS, d)
+			if d != directionUnknown {
+				pktVal.tcpInfo.direction = d
+				break
 			}
-			if synOnly {
-				switch txRx {
-				case directionRX:
-					pktVal.tcpInfo.direction = directionIncoming
-				case directionTX:
+		}
+
+		if len((pktVal.httpInfo.elems)) > 0 {
+			if v := pktVal.httpInfo.elems[0]; v != nil {
+				switch v.Direction {
+				case DOutging:
 					pktVal.tcpInfo.direction = directionOutgoing
+				case DIncoming:
+					pktVal.tcpInfo.direction = directionIncoming
 				}
 			}
-		} else {
-			pktVal.tcpInfo.direction = d
+		}
+		if synOnly {
+			switch txRx {
+			case directionRX:
+				pktVal.tcpInfo.direction = directionIncoming
+			case directionTX:
+				pktVal.tcpInfo.direction = directionOutgoing
+			}
 		}
 	default:
 	}
+}
+
+func (v *PValue) shouldProbeDirection(ts int64, force bool) bool {
+	if force || ts <= 0 || v.directionLastProbeTS == 0 {
+		return true
+	}
+
+	interval := directionProbeBaseInterval
+	if misses := v.directionProbeMisses; misses > 1 {
+		for i := uint8(1); i < misses; i++ {
+			interval *= 2
+			if interval >= directionProbeMaxInterval {
+				interval = directionProbeMaxInterval
+				break
+			}
+		}
+	}
+
+	return ts-v.directionLastProbeTS >= interval.Nanoseconds()
+}
+
+func (v *PValue) recordDirectionProbe(ts int64, d conndirection) {
+	if ts > 0 {
+		v.directionLastProbeTS = ts
+	}
+
+	if d == directionUnknown {
+		if v.directionProbeMisses < ^uint8(0) {
+			v.directionProbeMisses++
+		}
+		return
+	}
+
+	v.directionProbeMisses = 0
+}
+
+func (conns *TCPConns) shouldDropByBlacklist(k *PMeta, v6 bool, ts int64) bool {
+	if k == nil || conns.runtime == nil || len(conns.blacklist) == 0 {
+		return false
+	}
+
+	now := ts
+	if now <= 0 {
+		now = ntp.Now().UnixNano()
+	}
+
+	var sPod, dPod string
+	if k8sNetInfo != nil {
+		sPod = k8sNetInfo.QueryPodName(0, k.SrcIP)
+		dPod = k8sNetInfo.QueryPodName(0, k.DstIP)
+	}
+
+	key := blacklistCacheKey{
+		meta:   *k,
+		srcPod: sPod,
+		dstPod: dPod,
+	}
+	if cached, ok := conns.getBlacklistCache(key, now); ok {
+		return cached
+	}
+
+	elem := &netParams{
+		tcp:       true,
+		k8sSrcPod: sPod,
+		k8sDstPod: dPod,
+		sPort:     int64(k.SrcPort),
+		dPort:     int64(k.DstPort),
+	}
+	if v6 {
+		elem.ipv4 = false
+		elem.ip6SAddr = k.SrcIP
+		elem.ip6DAddr = k.DstIP
+	} else {
+		elem.ipv4 = true
+		elem.ipSAddr = k.SrcIP
+		elem.ipDAddr = k.DstIP
+	}
+
+	drop := conns.runtime.runNetFilterDrop(conns.blacklist, elem)
+	return conns.storeBlacklistCache(key, drop, now)
+}
+
+func (conns *TCPConns) getBlacklistCache(key blacklistCacheKey, now int64) (bool, bool) {
+	conns.blacklistMu.Lock()
+	defer conns.blacklistMu.Unlock()
+
+	conns.refreshBlacklistCacheScopeLocked()
+	if len(conns.blacklistCache) == 0 {
+		return false, false
+	}
+
+	entry, ok := conns.blacklistCache[key]
+	if !ok {
+		conns.cleanupBlacklistCacheLocked(now)
+		return false, false
+	}
+
+	entry.lastTS = now
+	conns.blacklistCache[key] = entry
+	conns.cleanupBlacklistCacheLocked(now)
+	return entry.drop, true
+}
+
+func (conns *TCPConns) storeBlacklistCache(key blacklistCacheKey, drop bool, now int64) bool {
+	conns.blacklistMu.Lock()
+	defer conns.blacklistMu.Unlock()
+
+	conns.refreshBlacklistCacheScopeLocked()
+	if conns.blacklistCache == nil {
+		conns.blacklistCache = make(map[blacklistCacheKey]blacklistCacheEntry)
+	}
+
+	if entry, ok := conns.blacklistCache[key]; ok {
+		entry.lastTS = now
+		conns.blacklistCache[key] = entry
+		conns.cleanupBlacklistCacheLocked(now)
+		return entry.drop
+	}
+
+	conns.blacklistCache[key] = blacklistCacheEntry{
+		drop:   drop,
+		lastTS: now,
+	}
+	conns.cleanupBlacklistCacheLocked(now)
+	return drop
+}
+
+func (conns *TCPConns) refreshBlacklistCacheScopeLocked() {
+	var first any
+	if len(conns.blacklist) > 0 {
+		first = conns.blacklist[0]
+	}
+
+	if conns.blacklistCacheRuleLen == len(conns.blacklist) &&
+		conns.blacklistCacheRuleFirst == first {
+		return
+	}
+
+	conns.blacklistCacheRuleLen = len(conns.blacklist)
+	conns.blacklistCacheRuleFirst = first
+	conns.blacklistCache = nil
+	conns.blacklistCacheLastCleanup = 0
+}
+
+func (conns *TCPConns) cleanupBlacklistCacheLocked(now int64) {
+	if len(conns.blacklistCache) < blacklistCacheCleanupMinSize {
+		return
+	}
+	if now-conns.blacklistCacheLastCleanup < blacklistCacheCleanupInterval.Nanoseconds() {
+		return
+	}
+
+	expireBefore := now - blacklistCacheTTL.Nanoseconds()
+	for key, entry := range conns.blacklistCache {
+		if entry.lastTS < expireBefore {
+			delete(conns.blacklistCache, key)
+		}
+	}
+
+	conns.blacklistCacheLastCleanup = now
 }
 
 func (conns *TCPConns) _ForceGather(nicIPList []string) {
@@ -359,12 +902,14 @@ func (conns *TCPConns) _ForceGather(nicIPList []string) {
 	defer conns.conns.Unlock()
 
 	for _, pool := range conns.conns.pool.maps {
+		fullScan := needConnMapFullScan(pool, defaultTCPKeepAlive, true)
 		conns.feedNetworkLog(pool,
-			false, true, nicIPList)
+			false, true, fullScan, nicIPList)
 	}
 	for _, map2msl := range conns.conns.twoMSLPool.maps {
+		fullScan := needConnMapFullScan(map2msl, twoMSL, true)
 		conns.feedNetworkLog(map2msl,
-			false, true, nicIPList)
+			false, true, fullScan, nicIPList)
 	}
 }
 
@@ -377,8 +922,9 @@ func (conns *TCPConns) _Gather(nicIPList []string) {
 		lenMaps := len(conns.conns.pool.maps)
 		for i := 0; i < lenMaps; i++ {
 			mps := conns.conns.pool.maps[i]
+			fullScan := needConnMapFullScan(mps, defaultTCPKeepAlive, false)
 			conns.feedNetworkLog(mps,
-				false, false, nicIPList)
+				false, false, fullScan, nicIPList)
 
 			// keepalive
 			if time.Since(mps.tn) >= defaultTCPKeepAlive {
@@ -403,8 +949,9 @@ func (conns *TCPConns) _Gather(nicIPList []string) {
 		lenMaps := len(conns.conns.twoMSLPool.maps)
 		for i := 0; i < lenMaps; i++ {
 			mps := conns.conns.twoMSLPool.maps[i]
+			fullScan := needConnMapFullScan(mps, twoMSL, false)
 			conns.feedNetworkLog(mps,
-				true, false, nicIPList)
+				true, false, fullScan, nicIPList)
 
 			// 2msl
 			if time.Since(mps.tn) >= twoMSL {
@@ -443,6 +990,8 @@ func (conns *TCPConns) CapturePacket(ctx context.Context, name, mac, netns strin
 	}
 
 	layerLi := make([]gopacket.LayerType, 0, 10)
+	decoder := NewPktDecoder()
+	stringCache := newPacketStringCache()
 
 	ticker := time.NewTicker(time.Minute * 5)
 	defer ticker.Stop()
@@ -453,135 +1002,138 @@ func (conns *TCPConns) CapturePacket(ctx context.Context, name, mac, netns strin
 			if _, s3, err := h.SocketStats(); err != nil {
 				log.Error(err)
 			} else {
+				observeTPacketStatsDelta("l4log", &conns.lastTPacketStats,
+					uint64(s3.Packets()), uint64(s3.Drops()), uint64(s3.QueueFreezes()))
 				log.Infof("name %s, mac %s, ns %s, drops %d, packets %d, freezes %d",
 					name, mac, netns, s3.Drops(), s3.Packets(), s3.QueueFreezes())
 			}
 		case <-ctx.Done():
 			h.Close()
-			if old := atomic.SwapInt64(&conns.started, -1); old == 1 && conns.stop != nil {
-				close(conns.stop)
+			if old := atomic.SwapInt64(&conns.started, -1); old == 1 {
+				conns.signalStop()
 			}
 			return
 		default:
 		}
 
-		decoder := NewPktDecoder()
-		layerLi = layerLi[:0]
-
 		buf, ci, err := h.ZeroCopyReadPacketData()
 		if err != nil {
 			log.Error(err)
-			time.Sleep(time.Millisecond * 300)
-		}
-
-		_ = decoder.pktDecode.DecodeLayers(buf, &layerLi)
-
-		if len(layerLi) < 3 || layerLi[0] != layers.LayerTypeEthernet {
 			continue
 		}
 
-		ipLayerType := layerLi[1]
-		var vxlanPkt bool
-		var vniID uint32
+		conns.handleCapturedPacket(decoder, layerLi, stringCache, buf, ci)
+	}
+}
 
-		switch layerLi[2] {
-		case layers.LayerTypeTCP:
-		case layers.LayerTypeUDP:
-			if !isVxlanLayer(uint16(decoder.udp.SrcPort), uint16(decoder.udp.DstPort)) {
-				continue
+func (conns *TCPConns) handleCapturedPacket(decoder *pktDecoder, layerLi []gopacket.LayerType,
+	stringCache *packetStringCache, buf []byte, ci gopacket.CaptureInfo,
+) {
+	if conns == nil || decoder == nil {
+		return
+	}
+	if stringCache == nil {
+		stringCache = newPacketStringCache()
+	}
+
+	layerLi = layerLi[:0]
+
+	txRx, txrxStr := ancillaryDirection(ci.AncillaryData)
+	if txRx == 0 {
+		log.Warnf("iface %s, name %s, packet direction unknown", conns.nsUID, conns.ifaceNameMAC)
+		return
+	}
+
+	if fastPkt, ok := parseFastTCPPacket(buf, ci.Timestamp.UnixNano(), stringCache); ok {
+		fastPkt.tcpHdr.TXRX = txrxStr
+		conns.update(txRx, &fastPkt.key, &fastPkt.tcpHdr, int64(ci.Length),
+			fastPkt.payloadLen, fastPkt.payload, fastPkt.scale, fastPkt.ipv6)
+		return
+	}
+
+	_ = decoder.pktDecode.DecodeLayers(buf, &layerLi)
+
+	if len(layerLi) < 3 || layerLi[0] != layers.LayerTypeEthernet {
+		return
+	}
+
+	ipLayerType := layerLi[1]
+	var vxlanPkt bool
+	var vniID uint32
+
+	switch layerLi[2] {
+	case layers.LayerTypeTCP:
+	case layers.LayerTypeUDP:
+		if !isVxlanLayer(uint16(decoder.udp.SrcPort), uint16(decoder.udp.DstPort)) {
+			return
+		}
+
+		layerLi = layerLi[:0]
+		_ = decoder.vxlanDecode.DecodeLayers(decoder.udp.Payload, &layerLi)
+		if len(layerLi) < 4 || layerLi[0] != layers.LayerTypeVXLAN ||
+			layerLi[1] != layers.LayerTypeEthernet ||
+			layerLi[3] != layers.LayerTypeTCP {
+			return
+		}
+
+		vxlanPkt = true
+		vniID = decoder.vxlan.VNI
+		ipLayerType = layerLi[2]
+	default:
+		return
+	}
+
+	k := PMeta{
+		VNIID:   vniID,
+		VXLAN:   vxlanPkt,
+		SrcPort: uint16(decoder.tcp.SrcPort),
+		DstPort: uint16(decoder.tcp.DstPort),
+	}
+
+	ln := PktTCPHdr{
+		SrcMAC: stringCache.macString(decoder.eth.SrcMAC),
+		DstMAC: stringCache.macString(decoder.eth.DstMAC),
+		AckSeq: decoder.tcp.Ack,
+		Seq:    decoder.tcp.Seq,
+		Win:    uint32(decoder.tcp.Window),
+		TS:     ci.Timestamp.UnixNano(),
+		TXRX:   txrxStr,
+	}
+
+	if len(decoder.tcp.Contents) >= 14 {
+		ln.Flags = TCPFlag(decoder.tcp.Contents[13])
+	}
+
+	var scale int
+	if decoder.tcp.SYN {
+		for _, opt := range decoder.tcp.Options {
+			if opt.OptionType == layers.TCPOptionKindWindowScale && len(opt.OptionData) > 0 {
+				scale = int(opt.OptionData[0])
 			}
-
-			layerLi = layerLi[:0]
-			_ = decoder.vxlanDecode.DecodeLayers(decoder.udp.Payload, &layerLi)
-			if len(layerLi) < 4 || layerLi[0] != layers.LayerTypeVXLAN ||
-				layerLi[1] != layers.LayerTypeEthernet ||
-				layerLi[3] != layers.LayerTypeTCP {
-				continue
-			} else {
-				vxlanPkt = true
-				vniID = decoder.vxlan.VNI
-				ipLayerType = layerLi[2]
-			}
-
-		default:
-			continue
 		}
+	}
 
-		k := &PMeta{
-			// IfIndex:       ci.InterfaceIndex,
+	var isipv6 bool
+	if ipLayerType == layers.LayerTypeIPv4 {
+		k.SrcIP = stringCache.ipString(decoder.ipv4.SrcIP)
+		k.DstIP = stringCache.ipString(decoder.ipv4.DstIP)
 
-			VNIID: vniID,
-			VXLAN: vxlanPkt,
-
-			SrcPort: uint16(decoder.tcp.SrcPort),
-			DstPort: uint16(decoder.tcp.DstPort),
-		}
-
-		ln := &PktTCPHdr{
-			SrcMAC: decoder.eth.SrcMAC.String(),
-			DstMAC: decoder.eth.DstMAC.String(),
-			AckSeq: decoder.tcp.Ack,
-			Seq:    decoder.tcp.Seq,
-
-			Win: uint32(decoder.tcp.Window),
-
-			TS: ci.Timestamp.UnixNano(),
-		}
-
-		if len(decoder.tcp.Contents) >= 14 {
-			ln.Flags = TCPFlag(decoder.tcp.Contents[13])
-		}
-
-		var scale int
-		if decoder.tcp.SYN {
-			for _, opt := range decoder.tcp.Options {
-				if opt.OptionType == layers.TCPOptionKindWindowScale {
-					scale = int(opt.OptionData[0])
-				}
-			}
-		}
-
-		var isipv6 bool
-		// rx ? eth frame min size 60 here (not include FCS 4byte) : no eth padding
-		if ipLayerType == layers.LayerTypeIPv4 {
-			k.SrcIP = decoder.ipv4.SrcIP.String()
-			k.DstIP = decoder.ipv4.DstIP.String()
-
-			if ci.Length > 64 {
-				ln.TCPPayloadSize = int(decoder.ipv4.Length) -
-					len(decoder.ipv4.BaseLayer.Contents) -
-					len(decoder.tcp.BaseLayer.Contents)
-			}
-		} else { // ipv6
-			isipv6 = true
-			k.SrcIP = decoder.ipv6.SrcIP.String()
-			k.DstIP = decoder.ipv6.DstIP.String()
-
-			ln.TCPPayloadSize = int(decoder.ipv6.Length) -
+		if ci.Length > 64 {
+			ln.TCPPayloadSize = int(decoder.ipv4.Length) -
+				len(decoder.ipv4.BaseLayer.Contents) -
 				len(decoder.tcp.BaseLayer.Contents)
 		}
+	} else {
+		isipv6 = true
+		k.SrcIP = stringCache.ipString(decoder.ipv6.SrcIP)
+		k.DstIP = stringCache.ipString(decoder.ipv6.DstIP)
 
-		var txRx int8
-		for _, v := range ci.AncillaryData {
-			if v, ok := v.(afpacket.AncillaryPktType); ok {
-				if v.Type == unix.PACKET_OUTGOING {
-					txRx = directionTX
-					ln.TXRX = "tx"
-				} else {
-					txRx = directionRX
-					ln.TXRX = "rx"
-				}
-			}
-		}
-
-		if txRx == 0 {
-			log.Warnf("iface %s, name %s, meta %v value %v", conns.nsUID, conns.ifaceNameMAC, k, *ln)
-			continue
-		}
-
-		conns.update(txRx, k, ln, int64(ci.Length),
-			int64(ln.TCPPayloadSize), decoder.tcp.BaseLayer.Payload, scale, isipv6)
+		ln.TCPPayloadSize = int(decoder.ipv6.Length) -
+			len(decoder.tcp.BaseLayer.Contents)
 	}
+
+	conns.update(txRx, &k, &ln, int64(ci.Length),
+		int64(ln.TCPPayloadSize), decoder.tcp.BaseLayer.Payload, scale, isipv6)
 }
 
 func (conns *TCPConns) Gather(ctx context.Context, nicIPList []string) {
@@ -605,34 +1157,53 @@ func (conns *TCPConns) Gather(ctx context.Context, nicIPList []string) {
 
 			return
 		case <-ticker.C:
+			exporter.ObserveCacheEntries("l4log", "conn_pool", conns.conns.pool.entries())
+			exporter.ObserveCacheEntries("l4log", "two_msl_pool", conns.conns.twoMSLPool.entries())
+			exporter.ObserveCacheEntries("l4log", "blacklist_cache", len(conns.blacklistCache))
 			conns._Gather(nicIPList)
 
 		case <-aggTicker.C:
 			// netflow data (cat: Network)
 			if enabledNetMetric {
+				exporter.ObserveAggEntries("l4log_netflow", conns.agg.Len())
+				flushStart := time.Now()
 				pts := conns.agg.ToPoint(conns.tags, k8sNetInfo)
 				if len(pts) > 0 {
 					if err := exporter.FeedPoint("bpf-netlog/netflow",
 						point.Network, pts); err != nil {
 						log.Errorf("feed point(toatl %d) failed: %w", len(pts), err)
+						exporter.ObserveAggFlush("l4log_netflow", len(pts), time.Since(flushStart), "error")
+					} else {
+						exporter.ObserveAggFlush("l4log_netflow", len(pts), time.Since(flushStart), "ok")
 					}
+				} else {
+					exporter.ObserveAggFlush("l4log_netflow", 0, time.Since(flushStart), "ok")
 				}
 			}
 
 			conns.agg.Clean()
+			exporter.ObserveAggEntries("l4log_netflow", 0)
 
 		case <-aggHTTPTicker.C:
 			// httpflow
 			if enabledNetMetric {
+				exporter.ObserveAggEntries("l4log_httpflow", conns.aggHTTP.Len())
+				flushStart := time.Now()
 				pts := conns.aggHTTP.ToPoint(conns.tags, k8sNetInfo)
 				if len(pts) > 0 {
 					if err := exporter.FeedPoint("bpf-netlog/httpflow",
 						point.Network, pts); err != nil {
 						log.Errorf("feed point(toatl %d) failed: %w", len(pts), err)
+						exporter.ObserveAggFlush("l4log_httpflow", len(pts), time.Since(flushStart), "error")
+					} else {
+						exporter.ObserveAggFlush("l4log_httpflow", len(pts), time.Since(flushStart), "ok")
 					}
+				} else {
+					exporter.ObserveAggFlush("l4log_httpflow", 0, time.Since(flushStart), "ok")
 				}
 			}
 			conns.aggHTTP.Clean()
+			exporter.ObserveAggEntries("l4log_httpflow", 0)
 
 		case <-ctx.Done():
 			return

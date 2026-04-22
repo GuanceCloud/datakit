@@ -237,6 +237,170 @@ setenforce 0
 
 <!-- markdownlint-enable -->
 
+<!-- markdownlint-disable MD007 -->
+## Prometheus 自监控 {#prometheus-self-metrics}
+
+配置 `pprof_port` 后，`datakit-ebpf` 会在同一监听地址上同时暴露：
+
+- `/debug/pprof/`
+- `/metrics`
+
+建议仅在内网或本机地址上暴露，例如：
+
+```toml
+pprof_host = "127.0.0.1"
+pprof_port = "6061"
+```
+
+### OOM 排查重点指标 {#prometheus-oom-metrics}
+
+以下指标适合优先用于定位 OOM 和内存异常增长：
+
+- `dkebpf_runtime_memory_bytes{type="rss"}`
+  - 进程实际驻留内存，最接近 OOM 压力
+- `dkebpf_runtime_memory_bytes{type="hwm"}`
+  - 进程 RSS 历史峰值
+- `dkebpf_runtime_memory_bytes{type="go_total"}`
+  - Go runtime 已向系统申请且仍保留的主要内存
+- `dkebpf_runtime_memory_bytes{type="heap_alloc"}`
+  - Go 堆当前已分配且仍在使用的内存
+- `dkebpf_runtime_memory_bytes{type="non_go_estimate"}`
+  - 近似值，计算方式为 `rss - go_total`
+  - 用于判断 RSS 增长是否主要来自非 Go 内存，例如 cgo、native buffer、mmap 或其它运行时外分配
+- `dkebpf_runtime_memory_ratio{type="non_go_vs_rss"}`
+  - 非 Go 内存占 RSS 的比例
+
+除上述指标外，还会暴露更细粒度的 Go 内存分量，例如：
+
+- `heap_inuse`
+- `heap_idle`
+- `heap_released`
+- `heap_unused`
+- `stack_inuse`
+- `stack_sys`
+- `mspan_inuse`
+- `mspan_sys`
+- `mcache_inuse`
+- `mcache_sys`
+- `gc_sys`
+- `other_sys`
+- `buck_hash_sys`
+
+以及以下辅助指标：
+
+- `dkebpf_runtime_memory_objects`
+- `dkebpf_runtime_memory_ops_total`
+- `dkebpf_runtime_gc`
+- `dkebpf_runtime_goroutines`
+
+### 聚合与缓存压力指标 {#prometheus-agg-metrics}
+
+为避免直接输出高基数业务标签，eBPF 自监控只暴露低基数的聚合压力指标：
+
+- `dkebpf_exporter_agg_entries{component}`
+  - 当前聚合池中的 key 数量
+- `dkebpf_exporter_agg_flush_points_total{component,result}`
+  - 每次 flush 输出的点数量累计
+- `dkebpf_exporter_agg_flush_duration_seconds{component,result}`
+  - flush 耗时
+- `dkebpf_exporter_cache_entries{component,cache}`
+  - 中间缓存或队列长度
+
+当前已覆盖的组件包括：
+
+- `netflow`
+- `dnsflow`
+- `l4log_netflow`
+- `l4log_httpflow`
+- `l7flow_http`
+- `l4log`
+- `l4log_host_peer_shared`
+
+以及部分中间态缓存，例如：
+
+- `dnsflow` pending query / packet queue / flush queue
+- `l4log` connection pool / two-msl pool / blacklist cache
+- `l7flow` conn map / closed conn map / span buffer
+
+### perf 和 TPacket 指标 {#prometheus-perf-tpacket-metrics}
+
+当前还会暴露与 perf 事件通道以及 `afpacket.TPacket` 抓包 ring 相关的累计指标：
+
+- `dkebpf_exporter_perf_lost_samples_total{component,stream}`
+  - perf reader 在用户态观察到的丢样本数量
+- `dkebpf_exporter_perf_read_errors_total{component,stream}`
+  - perf reader 读取错误次数
+- `dkebpf_exporter_tpacket_stats_total{component,type}`
+  - `TPacket` 累计统计信息
+  - `type` 包括：
+    - `packets`
+    - `drops`
+    - `queue_freezes`
+
+这些指标更适合暴露为累计计数器，而不是单独暴露“速率”指标。
+如需查看速率，请直接在 Prometheus 中使用 `rate()` 或 `irate()` 计算。
+
+### 发送链路指标 {#prometheus-exporter-metrics}
+
+如果内存增长来自发送堵塞或上游写入变慢，可重点关注：
+
+- `dkebpf_exporter_sender_queue_length`
+  - exporter 当前待发送任务数
+- `dkebpf_exporter_sender_batch_points`
+  - 每个发送批次包含的点数分布
+- `dkebpf_exporter_sender_batch_bytes`
+  - 每个发送批次编码后的字节大小分布
+- `dkebpf_exporter_sender_requests_total{result}`
+  - 发送请求次数
+- `dkebpf_exporter_sender_request_duration_seconds{result}`
+  - 发送请求耗时
+
+其中 `result` 为低基数枚举值，例如：
+
+- `ok`
+- `request_error`
+- `http_4xx`
+- `http_5xx`
+
+### 周期性摘要日志 {#periodic-summary-log}
+
+除 Prometheus 指标外，`datakit-ebpf` 还会按采集周期额外发送一条低频摘要日志到 DataKit：
+
+- 数据类别：`Logging`
+- measurement：`ebpf_monitor`
+- source：`ebpf_monitor`
+- input：`ebpf-monitor`
+
+这条日志用于补充指标查看，单条日志会汇总：
+
+- runtime 内存摘要
+- 聚合池和缓存长度
+- 网卡分类数量与 route 数量摘要
+- exporter 队列与发送结果增量
+- perf lost / read error 增量
+- TPacket packets / drops / queue_freezes 增量
+- BPF map fill ratio
+- perf buffer / socket / filter 的配置与状态摘要
+  - 例如 perf reader 大小、共享 host-peer socket 模式、filter attach 结果、socket 侧 drops/freezes 摘要
+
+日志中会带一个较大的 `message` 字段，内容为固定 schema 的 JSON 摘要，便于直接解析和检索，同时保留少量关键数值 field 便于筛选。
+
+对于 `perf/ringbuf` 配置、socket buffer 侧状态、共享 socket/filter 模式这类信息，建议只作为摘要日志补充，不再继续扩成独立 Prometheus 指标，以避免额外时间线和低价值告警噪声。
+
+### 排查建议 {#prometheus-troubleshooting}
+
+可按以下顺序判断问题来源：
+
+1. `rss` 持续增长，但 `heap_alloc` 和 `go_total` 增长不明显
+   这通常意味着问题更偏向非 Go 内存，应重点查看 `non_go_estimate`、`non_go_vs_rss`
+2. `agg_entries`、`cache_entries` 持续增长且不回落
+   这通常意味着聚合池或中间缓存堆积
+3. `sender_queue_length` 持续增长，且 `sender_request_duration_seconds` 变高
+   这通常意味着发送链路变慢，导致聚合结果无法及时出队
+4. `bpf_map_fill_ratio` 持续接近 `1`
+   这通常意味着内核态 map 压力过高，可能同时伴随事件丢弃
+
+<!-- markdownlint-enable MD007 -->
 ## eBPF 链路功能 {#ebpf-tracing}
 
 `ebpf-trace` 采集分析主机上的进程读写的网络数据，并对进程的内核级线程/用户级线程（如 golang goroutine）进行跟踪，生成链路 eBPF Span 该数据需要被 `ebpftrace` 采集进行进一步的加工处理。

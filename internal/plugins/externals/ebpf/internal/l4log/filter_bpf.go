@@ -4,6 +4,9 @@
 package l4log
 
 import (
+	"fmt"
+	"sort"
+
 	"golang.org/x/net/bpf"
 )
 
@@ -39,4 +42,56 @@ func newBPFFilter() []bpf.RawInstruction {
 		{Op: 0x6, Jt: 0, Jf: 0, K: 0x00000800},
 		{Op: 0x6, Jt: 0, Jf: 0, K: 0x00000000},
 	}
+}
+
+func normalizeIfIndexes(ifindexes []int) []int {
+	if len(ifindexes) == 0 {
+		return nil
+	}
+
+	set := make(map[int]struct{}, len(ifindexes))
+	norm := make([]int, 0, len(ifindexes))
+	for _, ifindex := range ifindexes {
+		if ifindex <= 0 {
+			continue
+		}
+		if _, ok := set[ifindex]; ok {
+			continue
+		}
+		set[ifindex] = struct{}{}
+		norm = append(norm, ifindex)
+	}
+	sort.Ints(norm)
+	return norm
+}
+
+func newSharedHostPeerCBPFFilter(ifindexes []int) ([]bpf.RawInstruction, error) {
+	norm := normalizeIfIndexes(ifindexes)
+	if len(norm) == 0 {
+		return nil, fmt.Errorf("empty ifindex whitelist")
+	}
+
+	protoFilter := newBPFFilter()
+	insns := make([]bpf.Instruction, 0, len(norm)+2+len(protoFilter))
+	insns = append(insns, bpf.LoadExtension{Num: bpf.ExtInterfaceIndex})
+	for idx, ifindex := range norm {
+		skipToProto := uint8(len(norm) - idx)
+		insns = append(insns,
+			bpf.JumpIf{Cond: bpf.JumpEqual, Val: uint32(ifindex), SkipTrue: skipToProto, SkipFalse: 0},
+		)
+	}
+	insns = append(insns, bpf.RetConstant{Val: 0})
+	for _, rawInsn := range protoFilter {
+		insns = append(insns, rawInsn)
+	}
+
+	raw := make([]bpf.RawInstruction, 0, len(insns))
+	for _, ins := range insns {
+		assembled, err := ins.Assemble()
+		if err != nil {
+			return nil, err
+		}
+		raw = append(raw, assembled)
+	}
+	return raw, nil
 }

@@ -137,6 +137,7 @@ type httpInfo struct {
 
 	method string
 	path   string
+	host   string
 
 	httpVersion string
 
@@ -214,6 +215,7 @@ func (dec *httpDecPipe) Decode(txRx comm.NICDirection, data *comm.NetwrkData,
 		inf.ktime[0] = data.TSTail
 
 		headers := tracing.GetHTTPHeader(data.Payload)
+		inf.host = extractHTTPRequestHost(data.Payload, headers)
 		inf.meta.SampledSpan,
 			inf.meta.SpanHexEnc,
 			inf.meta.TraceID,
@@ -286,21 +288,24 @@ func (dec *httpDecPipe) Export(force bool) []*ProtoData {
 		// 这几个字段需要与聚合函数的字段相同
 		switch dec.direction { //nolint:exhaustive
 		case comm.DIn:
-			kvs = kvs.Set(comm.FieldBytesRead, int64(inf.reqBytes))
-			kvs = kvs.Set(comm.FieldBytesWritten, int64(inf.respBytes))
+			kvs = appendKV(kvs, comm.FieldBytesRead, int64(inf.reqBytes))
+			kvs = appendKV(kvs, comm.FieldBytesWritten, int64(inf.respBytes))
 		default:
-			kvs = kvs.Set(comm.FieldBytesRead, int64(inf.respBytes))
-			kvs = kvs.Set(comm.FieldBytesWritten, int64(inf.reqBytes))
+			kvs = appendKV(kvs, comm.FieldBytesRead, int64(inf.respBytes))
+			kvs = appendKV(kvs, comm.FieldBytesWritten, int64(inf.reqBytes))
 		}
-		kvs = kvs.Set(comm.FieldHTTPMethod, inf.method)
-		kvs = kvs.Set(comm.FieldHTTPRoute, inf.path)
-		kvs = kvs.Set(comm.FieldHTTPVersion, inf.httpVersion)
-		kvs = kvs.Set(comm.FieldHTTPStatusCode, strconv.Itoa(inf.statusCode))
-		kvs = kvs.Set(comm.FieldStatus, httpCode2Status(inf.statusCode))
+		kvs = appendKV(kvs, comm.FieldHTTPMethod, inf.method)
+		kvs = appendKV(kvs, comm.FieldHTTPRoute, inf.path)
+		if inf.host != "" {
+			kvs = appendKV(kvs, comm.FieldHTTPHost, inf.host)
+		}
+		kvs = appendKV(kvs, comm.FieldHTTPVersion, inf.httpVersion)
+		kvs = appendKV(kvs, comm.FieldHTTPStatusCode, strconv.Itoa(inf.statusCode))
+		kvs = appendKV(kvs, comm.FieldStatus, httpCode2Status(inf.statusCode))
 
 		// 页面 span 上显示的是 `<opperation> <resource>`
-		kvs = kvs.Set(comm.FieldOperation, ProtoHTTP.String())
-		kvs = kvs.Set(comm.FieldResource, inf.method+" "+inf.path)
+		kvs = appendKV(kvs, comm.FieldOperation, ProtoHTTP.String())
+		kvs = appendKV(kvs, comm.FieldResource, inf.method+" "+inf.path)
 
 		dur := int64(inf.ktime[3] - inf.ktime[0])
 		cost := int64(inf.ktime[2] - inf.ktime[1])

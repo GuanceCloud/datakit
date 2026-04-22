@@ -1,5 +1,5 @@
-//go:build linux
-// +build linux
+//go:build linux && cgo
+// +build linux,cgo
 
 // Package l7flow collects http(s) request flow
 package l7flow
@@ -13,19 +13,23 @@ import (
 	"math"
 	"os"
 	"regexp"
+	"strconv"
+	"strings"
+	"sync"
 	"time"
 	"unsafe"
 
-	manager "github.com/DataDog/ebpf-manager"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/cilium/ebpf"
+	bpfutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/bpfutil"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/c"
+	dkct "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/conntrack"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/comm"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/protodec"
 	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
-	sysmonitor "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/sysmonitor"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/procwatch"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/cli"
 	"golang.org/x/sys/unix"
 
@@ -36,6 +40,12 @@ import (
 import "C"
 
 const HTTPPayloadMaxsize = 157
+
+const (
+	apiflowPerfBufferPagesEnv  = "DK_EBPF_APIFLOW_PERF_PAGES"
+	apiflowMinCaptureSizeEnv   = "DK_EBPF_APIFLOW_MIN_CAPTURE_SIZE"
+	apiflowPerfLostLogInterval = 10 * time.Second
+)
 
 // const srcNameM = "httpflow"
 
@@ -110,15 +120,6 @@ type (
 func readMeta(buf *CNetEventComm, dst *comm.ConnectionInfo) {
 	conn := buf.meta.sk_inf.conn
 
-	// TODO: record thread name
-	//
-	cmdB := *(*[KernelTaskCommLen]byte)(unsafe.Pointer(&buf.meta.comm))
-	cmdCpy := make([]byte, 0, len(buf.meta.comm))
-	cmdCpy = append(cmdCpy, cmdB[:]...)
-	cmdCpy = bytes.Trim(cmdCpy, "\u0000")
-	cmdCpy = bytes.TrimSpace(cmdCpy)
-	taskComm := string(cmdCpy)
-
 	// 暂时屏蔽 uds，其 ip port 为 0； ebpf 暂时不采集此类 socket
 	dst.Saddr = (*(*[4]uint32)(unsafe.Pointer(&conn.saddr))) //nolint:gosec
 	dst.Daddr = (*(*[4]uint32)(unsafe.Pointer(&conn.daddr))) //nolint:gosec
@@ -127,7 +128,44 @@ func readMeta(buf *CNetEventComm, dst *comm.ConnectionInfo) {
 	dst.Pid = uint32(conn.pid)
 	dst.Netns = uint32(conn.netns)
 	dst.Meta = uint32(conn.meta)
-	dst.TaskName = taskComm
+	dst.TaskName = taskCommString((*[KernelTaskCommLen]byte)(unsafe.Pointer(&buf.meta.comm)))
+	if dst.NATDport == 0 && (dst.NATDaddr[0]|dst.NATDaddr[1]|dst.NATDaddr[2]|dst.NATDaddr[3]) == 0 {
+		if natAddr, natPort, ok := dkct.LookupDNATTuple(dst.Saddr, dst.Daddr, dst.Sport, dst.Dport, dst.Netns); ok {
+			dst.NATDaddr = natAddr
+			dst.NATDport = natPort
+		}
+	}
+}
+
+func taskCommString(comm *[KernelTaskCommLen]byte) string {
+	if comm == nil {
+		return ""
+	}
+
+	start := 0
+	for start < len(comm) {
+		switch comm[start] {
+		case 0, ' ', '\t', '\n', '\r', '\v', '\f':
+			start++
+		default:
+			goto trimRight
+		}
+	}
+
+	return ""
+
+trimRight:
+	end := len(comm)
+	for end > start {
+		switch comm[end-1] {
+		case 0, ' ', '\t', '\n', '\r', '\v', '\f':
+			end--
+		default:
+			return string(comm[start:end])
+		}
+	}
+
+	return ""
 }
 
 var log = logger.DefaultSLogger("ebpf")
@@ -170,156 +208,327 @@ var (
 	}
 )
 
-type perferEventHandle func(CPU int, data []byte, perfmap *manager.PerfMap,
-	manager *manager.Manager)
+type perferEventHandle = bpfutil.PerfHandler
 
-func NewHTTPFlowManger(constEditor []manager.ConstantEditor, bmaps map[string]*ebpf.Map,
-	bufHandler perferEventHandle, enableTLS bool) (*manager.Manager, *sysmonitor.UprobeRegister, error) {
+type perfLostWarningLimiter struct {
+	mu         sync.Mutex
+	lastLogAt  time.Time
+	suppressed uint64
+	now        func() time.Time
+}
+
+func newPerfLostWarningLimiter(now func() time.Time) *perfLostWarningLimiter {
+	if now == nil {
+		now = time.Now
+	}
+	return &perfLostWarningLimiter{now: now}
+}
+
+func (l *perfLostWarningLimiter) format(cpu int, count uint64) string {
+	if l == nil || count == 0 {
+		return ""
+	}
+
+	now := l.now()
+
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	if l.lastLogAt.IsZero() || now.Sub(l.lastLogAt) >= apiflowPerfLostLogInterval {
+		suppressed := l.suppressed
+		l.suppressed = 0
+		l.lastLogAt = now
+		if suppressed == 0 {
+			return fmt.Sprintf("lost %d events on cpu %d", count, cpu)
+		}
+		return fmt.Sprintf("lost %d events on cpu %d (aggregated %d additional lost events over %s)",
+			count, cpu, suppressed, apiflowPerfLostLogInterval)
+	}
+
+	l.suppressed += count
+	return ""
+}
+
+func apiflowPerfRingBufferSize() int {
+	pages := 1024
+	if raw := strings.TrimSpace(os.Getenv(apiflowPerfBufferPagesEnv)); raw != "" {
+		switch v, err := strconv.Atoi(raw); {
+		case err != nil:
+			log.Warnf("invalid %s=%q: %v", apiflowPerfBufferPagesEnv, raw, err)
+		case v <= 0:
+			log.Warnf("invalid %s=%q: must be > 0", apiflowPerfBufferPagesEnv, raw)
+		default:
+			pages = v
+		}
+	}
+	return pages * os.Getpagesize()
+}
+
+func apiflowMinCaptureSizePatch() (bpfutil.ConstantPatch, bool) {
+	raw := strings.TrimSpace(os.Getenv(apiflowMinCaptureSizeEnv))
+	if raw == "" {
+		return bpfutil.ConstantPatch{}, false
+	}
+
+	v, err := strconv.Atoi(raw)
+	if err != nil {
+		log.Warnf("invalid %s=%q: %v", apiflowMinCaptureSizeEnv, raw, err)
+		return bpfutil.ConstantPatch{}, false
+	}
+	if v < 0 {
+		log.Warnf("invalid %s=%q: must be >= 0", apiflowMinCaptureSizeEnv, raw)
+		return bpfutil.ConstantPatch{}, false
+	}
+
+	log.Infof("apiflow minimum capture size: %d", v)
+	return bpfutil.ConstantPatch{
+		Name:  "apiflow_min_capture_size",
+		Value: uint64(v),
+	}, true
+}
+
+func pruneLegacyHTTPFlowProbes(probes []*bpfutil.HookSpec) []*bpfutil.HookSpec {
+	if len(probes) == 0 {
+		return probes
+	}
+
+	skip := map[string]struct{}{
+		"tracepoint__sys_enter_sendfile64": {},
+		"tracepoint__sys_exit_sendfile64":  {},
+		"tracepoint__sys_enter_writev":     {},
+		"tracepoint__sys_exit_writev":      {},
+		"tracepoint__sys_enter_readv":      {},
+		"tracepoint__sys_exit_readv":       {},
+		"kprobe__tcp_close":                {},
+	}
+
+	trimmed := make([]*bpfutil.HookSpec, 0, len(probes))
+	for _, probe := range probes {
+		if probe == nil {
+			continue
+		}
+		if _, ok := skip[probe.ID.Program]; ok {
+			continue
+		}
+		trimmed = append(trimmed, probe)
+	}
+	return trimmed
+}
+
+func NewHTTPFlowRuntime(patches []bpfutil.ConstantPatch, bmaps map[string]*ebpf.Map,
+	bufHandler perferEventHandle, enableTLS bool,
+) (*bpfutil.Runtime, *procwatch.LibraryTracker, error) {
 	randInnerID = newRandFunc()
+	lostWarnLimiter := newPerfLostWarningLimiter(nil)
+	if patch, ok := apiflowMinCaptureSizePatch(); ok {
+		patches = append(patches, patch)
+	}
+	useLegacyConsts, kernelVersion, err := bpfutil.UseLegacyConstObjects()
+	if err != nil {
+		log.Warnf("detect kernel version for legacy eBPF constants failed: %v", err)
+	}
 
-	m := &manager.Manager{
-		Probes: []*manager.Probe{
+	runtime := &bpfutil.Runtime{
+		Probes: []*bpfutil.HookSpec{
 			{
-				ProbeIdentificationPair: manager.ProbeIdentificationPair{
-					EBPFFuncName: "tracepoint__sys_enter_read",
+				ID: bpfutil.HookID{
+					Program: "tracepoint__sys_enter_read",
 				},
 			},
 			{
-				ProbeIdentificationPair: manager.ProbeIdentificationPair{
-					EBPFFuncName: "tracepoint__sys_exit_read",
+				ID: bpfutil.HookID{Program: "tracepoint__sys_exit_read"},
+			},
+			{
+				ID: bpfutil.HookID{Program: "tracepoint__sys_enter_write"},
+			},
+			{
+				ID: bpfutil.HookID{Program: "tracepoint__sys_exit_write"},
+			},
+			{
+				ID: bpfutil.HookID{Program: "tracepoint__sys_enter_recvfrom"},
+			},
+			{
+				ID: bpfutil.HookID{Program: "tracepoint__sys_exit_recvfrom"},
+			},
+			{
+				ID: bpfutil.HookID{Program: "tracepoint__sys_enter_sendto"},
+			},
+			{
+				ID: bpfutil.HookID{Program: "tracepoint__sys_exit_sendto"},
+			},
+			{
+				ID: bpfutil.HookID{Program: "tracepoint__sys_enter_writev"},
+			},
+			{
+				ID: bpfutil.HookID{Program: "tracepoint__sys_exit_writev"},
+			},
+			{
+				ID: bpfutil.HookID{Program: "tracepoint__sys_enter_readv"},
+			},
+			{
+				ID: bpfutil.HookID{Program: "tracepoint__sys_exit_readv"},
+			},
+			{
+				ID: bpfutil.HookID{
+					Program: "kprobe__tcp_close",
+					UID:     "tcp_close_apiflow",
 				},
 			},
 			{
-				ProbeIdentificationPair: manager.ProbeIdentificationPair{
-					EBPFFuncName: "tracepoint__sys_enter_write",
+				ID: bpfutil.HookID{
+					Program: "kprobe__sched_getaffinity",
+					UID:     "kprobe_sched_getaffinity_apiflow",
 				},
 			},
 			{
-				ProbeIdentificationPair: manager.ProbeIdentificationPair{
-					EBPFFuncName: "tracepoint__sys_exit_write",
-				},
+				ID: bpfutil.HookID{Program: "tracepoint__sys_enter_sendfile64"},
 			},
 			{
-				ProbeIdentificationPair: manager.ProbeIdentificationPair{
-					EBPFFuncName: "tracepoint__sys_enter_recvfrom",
-				},
-			},
-			{
-				ProbeIdentificationPair: manager.ProbeIdentificationPair{
-					EBPFFuncName: "tracepoint__sys_exit_recvfrom",
-				},
-			},
-			{
-				ProbeIdentificationPair: manager.ProbeIdentificationPair{
-					EBPFFuncName: "tracepoint__sys_enter_sendto",
-				},
-			},
-			{
-				ProbeIdentificationPair: manager.ProbeIdentificationPair{
-					EBPFFuncName: "tracepoint__sys_exit_sendto",
-				},
-			},
-			{
-				ProbeIdentificationPair: manager.ProbeIdentificationPair{
-					EBPFFuncName: "tracepoint__sys_enter_writev",
-				},
-			},
-			{
-				ProbeIdentificationPair: manager.ProbeIdentificationPair{
-					EBPFFuncName: "tracepoint__sys_exit_writev",
-				},
-			},
-			{
-				ProbeIdentificationPair: manager.ProbeIdentificationPair{
-					EBPFFuncName: "tracepoint__sys_enter_readv",
-				},
-			},
-			{
-				ProbeIdentificationPair: manager.ProbeIdentificationPair{
-					EBPFFuncName: "tracepoint__sys_exit_readv",
-				},
-			},
-			{
-				ProbeIdentificationPair: manager.ProbeIdentificationPair{
-					EBPFFuncName: "kprobe__tcp_close",
-					UID:          "tcp_close_apiflow",
-				},
-			},
-			{
-				ProbeIdentificationPair: manager.ProbeIdentificationPair{
-					EBPFFuncName: "kprobe__sched_getaffinity",
-					UID:          "kprobe_sched_getaffinity_apiflow",
-				},
-			},
-			{
-				ProbeIdentificationPair: manager.ProbeIdentificationPair{
-					EBPFFuncName: "tracepoint__sys_enter_sendfile64",
-				},
-			},
-			{
-				ProbeIdentificationPair: manager.ProbeIdentificationPair{
-					EBPFFuncName: "tracepoint__sys_exit_sendfile64",
-				},
+				ID: bpfutil.HookID{Program: "tracepoint__sys_exit_sendfile64"},
 			},
 		},
-		PerfMaps: []*manager.PerfMap{
+		Streams: []*bpfutil.PerfStream{
 			{
-				Map: manager.Map{
+				Map: bpfutil.Map{
 					Name: "mp_upload_netwrk_events",
 				},
-				PerfMapOptions: manager.PerfMapOptions{
-					// 1k * pagesize ~= 1k * 4k,
-					PerfRingBufferSize: 1024 * os.Getpagesize(),
+				PerfStreamOptions: bpfutil.PerfStreamOptions{
+					PerfRingBufferSize: apiflowPerfRingBufferSize(),
 					DataHandler:        bufHandler,
-					LostHandler: func(CPU int, count uint64, perfMap *manager.PerfMap, manager *manager.Manager) {
-						log.Warnf("lost %d events on cpu %d\n", count, CPU)
+					LostHandler: func(CPU int, count uint64, stream *bpfutil.PerfStream, runtime *bpfutil.Runtime) {
+						exporter.AddPerfLost("l7flow", stream.Name, count)
+						if msg := lostWarnLimiter.format(CPU, count); msg != "" {
+							log.Warn(msg)
+						}
 					},
 				},
 			},
 		},
 	}
+	loadRuntime := func(legacy bool) error {
+		loadSpec := bpfutil.LoadSpec{
+			RLimit: &unix.Rlimit{
+				Cur: math.MaxUint64,
+				Max: math.MaxUint64,
+			},
+			Constants:       patches,
+			LegacyConstants: legacy,
+		}
+		if bmaps != nil {
+			loadSpec.MapReplacements = bmaps
+		}
 
-	var r *sysmonitor.UprobeRegister
-	if enableTLS {
-		opensslRules := []sysmonitor.UprobeRegRule{
+		runtime.Probes = append(runtime.Probes[:0], []*bpfutil.HookSpec{
 			{
-				Re:         RegexpLibSSL,
-				Register:   sysmonitor.NewRegisterFunc(m, libSSLSection),
-				UnRegister: sysmonitor.NewUnRegisterFunc(m, libSSLSection),
+				ID: bpfutil.HookID{
+					Program: "tracepoint__sys_enter_read",
+				},
 			},
 			{
-				Re:         RegexpLibCrypto,
-				Register:   sysmonitor.NewRegisterFunc(m, libcryptoSection),
-				UnRegister: sysmonitor.NewUnRegisterFunc(m, libcryptoSection),
+				ID: bpfutil.HookID{Program: "tracepoint__sys_exit_read"},
+			},
+			{
+				ID: bpfutil.HookID{Program: "tracepoint__sys_enter_write"},
+			},
+			{
+				ID: bpfutil.HookID{Program: "tracepoint__sys_exit_write"},
+			},
+			{
+				ID: bpfutil.HookID{Program: "tracepoint__sys_enter_recvfrom"},
+			},
+			{
+				ID: bpfutil.HookID{Program: "tracepoint__sys_exit_recvfrom"},
+			},
+			{
+				ID: bpfutil.HookID{Program: "tracepoint__sys_enter_sendto"},
+			},
+			{
+				ID: bpfutil.HookID{Program: "tracepoint__sys_exit_sendto"},
+			},
+			{
+				ID: bpfutil.HookID{Program: "tracepoint__sys_enter_writev"},
+			},
+			{
+				ID: bpfutil.HookID{Program: "tracepoint__sys_exit_writev"},
+			},
+			{
+				ID: bpfutil.HookID{Program: "tracepoint__sys_enter_readv"},
+			},
+			{
+				ID: bpfutil.HookID{Program: "tracepoint__sys_exit_readv"},
+			},
+			{
+				ID: bpfutil.HookID{
+					Program: "kprobe__tcp_close",
+					UID:     "tcp_close_apiflow",
+				},
+			},
+			{
+				ID: bpfutil.HookID{
+					Program: "kprobe__sched_getaffinity",
+					UID:     "kprobe_sched_getaffinity_apiflow",
+				},
+			},
+			{
+				ID: bpfutil.HookID{Program: "tracepoint__sys_enter_sendfile64"},
+			},
+			{
+				ID: bpfutil.HookID{Program: "tracepoint__sys_exit_sendfile64"},
+			},
+		}...)
+
+		binName := "apiflow.o"
+		binLoader := dkebpf.APIFlowBin
+		if legacy {
+			log.Warnf("kernel %#x uses degraded legacy apiflow probes: only read/write syscall tracepoints are enabled", kernelVersion)
+			runtime.Probes = pruneLegacyHTTPFlowProbes(runtime.Probes)
+			binName = "apiflow_legacy.o"
+			binLoader = dkebpf.APIFlowLegacyBin
+			log.Infof("kernel %#x loading legacy apiflow object", kernelVersion)
+		}
+
+		buf, err := binLoader()
+		if err != nil {
+			return fmt.Errorf("%s: %w", binName, err)
+		}
+		return runtime.LoadFromReader(bytes.NewReader(buf), loadSpec)
+	}
+
+	if err := loadRuntime(useLegacyConsts); err != nil {
+		if useLegacyConsts {
+			return nil, nil, err
+		}
+		log.Warnf("load modern apiflow object failed, fallback to legacy minimal object: %v", err)
+		useLegacyConsts = true
+		enableTLS = false
+		if err := loadRuntime(true); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	var r *procwatch.LibraryTracker
+	if enableTLS {
+		opensslRules := []procwatch.HookRule{
+			{
+				Re:     RegexpLibSSL,
+				Attach: procwatch.NewAttachFunc(runtime, libSSLSection),
+				Detach: procwatch.NewDetachFunc(runtime, libSSLSection),
+			},
+			{
+				Re:     RegexpLibCrypto,
+				Attach: procwatch.NewAttachFunc(runtime, libcryptoSection),
+				Detach: procwatch.NewDetachFunc(runtime, libcryptoSection),
 			},
 		}
 
 		var err error
-		r, err = sysmonitor.NewUprobeDyncLibRegister(opensslRules)
+		r, err = procwatch.NewLibraryTracker(opensslRules)
 		if err != nil {
 			return nil, nil, err
 		}
 	}
 
-	mOpts := manager.Options{
-		RLimit: &unix.Rlimit{
-			Cur: math.MaxUint64,
-			Max: math.MaxUint64,
-		},
-		ConstantEditors: constEditor,
-	}
-
-	if bmaps != nil {
-		mOpts.MapEditors = bmaps
-	}
-
-	if buf, err := dkebpf.APIFlowBin(); err != nil {
-		return nil, nil, fmt.Errorf("apiflow.o: %w", err)
-	} else if err := m.InitWithOptions((bytes.NewReader(buf)), mOpts); err != nil {
-		return nil, nil, err
-	}
-
-	return m, r, nil
+	return runtime, r, nil
 }
 
 type APIFlowTracer struct {
@@ -332,7 +541,7 @@ type apiTracerConfig struct {
 	tags        map[string]string
 	conv2dd     bool
 	enableTrace bool
-	procFilter  *sysmonitor.ProcessFilter
+	catalog     *procwatch.Catalog
 	protos      map[protodec.L7Protocol]struct{}
 	k8sNetInfo  *cli.K8sInfo
 	selfPid     int
@@ -362,9 +571,9 @@ func WithEnableTrace(enableTrace bool) APITracerOpt {
 	}
 }
 
-func WithProcessFilter(procFilter *sysmonitor.ProcessFilter) APITracerOpt {
+func WithCatalog(catalog *procwatch.Catalog) APITracerOpt {
 	return func(cfg *apiTracerConfig) {
-		cfg.procFilter = procFilter
+		cfg.catalog = catalog
 	}
 }
 
@@ -395,27 +604,28 @@ func NewAPIFlowTracer(ctx context.Context, opts ...APITracerOpt) *APIFlowTracer 
 
 const bpfMapProtocolFilter = "mp_protocol_filter"
 
-func (tracer *APIFlowTracer) Run(ctx context.Context, constEditor []manager.ConstantEditor,
-	bmaps map[string]*ebpf.Map, enableTLS bool, interval time.Duration) error {
+func (tracer *APIFlowTracer) Run(ctx context.Context, patches []bpfutil.ConstantPatch,
+	bmaps map[string]*ebpf.Map, enableTLS bool, interval time.Duration,
+) error {
 	go tracer.tracer.Start(ctx, interval)
 
-	bpfManger, r, err := NewHTTPFlowManger(constEditor, bmaps,
+	runtime, r, err := NewHTTPFlowRuntime(patches, bmaps,
 		tracer.tracer.PerfEventHandle, enableTLS)
 	if err != nil {
 		return err
 	}
 
-	newKpFlushTrigger(ctx)
-
-	if err := bpfManger.Start(); err != nil {
+	if err := runtime.StartRuntime(); err != nil {
 		log.Error(err)
 		return err
 	}
 
+	newKpFlushTrigger(ctx)
+
 	log.Info("api tracer starting ...")
 
 	var fn func(uint64)
-	if mp, ok, err := bpfManger.GetMap(bpfMapProtocolFilter); err == nil && ok {
+	if mp, err := runtime.LookupMap(bpfMapProtocolFilter); err == nil {
 		fn = func() func(u uint64) {
 			return func(u uint64) {
 				val := uint8(1)
@@ -431,13 +641,12 @@ func (tracer *APIFlowTracer) Run(ctx context.Context, constEditor []manager.Cons
 	tracer.tracer.protocolFilter.setFn(fn)
 
 	if r != nil {
-		r.ScanAndUpdate()
-		r.Monitor(ctx, time.Second*30)
+		r.Run(ctx, time.Second*30)
 	}
 
 	go func() {
 		<-ctx.Done()
-		_ = bpfManger.Stop(manager.CleanAll)
+		_ = runtime.Shutdown()
 	}()
 
 	return nil

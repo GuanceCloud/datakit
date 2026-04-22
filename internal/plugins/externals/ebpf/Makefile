@@ -99,11 +99,25 @@ apiflow.o:
 		-c $(INTERNAL_PATH)/c/apiflow/apiflow.c \
 		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/apiflow.o
 
+apiflow_legacy.o:
+	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
+		-DDK_LEGACY_CONST_IMM \
+		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
+		-c $(INTERNAL_PATH)/c/apiflow/apiflow.c \
+		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/apiflow_legacy.o
+
 netflow.o:
 	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
 		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
 		-c $(INTERNAL_PATH)/c/netflow/netflow.c \
 		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/netflow.o
+
+netflow_legacy.o:
+	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
+		-DDK_LEGACY_CONST_IMM \
+		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
+		-c $(INTERNAL_PATH)/c/netflow/netflow.c \
+		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/netflow_legacy.o
 
 process_sched.o:
 	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
@@ -117,6 +131,13 @@ conntrack.o:
 		-c $(INTERNAL_PATH)/c/conntrack/conntrack.c \
 		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/conntrack.o
 
+conntrack_legacy.o:
+	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
+		-DDK_LEGACY_CONST_IMM \
+		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
+		-c $(INTERNAL_PATH)/c/conntrack/conntrack.c \
+		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/conntrack_legacy.o
+
 offset_guess.o:
 	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
 		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
@@ -128,6 +149,13 @@ offset_httpflow.o:
 		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
 		-c $(INTERNAL_PATH)/c/offset_guess/offset_httpflow.c \
 		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/offset_httpflow.o
+
+offset_httpflow_legacy.o:
+	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
+		-DDK_LEGACY_CONST_IMM \
+		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
+		-c $(INTERNAL_PATH)/c/offset_guess/offset_httpflow.c \
+		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/offset_httpflow_legacy.o
 
 offset_conntrack.o:
 	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
@@ -141,14 +169,28 @@ offset_tcp_seq.o:
 		-c $(INTERNAL_PATH)/c/offset_guess/offset_tcp_seq.c \
 		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/offset_tcp_seq.o
 
+offset_tcp_seq_legacy.o:
+	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
+		-DDK_LEGACY_CONST_IMM \
+		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
+		-c $(INTERNAL_PATH)/c/offset_guess/offset_tcp_seq.c \
+		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/offset_tcp_seq_legacy.o
+
+host_peer_filter.o:
+	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
+		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
+		-c $(INTERNAL_PATH)/c/l4log/host_peer_filter.c \
+		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/host_peer_filter.o
+
 bash_history.o: 
 	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
 		-c $(INTERNAL_PATH)/c/bash_history/bash_history.c \
 		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/bash_history.o
 
-bindata: offset_guess.o offset_httpflow.o offset_conntrack.o offset_tcp_seq.o \
-			netflow.o apiflow.o bash_history.o conntrack.o process_sched.o
-	llvm-strip $(EBPF_BIN_PATH)/*.o --no-strip-all -R .BTF
+bindata: offset_guess.o offset_httpflow.o offset_httpflow_legacy.o offset_conntrack.o offset_tcp_seq.o offset_tcp_seq_legacy.o \
+			host_peer_filter.o \
+			netflow.o netflow_legacy.o apiflow.o apiflow_legacy.o bash_history.o conntrack.o conntrack_legacy.o process_sched.o
+	llvm-strip $(EBPF_BIN_PATH)/*.o --strip-debug
 
 build: bindata
 	GO111MODULE=on CGO_ENABLED=1 GOOS=$(GOOS) GOARCH=$(GO_ARCH) \

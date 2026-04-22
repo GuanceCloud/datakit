@@ -19,6 +19,11 @@ static __always_inline void do_dnapt(struct connection_info *conn , __u32 *dst_n
     key.netns = conn->netns;
 
     struct nf_reply_tuple *reply = (struct nf_reply_tuple *)bpf_map_lookup_elem(&bpfmap_conntrack_tuple, &key);
+    if (reply == NULL && key.netns != 0)
+    {
+        key.netns = 0;
+        reply = (struct nf_reply_tuple *)bpf_map_lookup_elem(&bpfmap_conntrack_tuple, &key);
+    }
     if (reply != NULL)
     {
         __builtin_memcpy(dst_nat_addr, reply->src_ip, sizeof(__u32[4]));

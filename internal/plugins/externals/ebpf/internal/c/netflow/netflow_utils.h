@@ -12,7 +12,7 @@
 static __always_inline __u64 load_kernel_version()
 {
     __u64 var = 0;
-    LOAD_OFFSET("kernel_version", var);
+    LOAD_OFFSET(kernel_version, var);
     return var;
 }
 
@@ -45,181 +45,181 @@ static __always_inline int pre_kernel_4_7_0()
 static __always_inline __u64 load_offset_sk_num()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_sk_num", var);
+    LOAD_OFFSET(offset_sk_num, var);
     return var;
 }
 
 static __always_inline __u64 load_offset_inet_sport()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_inet_sport", var);
+    LOAD_OFFSET(offset_inet_sport, var);
     return var;
 }
 
 static __always_inline __u64 load_offset_sk_family()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_sk_family", var);
+    LOAD_OFFSET(offset_sk_family, var);
     return var;
 }
 
 static __always_inline __u64 load_offset_sk_rcv_saddr()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_sk_rcv_saddr", var);
+    LOAD_OFFSET(offset_sk_rcv_saddr, var);
     return var;
 }
 
 static __always_inline __u64 load_offset_sk_daddr()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_sk_daddr", var);
+    LOAD_OFFSET(offset_sk_daddr, var);
     return var;
 }
 
 static __always_inline __u64 load_offset_sk_v6_rcv_saddr()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_sk_v6_rcv_saddr", var);
+    LOAD_OFFSET(offset_sk_v6_rcv_saddr, var);
     return var;
 }
 static __always_inline __u64 load_offset_sk_v6_daddr()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_sk_v6_daddr", var);
+    LOAD_OFFSET(offset_sk_v6_daddr, var);
     return var;
 }
 static __always_inline __u64 load_offset_sk_dport()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_sk_dport", var);
+    LOAD_OFFSET(offset_sk_dport, var);
     return var;
 }
 static __always_inline __u64 load_offset_rtt()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_tcp_sk_srtt_us", var);
+    LOAD_OFFSET(offset_tcp_sk_srtt_us, var);
     return var;
 }
 
 static __always_inline __u64 load_offset_rtt_var()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_tcp_sk_mdev_us", var);
+    LOAD_OFFSET(offset_tcp_sk_mdev_us, var);
     return var;
 }
 
 static __always_inline __u64 load_offset_flowi4_saddr()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_flowi4_saddr", var);
+    LOAD_OFFSET(offset_flowi4_saddr, var);
     return var;
 }
 static __always_inline __u64 load_offset_flowi4_daddr()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_flowi4_daddr", var);
+    LOAD_OFFSET(offset_flowi4_daddr, var);
     return var;
 }
 static __always_inline __u64 load_offset_flowi4_sport()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_flowi4_sport", var);
+    LOAD_OFFSET(offset_flowi4_sport, var);
     return var;
 }
 
 static __always_inline __u64 load_offset_flowi4_dport()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_flowi4_dport", var);
+    LOAD_OFFSET(offset_flowi4_dport, var);
     return var;
 }
 static __always_inline __u64 load_offset_flowi6_saddr()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_flowi6_saddr", var);
+    LOAD_OFFSET(offset_flowi6_saddr, var);
     return var;
 }
 static __always_inline __u64 load_offset_flowi6_daddr()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_flowi6_daddr", var);
+    LOAD_OFFSET(offset_flowi6_daddr, var);
     return var;
 }
 static __always_inline __u64 load_offset_flowi6_sport()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_flowi6_sport", var);
+    LOAD_OFFSET(offset_flowi6_sport, var);
     return var;
 }
 
 static __always_inline __u64 load_offset_flowi6_dport()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_flowi6_dport", var);
+    LOAD_OFFSET(offset_flowi6_dport, var);
     return var;
 }
 
 static __always_inline __u64 load_offset_sk_net()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_sk_net", var);
+    LOAD_OFFSET(offset_sk_net, var);
     return var;
 }
 
 static __always_inline __u64 load_offset_ns_common_inum()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_ns_common_inum", var);
+    LOAD_OFFSET(offset_ns_common_inum, var);
     return var;
 }
 
 static __always_inline __u64 load_offset_socket_sk()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_socket_sk", var);
+    LOAD_OFFSET(offset_socket_sk, var);
     return var;
 }
 
 static __always_inline __u64 load_offset_socket_file()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_socket_file", var);
+    LOAD_OFFSET(offset_socket_file, var);
     return var;
 }
 
 static __always_inline __u64 load_offset_task_struct_files()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_task_struct_files", var);
+    LOAD_OFFSET(offset_task_struct_files, var);
     return var;
 }
 
 static __always_inline __u64 load_offset_files_struct_fdt()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_files_struct_fdt", var);
+    LOAD_OFFSET(offset_files_struct_fdt, var);
     return var;
 }
 
 static __always_inline __u64 load_offset_file_private_data()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_file_private_data", var);
+    LOAD_OFFSET(offset_file_private_data, var);
     return var;
 }
 
 static __always_inline __u64 load_offset_copied_seq()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_copied_seq", var);
+    LOAD_OFFSET(offset_copied_seq, var);
     return var;
 }
 
 static __always_inline __u64 load_offset_write_seq()
 {
     __u64 var = 0;
-    LOAD_OFFSET("offset_write_seq", var);
+    LOAD_OFFSET(offset_write_seq, var);
     return var;
 }
 
@@ -232,7 +232,15 @@ static __always_inline __u32 read_netns(void *sk)
     // possible_net_t has only one field: struct net *
     __u64 offset_sk_net = load_offset_sk_net();
     __u64 offset_ns_common_inum = load_offset_ns_common_inum();
+    if (offset_sk_net == 0 || offset_ns_common_inum == 0)
+    {
+        return 0;
+    }
     bpf_probe_read(&netptr, sizeof(netptr), (__u8 *)sk + offset_sk_net);
+    if (netptr == NULL)
+    {
+        return 0;
+    }
 
     bpf_probe_read(&inum, sizeof(inum), (__u8 *)netptr + offset_ns_common_inum);
     return inum;
@@ -408,6 +416,13 @@ static __always_inline int read_tcp_rtt(struct sock *sk, struct connection_tcp_s
     // rtt_var: &tcp_sk(sk)->mdev_us
     __u64 offset_rtt = load_offset_rtt();
     __u64 offset_rtt_var = load_offset_rtt_var();
+
+    if (offset_rtt == 0 || offset_rtt_var == 0)
+    {
+        tcp_stats->rtt = 0;
+        tcp_stats->rtt_var = 0;
+        return 0;
+    }
 
     bpf_probe_read(&srtt_us, sizeof(srtt_us), (__u8 *)sk + offset_rtt);
     bpf_probe_read(&mdev_us, sizeof(mdev_us), (__u8 *)sk + offset_rtt_var);

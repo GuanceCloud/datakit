@@ -1,98 +1,107 @@
-//go:build linux && vmlinux
-// +build linux,vmlinux
+//go:build linux
+// +build linux
 
 package offset
 
 import (
 	"testing"
 
-	"github.com/cilium/ebpf/btf"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetTCPOffsetFromBTF(t *testing.T) {
-	if _, v, err := TryGetTCPSeqOffsetFromBTF(); err != nil {
-		t.Skipf("BTF not available: %v", err)
-	} else {
-		t.Logf("TryGetTCPSeqOffsetFromBTF succeeded: v=%+v", v)
-	}
-
-	offsets, err := GetTCPOffsetFromBTF()
-	if err != nil {
-		t.Skipf("BTF not available: %v", err)
-		return
-	}
-
-	assert.NotEmpty(t, offsets, "offsets should not be empty")
-
-	expectedFields := []string{
-		"tcp_sk_srtt_us",
-		"tcp_sk_mdev_us",
-		"inet_sport",
-		"sk_family",
-		"sk_v6_rcv_saddr",
-		"sk_v6_daddr",
-		"sk_net",
-		"ns_common_inum",
-	}
-
-	for _, field := range expectedFields {
-		val, exists := offsets[field]
-		assert.True(t, exists, "field %s should exist", field)
-		assert.NotEqual(t, uint64(0), val, "field %s should not be zero", field)
-		t.Logf("%s: %d", field, val)
-	}
+func TestKernelBTFCandidatePathsForRelease(t *testing.T) {
+	paths := kernelBTFCandidatePathsForRelease("6.8.0-test")
+	assert.NotEmpty(t, paths)
+	assert.Equal(t, "/sys/kernel/btf/vmlinux", paths[0])
+	assert.Contains(t, paths, "/boot/vmlinux-6.8.0-test")
+	assert.Contains(t, paths, "/usr/lib/modules/6.8.0-test/vmlinux")
+	assert.Contains(t, paths, "/usr/lib/debug/boot/vmlinux-6.8.0-test")
 }
 
-func TestGetMemberOffset(t *testing.T) {
-	spec, err := btf.LoadKernelSpec()
-	if err != nil {
-		t.Skipf("BTF not available: %v", err)
-		return
+func TestKernelBTFDisabled(t *testing.T) {
+	t.Setenv(DisableKernelBTFEnv, "1")
+	assert.True(t, kernelBTFDisabled())
+
+	_, err := FindKernelBTF()
+	assert.ErrorContains(t, err, DisableKernelBTFEnv)
+
+	_, _, err = LoadKernelBTF()
+	assert.ErrorContains(t, err, DisableKernelBTFEnv)
+}
+
+func TestKernelOffsetsReadyRequiresTCPSeqWhenRequested(t *testing.T) {
+	offset := &OffsetGuessC{
+		offset_sk_num:          1,
+		offset_inet_sport:      2,
+		offset_sk_family:       3,
+		offset_sk_rcv_saddr:    4,
+		offset_sk_dport:        5,
+		offset_tcp_sk_srtt_us:  6,
+		offset_tcp_sk_mdev_us:  7,
+		offset_flowi4_saddr:    8,
+		offset_flowi4_daddr:    9,
+		offset_flowi4_sport:    10,
+		offset_flowi4_dport:    11,
+		offset_sk_net:          12,
+		offset_ns_common_inum:  13,
+		offset_socket_sk:       14,
+		offset_sk_v6_rcv_saddr: 15,
+		offset_sk_v6_daddr:     16,
+		offset_flowi6_saddr:    17,
+		offset_flowi6_daddr:    18,
+		offset_flowi6_sport:    19,
+		offset_flowi6_dport:    20,
 	}
 
-	tests := []struct {
-		name        string
-		typeName    string
-		memberName  string
-		expectError bool
-	}{
-		{"tcp_sock_srtt_us", "tcp_sock", "srtt_us", false},
-		{"tcp_sock_mdev_us", "tcp_sock", "mdev_us", false},
-		{"sock_common_skc_net", "sock_common", "skc_net", false},
-		{"invalid_type", "a_invalid_type", "field", true},
-		{"invalid_member", "tcp_sock", "a_invalid_field", false},
+	assert.True(t, kernelOffsetsReady(offset, false, false))
+	assert.False(t, kernelOffsetsReady(offset, true, false))
+
+	offset.offset_copied_seq = 21
+	offset.offset_write_seq = 22
+	assert.True(t, kernelOffsetsReady(offset, true, false))
+}
+
+func TestConntrackOffsetsReady(t *testing.T) {
+	offset := &OffsetConntrackC{}
+	assert.False(t, conntrackOffsetsReady(offset))
+
+	offset.offset_ct_origin_tuple = 1
+	offset.offset_ct_reply_tuple = 2
+	offset.offset_ct_net = 3
+	offset.offset_ct_ns_common_inum = 4
+	assert.True(t, conntrackOffsetsReady(offset))
+}
+
+func TestKernelGuessNeedsSelectiveProbes(t *testing.T) {
+	assert.True(t, kernelGuessNeedsTCP4(nil))
+	assert.True(t, kernelGuessNeedsUDP4(nil))
+	assert.True(t, kernelGuessNeedsTCP6(nil))
+	assert.True(t, kernelGuessNeedsSocket(nil))
+
+	offset := &OffsetGuessC{
+		offset_inet_sport:      1,
+		offset_sk_dport:        2,
+		offset_tcp_sk_srtt_us:  3,
+		offset_tcp_sk_mdev_us:  4,
+		offset_sk_daddr:        5,
+		offset_sk_net:          6,
+		offset_ns_common_inum:  7,
+		offset_sk_family:       8,
+		offset_flowi4_daddr:    9,
+		offset_flowi4_saddr:    10,
+		offset_flowi4_dport:    11,
+		offset_flowi4_sport:    12,
+		offset_sk_v6_daddr:     13,
+		offset_sk_v6_rcv_saddr: 14,
+		offset_socket_sk:       15,
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var s *btf.Struct
-			err := spec.TypeByName(tt.typeName, &s)
+	assert.False(t, kernelGuessNeedsTCP4(offset))
+	assert.False(t, kernelGuessNeedsUDP4(offset))
+	assert.False(t, kernelGuessNeedsTCP6(offset))
+	assert.False(t, kernelGuessNeedsSocket(offset))
 
-			if tt.expectError {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				if err == nil && s != nil {
-					found := false
-					for _, m := range s.Members {
-						if m.Name == tt.memberName {
-							offset := uint64(m.Offset.Bytes())
-							assert.NotEqual(t, uint64(0), offset, "offset should not be zero")
-							t.Logf("%s.%s: %d", tt.typeName, tt.memberName, offset)
-							found = true
-							break
-						}
-					}
-					if tt.name == "invalid_member" {
-						assert.False(t, found, "member should not be found")
-					} else {
-						assert.True(t, found, "member %s should be found", tt.memberName)
-					}
-				} else if tt.name == "invalid_member" {
-					assert.Error(t, err)
-				}
-			}
-		})
-	}
+	offset.offset_socket_sk = 0
+	assert.True(t, kernelGuessNeedsSocket(offset))
+	assert.False(t, kernelGuessNeedsTCP4(offset))
 }

@@ -17,11 +17,27 @@ func HTTPFlowBin() ([]byte, error) {
 	return notImplemented()
 }
 
+func APIFlowBin() ([]byte, error) {
+	return notImplemented()
+}
+
+func APIFlowLegacyBin() ([]byte, error) {
+	return notImplemented()
+}
+
 func NetFlowBin() ([]byte, error) {
 	return notImplemented()
 }
 
+func NetFlowLegacyBin() ([]byte, error) {
+	return notImplemented()
+}
+
 func ConntrackBin() ([]byte, error) {
+	return notImplemented()
+}
+
+func ConntrackLegacyBin() ([]byte, error) {
 	return notImplemented()
 }
 
@@ -37,6 +53,10 @@ func OffsetHttpflowBin() ([]byte, error) {
 	return notImplemented()
 }
 
+func OffsetHttpflowLegacyBin() ([]byte, error) {
+	return notImplemented()
+}
+
 func OffsetConntrackBin() ([]byte, error) {
 	return notImplemented()
 }
@@ -45,6 +65,14 @@ func OffsetTCPSeqBin() ([]byte, error) {
 	return notImplemented()
 }
 
+func OffsetTCPSeqLegacyBin() ([]byte, error) {
+	return notImplemented()
+}
+
 func BashHistoryBin() ([]byte, error) {
+	return notImplemented()
+}
+
+func HostPeerFilterBin() ([]byte, error) {
 	return notImplemented()
 }

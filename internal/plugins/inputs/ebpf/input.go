@@ -97,6 +97,22 @@ type Input struct {
 func (ipt *Input) Singleton() {
 }
 
+func appendResourceLimitArgs(args []string, cpuLimit, memLimit, bandwidthLimit string) []string {
+	if cpuLimit != "" {
+		args = append(args, "--res-cpu", cpuLimit)
+	}
+
+	if memLimit != "" {
+		args = append(args, "--res-mem", memLimit)
+	}
+
+	if bandwidthLimit != "" {
+		args = append(args, "--res-bandwidth", bandwidthLimit)
+	}
+
+	return args
+}
+
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 	tick := time.NewTicker(time.Second * 60)
@@ -279,21 +295,8 @@ loop:
 		ipt.Input.Args = append(ipt.Input.Args,
 			"--conv-to-ddtrace")
 	}
-
-	if ipt.CPULimit != "" {
-		ipt.Input.Args = append(ipt.Input.Args,
-			"--res-cpu", ipt.CPULimit)
-	}
-
-	if ipt.MemLimit != "" {
-		ipt.Input.Args = append(ipt.Input.Args,
-			"--res-mem", ipt.MemLimit)
-	}
-
-	if ipt.NetLimit != "" {
-		ipt.Input.Args = append(ipt.Input.Args,
-			"--res-net", ipt.NetLimit)
-	}
+	ipt.Input.Args = appendResourceLimitArgs(ipt.Input.Args,
+		ipt.CPULimit, ipt.MemLimit, ipt.NetLimit)
 
 	if ipt.SamplingRate != "" {
 		ipt.Input.Args = append(ipt.Input.Args,

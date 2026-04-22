@@ -45,3 +45,14 @@ func TestEBPFProcessMonitoringIntegration(t *testing.T) {
 	monitor := external.GetProcessMonitor()
 	assert.NotNil(t, monitor, "ProcessMonitor should be initialized")
 }
+
+func TestAppendResourceLimitArgs(t *testing.T) {
+	args := appendResourceLimitArgs([]string{"run"}, "2.0", "4GiB", "100MiB/s")
+
+	assert.Equal(t, []string{
+		"run",
+		"--res-cpu", "2.0",
+		"--res-mem", "4GiB",
+		"--res-bandwidth", "100MiB/s",
+	}, args)
+}

@@ -6,7 +6,6 @@ require (
 	github.com/BurntSushi/toml v1.2.1
 	github.com/DataDog/datadog-agent/pkg/obfuscate v0.47.1
 	github.com/DataDog/datadog-go v4.8.3+incompatible
-	github.com/DataDog/gopsutil v1.2.1
 	github.com/GuanceCloud/confd v0.1.101
 	github.com/GuanceCloud/grok v1.1.5-0.20250416104424-34917bd63e69
 	github.com/GuanceCloud/platypus v0.3.4
@@ -107,7 +106,6 @@ require (
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20210428141323-04723f9f07d7 // indirect
-	github.com/StackExchange/wmi v1.2.1 // indirect
 	github.com/acomagu/bufpipe v1.0.3 // indirect
 	github.com/antchfx/xpath v1.2.4 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
@@ -343,7 +341,6 @@ require (
 )
 
 require (
-	github.com/DataDog/ebpf-manager v0.2.16
 	github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b
 	github.com/GuanceCloud/zipstream v0.1.0 // indirect
 	github.com/andrewkroh/sys v0.0.0-20151128191922-287798fe3e43
@@ -373,7 +370,6 @@ require (
 	github.com/GuanceCloud/cliutils v1.1.22-0.20260421085720-c22683f8683e
 	github.com/VictoriaMetrics/easyproto v0.1.4 // indirect
 	github.com/andybalholm/brotli v1.0.4
-	github.com/avast/retry-go/v4 v4.1.0 // indirect
 	github.com/avvmoto/buf-readerat v0.0.0-20171115124131-a17c8cb89270 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -384,7 +380,6 @@ require (
 	github.com/libp2p/go-reuseport v0.3.0 // indirect
 	github.com/outcaste-io/ristretto v0.2.1 // indirect
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4 // indirect
 	github.com/valyala/fastjson v1.6.3
 )
 

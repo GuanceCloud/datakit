@@ -13,11 +13,12 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	manager "github.com/DataDog/ebpf-manager"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/cilium/ebpf"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/bashhistory"
+	bpfutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/bpfutil"
 	dkct "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/conntrack"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/dnsflow"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
@@ -26,9 +27,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/protodec"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
 	dkoffset "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/offset"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/sysmonitor"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/procwatch"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/cli"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/dumpstd"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/stats"
 
 	// nolint:gosec
 	_ "net/http/pprof"
@@ -56,6 +58,18 @@ var (
 	}
 )
 
+func resetFeatureFlags() {
+	enableEbpfBash = false
+	enableEbpfNet = false
+	enableBpfNetlog = false
+	enableEbpfConntrack = false
+	enableTrace = false
+	enableHTTPFlow = false
+	enableHTTPFlowTLS = false
+	conv2ddID = false
+	ipv6Disabled = false
+}
+
 const InstallDir = "/usr/local/datakit"
 
 var log = logger.DefaultSLogger(inputName)
@@ -75,6 +89,7 @@ const (
 
 func parseFlags(opt *Flag) (*Flag, map[string]string, error) {
 	gTags := map[string]string{}
+	resetFeatureFlags()
 
 	for _, item := range opt.Enabled {
 		log.Info("enabled plugin: ", item)
@@ -176,6 +191,8 @@ func NewRunCmd() *cobra.Command {
 		"set DataKit API server")
 	cmd.Flags().StringVar(&opt.EBPFTrace.TraceServer, "trace-server", "",
 		"set eBPF trace generation server address")
+	cmd.Flags().BoolVar(&opt.EBPFTrace.EnableUprobe, "trace-uprobe", false,
+		"enable procwatch/uprobe target-process attach for ebpf-trace")
 
 	cmd.Flags().StringVar(&opt.HostName, "hostname", "", "set host name")
 	cmd.Flags().StringVar(&opt.Interval, "interval", "60s", "set gather interval")
@@ -193,6 +210,12 @@ func NewRunCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&opt.BPFNetLog.EnableLog, "netlog-log", false, "netlog log")
 	cmd.Flags().StringSliceVar(&opt.BPFNetLog.L7LogProtocols, "netlog-protocols", []string{"http"},
 		"netlog protocols list in 'a,b,...' format")
+	cmd.Flags().IntVar(&opt.BPFNetLog.FallbackSockets, "netlog-fallback-sockets", 0,
+		"max fallback AF_PACKET sockets for bpf-netlog, 0 uses default")
+	cmd.Flags().IntVar(&opt.BPFNetLog.FallbackBlocks, "netlog-fallback-blocks", 0,
+		"AF_PACKET ring blocks for fallback netns capture, 0 uses default")
+	cmd.Flags().IntVar(&opt.BPFNetLog.SharedRingBlocks, "netlog-shared-blocks", 0,
+		"AF_PACKET ring blocks for shared host-peer capture, 0 uses default")
 
 	cmd.Flags().Int32Var(&opt.EBPFNet.EphemeralPort, "ephemeral_port", 0, "set ephemeral port")
 	cmd.Flags().Int32Var(&opt.EBPFNet.EphemeralPort, "ephemeral-port", 0, "set ephemeral port")
@@ -319,6 +342,7 @@ func runCmd(cfgFile *string, fl *Flag) error {
 	}
 
 	log.Infof("set the time interval to %s", interval)
+	exporter.StartSummaryLogger(ctx, interval, gTags)
 
 	log.Info("datakit-ebpf starting ...")
 
@@ -380,7 +404,7 @@ func runCmd(cfgFile *string, fl *Flag) error {
 	}
 
 	if enableEbpfNet {
-		_ = fl.EBPFTrace.TraceAllProc
+		traceAttachEnabled := enableTrace && fl.EBPFTrace.EnableUprobe && fl.EBPFTrace.TraceServer != ""
 
 		var envWhitelist []string
 		var envBlacklist []string
@@ -416,10 +440,21 @@ func runCmd(cfgFile *string, fl *Flag) error {
 			}
 		}
 
+		traceTargetConfigured := fl.EBPFTrace.TraceAllProc || len(envWhitelist) > 0 || len(nameWhitelist) > 0
+		if enableTrace && !fl.EBPFTrace.EnableUprobe {
+			log.Info("ebpf-trace target-process uprobe attach is disabled by default; set enable_uprobe/--trace-uprobe to turn it on")
+		}
+		if enableTrace && fl.EBPFTrace.EnableUprobe && fl.EBPFTrace.TraceServer == "" {
+			log.Warn("ebpf-trace enabled without trace_server; target-process attach is disabled by default for safety")
+		}
+		if traceAttachEnabled && !traceTargetConfigured {
+			log.Warn("ebpf-trace enabled without trace_all_proc or explicit trace allowlist; target-process attach is disabled by default for safety")
+		}
+
 		enableProtos := map[protodec.L7Protocol]struct{}{
 			protodec.ProtoHTTP: {},
 		}
-		if enableTrace && fl.EBPFTrace.TraceServer != "" {
+		if traceAttachEnabled {
 			protoLi := netproto(fl.EBPFTrace.TraceProtoList, fl.EBPFTrace.TraceProtoBlacklist)
 			var protoStr []string
 			for _, p := range protoLi {
@@ -433,30 +468,27 @@ func runCmd(cfgFile *string, fl *Flag) error {
 		log.Infof("service env: %v, env w: %v, b: %v, proc w: %v, b: %v",
 			envAssignAllowed, envWhitelist, envBlacklist, nameWhitelist, nameBlacklist)
 
-		procFilter := sysmonitor.NewProcessFilter(ctx,
-			sysmonitor.WithSelfPid(os.Getpid()),
-
-			sysmonitor.WithEnvService(envAssignAllowed),
-
-			sysmonitor.WithEnvBlacklist(envBlacklist),
-			sysmonitor.WithEnvWhitelist(envWhitelist),
-
-			sysmonitor.WithNameBlacklist(nameBlacklist),
-			sysmonitor.WithNameWhitelist(nameWhitelist),
-
-			sysmonitor.WithTracing(enableTrace),
+		catalog := procwatch.NewCatalog(ctx,
+			procwatch.WithSelfPID(os.Getpid()),
+			procwatch.WithServiceEnv(envAssignAllowed),
+			procwatch.WithEnvBlacklist(envBlacklist),
+			procwatch.WithEnvWhitelist(envWhitelist),
+			procwatch.WithNameBlacklist(nameBlacklist),
+			procwatch.WithNameWhitelist(nameWhitelist),
+			procwatch.WithTracing(traceAttachEnabled),
+			procwatch.WithTraceAllProc(fl.EBPFTrace.TraceAllProc),
 		)
 
-		schedTracer, err := sysmonitor.NewProcessSchedTracer(procFilter)
+		probeWatcher, err := procwatch.NewProbeWatcher(catalog)
 		if err != nil {
 			log.Error(err)
 			// feedLastErrorLoop(err, signalInterrupt)
 		} else {
-			if err := schedTracer.Start(ctx); err != nil {
+			if err := probeWatcher.Start(ctx); err != nil {
 				log.Error(err)
 				feedLastErrorLoop(err, signalInterrupt)
 			}
-			defer schedTracer.Stop() //nolint:errcheck
+			defer probeWatcher.Stop() //nolint:errcheck
 		}
 
 		netflow.SetEphemeralPortMin(fl.EBPFNet.EphemeralPort)
@@ -467,10 +499,11 @@ func runCmd(cfgFile *string, fl *Flag) error {
 			offset = nil
 			log.Warn(err)
 		}
-		offset, err = getOffset(offset)
+		offsetPlan, err := dkoffset.ResolveKernelOffsets(offset, traceAttachEnabled && enableHTTPFlow, ipv6Disabled)
 		if err != nil {
 			return fmt.Errorf("get offset failed: %w", err)
 		}
+		offset = offsetPlan.Guess
 
 		log.Debugf("%+v", offset)
 
@@ -479,39 +512,34 @@ func runCmd(cfgFile *string, fl *Flag) error {
 			log.Warn(err)
 		}
 
-		constEditor := dkoffset.NewConstEditor(offset)
-
-		offsetSeq := dkoffset.GetTCPSeqOffset(offset)
-		constEditor = append(constEditor, dkoffset.NewConstEditorTCPSeq(offsetSeq)...)
+		constEditor := offsetPlan.Patches
 
 		// start conntrack
 		var ctMap *ebpf.Map
 		if enableEbpfConntrack {
-			ctOffset, _, err := guessOffsetConntrack(nil)
+			ctPlan, err := dkoffset.ResolveConntrackOffsets(nil)
 			if err != nil {
-				feedLastErrorLoop(err, signalInterrupt)
+				log.Warnf("skip conntrack offsets: %v", err)
 			} else {
-				log.Debugf("%v", ctOffset)
+				log.Debugf("%v", ctPlan.Guess)
 			}
 
-			ctManager, err := dkct.NewConntrackManger(ctOffset)
+			var ctPatches []bpfutil.ConstantPatch
+			if ctPlan != nil {
+				ctPatches = ctPlan.Patches
+			}
+			ctRuntime, err := dkct.NewConntrackRuntime(ctPatches)
 			if err != nil {
-				err = fmt.Errorf("new conntrack manager: %w", err)
-				feedLastErrorLoop(err, signalInterrupt)
-			}
-			if err := ctManager.Start(); err != nil {
-				feedLastErrorLoop(err, signalInterrupt)
+				log.Warnf("skip conntrack runtime: %v", err)
+			} else if err := ctRuntime.StartRuntime(); err != nil {
+				log.Warnf("start conntrack runtime failed, continue without conntrack: %v", err)
+				_ = ctRuntime.Shutdown()
 			} else {
-				defer ctManager.Stop(manager.CleanAll) //nolint:errcheck
-			}
-			ctmap, ok, err := ctManager.GetMap("bpfmap_conntrack_tuple")
-			if err != nil {
-				feedLastErrorLoop(err, signalInterrupt)
-			}
-			if !ok {
-				ctMap = nil
-			} else {
-				ctMap = ctmap
+				defer ctRuntime.Shutdown() //nolint:errcheck
+				ctmap, err := ctRuntime.LookupMap("bpfmap_conntrack_tuple")
+				if err == nil {
+					ctMap = ctmap
+				}
 			}
 		}
 
@@ -522,61 +550,73 @@ func runCmd(cfgFile *string, fl *Flag) error {
 			}
 		}
 
-		netflowTracer := netflow.NewNetFlowTracer(procFilter)
-		ebpfNetManger, err := netflow.NewNetFlowManger(constEditor, bmaps,
-			netflowTracer.ClosedEventHandler)
+		netflowTracer := netflow.NewNetFlowTracer(catalog)
+		ebpfNetRuntime, err := netflow.StartNetFlowRuntime(constEditor, bmaps,
+			netflowTracer.ClosedEventHandler, ipv6Disabled)
+		netflowReady := err == nil
 		if err != nil {
-			return fmt.Errorf("new netflow manager: %w", err)
-		}
-		// Start the manager
-		if err := ebpfNetManger.Start(); err != nil {
-			return fmt.Errorf("start netflow manager: %w", err)
+			if enableEbpfBash || enableBpfNetlog {
+				log.Warnf("skip ebpf-net runtime: %v", err)
+			} else {
+				return fmt.Errorf("start netflow runtime: %w", err)
+			}
 		} else {
 			log.Info(" >>> datakit ebpf-net tracer(ebpf) starting ...")
-		}
-		defer ebpfNetManger.Stop(manager.CleanAll) //nolint:errcheck
-
-		// used for dns reverse
-		dnsRecord := dnsflow.NewDNSRecord()
-		netflow.SetDNSRecord(dnsRecord)
-
-		// run dnsflow
-		if tp, err := dnsflow.NewTPacketDNS(); err != nil {
-			log.Error(err)
-		} else {
-			dnsTracer := dnsflow.NewDNSFlowTracer()
-			go dnsTracer.Run(ctx, tp, gTags, dnsRecord)
+			defer ebpfNetRuntime.Shutdown() //nolint:errcheck
 		}
 
-		// run netflow
-		err = netflowTracer.Run(ctx, ebpfNetManger, gTags, interval)
-		if err != nil {
-			return fmt.Errorf("run netflow: %w", err)
-		}
+		if netflowReady {
+			// used for dns reverse
+			dnsRecord := dnsflow.NewDNSRecord()
+			netflow.SetDNSRecord(dnsRecord)
 
-		if enableHTTPFlow {
-			httpConst, err := guessOffsetHTTP(offset)
-			if err != nil {
-				err = fmt.Errorf("get http offset failed: %w", err)
-				feedLastErrorLoop(err, signalInterrupt)
-			}
-			constEditor = append(constEditor, httpConst...)
-
-			// TODO: append conntrack bpf map
-			bmaps, _ := schedTracer.GetSchedMap()
-
-			tracer := l7flow.NewAPIFlowTracer(ctx,
-				l7flow.WithSelfPid(os.Getpid()),
-				l7flow.WithTags(gTags),
-				l7flow.WithConv2dd(conv2ddID),
-				l7flow.WithEnableTrace(enableTrace),
-				l7flow.WithProcessFilter(procFilter),
-				l7flow.WithProtos(enableProtos),
-				l7flow.WithK8sNetInfo(k8sinfo),
-			)
-
-			if err := tracer.Run(ctx, constEditor, bmaps, enableHTTPFlowTLS, interval); err != nil {
+			// run dnsflow
+			if tp, err := dnsflow.NewTPacketDNS(); err != nil {
 				log.Error(err)
+			} else {
+				dnsTracer := dnsflow.NewDNSFlowTracer()
+				go dnsTracer.Run(ctx, tp, gTags, dnsRecord)
+			}
+
+			// run netflow
+			err = netflowTracer.Run(ctx, ebpfNetRuntime, gTags, interval)
+			if err != nil {
+				if enableEbpfBash || enableBpfNetlog {
+					log.Warnf("run ebpf-net failed, continue without netflow: %v", err)
+					netflowReady = false
+				} else {
+					return fmt.Errorf("run netflow: %w", err)
+				}
+			}
+		}
+
+		if enableHTTPFlow && netflowReady {
+			httpPlan, err := dkoffset.ResolveHTTPFlowOffsets(offset)
+			if err != nil {
+				log.Warnf("skip httpflow runtime: %v", err)
+				enableHTTPFlow = false
+			}
+			if enableHTTPFlow {
+				if httpPlan != nil {
+					constEditor = append(constEditor, httpPlan.Patches...)
+				}
+
+				// TODO: append conntrack bpf map
+				bmaps, _ := probeWatcher.SharedMaps()
+
+				tracer := l7flow.NewAPIFlowTracer(ctx,
+					l7flow.WithSelfPid(os.Getpid()),
+					l7flow.WithTags(gTags),
+					l7flow.WithConv2dd(conv2ddID),
+					l7flow.WithEnableTrace(traceAttachEnabled),
+					l7flow.WithCatalog(catalog),
+					l7flow.WithProtos(enableProtos),
+					l7flow.WithK8sNetInfo(k8sinfo),
+				)
+
+				if err := tracer.Run(ctx, constEditor, bmaps, enableHTTPFlowTLS, interval); err != nil {
+					log.Error(err)
+				}
 			}
 		}
 	}
@@ -612,6 +652,7 @@ func runCmd(cfgFile *string, fl *Flag) error {
 		go l4log.NetLog(ctx,
 			l4log.WithGlobalTags(gTags),
 			l4log.WithBlacklist(blacklist),
+			l4log.WithCaptureLimits(fl.BPFNetLog.FallbackSockets, fl.BPFNetLog.FallbackBlocks, fl.BPFNetLog.SharedRingBlocks),
 			fnSetEndpoints,
 		)
 	}
@@ -664,6 +705,7 @@ func openPprof(host, port string) {
 			} else {
 				addr = fmt.Sprintf(":%s", port)
 			}
+			http.Handle("/metrics", promhttp.HandlerFor(stats.GetRegistry(), promhttp.HandlerOpts{}))
 			_ = http.ListenAndServe(addr, nil)
 		}()
 	}
@@ -685,7 +727,7 @@ func initLogger(log **logger.Logger, name, path, level string) error {
 
 	exporter.SetLogger(l)
 	dkoffset.SetLogger(l)
-	sysmonitor.SetLogger(l)
+	procwatch.SetLogger(l)
 
 	netflow.SetLogger(l)
 	l4log.SetLogger(l)
@@ -699,14 +741,14 @@ func initLogger(log **logger.Logger, name, path, level string) error {
 }
 
 func initResLimiter(fl *Flag, signalInterrupt chan os.Signal) {
-	if resLimiter, err := sysmonitor.NewResLimiter(
+	if resLimiter, err := procwatch.NewResourceQuota(
 		fl.ResourceLimit.LimitCPU,
 		fl.ResourceLimit.LimitMem,
 		fl.ResourceLimit.LimitBandwidth); err != nil {
 		log.Error(err)
 	} else {
 		go func() {
-			ch := resLimiter.MonitorResource()
+			ch := resLimiter.Monitor()
 			select {
 			case <-ch:
 				log.Error("resource limit exceed")

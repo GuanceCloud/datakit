@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -31,7 +32,10 @@ var (
 	EnvWorkloadLabels      = "K8S_WORKLOAD_LABELS"
 	EnvWorkloadLabelPrefix = "K8S_WORKLOAD_LABEL_PREFIX"
 
-	EnvNetlogNetFilter = "NETLOG_NET_FILTER"
+	EnvNetlogNetFilter       = "NETLOG_NET_FILTER"
+	EnvNetlogFallbackSockets = "NETLOG_FALLBACK_SOCKETS"
+	EnvNetlogFallbackBlocks  = "NETLOG_FALLBACK_BLOCKS"
+	EnvNetlogSharedBlocks    = "NETLOG_SHARED_BLOCKS"
 )
 
 type Flag struct {
@@ -76,14 +80,18 @@ type FlagNet struct {
 }
 
 type FlagBPFNetLog struct {
-	EnableLog      bool     `toml:"enable_log"`
-	EnableMetric   bool     `toml:"enable_metric"`
-	L7LogProtocols []string `toml:"l7log_protocols"`
-	NetFilter      string   `toml:"net_filter"`
+	EnableLog        bool     `toml:"enable_log"`
+	EnableMetric     bool     `toml:"enable_metric"`
+	L7LogProtocols   []string `toml:"l7log_protocols"`
+	NetFilter        string   `toml:"net_filter"`
+	FallbackSockets  int      `toml:"fallback_sockets"`
+	FallbackBlocks   int      `toml:"fallback_blocks"`
+	SharedRingBlocks int      `toml:"shared_ring_blocks"`
 }
 
 type FlagTrace struct {
 	TraceServer         string   `toml:"trace_server"`
+	EnableUprobe        bool     `toml:"enable_uprobe"`
 	TraceAllProc        bool     `toml:"trace_all_proc"`
 	TraceEnvList        []string `toml:"trace_env_list"`
 	TraceNameList       []string `toml:"trace_name_list"`
@@ -145,6 +153,18 @@ func readEnv(flag *Flag) {
 			flag.K8sInfo.WorkloadLabelPrefix = v
 		case EnvNetlogNetFilter:
 			flag.BPFNetLog.NetFilter = v
+		case EnvNetlogFallbackSockets:
+			if n, err := strconv.Atoi(v); err == nil {
+				flag.BPFNetLog.FallbackSockets = n
+			}
+		case EnvNetlogFallbackBlocks:
+			if n, err := strconv.Atoi(v); err == nil {
+				flag.BPFNetLog.FallbackBlocks = n
+			}
+		case EnvNetlogSharedBlocks:
+			if n, err := strconv.Atoi(v); err == nil {
+				flag.BPFNetLog.SharedRingBlocks = n
+			}
 		}
 	}
 }

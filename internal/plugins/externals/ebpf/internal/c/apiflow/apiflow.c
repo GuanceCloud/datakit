@@ -54,6 +54,7 @@ FN_TP_SYSCALL(sys_exit_recvfrom, tp_syscall_exit_args_t *ctx)
     return 0;
 }
 
+#ifndef DK_LEGACY_APIFLOW_MINIMAL
 FN_TP_SYSCALL(sys_enter_writev, tp_syscall_rw_v_args_t *ctx)
 {
     put_rw_v_args(ctx, &mp_syscall_rw_v_arg, MSG_WRITE);
@@ -127,7 +128,9 @@ FN_KPROBE(tcp_close)
 
     return 0;
 }
+#endif
 
+#ifndef DK_LEGACY_APIFLOW_MINIMAL
 FN_UPROBE(SSL_set_fd)
 {
     return 0;
@@ -162,22 +165,17 @@ FN_UPROBE(SSL_shutdown)
 {
     return 0;
 }
+#endif
 
 FN_KPROBE(sched_getaffinity)
 {
-    __u64 cpu = bpf_get_smp_processor_id();
     network_events_t *events = get_net_events();
     if (events == NULL)
     {
         return 0;
     }
-
-    if (events->rec.num > 0)
-    {
-        bpf_perf_event_output(ctx, &mp_upload_netwrk_events, cpu, events, sizeof(network_events_t));
-        events->rec.bytes = 0;
-        events->rec.num = 0;
-    }
+    events->rec.bytes = 0;
+    events->rec.num = 0;
 
     return 0;
 }

@@ -14,10 +14,10 @@ import (
 	"time"
 	"unsafe"
 
-	manager "github.com/DataDog/ebpf-manager"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
+	bpfutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/bpfutil"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/c"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 
@@ -28,6 +28,8 @@ import (
 import "C"
 
 type BashEventC C.struct_bash_event
+
+const bashEventSize = int(unsafe.Sizeof(BashEventC{})) //nolint:gosec
 
 const (
 	srcNameM      = "bash"
@@ -42,31 +44,33 @@ func SetLogger(nl *logger.Logger) {
 	l = nl
 }
 
-func NewBashManger(bashReadlineEventHandler func(cpu int, data []byte,
-	perfmap *manager.PerfMap, manager *manager.Manager)) (*manager.Manager, error) {
-	m := &manager.Manager{
-		Probes: []*manager.Probe{
+func NewBashRuntime(bashReadlineEventHandler bpfutil.PerfHandler) (*bpfutil.Runtime, error) {
+	runtime := &bpfutil.Runtime{
+		Probes: []*bpfutil.HookSpec{
 			{
-				ProbeIdentificationPair: manager.ProbeIdentificationPair{
-					EBPFFuncName: "uretprobe__readline",
+				ID: bpfutil.HookID{
+					Program: "uretprobe__readline",
 				},
 				KProbeMaxActive: 128,
 				BinaryPath:      "/bin/bash",
 			},
 		},
-		PerfMaps: []*manager.PerfMap{
+		Streams: []*bpfutil.PerfStream{
 			{
-				Map: manager.Map{
+				Map: bpfutil.Map{
 					Name: "bpfmap_bash_readline",
 				},
-				PerfMapOptions: manager.PerfMapOptions{
+				PerfStreamOptions: bpfutil.PerfStreamOptions{
 					PerfRingBufferSize: 32 * os.Getpagesize(),
 					DataHandler:        bashReadlineEventHandler,
+					LostHandler: func(cpu int, count uint64, stream *bpfutil.PerfStream, runtime *bpfutil.Runtime) {
+						exporter.AddPerfLost("bashhistory", stream.Name, count)
+					},
 				},
 			},
 		},
 	}
-	mOpts := manager.Options{
+	loadSpec := bpfutil.LoadSpec{
 		RLimit: &unix.Rlimit{
 			Cur: math.MaxUint64,
 			Max: math.MaxUint64,
@@ -74,11 +78,11 @@ func NewBashManger(bashReadlineEventHandler func(cpu int, data []byte,
 	}
 	if buf, err := dkebpf.BashHistoryBin(); err != nil {
 		return nil, fmt.Errorf("bash_history.o: %w", err)
-	} else if err := m.InitWithOptions((bytes.NewReader(buf)), mOpts); err != nil {
+	} else if err := runtime.LoadFromReader((bytes.NewReader(buf)), loadSpec); err != nil {
 		return nil, err
 	}
 
-	return m, nil
+	return runtime, nil
 }
 
 type BashTracer struct {
@@ -95,7 +99,12 @@ func NewBashTracer() *BashTracer {
 }
 
 func (tracer *BashTracer) readlineCallBack(cpu int, data []byte,
-	perfmap *manager.PerfMap, manager *manager.Manager) {
+	stream *bpfutil.PerfStream, runtime *bpfutil.Runtime) {
+	if len(data) < bashEventSize {
+		l.Debugf("drop short bash event: got %d want >= %d", len(data), bashEventSize)
+		return
+	}
+
 	eventC := (*BashEventC)(unsafe.Pointer(&data[0])) //nolint:gosec
 
 	mTags := map[string]string{}
@@ -129,6 +138,8 @@ func (tracer *BashTracer) readlineCallBack(cpu int, data []byte,
 	select {
 	case <-tracer.stopCh:
 	case tracer.ch <- pt:
+	default:
+		l.Debug("drop bash event: queue full")
 	}
 }
 
@@ -164,12 +175,12 @@ func (tracer *BashTracer) Run(ctx context.Context, gTags map[string]string,
 
 	go tracer.feedHandler(ctx, interval)
 
-	bpfManger, err := NewBashManger(tracer.readlineCallBack)
+	runtime, err := NewBashRuntime(tracer.readlineCallBack)
 	if err != nil {
 		l.Error(err)
 		return err
 	}
-	if err := bpfManger.Start(); err != nil {
+	if err := runtime.StartRuntime(); err != nil {
 		l.Error(err)
 		return err
 	}

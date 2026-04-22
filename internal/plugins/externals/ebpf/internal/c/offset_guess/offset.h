@@ -74,6 +74,7 @@ struct offset_guess
 
     // conntrack
     __u64 offset_ct_net;
+    __u64 offset_ct_ns_common_inum;
     __u64 offset_origin_tuple;
     __u64 offset_reply_tuple;
 
@@ -87,12 +88,16 @@ struct offset_guess
     __u16 dport;
     __u16 sport_skt;
     __u16 dport_skt;
+    __u16 family_skt;
+    __u16 _pad1;
 
     __u32 saddr[4];
     __u32 daddr[4];
+    __u32 daddr_skt[4];
 
     // __u32 pid;
     __u32 netns;
+    __u32 netns_skt;
     __u32 meta;
     __u32 rtt;
     __u32 rtt_var;
@@ -124,6 +129,14 @@ struct offset_httpflow
     __s32 state; // 0b1 | 0b10, ok
 
     __s32 fd;
+
+    __u16 sport;
+    __u16 dport;
+
+    __u32 saddr[4];
+    __u32 daddr[4];
+
+    __s32 offset_socket_sk;
 };
 
 struct packet_tuple
@@ -201,7 +214,7 @@ struct offset_conntrack
     __u64 offset_ct_reply_tuple;
 
     __u64 offset_ct_net;
-    __u64 offset_ns_common_inum;
+    __u64 offset_ct_ns_common_inum;
 
     struct nf_conn_tuple origin, reply;
 
