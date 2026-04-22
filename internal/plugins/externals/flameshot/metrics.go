@@ -18,6 +18,7 @@ var (
 	uptimeGauge p8s.Gauge
 	pidCount    *p8s.CounterVec
 	uploadToDK  *p8s.CounterVec
+	missedOOM   *p8s.CounterVec
 )
 
 func metricsSetup() {
@@ -49,6 +50,16 @@ func metricsSetup() {
 		},
 		[]string{"service", "status_code"},
 	)
+
+	missedOOM = p8s.NewCounterVec(
+		p8s.CounterOpts{
+			Namespace: namespace,
+			Subsystem: "",
+			Name:      "missed_oom_total",
+			Help:      "Count of cgroup oom_kill increments detected after the process was not captured in time.",
+		},
+		[]string{"service"},
+	)
 }
 
 // nolint: gochecknoinits
@@ -59,6 +70,7 @@ func init() {
 		uptimeGauge,
 		pidCount,
 		uploadToDK,
+		missedOOM,
 	)
 	uptimeGauge.Set(float64(time.Now().Unix()))
 }

@@ -1,81 +1,215 @@
-# flameshot 
+# Flameshot User Guide
 
-当被检测的程序达到一定的阈值时触发采集 profile 信息。
+Flameshot is a profiling sidecar used to capture Java process on-site data before CPU spikes, memory pressure, or OOM events cause the Pod to disappear.
 
-虚拟环境工作目录 :`/flameshot` ,配置文件位置:`/flameshot/flameshot.conf`， 配置环境变量 `FLAMESHOT_*` 开头 
+This guide focuses on what users need to configure in real deployments:
 
-async-profiler 位置：`./async-profiler` 包括 `linux-arms64` `linux-amd64`  
+- timed profiling
+- average-threshold profiling
+- emergency memory-triggered profiling
+- OOM `.hprof` summary recovery
+- high-watermark `jcmd` snapshots
 
-> 以实际的配置为准，k8s 环境都可以通过环境变量控制。
+## Deployment Requirements
 
-## 配置
+Flameshot works best when the business container and the Flameshot sidecar satisfy all of the following:
 
+1. They run in the same Pod.
+2. `shareProcessNamespace: true` is enabled.
+3. They share a writable volume for profiling outputs.
+4. The sidecar can access `async-profiler`.
+5. The sidecar can access `jcmd`, or the business container already includes `jcmd`.
 
-默认值：
+Recommended shared paths:
 
-- interval 监控进程间隔，默认一秒
-- language 语言，默认 java
-- 每隔 5 分钟按照配置的进程名将全部的进程过滤一遍
-- 采集 profile 文件，默认 30秒，执行命令的时候 5 分钟内必须结束
+- profiling output path: `/flameshot-data`
+- Java heap dump path: `/flameshot-data/dumps`
 
+## Global Environment Variables
 
-## 采集和上传
+Common sidecar-level settings:
 
-## HTTP 接口
+| Variable | Required | Default | Description |
+| --- | --- | --- | --- |
+| `FLAMESHOT_DATAKIT_ADDR` | Yes | - | DataKit profiling upload endpoint, for example `http://datakit-service.datakit:9529/profiling/v1/input` |
+| `FLAMESHOT_PROFILING_PATH` | Yes | `/data` | Shared writable directory for profiler tools, JFR output, `jcmd` output, and OOM related files |
+| `FLAMESHOT_MONITOR_INTERVAL` | No | `1s` | Polling interval |
+| `FLAMESHOT_LOG_LEVEL` | No | `info` | Log level |
+| `FLAMESHOT_HTTP_LOCAL_IP` | Yes | - | Sidecar HTTP listen host |
+| `FLAMESHOT_HTTP_LOCAL_PORT` | Yes | `8089` | Sidecar HTTP listen port |
+| `FLAMESHOT_AUTO_PROFILING` | No | - | Timed profiling interval, minimum 1 minute |
+| `FLAMESHOT_AUTO_PROFILING_DURATION` | No | `30s` | Timed profiling sample duration |
+| `FLAMESHOT_OOM_HPROF_ENABLED` | No | `false` | Enable post-OOM `.hprof` summary recovery |
+| `FLAMESHOT_OOM_HPROF_MATCH_WINDOW` | No | `2m` | Time window for matching OOM events and generated `.hprof` files |
+| `FLAMESHOT_JCMD_SNAPSHOT_ENABLED` | No | `true` | Enable high-watermark `jcmd` snapshots |
+| `FLAMESHOT_JCMD_TIMEOUT` | No | `10s` | Timeout for each `jcmd` command |
+| `FLAMESHOT_POD_MEM_LIMIT` | No | - | Pod memory limit in Mi. When configured, Flameshot prefers Pod-limit memory percent instead of host memory percent |
+| `FLAMESHOT_POD_CPU_LIMIT` | No | - | Pod CPU limit in millicores |
+| `FLAMESHOT_SERVICE` | No | - | Override `service` in all `FLAMESHOT_PROCESSES` rules |
+| `FLAMESHOT_TAGS` | No | - | Global tags, for example `host:node-a,pod_name:demo,pod_namespace:prod` |
 
-可以通过http请求指定的pid或者command去采集profile信息。
+## `FLAMESHOT_PROCESSES` Fields
 
-参数：
-- pid 进程id
-- command 进程名，支持正则表达式
-- duration 采集时间，单位秒
-- events 采集的事件，默认为all，支持多个事件，cpu,alloc,nativemem,lock,cache-misses 用逗号分隔 
+`FLAMESHOT_PROCESSES` must be a JSON array string. Each item defines one process matching rule.
 
-为指定的Pid生成profile文件 /v1/monitor?pid=1234&duration=10&events=all
+Important fields:
 
-或者为指定的进程 名生成profile文件 /v1/monitor?command=app.jar&duration=10&events=cpu,alloc
+| Field | Description |
+| --- | --- |
+| `service` | Service name reported to DataKit |
+| `command` | Process command-line regex |
+| `language` | Currently `java` |
+| `events` | Profiling events such as `cpu`, `alloc`, `lock`, `nativemem`, or `all` |
+| `duration` | Normal profiling duration |
+| `emergency_duration` | Short profiling duration used for emergency memory triggers |
+| `cpu_usage_percent` | CPU threshold |
+| `mem_usage_percent` | Average memory-percent threshold based on the latest 5 points |
+| `mem_usage_mb` | Average RSS threshold in MB based on the latest 5 points |
+| `mem_usage_percent_emergency` | Instant emergency memory-percent threshold. A single point hit triggers immediately |
+| `mem_usage_mb_emergency` | Instant emergency RSS threshold in MB. A single point hit triggers immediately |
+| `tags` | Per-rule custom tags |
 
-例如：
+Trigger behavior:
 
-当前有一个进程启动时这样的：
-```shell
-java -javaagent:dd-java-agent-v1.55.0-ext.jar -Ddd.service=tmall -jar tmall.jar
+- `cpu_usage_percent`, `mem_usage_percent`, and `mem_usage_mb` keep the original "latest 5 points average" behavior.
+- `mem_usage_percent_emergency` and `mem_usage_mb_emergency` use single-point immediate triggering.
+- When `FLAMESHOT_POD_MEM_LIMIT` is configured, memory percentage is calculated relative to the Pod limit first.
+- Emergency memory triggers use `emergency_duration`, which should be shorter than the normal `duration`.
+
+## Recommended Kubernetes Example
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: java-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: java-app
+  template:
+    metadata:
+      labels:
+        app: java-app
+    spec:
+      shareProcessNamespace: true
+      volumes:
+        - name: flameshot-data
+          emptyDir: {}
+      containers:
+        - name: app
+          image: my-java-app:latest
+          volumeMounts:
+            - name: flameshot-data
+              mountPath: /flameshot-data
+        - name: flameshot
+          image: pubrepo.jiagouyun.com/datakit/flameshot:latest
+          env:
+            - name: FLAMESHOT_DATAKIT_ADDR
+              value: "http://datakit-service.datakit:9529/profiling/v1/input"
+            - name: FLAMESHOT_PROFILING_PATH
+              value: "/flameshot-data"
+            - name: FLAMESHOT_MONITOR_INTERVAL
+              value: "1s"
+            - name: FLAMESHOT_AUTO_PROFILING
+              value: "10m"
+            - name: FLAMESHOT_AUTO_PROFILING_DURATION
+              value: "15s"
+            - name: FLAMESHOT_JCMD_SNAPSHOT_ENABLED
+              value: "true"
+            - name: FLAMESHOT_JCMD_TIMEOUT
+              value: "20s"
+            - name: FLAMESHOT_OOM_HPROF_ENABLED
+              value: "true"
+            - name: FLAMESHOT_OOM_HPROF_MATCH_WINDOW
+              value: "3m"
+            - name: FLAMESHOT_POD_MEM_LIMIT
+              value: "2048"
+            - name: FLAMESHOT_POD_CPU_LIMIT
+              value: "1000"
+            - name: FLAMESHOT_TAGS
+              value: "pod_name:$(POD_NAME),pod_namespace:$(POD_NAMESPACE),host:$(NODE_NAME)"
+            - name: FLAMESHOT_PROCESSES
+              value: |
+                [
+                  {
+                    "service": "java-app",
+                    "language": "java",
+                    "command": "^java\\b.*app\\.jar$",
+                    "events": "cpu,alloc",
+                    "duration": "30s",
+                    "emergency_duration": "10s",
+                    "cpu_usage_percent": 80,
+                    "mem_usage_percent": 80,
+                    "mem_usage_mb": 1536,
+                    "mem_usage_percent_emergency": 92,
+                    "mem_usage_mb_emergency": 1900,
+                    "tags": [
+                      "env:prod",
+                      "version:v1"
+                    ]
+                  }
+                ]
+          securityContext:
+            capabilities:
+              add: ["SYS_PTRACE"]
+          volumeMounts:
+            - name: flameshot-data
+              mountPath: /flameshot-data
 ```
 
-启动后 pid=1234
+## JVM Parameters for OOM Recovery
 
-那么，可以使用一下两种方式请求，获取该进程的profile文件：
+If you want Flameshot to recover OOM-related `.hprof` summaries, the target JVM should include:
 
-```shell
-# 采集pid为1234的进程的profile文件，采集时间为10秒，采集的事件为all
-curl "http://localhost:8089/v1/monitor?pid=1234&duration=30&events=all"
-
-# 采集进程名符合 ^java\\b.*tmall\\.jar$ 的进程的profile文件，采集时间为10秒，采集的事件为cpu和alloc
-curl "http://127.0.0.1:8989/v1/monitor?command=^java\\b.*tmall\\.jar$&duration=10&events=cpu,alloc"
+```bash
+java \
+  -XX:+HeapDumpOnOutOfMemoryError \
+  -XX:HeapDumpPath=/flameshot-data/dumps/app.hprof \
+  -jar app.jar
 ```
 
-## 测试
+Notes:
 
-测试环境下 有 jar-parser 是java服务。
+- `HeapDumpPath` should be inside the shared volume.
+- Flameshot parses `HeapDumpPath` directly from the target Java process arguments.
+- If the Pod is killed too quickly, `.hprof` may still fail to appear. In that case, high-watermark `jcmd` snapshots are usually more reliable.
 
-镜像位置 `pubrepo.jiagouyun.com/datakit/flameshot:1.85.1-testing_testing-iss-2876`
+## What Gets Captured During High Memory Risk
 
-启动需要和主容器共享目录 ： `/opt/java/openjdk`  该目录中存在java环境
+When the emergency threshold is reached, Flameshot tries to preserve the scene in this order:
 
-启动参数环境变量
-```shell
-FLAMESHOT_DATAKIT_ADDR = http://datakit-service.datakit:9529/profiling/v1/input
-FLAMESHOT_MONITOR_INTERVAL= 1
-FLAMESHOT_LOG_LEVEL= debug
-FLAMESHOT_LOG_PATH= /var/log/flameshot.log
-FLAMESHOT_HTTP_LOCAL_ADDR= 0.0.0.0:8089
-FLAMESHOT_PROCESSES=[{"service":"jfr-parser","command":"^.*org\\.springframework\\.boot\\.loader\\.JarLauncher$","duration":"1s","events":"--all","language":"java","jdk_version":"-","tags":["env:testing","version:1.0.0"],"cpu_usage_percent":80,"mem_usage_percent":80,"mem_usage_mb":1024}]
+1. Trigger a short profiling session using `emergency_duration`.
+2. Run `jcmd <pid> GC.class_histogram`.
+3. Run `jcmd <pid> Thread.print`.
+4. If an `oom_kill` increment is later observed, try to locate the matching `.hprof` and upload an OOM summary log.
+
+Raw files written into `FLAMESHOT_PROFILING_PATH` include:
+
+- `profiler_<timestamp>.jfr`
+- `jcmd_gc_class_histogram_<pid>_<timestamp>.txt`
+- `jcmd_thread_print_<pid>_<timestamp>.txt`
+- `.hprof` files generated by the JVM itself
+
+## Troubleshooting
+
+If profiling does not trigger as expected:
+
+1. Check whether the sidecar sees the target process at all.
+2. Check whether `FLAMESHOT_POD_MEM_LIMIT` matches the real Pod limit.
+3. Check whether `async-profiler` exists under `/opt/async-profiler`.
+4. Check whether `jcmd` is present and usable.
+5. Check whether `/tmp` or required JDK paths are shared when running as a sidecar.
+6. Check whether `FLAMESHOT_PROFILING_PATH` is shared and writable.
+
+Useful checks:
+
+```bash
+ps -ef
+env | grep FLAMESHOT_
+ls -lah /opt/async-profiler
+which jcmd
+ls -lah /flameshot-data
+cat /var/log/flameshot.log
 ```
-
-----
-
-## todo
-
-java程序 不走正则
-
-删除jfr文件

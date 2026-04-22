@@ -9,6 +9,7 @@ import (
 	"container/list"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/shirou/gopsutil/v3/process"
@@ -24,6 +25,8 @@ type processM struct {
 	p               *process.Process
 	MaxSize         int       // 环形缓冲区最大容量
 	lastProfileTime time.Time // 上次采集profile的时间，不能小于1分钟。
+	lastJcmdTime    time.Time // 上次采集 jcmd 轻量快照的时间，避免高水位时频繁执行。
+	mu              sync.Mutex
 
 	CPUHistory        *list.List // CPU使用率历史记录（环形缓冲区）
 	MemPercentHistory *list.List // 内存使用率历史记录（环形缓冲区）
@@ -95,24 +98,62 @@ func (pm *processM) updateProcessStats() error {
 	memUsage := float64(memInfo.RSS) / 1024 / 1024
 	pm.AddMemUsage(memUsage)
 
-	// 3. 计算基于 Limit 的真实百分比
-	memLimitBytes := parseMemoryLimit(pm.podMEMLimit)
-	var containerMemPercent float64
-
-	if memLimitBytes > 0 {
-		// 公式：(实际占用字节 / Limit字节) * 100
-		containerMemPercent = (float64(memInfo.RSS) / float64(memLimitBytes)) * 100
-	} else {
-		if p, err := pm.p.MemoryPercent(); err == nil {
-			containerMemPercent = float64(p)
-		}
+	// 3. 优先使用 Pod limit 视角的内存百分比，只有没有 limit 时才回退到宿主机视角
+	containerMemPercent, memLimitBytes, memPercentSource := pm.getMemoryUsagePercent(memInfo.RSS)
+	if memPercentSource == "host" && pm.configProcess != nil &&
+		(pm.configProcess.MEMUsagePercent > 0 || pm.configProcess.MEMUsagePercentEmergency > 0) {
+		log.Debugf("pid %d: pod mem limit not configured, fallback to host memory percent", pm.Pid)
 	}
 
-	log.Debugf("pid %d: RSS=%d Bytes, Limit=%d Bytes, Usage=%.2f%%",
-		pm.Pid, memInfo.RSS, memLimitBytes, containerMemPercent)
+	log.Debugf("pid %d: RSS=%d Bytes, Limit=%d Bytes, Usage=%.2f%%, Source=%s",
+		pm.Pid, memInfo.RSS, memLimitBytes, containerMemPercent, memPercentSource)
 	pm.AddMemPercent(containerMemPercent)
 
 	return nil
+}
+
+func (pm *processM) getMemoryUsagePercent(rss uint64) (float64, int64, string) {
+	memLimitBytes := parseMemoryLimit(pm.podMEMLimit)
+	if memLimitBytes > 0 {
+		return (float64(rss) / float64(memLimitBytes)) * 100, memLimitBytes, "pod_limit"
+	}
+
+	if pm.p == nil {
+		return 0, 0, "unknown"
+	}
+
+	p, err := pm.p.MemoryPercent()
+	if err != nil {
+		return 0, 0, "unknown"
+	}
+
+	return float64(p), 0, "host"
+}
+
+var readProcessRSS = func(pm *processM) (uint64, error) {
+	if pm == nil || pm.p == nil {
+		return 0, fmt.Errorf("process not available")
+	}
+
+	memInfo, err := pm.p.MemoryInfo()
+	if err != nil {
+		return 0, err
+	}
+
+	return memInfo.RSS, nil
+}
+
+func (pm *processM) currentRSSBytes() (uint64, bool) {
+	if rss, err := readProcessRSS(pm); err == nil {
+		return rss, true
+	}
+
+	memMB, ok := getLatestValue(pm.MemHistory)
+	if !ok {
+		return 0, false
+	}
+
+	return uint64(memMB * 1024 * 1024), true
 }
 
 // 将 "500m" 转为 0.5, 将 "2" 转为 2.0.
@@ -182,12 +223,32 @@ func (pm *processM) AddMemPercent(perc float64) {
 }
 
 func (pm *processM) isTrigger() (bool, []string) {
-	if time.Since(pm.lastProfileTime) < time.Minute {
-		return false, nil
+	trigger, tags, _ := pm.triggerDecision()
+	return trigger, tags
+}
+
+func (pm *processM) triggerDecision() (bool, []string, bool) {
+	if pm.inCooldown(time.Minute) {
+		return false, nil, false
 	}
 
 	trigger := false
+	emergency := false
 	tags := make([]string, 0)
+
+	memCurrent, hasMemCurrent := getLatestValue(pm.MemHistory)
+	if hasMemCurrent && pm.configProcess.MEMUsageMBEmergency > 0 && memCurrent >= float64(pm.configProcess.MEMUsageMBEmergency) {
+		trigger = true
+		emergency = true
+		tags = append(tags, fmt.Sprintf("mem_used_emergency:%0.2f", memCurrent))
+	}
+
+	memPercCurrent, hasMemPercCurrent := getLatestValue(pm.MemPercentHistory)
+	if hasMemPercCurrent && pm.configProcess.MEMUsagePercentEmergency > 0 && memPercCurrent >= float64(pm.configProcess.MEMUsagePercentEmergency) {
+		trigger = true
+		emergency = true
+		tags = append(tags, fmt.Sprintf("mem_perc_emergency:%0.2f", memPercCurrent))
+	}
 
 	cpuAvg := getListAvg(pm.CPUHistory, 5)
 	if pm.configProcess.CPUUsagePercent > 0 && cpuAvg >= float64(pm.configProcess.CPUUsagePercent) {
@@ -208,7 +269,53 @@ func (pm *processM) isTrigger() (bool, []string) {
 	if trigger {
 		log.Infof("start trigger,because of %+v", tags)
 	}
-	return trigger, tags
+	return trigger, tags, emergency
+}
+
+func (pm *processM) inCooldown(window time.Duration) bool {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+
+	return time.Since(pm.lastProfileTime) < window
+}
+
+func (pm *processM) markProfileTriggered(now time.Time) {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+
+	pm.lastProfileTime = now
+}
+
+func (pm *processM) inJcmdCooldown(window time.Duration) bool {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+
+	return time.Since(pm.lastJcmdTime) < window
+}
+
+func (pm *processM) markJcmdTriggered(now time.Time) {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+
+	pm.lastJcmdTime = now
+}
+
+func getLatestValue(history *list.List) (float64, bool) {
+	if history == nil {
+		return 0, false
+	}
+
+	last := history.Back()
+	if last == nil {
+		return 0, false
+	}
+
+	usage, ok := last.Value.(float64)
+	if !ok {
+		return 0, false
+	}
+
+	return usage, true
 }
 
 func getListAvg(history *list.List, recentCount int) float64 {
