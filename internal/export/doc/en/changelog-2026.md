@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.93.0(2026/04/22) {#cl-1.93.0}
+
+This release is an iterative release, with the following main updates:
+
+### New Features {#cl-1.93.0-new}
+
+- Switched MySQL and PostgreSQL DBM collectors to a new implementation, improving database performance and object collection flows (#2998)
+- Pipeline scripts now support wildcard matching on `source`, making rule reuse easier (#3036)
+- Added `jcmd` and `hprof` collection support to Flameshot for better Java troubleshooting (#3031)
+
+### Bug Fixes {#cl-1.93.0-fix}
+
+- Fixed issues in aggregate send and metric accounting paths, restoring compatibility metrics and concurrent sending behavior (#3024)
+- Fixed vSphere event collection time and timeout handling, and added related unit tests (#3037)
+- Fixed several stability issues in the dial testing module and completed unit test coverage for core paths (#3018)
+
+### Improvements {#cl-1.93.0-opt}
+
+- Optimized multiline log processing strategy, unifying manual and automatic matching behavior while expanding the default rule set (#3029)
+- Refactored the eBPF collector path to use cilium-related capabilities directly, with improved stability and compatibility (#3016)
+- Updated DCA documentation and usage guidance (#3032)
+
+---
+
 ## 1.92.1(2026/04/16) {#cl-1.92.1}
 
 This release is a hotfix release, contents are as follows:
