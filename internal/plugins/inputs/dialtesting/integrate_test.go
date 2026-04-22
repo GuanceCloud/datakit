@@ -6,49 +6,44 @@
 package dialtesting
 
 import (
-	"context"
+	"encoding/json"
 	"fmt"
-	"net"
-	"os"
+	"io"
+	"net/http"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/BurntSushi/toml"
-	dt "github.com/ory/dockertest/v3"
-	"github.com/ory/dockertest/v3/docker"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
+	"github.com/GuanceCloud/cliutils"
+	dt "github.com/GuanceCloud/cliutils/dialtesting"
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
 const (
-	UserPassword = "Abc123!"
-	RegionID     = "regionID"
-	DialAK       = "dialak"
-	DialSK       = "dialsk"
-	RepoURL      = "pubrepo.guance.com/image-repo-for-testing/dialtesting/"
+	RegionID = "regionID"
+	DialAK   = "dialak"
+	DialSK   = "dialsk"
 )
 
-type (
-	validateFunc     func(pts []*point.Point, cs *caseSpec) error
-	getConfFunc      func(c containerInfo) string
-	serviceReadyFunc func(ipt *Input) error
-	serviceOKFunc    func(t *testing.T, port string) bool
-)
-
-var collectPointsCache []*point.Point = make([]*point.Point, 0)
+var collectPointsCache = make([]*point.Point, 0)
 
 type mockSender struct {
-	mu sync.Mutex
+	mu   sync.Mutex
+	urls []string
+	pts  []*point.Point
 }
 
-func (m *mockSender) send(url string, point *point.Point) error {
+func (m *mockSender) send(url string, pt *point.Point) error {
 	m.mu.Lock()
-	collectPointsCache = append(collectPointsCache, point)
+	collectPointsCache = append(collectPointsCache, pt)
+	m.urls = append(m.urls, url)
+	m.pts = append(m.pts, pt)
 	m.mu.Unlock()
 	return nil
 }
@@ -57,350 +52,155 @@ func (m *mockSender) checkToken(token, scheme, host string) (bool, error) {
 	return true, nil
 }
 
-type caseSpec struct {
-	t *testing.T
+func (m *mockSender) URLs() []string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
-	name  string
-	image string
-	envs  []string
-
-	validate     validateFunc
-	getConf      getConfFunc
-	serviceOK    serviceOKFunc
-	serviceReady serviceReadyFunc
-	bindingPort  docker.Port
-
-	ipt           *Input
-	collectPoints func(*caseSpec) []*point.Point
-
-	pool     *dt.Pool
-	resource *dt.Resource
-
-	cr *testutils.CaseResult
+	res := make([]string, len(m.urls))
+	copy(res, m.urls)
+	return res
 }
 
-type caseItem struct {
-	name         string
-	getConf      getConfFunc
-	validate     validateFunc
-	serviceReady serviceReadyFunc
-	serviceOK    serviceOKFunc
-	envs         []string
-	images       []string
+func (m *mockSender) Points() []*point.Point {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
-	bindingPort docker.Port
+	res := make([]*point.Point, len(m.pts))
+	copy(res, m.pts)
+	return res
 }
 
-type caseConfig struct {
-	name               string
-	images             []string
-	checkedMeasurement []string
+type mockDialtestingServer struct {
+	mu              sync.Mutex
+	pullResponse    []byte
+	pullStatusCode  int
+	pullCount       int
+	variableUpdates [][]byte
 }
 
-func generateCase(config *caseConfig) caseItem {
-	images := []string{}
-	for _, image := range config.images {
-		images = append(images, fmt.Sprintf("%s%s", RepoURL, image))
-	}
-	return caseItem{
-		name:        config.name,
-		images:      images,
-		bindingPort: "9538/tcp",
-		envs: []string{
-			fmt.Sprintf("MYSQL_ROOT_PASSWORD=%s", UserPassword),
-			fmt.Sprintf("DIAL_AK=%s", DialAK),
-			fmt.Sprintf("DIAL_SK=%s", DialSK),
-			fmt.Sprintf("REGION_ID=%s", RegionID),
-		},
-		getConf: func(c containerInfo) string {
-			return fmt.Sprintf(`
-server = "http://%s:%s"
-pull_interval = "10s"
-time_out = "1m"
-workers = 6
-region_id = "%s"
-ak = "%s"
-sk = "%s"
-`, c.Host, c.Port, RegionID, DialAK, DialSK)
-		},
-		serviceReady: func(ipt *Input) error {
-			return nil
-		},
-		validate: assertSelectedMeasurments(config.checkedMeasurement),
-	}
-}
-
-var cases = []caseItem{
-	generateCase(&caseConfig{
-		name:               "http-test-ok",
-		images:             []string{"dialtesting:0.0.1"},
-		checkedMeasurement: []string{"http_dial_testing", "tcp_dial_testing", "icmp_dial_testing", "websocket_dial_testing"},
-	}),
-}
-
-// getPool generates pool to connect to Docker.
-func (cs *caseSpec) getPool(r *testutils.RemoteInfo) (*dt.Pool, error) {
-	dockerTCP := r.TCPURL()
-
-	cs.t.Logf("get remote: %+#v, TCP: %s", r, dockerTCP)
-
-	p, err := dt.NewPool(dockerTCP)
-	if err != nil {
-		return nil, err
-	}
-
-	err = p.Client.Ping()
-	if err != nil {
-		if r.Host != "0.0.0.0" {
-			return nil, err
-		}
-		// use default docker service
-		cs.t.Log("try default docker")
-		p, err = dt.NewPool("")
-		if err != nil {
-			return nil, err
-		} else {
-			if err = p.Client.Ping(); err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	return p, nil
-}
-
-func (cs *caseSpec) getInput(c containerInfo) (*Input, error) {
-	ipt := defaultInput()
-
-	if _, err := toml.Decode(cs.getConf(c), ipt); err != nil {
-		return nil, err
-	}
-	return ipt, nil
-}
-
-func (cs *caseSpec) run() error {
-	var err error
-	var containerName string
-	r := testutils.GetRemote()
-	start := time.Now()
-
-	// set pool
-	if cs.pool, err = cs.getPool(r); err != nil {
-		return err
-	}
-
-	hostname := "unknown-hostname"
-	// set containerName
-	if name, err := os.Hostname(); err != nil {
-		cs.t.Logf("get hostname failed: %s, ignored", err)
-	} else {
-		hostname = name
-	}
-	containerName = fmt.Sprintf("%s.%s", hostname, cs.name)
-
-	// remove the container if exist.
-	if err := cs.pool.RemoveContainerByName(containerName); err != nil {
-		return err
-	}
-
-	// check image valid
-	images := strings.Split(cs.image, ":")
-	if len(images) != 2 {
-		return fmt.Errorf("invalid image %s", cs.image)
-	}
-
-	// check binding port
-	if len(cs.bindingPort) == 0 {
-		return fmt.Errorf("binding port is empty")
-	}
-
-	// run a container
-	if cs.resource, err = cs.pool.RunWithOptions(&dt.RunOptions{
-		// specify container image & tag
-		Repository: images[0],
-		Tag:        images[1],
-
-		ExposedPorts: []string{cs.bindingPort.Port()},
-		Name:         containerName,
-
-		// container run-time envs
-		Env: cs.envs,
-	}, func(c *docker.HostConfig) {
-		c.RestartPolicy = docker.RestartPolicy{Name: "no"}
-	}); err != nil {
-		return err
-	}
-
-	// setup container
-	if err := setupContainer(cs.resource); err != nil {
-		return err
-	}
-
-	hostPort := cs.resource.GetHostPort(string(cs.bindingPort))
-	_, port, err := net.SplitHostPort(hostPort)
-	if err != nil {
-		return fmt.Errorf("get host port error: %w", err)
-	}
-
-	cs.t.Logf("check service(%s:%s)...", r.Host, port)
-	if cs.serviceOK != nil {
-		if !cs.serviceOK(cs.t, port) {
-			return fmt.Errorf("service failed to serve")
-		}
-	} else if !r.PortOK(port, 5*time.Minute) {
-		return fmt.Errorf("service port checking failed")
-	}
-
-	info := containerInfo{
-		Password: UserPassword,
-		Host:     r.Host,
-		Port:     port,
-	}
-
-	// set input
-	if cs.ipt, err = cs.getInput(info); err != nil {
-		return err
-	}
-
-	if cs.serviceReady != nil {
-		if err := cs.serviceReady(cs.ipt); err != nil {
-			return err
-		}
-	}
-
-	cs.cr.AddField("container_ready_cost", int64(time.Since(start)))
-	var wg sync.WaitGroup
-
-	// start input
-	cs.t.Logf("start input...")
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		cs.ipt.Run()
-	}()
-
-	// wait data
-	start = time.Now()
-	cs.t.Logf("wait points...")
-
-	var ps []*point.Point
-	if cs.collectPoints != nil {
-		ps = cs.collectPoints(cs)
-	} else {
-		ps = collectPointsCache
-	}
-
-	cs.cr.AddField("point_latency", int64(time.Since(start)))
-	cs.cr.AddField("point_count", len(ps))
-
-	cs.t.Logf("get %d points", len(ps))
-	if cs.validate != nil {
-		if err := cs.validate(ps, cs); err != nil {
-			return err
-		}
-	}
-
-	cs.t.Logf("stop input...")
-	cs.ipt.Terminate()
-
-	cs.t.Logf("exit...")
-	wg.Wait()
-
-	return nil
-}
-
-type containerInfo struct {
-	Host     string
-	Port     string
-	User     string
-	Password string
-}
-
-// build test cases based on case item
-func buildCases(t *testing.T, configs []caseItem) ([]*caseSpec, error) {
+func newMockDialtestingServer(t *testing.T, pullResponse []byte) *mockDialtestingServer {
 	t.Helper()
 
-	var cases []*caseSpec
-
-	for _, config := range configs {
-		for _, img := range config.images {
-			parts := strings.Split(img, ":")
-			tag := "latest"
-			if len(parts) == 2 {
-				tag = parts[1]
-			}
-
-			caseSpecItem := &caseSpec{
-				t:     t,
-				name:  fmt.Sprintf("%s.%s", config.name, fmt.Sprintf("%s.%s", inputName, tag)),
-				envs:  config.envs,
-				image: img,
-
-				validate:     config.validate,
-				getConf:      config.getConf,
-				serviceReady: config.serviceReady,
-				bindingPort:  config.bindingPort,
-				cr: &testutils.CaseResult{
-					Name: t.Name(),
-					Case: config.name,
-					ExtraTags: map[string]string{
-						"image": img,
-					},
-				},
-				collectPoints: func(cs *caseSpec) []*point.Point {
-					ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
-					defer cancel()
-				outer:
-					for {
-						if len(collectPointsCache) >= 4 {
-							break
-						}
-
-						select {
-						case <-ctx.Done():
-							break outer
-						default:
-						}
-					}
-					return collectPointsCache
-				},
-			}
-
-			if config.serviceOK != nil {
-				caseSpecItem.serviceOK = config.serviceOK
-			} else {
-				caseSpecItem.serviceOK = func(t *testing.T, port string) bool {
-					t.Helper()
-					host := testutils.GetRemote().Host
-					ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
-					defer cancel()
-					ticker := time.NewTicker(time.Second)
-					defer ticker.Stop()
-					for {
-						select {
-						case <-ctx.Done():
-							return false
-						case <-ticker.C:
-							conn, err := net.Dial("tcp", net.JoinHostPort(host, port))
-							if err != nil {
-								continue
-							} else {
-								conn.Close()
-								return true
-							}
-						}
-					}
-				}
-			}
-
-			cases = append(cases, caseSpecItem)
-		}
+	ms := &mockDialtestingServer{
+		pullResponse:   pullResponse,
+		pullStatusCode: http.StatusOK,
 	}
 
-	return cases, nil
+	return ms
 }
 
-func assertSelectedMeasurments(selected []string) func(pts []*point.Point, cs *caseSpec) error {
+func (ms *mockDialtestingServer) URL() string {
+	return "http://mock.local"
+}
+
+func (ms *mockDialtestingServer) PullCount() int {
+	ms.mu.Lock()
+	defer ms.mu.Unlock()
+	return ms.pullCount
+}
+
+func (ms *mockDialtestingServer) VariableUpdates() [][]byte {
+	ms.mu.Lock()
+	defer ms.mu.Unlock()
+
+	res := make([][]byte, 0, len(ms.variableUpdates))
+	for _, item := range ms.variableUpdates {
+		cp := make([]byte, len(item))
+		copy(cp, item)
+		res = append(res, cp)
+	}
+	return res
+}
+
+func snapshotCollectedPoints() []*point.Point {
+	res := make([]*point.Point, len(collectPointsCache))
+	copy(res, collectPointsCache)
+	return res
+}
+
+func (ms *mockDialtestingServer) client(t *testing.T) *http.Client {
+	t.Helper()
+
+	return &http.Client{
+		Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			switch {
+			case r.Method == http.MethodGet && r.URL.Path == "/v1/task/pull":
+				ms.mu.Lock()
+				ms.pullCount++
+				body := ms.pullResponse
+				statusCode := ms.pullStatusCode
+				ms.mu.Unlock()
+
+				return &http.Response{
+					StatusCode: statusCode,
+					Status:     fmt.Sprintf("%d %s", statusCode, http.StatusText(statusCode)),
+					Body:       io.NopCloser(strings.NewReader(string(body))),
+					Header:     make(http.Header),
+				}, nil
+			case r.Method == http.MethodPost && r.URL.Path == fmt.Sprintf("/v1/variable/update/%s", RegionID):
+				body, err := io.ReadAll(r.Body)
+				require.NoError(t, err)
+				_ = r.Body.Close()
+
+				ms.mu.Lock()
+				ms.variableUpdates = append(ms.variableUpdates, body)
+				ms.mu.Unlock()
+
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Status:     "200 OK",
+					Body:       io.NopCloser(strings.NewReader(`{"ok":true}`)),
+					Header:     make(http.Header),
+				}, nil
+			default:
+				return &http.Response{
+					StatusCode: http.StatusNotFound,
+					Status:     "404 Not Found",
+					Body:       io.NopCloser(strings.NewReader(`not found`)),
+					Header:     make(http.Header),
+				}, nil
+			}
+		}),
+	}
+}
+
+func newPullResponse(t *testing.T, content map[string]interface{}) []byte {
+	t.Helper()
+
+	body, err := json.Marshal(map[string]interface{}{
+		"content": content,
+	})
+	require.NoError(t, err)
+	return body
+}
+
+func newHTTPTaskString(t *testing.T, name, targetURL, postURL string) string {
+	t.Helper()
+
+	task, err := json.Marshal(map[string]interface{}{
+		"name":              name,
+		"external_id":       name,
+		"method":            "GET",
+		"url":               targetURL,
+		"post_url":          postURL,
+		"status":            "ok",
+		"frequency":         "1s",
+		"region":            RegionID,
+		"owner_external_id": "owner",
+		"success_when": []map[string]interface{}{
+			{
+				"status_code": []map[string]string{
+					{"is": "200"},
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	return string(task)
+}
+
+func assertSelectedMeasurements(selected []string) func(pts []*point.Point) error {
 	mtMap := map[string]struct {
 		measurement    inputs.Measurement
 		optionalFields []string
@@ -435,45 +235,35 @@ func assertSelectedMeasurments(selected []string) func(pts []*point.Point, cs *c
 		},
 	}
 
-	return func(pts []*point.Point, cs *caseSpec) error {
+	return func(pts []*point.Point) error {
 		pointMap := map[string]bool{}
 		for _, pt := range pts {
 			name := pt.Name()
-			if _, ok := pointMap[name]; ok {
+			m, ok := mtMap[name]
+			if !ok || pointMap[name] {
 				continue
 			}
 
-			if m, ok := mtMap[name]; ok {
-				extraTags := map[string]string{}
-
-				for k, v := range m.extraTags {
-					extraTags[k] = v
-				}
-				msgs := inputs.CheckPoint(pt,
-					inputs.WithDoc(m.measurement),
-					inputs.WithOptionalFields(m.optionalFields...),
-					inputs.WithOptionalTags(m.optionalTags...),
-					inputs.WithExtraTags(extraTags),
-				)
-				if len(msgs) > 0 {
-					for _, msg := range msgs {
-						cs.t.Logf("check measurement %s failed: %+#v", name, msg)
-					}
-					return fmt.Errorf("check measurement %s failed with %d errors", name, len(msgs))
-				}
-				pointMap[name] = true
-			} else {
-				continue
+			extraTags := map[string]string{}
+			for k, v := range m.extraTags {
+				extraTags[k] = v
 			}
+
+			msgs := inputs.CheckPoint(pt,
+				inputs.WithDoc(m.measurement),
+				inputs.WithOptionalFields(m.optionalFields...),
+				inputs.WithOptionalTags(m.optionalTags...),
+				inputs.WithExtraTags(extraTags),
+			)
+			if len(msgs) > 0 {
+				return fmt.Errorf("check measurement %s failed with %d errors", name, len(msgs))
+			}
+			pointMap[name] = true
 		}
 
-		for m := range mtMap {
-			for _, item := range selected {
-				if m == item {
-					if _, ok := pointMap[m]; !ok {
-						return fmt.Errorf("measurement %s not found", m)
-					}
-				}
+		for _, item := range selected {
+			if !pointMap[item] {
+				return fmt.Errorf("measurement %s not found", item)
 			}
 		}
 
@@ -481,83 +271,293 @@ func assertSelectedMeasurments(selected []string) func(pts []*point.Point, cs *c
 	}
 }
 
-// setupContainer sets up the container for the given Pool and Resource.
-func setupContainer(resource *dt.Resource) error {
-	ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Second)
-	var err error
-	defer cancel()
-	go func() {
-		cmd := `bash /start.sh`
-		_, err = resource.Exec([]string{
-			"/bin/sh", "-c", cmd,
-		}, dt.ExecOptions{
-			StdOut: os.Stdout,
-			StdErr: os.Stderr,
-		})
+func withIntegrationEnv(t *testing.T, fn func(sender *mockSender)) {
+	t.Helper()
+
+	oldExit := datakit.Exit
+	oldWorker := dialWorker
+	sender := &mockSender{}
+	datakit.Exit = cliutils.NewSem()
+	dialWorker = &worker{
+		sender:               sender,
+		maxJobNumber:         DefaultWorkerMaxJobNumber,
+		maxJobChanNumber:     DefaultWorkerChannelNumber,
+		maxCachePointsNumber: DefaultWorkerCacheMaxPoints,
+	}
+	dialWorker.init()
+	once = sync.Once{}
+	collectPointsCache = nil
+
+	defer func() {
+		if datakit.Exit != nil {
+			datakit.Exit.Close()
+		}
+		datakit.Exit = oldExit
+		dialWorker = oldWorker
+		once = sync.Once{}
 	}()
-
-	<-ctx.Done()
-
-	return err
+	fn(sender)
 }
 
 func TestIntegrate(t *testing.T) {
-	if !testutils.CheckIntegrationTestingRunning() {
-		t.Skip()
-	}
-
-	t.Helper()
-	start := time.Now()
-	cases, err := buildCases(t, cases)
-	if err != nil {
-		cr := &testutils.CaseResult{
-			Name:          t.Name(),
-			Status:        testutils.TestPassed,
-			FailedMessage: err.Error(),
-			Cost:          time.Since(start),
-		}
-
-		_ = testutils.Flush(cr)
-		return
-	}
-
-	dialWorker = &worker{
-		sender: &mockSender{},
-	}
-	dialWorker.init()
-
-	t.Logf("testing %d cases...", len(cases))
-
-	for _, tc := range cases {
-		func(tc *caseSpec) {
-			t.Run(tc.name, func(t *testing.T) {
-				tc.t = t
-				caseStart := time.Now()
-
-				t.Logf("testing %s...", tc.name)
-
-				if err := tc.run(); err != nil {
-					tc.cr.Status = testutils.TestFailed
-					tc.cr.FailedMessage = err.Error()
-
-					assert.NoError(t, err)
-				} else {
-					tc.cr.Status = testutils.TestPassed
-				}
-
-				tc.cr.Cost = time.Since(caseStart)
-
-				assert.NoError(t, testutils.Flush(tc.cr))
-
-				t.Cleanup(func() {
-					// clean remote docker resources
-					if tc.resource == nil {
-						return
-					}
-
-					tc.pool.Purge(tc.resource)
-				})
+	t.Run("mock server pull and dispatch produces HTTP point", func(t *testing.T) {
+		withIntegrationEnv(t, func(sender *mockSender) {
+			mockSrv := newMockDialtestingServer(t, nil)
+			const taskName = "integrate-http-task"
+			expectedPostURL := fmt.Sprintf("%s/v1/write/logging?token=test-token", mockSrv.URL())
+			mockSrv.pullResponse = newPullResponse(t, map[string]interface{}{
+				"region": map[string]interface{}{
+					"name":    "region-cn",
+					"name_en": "region-en",
+					"isp":     "telecom",
+				},
+				"HTTP": []string{
+					newHTTPTaskString(t, taskName, "http://127.0.0.1:1", fmt.Sprintf("%s?token=test-token", mockSrv.URL())),
+				},
 			})
-		}(tc)
-	}
+
+			ipt := defaultInput()
+			ipt.Server = mockSrv.URL()
+			ipt.RegionID = RegionID
+			ipt.AK = DialAK
+			ipt.SK = DialSK
+			ipt.cli = mockSrv.client(t)
+
+			body, err := ipt.pullTask()
+			require.NoError(t, err)
+			require.NoError(t, ipt.dispatchTasks(body))
+
+			assert.Eventually(t, func() bool {
+				return len(sender.Points()) >= 1
+			}, 5*time.Second, 50*time.Millisecond)
+
+			points := sender.Points()
+			require.NotEmpty(t, points)
+			assert.Equal(t, 1, mockSrv.PullCount())
+			assert.Equal(t, "region-cn", ipt.regionName)
+			assert.Equal(t, "region-en", ipt.regionNameEn)
+			assert.Equal(t, "telecom", ipt.RegionTags["isp"])
+
+			var gotPoint *point.Point
+			for _, pt := range points {
+				lineProto := pt.LineProto()
+				if pt.Name() == "http_dial_testing" && strings.Contains(lineProto, "name="+taskName) {
+					gotPoint = pt
+					break
+				}
+			}
+			require.NotNil(t, gotPoint)
+
+			lineProto := gotPoint.LineProto()
+			assert.Contains(t, lineProto, "http_dial_testing,")
+			assert.Contains(t, lineProto, "node_name=region-cn")
+			assert.Contains(t, lineProto, "datakit_version=")
+			assert.Contains(t, lineProto, "url=http://127.0.0.1:1")
+			assert.Contains(t, lineProto, "seq_number=1i")
+			assert.Contains(t, lineProto, "success=")
+			assert.Contains(t, lineProto, "task=")
+
+			urls := sender.URLs()
+			require.NotEmpty(t, urls)
+			assert.Contains(t, urls, expectedPostURL)
+
+			ipt.Terminate()
+		})
+	})
+
+	t.Run("mock server receives variable updates", func(t *testing.T) {
+		withIntegrationEnv(t, func(sender *mockSender) {
+			mockSrv := newMockDialtestingServer(t, newPullResponse(t, map[string]interface{}{
+				"region": map[string]interface{}{
+					"name": "region-cn",
+				},
+			}))
+
+			ipt := defaultInput()
+			ipt.Server = mockSrv.URL()
+			ipt.RegionID = RegionID
+			ipt.AK = DialAK
+			ipt.SK = DialSK
+			ipt.cli = mockSrv.client(t)
+			ipt.variables.ipt = ipt
+			ipt.variables.run()
+
+			assert.Eventually(t, func() bool {
+				return ipt.variables.reqURL != nil
+			}, 3*time.Second, 20*time.Millisecond)
+
+			ipt.variables.updateVariableValue(dt.Variable{
+				UUID:            "var-1",
+				OwnerExternalID: "owner-1",
+			}, "value-1", 0)
+
+			assert.Eventually(t, func() bool {
+				return len(mockSrv.VariableUpdates()) == 1
+			}, 5*time.Second, 20*time.Millisecond)
+
+			updates := mockSrv.VariableUpdates()
+			require.Len(t, updates, 1)
+
+			var vars []dt.Variable
+			require.NoError(t, json.Unmarshal(updates[0], &vars))
+			require.Len(t, vars, 1)
+			assert.Equal(t, "var-1", vars[0].UUID)
+			assert.Equal(t, "owner-1", vars[0].OwnerExternalID)
+			assert.Equal(t, "value-1", vars[0].Value)
+
+			ipt.Terminate()
+		})
+	})
+
+	t.Run("mock server updates existing task in place", func(t *testing.T) {
+		withIntegrationEnv(t, func(sender *mockSender) {
+			mockSrv := newMockDialtestingServer(t, nil)
+
+			firstTask := newHTTPTaskString(t, "update-http-task", "http://127.0.0.1:1", fmt.Sprintf("%s?token=test-token", mockSrv.URL()))
+			secondTask := newHTTPTaskString(t, "update-http-task", "http://127.0.0.1:1", fmt.Sprintf("%s?token=test-token", mockSrv.URL()))
+
+			ipt := defaultInput()
+			ipt.Server = mockSrv.URL()
+			ipt.RegionID = RegionID
+			ipt.AK = DialAK
+			ipt.SK = DialSK
+			ipt.cli = mockSrv.client(t)
+
+			mockSrv.pullResponse = newPullResponse(t, map[string]interface{}{
+				"HTTP": []string{firstTask},
+			})
+			body, err := ipt.pullTask()
+			require.NoError(t, err)
+			require.NoError(t, ipt.dispatchTasks(body))
+
+			var created *dialer
+			assert.Eventually(t, func() bool {
+				value, ok := ipt.curTasks.Load("_update-http-task")
+				if ok {
+					created = value.(*dialer)
+				}
+				return ok
+			}, 3*time.Second, 20*time.Millisecond)
+			require.NotNil(t, created)
+
+			mockSrv.pullResponse = newPullResponse(t, map[string]interface{}{
+				"HTTP": []string{secondTask},
+			})
+			body, err = ipt.pullTask()
+			require.NoError(t, err)
+			require.NoError(t, ipt.dispatchTasks(body))
+
+			value, ok := ipt.curTasks.Load("_update-http-task")
+			require.True(t, ok)
+			updated := value.(*dialer)
+			assert.Same(t, created, updated)
+			assert.Eventually(t, func() bool {
+				return updated.task.GetExternalID() == "update-http-task"
+			}, 2*time.Second, 20*time.Millisecond)
+
+			ipt.Terminate()
+		})
+	})
+
+	t.Run("mock server stop task removes existing dialer", func(t *testing.T) {
+		withIntegrationEnv(t, func(sender *mockSender) {
+			mockSrv := newMockDialtestingServer(t, nil)
+
+			taskJSON := newHTTPTaskString(t, "stop-http-task", "http://127.0.0.1:1", fmt.Sprintf("%s?token=test-token", mockSrv.URL()))
+			var taskPayload map[string]interface{}
+			require.NoError(t, json.Unmarshal([]byte(taskJSON), &taskPayload))
+			taskPayload["status"] = dt.StatusStop
+			stopTaskJSONBytes, err := json.Marshal(taskPayload)
+			require.NoError(t, err)
+
+			ipt := defaultInput()
+			ipt.Server = mockSrv.URL()
+			ipt.RegionID = RegionID
+			ipt.AK = DialAK
+			ipt.SK = DialSK
+			ipt.cli = mockSrv.client(t)
+
+			mockSrv.pullResponse = newPullResponse(t, map[string]interface{}{
+				"HTTP": []string{taskJSON},
+			})
+			body, err := ipt.pullTask()
+			require.NoError(t, err)
+			require.NoError(t, ipt.dispatchTasks(body))
+
+			assert.Eventually(t, func() bool {
+				_, ok := ipt.curTasks.Load("_stop-http-task")
+				return ok
+			}, 3*time.Second, 20*time.Millisecond)
+
+			mockSrv.pullResponse = newPullResponse(t, map[string]interface{}{
+				"HTTP": []string{string(stopTaskJSONBytes)},
+			})
+			body, err = ipt.pullTask()
+			require.NoError(t, err)
+			require.NoError(t, ipt.dispatchTasks(body))
+
+			assert.Eventually(t, func() bool {
+				_, ok := ipt.curTasks.Load("_stop-http-task")
+				return !ok
+			}, 3*time.Second, 20*time.Millisecond)
+
+			ipt.Terminate()
+		})
+	})
+
+	t.Run("mock server invalid region payload is tolerated", func(t *testing.T) {
+		withIntegrationEnv(t, func(sender *mockSender) {
+			mockSrv := newMockDialtestingServer(t, nil)
+			mockSrv.pullResponse = newPullResponse(t, map[string]interface{}{
+				"region": "invalid-region",
+				"HTTP": []string{
+					newHTTPTaskString(t, "invalid-region-task", "http://127.0.0.1:1", fmt.Sprintf("%s?token=test-token", mockSrv.URL())),
+				},
+			})
+
+			ipt := defaultInput()
+			ipt.Server = mockSrv.URL()
+			ipt.RegionID = RegionID
+			ipt.AK = DialAK
+			ipt.SK = DialSK
+			ipt.cli = mockSrv.client(t)
+
+			body, err := ipt.pullTask()
+			require.NoError(t, err)
+			assert.NotPanics(t, func() {
+				require.NoError(t, ipt.dispatchTasks(body))
+			})
+
+			assert.Eventually(t, func() bool {
+				return len(sender.Points()) >= 1
+			}, 5*time.Second, 50*time.Millisecond)
+
+			ipt.Terminate()
+		})
+	})
+
+	t.Run("mock server region disabled response stops all tasks", func(t *testing.T) {
+		withIntegrationEnv(t, func(sender *mockSender) {
+			mockSrv := newMockDialtestingServer(t, []byte(`kodo.RegionNotFoundOrDisabled`))
+			mockSrv.pullStatusCode = http.StatusBadRequest
+
+			ipt := defaultInput()
+			ipt.Server = mockSrv.URL()
+			ipt.RegionID = RegionID
+			ipt.AK = DialAK
+			ipt.SK = DialSK
+			ipt.cli = mockSrv.client(t)
+
+			task := newHTTPDialtestingTask(t, "region-disabled-task")
+			d := newDialer(task, ipt)
+			ipt.curTasks.Store(task.ID(), d)
+
+			body, err := ipt.pullTask()
+			assert.Error(t, err)
+			assert.Nil(t, body)
+
+			_, ok := ipt.curTasks.Load(task.ID())
+			assert.False(t, ok)
+		})
+	})
 }
