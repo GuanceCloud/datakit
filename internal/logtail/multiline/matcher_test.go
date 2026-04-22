@@ -6,7 +6,6 @@
 package multiline
 
 import (
-	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,241 +13,82 @@ import (
 
 func BenchmarkMatch(b *testing.B) {
 	content := "2022-08-15T15:04:05Z08:00  INFO  cmd/main.go  Running, Running, Running"
-	m, _ := NewMatcher(GlobalPatterns)
+	m, _ := NewAutoMatcher(nil)
 
 	for i := 0; i < b.N; i++ {
 		_ = m.MatchString(content)
 	}
 }
 
-func TestMatch(t *testing.T) {
-	type in struct {
-		content string
-		match   bool
-	}
+func TestMatcherAutoPatterns(t *testing.T) {
+	m, err := NewAutoMatcher([]string{`^\s*APPSTART\b`})
+	assert.NoError(t, err)
 
 	cases := []struct {
-		name     string
-		ins      []in
-		topScore int
+		line  string
+		match bool
 	}{
-		{
-			name: "time.RFC3339 1st",
-			ins: []in{
-				{
-					// topScore +1
-					"2022-08-15T15:04:05Z08:00  INFO  cmd/main.go  Running",
-					true,
-				},
-			},
-			topScore: 1,
-		},
-		{
-			name: "time.RFC3339 2st",
-			ins: []in{
-				{
-					// topScore +1
-					"2022-08-15T15:04:05Z08:00  INFO  cmd/main.go  Running",
-					true,
-				},
-				{
-					// topScore +1
-					"2022-08-15T15:04:25Z08:00  WARN  pkg/test.go  error",
-					true,
-				},
-			},
-			topScore: 2,
-		},
-		{
-			name: "time.RFC3339 and time.RubyDate 1st",
-			ins: []in{
-				{
-					// topScore +1
-					"2022-08-15T15:04:05Z08:00  INFO  cmd/main.go  Running",
-					true,
-				},
-				{
-					// topScore +1
-					"2022-08-15T15:04:25Z08:00  WARN  pkg/test.go  error",
-					true,
-				},
-				{
-					"Mon Jan 02 15:04:05 +0800 2022  INFO  cmd/main.go  Running",
-					true,
-				},
-			},
-			topScore: 2,
-		},
-		{
-			name: "mixing",
-			ins: []in{
-				// 在此之前没有任何一条匹配成功，所以此条使用的默认匹配行为
-				{
-					"panic: runtime error: invalid memory address or nil pointer dereference",
-					true,
-				},
-				// 同上
-				{
-					"[signal SIGSEGV: segmentation violation code=0x1 addr=0x90 pc=0xa2ed0]",
-					true,
-				},
-				// 匹配成功
-				{
-					// topScore +1
-					"2022-08-15T15:04:25Z08:00  WARN  pkg/test.go  error",
-					true,
-				},
-				// 已经存在匹配成功，不再使用默认匹配行为
-				{
-					"panic: runtime error: invalid memory address or nil pointer dereference",
-					false,
-				},
-				{
-					// topScore +1
-					"2022-08-15T15:04:25Z08:00  WARN  pkg/test.go  error",
-					true,
-				},
-				{
-					"[signal SIGSEGV: segmentation violation code=0x1 addr=0x90 pc=0xa2ed0]",
-					false,
-				},
-			},
-			topScore: 2,
-		},
-		{
-			name: "empty-string",
-			ins: []in{
-				// 空字符串没有匹配意义，所以匹配失败
-				{
-					"",
-					false,
-				},
-			},
-			topScore: 0,
-		},
-		{
-			name: "gin-log",
-			ins: []in{
-				{
-					`[GIN] 2023/12/12 - 08:49:17 | 200 | 1.006238387s |       127.0.0.1 | GET     "/metrics"`,
-					true,
-				},
-				{
-					`[GIN] 2023/12/12 - 08:49:20 | 400 | 1.006238387s |       127.0.0.1 | GET     "/metrics"`,
-					true,
-				},
-				{
-					"Mon Jan 02 15:04:05 +0800 2022  INFO  cmd/main.go  Running",
-					true,
-				},
-			},
-			topScore: 2,
-		},
+		{line: "2024-07-08 10:00:00 INFO started", match: true},
+		{line: "1719820800 INFO unix epoch seconds", match: true},
+		{line: "INFO [main] com.example.App - started", match: true},
+		{line: "INFO | app.module:func:10 - started", match: true},
+		{line: "level=info msg=\"started\"", match: true},
+		{line: `Exception in thread "main" java.lang.NullPointerException`, match: true},
+		{line: "java.lang.IllegalStateException: failed", match: true},
+		{line: "System.InvalidOperationException: failed", match: true},
+		{line: "START RequestId: 5c936f1c-8f4d-4c68-9b02-1a3a0d3d8d89 Version: $LATEST", match: true},
+		{line: "[2020-12-03 11:36:20] INFO started", match: true},
+		{line: "[2020-12-03] INFO started", match: true},
+		{line: "[beat-logstash-some-name-832-2015.11.28] IndexNotFoundException[no such index]", match: true},
+		{line: `{"msg":"hello"}`, match: true},
+		{line: "APPSTART custom format", match: true},
+		{line: "\tAPPSTART custom format", match: true},
+		{line: `  {"msg":"hello"}`, match: false},
+		{line: "\tstack line", match: false},
+		{line: "Caused by: java.lang.NullPointerException", match: false},
+		{line: "_ Jan 02 15:04:05 2006 continuation-looking line", match: false},
+		{line: "[2020-12-03-not-a-date] continuation-looking line", match: false},
+		{line: "[signal SIGSEGV: segmentation violation code=0x1]", match: false},
 	}
 
 	for _, tc := range cases {
-		m, err := NewMatcher(GlobalPatterns)
-		assert.NoError(t, err)
-
-		t.Run(tc.name, func(t *testing.T) {
-			for _, in := range tc.ins {
-				match := m.Match([]byte(in.content))
-				assert.Equal(t, in.match, match)
-			}
-
-			assert.Equal(t, tc.topScore, m.patterns[0].score)
-		})
+		assert.Equal(t, tc.match, m.MatchString(tc.line), tc.line)
 	}
 }
 
-func TestMatchNoPattern(t *testing.T) {
-	cases := []struct {
-		in      string
-		matched bool
-	}{
-		{
-			in:      "2022-08-15T15:04:05Z08:00  INFO  cmd/main.go  Running",
-			matched: true,
-		},
-		{
-			in:      "  INFO  cmd/main.go  Running",
-			matched: false,
-		},
-	}
-
-	for _, tc := range cases {
-		m, err := NewMatcher(nil)
-		assert.NoError(t, err)
-
-		t.Run("", func(t *testing.T) {
-			match := m.Match([]byte(tc.in))
-			assert.Equal(t, tc.matched, match)
-		})
-	}
-}
-
-func TestMatchFallbackToPrefixWhenAllPatternsMiss(t *testing.T) {
-	m, err := NewMatcher([]string{`^ERROR:`})
+func TestMatcherManualPatterns(t *testing.T) {
+	m, err := NewMatcher([]string{`^MANUAL\b`})
 	assert.NoError(t, err)
 
-	assert.True(t, m.MatchString("panic happened"))   // fallback to non-space prefix
-	assert.False(t, m.MatchString("  stack line"))    // fallback rejects leading spaces
-	assert.True(t, m.Match([]byte("panic happened"))) // []byte path has same fallback
-	assert.False(t, m.Match([]byte("  stack line")))
+	assert.True(t, m.MatchString("MANUAL first line"))
+	assert.False(t, m.MatchString("2024-07-08 10:00:00 INFO default-looking line"))
+	assert.False(t, m.MatchString("\tstack line"))
 }
 
-func TestMatchJSONPatternDoesNotSwallowBracketStackLines(t *testing.T) {
-	m, err := NewMatcher(GlobalPatterns)
+func TestMatcherDefaultFallback(t *testing.T) {
+	m, err := NewMatcher(nil)
+	assert.NoError(t, err)
+	assert.True(t, m.MatchString("plain first line"))
+	assert.False(t, m.MatchString("  continuation"))
+
+	m, err = NewMatcher([]string{`^ERROR:`})
+	assert.NoError(t, err)
+	assert.True(t, m.MatchString("plain first line before any pattern match"))
+	assert.False(t, m.MatchString("  continuation"))
+	assert.True(t, m.MatchString("ERROR: matched line"))
+	assert.False(t, m.MatchString("plain line after a pattern has matched"))
+}
+
+func TestNewMatcherValidation(t *testing.T) {
+	_, err := NewMatcher([]string{`^\d{4}-\d{2}-\d{2}`})
 	assert.NoError(t, err)
 
-	assert.True(t, m.MatchString(`{"msg":"hello"}`))
-	assert.True(t, m.MatchString(`[{"msg":"hello"}]`))
-	assert.False(t, m.MatchString(`[signal SIGSEGV: segmentation violation code=0x1 addr=0x90 pc=0xa2ed0]`))
-}
+	_, err = NewAutoMatcher([]string{`^APPSTART\b`})
+	assert.NoError(t, err)
 
-func TestNewMatcher(t *testing.T) {
-	t.Run("ok-patterns", func(t *testing.T) {
-		patterns := []string{
-			`^\d+-\d+-\d+T\d+:\d+:\d+(\.\d+)?(Z\d*:?\d*)?`,
-			`^[A-Za-z_]+ [A-Za-z_]+ +\d+ \d+:\d+:\d+ \d+`,
-		}
-		_, err := NewMatcher(patterns)
-		assert.NoError(t, err)
-	})
+	_, err = NewMatcher([]string{`(?!`})
+	assert.Error(t, err)
 
-	t.Run("ok-global-patterns", func(t *testing.T) {
-		patterns := GlobalPatterns
-		_, err := NewMatcher(patterns)
-		assert.NoError(t, err)
-	})
-
-	t.Run("ok-nopattern", func(t *testing.T) {
-		patterns := []string{}
-		_, err := NewMatcher(patterns)
-		assert.NoError(t, err)
-	})
-
-	t.Run("ok-nopattern-2", func(t *testing.T) {
-		_, err := NewMatcher(nil)
-		assert.NoError(t, err)
-	})
-
-	t.Run("error", func(t *testing.T) {
-		patterns := []string{
-			`^\d+-\d+-\d+T\d+:\d+:\d+(\.\d+)?(Z\d*:?\d*)?`,
-			`(?!`, // error
-		}
-		_, err := NewMatcher(patterns)
-		assert.Error(t, err)
-	})
-}
-
-func TestScorePatternString(t *testing.T) {
-	t.Run("", func(t *testing.T) {
-		sc := &scoredPattern{
-			score:  1,
-			regexp: regexp.MustCompile(`^\S`),
-		}
-		assert.Equal(t, "score:1, regexp:^\\S", sc.String())
-	})
+	_, err = NewAutoMatcher([]string{`(?!`})
+	assert.Error(t, err)
 }

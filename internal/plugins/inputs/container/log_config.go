@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 )
 
 type containerLogInfo struct {
@@ -67,10 +66,12 @@ type logConfig struct {
 	FromBeginningThresholdSize int64             `json:"from_beginning_threshold_size"`
 	Tags                       map[string]string `json:"tags"`
 
-	multilinePatterns []string `json:"-"`
-	hostDir           string   `json:"-"`
-	insideDir         string   `json:"-"`
-	hostFilePath      string   `json:"-"`
+	multilinePattern string   `json:"-"`
+	autoMultiline    bool     `json:"-"`
+	extraPatterns    []string `json:"-"`
+	hostDir          string   `json:"-"`
+	insideDir        string   `json:"-"`
+	hostFilePath     string   `json:"-"`
 }
 
 func newLogConfigs(defaults *loggingDefaults, info *containerLogInfo, str string) ([]*logConfig, bool, error) {
@@ -265,18 +266,22 @@ func (cfg *logConfig) replacedTagsKey() {
 
 func (cfg *logConfig) setAutoMultiline(defaults *loggingDefaults) {
 	if cfg.Multiline != "" {
-		cfg.multilinePatterns = []string{cfg.Multiline}
+		cfg.multilinePattern = cfg.Multiline
+		cfg.autoMultiline = false
+		cfg.extraPatterns = nil
 		return
 	}
 
 	if !defaults.enableMultiline {
-		cfg.multilinePatterns = nil
+		cfg.multilinePattern = ""
+		cfg.autoMultiline = false
+		cfg.extraPatterns = nil
 		return
 	}
 
-	cfg.multilinePatterns = make([]string, 0, len(defaults.autoMultilineExtraPatterns)+len(multiline.GlobalPatterns))
-	cfg.multilinePatterns = append(cfg.multilinePatterns, defaults.autoMultilineExtraPatterns...)
-	cfg.multilinePatterns = append(cfg.multilinePatterns, multiline.GlobalPatterns...)
+	cfg.multilinePattern = ""
+	cfg.autoMultiline = true
+	cfg.extraPatterns = append([]string{}, defaults.autoMultilineExtraPatterns...)
 }
 
 func (cfg *logConfig) setExtraSourceMap(defaults *loggingDefaults) {
@@ -300,7 +305,9 @@ func (cfg *logConfig) setSourceMultilineMap(defaults *loggingDefaults) {
 	mult := defaults.sourceMultilineMap[cfg.Source]
 	if mult != "" {
 		l.Infof("replaced multiline '%s' with '%s' to source %s", cfg.Multiline, mult, cfg.Source)
-		cfg.multilinePatterns = []string{mult}
+		cfg.multilinePattern = mult
+		cfg.autoMultiline = false
+		cfg.extraPatterns = nil
 	}
 }
 

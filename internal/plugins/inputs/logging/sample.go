@@ -63,15 +63,16 @@ var sampleCfg = `
   remove_ansi_escape_codes = false
 
   # ========== Multiline Log Configuration ==========
+  # Enable multiline log processing
+  enable_multiline = true
+
   # Multiline log splitting regex pattern
   # Tip: use triple quotes '''regexp''' to avoid escaping
   # Regex reference: https://golang.org/pkg/regexp/syntax/#hdr-Syntax
   # multiline_match = '''^\d{4}-\d{2}-\d{2}'''
 
-  # Enable automatic multiline detection
-  auto_multiline_detection = true
-
-  # Additional multiline splitting patterns
+  # Supplementary multiline splitting patterns.
+  # These patterns are checked only after the built-in automatic rules do not match.
   auto_multiline_extra_patterns = []
 
   # ========== Performance Configuration ==========

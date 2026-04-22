@@ -67,7 +67,7 @@ func (sk *SocketLogger) setup() error {
 	}
 
 	if sk.cfg.enableMultiline {
-		if _, err := multiline.New(sk.cfg.multilinePatterns, multiline.WithMaxLength(int(sk.cfg.maxMultilineLength))); err != nil {
+		if _, err := newMultiline(sk.cfg); err != nil {
 			sk.log.Warn(err)
 			return err
 		}
@@ -253,7 +253,7 @@ func (s *tcpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 			var mult *multiline.Multiline
 			if s.cfg.enableMultiline {
 				// validated in setup(), should not fail here
-				mult, _ = multiline.New(s.cfg.multilinePatterns, multiline.WithMaxLength(int(s.cfg.maxMultilineLength)))
+				mult, _ = newMultiline(s.cfg)
 			}
 
 			var decoder *encoding.Decoder
@@ -337,7 +337,7 @@ func (s *udpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 	var mult *multiline.Multiline
 	if s.cfg.enableMultiline {
 		// validated in setup(), should not fail here
-		mult, _ = multiline.New(s.cfg.multilinePatterns, multiline.WithMaxLength(int(s.cfg.maxMultilineLength)))
+		mult, _ = newMultiline(s.cfg)
 	}
 	defer flushMultilineBuffer("udp", mult, feed)
 

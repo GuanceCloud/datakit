@@ -24,13 +24,17 @@ func buildTailerOptions(cfg *logConfig, fn tailer.ForwardFunc) []tailer.Option {
 		tailer.WithCharacterEncoding(cfg.CharacterEncoding),
 		tailer.WithPipeline(cfg.Pipeline),
 		tailer.EnableMultiline(true),
-		tailer.WithMultilinePatterns(cfg.multilinePatterns),
 		tailer.WithFromBeginning(cfg.FromBeginning),
 		tailer.WithFileSizeThreshold(cfg.FromBeginningThresholdSize),
 		tailer.WithRemoveAnsiEscapeCodes(cfg.RemoveAnsiEscapeCodes),
 		tailer.WithIgnoreDeadLog(time.Hour * 12),
 		tailer.WithExtraTags(cfg.Tags),
 		tailer.WithForwardFunc(fn),
+	}
+	if cfg.autoMultiline {
+		opts = append(opts, tailer.WithAutoMultilineExtraPatterns(nil))
+	} else {
+		opts = append(opts, tailer.WithMultilinePattern(cfg.multilinePattern))
 	}
 
 	switch cfg.Type {

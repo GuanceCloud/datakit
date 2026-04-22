@@ -160,6 +160,7 @@ fsyncs
 gRPC
 getmore
 getmores
+glog
 gofumpt
 golint
 goyacc
@@ -172,6 +173,7 @@ jemalloc
 kafkamq
 keyevent
 keyspace
+klog
 kprobe
 kubedns
 kubelet
@@ -179,6 +181,8 @@ labelselector
 labelselectors
 libc
 lineprotocol
+logcat
+logfmt
 logfiles
 logfwd
 logfwdserver

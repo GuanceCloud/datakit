@@ -11,7 +11,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/encoding"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 )
 
 // config 日志采集器的配置结构体.
@@ -45,7 +44,11 @@ type config struct {
 	enableMultiline bool
 	// 多行日志匹配模式，用于识别日志行开始
 	// 例如：^\d{4}-\d{2}-\d{2} 匹配 YYYY-MM-DD 格式
-	multilinePatterns []string
+	multilinePattern string
+	// 是否使用内置自动多行规则，并在未命中时匹配额外规则
+	autoMultiline bool
+	// 自动多行额外匹配规则
+	extraPatterns []string
 	// 多行日志最大长度限制
 	maxMultilineLength int64
 
@@ -83,7 +86,7 @@ func checkConfig(cfg *config) error {
 
 	// 验证多行模式，仅在开启时检查
 	if cfg.enableMultiline {
-		if _, err := multiline.New(cfg.multilinePatterns); err != nil {
+		if _, err := newMultiline(cfg); err != nil {
 			return fmt.Errorf("invalid multiline patterns: %w", err)
 		}
 	}
@@ -187,8 +190,20 @@ func EnableMultiline(b bool) Option {
 	return func(cfg *config) { cfg.enableMultiline = b }
 }
 
-func WithMultilinePatterns(arr []string) Option {
-	return func(cfg *config) { cfg.multilinePatterns = arr }
+func WithMultilinePattern(pattern string) Option {
+	return func(cfg *config) {
+		cfg.multilinePattern = pattern
+		cfg.autoMultiline = false
+		cfg.extraPatterns = nil
+	}
+}
+
+func WithAutoMultilineExtraPatterns(extra []string) Option {
+	return func(cfg *config) {
+		cfg.autoMultiline = true
+		cfg.multilinePattern = ""
+		cfg.extraPatterns = extra
+	}
 }
 
 func WithMaxMultilineLength(n int64) Option {

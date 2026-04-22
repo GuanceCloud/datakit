@@ -506,12 +506,16 @@ func (c *containerLogCoordinator) buildTailerOptions(cfg *logConfig) []tailer.Op
 		tailer.WithRemoveAnsiEscapeCodes(cfg.RemoveAnsiEscapeCodes || c.defaults.removeAnsiEscapeCodes),
 
 		tailer.EnableMultiline(c.defaults.enableMultiline),
-		tailer.WithMultilinePatterns(cfg.multilinePatterns),
 		tailer.WithMaxMultilineLength(c.defaults.maxMultilineLength),
 
 		tailer.WithMaxOpenFiles(c.defaults.maxOpenFiles),
 		tailer.WithIgnoreDeadLog(c.defaults.ignoreDeadLog),
 		tailer.WithFieldWhitelist(c.defaults.fieldWhitelist),
+	}
+	if cfg.autoMultiline {
+		opts = append(opts, tailer.WithAutoMultilineExtraPatterns(cfg.extraPatterns))
+	} else {
+		opts = append(opts, tailer.WithMultilinePattern(cfg.multilinePattern))
 	}
 
 	if cfg.FromBeginningThresholdSize > 0 {

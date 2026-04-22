@@ -193,7 +193,7 @@ func TestSocketLoggerMultilineValidationByEnabled(t *testing.T) {
 			WithSource("testing"),
 			WithSockets([]string{"tcp://127.0.0.1:0"}),
 			EnableMultiline(false),
-			WithMultilinePatterns([]string{`(?invalid`}),
+			WithMultilinePattern(`(?invalid`),
 		}
 
 		sk, err := NewSocketLogging(opts...)
@@ -207,7 +207,7 @@ func TestSocketLoggerMultilineValidationByEnabled(t *testing.T) {
 			WithSource("testing"),
 			WithSockets([]string{"tcp://127.0.0.1:0"}),
 			EnableMultiline(true),
-			WithMultilinePatterns([]string{`(?invalid`}),
+			WithMultilinePattern(`(?invalid`),
 		}
 
 		sk, err := NewSocketLogging(opts...)
