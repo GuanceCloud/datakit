@@ -1,8 +1,14 @@
 # Managing Configuration with Helm
 
-This document describes how to use Helm to manage DataKit environment variables and collection configurations. We can maintain DataKit configuration changes through Helm.
+This document describes how to install and upgrade DataKit with Helm, and how to manage DataKit environment variables and collection configurations. In Kubernetes, DataKit is mainly configured through environment variables and mounted configuration files. Helm configuration is centralized in *values.yaml*.
 
 ## Installation and Configuration {#install-config}
+
+### Prerequisites {#helm-prerequisites}
+
+- Kubernetes >= 1.14
+- Helm >= 3.0
+- DataWay URL and token
 
 ### Download DataKit Charts Package with Helm {#download-config}
 
@@ -123,6 +129,8 @@ dkconfig:
 
 ### Install DataKit {#datakit-install}
 
+You can install DataKit directly from the remote chart repository:
+
 ```shell
 helm install datakit datakit \
          --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
@@ -146,7 +154,21 @@ NOTES:
   kubectl --namespace datakit port-forward $POD_NAME 9527:$CONTAINER_PORT
 ```
 
+After installation, check the Helm release and Pod status:
+
+```shell
+helm -n datakit list
+kubectl -n datakit get ds,pod -l app.kubernetes.io/instance=datakit
+```
+
 ## Install Specific Version {#version-install}
+
+There are two common version concepts in Helm installation:
+
+- `--version`: specifies the Helm chart version.
+- `image.tag`: specifies the DataKit container image version. If not set, the chart `appVersion` is used by default.
+
+Specify the chart version:
 
 ```shell
 helm install datakit datakit \
@@ -154,6 +176,16 @@ helm install datakit datakit \
          -n datakit --create-namespace \
          -f values.yaml \
          --version 1.5.x
+```
+
+Specify the DataKit image version:
+
+```shell
+helm install datakit datakit \
+         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+         -n datakit --create-namespace \
+         -f values.yaml \
+         --set image.tag="<DATAKIT-IMAGE-TAG>"
 ```
 
 ## Upgrade {#datakit-upgrade}
@@ -171,11 +203,68 @@ helm upgrade datakit datakit \
          -f values.yaml
 ```
 
+To pin both chart and image versions:
+
+```shell
+helm upgrade datakit datakit \
+         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+         -n datakit \
+         -f values.yaml \
+         --version <CHART-VERSION> \
+         --set image.tag="<DATAKIT-IMAGE-TAG>"
+```
+
 ## Uninstall {#datakit-uninstall}
 
 ```shell
 helm uninstall datakit -n datakit 
 ```
+
+## GKE Autopilot {#gke-autopilot}
+
+GKE Autopilot has additional restrictions on workload privileges and host access. The regular DataKit chart may fail Autopilot admission checks because it uses settings such as `hostNetwork`, `hostPID`, `hostIPC`, `hostPath`, and privileged containers. Use the separately released Helm chart instead: `datakit-gke-autopilot`.
+
+The GKE Autopilot chart is not released in sync with the main DataKit version. You do not need to specify an image version during installation; the image version declared by this chart is used by default.
+
+Main differences from the regular DataKit chart:
+
+- The default collector list is reduced to `dk,cpu,mem,container,kubernetesprometheus`.
+- The DataKit container runs as a non-root user, with UID/GID `10001` by default, and privileged mode and privilege escalation are disabled.
+- `hostNetwork`, `hostPID`, and `hostIPC` are disabled, and `emptyDir` is used instead of host `hostPath` mounts.
+- Host filesystem, container runtime socket, eBPF, and similar host-level collection capabilities are limited. If these capabilities are required, use GKE Standard or a regular Kubernetes cluster with the DataKit chart.
+
+### Install {#gke-autopilot-install}
+
+```shell
+helm install datakit datakit-gke-autopilot \
+         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+         -n datakit --create-namespace \
+         --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>"
+```
+
+### Upgrade {#gke-autopilot-upgrade}
+
+Back up the current values before upgrading:
+
+```shell
+helm -n datakit get values datakit -o yaml > values-gke-autopilot.yaml
+```
+
+```shell
+helm upgrade datakit datakit-gke-autopilot \
+         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+         -n datakit \
+         -f values-gke-autopilot.yaml
+```
+
+Check the status:
+
+```shell
+helm -n datakit list
+kubectl -n datakit get pod -l app.kubernetes.io/instance=datakit
+```
+
+If the Pod is rejected by GKE Autopilot, first check whether the regular `datakit` chart was used by mistake, or whether extra `hostPath`, privileged container, host network, or other Autopilot-disallowed settings were enabled in values.
 
 ## Configuration File Reference {#config-reference}
 
@@ -482,4 +571,3 @@ Delete Helm information secrets in the DataKit namespace.
 ```shell
 helm upgrade -i -n datakit datakit  --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit  -f values.yaml
 ```
-

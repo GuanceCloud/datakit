@@ -2,9 +2,15 @@
 # 使用 Helm 管理配置
 ---
 
-本文介绍如何使用 helm 来管理 DataKit 的环境变量和采集配置。我们可以通过维护 helm 管理 DataKit 的配置变更。
+本文介绍如何使用 Helm 安装、升级 DataKit，并管理 DataKit 的环境变量和采集配置。Kubernetes 中的 DataKit 主要通过环境变量和挂载配置文件来调整行为，Helm 的配置入口集中在 *values.yaml* 中。
 
 ## 安装和配置 {#instal-config}
+
+### 前置条件 {#helm-prerequisites}
+
+- Kubernetes >= 1.14
+- Helm >= 3.0
+- 已获取 DataWay 地址和 token
 
 ### helm 下载 DataKit Charts 包 {#dowbload-config}
 
@@ -125,6 +131,8 @@ dkconfig:
 
 ### 安装 DataKit {#datakit-install}
 
+可以直接通过远程 chart 仓库安装：
+
 ```shell
 helm install datakit datakit \
          --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
@@ -148,7 +156,21 @@ NOTES:
   kubectl --namespace datakit port-forward $POD_NAME 9527:$CONTAINER_PORT
 ```
 
+安装完成后，可通过如下命令查看 DataKit 的 Helm release 和 Pod 状态：
+
+```shell
+helm -n datakit list
+kubectl -n datakit get ds,pod -l app.kubernetes.io/instance=datakit
+```
+
 ## 指定版本安装 {#version-install}
+
+Helm 安装时有两个常用版本概念：
+
+- `--version`：指定 Helm chart 版本。
+- `image.tag`：指定 DataKit 容器镜像版本。未设置时，默认使用 chart 中的 `appVersion`。
+
+指定 chart 版本：
 
 ```shell
 helm install datakit datakit \
@@ -156,6 +178,16 @@ helm install datakit datakit \
          -n datakit --create-namespace \
          -f values.yaml \
          --version 1.5.x
+```
+
+指定 DataKit 镜像版本：
+
+```shell
+helm install datakit datakit \
+         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+         -n datakit --create-namespace \
+         -f values.yaml \
+         --set image.tag="<DATAKIT-IMAGE-TAG>"
 ```
 
 ## 升级 {#datakit-upgrade}
@@ -173,11 +205,68 @@ helm upgrade datakit datakit \
          -f values.yaml
 ```
 
+如需同时固定 chart 和镜像版本：
+
+```shell
+helm upgrade datakit datakit \
+         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+         -n datakit \
+         -f values.yaml \
+         --version <CHART-VERSION> \
+         --set image.tag="<DATAKIT-IMAGE-TAG>"
+```
+
 ## 卸载 {#datakit-uninstall}
 
 ```shell
 helm uninstall datakit -n datakit 
 ```
+
+## GKE Autopilot {#gke-autopilot}
+
+GKE Autopilot 对工作负载权限和宿主机访问有额外限制，普通 DataKit chart 中的 `hostNetwork`、`hostPID`、`hostIPC`、`hostPath` 和特权容器等配置可能无法通过 Autopilot 的准入检查。因此需要使用单独发布的 Helm chart：`datakit-gke-autopilot`。
+
+GKE Autopilot chart 不跟随 DataKit 主版本同步发布。安装时不需要额外指定镜像版本，默认使用该 chart 中声明的镜像版本。
+
+该 chart 与普通 DataKit chart 的主要差异：
+
+- 默认采集器精简为 `dk,cpu,mem,container,kubernetesprometheus`。
+- DataKit 容器以非 root 用户运行，默认 UID/GID 为 `10001`，关闭特权模式和提权。
+- 关闭 `hostNetwork`、`hostPID`、`hostIPC`，并使用 `emptyDir` 代替宿主机 `hostPath` 挂载。
+- 宿主机文件系统、容器运行时 socket、eBPF 等采集能力会受限；如需这些能力，建议使用 GKE Standard 或普通 Kubernetes 集群中的 DataKit chart。
+
+### 安装 {#gke-autopilot-install}
+
+```shell
+helm install datakit datakit-gke-autopilot \
+         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+         -n datakit --create-namespace \
+         --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>"
+```
+
+### 升级 {#gke-autopilot-upgrade}
+
+升级前先备份当前 values：
+
+```shell
+helm -n datakit get values datakit -o yaml > values-gke-autopilot.yaml
+```
+
+```shell
+helm upgrade datakit datakit-gke-autopilot \
+         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+         -n datakit \
+         -f values-gke-autopilot.yaml
+```
+
+查看状态：
+
+```shell
+helm -n datakit list
+kubectl -n datakit get pod -l app.kubernetes.io/instance=datakit
+```
+
+如果 Pod 被 GKE Autopilot 拒绝调度，优先检查是否误用了普通 `datakit` chart，或在 values 中额外启用了 `hostPath`、特权容器、宿主机网络等 Autopilot 不允许的配置。
 
 ## 配置文件参考 {#config-reference}
 
@@ -484,4 +573,3 @@ helm get values -n datakit datakit -o yaml > values.yaml
 ```shell
 helm upgrade -i -n datakit datakit  --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit  -f values.yaml
 ```
-
