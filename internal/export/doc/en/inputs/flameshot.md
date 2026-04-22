@@ -22,7 +22,9 @@ Flameshot is deployed using the **Sidecar Container** pattern. It must run in th
 1. **Trigger**: When thresholds are met (e.g., CPU > 80%) or an HTTP API request is received, a collection task is triggered.
 1. **Execute**: Based on the configured language type (currently supporting Java), it invokes the corresponding Profiler tool to attach to the target process.
 1. **Collect**: The generated Profile files (e.g., `.jfr`) are stored in a shared volume and subsequently uploaded to the data observability center.
-1. **Timed**: After configuring `FLAMESHOT_AUTO_PROFILING`, it will periodically collect a 30-second Profiling data for all matched processes.
+1. **Timed**: After configuring `FLAMESHOT_AUTO_PROFILING`, it periodically collects profiling data for all matched processes. The sample duration defaults to 30 seconds and can be adjusted through `FLAMESHOT_AUTO_PROFILING_DURATION`.
+1. **OOM Summary**: When a container `oom_kill` increment is detected, Flameshot tries to automatically parse `-XX:+HeapDumpOnOutOfMemoryError` and `-XX:HeapDumpPath=...` from the target Java process arguments. If the dump file is generated inside the shared volume, Flameshot finds the corresponding `.hprof` and uploads a summary log.
+1. **High-Watermark Lightweight Snapshots**: When memory usage approaches the cgroup emergency threshold, Flameshot automatically runs `jcmd GC.class_histogram` and `jcmd Thread.print`, stores the raw output in the shared volume, and uploads lightweight summary logs.
 
 ### Use Cases {#use-cases}
 
@@ -45,7 +47,14 @@ These variables control the basic behavior of the Sidecar container.
 | `FLAMESHOT_PROFILING_PATH`   | **Yes**  | `/data`       | **Shared directory path**. Used to store tools and generated temporary files; must match the mount path in the main container.                                                            |
 | `FLAMESHOT_MONITOR_INTERVAL` | No       | `1`           | Monitoring polling interval (seconds).                                                                                                                                                    |
 | `FLAMESHOT_LOG_LEVEL`        | No       | `info`        | Log level. Options: `debug`, `info`, `warn`, `error`.                                                                                                                                     |
-| `FLAMESHOT_AUTO_PROFILING`   | No       | -             | Collect Profiling data for 30 seconds at regular intervals for all matched processes. The minimum interval must not be less than one minute, such as five minutes: "5m" or one hour: "1h" |
+| `FLAMESHOT_AUTO_PROFILING`   | No       | -             | Collect Profiling data at regular intervals for all matched processes. The minimum interval must not be less than one minute, such as five minutes: "5m" or one hour: "1h" |
+| `FLAMESHOT_AUTO_PROFILING_DURATION` | No | `30s` | Sample duration for timed profiling mode. |
+| `FLAMESHOT_OOM_HPROF_ENABLED` | No      | `false`       | Enable the post-OOM `.hprof` summary recovery path. Java only. The target JVM must explicitly enable `-XX:+HeapDumpOnOutOfMemoryError` and configure `-XX:HeapDumpPath=...` inside a shared volume. It is recommended to set this explicitly in deployment manifests. |
+| `FLAMESHOT_OOM_HPROF_MATCH_WINDOW` | No | `2m` | Time window used to match an OOM event with the `.hprof` file modification time. |
+| `FLAMESHOT_JCMD_SNAPSHOT_ENABLED` | No | `true` | Enable lightweight `jcmd` snapshots at high memory watermark. When the cgroup emergency threshold is reached, Flameshot runs `GC.class_histogram` and `Thread.print`. This requires an executable `jcmd` plus JVM Attach prerequisites to be available from the Sidecar, and should be declared explicitly in deployment manifests. |
+| `FLAMESHOT_JCMD_TIMEOUT` | No | `10s` | Timeout for each `jcmd` command. Increase it when the target JVM is large or heavily loaded. |
+| `FLAMESHOT_POD_MEM_LIMIT` | No | - | Pod memory limit in Mi. When configured, Flameshot prefers Pod-limit memory percentage over host memory percentage. |
+| `FLAMESHOT_POD_CPU_LIMIT` | No | - | Pod CPU limit in millicores. |
 | `FLAMESHOT_HTTP_LOCAL_IP`    | **Yes**  | `-`           | The Sidecar's own HTTP service listening host.                                                                                                                                            |
 | `FLAMESHOT_HTTP_LOCAL_PORT`  | **Yes**  | `8089`        | The Sidecar's own HTTP service listening port.                                                                                                                                            |
 | `FLAMESHOT_SERVICE`          | No       | -             | Will replace the 'service' configuration in 'FLAMESHOT_PROCESSES'                                                                                                                         |
@@ -73,6 +82,9 @@ To maintain readability in Kubernetes YAML, it is **strongly recommended** to us
               "cpu_usage_percent": 80,
               "mem_usage_percent": 80,
               "mem_usage_mb": 1024,
+              "mem_usage_percent_emergency": 92,
+              "mem_usage_mb_emergency": 1536,
+              "emergency_duration": "10s",
               "tags": [
                 "env:prod",
                 "version:v1.2"
@@ -87,11 +99,15 @@ To maintain readability in Kubernetes YAML, it is **strongly recommended** to us
 - **`language`** (String): Target process language. Currently supports `java`.
 - **`command`** (String): Regular expression to match the process command line.
 - **`duration`** (String): Duration of a single collection (e.g., `30s`, `1m`). **Note**: To avoid execution timeouts, it is recommended not to exceed 5 minutes.
+- **`emergency_duration`** (String): Shorter profiling duration used after an emergency memory hit. `10s` or `15s` is recommended.
 - **`tags`** (List): List of custom tags; recommended to include meta-information like `env`, `version`.
 - **`cpu_usage_percent`** (Int): CPU trigger threshold (0-N). Values may exceed 100 in multi-core environments.
-- **`mem_usage_percent`** (Int): Memory usage percentage trigger threshold (0-100).
-- **`mem_usage_mb`** (Int): Memory usage absolute value trigger threshold (MB).
-- These three configurations: **`cpu_usage_percent`**, **`mem_usage_percent`**, **`mem_usage_mb`** will skip the threshold check for this item if not configured or set to 0.
+- **`mem_usage_percent`** (Int): Average memory-percentage threshold (0-100), evaluated by the latest 5 points.
+- **`mem_usage_mb`** (Int): Average RSS threshold in MB, evaluated by the latest 5 points.
+- **`mem_usage_percent_emergency`** (Int): Instant emergency memory-percentage threshold (0-100). A single hit triggers immediately.
+- **`mem_usage_mb_emergency`** (Int): Instant emergency RSS threshold in MB. A single hit triggers immediately.
+- **`cpu_usage_percent`**, **`mem_usage_percent`**, and **`mem_usage_mb`** skip threshold checks when omitted or set to 0.
+- When `FLAMESHOT_POD_MEM_LIMIT` is configured, `mem_usage_percent` and `mem_usage_percent_emergency` prefer Pod-limit memory percentage instead of host memory percentage.
 
 ---
 
@@ -115,7 +131,11 @@ Flameshot invokes different underlying tools depending on the technology stack o
     **Notes:**
 
     - No reliance on JVM Safepoint; extremely low overhead.
-    - If using a non-standard JDK image, ensure the Sidecar mounts `/tmp` or the corresponding Java library path from the main container.
+    - If using a non-standard JDK image, ensure the Sidecar mounts the target JDK path, `/tmp`, and any runtime paths required by JVM Attach; otherwise `jcmd` may be unable to attach to the target JVM.
+    - If you want Flameshot to automatically discover and upload a post-OOM `.hprof` summary, the JVM must explicitly enable `-XX:+HeapDumpOnOutOfMemoryError` and configure `-XX:HeapDumpPath=...`. Setting `FLAMESHOT_OOM_HPROF_ENABLED=true` alone does not modify the target JVM startup options.
+    - `HeapDumpPath` must point to a directory or file path inside a volume shared by both the application container and the Flameshot Sidecar. A stable and process-distinguishable dump path is recommended.
+    - If you want Flameshot to capture lightweight `jcmd` snapshots at high memory watermark, make sure `jcmd` is available inside the application container, or accessible from the Sidecar through the shared JDK path. In production, it is recommended to use `jcmd` from the same JDK distribution and major-version family as the target JVM.
+    - For both `jcmd` snapshots and `.hprof` summary recovery, declare the relevant Flameshot feature flags explicitly in deployment manifests instead of relying on implicit defaults.
 
 === "Go (Coming Soon)"
 
@@ -188,6 +208,69 @@ spec:
     - name: shared-data
       mountPath: /data
 ```
+
+### OOM HProf Summary Requirements {#oom-hprof}
+
+If you want Flameshot to automatically recover `.hprof` summary information after a Java OOM, all of the following conditions must be met:
+
+1. Enable `-XX:+HeapDumpOnOutOfMemoryError` in the application JVM arguments.
+1. Configure `-XX:HeapDumpPath=/data/...` in the JVM arguments, and make sure the path is inside the shared volume.
+1. Enable `FLAMESHOT_OOM_HPROF_ENABLED=true` for the Flameshot Sidecar.
+1. It is recommended to set `FLAMESHOT_OOM_HPROF_MATCH_WINDOW` explicitly so the matching window is operationally unambiguous.
+
+For example:
+
+```bash
+java \
+  -XX:+HeapDumpOnOutOfMemoryError \
+  -XX:HeapDumpPath=/data/dumps/app.hprof \
+  -jar app.jar
+```
+
+Notes:
+
+- Flameshot now discovers `HeapDumpPath` directly from the target Java process arguments. There is no separate configuration item for the `.hprof` path.
+- `FLAMESHOT_OOM_HPROF_ENABLED` only enables the Flameshot-side recovery workflow; it does not inject HeapDump-related flags into the target JVM.
+- If the target process does not enable `HeapDumpOnOutOfMemoryError`, or if `HeapDumpPath` is not inside a shared volume, Flameshot can only record the OOM event and cannot locate the `.hprof` file.
+- If the container is terminated before the dump is fully written, `.hprof` may still be unavailable. In practice, high-watermark `jcmd` snapshots should be enabled together with OOM summary recovery.
+
+### High-Watermark JCmd Snapshots {#jcmd-snapshot}
+
+When the cgroup memory usage approaches the emergency threshold, Flameshot runs the following lightweight commands in parallel:
+
+1. `jcmd <pid> GC.class_histogram`
+1. `jcmd <pid> Thread.print`
+
+Behavior:
+
+- The raw output is written into the shared directory configured by `FLAMESHOT_PROFILING_PATH`.
+- The default `jcmd` timeout is `10s`, and can be adjusted through `FLAMESHOT_JCMD_TIMEOUT`.
+- It is recommended to declare `FLAMESHOT_JCMD_SNAPSHOT_ENABLED=true` explicitly in deployment manifests instead of relying on image or template defaults.
+- `FLAMESHOT_JCMD_SNAPSHOT_ENABLED=true` only authorizes Flameshot to attempt `jcmd`; snapshots are still skipped when the Sidecar cannot access an executable `jcmd`, Attach prerequisites are missing, or runtime isolation prevents attachment.
+- Example filenames:
+  1. `jcmd_gc_class_histogram_<pid>_<timestamp>.txt`
+  2. `jcmd_thread_print_<pid>_<timestamp>.txt`
+- Flameshot also uploads a lightweight summary log for each snapshot.
+
+Prerequisites:
+
+1. Enable `FLAMESHOT_JCMD_SNAPSHOT_ENABLED=true` explicitly for the Flameshot Sidecar.
+1. Make `jcmd` available to the Sidecar, either from the target JVM image or through a shared JDK path.
+1. Enable `shareProcessNamespace: true`, and ensure the Sidecar has the permissions and shared runtime paths required by JVM Attach.
+
+Summary log fields:
+
+- `snapshot_type`: `gc_class_histogram` or `thread_print`
+- `output_path`: Raw output file path
+- `output_size_bytes`: Output file size
+- `preview`: A condensed preview
+  1. `GC.class_histogram` extracts the top few lines with the largest classes
+  2. `Thread.print` extracts thread titles and thread state lines
+
+Why this matters:
+
+- These snapshots are much lighter than `.hprof`, so they are often more practical when the Pod is close to OOM but has not yet been killed.
+- In direct kernel `oom_kill` scenarios, `.hprof` may never be generated, while high-watermark `jcmd` snapshots still have a chance to preserve useful evidence earlier.
 
 ### Docker Local Testing {#docker-testing}
 

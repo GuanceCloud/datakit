@@ -58,6 +58,13 @@ Flameshot Configuration Example:
                     "FLAMESHOT_LOG_LEVEL":        "info",
                     "FLAMESHOT_PROFILING_PATH":   "/flameshot-data",
                     "FLAMESHOT_LOG_PATH":         "/var/log/flameshot.log",
+                    "FLAMESHOT_AUTO_PROFILING":   "10m",
+                    "FLAMESHOT_AUTO_PROFILING_DURATION": "15s",
+                    "FLAMESHOT_JCMD_SNAPSHOT_ENABLED": "true",
+                    "FLAMESHOT_JCMD_TIMEOUT": "20s",
+                    "FLAMESHOT_OOM_HPROF_ENABLED": "true",
+                    "FLAMESHOT_OOM_HPROF_MATCH_WINDOW": "3m",
+                    "FLAMESHOT_POD_MEM_LIMIT": "2048",
                     "FLAMESHOT_HTTP_LOCAL_IP":    "{fieldRef:status.podIP}",
                     "FLAMESHOT_HTTP_LOCAL_PORT":  "8089",
                     "FLAMESHOT_SERVICE":  "{fieldRef:metadata.labels['app']}",
@@ -108,6 +115,13 @@ Configuration Field Description:
 | `FLAMESHOT_LOG_LEVEL` | Log level, e.g., `info` |
 | `FLAMESHOT_PROFILING_PATH` | Profiling data storage path, e.g., `/flameshot-data` |
 | `FLAMESHOT_LOG_PATH` | Log file path, e.g., `/var/log/flameshot.log` |
+| `FLAMESHOT_AUTO_PROFILING` | Timed profiling interval, e.g., `10m` |
+| `FLAMESHOT_AUTO_PROFILING_DURATION` | Timed profiling sample duration, e.g., `15s` |
+| `FLAMESHOT_JCMD_SNAPSHOT_ENABLED` | Whether to enable lightweight high-watermark `jcmd` snapshots, e.g., `true` |
+| `FLAMESHOT_JCMD_TIMEOUT` | Timeout for each `jcmd` command, e.g., `20s` |
+| `FLAMESHOT_OOM_HPROF_ENABLED` | Whether to enable OOM `.hprof` summary recovery, e.g., `true` |
+| `FLAMESHOT_OOM_HPROF_MATCH_WINDOW` | Matching window between OOM events and `.hprof`, e.g., `3m` |
+| `FLAMESHOT_POD_MEM_LIMIT` | Pod memory limit in Mi, e.g., `2048` |
 | `FLAMESHOT_HTTP_LOCAL_IP` | HTTP service local IP, usually injected via Downward API, e.g., `{fieldRef:status.podIP}` |
 | `FLAMESHOT_HTTP_LOCAL_PORT` | HTTP service port, e.g., `8089` |
 | `FLAMESHOT_PROCESSES` | Process monitoring configuration (automatically injected by `processes` field), JSON string format |

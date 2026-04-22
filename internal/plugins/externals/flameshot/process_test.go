@@ -7,71 +7,32 @@ package flameshot
 
 import (
 	"container/list"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/shirou/gopsutil/v3/process"
 )
 
-var test_tmall_pid = int32(41255)
-
 func Test_newProcessM(t *testing.T) {
-	tmallPID := test_tmall_pid
-
-	pids, err := process.Pids()
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	has := false
-	for _, p := range pids {
-		if p == tmallPID {
-			has = true
-			break
-		}
-	}
-	if !has {
-		t.Logf("not find tmall.jar")
-		return
-	}
-
-	p, err := process.NewProcess(tmallPID)
-	if err != nil {
-		t.Errorf("newProcess err %v", err)
-		return
-	}
-
-	name, err := p.Name()
-	if err != nil {
-		t.Errorf("name err %v", err)
-		return
-	}
-	t.Logf("name is %s", name)
-
-	cmd, err := p.Cmdline()
-	if err != nil {
-		t.Errorf("cmdline err %v", err)
-		return
-	}
-	t.Logf("tmall cmd is %s", cmd)
-
-	pm := newProcessM(name, cmd, tmallPID, &Process{})
+	pid := int32(os.Getpid())
+	pm := newProcessM("go-test", "go test ./internal/plugins/externals/flameshot", pid, &Process{})
 	if pm == nil {
 		t.Errorf("newProcessM err")
 	}
 }
 
 func Test_processM_updateProcessStats(t *testing.T) {
-	pm := newProcessM("java", "java -jar tmall.jar", test_tmall_pid, &Process{})
+	pm := newProcessM("go-test", "go test ./internal/plugins/externals/flameshot", int32(os.Getpid()), &Process{})
 	if pm == nil {
-		t.Logf("newProcessM nil, retrun")
-		return
+		t.Fatal("newProcessM nil")
 	}
 	pm.podCPULimit = "1"
 	pm.podMEMLimit = "600Mi"
 	err := pm.updateProcessStats()
+	assert.NoError(t, err)
+	time.Sleep(10 * time.Millisecond)
+	err = pm.updateProcessStats()
 	assert.NoError(t, err)
 	if e := pm.CPUHistory.Front(); e != nil {
 		if usage, ok := e.Value.(float64); ok {
@@ -110,20 +71,70 @@ func Test_processM_isTrigger(t *testing.T) {
 			MEMUsageMB:      80,
 		},
 	}
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-	i := float64(0)
-	for range ticker.C {
-		i++
-		pm.AddMemUsage(i * 5)
-		pm.AddMemPercent(i * 5)
-		pm.AddCPUUsage(i * 5)
-		trigger, tags := pm.isTrigger()
-		if trigger {
-			t.Logf("trigger is %v, tags is %v  count:%f", trigger, tags, i)
-			return
-		}
+
+	for _, usage := range []float64{100, 100, 100, 100, 100} {
+		pm.AddMemUsage(usage)
+		pm.AddMemPercent(usage)
+		pm.AddCPUUsage(usage)
 	}
+
+	trigger, tags := pm.isTrigger()
+	assert.True(t, trigger)
+	assert.Contains(t, tags, "cpu_avg:100.00")
+	assert.Contains(t, tags, "mem_used:100.00")
+	assert.Contains(t, tags, "mem_perc_avg:100.00")
+}
+
+func Test_processM_isTriggerEmergency(t *testing.T) {
+	pm := &processM{
+		CPUHistory:        list.New(),
+		MemHistory:        list.New(),
+		MemPercentHistory: list.New(),
+		MaxSize:           10,
+		configProcess: &Process{
+			MEMUsagePercent:          90,
+			MEMUsageMB:               1024,
+			MEMUsagePercentEmergency: 95,
+			MEMUsageMBEmergency:      900,
+		},
+		lastProfileTime: time.Now().Add(-2 * time.Minute),
+	}
+
+	for _, usage := range []float64{100, 200, 300, 400} {
+		pm.AddMemUsage(usage)
+		pm.AddMemPercent(usage / 10)
+	}
+
+	pm.AddMemUsage(950)
+	pm.AddMemPercent(96)
+
+	trigger, tags := pm.isTrigger()
+	assert.True(t, trigger)
+	assert.Contains(t, tags, "mem_used_emergency:950.00")
+	assert.Contains(t, tags, "mem_perc_emergency:96.00")
+	assert.NotContains(t, tags, "mem_used:950.00")
+}
+
+func Test_processM_triggerDecisionEmergency(t *testing.T) {
+	pm := &processM{
+		CPUHistory:        list.New(),
+		MemHistory:        list.New(),
+		MemPercentHistory: list.New(),
+		MaxSize:           10,
+		configProcess: &Process{
+			Duration:                 "60s",
+			EmergencyDuration:        "12s",
+			MEMUsagePercentEmergency: 95,
+		},
+		lastProfileTime: time.Now().Add(-2 * time.Minute),
+	}
+
+	pm.AddMemPercent(96)
+
+	trigger, tags, emergency := pm.triggerDecision()
+	assert.True(t, trigger)
+	assert.True(t, emergency)
+	assert.Contains(t, tags, "mem_perc_emergency:96.00")
 }
 
 func TestParseCPULimit(t *testing.T) {
@@ -176,4 +187,15 @@ func TestParseMemoryLimit(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_processM_getMemoryUsagePercentPreferPodLimit(t *testing.T) {
+	pm := &processM{
+		podMEMLimit: "200Mi",
+	}
+
+	percent, limit, source := pm.getMemoryUsagePercent(100 * 1024 * 1024)
+	assert.Equal(t, int64(200*1024*1024), limit)
+	assert.Equal(t, "pod_limit", source)
+	assert.InDelta(t, 50.0, percent, 0.0001)
 }

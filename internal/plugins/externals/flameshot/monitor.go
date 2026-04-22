@@ -11,41 +11,139 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"sync"
 	"time"
 
 	"github.com/shirou/gopsutil/v3/process"
 )
 
 type monitor struct {
-	config    *Config
-	cs        []*processM
-	csChan    chan *processM
-	statsChan chan *triggerStats
+	config             *Config
+	cs                 []*processM
+	csChan             chan *processM
+	statsChan          chan *triggerStats
+	oomChan            chan *OOMEvent
+	oomWorkerSem       chan struct{}
+	jcmdChan           chan *jcmdSnapshotRequest
+	jcmdWorkerSem      chan struct{}
+	watchers           map[string]*cgroupWatcher
+	watcherKeyByPID    map[int32]string
+	procRoot           string
+	cgroupRoot         string
+	cgroupPollInterval time.Duration
+	processedHProf     *processedHProfStore
+}
+
+type cgroupWatcher struct {
+	key     string
+	version string
+	dir     string
+	cancel  context.CancelFunc
+
+	mu      sync.RWMutex
+	members map[int32]*processM
 }
 
 func NewMonitor(config *Config) *monitor {
 	return &monitor{
-		config:    config,
-		cs:        []*processM{},
-		csChan:    make(chan *processM, 10),
-		statsChan: make(chan *triggerStats, 5),
+		config:             config,
+		cs:                 []*processM{},
+		csChan:             make(chan *processM, 10),
+		statsChan:          make(chan *triggerStats, 5),
+		oomChan:            make(chan *OOMEvent, 5),
+		oomWorkerSem:       make(chan struct{}, 1),
+		jcmdChan:           make(chan *jcmdSnapshotRequest, 5),
+		jcmdWorkerSem:      make(chan struct{}, 1),
+		watchers:           make(map[string]*cgroupWatcher),
+		watcherKeyByPID:    make(map[int32]string),
+		procRoot:           defaultProcRoot,
+		cgroupRoot:         defaultCgroupRoot,
+		cgroupPollInterval: defaultCgroupPollInterval,
+		processedHProf:     newProcessedHProfStore(),
 	}
+}
+
+func newCgroupWatcher(key, version, dir string, cancel context.CancelFunc) *cgroupWatcher {
+	return &cgroupWatcher{
+		key:     key,
+		version: version,
+		dir:     dir,
+		cancel:  cancel,
+		members: make(map[int32]*processM),
+	}
+}
+
+func (w *cgroupWatcher) addMember(pm *processM) {
+	if w == nil || pm == nil {
+		return
+	}
+
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.members[pm.Pid] = pm
+}
+
+func (w *cgroupWatcher) removeMember(pid int32) int {
+	if w == nil {
+		return 0
+	}
+
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	delete(w.members, pid)
+	return len(w.members)
+}
+
+func (w *cgroupWatcher) snapshotMembers() []*processM {
+	if w == nil {
+		return nil
+	}
+
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+
+	members := make([]*processM, 0, len(w.members))
+	for _, pm := range w.members {
+		if pm != nil {
+			members = append(members, pm)
+		}
+	}
+	return members
 }
 
 // 监控单个命令的资源使用情况.
 func (m *monitor) MonitorCommand(p *processM) {
 	if err := p.updateProcessStats(); err != nil {
+		m.stopWatcher(p.Pid)
 		m.cs = removePID(m.cs, p)
 		return
 	}
-	trigger, tags := p.isTrigger()
+	trigger, tags, emergency := p.triggerDecision()
 	tags = append(tags, m.config.Tags...)
 	tags = append(tags, p.configProcess.Tags...)
 	// 将service作为tag，方便在中心展示。
 	tags = append(tags, fmt.Sprintf("%s:%s", "service", p.configProcess.Service))
 	if trigger {
-		p.lastProfileTime = time.Now()
-		stats := newTriggerStats(p.configProcess.Events, p.configProcess.Duration, tags)
+		p.markProfileTriggered(time.Now())
+		duration := p.configProcess.Duration
+		if emergency {
+			duration = getEmergencyProfileDuration(p.configProcess)
+			tags = append(tags, "trigger:memory_emergency")
+			if m.config != nil && m.config.JCmdSnapshotEnabled && !p.inJcmdCooldown(defaultCgroupEmergencyCooldown) {
+				p.markJcmdTriggered(time.Now())
+				jcmdTags := make([]string, 0, len(tags))
+				jcmdTags = append(jcmdTags, tags...)
+				m.jcmdChan <- &jcmdSnapshotRequest{
+					Service:     p.configProcess.Service,
+					PID:         p.Pid,
+					ProcessName: p.Name,
+					DetectedAt:  time.Now(),
+					MemPercent:  getListAvg(p.MemPercentHistory, 1),
+					Tags:        jcmdTags,
+				}
+			}
+		}
+		stats := newTriggerStats(p.configProcess.Events, duration, tags)
 		stats.CommandName = p.Name
 		stats.PID = p.Pid
 		stats.Triggered = true
@@ -108,6 +206,7 @@ func (m *monitor) Start(osSignal chan os.Signal) {
 				pm.podMEMLimit = m.config.PodMEMLimit
 				pm.podCPULimit = m.config.PodCPULimit
 				m.cs = append(m.cs, pm)
+				m.startWatcher(pm)
 			}
 		case <-monitorCommandTicker.C:
 			for _, c := range m.cs {
@@ -137,8 +236,27 @@ func (m *monitor) Start(osSignal chan os.Signal) {
 				}
 				deleteFile(stats)
 			}
+		case oomEvent := <-m.oomChan:
+			if !m.config.OOMHProfEnabled {
+				continue
+			}
+			m.oomWorkerSem <- struct{}{}
+			go func(evt *OOMEvent) {
+				defer func() { <-m.oomWorkerSem }()
+				m.handleOOMEvent(evt)
+			}(oomEvent)
+		case snapshotReq := <-m.jcmdChan:
+			if !m.config.JCmdSnapshotEnabled {
+				continue
+			}
+			m.jcmdWorkerSem <- struct{}{}
+			go func(req *jcmdSnapshotRequest) {
+				defer func() { <-m.jcmdWorkerSem }()
+				m.handleJcmdSnapshot(req)
+			}(snapshotReq)
 
 		case <-osSignal:
+			m.stopAllWatchers()
 			log.Infof("monitor stop")
 			return
 		}
@@ -174,13 +292,83 @@ func (m *monitor) autoProfilingProcess(p *processM) {
 	tags = append(tags, m.config.Tags...)
 	tags = append(tags, p.configProcess.Tags...)
 	tags = append(tags, fmt.Sprintf("%s:%s", "service", p.configProcess.Service))
-	stats := newTriggerStats(p.configProcess.Events, "30s", tags)
+	stats := newTriggerStats(p.configProcess.Events, m.getAutoProfileSampleDuration(), tags)
 	stats.PID = p.Pid
 	stats.Triggered = true
 	stats.CommandName = p.Name
 	stats.Service = p.configProcess.Service
 
 	m.statsChan <- stats
+}
+
+func getEmergencyProfileDuration(p *Process) string {
+	if p == nil || p.EmergencyDuration == "" {
+		return "15s"
+	}
+	return p.EmergencyDuration
+}
+
+func (m *monitor) getAutoProfileSampleDuration() string {
+	if m == nil || m.config == nil || m.config.AutoProfileDuration == "" {
+		return "30s"
+	}
+	return m.config.AutoProfileDuration
+}
+
+func (m *monitor) startWatcher(pm *processM) {
+	if pm == nil {
+		return
+	}
+	if _, ok := m.watcherKeyByPID[pm.Pid]; ok {
+		return
+	}
+
+	key, version, err := resolveCgroupWatcherTarget(m.procRoot, m.cgroupRoot, pm.Pid)
+	if err != nil {
+		log.Debugf("resolve cgroup watcher target failed for pid=%d: %v", pm.Pid, err)
+		return
+	}
+
+	m.watcherKeyByPID[pm.Pid] = key
+	if watcher, ok := m.watchers[key]; ok {
+		watcher.addMember(pm)
+		return
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	watcher := newCgroupWatcher(key, version, key, cancel)
+	watcher.addMember(pm)
+	m.watchers[key] = watcher
+	go m.watchCgroupMemory(ctx, watcher)
+}
+
+func (m *monitor) stopWatcher(pid int32) {
+	key, ok := m.watcherKeyByPID[pid]
+	if !ok {
+		return
+	}
+	delete(m.watcherKeyByPID, pid)
+
+	watcher, ok := m.watchers[key]
+	if !ok {
+		return
+	}
+	if watcher.removeMember(pid) > 0 {
+		return
+	}
+
+	watcher.cancel()
+	delete(m.watchers, key)
+}
+
+func (m *monitor) stopAllWatchers() {
+	for key, watcher := range m.watchers {
+		watcher.cancel()
+		delete(m.watchers, key)
+	}
+	for pid := range m.watcherKeyByPID {
+		delete(m.watcherKeyByPID, pid)
+	}
 }
 
 // filterProcessesByRegex 使用正则表达式过滤进程，并通过channel发送匹配的进程.

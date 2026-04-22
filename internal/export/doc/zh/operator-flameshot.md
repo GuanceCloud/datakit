@@ -58,6 +58,13 @@ Flameshot 配置示例：
                     "FLAMESHOT_LOG_LEVEL":        "info",
                     "FLAMESHOT_PROFILING_PATH":   "/flameshot-data",
                     "FLAMESHOT_LOG_PATH":         "/var/log/flameshot.log",
+                    "FLAMESHOT_AUTO_PROFILING":   "10m",
+                    "FLAMESHOT_AUTO_PROFILING_DURATION": "15s",
+                    "FLAMESHOT_JCMD_SNAPSHOT_ENABLED": "true",
+                    "FLAMESHOT_JCMD_TIMEOUT": "20s",
+                    "FLAMESHOT_OOM_HPROF_ENABLED": "true",
+                    "FLAMESHOT_OOM_HPROF_MATCH_WINDOW": "3m",
+                    "FLAMESHOT_POD_MEM_LIMIT": "2048",
                     "FLAMESHOT_HTTP_LOCAL_IP":    "{fieldRef:status.podIP}",
                     "FLAMESHOT_HTTP_LOCAL_PORT":  "8089",
                     "FLAMESHOT_SERVICE":  "{fieldRef:metadata.labels['app']}",
@@ -108,6 +115,13 @@ Flameshot 配置示例：
 | `FLAMESHOT_LOG_LEVEL`        | 日志级别，例如 `info`                                                                     |
 | `FLAMESHOT_PROFILING_PATH`   | Profiling 数据存储路径，例如 `/flameshot-data`                                            |
 | `FLAMESHOT_LOG_PATH`         | 日志文件路径，例如 `/var/log/flameshot.log`                                               |
+| `FLAMESHOT_AUTO_PROFILING`   | 定时采集间隔，例如 `10m`                                                                  |
+| `FLAMESHOT_AUTO_PROFILING_DURATION` | 定时采集单次时长，例如 `15s`                                                        |
+| `FLAMESHOT_JCMD_SNAPSHOT_ENABLED` | 是否开启高水位 `jcmd` 轻量快照，例如 `true`                                        |
+| `FLAMESHOT_JCMD_TIMEOUT`     | 每条 `jcmd` 命令的超时时间，例如 `20s`                                                    |
+| `FLAMESHOT_OOM_HPROF_ENABLED` | 是否开启 OOM `.hprof` 摘要恢复，例如 `true`                                            |
+| `FLAMESHOT_OOM_HPROF_MATCH_WINDOW` | OOM 事件与 `.hprof` 的匹配窗口，例如 `3m`                                          |
+| `FLAMESHOT_POD_MEM_LIMIT`    | Pod 内存 limit，单位 Mi，例如 `2048`                                                      |
 | `FLAMESHOT_HTTP_LOCAL_IP`    | HTTP 服务本地 IP，通常通过 Downward API 注入，例如 `{fieldRef:status.podIP}`              |
 | `FLAMESHOT_HTTP_LOCAL_PORT`  | HTTP 服务端口，例如 `8089`                                                                |
 | `FLAMESHOT_PROCESSES`        | 进程监控配置（由 `processes` 字段自动注入），JSON 字符串格式                              |

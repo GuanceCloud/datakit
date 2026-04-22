@@ -22,7 +22,9 @@ Flameshot 采用 **Sidecar 容器** 模式部署。它必须与业务主容器�
 1. **触发 (Trigger)**：当满足阈值（如 CPU > 80%）或收到 HTTP API 请求时，触发采集任务。
 1. **执行 (Execute)**：根据配置的语言类型（目前支持 Java），调用对应的 Profiler 工具 attach 到目标进程。
 1. **收集 (Collect)**：生成的 Profile 文件（如 `.jfr`）存储于共享卷中，随后上传至数据观测中心。
-1. **定时**: 配置 `FLAMESHOT_AUTO_PROFILING` 后，会定时对所有匹配到的进程采集一次 30s 的 Profiling 数据。
+1. **定时**: 配置 `FLAMESHOT_AUTO_PROFILING` 后，会定时对所有匹配到的进程采集一次 Profiling 数据，采集时长默认 30s，可通过 `FLAMESHOT_AUTO_PROFILING_DURATION` 调整。
+1. **OOM 摘要**: 当检测到容器 `oom_kill` 增量时，Flameshot 会尝试从目标 Java 进程启动参数中自动解析 `-XX:+HeapDumpOnOutOfMemoryError` 与 `-XX:HeapDumpPath=...`。如果 dump 文件位于共享卷内且生成成功，Flameshot 会找到对应 `.hprof`，并上传一条摘要日志。
+1. **高水位轻量快照**: 当容器内存接近 cgroup limit 的紧急阈值时，Flameshot 会自动执行 `jcmd GC.class_histogram` 和 `jcmd Thread.print`，将原始输出落盘到共享目录，并上传轻量摘要日志。
 
 ### 适用场景 {#use-cases}
 
@@ -47,7 +49,14 @@ Flameshot 的所有行为均通过环境变量进行控制。配置分为 **全�
 | `FLAMESHOT_LOG_LEVEL`        | 否     | `info`  | 日志级别，可选：`debug`, `info`, `warn`, `error`。                                 |
 | `FLAMESHOT_HTTP_LOCAL_IP`    | **是** | `-`     | Sidecar 自身 HTTP 服务监听地址。                                                   |
 | `FLAMESHOT_HTTP_LOCAL_PORT`  | **是** | `8089`  | Sidecar 自身 HTTP 服务监听端口。                                                   |
-| `FLAMESHOT_AUTO_PROFILING`   | 否     | -       | 定时对所有匹配到的进程采集一次 30s 的 Profiling 数据。最小不得低于一分钟，如五分钟："5m" 或者一小时 "1h"         |
+| `FLAMESHOT_AUTO_PROFILING`   | 否     | -       | 定时对所有匹配到的进程采集一次 Profiling 数据。最小不得低于一分钟，如五分钟："5m" 或者一小时 "1h"         |
+| `FLAMESHOT_AUTO_PROFILING_DURATION` | 否 | `30s` | 定时采集模式下的单次采样时长。 |
+| `FLAMESHOT_OOM_HPROF_ENABLED` | 否    | `false` | 开启 OOM 后 `.hprof` 摘要恢复链路。仅对 Java 进程生效，且要求目标 JVM 显式开启 `-XX:+HeapDumpOnOutOfMemoryError` 并配置位于共享卷内的 `-XX:HeapDumpPath=...`。建议在发布配置中显式声明。 |
+| `FLAMESHOT_OOM_HPROF_MATCH_WINDOW` | 否 | `2m` | OOM 事件与 `.hprof` 文件修改时间的匹配窗口。 |
+| `FLAMESHOT_JCMD_SNAPSHOT_ENABLED` | 否 | `true` | 开启高水位时的 `jcmd` 轻量快照能力。命中 cgroup 内存紧急阈值后，会自动执行 `GC.class_histogram` 与 `Thread.print`。仅在 Sidecar 可以访问可执行 `jcmd` 且满足 JVM Attach 前提时生效，建议在发布配置中显式声明。 |
+| `FLAMESHOT_JCMD_TIMEOUT` | 否 | `10s` | 每条 `jcmd` 命令的执行超时时间。目标 JVM 较大或负载较高时，建议适当放宽。 |
+| `FLAMESHOT_POD_MEM_LIMIT` | 否 | - | Pod 内存 limit，单位 Mi。配置后会优先按 Pod limit 计算内存使用率。 |
+| `FLAMESHOT_POD_CPU_LIMIT` | 否 | - | Pod CPU limit，单位 m。配置后会按 Pod CPU limit 计算 CPU 使用率。 |
 | `FLAMESHOT_SERVICE`          | 否     | -       | 可以不用在 `FLAMESHOT_PROCESSES` 中配置 `service`, 会全部替换。                         |
 | `FLAMESHOT_TAGS`             | 否     | -       | 建议配置 `host` `pod_name` `pod_namespace` 如： "host:host_name,pod_name:pod_a" |
 
@@ -72,6 +81,9 @@ Flameshot 的所有行为均通过环境变量进行控制。配置分为 **全�
               "cpu_usage_percent": 80,
               "mem_usage_percent": 80,
               "mem_usage_mb": 1024,
+              "mem_usage_percent_emergency": 92,
+              "mem_usage_mb_emergency": 1536,
+              "emergency_duration": "10s",
               "tags": [
                 "env:prod",
                 "version:v1.2"
@@ -86,11 +98,15 @@ Flameshot 的所有行为均通过环境变量进行控制。配置分为 **全�
 - **`language`** (String): 目标进程语言。目前支持 `java`。
 - **`command`** (String): 匹配进程命令行的正则表达式。
 - **`duration`** (String): 单次采集时长（例如 `30s`, `1m`）。**注意**：受限于执行超时，建议不超过 5 分钟。
+- **`emergency_duration`** (String): 内存紧急阈值命中后的快速采集时长，建议配置为 `10s` 或 `15s`。
 - **`tags`** (List): 自定义标签列表，建议包含 `env`, `version` 等元信息。
 - **`cpu_usage_percent`** (Int): CPU 触发阈值 (0-N)。多核环境下数值可能超过 100。
-- **`mem_usage_percent`** (Int): 内存使用率触发阈值 (0-100)。
-- **`mem_usage_mb`** (Int): 内存使用量绝对值触发阈值 (MB)。
-- 这三个配置： **`cpu_usage_percent`** **`mem_usage_percent`** **`mem_usage_mb`** 不配置或者配置 0 都会略过该项的阈值检查。
+- **`mem_usage_percent`** (Int): 内存使用率平均阈值 (0-100)，按最近 5 个点平均值触发。
+- **`mem_usage_mb`** (Int): 内存使用量平均阈值 (MB)，按最近 5 个点平均值触发。
+- **`mem_usage_percent_emergency`** (Int): 内存使用率紧急瞬时阈值 (0-100)，单点命中立即触发。
+- **`mem_usage_mb_emergency`** (Int): 内存使用量紧急瞬时阈值 (MB)，单点命中立即触发。
+- `cpu_usage_percent`、`mem_usage_percent`、`mem_usage_mb` 不配置或者配置 0 都会略过该项的阈值检查。
+- 配置了 `FLAMESHOT_POD_MEM_LIMIT` 后，`mem_usage_percent` 与 `mem_usage_percent_emergency` 会优先按 Pod limit 视角计算，而不是宿主机视角。
 
 
 ---
@@ -115,7 +131,11 @@ Flameshot 的所有行为均通过环境变量进行控制。配置分为 **全�
     **注意事项：**
 
     - 无需依赖 JVM Safepoint，开销极低。
-    - 如果使用非标准 JDK 镜像，请确保 Sidecar 挂载了主容器的 `/tmp` 或相应的 Java 库路径。
+    - 如果使用非标准 JDK 镜像，请确保 Sidecar 挂载了主容器的 JDK 路径、`/tmp` 以及 JVM Attach 所需的运行时路径；否则 `jcmd` 可能无法 attach 到目标 JVM。
+    - 如果希望在 OOM 后自动发现并上传 `.hprof` 摘要日志，业务 JVM 必须显式开启 `-XX:+HeapDumpOnOutOfMemoryError`，并配置 `-XX:HeapDumpPath=...`。仅设置 `FLAMESHOT_OOM_HPROF_ENABLED=true` 并不会自动修改目标 JVM 的启动参数。
+    - `HeapDumpPath` 必须指向业务容器和 Flameshot Sidecar **共同挂载**的共享目录；建议为每个进程配置稳定且可区分的 dump 路径。否则 Flameshot 即使检测到 OOM，也无法读取 dump 文件。
+    - 如果希望在高水位时自动执行 `jcmd` 轻量快照，请确保业务容器内存在可用的 `jcmd`，或者 Sidecar 能通过共享 JDK 路径访问 `jcmd`。生产环境中建议优先使用与目标 JVM 同发行版、同主版本族的 `jcmd`。
+    - 无论是 `jcmd` 轻量快照还是 `.hprof` 摘要恢复，均建议在发布配置中显式声明相关开关，而不要依赖隐式默认值。
 
 === "Go (Coming Soon)"
 
@@ -188,6 +208,69 @@ spec:
     - name: shared-data
       mountPath: /data
 ```
+
+### OOM HProf 摘要要求 {#oom-hprof}
+
+如果希望在 Java 进程 OOM 后由 Flameshot 自动补抓 `.hprof` 摘要，请同时满足以下条件：
+
+1. 在业务 JVM 启动参数中开启 `-XX:+HeapDumpOnOutOfMemoryError`。
+1. 在业务 JVM 启动参数中配置 `-XX:HeapDumpPath=/data/...`，且该路径位于共享卷内。
+1. 为 Flameshot 设置 `FLAMESHOT_OOM_HPROF_ENABLED=true`。
+1. 建议同时显式设置 `FLAMESHOT_OOM_HPROF_MATCH_WINDOW`，使运维侧对匹配窗口有明确预期。
+
+例如：
+
+```bash
+java \
+  -XX:+HeapDumpOnOutOfMemoryError \
+  -XX:HeapDumpPath=/data/dumps/app.hprof \
+  -jar app.jar
+```
+
+说明：
+
+- Flameshot 会直接从目标 Java 进程的启动参数中自动解析 `HeapDumpPath`，不再单独通过配置指定 `.hprof` 路径。
+- `FLAMESHOT_OOM_HPROF_ENABLED` 只是开启 Flameshot 侧的恢复逻辑，并不会替目标 JVM 注入 HeapDump 相关参数。
+- 如果目标进程没有开启 `HeapDumpOnOutOfMemoryError`，或者 `HeapDumpPath` 不在共享卷内，Flameshot 只能记录 OOM 事件，无法找到对应 `.hprof` 文件。
+- 如果容器在 dump 完成前已被直接终止，`.hprof` 可能仍然无法生成；此时建议结合高水位 `jcmd` 轻量快照一起使用。
+
+### 高水位 JCmd 快照 {#jcmd-snapshot}
+
+当 cgroup 内存使用率接近紧急阈值时，Flameshot 会并行执行以下两个轻量命令：
+
+1. `jcmd <pid> GC.class_histogram`
+1. `jcmd <pid> Thread.print`
+
+行为说明：
+
+- 原始输出会写入 `FLAMESHOT_PROFILING_PATH` 对应的共享目录。
+- `jcmd` 的默认执行超时时间为 `10s`，可以通过 `FLAMESHOT_JCMD_TIMEOUT` 调整。
+- 建议在发布配置中显式设置 `FLAMESHOT_JCMD_SNAPSHOT_ENABLED=true`，不要将该能力的启用状态交给镜像或模板的隐式默认值。
+- `FLAMESHOT_JCMD_SNAPSHOT_ENABLED=true` 仅表示允许 Flameshot 尝试执行 `jcmd`；若 Sidecar 无法访问可执行 `jcmd`、缺失 Attach 前提，或与目标 JVM 运行时隔离过强，快照仍会被跳过。
+- 文件名示例：
+  1. `jcmd_gc_class_histogram_<pid>_<timestamp>.txt`
+  2. `jcmd_thread_print_<pid>_<timestamp>.txt`
+- 同时会上传一条轻量摘要日志。
+
+前置要求：
+
+1. 在 Flameshot Sidecar 中显式开启 `FLAMESHOT_JCMD_SNAPSHOT_ENABLED=true`。
+1. Sidecar 可访问目标 JVM 对应的 `jcmd`，或者通过共享 JDK 路径访问兼容版本的 `jcmd`。
+1. Pod 已开启 `shareProcessNamespace: true`，且 Sidecar 具备执行 Attach 所需的权限与运行时共享路径。
+
+摘要日志内容：
+
+- `snapshot_type`: 快照类型，取值为 `gc_class_histogram` 或 `thread_print`
+- `output_path`: 原始输出文件路径
+- `output_size_bytes`: 输出文件大小
+- `preview`: 提炼后的摘要预览
+  1. `GC.class_histogram` 默认提取前几条高占用类
+  2. `Thread.print` 默认提取线程标题和线程状态行
+
+适用性：
+
+- 这类快照比 `.hprof` 更轻，通常更适合在 Pod 即将 OOM 但尚未被 kill 时抢现场。
+- 如果容器被内核直接 `oom_kill`，`.hprof` 未必能成功生成，但高水位阶段的 `jcmd` 快照更有机会提前保留下来。
 
 ### Docker 本地测试 {#docker-testing}
 

@@ -19,34 +19,45 @@ import (
 
 func TestConfigMarshal(t *testing.T) {
 	c := &Config{
-		DataKitAddr:     "http://localhost:9529",
-		ProfilingPath:   "/profiling/v1/input",
-		MonitorInterval: "1s",
-		Tags:            []string{"host:my_host"},
-		AutoProfiling:   "5m",
+		DataKitAddr:         "http://localhost:9529",
+		ProfilingPath:       "/profiling/v1/input",
+		MonitorInterval:     "1s",
+		Tags:                []string{"host:my_host"},
+		AutoProfiling:       "5m",
+		AutoProfileDuration: "45s",
+		OOMHProfEnabled:     true,
+		OOMHProfMatchWindow: "2m",
+		JCmdSnapshotEnabled: true,
+		JCmdTimeout:         "20s",
 		Processes: []*Process{
 			{
-				Service:         "tmall",
-				Command:         "java -jar tmall.jar",
-				Events:          "all",
-				Language:        "java",
-				JDKVersion:      "",
-				Tags:            []string{"env:env", "version:1.0.0"},
-				CPUUsagePercent: 80,
-				MEMUsagePercent: 80,
-				MEMUsageMB:      1024,
+				Service:                  "tmall",
+				Command:                  "java -jar tmall.jar",
+				EmergencyDuration:        "15s",
+				Events:                   "all",
+				Language:                 "java",
+				JDKVersion:               "",
+				Tags:                     []string{"env:env", "version:1.0.0"},
+				CPUUsagePercent:          80,
+				MEMUsagePercent:          80,
+				MEMUsageMB:               1024,
+				MEMUsagePercentEmergency: 95,
+				MEMUsageMBEmergency:      2048,
 			},
 			{
-				Service:         "springboot-server",
-				Command:         "springbooot-server.jar",
-				Events:          "cpu",
-				Duration:        defaultConfig,
-				Language:        "java",
-				JDKVersion:      "",
-				Tags:            []string{"env:env", "version:1.0.0"},
-				CPUUsagePercent: 80,
-				MEMUsagePercent: 80,
-				MEMUsageMB:      1024,
+				Service:                  "springboot-server",
+				Command:                  "springbooot-server.jar",
+				Events:                   "cpu",
+				Duration:                 defaultConfig,
+				EmergencyDuration:        "10s",
+				Language:                 "java",
+				JDKVersion:               "",
+				Tags:                     []string{"env:env", "version:1.0.0"},
+				CPUUsagePercent:          80,
+				MEMUsagePercent:          80,
+				MEMUsageMB:               1024,
+				MEMUsagePercentEmergency: 95,
+				MEMUsageMBEmergency:      2048,
 			},
 		},
 		HTTPConfig: &HTTPConfig{
@@ -73,6 +84,9 @@ func TestConfigMarshal(t *testing.T) {
 	assert.NotEmpty(t, c2.ProfilingPath)
 	assert.NotEmpty(t, c2.MonitorInterval)
 	assert.NotEmpty(t, c2.AutoProfiling)
+	assert.NotEmpty(t, c2.AutoProfileDuration)
+	assert.NotEmpty(t, c2.OOMHProfMatchWindow)
+	assert.NotEmpty(t, c2.JCmdTimeout)
 	assert.NotEmpty(t, c2.Tags)
 	assert.NotEmpty(t, c2.Processes)
 	assert.NotEmpty(t, c2.HTTPConfig)
@@ -87,6 +101,8 @@ func TestConfigMarshal(t *testing.T) {
 	assert.NotEmpty(t, c2.Processes[0].CPUUsagePercent)
 	assert.NotEmpty(t, c2.Processes[0].MEMUsagePercent)
 	assert.NotEmpty(t, c2.Processes[0].MEMUsageMB)
+	assert.NotEmpty(t, c2.Processes[0].MEMUsagePercentEmergency)
+	assert.NotEmpty(t, c2.Processes[0].MEMUsageMBEmergency)
 	assert.NotEmpty(t, c2.Log)
 }
 
@@ -100,8 +116,8 @@ func TestInitConfig(t *testing.T) {
 func (c *Config) toString() string {
 	msg := ""
 	for _, process := range c.Processes {
-		msg += fmt.Sprintf("process:{Service:%s,Command:%s,Events:%s,Language:%s,JDKVersion:%s,Tags:%+v,CPUUsagePercent:%d,MEMUsagePercent:%d,MEMUsageBytes:%d}\n",
-			process.Service, process.Command, process.Events, process.Language, process.JDKVersion, process.Tags, process.CPUUsagePercent, process.MEMUsagePercent, process.MEMUsageMB)
+		msg += fmt.Sprintf("process:{Service:%s,Command:%s,Events:%s,Language:%s,JDKVersion:%s,Tags:%+v,CPUUsagePercent:%d,MEMUsagePercent:%d,MEMUsageBytes:%d,MEMUsagePercentEmergency:%d,MEMUsageMBEmergency:%d}\n",
+			process.Service, process.Command, process.Events, process.Language, process.JDKVersion, process.Tags, process.CPUUsagePercent, process.MEMUsagePercent, process.MEMUsageMB, process.MEMUsagePercentEmergency, process.MEMUsageMBEmergency)
 	}
 	return fmt.Sprintf("config:{DataKitAddr:%s,MonitorInterval:%s, \n Processes:%s,HTTPConfig:%+v}", c.DataKitAddr, c.MonitorInterval, msg, c.HTTPConfig)
 }
@@ -111,6 +127,7 @@ func TestConfig_loadProcessesFromEnv(t *testing.T) {
 	// setenv
 	t.Setenv("FLAMESHOT_PROCESSES_0_SERVICE", "tmall")
 	t.Setenv("FLAMESHOT_PROCESSES_0_COMMAND", "java -jar tmall.jar")
+	t.Setenv("FLAMESHOT_PROCESSES_0_EMERGENCY_DURATION", "15s")
 	t.Setenv("FLAMESHOT_PROCESSES_0_EVENTS", "all")
 	t.Setenv("FLAMESHOT_PROCESSES_0_LANGUAGE", "java")
 	t.Setenv("FLAMESHOT_PROCESSES_0_JDK_VERSION", "")
@@ -118,8 +135,11 @@ func TestConfig_loadProcessesFromEnv(t *testing.T) {
 	t.Setenv("FLAMESHOT_PROCESSES_0_CPU_USAGE_PERCENT", "80")
 	t.Setenv("FLAMESHOT_PROCESSES_0_MEM_USAGE_PERCENT", "80")
 	t.Setenv("FLAMESHOT_PROCESSES_0_MEM_USAGE_MB", "1024")
+	t.Setenv("FLAMESHOT_PROCESSES_0_MEM_USAGE_PERCENT_EMERGENCY", "95")
+	t.Setenv("FLAMESHOT_PROCESSES_0_MEM_USAGE_MB_EMERGENCY", "2048")
 	t.Setenv("FLAMESHOT_PROCESSES_1_SERVICE", "tmall_server")
 	t.Setenv("FLAMESHOT_PROCESSES_1_COMMAND", "^java\\b.*tmall\\.jar")
+	t.Setenv("FLAMESHOT_PROCESSES_1_EMERGENCY_DURATION", "12s")
 	t.Setenv("FLAMESHOT_PROCESSES_1_EVENTS", "cpu,mem")
 	t.Setenv("FLAMESHOT_PROCESSES_1_LANGUAGE", "java")
 	t.Setenv("FLAMESHOT_PROCESSES_1_JDK_VERSION", "")
@@ -127,27 +147,32 @@ func TestConfig_loadProcessesFromEnv(t *testing.T) {
 	t.Setenv("FLAMESHOT_PROCESSES_1_CPU_USAGE_PERCENT", "80")
 	t.Setenv("FLAMESHOT_PROCESSES_1_MEM_USAGE_PERCENT", "80")
 	t.Setenv("FLAMESHOT_PROCESSES_1_MEM_USAGE_MB", "1024")
+	t.Setenv("FLAMESHOT_PROCESSES_1_MEM_USAGE_PERCENT_EMERGENCY", "95")
+	t.Setenv("FLAMESHOT_PROCESSES_1_MEM_USAGE_MB_EMERGENCY", "2048")
 
 	p := &Process{
-		Service:         "tmall",
-		Command:         "java -jar tmall.jar",
-		Duration:        "60s",
-		Events:          "--all",
-		Language:        "java",
-		JDKVersion:      "-",
-		Tags:            []string{"env:testing", "version:1.0.0"},
-		CPUUsagePercent: 80,
-		MEMUsagePercent: 80,
-		MEMUsageMB:      1024,
+		Service:                  "tmall",
+		Command:                  "java -jar tmall.jar",
+		Duration:                 "60s",
+		EmergencyDuration:        "15s",
+		Events:                   "--all",
+		Language:                 "java",
+		JDKVersion:               "-",
+		Tags:                     []string{"env:testing", "version:1.0.0"},
+		CPUUsagePercent:          80,
+		MEMUsagePercent:          80,
+		MEMUsageMB:               1024,
+		MEMUsagePercentEmergency: 95,
+		MEMUsageMBEmergency:      2048,
 	}
 	bts, err := json.Marshal(p)
 	assert.NoError(t, err)
 	t.Logf("process json %s", string(bts))
 	t.Setenv("FLAMESHOT_PROCESSES_0", string(bts))
-	t.Setenv("FLAMESHOT_PROCESSES_1", "{\"service\":\"tmall\",\"command\":\"^.*org\\\\.springframework\\\\.boot\\\\.loader\\\\.JarLauncher$\",\"duration\":\"60s\",\"events\":\"--all\",\"language\":\"java\",\"jdk_version\":\"-\",\"tags\":[\"env:testing\",\"version:1.0.0\"],\"cpu_usage_percent\":80,\"mem_usage_percent\":80,\"mem_usage_mb\":1024}")
+	t.Setenv("FLAMESHOT_PROCESSES_1", "{\"service\":\"tmall\",\"command\":\"^.*org\\\\.springframework\\\\.boot\\\\.loader\\\\.JarLauncher$\",\"duration\":\"60s\",\"emergency_duration\":\"12s\",\"events\":\"--all\",\"language\":\"java\",\"jdk_version\":\"-\",\"tags\":[\"env:testing\",\"version:1.0.0\"],\"cpu_usage_percent\":80,\"mem_usage_percent\":80,\"mem_usage_mb\":1024,\"mem_usage_percent_emergency\":95,\"mem_usage_mb_emergency\":2048}")
 
 	// 数组形式
-	t.Setenv("FLAMESHOT_PROCESSES", "[{\"service\":\"jfr-parser\",\"command\":\"^.*org\\\\.springframework\\\\.boot\\\\.loader\\\\.JarLauncher$\",\"duration\":\"60s\",\"events\":\"--all\",\"language\":\"java\",\"jdk_version\":\"-\",\"tags\":[\"env:testing\",\"version:1.0.0\"],\"cpu_usage_percent\":80,\"mem_usage_percent\":80,\"mem_usage_mb\":1024}]")
+	t.Setenv("FLAMESHOT_PROCESSES", "[{\"service\":\"jfr-parser\",\"command\":\"^.*org\\\\.springframework\\\\.boot\\\\.loader\\\\.JarLauncher$\",\"duration\":\"60s\",\"emergency_duration\":\"15s\",\"events\":\"--all\",\"language\":\"java\",\"jdk_version\":\"-\",\"tags\":[\"env:testing\",\"version\": \"1.0.0\"],\"cpu_usage_percent\":80,\"mem_usage_percent\":80,\"mem_usage_mb\":1024,\"mem_usage_percent_emergency\":95,\"mem_usage_mb_emergency\":2048}]")
 
 	c.loadProcessesFromEnv()
 	if len(c.Processes) < 2 {
@@ -159,15 +184,20 @@ func TestConfig_loadProcessesFromEnv(t *testing.T) {
 		assert.NotEmpty(t, process.Service)
 		assert.NotEmpty(t, process.Command)
 		t.Logf("command :%s", process.Command)
+		assert.NotEmpty(t, process.EmergencyDuration)
 		assert.NotEmpty(t, process.Events)
 		assert.NotEmpty(t, process.Language)
 		assert.NotEmpty(t, process.Tags)
 		assert.NotEmpty(t, process.CPUUsagePercent)
 		assert.NotEmpty(t, process.MEMUsagePercent)
 		assert.NotEmpty(t, process.MEMUsageMB)
+		assert.NotEmpty(t, process.MEMUsagePercentEmergency)
+		assert.NotEmpty(t, process.MEMUsageMBEmergency)
 		assert.Equal(t, process.MEMUsageMB, 1024)
 		assert.Equal(t, process.MEMUsagePercent, 80)
 		assert.Equal(t, process.CPUUsagePercent, 80)
+		assert.Equal(t, process.MEMUsagePercentEmergency, 95)
+		assert.Equal(t, process.MEMUsageMBEmergency, 2048)
 	}
 }
 
@@ -182,6 +212,11 @@ func TestConfig_FromEnv(t *testing.T) {
 	t.Setenv("FLAMESHOT_HTTP_LOCAL_PORT", "8089")
 	t.Setenv("FLAMESHOT_TAGS", "env:env,version:1.0.0")
 	t.Setenv("FLAMESHOT_AUTO_PROFILING", "30s")
+	t.Setenv("FLAMESHOT_AUTO_PROFILING_DURATION", "12s")
+	t.Setenv("FLAMESHOT_OOM_HPROF_ENABLED", "true")
+	t.Setenv("FLAMESHOT_OOM_HPROF_MATCH_WINDOW", "3m")
+	t.Setenv("FLAMESHOT_JCMD_SNAPSHOT_ENABLED", "true")
+	t.Setenv("FLAMESHOT_JCMD_TIMEOUT", "20s")
 	t.Setenv("FLAMESHOT_POD_CPU_LIMIT", "1000")
 	t.Setenv("FLAMESHOT_POD_MEM_LIMIT", "1000")
 
@@ -197,6 +232,11 @@ func TestConfig_FromEnv(t *testing.T) {
 	assert.NotEmpty(t, c.HTTPConfig.LocalHost)
 	t.Logf("config AutoProfiling %+v", c.AutoProfiling)
 	assert.Equal(t, c.AutoProfiling, "5m")
+	assert.Equal(t, c.AutoProfileDuration, "12s")
+	assert.Equal(t, c.OOMHProfEnabled, true)
+	assert.Equal(t, c.OOMHProfMatchWindow, "3m")
+	assert.Equal(t, c.JCmdSnapshotEnabled, true)
+	assert.Equal(t, c.JCmdTimeout, "20s")
 	assert.Equal(t, c.PodCPULimit, "1000m")
 	assert.Equal(t, c.PodMEMLimit, "1000Mi")
 }

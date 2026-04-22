@@ -30,6 +30,11 @@ var (
   monitor_interval = "1s"
   tags = ["globle_tag_1:xxx","other_tag:aaa"]
   auto_profiling = "10m"
+  auto_profiling_duration = "30s"
+  oom_hprof_enabled = false
+  oom_hprof_match_window = "2m"
+  jcmd_snapshot_enabled = true
+  jcmd_timeout = "10s"
 
   [[processes]]
     ## service name for profiling
@@ -40,6 +45,8 @@ var (
     events = "cpu,alloc,nativemem"
     ## -d duration for profiling, in seconds.
     duration = "30s"
+    ## duration for emergency memory trigger.
+    emergency_duration = "15s"
     language = "java"
     jdk_version = "-"
     tags = ["env:env", "version:1.0.0"]
@@ -47,8 +54,12 @@ var (
     cpu_usage_percent = 80
     ##memory usage percentage based limit, 0~100
     mem_usage_percent = 80
+    ## emergency memory usage percentage based limit, 0~100
+    mem_usage_percent_emergency = 95
     ## memory usage in MB
     mem_usage_mb = 1024
+    ## emergency memory usage in MB
+    mem_usage_mb_emergency = 2048
 
   [http]
     local_host = "localhost"
@@ -72,29 +83,37 @@ type Logging struct {
 }
 
 type Process struct {
-	Service         string   `toml:"service" json:"service"`                     // 服务名称
-	Command         string   `toml:"command" json:"command" `                    // 命令支持正则
-	Duration        string   `toml:"duration" json:"duration"`                   // 采集时长
-	Events          string   `toml:"events" json:"events"`                       // 采集的事件 用逗号隔开 支持 'all'
-	Language        string   `toml:"language" json:"language"`                   // 目标程序语言 java go
-	JDKVersion      string   `toml:"jdk_version" json:"jdk_version"`             // jdk 版本
-	Tags            []string `toml:"tags" json:"tags"`                           // 自定义标签
-	CPUUsagePercent int      `toml:"cpu_usage_percent" json:"cpu_usage_percent"` // cpu 使用率
-	MEMUsagePercent int      `toml:"mem_usage_percent" json:"mem_usage_percent"` // 内存使用率
-	MEMUsageMB      int      `toml:"mem_usage_mb" json:"mem_usage_mb"`           // 内存使用量
+	Service                  string   `toml:"service" json:"service"`                                         // 服务名称
+	Command                  string   `toml:"command" json:"command" `                                        // 命令支持正则
+	Duration                 string   `toml:"duration" json:"duration"`                                       // 采集时长
+	EmergencyDuration        string   `toml:"emergency_duration" json:"emergency_duration"`                   // 紧急触发时采集时长
+	Events                   string   `toml:"events" json:"events"`                                           // 采集的事件 用逗号隔开 支持 'all'
+	Language                 string   `toml:"language" json:"language"`                                       // 目标程序语言 java go
+	JDKVersion               string   `toml:"jdk_version" json:"jdk_version"`                                 // jdk 版本
+	Tags                     []string `toml:"tags" json:"tags"`                                               // 自定义标签
+	CPUUsagePercent          int      `toml:"cpu_usage_percent" json:"cpu_usage_percent"`                     // cpu 使用率
+	MEMUsagePercent          int      `toml:"mem_usage_percent" json:"mem_usage_percent"`                     // 内存使用率平均值阈值
+	MEMUsageMB               int      `toml:"mem_usage_mb" json:"mem_usage_mb"`                               // 内存使用量平均值阈值
+	MEMUsagePercentEmergency int      `toml:"mem_usage_percent_emergency" json:"mem_usage_percent_emergency"` // 内存使用率紧急瞬时阈值
+	MEMUsageMBEmergency      int      `toml:"mem_usage_mb_emergency" json:"mem_usage_mb_emergency"`           // 内存使用量紧急瞬时阈值
 }
 
 type Config struct {
-	DataKitAddr     string      `toml:"datakit_addr"`     // datakit 地址
-	ProfilingPath   string      `toml:"profiling_path"`   // 虚拟环境下必须保证是共享目录
-	MonitorInterval string      `toml:"monitor_interval"` // 监控间隔，单位 秒
-	Tags            []string    `toml:"tags"`             // 全局自定义标签
-	AutoProfiling   string      `toml:"auto_profiling"`   // 开关定时自动执行, 配置 0 则关闭
-	PodCPULimit     string      `toml:"pod_cpu_limit"`    // pod resource limit
-	PodMEMLimit     string      `toml:"pod_mem_limit"`    // pod resource limit
-	Processes       []*Process  `toml:"processes"`        // 监控的进程列表
-	HTTPConfig      *HTTPConfig `toml:"http"`             // http 配置
-	Log             *Logging    `toml:"logging"`          // 日志配置
+	DataKitAddr         string      `toml:"datakit_addr"`            // datakit 地址
+	ProfilingPath       string      `toml:"profiling_path"`          // 虚拟环境下必须保证是共享目录
+	MonitorInterval     string      `toml:"monitor_interval"`        // 监控间隔，单位 秒
+	Tags                []string    `toml:"tags"`                    // 全局自定义标签
+	AutoProfiling       string      `toml:"auto_profiling"`          // 开关定时自动执行, 配置 0 则关闭
+	AutoProfileDuration string      `toml:"auto_profiling_duration"` // 定时自动采集时长
+	OOMHProfEnabled     bool        `toml:"oom_hprof_enabled"`       // 开启 OOM hprof 摘要采集
+	OOMHProfMatchWindow string      `toml:"oom_hprof_match_window"`  // OOM 事件与 hprof 的时间匹配窗口
+	JCmdSnapshotEnabled bool        `toml:"jcmd_snapshot_enabled"`   // 开启高水位 jcmd 轻量快照
+	JCmdTimeout         string      `toml:"jcmd_timeout"`            // jcmd 执行超时
+	PodCPULimit         string      `toml:"pod_cpu_limit"`           // pod resource limit
+	PodMEMLimit         string      `toml:"pod_mem_limit"`           // pod resource limit
+	Processes           []*Process  `toml:"processes"`               // 监控的进程列表
+	HTTPConfig          *HTTPConfig `toml:"http"`                    // http 配置
+	Log                 *Logging    `toml:"logging"`                 // 日志配置
 }
 
 func (c *Config) fromEnv() {
@@ -151,6 +170,21 @@ func (c *Config) fromEnv() {
 			c.AutoProfiling = x
 		}
 	}
+	if x := os.Getenv("FLAMESHOT_AUTO_PROFILING_DURATION"); x != "" {
+		c.AutoProfileDuration = x
+	}
+	if x := os.Getenv("FLAMESHOT_OOM_HPROF_ENABLED"); x != "" {
+		c.OOMHProfEnabled = strings.EqualFold(x, "true") || x == "1"
+	}
+	if x := os.Getenv("FLAMESHOT_OOM_HPROF_MATCH_WINDOW"); x != "" {
+		c.OOMHProfMatchWindow = x
+	}
+	if x := os.Getenv("FLAMESHOT_JCMD_SNAPSHOT_ENABLED"); x != "" {
+		c.JCmdSnapshotEnabled = strings.EqualFold(x, "true") || x == "1"
+	}
+	if x := os.Getenv("FLAMESHOT_JCMD_TIMEOUT"); x != "" {
+		c.JCmdTimeout = x
+	}
 
 	if x := os.Getenv("FLAMESHOT_POD_CPU_LIMIT"); x != "" {
 		c.PodCPULimit = fmt.Sprintf("%sm", x)
@@ -185,6 +219,9 @@ func (c *Config) loadProcessesFromEnv() {
 		if val := getEnvString(fmt.Sprintf("FLAMESHOT_PROCESSES_%d_DURATION", i)); val != nil {
 			process.Duration = *val
 		}
+		if val := getEnvString(fmt.Sprintf("FLAMESHOT_PROCESSES_%d_EMERGENCY_DURATION", i)); val != nil {
+			process.EmergencyDuration = *val
+		}
 		if val := getEnvString(fmt.Sprintf("FLAMESHOT_PROCESSES_%d_COMMAND", i)); val != nil {
 			process.Command = *val
 		}
@@ -205,6 +242,12 @@ func (c *Config) loadProcessesFromEnv() {
 		}
 		if val := getEnvInt(fmt.Sprintf("FLAMESHOT_PROCESSES_%d_MEM_USAGE_MB", i)); val != nil {
 			process.MEMUsageMB = *val
+		}
+		if val := getEnvInt(fmt.Sprintf("FLAMESHOT_PROCESSES_%d_MEM_USAGE_PERCENT_EMERGENCY", i)); val != nil {
+			process.MEMUsagePercentEmergency = *val
+		}
+		if val := getEnvInt(fmt.Sprintf("FLAMESHOT_PROCESSES_%d_MEM_USAGE_MB_EMERGENCY", i)); val != nil {
+			process.MEMUsageMBEmergency = *val
 		}
 		if val := getEnvString(fmt.Sprintf("FLAMESHOT_PROCESSES_%d_TAGS", i)); val != nil {
 			var list []string
