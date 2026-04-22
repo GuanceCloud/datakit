@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"sync"
 	"time"
 
 	dt "github.com/GuanceCloud/cliutils/dialtesting"
@@ -24,6 +25,8 @@ import (
 )
 
 const LabelDF = "df_label"
+
+const scheduleTypeCrontab = "crontab"
 
 type dialer struct {
 	task                 dt.ITask
@@ -44,19 +47,34 @@ type dialer struct {
 	failCnt              int
 	variablePos          int64
 
-	updateCh chan dt.ITask
+	updateCh chan dt.ITask      // buffered with size 1, keeps only the latest pending update
 	done     <-chan interface{} // input exit signal
 	stopCh   chan interface{}   // dialer stop signal
 }
 
 func (d *dialer) updateTask(t dt.ITask) error {
+	// Check if the task has been stopped.
 	select {
-	case <-d.updateCh: // if closed?
+	case <-d.stopCh:
 		l.Warnf("task %s closed", d.task.ID())
 		return fmt.Errorf("task exited")
 	default:
-		d.updateCh <- t
+	}
+
+	// Keep only the latest pending update.
+	select {
+	case <-d.updateCh:
+	default:
+	}
+
+	select {
+	case <-d.stopCh:
+		l.Warnf("task %s closed", d.task.ID())
+		return fmt.Errorf("task exited")
+	case d.updateCh <- t:
 		return nil
+	default:
+		return fmt.Errorf("update channel busy")
 	}
 }
 
@@ -145,7 +163,7 @@ func newDialer(t dt.ITask, ipt *Input) *dialer {
 
 	return &dialer{
 		task:                 t,
-		updateCh:             make(chan dt.ITask),
+		updateCh:             make(chan dt.ITask, 1),
 		initTime:             time.Now(),
 		tags:                 tags,
 		dfTags:               dfTags,
@@ -168,7 +186,7 @@ func (d *dialer) isCronTask() bool {
 	if d.task == nil {
 		return false
 	}
-	return d.task.GetScheduleType() == "crontab"
+	return d.task.GetScheduleType() == scheduleTypeCrontab
 }
 
 func (d *dialer) run() error {
@@ -187,7 +205,7 @@ func (d *dialer) run() error {
 		tickerChan   <-chan time.Time
 	)
 
-	if scheduleType == "crontab" {
+	if scheduleType == scheduleTypeCrontab {
 		crontab := d.task.GetCrontab()
 		if crontab == "" {
 			return fmt.Errorf("crontab expression is required when schedule_type is crontab")
@@ -221,8 +239,6 @@ func (d *dialer) run() error {
 	defer func() {
 		taskGauge.WithLabelValues(d.regionName, d.class).Dec()
 	}()
-
-	defer close(d.updateCh)
 
 	if parts, err := url.Parse(d.task.PostURLStr()); err != nil {
 		taskInvalidCounter.WithLabelValues(d.regionName, d.class, "invalid_post_url").Inc()
@@ -407,6 +423,7 @@ func (d *dialer) checkInternalNetwork() error {
 			hostName := hostNames[0]
 			if isInternal, err := httpapi.IsInternalHost(hostName, d.ipt.DisabledInternalNetworkCIDRList); err != nil {
 				l.Errorf("dest host is not valid: %s", err.Error())
+				return fmt.Errorf("dest host is not valid: %w", err)
 			} else if isInternal {
 				return fmt.Errorf("dest host [%s] is not allowed to be tested", hostName)
 			}
@@ -448,7 +465,7 @@ func (d *dialer) doUpdateTask(t dt.ITask) error {
 
 	scheduleType := t.GetScheduleType()
 
-	if scheduleType == "crontab" {
+	if scheduleType == scheduleTypeCrontab {
 		// Update crontab schedule
 		newCrontab := t.GetCrontab()
 		if newCrontab == "" {
@@ -542,6 +559,8 @@ type cronTicker struct {
 	C       <-chan time.Time
 	stop    chan struct{}
 	channel chan time.Time
+	mu      sync.Mutex
+	stopped bool
 }
 
 // newCronTicker creates a new cron ticker.
@@ -576,12 +595,19 @@ func newCronTicker(crontab string) (*cronTicker, error) {
 
 // Stop stops the cron ticker.
 func (ct *cronTicker) Stop() {
+	ct.mu.Lock()
+	defer ct.mu.Unlock()
+
+	if ct.stopped {
+		return
+	}
+	ct.stopped = true
 	close(ct.stop)
+
 	if ct.cron != nil {
 		ct.cron.Remove(ct.entryID)
 		ct.cron.Stop()
 	}
-	close(ct.channel)
 }
 
 // Reset resets the cron ticker with new crontab expression.

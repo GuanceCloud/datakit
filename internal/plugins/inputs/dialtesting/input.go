@@ -734,7 +734,7 @@ func protectedRun(d *dialer) {
 			}
 		}
 		if crashcnt > 0 {
-			d.updateCh = make(chan dt.ITask)
+			d.updateCh = make(chan dt.ITask, 1)
 		}
 
 		if err := d.run(); err != nil {
@@ -778,7 +778,13 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 	for k, arr := range resp.Content {
 		switch k {
 		case RegionInfo:
-			for k, v := range arr.(map[string]interface{}) {
+			regionInfo, ok := arr.(map[string]interface{})
+			if !ok {
+				l.Warnf("invalid region info: expect map[string]interface{}, got %T", arr)
+				continue
+			}
+
+			for k, v := range regionInfo {
 				switch v_ := v.(type) {
 				case bool:
 					if v_ {
