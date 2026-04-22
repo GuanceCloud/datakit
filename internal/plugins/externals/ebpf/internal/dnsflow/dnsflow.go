@@ -43,6 +43,35 @@ func NewDNSFlowTracer() *DNSFlowTracer {
 type DNSFlowTracer struct {
 	statsMap map[DNSQAKey]DNSStats
 	pInfoCh  chan *DNSPacketInfo
+
+	lastTPacketStats tpacketStatsSnapshot
+}
+
+type tpacketStatsSnapshot struct {
+	packets uint64
+	drops   uint64
+	freezes uint64
+}
+
+func (s *tpacketStatsSnapshot) observe(component string, packets, drops, freezes uint64) {
+	var (
+		deltaPackets uint64
+		deltaDrops   uint64
+		deltaFreezes uint64
+	)
+	if packets >= s.packets {
+		deltaPackets = packets - s.packets
+	}
+	if drops >= s.drops {
+		deltaDrops = drops - s.drops
+	}
+	if freezes >= s.freezes {
+		deltaFreezes = freezes - s.freezes
+	}
+	exporter.AddTPacketStats(component, deltaPackets, deltaDrops, deltaFreezes)
+	s.packets = packets
+	s.drops = drops
+	s.freezes = freezes
 }
 
 func (tracer *DNSFlowTracer) updateDNSStats(packetInfo *DNSPacketInfo, dnsRecord *DNSAnswerRecord) *DNSStats {
@@ -51,15 +80,23 @@ func (tracer *DNSFlowTracer) updateDNSStats(packetInfo *DNSPacketInfo, dnsRecord
 	if !ok {
 		if !packetInfo.QR { // query
 			tracer.statsMap[packetInfo.Key] = DNSStats{
-				TS:        packetInfo.TS,
-				Timeout:   false,
-				Responded: false,
-				RCODE:     -1,
+				TS:          packetInfo.TS,
+				Timeout:     false,
+				Responded:   false,
+				RCODE:       -1,
+				QueryDomain: packetInfo.QueryDomain,
+				QueryType:   packetInfo.QueryType,
 			}
 			return &stats
 		}
 	} else {
 		if packetInfo.QR { // answer
+			if stats.QueryDomain == "" {
+				stats.QueryDomain = packetInfo.QueryDomain
+			}
+			if stats.QueryType == "" {
+				stats.QueryType = packetInfo.QueryType
+			}
 			stats.RespTime = packetInfo.TS.Sub(stats.TS)
 			stats.RCODE = int(packetInfo.RCODE)
 			stats.Timeout = false
@@ -122,12 +159,29 @@ func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket,
 ) {
 	mCh := make(chan []*point.Point, 256)
 	agg := FlowAgg{}
+	go func() {
+		ticker := time.NewTicker(time.Minute * 5)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				if _, s3, err := tp.SocketStats(); err == nil {
+					tracer.lastTPacketStats.observe("dnsflow",
+						uint64(s3.Packets()), uint64(s3.Drops()), uint64(s3.QueueFreezes()))
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 	go tracer.readPacket(ctx, tp)
 	go func() {
 		t := time.NewTicker(time.Second * 30)
 		for {
 			select {
 			case <-t.C:
+				exporter.ObserveCacheEntries("dnsflow", "pending_queries", len(tracer.statsMap))
+				exporter.ObserveCacheEntries("dnsflow", "packet_queue", len(tracer.pInfoCh))
 				stats := tracer.checkTimeoutDNSQuery()
 				for k, v := range stats {
 					err := agg.Append(k, v)
@@ -136,12 +190,17 @@ func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket,
 					}
 				}
 
+				exporter.ObserveAggEntries("dnsflow", agg.Len())
+				flushStart := time.Now()
 				pts := agg.ToPoint(gTag, k8sNetInfo)
 				agg.Clean()
+				exporter.ObserveAggEntries("dnsflow", 0)
 				select {
 				case mCh <- pts:
+					exporter.ObserveAggFlush("dnsflow", len(pts), time.Since(flushStart), "ok")
 				default:
 					l.Warn("mCh full, drop data")
+					exporter.ObserveAggFlush("dnsflow", len(pts), time.Since(flushStart), "drop_channel")
 				}
 			case pinfo := <-tracer.pInfoCh:
 				if stats := tracer.updateDNSStats(pinfo, dnsRecord); stats != nil {
@@ -160,6 +219,7 @@ func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket,
 		case <-ctx.Done():
 			return
 		case m := <-mCh:
+			exporter.ObserveCacheEntries("dnsflow", "flush_queue", len(mCh))
 			if len(m) == 0 {
 				l.Debug("dnsflow: no data")
 			} else if err := exporter.FeedPoint(inputName, point.Network, m); err != nil {

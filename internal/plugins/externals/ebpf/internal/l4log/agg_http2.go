@@ -3,11 +3,7 @@
 
 package l4log
 
-import (
-	"math"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
-)
+import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
 
 func (agg *FlowAggHTTP) AppendH2(info *PMeta, stats *HTTP2LogElem, netns string,
 	v6, macEQ bool, nicIPList []string, waitTS int64,
@@ -52,15 +48,11 @@ func (agg *FlowAggHTTP) AppendH2(info *PMeta, stats *HTTP2LogElem, netns string,
 	switch key.direction { //nolint:exhaustive
 	case DIncoming:
 		key.direction = netflow.DirectionIncoming
-		if netflow.IsEphemeralPort(key.DPort) {
-			key.DPort = math.MaxUint32
-		}
 	default:
-		key.direction = "outgoing"
-		if netflow.IsEphemeralPort(key.SPort) {
-			key.SPort = math.MaxUint32
-		}
+		key.direction = netflow.DirectionOutgoing
 	}
+
+	key.direction, key.SPort, key.DPort = netflow.NormalizeDirectionAndPorts(key.direction, key.SPort, key.DPort)
 
 	if agg.data == nil {
 		agg.data = map[aggHTTPKey]*aggHTTPValue{}

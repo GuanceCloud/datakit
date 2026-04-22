@@ -63,6 +63,11 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 		tags["dst_port"] = strconv.FormatInt(int64(key.DPort), 10)
 	}
 
+	if domain := netflow.LookupPeerDomain(key.DAddr, key.DPort, key.Transport, key.NetNS); domain != "" {
+		tags["dst_domain"] = domain
+		tags["server_domain"] = domain
+	}
+
 	for k, v := range addTags {
 		if _, ok := tags[k]; !ok {
 			tags[k] = v
@@ -148,16 +153,11 @@ func (agg *FlowAggTCP) Append(info *PMeta, stats *TCPMetrics, netns string,
 	switch dir { //nolint:exhaustive
 	case directionIncoming:
 		key.direction = netflow.DirectionIncoming
-		if netflow.IsEphemeralPort(key.DPort) {
-			key.DPort = math.MaxUint32
-		}
-
 	default:
-		key.direction = "outgoing"
-		if netflow.IsEphemeralPort(key.SPort) {
-			key.SPort = math.MaxUint32
-		}
+		key.direction = netflow.DirectionOutgoing
 	}
+
+	key.direction, key.SPort, key.DPort = netflow.NormalizeDirectionAndPorts(key.direction, key.SPort, key.DPort)
 
 	var value *aggValue
 	// agg latency and count ++

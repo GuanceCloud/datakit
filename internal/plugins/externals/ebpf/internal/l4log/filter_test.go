@@ -204,3 +204,58 @@ func TestBlacklist(t *testing.T) {
 		assert.Equal(t, c.result, v)
 	}
 }
+
+func TestBlacklistDecisionCache(t *testing.T) {
+	rt := &filterRuntime{fnG: _fnList}
+
+	rule80, err := parseFilter(`src_port == 80`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	conns := &TCPConns{
+		runtime:   rt,
+		blacklist: rule80,
+	}
+
+	key80 := &PMeta{
+		SrcIP:   "10.0.0.1",
+		DstIP:   "10.0.0.2",
+		SrcPort: 80,
+		DstPort: 8080,
+	}
+
+	if !conns.shouldDropByBlacklist(key80, false, 1) {
+		t.Fatalf("expected first rule to drop src_port 80")
+	}
+
+	rule81, err := parseFilter(`src_port == 81`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	conns.blacklist = rule81
+
+	if conns.shouldDropByBlacklist(key80, false, 2) {
+		t.Fatalf("expected blacklist cache to be invalidated after rule change")
+	}
+
+	key81 := &PMeta{
+		SrcIP:   "10.0.0.1",
+		DstIP:   "10.0.0.2",
+		SrcPort: 81,
+		DstPort: 8080,
+	}
+
+	if !conns.shouldDropByBlacklist(key81, false, 3) {
+		t.Fatalf("expected new flow key to use updated rule")
+	}
+
+	assert.Len(t, conns.blacklistCache, 2)
+	entry80, ok80 := conns.blacklistCache[blacklistCacheKey{meta: *key80}]
+	entry81, ok81 := conns.blacklistCache[blacklistCacheKey{meta: *key81}]
+	assert.True(t, ok80)
+	assert.True(t, ok81)
+	assert.False(t, entry80.drop)
+	assert.True(t, entry81.drop)
+	assert.Equal(t, int64(2), entry80.lastTS)
+}

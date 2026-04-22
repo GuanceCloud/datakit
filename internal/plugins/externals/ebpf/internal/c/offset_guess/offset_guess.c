@@ -80,14 +80,37 @@ int kprobe__sock_common_getsockopt(struct pt_regs *ctx)
     {
         return 0;
     }
+    if (status.conn_type != (CONN_L3_IPv4 | CONN_L4_TCP))
+    {
+        return 0;
+    }
 
     struct socket *skt = (struct socket *)PT_REGS_PARM1(ctx);
     __u8 *skt_sk = NULL;
     bpf_probe_read(&skt_sk, sizeof(skt_sk), (__u8 *)skt + status.offset_socket_sk);
-    bpf_probe_read(&status.sport_skt, sizeof(status.sport_skt), (__u8 *)skt_sk + status.offset_inet_sport);
+    if (skt_sk == NULL)
+    {
+        return 0;
+    }
+    bpf_probe_read(&status.sport_skt, sizeof(status.sport_skt), (__u8 *)skt_sk + status.offset_sk_num);
+    if (status.sport_skt == 0 && status.offset_inet_sport != 0)
+    {
+        bpf_probe_read(&status.sport_skt, sizeof(status.sport_skt), (__u8 *)skt_sk + status.offset_inet_sport);
+        swap_u16(&status.sport_skt);
+    }
     bpf_probe_read(&status.dport_skt, sizeof(status.dport_skt), (__u8 *)skt_sk + status.offset_sk_dport);
     swap_u16(&status.dport_skt);
-    swap_u16(&status.sport_skt);
+    bpf_probe_read(&status.family_skt, sizeof(status.family_skt), (__u8 *)skt_sk + status.offset_sk_family);
+    bpf_probe_read(status.daddr_skt + 3, sizeof(__be32), (__u8 *)skt_sk + status.offset_sk_daddr);
+    if (status.offset_sk_net != 0)
+    {
+        struct net *sknet = NULL;
+        bpf_probe_read(&sknet, sizeof(sknet), (__u8 *)skt_sk + status.offset_sk_net);
+        if (sknet != NULL && status.offset_ns_common_inum < 256)
+        {
+            bpf_probe_read(&status.netns_skt, sizeof(__u32), (__u8 *)sknet + status.offset_ns_common_inum);
+        }
+    }
 
 
     update_offset(&status);
@@ -113,6 +136,10 @@ int kprobe__tcp_getsockopt(struct pt_regs *ctx)
     }
 
     if (skipConn(status.process_name, status.pid_tgid) != 0)
+    {
+        return 0;
+    }
+    if (status.conn_type != (CONN_L3_IPv4 | CONN_L4_TCP))
     {
         return 0;
     }
@@ -221,6 +248,10 @@ int kprobe__ip_make_skb(struct pt_regs *ctx)
         return 0;
     }
     if (skipConn(status.process_name, status.pid_tgid) != 0)
+    {
+        return 0;
+    }
+    if (status.conn_type != (CONN_L3_IPv4 | CONN_L4_UDP))
     {
         return 0;
     }

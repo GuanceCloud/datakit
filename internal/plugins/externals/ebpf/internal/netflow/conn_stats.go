@@ -75,6 +75,11 @@ type ConnectionTCPStats struct {
 	Retransmits      int32
 	Rtt              uint32
 	RttVar           uint32
+	ConnectAttempts  uint32
+	ConnectFailures  uint32
+	CloseWait        uint32
+	LastAck          uint32
+	TimeWait         uint32
 }
 
 type ConncetionClosedInfo struct {
@@ -330,15 +335,31 @@ func StatsOp(op string, fullConn ConnFullStats, connStats ConnectionStats) ConnF
 func StatsTCPOp(op string, fullConn ConnFullStats, connStats ConnectionStats,
 	tcpstats ConnectionTCPStats) ConnFullStats {
 	fullConn = StatsOp(op, fullConn, connStats)
+	diffCounter := func(cur, prev uint32) uint32 {
+		if cur >= prev {
+			return cur - prev
+		}
+		return 0
+	}
 	switch op {
 	case "+":
 		fullConn.TCPStats.Retransmits += tcpstats.Retransmits
+		fullConn.TCPStats.ConnectAttempts += tcpstats.ConnectAttempts
+		fullConn.TCPStats.ConnectFailures += tcpstats.ConnectFailures
+		fullConn.TCPStats.CloseWait += tcpstats.CloseWait
+		fullConn.TCPStats.LastAck += tcpstats.LastAck
+		fullConn.TCPStats.TimeWait += tcpstats.TimeWait
 	case "-":
 		if tcpstats.Retransmits >= fullConn.TCPStats.Retransmits {
 			fullConn.TCPStats.Retransmits = tcpstats.Retransmits - fullConn.TCPStats.Retransmits
 		} else {
 			fullConn.TCPStats.Retransmits = 0
 		}
+		fullConn.TCPStats.ConnectAttempts = diffCounter(tcpstats.ConnectAttempts, fullConn.TCPStats.ConnectAttempts)
+		fullConn.TCPStats.ConnectFailures = diffCounter(tcpstats.ConnectFailures, fullConn.TCPStats.ConnectFailures)
+		fullConn.TCPStats.CloseWait = diffCounter(tcpstats.CloseWait, fullConn.TCPStats.CloseWait)
+		fullConn.TCPStats.LastAck = diffCounter(tcpstats.LastAck, fullConn.TCPStats.LastAck)
+		fullConn.TCPStats.TimeWait = diffCounter(tcpstats.TimeWait, fullConn.TCPStats.TimeWait)
 	}
 	fullConn.TCPStats.Rtt = tcpstats.Rtt
 	fullConn.TCPStats.RttVar = tcpstats.RttVar

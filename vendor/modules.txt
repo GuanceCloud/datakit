@@ -18,20 +18,6 @@ github.com/DataDog/datadog-go/statsd
 # github.com/DataDog/datadog-go/v5 v5.1.1
 ## explicit; go 1.13
 github.com/DataDog/datadog-go/v5/statsd
-# github.com/DataDog/ebpf-manager v0.2.16
-## explicit; go 1.18
-github.com/DataDog/ebpf-manager
-github.com/DataDog/ebpf-manager/tracefs
-# github.com/DataDog/gopsutil v1.2.1
-## explicit
-github.com/DataDog/gopsutil/cpu
-github.com/DataDog/gopsutil/host
-github.com/DataDog/gopsutil/internal/common
-github.com/DataDog/gopsutil/mem
-github.com/DataDog/gopsutil/net
-github.com/DataDog/gopsutil/process
-github.com/DataDog/gopsutil/process/filepath
-github.com/DataDog/gopsutil/process/so
 # github.com/DataDog/sketches-go v1.4.1
 ## explicit; go 1.15
 github.com/DataDog/sketches-go/ddsketch
@@ -186,9 +172,6 @@ github.com/ProtonMail/go-crypto/openpgp/internal/ecc
 github.com/ProtonMail/go-crypto/openpgp/internal/encoding
 github.com/ProtonMail/go-crypto/openpgp/packet
 github.com/ProtonMail/go-crypto/openpgp/s2k
-# github.com/StackExchange/wmi v1.2.1
-## explicit; go 1.13
-github.com/StackExchange/wmi
 # github.com/VictoriaMetrics/easyproto v0.1.4
 ## explicit; go 1.18
 github.com/VictoriaMetrics/easyproto
@@ -228,9 +211,6 @@ github.com/asaskevich/govalidator
 # github.com/avast/retry-go v3.0.0+incompatible
 ## explicit
 github.com/avast/retry-go
-# github.com/avast/retry-go/v4 v4.1.0
-## explicit; go 1.13
-github.com/avast/retry-go/v4
 # github.com/avvmoto/buf-readerat v0.0.0-20171115124131-a17c8cb89270
 ## explicit
 github.com/avvmoto/buf-readerat
@@ -463,7 +443,6 @@ github.com/cilium/ebpf/internal/tracefs
 github.com/cilium/ebpf/internal/unix
 github.com/cilium/ebpf/link
 github.com/cilium/ebpf/perf
-github.com/cilium/ebpf/ringbuf
 # github.com/containerd/cgroups/v3 v3.0.1
 ## explicit; go 1.17
 github.com/containerd/cgroups/v3
@@ -1602,9 +1581,6 @@ github.com/shirou/gopsutil/v3/internal/common
 github.com/shirou/gopsutil/v3/mem
 github.com/shirou/gopsutil/v3/net
 github.com/shirou/gopsutil/v3/process
-# github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4
-## explicit
-github.com/shirou/w32
 # github.com/shopspring/decimal v1.2.0
 ## explicit; go 1.13
 github.com/shopspring/decimal

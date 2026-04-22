@@ -84,15 +84,11 @@ func (agg *FlowAggHTTP) Append(info *PMeta, stats *HTTPLogElem, netns string,
 	switch key.direction { //nolint:exhaustive
 	case DIncoming:
 		key.direction = netflow.DirectionIncoming
-		if netflow.IsEphemeralPort(key.DPort) {
-			key.DPort = math.MaxUint32
-		}
 	default:
-		key.direction = "outgoing"
-		if netflow.IsEphemeralPort(key.SPort) {
-			key.SPort = math.MaxUint32
-		}
+		key.direction = netflow.DirectionOutgoing
 	}
+
+	key.direction, key.SPort, key.DPort = netflow.NormalizeDirectionAndPorts(key.direction, key.SPort, key.DPort)
 
 	if agg.data == nil {
 		agg.data = map[aggHTTPKey]*aggHTTPValue{}
@@ -159,6 +155,11 @@ func kv2pointHTTP(key *aggHTTPKey, value *aggHTTPValue, pTime time.Time,
 		tags["dst_port"] = "*"
 	} else {
 		tags["dst_port"] = cast.ToString(key.DPort)
+	}
+
+	if domain := netflow.LookupPeerDomain(key.DAddr, key.DPort, key.Transport, key.NetNS); domain != "" {
+		tags["dst_domain"] = domain
+		tags["server_domain"] = domain
 	}
 
 	for k, v := range addTags {

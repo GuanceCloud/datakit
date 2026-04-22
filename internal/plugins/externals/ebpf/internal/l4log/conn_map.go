@@ -13,13 +13,22 @@ const (
 
 	// map create duration is 20s.
 	mapCreateDuarion = time.Second * 20
+
+	connMapShrinkPercentThreshold = 60
+	connMapShrinkMinEntries       = 256
+	connMapShrinkMinDeletes       = 64
 )
 
 type connMap struct {
 	m           map[PMeta]*PValue
 	insertCount int
+	deleteCount int
 
-	tn time.Time
+	dirty    []PMeta
+	dirtySet map[PMeta]struct{}
+
+	tn           time.Time
+	lastFullScan time.Time
 }
 
 func (cm *connMap) get(key PMeta) (*PValue, bool) {
@@ -29,32 +38,16 @@ func (cm *connMap) get(key PMeta) (*PValue, bool) {
 
 func (cm *connMap) delete(key PMeta) {
 	delete(cm.m, key)
-
-	// map 的估计容量低于 60% 时，将元素转移至新的 map，
-	if float64(len(cm.m))/float64(cm.insertCount) <= 0.6 {
-		tmp := make(map[PMeta]*PValue)
-		for k, v := range cm.m {
-			tmp[k] = v
-		}
-		// copy
-		cm.m = tmp
-		cm.insertCount = len(tmp)
+	if cm.dirtySet != nil {
+		delete(cm.dirtySet, key)
 	}
+	cm.deleteCount++
+	cm.maybeShrink()
 }
 
 func (cm *connMap) insert(k PMeta, v *PValue) {
 	if cm.m == nil {
 		cm.m = make(map[PMeta]*PValue)
-	}
-
-	if float64(len(cm.m))/float64(cm.insertCount) <= 0.6 {
-		tmp := make(map[PMeta]*PValue)
-		for k, v := range cm.m {
-			tmp[k] = v
-		}
-		// copy
-		cm.m = tmp
-		cm.insertCount = len(tmp)
 	}
 
 	if _, ok := cm.m[k]; ok {
@@ -64,12 +57,64 @@ func (cm *connMap) insert(k PMeta, v *PValue) {
 		cm.m[k] = v
 		cm.insertCount++
 	}
+
+	if cm.deleteCount >= connMapShrinkMinDeletes {
+		cm.maybeShrink()
+	}
+}
+
+func (cm *connMap) markDirty(key PMeta) {
+	if cm.dirtySet == nil {
+		cm.dirtySet = make(map[PMeta]struct{})
+	}
+	if _, ok := cm.dirtySet[key]; ok {
+		return
+	}
+	cm.dirtySet[key] = struct{}{}
+	cm.dirty = append(cm.dirty, key)
+}
+
+func (cm *connMap) drainDirty() []PMeta {
+	if len(cm.dirty) == 0 {
+		return nil
+	}
+
+	keys := cm.dirty
+	cm.dirty = nil
+	cm.dirtySet = nil
+	return keys
+}
+
+func (cm *connMap) finishFullScan(ts time.Time) {
+	cm.lastFullScan = ts
+	cm.dirty = nil
+	cm.dirtySet = nil
+}
+
+func (cm *connMap) maybeShrink() {
+	if cm.insertCount < connMapShrinkMinEntries || cm.deleteCount < connMapShrinkMinDeletes {
+		return
+	}
+	if len(cm.m)*100 > cm.insertCount*connMapShrinkPercentThreshold {
+		return
+	}
+
+	tmp := make(map[PMeta]*PValue, len(cm.m))
+	for k, v := range cm.m {
+		tmp[k] = v
+	}
+
+	cm.m = tmp
+	cm.insertCount = len(tmp)
+	cm.deleteCount = 0
 }
 
 func newConnMap() *connMap {
+	now := ntp.Now()
 	return &connMap{
-		m:  make(map[PMeta]*PValue),
-		tn: ntp.Now(),
+		m:            make(map[PMeta]*PValue),
+		tn:           now,
+		lastFullScan: now,
 	}
 }
 
@@ -118,4 +163,19 @@ func (p *connsMaps) insert2LastMap(k PMeta, v *PValue) *connMap {
 
 	lastMaps.insert(k, v)
 	return lastMaps
+}
+
+func (p *connsMaps) entries() int {
+	if p == nil {
+		return 0
+	}
+
+	total := 0
+	for _, mps := range p.maps {
+		if mps == nil {
+			continue
+		}
+		total += len(mps.m)
+	}
+	return total
 }

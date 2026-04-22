@@ -88,11 +88,13 @@ func NewTPacketDNS() (*afpacket.TPacket, error) {
 }
 
 type DNSStats struct {
-	TS        time.Time
-	RCODE     int
-	RespTime  time.Duration
-	Timeout   bool
-	Responded bool
+	TS          time.Time
+	RCODE       int
+	RespTime    time.Duration
+	Timeout     bool
+	Responded   bool
+	QueryDomain string
+	QueryType   string
 }
 
 type DNSQAKey struct {
@@ -106,11 +108,13 @@ type DNSQAKey struct {
 }
 
 type DNSPacketInfo struct {
-	Key     DNSQAKey
-	QR      bool // query(false) response(true)
-	RCODE   uint8
-	TS      time.Time
-	Answers []layers.DNSResourceRecord
+	Key         DNSQAKey
+	QR          bool // query(false) response(true)
+	RCODE       uint8
+	TS          time.Time
+	QueryDomain string
+	QueryType   string
+	Answers     []layers.DNSResourceRecord
 }
 
 func ReadPacketInfoFromDNSParser(ts time.Time, dnsParser *DNSParser) (*DNSPacketInfo, error) {
@@ -145,6 +149,11 @@ func ReadPacketInfoFromDNSParser(ts time.Time, dnsParser *DNSParser) (*DNSPacket
 			pinfo.QR = dnsParser.dns.QR
 			pinfo.RCODE = uint8(dnsParser.dns.ResponseCode)
 			pinfo.Answers = dnsParser.dns.Answers
+			if len(dnsParser.dns.Questions) > 0 {
+				question := dnsParser.dns.Questions[0]
+				pinfo.QueryDomain = normalizeDNSDomain(string(question.Name))
+				pinfo.QueryType = question.Type.String()
+			}
 			haveDNSLayer = true
 		case gopacket.LayerTypeDecodeFailure, gopacket.LayerTypeFragment,
 			gopacket.LayerTypePayload, gopacket.LayerTypeZero:

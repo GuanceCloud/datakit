@@ -1,5 +1,6 @@
 #include <net/netfilter/nf_conntrack.h>
 #include "bpf_helpers.h"
+#include "offset_read.h"
 #include "offset.h"
 #include "filter.h"
 
@@ -39,9 +40,9 @@ static __always_inline void write_offset_ct(struct offset_conntrack *offset)
 static __always_inline void ct_get_netns(struct nf_conn *ct, struct offset_conntrack *offset)
 {
     struct net *sknet = NULL;
-    bpf_probe_read(&sknet, sizeof(sknet), (__u8 *)ct + offset->offset_ct_net);
-    int err = bpf_probe_read(&offset->netns, sizeof(__u32), (__u8 *)sknet + offset->offset_ns_common_inum);
-    if (err == -EFAULT || offset->offset_ns_common_inum > 200)
+    DK_READ_VALUE(sknet, ct, offset->offset_ct_net);
+    int err = DK_READ_VALUE(offset->netns, sknet, offset->offset_ct_ns_common_inum);
+    if (err == -EFAULT || offset->offset_ct_ns_common_inum > 200)
     {
         offset->err = ERR_G_NS_INUM;
     }
@@ -89,17 +90,13 @@ static __always_inline int get_nf_conntrack_tuple(struct nf_conn_tuple *conn, st
     return 0;
 }
 
-SEC("kprobe/__nf_conntrack_hash_insert")
-int kprobe___nf_conntrack_hash_insert(struct pt_regs *ctx)
+static __always_inline int handle_conntrack_insert(struct nf_conn *ct, __u64 pid_tgid)
 {
-    __u64 pid_tgid = bpf_get_current_pid_tgid();
-
     struct offset_conntrack offset = {0};
     if (read_offset_ct(&offset) != 0)
     {
         return 0;
     }
-
     if (skipConn(offset.process_name, offset.pid_tgid) != 0)
     {
         return 0;
@@ -107,7 +104,6 @@ int kprobe___nf_conntrack_hash_insert(struct pt_regs *ctx)
 
     offset.state++;
 
-    struct nf_conn *ct = (struct nf_conn *)PT_REGS_PARM1(ctx);
     if (ct == NULL)
     {
         return 0;
@@ -118,11 +114,11 @@ int kprobe___nf_conntrack_hash_insert(struct pt_regs *ctx)
 
     // origin tuple: &ct->tuplehash[0].tuple
     get_nf_conntrack_tuple(&offset.origin,
-                           (struct nf_conntrack_tuple *)((__u8 *)(ct) + offset.offset_ct_origin_tuple));
+                           DK_PTR_AT(struct nf_conntrack_tuple, ct, offset.offset_ct_origin_tuple));
 
     // reply tuple: &ct->tuplehash[1].tuple
     get_nf_conntrack_tuple(&offset.reply,
-                           (struct nf_conntrack_tuple *)((__u8 *)(ct) + offset.offset_ct_reply_tuple));
+                           DK_PTR_AT(struct nf_conntrack_tuple, ct, offset.offset_ct_reply_tuple));
 
     ct_get_netns(ct, &offset);
 #ifdef __DK_DEBUG__
@@ -144,7 +140,33 @@ int kprobe___nf_conntrack_hash_insert(struct pt_regs *ctx)
     write_offset_ct(&offset);
 
     return 0;
-};
+}
+
+SEC("kprobe/__nf_conntrack_hash_insert")
+int kprobe___nf_conntrack_hash_insert(struct pt_regs *ctx)
+{
+    return handle_conntrack_insert((struct nf_conn *)PT_REGS_PARM1(ctx), bpf_get_current_pid_tgid());
+}
+
+SEC("kprobe/nf_conntrack_hash_check_insert")
+int kprobe__nf_conntrack_hash_check_insert(struct pt_regs *ctx)
+{
+    return handle_conntrack_insert((struct nf_conn *)PT_REGS_PARM1(ctx), bpf_get_current_pid_tgid());
+}
+
+SEC("kprobe/__nf_conntrack_confirm")
+int kprobe___nf_conntrack_confirm(struct pt_regs *ctx)
+{
+    struct sk_buff *skb = (struct sk_buff *)PT_REGS_PARM1(ctx);
+    unsigned long nfct = 0;
+    if (skb == NULL)
+    {
+        return 0;
+    }
+    bpf_probe_read(&nfct, sizeof(nfct), &skb->_nfct);
+    struct nf_conn *ct = (struct nf_conn *)(nfct & NFCT_PTRMASK);
+    return handle_conntrack_insert(ct, bpf_get_current_pid_tgid());
+}
 
 char _license[] SEC("license") = "GPL";
 // this number will be interpreted by eBPF(Cilium) elf-loader

@@ -10,30 +10,34 @@ import (
 	"math"
 	"net"
 	"reflect"
-	"runtime"
+	goruntime "runtime"
 	"syscall"
 	"time"
 	"unsafe"
 
-	manager "github.com/DataDog/ebpf-manager"
 	"github.com/cilium/ebpf"
 	"github.com/google/gopacket/afpacket"
+	bpfutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/bpfutil"
 	"golang.org/x/sys/unix"
 
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/c"
 )
 
-func newOffsetTCPSeqManager(skFd int, cnt []manager.ConstantEditor) (*manager.Manager, error) {
-	m := &manager.Manager{
-		Probes: []*manager.Probe{
+func newOffsetTCPSeqRuntime(skFd int, cnt []bpfutil.ConstantPatch) (*bpfutil.Runtime, error) {
+	useLegacyConsts, _, err := bpfutil.UseLegacyConstObjects()
+	if err != nil {
+		return nil, err
+	}
+	m := &bpfutil.Runtime{
+		Probes: []*bpfutil.HookSpec{
 			{
-				ProbeIdentificationPair: manager.ProbeIdentificationPair{
+				ID: bpfutil.HookID{
 					EBPFFuncName: "socket__packet_tcp_header",
 				},
 				SocketFD: skFd,
 			},
 			{
-				ProbeIdentificationPair: manager.ProbeIdentificationPair{
+				ID: bpfutil.HookID{
 					EBPFFuncName: "kprobe__tcp_getsockopt",
 					UID:          "tcp_getsockopt_tcp_seq",
 				},
@@ -41,34 +45,38 @@ func newOffsetTCPSeqManager(skFd int, cnt []manager.ConstantEditor) (*manager.Ma
 		},
 	}
 
-	mOpts := manager.Options{
+	loadSpec := bpfutil.LoadSpec{
 		RLimit: &unix.Rlimit{
 			Cur: math.MaxUint64,
 			Max: math.MaxUint64,
 		},
-		ConstantEditors: cnt,
+		Constants:       cnt,
+		LegacyConstants: useLegacyConsts,
 	}
 
-	buf, err := dkebpf.OffsetTCPSeqBin()
+	bufLoader := dkebpf.OffsetTCPSeqBin
+	binName := "offset_tcp_seq.o"
+	if useLegacyConsts {
+		bufLoader = dkebpf.OffsetTCPSeqLegacyBin
+		binName = "offset_tcp_seq_legacy.o"
+	}
+
+	buf, err := bufLoader()
 	if err != nil {
-		return nil, fmt.Errorf("load bpf prog: %w", err)
+		return nil, fmt.Errorf("load %s: %w", binName, err)
 	}
 
-	if err := m.InitWithOptions(bytes.NewReader(buf), mOpts); err != nil {
+	if err := m.LoadFromReader(bytes.NewReader(buf), loadSpec); err != nil {
 		return nil, fmt.Errorf("init offset tcp seq guess: %w", err)
 	}
 
 	return m, nil
 }
 
-func bpfMapGuessTCPSeqInit(m *manager.Manager) (*ebpf.Map, error) {
-	bpfmapTCPSeq, found, err := m.GetMap("bpfmap_offset_tcp_seq")
+func bpfMapGuessTCPSeqInit(runtime *bpfutil.Runtime) (*ebpf.Map, error) {
+	bpfmapTCPSeq, err := runtime.LookupMap("bpfmap_offset_tcp_seq")
 	if err != nil {
-		return nil, err
-	}
-
-	if !found {
-		return nil, fmt.Errorf("bpf map bpfmap_offset_tcp_seq not found")
+		return nil, fmt.Errorf("lookup bpf map bpfmap_offset_tcp_seq: %w", err)
 	}
 	zero := uint64(0)
 	status := newGuessTCPSeq()
@@ -106,7 +114,7 @@ func readSeqOffset(m *ebpf.Map) (*OffsetTCPSeqC, error) {
 	}
 }
 
-func GuessOffsetTCPSeq(netflowOffset []manager.ConstantEditor) ([]manager.ConstantEditor, *OffsetTCPSeqC, error) {
+func GuessOffsetTCPSeq(netflowOffset []bpfutil.ConstantPatch) ([]bpfutil.ConstantPatch, *OffsetTCPSeqC, error) {
 	seqEditor, seqOffset, err := TryGetTCPSeqOffsetFromBTF()
 	if err == nil && seqEditor != nil {
 		l.Info("TCP seq offset obtained from BTF successfully")
@@ -125,16 +133,16 @@ func GuessOffsetTCPSeq(netflowOffset []manager.ConstantEditor) ([]manager.Consta
 	// The underlying socket file descriptor is private, hence the use of reflection
 	skFd := int(reflect.ValueOf(rawSocket).Elem().FieldByName("fd").Int())
 
-	m, err := newOffsetTCPSeqManager(skFd, netflowOffset)
+	rt, err := newOffsetTCPSeqRuntime(skFd, netflowOffset)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if err := m.Start(); err != nil {
+	if err := rt.StartRuntime(); err != nil {
 		return nil, nil, err
 	}
 
-	defer m.Stop(manager.CleanAll) //nolint:errcheck
+	defer rt.Shutdown() //nolint:errcheck
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -146,19 +154,15 @@ func GuessOffsetTCPSeq(netflowOffset []manager.ConstantEditor) ([]manager.Consta
 
 	serverAddr := fmt.Sprintf("%s:%d", listenIPv4, tcp4ServerPort)
 
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
+	goruntime.LockOSThread()
+	defer goruntime.UnlockOSThread()
 
-	bpfmapTCPSeq, found, err := m.GetMap("bpfmap_offset_tcp_seq")
+	bpfmapTCPSeq, err := rt.LookupMap("bpfmap_offset_tcp_seq")
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("lookup bpf map bpfmap_offset_tcp_seq: %w", err)
 	}
 
-	if !found {
-		return nil, nil, fmt.Errorf("bpf map bpfmap_offset_tcp_seq not found")
-	}
-
-	_, err = bpfMapGuessTCPSeqInit(m)
+	_, err = bpfMapGuessTCPSeqInit(rt)
 	if err != nil {
 		return nil, nil, err
 	}

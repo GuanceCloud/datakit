@@ -7,10 +7,34 @@ import (
 	"fmt"
 	"net"
 	"testing"
+	"time"
 	"unsafe"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestClosedEventHandlerDropsShortRecord(t *testing.T) {
+	tracer := NewNetFlowTracer(nil)
+
+	done := make(chan struct{})
+	go func() {
+		tracer.ClosedEventHandler(0, nil, nil, nil)
+		tracer.ClosedEventHandler(0, make([]byte, closedEventSize-1), nil, nil)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("ClosedEventHandler blocked on short record")
+	}
+
+	select {
+	case <-tracer.closedEventCh:
+		t.Fatal("unexpected closed event queued for short record")
+	default:
+	}
+}
 
 type caseConnT struct {
 	connStats ConnFullStats

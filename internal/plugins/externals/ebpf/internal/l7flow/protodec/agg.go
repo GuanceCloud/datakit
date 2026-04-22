@@ -33,6 +33,7 @@ type aggKey struct {
 	httpVersion string
 	method      string
 	path        string
+	dstDomain   string
 	statusCode  int
 
 	family    string
@@ -126,17 +127,7 @@ func (agg *HTTPAggP) Obs(conn *comm.ConnectionInfo, data *ProtoData) {
 
 	key.SPort = conn.Sport
 	key.DPort = conn.Dport
-
-	switch key.direction {
-	case DirectionOutgoing:
-		if netflow.IsEphemeralPort(key.SPort) {
-			key.SPort = math.MaxUint32
-		}
-	case DirectionIncoming:
-		if netflow.IsEphemeralPort(key.DPort) {
-			key.DPort = math.MaxUint32
-		}
-	}
+	key.direction, key.SPort, key.DPort = netflow.NormalizeDirectionAndPorts(key.direction, key.SPort, key.DPort)
 
 	// transport
 	if netflow.ConnProtocolIsTCP(conn.Meta) {
@@ -147,10 +138,15 @@ func (agg *HTTPAggP) Obs(conn *comm.ConnectionInfo, data *ProtoData) {
 	// path, method, status_code, http_version
 	key.path = data.KVs.Get(comm.FieldHTTPRoute).GetS()
 	key.method = data.KVs.Get(comm.FieldHTTPMethod).GetS()
+	key.dstDomain = data.KVs.Get(comm.FieldHTTPHost).GetS()
 	key.statusCode, _ = strconv.Atoi(data.KVs.Get(comm.FieldHTTPStatusCode).GetS())
 	key.httpVersion = data.KVs.Get(comm.FieldHTTPVersion).GetS()
 	rcv := data.KVs.Get(comm.FieldBytesRead).GetI()
 	snd := data.KVs.Get(comm.FieldBytesWritten).GetI()
+
+	if key.dstDomain != "" && data.Direction == comm.DOut {
+		netflow.RecordPeerDomain(key.DAddr, key.DPort, key.Transport, key.NetNS, key.dstDomain)
+	}
 
 	// agg latency and count ++
 	if v, ok := agg.data[key]; ok {
@@ -162,8 +158,8 @@ func (agg *HTTPAggP) Obs(conn *comm.ConnectionInfo, data *ProtoData) {
 		agg.data[key] = &aggValue{
 			count:     1,
 			latency:   data.Cost,
-			recvBytes: snd,
-			sendBytes: rcv,
+			recvBytes: rcv,
+			sendBytes: snd,
 		}
 	}
 }
@@ -221,6 +217,9 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 	if key.DNATAddr != "" && key.DNATPort != 0 {
 		tags["dst_nat_ip"] = key.DNATAddr
 		tags["dst_nat_port"] = strconv.FormatInt(int64(key.DNATPort), 10)
+		log.Debugf("httpflow NAT point: dst=%s:%d nat=%s:%d transport=%s netns=%s process=%s",
+			key.DAddr, key.DPort, key.DNATAddr, key.DNATPort,
+			key.Transport, key.NetNS, key.processName)
 	} else {
 		tags["dst_nat_ip"] = NoValue
 		tags["dst_nat_port"] = NoValue
@@ -238,6 +237,12 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 		tags["dst_port"] = "*"
 	} else {
 		tags["dst_port"] = cast.ToString(key.DPort)
+	}
+
+	if key.dstDomain != "" {
+		tags["dst_domain"] = key.dstDomain
+	} else if domain := netflow.LookupPeerDomain(key.DAddr, key.DPort, key.Transport, key.NetNS); domain != "" {
+		tags["dst_domain"] = domain
 	}
 
 	for k, v := range addTags {

@@ -4,10 +4,12 @@
 package dnsflow
 
 import (
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/google/gopacket/layers"
+	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
 )
 
 type DNSAnswerRecord struct {
@@ -41,25 +43,34 @@ func (c *DNSAnswerRecord) addRecord(packetInfo *DNSPacketInfo) {
 			if answer.IP == nil || answer.Name == nil {
 				continue
 			}
+			domain := normalizeDNSDomain(string(answer.Name))
 			if cnameDomain != "" {
+				domain = cnameDomain
 				c.record[answer.IP.String()] = [2]interface{}{
 					cnameDomain,
 					packetInfo.TS,
 				}
 			} else {
 				c.record[answer.IP.String()] = [2]interface{}{
-					string(answer.Name),
+					domain,
 					packetInfo.TS,
 				}
 			}
+			dknetflow.RecordAddrDomain(answer.IP.String(), domain)
 
 		case layers.DNSTypeCNAME:
 			if cnameDomain == "" {
-				cnameDomain = string(answer.Name)
+				cnameDomain = normalizeDNSDomain(string(answer.Name))
 			}
 		default:
 		}
 	}
+}
+
+func normalizeDNSDomain(domain string) string {
+	domain = strings.TrimSpace(strings.ToLower(domain))
+	domain = strings.TrimSuffix(domain, ".")
+	return domain
 }
 
 func (c *DNSAnswerRecord) Cleanup() {

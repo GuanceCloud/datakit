@@ -14,3 +14,7 @@ func GetRegistry() *prometheus.Registry {
 func MustRegister(c prometheus.Collector) {
 	registry.MustRegister(c)
 }
+
+func MustRegisterAll(cs ...prometheus.Collector) {
+	registry.MustRegister(cs...)
+}
