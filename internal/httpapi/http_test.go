@@ -572,6 +572,36 @@ func TestInitListener(t *T.T) {
 	}
 }
 
+func TestCheckHTTPSrvAddr(t *T.T) {
+	t.Run("available tcp address", func(t *T.T) {
+		require.NoError(t, CheckHTTPSrvAddr("127.0.0.1:0"))
+	})
+
+	t.Run("invalid tcp address", func(t *T.T) {
+		require.Error(t, CheckHTTPSrvAddr("localhost"))
+	})
+
+	t.Run("occupied tcp address", func(t *T.T) {
+		listener, err := net.Listen("tcp", "127.0.0.1:0")
+		require.NoError(t, err)
+		defer listener.Close() //nolint:errcheck
+
+		require.Error(t, CheckHTTPSrvAddr(listener.Addr().String()))
+	})
+
+	t.Run("unix socket address", func(t *T.T) {
+		dir, err := os.MkdirTemp("/tmp", "dk-httpapi-")
+		require.NoError(t, err)
+		t.Cleanup(func() {
+			os.RemoveAll(dir) //nolint:errcheck
+		})
+
+		uds := filepath.Join(dir, "datakit.sock")
+
+		require.NoError(t, CheckHTTPSrvAddr(uds))
+	})
+}
+
 func TestHTTPListers(t *T.T) {
 	t.Run("domain-socket", func(t *T.T) {
 		// To avoid 104-byte-len-of-unix-domain-socket, see:

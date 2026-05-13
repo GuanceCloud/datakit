@@ -79,6 +79,11 @@ func (c *Core) Initialize(releaseVersion, inputsReleaseType, lite, eLinker strin
 	datakit.SetLog()
 	service.SetLog()
 
+	if err := c.precheck(); err != nil {
+		log.Errorf("precheck failed: %v", err)
+		return err
+	}
+
 	if datakit.Docker {
 		// This may throw `Unix syslog delivery error` within docker, so we just
 		// start the entry under docker.
@@ -118,6 +123,13 @@ func (c *Core) applyFlags() {
 	if *cmds.FlagRunInContainer {
 		datakit.Docker = true
 	}
+}
+
+func (c *Core) precheck() error {
+	if err := httpapi.CheckHTTPSrvAddr(c.cfg.HTTPAPI.Listen); err != nil {
+		return fmt.Errorf("check HTTP server addr: %w", err)
+	}
+	return nil
 }
 
 // serviceEntry is the entry point for service mode.
