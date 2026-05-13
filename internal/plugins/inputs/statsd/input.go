@@ -85,6 +85,12 @@ type Input struct {
 	// https://docs.datadoghq.com/developers/metrics/types/?tab=distribution#definition
 	DataDogDistributions bool `toml:"datadog_distributions"`
 
+	// Collects DogStatsD events as logging points when DataDogExtensions is enabled.
+	CollectDogStatsDEvents bool `toml:"collect_dogstatsd_events"`
+
+	// Collects DogStatsD service checks as logging points when DataDogExtensions is enabled.
+	CollectDogStatsDServiceChecks bool `toml:"collect_dogstatsd_service_checks"`
+
 	// UDPPacketSize is deprecated, it's only here for legacy support
 	// we now always create 1 max size buffer and then copy only what we need
 	// into the in channel
@@ -170,6 +176,8 @@ func (ipt *Input) setup() error {
 		istatsd.WithMetricSeparator(ipt.MetricSeparator),
 		istatsd.WithDataDogExtensions(ipt.DataDogExtensions),
 		istatsd.WithDataDogDistributions(ipt.DataDogDistributions),
+		istatsd.WithDataDogEvents(ipt.CollectDogStatsDEvents),
+		istatsd.WithDataDogServiceChecks(ipt.CollectDogStatsDServiceChecks),
 		istatsd.WithUDPPacketSize(ipt.UDPPacketSize),
 		istatsd.WithReadBufferSize(ipt.ReadBufferSize),
 		istatsd.WithDropTags(ipt.DropTags),
