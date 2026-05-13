@@ -6,238 +6,44 @@
 package opentelemetry
 
 import (
-	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 
+	"github.com/GuanceCloud/cliutils/otlp"
 	"github.com/GuanceCloud/cliutils/point"
-	common "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
 	metrics "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/metrics/v1"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 )
 
 func (ipt *Input) parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics, remoteIP string) {
 	start := time.Now()
-	var pts []*point.Point
-	for _, resmc := range resmcs {
-		if resmc.GetResource() == nil {
-			return
-		}
+	stringOpts := otlp.DefaultMetricStringMapOptions()
+	pts := otlp.ParseResourceMetricsV2(resmcs, otlp.MetricsParserOptions{
+		CollectorSourceIP:     remoteIP,
+		ResourceStringOptions: stringOpts,
+		ScopeStringOptions:    stringOpts,
+		PointStringOptions:    stringOpts,
+	})
 
-		resourceTags := attributesToTag(resmc.Resource.GetAttributes())
-		resourceTags[itrace.TagCollectorSourceIP] = remoteIP // add collector_source_ip to every point.
-
-		for _, scopeMetrics := range resmc.GetScopeMetrics() {
-			var scopeTags map[string]string
-			if scopeStats := scopeMetrics.GetScope(); scopeStats != nil {
-				scopeTags = attributesToTag(scopeMetrics.GetScope().GetAttributes())
-				scopeTags["scope_name"] = scopeMetrics.GetScope().GetName()
-			}
-
-			for _, metric := range scopeMetrics.GetMetrics() {
-				name := metric.GetName()
-				unit := metric.GetUnit()
-				desc := metric.GetDescription()
-				// set to all Field:unit,description
-				kvsOpts := []point.KVOption{point.WithKVDesc(desc), point.WithKVUnit(unit)}
-
-				switch t := metric.Data.(type) {
-				case *metrics.Metric_Gauge:
-					for _, dataPoint := range t.Gauge.GetDataPoints() {
-						ptTags := attributesToTag(dataPoint.GetAttributes())
-						kvs := mergeTags(resourceTags, scopeTags, ptTags)
-						kvs = kvs.AddTag(unitTag, metric.GetUnit())
-						pt := numberDataToPoint(kvs, dataPoint, name, kvsOpts)
-						pts = append(pts, pt)
-					}
-				case *metrics.Metric_Sum:
-					temporality := t.Sum.GetAggregationTemporality()
-					for _, dataPoint := range t.Sum.GetDataPoints() {
-						ptTags := attributesToTag(dataPoint.GetAttributes())
-						kvs := mergeTags(resourceTags, scopeTags, ptTags)
-						kvs = kvs.AddTag(unitTag, metric.GetUnit())
-						pt := numberDataToPoint(kvs, dataPoint, name, kvsOpts)
-						switch temporality {
-						case metrics.AggregationTemporality_AGGREGATION_TEMPORALITY_DELTA:
-							pt.SetTag("__temporality", "delta")
-						case metrics.AggregationTemporality_AGGREGATION_TEMPORALITY_CUMULATIVE:
-							pt.SetTag("__temporality", "cumulative")
-						case metrics.AggregationTemporality_AGGREGATION_TEMPORALITY_UNSPECIFIED:
-							pt.SetTag("__temporality", "unspecified")
-						}
-
-						pts = append(pts, pt)
-					}
-				case *metrics.Metric_Summary:
-					for _, dataPoint := range t.Summary.GetDataPoints() {
-						ptTags := attributesToTag(dataPoint.GetAttributes())
-						kvs := mergeTags(resourceTags, scopeTags, ptTags)
-						kvs = kvs.AddTag(unitTag, metric.GetUnit())
-						pt := summaryToPoint(kvs, dataPoint, name, kvsOpts)
-						pts = append(pts, pt)
-					}
-				case *metrics.Metric_Histogram:
-					for _, his := range t.Histogram.GetDataPoints() {
-						hisTags := attributesToTag(his.GetAttributes())
-						kvs := mergeTags(resourceTags, scopeTags, hisTags)
-						kvs = kvs.Add(name+minSuffix, his.GetMin(), kvsOpts...).
-							Add(name+maxSuffix, his.GetMax(), kvsOpts...).
-							Add(name+countSuffix, his.GetCount(), kvsOpts...).
-							Add(name+sumSuffix, his.GetSum(), kvsOpts...).
-							AddTag(unitTag, metric.GetUnit())
-
-						ts := time.Unix(0, int64(his.GetTimeUnixNano()))
-						opts := point.DefaultMetricOptions()
-						opts = append(opts, point.WithTime(ts))
-						pts = append(pts, point.NewPoint(metricName, kvs, opts...))
-
-						// bucket
-						if len(his.GetBucketCounts()) > 1 && len(his.GetExplicitBounds()) > 0 {
-							bucketSum := uint64(0)
-							for i, bucket := range his.BucketCounts {
-								bucketSum += bucket
-
-								if len(his.GetExplicitBounds()) > i {
-									bKvs := mergeTags(resourceTags, scopeTags, hisTags)
-									bKvs = bKvs.Add(name+bucketSuffix, bucketSum, kvsOpts...).
-										AddTag(leTag, strconv.FormatFloat(his.ExplicitBounds[i], 'f', -1, 64)).
-										AddTag(unitTag, metric.GetUnit())
-									pts = append(pts, point.NewPoint(metricName, bKvs, opts...))
-								} else {
-									bKvs := mergeTags(resourceTags, scopeTags, hisTags)
-									bKvs = bKvs.Add(name+bucketSuffix, bucketSum, kvsOpts...).
-										AddTag(leTag, infSuffix).
-										AddTag(unitTag, metric.GetUnit())
-									pts = append(pts, point.NewPoint(metricName, bKvs, opts...))
-								}
-							}
-						}
-					}
-
-				case *metrics.Metric_ExponentialHistogram:
-					for _, his := range t.ExponentialHistogram.GetDataPoints() {
-						hisTags := attributesToTag(his.GetAttributes())
-						kvs := mergeTags(resourceTags, scopeTags, hisTags)
-
-						kvs = kvs.Add(name+minSuffix, his.GetMin(), kvsOpts...).
-							Add(name+maxSuffix, his.GetMax(), kvsOpts...).
-							Add(name+countSuffix, his.GetCount(), kvsOpts...).
-							Add(name+sumSuffix, his.GetSum(), kvsOpts...).
-							AddTag(unitTag, metric.GetUnit())
-						if his.GetCount() > 0 {
-							kvs = kvs.Add(
-								name+avgSuffix,
-								fmt.Sprintf("%.3f", his.GetSum()/float64(his.GetCount())),
-								kvsOpts...)
-						}
-						ts := time.Unix(0, int64(his.GetTimeUnixNano()))
-						opts := point.DefaultMetricOptions()
-						opts = append(opts, point.WithTime(ts))
-						pts = append(pts, point.NewPoint(metricName, kvs, opts...))
-					}
-				}
-
-				if len(pts) >= 1000 {
-					if err := ipt.feeder.Feed(point.Metric, pts,
-						dkio.WithSource(inputName),
-						dkio.DisableGlobalTags(ipt.TracingMetricDisableGlobalHostTags),
-						dkio.WithCollectCost(time.Since(start)),
-					); err != nil {
-						log.Errorf("feed err=%v", err)
-					}
-					pts = make([]*point.Point, 0, cap(pts))
-				}
-			}
-		}
+	for _, pt := range pts {
+		pt.AddTag(itrace.TagCollectorSourceIP, remoteIP)
 	}
 
-	if len(pts) > 0 {
-		_ = ipt.feeder.Feed(point.Metric, pts,
+	for len(pts) > 0 {
+		batch := pts
+		if len(batch) > 1000 {
+			batch = pts[:1000]
+		}
+
+		if err := ipt.feeder.Feed(point.Metric, batch,
 			dkio.WithSource(inputName),
 			dkio.DisableGlobalTags(ipt.TracingMetricDisableGlobalHostTags),
-			dkio.WithCollectCost(time.Since(start)))
-	}
-}
-
-func attributesToTag(src []*common.KeyValue) map[string]string {
-	shadowTags := make(map[string]string)
-	for _, keyVal := range src {
-		key := keyVal.GetKey()
-		switch keyVal.GetValue().Value.(type) {
-		case *common.AnyValue_BytesValue, *common.AnyValue_StringValue:
-			if s := keyVal.Value.GetStringValue(); len(s) > maxLogMetricFiledLen {
-				shadowTags[key] = s[:maxLogMetricFiledLen]
-			} else {
-				shadowTags[key] = s
-			}
-		case *common.AnyValue_DoubleValue:
-			shadowTags[key] = fmt.Sprintf("%.3f", keyVal.Value.GetDoubleValue())
-		case *common.AnyValue_IntValue:
-			shadowTags[key] = fmt.Sprintf("%d", keyVal.Value.GetIntValue())
-		case *common.AnyValue_BoolValue:
-			shadowTags[key] = strconv.FormatBool(keyVal.Value.GetBoolValue())
-		case *common.AnyValue_KvlistValue:
-			shadowTags[key] = keyVal.Value.GetKvlistValue().String()
-		case *common.AnyValue_ArrayValue:
-			shadowTags[key] = keyVal.Value.GetArrayValue().String()
+			dkio.WithCollectCost(time.Since(start)),
+		); err != nil {
+			log.Errorf("feed err=%v", err)
 		}
+
+		pts = pts[len(batch):]
 	}
-	for _, s := range delMetricKey {
-		delete(shadowTags, s)
-	}
-
-	return shadowTags
-}
-
-func mergeTags(resource, scope, pt map[string]string) point.KVs {
-	var kv point.KVs
-	for _, m := range []map[string]string{resource, scope, pt} {
-		for k, v := range m {
-			k = strings.ReplaceAll(k, ".", "_")
-			kv = kv.AddTag(k, v)
-		}
-	}
-	return kv
-}
-
-func mergeTagsToField(resource, scope, pt map[string]string) point.KVs {
-	var kv point.KVs
-	for _, m := range []map[string]string{resource, scope, pt} {
-		for k, v := range m {
-			k = strings.ReplaceAll(k, ".", "_")
-			kv = kv.Add(k, v)
-		}
-	}
-	return kv
-}
-
-func numberDataToPoint(kvs point.KVs, pt *metrics.NumberDataPoint,
-	name string, kvOpts []point.KVOption,
-) *point.Point {
-	if v, ok := pt.Value.(*metrics.NumberDataPoint_AsDouble); ok {
-		kvs = kvs.Add(name, v.AsDouble, kvOpts...)
-	} else if v, ok := pt.Value.(*metrics.NumberDataPoint_AsInt); ok {
-		kvs = kvs.Add(name, v.AsInt, kvOpts...)
-	}
-
-	ts := time.Unix(0, int64(pt.GetTimeUnixNano()))
-	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(ts))
-
-	return point.NewPoint(metricName, kvs, opts...)
-}
-
-func summaryToPoint(kvs point.KVs, summary *metrics.SummaryDataPoint,
-	name string, kvOpts []point.KVOption,
-) *point.Point {
-	kvs = kvs.Add(name+countSuffix, summary.GetCount(), kvOpts...).
-		Add(name+sumSuffix, summary.GetSum(), kvOpts...)
-	ts := time.Unix(0, int64(summary.GetTimeUnixNano()))
-	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(ts))
-
-	return point.NewPoint(metricName, kvs, opts...)
 }
