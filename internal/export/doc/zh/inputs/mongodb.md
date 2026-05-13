@@ -1,6 +1,6 @@
 ---
 title     : 'MongoDB'
-summary   : '采集 MongoDB 的指标数据'
+summary   : '采集 MongoDB 的指标、对象和日志数据'
 tags:
   - '数据库'
 __int_icon      : 'icon/mongodb'
@@ -207,11 +207,11 @@ mongo --tls --host <mongod_url> --tlsCAFile </etc/ssl/mongo.cert.pem> --tlsCerti
 {{ end }}
 {{ end }}
 
-## 自定义对象 {#object}
+## 对象 {#object}
 
 {{ range $i, $m := .Measurements }}
 
-{{if eq $m.Type "custom_object"}}
+{{if eq $m.Type "object"}}
 
 ### `{{$m.Name}}`
 
@@ -221,6 +221,29 @@ mongo --tls --host <mongod_url> --tlsCAFile </etc/ssl/mongo.cert.pem> --tlsCerti
 {{end}}
 
 {{ end }}
+
+### `message` 指标字段结构 {#message-struct}
+
+`message` 字段存放 MongoDB 启动/配置相关设置，数据来自 `getCmdLineOpts` admin 命令返回结果中的 `parsed` 部分。该字段不会包含命令行 `argv`、连接数或数据库统计信息。实际包含的 key 取决于 MongoDB 启动参数和配置文件。基本结构如下：
+
+```json
+{
+  "setting": {
+    "net": {
+      "port": 27017,
+      "bindIp": "127.0.0.1"
+    },
+    "storage": {
+      "dbPath": "/var/lib/mongodb",
+      "engine": "wiredTiger"
+    },
+    "systemLog": {
+      "destination": "file",
+      "path": "/var/log/mongodb/mongod.log"
+    }
+  }
+}
+```
 
 ## 日志采集 {#logging}
 
