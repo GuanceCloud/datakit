@@ -5,12 +5,6 @@
 
 package opentelemetry
 
-import (
-	common "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
-
-	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
-)
-
 // Attributes binding to resource.
 const (
 	otelResourceServiceKey = "service.name"
@@ -33,26 +27,10 @@ const (
 
 // Histogram 和 Summary 有一些固定的后缀和标签。
 const (
-	metricName   = "otel_service"
-	unitTag      = "unit"
-	bucketSuffix = "_bucket"
-	// boundsSuffix    = "_bounds".
-	sumSuffix   = "_sum"
-	countSuffix = "_count"
-	avgSuffix   = "_avg"
-	minSuffix   = "_min"
-	maxSuffix   = "_max"
-	leTag       = "le"
-	infSuffix   = "+Inf" // 固定且大小写敏感
+	metricName = "otel_service"
 )
 
 var (
-	otelExceptionAliasMap = map[string]string{
-		ExceptionTypeKey:       itrace.FieldErrType,
-		ExceptionMessageKey:    itrace.FieldErrMessage,
-		ExceptionStacktraceKey: itrace.FieldErrStack,
-	}
-
 	maxLogMetricFiledLen = 1024 * 32
 
 	spanKinds = map[int32]string{
@@ -142,22 +120,3 @@ var (
 		"telemetry.sdk.version",
 	}
 )
-
-func (ipt *Input) getServiceNameBySystem(attrs []*common.KeyValue) string {
-	for idx, attr := range attrs {
-		key := attr.GetKey()
-
-		switch key {
-		case "db.system", "rpc.system", "messaging.system":
-			if system := attr.GetValue().GetStringValue(); system != "" {
-				if ipt.CleanMessage {
-					attrs[idx] = nil
-				}
-				return system
-			}
-		default: // pass
-		}
-	}
-
-	return ""
-}

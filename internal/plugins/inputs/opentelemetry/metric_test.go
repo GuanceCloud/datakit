@@ -13,6 +13,9 @@ import (
 	v1 "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
 	metrics "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/metrics/v1"
 	resource "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/resource/v1"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	dkMetrics "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 )
@@ -156,6 +159,82 @@ func (f *feeder) Feed(category point.Category, pts []*point.Point, opts ...dkio.
 
 func (f *feeder) FeedLastError(err string, opts ...dkMetrics.LastErrorOption) {
 	f.t.Logf("not implement")
+}
+
+type captureFeeder struct {
+	category point.Category
+	pts      []*point.Point
+}
+
+func (f *captureFeeder) Feed(category point.Category, pts []*point.Point, opts ...dkio.FeedOption) error {
+	f.category = category
+	f.pts = append(f.pts, pts...)
+	return nil
+}
+
+func (f *captureFeeder) FeedLastError(err string, opts ...dkMetrics.LastErrorOption) {}
+
+func Test_parseResourceMetricsV2CoreFields(t *T.T) {
+	msource := []*metrics.ResourceMetrics{
+		{
+			Resource: &resource.Resource{
+				Attributes: []*v1.KeyValue{
+					{
+						Key: "service.name",
+						Value: &v1.AnyValue{
+							Value: &v1.AnyValue_StringValue{StringValue: "checkout"},
+						},
+					},
+				},
+			},
+			ScopeMetrics: []*metrics.ScopeMetrics{
+				{
+					Scope: &v1.InstrumentationScope{Name: "runtime"},
+					Metrics: []*metrics.Metric{
+						{
+							Name:        "runtime.jvm.memory",
+							Description: "runtime memory",
+							Unit:        "By",
+							Data: &metrics.Metric_Gauge{
+								Gauge: &metrics.Gauge{
+									DataPoints: []*metrics.NumberDataPoint{
+										{
+											Attributes: []*v1.KeyValue{
+												{
+													Key: "pool",
+													Value: &v1.AnyValue{
+														Value: &v1.AnyValue_StringValue{StringValue: "heap"},
+													},
+												},
+											},
+											TimeUnixNano: uint64(123),
+											Value:        &metrics.NumberDataPoint_AsDouble{AsDouble: 12.5},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ipt := defaultInput()
+	feeder := &captureFeeder{}
+	ipt.feeder = feeder
+	ipt.parseResourceMetricsV2(msource, "10.0.0.1")
+
+	require.Len(t, feeder.pts, 1)
+	pt := feeder.pts[0]
+	assert.Equal(t, point.Metric, feeder.category)
+	assert.Equal(t, "otel_service", pt.Name())
+	assert.Equal(t, 12.5, pt.Get("runtime.jvm.memory"))
+	assert.Equal(t, "checkout", pt.Get("service_name"))
+	assert.Equal(t, "runtime", pt.Get("scope_name"))
+	assert.Equal(t, "heap", pt.Get("pool"))
+	assert.Equal(t, "By", pt.Get("unit"))
+	assert.Equal(t, "10.0.0.1", pt.Get("collector_source_ip"))
 }
 
 type expBucket struct {

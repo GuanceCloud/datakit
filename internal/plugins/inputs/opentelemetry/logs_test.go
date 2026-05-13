@@ -45,6 +45,18 @@ func TestParseLogsRequest(t *testing.T) {
 									Value: &v11.AnyValue_StringValue{StringValue: "v1.0.1"},
 								},
 							},
+							{
+								Key: "host.name",
+								Value: &v11.AnyValue{
+									Value: &v11.AnyValue_StringValue{StringValue: "node-1"},
+								},
+							},
+							{
+								Key: "log.source",
+								Value: &v11.AnyValue{
+									Value: &v11.AnyValue_StringValue{StringValue: "app-log"},
+								},
+							},
 						},
 						DroppedAttributesCount: 0,
 					},
@@ -97,6 +109,8 @@ func TestParseLogsRequest(t *testing.T) {
 				assert.Equal(t, pt.Get("trace_id"), "818616084f850520843d19e3936e4720")
 				assert.Equal(t, pt.Get("span_id"), "843d19e3936e4720")
 				assert.Equal(t, pt.Get("status"), "info")
+				assert.Equal(t, "node-1", pt.Get("host"))
+				assert.Equal(t, "app-log", pt.Name())
 			}
 		})
 	}

@@ -38,6 +38,7 @@ github.com/GuanceCloud/cliutils/logger
 github.com/GuanceCloud/cliutils/metrics
 github.com/GuanceCloud/cliutils/network/http
 github.com/GuanceCloud/cliutils/network/ws
+github.com/GuanceCloud/cliutils/otlp
 github.com/GuanceCloud/cliutils/pkg/hash
 github.com/GuanceCloud/cliutils/point
 github.com/GuanceCloud/cliutils/pprofparser/cfg
