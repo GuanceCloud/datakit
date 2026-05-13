@@ -631,6 +631,24 @@ func portInUse(addr string) bool {
 	return true
 }
 
+// CheckHTTPSrvAddr checks whether the HTTP server address can be listened on.
+func CheckHTTPSrvAddr(addr string) error {
+	if portInUse(addr) {
+		return fmt.Errorf("address %q already in use", addr)
+	}
+
+	listener, err := initListener(addr)
+	if err != nil {
+		return fmt.Errorf("init listener %q: %w", addr, err)
+	}
+
+	if err := listener.Close(); err != nil {
+		return fmt.Errorf("close listener %q: %w", addr, err)
+	}
+
+	return nil
+}
+
 func initUnixListener(udsPath string) (net.Listener, error) {
 	var (
 		listener net.Listener
