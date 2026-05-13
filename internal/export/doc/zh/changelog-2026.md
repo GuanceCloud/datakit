@@ -11,7 +11,7 @@
 - PostgreSQL DBM 新增 SQL 执行量与 QPS 指标采集上报能力（#3046）
 - MongoDB 支持 database object 采集上报（#3045）
 - Doris 支持 object 采集上报（#3043）
-- bug report 默认支持通过 Dataway 上传到观测云，并保留 OSS 直传方式（#3028）
+- bug report 默认支持通过 Dataway 上传，并保留 OSS 直传方式（#3028）
 - AWS Lambda 采集器完善函数调用链路，补充运行时事件与调用上下文关联能力（#2961）
 
 ### 问题修复 {#cl-1.94.0-fix}
