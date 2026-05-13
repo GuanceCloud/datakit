@@ -98,6 +98,7 @@ The following is a specific dialing test example:
         }
       ],
       "advance_options": {
+        "protocol": "auto",
         "request_options": {
           "auth": {}
         },
@@ -395,6 +396,28 @@ HTTP request timeout is mainly used to adjust the timeout of the HTTP request. T
   "request_timeout": "60s",
 }
 ```
+
+- HTTP Protocol Version (`protocol`)
+
+The HTTP request protocol version. The default value is `auto`. Available values:
+
+| Value         | Description                                                                                                                                                 |
+| :---          | :---                                                                                                                                                        |
+| `auto`        | Default mode. `http://` uses HTTP/1.1; `https://` negotiates through `TLS/ALPN` and uses HTTP/2 when the server supports it, otherwise falls back to HTTP/1.1. It does not automatically try h2c or HTTP/3. |
+| `http/1.1`    | Force HTTP/1.1 and do not try HTTP/2.                                                                                                                       |
+| `http/2`      | Enable HTTP/2 with fallback. For `https://`, HTTP/2 is attempted through `ALPN` and falls back to HTTP/1.1 when unsupported; plain `http://` still uses HTTP/1.1 and does not use h2c. |
+| `http/2-only` | Force HTTP/2. `https://` requires `ALPN` negotiation to `h2`; `http://` sends `cleartext` HTTP/2 with h2c prior knowledge. The task fails when the server does not support HTTP/2. |
+| `http/3`      | Use HTTP/3, meaning `QUIC` + TLS. The server must support HTTP/3; proxy configuration is not supported currently.                                             |
+
+`protocol` example:
+
+```json
+"advance_options": {
+  "protocol": "http/3"
+}
+```
+
+> Note: HTTP/3 does not support proxy configuration. If `protocol` is set to `http/3`, do not configure `proxy` at the same time.
 
 - HTTP Request a Certificate (`certificate`)
 
