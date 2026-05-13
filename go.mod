@@ -7,7 +7,7 @@ require (
 	github.com/DataDog/datadog-agent/pkg/obfuscate v0.47.1
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/GuanceCloud/confd v0.1.101
-	github.com/GuanceCloud/grok v1.1.5-0.20250416104424-34917bd63e69
+	github.com/GuanceCloud/grok v1.1.5-0.20260513103143-a1797907b1d0
 	github.com/GuanceCloud/platypus v0.3.4
 	github.com/IBM/sarama v1.41.2
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible // indirect
@@ -385,7 +385,7 @@ require (
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
-	github.com/GuanceCloud/pipeline-go v1.3.0
+	github.com/GuanceCloud/pipeline-go v1.3.1
 	github.com/go-redis/redis/v8 v8.11.3
 	github.com/hipages/php-fpm_exporter v1.2.1
 	github.com/redis/go-redis/v9 v9.12.0

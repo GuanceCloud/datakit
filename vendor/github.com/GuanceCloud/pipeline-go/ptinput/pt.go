@@ -141,8 +141,17 @@ func (pp *Pt) SetTag(k string, v any, dtype ast.DType) bool {
 
 func (pp *Pt) _set(k string, v any, asTag bool, asField bool) {
 	// replace high level
-	kv := pp.pt.KVs().Get(k)
-	if kv != nil && kv.IsTag && !asField {
+	kvs := pp.pt.KVs()
+	idx := -1
+	existAsTag := false
+	for i, kv := range kvs {
+		if kv.Key == k {
+			idx = i
+			existAsTag = kv.IsTag
+			break
+		}
+	}
+	if existAsTag && !asField {
 		asTag = true
 	}
 
@@ -154,7 +163,13 @@ func (pp *Pt) _set(k string, v any, asTag bool, asField bool) {
 		v, _ = normalVal(v, false, false)
 	}
 
-	pp.pt.MustAddKVs(point.NewKV(k, v, point.WithKVTagSet(asTag)))
+	kv := point.NewKV(k, v, point.WithKVTagSet(asTag))
+	if idx >= 0 {
+		kvs[idx] = kv
+	} else {
+		kvs = append(kvs, kv)
+	}
+	pp.pt.PBPoint().Fields = kvs
 }
 
 func (pp *Pt) Delete(k string) {
@@ -207,11 +222,20 @@ func (pp *Pt) Category() point.Category {
 }
 
 func (pp *Pt) Tags() map[string]string {
-	tags := map[string]string{}
-	for _, kv := range pp.pt.KVs() {
+	kvs := pp.pt.KVs()
+	tagCount := 0
+	for _, kv := range kvs {
 		if kv.IsTag {
-			if v, ok := kv.Raw().(string); ok {
-				tags[kv.Key] = v
+			if _, ok := kv.Val.(*point.Field_S); ok {
+				tagCount++
+			}
+		}
+	}
+	tags := make(map[string]string, tagCount)
+	for _, kv := range kvs {
+		if kv.IsTag {
+			if _, ok := kv.Val.(*point.Field_S); ok {
+				tags[kv.Key] = kv.GetS()
 			}
 		}
 	}
@@ -219,8 +243,15 @@ func (pp *Pt) Tags() map[string]string {
 }
 
 func (pp *Pt) Fields() map[string]any {
-	fields := map[string]any{}
-	for _, kv := range pp.pt.KVs() {
+	kvs := pp.pt.KVs()
+	fieldCount := 0
+	for _, kv := range kvs {
+		if !kv.IsTag {
+			fieldCount++
+		}
+	}
+	fields := make(map[string]any, fieldCount)
+	for _, kv := range kvs {
 		if !kv.IsTag {
 			fields[kv.Key] = kv.Raw()
 		}

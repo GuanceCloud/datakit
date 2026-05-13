@@ -2,6 +2,13 @@
 
 This library is a fork of [github.com/vjeantet/grok](https://github.com/vjeantet/grok) that parses grok patterns in Go.
 
+## Project Notes
+
+- Performance results: [docs/perf/BENCHMARKS.md](./docs/perf/BENCHMARKS.md)
+- Performance conclusions, exact-literal prefilter notes, and the global dispatcher draft: [docs/perf/PERFORMANCE_NOTES.md](./docs/perf/PERFORMANCE_NOTES.md)
+- Project layout and runtime layering: [docs/architecture/PROJECT_LAYOUT.md](./docs/architecture/PROJECT_LAYOUT.md)
+- Local handoff context for ongoing work: [docs/context/CURRENT_CONTEXT.md](./docs/context/CURRENT_CONTEXT.md)
+
 ## Usage
 
 ### Denormalize and Compile
@@ -46,6 +53,24 @@ func main() {
   }
 }
 
+```
+
+### Reusable Entry Points
+
+For callers such as `pipeline-go` that want to reuse result buffers, use
+`RunTo` or `RunWithTypeInfoTo`:
+
+```go
+buf := make([]any, 0, g.MatchCount())
+ret, err := g.RunWithTypeInfoTo(line, true, buf)
+```
+
+For multi-pattern pipelines, compile a `MatcherSet` and reuse one buffer sized
+from the largest matcher:
+
+```go
+buf := make([]string, 0, set.MatchCount())
+id, ret, err := set.RunFirstTo(line, true, buf)
 ```
 
 output:
