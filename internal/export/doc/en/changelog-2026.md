@@ -11,7 +11,7 @@ This release is an iterative release, with the following main updates:
 - PostgreSQL DBM now reports SQL execution count and QPS metrics (#3046)
 - MongoDB now supports database object collection (#3045)
 - Doris now supports object collection (#3043)
-- Bug report upload now defaults to Dataway-based upload to Guance while keeping the existing OSS direct-upload mode (#3028)
+- Bug report upload now defaults to Dataway-based upload while keeping the existing OSS direct-upload mode (#3028)
 - AWS Lambda collection improved function invocation tracing by correlating runtime events with invocation context (#2961)
 
 ### Bug Fixes {#cl-1.94.0-fix}
