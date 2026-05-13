@@ -77,7 +77,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 			ConfField: "disable_internal_network_task",
 			Type:      doc.Boolean,
 			Example:   "`true`",
-			Default:   "`false`",
+			Default:   "`true`",
 			Desc:      "Enable or disable internal IP/service testing",
 			DescZh:    "是否允许内网地址/服务的拨测。默认不允许",
 		},
