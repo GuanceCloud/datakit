@@ -45,12 +45,13 @@ const (
 )
 
 var (
-	dirDkInstall = datakit.InstallDir
-	py3Regexp    = regexp.MustCompile(`^Python 3.(\d+)`)
+	dirDkInstall           = datakit.InstallDir
+	py3Regexp              = regexp.MustCompile(`^Python 3.(\d+)`)
+	reloadDockerConfigFunc = reloadDockerConfig
 )
 
-func dkRuncPath() string {
-	return filepath.Join(dirDkInstall, DirInject, DirInjectSubInject, dkruncBinName)
+func dkRuncPath(installDir string) string {
+	return filepath.Join(installDir, DirInject, DirInjectSubInject, dkruncBinName)
 }
 
 type dockerRuntime struct {
@@ -176,17 +177,16 @@ func dumpDockerDaemonConfig(path string, config map[string]any) error {
 	return enc.Encode(config)
 }
 
-func setDockerRunc(configPath, runcPath string) error {
+func setDockerRunc(configPath, installDir string) error {
+	runcPath := dkRuncPath(installDir)
 	if _, err := os.Stat(runcPath); err != nil {
 		return err
 	}
 
-	injLdPreld := filepath.Join(dirDkInstall, DirInject, DirInjectSubInject, ldPreloadFileName)
-	if _, err := os.Stat(injLdPreld); err != nil {
-		soPath := filepath.Join(dirDkInstall, DirInject, DirInjectSubInject, launcherSoFileName) + "\n"
-		if err := os.WriteFile(injLdPreld, []byte(soPath), 0o644); err != nil { //nolint:gosec
-			return err
-		}
+	injLdPreld := filepath.Join(installDir, DirInject, DirInjectSubInject, ldPreloadFileName)
+	soPath := filepath.Join(installDir, DirInject, DirInjectSubInject, launcherSoFileName) + "\n"
+	if err := os.WriteFile(injLdPreld, []byte(soPath), 0o644); err != nil { //nolint:gosec
+		return err
 	}
 
 	// 备份配置文件
@@ -241,7 +241,7 @@ func setDockerRunc(configPath, runcPath string) error {
 		return err
 	}
 
-	return reloadDockerConfig()
+	return reloadDockerConfigFunc()
 }
 
 func unsetDockerRunc(configPath string) error {
@@ -275,7 +275,7 @@ func unsetDockerRunc(configPath string) error {
 		return err
 	}
 
-	return reloadDockerConfig()
+	return reloadDockerConfigFunc()
 }
 
 // cleanupPreloadOnError 在错误发生时清理 preload 配置.
@@ -366,23 +366,26 @@ func readPreloadWithoutLanucher(preloadPath, installDir string) (string, error) 
 			preloadPath, err)
 		return "", err
 	}
+	defer func() {
+		_ = f.Close()
+	}()
 
-	var lns []string
+	var tokens []string
 	s := bufio.NewScanner(f)
+	s.Split(bufio.ScanWords)
 	for s.Scan() {
-		t := s.Text()
-		lns = append(lns, t)
+		tokens = append(tokens, s.Text())
+	}
+	if err := s.Err(); err != nil {
+		return "", fmt.Errorf("read %s failed: %w", preloadPath, err)
 	}
 
 	soPath := filepath.Join(installDir, DirInject, DirInjectSubInject, launcherSoFileName)
 
 	var outLns []string
-	for _, ln := range lns {
-		if !strings.HasPrefix(ln, soPath) {
-			if ln == "" && len(outLns) == 0 {
-				continue
-			}
-			outLns = append(outLns, ln)
+	for _, token := range tokens {
+		if token != soPath {
+			outLns = append(outLns, token)
 		}
 	}
 
@@ -426,6 +429,30 @@ func setPreload(installDir, soPath string) error {
 	return nil
 }
 
+func logAPMInjectError(log *logger.Logger, err error) {
+	if err == nil || log == nil {
+		return
+	}
+	log.Error(err)
+}
+
+func combineAPMInjectErrors(errs []error) error {
+	switch len(errs) {
+	case 0:
+		return nil
+	case 1:
+		return errs[0]
+	}
+
+	var parts []string
+	for _, err := range errs {
+		if err != nil {
+			parts = append(parts, err.Error())
+		}
+	}
+	return fmt.Errorf("apm inject failed: %s", strings.Join(parts, "; "))
+}
+
 func Install(log *logger.Logger, opt ...Opt) error {
 	var c config
 	for _, fn := range opt {
@@ -442,33 +469,40 @@ func Install(log *logger.Logger, opt ...Opt) error {
 
 	if !c.enableHostInject && !c.enableDockerInject {
 		if err := unsetPreload(c.installDir); err != nil {
-			log.Error(err)
+			logAPMInjectError(log, err)
 		}
 		if err := unsetDockerRunc(dockerDaemonJSONPath); err != nil {
-			log.Error(err)
+			logAPMInjectError(log, err)
 		}
 		return nil
 	}
 
 	// TODO: check docker inject
 
+	var errs []error
 	if c.enableHostInject {
 		if err := installHostInject(c.installDir, log); err != nil {
-			log.Error(err)
+			err = fmt.Errorf("install host inject: %w", err)
+			logAPMInjectError(log, err)
+			errs = append(errs, err)
 		}
 	} else {
 		if err := unsetPreload(c.installDir); err != nil {
-			log.Error(err)
+			err = fmt.Errorf("unset host inject: %w", err)
+			logAPMInjectError(log, err)
+			errs = append(errs, err)
 		}
 	}
 
 	if c.enableDockerInject {
-		if err := setDockerRunc(dockerDaemonJSONPath, dkRuncPath()); err != nil {
-			log.Error(err)
+		if err := setDockerRunc(dockerDaemonJSONPath, c.installDir); err != nil {
+			err = fmt.Errorf("install docker inject: %w", err)
+			logAPMInjectError(log, err)
+			errs = append(errs, err)
 		}
 	}
 
-	return nil
+	return combineAPMInjectErrors(errs)
 }
 
 func Uninstall(opt ...Opt) error {

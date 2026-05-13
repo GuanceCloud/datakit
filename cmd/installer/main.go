@@ -223,24 +223,9 @@ func offlineExtract() error {
 			dstDir := filepath.Join(datakit.InstallDir,
 				apminjUtils.DirInject, apminjUtils.DirInjectSubLib, "java")
 
-			_ = os.MkdirAll(dstDir, os.ModePerm)
-
 			dstFile := filepath.Join(dstDir, "dd-java-agent.jar")
-			_ = os.RemoveAll(dstFile) // must remove first, jar file maybe used by other program
-
-			//nolint:gosec
-			if newFile, err := os.OpenFile(dstFile,
-				os.O_CREATE|os.O_RDWR|os.O_TRUNC, os.ModePerm); err != nil {
-				l.Warnf("Create %s failed: %s", dstFile, err.Error())
-			} else {
-				if old, err := os.Open(f); err != nil { //nolint:gosec
-					l.Warnf("Open %s failed: %s", f, err.Error())
-				} else {
-					if _, err := io.Copy(newFile, old); err != nil {
-						l.Warnf("Copy %s to %s failed: %s", f, destDir, err.Error())
-					}
-				}
-				_ = newFile.Close()
+			if err := copyFileAtomic(f, dstFile, os.ModePerm); err != nil {
+				l.Warnf("Copy %s to %s failed: %s", f, dstDir, err.Error())
 			}
 			continue // no need to extract, just copy to dir
 
@@ -463,6 +448,62 @@ func checkIsNewVersion(host, version string) error {
 	}
 
 	return fmt.Errorf("check version failed")
+}
+
+func copyFileAtomic(src, dst string, mode os.FileMode) error {
+	if err := os.MkdirAll(filepath.Dir(dst), os.ModePerm); err != nil {
+		return fmt.Errorf("MkdirAll: %w", err)
+	}
+
+	srcFile, err := os.Open(src) //nolint:gosec
+	if err != nil {
+		return fmt.Errorf("open: %w", err)
+	}
+	defer func() {
+		_ = srcFile.Close()
+	}()
+
+	if runtime.GOOS == "windows" {
+		_ = os.RemoveAll(dst)
+		dstFile, err := os.OpenFile(dst, os.O_CREATE|os.O_RDWR|os.O_TRUNC, mode) //nolint:gosec
+		if err != nil {
+			return fmt.Errorf("OpenFile: %w", err)
+		}
+		if _, err := io.Copy(dstFile, srcFile); err != nil {
+			_ = dstFile.Close()
+			return fmt.Errorf("copy: %w", err)
+		}
+		if err := dstFile.Close(); err != nil {
+			return fmt.Errorf("close: %w", err)
+		}
+		return nil
+	}
+
+	tmpFile, err := os.CreateTemp(filepath.Dir(dst), ".copy.tmp.")
+	if err != nil {
+		return fmt.Errorf("CreateTemp: %w", err)
+	}
+	tmpName := tmpFile.Name()
+	defer func() {
+		_ = os.Remove(tmpName)
+	}()
+
+	if _, err := io.Copy(tmpFile, srcFile); err != nil {
+		_ = tmpFile.Close()
+		return fmt.Errorf("copy: %w", err)
+	}
+	if err := tmpFile.Chmod(mode); err != nil {
+		_ = tmpFile.Close()
+		return fmt.Errorf("chmod: %w", err)
+	}
+	if err := tmpFile.Close(); err != nil {
+		return fmt.Errorf("close: %w", err)
+	}
+	if err := os.Rename(tmpName, dst); err != nil {
+		return fmt.Errorf("rename: %w", err)
+	}
+
+	return nil
 }
 
 func promptReferences() {

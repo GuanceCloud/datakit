@@ -7,6 +7,8 @@ package main
 
 import (
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	T "testing"
 	"time"
@@ -69,4 +71,24 @@ func TestCheckIsVersion(t *T.T) {
 			}
 		})
 	}
+}
+
+func TestCopyFileAtomic(t *T.T) {
+	dir := t.TempDir()
+	src := filepath.Join(dir, "dd-java-agent.jar")
+	dst := filepath.Join(dir, "apm_inject", "lib", "java", "dd-java-agent.jar")
+
+	assert.NoError(t, os.MkdirAll(filepath.Dir(dst), 0o755))
+	assert.NoError(t, os.WriteFile(dst, []byte("old"), 0o755))
+	assert.NoError(t, os.WriteFile(src, []byte("new"), 0o644))
+
+	assert.NoError(t, copyFileAtomic(src, dst, 0o755))
+
+	data, err := os.ReadFile(dst)
+	assert.NoError(t, err)
+	assert.Equal(t, []byte("new"), data)
+
+	info, err := os.Stat(dst)
+	assert.NoError(t, err)
+	assert.Equal(t, os.FileMode(0o755), info.Mode().Perm())
 }

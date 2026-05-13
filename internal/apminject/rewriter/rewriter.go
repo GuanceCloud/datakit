@@ -118,11 +118,8 @@ func rewrite(param *reArgs) (*reArgs, error) {
 	_, exeName := filepath.Split(exePath)
 
 	for _, env := range param.envp {
-		if !strings.Contains(env, utils.EnvDKAPMINJECT) {
-			continue
-		}
 		if v := strings.SplitN(env, "=", 2); len(v) == 2 {
-			if utils.CheckDisableInjFromEnv(v[0], v[1]) {
+			if v[0] == utils.EnvDKAPMINJECT && utils.CheckDisableInjFromEnv(v[0], v[1]) {
 				return nil, utils.ErrInjectDisabled
 			}
 		}
