@@ -150,11 +150,11 @@ func (ipt *Input) Run() {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			ipt.Terminate()
+			ipt.exit()
 			log.Infof("%s exit", inputName)
 			return
 		case <-ipt.semStop.Wait():
-			ipt.Terminate()
+			ipt.exit()
 			log.Infof("%s return", inputName)
 			return
 		}
@@ -162,6 +162,14 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
+
+	ipt.exit()
+}
+
+func (ipt *Input) exit() {
 	if ipt.listener != nil {
 		_ = ipt.listener.Close()
 	}
