@@ -9,6 +9,7 @@ EXTERNAL_OUTDIR ?=
 EXTERNAL_OUTPUT ?=
 EXTERNAL_LDFLAGS ?= -w -s
 EXTERNAL_EBPF_ARGS ?=
+EXTERNAL_EBPF_TARGET ?= build
 DK_BPF_KERNEL_SRC_PATH ?=
 EXTERNAL_SYSROOT_BASE ?= /opt/sysroots/debian10
 
@@ -26,46 +27,52 @@ build_external_local:
 		/*) outdir_abs="$$outdir" ;; \
 		*) outdir_abs="$(ROOT_DIR)/$$outdir" ;; \
 	esac; \
-	host_arch="$$(uname -m)"; \
-	target_triplet=""; \
-	cc="gcc"; \
-	cxx="g++"; \
-	case "$(EXTERNAL_ARCH)" in \
-		amd64) \
-			target_triplet="x86_64-linux-gnu"; \
-			if command -v x86_64-linux-gnu-gcc >/dev/null 2>&1; then \
-				cc="x86_64-linux-gnu-gcc"; \
-				cxx="x86_64-linux-gnu-g++"; \
-			elif [ "$$host_arch" != "x86_64" ]; then \
-				echo "missing x86_64-linux-gnu cross toolchain in $$host_arch build environment"; \
-				exit 1; \
-			fi; \
-			;; \
-		arm64) \
-			target_triplet="aarch64-linux-gnu"; \
-			if command -v aarch64-linux-gnu-gcc >/dev/null 2>&1; then \
-				cc="aarch64-linux-gnu-gcc"; \
-				cxx="aarch64-linux-gnu-g++"; \
-			elif [ "$$host_arch" != "aarch64" ]; then \
-				echo "missing aarch64-linux-gnu cross toolchain in $$host_arch build environment"; \
-				exit 1; \
-			fi; \
-			;; \
+	needs_cgo_toolchain=0; \
+	case "$(EXTERNAL_NAME)" in \
+		db2|journald|oracle) needs_cgo_toolchain=1 ;; \
 	esac; \
-	export CC="$$cc" CXX="$$cxx"; \
-	sysroot="$(EXTERNAL_SYSROOT_BASE)/$(EXTERNAL_ARCH)"; \
-	if [ -n "$$target_triplet" ] && [ -d "$$sysroot" ]; then \
-		export SYSROOT="$$sysroot"; \
-		export PKG_CONFIG_SYSROOT_DIR="$$SYSROOT"; \
-		export PKG_CONFIG_LIBDIR="$$SYSROOT/usr/lib/$$target_triplet/pkgconfig:$$SYSROOT/usr/lib/pkgconfig:$$SYSROOT/usr/share/pkgconfig"; \
-		export PKG_CONFIG_PATH=; \
-		export PKG_CONFIG_ALLOW_CROSS=1; \
-		export CGO_CPPFLAGS="--sysroot=$$SYSROOT"; \
-		export CGO_CFLAGS="--sysroot=$$SYSROOT -Wno-undef-prefix"; \
-		export CGO_CXXFLAGS="--sysroot=$$SYSROOT"; \
-		export CGO_LDFLAGS="--sysroot=$$SYSROOT -L$$SYSROOT/lib/$$target_triplet -L$$SYSROOT/usr/lib/$$target_triplet -Wl,-rpath-link,$$SYSROOT/lib/$$target_triplet -Wl,-rpath-link,$$SYSROOT/usr/lib/$$target_triplet"; \
-	else \
-		export CGO_CFLAGS="-Wno-undef-prefix"; \
+	if [ "$$needs_cgo_toolchain" = "1" ]; then \
+		host_arch="$$(uname -m)"; \
+		target_triplet=""; \
+		cc="gcc"; \
+		cxx="g++"; \
+		case "$(EXTERNAL_ARCH)" in \
+			amd64) \
+				target_triplet="x86_64-linux-gnu"; \
+				if command -v x86_64-linux-gnu-gcc >/dev/null 2>&1; then \
+					cc="x86_64-linux-gnu-gcc"; \
+					cxx="x86_64-linux-gnu-g++"; \
+				elif [ "$$host_arch" != "x86_64" ]; then \
+					echo "missing x86_64-linux-gnu cross toolchain in $$host_arch build environment"; \
+					exit 1; \
+				fi; \
+				;; \
+			arm64) \
+				target_triplet="aarch64-linux-gnu"; \
+				if command -v aarch64-linux-gnu-gcc >/dev/null 2>&1; then \
+					cc="aarch64-linux-gnu-gcc"; \
+					cxx="aarch64-linux-gnu-g++"; \
+				elif [ "$$host_arch" != "aarch64" ]; then \
+					echo "missing aarch64-linux-gnu cross toolchain in $$host_arch build environment"; \
+					exit 1; \
+				fi; \
+				;; \
+		esac; \
+		export CC="$$cc" CXX="$$cxx"; \
+		sysroot="$(EXTERNAL_SYSROOT_BASE)/$(EXTERNAL_ARCH)"; \
+		if [ -n "$$target_triplet" ] && [ -d "$$sysroot" ]; then \
+			export SYSROOT="$$sysroot"; \
+			export PKG_CONFIG_SYSROOT_DIR="$$SYSROOT"; \
+			export PKG_CONFIG_LIBDIR="$$SYSROOT/usr/lib/$$target_triplet/pkgconfig:$$SYSROOT/usr/lib/pkgconfig:$$SYSROOT/usr/share/pkgconfig"; \
+			export PKG_CONFIG_PATH=; \
+			export PKG_CONFIG_ALLOW_CROSS=1; \
+			export CGO_CPPFLAGS="--sysroot=$$SYSROOT"; \
+			export CGO_CFLAGS="--sysroot=$$SYSROOT -Wno-undef-prefix"; \
+			export CGO_CXXFLAGS="--sysroot=$$SYSROOT"; \
+			export CGO_LDFLAGS="--sysroot=$$SYSROOT -L$$SYSROOT/lib/$$target_triplet -L$$SYSROOT/usr/lib/$$target_triplet -Wl,-rpath-link,$$SYSROOT/lib/$$target_triplet -Wl,-rpath-link,$$SYSROOT/usr/lib/$$target_triplet"; \
+		else \
+			export CGO_CFLAGS="-Wno-undef-prefix"; \
+		fi; \
 	fi; \
 	mkdir -p "$$outdir_abs"; \
 	case "$(EXTERNAL_NAME)" in \
@@ -80,9 +87,10 @@ build_external_local:
 				ARCH="$(EXTERNAL_ARCH)" \
 				GOOS="$(EXTERNAL_GOOS)" \
 				GOARCH="$(EXTERNAL_ARCH)" \
-				CGO_ENABLED=1 \
+				CGO_ENABLED=0 \
 				DK_BPF_KERNEL_SRC_PATH="$$kernel_src" \
-				ARGS="$(EXTERNAL_EBPF_ARGS)"; \
+				ARGS="$(EXTERNAL_EBPF_ARGS)" \
+				"$(EXTERNAL_EBPF_TARGET)"; \
 			;; \
 		db2|journald|oracle) \
 			GO111MODULE=on GOFLAGS=-mod=$(GO_MODULE_MODE) CGO_ENABLED=1 \

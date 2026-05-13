@@ -76,13 +76,13 @@ func GuessOffsetHTTPFlow(status *OffsetGuessC) ([]bpfutil.ConstantPatch, error) 
 	if laddr, ok := conn.LocalAddr().(*net.TCPAddr); ok {
 		offsetHTTP.sport = _Ctype_ushort(laddr.Port)
 		if ip4 := laddr.IP.To4(); ip4 != nil {
-			offsetHTTP.saddr[3] = _Ctype_uint(binary.BigEndian.Uint32(ip4))
+			offsetHTTP.saddr[3] = binary.BigEndian.Uint32(ip4)
 		}
 	}
 	if raddr, ok := conn.RemoteAddr().(*net.TCPAddr); ok {
 		offsetHTTP.dport = _Ctype_ushort(raddr.Port)
 		if ip4 := raddr.IP.To4(); ip4 != nil {
-			offsetHTTP.daddr[3] = _Ctype_uint(binary.BigEndian.Uint32(ip4))
+			offsetHTTP.daddr[3] = binary.BigEndian.Uint32(ip4)
 		}
 	}
 
@@ -91,7 +91,7 @@ func GuessOffsetHTTPFlow(status *OffsetGuessC) ([]bpfutil.ConstantPatch, error) 
 		return nil, fmt.Errorf("no task_struct.files guess candidates")
 	}
 
-	offsetHTTP.offset_task_struct_files = _Ctype_int(taskFilesGuesses[0])
+	offsetHTTP.offset_task_struct_files = taskFilesGuesses[0]
 
 	err = updateMapGuessHTTP(m, offsetHTTP)
 	if err != nil {
@@ -99,15 +99,15 @@ func GuessOffsetHTTPFlow(status *OffsetGuessC) ([]bpfutil.ConstantPatch, error) 
 	}
 
 	l.Debugf("start HTTP flow offset guess: socket_file=%d task_struct_files=%d fd=%d saddr=%#x daddr=%#x sport=%d dport=%d",
-		int32(offsetHTTP.offset_socket_file), int32(offsetHTTP.offset_task_struct_files), int32(offsetHTTP.fd),
-		uint32(offsetHTTP.saddr[3]), uint32(offsetHTTP.daddr[3]), int32(offsetHTTP.sport), int32(offsetHTTP.dport))
+		offsetHTTP.offset_socket_file, offsetHTTP.offset_task_struct_files, offsetHTTP.fd,
+		offsetHTTP.saddr[3], offsetHTTP.daddr[3], int32(offsetHTTP.sport), int32(offsetHTTP.dport))
 
 	skipCount := 0
 	candidateIdx := 0
 	lastState := int32(-1)
-	lastTaskFiles := int32(offsetHTTP.offset_task_struct_files)
-	lastFilesFDT := int32(offsetHTTP.offset_files_struct_fdt)
-	lastPrivateData := int32(offsetHTTP.offset_file_private_data)
+	lastTaskFiles := offsetHTTP.offset_task_struct_files
+	lastFilesFDT := offsetHTTP.offset_files_struct_fdt
+	lastPrivateData := offsetHTTP.offset_file_private_data
 	for round := 0; round < len(taskFilesGuesses)+32 && skipCount < 20; round++ {
 		if round > 0 {
 			offsetHTTP, err = readMapGuessHTTP(m)
@@ -121,7 +121,7 @@ func GuessOffsetHTTPFlow(status *OffsetGuessC) ([]bpfutil.ConstantPatch, error) 
 				candidateIdx++
 			}
 
-			offsetHTTP.offset_task_struct_files = _Ctype_int(taskFilesGuesses[candidateIdx])
+			offsetHTTP.offset_task_struct_files = taskFilesGuesses[candidateIdx]
 			offsetHTTP.times = 0
 			if err := updateMapGuessHTTP(m, offsetHTTP); err != nil {
 				return nil, err
@@ -144,21 +144,21 @@ func GuessOffsetHTTPFlow(status *OffsetGuessC) ([]bpfutil.ConstantPatch, error) 
 			skipCount = 0
 		}
 
-		if int32(offsetTmp.state) != lastState ||
-			int32(offsetTmp.offset_task_struct_files) != lastTaskFiles ||
-			int32(offsetTmp.offset_files_struct_fdt) != lastFilesFDT ||
-			int32(offsetTmp.offset_file_private_data) != lastPrivateData {
+		if offsetTmp.state != lastState ||
+			offsetTmp.offset_task_struct_files != lastTaskFiles ||
+			offsetTmp.offset_files_struct_fdt != lastFilesFDT ||
+			offsetTmp.offset_file_private_data != lastPrivateData {
 			l.Debugf(
 				"HTTP flow offset guess progress: round=%d state=%03b "+
 					"task_struct_files=%d files_struct_fdt=%d "+
 					"file_private_data=%d socket_sk=%d times=%d",
-				round+1, int32(offsetTmp.state), int32(offsetTmp.offset_task_struct_files), int32(offsetTmp.offset_files_struct_fdt),
-				int32(offsetTmp.offset_file_private_data), int32(offsetTmp.offset_socket_sk), int32(offsetTmp.times),
+				round+1, offsetTmp.state, offsetTmp.offset_task_struct_files, offsetTmp.offset_files_struct_fdt,
+				offsetTmp.offset_file_private_data, offsetTmp.offset_socket_sk, offsetTmp.times,
 			)
-			lastState = int32(offsetTmp.state)
-			lastTaskFiles = int32(offsetTmp.offset_task_struct_files)
-			lastFilesFDT = int32(offsetTmp.offset_files_struct_fdt)
-			lastPrivateData = int32(offsetTmp.offset_file_private_data)
+			lastState = offsetTmp.state
+			lastTaskFiles = offsetTmp.offset_task_struct_files
+			lastFilesFDT = offsetTmp.offset_files_struct_fdt
+			lastPrivateData = offsetTmp.offset_file_private_data
 		}
 
 		if offsetTmp.state&0b11 == 0b11 {
@@ -174,8 +174,8 @@ func GuessOffsetHTTPFlow(status *OffsetGuessC) ([]bpfutil.ConstantPatch, error) 
 
 	if skipCount >= 20 {
 		l.Warnf("HTTP flow offset guess stalled: task_struct_files=%d files_struct_fdt=%d socket_file=%d file_private_data=%d socket_sk=%d state=%03b",
-			int32(offsetHTTP.offset_task_struct_files), int32(offsetHTTP.offset_files_struct_fdt), int32(offsetHTTP.offset_socket_file),
-			int32(offsetHTTP.offset_file_private_data), int32(offsetHTTP.offset_socket_sk), int32(offsetHTTP.state))
+			offsetHTTP.offset_task_struct_files, offsetHTTP.offset_files_struct_fdt, offsetHTTP.offset_socket_file,
+			offsetHTTP.offset_file_private_data, offsetHTTP.offset_socket_sk, offsetHTTP.state)
 		return nil, fmt.Errorf("skipCount >= 20")
 	}
 
@@ -189,16 +189,16 @@ func GuessOffsetHTTPFlow(status *OffsetGuessC) ([]bpfutil.ConstantPatch, error) 
 			"HTTP flow offset guess failed: state=%03b task_struct_files=%d "+
 				"files_struct_fdt=%d socket_file=%d file_private_data=%d "+
 				"socket_sk=%d times=%d fd=%d",
-			int32(offsetHTTP.state), int32(offsetHTTP.offset_task_struct_files), int32(offsetHTTP.offset_files_struct_fdt),
-			int32(offsetHTTP.offset_socket_file), int32(offsetHTTP.offset_file_private_data), int32(offsetHTTP.offset_socket_sk),
-			int32(offsetHTTP.times), int32(offsetHTTP.fd),
+			offsetHTTP.state, offsetHTTP.offset_task_struct_files, offsetHTTP.offset_files_struct_fdt,
+			offsetHTTP.offset_socket_file, offsetHTTP.offset_file_private_data, offsetHTTP.offset_socket_sk,
+			offsetHTTP.times, offsetHTTP.fd,
 		)
 		return nil, fmt.Errorf("offset httpflow: failed")
 	}
 
 	l.Infof("HTTP flow offsets guessed: task_struct_files=%d files_struct_fdt=%d socket_file=%d file_private_data=%d socket_sk=%d",
-		int32(offsetHTTP.offset_task_struct_files), int32(offsetHTTP.offset_files_struct_fdt),
-		int32(offsetHTTP.offset_socket_file), int32(offsetHTTP.offset_file_private_data), int32(offsetHTTP.offset_socket_sk))
+		offsetHTTP.offset_task_struct_files, offsetHTTP.offset_files_struct_fdt,
+		offsetHTTP.offset_socket_file, offsetHTTP.offset_file_private_data, offsetHTTP.offset_socket_sk)
 
 	if err = connFile.Close(); err != nil {
 		return nil, err
@@ -213,21 +213,21 @@ func GuessOffsetHTTPFlow(status *OffsetGuessC) ([]bpfutil.ConstantPatch, error) 
 	case offsetHTTP.offset_socket_sk > 0:
 		patches = append(patches, bpfutil.ConstantPatch{
 			Name:  "offset_socket_sk",
-			Value: uint64(int32(offsetHTTP.offset_socket_sk)),
+			Value: uint64(offsetHTTP.offset_socket_sk),
 		})
 	case offsetHTTP.offset_socket_file > 0:
-		socketSk := uint64(int32(offsetHTTP.offset_socket_file)) + uint64(unsafe.Sizeof(uintptr(0))) //nolint:gosec
+		socketSk := uint64(offsetHTTP.offset_socket_file) + uint64(unsafe.Sizeof(uintptr(0))) //nolint:gosec
 		l.Warnf(
 			"HTTP flow socket.sk offset did not converge; "+
 				"derive from socket.file fallback: socket_file=%d socket_sk=%d",
-			int32(offsetHTTP.offset_socket_file), socketSk)
+			offsetHTTP.offset_socket_file, socketSk)
 		patches = append(patches, bpfutil.ConstantPatch{
 			Name:  "offset_socket_sk",
 			Value: socketSk,
 		})
 	default:
 		l.Warnf("HTTP flow socket.sk offset did not converge; keep using kernel offset fallback=%d",
-			uint64(status.offset_socket_sk))
+			status.offset_socket_sk)
 	}
 
 	return patches, nil

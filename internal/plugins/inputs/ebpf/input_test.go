@@ -56,3 +56,17 @@ func TestAppendResourceLimitArgs(t *testing.T) {
 		"--res-bandwidth", "100MiB/s",
 	}, args)
 }
+
+func TestAppendNetlogCaptureLimitArgs(t *testing.T) {
+	args := appendNetlogCaptureLimitArgs([]string{"run"}, 2, 4, 32)
+
+	assert.Equal(t, []string{
+		"run",
+		"--netlog-fallback-sockets", "2",
+		"--netlog-fallback-blocks", "4",
+		"--netlog-shared-blocks", "32",
+	}, args)
+
+	args = appendNetlogCaptureLimitArgs([]string{"run"}, 0, -1, 0)
+	assert.Equal(t, []string{"run"}, args)
+}

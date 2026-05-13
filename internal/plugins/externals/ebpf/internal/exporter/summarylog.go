@@ -25,6 +25,7 @@ type summarySnapshot struct {
 	senderQueueLength float64
 	aggEntries        map[string]float64
 	cacheEntries      map[string]float64
+	cacheEvictions    map[string]float64
 	nicGroupCount     map[string]float64
 	nicGroupRouteCnt  map[string]float64
 	perfLostTotal     map[string]float64
@@ -81,6 +82,7 @@ func collectSummarySnapshot() (*summarySnapshot, error) {
 		runtimeRatio:      map[string]float64{},
 		aggEntries:        map[string]float64{},
 		cacheEntries:      map[string]float64{},
+		cacheEvictions:    map[string]float64{},
 		nicGroupCount:     map[string]float64{},
 		nicGroupRouteCnt:  map[string]float64{},
 		perfLostTotal:     map[string]float64{},
@@ -119,6 +121,11 @@ func collectSummarySnapshot() (*summarySnapshot, error) {
 			for _, m := range mf.Metric {
 				key := labelValue(m, "component") + "/" + labelValue(m, "cache")
 				s.cacheEntries[key] = metricValue(mf, m)
+			}
+		case "dkebpf_exporter_cache_evictions_total":
+			for _, m := range mf.Metric {
+				key := labelValue(m, "component") + "/" + labelValue(m, "cache") + "/" + labelValue(m, "reason")
+				s.cacheEvictions[key] = metricValue(mf, m)
 			}
 		case "dkebpf_exporter_nic_group_count":
 			for _, m := range mf.Metric {
@@ -172,6 +179,7 @@ func buildSummaryPoint(cur, prev *summarySnapshot, baseTags map[string]string) *
 	perfErrDelta := diffMap(cur.perfReadErrTotal, valueMap(prev, func(s *summarySnapshot) map[string]float64 { return s.perfReadErrTotal }))
 	tpacketDelta := diffMap(cur.tpacketStatsTotal, valueMap(prev, func(s *summarySnapshot) map[string]float64 { return s.tpacketStatsTotal }))
 	senderReqDelta := diffMap(cur.senderRequests, valueMap(prev, func(s *summarySnapshot) map[string]float64 { return s.senderRequests }))
+	cacheEvictionDelta := diffMap(cur.cacheEvictions, valueMap(prev, func(s *summarySnapshot) map[string]float64 { return s.cacheEvictions }))
 
 	rss := cur.runtimeMemory["rss"]
 	hwm := cur.runtimeMemory["hwm"]
@@ -186,6 +194,8 @@ func buildSummaryPoint(cur, prev *summarySnapshot, baseTags map[string]string) *
 	tpacketDropTotal := sumKeySuffix(tpacketDelta, "/drops")
 	tpacketFreezeTotal := sumKeySuffix(tpacketDelta, "/queue_freezes")
 	senderErrTotal := sumNonOK(senderReqDelta)
+	cacheEvictionTotal := sumMap(cacheEvictionDelta)
+	chunkEvictionTotal := sumKeySuffix(cacheEvictionDelta, "/max_chunks_per_conn")
 
 	level := "info"
 	var reasons []string
@@ -208,6 +218,10 @@ func buildSummaryPoint(cur, prev *summarySnapshot, baseTags map[string]string) *
 		level = summaryWarnLevel
 		reasons = append(reasons, "tpacket_drop")
 	}
+	if chunkEvictionTotal > 0 {
+		level = summaryWarnLevel
+		reasons = append(reasons, "netlog_chunk_evicted")
+	}
 	if senderErrTotal > 0 {
 		level = summaryWarnLevel
 		reasons = append(reasons, "sender_error")
@@ -217,7 +231,7 @@ func buildSummaryPoint(cur, prev *summarySnapshot, baseTags map[string]string) *
 	}
 	tags["level"] = level
 
-	msg := buildSummaryMessage(cur, perfLostDelta, perfErrDelta, tpacketDelta, senderReqDelta, level, reasons)
+	msg := buildSummaryMessage(cur, perfLostDelta, perfErrDelta, tpacketDelta, senderReqDelta, cacheEvictionDelta, level, reasons)
 
 	fields := map[string]any{
 		"status":                 level,
@@ -232,6 +246,7 @@ func buildSummaryPoint(cur, prev *summarySnapshot, baseTags map[string]string) *
 		"sender_queue_length":    int64(cur.senderQueueLength),
 		"agg_entries_total":      int64(aggTotal),
 		"cache_entries_total":    int64(cacheTotal),
+		"cache_evictions_delta":  int64(cacheEvictionTotal),
 		"perf_lost_total":        int64(perfLostTotal),
 		"perf_read_errors":       int64(perfErrTotal),
 		"tpacket_drops":          int64(tpacketDropTotal),
@@ -246,7 +261,12 @@ func buildSummaryPoint(cur, prev *summarySnapshot, baseTags map[string]string) *
 	return point.NewPoint(summaryLogName, kvs, append(point.CommonLoggingOptions(), point.WithTime(time.Now()))...)
 }
 
-func buildSummaryMessage(cur *summarySnapshot, perfLost, perfErr, tpacket, senderReq map[string]float64, level string, reasons []string) string {
+func buildSummaryMessage(
+	cur *summarySnapshot,
+	perfLost, perfErr, tpacket, senderReq, cacheEvictions map[string]float64,
+	level string,
+	reasons []string,
+) string {
 	payload := map[string]any{
 		"schema": "ebpf_monitor/v1",
 		"runtime": map[string]any{
@@ -264,8 +284,9 @@ func buildSummaryMessage(cur *summarySnapshot, perfLost, perfErr, tpacket, sende
 			"entries":       intMap(cur.aggEntries, false),
 		},
 		"cache": map[string]any{
-			"total_entries": int64(sumMap(cur.cacheEntries)),
-			"entries":       intMap(cur.cacheEntries, false),
+			"total_entries":   int64(sumMap(cur.cacheEntries)),
+			"entries":         intMap(cur.cacheEntries, false),
+			"evictions_delta": intMap(cacheEvictions, true),
 		},
 		"nic_groups": map[string]any{
 			"count":       intMap(cur.nicGroupCount, false),

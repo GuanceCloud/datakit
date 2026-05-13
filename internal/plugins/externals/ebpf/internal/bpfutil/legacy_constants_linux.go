@@ -133,12 +133,29 @@ func shouldUseLegacyConstants(kernelVersion uint64) bool {
 	return kernelVersion != 0 && !kernelSupportsReadOnlyMaps(kernelVersion)
 }
 
+func kernelSupportsLRUHashMaps(kernelVersion uint64) bool {
+	const minLRUHashKernel = uint64(0x0004000a00000000)
+	return kernelVersion >= minLRUHashKernel
+}
+
+func shouldUseHashMapObjects(kernelVersion uint64) bool {
+	return kernelVersion != 0 && !kernelSupportsLRUHashMaps(kernelVersion)
+}
+
 func UseLegacyConstObjects() (bool, uint64, error) {
 	kernelVersion, err := CurrentKernelVersion()
 	if err != nil {
 		return false, 0, err
 	}
 	return shouldUseLegacyConstants(kernelVersion), kernelVersion, nil
+}
+
+func UseHashMapObjects() (bool, uint64, error) {
+	kernelVersion, err := CurrentKernelVersion()
+	if err != nil {
+		return false, 0, err
+	}
+	return shouldUseHashMapObjects(kernelVersion), kernelVersion, nil
 }
 
 func sentinelConstant(name string) (int64, error) {

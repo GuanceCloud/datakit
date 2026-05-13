@@ -119,6 +119,16 @@ var (
 		[]string{"component", "cache"},
 	)
 
+	eCacheEvictionsTotalVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "dkebpf",
+			Subsystem: "exporter",
+			Name:      "cache_evictions_total",
+			Help:      "Total number of entries evicted from in-memory caches",
+		},
+		[]string{"component", "cache", "reason"},
+	)
+
 	eSenderQueueLen = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "dkebpf",
@@ -281,6 +291,13 @@ func ObserveAggFlush(component string, points int, dur time.Duration, result str
 
 func ObserveCacheEntries(component, cache string, entries int) {
 	eCacheEntriesVec.WithLabelValues(component, cache).Set(float64(entries))
+}
+
+func AddCacheEvictions(component, cache, reason string, entries int) {
+	if entries <= 0 {
+		return
+	}
+	eCacheEvictionsTotalVec.WithLabelValues(component, cache, reason).Add(float64(entries))
 }
 
 func ObserveSenderQueue(entries int) {

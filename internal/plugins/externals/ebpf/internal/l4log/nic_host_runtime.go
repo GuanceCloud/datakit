@@ -377,6 +377,9 @@ func (c *hostPeerSharedCapture) run() {
 
 		buf, ci, err := c.h.ZeroCopyReadPacketData()
 		if err != nil {
+			if isPacketReadTimeout(err) {
+				continue
+			}
 			log.Error(err)
 			time.Sleep(time.Millisecond * 300)
 			continue

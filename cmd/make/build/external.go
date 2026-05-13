@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 )
 
 type dkexternal struct {
@@ -31,6 +32,8 @@ type dkexternal struct {
 
 	tags string
 }
+
+const externalEBPFName = "ebpf"
 
 var externals = []*dkexternal{
 	{
@@ -66,7 +69,7 @@ var externals = []*dkexternal{
 	},
 	{
 		// requirement: apt install clang llvm linux-headers-$(uname -r)
-		name:       "ebpf",
+		name:       externalEBPFName,
 		out:        "datakit-ebpf",
 		standalone: false,
 		lang:       "makefile",
@@ -78,9 +81,6 @@ var externals = []*dkexternal{
 		},
 
 		buildArgs: nil,
-		envs: []string{
-			"CGO_ENABLED=1",
-		},
 	},
 	{
 		// requirement: libsystemd-dev for journald CGO bindings
@@ -178,6 +178,11 @@ func doBuildExternal(ex *dkexternal, dir, goos, goarch string, standalone bool) 
 		if err := buildExternalInContainer(ex, outdir, out, goos, goarch); err != nil {
 			return err
 		}
+		if ex.name == externalEBPFName {
+			if err := buildEBPFCollectorLocal(outdir, out, goos, goarch); err != nil {
+				return err
+			}
+		}
 
 	case strings.EqualFold(ex.lang, "go") || strings.EqualFold(ex.lang, "golang"):
 		if err := buildExternalWithGo(ex, outdir, out, goos, goarch, envs); err != nil {
@@ -199,6 +204,40 @@ func doBuildExternal(ex *dkexternal, dir, goos, goarch string, standalone bool) 
 	}
 
 	return nil
+}
+
+func buildEBPFCollectorLocal(outdir, out, goos, goarch string) error {
+	args, buildEnv := ebpfCollectorLocalBuildCommand(outdir, out, goos, goarch, time.Now().UTC())
+
+	msg, err := runEnv(args, buildEnv)
+	if err != nil {
+		return fmt.Errorf("failed to build external ebpf locally without cgo: %w, msg: %s", err, string(msg))
+	}
+
+	return nil
+}
+
+func ebpfCollectorLocalBuildCommand(outdir, out, goos, goarch string, buildAt time.Time) ([]string, []string) {
+	args := []string{
+		"go",
+		"build",
+		"-tags", "ebpf netgo",
+		"-buildvcs=false",
+		"-o", filepath.Join(outdir, out),
+		"-ldflags", fmt.Sprintf("-w -s -X 'main.Arch=%s/%s' -X 'main.Date=%s'",
+			goos, goarch, buildAt.UTC().Format(time.RFC3339)),
+		"internal/plugins/externals/ebpf/cmd/datakit-ebpf/datakit-ebpf.go",
+	}
+
+	buildEnv := []string{
+		"GO111MODULE=on",
+		fmt.Sprintf("GOOS=%s", goos),
+		fmt.Sprintf("GOARCH=%s", goarch),
+		"CGO_ENABLED=0",
+		"GOFLAGS=-mod=" + goModuleMode(),
+	}
+
+	return args, buildEnv
 }
 
 func needContainerBuild(ex *dkexternal, envs []string) bool {
@@ -280,9 +319,9 @@ func buildExternalInContainer(ex *dkexternal, outdir, out, goos, goarch string) 
 	}
 
 	containerCmd := fmt.Sprintf(
-		"make --no-print-directory build_external_local "+
+		"make --no-print-directory -C externals build_external_local "+
 			"EXTERNAL_NAME=%s EXTERNAL_GOOS=%s EXTERNAL_ARCH=%s "+
-			"EXTERNAL_OUTDIR=%s EXTERNAL_OUTPUT=%s GO_MODULE_MODE=%s%s",
+			"EXTERNAL_OUTDIR=%s EXTERNAL_OUTPUT=%s GO_MODULE_MODE=%s%s%s",
 		shQuote(ex.name),
 		shQuote(goos),
 		shQuote(goarch),
@@ -290,6 +329,7 @@ func buildExternalInContainer(ex *dkexternal, outdir, out, goos, goarch string) 
 		shQuote(out),
 		shQuote(goModuleMode()),
 		ebpfKernelArg(ex.name, goarch),
+		ebpfTargetArg(ex.name),
 	)
 
 	args := append([]string{}, dockerCmd...)
@@ -309,6 +349,15 @@ func buildExternalInContainer(ex *dkexternal, outdir, out, goos, goarch string) 
 		return fmt.Errorf("failed to build external %s in container: %w, msg: %s", ex.name, err, string(msg))
 	}
 
+	chownTargets := []string{containerOutDir}
+	if ex.name == externalEBPFName {
+		chownTargets = append(chownTargets, filepath.ToSlash(filepath.Join(
+			"/work",
+			"internal/plugins/externals/ebpf/internal/c/elf",
+			"linux_"+goarch,
+		)))
+	}
+
 	chownArgs := append([]string{}, dockerCmd...)
 	chownArgs = append(chownArgs,
 		"run", "--rm",
@@ -318,8 +367,9 @@ func buildExternalInContainer(ex *dkexternal, outdir, out, goos, goarch string) 
 	chownArgs = append(chownArgs,
 		"-w", "/work",
 		buildImage,
-		"chown", "-R", fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid()), containerOutDir,
+		"chown", "-R", fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid()),
 	)
+	chownArgs = append(chownArgs, chownTargets...)
 
 	_, _ = runEnv(chownArgs, nil)
 
@@ -356,11 +406,19 @@ func goModuleMode() string {
 }
 
 func ebpfKernelArg(name, goarch string) string {
-	if name != "ebpf" {
+	if name != externalEBPFName {
 		return ""
 	}
 
 	return " DK_BPF_KERNEL_SRC_PATH=" + shQuote("/usr/src/linux-headers-"+goarch)
+}
+
+func ebpfTargetArg(name string) string {
+	if name != externalEBPFName {
+		return ""
+	}
+
+	return " EXTERNAL_EBPF_TARGET='bpfobjs'"
 }
 
 func shQuote(s string) string {

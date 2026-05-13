@@ -89,26 +89,26 @@ func HTTPFlowPatchesFromGuess(offset *OffsetGuessC) []bpfutil.ConstantPatch {
 	patches := []bpfutil.ConstantPatch{
 		{
 			Name:  "offset_task_struct_files",
-			Value: uint64(offset.offset_task_struct_files),
+			Value: offset.offset_task_struct_files,
 		},
 		{
 			Name:  "offset_files_struct_fdt",
-			Value: uint64(offset.offset_files_struct_fdt),
+			Value: offset.offset_files_struct_fdt,
 		},
 		{
 			Name:  "offset_socket_file",
-			Value: uint64(offset.offset_socket_file),
+			Value: offset.offset_socket_file,
 		},
 		{
 			Name:  "offset_file_private_data",
-			Value: uint64(offset.offset_file_private_data),
+			Value: offset.offset_file_private_data,
 		},
 	}
 
 	if offset.offset_socket_sk != 0 {
 		patches = append(patches, bpfutil.ConstantPatch{
 			Name:  "offset_socket_sk",
-			Value: uint64(offset.offset_socket_sk),
+			Value: offset.offset_socket_sk,
 		})
 	}
 
@@ -128,23 +128,23 @@ func ApplyConstantPatches(dst *OffsetGuessC, patches []bpfutil.ConstantPatch) {
 
 		switch patch.Name {
 		case "offset_socket_sk":
-			dst.offset_socket_sk = _Ctype_ulonglong(value)
+			dst.offset_socket_sk = value
 		case "offset_task_struct_files":
-			dst.offset_task_struct_files = _Ctype_ulonglong(value)
+			dst.offset_task_struct_files = value
 		case "offset_files_struct_fdt":
-			dst.offset_files_struct_fdt = _Ctype_ulonglong(value)
+			dst.offset_files_struct_fdt = value
 		case "offset_socket_file":
-			dst.offset_socket_file = _Ctype_ulonglong(value)
+			dst.offset_socket_file = value
 		case "offset_file_private_data":
-			dst.offset_file_private_data = _Ctype_ulonglong(value)
+			dst.offset_file_private_data = value
 		case "offset_ct_net":
-			dst.offset_ct_net = _Ctype_ulonglong(value)
+			dst.offset_ct_net = value
 		case "offset_ct_ns_common_inum":
-			dst.offset_ct_ns_common_inum = _Ctype_ulonglong(value)
+			dst.offset_ct_ns_common_inum = value
 		case "offset_ct_origin_tuple":
-			dst.offset_origin_tuple = _Ctype_ulonglong(value)
+			dst.offset_origin_tuple = value
 		case "offset_ct_reply_tuple":
-			dst.offset_reply_tuple = _Ctype_ulonglong(value)
+			dst.offset_reply_tuple = value
 		}
 	}
 }
@@ -208,87 +208,87 @@ func NewConstEditor(offsetGuess *OffsetGuessC) []bpfutil.ConstantPatch {
 		},
 		{
 			Name:  "offset_sk_num",
-			Value: uint64(offsetGuess.offset_sk_num),
+			Value: offsetGuess.offset_sk_num,
 		},
 		{
 			Name:  "offset_inet_sport",
-			Value: uint64(offsetGuess.offset_inet_sport),
+			Value: offsetGuess.offset_inet_sport,
 		},
 		{
 			Name:  "offset_sk_family",
-			Value: uint64(offsetGuess.offset_sk_family),
+			Value: offsetGuess.offset_sk_family,
 		},
 		{
 			Name:  "offset_sk_rcv_saddr",
-			Value: uint64(offsetGuess.offset_sk_rcv_saddr),
+			Value: offsetGuess.offset_sk_rcv_saddr,
 		},
 		{
 			Name:  "offset_sk_daddr",
-			Value: uint64(offsetGuess.offset_sk_daddr),
+			Value: offsetGuess.offset_sk_daddr,
 		},
 		{
 			Name:  "offset_sk_v6_rcv_saddr",
-			Value: uint64(offsetGuess.offset_sk_v6_rcv_saddr),
+			Value: offsetGuess.offset_sk_v6_rcv_saddr,
 		},
 		{
 			Name:  "offset_sk_v6_daddr",
-			Value: uint64(offsetGuess.offset_sk_v6_daddr),
+			Value: offsetGuess.offset_sk_v6_daddr,
 		},
 		{
 			Name:  "offset_sk_dport",
-			Value: uint64(offsetGuess.offset_sk_dport),
+			Value: offsetGuess.offset_sk_dport,
 		},
 		{
 			Name:  "offset_tcp_sk_srtt_us",
-			Value: uint64(offsetGuess.offset_tcp_sk_srtt_us),
+			Value: offsetGuess.offset_tcp_sk_srtt_us,
 		},
 		{
 			Name:  "offset_tcp_sk_mdev_us",
-			Value: uint64(offsetGuess.offset_tcp_sk_mdev_us),
+			Value: offsetGuess.offset_tcp_sk_mdev_us,
 		},
 		{
 			Name:  "offset_flowi4_saddr",
-			Value: uint64(offsetGuess.offset_flowi4_saddr),
+			Value: offsetGuess.offset_flowi4_saddr,
 		},
 		{
 			Name:  "offset_flowi4_daddr",
-			Value: uint64(offsetGuess.offset_flowi4_daddr),
+			Value: offsetGuess.offset_flowi4_daddr,
 		},
 		{
 			Name:  "offset_flowi4_sport",
-			Value: uint64(offsetGuess.offset_flowi4_sport),
+			Value: offsetGuess.offset_flowi4_sport,
 		},
 		{
 			Name:  "offset_flowi4_dport",
-			Value: uint64(offsetGuess.offset_flowi4_dport),
+			Value: offsetGuess.offset_flowi4_dport,
 		},
 		{
 			Name:  "offset_flowi6_saddr",
-			Value: uint64(offsetGuess.offset_flowi6_saddr),
+			Value: offsetGuess.offset_flowi6_saddr,
 		},
 		{
 			Name:  "offset_flowi6_daddr",
-			Value: uint64(offsetGuess.offset_flowi6_daddr),
+			Value: offsetGuess.offset_flowi6_daddr,
 		},
 		{
 			Name:  "offset_flowi6_sport",
-			Value: uint64(offsetGuess.offset_flowi6_sport),
+			Value: offsetGuess.offset_flowi6_sport,
 		},
 		{
 			Name:  "offset_flowi6_dport",
-			Value: uint64(offsetGuess.offset_flowi6_dport),
+			Value: offsetGuess.offset_flowi6_dport,
 		},
 		{
 			Name:  "offset_sk_net",
-			Value: uint64(offsetGuess.offset_sk_net),
+			Value: offsetGuess.offset_sk_net,
 		},
 		{
 			Name:  "offset_ns_common_inum",
-			Value: uint64(offsetGuess.offset_ns_common_inum),
+			Value: offsetGuess.offset_ns_common_inum,
 		},
 		{
 			Name:  "offset_socket_sk",
-			Value: uint64(offsetGuess.offset_socket_sk),
+			Value: offsetGuess.offset_socket_sk,
 		},
 	}
 }
@@ -382,7 +382,7 @@ func GuessOffset(rt *bpfutil.Runtime, guessed *OffsetGuessC, ipv6Disabled bool) 
 		copyOffset(guessed, &status)
 		copySupplementalOffsets(guessed, &status)
 	}
-	status.pid_tgid = _Ctype_ulonglong(uint64(unix.Getpid())<<32 | uint64(unix.Gettid()))
+	status.pid_tgid = uint64(unix.Getpid())<<32 | uint64(unix.Gettid())
 
 	needTCP4 := kernelGuessNeedsTCP4(&status) || kernelGuessNeedsSocket(&status)
 	needUDP4 := kernelGuessNeedsUDP4(&status)
@@ -409,7 +409,7 @@ func GuessOffset(rt *bpfutil.Runtime, guessed *OffsetGuessC, ipv6Disabled bool) 
 			Meta:  ConnL4TCP | ConnL3IPv4,
 			NetNS: netns,
 		}
-		status.meta = _Ctype_uint(conninfo.Meta)
+		status.meta = conninfo.Meta
 	}
 
 	if needUDP4 {
@@ -498,7 +498,7 @@ func GuessOffset(rt *bpfutil.Runtime, guessed *OffsetGuessC, ipv6Disabled bool) 
 		maxKernelGuessRounds,
 		kernelGuessProgress(&offsetCheck),
 		status.state,
-		guessErrorString(int64(status.err)),
+		guessErrorString(status.err),
 		status.err,
 		status.pid_tgid,
 		guessProcessName(&status),
@@ -582,7 +582,7 @@ func guessTCP4(serverAddr string, conninfo Conninfo, ebpfMapGuess *ebpf.Map,
 			statusAct.pid_tgid,
 			guessProcessName(statusAct),
 			serverAddr,
-			guessErrorString(int64(statusAct.err)),
+			guessErrorString(statusAct.err),
 			statusAct.err,
 			status.offset_inet_sport,
 			status.offset_sk_dport,
@@ -663,7 +663,7 @@ func guessTCP6(serverAddr6 string, conninfo6 Conninfo, ebpfMapGuess *ebpf.Map,
 			statusAct.pid_tgid,
 			guessProcessName(statusAct),
 			serverAddr6,
-			guessErrorString(int64(statusAct.err)),
+			guessErrorString(statusAct.err),
 			statusAct.err,
 			status.offset_sk_v6_daddr,
 			status.offset_sk_family,
@@ -731,7 +731,7 @@ func guessUDP4(serverAddrUDP string, conninfoUDP Conninfo, ebpfMapGuess *ebpf.Ma
 			statusAct.pid_tgid,
 			guessProcessName(statusAct),
 			serverAddrUDP,
-			guessErrorString(int64(statusAct.err)),
+			guessErrorString(statusAct.err),
 			statusAct.err,
 			status.offset_flowi4_saddr,
 			status.offset_flowi4_daddr,

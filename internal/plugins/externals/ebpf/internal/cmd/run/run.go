@@ -193,6 +193,8 @@ func NewRunCmd() *cobra.Command {
 		"set eBPF trace generation server address")
 	cmd.Flags().BoolVar(&opt.EBPFTrace.EnableUprobe, "trace-uprobe", false,
 		"enable procwatch/uprobe target-process attach for ebpf-trace")
+	cmd.Flags().BoolVar(&opt.EBPFTrace.TraceAllProc, "trace-allprocess", false,
+		"trace all processes")
 
 	cmd.Flags().StringVar(&opt.HostName, "hostname", "", "set host name")
 	cmd.Flags().StringVar(&opt.Interval, "interval", "60s", "set gather interval")
@@ -540,6 +542,7 @@ func runCmd(cfgFile *string, fl *Flag) error {
 				if err == nil {
 					ctMap = ctmap
 				}
+				dkct.StartMapObserver(ctx, ctRuntime, time.Minute)
 			}
 		}
 

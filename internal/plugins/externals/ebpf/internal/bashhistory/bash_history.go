@@ -4,13 +4,15 @@
 // Package bashhistory collects bash history
 package bashhistory
 
+//go:generate go run ../c/genlayout -target bashhistory
+
 import (
 	"bytes"
 	"context"
 	"fmt"
 	"math"
-	"os"
 	"os/user"
+	"sync"
 	"time"
 	"unsafe"
 
@@ -24,11 +26,6 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// #include "../c/bash_history/bash_history.h"
-import "C"
-
-type BashEventC C.struct_bash_event
-
 const bashEventSize = int(unsafe.Sizeof(BashEventC{})) //nolint:gosec
 
 const (
@@ -36,15 +33,14 @@ const (
 	inputNameBash = "ebpf-bash"
 )
 
-var (
-	l = logger.DefaultSLogger(srcNameM)
-)
+var l = logger.DefaultSLogger(srcNameM)
 
 func SetLogger(nl *logger.Logger) {
 	l = nl
 }
 
 func NewBashRuntime(bashReadlineEventHandler bpfutil.PerfHandler) (*bpfutil.Runtime, error) {
+	perfRingBufferSize := bpfutil.SmallPerfRingBufferSize()
 	runtime := &bpfutil.Runtime{
 		Probes: []*bpfutil.HookSpec{
 			{
@@ -61,10 +57,15 @@ func NewBashRuntime(bashReadlineEventHandler bpfutil.PerfHandler) (*bpfutil.Runt
 					Name: "bpfmap_bash_readline",
 				},
 				PerfStreamOptions: bpfutil.PerfStreamOptions{
-					PerfRingBufferSize: 32 * os.Getpagesize(),
+					PerfRingBufferSize: perfRingBufferSize,
+					Watermark:          bpfutil.PerfWatermark(perfRingBufferSize),
 					DataHandler:        bashReadlineEventHandler,
 					LostHandler: func(cpu int, count uint64, stream *bpfutil.PerfStream, runtime *bpfutil.Runtime) {
 						exporter.AddPerfLost("bashhistory", stream.Name, count)
+					},
+					ErrorHandler: func(err error, stream *bpfutil.PerfStream, runtime *bpfutil.Runtime) {
+						exporter.IncPerfReadError("bashhistory", stream.Name)
+						l.Warnf("bashhistory perf stream stopped: %v", err)
 					},
 				},
 			},
@@ -86,9 +87,10 @@ func NewBashRuntime(bashReadlineEventHandler bpfutil.PerfHandler) (*bpfutil.Runt
 }
 
 type BashTracer struct {
-	ch     chan *point.Point
-	stopCh chan struct{}
-	gTags  map[string]string
+	ch       chan *point.Point
+	stopCh   chan struct{}
+	stopOnce sync.Once
+	gTags    map[string]string
 }
 
 func NewBashTracer() *BashTracer {
@@ -99,7 +101,8 @@ func NewBashTracer() *BashTracer {
 }
 
 func (tracer *BashTracer) readlineCallBack(cpu int, data []byte,
-	stream *bpfutil.PerfStream, runtime *bpfutil.Runtime) {
+	stream *bpfutil.PerfStream, runtime *bpfutil.Runtime,
+) {
 	if len(data) < bashEventSize {
 		l.Debugf("drop short bash event: got %d want >= %d", len(data), bashEventSize)
 		return
@@ -117,7 +120,7 @@ func (tracer *BashTracer) readlineCallBack(cpu int, data []byte,
 
 	mFields := map[string]interface{}{}
 
-	lineChar := (*(*[128]byte)(unsafe.Pointer(&eventC.line)))
+	lineChar := eventC.line
 	mFields["cmd"] = unix.ByteSliceToString(lineChar[:])
 
 	u, err := user.LookupId(fmt.Sprintf("%d", int(eventC.uid_gid>>32)))
@@ -145,6 +148,7 @@ func (tracer *BashTracer) readlineCallBack(cpu int, data []byte,
 
 func (tracer *BashTracer) feedHandler(ctx context.Context, interval time.Duration) {
 	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
 	cache := []*point.Point{}
 	for {
 		select {
@@ -170,10 +174,9 @@ func (tracer *BashTracer) feedHandler(ctx context.Context, interval time.Duratio
 }
 
 func (tracer *BashTracer) Run(ctx context.Context, gTags map[string]string,
-	interval time.Duration) error {
+	interval time.Duration,
+) error {
 	tracer.gTags = gTags
-
-	go tracer.feedHandler(ctx, interval)
 
 	runtime, err := NewBashRuntime(tracer.readlineCallBack)
 	if err != nil {
@@ -182,12 +185,17 @@ func (tracer *BashTracer) Run(ctx context.Context, gTags map[string]string,
 	}
 	if err := runtime.StartRuntime(); err != nil {
 		l.Error(err)
+		_ = runtime.Shutdown()
 		return err
 	}
 
+	go tracer.feedHandler(ctx, interval)
 	go func() {
 		<-ctx.Done()
-		close(tracer.stopCh)
+		_ = runtime.Shutdown()
+		tracer.stopOnce.Do(func() {
+			close(tracer.stopCh)
+		})
 	}()
 	return nil
 }

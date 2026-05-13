@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
 )
 
@@ -17,7 +18,7 @@ const (
 	twoMSL              = time.Minute     // buf default is 120s
 	defaultTCPKeepAlive = time.Minute * 2 // >5min 直接结束，不使用内核设置，避免堆积
 
-	tcpPktLimitPerChunk = 256
+	tcpPktLimitPerChunk = 64
 )
 
 type L7ProtoEventAndMetric interface {
@@ -226,6 +227,18 @@ func (chunk *PktChunk) markMessageDirty() {
 	chunk.messageDirty = true
 }
 
+func (chunk *PktChunk) releaseLogPayload() {
+	if chunk == nil {
+		return
+	}
+	chunk.TCPSreries = nil
+	chunk.messageCache = ""
+	chunk.messageDirty = false
+	chunk.TCPColName = nil
+	chunk.MACMap = nil
+	chunk.extraMAC = nil
+}
+
 func (chunk *PktChunk) recSeqRange(seq, ack uint32, tx bool, tcpflag TCPFlag) {
 	chunk.markMessageDirty()
 	var noAck, noSeq bool
@@ -409,10 +422,24 @@ func (tcpl *TCPLog) GetPktChunk(nxt bool, forceNew bool) *PktChunk {
 			messageDirty: true,
 		}
 		tcpl.chunk = append(tcpl.chunk, c)
+		tcpl.trimChunksByLimit()
 		tcpl.rtt.toNext()
 	}
 
 	return c
+}
+
+func (tcpl *TCPLog) trimChunksByLimit() {
+	limit := netlogMaxChunksPerConn()
+	if limit <= 0 || len(tcpl.chunk) <= limit {
+		return
+	}
+
+	drop := len(tcpl.chunk) - limit
+	clearPktChunks(tcpl.chunk[:drop])
+	kept := append([]*PktChunk(nil), tcpl.chunk[drop:]...)
+	tcpl.chunk = kept
+	exporter.AddCacheEvictions("l4log", "tcp_chunks", "max_chunks_per_conn", drop)
 }
 
 func calSeqOffset(seq, ack, seqPos, ackPos uint32, seqPosFlag, ackPosFlag bool, tcpFlag TCPFlag) (

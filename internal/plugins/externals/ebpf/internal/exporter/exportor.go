@@ -68,8 +68,8 @@ func buildTarget(apiServer string, traceServer string) *target {
 const (
 	dkLastErr = "/v1/lasterror"
 
-	maxPtSendCount   = 256
-	senderQueueSize  = 64
+	maxPtSendCount   = 64
+	senderQueueSize  = 32
 	senderWorkerSize = 4
 )
 
@@ -145,6 +145,7 @@ func Init(ctx context.Context, opts ...opt) {
 		stats.MustRegister(eAggFlushPointsVec)
 		stats.MustRegister(eAggFlushDurationVec)
 		stats.MustRegister(eCacheEntriesVec)
+		stats.MustRegister(eCacheEvictionsTotalVec)
 		stats.MustRegister(eSenderQueueLen)
 		stats.MustRegister(eSenderBatchPoints)
 		stats.MustRegister(eSenderBatchBytes)
@@ -393,6 +394,7 @@ func (sender *Sender) request(ctx context.Context, m *marshaler, data *task) err
 	if data == nil || len(data.data) == 0 {
 		return nil
 	}
+	defer releaseTaskPoints(data)
 	if sender == nil {
 		return fmt.Errorf("sender not init")
 	}
@@ -416,10 +418,21 @@ func (sender *Sender) request(ctx context.Context, m *marshaler, data *task) err
 	return nil
 }
 
+func releaseTaskPoints(t *task) {
+	if t == nil {
+		return
+	}
+	for i := range t.data {
+		t.data[i] = nil
+	}
+	t.data = nil
+}
+
 func (m *marshaler) marshal(pts []*point.Point) ([]byte, error) {
 	if len(pts) == 0 {
 		return nil, nil
 	}
+	defer m.releasePBPoints()
 
 	m.pbpts.Arr = m.pbpts.Arr[:0]
 	for i := range pts {
@@ -445,6 +458,16 @@ func (m *marshaler) marshal(pts []*point.Point) ([]byte, error) {
 		return nil, err
 	}
 	return m.buf[:n], nil
+}
+
+func (m *marshaler) releasePBPoints() {
+	if m == nil {
+		return
+	}
+	for i := range m.pbpts.Arr {
+		m.pbpts.Arr[i] = nil
+	}
+	m.pbpts.Arr = m.pbpts.Arr[:0]
 }
 
 func (sender *Sender) postData(ctx context.Context, buf []byte, enc point.Encoding, url string) (string, error) {

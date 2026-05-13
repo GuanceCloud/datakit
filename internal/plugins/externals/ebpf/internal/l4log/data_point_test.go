@@ -290,7 +290,7 @@ func TestBuildH2LogRecordsHostDomainImmediately(t *testing.T) {
 	}
 }
 
-func TestTCPLogMessageCache(t *testing.T) {
+func TestTCPLogMessageJSONDoesNotRetainCache(t *testing.T) {
 	chunk := &PktChunk{
 		ChunkID:       1,
 		messageDirty:  true,
@@ -303,10 +303,10 @@ func TestTCPLogMessageCache(t *testing.T) {
 		t.Fatal(err)
 	}
 	if chunk.messageDirty {
-		t.Fatal("expected tcp message cache to be clean after marshal")
+		t.Fatal("expected tcp message dirty flag to be clean after marshal")
 	}
-	if chunk.TCPColName != nil || chunk.MACMap != nil {
-		t.Fatal("expected temporary tcp serialization fields to be released after marshal")
+	if chunk.messageCache != "" {
+		t.Fatal("expected tcp message not to be retained on chunk")
 	}
 
 	msg2, err := tcpLogMessageJSON(chunk)
@@ -314,10 +314,7 @@ func TestTCPLogMessageCache(t *testing.T) {
 		t.Fatal(err)
 	}
 	if msg1 != msg2 {
-		t.Fatal("expected cached tcp message to be reused")
-	}
-	if chunk.TCPColName != nil || chunk.MACMap != nil {
-		t.Fatal("expected cached tcp message to avoid rebuilding temporary serialization fields")
+		t.Fatal("expected stable tcp message output")
 	}
 
 	chunk.TxBytes = 12

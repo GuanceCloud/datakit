@@ -304,7 +304,7 @@ func (agg *FlowAgg) Append(info ConnectionInfo, stats ConnFullStats) error {
 func (agg *FlowAgg) ToPoint(tags map[string]string,
 	k8sInfo *cli.K8sInfo,
 ) []*point.Point {
-	var result []*point.Point
+	result := make([]*point.Point, 0, len(agg.data))
 
 	pTime := ntp.Now()
 	for k, v := range agg.data {

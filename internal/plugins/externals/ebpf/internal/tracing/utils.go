@@ -51,9 +51,11 @@ func GetHTTPHeader(payload []byte) map[string]string {
 		return nil
 	}
 
+	completeHeaders := false
 	idx := bytes.LastIndex(payload, []byte("\r\n\r\n"))
 	if idx > 0 {
 		payload = payload[:idx]
+		completeHeaders = true
 	} else if idx == 0 {
 		return nil
 	}
@@ -90,6 +92,14 @@ func GetHTTPHeader(payload []byte) map[string]string {
 
 	headers := map[string]string{}
 	payload = payload[idx+2:]
+	if len(payload) > 0 && !completeHeaders && !bytes.HasSuffix(payload, []byte("\r\n")) {
+		idx := bytes.LastIndex(payload, []byte("\r\n"))
+		if idx < 0 {
+			return headers
+		}
+		payload = payload[:idx+2]
+	}
+
 	hdr := strings.Split(string(payload), "\r\n")
 	for _, v := range hdr {
 		kv := strings.SplitN(v, ":", 2)

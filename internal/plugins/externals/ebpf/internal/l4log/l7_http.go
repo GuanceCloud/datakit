@@ -587,6 +587,7 @@ func parseHTTPRequestMeta(cnt []byte) (method, path, host, traceID, parentID str
 
 	for next < len(cnt) {
 		header, n, ok := nextHTTPLine(cnt, next)
+		completeLine := n >= 2 && n <= len(cnt) && cnt[n-2] == '\r' && cnt[n-1] == '\n'
 		next = n
 		if !ok || len(header) == 0 {
 			break
@@ -602,7 +603,7 @@ func parseHTTPRequestMeta(cnt []byte) (method, path, host, traceID, parentID str
 		case bytes.EqualFold(name, []byte("traceparent")):
 			value := bytes.TrimLeft(header[colon+1:], " \t")
 			traceID, parentID = parseTraceparentHeader(value)
-		case host == "" && bytes.EqualFold(name, []byte("host")):
+		case host == "" && completeLine && bytes.EqualFold(name, []byte("host")):
 			host = normalizeHTTPHostBytes(header[colon+1:])
 		}
 	}

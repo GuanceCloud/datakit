@@ -12,7 +12,7 @@ import (
 )
 
 func extractHTTPRequestHost(payload []byte, headers map[string]string) string {
-	if host := normalizeHTTPHost(findAbsoluteFormHost(payload)); host != "" {
+	if host := findAbsoluteFormHost(payload); host != "" {
 		return host
 	}
 	if headers == nil {
@@ -23,26 +23,41 @@ func extractHTTPRequestHost(payload []byte, headers map[string]string) string {
 
 func findAbsoluteFormHost(payload []byte) string {
 	idx := bytes.Index(payload, []byte("\r\n"))
-	if idx <= 0 {
+	line := payload
+	if idx >= 0 {
+		if idx == 0 {
+			return ""
+		}
+		line = payload[:idx]
+	}
+
+	firstSpace := bytes.IndexByte(line, ' ')
+	if firstSpace <= 0 || firstSpace+1 >= len(line) {
 		return ""
 	}
 
-	parts := strings.SplitN(string(payload[:idx]), " ", 3)
-	if len(parts) < 2 {
-		return ""
+	target := string(line[firstSpace+1:])
+	if secondSpace := strings.IndexByte(target, ' '); secondSpace >= 0 {
+		target = target[:secondSpace]
 	}
 
-	target := parts[1]
 	if !strings.HasPrefix(target, "http://") && !strings.HasPrefix(target, "https://") {
 		return ""
 	}
 
 	target = strings.TrimPrefix(strings.TrimPrefix(target, "http://"), "https://")
-	if off := strings.IndexByte(target, '/'); off >= 0 {
-		target = target[:off]
+	pathOff := strings.IndexByte(target, '/')
+	queryOff := strings.IndexByte(target, '?')
+	switch {
+	case pathOff >= 0 && (queryOff < 0 || pathOff < queryOff):
+		target = target[:pathOff]
+	case queryOff >= 0:
+		target = target[:queryOff]
+	default:
+		return ""
 	}
 
-	return target
+	return normalizeHTTPHost(target)
 }
 
 func normalizeHTTPHost(host string) string {
@@ -52,8 +67,11 @@ func normalizeHTTPHost(host string) string {
 		return ""
 	}
 
-	switch parsedHost, _, err := net.SplitHostPort(host); {
+	switch parsedHost, port, err := net.SplitHostPort(host); {
 	case err == nil:
+		if _, err := strconv.ParseUint(port, 10, 16); err != nil {
+			return ""
+		}
 		host = parsedHost
 	case strings.Count(host, ":") == 1:
 		idx := strings.LastIndex(host, ":")
@@ -77,6 +95,40 @@ func normalizeHTTPHost(host string) string {
 	if _, err := netip.ParseAddr(host); err == nil {
 		return ""
 	}
+	if !isValidHTTPHostName(host) {
+		return ""
+	}
 
 	return host
+}
+
+func isValidHTTPHostName(host string) bool {
+	if host == "" || len(host) > 253 {
+		return false
+	}
+
+	labelStart := 0
+	for i := 0; i <= len(host); i++ {
+		if i < len(host) && host[i] != '.' {
+			c := host[i]
+			switch {
+			case c >= 'a' && c <= 'z':
+			case c >= '0' && c <= '9':
+			case c == '-' || c == '_':
+			default:
+				return false
+			}
+			continue
+		}
+
+		if i == labelStart || i-labelStart > 63 {
+			return false
+		}
+		if host[labelStart] == '-' || host[i-1] == '-' {
+			return false
+		}
+		labelStart = i + 1
+	}
+
+	return true
 }
