@@ -480,7 +480,7 @@ func installPhpExtensionFiles(extractDir string, info *phpExtensionInfo) error {
 	// 目标路径
 	extDir := info.extensionDir
 	if extDir == "" {
-		extDir = "/usr/lib/php/modules"
+		return fmt.Errorf("php extension_dir not found")
 	}
 
 	// 确保目标目录存在

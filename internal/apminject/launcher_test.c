@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include <assert.h>
 
 #include "apm_launcher.c"

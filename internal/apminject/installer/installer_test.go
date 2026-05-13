@@ -11,20 +11,38 @@ package installer
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/apminject/utils"
 )
 
 func TestSetUnset(t *testing.T) {
-	runcPath := "/tmp/dk_ctr_test_runc_" + strconv.FormatInt(time.Now().UnixNano(), 36)
+	oldReload := reloadDockerConfigFunc
+	reloadDockerConfigFunc = func() error { return nil }
+	t.Cleanup(func() {
+		reloadDockerConfigFunc = oldReload
+	})
+
+	installDir := filepath.Join("/tmp", "dk_ctr_test_install_"+strconv.FormatInt(time.Now().UnixNano(), 36))
+	runcPath := dkRuncPath(installDir)
+	if err := os.MkdirAll(filepath.Dir(runcPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
 	f, err := os.OpenFile(runcPath, os.O_CREATE, 0o755)
 	if err != nil {
 		t.Fatal(err)
 	}
 	f.Close()
+
+	dkUDS := filepath.Join(t.TempDir(), "datakit.sock")
+	if err := os.WriteFile(dkUDS, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv(utils.EnvDKSocketAddr, dkUDS)
 
 	const (
 		Set   = 1
@@ -167,7 +185,7 @@ func TestSetUnset(t *testing.T) {
 			f.Close()
 			switch c.kind {
 			case Set:
-				err := setDockerRunc(c.path, runcPath)
+				err := setDockerRunc(c.path, installDir)
 				if c.failed {
 					assert.Error(t, err)
 				} else {

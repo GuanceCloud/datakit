@@ -186,6 +186,27 @@ func TestReadPreloadWithoutLauncher(t *testing.T) {
 	assert.Equal(t, "", result)
 }
 
+func TestReadPreloadWithoutLauncherUsesExactWhitespaceToken(t *testing.T) {
+	tmpDir := t.TempDir()
+	preloadPath := filepath.Join(tmpDir, "ld.so.preload")
+	installDir := t.TempDir()
+
+	launcherSoPath := filepath.Join(installDir, DirInject, DirInjectSubInject, launcherSoFileName)
+	err := os.MkdirAll(filepath.Dir(launcherSoPath), 0o755)
+	assert.NoError(t, err)
+
+	otherPath := launcherSoPath + ".backup"
+	content := "/usr/lib/some-lib.so " + launcherSoPath + "\n" + otherPath + "\n"
+	err = os.WriteFile(preloadPath, []byte(content), 0o644)
+	assert.NoError(t, err)
+
+	result, err := readPreloadWithoutLanucher(preloadPath, installDir)
+	assert.NoError(t, err)
+	assert.NotContains(t, strings.Fields(result), launcherSoPath)
+	assert.Contains(t, strings.Fields(result), "/usr/lib/some-lib.so")
+	assert.Contains(t, strings.Fields(result), otherPath)
+}
+
 func TestSetAndUnsetPreloadHelper(t *testing.T) {
 	// 测试 readPreloadWithoutLanucher 函数的逻辑
 	tmpDir := t.TempDir()

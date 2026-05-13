@@ -147,18 +147,30 @@ resolve_docker_cc() {
 
     case "$arch:$libc" in
         amd64:glibc)
-            candidates="x86_64-linux-gnu-gcc gcc"
+            candidates="x86_64-linux-gnu-gcc"
+            if [ "$host_arch" = "amd64" ]; then
+                candidates="$candidates gcc"
+            fi
             ;;
         amd64:musl)
             image=pubrepo.jiagouyun.com/ebpf-dev/apm-inject-dev-musl:1.1
-            candidates="x86_64-linux-musl-gcc musl-gcc gcc"
+            candidates="x86_64-linux-musl-gcc"
+            if [ "$host_arch" = "amd64" ]; then
+                candidates="$candidates musl-gcc gcc"
+            fi
             ;;
         arm64:glibc)
-            candidates="aarch64-linux-gnu-gcc gcc"
+            candidates="aarch64-linux-gnu-gcc"
+            if [ "$host_arch" = "arm64" ]; then
+                candidates="$candidates gcc"
+            fi
             ;;
         arm64:musl)
             image=pubrepo.jiagouyun.com/ebpf-dev/apm-inject-dev-musl:1.1
-            candidates="aarch64-linux-musl-gcc musl-gcc gcc"
+            candidates="aarch64-linux-musl-gcc"
+            if [ "$host_arch" = "arm64" ]; then
+                candidates="$candidates musl-gcc gcc"
+            fi
             ;;
     esac
 
@@ -200,6 +212,44 @@ ensure_binfmt() {
         --install all
 }
 
+check_launcher_arch() {
+    so_path=$1
+    arch=$2
+
+    if command -v readelf >/dev/null 2>&1; then
+        machine=$(readelf -h "$so_path" | awk -F: '/Machine:/ {gsub(/^[ \t]+/, "", $2); print $2}')
+        case "$arch" in
+            amd64)
+                echo "$machine" | grep -q "X86-64" && return 0
+                ;;
+            arm64)
+                echo "$machine" | grep -q "AArch64" && return 0
+                ;;
+        esac
+
+        echo "unexpected ELF machine for $so_path: $machine, target arch: $arch" >&2
+        return 1
+    fi
+
+    if command -v file >/dev/null 2>&1; then
+        desc=$(file "$so_path")
+        case "$arch" in
+            amd64)
+                echo "$desc" | grep -qi "x86-64" && return 0
+                ;;
+            arm64)
+                echo "$desc" | grep -qi "aarch64" && return 0
+                ;;
+        esac
+
+        echo "unexpected file type for $so_path: $desc, target arch: $arch" >&2
+        return 1
+    fi
+
+    echo "cannot verify ELF arch for $so_path: neither readelf nor file is available" >&2
+    return 1
+}
+
 make -f "$repo_root"/internal/apminject/Makefile \
     rewriter dkrunc DIST_DIR="$repo_root"/"$dist_rela_dir" \
     ARCH="$target_arch" REPO_PATH="$repo_root" || exit $?
@@ -214,6 +264,7 @@ else
     fi
     docker_build "$target_arch" glibc
 fi
+check_launcher_arch "$repo_root"/"$dist_rela_dir"/apm_launcher.so "$target_arch"
 
 if build_local "$target_arch" musl; then
     :
@@ -225,3 +276,4 @@ else
     fi
     docker_build "$target_arch" musl
 fi
+check_launcher_arch "$repo_root"/"$dist_rela_dir"/apm_launcher_musl.so "$target_arch"
