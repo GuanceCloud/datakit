@@ -1,4 +1,4 @@
-.PHONY: all clean cleancache
+.PHONY: all clean cleancache bindata bpfobjs build build-go
 
 GO ?= go
 GOTOOLCHAIN ?= go1.26.1
@@ -43,8 +43,9 @@ DKE_VERSION := $(shell sh -c 'command -v git >/dev/null 2>&1 && git describe --t
 DKE_COMMIT  := $(shell sh -c 'command -v git >/dev/null 2>&1 && git rev-parse --short HEAD || echo unknown')
 DKE_DATE    := $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 
-ARGS ?= ""
+ARGS ?=
 GO_BUILD_TAGS ?= ebpf netgo
+CGO_ENABLED ?= 0
 
 SRCPATH ?= .
 SRC_PATH := $(SRCPATH)
@@ -101,7 +102,7 @@ apiflow.o:
 
 apiflow_legacy.o:
 	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
-		-DDK_LEGACY_CONST_IMM \
+		-DDK_LEGACY_CONST_IMM -DDK_DISABLE_LRU_HASH \
 		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
 		-c $(INTERNAL_PATH)/c/apiflow/apiflow.c \
 		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/apiflow_legacy.o
@@ -114,7 +115,7 @@ netflow.o:
 
 netflow_legacy.o:
 	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
-		-DDK_LEGACY_CONST_IMM \
+		-DDK_LEGACY_CONST_IMM -DDK_DISABLE_LRU_HASH \
 		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
 		-c $(INTERNAL_PATH)/c/netflow/netflow.c \
 		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/netflow_legacy.o
@@ -133,7 +134,7 @@ conntrack.o:
 
 conntrack_legacy.o:
 	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
-		-DDK_LEGACY_CONST_IMM \
+		-DDK_LEGACY_CONST_IMM -DDK_DISABLE_LRU_HASH \
 		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
 		-c $(INTERNAL_PATH)/c/conntrack/conntrack.c \
 		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/conntrack_legacy.o
@@ -144,6 +145,13 @@ offset_guess.o:
 		-c $(INTERNAL_PATH)/c/offset_guess/offset_guess.c \
 		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/offset_guess.o
 
+offset_guess_legacy.o:
+	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
+		-DDK_DISABLE_LRU_HASH \
+		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
+		-c $(INTERNAL_PATH)/c/offset_guess/offset_guess.c \
+		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/offset_guess_legacy.o
+
 offset_httpflow.o:
 	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
 		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
@@ -152,7 +160,7 @@ offset_httpflow.o:
 
 offset_httpflow_legacy.o:
 	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
-		-DDK_LEGACY_CONST_IMM \
+		-DDK_LEGACY_CONST_IMM -DDK_DISABLE_LRU_HASH \
 		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
 		-c $(INTERNAL_PATH)/c/offset_guess/offset_httpflow.c \
 		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/offset_httpflow_legacy.o
@@ -171,7 +179,7 @@ offset_tcp_seq.o:
 
 offset_tcp_seq_legacy.o:
 	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
-		-DDK_LEGACY_CONST_IMM \
+		-DDK_LEGACY_CONST_IMM -DDK_DISABLE_LRU_HASH \
 		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
 		-c $(INTERNAL_PATH)/c/offset_guess/offset_tcp_seq.c \
 		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/offset_tcp_seq_legacy.o
@@ -187,13 +195,17 @@ bash_history.o:
 		-c $(INTERNAL_PATH)/c/bash_history/bash_history.c \
 		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/bash_history.o
 
-bindata: offset_guess.o offset_httpflow.o offset_httpflow_legacy.o offset_conntrack.o offset_tcp_seq.o offset_tcp_seq_legacy.o \
+bindata: offset_guess.o offset_guess_legacy.o offset_httpflow.o offset_httpflow_legacy.o offset_conntrack.o offset_tcp_seq.o offset_tcp_seq_legacy.o \
 			host_peer_filter.o \
 			netflow.o netflow_legacy.o apiflow.o apiflow_legacy.o bash_history.o conntrack.o conntrack_legacy.o process_sched.o
 	llvm-strip $(EBPF_BIN_PATH)/*.o --strip-debug
 
-build: bindata
-	GO111MODULE=on CGO_ENABLED=1 GOOS=$(GOOS) GOARCH=$(GO_ARCH) \
+bpfobjs: bindata
+
+build: bpfobjs build-go
+
+build-go:
+	GO111MODULE=on CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GO_ARCH) \
 	$(GO) build -tags="$(GO_BUILD_TAGS)" -ldflags "-w -s \
 		-X 'main.Arch=${DKE_ARCH}' \
         -X 'main.Date=${DKE_DATE}'" -o $(OUT_PATH) $(SRC_PATH)/cmd/datakit-ebpf/datakit-ebpf.go

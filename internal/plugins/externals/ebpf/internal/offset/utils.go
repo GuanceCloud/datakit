@@ -1,10 +1,10 @@
 //go:build linux
 // +build linux
 
+//nolint:gosec,lll
 package offset
 
-// #include "../c/offset_guess/offset.h"
-import "C"
+//go:generate go run ../c/genlayout -target offset
 
 import (
 	"bytes"
@@ -28,17 +28,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 )
 
-type OffsetGuessC C.struct_offset_guess
-
-type OffsetHTTPFlowC C.struct_offset_httpflow
-
-type OffsetConntrackC C.struct_offset_conntrack
-
-type CTConnC C.struct_nf_conn_tuple
-
-type OffsetTCPSeqC C.struct_offset_tcp_seq
-
-//nolint:structcheck
+//nolint:unused
 type OffsetCheck struct {
 	skNumOk           uint64
 	inetSportOk       uint64
@@ -208,8 +198,17 @@ func NewGuessRuntime(guessed *OffsetGuessC, ipv6Disabled bool) (*bpfutil.Runtime
 			Max: math.MaxUint64,
 		},
 	}
-	if buf, err := dkebpf.OffsetGuessBin(); err != nil {
-		return nil, fmt.Errorf("offset_guess.o: %w", err)
+	binLoader := dkebpf.OffsetGuessBin
+	binName := "offset_guess.o"
+	if useHashMaps, kernelVersion, err := bpfutil.UseHashMapObjects(); err != nil {
+		l.Warnf("detect LRU hash map support for offset guess failed: %v", err)
+	} else if useHashMaps {
+		binLoader = dkebpf.OffsetGuessLegacyBin
+		binName = "offset_guess_legacy.o"
+		l.Infof("kernel %#x loading legacy offset guess object without LRU hash maps", kernelVersion)
+	}
+	if buf, err := binLoader(); err != nil {
+		return nil, fmt.Errorf("%s: %w", binName, err)
 	} else if err := m.LoadFromReader((bytes.NewReader(buf)), loadSpec); err != nil {
 		return nil, fmt.Errorf("init offset guess: %w", err)
 	}
@@ -245,10 +244,25 @@ func NewOffsetHTTPFlowRuntime() (*bpfutil.Runtime, error) {
 		binLoader = dkebpf.OffsetHttpflowLegacyBin
 		binName = "offset_httpflow_legacy.o"
 	}
-	if buf, err := binLoader(); err != nil {
-		return nil, fmt.Errorf("%s: %w", binName, err)
-	} else if err := m.LoadFromReader((bytes.NewReader(buf)), loadSpec); err != nil {
-		return nil, fmt.Errorf("init offset httpflow guess: %w", err)
+	loadRuntime := func(name string, loader func() ([]byte, error), legacyConstants bool) error {
+		loadSpec.LegacyConstants = legacyConstants
+		buf, err := loader()
+		if err != nil {
+			return fmt.Errorf("%s: %w", name, err)
+		}
+		if err := m.LoadFromReader((bytes.NewReader(buf)), loadSpec); err != nil {
+			return fmt.Errorf("init offset httpflow guess: %w", err)
+		}
+		return nil
+	}
+	if err := loadRuntime(binName, binLoader, useLegacyConsts); err != nil {
+		if useLegacyConsts {
+			return nil, err
+		}
+		l.Warnf("load modern offset httpflow object failed, fallback to legacy object without LRU hash maps: %v", err)
+		if err := loadRuntime("offset_httpflow_legacy.o", dkebpf.OffsetHttpflowLegacyBin, true); err != nil {
+			return nil, err
+		}
 	}
 	return m, nil
 }
@@ -275,9 +289,9 @@ func readMapGuessConntrack(m *ebpf.Map) (*OffsetConntrackC, error) {
 
 func updateMapGuessStatus(m *ebpf.Map, status *OffsetGuessC) error {
 	zero := uint64(0)
-	status.daddr = [4]C.__u32{}
-	status.saddr = [4]C.__u32{}
-	status.daddr_skt = [4]C.__u32{}
+	status.daddr = [4]_Ctype_uint{}
+	status.saddr = [4]_Ctype_uint{}
+	status.daddr_skt = [4]_Ctype_uint{}
 	status.dport = 0
 	status.sport = 0
 	status.dport_skt = 0
@@ -334,14 +348,14 @@ func newGuessStatus() OffsetGuessC {
 		procName = procName[:KernelTaskCommLen-1]
 	}
 
-	procNameC := [KernelTaskCommLen]C.__u8{}
+	procNameC := [KernelTaskCommLen]_Ctype_uchar{}
 	for i := 0; i < KernelTaskCommLen-1 && i < len(procName); i++ {
-		procNameC[i] = C.__u8(procName[i])
+		procNameC[i] = procName[i]
 	}
 
 	status := OffsetGuessC{
 		process_name: procNameC,
-		pid_tgid:     C.__u64(uint64(unix.Getpid())<<32 | uint64(unix.Gettid())),
+		pid_tgid:     uint64(unix.Getpid())<<32 | uint64(unix.Gettid()),
 	}
 
 	return status
@@ -353,14 +367,14 @@ func newGuessHTTP() OffsetHTTPFlowC {
 		procName = procName[:KernelTaskCommLen-1]
 	}
 
-	procNameC := [KernelTaskCommLen]C.__u8{}
+	procNameC := [KernelTaskCommLen]_Ctype_uchar{}
 	for i := 0; i < KernelTaskCommLen-1 && i < len(procName); i++ {
-		procNameC[i] = C.__u8(procName[i])
+		procNameC[i] = procName[i]
 	}
 
 	httpOffset := OffsetHTTPFlowC{
 		process_name: procNameC,
-		pid_tgid:     C.__u64(uint64(unix.Getpid())<<32 | uint64(unix.Gettid())),
+		pid_tgid:     uint64(unix.Getpid())<<32 | uint64(unix.Gettid()),
 	}
 
 	return httpOffset
@@ -372,14 +386,14 @@ func newGuessConntrack() OffsetConntrackC {
 		procName = procName[:KernelTaskCommLen-1]
 	}
 
-	procNameC := [KernelTaskCommLen]C.__u8{}
+	procNameC := [KernelTaskCommLen]_Ctype_uchar{}
 	for i := 0; i < KernelTaskCommLen-1 && i < len(procName); i++ {
-		procNameC[i] = C.__u8(procName[i])
+		procNameC[i] = procName[i]
 	}
 
 	offset := OffsetConntrackC{
 		process_name: procNameC,
-		pid_tgid:     C.__u64(uint64(unix.Getpid())<<32 | uint64(unix.Gettid())),
+		pid_tgid:     uint64(unix.Getpid())<<32 | uint64(unix.Gettid()),
 	}
 
 	return offset
@@ -391,14 +405,14 @@ func newGuessTCPSeq() OffsetTCPSeqC {
 		procName = procName[:KernelTaskCommLen-1]
 	}
 
-	procNameC := [KernelTaskCommLen]C.__u8{}
+	procNameC := [KernelTaskCommLen]_Ctype_uchar{}
 	for i := 0; i < KernelTaskCommLen-1 && i < len(procName); i++ {
-		procNameC[i] = C.__u8(procName[i])
+		procNameC[i] = procName[i]
 	}
 
 	offset := OffsetTCPSeqC{
 		process_name: procNameC,
-		pid_tgid:     C.__u64(uint64(unix.Getpid())<<32 | uint64(unix.Gettid())),
+		pid_tgid:     uint64(unix.Getpid())<<32 | uint64(unix.Gettid()),
 	}
 
 	return offset
@@ -472,7 +486,7 @@ func guessProcessName(status *OffsetGuessC) string {
 		if ch == 0 {
 			break
 		}
-		procName = append(procName, byte(ch))
+		procName = append(procName, ch)
 	}
 
 	return string(procName)
@@ -576,12 +590,13 @@ func finalizeKernelGuess(status *OffsetGuessC) *OffsetGuessC {
 }
 
 func tryGuessConntrack(status *OffsetConntrackC, check *OffsetCheck, conn *Conninfo,
-	guessWhich int) bool {
+	guessWhich int,
+) bool {
 	switch guessWhich {
 	case GUESS_CONNTRACK_TUPLE_ORIGIN:
-		if conn.Sport != uint16(status.origin.src_port) ||
+		if conn.Sport != status.origin.src_port ||
 			conn.Saddr != *(*[4]uint32)(unsafe.Pointer(&status.origin.src_ip)) ||
-			conn.Dport != uint16(status.origin.dst_port) ||
+			conn.Dport != status.origin.dst_port ||
 			conn.Daddr != *(*[4]uint32)(unsafe.Pointer(&status.origin.dst_ip)) {
 			status.offset_ct_origin_tuple++
 			check.ctOriginTupleOk = 0
@@ -590,9 +605,9 @@ func tryGuessConntrack(status *OffsetConntrackC, check *OffsetCheck, conn *Conni
 			check.ctOriginTupleOk++
 		}
 	case GUESS_CONNTRACK_TUPLE_REPLY:
-		if conn.Dport != uint16(status.reply.src_port) ||
+		if conn.Dport != status.reply.src_port ||
 			conn.Daddr != *(*[4]uint32)(unsafe.Pointer(&status.reply.src_ip)) ||
-			conn.Sport != uint16(status.reply.dst_port) ||
+			conn.Sport != status.reply.dst_port ||
 			conn.Saddr != *(*[4]uint32)(unsafe.Pointer(&status.reply.dst_ip)) {
 			status.offset_ct_reply_tuple++
 			check.ctReplyTupleOk = 0
@@ -608,7 +623,7 @@ func tryGuessConntrack(status *OffsetConntrackC, check *OffsetCheck, conn *Conni
 			check.netnsInumOk = 0
 			return false
 		} else {
-			if conn.NetNS != uint32(status.netns) {
+			if conn.NetNS != status.netns {
 				status.offset_ct_ns_common_inum++
 				check.ctNetOk = 0
 				check.netnsInumOk = 0
@@ -627,7 +642,7 @@ func tryGuessConntrack(status *OffsetConntrackC, check *OffsetCheck, conn *Conni
 func tryGuess(status *OffsetGuessC, check *OffsetCheck, conn *Conninfo, guessWhich int) bool {
 	switch guessWhich {
 	case GUESS_INET_SPORT:
-		if conn.Sport != uint16(status.sport) {
+		if conn.Sport != status.sport {
 			status.offset_inet_sport++
 			check.inetSportOk = 0
 			return false
@@ -635,7 +650,7 @@ func tryGuess(status *OffsetGuessC, check *OffsetCheck, conn *Conninfo, guessWhi
 			check.inetSportOk++
 		}
 	case GUESS_SK_FAMILY:
-		if uint32(status.meta)&ConnL3Mask != conn.Meta&ConnL3Mask {
+		if status.meta&ConnL3Mask != conn.Meta&ConnL3Mask {
 			status.offset_sk_family++
 			check.skFamilyOk = 0
 			return false
@@ -652,7 +667,7 @@ func tryGuess(status *OffsetGuessC, check *OffsetCheck, conn *Conninfo, guessWhi
 			check.skDaddrOk++
 		}
 	case GUESS_SK_DPORT:
-		if conn.Dport != uint16(status.dport) {
+		if conn.Dport != status.dport {
 			status.offset_sk_dport++
 			check.skDportOk = 0
 			return false
@@ -670,7 +685,7 @@ func tryGuess(status *OffsetGuessC, check *OffsetCheck, conn *Conninfo, guessWhi
 			check.skV6DaddrOk++
 		}
 	case GUESS_TCP_SK_SRTT_US:
-		if conn.Rtt != uint32(status.rtt) {
+		if conn.Rtt != status.rtt {
 			status.offset_tcp_sk_srtt_us++
 			check.tcpSkSrttUsOk = 0
 			return false
@@ -678,7 +693,7 @@ func tryGuess(status *OffsetGuessC, check *OffsetCheck, conn *Conninfo, guessWhi
 			check.tcpSkSrttUsOk++
 		}
 	case GUESS_TCP_SK_MDEV_US:
-		if conn.RttVar != uint32(status.rtt_var) {
+		if conn.RttVar != status.rtt_var {
 			status.offset_tcp_sk_mdev_us++
 			check.tcpSkMdevUsOk = 0
 			return false
@@ -692,15 +707,15 @@ func tryGuess(status *OffsetGuessC, check *OffsetCheck, conn *Conninfo, guessWhi
 			return false
 		}
 
-		candidateMeta := socketCandidateMeta(uint16(status.family_skt))
+		candidateMeta := socketCandidateMeta(status.family_skt)
 		candidateDaddr := *(*[4]uint32)(unsafe.Pointer(&status.daddr_skt))
 		netnsMatch := true
 		if check.netnsInumOk > MINSUCCESS {
-			netnsMatch = conn.NetNS == uint32(status.netns_skt)
+			netnsMatch = conn.NetNS == status.netns_skt
 		}
 
-		if !(conn.Sport == uint16(status.sport_skt) &&
-			conn.Dport == uint16(status.dport_skt) &&
+		if !(conn.Sport == status.sport_skt &&
+			conn.Dport == status.dport_skt &&
 			conn.Daddr == candidateDaddr &&
 			(conn.Meta&ConnL3Mask) == candidateMeta &&
 			netnsMatch) {
@@ -728,7 +743,7 @@ func tryGuess(status *OffsetGuessC, check *OffsetCheck, conn *Conninfo, guessWhi
 		}
 	case GUESS_FLOWI4_SPORT:
 	case GUESS_FLOWI4_DPORT:
-		if conn.Dport != uint16(status.dport) {
+		if conn.Dport != status.dport {
 			status.offset_flowi4_dport++
 			check.flowi4DportOk = 0
 			return false
@@ -750,7 +765,7 @@ func tryGuess(status *OffsetGuessC, check *OffsetCheck, conn *Conninfo, guessWhi
 		} else {
 			check.sknetOk++
 
-			if conn.NetNS != uint32(status.netns) {
+			if conn.NetNS != status.netns {
 				status.offset_ns_common_inum++
 				check.netnsInumOk = 0
 				return false
@@ -773,15 +788,15 @@ func socketCandidateMeta(family uint16) uint32 {
 	}
 }
 
-// github.com/weaveworks/tcptracer-bpf
+// Based on github.com/weaveworks/tcptracer-bpf.
 func generateRandomIPv6Address() ([4]uint32, net.IP) {
 	// multicast (ff00::/8) or link-local (fe80::/10) addresses don't work for
 	// our purposes so let's choose a "random number" for the first 32 bits.
 	addr := [4]uint32{}
 	addr[0] = 0x87586031
-	addr[1] = rand.Uint32()
-	addr[2] = rand.Uint32()
-	addr[3] = rand.Uint32()
+	addr[1] = rand.Uint32() //nolint:gosec
+	addr[2] = rand.Uint32() //nolint:gosec
+	addr[3] = rand.Uint32() //nolint:gosec
 
 	ip := net.IP{}
 	for x := 0; x < 4; x++ {
@@ -910,45 +925,45 @@ func newOffsetCache(offsetC OffsetGuessC, kernelVersion string) OffsetCache {
 			KernelVersion: kernelVersion,
 		},
 		Kernel: OffsetCacheKernel{
-			SkNum:           uint64(offsetC.offset_sk_num),
-			InetSport:       uint64(offsetC.offset_inet_sport),
-			SkFamily:        uint64(offsetC.offset_sk_family),
-			SkRcvSaddr:      uint64(offsetC.offset_sk_rcv_saddr),
-			SkDaddr:         uint64(offsetC.offset_sk_daddr),
-			SkV6RcvSaddr:    uint64(offsetC.offset_sk_v6_rcv_saddr),
-			SkV6Daddr:       uint64(offsetC.offset_sk_v6_daddr),
-			SkDport:         uint64(offsetC.offset_sk_dport),
-			TCPSkSrttUs:     uint64(offsetC.offset_tcp_sk_srtt_us),
-			TCPSkMdevUs:     uint64(offsetC.offset_tcp_sk_mdev_us),
-			Flowi4Saddr:     uint64(offsetC.offset_flowi4_saddr),
-			Flowi4Daddr:     uint64(offsetC.offset_flowi4_daddr),
-			Flowi4SPort:     uint64(offsetC.offset_flowi4_sport),
-			Flowi4DPort:     uint64(offsetC.offset_flowi4_dport),
-			Flowi6SAddr:     uint64(offsetC.offset_flowi6_saddr),
-			Flowi6DAddr:     uint64(offsetC.offset_flowi6_daddr),
-			Flowi6SPort:     uint64(offsetC.offset_flowi6_sport),
-			Flowi6Dport:     uint64(offsetC.offset_flowi6_dport),
-			SkAddrSinPort:   uint64(offsetC.offset_skaddr_sin_port),
-			SkAddr6Sin6Port: uint64(offsetC.offset_skaddr6_sin6_port),
-			SkNet:           uint64(offsetC.offset_sk_net),
-			NsCommonInum:    uint64(offsetC.offset_ns_common_inum),
-			SocketSk:        uint64(offsetC.offset_socket_sk),
+			SkNum:           offsetC.offset_sk_num,
+			InetSport:       offsetC.offset_inet_sport,
+			SkFamily:        offsetC.offset_sk_family,
+			SkRcvSaddr:      offsetC.offset_sk_rcv_saddr,
+			SkDaddr:         offsetC.offset_sk_daddr,
+			SkV6RcvSaddr:    offsetC.offset_sk_v6_rcv_saddr,
+			SkV6Daddr:       offsetC.offset_sk_v6_daddr,
+			SkDport:         offsetC.offset_sk_dport,
+			TCPSkSrttUs:     offsetC.offset_tcp_sk_srtt_us,
+			TCPSkMdevUs:     offsetC.offset_tcp_sk_mdev_us,
+			Flowi4Saddr:     offsetC.offset_flowi4_saddr,
+			Flowi4Daddr:     offsetC.offset_flowi4_daddr,
+			Flowi4SPort:     offsetC.offset_flowi4_sport,
+			Flowi4DPort:     offsetC.offset_flowi4_dport,
+			Flowi6SAddr:     offsetC.offset_flowi6_saddr,
+			Flowi6DAddr:     offsetC.offset_flowi6_daddr,
+			Flowi6SPort:     offsetC.offset_flowi6_sport,
+			Flowi6Dport:     offsetC.offset_flowi6_dport,
+			SkAddrSinPort:   offsetC.offset_skaddr_sin_port,
+			SkAddr6Sin6Port: offsetC.offset_skaddr6_sin6_port,
+			SkNet:           offsetC.offset_sk_net,
+			NsCommonInum:    offsetC.offset_ns_common_inum,
+			SocketSk:        offsetC.offset_socket_sk,
 		},
 		TCPSeq: OffsetCacheTCPSeq{
-			CopiedSeq: uint64(offsetC.offset_copied_seq),
-			WriteSeq:  uint64(offsetC.offset_write_seq),
+			CopiedSeq: offsetC.offset_copied_seq,
+			WriteSeq:  offsetC.offset_write_seq,
 		},
 		HTTPFlow: OffsetCacheHTTPFlow{
-			TaskFiles:       uint64(offsetC.offset_task_struct_files),
-			FileFDT:         uint64(offsetC.offset_files_struct_fdt),
-			SocketFile:      uint64(offsetC.offset_socket_file),
-			FilePrivateData: uint64(offsetC.offset_file_private_data),
+			TaskFiles:       offsetC.offset_task_struct_files,
+			FileFDT:         offsetC.offset_files_struct_fdt,
+			SocketFile:      offsetC.offset_socket_file,
+			FilePrivateData: offsetC.offset_file_private_data,
 		},
 		Conntrack: OffsetCacheConntrack{
-			CTNet:          uint64(offsetC.offset_ct_net),
-			CTNsCommonInum: uint64(offsetC.offset_ct_ns_common_inum),
-			CTOriginTuple:  uint64(offsetC.offset_origin_tuple),
-			CTReplyTuple:   uint64(offsetC.offset_reply_tuple),
+			CTNet:          offsetC.offset_ct_net,
+			CTNsCommonInum: offsetC.offset_ct_ns_common_inum,
+			CTOriginTuple:  offsetC.offset_origin_tuple,
+			CTReplyTuple:   offsetC.offset_reply_tuple,
 		},
 	}
 }
@@ -957,115 +972,115 @@ func newLegacyOffsetCache(offsetC OffsetGuessC, kernelVersion string) OffsetCach
 	return OffsetCacheLegacy{
 		Version:         offsetCacheLegacyVersion,
 		KernelVersion:   kernelVersion,
-		SkNum:           uint64(offsetC.offset_sk_num),
-		InetSport:       uint64(offsetC.offset_inet_sport),
-		SkFamily:        uint64(offsetC.offset_sk_family),
-		SkRcvSaddr:      uint64(offsetC.offset_sk_rcv_saddr),
-		SkDaddr:         uint64(offsetC.offset_sk_daddr),
-		SkV6RcvSaddr:    uint64(offsetC.offset_sk_v6_rcv_saddr),
-		SkV6Daddr:       uint64(offsetC.offset_sk_v6_daddr),
-		SkDport:         uint64(offsetC.offset_sk_dport),
-		TCPSkSrttUs:     uint64(offsetC.offset_tcp_sk_srtt_us),
-		TCPSkMdevUs:     uint64(offsetC.offset_tcp_sk_mdev_us),
-		Flowi4Saddr:     uint64(offsetC.offset_flowi4_saddr),
-		Flowi4Daddr:     uint64(offsetC.offset_flowi4_daddr),
-		Flowi4SPort:     uint64(offsetC.offset_flowi4_sport),
-		Flowi4DPort:     uint64(offsetC.offset_flowi4_dport),
-		Flowi6SAddr:     uint64(offsetC.offset_flowi6_saddr),
-		Flowi6DAddr:     uint64(offsetC.offset_flowi6_daddr),
-		Flowi6SPort:     uint64(offsetC.offset_flowi6_sport),
-		Flowi6Dport:     uint64(offsetC.offset_flowi6_dport),
-		SkAddrSinPort:   uint64(offsetC.offset_skaddr_sin_port),
-		SkAddr6Sin6Port: uint64(offsetC.offset_skaddr6_sin6_port),
-		SkNet:           uint64(offsetC.offset_sk_net),
-		NsCommonInum:    uint64(offsetC.offset_ns_common_inum),
-		SocketSk:        uint64(offsetC.offset_socket_sk),
-		CopiedSeq:       uint64(offsetC.offset_copied_seq),
-		WriteSeq:        uint64(offsetC.offset_write_seq),
-		TaskFiles:       uint64(offsetC.offset_task_struct_files),
-		FileFDT:         uint64(offsetC.offset_files_struct_fdt),
-		SocketFile:      uint64(offsetC.offset_socket_file),
-		FilePrivateData: uint64(offsetC.offset_file_private_data),
-		CTNet:           uint64(offsetC.offset_ct_net),
-		CTNsCommonInum:  uint64(offsetC.offset_ct_ns_common_inum),
-		CTOriginTuple:   uint64(offsetC.offset_origin_tuple),
-		CTReplyTuple:    uint64(offsetC.offset_reply_tuple),
+		SkNum:           offsetC.offset_sk_num,
+		InetSport:       offsetC.offset_inet_sport,
+		SkFamily:        offsetC.offset_sk_family,
+		SkRcvSaddr:      offsetC.offset_sk_rcv_saddr,
+		SkDaddr:         offsetC.offset_sk_daddr,
+		SkV6RcvSaddr:    offsetC.offset_sk_v6_rcv_saddr,
+		SkV6Daddr:       offsetC.offset_sk_v6_daddr,
+		SkDport:         offsetC.offset_sk_dport,
+		TCPSkSrttUs:     offsetC.offset_tcp_sk_srtt_us,
+		TCPSkMdevUs:     offsetC.offset_tcp_sk_mdev_us,
+		Flowi4Saddr:     offsetC.offset_flowi4_saddr,
+		Flowi4Daddr:     offsetC.offset_flowi4_daddr,
+		Flowi4SPort:     offsetC.offset_flowi4_sport,
+		Flowi4DPort:     offsetC.offset_flowi4_dport,
+		Flowi6SAddr:     offsetC.offset_flowi6_saddr,
+		Flowi6DAddr:     offsetC.offset_flowi6_daddr,
+		Flowi6SPort:     offsetC.offset_flowi6_sport,
+		Flowi6Dport:     offsetC.offset_flowi6_dport,
+		SkAddrSinPort:   offsetC.offset_skaddr_sin_port,
+		SkAddr6Sin6Port: offsetC.offset_skaddr6_sin6_port,
+		SkNet:           offsetC.offset_sk_net,
+		NsCommonInum:    offsetC.offset_ns_common_inum,
+		SocketSk:        offsetC.offset_socket_sk,
+		CopiedSeq:       offsetC.offset_copied_seq,
+		WriteSeq:        offsetC.offset_write_seq,
+		TaskFiles:       offsetC.offset_task_struct_files,
+		FileFDT:         offsetC.offset_files_struct_fdt,
+		SocketFile:      offsetC.offset_socket_file,
+		FilePrivateData: offsetC.offset_file_private_data,
+		CTNet:           offsetC.offset_ct_net,
+		CTNsCommonInum:  offsetC.offset_ct_ns_common_inum,
+		CTOriginTuple:   offsetC.offset_origin_tuple,
+		CTReplyTuple:    offsetC.offset_reply_tuple,
 	}
 }
 
 func offsetGuessFromLegacyCache(offset OffsetCacheLegacy) OffsetGuessC {
 	return OffsetGuessC{
-		offset_sk_num:            C.__u64(offset.SkNum),
-		offset_inet_sport:        C.__u64(offset.InetSport),
-		offset_sk_family:         C.__u64(offset.SkFamily),
-		offset_sk_rcv_saddr:      C.__u64(offset.SkRcvSaddr),
-		offset_sk_daddr:          C.__u64(offset.SkDaddr),
-		offset_sk_v6_rcv_saddr:   C.__u64(offset.SkV6RcvSaddr),
-		offset_sk_v6_daddr:       C.__u64(offset.SkV6Daddr),
-		offset_sk_dport:          C.__u64(offset.SkDport),
-		offset_tcp_sk_srtt_us:    C.__u64(offset.TCPSkSrttUs),
-		offset_tcp_sk_mdev_us:    C.__u64(offset.TCPSkMdevUs),
-		offset_flowi4_saddr:      C.__u64(offset.Flowi4Saddr),
-		offset_flowi4_daddr:      C.__u64(offset.Flowi4Daddr),
-		offset_flowi4_sport:      C.__u64(offset.Flowi4SPort),
-		offset_flowi4_dport:      C.__u64(offset.Flowi4DPort),
-		offset_flowi6_saddr:      C.__u64(offset.Flowi6SAddr),
-		offset_flowi6_daddr:      C.__u64(offset.Flowi6DAddr),
-		offset_flowi6_sport:      C.__u64(offset.Flowi6SPort),
-		offset_flowi6_dport:      C.__u64(offset.Flowi6Dport),
-		offset_skaddr_sin_port:   C.__u64(offset.SkAddrSinPort),
-		offset_skaddr6_sin6_port: C.__u64(offset.SkAddr6Sin6Port),
-		offset_sk_net:            C.__u64(offset.SkNet),
-		offset_ns_common_inum:    C.__u64(offset.NsCommonInum),
-		offset_socket_sk:         C.__u64(offset.SocketSk),
-		offset_copied_seq:        C.__u64(offset.CopiedSeq),
-		offset_write_seq:         C.__u64(offset.WriteSeq),
-		offset_task_struct_files: C.__u64(offset.TaskFiles),
-		offset_files_struct_fdt:  C.__u64(offset.FileFDT),
-		offset_socket_file:       C.__u64(offset.SocketFile),
-		offset_file_private_data: C.__u64(offset.FilePrivateData),
-		offset_ct_net:            C.__u64(offset.CTNet),
-		offset_ct_ns_common_inum: C.__u64(offset.CTNsCommonInum),
-		offset_origin_tuple:      C.__u64(offset.CTOriginTuple),
-		offset_reply_tuple:       C.__u64(offset.CTReplyTuple),
+		offset_sk_num:            offset.SkNum,
+		offset_inet_sport:        offset.InetSport,
+		offset_sk_family:         offset.SkFamily,
+		offset_sk_rcv_saddr:      offset.SkRcvSaddr,
+		offset_sk_daddr:          offset.SkDaddr,
+		offset_sk_v6_rcv_saddr:   offset.SkV6RcvSaddr,
+		offset_sk_v6_daddr:       offset.SkV6Daddr,
+		offset_sk_dport:          offset.SkDport,
+		offset_tcp_sk_srtt_us:    offset.TCPSkSrttUs,
+		offset_tcp_sk_mdev_us:    offset.TCPSkMdevUs,
+		offset_flowi4_saddr:      offset.Flowi4Saddr,
+		offset_flowi4_daddr:      offset.Flowi4Daddr,
+		offset_flowi4_sport:      offset.Flowi4SPort,
+		offset_flowi4_dport:      offset.Flowi4DPort,
+		offset_flowi6_saddr:      offset.Flowi6SAddr,
+		offset_flowi6_daddr:      offset.Flowi6DAddr,
+		offset_flowi6_sport:      offset.Flowi6SPort,
+		offset_flowi6_dport:      offset.Flowi6Dport,
+		offset_skaddr_sin_port:   offset.SkAddrSinPort,
+		offset_skaddr6_sin6_port: offset.SkAddr6Sin6Port,
+		offset_sk_net:            offset.SkNet,
+		offset_ns_common_inum:    offset.NsCommonInum,
+		offset_socket_sk:         offset.SocketSk,
+		offset_copied_seq:        offset.CopiedSeq,
+		offset_write_seq:         offset.WriteSeq,
+		offset_task_struct_files: offset.TaskFiles,
+		offset_files_struct_fdt:  offset.FileFDT,
+		offset_socket_file:       offset.SocketFile,
+		offset_file_private_data: offset.FilePrivateData,
+		offset_ct_net:            offset.CTNet,
+		offset_ct_ns_common_inum: offset.CTNsCommonInum,
+		offset_origin_tuple:      offset.CTOriginTuple,
+		offset_reply_tuple:       offset.CTReplyTuple,
 	}
 }
 
 func offsetGuessFromCache(offset OffsetCache) OffsetGuessC {
 	return OffsetGuessC{
-		offset_sk_num:            C.__u64(offset.Kernel.SkNum),
-		offset_inet_sport:        C.__u64(offset.Kernel.InetSport),
-		offset_sk_family:         C.__u64(offset.Kernel.SkFamily),
-		offset_sk_rcv_saddr:      C.__u64(offset.Kernel.SkRcvSaddr),
-		offset_sk_daddr:          C.__u64(offset.Kernel.SkDaddr),
-		offset_sk_v6_rcv_saddr:   C.__u64(offset.Kernel.SkV6RcvSaddr),
-		offset_sk_v6_daddr:       C.__u64(offset.Kernel.SkV6Daddr),
-		offset_sk_dport:          C.__u64(offset.Kernel.SkDport),
-		offset_tcp_sk_srtt_us:    C.__u64(offset.Kernel.TCPSkSrttUs),
-		offset_tcp_sk_mdev_us:    C.__u64(offset.Kernel.TCPSkMdevUs),
-		offset_flowi4_saddr:      C.__u64(offset.Kernel.Flowi4Saddr),
-		offset_flowi4_daddr:      C.__u64(offset.Kernel.Flowi4Daddr),
-		offset_flowi4_sport:      C.__u64(offset.Kernel.Flowi4SPort),
-		offset_flowi4_dport:      C.__u64(offset.Kernel.Flowi4DPort),
-		offset_flowi6_saddr:      C.__u64(offset.Kernel.Flowi6SAddr),
-		offset_flowi6_daddr:      C.__u64(offset.Kernel.Flowi6DAddr),
-		offset_flowi6_sport:      C.__u64(offset.Kernel.Flowi6SPort),
-		offset_flowi6_dport:      C.__u64(offset.Kernel.Flowi6Dport),
-		offset_skaddr_sin_port:   C.__u64(offset.Kernel.SkAddrSinPort),
-		offset_skaddr6_sin6_port: C.__u64(offset.Kernel.SkAddr6Sin6Port),
-		offset_sk_net:            C.__u64(offset.Kernel.SkNet),
-		offset_ns_common_inum:    C.__u64(offset.Kernel.NsCommonInum),
-		offset_socket_sk:         C.__u64(offset.Kernel.SocketSk),
-		offset_copied_seq:        C.__u64(offset.TCPSeq.CopiedSeq),
-		offset_write_seq:         C.__u64(offset.TCPSeq.WriteSeq),
-		offset_task_struct_files: C.__u64(offset.HTTPFlow.TaskFiles),
-		offset_files_struct_fdt:  C.__u64(offset.HTTPFlow.FileFDT),
-		offset_socket_file:       C.__u64(offset.HTTPFlow.SocketFile),
-		offset_file_private_data: C.__u64(offset.HTTPFlow.FilePrivateData),
-		offset_ct_net:            C.__u64(offset.Conntrack.CTNet),
-		offset_ct_ns_common_inum: C.__u64(offset.Conntrack.CTNsCommonInum),
-		offset_origin_tuple:      C.__u64(offset.Conntrack.CTOriginTuple),
-		offset_reply_tuple:       C.__u64(offset.Conntrack.CTReplyTuple),
+		offset_sk_num:            offset.Kernel.SkNum,
+		offset_inet_sport:        offset.Kernel.InetSport,
+		offset_sk_family:         offset.Kernel.SkFamily,
+		offset_sk_rcv_saddr:      offset.Kernel.SkRcvSaddr,
+		offset_sk_daddr:          offset.Kernel.SkDaddr,
+		offset_sk_v6_rcv_saddr:   offset.Kernel.SkV6RcvSaddr,
+		offset_sk_v6_daddr:       offset.Kernel.SkV6Daddr,
+		offset_sk_dport:          offset.Kernel.SkDport,
+		offset_tcp_sk_srtt_us:    offset.Kernel.TCPSkSrttUs,
+		offset_tcp_sk_mdev_us:    offset.Kernel.TCPSkMdevUs,
+		offset_flowi4_saddr:      offset.Kernel.Flowi4Saddr,
+		offset_flowi4_daddr:      offset.Kernel.Flowi4Daddr,
+		offset_flowi4_sport:      offset.Kernel.Flowi4SPort,
+		offset_flowi4_dport:      offset.Kernel.Flowi4DPort,
+		offset_flowi6_saddr:      offset.Kernel.Flowi6SAddr,
+		offset_flowi6_daddr:      offset.Kernel.Flowi6DAddr,
+		offset_flowi6_sport:      offset.Kernel.Flowi6SPort,
+		offset_flowi6_dport:      offset.Kernel.Flowi6Dport,
+		offset_skaddr_sin_port:   offset.Kernel.SkAddrSinPort,
+		offset_skaddr6_sin6_port: offset.Kernel.SkAddr6Sin6Port,
+		offset_sk_net:            offset.Kernel.SkNet,
+		offset_ns_common_inum:    offset.Kernel.NsCommonInum,
+		offset_socket_sk:         offset.Kernel.SocketSk,
+		offset_copied_seq:        offset.TCPSeq.CopiedSeq,
+		offset_write_seq:         offset.TCPSeq.WriteSeq,
+		offset_task_struct_files: offset.HTTPFlow.TaskFiles,
+		offset_files_struct_fdt:  offset.HTTPFlow.FileFDT,
+		offset_socket_file:       offset.HTTPFlow.SocketFile,
+		offset_file_private_data: offset.HTTPFlow.FilePrivateData,
+		offset_ct_net:            offset.Conntrack.CTNet,
+		offset_ct_ns_common_inum: offset.Conntrack.CTNsCommonInum,
+		offset_origin_tuple:      offset.Conntrack.CTOriginTuple,
+		offset_reply_tuple:       offset.Conntrack.CTReplyTuple,
 	}
 }
 

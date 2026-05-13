@@ -1,5 +1,5 @@
-//go:build linux && cgo
-// +build linux,cgo
+//go:build linux
+// +build linux
 
 package l7flow
 
@@ -716,14 +716,14 @@ func (tracer *Tracer) PerfEventHandle(cpu int, data []byte,
 		}
 
 		netdata.Fn = comm.FnID(eventHdr.meta.func_id)
-		netdata.SockPtr = uint64(eventHdr.meta.sk_inf.skptr)
+		netdata.SockPtr = eventHdr.meta.sk_inf.skptr
 		netdata.CaptureSize = payloadLen
 		netdata.FnCallSize = int(eventHdr.meta.original_size)
-		netdata.TCPSeq = uint32(eventHdr.meta.tcp_seq)
+		netdata.TCPSeq = eventHdr.meta.tcp_seq
 		netdata.Thread = [2]int32{int32(eventHdr.meta.tid_utid >> 32), (int32(eventHdr.meta.tid_utid))}
-		netdata.TS = uint64(eventHdr.meta.ts)
-		netdata.TSTail = uint64(eventHdr.meta.ts_tail)
-		netdata.Index = uint64(eventHdr.meta.sk_inf.index)
+		netdata.TS = eventHdr.meta.ts
+		netdata.TSTail = eventHdr.meta.ts_tail
+		netdata.Index = eventHdr.meta.sk_inf.index
 
 		if n := atomic.AddInt64(&tracer.debugPerfEvents, 1); n <= 16 {
 			snippet := netdata.Payload
@@ -735,7 +735,7 @@ func (tracer *Tracer) PerfEventHandle(cpu int, data []byte,
 				netdata.Conn.String(), string(snippet))
 		}
 
-		tracer.connWatcher.handle(groupTime, CUniID(eventHdr.meta.sk_inf.uni_id), netdata)
+		tracer.connWatcher.handle(groupTime, eventHdr.meta.sk_inf.uni_id, netdata)
 	}
 }
 

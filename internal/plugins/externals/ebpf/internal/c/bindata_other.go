@@ -49,6 +49,10 @@ func OffsetGuessBin() ([]byte, error) {
 	return notImplemented()
 }
 
+func OffsetGuessLegacyBin() ([]byte, error) {
+	return notImplemented()
+}
+
 func OffsetHttpflowBin() ([]byte, error) {
 	return notImplemented()
 }

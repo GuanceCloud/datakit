@@ -36,6 +36,45 @@ func TestClosedEventHandlerDropsShortRecord(t *testing.T) {
 	}
 }
 
+func TestNetflowClosedEventQueueSizeEnv(t *testing.T) {
+	t.Setenv(netflowClosedEventQueueSizeEnv, "")
+	assert.Equal(t, defaultClosedEventQueueSize, netflowClosedEventQueueSize())
+
+	t.Setenv(netflowClosedEventQueueSizeEnv, "2")
+	assert.Equal(t, 2, netflowClosedEventQueueSize())
+
+	t.Setenv(netflowClosedEventQueueSizeEnv, "0")
+	assert.Equal(t, defaultClosedEventQueueSize, netflowClosedEventQueueSize())
+
+	t.Setenv(netflowClosedEventQueueSizeEnv, fmt.Sprintf("%d", maxClosedEventQueueSize+1))
+	assert.Equal(t, maxClosedEventQueueSize, netflowClosedEventQueueSize())
+}
+
+func TestConnStatsRecordPruneLastActiveNotSeen(t *testing.T) {
+	record := newConnStatsRecord()
+	seen := ConnectionInfo{Saddr: [4]uint32{1}, Daddr: [4]uint32{2}, Sport: 1000, Dport: 80}
+	stale := ConnectionInfo{Saddr: [4]uint32{3}, Daddr: [4]uint32{4}, Sport: 1001, Dport: 80}
+	closed := ConnectionInfo{Saddr: [4]uint32{5}, Daddr: [4]uint32{6}, Sport: 1002, Dport: 80}
+
+	record.lastActiveConns[seen] = ConnFullStats{}
+	record.lastActiveInfo[seen] = seen
+	record.lastActiveConns[stale] = ConnFullStats{}
+	record.lastActiveInfo[stale] = stale
+	record.lastActiveConns[closed] = ConnFullStats{}
+	record.lastActiveInfo[closed] = closed
+	record.closedConns[closed] = ConnFullStats{}
+
+	removed := record.pruneLastActiveNotSeen(map[ConnectionInfo]struct{}{
+		seen: {},
+	})
+
+	assert.Equal(t, 1, removed)
+	assert.Contains(t, record.lastActiveConns, seen)
+	assert.NotContains(t, record.lastActiveConns, stale)
+	assert.Contains(t, record.lastActiveConns, closed)
+	assert.NotContains(t, record.lastActiveInfo, stale)
+}
+
 type caseConnT struct {
 	connStats ConnFullStats
 	conn      ConnectionInfo
@@ -314,7 +353,7 @@ func TestRecord(t *testing.T) {
 			sport: 8080,
 			dport: 23456,
 			pid:   1222,
-			meta:  _Ctype_uint(ConnL4TCP | ConnL3IPv4),
+			meta:  ConnL4TCP | ConnL3IPv4,
 		},
 		conn_stats: _Ctype_struct_connection_stats{
 			sent_bytes: 1,
@@ -400,7 +439,7 @@ func TestRecord(t *testing.T) {
 			sport: 8080,
 			dport: 23456,
 			pid:   1222,
-			meta:  _Ctype_uint(ConnL4TCP | ConnL3IPv4),
+			meta:  ConnL4TCP | ConnL3IPv4,
 		},
 		conn_stats: _Ctype_struct_connection_stats{
 			sent_bytes: 1,
@@ -502,6 +541,53 @@ func TestRecord(t *testing.T) {
 	ar = netflowTracer.connStatsRecord.mergeWithClosedLastActive(conninfo3, connFullStats)
 	er = connFullStats
 	assert.Equal(t, er, ar)
+}
+
+func TestConnStatsRecordUsesStableCacheKey(t *testing.T) {
+	record := newConnStatsRecord()
+	base := ConnectionInfo{
+		Saddr:       [4]uint32{0, 0, 0, 0x0101006F},
+		Daddr:       [4]uint32{0, 0, 0, 0x0100006F},
+		Sport:       8080,
+		Dport:       23456,
+		Pid:         1222,
+		Meta:        ConnL4TCP | ConnL3IPv4,
+		ProcessName: "old-name",
+	}
+	stats := ConnFullStats{
+		Stats: ConnectionStats{
+			SentBytes: 1,
+			RecvBytes: 1,
+			Direction: ConnDirectionIncoming,
+		},
+		TotalEstablished: 1,
+	}
+	record.updateLastActive(base, stats)
+
+	closedInfo := base
+	closedInfo.ProcessName = "new-name"
+	closedInfo.NATDaddr = [4]uint32{0, 0, 0, 0x0200000A}
+	closedInfo.NATDport = 8081
+	record.updateClosedUseEvent(&ConncetionClosedInfo{
+		Info: closedInfo,
+		Stats: ConnectionStats{
+			SentBytes: 1,
+			RecvBytes: 1,
+			Direction: ConnDirectionIncoming,
+		},
+	})
+
+	key := connStatsCacheKey(base)
+	if _, ok := record.lastActiveConns[key]; ok {
+		t.Fatal("last active entry was not removed by stable key")
+	}
+	got, ok := record.closedConns[key]
+	if !ok {
+		t.Fatal("closed entry missing by stable key")
+	}
+	assert.Equal(t, int64(1), got.TotalClosed)
+	assert.Equal(t, "new-name", record.closedConnInfo[key].ProcessName)
+	assert.Equal(t, uint32(8081), record.closedConnInfo[key].NATDport)
 }
 
 func TestConnMeta(t *testing.T) {

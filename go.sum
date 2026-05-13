@@ -151,8 +151,8 @@ github.com/GuanceCloud/fsnotify v1.8.2 h1:t/FFcMEqUq+/R8G0pSSb8jyBIIOjBwHXPSwIoJ
 github.com/GuanceCloud/fsnotify v1.8.2/go.mod h1:8jBTzvmWwFyi3Pb8djgCCO5IBqzKJ/Jwo8TRcHyHii0=
 github.com/GuanceCloud/go-ora/v2 v2.8.20 h1:RE+wYOcx3rxvdUk2Gn8rFmfqmdDicASmWIIqgkCC+wY=
 github.com/GuanceCloud/go-ora/v2 v2.8.20/go.mod h1:EHxlY6x7y9HAsdfumurRfTd+v8NrEOTR3Xl4FWlH6xk=
-github.com/GuanceCloud/gopacket v0.0.1 h1:3hb9ssiAiQxOvSliaLZNz5DJ2GzJGbFAlo3BocDM0/8=
-github.com/GuanceCloud/gopacket v0.0.1/go.mod h1:iJ8V8n6KS+z2U1A8pUwu8bW5SyEMkXJB8Yo/Vo+TKTo=
+github.com/GuanceCloud/gopacket v0.0.2 h1:jjeJFQNM7E+CBPPfb1JN3wn/NoYwYYlAAVEIPjGnWvg=
+github.com/GuanceCloud/gopacket v0.0.2/go.mod h1:iJ8V8n6KS+z2U1A8pUwu8bW5SyEMkXJB8Yo/Vo+TKTo=
 github.com/GuanceCloud/grok v1.1.5-0.20250416104424-34917bd63e69 h1:LRwIH9nsCsVXTNVe6G/27n14+YWA9+Xg5DVWFNtMHcc=
 github.com/GuanceCloud/grok v1.1.5-0.20250416104424-34917bd63e69/go.mod h1:AHkJZYf7Qbo1FTZT6htdyScpICpgnkQ5+Hc0EmA88vM=
 github.com/GuanceCloud/influxdb1-client v0.1.9 h1:7RyOYJMbj+NOPlKoq/Zwh4Lo/jbQgqgs+sKwo/5/6ao=

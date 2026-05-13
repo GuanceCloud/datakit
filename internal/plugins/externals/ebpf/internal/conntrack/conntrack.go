@@ -7,13 +7,16 @@ package conntrack
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"math"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/cilium/ebpf"
 	bpfutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/bpfutil"
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/c"
@@ -21,10 +24,19 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+const (
+	componentID                  = "conntrack"
+	conntrackTupleMapName        = "bpfmap_conntrack_tuple"
+	conntrackUpdateFailMapName   = "bpfmap_conntrack_update_fail"
+	conntrackDefaultObserveEvery = time.Minute
+)
+
 var conntrackInsertSymbols = []string{
 	"nf_conntrack_hash_check_insert",
 	"__nf_conntrack_hash_insert",
 }
+
+var log = logger.DefaultSLogger(componentID)
 
 var conntrackConfirmSymbols = []string{
 	"__nf_conntrack_confirm",
@@ -61,6 +73,83 @@ var (
 	tupleMapMu sync.RWMutex
 	tupleMap   *ebpf.Map
 )
+
+func StartMapObserver(ctx context.Context, runtime *bpfutil.Runtime, interval time.Duration) {
+	if runtime == nil {
+		return
+	}
+	tupleMap, err := runtime.LookupMap(conntrackTupleMapName)
+	if err != nil {
+		return
+	}
+	failMap, _ := runtime.LookupMap(conntrackUpdateFailMapName)
+	if interval <= 0 {
+		interval = conntrackDefaultObserveEvery
+	}
+
+	go func() {
+		observeConntrackMaps(tupleMap, failMap)
+
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				observeConntrackMaps(tupleMap, failMap)
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+}
+
+func observeConntrackMaps(tupleMap, failMap *ebpf.Map) {
+	if tupleMap != nil {
+		entries, err := countTupleMapEntries(tupleMap)
+		if err != nil {
+			exporter.IncBPFMapObserveError(componentID, conntrackTupleMapName, "iterate")
+		} else {
+			exporter.ObserveBPFMap(componentID, conntrackTupleMapName, entries, tupleMap.MaxEntries())
+		}
+	}
+
+	if failMap == nil {
+		return
+	}
+	var (
+		key   uint32
+		count uint64
+	)
+	if err := failMap.Lookup(&key, &count); err != nil {
+		exporter.IncBPFMapObserveError(componentID, conntrackUpdateFailMapName, "lookup")
+		return
+	}
+	exporter.ObserveCacheEntries(componentID, "tuple_update_fail_total", uint64ToInt(count))
+}
+
+func countTupleMapEntries(mp *ebpf.Map) (uint32, error) {
+	var (
+		key   originTupleKey
+		reply replyTupleValue
+		count uint32
+	)
+
+	iter := mp.Iterate()
+	for iter.Next(&key, &reply) {
+		count++
+	}
+	if err := iter.Err(); err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func uint64ToInt(v uint64) int {
+	if v > uint64(math.MaxInt) {
+		return math.MaxInt
+	}
+	return int(v)
+}
 
 func SetTupleMap(mp *ebpf.Map) {
 	tupleMapMu.Lock()
@@ -408,13 +497,25 @@ func NewConntrackRuntime(patches []bpfutil.ConstantPatch) (*bpfutil.Runtime, err
 		binName = "conntrack_legacy.o"
 	}
 
-	buf, err := bufLoader()
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", binName, err)
+	loadRuntime := func(name string, loader func() ([]byte, error), legacyConstants bool) error {
+		loadSpec.LegacyConstants = legacyConstants
+		buf, err := loader()
+		if err != nil {
+			return fmt.Errorf("%s: %w", name, err)
+		}
+		if err := runtime.LoadFromReader((bytes.NewReader(buf)), loadSpec); err != nil {
+			return fmt.Errorf("init conntrack tracer: %w", err)
+		}
+		return nil
 	}
-
-	if err := runtime.LoadFromReader((bytes.NewReader(buf)), loadSpec); err != nil {
-		return nil, fmt.Errorf("init conntrack tracer: %w", err)
+	if err := loadRuntime(binName, bufLoader, useLegacyConsts); err != nil {
+		if useLegacyConsts {
+			return nil, err
+		}
+		log.Warnf("load modern conntrack object failed, fallback to legacy object without LRU hash maps: %v", err)
+		if err := loadRuntime("conntrack_legacy.o", dkebpf.ConntrackLegacyBin, true); err != nil {
+			return nil, err
+		}
 	}
 	return runtime, nil
 }

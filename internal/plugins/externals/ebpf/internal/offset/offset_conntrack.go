@@ -1,6 +1,7 @@
 //go:build linux
 // +build linux
 
+//nolint:unconvert
 package offset
 
 import (

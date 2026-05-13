@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -48,13 +49,16 @@ type PerfHandler func(cpu int, data []byte, reader *PerfStream, runtime *Runtime
 
 type PerfLostHandler func(cpu int, count uint64, reader *PerfStream, runtime *Runtime)
 
+type PerfErrorHandler func(err error, reader *PerfStream, runtime *Runtime)
+
 type PerfReaderSpec struct {
-	MapName     string
-	BufferSize  int
-	Watermark   int
-	DataHandler PerfHandler
-	LostHandler PerfLostHandler
-	PerfErrChan chan error
+	MapName      string
+	BufferSize   int
+	Watermark    int
+	DataHandler  PerfHandler
+	LostHandler  PerfLostHandler
+	ErrorHandler PerfErrorHandler
+	PerfErrChan  chan error
 }
 
 type PerfStreamSpec = PerfReaderSpec
@@ -64,6 +68,7 @@ type LoadOptions struct {
 	LegacyConstants  bool
 	DisabledPrograms []string
 	MapReplacements  map[string]*ebpf.Map
+	MapMaxEntries    map[string]uint32
 	RLimit           *unix.Rlimit
 	VerifierOptions  ebpf.CollectionOptions
 }
@@ -92,6 +97,46 @@ type PerfStreamOptions struct {
 	PerfErrChan        chan error
 	DataHandler        PerfHandler
 	LostHandler        PerfLostHandler
+	ErrorHandler       PerfErrorHandler
+}
+
+const (
+	smallPerfDefaultPages    = 32
+	smallPerfDefaultMaxBytes = 16 * 1024 * 1024
+	smallPerfMinPages        = 4
+)
+
+func PerfRingBufferSize(defaultPages, maxBytes, minPages int) int {
+	pageSize := os.Getpagesize()
+	if defaultPages <= 0 {
+		defaultPages = 1
+	}
+	if minPages <= 0 {
+		minPages = 1
+	}
+
+	pages := defaultPages
+	if maxBytes > 0 && pageSize > 0 {
+		if capPages := maxBytes / pageSize / runtime.NumCPU(); capPages > 0 && capPages < pages {
+			pages = capPages
+		}
+	}
+	if pages < minPages {
+		pages = minPages
+	}
+	return pages * pageSize
+}
+
+func SmallPerfRingBufferSize() int {
+	return PerfRingBufferSize(smallPerfDefaultPages, smallPerfDefaultMaxBytes, smallPerfMinPages)
+}
+
+func PerfWatermark(bufferSize int) int {
+	pageSize := os.Getpagesize()
+	if bufferSize <= pageSize || pageSize <= 0 {
+		return 0
+	}
+	return pageSize
 }
 
 type Runtime struct {
@@ -146,6 +191,14 @@ func LoadRuntimeFromReader(reader io.ReaderAt, opts LoadOptions, probes []ProbeS
 	if len(opts.DisabledPrograms) > 0 {
 		for _, name := range opts.DisabledPrograms {
 			delete(spec.Programs, name)
+		}
+	}
+	for name, maxEntries := range opts.MapMaxEntries {
+		if maxEntries == 0 {
+			continue
+		}
+		if mp, ok := spec.Maps[name]; ok {
+			mp.MaxEntries = maxEntries
 		}
 	}
 
@@ -211,12 +264,13 @@ func (r *Runtime) LoadCollection(reader io.ReaderAt, opts LoadOptions) error {
 			continue
 		}
 		perfSpecs = append(perfSpecs, PerfReaderSpec{
-			MapName:     stream.Map.Name,
-			BufferSize:  stream.PerfStreamOptions.PerfRingBufferSize,
-			Watermark:   stream.PerfStreamOptions.Watermark,
-			PerfErrChan: stream.PerfStreamOptions.PerfErrChan,
-			DataHandler: stream.PerfStreamOptions.DataHandler,
-			LostHandler: stream.PerfStreamOptions.LostHandler,
+			MapName:      stream.Map.Name,
+			BufferSize:   stream.PerfStreamOptions.PerfRingBufferSize,
+			Watermark:    stream.PerfStreamOptions.Watermark,
+			PerfErrChan:  stream.PerfStreamOptions.PerfErrChan,
+			DataHandler:  stream.PerfStreamOptions.DataHandler,
+			LostHandler:  stream.PerfStreamOptions.LostHandler,
+			ErrorHandler: stream.PerfStreamOptions.ErrorHandler,
 		})
 	}
 
@@ -537,9 +591,15 @@ func (s *PerfStream) start(runtime *Runtime) error {
 	s.wg.Add(1)
 	go func() {
 		defer s.wg.Done()
+		var record perf.Record
 		for {
-			record := new(perf.Record)
-			if err := s.reader.ReadInto(record); err != nil {
+			if err := s.reader.ReadInto(&record); err != nil {
+				if errors.Is(err, perf.ErrClosed) {
+					return
+				}
+				if s.spec.ErrorHandler != nil {
+					s.spec.ErrorHandler(err, s, runtime)
+				}
 				if s.spec.PerfErrChan != nil {
 					s.spec.PerfErrChan <- err
 				}
@@ -549,11 +609,15 @@ func (s *PerfStream) start(runtime *Runtime) error {
 				if s.spec.LostHandler != nil {
 					s.spec.LostHandler(record.CPU, record.LostSamples, s, runtime)
 				}
+				record.LostSamples = 0
+				record.RawSample = record.RawSample[:0]
 				continue
 			}
 			if s.spec.DataHandler != nil {
 				s.spec.DataHandler(record.CPU, record.RawSample, s, runtime)
 			}
+			record.LostSamples = 0
+			record.RawSample = record.RawSample[:0]
 		}
 	}()
 	return nil

@@ -14,6 +14,8 @@ import (
 	"golang.org/x/net/bpf"
 )
 
+const dnsCaptureSocketBlocks = 8
+
 type DNSParser struct {
 	*gopacket.DecodingLayerParser
 	layers     []gopacket.LayerType
@@ -51,7 +53,10 @@ func NewDNSParse() DNSParser {
 }
 
 func NewTPacketDNS() (*afpacket.TPacket, error) {
-	h, err := afpacket.NewTPacket()
+	h, err := afpacket.NewTPacket(
+		afpacket.OptNumBlocks(dnsCaptureSocketBlocks),
+		afpacket.OptPollTimeout(time.Second),
+	)
 	if err != nil {
 		return nil, err
 	}

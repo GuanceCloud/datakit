@@ -7,6 +7,7 @@ package l4log
 import (
 	"context"
 	"encoding/binary"
+	"errors"
 	"net"
 	"strconv"
 	"sync"
@@ -24,6 +25,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/spanid"
 	"golang.org/x/sys/unix"
 )
+
+func isPacketReadTimeout(err error) bool {
+	return errors.Is(err, afpacket.ErrTimeout)
+}
 
 func ancillaryDirection(data []interface{}) (int8, string) {
 	for _, v := range data {
@@ -1018,6 +1023,9 @@ func (conns *TCPConns) CapturePacket(ctx context.Context, name, mac, netns strin
 
 		buf, ci, err := h.ZeroCopyReadPacketData()
 		if err != nil {
+			if isPacketReadTimeout(err) {
+				continue
+			}
 			log.Error(err)
 			continue
 		}

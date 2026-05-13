@@ -229,10 +229,10 @@ func seedConntrackTupleOffsets(dst *OffsetConntrackC) {
 
 	origin, reply := conntrackSeedTupleOffsets()
 	if dst.offset_ct_origin_tuple == 0 {
-		dst.offset_ct_origin_tuple = _Ctype_ulonglong(origin)
+		dst.offset_ct_origin_tuple = origin
 	}
 	if dst.offset_ct_reply_tuple == 0 {
-		dst.offset_ct_reply_tuple = _Ctype_ulonglong(reply)
+		dst.offset_ct_reply_tuple = reply
 	}
 }
 
@@ -242,31 +242,31 @@ func kernelOffsetsReady(offset *OffsetGuessC, wantTCPSeq bool, ipv6Disabled bool
 	}
 
 	required := []uint64{
-		uint64(offset.offset_sk_num),
-		uint64(offset.offset_sk_family),
-		uint64(offset.offset_sk_rcv_saddr),
-		uint64(offset.offset_sk_dport),
-		uint64(offset.offset_flowi4_saddr),
-		uint64(offset.offset_flowi4_daddr),
-		uint64(offset.offset_flowi4_sport),
-		uint64(offset.offset_flowi4_dport),
+		offset.offset_sk_num,
+		offset.offset_sk_family,
+		offset.offset_sk_rcv_saddr,
+		offset.offset_sk_dport,
+		offset.offset_flowi4_saddr,
+		offset.offset_flowi4_daddr,
+		offset.offset_flowi4_sport,
+		offset.offset_flowi4_dport,
 	}
 
 	if !ipv6Disabled {
 		required = append(required,
-			uint64(offset.offset_sk_v6_rcv_saddr),
-			uint64(offset.offset_sk_v6_daddr),
-			uint64(offset.offset_flowi6_saddr),
-			uint64(offset.offset_flowi6_daddr),
-			uint64(offset.offset_flowi6_sport),
-			uint64(offset.offset_flowi6_dport),
+			offset.offset_sk_v6_rcv_saddr,
+			offset.offset_sk_v6_daddr,
+			offset.offset_flowi6_saddr,
+			offset.offset_flowi6_daddr,
+			offset.offset_flowi6_sport,
+			offset.offset_flowi6_dport,
 		)
 	}
 
 	if wantTCPSeq {
 		required = append(required,
-			uint64(offset.offset_copied_seq),
-			uint64(offset.offset_write_seq),
+			offset.offset_copied_seq,
+			offset.offset_write_seq,
 		)
 	}
 

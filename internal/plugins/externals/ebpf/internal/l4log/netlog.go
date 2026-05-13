@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/google/gopacket"
@@ -40,9 +41,11 @@ const (
 	defaultFallbackCaptureSocketBlocks = 8
 	defaultSharedCaptureSocketBlocks   = 128
 	defaultMaxFallbackSocketLimit      = 16
+	defaultCapturePollTimeout          = time.Second
 
 	// K8s nodes already pay extra per-pod netns bookkeeping; default to shared-only capture.
 	k8sFallbackCaptureSocketBlocks = 4
+	k8sSharedCaptureSocketBlocks   = 64
 	k8sMaxFallbackSocketLimit      = 0
 )
 
@@ -166,6 +169,7 @@ func newRawsocket(filter []bpf.RawInstruction, opts ...any) (*afpacket.TPacket, 
 	afpktOpt := []any{
 		afpacket.OptNumBlocks(fallbackCaptureSocketBlocks),
 		afpacket.OptAddPktType(true),
+		afpacket.OptPollTimeout(defaultCapturePollTimeout),
 	}
 
 	afpktOpt = append(afpktOpt, opts...)
@@ -228,6 +232,7 @@ func applyCaptureLimits(cfg *netlogCfg) {
 
 	if k8sNetInfo != nil {
 		fallbackCaptureSocketBlocks = k8sFallbackCaptureSocketBlocks
+		sharedCaptureSocketBlocks = k8sSharedCaptureSocketBlocks
 		maxFallbackSocketLimit = k8sMaxFallbackSocketLimit
 	}
 

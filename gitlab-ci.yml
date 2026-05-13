@@ -73,6 +73,31 @@ ci_lint_and_ut:
   tags:
     - cloudcare-ft
 
+ci_ebpf_nocgo_build:
+  stage: _deploy_guance
+  rules:
+    # No pipeline when there is a MR whose title starts with Draft
+    # Disable merge request to master/main branch
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE =~ /^(\[Draft\]|\(Draft\)|Draft:)/
+      when: never
+
+    # Trigger on MR changes that can affect datakit-ebpf nocgo build.
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - Makefile
+        - externals/**/*
+        - gitlab-ci.yml
+        - cmd/make/build/external.go
+        - cmd/make/build/external_test.go
+        - internal/plugins/externals/ebpf/**/*
+        - internal/plugins/inputs/ebpf/**/*
+
+  script:
+    - docker version
+    - make ebpf_nocgo_ci
+  tags:
+    - cloudcare-ft
+
 ut-datakit-production:
   stage: _test_guance
   resource_group: production

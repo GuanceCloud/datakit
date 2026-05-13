@@ -215,8 +215,8 @@ int kretprobe__inet_csk_accept(struct pt_regs *ctx)
     pb.netns = read_netns(sk);
     pb.port = port;
 
-    __u8 state = PORT_LISETINING;
-    bpf_map_update_elem(&bpfmap_port_bind, &pb, &state, BPF_NOEXIST);
+    __u8 state = PORT_LISTENING;
+    bpf_map_update_elem(&bpfmap_port_bind, &pb, &state, BPF_ANY);
 
     return 0;
 }
@@ -693,7 +693,7 @@ int kretprobe__inet_bind(struct pt_regs *ctx)
     struct port_bind pbind = {};
     pbind.netns = bindinfo.netns;
     pbind.port = bindinfo.port;
-    __u8 state = PORT_LISETINING;
+    __u8 state = PORT_LISTENING;
     bpf_map_update_elem(&bpfmap_udp_port_bind, &pbind, &state, BPF_ANY);
     return 0;
 }
@@ -770,7 +770,7 @@ int kretprobe__inet6_bind(struct pt_regs *ctx)
     struct port_bind pbind = {};
     pbind.netns = bindinfo.netns;
     pbind.port = bindinfo.port;
-    __u8 state = PORT_LISETINING;
+    __u8 state = PORT_LISTENING;
     bpf_map_update_elem(&bpfmap_udp_port_bind, &pbind, &state, BPF_ANY);
     return 0;
 }
