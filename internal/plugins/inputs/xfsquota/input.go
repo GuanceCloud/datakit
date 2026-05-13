@@ -11,6 +11,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -28,9 +29,14 @@ type Input struct {
 
 	Feeder dkio.Feeder
 	Tagger datakit.GlobalTagger
+
+	semStop *cliutils.Sem
 }
 
-var l = logger.DefaultSLogger(inputName)
+var (
+	l                = logger.DefaultSLogger(inputName)
+	_ inputs.InputV2 = (*Input)(nil)
+)
 
 func (*Input) SampleConfig() string { return sampleConfig }
 
@@ -61,6 +67,10 @@ func (ipt *Input) Run() {
 		select {
 		case <-datakit.Exit.Wait():
 			l.Info("xfsquota exit")
+			return
+
+		case <-ipt.semStop.Wait():
+			l.Info("xfsquota return")
 			return
 
 		case tt := <-tick.C:
@@ -124,13 +134,18 @@ func (ipt *Input) collectXFSQuota(timestamp int64) {
 	}
 }
 
-func (ipt *Input) Terminate() { /*nil*/ }
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
+}
 
 func newXFSQuota() *Input {
 	return &Input{
-		Tags:   make(map[string]string),
-		Feeder: dkio.DefaultFeeder(),
-		Tagger: datakit.DefaultGlobalTagger(),
+		Tags:    make(map[string]string),
+		Feeder:  dkio.DefaultFeeder(),
+		Tagger:  datakit.DefaultGlobalTagger(),
+		semStop: cliutils.NewSem(),
 	}
 }
 
