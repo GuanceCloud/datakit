@@ -16,7 +16,8 @@ monitor   :
 
 ---
 
-Doris 采集器用于采集 Doris 相关的指标数据，目前只支持 Prometheus 格式的数据
+Doris 采集器通过 FE Query Port 的 MySQL 协议采集 Doris 数据库对象和自定义 SQL 指标。
+如需采集完整 FE/BE Prometheus 指标，可继续使用配置样例中的 Prometheus 采集器配置。
 
 ## 配置 {#config}
 
@@ -26,11 +27,27 @@ Doris 采集器用于采集 Doris 相关的指标数据，目前只支持 Promet
 
 ### 前置条件 {#requirements}
 
-Doris 默认开启 Prometheus 端口
+使用 Doris 管理账号连接 FE Query Port，创建 `datakit` 采集账号：
 
-验证前端：curl ip:8030/metrics
+```sql
+CREATE USER 'datakit'@'%' IDENTIFIED BY '123456';
+GRANT NODE_PRIV ON *.*.* TO 'datakit'@'%';
+```
 
-验证后端：curl ip:8040/metrics
+使用 `datakit` 账号验证 FE SQL 连接：
+
+```shell
+mysql -h <FE_HOST> -P 9030 -u datakit -p
+```
+
+连接后可执行以下 SQL 验证对象采集所需信息：
+
+```sql
+SHOW FRONTENDS;
+SHOW BACKENDS;
+```
+
+如配置自定义查询，需确保 `datakit` 账号具备对应表或视图的查询权限。
 
 ### 采集器配置 {#input-config}
 
@@ -51,12 +68,52 @@ Doris 默认开启 Prometheus 端口
 
 <!-- markdownlint-enable -->
 
+### 自定义查询 {#custom-query}
+
+可通过 `[[inputs.doris.custom_queries]]` 配置自定义 SQL，将查询结果上报为指标。
+
+```toml
+[[inputs.doris.custom_queries]]
+  sql = '''
+    SELECT
+      TABLE_SCHEMA AS table_schema,
+      COUNT(*) AS table_count
+    FROM information_schema.tables
+    GROUP BY TABLE_SCHEMA
+  '''
+  metric = "doris_custom"
+  tags = ["table_schema"]
+  fields = ["table_count"]
+  interval = "10s"
+```
+
+- `metric`：上报的指标集名称。
+- `tags`：查询结果中作为标签的列名。
+- `fields`：查询结果中作为字段的列名，字段值需要为数值类型。
+- `interval`：该查询的采集周期；未配置时使用 `inputs.doris.interval`。
+
 ## 指标 {#metric}
 
 {{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "metric"}}
 
 ### `{{$m.Name}}`
 
 {{$m.MarkdownTable}}
 
+{{ end }}
+{{ end }}
+
+## 对象 {#object}
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "object"}}
+
+### `{{$m.Name}}`
+
+{{$m.MarkdownTable}}
+
+{{ end }}
 {{ end }}
