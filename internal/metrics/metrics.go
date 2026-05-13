@@ -192,11 +192,30 @@ var (
 		nil,
 		nil,
 	)
+
+	runtimeInfoDescs = []*p8s.Desc{
+		riGoroutineDesc,
+		riHeapAllocDesc,
+		riSysAllocDesc,
+		riGolangMemDesc,
+		riMemStatDesc,
+		riCPUUsageDesc,
+		riGCPauseDesc,
+		riOpenFilesDesc,
+		riCPUCores,
+		riUptimeDesc,
+		riCtxSwitch,
+		riIOCount,
+		riIOBytes,
+		riBeyondUsage,
+	}
 )
 
 // Describe implements Collector Describe interface.
 func (rc runtimeInfoCollector) Describe(ch chan<- *p8s.Desc) {
-	p8s.DescribeByCollect(rc, ch)
+	for _, desc := range runtimeInfoDescs {
+		ch <- desc
+	}
 }
 
 // Collect implements Collector Collect interface.
