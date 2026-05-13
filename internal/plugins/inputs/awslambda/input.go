@@ -34,6 +34,7 @@ import (
 
 const (
 	inputName = "awslambda"
+	inputAPI  = "/awslambda"
 )
 
 var l = logger.DefaultSLogger(inputName)
@@ -230,7 +231,7 @@ func (ipt *Input) Terminate() {
 			l.Errorf("lambda server shutdown failed: %s", err.Error())
 		}
 	}
-	httpapi.RemoveHTTPRoute(http.MethodPost, "/awslambda")
+	httpapi.RemoveHTTPRoute(http.MethodPost, inputAPI)
 }
 
 func (ipt *Input) startDDLambdaExtensionService() {
@@ -339,6 +340,13 @@ func resetLog() {
 }
 
 func init() { //nolint:gochecknoinits
+	httpapi.RegInputHTTPRouteMatcher(func(method, path string) (string, bool) {
+		if method == http.MethodPost && path == inputAPI {
+			return inputName, true
+		}
+		return "", false
+	})
+
 	inputs.Add(inputName, func() inputs.Input {
 		ipt := &Input{
 			EnableMetricCollection: true,
@@ -371,5 +379,5 @@ func (ipt *Input) RegHTTPHandler() {
 		err := ipt.telemetryListener.HandlerTelemetry(w, r)
 		return nil, err
 	}
-	httpapi.RegHTTPRoute(http.MethodPost, "/awslambda", h)
+	httpapi.RegHTTPRoute(http.MethodPost, inputAPI, h)
 }

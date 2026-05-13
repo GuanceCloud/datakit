@@ -42,6 +42,7 @@ var (
 
 	ErrPublicAccessDisabled = newErr(errors.New("public access disabled"), http.StatusForbidden)
 	ErrReachLimit           = newErr(errors.New("reach max API limit"), http.StatusTooManyRequests)
+	ErrInputNotEnabled      = newErr(errors.New("input not enabled"), http.StatusServiceUnavailable)
 
 	ErrInvalidJSON = newErr(errors.New("invalid JSON"), http.StatusBadRequest)
 

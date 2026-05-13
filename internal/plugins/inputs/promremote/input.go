@@ -469,6 +469,16 @@ func defaultInput() *Input {
 }
 
 func init() { //nolint:gochecknoinits
+	httpapi.RegInputHTTPRouteMatcher(func(method, reqPath string) (string, bool) {
+		if reqPath != defaultRemoteWritePath {
+			return "", false
+		}
+		if method == http.MethodPost || method == http.MethodPut {
+			return inputName, true
+		}
+		return "", false
+	})
+
 	inputs.Add(inputName, func() inputs.Input {
 		return defaultInput()
 	})

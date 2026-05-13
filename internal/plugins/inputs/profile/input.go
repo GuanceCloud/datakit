@@ -55,6 +55,7 @@ const (
 	defaultHTTPRetryCount    = 4
 	XDataKitVersionHeader    = "X-Datakit-Version"
 	timestampHeaderKey       = "X-Datakit-UnixNano"
+	defaultProfileAPI        = "/profiling/v1/input"
 	sampleConfig             = `
 [[inputs.profile]]
   ## profile Agent endpoints register by version respectively.
@@ -210,6 +211,13 @@ func DefaultInput() *Input {
 }
 
 func init() { //nolint:gochecknoinits
+	httpapi.RegInputHTTPRouteMatcher(func(method, path string) (string, bool) {
+		if method == http.MethodPost && path == defaultProfileAPI {
+			return inputName, true
+		}
+		return "", false
+	})
+
 	inputs.Add(inputName, func() inputs.Input {
 		return DefaultInput()
 	})
