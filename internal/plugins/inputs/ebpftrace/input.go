@@ -8,6 +8,7 @@ package ebpftrace
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -30,6 +31,7 @@ import (
 const (
 	inputName   = "ebpftrace"
 	catalogName = "ebpftrace"
+	traceAPI    = "/v1/bpftracing"
 
 	configSample = `
 [[inputs.ebpftrace]]
@@ -63,7 +65,7 @@ func (ipt *Input) Terminate() {
 		ipt.semStop.Close()
 	}
 
-	httpapi.RemoveHTTPRoute("POST", "/v1/bpftracing")
+	httpapi.RemoveHTTPRoute(http.MethodPost, traceAPI)
 }
 
 func (ipt *Input) Catalog() string {
@@ -84,7 +86,7 @@ func (ipt *Input) RegHTTPHandler() {
 
 	ulid, _ := espan.NewRandID()
 
-	httpapi.RegHTTPRoute("POST", "/v1/bpftracing",
+	httpapi.RegHTTPRoute(http.MethodPost, traceAPI,
 		apiBPFTracing(ulid, ipt.mrrunner))
 }
 
@@ -187,7 +189,14 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 }
 
 func init() { //nolint:gochecknoinits
-	inputs.Add("ebpftrace", func() inputs.Input {
+	httpapi.RegInputHTTPRouteMatcher(func(method, path string) (string, bool) {
+		if method == http.MethodPost && path == traceAPI {
+			return inputName, true
+		}
+		return "", false
+	})
+
+	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			semStop: cliutils.NewSem(),
 		}

@@ -456,6 +456,25 @@ func defaultInput() *Input {
 }
 
 func init() { //nolint:gochecknoinits
+	httpapi.RegInputHTTPRouteMatcher(func(method, path string) (string, bool) {
+		switch path {
+		case v1, v2, v3, v4, v5:
+			if method == http.MethodPost || method == http.MethodPut {
+				return inputName, true
+			}
+		case info, stats:
+			if method == http.MethodGet {
+				return inputName, true
+			}
+		case apmTelemetry:
+			if method == http.MethodPost {
+				return inputName, true
+			}
+		}
+
+		return "", false
+	})
+
 	inputs.Add(inputName, func() inputs.Input {
 		return defaultInput()
 	})

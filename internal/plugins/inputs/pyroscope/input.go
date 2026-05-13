@@ -58,6 +58,7 @@ const (
 	defaultHTTPRetryCount      = 4
 	XDataKitVersionHeader      = "X-Datakit-Version"
 	timestampHeaderKey         = "X-Datakit-UnixNano"
+	defaultPyroscopeAPI        = "/ingest"
 	sampleConfig               = `
 [[inputs.pyroscope]]
   ## pyroscope Agent endpoints register by version respectively.
@@ -167,6 +168,13 @@ func defaultInput() *Input {
 }
 
 func init() { //nolint:gochecknoinits
+	httpapi.RegInputHTTPRouteMatcher(func(method, path string) (string, bool) {
+		if method == http.MethodPost && path == defaultPyroscopeAPI {
+			return inputName, true
+		}
+		return "", false
+	})
+
 	inputs.Add(inputName, func() inputs.Input {
 		return defaultInput()
 	})

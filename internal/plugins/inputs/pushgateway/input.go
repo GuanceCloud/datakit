@@ -10,6 +10,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
@@ -30,6 +31,9 @@ var (
 
 const (
 	inputName = "pushgateway"
+
+	defaultJobPrefix       = "/metrics/job/"
+	defaultJobBase64Prefix = "/metrics/job" + base64Suffix + "/"
 
 	sampleConfig = `
 [[inputs.pushgateway]]
@@ -172,7 +176,24 @@ func protobufProcessor(opts []iprom.PromOption, feeder dkio.Feeder, body io.Read
 	return feeder.Feed(point.Metric, pts, dkio.WithSource(inputName), dkio.DisableGlobalTags(true))
 }
 
+func matchPushgatewayInputHTTPRoute(method, path string) (string, bool) {
+	if method != http.MethodPost && method != http.MethodPut {
+		return "", false
+	}
+
+	if strings.HasPrefix(path, defaultJobPrefix) && len(path) > len(defaultJobPrefix) {
+		return inputName, true
+	}
+	if strings.HasPrefix(path, defaultJobBase64Prefix) && len(path) > len(defaultJobBase64Prefix) {
+		return inputName, true
+	}
+
+	return "", false
+}
+
 func init() { //nolint:gochecknoinits
+	httpapi.RegInputHTTPRouteMatcher(matchPushgatewayInputHTTPRoute)
+
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			KeepExistMetricName: true,

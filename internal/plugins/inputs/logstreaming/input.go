@@ -34,8 +34,9 @@ var (
 )
 
 const (
-	inputName = "logstreaming"
-	sampleCfg = `
+	inputName       = "logstreaming"
+	logstreamingAPI = "/v1/write/logstreaming"
+	sampleCfg       = `
 [inputs.logstreaming]
   ignore_url_tags = false
 
@@ -152,7 +153,7 @@ func (ipt *Input) RegHTTPHandler() {
 		}
 	}
 
-	httpapi.RegHTTPHandler("POST", "/v1/write/logstreaming",
+	httpapi.RegHTTPHandler("POST", logstreamingAPI,
 		workerpool.HTTPWrapper(httpStatusRespFunc, wkpool,
 			httpapi.HTTPStorageWrapper(storage.HTTP_KEY,
 				httpStatusRespFunc,
@@ -192,7 +193,7 @@ func (ipt *Input) Terminate() {
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
 	}
-	httpapi.RemoveHTTPRoute("POST", "/v1/write/logstreaming")
+	httpapi.RemoveHTTPRoute("POST", logstreamingAPI)
 }
 
 func defaultInput() *Input {
@@ -205,6 +206,13 @@ func defaultInput() *Input {
 }
 
 func init() { //nolint:gochecknoinits
+	httpapi.RegInputHTTPRouteMatcher(func(method, path string) (string, bool) {
+		if method == http.MethodPost && path == logstreamingAPI {
+			return inputName, true
+		}
+		return "", false
+	})
+
 	inputs.Add(inputName, func() inputs.Input {
 		return defaultInput()
 	})
