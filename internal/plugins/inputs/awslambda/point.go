@@ -8,8 +8,6 @@ package awslambda
 import (
 	"time"
 
-	"go.uber.org/zap"
-
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/awslambda/lambdaapi/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/awslambda/lambdaapi/model"
@@ -23,16 +21,13 @@ func (ipt *Input) toLogPoint(e *telemetry.LogEvent) *point.Point {
 	opts := point.DefaultLoggingOptions()
 	opts = append(opts, point.WithTime(e.Time))
 	kvs := append(point.NewTags(ipt.tags), point.NewKV(AWSLogFrom, e.Record.GetType(), point.WithKVTagSet(true)))
-	kvs = append(kvs, point.NewKVs(e.Record.GetFields())...)
+	kvs = append(kvs, point.NewKVs(sanitizeLogFields(e.Record.GetFields()))...)
 	return point.NewPoint(inputName, kvs, opts...)
 }
 
 func (ipt *Input) toLogPointArr(es []*telemetry.LogEvent) (pts []*point.Point) {
 	for _, v := range es {
 		logPoint := ipt.toLogPoint(v)
-		if l.Level() <= zap.DebugLevel {
-			l.Debugf("logPoint: %s", logPoint.Pretty())
-		}
 		pts = append(pts, logPoint)
 	}
 	return
@@ -137,16 +132,8 @@ func (ipt *Input) addPostRuntimeDurationMetric(v *lambdaCtx, kvsMetric point.KVs
 }
 
 func (ipt *Input) toMetricPointArr(es []*telemetry.Event) (metrics []*point.Point) {
-	l.Debugf("convert %d event to point arr", len(es))
-
 	for _, v := range es {
-		l.Debugf("event: %+#v", v)
-
 		metricPoint := ipt.toMetricPoint(v)
-		if l.Level() <= zap.DebugLevel {
-			l.Debugf("metricPoint: %s", metricPoint.Pretty())
-		}
-
 		metrics = append(metrics, metricPoint)
 	}
 	return

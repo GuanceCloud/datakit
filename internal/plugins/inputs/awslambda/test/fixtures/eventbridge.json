@@ -1,0 +1,7 @@
+{
+  "version": "0",
+  "id": "abcd",
+  "detail-type": "app.event",
+  "source": "custom.app",
+  "account": "123456789012"
+}
