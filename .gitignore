@@ -11,6 +11,7 @@ __debug_bin*
 bin
 .suite.json
 .vscode/
+.codex
 *.test
 *-packr.go
 *.ak

@@ -15,6 +15,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/endpoint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
 
@@ -85,6 +86,7 @@ func setCmdRootLog(rl string) {
 	config.SetLog()
 	export.SetLog()
 	election.SetLog()
+	endpoint.Setup()
 
 	l = logger.SLogger("cmds")
 

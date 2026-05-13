@@ -302,16 +302,38 @@ After successful execution, a zip file is generated in the current directory, wi
     $ datakit debug --bug-report --disable-profile
     ```
 
-    - If there is public network access, you can directly upload the file to OSS to avoid the hassle of file copying ([:octicons-tag-24: Version-1.27.0](changelog.md#cl-1.27.0)):
+    - Starting from [:octicons-tag-24: Version-1.94.0](changelog-2026.md#cl-1.94.0), DataKit will try to upload the generated zip package through Dataway by default and the local zip file will be deleted after a successful upload:
+
+    ```shell
+    $ datakit debug --bug-report
+    ...
+    uploading info-1776234260403.zip (size: 1953771 bytes) via dataway...
+
+    bug report upload summary(size: 1.394224 M):
+    local file: deleted after successful upload
+    object key:
+    2026-04-15/your-hostname/dkbr_xxxxx.zip
+    ```
+
+    Paste the object key at the bottom to us. The support team can download the file from the configured OSS prefix through internal OSS permissions.
+
+    If you need to upload to a temporary Dataway address for troubleshooting, use `--bug-report-dataway`:
+
+    ```shell
+    $ datakit debug --bug-report --bug-report-dataway http://dataway.example.com
+    ```
+
+    - If you want to upload directly to OSS from the local machine, you can use `--oss` to explicitly specify the OSS information ([:octicons-tag-24: Version-1.27.0](changelog.md#cl-1.27.0)):
 
     ```shell hl_lines="7"
     # Here *must fill in* the correct OSS address/Bucket name and corresponding AS/SK
     $ datakit debug --bug-report --oss OSS_HOST:OSS_BUCKET:OSS_ACCESS_KEY:OSS_SECRET_KEY
     ...
-    bug report saved to info-1711794736881.zip
     uploading info-1711794736881.zip...
-    download URL(size: 1.394224 M):
-        https://OSS_BUCKET.OSS_HOST/datakit-bugreport/2024-03-30/dkbr_co3v2375mqs8u82aa6sg.zip
+    bug report upload summary(size: 1.394224 M):
+    local file: deleted after successful upload
+    download URL:
+    https://OSS_BUCKET.OSS_HOST/datakit-bugreport/2024-03-30/dkbr_co3v2375mqs8u82aa6sg.zip
     ```
 
     Paste the link address at the bottom to us (please make sure that the  file in OSS is publicly accessible, otherwise the link cannot be downloaded directly).
