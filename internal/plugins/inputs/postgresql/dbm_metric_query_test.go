@@ -64,7 +64,7 @@ func TestBuildDbmMetricPoints(t *testing.T) {
 		},
 	}
 
-	pts, reportRows := ipt.buildDbmMetricPoints(baseline, time.Unix(1700000000, 0), 0)
+	pts, reportRows := ipt.buildDbmMetricPoints(baseline, time.Unix(1700000000, 0))
 	if assert.Len(t, pts, 1) {
 		totalPt := findMetricPointByField(pts, "total_calls")
 		if assert.NotNil(t, totalPt) {
@@ -94,7 +94,7 @@ func TestBuildDbmMetricPoints(t *testing.T) {
 		},
 	}
 
-	pts, reportRows = ipt.buildDbmMetricPoints(current, time.Unix(1700000060, 0), 0)
+	pts, reportRows = ipt.buildDbmMetricPoints(current, time.Unix(1700000060, 0))
 	if assert.Len(t, pts, 2) {
 		pt := findMetricPointByField(pts, "delta_calls")
 		if assert.NotNil(t, pt) {
@@ -165,7 +165,7 @@ func TestBuildDbmMetricPointsSkipsCounterReset(t *testing.T) {
 			},
 			deltas: map[string]float64{},
 		},
-	}, time.Unix(1700000000, 0), 0)
+	}, time.Unix(1700000000, 0))
 
 	if assert.Len(t, pts, 1) {
 		totalPt := findMetricPointByField(pts, "total_calls")
@@ -201,7 +201,7 @@ func TestBuildDbmMetricPointsTotalCalls(t *testing.T) {
 				"calls": 5,
 			},
 		},
-	}, time.Unix(1700000000, 0), time.Minute)
+	}, time.Unix(1700000000, 0))
 
 	assert.Empty(t, reportRows)
 	if assert.Len(t, firstPts, 1) {
@@ -231,7 +231,7 @@ func TestBuildDbmMetricPointsTotalCalls(t *testing.T) {
 			},
 			deltas: map[string]float64{},
 		},
-	}, time.Unix(1700000060, 0), time.Minute)
+	}, time.Unix(1700000075, 0))
 
 	if assert.Len(t, reportRows, 2) {
 		assert.Equal(t, "query-1", reportRows[0].querySignature)
@@ -246,9 +246,56 @@ func TestBuildDbmMetricPointsTotalCalls(t *testing.T) {
 			}
 			if deltaTotalCalls := fields.Get("delta_total_calls"); deltaTotalCalls != nil {
 				assert.Equal(t, int64(5), deltaTotalCalls.Raw())
+			} else {
+				assert.Fail(t, "delta_total_calls not found")
 			}
 			if dbmQPS := fields.Get("dbm_qps"); dbmQPS != nil {
-				assert.Equal(t, float64(5.0/60.0), dbmQPS.Raw())
+				assert.Equal(t, float64(5.0/75.0), dbmQPS.Raw())
+			} else {
+				assert.Fail(t, "dbm_qps not found")
+			}
+		}
+	}
+}
+
+func TestBuildDbmMetricPointsEmptyRowsKeepsTotalCallsBaseline(t *testing.T) {
+	ipt := defaultInput()
+
+	firstPts, reportRows := ipt.buildDbmMetricPoints([]dbmMetricRow{
+		{
+			querySignature: "query-1",
+			metrics: map[string]float64{
+				"calls": 10,
+			},
+		},
+	}, time.Unix(1700000000, 0))
+
+	assert.Empty(t, reportRows)
+	assert.Len(t, firstPts, 1)
+
+	emptyPts, reportRows := ipt.buildDbmMetricPoints(nil, time.Unix(1700000060, 0))
+	assert.Empty(t, reportRows)
+	assert.Empty(t, emptyPts)
+
+	secondPts, reportRows := ipt.buildDbmMetricPoints([]dbmMetricRow{
+		{
+			querySignature: "query-1",
+			metrics: map[string]float64{
+				"calls": 15,
+			},
+			deltas: map[string]float64{},
+		},
+	}, time.Unix(1700000120, 0))
+
+	if assert.Len(t, reportRows, 1) && assert.Len(t, secondPts, 2) {
+		second := findMetricPointByField(secondPts, "total_calls")
+		if assert.NotNil(t, second) {
+			fields := second.Fields()
+			if deltaTotalCalls := fields.Get("delta_total_calls"); assert.NotNil(t, deltaTotalCalls) {
+				assert.Equal(t, int64(5), deltaTotalCalls.Raw())
+			}
+			if dbmQPS := fields.Get("dbm_qps"); assert.NotNil(t, dbmQPS) {
+				assert.Equal(t, float64(5.0/120.0), dbmQPS.Raw())
 			}
 		}
 	}
@@ -290,7 +337,7 @@ func TestBuildDbmMetricPointsMergesDuplicateQuerySignatures(t *testing.T) {
 		},
 	}
 
-	pts, reportRows := ipt.buildDbmMetricPoints(baseline, time.Unix(1700000000, 0), 0)
+	pts, reportRows := ipt.buildDbmMetricPoints(baseline, time.Unix(1700000000, 0))
 	if assert.Len(t, pts, 1) {
 		totalPt := findMetricPointByField(pts, "total_calls")
 		if assert.NotNil(t, totalPt) {
@@ -331,7 +378,7 @@ func TestBuildDbmMetricPointsMergesDuplicateQuerySignatures(t *testing.T) {
 		},
 	}
 
-	pts, reportRows = ipt.buildDbmMetricPoints(current, time.Unix(1700000060, 0), 0)
+	pts, reportRows = ipt.buildDbmMetricPoints(current, time.Unix(1700000060, 0))
 	if assert.Len(t, pts, 2) {
 		pt := findMetricPointByField(pts, "delta_calls")
 		if assert.NotNil(t, pt) {

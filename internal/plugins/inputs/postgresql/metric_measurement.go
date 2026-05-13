@@ -385,7 +385,18 @@ func (m *postgresqlMeasurement) getDbmMetricFields() map[string]interface{} {
 	fields := (&dbmMetricMeasurement{}).Info().Fields
 	fields = m.applyFieldDescOverrides(fields)
 	m.addTaggedbyToFields(fields, TagGroupDbmMetric)
+	m.clearTaggedbyForFields(fields, "total_calls", "delta_total_calls", "dbm_qps")
 	return fields
+}
+
+func (m *postgresqlMeasurement) clearTaggedbyForFields(fields map[string]interface{}, fieldNames ...string) {
+	for _, fieldName := range fieldNames {
+		fieldInfo, ok := fields[fieldName].(*inputs.FieldInfo)
+		if !ok {
+			continue
+		}
+		fieldInfo.Taggedby = nil
+	}
 }
 
 func (m *postgresqlMeasurement) getDbmSessionFields() map[string]interface{} {

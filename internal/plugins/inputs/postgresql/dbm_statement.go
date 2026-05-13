@@ -155,13 +155,13 @@ func (ipt *Input) loadDbmPgSettings() error {
 	return nil
 }
 
-func (ipt *Input) collectDbmMetricWithRows(ptsTime time.Time, interval time.Duration) ([]*point.Point, []dbmMetricRow, error) {
+func (ipt *Input) collectDbmMetricWithRows(ptsTime time.Time) ([]*point.Point, []dbmMetricRow, error) {
 	rows, err := ipt.collectDbmMetricRows()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	metricPts, reportRows := ipt.buildDbmMetricPoints(rows, ptsTime, ipt.DbmMetric.Interval.Duration)
+	metricPts, reportRows := ipt.buildDbmMetricPoints(rows, ptsTime)
 	return metricPts, reportRows, nil
 }
 
@@ -305,7 +305,7 @@ func generateQuerySignature(db, rolname, query string) string {
 	return fmt.Sprintf("%016x", h.Sum64())
 }
 
-func (ipt *Input) buildDbmMetricPoints(rows []dbmMetricRow, ptsTime time.Time, interval time.Duration) ([]*point.Point, []dbmMetricRow) {
+func (ipt *Input) buildDbmMetricPoints(rows []dbmMetricRow, ptsTime time.Time) ([]*point.Point, []dbmMetricRow) {
 	if ipt.dbmMetricValueCache == nil {
 		ipt.dbmMetricValueCache = map[string]*dbmMetricValueCache{}
 	}
@@ -383,7 +383,17 @@ func (ipt *Input) buildDbmMetricPoints(rows []dbmMetricRow, ptsTime time.Time, i
 	if totalCalls > 0 {
 		kvs := ipt.getKVs()
 		kvs = kvs.Set("total_calls", totalCalls)
+		if !ipt.dbmMetricTotalTime.IsZero() && totalCalls >= ipt.dbmMetricTotalCalls {
+			deltaTotalCalls := totalCalls - ipt.dbmMetricTotalCalls
+			kvs = kvs.Set("delta_total_calls", deltaTotalCalls)
+
+			if elapsed := ptsTime.Sub(ipt.dbmMetricTotalTime).Seconds(); elapsed > 0 {
+				kvs = kvs.Set("dbm_qps", float64(deltaTotalCalls)/elapsed)
+			}
+		}
 		pts = append(pts, point.NewPoint(dbmMetricMeasurementInfo.Name, kvs, opts...))
+		ipt.dbmMetricTotalCalls = totalCalls
+		ipt.dbmMetricTotalTime = ptsTime
 	}
 
 	return pts, reportRows

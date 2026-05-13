@@ -723,7 +723,7 @@ var dbmMetricMeasurementInfo = &inputs.MeasurementInfo{
 		"delta_blk_write_time":        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Delta value of blk_write_time between collection intervals."},
 		"avg_total_exec_time":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Average execution time per call in current interval."},
 		"avg_total_plan_time":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Average plan time per call in current interval."},
-		"dbm_qps":                     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "DBM query throughput derived from delta_total_calls divided by the DBM metric collection interval."},
+		"dbm_qps":                     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "DBM query throughput derived from delta_total_calls divided by the elapsed time between DBM metric collection points."},
 	},
 	Tags: map[string]interface{}{
 		"server":          inputs.NewTagInfo("The server address"),
