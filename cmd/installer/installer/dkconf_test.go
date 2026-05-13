@@ -275,6 +275,50 @@ func TestLoadInstallerArgs(t *T.T) {
 		assert.Equal(t, "localhost:4321", mc.HTTPAPI.Listen)
 	})
 
+	t.Run(`http-listen-with-port`, func(t *T.T) {
+		args := &InstallerArgs{
+			HTTPListen: "0.0.0.0:1234",
+		}
+		mc := config.DefaultConfig()
+		mc, err := args.LoadInstallerArgs(mc)
+		assert.NoError(t, err)
+		assert.Equal(t, "0.0.0.0:1234", mc.HTTPAPI.Listen)
+	})
+
+	t.Run(`http-listen-with-port-overridden`, func(t *T.T) {
+		args := &InstallerArgs{
+			HTTPListen: "0.0.0.0:1234",
+			HTTPPort:   2345,
+		}
+		mc := config.DefaultConfig()
+		mc, err := args.LoadInstallerArgs(mc)
+		assert.NoError(t, err)
+		assert.Equal(t, "0.0.0.0:2345", mc.HTTPAPI.Listen)
+	})
+
+	t.Run(`http-listen-with-port-ignore-invalid-legacy`, func(t *T.T) {
+		args := &InstallerArgs{
+			HTTPListen: "0.0.0.0:1234",
+		}
+		mc := config.DefaultConfig()
+		mc.HTTPAPI.Listen = "bad-listen"
+		mc, err := args.LoadInstallerArgs(mc)
+		assert.NoError(t, err)
+		assert.Equal(t, "0.0.0.0:1234", mc.HTTPAPI.Listen)
+	})
+
+	t.Run(`http-listen-and-port-ignore-invalid-legacy`, func(t *T.T) {
+		args := &InstallerArgs{
+			HTTPListen: "0.0.0.0",
+			HTTPPort:   2345,
+		}
+		mc := config.DefaultConfig()
+		mc.HTTPAPI.Listen = "bad-listen"
+		mc, err := args.LoadInstallerArgs(mc)
+		assert.NoError(t, err)
+		assert.Equal(t, "0.0.0.0:2345", mc.HTTPAPI.Listen)
+	})
+
 	t.Run(`9529-http-listen-ipv6`, func(t *T.T) {
 		args := &InstallerArgs{
 			HTTPListen: "::1",
