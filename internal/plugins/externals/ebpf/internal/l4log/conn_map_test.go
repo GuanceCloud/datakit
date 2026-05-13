@@ -3,7 +3,10 @@
 
 package l4log
 
-import "testing"
+import (
+	"sync"
+	"testing"
+)
 
 func TestConnMapShrinksAfterDeletes(t *testing.T) {
 	cm := newConnMap()
@@ -24,6 +27,23 @@ func TestConnMapShrinksAfterDeletes(t *testing.T) {
 	}
 	if cm.deleteCount != 0 {
 		t.Fatalf("expected deleteCount to reset after shrink, got %d", cm.deleteCount)
+	}
+}
+
+func TestTCPLogTrimsChunksByDefaultLimit(t *testing.T) {
+	t.Setenv(envNetlogMaxChunksPerConn, "")
+	netlogMemoryConfigOnce = sync.Once{}
+
+	var log TCPLog
+	for i := 0; i < defaultNetlogMaxChunksPerConn+3; i++ {
+		log.GetPktChunk(true, true)
+	}
+
+	if got, want := len(log.chunk), defaultNetlogMaxChunksPerConn; got != want {
+		t.Fatalf("unexpected chunk count: got %d want %d", got, want)
+	}
+	if got := log.chunk[0].ChunkID; got != 4 {
+		t.Fatalf("expected oldest retained chunk id to be 4, got %d", got)
 	}
 }
 

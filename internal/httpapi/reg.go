@@ -22,7 +22,29 @@ type httpRouteInfo struct {
 	handler           APIHandler
 }
 
-var httpRouteList = make(map[string]*httpRouteInfo)
+// InputHTTPRouteMatcher returns the input name when a no-route request belongs
+// to an input whose HTTP handler has not been enabled.
+type InputHTTPRouteMatcher func(method, path string) (string, bool)
+
+var (
+	httpRouteList          = make(map[string]*httpRouteInfo)
+	inputHTTPRouteMatchers []InputHTTPRouteMatcher
+)
+
+// RegInputHTTPRouteMatcher registers an input route matcher without
+// registering a Gin handler. Use this for dynamic default routes that cannot be
+// represented as a single exact path.
+func RegInputHTTPRouteMatcher(matcher InputHTTPRouteMatcher) {
+	if matcher == nil {
+		l.Warnf("failed to register input HTTP route matcher: matcher is nil")
+		return
+	}
+
+	httpConfMtx.Lock()
+	defer httpConfMtx.Unlock()
+
+	inputHTTPRouteMatchers = append(inputHTTPRouteMatchers, matcher)
+}
 
 // RegHTTPHandler deprecated, use RegHTTPRoute instead.
 func RegHTTPHandler(method, path string, handler http.HandlerFunc) {
@@ -69,6 +91,24 @@ func CleanHTTPHandler() {
 	httpConfMtx.Lock()
 	defer httpConfMtx.Unlock()
 	httpRouteList = make(map[string]*httpRouteInfo)
+}
+
+func cleanInputHTTPRouteMatchers() {
+	httpConfMtx.Lock()
+	defer httpConfMtx.Unlock()
+	inputHTTPRouteMatchers = nil
+}
+
+func matchInputHTTPRoute(method, path string) (string, bool) {
+	httpConfMtx.Lock()
+	defer httpConfMtx.Unlock()
+
+	for _, matcher := range inputHTTPRouteMatchers {
+		if inputName, ok := matcher(method, path); ok && inputName != "" {
+			return inputName, true
+		}
+	}
+	return "", false
 }
 
 func addNewRegistedAPIs(hs *httpServerConf) {

@@ -10,6 +10,7 @@ import (
 	"testing"
 	T "testing"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
@@ -46,6 +47,14 @@ func TestConvertZeroParentID(t *T.T) {
 	assert.Equal(t, "0", byteToString(make([]byte, 8)))
 }
 
+func Test_getSourceType(t *T.T) {
+	var kvs point.KVs
+	kvs = kvs.Add(otelHTTPMethodKey, "GET")
+	kvs = kvs.Add(otelDBSystemKey, "postgresql")
+
+	assert.Equal(t, itrace.SpanSourceDb, getSourceType(kvs))
+}
+
 func Test_commonTagFields(t *T.T) {
 	t.Run("tag-fields", func(t *T.T) {
 		nspans := 10
@@ -76,6 +85,11 @@ func Test_commonTagFields(t *T.T) {
 			assert.NotNil(t, pt.Get(itrace.TagSpanType))
 			assert.NotNil(t, pt.Get(itrace.TagSource))
 			assert.NotNil(t, pt.Get(itrace.TagService))
+			assert.Equal(t, inputName, pt.Name())
+			assert.Equal(t, inputName, pt.Get(itrace.TagSource))
+			assert.Equal(t, "db", pt.Get(itrace.TagSourceType))
+			assert.Contains(t, []string{itrace.SpanTypeEntry, itrace.SpanTypeExit, itrace.SpanTypeLocal}, pt.Get(itrace.TagSpanType))
+			assert.Equal(t, "localhost", pt.Get(itrace.TagCollectorSourceIP))
 
 			// SplitServiceName()
 			assert.Equal(t, "postgresql", pt.Get(itrace.TagService))

@@ -233,7 +233,16 @@ func TestInput(t *testing.T) {
 		return
 	}
 
-	assert.Equal(t, m.Info().Name, measurementPostgreSQL)
+	info := m.Info()
+	assert.Equal(t, info.Name, measurementPostgreSQL)
+	for _, fieldName := range []string{"total_calls", "delta_total_calls", "dbm_qps"} {
+		fieldInfo, ok := info.Fields[fieldName].(*inputs.FieldInfo)
+		assert.True(t, ok)
+		assert.Empty(t, fieldInfo.Taggedby)
+	}
+	callsFieldInfo, ok := info.Fields["calls"].(*inputs.FieldInfo)
+	assert.True(t, ok)
+	assert.ElementsMatch(t, []string{"db", "query_signature", "queryid", "rolname"}, callsFieldInfo.Taggedby)
 
 	assert.Equal(t, input.Catalog(), catalogName)
 	assert.Equal(t, input.SampleConfig(), sampleConfig)

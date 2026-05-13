@@ -28,6 +28,13 @@ import (
 
 var socketGoroutine = goroutine.G("socketLog")
 
+const collectorSourceIPTag = "collector_source_ip"
+
+type socketMessage struct {
+	content  []byte
+	sourceIP string
+}
+
 type SocketLogger struct {
 	cfg      *config // 配置信息
 	feedName string  // 数据源名称
@@ -139,7 +146,7 @@ func (sk *SocketLogger) Start() {
 	for _, srv := range sk.servers {
 		func(s server) {
 			socketGoroutine.Go(func(_ context.Context) error {
-				if err := s.forwardMessage(ctx, sk.feed); err != nil {
+				if err := s.forwardMessage(ctx, sk.feedMessages); err != nil {
 					sk.log.Warn(err)
 				}
 				return nil
@@ -149,20 +156,28 @@ func (sk *SocketLogger) Start() {
 }
 
 func (sk *SocketLogger) feed(pending [][]byte) {
+	sk.feedMessages(newSocketMessages(pending, ""))
+}
+
+func (sk *SocketLogger) feedMessages(pending []socketMessage) {
 	pts := []*point.Point{}
-	for _, cnt := range pending {
-		if len(cnt) == 0 {
+	for _, msg := range pending {
+		if len(msg.content) == 0 {
 			continue
 		}
 		fields := map[string]interface{}{
-			"message_length":       len(cnt),
-			constants.FieldMessage: string(cnt),
+			"message_length":       len(msg.content),
+			constants.FieldMessage: string(msg.content),
 			constants.FieldStatus:  pipeline.DefaultStatus,
+		}
+		kvs := append(point.NewTags(sk.tags), point.NewKVs(fields)...)
+		if msg.sourceIP != "" {
+			kvs = kvs.SetTag(collectorSourceIPTag, msg.sourceIP)
 		}
 
 		pt := point.NewPoint(
 			sk.cfg.source,
-			append(point.NewTags(sk.tags), point.NewKVs(fields)...),
+			kvs,
 			point.DefaultLoggingOptions()...,
 		)
 		pts = append(pts, pt)
@@ -181,6 +196,17 @@ func (sk *SocketLogger) feed(pending [][]byte) {
 	); err != nil {
 		sk.log.Errorf("feed %d pts failed: %s, logging block-mode off, ignored", len(pts), err)
 	}
+}
+
+func newSocketMessages(lines [][]byte, sourceIP string) []socketMessage {
+	pending := make([]socketMessage, 0, len(lines))
+	for _, line := range lines {
+		pending = append(pending, socketMessage{
+			content:  line,
+			sourceIP: sourceIP,
+		})
+	}
+	return pending
 }
 
 func buildTags(globalTags map[string]string) map[string]string {
@@ -214,7 +240,7 @@ func (sk *SocketLogger) closeServers() {
 }
 
 type server interface {
-	forwardMessage(context.Context, func([][]byte)) error
+	forwardMessage(context.Context, func([]socketMessage)) error
 	close() error
 }
 
@@ -235,7 +261,7 @@ func (s *tcpServer) close() error {
 	return s.listener.Close()
 }
 
-func (s *tcpServer) forwardMessage(ctx context.Context, feed func([][]byte)) error {
+func (s *tcpServer) forwardMessage(ctx context.Context, feed func([]socketMessage)) error {
 	for {
 		conn, err := s.listener.Accept()
 		if err != nil {
@@ -248,6 +274,7 @@ func (s *tcpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 		socketConnectCounter.WithLabelValues("tcp", "ok").Inc()
 		socketGoroutine.Go(func(_ context.Context) error {
 			defer conn.Close() // nolint
+			sourceIP := sourceIPFromAddr(conn.RemoteAddr())
 
 			rd := reader.NewReader(conn)
 			var mult *multiline.Multiline
@@ -298,17 +325,17 @@ func (s *tcpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 
 				socketMessageCounter.WithLabelValues("tcp").Inc()
 				socketLengthSummary.WithLabelValues("tcp").Observe(float64(len(pending)))
-				feed(pending)
+				feed(newSocketMessages(pending, sourceIP))
 			}
 
-			flushMultilineBuffer("tcp", mult, feed)
+			flushMultilineBuffer("tcp", mult, sourceIP, feed)
 			return nil
 		})
 	}
 }
 
 type udpServer struct {
-	conn net.Conn
+	conn *net.UDPConn
 	cfg  *config
 }
 
@@ -330,16 +357,18 @@ func (s *udpServer) close() error {
 	return s.conn.Close()
 }
 
-func (s *udpServer) forwardMessage(ctx context.Context, feed func([][]byte)) error {
+func (s *udpServer) forwardMessage(ctx context.Context, feed func([]socketMessage)) error {
 	defer s.conn.Close() // nolint
 
-	rd := reader.NewReader(s.conn, reader.DisablePreviousBlock())
 	var mult *multiline.Multiline
+	var multilineSourceIP string
 	if s.cfg.enableMultiline {
 		// validated in setup(), should not fail here
 		mult, _ = newMultiline(s.cfg)
 	}
-	defer flushMultilineBuffer("udp", mult, feed)
+	defer func() {
+		flushMultilineBuffer("udp", mult, multilineSourceIP, feed)
+	}()
 
 	var decoder *encoding.Decoder
 	if s.cfg.characterEncoding != "" {
@@ -347,6 +376,7 @@ func (s *udpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 		decoder, _ = encoding.NewDecoder(s.cfg.characterEncoding)
 	}
 
+	buf := make([]byte, 64*1024)
 	for {
 		select {
 		case <-ctx.Done():
@@ -355,17 +385,25 @@ func (s *udpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 			// next
 		}
 
-		lines, _, err := rd.ReadLines()
+		n, addr, err := s.conn.ReadFromUDP(buf)
 		if err != nil {
-			if errors.Is(err, reader.ErrReadEmpty) {
-				continue
+			if errors.Is(err, net.ErrClosed) {
+				return err
 			}
 			return err
 		}
+		if n == 0 {
+			continue
+		}
 
-		var pending [][]byte
+		sourceIP := sourceIPFromAddr(addr)
+		packet := make([]byte, n)
+		copy(packet, buf[:n])
+		lines := reader.SplitLines(packet)
+
+		var pending []socketMessage
 		for _, line := range lines {
-			if len(lines) == 0 {
+			if len(line) == 0 {
 				continue
 			}
 
@@ -376,12 +414,19 @@ func (s *udpServer) forwardMessage(ctx context.Context, feed func([][]byte)) err
 
 			text = removeAnsiEscapeCodes(text, s.cfg.removeAnsiEscapeCodes)
 			if s.cfg.enableMultiline && mult != nil {
-				text, _ = mult.ProcessLine(multiline.TrimRightSpace(text))
+				msg, nextMultilineSourceIP := processMultilineSocketMessage(
+					mult, text, sourceIP, multilineSourceIP,
+				)
+				multilineSourceIP = nextMultilineSourceIP
+				if len(msg.content) != 0 {
+					pending = append(pending, msg)
+				}
+			} else if len(text) != 0 {
+				pending = append(pending, socketMessage{
+					content:  text,
+					sourceIP: sourceIP,
+				})
 			}
-			if len(text) == 0 {
-				continue
-			}
-			pending = append(pending, text)
 		}
 
 		socketMessageCounter.WithLabelValues("udp").Inc()
@@ -397,7 +442,44 @@ func decodingBytes(decoder *encoding.Decoder, text []byte) ([]byte, error) {
 	return decoder.Bytes(text)
 }
 
-func flushMultilineBuffer(protocol string, mult *multiline.Multiline, feed func([][]byte)) {
+func processMultilineSocketMessage(
+	mult *multiline.Multiline,
+	text []byte,
+	sourceIP string,
+	multilineSourceIP string,
+) (socketMessage, string) {
+	text, state := mult.ProcessLine(multiline.TrimRightSpace(text))
+	switch state {
+	case multiline.NewMultiline:
+		outputSourceIP := multilineSourceIP
+		if outputSourceIP == "" {
+			outputSourceIP = sourceIP
+		}
+		return socketMessage{content: text, sourceIP: outputSourceIP}, sourceIP
+	case multiline.NoContext:
+		return socketMessage{content: text, sourceIP: sourceIP}, multilineSourceIP
+	case multiline.FlushPartial:
+		outputSourceIP := multilineSourceIP
+		if outputSourceIP == "" {
+			outputSourceIP = sourceIP
+		}
+		return socketMessage{content: text, sourceIP: outputSourceIP}, ""
+	case multiline.Written:
+		if multilineSourceIP == "" {
+			multilineSourceIP = sourceIP
+		}
+		return socketMessage{}, multilineSourceIP
+	default:
+		return socketMessage{content: text, sourceIP: sourceIP}, multilineSourceIP
+	}
+}
+
+func flushMultilineBuffer(
+	protocol string,
+	mult *multiline.Multiline,
+	sourceIP string,
+	feed func([]socketMessage),
+) {
 	if mult == nil || mult.BuffLength() == 0 {
 		return
 	}
@@ -405,5 +487,33 @@ func flushMultilineBuffer(protocol string, mult *multiline.Multiline, feed func(
 	b := mult.Flush()
 	socketMessageCounter.WithLabelValues(protocol).Inc()
 	socketLengthSummary.WithLabelValues(protocol).Observe(float64(1))
-	feed([][]byte{b})
+	feed([]socketMessage{{
+		content:  b,
+		sourceIP: sourceIP,
+	}})
+}
+
+func sourceIPFromAddr(addr net.Addr) string {
+	switch a := addr.(type) {
+	case *net.TCPAddr:
+		if a.IP == nil {
+			return ""
+		}
+		return a.IP.String()
+	case *net.UDPAddr:
+		if a.IP == nil {
+			return ""
+		}
+		return a.IP.String()
+	}
+
+	if addr == nil {
+		return ""
+	}
+
+	host, _, err := net.SplitHostPort(addr.String())
+	if err != nil {
+		return addr.String()
+	}
+	return host
 }

@@ -1,5 +1,5 @@
-//go:build linux && cgo
-// +build linux,cgo
+//go:build linux
+// +build linux
 
 package l7flow
 
@@ -306,9 +306,11 @@ func TestApiflowMinCaptureSizePatch(t *testing.T) {
 		t.Setenv(apiflowMinCaptureSizeEnv, "")
 
 		patch, ok := apiflowMinCaptureSizePatch()
-		if ok {
-			t.Fatalf("unexpected patch: %+v", patch)
+		if !ok {
+			t.Fatal("expected zero patch")
 		}
+		want := bpfutil.ConstantPatch{Name: "apiflow_min_capture_size", Value: uint64(0)}
+		assert.Equal(t, want, patch)
 	})
 
 	t.Run("valid", func(t *testing.T) {
@@ -326,8 +328,30 @@ func TestApiflowMinCaptureSizePatch(t *testing.T) {
 		t.Setenv(apiflowMinCaptureSizeEnv, "-1")
 
 		patch, ok := apiflowMinCaptureSizePatch()
-		if ok {
-			t.Fatalf("unexpected patch: %+v", patch)
+		if !ok {
+			t.Fatal("expected zero patch")
 		}
+		want := bpfutil.ConstantPatch{Name: "apiflow_min_capture_size", Value: uint64(0)}
+		assert.Equal(t, want, patch)
 	})
+}
+
+func TestDefaultApiflowPerfBufferPages(t *testing.T) {
+	assert.Equal(t, 1024, defaultApiflowPerfBufferPages(1, 4096))
+	assert.Equal(t, 512, defaultApiflowPerfBufferPages(64, 4096))
+	assert.Equal(t, 64, defaultApiflowPerfBufferPages(1024, 4096))
+	assert.Equal(t, 1024, defaultApiflowPerfBufferPages(0, 4096))
+}
+
+func TestApiflowPerfRingBufferSize(t *testing.T) {
+	t.Setenv(apiflowPerfBufferPagesEnv, "32")
+
+	assert.Equal(t, 32*os.Getpagesize(), apiflowPerfRingBufferSize())
+}
+
+func TestApiflowPerfWatermark(t *testing.T) {
+	pageSize := os.Getpagesize()
+
+	assert.Equal(t, 0, apiflowPerfWatermark(pageSize))
+	assert.Equal(t, pageSize, apiflowPerfWatermark(pageSize*2))
 }

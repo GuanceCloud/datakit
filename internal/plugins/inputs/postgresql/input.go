@@ -381,6 +381,8 @@ type Input struct {
 	metricQueryCache    map[string]*queryCacheItem
 	dbmMetricCache      *queryCacheItem
 	dbmMetricValueCache map[string]*dbmMetricValueCache
+	dbmMetricTotalCalls int64
+	dbmMetricTotalTime  time.Time
 	dbmQueryObjectCache *expirable.LRU[string, struct{}]
 
 	statColumnCache map[string]bool
@@ -1580,7 +1582,7 @@ func (ipt *Input) runDbmMetricCollector() {
 			l.Debugf("not leader, DBM metric collection skipped")
 		} else {
 			collectStart := time.Now()
-			points, rows, err := ipt.collectDbmMetricWithRows(ptsTime, duration)
+			points, rows, err := ipt.collectDbmMetricWithRows(ptsTime)
 			if err != nil {
 				l.Errorf("collectDbmMetric failed: %s", err.Error())
 			} else {

@@ -1,7 +1,10 @@
 //go:build linux
 // +build linux
 
+//nolint:gosec
 package procwatch
+
+//go:generate go run ../c/genlayout -target procwatch
 
 import (
 	"bytes"
@@ -24,15 +27,6 @@ import (
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/c"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 	"golang.org/x/sys/unix"
-)
-
-// #include "../c/process_sched/process_sched.h"
-import "C"
-
-type (
-	schedEvent     C.struct_rec_process_sched_status
-	procFilterInfo C.struct_proc_filter_info
-	procInjectInfo C.struct_proc_inject
 )
 
 const schedEventSize = int(unsafe.Sizeof(schedEvent{})) //nolint:gosec
@@ -297,6 +291,7 @@ func NewProbeWatcher(catalog *Catalog) (*ProbeWatcher, error) {
 		return watcher, nil
 	}
 
+	perfRingBufferSize := bpfutil.SmallPerfRingBufferSize()
 	runtime := &bpfutil.Runtime{
 		Probes: []*bpfutil.HookSpec{
 			{ID: bpfutil.HookID{Program: "tracepoint__sched_process_exec"}},
@@ -306,7 +301,8 @@ func NewProbeWatcher(catalog *Catalog) (*ProbeWatcher, error) {
 			{
 				Map: bpfutil.Map{Name: "process_sched_event"},
 				PerfStreamOptions: bpfutil.PerfStreamOptions{
-					PerfRingBufferSize: 32 * os.Getpagesize(),
+					PerfRingBufferSize: perfRingBufferSize,
+					Watermark:          bpfutil.PerfWatermark(perfRingBufferSize),
 					PerfErrChan:        watcher.perfErrCh,
 					LostHandler: func(cpu int, count uint64, stream *bpfutil.PerfStream, runtime *bpfutil.Runtime) {
 						exporter.AddPerfLost("procwatch", stream.Name, count)
@@ -338,6 +334,11 @@ func (w *ProbeWatcher) Start(ctx context.Context) error {
 		return nil
 	}
 
+	processes, err := listProcessIDs()
+	if err != nil {
+		return nil
+	}
+
 	if err := w.Runtime.StartRuntime(); err != nil {
 		return err
 	}
@@ -361,10 +362,6 @@ func (w *ProbeWatcher) Start(ctx context.Context) error {
 	}()
 	w.catalog.SetKernelFilter(filter)
 
-	processes, err := listProcessIDs()
-	if err != nil {
-		return nil
-	}
 	w.bootstrapExistingProcesses(processes)
 
 	return nil
@@ -452,7 +449,7 @@ func schedEventCommString(event *schedEvent) string {
 	}
 	var comm [16]byte
 	for i := range comm {
-		comm[i] = byte(event.comm[i])
+		comm[i] = event.comm[i]
 	}
 	return schedCommString(comm[:])
 }
@@ -730,7 +727,7 @@ func buildBinaryResolveResult(binPath string) (*binaryResolveResult, error) {
 	result.useRegisterABI = useRegisterABI
 	result.attachable = true
 	result.inject = procInjectInfo{
-		offset_go_runtime_g_goid: C.__u64(goidOffset),
+		offset_go_runtime_g_goid: goidOffset,
 	}
 	if useRegisterABI {
 		result.inject.go_use_register = 1

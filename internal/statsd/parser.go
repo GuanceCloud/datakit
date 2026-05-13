@@ -39,14 +39,18 @@ func (col *Collector) doJob(idx int, in *job) {
 
 		switch {
 		case line == "": // pass
-		case col.opts.dataDogExtensions && strings.HasPrefix(line, "_e"):
+		case col.opts.dataDogExtensions && col.opts.dataDogEvents && strings.HasPrefix(line, "_e"):
 			if err := col.parseEventMessage(in.Time, line, in.Addr); err != nil {
 				col.opts.l.Warnf("[%d] parseEventMessage: %s, ignored", idx, err.Error())
 			}
-		case col.opts.dataDogExtensions && strings.HasPrefix(line, "_sc"): // service check
+		case col.opts.dataDogExtensions && strings.HasPrefix(line, "_e"):
+			col.opts.l.Debugf("[%d] dogstatsd event ignored", idx)
+		case col.opts.dataDogExtensions && col.opts.dataDogServiceChecks && strings.HasPrefix(line, "_sc"): // service check
 			if err := col.parseServiceCheck(in.Time, line); err != nil {
 				col.opts.l.Warnf("[%d] parseServiceCheck: %s, ignored", idx, err.Error())
 			}
+		case col.opts.dataDogExtensions && strings.HasPrefix(line, "_sc"): // service check
+			col.opts.l.Debugf("[%d] dogstatsd service check ignored", idx)
 		default:
 			if err := col.parseStatsdLine(line); err != nil {
 				col.opts.l.Warnf("[%d] parseEventMessage: %s, ignored", idx, err.Error())

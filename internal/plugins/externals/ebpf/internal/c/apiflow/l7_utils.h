@@ -238,6 +238,13 @@ static __always_inline bool is_syscall_net_event(__u16 fn)
     }
 }
 
+static __always_inline __u64 load_apiflow_min_capture_size()
+{
+    __u64 var = 0;
+    LOAD_OFFSET(apiflow_min_capture_size, var);
+    return var;
+}
+
 struct buf_iovec
 {
     // we need to divide a large buffer into several small pieces
@@ -260,13 +267,29 @@ static __always_inline __u32 bounded_capture_bucket(__s64 size)
     {
         return BOUNDED_L7_CAPTURE_SIZE;
     }
+    if (size >= 192)
+    {
+        return 192;
+    }
     if (size >= 128)
     {
         return 128;
     }
+    if (size >= 96)
+    {
+        return 96;
+    }
     if (size >= 64)
     {
         return 64;
+    }
+    if (size >= 52)
+    {
+        return 52;
+    }
+    if (size >= 48)
+    {
+        return 48;
     }
     if (size >= 32)
     {
@@ -306,14 +329,34 @@ static __always_inline __u32 legacy_capture_bucket(__s64 size)
             bpf_probe_read((dst), 256, (src));                        \
             done_stmt;                                                \
         }                                                             \
+        if ((capture_size) == 192)                                    \
+        {                                                             \
+            bpf_probe_read((dst), 192, (src));                        \
+            done_stmt;                                                \
+        }                                                             \
         if ((capture_size) == 128)                                    \
         {                                                             \
             bpf_probe_read((dst), 128, (src));                        \
             done_stmt;                                                \
         }                                                             \
+        if ((capture_size) == 96)                                     \
+        {                                                             \
+            bpf_probe_read((dst), 96, (src));                         \
+            done_stmt;                                                \
+        }                                                             \
         if ((capture_size) == 64)                                     \
         {                                                             \
             bpf_probe_read((dst), 64, (src));                         \
+            done_stmt;                                                \
+        }                                                             \
+        if ((capture_size) == 52)                                     \
+        {                                                             \
+            bpf_probe_read((dst), 52, (src));                         \
+            done_stmt;                                                \
+        }                                                             \
+        if ((capture_size) == 48)                                     \
+        {                                                             \
+            bpf_probe_read((dst), 48, (src));                         \
             done_stmt;                                                \
         }                                                             \
         if ((capture_size) == 32)                                     \
@@ -356,14 +399,34 @@ static __always_inline __u32 legacy_capture_bucket(__s64 size)
             __builtin_memcpy((dst), (src), 256);                       \
             done_stmt;                                                 \
         }                                                              \
+        if ((capture_size) == 192)                                     \
+        {                                                              \
+            __builtin_memcpy((dst), (src), 192);                       \
+            done_stmt;                                                 \
+        }                                                              \
         if ((capture_size) == 128)                                     \
         {                                                              \
             __builtin_memcpy((dst), (src), 128);                       \
             done_stmt;                                                 \
         }                                                              \
+        if ((capture_size) == 96)                                      \
+        {                                                              \
+            __builtin_memcpy((dst), (src), 96);                        \
+            done_stmt;                                                 \
+        }                                                              \
         if ((capture_size) == 64)                                      \
         {                                                              \
             __builtin_memcpy((dst), (src), 64);                        \
+            done_stmt;                                                 \
+        }                                                              \
+        if ((capture_size) == 52)                                      \
+        {                                                              \
+            __builtin_memcpy((dst), (src), 52);                        \
+            done_stmt;                                                 \
+        }                                                              \
+        if ((capture_size) == 48)                                      \
+        {                                                              \
+            __builtin_memcpy((dst), (src), 48);                        \
             done_stmt;                                                 \
         }                                                              \
         if ((capture_size) == 32)                                      \
@@ -396,6 +459,17 @@ static __always_inline __u32 legacy_capture_bucket(__s64 size)
             __builtin_memcpy((dst), (src), 1);                         \
             done_stmt;                                                 \
         }                                                              \
+    } while (0)
+
+#define UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, size)                         \
+    do                                                                                      \
+    {                                                                                       \
+        if ((capture_size) == (size))                                                       \
+        {                                                                                   \
+            bpf_perf_event_output((ctx), &mp_upload_netwrk_events, (cpu), (events),         \
+                                  sizeof(event_rec_t) + sizeof(net_event_comm_t) + (size)); \
+            goto upload_done;                                                              \
+        }                                                                                   \
     } while (0)
 
 static __always_inline void read_network_data_from_vec(net_data_t *dst, struct iovec *vec,
@@ -698,9 +772,10 @@ static __always_inline void try_upload_net_events(void *ctx, net_data_t *data)
             return;
         }
 
+        __u64 min_capture_size = load_apiflow_min_capture_size();
         if (is_syscall_net_event(data->meta.func_id) &&
-            apiflow_min_capture_size > 0 &&
-            (__u64)capture_size < apiflow_min_capture_size)
+            min_capture_size > 0 &&
+            (__u64)capture_size < min_capture_size)
         {
             return;
         }
@@ -725,13 +800,32 @@ static __always_inline void try_upload_net_events(void *ctx, net_data_t *data)
                                         goto payload_copy_done;
                                     });
 #else
-        bpf_probe_read(&net_event->payload, capture_size, &data->payload);
+        LEGACY_MEMCPY_PAYLOAD_CASES(net_event->payload, data->payload, capture_size,
+                                    {
+                                        goto payload_copy_done;
+                                    });
 #endif
 payload_copy_done:
         ;
     }
 
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 0);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 1);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 2);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 4);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 8);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 16);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 32);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 48);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 52);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 64);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 96);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 128);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 192);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, BOUNDED_L7_CAPTURE_SIZE);
+
     bpf_perf_event_output(ctx, &mp_upload_netwrk_events, cpu, events, sizeof(network_events_t));
+upload_done:
     events->rec.bytes = 0;
     events->rec.num = 0;
 }

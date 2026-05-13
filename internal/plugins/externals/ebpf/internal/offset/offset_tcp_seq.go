@@ -61,13 +61,25 @@ func newOffsetTCPSeqRuntime(skFd int, cnt []bpfutil.ConstantPatch) (*bpfutil.Run
 		binName = "offset_tcp_seq_legacy.o"
 	}
 
-	buf, err := bufLoader()
-	if err != nil {
-		return nil, fmt.Errorf("load %s: %w", binName, err)
+	loadRuntime := func(name string, loader func() ([]byte, error), legacyConstants bool) error {
+		loadSpec.LegacyConstants = legacyConstants
+		buf, err := loader()
+		if err != nil {
+			return fmt.Errorf("load %s: %w", name, err)
+		}
+		if err := m.LoadFromReader(bytes.NewReader(buf), loadSpec); err != nil {
+			return fmt.Errorf("init offset tcp seq guess: %w", err)
+		}
+		return nil
 	}
-
-	if err := m.LoadFromReader(bytes.NewReader(buf), loadSpec); err != nil {
-		return nil, fmt.Errorf("init offset tcp seq guess: %w", err)
+	if err := loadRuntime(binName, bufLoader, useLegacyConsts); err != nil {
+		if useLegacyConsts {
+			return nil, err
+		}
+		l.Warnf("load modern offset tcp seq object failed, fallback to legacy object without LRU hash maps: %v", err)
+		if err := loadRuntime("offset_tcp_seq_legacy.o", dkebpf.OffsetTCPSeqLegacyBin, true); err != nil {
+			return nil, err
+		}
 	}
 
 	return m, nil

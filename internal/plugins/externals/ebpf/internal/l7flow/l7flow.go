@@ -1,18 +1,19 @@
-//go:build linux && cgo
-// +build linux,cgo
+//go:build linux
+// +build linux
 
 // Package l7flow collects http(s) request flow
 package l7flow
 
+//go:generate go run ../c/genlayout -target l7flow
+
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
-	"encoding/binary"
 	"fmt"
 	"math"
 	"os"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -32,12 +33,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/procwatch"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/cli"
 	"golang.org/x/sys/unix"
-
-	expRand "golang.org/x/exp/rand"
 )
-
-// #include "../c/apiflow/l7_stats.h"
-import "C"
 
 const HTTPPayloadMaxsize = 157
 
@@ -45,6 +41,10 @@ const (
 	apiflowPerfBufferPagesEnv  = "DK_EBPF_APIFLOW_PERF_PAGES"
 	apiflowMinCaptureSizeEnv   = "DK_EBPF_APIFLOW_MIN_CAPTURE_SIZE"
 	apiflowPerfLostLogInterval = 10 * time.Second
+
+	apiflowDefaultPerfBufferPages    = 1024
+	apiflowDefaultPerfBufferMaxBytes = 128 * 1024 * 1024
+	apiflowMinPerfBufferPages        = 64
 )
 
 // const srcNameM = "httpflow"
@@ -73,22 +73,14 @@ const (
 )
 
 var (
-	// libssl
+	// libssl.
 	RegexpLibSSL    = regexp.MustCompile(`libssl.so`)
 	RegexpLibCrypto = regexp.MustCompile(`libcrypto.so`)
 
-	// TODO: guntls
+	// TODO: guntls.
 )
 
 type (
-	CLayer7Http      C.struct_layer7_http
-	CHTTPReqFinished C.struct_http_req_finished
-	CNetEventComm    C.struct_net_event_comm
-	CNetEvents       C.struct_network_events
-	CUniID           C.struct_id_generator
-
-	ConnectionInfoC dknetflow.ConnectionInfoC
-
 	HTTPStats struct {
 		Direction string
 
@@ -125,10 +117,10 @@ func readMeta(buf *CNetEventComm, dst *comm.ConnectionInfo) {
 	dst.Daddr = (*(*[4]uint32)(unsafe.Pointer(&conn.daddr))) //nolint:gosec
 	dst.Sport = uint32(conn.sport)
 	dst.Dport = uint32(conn.dport)
-	dst.Pid = uint32(conn.pid)
-	dst.Netns = uint32(conn.netns)
-	dst.Meta = uint32(conn.meta)
-	dst.TaskName = taskCommString((*[KernelTaskCommLen]byte)(unsafe.Pointer(&buf.meta.comm)))
+	dst.Pid = conn.pid
+	dst.Netns = conn.netns
+	dst.Meta = conn.meta
+	dst.TaskName = taskCommString((*[KernelTaskCommLen]byte)(unsafe.Pointer(&buf.meta.comm))) //nolint:gosec
 	if dst.NATDport == 0 && (dst.NATDaddr[0]|dst.NATDaddr[1]|dst.NATDaddr[2]|dst.NATDaddr[3]) == 0 {
 		if natAddr, natPort, ok := dkct.LookupDNATTuple(dst.Saddr, dst.Daddr, dst.Sport, dst.Dport, dst.Netns); ok {
 			dst.NATDaddr = natAddr
@@ -169,23 +161,6 @@ trimRight:
 }
 
 var log = logger.DefaultSLogger("ebpf")
-
-var randInnerID func() int64
-
-func newRandFunc() func() int64 {
-	b := make([]byte, 8)
-	if _, err := rand.Read(b); err == nil {
-		v := binary.LittleEndian.Uint64(b)
-		r := expRand.New(expRand.NewSource(v))
-		r.Seed(v)
-		return func() int64 {
-			return r.Int63()
-		}
-	}
-	return func() int64 {
-		return -1
-	}
-}
 
 func Init(nl *logger.Logger) {
 	log = nl
@@ -250,7 +225,7 @@ func (l *perfLostWarningLimiter) format(cpu int, count uint64) string {
 }
 
 func apiflowPerfRingBufferSize() int {
-	pages := 1024
+	pages := defaultApiflowPerfBufferPages(runtime.NumCPU(), os.Getpagesize())
 	if raw := strings.TrimSpace(os.Getenv(apiflowPerfBufferPagesEnv)); raw != "" {
 		switch v, err := strconv.Atoi(raw); {
 		case err != nil:
@@ -264,27 +239,52 @@ func apiflowPerfRingBufferSize() int {
 	return pages * os.Getpagesize()
 }
 
+func defaultApiflowPerfBufferPages(numCPU, pageSize int) int {
+	pages := apiflowDefaultPerfBufferPages
+	if numCPU > 0 && pageSize > 0 {
+		capPages := apiflowDefaultPerfBufferMaxBytes / pageSize / numCPU
+		if capPages > 0 && capPages < pages {
+			pages = capPages
+		}
+	}
+	if pages < apiflowMinPerfBufferPages {
+		return apiflowMinPerfBufferPages
+	}
+	return pages
+}
+
+func apiflowPerfWatermark(bufferSize int) int {
+	pageSize := os.Getpagesize()
+	if bufferSize <= pageSize || pageSize <= 0 {
+		return 0
+	}
+	return pageSize
+}
+
 func apiflowMinCaptureSizePatch() (bpfutil.ConstantPatch, bool) {
+	patch := bpfutil.ConstantPatch{
+		Name:  "apiflow_min_capture_size",
+		Value: uint64(0),
+	}
+
 	raw := strings.TrimSpace(os.Getenv(apiflowMinCaptureSizeEnv))
 	if raw == "" {
-		return bpfutil.ConstantPatch{}, false
+		return patch, true
 	}
 
 	v, err := strconv.Atoi(raw)
 	if err != nil {
 		log.Warnf("invalid %s=%q: %v", apiflowMinCaptureSizeEnv, raw, err)
-		return bpfutil.ConstantPatch{}, false
+		return patch, true
 	}
 	if v < 0 {
 		log.Warnf("invalid %s=%q: must be >= 0", apiflowMinCaptureSizeEnv, raw)
-		return bpfutil.ConstantPatch{}, false
+		return patch, true
 	}
 
 	log.Infof("apiflow minimum capture size: %d", v)
-	return bpfutil.ConstantPatch{
-		Name:  "apiflow_min_capture_size",
-		Value: uint64(v),
-	}, true
+	patch.Value = uint64(v)
+	return patch, true
 }
 
 func pruneLegacyHTTPFlowProbes(probes []*bpfutil.HookSpec) []*bpfutil.HookSpec {
@@ -318,7 +318,6 @@ func pruneLegacyHTTPFlowProbes(probes []*bpfutil.HookSpec) []*bpfutil.HookSpec {
 func NewHTTPFlowRuntime(patches []bpfutil.ConstantPatch, bmaps map[string]*ebpf.Map,
 	bufHandler perferEventHandle, enableTLS bool,
 ) (*bpfutil.Runtime, *procwatch.LibraryTracker, error) {
-	randInnerID = newRandFunc()
 	lostWarnLimiter := newPerfLostWarningLimiter(nil)
 	if patch, ok := apiflowMinCaptureSizePatch(); ok {
 		patches = append(patches, patch)
@@ -327,6 +326,7 @@ func NewHTTPFlowRuntime(patches []bpfutil.ConstantPatch, bmaps map[string]*ebpf.
 	if err != nil {
 		log.Warnf("detect kernel version for legacy eBPF constants failed: %v", err)
 	}
+	perfRingBufferSize := apiflowPerfRingBufferSize()
 
 	runtime := &bpfutil.Runtime{
 		Probes: []*bpfutil.HookSpec{
@@ -393,13 +393,18 @@ func NewHTTPFlowRuntime(patches []bpfutil.ConstantPatch, bmaps map[string]*ebpf.
 					Name: "mp_upload_netwrk_events",
 				},
 				PerfStreamOptions: bpfutil.PerfStreamOptions{
-					PerfRingBufferSize: apiflowPerfRingBufferSize(),
+					PerfRingBufferSize: perfRingBufferSize,
+					Watermark:          apiflowPerfWatermark(perfRingBufferSize),
 					DataHandler:        bufHandler,
 					LostHandler: func(CPU int, count uint64, stream *bpfutil.PerfStream, runtime *bpfutil.Runtime) {
 						exporter.AddPerfLost("l7flow", stream.Name, count)
 						if msg := lostWarnLimiter.format(CPU, count); msg != "" {
 							log.Warn(msg)
 						}
+					},
+					ErrorHandler: func(err error, stream *bpfutil.PerfStream, runtime *bpfutil.Runtime) {
+						exporter.IncPerfReadError("l7flow", stream.Name)
+						log.Warnf("l7flow perf stream stopped: %v", err)
 					},
 				},
 			},
@@ -499,7 +504,6 @@ func NewHTTPFlowRuntime(patches []bpfutil.ConstantPatch, bmaps map[string]*ebpf.
 			return nil, nil, err
 		}
 		log.Warnf("load modern apiflow object failed, fallback to legacy minimal object: %v", err)
-		useLegacyConsts = true
 		enableTLS = false
 		if err := loadRuntime(true); err != nil {
 			return nil, nil, err

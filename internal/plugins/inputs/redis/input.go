@@ -691,9 +691,7 @@ func (ipt *Input) doConfigCollect(ctx context.Context) {
 
 	for _, inst := range ipt.instances {
 		for _, n := range inst.nodes() {
-			inst.setCurrentNode(n.cli, n.rep, n.host, n.addr)
-
-			inst.collectConfig(timeoutCtx)
+			inst.collectConfig(timeoutCtx, n.cli, n.addr, n.host)
 		}
 	}
 }

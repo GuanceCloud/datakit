@@ -8,9 +8,10 @@ package httpapi
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
-	_ "github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
@@ -40,12 +41,12 @@ func TestDisableWhitelist(t *testing.T) {
 			expectedStatus:   http.StatusOK,
 		},
 		{
-			name:             "whitelist_enabled_with_disallowed_api",
+			name:             "whitelist_enabled_with_unregistered_api",
 			disableWhitelist: false,
 			publicAPIs:       []string{"/v1/ping"},
 			requestPath:      "/v1/write/metric",
 			requestFromLocal: false,
-			expectedStatus:   http.StatusForbidden,
+			expectedStatus:   http.StatusNotFound,
 		},
 		{
 			name:             "whitelist_disabled_with_any_api",
@@ -139,6 +140,290 @@ func TestDisableWhitelist(t *testing.T) {
 	}
 
 	t.Logf("所有测试用例执行完成")
+}
+
+func TestAPIWhiteListMiddlewareRouteExistence(t *testing.T) {
+	cases := []struct {
+		name           string
+		publicAPIs     []string
+		requestMethod  string
+		requestPath    string
+		expectedStatus int
+	}{
+		{
+			name:           "unknown_route_not_public",
+			publicAPIs:     []string{"/v1/ping"},
+			requestMethod:  http.MethodGet,
+			requestPath:    "/not-exist-api",
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name:           "unknown_route_public_exact_match",
+			publicAPIs:     []string{"/not-exist-api"},
+			requestMethod:  http.MethodGet,
+			requestPath:    "/not-exist-api",
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name:           "wrong_method_on_existing_route",
+			publicAPIs:     []string{"/v1/ping"},
+			requestMethod:  http.MethodPost,
+			requestPath:    "/v1/ping",
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name:           "registered_route_not_public",
+			publicAPIs:     []string{"/v1/ping"},
+			requestMethod:  http.MethodGet,
+			requestPath:    "/metrics",
+			expectedStatus: http.StatusForbidden,
+		},
+		{
+			name:           "registered_route_empty_whitelist",
+			publicAPIs:     []string{},
+			requestMethod:  http.MethodGet,
+			requestPath:    "/metrics",
+			expectedStatus: http.StatusForbidden,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			hs := defaultHTTPServerConf()
+			hs.apiConfig.DisableWhitelist = false
+			hs.apiConfig.PublicAPIs = tc.publicAPIs
+
+			router := setupRouter(hs)
+
+			req := httptest.NewRequest(tc.requestMethod, tc.requestPath, nil)
+			req.RemoteAddr = "192.168.1.100:12345"
+
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, tc.expectedStatus, w.Code)
+		})
+	}
+}
+
+func TestAPIWhiteListMiddlewareMatchesRequestPath(t *testing.T) {
+	cases := []struct {
+		name           string
+		publicAPIs     []string
+		expectedStatus int
+	}{
+		{
+			name:           "match_raw_path",
+			publicAPIs:     []string{"/v1/write/logging"},
+			expectedStatus: http.StatusNoContent,
+		},
+		{
+			name:           "route_pattern_is_not_public_api_path",
+			publicAPIs:     []string{"/v1/write/:category"},
+			expectedStatus: http.StatusForbidden,
+		},
+		{
+			name:           "registered_route_not_matched",
+			publicAPIs:     []string{"/v1/write/tracing"},
+			expectedStatus: http.StatusForbidden,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			router := gin.New()
+			router.Use(apiWhiteListMiddleware(tc.publicAPIs))
+			router.POST("/v1/write/:category", func(c *gin.Context) {
+				c.Status(http.StatusNoContent)
+			})
+
+			req := httptest.NewRequest(http.MethodPost, "/v1/write/logging", nil)
+			req.RemoteAddr = "192.168.1.100:12345"
+
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, tc.expectedStatus, w.Code)
+		})
+	}
+}
+
+func TestInputHTTPRouteMatcherNoRoute(t *testing.T) {
+	t.Cleanup(func() {
+		cleanInputHTTPRouteMatchers()
+		CleanHTTPHandler()
+	})
+
+	promtailMatcher := func() {
+		RegInputHTTPRouteMatcher(func(method, path string) (string, bool) {
+			if strings.EqualFold(method, http.MethodPost) &&
+				path == "/v1/write/promtail" {
+				return "promtail", true
+			}
+			return "", false
+		})
+	}
+
+	cases := []struct {
+		name           string
+		declare        func()
+		requestMethod  string
+		requestPath    string
+		publicAPIs     []string
+		disable404Page bool
+		expectedStatus int
+		expectedBody   string
+		unexpectedBody string
+	}{
+		{
+			name:           "unknown_route_keeps_404",
+			requestMethod:  http.MethodPost,
+			requestPath:    "/not-exist-api",
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name: "exact_matcher_returns_input_not_enabled",
+			declare: func() {
+				RegInputHTTPRouteMatcher(func(method, path string) (string, bool) {
+					if strings.EqualFold(method, http.MethodPost) &&
+						path == "/profiling/v1/input" {
+						return "profile", true
+					}
+					return "", false
+				})
+			},
+			requestMethod:  http.MethodPost,
+			requestPath:    "/profiling/v1/input",
+			expectedStatus: http.StatusServiceUnavailable,
+			expectedBody:   `input \"profile\" is not enabled for API \"/profiling/v1/input\"`,
+			unexpectedBody: "Welcome to use DataKit",
+		},
+		{
+			name: "exact_matcher_returns_input_not_enabled_when_404_page_disabled",
+			declare: func() {
+				RegInputHTTPRouteMatcher(func(method, path string) (string, bool) {
+					if strings.EqualFold(method, http.MethodPost) &&
+						path == "/profiling/v1/input" {
+						return "profile", true
+					}
+					return "", false
+				})
+			},
+			requestMethod:  http.MethodPost,
+			requestPath:    "/profiling/v1/input",
+			disable404Page: true,
+			expectedStatus: http.StatusServiceUnavailable,
+			expectedBody:   `input \"profile\" is not enabled for API \"/profiling/v1/input\"`,
+		},
+		{
+			name: "wrong_method_on_input_route_keeps_404",
+			declare: func() {
+				RegInputHTTPRouteMatcher(func(method, path string) (string, bool) {
+					if strings.EqualFold(method, http.MethodPost) &&
+						path == "/profiling/v1/input" {
+						return "profile", true
+					}
+					return "", false
+				})
+			},
+			requestMethod:  http.MethodGet,
+			requestPath:    "/profiling/v1/input",
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name: "dynamic_matcher_returns_input_not_enabled",
+			declare: func() {
+				RegInputHTTPRouteMatcher(func(method, path string) (string, bool) {
+					if strings.EqualFold(method, http.MethodPost) &&
+						strings.HasPrefix(path, "/v1/write/ploffload/") {
+						return "ploffload", true
+					}
+					return "", false
+				})
+			},
+			requestMethod:  http.MethodPost,
+			requestPath:    "/v1/write/ploffload/logging",
+			expectedStatus: http.StatusServiceUnavailable,
+			expectedBody:   `input \"ploffload\" is not enabled for API \"/v1/write/ploffload/logging\"`,
+		},
+		{
+			name:           "matcher_under_builtin_pattern_returns_input_not_enabled",
+			declare:        promtailMatcher,
+			requestMethod:  http.MethodPost,
+			requestPath:    "/v1/write/promtail",
+			publicAPIs:     []string{"/v1/write/promtail"},
+			expectedStatus: http.StatusServiceUnavailable,
+			expectedBody:   `input \"promtail\" is not enabled for API \"/v1/write/promtail\"`,
+		},
+		{
+			name:           "matcher_under_builtin_pattern_returns_input_not_enabled_before_empty_whitelist_403",
+			declare:        promtailMatcher,
+			requestMethod:  http.MethodPost,
+			requestPath:    "/v1/write/promtail",
+			publicAPIs:     []string{},
+			expectedStatus: http.StatusServiceUnavailable,
+			expectedBody:   `input \"promtail\" is not enabled for API \"/v1/write/promtail\"`,
+		},
+		{
+			name:           "matcher_under_builtin_pattern_returns_input_not_enabled_before_whitelist_miss_403",
+			declare:        promtailMatcher,
+			requestMethod:  http.MethodPost,
+			requestPath:    "/v1/write/promtail",
+			publicAPIs:     []string{"/v1/ping"},
+			expectedStatus: http.StatusServiceUnavailable,
+			expectedBody:   `input \"promtail\" is not enabled for API \"/v1/write/promtail\"`,
+		},
+		{
+			name: "registered_route_wins_over_matcher",
+			declare: func() {
+				RegInputHTTPRouteMatcher(func(method, path string) (string, bool) {
+					if strings.EqualFold(method, http.MethodPost) &&
+						path == "/profiling/v1/input" {
+						return "profile", true
+					}
+					return "", false
+				})
+				RegHTTPHandler(http.MethodPost, "/profiling/v1/input", func(w http.ResponseWriter, _ *http.Request) {
+					w.WriteHeader(http.StatusNoContent)
+				})
+			},
+			requestMethod:  http.MethodPost,
+			requestPath:    "/profiling/v1/input",
+			expectedStatus: http.StatusNoContent,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cleanInputHTTPRouteMatchers()
+			CleanHTTPHandler()
+
+			if tc.declare != nil {
+				tc.declare()
+			}
+
+			hs := defaultHTTPServerConf()
+			if tc.publicAPIs != nil {
+				hs.apiConfig.PublicAPIs = tc.publicAPIs
+			}
+			hs.apiConfig.Disable404Page = tc.disable404Page
+			router := setupRouter(hs)
+
+			req := httptest.NewRequest(tc.requestMethod, tc.requestPath, nil)
+			req.RemoteAddr = "192.168.1.100:12345"
+
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, tc.expectedStatus, w.Code)
+			if tc.expectedBody != "" {
+				assert.Contains(t, w.Body.String(), tc.expectedBody)
+			}
+			if tc.unexpectedBody != "" {
+				assert.NotContains(t, w.Body.String(), tc.unexpectedBody)
+			}
+		})
+	}
 }
 
 func TestNewWhiteListItemWithRegex(t *testing.T) {

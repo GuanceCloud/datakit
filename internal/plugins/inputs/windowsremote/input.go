@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -36,6 +37,8 @@ type Input struct {
 
 	feeder dkio.Feeder
 	pause  atomic.Bool
+
+	semStop *cliutils.Sem
 }
 
 type WmiConfig struct {
@@ -57,12 +60,19 @@ type SnmpConfig struct {
 	// Version   string `toml:"version"` // only supported v2c
 }
 
+var _ inputs.InputV2 = (*Input)(nil)
+
 func (*Input) SampleConfig() string                    { return sampleCfg }
 func (*Input) Catalog() string                         { return inputName }
 func (*Input) AvailableArchs() []string                { return []string{datakit.OSLabelWindows} }
 func (*Input) Singleton()                              { /*nil*/ }
 func (*Input) SampleMeasurement() []inputs.Measurement { return nil /* no measurement docs exported */ }
-func (*Input) Terminate()                              { /* TODO */ }
+
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
+}
 
 func (ipt *Input) Run() {
 	l = logger.SLogger("windows_remote")
@@ -127,6 +137,7 @@ func init() { //nolint:gochecknoinits
 			feeder:   dkio.DefaultFeeder(),
 			pause:    atomic.Bool{},
 			Election: true,
+			semStop:  cliutils.NewSem(),
 		}
 	})
 }

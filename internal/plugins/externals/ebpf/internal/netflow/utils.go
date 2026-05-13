@@ -12,6 +12,7 @@ import (
 	"net"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -133,6 +134,13 @@ var l = logger.DefaultSLogger("ebpf")
 
 const minIPv6NetflowKernel = uint64(0x0004000700000000) // 4.7.0
 
+const (
+	netflowMapMaxEntriesEnv     = "DK_EBPF_NETFLOW_MAP_MAX_ENTRIES"
+	defaultNetflowMapMaxEntries = 65536
+	minNetflowMapMaxEntries     = 1024
+	maxNetflowMapMaxEntries     = 1048576
+)
+
 var criticalNetflowPrograms = map[string]struct{}{
 	"kprobe__sockfd_lookup_light":    {},
 	"kretprobe__sockfd_lookup_light": {},
@@ -146,8 +154,6 @@ var criticalNetflowPrograms = map[string]struct{}{
 	"kretprobe__inet6_bind":          {},
 	"kprobe__udp_destroy_sock":       {},
 	"kprobe__tcp_close":              {},
-	"kretprobe__inet_csk_accept":     {},
-	"kprobe__inet_csk_listen_stop":   {},
 }
 
 func isCriticalNetflowProgram(program string) bool {
@@ -402,11 +408,57 @@ func resolveSockfdLookupSymbol() string {
 }
 
 func disabledNetflowPrograms(kernelVersion uint64, useLegacyConsts bool, ipv6Disabled bool) []string {
-	disabled := make([]string, 0, 1)
+	disabled := make([]string, 0, 10)
+	appendDisabled := func(programs ...string) {
+		for _, program := range programs {
+			exists := false
+			for _, disabledProgram := range disabled {
+				if disabledProgram == program {
+					exists = true
+					break
+				}
+			}
+			if !exists {
+				disabled = append(disabled, program)
+			}
+		}
+	}
 	if ipv6Disabled || (useLegacyConsts && kernelVersion < minIPv6NetflowKernel) {
-		disabled = append(disabled, "kprobe__ip6_make_skb")
+		appendDisabled("kprobe__ip6_make_skb")
+	}
+	if !enableUDP {
+		appendDisabled(
+			"kprobe__ip_make_skb",
+			"kprobe__ip6_make_skb",
+			"kprobe__udp_recvmsg",
+			"kretprobe__udp_recvmsg",
+			"kprobe__inet_bind",
+			"kretprobe__inet_bind",
+			"kprobe__inet6_bind",
+			"kretprobe__inet6_bind",
+			"kprobe__udp_destroy_sock",
+		)
 	}
 	return disabled
+}
+
+func netflowMapMaxEntries() uint32 {
+	raw := strings.TrimSpace(os.Getenv(netflowMapMaxEntriesEnv))
+	if raw == "" {
+		return defaultNetflowMapMaxEntries
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n <= 0 {
+		l.Warnf("invalid %s=%q, use default %d", netflowMapMaxEntriesEnv, raw, defaultNetflowMapMaxEntries)
+		return defaultNetflowMapMaxEntries
+	}
+	if n < minNetflowMapMaxEntries {
+		return minNetflowMapMaxEntries
+	}
+	if n > maxNetflowMapMaxEntries {
+		return maxNetflowMapMaxEntries
+	}
+	return uint32(n)
 }
 
 func newNetflowRuntimeWithDisabledPrograms(
@@ -421,9 +473,11 @@ func newNetflowRuntimeWithDisabledPrograms(
 		l.Warnf("detect kernel version for legacy eBPF constants failed: %v", err)
 	}
 	sockfdLookupSymbol := resolveSockfdLookupSymbol()
+	disabledPrograms := append(disabledNetflowPrograms(kernelVersion, useLegacyConsts, ipv6Disabled),
+		extraDisabledPrograms...)
 
 	// Some kretprobe type programs need to set maxactive， https://www.kernel.org/doc/Documentation/kprobes.txt.
-	probes, probeFailure := filterUnavailableKernelProbes([]*bpfutil.HookSpec{
+	probes := filterDisabledNetflowProbes([]*bpfutil.HookSpec{
 		{
 			ID: bpfutil.HookID{
 				Program: "kprobe__sockfd_lookup_light",
@@ -511,19 +565,18 @@ func newNetflowRuntimeWithDisabledPrograms(
 				Program: "kprobe__udp_destroy_sock",
 			},
 		},
-	})
+	}, disabledPrograms)
+	probes, probeFailure := filterUnavailableKernelProbes(probes)
 	if probeFailure != nil {
 		return nil, fmt.Errorf("%w: %s (%s): %s",
 			errCriticalNetflowProbeMissing, probeFailure.Program, probeFailure.Symbol, probeFailure.Reason)
 	}
 
-	disabledPrograms := append(disabledNetflowPrograms(kernelVersion, useLegacyConsts, ipv6Disabled),
-		extraDisabledPrograms...)
-	probes = filterDisabledNetflowProbes(probes, disabledPrograms)
 	if len(probes) == 0 {
 		return nil, fmt.Errorf("no netflow probes available on current kernel")
 	}
 
+	perfRingBufferSize := bpfutil.SmallPerfRingBufferSize()
 	runtime := &bpfutil.Runtime{
 		Probes: probes,
 		Streams: []*bpfutil.PerfStream{
@@ -532,17 +585,21 @@ func newNetflowRuntimeWithDisabledPrograms(
 					Name: "bpfmap_closed_event",
 				},
 				PerfStreamOptions: bpfutil.PerfStreamOptions{
-					// sizeof(connection_closed_info) > 112 Byte, pagesize ~= 4k,
-					// if cpus = 8, 5 conn/per connection_closed_info
-					PerfRingBufferSize: 32 * os.Getpagesize(),
+					PerfRingBufferSize: perfRingBufferSize,
+					Watermark:          bpfutil.PerfWatermark(perfRingBufferSize),
 					DataHandler:        closedEventHandler,
 					LostHandler: func(cpu int, count uint64, stream *bpfutil.PerfStream, runtime *bpfutil.Runtime) {
 						exporter.AddPerfLost("netflow", stream.Name, count)
+					},
+					ErrorHandler: func(err error, stream *bpfutil.PerfStream, runtime *bpfutil.Runtime) {
+						exporter.IncPerfReadError("netflow", stream.Name)
+						l.Warnf("netflow perf stream stopped: %v", err)
 					},
 				},
 			},
 		},
 	}
+	mapMaxEntries := netflowMapMaxEntries()
 	loadSpec := bpfutil.LoadSpec{
 		RLimit: &unix.Rlimit{
 			Cur: math.MaxUint64,
@@ -551,6 +608,14 @@ func newNetflowRuntimeWithDisabledPrograms(
 		Constants:        patches,
 		LegacyConstants:  useLegacyConsts,
 		DisabledPrograms: disabledPrograms,
+		MapMaxEntries: map[string]uint32{
+			mapConnStats:       mapMaxEntries,
+			mapConnTCPStats:    mapMaxEntries,
+			mapConnTCPSegments: mapMaxEntries,
+			mapPortBind:        mapMaxEntries,
+			mapPortBindProc:    mapMaxEntries,
+			mapUDPPortBind:     mapMaxEntries,
+		},
 	}
 
 	if ctMap != nil {
@@ -568,10 +633,22 @@ func newNetflowRuntimeWithDisabledPrograms(
 		l.Warnf("disable netflow programs on kernel %#x: %v", kernelVersion, disabledPrograms)
 	}
 
-	if buf, err := binLoader(); err != nil {
-		return nil, fmt.Errorf("%s: %w", binName, err)
-	} else if err := runtime.LoadFromReader((bytes.NewReader(buf)), loadSpec); err != nil {
-		return nil, err
+	loadRuntime := func(name string, loader func() ([]byte, error), legacyConstants bool) error {
+		loadSpec.LegacyConstants = legacyConstants
+		buf, err := loader()
+		if err != nil {
+			return fmt.Errorf("%s: %w", name, err)
+		}
+		return runtime.LoadFromReader((bytes.NewReader(buf)), loadSpec)
+	}
+	if err := loadRuntime(binName, binLoader, useLegacyConsts); err != nil {
+		if useLegacyConsts {
+			return nil, err
+		}
+		l.Warnf("load modern netflow object failed, fallback to legacy object without LRU hash maps: %v", err)
+		if err := loadRuntime("netflow_legacy.o", dkebpf.NetFlowLegacyBin, true); err != nil {
+			return nil, err
+		}
 	}
 
 	return runtime, nil

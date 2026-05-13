@@ -90,6 +90,7 @@ func (conns *TCPConns) netlogConv2Point(k *PMeta, v *PValue,
 				pts = append(pts, point.NewPoint("bpf_net_l7_log", kvs, append(
 					opt, point.WithTime(time.Unix(0, reqTS)))...))
 			}
+			elem.messageCache = ""
 		}
 	}
 
@@ -122,8 +123,10 @@ func (conns *TCPConns) netlogConv2Point(k *PMeta, v *PValue,
 				pts = append(pts, point.NewPoint("bpf_net_l4_log", kvs, append(
 					opt, point.WithTime(time.Unix(0, ts)))...))
 			}
+			chunk.releaseLogPayload()
 		}
 
+		clearPktChunks(v.tcpInfo.chunk[:cCur])
 		if cCur <= chunkCount-1 {
 			v.tcpInfo.chunk = v.tcpInfo.chunk[cCur:]
 		} else {
@@ -172,6 +175,7 @@ func trimTCPLogState(v *PValue, rm bool, tsnow int64) {
 		cCur++
 	}
 
+	clearPktChunks(v.tcpInfo.chunk[:cCur])
 	if cCur <= chunkCount-1 {
 		v.tcpInfo.chunk = v.tcpInfo.chunk[cCur:]
 	} else {
@@ -180,7 +184,7 @@ func trimTCPLogState(v *PValue, rm bool, tsnow int64) {
 }
 
 const (
-	maxFeedCount = 128
+	maxFeedCount = 32
 )
 
 const baseTagCacheTTL = time.Minute
@@ -362,10 +366,17 @@ func buildCommKVs(k *PMeta, v *PValue, conns *TCPConns) point.KVs {
 	dir := v.tcpInfo.direction.String()
 	runtimeTags := conns.runtimeTags()
 
-	if cached := v.baseKVsCache; len(cached) > 0 &&
-		v.baseTagsCacheDir == dir &&
-		now-v.baseTagsCacheTS < baseTagCacheTTL.Nanoseconds() {
-		return appendCommDynamicKVs(cloneBaseKVs(cached, len(runtimeTags)+10), k, conns.nsUID, runtimeTags)
+	cacheBaseKVs := netlogBaseKVsCacheEnabled()
+	if cacheBaseKVs {
+		if cached := v.baseKVsCache; len(cached) > 0 &&
+			v.baseTagsCacheDir == dir &&
+			now-v.baseTagsCacheTS < baseTagCacheTTL.Nanoseconds() {
+			return appendCommDynamicKVs(cloneBaseKVs(cached, len(runtimeTags)+10), k, conns.nsUID, runtimeTags)
+		}
+	} else {
+		v.baseKVsCache = nil
+		v.baseTagsCacheTS = 0
+		v.baseTagsCacheDir = ""
 	}
 
 	direction := netflow.NormalizeDirectionByPorts(dir,
@@ -413,9 +424,11 @@ func buildCommKVs(k *PMeta, v *PValue, conns *TCPConns) point.KVs {
 
 	kvs = appendStringTagKVFast(kvs, "direction", direction)
 
-	v.baseKVsCache = kvs
-	v.baseTagsCacheTS = now
-	v.baseTagsCacheDir = dir
+	if cacheBaseKVs {
+		v.baseKVsCache = kvs
+		v.baseTagsCacheTS = now
+		v.baseTagsCacheDir = dir
+	}
 	return appendCommDynamicKVs(cloneBaseKVs(kvs, len(runtimeTags)+10), k, conns.nsUID, runtimeTags)
 }
 
@@ -770,18 +783,23 @@ func tcpLogMessageJSON(chunk *PktChunk) (string, error) {
 	if chunk == nil {
 		return "", nil
 	}
-	if chunk != nil && !chunk.messageDirty && chunk.messageCache != "" {
-		return chunk.messageCache, nil
-	}
 
 	buf := make([]byte, 0, 160+len(chunk.TCPSreries)*48+chunk.macCount*24+len(chunk.extraMAC)*32)
 	buf = append(buf, `{"l4_proto":"tcp","tcp":`...)
 	buf = chunk.appendJSON(buf)
 	buf = append(buf, '}')
 
-	chunk.messageCache = string(buf)
 	chunk.messageDirty = false
-	return chunk.messageCache, nil
+	return string(buf), nil
+}
+
+func clearPktChunks(chunks []*PktChunk) {
+	for i := range chunks {
+		if chunks[i] != nil {
+			chunks[i].releaseLogPayload()
+		}
+		chunks[i] = nil
+	}
 }
 
 func http2LogMessageJSON(elem *HTTP2LogElem) (string, error) {

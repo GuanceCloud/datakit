@@ -59,6 +59,7 @@ Gson
 Guance
 GuanceCloud
 Guancedb
+Gunicorn
 HIKARICP
 Hbase
 IPDB

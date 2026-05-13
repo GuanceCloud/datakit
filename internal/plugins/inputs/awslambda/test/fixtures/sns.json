@@ -1,0 +1,10 @@
+{
+  "Records": [
+    {
+      "EventSource": "aws:sns",
+      "Sns": {
+        "TopicArn": "arn:aws:sns:us-east-1:123456789012:topic"
+      }
+    }
+  ]
+}

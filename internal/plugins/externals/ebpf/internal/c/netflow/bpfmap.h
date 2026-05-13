@@ -36,6 +36,30 @@ struct bpf_map_def SEC("maps/bpfmap_conn_tcp_segments") bpfmap_conn_tcp_segments
     .max_entries = 65536,
 };
 
+enum netflow_update_fail_reason
+{
+    NETFLOW_UPDATE_FAIL_CONN_STATS = 0,
+    NETFLOW_UPDATE_FAIL_TCP_STATS = 1,
+    NETFLOW_UPDATE_FAIL_TCP_SEGMENTS = 2,
+    NETFLOW_UPDATE_FAIL_MAX = 3,
+};
+
+struct bpf_map_def SEC("maps/bpfmap_netflow_update_fail") bpfmap_netflow_update_fail = {
+    .type = BPF_MAP_TYPE_ARRAY,
+    .key_size = sizeof(__u32),
+    .value_size = sizeof(__u64),
+    .max_entries = NETFLOW_UPDATE_FAIL_MAX,
+};
+
+static __always_inline void record_netflow_update_fail(__u32 reason)
+{
+    __u64 *count = bpf_map_lookup_elem(&bpfmap_netflow_update_fail, &reason);
+    if (count != NULL)
+    {
+        __sync_fetch_and_add(count, 1);
+    }
+}
+
 struct bpf_map_def SEC("maps/bpfmap_closed_event") bpfmap_closed_event = {
     .type = BPF_MAP_TYPE_PERF_EVENT_ARRAY,
     .key_size = sizeof(__u32),   // smp_processor_id
@@ -60,6 +84,15 @@ struct bpf_map_def SEC("maps/bpfmap_tmp_inetbind") bpfmap_tmp_inetbind = {
 // map key: struct port_bind
 // map value: PORT_CLOSED or PORT_LISTENING
 struct bpf_map_def SEC("maps/bpfmap_port_bind") bpfmap_port_bind = {
+    .type = BPF_MAP_TYPE_HASH,
+    .key_size = sizeof(struct port_bind),
+    .value_size = sizeof(__u8),
+    .max_entries = 65536,
+};
+
+// User-space procfs listener seed map. Keep it separate from bpfmap_port_bind
+// so kernel probes and procfs scans never race on the same key/value.
+struct bpf_map_def SEC("maps/bpfmap_port_bind_proc") bpfmap_port_bind_proc = {
     .type = BPF_MAP_TYPE_HASH,
     .key_size = sizeof(struct port_bind),
     .value_size = sizeof(__u8),
@@ -131,6 +164,7 @@ static __always_inline void update_tcp_stats(struct connection_info conn_info, s
 
     if (val == NULL)
     {
+        record_netflow_update_fail(NETFLOW_UPDATE_FAIL_TCP_STATS);
         return;
     }
 
@@ -213,6 +247,7 @@ static __always_inline void read_tcp_segment_delta(struct connection_info conn, 
     struct tcp_segment_counter *prev = bpf_map_lookup_elem(&bpfmap_conn_tcp_segments, &conn);
     if (prev == NULL)
     {
+        record_netflow_update_fail(NETFLOW_UPDATE_FAIL_TCP_SEGMENTS);
         return;
     }
 
@@ -289,13 +324,17 @@ static __always_inline int fill_conn_stats(struct connection_stats *dst, struct 
         {
             bind.netns = conn->netns;
             port_state = bpf_map_lookup_elem(&bpfmap_port_bind, &bind);
+            if (port_state == NULL || *port_state == PORT_CLOSED)
+            {
+                port_state = bpf_map_lookup_elem(&bpfmap_port_bind_proc, &bind);
+            }
         }
         else
         {
             bind.netns = conn->netns;
             port_state = bpf_map_lookup_elem(&bpfmap_udp_port_bind, &bind);
         }
-        dst->direction = (port_state != NULL) ? CONN_DIRECTION_INCOMING : CONN_DIRECTION_OUTGOING;
+        dst->direction = (port_state != NULL && *port_state != PORT_CLOSED) ? CONN_DIRECTION_INCOMING : CONN_DIRECTION_OUTGOING;
     }
     else
     {
@@ -322,6 +361,7 @@ static __always_inline int update_conn_stats(struct connection_info *conn, size_
     val = bpf_map_lookup_elem(&bpfmap_conn_stats, conn);
     if (fill_conn_stats(val, conn, sent_bytes, recv_bytes, ts, direction, packets_out, packets_in) != 0)
     {
+        record_netflow_update_fail(NETFLOW_UPDATE_FAIL_CONN_STATS);
         return -1;
     }
     if (val != NULL)

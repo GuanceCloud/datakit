@@ -56,6 +56,8 @@ var (
 	httpConfMtx sync.Mutex
 )
 
+const apiWriteRoute = "/v1/write/:category"
+
 type httpServerConf struct {
 	ginLog         string
 	ginRotate      int
@@ -209,9 +211,11 @@ func setupRouter(hs *httpServerConf) *gin.Engine {
 
 	router.Use(uhttp.CORSMiddlewareV2(hs.apiConfig.AllowedCORSOrigins))
 
+	noRouteHandlers := []gin.HandlerFunc{inputNotEnabledNoRoute()}
 	if !hs.apiConfig.Disable404Page {
-		router.NoRoute(page404)
+		noRouteHandlers = append(noRouteHandlers, page404)
 	}
+	router.NoRoute(noRouteHandlers...)
 
 	// use whitelist config
 	if !hs.apiConfig.DisableWhitelist {
@@ -235,7 +239,7 @@ func setupRouter(hs *httpServerConf) *gin.Engine {
 	router.GET("/v1/ntp", wraper2.RawHTTPWrapper(reqLimiter, apiNTP))
 
 	router.GET("/v1/ping", wraper1.RawHTTPWrapper(reqLimiter, apiPing))
-	router.POST("/v1/write/:category", wraper1.RawHTTPWrapper(reqLimiter, apiWrite, &apiWriteImpl{}))
+	router.POST(apiWriteRoute, wraper1.RawHTTPWrapper(reqLimiter, apiWrite, &apiWriteImpl{}))
 
 	router.POST("/v1/query/raw", wraper1.RawHTTPWrapper(reqLimiter, apiQueryRaw, hs.dw))
 
@@ -259,6 +263,40 @@ func setupRouter(hs *httpServerConf) *gin.Engine {
 	router.POST("/v1/election", wraper1.RawHTTPWrapper(reqLimiter, apiElectionStatus, nil))
 
 	return router
+}
+
+func inputNotEnabledNoRoute() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if err := inputNotEnabledError(c.Request.Method, c.Request.URL.Path); err != nil {
+			uhttp.HttpErr(c, err)
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
+func inputNotEnabledError(method, path string) error {
+	inputName, match := matchInputHTTPRoute(method, path)
+	if !match {
+		return nil
+	}
+
+	return uhttp.Errorf(ErrInputNotEnabled,
+		"input %q is not enabled for API %q",
+		inputName,
+		path)
+}
+
+func abortIfInputNotEnabled(c *gin.Context) bool {
+	if err := inputNotEnabledError(c.Request.Method, c.Request.URL.Path); err != nil {
+		uhttp.HttpErr(c, err)
+		c.Abort()
+		return true
+	}
+
+	return false
 }
 
 func isLoopbackClient(c *gin.Context) bool {
@@ -293,10 +331,10 @@ func isLoopbackClient(c *gin.Context) bool {
 }
 
 func apiWhiteListMiddleware(apis []string) gin.HandlerFunc {
-	// 解析白名单配置，支持正则表达式
+	// Normalize whitelist entries. Both exact paths and regex patterns are supported.
 	whiteList := make([]*datakit.WhiteListItem, 0, len(apis))
 	for _, apiPattern := range apis {
-		// 处理普通字符串路径
+		// Plain paths may omit the leading slash in config.
 		if len(apiPattern) > 0 && apiPattern[0] != '/' {
 			apiPattern = "/" + apiPattern
 		}
@@ -307,31 +345,40 @@ func apiWhiteListMiddleware(apis []string) gin.HandlerFunc {
 	}
 
 	return func(c *gin.Context) {
-		// 如果白名单为空，只允许本地访问
-		if len(whiteList) == 0 {
-			if !isLoopbackClient(c) {
-				uhttp.HttpErr(c, uhttp.Errorf(ErrPublicAccessDisabled,
-					"api %s disabled from external IP, only loopback(localhost) allowed (empty whitelist)",
-					c.Request.URL.Path))
-				c.Abort()
-				return
-			}
+		// Local clients are always allowed.
+		if isLoopbackClient(c) {
 			c.Next()
 			return
 		}
 
-		// 检查是否匹配白名单中的任一条目
-		path := c.Request.URL.Path
-		matched := false
-		for _, item := range whiteList {
-			if item.Match(path) {
-				matched = true
-				break
-			}
+		if c.FullPath() == "" {
+			// The whitelist only protects registered routes. Unknown routes must
+			// keep Gin's normal 404 behavior, even when public_apis contains them.
+			c.Next()
+			return
 		}
 
-		// 如果不匹配白名单且不是本地请求，则拒绝访问
-		if !matched && !isLoopbackClient(c) {
+		// Empty whitelist blocks all registered routes from external clients.
+		path := c.Request.URL.Path
+		if len(whiteList) == 0 {
+			if abortIfInputNotEnabled(c) {
+				return
+			}
+
+			uhttp.HttpErr(c, uhttp.Errorf(ErrPublicAccessDisabled,
+				"api %s disabled from external IP, only loopback(localhost) allowed (empty whitelist)",
+				path))
+			c.Abort()
+			return
+		}
+
+		// Match public_apis against the real request path only.
+		if !datakit.WhiteListMatched(path, whiteList) {
+			if abortIfInputNotEnabled(c) {
+				return
+			}
+
+			// The route exists, but is not exposed to external clients.
 			uhttp.HttpErr(c, uhttp.Errorf(ErrPublicAccessDisabled,
 				"api %s disabled from external IP, only loopback(localhost) allowed",
 				path))
@@ -582,6 +629,24 @@ func portInUse(addr string) bool {
 	}
 	defer conn.Close() //nolint:errcheck
 	return true
+}
+
+// CheckHTTPSrvAddr checks whether the HTTP server address can be listened on.
+func CheckHTTPSrvAddr(addr string) error {
+	if portInUse(addr) {
+		return fmt.Errorf("address %q already in use", addr)
+	}
+
+	listener, err := initListener(addr)
+	if err != nil {
+		return fmt.Errorf("init listener %q: %w", addr, err)
+	}
+
+	if err := listener.Close(); err != nil {
+		return fmt.Errorf("close listener %q: %w", addr, err)
+	}
+
+	return nil
 }
 
 func initUnixListener(udsPath string) (net.Listener, error) {

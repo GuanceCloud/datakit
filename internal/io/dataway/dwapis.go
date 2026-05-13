@@ -396,6 +396,31 @@ func (dw *Dataway) UploadLog(r io.Reader, hostName string) (*http.Response, erro
 	return ep.SendReq(req)
 }
 
+func (dw *Dataway) UploadBugReport(r io.Reader, hostName string) (*http.Response, error) {
+	if len(dw.eps) == 0 {
+		return nil, fmt.Errorf("no dataway available")
+	}
+
+	ep := dw.eps[0]
+	reqURL, ok := ep.CategoryURL[datakit.BugReportUpload]
+	if !ok {
+		return nil, fmt.Errorf("no bug report upload URL available")
+	}
+
+	req, err := http.NewRequest("POST", reqURL, r)
+	if err != nil {
+		return nil, fmt.Errorf("upload failed: %w", err)
+	}
+
+	for k, v := range ep.HTTPHeaders {
+		req.Header.Set(k, v)
+	}
+
+	req.Header.Set("Content-Type", "application/zip")
+	req.Header.Add("Host-Name", hostName)
+	return ep.SendReq(req)
+}
+
 func (dw *Dataway) Pull(args string) ([]byte, error) {
 	if dw.ClientsCount() == 0 {
 		return nil, fmt.Errorf("dataway URL not set")

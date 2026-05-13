@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	humanize "github.com/dustin/go-humanize"
@@ -87,31 +88,68 @@ func Extract(r io.Reader, to string) error {
 			}
 
 		case tar.TypeReg:
-
-			if err := os.MkdirAll(filepath.Dir(target), os.ModePerm); err != nil {
-				return fmt.Errorf("MkdirAll: %w", err)
-			}
-
-			_ = os.Remove(filepath.Clean(target))
-			// TODO: lock file before extracting, to avoid `text file busy` error
-			f, err := os.OpenFile(filepath.Clean(target),
-				os.O_CREATE|os.O_RDWR|os.O_TRUNC, os.FileMode(hdr.Mode))
-			if err != nil {
-				return fmt.Errorf("OpenFile: %w", err)
-			}
-
-			if _, err := io.Copy(f, tr); err != nil { //nolint:gosec
-				return fmt.Errorf("io.Copy: %w", err)
-			}
-
-			if err := f.Close(); err != nil {
-				return fmt.Errorf("on Close(): %w", err)
+			if err := extractRegularFile(tr, target, os.FileMode(hdr.Mode)); err != nil {
+				return err
 			}
 
 		default:
 			return fmt.Errorf("unexpected file %s", target)
 		}
 	}
+}
+
+func extractRegularFile(r io.Reader, target string, mode os.FileMode) error {
+	target = filepath.Clean(target)
+
+	if err := os.MkdirAll(filepath.Dir(target), os.ModePerm); err != nil {
+		return fmt.Errorf("MkdirAll: %w", err)
+	}
+
+	if runtime.GOOS == "windows" {
+		_ = os.Remove(target)
+		f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR|os.O_TRUNC, mode) //nolint:gosec
+		if err != nil {
+			return fmt.Errorf("OpenFile: %w", err)
+		}
+
+		if _, err := io.Copy(f, r); err != nil { //nolint:gosec
+			_ = f.Close()
+			return fmt.Errorf("io.Copy: %w", err)
+		}
+
+		if err := f.Close(); err != nil {
+			return fmt.Errorf("on Close(): %w", err)
+		}
+		return nil
+	}
+
+	f, err := os.CreateTemp(filepath.Dir(target), ".dl.tmp.")
+	if err != nil {
+		return fmt.Errorf("CreateTemp: %w", err)
+	}
+	tmpName := f.Name()
+	defer func() {
+		_ = os.Remove(tmpName)
+	}()
+
+	if _, err := io.Copy(f, r); err != nil { //nolint:gosec
+		_ = f.Close()
+		return fmt.Errorf("io.Copy: %w", err)
+	}
+
+	if err := f.Chmod(mode); err != nil {
+		_ = f.Close()
+		return fmt.Errorf("chmod: %w", err)
+	}
+
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("on Close(): %w", err)
+	}
+
+	if err := os.Rename(tmpName, target); err != nil {
+		return fmt.Errorf("rename: %w", err)
+	}
+	return nil
 }
 
 func Download(cli *http.Client, from, to string, progress, downloadOnly bool) error {

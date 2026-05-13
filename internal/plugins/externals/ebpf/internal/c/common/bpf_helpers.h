@@ -139,15 +139,15 @@ struct bpf_map_def
 		.value_size = sizeof(value_type),                                 \
 		.max_entries = map_max_entries};
 
-/* Prefer LRU on newer kernels, but keep low-kernel builds working. */
-#ifdef BPF_MAP_TYPE_LRU_HASH
-#define BPF_BEST_EFFORT_LRU_HASH BPF_MAP_TYPE_LRU_HASH
-#define BPF_BEST_EFFORT_LRU_HASH_MAP(map_name, key_type, value_type, map_max_entries) \
-	BPF_LRU_HASH_MAP(map_name, key_type, value_type, map_max_entries)
-#else
+/* Prefer LRU on modern objects, but allow legacy objects to keep low-kernel builds working. */
+#ifdef DK_DISABLE_LRU_HASH
 #define BPF_BEST_EFFORT_LRU_HASH BPF_MAP_TYPE_HASH
 #define BPF_BEST_EFFORT_LRU_HASH_MAP(map_name, key_type, value_type, map_max_entries) \
 	BPF_HASH_MAP(map_name, key_type, value_type, map_max_entries)
+#else
+#define BPF_BEST_EFFORT_LRU_HASH BPF_MAP_TYPE_LRU_HASH
+#define BPF_BEST_EFFORT_LRU_HASH_MAP(map_name, key_type, value_type, map_max_entries) \
+	BPF_LRU_HASH_MAP(map_name, key_type, value_type, map_max_entries)
 #endif
 
 #define BPF_PERF_EVENT_MAP(map_name)                       \

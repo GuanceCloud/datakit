@@ -95,6 +95,7 @@ monitor   :
         }
       ],
       "advance_options": {
+        "protocol": "auto",
         "request_options": {
           "auth": {}
         },
@@ -394,6 +395,28 @@ HTTP 请求的超时时间，默认是 "60s"，即 60 秒。
   "request_timeout": "60s",
 }
 ```
+
+- HTTP 协议版本（`protocol`）
+
+HTTP 请求协议版本，默认是 `auto`。可选值如下：
+
+| 值            | 说明                                                                                                                                  |
+| :---          | :---                                                                                                                                  |
+| `auto`        | 默认模式。`http://` 走 HTTP/1.1；`https://` 通过 `TLS/ALPN` 自动协商，服务端支持 HTTP/2 就走 HTTP/2，否则回退 HTTP/1.1。不会自动尝试 h2c，也不会尝试 HTTP/3。 |
+| `http/1.1`    | 强制 HTTP/1.1，不会尝试 HTTP/2。                                                                                                      |
+| `http/2`      | 启用 HTTP/2，但允许回退。对 `https://` 会通过 `ALPN` 尝试 HTTP/2，不支持时回退 HTTP/1.1；对普通 `http://` 本质上仍是 HTTP/1.1，不会走 h2c。 |
+| `http/2-only` | 强制 HTTP/2。`https://` 要求 `ALPN` 协商到 `h2`；`http://` 会按 h2c prior knowledge 直接发明文 HTTP/2。服务端不支持 HTTP/2 时任务失败。 |
+| `http/3`      | 使用 HTTP/3，也就是 `QUIC` + TLS。需要服务端支持 HTTP/3；当前不支持代理配置。                                                           |
+
+`protocol` 示例：
+
+```json
+"advance_options": {
+  "protocol": "http/3"
+}
+```
+
+> 注意：HTTP/3 不支持代理配置。如果 `protocol` 配置为 `http/3`，请不要同时配置 `proxy`。
 
 - HTTP 请求证书（`certificate`）
 

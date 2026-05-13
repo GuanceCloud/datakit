@@ -852,7 +852,7 @@ func TestApplyCaptureLimits(t *testing.T) {
 	applyCaptureLimits(&netlogCfg{})
 	assert.Equal(t, k8sMaxFallbackSocketLimit, maxFallbackSocketLimit)
 	assert.Equal(t, k8sFallbackCaptureSocketBlocks, fallbackCaptureSocketBlocks)
-	assert.Equal(t, defaultSharedCaptureSocketBlocks, sharedCaptureSocketBlocks)
+	assert.Equal(t, k8sSharedCaptureSocketBlocks, sharedCaptureSocketBlocks)
 
 	applyCaptureLimits(&netlogCfg{
 		fallbackSockets: 12,
@@ -884,6 +884,12 @@ func TestApplyCaptureLimitsResetFromPreviousRun(t *testing.T) {
 	assert.Equal(t, defaultMaxFallbackSocketLimit, maxFallbackSocketLimit)
 	assert.Equal(t, defaultFallbackCaptureSocketBlocks, fallbackCaptureSocketBlocks)
 	assert.Equal(t, defaultSharedCaptureSocketBlocks, sharedCaptureSocketBlocks)
+}
+
+func TestPacketReadTimeoutDetection(t *testing.T) {
+	assert.True(t, isPacketReadTimeout(afpacket.ErrTimeout))
+	assert.True(t, isPacketReadTimeout(fmt.Errorf("wrapped: %w", afpacket.ErrTimeout)))
+	assert.False(t, isPacketReadTimeout(fmt.Errorf("other error")))
 }
 
 func TestShouldTripFallbackFuse(t *testing.T) {
@@ -1192,4 +1198,16 @@ func TestParseHTTPRequestMetaHost(t *testing.T) {
 	assert.Equal(t, "opentelemetry-demo-frontendproxy", host)
 	assert.Equal(t, "d2d234e788e171f7c5da8a91141443d1", traceID)
 	assert.Equal(t, "1daaf342e75dfb05", parentID)
+}
+
+func TestParseHTTPRequestMetaSkipsIncompleteHostHeader(t *testing.T) {
+	method, path, host, traceID, parentID, ok := parseHTTPRequestMeta([]byte("GET /api HTTP/1.1\r\nHost: api.example"))
+	if !ok {
+		t.Fatal("expected parsed request")
+	}
+	assert.Equal(t, "GET", method)
+	assert.Equal(t, "/api", path)
+	assert.Empty(t, host)
+	assert.Empty(t, traceID)
+	assert.Empty(t, parentID)
 }

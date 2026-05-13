@@ -305,8 +305,8 @@ DK_USER_NAME="datakit" DK_DATAWAY="..." bash -c ...
 
 ### HTTP/API {#env-http-api}
 
-- `DK_HTTP_LISTEN`: Support the installation-stage specified DataKit HTTP service binding network card (default `localhost`)
-- `DK_HTTP_PORT`: Support specifying the port of the DataKit HTTP service binding during installation (default `9529`)
+- `DK_HTTP_LISTEN`: Support specifying the DataKit HTTP service binding interface or listen address during installation (default `localhost`, for example `0.0.0.0` or `0.0.0.0:9529`)
+- `DK_HTTP_PORT`: Support specifying the port of the DataKit HTTP service binding during installation (default `9529`; if `DK_HTTP_LISTEN` already contains a port and this variable is also set, this variable takes precedence)
 - `DK_RUM_ORIGIN_IP_HEADER`: RUM-specific
 - `DK_DISABLE_404PAGE`: Disable the DataKit 404 page (commonly used when deploying DataKit RUM on the public network. Such as `True`/`False`)
 - `DK_INSTALL_IPDB`: Specify the IP library at installation time (currently only `iploc` and `geolite2` is supported)

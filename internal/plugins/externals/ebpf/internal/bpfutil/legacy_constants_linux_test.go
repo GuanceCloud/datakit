@@ -69,6 +69,15 @@ func TestKernelSupportsReadOnlyMaps(t *testing.T) {
 	}
 }
 
+func TestKernelSupportsLRUHashMaps(t *testing.T) {
+	if kernelSupportsLRUHashMaps(0x0004000900000000) {
+		t.Fatal("kernel 4.9 should not support LRU hash maps")
+	}
+	if !kernelSupportsLRUHashMaps(0x0004000a00000000) {
+		t.Fatal("kernel 4.10 should support LRU hash maps")
+	}
+}
+
 func TestKernelSupportsRetprobeMaxActiveOverride(t *testing.T) {
 	if kernelSupportsRetprobeMaxActiveOverride(0x0004000e00000000) {
 		t.Fatal("kernel 4.14 should not support retprobe maxactive override")

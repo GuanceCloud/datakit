@@ -17,7 +17,7 @@ var GlobalDigitPatterns = []string{
 	// 2021-07-08 05:08:19,214
 	`^\d+-\d+-\d+ \d+:\d+:\d+(,\d+)?`,
 	// 2021-07-08 05:08:19.214, used by log4j, postgresql, rabbitmq, jenkins.
-	`^\d{4}-\d{2}-\d{2}[ T]\d{1,2}:\d{2}:\d{2}\.\d+([ \t]+[A-Z]{2,5})?`,
+	`^\d{4}-\d{2}-\d{2}[ T]\d{1,2}:\d{2}:\d{2}\.\d+`,
 	// 2021-07-08,05:08:19.214
 	`^\d{4}-\d{2}-\d{2},\d{1,2}:\d{2}:\d{2}([,.]\d+)?`,
 	// 2021.07.08 05:08:19
@@ -34,18 +34,18 @@ var GlobalDigitPatterns = []string{
 	`^\d{1,2}-[A-Za-z]{3}-\d{4} \d{2}:\d{2}:\d{2}([,.]\d+)?`,
 	// Compact timestamps, "20240708 050819" and "20240708T05:08:19".
 	`^\d{8}[ T]\d{2}:?\d{2}:?\d{2}([,.]\d+)?`,
-	// Time-only logs are accepted only when immediately followed by a level.
-	`^\d{2}:\d{2}:\d{2}([,.]\d+)?[ \t]+(TRACE|DEBUG|INFO|NOTICE|WARN|WARNING|ERROR|ERR|CRITICAL|CRIT|FATAL|PANIC)\b`,
-	// Unix epoch seconds/milliseconds followed by a level.
-	`^\d{10,13}([,.]\d+)?[ \t]+(TRACE|DEBUG|INFO|NOTICE|WARN|WARNING|ERROR|ERR|CRITICAL|CRIT|FATAL|PANIC)\b`,
+	// Time-only logs, "15:04:05" and "15:04:05.123".
+	`^\d{2}:\d{2}:\d{2}([,.]\d+)?`,
+	// Unix epoch seconds/milliseconds.
+	`^\d{10,13}([,.]\d+)?`,
 	// Apache/nginx access log with HTTPDATE after client/ident/auth fields.
 	`^[0-9A-Fa-f:.]+ [^ ]+ [^ ]+ \[\d{1,2}/[A-Za-z]{3}/\d{4}:\d{2}:\d{2}:\d{2} [+-]\d{4}\]`,
 	// Android logcat, "01-02 15:04:05.123  123  456 I/Tag: message"
-	`^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} +\d+ +\d+ [VDIWEF]/`,
+	`^\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}`,
 	// 2021-01-31 - with stricter matching around the months/days
 	`^\d{4}-(0?[1-9]|1[012])-(0?[1-9]|[12][0-9]|3[01])`,
 	// MongoDB text logs, "2021-07-08T05:08:19.123+0000 I CONTROL ..."
-	`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?[+-]\d{4}[ \t]+[A-Z][ \t]+`,
+	`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?[+-]\d{4}`,
 	// Redis server log, "31350:M 23 Jan 2020 11:45:04.030 * Ready"
 	`^\d+:[A-Z] \d{1,2} [A-Za-z]{3} \d{4} \d{2}:\d{2}:\d{2}\.\d+`,
 }
@@ -64,13 +64,13 @@ var GlobalLetterPatterns = []string{
 	// time.RFC1123Z, "Mon, 02 Jan 2006 15:04:05 -0700" // RFC1123 with numeric zone
 	`^[A-Za-z_]+, \d+ [A-Za-z_]+ \d+ \d+:\d+:\d+ -\d+`,
 	// Syslog RFC3164, "Jan 02 15:04:05 host app[123]:"
-	`^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) +\d{1,2} \d{2}:\d{2}:\d{2}[ \t]`,
+	`^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) +\d{1,2} \d{2}:\d{2}:\d{2}`,
 	// Syslog-like timestamp with fractional seconds.
-	`^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) +\d{1,2} \d{2}:\d{2}:\d{2}\.\d+[ \t]`,
+	`^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) +\d{1,2} \d{2}:\d{2}:\d{2}\.\d+`,
 	// Apache/nginx access log with HTTPDATE after client/ident/auth fields.
 	`^[0-9A-Fa-f:.]+ [^ ]+ [^ ]+ \[\d{1,2}/[A-Za-z]{3}/\d{4}:\d{2}:\d{2}:\d{2} [+-]\d{4}\]`,
 	// Kubernetes/glog/klog, "E0123 12:34:56.789012 1 file.go:123] ..."
-	`^[IWEF]\d{4} \d{2}:\d{2}:\d{2}\.\d{6} +\d+ `,
+	`^[IWEF]\d{4} \d{2}:\d{2}:\d{2}\.\d{6}`,
 	// Docker daemon and logfmt-style timestamps, `time="2021-07-08T05:08:19Z"`.
 	`^(time|ts|timestamp)=["']?\d{4}-\d{2}-\d{2}[T ]\d{2}:?\d{2}:?\d{2}`,
 	// logfmt with level first, `level=info ts=2021-07-08T05:08:19Z`.
@@ -86,16 +86,12 @@ var GlobalLetterPatterns = []string{
 	// Python logging defaults, "ERROR:root:message".
 	`^(DEBUG|INFO|WARNING|ERROR|CRITICAL):[A-Za-z0-9_.-]+:`,
 	// Default java logging SimpleFormatter date format
-	`^[A-Za-z_]+ \d+, \d+ \d+:\d+:\d+ (AM|PM)`,
+	`^[A-Za-z_]+ \d+, \d+ \d+:\d+:\d+`,
 	// Ruby logger, "I, [2021-07-08T05:08:19.123456 #123] INFO -- : msg"
 	`^[A-Z], \[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?`,
 	// Go stack starts. Python/Java exception markers are often continuation
 	// lines after a timestamped error header, so they are intentionally omitted.
 	`^(panic:|fatal error:)`,
-	// Java exception root line. Keep "Caused by:" out: it is normally a continuation.
-	`^Exception in thread "[^"]+" `,
-	// Fully-qualified Java/.NET exception root line, such as "java.lang.IllegalStateException:".
-	`^([A-Za-z_$][A-Za-z0-9_$]*\.)+[A-Za-z_$][A-Za-z0-9_$]*(Exception|Error)(:|$)`,
 	// AWS Lambda runtime markers.
 	`^(START|END|REPORT) RequestId:`,
 }
@@ -115,7 +111,7 @@ var GlobalSymbolPatterns = []string{
 	// [02-Jan-2006 15:04:05], common in PHP and application logs.
 	`^\[\d{1,2}-[A-Za-z]{3}-\d{4} \d{2}:\d{2}:\d{2}([,.]\d+)?\]`,
 	// [15:04:05.123] INFO ...
-	`^\[\d{2}:\d{2}:\d{2}([,.]\d+)?\][ \t]+`,
+	`^\[\d{2}:\d{2}:\d{2}([,.]\d+)?\]`,
 	// Syslog RFC5424/RFC3164 with priority, "<34>1 2021-07-08T05:08:19Z ..."
 	`^<\d{1,5}>(1 )?`,
 	// Apache error log, "[Tue Jan 02 15:04:05.123456 2006] ..."

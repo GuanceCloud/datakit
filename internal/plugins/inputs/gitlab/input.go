@@ -9,6 +9,7 @@ package gitlab
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
 	"strings"
@@ -43,6 +44,7 @@ const (
 	gitlabEventHeader = "X-Gitlab-Event"
 	pipelineHook      = "Pipeline Hook"
 	jobHook           = "Job Hook"
+	gitlabAPI         = "/v1/gitlab"
 
 	sampleCfg = `
 [[inputs.gitlab]]
@@ -132,7 +134,7 @@ func (ipt *Input) RegHTTPHandler() {
 			ipt.reqMemo.memoMaintainer(time.Second * 30)
 			return nil
 		})
-		httpapi.RegHTTPHandler("POST", "/v1/gitlab", httpapi.ProtectedHandlerFunc(ipt.ServeHTTP, l))
+		httpapi.RegHTTPHandler("POST", gitlabAPI, httpapi.ProtectedHandlerFunc(ipt.ServeHTTP, l))
 	}
 }
 
@@ -183,7 +185,7 @@ func (ipt *Input) Terminate() {
 	}
 
 	if ipt.EnableCIVisibility {
-		httpapi.RemoveHTTPRoute("POST", "/v1/gitlab")
+		httpapi.RemoveHTTPRoute("POST", gitlabAPI)
 	}
 }
 
@@ -452,6 +454,13 @@ func defaultInput() *Input {
 }
 
 func init() { //nolint:gochecknoinits
+	httpapi.RegInputHTTPRouteMatcher(func(method, path string) (string, bool) {
+		if method == http.MethodPost && path == gitlabAPI {
+			return inputName, true
+		}
+		return "", false
+	})
+
 	inputs.Add(inputName, func() inputs.Input {
 		return defaultInput()
 	})

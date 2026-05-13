@@ -1,4 +1,4 @@
-.PHONY: default testing local deps prepare cspell build_external_local
+.PHONY: default testing local deps prepare cspell build_external_local ebpf_nocgo_ci
 
 default: local
 
@@ -81,8 +81,11 @@ EXTERNAL_OUTDIR              ?=
 EXTERNAL_OUTPUT              ?=
 EXTERNAL_LDFLAGS             ?= -w -s
 EXTERNAL_EBPF_ARGS           ?=
+EXTERNAL_EBPF_TARGET         ?= build
 DK_BPF_KERNEL_SRC_PATH       ?=
 EXTERNAL_SYSROOT_BASE        ?= /opt/sysroots/debian10
+EBPF_CI_ARCHS                ?= amd64 arm64
+EBPF_CI_DOCKER_PLATFORM      ?= linux/$(shell go env GOARCH)
 
 AWS_REGIONS ?= ""
 
@@ -278,8 +281,31 @@ build_external_local:
 		EXTERNAL_OUTPUT="$(EXTERNAL_OUTPUT)" \
 		EXTERNAL_LDFLAGS="$(EXTERNAL_LDFLAGS)" \
 		EXTERNAL_EBPF_ARGS="$(EXTERNAL_EBPF_ARGS)" \
+		EXTERNAL_EBPF_TARGET="$(EXTERNAL_EBPF_TARGET)" \
 		DK_BPF_KERNEL_SRC_PATH="$(DK_BPF_KERNEL_SRC_PATH)" \
 		EXTERNAL_SYSROOT_BASE="$(EXTERNAL_SYSROOT_BASE)"
+
+ebpf_nocgo_ci: prepare
+	@set -eu; \
+	image="$(DK_BUILD_ENV_IMAGE)"; \
+	test -n "$$image" || { echo "DK_BUILD_ENV_IMAGE is required"; exit 1; }; \
+	rm -rf .tmp/dk-ebpf-ci-* .tmp/datakit-ebpf-linux-*-nocgo; \
+	mkdir -p .tmp; \
+	for arch in $(EBPF_CI_ARCHS); do \
+		echo "===== build ebpf objects in dk build env: linux/$$arch ====="; \
+		docker run --rm --platform "$(EBPF_CI_DOCKER_PLATFORM)" \
+			-v "$(CURDIR):/work" -w /work "$$image" \
+			bash -lc "make --no-print-directory -C externals build_external_local EXTERNAL_NAME=ebpf EXTERNAL_GOOS=linux EXTERNAL_ARCH=$$arch EXTERNAL_OUTDIR=/work/.tmp/dk-ebpf-ci-$$arch EXTERNAL_OUTPUT=datakit-ebpf GO_MODULE_MODE=$(GO_MODULE_MODE) DK_BPF_KERNEL_SRC_PATH=/usr/src/linux-headers-$$arch EXTERNAL_EBPF_TARGET=bpfobjs"; \
+		docker run --rm --platform "$(EBPF_CI_DOCKER_PLATFORM)" \
+			-v "$(CURDIR):/work" -w /work "$$image" \
+			chown -R "$$(id -u):$$(id -g)" "/work/.tmp/dk-ebpf-ci-$$arch" "/work/internal/plugins/externals/ebpf/internal/c/elf/linux_$$arch"; \
+		echo "===== build datakit-ebpf locally without cgo: linux/$$arch ====="; \
+		GO111MODULE=on GOFLAGS=-mod=$(GO_MODULE_MODE) GOOS=linux GOARCH=$$arch CGO_ENABLED=0 \
+			go build -tags "ebpf netgo" -buildvcs=false \
+			-o ".tmp/datakit-ebpf-linux-$$arch-nocgo" \
+			./internal/plugins/externals/ebpf/cmd/datakit-ebpf; \
+	done; \
+	rm -rf .tmp/dk-ebpf-ci-* .tmp/datakit-ebpf-linux-*-nocgo
 
 ##############################################################################
 # Rules in the Makefile

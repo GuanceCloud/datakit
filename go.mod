@@ -7,7 +7,7 @@ require (
 	github.com/DataDog/datadog-agent/pkg/obfuscate v0.47.1
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/GuanceCloud/confd v0.1.101
-	github.com/GuanceCloud/grok v1.1.5-0.20250416104424-34917bd63e69
+	github.com/GuanceCloud/grok v1.1.5-0.20260513103143-a1797907b1d0
 	github.com/GuanceCloud/platypus v0.3.4
 	github.com/IBM/sarama v1.41.2
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible // indirect
@@ -367,7 +367,7 @@ require (
 )
 
 require (
-	github.com/GuanceCloud/cliutils v1.1.22-0.20260421085720-c22683f8683e
+	github.com/GuanceCloud/cliutils v1.1.22-0.20260511083129-45a7568875d8
 	github.com/VictoriaMetrics/easyproto v0.1.4 // indirect
 	github.com/andybalholm/brotli v1.0.4
 	github.com/avvmoto/buf-readerat v0.0.0-20171115124131-a17c8cb89270 // indirect
@@ -385,7 +385,7 @@ require (
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
-	github.com/GuanceCloud/pipeline-go v1.3.0
+	github.com/GuanceCloud/pipeline-go v1.3.1
 	github.com/go-redis/redis/v8 v8.11.3
 	github.com/hipages/php-fpm_exporter v1.2.1
 	github.com/redis/go-redis/v9 v9.12.0
@@ -396,7 +396,14 @@ require (
 require (
 	github.com/bufbuild/protocompile v0.4.0 // indirect
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
+	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
+	github.com/golang/mock v1.6.0 // indirect
 	github.com/jhump/protoreflect v1.15.1 // indirect
+	github.com/onsi/ginkgo/v2 v2.9.5 // indirect
+	github.com/quic-go/qpack v0.4.0 // indirect
+	github.com/quic-go/qtls-go1-19 v0.3.2 // indirect
+	github.com/quic-go/qtls-go1-20 v0.3.2 // indirect
+	github.com/quic-go/quic-go v0.36.0 // indirect
 	github.com/speps/go-hashids v2.0.0+incompatible // indirect
 	github.com/tomasen/fcgi_client v0.0.0-20180423082037-2bb3d819fd19 // indirect
 	k8s.io/gengo v0.0.0-20211129171323-c02415ce4185 // indirect
@@ -405,7 +412,7 @@ require (
 replace (
 	github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
 	github.com/fsnotify/fsnotify => github.com/GuanceCloud/fsnotify v1.8.2
-	github.com/google/gopacket => github.com/GuanceCloud/gopacket v0.0.1
+	github.com/google/gopacket => github.com/GuanceCloud/gopacket v0.0.2
 	github.com/grafana/jfr-parser => github.com/GuanceCloud/jfr-parser v0.8.6
 	github.com/influxdata/influxdb1-client => github.com/GuanceCloud/influxdb1-client v0.1.9
 	github.com/iovisor/gobpf => github.com/DataDog/gobpf v0.0.0-20210322155958-9866ef4cd22c

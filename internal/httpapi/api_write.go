@@ -327,6 +327,10 @@ func (wr *APIWriteResult) APIV1Write(req *http.Request) (err error) {
 
 	default:
 		if wr.CustomeURL == "" && categoryURL != wr.CustomeURL {
+			if err := inputNotEnabledError(req.Method, req.URL.Path); err != nil {
+				return err
+			}
+
 			l.Debugf("invalid category: %q", categoryURL)
 			return uhttp.Errorf(ErrInvalidCategory, "invalid URL %q", categoryURL)
 		}

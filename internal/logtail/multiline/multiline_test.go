@@ -63,40 +63,38 @@ func TestMultilineEndToEndFlow(t *testing.T) {
 		assert.NoError(t, err)
 
 		out := collectStringLines(m, []string{
-			`[2020-12-03 11:36:23] ERROR in app: Exception on /error [GET]`,
+			`[2020-12-03 11:36:23] ERROR in app: request failed on /error [GET]`,
 			`Traceback (most recent call last):`,
 			`  File "/app.py", line 1, in <module>`,
 			`[2020-12-03 11:36:24] "GET /health HTTP/1.1" 200 -`,
 		})
 
 		assert.Equal(t, []string{
-			"[2020-12-03 11:36:23] ERROR in app: Exception on /error [GET]\n" +
+			"[2020-12-03 11:36:23] ERROR in app: request failed on /error [GET]\n" +
 				"Traceback (most recent call last):\n" +
 				`  File "/app.py", line 1, in <module>`,
 			`[2020-12-03 11:36:24] "GET /health HTTP/1.1" 200 -`,
 		}, out)
 	})
 
-	t.Run("auto-java-exception-roots-and-continuations", func(t *testing.T) {
+	t.Run("auto-fractional-time-prefix-keeps-continuations", func(t *testing.T) {
 		m, err := NewAuto(nil)
 		assert.NoError(t, err)
 
 		out := collectStringLines(m, []string{
-			`Exception in thread "main" java.lang.IllegalStateException: A book has a null property`,
-			`       at com.example.myproject.Author.getBookIds(Author.java:38)`,
-			`Caused by: java.lang.NullPointerException`,
-			`       at com.example.myproject.Book.getId(Book.java:22)`,
-			`java.lang.IllegalArgumentException: next root exception`,
-			`       at com.example.myproject.Book.getTitle(Book.java:16)`,
+			`15:03:41.922 [http-nio-9002-exec-24] ERROR [bbs-mg-community] request failed`,
+			`request detail: user isn't exist`,
+			`       stack frame: Author.getBookIds(Author.java:38)`,
+			`15:03:42.922 [http-nio-9002-exec-24] ERROR [bbs-mg-community] next request failed`,
+			`operation detail: failed`,
 		})
 
 		assert.Equal(t, []string{
-			"Exception in thread \"main\" java.lang.IllegalStateException: A book has a null property\n" +
-				"       at com.example.myproject.Author.getBookIds(Author.java:38)\n" +
-				"Caused by: java.lang.NullPointerException\n" +
-				"       at com.example.myproject.Book.getId(Book.java:22)",
-			"java.lang.IllegalArgumentException: next root exception\n" +
-				"       at com.example.myproject.Book.getTitle(Book.java:16)",
+			"15:03:41.922 [http-nio-9002-exec-24] ERROR [bbs-mg-community] request failed\n" +
+				"request detail: user isn't exist\n" +
+				"       stack frame: Author.getBookIds(Author.java:38)",
+			"15:03:42.922 [http-nio-9002-exec-24] ERROR [bbs-mg-community] next request failed\n" +
+				"operation detail: failed",
 		}, out)
 	})
 
@@ -105,14 +103,14 @@ func TestMultilineEndToEndFlow(t *testing.T) {
 		assert.NoError(t, err)
 
 		out := collectStringLines(m, []string{
-			`[beat-logstash-some-name-832-2015.11.28] IndexNotFoundException[no such index]`,
+			`[beat-logstash-some-name-832-2015.11.28] index not found`,
 			`    at org.elasticsearch.cluster.metadata.IndexNameExpressionResolver.resolve(IndexNameExpressionResolver.java:566)`,
 			`[2015-08-24 11:49:14,389][INFO ][env] [Letha] using [1] data paths, mounts [[/`,
 			`(/dev/disk1)]], net usable_space [34.5gb]`,
 		})
 
 		assert.Equal(t, []string{
-			"[beat-logstash-some-name-832-2015.11.28] IndexNotFoundException[no such index]\n" +
+			"[beat-logstash-some-name-832-2015.11.28] index not found\n" +
 				"    at org.elasticsearch.cluster.metadata.IndexNameExpressionResolver.resolve(IndexNameExpressionResolver.java:566)",
 			"[2015-08-24 11:49:14,389][INFO ][env] [Letha] using [1] data paths, mounts [[/\n" +
 				"(/dev/disk1)]], net usable_space [34.5gb]",

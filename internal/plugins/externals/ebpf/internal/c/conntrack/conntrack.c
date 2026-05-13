@@ -156,14 +156,20 @@ static __always_inline int handle_conntrack_insert(struct nf_conn *ct)
     bpf_printk("reply sport %d dport %d\n", reply.src_port, reply.dst_port);
 #endif
 
-    bpf_map_update_elem(&bpfmap_conntrack_tuple, &origin, &reply, BPF_ANY);
+    if (bpf_map_update_elem(&bpfmap_conntrack_tuple, &origin, &reply, BPF_ANY) != 0)
+    {
+        record_conntrack_update_fail();
+    }
     if (origin.netns != 0)
     {
         struct nf_origin_tuple global_origin = origin;
         struct nf_reply_tuple global_reply = reply;
         global_origin.netns = 0;
         global_reply.netns = 0;
-        bpf_map_update_elem(&bpfmap_conntrack_tuple, &global_origin, &global_reply, BPF_ANY);
+        if (bpf_map_update_elem(&bpfmap_conntrack_tuple, &global_origin, &global_reply, BPF_ANY) != 0)
+        {
+            record_conntrack_update_fail();
+        }
     }
     return 0;
 }

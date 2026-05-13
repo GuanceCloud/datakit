@@ -1,5 +1,39 @@
 # 更新日志
 
+## 1.94.0(2026/05/13) {#cl-1.94.0}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-1.94.0-new}
+
+- 日志采集 socket logs 支持记录来源 IP，并使用 `collector_source_ip` 作为来源地址 tag（#3061）
+- 拨测 HTTP 任务支持自定义协议版本，便于覆盖不同 HTTP 协议兼容性场景（#3041）
+- PostgreSQL DBM 新增 SQL 执行量与 QPS 指标采集上报能力（#3046）
+- MongoDB 支持 database object 采集上报（#3045）
+- Doris 支持 object 采集上报（#3043）
+- bug report 默认支持通过 Dataway 上传到观测云，并保留 OSS 直传方式（#3028）
+- AWS Lambda 采集器完善函数调用链路，补充运行时事件与调用上下文关联能力（#2961）
+
+### 问题修复 {#cl-1.94.0-fix}
+
+- 修复 9529 HTTP API 未注册路由与未启用采集器路由的 403/404 返回策略，减少用户排障误导（#3054）
+- 修复 DataKit HTTP 服务启动失败时主进程状态仍显示正常的问题，现在 HTTP 服务异常会使主进程退出（#3052）
+- 修复 APM 自动注入在 arm64 动态库交叉编译与替换过程中的异常问题（#3050）
+- 修复 Redis 采集器偶现 `concurrent map writes` 的问题，并优化 host tag 优先级处理（#3039）
+
+### 功能优化 {#cl-1.94.0-opt}
+
+- StatsD 默认关闭 DogStatsD event 与 service check 日志采集，仅在用户显式配置后开启，避免默认产生额外日志量（#3059）
+- 优化 `DK_HTTP_LISTEN` 识别逻辑，支持直接填写 `ip:port`，并明确其与 `DK_HTTP_PORT` 的优先级（#3053）
+- 优化 Pipeline 中 Grok 与 JSON 处理性能，提升日志处理吞吐（#3051）
+- eBPF 采集器移除 CGO 依赖，并优化 netlog/netflow/L7/exporter 内存使用与运行时观测能力（#3049）
+- 持续补充并优化日志自动多行规则，提升默认多行识别效果（#3048）
+- 补齐 `cat`、`xfsquota`、`windowsremote`、`logfwdserver` 等采集器热加载能力（#3042）
+- 优化 DataKit 启动过程，移除初始化阶段不必要的采集行为，降低启动耗时（#3038）
+- OpenTelemetry 采集器复用 `cliutils/otlp` 共享解析器，收敛 metrics/logs/traces 解析主循环并保持 DataKit 本地语义（#3026）
+
+---
+
 ## 1.93.0(2026/04/22) {#cl-1.93.0}
 
 本次发布属于迭代发布，主要有如下更新：

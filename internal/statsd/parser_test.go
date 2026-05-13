@@ -146,7 +146,7 @@ auth.logins:user-a1|s|#tenant:a`
 	t.Run(`with-service-check(_sc)`, func(t *T.T) {
 		line := `_sc|jmxfetch-config.can_connect|0
 		_sc|Redis Reachable|2|#host:cache-01,port:6379,env:e1|m:Connection timed out after 3s|d:12345`
-		col, err := NewCollector(nil, nil, WithProtocol("udp"), WithDataDogExtensions(true))
+		col, err := NewCollector(nil, nil, WithProtocol("udp"), WithDataDogExtensions(true), WithDataDogServiceChecks(true))
 		require.NoError(t, err)
 
 		col.doJob(0, &job{
@@ -175,6 +175,21 @@ auth.logins:user-a1|s|#tenant:a`
 		for _, pt := range pts {
 			t.Logf("%s", pt.Pretty())
 		}
+	})
+
+	t.Run(`dogstatsd-logging-disabled-by-default`, func(t *T.T) {
+		line := `_e{4,3}:test:msg|d:123
+_sc|jmxfetch-config.can_connect|0`
+		col, err := NewCollector(nil, nil, WithProtocol("udp"), WithDataDogExtensions(true))
+		require.NoError(t, err)
+
+		col.doJob(0, &job{
+			Buffer: bytes.NewBuffer([]byte(line)),
+			Time:   time.Unix(123, 0),
+			Addr:   "1.2.3.4:4321",
+		})
+
+		assert.Empty(t, col.GetLoggings())
 	})
 }
 
@@ -690,7 +705,7 @@ func Test_parseEventMessage(t *T.T) {
 	}
 
 	for _, tc := range testCases {
-		col, err := NewCollector(nil, nil, WithProtocol("udp"), WithDataDogExtensions(true))
+		col, err := NewCollector(nil, nil, WithProtocol("udp"), WithDataDogExtensions(true), WithDataDogEvents(true))
 		require.NoError(t, err)
 
 		t.Run(tc.name, func(t *T.T) {

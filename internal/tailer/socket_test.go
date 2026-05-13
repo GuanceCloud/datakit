@@ -6,12 +6,46 @@
 package tailer
 
 import (
+	"net"
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 )
+
+type socketCaptureFeeder struct {
+	pointsCh chan []*point.Point
+}
+
+func newSocketCaptureFeeder() *socketCaptureFeeder {
+	return &socketCaptureFeeder{
+		pointsCh: make(chan []*point.Point, 4),
+	}
+}
+
+func (f *socketCaptureFeeder) Feed(_ point.Category, pts []*point.Point, _ ...dkio.FeedOption) error {
+	f.pointsCh <- pts
+	return nil
+}
+
+func (f *socketCaptureFeeder) FeedLastError(string, ...metrics.LastErrorOption) {}
+
+func waitSocketPoints(t *testing.T, f *socketCaptureFeeder) []*point.Point {
+	t.Helper()
+
+	select {
+	case pts := <-f.pointsCh:
+		return pts
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for socket log points")
+		return nil
+	}
+}
 
 // TestSocketLogger 测试 SocketLogger 基本功能
 func TestSocketLogger(t *testing.T) {
@@ -117,6 +151,62 @@ func TestSocketLoggerWithUDP(t *testing.T) {
 
 	// 停止服务器
 	sk.Close()
+}
+
+func TestSocketLoggerCollectorSourceIP(t *testing.T) {
+	t.Run("tcp", func(t *testing.T) {
+		feeder := newSocketCaptureFeeder()
+		sk, err := NewSocketLogging(
+			WithSource("testing"),
+			WithSockets([]string{"tcp://127.0.0.1:0"}),
+			WithFeeder(feeder),
+		)
+		require.NoError(t, err)
+		require.NotNil(t, sk)
+		t.Cleanup(sk.Close)
+
+		srv, ok := sk.servers[0].(*tcpServer)
+		require.True(t, ok)
+
+		sk.Start()
+
+		conn, err := net.Dial("tcp", srv.listener.Addr().String())
+		require.NoError(t, err)
+		_, err = conn.Write([]byte("tcp message\n"))
+		require.NoError(t, err)
+		require.NoError(t, conn.Close())
+
+		pts := waitSocketPoints(t, feeder)
+		require.Len(t, pts, 1)
+		assert.Equal(t, "127.0.0.1", pts[0].GetTag(collectorSourceIPTag))
+	})
+
+	t.Run("udp", func(t *testing.T) {
+		feeder := newSocketCaptureFeeder()
+		sk, err := NewSocketLogging(
+			WithSource("testing"),
+			WithSockets([]string{"udp://127.0.0.1:0"}),
+			WithFeeder(feeder),
+		)
+		require.NoError(t, err)
+		require.NotNil(t, sk)
+		t.Cleanup(sk.Close)
+
+		srv, ok := sk.servers[0].(*udpServer)
+		require.True(t, ok)
+
+		sk.Start()
+
+		conn, err := net.Dial("udp", srv.conn.LocalAddr().String())
+		require.NoError(t, err)
+		_, err = conn.Write([]byte("udp message\n"))
+		require.NoError(t, err)
+		require.NoError(t, conn.Close())
+
+		pts := waitSocketPoints(t, feeder)
+		require.Len(t, pts, 1)
+		assert.Equal(t, "127.0.0.1", pts[0].GetTag(collectorSourceIPTag))
+	})
 }
 
 // TestSocketLoggerSetup 测试 SocketLogger 设置

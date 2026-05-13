@@ -15,6 +15,40 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestRuntimeInfoCollectorDescribeMatchesCollect(t *T.T) {
+	reg := prometheus.NewRegistry()
+	if err := reg.Register(runtimeInfoCollector{}); err != nil {
+		t.Fatalf("register runtime info collector: %s", err)
+	}
+
+	descCh := make(chan *p8s.Desc)
+	go func() {
+		collector.Describe(descCh)
+		close(descCh)
+	}()
+
+	described := make(map[*p8s.Desc]struct{}, len(runtimeInfoDescs))
+	for desc := range descCh {
+		described[desc] = struct{}{}
+	}
+
+	if len(described) != len(runtimeInfoDescs) {
+		t.Fatalf("got %d runtime info descs, want %d", len(described), len(runtimeInfoDescs))
+	}
+
+	metricCh := make(chan p8s.Metric)
+	go func() {
+		collector.Collect(metricCh)
+		close(metricCh)
+	}()
+
+	for metric := range metricCh {
+		if _, ok := described[metric.Desc()]; !ok {
+			t.Fatalf("collected metric uses an undescribed desc: %s", metric.Desc())
+		}
+	}
+}
+
 func BenchmarkP8s(b *T.B) {
 	n := 100
 

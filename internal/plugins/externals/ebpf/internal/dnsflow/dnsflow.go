@@ -6,6 +6,7 @@ package dnsflow
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -125,12 +126,22 @@ func (tracer *DNSFlowTracer) checkTimeoutDNSQuery() map[DNSQAKey]DNSStats {
 }
 
 func (tracer *DNSFlowTracer) readPacket(ctx context.Context, tp *afpacket.TPacket) {
+	dnsParser := NewDNSParse()
 	for {
-		dnsParser := NewDNSParse()
+		dnsParser.layers = dnsParser.layers[:0]
 
 		d, ci, err := tp.ZeroCopyReadPacketData()
 		ts := ci.Timestamp
 		if err != nil {
+			select {
+			case <-ctx.Done():
+				tp.Close()
+				return
+			default:
+			}
+			if errors.Is(err, afpacket.ErrTimeout) {
+				continue
+			}
 			continue
 		}
 
@@ -177,6 +188,7 @@ func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket,
 	go tracer.readPacket(ctx, tp)
 	go func() {
 		t := time.NewTicker(time.Second * 30)
+		defer t.Stop()
 		for {
 			select {
 			case <-t.C:

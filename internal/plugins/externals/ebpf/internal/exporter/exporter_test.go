@@ -129,22 +129,22 @@ func TestSenderCollectTaskMergesSameTarget(t *testing.T) {
 
 	current := &task{
 		targetURL: "http://127.0.0.1:9529/v1/write/network?input=bench",
-		data:      makeTestPoints(100),
+		data:      makeTestPoints(maxPtSendCount - 10),
 	}
 	sender.ch <- &task{
 		targetURL: current.targetURL,
-		data:      makeTestPoints(100),
+		data:      makeTestPoints(20),
 	}
 	sender.ch <- &task{
 		targetURL: current.targetURL,
-		data:      makeTestPoints(60),
+		data:      makeTestPoints(8),
 	}
 
 	merged, pending := sender.collectTask(current, nil)
 	require.NotNil(t, merged)
 	require.NotNil(t, pending)
 	assert.Len(t, merged.data, maxPtSendCount)
-	assert.Len(t, pending.data, 4)
+	assert.Len(t, pending.data, 10)
 	assert.Equal(t, current.targetURL, pending.targetURL)
 }
 
@@ -195,7 +195,7 @@ func BenchmarkSenderRequest(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		if err := sender.request(context.Background(), m, task); err != nil {
+		if err := sender.request(context.Background(), m, cloneTask(task)); err != nil {
 			b.Fatal(err)
 		}
 	}

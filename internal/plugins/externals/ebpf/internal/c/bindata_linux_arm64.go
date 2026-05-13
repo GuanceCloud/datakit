@@ -43,6 +43,10 @@ func OffsetGuessBin() ([]byte, error) {
 	return binData.ReadFile("elf/linux_arm64/offset_guess.o")
 }
 
+func OffsetGuessLegacyBin() ([]byte, error) {
+	return binData.ReadFile("elf/linux_arm64/offset_guess_legacy.o")
+}
+
 func OffsetHttpflowBin() ([]byte, error) {
 	return binData.ReadFile("elf/linux_arm64/offset_httpflow.o")
 }

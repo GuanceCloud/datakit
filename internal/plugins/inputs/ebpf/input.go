@@ -61,6 +61,10 @@ type Input struct {
 	NetlogMetric     bool   `toml:"netlog_metric"`
 	NetlogLog        bool   `toml:"netlog_log"`
 
+	NetlogFallbackSockets int `toml:"netlog_fallback_sockets"`
+	NetlogFallbackBlocks  int `toml:"netlog_fallback_blocks"`
+	NetlogSharedBlocks    int `toml:"netlog_shared_blocks"`
+
 	EnabledPlugins []string `toml:"enabled_plugins"`
 	L7NetDisabled  []string `toml:"l7net_disabled"`
 	L7NetEnabled   []string `toml:"l7net_enabled"`
@@ -108,6 +112,20 @@ func appendResourceLimitArgs(args []string, cpuLimit, memLimit, bandwidthLimit s
 
 	if bandwidthLimit != "" {
 		args = append(args, "--res-bandwidth", bandwidthLimit)
+	}
+
+	return args
+}
+
+func appendNetlogCaptureLimitArgs(args []string, fallbackSockets, fallbackBlocks, sharedBlocks int) []string {
+	if fallbackSockets > 0 {
+		args = append(args, "--netlog-fallback-sockets", strconv.Itoa(fallbackSockets))
+	}
+	if fallbackBlocks > 0 {
+		args = append(args, "--netlog-fallback-blocks", strconv.Itoa(fallbackBlocks))
+	}
+	if sharedBlocks > 0 {
+		args = append(args, "--netlog-shared-blocks", strconv.Itoa(sharedBlocks))
 	}
 
 	return args
@@ -260,6 +278,8 @@ loop:
 		if !ipt.NetlogMetricOnly || ipt.NetlogLog {
 			netlogArgs = append(netlogArgs, "--netlog-log")
 		}
+		netlogArgs = appendNetlogCaptureLimitArgs(netlogArgs,
+			ipt.NetlogFallbackSockets, ipt.NetlogFallbackBlocks, ipt.NetlogSharedBlocks)
 
 		ipt.Input.Args = append(ipt.Input.Args, netlogArgs...)
 	}
@@ -370,6 +390,9 @@ func (*Input) AvailableArchs() []string {
 // ENV_INPUT_EBPF_NETLOG_METRIC_ONLY : bool
 // ENV_INPUT_EBPF_NETLOG_METRIC      : bool
 // ENV_INPUT_EBPF_NETLOG_LOG         : bool
+// ENV_INPUT_EBPF_NETLOG_FALLBACK_SOCKETS : int
+// ENV_INPUT_EBPF_NETLOG_FALLBACK_BLOCKS  : int
+// ENV_INPUT_EBPF_NETLOG_SHARED_BLOCKS    : int
 //
 // ENV_INPUT_EBPF_CPU_LIMIT : string
 // ENV_INPUT_EBPF_MEM_LIMIT : string
@@ -530,6 +553,30 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			ipt.NetlogLog = false
 		default:
 			ipt.NetlogLog = true
+		}
+	}
+
+	if v, ok := envs["ENV_INPUT_EBPF_NETLOG_FALLBACK_SOCKETS"]; ok {
+		if n, err := strconv.Atoi(v); err != nil {
+			l.Warnf("parse ENV_INPUT_EBPF_NETLOG_FALLBACK_SOCKETS: %v", err)
+		} else {
+			ipt.NetlogFallbackSockets = n
+		}
+	}
+
+	if v, ok := envs["ENV_INPUT_EBPF_NETLOG_FALLBACK_BLOCKS"]; ok {
+		if n, err := strconv.Atoi(v); err != nil {
+			l.Warnf("parse ENV_INPUT_EBPF_NETLOG_FALLBACK_BLOCKS: %v", err)
+		} else {
+			ipt.NetlogFallbackBlocks = n
+		}
+	}
+
+	if v, ok := envs["ENV_INPUT_EBPF_NETLOG_SHARED_BLOCKS"]; ok {
+		if n, err := strconv.Atoi(v); err != nil {
+			l.Warnf("parse ENV_INPUT_EBPF_NETLOG_SHARED_BLOCKS: %v", err)
+		} else {
+			ipt.NetlogSharedBlocks = n
 		}
 	}
 

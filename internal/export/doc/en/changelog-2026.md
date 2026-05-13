@@ -1,5 +1,39 @@
 # Changelog
 
+## 1.94.0(2026/05/13) {#cl-1.94.0}
+
+This release is an iterative release, with the following main updates:
+
+### New Features {#cl-1.94.0-new}
+
+- Socket log collection now records the source IP address using the `collector_source_ip` tag (#3061)
+- HTTP dial testing now supports custom protocol versions, covering more HTTP compatibility scenarios (#3041)
+- PostgreSQL DBM now reports SQL execution count and QPS metrics (#3046)
+- MongoDB now supports database object collection (#3045)
+- Doris now supports object collection (#3043)
+- Bug report upload now defaults to Dataway-based upload to Guance while keeping the existing OSS direct-upload mode (#3028)
+- AWS Lambda collection improved function invocation tracing by correlating runtime events with invocation context (#2961)
+
+### Bug Fixes {#cl-1.94.0-fix}
+
+- Fixed 403/404 handling for the 9529 HTTP API when routes are not registered or related inputs are not enabled, reducing troubleshooting ambiguity (#3054)
+- Fixed DataKit service status when the HTTP service fails to start; the main process now exits on HTTP startup errors (#3052)
+- Fixed APM auto-injection issues caused by arm64 shared library cross-compilation and replacement failures (#3050)
+- Fixed occasional `concurrent map writes` in the Redis collector and improved host tag priority handling (#3039)
+
+### Improvements {#cl-1.94.0-opt}
+
+- StatsD now disables DogStatsD event and service check log collection by default, enabling them only through explicit configuration to avoid extra default log volume (#3059)
+- Improved `DK_HTTP_LISTEN` parsing so `ip:port` can be used directly, with clearer precedence when `DK_HTTP_PORT` is also configured (#3053)
+- Improved Pipeline Grok and JSON processing performance for higher log processing throughput (#3051)
+- Removed CGO dependency from the eBPF collector and optimized memory usage across netlog, netflow, L7 flow, and exporter paths with better runtime observability (#3049)
+- Continued improving automatic multiline log rules to enhance default multiline detection (#3048)
+- Added hot reload support for `cat`, `xfsquota`, `windowsremote`, `logfwdserver`, and related collectors (#3042)
+- Optimized DataKit startup by removing unnecessary collection work during initialization, reducing startup time (#3038)
+- Refactored the OpenTelemetry collector to reuse shared `cliutils/otlp` parsers, consolidating metrics/logs/traces parsing loops while preserving DataKit-specific semantics (#3026)
+
+---
+
 ## 1.93.0(2026/04/22) {#cl-1.93.0}
 
 This release is an iterative release, with the following main updates:

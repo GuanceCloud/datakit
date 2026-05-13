@@ -30,6 +30,8 @@ type option struct {
 	metricSeparator        string
 	dataDogExtensions      bool
 	dataDogDistributions   bool
+	dataDogEvents          bool
+	dataDogServiceChecks   bool
 	udpPacketSize          int
 	readBufferSize         int
 	dropTags               []string
@@ -115,6 +117,14 @@ func WithDataDogExtensions(args bool) CollectorOption {
 
 func WithDataDogDistributions(args bool) CollectorOption {
 	return func(opt *option) { opt.dataDogDistributions = args }
+}
+
+func WithDataDogEvents(args bool) CollectorOption {
+	return func(opt *option) { opt.dataDogEvents = args }
+}
+
+func WithDataDogServiceChecks(args bool) CollectorOption {
+	return func(opt *option) { opt.dataDogServiceChecks = args }
 }
 
 func WithUDPPacketSize(args int) CollectorOption {

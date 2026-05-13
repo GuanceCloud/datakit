@@ -30,8 +30,9 @@ var (
 )
 
 const (
-	inputName    = "cat"
-	sampleConfig = `
+	inputName     = "cat"
+	catRouterPath = "/cat/s/router"
+	sampleConfig  = `
 [[inputs.cat]]
   ## tcp port
   tcp_port = "2280"
@@ -119,7 +120,7 @@ func (ipt *Input) RegHTTPHandler() {
 		kvs = bts
 	}
 
-	httpapi.RegHTTPHandler("get", "/cat/s/router", router)
+	httpapi.RegHTTPHandler(http.MethodGet, catRouterPath, router)
 }
 
 func (ipt *Input) Run() {
@@ -149,11 +150,11 @@ func (ipt *Input) Run() {
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			ipt.Terminate()
+			ipt.exit()
 			log.Infof("%s exit", inputName)
 			return
 		case <-ipt.semStop.Wait():
-			ipt.Terminate()
+			ipt.exit()
 			log.Infof("%s return", inputName)
 			return
 		}
@@ -161,14 +162,29 @@ func (ipt *Input) Run() {
 }
 
 func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
+
+	ipt.exit()
+}
+
+func (ipt *Input) exit() {
 	if ipt.listener != nil {
 		_ = ipt.listener.Close()
 	}
 
-	httpapi.RemoveHTTPRoute("get", "/cat/s/router")
+	httpapi.RemoveHTTPRoute(http.MethodGet, catRouterPath)
 }
 
 func init() { //nolint:gochecknoinits
+	httpapi.RegInputHTTPRouteMatcher(func(method, path string) (string, bool) {
+		if method == http.MethodGet && path == catRouterPath {
+			return inputName, true
+		}
+		return "", false
+	})
+
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{semStop: cliutils.NewSem()}
 	})

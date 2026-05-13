@@ -417,7 +417,7 @@ func (f *minMetric) Append(v any) {
 		}
 	} else {
 		f.min = min
-		f.inserted = false
+		f.inserted = true
 	}
 }
 
@@ -426,12 +426,15 @@ func (f *minMetric) Value() any {
 }
 
 type maxMetric struct {
-	max float64
+	inserted bool
+	max      float64
 }
 
 func (f *maxMetric) Append(v any) {
-	if max := cast.ToFloat64(v); f.max < max {
+	max := cast.ToFloat64(v)
+	if !f.inserted || f.max < max {
 		f.max = max
+		f.inserted = true
 	}
 }
 

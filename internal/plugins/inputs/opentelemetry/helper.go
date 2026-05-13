@@ -15,20 +15,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-func getAttr(key string, attributes []*common.KeyValue) (*common.KeyValue, int) {
-	for idx, attr := range attributes {
-		if attr == nil {
-			continue
-		}
-
-		if attr.Key == key {
-			return attr, idx
-		}
-	}
-
-	return nil, -1
-}
-
 // selectAttrs extract common attrs as kvs, non-common attrs are merged.
 func (ipt *Input) selectAttrs(atts []*common.KeyValue) (kvs point.KVs, merged []*common.KeyValue) {
 	for _, v := range atts {

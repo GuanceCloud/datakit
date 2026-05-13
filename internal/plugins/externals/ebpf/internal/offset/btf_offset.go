@@ -3,9 +3,6 @@
 
 package offset
 
-// #include "../c/offset_guess/offset.h"
-import "C"
-
 import (
 	"debug/dwarf"
 	"debug/elf"
@@ -21,8 +18,10 @@ import (
 	bpfutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/bpfutil"
 )
 
-const KernelBTFPathEnv = "DK_EBPF_BTF_PATH"
-const DisableKernelBTFEnv = "DK_EBPF_DISABLE_BTF_OFFSETS"
+const (
+	KernelBTFPathEnv    = "DK_EBPF_BTF_PATH"
+	DisableKernelBTFEnv = "DK_EBPF_DISABLE_BTF_OFFSETS"
+)
 
 type BTFSource struct {
 	Path   string
@@ -255,10 +254,10 @@ func GetHTTPFlowOffsetFromBTF() (*OffsetHTTPFlowC, *BTFSource, error) {
 	}
 
 	return &OffsetHTTPFlowC{
-		offset_task_struct_files: C.__s32(taskFiles),
-		offset_files_struct_fdt:  C.__s32(filesFDT),
-		offset_socket_file:       C.__s32(socketFile),
-		offset_file_private_data: C.__s32(filePrivateData),
+		offset_task_struct_files: _Ctype_int(taskFiles),
+		offset_files_struct_fdt:  _Ctype_int(filesFDT),
+		offset_socket_file:       _Ctype_int(socketFile),
+		offset_file_private_data: _Ctype_int(filePrivateData),
 	}, source, nil
 }
 
@@ -289,36 +288,36 @@ func GetConntrackOffsetFromBTF() (*OffsetConntrackC, *BTFSource, error) {
 	}
 
 	return &OffsetConntrackC{
-		offset_ct_origin_tuple:   C.__u64(originTuple),
-		offset_ct_reply_tuple:    C.__u64(replyTuple),
-		offset_ct_net:            C.__u64(ctNet),
-		offset_ct_ns_common_inum: C.__u64(nsCommonInum),
+		offset_ct_origin_tuple:   originTuple,
+		offset_ct_reply_tuple:    replyTuple,
+		offset_ct_net:            ctNet,
+		offset_ct_ns_common_inum: nsCommonInum,
 	}, source, nil
 }
 
 func ApplyBTFOffsetToGuess(offsets map[string]uint64) *OffsetGuessC {
 	return &OffsetGuessC{
-		offset_tcp_sk_srtt_us:  C.__u64(offsets["tcp_sk_srtt_us"]),
-		offset_tcp_sk_mdev_us:  C.__u64(offsets["tcp_sk_mdev_us"]),
-		offset_sk_num:          C.__u64(offsets["sk_num"]),
-		offset_inet_sport:      C.__u64(offsets["inet_sport"]),
-		offset_sk_family:       C.__u64(offsets["sk_family"]),
-		offset_sk_rcv_saddr:    C.__u64(offsets["sk_rcv_saddr"]),
-		offset_sk_daddr:        C.__u64(offsets["sk_daddr"]),
-		offset_sk_v6_rcv_saddr: C.__u64(offsets["sk_v6_rcv_saddr"]),
-		offset_sk_v6_daddr:     C.__u64(offsets["sk_v6_daddr"]),
-		offset_sk_dport:        C.__u64(offsets["sk_dport"]),
-		offset_flowi4_saddr:    C.__u64(offsets["flowi4_saddr"]),
-		offset_flowi4_daddr:    C.__u64(offsets["flowi4_daddr"]),
-		offset_flowi4_sport:    C.__u64(offsets["flowi4_sport"]),
-		offset_flowi4_dport:    C.__u64(offsets["flowi4_dport"]),
-		offset_flowi6_saddr:    C.__u64(offsets["flowi6_saddr"]),
-		offset_flowi6_daddr:    C.__u64(offsets["flowi6_daddr"]),
-		offset_flowi6_sport:    C.__u64(offsets["flowi6_sport"]),
-		offset_flowi6_dport:    C.__u64(offsets["flowi6_dport"]),
-		offset_sk_net:          C.__u64(offsets["sk_net"]),
-		offset_ns_common_inum:  C.__u64(offsets["ns_common_inum"]),
-		offset_socket_sk:       C.__u64(offsets["socket_sk"]),
+		offset_tcp_sk_srtt_us:  offsets["tcp_sk_srtt_us"],
+		offset_tcp_sk_mdev_us:  offsets["tcp_sk_mdev_us"],
+		offset_sk_num:          offsets["sk_num"],
+		offset_inet_sport:      offsets["inet_sport"],
+		offset_sk_family:       offsets["sk_family"],
+		offset_sk_rcv_saddr:    offsets["sk_rcv_saddr"],
+		offset_sk_daddr:        offsets["sk_daddr"],
+		offset_sk_v6_rcv_saddr: offsets["sk_v6_rcv_saddr"],
+		offset_sk_v6_daddr:     offsets["sk_v6_daddr"],
+		offset_sk_dport:        offsets["sk_dport"],
+		offset_flowi4_saddr:    offsets["flowi4_saddr"],
+		offset_flowi4_daddr:    offsets["flowi4_daddr"],
+		offset_flowi4_sport:    offsets["flowi4_sport"],
+		offset_flowi4_dport:    offsets["flowi4_dport"],
+		offset_flowi6_saddr:    offsets["flowi6_saddr"],
+		offset_flowi6_daddr:    offsets["flowi6_daddr"],
+		offset_flowi6_sport:    offsets["flowi6_sport"],
+		offset_flowi6_dport:    offsets["flowi6_dport"],
+		offset_sk_net:          offsets["sk_net"],
+		offset_ns_common_inum:  offsets["ns_common_inum"],
+		offset_socket_sk:       offsets["socket_sk"],
 	}
 }
 
@@ -368,8 +367,8 @@ func getTCPSeqOffsetFromSpec(spec *btf.Spec) (*OffsetTCPSeqC, error) {
 	}
 
 	offset := &OffsetTCPSeqC{
-		offset_copied_seq: C.__s32(copiedSeq),
-		offset_write_seq:  C.__s32(writeSeq),
+		offset_copied_seq: _Ctype_int(copiedSeq),
+		offset_write_seq:  _Ctype_int(writeSeq),
 	}
 
 	return offset, nil
@@ -441,8 +440,8 @@ func getTCPSeqOffsetFromDWARF(data *dwarf.Data) (*OffsetTCPSeqC, error) {
 	}
 
 	return &OffsetTCPSeqC{
-		offset_copied_seq: C.__s32(copiedSeq),
-		offset_write_seq:  C.__s32(writeSeq),
+		offset_copied_seq: _Ctype_int(copiedSeq),
+		offset_write_seq:  _Ctype_int(writeSeq),
 	}, nil
 }
 

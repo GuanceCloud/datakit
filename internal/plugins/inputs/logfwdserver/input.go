@@ -106,6 +106,9 @@ func (ipt *Input) initializeServer() bool {
 		case <-datakit.Exit.Wait():
 			log.Info("logfwdserver exiting during initialization")
 			return true
+		case <-ipt.stopSem.Wait():
+			log.Info("logfwdserver terminated during initialization")
+			return true
 		default:
 		}
 

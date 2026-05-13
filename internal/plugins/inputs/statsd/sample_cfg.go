@@ -54,6 +54,12 @@ const sampleConfig = `
   ## https://docs.datadoghq.com/developers/metrics/types/?tab=distribution#definition
   datadog_distributions = true
 
+  ## Collect DogStatsD events as logging points.
+  # collect_dogstatsd_events = false
+
+  ## Collect DogStatsD service checks as logging points.
+  # collect_dogstatsd_service_checks = false
+
   ## We do not need following tags(they may create tremendous of time-series under influxdb's logic)
   # Examples:
   # "runtime-id", "metric-type"

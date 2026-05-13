@@ -11,7 +11,7 @@
 enum
 {
     PORT_CLOSED = 0,
-    PORT_LISETINING
+    PORT_LISTENING,
 };
 
 enum

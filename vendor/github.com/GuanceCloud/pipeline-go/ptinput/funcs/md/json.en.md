@@ -1,6 +1,6 @@
 ### `json()` {#fn-json}
 
-Function prototype: `fn json(input: str, json_path, newkey, trim_space: bool = true)`
+Function prototype: `fn json(input: str, json_path, newkey, trim_space: bool = true, delete_after_extract = false)`
 
 Function description: Extract the specified field in JSON and name it as a new field.
 

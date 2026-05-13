@@ -8,6 +8,7 @@ package redis
 import (
 	"strings"
 	T "testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -229,7 +230,7 @@ func Test_getConfigAll(t *T.T) {
 
 		inst.setup()
 
-		pts := inst.parseConfigAll(testdata)
+		pts := inst.parseConfigAll(testdata, inst.buildNodeTags(inst.addr, inst.host), time.Unix(1700000000, 0))
 
 		for _, pt := range pts {
 			assert.Equal(t, "redis.local", pt.Get("host"))
@@ -256,5 +257,105 @@ func Test_getConfigAll(t *T.T) {
 				}
 			}
 		}
+	})
+}
+
+func Test_parseConfigAllUsesConfigMergedTags(t *T.T) {
+	inst := newInstance()
+	inst.ipt = defaultInput()
+	inst.ipt.Tags["foo"] = "bar"
+
+	pts := inst.parseConfigAll(
+		map[string]string{"maxclients": "10000"},
+		inst.buildNodeTags("config-host:6380", "config-host"),
+		time.Unix(1700000000, 0),
+	)
+	assert.NotEmpty(t, pts)
+
+	for _, pt := range pts {
+		assert.Equal(t, "config-host", pt.Get("host"))
+		assert.Equal(t, "config-host:6380", pt.Get("server"))
+		assert.Equal(t, "bar", pt.Get("foo"))
+	}
+}
+
+func Test_parseConfigAllUsesCollectTime(t *T.T) {
+	inst := newInstance()
+	inst.ipt = defaultInput()
+	inst.ipt.ptsTime = time.Unix(1600000000, 0)
+
+	collectTime := time.Unix(1700000000, 123)
+	pts := inst.parseConfigAll(map[string]string{
+		"maxclients":                 "10000",
+		"client-output-buffer-limit": "normal 0 0 0",
+	}, inst.buildNodeTags("config-host:6380", "config-host"), collectTime)
+	assert.NotEmpty(t, pts)
+
+	for _, pt := range pts {
+		assert.Truef(t, pt.Time().Equal(collectTime), "pt: %s", pt.Pretty())
+	}
+}
+
+func Test_buildNodeTags(t *T.T) {
+	t.Run("does-not-mutate-instance-merged-tags", func(t *T.T) {
+		inst := newInstance()
+		inst.ipt = defaultInput()
+		inst.ipt.Tags["foo"] = "bar"
+		inst.mergedTags["host"] = "metric-host"
+		inst.mergedTags["server"] = "metric-host:6379"
+
+		tags := inst.buildNodeTags("config-host:6380", "config-host")
+
+		assert.Equal(t, "config-host", tags["host"])
+		assert.Equal(t, "config-host:6380", tags["server"])
+		assert.Equal(t, "bar", tags["foo"])
+		assert.Equal(t, "metric-host", inst.mergedTags["host"])
+		assert.Equal(t, "metric-host:6379", inst.mergedTags["server"])
+	})
+
+	t.Run("loopback-host-does-not-set-host-tag", func(t *T.T) {
+		inst := newInstance()
+		inst.ipt = defaultInput()
+
+		tags := inst.buildNodeTags("127.0.0.1:6379", "127.0.0.1")
+
+		assert.Equal(t, "127.0.0.1:6379", tags["server"])
+		_, ok := tags["host"]
+		assert.False(t, ok)
+	})
+
+	t.Run("custom-host-takes-priority", func(t *T.T) {
+		inst := newInstance()
+		inst.ipt = defaultInput()
+		inst.ipt.Tags["host"] = "custom-host"
+
+		tags := inst.buildNodeTags("redis.example:6379", "redis-node")
+
+		assert.Equal(t, "custom-host", tags["host"])
+		assert.Equal(t, "redis.example:6379", tags["server"])
+	})
+}
+
+func Test_setCurrentNodeHostTag(t *T.T) {
+	t.Run("keep-custom-host-on-loopback", func(t *T.T) {
+		inst := newInstance()
+		inst.ipt = defaultInput()
+		inst.ipt.Tags["host"] = "custom-host"
+
+		inst.setCurrentNode(nil, nil, "127.0.0.1", "127.0.0.1:6379")
+
+		assert.Equal(t, "custom-host", inst.mergedTags["host"])
+		assert.Equal(t, "127.0.0.1:6379", inst.mergedTags["server"])
+	})
+
+	t.Run("clear-host-when-no-custom-host-and-loopback", func(t *T.T) {
+		inst := newInstance()
+		inst.mergedTags["host"] = "stale-host"
+
+		inst.setCurrentNode(nil, nil, "127.0.0.1", "127.0.0.1:6379")
+
+		_, ok := inst.mergedTags["host"]
+		assert.False(t, ok)
+		assert.Equal(t, "127.0.0.1:6379", inst.mergedTags["server"])
 	})
 }

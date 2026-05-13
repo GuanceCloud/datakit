@@ -68,6 +68,7 @@ var (
 		datakit.ListDataWay,
 		datakit.ObjectLabel,
 		datakit.LogUpload,
+		datakit.BugReportUpload,
 		datakit.PipelinePull,
 		datakit.ProfilingUpload,
 		datakit.TokenCheck,

@@ -47,6 +47,7 @@ const (
 	inputName                = "rum"
 	ReplayBodyMaxSize        = MiB * 32 // 16Mib
 	defaultReplayCacheMaxMib = 20480    // 20 Gib
+	defaultRUMReplayAPI      = "/v1/write/rum/replay"
 	sampleConfig             = `
 [[inputs.rum]]
   ## profile Agent endpoints register by version respectively.
@@ -517,6 +518,29 @@ func defaultInput() *Input {
 }
 
 func init() { //nolint:gochecknoinits
+	httpapi.RegInputHTTPRouteMatcher(func(method, path string) (string, bool) {
+		switch path {
+		case defaultRUMReplayAPI:
+			if method == http.MethodPost {
+				return inputName, true
+			}
+		case "/v1/sourcemap/check":
+			if method == http.MethodGet {
+				return inputName, true
+			}
+		case "/v1/sourcemap":
+			if method == http.MethodPut || method == http.MethodDelete {
+				return inputName, true
+			}
+		case "/v1/env_variable":
+			if method == http.MethodGet {
+				return inputName, true
+			}
+		}
+
+		return "", false
+	})
+
 	inputs.Add(inputName, func() inputs.Input {
 		return defaultInput()
 	})

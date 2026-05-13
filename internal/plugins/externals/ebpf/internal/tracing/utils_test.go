@@ -101,3 +101,11 @@ func TestParseHTTPHeader(t *testing.T) {
 	assert.Equal(t, false, sampled)
 	assert.Equal(t, false, hexEnc)
 }
+
+func TestParseHTTPHeaderSkipsIncompleteTailHeader(t *testing.T) {
+	headers := GetHTTPHeader([]byte("GET /api HTTP/1.1\r\nHost: api.example"))
+	assert.Equal(t, map[string]string{}, headers)
+
+	headers = GetHTTPHeader([]byte("GET /api HTTP/1.1\r\nUser-Agent: curl/8.0\r\nHost: api.example"))
+	assert.Equal(t, map[string]string{"User-Agent": "curl/8.0"}, headers)
+}

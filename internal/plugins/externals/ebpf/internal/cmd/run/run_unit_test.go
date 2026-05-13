@@ -5,6 +5,14 @@ package run
 
 import "testing"
 
+func TestNewRunCmdRegistersTraceAllProcessFlag(t *testing.T) {
+	cmd := NewRunCmd()
+
+	if cmd.Flags().Lookup("trace-allprocess") == nil {
+		t.Fatal("expected trace-allprocess flag to be registered")
+	}
+}
+
 func TestParseFlagsResetsFeatureGlobals(t *testing.T) {
 	_, _, err := parseFlags(&Flag{
 		Enabled: []string{

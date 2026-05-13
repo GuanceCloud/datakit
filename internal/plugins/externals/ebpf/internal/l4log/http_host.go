@@ -23,11 +23,15 @@ func extractAbsoluteFormHost(target []byte) string {
 		host = host[len("https://"):]
 	}
 
-	if idx := bytes.IndexByte(host, '/'); idx >= 0 {
-		host = host[:idx]
-	}
-	if idx := bytes.IndexByte(host, '?'); idx >= 0 {
-		host = host[:idx]
+	pathOff := bytes.IndexByte(host, '/')
+	queryOff := bytes.IndexByte(host, '?')
+	switch {
+	case pathOff >= 0 && (queryOff < 0 || pathOff < queryOff):
+		host = host[:pathOff]
+	case queryOff >= 0:
+		host = host[:queryOff]
+	default:
+		return ""
 	}
 
 	return normalizeHTTPHostBytes(host)
@@ -44,8 +48,11 @@ func normalizeHTTPHostString(host string) string {
 		return ""
 	}
 
-	switch parsedHost, _, err := net.SplitHostPort(host); {
+	switch parsedHost, port, err := net.SplitHostPort(host); {
 	case err == nil:
+		if _, err := strconv.ParseUint(port, 10, 16); err != nil {
+			return ""
+		}
 		host = parsedHost
 	case strings.Count(host, ":") == 1:
 		idx := strings.LastIndex(host, ":")
@@ -69,6 +76,40 @@ func normalizeHTTPHostString(host string) string {
 	if _, err := netip.ParseAddr(host); err == nil {
 		return ""
 	}
+	if !isValidHTTPHostName(host) {
+		return ""
+	}
 
 	return host
+}
+
+func isValidHTTPHostName(host string) bool {
+	if host == "" || len(host) > 253 {
+		return false
+	}
+
+	labelStart := 0
+	for i := 0; i <= len(host); i++ {
+		if i < len(host) && host[i] != '.' {
+			c := host[i]
+			switch {
+			case c >= 'a' && c <= 'z':
+			case c >= '0' && c <= '9':
+			case c == '-' || c == '_':
+			default:
+				return false
+			}
+			continue
+		}
+
+		if i == labelStart || i-labelStart > 63 {
+			return false
+		}
+		if host[labelStart] == '-' || host[i-1] == '-' {
+			return false
+		}
+		labelStart = i + 1
+	}
+
+	return true
 }

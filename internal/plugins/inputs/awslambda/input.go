@@ -15,10 +15,10 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
-	"github.com/gin-gonic/gin"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -27,13 +27,20 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/awslambda/lambdaapi/extension"
+	lambdaextsrv "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/awslambda/extension"
+	lambdaextapi "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/awslambda/lambdaapi/extension"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/awslambda/lambdaapi/model"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/awslambda/lambdaapi/telemetry"
+	lambdatrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/awslambda/trace"
 )
 
 const (
 	inputName = "awslambda"
+
+	invocationDrainSafetyMargin = 100 * time.Millisecond
+	shutdownDrainTimeout        = 300 * time.Millisecond
+	shutdownDrainSafetyMargin   = 100 * time.Millisecond
+	inputAPI                    = "/awslambda"
 )
 
 var l = logger.DefaultSLogger(inputName)
@@ -54,8 +61,10 @@ type Input struct {
 	ctx               context.Context
 	cancel            context.CancelFunc
 	telemetryListener *telemetry.Listener
-	nextEventChan     <-chan *extension.NextEventResponse
+	nextEventChan     <-chan *lambdaextapi.NextEventResponse
 	eventDoneChan     chan struct{}
+	runtimeDoneChan   chan string
+	traceProcessor    *lambdatrace.Processor
 
 	g            *goroutine.Group
 	lambdaServer *http.Server
@@ -66,7 +75,7 @@ func (ipt *Input) Catalog() string {
 }
 
 func (ipt *Input) Run() {
-	if os.Getenv(EnvLambdaFunctionName) == "" {
+	if !IsLambdaEnvironment() {
 		l.Warn("the current environment is not aws lambda, awslambda input exit.")
 		return
 	}
@@ -90,15 +99,86 @@ func (ipt *Input) Run() {
 				return
 			}
 
-			l.Infof("got event: %+#v", eventResponse)
+			l.Infof("got event: type=%s request_id=%s deadline_ms=%d shutdown_reason=%s",
+				eventResponse.EventType,
+				eventResponse.RequestID,
+				eventResponse.DeadlineMs,
+				eventResponse.ShutdownReason,
+			)
+			if ipt.traceProcessor != nil && eventResponse.EventType == model.Invoke {
+				ipt.traceProcessor.OnInvokeEvent(eventResponse.RequestID)
+				ipt.waitRuntimeDone(eventResponse.RequestID, eventResponse.DeadlineMs)
+				ipt.eventDoneChan <- struct{}{}
+				continue
+			}
 			if eventResponse.EventType == model.Shutdown {
+				if ipt.traceProcessor != nil {
+					ipt.drainTelemetryBeforeShutdown(eventResponse.DeadlineMs)
+					_ = ipt.traceProcessor.OnShutdown()
+				}
 				ipt.exit()
 				return
 			}
+			ipt.eventDoneChan <- struct{}{}
 		case <-ipt.ctx.Done():
 			l.Infof("input context done")
 			return
 		}
+	}
+}
+
+func (ipt *Input) waitRuntimeDone(requestID string, deadlineMs int64) {
+	if requestID == "" {
+		return
+	}
+	if deadlineMs <= 0 {
+		return
+	}
+
+	wait := time.Until(time.UnixMilli(deadlineMs)) - invocationDrainSafetyMargin
+	if wait <= 0 {
+		l.Debugf("skip invocation telemetry drain request_id=%s: deadline too close", requestID)
+		return
+	}
+
+	timer := time.NewTimer(wait)
+	defer timer.Stop()
+
+	for {
+		select {
+		case doneRequestID := <-ipt.runtimeDoneChan:
+			if doneRequestID == requestID {
+				l.Debugf("runtime done received before next event request_id=%s", requestID)
+				return
+			}
+			l.Debugf("skip runtime done for another request while waiting request_id=%s done_request_id=%s", requestID, doneRequestID)
+		case <-timer.C:
+			l.Debugf("wait runtime done timeout request_id=%s wait=%s", requestID, wait)
+			return
+		case <-ipt.ctx.Done():
+			return
+		}
+	}
+}
+
+func (ipt *Input) drainTelemetryBeforeShutdown(deadlineMs int64) {
+	wait := shutdownDrainTimeout
+	if deadlineMs > 0 {
+		remaining := time.Until(time.UnixMilli(deadlineMs)) - shutdownDrainSafetyMargin
+		if remaining <= 0 {
+			return
+		}
+		if remaining < wait {
+			wait = remaining
+		}
+	}
+
+	l.Debugf("drain telemetry before shutdown for %s", wait)
+	timer := time.NewTimer(wait)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+	case <-ipt.ctx.Done():
 	}
 }
 
@@ -118,24 +198,27 @@ func (ipt *Input) collect() {
 		select {
 		case arr := <-ipt.telemetryListener.GetPullChan():
 			arr, delData := telemetry.SeparateEvents(arr)
+			if ipt.traceProcessor != nil {
+				for _, event := range arr {
+					_ = ipt.traceProcessor.OnTelemetryEvent(event)
+				}
+			}
 			logEvents = append(logEvents, delData...)
 			metricEvents = append(metricEvents, arr...)
 
-			sizeL, sizeM := len(logEvents), len(metricEvents)
-			l.Debugf("size of log events: %d, size of metric events: %d", sizeL, sizeM)
-
-			if slicesContainsWithType(arr, telemetry.TypePlatformRuntimeDone) {
-				l.Debugf("size of log events: %d, size of metric events: %d", sizeL, sizeM)
-
+			runtimeDoneIDs := runtimeDoneRequestIDs(arr)
+			if len(runtimeDoneIDs) > 0 {
 				syncFeed := ipt.feedControl.ShouldFeed()
 
 				ipt.feedMetric(metricEvents, syncFeed)
 				ipt.feedLog(logEvents, syncFeed)
 
+				sizeL, sizeM := len(logEvents), len(metricEvents)
 				logEvents = make([]*telemetry.LogEvent, 0, sizeL)
 				metricEvents = make([]*telemetry.Event, 0, sizeM)
+
+				ipt.notifyRuntimeDone(runtimeDoneIDs)
 			}
-		case ipt.eventDoneChan <- struct{}{}:
 		case <-ipt.ctx.Done():
 			l.Infof("collect loop context done")
 			return
@@ -146,13 +229,24 @@ func (ipt *Input) collect() {
 	}
 }
 
-func slicesContainsWithType(events []*telemetry.Event, typ string) bool {
-	for i := len(events) - 1; i >= 0; i-- {
-		if events[i].Record.GetType() == typ {
-			return true
+func runtimeDoneRequestIDs(events []*telemetry.Event) []string {
+	var requestIDs []string
+	for _, event := range events {
+		if record, ok := event.Record.(*telemetry.PlatformRuntimeDone); ok && record.RequestID != "" {
+			requestIDs = append(requestIDs, record.RequestID)
 		}
 	}
-	return false
+	return requestIDs
+}
+
+func (ipt *Input) notifyRuntimeDone(requestIDs []string) {
+	for _, requestID := range requestIDs {
+		select {
+		case ipt.runtimeDoneChan <- requestID:
+		default:
+			l.Debugf("runtime done notify channel full, drop request_id=%s", requestID)
+		}
+	}
 }
 
 func (ipt *Input) feedLog(logEvent []*telemetry.LogEvent, syncSend bool) {
@@ -160,13 +254,8 @@ func (ipt *Input) feedLog(logEvent []*telemetry.LogEvent, syncSend bool) {
 		return
 	}
 
-	if l.Level() <= -1 {
-		for _, event := range logEvent {
-			l.Debugf("log event fields: %v", event.Record.GetFields())
-		}
-	}
-
 	pts := ipt.toLogPointArr(logEvent)
+	l.Debugf("feed %d log events as %d logging points", len(logEvent), len(pts))
 
 	if err := ipt.feeder.Feed(point.Logging, pts,
 		dkio.WithSyncSend(syncSend),
@@ -213,6 +302,7 @@ func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&metricMeasurement{},
 		&logMeasurement{},
+		&traceMeasurement{},
 	}
 }
 
@@ -230,7 +320,7 @@ func (ipt *Input) Terminate() {
 			l.Errorf("lambda server shutdown failed: %s", err.Error())
 		}
 	}
-	httpapi.RemoveHTTPRoute(http.MethodPost, "/awslambda")
+	httpapi.RemoveHTTPRoute(http.MethodPost, inputAPI)
 }
 
 func (ipt *Input) startDDLambdaExtensionService() {
@@ -245,35 +335,13 @@ func (ipt *Input) startDDLambdaExtensionService() {
 	}
 
 	ipt.g.Go(func(ctx context.Context) error {
-		router := gin.Default()
-		// TODO: implement these api
-		router.POST("/lambda/start-invocation", func(ctx *gin.Context) {
-			l.Debugf("receive lambda start-invocation")
-			ctx.JSON(http.StatusOK, nil)
-		})
-		router.POST("/lambda/end-invocation", func(ctx *gin.Context) {
-			l.Debugf("receive lambda end-invocation")
-			ctx.JSON(http.StatusOK, nil)
-		})
-
-		router.GET("/hello", func(ctx *gin.Context) {
-			ctx.JSON(http.StatusOK, nil)
-		})
-
-		router.GET("/flush", func(ctx *gin.Context) {
-			ctx.JSON(http.StatusOK, nil)
-		})
-
-		ipt.lambdaServer = &http.Server{
-			Addr:    ":8124", // TODO: configure the port through env
-			Handler: router,
-		}
-
-		l.Infof("start lambda extension server at addr: %s", ipt.lambdaServer.Addr)
-
-		if err := ipt.lambdaServer.ListenAndServe(); err != nil {
+		server, err := lambdaextsrv.StartLifecycleServer(":8124", ipt.traceProcessor)
+		if err != nil {
 			l.Errorf("start lambda extension server failed: %s", err.Error())
+			return nil
 		}
+		ipt.lambdaServer = server
+		l.Infof("start lambda extension server at addr: %s", ipt.lambdaServer.Addr)
 
 		return nil
 	})
@@ -295,8 +363,12 @@ func (ipt *Input) setup() error {
 	ipt.telemetryListener = telemetry.NewTelemetryListener()
 	ipt.lambdaCtxCache = newLambdaCtxCache()
 	ipt.eventDoneChan = make(chan struct{})
+	ipt.runtimeDoneChan = make(chan string, 32)
+	managed := strings.EqualFold(os.Getenv(EnvLambdaInitializationType), "lambda-managed-instances")
+	ipt.traceProcessor = lambdatrace.NewProcessor(lambdatrace.NewPointSink(inputName, ipt.feeder, ipt.tags), managed)
+	lambdatrace.SetActiveProcessor(ipt.traceProcessor)
 
-	extensionClient := extension.NewClient(extension.GetAwsLambdaRuntimeAPI())
+	extensionClient := lambdaextapi.NewClient(lambdaextapi.GetAwsLambdaRuntimeAPI())
 	r, err := extensionClient.Register(ipt.ctx, path.Base(os.Args[0]))
 	if err != nil {
 		l.Errorf("register extension client failed: %s", err)
@@ -307,7 +379,7 @@ func (ipt *Input) setup() error {
 		ipt.tags[AccountID] = r.AccountID
 	}
 
-	telemetryClient := telemetry.NewTelemetryClient(extension.GetAwsLambdaRuntimeAPI(),
+	telemetryClient := telemetry.NewTelemetryClient(lambdaextapi.GetAwsLambdaRuntimeAPI(),
 		extensionClient.ExtensionID,
 		strings.Split(config.Cfg.HTTPAPI.Listen, ":")[1],
 		"awslambda")
@@ -335,10 +407,18 @@ func (ipt *Input) setup() error {
 func resetLog() {
 	l = logger.SLogger(inputName)
 	telemetry.SetLogger(l)
-	extension.SetLogger(l)
+	lambdaextapi.SetLogger(l)
+	lambdatrace.SetLogger(l)
 }
 
 func init() { //nolint:gochecknoinits
+	httpapi.RegInputHTTPRouteMatcher(func(method, path string) (string, bool) {
+		if method == http.MethodPost && path == inputAPI {
+			return inputName, true
+		}
+		return "", false
+	})
+
 	inputs.Add(inputName, func() inputs.Input {
 		ipt := &Input{
 			EnableMetricCollection: true,
@@ -371,5 +451,5 @@ func (ipt *Input) RegHTTPHandler() {
 		err := ipt.telemetryListener.HandlerTelemetry(w, r)
 		return nil, err
 	}
-	httpapi.RegHTTPRoute(http.MethodPost, "/awslambda", h)
+	httpapi.RegHTTPRoute(http.MethodPost, inputAPI, h)
 }

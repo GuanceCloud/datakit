@@ -1,5 +1,5 @@
 ---
-title     : 'Diatesting'
+title     : 'Dialtesting'
 summary   : 'Obtain network performance through network dialing test'
 __int_icon      : 'icon/dialtesting'
 tags:

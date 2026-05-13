@@ -53,6 +53,11 @@ func (ipt *Input) startCollect() {
 
 		select {
 		case <-datakit.Exit.Wait():
+			l.Info("windows_remote collect exit")
+			return
+
+		case <-ipt.semStop.Wait():
+			l.Info("windows_remote collect return")
 			return
 
 		case tt := <-tickers[0].C:
