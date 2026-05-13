@@ -6,11 +6,15 @@
 package cmds
 
 import (
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
@@ -236,4 +240,206 @@ func TestBugreport_containString(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestUploadBugReportViaDataway(t *testing.T) {
+	originalOSS := *flagDebugBugreportOSS
+	originalDataway := *flagDebugBugreportDataway
+	defer func() {
+		*flagDebugBugreportOSS = originalOSS
+		*flagDebugBugreportDataway = originalDataway
+	}()
+	t.Run("use dataway when oss flag is empty", func(t *testing.T) {
+		*flagDebugBugreportOSS = ""
+		if !shouldUploadBugReportViaDataway() {
+			t.Fatalf("expected shouldUploadBugReportViaDataway to return true")
+		}
+	})
+
+	t.Run("do not use dataway when oss flag is set", func(t *testing.T) {
+		*flagDebugBugreportOSS = "host:bucket:ak:sk"
+		if shouldUploadBugReportViaDataway() {
+			t.Fatalf("expected shouldUploadBugReportViaDataway to return false")
+		}
+	})
+
+	t.Run("use custom dataway URLs", func(t *testing.T) {
+		*flagDebugBugreportDataway = " http://dataway-1 , http://dataway-2 "
+
+		urls := bugReportDatawayURLs()
+		if len(urls) != 2 {
+			t.Fatalf("expected 2 custom dataway URLs, got %d", len(urls))
+		}
+		if urls[0] != "http://dataway-1?token=bugreport-default" || urls[1] != "http://dataway-2?token=bugreport-default" {
+			t.Fatalf("unexpected custom dataway URLs: %#v", urls)
+		}
+
+		*flagDebugBugreportDataway = ""
+	})
+
+	t.Run("keep existing custom dataway token", func(t *testing.T) {
+		*flagDebugBugreportDataway = "http://dataway-1?token=tkn_custom"
+
+		urls := bugReportDatawayURLs()
+		if len(urls) != 1 {
+			t.Fatalf("expected 1 custom dataway URL, got %d", len(urls))
+		}
+		if urls[0] != "http://dataway-1?token=tkn_custom" {
+			t.Fatalf("unexpected custom dataway URL: %s", urls[0])
+		}
+
+		*flagDebugBugreportDataway = ""
+	})
+
+	const zipContent = "fake-zip-content"
+
+	tmpFileName := ""
+	if tmpFile, err := os.CreateTemp(t.TempDir(), "bugreport-*.zip"); err != nil {
+		t.Fatalf("create temp zip file: %v", err)
+	} else {
+		tmpFileName = tmpFile.Name()
+		defer func() {
+			if err := os.RemoveAll(tmpFileName); err != nil {
+				t.Errorf("remove temp zip file failed: %v", err)
+			}
+		}()
+		if _, err := tmpFile.WriteString(zipContent); err != nil {
+			t.Fatalf("write temp zip file: %v", err)
+		}
+		if err := tmpFile.Close(); err != nil {
+			t.Fatalf("close temp zip file: %v", err)
+		}
+	}
+
+	originalCfg := config.Cfg
+	config.Cfg = config.DefaultConfig()
+	defer func() {
+		config.Cfg = originalCfg
+	}()
+
+	t.Run("dataway ok", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != datakit.BugReportUpload {
+				t.Fatalf("unexpected upload path: %s", r.URL.Path)
+			}
+
+			if r.Header.Get("Host-Name") == "" {
+				t.Fatalf("expected Host-Name header to be set")
+			}
+
+			if body, err := io.ReadAll(r.Body); err != nil {
+				t.Fatalf("read request body: %v", err)
+			} else {
+				defer r.Body.Close()
+				if string(body) != zipContent {
+					t.Fatalf("unexpected request body: %q", string(body))
+				}
+			}
+
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"content":"https://example.com/bugreport.zip"}`))
+		}))
+		defer ts.Close()
+		config.Cfg.Dataway.URLs = []string{ts.URL + "?token=tkn_11111111111111111111"}
+		if err := config.Cfg.SetHostname(); err != nil {
+			t.Fatalf("set hostname: %v", err)
+		}
+
+		if _, err := uploadBugReportViaDataway(tmpFileName); err != nil {
+			t.Fatalf("uploadBugReportViaDataway failed: %v", err)
+		}
+	})
+
+	t.Run("custom dataway ok without config dataway", func(t *testing.T) {
+		originalDatawayCfg := config.Cfg.Dataway
+		defer func() {
+			config.Cfg.Dataway = originalDatawayCfg
+		}()
+
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != datakit.BugReportUpload {
+				t.Fatalf("unexpected upload path: %s", r.URL.Path)
+			}
+			if got := r.URL.Query().Get("token"); got != defaultBugReportDatawayToken {
+				t.Fatalf("unexpected token: %s", got)
+			}
+
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"content":"2026-04-22/host-a/dkbr_xxx.zip"}`))
+		}))
+		defer ts.Close()
+
+		config.Cfg.Dataway = nil
+		*flagDebugBugreportDataway = ts.URL
+
+		if _, err := uploadBugReportViaDataway(tmpFileName); err != nil {
+			t.Fatalf("uploadBugReportViaDataway failed: %v", err)
+		}
+
+		*flagDebugBugreportDataway = ""
+	})
+
+	t.Run("use config dataway without token", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if got := r.URL.Query().Get("token"); got != defaultBugReportDatawayToken {
+				t.Fatalf("unexpected token: %s", got)
+			}
+
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"content":"2026-04-22/host-a/dkbr_xxx.zip"}`))
+		}))
+		defer ts.Close()
+
+		config.Cfg.Dataway.URLs = []string{ts.URL}
+		if err := config.Cfg.SetHostname(); err != nil {
+			t.Fatalf("set hostname: %v", err)
+		}
+
+		if _, err := uploadBugReportViaDataway(tmpFileName); err != nil {
+			t.Fatalf("uploadBugReportViaDataway failed: %v", err)
+		}
+	})
+
+	t.Run("dataway failed", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte("upload failed on server"))
+		}))
+		defer ts.Close()
+
+		config.Cfg.Dataway.URLs = []string{ts.URL + "?token=tkn_11111111111111111111"}
+		if err := config.Cfg.SetHostname(); err != nil {
+			t.Fatalf("set hostname: %v", err)
+		}
+
+		if _, err := uploadBugReportViaDataway(tmpFileName); err == nil {
+			t.Fatalf("expected uploadBugReportViaDataway to fail")
+		} else if !strings.Contains(err.Error(), "all-retry-failed") {
+			t.Fatalf("expected wrapped retry error, got: %v", err)
+		}
+	})
+
+	t.Run("dataway not support bugreport", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte("<html>DataWay Endpoint</html>"))
+		}))
+		defer ts.Close()
+
+		config.Cfg.Dataway.URLs = []string{ts.URL + "?token=tkn_11111111111111111111"}
+		if err := config.Cfg.SetHostname(); err != nil {
+			t.Fatalf("set hostname: %v", err)
+		}
+
+		if _, err := uploadBugReportViaDataway(tmpFileName); err == nil {
+			t.Fatalf("expected uploadBugReportViaDataway to fail")
+		} else {
+			if !strings.Contains(err.Error(), "dataway does not support uploading bugreport") {
+				t.Fatalf("expected unsupported bugreport error, got: %v", err)
+			}
+			if strings.Contains(err.Error(), "DataWay Endpoint") {
+				t.Fatalf("expected error not to contain response body, got: %v", err)
+			}
+		}
+	})
 }

@@ -81,6 +81,7 @@ const (
 	Workspace          = "/v1/workspace"
 	ObjectLabel        = "/v1/object/labels" // object label
 	LogUpload          = "/v1/log"
+	BugReportUpload    = "/v1/write/bugreport"
 	PipelinePull       = "/v1/pipeline/pull"  // deprecated
 	LogFilter          = "/v2/logfilter/pull" // deprecated
 	DatakitPull        = "/v1/datakit/pull"

@@ -104,6 +104,36 @@ func TestDWAPIs(t *T.T) {
 		})
 	})
 
+	t.Run("upload-bugreport", func(t *T.T) {
+		dw := NewDefaultDataway()
+
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "/v1/write/bugreport", r.URL.Path)
+			assert.Equal(t, "some-host", r.Header.Get("Host-Name"))
+			assert.Equal(t, "application/zip", r.Header.Get("Content-Type"))
+
+			body, err := io.ReadAll(r.Body)
+			defer r.Body.Close()
+			assert.NoError(t, err)
+			assert.Equal(t, "bugreport-content", string(body))
+
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("ok"))
+		}))
+
+		assert.NoError(t, dw.Init(
+			WithURLs(fmt.Sprintf("%s?token=tkn_11111111111111111111", ts.URL)),
+		))
+
+		buf := bytes.NewBufferString("bugreport-content")
+		_, err := dw.UploadBugReport(buf, "some-host")
+		assert.NoError(t, err)
+
+		t.Cleanup(func() {
+			ts.Close()
+		})
+	})
+
 	t.Run("apis-with-global-tags-v2", func(t *T.T) {
 		dw := NewDefaultDataway()
 		dw.EnableSinker = true

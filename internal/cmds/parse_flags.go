@@ -194,8 +194,10 @@ var (
 		"export regex match results, provide a configuration file where the first line is a regular expression and the rest of the file is text.")
 	flagDebugPromConf = fsDebug.String("prom-conf", "", "specify the prom input conf to debug")
 
-	flagDebugBugReport               = fsDebug.Bool("bug-report", false, "export DataKit running information for troubleshooting")
-	flagDebugBugreportOSS            = fsDebug.String("oss", "", "upload bug report file to specified object storage(format host:bucket:ak:sk)")
+	flagDebugBugReport        = fsDebug.Bool("bug-report", false, "export DataKit running information for troubleshooting")
+	flagDebugBugreportOSS     = fsDebug.String("oss", "", "upload bug report file to specified object storage(format host:bucket:ak:sk)")
+	flagDebugBugreportDataway = fsDebug.String("bug-report-dataway", "",
+		"custom dataway URL for bug report upload, multiple URLs separated by comma")
 	flagDebugBugreportDisableProfile = fsDebug.Bool("disable-profile", false, "disable profile collection when running bug-report")
 	flagDebugBugreportNMetrics       = fsDebug.Int("nmetrics", 3, "collect N batch of datakit metrics")
 	flagDebugBugreportTag            = fsDebug.String("tag", "", "ping a tag to current bug report")
