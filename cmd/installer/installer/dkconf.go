@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -359,22 +360,60 @@ func (args *InstallerArgs) loadHTTPPublicAPIs(mc *config.Config) *config.Config 
 	return mc
 }
 
+func parseHTTPListen(listen string) (string, int) {
+	if listen == "" {
+		return "", 0
+	}
+
+	host, port, err := net.SplitHostPort(listen)
+	if err != nil || port == "" {
+		return listen, 0
+	}
+
+	portInt, err := strconv.Atoi(port)
+	if err != nil || portInt <= 0 {
+		return host, 0
+	}
+
+	return host, portInt
+}
+
+func resolveTCPListen(listen string) (string, int, bool) {
+	taddr, err := net.ResolveTCPAddr("tcp", listen)
+	if err != nil || taddr.Port == 0 || taddr.IP.String() == "" {
+		return "", 0, false
+	}
+
+	return taddr.IP.String(), taddr.Port, true
+}
+
 func (args *InstallerArgs) loadHTTPServerSet(mc *config.Config) *config.Config {
-	taddr, err := net.ResolveTCPAddr("tcp", mc.HTTPAPI.Listen)
-	if err != nil {
-		l.Warnf("invalid lagacy HTTP listen %q", mc.HTTPAPI.Listen)
-		return mc
-	} else {
-		if args.HTTPPort == 0 && taddr.Port != 0 { // use lagacy port
-			args.HTTPPort = taddr.Port
+	host, port := parseHTTPListen(args.HTTPListen)
+	if args.HTTPPort != 0 {
+		port = args.HTTPPort
+	}
+
+	if host == "" || port == 0 {
+		legacyHost, legacyPort, ok := resolveTCPListen(mc.HTTPAPI.Listen)
+		if !ok {
+			l.Warnf("invalid legacy HTTP listen %q", mc.HTTPAPI.Listen)
 		}
 
-		if args.HTTPListen == "" && taddr.IP.String() != "" {
-			args.HTTPListen = taddr.IP.String() // use lagacy ip
+		if host == "" {
+			host = legacyHost
+		}
+
+		if port == 0 {
+			port = legacyPort
 		}
 	}
 
-	mc.HTTPAPI.Listen = fmt.Sprintf("%s:%d", args.HTTPListen, args.HTTPPort)
+	if host == "" || port == 0 {
+		l.Warnf("invalid HTTP listen host %q or port %d", host, port)
+		return mc
+	}
+
+	mc.HTTPAPI.Listen = fmt.Sprintf("%s:%d", host, port)
 	l.Infof("set HTTP listen to %s", mc.HTTPAPI.Listen)
 	return mc
 }

@@ -295,8 +295,8 @@ DK_USER_NAME="datakit" DK_DATAWAY="..." bash -c ...
 
 ### HTTP/API 设置 {#env-http-api}
 
-- `DK_HTTP_LISTEN`：支持安装阶段指定 DataKit HTTP 服务绑定的网卡（默认 `localhost`）
-- `DK_HTTP_PORT`：支持安装阶段指定 DataKit HTTP 服务绑定的端口（默认 `9529`）
+- `DK_HTTP_LISTEN`：支持安装阶段指定 DataKit HTTP 服务绑定的网卡或监听地址（默认 `localhost`，可填写 `0.0.0.0` 或 `0.0.0.0:9529` 等形式）
+- `DK_HTTP_PORT`：支持安装阶段指定 DataKit HTTP 服务绑定的端口（默认 `9529`，如 `DK_HTTP_LISTEN` 已带端口且同时设置该变量，以该变量为准）
 - `DK_RUM_ORIGIN_IP_HEADER`: RUM 专用
 - `DK_DISABLE_404PAGE`: 禁用 DataKit 404 页面 (公网部署 DataKit RUM 时常用。如 `True`/`False`)
 - `DK_INSTALL_IPDB`: 安装时指定 IP 库(当前仅支持 `iploc/geolite2`)
