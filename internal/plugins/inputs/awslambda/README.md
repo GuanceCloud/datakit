@@ -1,88 +1,239 @@
-# Lambda Extension 本地测试
+# awslambda
 
-为便于本地测试 Lambda extension 工作是否基本正常，我们可以在本地模拟 lambda 运行环境。
+`awslambda` is the Datakit input for AWS Lambda extension environments.
 
-## 准备 aws lambda 本地服务
+It handles:
 
-extension 通过 Lambda 提供的一组 api/env 来实现初始化，这些 api 包括：
+- Lambda logs and metrics collection
+- Lambda lifecycle and telemetry processing
+- Lambda tracing point generation
+- Trigger inference for common Lambda event sources
+- Trace correlation with handler spans reported through the Datakit `ddtrace` input
 
-- GET `/2020-01-01/extension/event/next`
-- PUT `/2022-07-01/telemetry`
-- POST `/2020-01-01/extension/register`
+## What This Module Does
 
-在 *scripts/v1-write.go* 中 mock 了这几个接口实现，可直接启动这个服务：
+The input has two tracing data sources:
 
-```shell
-# 此处 -decode 用来解码上传的数据点，以确保上传的数据符合预期
-$ go run scripts/v1-write.go -decode
+1. Extension-owned spans produced by `awslambda`
+   - `aws.lambda`
+   - `aws.lambda.cold_start`
+   - `aws.lambda.snapstart_restore`
+   - inferred trigger spans such as `aws.apigateway`
+
+2. Handler spans produced by a Datadog Lambda wrapper and reported to Datakit through the `ddtrace` input
+   - for example `http.request`
+   - for example `child.span`
+
+The lifecycle listener is the bridge between these two parts. It serves:
+
+- `POST /lambda/start-invocation`
+- `POST /lambda/end-invocation`
+- `GET /lambda/hello`
+
+At `start-invocation`, the listener returns trace context headers that allow the wrapped handler to continue the same trace. As a result, the final trace tree typically looks like:
+
+```text
+aws.apigateway
+└── aws.lambda
+    ├── http.request
+    └── child.span
 ```
 
-启动完之后，本地的 localhost:54321 便充当了两个角色：
+## Layout
 
-- Mock Lambda 环境的必要 API
-- Mock Dataway 接收 Datakit 采集的数据
-
-## 运行 lambda extension
-
-编译完 Datakit 后，即可手动启动 Lambda extension:
-
-```shell
-os=$(__os)
-arch=$(__arch)
-
-AWS_LAMBDA_RUNTIME_API="localhost:54321" \
-AWS_LAMBDA_FUNCTION_NAME=dk \
-AWS_LAMBDA_FUNCTION_VERSION=0.1.9999 \
-AWS_REGION="dk-debug" \
-AWS_LAMBDA_FUNCTION_MEMORY_SIZE="10485760" \
-EnvLambdaInitializationType="dk-lambda-ext-testing" \
-ENV_DATAWAY=http://localhost:54321?token=tkn_xxxxxxxxxxxxxxxxxxxxxxx \
-ENV_LOG_LEVEL="debug" \
-ENV_DISABLE_LOG_COLOR=yes \
-AWS_SAM_LOCAL=true \
-DK_DEBUG_WORKDIR=~/datakit ./dist/datakit_aws_lambda-$os-$arch/extensions/datakit $@
+```text
+awslambda/
+├── input.go
+├── env.go
+├── cache.go
+├── feedctl.go
+├── queue.go
+├── point.go
+├── tag.go
+├── measurement.go
+├── testing.go
+├── lambdaapi/
+├── extension/
+│   ├── lifecycle.go
+│   └── telemetry.go
+├── trace/
+│   ├── point.go
+│   ├── processor.go
+│   ├── sink.go
+│   └── span.go
+├── inferred/
+│   ├── detect.go
+│   └── detect_test.go
+├── input_trace_test.go
+├── feedctl_test.go
+├── queue_test.go
+└── test/
+    ├── fixtures/
+    ├── cmd/
+    │   └── trace_summary/
+    ├── input_ddtrace_test.go
+    ├── run_tests.sh
+    └── summary.sh
 ```
 
-此处，几个 `AWS_XXX` 环境变量设置是必须的，另外，`ENV_DATAWAY` 也必须设置，作为 Lambda extension，DK 是以容器方式（相当于 `-docker`）运行的，所以不会读取 *datakit.conf* 中的内容，其它几个 `ENV_XXX` 设置也是基于这个原因。
+## Main Entry Points
 
-## 模拟 Lambda 日志数据
+- `input.go`
+  - input wiring
+  - logs and metrics pipeline
+  - telemetry event dispatch
+  - tracing processor wiring
 
-Lambda extension 启动完之后，它在 9529 上会注册一个 `/awslambda` API，我们可以直接往它推送数据：
+- `extension/lifecycle.go`
+  - Datadog Lambda wrapper compatible lifecycle listener
 
-```shell
-curl http://localhost:9529/awslambda -XPOST --data-binary @lambda.log.json
+- `trace/processor.go`
+  - invocation state machine
+  - span construction
+  - flush conditions
+
+- `trace/point.go`
+  - span to Datakit tracing point mapping
+
+- `inferred/detect.go`
+  - trigger detection
+
+## Test Strategy
+
+There are two important test layers.
+
+### 1. Direct `awslambda.Input` tests
+
+Primary file:
+
+- `input_trace_test.go`
+
+These tests instantiate `awslambda.Input` directly and drive lifecycle and telemetry events without a demo process.
+
+They verify:
+
+- on-demand invocation traces
+- managed-instance invocation traces
+- cold start behavior
+- inferred spans
+- tracing point generation through `ipt.feeder.Feed(point.Tracing, ...)`
+
+Output snapshot:
+
+- `internal/plugins/inputs/awslambda/test/test.output/input-tracing-points.ndjson`
+
+### 2. `awslambda + ddtrace` correlation tests
+
+Primary file:
+
+- `test/input_ddtrace_test.go`
+
+These tests instantiate:
+
+- `awslambda.Input`
+- `ddtrace.Input`
+
+Both inputs share the same mocked feeder.
+
+The test flow is:
+
+1. call `start-invocation`
+2. read `x-datadog-trace-id` and `x-datadog-parent-id`
+3. build handler spans with that context
+4. send them to the Datakit `ddtrace` input
+5. finish the Lambda invocation through lifecycle and platform events
+
+These tests verify:
+
+- handler spans and extension spans share the same `trace_id`
+- handler spans are children of `aws.lambda`
+- on-demand traces include `aws.lambda.cold_start`
+- managed-instance traces do not
+
+Output snapshot:
+
+- `internal/plugins/inputs/awslambda/test/test.output/input-ddtrace-points.ndjson`
+
+## Fixtures
+
+Fixtures live under:
+
+- `test/fixtures`
+
+They are used by both direct input tests and correlation tests.
+
+## Summary Tool
+
+Use:
+
+```bash
+bash internal/plugins/inputs/awslambda/test/summary.sh
 ```
 
-其中示例数据如下：
+The summary tool reads:
 
-```json
-[
-  {
-    "time": "2022-10-12T00:03:50.000Z",
-    "type": "function",
-    "record": "[INFO] Hello world, I am a function!"
-  },
-  {
-    "time": "2022-10-12T00:03:50.000Z",
-    "type": "function",
-    "record": {
-      "timestamp": "2022-10-12T00:03:50.000Z",
-      "level": "INFO",
-      "requestId": "79b4f56e-95b1-4643-9700-2807f4e68189",
-      "message": "Hello world, I am a function!"
-    }
-  },
-  {
-    "time": "2022-10-12T00:03:50.000Z",
-    "type": "platform.runtimeDone",
-    "record": {
-      "timestamp": "2022-10-12T00:03:50.000Z",
-      "level": "INFO",
-      "requestId": "79b4f56e-95b1-4643-9700-2807f4e68189",
-      "message": "Hello world, I am a function!"
-    }
-  }
-]
+- `internal/plugins/inputs/awslambda/test/test.output/input-tracing-points.ndjson`
+- `internal/plugins/inputs/awslambda/test/test.output/input-ddtrace-points.ndjson`
+
+It prints:
+
+- trace id
+- mode
+- cold start flag
+- test source
+- request ids
+- triggers
+- span list
+- full call chain with `span_id` and `parent_id`
+
+## How To Test
+
+Run all tests:
+
+```bash
+go test ./internal/plugins/inputs/awslambda/...
 ```
 
-此处 `type:platform.runtimeDone` 是必要的一个 event 类型，它会促使 Lambda extension 立即将前面两条日志发送给 Dataway。
+Or use the helper script:
+
+```bash
+bash internal/plugins/inputs/awslambda/test/run_tests.sh
+```
+
+Then inspect the trace tree:
+
+```bash
+bash internal/plugins/inputs/awslambda/test/summary.sh
+```
+
+## What To Read Before Changing This Module
+
+If you are changing lifecycle behavior:
+
+- `extension/lifecycle.go`
+- `trace/processor.go`
+- `test/input_ddtrace_test.go`
+
+If you are changing telemetry handling:
+
+- `input.go`
+- `trace/processor.go`
+- `lambdaapi/telemetry`
+
+If you are changing trigger inference:
+
+- `inferred/detect.go`
+- `inferred/detect_test.go`
+- `test/fixtures`
+
+If you are changing trace point mapping:
+
+- `trace/point.go`
+- `measurement.go`
+- `internal/trace/measurement.go`
+
+If you are changing handler span correlation:
+
+- `test/input_ddtrace_test.go`
+- `internal/plugins/inputs/ddtrace/input.go`
+- `internal/plugins/inputs/ddtrace/ddtrace_http.go`

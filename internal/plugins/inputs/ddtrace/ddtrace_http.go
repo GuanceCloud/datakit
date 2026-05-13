@@ -22,6 +22,8 @@ import (
 	"github.com/tinylib/msgp/msgp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
+	awslambda "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/awslambda"
+	lambdatrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/awslambda/trace"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
@@ -330,6 +332,9 @@ func (ipt *Input) ddtraceToDkTrace(trace DDTrace, values []string, remoteIP stri
 		strTraceID         = ""
 	)
 
+	trace = rewriteLambdaServerlessPlaceholder(trace)
+	trace = ipt.dedupLambdaTraceSpans(trace)
+
 	traceSpans.WithLabelValues(inputName).Observe(float64(len(trace)))
 
 	// truncate too large spans
@@ -447,6 +452,68 @@ func (ipt *Input) ddtraceToDkTrace(trace DDTrace, values []string, remoteIP stri
 		len(dktrace), cap(dktrace)) // cap(dktrace) is the origin trace span count
 
 	return dktrace
+}
+
+const lambdaServerlessPlaceholderResource = "dd-tracer-serverless-span"
+
+func rewriteLambdaServerlessPlaceholder(trace DDTrace) DDTrace {
+	if !awslambda.IsLambdaEnvironment() {
+		return trace
+	}
+
+	if len(trace) == 0 {
+		return trace
+	}
+
+	placeholderParents := make(map[uint64]uint64)
+	rewritten := make(DDTrace, 0, len(trace))
+
+	for _, span := range trace {
+		if span == nil {
+			continue
+		}
+		if span.Resource == lambdaServerlessPlaceholderResource {
+			lambdatrace.CaptureTracerPlaceholder(span.TraceID, span.ParentID, span.Meta, span.Metrics)
+			placeholderParents[span.SpanID] = span.ParentID
+			continue
+		}
+		rewritten = append(rewritten, span)
+	}
+
+	if len(placeholderParents) == 0 {
+		return trace
+	}
+
+	for _, span := range rewritten {
+		if span == nil {
+			continue
+		}
+		if parentID, ok := placeholderParents[span.ParentID]; ok {
+			span.ParentID = parentID
+		}
+	}
+
+	return rewritten
+}
+
+func (ipt *Input) dedupLambdaTraceSpans(trace DDTrace) DDTrace {
+	if !awslambda.IsLambdaEnvironment() || ipt.lambdaDeduper == nil || len(trace) == 0 {
+		return trace
+	}
+
+	rewritten := make(DDTrace, 0, len(trace))
+	for _, span := range trace {
+		if span == nil {
+			continue
+		}
+		if !ipt.lambdaDeduper.ShouldKeep(span.TraceID, span.SpanID) {
+			log.Debugf("drop duplicated lambda ddtrace span: trace_id=%d span_id=%d", span.TraceID, span.SpanID)
+			continue
+		}
+		rewritten = append(rewritten, span)
+	}
+
+	return rewritten
 }
 
 func gatherSpansInfo(trace DDTrace) (parentIDs map[uint64]bool, spanIDs map[uint64]string) {

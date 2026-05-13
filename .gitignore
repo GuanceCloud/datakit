@@ -6,6 +6,7 @@ __debug_bin*
 .idea/
 .orig
 .trae
+.codex
 .pid
 bin
 .suite.json

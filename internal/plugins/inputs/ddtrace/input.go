@@ -184,6 +184,7 @@ type Input struct {
 	traceMaxSpans       int
 	maxTraceBody        int64
 	customTagsX         *itrace.CustomTags
+	lambdaDeduper       *lambdaSpanDeduper
 }
 
 func (*Input) Catalog() string { return inputName }
@@ -452,6 +453,7 @@ func defaultInput() *Input {
 		spanBase:                  10,
 		ApmTelemetryRouteEnable:   true,
 		TracingMetricTagBlacklist: []string{"resource", "operation"},
+		lambdaDeduper:             newLambdaSpanDeduper(1024),
 	}
 }
 

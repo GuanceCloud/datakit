@@ -34,6 +34,10 @@ const (
 	AWSLogFrom               = "aws_log_from"
 )
 
+func IsLambdaEnvironment() bool {
+	return os.Getenv(EnvLambdaFunctionName) != ""
+}
+
 func (ipt *Input) initTags() {
 	tags := make(map[string]string)
 
