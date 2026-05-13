@@ -23,6 +23,8 @@ type cacheItem struct {
 	value      any
 	expiration time.Duration
 	circle     int
+	slotPos    int
+	done       chan struct{}
 }
 
 type Cache struct {
@@ -38,6 +40,7 @@ type Cache struct {
 
 	setChannel  chan cacheItem
 	stopChannel chan struct{}
+	stopOnce    sync.Once
 }
 
 // NewCache returns a Cache.
@@ -81,6 +84,9 @@ func (c *Cache) run() {
 			c.onTick()
 		case ci := <-c.setChannel:
 			c.setCacheItem(ci)
+			if ci.done != nil {
+				close(ci.done)
+			}
 		case <-c.stopChannel:
 			c.ticker.Stop()
 			return
@@ -99,15 +105,17 @@ func (c *Cache) scanAndRemoveExpiredCache(lst *list.List) {
 	defer c.mu.Unlock()
 
 	for e := lst.Front(); e != nil; {
+		next := e.Next()
 		ci := e.Value.(cacheItem)
 		if ci.circle > 0 {
 			ci.circle--
-			e = e.Next()
+			e.Value = ci
+			e = next
 			continue
 		}
 		lst.Remove(e)
 		delete(c.items, e.Value.(cacheItem).key)
-		e = e.Next()
+		e = next
 	}
 }
 
@@ -121,8 +129,20 @@ func (c *Cache) setCacheItem(ci cacheItem) {
 
 	pos, circle := c.getPosAndCircle(ci.expiration)
 	ci.circle = circle
+	ci.slotPos = pos
+	if old, ok := c.items[ci.key]; ok {
+		c.removeElement(old)
+	}
 	c.slots[pos].PushBack(ci)
 	c.items[ci.key] = c.slots[pos].Back()
+}
+
+func (c *Cache) removeElement(elem *list.Element) {
+	ci, ok := elem.Value.(cacheItem)
+	if !ok || ci.slotPos < 0 || ci.slotPos >= len(c.slots) {
+		return
+	}
+	c.slots[ci.slotPos].Remove(elem)
 }
 
 func (c *Cache) getPosAndCircle(d time.Duration) (pos, circle int) {
@@ -155,12 +175,15 @@ func (c *Cache) Set(key string, value any, expiration time.Duration) error {
 		return ErrArg
 	}
 
+	done := make(chan struct{})
 	select {
 	case c.setChannel <- cacheItem{
 		key:        key,
 		value:      value,
 		expiration: expiration,
+		done:       done,
 	}:
+		<-done
 		return nil
 	case <-c.stopChannel:
 		return ErrClosed
@@ -168,5 +191,7 @@ func (c *Cache) Set(key string, value any, expiration time.Duration) error {
 }
 
 func (c *Cache) Stop() {
-	close(c.stopChannel)
+	c.stopOnce.Do(func() {
+		close(c.stopChannel)
+	})
 }

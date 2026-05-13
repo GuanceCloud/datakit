@@ -2,12 +2,12 @@ package grok
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 const (
@@ -23,6 +23,24 @@ type GrokPattern struct {
 	denormalized string
 	varbType     map[string]string
 }
+
+type patternRef struct {
+	raw     string
+	syntax  string
+	alias   string
+	varType string
+}
+
+type compiledRegexpMeta struct {
+	re            *regexp.Regexp
+	filter        *regexpFilter
+	subMatchNames SubMatchName
+	nameIndex     map[string]int
+	prefilter     *regexpPrefilter
+	multiFilter   multiPatternFilter
+}
+
+var compiledRegexpCache sync.Map
 
 type PatternStorageIface interface {
 	GetPattern(string) (*GrokPattern, bool)
@@ -62,54 +80,262 @@ func (g *GrokPattern) TypedVar() map[string]string {
 	return ret
 }
 
+func isWordByte(b byte) bool {
+	return b == '_' || ('0' <= b && b <= '9') || ('A' <= b && b <= 'Z') || ('a' <= b && b <= 'z')
+}
+
+func isPatternName(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+
+	for i := 0; i < len(s); i++ {
+		if isWordByte(s[i]) {
+			continue
+		}
+		if (s[i] == '.' || s[i] == '-') && i > 0 && i < len(s)-1 && isWordByte(s[i-1]) && isWordByte(s[i+1]) {
+			continue
+		}
+		return false
+	}
+
+	return true
+}
+
+func isPatternAlias(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+
+	for i := 0; i < len(s); i++ {
+		if isWordByte(s[i]) || s[i] == '.' || s[i] == '-' {
+			continue
+		}
+		return false
+	}
+
+	return true
+}
+
+func sanitizeAlias(alias string) string {
+	buf := make([]byte, len(alias))
+	for i := 0; i < len(alias); i++ {
+		if isWordByte(alias[i]) {
+			buf[i] = alias[i]
+		} else {
+			buf[i] = '_'
+		}
+	}
+	return string(buf)
+}
+
+func parsePatternRef(spec string) (patternRef, bool, error) {
+	ref := patternRef{raw: spec}
+
+	firstSep := strings.IndexByte(spec, ':')
+	if firstSep == -1 {
+		if !isPatternName(spec) {
+			return patternRef{}, false, nil
+		}
+		ref.syntax = spec
+		return ref, true, nil
+	}
+
+	ref.syntax = spec[:firstSep]
+	if !isPatternName(ref.syntax) {
+		return patternRef{}, false, nil
+	}
+
+	rest := spec[firstSep+1:]
+	if len(rest) == 0 {
+		return patternRef{}, false, nil
+	}
+
+	secondSep := strings.IndexByte(rest, ':')
+	if secondSep == -1 {
+		if !isPatternAlias(rest) {
+			return patternRef{}, false, nil
+		}
+		ref.alias = sanitizeAlias(rest)
+		return ref, true, nil
+	}
+
+	alias := rest[:secondSep]
+	if !isPatternAlias(alias) {
+		return patternRef{}, false, nil
+	}
+	ref.alias = sanitizeAlias(alias)
+
+	ref.varType = rest[secondSep+1:]
+	if len(ref.varType) == 0 || !isPatternAlias(ref.varType) {
+		return patternRef{}, false, nil
+	}
+
+	switch ref.varType {
+	case GTypeString, GTypeStr, GTypeInt, GTypeFloat, GTypeBool:
+		return ref, true, nil
+	default:
+		return patternRef{}, true, fmt.Errorf("invalid varb data type: `%s`", ref.varType)
+	}
+}
+
+func normalizeAnonymousCaptures(raw string) string {
+	if len(raw) < 2 {
+		return raw
+	}
+
+	for i := 0; i < len(raw); i++ {
+		if raw[i] != '\\' || i+1 >= len(raw) {
+			continue
+		}
+		if raw[i+1] >= '1' && raw[i+1] <= '9' {
+			return raw
+		}
+		i++
+	}
+
+	var builder strings.Builder
+	builder.Grow(len(raw))
+	inClass := false
+	classStart := false
+	inQuote := false
+
+	for i := 0; i < len(raw); i++ {
+		switch raw[i] {
+		case '\\':
+			builder.WriteByte(raw[i])
+			if i+1 < len(raw) {
+				i++
+				builder.WriteByte(raw[i])
+				switch raw[i] {
+				case 'Q':
+					inQuote = true
+				case 'E':
+					inQuote = false
+				}
+			}
+			if inClass {
+				classStart = false
+			}
+		case '[':
+			if inQuote {
+				builder.WriteByte(raw[i])
+				continue
+			}
+			if !inClass {
+				inClass = true
+				classStart = true
+			} else {
+				classStart = false
+			}
+			builder.WriteByte(raw[i])
+		case ']':
+			if inQuote {
+				builder.WriteByte(raw[i])
+				continue
+			}
+			if inClass && isPOSIXClassClose(raw, i) {
+				builder.WriteByte(raw[i])
+				continue
+			}
+			if inClass && !classStart {
+				inClass = false
+			}
+			classStart = false
+			builder.WriteByte(raw[i])
+		case '(':
+			if inQuote || inClass || (i+1 < len(raw) && raw[i+1] == '?') {
+				builder.WriteByte(raw[i])
+				if inClass {
+					classStart = false
+				}
+				continue
+			}
+			builder.WriteString("(?:")
+		default:
+			builder.WriteByte(raw[i])
+			if inClass && !(classStart && raw[i] == '^') {
+				classStart = false
+			}
+		}
+	}
+
+	return builder.String()
+}
+
+func isPOSIXClassClose(raw string, close int) bool {
+	if close < 2 || raw[close-1] != ':' {
+		return false
+	}
+	open := close - 2
+	for open >= 0 && raw[open] != '[' {
+		open--
+	}
+	if open < 0 || open+1 >= close {
+		return false
+	}
+	if raw[open+1] == '^' {
+		return open+2 < close
+	}
+	return raw[open+1] == ':'
+}
+
+func walkPatternRefs(input string, fn func(start, end int, ref patternRef) error) error {
+	for i := 0; i < len(input); {
+		start := strings.Index(input[i:], "%{")
+		if start == -1 {
+			return nil
+		}
+		start += i
+
+		end := strings.IndexByte(input[start+2:], '}')
+		if end == -1 {
+			return nil
+		}
+		end += start + 2
+
+		ref, ok, err := parsePatternRef(input[start+2 : end])
+		if err != nil {
+			if strings.HasPrefix(err.Error(), "invalid varb data type: ") {
+				return fmt.Errorf("pattern: `%%{%s}`: %w", input, err)
+			}
+			return err
+		}
+		if !ok {
+			i = end + 1
+			continue
+		}
+
+		if err := fn(start, end+1, ref); err != nil {
+			return err
+		}
+		i = end + 1
+	}
+
+	return nil
+}
+
 // DenormalizePattern denormalizes the pattern to the regular expression.
 func DenormalizePattern(input string, denormalized ...PatternStorageIface) (
 	*GrokPattern, error,
 ) {
+	input = normalizeAnonymousCaptures(input)
 	gPattern := &GrokPattern{
 		varbType: make(map[string]string),
 		pattern:  input,
 	}
 
-	pattern := input
+	var builder strings.Builder
+	last := 0
 
-	for _, values := range normal.FindAllStringSubmatch(pattern, -1) {
-		if !valid.MatchString(values[1]) {
-			return nil, fmt.Errorf("invalid pattern `%%{%s}`", values[1])
-		}
-
-		names := strings.Split(values[1], ":")
-		syntax, alias := names[0], names[0]
-
-		// [a-zA-Z0-9_]
-		if len(names) > 1 {
-			alias = symbolic.ReplaceAllString(names[1], "_")
-		}
-
-		// get the data type of the variable, if any
-		if len(names) > 2 {
-			switch names[2] {
-			case GTypeString, GTypeStr:
-				gPattern.varbType[alias] = GTypeStr
-			case GTypeInt:
-				gPattern.varbType[alias] = GTypeInt
-			case GTypeFloat:
-				gPattern.varbType[alias] = GTypeFloat
-			case GTypeBool:
-				gPattern.varbType[alias] = GTypeBool
-			default:
-				return nil, fmt.Errorf("pattern: `%%{%s}`: invalid varb data type: `%s`",
-					pattern, names[2])
-			}
-		}
-
+	if err := walkPatternRefs(input, func(start, end int, ref patternRef) error {
 		if len(denormalized) == 0 {
-			return nil, fmt.Errorf("no pattern foud for %%{%s}", syntax)
+			return fmt.Errorf("no pattern foud for %%{%s}", ref.syntax)
 		}
 
-		gP, ok := denormalized[0].GetPattern(syntax)
+		gP, ok := denormalized[0].GetPattern(ref.syntax)
 		if !ok {
-			return nil, fmt.Errorf("no pattern foud for %%{%s}", syntax)
+			return fmt.Errorf("no pattern foud for %%{%s}", ref.syntax)
 		}
 
 		for key, dtype := range gP.varbType {
@@ -118,22 +344,44 @@ func DenormalizePattern(input string, denormalized ...PatternStorageIface) (
 			}
 		}
 
-		var buffer bytes.Buffer
-		if len(names) > 1 {
-			buffer.WriteString("(?P<")
-			buffer.WriteString(alias)
-			buffer.WriteString(">")
-			buffer.WriteString(gP.denormalized)
-			buffer.WriteString(")")
-		} else {
-			buffer.WriteString("(")
-			buffer.WriteString(gP.denormalized)
-			buffer.WriteString(")")
+		if ref.varType != "" {
+			switch ref.varType {
+			case GTypeString, GTypeStr:
+				gPattern.varbType[ref.alias] = GTypeStr
+			case GTypeInt:
+				gPattern.varbType[ref.alias] = GTypeInt
+			case GTypeFloat:
+				gPattern.varbType[ref.alias] = GTypeFloat
+			case GTypeBool:
+				gPattern.varbType[ref.alias] = GTypeBool
+			}
 		}
-		pattern = strings.ReplaceAll(pattern, values[0], buffer.String())
+
+		builder.WriteString(input[last:start])
+		if ref.alias != "" {
+			builder.WriteString("(?P<")
+			builder.WriteString(ref.alias)
+			builder.WriteString(">")
+			builder.WriteString(gP.denormalized)
+			builder.WriteString(")")
+		} else {
+			builder.WriteString("(?:")
+			builder.WriteString(gP.denormalized)
+			builder.WriteString(")")
+		}
+		last = end
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
-	gPattern.denormalized = pattern
+	if last == 0 {
+		gPattern.denormalized = input
+		return gPattern, nil
+	}
+
+	builder.WriteString(input[last:])
+	gPattern.denormalized = builder.String()
 	return gPattern, nil
 }
 
@@ -142,67 +390,99 @@ func CompilePattern(input string, denomalized PatternStorageIface) (*GrokRegexp,
 	if err != nil {
 		return nil, err
 	}
-	re, err := regexp.Compile(gP.denormalized)
-	if err != nil {
-		return nil, err
-	}
-
-	var subMatchNames SubMatchName
-	for i, name := range re.SubexpNames() {
-		if name != "" {
-			// update index
-			for j := range subMatchNames.name {
-				if subMatchNames.name[j] == name {
-					subMatchNames.subexpIndex[j] = i
-					break
-				}
-			}
-
-			// insert name and index
-			subMatchNames.name = append(subMatchNames.name, name)
-			subMatchNames.subexpIndex = append(subMatchNames.subexpIndex, i)
-		}
-	}
-
-	subMatchNames.subexpCount = len(re.SubexpNames())
-
-	return &GrokRegexp{
-		grokPattern:   gP,
-		re:            re,
-		subMatchNames: subMatchNames,
-	}, nil
+	return compileDenormalizedPattern(gP, denomalized)
 }
 
 func CompilePattern2(gP *GrokPattern, denomalized PatternStorageIface) (*GrokRegexp, error) {
-	re, err := regexp.Compile(gP.denormalized)
+	return compileDenormalizedPattern(gP, nil)
+}
+
+func compileDenormalizedPattern(gP *GrokPattern, storage PatternStorageIface) (*GrokRegexp, error) {
+	meta, err := loadCompiledRegexpMeta(gP.denormalized)
+	if err != nil {
+		return nil, err
+	}
+	requiredPrefix, requiredSuffix, requiredLiterals, minMatchLength := compilePatternPrefilterIR(gP.pattern, storage)
+
+	valueKinds := make([]valueKind, len(meta.subMatchNames.name))
+	for i, name := range meta.subMatchNames.name {
+		switch gP.varbType[name] {
+		case GTypeInt:
+			valueKinds[i] = valueKindInt
+		case GTypeFloat:
+			valueKinds[i] = valueKindFloat
+		case GTypeBool:
+			valueKinds[i] = valueKindBool
+		default:
+			valueKinds[i] = valueKindRaw
+		}
+	}
+
+	return &GrokRegexp{
+		grokPattern:      gP,
+		re:               meta.re,
+		filter:           meta.filter,
+		subMatchNames:    meta.subMatchNames,
+		nameIndex:        meta.nameIndex,
+		valueKinds:       valueKinds,
+		fastMatcher:      buildFastMatcher(gP, storage, meta),
+		prefilter:        meta.prefilter,
+		multiFilter:      meta.multiFilter,
+		requiredPrefix:   requiredPrefix,
+		requiredSuffix:   requiredSuffix,
+		requiredLiterals: requiredLiterals,
+		minMatchLength:   minMatchLength,
+	}, nil
+}
+
+func loadCompiledRegexpMeta(denormalized string) (*compiledRegexpMeta, error) {
+	if meta, ok := compiledRegexpCache.Load(denormalized); ok {
+		return meta.(*compiledRegexpMeta), nil
+	}
+
+	re, err := regexp.Compile(denormalized)
 	if err != nil {
 		return nil, err
 	}
 
-	var subMatchNames SubMatchName
-	for i, name := range re.SubexpNames() {
-		if name != "" {
-			// update index
-			for j := range subMatchNames.name {
-				if subMatchNames.name[j] == name {
-					subMatchNames.subexpIndex[j] = i
-					break
-				}
-			}
-
-			// insert name and index
-			subMatchNames.name = append(subMatchNames.name, name)
-			subMatchNames.subexpIndex = append(subMatchNames.subexpIndex, i)
-		}
+	multiFilter, err := compileMultiPatternFilter([]string{denormalized})
+	if err != nil {
+		return nil, err
 	}
 
-	subMatchNames.subexpCount = len(re.SubexpNames())
+	subexpNames := re.SubexpNames()
+	subMatchNames := SubMatchName{
+		name:        make([]string, 0, len(subexpNames)),
+		subexpIndex: make([]int, 0, len(subexpNames)),
+		subexpCount: len(subexpNames),
+	}
+	nameIndex := make(map[string]int, len(subexpNames))
 
-	return &GrokRegexp{
-		grokPattern:   gP,
+	for i, name := range subexpNames {
+		if name == "" {
+			continue
+		}
+
+		if j, ok := nameIndex[name]; ok {
+			subMatchNames.subexpIndex[j] = i
+		} else {
+			nameIndex[name] = len(subMatchNames.name)
+		}
+
+		subMatchNames.name = append(subMatchNames.name, name)
+		subMatchNames.subexpIndex = append(subMatchNames.subexpIndex, i)
+	}
+
+	meta := &compiledRegexpMeta{
 		re:            re,
+		filter:        buildRegexpFilter(denormalized),
 		subMatchNames: subMatchNames,
-	}, nil
+		nameIndex:     nameIndex,
+		prefilter:     buildRegexpPrefilter(denormalized, re),
+		multiFilter:   multiFilter,
+	}
+	actual, _ := compiledRegexpCache.LoadOrStore(denormalized, meta)
+	return actual.(*compiledRegexpMeta), nil
 }
 
 func LoadPatternsFromPath(path string) (map[string]string, error) {
@@ -247,38 +527,72 @@ func LoadPatternsFromPath(path string) (map[string]string, error) {
 // DenormalizePatternsFromMap denormalize pattern from map,
 // will return a valid pattern:value map and an invalid pattern:error map.
 func DenormalizePatternsFromMap(m map[string]string, denormalized ...map[string]*GrokPattern) (map[string]*GrokPattern, map[string]string) {
-	patternDeps := map[string]*nodeP{}
+	resolved := make(map[string]*GrokPattern, len(m))
+	invalid := make(map[string]string)
+	visiting := make(map[string]bool, len(m))
+	stack := make([]string, 0, 8)
+	storage := make(PatternStorage, 0, len(denormalized)+1)
+	storage = append(storage, resolved)
+	storage = append(storage, denormalized...)
 
-	for key, value := range m {
-		node := &nodeP{
-			cnt:   value,
-			cNode: []string{},
+	var resolve func(string) error
+	resolve = func(name string) error {
+		if _, ok := resolved[name]; ok {
+			return nil
 		}
-
-		// sub pattern
-		for _, key := range normal.FindAllStringSubmatch(value, -1) {
-			names := strings.Split(key[1], ":")
-			syntax := names[0]
-
-			if _, ok := m[syntax]; ok {
-			} else { // 取 denormalized 的
-				for _, v := range denormalized {
-					if deV, ok := v[syntax]; ok {
-						node.cNode = append(node.cNode, syntax)
-						patternDeps[syntax] = &nodeP{
-							cnt: syntax,
-							ptn: deV,
-						}
-						break
-					}
+		if visiting[name] {
+			start := 0
+			for i := range stack {
+				if stack[i] == name {
+					start = i
+					break
 				}
 			}
-			node.cNode = append(node.cNode, syntax)
+			line := strings.Join(append(append([]string{}, stack[start:]...), name), " -> ")
+			return fmt.Errorf("circular dependency: pattern %s", line)
 		}
-		patternDeps[key] = node
+
+		value, ok := m[name]
+		if !ok {
+			return fmt.Errorf("no pattern found for %%{%s}", name)
+		}
+
+		visiting[name] = true
+		stack = append(stack, name)
+		defer func() {
+			stack = stack[:len(stack)-1]
+			delete(visiting, name)
+		}()
+
+		if err := walkPatternRefs(value, func(_, _ int, ref patternRef) error {
+			if _, ok := m[ref.syntax]; ok {
+				return resolve(ref.syntax)
+			}
+			for _, de := range denormalized {
+				if _, ok := de[ref.syntax]; ok {
+					return nil
+				}
+			}
+			return fmt.Errorf("no pattern found for %%{%s}", ref.syntax)
+		}); err != nil {
+			return err
+		}
+
+		gP, err := DenormalizePattern(value, storage)
+		if err != nil {
+			return err
+		}
+		resolved[name] = gP
+		return nil
 	}
 
-	return runTree(patternDeps)
+	for name := range m {
+		if err := resolve(name); err != nil {
+			invalid[name] = err.Error()
+		}
+	}
+
+	return resolved, invalid
 }
 
 func CopyDefalutPatterns() map[string]string {
@@ -336,7 +650,7 @@ var defalutPatterns = map[string]string{
 	"MONTHNUM2":            `(?:0[1-9]|1[0-2])`,
 	"MONTHDAY":             `(?:(?:0[1-9])|(?:[12][0-9])|(?:3[01])|[1-9])`,
 	"DAY":                  `(?:Mon(?:day)?|Tue(?:sday)?|Wed(?:nesday)?|Thu(?:rsday)?|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?)`,
-	"YEAR":                 `(\d\d){1,2}`,
+	"YEAR":                 `(?:\d\d){1,2}`,
 	"HOUR":                 `(?:2[0123]|[01]?[0-9])`,
 	"MINUTE":               `(?:[0-5][0-9])`,
 	"SECOND":               `(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?)`,
@@ -365,7 +679,7 @@ var defalutPatterns = map[string]string{
 	"COMMONAPACHELOG":      `%{IPORHOST:clientip} %{HTTPDUSER:ident} %{USER:auth} \[%{HTTPDATE:timestamp}\] "(?:%{WORD:verb} %{NOTSPACE:request}(?: HTTP/%{NUMBER:httpversion})?|%{DATA:rawrequest})" %{NUMBER:response} (?:%{NUMBER:bytes}|-)`,
 	"COMBINEDAPACHELOG":    `%{COMMONAPACHELOG} %{QS:referrer} %{QS:agent}`,
 	"HTTPD20_ERRORLOG":     `\[%{HTTPDERROR_DATE:timestamp}\] \[%{LOGLEVEL:loglevel}\] (?:\[client %{IPORHOST:clientip}\] ){0,1}%{GREEDYDATA:errormsg}`,
-	"HTTPD24_ERRORLOG":     `\[%{HTTPDERROR_DATE:timestamp}\] \[%{WORD:module}:%{LOGLEVEL:loglevel}\] \[pid %{POSINT:pid}:tid %{NUMBER:tid}\]( \(%{POSINT:proxy_errorcode}\)%{DATA:proxy_errormessage}:)?( \[client %{IPORHOST:client}:%{POSINT:clientport}\])? %{DATA:errorcode}: %{GREEDYDATA:message}`,
+	"HTTPD24_ERRORLOG":     `\[%{HTTPDERROR_DATE:timestamp}\] \[%{WORD:module}:%{LOGLEVEL:loglevel}\] \[pid %{POSINT:pid}:tid %{NUMBER:tid}\](?: \(%{POSINT:proxy_errorcode}\)%{DATA:proxy_errormessage}:)?(?: \[client %{IPORHOST:client}:%{POSINT:clientport}\])? %{DATA:errorcode}: %{GREEDYDATA:message}`,
 	"HTTPD_ERRORLOG":       `%{HTTPD20_ERRORLOG}|%{HTTPD24_ERRORLOG}`,
 	"LOGLEVEL":             `(?:[Aa]lert|ALERT|[Tt]race|TRACE|[Dd]ebug|DEBUG|[Nn]otice|NOTICE|[Ii]nfo|INFO|[Ww]arn?(?:ing)?|WARN?(?:ING)?|[Ee]rr?(?:or)?|ERR?(?:OR)?|[Cc]rit?(?:ical)?|CRIT?(?:ICAL)?|[Ff]atal|FATAL|[Ss]evere|SEVERE|EMERG(?:ENCY)?|[Ee]merg(?:ency)?)`,
 	"COMMONENVOYACCESSLOG": `\[%{TIMESTAMP_ISO8601:timestamp}\] \"%{DATA:method} (?:%{URIPATH:uri_path}(?:%{URIPARAM:uri_param})?|%{DATA:}) %{DATA:protocol}\" %{NUMBER:status_code} %{DATA:response_flags} %{NUMBER:bytes_received} %{NUMBER:bytes_sent} %{NUMBER:duration} (?:%{NUMBER:upstream_service_time}|%{DATA:tcp_service_time}) \"%{DATA:forwarded_for}\" \"%{DATA:user_agent}\" \"%{DATA:request_id}\" \"%{DATA:authority}\" \"%{DATA:upstream_service}\"`,

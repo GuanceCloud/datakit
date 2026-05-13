@@ -74,9 +74,13 @@ github.com/GuanceCloud/confd/backends/vault
 github.com/GuanceCloud/confd/backends/zookeeper
 github.com/GuanceCloud/confd/log
 github.com/GuanceCloud/confd/util
-# github.com/GuanceCloud/grok v1.1.5-0.20250416104424-34917bd63e69
+# github.com/GuanceCloud/grok v1.1.5-0.20260513103143-a1797907b1d0
 ## explicit; go 1.18
 github.com/GuanceCloud/grok
+github.com/GuanceCloud/grok/internal/backend
+github.com/GuanceCloud/grok/internal/filter
+github.com/GuanceCloud/grok/internal/match
+github.com/GuanceCloud/grok/internal/scan
 # github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b
 ## explicit
 github.com/GuanceCloud/kubernetes/pkg/features
@@ -88,7 +92,7 @@ github.com/GuanceCloud/kubernetes/pkg/probe/exec
 # github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386
 ## explicit; go 1.18
 github.com/GuanceCloud/mdcheck/check
-# github.com/GuanceCloud/pipeline-go v1.3.0
+# github.com/GuanceCloud/pipeline-go v1.3.1
 ## explicit; go 1.19
 github.com/GuanceCloud/pipeline-go
 github.com/GuanceCloud/pipeline-go/constants
