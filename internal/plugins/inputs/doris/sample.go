@@ -6,6 +6,81 @@
 package doris
 
 const sampleCfg = `
+[[inputs.doris]]
+  ## Doris FE SQL endpoint.
+  host = "127.0.0.1"
+  port = 9030
+
+  ## Doris user and password.
+  user = "datakit"
+  password = "<PASS>"
+
+  ## Gathering interval.
+  interval = "10s"
+
+  ## Connection timeout for Doris SQL and metrics endpoints.
+  connect_timeout = "10s"
+
+  ## Set true to enable election.
+  election = true
+
+  ## FE metrics URL. Used to collect qps and avg_query_time for database object.
+  fe_metric_url = "http://127.0.0.1:8030/metrics"
+
+  ## TLS Config for FE metrics endpoint. Used when fe_metric_url is HTTPS.
+  # [inputs.doris.metric_tls]
+    # tls_ca = "/etc/doris/metric-ca.pem"
+    # tls_cert = "/etc/doris/metric-cert.pem"
+    # tls_key = "/etc/doris/metric-key.pem"
+
+    ## Use TLS but skip chain & host verification
+    # insecure_skip_verify = true
+
+    ## by default, support TLS 1.2 and above.
+    ## set to true if server side uses TLS 1.0 or TLS 1.1
+    # allow_tls10 = false
+
+  ## collect Doris object
+  [inputs.doris.object]
+    ## Set true to enable Doris object collection.
+    enabled = true
+
+    ## Interval to collect Doris object which will be greater than collection interval.
+    interval = "600s"
+
+  ## TLS Config
+  # [inputs.doris.tls]
+    # tls_ca = "/etc/doris/ca.pem"
+    # tls_cert = "/etc/doris/cert.pem"
+    # tls_key = "/etc/doris/key.pem"
+
+    ## Use TLS but skip chain & host verification
+    # insecure_skip_verify = true
+
+    ## by default, support TLS 1.2 and above.
+    ## set to true if server side uses TLS 1.0 or TLS 1.1
+    # allow_tls10 = false
+
+  ## Run a custom SQL query and collect corresponding metrics.
+  # [[inputs.doris.custom_queries]]
+  #   sql = '''
+  #     SELECT
+  #       TABLE_SCHEMA AS table_schema,
+  #       COUNT(*) AS table_count
+  #     FROM information_schema.tables
+  #     GROUP BY TABLE_SCHEMA
+  #   '''
+  #   metric = "doris_custom"
+  #   tags = ["table_schema"]
+  #   fields = ["table_count"]
+  #   interval = "10s"
+
+  [inputs.doris.tags]
+    # some_tag = "some_value"
+    # more_tag = "some_other_value"
+
+## The following Prometheus config collects full Doris FE/BE metrics.
+## Keep it when you still want the existing doris_fe/doris_be/doris_common/doris_jvm metrics.
 [[inputs.prom]]
   ## Collector alias.
   source = "doris"
