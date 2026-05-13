@@ -82,7 +82,9 @@ func (i *instance) supplementInfoFromConfigCache(kvs point.KVs) point.KVs {
 		return kvs
 	}
 
+	i.infoConfigMu.Lock()
 	nodeCache, ok := i.infoConfigCache[nodeAddr]
+	i.infoConfigMu.Unlock()
 	if !ok {
 		return kvs
 	}

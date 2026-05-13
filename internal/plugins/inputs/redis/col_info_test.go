@@ -9,6 +9,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"sync"
 	T "testing"
 
 	"github.com/stretchr/testify/assert"
@@ -290,6 +291,51 @@ used_cpu_user:31.649967
 		}
 
 		t.Logf("%s", pts[0].Pretty()) // default interval is 10s, 2nd info added 10's cpu usage, the percent is 100%.
+	})
+
+	t.Run(`supplement-info-from-config-cache`, func(t *T.T) {
+		inst := newInstance()
+		inst.ipt = ipt
+		inst.mergedTags["server"] = "redis-a:6379"
+		inst.infoConfigCache["redis-a:6379"] = map[string]string{"maxclients": "10000"}
+		inst.infoConfigCache["redis-b:6379"] = map[string]string{"maxclients": "20000"}
+
+		pts := inst.parseInfoData(`
+redis_version:7.0.0
+`)
+
+		assert.Len(t, pts, 1)
+		assert.Equal(t, int64(10000), pts[0].Get("maxclients"), "pt: %s", pts[0].Pretty())
+	})
+
+	t.Run(`config-cache-concurrent-access`, func(t *T.T) {
+		inst := newInstance()
+		inst.ipt = ipt
+		inst.mergedTags["server"] = "redis-read:6379"
+
+		var wg sync.WaitGroup
+		for n := 0; n < 4; n++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for i := 0; i < 1000; i++ {
+					inst.infoConfigMu.Lock()
+					inst.infoConfigCache["redis-write:6379"] = map[string]string{"maxclients": "10000"}
+					inst.infoConfigMu.Unlock()
+				}
+			}()
+		}
+
+		for n := 0; n < 4; n++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for i := 0; i < 1000; i++ {
+					inst.supplementInfoFromConfigCache(nil)
+				}
+			}()
+		}
+		wg.Wait()
 	})
 
 	t.Run(`redis-7.x-master-info-all`, func(t *T.T) {

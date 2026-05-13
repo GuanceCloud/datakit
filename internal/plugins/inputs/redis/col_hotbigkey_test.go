@@ -206,6 +206,30 @@ func Test_hotbigkey(t *T.T) {
 }
 
 func Test_hotbigPoints(t *T.T) {
+	t.Run(`scanner-node-tags`, func(t *T.T) {
+		inst := newInstance()
+		inst.ipt = defaultInput()
+		inst.ipt.Tags["foo"] = "bar"
+
+		scanner := newHotBigKeyScanner(defaultHotBitKeyConf())
+		scanner.db = 0
+		scanner.sampled = 100
+		scanner.host = "replica-host"
+		scanner.addr = "replica-host:6380"
+		scanner.hot = append(scanner.hot, &keyInfo{key: "hot-key", keyt: "string", freq: 3})
+		scanner.bigMem = append(scanner.bigMem, &keyInfo{key: "big-mem-key", keyt: "string", vmem: 1 << 20})
+		scanner.bigString = append(scanner.bigString, &keyInfo{key: "big-string-key", keyt: "string", vlen: 1 << 10})
+
+		pts := inst.hotbigPoints(scanner)
+		require.Len(t, pts, 3)
+
+		for _, pt := range pts {
+			assert.Equal(t, "replica-host", pt.Get("host"), "pt: %s", pt.Pretty())
+			assert.Equal(t, "replica-host:6380", pt.Get("server"), "pt: %s", pt.Pretty())
+			assert.Equal(t, "bar", pt.Get("foo"), "pt: %s", pt.Pretty())
+		}
+	})
+
 	t.Run(`basic`, func(t *T.T) {
 		t.Skip("skip on fake redis server")
 		redisServer := "facked.server"
