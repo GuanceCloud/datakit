@@ -103,6 +103,7 @@ ut-datakit-production:
   resource_group: production
   only:
     - master
+    - master-v1
   script:
     - nvm use v16.14.0
     - make clean
@@ -191,6 +192,7 @@ release-prod-guance: # CI for guance packages
   needs: [ut-datakit-production]
   only:
     - master
+    - master-v1
   except: # disable CI on tag push
     - tags
   script:
@@ -224,6 +226,7 @@ release-prod-tw: # CI for truewatch packages
   needs: [ut-datakit-production]
   only:
     - master
+    - master-v1
   except: # disable CI on tag push
     - tags
   script:
@@ -321,7 +324,7 @@ build-dca-production-image-guance:
   stage: _deploy_guance
   resource_group: production
   rules: # We do not replease DCA related image on each release of datakit.
-    - if: "$CI_COMMIT_BRANCH == 'master'"
+    - if: "$CI_COMMIT_BRANCH == 'master' || $CI_COMMIT_BRANCH == 'master-v1'"
       changes: # And if one of these files changed, we are going to release new version of DCA images.
         - dca/package.json
         - dca/Dockerfile.guance
@@ -349,7 +352,7 @@ build-dca-production-image-tw:
   stage: _deploy_truewatch
   resource_group: production
   rules:
-    - if: "$CI_COMMIT_BRANCH == 'master'"
+    - if: "$CI_COMMIT_BRANCH == 'master' || $CI_COMMIT_BRANCH == 'master-v1'"
       changes:
         - dca/package.json
         - dca/Dockerfile.tw
