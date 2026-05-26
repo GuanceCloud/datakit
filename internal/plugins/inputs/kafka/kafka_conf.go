@@ -30,12 +30,24 @@ const (
   # Add agents URLs to query
   urls = ["http://localhost:8080/jolokia"]
   
-  ## Add metrics to read
+  ## Auto collect mode: when enable_auto_collect is true,
+  ## automatically discover and collect all Kafka MBeans using search interface (kafka.*:*).
+  ## Default is true.
+  enable_auto_collect = true
+
+  ## MBean blacklist for auto collect mode: exclude MBeans matching these patterns (supports wildcard * and ?).
+  ## Note: Auto collect mode only collects Kafka-related MBeans (kafka.*:*)
+  # mbean_blacklist = [
+  #   "kafka.log:*",
+  #   "kafka.server:name=*,topic=*,type=BrokerTopicMetrics",
+  # ]
+
+  ## Add metrics to read (only used when enable_auto_collect = false)
   [[inputs.kafka.metric]]
     name         = "kafka_controller"
     mbean        = "kafka.controller:name=*,type=*"
     field_prefix = "#1."
-  
+
   [[inputs.kafka.metric]]
     name         = "kafka_replica_manager"
     mbean        = "kafka.server:name=*,type=ReplicaManager"
@@ -45,17 +57,17 @@ const (
     name         = "kafka_zookeeper"
     mbean        = "kafka.server:type=ZooKeeperClientMetrics,name=*"
     field_prefix = "#1."
-  
+
   [[inputs.kafka.metric]]
     name         = "kafka_purgatory"
     mbean        = "kafka.server:delayedOperation=*,name=*,type=DelayedOperationPurgatory"
     field_name   = "#1.#2"
-  
+
   [[inputs.kafka.metric]]
     name     = "kafka_client"
     mbean    = "kafka.server:client-id=*,type=*"
     tag_keys = ["client-id", "type"]
-  
+
   [[inputs.kafka.metric]]
     name         = "kafka_request"
     mbean        = "kafka.network:name=*,request=*,type=RequestMetrics"
@@ -72,18 +84,18 @@ const (
     mbean        = "kafka.network:type=*,name=*"
     field_name   = "#2"
     tag_keys     = ["type"]
-  
+
   [[inputs.kafka.metric]]
     name         = "kafka_topics"
     mbean        = "kafka.server:name=*,type=BrokerTopicMetrics"
     field_prefix = "#1."
-  
+
   [[inputs.kafka.metric]]
     name         = "kafka_topic"
     mbean        = "kafka.server:name=*,topic=*,type=BrokerTopicMetrics"
     field_prefix = "#1."
     tag_keys     = ["topic"]
-  
+
   [[inputs.kafka.metric]]
     name       = "kafka_partition"
     mbean      = "kafka.log:name=*,partition=*,topic=*,type=Log"
@@ -95,7 +107,7 @@ const (
     mbean      = "kafka.log:type=*,name=*"
     field_name = "#2"
     tag_keys   = ["type"]
-  
+
   [[inputs.kafka.metric]]
     name       = "kafka_partition"
     mbean      = "kafka.cluster:name=UnderReplicated,partition=*,topic=*,type=Partition"

@@ -8,9 +8,13 @@ __int_icon      : 'icon/redis'
 dashboard :
   - desc  : 'Redis'
     path  : 'dashboard/zh/redis'
+  - desc  : 'Redis-v2'
+    path  : 'dashboard/zh/redis-v2'
 monitor:
   - desc: 'Redis'
     path: 'monitor/zh/redis'
+  - desc: 'Redis-v2'
+    path: 'monitor/zh/redis-v2'
 ---
 
 {{.AvailableArchs}}
@@ -38,20 +42,44 @@ Redis 指标采集器，采集以下数据：
 
 ### 前置条件 {#reqirement}
 
-- 在采集主从架构下数据时，配置从节点或主节点的主机信息进行数据采集，可以得到不同的主从相关的指标信息。
-- 创建监控用户（**可选**）：redis 6.0+ 进入 `redis-cli` 命令行，创建用户并且授权：
+- 创建监控用户（**可选**）：redis 6.0+ 进入 `redis-cli` 命令行，在集群或主从架构中需对每个节点创建用户并授权：
 
 ```sql
 ACL SETUSER username >password
-ACL SETUSER username on +@dangerous +ping
+ACL SETUSER username on +info +config|get +slowlog +latency +cluster +@connection
 ```
 
-- 授权统计 `hotkey/bigkey` 信息，进入 `redis-cli` 命令行：
+<!-- markdownlint-disable MD046 -->
+???+ note "权限说明"
+
+    不同 Redis 版本的 ACL 权限类别可能略有差异，上述权限说明：
+
+    - `+info`：获取服务器信息（`INFO` 命令）
+    - `+config|get`：获取配置参数（`CONFIG GET` 命令）
+    - `+slowlog`：获取慢日志（`SLOWLOG GET` 命令）
+    - `+latency`：获取延迟统计（`LATENCY LATEST` 命令）
+    - `+cluster`：获取集群信息（`CLUSTER INFO`、`CLUSTER NODES`、`CLUSTER REPLICAS`/`SLAVES` 命令，集群模式需要）
+    - `+@connection`：连接管理命令（`PING`、`CLIENT LIST`、`CLIENT SETNAME`、`SELECT` 等）
+<!-- markdownlint-enable -->
+
+- 如需授权统计 `hotkey/bigkey` 信息，则在上述基础权限基础上，额外增加以下权限：
 
 ```sql
 CONFIG SET maxmemory-policy allkeys-lfu
-ACL SETUSER username on +get +@read +@connection +@keyspace ~*
+ACL SETUSER username +@read +@keyspace ~*
 ```
+
+<!-- markdownlint-disable MD046 -->
+???+ note "权限说明"
+
+    不同 Redis 版本的 ACL 权限类别可能略有差异，上述权限说明：
+
+    - `+@read`：数据读取命令（`SCAN`、`TYPE`、`OBJECT`、`MEMORY` 等）
+    - `+@keyspace`：键空间权限
+    - `~*`：允许访问所有键
+<!-- markdownlint-enable -->
+
+> **注意**：部分云厂商（如华为云）的 Redis 不支持或未开放 ACL 功能时，只读权限无法满足 DataKit 采集需求，需使用读写权限账号。
 
 ### 采集器配置 {#input-config}
 

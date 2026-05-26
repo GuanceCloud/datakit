@@ -149,13 +149,9 @@ func hitPodMetrics(item *statsv1alpha1.Summary, namespace, name string) (*podSrv
 		if stats.PodRef.Name == name && stats.PodRef.Namespace == namespace {
 			{
 				var usageNanoCores int64
-				if stats.CPU != nil && stats.CPU.UsageNanoCores != nil {
-					usageNanoCores = int64(*stats.CPU.UsageNanoCores)
-				} else {
-					for _, containerStats := range stats.Containers {
-						if containerStats.CPU != nil && containerStats.CPU.UsageNanoCores != nil {
-							usageNanoCores += int64(*containerStats.CPU.UsageNanoCores)
-						}
+				for _, containerStats := range stats.Containers {
+					if containerStats.CPU != nil && containerStats.CPU.UsageNanoCores != nil {
+						usageNanoCores += int64(*containerStats.CPU.UsageNanoCores)
 					}
 				}
 				cpuUsageMilliCores := usageNanoCores / 1e6
@@ -169,22 +165,13 @@ func hitPodMetrics(item *statsv1alpha1.Summary, namespace, name string) (*podSrv
 			{
 				var workingSetBytes int64
 				var rssBytes int64
-				if stats.Memory != nil {
-					if stats.Memory.WorkingSetBytes != nil {
-						workingSetBytes = int64(*stats.Memory.WorkingSetBytes)
-					}
-					if stats.Memory.RSSBytes != nil {
-						rssBytes = int64(*stats.Memory.RSSBytes)
-					}
-				} else {
-					for _, containerStats := range stats.Containers {
-						if containerStats.Memory != nil {
-							if containerStats.Memory.WorkingSetBytes != nil {
-								workingSetBytes += int64(*containerStats.Memory.WorkingSetBytes)
-							}
-							if containerStats.Memory.RSSBytes != nil {
-								rssBytes += int64(*containerStats.Memory.RSSBytes)
-							}
+				for _, containerStats := range stats.Containers {
+					if containerStats.Memory != nil {
+						if containerStats.Memory.WorkingSetBytes != nil {
+							workingSetBytes += int64(*containerStats.Memory.WorkingSetBytes)
+						}
+						if containerStats.Memory.RSSBytes != nil {
+							rssBytes += int64(*containerStats.Memory.RSSBytes)
 						}
 					}
 				}

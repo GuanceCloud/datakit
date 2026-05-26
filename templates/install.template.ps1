@@ -112,18 +112,6 @@ if ( ($x -ne $null) -and ($x -gt 0) ) {
 	Write-COutput green ("* Set upgrade_manager => ON" )
 }
 
-$x = [Environment]::GetEnvironmentVariable("DK_UPGRADE_IP_WHITELIST")
-if ($x -ne $null) {
-	$cmd += "--upgrade-ip-whitelist='$x'"
-	Write-COutput green ("* Set upgrade_ip_whitelist => $x" )
-}
-
-$x = [Environment]::GetEnvironmentVariable("DK_UPGRADE_LISTEN")
-if ($x -ne $null) {
-	$cmd += "--upgrade-listen='$x'"
-	Write-COutput green ("* Set upgrade_listen => $x" )
-}
-
 $x = [Environment]::GetEnvironmentVariable("DK_DATAWAY")
 if ($x -ne $null) {
 	$cmd += "--dataway='$x'"
@@ -464,6 +452,12 @@ $x = [Environment]::GetEnvironmentVariable("DK_CRYPTO_AES_KEY_FILE")
 if ($x -ne $null) {
 	$cmd += "--crypto-aes_key_file='$x'"
 	Write-COutput green "* Set crypto_aes_key_file => $x"
+}
+
+$x = [Environment]::GetEnvironmentVariable("DK_INPUT_CONFIGS")
+if ($x -ne $null) {
+	$cmd += "--input-configs='$x'"
+	Write-COutput green "* Set input_configs => $x"
 }
 
 Write-COutput green "* Apply all DK_* envs done."

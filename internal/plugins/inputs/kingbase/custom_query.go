@@ -32,10 +32,10 @@ type customQuery struct {
 }
 
 func getCleanCustomQueries(r *sqlx.Rows) []map[string]interface{} {
-	l.Debugf("getCleanCustomQueries entry")
+	log.Debugf("getCleanCustomQueries entry")
 
 	if r == nil {
-		l.Debug("r == nil")
+		log.Debug("r == nil")
 		return nil
 	}
 
@@ -45,12 +45,12 @@ func getCleanCustomQueries(r *sqlx.Rows) []map[string]interface{} {
 
 	columns, err := r.Columns()
 	if err != nil {
-		l.Errorf("Columns() failed: %v", err)
+		log.Errorf("Columns() failed: %v", err)
 		return nil
 	}
-	l.Debugf("columns = %v", columns)
+	log.Debugf("columns = %v", columns)
 	columnLength := len(columns)
-	l.Debugf("columnLength = %d", columnLength)
+	log.Debugf("columnLength = %d", columnLength)
 
 	cache := make([]interface{}, columnLength)
 	for i := range cache {
@@ -59,10 +59,10 @@ func getCleanCustomQueries(r *sqlx.Rows) []map[string]interface{} {
 	}
 
 	for r.Next() {
-		l.Debug("Next() entry")
+		log.Debug("Next() entry")
 
 		if err := r.Scan(cache...); err != nil {
-			l.Errorf("Scan failed: %v", err)
+			log.Errorf("Scan failed: %v", err)
 			continue
 		}
 
@@ -92,7 +92,7 @@ func getCleanCustomQueries(r *sqlx.Rows) []map[string]interface{} {
 				case time.Time:
 					item[key] = v
 				default:
-					l.Warnf("Unsupported data type %T for column %s, ignored", v, key)
+					log.Warnf("Unsupported data type %T for column %s, ignored", v, key)
 				}
 			}
 		}
@@ -101,10 +101,10 @@ func getCleanCustomQueries(r *sqlx.Rows) []map[string]interface{} {
 	}
 
 	if err := r.Err(); err != nil {
-		l.Errorf("Err() failed: %v", err)
+		log.Errorf("Err() failed: %v", err)
 	}
 
-	l.Debugf("len(list) = %d", len(list))
+	log.Debugf("len(list) = %d", len(list))
 	return list
 }
 
@@ -113,7 +113,7 @@ func (ipt *Input) runCustomQueries() {
 		return
 	}
 
-	l.Infof("start to run custom queries, total %d queries", len(ipt.Query))
+	log.Infof("start to run custom queries, total %d queries", len(ipt.Query))
 
 	g := goroutine.NewGroup(goroutine.Option{
 		Name:         "kingbase_custom_query",
@@ -132,7 +132,7 @@ func (ipt *Input) runCustomQueries() {
 
 func (ipt *Input) runCustomQuery(query *customQuery) {
 	if query == nil || query.SQL == "" || query.Metric == "" {
-		l.Warnf("Invalid custom query: nil, empty SQL, or empty metric name")
+		log.Warnf("Invalid custom query: nil, empty SQL, or empty metric name")
 		return
 	}
 
@@ -150,15 +150,15 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 
 	for {
 		collectStart := time.Now()
-		if ipt.pause {
-			l.Debugf("not leader, custom query %s skipped", query.Metric)
+		if ipt.pause.Load() {
+			log.Debugf("not leader, custom query %s skipped", query.Metric)
 		} else {
-			l.Debugf("start collecting custom query, metric name: %s", query.Metric)
+			log.Debugf("start collecting custom query, metric name: %s", query.Metric)
 
 			// Execute custom query
 			rows, err := ipt.db.Queryx(query.SQL)
 			if err != nil {
-				l.Errorf("Custom query %q failed: %v", query.SQL, err)
+				log.Errorf("Custom query %q failed: %v", query.SQL, err)
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(customQueryFeedName),
 					metrics.WithLastErrorCategory(point.Metric),
@@ -170,9 +170,6 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 				pts := []*point.Point{}
 				opts := point.DefaultMetricOptions()
 				opts = append(opts, point.WithTime(ptsTime))
-				if ipt.Election {
-					opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
-				}
 
 				for _, row := range results {
 					var kvs point.KVs
@@ -200,10 +197,10 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 								if f, err := strconv.ParseFloat(v, 64); err == nil {
 									kvs = kvs.Set(fdKey, f)
 								} else {
-									l.Warnf("Field %s is string '%s', cannot convert to float64, ignored", fdKey, v)
+									log.Warnf("Field %s is string '%s', cannot convert to float64, ignored", fdKey, v)
 								}
 							default:
-								l.Warnf("Field %s has unsupported type %T, ignored", fdKey, v)
+								log.Warnf("Field %s has unsupported type %T, ignored", fdKey, v)
 							}
 						}
 					}
@@ -223,7 +220,7 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 							metrics.WithLastErrorInput(customQueryFeedName),
 							metrics.WithLastErrorCategory(point.Metric),
 						)
-						l.Errorf("Feed failed: %s", err)
+						log.Errorf("Feed failed: %s", err)
 					}
 				}
 			}
@@ -232,12 +229,12 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 		select {
 		case <-datakit.Exit.Wait():
 			ipt.exit()
-			l.Info("custom query exit")
+			log.Info("custom query exit")
 			return
 
 		case <-ipt.semStop.Wait():
 			ipt.exit()
-			l.Info("custom query return")
+			log.Info("custom query return")
 			return
 
 		case tt := <-tick.C:

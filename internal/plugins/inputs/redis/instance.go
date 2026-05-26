@@ -8,6 +8,8 @@ package redis
 import (
 	"context"
 	"fmt"
+	"net"
+	"sync"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -25,13 +27,13 @@ type instance struct {
 	mergedTags,
 	infoTags map[string]string // tags during parsing redis info
 
-	latencyLastTime map[string]time.Time
+	latencyLastTime map[string]map[string]time.Time
 
 	infoElapsed time.Duration
 
 	version, role string
 
-	slowlogHash [][16]byte
+	slowlogHash map[string][][16]byte
 
 	hbScanners      []*hotbigkeyScanner
 	connectedSlaves int64
@@ -43,6 +45,10 @@ type instance struct {
 	curCli, cc collectorClient
 
 	nodeUpStates map[string]int64
+
+	// infoConfigCache caches config fields by node address for supplementing INFO
+	infoConfigCache map[string]map[string]string
+	infoConfigMu    sync.Mutex
 }
 
 // node represents a concrete Redis node (master or replica) to collect from.
@@ -56,27 +62,63 @@ type node struct {
 
 func newInstance() *instance {
 	return &instance{
-		latencyLastTime: map[string]time.Time{},
+		slowlogHash:     make(map[string][][16]byte),
+		latencyLastTime: make(map[string]map[string]time.Time),
 		infoTags:        map[string]string{},
 		mergedTags:      map[string]string{},
 		infoCPULast:     map[string]*redisCPUUsage{},
 		nodeUpStates:    map[string]int64{},
+		infoConfigCache: make(map[string]map[string]string),
 	}
 }
 
 func (i *instance) setup() {
-	i.slowlogHash = make([][16]byte, i.ipt.SlowlogMaxLen)
-
 	i.mergedTags["host"] = i.host
 	i.mergedTags["server"] = i.addr
 
 	if i.ipt != nil {
-		for k, v := range i.ipt.Tags { // add input's tags
-			if _, ok := i.mergedTags[k]; !ok {
-				i.mergedTags[k] = v
-			}
+		for k, v := range i.ipt.Tags {
+			i.mergedTags[k] = v
 		}
 	}
+}
+
+func shouldSetHostTag(host string) bool {
+	return host != "" && host != "localhost" && !net.ParseIP(host).IsLoopback()
+}
+
+func (i *instance) resolveHostTag(host string) string {
+	if i.ipt != nil {
+		if tagHost := i.ipt.Tags["host"]; tagHost != "" {
+			return tagHost
+		}
+	}
+
+	if shouldSetHostTag(host) {
+		return host
+	}
+
+	return ""
+}
+
+func (i *instance) buildNodeTags(server, host string) map[string]string {
+	mergedTags := make(map[string]string)
+
+	if shouldSetHostTag(host) {
+		mergedTags["host"] = host
+	}
+
+	if i.ipt != nil {
+		for k, v := range i.ipt.Tags {
+			mergedTags[k] = v
+		}
+	}
+
+	if server != "" {
+		mergedTags["server"] = server
+	}
+
+	return mergedTags
 }
 
 func (i *instance) stop() {
@@ -118,14 +160,20 @@ func (r *replica) String() string {
 
 func (i *instance) resetReplica() {
 	i.curRepplica = nil
+
 	i.curCli = nil
 }
 
 func (i *instance) setCurrentNode(cli collectorClient, rep *replica, host, addr string) {
 	i.curCli = cli
 	i.curRepplica = rep
-	i.mergedTags["host"] = host
 	i.mergedTags["server"] = addr
+
+	if resolvedHost := i.resolveHostTag(host); resolvedHost != "" {
+		i.mergedTags["host"] = resolvedHost
+	} else {
+		delete(i.mergedTags, "host")
+	}
 }
 
 func (i *instance) collect(ctx context.Context) error {

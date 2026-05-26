@@ -35,7 +35,25 @@ Here we mainly introduce some extended functions of DDTrace-Java. List of main f
 
 ## Third party agent {#third-party}
 
-### Dubbo supported {#dubbo}
+### Java-WebSocket {#java-websocket}
+
+- Added the `java-websocket` module for tracking WebSocket connections, message sending and receiving, and close events
+- Implement decorator classes for tracking operations in WebSocket clients and servers
+- Add distributed tracing support for handshakes, message transmission, and connection state changes
+- Integrate the `TraceDraft_6455` class to support tracing the WebSocket protocol draft
+- Create a WebsocketAgentSpanContext to manage the tracing context of WebSocket connections
+- Implement tag-based recording of WebSocket message types and sizes
+- Add WebSocket error handling and exception tracking mechanism
+- WebSocket link tracing is disabled by default. To enable it, use the parameter **-Ddd.trace.websocket.messages.enabled=true**
+
+supported version:
+
+- [x] all
+
+DDTrace supported version: [:octicons-tag-24:  v1.55.10-ext](ddtrace-ext-changelog.md#cl-1.55.10-ext)
+
+
+### Dubbo {#dubbo}
 
 Dubbo is an open source framework of Alibaba Cloud, which currently supports Dubbo2 and Dubbo3.
 
@@ -53,7 +71,7 @@ supported version: Currently supports version 4.8.0 and above. Alibaba Cloud Roc
 
 DDTrace supported version: [:octicons-tag-24:  v1.4.1](ddtrace-ext-changelog.md#cl-1.4.1-ext)
 
-### Thrift supported {#thrift}
+### Thrift {#thrift}
 
 Thrift is an apache project. Some customers use thrift RPC for communication in the project, and we support it.
 
@@ -61,7 +79,7 @@ supported version: 0.9.3 and above.
 
 DDTrace supported version: [:octicons-tag-24:  v0.113.0](ddtrace-ext-changelog.md#cl-0.113.0)
 
-### redis command args {#redis-command-args}
+### Redis Command Args {#redis-command-args}
 
 The Resource in the redis link will only display redis.command information, and will not display parameter information.
 
@@ -233,15 +251,25 @@ Since getting `response body` causes damage to `response`, the encoding adjustme
 Obtaining the response body requires reading the response stream, which will occupy a certain amount of Java memory space. It is recommended to add blacklist processing to requests with large response bodies (such as file download interfaces) to prevent OOM. The URLs on the blacklist will not be Then parse the response body content.
 The blacklist configuration is as follows:
 
-- Command
+```shell
+# Command
+-Ddd.trace.response.body.blacklist.urls="/auth,/download/file"
 
-> -Ddd.trace.response.body.blacklist.urls="/auth,/download/file"
+# ENV:
+export DD_TRACE_RESPONSE_BODY_BLACKLIST_URLS="/auth,/download/file"
+```
 
-- ENV
+**whitelist**config:
 
-> DD_TRACE_RESPONSE_BODY_BLACKLIST_URLS
+```shell
+# command line:
+-Ddd.trace.response.body.whitelist.urls="/auth,/download/file"
 
-DDTrace supported version: [:octicons-tag-24:  v1.47.1](ddtrace-ext-changelog.md#cl-1.47.1-ext)
+# ENV
+export DD_TRACE_RESPONSE_BODY_WHITELIST_URLS="/user/*,/system"
+```
+
+DDTrace supported version: [:octicons-tag-24:  v1.55.6-ext](ddtrace-ext-changelog.md#cl-1.55.6-ext)
 
 ### Tracing Header {#trace_header}
 

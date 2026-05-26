@@ -467,6 +467,7 @@ func testDatakitPipelineAction(_ *ws.Client, response *ws.DCAResponse, data *ws.
 			point.RUM,
 			point.Security,
 			point.Tracing,
+			point.AgentLLM,
 			point.DialTesting,
 			point.UnknownCategory:
 
@@ -477,6 +478,9 @@ func testDatakitPipelineAction(_ *ws.Client, response *ws.DCAResponse, data *ws.
 				break
 			}
 			pts = append(pts, arr...)
+
+		case point.ExecutionLog, point.LLM:
+			continue
 		}
 	}
 

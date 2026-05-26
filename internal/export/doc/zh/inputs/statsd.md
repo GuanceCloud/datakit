@@ -84,6 +84,36 @@ DD_JMXFETCH_STATSD_PORT=8125
 
 ## 指标 {#metric}
 
-StatsD 暂无指标集定义，所有指标以网络发送过来的指标为准。
+以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
 
-使用 Agent 默认的指标集的情况下，[GitHub 上可以查看所有的指标集](https://docs.datadoghq.com/integrations/){:target="_blank"}
+``` toml
+ [inputs.{{.InputName}}.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+  # ...
+```
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "metric"}}
+
+### `{{$m.Name}}`
+
+{{$m.MarkdownTable}}
+
+{{ end }}
+{{ end }}
+
+## 日志 {#logging}
+
+statsd 会将部分 event 的数据发送过来，DataKit 目前将其以日志形式来采集。
+
+{{ range $i, $m := .Measurements }}
+{{if eq $m.Type "logging"}}
+
+### `{{$m.Name}}`
+
+{{$m.MarkdownTable}}
+
+{{ end }}
+{{ end }}

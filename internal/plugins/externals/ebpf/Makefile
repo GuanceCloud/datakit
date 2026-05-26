@@ -1,4 +1,11 @@
-.PHONY: all clean cleancache
+.PHONY: all clean cleancache bindata bpfobjs build build-go
+
+GO ?= go
+GOTOOLCHAIN ?= go1.26.1
+export GOTOOLCHAIN
+
+GOOS ?= linux
+GOARCH ?=
 
 ARCH ?= $(shell uname -m | sed -e s/x86_64/x86_64/ \
 				  -e s/aarch64.\*/arm64/)
@@ -17,12 +24,28 @@ ifeq ($(MACHINE_ARCH),amd64)
 		GO_ARCH := amd64
 endif
 
-DKE_ARCH    := linux/$(GO_ARCH)
-DKE_VERSION := $(shell git describe --tags)
-DKE_COMMIT  := $(shell git rev-parse --short HEAD)
+ifneq ($(GOARCH),)
+	GO_ARCH := $(GOARCH)
+endif
+
+ifeq ($(GO_ARCH),amd64)
+	MACHINE_ARCH := x86
+	CLANG_TARGET ?= x86_64-linux-gnu
+endif
+
+ifeq ($(GO_ARCH),arm64)
+	MACHINE_ARCH := arm64
+	CLANG_TARGET ?= aarch64-linux-gnu
+endif
+
+DKE_ARCH    := $(GOOS)/$(GO_ARCH)
+DKE_VERSION := $(shell sh -c 'command -v git >/dev/null 2>&1 && git describe --tags || echo unknown')
+DKE_COMMIT  := $(shell sh -c 'command -v git >/dev/null 2>&1 && git rev-parse --short HEAD || echo unknown')
 DKE_DATE    := $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 
-ARGS ?= ""
+ARGS ?=
+GO_BUILD_TAGS ?= ebpf netgo
+CGO_ENABLED ?= 0
 
 SRCPATH ?= .
 SRC_PATH := $(SRCPATH)
@@ -53,7 +76,9 @@ BPF_INCLUDE := $(KERNEL_INCLUDE) \
 		-I$(INTERNAL_PATH)/c/common \
 		-include asm_goto_workaround.h
 
-BUILD_TAGS := -D__KERNEL__ -D__BPF_TRACING__ $(ARGS) \
+BUILD_TAGS := -D__KERNEL__ -D__BPF_TRACING__ \
+		$(if $(CLANG_TARGET),--target=$(CLANG_TARGET)) \
+		$(ARGS) \
 		-fno-stack-protector -g \
 		-Wno-unused-value \
 		-Wno-pointer-sign \
@@ -67,7 +92,7 @@ BUILD_TAGS := -D__KERNEL__ -D__BPF_TRACING__ $(ARGS) \
 all: build
 
 cleancache:
-	go clean -cache gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf
+	$(GO) clean -cache gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf
 
 apiflow.o: 
 	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
@@ -75,11 +100,25 @@ apiflow.o:
 		-c $(INTERNAL_PATH)/c/apiflow/apiflow.c \
 		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/apiflow.o
 
+apiflow_legacy.o:
+	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
+		-DDK_LEGACY_CONST_IMM -DDK_DISABLE_LRU_HASH \
+		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
+		-c $(INTERNAL_PATH)/c/apiflow/apiflow.c \
+		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/apiflow_legacy.o
+
 netflow.o:
 	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
 		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
 		-c $(INTERNAL_PATH)/c/netflow/netflow.c \
 		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/netflow.o
+
+netflow_legacy.o:
+	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
+		-DDK_LEGACY_CONST_IMM -DDK_DISABLE_LRU_HASH \
+		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
+		-c $(INTERNAL_PATH)/c/netflow/netflow.c \
+		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/netflow_legacy.o
 
 process_sched.o:
 	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
@@ -93,17 +132,38 @@ conntrack.o:
 		-c $(INTERNAL_PATH)/c/conntrack/conntrack.c \
 		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/conntrack.o
 
+conntrack_legacy.o:
+	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
+		-DDK_LEGACY_CONST_IMM -DDK_DISABLE_LRU_HASH \
+		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
+		-c $(INTERNAL_PATH)/c/conntrack/conntrack.c \
+		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/conntrack_legacy.o
+
 offset_guess.o:
 	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
 		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
 		-c $(INTERNAL_PATH)/c/offset_guess/offset_guess.c \
 		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/offset_guess.o
 
+offset_guess_legacy.o:
+	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
+		-DDK_DISABLE_LRU_HASH \
+		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
+		-c $(INTERNAL_PATH)/c/offset_guess/offset_guess.c \
+		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/offset_guess_legacy.o
+
 offset_httpflow.o:
 	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
 		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
 		-c $(INTERNAL_PATH)/c/offset_guess/offset_httpflow.c \
 		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/offset_httpflow.o
+
+offset_httpflow_legacy.o:
+	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
+		-DDK_LEGACY_CONST_IMM -DDK_DISABLE_LRU_HASH \
+		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
+		-c $(INTERNAL_PATH)/c/offset_guess/offset_httpflow.c \
+		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/offset_httpflow_legacy.o
 
 offset_conntrack.o:
 	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
@@ -117,17 +177,36 @@ offset_tcp_seq.o:
 		-c $(INTERNAL_PATH)/c/offset_guess/offset_tcp_seq.c \
 		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/offset_tcp_seq.o
 
+offset_tcp_seq_legacy.o:
+	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
+		-DDK_LEGACY_CONST_IMM -DDK_DISABLE_LRU_HASH \
+		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
+		-c $(INTERNAL_PATH)/c/offset_guess/offset_tcp_seq.c \
+		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/offset_tcp_seq_legacy.o
+
+host_peer_filter.o:
+	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
+		-DKBUILD_MODNAME=\"datatkit-ebpf\" \
+		-c $(INTERNAL_PATH)/c/l4log/host_peer_filter.c \
+		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/host_peer_filter.o
+
 bash_history.o: 
 	clang $(BPF_INCLUDE) $(BUILD_TAGS) \
 		-c $(INTERNAL_PATH)/c/bash_history/bash_history.c \
 		-o - | llc -march=bpf -filetype=obj -o $(EBPF_BIN_PATH)/bash_history.o
 
-bindata: offset_guess.o offset_httpflow.o offset_conntrack.o offset_tcp_seq.o \
-			netflow.o apiflow.o bash_history.o conntrack.o process_sched.o
-	llvm-strip $(EBPF_BIN_PATH)/*.o --no-strip-all -R .BTF
+bindata: offset_guess.o offset_guess_legacy.o offset_httpflow.o offset_httpflow_legacy.o offset_conntrack.o offset_tcp_seq.o offset_tcp_seq_legacy.o \
+			host_peer_filter.o \
+			netflow.o netflow_legacy.o apiflow.o apiflow_legacy.o bash_history.o conntrack.o conntrack_legacy.o process_sched.o
+	llvm-strip $(EBPF_BIN_PATH)/*.o --strip-debug
 
-build: bindata
-	go build -tags="ebpf" -ldflags "-w -s \
+bpfobjs: bindata
+
+build: bpfobjs build-go
+
+build-go:
+	GO111MODULE=on CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GO_ARCH) \
+	$(GO) build -tags="$(GO_BUILD_TAGS)" -ldflags "-w -s \
 		-X 'main.Arch=${DKE_ARCH}' \
         -X 'main.Date=${DKE_DATE}'" -o $(OUT_PATH) $(SRC_PATH)/cmd/datakit-ebpf/datakit-ebpf.go
 

@@ -15,6 +15,7 @@ import (
 
 type InotifyInterface interface {
 	Events() chan fsnotify.Event
+	Errors() chan error
 	Close() error
 }
 
@@ -55,6 +56,10 @@ func (in *Inotify) Events() chan fsnotify.Event {
 	return in.watcher.Events
 }
 
+func (in *Inotify) Errors() chan error {
+	return in.watcher.Errors
+}
+
 func (in *Inotify) Close() error {
 	return in.watcher.Close()
 }
@@ -64,5 +69,7 @@ type NopInotify struct{}
 func NewNopInotify() *NopInotify { return &NopInotify{} }
 
 func (*NopInotify) Events() chan fsnotify.Event { return nil }
+
+func (*NopInotify) Errors() chan error { return nil }
 
 func (*NopInotify) Close() error { return nil }

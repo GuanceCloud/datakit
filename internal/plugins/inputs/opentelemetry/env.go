@@ -25,6 +25,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 	infos := []*inputs.ENVInfo{
 		{FieldName: "CustomerTags", Type: doc.JSON, Example: "`'[\"project_id\", \"custom.tag\"]'`", Desc: "Whitelist to tags", DescZh: "标签白名单"},
 		{FieldName: "CustomerTagsAll", Type: doc.Boolean, Default: `false`, Desc: "extracted all attributes to tags", DescZh: "提取所有标签"},
+		{FieldName: "MetricEnableAggregate", Type: doc.Boolean, Default: `false`, Desc: "Enable metric aggregate", DescZh: "开启 OpenTelemetry 上报的指标聚合"},
 		{FieldName: "KeepRareResource", Type: doc.Boolean, Default: `false`, Desc: "Keep rare tracing resources list switch", DescZh: "保持稀有跟踪资源列表"},
 		{FieldName: "CompatibleDdTrace", Type: doc.Boolean, Default: `false`, Desc: "Convert trace_id to decimal, compatible with DDTrace", DescZh: "将 trace_id 转成 10 进制，兼容 DDTrace"},
 		{FieldName: "SplitServiceName", Type: doc.Boolean, Default: `false`, Desc: "Get xx.system from span.Attributes to replace service name", DescZh: "从 span.Attributes 中获取 xx.system 去替换服务名"},
@@ -71,6 +72,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		"ENV_INPUT_OTEL_TRACING_METRIC_ENABLE",
 		"ENV_INPUT_OTEL_TRACING_METRIC_TAG_BLACKLIST",
 		"ENV_INPUT_OTEL_TRACING_METRIC_TAG_WHITELIST",
+		"ENV_INPUT_OTEL_METRIC_ENABLE_AGGREGATE",
 	} {
 		value, ok := envs[key]
 		if !ok {
@@ -180,16 +182,22 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 				ipt.ExpectedHeaders = headers
 			}
 		case "ENV_INPUT_OTEL_DEL_MESSAGE":
-			if ok, err := strconv.ParseBool(value); err != nil {
+			if b, err := strconv.ParseBool(value); err != nil {
 				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
 			} else {
-				ipt.DelMessage = ok
+				ipt.DelMessage = b
 			}
 		case "ENV_INPUT_OTEL_TRACING_METRIC_ENABLE":
-			if ok, err := strconv.ParseBool(value); err != nil {
+			if b, err := strconv.ParseBool(value); err != nil {
 				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
 			} else {
-				ipt.TracingMetricEnable = ok
+				ipt.TracingMetricEnable = b
+			}
+		case "ENV_INPUT_OTEL_TRACING_METRIC_DISABLE_GLOBAL_HOST_TAGS":
+			if b, err := strconv.ParseBool(value); err != nil {
+				log.Warnf("parse %s=%s failed: %s", key, value, err.Error())
+			} else {
+				ipt.TracingMetricDisableGlobalHostTags = b
 			}
 		case "ENV_INPUT_OTEL_TRACING_METRIC_TAG_BLACKLIST":
 			var list []string

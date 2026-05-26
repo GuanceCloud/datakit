@@ -22,6 +22,9 @@ type aggKey struct {
 
 	rcode int
 
+	queryDomain string
+	queryType   string
+
 	family    string
 	direction string
 }
@@ -58,6 +61,9 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 
 		"src_ip_type": key.sType,
 		"dst_ip_type": key.dType,
+	}
+	if key.queryType != "" {
+		tags["query_type"] = key.queryType
 	}
 	sPort := strconv.FormatInt(int64(key.SPort), 10)
 	dPort := strconv.FormatInt(int64(key.DPort), 10)
@@ -103,6 +109,9 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 		"latency_max": value.latencyMax,
 		"count":       value.count,
 	}
+	if key.queryDomain != "" {
+		fields["query_domain"] = key.queryDomain
+	}
 
 	tags = dknetflow.AddK8sTags2Map(k8sNetInfo, &key.BaseKey, tags)
 
@@ -129,6 +138,8 @@ func (agg *FlowAgg) Append(dnsKey DNSQAKey, stats DNSStats) error {
 	var key aggKey
 
 	key.rcode = stats.RCODE
+	key.queryDomain = stats.QueryDomain
+	key.queryType = stats.QueryType
 	// transport
 	if dnsKey.IsUDP {
 		key.Transport = "udp"

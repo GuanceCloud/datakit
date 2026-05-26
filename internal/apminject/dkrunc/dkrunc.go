@@ -30,46 +30,15 @@ type MntDir struct {
 var log = &Log{}
 
 func main() {
-	log = NewLog("/usr/local/datakit/apm_inject/log/dkrunc.log")
+	log = NewLog(filepath.Join(utils.DirInjectSubLog, "dkrunc.log"))
 	defer log.Close()
 	eventRec := &EventRec{
 		Time: time.Now().Format(time.RFC3339),
 	}
 	eventRec.Args = append(eventRec.Args, os.Args...)
 
-	injectEnvs := [][2]string{
-		{
-			"LD_PRELOAD",
-			filepath.Join(utils.DirInjectSubInject, "apm_launcher.so"),
-		},
-	}
-
-	dirList := []MntDir{
-		{ReadOnly: true, Path: utils.DirInject},
-		{ReadOnly: true, Path: utils.DirInjectSubInject},
-		{ReadOnly: true, Path: utils.DirInjectSubLib},
-	}
-
 	addr := injUtils.GetDKAddr()
-	if addr != nil && addr.DkUds != "" {
-		injectEnvs = append(injectEnvs, [2]string{
-			injUtils.EnvDKSocketAddr, addr.DkUds,
-		})
-		dirList = append(dirList, MntDir{
-			Path:             path.Dir(addr.DkUds),
-			SkipCheckCtrPath: true,
-		})
-	}
-
-	if bundle, config, spec, ok := loadSpecFromBundleDir(eventRec); ok {
-		if newSpec, err := tryInjectSpec(bundle, spec, dirList, injectEnvs); err == nil {
-			if err := dumpSpec(config, newSpec); err != nil {
-				eventRec.Errors = append(eventRec.Errors, err.Error())
-			}
-		} else {
-			eventRec.Errors = append(eventRec.Errors, err.Error())
-		}
-	}
+	tryInjectCurrentSpec(eventRec, addr)
 
 	var args []string
 	if len(os.Args) > 0 {
@@ -87,6 +56,46 @@ func main() {
 	}
 
 	os.Exit(exitCode) //nolint:gocritic
+}
+
+func buildInjectInputs(addr *injUtils.AgentAddr) ([]MntDir, [][2]string) {
+	injectEnvs := [][2]string{
+		{
+			"LD_PRELOAD",
+			filepath.Join(utils.DirInjectSubInject, "apm_launcher.so"),
+		},
+	}
+
+	dirList := []MntDir{
+		{ReadOnly: true, Path: utils.DirInject},
+		{ReadOnly: true, Path: utils.DirInjectSubInject},
+		{ReadOnly: true, Path: utils.DirInjectSubLib},
+	}
+
+	if addr != nil && addr.DkUds != "" {
+		injectEnvs = append(injectEnvs, [2]string{
+			injUtils.EnvDKSocketAddr, addr.DkUds,
+		})
+		dirList = append(dirList, MntDir{
+			Path:             path.Dir(addr.DkUds),
+			SkipCheckCtrPath: true,
+		})
+	}
+
+	return dirList, injectEnvs
+}
+
+func tryInjectCurrentSpec(eventRec *EventRec, addr *injUtils.AgentAddr) {
+	dirList, injectEnvs := buildInjectInputs(addr)
+	if bundle, config, spec, ok := loadSpecFromBundleDir(eventRec); ok {
+		if newSpec, err := tryInjectSpec(bundle, spec, dirList, injectEnvs); err == nil {
+			if err := dumpSpec(config, newSpec); err != nil {
+				eventRec.Errors = append(eventRec.Errors, err.Error())
+			}
+		} else {
+			eventRec.Errors = append(eventRec.Errors, err.Error())
+		}
+	}
 }
 
 func runCmd(name string, args []string) (int, error) {
@@ -136,7 +145,7 @@ func tryInjectSpec(bundle string, spec *Spec, dirList []MntDir, injectEnvs [][2]
 			strings.Join(injectEnvs[i][:], "="))
 	}
 
-	if s, err := tryModProcSpec(spec); err == nil {
+	if s, err := tryModProcSpec(spec, rootPath); err == nil {
 		if s != nil {
 			spec = s
 		}
@@ -163,14 +172,14 @@ func checkContainerEnv(spec *Spec, injEnvs [][2]string) error {
 	return nil
 }
 
-func tryModProcSpec(spec *Spec) (*Spec, error) {
+func tryModProcSpec(spec *Spec, rootPath string) (*Spec, error) {
 	if p := spec.Process; p == nil || len(spec.Process.Args) < 1 {
 		return nil, fmt.Errorf("process parameters do not meet the conditions")
 	}
 
 	arg0 := spec.Process.Args[0]
 
-	if arg0 != "java" && strings.HasSuffix(arg0, "/java") {
+	if arg0 != "java" && !strings.HasSuffix(arg0, "/java") {
 		return nil, fmt.Errorf("not recognized as a java program")
 	}
 
@@ -186,7 +195,7 @@ func tryModProcSpec(spec *Spec) (*Spec, error) {
 		}
 	}
 
-	if ok, err := checkJavaInContainer(spec.Root.Path, pathEnv, arg0); err != nil {
+	if ok, err := checkJavaInContainer(rootPath, pathEnv, arg0); err != nil {
 		return nil, err
 	} else if !ok {
 		return nil, fmt.Errorf("unsupported java")
@@ -198,7 +207,7 @@ func tryModProcSpec(spec *Spec) (*Spec, error) {
 		return nil, fmt.Errorf("stat dd-java-agent.jar: %w", err)
 	}
 
-	for i := 1; i < len(spec.Process.Args[1:]); i++ {
+	for i := 1; i < len(spec.Process.Args); i++ {
 		p := strings.TrimSpace(spec.Process.Args[i])
 		if strings.HasPrefix(p, "-javaagent:") {
 			if strings.Contains(p, "dd-java-agent.jar") {
@@ -231,12 +240,25 @@ func tryModProcSpec(spec *Spec) (*Spec, error) {
 		newJavaOptEnv += " " + javaOpt
 	}
 
-	spec.Process.Env = append(spec.Process.Env,
-		newJavaOptEnv,
-		fmt.Sprintf("DD_TRACE_AGENT_URL=unix://%s", injUtils.DefaultDKUDS),
-		fmt.Sprintf("DD_JMXFETCH_STATSD_HOST=unix://%s", injUtils.DefaultStatsDUDS),
-		"DD_JMXFETCH_STATSD_PORT=0",
-	)
+	spec.Process.Env = append(spec.Process.Env, newJavaOptEnv)
+	if addr := injUtils.GetDKAddr(); addr != nil && addr.DkUds != "" {
+		spec.Process.Env = append(spec.Process.Env,
+			fmt.Sprintf("DD_TRACE_AGENT_URL=unix://%s", addr.DkUds),
+		)
+		if addr.SDUds != "" {
+			spec.Process.Env = append(spec.Process.Env,
+				fmt.Sprintf("DD_JMXFETCH_STATSD_HOST=unix://%s", addr.SDUds),
+				"DD_JMXFETCH_STATSD_PORT=0",
+			)
+		}
+	} else {
+		spec.Process.Env = append(spec.Process.Env,
+			"DD_AGENT_HOST="+injUtils.DefaultDKHost,
+			"DD_TRACE_AGENT_PORT="+injUtils.DefaultDKPort,
+			"DD_JMXFETCH_STATSD_HOST="+injUtils.DefaultStatsDHost,
+			"DD_JMXFETCH_STATSD_PORT="+injUtils.DefaultStatsDPort,
+		)
+	}
 
 	return spec, nil
 }
@@ -373,7 +395,7 @@ func (log *Log) Info(val string) {
 
 func (log *Log) Close() {
 	if log.file != nil {
-		log.Close() //nolint:gosec,errcheck
+		log.file.Close() //nolint:gosec,errcheck
 	}
 }
 

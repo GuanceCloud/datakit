@@ -14,6 +14,7 @@ import (
 	"github.com/GuanceCloud/pipeline-go/offload"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/endpoint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 )
 
@@ -103,27 +104,32 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_DATAWAY_TLS_INSECURE":            "on",
 				"ENV_DATAWAY_DROP_EXPIRED_PACKAGE_AT": "1h",
 
-				"ENV_DEFAULT_ENABLED_INPUTS":     "cpu,mem,disk",
-				"ENV_DISABLE_404PAGE":            "on",
-				"ENV_DISABLE_PROTECT_MODE":       "true",
-				"ENV_ENABLE_ELECTION":            "1",
-				"ENV_ENABLE_PPROF":               "true",
-				"ENV_HOSTNAME":                   "1024.coding",
-				"ENV_HTTP_ALLOWED_CORS_ORIGINS":  "https://foo,https://bar",
-				"ENV_HTTP_CLOSE_IDLE_CONNECTION": "on",
-				"ENV_HTTP_ENABLE_TLS":            "yes",
-				"ENV_HTTP_LISTEN":                "localhost:9559",
-				"ENV_HTTP_LISTEN_SOCKET":         "/var/run/datakit/datakit.sock",
-				"ENV_HTTP_TIMEOUT":               "10s",
-				"ENV_HTTP_TLS_CRT":               "/path/to/datakit/tls.crt",
-				"ENV_HTTP_TLS_KEY":               "/path/to/datakit/tls.key",
-				"ENV_LOG_LEVEL":                  "debug",
-				"ENV_LOG_ROTATE_BACKUP":          "10",
-				"ENV_LOG_ROTATE_SIZE_MB":         "128",
-				"ENV_NAME":                       "testing-datakit",
-				"ENV_NAMESPACE":                  "some-default",
-				"ENV_REQUEST_RATE_LIMIT":         "1234",
-				"ENV_RUM_ORIGIN_IP_HEADER":       "not-set",
+				"ENV_DEFAULT_ENABLED_INPUTS": "cpu,mem,disk",
+				"ENV_DISABLE_404PAGE":        "on",
+				"ENV_DISABLE_PROTECT_MODE":   "true",
+				"ENV_ENABLE_ELECTION":        "1",
+				"ENV_ENABLE_PPROF":           "true",
+				envManualHostname:            "1024.coding",
+
+				"ENV_HTTP_ALLOWED_CORS_ORIGINS": "https://foo,https://bar",
+				"ENV_HTTP_ENABLE_TLS":           "yes",
+				"ENV_HTTP_LISTEN":               "localhost:9559",
+				"ENV_HTTP_LISTEN_SOCKET":        "/var/run/datakit/datakit.sock",
+				"ENV_HTTP_TIMEOUT":              "10s",
+				"ENV_HTTP_TLS_CRT":              "/path/to/datakit/tls.crt",
+				"ENV_HTTP_TLS_KEY":              "/path/to/datakit/tls.key",
+				"ENV_HTTP_IDLE_TIMEOUT":         "3s",
+				"ENV_HTTP_READ_TIMEOUT":         "3s",
+				"ENV_HTTP_READ_HEADER_TIMEOUT":  "3s",
+				"ENV_HTTP_WRITE_TIMEOUT":        "3s",
+
+				"ENV_LOG_LEVEL":            "debug",
+				"ENV_LOG_ROTATE_BACKUP":    "10",
+				"ENV_LOG_ROTATE_SIZE_MB":   "128",
+				"ENV_NAME":                 "testing-datakit",
+				"ENV_NAMESPACE":            "some-default",
+				"ENV_REQUEST_RATE_LIMIT":   "1234",
+				"ENV_RUM_ORIGIN_IP_HEADER": "not-set",
 
 				"ENV_ENABLE_ELECTION_NAMESPACE_TAG":              "ok",
 				"ENV_PIPELINE_OFFLOAD_RECEIVER":                  offload.DKRcv,
@@ -137,8 +143,6 @@ func TestLoadEnv(t *testing.T) {
 			expect: func() *Config {
 				cfg := DefaultConfig()
 
-				cfg.Name = "testing-datakit"
-
 				cfg.Dataway.URLs = []string{"http://host1.org", "http://host2.com"}
 
 				cfg.Dataway.MaxIdleConnsPerHost = 123
@@ -147,9 +151,9 @@ func TestLoadEnv(t *testing.T) {
 				cfg.Dataway.IdleTimeout = 90 * time.Second
 				cfg.Dataway.HTTPTimeout = 30 * time.Second
 				cfg.Dataway.ContentEncoding = "v2"
-				cfg.Dataway.MaxRetryCount = dataway.DefaultRetryCount
+				cfg.Dataway.MaxRetryCount = endpoint.DefaultRetryCount
 				cfg.Dataway.InsecureSkipVerify = true
-				cfg.Dataway.RetryDelay = dataway.DefaultRetryDelay
+				cfg.Dataway.RetryDelay = endpoint.DefaultRetryDelay
 				cfg.Dataway.MaxRawBodySize = dataway.DefaultMaxRawBodySize
 				cfg.Dataway.GlobalCustomerKeys = []string{}
 				cfg.Dataway.GZip = true
@@ -161,8 +165,12 @@ func TestLoadEnv(t *testing.T) {
 				cfg.HTTPAPI.ListenSocket = "/var/run/datakit/datakit.sock"
 				cfg.HTTPAPI.Disable404Page = true
 				cfg.HTTPAPI.RequestRateLimit = 1234.0
-				cfg.HTTPAPI.Timeout = "10s"
-				cfg.HTTPAPI.CloseIdleConnection = true
+
+				cfg.HTTPAPI.IdleTimeout = 3 * time.Second
+				cfg.HTTPAPI.ReadTimeout = 3 * time.Second
+				cfg.HTTPAPI.ReadHeaderTimeout = 3 * time.Second
+				cfg.HTTPAPI.WriteTimeout = 3 * time.Second
+
 				cfg.HTTPAPI.TLSConf.Cert = "/path/to/datakit/tls.crt"
 				cfg.HTTPAPI.TLSConf.PrivKey = "/path/to/datakit/tls.key"
 
@@ -569,6 +577,34 @@ func TestLoadEnv(t *testing.T) {
 				cfg := DefaultConfig()
 				cfg.PointPool.Enable = false
 				cfg.PointPool.ReservedCapacity = 12345
+
+				return cfg
+			}(),
+		},
+		{
+			name: "test-aggregator-envs",
+			envs: map[string]string{
+				"ENV_AGGREGATOR_ENDPOINTS":                       "http://10.0.0.1:9529?token=t1, http://10.0.0.2:9529?token=t2",
+				"ENV_AGGREGATOR_TIMEOUT":                         "9s",
+				"ENV_AGGREGATOR_MAX_RAW_BODY_SIZE":               "2097152",
+				"ENV_AGGREGATOR_USE_LOCAL_CONFIG":                "false",
+				"ENV_AGGREGATOR_LOCAL_CONFIG_DIR":                "/tmp/aggr",
+				"ENV_AGGREGATOR_LOCAL_METRIC_CONFIG_FILE":        "metric-rules.toml",
+				"ENV_AGGREGATOR_LOCAL_TAIL_SAMPLING_CONFIG_FILE": "tail-rules.toml",
+			},
+
+			expect: func() *Config {
+				cfg := DefaultConfig()
+				cfg.Aggregator.Endpoints = []string{
+					"http://10.0.0.1:9529?token=t1",
+					"http://10.0.0.2:9529?token=t2",
+				}
+				cfg.Aggregator.Timeout = 9 * time.Second
+				cfg.Aggregator.MaxRawBodySize = 2097152
+				cfg.Aggregator.UseLocalConfig = false
+				cfg.Aggregator.LocalConfigDir = "/tmp/aggr"
+				cfg.Aggregator.LocalMetricConfigFile = "metric-rules.toml"
+				cfg.Aggregator.LocalTailSamplingConfigFile = "tail-rules.toml"
 
 				return cfg
 			}(),

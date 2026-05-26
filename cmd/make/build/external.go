@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 )
 
 type dkexternal struct {
@@ -28,7 +29,11 @@ type dkexternal struct {
 	envs    []string
 
 	buildCmd string
+
+	tags string
 }
+
+const externalEBPFName = "ebpf"
 
 var externals = []*dkexternal{
 	{
@@ -36,10 +41,15 @@ var externals = []*dkexternal{
 		name: "oracle",
 		lang: "go",
 
-		entry: "oracle.go",
+		entry: "internal/plugins/externals/oracle/main.go",
+		tags:  "netgo",
 		osarchs: map[string]bool{
 			"linux/amd64": true,
 			"linux/arm64": true,
+		},
+
+		envs: []string{
+			"CGO_ENABLED=1",
 		},
 	},
 	{
@@ -47,19 +57,38 @@ var externals = []*dkexternal{
 		name: "db2",
 		lang: "go",
 
-		entry: "db2.go",
+		entry: "internal/plugins/externals/db2/main.go",
+		tags:  "netgo",
 		osarchs: map[string]bool{
 			"linux/amd64": true,
+		},
+
+		envs: []string{
+			"CGO_ENABLED=1",
 		},
 	},
 	{
 		// requirement: apt install clang llvm linux-headers-$(uname -r)
-		name:       "ebpf",
+		name:       externalEBPFName,
 		out:        "datakit-ebpf",
-		standalone: true,
+		standalone: false,
 		lang:       "makefile",
 
-		entry: "Makefile",
+		entry: "internal/plugins/externals/ebpf/Makefile",
+		osarchs: map[string]bool{
+			"linux/amd64": true,
+			"linux/arm64": true,
+		},
+
+		buildArgs: nil,
+	},
+	{
+		// requirement: libsystemd-dev for journald CGO bindings
+		name: "journald",
+		lang: "go",
+
+		entry: "internal/plugins/externals/journald/main.go",
+		tags:  "netgo",
 		osarchs: map[string]bool{
 			"linux/amd64": true,
 			"linux/arm64": true,
@@ -74,7 +103,7 @@ var externals = []*dkexternal{
 		name: "logfwd",
 		lang: "go",
 
-		entry: "logfwd.go",
+		entry: "internal/plugins/externals/logfwd/cmd/main.go",
 		osarchs: map[string]bool{
 			"linux/amd64": true,
 			"linux/arm64": true,
@@ -99,13 +128,11 @@ func doBuildExternal(ex *dkexternal, dir, goos, goarch string, standalone bool) 
 	copy(envs, ex.envs)
 	copy(buildArgs, ex.buildArgs)
 
-	var tags string
-
 	if ex.standalone != standalone {
 		return nil
 	}
 
-	l.Debugf("building %s-%s/%s", goos, goarch, ex.name)
+	l.Infof("building %s-%s/%s", goos, goarch, ex.name)
 
 	if _, ok := ex.osarchs[curOSArch]; !ok {
 		l.Warnf("skip build %s under %s", ex.name, curOSArch)
@@ -117,29 +144,21 @@ func doBuildExternal(ex *dkexternal, dir, goos, goarch string, standalone bool) 
 		return nil
 	}
 
-	switch ex.name {
-	case "db2", "oracle":
-		if env := os.Getenv("ENABLE_DOCKER_BUILD_INPUTS"); len(env) == 0 {
-			l.Warnf("WARNING: skip build %s because env not specified!", ex.name)
-			return nil
-		}
+	// switch ex.name {
+	// case "db2", "oracle", "journald":
+	//	if env := os.Getenv("ENABLE_DOCKER_BUILD_INPUTS"); len(env) == 0 {
+	//		l.Warnf("WARNING: skip build %s because env not specified!", ex.name)
+	//		return nil
+	//	}
 
-		str, err := exec.LookPath("docker")
-		if err != nil {
-			l.Warnf("WARNING: skip build %s because docker is NOT exist!", ex.name)
-			return nil
-		}
+	//	str, err := exec.LookPath("docker")
+	//	if err != nil {
+	//		l.Warnf("WARNING: skip build %s because docker is NOT exist!", ex.name)
+	//		return nil
+	//	}
 
-		l.Infof("Found docker in %s", str)
-	}
-
-	if goarch != runtime.GOARCH {
-		switch ex.name { //nolint:gocritic
-		case "ebpf":
-			l.Warnf("skip, " + ex.name + " does not support cross compilation")
-			return nil
-		}
-	}
+	//	l.Infof("Found docker in %s", str)
+	//}
 
 	out := ex.name
 	if ex.out != "" {
@@ -154,128 +173,27 @@ func doBuildExternal(ex *dkexternal, dir, goos, goarch string, standalone bool) 
 	}
 
 	l.Info("lang = ", ex.lang)
-	switch strings.ToLower(ex.lang) {
-	case "go", "golang":
-		switch osarch {
-		case "windows/amd64", "windows/386":
-			out += ".exe"
-		default: // pass
+	switch {
+	case needContainerBuild(ex, envs):
+		if err := buildExternalInContainer(ex, outdir, out, goos, goarch); err != nil {
+			return err
 		}
-
-		args := []string{"go", "build"}
-		if len(tags) > 0 {
-			args = append(args, "-tags")
-			args = append(args, tags)
-		}
-
-		entryPath := filepath.Join("internal", "plugins", "externals", ex.name, ex.entry)
-		l.Infof("entryPath = %s", entryPath)
-
-		outPath := filepath.Join(outdir, out)
-		l.Infof("outPath = %s", outPath)
-
-		moreBuild := []string{
-			"-o", outPath,
-			"-ldflags",
-			"-w -s",
-			entryPath,
-		}
-		args = append(args, moreBuild...)
-
-		envs = append(envs, "GOOS="+goos, "GOARCH="+goarch) //nolint:makezero
-
-		switch ex.name {
-		case "db2", "oracle":
-			// x86
-			// docker run --rm \
-			//   --name $DOCKER_IMAGE_NAME \
-			//   -e BUILD_PROJECT=oceanbase \
-			//   -e BUILD_ARCH=amd64 \
-			//   -e BUILD_SOURCE=internal/plugins/externals/oceanbase/oceanbase.go \
-			//   -e BUILD_DEST=dist/datakit-linux-amd64/externals/oceanbase \
-			//   -v /root/gopath/src:/tmp/gopath/src \
-			//   $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG
-
-			// arm
-			//  docker run --rm \
-			//    --name $DOCKER_IMAGE_NAME \
-			//    -e BUILD_PROJECT=oceanbase \
-			//    -e BUILD_ARCH=arm64 \
-			//    -e BUILD_SOURCE=internal/plugins/externals/oceanbase/oceanbase.go \
-			//    -e BUILD_DEST=dist/datakit-linux-arm64/externals/oceanbase \
-			//    -v /root/gopath/src:/tmp/gopath/src \
-			//    $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG
-
-			wd, err := os.Getwd()
-			if err != nil {
-				l.Errorf("os.Getwd() failed: %v", err)
+		if ex.name == externalEBPFName {
+			if err := buildEBPFCollectorLocal(outdir, out, goos, goarch); err != nil {
 				return err
 			}
-			l.Infof("current directory: %s", wd)
-
-			projectPrefix := getProjectPrefix(wd)
-			if len(projectPrefix) == 0 {
-				l.Errorf("projectPrefix emptry")
-				return fmt.Errorf("path error")
-			}
-
-			distOut := getProjectSuffix(outPath)
-			if len(distOut) == 0 {
-				l.Errorf("distOut emptry")
-				return fmt.Errorf("path error")
-			}
-
-			if err := cleanDocker(); err != nil {
-				return err
-			}
-
-			args := []string{
-				"docker", "run", "--rm",
-				"--name", "builder-plus",
-				"-e", "BUILD_PROJECT=" + ex.name,
-				"-e", "BUILD_ARCH=" + goarch,
-				"-e", "BUILD_SOURCE=" + entryPath,
-				"-e", "BUILD_DEST=" + distOut,
-				"-v", projectPrefix + ":" + "/tmp/gopath/src",
-				"pubrepo.jiagouyun.com/image-repo-for-testing/builder-plus:1.1",
-			}
-			envs := []string{}
-			msg, err := runEnv(args, envs)
-			if err != nil {
-				return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s",
-					args, envs, err, string(msg))
-			}
-
-		default:
-			msg, err := runEnv(args, envs)
-			if err != nil {
-				return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s",
-					args, envs, err, string(msg))
-			}
 		}
 
-	case "makefile", "Makefile":
-		args := []string{
-			"make",
-			"-j8",
-			"--file=" + filepath.Join("internal", "plugins", "externals", ex.name, ex.entry),
-			"SRCPATH=" + "internal/plugins/externals/" + ex.name,
-			"OUTPATH=" + filepath.Join(outdir, out),
-			"ARCH=" + runtime.GOARCH,
-		}
-
-		envs = append(envs, "GOOS="+goos, "GOARCH="+goarch) //nolint:makezero
-		msg, err := runEnv(args, envs)
-		if err != nil {
-			return fmt.Errorf("failed to run %v, envs: %v: %w, msg: %s",
-				args, envs, err, string(msg))
+	case strings.EqualFold(ex.lang, "go") || strings.EqualFold(ex.lang, "golang"):
+		if err := buildExternalWithGo(ex, outdir, out, goos, goarch, envs); err != nil {
+			return err
 		}
 
 	default: // for python, just copy source code into build dir
 		buildArgs = append(buildArgs, filepath.Join(outdir, "externals")) //nolint:makezero
 		cmd := exec.Command(ex.buildCmd, buildArgs...)                    //nolint:gosec
 		if len(envs) > 0 {
-			cmd.Env = append(os.Environ(), envs...)
+			cmd.Env = envs
 		}
 
 		res, err := cmd.CombinedOutput()
@@ -286,6 +204,240 @@ func doBuildExternal(ex *dkexternal, dir, goos, goarch string, standalone bool) 
 	}
 
 	return nil
+}
+
+func buildEBPFCollectorLocal(outdir, out, goos, goarch string) error {
+	args, buildEnv := ebpfCollectorLocalBuildCommand(outdir, out, goos, goarch, time.Now().UTC())
+
+	msg, err := runEnv(args, buildEnv)
+	if err != nil {
+		return fmt.Errorf("failed to build external ebpf locally without cgo: %w, msg: %s", err, string(msg))
+	}
+
+	return nil
+}
+
+func ebpfCollectorLocalBuildCommand(outdir, out, goos, goarch string, buildAt time.Time) ([]string, []string) {
+	args := []string{
+		"go",
+		"build",
+		"-tags", "ebpf netgo",
+		"-buildvcs=false",
+		"-o", filepath.Join(outdir, out),
+		"-ldflags", fmt.Sprintf("-w -s -X 'main.Arch=%s/%s' -X 'main.Date=%s'",
+			goos, goarch, buildAt.UTC().Format(time.RFC3339)),
+		"internal/plugins/externals/ebpf/cmd/datakit-ebpf/datakit-ebpf.go",
+	}
+
+	buildEnv := []string{
+		"GO111MODULE=on",
+		fmt.Sprintf("GOOS=%s", goos),
+		fmt.Sprintf("GOARCH=%s", goarch),
+		"CGO_ENABLED=0",
+		"GOFLAGS=-mod=" + goModuleMode(),
+	}
+
+	return args, buildEnv
+}
+
+func needContainerBuild(ex *dkexternal, envs []string) bool {
+	if strings.EqualFold(ex.lang, "makefile") {
+		return true
+	}
+
+	return envValue(envs, "CGO_ENABLED") == "1"
+}
+
+func buildExternalWithGo(ex *dkexternal, outdir, out, goos, goarch string, envs []string) error {
+	args := []string{
+		"go",
+		"build",
+	}
+
+	if ex.tags != "" {
+		args = append(args, "-tags", ex.tags)
+	}
+
+	args = append(args,
+		"-buildvcs=false",
+		"-o", filepath.Join(outdir, out),
+		"-ldflags", "-w -s",
+		ex.entry,
+	)
+
+	buildEnv := append([]string{
+		"GO111MODULE=on",
+		fmt.Sprintf("GOOS=%s", goos),
+		fmt.Sprintf("GOARCH=%s", goarch),
+	}, envs...)
+
+	if envValue(buildEnv, "GOFLAGS") == "" {
+		buildEnv = append(buildEnv, "GOFLAGS=-mod=vendor")
+	}
+
+	msg, err := runEnv(args, buildEnv)
+	if err != nil {
+		return fmt.Errorf("failed to build external %s: %w, msg: %s", ex.name, err, string(msg))
+	}
+
+	return nil
+}
+
+func buildExternalInContainer(ex *dkexternal, outdir, out, goos, goarch string) error {
+	projectRoot, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("os.Getwd: %w", err)
+	}
+
+	outputDir, err := filepath.Abs(outdir)
+	if err != nil {
+		return fmt.Errorf("filepath.Abs(%q): %w", outdir, err)
+	}
+
+	var containerOutDir string
+	mountArgs := []string{"-v", projectRoot + ":/work"}
+	if rel, relErr := filepath.Rel(projectRoot, outputDir); relErr == nil && !strings.HasPrefix(rel, "..") {
+		containerOutDir = filepath.ToSlash(filepath.Join("/work", rel))
+	} else {
+		mountArgs = append(mountArgs, "-v", filepath.Dir(outputDir)+":/out")
+		containerOutDir = "/out"
+	}
+
+	dockerCmd, err := resolveDockerCmd()
+	if err != nil {
+		return err
+	}
+
+	platform := os.Getenv("DK_BUILD_DOCKER_PLATFORM")
+	if platform == "" {
+		platform = "linux/" + runtime.GOARCH
+	}
+
+	buildImage := os.Getenv("DK_BUILD_ENV_IMAGE")
+	if buildImage == "" {
+		return fmt.Errorf("DK_BUILD_ENV_IMAGE is required")
+	}
+
+	containerCmd := fmt.Sprintf(
+		"make --no-print-directory -C externals build_external_local "+
+			"EXTERNAL_NAME=%s EXTERNAL_GOOS=%s EXTERNAL_ARCH=%s "+
+			"EXTERNAL_OUTDIR=%s EXTERNAL_OUTPUT=%s GO_MODULE_MODE=%s%s%s",
+		shQuote(ex.name),
+		shQuote(goos),
+		shQuote(goarch),
+		shQuote(containerOutDir),
+		shQuote(out),
+		shQuote(goModuleMode()),
+		ebpfKernelArg(ex.name, goarch),
+		ebpfTargetArg(ex.name),
+	)
+
+	args := append([]string{}, dockerCmd...)
+	args = append(args,
+		"run", "--rm",
+		"--platform", platform,
+	)
+	args = append(args, mountArgs...)
+	args = append(args,
+		"-w", "/work",
+		buildImage,
+		"bash", "-lc", containerCmd,
+	)
+
+	msg, err := runEnv(args, nil)
+	if err != nil {
+		return fmt.Errorf("failed to build external %s in container: %w, msg: %s", ex.name, err, string(msg))
+	}
+
+	chownTargets := []string{containerOutDir}
+	if ex.name == externalEBPFName {
+		chownTargets = append(chownTargets, filepath.ToSlash(filepath.Join(
+			"/work",
+			"internal/plugins/externals/ebpf/internal/c/elf",
+			"linux_"+goarch,
+		)))
+	}
+
+	chownArgs := append([]string{}, dockerCmd...)
+	chownArgs = append(chownArgs,
+		"run", "--rm",
+		"--platform", platform,
+	)
+	chownArgs = append(chownArgs, mountArgs...)
+	chownArgs = append(chownArgs,
+		"-w", "/work",
+		buildImage,
+		"chown", "-R", fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid()),
+	)
+	chownArgs = append(chownArgs, chownTargets...)
+
+	_, _ = runEnv(chownArgs, nil)
+
+	return nil
+}
+
+func resolveDockerCmd() ([]string, error) {
+	if cmd := os.Getenv("DK_BUILD_DOCKER_CMD"); cmd != "" {
+		return strings.Fields(cmd), nil
+	}
+
+	candidates := [][]string{
+		{"docker"},
+		{"sudo", "-n", "docker"},
+	}
+
+	for _, candidate := range candidates {
+		args := append([]string{}, candidate...)
+		args = append(args, "info")
+		if _, err := runEnv(args, nil); err == nil {
+			return candidate, nil
+		}
+	}
+
+	return nil, fmt.Errorf("docker is not available for non-interactive use")
+}
+
+func goModuleMode() string {
+	if mode := os.Getenv("GO_MODULE_MODE"); mode != "" {
+		return mode
+	}
+
+	return "vendor"
+}
+
+func ebpfKernelArg(name, goarch string) string {
+	if name != externalEBPFName {
+		return ""
+	}
+
+	return " DK_BPF_KERNEL_SRC_PATH=" + shQuote("/usr/src/linux-headers-"+goarch)
+}
+
+func ebpfTargetArg(name string) string {
+	if name != externalEBPFName {
+		return ""
+	}
+
+	return " EXTERNAL_EBPF_TARGET='bpfobjs'"
+}
+
+func shQuote(s string) string {
+	if s == "" {
+		return "''"
+	}
+
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
+}
+
+func envValue(envs []string, key string) string {
+	prefix := key + "="
+	for _, env := range envs {
+		if strings.HasPrefix(env, prefix) {
+			return strings.TrimPrefix(env, prefix)
+		}
+	}
+
+	return ""
 }
 
 func BuidlExternals(dir, goos, goarch string, standalone bool) error {
@@ -315,36 +467,4 @@ func getProjectSuffix(str string) string {
 	}
 
 	return str[nIdx+len(projectName):]
-}
-
-func cleanDocker() error {
-	stopDocker()
-
-	rmDocker()
-
-	return nil
-}
-
-func stopDocker() {
-	args := []string{
-		"docker", "stop", "builder-plus",
-	}
-
-	msg, err := runEnv(args, os.Environ())
-	if err != nil && !strings.Contains(string(msg), "No such container") {
-		l.Info(string(msg))
-		l.Warnf("stop docker failed: %v", err)
-	}
-}
-
-func rmDocker() {
-	args := []string{
-		"docker", "rm", "builder-plus",
-	}
-
-	msg, err := runEnv(args, os.Environ())
-	if err != nil && !strings.Contains(string(msg), "No such container") {
-		l.Info(string(msg))
-		l.Warnf("rm docker failed: %v", err)
-	}
 }

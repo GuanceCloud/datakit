@@ -265,6 +265,66 @@ We take an `snmpd` service on Linux as an example to demonstrate how to collecti
     # v3_context_name      = "" # Optional
     ```
 
+## LLDP Network Topology Collection {#lldp-topology}
+
+DataKit supports collecting LLDP (Link Layer Discovery Protocol) neighbor information from network devices via SNMP protocol for automatic network topology construction.
+
+### What is LLDP {#what-is-lldp}
+
+LLDP is a standardized link-layer protocol that allows network devices (such as switches and routers) to broadcast their identity and capability information to directly connected neighbor devices. By collecting LLDP data, you can:
+
+- Automatically discover network topology relationships
+- Understand physical connection status between devices
+- Obtain neighbor device port, hostname, system description, and other information
+- Build visualized network topology diagrams
+
+### Enable LLDP Collection {#enable-lldp}
+
+Enable LLDP collection in DataKit's SNMP configuration:
+
+```toml
+[[inputs.snmp]]
+  ## Enable LLDP topology collection
+  enable_lldp = true
+
+  ## LLDP collection interval (optional, default 10 minutes)
+  lldp_interval = "10m"
+```
+
+### Device Configuration Requirements {#lldp-device-config}
+
+Network devices need to:
+
+- **Enable LLDP**
+
+- **Configure SNMP access to LLDP MIB**
+
+
+### Verify Configuration {#lldp-verify}
+
+**Verify LLDP neighbors on device:**
+
+```bash
+# Huawei device
+display lldp neighbor
+
+# Cisco device
+show lldp neighbor
+```
+
+**Verify SNMP can query LLDP data from DataKit host:**
+
+```bash
+# SNMPv2c verification
+snmpwalk -v2c -c [COMMUNITY_STRING] [DEVICE_IP] 1.0.8802.1.1.2.1.4.1
+
+# SNMPv3 verification
+snmpwalk -v3 -u [USERNAME] -l authPriv \
+  -a SHA -A [AUTH_PASSWORD] \
+  -x AES -X [PRIV_PASSWORD] \
+  [DEVICE_IP] 1.0.8802.1.1.2.1.4.1
+```
+
 ## Metric {#metric}
 
 For all of the following data collections, the global election tags will added automatically, we can add extra tags in `[inputs.{{.InputName}}.tags]` if needed:
@@ -310,6 +370,24 @@ For all of the following data collections, the global election tags will added a
 {{ end }}
 
 {{ end }}
+
+## Logging {#logging}
+
+<!-- markdownlint-disable MD024 -->
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "logging"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+{{$m.MarkdownTable}}
+{{end}}
+
+{{ end }}
+<!-- markdownlint-enable -->
+
 <!-- markdownlint-disable MD013 -->
 ## FAQ {#faq}
 

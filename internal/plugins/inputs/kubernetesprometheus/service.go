@@ -128,6 +128,7 @@ func (s *Service) process(ctx context.Context) bool {
 	}
 
 	klog.Infof("discovered Service %s", key)
+	s.terminateScrape(key)
 	s.startScrape(ctx, key, traits, svc)
 	return true
 }

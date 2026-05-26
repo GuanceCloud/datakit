@@ -38,6 +38,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/endpoint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 	dkMetrics "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -57,15 +58,13 @@ const (
 	defaultHTTPRetryCount      = 4
 	XDataKitVersionHeader      = "X-Datakit-Version"
 	timestampHeaderKey         = "X-Datakit-UnixNano"
+	defaultPyroscopeAPI        = "/ingest"
 	sampleConfig               = `
 [[inputs.pyroscope]]
   ## pyroscope Agent endpoints register by version respectively.
   ## Endpoints can be skipped listen by remove them from the list.
   ## Default value set as below. DO NOT MODIFY THESE ENDPOINTS if not necessary.
   endpoints = ["/ingest"]
-
-  ## set true to enable election, pull mode only
-  election = true
 
   ## the max allowed size of http request body (of MB), 32MB by default.
   body_size_limit_mb = 32 # MB
@@ -98,9 +97,8 @@ const (
 var (
 	log = logger.DefaultSLogger(inputName)
 
-	_ inputs.HTTPInput     = (*Input)(nil)
-	_ inputs.InputV2       = (*Input)(nil)
-	_ inputs.ElectionInput = (*Input)(nil)
+	_ inputs.HTTPInput = (*Input)(nil)
+	_ inputs.InputV2   = (*Input)(nil)
 
 	diskQueue          *diskcache.DiskCache
 	queueConsumerGroup *goroutine.Group
@@ -149,7 +147,7 @@ func defaultDiskCachePath() string {
 	return filepath.Join(datakit.CacheDir, defaultDiskCacheFileName)
 }
 
-func DefaultInput() *Input {
+func defaultInput() *Input {
 	return &Input{
 		BodySizeLimitMB: defaultPyroscopeMaxSize,
 		IOConfig: ioConfig{
@@ -161,18 +159,24 @@ func DefaultInput() *Input {
 			SendRetryCount:    defaultHTTPRetryCount,
 		},
 		GenerateMetrics: true,
-		pauseCh:         make(chan bool, inputs.ElectionPauseChannelLength),
-		Election:        true,
-		semStop:         cliutils.NewSem(),
-		feeder:          dkio.DefaultFeeder(),
-		Tagger:          datakit.DefaultGlobalTagger(),
-		httpClient:      http.DefaultClient,
+
+		semStop:    cliutils.NewSem(),
+		feeder:     dkio.DefaultFeeder(),
+		Tagger:     datakit.DefaultGlobalTagger(),
+		httpClient: http.DefaultClient,
 	}
 }
 
 func init() { //nolint:gochecknoinits
+	httpapi.RegInputHTTPRouteMatcher(func(method, path string) (string, bool) {
+		if method == http.MethodPost && path == defaultPyroscopeAPI {
+			return inputName, true
+		}
+		return "", false
+	})
+
 	inputs.Add(inputName, func() inputs.Input {
-		return DefaultInput()
+		return defaultInput()
 	})
 }
 
@@ -181,10 +185,8 @@ type Input struct {
 	BodySizeLimitMB int               `toml:"body_size_limit_mb"`
 	IOConfig        ioConfig          `toml:"io_config"`
 	Tags            map[string]string `toml:"tags"`
-	Election        bool              `toml:"election"`
 	GenerateMetrics bool              `toml:"generate_metrics"`
 
-	pauseCh           chan bool
 	profileSendingAPI *url.URL
 	httpClient        *http.Client
 	semStop           *cliutils.Sem // start stop signal
@@ -198,32 +200,6 @@ func (ipt *Input) GetBodySizeLimit() int64 {
 
 func (ipt *Input) getDiskCacheCapacity() int64 {
 	return int64(ipt.IOConfig.CacheCapacityMB) * MiB
-}
-
-func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
-}
-
-func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
-}
-
-func (ipt *Input) ElectionEnabled() bool {
-	return ipt.Election
 }
 
 func profilingProxyURL() (*url.URL, *http.Transport, error) {
@@ -671,7 +647,7 @@ func (ipt *Input) doSend(req *http.Request, body []byte, tags map[string]string)
 	)
 
 	defer func() {
-		dataway.APISumVec().WithLabelValues(req.URL.Path, statusCode).Observe(reqCost.Seconds())
+		endpoint.APISumVec().WithLabelValues(req.URL.Path, inputName, statusCode).Observe(reqCost.Seconds())
 	}()
 
 	reqStart := time.Now()
@@ -726,7 +702,7 @@ func (ipt *Input) doSend(req *http.Request, body []byte, tags map[string]string)
 
 		// Log IO retry metrics
 		if i > 0 {
-			dataway.HTTPRetry().WithLabelValues(req.URL.Path, statusCode).Inc()
+			endpoint.HTTPRetry().WithLabelValues(req.URL.Path, inputName, statusCode).Inc()
 		}
 
 		if sendErr != nil {
@@ -779,6 +755,7 @@ func (ipt *Input) InitDiskQueueIO() error {
 	}
 
 	dc, err := diskcache.Open(
+		diskcache.WithNoLock(datakit.Docker),
 		diskcache.WithPath(ipt.IOConfig.CachePath),
 		diskcache.WithCapacity(ipt.getDiskCacheCapacity()),
 		diskcache.WithNoFallbackOnError(true),

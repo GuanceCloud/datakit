@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -36,6 +37,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/endpoint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 	dkMetrics "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -44,17 +46,17 @@ import (
 )
 
 const (
-	MiB                        = 1 << 20 // 1MB
-	inputName                  = "profile"
-	defaultProfileMaxSize      = 32    // 32MB
-	defaultDiskCacheSize       = 10240 // 10240MB, 10GB
-	defaultDiskCacheFileName   = "profile_inputs"
-	defaultConsumeWorkersCount = 8
-	defaultHTTPClientTimeout   = time.Second * 75
-	defaultHTTPRetryCount      = 4
-	XDataKitVersionHeader      = "X-Datakit-Version"
-	timestampHeaderKey         = "X-Datakit-UnixNano"
-	sampleConfig               = `
+	MiB                      = 1 << 20 // 1MB
+	inputName                = "profile"
+	defaultProfileMaxSize    = 32    // 32MB
+	defaultDiskCacheSize     = 10240 // 10240MB, 10GB
+	defaultDiskCacheFileName = "profile_inputs"
+	defaultHTTPClientTimeout = time.Second * 75
+	defaultHTTPRetryCount    = 4
+	XDataKitVersionHeader    = "X-Datakit-Version"
+	timestampHeaderKey       = "X-Datakit-UnixNano"
+	defaultProfileAPI        = "/profiling/v1/input"
+	sampleConfig             = `
 [[inputs.profile]]
   ## profile Agent endpoints register by version respectively.
   ## Endpoints can be skipped listen by remove them from the list.
@@ -195,12 +197,11 @@ func DefaultInput() *Input {
 			CachePath:         defaultDiskCachePath(),
 			CacheCapacityMB:   defaultDiskCacheSize,
 			ClearCacheOnStart: false,
-			UploadWorkers:     defaultConsumeWorkersCount,
+			UploadWorkers:     datakit.AvailableCPUs,
 			SendTimeout:       defaultHTTPClientTimeout,
 			SendRetryCount:    defaultHTTPRetryCount,
 		},
 		GenerateMetrics: true,
-		pauseCh:         make(chan bool, inputs.ElectionPauseChannelLength),
 		Election:        true,
 		semStop:         cliutils.NewSem(),
 		feeder:          dkio.DefaultFeeder(),
@@ -210,6 +211,13 @@ func DefaultInput() *Input {
 }
 
 func init() { //nolint:gochecknoinits
+	httpapi.RegInputHTTPRouteMatcher(func(method, path string) (string, bool) {
+		if method == http.MethodPost && path == defaultProfileAPI {
+			return inputName, true
+		}
+		return "", false
+	})
+
 	inputs.Add(inputName, func() inputs.Input {
 		return DefaultInput()
 	})
@@ -225,8 +233,7 @@ type Input struct {
 	Election        bool              `toml:"election"`
 	GenerateMetrics bool              `toml:"generate_metrics"`
 
-	pause   bool
-	pauseCh chan bool
+	pause atomic.Bool
 
 	profileSendingAPI *url.URL
 	httpClient        *http.Client
@@ -245,25 +252,13 @@ func (ipt *Input) getDiskCacheCapacity() int64 {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func (ipt *Input) ElectionEnabled() bool {
@@ -411,7 +406,9 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 		return fmt.Errorf("unable to unmarshal profiling request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, ipt.profileSendingAPI.String(), bytes.NewReader(reqPB.Body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
+		ipt.profileSendingAPI.String(),
+		bytes.NewReader(reqPB.Body))
 	if err != nil {
 		return fmt.Errorf("unable to create http request: %w", err)
 	}
@@ -440,7 +437,13 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 	globalHostTags := datakit.GlobalHostTags()
 	language := metrics.ResolveLang(metadata)
 	if ipt.GenerateMetrics {
-		allCustomTags := make(map[string]string, len(ipt.Tags)+len(subCustomTags)+len(globalHostTags))
+		var (
+			start         = time.Now()
+			pts           []*point.Point
+			allCustomTags = make(map[string]string,
+				len(ipt.Tags)+len(subCustomTags)+len(globalHostTags))
+		)
+
 		// global host tags have the lowest priority.
 		for k, v := range globalHostTags {
 			allCustomTags[k] = v
@@ -451,18 +454,28 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 		for k, v := range subCustomTags {
 			allCustomTags[k] = v
 		}
+
 		switch language { // nolint:exhaustive
 		case metrics.Java:
-			if err = metrics.ExportJVMMetrics(req.MultipartForm.File, metadata, allCustomTags); err != nil {
+			if pts, err = metrics.ExtractJVMMetrics(req.MultipartForm.File, metadata, allCustomTags); err != nil {
 				log.Errorf("unable to export java ddtrace profiling metrics: %v", err)
 			}
 		case metrics.Golang:
-			if err = metrics.ExportGoMetrics(req.MultipartForm.File, metadata, allCustomTags); err != nil {
+			if pts, err = metrics.ExtractGoMetrics(req.MultipartForm.File, metadata, allCustomTags); err != nil {
 				log.Errorf("unable to export golang ddtrace profiling metrics: %v", err)
 			}
 		case metrics.Python:
-			if err = metrics.ExportPythonMetrics(req.MultipartForm.File, metadata, allCustomTags); err != nil {
+			if pts, err = metrics.ExtractPythonMetrics(req.MultipartForm.File, metadata, allCustomTags); err != nil {
 				log.Errorf("unable to export python ddtrace profiling metrics: %v", err)
+			}
+		}
+
+		if len(pts) > 0 {
+			if err := ipt.feeder.Feed(point.Metric, pts,
+				dkio.WithSource(dkio.FeedSource("profile", "extracted", "metrics")),
+				dkio.WithCollectCost(time.Since(start)),
+			); err != nil {
+				log.Warnf("feed: %s, ignored", err.Error())
 			}
 		}
 	}
@@ -524,7 +537,7 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 	)
 
 	defer func() {
-		dataway.APISumVec().WithLabelValues(req.URL.Path, statusCode).Observe(reqCost.Seconds())
+		endpoint.APISumVec().WithLabelValues(req.URL.Path, inputName, statusCode).Observe(reqCost.Seconds())
 	}()
 
 	reqStart := time.Now()
@@ -579,7 +592,7 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 
 		// Log IO retry metrics
 		if i > 0 {
-			dataway.HTTPRetry().WithLabelValues(req.URL.Path, statusCode).Inc()
+			endpoint.HTTPRetry().WithLabelValues(req.URL.Path, inputName, statusCode).Inc()
 		}
 
 		if sendErr != nil {
@@ -614,6 +627,14 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 
 // RegHTTPHandler simply proxy profiling request to dataway.
 func (ipt *Input) RegHTTPHandler() {
+	log = logger.SLogger(inputName)
+	log.Infof("the input %s is running...", inputName)
+
+	metrics.InitLog()
+
+	if err := ipt.InitDiskQueueIO(); err != nil {
+		log.Errorf("unable to start IO process for profiling: %s", err)
+	}
 	for _, endpoint := range ipt.Endpoints {
 		httpapi.RegHTTPHandler(http.MethodPost, endpoint, ipt.ServeHTTP)
 		log.Infof("pattern: %s registered", endpoint)
@@ -632,6 +653,8 @@ func (ipt *Input) InitDiskQueueIO() error {
 	}
 
 	dc, err := diskcache.Open(
+		// if running within docker, disable pid lock.
+		diskcache.WithNoLock(datakit.Docker),
 		diskcache.WithPath(ipt.IOConfig.CachePath),
 		diskcache.WithCapacity(ipt.getDiskCacheCapacity()),
 		diskcache.WithNoFallbackOnError(true),
@@ -686,6 +709,7 @@ func (ipt *Input) InitDiskQueueIO() error {
 							}
 							return
 						}
+						log.Debugf("got profiling data from disk cache: %d bytes", len(reqData))
 						if err := ipt.sendRequestToDW(ctx, reqData); err != nil {
 							log.Errorf("fail to send profiling data: %s", err)
 						}
@@ -698,15 +722,6 @@ func (ipt *Input) InitDiskQueueIO() error {
 }
 
 func (ipt *Input) Run() {
-	log = logger.SLogger(inputName)
-	log.Infof("the input %s is running...", inputName)
-
-	metrics.InitLog()
-
-	if err := ipt.InitDiskQueueIO(); err != nil {
-		log.Errorf("unable to start IO process for profiling: %s", err)
-	}
-
 	groupPull := goroutine.NewGroup(goroutine.Option{
 		Name: PullInputMode,
 		PanicCb: func(b []byte) bool {

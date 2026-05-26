@@ -107,12 +107,12 @@ interval = "2s"
 			service.SetAddress(ipt.Address)
 			service.Start()
 
-			rows, err := service.Query(fmt.Sprintf("create table %s(id int, primary key(id))", Table))
+			rows, err := service.Query(context.Background(), fmt.Sprintf("create table %s(id int, primary key(id))", Table))
 			if err != nil {
 				return err
 			}
 			rows.Close()
-			rows, err = service.Query(fmt.Sprintf("insert into %s(id) values(1)", Table))
+			rows, err = service.Query(context.Background(), fmt.Sprintf("insert into %s(id) values(1)", Table))
 			if err != nil {
 				return err
 			}
@@ -449,7 +449,7 @@ func buildCases(t *testing.T, configs []caseItem) ([]*caseSpec, error) {
 								t.Logf("service start error: %s", err.Error())
 								continue
 							}
-							rows, err := service.Query(fmt.Sprintf("create database %s", Database))
+							rows, err := service.Query(context.Background(), fmt.Sprintf("create database %s", Database))
 							if err != nil {
 								t.Logf("service check failed: %s, try again", err.Error())
 								continue

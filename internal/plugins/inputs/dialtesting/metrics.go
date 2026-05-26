@@ -9,6 +9,8 @@ import (
 	dt "github.com/GuanceCloud/cliutils/dialtesting"
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (
@@ -59,11 +61,7 @@ func metricsSetup() {
 			Name:      "pull_cost_seconds",
 			Help:      "Time cost to pull tasks",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"region", "is_first"},
 	)
@@ -95,11 +93,7 @@ func metricsSetup() {
 			Name:      "task_check_cost_seconds",
 			Help:      "Task check time",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"region", "protocol", "status"},
 	)
@@ -111,11 +105,7 @@ func metricsSetup() {
 			Name:      "task_run_cost_seconds",
 			Help:      "Task run time",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"region", "protocol"},
 	)
@@ -126,11 +116,7 @@ func metricsSetup() {
 			Name:      "task_exec_time_interval_seconds",
 			Help:      "Task execution time interval",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"region", "protocol"},
 	)
@@ -212,11 +198,7 @@ func metricsSetup() {
 			Name:      "worker_send_cost_seconds",
 			Help:      "Time cost to send points",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"region", "protocol"},
 	)

@@ -9,6 +9,7 @@
 package postgresql
 
 import (
+	"context"
 	"database/sql"
 	"reflect"
 	"testing"
@@ -64,7 +65,7 @@ func (m *MockCollectService) GetColumnMap(row scanner, columns []string) (map[st
 	return m.mockData, nil
 }
 
-func (m *MockCollectService) Query(query string, args ...any) (Rows, error) {
+func (m *MockCollectService) Query(_ context.Context, query string, args ...any) (Rows, error) {
 	if query == "-1" {
 		return nil, mockError{}
 	}
@@ -78,7 +79,7 @@ func (m *MockCollectService) GetConn(dbname string) (Conn, error) {
 	return nil, nil
 }
 
-func (m *MockCollectService) QueryByDatabase(query, database string) (Rows, error) {
+func (m *MockCollectService) QueryByDatabase(_ context.Context, query, database string) (Rows, error) {
 	rows := &MockCollectRows{
 		columnError: m.columnError,
 	}
@@ -99,7 +100,9 @@ func (m *MockCollectService) Start() error {
 	}
 	return nil
 }
-func (m *MockCollectService) SetAddress(address string) {}
+
+func (m *MockCollectService) SetAddress(address string)           {}
+func (m *MockCollectService) SetTimeout(timeout datakit.Duration) {}
 
 type MockCollectRows struct {
 	calledNext  bool
@@ -224,13 +227,22 @@ func TestInput(t *testing.T) {
 	input.initCfg()
 	sampleMeasurements := input.SampleMeasurement()
 	assert.Greater(t, len(sampleMeasurements), 0)
-	m, ok := sampleMeasurements[0].(*inputMeasurement)
+	m, ok := sampleMeasurements[0].(*postgresqlMeasurement)
 	if !ok {
-		t.Error("expect to be *inputMeasurement")
+		t.Error("expect to be *postgresqlMeasurement")
 		return
 	}
 
-	assert.Equal(t, m.Info().Name, inputName)
+	info := m.Info()
+	assert.Equal(t, info.Name, measurementPostgreSQL)
+	for _, fieldName := range []string{"total_calls", "delta_total_calls", "dbm_qps"} {
+		fieldInfo, ok := info.Fields[fieldName].(*inputs.FieldInfo)
+		assert.True(t, ok)
+		assert.Empty(t, fieldInfo.Taggedby)
+	}
+	callsFieldInfo, ok := info.Fields["calls"].(*inputs.FieldInfo)
+	assert.True(t, ok)
+	assert.ElementsMatch(t, []string{"db", "query_signature", "queryid", "rolname"}, callsFieldInfo.Taggedby)
 
 	assert.Equal(t, input.Catalog(), catalogName)
 	assert.Equal(t, input.SampleConfig(), sampleConfig)

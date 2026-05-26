@@ -69,16 +69,6 @@ ulimit = 64000
   websocket_server = "ws://localhost:8000/ws"
 
 ################################################
-# Upgrader 
-################################################
-[dk_upgrader]
-  # host address
-  host = "0.0.0.0"
-
-  # port number
-  port = 9542 
-
-################################################
 # Pipeline
 ################################################
 [pipeline]
@@ -133,8 +123,10 @@ ulimit = 64000
   public_apis = []
 
   # Datakit server-side timeout
-  timeout = "30s"
-  close_idle_connection = false
+  http_read_timeout      = "30s" # slow client send body timeout
+  http_read_head_timeout = "30s" # slow client send head timeout
+  http_write_timeout     = "30s" # slow client read-response timeout
+  http_idle_timeout      = "60s" # idle client connection timeout
 
   # API rate limit(QPS)
   request_rate_limit       = 100.0
@@ -215,6 +207,47 @@ ulimit = 64000
   ]
 
 ################################################
+# Aggregator configure(metric aggregation + tail sampling)
+################################################
+# Aggregator needs TWO files:
+# 1) aggr.toml           : metric aggregation rules
+# 2) tail-sampling.toml  : tracing/logging/rum tail-sampling rules
+#
+# Data flow order in IO:
+# - match aggregation rules first and send matched packages to /v1/aggregate
+# - then apply tail-sampling rules(tracing/logging/rum) and send to /v1/tail_sampling
+#
+# Quick start(local mode):
+# - keep use_local_config = true
+# - create/update these files:
+#   /usr/local/datakit/conf.d/aggr/aggr.toml
+#   /usr/local/datakit/conf.d/aggr/tail-sampling.toml
+#
+# Remote mode(use_local_config = false):
+# - DataKit pulls rule files from Dataway via:
+#   aggr=true and tail-sampling=true
+# - local files are ignored in this mode
+#
+# endpoints:
+# - optional downstream Dataway URLs with token query parameter
+# - if empty, DataKit reuses [dataway] URLs automatically
+#
+# max_raw_body_size:
+# - max package size before gzip
+# - priority:
+#   aggregator.max_raw_body_size > dataway.max_raw_body_size > default
+[aggregator]
+  #endpoints = [
+  #  "https://openway.example.com?token=<YOUR-WORKSPACE-TOKEN>",
+  #]
+  #max_raw_body_size = 1048576 # 1MB
+
+  use_local_config = true
+  local_config_dir = "/usr/local/datakit/conf.d/aggr"
+  local_metric_config_file = "aggr.toml"
+  local_tail_sampling_config_file = "tail-sampling.toml"
+
+################################################
 # Dataway configure
 ################################################
 [dataway]
@@ -240,9 +273,9 @@ ulimit = 64000
   # Format: "http(s)://IP:Port"
   http_proxy = ""
 
-  max_idle_conns   = 0       # limit idle TCP connections for HTTP request to Dataway
-  enable_httptrace = false   # enable trace HTTP metrics(connection/NDS/TLS and so on)
-  idle_timeout     = "90s"   # not-set, default 90s
+  max_idle_conns   = 0     # limit idle TCP connections for HTTP request to Dataway
+  enable_httptrace = true  # enable trace HTTP metrics(connection/NDS/TLS and so on)
+  idle_timeout     = "90s" # not-set, default 90s
 
   # HTTP body content type, other candidates are(case insensitive):
   #  - v1: line-protocol
@@ -257,9 +290,10 @@ ulimit = 64000
   max_raw_body_size = 1048576 # max body size(before gizp) in bytes
 
   # Customer tag or field keys that will extract from exist points
-  # to build the X-Global-Tags HTTP header value.
-  global_customer_keys = []
-  enable_sinker        = false # disable sinker
+  # to build the sinker HTTP header.
+  global_customer_keys  = []
+  enable_sinker         = false # disable sinker
+  # sinker_header_version = "v2" # v2 header will URL encode all sinker key/value
 
   # use dataway as NTP server
   [dataway.ntp]
@@ -278,7 +312,6 @@ ulimit = 64000
     #fail_cache_clean_interval = "30s" # duration for clean fail uploaded data
     #no_drop_categories = ["L"]        # category list that disable drop data when disk cache full
 
-
 ################################################
 # Datakit logging configure
 ################################################
@@ -286,6 +319,7 @@ ulimit = 64000
 
   # log path
   log = "/var/log/datakit/log"
+  error_log = "/var/log/datakit/error.log"
 
   # HTTP access log
   gin_log = "/var/log/datakit/gin.log"

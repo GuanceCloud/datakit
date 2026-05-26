@@ -1,0 +1,11 @@
+{
+  "resource": "/hello",
+  "path": "/hello",
+  "httpMethod": "GET",
+  "headers": {
+    "Host": "example.execute-api.us-east-1.amazonaws.com"
+  },
+  "requestContext": {
+    "requestId": "request-id"
+  }
+}

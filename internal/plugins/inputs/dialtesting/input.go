@@ -15,15 +15,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -31,12 +32,15 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/cliutils/system/rtpanic"
+
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpcli"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/endpoint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -44,7 +48,7 @@ var ( // type assertions
 	_          inputs.ReadEnv       = (*Input)(nil)
 	_          inputs.InputV2       = (*Input)(nil)
 	_          inputs.ElectionInput = (*Input)(nil)
-	g                               = datakit.G("inputs_dialtesting")
+	g                               = goroutine.G("inputs_dialtesting")
 	dialWorker *worker
 )
 
@@ -92,8 +96,7 @@ type Input struct {
 	Tags       map[string]string
 	RegionTags map[string]string
 
-	pause   bool
-	pauseCh chan bool
+	pause atomic.Bool
 
 	semStop              *cliutils.Sem // start stop signal
 	cli                  *http.Client  // class string
@@ -177,6 +180,7 @@ func (v *Variable) getTaskKey(ownerExternalID, externalID string) string {
 	return ownerExternalID + "-" + externalID
 }
 
+// updateVariableValue update variable value.
 func (v *Variable) updateVariableValue(variable dt.Variable, value string, failCount int) {
 	g.Go(func(ctx context.Context) error {
 		ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -390,6 +394,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&icmpMeasurement{},
 		&websocketMeasurement{},
 		&multiMeasurement{},
+		&grpcMeasurement{},
 	}
 }
 
@@ -478,7 +483,7 @@ func (ipt *Input) setupCli() {
 		if u, err := url.ParseRequestURI(proxy); err != nil {
 			l.Warnf("invalid http_proxy: %s", proxy)
 		} else {
-			if dataway.ProxyURLOK(u) {
+			if endpoint.ProxyURLOK(u) {
 				opt.ProxyURL = u
 			} else {
 				l.Warnf("invalid proxy URL: %s, ignored", u)
@@ -494,25 +499,13 @@ func (ipt *Input) ElectionEnabled() bool {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func (ipt *Input) Run() {
@@ -605,7 +598,7 @@ func (ipt *Input) doServerTask() {
 		ipt.variables.run()
 
 		for {
-			if !ipt.pause {
+			if !ipt.pause.Load() {
 				l.Debug("try pull tasks...")
 				startPullTime := time.Now()
 				j, err := ipt.pullTask()
@@ -640,7 +633,6 @@ func (ipt *Input) doServerTask() {
 				return
 
 			case <-tick.C:
-			case ipt.pause = <-ipt.pauseCh:
 			}
 		}
 	}
@@ -649,7 +641,7 @@ func (ipt *Input) doServerTask() {
 }
 
 func (ipt *Input) doLocalTask(path string) {
-	data, err := ioutil.ReadFile(filepath.Clean(path))
+	data, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
 		return
@@ -691,6 +683,8 @@ func (ipt *Input) newTaskRun(t dt.ITask) (*dialer, error) {
 	case dt.ClassICMP:
 		// TODO
 	case dt.ClassMulti:
+		// TODO
+	case dt.ClassGRPC:
 		// TODO
 	case dt.ClassOther:
 		// TODO
@@ -740,7 +734,7 @@ func protectedRun(d *dialer) {
 			}
 		}
 		if crashcnt > 0 {
-			d.updateCh = make(chan dt.ITask)
+			d.updateCh = make(chan dt.ITask, 1)
 		}
 
 		if err := d.run(); err != nil {
@@ -784,7 +778,13 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 	for k, arr := range resp.Content {
 		switch k {
 		case RegionInfo:
-			for k, v := range arr.(map[string]interface{}) {
+			regionInfo, ok := arr.(map[string]interface{})
+			if !ok {
+				l.Warnf("invalid region info: expect map[string]interface{}, got %T", arr)
+				continue
+			}
+
+			for k, v := range regionInfo {
 				switch v_ := v.(type) {
 				case bool:
 					if v_ {
@@ -867,6 +867,8 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 				ct = &dt.WebsocketTask{}
 			case dt.ClassICMP:
 				ct = &dt.ICMPTask{}
+			case dt.ClassGRPC:
+				ct = &dt.GRPCTask{}
 			case dt.ClassOther:
 				// TODO
 				l.Warnf("OTHER task deprecated, ignored")
@@ -1036,7 +1038,7 @@ func (ipt *Input) pullHTTPTask(reqURL *url.URL, sinceUs, variableSinceUs int64) 
 		return nil, 5, err
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		l.Errorf(`%s`, err.Error())
 		return nil, 0, err
@@ -1127,7 +1129,7 @@ func defaultInput() *Input {
 			updateVariableCh: make(chan dt.Variable, 100),
 		},
 		Election:                   false,
-		pauseCh:                    make(chan bool, inputs.ElectionPauseChannelLength),
+		pause:                      atomic.Bool{},
 		MaxJobChanNumber:           1000,
 		MaxCachePointsNumber:       10000,
 		DisableInternalNetworkTask: true,

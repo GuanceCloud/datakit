@@ -30,7 +30,22 @@ type BaseKey struct {
 }
 
 type aggKey struct {
-	BaseKey
+	sAddr [4]uint32
+	dAddr [4]uint32
+
+	sPort uint32
+	dPort uint32
+
+	transport string
+
+	dnatAddr [4]uint32
+	dnatPort uint32
+
+	pid   int
+	netns uint32
+
+	isIPv6 bool
+
 	sType string
 	dType string
 
@@ -42,51 +57,68 @@ type aggKey struct {
 type aggValue struct {
 	bytesRead    int64
 	bytesWritten int64
+	packetsRead  int64
+	packetsWrite int64
 
 	retransmits    int64
-	rtt            []int64
-	rttVar         []int64
+	rtt            int64
+	rttVar         int64
 	tcpClosed      int64
 	tcpEstablished int64
+	tcpConnects    int64
+	tcpFailures    int64
+	tcpCloseWait   int64
+	tcpLastAck     int64
+	tcpTimeWait    int64
 
 	count int
 }
 
-func calLatency(l []int64) int64 {
-	if len(l) == 0 {
+func avgLatency(total int64, count int) int64 {
+	if count == 0 {
 		return 0
-	} else {
-		t := int64(0)
-		for _, v := range l {
-			t += v
-		}
-		return t / int64(len(l))
 	}
+	return total / int64(count)
 }
 
 func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 	addTags map[string]string, k8sNetInfo *cli.K8sInfo,
 ) (*point.Point, error) {
+	baseKey := BaseKey{
+		SAddr:     U32BEToIP(key.sAddr, key.isIPv6).String(),
+		DAddr:     U32BEToIP(key.dAddr, key.isIPv6).String(),
+		SPort:     key.sPort,
+		DPort:     key.dPort,
+		Transport: key.transport,
+		DNATPort:  key.dnatPort,
+		PID:       key.pid,
+		NetNS:     strconv.FormatUint(uint64(key.netns), 10),
+	}
+	if key.dnatPort != 0 && (key.dnatAddr[0]|key.dnatAddr[1]|key.dnatAddr[2]|key.dnatAddr[3]) != 0 {
+		baseKey.DNATAddr = U32BEToIP(key.dnatAddr, key.isIPv6).String()
+	}
+
 	tags := map[string]string{
 		"family": key.family,
 
 		"direction": key.direction,
-		"transport": key.Transport,
+		"transport": baseKey.Transport,
 
-		"src_ip": key.SAddr,
-		"dst_ip": key.DAddr,
+		"src_ip": baseKey.SAddr,
+		"dst_ip": baseKey.DAddr,
 
 		"src_ip_type": key.sType,
 		"dst_ip_type": key.dType,
 
-		"pid": strconv.FormatInt(int64(key.PID), 10),
-
-		"netns": key.NetNS,
+		"netns": baseKey.NetNS,
 	}
 
-	if key.DNATAddr != "" && key.DNATPort != 0 {
-		tags["dst_nat_ip"] = key.DNATAddr
-		tags["dst_nat_port"] = strconv.FormatInt(int64(key.DNATPort), 10)
+	if baseKey.DNATAddr != "" && baseKey.DNATPort != 0 {
+		tags["dst_nat_ip"] = baseKey.DNATAddr
+		tags["dst_nat_port"] = strconv.FormatInt(int64(baseKey.DNATPort), 10)
+		l.Debugf("netflow NAT point: dst=%s:%d nat=%s:%d transport=%s pid=%d netns=%s",
+			baseKey.DAddr, baseKey.DPort, baseKey.DNATAddr, baseKey.DNATPort,
+			baseKey.Transport, baseKey.PID, baseKey.NetNS)
 	} else {
 		tags["dst_nat_ip"] = NoValue
 		tags["dst_nat_port"] = NoValue
@@ -94,20 +126,22 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 
 	tags["process_name"] = key.processName
 
-	if key.SPort == math.MaxUint32 {
+	if baseKey.SPort == math.MaxUint32 {
 		tags["src_port"] = "*"
 	} else {
-		tags["src_port"] = strconv.Itoa(int(key.SPort))
+		tags["src_port"] = strconv.Itoa(int(baseKey.SPort))
 	}
 
-	if key.DPort == math.MaxUint32 {
+	if baseKey.DPort == math.MaxUint32 {
 		tags["dst_port"] = "*"
 	} else {
-		tags["dst_port"] = strconv.Itoa(int(key.DPort))
+		tags["dst_port"] = strconv.Itoa(int(baseKey.DPort))
 	}
 
-	if dnsRecord != nil {
-		tags["dst_domain"] = dnsRecord.LookupAddr(key.DAddr)
+	if domain := LookupPeerDomain(baseKey.DAddr, baseKey.DPort, baseKey.Transport, baseKey.NetNS); domain != "" {
+		tags["dst_domain"] = domain
+	} else if dnsRecord != nil {
+		tags["dst_domain"] = dnsRecord.LookupAddr(baseKey.DAddr)
 	}
 
 	for k, v := range addTags {
@@ -118,24 +152,33 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 
 	var fields map[string]any
 
-	if key.Transport == transportTCP {
+	if baseKey.Transport == transportTCP {
 		fields = map[string]any{
-			"bytes_read":      value.bytesRead,
-			"bytes_written":   value.bytesWritten,
-			"retransmits":     value.retransmits,
-			"rtt":             calLatency(value.rtt),
-			"rtt_var":         calLatency(value.rttVar),
-			"tcp_closed":      value.tcpClosed,
-			"tcp_established": value.tcpEstablished,
+			"bytes_read":           value.bytesRead,
+			"bytes_written":        value.bytesWritten,
+			"packets_read":         value.packetsRead,
+			"packets_written":      value.packetsWrite,
+			"retransmits":          value.retransmits,
+			"rtt":                  avgLatency(value.rtt, value.count),
+			"rtt_var":              avgLatency(value.rttVar, value.count),
+			"tcp_closed":           value.tcpClosed,
+			"tcp_established":      value.tcpEstablished,
+			"tcp_connect_attempts": value.tcpConnects,
+			"tcp_connect_failures": value.tcpFailures,
+			"tcp_close_wait":       value.tcpCloseWait,
+			"tcp_last_ack":         value.tcpLastAck,
+			"tcp_time_wait":        value.tcpTimeWait,
 		}
 	} else {
 		fields = map[string]any{
-			"bytes_read":    value.bytesRead,
-			"bytes_written": value.bytesWritten,
+			"bytes_read":      value.bytesRead,
+			"bytes_written":   value.bytesWritten,
+			"packets_read":    value.packetsRead,
+			"packets_written": value.packetsWrite,
 		}
 	}
 
-	tags = AddK8sTags2Map(k8sNetInfo, &key.BaseKey, tags)
+	tags = AddK8sTags2Map(k8sNetInfo, &baseKey, tags)
 
 	tags, fields = AddClientServerInf(tags, fields)
 
@@ -191,49 +234,39 @@ func (agg *FlowAgg) Append(info ConnectionInfo, stats ConnFullStats) error {
 	}
 
 	// saddr, daddr
-	key.SAddr = U32BEToIP(info.Saddr, isV6).String()
-	key.DAddr = U32BEToIP(info.Daddr, isV6).String()
+	key.isIPv6 = isV6
+	key.sAddr = info.Saddr
+	key.dAddr = info.Daddr
 	if info.NATDport != 0 && (info.NATDaddr[0]|
 		info.NATDaddr[1]|info.NATDaddr[2]|info.NATDaddr[3]) != 0 {
-		key.DNATPort = info.NATDport
-		key.DNATAddr = U32BEToIP(info.NATDaddr, isV6).String()
+		key.dnatPort = info.NATDport
+		key.dnatAddr = info.NATDaddr
 	}
 
-	key.NetNS = strconv.FormatUint(uint64(info.Netns), 10)
+	key.netns = info.Netns
 	// sport, dport
-	key.SPort = info.Sport
-	key.DPort = info.Dport
+	key.sPort = info.Sport
+	key.dPort = info.Dport
 
 	// transport
 	if ConnProtocolIsTCP(info.Meta) {
-		key.Transport = transportTCP
+		key.transport = transportTCP
 	} else {
-		key.Transport = transportUDP
+		key.transport = transportUDP
 	}
 
 	// direction
 	key.direction = ConnDirection2Str(stats.Stats.Direction)
 
 	key.processName = info.ProcessName
+	key.pid = int(info.Pid)
 
-	if IsIncomingFromK8s(k8sNetInfo, key.PID, key.SAddr,
-		key.SPort, key.Transport) {
+	if k8sNetInfo != nil && IsIncomingFromK8s(k8sNetInfo, key.pid, U32BEToIP(key.sAddr, key.isIPv6).String(),
+		key.sPort, key.transport) {
 		key.direction = DirectionIncoming
 	}
 
-	switch key.direction {
-	case DirectionOutgoing:
-		if IsEphemeralPort(key.SPort) {
-			key.SPort = math.MaxUint32
-		}
-	case DirectionIncoming:
-		if IsEphemeralPort(key.DPort) {
-			key.DPort = math.MaxUint32
-		}
-	}
-
-	// pid
-	key.PID = int(info.Pid)
+	key.direction, key.sPort, key.dPort = NormalizeDirectionAndPorts(key.direction, key.sPort, key.dPort)
 
 	var value *aggValue
 	// agg latency and count ++
@@ -249,13 +282,20 @@ func (agg *FlowAgg) Append(info ConnectionInfo, stats ConnFullStats) error {
 
 	value.bytesRead += int64(stats.Stats.RecvBytes)
 	value.bytesWritten += int64(stats.Stats.SentBytes)
+	value.packetsRead += int64(stats.Stats.RecvPackets)
+	value.packetsWrite += int64(stats.Stats.SentPackets)
 
-	if key.Transport == transportTCP {
-		value.rtt = append(value.rtt, int64(stats.TCPStats.Rtt))
-		value.rttVar = append(value.rttVar, int64(stats.TCPStats.RttVar))
+	if key.transport == transportTCP {
+		value.rtt += int64(stats.TCPStats.Rtt)
+		value.rttVar += int64(stats.TCPStats.RttVar)
 		value.retransmits += int64(stats.TCPStats.Retransmits)
 		value.tcpClosed += stats.TotalClosed
 		value.tcpEstablished += stats.TotalEstablished
+		value.tcpConnects += int64(stats.TCPStats.ConnectAttempts)
+		value.tcpFailures += int64(stats.TCPStats.ConnectFailures)
+		value.tcpCloseWait += int64(stats.TCPStats.CloseWait)
+		value.tcpLastAck += int64(stats.TCPStats.LastAck)
+		value.tcpTimeWait += int64(stats.TCPStats.TimeWait)
 	}
 
 	return nil
@@ -264,7 +304,7 @@ func (agg *FlowAgg) Append(info ConnectionInfo, stats ConnFullStats) error {
 func (agg *FlowAgg) ToPoint(tags map[string]string,
 	k8sInfo *cli.K8sInfo,
 ) []*point.Point {
-	var result []*point.Point
+	result := make([]*point.Point, 0, len(agg.data))
 
 	pTime := ntp.Now()
 	for k, v := range agg.data {

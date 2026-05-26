@@ -16,12 +16,59 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 )
+
+func defaultInputEx() *Input {
+	ipt := &Input{
+		EnableCollect:      true,
+		URL:                "http://127.0.0.1:80/-/metrics",
+		Interval:           "10s",
+		EnableCIVisibility: true,
+		Tags:               make(map[string]string),
+		CIExtraTags:        make(map[string]string),
+		HTTPHeaders:        make(map[string]string),
+		Election:           false,
+		semStop:            cliutils.NewSem(),
+		reqMemo: requestMemo{
+			memoMap:     make(map[[16]byte]time.Time),
+			hasReqCh:    make(chan hasRequest),
+			addReqCh:    make(chan [16]byte),
+			removeReqCh: make(chan [16]byte),
+			semStop:     cliutils.NewSem(),
+		},
+		feeder: &MockedFeederEmpty{},
+	}
+
+	// Initialize Tagger with a mock implementation
+	ipt.Tagger = &mockTagger{}
+
+	return ipt
+}
+
+// mockTagger is a mock implementation of GlobalTagger for testing
+type mockTagger struct{}
+
+func (m *mockTagger) HostTags() map[string]string {
+	return map[string]string{}
+}
+
+func (m *mockTagger) ElectionTags() map[string]string {
+	return map[string]string{}
+}
+
+func (m *mockTagger) Updated() bool {
+	return false
+}
+
+func (m *mockTagger) UpdateVersion() {
+	// Do nothing
+}
 
 const (
 	pipelineJson1 = `
@@ -753,7 +800,7 @@ func TestAddExtraTags(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ipt := defaultInput()
+			ipt := defaultInputEx()
 			ipt.CIExtraTags = tc.extra
 			tags := tc.existing
 			ipt.addExtraTags(tags)
@@ -763,7 +810,7 @@ func TestAddExtraTags(t *testing.T) {
 }
 
 func getInput(expired time.Duration) *Input {
-	ipt := defaultInput()
+	ipt := defaultInputEx()
 	ipt.feeder = NewMockedFeederEmpty()
 	go ipt.reqMemo.memoMaintainer(expired)
 	return ipt
@@ -829,6 +876,9 @@ func NewMockedFeederEmpty() *MockedFeederEmpty {
 func (f *MockedFeederEmpty) FeedLastError(err string, opts ...metrics.LastErrorOption) {}
 
 func (f *MockedFeederEmpty) Feed(cat point.Category, pts []*point.Point, opts ...io.FeedOption) error {
+	if f.ch != nil {
+		f.ch <- pts
+	}
 	return nil
 }
 func (f *MockedFeederEmpty) UpdateVersion() {}

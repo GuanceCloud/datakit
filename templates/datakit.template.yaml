@@ -25,7 +25,7 @@ rules:
 - apiGroups: ["monitoring.coreos.com"]
   resources: ["podmonitors", "servicemonitors"]
   verbs: ["get", "list", "watch"]
-- apiGroups: ["logging.datakit.io"]
+- apiGroups: ["logging.datakits.io"]
   resources: ["clusterloggingconfigs"]
   verbs: ["get", "list", "watch"]
 - apiGroups: ["metrics.k8s.io"]
@@ -103,6 +103,24 @@ spec:
     metadata:
       labels:
         app: daemonset-datakit
+      annotations:
+        datakit/logs: |
+          [
+            {
+              "disable":       true,
+              "type":          "file",
+              "path":          "/var/log/datakit/log",
+              "source":        "datakit",
+              "storage_index": ""
+            },
+            {
+              "disable":       true,
+              "type":          "file",
+              "path":          "/var/log/datakit/gin.log",
+              "source":        "datakit-gin",
+              "storage_index": ""
+            }
+          ]
     spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
@@ -215,19 +233,20 @@ spec:
           name: debugfs
         - mountPath: /var/lib/containerd/container_logs
           name: container-logs
+          mountPropagation: HostToContainer
         # # ---iploc-start
         #- mountPath: /usr/local/datakit/data/ipdb/iploc/
         #  name: datakit-ipdb
         # # ---iploc-end
-        #- mountPath: /usr/local/datakit/conf.d/db/mysql.conf
+        #- mountPath: /usr/local/datakit/conf.d/mysql.conf
         #  name: datakit-conf
         #  subPath: mysql.conf
         #  readOnly: true
-        #- mountPath: /usr/local/datakit/conf.d/db/redis.conf
+        #- mountPath: /usr/local/datakit/conf.d/redis.conf
         #  name: datakit-conf
         #  subPath: redis.conf
         #  readOnly: true
-        # - mountPath: /usr/local/datakit/conf.d/pythond/pythond.conf
+        # - mountPath: /usr/local/datakit/conf.d/pythond.conf
         #   name: datakit-conf
         #   subPath: pythond.conf
         #   readOnly: true

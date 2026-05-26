@@ -319,13 +319,13 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 		feeder := io.NewMockedFeeder()
 
 		ipt := defaultInput()
-		ipt.JolokiaAgent.Feeder = feeder
+		ipt.Feeder = feeder
 
 		_, err := toml.Decode(base.conf, ipt)
 		require.NoError(t, err)
 
-		if ipt.JolokiaAgent.Election {
-			ipt.JolokiaAgent.Tagger = testutils.NewTaggerElection()
+		if ipt.Election {
+			ipt.Tagger = testutils.NewTaggerElection()
 		} else {
 			ipt.Tagger = testutils.NewTaggerHost()
 		}

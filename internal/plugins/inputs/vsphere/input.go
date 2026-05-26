@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
@@ -21,7 +22,6 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/confd/log"
-	"github.com/vmware/govmomi/event"
 	"github.com/vmware/govmomi/performance"
 	"github.com/vmware/govmomi/vim25/types"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -43,8 +43,10 @@ var (
 )
 
 const (
-	maxInterval = 1 * time.Minute
-	minInterval = 1 * time.Second
+	maxInterval             = 1 * time.Minute
+	minInterval             = 1 * time.Second
+	eventInitLookback       = time.Hour
+	eventCursorSafetyWindow = time.Minute
 )
 
 type Input struct {
@@ -91,11 +93,12 @@ type Input struct {
 	HistoricalInterval      datakit.Duration `toml:"historical_interval"`
 	ObjectDiscoveryInterval datakit.Duration `toml:"object_discovery_interval"`
 
-	Tags           map[string]string `toml:"tags"`
-	client         *Client
-	tail           *tailer.Tailer
-	pause          bool
-	pauseCh        chan bool
+	Tags   map[string]string `toml:"tags"`
+	client *Client
+	tail   *tailer.Tailer
+
+	pause atomic.Bool
+
 	semStop        *cliutils.Sem // start stop signal
 	feeder         dkio.Feeder
 	collectCache   []*point.Point
@@ -175,10 +178,9 @@ func (ipt *Input) startDiscovery() error {
 				case <-ipt.semStop.Wait():
 					return nil
 				case <-ticker.C:
-				case ipt.pause = <-ipt.pauseCh:
 				}
 
-				if !ipt.pause {
+				if !ipt.pause.Load() {
 					if err := ipt.client.discover(context.Background()); err != nil {
 						l.Errorf("failed to discover: %w", err)
 					}
@@ -222,34 +224,42 @@ func (ipt *Input) Collect() error {
 // collectResourceEvent collects events from vcenter.
 func (ipt *Input) collectResourceEvent(resourceType string) {
 	client := ipt.client
+	client.collectMux.RLock()
+	defer client.collectMux.RUnlock()
+
 	res := client.resourceKinds[resourceType]
-	eventManager := event.NewManager(client.Client.Client)
 
 	pts := []*point.Point{}
 	for _, obj := range res.objects {
-		latestTime := ipt.ptsTime
+		beginTime := ipt.ptsTime.Add(-eventInitLookback)
 		if obj.lastLogTime == nil {
 			obj.lastLogTime = make(map[string]time.Time)
 		} else if t, exists := obj.lastLogTime[resourceType]; exists {
-			latestTime = t
+			beginTime = t
 		}
 
 		filter := types.EventFilterSpec{}
 		filter.Time = &types.EventFilterSpecByTime{
-			BeginTime: &latestTime,
+			BeginTime: &beginTime,
 		}
 		filter.Entity = &types.EventFilterSpecByEntity{
 			Entity:    obj.ref,
 			Recursion: types.EventFilterSpecRecursionOptionAll,
 		}
 
-		events, err := eventManager.QueryEvents(context.Background(), filter)
+		events, err := client.QueryEvents(context.Background(), filter)
 		if err != nil {
 			l.Errorf("Error querying events for %s,  %s: %s", resourceType, obj.name, err.Error())
 			continue
 		}
 
+		nextTime := ntp.Now().Add(-eventCursorSafetyWindow)
+		if nextTime.Before(beginTime) {
+			nextTime = beginTime
+		}
+
 		if len(events) == 0 {
+			obj.lastLogTime[resourceType] = nextTime
 			continue
 		}
 
@@ -262,47 +272,15 @@ func (ipt *Input) collectResourceEvent(resourceType string) {
 				}
 				client.populateTags(obj, res, tags, performance.MetricSeries{})
 
-				m := &Log{
-					source:   EventMeasurementName,
-					tags:     tags,
-					election: ipt.Election,
-				}
-
-				pt := m.Point()
-
-				if eventEx, ok := e.(*types.EventEx); ok {
-					pt.AddTag(EventTypeID, eventEx.EventTypeId)
-					pt.AddTag(ObjectName, eventEx.ObjectName)
-					switch eventEx.Severity {
-					case Warning:
-						pt.SetTag(Status, Warning)
-					case Error:
-						pt.SetTag(Status, Error)
-					}
-				}
-
-				pt.SetTag(Status, Info)
-				pt.AddTag(ObjectName, obj.name)
-				pt.AddTag(EventTypeID, fmt.Sprintf("%T", e))
-				pt.AddTag(UserName, event.UserName)
-				pt.SetTime(event.CreatedTime)
-				pt.Add(ChangeTag, event.ChangeTag)
-				pt.Add(ChainID, event.ChainId)
-				pt.Add(Message, event.FullFormattedMessage)
-				pt.Add(EventKey, event.Key)
-				if event.CreatedTime.After(latestTime) {
-					latestTime = event.CreatedTime
-				}
-
-				// custom tags
-				for k, v := range ipt.Tags {
-					pt.AddTag(k, v)
+				pt := makeEventPoint(e, obj.name, tags, ipt.Tags, ipt.Election)
+				if event.CreatedTime.After(nextTime) {
+					nextTime = event.CreatedTime
 				}
 
 				pts = append(pts, pt)
 			}
 		}
-		obj.lastLogTime[resourceType] = latestTime
+		obj.lastLogTime[resourceType] = nextTime
 	}
 
 	if len(pts) > 0 {
@@ -312,12 +290,63 @@ func (ipt *Input) collectResourceEvent(resourceType string) {
 	}
 }
 
+func makeEventPoint(
+	e types.BaseEvent,
+	objName string,
+	tags map[string]string,
+	customTags map[string]string,
+	election bool,
+) *point.Point {
+	event := e.GetEvent()
+	m := &Log{
+		source:   EventMeasurementName,
+		tags:     tags,
+		election: election,
+	}
+
+	pt := m.Point()
+	pt.SetTag(Status, Info)
+	pt.AddTag(ObjectName, objName)
+	pt.AddTag(EventTypeID, fmt.Sprintf("%T", e))
+	pt.AddTag(UserName, event.UserName)
+	pt.SetTime(event.CreatedTime)
+	pt.Add(ChangeTag, event.ChangeTag)
+	pt.Add(ChainID, event.ChainId)
+	pt.Add(Message, event.FullFormattedMessage)
+	pt.Add(EventKey, event.Key)
+
+	if eventEx, ok := e.(*types.EventEx); ok {
+		if eventEx.EventTypeId != "" {
+			pt.SetTag(EventTypeID, eventEx.EventTypeId)
+		}
+		if eventEx.ObjectName != "" {
+			pt.SetTag(ObjectName, eventEx.ObjectName)
+		}
+		switch eventEx.Severity {
+		case Warning:
+			pt.SetTag(Status, Warning)
+		case Error:
+			pt.SetTag(Status, Error)
+		}
+	}
+
+	for k, v := range customTags {
+		pt.AddTag(k, v)
+	}
+
+	return pt
+}
+
 func (ipt *Input) collectResourceObject(resourceType string) {
 	client := ipt.client
+	client.collectMux.RLock()
+	defer client.collectMux.RUnlock()
+
 	res := client.resourceKinds[resourceType]
+
 	pts := []*point.Point{}
 	for _, obj := range res.objects {
-		tags, fields := obj.objectTags, obj.objectFields
+		tags, fields := cloneStringMap(obj.objectTags), cloneInterfaceMap(obj.objectFields)
 
 		if len(tags) == 0 && len(fields) == 0 {
 			continue
@@ -351,9 +380,34 @@ func (ipt *Input) collectResourceObject(resourceType string) {
 	}
 }
 
+func cloneStringMap(src map[string]string) map[string]string {
+	if src == nil {
+		return map[string]string{}
+	}
+	dst := make(map[string]string, len(src))
+	for k, v := range src {
+		dst[k] = v
+	}
+	return dst
+}
+
+func cloneInterfaceMap(src map[string]interface{}) map[string]interface{} {
+	if src == nil {
+		return nil
+	}
+	dst := make(map[string]interface{}, len(src))
+	for k, v := range src {
+		dst[k] = v
+	}
+	return dst
+}
+
 func (ipt *Input) collectResource(resourceType string) {
 	ctx := context.Background()
 	client := ipt.client
+	client.collectMux.RLock()
+	defer client.collectMux.RUnlock()
+
 	res := client.resourceKinds[resourceType]
 
 	maxMetrics := ipt.MaxQueryMetrics
@@ -521,17 +575,13 @@ func (ipt *Input) collectResourcePoints(specs queryChunk, res *resourceKind, int
 					buckets[bKey] = bucket
 				}
 
-				// Percentage values must be scaled down by 100.
-				info, ok := metricInfo[name]
+				v := alignedValues[idx]
+				v, ok = scaleMetricValue(metricInfo, name, v)
 				if !ok {
 					l.Errorf("Could not determine unit for %s. Skipping", name)
+					continue
 				}
-				v := alignedValues[idx]
-				if info.UnitInfo.GetElementDescription().Key == "percent" {
-					bucket.fields[fn] = v / 100.0
-				} else {
-					bucket.fields[fn] = v
-				}
+				bucket.fields[fn] = v
 				count++
 			}
 			if nValues == 0 {
@@ -545,6 +595,20 @@ func (ipt *Input) collectResourcePoints(specs queryChunk, res *resourceKind, int
 	if latestSample.After(res.latestSample) && !latestSample.IsZero() {
 		res.latestSample = latestSample
 	}
+}
+
+func scaleMetricValue(metricInfo map[string]*types.PerfCounterInfo, name string, value float64) (float64, bool) {
+	info, ok := metricInfo[name]
+	if !ok || info == nil || info.UnitInfo == nil {
+		return 0, false
+	}
+
+	// Percentage values must be scaled down by 100.
+	if info.UnitInfo.GetElementDescription().Key == "percent" {
+		return value / 100.0, true
+	}
+
+	return value, true
 }
 
 func (ipt *Input) makePoints(buckets map[string]metricEntry) {
@@ -603,14 +667,13 @@ func (ipt *Input) Run() {
 
 			return
 		case <-tick.C:
-		case ipt.pause = <-ipt.pauseCh:
 		}
 	}
 
 	ipt.ptsTime = ntp.Now()
 
 	for {
-		if !ipt.pause {
+		if !ipt.pause.Load() {
 			collectStart := time.Now()
 			l.Debugf("vsphere input gathering...")
 
@@ -683,7 +746,6 @@ func (ipt *Input) Run() {
 			return
 		case tt := <-tick.C:
 			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.Interval.Duration)
-		case ipt.pause = <-ipt.pauseCh:
 		}
 	}
 }
@@ -695,35 +757,18 @@ func (ipt *Input) ElectionEnabled() bool {
 func (ipt *Input) setup() {
 	l = logger.SLogger(inputName)
 
-	ipt.pauseCh = make(chan bool, inputs.ElectionPauseChannelLength)
+	ipt.pause = atomic.Bool{}
 	ipt.semStop = cliutils.NewSem()
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-
-	case <-datakit.Exit.Wait():
-		log.Info("pause vsphere interrupted by global exit.")
-		return nil
-
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func (ipt *Input) exit() {

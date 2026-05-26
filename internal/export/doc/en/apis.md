@@ -154,6 +154,16 @@ The complete description of URL parameters is as follows:
 
 The HTTP body supports the line protocol and two JSON forms.
 
+<!-- markdownlint-disable MD046 -->
+???+ info
+
+    For different data types (metrics/logs and all other types), the following top-level field definitions in the HTTP body are consistent.
+
+    In simple JSON, regardless of whether it is a metric or a log, the top-level fields are always `measurement/tags/fields/time`. The `source` of a log commonly seen on the studio page is actually the `measurement` here. In short, the body defined here is merely the protocol encapsulation, while the field names seen on the studio page have undergone certain transformations targeting different data attributes.
+
+    In PBJSON, for different data types, the top-level fields are all the same, namely `name/fields/time`, where the `name` field is ultimately mapped to `measurement` in metrics and `source` in logs.
+<!-- markdownlint-enable -->
+
 ##### Line Protocol Body {#api-v1-write-body-line-protocol}
 
 The form of a single line protocol is as follows:
@@ -304,11 +314,12 @@ The structure of a single field is as follows:
 
 ```json
 {
-  "key"    : "field-name",        // Field name (required)
-  "x"      : <value>,             // Field value, and its type depends on x (required)
-  "type"   : "<COUNT/GAUGE/...>", // Metric type (optional)
-  "unit"   : "<kb/s/...>",         // Metric unit (optional)
-  "is_tag" : true/false           // Whether it is a tag (optional)
+  "key"           : "field-name",        // Field name (required)
+  "x"             : <value>,             // Field value, and its type depends on x (required)
+  "type"          : "<COUNT/GAUGE/...>", // Metric type (optional)
+  "unit"          : "<kb/s/...>",        // Metric unit (optional)
+  "description"   : "<Metric Desc>"      // Metric description  (optional)
+  "is_tag"        : true/false           // Whether it is a tag (optional)
 }
 ```
 
@@ -368,7 +379,8 @@ The following is a specific JSON example:
         "key": "large-bytes",
         "u": "1234567890",
         "type": "COUNT",
-        "unit": "kb"
+        "unit": "kb",
+        "description": "desc of this metric"
       },
       {
         "key": "some-tag",
@@ -1235,7 +1247,7 @@ Parameter description:
  | Name                     | Required Parameter | Description                                                                                                                                                                                                                                                                                                                                                  |
  | :---                     | ---                | ---                                                                                                                                                                                                                                                                                                                                                          |
  | `queries`                | Y                  | Basic query module, including query statements and various additional parameters                                                                                                                                                                                                                                                                             |
- | `query`                  | Y                  | DQL query statement (DQL [Documentation](../dql/define.md))                                                                                                                                                                                                                                                                                                  |
+ | `query`                  | Y                  | DQL query statement (DQL [Documentation](../dql/index.md))                                                                                                                                                                                                                                                                                                  |
  | `conditions`             | N                  | Additional conditional expressions, using DQL syntax, such as `hostname="cloudserver01" OR system="ubuntu"`. It has an `AND` relationship with the conditional expressions in the existing `query`, and parentheses will be added to the outermost layer to avoid confusion                                                                                  |
  | `disable_multiple_field` | N                  | Whether to disable multiple fields. When it is `true`, only data of a single field (excluding the `time` field) can be queried, and the default is `false`                                                                                                                                                                                                   |
  | `disable_slimit`         | N                  | Whether to disable the default SLimit. When it is `true`, the default SLimit value will not be added; otherwise, SLimit 20 will be forced to be added, and the default is `false`                                                                                                                                                                            |

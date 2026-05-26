@@ -10,8 +10,8 @@ package demo
 
 import (
 	"context"
-	"fmt"
 	"runtime"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -35,13 +35,12 @@ var (
 type input struct {
 	collectCache []*point.Point
 	Tags         map[string]string
-	chpause      chan bool
 	EatCPU       bool `toml:"eat_cpu"`
-	Election     bool `toml:"election"`
 
 	RandomPoints int `toml:"random_points"`
 
-	paused bool
+	Election bool `toml:"election"`
+	paused   atomic.Bool
 
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
@@ -86,12 +85,9 @@ func (ipt *input) Run() {
 		n++
 
 		select {
-		case ipt.paused = <-ipt.chpause:
-			l.Debugf("demo paused? %v", ipt.paused)
-
 		case <-tick.C:
 
-			if ipt.paused {
+			if ipt.paused.Load() {
 				l.Debugf("paused")
 				continue
 			}
@@ -127,9 +123,7 @@ func (ipt *input) Run() {
 	}
 }
 
-func (ipt *input) exit() {
-	close(ipt.chpause)
-}
+func (ipt *input) exit() {}
 
 func (ipt *input) Terminate() {
 	if ipt.semStop != nil {
@@ -173,23 +167,13 @@ func (*input) AvailableArchs() []string {
 }
 
 func (ipt *input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	select {
-	case ipt.chpause <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.paused.Store(true)
+	return nil
 }
 
 func (ipt *input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	select {
-	case ipt.chpause <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.paused.Store(false)
+	return nil
 }
 
 func eatCPU(n int) {
@@ -204,9 +188,7 @@ func eatCPU(n int) {
 
 func defaultInput() *input {
 	return &input{
-		paused:  false,
-		chpause: make(chan bool, inputs.ElectionPauseChannelLength),
-
+		paused:   atomic.Bool{},
 		Election: true,
 		semStop:  cliutils.NewSem(),
 		feeder:   dkio.DefaultFeeder(),

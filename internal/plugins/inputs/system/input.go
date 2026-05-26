@@ -58,7 +58,10 @@ const (
 `
 )
 
-var l = logger.DefaultSLogger(inputName)
+var (
+	l     = logger.DefaultSLogger(inputName)
+	lrate = 1.0
+)
 
 type Input struct {
 	Interval  datakit.Duration
@@ -184,7 +187,7 @@ func (ipt *Input) Collect() error {
 		Set("n_cpus", numCPUs)
 
 	if users, err := host.Users(); err != nil {
-		l.Warnf("Users: %s, ignored", err.Error())
+		l.RLWarnf(lrate, "Users: %s, ignored", err.Error())
 	} else {
 		kvs = kvs.Set("n_users", len(users))
 	}
@@ -201,8 +204,10 @@ func (ipt *Input) Collect() error {
 }
 
 func (ipt *Input) Run() {
-	l = logger.SLogger(inputName)
+	l = logger.SLogger(inputName, logger.WithRateLimiter(lrate, ""))
+
 	l.Infof("system input started")
+
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()

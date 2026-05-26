@@ -86,6 +86,7 @@ func processChange(cfg *Config, class, sourceName string, diffs []FieldDiff, obj
 		kvs = append(kvs, buildDefaultChangeEventKVs()...)
 
 		kvs = kvs.AddTag("class", class)
+		kvs = kvs.AddTag("change_id", string(df.ChangeID))
 		kvs = kvs.AddTag("uid", string(obj.GetUID()))
 		kvs = kvs.AddTag("namespace", obj.GetNamespace())
 		kvs = kvs.AddTag(sourceName, name)

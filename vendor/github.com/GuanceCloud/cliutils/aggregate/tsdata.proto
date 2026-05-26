@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package aggregate.v1;
+
+option go_package = "/;aggregate";
+
+// 数据包：使用连续 PBPoints payload，避免尾采样链路重复解码/编码。
+message DataPacket {
+  uint64 group_id_hash = 1;
+  string raw_group_id  = 2;
+  string token         = 3;
+  string source        = 4;
+  string data_type     = 5;
+
+  int64 config_version = 6;
+  bool has_error       = 7;
+
+  string group_key     = 8;
+  int32 point_count    = 9;
+
+  int64 trace_start_time_unix_nano = 10;
+  int64 trace_end_time_unix_nano  = 11;
+
+  bytes points_payload = 12;
+  int64 max_point_time_unix_nano = 13;
+}
+
+// batch packages
+message DataBatch {
+  string collector_id = 1;
+  repeated DataPacket packets = 2;
+}

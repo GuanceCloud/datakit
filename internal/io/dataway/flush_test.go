@@ -22,6 +22,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/compact"
 )
 
 func TestFlush(t *T.T) {
@@ -129,9 +130,9 @@ func TestFlush(t *T.T) {
 						defer wg.Done()
 						for x := 0; x < njob; x++ {
 							assert.NoError(t, dw.Write(
-								WithPoints(tc.pts),
-								WithCategory(cat),
-								WithMaxBodyCap(10*(1<<20)), // 1MB buffer
+								compact.WithPoints(tc.pts),
+								compact.WithCategory(cat),
+								compact.WithMaxBodyCap(10*(1<<20)), // 1MB buffer
 							))
 						}
 					}()
@@ -142,13 +143,13 @@ func TestFlush(t *T.T) {
 				f := dw.newFlusher(cat)
 
 				for {
-					b, err := f.wal.Get(withReusableBuffer(f.sendBuf, f.marshalBuf))
+					b, err := f.wal.Get(compact.WithNewBuffer(dw.MaxRawBodySize))
 					assert.NoError(t, err)
 					if b == nil {
 						break
 					}
 
-					raw := b.buf()
+					raw := b.Buf()
 
 					dec := point.GetDecoder(point.WithDecEncoding(point.Protobuf))
 					defer point.PutDecoder(dec)
@@ -162,7 +163,7 @@ func TestFlush(t *T.T) {
 						require.Equal(t, pts[idx].LineProto(), tc.pts[idx].LineProto())
 					}
 
-					assert.NoError(t, f.do(b, WithCategory(cat)))
+					assert.NoError(t, f.do(b, compact.WithCategory(cat)))
 				}
 
 				wg.Wait()
@@ -198,18 +199,21 @@ func TestFlush(t *T.T) {
 		t.Logf("pt: %s", pt.LineProto())
 
 		require.NoError(t,
-			dw.Write(WithPoints([]*point.Point{pt}), WithCategory(cat), WithMaxBodyCap(1<<20)))
+			dw.Write(
+				compact.WithPoints([]*point.Point{pt}),
+				compact.WithCategory(cat),
+				compact.WithMaxBodyCap(1<<20)))
 
 		q := dw.walq[cat]
 		b, err := q.Get()
 		require.NoError(t, err)
 
-		defer putBody(b)
+		defer compact.PutBody(b)
 
 		t.Logf("body: %s", b)
 
-		raw, err := uhttp.Unzip(b.buf())
-		require.NoError(t, err, "body chksum: %x", md5.Sum(b.buf()))
+		raw, err := uhttp.Unzip(b.Buf())
+		require.NoError(t, err, "body chksum: %x", md5.Sum(b.Buf()))
 		t.Logf("raw: %q", raw)
 
 		dec := point.GetDecoder(point.WithDecEncoding(point.Protobuf))
@@ -221,6 +225,6 @@ func TestFlush(t *T.T) {
 		require.Equal(t, pts[0].LineProto(), pt.LineProto())
 
 		f := dw.newFlusher(cat)
-		assert.NoError(t, f.do(b, WithCategory(cat)))
+		assert.NoError(t, f.do(b, compact.WithCategory(cat)))
 	})
 }

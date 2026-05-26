@@ -31,18 +31,19 @@ type Selector struct {
 }
 
 type Config struct {
-	Type                  string            `json:"type"`
-	Source                string            `json:"source"`
-	Disable               bool              `json:"disable,omitempty"`
-	Path                  string            `json:"path,omitempty"`
-	StorageIndex          string            `json:"storage_index,omitempty"`
-	Service               string            `json:"service,omitempty"`
-	CharacterEncoding     string            `json:"character_encoding,omitempty"`
-	Pipeline              string            `json:"pipeline,omitempty"`
-	Multiline             string            `json:"multiline_match,omitempty"`
-	RemoveAnsiEscapeCodes bool              `json:"remove_ansi_escape_codes,omitempty"`
-	FromBeginning         bool              `json:"from_beginning,omitempty"`
-	Tags                  map[string]string `json:"tags,omitempty"`
+	Type                       string            `json:"type"`
+	Source                     string            `json:"source"`
+	Disable                    bool              `json:"disable,omitempty"`
+	Path                       string            `json:"path,omitempty"`
+	StorageIndex               string            `json:"storage_index,omitempty"`
+	Service                    string            `json:"service,omitempty"`
+	CharacterEncoding          string            `json:"character_encoding,omitempty"`
+	Pipeline                   string            `json:"pipeline,omitempty"`
+	Multiline                  string            `json:"multiline_match,omitempty"`
+	RemoveAnsiEscapeCodes      bool              `json:"remove_ansi_escape_codes,omitempty"`
+	FromBeginning              bool              `json:"from_beginning,omitempty"`
+	FromBeginningThresholdSize int64             `json:"from_beginning_threshold_size,omitempty"`
+	Tags                       map[string]string `json:"tags,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

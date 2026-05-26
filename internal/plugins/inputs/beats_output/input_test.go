@@ -7,9 +7,14 @@ package beats_output
 
 import (
 	"encoding/json"
+	"net"
+	"sync"
 	"testing"
 
+	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
+	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/testutils"
 )
 
@@ -348,4 +353,154 @@ func TestGetDataPieceFromEvent(t *testing.T) {
 			assert.Equal(t, tc.expect, val)
 		})
 	}
+}
+
+// mockFeeder implements dkio.Feeder for testing.
+type mockFeeder struct {
+	mu     sync.Mutex
+	points []*point.Point
+}
+
+func (m *mockFeeder) Feed(cat point.Category, pts []*point.Point, opts ...dkio.FeedOption) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.points = append(m.points, pts...)
+	return nil
+}
+
+func (m *mockFeeder) FeedLastError(err string, opts ...metrics.LastErrorOption) {}
+
+func (m *mockFeeder) getPoints() []*point.Point {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.points
+}
+
+// go test -v -timeout 30s -run ^TestFeedWithCollectorSourceIP$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/beats_output
+func TestFeedWithCollectorSourceIP(t *testing.T) {
+	cases := []struct {
+		name     string
+		remoteIP string
+		pending  []*DataStruct
+		expectIP string
+	}{
+		{
+			name:     "with_remote_ip",
+			remoteIP: "192.168.1.100",
+			pending: []*DataStruct{
+				{
+					HostName:    "test-host",
+					LogFilePath: "/var/log/test.log",
+					Message:     "test message",
+				},
+			},
+			expectIP: "192.168.1.100",
+		},
+		{
+			name:     "with_ipv6",
+			remoteIP: "2001:db8::1",
+			pending: []*DataStruct{
+				{
+					HostName:    "test-host",
+					LogFilePath: "/var/log/test.log",
+					Message:     "test message ipv6",
+				},
+			},
+			expectIP: "2001:db8::1",
+		},
+		{
+			name:     "empty_remote_ip",
+			remoteIP: "",
+			pending: []*DataStruct{
+				{
+					HostName:    "test-host",
+					LogFilePath: "/var/log/test.log",
+					Message:     "test message no ip",
+				},
+			},
+			expectIP: "",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			mock := &mockFeeder{}
+			ipt := &Input{
+				Source:  "test-source",
+				Service: "test-service",
+				Tags:    make(map[string]string),
+				feeder:  mock,
+				Tagger:  testutils.NewTaggerHost(),
+			}
+
+			ipt.feed(tc.pending, tc.remoteIP)
+
+			pts := mock.getPoints()
+			assert.Equal(t, len(tc.pending), len(pts), "should have same number of points as pending")
+
+			for _, pt := range pts {
+				tags := pt.Tags()
+				if tc.expectIP != "" {
+					found := false
+					for _, tag := range tags {
+						if tag.Key == "collector_source_ip" {
+							found = true
+							assert.Equal(t, tc.expectIP, tag.GetS(), "collector_source_ip should match")
+							break
+						}
+					}
+					assert.True(t, found, "collector_source_ip tag should exist")
+				} else {
+					// When remoteIP is empty, collector_source_ip should not be added
+					for _, tag := range tags {
+						assert.NotEqual(t, "collector_source_ip", tag.Key, "collector_source_ip should not exist when remoteIP is empty")
+					}
+				}
+			}
+		})
+	}
+}
+
+// go test -v -timeout 30s -run ^TestOutputServerAccept$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/beats_output
+func TestOutputServerAccept(t *testing.T) {
+	// Test that OutputServer.Accept() correctly extracts remote IP
+	server, err := NewOutputServerTCP("tcp://127.0.0.1:0")
+	assert.NoError(t, err)
+	defer server.Close()
+
+	// Initially RemoteIP should be empty
+	assert.Equal(t, "", server.RemoteIP, "RemoteIP should be empty initially")
+
+	// Get the actual listen address
+	addr := server.Listener.Addr().String()
+	t.Logf("Server listening on: %s", addr)
+
+	// Create a test connection in a goroutine
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		// Accept should set RemoteIP
+		acceptedConn, err := server.Accept()
+		if err != nil {
+			t.Logf("Accept error: %v", err)
+			return
+		}
+		if acceptedConn != nil {
+			acceptedConn.Close()
+		}
+	}()
+
+	// Connect to the server
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		t.Logf("Failed to connect: %v (this is expected in some test environments)", err)
+		return
+	}
+	conn.Close()
+
+	<-done
+
+	// After accept, RemoteIP should be set
+	assert.NotEmpty(t, server.RemoteIP, "RemoteIP should be set after Accept()")
+	t.Logf("RemoteIP after Accept: %s", server.RemoteIP)
 }

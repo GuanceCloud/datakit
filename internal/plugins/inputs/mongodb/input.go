@@ -10,7 +10,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -36,6 +36,7 @@ var (
 	catalogName          = "db"
 	inputName            = "mongodb"
 	customObjectFeedName = dkio.FeedSource(inputName, "CO")
+	objectFeedName       = dkio.FeedSource(inputName, "O")
 	sampleConfig         = `
 [[inputs.mongodb]]
   ## Gathering interval
@@ -89,6 +90,14 @@ var (
   # insecure_skip_verify = true
   # server_name = ""
 
+  ## collect mongodb object
+  [inputs.mongodb.object]
+    ## Set true to enable mongodb object collection
+    enabled = true
+
+    ## interval to collect mongodb object which will be greater than collection interval
+    interval = "600s"
+
   ## Mongodb log files and Grok Pipeline files configuration
   # [inputs.mongodb.log]
     # files = ["/var/log/mongodb/mongod.log"]
@@ -125,6 +134,11 @@ type mongodblog struct {
 	MultilineMatch    string   `toml:"multiline_match"`
 }
 
+type mongodbObject struct {
+	Enable   bool             `toml:"enabled"`
+	Interval datakit.Duration `toml:"interval"`
+}
+
 type Input struct {
 	TLSConf               *dknet.TLSClientConfig `toml:"tlsconf"` // deprecated
 	Interval              datakit.Duration       `toml:"interval"`
@@ -141,6 +155,7 @@ type Input struct {
 	GatherPerColStats     bool                   `toml:"gather_per_col_stats"`
 	ColStatsDBs           []string               `toml:"col_stats_dbs"`
 	GatherTopStat         bool                   `toml:"gather_top_stat"`
+	Object                mongodbObject          `toml:"object"`
 	Election              bool                   `toml:"election"`
 
 	Version            string
@@ -154,8 +169,7 @@ type Input struct {
 	Tags     map[string]string `toml:"tags"`
 	mgoSvrs  []*MongodbServer
 	tail     *tailer.Tailer
-	pause    bool
-	pauseCh  chan bool
+	pause    atomic.Bool
 	semStop  *cliutils.Sem // start stop signal
 	feeder   dkio.Feeder
 	Tagger   datakit.GlobalTagger
@@ -175,6 +189,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&mongodbShardMeasurement{},
 		&mongodbTopMeasurement{},
 		&customerObjectMeasurement{},
+		&mongodbObjectMeasurement{},
 		&inputs.UpMeasurement{},
 	}
 }
@@ -222,7 +237,7 @@ func (ipt *Input) RunPipeline() {
 		tailer.WithCharacterEncoding(ipt.MgoDBLog.CharacterEncoding),
 		tailer.EnableMultiline(true),
 		tailer.WithMaxMultilineLength(int64(float64(config.Cfg.Dataway.MaxRawBodySize) * 0.8)),
-		tailer.WithMultilinePatterns([]string{ipt.MgoDBLog.MultilineMatch}),
+		tailer.WithMultilinePattern(ipt.MgoDBLog.MultilineMatch),
 		tailer.WithExtraTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
 		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
 	}
@@ -279,6 +294,17 @@ func (ipt *Input) tryInitServers() {
 	}
 
 	for _, v := range ipt.Servers {
+		host, err := parseMongoServerHost(v)
+		if err != nil {
+			ipt.FeedCoErr(err)
+			log.Error(err.Error())
+			ipt.feeder.FeedLastError(err.Error(),
+				metrics.WithLastErrorInput(inputName),
+				metrics.WithLastErrorCategory(point.Metric),
+			)
+			continue
+		}
+
 		mgocli, err := ipt.createMgoClient(v)
 		if err != nil {
 			ipt.FeedCoErr(err)
@@ -290,21 +316,27 @@ func (ipt *Input) tryInitServers() {
 			continue
 		}
 
-		var (
-			host string
-			li   = strings.LastIndexByte(v, '@')
-		)
-		if li > 0 {
-			host = v[li+1:]
-		} else {
-			host = strings.TrimPrefix(v, "mongodb://")
-		}
-		ipt.mgoSvrs = append(ipt.mgoSvrs, &MongodbServer{
+		svr := &MongodbServer{
 			host: host,
 			cli:  mgocli,
 			ipt:  ipt,
-		})
+		}
+		svr.initDatabaseInstance()
+		ipt.mgoSvrs = append(ipt.mgoSvrs, svr)
 	}
+}
+
+func parseMongoServerHost(server string) (string, error) {
+	u, err := url.Parse(server)
+	if err != nil {
+		return "", fmt.Errorf("parse mongodb server %q failed: %w", server, err)
+	}
+
+	if u.Host == "" {
+		return "", fmt.Errorf("parse mongodb server %q failed: empty host", server)
+	}
+
+	return u.Host, nil
 }
 
 func (ipt *Input) Run() {
@@ -317,7 +349,7 @@ func (ipt *Input) Run() {
 	log.Infof("%s input started", inputName)
 
 	for {
-		if !ipt.pause {
+		if !ipt.pause.Load() {
 			ipt.tryInitServers()
 
 			ipt.setUpState()
@@ -349,8 +381,6 @@ func (ipt *Input) Run() {
 
 		case tt := <-tick.C:
 			start = inputs.AlignTime(tt, start, ipt.Interval.Duration)
-
-		case ipt.pause = <-ipt.pauseCh:
 		}
 	}
 }
@@ -358,7 +388,7 @@ func (ipt *Input) Run() {
 func (ipt *Input) setup() {
 	log = logger.SLogger(inputName)
 
-	ipt.pauseCh = make(chan bool, inputs.ElectionPauseChannelLength)
+	ipt.pause = atomic.Bool{}
 	ipt.semStop = cliutils.NewSem()
 	defTags = ipt.Tags
 }
@@ -416,30 +446,13 @@ func (ipt *Input) gather(ptTS int64) error {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-
-	case <-datakit.Exit.Wait():
-		log.Info("pause mongodb interrupted by global exit.")
-		return nil
-
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func (ipt *Input) exit() {
@@ -460,6 +473,10 @@ func defaultInput() *Input {
 		feeder:  dkio.DefaultFeeder(),
 		semStop: cliutils.NewSem(),
 		Tagger:  datakit.DefaultGlobalTagger(),
+		Object: mongodbObject{
+			Enable:   true,
+			Interval: datakit.Duration{Duration: 600 * time.Second},
+		},
 	}
 }
 

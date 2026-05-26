@@ -59,6 +59,23 @@ func New(patterns []string, opts ...Option) (*Multiline, error) {
 	}, err
 }
 
+func NewAuto(extraPatterns []string, opts ...Option) (*Multiline, error) {
+	c := defaultOption()
+	for _, opt := range opts {
+		opt(c)
+	}
+
+	match, err := NewAutoMatcher(extraPatterns)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Multiline{
+		Matcher: match,
+		opt:     c,
+	}, err
+}
+
 var newLine = []byte{'\n'}
 
 func (m *Multiline) ProcessLineString(text string) (string, State) {

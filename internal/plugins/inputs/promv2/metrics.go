@@ -8,6 +8,8 @@ package promv2
 import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var scrapeTotal *prometheus.SummaryVec
@@ -15,15 +17,11 @@ var scrapeTotal *prometheus.SummaryVec
 func setupMetrics() {
 	scrapeTotal = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
-			Namespace: "datakit",
-			Subsystem: "input_promv2",
-			Name:      "scrape_points",
-			Help:      "The number of points scrape from endpoint",
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Namespace:  "datakit",
+			Subsystem:  "input_promv2",
+			Name:       "scrape_points",
+			Help:       "The number of points scrape from endpoint",
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{
 			"source",

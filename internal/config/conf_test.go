@@ -9,7 +9,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"testing"
 	T "testing"
 	"time"
 
@@ -19,10 +18,11 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/endpoint"
 )
 
 // TestDefaultMainConf used to keep default config and default config sample equal.
-func TestDefaultMainConf(t *testing.T) {
+func TestDefaultMainConf(t *T.T) {
 	c := DefaultConfig()
 	c.Ulimit = 0 // ulimit diff among OS platforms
 
@@ -34,10 +34,15 @@ func TestDefaultMainConf(t *testing.T) {
 	x.GlobalHostTags = map[string]string{}              // clear:  host tags setted on default conf sample
 	x.Ulimit = 0
 
+	assert.Equal(t, 60*time.Second, x.HTTPAPI.IdleTimeout)
+	assert.Equal(t, 30*time.Second, x.HTTPAPI.ReadHeaderTimeout)
+	assert.Equal(t, 30*time.Second, x.HTTPAPI.ReadTimeout)
+	assert.Equal(t, 30*time.Second, x.HTTPAPI.WriteTimeout)
+
 	assert.Equal(t, c.String(), x.String())
 }
 
-func TestEnableDefaultsInputs(t *testing.T) {
+func TestEnableDefaultsInputs(t *T.T) {
 	cases := []struct {
 		list   string
 		expect []string
@@ -60,7 +65,152 @@ func TestEnableDefaultsInputs(t *testing.T) {
 	}
 }
 
-func TestSetupGlobalTags(t *testing.T) {
+func TestHostTags(t *T.T) {
+	trueHostname, err := os.Hostname()
+
+	t.Run("node-name-override-host", func(t *T.T) {
+		conf := DefaultConfig()
+		t.Setenv("ENV_K8S_NODE_NAME", "some-k8s-node-name")
+		conf.GlobalHostTags["host"] = "1.2.3.4" // use ip as global host tag
+
+		conf.Dataway.URLs = []string{"https://some.dataway.com?token=tkn_2dc4xxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
+
+		tmpDir := t.TempDir()
+		datakit.SetWorkDir(tmpDir)
+
+		assert.NoError(t, LoadCfg(conf, "", true))
+
+		assert.Equal(t, "1.2.3.4", conf.GlobalHostTags["host"]) // use user-defined host tag value
+
+		// these 2 host are not changed by user-defined host tag
+		assert.Equal(t, "some-k8s-node-name", conf.hostname)
+		assert.Equal(t, datakit.DKHost, conf.hostname) // they should always the same
+		assert.Equal(t, "1.2.3.4", datakit.RenamedHostname)
+
+		t.Logf("conf.hostname: %s", conf.hostname)
+		t.Logf("conf.global-host-tags: %+#v", conf.GlobalHostTags)
+		t.Logf("DKHost: %s", datakit.DKHost)
+	})
+
+	t.Run("manual-host-tag", func(t *T.T) {
+		conf := DefaultConfig()
+		conf.GlobalHostTags["host"] = "abc-def"
+
+		conf.Dataway.URLs = []string{"https://some.dataway.com?token=tkn_2dc4xxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
+
+		tmpDir := t.TempDir()
+		datakit.SetWorkDir(tmpDir)
+
+		assert.NoError(t, LoadCfg(conf, "", true))
+
+		assert.Equal(t, "abc-def", conf.GlobalHostTags["host"])
+
+		assert.NoError(t, err)
+		assert.Equal(t, trueHostname, conf.hostname)
+		assert.Equal(t, datakit.DKHost, conf.hostname) // they should always the same
+		assert.Equal(t, "abc-def", datakit.RenamedHostname)
+
+		t.Logf("conf.hostname: %s", conf.hostname)
+		t.Logf("conf.global-host-tags: %+#v", conf.GlobalHostTags)
+		t.Logf("DKHost: %s", datakit.DKHost)
+	})
+
+	t.Run("manual-host-tag:non-docker-mode", func(t *T.T) {
+		conf := DefaultConfig()
+		conf.GlobalHostTags["host"] = "abc-def" // use ip as global host tag
+
+		conf.Dataway.URLs = []string{"https://some.dataway.com?token=tkn_2dc4xxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
+
+		tmpDir := t.TempDir()
+		datakit.SetWorkDir(tmpDir)
+
+		assert.NoError(t, os.WriteFile(filepath.Join(tmpDir, "a.conf"), []byte(conf.String()), os.ModePerm))
+
+		assert.NoError(t, LoadCfg(conf, filepath.Join(tmpDir, "a.conf"), false))
+
+		assert.Equal(t, "abc-def", conf.GlobalHostTags["host"])
+		assert.Equal(t, trueHostname, conf.hostname)
+		assert.Equal(t, datakit.DKHost, conf.hostname) // they should always the same
+		assert.Equal(t, "abc-def", datakit.RenamedHostname)
+
+		t.Logf("conf.hostname: %s", conf.hostname)
+		t.Logf("conf.global-host-tags: %+#v", conf.GlobalHostTags)
+		t.Logf("DKHost: %s", datakit.DKHost)
+	})
+
+	t.Run("env-hostname:non-docker-mode", func(t *T.T) {
+		t.Setenv(envManualHostname, "some-readable-name")
+		conf := DefaultConfig()
+		conf.GlobalHostTags["host"] = "abc-def" // use ip as global host tag
+
+		conf.Dataway.URLs = []string{"https://some.dataway.com?token=tkn_2dc4xxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
+
+		tmpDir := t.TempDir()
+		datakit.SetWorkDir(tmpDir)
+
+		assert.NoError(t, os.WriteFile(filepath.Join(tmpDir, "a.conf"), []byte(conf.String()), os.ModePerm))
+
+		assert.NoError(t, LoadCfg(conf, filepath.Join(tmpDir, "a.conf"), false))
+
+		assert.Equal(t, "abc-def", conf.GlobalHostTags["host"])
+		assert.Equal(t, trueHostname, conf.hostname)
+
+		assert.Equal(t, datakit.DKHost, conf.hostname) // they should always the same
+		assert.Equal(t, "abc-def", datakit.RenamedHostname)
+
+		t.Logf("conf.hostname: %s", conf.hostname)
+		t.Logf("conf.global-host-tags: %+#v", conf.GlobalHostTags)
+		t.Logf("DKHost: %s", datakit.DKHost)
+	})
+
+	t.Run("env-hostname:docker-mode", func(t *T.T) {
+		conf := DefaultConfig()
+
+		t.Setenv(envManualHostname, "some-readable-name")
+		t.Setenv("ENV_K8S_NODE_NAME", "some-k8s-node-name")
+
+		conf.GlobalHostTags["host"] = "1.2.3.4" // use ip as global host tag
+
+		conf.Dataway.URLs = []string{"https://some.dataway.com?token=tkn_2dc4xxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
+
+		tmpDir := t.TempDir()
+		datakit.SetWorkDir(tmpDir)
+
+		assert.NoError(t, LoadCfg(conf, "", true))
+
+		assert.Equal(t, "1.2.3.4", conf.GlobalHostTags["host"])
+		assert.Equal(t, "some-readable-name", conf.hostname)
+		assert.Equal(t, datakit.DKHost, conf.hostname) // they should always the same
+
+		t.Logf("conf.hostname: %s", conf.hostname)
+		t.Logf("conf.global-host-tags: %+#v", conf.GlobalHostTags)
+		t.Logf("DKHost: %s", datakit.DKHost)
+	})
+
+	t.Run("node-name:docker-mode", func(t *T.T) {
+		conf := DefaultConfig()
+
+		t.Setenv("ENV_K8S_NODE_NAME", "some-k8s-node-name")
+		conf.GlobalHostTags["host"] = "__datakit_hostname"
+
+		conf.Dataway.URLs = []string{"https://some.dataway.com?token=tkn_2dc4xxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
+
+		tmpDir := t.TempDir()
+		datakit.SetWorkDir(tmpDir)
+
+		assert.NoError(t, LoadCfg(conf, "", true))
+
+		assert.Equal(t, "some-k8s-node-name", conf.GlobalHostTags["host"])
+		assert.Equal(t, "some-k8s-node-name", conf.hostname)
+		assert.Equal(t, datakit.DKHost, conf.hostname) // they should always the same
+
+		t.Logf("conf.hostname: %s", conf.hostname)
+		t.Logf("conf.global-host-tags: %+#v", conf.GlobalHostTags)
+		t.Logf("DKHost: %s", datakit.DKHost)
+	})
+}
+
+func TestSetupGlobalTags(t *T.T) {
 	localIP, err := datakit.LocalIP()
 	if err != nil {
 		t.Fatal(err)
@@ -83,6 +233,15 @@ func TestSetupGlobalTags(t *testing.T) {
 		expectHostTags,
 		expectEnvTags map[string]string
 	}{
+		{
+			name: "config-ip-as-host",
+			hosttags: map[string]string{
+				"ip":   "__datakit_ip",
+				"host": "__datakit_ip",
+			},
+
+			expectHostTags: map[string]string{"ip": localIP, "host": localIP},
+		},
 		{
 			name: "mixed-host-and-evn-tags",
 			hosttags: map[string]string{
@@ -152,7 +311,7 @@ func TestSetupGlobalTags(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *T.T) {
 			c := DefaultConfig()
 			for k, v := range tc.hosttags {
 				c.GlobalHostTags[k] = v
@@ -182,7 +341,7 @@ func TestSetupGlobalTags(t *testing.T) {
 	}
 }
 
-func TestProtectedInterval(t *testing.T) {
+func TestProtectedInterval(t *T.T) {
 	cases := []struct {
 		enabled              bool
 		min, max, in, expect time.Duration
@@ -227,7 +386,7 @@ func TestProtectedInterval(t *testing.T) {
 	}
 }
 
-func TestUnmarshalCfg(t *testing.T) {
+func TestUnmarshalCfg(t *T.T) {
 	cases := []struct {
 		name string
 		raw  string
@@ -310,7 +469,7 @@ hostname = "should-not-set"`,
 	}()
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *T.T) {
 			c := DefaultConfig()
 
 			if err := os.WriteFile(tomlfile, []byte(tc.raw), 0o600); err != nil {
@@ -334,7 +493,7 @@ hostname = "should-not-set"`,
 	}
 }
 
-func TestLoadDWRetry(t *testing.T) {
+func TestLoadDWRetry(t *T.T) {
 	type Case struct {
 		name       string
 		confText   string
@@ -350,8 +509,8 @@ func TestLoadDWRetry(t *testing.T) {
   urls = ["http://testing-openway.cloudcare.cn?token=tkn_2dc4xxxxxxxxxxxxxxxxxxxxxxxxxxxx"]
   timeout = "30s"
 `,
-			retryCount: dataway.DefaultRetryCount,
-			retryDelay: dataway.DefaultRetryDelay,
+			retryCount: endpoint.DefaultRetryCount,
+			retryDelay: endpoint.DefaultRetryDelay,
 		},
 		{
 			name: "manualSetting",
@@ -373,14 +532,14 @@ func TestLoadDWRetry(t *testing.T) {
   timeout = "30s"
   retry_delay = "0s"
 `,
-			retryCount: dataway.DefaultRetryCount,
+			retryCount: endpoint.DefaultRetryCount,
 			retryDelay: 0,
 		},
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			f, err := os.CreateTemp("./", "test.main.*.conf")
+		f, err := os.CreateTemp("./", "test.main.*.conf")
+		t.Run(tc.name, func(t *T.T) {
 			assert.NoError(t, err)
 
 			defer os.Remove(f.Name())
@@ -420,7 +579,7 @@ func TestLoadResourceLimite(t *T.T) {
 	})
 }
 
-func Test_setupDataway(t *testing.T) {
+func Test_setupDataway(t *T.T) {
 	cases := []struct {
 		name   string
 		dw     *dataway.Dataway
@@ -437,7 +596,7 @@ func Test_setupDataway(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(t *T.T) {
 			c := DefaultConfig()
 			c.Dataway = tc.dw
 

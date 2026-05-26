@@ -8,8 +8,10 @@ package windowsremote
 
 import (
 	"fmt"
+	"sync/atomic"
 	"time"
 
+	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -33,9 +35,10 @@ type Input struct {
 	targetPorts []int
 	protocol    string
 
-	feeder  dkio.Feeder
-	chPause chan bool
-	pause   bool
+	feeder dkio.Feeder
+	pause  atomic.Bool
+
+	semStop *cliutils.Sem
 }
 
 type WmiConfig struct {
@@ -57,12 +60,19 @@ type SnmpConfig struct {
 	// Version   string `toml:"version"` // only supported v2c
 }
 
+var _ inputs.InputV2 = (*Input)(nil)
+
 func (*Input) SampleConfig() string                    { return sampleCfg }
 func (*Input) Catalog() string                         { return inputName }
 func (*Input) AvailableArchs() []string                { return []string{datakit.OSLabelWindows} }
 func (*Input) Singleton()                              { /*nil*/ }
 func (*Input) SampleMeasurement() []inputs.Measurement { return nil /* no measurement docs exported */ }
-func (*Input) Terminate()                              { /* TODO */ }
+
+func (ipt *Input) Terminate() {
+	if ipt.semStop != nil {
+		ipt.semStop.Close()
+	}
+}
 
 func (ipt *Input) Run() {
 	l = logger.SLogger("windows_remote")
@@ -108,30 +118,14 @@ func (ipt *Input) setup() error {
 	return nil
 }
 
-func (ipt *Input) isPause() bool {
-	return ipt.Election && ipt.pause
-}
-
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	select {
-	case ipt.chPause <- true:
-		l.Info("pause %s paused", inputName)
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	select {
-	case ipt.chPause <- false:
-		l.Infof("resume %s false", inputName)
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func init() { //nolint:gochecknoinits
@@ -141,8 +135,9 @@ func init() { //nolint:gochecknoinits
 			Tags:     map[string]string{},
 			instance: nil,
 			feeder:   dkio.DefaultFeeder(),
-			chPause:  make(chan bool, inputs.ElectionPauseChannelLength),
+			pause:    atomic.Bool{},
 			Election: true,
+			semStop:  cliutils.NewSem(),
 		}
 	})
 }

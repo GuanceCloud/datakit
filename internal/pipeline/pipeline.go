@@ -31,16 +31,17 @@ import (
 	"golang.org/x/text/transform"
 )
 
-var l = logger.DefaultSLogger("pipeline")
+var (
+	l   = logger.DefaultSLogger("pipeline")
+	rec *plstats.RecStats
+)
 
-func InitPipeline(cfg *plval.PipelineCfg, upFn plmap.UploadFunc, gTags map[string]string,
+func InitPipeline(cfg *plval.PipelineCfg,
+	upFn plmap.UploadFunc,
+	gTags map[string]string,
 	installDir string,
 ) error {
 	l = logger.SLogger("pipeline")
-
-	rec := plstats.NewRecStats("datakit", plstats.DefaultSubSystem, nil, 128)
-
-	metrics.MustRegister(rec.Metrics()...)
 
 	plstats.SetStats(rec)
 
@@ -154,4 +155,9 @@ func DecodeContent(content []byte, encode string) (string, error) {
 	default:
 	}
 	return string(content), nil
+}
+
+func init() { //nolint:gochecknoinits
+	rec = plstats.NewRecStats("datakit", plstats.DefaultSubSystem, nil, 128)
+	metrics.MustRegister(rec.Metrics()...)
 }

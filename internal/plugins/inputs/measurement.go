@@ -7,6 +7,7 @@ package inputs
 
 import (
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 	"testing"
@@ -170,11 +171,11 @@ type TagInfo struct {
 }
 
 type MeasurementInfo struct {
-	Name   string                 `json:"-"`
-	Desc   string                 `json:"desc"`
-	DescZh string                 `json:"desc_zh"`
-	Fields map[string]interface{} `json:"fields"`
-	Tags   map[string]interface{} `json:"tags"`
+	Name   string         `json:"-"`
+	Desc   string         `json:"desc"`
+	DescZh string         `json:"desc_zh"`
+	Fields map[string]any `json:"fields"`
+	Tags   map[string]any `json:"tags"`
 
 	Cat point.Category `json:"-"`
 
@@ -211,7 +212,7 @@ func (m *MeasurementInfo) MarkdownTable() string {
 	for _, key := range keys {
 		f, ok := m.Tags[key].(*TagInfo)
 		if !ok {
-			continue
+			panic(fmt.Sprintf("expect type *TagInfo, got type %s", reflect.TypeOf(m.Tags[key])))
 		}
 
 		rows = append(rows, fmt.Sprintf(tagRowfmt, key, f.Desc))
@@ -221,7 +222,7 @@ func (m *MeasurementInfo) MarkdownTable() string {
 	for _, key := range keys {
 		f, ok := m.Fields[key].(*FieldInfo)
 		if !ok {
-			continue
+			panic(fmt.Sprintf("expect type *FieldInfo, got type %s", reflect.TypeOf(m.Fields[key])))
 		}
 
 		unit := f.Unit
@@ -236,6 +237,7 @@ func (m *MeasurementInfo) MarkdownTable() string {
 
 		taggedByPart := ""
 		if len(f.Taggedby) > 0 {
+			sort.Strings(f.Taggedby)
 			taggedBy := strings.Join(f.Taggedby, ", ")
 			taggedByPart = fmt.Sprintf("<br>*Tagged by: %s*", taggedBy)
 		}

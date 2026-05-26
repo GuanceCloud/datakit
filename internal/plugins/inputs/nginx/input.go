@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -22,7 +23,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
@@ -200,7 +200,7 @@ func (ipt *Input) Run() {
 
 	ipt.ptsTime = ntp.Now()
 	for {
-		if ipt.pause {
+		if ipt.pause.Load() {
 			l.Debugf("not leader, skipped")
 		} else {
 			ipt.setUpState()
@@ -214,9 +214,6 @@ func (ipt *Input) Run() {
 					dkio.WithElection(ipt.Election),
 					dkio.WithSource(inputName),
 				); err != nil {
-					ipt.feeder.FeedLastError(err.Error(),
-						metrics.WithLastErrorInput(inputName),
-					)
 					l.Errorf("feed : %s", err)
 				} else {
 					ipt.collectCache = ipt.collectCache[:0]
@@ -241,7 +238,6 @@ func (ipt *Input) Run() {
 			return
 		case tt := <-tick.C:
 			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.Interval)
-		case ipt.pause = <-ipt.pauseCh:
 		}
 	}
 }
@@ -309,25 +305,13 @@ func (ipt *Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func (ipt *Input) setup() error {
@@ -390,7 +374,7 @@ func (ipt *Input) collect() {
 func defaultInput() *Input {
 	return &Input{
 		Interval: time.Second * 10,
-		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+		pause:    atomic.Bool{},
 		Election: true,
 		feeder:   dkio.DefaultFeeder(),
 		semStop:  cliutils.NewSem(),

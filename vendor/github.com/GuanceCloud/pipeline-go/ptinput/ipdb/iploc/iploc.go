@@ -185,6 +185,10 @@ func (iploc *IPloc) SearchIsp(ip string) string {
 }
 
 func (iploc *IPloc) Geo(ip string) (*ipdb.IPdbRecord, error) {
+	return iploc.GeoWithChecker(ip, nil)
+}
+
+func (iploc *IPloc) GeoWithChecker(ip string, check ipdb.CheckData) (*ipdb.IPdbRecord, error) {
 	record := &ipdb.IPdbRecord{}
 	if iploc.db == nil {
 		return record, nil
@@ -215,7 +219,11 @@ func (iploc *IPloc) Geo(ip string) (*ipdb.IPdbRecord, error) {
 	record.Country = r.Country_short
 	record.Isp = iploc.SearchIsp(ip)
 
-	return record.CheckData(), err
+	if check != nil {
+		return check(record), err
+	} else {
+		return record.CheckData(), err
+	}
 }
 
 func (iploc *IPloc) get(ip string) (*ip2location.IP2Locationrecord, error) {

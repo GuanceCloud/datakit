@@ -1,5 +1,5 @@
 ---
-title     : 'Profiling C++'
+title     : 'Profiling Golang'
 summary   : 'Profling Golang applications'
 tags:
   - 'GOLANG'
@@ -96,7 +96,34 @@ func demo() {
 
 Once your go app start, dd-trace-go will send profiling data to DataKit by interval(per 1min by default).
 
-## pull mode {#pull-mode}
+### Generated Metrics {#metrics}
+
+Starting from [:octicons-tag-24: Version-1.39.0](../datakit/changelog.md#cl-1.39.0), DataKit supports extracting a set of Go runtime-related metrics from `dd-trace-go` output. These metrics are placed under the `profiling_metrics` metric set. Below are some key metrics with explanations:
+
+| Tags & Fields | Description  |
+|----------:|:------------|
+| `language`<br>(`tag`) | Language of current profile |
+| `host`<br>(`tag`) | Hostname of current profile |
+| `service`<br>(`tag`) | Service name of current profile |
+| `env`<br>(`tag`) | Env settings of current profile |
+| `version`<br>(`tag`) | Version of current profile |
+| `prof_go_cpu_cores` | Number of CPU cores consumed<br> *Unit: core* |
+| `prof_go_cpu_cores_gc_overhead` | Number of CPU cores used for garbage collection<br> *Unit: core* |
+| `prof_go_alloc_bytes_per_sec` | Memory allocation rate per second<br> *Unit: byte* |
+| `prof_go_frees_per_sec` | Number of objects freed by GC per second<br> *Unit: count* |
+| `prof_go_heap_growth_bytes_per_sec` | Heap memory growth rate per second<br> *Unit: byte* |
+| `prof_go_allocs_per_sec` | Memory allocation operations per second<br> *Unit: count* |
+| `prof_go_alloc_bytes_total` | Total memory allocated during a single profiling period (dd-trace defaults to 60-second collection cycles)<br> *Unit: byte* |
+| `prof_go_blocked_time` | Total time goroutines were blocked during a single profiling period<br> *Unit: nanosecond* |
+| `prof_go_mutex_delay_time` | Total time spent waiting for locks during a single profiling period<br> *Unit: nanosecond* |
+| `prof_go_gcs_per_sec` | Number of GC runs per second<br> *Unit: count* |
+| `prof_go_max_gc_pause_time` | Maximum single pause duration caused by GC during a profiling period<br> *Unit: nanosecond* |
+| `prof_go_gc_pause_time` | Total pause time caused by GC during a profiling period<br> *Unit: nanosecond* |
+| `prof_go_num_goroutine` | Current total number of goroutines<br> *Unit: count* |
+| `prof_go_lifetime_heap_bytes` | Total memory size occupied by live objects in the heap<br> *Unit: byte* |
+| `prof_go_lifetime_heap_objects` | Total number of live objects in the heap<br> *Unit: count* |
+
+## Pull Mode {#pull-mode}
 
 ### Enable profiling in app {#app-config}
 

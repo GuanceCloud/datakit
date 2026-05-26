@@ -1,7 +1,8 @@
 nav:
   - index.md
   - '更新日志':
-    - changelog-2025.md
+    - changelog-2026.md
+    - '2025': changelog-2025.md
     - '2021~2024': changelog.md
   - 'DataKit 安装':
     - '主机安装': datakit-install.md
@@ -34,7 +35,15 @@ nav:
     - '采集器配置': datakit-input-conf.md
     - '选举配置': election.md
     - '代理配置': datakit-proxy.md
-    - 'Datakit Operator': datakit-operator.md
+    - 'DataKit Operator':
+      - datakit-operator.md
+      - '更新日志': operator-changelog.md
+      - 'Asyncprofile': operator-asyncprofile.md
+      - 'DDTrace': operator-ddtrace.md
+      - 'Flameshot': operator-flameshot.md
+      - 'logfwd': operator-logfwd.md
+      - 'logging': operator-logging.md
+      - 'pyspy': operator-pyspy.md
     - '其它配置方式':
       - '配置综述': k8s-config-how-to.md
       - 'DCA': dca.md

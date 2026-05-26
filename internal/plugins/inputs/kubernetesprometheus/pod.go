@@ -179,7 +179,7 @@ func (p *Pod) terminateScrape(key string) {
 }
 
 func podTraits(item *corev1.Pod) string {
-	return item.Status.HostIP + "/" + item.Status.PodIP
+	return string(item.UID) + ":" + item.Status.HostIP + "/" + item.Status.PodIP
 }
 
 func shouldSkipPod(item *corev1.Pod) bool {

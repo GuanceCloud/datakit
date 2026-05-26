@@ -144,10 +144,12 @@ func PubDatakit() error {
 	basics := []ossFile{
 		// NOTE: these will overwrite online files, you should instead use xxx-<version>.
 		{"datakit.yaml", filepath.Join(DistDir, "datakit.yaml")},
+		{"datakit-deployment.yaml", filepath.Join(DistDir, "datakit-deployment.yaml")},
 		{"datakit-elinker.yaml", filepath.Join(DistDir, "datakit-elinker.yaml")},
 		{"install.sh", filepath.Join(DistDir, "install.sh")},
 		{"install.ps1", filepath.Join(DistDir, "install.ps1")},
 		{fmt.Sprintf("datakit-%s.yaml", ReleaseVersion), filepath.Join(DistDir, "datakit.yaml")},
+		{fmt.Sprintf("datakit-deployment-%s.yaml", ReleaseVersion), filepath.Join(DistDir, "datakit.yaml")},
 		{fmt.Sprintf("datakit-elinker-%s.yaml", ReleaseVersion), filepath.Join(DistDir, "datakit-elinker.yaml")},
 		{fmt.Sprintf("install-%s.sh", ReleaseVersion), filepath.Join(DistDir, "install.sh")},
 		{fmt.Sprintf("install-%s.ps1", ReleaseVersion), filepath.Join(DistDir, "install.ps1")},

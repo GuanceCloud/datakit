@@ -1,0 +1,90 @@
+# tail-sampling.toml 负责"尾采样规则"：
+# - 支持 tracing / logging / rum
+# - 命中规则后会发送到 /v1/tail_sampling
+#
+# 配置生效前提：
+# - datakit.conf 中 [aggregator] 已开启 use_local_config = true
+# - local_tail_sampling_config_file 指向本文件
+#
+# version 会随采样包发送给 Dataway，用于区分规则版本。
+version = 2
+
+# tracing 规则：命中的 trace 会被送到 Dataway 尾采样器。
+# trace.group_key 当前仅支持 trace_id。
+[trace]
+data_ttl = "1m"
+group_key = "trace_id"
+
+# pipeline 字段说明：
+# - type = "condition"    : 条件命中后按 action(keep/drop)执行
+# - type = "probabilistic": 概率采样，rate 取值 0~1
+# - condition             : 留空或写条件表达式
+#
+# 保留 resource 为 /resource 的 trace。
+[[trace.sampling_pipeline]]
+name = "server_key"
+type = "condition"
+condition = '{ resource IN ["/resource"] }'
+action = "keep"
+
+# 丢弃 resource 为 /client 的 trace。
+[[trace.sampling_pipeline]]
+name = "drop_client"
+type = "condition"
+condition = '{ resource IN ["/client"] }'
+action = "drop"
+
+# 支持通配符匹配。
+[[trace.sampling_pipeline]]
+name = "drop_**"
+type = "condition"
+condition = '{ resource = "GET /tmall/**" }'
+action = "drop"
+
+# 按状态码丢弃。
+[[trace.sampling_pipeline]]
+name = "drop_304"
+type = "condition"
+condition = '{ http_status_code = "304" }'
+action = "drop"
+
+# 按路由丢弃。
+[[trace.sampling_pipeline]]
+name = "drop_route"
+type = "condition"
+condition = '{ http_route = "/tmall/**" }'
+action = "drop"
+
+[[trace.sampling_pipeline]]
+name = "sample-rest"
+type = "probabilistic"
+condition = '{ 1 = 1 }'
+rate = 0.1
+
+# logging 规则：只要日志带 trace_id，就进入尾采样链路并保留。
+# 没有 trace_id 的日志会直接透传，不进入该分组采样逻辑。
+[logging]
+data_ttl = "1m"
+
+[[logging.group_dimensions]]
+group_key = "trace_id"
+
+[[logging.group_dimensions.pipelines]]
+name = "keep-logs-with-trace-id"
+type = "probabilistic"
+condition = '{ 1 = 1 }'
+rate = 1.0
+
+# rum 配置结构和 logging 一致(按 group_dimensions 分组采样)：
+#
+# [rum]
+# data_ttl = "1m"
+#
+# [[rum.group_dimensions]]
+# group_key = "session_id"
+#
+# [[rum.group_dimensions.pipelines]]
+# name = "sample-by-session"
+# type = "probabilistic"
+# condition = '{ 1 = 1 }'
+# rate = 0.2

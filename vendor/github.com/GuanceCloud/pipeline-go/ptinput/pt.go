@@ -7,6 +7,7 @@ package ptinput
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
@@ -20,6 +21,59 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/spf13/cast"
 )
+
+var pointCompositeMu sync.Mutex
+
+func pointAnyRaw(x any) (any, error) {
+	pointCompositeMu.Lock()
+	defer pointCompositeMu.Unlock()
+
+	anyVal, ok := x.(*point.Field_A)
+	if !ok {
+		return nil, fmt.Errorf("unexpected composite field type %T", x)
+	}
+
+	old := point.EnableDictField
+	point.EnableDictField = true
+	defer func() { point.EnableDictField = old }()
+
+	return point.AnyRaw(anyVal.A)
+}
+
+func normalizePointMapValue(v map[string]any) (any, bool) {
+	pointCompositeMu.Lock()
+	defer pointCompositeMu.Unlock()
+
+	old := point.EnableDictField
+	point.EnableDictField = true
+	defer func() { point.EnableDictField = old }()
+
+	dict, err := point.NewMap(v)
+	if err != nil {
+		return nil, false
+	}
+	anyVal, err := point.NewAny(dict)
+	if err != nil {
+		return nil, false
+	}
+	return anyVal, true
+}
+
+func normalizePointFieldValue(v any) (any, bool) {
+	switch x := v.(type) {
+	case map[string]any:
+		return normalizePointMapValue(x)
+	default:
+		if arr, ok := normalizeListValue(v); ok {
+			anyVal, err := point.NewAnyArray(arr...)
+			if err != nil {
+				return nil, false
+			}
+			return anyVal, true
+		}
+		return nil, false
+	}
+}
 
 type Pt struct {
 	pt       *point.Point
@@ -59,11 +113,19 @@ func (pp *Pt) SetPtName(name string) {
 }
 
 func (pp *Pt) Get(k string) (any, ast.DType, error) {
+	return pp.get(k, false)
+}
+
+func (pp *Pt) GetRaw(k string) (any, ast.DType, error) {
+	return pp.get(k, true)
+}
+
+func (pp *Pt) get(k string, allowComposite bool) (any, ast.DType, error) {
 	kv := pp.pt.KVs().Get(k)
 	if kv == nil {
 		return nil, ast.Nil, ErrKeyNotExist
 	}
-	v1, v2 := getVal(kv, false)
+	v1, v2 := getVal(kv, allowComposite)
 	return v1, v2, nil
 }
 
@@ -79,14 +141,35 @@ func (pp *Pt) SetTag(k string, v any, dtype ast.DType) bool {
 
 func (pp *Pt) _set(k string, v any, asTag bool, asField bool) {
 	// replace high level
-	kv := pp.pt.KVs().Get(k)
-	if kv != nil && kv.IsTag && !asField {
+	kvs := pp.pt.KVs()
+	idx := -1
+	existAsTag := false
+	for i, kv := range kvs {
+		if kv.Key == k {
+			idx = i
+			existAsTag = kv.IsTag
+			break
+		}
+	}
+	if existAsTag && !asField {
 		asTag = true
 	}
 
-	v, _ = normalVal(v, asTag, false)
+	if asTag {
+		v, _ = normalVal(v, true, false)
+	} else if normalized, ok := normalizePointFieldValue(v); ok {
+		v = normalized
+	} else {
+		v, _ = normalVal(v, false, false)
+	}
 
-	pp.pt.MustAddKVs(point.NewKV(k, v, point.WithKVTagSet(asTag)))
+	kv := point.NewKV(k, v, point.WithKVTagSet(asTag))
+	if idx >= 0 {
+		kvs[idx] = kv
+	} else {
+		kvs = append(kvs, kv)
+	}
+	pp.pt.PBPoint().Fields = kvs
 }
 
 func (pp *Pt) Delete(k string) {
@@ -139,11 +222,20 @@ func (pp *Pt) Category() point.Category {
 }
 
 func (pp *Pt) Tags() map[string]string {
-	tags := map[string]string{}
-	for _, kv := range pp.pt.KVs() {
+	kvs := pp.pt.KVs()
+	tagCount := 0
+	for _, kv := range kvs {
 		if kv.IsTag {
-			if v, ok := kv.Raw().(string); ok {
-				tags[kv.Key] = v
+			if _, ok := kv.Val.(*point.Field_S); ok {
+				tagCount++
+			}
+		}
+	}
+	tags := make(map[string]string, tagCount)
+	for _, kv := range kvs {
+		if kv.IsTag {
+			if _, ok := kv.Val.(*point.Field_S); ok {
+				tags[kv.Key] = kv.GetS()
 			}
 		}
 	}
@@ -151,8 +243,15 @@ func (pp *Pt) Tags() map[string]string {
 }
 
 func (pp *Pt) Fields() map[string]any {
-	fields := map[string]any{}
-	for _, kv := range pp.pt.KVs() {
+	kvs := pp.pt.KVs()
+	fieldCount := 0
+	for _, kv := range kvs {
+		if !kv.IsTag {
+			fieldCount++
+		}
+	}
+	fields := make(map[string]any, fieldCount)
+	for _, kv := range kvs {
 		if !kv.IsTag {
 			fields[kv.Key] = kv.Raw()
 		}
@@ -203,17 +302,19 @@ func getVal(kv *point.Field, allowComposite bool) (any, ast.DType) {
 		return kv.GetS(), ast.String
 
 	case *point.Field_A:
-		v, err := point.AnyRaw(kv.GetA())
+		v, err := pointAnyRaw(kv.Val)
 		if err != nil {
 			return nil, ast.Nil
 		}
 		switch v.(type) {
-		case []any:
-			val, dt = v, ast.List
 		case map[string]any:
 			val, dt = v, ast.Map
 		default:
-			return nil, ast.Nil
+			if arr, ok := normalizeListValue(v); ok {
+				val, dt = arr, ast.List
+			} else {
+				return nil, ast.Nil
+			}
 		}
 	default:
 		return nil, ast.Nil
@@ -229,7 +330,7 @@ func getVal(kv *point.Field, allowComposite bool) (any, ast.DType) {
 		return val, dt
 	}
 
-	return nil, ast.Nil
+	return val, dt
 }
 
 func normalVal(v any, conv2Str bool, allowComposite bool) (any, ast.DType) {
@@ -249,14 +350,16 @@ func normalVal(v any, conv2Str bool, allowComposite bool) (any, ast.DType) {
 		val, dt = cast.ToFloat64(v), ast.Float
 	case bool:
 		val, dt = v, ast.Bool
-	case []any:
-		val, dt = v, ast.List
 	case map[string]any:
 		val, dt = v, ast.Map
 	case []byte:
 		val, dt = string(v), ast.String
 	default:
-		val, dt = nil, ast.Nil
+		if arr, ok := normalizeListValue(v); ok {
+			val, dt = arr, ast.List
+		} else {
+			val, dt = nil, ast.Nil
+		}
 	}
 
 	if conv2Str {

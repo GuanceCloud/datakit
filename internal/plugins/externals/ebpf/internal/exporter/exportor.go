@@ -68,7 +68,9 @@ func buildTarget(apiServer string, traceServer string) *target {
 const (
 	dkLastErr = "/v1/lasterror"
 
-	maxPtSendCount = 256
+	maxPtSendCount   = 64
+	senderQueueSize  = 32
+	senderWorkerSize = 4
 )
 
 var log = logger.DefaultSLogger("ebpf")
@@ -133,6 +135,29 @@ var initOnce sync.Once
 func Init(ctx context.Context, opts ...opt) {
 	fn := func() {
 		stats.MustRegister(ePtsVec)
+		stats.MustRegister(eBPFMapEntriesVec)
+		stats.MustRegister(eBPFMapMaxEntriesVec)
+		stats.MustRegister(eBPFMapFillRatioVec)
+		stats.MustRegister(eBPFMapCleanupVec)
+		stats.MustRegister(eBPFEventDropVec)
+		stats.MustRegister(eBPFMapObserveErrVec)
+		stats.MustRegister(eAggEntriesVec)
+		stats.MustRegister(eAggFlushPointsVec)
+		stats.MustRegister(eAggFlushDurationVec)
+		stats.MustRegister(eCacheEntriesVec)
+		stats.MustRegister(eCacheEvictionsTotalVec)
+		stats.MustRegister(eSenderQueueLen)
+		stats.MustRegister(eSenderBatchPoints)
+		stats.MustRegister(eSenderBatchBytes)
+		stats.MustRegister(eSenderRequestTotal)
+		stats.MustRegister(eSenderRequestDuration)
+		stats.MustRegister(ePerfLostTotal)
+		stats.MustRegister(ePerfReadErrorsTotal)
+		stats.MustRegister(eTPacketStatsTotal)
+		stats.MustRegister(eNICGroupCountVec)
+		stats.MustRegister(eNICGroupRouteCountVec)
+		stats.MustRegister(eAsyncQueueWaitDurationVec)
+		stats.MustRegister(eAsyncProcessDurationVec)
 
 		var c cfg
 		for _, fn := range opts {
@@ -141,23 +166,27 @@ func Init(ctx context.Context, opts ...opt) {
 
 		sampling := newSampling(ctx, &c)
 		globalSender = NewSender(
-			buildTarget(c.apiServer, c.bpftracingServer), sampling)
+			ctx, buildTarget(c.apiServer, c.bpftracingServer), sampling)
 	}
 	initOnce.Do(fn)
 }
 
 type task struct {
-	name string
-	cat  point.Category
-
-	data []*point.Point
+	targetURL string
+	data      []*point.Point
 }
 
 type Sender struct {
+	ctx      context.Context
 	ch       chan *task
 	httpCli  *http.Client
 	target   *target
 	sampling *sampling
+}
+
+type marshaler struct {
+	pbpts point.PBPoints
+	buf   []byte
 }
 
 func newHTTPTransport() *http.Transport {
@@ -170,138 +199,317 @@ func newHTTPTransport() *http.Transport {
 	}
 }
 
-func NewSender(target *target, sampling *sampling) *Sender {
+func NewSender(ctx context.Context, target *target, sampling *sampling) *Sender {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	sender := &Sender{
-		ch: make(chan *task, 16),
+		ctx: ctx,
+		ch:  make(chan *task, senderQueueSize),
 		httpCli: &http.Client{
 			Transport: newHTTPTransport(),
 		},
 		target:   target,
 		sampling: sampling,
 	}
-	for i := 0; i < 4; i++ {
-		go sender.runner(context.Background())
+	for i := 0; i < senderWorkerSize; i++ {
+		go sender.runner(ctx)
 	}
 	return sender
 }
 
 func (sender *Sender) runner(ctx context.Context) {
+	m := &marshaler{}
+	var pending *task
+
 	for {
-		select {
-		case t := <-sender.ch:
-			if err := sender.request(t); err != nil {
-				log.Error(err)
-			}
-		case <-ctx.Done():
+		t, nextPending, ok := sender.nextTask(ctx, pending)
+		if !ok {
 			return
+		}
+		pending = nextPending
+		if t == nil {
+			continue
+		}
+
+		t, pending = sender.collectTask(t, pending)
+		if err := sender.request(ctx, m, t); err != nil {
+			log.Error(err)
 		}
 	}
 }
 
 func (sender *Sender) feed(name string, cat point.Category, data []*point.Point) error {
+	if sender == nil {
+		return fmt.Errorf("sender not init")
+	}
+
 	catStr := cat.String()
 
 	ePtsVec.WithLabelValues(name, catStr).Add(float64(len(data)))
-	if globalSender == nil {
-		return fmt.Errorf("sender not init")
-	}
 
 	// sampling
 	if sender.sampling != nil {
 		data = sender.sampling.sampling(catStr, data)
 	}
 
-	sender.ch <- &task{
-		name: name,
-		cat:  cat,
-		data: data,
-	}
-	return nil
-}
-
-func (sender *Sender) request(data *task) error {
-	if len(data.data) == 0 {
+	if len(data) == 0 {
 		return nil
 	}
 
-	if err := sender.doReq(data); err != nil {
-		return fmt.Errorf("failed to send data: total %d pts: %w", len(data.data), err)
+	targetURL, err := sender.buildRequestURL(name, cat)
+	if err != nil {
+		return err
+	}
+
+	for start := 0; start < len(data); start += maxPtSendCount {
+		end := start + maxPtSendCount
+		if end > len(data) {
+			end = len(data)
+		}
+
+		task := &task{
+			targetURL: targetURL,
+			data:      data[start:end:end],
+		}
+
+		if sender.ctx == nil {
+			sender.ch <- task
+			continue
+		}
+
+		select {
+		case sender.ch <- task:
+			ObserveSenderQueue(len(sender.ch))
+		case <-sender.ctx.Done():
+			return sender.ctx.Err()
+		}
 	}
 
 	return nil
 }
 
-func (sender *Sender) doReq(task *task) error {
-	if len(task.data) == 0 {
-		return nil
+func (sender *Sender) nextTask(ctx context.Context, pending *task) (*task, *task, bool) {
+	if pending != nil {
+		return pending, nil, true
 	}
 
+	select {
+	case t, ok := <-sender.ch:
+		ObserveSenderQueue(len(sender.ch))
+		return t, nil, ok
+	case <-ctx.Done():
+		return nil, nil, false
+	}
+}
+
+func (sender *Sender) collectTask(current *task, pending *task) (*task, *task) {
+	if current == nil {
+		return nil, pending
+	}
+
+	if pending != nil {
+		if merged, rest, ok := mergeTask(current, pending); ok {
+			current = merged
+			pending = rest
+		} else {
+			return current, pending
+		}
+	}
+
+	for len(current.data) < maxPtSendCount {
+		select {
+		case next, ok := <-sender.ch:
+			if !ok {
+				return current, nil
+			}
+			if next == nil {
+				continue
+			}
+
+			merged, rest, ok := mergeTask(current, next)
+			if !ok {
+				return current, next
+			}
+			current = merged
+			pending = rest
+			if pending != nil {
+				return current, pending
+			}
+		default:
+			return current, pending
+		}
+	}
+
+	return current, pending
+}
+
+func mergeTask(current, next *task) (*task, *task, bool) {
+	switch {
+	case current == nil:
+		return next, nil, true
+	case next == nil:
+		return current, nil, true
+	case current.targetURL != next.targetURL:
+		return current, nil, false
+	}
+
+	if len(current.data) >= maxPtSendCount || len(next.data) == 0 {
+		return current, nil, true
+	}
+
+	remain := maxPtSendCount - len(current.data)
+	if remain <= 0 {
+		return current, next, true
+	}
+
+	if remain >= len(next.data) {
+		current.data = append(current.data, next.data...)
+		return current, nil, true
+	}
+
+	current.data = append(current.data, next.data[:remain]...)
+	next.data = next.data[remain:]
+	return current, next, true
+}
+
+func (sender *Sender) buildRequestURL(name string, cat point.Category) (string, error) {
+	if sender == nil {
+		return "", fmt.Errorf("sender not init")
+	}
+	if sender.target == nil {
+		return "", fmt.Errorf("no target")
+	}
+
+	targetURL := sender.target.URL(cat)
+	if targetURL == "" {
+		return "", fmt.Errorf("unsupported category: %s", cat)
+	}
+
+	return targetURL + "?input=" + url.QueryEscape(name), nil
+}
+
+func (sender *Sender) request(ctx context.Context, m *marshaler, data *task) error {
+	if data == nil || len(data.data) == 0 {
+		return nil
+	}
+	defer releaseTaskPoints(data)
+	if sender == nil {
+		return fmt.Errorf("sender not init")
+	}
+	if m == nil {
+		return fmt.Errorf("no marshaler")
+	}
 	if sender.httpCli == nil {
 		return fmt.Errorf("no http client")
 	}
 
-	targetURL := sender.target.URL(task.cat)
-	if targetURL == "" {
-		return fmt.Errorf("unsupported category: %s", task.cat)
+	payload, err := m.marshal(data.data)
+	if err != nil {
+		return fmt.Errorf("encode %d pts: %w", len(data.data), err)
 	}
+	ObserveSenderBatch(len(data.data), len(payload))
 
-	targetURL += "?input=" + url.QueryEscape(task.name)
-
-	enc := point.GetEncoder(point.WithEncEncoding(point.Protobuf))
-	defer point.PutEncoder(enc)
-
-	batch := nBatch(task.data, maxPtSendCount)
-	for i := range batch {
-		buf, err := enc.Encode(batch[i])
-		if err != nil {
-			log.Warnf("failed to encode %d pts (batch %d): %s", len(batch[i]), i, err)
-			continue
-		}
-		if err := sender.postData(buf[0], point.Protobuf, targetURL); err != nil {
-			log.Warnf("failed to post %d pts (batch %d): %s", len(batch[i]), i, err)
-			continue
-		}
+	if _, err := sender.postData(ctx, payload, point.Protobuf, data.targetURL); err != nil {
+		return fmt.Errorf("post %d pts: %w", len(data.data), err)
 	}
 
 	return nil
 }
 
-func (sender *Sender) postData(buf []byte, enc point.Encoding, url string) error {
+func releaseTaskPoints(t *task) {
+	if t == nil {
+		return
+	}
+	for i := range t.data {
+		t.data[i] = nil
+	}
+	t.data = nil
+}
+
+func (m *marshaler) marshal(pts []*point.Point) ([]byte, error) {
+	if len(pts) == 0 {
+		return nil, nil
+	}
+	defer m.releasePBPoints()
+
+	m.pbpts.Arr = m.pbpts.Arr[:0]
+	for i := range pts {
+		if pts[i] == nil {
+			continue
+		}
+		m.pbpts.Arr = append(m.pbpts.Arr, pts[i].PBPoint())
+	}
+
+	size := m.pbpts.Size()
+	if size == 0 {
+		return nil, nil
+	}
+
+	if cap(m.buf) < size {
+		m.buf = make([]byte, size)
+	} else {
+		m.buf = m.buf[:size]
+	}
+
+	n, err := m.pbpts.MarshalToSizedBuffer(m.buf)
+	if err != nil {
+		return nil, err
+	}
+	return m.buf[:n], nil
+}
+
+func (m *marshaler) releasePBPoints() {
+	if m == nil {
+		return
+	}
+	for i := range m.pbpts.Arr {
+		m.pbpts.Arr[i] = nil
+	}
+	m.pbpts.Arr = m.pbpts.Arr[:0]
+}
+
+func (sender *Sender) postData(ctx context.Context, buf []byte, enc point.Encoding, url string) (string, error) {
 	if sender == nil {
-		return nil
+		return "sender_not_init", fmt.Errorf("sender not init")
+	}
+	if ctx == nil {
+		ctx = context.Background()
 	}
 
 	reader := bytes.NewReader(buf)
-	req, err := http.NewRequest("POST", url, reader)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, reader)
 	if err != nil {
-		return err
+		return "new_request_error", err
 	}
 
 	req.Header.Set("Content-Length", strconv.FormatInt(
 		int64((len(buf))), 10))
 	req.Header.Set("Content-Type", enc.HTTPContentType())
 
+	start := time.Now()
 	resp, err := sender.httpCli.Do(req)
 	if err != nil {
-		return err
+		ObserveSenderRequest("request_error", time.Since(start))
+		return "request_error", err
 	}
 	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("url %s, http status code: %d",
+		result := "http_error"
+		switch resp.StatusCode / 100 {
+		case 4:
+			result = "http_4xx"
+		case 5:
+			result = "http_5xx"
+		}
+		ObserveSenderRequest(result, time.Since(start))
+		return result, fmt.Errorf("url %s, http status code: %d",
 			url, resp.StatusCode)
 	}
-	return nil
-}
-
-func nBatch(pts []*point.Point, ptBatch int) (out [][]*point.Point) {
-	for i := 0; i < len(pts)/ptBatch; i++ {
-		out = append(out, pts[i*ptBatch:(i+1)*ptBatch])
-	}
-	if num := len(pts) % ptBatch; num > 0 {
-		out = append(out, pts[len(pts)-num:])
-	}
-	return out
+	ObserveSenderRequest("ok", time.Since(start))
+	return "ok", nil
 }
 
 type ExternalLastErr struct {

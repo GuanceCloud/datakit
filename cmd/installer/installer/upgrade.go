@@ -138,6 +138,7 @@ func upgradeMainConfInstance(c *config.Config) *config.Config {
 		c.PProfListen = "localhost:6060"
 	}
 
+	// logging related
 	if c.LogLevelDeprecated != "" {
 		c.Logging.Level = c.LogLevelDeprecated
 		c.LogLevelDeprecated = ""

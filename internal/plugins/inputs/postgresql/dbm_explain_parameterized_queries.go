@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
 )
 
 const (
@@ -38,10 +36,13 @@ func NewExplainParameterizedQueries(input *Input, explainFunction string) (*Expl
 	}, nil
 }
 
-func (e *ExplainParameterizedQueries) ExplainStatement(dbname, statement, obfuscatedStatement string) (string, error) {
+func (e *ExplainParameterizedQueries) ExplainStatement(dbname, statement, obfuscatedStatement, querySignature string) (string, error) {
 	if e.input.version.LessThan(*V120) {
 		return "", fmt.Errorf("database version %s does not support plan_cache_mode", e.input.version.String())
 	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), e.input.Timeout.Duration)
+	defer cancel()
 
 	conn, err := e.input.service.GetConn(dbname)
 	if err != nil {
@@ -49,19 +50,17 @@ func (e *ExplainParameterizedQueries) ExplainStatement(dbname, statement, obfusc
 	}
 	defer conn.Close()
 
-	if err := e.setPlanCacheMode(conn); err != nil {
+	if err := e.setPlanCacheMode(ctx, conn); err != nil {
 		return "", fmt.Errorf("set plan cache mode error: %w", err)
 	}
 
-	querySignature := util.ComputeSQLSignature(obfuscatedStatement)
-
-	if err := e.createPreparedStatement(conn, statement, obfuscatedStatement, querySignature); err != nil {
+	if err := e.createPreparedStatement(ctx, conn, statement, obfuscatedStatement, querySignature); err != nil {
 		return "", fmt.Errorf("create prepared statement error: %w", err)
 	}
 
-	defer e.deallocatePreparedStatement(conn, querySignature)
+	defer e.deallocatePreparedStatement(ctx, conn, querySignature)
 
-	plan, err := e.explainPreparedStatement(conn, statement, obfuscatedStatement, querySignature)
+	plan, err := e.explainPreparedStatement(ctx, conn, statement, obfuscatedStatement, querySignature)
 	if err != nil {
 		return "", fmt.Errorf("failed to explain with prepared statement error: %w", err)
 	}
@@ -69,23 +68,24 @@ func (e *ExplainParameterizedQueries) ExplainStatement(dbname, statement, obfusc
 	return plan, nil
 }
 
-func (e *ExplainParameterizedQueries) setPlanCacheMode(conn Conn) error {
+func (e *ExplainParameterizedQueries) setPlanCacheMode(ctx context.Context, conn Conn) error {
 	query := "SET plan_cache_mode = force_generic_plan"
-	return conn.Exec(context.Background(), query)
+	return conn.Exec(ctx, query)
 }
 
-func (e *ExplainParameterizedQueries) createPreparedStatement(conn Conn, statement, obfuscatedStatement, querySignature string) error {
+//nolint:lll
+func (e *ExplainParameterizedQueries) createPreparedStatement(ctx context.Context, conn Conn, statement, obfuscatedStatement, querySignature string) error {
 	query := fmt.Sprintf(prepareStatementQuery, querySignature, statement)
-	err := conn.Exec(context.Background(), query)
+	err := conn.Exec(ctx, query)
 	if err != nil {
 		return fmt.Errorf("create prepared statement error: %w", err)
 	}
 	return nil
 }
 
-func (e *ExplainParameterizedQueries) getNumberOfParametersForPreparedStatement(conn Conn, querySignature string) (int, error) {
+func (e *ExplainParameterizedQueries) getNumberOfParametersForPreparedStatement(ctx context.Context, conn Conn, querySignature string) (int, error) {
 	query := fmt.Sprintf(paramTypesCountQuery, querySignature)
-	rows, err := e.executeQueryAndFetchRows(conn, query)
+	rows, err := e.executeQueryAndFetchRows(ctx, conn, query)
 	if err != nil {
 		return 0, err
 	}
@@ -102,8 +102,8 @@ func (e *ExplainParameterizedQueries) getNumberOfParametersForPreparedStatement(
 	return paramCount, nil
 }
 
-func (e *ExplainParameterizedQueries) generatePreparedStatementQuery(conn Conn, querySignature string) (string, error) {
-	paramCount, err := e.getNumberOfParametersForPreparedStatement(conn, querySignature)
+func (e *ExplainParameterizedQueries) generatePreparedStatementQuery(ctx context.Context, conn Conn, querySignature string) (string, error) {
+	paramCount, err := e.getNumberOfParametersForPreparedStatement(ctx, conn, querySignature)
 	if err != nil {
 		return "", err
 	}
@@ -120,14 +120,15 @@ func (e *ExplainParameterizedQueries) generatePreparedStatementQuery(conn Conn, 
 	return fmt.Sprintf(executePreparedStatementQuery, querySignature, params), nil
 }
 
-func (e *ExplainParameterizedQueries) explainPreparedStatement(conn Conn, statement, obfuscatedStatement, querySignature string) (string, error) {
-	preparedQuery, err := e.generatePreparedStatementQuery(conn, querySignature)
+//nolint:lll
+func (e *ExplainParameterizedQueries) explainPreparedStatement(ctx context.Context, conn Conn, statement, obfuscatedStatement, querySignature string) (string, error) {
+	preparedQuery, err := e.generatePreparedStatementQuery(ctx, conn, querySignature)
 	if err != nil {
 		return "", err
 	}
 
 	query := fmt.Sprintf(explainQuery, e.explainFunction)
-	rows, err := e.executeQueryAndFetchRows(conn, query, preparedQuery)
+	rows, err := e.executeQueryAndFetchRows(ctx, conn, query, preparedQuery)
 	if err != nil {
 		return "", fmt.Errorf("fetch rows failed: %w", err)
 	}
@@ -144,15 +145,15 @@ func (e *ExplainParameterizedQueries) explainPreparedStatement(conn Conn, statem
 	return plan, nil
 }
 
-func (e *ExplainParameterizedQueries) deallocatePreparedStatement(conn Conn, querySignature string) {
+func (e *ExplainParameterizedQueries) deallocatePreparedStatement(ctx context.Context, conn Conn, querySignature string) {
 	query := fmt.Sprintf("DEALLOCATE PREPARE dk_%s", querySignature)
-	if err := conn.Exec(context.Background(), query); err != nil {
+	if err := conn.Exec(ctx, query); err != nil {
 		l.Errorf("deallocate prepared statement error: %s", err.Error())
 	}
 }
 
-func (e *ExplainParameterizedQueries) executeQueryAndFetchRows(conn Conn, query string, args ...interface{}) (Rows, error) {
-	rows, err := conn.Query(context.Background(), query, args...)
+func (e *ExplainParameterizedQueries) executeQueryAndFetchRows(ctx context.Context, conn Conn, query string, args ...interface{}) (Rows, error) {
+	rows, err := conn.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query failed: %w", err)
 	}

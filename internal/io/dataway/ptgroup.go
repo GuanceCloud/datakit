@@ -6,6 +6,7 @@
 package dataway
 
 import (
+	"net/url"
 	"strings"
 	sync "sync"
 
@@ -21,6 +22,7 @@ type ptGrouper struct {
 	cat point.Category
 
 	kvarr []string
+	safe  bool
 
 	extKVs     [][2]string
 	groupedPts map[string]groupedPoints
@@ -36,24 +38,28 @@ func getGrouper() *ptGrouper {
 	}
 }
 
-func putGrouper(g *ptGrouper) {
+func (g *ptGrouper) reset() {
 	g.pt = nil
 	g.cat = point.UnknownCategory
 	g.extKVs = g.extKVs[:0]
 
 	g.kvarr = g.kvarr[:0]
+	g.safe = false
 
 	for k := range g.groupedPts {
 		delete(g.groupedPts, k)
 	}
+}
 
+func putGrouper(g *ptGrouper) {
+	g.reset()
 	grouperPool.Put(g)
 }
 
-func (ptg *ptGrouper) setExtKVs() {
-	ptg.extKVs = append(ptg.extKVs, [2]string{"category", ptg.cat.String()})
+func (g *ptGrouper) setExtraKVs() {
+	g.extKVs = append(g.extKVs, [2]string{"category", g.cat.String()})
 
-	switch ptg.cat {
+	switch g.cat {
 	case
 		point.Logging,
 		point.ObjectChange, // Deprecated.
@@ -63,7 +69,7 @@ func (ptg *ptGrouper) setExtKVs() {
 		point.RUM:
 
 		// set measurement name as tag `source'
-		ptg.extKVs = append(ptg.extKVs, [2]string{"source", ptg.pt.Name()})
+		g.extKVs = append(g.extKVs, [2]string{"source", g.pt.Name()})
 
 	case
 		point.Tracing,
@@ -73,13 +79,13 @@ func (ptg *ptGrouper) setExtKVs() {
 
 	case point.Metric, point.MetricDeprecated:
 		// set measurement name as tag `measurement'
-		ptg.extKVs = append(ptg.extKVs, [2]string{"measurement", ptg.pt.Name()})
+		g.extKVs = append(g.extKVs, [2]string{"measurement", g.pt.Name()})
 
 	case point.Object, point.CustomObject:
 		// set measurement name as tag `class'
-		ptg.extKVs = append(ptg.extKVs, [2]string{"class", ptg.pt.Name()})
+		g.extKVs = append(g.extKVs, [2]string{"class", g.pt.Name()})
 
-	case point.DynamicDWCategory, point.UnknownCategory:
+	case point.ExecutionLog, point.LLM, point.AgentLLM, point.DynamicDWCategory, point.UnknownCategory:
 		// pass
 	}
 }
@@ -100,7 +106,7 @@ func SinkHeaderValueFromTags(tags, globalTags map[string]string, customerKeys []
 	var arr []string
 
 	for k, v := range tags {
-		if x := getGroupValue(k, v, globalTags, customerKeys); x != "" {
+		if x := g.getGroupValue(k, v, globalTags, customerKeys); x != "" {
 			arr = append(arr, x)
 		}
 	}
@@ -112,17 +118,25 @@ func SinkHeaderValueFromTags(tags, globalTags map[string]string, customerKeys []
 	return strings.Join(arr, ",")
 }
 
-func getGroupValue(k, v string,
+func (g *ptGrouper) getGroupValue(k, v string,
 	globalTags map[string]string,
 	customerKeys []string,
 ) string {
 	if _, ok := globalTags[k]; ok {
-		return k + "=" + v
+		if g.safe {
+			return url.QueryEscape(k) + "=" + url.QueryEscape(v)
+		} else {
+			return k + "=" + v
+		}
 	}
 
 	for _, ck := range customerKeys {
 		if k == ck { // append customer tag key's value
-			return k + "=" + v
+			if g.safe {
+				return url.QueryEscape(k) + "=" + url.QueryEscape(v)
+			} else {
+				return (k) + "=" + v
+			}
 		}
 	}
 
@@ -130,32 +144,32 @@ func getGroupValue(k, v string,
 }
 
 // sinkHeaderValue create X-Global-Tags header value.
-func (ptg *ptGrouper) sinkHeaderValue(globalTags map[string]string, customerKeys []string) string {
+func (g *ptGrouper) sinkHeaderValue(globalTags map[string]string, customerKeys []string) string {
 	if len(globalTags) == 0 && len(customerKeys) == 0 {
 		return ""
 	}
 
-	ptg.setExtKVs()
+	g.setExtraKVs()
 
-	for _, kv := range ptg.pt.KVs() {
+	for _, kv := range g.pt.KVs() {
 		switch kv.Val.(type) {
 		case *point.Field_S: // only accept key-value from string-type KVs
-			if x := getGroupValue(kv.Key, kv.GetS(), globalTags, customerKeys); x != "" {
-				ptg.kvarr = append(ptg.kvarr, x)
+			if x := g.getGroupValue(kv.Key, kv.GetS(), globalTags, customerKeys); x != "" {
+				g.kvarr = append(g.kvarr, x)
 			}
 		default: // ignored
 		}
 	}
 
-	for _, ekv := range ptg.extKVs {
-		if x := getGroupValue(ekv[0], ekv[1], globalTags, customerKeys); x != "" {
-			ptg.kvarr = append(ptg.kvarr, x)
+	for _, ekv := range g.extKVs {
+		if x := g.getGroupValue(ekv[0], ekv[1], globalTags, customerKeys); x != "" {
+			g.kvarr = append(g.kvarr, x)
 		}
 	}
 
-	if len(ptg.kvarr) == 0 {
+	if len(g.kvarr) == 0 {
 		return ""
 	}
 
-	return strings.Join(ptg.kvarr, ",")
+	return strings.Join(g.kvarr, ",")
 }

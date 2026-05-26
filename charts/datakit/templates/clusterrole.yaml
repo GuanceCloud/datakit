@@ -24,7 +24,7 @@ rules:
   - apiGroups: ["monitoring.coreos.com"]
     resources: ["podmonitors", "servicemonitors"]
     verbs: ["get", "list", "watch"]
-  - apiGroups: ["logging.datakit.io"]
+  - apiGroups: ["logging.datakits.io"]
     resources: ["clusterloggingconfigs"]
     verbs: ["get", "list", "watch"]
   - apiGroups: ["metrics.k8s.io"]

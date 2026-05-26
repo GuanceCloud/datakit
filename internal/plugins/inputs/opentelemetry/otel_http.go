@@ -15,7 +15,6 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -74,18 +73,16 @@ func (h *httpConfig) handleOTELTrace(resp http.ResponseWriter, req *http.Request
 
 	tsreq := &trace.ExportTraceServiceRequest{}
 	switch media {
-	case "application/x-protobuf":
+	case "application/x-protobuf": // nolint: goconst
 		err = proto.Unmarshal(buf, tsreq)
-	case "application/json":
-		err = protojson.Unmarshal(buf, tsreq)
 	default:
-		log.Error("unrecognized Content-Type")
+		log.Errorf("unrecognized Content-Type:%s , please use http/protobuf", media)
 		resp.WriteHeader(http.StatusBadRequest)
 
 		return
 	}
 	if err != nil {
-		log.Error(err.Error())
+		log.Errorf("media:%s err:%v", media, err)
 		resp.WriteHeader(http.StatusBadRequest)
 
 		return
@@ -110,19 +107,19 @@ func (h *httpConfig) handleOTElMetrics(resp http.ResponseWriter, req *http.Reque
 	switch media {
 	case "application/x-protobuf":
 		err = proto.Unmarshal(buf, msreq)
-	case "application/json":
-		err = protojson.Unmarshal(buf, msreq)
 	default:
-		log.Error("unrecognized Content-Type")
+		log.Errorf("unrecognized Content-Type %s , please use http/protobuf", media)
 		resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	if err != nil {
-		log.Error(err.Error())
+		log.Error("media:%s err:%v", media, err)
 		resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
 	remoteIP, _ := net.RemoteAddr(req)
+
 	h.input.parseResourceMetricsV2(msreq.ResourceMetrics, remoteIP)
 }
 
@@ -137,15 +134,13 @@ func (h *httpConfig) handleOTELLogging(resp http.ResponseWriter, req *http.Reque
 	switch media {
 	case "application/x-protobuf":
 		err = proto.Unmarshal(buf, otelLogs)
-	case "application/json":
-		err = protojson.Unmarshal(buf, otelLogs)
 	default:
-		log.Error("unrecognized Content-Type")
+		log.Errorf("unrecognized Content-Type %s, please use http/protobuf", media)
 		resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	if err != nil {
-		log.Error(err.Error())
+		log.Error("media:%s err:%v", media, err)
 		resp.WriteHeader(http.StatusBadRequest)
 		return
 	}

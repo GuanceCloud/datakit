@@ -8,6 +8,7 @@ package dialtesting
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -28,6 +29,7 @@ const (
 	ClassTCP       = "TCP"
 	ClassWebsocket = "WEBSOCKET"
 	ClassICMP      = "ICMP"
+	ClassGRPC      = "GRPC"
 	ClassDNS       = "DNS"
 	ClassHeadless  = "BROWSER"
 	ClassOther     = "OTHER"
@@ -112,6 +114,7 @@ type ITask interface {
 	ID() string
 	Status() string
 	Run() error
+	Clear()
 	CheckResult() ([]string, bool)
 	Class() string
 	GetResults() (map[string]string, map[string]interface{})
@@ -159,31 +162,33 @@ type ITask interface {
 }
 
 type Task struct {
-	ExternalID        string            `json:"external_id"`
-	Name              string            `json:"name"`
-	AK                string            `json:"access_key"`
-	PostURL           string            `json:"post_url"`
-	CurStatus         string            `json:"status"`
-	Disabled          uint8             `json:"disabled"`
-	Frequency         string            `json:"frequency"`
-	Region            string            `json:"region"`
-	OwnerExternalID   string            `json:"owner_external_id"`
-	Tags              map[string]string `json:"tags,omitempty"`
-	Labels            []string          `json:"labels,omitempty"`
-	WorkspaceLanguage string            `json:"workspace_language,omitempty"`
-	TagsInfo          string            `json:"tags_info,omitempty"` // deprecated
-	DFLabel           string            `json:"df_label,omitempty"`
-	UpdateTime        int64             `json:"update_time,omitempty"`
-	ConfigVars        []*ConfigVar      `json:"config_vars,omitempty"`
-	ScheduleType      string            `json:"schedule_type,omitempty"` // "frequency" or "crontab"
-	Crontab           string            `json:"crontab,omitempty"`       // crontab expression like "0 0 * * *"
-	ExtractedVars     []*ConfigVar
-	CustomVars        []*ConfigVar
+	ExternalID        string `json:"external_id"`
+	Name              string `json:"name"`
+	AK                string `json:"access_key"`
+	PostURL           string `json:"post_url"`
+	CurStatus         string `json:"status"`
+	Frequency         string `json:"frequency"`
+	Region            string `json:"region"`
+	OwnerExternalID   string `json:"owner_external_id"`
+	WorkspaceLanguage string `json:"workspace_language,omitempty"`
+	TagsInfo          string `json:"tags_info,omitempty"` // deprecated
+	DFLabel           string `json:"df_label,omitempty"`
+	ScheduleType      string `json:"schedule_type,omitempty"` // "frequency" or "crontab"
+	Crontab           string `json:"crontab,omitempty"`       // crontab expression like "0 0 * * *"
+
+	Tags          map[string]string `json:"tags,omitempty"`
+	Labels        []string          `json:"labels,omitempty"`
+	UpdateTime    int64             `json:"update_time,omitempty"`
+	ConfigVars    []*ConfigVar      `json:"config_vars,omitempty"`
+	ExtractedVars []*ConfigVar
+	CustomVars    []*ConfigVar
 
 	taskJSONString string
+	rawTask        string
 	child          TaskChild
 
-	rawTask    string
+	Disabled uint8 `json:"disabled"`
+
 	isTemplate bool
 	globalVars map[string]Variable
 	option     map[string]string
@@ -225,7 +230,7 @@ func CreateTaskChild(taskType string) (TaskChild, error) {
 		ct = &MultiTask{}
 
 	case "headless", "browser", ClassHeadless:
-		return nil, fmt.Errorf("headless task deprecated")
+		return nil, errors.New("headless task deprecated")
 
 	case "tcp", ClassTCP:
 		ct = &TCPTask{}
@@ -236,6 +241,9 @@ func CreateTaskChild(taskType string) (TaskChild, error) {
 	case "icmp", ClassICMP:
 		ct = &ICMPTask{}
 
+	case "grpc", ClassGRPC:
+		ct = &GRPCTask{}
+
 	default:
 		return nil, fmt.Errorf("unknown task type %s", taskType)
 	}
@@ -245,7 +253,7 @@ func CreateTaskChild(taskType string) (TaskChild, error) {
 
 func NewTask(taskString string, task TaskChild) (ITask, error) {
 	if task == nil {
-		return nil, fmt.Errorf("invalid task")
+		return nil, errors.New("invalid task")
 	}
 
 	if taskString != "" {
@@ -260,7 +268,7 @@ func NewTask(taskString string, task TaskChild) (ITask, error) {
 	task.initTask()
 
 	if t, ok := task.(ITask); !ok {
-		return nil, fmt.Errorf("invalid task, not ITask")
+		return nil, errors.New("invalid task, not ITask")
 	} else {
 		t.SetTaskJSONString(taskString)
 		t.SetChild(task)
@@ -276,7 +284,7 @@ func (t *Task) String() string {
 
 func (t *Task) NewRawTask(child TaskChild) error {
 	if t.taskJSONString == "" {
-		return fmt.Errorf("task json string is empty")
+		return errors.New("task json string is empty")
 	}
 
 	if err := json.Unmarshal([]byte(t.taskJSONString), &child); err != nil {
@@ -586,9 +594,7 @@ func getDefaultFunc() template.FuncMap {
 			return time.Now().Format(format)
 		},
 
-		"urlencode": func(s string) string {
-			return url.QueryEscape(s)
-		},
+		"urlencode": url.QueryEscape,
 	}
 }
 
@@ -668,6 +674,13 @@ func (t *Task) GetPostScriptVars() Vars {
 	}
 
 	if ct, ok := t.child.(*MultiTask); ok {
+		if ct.postScriptResult != nil {
+			return ct.postScriptResult.Vars
+		}
+		return nil
+	}
+
+	if ct, ok := t.child.(*GRPCTask); ok {
 		if ct.postScriptResult != nil {
 			return ct.postScriptResult.Vars
 		}

@@ -60,7 +60,9 @@ func (fo *datawayOutput) Write(data *feedData) error {
 	}
 
 	if data.syncSend {
+		// on sync-send mode, we still try to record collected data for debugging if enabled.
 		defIO.recordPoints(data)
+
 		err := defIO.doCompact(data.pts, data.cat, "")
 		if err != nil {
 			log.Warnf("post %d points to %s failed: %s, ignored", len(data.pts), data.cat, err)
@@ -80,7 +82,7 @@ func (fo *datawayOutput) Write(data *feedData) error {
 	case ch <- data:
 		feedCost.WithLabelValues(
 			category, inputName,
-		).Observe(float64(time.Since(start)) / float64(time.Second))
+		).Observe(time.Since(start).Seconds())
 		return nil
 	case <-datakit.Exit.Wait():
 		log.Warnf("%s/%s feed skipped on global exit", data.cat, data.input)

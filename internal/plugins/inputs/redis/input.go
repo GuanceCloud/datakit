@@ -361,6 +361,12 @@ func (ipt *Input) initCfg() error {
 		ipt.SlowlogMaxLen = 128
 	}
 
+	// if insecure_skip_verify is true and TLSClientConfig is nil, set it to true
+	if ipt.InsecureSkipVerifyDeprecated && ipt.TLSClientConfig == nil {
+		ipt.TLSClientConfig = &dknet.TLSClientConfig{
+			InsecureSkipVerify: true,
+		}
+	}
 	ipt.TLSClientConfig = dknet.MergeTLSConfig(
 		ipt.TLSClientConfig,
 		[]string{ipt.CacertFileDeprecated},
@@ -445,7 +451,7 @@ func (ipt *Input) RunPipeline() {
 		tailer.WithCharacterEncoding(ipt.Log.CharacterEncoding),
 		tailer.EnableMultiline(true),
 		tailer.WithMaxMultilineLength(int64(float64(config.Cfg.Dataway.MaxRawBodySize) * 0.8)),
-		tailer.WithMultilinePatterns([]string{ipt.Log.MultilineMatch}),
+		tailer.WithMultilinePattern(ipt.Log.MultilineMatch),
 		tailer.WithExtraTags(inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")),
 		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
 	}
@@ -685,9 +691,7 @@ func (ipt *Input) doConfigCollect(ctx context.Context) {
 
 	for _, inst := range ipt.instances {
 		for _, n := range inst.nodes() {
-			inst.setCurrentNode(n.cli, n.rep, n.host, n.addr)
-
-			inst.collectConfig(timeoutCtx)
+			inst.collectConfig(timeoutCtx, n.cli, n.addr, n.host)
 		}
 	}
 }
@@ -825,7 +829,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
+	tick := time.NewTicker(3 * time.Second)
 	defer tick.Stop()
 	select {
 	case ipt.pauseCh <- true:
@@ -836,7 +840,7 @@ func (ipt *Input) Pause() error {
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
+	tick := time.NewTicker(3 * time.Second)
 	defer tick.Stop()
 	select {
 	case ipt.pauseCh <- false:
@@ -851,13 +855,13 @@ func defaultInput() *Input {
 
 	return &Input{
 		Timeout:   "10s",
-		pauseCh:   make(chan bool, inputs.ElectionPauseChannelLength),
+		pauseCh:   make(chan bool, 8),
 		restartCh: make(chan struct{}, 1),
 		Tags:      make(map[string]string),
 
-		DBDeprecated: -1,
-		DBs:          []int{0},
-
+		DBDeprecated:            -1,
+		DBs:                     []int{0},
+		MeasurementVersion:      "v2", // default: v2
 		Interval:                time.Second * 15,
 		TopologyRefreshInterval: 10 * time.Minute,
 		ConfigCollectInterval:   1 * time.Hour,

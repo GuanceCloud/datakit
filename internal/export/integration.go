@@ -39,8 +39,9 @@ type Integration struct {
 
 func NewIntegration(opts ...option) *Integration {
 	eo := &exportOptions{
-		langs:   []inputs.I18n{inputs.I18nZh, inputs.I18nEn},
-		version: "not-set",
+		langs:       []inputs.I18n{inputs.I18nZh, inputs.I18nEn},
+		version:     "not-set",
+		docVersions: map[string]string{},
 	}
 
 	for _, opt := range opts {

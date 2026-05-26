@@ -22,7 +22,6 @@ import (
 	"github.com/shirou/gopsutil/v3/process"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 )
 
 const (
@@ -74,22 +73,26 @@ const (
 	CategoryProfiling    = "profiling"
 
 	// other APIS.
-	HeartBeat         = "/v1/write/heartbeat"
-	Ping              = "/ping"
-	Election          = "/v1/election"
-	ElectionHeartbeat = "/v1/election/heartbeat"
-	QueryRaw          = "/v1/query/raw"
-	Workspace         = "/v1/workspace"
-	ObjectLabel       = "/v1/object/labels" // object label
-	LogUpload         = "/v1/log"
-	PipelinePull      = "/v1/pipeline/pull"  // deprecated
-	LogFilter         = "/v2/logfilter/pull" // deprecated
-	DatakitPull       = "/v1/datakit/pull"
-	ListDataWay       = "/v2/list/dataway"
-	TokenCheck        = "/v1/check/token"
-	UsageTrace        = "/v1/datakit/usage_trace"
-	NTPSync           = "/v1/ntp"
-	EnvVariable       = "/v1/env_variable"
+	HeartBeat          = "/v1/write/heartbeat"
+	Ping               = "/ping"
+	Election           = "/v1/election"
+	ElectionHeartbeat  = "/v1/election/heartbeat"
+	QueryRaw           = "/v1/query/raw"
+	Workspace          = "/v1/workspace"
+	ObjectLabel        = "/v1/object/labels" // object label
+	LogUpload          = "/v1/log"
+	BugReportUpload    = "/v1/write/bugreport"
+	PipelinePull       = "/v1/pipeline/pull"  // deprecated
+	LogFilter          = "/v2/logfilter/pull" // deprecated
+	DatakitPull        = "/v1/datakit/pull"
+	ListDataWay        = "/v2/list/dataway"
+	TokenCheck         = "/v1/check/token"
+	UsageTrace         = "/v1/datakit/usage_trace"
+	NTPSync            = "/v1/ntp"
+	EnvVariable        = "/v1/env_variable"
+	Aggregate          = "/v1/aggregate"
+	TailSampling       = "/v1/tail_sampling"
+	TailSamplingConfig = "/v1/tail_sampling_config"
 
 	StrGitRepos           = "gitrepos"
 	StrPipelineRemote     = "pipeline_remote"
@@ -121,6 +124,8 @@ const (
 	SinkCategoryRUM          = "R"
 	SinkCategorySecurity     = "S"
 	SinkCategoryProfiling    = "P"
+
+	ConfPerm = os.ModePerm
 )
 
 var (
@@ -142,7 +147,11 @@ var (
 
 	InstallDir = optionalInstallDir[runtime.GOOS+"/"+runtime.GOARCH]
 
+	// DKHost is the true hosthost.
 	DKHost = "not-set"
+
+	// RenamedHostname is user renamed hostname, this hostname should only used in point's tag `host`.
+	RenamedHostname = ""
 
 	optionalInstallDir = map[string]string{
 		OSArchWinAmd64: `C:\Program Files\datakit`,
@@ -222,6 +231,8 @@ var (
 	// can be encrypted using AES and used in ENC[xxx] mode.
 	// see: config/enc.go
 	ConfigAESKey string
+
+	l = logger.DefaultSLogger("datakit")
 )
 
 func CategoryList() (map[string]struct{}, map[string]struct{}) {
@@ -312,58 +323,8 @@ func InitDirs() {
 	}
 }
 
-const (
-	ConfPerm = os.ModePerm
-)
-
-var (
-	// goroutines caches  goroutine.
-	goroutines = []*goroutine.Group{}
-
-	l = logger.DefaultSLogger("datakit")
-)
-
 func SetLog() {
 	l = logger.SLogger("datakit")
-}
-
-// G create a goroutine group, with namespace datakit.
-func G(name string) *goroutine.Group {
-	panicCb := func(b []byte) bool {
-		l.Errorf("recover panic: %s", string(b))
-		select {
-		case <-Exit.Wait(): // don't continue when exit
-			return false
-		default:
-			return true
-		}
-	}
-
-	g := goroutine.NewGroup(goroutine.Option{
-		Name:         name,
-		PanicTimes:   6,
-		PanicCb:      panicCb,
-		PanicTimeout: 10 * time.Millisecond,
-	})
-	var mu sync.Mutex
-	mu.Lock()
-	goroutines = append(goroutines, g)
-	mu.Unlock()
-	return g
-}
-
-// GWait wait all goroutine group exit.
-func GWait() {
-	for _, g := range goroutines {
-		if err := g.Wait(); err != nil {
-			l.Warnf("wait %q failed: %s, ignored", g.Name(), err.Error())
-		}
-
-		// logging exit waiting time to find these slow-exit modules
-		l.Infof("goroutine Group %q exit, wait %s", g.Name(), time.Since(GlobalExitTime))
-	}
-
-	l.Infof("all goroutine group exited, total wait %s", time.Since(GlobalExitTime))
 }
 
 func PID() (int, error) {

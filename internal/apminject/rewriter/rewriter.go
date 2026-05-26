@@ -34,6 +34,7 @@ const (
 var (
 	pyRegexp   = regexp.MustCompile(`^python(?:3(?:[\.\d]+)*)*$`)
 	javaRegexp = regexp.MustCompile(`^java$`)
+	phpRegexp  = regexp.MustCompile(`^php(?:[\.\d]+)*$`)
 )
 
 var (
@@ -44,7 +45,16 @@ var (
 	errAlreadyInjected  = errors.New(("already injected"))
 )
 
+type Log struct {
+	file *os.File
+}
+
+var log = &Log{}
+
 func main() {
+	log = NewLog("/usr/local/datakit/apm_inject/log/rewriter.log")
+	defer log.Close()
+
 	argv := os.Args // include tmpid, path and args
 	envs := os.Environ()
 	if len(argv) < 3 {
@@ -58,10 +68,11 @@ func main() {
 		envp: envs,
 	})
 	if err != nil {
+		log.Info(err.Error())
 		return
 	}
 	content := marshal(ret.path, ret.argv, ret.envp)
-
+	log.Info(content)
 	//nolint:gosec
 	if err := os.WriteFile(filePrefix+tmpid, []byte(content), 0o644); err != nil {
 		_ = err
@@ -80,16 +91,35 @@ func pyScriptWhitelist(path string) bool {
 	return strings.EqualFold(exeName, "flask") || strings.Contains(exeName, "gunicorn")
 }
 
+func phpScriptWhitelist(path string) bool {
+	_, exeName := filepath.Split(path)
+
+	// 完全匹配（不区分大小写）
+	switch strings.ToLower(exeName) {
+	// PHP 内置服务器
+	case "php":
+		return true
+	// 常见 PHP 框架入口
+	case "laravel", "symfony":
+		return true
+	}
+
+	// 包含匹配
+	if strings.Contains(exeName, "php-fpm") ||
+		strings.Contains(exeName, "php-cgi") {
+		return true
+	}
+
+	return false
+}
+
 func rewrite(param *reArgs) (*reArgs, error) {
 	exePath := filepath.Clean(param.path)
 	_, exeName := filepath.Split(exePath)
 
 	for _, env := range param.envp {
-		if !strings.Contains(env, utils.EnvDKAPMINJECT) {
-			continue
-		}
 		if v := strings.SplitN(env, "=", 2); len(v) == 2 {
-			if utils.CheckDisableInjFromEnv(v[0], v[1]) {
+			if v[0] == utils.EnvDKAPMINJECT && utils.CheckDisableInjFromEnv(v[0], v[1]) {
 				return nil, utils.ErrInjectDisabled
 			}
 		}
@@ -103,6 +133,16 @@ func rewrite(param *reArgs) (*reArgs, error) {
 			exePath = s
 		}
 	}
+
+	var phpScript bool
+	if phpScriptWhitelist(exePath) {
+		if s, err := phpScriptMagic(exePath); err == nil {
+			phpScript = true
+			// php only
+			exePath = s
+		}
+	}
+
 	switch {
 	case pyScript, pyRegexp.MatchString(exeName): // skip flask
 		ddrun, err := checkPython(exePath, param.argv)
@@ -196,6 +236,29 @@ func rewrite(param *reArgs) (*reArgs, error) {
 		}
 		ret.envp = append(ret.envp, param.envp...)
 		return ret, nil
+	case phpScript, phpRegexp.MatchString(exeName):
+		// 检查是否已注入
+		if isPHPDDTraceInjected(param.envp) {
+			return nil, errAlreadyInjected
+		}
+
+		ret := &reArgs{
+			path: param.path,
+			argv: append([]string{}, param.argv...),
+		}
+
+		// 设置 Agent URL
+		urlEnvs, err := traceURL(langPHP)
+		if err != nil {
+			return nil, err
+		}
+		for _, v := range urlEnvs {
+			ret.envp = append(ret.envp, strings.Join(v[:], "="))
+		}
+
+		// 追加原有环境变量
+		ret.envp = append(ret.envp, param.envp...)
+		return ret, nil
 	}
 
 	return nil, fmt.Errorf("skip rewrite exec %s", exePath)
@@ -204,6 +267,7 @@ func rewrite(param *reArgs) (*reArgs, error) {
 const (
 	langJava   = "java"
 	langPython = "python"
+	langPHP    = "php"
 )
 
 func traceURL(lang string) (envs [][2]string, err error) {
@@ -243,6 +307,19 @@ func traceURL(lang string) (envs [][2]string, err error) {
 			envs = [][2]string{
 				{"DD_AGENT_HOST", addr.DkHost},
 				{"DD_AGENT_PORT", addr.DkPort},
+			}
+			return
+		}
+	case langPHP:
+		if addr.DkUds != "" {
+			envs = [][2]string{
+				{"DD_TRACE_AGENT_URL", "unix://" + addr.DkUds},
+			}
+			return
+		} else {
+			envs = [][2]string{
+				{"DD_TRACE_AGENT_HOST", addr.DkHost},
+				{"DD_TRACE_AGENT_PORT", addr.DkPort},
 			}
 			return
 		}
@@ -309,7 +386,10 @@ func getJavaVersion(s string) (int, error) {
 	}
 }
 
-var regexpPythonMagic = regexp.MustCompile("^#!(/.*/python(?:3(?:[\\.\\d]+)*)?)\n$")
+var (
+	regexpPythonMagic = regexp.MustCompile("^#!(/.*/python(?:3(?:[\\.\\d]+)*)?)\n$")
+	regexpPHPMagic    = regexp.MustCompile("^#!(/.*/php(?:[\\d\\.]+)?)\n$")
+)
 
 func pythonScriptMagic(fp string) (string, error) {
 	fp, err := exec.LookPath(fp)
@@ -381,4 +461,78 @@ func checkPython(pyBinPath string, argv []string) (string, error) {
 		}
 	}
 	return ddrun, nil
+}
+
+func phpScriptMagic(fp string) (string, error) {
+	fp, err := exec.LookPath(fp)
+	if fp == "" || err != nil {
+		return "", fmt.Errorf("not found %s", fp)
+	}
+
+	f, err := os.Open(fp) // nolint:gosec
+	if err != nil {
+		return "", err
+	}
+	buf := make([]byte, 512)
+	n, err := f.Read(buf)
+	if err != nil {
+		return "", err
+	}
+	if n <= 0 {
+		return "", fmt.Errorf("read php magic fail")
+	}
+	buf = buf[:n]
+
+	n = bytes.Index(buf, []byte("\n"))
+	if n == -1 {
+		return "", fmt.Errorf("read php magic fail")
+	}
+
+	buf = buf[:n+1]
+	val := regexpPHPMagic.FindStringSubmatch(string(buf))
+	if len(val) != 2 {
+		return "", fmt.Errorf("read php magic fail")
+	}
+
+	return val[1], nil
+}
+
+// isPHPDDTraceInjected 检查是否已注入 ddtrace.
+func isPHPDDTraceInjected(envp []string) bool {
+	for _, env := range envp {
+		// 检查是否已设置 DD_AGENT_HOST
+		if strings.HasPrefix(env, "DD_AGENT_HOST=") {
+			return true
+		}
+		// 检查是否已设置 DD_TRACE_AGENT_PORT
+		if strings.HasPrefix(env, "DD_TRACE_AGENT_PORT=") {
+			return true
+		}
+		// 检查是否已设置 DD_TRACE_AGENT_URL
+		if strings.HasPrefix(env, "DD_TRACE_AGENT_URL=") {
+			return true
+		}
+	}
+	return false
+}
+
+func NewLog(fp string) *Log {
+	var l Log
+	f, err := os.OpenFile(fp, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o777) //nolint:gosec
+	if err == nil {
+		l.file = f
+	}
+	return &l
+}
+
+func (log *Log) Info(val string) {
+	if log.file != nil {
+		_, _ = log.file.WriteString(val + "\n")
+	}
+}
+
+func (log *Log) Close() {
+	if log.file != nil {
+		log.file.Close() //nolint:gosec,errcheck
+	}
 }

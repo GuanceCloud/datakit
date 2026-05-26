@@ -43,6 +43,10 @@ const (
   ## Set true to enable election
   election = true
 
+  ## v2+ overrides metric-category measurement names to "mysql_metric". Default: v2
+  ## Set to "v1" to keep legacy names: mysql, mysql_replication, mysql_dbm_metric, ...
+  measurement_version = "v2"
+
   ## Metric name in metric_exclude_list will not be collected, such as ["mysql_schema", "mysql_user_status"]
   metric_exclude_list = [""]
 
@@ -87,14 +91,32 @@ const (
   ## Config dbm metric 
   [inputs.mysql.dbm_metric]
     enabled = true
+    interval = "10s"
+    ## @param limit - number - optional - default: 10000
+    ## Maximum number of statement rows read per collection.
+    limit = 10000
   
   ## Config dbm sample 
   [inputs.mysql.dbm_sample]
-    enabled = true  
-
+    enabled = true
+    interval = "10s"
+    ## @param explain_cache_ttl - duration - optional - default: "10m"
+    ## TTL for explain-rate cache.
+    explain_cache_ttl = "10m"
+    ## @param plan_cache_ttl - duration - optional - default: "1h"
+    ## Do not re-emit the same execution plan within this window.
+    plan_cache_ttl = "1h"
+    ## @param events_statements_limit - number - optional - default: 10
+    ## Maximum rows read from events_statements* per collection.
+    events_statements_limit = 10
+  
   ## Config dbm activity
   [inputs.mysql.dbm_activity]
-    enabled = true  
+    enabled = true
+    interval = "10s"
+    ## @param limit - number - optional - default: 1000
+    ## Maximum activity rows read from performance_schema per collection.
+    limit = 1000
 
   ## TLS Config
   # [inputs.mysql.tls]

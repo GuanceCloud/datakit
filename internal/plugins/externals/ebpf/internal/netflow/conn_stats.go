@@ -3,6 +3,8 @@
 
 package netflow
 
+//go:generate go run ../c/genlayout -target netflow
+
 import (
 	"fmt"
 	"sync"
@@ -11,17 +13,6 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 )
-
-// #include "../c/netflow/conn_stats.h"
-import "C"
-
-type ConnectionInfoC C.struct_connection_info
-
-type ConnectionStatsC C.struct_connection_stats
-
-type ConnectionTCPStatsC C.struct_connection_tcp_stats
-
-type ConncetionClosedInfoC C.struct_connection_closed_info
 
 type ConnectionInfo struct {
 	Saddr [4]uint32
@@ -44,16 +35,19 @@ func ReadConnInfo(conn *ConnectionInfoC, dnatAddr [4]uint32, dnatPort uint32) Co
 		Daddr:    (*(*[4]uint32)(unsafe.Pointer(&conn.daddr))), //nolint:gosec
 		Sport:    uint32(conn.sport),
 		Dport:    uint32(conn.dport),
-		Pid:      uint32(conn.pid),
-		Netns:    uint32(conn.netns),
-		Meta:     uint32(conn.meta),
+		Pid:      conn.pid,
+		Netns:    conn.netns,
+		Meta:     conn.meta,
 		NATDaddr: dnatAddr, //nolint:gosec
 		NATDport: dnatPort,
 	}
 }
 
 func (conn ConnectionInfo) String() string {
-	return fmt.Sprintf("%s:%d -> %s:%d, pid:%d, tcp:%t", U32BEToIP(conn.Saddr, true), conn.Sport, U32BEToIP(conn.Daddr, true), conn.Dport, conn.Pid, ConnProtocolIsTCP(conn.Meta))
+	return fmt.Sprintf("%s:%d -> %s:%d, pid:%d, tcp:%t",
+		U32BEToIP(conn.Saddr, true), conn.Sport,
+		U32BEToIP(conn.Daddr, true), conn.Dport,
+		conn.Pid, ConnProtocolIsTCP(conn.Meta))
 }
 
 type ConnectionStats struct {
@@ -75,6 +69,11 @@ type ConnectionTCPStats struct {
 	Retransmits      int32
 	Rtt              uint32
 	RttVar           uint32
+	ConnectAttempts  uint32
+	ConnectFailures  uint32
+	CloseWait        uint32
+	LastAck          uint32
+	TimeWait         uint32
 }
 
 type ConncetionClosedInfo struct {
@@ -186,7 +185,9 @@ type ConnFullStats struct {
 type ConnStatsRecord struct {
 	sync.Mutex
 	closedConns     map[ConnectionInfo]ConnFullStats
+	closedConnInfo  map[ConnectionInfo]ConnectionInfo
 	lastActiveConns map[ConnectionInfo]ConnFullStats
+	lastActiveInfo  map[ConnectionInfo]ConnectionInfo
 
 	lastTS time.Time // UTC
 }
@@ -194,17 +195,83 @@ type ConnStatsRecord struct {
 func newConnStatsRecord() *ConnStatsRecord {
 	return &ConnStatsRecord{
 		closedConns:     make(map[ConnectionInfo]ConnFullStats),
+		closedConnInfo:  make(map[ConnectionInfo]ConnectionInfo),
 		lastActiveConns: make(map[ConnectionInfo]ConnFullStats),
+		lastActiveInfo:  make(map[ConnectionInfo]ConnectionInfo),
 		lastTS:          ntp.Now(),
 	}
 }
 
 func (c *ConnStatsRecord) clearClosedConnsCache() {
 	c.closedConns = make(map[ConnectionInfo]ConnFullStats)
+	c.closedConnInfo = make(map[ConnectionInfo]ConnectionInfo)
+}
+
+func (c *ConnStatsRecord) pruneLastActiveNotSeen(seen map[ConnectionInfo]struct{}) int {
+	if len(c.lastActiveConns) == 0 {
+		return 0
+	}
+
+	before := len(c.lastActiveConns)
+	removed := 0
+	for key := range c.lastActiveConns {
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		if _, ok := c.closedConns[key]; ok {
+			continue
+		}
+		delete(c.lastActiveConns, key)
+		delete(c.lastActiveInfo, key)
+		removed++
+	}
+
+	if removed > 0 && len(c.lastActiveConns)*100 < before*75 {
+		c.shrinkLastActive()
+	}
+	return removed
+}
+
+func (c *ConnStatsRecord) lastActiveLen() int {
+	return len(c.lastActiveConns)
+}
+
+func (c *ConnStatsRecord) shrinkLastActive() {
+	nextConns := make(map[ConnectionInfo]ConnFullStats, len(c.lastActiveConns))
+	for key, val := range c.lastActiveConns {
+		nextConns[key] = val
+	}
+	c.lastActiveConns = nextConns
+
+	nextInfo := make(map[ConnectionInfo]ConnectionInfo, len(c.lastActiveInfo))
+	for key, val := range c.lastActiveInfo {
+		nextInfo[key] = val
+	}
+	c.lastActiveInfo = nextInfo
+}
+
+func connStatsCacheKey(conn ConnectionInfo) ConnectionInfo {
+	conn.NATDaddr = [4]uint32{}
+	conn.NATDport = 0
+	conn.ProcessName = ""
+	return conn
+}
+
+func mergeConnDisplayInfo(base, update ConnectionInfo) ConnectionInfo {
+	info := update
+	if info.ProcessName == "" {
+		info.ProcessName = base.ProcessName
+	}
+	if info.NATDport == 0 && (info.NATDaddr[0]|info.NATDaddr[1]|info.NATDaddr[2]|info.NATDaddr[3]) == 0 {
+		info.NATDaddr = base.NATDaddr
+		info.NATDport = base.NATDport
+	}
+	return info
 }
 
 func (c *ConnStatsRecord) updateClosedUseEvent(closedEvents *ConncetionClosedInfo) {
-	if connLastActive, ok := c.lastActiveConns[closedEvents.Info]; ok {
+	key := connStatsCacheKey(closedEvents.Info)
+	if connLastActive, ok := c.lastActiveConns[key]; ok {
 		// Connections that were not closed during the last collection cycle.
 		if ConnProtocolIsTCP(closedEvents.Info.Meta) {
 			connLastActive.TotalEstablished = 0
@@ -213,11 +280,12 @@ func (c *ConnStatsRecord) updateClosedUseEvent(closedEvents *ConncetionClosedInf
 		} else {
 			connLastActive = StatsOp("-", connLastActive, closedEvents.Stats)
 		}
+		c.closedConnInfo[key] = mergeConnDisplayInfo(c.lastActiveInfo[key], closedEvents.Info)
 		c.deleteLastActive(closedEvents.Info)
 		// Save to closedConns.
 
-		c.closedConns[closedEvents.Info] = connLastActive
-	} else if connClosed, ok := c.closedConns[closedEvents.Info]; ok {
+		c.closedConns[key] = connLastActive
+	} else if connClosed, ok := c.closedConns[key]; ok {
 		// A connection that has been closed, has been recorded.
 
 		if ConnProtocolIsTCP(closedEvents.Info.Meta) {
@@ -227,7 +295,8 @@ func (c *ConnStatsRecord) updateClosedUseEvent(closedEvents *ConncetionClosedInf
 		} else {
 			connClosed = StatsOp("+", connClosed, closedEvents.Stats)
 		}
-		c.closedConns[closedEvents.Info] = connClosed
+		c.closedConnInfo[key] = mergeConnDisplayInfo(c.closedConnInfo[key], closedEvents.Info)
+		c.closedConns[key] = connClosed
 	} else {
 		// Connections established and closed during the current cycle, the first record.
 		connF := ConnFullStats{
@@ -238,29 +307,35 @@ func (c *ConnStatsRecord) updateClosedUseEvent(closedEvents *ConncetionClosedInf
 			connF.TotalClosed = 1
 			connF.TotalEstablished = 1
 		}
-		c.closedConns[closedEvents.Info] = connF
+		c.closedConnInfo[key] = closedEvents.Info
+		c.closedConns[key] = connF
 	}
 }
 
 func (c *ConnStatsRecord) updateLastActive(activeConnInfo ConnectionInfo, activeConnFullStats ConnFullStats) {
 	activeConnFullStats.TotalEstablished = 0
 	activeConnFullStats.TotalClosed = 0
-	c.lastActiveConns[activeConnInfo] = activeConnFullStats
+	key := connStatsCacheKey(activeConnInfo)
+	c.lastActiveConns[key] = activeConnFullStats
+	c.lastActiveInfo[key] = activeConnInfo
 }
 
 func (c *ConnStatsRecord) readLastActive(conninfo ConnectionInfo) (ConnFullStats, bool) {
-	v, ok := c.lastActiveConns[conninfo]
+	v, ok := c.lastActiveConns[connStatsCacheKey(conninfo)]
 	return v, ok
 }
 
 func (c *ConnStatsRecord) deleteLastActive(conninfo ConnectionInfo) {
-	delete(c.lastActiveConns, conninfo)
+	key := connStatsCacheKey(conninfo)
+	delete(c.lastActiveConns, key)
+	delete(c.lastActiveInfo, key)
 }
 
 // Return the merged result (closed and unclosed in the previous cycle);
 // Calling this method will update/delete the elements of Map: lastActiveConns, closedConns in record.
 func (c *ConnStatsRecord) mergeWithClosedLastActive(connInfo ConnectionInfo, connFullStats ConnFullStats) ConnFullStats {
-	if v, ok := c.closedConns[connInfo]; ok {
+	key := connStatsCacheKey(connInfo)
+	if v, ok := c.closedConns[key]; ok {
 		// closed
 		if ConnProtocolIsTCP(connInfo.Meta) {
 			v = StatsTCPOp("+", v, connFullStats.Stats, connFullStats.TCPStats)
@@ -272,7 +347,8 @@ func (c *ConnStatsRecord) mergeWithClosedLastActive(connInfo ConnectionInfo, con
 		c.updateLastActive(connInfo, connFullStats) // Copy current active to lastActiveConns.
 
 		// Remove the information that the current connection is closed after the connection is established in the current cycle.
-		delete(c.closedConns, connInfo)
+		delete(c.closedConns, key)
+		delete(c.closedConnInfo, key)
 
 		return v
 	} else if v, ok := c.readLastActive(connInfo); ok {
@@ -328,17 +404,34 @@ func StatsOp(op string, fullConn ConnFullStats, connStats ConnectionStats) ConnF
 
 // StatsTCPOp op: operator; fullConn: a saved connection statistics; connStat: new connection statistics; tcpstats: TCP statistics.
 func StatsTCPOp(op string, fullConn ConnFullStats, connStats ConnectionStats,
-	tcpstats ConnectionTCPStats) ConnFullStats {
+	tcpstats ConnectionTCPStats,
+) ConnFullStats {
 	fullConn = StatsOp(op, fullConn, connStats)
+	diffCounter := func(cur, prev uint32) uint32 {
+		if cur >= prev {
+			return cur - prev
+		}
+		return 0
+	}
 	switch op {
 	case "+":
 		fullConn.TCPStats.Retransmits += tcpstats.Retransmits
+		fullConn.TCPStats.ConnectAttempts += tcpstats.ConnectAttempts
+		fullConn.TCPStats.ConnectFailures += tcpstats.ConnectFailures
+		fullConn.TCPStats.CloseWait += tcpstats.CloseWait
+		fullConn.TCPStats.LastAck += tcpstats.LastAck
+		fullConn.TCPStats.TimeWait += tcpstats.TimeWait
 	case "-":
 		if tcpstats.Retransmits >= fullConn.TCPStats.Retransmits {
 			fullConn.TCPStats.Retransmits = tcpstats.Retransmits - fullConn.TCPStats.Retransmits
 		} else {
 			fullConn.TCPStats.Retransmits = 0
 		}
+		fullConn.TCPStats.ConnectAttempts = diffCounter(tcpstats.ConnectAttempts, fullConn.TCPStats.ConnectAttempts)
+		fullConn.TCPStats.ConnectFailures = diffCounter(tcpstats.ConnectFailures, fullConn.TCPStats.ConnectFailures)
+		fullConn.TCPStats.CloseWait = diffCounter(tcpstats.CloseWait, fullConn.TCPStats.CloseWait)
+		fullConn.TCPStats.LastAck = diffCounter(tcpstats.LastAck, fullConn.TCPStats.LastAck)
+		fullConn.TCPStats.TimeWait = diffCounter(tcpstats.TimeWait, fullConn.TCPStats.TimeWait)
 	}
 	fullConn.TCPStats.Rtt = tcpstats.Rtt
 	fullConn.TCPStats.RttVar = tcpstats.RttVar

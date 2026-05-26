@@ -15,20 +15,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-func getAttr(key string, attributes []*common.KeyValue) (*common.KeyValue, int) {
-	for idx, attr := range attributes {
-		if attr == nil {
-			continue
-		}
-
-		if attr.Key == key {
-			return attr, idx
-		}
-	}
-
-	return nil, -1
-}
-
 // selectAttrs extract common attrs as kvs, non-common attrs are merged.
 func (ipt *Input) selectAttrs(atts []*common.KeyValue) (kvs point.KVs, merged []*common.KeyValue) {
 	for _, v := range atts {
@@ -72,25 +58,21 @@ func (ipt *Input) selectAttrs(atts []*common.KeyValue) (kvs point.KVs, merged []
 
 func getDBHost(atts []*common.KeyValue) string {
 	var isDB bool
+	host := ""
 	for _, v := range atts {
 		if v == nil {
 			continue
 		}
-
 		if v.Key == "db.system" {
 			isDB = true
-			break
+		}
+		if v.Key == "net.peer.name" || v.Key == "server.address" {
+			host = v.Value.GetStringValue()
 		}
 	}
-
 	if !isDB {
 		return ""
 	}
 
-	for _, attr := range atts {
-		if attr.Key == "net.peer.name" || attr.Key == "server.address" {
-			return attr.Value.GetStringValue()
-		}
-	}
-	return ""
+	return host
 }

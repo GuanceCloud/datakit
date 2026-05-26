@@ -12,7 +12,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/compact"
 )
 
 type compactor struct {
@@ -25,7 +25,7 @@ type compactor struct {
 }
 
 func (x *dkIO) runCompactor(cat point.Category) {
-	r := x.fo.Reader(cat)
+	r := x.foDataway.Reader(cat)
 	if r == nil && cat != point.DynamicDWCategory {
 		log.Panicf("invalid category %q, should not been here", cat.String())
 	}
@@ -132,6 +132,10 @@ func (x *dkIO) compact(c *compactor) {
 		// put back these points.
 		datakit.PutbackPoints(c.arrPoints...)
 
+		for i := range c.arrPoints {
+			c.arrPoints[i] = nil // NOTE: manually release reference on points
+		}
+
 		c.arrPoints = c.arrPoints[:0] // clear
 	}
 
@@ -148,7 +152,10 @@ func (x *dkIO) compact(c *compactor) {
 
 		// put back these points.
 		datakit.PutbackPoints(arr...)
-		c.indexedPoints[k] = c.indexedPoints[k][:0] // clear: should we delete the key in map?
+		for i := range c.indexedPoints[k] {
+			c.indexedPoints[k][i] = nil // NOTE: manually release reference on points
+		}
+		c.indexedPoints[k] = c.indexedPoints[k][:0]
 	}
 }
 
@@ -161,15 +168,15 @@ func (x *dkIO) doCompact(points []*point.Point, cat point.Category, indexName st
 		return nil
 	}
 
-	opts := []dataway.WriteOption{
-		dataway.WithPoints(points),
+	opts := []compact.WriteOption{
+		compact.WithPoints(points),
 		// max cache size(in memory) upload as a batch
-		dataway.WithBatchSize(x.compactAt),
-		dataway.WithCategory(cat),
+		compact.WithBatchSize(x.compactAt),
+		compact.WithCategory(cat),
 	}
 
 	if indexName != "" {
-		opts = append(opts, dataway.WithStorageIndex(indexName))
+		opts = append(opts, compact.WithStorageIndex(indexName))
 	}
 
 	return x.dw.Write(opts...)
@@ -185,13 +192,12 @@ func (x *dkIO) compactAndUpload(points []*point.Point, cat point.Category) error
 		return nil
 	}
 
-	opts := []dataway.WriteOption{
-		dataway.WithPoints(points),
-		// max cache size(in memory) upload as a batch
-		dataway.WithBatchSize(x.compactAt),
-		dataway.WithCategory(cat),
-		dataway.WithNoWAL(true), // send body directly(without WAL)
-		dataway.WithGzipDuringBuildBody(true),
+	opts := []compact.WriteOption{
+		compact.WithPoints(points),
+		compact.WithBatchSize(x.compactAt), // max cache size(in memory) upload as a batch
+		compact.WithCategory(cat),
+		compact.WithNoWAL(true), // send body directly(without WAL)
+		compact.WithGzipDuringBuildBody(true),
 	}
 
 	return x.dw.Write(opts...)

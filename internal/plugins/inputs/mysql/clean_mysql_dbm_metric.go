@@ -7,9 +7,28 @@ package mysql
 
 import (
 	"database/sql"
+	"fmt"
+	"strings"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
+	"github.com/cespare/xxhash/v2"
+
+	"github.com/DataDog/datadog-agent/pkg/obfuscate"
 )
+
+// generateQuerySignature generates a unique signature for a SQL statement.
+// Similar to SQL Server's implementation, it uses schema and digest to generate the signature.
+func generateQuerySignature(schemaName, digest string) string {
+	h := xxhash.New()
+	_, _ = h.WriteString(schemaName)
+	_, _ = h.WriteString(":")
+	_, _ = h.WriteString(digest)
+
+	return fmt.Sprintf("%016x", h.Sum64())
+}
+
+func newMySQLSQLObfuscator() *obfuscate.Obfuscator {
+	return obfuscate.NewObfuscator(obfuscate.Config{})
+}
 
 func getCleanSummaryRows(r rows) []dbmRow {
 	if r == nil {
@@ -38,6 +57,8 @@ func getCleanSummaryRows(r rows) []dbmRow {
 
 	dbmRows := []dbmRow{}
 
+	o := newMySQLSQLObfuscator()
+
 	for r.Next() {
 		if err := r.Scan(
 			&schemaName,
@@ -54,6 +75,7 @@ func getCleanSummaryRows(r rows) []dbmRow {
 			&sumSelectFullJoin,
 			&sumNoIndexUsed,
 			&sumNoGoodIndexUsed); err != nil {
+			l.Errorf("scan dbm metric row failed: %s", err.Error())
 			continue
 		}
 
@@ -70,9 +92,25 @@ func getCleanSummaryRows(r rows) []dbmRow {
 			schemaNameStr = schemaName.String
 		}
 
-		digestTextStr = util.ObfuscateSQL(digestTextStr)
+		// Skip rows with empty digest or digest text
+		if digestStr == "" || digestTextStr == "" {
+			continue
+		}
 
-		querySignature := util.ComputeSQLSignature(digestTextStr)
+		// Filter out rows that are EXPLAIN statements
+		if strings.HasPrefix(strings.ToLower(digestTextStr), "explain") {
+			continue
+		}
+
+		obfResult, err := o.ObfuscateSQLString(digestTextStr)
+		if err != nil {
+			l.Warnf("obfuscate digest text failed: %s,digestTextStr: %s", err.Error(), digestTextStr)
+			continue
+		}
+		digestTextStr = obfResult.Query
+
+		// Generate query signature from schema and obfuscated digest text (xxhash)
+		querySignature := generateQuerySignature(schemaNameStr, digestTextStr)
 
 		dbmRowItem := dbmRow{
 			digest:             digestStr,

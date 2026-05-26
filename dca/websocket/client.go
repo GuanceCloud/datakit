@@ -57,6 +57,7 @@ type DataKit struct {
 	Upgradable           bool          `json:"upgradable" db:"upgradable"` // whether datakit can be upgraded
 	URL                  string        `json:"url" db:"url"`               // url of datakit: http://localhost:9529
 	GlobalHostTagsString string        `json:"global_host_tags_string" db:"global_host_tags"`
+	Config               string        `json:"config" db:"config"` // config value, json string
 	DataKitRuntimeInfo
 }
 

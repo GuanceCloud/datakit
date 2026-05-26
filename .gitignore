@@ -1,14 +1,18 @@
 __debug_bin*
 !cmd/make/build
 .cl.md
+.codex
 .doc/
 .DS_Store
 .idea/
 .orig
+.trae
+.codex
 .pid
 bin
 .suite.json
 .vscode/
+.codex
 *.test
 *-packr.go
 *.ak
@@ -29,6 +33,7 @@ scripts/v1.data
 *.zip
 test.*/
 *.test
+.trae
 ddtrace.test
 # to ignore all test generated files
 ag.sh
@@ -46,6 +51,7 @@ cmd/datakit/gitrepos/
 cmd/datakit/pipeline/
 cmd/datakit/python.d/
 cmd/installer/bin/
+cmd/flameshot/flameshot
 config.d/
 config.json
 cspell.lint
@@ -125,3 +131,7 @@ charts/datakit/Chart.yaml
 charts/datakit/values.yaml
 charts/datakit/questions.yml
 charts/datakit/README.md
+AGENTS_PERSONAL.md
+iss-docs-*/
+.worktrees/
+.gocache/

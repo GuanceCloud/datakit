@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -55,6 +56,8 @@ var (
 	catalogName    = "db"
 	l              = logger.DefaultSLogger("memcached")
 	defaultTimeout = 5 * time.Second
+
+	_ inputs.ElectionInput = (*Input)(nil)
 )
 
 const emptySlabID = "empty_slab_id"
@@ -80,6 +83,8 @@ type Input struct {
 	collectCache       []*point.Point
 	metricCollectorMap map[string]*collectItem
 
+	paused atomic.Bool
+
 	feeder  dkio.Feeder
 	semStop *cliutils.Sem // start stop signal
 	opt     point.Option
@@ -103,6 +108,16 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&itemsMeasurement{},
 		&slabsMeasurement{},
 	}
+}
+
+func (ipt *Input) Pause() error {
+	ipt.paused.Store(true)
+	return nil
+}
+
+func (ipt *Input) Resume() error {
+	ipt.paused.Store(false)
+	return nil
 }
 
 func (ipt *Input) ElectionEnabled() bool {
@@ -418,12 +433,6 @@ func (ipt *Input) init() {
 			l.Warnf("Invalid extra stats type: %s, items or slabs expected", statType)
 		}
 	}
-
-	if ipt.Election {
-		ipt.opt = point.WithExtraTags(datakit.GlobalElectionTags())
-	} else {
-		ipt.opt = point.WithExtraTags(datakit.GlobalHostTags())
-	}
 }
 
 func (ipt *Input) Run() {
@@ -434,25 +443,27 @@ func (ipt *Input) Run() {
 	start := ntp.Now()
 
 	for {
-		if err := ipt.Collect(start.UnixNano()); err != nil {
-			l.Errorf("Collect: %s", err)
-			ipt.feeder.FeedLastError(err.Error(),
-				metrics.WithLastErrorInput(inputName),
-			)
-		}
-
-		if len(ipt.collectCache) > 0 {
-			if err := ipt.feeder.Feed(point.Metric, ipt.collectCache,
-				dkio.WithCollectCost(time.Since(start)),
-				dkio.WithElection(ipt.Election),
-				dkio.WithSource(inputName),
-			); err != nil {
+		if !ipt.paused.Load() {
+			if err := ipt.Collect(start.UnixNano()); err != nil {
+				l.Errorf("Collect: %s", err)
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
 				)
-				l.Errorf("feed measurement: %s", err)
 			}
-			ipt.collectCache = ipt.collectCache[:0]
+
+			if len(ipt.collectCache) > 0 {
+				if err := ipt.feeder.Feed(point.Metric, ipt.collectCache,
+					dkio.WithCollectCost(time.Since(start)),
+					dkio.WithElection(ipt.Election),
+					dkio.WithSource(inputName),
+				); err != nil {
+					ipt.feeder.FeedLastError(err.Error(),
+						metrics.WithLastErrorInput(inputName),
+					)
+					l.Errorf("feed measurement: %s", err)
+				}
+				ipt.collectCache = ipt.collectCache[:0]
+			}
 		}
 
 		select {

@@ -15,11 +15,15 @@ import (
 	"strings"
 	"time"
 
+	"go.uber.org/zap/zapcore"
+
 	"github.com/GuanceCloud/cliutils/point"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/tinylib/msgp/msgp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
+	awslambda "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/awslambda"
+	lambdatrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/awslambda/trace"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
@@ -79,7 +83,12 @@ func (ipt *Input) handleDDTraces(resp http.ResponseWriter, req *http.Request) {
 		}
 
 		log.Warnf("dropped %d trace: too large request body(%q bytes > %d bytes)", ntrace, clStr, ipt.maxTraceBody)
+		resp.WriteHeader(http.StatusRequestEntityTooLarge)
 		return
+	}
+
+	if ipt.maxTraceBody > 0 {
+		req.Body = http.MaxBytesReader(resp, req.Body, ipt.maxTraceBody)
 	}
 
 	pbuf := bufpool.GetBuffer()
@@ -87,6 +96,17 @@ func (ipt *Input) handleDDTraces(resp http.ResponseWriter, req *http.Request) {
 
 	_, err = io.Copy(pbuf, req.Body)
 	if err != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			if ntrace > 0 {
+				droppedTraces.WithLabelValues(req.URL.Path).Add(float64(ntrace))
+			}
+
+			log.Warnf("dropped %d trace: request body exceeded limit(%d bytes)", ntrace, ipt.maxTraceBody)
+			resp.WriteHeader(http.StatusRequestEntityTooLarge)
+			return
+		}
+
 		log.Error(err.Error())
 		resp.WriteHeader(http.StatusBadRequest)
 
@@ -168,12 +188,9 @@ func (ipt *Input) decodeDDTraces(param *itrace.TraceParameters) (itrace.DatakitT
 	var (
 		err      error
 		dktraces itrace.DatakitTraces
+		traces   DDTraces
+		pooled   DDTraces
 	)
-	traces := ddtracePool.Get().(DDTraces)
-	defer func() {
-		traces.reset()
-		ddtracePool.Put(traces) //nolint
-	}()
 
 	switch param.URLPath {
 	case v1:
@@ -183,14 +200,21 @@ func (ipt *Input) decodeDDTraces(param *itrace.TraceParameters) (itrace.DatakitT
 		}
 		traces = mergeSpans(spans)
 	case v5:
-		if err = traces.UnmarshalMsgDictionary(param.Body.Bytes()); err == nil {
-			traces = mergeTraces(traces)
+		pooled = ddtracePool.Get().(DDTraces)
+		defer recycleDDTracesFunc(pooled)
+
+		if err = pooled.UnmarshalMsgDictionary(param.Body.Bytes()); err == nil {
+			traces = mergeTraces(pooled)
 		}
 	default:
-		if err = decodeRequest(param, &traces); err != nil {
+		pooled = ddtracePool.Get().(DDTraces)
+		defer recycleDDTracesFunc(pooled)
+
+		if err = decodeRequest(param, &pooled); err != nil {
 			// traces = mergeTraces(traces)
 			return nil, err
 		}
+		traces = pooled
 	}
 
 	curSpans := 0
@@ -230,6 +254,16 @@ func (ipt *Input) decodeDDTraces(param *itrace.TraceParameters) (itrace.DatakitT
 
 	log.Debugf("curSpans: %d", curSpans)
 	return dktraces, err
+}
+
+var recycleDDTracesFunc = recycleDDTraces
+
+func recycleDDTraces(traces DDTraces) {
+	keepInPool := traces.shouldKeepInPool()
+	traces.reset(keepInPool)
+	if keepInPool {
+		ddtracePool.Put(traces) //nolint
+	}
 }
 
 func decodeRequest(param *itrace.TraceParameters, out *DDTraces) error {
@@ -298,6 +332,9 @@ func (ipt *Input) ddtraceToDkTrace(trace DDTrace, values []string, remoteIP stri
 		strTraceID         = ""
 	)
 
+	trace = rewriteLambdaServerlessPlaceholder(trace)
+	trace = ipt.dedupLambdaTraceSpans(trace)
+
 	traceSpans.WithLabelValues(inputName).Observe(float64(len(trace)))
 
 	// truncate too large spans
@@ -315,13 +352,20 @@ func (ipt *Input) ddtraceToDkTrace(trace DDTrace, values []string, remoteIP stri
 		truncatedTraceSpans.WithLabelValues(inputName).Add(float64(len(trace) - ipt.traceMaxSpans))
 		trace = trace[:ipt.traceMaxSpans] // truncated too large spans
 	}
-
+	if ipt.TracingMetricEnable {
+		// 统计指标。
+		traceMetric(trace, labels, values)
+	}
 	for _, span := range trace {
 		values = values[:0]
 		if span == nil {
 			continue
 		}
-
+		if log.Level() == zapcore.DebugLevel {
+			// 排查问题专用，打印前后信息。
+			log.Debugf("span:  trace_id: %d,span_id=%d parent_id=%d service=%s meta:%+v metrics=%+v",
+				span.TraceID, span.SpanID, span.ParentID, span.Service, span.Meta, span.Metrics)
+		}
 		if strTraceID == "" {
 			strTraceID = strconv.FormatUint(span.TraceID, ipt.traceBase)
 			if v, ok := span.Meta[TraceIDUpper]; ipt.Trace128BitID && ok {
@@ -334,7 +378,7 @@ func (ipt *Input) ddtraceToDkTrace(trace DDTrace, values []string, remoteIP stri
 		}
 
 		var spanKV point.KVs
-		spanKV = spanKV.AddTag(itrace.TagRemoteIP, remoteIP)
+		spanKV = spanKV.AddTag(itrace.TagCollectorSourceIP, remoteIP)
 		priority, ok := span.Metrics[keyPriority]
 		if ok {
 			if priority == -1 || priority == -3 || priority == 0 {
@@ -389,10 +433,7 @@ func (ipt *Input) ddtraceToDkTrace(trace DDTrace, values []string, remoteIP stri
 		}
 
 		if !ipt.DelMessage {
-			span.ParentID = 0
-			span.SpanID = 0
-			span.TraceID = 0
-			if buf, err := jsonIterator.Marshal(span); err != nil {
+			if buf, err := jsonIterator.Marshal(&wrapMessage{Meta: span.Meta, Metrics: span.Metrics}); err != nil {
 				log.Warn(err.Error())
 			} else {
 				spanKV = spanKV.Add(itrace.FieldMessage, string(buf))
@@ -401,10 +442,9 @@ func (ipt *Input) ddtraceToDkTrace(trace DDTrace, values []string, remoteIP stri
 
 		t := time.Unix(0, span.Start)
 		pt := point.NewPoint(inputName, spanKV, append(traceOpts, point.WithTime(t))...)
-		if ipt.TracingMetricEnable {
-			spanMetrics(pt, labels, values) // span 指标化。
+		if log.Level() == zapcore.DebugLevel {
+			log.Debugf("point: %s", pt.LineProto())
 		}
-
 		dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 	}
 
@@ -412,6 +452,68 @@ func (ipt *Input) ddtraceToDkTrace(trace DDTrace, values []string, remoteIP stri
 		len(dktrace), cap(dktrace)) // cap(dktrace) is the origin trace span count
 
 	return dktrace
+}
+
+const lambdaServerlessPlaceholderResource = "dd-tracer-serverless-span"
+
+func rewriteLambdaServerlessPlaceholder(trace DDTrace) DDTrace {
+	if !awslambda.IsLambdaEnvironment() {
+		return trace
+	}
+
+	if len(trace) == 0 {
+		return trace
+	}
+
+	placeholderParents := make(map[uint64]uint64)
+	rewritten := make(DDTrace, 0, len(trace))
+
+	for _, span := range trace {
+		if span == nil {
+			continue
+		}
+		if span.Resource == lambdaServerlessPlaceholderResource {
+			lambdatrace.CaptureTracerPlaceholder(span.TraceID, span.ParentID, span.Meta, span.Metrics)
+			placeholderParents[span.SpanID] = span.ParentID
+			continue
+		}
+		rewritten = append(rewritten, span)
+	}
+
+	if len(placeholderParents) == 0 {
+		return trace
+	}
+
+	for _, span := range rewritten {
+		if span == nil {
+			continue
+		}
+		if parentID, ok := placeholderParents[span.ParentID]; ok {
+			span.ParentID = parentID
+		}
+	}
+
+	return rewritten
+}
+
+func (ipt *Input) dedupLambdaTraceSpans(trace DDTrace) DDTrace {
+	if !awslambda.IsLambdaEnvironment() || ipt.lambdaDeduper == nil || len(trace) == 0 {
+		return trace
+	}
+
+	rewritten := make(DDTrace, 0, len(trace))
+	for _, span := range trace {
+		if span == nil {
+			continue
+		}
+		if !ipt.lambdaDeduper.ShouldKeep(span.TraceID, span.SpanID) {
+			log.Debugf("drop duplicated lambda ddtrace span: trace_id=%d span_id=%d", span.TraceID, span.SpanID)
+			continue
+		}
+		rewritten = append(rewritten, span)
+	}
+
+	return rewritten
 }
 
 func gatherSpansInfo(trace DDTrace) (parentIDs map[uint64]bool, spanIDs map[uint64]string) {

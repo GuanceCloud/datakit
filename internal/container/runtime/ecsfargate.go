@@ -121,6 +121,7 @@ func (c *ecsfargateClient) ContainerTop(id string) (*ContainerTop, error) {
 	// memory usage and menory limit
 	top.MemoryWorkingSet = calculateMemUsageUnixNoCache(stats.MemoryStats)
 	top.MemoryCapacity = int64(math.MaxInt64)
+	top.MemoryLimitInBytes = int64(stats.MemoryStats.Limit)
 
 	// block io
 	top.BlockRead, top.BlockWrite = calculateBlockIO(stats.BlkioStats)

@@ -28,7 +28,7 @@ func Test_refreshWithProfile(t *testing.T) {
 			},
 			MetricTags: snmputil.MetricTagConfigList{
 				snmputil.MetricTagConfig{
-					Column: snmputil.SymbolConfig{
+					Symbol: snmputil.SymbolConfigCompat{
 						OID: "1.2.3.4.7",
 					},
 				},
@@ -41,7 +41,7 @@ func Test_refreshWithProfile(t *testing.T) {
 		},
 		Metrics: metrics,
 		MetricTags: []snmputil.MetricTagConfig{
-			{Tag: "interface", Column: snmputil.SymbolConfig{OID: "1.3.6.1.2.1.31.1.1.1.1", Name: "ifName"}},
+			{Tag: "interface", Symbol: snmputil.SymbolConfigCompat{OID: "1.3.6.1.2.1.31.1.1.1.1", Name: "ifName"}},
 		},
 		Metadata: snmputil.MetadataConfig{
 			"device": snmputil.MetadataResourceConfig{
@@ -78,7 +78,7 @@ func Test_refreshWithProfile(t *testing.T) {
 				IDTags: snmputil.MetricTagConfigList{
 					snmputil.MetricTagConfig{
 						Tag: "interface",
-						Column: snmputil.SymbolConfig{
+						Symbol: snmputil.SymbolConfigCompat{
 							OID:  "1.3.6.1.2.1.31.1.1.1.1",
 							Name: "ifName",
 						},
@@ -106,10 +106,10 @@ func Test_refreshWithProfile(t *testing.T) {
 	assert.Equal(t, profile1, *c.ProfileDef)
 	assert.Equal(t, metrics, c.Metrics)
 	assert.Equal(t, []snmputil.MetricTagConfig{
-		{Tag: "interface", Column: snmputil.SymbolConfig{OID: "1.3.6.1.2.1.31.1.1.1.1", Name: "ifName"}},
+		{Tag: "interface", Symbol: snmputil.SymbolConfigCompat{OID: "1.3.6.1.2.1.31.1.1.1.1", Name: "ifName"}},
 	}, c.MetricTags)
 	assert.Equal(t, snmputil.OidConfig{
-		ScalarOids: []string{"1.2.3.4.5"},
+		ScalarOids: []string{"1.2.3.4.5", "1.3.6.1.2.1.31.1.1.1.1"},
 		ColumnOids: []string{"1.2.3.4.6", "1.2.3.4.7"},
 	}, c.OidConfig)
 	assert.Equal(t, []string{"snmp_profile:profile1", "device_vendor:a-vendor"}, c.ProfileTags)
@@ -128,12 +128,15 @@ func Test_refreshWithProfile(t *testing.T) {
 			"1.3.6.1.2.1.1.99.1.0",
 			"1.3.6.1.2.1.1.99.2.0",
 			"1.3.6.1.2.1.1.99.3.0",
+			"1.3.6.1.2.1.31.1.1.1.1",
 		},
 		ColumnOids: []string{
 			"1.2.3.4.6",
 			"1.2.3.4.7",
 			"1.3.6.1.2.1.2.2.1.99",
 			"1.3.6.1.2.1.31.1.1.1.1",
+			"1.3.6.1.2.1.4.20.1.2",
+			"1.3.6.1.2.1.4.20.1.3",
 		},
 	}, c.OidConfig)
 
@@ -144,6 +147,7 @@ func Test_refreshWithProfile(t *testing.T) {
 	assert.Equal(t, snmputil.OidConfig{
 		ScalarOids: []string{
 			"1.2.3.4.5",
+			"1.3.6.1.2.1.31.1.1.1.1",
 		},
 		ColumnOids: []string{
 			"1.2.3.4.6",

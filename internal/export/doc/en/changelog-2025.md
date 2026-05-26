@@ -1,5 +1,167 @@
 # Changelog
 
+## 1.87.2(2025/12/24) {#cl-1.87.2}
+
+This release is a hotfix release, contents are as follows:
+
+### Bug Fixes {#cl-1.87.2-fix}
+
+- Fixed OpenTelemetry metric collection handling for count-type metrics by adding an extra tag `__temporality` to facilitate GuanceDB processing (#2929)
+- Fixed the issue where DDTrace collector custom tags were invalid; this issue was introduced in version 1.85.0 (#2926)
+
+### Compatibility Adjustments {#cl-1.87.2-brk}
+
+- Removed global tag appending during OpenTelemetry metric collection (#2929)
+
+---
+
+## 1.87.1(2025/12/19) {#cl-1.87.1}
+
+This release is a hotfix with the following updates:
+
+### Bug Fixes {#cl-1.87.1-fix}
+
+- Fixed bug on OpenTelemetry crash (#2924)
+
+---
+
+## 1.87.0(2025/12/17) {#cl-1.87.0}
+
+This release is an iterative release, with the following main updates:
+
+### New Features {#cl-1.87.0-new}
+
+- Added Flameshot to support dynamic Profile collection (#2876)
+- Cloud meta synchronization added support for Google Cloud hosts (#2895)
+
+### Bug Fixes {#cl-1.87.0-fix}
+
+- Optimized Pipeline handling of null characters (#2870)
+- Fixed slow log collection issue in Redis master-slave mode (#2895)
+- Fixed potential crash issue in Pipeline Refer table (#2921)
+- Fixed bug on logfwd service/source configure error (#2922)
+
+### Improvements {#cl-1.87.0-opt}
+
+- Optimized service startup behavior. If an error occurs during startup, context information related to service startup will be output to facilitate troubleshooting (#2111)
+- Optimized Jolokia-based JVM and Kafka metric collection (#2852)
+- Optimized HTTP API whitelist function, added regex-based whitelist configuration and option to disable whitelist (#2860)
+- Optimized error log handling in MongoDB collection (#2916)
+- Optimized permission instructions in Redis collection document (#2911)
+- Optimized DataKit self-metric collection configuration, added `interval` configuration entry; meanwhile, added eBPF process-related CPU/memory metric collection to self-metrics (#2825)
+- Added extraction of Trace SDK name/version/language common fields in DDTrace/OpenTelemetry trace collection (#2920)
+- Host object collection supports virtual/physical machine detection, allowing different collection tags to be set accordingly (#2795)
+
+### Compatibility Adjustments {#cl-1.87.0-brk}
+
+- The Kafka collector has undergone major adjustments. In this version, all metrics are grouped under the `kafka` measurement, and all metrics are automatically derived based on corresponding MBean names, without requiring manual configuration of collected MBeans and their corresponding metric naming (#2852)
+
+---
+
+## 1.86.2 (2025/12/04) {#cl-1.86.2}
+
+This release is a hotfix with the following updates:
+
+### Bug Fixes {#cl-1.86.2-fix}
+
+- Fixed issue where log collection was preventing pod deletion (#2908)
+
+---
+
+## 1.86.1 (2025/12/03) {#cl-1.86.1}
+
+This release is a hotfix with the following updates:
+
+### Bug Fixes {#cl-1.86.1-fix}
+
+- Fixed metric statistics issue during OpenTelemetry/DDtrace sampling (#2896)
+- Prioritize cgroup v2 to avoid cgroup failure in certain scenarios (#2897)
+- Added more timeout protection for 9529 API and removed the original gin timeout middleware (#2901)
+- Redis collector configuration now uses v2 metric set naming by default (#2903)
+- Optimized eBPF collection's consumption of Kubernetes API resources (#2907)
+- Added missing `from-beginning` related configurations for logfwd (#2902)
+- Fix typo `split_service_name` in OpenTelemetry collector (!3781)
+- Other documentation fixes (#2898)
+
+### Compatibility Changes {#cl-1.86.1-brk}
+
+- The `remote_ip` field in trace data has been renamed to `collector_source_ip`. The `remote_ip` field has been removed from `tracing_metrics`, and the renamed `collector_source_ip` is also not included in `tracing_metrics` (#2896)
+
+---
+
+## 1.86.0(2025/11/20) {#cl-1.86.0}
+
+This release is a feature update with the following changes:
+
+### New Features {#cl-1.86.0-new}
+
+- Added gRPC dial testing (#2862)[^2862]
+- logfwd collection configuration now supports hot updates via CRD (#2858)
+
+[^2862]: Currently, Studio does not support creating gRPC dial testing tasks yet. Only local DataKit configuration is available for now.
+
+### Bug Fixes {#cl-1.86.0-fix}
+
+- Fixed `PodTargetLabel` issue in log collection CRD (#2880)
+- Fixed CPU usage limit failure for cgroup on Ubuntu (#2894)
+- Fixed tag setting issue in profile metric generation (!3757)
+
+### Optimizations {#cl-1.86.0-opt}
+
+- diskio collector now supports direct calculation of IOWait-related disk metrics, no longer requiring pythond plugin (#2878)
+- Removed already extracted fields from `message` in DDTrace collection (#2879)
+- Optimized DataKit's own logging behavior, applying rate limiting to high-frequency but important logs (#2886)
+- Enhanced DataKit Lambda extension (#2893)
+
+---
+
+## 1.85.1(2025/11/14) {#cl-1.85.1}
+
+This release is a hotfix containing the following fixes:
+
+### Bug Fixes {#cl-1.85.1-fix}
+
+- Fixed Profile collector disk cache issue that could cause failures in container deployment mode. Also reduced the default disk cache worker count to 1 (#2885/#2881)
+- Fixed dial testing collector that failed on internal network task, a bug introduced since version 1.84.0 (#2887)
+- Fixed CPU limit configuration error in *datakit.service* file (#2888)
+- Fixed container log filtering priority issue, a bug introduced since version 1.85.0 (#2890)
+- Started actively collecting logs for cronjob/job containers, no longer ignoring log collection for these container types (#2891)
+
+---
+
+## 1.85.0(2025/11/06) {#cl-1.85.0}
+
+This release is a feature update with the following changes:
+
+### New Features {#cl-1.85.0-new}
+
+- DCA server now exposes Prometheus metrics and includes built-in dashboard (#2638)
+- SNMP collector adds LLDP-based network neighbor discovery collection (#2829)
+
+### Bug Fixes {#cl-1.85.0-fix}
+
+- Fixed default collector configuration file generation issue introduced since version 1.83.0 (#2867)
+- Fixed OpenTelemetry invalid fields processing (#2869)
+- Fixed SNMP collector issue that can't find profiles on Windows (#2877)
+
+### Optimizations {#cl-1.85.0-opt}
+
+- Added `change_id` field to Kubernetes change events (#2866)
+- Optimized DataKit memory usage (#2862)
+- PostgreSQL adds database auto-discovery and function-related metric collection (#2856)
+- Added Kubernetes Deployment documentation for DataKit (#2617)
+- Redis collector now collects `maxclients` metric for Redis old versions (#2873)
+- Added protection in log collection to prevent files from being locked by DataKit indefinitely (#2874)
+- Optimized eBPF collection memory usage (#2875)
+- Other documentation updates (#2843)
+
+### Breaking Changes {#cl-1.85.0-brk}
+
+- Removed HTTP JSON body support in OpenTelemetry collection, now only supports Protobuf body for HTTP (#2869)
+- Removed collector-level cluster election feature (coordinating collector behavior across DataKit instances via DataKit operator), retaining only central election functionality (#2872)
+
+---
+
 ## 1.84.1(2025/10/29) {#cl-1.84.1}
 
 This release is a hotfix containing the following fixes:
@@ -74,7 +236,6 @@ This release is an iterative update with the following key changes:
 ### Improvements {#cl-1.83.0-opt}
 
 - Optimized PostgreSQL metric collection (#2805)
-- Removed the redundant `operation` field from all Trace collectors except DDTrace (#2816)
 - Optimized the impact of the upgrade process on the *datakit.conf* file (#2821)
 - Optimized ICMP probing (#2823)
 - Optimized the CPU utilization limit settings in the *datakit.conf* configuration (#2830)
@@ -86,6 +247,7 @@ This release is an iterative update with the following key changes:
 
 ### Compatibility Adjustments {#cl-1.83.0-brk}
 
+- Removed the redundant `operation` field from all Trace collectors except DDTrace (#2816)
 - Due to changes in DataKit's runtime permission control, all collector configuration examples have been moved to the *conf.d/samples/* directory, and subsequent releases will no longer use subdirectories under the *conf.d/* directory. Taking the CPU collector as an example, the original configuration example, which was located at *conf.d/host/cpu.conf.sample*, has now been adjusted to *conf.d/samples/cpu.conf.sample*. However, collector configurations can still be stored in subdirectories under *conf.d*. This update only adjusts the storage location of sample files.
 
 ---

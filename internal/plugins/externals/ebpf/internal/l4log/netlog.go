@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/google/gopacket"
@@ -30,6 +31,22 @@ var (
 	enabledNetMetric = false
 
 	enableL7HTTP = false
+
+	fallbackCaptureSocketBlocks = defaultFallbackCaptureSocketBlocks
+	sharedCaptureSocketBlocks   = defaultSharedCaptureSocketBlocks
+	maxFallbackSocketLimit      = defaultMaxFallbackSocketLimit
+)
+
+const (
+	defaultFallbackCaptureSocketBlocks = 8
+	defaultSharedCaptureSocketBlocks   = 128
+	defaultMaxFallbackSocketLimit      = 16
+	defaultCapturePollTimeout          = time.Second
+
+	// K8s nodes already pay extra per-pod netns bookkeeping; default to shared-only capture.
+	k8sFallbackCaptureSocketBlocks = 4
+	k8sSharedCaptureSocketBlocks   = 64
+	k8sMaxFallbackSocketLimit      = 0
 )
 
 func ConfigFunc(netlog, netMetric bool, enabledL7Proto []string) {
@@ -150,8 +167,9 @@ func NewPktDecoder() *pktDecoder {
 
 func newRawsocket(filter []bpf.RawInstruction, opts ...any) (*afpacket.TPacket, error) {
 	afpktOpt := []any{
-		afpacket.OptNumBlocks(8),
+		afpacket.OptNumBlocks(fallbackCaptureSocketBlocks),
 		afpacket.OptAddPktType(true),
+		afpacket.OptPollTimeout(defaultCapturePollTimeout),
 	}
 
 	afpktOpt = append(afpktOpt, opts...)
@@ -171,9 +189,12 @@ func newRawsocket(filter []bpf.RawInstruction, opts ...any) (*afpacket.TPacket, 
 }
 
 type netlogCfg struct {
-	gTags       map[string]string
-	blacklist   string
-	ctrEndpoint []string
+	gTags           map[string]string
+	blacklist       string
+	ctrEndpoint     []string
+	fallbackSockets int
+	fallbackBlocks  int
+	sharedBlocks    int
 }
 
 type CfgFn func(cfg *netlogCfg)
@@ -193,6 +214,39 @@ func WithBlacklist(blacklist string) func(cfg *netlogCfg) {
 func WithCtrEndpointOverride(endpoint []string) func(cfg *netlogCfg) {
 	return func(cfg *netlogCfg) {
 		cfg.ctrEndpoint = endpoint
+	}
+}
+
+func WithCaptureLimits(fallbackSockets, fallbackBlocks, sharedBlocks int) func(cfg *netlogCfg) {
+	return func(cfg *netlogCfg) {
+		cfg.fallbackSockets = fallbackSockets
+		cfg.fallbackBlocks = fallbackBlocks
+		cfg.sharedBlocks = sharedBlocks
+	}
+}
+
+func applyCaptureLimits(cfg *netlogCfg) {
+	fallbackCaptureSocketBlocks = defaultFallbackCaptureSocketBlocks
+	sharedCaptureSocketBlocks = defaultSharedCaptureSocketBlocks
+	maxFallbackSocketLimit = defaultMaxFallbackSocketLimit
+
+	if k8sNetInfo != nil {
+		fallbackCaptureSocketBlocks = k8sFallbackCaptureSocketBlocks
+		sharedCaptureSocketBlocks = k8sSharedCaptureSocketBlocks
+		maxFallbackSocketLimit = k8sMaxFallbackSocketLimit
+	}
+
+	if cfg == nil {
+		return
+	}
+	if cfg.fallbackSockets > 0 {
+		maxFallbackSocketLimit = cfg.fallbackSockets
+	}
+	if cfg.fallbackBlocks > 0 {
+		fallbackCaptureSocketBlocks = cfg.fallbackBlocks
+	}
+	if cfg.sharedBlocks > 0 {
+		sharedCaptureSocketBlocks = cfg.sharedBlocks
 	}
 }
 
@@ -226,6 +280,13 @@ func NetLog(ctx context.Context, opts ...CfgFn) {
 		if fn != nil {
 			fn(&cfg)
 		}
+	}
+
+	applyCaptureLimits(&cfg)
+	log.Infof("netlog capture limits: fallback_sockets=%d fallback_blocks=%d shared_blocks=%d",
+		maxFallbackSocketLimit, fallbackCaptureSocketBlocks, sharedCaptureSocketBlocks)
+	if k8sNetInfo != nil && maxFallbackSocketLimit == 0 {
+		log.Infof("netlog k8s fallback capture disabled by default; shared capture only")
 	}
 
 	dockerCtr, err := cruntime.NewDockerRuntime("unix:///var/run/docker.sock", "")

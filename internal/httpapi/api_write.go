@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -21,8 +22,9 @@ import (
 	"github.com/GuanceCloud/pipeline-go/lang"
 	"github.com/GuanceCloud/pipeline-go/ptinput/ipdb"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
-	dkzip "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
 
@@ -150,6 +152,7 @@ type APIWriteResult struct {
 
 	PointCallback point.Callback
 
+	CustomeURL,
 	inputVersion,
 	plName,
 	SrcIP,
@@ -182,9 +185,10 @@ func (wr *APIWriteResult) reset() {
 	wr.IPQuerier = nil
 	wr.IPInfo = nil
 
-	wr.globalElectionTags = false
-	wr.inputVersion = ""
 	wr.ignoreGlobalTags = false
+	wr.globalElectionTags = false
+	wr.CustomeURL = ""
+	wr.inputVersion = ""
 	wr.SrcIP = ""
 	wr.APPID = ""
 	wr.IPStatus = ""
@@ -301,6 +305,13 @@ func (wr *APIWriteResult) APIV1Write(req *http.Request) (err error) {
 		opts = append(opts, point.DefaultMetricOptions()...)
 	case point.Logging:
 		opts = append(opts, point.DefaultLoggingOptions()...)
+		// 获取远端 IP 并添加 collector_source_ip tag
+		remoteIP, _ := dknet.RemoteAddr(req)
+		if remoteIP != "" {
+			opts = append(opts, point.WithExtraTags(map[string]string{
+				"collector_source_ip": remoteIP,
+			}))
+		}
 	case point.Object:
 		opts = append(opts, point.DefaultObjectOptions()...)
 
@@ -315,8 +326,14 @@ func (wr *APIWriteResult) APIV1Write(req *http.Request) (err error) {
 		opts = append(opts, point.WithExtraTags(wr.ipTags()))
 
 	default:
-		l.Debugf("invalid category: %q", categoryURL)
-		return uhttp.Errorf(ErrInvalidCategory, "invalid URL %q", categoryURL)
+		if wr.CustomeURL == "" && categoryURL != wr.CustomeURL {
+			if err := inputNotEnabledError(req.Method, req.URL.Path); err != nil {
+				return err
+			}
+
+			l.Debugf("invalid category: %q", categoryURL)
+			return uhttp.Errorf(ErrInvalidCategory, "invalid URL %q", categoryURL)
+		}
 	}
 
 	// API can set input name via query args.
@@ -379,7 +396,12 @@ func (wr *APIWriteResult) APIV1Write(req *http.Request) (err error) {
 	defer bufpool.PutBuffer(buf)
 
 	if _, err := io.Copy(buf, req.Body); err != nil {
-		return err
+		var netErr net.Error
+		if errors.As(err, &netErr) && netErr.Timeout() {
+			return ErrReadTimeout
+		} else {
+			return err
+		}
 	}
 
 	body = buf.Bytes()
@@ -448,10 +470,10 @@ func decodeBody(body []byte, decodeType string) ([]byte, error) {
 	}
 
 	decoders := map[string]func([]byte) ([]byte, error){
-		"gzip":    dkzip.UnGZip,
-		"deflate": dkzip.UnDeflateZip,
-		"br":      dkzip.UnBrotliZip,
-		"zstd":    dkzip.UnZstdZip,
+		"gzip":    datakit.UnGZip,
+		"deflate": datakit.UnDeflateZip,
+		"br":      datakit.UnBrotliZip,
+		"zstd":    datakit.UnZstdZip,
 	}
 
 	if decodeFunc, exists := decoders[decodeType]; exists {

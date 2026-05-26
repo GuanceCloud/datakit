@@ -23,6 +23,7 @@ func (x *aliyun) Sync() (map[string]interface{}, error) {
 		"private_ip":            x.PrivateIP(),
 		"zone_id":               x.ZoneID(),
 		"region":                x.Region(),
+		"project_id":            x.ProjectID(),
 	}, nil
 }
 
@@ -70,4 +71,8 @@ func (x *aliyun) ZoneID() string {
 
 func (x *aliyun) Region() string {
 	return metaGet(x.baseURL + "/region-id")
+}
+
+func (x *aliyun) ProjectID() string {
+	return Unavailable
 }

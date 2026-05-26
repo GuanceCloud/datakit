@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"time"
 )
 
@@ -29,71 +28,59 @@ func (c *DiskCache) Put(data []byte) error {
 	defer c.wlock.Unlock()
 
 	defer func() {
-		putBytesVec.WithLabelValues(c.path).Observe(float64(len(data)))
-		putLatencyVec.WithLabelValues(c.path).Observe(float64(time.Since(start)) / float64(time.Second))
-		sizeVec.WithLabelValues(c.path).Set(float64(c.size.Load()))
+		putLatencyVec.WithLabelValues(c.path).Observe(time.Since(start).Seconds())
 	}()
 
 	if c.IsFull(data) {
 		if c.noDrop {
-			return ErrCacheFull
+			return WrapPutError(ErrCacheFull, c.path, len(data)).WithDetails("no_drop_enabled")
 		}
 
 		if c.filoDrop { // do not accept new data
 			droppedDataVec.WithLabelValues(c.path, reasonExceedCapacity).Observe(float64(len(data)))
-			return ErrCacheFull
+			return WrapPutError(ErrCacheFull, c.path, len(data)).WithDetails("filo_drop_policy")
 		}
 
 		if err := c.dropBatch(); err != nil {
-			return err
+			return WrapPutError(err, c.path, len(data)).WithDetails("failed_to_drop_batch")
 		}
 	}
 
 	if c.maxDataSize > 0 && int32(len(data)) > c.maxDataSize {
-		return ErrTooLargeData
+		return WrapPutError(ErrTooLargeData, c.path, len(data)).WithDetails(
+			fmt.Sprintf("max_size=%d, actual_size=%d", c.maxDataSize, len(data)))
 	}
 
 	hdr := make([]byte, dataHeaderLen)
 
 	binary.LittleEndian.PutUint32(hdr, uint32(len(data)))
 	if _, err := c.wfd.Write(hdr); err != nil {
-		return err
+		return WrapFileOperationError(OpWrite, err, c.path, c.wfd.Name()).
+			WithDetails("failed_to_write_header")
 	}
 
 	if _, err := c.wfd.Write(data); err != nil {
-		return err
+		return WrapFileOperationError(OpWrite, err, c.path, c.wfd.Name()).
+			WithDetails("failed_to_write_data")
 	}
 
 	if !c.noSync {
 		if err := c.wfd.Sync(); err != nil {
-			return err
+			return WrapFileOperationError(OpSync, err, c.path, c.wfd.Name()).
+				WithDetails("failed_to_sync_write")
 		}
 	}
 
 	c.curBatchSize += int64(len(data) + dataHeaderLen)
-	c.size.Add(int64(len(data) + dataHeaderLen))
 	c.wfdLastWrite = time.Now()
 
 	// rotate new file
 	if c.curBatchSize >= c.batchSize {
 		if err := c.rotate(); err != nil {
-			return err
+			return WrapPutError(err, c.path, len(data)).WithDetails("failed_to_rotate_batch")
 		}
 	}
 
-	return nil
-}
-
-func (c *DiskCache) putPart(part []byte) error {
-	if _, err := c.wfd.Write(part); err != nil {
-		return err
-	}
-
-	if !c.noSync {
-		if err := c.wfd.Sync(); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
@@ -104,62 +91,68 @@ func (c *DiskCache) putPart(part []byte) error {
 func (c *DiskCache) StreamPut(r io.Reader, size int) error {
 	var (
 		//nolint:ineffassign
-		n           = 0
-		total       = 0
+		total       int64
 		err         error
 		startOffset int64
 		start       = time.Now()
-		round       = 0
 	)
+
+	if size <= 0 {
+		return NewCacheError(OpStreamPut, ErrInvalidStreamSize,
+			fmt.Sprintf("invalid_size=%d", size)).WithPath(c.path)
+	}
 
 	c.wlock.Lock()
 	defer c.wlock.Unlock()
 
 	if c.capacity > 0 && c.size.Load()+int64(size) > c.capacity {
-		return ErrCacheFull
+		return NewCacheError(OpStreamPut, ErrCacheFull,
+			fmt.Sprintf("capacity_exceeded: current=%d, new=%d, max=%d",
+				c.size.Load(), size, c.capacity)).WithPath(c.path)
 	}
 
-	if startOffset, err = c.wfd.Seek(0, os.SEEK_CUR); err != nil {
-		return fmt.Errorf("Seek(0, SEEK_CUR): %w", err)
+	if c.maxDataSize > 0 && size > int(c.maxDataSize) {
+		return NewCacheError(OpStreamPut, ErrTooLargeData,
+			fmt.Sprintf("size_exceeded: max=%d, actual=%d", c.maxDataSize, size)).WithPath(c.path)
+	}
+
+	if startOffset, err = c.wfd.Seek(0, io.SeekCurrent); err != nil {
+		return WrapFileOperationError(OpSeek, err, c.path, c.wfd.Name()).
+			WithDetails("failed_to_get_current_position")
 	}
 
 	defer func() {
 		if total > 0 && err != nil { // fallback to origin position
 			if _, serr := c.wfd.Seek(startOffset, io.SeekStart); serr != nil {
-				c.LastErr = serr
+				c.LastErr = WrapFileOperationError(OpSeek, serr, c.path, c.wfd.Name()).
+					WithDetails(fmt.Sprintf("failed_to_fallback_to_position_%d", startOffset))
 			}
 		}
 
-		putBytesVec.WithLabelValues(c.path).Observe(float64(size))
-		putLatencyVec.WithLabelValues(c.path).Observe(float64(time.Since(start)) / float64(time.Second))
-		sizeVec.WithLabelValues(c.path).Set(float64(c.size.Load()))
-		streamPutVec.WithLabelValues(c.path).Observe(float64(round))
+		putLatencyVec.WithLabelValues(c.path).Observe(time.Since(start).Seconds())
 	}()
 
-	binary.LittleEndian.PutUint32(c.batchHeader, uint32(size))
-	if _, err := c.wfd.Write(c.batchHeader); err != nil {
-		return err
+	if size > 0 {
+		binary.LittleEndian.PutUint32(c.batchHeader, uint32(size))
+		if _, err := c.wfd.Write(c.batchHeader); err != nil {
+			return WrapFileOperationError(OpWrite, err, c.path, c.wfd.Name()).
+				WithDetails("failed_to_write_stream_header")
+		}
 	}
 
-	for {
-		n, err = r.Read(c.streamBuf)
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			} else {
-				return err
-			}
-		}
+	total, err = io.CopyN(c.wfd, r, int64(size))
+	if err != nil && !errors.Is(err, io.EOF) {
+		return NewCacheError(OpStreamPut, err,
+			fmt.Sprintf("failed_to_copy_stream_data: expected=%d, copied=%d", size, total)).
+			WithPath(c.path)
+	}
 
-		if n == 0 {
-			break
-		}
+	c.curBatchSize += (total + dataHeaderLen)
 
-		if err = c.putPart(c.streamBuf); err != nil {
-			return err
-		} else {
-			total += n
-			round++
+	if c.curBatchSize >= c.batchSize {
+		if err := c.rotate(); err != nil {
+			return NewCacheError(OpStreamPut, err, "failed_to_rotate_after_stream_put").
+				WithPath(c.path)
 		}
 	}
 

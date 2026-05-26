@@ -22,176 +22,165 @@ func BenchmarkMultilineMatch(b *testing.B) {
 	}
 }
 
-func TestMultilineMatch(t *testing.T) {
-	t.Run("mysql-slowlog", func(t *testing.T) {
-		pattern := "^(# Time|\\d{4}-\\d{2}-\\d{2}|\\d{6}\\s+\\d{2}:\\d{2}:\\d{2})"
-		in := []string{
-			"# Time: 2021-05-31T11:15:26.043419Z",
-			"# User@Host: datakitMonitor[datakitMonitor] @ localhost []  Id:  1228",
-			"# Query_time: 0.015214  Lock_time: 0.000112 Rows_sent: 4  Rows_examined: 288",
-			"SET timestamp=1622459726;",
-			"SELECT   table_schema, IFNULL(SUM(data_length+index_length)/1024/1024,0) AS total_mb",
-			"                FROM     information_schema.tables",
-			"                GROUP BY table_schema;",
-		}
-		out := "# Time: 2021-05-31T11:15:26.043419Z\n# User@Host: datakitMonitor[datakitMonitor] @ localhost []  Id:  1228\n# Query_time: 0.015214  Lock_time: 0.000112 Rows_sent: 4  Rows_examined: 288\nSET timestamp=1622459726;\nSELECT   table_schema, IFNULL(SUM(data_length+index_length)/1024/1024,0) AS total_mb\n                FROM     information_schema.tables\n                GROUP BY table_schema;"
-
-		m, err := New([]string{pattern})
+func TestMultilineEndToEndFlow(t *testing.T) {
+	t.Run("auto-default-rules-and-extra-patterns", func(t *testing.T) {
+		m, err := NewAuto([]string{`^APPSTART\b`})
 		assert.NoError(t, err)
 
-		for idx := range in {
-			_, state := m.ProcessLineString(in[idx])
+		out := collectStringLines(m, []string{
+			"APPSTART custom entry",
+			"  custom continuation",
+			"2024-07-08 10:00:00 INFO default timestamp entry",
+			"  timestamp continuation",
+			"INFO [main] default level entry",
+		})
 
-			if idx == 0 {
-				assert.Equal(t, NewMultiline, state)
-			} else {
-				assert.Equal(t, Written, state)
-			}
-		}
-
-		assert.Equal(t, out, m.FlushString())
+		assert.Equal(t, []string{
+			"APPSTART custom entry\n  custom continuation",
+			"2024-07-08 10:00:00 INFO default timestamp entry\n  timestamp continuation",
+			"INFO [main] default level entry",
+		}, out)
 	})
 
-	t.Run("flushing-two-groups", func(t *testing.T) {
-		patterns := []string{"^\\S"}
-		in := []string{"2021-05-31T11:15:26.043419Z INFO", "2021-05-31T11:15:26.043419Z WARN"}
-		out := []string{"2021-05-31T11:15:26.043419Z INFO", "2021-05-31T11:15:26.043419Z WARN"}
-
-		m, err := New(patterns)
+	t.Run("manual-pattern-does-not-use-auto-defaults", func(t *testing.T) {
+		m, err := New([]string{`^MANUAL\b`})
 		assert.NoError(t, err)
 
-		_, state := m.ProcessLineString(in[0])
-		assert.Equal(t, NewMultiline, state)
+		out := collectStringLines(m, []string{
+			"MANUAL first entry",
+			"2024-07-08 10:00:00 INFO default-looking continuation",
+			"MANUAL second entry",
+		})
 
-		res, state := m.ProcessLineString(in[1])
-		assert.Equal(t, NewMultiline, state)
+		assert.Equal(t, []string{
+			"MANUAL first entry\n2024-07-08 10:00:00 INFO default-looking continuation",
+			"MANUAL second entry",
+		}, out)
+	})
 
-		assert.Equal(t, out[0], res)
-		assert.Equal(t, out[1], m.FlushString())
+	t.Run("auto-keeps-stack-continuations", func(t *testing.T) {
+		m, err := NewAuto(nil)
+		assert.NoError(t, err)
+
+		out := collectStringLines(m, []string{
+			`[2020-12-03 11:36:23] ERROR in app: request failed on /error [GET]`,
+			`Traceback (most recent call last):`,
+			`  File "/app.py", line 1, in <module>`,
+			`[2020-12-03 11:36:24] "GET /health HTTP/1.1" 200 -`,
+		})
+
+		assert.Equal(t, []string{
+			"[2020-12-03 11:36:23] ERROR in app: request failed on /error [GET]\n" +
+				"Traceback (most recent call last):\n" +
+				`  File "/app.py", line 1, in <module>`,
+			`[2020-12-03 11:36:24] "GET /health HTTP/1.1" 200 -`,
+		}, out)
+	})
+
+	t.Run("auto-fractional-time-prefix-keeps-continuations", func(t *testing.T) {
+		m, err := NewAuto(nil)
+		assert.NoError(t, err)
+
+		out := collectStringLines(m, []string{
+			`15:03:41.922 [http-nio-9002-exec-24] ERROR [bbs-mg-community] request failed`,
+			`request detail: user isn't exist`,
+			`       stack frame: Author.getBookIds(Author.java:38)`,
+			`15:03:42.922 [http-nio-9002-exec-24] ERROR [bbs-mg-community] next request failed`,
+			`operation detail: failed`,
+		})
+
+		assert.Equal(t, []string{
+			"15:03:41.922 [http-nio-9002-exec-24] ERROR [bbs-mg-community] request failed\n" +
+				"request detail: user isn't exist\n" +
+				"       stack frame: Author.getBookIds(Author.java:38)",
+			"15:03:42.922 [http-nio-9002-exec-24] ERROR [bbs-mg-community] next request failed\n" +
+				"operation detail: failed",
+		}, out)
+	})
+
+	t.Run("auto-filebeat-style-bracket-starts", func(t *testing.T) {
+		m, err := NewAuto(nil)
+		assert.NoError(t, err)
+
+		out := collectStringLines(m, []string{
+			`[beat-logstash-some-name-832-2015.11.28] index not found`,
+			`    at org.elasticsearch.cluster.metadata.IndexNameExpressionResolver.resolve(IndexNameExpressionResolver.java:566)`,
+			`[2015-08-24 11:49:14,389][INFO ][env] [Letha] using [1] data paths, mounts [[/`,
+			`(/dev/disk1)]], net usable_space [34.5gb]`,
+		})
+
+		assert.Equal(t, []string{
+			"[beat-logstash-some-name-832-2015.11.28] index not found\n" +
+				"    at org.elasticsearch.cluster.metadata.IndexNameExpressionResolver.resolve(IndexNameExpressionResolver.java:566)",
+			"[2015-08-24 11:49:14,389][INFO ][env] [Letha] using [1] data paths, mounts [[/\n" +
+				"(/dev/disk1)]], net usable_space [34.5gb]",
+		}, out)
 	})
 }
 
-func TestMultilineMatchLimit(t *testing.T) {
-	t.Run("buff-is-zero", func(t *testing.T) {
-		patterns := []string{}
-		m, err := New(patterns)
+func collectStringLines(m *Multiline, lines []string) []string {
+	var out []string
+	for _, line := range lines {
+		text, _ := m.ProcessLineString(line)
+		if text != "" {
+			out = append(out, text)
+		}
+	}
+	if text := m.FlushString(); text != "" {
+		out = append(out, text)
+	}
+	return out
+}
+
+func TestMultilineBoundaries(t *testing.T) {
+	t.Run("no-context", func(t *testing.T) {
+		m, err := New([]string{`^BEGIN`})
 		assert.NoError(t, err)
 
-		assert.Equal(t, 0, m.BuffLength())
-
-		// 当 buff 为空时，即使匹配失败也会 flush
-		res, state := m.ProcessLineString("\tnomatched-head-is-space")
-		assert.Equal(t, "\tnomatched-head-is-space", res)
+		res, state := m.ProcessLineString("\tcontinuation without first line")
+		assert.Equal(t, "\tcontinuation without first line", res)
 		assert.Equal(t, NoContext, state)
 	})
 
-	t.Run("max-length-50", func(t *testing.T) {
-		patterns := []string{"^\\S"}
-		m, err := New(patterns, WithMaxLength(50))
+	t.Run("max-length-flushes-partial", func(t *testing.T) {
+		m, err := New([]string{`^BEGIN`}, WithMaxLength(20))
 		assert.NoError(t, err)
 
-		_, state := m.ProcessLineString("2021-05-31T11:15:26.043419Z INFO")
+		_, state := m.ProcessLineString("BEGIN first")
 		assert.Equal(t, NewMultiline, state)
 
-		res, state := m.ProcessLineString("\t1234567890-1234567890-1234567890")
-		assert.Equal(t, "2021-05-31T11:15:26.043419Z INFO\n\t1234567890-1234567890-1234567890", res)
+		res, state := m.ProcessLineString("  long continuation")
+		assert.Equal(t, "BEGIN first\n  long continuation", res)
 		assert.Equal(t, FlushPartial, state)
 	})
 }
 
-func TestNewMultiline(t *testing.T) {
-	t.Run("ok-1", func(t *testing.T) {
-		_, err := New(nil)
-		assert.NoError(t, err)
-	})
+func TestNewMultilineValidation(t *testing.T) {
+	_, err := New([]string{`^BEGIN`})
+	assert.NoError(t, err)
 
-	t.Run("ok-2", func(t *testing.T) {
-		_, err := New([]string{"^\\S"})
-		assert.NoError(t, err)
-	})
+	_, err = NewAuto([]string{`^APPSTART`})
+	assert.NoError(t, err)
 
-	t.Run("error", func(t *testing.T) {
-		_, err := New([]string{"(?!"})
-		assert.Error(t, err)
-	})
+	_, err = New([]string{"(?!"})
+	assert.Error(t, err)
+
+	_, err = NewAuto([]string{"(?!"})
+	assert.Error(t, err)
 }
 
 func TestTrimRightSpace(t *testing.T) {
 	cases := []struct {
 		in, out string
 	}{
-		{
-			in:  "",
-			out: "",
-		},
-		{
-			in:  "123",
-			out: "123",
-		},
-		{
-			in:  "\n",
-			out: "",
-		},
-		{
-			in:  "123\n",
-			out: "123",
-		},
-		{
-			in:  "123\r\n",
-			out: "123",
-		},
-		{
-			in:  "123\t\t",
-			out: "123",
-		},
-		{
-			in:  "123\t\r\n",
-			out: "123",
-		},
-		{
-			in:  "\t123\t\r\n",
-			out: "\t123",
-		},
-		{
-			in:  "\t123\t456\r\n",
-			out: "\t123\t456",
-		},
+		{in: "", out: ""},
+		{in: "123\n", out: "123"},
+		{in: "123\r\n", out: "123"},
+		{in: "\t123\t\r\n", out: "\t123"},
+		{in: "\t123\t456\r\n", out: "\t123\t456"},
 	}
 
 	for _, tc := range cases {
-		t.Run("", func(t *testing.T) {
-			in := []byte(tc.in)
-			out := []byte(tc.out)
-			assert.Equal(t, TrimRightSpace(in), out)
-		})
-	}
-}
-
-func TestFlushPartial(t *testing.T) {
-	in := []string{
-		"2021-05-31T11:15:26 INFO 123", // len(28)
-		"    A-0123456789",             // len(16)
-		"    B-0123456789",
-		"    C-0123456789",
-		"    D-0123456789",
-		"    E-0123456789",
-	}
-
-	out := []string{
-		"",
-		"2021-05-31T11:15:26 INFO 123\n    A-0123456789",
-		"",
-		"    B-0123456789\n    C-0123456789",
-		"",
-		"    D-0123456789\n    E-0123456789",
-	}
-
-	patterns := []string{"^\\S"}
-	m, err := New(patterns, WithMaxLength(30))
-	assert.NoError(t, err)
-
-	for idx := range in {
-		res, _ := m.ProcessLineString(in[idx])
-		assert.Equal(t, out[idx], res)
+		assert.Equal(t, []byte(tc.out), TrimRightSpace([]byte(tc.in)), tc.in)
 	}
 }

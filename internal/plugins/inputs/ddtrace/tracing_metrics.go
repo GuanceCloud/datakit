@@ -7,6 +7,7 @@ package ddtrace
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/prometheus/client_golang/prometheus"
@@ -113,7 +114,6 @@ func spanMetrics(span *point.Point, sourceLabels []string, values []string) {
 			span.GetTag(itrace.TagVersion),
 			resource,
 			span.GetTag(itrace.TagSource),
-			span.GetTag(itrace.TagRemoteIP),
 		).Observe(float64(duration))
 	}
 	if isError {
@@ -122,4 +122,73 @@ func spanMetrics(span *point.Point, sourceLabels []string, values []string) {
 	traceLatency.WithLabelValues(values...).Observe(float64(duration))
 
 	traceHits.WithLabelValues(values...).Inc()
+}
+
+func traceMetric(trace DDTrace, sourceLabels []string, values []string) {
+	if len(sourceLabels) == 0 {
+		return
+	}
+
+	for _, span := range trace {
+		isHTTP := false
+		isError := false
+		values = values[:0]
+		// other tag from meta
+		for _, label := range sourceLabels {
+			switch label {
+			case itrace.TagOperation:
+				values = append(values, span.GetName())
+			case itrace.TagService:
+				values = append(values, span.GetService())
+			case itrace.FieldResource:
+				values = append(values, strings.ReplaceAll(span.Resource, "\n", " "))
+			case "source":
+				values = append(values, inputName)
+			case itrace.TagSpanStatus:
+				if span.Error != 0 {
+					isError = true
+					values = append(values, itrace.StatusErr)
+				} else {
+					values = append(values, itrace.StatusOk)
+				}
+			default:
+				// 判断在不在meta中  如果不在，给一个空值
+				meta := span.GetMeta()
+				val := ""
+				for key, repKey := range ddTags {
+					if repKey == label {
+						if x, ok := meta[key]; ok {
+							val = x
+						}
+					}
+					if repKey == itrace.TagHttpStatusCode {
+						isHTTP = true
+					}
+				}
+				values = append(values, val)
+			}
+		}
+		// 确保sourceLabels和values长度一致
+		if len(sourceLabels) != len(values) {
+			log.Errorf("traceMetric: len(sourceLabels):%d != len(values):%d", len(sourceLabels), len(values))
+			return
+		}
+
+		if isHTTP {
+			TraceHitsByHTTPStatus.WithLabelValues(values...).Inc()
+			if isError {
+				traceErrorsByHTTPStatus.WithLabelValues(values...).Inc()
+			}
+			traceApdex.WithLabelValues(
+				span.Service, span.Meta["env"], span.Meta["version"], span.Resource, inputName,
+			).Observe(float64(span.Duration))
+		}
+
+		if isError {
+			traceErrors.WithLabelValues(values...).Inc()
+		}
+		traceLatency.WithLabelValues(values...).Observe(float64(span.Duration))
+
+		traceHits.WithLabelValues(values...).Inc()
+	}
 }

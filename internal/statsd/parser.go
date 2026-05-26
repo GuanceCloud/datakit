@@ -24,26 +24,36 @@ func (col *Collector) parser(idx int) {
 			return
 
 		case in := <-col.in:
+			col.doJob(idx, in)
+		}
+	}
+}
 
-			lines := strings.Split(in.Buffer.String(), "\n")
+func (col *Collector) doJob(idx int, in *job) {
+	lines := strings.Split(in.Buffer.String(), "\n")
+	col.bufPool.Put(in.Buffer)
 
-			col.bufPool.Put(in.Buffer)
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		col.opts.l.Debugf("[%d] statsd line: %s", idx, line)
 
-			for _, line := range lines {
-				line = strings.TrimSpace(line)
-				col.opts.l.Debugf("[%d] statsd line: %s", idx, line)
-
-				switch {
-				case line == "": // pass
-				case col.opts.dataDogExtensions && strings.HasPrefix(line, "_e"):
-					if err := col.parseEventMessage(in.Time, line, in.Addr); err != nil {
-						col.opts.l.Warnf("[%d] parseEventMessage: %s, ignored", idx, err.Error())
-					}
-				default:
-					if err := col.parseStatsdLine(line); err != nil {
-						col.opts.l.Warnf("[%d] parseEventMessage: %s, ignored", idx, err.Error())
-					}
-				}
+		switch {
+		case line == "": // pass
+		case col.opts.dataDogExtensions && col.opts.dataDogEvents && strings.HasPrefix(line, "_e"):
+			if err := col.parseEventMessage(in.Time, line, in.Addr); err != nil {
+				col.opts.l.Warnf("[%d] parseEventMessage: %s, ignored", idx, err.Error())
+			}
+		case col.opts.dataDogExtensions && strings.HasPrefix(line, "_e"):
+			col.opts.l.Debugf("[%d] dogstatsd event ignored", idx)
+		case col.opts.dataDogExtensions && col.opts.dataDogServiceChecks && strings.HasPrefix(line, "_sc"): // service check
+			if err := col.parseServiceCheck(in.Time, line); err != nil {
+				col.opts.l.Warnf("[%d] parseServiceCheck: %s, ignored", idx, err.Error())
+			}
+		case col.opts.dataDogExtensions && strings.HasPrefix(line, "_sc"): // service check
+			col.opts.l.Debugf("[%d] dogstatsd service check ignored", idx)
+		default:
+			if err := col.parseStatsdLine(line); err != nil {
+				col.opts.l.Warnf("[%d] parseEventMessage: %s, ignored", idx, err.Error())
 			}
 		}
 	}
@@ -67,7 +77,7 @@ func (col *Collector) parseStatsdLine(line string) error {
 		for _, segment := range pipesplit {
 			if len(segment) > 0 && segment[0] == '#' {
 				// we have ourselves a tag; they are comma separated
-				parseDataDogTags(lineTags, segment[1:])
+				col.parseDataDogTags(lineTags, segment[1:])
 			} else {
 				recombinedSegments = append(recombinedSegments, segment)
 			}
@@ -78,7 +88,7 @@ func (col *Collector) parseStatsdLine(line string) error {
 	// Validate splitting the line on ":"
 	bits := strings.Split(line, ":")
 	if len(bits) < 2 {
-		col.opts.l.Debugf("Splitting ':', unable to parse metric: %s", line)
+		col.opts.l.RLWarnf(col.opts.lrate, "Splitting ':', unable to parse metric: %s", line)
 		return nil
 	}
 
@@ -94,7 +104,7 @@ func (col *Collector) parseStatsdLine(line string) error {
 		// Validate splitting the bit on "|"
 		pipesplit := strings.Split(bit, "|")
 		if len(pipesplit) < 2 {
-			col.opts.l.Debugf("splitting '|', unable to parse metric: %s, ignored", line)
+			col.opts.l.RLWarnf(col.opts.lrate, "splitting '|', unable to parse metric: %s, ignored", line)
 			return nil
 		} else if len(pipesplit) > 2 { // with sample rate
 			sr := pipesplit[2]
@@ -108,7 +118,7 @@ func (col *Collector) parseStatsdLine(line string) error {
 					m.samplerate = samplerate
 				}
 			} else {
-				col.opts.l.Debugf("sample rate must be in format like: "+
+				col.opts.l.RLWarnf(col.opts.lrate, "sample rate must be in format like: "+
 					"@0.1, @0.5, etc. Ignoring sample rate for line: %s", line)
 			}
 		}
@@ -118,7 +128,7 @@ func (col *Collector) parseStatsdLine(line string) error {
 		case "g", "c", "s", "ms", "h", "d":
 			m.mtype = pipesplit[1]
 		default:
-			col.opts.l.Debugf("metric type %q unsupported, line: %s", pipesplit[1], line)
+			col.opts.l.RLWarnf(col.opts.lrate, "metric type %q unsupported, line: %s", pipesplit[1], line)
 			return nil
 		}
 

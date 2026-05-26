@@ -72,7 +72,6 @@ For all of the following data collections, a global tag named `host` is appended
 
 <!-- markdownlint-disable MD024 -->
 
-
 {{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "metric"}}

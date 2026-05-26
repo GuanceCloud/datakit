@@ -53,7 +53,7 @@ The specific country/region and ISP selection can be selected as shown in the fo
 
 ### Configure the Dial Test Task {#config-task}
 
-At present, the dialing test task supports four dialing test types, namely HTTP, TCP, ICMP and WEBSOCKET services. The JSON format is as follows:
+At present, the dialing test task supports five dialing test types, namely HTTP, TCP, ICMP, WEBSOCKET and GRPC services. The JSON format is as follows:
 
 ```json
 {
@@ -98,6 +98,7 @@ The following is a specific dialing test example:
         }
       ],
       "advance_options": {
+        "protocol": "auto",
         "request_options": {
           "auth": {}
         },
@@ -395,6 +396,28 @@ HTTP request timeout is mainly used to adjust the timeout of the HTTP request. T
   "request_timeout": "60s",
 }
 ```
+
+- HTTP Protocol Version (`protocol`)
+
+The HTTP request protocol version. The default value is `auto`. Available values:
+
+| Value         | Description                                                                                                                                                 |
+| :---          | :---                                                                                                                                                        |
+| `auto`        | Default mode. `http://` uses HTTP/1.1; `https://` negotiates through `TLS/ALPN` and uses HTTP/2 when the server supports it, otherwise falls back to HTTP/1.1. It does not automatically try h2c or HTTP/3. |
+| `http/1.1`    | Force HTTP/1.1 and do not try HTTP/2.                                                                                                                       |
+| `http/2`      | Enable HTTP/2 with fallback. For `https://`, HTTP/2 is attempted through `ALPN` and falls back to HTTP/1.1 when unsupported; plain `http://` still uses HTTP/1.1 and does not use h2c. |
+| `http/2-only` | Force HTTP/2. `https://` requires `ALPN` negotiation to `h2`; `http://` sends `cleartext` HTTP/2 with h2c prior knowledge. The task fails when the server does not support HTTP/2. |
+| `http/3`      | Use HTTP/3, meaning `QUIC` + TLS. The server must support HTTP/3; proxy configuration is not supported currently.                                             |
+
+`protocol` example:
+
+```json
+"advance_options": {
+  "protocol": "http/3"
+}
+```
+
+> Note: HTTP/3 does not support proxy configuration. If `protocol` is set to `http/3`, do not configure `proxy` at the same time.
 
 - HTTP Request a Certificate (`certificate`)
 
@@ -1013,6 +1036,365 @@ Support for common user name and password authentication (Basic access authentic
   },
 }
 ```
+
+#### GRPC Dial Test {#grpc}
+
+##### Extra Field {#grpc-extra}
+
+| Field              | Type   | Whether Required | Description                                    |
+| :---              | ---    | ---      | ---                                     |
+| `server`          | string | Y        | gRPC server address, such as `localhost:50051`   |
+| `post_script`     | string | N        | Pipeline script for result judgment   |
+
+> Note: gRPC dial testing only supports unary RPC, streaming RPC is not supported.
+
+The complete JSON structure is as follows:
+
+```json
+{
+  "GRPC": [
+    {
+      "name": "grpc-test",
+      "server": "localhost:50051",
+      "post_url": "https://<your-dataway-host>?token=<your-token>",
+      "status": "OK",
+      "frequency": "5m",
+      "success_when_logic": "and",
+      "success_when": [
+        {
+          "body": [
+            {
+              "contains": "success"
+            }
+          ],
+          "response_time": "500ms"
+        }
+      ],
+      "advance_options": {
+        "request_options": {
+          "request_timeout": "10s",
+          "metadata": {
+            "x-token": "test-token"
+          },
+          "proto_files": {
+            "protofiles": {
+               "greeter.proto": "syntax = \"proto3\";\n\npackage greeter;\n\noption go_package = \"datakittest/grpc/pb\";\n\nimport \"pb/common.proto\";\n\nservice Greeter {\n  rpc SayHello (HelloRequest) returns (common.result) {}\n}\n\nmessage HelloRequest {\n  string name = 1;\n}",
+               "pb/common.proto": "syntax = \"proto3\";\n\npackage common;\n\noption go_package = \"datakittest/grpc/pb\";\n\nmessage result {\n    int32 code = 1;\n    string msg = 2;\n}"
+            },
+            "full_method": "greeter.Greeter/SayHello",
+            "request": "{\"name\": \"world\"}"
+          }
+        },
+        "certificate": {
+          "ignore_server_certificate_error": false
+        }
+      },
+      "post_script": "..."
+    }
+  ]
+}
+```
+
+##### `success_when` Definition {#grpc-success-when}
+
+- gRPC Response Body Judgment (`body`)
+
+`body` is an array object with the following parameters for each object:
+
+| Field              | Type   | Whether Required | Description                                                |
+| :---              | ---    | ---      | ---                                                 |
+| `is`              | string | N        | Whether the returned body is equal to the specified field                      |
+| `is_not`          | string | N        | Whether the returned body is not equal to the specified field                    |
+| `match_regex`     | string | N        | Whether the returned body contains a substring of the matching regular expression      |
+| `not_match_regex` | string | N        | Whether the returned body does not contain a substring of the matching regular expression    |
+| `contains`        | string | N        | Whether the returned body contains the specified substring                |
+| `not_contains`    | string | N        | Whether the returned body does not contain the specified substring              |
+
+for example:
+
+```json
+"success_when": [
+  {
+    "body": [
+      {
+        "contains": "success"
+      }
+    ]
+  }
+]
+```
+
+- gRPC Response Time Judgment (`response_time`)
+
+Fill in a specific time value. If the response time of the request is less than the specified value, the dialing test is judged to be successful, such as:
+
+```json
+"success_when": [
+  {
+    "response_time": "1000ms"
+  }
+]
+```
+
+> Note that the time units specified here are `ns` (nanoseconds)/`us` (microseconds) /`ms` (milliseconds) /`s` (seconds) /`m` (minutes) /`h` (hours). For gRPC dial testing, `ms` or `s` units are generally used.
+
+##### `advance_options` Definition {#grpc-advance-options}
+
+- Request Option (`request_options`)
+
+| Field              | Type              | Whether Required | Description                                                       |
+| :---              | ---               | ---      | ---                                                        |
+| `request_timeout` | string            | N        | Request timeout, default is 30s                                      |
+| `metadata`        | map[string]string | N        | gRPC request metadata (metadata)                               |
+| `proto_files`     | object            | N        | Discover methods through proto files (choose one of `proto_files`, `reflection`, `health_check`) |
+| `reflection`      | object            | N        | Discover methods through gRPC reflection (choose one of `proto_files`, `reflection`, `health_check`) |
+| `health_check`    | object            | N        | Use gRPC health check service (choose one of `proto_files`, `reflection`, `health_check`) |
+
+`proto_files` object definition:
+
+| Field          | Type                | Whether Required | Description                                    |
+| :---          | ---                 | ---      | ---                                     |
+| `protofiles`  | map[string]string   | Y        | Proto file content, key is the file reference path (main file is the file name, imported files must match the path in the import statement), value is the file content |
+| `full_method` | string              | Y        | Full method name, format is `ServiceName/MethodName` |
+| `request`     | string              | N        | Request body in JSON format                        |
+
+`reflection` object definition:
+
+| Field          | Type   | Whether Required | Description                                    |
+| :---          | ---    | ---      | ---                                     |
+| `full_method` | string | Y        | Full method name, format is `ServiceName/MethodName` |
+| `request`     | string | N        | Request body in JSON format                        |
+
+`health_check` object definition:
+
+| Field      | Type   | Whether Required | Description                    |
+| :---      | ---    | ---      | ---                     |
+| `service` | string | N        | Service name to check, empty means check the entire service        |
+
+`request_options` example:
+
+```json
+"advance_options": {
+  "request_options": {
+    "request_timeout": "10s",
+    "metadata": {
+      "x-token": "test-token",
+    },
+    "proto_files": {
+      "protofiles": {
+        "greeter.proto": "syntax = \"proto3\";\n\npackage greeter;\n\noption go_package = \"datakittest/grpc/pb\";\n\nimport \"pb/common.proto\";\n\nservice Greeter {\n  rpc SayHello (HelloRequest) returns (common.result) {}\n}\n\nmessage HelloRequest {\n  string name = 1;\n}",
+        "pb/common.proto": "syntax = \"proto3\";\n\npackage common;\n\noption go_package = \"datakittest/grpc/pb\";\n\nmessage result {\n    int32 code = 1;\n    string msg = 2;\n}"
+      },
+      "full_method": "greeter.Greeter/SayHello",
+      "request": "{\"name\": \"world\"}"
+    }
+  }
+}
+```
+
+Or use reflection:
+
+> Note: Using reflection requires the gRPC server to enable [gRPC Server Reflection](https://github.com/grpc/grpc/blob/master/doc/server-reflection.md){:target="_blank"} service.
+
+```json
+"advance_options": {
+  "request_options": {
+    "reflection": {
+      "full_method": "greeter.Greeter/SayHello",
+      "request": "{\"name\": \"world\"}"
+    }
+  }
+}
+```
+
+Or use health check:
+
+> Note: Using health check requires the gRPC server to implement the [gRPC Health Checking Protocol](https://github.com/grpc/grpc/blob/master/doc/health-checking.md){:target="_blank"} service.
+
+```json
+"advance_options": {
+  "request_options": {
+    "health_check": {
+      "service": "my-service"
+  }
+}
+```
+
+- Certificate Configuration (`certificate`)
+
+| Field                              | Type   | Whether Required | Description                                    |
+| :---                              | ---    | ---      | ---                                     |
+| `ignore_server_certificate_error` | bool   | N        | Whether to skip server certificate verification (do not verify the validity of the server certificate)                  |
+| `private_key`                     | string | N        | Client private key (for mTLS)                 |
+| `certificate`                     | string | N        | Client certificate (for mTLS)                 |
+| `ca`                              | string | N        | CA certificate (for verifying server certificate)           |
+
+`certificate` example:
+
+```json
+"advance_options": {
+  "certificate": {
+    "ignore_server_certificate_error": false,
+    "ca": "<your-ca-cert>",
+    "private_key": "<your-private-key>",
+    "certificate": "<your-certificate>"
+  }
+}
+```
+
+- Security Options (`secret`)
+
+| Field                  | Type | Whether Required | Description                     |
+| :---                  | ---  | ---      | ---                      |
+| `not_save`            | bool | N        | Whether not to save response body content     |
+
+`secret` example:
+
+```json
+"advance_options": {
+  "secret": {
+    "not_save": true
+  }
+}
+```
+
+#### `post_script` Definition {#grpc-post-script}
+
+`post_script` is a [Pipeline](../pipeline/use-pipeline/index.md) script used to evaluate the result of the test.
+
+Inject Variables
+
+To facilitate the processing of gRPC responses by `post_script` and to enable the determination of test results, certain predefined variables can be utilized when composing the script. These are detailed as follows:
+
+- `response`: Response object
+
+| Field      | Type   | Description         |
+| :---      | ---    | ---          |
+| `body`    | string | Response content (JSON format string) |
+
+- `result`： Test result
+
+| Field           | Type   | Description     |
+| :---           | ---    | ---      |
+| `is_failed`    | bool   | Failed or not |
+| `error_message` | string | Error message |
+
+Example
+
+```javascript
+
+body = load_json(response["body"])
+
+if body["message"] == "Hello world" {
+  result["is_failed"] = false
+} else {
+  result["is_failed"] = true
+  result["error_message"] = "Unexpected response"
+}
+
+```
+
+In the above example, the response content (`response["body"]`) is initially parsed into a JSON object using `load_json`. Subsequently, it checks whether the message field in the response is "Hello world". If it is, the `is_failed` attribute of `result` is set to false. If the message is not "Hello world", the `is_failed` attribute of `result` is set to true, and the `error_message` is assigned the error message.
+
+#### Multi-Step Dial Test {#multi}
+
+[:octicons-tag-24: Version-1.68.0](../datakit/changelog-2025.md#cl-1.68.0)
+
+Multi-step dial testing allows you to define a sequence of dial test steps that are executed in order. It supports HTTP requests and wait operations, and can pass variables between steps.
+
+Additional fields:
+
+| Field        | Type   | Whether Required | Description                                      |
+| :---        | ---    | ---      | ---                                       |
+| `steps`     | array  | Y        | List of dial test steps, must contain at least one step            |
+
+The overall JSON structure is as follows:
+
+```json
+{
+  "MULTI": [
+    {
+      "name": "multi-step-test",
+      "status": "OK",
+      "post_url": "https://<your-dataway-host>?token=<your-token>",
+      "frequency": "10s",
+      "steps": [
+        {
+          "type": "http",
+          "name": "step1",
+          "task": "{\"name\": \"step1\", \"method\": \"GET\", \"url\": \"http://api.example.com/resource\", \"post_script\": \"vars[\\\"token\\\"] = \\\"token_value\\\"\"}",
+          "allow_failure": false,
+          "retry": {
+            "retry": 3,
+            "interval": 1000
+          },
+          "extracted_vars": [
+            {
+              "name": "token",
+              "field": "token",
+              "secure": false
+            }
+          ]
+        },
+        {
+          "type": "wait",
+          "name": "step2",
+          "value": 5
+        },
+        {
+          "type": "http",
+          "name": "step3",
+          "task": "{\"name\": \"step3\", \"method\": \"POST\", \"url\": \"http://127.0.0.1:9000?token={{`{{token}}`}}\", \"post_script\":\"result[\\\"is_failed\\\"]=true\"}",
+          "allow_failure": false
+        }
+      ]
+    }
+  ]
+}
+```
+
+##### `steps` Definition {#multi-steps}
+
+`steps` is an array of dial test steps. Each step can be one of the following two types:
+
+- HTTP Step (`type: "http"`)
+
+   | Field              | Type   | Whether Required | Description                                      |
+   | :---              | ---    | ---      | ---                                       |
+   | `type`            | string | Y        | Step type, must be `http`                   |
+   | `name`            | string | Y        | Step name                                  |
+   | `task`            | string | Y        | JSON string of the HTTP dial test task               |
+   | `allow_failure`   | bool   | N        | Whether to allow the step to fail, default is `false`            |
+   | `retry`           | object | N        | Retry configuration, see below for details                        |
+   | `extracted_vars`  | array  | N        | List of extracted variables for use in subsequent steps      |
+
+- Wait Step (`type: "wait"`)
+
+   | Field              | Type   | Whether Required | Description                                      |
+   | :---              | ---    | ---      | ---                                       |
+   | `type`            | string | Y        | Step type, must be `wait`                   |
+   | `name`            | string | Y        | Step name                                  |
+   | `value`           | int    | Y        | Wait time in seconds                        |
+   | `allow_failure`   | bool   | N        | Whether to allow the step to fail, default is `false`            |
+
+##### `retry` Definition {#multi-retry}
+
+Retry configuration is used to set the retry strategy when a step fails.
+
+| Field              | Type   | Whether Required | Description                                      |
+| :---              | ---    | ---      | ---                                       |
+| `retry`           | int    | Y        | Number of retries, must be between 0-5                 |
+| `interval`        | int    | Y        | Retry interval in milliseconds, must be between 0-5000  |
+
+##### `extracted_vars` Definition {#multi-extracted-vars}
+
+Extract variables from the `vars` defined in the HTTP `post_script` for template substitution in subsequent steps.
+
+| Field              | Type   | Whether Required | Description                                      |
+| :---              | ---    | ---      | ---                                       |
+| `name`            | string | Y        | Variable name used for template substitution in subsequent steps          |
+| `field`           | string | Y        | Variable name defined in `vars`    |
+| `secure`          | bool   | N        | Whether it is a secure variable. Secure variables will not be displayed in results  |
 
 ### Template Function Usage Instructions {#template-func}
 

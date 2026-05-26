@@ -63,7 +63,7 @@ func TestParseLogConfigs(t *testing.T) {
 			logPath: "/var/log/container.log",
 		}
 
-		configs, err := newLogConfigs(defaults, info, tc.in)
+		configs, _, err := newLogConfigs(defaults, info, tc.in)
 		if tc.parseFail && assert.Error(t, err) {
 			t.Logf("[%d][OK   ] %s\n", idx, err)
 			continue
@@ -77,4 +77,32 @@ func TestParseLogConfigs(t *testing.T) {
 		assert.NotNil(t, configs)
 		t.Logf("[%d][OK   ] parsed %d configs\n", idx, len(configs))
 	}
+}
+
+func TestSetAutoMultiline(t *testing.T) {
+	t.Run("disabled-without-explicit-multiline", func(t *testing.T) {
+		cfg := &logConfig{}
+		defaults := &loggingDefaults{
+			enableMultiline:            false,
+			autoMultilineExtraPatterns: []string{`^EXTRA`},
+		}
+		cfg.setAutoMultiline(defaults)
+		assert.Empty(t, cfg.multilinePattern)
+	})
+
+	t.Run("enabled-builds-independent-slice", func(t *testing.T) {
+		extra := []string{`^EXTRA`}
+		cfg := &logConfig{}
+		defaults := &loggingDefaults{
+			enableMultiline:            true,
+			autoMultilineExtraPatterns: extra,
+		}
+		cfg.setAutoMultiline(defaults)
+		assert.Empty(t, cfg.multilinePattern)
+		assert.True(t, cfg.autoMultiline)
+		assert.Equal(t, []string{`^EXTRA`}, cfg.extraPatterns)
+
+		cfg.extraPatterns[0] = `^CHANGED`
+		assert.Equal(t, `^EXTRA`, defaults.autoMultilineExtraPatterns[0])
+	})
 }

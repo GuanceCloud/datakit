@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 )
 
 type containerLogInfo struct {
@@ -25,6 +24,7 @@ type containerLogInfo struct {
 	image         string
 	logPath       string
 
+	podUID                string
 	podNamespace, podName string
 	podIP                 string
 	podLabels             map[string]string
@@ -52,27 +52,31 @@ func (info *containerLogInfo) buildTags() map[string]string {
 }
 
 type logConfig struct {
-	Disable               bool              `json:"disable"`
-	Type                  string            `json:"type"`
-	Path                  string            `json:"path"`
-	Source                string            `json:"source"`
-	StorageIndex          string            `json:"storage_index"`
-	Service               string            `json:"service"`
-	CharacterEncoding     string            `json:"character_encoding"`
-	Pipeline              string            `json:"pipeline"`
-	Multiline             string            `json:"multiline_match"`
-	RemoveAnsiEscapeCodes bool              `json:"remove_ansi_escape_codes"`
-	FromBeginning         bool              `json:"from_beginning"`
-	Tags                  map[string]string `json:"tags"`
+	Disable                    bool              `json:"disable"`
+	Type                       string            `json:"type"`
+	Path                       string            `json:"path"`
+	Source                     string            `json:"source"`
+	StorageIndex               string            `json:"storage_index"`
+	Service                    string            `json:"service"`
+	CharacterEncoding          string            `json:"character_encoding"`
+	Pipeline                   string            `json:"pipeline"`
+	Multiline                  string            `json:"multiline_match"`
+	RemoveAnsiEscapeCodes      bool              `json:"remove_ansi_escape_codes"`
+	FromBeginning              bool              `json:"from_beginning"`
+	FromBeginningThresholdSize int64             `json:"from_beginning_threshold_size"`
+	Tags                       map[string]string `json:"tags"`
 
-	multilinePatterns []string `json:"-"`
-	hostDir           string   `json:"-"`
-	insideDir         string   `json:"-"`
-	hostFilePath      string   `json:"-"`
+	multilinePattern string   `json:"-"`
+	autoMultiline    bool     `json:"-"`
+	extraPatterns    []string `json:"-"`
+	hostDir          string   `json:"-"`
+	insideDir        string   `json:"-"`
+	hostFilePath     string   `json:"-"`
 }
 
-func newLogConfigs(defaults *loggingDefaults, info *containerLogInfo, str string) ([]*logConfig, error) {
+func newLogConfigs(defaults *loggingDefaults, info *containerLogInfo, str string) ([]*logConfig, bool, error) {
 	var configs []*logConfig
+	var useDefaultStdoutConfigs bool
 
 	// add default stdout
 	if str == "" {
@@ -81,9 +85,10 @@ func newLogConfigs(defaults *loggingDefaults, info *containerLogInfo, str string
 			Path:   info.logPath,
 			Source: info.containerName,
 		})
+		useDefaultStdoutConfigs = true
 	} else {
 		if err := json.Unmarshal([]byte(str), &configs); err != nil {
-			return nil, fmt.Errorf("faild to parse log configs, container %s, err %w", info.containerName, err)
+			return nil, false, fmt.Errorf("faild to parse log configs, container %s, err %w", info.containerName, err)
 		}
 	}
 
@@ -115,10 +120,10 @@ func newLogConfigs(defaults *loggingDefaults, info *containerLogInfo, str string
 	}
 
 	if hasDuplicatePath(configs) {
-		return nil, fmt.Errorf("configs(len=%d) has duplicate path", len(configs))
+		return nil, false, fmt.Errorf("configs(len=%d) has duplicate path", len(configs))
 	}
 
-	return configs, nil
+	return configs, useDefaultStdoutConfigs, nil
 }
 
 func hasDuplicatePath(configs []*logConfig) bool {
@@ -132,12 +137,29 @@ func hasDuplicatePath(configs []*logConfig) bool {
 	return false
 }
 
-func fillLogConfigs(defaults *loggingDefaults, info *containerLogInfo, configs []*logConfig) ([]*logConfig, error) {
-	b, err := json.Marshal(configs)
+func fillLogConfigsWithCRDLogging(
+	defaults *loggingDefaults,
+	info *containerLogInfo,
+	crdConfigs *crdLoggingConfig,
+) ([]*logConfig, error) {
+	b, err := json.Marshal(crdConfigs.configs)
 	if err != nil {
 		return nil, err
 	}
-	return newLogConfigs(defaults, info, string(b))
+
+	configs, _, err := newLogConfigs(defaults, info, string(b))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, cfg := range configs {
+		if cfg.Disable {
+			continue
+		}
+		cfg.addTags(setLabelAsTags(false, labelsOption{keys: crdConfigs.podTargetLabels}, info.podLabels))
+	}
+
+	return configs, nil
 }
 
 func (cfg *logConfig) getStructHash() string {
@@ -198,8 +220,24 @@ func resolveHostPathFromMergedDir(mergedDir, insidePath string) (string, error) 
 		return "", fmt.Errorf("rootfs base directory not found: %s", mergedDir)
 	}
 
-	relInside := strings.TrimPrefix(insidePath, "/")
-	full := filepath.Join(mergedDir, relInside)
+	baseDir, err := filepath.Abs(mergedDir)
+	if err != nil {
+		return "", fmt.Errorf("abs rootfs base directory failed: %w", err)
+	}
+
+	cleanInside := filepath.Clean(insidePath)
+	if filepath.IsAbs(cleanInside) {
+		cleanInside = strings.TrimPrefix(cleanInside, string(filepath.Separator))
+	}
+
+	full := filepath.Join(baseDir, cleanInside)
+	rel, err := filepath.Rel(baseDir, full)
+	if err != nil {
+		return "", fmt.Errorf("calc relative path failed: %w", err)
+	}
+	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("resolved path escaped rootfs base directory: %s", insidePath)
+	}
 
 	return full, nil
 }
@@ -228,15 +266,22 @@ func (cfg *logConfig) replacedTagsKey() {
 
 func (cfg *logConfig) setAutoMultiline(defaults *loggingDefaults) {
 	if cfg.Multiline != "" {
-		cfg.multilinePatterns = []string{cfg.Multiline}
+		cfg.multilinePattern = cfg.Multiline
+		cfg.autoMultiline = false
+		cfg.extraPatterns = nil
 		return
 	}
 
-	if !defaults.autoMultilineDetection {
+	if !defaults.enableMultiline {
+		cfg.multilinePattern = ""
+		cfg.autoMultiline = false
+		cfg.extraPatterns = nil
 		return
 	}
-	cfg.multilinePatterns = defaults.autoMultilineExtraPatterns
-	cfg.multilinePatterns = append(cfg.multilinePatterns, multiline.GlobalPatterns...)
+
+	cfg.multilinePattern = ""
+	cfg.autoMultiline = true
+	cfg.extraPatterns = append([]string{}, defaults.autoMultilineExtraPatterns...)
 }
 
 func (cfg *logConfig) setExtraSourceMap(defaults *loggingDefaults) {
@@ -260,7 +305,9 @@ func (cfg *logConfig) setSourceMultilineMap(defaults *loggingDefaults) {
 	mult := defaults.sourceMultilineMap[cfg.Source]
 	if mult != "" {
 		l.Infof("replaced multiline '%s' with '%s' to source %s", cfg.Multiline, mult, cfg.Source)
-		cfg.multilinePatterns = []string{mult}
+		cfg.multilinePattern = mult
+		cfg.autoMultiline = false
+		cfg.extraPatterns = nil
 	}
 }
 

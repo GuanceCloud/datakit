@@ -19,21 +19,35 @@ import (
 
 //------------------------------------------------------------------------------
 
+const (
+	TaskTypeMetric = "metric"
+	TaskTypeObject = "object"
+)
+
 type MetricDatas struct {
-	Data []*MetricData
+	Data     []*MetricData
+	TaskType string
 }
 
 func (md *MetricDatas) Add(name string, value float64, tags []string) {
 	now := timeNowNano()
 
 	switch name {
-	case "ifBandwidthInUsage.rate", "ifBandwidthOutUsage.rate":
+	case "ifBandwidthInUsage.rate", "ifBandwidthOutUsage.rate",
+		"ifInErrors.rate", "ifInDiscards.rate", "ifOutErrors.rate", "ifOutDiscards.rate",
+		"ifHCInOctets.rate", "ifHCOutOctets.rate":
 		ip, inf := getIPInterfaceByTags(tags)
-		newVal, err := calculateBandwidthUtilization(ip, inf, name, value, now)
+		rate, diff, err := calculateBandwidthUtilization(ip, inf, name, md.TaskType, value, now)
 		if err != nil {
 			l.Errorf("calculateBandwidthUtilization failed: %v", err)
 		} else {
-			value = newVal // use the new value.
+			value = rate
+			diffName := strings.TrimSuffix(name, ".rate") + ".diff"
+			md.Data = append(md.Data, &MetricData{
+				Name:  diffName,
+				Value: diff,
+				Tags:  tags,
+			})
 		}
 
 	default:
@@ -79,11 +93,11 @@ func getIPInterfaceByTags(tags []string) (ip, inf string) {
 	return
 }
 
-func getPreviousBandwidthUsageRateKeyName(ip, inf, metricName string) string {
+func getPreviousBandwidthUsageRateKeyName(ip, inf, metricName, taskType string) string {
 	if len(ip) == 0 || len(inf) == 0 || len(metricName) == 0 {
 		return ""
 	}
-	return ip + "_" + inf + "_" + metricName
+	return ip + "_" + inf + "_" + metricName + "_" + taskType
 }
 
 type valueItem struct {
@@ -99,30 +113,31 @@ func newValueItem(value, timestamp float64) *valueItem {
 }
 
 // https://www.cisco.com/c/en/us/support/docs/ip/simple-network-management-protocol-snmp/8141-calculate-bandwidth-snmp.html
-func calculateBandwidthUtilization(ip, inf, metricName string, metricValue, timestamp float64) (float64, error) {
+// Returns rate (per second) and diff (current - previous value, same unit as the counter).
+func calculateBandwidthUtilization(ip, inf, metricName, taskType string, metricValue, timestamp float64) (rate, diff float64, err error) {
 	if metricValue == 0 {
-		return 0, nil
+		return 0, 0, nil
 	}
 
 	if len(ip) == 0 || len(inf) == 0 {
-		return 0, fmt.Errorf("unexpected ip and interface")
+		return 0, 0, fmt.Errorf("unexpected ip and interface")
 	}
 
-	mapKey := getPreviousBandwidthUsageRateKeyName(ip, inf, metricName)
+	mapKey := getPreviousBandwidthUsageRateKeyName(ip, inf, metricName, taskType)
 	if len(mapKey) == 0 {
-		return 0, fmt.Errorf("unexpected key name")
+		return 0, 0, fmt.Errorf("unexpected key name")
 	}
 
 	valItem, ok := previousBandwidthUsageRate.Load(mapKey)
 	if !ok {
 		// not exist, new one.
 		previousBandwidthUsageRate.Store(mapKey, newValueItem(metricValue, timestamp))
-		return 0, nil
+		return 0, 0, nil
 	}
 
 	valGot, ok := valItem.(*valueItem)
 	if !ok {
-		return 0, fmt.Errorf("invalid *valueItem")
+		return 0, 0, fmt.Errorf("invalid *valueItem")
 	}
 
 	// save new.
@@ -130,14 +145,19 @@ func calculateBandwidthUtilization(ip, inf, metricName string, metricValue, time
 
 	if valGot.Value == 0 || valGot.Timestamp == 0 {
 		// new key.
-		return 0, nil
+		return 0, 0, nil
 	}
 
-	newVal := (metricValue - valGot.Value) / (timestamp - valGot.Timestamp)
-	if newVal < 0 {
-		newVal = 0 // negative should return 0.
+	diff = metricValue - valGot.Value
+	if diff < 0 {
+		diff = 0 // counter reset or wrap
 	}
-	return newVal, nil
+	dt := timestamp - valGot.Timestamp
+	if dt <= 0 {
+		return 0, diff, nil
+	}
+	rate = diff / dt
+	return rate, diff, nil
 }
 
 func timeNowNano() float64 {

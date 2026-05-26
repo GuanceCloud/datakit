@@ -5,9 +5,10 @@ title: 'DDTrace Extension Changelog'
 
 ## Introduction {#intro}
 
-Native DDTrace does not support some well-known mainstream frameworks perfectly. On this basis, we have made some improvements to support more mainstream frameworks and key data tracking.
+This document records updates to the Java extension package used in DataKit for DDTrace Java instrumentation compatibility scenarios.
+This extension is developed based on `DataDog/dd-trace-java` and follows the `Apache License 2.0`.
+For legal files, checksums, and source code change details, see the <<<custom_key.brand_name>>> [Java Tracer Extension Notice](../../application-performance-monitoring/java-tracer-extension).
 
-Currently, DDTrace has added the following extensions to the technology stack：
 <!-- markdownlint-disable MD046 MD030 -->
 <div class="grid cards" markdown>
 
@@ -21,6 +22,41 @@ Currently, DDTrace has added the following extensions to the technology stack：
 <!-- markdownlint-enable -->
 
 ## changelog {#changelog}
+
+## v1.55.10-ext (2026/2/1) {#cl-1.55.10-ext}
+
+### New {#cl-1.55.10-ext-fix}
+
+- Add `java-websocket` instrumentation
+
+
+## v1.55.7-ext (2025/12/30) {#cl-1.55.7-ext}
+
+### fix {#cl-1.55.7-ext-fix}
+
+- Fix `Redis` command list type error.
+
+
+## v1.55.6-ext (2025/12/22) {#cl-1.55.6-ext}
+
+### fix {#cl-1.55.6-ext-fix}
+
+- RocketMQ scope limit error.
+- Add Response Body whitelist [config](ddtrace-ext-java.md#response_body)
+
+## v1.55.2-ext (2025/11/28) {#cl-1.55.2-ext}
+
+### fix {#cl-1.55.2-ext-fix}
+
+- fix:RocketMQ scope limit error.
+- Merge latest branch v1.55.0
+
+## v1.53.7-ext (2025/11/28) {#cl-1.53.7-ext}
+
+### fix {#cl-1.53.7-ext-fix}
+
+- support apache Dubbo stream version 3.2
+- add `rocketmq.consume.ignore`
 
 
 ## v1.53.1-ext (2025/9/24) {#cl-1.53.1-ext}

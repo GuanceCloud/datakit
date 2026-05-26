@@ -44,6 +44,7 @@ If you want to customize the collection configuration, it can be done through ad
     "source"  : "<your-source>",
     "service" : "<your-service>",
     "pipeline": "<your-pipeline.p>",
+    "storage_index": "<your-storage-index>",
     "remove_ansi_escape_codes": false,
     "from_beginning"          : false,
     "tags" : {
@@ -55,19 +56,21 @@ If you want to customize the collection configuration, it can be done through ad
 
 Field explanations:
 
-| Field Name                 | Possible Values           | Explanation                                                                                                                                                                                                                                                                                    |
-| --------------------       | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `disable`                  | true/false                | Whether to disable log collection for the container. The default value is `false`.                                                                                                                                                                                                             |
-| `type`                     | `file`/empty              | The type of collection. If collecting logs from container internal files, it must be set as `file`. The default value is empty, which means collecting `stdout/stderr`.                                                                                                                        |
-| `path`                     | string                    | The configuration file path. If collecting logs from container internal files, it should be set as the path of the volume, which is accessible from outside the container. The default is not required when collecting `stdout/stderr`.                                                        |
-| `source`                   | string                    | The source of the logs. Refer to [Configuring the Source for Container Log Collection](container.md#config-logging-source).                                                                                                                                                                    |
-| `service`                  | string                    | The service to which the logs belong. The default value is the log source (`source`).                                                                                                                                                                                                          |
-| `pipeline`                 | string                    | The Pipeline script for processing the logs. The default value is the script name that matches the log source (`<source>.p`).                                                                                                                                                                  |
-| `remove_ansi_escape_codes` | true/false                | Enable ANSI codes removal.                                                                                                                                                                                                                                                                     |
-| `from_beginning`           | true/false                | Whether to collect logs from the begin of the file.                                                                                                                                                                                                                                            |
-| `multiline_match`          | regular expression string | The pattern used for recognizing the first line of a [multiline log match](logging.md#multiline), e.g., `"multiline_match":"^\\d{4}"` indicates that the first line starts with four digits. In regular expression rules, `\d` represents a digit, and the preceding `\` is used for escaping. |
-| `character_encoding`       | string                    | The character encoding. If the encoding is incorrect, the data may not be viewable. Supported values are `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030`, or an empty string. The default is empty.                                                                                          |
-| `tags`                     | key/value pairs           | Additional tags to be added. If there are duplicate keys, the value in this configuration will take precedence.                                                                                                                                                                                |
+| Field Name                      | Possible Values           | Explanation                                                                                                                                                                                                                                                                                    |
+| --------------------            | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `disable`                       | true/false                | Whether to disable log collection for the container. The default value is `false`.                                                                                                                                                                                                             |
+| `type`                          | `file`/empty              | The type of collection. If collecting logs from container internal files, it must be set as `file`. The default value is empty, which means collecting `stdout/stderr`.                                                                                                                        |
+| `source`                        | string                    | The source of the logs. Refer to [Configuring the Source for Container Log Collection](container.md#config-logging-source).                                                                                                                                                                    |
+| `service`                       | string                    | The service to which the logs belong. The default value is the log source (`source`).                                                                                                                                                                                                          |
+| `path`                          | string                    | The configuration file path. If collecting logs from container internal files, it should be set as the path of the volume, which is accessible from outside the container. The default is not required when collecting `stdout/stderr`.                                                        |
+| `multiline_match`               | regular expression string | The pattern used for recognizing the first line of a [multiline log match](logging.md#multiline), e.g., `"multiline_match":"^\\d{4}"` indicates that the first line starts with four digits. In regular expression rules, `\d` represents a digit, and the preceding `\` is used for escaping. |
+| `pipeline`                      | string                    | The Pipeline script for processing the logs. The default value is the script name that matches the log source (`<source>.p`).                                                                                                                                                                  |
+| `storage_index`                 | string                    | Index name for log storage.                                                                                                                                                                                                                                                                    |
+| `remove_ansi_escape_codes`      | true/false                | Enable ANSI codes removal.                                                                                                                                                                                                                                                                     |
+| `from_beginning`                | true/false                | Whether to collect logs from the begin of the file.                                                                                                                                                                                                                                            |
+| `from_beginning_threshold_size` | int                       | When a file is discovered, if the file size is less than this value, start reading from the beginning of the file, in bytes, default 20MB                                                                                                                                                      |
+| `character_encoding`            | string                    | The character encoding. If the encoding is incorrect, the data may not be viewable. Supported values are `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030`, or an empty string. The default is empty.                                                                                          |
+| `tags`                          | key/value pairs           | Additional tags to be added. If there are duplicate keys, the value in this configuration will take precedence.                                                                                                                                                                                |
 
 Below is a complete example:
 
@@ -288,25 +291,23 @@ By default, DataKit collects stdout/stderr logs for all containers on your machi
 
     The following 4 field rules are now supported, all of which are infrastructure attribute fields:
 
-    - image : `image:pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:1.18.0`
-    - image_name : `image_name:pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit`
-    - image_short_name : `image_short_name:datakit`
+    - image : `image:pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:1.85.0`
     - namespace : `namespace:datakit-ns`
 
     For the same type of rule (`image` or `namespace`), if both `include` and `exclude` exist, the condition that `include` holds and `exclude` does not hold needs to be satisfied. For example:
     ```toml
     ## This causes all containers to be filtered. If there is a container ``datakit`` that satisfies both ``include`` and ``exclude``, then it will be filtered out of log collection; if there is a container ``nginx`` that does not satisfy ``include`` in the first place, it will be filtered out of log collection.
 
-    container_include_log = ["image_name:datakit"]
-    container_exclude_log = ["image_name:*"]
+    container_include_log = ["image:datakit"]
+    container_exclude_log = ["image:*"]
     ```
 
     Any one of the field rules for multiple types matches and its logs are no longer captured. Example:
     ```toml
-    ## The container only needs to match either `image_name` and `namespace` to stop collecting logs.
+    ## The container only needs to match either `image` and `namespace` to stop collecting logs.
 
     container_include_log = []
-    container_exclude_log = ["image_name:datakit", "namespace:datakit-ns"]
+    container_exclude_log = ["image:datakit", "namespace:datakit-ns"]
     ```
 
     The configuration rules for `container_include_log` and `container_exclude_log` are complex, and their simultaneous use can result in a variety of priority cases. It is recommended to use only `container_exclude_log`.
@@ -403,7 +404,6 @@ DataKit offers two methods for filtering specific containers and preventing thei
 The filtering process works as follows:
 
 1. If a container has a `datakit/logs` annotation or environment variable, and all `"disable": true` settings are active, the container's logs will be ignored and not collected.
-1. If the Pod to which the container belongs is created by a `Job` or `CronJob`, the container's logs will not be collected.
 1. The `container_include_log` and `container_exclude_log` settings only apply when all conditions are met:
    - For example, with `container_include_log = ["image:redis*"]` and `container_exclude_log = ["namespace:middleware*"]`, logs will only be collected if the container's `image` matches `redis*` and the `namespace` does not match `middleware*`.
    - If only `container_include_log = ["image:redis*"]` is specified, logs will be collected as long as this condition is met.

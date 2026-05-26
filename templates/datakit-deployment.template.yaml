@@ -1,0 +1,137 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: datakit-deployment
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: dk-deploy
+  namespace: datakit-deployment
+spec:
+  selector:
+    app: datakit-deployment
+  ports:
+    - name: http
+      protocol: TCP
+      port: 9529
+      targetPort: 9529
+    - name: statsd
+      protocol: UDP
+      port: 8125
+      targetPort: 8125
+    - name: otel-grpc
+      protocol: TCP
+      port: 4317
+      targetPort: 4317
+    - name: logfwd
+      protocol: TCP
+      port: 9533
+      targetPort: 9533
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: datakit
+  namespace: datakit-deployment
+  labels:
+    app: datakit-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: datakit-deployment
+  template:
+    metadata:
+      labels:
+        app: datakit-deployment
+    spec:
+      containers:
+      - name: datakit
+        image: {{.DockerImageRepo}}/datakit:{{.Version}}
+        imagePullPolicy: IfNotPresent
+        workingDir: /usr/local/datakit
+        ports:
+        - name: http-port
+          containerPort: 9529
+          protocol: TCP
+        - name: statsd-port
+          containerPort: 8125
+          protocol: UDP
+        - name: otel-grpc-port
+          containerPort: 4317
+          protocol: TCP
+        - name: logfwd-port
+          containerPort: 9533
+          protocol: TCP
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+
+        - name: ENV_DATAWAY
+          value: https://openway.{{.BrandDomain}}?token=<YOUR-WORKSPACE-TOKEN> # Fill your real Dataway server and(or) workspace token
+        - name: ENV_CLUSTER_NAME_K8S
+          value: default
+        - name: ENV_GLOBAL_HOST_TAGS
+          value: host=__datakit_hostname,host_ip=__datakit_ip
+        - name: ENV_GLOBAL_ELECTION_TAGS # Default not set
+          value: ""
+        - name: ENV_HTTP_LISTEN
+          value: "0.0.0.0:9529"
+        - name: ENV_DEFAULT_ENABLED_INPUTS
+          value: "statsd,opentelemetry,logfwd,dk,ddtrace"
+        #- name: ENV_DATAWAY_WAL_WORKERS
+        # value: "16"
+        #- name: ENV_DATAWAY_WAL_CAPACITY
+        # value: "2.0" # GB
+        
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+
+        volumeMounts:
+        - name: datakit-cache
+          mountPath: /usr/local/datakit/cache
+        
+        - name: datakit-data
+          mountPath: /usr/local/datakit/data
+        
+        # - name: datakit-conf
+        #   mountPath: /usr/local/datakit/conf.d/
+        #   readOnly: true
+      
+      restartPolicy: Always
+      
+      volumes:
+      - name: datakit-cache
+        hostPath:
+          path: /var/lib/datakit/cache 
+          type: DirectoryOrCreate
+      
+      - name: datakit-data
+        emptyDir: {}
+        
+      # - name: datakit-conf
+      #   configMap:
+      #     name: datakit-conf
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: datakit-conf
+  namespace: datakit-deployment
+data:
+  statsd.conf: |
+    # [[inputs.statsd]]
+    # ...

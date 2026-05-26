@@ -9,6 +9,7 @@ package etcd
 import (
 	"fmt"
 	"net/url"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -24,15 +25,16 @@ import (
 	iprom "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/prom"
 )
 
-var _ inputs.ElectionInput = (*Input)(nil)
-
 const (
 	inputName               = "etcd"
 	catalog                 = "etcd"
 	defaultIntervalDuration = time.Second * 30
 )
 
-var l = logger.DefaultSLogger(inputName)
+var (
+	l                      = logger.DefaultSLogger(inputName)
+	_ inputs.ElectionInput = (*Input)(nil)
+)
 
 type Input struct {
 	Source   string        `toml:"source"`
@@ -54,8 +56,7 @@ type Input struct {
 	feeder dkio.Feeder
 
 	Election bool `toml:"election"`
-	chPause  chan bool
-	pause    bool
+	pause    atomic.Bool
 
 	Tagger datakit.GlobalTagger
 
@@ -104,7 +105,7 @@ func (ipt *Input) Run() {
 	ipt.start = ntp.Now()
 
 	for {
-		if ipt.pause {
+		if ipt.pause.Load() {
 			ipt.l.Debug("etcd paused")
 		} else {
 			if err := ipt.collect(); err != nil {
@@ -123,9 +124,6 @@ func (ipt *Input) Run() {
 
 		case tt := <-tick.C:
 			ipt.start = inputs.AlignTime(tt, ipt.start, ipt.Interval)
-
-		case ipt.pause = <-ipt.chPause:
-			// nil
 		}
 	}
 }
@@ -264,23 +262,13 @@ func (ipt *Input) setup() bool {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	select {
-	case ipt.chPause <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	select {
-	case ipt.chPause <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func (ipt *Input) Init() error {
@@ -323,11 +311,9 @@ func (ipt *Input) Init() error {
 	return nil
 }
 
-var maxPauseCh = inputs.ElectionPauseChannelLength
-
 func defaultInput() *Input {
 	return &Input{
-		chPause:  make(chan bool, maxPauseCh),
+		pause:    atomic.Bool{},
 		Source:   "etcd",
 		Interval: defaultIntervalDuration,
 		Election: true,

@@ -33,12 +33,10 @@ var (
 	mdNoSectionCheck = false
 	sampleConfCheck  = false
 	doPub            = false
-	doPubeBPF        = false
-	pkgEBPF          = 0
-	downloadEBPF     = 0
 	buildISP         = false
 	ut               = false
 	dca              = false
+	flameshot        = false
 	export           = false
 	dwURL            = "not-set"
 	mdSkip           = ""
@@ -65,10 +63,6 @@ func init() { //nolint:gochecknoinits
 
 	flag.BoolVar(&build.NotifyOnly, "notify-only", false, "notify CI process")
 	flag.BoolVar(&doPub, "pub", false, `publish binaries to OSS: local/testing/production`)
-	flag.BoolVar(&doPubeBPF, "pub-ebpf", false, `publish datakit-ebpf to OSS: local/testing/production`)
-
-	flag.IntVar(&pkgEBPF, "pkg-ebpf", 0, `add datakit-ebpf to datakit tar.gz`)
-	flag.IntVar(&downloadEBPF, "download-ebpf", 0, `download datakit-ebpf from OSS: local/testing/production`)
 
 	flag.BoolVar(&buildISP, "build-isp", false, "generate ISP data")
 
@@ -91,6 +85,9 @@ func init() { //nolint:gochecknoinits
 	flag.BoolVar(&dca, "dca", false, "build DCA only")
 	flag.StringVar(&build.DCAVersion, "dca-version", build.ValueNotSet, "specify DCA version string")
 
+	flag.StringVar(&build.VersionsInDoc, "versions-in-doc", build.ValueNotSet,
+		"specify all versions of various components, such as datakit:1.2.3,dca:1.2.3,ddtrace-ext:1.2.3")
+
 	//
 	// export related flags.
 	//
@@ -104,6 +101,7 @@ func init() { //nolint:gochecknoinits
 	flag.StringVar(&build.ExportVersion, "version", datakit.Version, "set DataKit version string in related documents")
 
 	flag.StringVar(&logLevel, "log-level", "info", "set log level of building log")
+	flag.BoolVar(&flameshot, "flameshot", false, "build flameshot plugin")
 }
 
 func applyFlags() {
@@ -216,7 +214,7 @@ func applyFlags() {
 
 	vi := version.VerInfo{VersionString: build.ReleaseVersion}
 	if err := vi.Parse(); err != nil {
-		l.Fatalf("invalid version %s", build.ReleaseVersion)
+		l.Fatalf("invalid version(%s): %s", build.ReleaseVersion, err.Error())
 	}
 
 	switch build.ReleaseType {
@@ -239,26 +237,9 @@ func applyFlags() {
 		return
 	}
 
-	if doPubeBPF {
-		build.NotifyStartPubEBpf()
-		if err := build.PubDatakitEBpf(); err != nil {
-			l.Errorf("build.PubDatakiteBPF: %s", err)
-			build.NotifyFail(err.Error())
-		} else {
-			build.NotifyPubEBpfDone()
-		}
-		return
-	}
-
 	if doPub {
 		l.Infof("under publishing...")
 		build.NotifyStartPub()
-		if downloadEBPF != 0 {
-			if err := build.PackageEBPF(); err != nil {
-				l.Errorf("build.PackageeBPF: %s", err)
-				return
-			}
-		}
 
 		if err := build.PubDatakit(); err != nil {
 			l.Errorf("build.PubDatakit: %s", err)
@@ -272,10 +253,10 @@ func applyFlags() {
 		if err := build.Compile(); err != nil {
 			l.Errorf("build.Compile: %s", err)
 			build.NotifyFail(err.Error())
-		} else if pkgEBPF != 0 {
-			if err := build.PackageEBPF(); err != nil {
-				l.Errorf("build.PackageeBPF: %s", err)
-				return
+		}
+		if flameshot {
+			if err := build.CompileFlameshot(); err != nil {
+				l.Error(err)
 			}
 		}
 		return

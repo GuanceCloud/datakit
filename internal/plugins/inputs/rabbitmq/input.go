@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -67,8 +68,7 @@ type Input struct {
 	start time.Time
 
 	Election bool `toml:"election"`
-	pause    bool
-	pauseCh  chan bool
+	pause    atomic.Bool
 
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
@@ -122,7 +122,7 @@ func (ipt *Input) RunPipeline() {
 		tailer.WithCharacterEncoding(ipt.Log.CharacterEncoding),
 		tailer.EnableMultiline(true),
 		tailer.WithMaxMultilineLength(int64(float64(config.Cfg.Dataway.MaxRawBodySize) * 0.8)),
-		tailer.WithMultilinePatterns([]string{ipt.Log.MultilineMatch}),
+		tailer.WithMultilinePattern(ipt.Log.MultilineMatch),
 		tailer.WithExtraTags(inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, "")),
 		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
 	}
@@ -169,7 +169,7 @@ func (ipt *Input) Run() {
 
 	ipt.start = ntp.Now()
 	for {
-		if !ipt.pause {
+		if !ipt.pause.Load() {
 			ipt.setUpState()
 			ipt.getMetric()
 			ipt.FeedCoPts()
@@ -200,8 +200,6 @@ func (ipt *Input) Run() {
 
 		case tt := <-tick.C:
 			ipt.start = inputs.AlignTime(tt, ipt.start, ipt.Interval.Duration)
-
-		case ipt.pause = <-ipt.pauseCh:
 		}
 	}
 }
@@ -254,25 +252,13 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func (ipt *Input) newClient() (*http.Client, error) {
@@ -318,7 +304,7 @@ func newCountFieldInfo(desc string) *inputs.FieldInfo {
 func defaultInput() *Input {
 	return &Input{
 		Interval: datakit.Duration{Duration: time.Second * 10},
-		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+		pause:    atomic.Bool{},
 		Election: true,
 		semStop:  cliutils.NewSem(),
 		feeder:   dkio.DefaultFeeder(),

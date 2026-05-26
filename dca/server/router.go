@@ -80,11 +80,29 @@ func limiterHandler(lmt *limiter.Limiter) gin.HandlerFunc {
 	}
 }
 
+func collectRequestMetricsHandler() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		start := time.Now()
+		api := ctx.Request.URL.Path
+		method := ctx.Request.Method
+		status := "unknown"
+		defer func() {
+			elapsed := time.Since(start).Seconds()
+
+			apiElapsedVec.WithLabelValues(api, method, status).Observe(elapsed)
+		}()
+
+		ctx.Next()
+		status = http.StatusText(ctx.Writer.Status())
+	}
+}
+
 func setupRouter(router *gin.Engine) error {
 	router.Use(gin.Recovery())
-	router.GET("/ws", limiterHandler(nlimiter), websocketHandler)
+	router.GET("/ws", collectRequestMetricsHandler(), limiterHandler(nlimiter), websocketHandler)
 
 	apiRouter := router.Group("/api")
+	apiRouter.Use(collectRequestMetricsHandler())
 	apiRouter.GET("/lastDatakitVersion", getLastDatakitVersionHandler)
 	consoleRouter := apiRouter.Group("/console")
 	datakitRouter := apiRouter.Group("/datakit")

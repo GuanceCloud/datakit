@@ -1,0 +1,447 @@
+version = "1.0.0"
+
+# ========== User and Group Change（Module ID：01） ==========
+[[change]]
+id = "host_change_01_01"
+[change.title]
+zh = "新增用户"
+en = "Create User"
+[change.message]
+zh = """共新增 {{.ChangeCount}} 个用户：
+{{range $index, $change := .Changes}}
+-  用户名： {{.UserName}}
+   UID： {{.UID}}
+   GID： {{.GID}}
+   家目录： {{.HomeDir}}
+   登录 Shell： {{.LoginShell}}
+{{end}}"""
+en = """{{.ChangeCount}} users created:
+{{range $index, $change := .Changes}}
+-  Username: {{.UserName}}
+   UID: {{.UID}}
+   GID: {{.GID}}
+   Home Directory: {{.HomeDir}}
+   Login Shell: {{.LoginShell}}
+{{end}}"""
+
+[[change]]
+id = "host_change_01_02"
+[change.title]
+zh = "删除用户"
+en = "Delete User"
+[change.message]
+zh = """共删除 {{.ChangeCount}} 个用户：
+{{range $index, $change := .Changes}}
+-  用户名： {{.UserName}}
+   原 UID： {{.UID}}
+   原 GID： {{.GID}}
+   原家目录： {{.HomeDir}}
+{{end}}"""
+en = """{{.ChangeCount}} users deleted:
+{{range $index, $change := .Changes}}
+-  Username: {{.UserName}}
+   Original UID: {{.UID}}
+   Original GID: {{.GID}}
+   Original Home Directory: {{.HomeDir}}
+{{end}}"""
+
+[[change]]
+id = "host_change_01_03"
+[change.title]
+zh = "修改用户属性"
+en = "Modify User Attribute"
+[change.message]
+zh = """共修改 {{.ChangeCount}} 个用户属性：
+{{range $index, $change := .Changes}}
+-  用户： {{.UserName}}
+   变更属性： {{.ChangeField}}
+   旧值： {{.OldValue}}
+   新值： {{.NewValue}}
+{{end}}"""
+en = """{{.ChangeCount}} user attributes modified:
+{{range $index, $change := .Changes}}
+-  User: {{.UserName}}
+   Changed Field: {{.ChangeField}}
+   Old Value: {{.OldValue}}
+   New Value: {{.NewValue}}
+{{end}}"""
+
+[[change]]
+id = "host_change_01_04"
+[change.title]
+zh = "新增组"
+en = "Create Group"
+[change.message]
+zh = """共新增 {{.ChangeCount}} 个组：
+{{range $index, $change := .Changes}}
+-  组名： {{.GroupName}}
+   GID： {{.GID}}
+{{end}}"""
+en = """{{.ChangeCount}} groups created:
+{{range $index, $change := .Changes}}
+-  Group Name: {{.GroupName}}
+   GID: {{.GID}}
+{{end}}"""
+
+[[change]]
+id = "host_change_01_05"
+[change.title]
+zh = "删除组"
+en = "Delete Group"
+[change.message]
+zh = """共删除 {{.ChangeCount}} 个组：
+{{range $index, $change := .Changes}}
+-  组名： {{.GroupName}}
+   原 GID： {{.GID}}
+{{end}}"""
+en = """{{.ChangeCount}} groups deleted:
+{{range $index, $change := .Changes}}
+-  Group Name: {{.GroupName}}
+   Original GID: {{.GID}}
+{{end}}"""
+
+[[change]]
+id = "host_change_01_06"
+[change.title]
+zh = "修改组属性"
+en = "Modify Group Attribute"
+[change.message]
+zh = """共修改 {{.ChangeCount}} 个组属性：
+{{range $index, $change := .Changes}}
+-  组： {{.GroupName}}
+   变更属性： {{.ChangeField}}
+   旧值： {{.OldValue}}
+   新值： {{.NewValue}}
+{{end}}"""
+en = """{{.ChangeCount}} group attributes modified:
+{{range $index, $change := .Changes}}
+-  Group: {{.GroupName}}
+   Changed Field: {{.ChangeField}}
+   Old Value: {{.OldValue}}
+   New Value: {{.NewValue}}
+{{end}}"""
+
+[[change]]
+id = "host_change_01_07"
+[change.title]
+zh = "组新增成员"
+en = "Add Member to Group"
+[change.message]
+zh = """共添加 {{.ChangeCount}} 个组成员：
+{{range $index, $change := .Changes}}
+-  组： {{.GroupName}}
+   GID： {{.GID}}
+   新增成员： {{.UserName}}
+{{end}}"""
+en = """{{.ChangeCount}} group members added:
+{{range $index, $change := .Changes}}
+-  Group: {{.GroupName}}
+   GID: {{.GID}}
+   New Member: {{.UserName}}
+{{end}}"""
+
+[[change]]
+id = "host_change_01_08"
+[change.title]
+zh = "组删除成员"
+en = "Remove Member from Group"
+[change.message]
+zh = """共删除 {{.ChangeCount}} 个组成员：
+{{range $index, $change := .Changes}}
+-  组： {{.GroupName}}
+   GID： {{.GID}}
+   删除成员： {{.UserName}}
+{{end}}"""
+en = """{{.ChangeCount}} group members removed:
+{{range $index, $change := .Changes}}
+-  Group: {{.GroupName}}
+   GID: {{.GID}}
+   Removed Member: {{.UserName}}
+{{end}}"""
+
+# ========== Crontab Change（Module ID：02） ==========
+[[change]]
+id = "host_change_02_01"
+[change.title]
+zh = "Crontab 任务变更"
+en = "Crontab Job Changes"
+[change.message]
+zh = """Crontab 任务变更：
+{{range $filePath, $changes := .ChangesByFile}}
+文件路径： {{$filePath}}
+{{if $changes.Created}}
+新增任务：
+{{range $index, $cron := $changes.Created}}
+  -  用户： {{$cron.User}}
+     计划时间： {{$cron.Schedule}}
+     命令： {{$cron.Command}}
+{{end}}
+{{end}}
+{{if $changes.Deleted}}
+删除任务：
+{{range $index, $cron := $changes.Deleted}}
+  -  用户： {{$cron.User}}
+     计划时间： {{$cron.Schedule}}
+     命令： {{$cron.Command}}
+{{end}}
+{{end}}
+{{end}}"""
+en = """Crontab job changes:
+{{range $filePath, $changes := .ChangesByFile}}
+File Path: {{$filePath}}
+{{if $changes.Created}}
+Created Jobs:
+{{range $index, $cron := $changes.Created}}
+  -  User: {{$cron.User}}
+     Schedule: {{$cron.Schedule}}
+     Command: {{$cron.Command}}
+{{end}}
+{{end}}
+{{if $changes.Deleted}}
+Deleted Jobs:
+{{range $index, $cron := $changes.Deleted}}
+  -  User: {{$cron.User}}
+     Schedule: {{$cron.Schedule}}
+     Command: {{$cron.Command}}
+{{end}}
+{{end}}
+{{end}}"""
+
+# ========== File Content Change（Module ID：03） ==========
+[[change]]
+id = "host_change_03_01"
+[change.title]
+zh = "文件内容变更"
+en = "File Content Changed"
+[change.message]
+zh = """文件 {{.FilePath}} 内容已变更：
+{{.Diff}}
+"""
+en = """File {{.FilePath}} content has changed:
+{{.Diff}}
+"""
+
+# ========== Service Change（Module ID：04） ==========
+[[change]]
+id = "host_change_04_01"
+[change.title]
+zh = "新增服务"
+en = "Create Service"
+[change.message]
+zh = """服务 {{.ServiceName}} 已新增：
+-  服务类型： {{.ServiceType}}
+-  当前状态： {{.NewStatus}}
+-  开机自启： {{if .NewEnabled}}是{{else}}否{{end}}
+"""
+en = """Service {{.ServiceName}} has been created:
+-  Service Type: {{.ServiceType}}
+-  Current Status: {{.NewStatus}}
+-  Enabled on Boot: {{if .NewEnabled}}Yes{{else}}No{{end}}
+"""
+
+[[change]]
+id = "host_change_04_02"
+[change.title]
+zh = "删除服务"
+en = "Delete Service"
+[change.message]
+zh = """服务 {{.ServiceName}} 已删除：
+-  服务类型： {{.ServiceType}}
+-  原状态： {{.OldStatus}}
+-  开机自启： {{if .OldEnabled}}是{{else}}否{{end}}
+"""
+en = """Service {{.ServiceName}} has been deleted:
+-  Service Type: {{.ServiceType}}
+-  Original Status: {{.OldStatus}}
+-  Enabled on Boot: {{if .OldEnabled}}Yes{{else}}No{{end}}
+"""
+
+[[change]]
+id = "host_change_04_03"
+[change.title]
+zh = "修改服务配置"
+en = "Modify Service Configuration"
+[change.message]
+zh = """服务 {{.ServiceName}} 配置已变更：
+-  服务类型： {{.ServiceType}}
+{{if ne .OldStatus .NewStatus}}-  状态： {{.OldStatus}} → {{.NewStatus}}
+{{end}}{{if ne .OldEnabled .NewEnabled}}-  开机自启： {{if .OldEnabled}}是{{else}}否{{end}} → {{if .NewEnabled}}是{{else}}否{{end}}
+{{end}}{{if .ContentChanged}}-  配置文件内容已变更：
+{{.DiffText}}
+{{end}}"""
+en = """Service {{.ServiceName}} configuration has been changed:
+-  Service Type: {{.ServiceType}}
+{{if ne .OldStatus .NewStatus}}-  Status: {{.OldStatus}} → {{.NewStatus}}
+{{end}}{{if ne .OldEnabled .NewEnabled}}-  Enabled on Boot: {{if .OldEnabled}}Yes{{else}}No{{end}} → {{if .NewEnabled}}Yes{{else}}No{{end}}
+{{end}}{{if .ContentChanged}}-  Configuration file content has changed:
+{{.DiffText}}
+{{end}}"""
+
+[[change]]
+id = "host_change_04_04"
+[change.title]
+zh = "服务状态变更"
+en = "Service Status Changed"
+[change.message]
+zh = """服务 {{.ServiceName}} 状态已变更：
+-  服务类型： {{.ServiceType}}
+-  原状态： {{.OldStatus}}
+-  新状态： {{.NewStatus}}
+-  开机自启： {{if .NewEnabled}}是{{else}}否{{end}}
+"""
+en = """Service {{.ServiceName}} status has been changed:
+-  Service Type: {{.ServiceType}}
+-  Old Status: {{.OldStatus}}
+-  New Status: {{.NewStatus}}
+-  Enabled on Boot: {{if .NewEnabled}}Yes{{else}}No{{end}}
+"""
+
+# ========== Network Configuration Change（Module ID：05） ==========
+[[change]]
+id = "host_change_05_01"
+[change.title]
+zh = "网络接口变更"
+en = "Network Interface Changed"
+[change.message]
+zh = """{{if eq .ChangeType "add"}}网络接口 {{.InterfaceName}} 已新增：
+新状态： {{.NewStatus}}
+新 IP： {{.NewIP}}
+{{else if eq .ChangeType "delete"}}网络接口 {{.InterfaceName}} 已删除：
+原状态： {{.OldStatus}}
+原 IP： {{.OldIP}}
+{{else}}网络接口 {{.InterfaceName}} 已修改：
+{{if ne .OldStatus .NewStatus}}状态： {{.OldStatus}} → {{.NewStatus}}
+{{end}}{{if ne .OldIP .NewIP}}IP 地址： {{.OldIP}} → {{.NewIP}}
+{{end}}{{if eq .OldStatus .NewStatus}}{{if eq .OldIP .NewIP}}（无变化）
+{{end}}{{end}}{{end}}"""
+en = """{{if eq .ChangeType "add"}}Network interface {{.InterfaceName}} has been added:
+New Status: {{.NewStatus}}
+New IP: {{.NewIP}}
+{{else if eq .ChangeType "delete"}}Network interface {{.InterfaceName}} has been deleted:
+Old Status: {{.OldStatus}}
+Old IP: {{.OldIP}}
+{{else}}Network interface {{.InterfaceName}} has been modified:
+{{if ne .OldStatus .NewStatus}}Status: {{.OldStatus}} → {{.NewStatus}}
+{{end}}{{if ne .OldIP .NewIP}}IP Address: {{.OldIP}} → {{.NewIP}}
+{{end}}{{if eq .OldStatus .NewStatus}}{{if eq .OldIP .NewIP}}(No change)
+{{end}}{{end}}{{end}}"""
+
+[[change]]
+id = "host_change_05_02"
+[change.title]
+zh = "DNS 配置变更"
+en = "DNS Configuration Changed"
+[change.message]
+zh = """{{if eq .ChangeType "add"}}{{if eq .DiffKey "nameserver"}}DNS 服务器已新增：
+{{else if eq .DiffKey "search"}}搜索域已新增：
+{{else if eq .DiffKey "options"}}DNS 选项已新增：
+{{else}}DNS 配置已新增：
+{{end}}{{.DiffText}}
+{{else if eq .ChangeType "delete"}}{{if eq .DiffKey "nameserver"}}DNS 服务器已删除：
+{{else if eq .DiffKey "search"}}搜索域已删除：
+{{else if eq .DiffKey "options"}}DNS 选项已删除：
+{{else}}DNS 配置已删除：
+{{end}}{{.DiffText}}
+{{else}}{{if eq .DiffKey "nameserver"}}DNS 服务器已变更：
+{{else if eq .DiffKey "search"}}搜索域已变更：
+{{else if eq .DiffKey "options"}}DNS 选项已变更：
+{{else}}DNS 配置已变更：
+{{end}}{{.DiffText}}
+{{end}}"""
+en = """{{if eq .ChangeType "add"}}{{if eq .DiffKey "nameserver"}}Nameservers have been added:
+{{else if eq .DiffKey "search"}}Search domains have been added:
+{{else if eq .DiffKey "options"}}DNS options have been added:
+{{else}}DNS configuration has been added:
+{{end}}{{.DiffText}}
+{{else if eq .ChangeType "delete"}}{{if eq .DiffKey "nameserver"}}Nameservers have been deleted:
+{{else if eq .DiffKey "search"}}Search domains have been deleted:
+{{else if eq .DiffKey "options"}}DNS options have been deleted:
+{{else}}DNS configuration has been deleted:
+{{end}}{{.DiffText}}
+{{else}}{{if eq .DiffKey "nameserver"}}Nameservers have changed:
+{{else if eq .DiffKey "search"}}Search domains have changed:
+{{else if eq .DiffKey "options"}}DNS options have changed:
+{{else}}DNS configuration has changed:
+{{end}}{{.DiffText}}
+{{end}}"""
+
+[[change]]
+id = "host_change_05_03"
+[change.title]
+zh = "路由配置变更"
+en = "Route Configuration Changed"
+[change.message]
+zh = """{{if eq .ChangeType "add"}}路由已新增：
+目标地址： {{.DiffKey}}
+{{.DiffText}}
+{{else if eq .ChangeType "delete"}}路由已删除：
+目标地址： {{.DiffKey}}
+{{.DiffText}}
+{{else}}路由已变更：
+目标地址： {{.DiffKey}}
+{{.DiffText}}
+{{end}}"""
+en = """{{if eq .ChangeType "add"}}Route has been added:
+Destination: {{.DiffKey}}
+{{.DiffText}}
+{{else if eq .ChangeType "delete"}}Route has been deleted:
+Destination: {{.DiffKey}}
+{{.DiffText}}
+{{else}}Route has changed:
+Destination: {{.DiffKey}}
+{{.DiffText}}
+{{end}}"""
+
+[[change]]
+id = "host_change_05_04"
+[change.title]
+zh = "防火墙规则变更"
+en = "Firewall Rule Changed"
+[change.message]
+zh = """{{if eq .ChangeType "add"}}防火墙规则已新增：
+表名： {{.DiffKey}}
+{{.DiffText}}
+{{else if eq .ChangeType "delete"}}防火墙规则已删除：
+表名： {{.DiffKey}}
+{{.DiffText}}
+{{else}}防火墙规则已变更：
+表名： {{.DiffKey}}
+{{.DiffText}}
+{{end}}"""
+en = """{{if eq .ChangeType "add"}}Firewall rule has been added:
+Table: {{.DiffKey}}
+{{.DiffText}}
+{{else if eq .ChangeType "delete"}}Firewall rule has been deleted:
+Table: {{.DiffKey}}
+{{.DiffText}}
+{{else}}Firewall rule has changed:
+Table: {{.DiffKey}}
+{{.DiffText}}
+{{end}}"""
+
+[[change]]
+id = "host_change_05_05"
+[change.title]
+zh = "Hosts 文件变更"
+en = "Hosts File Changed"
+[change.message]
+zh = """{{if eq .ChangeType "add"}}Hosts 条目已新增：
+主机名： {{.InterfaceName}}
+IP 地址： {{.DiffText}}
+{{else if eq .ChangeType "delete"}}Hosts 条目已删除：
+主机名： {{.InterfaceName}}
+原 IP 地址： {{.DiffText}}
+{{else}}Hosts 条目已变更：
+主机名： {{.InterfaceName}}
+{{.DiffText}}
+{{end}}"""
+en = """{{if eq .ChangeType "add"}}Hosts entry has been added:
+Hostname: {{.InterfaceName}}
+IP Address: {{.DiffText}}
+{{else if eq .ChangeType "delete"}}Hosts entry has been deleted:
+Hostname: {{.InterfaceName}}
+Original IP Address: {{.DiffText}}
+{{else}}Hosts entry has been changed:
+Hostname: {{.InterfaceName}}
+{{.DiffText}}
+{{end}}"""

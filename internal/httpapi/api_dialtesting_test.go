@@ -278,3 +278,44 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 		})
 	}
 }
+
+func TestIsAllowedHost(t *testing.T) {
+	t.Run("allow when internal network check disabled", func(t *testing.T) {
+		DialtestingDisableInternalNetworkTask = false
+
+		ok, err := isAllowedHost([]string{"host-a"}, func(host string) (bool, error) {
+			return false, nil
+		})
+		if !assert.NoError(t, err) {
+			return
+		}
+		assert.True(t, ok)
+	})
+
+	t.Run("deny when any host is internal", func(t *testing.T) {
+		DialtestingDisableInternalNetworkTask = true
+
+		ok, err := isAllowedHost([]string{"host-a", "host-b"}, func(host string) (bool, error) {
+			return host == "host-b", nil
+		})
+		if !assert.NoError(t, err) {
+			return
+		}
+		assert.False(t, ok)
+	})
+
+	t.Run("return error when any host is invalid", func(t *testing.T) {
+		DialtestingDisableInternalNetworkTask = true
+
+		ok, err := isAllowedHost([]string{"host-a", "host-b"}, func(host string) (bool, error) {
+			if host == "host-b" {
+				return false, assert.AnError
+			}
+			return false, nil
+		})
+		if !assert.Error(t, err) {
+			return
+		}
+		assert.False(t, ok)
+	})
+}

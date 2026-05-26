@@ -68,18 +68,18 @@ func doGatherPoints(reg prometheus.Gatherer) ([]*Point, error) {
 
 	var pts []*Point
 	for _, mf := range mfs {
-		arr := strings.SplitN(*mf.Name, "_", 2)
+		arr := strings.SplitN(mf.GetName(), "_", 2)
 
 		name := arr[0]
 		fieldName := arr[1]
 
-		for _, m := range mf.Metric {
+		for _, m := range mf.GetMetric() {
 			var kvs KVs
 			for _, label := range m.GetLabel() {
 				kvs = append(kvs, NewKV(label.GetName(), label.GetValue(), WithKVTagSet(true)))
 			}
 
-			switch *mf.Type {
+			switch mf.GetType() {
 			case dto.MetricType_COUNTER:
 				kvs = append(kvs, NewKV(fieldName, m.GetCounter().GetValue()))
 			case dto.MetricType_SUMMARY:
@@ -99,7 +99,7 @@ func doGatherPoints(reg prometheus.Gatherer) ([]*Point, error) {
 			// TODO: according to specific tags, we should make them as logging.
 			ts := now
 			if m.TimestampMs != nil { // use metric time
-				ts = time.Unix(0, int64(time.Millisecond)**m.TimestampMs)
+				ts = time.Unix(0, int64(time.Millisecond)*m.GetTimestampMs())
 			}
 
 			opts := append(DefaultMetricOptions(), WithTime(ts))

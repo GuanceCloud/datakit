@@ -124,7 +124,7 @@ func (ipt *Input) startWorker(ctx context.Context, scraperChan chan scraper) {
 		return
 	}
 
-	g := datakit.G(inputName + "/" + ipt.Source)
+	g := goroutine.G(inputName + "/" + ipt.Source)
 
 	for i := 0; i < workerCount; i++ {
 		workerName := fmt.Sprintf("worker-%d", i)
@@ -221,7 +221,7 @@ func (ipt *Input) Terminate() {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
+	tick := time.NewTicker(time.Second * 3)
 	defer tick.Stop()
 	select {
 	case ipt.pauseChan <- true:
@@ -232,7 +232,7 @@ func (ipt *Input) Pause() error {
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
+	tick := time.NewTicker(time.Second * 3)
 	defer tick.Stop()
 	select {
 	case ipt.pauseChan <- false:
@@ -249,7 +249,7 @@ func init() {
 			Source:    "not-set",
 			Election:  true,
 			isPaused:  false,
-			pauseChan: make(chan bool, inputs.ElectionPauseChannelLength),
+			pauseChan: make(chan bool, 8),
 			Tags:      make(map[string]string),
 			feeder:    dkio.DefaultFeeder(),
 			tagger:    datakit.DefaultGlobalTagger(),

@@ -9,10 +9,13 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/coreos/go-semver/semver"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (
@@ -31,9 +34,11 @@ var (
 
 type SQLService struct {
 	Address string
+	Timeout datakit.Duration
 
-	pool *pgxpool.Pool
-	mu   sync.RWMutex
+	pool          *pgxpool.Pool
+	mu            sync.RWMutex
+	dbConnections map[string]*pgxpool.Pool
 }
 
 type pgxConn struct {
@@ -42,8 +47,16 @@ type pgxConn struct {
 type pgxRow struct {
 	pgx.Rows
 }
-type pgxDirectConn struct {
-	*pgx.Conn
+
+func (p *SQLService) SetTimeout(timeout datakit.Duration) {
+	p.Timeout = timeout
+}
+
+func (p *SQLService) timeoutDuration() time.Duration {
+	if p.Timeout.Duration <= 0 {
+		return 10 * time.Second
+	}
+	return p.Timeout.Duration
 }
 
 func (r *pgxRow) Columns() ([]string, error) {
@@ -68,12 +81,16 @@ func (p *SQLService) Start() (err error) {
 		return fmt.Errorf("parse config error: %w", err)
 	}
 	config.MaxConns = 5
-	pool, err := pgxpool.NewWithConfig(context.Background(), config)
+	ctx, cancel := context.WithTimeout(context.Background(), p.timeoutDuration())
+	defer cancel()
+
+	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		return fmt.Errorf("new pool error: %w", err)
 	}
 
 	p.pool = pool
+	p.dbConnections = make(map[string]*pgxpool.Pool)
 
 	return nil
 }
@@ -84,6 +101,10 @@ func (p *SQLService) Stop() {
 	if p.pool != nil {
 		p.pool.Close()
 	}
+	// Close all connection pools
+	for _, pool := range p.dbConnections {
+		pool.Close()
+	}
 }
 
 func (p *SQLService) Ping() error {
@@ -93,17 +114,20 @@ func (p *SQLService) Ping() error {
 		return fmt.Errorf("pool is nil")
 	}
 
-	return p.pool.Ping(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), p.timeoutDuration())
+	defer cancel()
+
+	return p.pool.Ping(ctx)
 }
 
-func (p *SQLService) Query(query string, args ...any) (Rows, error) {
+func (p *SQLService) Query(ctx context.Context, query string, args ...any) (Rows, error) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 	if p.pool == nil {
 		return nil, fmt.Errorf("pool is nil")
 	}
 
-	rows, err := p.pool.Query(context.Background(), query, args...)
+	rows, err := p.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	} else if err := rows.Err(); err != nil {
@@ -120,6 +144,34 @@ func (p *SQLService) SetAddress(address string) {
 	} else {
 		p.Address = address
 	}
+}
+
+func (p *SQLService) getDBConnection(db string) (*pgxpool.Pool, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if pool, exists := p.dbConnections[db]; exists {
+		ctx, cancel := context.WithTimeout(context.Background(), p.timeoutDuration())
+		err := pool.Ping(ctx)
+		cancel()
+		if err == nil {
+			return pool, nil
+		}
+		pool.Close()
+	}
+
+	config := p.pool.Config().Copy()
+	config.ConnConfig.Database = db
+	ctx, cancel := context.WithTimeout(context.Background(), p.timeoutDuration())
+	defer cancel()
+
+	pool, err := pgxpool.NewWithConfig(ctx, config)
+	if err != nil {
+		return nil, err
+	}
+
+	p.dbConnections[db] = pool
+	return pool, nil
 }
 
 func (p *SQLService) GetColumnMap(row scanner, columns []string) (map[string]*interface{}, error) {
@@ -141,26 +193,19 @@ func (p *SQLService) GetColumnMap(row scanner, columns []string) (map[string]*in
 	return columnMap, nil
 }
 
-func (p *SQLService) QueryByDatabase(query, db string) (Rows, error) {
+func (p *SQLService) QueryByDatabase(ctx context.Context, query, db string) (Rows, error) {
 	if db == "" {
-		return p.Query(query)
+		return p.Query(ctx, query)
 	}
 
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-
-	config := p.pool.Config().Copy().ConnConfig
-	config.Database = db
-
-	conn, err := pgx.ConnectConfig(context.Background(), config)
-	if err != nil {
-		return nil, fmt.Errorf("connect config error: %w", err)
-	}
-	defer conn.Close(context.Background()) // nolint:errcheck
-
-	rows, err := conn.Query(context.Background(), query)
+	pool, err := p.getDBConnection(db)
 	if err != nil {
 		return nil, err
+	}
+
+	rows, err := pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("pool query failed: %w", err)
 	} else if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("rows.Err: %w", err)
 	}
@@ -170,28 +215,35 @@ func (p *SQLService) QueryByDatabase(query, db string) (Rows, error) {
 
 func (p *SQLService) GetConn(database string) (Conn, error) {
 	p.mu.RLock()
-	defer p.mu.RUnlock()
+	pool := p.pool
+	p.mu.RUnlock()
 
-	if p.pool == nil {
+	if pool == nil {
 		return nil, fmt.Errorf("pool is nil")
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), p.timeoutDuration())
+	defer cancel()
+
 	if database == "" {
-		conn, err := p.pool.Acquire(context.Background())
+		conn, err := pool.Acquire(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("connect config error: %w", err)
 		}
 
 		return &pgxConn{conn}, nil
 	}
-	baseConfig := p.pool.Config().ConnConfig.Copy()
-	baseConfig.Database = database
 
-	conn, err := pgx.ConnectConfig(context.Background(), baseConfig)
+	pool, err := p.getDBConnection(database)
 	if err != nil {
-		return nil, fmt.Errorf("create direct conn failed: %w", err)
+		return nil, fmt.Errorf("get db connection error: %w", err)
 	}
-	return &pgxDirectConn{conn}, nil
+
+	conn, err := pool.Acquire(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("connect config error: %w", err)
+	}
+	return &pgxConn{conn}, nil
 }
 
 func (c *pgxConn) Query(ctx context.Context, sql string, args ...any) (Rows, error) {
@@ -214,26 +266,4 @@ func (c *pgxConn) Close() {
 		return
 	}
 	c.Conn.Release()
-}
-
-func (c *pgxDirectConn) Close() {
-	if c.Conn == nil {
-		return
-	}
-	_ = c.Conn.Close(context.Background()) // nolint:gosec
-}
-
-func (c *pgxDirectConn) Query(ctx context.Context, sql string, args ...any) (Rows, error) {
-	rows, err := c.Conn.Query(ctx, sql, args...)
-	if err != nil {
-		return nil, err
-	} else if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows.Err: %w", err)
-	}
-	return &pgxRow{rows}, nil
-}
-
-func (c *pgxDirectConn) Exec(ctx context.Context, sql string, args ...any) error {
-	_, err := c.Conn.Exec(ctx, sql, args...)
-	return err
 }

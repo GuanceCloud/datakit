@@ -295,13 +295,11 @@ DK_USER_NAME="datakit" DK_DATAWAY="..." bash -c ...
 
 ### HTTP/API 设置 {#env-http-api}
 
-- `DK_HTTP_LISTEN`：支持安装阶段指定 DataKit HTTP 服务绑定的网卡（默认 `localhost`）
-- `DK_HTTP_PORT`：支持安装阶段指定 DataKit HTTP 服务绑定的端口（默认 `9529`）
+- `DK_HTTP_LISTEN`：支持安装阶段指定 DataKit HTTP 服务绑定的网卡或监听地址（默认 `localhost`，可填写 `0.0.0.0` 或 `0.0.0.0:9529` 等形式）
+- `DK_HTTP_PORT`：支持安装阶段指定 DataKit HTTP 服务绑定的端口（默认 `9529`，如 `DK_HTTP_LISTEN` 已带端口且同时设置该变量，以该变量为准）
 - `DK_RUM_ORIGIN_IP_HEADER`: RUM 专用
 - `DK_DISABLE_404PAGE`: 禁用 DataKit 404 页面 (公网部署 DataKit RUM 时常用。如 `True`/`False`)
 - `DK_INSTALL_IPDB`: 安装时指定 IP 库(当前仅支持 `iploc/geolite2`)
-- `DK_UPGRADE_IP_WHITELIST`: 从 DataKit [1.5.9](changelog.md#cl-1.5.9) 开始，支持远程访问 API 的方式来升级 DataKit，此环境变量用于设置可以远程访问的客户端 IP 白名单（多个 IP 用逗号 `,` 分隔），不在白名单内的访问将被拒绝（默认是不做 IP 限制）。
-- `DK_UPGRADE_LISTEN`: 指定升级服务绑定的 HTTP 地址（默认 `0.0.0.0:9542`）[:octicons-tag-24: Version-1.38.1](changelog.md#cl-1.38.1)
 - `DK_HTTP_PUBLIC_APIS`: 设置 DataKit 允许远程访问的 HTTP API ，RUM 功能通常需要进行此配置，从 DataKit [1.9.2](changelog.md#cl-1.9.2) 开始支持。
 - `DK_HTTP_SOCKET`: 设置 HTTP 监听的本地 Socket 路径（Windows 不支持）。[:octicons-tag-24: Version-1.80.0](changelog-2025.md#cl-1.80.0)
 
@@ -371,7 +369,7 @@ DK_USER_NAME="datakit" DK_DATAWAY="..." bash -c ...
 
 [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0) · [:octicons-beaker-24: Experimental](index.md#experimental)
 
-在安装命令中，指定 `DK_APM_INSTRUMENTATION_ENABLED` 可针对 Java/Python 等应用自动注入 APM：
+在安装命令中，指定 `DK_APM_INSTRUMENTATION_ENABLED` 可针对 Java/Python/PHP 等应用自动注入 APM：
 
 - 开启主机注入：
 
@@ -389,7 +387,7 @@ DK_APM_INSTRUMENTATION_ENABLED=docker \
   bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
 ```
 
-对于主机部署，在 DataKit 安装完成后，重新开启一个终端，并重启对应的 Java/Python 应用即可。
+对于主机部署，在 DataKit 安装完成后，重新开启一个终端，并重启对应的 Java/Python/PHP 应用即可。
 
 开启和关闭该功能，修改 `datakit.conf` 文件中 `[apm_inject]` 下的 `instrumentation_enabled` 配置的值：
 
@@ -397,6 +395,8 @@ DK_APM_INSTRUMENTATION_ENABLED=docker \
 - 值 `""` 或者 `"disable"`，关闭
 
 针对特定的主机上的进程或者容器内的进程，可以通过注入环境变量 `ENV_DATAKIT_DISABLE_APM_INS`，并把值设置为 `true` 来关闭自动注入功能。
+
+对于容器部署的 PHP 和 Python 应用，需要将对应语言的 APM 库打包到镜像中。
 
 注意事项：
 
@@ -443,8 +443,9 @@ DK_APM_INSTRUMENTATION_ENABLED=docker \
     - C 标准库：glibc 2.4 及以上版本，或 musl
     - Java 8 及以上版本
     - Python 3.7 及以上版本
+    - PHP 7 及以上版本
 
-在 Kubernetes 中，可以通过 [DataKit Operator 来注入 APM](datakit-operator.md#datakit-operator-inject-lib)。
+在 Kubernetes 中，可以通过 [DataKit Operator 来注入 APM](operator-ddtrace.md)。
 
 ### 其它安装选项 {#env-others}
 
@@ -453,7 +454,7 @@ DK_APM_INSTRUMENTATION_ENABLED=docker \
 | `DK_INSTALL_ONLY`                | `on`                        | 仅安装，不运行                                                                                                                   |
 | `DK_HOSTNAME`                    | `some-host-name`            | 支持安装阶段自定义配置主机名                                                                                                     |
 | `DK_UPGRADE`                     | `1`                         | 升级到最新版本                                                   |
-| `DK_UPGRADE_MANAGER`             | `on`                        | 升级 DataKit 同时是否升级 **远程升级服务**，需要和 `DK_UPGRADE` 配合使用， 从 [1.5.9](changelog.md#cl-1.5.9) 版本开始支持        |
+| `DK_UPGRADE_MANAGER`             | `on`                        | 升级 DataKit 时是否同时安装或升级 **DataKit 升级管理服务**，需要和 `DK_UPGRADE` 配合使用，从 [1.5.9](changelog.md#cl-1.5.9) 版本开始支持 |
 | `DK_INSTALLER_BASE_URL`          | `https://your-url`          | 可选择不同环境的安装脚本，默认为 `https://static.<<<custom_key.brand_main_domain>>>/datakit`                                                             |
 | `DK_PROXY_TYPE`                  | -                           | 代理类型。选项有：`datakit` 或 `nginx`，均为小写                                                                                 |
 | `DK_NGINX_IP`                    | -                           | 代理服务器 IP 地址（只需要填 IP 不需要填端口）。这个与上面的 "HTTP_PROXY" 和 "HTTPS_PROXY" 互斥，而且优先级最高，会覆盖以上两者  |

@@ -19,7 +19,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/multiline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	timex "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/time"
@@ -34,9 +33,11 @@ type Input struct {
 	LogFiles      []string `toml:"logfiles"`
 	Sockets       []string `toml:"sockets,omitempty"`
 	Ignore        []string `toml:"ignore"`
-	FromBeginning bool     `toml:"from_beginning,omitempty"`
 	MaxOpenFiles  int      `toml:"max_open_files"`
 	IgnoreDeadLog string   `toml:"ignore_dead_log"`
+
+	FromBeginning              bool  `toml:"from_beginning,omitempty"`
+	FromBeginningThresholdSize int64 `toml:"from_beginning_threshold_size,omitempty"`
 
 	Source                string   `toml:"source"`
 	Service               string   `toml:"service"`
@@ -47,8 +48,8 @@ type Input struct {
 	CharacterEncoding     string   `toml:"character_encoding"`
 	RemoveAnsiEscapeCodes bool     `toml:"remove_ansi_escape_codes"`
 
+	EnableMultiline            bool     `toml:"enable_multiline"`
 	MultilineMatch             string   `toml:"multiline_match"`
-	AutoMultilineDetection     bool     `toml:"auto_multiline_detection"`
 	AutoMultilineExtraPatterns []string `toml:"auto_multiline_extra_patterns"`
 
 	Tags map[string]string `toml:"tags"`
@@ -57,11 +58,9 @@ type Input struct {
 	MinFlushInterval         time.Duration `toml:"-"`
 	MaxMultilineLifeDuration time.Duration `toml:"-"`
 
-	DeprecatedBlockingMode    bool   `toml:"blocking_mode"`
-	DeprecatedEnableDiskCache bool   `toml:"enable_diskcache,omitempty"`
-	DeprecatedPipeline        string `toml:"pipeline_path"`
-	DeprecatedMultilineMatch  string `toml:"match"`
-	DeprecatedMaximumLength   int    `toml:"maximum_length,omitempty"`
+	DeprecatedAutoMultilineDetection bool   `toml:"auto_multiline_detection"` // Deprecated: use enable_multiline.
+	DeprecatedPipeline               string `toml:"pipeline_path"`
+	DeprecatedMultilineMatch         string `toml:"match"`
 
 	processors []LogProcessor
 	inputName  string
@@ -84,8 +83,7 @@ func (ipt *Input) Run() {
 	ignoreDuration := ipt.parseIgnoreDuration()
 
 	opts := ipt.buildTailerOptions(fieldWhitelist, ignoreDuration)
-	multilinePatterns := ipt.setupMultilinePatterns()
-	opts = append(opts, tailer.WithMultilinePatterns(multilinePatterns))
+	opts = append(opts, ipt.setupMultilineOptions()...)
 
 	ipt.startFileTailer(opts)
 	ipt.startSocketLogger(opts)
@@ -153,11 +151,11 @@ func init() { //nolint:gochecknoinits
 
 	inputs.Add(deprecatedInputName, func() inputs.Input {
 		return &Input{
-			AutoMultilineDetection: true,
-			Tags:                   make(map[string]string),
-			inputName:              deprecatedInputName,
-			tagger:                 datakit.DefaultGlobalTagger(),
-			semStop:                cliutils.NewSem(),
+			EnableMultiline: true,
+			Tags:            make(map[string]string),
+			inputName:       deprecatedInputName,
+			tagger:          datakit.DefaultGlobalTagger(),
+			semStop:         cliutils.NewSem(),
 		}
 	})
 }
@@ -191,22 +189,28 @@ func (ipt *Input) parseIgnoreDuration() time.Duration {
 
 func (ipt *Input) buildTailerOptions(fieldWhitelist []string, ignoreDuration time.Duration) []tailer.Option {
 	opts := []tailer.Option{
-		tailer.WithStorageIndex(ipt.StorageIndex),
-		tailer.WithIgnorePatterns(ipt.Ignore),
 		tailer.WithSource(ipt.Source),
 		tailer.WithService(ipt.Service),
+		tailer.WithStorageIndex(ipt.StorageIndex),
+		tailer.WithIgnorePatterns(ipt.Ignore),
 		tailer.WithPipeline(ipt.Pipeline),
+
 		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
 		tailer.WithSockets(ipt.Sockets),
 		tailer.WithIgnoredStatuses(ipt.IgnoreStatus),
+
 		tailer.WithMaxOpenFiles(ipt.MaxOpenFiles),
-		tailer.WithFromBeginning(ipt.FromBeginning),
 		tailer.WithCharacterEncoding(ipt.CharacterEncoding),
 		tailer.WithIgnoreDeadLog(ignoreDuration),
-		tailer.EnableMultiline(ipt.AutoMultilineDetection),
-		tailer.WithMaxMultilineLength(int64(float64(config.Cfg.Dataway.MaxRawBodySize) * 0.8)),
-		tailer.WithExtraTags(inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")),
 		tailer.WithRemoveAnsiEscapeCodes(ipt.RemoveAnsiEscapeCodes),
+
+		tailer.WithFromBeginning(ipt.FromBeginning),
+		tailer.WithFileSizeThreshold(ipt.FromBeginningThresholdSize),
+
+		tailer.EnableMultiline(ipt.enableMultiline()),
+		tailer.WithMaxMultilineLength(int64(float64(config.Cfg.Dataway.MaxRawBodySize) * 0.8)),
+
+		tailer.WithExtraTags(inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")),
 	}
 
 	if len(fieldWhitelist) != 0 {
@@ -227,16 +231,21 @@ func (ipt *Input) buildTailerOptions(fieldWhitelist []string, ignoreDuration tim
 	return opts
 }
 
-func (ipt *Input) setupMultilinePatterns() []string {
-	var multilinePatterns []string
-	if ipt.MultilineMatch != "" {
-		multilinePatterns = []string{ipt.MultilineMatch}
-	} else if ipt.AutoMultilineDetection {
-		multilinePatterns = ipt.AutoMultilineExtraPatterns
-		multilinePatterns = append(multilinePatterns, multiline.GlobalPatterns...)
-		l.Debugf("auto-multiline enabled for source %s, patterns: %v", ipt.Source, ipt.AutoMultilineExtraPatterns)
+func (ipt *Input) setupMultilineOptions() []tailer.Option {
+	if !ipt.enableMultiline() {
+		return nil
 	}
-	return multilinePatterns
+
+	if ipt.MultilineMatch != "" {
+		return []tailer.Option{tailer.WithMultilinePattern(ipt.MultilineMatch)}
+	}
+
+	l.Debugf("auto multiline enabled for source %s, extra patterns: %v", ipt.Source, ipt.AutoMultilineExtraPatterns)
+	return []tailer.Option{tailer.WithAutoMultilineExtraPatterns(append([]string{}, ipt.AutoMultilineExtraPatterns...))}
+}
+
+func (ipt *Input) enableMultiline() bool {
+	return ipt.EnableMultiline || ipt.DeprecatedAutoMultilineDetection
 }
 
 func (ipt *Input) startFileTailer(opts []tailer.Option) {

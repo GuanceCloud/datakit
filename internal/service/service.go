@@ -11,7 +11,9 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/kardianos/service"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
@@ -22,6 +24,8 @@ var (
 	stopCh       = make(chan any)
 	waitStopCh   = make(chan any)
 	sLogger      service.Logger
+
+	l = logger.DefaultSLogger("service")
 )
 
 const (
@@ -33,6 +37,10 @@ type ServiceOption func(sconf *service.Config)
 
 func Name() string {
 	return serviceName
+}
+
+func SetLog() {
+	l = logger.SLogger("service")
 }
 
 func DisplayName() string {
@@ -55,10 +63,13 @@ func WithMemLimit(mem string) ServiceOption {
 	}
 }
 
-func WithCPULimit(cpu string) ServiceOption {
+func WithCPULimit(cpuCores float64) ServiceOption {
 	return func(sconf *service.Config) {
-		if cpu != "" {
-			sconf.Option[ServiceOptCPU] = cpu
+		if cpuCores > 0 {
+			// see https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html#CPUQuota=
+			// trim all decimal: 3.14 -> 3
+			// on some old systemd platform, decimal values may cause CPU limit fail
+			sconf.Option[ServiceOptCPU] = fmt.Sprintf("%.0f%%", cpuCores*100.0)
 		}
 	}
 }
@@ -129,8 +140,10 @@ func NewServiceOnConfigure(scfg *service.Config) (service.Service, error) {
 	prog := &program{}
 	svc, err := service.New(prog, scfg)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("service.New: %w", err)
 	}
+
+	l.Infof("service platform: %s", svc.Platform())
 
 	return svc, nil
 }
@@ -155,22 +168,19 @@ func StartService(entry func()) error {
 	errch := make(chan error, 32) //nolint:gomnd
 	sLogger, err = svc.Logger(errch)
 	if err != nil {
-		return err
+		l.Warnf("svc.Logger: %s, ignored", err)
 	}
+
+	l.Info("svc.Logger ok")
 
 	if err := sLogger.Info("datakit set service logger ok, starting..."); err != nil {
-		return err
+		l.Warnf("sLogger.Info: %s, ignored", err)
 	}
+
+	l.Info("sLogger Info ok")
 
 	if err := svc.Run(); err != nil {
-		if serr := sLogger.Errorf("start service failed: %s", err.Error()); serr != nil {
-			return serr
-		}
-		return err
-	}
-
-	if err := sLogger.Info("datakit service exited"); err != nil {
-		return err
+		return fmt.Errorf("svc.Run: %w", err)
 	}
 
 	return nil

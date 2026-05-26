@@ -6,10 +6,7 @@
 package opentelemetry
 
 import (
-	"fmt"
-	"strconv"
-	"time"
-
+	"github.com/GuanceCloud/cliutils/otlp"
 	"github.com/GuanceCloud/cliutils/point"
 	common "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
 	logs "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/logs/v1"
@@ -19,69 +16,45 @@ import (
 )
 
 func (ipt *Input) parseLogRequest(resourceLogss []*logs.ResourceLogs, remoteIP string) []*point.Point {
-	pts := make([]*point.Point, 0)
-	for _, resourceLogs := range resourceLogss {
-		resourceTags := attributesToTag(resourceLogs.GetResource().GetAttributes()) // resource Attr
-		resourceTags["schema_url"] = resourceLogs.GetSchemaUrl()
-		service, source := getServiceAndSource(resourceLogs.GetResource().GetAttributes())
-		host := getHostName(resourceLogs.GetResource().GetAttributes())
-
-		for _, scope := range resourceLogs.GetScopeLogs() {
-			scopeTags := attributesToTag(scope.GetScope().GetAttributes()) // scope Attr
-			scopeTags["scope_name"] = scope.GetScope().GetName()
-			for _, record := range scope.GetLogRecords() {
-				ptTags := attributesToTag(record.GetAttributes())
-
-				body := record.GetBody()
-				message := ""
-				switch body.GetValue().(type) {
-				case *common.AnyValue_StringValue:
-					message = body.GetStringValue()
-				case *common.AnyValue_BytesValue:
-					message = string(body.GetBytesValue())
-				case *common.AnyValue_DoubleValue:
-					message = fmt.Sprintf("%f", body.GetDoubleValue())
-				case *common.AnyValue_IntValue:
-					message = strconv.FormatInt(body.GetIntValue(), 10)
-				case *common.AnyValue_BoolValue:
-					message = strconv.FormatBool(body.GetBoolValue())
-				case *common.AnyValue_ArrayValue:
-					message = body.GetArrayValue().String()
-				case *common.AnyValue_KvlistValue:
-					message = body.GetKvlistValue().String()
-				}
-
-				messages := splitByByteLength(message, ipt.LogMaxLen*1024)
-
-				for i, msg := range messages {
-					kvs := mergeTagsToField(resourceTags, scopeTags, ptTags)
-					for k, v := range ipt.Tags { // span.attribute 优先级大于全局tag。
-						kvs = kvs.Add(k, v)
-					}
-					kvs = kvs.Add("message", msg).
-						Add(itrace.FieldSpanid, ipt.convertBinID(record.GetSpanId())).
-						Add(itrace.FieldTraceID, ipt.convertBinID(record.GetTraceId())).
-						AddTag("status", getStatus(record.GetSeverityNumber(), record.GetSeverityText())).
-						AddTag("service", service).
-						AddTag(itrace.TagSource, source).
-						AddTag(itrace.TagRemoteIP, remoteIP).
-						AddTag(itrace.TagDKFingerprintKey, datakit.DKHost+"_"+datakit.Version)
-
-					if host != "" {
-						kvs = kvs.AddTag("host", host)
-					}
-					ts := time.Unix(0, int64(record.GetTimeUnixNano()))
-					if record.GetTimeUnixNano() == 0 {
-						ts = time.Unix(0, int64(record.GetObservedTimeUnixNano()))
-					}
-					opts := point.DefaultLoggingOptions()
-					opts = append(opts, point.WithTime(ts.Add(time.Millisecond*time.Duration(i))))
-					pts = append(pts, point.NewPoint(source, kvs, opts...))
-				}
-			}
-		}
+	globalFields := make(map[string]any, len(ipt.Tags))
+	for key, value := range ipt.Tags {
+		globalFields[key] = value
 	}
+
+	stringOpts := defaultOTLPStringMapOptions()
+	fingerprint := datakit.DKHost + "_" + datakit.Version
+	pts := otlp.ParseLogRequest(resourceLogss, otlp.LogsParserOptions{
+		CollectorSourceIP:     remoteIP,
+		DKFingerprint:         fingerprint,
+		ResourceStringOptions: stringOpts,
+		ScopeStringOptions:    stringOpts,
+		RecordStringOptions:   stringOpts,
+		MaxMessageLen:         ipt.LogMaxLen * 1024,
+		GlobalFields:          globalFields,
+		IDConverter:           ipt.convertBinID,
+		ServiceAndSource:      getServiceAndSource,
+		HostName:              getHostName,
+		SeverityMapper:        getStatus,
+	})
+
+	for _, pt := range pts {
+		pt.AddTag(itrace.TagCollectorSourceIP, remoteIP)
+		pt.AddTag(itrace.TagDKFingerprintKey, fingerprint)
+	}
+
 	return pts
+}
+
+func defaultOTLPStringMapOptions() otlp.StringMapOptions {
+	dropKeys := make(map[string]struct{}, len(delMetricKey))
+	for _, key := range delMetricKey {
+		dropKeys[key] = struct{}{}
+	}
+
+	return otlp.StringMapOptions{
+		MaxValueLen: maxLogMetricFiledLen,
+		DropKeys:    dropKeys,
+	}
 }
 
 func splitByByteLength(s string, length int) []string {
@@ -163,6 +136,7 @@ func getHostName(attr []*common.KeyValue) (hostName string) {
 	for _, keyValue := range attr {
 		if keyValue.GetKey() == "host.name" {
 			hostName = keyValue.GetValue().GetStringValue()
+			break
 		}
 	}
 

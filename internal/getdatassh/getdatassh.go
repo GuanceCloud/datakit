@@ -17,15 +17,16 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"golang.org/x/crypto/ssh"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 )
 
 const packageName = "getdatassh"
 
 var (
 	l = logger.DefaultSLogger(packageName)
-	g = datakit.G(packageName)
+	g = goroutine.G(packageName)
 )
 
 type SSHData struct {

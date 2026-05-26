@@ -20,6 +20,7 @@
 
 #include "bpf_helpers.h"
 #include "l7_stats.h"
+#include "offset_read.h"
 #include "tp_arg.h"
 
 enum MSG_RW
@@ -220,21 +221,275 @@ static __always_inline int p_group_eq(tp_syscalls_fn_t src, tp_syscalls_fn_t dst
     return 0;
 }
 
+static __always_inline bool is_syscall_net_event(__u16 fn)
+{
+    switch (fn)
+    {
+    case P_SYSCALL_WRITE:
+    case P_SYSCALL_READ:
+    case P_SYSCALL_SENDTO:
+    case P_SYSCALL_RECVFROM:
+    case P_SYSCALL_WRITEV:
+    case P_SYSCALL_READV:
+    case P_SYSCALL_SENDFILE:
+        return true;
+    default:
+        return false;
+    }
+}
+
+static __always_inline __u64 load_apiflow_min_capture_size()
+{
+    __u64 var = 0;
+    LOAD_OFFSET(apiflow_min_capture_size, var);
+    return var;
+}
+
 struct buf_iovec
 {
     // we need to divide a large buffer into several small pieces
     __u8 data[BUF_IOVEC_LEN];
 };
 
+enum
+{
+    BOUNDED_L7_CAPTURE_SIZE = 256,
+};
+
+static __always_inline __u32 bounded_capture_bucket(__s64 size)
+{
+    if (size <= 0)
+    {
+        return 0;
+    }
+
+    if (size >= BOUNDED_L7_CAPTURE_SIZE)
+    {
+        return BOUNDED_L7_CAPTURE_SIZE;
+    }
+    if (size >= 192)
+    {
+        return 192;
+    }
+    if (size >= 128)
+    {
+        return 128;
+    }
+    if (size >= 96)
+    {
+        return 96;
+    }
+    if (size >= 64)
+    {
+        return 64;
+    }
+    if (size >= 52)
+    {
+        return 52;
+    }
+    if (size >= 48)
+    {
+        return 48;
+    }
+    if (size >= 32)
+    {
+        return 32;
+    }
+    if (size >= 16)
+    {
+        return 16;
+    }
+    if (size >= 8)
+    {
+        return 8;
+    }
+    if (size >= 4)
+    {
+        return 4;
+    }
+    if (size >= 2)
+    {
+        return 2;
+    }
+    return 1;
+}
+
+#ifdef DK_LEGACY_APIFLOW_MINIMAL
+static __always_inline __u32 legacy_capture_bucket(__s64 size)
+{
+    return bounded_capture_bucket(size);
+}
+#endif
+
+#define LEGACY_COPY_PAYLOAD_CASES(dst, src, capture_size, done_stmt) \
+    do                                                                \
+    {                                                                 \
+        if ((capture_size) == BOUNDED_L7_CAPTURE_SIZE)                \
+        {                                                             \
+            bpf_probe_read((dst), 256, (src));                        \
+            done_stmt;                                                \
+        }                                                             \
+        if ((capture_size) == 192)                                    \
+        {                                                             \
+            bpf_probe_read((dst), 192, (src));                        \
+            done_stmt;                                                \
+        }                                                             \
+        if ((capture_size) == 128)                                    \
+        {                                                             \
+            bpf_probe_read((dst), 128, (src));                        \
+            done_stmt;                                                \
+        }                                                             \
+        if ((capture_size) == 96)                                     \
+        {                                                             \
+            bpf_probe_read((dst), 96, (src));                         \
+            done_stmt;                                                \
+        }                                                             \
+        if ((capture_size) == 64)                                     \
+        {                                                             \
+            bpf_probe_read((dst), 64, (src));                         \
+            done_stmt;                                                \
+        }                                                             \
+        if ((capture_size) == 52)                                     \
+        {                                                             \
+            bpf_probe_read((dst), 52, (src));                         \
+            done_stmt;                                                \
+        }                                                             \
+        if ((capture_size) == 48)                                     \
+        {                                                             \
+            bpf_probe_read((dst), 48, (src));                         \
+            done_stmt;                                                \
+        }                                                             \
+        if ((capture_size) == 32)                                     \
+        {                                                             \
+            bpf_probe_read((dst), 32, (src));                         \
+            done_stmt;                                                \
+        }                                                             \
+        if ((capture_size) == 16)                                     \
+        {                                                             \
+            bpf_probe_read((dst), 16, (src));                         \
+            done_stmt;                                                \
+        }                                                             \
+        if ((capture_size) == 8)                                      \
+        {                                                             \
+            bpf_probe_read((dst), 8, (src));                          \
+            done_stmt;                                                \
+        }                                                             \
+        if ((capture_size) == 4)                                      \
+        {                                                             \
+            bpf_probe_read((dst), 4, (src));                          \
+            done_stmt;                                                \
+        }                                                             \
+        if ((capture_size) == 2)                                      \
+        {                                                             \
+            bpf_probe_read((dst), 2, (src));                          \
+            done_stmt;                                                \
+        }                                                             \
+        if ((capture_size) == 1)                                      \
+        {                                                             \
+            bpf_probe_read((dst), 1, (src));                          \
+            done_stmt;                                                \
+        }                                                             \
+    } while (0)
+
+#define LEGACY_MEMCPY_PAYLOAD_CASES(dst, src, capture_size, done_stmt) \
+    do                                                                 \
+    {                                                                  \
+        if ((capture_size) == BOUNDED_L7_CAPTURE_SIZE)                 \
+        {                                                              \
+            __builtin_memcpy((dst), (src), 256);                       \
+            done_stmt;                                                 \
+        }                                                              \
+        if ((capture_size) == 192)                                     \
+        {                                                              \
+            __builtin_memcpy((dst), (src), 192);                       \
+            done_stmt;                                                 \
+        }                                                              \
+        if ((capture_size) == 128)                                     \
+        {                                                              \
+            __builtin_memcpy((dst), (src), 128);                       \
+            done_stmt;                                                 \
+        }                                                              \
+        if ((capture_size) == 96)                                      \
+        {                                                              \
+            __builtin_memcpy((dst), (src), 96);                        \
+            done_stmt;                                                 \
+        }                                                              \
+        if ((capture_size) == 64)                                      \
+        {                                                              \
+            __builtin_memcpy((dst), (src), 64);                        \
+            done_stmt;                                                 \
+        }                                                              \
+        if ((capture_size) == 52)                                      \
+        {                                                              \
+            __builtin_memcpy((dst), (src), 52);                        \
+            done_stmt;                                                 \
+        }                                                              \
+        if ((capture_size) == 48)                                      \
+        {                                                              \
+            __builtin_memcpy((dst), (src), 48);                        \
+            done_stmt;                                                 \
+        }                                                              \
+        if ((capture_size) == 32)                                      \
+        {                                                              \
+            __builtin_memcpy((dst), (src), 32);                        \
+            done_stmt;                                                 \
+        }                                                              \
+        if ((capture_size) == 16)                                      \
+        {                                                              \
+            __builtin_memcpy((dst), (src), 16);                        \
+            done_stmt;                                                 \
+        }                                                              \
+        if ((capture_size) == 8)                                       \
+        {                                                              \
+            __builtin_memcpy((dst), (src), 8);                         \
+            done_stmt;                                                 \
+        }                                                              \
+        if ((capture_size) == 4)                                       \
+        {                                                              \
+            __builtin_memcpy((dst), (src), 4);                         \
+            done_stmt;                                                 \
+        }                                                              \
+        if ((capture_size) == 2)                                       \
+        {                                                              \
+            __builtin_memcpy((dst), (src), 2);                         \
+            done_stmt;                                                 \
+        }                                                              \
+        if ((capture_size) == 1)                                       \
+        {                                                              \
+            __builtin_memcpy((dst), (src), 1);                         \
+            done_stmt;                                                 \
+        }                                                              \
+    } while (0)
+
+#define UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, size)                         \
+    do                                                                                      \
+    {                                                                                       \
+        if ((capture_size) == (size))                                                       \
+        {                                                                                   \
+            bpf_perf_event_output((ctx), &mp_upload_netwrk_events, (cpu), (events),         \
+                                  sizeof(event_rec_t) + sizeof(net_event_comm_t) + (size)); \
+            goto upload_done;                                                              \
+        }                                                                                   \
+    } while (0)
+
 static __always_inline void read_network_data_from_vec(net_data_t *dst, struct iovec *vec,
                                                        __u64 vlen, __s64 len_or_errno)
 {
+#ifdef DK_LEGACY_APIFLOW_MINIMAL
+    (void)vec;
+    (void)vlen;
+    (void)len_or_errno;
+    dst->meta.capture_size = 0;
+    return;
+#else
+    const __s64 payload_limit = sizeof(dst->payload);
+
     if (len_or_errno <= 0)
     {
+        dst->meta.capture_size = 0;
         return;
     }
 
-    __s32 offset = 0;
 #pragma unroll
     for (int i = 0; i < 5; i++)
     {
@@ -247,58 +502,78 @@ static __always_inline void read_network_data_from_vec(net_data_t *dst, struct i
         int iov_len = v.iov_len;
         if (iov_len > 0)
         {
-
-            struct buf_iovec *buf = (struct buf_iovec *)((__u8 *)dst->payload + offset);
-            if (offset + sizeof(buf->data) > sizeof(dst->payload))
+            __s64 capture_len = (__s64)iov_len;
+            __u32 capture_size = 0;
+            if (capture_len <= 0)
             {
-                break;
+                continue;
             }
-
-            if (iov_len >= sizeof(buf->data))
+            if (capture_len > len_or_errno)
             {
-                bpf_probe_read(&buf->data, sizeof(buf->data), (__u8 *)v.iov_base);
-                offset += sizeof(buf->data);
-                // 不连续则丢弃后续的数据
-                break;
+                capture_len = len_or_errno;
             }
-            else
+            if (capture_len > payload_limit)
             {
-                iov_len = iov_len & (sizeof(buf->data) - 1);
-                if (iov_len > 0)
-                {
-                    bpf_probe_read(&buf->data, iov_len, (__u8 *)v.iov_base);
-                    offset += iov_len;
-                }
+                capture_len = payload_limit;
             }
+            capture_size = bounded_capture_bucket(capture_len);
+            if (capture_size == 0)
+            {
+                continue;
+            }
+            LEGACY_COPY_PAYLOAD_CASES(dst->payload, (__u8 *)v.iov_base, capture_size,
+                                      {
+                                          dst->meta.capture_size = capture_size;
+                                          return;
+                                      });
         }
     }
 
-    dst->meta.capture_size = offset;
+    dst->meta.capture_size = 0;
+#endif
 }
 
 static __always_inline void read_netwrk_data(net_data_t *dst, __u8 *buf, __s64 len_or_errno)
 {
-    if (len_or_errno <= 0)
+#ifdef DK_LEGACY_APIFLOW_MINIMAL
+    __u32 capture_size = legacy_capture_bucket(len_or_errno);
+    if (capture_size == 0)
     {
         dst->meta.capture_size = 0;
         return;
     }
 
-    if (len_or_errno >= sizeof(dst->payload))
+    LEGACY_COPY_PAYLOAD_CASES(dst->payload, buf, capture_size,
+                              {
+                                  dst->meta.capture_size = capture_size;
+                                  return;
+                              });
+    dst->meta.capture_size = 0;
+#else
+    __u32 capture_size = bounded_capture_bucket(len_or_errno);
+    if (capture_size == 0)
     {
-        len_or_errno = sizeof(dst->payload);
+        dst->meta.capture_size = 0;
+        return;
     }
-    else
-    {
-        len_or_errno = len_or_errno & (sizeof(dst->payload) - 1);
-    }
-    bpf_probe_read(&dst->payload, len_or_errno, buf);
-    dst->meta.capture_size = len_or_errno;
+
+    LEGACY_COPY_PAYLOAD_CASES(dst->payload, buf, capture_size,
+                              {
+                                  dst->meta.capture_size = capture_size;
+                                  return;
+                              });
+    dst->meta.capture_size = 0;
+#endif
 }
 
 static __always_inline struct socket *get_socket_from_fd(
     struct task_struct *task, int fd)
 {
+    if (task == NULL || fd < 0)
+    {
+        return NULL;
+    }
+
     struct files_struct *files = NULL;
     __u64 offset = 0;
     offset = load_offset_task_struct_files();
@@ -326,6 +601,13 @@ static __always_inline struct socket *get_socket_from_fd(
         return NULL;
     }
 
+    unsigned int max_fds = 0;
+    bpf_probe_read(&max_fds, sizeof(max_fds), &fdt->max_fds);
+    if ((__u32)fd >= max_fds)
+    {
+        return NULL;
+    }
+
     struct file **farry = NULL;
     bpf_probe_read(&farry, sizeof(farry), &fdt->fd);
     if (farry == NULL)
@@ -347,7 +629,7 @@ static __always_inline struct socket *get_socket_from_fd(
     struct socket *skt = NULL;
     offset = load_offset_file_private_data();
 
-    bpf_probe_read(&skt, sizeof(skt), (__u8 *)skfile + offset); // bpf_probe_read(&skt, sizeof(skt), &skfile->private_data);
+    DK_READ_VALUE(skt, skfile, offset); // bpf_probe_read(&skt, sizeof(skt), &skfile->private_data);
     if (skt == NULL)
     {
         return NULL;
@@ -356,9 +638,8 @@ static __always_inline struct socket *get_socket_from_fd(
     // check is socket
     struct file *file_addr = NULL;
     offset = load_offset_socket_file();
-    bpf_probe_read(&file_addr, sizeof(file_addr),
-                   (__u8 *)skt + offset); // bpf_probe_read(&file_addr,
-                                          // sizeof(file_addr), &skt->file);
+    DK_READ_VALUE(file_addr, skt, offset); // bpf_probe_read(&file_addr,
+                                           // sizeof(file_addr), &skt->file);
     if (file_addr != skfile)
     {
         return NULL;
@@ -372,10 +653,13 @@ static __always_inline int get_sk(struct socket *skt,
                                   enum sock_type *sktype)
 {
     __u64 offset_socket_sk = load_offset_socket_sk();
+    if (offset_socket_sk == 0)
+    {
+        return -1;
+    }
 
     struct proto_ops *ops = NULL;
-    bpf_probe_read(&ops, sizeof(ops),
-                   (__u8 *)skt + offset_socket_sk + sizeof(void *));
+    DK_READ_VALUE(ops, skt, offset_socket_sk + sizeof(void *));
     if (ops == NULL)
     {
         return -1;
@@ -383,7 +667,7 @@ static __always_inline int get_sk(struct socket *skt,
 
     bpf_probe_read(sktype, sizeof(short), &skt->type);
 
-    bpf_probe_read(sk, sizeof(struct sock *), (__u8 *)skt + offset_socket_sk);
+    DK_READ_INTO(sk, skt, offset_socket_sk);
 
     return 0;
 }
@@ -396,18 +680,55 @@ static __always_inline void init_ssl_sockfd(void *ssl_ctx, __u32 fd)
 static __always_inline bool get_sk_with_typ(struct socket *skt, struct sock **sk_ptr, enum sock_type sk_type)
 {
     enum sock_type typ = 0;
+    bool need_fallback = false;
 
     if (get_sk(skt, sk_ptr, &typ) != 0 || typ != sk_type)
     {
-        return false;
+#ifdef DK_LEGACY_APIFLOW_MINIMAL
+        need_fallback = true;
+#endif
+        if (!need_fallback)
+        {
+            return false;
+        }
+    }
+    else if (*sk_ptr != NULL)
+    {
+        return true;
     }
 
-    if (*sk_ptr == NULL)
+#ifdef DK_LEGACY_APIFLOW_MINIMAL
+    conn_inf_t conn = {};
+    __u64 pid_tgid = bpf_get_current_pid_tgid();
+
+    bpf_probe_read(&typ, sizeof(short), &skt->type);
+    if (typ != sk_type)
     {
         return false;
     }
 
-    return true;
+#pragma unroll
+    for (__u32 i = 0; i < 8; i++)
+    {
+        __u32 socket_sk_offset = i * sizeof(void *);
+        struct sock *candidate = NULL;
+
+        bpf_probe_read(&candidate, sizeof(candidate), (__u8 *)skt + socket_sk_offset);
+        if (candidate == NULL)
+        {
+            continue;
+        }
+
+        if (read_connection_info(candidate, &conn, pid_tgid, CONN_L4_TCP) != 0)
+        {
+            continue;
+        }
+
+        *sk_ptr = candidate;
+        return true;
+    }
+#endif
+    return false;
 }
 
 static __always_inline net_data_t *get_net_data_percpu()
@@ -439,40 +760,74 @@ static __always_inline void try_upload_net_events(void *ctx, net_data_t *data)
     {
         capture_size = 0;
     }
-
-    if (sizeof(net_event_t) + events->rec.bytes > L7_EVENT_SIZE)
+    else if (capture_size > L7_BUFFER_SIZE)
     {
-        bpf_perf_event_output(ctx, &mp_upload_netwrk_events, cpu, events, sizeof(network_events_t));
-        events->rec.bytes = 0;
-        events->rec.num = 0;
+        capture_size = L7_BUFFER_SIZE;
     }
 
-    if (sizeof(net_event_t) + events->rec.bytes <= L7_EVENT_SIZE)
+    if (data->meta.func_id != P_SYSCALL_CLOSE)
     {
-        net_event_t *net_event = (net_event_t *)((__u8 *)(events->payload) + events->rec.bytes);
-
-        // update events header
-        events->rec.bytes += sizeof(net_event_comm_t);
-        events->rec.num += 1;
-        // update event rec header
-        net_event->event_comm.rec.num = events->rec.num;
-
-        // copy meta data from data to event meta
-        bpf_probe_read(&net_event->event_comm.meta, sizeof(data->meta), &data->meta);
-
-        // copy payload from data to event payload
-        if (capture_size > 0)
+        if (capture_size == 0)
         {
-            bpf_probe_read(&net_event->payload, sizeof(data->payload), &data->payload);
-        }
-        else
-        {
-            capture_size = 0;
+            return;
         }
 
-        events->rec.bytes += capture_size;
-        net_event->event_comm.rec.bytes = capture_size;
+        __u64 min_capture_size = load_apiflow_min_capture_size();
+        if (is_syscall_net_event(data->meta.func_id) &&
+            min_capture_size > 0 &&
+            (__u64)capture_size < min_capture_size)
+        {
+            return;
+        }
     }
+
+    net_event_t *net_event = (net_event_t *)(events->payload);
+    events->rec.num = 1;
+    events->rec.bytes = sizeof(net_event_comm_t) + capture_size;
+    if (events->rec.bytes > L7_EVENT_SIZE)
+    {
+        events->rec.bytes = L7_EVENT_SIZE;
+    }
+
+    net_event->event_comm.rec.num = 1;
+    net_event->event_comm.rec.bytes = capture_size;
+    bpf_probe_read(&net_event->event_comm.meta, sizeof(data->meta), &data->meta);
+    if (capture_size > 0)
+    {
+#ifdef DK_LEGACY_APIFLOW_MINIMAL
+        LEGACY_MEMCPY_PAYLOAD_CASES(net_event->payload, data->payload, capture_size,
+                                    {
+                                        goto payload_copy_done;
+                                    });
+#else
+        LEGACY_MEMCPY_PAYLOAD_CASES(net_event->payload, data->payload, capture_size,
+                                    {
+                                        goto payload_copy_done;
+                                    });
+#endif
+payload_copy_done:
+        ;
+    }
+
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 0);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 1);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 2);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 4);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 8);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 16);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 32);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 48);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 52);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 64);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 96);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 128);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, 192);
+    UPLOAD_NET_EVENT_CASE(ctx, cpu, events, capture_size, BOUNDED_L7_CAPTURE_SIZE);
+
+    bpf_perf_event_output(ctx, &mp_upload_netwrk_events, cpu, events, sizeof(network_events_t));
+upload_done:
+    events->rec.bytes = 0;
+    events->rec.num = 0;
 }
 
 static __always_inline bool put_rw_args(tp_syscall_rw_args_t *ctx, void *bpf_map, enum MSG_RW rw)
@@ -484,7 +839,6 @@ static __always_inline bool put_rw_args(tp_syscall_rw_args_t *ctx, void *bpf_map
 
     __u64 pid_tgid = bpf_get_current_pid_tgid();
     struct task_struct *task = bpf_get_current_task();
-
     struct socket *skt = get_socket_from_fd(task, ctx->fd);
     if (skt == NULL)
     {

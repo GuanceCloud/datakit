@@ -17,7 +17,8 @@ monitor   :
 
 ---
 
-Doris collector is used to collect metric data related to Doris, and currently it only supports data in Prometheus format.
+Doris collector uses the MySQL-compatible protocol on FE Query Port to collect Doris database objects and custom SQL metrics.
+To collect full FE/BE Prometheus metrics, keep using the Prometheus collector configuration in the sample.
 
 ## Configuration {#config}
 
@@ -27,11 +28,27 @@ Already tested version:
 
 ### Preconditions {#requirements}
 
-Doris defaults to enabling the Prometheus port
+Connect to FE Query Port with a Doris admin account and create the `datakit` collection account:
 
-Check front-end: curl ip: 8030/metrics
+```sql
+CREATE USER 'datakit'@'%' IDENTIFIED BY '123456';
+GRANT NODE_PRIV ON *.*.* TO 'datakit'@'%';
+```
 
-Check backend: curl ip: 8040/metrics
+Use the `datakit` account to check the FE SQL connection:
+
+```shell
+mysql -h <FE_HOST> -P 9030 -u datakit -p
+```
+
+After connecting, run the following SQL statements to verify the data required by object collection:
+
+```sql
+SHOW FRONTENDS;
+SHOW BACKENDS;
+```
+
+If custom queries are configured, make sure the `datakit` account has query privileges on the related tables or views.
 
 ### Collector Configuration {#input-config}
 
@@ -52,13 +69,52 @@ Check backend: curl ip: 8040/metrics
 
 <!-- markdownlint-enable -->
 
+### Custom Query {#custom-query}
+
+Use `[[inputs.doris.custom_queries]]` to run custom SQL and report the query result as metrics.
+
+```toml
+[[inputs.doris.custom_queries]]
+  sql = '''
+    SELECT
+      TABLE_SCHEMA AS table_schema,
+      COUNT(*) AS table_count
+    FROM information_schema.tables
+    GROUP BY TABLE_SCHEMA
+  '''
+  metric = "doris_custom"
+  tags = ["table_schema"]
+  fields = ["table_count"]
+  interval = "10s"
+```
+
+- `metric`: measurement name to report.
+- `tags`: result columns used as tags.
+- `fields`: result columns used as fields. Field values must be numeric.
+- `interval`: collection interval for this query. If not configured, `inputs.doris.interval` is used.
+
 ## Metric {#metric}
 
 {{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "metric"}}
 
 ### `{{$m.Name}}`
 
 {{$m.MarkdownTable}}
 
 {{ end }}
+{{ end }}
 
+## Object {#object}
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "object"}}
+
+### `{{$m.Name}}`
+
+{{$m.MarkdownTable}}
+
+{{ end }}
+{{ end }}

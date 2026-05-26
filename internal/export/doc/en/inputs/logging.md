@@ -94,6 +94,7 @@ In DataKit, we identify multi-line log characteristics through regular expressio
 In `logging.conf`, modify the following configuration:
 
 ```toml
+enable_multiline = true
 multiline_match = '''Fill in the specific regular expression here''' # Note that it is recommended to add three "English single quotation marks" to the regular sides here
 ```
 
@@ -134,57 +135,30 @@ testing,filename=/tmp/094318188 message="2020-10-23 06:41:56,688 INFO demo.py 5.
 
 #### Automatic Multiline Mode {#auto-multiline}
 
-When this function is turned on, each row of log data will be matched in the multi-row list. If the match is successful, the weight of the current multi-line rule is added by one, so that it can be matched more quickly, and then the matching cycle is exited; If there is no match at the end of the whole list, the match is considered to have failed.
+When `enable_multiline` is turned on and `multiline_match` is not configured, DataKit first uses the built-in default patterns to identify the first line of a log entry. If the built-in patterns do not match, DataKit then checks the supplementary rules configured in `auto_multiline_extra_patterns`. The old `auto_multiline_detection` option is deprecated but still compatible: setting it to `true` also enables multiline processing.
+
+In automatic multiline mode, built-in patterns are grouped by the first character class of each line: digit, letter, and symbol. Only the matching group is checked first. Whitespace prefixes such as spaces and tabs are usually stack-trace or exception continuations, so they skip the built-in groups. If a deployment really needs to recognize whitespace-prefixed first lines, configure `auto_multiline_extra_patterns` explicitly. `auto_multiline_extra_patterns` is a separate customer-provided supplementary rule group, not mixed with the built-in rules at the same priority. It is checked only after the built-in groups do not match, or when the line starts with a space or tab. If the whole matching flow has no match, the match is considered to have failed.
 
 Matching success and failure, subsequent operation and normal multi-line log collection are the same: if matching is successful, the existing multi-line data will be sent out and this data will be filled in; If the match fails, it will be appended to the end of the existing data.
 
 Because there are multiple multi-row configurations for the log, their priorities are as follows:
 
-1. `multiline_match` is not empty, only the current rule is used
-2. Use source to `multiline_match` mapping configuration (`logging_source_multiline_map` exists only in the container log), using only this rule if the corresponding multiline rule can be found using source
-3. Turn on `auto_multiline_detection`, which matches in these multiline rules if `auto_multiline_extra_patterns` is not empty
-4. Turn on `auto_multiline_detection` and, if `auto_multiline_extra_patterns` is empty, use the default automatic multiline match rule list, namely:
+1. If neither `enable_multiline` nor the deprecated `auto_multiline_detection = true` is configured, multiline processing is disabled.
+2. If multiline processing is enabled and `multiline_match` is not empty, only this explicit rule is used.
+3. If multiline processing is enabled and `multiline_match` is empty, DataKit first uses the built-in default automatic multiline patterns. If they do not match, DataKit then checks `auto_multiline_extra_patterns`.
+4. For container logs, source-to-`multiline_match` mapping (`logging_source_multiline_map`) has its own source-specific rule when a matching source is found.
 
-```not-set
-// time.RFC3339, "2006-01-02T15:04:05Z07:00"
-`^\d+-\d+-\d+T\d+:\d+:\d+(\.\d+)?(Z\d*:?\d*)?`,
+The built-in automatic multiline patterns mainly cover common first-line formats, including:
 
-// time.ANSIC, "Mon Jan _2 15:04:05 2006"
-`^[A-Za-z_]+ [A-Za-z_]+ +\d+ \d+:\d+:\d+ \d+`,
+- RFC3339/ISO8601, `yyyy-mm-dd HH:MM:SS`, slash dates, dot dates, and compact timestamp prefixes;
+- timestamps or log levels wrapped by `[]` or `()`;
+- Syslog, Apache/Nginx access/error logs, Kubernetes glog/klog, Android logcat, and kernel ring buffer formats;
+- logfmt/key-value formats such as `time=...`, `ts=...`, and `level=...`;
+- level-first formats such as `INFO`, `ERROR`, and `WARN`;
+- common component formats such as Redis, MongoDB, RabbitMQ/Erlang, Ruby logger, Gin, and MySQL/TiDB slow logs;
+- JSON object/array starts, and explicit Go stack starts such as `panic:` and `fatal error:`.
 
-// time.RubyDate, "Mon Jan 02 15:04:05 -0700 2006"
-`^[A-Za-z_]+ [A-Za-z_]+ \d+ \d+:\d+:\d+ [\-\+]\d+ \d+`,
-
-// time.UnixDate, "Mon Jan _2 15:04:05 MST 2006"
-`^[A-Za-z_]+ [A-Za-z_]+ +\d+ \d+:\d+:\d+( [A-Za-z_]+ \d+)?`,
-
-// time.RFC822, "02 Jan 06 15:04 MST"
-`^\d+ [A-Za-z_]+ \d+ \d+:\d+ [A-Za-z_]+`,
-
-// time.RFC822Z, "02 Jan 06 15:04 -0700" // RFC822 with numeric zone
-`^\d+ [A-Za-z_]+ \d+ \d+:\d+ -\d+`,
-
-// time.RFC850, "Monday, 02-Jan-06 15:04:05 MST"
-`^[A-Za-z_]+, \d+-[A-Za-z_]+-\d+ \d+:\d+:\d+ [A-Za-z_]+`,
-
-// time.RFC1123, "Mon, 02 Jan 2006 15:04:05 MST"
-`^[A-Za-z_]+, \d+ [A-Za-z_]+ \d+ \d+:\d+:\d+ [A-Za-z_]+`,
-
-// time.RFC1123Z, "Mon, 02 Jan 2006 15:04:05 -0700" // RFC1123 with numeric zone
-`^[A-Za-z_]+, \d+ [A-Za-z_]+ \d+ \d+:\d+:\d+ -\d+`,
-
-// time.RFC3339Nano, "2006-01-02T15:04:05.999999999Z07:00"
-`^\d+-\d+-\d+[A-Za-z_]+\d+:\d+:\d+\.\d+[A-Za-z_]+\d+:\d+`,
-
-// 2021-07-08 05:08:19,214
-`^\d+-\d+-\d+ \d+:\d+:\d+(,\d+)?`,
-
-// Default java logging SimpleFormatter date format
-`^[A-Za-z_]+ \d+, \d+ \d+:\d+:\d+ (AM|PM)`,
-
-// 2021-01-31 - with stricter matching around the months/days
-`^\d{4}-(0?[1-9]|1[012])-(0?[1-9]|[12][0-9]|3[01])`,
-```
+The default rules are used to identify the first line of a log entry, not to parse all fields. Python/Java lines such as `Traceback`, `Exception`, and `Caused by` are usually continuations of a previous timestamped error log, so they are intentionally not treated as default first-line rules.
 
 <!-- markdownlint-disable MD013 -->
 #### Restrictions on Processing Very Long Multi-line Logs {#too-long-logs}
@@ -313,6 +287,30 @@ Use glob rules to specify log files more conveniently, as well as automatic disc
 | `[!a-z]`           | Match a character that is not within the given range in parentheses | `Letter[!3-5]`  | Letter1…                  | Letter3 … Letter5, Letter x |
 
 Also, in addition to the glob standard rules described above, the collector also supports `**` recursive file traversal, as shown in the sample configuration. For more information on Grok, see [here](https://rgb-24bit.github.io/blog/2018/glob.html){:target="_blank"}。
+
+### File Read Offset Position {#read-position}
+
+*Supported in DataKit [:octicons-tag-24: Version-1.5.5](../datakit/changelog.md#cl-1.5.5) and above.*
+
+File read offset refers to the position from which to start reading after opening a file. Generally, it is either "head" or "tail".
+
+In DataKit, there are mainly 3 scenarios, prioritized as follows:
+
+- First, use the file's position cache. If a position value can be obtained and it is less than or equal to the file size (indicating the file has not been truncated), use this position as the read offset
+- Second, configure `from_beginning` to `true`, which will read from the beginning of the file
+- Then, configure `from_beginning_threshold_size`. When a file is discovered, if the file size is less than this value, start reading from the beginning of the file, in bytes, default 20MB
+- Finally, the default `tail` mode, which reads from the end
+
+<!-- markdownlint-disable MD046 -->
+???+ info "About `position cache`"
+
+    `position cache` is a built-in feature of log collection. It consists of multiple K/V key-value pairs stored in the `cache/logtail.history` file:
+
+    - key is a unique value generated based on log file path, inode, and other information
+    - value is the read offset position (position) of this file, which is updated in real-time
+
+    When log collection starts, it retrieves the position based on the key as the read offset to avoid missing or duplicate collection.
+<!-- markdownlint-enable -->
 
 ### Special Bytecode Filtering for Logs {#ansi-decode}
 

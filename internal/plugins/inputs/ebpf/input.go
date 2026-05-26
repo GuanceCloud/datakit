@@ -61,6 +61,10 @@ type Input struct {
 	NetlogMetric     bool   `toml:"netlog_metric"`
 	NetlogLog        bool   `toml:"netlog_log"`
 
+	NetlogFallbackSockets int `toml:"netlog_fallback_sockets"`
+	NetlogFallbackBlocks  int `toml:"netlog_fallback_blocks"`
+	NetlogSharedBlocks    int `toml:"netlog_shared_blocks"`
+
 	EnabledPlugins []string `toml:"enabled_plugins"`
 	L7NetDisabled  []string `toml:"l7net_disabled"`
 	L7NetEnabled   []string `toml:"l7net_enabled"`
@@ -89,10 +93,42 @@ type Input struct {
 	SamplingRate          string `toml:"sampling_rate"`
 	SamplingRatePtsPerMin string `toml:"sampling_rate_pts_per_min"`
 
+	OperatorURL string `toml:"operator_url"`
+
 	semStop *cliutils.Sem // start stop signal
 }
 
 func (ipt *Input) Singleton() {
+}
+
+func appendResourceLimitArgs(args []string, cpuLimit, memLimit, bandwidthLimit string) []string {
+	if cpuLimit != "" {
+		args = append(args, "--res-cpu", cpuLimit)
+	}
+
+	if memLimit != "" {
+		args = append(args, "--res-mem", memLimit)
+	}
+
+	if bandwidthLimit != "" {
+		args = append(args, "--res-bandwidth", bandwidthLimit)
+	}
+
+	return args
+}
+
+func appendNetlogCaptureLimitArgs(args []string, fallbackSockets, fallbackBlocks, sharedBlocks int) []string {
+	if fallbackSockets > 0 {
+		args = append(args, "--netlog-fallback-sockets", strconv.Itoa(fallbackSockets))
+	}
+	if fallbackBlocks > 0 {
+		args = append(args, "--netlog-fallback-blocks", strconv.Itoa(fallbackBlocks))
+	}
+	if sharedBlocks > 0 {
+		args = append(args, "--netlog-shared-blocks", strconv.Itoa(sharedBlocks))
+	}
+
+	return args
 }
 
 func (ipt *Input) Run() {
@@ -152,7 +188,11 @@ loop:
 		}
 	}
 	if !haveHostNameArg {
-		ipt.Input.Args = append(ipt.Input.Args, "--hostname", datakit.DKHost)
+		if datakit.RenamedHostname != "" {
+			ipt.Input.Args = append(ipt.Input.Args, "--hostname", datakit.RenamedHostname)
+		} else {
+			ipt.Input.Args = append(ipt.Input.Args, "--hostname", datakit.DKHost)
+		}
 	}
 
 	if ipt.URL != "" {
@@ -177,11 +217,17 @@ loop:
 		if ipt.WorkloadLabelPrefix != "" {
 			ipt.Input.Envs = append(
 				ipt.Input.Envs,
-				fmt.Sprintf("K8S_WORKLOAD_LABEL_PREFIX=%s",
+				fmt.Sprintf("DKE_K8S_WORKLOAD_LABEL_PREFIX=%s",
 					ipt.WorkloadLabelPrefix),
 			)
 		}
 	}
+
+	if ipt.OperatorURL != "" {
+		ipt.Input.Envs = append(ipt.Input.Envs,
+			fmt.Sprintf("DKE_K8S_OPERATOR_URL=%s", ipt.OperatorURL))
+	}
+
 	if ipt.NetlogBlacklist != "" {
 		ipt.Input.Envs = append(ipt.Input.Envs,
 			fmt.Sprintf("DKE_NETLOG_NET_FILTER=%s", ipt.NetlogBlacklist))
@@ -232,6 +278,8 @@ loop:
 		if !ipt.NetlogMetricOnly || ipt.NetlogLog {
 			netlogArgs = append(netlogArgs, "--netlog-log")
 		}
+		netlogArgs = appendNetlogCaptureLimitArgs(netlogArgs,
+			ipt.NetlogFallbackSockets, ipt.NetlogFallbackBlocks, ipt.NetlogSharedBlocks)
 
 		ipt.Input.Args = append(ipt.Input.Args, netlogArgs...)
 	}
@@ -267,21 +315,8 @@ loop:
 		ipt.Input.Args = append(ipt.Input.Args,
 			"--conv-to-ddtrace")
 	}
-
-	if ipt.CPULimit != "" {
-		ipt.Input.Args = append(ipt.Input.Args,
-			"--res-cpu", ipt.CPULimit)
-	}
-
-	if ipt.MemLimit != "" {
-		ipt.Input.Args = append(ipt.Input.Args,
-			"--res-mem", ipt.MemLimit)
-	}
-
-	if ipt.NetLimit != "" {
-		ipt.Input.Args = append(ipt.Input.Args,
-			"--res-net", ipt.NetLimit)
-	}
+	ipt.Input.Args = appendResourceLimitArgs(ipt.Input.Args,
+		ipt.CPULimit, ipt.MemLimit, ipt.NetLimit)
 
 	if ipt.SamplingRate != "" {
 		ipt.Input.Args = append(ipt.Input.Args,
@@ -355,6 +390,9 @@ func (*Input) AvailableArchs() []string {
 // ENV_INPUT_EBPF_NETLOG_METRIC_ONLY : bool
 // ENV_INPUT_EBPF_NETLOG_METRIC      : bool
 // ENV_INPUT_EBPF_NETLOG_LOG         : bool
+// ENV_INPUT_EBPF_NETLOG_FALLBACK_SOCKETS : int
+// ENV_INPUT_EBPF_NETLOG_FALLBACK_BLOCKS  : int
+// ENV_INPUT_EBPF_NETLOG_SHARED_BLOCKS    : int
 //
 // ENV_INPUT_EBPF_CPU_LIMIT : string
 // ENV_INPUT_EBPF_MEM_LIMIT : string
@@ -372,6 +410,10 @@ func (*Input) AvailableArchs() []string {
 //
 // ENV_INPUT_EBPF_WORKLOAD_LABELS      : []string
 // ENV_INPUT_EBPF_WORKLOAD_LABEL_PREFIX: string.
+//
+// ENV_INPUT_EBPF_OPERATOR_URL : string
+//
+//   - Example: `https://datakit-operator.datakit.svc:443`
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if v, ok := envs["ENV_INPUT_EBPF_PPROF_HOST"]; ok {
 		ipt.PprofHost = v
@@ -514,6 +556,30 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		}
 	}
 
+	if v, ok := envs["ENV_INPUT_EBPF_NETLOG_FALLBACK_SOCKETS"]; ok {
+		if n, err := strconv.Atoi(v); err != nil {
+			l.Warnf("parse ENV_INPUT_EBPF_NETLOG_FALLBACK_SOCKETS: %v", err)
+		} else {
+			ipt.NetlogFallbackSockets = n
+		}
+	}
+
+	if v, ok := envs["ENV_INPUT_EBPF_NETLOG_FALLBACK_BLOCKS"]; ok {
+		if n, err := strconv.Atoi(v); err != nil {
+			l.Warnf("parse ENV_INPUT_EBPF_NETLOG_FALLBACK_BLOCKS: %v", err)
+		} else {
+			ipt.NetlogFallbackBlocks = n
+		}
+	}
+
+	if v, ok := envs["ENV_INPUT_EBPF_NETLOG_SHARED_BLOCKS"]; ok {
+		if n, err := strconv.Atoi(v); err != nil {
+			l.Warnf("parse ENV_INPUT_EBPF_NETLOG_SHARED_BLOCKS: %v", err)
+		} else {
+			ipt.NetlogSharedBlocks = n
+		}
+	}
+
 	if v, ok := envs["ENV_INPUT_EBPF_CPU_LIMIT"]; ok {
 		ipt.CPULimit = v
 	}
@@ -532,6 +598,10 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 
 	if v, ok := envs["ENV_INPUT_EBPF_SAMPLING_RATE_PTSPERMIN"]; ok {
 		ipt.SamplingRatePtsPerMin = v
+	}
+
+	if v, ok := envs["ENV_INPUT_EBPF_OPERATOR_URL"]; ok {
+		ipt.OperatorURL = strings.TrimSpace(v)
 	}
 }
 

@@ -87,7 +87,7 @@ func TestCheckConfig(t *testing.T) {
 			maxOpenFiles:       100,
 			fileSizeThreshold:  1024,
 			maxMultilineLength: 1000,
-			multilinePatterns:  []string{`^\d{4}-\d{2}-\d{2}`},
+			multilinePattern:   `^\d{4}-\d{2}-\d{2}`,
 		}
 
 		err := checkConfig(cfg)
@@ -146,6 +146,29 @@ func TestCheckConfig(t *testing.T) {
 		err := checkConfig(cfg)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "maxMultilineLength must be >= 0")
+	})
+
+	t.Run("multiline-disabled-skip-pattern-validation", func(t *testing.T) {
+		cfg := &config{
+			source:           "test-source",
+			enableMultiline:  false,
+			multilinePattern: `(?invalid`,
+		}
+
+		err := checkConfig(cfg)
+		assert.NoError(t, err)
+	})
+
+	t.Run("multiline-enabled-validates-pattern", func(t *testing.T) {
+		cfg := &config{
+			source:           "test-source",
+			enableMultiline:  true,
+			multilinePattern: `(?invalid`,
+		}
+
+		err := checkConfig(cfg)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid multiline patterns")
 	})
 }
 

@@ -8,9 +8,13 @@ __int_icon      : 'icon/redis'
 dashboard :
   - desc  : 'Redis'
     path  : 'dashboard/en/redis'
+  - desc  : 'Redis-v2'
+    path  : 'dashboard/en/redis-v2'
 monitor:
   - desc: 'Redis'
     path: 'monitor/en/redis'
+  - desc: 'Redis-v2'
+    path: 'monitor/en/redis-v2'
 ---
 
 
@@ -45,19 +49,44 @@ When collecting data under the master-slave architecture, please configure the h
 
 Create Monitor User (**optional**)
 
-redis6.0+ goes to the `redis-cli` command line, create the user and authorize
+redis6.0+ goes to the `redis-cli` command line, create the user and authorize. For cluster or master-slave architecture, you need to create the user and authorize on each node.
 
 ```sql
 ACL SETUSER username >password
-ACL SETUSER username on +@dangerous +ping
+ACL SETUSER username on +info +config|get +slowlog +latency +cluster +@connection
 ```
 
-- goes to the `redis-cli` command line, authorization statistics `hotkey/bigkey` information
+<!-- markdownlint-disable MD046 -->
+???+ note "Permission Notes"
+
+    ACL permission categories may vary slightly across different Redis versions. The above permissions are explained as follows:
+
+    - `+info`: Get server information (`INFO` command)
+    - `+config|get`: Get configuration parameters (`CONFIG GET` command)
+    - `+slowlog`: Get slow log (`SLOWLOG GET` command)
+    - `+latency`: Get latency statistics (`LATENCY LATEST` command)
+    - `+cluster`: Get cluster information (`CLUSTER INFO`, `CLUSTER NODES`, `CLUSTER REPLICAS`/`SLAVES` commands, required for cluster mode)
+    - `+@connection`: Connection management commands (`PING`, `CLIENT LIST`, `CLIENT SETNAME`, `SELECT`, etc.)
+<!-- markdownlint-enable -->
+
+- If you need to collect `hotkey/bigkey` statistics, add the following permissions on top of the base permissions above:
 
 ```sql
 CONFIG SET maxmemory-policy allkeys-lfu
-ACL SETUSER username on +get +@read +@connection +@keyspace ~*
+ACL SETUSER username +@read +@keyspace ~*
 ```
+
+<!-- markdownlint-disable MD046 -->
+???+ note "Permission Notes"
+
+    ACL permission categories may vary slightly across different Redis versions. The above permissions are explained as follows:
+
+    - `+@read`: Data read commands (`SCAN`, `TYPE`, `OBJECT`, `MEMORY`, etc.)
+    - `+@keyspace`: Keyspace permissions
+    - `~*`: Allow access to all keys
+<!-- markdownlint-enable -->
+
+> **Note**: For some cloud providers (such as Huawei Cloud), when Redis does not support or provide ACL functionality, read-only permissions are insufficient for DataKit collection. You need to use an account with read-write permissions.
 
 ### Collector Configuration {#input-config}
 

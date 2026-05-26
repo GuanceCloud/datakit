@@ -8,6 +8,8 @@ package statsd
 import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	p8s "github.com/prometheus/client_golang/prometheus"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (
@@ -23,11 +25,7 @@ func metricsSetup() {
 			Name:      "collect_points",
 			Help:      "Total number of statsd collection points",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{},
 	)
@@ -39,11 +37,7 @@ func metricsSetup() {
 			Name:      "accept_bytes",
 			Help:      "Accept bytes from network",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{},
 	)

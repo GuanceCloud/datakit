@@ -18,7 +18,9 @@ import (
 
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/fsnotify/fsnotify"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/fileprovider"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/logtail/openfile"
@@ -30,8 +32,6 @@ const (
 	defaultMaxOpenFiles      = 500
 	defaultUpdateChannelSize = 10
 )
-
-var globalGoroutineGroup = datakit.G("tailer")
 
 type Tailer struct {
 	initialOptions    []Option
@@ -53,11 +53,16 @@ type Tailer struct {
 	shutdownChan chan struct{}
 	updateChan   chan []Option
 
-	log *logger.Logger
+	log   *logger.Logger
+	lrate float64
 
 	// 状态管理
 	isRunning atomic.Bool
 	startTime time.Time
+
+	shortScanEnabled bool
+
+	g *goroutine.Group
 }
 
 func NewTailer(patterns []string, opts ...Option) (*Tailer, error) {
@@ -83,8 +88,10 @@ func NewTailer(patterns []string, opts ...Option) (*Tailer, error) {
 		monitoredFiles:    make(map[string]*Single),
 
 		shutdownChan: make(chan struct{}),
-		log:          logger.SLogger("tailer/" + cfg.source),
+		lrate:        1.0,
+		log:          logger.SLogger("tailer/"+cfg.source, logger.WithRateLimiter(1.0, "")),
 		updateChan:   make(chan []Option, defaultUpdateChannelSize),
+		g:            goroutine.NewGroup(goroutine.Option{Name: "tailer"}),
 	}
 
 	if err := tailer.initializeFileProviders(patterns, cfg); err != nil {
@@ -112,9 +119,13 @@ func (t *Tailer) initializeFileProviders(patterns []string, cfg *config) error {
 		if err != nil {
 			t.log.Warnf("failed to create inotify: %s, using fallback", err)
 			t.fileWatcher = fileprovider.NewNopInotify()
+			t.shortScanEnabled = true
+		} else {
+			t.shortScanEnabled = false
 		}
 	} else {
 		t.fileWatcher = fileprovider.NewNopInotify()
+		t.shortScanEnabled = true
 	}
 
 	return nil
@@ -149,7 +160,9 @@ func (t *Tailer) Start() {
 
 func (t *Tailer) cleanup() {
 	t.closeAllFiles()
-	_ = globalGoroutineGroup.Wait()
+	if t.g != nil {
+		_ = t.g.Wait()
+	}
 	t.log.Infof("all tailers exited, source: %s", t.source)
 }
 
@@ -180,11 +193,29 @@ func (t *Tailer) runEventLoop(shortTicker, longTicker *time.Ticker) {
 			t.handleConfigUpdate(newOpts)
 		case event, ok := <-t.fileWatcher.Events():
 			t.handleFileEvent(ctx, event, ok, shortTicker)
+		case err, ok := <-t.fileWatcher.Errors():
+			t.handleWatcherError(err, ok)
 		case <-shortTicker.C:
-			t.handleShortIntervalScan(ctx, longTicker)
+			if t.shortScanEnabled {
+				t.handleShortIntervalScan(ctx, longTicker)
+			}
 		case <-longTicker.C:
-			t.handleLongIntervalScan(ctx, shortTicker)
+			if t.shortScanEnabled {
+				t.handleLongIntervalScan(ctx, shortTicker)
+			} else {
+				t.scanFiles(ctx)
+			}
 		}
+	}
+}
+
+func (t *Tailer) handleWatcherError(err error, ok bool) {
+	if !ok {
+		t.log.Warn("file watcher errors channel closed")
+		return
+	}
+	if err != nil {
+		t.log.Warnf("file watcher error: %v", err)
 	}
 }
 
@@ -257,7 +288,7 @@ func (t *Tailer) updateAllSingles(newOpts []Option) {
 func (t *Tailer) scanFiles(ctx context.Context) {
 	files, err := t.fileScanner.ScanFiles()
 	if err != nil {
-		t.log.Warnf("scan files failed: %v", err)
+		t.log.RLWarnf(t.lrate, "scan files failed: %v", err)
 		return
 	}
 	t.log.Debugf("scan found %d files", len(files))
@@ -295,7 +326,7 @@ func (t *Tailer) createFileTailer(ctx context.Context, file string) {
 	openFilesGauge.WithLabelValues(t.source, strconv.Itoa(t.maxOpenFiles)).Inc()
 
 	// 启动文件采集器协程
-	globalGoroutineGroup.Go(func(_ context.Context) error {
+	t.g.Go(func(_ context.Context) error {
 		single.Run(ctx)
 		t.removeFromMonitoredFiles(file)
 		t.log.Infof("file %s tailer exited", file)
@@ -305,7 +336,7 @@ func (t *Tailer) createFileTailer(ctx context.Context, file string) {
 }
 
 func (t *Tailer) Close() {
-	t.log.Info("closing tailer, source: %s", t.source)
+	t.log.Infof("closing tailer, source: %s", t.source)
 
 	if t.fileWatcher != nil {
 		if err := t.fileWatcher.Close(); err != nil {

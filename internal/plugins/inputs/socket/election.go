@@ -5,29 +5,16 @@
 
 package socket
 
-import (
-	"fmt"
-	"time"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-)
-
 func (i *input) Resume() error {
-	return i.trigger(false)
+	i.pause.Store(false)
+	return nil
 }
 
 func (i *input) Pause() error {
-	return i.trigger(true)
+	i.pause.Store(true)
+	return nil
 }
 
-func (i *input) trigger(off bool) error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-
-	select {
-	case i.pauseCh <- off:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("off(%v) %q timeout", off, inputName)
-	}
+func (i *input) ElectionEnabled() bool {
+	return i.Election
 }

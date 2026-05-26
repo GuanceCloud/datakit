@@ -1,0 +1,48 @@
+services:
+  mongodb:
+    image: 'mongo:6.0'
+    ports:
+      - 27017:27017
+    container_name: mongodb6.0
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+      MONGO_INITDB_DATABASE: test_db
+    networks:
+      - mongodb-network
+    volumes:
+      - ${PWD}/data/init.js:/docker-entrypoint-initdb.d/init.js
+    command: ["mongod", "--auth"]
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --username admin --password admin --authenticationDatabase admin --eval \"db.adminCommand('ping')\""]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  tool:
+    build:
+      context: .
+      dockerfile: data/Dockerfile
+      labels:
+        - "custom.project=datakit-mongodb-tool"
+    container_name: mongodb-test
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    command: ["python", "run_test.py"]
+    volumes:
+      - ${PWD}/data/run_test.py:/app/run_test.py
+      - ${PWD}/data/init.js:/app/init.js
+      - ${PWD}/data/generate_activity.js:/app/generate_activity.js
+    environment:
+      MONGO_HOST: mongodb
+      MONGO_PORT: 27017
+      MONGO_USER: admin
+      MONGO_PASSWORD: admin
+      MONGO_DATABASE: test_db
+      NUM_THREADS: 20
+      RUN_DURATION: 600
+    networks:
+      - mongodb-network
+networks: 
+  mongodb-network:
+    driver: bridge

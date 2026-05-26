@@ -27,6 +27,15 @@ func AddkeyChecking(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError
 	return nil
 }
 
+func normalizeAddKeyValue(val any, dtype ast.DType) (any, ast.DType) {
+	if dtype == ast.List || dtype == ast.Map {
+		if s, err := ptinput.Conv2String(val, dtype); err == nil {
+			return s, ast.String
+		}
+	}
+	return val, dtype
+}
+
 func AddKey(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if len(funcExpr.Param) != 2 && len(funcExpr.Param) != 1 {
 		return runtime.NewRunError(ctx, fmt.Sprintf(
@@ -44,7 +53,8 @@ func AddKey(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 			l.Debug(err)
 			return nil
 		}
-		_ = addKey2PtWithVal(ctx.InData(), key, v.Value, v.DType, ptinput.KindPtDefault)
+		val, dtype := normalizeAddKeyValue(v.Value, v.DType)
+		_ = addKey2PtWithVal(ctx.InData(), key, val, dtype, ptinput.KindPtDefault)
 		return nil
 	}
 
@@ -55,6 +65,7 @@ func AddKey(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 	if errRun != nil {
 		return errRun.ChainAppend(ctx.Name(), funcExpr.NamePos)
 	}
+	val, dtype = normalizeAddKeyValue(val, dtype)
 	_ = addKey2PtWithVal(ctx.InData(), key, val, dtype, ptinput.KindPtDefault)
 
 	return nil

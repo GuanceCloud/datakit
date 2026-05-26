@@ -143,16 +143,17 @@ func (p *Prom) GetReq(url string) (*http.Request, error) {
 func (p *Prom) Request(url string) (*http.Response, error) {
 	start := time.Now()
 	defer func() {
-		httpLatencyVec.WithLabelValues(p.getMode(), p.opt.source).Observe(float64(time.Since(start)) / float64(time.Second))
+		httpLatencyVec.WithLabelValues(p.getMode(), p.opt.source).Observe(time.Since(start).Seconds())
 	}()
 	req, err := p.GetReq(url)
 	if err != nil {
 		return nil, err
 	}
 
-	// trace
-	s := httpcli.NewHTTPClientTraceStat("prom/"+p.opt.source, "")
+	// HTTP tracer
+	s := httpcli.GetTracer("prom/"+p.opt.source, "", "")
 	defer s.Metrics()
+
 	req = req.WithContext(httptrace.WithClientTrace(req.Context(), s.Trace()))
 
 	r, err := p.client.Do(req)

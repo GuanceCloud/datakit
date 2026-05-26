@@ -15,7 +15,6 @@ type TLSConfig struct {
 	PrivKey string `toml:"privkey"`
 }
 
-// APIConfig used to unmarshal HTTP API server configurations.
 type APIConfig struct {
 	RUMOriginIPHeader string   `toml:"rum_origin_ip_header"`
 	ListenSocket      string   `toml:"listen_socket"`
@@ -28,27 +27,35 @@ type APIConfig struct {
 	RequestRateLimitTTL   time.Duration `toml:"request_rate_limit_ttl"`
 	RequestRateLimitBurst int           `toml:"request_rate_limit_burst"`
 
-	Timeout             string     `toml:"timeout"`
-	CloseIdleConnection bool       `toml:"close_idle_connection"`
-	TLSConf             *TLSConfig `toml:"tls"`
-	AllowedCORSOrigins  []string   `toml:"allowed_cors_origins"`
+	IdleTimeout       time.Duration `toml:"http_idle_timeout"`
+	ReadTimeout       time.Duration `toml:"http_read_timeout"`
+	ReadHeaderTimeout time.Duration `toml:"http_read_head_timeout"`
+	WriteTimeout      time.Duration `toml:"http_write_timeout"`
+
+	TLSConf            *TLSConfig `toml:"tls"`
+	DisableWhitelist   bool       `toml:"disable_whitelist"`
+	AllowedCORSOrigins []string   `toml:"allowed_cors_origins"`
 }
 
-func defaultAPIConfig() *APIConfig {
+func DefaultAPIConfig() *APIConfig {
 	return &APIConfig{
 		RUMOriginIPHeader: "X-Forwarded-For",
 		Listen:            "localhost:9529",
 		RUMAppIDWhiteList: []string{},
 		PublicAPIs:        []string{},
 
+		DisableWhitelist:  false, // 添加这一行
+		IdleTimeout:       time.Second * 60,
+		ReadTimeout:       time.Second * 30,
+		ReadHeaderTimeout: time.Second * 30,
+		WriteTimeout:      time.Second * 30,
+
 		RequestRateLimit:      100,
 		RequestRateLimitTTL:   time.Second * 60,
 		RequestRateLimitBurst: 500, // 5 X ratelimit
 
-		Timeout:             "30s",
-		CloseIdleConnection: false,
-		TLSConf:             &TLSConfig{},
-		AllowedCORSOrigins:  []string{},
+		TLSConf:            &TLSConfig{},
+		AllowedCORSOrigins: []string{},
 	}
 }
 

@@ -30,6 +30,8 @@ type option struct {
 	metricSeparator        string
 	dataDogExtensions      bool
 	dataDogDistributions   bool
+	dataDogEvents          bool
+	dataDogServiceChecks   bool
 	udpPacketSize          int
 	readBufferSize         int
 	dropTags               []string
@@ -39,7 +41,8 @@ type option struct {
 	tcpKeepAlive           bool
 	maxTTL                 time.Duration
 
-	l *logger.Logger
+	l     *logger.Logger
+	lrate float64
 }
 
 type CollectorOption func(opt *option)
@@ -116,6 +119,14 @@ func WithDataDogDistributions(args bool) CollectorOption {
 	return func(opt *option) { opt.dataDogDistributions = args }
 }
 
+func WithDataDogEvents(args bool) CollectorOption {
+	return func(opt *option) { opt.dataDogEvents = args }
+}
+
+func WithDataDogServiceChecks(args bool) CollectorOption {
+	return func(opt *option) { opt.dataDogServiceChecks = args }
+}
+
 func WithUDPPacketSize(args int) CollectorOption {
 	return func(opt *option) { opt.udpPacketSize = args }
 }
@@ -150,6 +161,9 @@ func WithMaxTTL(args time.Duration) CollectorOption {
 	}
 }
 
-func WithLogger(args *logger.Logger) CollectorOption {
-	return func(opt *option) { opt.l = args }
+func WithLogger(args *logger.Logger, rate float64) CollectorOption {
+	return func(opt *option) {
+		opt.l = args
+		opt.lrate = rate
+	}
 }

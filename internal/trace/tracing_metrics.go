@@ -34,7 +34,6 @@ var DefaultLabelNames = []string{
 	TagPodName,
 	TagPodNamespace,
 	TagProject,
-	TagRemoteIP,
 }
 
 func sliceContain(labels []string, label string) bool {
@@ -165,7 +164,7 @@ func NewTraceApdex() *prometheus.HistogramVec {
 			},
 			Help: "Measures the Apdex score for each web service",
 		},
-		[]string{TagService, TagEnv, TagVersion, FieldResource, TagSource, TagRemoteIP},
+		[]string{TagService, TagEnv, TagVersion, FieldResource, TagSource},
 	)
 }
 

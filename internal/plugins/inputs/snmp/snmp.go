@@ -32,6 +32,7 @@ const (
 	COLLECT_USER_OBJECT  = 3 //nolint:stylecheck
 	COLLECT_USER_METRICS = 4 //nolint:stylecheck
 	USER_DISCOVERY       = 5 //nolint:stylecheck
+	COLLECT_LLDP         = 6 //nolint:stylecheck
 )
 
 type snmpJob struct {

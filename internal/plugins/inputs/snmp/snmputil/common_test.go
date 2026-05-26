@@ -184,22 +184,24 @@ func Test_getIPInterfaceByTags(t *testing.T) {
 // go test -v -timeout 30s -run ^Test_getPreviousBandwidthUsageRateKeyName$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmputil
 func Test_getPreviousBandwidthUsageRateKeyName(t *testing.T) {
 	cases := []struct {
-		name                string
-		ip, inf, metricName string
-		expect              string
+		name                          string
+		ip, inf, metricName, taskType string
+		expect                        string
 	}{
 		{
 			name:       "normal",
 			ip:         "1.1.1.1",
 			inf:        "Gi1/0/3",
 			metricName: "ifBandwidthInUsage.rate",
-			expect:     "1.1.1.1_Gi1/0/3_ifBandwidthInUsage.rate",
+			taskType:   "metric",
+			expect:     "1.1.1.1_Gi1/0/3_ifBandwidthInUsage.rate_metric",
 		},
 
 		{
 			name:       "emptyIP",
 			inf:        "Gi1/0/3",
 			metricName: "ifBandwidthInUsage.rate",
+			taskType:   "metric",
 			expect:     "",
 		},
 
@@ -207,20 +209,22 @@ func Test_getPreviousBandwidthUsageRateKeyName(t *testing.T) {
 			name:       "emptyInterface",
 			ip:         "1.1.1.1",
 			metricName: "ifBandwidthInUsage.rate",
+			taskType:   "metric",
 			expect:     "",
 		},
 
 		{
-			name:   "emptyMetricName",
-			ip:     "1.1.1.1",
-			inf:    "Gi1/0/3",
-			expect: "",
+			name:     "emptyMetricName",
+			ip:       "1.1.1.1",
+			inf:      "Gi1/0/3",
+			taskType: "metric",
+			expect:   "",
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			out := getPreviousBandwidthUsageRateKeyName(tc.ip, tc.inf, tc.metricName)
+			out := getPreviousBandwidthUsageRateKeyName(tc.ip, tc.inf, tc.metricName, tc.taskType)
 			assert.Equal(t, tc.expect, out)
 		})
 	}
@@ -235,14 +239,14 @@ func Test_calculateBandwidthUtilization(t *testing.T) {
 	preInvalidValueItem := func() {
 		previousBandwidthUsageRate = sync.Map{}
 
-		previousBandwidthUsageRate.Store("1.1.1.1_Gi1/0/3_ifBandwidthInUsage.rate", 1)
+		previousBandwidthUsageRate.Store("1.1.1.1_Gi1/0/3_ifBandwidthInUsage.rate_metric", 1)
 	}
 
 	preNegative := func() {
 		previousBandwidthUsageRate = sync.Map{}
 
 		previousBandwidthUsageRate.Store(
-			"1.1.1.1_Gi1/0/3_ifBandwidthInUsage.rate",
+			"1.1.1.1_Gi1/0/3_ifBandwidthInUsage.rate_metric",
 			newValueItem(10000, 1),
 		)
 	}
@@ -251,7 +255,7 @@ func Test_calculateBandwidthUtilization(t *testing.T) {
 		previousBandwidthUsageRate = sync.Map{}
 
 		previousBandwidthUsageRate.Store(
-			"1.1.1.1_Gi1/0/3_ifBandwidthInUsage.rate",
+			"1.1.1.1_Gi1/0/3_ifBandwidthInUsage.rate_metric",
 			newValueItem(0, 0),
 		)
 	}
@@ -260,7 +264,7 @@ func Test_calculateBandwidthUtilization(t *testing.T) {
 		previousBandwidthUsageRate = sync.Map{}
 
 		previousBandwidthUsageRate.Store(
-			"1.1.1.1_Gi1/0/3_ifBandwidthInUsage.rate",
+			"1.1.1.1_Gi1/0/3_ifBandwidthInUsage.rate_metric",
 			newValueItem(1000, 1),
 		)
 	}
@@ -372,9 +376,9 @@ func Test_calculateBandwidthUtilization(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.previous()
 
-			out, err := calculateBandwidthUtilization(tc.ip, tc.inf, tc.metricName, tc.metricValue, tc.timestamp)
+			rate, _, err := calculateBandwidthUtilization(tc.ip, tc.inf, tc.metricName, "metric", tc.metricValue, tc.timestamp)
 			assert.Equal(t, tc.expectErr, err)
-			assert.Equal(t, tc.expect, out)
+			assert.Equal(t, tc.expect, rate)
 		})
 	}
 }

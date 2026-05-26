@@ -42,6 +42,7 @@ var (
 
 	ErrPublicAccessDisabled = newErr(errors.New("public access disabled"), http.StatusForbidden)
 	ErrReachLimit           = newErr(errors.New("reach max API limit"), http.StatusTooManyRequests)
+	ErrInputNotEnabled      = newErr(errors.New("input not enabled"), http.StatusServiceUnavailable)
 
 	ErrInvalidJSON = newErr(errors.New("invalid JSON"), http.StatusBadRequest)
 
@@ -50,6 +51,9 @@ var (
 	ErrInvalidLinePoint     = newErr(errors.New("invalid line point"), http.StatusBadRequest)
 	ErrInvalidProtobufPoint = newErr(errors.New("invalid protobuf point"), http.StatusBadRequest)
 	ErrStrictPoint          = newErr(errors.New("point got warning"), http.StatusBadRequest)
+	ErrReadTimeout          = newErr(errors.New("read timeout"), http.StatusRequestTimeout)
+
+	ErrInvalidElectionStatus = newErr(errors.New("invalid election status"), http.StatusBadRequest)
 )
 
 func newErr(err error, code int) *uhttp.HttpError {

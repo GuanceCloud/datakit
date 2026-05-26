@@ -5,11 +5,15 @@ tags:
   - 'DATABASE'
 __int_icon      : 'icon/postgresql'
 dashboard :
-  - desc  : 'PostgrepSQL'
+  - desc  : 'PostgreSQL'
     path  : 'dashboard/en/postgresql'
+  - desc  : 'PostgreSQL-v2'
+    path  : 'dashboard/en/postgresql-v2'
 monitor   :
-  - desc  : 'N/A'
-    path  : '-'
+  - desc  : 'PostgreSQL'
+    path  : 'monitor/en/postgresql'
+  - desc  : 'PostgreSQL-v2'
+    path  : 'monitor/en/postgresql-v2'
 ---
 
 
@@ -98,7 +102,7 @@ PostgreSQL collector can collect the running status index from PostgreSQL instan
 [:octicons-tag-24: Version-1.84.0](../datakit/changelog-2025.md#cl-1.84.0)
 
 Database performance metrics are mainly derived from the built-in system views and extension plugins of PostgreSQL, with the most core ones including pg_stat_activity and pg_stat_statements. These tools provide methods to obtain the internal execution status of the database at runtime: pg_stat_activity displays real-time information such as the activity status of current sessions, executed queries, and waiting events; pg_stat_statements records the execution statistics of historical SQL statements, including execution times, time consumption, IO status, etc.
-Through these views and plugins, DataKit can collect real-time session activities, performance metric statistics of historical queries, and relevant execution information. The collected performance metric data is saved as logs, with the sources (source) being `postgresql_dbm_metric`, `postgresql_dbm_sample`, and `postgresql_dbm_activity` respectively.
+Through these views and plugins, DataKit can collect statement metrics, query samples, execution plans, real-time session activities, and the derived session/connection metrics required for PostgreSQL DBM.
 
 To enable this feature, the following steps need to be performed.
 
@@ -108,23 +112,29 @@ To enable this feature, the following steps need to be performed.
 [[inputs.postgresql]]
 
   ## Set dbm to true to collect database activity 
-  dbm = false
+  dbm = true
 
   ## Config dbm metric 
   [inputs.postgresql.dbm_metric]
     enabled = true
+    interval = "60s"
   
   ## Config dbm sample 
   [inputs.postgresql.dbm_sample]
-    enabled = true  
+    enabled = true
+    explain_cache_ttl = "10m"
+    plan_cache_ttl = "1h"
 
   ## Config dbm activity
   [inputs.postgresql.dbm_activity]
-    enabled = true  
+    enabled = true
+    interval = "10s"
 
 ...
 
 ```
+
+When DBM is enabled, DataKit also collects `postgresql_dbm_session` and `postgresql_dbm_connection` automatically. `postgresql_dbm_session` is aggregated from DBM activity rows, while `postgresql_dbm_connection` is collected through a separate grouped query against `pg_stat_activity`. No extra switch is required for these two metric sets.
 
 - PostgreSQL Configuration
 
@@ -133,7 +143,7 @@ Modify the configuration file (e.g., `postgresql.conf`) and configure the releva
 ```toml
 
 shared_preload_libraries = 'pg_stat_statements'
-track_activity_query_size = 4096 a# Required for collection of larger queries.
+track_activity_query_size = 4096 # Required for collection of larger queries.
 
 ```
 
@@ -196,6 +206,32 @@ track_activity_query_size = 4096 a# Required for collection of larger queries.
 
 <!-- markdownlint-enable -->
 
+- Additional permissions and explain-plan helper
+
+    If `dbm_sample.enabled = true`, create the helper function in every database where execution plans need to be collected:
+
+    ```sql
+    CREATE OR REPLACE FUNCTION datakit.explain_statement(
+       l_query TEXT,
+       OUT explain JSON
+    )
+    RETURNS SETOF JSON AS
+    $$
+    DECLARE
+      curs REFCURSOR;
+      plan JSON;
+    BEGIN
+      OPEN curs FOR EXECUTE pg_catalog.concat('EXPLAIN (FORMAT JSON) ', l_query);
+      FETCH curs INTO plan;
+      CLOSE curs;
+      RETURN QUERY SELECT plan;
+    END;
+    $$
+    LANGUAGE 'plpgsql'
+    RETURNS NULL ON NULL INPUT
+    SECURITY DEFINER;
+    ```
+
 ## Metric {#metric}
 
 For all of the following data collections, the global election tags will added automatically, we can add extra tags in `[inputs.{{.InputName}}.tags]` if needed:
@@ -204,6 +240,8 @@ For all of the following data collections, the global election tags will added a
 {{if eq $m.Type "metric"}}
 
 ### `{{$m.Name}}`
+
+{{$m.Desc}}
 
 {{$m.MarkdownTable}}
 

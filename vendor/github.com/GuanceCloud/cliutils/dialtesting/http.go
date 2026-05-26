@@ -11,6 +11,7 @@ package dialtesting
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
@@ -25,6 +26,9 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/quic-go/quic-go/http3"
+	"golang.org/x/net/http2"
 )
 
 var (
@@ -35,6 +39,12 @@ var (
 const (
 	MaxBodySize        = 10 * 1024
 	DefaultHTTPTimeout = 60 * time.Second
+
+	ProtocolAuto      = "auto"
+	ProtocolHTTP11    = "http/1.1"
+	ProtocolHTTP2     = "http/2"
+	ProtocolHTTP2Only = "http/2-only"
+	ProtocolHTTP3     = "http/3"
 )
 
 type HTTPTask struct {
@@ -64,8 +74,11 @@ type HTTPTask struct {
 	ttfbTime       float64
 	downloadTime   float64
 
-	destIP  string
-	rawTask *HTTPTask
+	destIP           string
+	rawTask          *HTTPTask
+	sslCertNotBefore int64
+	sslCertNotAfter  int64
+	protocol         string
 }
 
 func (t *HTTPTask) clear() {
@@ -80,6 +93,8 @@ func (t *HTTPTask) clear() {
 	t.respBody = []byte(``)
 	t.reqError = ""
 	t.reqBodyBytesBuffer = nil
+	t.sslCertNotBefore = 0
+	t.sslCertNotAfter = 0
 
 	if t.reqBody != nil {
 		t.reqBody.bodyType = t.reqBody.BodyType
@@ -113,12 +128,14 @@ func (t *HTTPTask) getResults() (tags map[string]string, fields map[string]inter
 		tags["url"] = t.rawTask.URL
 	}
 
-	if t.req != nil {
+	if t.resp != nil {
+		tags["proto"] = t.resp.Proto
+	} else if t.req != nil {
 		tags["proto"] = t.req.Proto
 	}
 
 	fields = map[string]interface{}{
-		"response_time":      int64(t.reqCost) / 1000, // 单位为us
+		"response_time":      int64(t.reqCost) / 1000, // unit: us
 		"response_body_size": int64(len(t.respBody)),
 		"success":            int64(-1),
 	}
@@ -183,6 +200,11 @@ func (t *HTTPTask) getResults() (tags map[string]string, fields map[string]inter
 	fields[`response_ttfb`] = t.ttfbTime
 	fields[`response_download`] = t.downloadTime
 
+	if t.sslCertNotAfter > 0 {
+		fields[`ssl_cert_not_after`] = t.sslCertNotAfter
+		fields[`ssl_cert_expires_in_days`] = (t.sslCertNotAfter - time.Now().UnixMicro()) / (24 * time.Hour).Microseconds()
+	}
+
 	message["status"] = tags["status"]
 	data, err := json.Marshal(message)
 	if err != nil {
@@ -212,7 +234,7 @@ type HTTPOptAuth struct {
 	// basic auth
 	Username string `json:"username,omitempty"`
 	Password string `json:"password,omitempty"`
-	// TODO: 支持更多的 auth 选项
+	// TODO: support more auth options
 }
 
 type HTTPOptRequest struct {
@@ -262,15 +284,39 @@ type HTTPAdvanceOption struct {
 	Proxy          *HTTPOptProxy       `json:"proxy,omitempty"`
 	Secret         *HTTPSecret         `json:"secret,omitempty"`
 	RequestTimeout string              `json:"request_timeout,omitempty"`
+	Protocol       string              `json:"protocol,omitempty"` // "auto", "http/1.1", "http/2", "http/3"
 }
 
 type HTTPSecret struct {
 	NoSaveResponseBody bool `json:"not_save,omitempty"`
 }
 
+func (opt *HTTPAdvanceOption) getProtocol() string {
+	if opt == nil {
+		return ProtocolAuto
+	}
+	switch strings.ToLower(opt.Protocol) {
+	case "http/1.1", "http1.1", "1.1", "http/1.1 only":
+		return ProtocolHTTP11
+	case "http/2", "http2", "2", "http/2 fallback", "http/2 fallback to http/1.1":
+		return ProtocolHTTP2
+	case "http/2-only", "http/2 only", "http2-only":
+		return ProtocolHTTP2Only
+	case "http/3", "http3", "3":
+		return ProtocolHTTP3
+	default:
+		return ProtocolAuto
+	}
+}
+
 func (t *HTTPTask) run() error {
-	var t1, connect, dns, tlsHandshake time.Time
-	var body io.Reader = nil
+	var (
+		t1,
+		connect,
+		dns,
+		tlsHandshake time.Time
+		body io.Reader
+	)
 
 	trace := &httptrace.ClientTrace{
 		DNSStart: func(dsi httptrace.DNSStartInfo) { dns = time.Now() },
@@ -281,6 +327,10 @@ func (t *HTTPTask) run() error {
 		TLSHandshakeStart: func() { tlsHandshake = time.Now() },
 		TLSHandshakeDone: func(cs tls.ConnectionState, err error) {
 			t.sslTime = float64(time.Since(tlsHandshake)) / float64(time.Microsecond)
+			// Extract SSL certificate validity information only if TLS handshake was successful
+			if err == nil {
+				t.extractSSLCertificateValidity(cs)
+			}
 		},
 
 		ConnectStart: func(network, addr string) { connect = time.Now() },
@@ -321,7 +371,9 @@ func (t *HTTPTask) run() error {
 
 	t.req = t.req.WithContext(httptrace.WithClientTrace(t.req.Context(), trace))
 
-	t.req.Header.Add("Connection", "close")
+	if t.protocol != ProtocolHTTP2Only && t.protocol != ProtocolHTTP3 {
+		t.req.Header.Add("Connection", "close")
+	}
 
 	if agentInfo, ok := t.GetOption()["userAgent"]; ok {
 		t.req.Header.Add("User-Agent", agentInfo)
@@ -334,6 +386,11 @@ func (t *HTTPTask) run() error {
 	}
 
 	if err != nil {
+		goto result
+	}
+
+	if t.protocol == ProtocolHTTP2Only && t.resp.Proto != "HTTP/2.0" {
+		t.reqError = fmt.Sprintf("expected HTTP/2, but got %s", t.resp.Proto)
 		goto result
 	}
 
@@ -398,13 +455,11 @@ func (t *HTTPTask) getRequestBody() (io.Reader, error) {
 				}
 			}
 		}
-		writer.Close()
+		writer.Close() // nolint: errcheck,gosec
 		requestBody.bodyType = writer.FormDataContentType()
 		body = buf
-	} else {
-		if requestBody.Body != "" {
-			body = bytes.NewBufferString(requestBody.Body)
-		}
+	} else if requestBody.Body != "" {
+		body = bytes.NewBufferString(requestBody.Body)
 	}
 
 	t.reqBodyBytesBuffer = body
@@ -552,9 +607,84 @@ func (t *HTTPTask) init() error {
 		httpTimeout = du
 	}
 
-	// setup HTTP client
-	t.cli = &http.Client{
-		Timeout: httpTimeout,
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+
+	if opt != nil && opt.Certificate != nil {
+		if opt.Certificate.IgnoreServerCertificateError {
+			tlsConfig.InsecureSkipVerify = true //nolint:gosec
+		} else if opt.Certificate.CaCert != "" {
+			caCertPool := x509.NewCertPool()
+			caCertPool.AppendCertsFromPEM([]byte(opt.Certificate.CaCert))
+			tlsConfig.RootCAs = caCertPool
+
+			cert, err := tls.X509KeyPair([]byte(opt.Certificate.Certificate), []byte(opt.Certificate.PrivateKey))
+			if err != nil {
+				return err
+			}
+			tlsConfig.Certificates = []tls.Certificate{cert}
+		}
+	}
+
+	protocol := strings.ToLower(opt.getProtocol())
+	t.protocol = protocol
+
+	switch protocol {
+	case ProtocolHTTP3:
+		t.cli = &http.Client{
+			Timeout: httpTimeout,
+			Transport: &http3.RoundTripper{
+				TLSClientConfig: tlsConfig,
+			},
+		}
+	case ProtocolHTTP2Only:
+		if isPlainHTTP(t.URL) {
+			t.cli = &http.Client{
+				Timeout: httpTimeout,
+				Transport: &http2.Transport{
+					AllowHTTP: true,
+					DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
+						var dialer net.Dialer
+						return dialer.DialContext(ctx, network, addr)
+					},
+				},
+			}
+		} else {
+			http2OnlyTLS := tlsConfig.Clone()
+			http2OnlyTLS.NextProtos = []string{"h2"}
+			t.cli = &http.Client{
+				Timeout: httpTimeout,
+				Transport: &http.Transport{
+					TLSClientConfig:   http2OnlyTLS,
+					ForceAttemptHTTP2: true,
+				},
+			}
+		}
+	case ProtocolHTTP2:
+		t.cli = &http.Client{
+			Timeout: httpTimeout,
+			Transport: &http.Transport{
+				TLSClientConfig:   tlsConfig,
+				ForceAttemptHTTP2: true,
+			},
+		}
+	case ProtocolHTTP11:
+		t.cli = &http.Client{
+			Timeout: httpTimeout,
+			Transport: &http.Transport{
+				TLSClientConfig:   tlsConfig,
+				ForceAttemptHTTP2: false,
+			},
+		}
+	default:
+		t.cli = &http.Client{
+			Timeout: httpTimeout,
+			Transport: &http.Transport{
+				TLSClientConfig:   tlsConfig,
+				ForceAttemptHTTP2: true,
+			},
+		}
 	}
 
 	if opt != nil {
@@ -578,33 +708,10 @@ func (t *HTTPTask) init() error {
 			opt.RequestBody.bodyType = opt.RequestBody.BodyType
 		}
 
-		// TLS opotions
-		if opt.Certificate != nil { // see https://venilnoronha.io/a-step-by-step-guide-to-mtls-in-go
-			if opt.Certificate.IgnoreServerCertificateError {
-				t.cli.Transport = &http.Transport{
-					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: opt.Certificate.IgnoreServerCertificateError, //nolint:gosec
-					},
-				}
-			} else if opt.Certificate.CaCert != "" {
-				caCertPool := x509.NewCertPool()
-				caCertPool.AppendCertsFromPEM([]byte(opt.Certificate.CaCert))
-
-				cert, err := tls.X509KeyPair([]byte(opt.Certificate.Certificate), []byte(opt.Certificate.PrivateKey))
-				if err != nil {
-					return err
-				}
-
-				t.cli.Transport = &http.Transport{
-					TLSClientConfig: &tls.Config{ //nolint:gosec
-						RootCAs:      caCertPool,
-						Certificates: []tls.Certificate{cert},
-					},
-				}
-			}
+		if protocol == ProtocolHTTP3 && opt.Proxy != nil {
+			return fmt.Errorf("HTTP/3 does not support proxy configuration")
 		}
 
-		// proxy options
 		if opt.Proxy != nil { // see https://stackoverflow.com/a/14663620/342348
 			proxyURL, err := url.Parse(opt.Proxy.URL)
 			if err != nil {
@@ -613,8 +720,8 @@ func (t *HTTPTask) init() error {
 
 			if t.cli.Transport == nil {
 				t.cli.Transport = &http.Transport{Proxy: http.ProxyURL(proxyURL)}
-			} else {
-				t.cli.Transport.(*http.Transport).Proxy = http.ProxyURL(proxyURL)
+			} else if transport, ok := t.cli.Transport.(*http.Transport); ok {
+				transport.Proxy = http.ProxyURL(proxyURL)
 			}
 		}
 	}
@@ -660,6 +767,11 @@ func (t *HTTPTask) init() error {
 	}
 
 	return nil
+}
+
+func isPlainHTTP(rawURL string) bool {
+	u, err := url.Parse(rawURL)
+	return err == nil && strings.EqualFold(u.Scheme, "http")
 }
 
 func (t *HTTPTask) getHostName() ([]string, error) {
@@ -881,4 +993,13 @@ func (t *HTTPTask) renderSuccessWhen(task *HTTPTask, fm template.FuncMap) error 
 
 func (t *HTTPTask) setReqError(err string) {
 	t.reqError = err
+}
+
+// extractSSLCertificateValidity extracts SSL certificate validity information from the given connection state.
+func (t *HTTPTask) extractSSLCertificateValidity(cs tls.ConnectionState) {
+	if len(cs.PeerCertificates) > 0 {
+		cert := cs.PeerCertificates[0] // Use the first certificate in the chain (server certificate)
+		t.sslCertNotBefore = cert.NotBefore.UnixMicro()
+		t.sslCertNotAfter = cert.NotAfter.UnixMicro()
+	}
 }

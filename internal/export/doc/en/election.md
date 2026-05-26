@@ -6,36 +6,20 @@
 
 ---
 
-When there is only one collected object (such as Kubernetes) in the cluster, but in the case of batch deployment, the configuration of multiple DataKits is exactly the same, and the collection of the central object is turned on. In order to avoid repeated collection, we can turn on the election function of DataKits.
+When there is only one target for data collection (e.g., Kubernetes) in a cluster, but multiple DataKits are deployed in bulk with identical configurations and all of them have collection enabled for that central target, the election feature can be activated in DataKit to avoid duplicate data collection.
 
-DataKit has two election modes:
+Currently, DataKit only supports a "self-election" mode. Under the same election namespace, one DataKit instance will be elected as the leader and take charge of all data collection tasks, while the other instances remain on standby.
 
-- DataKit self-election: In the same election namespace, the elected DataKit is responsible for all data collection, while other DataKit are in a pending state. The advantage is that the configuration is simple and there is no need to deploy additional applications. However, the disadvantage is that the elected DataKit has a higher resource utilization as all collectors run on this DataKit, which increases system resource usage.
-- Collector task election[:octicons-tag-24: Version-1.7.0](changelog.md#cl-1.7.0): This mode is only applicable to Kubernetes environment. By deploying the [DataKit Operator](datakit-operator.md#datakit-operator-overview-and-install) program, task distribution can be achieved among various collectors of DataKit. The advantage is that the resource utilization of each DataKit is more balanced. However, the disadvantage is that an additional program needs to be deployed in the cluster.
+The advantages and disadvantages of this mode are as follows:
 
-## Collector Task Election Mode {#plugins-election}
-
-### Deploy DataKit Operator {#install-operator}
-
-The collector election mode requires the use of the DataKit Operator v1.0.5+ program. Refer to [here](datakit-operator.md#datakit-operator-install) for the deployment document.
-
-### Election Configuration {#plugins-election-config}
-
-Add an environment variable `ENV_DATAKIT_OPERATOR` with the value of the DataKit Operator address in DataKit's installation YAML file, for example:
-
-```yaml
-      containers:
-      - env:
-        - name: ENV_DATAKIT_OPERATOR
-          value: https://datakit-operator.datakit.svc:443
-```
-
-The default service address of DataKit Operator is `datakit-operator.datakit.svc:443`.
+- Advantages: Simple configuration, with no need to deploy additional components.
+- Disadvantages: The elected DataKit leader bears a higher load, as all collection tasks are concentrated on this single instance, which may lead to a significant increase in its system resource usage.
 
 <!-- markdownlint-disable MD046 -->
-???+ note
+???+ warning
 
-    The priority of collector task election is higher than that of DataKit self-election. If a usable DataKit Operator address is configured, task election will be used first, otherwise DataKit self-election will be used.
+    Starting from DataKit [:octicons-tag-24: Version-1.85.0](changelog.md#cl-1.85.0), the collector task election feature has been removed. Correspondingly, DataKit-Operator v1.6.0 also no longer supports the election interface.
+
 
 ## DataKit Self Election {#self-election}
 

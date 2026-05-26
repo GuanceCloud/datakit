@@ -75,6 +75,8 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 		ct = &dt.ICMPTask{}
 	case dt.ClassMulti:
 		ct = &dt.MultiTask{}
+	case dt.ClassGRPC:
+		ct = &dt.GRPCTask{}
 	default:
 		l.Errorf("unknown task type: %s", taskType)
 		return nil, uhttp.Error(ErrInvalidRequest, fmt.Sprintf("unknown task type:%s", taskType))
@@ -206,16 +208,24 @@ func IsInternalHost(host string, cidrs []string) (bool, error) {
 
 // IsAllowedHost check whether the host is allowed to be tested.
 func IsAllowedHost(hosts []string) (bool, error) {
+	return isAllowedHost(hosts, func(host string) (bool, error) {
+		return IsInternalHost(host, DialtestingDisabledInternalNetworkCidrList)
+	})
+}
+
+func isAllowedHost(hosts []string, checker func(string) (bool, error)) (bool, error) {
 	if !DialtestingDisableInternalNetworkTask {
 		return true, nil
 	}
 
 	for _, host := range hosts {
-		isInternal, err := IsInternalHost(host, DialtestingDisabledInternalNetworkCidrList)
+		isInternal, err := checker(host)
 		if err != nil {
 			return false, err
-		} else {
-			return !isInternal, nil
+		}
+
+		if isInternal {
+			return false, nil
 		}
 	}
 

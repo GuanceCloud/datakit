@@ -28,6 +28,7 @@ func getColumnValueFromSymbol(values *ResultValueStore, symbol SymbolConfig) (ma
 	for index, value := range columnValues {
 		newValue, err := processValueUsingSymbolConfig(value, symbol)
 		if err != nil {
+			l.Debugf("error processing value using symbolConfig (oid=%s, name=%s): %s", symbol.OID, symbol.Name, err)
 			continue
 		}
 		newValues[index] = newValue
@@ -53,7 +54,11 @@ func processValueUsingSymbolConfig(value ResultValue, symbol SymbolConfig) (Resu
 		}
 
 		if symbol.MatchPatternCompiled.MatchString(strValue) {
-			replacedVal := RegexReplaceValue(strValue, symbol.MatchPatternCompiled, symbol.MatchValue)
+			replacement := symbol.MatchValue
+			if replacement == "" {
+				replacement = "$1"
+			}
+			replacedVal := RegexReplaceValue(strValue, symbol.MatchPatternCompiled, replacement)
 			if replacedVal == "" {
 				return ResultValue{}, fmt.Errorf("the pattern `%v` matched value `%v`, but template `%s` is not compatible", symbol.MatchPattern, strValue, symbol.MatchValue)
 			}
@@ -100,9 +105,9 @@ func getTagsFromMetricTagConfigList(mtcl MetricTagConfigList, fullIndex string, 
 			rowTags = append(rowTags, metricTag.Tag+":"+tagValue)
 		}
 		// get tag using another column value
-		if metricTag.Column.OID != "" {
+		if metricTag.Symbol.OID != "" {
 			// TODO: Support extract value see II-635
-			columnValues, err := getColumnValueFromSymbol(values, metricTag.Column)
+			columnValues, err := getColumnValueFromSymbol(values, SymbolConfig(metricTag.Symbol))
 			if err != nil {
 				l.Debugf("error getting column value: %v", err)
 				continue

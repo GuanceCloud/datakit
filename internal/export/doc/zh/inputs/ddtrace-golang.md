@@ -22,55 +22,100 @@ DDTrace 推出编译时接入 APM 需要安装 [Orchestrion](https://github.com/
 - 必须使用 Go Module 管理项目。
 - 安装 DataKit 并开启 [DDTrace 采集器](ddtrace.md)
 
-安装 Orchestrion
+<!-- markdownlint-disable MD046 -->
 
-```shell
-go install github.com/DataDog/orchestrion@latest
-```
+=== "≥1.24"
 
-如果安装失败，尝试将项目克隆到本地再编译。
+    1. 安装 Orchestrion
 
-```shell
-git clone https://github.com/DataDog/orchestrion.git
-cd orchestrion/
-go build
-cp orchestrion $GOPATH/bin/
-```
+    ```shell
+    go install github.com/DataDog/orchestrion@latest
+    ```
 
-在项目的根目录下执行命令，即可在本地生成一个 go 文件。
+    如果安装失败，尝试将项目克隆到本地再编译。
 
-```shell
-orchestrion pin
-```
+    ```shell
+    git clone https://github.com/DataDog/orchestrion.git
+    cd orchestrion/
+    go build
+    cp orchestrion $GOPATH/bin/
+    ```
 
-使用以下三种方式的一种进行编译你的项目：
+    2. 初始化 Orchestrion
 
-- **在 `go build` 命令之前**：
+    ```shell
+    orchestrion pin
+    ```
 
-```shell
-orchestrion go build .
-orchestrion go run .
-orchestrion go test ./...
-```
+    3. 编译 & 运行
 
-- **使用 `-toolexec` 方式**:
+    使用以下三种方式的一种进行编译你的项目：
 
-```shell
-go build -toolexec="orchestrion toolexec" .
-go run -toolexec="orchestrion toolexec" .
-go test -toolexec="orchestrion toolexec" ./...
-```
+    - **在 `go build` 命令之前**：
 
-- **修改环境变量 `$GOFLAGS`**：
+    ```shell
+    orchestrion go build .
+    orchestrion go run .
+    orchestrion go test ./...
+    ```
 
-```shell
-# Make sure to include the quotes as shown below, as these are required for
-# the Go toolchain to parse GOFLAGS properly!
-export GOFLAGS="${GOFLAGS} '-toolexec=orchestrion toolexec'"
-go build .
-go run .
-go test ./...
-```
+    - **使用 `-toolexec` 方式**:
+
+    ```shell
+    go build -toolexec="orchestrion toolexec" .
+    go run -toolexec="orchestrion toolexec" .
+    go test -toolexec="orchestrion toolexec" ./...
+    ```
+
+    - **修改环境变量 `$GOFLAGS`**：
+
+    ```shell
+    # Make sure to include the quotes as shown below, as these are required for
+    # the Go toolchain to parse GOFLAGS properly!
+    export GOFLAGS="${GOFLAGS} '-toolexec=orchestrion toolexec'"
+    go build .
+    go run .
+    go test ./...
+    ```
+
+=== "≥1.18 && <1.24"
+
+    1. 安装 Orchestrion
+
+    ```shell
+    # 安装依赖
+    go install github.com/datadog/orchestrion@v0.6.0
+    ```
+
+    2. 初始化 Orchestrion
+
+    ```shell
+    # 在当前项目目录根目录下执行初始化命令
+    orchestrion -w ./ 
+    ```
+
+    3. 下载依赖
+
+    ```shell
+    go get github.com/datadog/orchestrion@v0.6.0
+    ```
+
+    4. 构建
+
+    ```shell
+    go mod tidy
+    go build .
+    ```
+
+    5. 运行
+
+    ```shell
+    export DD_SERVICE=<service-name>
+    export DD_TRACE_AGENT_PORT=9529
+    ./<application-name>
+    ```
+
+<!-- markdownlint-enable -->
 
 编译之后的执行程序就可以在运行过程中触发链路并上传。
 

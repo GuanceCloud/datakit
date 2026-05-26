@@ -160,14 +160,19 @@ func (e *Client) AsyncNextEventLoop(ctx context.Context, eventDone <-chan struct
 			case <-ctx.Done():
 				return
 			default:
-				l.Info("[client:AsyncNextEventLoop] starting next event")
+				l.Debug("[client:AsyncNextEventLoop] starting next event")
 				event, err := e.NextEvent(ctx)
 				if err != nil {
 					l.Errorf("[client:AsyncNextEventLoop] failed with err %s", err)
 					close(resChan)
 					return
 				}
-				l.Info("[client:AsyncNextEventLoop] end next event", event)
+				l.Debugf("[client:AsyncNextEventLoop] end next event type=%s request_id=%s deadline_ms=%d shutdown_reason=%s",
+					event.EventType,
+					event.RequestID,
+					event.DeadlineMs,
+					event.ShutdownReason,
+				)
 				resChan <- event
 			}
 		}

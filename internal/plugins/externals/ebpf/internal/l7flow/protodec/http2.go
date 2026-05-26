@@ -21,6 +21,7 @@ type h2Info struct {
 
 	method string
 	path   string
+	host   string
 
 	statusCode int
 
@@ -133,6 +134,7 @@ func (dec *h2DecPipe) Decode(txRx comm.NICDirection, data *comm.NetwrkData,
 					elem.path = hdr.Value
 				case l4log.H2HdrScheme:
 				case l4log.H2HdrHost:
+					elem.host = normalizeHTTPHost(hdr.Value)
 				case l4log.H2HdrStatus:
 					v, _ := strconv.ParseInt(hdr.Value, 10, 32)
 					elem.statusCode = int(v)
@@ -232,31 +234,34 @@ func (dec *h2DecPipe) Export(force bool) []*ProtoData {
 
 			switch dec.direction { //nolint:exhaustive
 			case comm.DIn:
-				kvs = kvs.Set(comm.FieldBytesRead, int64(inf.reqBytes))
-				kvs = kvs.Set(comm.FieldBytesWritten, int64(inf.respBytes))
+				kvs = appendKV(kvs, comm.FieldBytesRead, int64(inf.reqBytes))
+				kvs = appendKV(kvs, comm.FieldBytesWritten, int64(inf.respBytes))
 			default:
-				kvs = kvs.Set(comm.FieldBytesRead, int64(inf.respBytes))
-				kvs = kvs.Set(comm.FieldBytesWritten, int64(inf.reqBytes))
+				kvs = appendKV(kvs, comm.FieldBytesRead, int64(inf.respBytes))
+				kvs = appendKV(kvs, comm.FieldBytesWritten, int64(inf.reqBytes))
 			}
 
-			kvs = kvs.Set(comm.FieldHTTPMethod, inf.method)
-			kvs = kvs.Set(comm.FieldHTTPRoute, inf.path)
-			kvs = kvs.Set(comm.FieldHTTPStatusCode, strconv.Itoa(inf.statusCode))
-			kvs = kvs.Set(comm.FieldStatus, httpCode2Status(inf.statusCode))
+			kvs = appendKV(kvs, comm.FieldHTTPMethod, inf.method)
+			kvs = appendKV(kvs, comm.FieldHTTPRoute, inf.path)
+			if inf.host != "" {
+				kvs = appendKV(kvs, comm.FieldHTTPHost, inf.host)
+			}
+			kvs = appendKV(kvs, comm.FieldHTTPStatusCode, strconv.Itoa(inf.statusCode))
+			kvs = appendKV(kvs, comm.FieldStatus, httpCode2Status(inf.statusCode))
 			var proto L7Protocol
 			if dec.isGRPC {
 				proto = ProtoGRPC
 				if inf.grpcMessage != "" {
-					kvs = kvs.Set(comm.FieldGRPCMessage, inf.grpcMessage)
+					kvs = appendKV(kvs, comm.FieldGRPCMessage, inf.grpcMessage)
 				}
-				kvs = kvs.Set(comm.FieldGRPCStatusCode, strconv.Itoa(inf.grpcStatusCode))
+				kvs = appendKV(kvs, comm.FieldGRPCStatusCode, strconv.Itoa(inf.grpcStatusCode))
 			} else {
 				proto = ProtoHTTP2
 			}
 
 			// 页面 span 上显示的是 `<opperation> <resource>`
-			kvs = kvs.Set(comm.FieldOperation, proto.String())
-			kvs = kvs.Set(comm.FieldResource, inf.method+" "+inf.path)
+			kvs = appendKV(kvs, comm.FieldOperation, proto.String())
+			kvs = appendKV(kvs, comm.FieldResource, inf.method+" "+inf.path)
 
 			dur := int64(inf.ktime[3] - inf.ktime[0])
 			cost := int64(inf.ktime[2] - inf.ktime[1])

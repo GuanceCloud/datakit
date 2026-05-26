@@ -7,7 +7,7 @@
 package jolokia
 
 import (
-	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -30,7 +30,10 @@ const (
 	defaultFieldName = "value"
 )
 
-var log = logger.DefaultSLogger("jolokia")
+var (
+	log                      = logger.DefaultSLogger("jolokia")
+	_   inputs.ElectionInput = (*JolokiaAgent)(nil)
+)
 
 type JolokiaAgent struct {
 	DefaultFieldPrefix    string
@@ -61,40 +64,32 @@ type JolokiaAgent struct {
 	Feeder  dkio.Feeder   `toml:"-"`
 	Tagger  datakit.GlobalTagger
 	g       *goroutine.Group
-	pause   bool
-	pauseCh chan bool
+
+	pause atomic.Bool
 }
 
 func DefaultInput() *JolokiaAgent {
 	return &JolokiaAgent{
 		SemStop:  cliutils.NewSem(),
-		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
+		pause:    atomic.Bool{},
 		Election: true,
 		Tagger:   datakit.DefaultGlobalTagger(),
 		Feeder:   dkio.DefaultFeeder(),
 	}
 }
 
+func (j *JolokiaAgent) ElectionEnabled() bool {
+	return j.Election
+}
+
 func (j *JolokiaAgent) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case j.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", j.PluginName)
-	}
+	j.pause.Store(true)
+	return nil
 }
 
 func (j *JolokiaAgent) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case j.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", j.PluginName)
-	}
+	j.pause.Store(false)
+	return nil
 }
 
 func (j *JolokiaAgent) Terminate() {

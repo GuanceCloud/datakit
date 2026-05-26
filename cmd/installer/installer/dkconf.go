@@ -7,12 +7,14 @@ package installer
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"net"
 	"os"
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -205,12 +207,7 @@ func (args *InstallerArgs) injectCloudProvider() error {
 
 		conf := args.preEnableHostobjectInput()
 
-		if err := os.MkdirAll(filepath.Join(datakit.ConfdDir, "host"), datakit.ConfPerm); err != nil {
-			l.Errorf("failed to init hostobject conf: %s", err.Error())
-			return err
-		}
-
-		cfgpath := filepath.Join(datakit.ConfdDir, "host", "hostobject.conf")
+		cfgpath := filepath.Join(datakit.ConfdDir, "hostobject.conf")
 		if err := os.WriteFile(cfgpath, conf, datakit.ConfPerm); err != nil {
 			l.Errorf("WriteFile: %s", err.Error())
 			return err
@@ -277,19 +274,8 @@ func (args *InstallerArgs) getDataway() (*dataway.Dataway, error) {
 	}
 }
 
-// LoadInstallerArgs apply args settings to mc.
-// nolint:funlen
-func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config, error) {
+func (args *InstallerArgs) loadDataway(mc *config.Config) (*config.Config, error) {
 	var err error
-
-	if args.FlagUserName != "" {
-		mc.DatakitUser = args.FlagUserName
-	}
-
-	if args.Proxy != "" {
-		l.Debugf("set proxy to %s", args.Proxy)
-		mc.Dataway.HTTPProxy = args.Proxy
-	}
 
 	// setup dataway and check token format
 	if len(args.DatawayURLs) != 0 {
@@ -306,6 +292,146 @@ func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config,
 		l.Infof("Set dataway global sinker customer keys: %+#v", mc.Dataway.GlobalCustomerKeys)
 	}
 
+	if args.Proxy != "" {
+		l.Debugf("set proxy to %s", args.Proxy)
+		mc.Dataway.HTTPProxy = args.Proxy
+	}
+
+	return mc, nil
+}
+
+func (args *InstallerArgs) loadResourceLimit(mc *config.Config) *config.Config {
+	if mc.ResourceLimitOptions.Enable { // resource-limit not disabled before upgrade/install
+		if args.LimitCPUMax > 0 {
+			mc.ResourceLimitOptions.CPUCores = resourcelimit.CPUMaxToCores(args.LimitCPUMax)
+			mc.ResourceLimitOptions.CPUMaxDeprecated = 0.0 // clear old cpu-max
+
+			l.Infof("apply cpu-cores to %f based on cpu-max %f",
+				mc.ResourceLimitOptions.CPUCores, args.LimitCPUMax)
+		}
+
+		// apply args to datakit.conf or from datakit.conf to args
+		if args.LimitCPUCores > 0 {
+			mc.ResourceLimitOptions.CPUCores = args.LimitCPUCores
+			mc.ResourceLimitOptions.CPUMaxDeprecated = 0.0 // clear old cpu-max
+
+			l.Infof("apply cpu-cores: %f", mc.ResourceLimitOptions.CPUCores)
+		}
+
+		// clear deprecated cpu-max
+		if mc.ResourceLimitOptions.CPUMaxDeprecated > 0 {
+			mc.ResourceLimitOptions.CPUCores = resourcelimit.CPUMaxToCores(mc.ResourceLimitOptions.CPUMaxDeprecated)
+			mc.ResourceLimitOptions.CPUMaxDeprecated = 0.0
+		}
+
+		if args.LimitMemMax > 0 {
+			mc.ResourceLimitOptions.MemMax = args.LimitMemMax
+
+			l.Infof("apply mem-max: %f", mc.ResourceLimitOptions.MemMax)
+		}
+
+		mc.ResourceLimitOptions.Setup()
+
+		l.Infof("resource limit enabled under %s, cpu-cores: %f, mem: %dMB",
+			runtime.GOOS,
+			mc.ResourceLimitOptions.CPUCores,
+			mc.ResourceLimitOptions.MemMax)
+	}
+
+	return mc
+}
+
+func (args *InstallerArgs) loadHTTPPublicAPIs(mc *config.Config) *config.Config {
+	apis := strings.Split(args.HTTPPublicAPIs, ",")
+	idx := 0
+	for _, api := range apis {
+		api = strings.TrimSpace(api)
+		if api != "" {
+			if !strings.HasPrefix(api, "/") {
+				api = "/" + api
+			}
+			apis[idx] = api
+			idx++
+		}
+	}
+
+	mc.HTTPAPI.PublicAPIs = apis[:idx]
+	l.Infof("set PublicAPIs to %s", strings.Join(apis[:idx], ","))
+	return mc
+}
+
+func parseHTTPListen(listen string) (string, int) {
+	if listen == "" {
+		return "", 0
+	}
+
+	host, port, err := net.SplitHostPort(listen)
+	if err != nil || port == "" {
+		return listen, 0
+	}
+
+	portInt, err := strconv.Atoi(port)
+	if err != nil || portInt <= 0 {
+		return host, 0
+	}
+
+	return host, portInt
+}
+
+func resolveTCPListen(listen string) (string, int, bool) {
+	taddr, err := net.ResolveTCPAddr("tcp", listen)
+	if err != nil || taddr.Port == 0 || taddr.IP.String() == "" {
+		return "", 0, false
+	}
+
+	return taddr.IP.String(), taddr.Port, true
+}
+
+func (args *InstallerArgs) loadHTTPServerSet(mc *config.Config) *config.Config {
+	host, port := parseHTTPListen(args.HTTPListen)
+	if args.HTTPPort != 0 {
+		port = args.HTTPPort
+	}
+
+	if host == "" || port == 0 {
+		legacyHost, legacyPort, ok := resolveTCPListen(mc.HTTPAPI.Listen)
+		if !ok {
+			l.Warnf("invalid legacy HTTP listen %q", mc.HTTPAPI.Listen)
+		}
+
+		if host == "" {
+			host = legacyHost
+		}
+
+		if port == 0 {
+			port = legacyPort
+		}
+	}
+
+	if host == "" || port == 0 {
+		l.Warnf("invalid HTTP listen host %q or port %d", host, port)
+		return mc
+	}
+
+	mc.HTTPAPI.Listen = fmt.Sprintf("%s:%d", host, port)
+	l.Infof("set HTTP listen to %s", mc.HTTPAPI.Listen)
+	return mc
+}
+
+// LoadInstallerArgs apply args settings to mc.
+// nolint:funlen
+func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config, error) {
+	var err error
+
+	mc, err = args.loadDataway(mc)
+	if err != nil {
+		return mc, err
+	}
+
+	if args.FlagUserName != "" {
+		mc.DatakitUser = args.FlagUserName
+	}
+
 	if args.InstrumentationEnabled != "" {
 		mc.HTTPAPI.ListenSocket = "/var/run/datakit/datakit.sock"
 		mc.APMInject.InstrumentationEnabled = args.InstrumentationEnabled
@@ -317,20 +443,7 @@ func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config,
 	}
 
 	if args.HTTPPublicAPIs != "" {
-		apis := strings.Split(args.HTTPPublicAPIs, ",")
-		idx := 0
-		for _, api := range apis {
-			api = strings.TrimSpace(api)
-			if api != "" {
-				if !strings.HasPrefix(api, "/") {
-					api = "/" + api
-				}
-				apis[idx] = api
-				idx++
-			}
-		}
-		mc.HTTPAPI.PublicAPIs = apis[:idx]
-		l.Infof("set PublicAPIs to %s", strings.Join(apis[:idx], ","))
+		mc = args.loadHTTPPublicAPIs(mc)
 	}
 
 	if args.DCAEnable != "" {
@@ -350,42 +463,7 @@ func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config,
 	}
 
 	if args.LimitDisabled != 1 {
-		if mc.ResourceLimitOptions.Enable { // resource-limit not disabled before upgrade/install
-			if args.LimitCPUMax > 0 {
-				mc.ResourceLimitOptions.CPUCores = resourcelimit.CPUMaxToCores(args.LimitCPUMax)
-				mc.ResourceLimitOptions.CPUMaxDeprecated = 0.0 // clear old cpu-max
-
-				l.Infof("apply cpu-cores to %f based on cpu-max %f",
-					mc.ResourceLimitOptions.CPUCores, args.LimitCPUMax)
-			}
-
-			// apply args to datakit.conf or from datakit.conf to args
-			if args.LimitCPUCores > 0 {
-				mc.ResourceLimitOptions.CPUCores = args.LimitCPUCores
-				mc.ResourceLimitOptions.CPUMaxDeprecated = 0.0 // clear old cpu-max
-
-				l.Infof("apply cpu-cores: %f", mc.ResourceLimitOptions.CPUCores)
-			}
-
-			// clear deprecated cpu-max
-			if mc.ResourceLimitOptions.CPUMaxDeprecated > 0 {
-				mc.ResourceLimitOptions.CPUCores = resourcelimit.CPUMaxToCores(mc.ResourceLimitOptions.CPUMaxDeprecated)
-				mc.ResourceLimitOptions.CPUMaxDeprecated = 0.0
-			}
-
-			if args.LimitMemMax > 0 {
-				mc.ResourceLimitOptions.MemMax = args.LimitMemMax
-
-				l.Infof("apply mem-max: %f", mc.ResourceLimitOptions.MemMax)
-			}
-
-			mc.ResourceLimitOptions.Setup()
-
-			l.Infof("resource limit enabled under %s, cpu-cores: %f, mem: %dMB",
-				runtime.GOOS,
-				mc.ResourceLimitOptions.CPUCores,
-				mc.ResourceLimitOptions.MemMax)
-		}
+		mc = args.loadResourceLimit(mc)
 	} else {
 		mc.ResourceLimitOptions.Enable = false
 		l.Infof("resource limit disabled, OS: %s", runtime.GOOS)
@@ -427,21 +505,7 @@ func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config,
 	}
 
 	if args.HTTPListen != "" || args.HTTPPort != 0 {
-		taddr, err := net.ResolveTCPAddr("tcp", mc.HTTPAPI.Listen)
-		if err != nil {
-			l.Warnf("invalid lagacy HTTP listen %q", mc.HTTPAPI.Listen)
-		} else {
-			if args.HTTPPort == 0 && taddr.Port != 0 { // use lagacy port
-				args.HTTPPort = taddr.Port
-			}
-
-			if args.HTTPListen == "" && taddr.IP.String() != "" {
-				args.HTTPListen = taddr.IP.String() // use lagacy ip
-			}
-		}
-
-		mc.HTTPAPI.Listen = fmt.Sprintf("%s:%d", args.HTTPListen, args.HTTPPort)
-		l.Infof("set HTTP listen to %s", mc.HTTPAPI.Listen)
+		mc = args.loadHTTPServerSet(mc)
 	}
 
 	if args.HTTPSocket != "" {
@@ -450,11 +514,6 @@ func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config,
 	}
 
 	l.Infof("install version %s", args.DataKitVersion)
-
-	if args.DatakitName != "" {
-		mc.Name = args.DatakitName
-		l.Infof("set datakit name to %s", mc.Name)
-	}
 
 	if args.CryptoAESKey != "" || args.CryptoAESKeyFile != "" {
 		if mc.Crypto != nil {
@@ -476,9 +535,9 @@ func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config,
 					SSHPrivateKeyPath:     args.GitKeyPath,
 					SSHPrivateKeyPassword: args.GitKeyPW,
 					Branch:                args.GitBranch,
-				}, // GitRepository
-			}, // Repos
-		} // GitRepost
+				},
+			},
+		}
 	}
 
 	if args.RumDisable404Page != "" {
@@ -513,5 +572,70 @@ func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config,
 		mc.RemoteJob.JavaHome = javaHome
 	}
 
+	// Process InputConfigs parameter
+	if args.InputConfigs != "" {
+		if err := args.processInputConfigs(); err != nil {
+			l.Warnf("process InputConfigs failed: %s, ignored", err.Error())
+		}
+	}
+
 	return mc, nil
+}
+
+// processInputConfigs processes InputConfigs parameter.
+func (args *InstallerArgs) processInputConfigs() error {
+	if args.InputConfigs == "" {
+		return nil
+	}
+
+	// Format: filename:base64;filename:base64
+	// Split multiple config items
+	configItems := strings.Split(args.InputConfigs, ";")
+	for _, item := range configItems {
+		if item == "" {
+			continue
+		}
+
+		// Split filename and base64 content
+		parts := strings.SplitN(item, ":", 2)
+		if len(parts) != 2 {
+			l.Warnf("invalid input config format: %s, expected 'filename:base64'", item)
+			continue
+		}
+
+		filename := strings.TrimSpace(parts[0])
+		base64Content := strings.TrimSpace(parts[1])
+		if filename == "" || base64Content == "" {
+			l.Warnf("empty filename or content in: %s", item)
+			continue
+		}
+
+		filename = filepath.Base(filename)
+		if filename == "." || filename == ".." || filename == "/" {
+			l.Warnf("invalid filename after sanitization: %s", parts[0])
+			continue
+		}
+		// Ensure filename ends with .conf
+		if !strings.HasSuffix(filename, ".conf") {
+			filename += ".conf"
+		}
+
+		cfgpath := filepath.Join(datakit.ConfdDir, filename)
+
+		// Base64 decode
+		decoded, err := base64.StdEncoding.DecodeString(base64Content)
+		if err != nil {
+			l.Errorf("base64 decode failed for file %s: %s", filename, err.Error())
+			continue
+		}
+
+		if err := os.WriteFile(cfgpath, decoded, datakit.ConfPerm); err != nil {
+			l.Errorf("write file %s failed: %s", cfgpath, err.Error())
+			return err
+		}
+
+		l.Infof("created/updated config file: %s", cfgpath)
+	}
+
+	return nil
 }

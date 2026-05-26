@@ -278,75 +278,29 @@ func (ipt *Input) buildMysqlUserStatus() ([]*gcPoint.Point, error) {
 	return pts, nil
 }
 
-func (ipt *Input) buildMysqlDbmMetric() ([]*gcPoint.Point, error) {
+func (ipt *Input) buildMysqlDbmSample(plans []planObj, ptsTime time.Time) ([]*gcPoint.Point, error) {
 	var pts []*gcPoint.Point
-	opts := ipt.getKVsOpts(gcPoint.Logging)
+	opts := append(gcPoint.DefaultObjectOptions(), gcPoint.WithTime(ptsTime))
 
-	for _, row := range ipt.dbmMetricRows {
+	for _, plan := range plans {
 		kvs := ipt.getKVs()
+		planKey := generatePlanCacheKey(plan.querySignature, plan.planSignature)
 
-		// tags
-		kvs = kvs.AddTag("service", "mysql")
-		kvs = kvs.AddTag("status", "info")
-		if len(row.schemaName) > 0 {
-			kvs = kvs.AddTag("schema_name", row.schemaName)
-		} else {
-			kvs = kvs.AddTag("schema_name", "-")
+		// tags (minimal set for object identity and linkage, aligned with sqlserver db_query)
+		objectName := fmt.Sprintf("%s-%s", ipt.Object.name, planKey)
+		if ipt.InstanceName != "" {
+			objectName = fmt.Sprintf("%s-%s-%s", ipt.Object.name, ipt.InstanceName, planKey)
 		}
-
-		// fields
-		if len(row.digestText) > 0 {
-			kvs = kvs.Set("message", row.digestText)
-		}
-
-		if len(row.digest) > 0 {
-			kvs = kvs.Set("digest", row.digest)
-		}
-
-		if len(row.querySignature) > 0 {
-			kvs = kvs.Set("query_signature", row.querySignature)
-		}
-
-		kvs = kvs.Set("count_star", row.countStar)
-		kvs = kvs.Set("sum_timer_wait", row.sumTimerWait)
-		kvs = kvs.Set("sum_lock_time", row.sumLockTime)
-		kvs = kvs.Set("sum_errors", row.sumErrors)
-		kvs = kvs.Set("sum_rows_affected", row.sumRowsAffected)
-		kvs = kvs.Set("sum_rows_sent", row.sumRowsSent)
-		kvs = kvs.Set("sum_rows_examined", row.sumRowsExamined)
-		kvs = kvs.Set("sum_select_scan", row.sumSelectScan)
-		kvs = kvs.Set("sum_select_full_join", row.sumSelectFullJoin)
-		kvs = kvs.Set("sum_no_index_used", row.sumNoIndexUsed)
-		kvs = kvs.Set("sum_no_good_index_used", row.sumNoGoodIndexUsed)
-
-		pts = append(pts, gcPoint.NewPoint(metricNameMySQLDbmMetric, kvs, opts...))
-	}
-
-	return pts, nil
-}
-
-func (ipt *Input) buildMysqlDbmSample() ([]*gcPoint.Point, error) {
-	var pts []*gcPoint.Point
-	opts := ipt.getKVsOpts(gcPoint.Logging)
-
-	for _, plan := range ipt.dbmSamplePlans {
-		kvs := ipt.getKVs()
-
-		// tags
-		kvs = kvs.AddTag("service", "mysql")
-		kvs = kvs.AddTag("current_schema", plan.currentSchema)
-		kvs = kvs.AddTag("plan_definition", plan.planDefinition)
+		kvs = kvs.AddTag("name", objectName)
+		kvs = kvs.AddTag("server", ipt.Object.name)
+		kvs = kvs.AddTag("database_type", "MySQL")
+		kvs = kvs.AddTag("plan_type", "JSON")
+		kvs = kvs.AddTag("schema_name", plan.currentSchema)
 		kvs = kvs.AddTag("plan_signature", plan.planSignature)
 		kvs = kvs.AddTag("query_signature", plan.querySignature)
-		kvs = kvs.AddTag("resource_hash", plan.resourceHash)
-		kvs = kvs.AddTag("digest_text", plan.digestText)
-		kvs = kvs.AddTag("query_truncated", plan.queryTruncated)
-		kvs = kvs.AddTag("network_client_ip", plan.networkClientIP)
 		kvs = kvs.AddTag("digest", plan.digest)
-		kvs = kvs.AddTag("processlist_db", plan.processlistDB)
-		kvs = kvs.AddTag("processlist_user", plan.processlistUser)
-		kvs = kvs.AddTag("status", "info")
-		// fields
+
+		// fields (only core timing / rows / index usage, plus plan text)
 		kvs = kvs.Set("timestamp", plan.timestamp)
 		kvs = kvs.Set("duration", plan.duration)
 		kvs = kvs.Set("lock_time_ns", plan.lockTimeNs)
@@ -355,19 +309,11 @@ func (ipt *Input) buildMysqlDbmSample() ([]*gcPoint.Point, error) {
 		kvs = kvs.Set("rows_affected", plan.rowsAffected)
 		kvs = kvs.Set("rows_examined", plan.rowsExamined)
 		kvs = kvs.Set("rows_sent", plan.rowsSent)
-		kvs = kvs.Set("select_full_join", plan.selectFullJoin)
-		kvs = kvs.Set("select_full_range_join", plan.selectFullRangeJoin)
-		kvs = kvs.Set("select_range", plan.selectRange)
-		kvs = kvs.Set("select_range_check", plan.selectRangeCheck)
-		kvs = kvs.Set("select_scan", plan.selectScan)
-		kvs = kvs.Set("sort_merge_passes", plan.sortMergePasses)
-		kvs = kvs.Set("sort_range", plan.sortRange)
-		kvs = kvs.Set("sort_rows", plan.sortRows)
-		kvs = kvs.Set("sort_scan", plan.sortScan)
-		kvs = kvs.Set("timer_wait_ns", plan.duration)
-		kvs = kvs.Set("message", plan.digestText)
+		kvs = kvs.Set("message", plan.planDefinition)
+		kvs = kvs.Set("statement", plan.statement)
 
-		pts = append(pts, gcPoint.NewPoint(metricNameMySQLDbmSample, kvs, opts...))
+		pts = append(pts, gcPoint.NewPoint(dbmExecPlanObjectName, kvs, opts...))
+		ipt.recordReportedPlanSignature(planKey)
 	}
 
 	return pts, nil
@@ -419,7 +365,7 @@ func (ipt *Input) buildMysqlCustomerObject() ([]*gcPoint.Point, error) {
 		"version":      version,
 	}
 	tags := map[string]string{
-		"name":          fmt.Sprintf("mysql-%s:%d", ipt.Host, ipt.Port),
+		"name":          fmt.Sprintf("%s-%s:%d", inputName, ipt.Host, ipt.Port),
 		"host":          ipt.Host,
 		"ip":            fmt.Sprintf("%s:%d", ipt.Host, ipt.Port),
 		"col_co_status": ipt.CollectCoStatus,

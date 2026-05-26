@@ -5,9 +5,9 @@ package l4log
 
 import (
 	"strconv"
-	"sync/atomic"
 	"time"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
 )
 
@@ -18,7 +18,7 @@ const (
 	twoMSL              = time.Minute     // buf default is 120s
 	defaultTCPKeepAlive = time.Minute * 2 // >5min 直接结束，不使用内核设置，避免堆积
 
-	tcpPktLimitPerChunk = 256
+	tcpPktLimitPerChunk = 64
 )
 
 type L7ProtoEventAndMetric interface {
@@ -48,171 +48,6 @@ const (
 
 	TCPClose
 )
-
-type tcpSortElem struct {
-	overflow bool
-	idx      int64
-
-	txRx int8
-
-	seq uint32
-	len uint32
-
-	ackSeq uint32
-}
-
-// const (
-// 	_tcpelemLimit = 32
-// 	_tcpelemCap   = _tcpelemLimit * 2
-// )
-
-type tcpRetransAndReorder struct {
-	// todo: resort
-
-	tcpStatus tcpStatus
-	keepalive bool
-
-	txPkts []*tcpSortElem // 记录少量数据包
-
-	rxPkts []*tcpSortElem // 记录少量数据包
-}
-
-const (
-	maxPktRecForRetransAndResort = 128
-)
-
-func (tcpr *tcpRetransAndReorder) _insert(elem *tcpSortElem, idx int) {
-	var txrxPkts []*tcpSortElem
-
-	switch elem.txRx {
-	case directionTX:
-		txrxPkts = tcpr.txPkts
-	case directionRX:
-		txrxPkts = tcpr.rxPkts
-	default:
-		return
-	}
-
-	curIdx := len(txrxPkts) - 1
-	if idx > curIdx || idx < 0 {
-		txrxPkts = append(txrxPkts, elem)
-	} else {
-		txrxPkts = append(txrxPkts, nil)
-		copy(txrxPkts[idx+1:], txrxPkts[idx:])
-		txrxPkts[idx] = elem
-	}
-	if len(txrxPkts) >= maxPktRecForRetransAndResort {
-		tmp := make([]*tcpSortElem, 0, maxPktRecForRetransAndResort)
-		txrxPkts = append(tmp, txrxPkts[maxPktRecForRetransAndResort/2:]...)
-	}
-
-	switch elem.txRx {
-	case directionTX:
-		tcpr.txPkts = txrxPkts
-	case directionRX:
-		tcpr.rxPkts = txrxPkts
-	default:
-		return
-	}
-}
-
-func (tcpr *tcpRetransAndReorder) insert(elem *tcpSortElem) (ret int8) {
-	// ret 0: ok, 1: retrans, 2: keepalive ;; todo: 3: need resort, will cache data
-
-	var txrxPkts []*tcpSortElem
-
-	switch elem.txRx {
-	case directionTX:
-		txrxPkts = tcpr.txPkts
-	case directionRX:
-		txrxPkts = tcpr.rxPkts
-	default:
-		return 0
-	}
-
-	overflowIdx := -1
-	for i, v := range txrxPkts {
-		if v != nil {
-			if v.overflow {
-				overflowIdx = i
-			}
-		}
-	}
-
-	if elem.seq+elem.len < elem.seq {
-		elem.overflow = true
-		if overflowIdx < 0 { // 之前未发生 seq 回绕
-			tcpr._insert(elem, len(txrxPkts))
-			return
-		}
-	}
-
-	for i := len(txrxPkts) - 1; i >= 0; i-- {
-		cachedElem := txrxPkts[i]
-		if cachedElem == nil {
-			continue
-		}
-
-		if tcpr.keepalive && cachedElem.seq+cachedElem.len == elem.seq &&
-			elem.ackSeq == cachedElem.ackSeq {
-			tcpr.keepalive = false
-			if elem.len == 0 {
-				ret = 2
-				return
-			} else {
-				tcpr._insert(elem, i+1)
-				return 0
-			}
-		}
-
-		if elem.seq == cachedElem.seq &&
-			elem.ackSeq == cachedElem.ackSeq &&
-			elem.len == cachedElem.len {
-			// retrans
-			tcpr._insert(elem, i+1) // 追加
-			return 1
-		}
-
-		if cachedElem.seq+cachedElem.len == elem.seq+1 &&
-			elem.ackSeq == cachedElem.ackSeq {
-			tcpr.keepalive = true
-			return 2
-		}
-
-		if overflowIdx >= 0 && i >= overflowIdx { // 发生了回绕的记录；乱序将产生干扰，如果未识别到回绕
-			curSeq := elem.seq
-			if elem.overflow {
-				curSeq = elem.seq + elem.len
-			}
-
-			if i != overflowIdx {
-				if curSeq >= cachedElem.seq+cachedElem.len && (curSeq < txrxPkts[0].seq || overflowIdx == 0) {
-					if cachedElem.ackSeq <= elem.ackSeq {
-						tcpr._insert(elem, i+1) // 找到上一个小的seq，往后追加
-						return 0
-					}
-				}
-			} else {
-				if curSeq == cachedElem.seq+cachedElem.len {
-					if cachedElem.ackSeq <= elem.ackSeq {
-						tcpr._insert(elem, i+1) // 找到上一个小的seq，往后追加
-					} else {
-						tcpr._insert(elem, i)
-					}
-					return 0
-				}
-			}
-		} else if cachedElem.seq+cachedElem.len <= elem.seq {
-			if cachedElem.ackSeq <= elem.ackSeq {
-				tcpr._insert(elem, i+1) // 找到上一个小的seq，往后追加
-				return 0
-			}
-		}
-	}
-
-	tcpr._insert(elem, 0)
-	return 0
-}
 
 type TCPMetrics struct {
 	BytesRead    int `json:"bytes_read"`
@@ -259,7 +94,9 @@ type PktChunk struct {
 	RxSeqPos uint32 `json:"rx_seq_pos"`
 	TimePos  int64  `json:"time_pos"`
 
-	macIdx     atomic.Int32
+	macCount   int
+	macEntries [2]pktChunkMACEntry
+	extraMAC   map[string]string
 	MACMap     map[string]string `json:"mac_map"`
 	TCPColName []string          `json:"tcp_series_col_name"`
 	TCPSreries []PktTCPHdr       `json:"tcp_series"`
@@ -276,22 +113,134 @@ type PktChunk struct {
 
 	RSTTx int `json:"tx_rst"`
 	RSTRx int `json:"rx_rst"`
+
+	messageCache string
+	messageDirty bool
+}
+
+type pktChunkMACEntry struct {
+	mac string
+	id  string
+}
+
+func (chunk *PktChunk) appendJSON(buf []byte) []byte {
+	buf = append(buf, `{"chunk_id":`...)
+	buf = strconv.AppendInt(buf, chunk.ChunkID, 10)
+	buf = append(buf, `,"tx_seq_pos":`...)
+	buf = strconv.AppendUint(buf, uint64(chunk.TxSeqPos), 10)
+	buf = append(buf, `,"rx_seq_pos":`...)
+	buf = strconv.AppendUint(buf, uint64(chunk.RxSeqPos), 10)
+	buf = append(buf, `,"time_pos":`...)
+	buf = strconv.AppendInt(buf, chunk.TimePos, 10)
+	buf = append(buf, `,"mac_map":`...)
+	buf = chunk.appendJSONMACMap(buf)
+	buf = append(buf, `,"tcp_series_col_name":["txrx","src_mac","dst_mac","flags","seq","ack_seq","payload_size","win","ts"]`...)
+	buf = append(buf, `,"tcp_series":[`...)
+	for i, item := range chunk.TCPSreries {
+		if i > 0 {
+			buf = append(buf, ',')
+		}
+		buf = appendPktTCPHdrJSON(buf, item)
+	}
+	buf = append(buf, `],"rx_bytes":`...)
+	buf = strconv.AppendInt(buf, int64(chunk.RxBytes), 10)
+	buf = append(buf, `,"tx_bytes":`...)
+	buf = strconv.AppendInt(buf, int64(chunk.TxBytes), 10)
+	buf = append(buf, `,"rx_packets":`...)
+	buf = strconv.AppendInt(buf, chunk.RXPacket, 10)
+	buf = append(buf, `,"tx_packets":`...)
+	buf = strconv.AppendInt(buf, chunk.TXPacket, 10)
+	buf = append(buf, `,"tx_retrans":`...)
+	buf = strconv.AppendInt(buf, int64(chunk.RetransmitsTx), 10)
+	buf = append(buf, `,"rx_retrans":`...)
+	buf = strconv.AppendInt(buf, int64(chunk.RetransmitsRx), 10)
+	buf = append(buf, `,"tx_rst":`...)
+	buf = strconv.AppendInt(buf, int64(chunk.RSTTx), 10)
+	buf = append(buf, `,"rx_rst":`...)
+	buf = strconv.AppendInt(buf, int64(chunk.RSTRx), 10)
+	buf = append(buf, '}')
+	return buf
+}
+
+func (chunk *PktChunk) appendJSONMACMap(buf []byte) []byte {
+	if chunk.macCount == 0 && len(chunk.extraMAC) == 0 {
+		return append(buf, "null"...)
+	}
+
+	buf = append(buf, '{')
+	wrote := 0
+	for i := 0; i < chunk.macCount; i++ {
+		if wrote > 0 {
+			buf = append(buf, ',')
+		}
+		buf = strconv.AppendQuote(buf, chunk.macEntries[i].mac)
+		buf = append(buf, ':')
+		buf = strconv.AppendQuote(buf, chunk.macEntries[i].id)
+		wrote++
+	}
+	for mac, id := range chunk.extraMAC {
+		if wrote > 0 {
+			buf = append(buf, ',')
+		}
+		buf = strconv.AppendQuote(buf, mac)
+		buf = append(buf, ':')
+		buf = strconv.AppendQuote(buf, id)
+		wrote++
+	}
+	buf = append(buf, '}')
+	return buf
 }
 
 func (chunk *PktChunk) GetMacID(mac string) string {
-	if v, ok := chunk.MACMap[mac]; ok {
-		return v
-	} else {
-		if chunk.MACMap == nil {
-			chunk.MACMap = make(map[string]string)
+	for i := 0; i < chunk.macCount; i++ {
+		if chunk.macEntries[i].mac == mac {
+			return chunk.macEntries[i].id
 		}
-		v = strconv.FormatInt(int64(chunk.macIdx.Add(1)), 10)
-		chunk.MACMap[mac] = v
-		return v
 	}
+
+	if chunk.extraMAC != nil {
+		if v, ok := chunk.extraMAC[mac]; ok {
+			return v
+		}
+	}
+
+	id := strconv.Itoa(chunk.macCount + len(chunk.extraMAC) + 1)
+	if chunk.macCount < len(chunk.macEntries) {
+		chunk.markMessageDirty()
+		chunk.macEntries[chunk.macCount] = pktChunkMACEntry{
+			mac: mac,
+			id:  id,
+		}
+		chunk.macCount++
+		return id
+	}
+
+	if chunk.extraMAC == nil {
+		chunk.extraMAC = make(map[string]string, 2)
+	}
+	chunk.markMessageDirty()
+	chunk.extraMAC[mac] = id
+	return id
+}
+
+func (chunk *PktChunk) markMessageDirty() {
+	chunk.messageDirty = true
+}
+
+func (chunk *PktChunk) releaseLogPayload() {
+	if chunk == nil {
+		return
+	}
+	chunk.TCPSreries = nil
+	chunk.messageCache = ""
+	chunk.messageDirty = false
+	chunk.TCPColName = nil
+	chunk.MACMap = nil
+	chunk.extraMAC = nil
 }
 
 func (chunk *PktChunk) recSeqRange(seq, ack uint32, tx bool, tcpflag TCPFlag) {
+	chunk.markMessageDirty()
 	var noAck, noSeq bool
 	if tx {
 		if tcpflag == TCPSYN || tcpflag == TCPRST {
@@ -411,8 +360,9 @@ type TCPLog struct {
 
 	rtt RTT
 
-	// 只能通过重复的 tx 数据反推重传
-	tcpStatusRec tcpRetransAndReorder // seq, ack
+	flowTracker *tcpFlowTracker
+
+	tcpState tcpStatus
 
 	// common info
 	//
@@ -435,11 +385,27 @@ type TCPLog struct {
 	chunk   []*PktChunk
 }
 
-func (tcpl *TCPLog) GetPktChunk(nxt bool) *PktChunk {
+func (tcpl *TCPLog) classifyPacket(txRx int8, cnt []byte, ln *PktTCPHdr) streamPushResult {
+	if tcpl.flowTracker == nil {
+		tcpl.flowTracker = newTCPSeqTracker(8, 64*1024)
+	}
+
+	// Pure ACK packets don't contribute payload bytes to the stream reassembler.
+	// We still keep TCP state transitions below, but they are not treated as
+	// retransmissions on the hot path here.
+	if len(cnt) == 0 && !ln.Flags.HasFlag(TCPSYN) && !ln.Flags.HasFlag(TCPFIN) && !ln.Flags.HasFlag(TCPRST) {
+		return streamPushResult{}
+	}
+
+	return tcpl.flowTracker.Push(txRx, ln.Seq, ln.Flags, cnt, ln.TS)
+}
+
+func (tcpl *TCPLog) GetPktChunk(nxt bool, forceNew bool) *PktChunk {
 	if len(tcpl.chunk) == 0 {
 		tcpl.chunkID++
 		c := &PktChunk{
-			ChunkID: tcpl.chunkID,
+			ChunkID:      tcpl.chunkID,
+			messageDirty: true,
 		}
 		tcpl.chunk = append(tcpl.chunk, c)
 		tcpl.rtt.toNext()
@@ -448,17 +414,32 @@ func (tcpl *TCPLog) GetPktChunk(nxt bool) *PktChunk {
 
 	c := tcpl.chunk[len(tcpl.chunk)-1]
 	diff := len(c.TCPSreries) - tcpPktLimitPerChunk
-	if nxt && diff >= 0 &&
-		(!isFINChunk(c.chunkKind) || diff > 64) {
+	if forceNew || (nxt && diff >= 0 &&
+		(!isFINChunk(c.chunkKind) || diff > 64)) {
 		tcpl.chunkID++
 		c = &PktChunk{
-			ChunkID: tcpl.chunkID,
+			ChunkID:      tcpl.chunkID,
+			messageDirty: true,
 		}
 		tcpl.chunk = append(tcpl.chunk, c)
+		tcpl.trimChunksByLimit()
 		tcpl.rtt.toNext()
 	}
 
 	return c
+}
+
+func (tcpl *TCPLog) trimChunksByLimit() {
+	limit := netlogMaxChunksPerConn()
+	if limit <= 0 || len(tcpl.chunk) <= limit {
+		return
+	}
+
+	drop := len(tcpl.chunk) - limit
+	clearPktChunks(tcpl.chunk[:drop])
+	kept := append([]*PktChunk(nil), tcpl.chunk[drop:]...)
+	tcpl.chunk = kept
+	exporter.AddCacheEvictions("l4log", "tcp_chunks", "max_chunks_per_conn", drop)
 }
 
 func calSeqOffset(seq, ack, seqPos, ackPos uint32, seqPosFlag, ackPosFlag bool, tcpFlag TCPFlag) (
@@ -488,7 +469,9 @@ func calSeqOffset(seq, ack, seqPos, ackPos uint32, seqPosFlag, ackPosFlag bool, 
 }
 
 func (tcpl *TCPLog) Handle(txRx int8, cnt []byte, cntLen int64, ln *PktTCPHdr, k *PMeta, scale int) (pktState int8) {
-	chunk := tcpl.GetPktChunk(true)
+	trackerRes := tcpl.classifyPacket(txRx, cnt, ln)
+	chunk := tcpl.GetPktChunk(true, trackerRes.Gap)
+	chunk.markMessageDirty()
 	if enableNetlog {
 		lnCpy := *ln
 		switch txRx {
@@ -517,15 +500,9 @@ func (tcpl *TCPLog) Handle(txRx int8, cnt []byte, cntLen int64, ln *PktTCPHdr, k
 		chunk.TCPSreries = append(chunk.TCPSreries, lnCpy)
 	}
 
-	elem := &tcpSortElem{
-		seq:    ln.Seq,
-		ackSeq: ln.AckSeq,
-		txRx:   txRx,
+	if trackerRes.Retransmit {
+		pktState = 1
 	}
-
-	elem.len = uint32(cntLen)
-
-	pktState = tcpl.tcpStatusRec.insert(elem)
 
 	if pktState == 1 {
 		if txRx == directionRX {
@@ -589,18 +566,18 @@ func (tcpl *TCPLog) Handle(txRx int8, cnt []byte, cntLen int64, ln *PktTCPHdr, k
 				tcpl.synfinTS[0] = ln.TS
 			}
 
-			if txRx == directionTX && tcpl.tcpStatusRec.tcpStatus == TCPSYNRcvd {
+			if txRx == directionTX && tcpl.tcpState == TCPSYNRcvd {
 				tcpl.RetransmitsSYN++
 			}
 
-			tcpl.tcpStatusRec.tcpStatus = TCPSYNRcvd
+			tcpl.tcpState = TCPSYNRcvd
 		} else {
 			tcpl.synSeq = ln.Seq
 			tcpl.synfinTS[0] = ln.TS
-			if txRx == directionTX && tcpl.tcpStatusRec.tcpStatus == TCPSYNSend {
+			if txRx == directionTX && tcpl.tcpState == TCPSYNSend {
 				tcpl.RetransmitsSYN++
 			}
-			tcpl.tcpStatusRec.tcpStatus = TCPSYNSend
+			tcpl.tcpState = TCPSYNSend
 		}
 		return
 	}
@@ -617,10 +594,10 @@ func (tcpl *TCPLog) Handle(txRx int8, cnt []byte, cntLen int64, ln *PktTCPHdr, k
 		}
 	}
 
-	if tcpl.tcpStatusRec.tcpStatus == TCPSYNRcvd {
+	if tcpl.tcpState == TCPSYNRcvd {
 		if ln.Flags.HasFlag(TCPACK) {
 			tcpl.synfinTS[1] = ln.TS
-			tcpl.tcpStatusRec.tcpStatus = TCPEstablished
+			tcpl.tcpState = TCPEstablished
 		}
 		return
 	}
@@ -640,35 +617,35 @@ func (tcpl *TCPLog) Handle(txRx int8, cnt []byte, cntLen int64, ln *PktTCPHdr, k
 			chunk.RSTTx++
 		}
 
-		tcpl.tcpStatusRec.tcpStatus = TCPClose
+		tcpl.tcpState = TCPClose
 		return
 	}
 
 	// maybe start after tcp 3whs
-	if tcpl.tcpStatusRec.tcpStatus == TCPUnknownStatus {
-		tcpl.tcpStatusRec.tcpStatus = TCPEstablished
+	if tcpl.tcpState == TCPUnknownStatus {
+		tcpl.tcpState = TCPEstablished
 	}
 
-	tcpstatus := tcpl.tcpStatusRec.tcpStatus
+	tcpstatus := tcpl.tcpState
 
 	if ln.Flags.HasFlag(TCPFIN) {
 		chunk.chunkKind |= chunkKindFINRST
 
 		if tcpstatus == TCPEstablished {
 			tcpl.synfinTS[2] = ln.TS
-			tcpl.tcpStatusRec.tcpStatus = TCPFINWait1
+			tcpl.tcpState = TCPFINWait1
 			goto fin
 		}
 
 		if tcpstatus == TCPFINWait1 {
 			tcpl.synfinTS[3] = ln.TS
-			tcpl.tcpStatusRec.tcpStatus = TCPLastAck
+			tcpl.tcpState = TCPLastAck
 			goto fin
 		}
 
 		if tcpstatus == TCPFINWait2 || tcpstatus == TCPCloseWait { // fin; ack; fin ^; ack
 			tcpl.synfinTS[3] = ln.TS
-			tcpl.tcpStatusRec.tcpStatus = TCPLastAck
+			tcpl.tcpState = TCPLastAck
 			goto fin
 		}
 
@@ -680,15 +657,15 @@ func (tcpl *TCPLog) Handle(txRx int8, cnt []byte, cntLen int64, ln *PktTCPHdr, k
 		switch tcpstatus { //nolint:exhaustive
 		case TCPFINWait1:
 			tcpl.synfinTS[3] = ln.TS
-			tcpl.tcpStatusRec.tcpStatus = TCPFINWait2 // or close_wait
+			tcpl.tcpState = TCPFINWait2 // or close_wait
 		case TCPLastAck:
 			tcpl.synfinTS[3] = ln.TS
-			tcpl.tcpStatusRec.tcpStatus = TCPTimeWait
+			tcpl.tcpState = TCPTimeWait
 		}
 	}
 	return pktState
 }
 
 func (tcpl *TCPLog) Closed() bool {
-	return tcpl.tcpStatusRec.tcpStatus == TCPClose || tcpl.tcpStatusRec.tcpStatus == TCPTimeWait
+	return tcpl.tcpState == TCPClose || tcpl.tcpState == TCPTimeWait
 }

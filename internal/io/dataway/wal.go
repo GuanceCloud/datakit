@@ -12,6 +12,8 @@ import (
 
 	"github.com/GuanceCloud/cliutils/diskcache"
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/compact"
 )
 
 var defaultRotateAt = 3 * time.Second
@@ -20,16 +22,20 @@ type Cache interface {
 	// NOTE: reuse callback in diskcache to keep interface ok
 	// it's better to define Get as
 	//   Get() []byte
-	BufGet([]byte, diskcache.Fn) error
+	BufCallbackGet(diskcache.BufFunc, diskcache.Fn) error
 	Put([]byte) error
 	Size() int64
 	Close() error
 }
 
 type WALConf struct {
-	MaxCapacityGB          float64       `toml:"max_capacity_gb"`
-	Path                   string        `toml:"path,omitempty"`
-	NoPos                  bool          `toml:"no_pos"`
+	MaxCapacityGB float64 `toml:"max_capacity_gb"`
+	Path          string  `toml:"path,omitempty"`
+
+	NoPos           bool          `toml:"no_pos"`
+	PosDumpAt       int           `toml:"pos_dump_at"`
+	PosDumpInterval time.Duration `toml:"pos_dump_interval"`
+
 	FailCacheCleanInterval time.Duration `toml:"fail_cache_clean_interval"`
 
 	NoDropCategories []string `toml:"no_drop_categories"`
@@ -39,7 +45,7 @@ type WALConf struct {
 
 type WALQueue struct {
 	disk   Cache
-	mem    chan *body
+	mem    chan *compact.Body
 	dw     *Dataway // back-ref to dataway configures
 	noDrop bool
 }
@@ -61,17 +67,17 @@ func NewWAL(dw *Dataway, c Cache) *WALQueue {
 
 	if dw.WAL.MemCap >= 0 {
 		l.Infof("set wal mem queue cap to %d", dw.WAL.MemCap)
-		q.mem = make(chan *body, dw.WAL.MemCap)
+		q.mem = make(chan *compact.Body, dw.WAL.MemCap)
 	}
 
 	return q
 }
 
 // Put put a ready-to-send Dataway body to the send queue.
-func (q *WALQueue) Put(b *body) error {
+func (q *WALQueue) Put(b *compact.Body) error {
 	select {
 	case q.mem <- b: // @b will reuse by flush worker
-		walPointCounterVec.WithLabelValues(b.cat().Alias(), "M").Add(float64(b.npts()))
+		walPointCounterVec.WithLabelValues(b.Cat().Alias(), "M").Add(float64(b.Npts()))
 		return nil
 	default: // pass: put b into disk WAL
 	}
@@ -82,12 +88,12 @@ func (q *WALQueue) Put(b *body) error {
 
 	defer func() {
 		if putStatus != "" {
-			walPointCounterVec.WithLabelValues(b.cat().Alias(), putStatus).Add(float64(b.npts()))
+			walPointCounterVec.WithLabelValues(b.Cat().Alias(), putStatus).Add(float64(b.Npts()))
 		}
-		putBody(b) // b has dump to disk, do not used any more.
+		compact.PutBody(b) // b has dump to disk, do not used any more.
 	}()
 
-	if x, err := b.dump(); err != nil {
+	if x, err := b.Dump(); err != nil {
 		putStatus = "drop"
 		return err
 	} else {
@@ -95,9 +101,8 @@ func (q *WALQueue) Put(b *body) error {
 	__retry:
 		if err := q.disk.Put(x); err != nil {
 			if errors.Is(err, diskcache.ErrCacheFull) && q.noDrop {
-				time.Sleep(time.Second)
+				time.Sleep(time.Second) // wait WAL to free space
 				retried++
-				l.Warnf("WAL full, %d retrying...", retried)
 				goto __retry
 			} else {
 				putStatus = "drop"
@@ -107,8 +112,9 @@ func (q *WALQueue) Put(b *body) error {
 		} else {
 			if retried > 0 {
 				l.Warnf("WAL retried %d times", retried)
-				walPutRetriedVec.WithLabelValues(b.cat().Alias()).Observe(float64(retried))
+				walPutRetriedVec.WithLabelValues(b.Cat().Alias()).Observe(float64(retried))
 			}
+
 			// NOTE: do not set putStatus here, we'll update walPointCounterVec during Get().
 			return nil
 		}
@@ -116,8 +122,8 @@ func (q *WALQueue) Put(b *body) error {
 }
 
 // Get fetch a ready-to-send Dataway body from the send queue.
-func (q *WALQueue) Get(opts ...bodyOpt) (*body, error) {
-	var b *body
+func (q *WALQueue) Get(opts ...compact.BodyOpt) (*compact.Body, error) {
+	var b *compact.Body
 	select {
 	case b = <-q.mem:
 		// fast path: we get body from WAL.mem
@@ -125,75 +131,91 @@ func (q *WALQueue) Get(opts ...bodyOpt) (*body, error) {
 	default: // pass: then read from disk queue.
 	}
 
-	// slow path: we get body from WAL.disk
-	b = getReuseBufferBody(opts...)
-
+	// slow path: we try get body from WAL.disk
 	defer func() {
-		if len(b.buf()) == 0 { // no data read from disk
-			putBody(b)
-		} else {
-			// Update the metric within Get,because after datakit start, there may be old
-			// cached data in WAL.disk, we'd add them to current running datakit's metric.
-			walPointCounterVec.WithLabelValues(b.cat().Alias(), "D").Add(float64(b.npts()))
+		if b != nil {
+			if len(b.Buf()) == 0 { // no data read from disk
+				compact.PutBody(b)
+			} else {
+				// Update the metric within Get,because after datakit start, there may be old
+				// cached data in WAL.disk, we'd add them to current running datakit's metric.
+				walPointCounterVec.WithLabelValues(b.Cat().Alias(), "D").Add(float64(b.Npts()))
+			}
 		}
 	}()
 
 	var raw []byte
-	if err := q.disk.BufGet(b.marshalBuf, func(x []byte) error {
-		raw = x
-		// ASAP ok on Get: we should not occupy the Get lock here, and other flush workers
-		// need to read next raw body.
-		return nil
-	}); err != nil {
+	if err := q.disk.BufCallbackGet(
+		func() []byte {
+			b = compact.GetNewBufferBody(opts...) // delay get new buffer
+			return b.MarshalBuf
+		},
+		func(x []byte) error {
+			raw = x
+			// ASAP ok on Get: we should not occupy the Get lock here, and other flush workers
+			// need to read next raw body.
+			return nil
+		}); err != nil {
 		if errors.Is(err, diskcache.ErrNoData) {
 			return nil, nil
 		}
 
-		l.Errorf("BufGet: %s", err)
+		l.Errorf("BufCallbackGet: %s", err)
 		return nil, err
 	}
 
-	if len(raw) == 0 { // no job available
+	if len(raw) == 0 || b == nil { // no job available
+		l.Debug("no data available")
 		return nil, nil
 	}
 
 	l.Debugf("from queue get %d bytes", len(raw))
 
-	if err := b.loadCache(raw); err != nil {
+	if err := b.LoadCache(raw); err != nil {
 		return nil, err
 	}
 
-	b.from = walFromDisk
-	b.gzon = isGzip(b.buf())
+	b.From = compact.WalFromDisk
+	b.Gzon = compact.IsGzip(b.Buf())
 
 	return b, nil
 }
 
-type walBodyCallback func(*body) error
+type walBodyCallback func(*compact.Body) error
 
 // DiskGet will fallback if callback failed.
-func (q *WALQueue) DiskGet(fn walBodyCallback, opts ...bodyOpt) error {
-	b := getReuseBufferBody(opts...)
+func (q *WALQueue) DiskGet(fn walBodyCallback, opts ...compact.BodyOpt) error {
+	var b *compact.Body
 
-	if err := q.disk.BufGet(b.marshalBuf, func(x []byte) error {
-		if len(x) == 0 {
-			return nil
-		}
+	if err := q.disk.BufCallbackGet(
+		func() []byte {
+			b = compact.GetNewBufferBody(opts...)
+			return b.MarshalBuf
+		},
 
-		if err := b.loadCache(x); err != nil {
-			l.Warnf("load cache failed: %s, ignored", err)
-			return nil
-		}
+		func(x []byte) error {
+			if len(x) == 0 {
+				return nil
+			}
 
-		b.from = walFromDisk
-		b.gzon = isGzip(b.buf())
-		if err := fn(b); err != nil {
-			l.Warnf("walBodyCallback: %s, we try again, ignored", err)
-			return err
-		} else {
-			return nil
-		}
-	}); err != nil {
+			if b == nil {
+				return nil
+			}
+
+			if err := b.LoadCache(x); err != nil {
+				l.Warnf("load cache failed: %s, ignored", err)
+				return nil
+			}
+
+			b.From = compact.WalFromDisk
+			b.Gzon = compact.IsGzip(b.Buf())
+			if err := fn(b); err != nil {
+				l.Warnf("walBodyCallback: %s, we try again, ignored", err)
+				return err
+			} else {
+				return nil
+			}
+		}); err != nil {
 		if errors.Is(err, diskcache.ErrNoData) {
 			return nil
 		} else {
@@ -215,11 +237,19 @@ func (dw *Dataway) doSetupWAL(opts ...diskcache.CacheOption) (*WALQueue, error) 
 
 func (dw *Dataway) setupWAL() error {
 	for _, cat := range point.AllCategories() {
+		if cat == point.DialTesting {
+			l.Info("ignore WAL on dial-testing")
+			continue
+		}
+
 		cacheDir := filepath.Join(dw.WAL.Path, cat.String())
 		opts := []diskcache.CacheOption{
 			diskcache.WithPath(cacheDir),
+
 			diskcache.WithNoPos(dw.WAL.NoPos),
-			diskcache.WithNoLock(true),            // disable .lock file checking
+			// diskcache.WithPosUpdate(dw.WAL.PosDumpAt, dw.WAL.PosDumpInterval),
+
+			diskcache.WithNoLock(datakit.Docker),
 			diskcache.WithWakeup(defaultRotateAt), // short wakeup on WAL queue
 		}
 
@@ -259,8 +289,8 @@ func (dw *Dataway) setupWAL() error {
 	if wal, err := dw.doSetupWAL(
 		diskcache.WithPath(filepath.Join(dw.WAL.Path, "fc")),
 		diskcache.WithFILODrop(true), // under fail-cache, still drop data if WAL disk full(no matter which category)
-		diskcache.WithNoLock(true),
-		diskcache.WithNoPos(dw.WAL.NoPos),
+		diskcache.WithNoLock(datakit.Docker),
+
 		diskcache.WithWakeup(defaultRotateAt),
 		diskcache.WithCapacity(int64(dw.WAL.MaxCapacityGB*float64(1<<30)))); err != nil {
 		return err

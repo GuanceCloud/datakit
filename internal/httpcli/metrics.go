@@ -8,6 +8,8 @@ package httpcli
 import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (
@@ -18,6 +20,7 @@ var (
 	httpClientDNSCost,
 	httpClientTLSHandshakeCost,
 	httpClientConnectCost,
+	httpClientBodyTransferCost,
 	httpClientGotFirstResponseByteCost *prometheus.SummaryVec
 )
 
@@ -54,11 +57,7 @@ func init() {
 			Name:      "conn_idle_time_seconds",
 			Help:      "HTTP connection idle time",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"from"},
 	)
@@ -70,11 +69,7 @@ func init() {
 			Name:      "dns_cost_seconds",
 			Help:      "HTTP DNS cost",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"from"},
 	)
@@ -86,11 +81,7 @@ func init() {
 			Name:      "tls_handshake_seconds",
 			Help:      "HTTP TLS handshake cost",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"from"},
 	)
@@ -102,13 +93,21 @@ func init() {
 			Name:      "http_connect_cost_seconds",
 			Help:      "HTTP connect cost",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"from"},
+	)
+
+	httpClientBodyTransferCost = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: "datakit",
+			Subsystem: subsystem,
+			Name:      "http_body_cost_seconds",
+			Help:      "HTTP body transfer cost",
+
+			Objectives: datakit.P8sStandardObjectives,
+		},
+		[]string{"from", "url"},
 	)
 
 	httpClientGotFirstResponseByteCost = prometheus.NewSummaryVec(
@@ -118,16 +117,12 @@ func init() {
 			Name:      "got_first_resp_byte_cost_seconds",
 			Help:      "Got first response byte cost",
 
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Objectives: datakit.P8sStandardObjectives,
 
 			MaxAge:     prometheus.DefMaxAge, // 10min
 			AgeBuckets: prometheus.DefAgeBuckets,
 		},
-		[]string{"from"},
+		[]string{"from", "url"},
 	)
 
 	metrics.MustRegister(
@@ -137,6 +132,7 @@ func init() {
 		httpClientDNSCost,
 		httpClientTLSHandshakeCost,
 		httpClientConnectCost,
+		httpClientBodyTransferCost,
 		httpClientGotFirstResponseByteCost,
 	)
 }

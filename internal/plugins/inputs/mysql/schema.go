@@ -53,7 +53,7 @@ func (m *schemaMeasurement) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"server": &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"},
 			"schema_name": &inputs.TagInfo{
-				Desc: "Schema name",
+				Desc: "The schema name.",
 			},
 			"host": &inputs.TagInfo{
 				Desc: "The server host address",

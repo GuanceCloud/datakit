@@ -9,6 +9,8 @@ package kafkamq
 import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 /*
@@ -53,15 +55,11 @@ func metricsSetup() {
 
 	processMessageCostVec = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
-			Namespace: "datakit",
-			Subsystem: "input_kafkamq",
-			Name:      "process_message_nano",
-			Help:      "kafkamq process message nanoseconds duration",
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.90: 0.01,
-				0.99: 0.001,
-			},
+			Namespace:  "datakit",
+			Subsystem:  "input_kafkamq",
+			Name:       "process_message_nano",
+			Help:       "kafkamq process message nanoseconds duration",
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"topic"},
 	)

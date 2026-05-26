@@ -52,8 +52,6 @@ func init() {
 	flag.BoolVar(&args.FlagDKUpgrade, "upgrade", false, "")
 
 	flag.IntVar(&args.FlagUpgraderEnabled, "upgrade-manager", 0, "whether we should upgrade the Datakit upgrade service")
-	flag.StringVar(&args.FlagUpgraderIPWhiteList, "upgrade-ip-whitelist", "", "set datakit upgrade http service allowed request client ip, split by ','")
-	flag.StringVar(&args.FlagUpgraderListen, "upgrade-listen", "0.0.0.0:9542", "set datakit upgrade HTTP server bind ip:port")
 
 	flag.StringVar(&args.FlagInstallLog, "install-log", "dk-install-upgrade.log", "log file during install or upgrade")
 	flag.StringVar(&args.FlagSrc, "srcs", fmt.Sprintf("./datakit-%s-%s-%s.tar.gz,./data.tar.gz", runtime.GOOS, runtime.GOARCH, DataKitVersion), `local path of install files`)
@@ -68,7 +66,6 @@ func init() {
 	flag.StringVar(&args.InstrumentationEnabled, "apm-instrumentation-enabled", "", "enable APM instrumentation")
 	flag.StringVar(&args.DatawayURLs, "dataway", "", "DataWay host(https://guance.openway.com?token=xxx)")
 	flag.StringVar(&args.Proxy, "proxy", "", "http proxy http://ip:port for datakit")
-	flag.StringVar(&args.DatakitName, "name", "", "specify DataKit name, example: prod-env-datakit")
 	flag.StringVar(&args.EnableInputs, "enable-inputs", "", "default enable inputs(comma splited, example:cpu,mem,disk)")
 
 	flag.IntVar(&args.InstallRUMSymbolTools, "install-rum-symbol-tools", 0, "whether to install RUM source map tools")
@@ -120,6 +117,7 @@ func init() {
 	flag.StringVar(&args.ConfdPipelineNamespace, "confd-pipeline-namespace", "", "pipeline config namespace id")
 	flag.StringVar(&args.ConfdRegion, "confd-region", "", "aws region")
 	flag.IntVar(&args.ConfdCircleInterval, "confd-circle-interval", 60, "backend loop search interval second")
+	flag.StringVar(&args.InputConfigs, "input-configs", "", "Specify multiple inputs config items")
 
 	// gitrepo flags
 	flag.StringVar(&args.GitURL, "git-url", "", "git repository url")
@@ -225,24 +223,9 @@ func offlineExtract() error {
 			dstDir := filepath.Join(datakit.InstallDir,
 				apminjUtils.DirInject, apminjUtils.DirInjectSubLib, "java")
 
-			_ = os.MkdirAll(dstDir, os.ModePerm)
-
 			dstFile := filepath.Join(dstDir, "dd-java-agent.jar")
-			_ = os.RemoveAll(dstFile) // must remove first, jar file maybe used by other program
-
-			//nolint:gosec
-			if newFile, err := os.OpenFile(dstFile,
-				os.O_CREATE|os.O_RDWR|os.O_TRUNC, os.ModePerm); err != nil {
-				l.Warnf("Create %s failed: %s", dstFile, err.Error())
-			} else {
-				if old, err := os.Open(f); err != nil { //nolint:gosec
-					l.Warnf("Open %s failed: %s", f, err.Error())
-				} else {
-					if _, err := io.Copy(newFile, old); err != nil {
-						l.Warnf("Copy %s to %s failed: %s", f, destDir, err.Error())
-					}
-				}
-				_ = newFile.Close()
+			if err := copyFileAtomic(f, dstFile, os.ModePerm); err != nil {
+				l.Warnf("Copy %s to %s failed: %s", f, dstDir, err.Error())
 			}
 			continue // no need to extract, just copy to dir
 
@@ -465,6 +448,62 @@ func checkIsNewVersion(host, version string) error {
 	}
 
 	return fmt.Errorf("check version failed")
+}
+
+func copyFileAtomic(src, dst string, mode os.FileMode) error {
+	if err := os.MkdirAll(filepath.Dir(dst), os.ModePerm); err != nil {
+		return fmt.Errorf("MkdirAll: %w", err)
+	}
+
+	srcFile, err := os.Open(src) //nolint:gosec
+	if err != nil {
+		return fmt.Errorf("open: %w", err)
+	}
+	defer func() {
+		_ = srcFile.Close()
+	}()
+
+	if runtime.GOOS == "windows" {
+		_ = os.RemoveAll(dst)
+		dstFile, err := os.OpenFile(dst, os.O_CREATE|os.O_RDWR|os.O_TRUNC, mode) //nolint:gosec
+		if err != nil {
+			return fmt.Errorf("OpenFile: %w", err)
+		}
+		if _, err := io.Copy(dstFile, srcFile); err != nil {
+			_ = dstFile.Close()
+			return fmt.Errorf("copy: %w", err)
+		}
+		if err := dstFile.Close(); err != nil {
+			return fmt.Errorf("close: %w", err)
+		}
+		return nil
+	}
+
+	tmpFile, err := os.CreateTemp(filepath.Dir(dst), ".copy.tmp.")
+	if err != nil {
+		return fmt.Errorf("CreateTemp: %w", err)
+	}
+	tmpName := tmpFile.Name()
+	defer func() {
+		_ = os.Remove(tmpName)
+	}()
+
+	if _, err := io.Copy(tmpFile, srcFile); err != nil {
+		_ = tmpFile.Close()
+		return fmt.Errorf("copy: %w", err)
+	}
+	if err := tmpFile.Chmod(mode); err != nil {
+		_ = tmpFile.Close()
+		return fmt.Errorf("chmod: %w", err)
+	}
+	if err := tmpFile.Close(); err != nil {
+		return fmt.Errorf("close: %w", err)
+	}
+	if err := os.Rename(tmpName, dst); err != nil {
+		return fmt.Errorf("rename: %w", err)
+	}
+
+	return nil
 }
 
 func promptReferences() {

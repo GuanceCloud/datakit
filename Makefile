@@ -1,4 +1,4 @@
-.PHONY: default testing local deps prepare cspell
+.PHONY: default testing local deps prepare cspell build_external_local ebpf_nocgo_ci
 
 default: local
 
@@ -20,12 +20,18 @@ MAC_ARCHS              = darwin/amd64
 DOCKER_IMAGE_ARCHS     = linux/arm64,linux/amd64
 UOS_DOCKER_IMAGE_ARCHS = linux/arm64,linux/amd64
 DCA_BUILD_ARCH         = linux/arm64,linux/amd64
+FLAMESHOT_NAME        = flameshot
+FLAMESHOT_ARCHS       = linux/amd64,linux/arm64
 GOLINT_BINARY         ?= golangci-lint
 CGO_FLAGS              = "-Wno-undef-prefix -Wno-deprecated-declarations" # to disable warnings from gopsutil on macOS
 HL                     = \033[0;32m # high light
 NC                     = \033[0m    # no color
 RED                    = \033[31m   # red
 LOG_LEVEL             ?= "info"
+GO_MODULE_MODE        ?= vendor
+GO_MODULE_ENV         = GO111MODULE=on GOFLAGS=-mod=$(GO_MODULE_MODE)
+DK_BUILD_ENV_IMAGE    ?= pubrepo.jiagouyun.com/ebpf-dev/dk_build_env:3.1
+export DK_BUILD_ENV_IMAGE
 
 SUPPORTED_GOLINT_VERSION         = 1.46.2
 SUPPORTED_GOLINT_VERSION_ANOTHER = v1.46.2
@@ -51,13 +57,12 @@ GOLINT_VERSION_ERR_MSG := golangci-lint version($(GOLINT_VERSION)) is not suppor
 
 # These can be override at runtime by make variables
 VERSION                      ?= $(shell git describe --always --tags)
+FLAMESHOT_VERSION            ?= NOT_SET
 DCA_VERSION                  ?= NOT_SET
 DATAWAY_URL                  ?= NOT_SET
 GIT_BRANCH                   ?= $(shell git rev-parse --abbrev-ref HEAD)
 DATAKIT_EBPF_ARCHS           ?= linux/arm64,linux/amd64
 RACE_DETECTION               ?= off
-PKGEBPF                      ?= 0
-DLEBPF                       ?= 0
 AUTO_FIX                     ?= true
 UT_EXCLUDE                   ?= "-"
 UT_ONLY                      ?= "-"
@@ -69,6 +74,20 @@ HELM_CHART_DIR               ?= "charts/datakit"
 SKIP_HELM                    ?= 0
 MERGE_REQUEST_TARGET_BRANCH  ?= ""
 ONLY_BUILD_INPUTS_EXTENTIONS ?= 0
+EXTERNAL_NAME                ?=
+EXTERNAL_GOOS                ?= linux
+EXTERNAL_ARCH                ?= $(shell go env GOARCH)
+EXTERNAL_OUTDIR              ?=
+EXTERNAL_OUTPUT              ?=
+EXTERNAL_LDFLAGS             ?= -w -s
+EXTERNAL_EBPF_ARGS           ?=
+EXTERNAL_EBPF_TARGET         ?= build
+DK_BPF_KERNEL_SRC_PATH       ?=
+EXTERNAL_SYSROOT_BASE        ?= /opt/sysroots/debian10
+EBPF_CI_ARCHS                ?= amd64 arm64
+EBPF_CI_DOCKER_PLATFORM      ?= linux/$(shell go env GOARCH)
+
+AWS_REGIONS ?= ""
 
 # Generate 'internal/git' package
 define GIT_INFO
@@ -103,7 +122,7 @@ define notify_build
 		exit 1; \
 	fi
 	@echo "===== notify $(BIN) $(1) ===="
-	GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run -tags with_inputs cmd/make/make.go \
+	$(GO_MODULE_ENV) CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run -tags with_inputs cmd/make/make.go \
 		-log-level $(LOG_LEVEL) \
 		-main $(ENTRY) \
 		-binary $(BIN) \
@@ -129,7 +148,7 @@ define build_bin
 	@rm -rf $(DIST_DIR)/$(1)/*
 	@mkdir -p $(DIST_DIR)/$(1)
 	@echo "===== building $(BIN) $(1) ====="
-	GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run \
+	$(GO_MODULE_ENV) CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run \
 		-tags with_inputs cmd/make/make.go      \
 		-log-level $(LOG_LEVEL)                 \
 		-release $(1)                           \
@@ -143,40 +162,28 @@ define build_bin
 		-docker-image-repo $(DOCKER_IMAGE_REPO) \
 		-helm-chart-dir $(HELM_CHART_DIR)       \
 		-skip-helm $(SKIP_HELM)                 \
-		-pkg-ebpf $(PKGEBPF)                    \
-		-only-external-inputs $(ONLY_BUILD_INPUTS_EXTENTIONS)
+		-only-external-inputs $(ONLY_BUILD_INPUTS_EXTENTIONS) \
+		-flameshot
 	@tree -Csh -L 3 $(DIST_DIR)
 endef
 
 # pub used to publish datakit version(for release/testing/local)
 define publish
 	@echo "===== publishing $(1) $(NAME) ====="
-	GO111MODULE=off CGO_CFLAGS=$(CGO_FLAGS) go run \
+	$(GO_MODULE_ENV) CGO_CFLAGS=$(CGO_FLAGS) go run \
 		-tags with_inputs cmd/make/make.go      \
 		-log-level $(LOG_LEVEL)                 \
 		-release $(1)                           \
 		-archs $(2)                             \
 		-pub                                    \
 		-enable-upload-aws                      \
+		-aws-regions $(AWS_REGIONS)             \
 		-dist-dir $(DIST_DIR)                   \
 		-name $(NAME)                           \
 		-brand $(BRAND)                         \
 		-helm-chart-dir $(HELM_CHART_DIR)       \
 		-skip-helm $(SKIP_HELM)                 \
-		-docker-image-repo $(DOCKER_IMAGE_REPO) \
-		-download-ebpf $(DLEBPF)
-endef
-
-define pub_ebpf
-	@echo "===== publishing $(1) $(NAME_EBPF) ====="
-	@GO111MODULE=off CGO_CFLAGS=$(CGO_FLAGS) go run \
-		-tags with_inputs cmd/make/make.go \
-		-log-level $(LOG_LEVEL) \
-		-release $(1)           \
-		-archs $(2)             \
-		-pub-ebpf               \
-		-dist-dir $(DIST_DIR)   \
-		-name $(NAME_EBPF)
+		-docker-image-repo $(DOCKER_IMAGE_REPO)
 endef
 
 define build_docker_image
@@ -185,28 +192,36 @@ define build_docker_image
 		sudo docker buildx build --platform $(1) \
 			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/datakit:$(VERSION) \
-			-f dockerfiles/Dockerfile.$(DOCKERFILE_SUFFIX) . --push; \
+			-f dockerfiles/Dockerfile.$(DOCKERFILE_SUFFIX) . --push && \
 		sudo docker buildx build --platform $(1) \
 			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/datakit-elinker:$(VERSION) \
-			-f dockerfiles/Dockerfile_elinker.$(DOCKERFILE_SUFFIX) . --push; \
+			-f dockerfiles/Dockerfile_elinker.$(DOCKERFILE_SUFFIX) . --push && \
 		sudo docker buildx build --platform $(1) \
 			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/logfwd:$(VERSION) \
-			-f dockerfiles/Dockerfile_logfwd.$(DOCKERFILE_SUFFIX) . --push; \
+			-f dockerfiles/Dockerfile_logfwd.$(DOCKERFILE_SUFFIX) . --push && \
+		sudo docker buildx build --platform $(1) \
+			--build-arg DIST_DIR=$(DIST_DIR) \
+			-t $(2)/flameshot:$(FLAMESHOT_VERSION) \
+			-f dockerfiles/Dockerfile_flameshot.$(DOCKERFILE_SUFFIX) . --push; \
 	else \
 		sudo docker buildx build --platform $(1) \
 			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/datakit:$(VERSION) \
-			-f dockerfiles/Dockerfile.$(DOCKERFILE_SUFFIX) . --push; \
+			-f dockerfiles/Dockerfile.$(DOCKERFILE_SUFFIX) . --push && \
 		sudo docker buildx build --platform $(1) \
 			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/datakit-elinker:$(VERSION) \
-			-f dockerfiles/Dockerfile_elinker.$(DOCKERFILE_SUFFIX) . --push; \
+			-f dockerfiles/Dockerfile_elinker.$(DOCKERFILE_SUFFIX) . --push && \
 		sudo docker buildx build --platform $(1) \
 			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/logfwd:$(VERSION) \
-			-f dockerfiles/Dockerfile_logfwd.$(DOCKERFILE_SUFFIX) . --push; \
+			-f dockerfiles/Dockerfile_logfwd.$(DOCKERFILE_SUFFIX) . --push && \
+		sudo docker buildx build --platform $(1) \
+			--build-arg DIST_DIR=$(DIST_DIR) \
+			-t $(2)/flameshot:$(FLAMESHOT_VERSION) \
+			-f dockerfiles/Dockerfile_flameshot.$(DOCKERFILE_SUFFIX) . --push; \
 	fi
 endef
 
@@ -215,11 +230,11 @@ define build_uos_image
 	sudo docker buildx build --platform $(1) \
 	--build-arg DIST_DIR=$(DIST_DIR) \
 	-t $(2)/datakit:$(VERSION) \
-	-f dockerfiles/Dockerfile.uos . --push; \
+	-f dockerfiles/Dockerfile.uos . --push && \
 	sudo docker buildx build --platform $(1) \
 	--build-arg DIST_DIR=$(DIST_DIR) \
 	-t $(2)/datakit-elinker:$(VERSION) \
-	-f dockerfiles/Dockerfile_elinker.uos . --push; \
+	-f dockerfiles/Dockerfile_elinker.uos . --push && \
 	sudo docker buildx build --platform $(1) \
 	--build-arg DIST_DIR=$(DIST_DIR) \
 	-t $(2)/logfwd:$(VERSION) \
@@ -253,8 +268,44 @@ endef
 define build_ip2isp
 	rm -rf china-operator-ip
 	git clone -b ip-lists https://github.com/gaoyifan/china-operator-ip.git
-	@GO111MODULE=off CGO_ENABLED=0 go run -tags with_inputs cmd/make/make.go -build-isp -log-level $(LOG_LEVEL)
+	@$(GO_MODULE_ENV) CGO_ENABLED=0 go run -tags with_inputs cmd/make/make.go -build-isp -log-level $(LOG_LEVEL)
 endef
+
+build_external_local:
+	@$(MAKE) --no-print-directory -C externals build_external_local \
+		GO_MODULE_MODE="$(GO_MODULE_MODE)" \
+		EXTERNAL_NAME="$(EXTERNAL_NAME)" \
+		EXTERNAL_GOOS="$(EXTERNAL_GOOS)" \
+		EXTERNAL_ARCH="$(EXTERNAL_ARCH)" \
+		EXTERNAL_OUTDIR="$(EXTERNAL_OUTDIR)" \
+		EXTERNAL_OUTPUT="$(EXTERNAL_OUTPUT)" \
+		EXTERNAL_LDFLAGS="$(EXTERNAL_LDFLAGS)" \
+		EXTERNAL_EBPF_ARGS="$(EXTERNAL_EBPF_ARGS)" \
+		EXTERNAL_EBPF_TARGET="$(EXTERNAL_EBPF_TARGET)" \
+		DK_BPF_KERNEL_SRC_PATH="$(DK_BPF_KERNEL_SRC_PATH)" \
+		EXTERNAL_SYSROOT_BASE="$(EXTERNAL_SYSROOT_BASE)"
+
+ebpf_nocgo_ci: prepare
+	@set -eu; \
+	image="$(DK_BUILD_ENV_IMAGE)"; \
+	test -n "$$image" || { echo "DK_BUILD_ENV_IMAGE is required"; exit 1; }; \
+	rm -rf .tmp/dk-ebpf-ci-* .tmp/datakit-ebpf-linux-*-nocgo; \
+	mkdir -p .tmp; \
+	for arch in $(EBPF_CI_ARCHS); do \
+		echo "===== build ebpf objects in dk build env: linux/$$arch ====="; \
+		docker run --rm --platform "$(EBPF_CI_DOCKER_PLATFORM)" \
+			-v "$(CURDIR):/work" -w /work "$$image" \
+			bash -lc "make --no-print-directory -C externals build_external_local EXTERNAL_NAME=ebpf EXTERNAL_GOOS=linux EXTERNAL_ARCH=$$arch EXTERNAL_OUTDIR=/work/.tmp/dk-ebpf-ci-$$arch EXTERNAL_OUTPUT=datakit-ebpf GO_MODULE_MODE=$(GO_MODULE_MODE) DK_BPF_KERNEL_SRC_PATH=/usr/src/linux-headers-$$arch EXTERNAL_EBPF_TARGET=bpfobjs"; \
+		docker run --rm --platform "$(EBPF_CI_DOCKER_PLATFORM)" \
+			-v "$(CURDIR):/work" -w /work "$$image" \
+			chown -R "$$(id -u):$$(id -g)" "/work/.tmp/dk-ebpf-ci-$$arch" "/work/internal/plugins/externals/ebpf/internal/c/elf/linux_$$arch"; \
+		echo "===== build datakit-ebpf locally without cgo: linux/$$arch ====="; \
+		GO111MODULE=on GOFLAGS=-mod=$(GO_MODULE_MODE) GOOS=linux GOARCH=$$arch CGO_ENABLED=0 \
+			go build -tags "ebpf netgo" -buildvcs=false \
+			-o ".tmp/datakit-ebpf-linux-$$arch-nocgo" \
+			./internal/plugins/externals/ebpf/cmd/datakit-ebpf; \
+	done; \
+	rm -rf .tmp/dk-ebpf-ci-* .tmp/datakit-ebpf-linux-*-nocgo
 
 ##############################################################################
 # Rules in the Makefile
@@ -265,21 +316,6 @@ local: deps
 
 pub_local: deps
 	$(call publish,local,$(LOCAL_ARCHS))
-
-pub_ebpf_local: deps
-	$(call build_bin,local,$(LOCAL_ARCHS))
-	$(call pub_ebpf,local,$(LOCAL_ARCHS))
-
-pub_ebpf_local_nobuild: deps
-	$(call pub_ebpf,local,$(LOCAL_ARCHS))
-
-pub_ebpf_testing: deps
-	$(call build_bin,testing,$(DATAKIT_EBPF_ARCHS))
-	$(call pub_ebpf,testing,$(DATAKIT_EBPF_ARCHS))
-
-pub_ebpf_production: deps
-	$(call build_bin,production,$(DATAKIT_EBPF_ARCHS))
-	$(call pub_ebpf,production,$(DATAKIT_EBPF_ARCHS))
 
 testing_notify: deps
 	$(call notify_build,testing,$(DEFAULT_ARCHS))
@@ -304,12 +340,10 @@ production_image:
 	$(call build_docker_image,$(DOCKER_IMAGE_ARCHS),$(DOCKER_IMAGE_REPO))
 
 uos_image_testing: deps
-	$(call build_bin,testing,$(DOCKER_IMAGE_ARCHS))
 	$(call build_uos_image,$(UOS_DOCKER_IMAGE_ARCHS),'registry.jiagouyun.com/uos-dataflux') # testing image always push to registry.jiagouyun.com
 	$(call build_uos_image,$(UOS_DOCKER_IMAGE_ARCHS),$(DOCKER_IMAGE_REPO)) # we also publishing testing image to public image repo
 
 uos_image_production: deps
-	$(call build_bin,production,$(DOCKER_IMAGE_ARCHS))
 	$(call build_uos_image,$(UOS_DOCKER_IMAGE_ARCHS),$(DOCKER_IMAGE_REPO))
 
 production_mac: deps
@@ -330,7 +364,7 @@ build_dca_web:
 build_dca: deps build_dca_web
 	@echo "===== building $(BRAND).dca ====="
 	@mv dca/web/build $(DIST_DIR)/dca-web # move DCA web(build during build_dca_web) to $(DIST_DIR)
-	@CGO_CFLAGS=$(CGO_FLAGS) GO111MODULE=off CGO_ENABLED=0 \
+	@CGO_CFLAGS=$(CGO_FLAGS) $(GO_MODULE_ENV) CGO_ENABLED=0 \
 		go run cmd/make/make.go -dca \
 		-log-level $(LOG_LEVEL) \
 		-archs $(DCA_BUILD_ARCH) \
@@ -347,11 +381,18 @@ build_dca_image:
 		-t $(DOCKER_IMAGE_REPO):latest \
 		-f dca/Dockerfile.$(DOCKERFILE_SUFFIX) . --push;
 
-deps: prepare gofmt 
+build_dca_image_test:
+	sudo docker buildx build \
+		--platform $(DOCKER_IMAGE_ARCHS) \
+		--build-arg DIST_DIR=$(DIST_DIR) \
+		-t $(DOCKER_IMAGE_REPO):$(DCA_VERSION) \
+		-f dca/Dockerfile.$(DOCKERFILE_SUFFIX) . --push;
+
+deps: prepare
 
 # ignore files under vendor/.git/git
 gofmt:
-	@GO111MODULE=off gofmt -w -l $(shell find . -type f -name '*.go'| grep -v "/vendor/\|/.git/\|/git/\|.*_y.go\|packed-packr.go")
+	@gofmt -w -l $(shell find . -type f -name '*.go'| grep -v "/vendor/\|/.git/\|/git/\|.*_y.go\|packed-packr.go")
 
 #golines:
 #	@golines -w --max-len=150 --reformat-tags -shorten-comments $(shell find . -type f -name '*.go'| grep -v "/vendor/\|/.git/\|/git/\|.*_y.go\|packed-packr.go")
@@ -360,7 +401,7 @@ vet:
 	@go vet ./...
 
 ut: deps
-	CGO_CFLAGS=$(CGO_FLAGS) GO111MODULE=off CGO_ENABLED=1 \
+	CGO_CFLAGS=$(CGO_FLAGS) $(GO_MODULE_ENV) CGO_ENABLED=1 \
 	REMOTE_HOST=$(DOCKER_REMOTE_HOST) \
 	go run cmd/make/make.go \
 	--log-level $(LOG_LEVEL) \
@@ -373,7 +414,7 @@ ut: deps
 			echo "######################"; \
 		fi
 
-code_lint: deps copyright_check
+code_lint: deps copyright_check disable_funcs
 	@$(GOLINT_BINARY) --version
 ifeq ($(AUTO_FIX),true)
 		@printf "$(HL)lint with auto fix...\n$(NC)"; \
@@ -388,6 +429,8 @@ endif
 		exit -1; \
 	fi
 
+
+disable_funcs:
 	# check print/printf
 	go run scripts/disable-funcs/main.go -config scripts/disable-funcs/conf.toml;
 	@if [ $$? != 0 ]; then \
@@ -457,7 +500,7 @@ md_lint: md_export
 	# Check on generated docs
 	# Disable autofix on checking generated documents.
 	# Also disable section check on generated docs(there are sections that rended in measurement name)
-	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
+	@$(GO_MODULE_ENV) CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
 		go run cmd/make/make.go \
 		--log-level $(LOG_LEVEL) \
 		--mdcheck $(docs_dir) \
@@ -465,16 +508,16 @@ md_lint: md_export
 	$(call check_docs,$(docs_dir))
 
 md_export:
-	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
+	@$(GO_MODULE_ENV) CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) \
 		go run cmd/make/make.go \
 		--log-level $(LOG_LEVEL) \
 		--mdcheck $(docs_template_dir) \
 		--mdcheck-no-autofix $(AUTO_FIX);
 	@rm -rf $(exportdir) && mkdir -p $(exportdir)
-	@bash export.sh -D $(exportdir) -E -V 0.0.0
+	@bash export.sh -D $(exportdir) -E
 
 sample_conf_lint:
-	@GO111MODULE=off CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run -tags with_inputs cmd/make/make.go \
+	@$(GO_MODULE_ENV) CGO_ENABLED=0 CGO_CFLAGS=$(CGO_FLAGS) go run -tags with_inputs cmd/make/make.go \
 		--sample-conf-check --log-level $(LOG_LEVEL)
 
 project_words:

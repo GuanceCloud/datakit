@@ -142,6 +142,28 @@ This document describes how to install DataKit in K8s via DaemonSet.
         --set image.tag="1.70.0" \
         ...
     ```
+
+    **GKE Autopilot**
+
+    For GKE Autopilot, use the separately released `datakit-gke-autopilot` chart. You do not need to specify an image version during installation; the image version declared by this chart is used by default:
+
+    ```shell
+    helm install datakit datakit-gke-autopilot \
+    <<<% if custom_key.brand_key == 'guance' -%>>>
+        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+    <<<% else -%>>>
+        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
+    <<<% endif -%>>>
+        -n datakit --create-namespace \
+        --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<your-token>"
+    ```
+
+    This chart runs DataKit as a non-privileged, non-root container and reduces host mount capabilities. For detailed differences, upgrade steps, and troubleshooting, see [GKE Autopilot Helm installation](datakit-helm.md#gke-autopilot).
+
+=== "Deployment"
+
+    DataKit can also be deployed as a regular Deployment by downloading [*datakit-deployment.yaml*](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-deployment.yaml){:target="_blank"}. Compared to DaemonSet deployment, only minor adjustments are required while maintaining essentially the same configuration parameters.
+
 <!-- markdownlint-enable -->
 
 ### Resource Limits {#requests-limits}
@@ -279,6 +301,8 @@ If the non-root mode cannot meet your monitoring requirements, you can revert to
 1. Remove the `runAsUser`, `runAsGroup`, and `supplementalGroups` configurations from the YAML.
 1. Set `privileged` to `true`.
 1. Redeploy DataKit.
+
+For more Datakit security related information, see [here](datakit-security.md).
 
 ### Kubernetes Tolerance Configuration {#toleration}
 

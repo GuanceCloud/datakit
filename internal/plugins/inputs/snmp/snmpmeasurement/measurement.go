@@ -19,6 +19,7 @@ const (
 	InputName      = "snmp"
 	SNMPObjectName = "snmp_object"
 	SNMPMetricName = "snmp_metric"
+	SNMPLLDPName   = "snmp_lldp"
 )
 
 //------------------------------------------------------------------------------
@@ -49,20 +50,23 @@ func (m *SNMPObject) Info() *inputs.MeasurementInfo {
 		Cat:  point.Object,
 		Fields: map[string]interface{}{
 			"device_meta":    newOtherFieldInfo(inputs.String, inputs.String, inputs.NoUnit, "Device meta data (JSON format)."),
+			"uptime":         newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.DurationSecond, "Device uptime in seconds."),
 			"interfaces":     newOtherFieldInfo(inputs.String, inputs.String, inputs.NoUnit, "Device network interfaces (JSON format)."),
 			"sensors":        newOtherFieldInfo(inputs.String, inputs.String, inputs.NoUnit, "Device sensors (JSON format)."),
 			"mems":           newOtherFieldInfo(inputs.String, inputs.String, inputs.NoUnit, "Device memories (JSON format)."),
 			"mem_pool_names": newOtherFieldInfo(inputs.String, inputs.String, inputs.NoUnit, "Device memory pool names (JSON format)."),
 			"cpus":           newOtherFieldInfo(inputs.String, inputs.String, inputs.NoUnit, "Device CPUs (JSON format)."),
-			"all":            newOtherFieldInfo(inputs.String, inputs.String, inputs.NoUnit, "Device all data (JSON format)."),
+			"all":            newOtherFieldInfo(inputs.String, inputs.String, inputs.NoUnit, "Device all data (JSON format). (Deprecated)"),
 		},
 		Tags: map[string]interface{}{
-			"device_vendor": inputs.NewTagInfo("Device vendor."),
-			"host":          inputs.NewTagInfo("Device host, replace with IP."),
-			"ip":            inputs.NewTagInfo("Device IP."),
-			"name":          inputs.NewTagInfo("Device name, replace with IP."),
-			"snmp_profile":  inputs.NewTagInfo("Device SNMP profile file."),
-			"snmp_host":     inputs.NewTagInfo("Device host."),
+			"device_type":     inputs.NewTagInfo("Device type (e.g. router, switch, pdu)."),
+			"device_vendor":   inputs.NewTagInfo("Device vendor."),
+			"device_hostname": inputs.NewTagInfo("Device hostname from SNMP (e.g. sysName)."),
+			"host":            inputs.NewTagInfo("Device host, replace with IP."),
+			"ip":              inputs.NewTagInfo("Device IP."),
+			"name":            inputs.NewTagInfo("Device name, replace with IP."),
+			"snmp_profile":    inputs.NewTagInfo("Device SNMP profile file."),
+			"snmp_host":       inputs.NewTagInfo("Device host."),
 		},
 	}
 }
@@ -138,8 +142,8 @@ func (m *SNMPMetric) Info() *inputs.MeasurementInfo {
 			"cswSwitchState":                    newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.NCount, "[Cisco only] The current state of a switch."),
 			"entSensorValue":                    newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.NCount, "[Cisco only] The most recent measurement seen by the sensor."),
 
-			"uptime":          newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.DurationSecond, "(in second) uptime."),
-			"netUptime":       newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.DurationSecond, "(in second) net uptime."),
+			"uptime":          newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.NCount, "(in hundredths of a second, sysUpTime raw) uptime."),
+			"netUptime":       newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.NCount, "(in hundredths of a second, sysUpTime raw) net uptime."),
 			"uptimeTimestamp": newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.TimestampSec, "uptime timestamp."),
 			"temperature":     newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Celsius, "The Temperature of item."),
 			"voltage":         newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Volt, "The Volt of item."),
@@ -150,20 +154,28 @@ func (m *SNMPMetric) Info() *inputs.MeasurementInfo {
 			"fanSpeed":        newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.RotationRete, "The fan speed."),
 			"fanStatus":       newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Bool, "The fan status."),
 
-			"ifNetStatus":     newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Bool, "The net status."),
-			"ifNetConnStatus": newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Bool, "The net connection status."),
-			"ifOperStatus":    newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.NCount, "(Shown as packet) The current operational state of the interface."),
-			"ifStatus":        newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Bool, "The interface status."),
-			"ifSpeed":         newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.NCount, "An estimate of the interface's current bandwidth in bits per second, or the nominal bandwidth."),
-			"ifHighSpeed":     newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.NCount, "An estimate of the interface's current bandwidth in units of 1,000,000 bits per second, or the nominal bandwidth."),
-			"ifInDiscards":    newOtherFieldInfo(inputs.Float, inputs.Count, inputs.NCount, "(Shown as packet) The number of inbound packets chosen to be discarded even though no errors had been detected to prevent them being deliverable to a higher-layer protocol."),
-			"ifOutDiscards":   newOtherFieldInfo(inputs.Float, inputs.Count, inputs.NCount, "(Shown as packet) The number of outbound packets chosen to be discarded even though no errors had been detected to prevent them being transmitted."),
-			"ifInErrors":      newOtherFieldInfo(inputs.Float, inputs.Count, inputs.NCount, "(Shown as packet) The number of inbound packets that contained errors preventing them from being deliverable to a higher-layer protocol."),
-			"ifOutErrors":     newOtherFieldInfo(inputs.Float, inputs.Count, inputs.NCount, "(Shown as packet) The number of outbound packets that could not be transmitted because of errors."),
-			"ifHCInPkts":      newOtherFieldInfo(inputs.Float, inputs.Count, inputs.NCount, "(Shown as packet) The number of packets delivered by this sub-layer to a higher (sub-)layer that were not addressed to a multicast or broadcast address at this sub-layer."),
-			"ifHCOutPkts":     newOtherFieldInfo(inputs.Float, inputs.Count, inputs.NCount, "(Shown as packet) The total number of packets higher-level protocols requested be transmitted that were not addressed to a multicast or broadcast address at this sub-layer including those that were discarded or not sent."),
-			"ifHCInOctets":    newOtherFieldInfo(inputs.Float, inputs.Count, inputs.NCount, "(Shown as byte) The total number of octets received on the interface including framing characters."),
-			"ifHCOutOctets":   newOtherFieldInfo(inputs.Float, inputs.Count, inputs.NCount, "(Shown as byte) The total number of octets transmitted out of the interface including framing characters."),
+			"ifNetStatus":             newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Bool, "The net status."),
+			"ifNetConnStatus":         newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Bool, "The net connection status."),
+			"ifOperStatus":            newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.NCount, "(Shown as packet) The current operational state of the interface."),
+			"ifStatus":                newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Bool, "The interface status."),
+			"ifSpeed":                 newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.NCount, "An estimate of the interface's current bandwidth in bits per second, or the nominal bandwidth."),
+			"ifHighSpeed":             newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.NCount, "An estimate of the interface's current bandwidth in units of 1,000,000 bits per second, or the nominal bandwidth."),
+			"ifInDiscards":            newOtherFieldInfo(inputs.Float, inputs.Count, inputs.NCount, "(Shown as packet) The number of inbound packets chosen to be discarded even though no errors had been detected to prevent them being deliverable to a higher-layer protocol."),
+			"ifOutDiscards":           newOtherFieldInfo(inputs.Float, inputs.Count, inputs.NCount, "(Shown as packet) The number of outbound packets chosen to be discarded even though no errors had been detected to prevent them being transmitted."),
+			"ifInErrors":              newOtherFieldInfo(inputs.Float, inputs.Count, inputs.NCount, "(Shown as packet) The number of inbound packets that contained errors preventing them from being deliverable to a higher-layer protocol."),
+			"ifOutErrors":             newOtherFieldInfo(inputs.Float, inputs.Count, inputs.NCount, "(Shown as packet) The number of outbound packets that could not be transmitted because of errors."),
+			"ifHCInPkts":              newOtherFieldInfo(inputs.Float, inputs.Count, inputs.NCount, "(Shown as packet) The number of packets delivered by this sub-layer to a higher (sub-)layer that were not addressed to a multicast or broadcast address at this sub-layer."),
+			"ifHCOutPkts":             newOtherFieldInfo(inputs.Float, inputs.Count, inputs.NCount, "(Shown as packet) The total number of packets higher-level protocols requested be transmitted that were not addressed to a multicast or broadcast address at this sub-layer including those that were discarded or not sent."),
+			"ifHCInOctets":            newOtherFieldInfo(inputs.Float, inputs.Count, inputs.NCount, "(Shown as byte) The total number of octets received on the interface including framing characters."),
+			"ifHCOutOctets":           newOtherFieldInfo(inputs.Float, inputs.Count, inputs.NCount, "(Shown as byte) The total number of octets transmitted out of the interface including framing characters."),
+			"ifHCInOctetsDiff":        newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.SizeByte, "Inbound octet increment in the collection interval."),
+			"ifHCOutOctetsDiff":       newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.SizeByte, "Outbound octet increment in the collection interval."),
+			"ifInErrorsDiff":          newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.NCount, "Inbound error packet increment in the collection interval."),
+			"ifOutErrorsDiff":         newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.NCount, "Outbound error packet increment in the collection interval."),
+			"ifInDiscardsDiff":        newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.NCount, "Inbound discard packet increment in the collection interval."),
+			"ifOutDiscardsDiff":       newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.NCount, "Outbound discard packet increment in the collection interval."),
+			"ifBandwidthInUsageDiff":  newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.NoUnit, "Inbound bandwidth usage scaled-value increment in the collection interval."),
+			"ifBandwidthOutUsageDiff": newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.NoUnit, "Outbound bandwidth usage scaled-value increment in the collection interval."),
 
 			"cpuUsage":       newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "(Shown as percent) Percentage of CPU currently being used."),
 			"cpuTemperature": newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Celsius, "The Temperature of cpu."),
@@ -189,6 +201,7 @@ func (m *SNMPMetric) Info() *inputs.MeasurementInfo {
 		},
 		Tags: map[string]interface{}{
 			"device_vendor":      inputs.NewTagInfo("Device vendor."),
+			"device_namespace":   inputs.NewTagInfo("Device namespace."),
 			"host":               inputs.NewTagInfo("Device host, replace with IP."),
 			"ip":                 inputs.NewTagInfo("Device IP."),
 			"name":               inputs.NewTagInfo("Device name and IP."),
@@ -223,6 +236,51 @@ func (m *SNMPMetric) Info() *inputs.MeasurementInfo {
 		},
 	}
 }
+
+//------------------------------------------------------------------------------
+
+// SNMPLLDP ...
+type SNMPLLDP struct {
+	Name   string
+	Tags   map[string]string
+	Fields map[string]interface{}
+	TS     time.Time
+}
+
+// Point implement MeasurementV2.
+func (m *SNMPLLDP) Point() *point.Point {
+	opts := point.DefaultLoggingOptions()
+	opts = append(opts, point.WithTime(m.TS))
+
+	return point.NewPoint(m.Name,
+		append(point.NewTags(m.Tags), point.NewKVs(m.Fields)...),
+		opts...)
+}
+
+//nolint:lll
+func (m *SNMPLLDP) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: SNMPLLDPName,
+		Desc: "SNMP LLDP (Link Layer Discovery Protocol) topology data.",
+		Cat:  point.Logging,
+		Fields: map[string]interface{}{
+			"remote_system":      newOtherFieldInfo(inputs.String, inputs.String, inputs.NoUnit, "Name of the remote system."),
+			"remote_system_desc": newOtherFieldInfo(inputs.String, inputs.String, inputs.NoUnit, "Description of the remote system."),
+		},
+		Tags: map[string]interface{}{
+			"local_ip":               inputs.NewTagInfo("IP address of the local device (string)."),
+			"local_chassis_id":       inputs.NewTagInfo("Chassis ID of the local device (string)."),
+			"local_interface":        inputs.NewTagInfo("Local interface name."),
+			"local_chassis_subtype":  inputs.NewTagInfo("Local chassis ID subtype string (e.g., 'mac_address', 'network_address', 'chassis_component', 'locally_assigned', etc.)."),
+			"remote_chassis_id":      inputs.NewTagInfo("Chassis ID of the remote device (string)."),
+			"remote_interface":       inputs.NewTagInfo("Interface ID of the remote device."),
+			"remote_chassis_subtype": inputs.NewTagInfo("Remote chassis ID subtype string (e.g., 'mac_address', 'network_address', 'chassis_component', 'locally_assigned', etc.)."),
+			"remote_port_subtype":    inputs.NewTagInfo("Remote port ID subtype string (e.g., 'mac_address', 'network_address', 'interface_alias', 'agent_circuit_id', 'locally_assigned', etc.)."),
+		},
+	}
+}
+
+//------------------------------------------------------------------------------
 
 func newOtherFieldInfo(datatype, ftype, unit, desc string) *inputs.FieldInfo {
 	return &inputs.FieldInfo{

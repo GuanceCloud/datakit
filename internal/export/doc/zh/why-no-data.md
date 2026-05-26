@@ -308,16 +308,38 @@ $ datakit debug --bug-report
     $ datakit debug --bug-report --disable-profile
     ```
     
-    - 如果有公网访问，可以直接将文件上传到 OSS，避免麻烦的文件拷贝（[:octicons-tag-24: Version-1.27.0](changelog.md#cl-1.27.0)）：
-    
+    - 自 [:octicons-tag-24: Version-1.94.0](changelog-2026.md#cl-1.94.0) 开始，DataKit 会默认尝试通过 Dataway 上传生成的 zip 包，并在上传成功后删除本地 zip 文件：
+
+    ```shell
+    $ datakit debug --bug-report
+    ...
+    uploading info-1776234260403.zip (size: 1953771 bytes) via dataway...
+
+    bug report upload summary(size: 1.394224 M):
+    local file: deleted after successful upload
+    object key:
+    2026-04-15/your-hostname/dkbr_xxxxx.zip
+    ```
+
+    将底部的 object key 贴给我们即可，售后团队会从配置的 OSS 前缀下通过内部 OSS 权限下载对应文件。
+
+    如果排查问题时需要临时上传到指定 Dataway 地址，可以使用 `--bug-report-dataway`：
+
+    ```shell
+    $ datakit debug --bug-report --bug-report-dataway http://dataway.example.com
+    ```
+
+    - 如果希望在本机上直接上传到 OSS，可以通过 `--oss` 显式指定 OSS 信息（[:octicons-tag-24: Version-1.27.0](changelog.md#cl-1.27.0)）：
+
     ```shell hl_lines="7"
     # 此处*必须填上*正确的 OSS 地址/Bucket 名称以及对应的 AS/SK
     $ datakit debug --bug-report --oss OSS_HOST:OSS_BUCKET:OSS_ACCESS_KEY:OSS_SECRET_KEY
     ...
-    bug report saved to info-1711794736881.zip
     uploading info-1711794736881.zip...
-    download URL(size: 1.394224 M):
-        https://OSS_BUCKET.OSS_HOST/datakit-bugreport/2024-03-30/dkbr_co3v2375mqs8u82aa6sg.zip
+    bug report upload summary(size: 1.394224 M):
+    local file: deleted after successful upload
+    download URL:
+    https://OSS_BUCKET.OSS_HOST/datakit-bugreport/2024-03-30/dkbr_xxxxx.zip
     ```
     
     将底部的链接地址贴给我们即可（请确保 OSS 中的文件是公网可访问的，否则该链接无法直接下载）。
@@ -410,7 +432,7 @@ $ datakit debug --bug-report
 | `syslog`      | 是       | 仅支持 `linux`, 基于 `journalctl` 来获取相关日志                                                        |
 | `error.log`   | 否       | 记录命令输出过程中出现的错误信息                                                        |
 
-### 敏感信息处理 {#sensitive}
+#### 敏感信息处理 {#sensitive}
 
 信息收集时，敏感信息（如 token、密码等）会被自动过滤替换，具体规则如下：
 

@@ -51,7 +51,7 @@ func (ipt *Input) userAutoDiscovery() {
 		return
 	}
 
-	g.Go(func(ctx context.Context) error {
+	ipt.g.Go(func(ctx context.Context) error {
 		if !atomic.CompareAndSwapUint32(&ipt.DiscoveryRunning, 0, 1) {
 			// last loop discovery is running
 			return nil

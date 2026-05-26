@@ -8,8 +8,8 @@ dashboard :
   - desc  : 'Kingbase'
     path  : 'dashboard/zh/kingbase'
 monitor   :
-  - desc  : '暂无'
-    path  : '-'
+  - desc  : 'Kingbase'
+    path  : 'dashboard/zh/kingbase'
 ---
 
 {{.AvailableArchs}}

@@ -132,6 +132,14 @@ func envDataway() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
 		{
+			ENVName: "ENV_DATAWAY_SINKER_HEADER_VERSION",
+			Type:    doc.String,
+			Example: "`v2`",
+			Default: "`-`",
+			Desc:    "Set sinker header version. If choose version `v2`, we should upgrade DataWay to specific version.[:octicons-tag-24: Version-1.91.0](changelog-2026.md#cl-1.91.0)",
+			DescZh:  "设置分流 header 版本。注意，如果要设置 v2 版本的 header，需配合升级 DataWay 到对应版本。[:octicons-tag-24: Version-1.91.0](changelog-2026.md#cl-1.91.0)",
+		},
+		{
 			ENVName: "ENV_DATAWAY_DROP_EXPIRED_PACKAGE_AT",
 			Type:    doc.TimeDuration,
 			Example: "`24h`",
@@ -161,6 +169,7 @@ func envDataway() []*inputs.ENVInfo {
 			ENVName: "ENV_DATAWAY_ENABLE_HTTPTRACE",
 			Type:    doc.Boolean,
 			Desc:    "Enable metrics on DataWay HTTP request",
+			Default: "`true`",
 			DescZh:  "开启 DataWay 请求时 HTTP 层面的指标暴露",
 		},
 
@@ -298,12 +307,55 @@ func envDataway() []*inputs.ENVInfo {
 func envLog() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
-		{ENVName: "ENV_GIN_LOG", Type: doc.String, Default: `*/var/log/datakit/gin.log*`, Desc: "If it is changed to `stdout`, the DataKit's own gin log will not be written to the file, but will be output by the terminal.", DescZh: "如果改成 `stdout`，DataKit 自身 gin 日志将不写文件，而是终端输出"},
-		{ENVName: "ENV_LOG", Type: doc.String, Default: `*/var/log/datakit/log*`, Desc: "If it is changed to `stdout`, DataKit's own log will not be written to the file, but will be output by the terminal.", DescZh: "如果改成 `stdout`，DataKit 自身日志将不写文件，而是终端输出"},
-		{ENVName: "ENV_LOG_LEVEL", Type: doc.String, Default: `info`, Desc: "Set DataKit's own log level, optional `info/debug`(case insensitive).", DescZh: "设置 DataKit 自身日志等级，可选 `info/debug`（不区分大小写）"},
-		{ENVName: "ENV_DISABLE_LOG_COLOR", Type: doc.Boolean, Default: `-`, Desc: "Turn off log colors", DescZh: "关闭日志颜色"},
-		{ENVName: "ENV_LOG_ROTATE_BACKUP", Type: doc.Int, Default: `5`, Desc: "The upper limit count for log files to be reserve.", DescZh: "设置最多保留日志分片的个数"},
-		{ENVName: "ENV_LOG_ROTATE_SIZE_MB", Type: doc.Int, Default: `32`, Desc: "The threshold for automatic log rotating in MB, which automatically switches to a new file when the log file size reaches the threshold.", DescZh: "日志自动切割的阈值（单位：MB），当日志文件大小达到设置的值时，自动切换新的文件"},
+		{
+			ENVName: "ENV_GIN_LOG",
+			Type:    doc.String,
+			Default: `*/var/log/datakit/gin.log*`,
+			Desc:    "If it is changed to `stdout`, the DataKit's own gin log will not be written to the file, but will be output by the terminal.",
+			DescZh:  "如果改成 `stdout`，DataKit 自身 gin 日志将不写文件，而是终端输出",
+		},
+		{
+			ENVName: "ENV_LOG",
+			Type:    doc.String,
+			Default: `*/var/log/datakit/log*`,
+			Desc:    "If it is changed to `stdout`, DataKit's own log will not be written to the file, but will be output by the terminal.",
+			DescZh:  "如果改成 `stdout`，DataKit 自身日志将不写文件，而是终端输出",
+		},
+		{
+			ENVName: "ENV_ERROR_LOG",
+			Type:    doc.String,
+			Default: `*/var/log/datakit/error.log*`,
+			Desc:    "Log file for error. If it is changed to `stdout`, DataKit's own error log will not be written to the file, but will be output by the terminal.",
+			DescZh:  "单独的错误日志。如果改成 `stdout`，DataKit 自身错误日志将不写文件，而是终端输出",
+		},
+		{
+			ENVName: "ENV_LOG_LEVEL",
+			Type:    doc.String,
+			Default: `info`,
+			Desc:    "Set DataKit's own log level, optional `info/debug`(case insensitive).",
+			DescZh:  "设置 DataKit 自身日志等级，可选 `info/debug`（不区分大小写）",
+		},
+		{
+			ENVName: "ENV_DISABLE_LOG_COLOR",
+			Type:    doc.Boolean,
+			Default: `-`,
+			Desc:    "Turn off log colors",
+			DescZh:  "关闭日志颜色",
+		},
+		{
+			ENVName: "ENV_LOG_ROTATE_BACKUP",
+			Type:    doc.Int,
+			Default: `5`,
+			Desc:    "The upper limit count for log files to be reserve.",
+			DescZh:  "设置最多保留日志分片的个数",
+		},
+		{
+			ENVName: "ENV_LOG_ROTATE_SIZE_MB",
+			Type:    doc.Int,
+			Default: `32`,
+			Desc:    "The threshold for automatic log rotating in MB, which automatically switches to a new file when the log file size reaches the threshold.",
+			DescZh:  "日志自动切割的阈值（单位：MB），当日志文件大小达到设置的值时，自动切换新的文件",
+		},
 	}
 
 	for idx := range infos {
@@ -316,8 +368,18 @@ func envLog() []*inputs.ENVInfo {
 func envPprof() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
-		{ENVName: "~~ENV_ENABLE_PPROF~~", Type: doc.Boolean, Desc: "Whether to start port on for profiling(Deprecated: Default enabled)", DescZh: "是否开启 profiling 端口（已默认启用）"},
-		{ENVName: "ENV_PPROF_LISTEN", Type: doc.String, Desc: "`pprof` service listening address", DescZh: "`pprof` 服务监听地址"},
+		{
+			ENVName: "~~ENV_ENABLE_PPROF~~",
+			Type:    doc.Boolean,
+			Desc:    "Whether to start port on for profiling(Deprecated: Default enabled)",
+			DescZh:  "是否开启 profiling 端口（已默认启用）",
+		},
+		{
+			ENVName: "ENV_PPROF_LISTEN",
+			Type:    doc.String,
+			Desc:    "`pprof` service listening address",
+			DescZh:  "`pprof` 服务监听地址",
+		},
 	}
 
 	for idx := range infos {
@@ -424,11 +486,35 @@ func envHTTPAPI() []*inputs.ENVInfo {
 		},
 
 		{
-			ENVName: "ENV_HTTP_CLOSE_IDLE_CONNECTION",
-			Type:    doc.Boolean,
-			Default: "-",
-			Desc:    "If turned on, the 9529 HTTP server actively closes idle connections(idle time equal to `ENV_HTTP_TIMEOUT`) [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)",
-			DescZh:  "如果开启，则 9529 HTTP server 会主动关闭闲置连接（闲置时间等同于 `ENV_HTTP_TIMEOUT`） [:octicons-tag-24: Version-1.4.6](changelog.md#cl-1.4.6) · [:octicons-beaker-24: Experimental](index.md#experimental)",
+			ENVName: "ENV_HTTP_IDLE_TIMEOUT",
+			Type:    doc.TimeDuration,
+			Default: "60s",
+			Desc:    "Set idle timeout for 9529 HTTP client connections [:octicons-tag-24: Version-1.86.1](changelog.md#cl-1.86.1)",
+			DescZh:  "空闲连接闲置超时时长 [:octicons-tag-24: Version-1.86.1](changelog.md#cl-1.85.1)",
+		},
+
+		{
+			ENVName: "ENV_HTTP_READ_TIMEOUT",
+			Type:    doc.TimeDuration,
+			Default: "30s",
+			Desc:    "Set read body timeout for slow HTTP client on 9529 [:octicons-tag-24: Version-1.86.1](changelog.md#cl-1.86.1)",
+			DescZh:  "设置慢客户端上传 body 超时时长 [:octicons-tag-24: Version-1.86.1](changelog.md#cl-1.86.1)",
+		},
+
+		{
+			ENVName: "ENV_HTTP_READ_HEADER_TIMEOUT",
+			Type:    doc.TimeDuration,
+			Default: "30s",
+			Desc:    "Set read header timeout for slow HTTP client on 9529 [:octicons-tag-24: Version-1.86.1](changelog.md#cl-1.86.1)",
+			DescZh:  "设置慢客户端上传 header 超时时长 [:octicons-tag-24: Version-1.86.1](changelog.md#cl-1.86.1)",
+		},
+
+		{
+			ENVName: "ENV_HTTP_WRITE_TIMEOUT",
+			Type:    doc.TimeDuration,
+			Default: "30s",
+			Desc:    "Set response timeout for slow read HTTP client on 9529 [:octicons-tag-24: Version-1.86.1](changelog.md#cl-1.86.1)",
+			DescZh:  "设置慢读取客户端返回发送超时时长 [:octicons-tag-24: Version-1.86.1](changelog.md#cl-1.86.1)",
 		},
 
 		{
@@ -516,11 +602,41 @@ func envConfd() []*inputs.ENVInfo {
 	// See also: https://github.com/kelseyhightower/confd/blob/master/docs/configuration-guide.md
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
-		{ENVName: "ENV_CONFD_BACKEND", Type: doc.String, Example: "`etcdv3`", Desc: "The backend to use", DescZh: "要使用的后端"},
-		{ENVName: "ENV_CONFD_BASIC_AUTH", Type: doc.Boolean, Default: "false", Desc: "Use Basic Auth to authenticate (used with `etcdv3`/consul)", DescZh: "使用 Basic Auth 进行身份验证（适用于 `etcdv3`/consul）"},
-		{ENVName: "ENV_CONFD_CLIENT_CA_KEYS", Type: doc.String, Example: "`/opt/ca.crt`", Desc: "The client CA key file", DescZh: "客户端 CA 密钥文件"},
-		{ENVName: "ENV_CONFD_CLIENT_CERT", Type: doc.String, Example: "`/opt/client.crt`", Desc: "The client cert file", DescZh: "客户端证书文件"},
-		{ENVName: "ENV_CONFD_CLIENT_KEY", Type: doc.String, Example: "`/opt/client.key`", Desc: "The client key file", DescZh: "客户端密钥文件"},
+		{
+			ENVName: "ENV_CONFD_BACKEND",
+			Type:    doc.String,
+			Example: "`etcdv3`",
+			Desc:    "The backend to use",
+			DescZh:  "要使用的后端",
+		},
+		{
+			ENVName: "ENV_CONFD_BASIC_AUTH",
+			Type:    doc.Boolean,
+			Default: "false",
+			Desc:    "Use Basic Auth to authenticate (used with `etcdv3`/consul)",
+			DescZh:  "使用 Basic Auth 进行身份验证（适用于 `etcdv3`/consul）",
+		},
+		{
+			ENVName: "ENV_CONFD_CLIENT_CA_KEYS",
+			Type:    doc.String,
+			Example: "`/opt/ca.crt`",
+			Desc:    "The client CA key file",
+			DescZh:  "客户端 CA 密钥文件",
+		},
+		{
+			ENVName: "ENV_CONFD_CLIENT_CERT",
+			Type:    doc.String,
+			Example: "`/opt/client.crt`",
+			Desc:    "The client cert file",
+			DescZh:  "客户端证书文件",
+		},
+		{
+			ENVName: "ENV_CONFD_CLIENT_KEY",
+			Type:    doc.String,
+			Example: "`/opt/client.key`",
+			Desc:    "The client key file",
+			DescZh:  "客户端密钥文件",
+		},
 		{
 			ENVName: "ENV_CONFD_BACKEND_NODES",
 			Type:    doc.JSON,
@@ -528,16 +644,72 @@ func envConfd() []*inputs.ENVInfo {
 			Desc:    "Backend source address",
 			DescZh:  "后端源地址",
 		},
-		{ENVName: "ENV_CONFD_USERNAME", Type: doc.String, Desc: "The username to authenticate (used with `etcdv3/consul/nacos`)", DescZh: "身份验证的用户名（适用于 `etcdv3/consul/nacos`）"},
-		{ENVName: "ENV_CONFD_PASSWORD", Type: doc.String, Desc: "The password to authenticate (used with `etcdv3/consul/nacos`)", DescZh: "身份验证的密码（适用于 `etcdv3/consul/nacos`）"},
-		{ENVName: "ENV_CONFD_SCHEME", Type: doc.String, Example: "http/https", Desc: "The backend URI scheme", DescZh: "后端 URI 方案"},
-		{ENVName: "ENV_CONFD_SEPARATOR", Type: doc.String, Default: "/", Desc: "The separator to replace '/' with when looking up keys in the backend, prefixed '/' will also be removed (used with rides)", DescZh: "在后端查找键时替换'/'的分隔符，前缀'/'也将被删除（适用于 redis）"},
-		{ENVName: "ENV_CONFD_ACCESS_KEY", Type: doc.String, Desc: "Access Key Id (use with `nacos/aws`)", DescZh: "客户端身份 ID（适用于 `nacos/aws`）"},
-		{ENVName: "ENV_CONFD_SECRET_KEY", Type: doc.String, Desc: "Secret Access Key (use with `nacos/aws`)", DescZh: "认证密钥（适用于 `nacos/aws`）"},
-		{ENVName: "ENV_CONFD_CIRCLE_INTERVAL", Type: doc.Int, Default: "60", Desc: "Loop detection interval second (use with `nacos/aws`)", DescZh: "循环检测间隔秒数（适用于 `nacos/aws`）"},
-		{ENVName: "ENV_CONFD_CONFD_NAMESPACE", Type: doc.String, Example: "`6aa36e0e-bd57-4483-9937-e7c0ccf59599`", Desc: "`confd` namespace id (use with `nacos`)", DescZh: "配置信息的空间 ID（适用于 `nacos`）"},
-		{ENVName: "ENV_CONFD_PIPELINE_NAMESPACE", Type: doc.String, Example: "`d10757e6-aa0a-416f-9abf-e1e1e8423497`", Desc: "`pipeline` namespace id (use with `nacos`)", DescZh: "`pipeline` 的信息空间 ID（适用于 `nacos`）"},
-		{ENVName: "ENV_CONFD_REGION", Type: doc.String, Example: "`cn-north-1`", Desc: "AWS Local Zone (use with aws)", DescZh: "AWS 服务区（适用于 aws）"},
+		{
+			ENVName: "ENV_CONFD_USERNAME",
+			Type:    doc.String,
+			Desc:    "The username to authenticate (used with `etcdv3/consul/nacos`)",
+			DescZh:  "身份验证的用户名（适用于 `etcdv3/consul/nacos`）",
+		},
+		{
+			ENVName: "ENV_CONFD_PASSWORD",
+			Type:    doc.String,
+			Desc:    "The password to authenticate (used with `etcdv3/consul/nacos`)",
+			DescZh:  "身份验证的密码（适用于 `etcdv3/consul/nacos`）",
+		},
+		{
+			ENVName: "ENV_CONFD_SCHEME",
+			Type:    doc.String,
+			Example: "http/https",
+			Desc:    "The backend URI scheme",
+			DescZh:  "后端 URI 方案",
+		},
+		{
+			ENVName: "ENV_CONFD_SEPARATOR",
+			Type:    doc.String,
+			Default: "/",
+			Desc:    "The separator to replace '/' with when looking up keys in the backend, prefixed '/' will also be removed (used with rides)",
+			DescZh:  "在后端查找键时替换'/'的分隔符，前缀'/'也将被删除（适用于 redis）",
+		},
+		{
+			ENVName: "ENV_CONFD_ACCESS_KEY",
+			Type:    doc.String,
+			Desc:    "Access Key Id (use with `nacos/aws`)",
+			DescZh:  "客户端身份 ID（适用于 `nacos/aws`）",
+		},
+		{
+			ENVName: "ENV_CONFD_SECRET_KEY",
+			Type:    doc.String,
+			Desc:    "Secret Access Key (use with `nacos/aws`)",
+			DescZh:  "认证密钥（适用于 `nacos/aws`）",
+		},
+		{
+			ENVName: "ENV_CONFD_CIRCLE_INTERVAL",
+			Type:    doc.Int,
+			Default: "60",
+			Desc:    "Loop detection interval second (use with `nacos/aws`)",
+			DescZh:  "循环检测间隔秒数（适用于 `nacos/aws`）",
+		},
+		{
+			ENVName: "ENV_CONFD_CONFD_NAMESPACE",
+			Type:    doc.String,
+			Example: "`6aa36e0e-bd57-4483-9937-e7c0ccf59599`",
+			Desc:    "`confd` namespace id (use with `nacos`)",
+			DescZh:  "配置信息的空间 ID（适用于 `nacos`）",
+		},
+		{
+			ENVName: "ENV_CONFD_PIPELINE_NAMESPACE",
+			Type:    doc.String,
+			Example: "`d10757e6-aa0a-416f-9abf-e1e1e8423497`",
+			Desc:    "`pipeline` namespace id (use with `nacos`)",
+			DescZh:  "`pipeline` 的信息空间 ID（适用于 `nacos`）",
+		},
+		{
+			ENVName: "ENV_CONFD_REGION",
+			Type:    doc.String,
+			Example: "`cn-north-1`",
+			Desc:    "AWS Local Zone (use with aws)",
+			DescZh:  "AWS 服务区（适用于 aws）",
+		},
 	}
 
 	for idx := range infos {
@@ -550,11 +722,41 @@ func envConfd() []*inputs.ENVInfo {
 func envGit() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
-		{ENVName: "ENV_GIT_BRANCH", Type: doc.String, Example: "master", Desc: "Specifies the branch to pull. **If it is empty, it is the default.** And the default is the remotely specified main branch, which is usually `master`.", DescZh: "指定拉取的分支。**为空则是默认**，默认是远程指定的主分支，一般是 `master`"},
-		{ENVName: "ENV_GIT_INTERVAL", Type: doc.TimeDuration, Example: "1m", Desc: "The interval of timed pull.", DescZh: "定时拉取的间隔"},
-		{ENVName: "ENV_GIT_KEY_PATH", Type: doc.String, Example: "/Users/username/.ssh/id_rsa", Desc: "The full path of the local PrivateKey.", DescZh: "本地 PrivateKey 的全路径"},
-		{ENVName: "ENV_GIT_KEY_PW", Type: doc.String, Example: "passwd", Desc: "Use password of local PrivateKey.", DescZh: "本地 PrivateKey 的使用密码"},
-		{ENVName: "ENV_GIT_URL", Type: doc.URL, Example: "`http://username:password@github.com/username/repository.git`", Desc: "Manage the remote git repo address of the configuration file.", DescZh: "管理配置文件的远程 git repo 地址"},
+		{
+			ENVName: "ENV_GIT_BRANCH",
+			Type:    doc.String,
+			Example: "master",
+			Desc:    "Specifies the branch to pull. **If it is empty, it is the default.** And the default is the remotely specified main branch, which is usually `master`.",
+			DescZh:  "指定拉取的分支。**为空则是默认**，默认是远程指定的主分支，一般是 `master`",
+		},
+		{
+			ENVName: "ENV_GIT_INTERVAL",
+			Type:    doc.TimeDuration,
+			Example: "1m",
+			Desc:    "The interval of timed pull.",
+			DescZh:  "定时拉取的间隔",
+		},
+		{
+			ENVName: "ENV_GIT_KEY_PATH",
+			Type:    doc.String,
+			Example: "/Users/username/.ssh/id_rsa",
+			Desc:    "The full path of the local PrivateKey.",
+			DescZh:  "本地 PrivateKey 的全路径",
+		},
+		{
+			ENVName: "ENV_GIT_KEY_PW",
+			Type:    doc.String,
+			Example: "passwd",
+			Desc:    "Use password of local PrivateKey.",
+			DescZh:  "本地 PrivateKey 的使用密码",
+		},
+		{
+			ENVName: "ENV_GIT_URL",
+			Type:    doc.URL,
+			Example: "`http://username:password@github.com/username/repository.git`",
+			Desc:    "Manage the remote git repo address of the configuration file.",
+			DescZh:  "管理配置文件的远程 git repo 地址",
+		},
 	}
 
 	for idx := range infos {
@@ -567,8 +769,19 @@ func envGit() []*inputs.ENVInfo {
 func envSinker() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
-		{ENVName: "ENV_SINKER_GLOBAL_CUSTOMER_KEYS", Type: doc.String, Desc: "Sinker Global Customer Key list, keys are split with `,`", DescZh: "指定 Sinker 分流的自定义字段列表，各个 Key 之间以英文逗号分割"},
-		{ENVName: "ENV_DATAWAY_ENABLE_SINKER", Type: doc.Boolean, Default: "-", Desc: "Enable DataWay Sinker [:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0)", DescZh: "开启 DataWay 发送数据时的 Sinker 功能。该功能需新版本 Dataway 才能生效 [:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0)"},
+		{
+			ENVName: "ENV_SINKER_GLOBAL_CUSTOMER_KEYS",
+			Type:    doc.String,
+			Desc:    "Sinker Global Customer Key list, keys are split with `,`",
+			DescZh:  "指定 Sinker 分流的自定义字段列表，各个 Key 之间以英文逗号分割",
+		},
+		{
+			ENVName: "ENV_DATAWAY_ENABLE_SINKER",
+			Type:    doc.Boolean,
+			Default: "-",
+			Desc:    "Enable DataWay Sinker [:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0)",
+			DescZh:  "开启 DataWay 发送数据时的 Sinker 功能。该功能需新版本 Dataway 才能生效 [:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0)",
+		},
 	}
 
 	for idx := range infos {
@@ -581,6 +794,62 @@ func envSinker() []*inputs.ENVInfo {
 func envIO() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
+		{
+			ENVName: "ENV_AGGREGATOR_ENDPOINTS",
+			Type:    doc.List,
+			Example: "`http://ip1:port?token=t1,http://ip2:port?token=t2`",
+			Default: "`[]`",
+			Desc:    "Configure downstream aggregator endpoints, separated by commas",
+			DescZh:  "设置下游 Aggregator 地址列表，以英文逗号分割",
+		},
+		{
+			ENVName: "ENV_AGGREGATOR_TIMEOUT",
+			Type:    doc.TimeDuration,
+			Example: "`5s`",
+			Default: "`0s`",
+			Desc:    "Configure the HTTP timeout when Aggregator sends requests downstream",
+			DescZh:  "设置 Aggregator 向下游发送请求时的 HTTP 超时",
+		},
+		{
+			ENVName: "ENV_AGGREGATOR_MAX_RAW_BODY_SIZE",
+			Type:    doc.Int,
+			Example: "`4294304`",
+			Default: "`0`",
+			Desc:    "Configure the maximum raw request body size used by Aggregator",
+			DescZh:  "设置 Aggregator 发送时使用的原始请求体大小上限",
+		},
+		{
+			ENVName: "ENV_AGGREGATOR_USE_LOCAL_CONFIG",
+			Type:    doc.Boolean,
+			Example: "`true`",
+			Default: "`true`",
+			Desc:    "Use local aggregator configuration files instead of pulling from Dataway",
+			DescZh:  "使用本地 Aggregator 配置文件，而不是从 Dataway 拉取配置",
+		},
+		{
+			ENVName: "ENV_AGGREGATOR_LOCAL_CONFIG_DIR",
+			Type:    doc.String,
+			Example: "`/usr/local/datakit/conf.d/aggr`",
+			Default: "`/usr/local/datakit/conf.d/aggr`",
+			Desc:    "Configure the local directory used to load aggregator config files",
+			DescZh:  "设置本地 Aggregator 配置文件目录",
+		},
+		{
+			ENVName: "ENV_AGGREGATOR_LOCAL_METRIC_CONFIG_FILE",
+			Type:    doc.String,
+			Example: "`aggr.toml`",
+			Default: "`aggr.toml`",
+			Desc:    "Configure the local metric aggregation config filename",
+			DescZh:  "设置本地指标聚合配置文件名",
+		},
+		{
+			ENVName: "ENV_AGGREGATOR_LOCAL_TAIL_SAMPLING_CONFIG_FILE",
+			Type:    doc.String,
+			Example: "`tail-sampling.toml`",
+			Default: "`tail-sampling.toml`",
+			Desc:    "Configure the local tail sampling config filename",
+			DescZh:  "设置本地尾采样配置文件名",
+		},
 		{
 			ENVName: "ENV_IO_AUTO_TIMESTAMP_CORRECTION",
 			Type:    doc.Boolean,
@@ -663,7 +932,13 @@ func envIO() []*inputs.ENVInfo {
 func envDca() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
-		{ENVName: "ENV_DCA_WEBSOCKET_SERVER", Type: doc.URL, Default: "", Desc: "The server address that the the DataKit can connect to. Once `ENV_DCA_WEBSOCKET_SERVER` is set, the DCA function is enabled by default", DescZh: "DataKit 可以连接该地址，使得 DCA 可以进行管理该 DataKit，一旦开启 ENV_DCA_WEBSOCKET_SERVER 即默认启用 DCA 功能"},
+		{
+			ENVName: "ENV_DCA_WEBSOCKET_SERVER",
+			Type:    doc.URL,
+			Default: "",
+			Desc:    "The server address that the the DataKit can connect to. Once `ENV_DCA_WEBSOCKET_SERVER` is set, the DCA function is enabled by default",
+			DescZh:  "DataKit 可以连接该地址，使得 DCA 可以进行管理该 DataKit，一旦开启 ENV_DCA_WEBSOCKET_SERVER 即默认启用 DCA 功能",
+		},
 	}
 
 	for idx := range infos {
@@ -676,10 +951,32 @@ func envDca() []*inputs.ENVInfo {
 func envRefta() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
-		{ENVName: "ENV_REFER_TABLE_URL", Type: doc.String, Desc: "Set the data source URL", DescZh: "设置数据源 URL"},
-		{ENVName: "ENV_REFER_TABLE_PULL_INTERVAL", Type: doc.String, Default: "5m", Desc: "Set the request interval for the data source URL", DescZh: "设置数据源 URL 的请求时间间隔"},
-		{ENVName: "ENV_REFER_TABLE_USE_SQLITE", Type: doc.Boolean, Default: "false", Desc: "Set whether to use SQLite to save data", DescZh: "设置是否使用 SQLite 保存数据"},
-		{ENVName: "ENV_REFER_TABLE_SQLITE_MEM_MODE", Type: doc.Boolean, Default: "false", Desc: "When using SQLite to save data, use SQLite memory mode/disk mode", DescZh: "当使用 SQLite 保存数据时，使用 SQLite 内存模式/磁盘模式"},
+		{
+			ENVName: "ENV_REFER_TABLE_URL",
+			Type:    doc.String,
+			Desc:    "Set the data source URL", DescZh: "设置数据源 URL",
+		},
+		{
+			ENVName: "ENV_REFER_TABLE_PULL_INTERVAL",
+			Type:    doc.String,
+			Default: "5m",
+			Desc:    "Set the request interval for the data source URL",
+			DescZh:  "设置数据源 URL 的请求时间间隔",
+		},
+		{
+			ENVName: "ENV_REFER_TABLE_USE_SQLITE",
+			Type:    doc.Boolean,
+			Default: "false",
+			Desc:    "Set whether to use SQLite to save data",
+			DescZh:  "设置是否使用 SQLite 保存数据",
+		},
+		{
+			ENVName: "ENV_REFER_TABLE_SQLITE_MEM_MODE",
+			Type:    doc.Boolean,
+			Default: "false",
+			Desc:    "When using SQLite to save data, use SQLite memory mode/disk mode",
+			DescZh:  "当使用 SQLite 保存数据时，使用 SQLite 内存模式/磁盘模式",
+		},
 	}
 
 	for idx := range infos {
@@ -692,12 +989,48 @@ func envRefta() []*inputs.ENVInfo {
 func envRecorder() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
-		{ENVName: "ENV_ENABLE_RECORDER", Type: doc.Boolean, Default: "false", Desc: "To enable or disable recorder", DescZh: "设置是否开启数据录制"},
-		{ENVName: "ENV_RECORDER_PATH", Type: doc.String, Default: "*[DataKit install path]/recorder*", Desc: "Set recorder data path", DescZh: "设置数据录制的存放目录"},
-		{ENVName: "ENV_RECORDER_ENCODING", Type: doc.String, Default: "v2", Desc: "Set recorder format. v1 is lineprotocol, v2 is JSON", DescZh: "设置数据录制的存放格式，v1 为行协议格式，v2 为 JSON 格式"},
-		{ENVName: "ENV_RECORDER_DURATION", Type: doc.TimeDuration, Default: "30m", Desc: "Set recorder duration(since DataKit start). After the duration, the recorder will stop to write data to file", DescZh: "设置数据录制时长（自 DataKit 启动以后），一旦超过该时长，则不再录制"},
-		{ENVName: "ENV_RECORDER_INPUTS", Type: doc.List, Example: "cpu,mem,disk", Desc: "Set allowed input names for recording, split by comma", DescZh: "设置录制的采集器名称列表，以英文逗号分割"},
-		{ENVName: "ENV_RECORDER_CATEGORIES", Type: doc.List, Example: "metric,logging,object", Desc: "Set allowed categories for recording, split by comma, full list of categories see [here](apis.md#category)", DescZh: "设置录制的数据分类列表，以英文逗号分割，完整的 Category 列表参见[这里](apis.md#category)"},
+		{
+			ENVName: "ENV_ENABLE_RECORDER",
+			Type:    doc.Boolean,
+			Default: "false",
+			Desc:    "To enable or disable recorder",
+			DescZh:  "设置是否开启数据录制",
+		},
+		{
+			ENVName: "ENV_RECORDER_PATH",
+			Type:    doc.String,
+			Default: "*[DataKit install path]/recorder*",
+			Desc:    "Set recorder data path",
+			DescZh:  "设置数据录制的存放目录",
+		},
+		{
+			ENVName: "ENV_RECORDER_ENCODING",
+			Type:    doc.String,
+			Default: "v2",
+			Desc:    "Set recorder format. v1 is lineprotocol, v2 is JSON",
+			DescZh:  "设置数据录制的存放格式，v1 为行协议格式，v2 为 JSON 格式",
+		},
+		{
+			ENVName: "ENV_RECORDER_DURATION",
+			Type:    doc.TimeDuration,
+			Default: "30m",
+			Desc:    "Set recorder duration(since DataKit start). After the duration, the recorder will stop to write data to file",
+			DescZh:  "设置数据录制时长（自 DataKit 启动以后），一旦超过该时长，则不再录制",
+		},
+		{
+			ENVName: "ENV_RECORDER_INPUTS",
+			Type:    doc.List,
+			Example: "cpu,mem,disk",
+			Desc:    "Set the recorded data source name list, separated by English commas. Here, the data source refers to the names in `Source` column of the **Inputs Info** panel in command `datakit monitor`.",
+			DescZh:  "设置录制的数据源名称列表，以英文逗号分割，此处数据源为 `datakit monitor` 命令 **Inputs Info** 面板 `Source` 列中的名称",
+		},
+		{
+			ENVName: "ENV_RECORDER_CATEGORIES",
+			Type:    doc.List,
+			Example: "metric,logging,object",
+			Desc:    "Set allowed categories for recording, split by comma, full list of categories see [here](apis.md#category)",
+			DescZh:  "设置录制的数据分类列表，以英文逗号分割，完整的 Category 列表参见[这里](apis.md#category)",
+		},
 	}
 
 	for idx := range infos {
@@ -710,17 +1043,74 @@ func envRecorder() []*inputs.ENVInfo {
 func envOthers() []*inputs.ENVInfo {
 	// nolint:lll
 	infos := []*inputs.ENVInfo{
-		{ENVName: "ENV_CLOUD_PROVIDER", Type: doc.String, Example: "`aliyun/aws/tencent/hwcloud/azure`", Desc: "Support filling in cloud suppliers during installation", DescZh: "支持安装阶段填写云厂商"},
-		{ENVName: "ENV_HOSTNAME", Type: doc.String, Desc: "The default is the local host name, which can be specified at installation time, such as, `dk-your-hostname`", DescZh: "默认为本地主机名，可安装时指定，如， `dk-your-hostname`"},
-		{ENVName: "ENV_IPDB", Type: doc.String, Desc: "Specify the IP repository type, currently only supports `iploc/geolite2`", DescZh: "指定 IP 信息库类型，目前只支持 `iploc/geolite2` 两种"},
-		{ENVName: "ENV_ULIMIT", Type: doc.Int, Desc: "Specify the maximum number of open files for DataKit", DescZh: "指定 DataKit 最大的可打开文件数"},
-		{ENVName: "ENV_PIPELINE_OFFLOAD_RECEIVER", Type: doc.String, Default: "`datakit-http`", Desc: "Set offload receiver", DescZh: "设置 Offload 目标接收器的类型"},
-		{ENVName: "ENV_PIPELINE_OFFLOAD_ADDRESSES", Type: doc.List, Example: "`http://aaa:123,http://1.2.3.4:1234`", Desc: "Set offload addresses", DescZh: "设置 Offload 目标地址"},
-		{ENVName: "ENV_PIPELINE_DISABLE_APPEND_RUN_INFO", Type: doc.Boolean, Default: "`false`", Desc: "Disable appending the Pipeline run info", DescZh: "禁用追加 Pipeline 运行信息"},
-		{ENVName: "ENV_CRYPTO_AES_KEY", Type: doc.String, Example: "`0123456789abcdef`", Desc: "The crypto key(len 16)", DescZh: "AES 加解密的 key 长度是 16"},
-		{ENVName: "ENV_CRYPTO_AES_KEY_FILE", Type: doc.String, Example: "`/usr/local/datakit/enc4mysql`", Desc: "File path for storing AES encryption and decryption key", DescZh: "AES 加解密的 key 存放的文件路径"},
+		{
+			ENVName: "ENV_CLOUD_PROVIDER",
+			Type:    doc.String,
+			Example: "`aliyun/aws/tencent/hwcloud/azure`",
+			Desc:    "Support filling in cloud suppliers during installation",
+			DescZh:  "支持安装阶段填写云厂商",
+		},
+		{
+			ENVName: "ENV_HOSTNAME",
+			Type:    doc.String,
+			Desc:    "The default is the local host name, which can be specified at installation time, such as, `dk-your-hostname`",
+			DescZh:  "默认为本地主机名，可安装时指定，如， `dk-your-hostname`",
+		},
+		{
+			ENVName: "ENV_IPDB",
+			Type:    doc.String,
+			Desc:    "Specify the IP repository type, currently only supports `iploc/geolite2`",
+			DescZh:  "指定 IP 信息库类型，目前只支持 `iploc/geolite2` 两种",
+		},
+		{
+			ENVName: "ENV_ULIMIT",
+			Type:    doc.Int,
+			Desc:    "Specify the maximum number of open files for DataKit",
+			DescZh:  "指定 DataKit 最大的可打开文件数",
+		},
+		{
+			ENVName: "ENV_PIPELINE_OFFLOAD_RECEIVER",
+			Type:    doc.String,
+			Default: "`datakit-http`",
+			Desc:    "Set offload receiver",
+			DescZh:  "设置 Offload 目标接收器的类型",
+		},
+		{
+			ENVName: "ENV_PIPELINE_OFFLOAD_ADDRESSES",
+			Type:    doc.List,
+			Example: "`http://aaa:123,http://1.2.3.4:1234`",
+			Desc:    "Set offload addresses",
+			DescZh:  "设置 Offload 目标地址",
+		},
+		{
+			ENVName: "ENV_PIPELINE_DISABLE_APPEND_RUN_INFO",
+			Type:    doc.Boolean,
+			Default: "`false`",
+			Desc:    "Disable appending the Pipeline run info",
+			DescZh:  "禁用追加 Pipeline 运行信息",
+		},
+		{
+			ENVName: "ENV_CRYPTO_AES_KEY",
+			Type:    doc.String,
+			Example: "`0123456789abcdef`",
+			Desc:    "The crypto key(len 16)",
+			DescZh:  "AES 加解密的 key 长度是 16",
+		},
+		{
+			ENVName: "ENV_CRYPTO_AES_KEY_FILE",
+			Type:    doc.String,
+			Example: "`/usr/local/datakit/enc4mysql`",
+			Desc:    "File path for storing AES encryption and decryption key",
+			DescZh:  "AES 加解密的 key 存放的文件路径",
+		},
 
-		{ENVName: "ENV_LOGGING_MAX_OPEN_FILES", Type: doc.Int, Example: "`1000`", Desc: "Specify the maximum number of open files for logging collection, if the value is -1 then there is no limit, default 500", DescZh: "指定日志采集的最大文件个数，如果值是 -1 则没有限制，默认值 500"},
+		{
+			ENVName: "ENV_LOGGING_MAX_OPEN_FILES",
+			Type:    doc.Int,
+			Example: "`1000`",
+			Desc:    "Specify the maximum number of open files for logging collection, if the value is -1 then there is no limit, default 500",
+			DescZh:  "指定日志采集的最大文件个数，如果值是 -1 则没有限制，默认值 500",
+		},
 	}
 
 	for idx := range infos {

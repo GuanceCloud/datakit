@@ -8,8 +8,8 @@ dashboard :
   - desc  : 'Kingbase'
     path  : 'dashboard/en/kingbase'
 monitor   :
-  - desc  : 'N/A'
-    path  : '-'
+  - desc  : 'Kingbase'
+    path  : 'dashboard/en/kingbase'
 ---
 
 

@@ -3,13 +3,10 @@ title: 'DDTrace Java 扩展更新日志'
 skip: 'not-searchable-on-index-page'
 ---
 
-> *作者： 刘锐、宋龙奇*
-
 ## 简介 {#intro}
 
-原生 DDTrace 对部分熟知的主流框架支持不够完善，我们在这个基础上，对其做了一些改进，以支持更多的主流框架和关键的数据追踪。
-
-当前 DDTrace 已增加了如下技术栈的扩展：
+本文记录 DataKit 中用于兼容 DDTrace Java 探针接入场景的 Java 扩展包更新内容。该扩展基于 `DataDog/dd-trace-java` 开发，遵循 `Apache License 2.0`。
+有关法律文件、校验和及源代码变更信息，请参阅<<<custom_key.brand_name>>> [Java Tracer 扩展声明](../../application-performance-monitoring/java-tracer-extension)
 
 <!-- markdownlint-disable MD046 MD030 -->
 <div class="grid cards" markdown>
@@ -38,6 +35,41 @@ skip: 'not-searchable-on-index-page'
 ### 兼容调整 {#cl-1.2.3-brk}
 
 --->
+
+
+## v1.55.10-ext (2026/2/1) {#cl-1.55.10-ext}
+
+### 新增 {#cl-1.55.10-ext-fix}
+
+- 增加 `java-websocket` 探针支持。
+
+
+## v1.55.7-ext (2025/12/30) {#cl-1.55.7-ext}
+
+### 修复 {#cl-1.55.7-ext-fix}
+
+- 修复：Redis 参数没有正确显示问题。
+
+
+## v1.55.6-ext (2025/12/22) {#cl-1.55.6-ext}
+
+### 修复 {#cl-1.55.6-ext-fix}
+
+- 修复：RocketMQ scope limit error.
+- 添加 Response Body 白名单 [配置并开启](ddtrace-ext-java.md#response_body) 功能。
+
+## v1.55.2-ext (2025/11/28) {#cl-1.55.2-ext}
+
+### 修复 {#cl-1.55.2-ext-fix}
+
+- fix:RocketMQ scope limit error.
+- Merge latest branch v1.55.0
+
+## v1.53.7-ext (2025/11/28) {#cl-1.53.7-ext}
+
+### 修复 {#cl-1.53.7-ext-fix}
+
+- support **Apache Dubbo** stream version 3.2
 
 ## v1.53.1-ext (2025/9/24) {#cl-1.53.1-ext}
 

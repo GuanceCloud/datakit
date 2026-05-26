@@ -109,8 +109,12 @@ func createGetDCAInfoHandler(hs *httpServerConf) gin.HandlerFunc {
 }
 
 type DCAInfo struct {
-	DataKit *ws.DataKit   `json:"datakit"`
-	Config  config.Config `json:"config"`
+	DataKit *ws.DataKit     `json:"datakit"`
+	Config  DCAConfigCompat `json:"config"`
+}
+
+type DCAConfigCompat struct {
+	DCAConfig *config.DCAConfig `json:"DCAConfig"`
 }
 
 func getDCAInfo(c *gin.Context) {
@@ -120,7 +124,9 @@ func getDCAInfo(c *gin.Context) {
 
 	dcaCtx.success(DCAInfo{
 		DataKit: dk,
-		Config:  *config.Cfg,
+		Config: DCAConfigCompat{
+			DCAConfig: config.Cfg.DCAConfig,
+		},
 	})
 }
 
@@ -219,6 +225,17 @@ func getDatakitData() *ws.DataKit {
 		l.Warnf("get local ip failed: %s", err.Error())
 	}
 
+	dkConfig := map[string]string{}
+
+	if config.Cfg.Dataway != nil && len(config.Cfg.Dataway.URLs) > 0 {
+		dkConfig["dataway_url"] = config.Cfg.Dataway.URLs[0]
+	}
+
+	configJSON, err := json.Marshal(dkConfig)
+	if err != nil {
+		l.Warnf("marshal dkConfig failed: %s", err.Error())
+	}
+
 	datakitInstance := &ws.DataKit{
 		Arch:           runtime.GOARCH,
 		OS:             runtime.GOOS,
@@ -239,6 +256,7 @@ func getDatakitData() *ws.DataKit {
 			Log:            config.Cfg.Logging.Log,
 			GinLog:         config.Cfg.Logging.GinLog,
 		},
+		Config: string(configJSON),
 	}
 
 	ut := usagetrace.GetUsageTraceInstance()
@@ -274,6 +292,7 @@ type dcaContext struct {
 func (d *dcaContext) send(response *ws.DCAResponse) {
 	body, err := json.Marshal(response)
 	if err != nil {
+		l.Errorf("marshal response failed: %s", err.Error())
 		d.fail()
 		return
 	}

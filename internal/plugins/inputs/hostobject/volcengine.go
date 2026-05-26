@@ -27,6 +27,7 @@ func (x *volcEcs) Sync() (map[string]any, error) {
 		"private_ip":            x.PrivateIP(),
 		"zone_id":               x.ZoneID(),
 		"region":                x.Region(),
+		"project_id":            x.ProjectID(),
 	}, nil
 }
 
@@ -74,4 +75,8 @@ func (x *volcEcs) ZoneID() string {
 
 func (x *volcEcs) Region() string {
 	return metaGet(x.baseURL + "/region_id")
+}
+
+func (x *volcEcs) ProjectID() string {
+	return Unavailable
 }

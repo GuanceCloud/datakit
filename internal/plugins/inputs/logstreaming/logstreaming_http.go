@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/GuanceCloud/pipeline-go/constants"
@@ -21,8 +22,15 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
+)
+
+const (
+	InfluxDBType = "influxdb"
+	FireLensType = "firelens"
+	FireHoseType = "firehose"
 )
 
 func httpStatusRespFunc(resp http.ResponseWriter, req *http.Request, err error) {
@@ -33,37 +41,90 @@ type parameters struct {
 	ignoreURLTags bool
 	url           *url.URL
 	queryValues   url.Values
-	body          *bytes.Buffer
+	body          io.ReadCloser // 接口，bytes.buffer或者网络流
+	remoteIP      string        // 远端 IP 地址
+	headers       map[string]string
 }
 
 func (ipt *Input) handleLogstreaming(resp http.ResponseWriter, req *http.Request) {
 	log.Debugf("### Log request from %s", req.URL.String())
 
-	pbuf := bufpool.GetBuffer()
-	defer bufpool.PutBuffer(pbuf)
+	// 获取远端 IP
+	remoteIP, _ := dknet.RemoteAddr(req)
 
-	_, err := io.Copy(pbuf, req.Body)
-	if err != nil {
-		log.Error(err.Error())
-		resp.WriteHeader(http.StatusBadRequest)
+	reqType := req.URL.Query().Get("type")
+	var (
+		param *parameters
+		err   error
+	)
+	var requestID string
+	switch reqType {
+	case InfluxDBType, FireLensType, FireHoseType:
+		// 保持原有行为：完整读取 body 到内存（仅对需要完整 payload 的类型）
+		pbuf := bufpool.GetBuffer()
+		_, err = io.Copy(pbuf, req.Body)
+		if err != nil {
+			log.Error(err.Error())
+			resp.WriteHeader(http.StatusBadRequest)
+			bufpool.PutBuffer(pbuf)
+			return
+		}
 
-		return
+		// 拷贝一份数据，随后释放 pool buffer
+		bodyBytes := append([]byte(nil), pbuf.Bytes()...)
+		bufpool.PutBuffer(pbuf)
+
+		encoding := resolveBodyEncoding(req)
+		if encoding == "gzip" {
+			bodyBytes, err = gzipDecompress(bodyBytes)
+			if err != nil {
+				log.Errorf("gzipDecompress error: %s", err)
+				resp.Write(respData(requestID, err.Error())) //nolint:errcheck,gosec
+				return
+			}
+		}
+
+		param = &parameters{
+			ignoreURLTags: ipt.IgnoreURLTags,
+			url:           req.URL,
+			queryValues:   req.URL.Query(),
+			body:          io.NopCloser(bytes.NewReader(bodyBytes)), // 满足接口数据类型，无操作
+			remoteIP:      remoteIP,
+		}
+		if reqType == FireHoseType {
+			param.headers = getHeaders(req.Header)
+			requestID = param.headers["request_id"]
+		}
+
+	default:
+		// 流式处理：直接传递 req.Body，避免一次性读入内存
+		param = &parameters{
+			ignoreURLTags: ipt.IgnoreURLTags,
+			url:           req.URL,
+			queryValues:   req.URL.Query(),
+			body:          req.Body,
+			remoteIP:      remoteIP,
+		}
 	}
 
-	param := &parameters{
-		ignoreURLTags: ipt.IgnoreURLTags,
-		url:           req.URL,
-		queryValues:   req.URL.Query(),
-		body:          pbuf,
-	}
+	// 确保关闭 body
+	defer func() {
+		if param != nil && param.body != nil {
+			_ = param.body.Close()
+		}
+	}()
+
 	if err = ipt.processLogBody(param); err != nil {
-		log.Error(err.Error())
+		log.Errorf("process log body error: %v", err)
 		resp.WriteHeader(http.StatusBadRequest)
-
 		return
 	}
 
-	resp.Write([]byte(`{"status":"success"}`)) //nolint:errcheck,gosec
+	if reqType == FireHoseType {
+		resp.Write(respData(requestID, "")) //nolint:errcheck,gosec
+	} else {
+		resp.Write([]byte(`{"status":"success"}`)) //nolint:errcheck,gosec
+	}
 }
 
 func getSourceName(source string) string {
@@ -85,6 +146,17 @@ func completeService(defaultService, service string) string {
 const (
 	maxLogLen = 32 * 1024 * 1024
 )
+
+func normalizeFireLensFieldValue(v any) any {
+	switch x := v.(type) {
+	case map[string]any, []any:
+		if b, err := json.Marshal(x); err == nil {
+			return string(b)
+		}
+	}
+
+	return v
+}
 
 func (ipt *Input) processLogBody(param *parameters) error {
 	var (
@@ -108,6 +180,11 @@ func (ipt *Input) processLogBody(param *parameters) error {
 		extraTags["service"] = completeService(source, param.queryValues.Get("service"))
 	}
 
+	// 添加远端 IP 作为 collector_source_ip tag
+	if param.remoteIP != "" {
+		extraTags["collector_source_ip"] = param.remoteIP
+	}
+
 	if scriptName := param.queryValues.Get("pipeline"); scriptName != "" {
 		plopt = &lang.LogOption{
 			ScriptMap: map[string]string{
@@ -117,7 +194,7 @@ func (ipt *Input) processLogBody(param *parameters) error {
 	}
 
 	switch param.queryValues.Get("type") {
-	case "influxdb":
+	case InfluxDBType:
 		body, err := ioutil.ReadAll(param.body)
 		if err != nil {
 			log.Errorf("url %s failed to read body: %s", urlstr, err)
@@ -137,9 +214,9 @@ func (ipt *Input) processLogBody(param *parameters) error {
 			return err
 		}
 
-	case "firelens":
+	case FireLensType:
 
-		body, err := ioutil.ReadAll(param.body)
+		body, err := io.ReadAll(param.body)
 		if err != nil {
 			log.Errorf("url %s failed to read body: %s", urlstr, err)
 			return err
@@ -155,9 +232,11 @@ func (ipt *Input) processLogBody(param *parameters) error {
 					kvs := make(point.KVs, 0, len(v))
 					var ts int64
 					for k, v := range v {
+						nv := normalizeFireLensFieldValue(v)
+
 						switch k {
 						case "log":
-							kvs = kvs.Set(constants.FieldMessage, v)
+							kvs = kvs.Set(constants.FieldMessage, nv)
 						case "date":
 							switch v := v.(type) {
 							case float64:
@@ -169,12 +248,12 @@ func (ipt *Input) processLogBody(param *parameters) error {
 							case int32:
 								ts = int64(v) * 1e9
 							default:
-								kvs = kvs.Set(k, v)
+								kvs = kvs.Set(k, nv)
 							}
 						case "source":
-							kvs = kvs.Set("firelens_source", v)
+							kvs = kvs.Set("firelens_source", nv)
 						default:
-							kvs = kvs.Set(k, v)
+							kvs = kvs.Set(k, nv)
 						}
 					}
 
@@ -199,7 +278,40 @@ func (ipt *Input) processLogBody(param *parameters) error {
 				point.WithTime(now))...),
 			)
 		}
+	case FireHoseType:
+		// firehose data
+		body, err := ioutil.ReadAll(param.body)
+		if err != nil {
+			log.Errorf("url %s failed to read body: %s", urlstr, err)
+			return err
+		}
+		rd := &requestData{}
+		err = json.Unmarshal(body, rd)
+		if err != nil {
+			log.Warnf("unmarshal err %v ", err)
+			return err
+		}
+		if rd.Timestamp == 0 {
+			rd.Timestamp = time.Now().UnixMilli()
+		}
+		t := time.UnixMilli(rd.Timestamp)
 
+		for _, record := range rd.Records {
+			var kvs point.KVs
+			kvs = kvs.Set(constants.FieldMessage, string(record.Data)).
+				AddTag("status", "unknown")
+
+			for k, v := range param.headers {
+				kvs = kvs.AddTag(k, v)
+			}
+			if s, ok := param.headers["source"]; ok {
+				source = s // 重置 source 防止使用 default。
+			}
+			pt := point.NewPoint(source, kvs,
+				append(point.DefaultLoggingOptions(), point.WithExtraTags(extraTags), point.WithTime(t))...)
+
+			pts = append(pts, pt)
+		}
 	default:
 
 		scanBuffer := ipt.getScanbuf()
@@ -209,12 +321,22 @@ func (ipt *Input) processLogBody(param *parameters) error {
 		scanner.Buffer(scanBuffer, maxLogLen)
 
 		for scanner.Scan() {
+			line := scanner.Text()
+			if line == "" {
+				continue
+			}
 			var kvs point.KVs
 
-			kvs = kvs.Set(constants.FieldMessage, scanner.Text()).
+			kvs = kvs.Set(constants.FieldMessage, line).
 				Set(constants.FieldStatus, pipeline.DefaultStatus)
 			pts = append(pts, point.NewPoint(source, kvs,
 				append(logPtOpt, point.WithExtraTags(extraTags), point.WithTime(now))...))
+		}
+
+		// scan error
+		if err := scanner.Err(); err != nil {
+			log.Errorf("url %s scanner error: %v", urlstr, err)
+			return err
 		}
 	}
 

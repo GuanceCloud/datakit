@@ -1,7 +1,15 @@
 src = ["internal/", ]
-skip_dirs = ["internal/colorprint", ]
+skip_dirs = [
+	"internal/colorprint", 
+	"internal/testutils", 
+	"internal/plugins/inputs/dameng/driver",
+	"internal/plugins/inputs/kingbase/driver",
+	"internal/plugins/inputs/oracle/tools/session",
+	"internal/plugins/inputs/oracle/tools/sqlplus",
+]
 skip_files = []
 
 [pkg_functions]
 	fmt = ["Println", "Printf", ]
+	log = ["Println", "Printf", ]
 

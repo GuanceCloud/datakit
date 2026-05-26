@@ -34,11 +34,6 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "EnableExtractK8sLabelAsTagsV2", ENVName: "EXTRACT_K8S_LABEL_AS_TAGS_V2", Type: doc.JSON, Example: "`'[\"app\",\"name\"]'`", Desc: `Append the labels of the resource to the tag of the non-metric (like object, logging and change) data. Label keys should be specified, if there is only one key and it is an empty string (e.g. [""]), all labels will be added to the tag. The container will inherit the Pod labels. If the key of the label has the dot character, it will be changed to a horizontal line`, DescZh: `追加资源的 labels 到数据（不包括指标数据）的 tag 中。需指定 label keys，如果只有一个 key 且为空字符串（例如 [""]），会添加所有 labels 到 tag。容器会继承 Pod labels。如果 label 的 key 有 dot 字符，会将其变为横线`},
 		{FieldName: "EnableExtractK8sLabelAsTagsV2ForMetric", ENVName: "EXTRACT_K8S_LABEL_AS_TAGS_V2_FOR_METRIC", Type: doc.JSON, Example: "`'[\"app\",\"name\"]'`", Desc: `Append the labels of the resource to the tag of the metric data. Label keys should be specified, if there is only one key and it is an empty string (e.g. [""]), all labels will be added to the tag. The container will inherit the Pod labels. If the key of the label has the dot character, it will be changed to a horizontal line`, DescZh: `追加资源的 labels 到指标数据的 tag 中。需指定 label keys，如果只有一个 key 且为空字符串（例如 [""]），会添加所有 labels 到 tag。容器会继承 Pod labels。如果 label 的 key 有 dot 字符，会将其变为横线`},
 
-		{FieldName: "EnableAutoDiscoveryOfPrometheusPodAnnotations", Type: doc.Boolean, Default: "false", Desc: `Deprecated. Whether to turn on Prometheus Pod Annotations and collect metrics automatically`, DescZh: `是否开启自动发现 Prometheus Pod Annotations 并采集指标`},
-		{FieldName: "EnableAutoDiscoveryOfPrometheusServiceAnnotations", Type: doc.Boolean, Default: "false", Desc: `Deprecated. Whether to turn on Prometheus Service Annotations and collect metrics automatically`, DescZh: `是否开启自动发现 Prometheus 服务 Annotations 并采集指标`},
-		{FieldName: "EnableAutoDiscoveryOfPrometheusPodMonitors", Type: doc.Boolean, Default: "false", Desc: `Deprecated. Whether to turn on automatic discovery of Prometheus PodMonitor CRD and collection of metrics, see [Prometheus-Operator CRD doc](kubernetes-prometheus-operator-crd`, DescZh: `是否开启自动发现 Prometheus Pod Monitor CRD 并采集指标，详见 [Prometheus-Operator CRD 文档](kubernetes-prometheus-operator-crd.md#config)`},
-		{FieldName: "EnableAutoDiscoveryOfPrometheusServiceMonitors", Type: doc.Boolean, Default: "false", Desc: `Deprecated. Whether to turn on automatic discovery of Prometheus ServiceMonitor CRD and collection of metrics, see [Prometheus-Operator CRD doc](kubernetes-prometheus-operator-crd`, DescZh: `是否开启自动发现 Prometheus ServiceMonitor CRD 并采集指标，详见 [Prometheus-Operator CRD 文档](kubernetes-prometheus-operator-crd.md#config)`},
-
 		{FieldName: "ContainerMaxConcurrent", Type: doc.Int, Default: `cpu cores + 1`, Desc: `Maximum number of concurrency when collecting container data, recommended to be turned on only when the collection delay is large`, DescZh: `采集容器数据时的最大并发数，推荐只在采集延迟较大时开启`},
 		{FieldName: "ContainerIncludeLog", Type: doc.List, Example: "`\"image:pubrepo.jiagouyun.com/datakit/logfwd*\"`", Desc: `Include condition of container log, filtering with image`, DescZh: `容器日志白名单，使用 image/namespace 过滤`},
 		{FieldName: "ContainerExcludeLog", Type: doc.List, Example: "`\"image:pubrepo.jiagouyun.com/datakit/logfwd*\"`", Desc: `Exclude condition of container log, filtering with image`, DescZh: `容器日志黑名单，使用 image/namespace 过滤`},
@@ -47,14 +42,20 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 
 		{FieldName: "LoggingExtraSourceMap", Type: doc.Map, Example: "`source_regex*=new_source,regex*=new_source2`", Desc: `Log collection configures additional source matching, and the regular source will be renamed`, DescZh: `日志采集配置额外的 source 匹配，符合正则的 source 会被改名`},
 		{FieldName: "LoggingSourceMultilineMap", ENVName: "LOGGING_SOURCE_MULTILINE_MAP_JSON", ConfField: "logging_source_multiline_map", Type: doc.JSON, Example: "`'{\"source_nginx\":\"^\\d{4}\", \"source_redis\":\"^[A-Za-z_]\"}'`", Desc: `Log collection with multiline configuration as specified by the source`, DescZh: `日志采集根据 source 指定多行配置`},
-		{FieldName: "LoggingAutoMultilineDetection", Type: doc.Boolean, Default: `false`, Desc: `Whether the automatic multi-line mode is turned on for log collection; the applicable multi-line rules will be matched in the patterns list after it is turned on`, DescZh: `日志采集是否开启自动多行模式，开启后会在 patterns 列表中匹配适用的多行规则`},
-		{FieldName: "LoggingAutoMultilineExtraPatterns", ENVName: "LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON", ConfField: "logging_auto_multiline_extra_patterns", Type: doc.JSON, Default: `For more default rules, see [doc](logging.md#auto-multiline)`, Example: "`'[\"^\\d{4}-\\d{2}\", \"^[A-Za-z_]\"]'`", Desc: `Automatic multi-line pattern pattens list for log collection, supporting manual configuration of multiple multi-line rules`, DescZh: `日志采集的自动多行模式 pattens 列表，支持手动配置多个多行规则`},
+		{FieldName: "LoggingAutoMultilineExtraPatterns", ENVName: "LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON", ConfField: "logging_auto_multiline_extra_patterns", Type: doc.JSON, Default: `For more default rules, see [doc](logging.md#auto-multiline)`, Example: "`'[\"^\\d{4}-\\d{2}\", \"^[A-Za-z_]\"]'`", Desc: `Supplementary automatic multiline patterns for log collection, checked only after built-in rules do not match`, DescZh: `日志采集自动多行的补充 patterns，仅在内置规则未命中后匹配`},
 		{FieldName: "LoggingRemoveAnsiEscapeCodes", Type: doc.Boolean, Default: `false`, Desc: "Remove `ansi` escape codes and color characters, referred to [`ansi-decode` doc](logging.md#ansi-decode)", DescZh: `日志采集删除包含的颜色字符，详见[日志特殊字符处理说明](logging.md#ansi-decode)`},
 		{FieldName: "LoggingFileFromBeginningThresholdSize", Type: doc.Int, Default: `20,000,000`, Desc: "Decide whether or not to from_beginning based on the file size, if the file size is smaller than this value when the file is found, start the collection from the begin", DescZh: `根据文件 size 决定是否 from_beginning，如果发现该文件时，文件 size 小于这个值，就使用 from_beginning 从头部开始采集`},
 		{FieldName: "LoggingFileFromBeginning", Type: doc.Boolean, Default: `false`, Desc: "Whether to collect logs from the begin of the file", DescZh: `是否从文件首部采集日志`},
 		{FieldName: "LoggingMaxOpenFiles", Type: doc.Int, Default: `500`, Desc: `The maximum allowed number of open files. If it is set to -1, it means there is no limit.`, DescZh: `日志采集最大打开文件个数，如果是 -1 则没有限制`},
 		{FieldName: "LoggingFieldWhiteList", Type: doc.List, Example: "`'[\"service\",\"container_id\"]'`", Desc: `"Only retain the fields specified in the whitelist."`, DescZh: `指定保留白名单中的字段`},
 		{FieldName: "Tags"},
+
+		// Deprecated.
+		{FieldName: "EnableAutoDiscoveryOfPrometheusPodAnnotations", Type: doc.Boolean, Default: "false", Desc: `Deprecated. Whether to turn on Prometheus Pod Annotations and collect metrics automatically`, DescZh: `已弃用。是否开启自动发现 Prometheus Pod Annotations 并采集指标`},
+		{FieldName: "EnableAutoDiscoveryOfPrometheusServiceAnnotations", Type: doc.Boolean, Default: "false", Desc: `Deprecated. Whether to turn on Prometheus Service Annotations and collect metrics automatically`, DescZh: `已弃用。是否开启自动发现 Prometheus 服务 Annotations 并采集指标`},
+		{FieldName: "EnableAutoDiscoveryOfPrometheusPodMonitors", Type: doc.Boolean, Default: "false", Desc: `Deprecated. Whether to turn on automatic discovery of Prometheus PodMonitor CRD and collection of metrics, see [Prometheus-Operator CRD doc](kubernetes-prometheus-operator-crd`, DescZh: `已弃用。是否开启自动发现 Prometheus Pod Monitor CRD 并采集指标，详见 [Prometheus-Operator CRD 文档](kubernetes-prometheus-operator-crd.md#config)`},
+		{FieldName: "EnableAutoDiscoveryOfPrometheusServiceMonitors", Type: doc.Boolean, Default: "false", Desc: `Deprecated. Whether to turn on automatic discovery of Prometheus ServiceMonitor CRD and collection of metrics, see [Prometheus-Operator CRD doc](kubernetes-prometheus-operator-crd`, DescZh: `已弃用。是否开启自动发现 Prometheus ServiceMonitor CRD 并采集指标，详见 [Prometheus-Operator CRD 文档](kubernetes-prometheus-operator-crd.md#config)`},
+		{FieldName: "LoggingAutoMultilineDetection", Type: doc.Boolean, Default: `false`, Desc: `Deprecated. Whether the automatic multi-line mode is turned on for log collection; the applicable multi-line rules will be matched in the patterns list after it is turned on`, DescZh: `已弃用。日志采集是否开启自动多行模式，开启后会在 patterns 列表中匹配适用的多行规则`},
 	}
 
 	return doc.SetENVDoc("ENV_INPUT_CONTAINER_", infos)
@@ -84,7 +85,6 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 // ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP : string
 // ENV_INPUT_CONTAINER_LOGGING_SOURCE_MULTILINE_MAP_JSON : string (JSON map)
 // ENV_INPUT_CONTAINER_LOGGING_ENABLE_MULTILINE        : booler
-// ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_DETECTION: booler
 // ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON : string (JSON string array)
 // ENV_INPUT_CONTAINER_LOGGING_FILE_FROM_BEGINNING : booler
 // ENV_INPUT_CONTAINER_LOGGING_FILE_FROM_BEGINNING_THRESHOLD_SIZE : int
@@ -263,13 +263,6 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			ipt.LoggingEnableMultline = b
 		}
 	}
-	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_DETECTION"]; ok {
-		if b, err := strconv.ParseBool(str); err != nil {
-			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_DETECTION to bool: %s, ignore", err)
-		} else {
-			ipt.LoggingAutoMultilineDetection = b
-		}
-	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON"]; ok {
 		if err := json.Unmarshal([]byte(str), &ipt.LoggingAutoMultilineExtraPatterns); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_AUTO_MULTILINE_EXTRA_PATTERNS_JSON to slice: %s, ignore", err)
@@ -294,7 +287,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		if size, err := strconv.ParseInt(str, 10, 64); err != nil {
 			l.Warnf("parse ENV_INPUT_CONTAINER_LOGGING_FILE_FROM_BEGINNING_THRESHOLD_SIZE to int64: %s, ignore", err)
 		} else {
-			ipt.LoggingFileFromBeginningThresholdSize = int(size)
+			ipt.LoggingFileFromBeginningThresholdSize = size
 		}
 	}
 	if str, ok := envs["ENV_INPUT_CONTAINER_LOGGING_REMOVE_ANSI_ESCAPE_CODES"]; ok {

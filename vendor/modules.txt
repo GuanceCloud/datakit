@@ -18,20 +18,6 @@ github.com/DataDog/datadog-go/statsd
 # github.com/DataDog/datadog-go/v5 v5.1.1
 ## explicit; go 1.13
 github.com/DataDog/datadog-go/v5/statsd
-# github.com/DataDog/ebpf-manager v0.2.16
-## explicit; go 1.18
-github.com/DataDog/ebpf-manager
-github.com/DataDog/ebpf-manager/tracefs
-# github.com/DataDog/gopsutil v1.2.1
-## explicit
-github.com/DataDog/gopsutil/cpu
-github.com/DataDog/gopsutil/host
-github.com/DataDog/gopsutil/internal/common
-github.com/DataDog/gopsutil/mem
-github.com/DataDog/gopsutil/net
-github.com/DataDog/gopsutil/process
-github.com/DataDog/gopsutil/process/filepath
-github.com/DataDog/gopsutil/process/so
 # github.com/DataDog/sketches-go v1.4.1
 ## explicit; go 1.15
 github.com/DataDog/sketches-go/ddsketch
@@ -40,9 +26,10 @@ github.com/DataDog/sketches-go/ddsketch/mapping
 github.com/DataDog/sketches-go/ddsketch/pb/sketchpb
 github.com/DataDog/sketches-go/ddsketch/stat
 github.com/DataDog/sketches-go/ddsketch/store
-# github.com/GuanceCloud/cliutils v1.1.22-0.20251016031643-25f6b60f8ebf
+# github.com/GuanceCloud/cliutils v1.1.22-0.20260511083129-45a7568875d8
 ## explicit; go 1.19
 github.com/GuanceCloud/cliutils
+github.com/GuanceCloud/cliutils/aggregate
 github.com/GuanceCloud/cliutils/dialtesting
 github.com/GuanceCloud/cliutils/diskcache
 github.com/GuanceCloud/cliutils/filter
@@ -51,6 +38,7 @@ github.com/GuanceCloud/cliutils/logger
 github.com/GuanceCloud/cliutils/metrics
 github.com/GuanceCloud/cliutils/network/http
 github.com/GuanceCloud/cliutils/network/ws
+github.com/GuanceCloud/cliutils/otlp
 github.com/GuanceCloud/cliutils/pkg/hash
 github.com/GuanceCloud/cliutils/point
 github.com/GuanceCloud/cliutils/pprofparser/cfg
@@ -86,9 +74,13 @@ github.com/GuanceCloud/confd/backends/vault
 github.com/GuanceCloud/confd/backends/zookeeper
 github.com/GuanceCloud/confd/log
 github.com/GuanceCloud/confd/util
-# github.com/GuanceCloud/grok v1.1.5-0.20250416104424-34917bd63e69
+# github.com/GuanceCloud/grok v1.1.5-0.20260513103143-a1797907b1d0
 ## explicit; go 1.18
 github.com/GuanceCloud/grok
+github.com/GuanceCloud/grok/internal/backend
+github.com/GuanceCloud/grok/internal/filter
+github.com/GuanceCloud/grok/internal/match
+github.com/GuanceCloud/grok/internal/scan
 # github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b
 ## explicit
 github.com/GuanceCloud/kubernetes/pkg/features
@@ -100,7 +92,7 @@ github.com/GuanceCloud/kubernetes/pkg/probe/exec
 # github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386
 ## explicit; go 1.18
 github.com/GuanceCloud/mdcheck/check
-# github.com/GuanceCloud/pipeline-go v1.0.9-0.20250819095325-01d2a81ed1c2
+# github.com/GuanceCloud/pipeline-go v1.3.1
 ## explicit; go 1.19
 github.com/GuanceCloud/pipeline-go
 github.com/GuanceCloud/pipeline-go/constants
@@ -119,7 +111,7 @@ github.com/GuanceCloud/pipeline-go/ptinput/ptwindow
 github.com/GuanceCloud/pipeline-go/ptinput/refertable
 github.com/GuanceCloud/pipeline-go/ptinput/utils
 github.com/GuanceCloud/pipeline-go/stats
-# github.com/GuanceCloud/platypus v0.3.3-0.20250528074826-e3130ff5a05c
+# github.com/GuanceCloud/platypus v0.3.4
 ## explicit; go 1.19
 github.com/GuanceCloud/platypus/internal/logger
 github.com/GuanceCloud/platypus/pkg/ast
@@ -129,9 +121,6 @@ github.com/GuanceCloud/platypus/pkg/engine/runtimev2
 github.com/GuanceCloud/platypus/pkg/errchain
 github.com/GuanceCloud/platypus/pkg/parser
 github.com/GuanceCloud/platypus/pkg/token
-# github.com/GuanceCloud/timeout v1.9.1
-## explicit; go 1.15
-github.com/GuanceCloud/timeout
 # github.com/GuanceCloud/tracing-protos v0.0.0-20230619071516-54c8cff1b6b3
 ## explicit
 github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/collector/logs/v1
@@ -188,9 +177,6 @@ github.com/ProtonMail/go-crypto/openpgp/internal/ecc
 github.com/ProtonMail/go-crypto/openpgp/internal/encoding
 github.com/ProtonMail/go-crypto/openpgp/packet
 github.com/ProtonMail/go-crypto/openpgp/s2k
-# github.com/StackExchange/wmi v1.2.1
-## explicit; go 1.13
-github.com/StackExchange/wmi
 # github.com/VictoriaMetrics/easyproto v0.1.4
 ## explicit; go 1.18
 github.com/VictoriaMetrics/easyproto
@@ -230,9 +216,6 @@ github.com/asaskevich/govalidator
 # github.com/avast/retry-go v3.0.0+incompatible
 ## explicit
 github.com/avast/retry-go
-# github.com/avast/retry-go/v4 v4.1.0
-## explicit; go 1.13
-github.com/avast/retry-go/v4
 # github.com/avvmoto/buf-readerat v0.0.0-20171115124131-a17c8cb89270
 ## explicit
 github.com/avvmoto/buf-readerat
@@ -382,6 +365,18 @@ github.com/bmatcuk/doublestar/v4
 ## explicit; go 1.21
 github.com/brianvoe/gofakeit/v6
 github.com/brianvoe/gofakeit/v6/data
+# github.com/bufbuild/protocompile v0.4.0
+## explicit; go 1.18
+github.com/bufbuild/protocompile
+github.com/bufbuild/protocompile/ast
+github.com/bufbuild/protocompile/internal
+github.com/bufbuild/protocompile/linker
+github.com/bufbuild/protocompile/options
+github.com/bufbuild/protocompile/parser
+github.com/bufbuild/protocompile/protoutil
+github.com/bufbuild/protocompile/reporter
+github.com/bufbuild/protocompile/sourceinfo
+github.com/bufbuild/protocompile/walk
 # github.com/buger/jsonparser v1.1.1
 ## explicit; go 1.13
 github.com/buger/jsonparser
@@ -453,7 +448,6 @@ github.com/cilium/ebpf/internal/tracefs
 github.com/cilium/ebpf/internal/unix
 github.com/cilium/ebpf/link
 github.com/cilium/ebpf/perf
-github.com/cilium/ebpf/ringbuf
 # github.com/containerd/cgroups/v3 v3.0.1
 ## explicit; go 1.17
 github.com/containerd/cgroups/v3
@@ -475,7 +469,9 @@ github.com/coreos/go-semver/semver
 # github.com/coreos/go-systemd/v22 v22.5.0
 ## explicit; go 1.12
 github.com/coreos/go-systemd/v22/dbus
+github.com/coreos/go-systemd/v22/internal/dlopen
 github.com/coreos/go-systemd/v22/journal
+github.com/coreos/go-systemd/v22/sdjournal
 # github.com/cortexproject/cortex v1.9.1-0.20210722081137-485474c9afb2
 ## explicit; go 1.16
 github.com/cortexproject/cortex/pkg/prom1/storage/metric
@@ -787,6 +783,9 @@ github.com/go-sourcemap/sourcemap/internal/base64vlq
 # github.com/go-sql-driver/mysql v1.6.0
 ## explicit; go 1.10
 github.com/go-sql-driver/mysql
+# github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572
+## explicit; go 1.13
+github.com/go-task/slim-sprig
 # github.com/gobwas/glob v0.2.3
 ## explicit
 github.com/gobwas/glob
@@ -853,6 +852,10 @@ github.com/golang-sql/sqlexp
 # github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 ## explicit
 github.com/golang/groupcache/lru
+# github.com/golang/mock v1.6.0
+## explicit; go 1.11
+github.com/golang/mock/mockgen
+github.com/golang/mock/mockgen/model
 # github.com/golang/protobuf v1.5.4
 ## explicit; go 1.17
 github.com/golang/protobuf/jsonpb
@@ -883,7 +886,7 @@ github.com/google/go-cmp/cmp/internal/value
 ## explicit; go 1.12
 github.com/google/gofuzz
 github.com/google/gofuzz/bytesource
-# github.com/google/gopacket v0.0.0-00010101000000-000000000000 => github.com/GuanceCloud/gopacket v0.0.1
+# github.com/google/gopacket v0.0.0-00010101000000-000000000000 => github.com/GuanceCloud/gopacket v0.0.2
 ## explicit; go 1.12
 github.com/google/gopacket
 github.com/google/gopacket/afpacket
@@ -1141,6 +1144,20 @@ github.com/jcmturner/rpc/v2/ndr
 # github.com/jessevdk/go-flags v1.5.0
 ## explicit; go 1.15
 github.com/jessevdk/go-flags
+# github.com/jhump/protoreflect v1.15.1
+## explicit; go 1.18
+github.com/jhump/protoreflect/codec
+github.com/jhump/protoreflect/desc
+github.com/jhump/protoreflect/desc/internal
+github.com/jhump/protoreflect/desc/protoparse
+github.com/jhump/protoreflect/desc/protoparse/ast
+github.com/jhump/protoreflect/desc/sourceinfo
+github.com/jhump/protoreflect/dynamic
+github.com/jhump/protoreflect/dynamic/grpcdynamic
+github.com/jhump/protoreflect/grpcreflect
+github.com/jhump/protoreflect/grpcreflect/internal/grpc_reflection_v1
+github.com/jhump/protoreflect/internal
+github.com/jhump/protoreflect/internal/codec
 # github.com/jmespath/go-jmespath v0.4.0
 ## explicit; go 1.14
 github.com/jmespath/go-jmespath
@@ -1303,6 +1320,24 @@ github.com/oklog/run
 github.com/oklog/ulid
 # github.com/onsi/ginkgo v1.16.5
 ## explicit; go 1.16
+# github.com/onsi/ginkgo/v2 v2.9.5
+## explicit; go 1.18
+github.com/onsi/ginkgo/v2/config
+github.com/onsi/ginkgo/v2/formatter
+github.com/onsi/ginkgo/v2/ginkgo
+github.com/onsi/ginkgo/v2/ginkgo/build
+github.com/onsi/ginkgo/v2/ginkgo/command
+github.com/onsi/ginkgo/v2/ginkgo/generators
+github.com/onsi/ginkgo/v2/ginkgo/internal
+github.com/onsi/ginkgo/v2/ginkgo/labels
+github.com/onsi/ginkgo/v2/ginkgo/outline
+github.com/onsi/ginkgo/v2/ginkgo/run
+github.com/onsi/ginkgo/v2/ginkgo/unfocus
+github.com/onsi/ginkgo/v2/ginkgo/watch
+github.com/onsi/ginkgo/v2/internal/interrupt_handler
+github.com/onsi/ginkgo/v2/internal/parallel_support
+github.com/onsi/ginkgo/v2/reporters
+github.com/onsi/ginkgo/v2/types
 # github.com/opencontainers/go-digest v1.0.0
 ## explicit; go 1.13
 github.com/opencontainers/go-digest
@@ -1512,6 +1547,33 @@ github.com/pyroscope-io/pyroscope/pkg/util/serialization
 github.com/pyroscope-io/pyroscope/pkg/util/slices
 github.com/pyroscope-io/pyroscope/pkg/util/varint
 github.com/pyroscope-io/pyroscope/webapp
+# github.com/quic-go/qpack v0.4.0
+## explicit; go 1.18
+github.com/quic-go/qpack
+# github.com/quic-go/qtls-go1-19 v0.3.2
+## explicit; go 1.19
+github.com/quic-go/qtls-go1-19
+# github.com/quic-go/qtls-go1-20 v0.3.2
+## explicit; go 1.20
+github.com/quic-go/qtls-go1-20
+# github.com/quic-go/quic-go v0.36.0
+## explicit; go 1.19
+github.com/quic-go/quic-go
+github.com/quic-go/quic-go/http3
+github.com/quic-go/quic-go/internal/ackhandler
+github.com/quic-go/quic-go/internal/congestion
+github.com/quic-go/quic-go/internal/flowcontrol
+github.com/quic-go/quic-go/internal/handshake
+github.com/quic-go/quic-go/internal/logutils
+github.com/quic-go/quic-go/internal/protocol
+github.com/quic-go/quic-go/internal/qerr
+github.com/quic-go/quic-go/internal/qtls
+github.com/quic-go/quic-go/internal/utils
+github.com/quic-go/quic-go/internal/utils/linkedlist
+github.com/quic-go/quic-go/internal/utils/ringbuffer
+github.com/quic-go/quic-go/internal/wire
+github.com/quic-go/quic-go/logging
+github.com/quic-go/quic-go/quicvarint
 # github.com/r3labs/diff/v3 v3.0.0
 ## explicit; go 1.13
 github.com/r3labs/diff/v3
@@ -1576,9 +1638,6 @@ github.com/shirou/gopsutil/v3/internal/common
 github.com/shirou/gopsutil/v3/mem
 github.com/shirou/gopsutil/v3/net
 github.com/shirou/gopsutil/v3/process
-# github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4
-## explicit
-github.com/shirou/w32
 # github.com/shopspring/decimal v1.2.0
 ## explicit; go 1.13
 github.com/shopspring/decimal
@@ -1703,18 +1762,31 @@ github.com/vmihailenco/msgpack/codes
 ## explicit; go 1.19
 github.com/vmware/govmomi
 github.com/vmware/govmomi/event
+github.com/vmware/govmomi/find
 github.com/vmware/govmomi/history
 github.com/vmware/govmomi/internal
 github.com/vmware/govmomi/internal/version
+github.com/vmware/govmomi/list
 github.com/vmware/govmomi/nfc
 github.com/vmware/govmomi/object
+github.com/vmware/govmomi/ovf
 github.com/vmware/govmomi/performance
 github.com/vmware/govmomi/property
 github.com/vmware/govmomi/session
 github.com/vmware/govmomi/session/keepalive
+github.com/vmware/govmomi/simulator
+github.com/vmware/govmomi/simulator/esx
+github.com/vmware/govmomi/simulator/internal
+github.com/vmware/govmomi/simulator/vpx
 github.com/vmware/govmomi/task
+github.com/vmware/govmomi/toolbox/hgfs
+github.com/vmware/govmomi/toolbox/process
+github.com/vmware/govmomi/toolbox/vix
+github.com/vmware/govmomi/units
 github.com/vmware/govmomi/vapi/internal
 github.com/vmware/govmomi/vapi/rest
+github.com/vmware/govmomi/vapi/vm/dataset
+github.com/vmware/govmomi/vapi/vm/internal
 github.com/vmware/govmomi/view
 github.com/vmware/govmomi/vim25
 github.com/vmware/govmomi/vim25/debug
@@ -1869,11 +1941,13 @@ golang.org/x/crypto/blake2b
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/cast5
 golang.org/x/crypto/chacha20
+golang.org/x/crypto/chacha20poly1305
 golang.org/x/crypto/cryptobyte
 golang.org/x/crypto/cryptobyte/asn1
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/curve25519/internal/field
 golang.org/x/crypto/ed25519
+golang.org/x/crypto/hkdf
 golang.org/x/crypto/internal/alias
 golang.org/x/crypto/internal/poly1305
 golang.org/x/crypto/md4
@@ -1893,6 +1967,7 @@ golang.org/x/exp/slices
 # golang.org/x/mod v0.13.0
 ## explicit; go 1.18
 golang.org/x/mod/internal/lazyregexp
+golang.org/x/mod/modfile
 golang.org/x/mod/module
 golang.org/x/mod/semver
 # golang.org/x/net v0.16.0
@@ -1982,6 +2057,7 @@ golang.org/x/time/rate
 ## explicit; go 1.18
 golang.org/x/tools/cmd/stringer
 golang.org/x/tools/go/ast/astutil
+golang.org/x/tools/go/ast/inspector
 golang.org/x/tools/go/gcexportdata
 golang.org/x/tools/go/internal/packagesdriver
 golang.org/x/tools/go/packages
@@ -2115,12 +2191,19 @@ google.golang.org/protobuf/reflect/protoregistry
 google.golang.org/protobuf/runtime/protoiface
 google.golang.org/protobuf/runtime/protoimpl
 google.golang.org/protobuf/types/descriptorpb
+google.golang.org/protobuf/types/dynamicpb
 google.golang.org/protobuf/types/gofeaturespb
 google.golang.org/protobuf/types/known/anypb
+google.golang.org/protobuf/types/known/apipb
 google.golang.org/protobuf/types/known/durationpb
 google.golang.org/protobuf/types/known/emptypb
+google.golang.org/protobuf/types/known/fieldmaskpb
+google.golang.org/protobuf/types/known/sourcecontextpb
+google.golang.org/protobuf/types/known/structpb
 google.golang.org/protobuf/types/known/timestamppb
+google.golang.org/protobuf/types/known/typepb
 google.golang.org/protobuf/types/known/wrapperspb
+google.golang.org/protobuf/types/pluginpb
 # gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.18
 ## explicit; go 1.12
 gopkg.in/CodapeWild/dd-trace-go.v1/ddtrace
@@ -2653,7 +2736,7 @@ sigs.k8s.io/structured-merge-diff/v4/value
 sigs.k8s.io/yaml
 # github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
 # github.com/fsnotify/fsnotify => github.com/GuanceCloud/fsnotify v1.8.2
-# github.com/google/gopacket => github.com/GuanceCloud/gopacket v0.0.1
+# github.com/google/gopacket => github.com/GuanceCloud/gopacket v0.0.2
 # github.com/grafana/jfr-parser => github.com/GuanceCloud/jfr-parser v0.8.6
 # github.com/influxdata/influxdb1-client => github.com/GuanceCloud/influxdb1-client v0.1.9
 # github.com/iovisor/gobpf => github.com/DataDog/gobpf v0.0.0-20210322155958-9866ef4cd22c

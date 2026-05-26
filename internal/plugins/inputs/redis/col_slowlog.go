@@ -61,6 +61,11 @@ func (i *instance) parseSlowData(slowlogs any) ([]*point.Point, error) {
 		opts = append(point.DefaultLoggingOptions(), point.WithTime(time.Now()))
 	)
 
+	addr := i.mergedTags["server"]
+	if _, ok := i.slowlogHash[addr]; !ok {
+		i.slowlogHash[addr] = make([][16]byte, i.ipt.SlowlogMaxLen)
+	}
+
 	var costArr []float64
 	for _, slowlog := range slowlogs.([]interface{}) {
 		var (
@@ -107,11 +112,11 @@ func (i *instance) parseSlowData(slowlogs any) ([]*point.Point, error) {
 			}
 
 			slogHash := md5.Sum([]byte(strconv.FormatInt(startTime, 10) + string(rune(id)))) //nolint:gosec
-			if i.slowlogHash[int32(id%int64(i.ipt.SlowlogMaxLen))] == slogHash {
+			if i.slowlogHash[addr][int32(id%int64(i.ipt.SlowlogMaxLen))] == slogHash {
 				continue // ignore old slow-logs
 			}
 
-			i.slowlogHash[int32(id%int64(i.ipt.SlowlogMaxLen))] = slogHash
+			i.slowlogHash[addr][int32(id%int64(i.ipt.SlowlogMaxLen))] = slogHash
 		}
 
 		// parse slow command details
@@ -179,9 +184,6 @@ func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 			"server": &inputs.TagInfo{
 				Desc: "server",
 			},
-			"message": &inputs.TagInfo{
-				Desc: "log message",
-			},
 			"host": &inputs.TagInfo{
 				Desc: "host",
 			},
@@ -242,6 +244,12 @@ func (m *slowlogMeasurement) Info() *inputs.MeasurementInfo {
 				Type:     inputs.UnknownType,
 				Unit:     inputs.NoUnit,
 				Desc:     "The client name that run the slow query(if `client setname` executed on client-side)",
+			},
+			"message": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.UnknownType,
+				Unit:     inputs.NoUnit,
+				Desc:     "Slow query log message",
 			},
 		},
 	}

@@ -271,3 +271,6 @@ MD053:
   ignored_definitions: [
     "//"
   ]
+
+MD060: 
+  style: "align"

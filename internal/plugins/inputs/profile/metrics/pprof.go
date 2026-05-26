@@ -57,7 +57,7 @@ func parseMetricsJSONFile(r io.Reader) (map[string]json.Number, error) {
 	var rawMetrics [][2]json.RawMessage
 
 	if err = json.Unmarshal(body, &rawMetrics); err != nil {
-		log.Errorf("unable to unmarshal metrics.json, %q: %v", string(body), err)
+		l.Errorf("unable to unmarshal metrics.json, %q: %v", string(body), err)
 		return nil, fmt.Errorf("unable to unmarshal metrics.json: %w", err)
 	}
 
@@ -188,6 +188,8 @@ func pprofSummary(r io.Reader) (map[string]*pprofQuantity, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse pprof: %w", err)
 	}
+
+	l.Debugf("prof: %s", prof)
 
 	summaries := make(map[string]*pprofQuantity, len(prof.SampleType))
 

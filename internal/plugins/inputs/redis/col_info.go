@@ -19,6 +19,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
+var infoConfigFieldsToCache = []string{
+	"maxclients",
+}
+
 func (i *instance) collectInfo(ctx context.Context) error {
 	i.infoTags = map[string]string{}
 	start := time.Now()
@@ -69,6 +73,35 @@ func (i *instance) infoReservedTags(k, v string) bool {
 	}
 
 	return false
+}
+
+// supplementInfoFromConfigCache supplements missing fields in INFO from CONFIG cache.
+func (i *instance) supplementInfoFromConfigCache(kvs point.KVs) point.KVs {
+	nodeAddr := i.mergedTags["server"]
+	if nodeAddr == "" || i.infoConfigCache == nil {
+		return kvs
+	}
+
+	i.infoConfigMu.Lock()
+	nodeCache, ok := i.infoConfigCache[nodeAddr]
+	i.infoConfigMu.Unlock()
+	if !ok {
+		return kvs
+	}
+	l.Debugf("supplementing INFO from CONFIG cache for node %s: %v", nodeAddr, nodeCache)
+
+	for _, field := range infoConfigFieldsToCache {
+		val, ok := nodeCache[field]
+		if !ok || val == "" {
+			continue
+		}
+		if intVal, err := strconv.Atoi(val); err == nil && intVal > 0 {
+			kvs = kvs.Add(field, intVal)
+			l.Debugf("supplemented %s from CONFIG cache for node %s: %v", field, nodeAddr, intVal)
+		}
+	}
+
+	return kvs
 }
 
 func (i *instance) parseInfoData(info string) []*point.Point {
@@ -196,6 +229,9 @@ func (i *instance) parseInfoData(info string) []*point.Point {
 	for k, v := range i.mergedTags {
 		kvs = kvs.AddTag(k, v)
 	}
+
+	// supplement missing fields from CONFIG cache
+	kvs = i.supplementInfoFromConfigCache(kvs)
 
 	pt := point.NewPoint(measurementRedisInfo, kvs, opts...)
 

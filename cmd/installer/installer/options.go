@@ -61,7 +61,6 @@ type InstallerArgs struct {
 	HTTPPort int
 	HTTPSocket,
 	HTTPListen,
-	DatakitName,
 	GlobalHostTags,
 	HostName,
 	IPDBType string
@@ -88,6 +87,7 @@ type InstallerArgs struct {
 	ConfdPipelineNamespace,
 	ConfdRegion string
 	ConfdCircleInterval int
+	InputConfigs        string
 
 	GitURL,
 	GitKeyPath,
@@ -132,8 +132,6 @@ type InstallerArgs struct {
 	IsELinker,
 	IsLite bool
 
-	FlagUpgraderIPWhiteList,
-	FlagUpgraderListen string
 	FlagUpgraderEnabled,
 	FlagInstallOnly int
 
@@ -144,6 +142,7 @@ type InstallerArgs struct {
 	DistDatakitELinkerURL,
 	DistDatakitAPMInjectURL,
 	DistDatakitAPMInjJavaLibURL,
+	DistDatakitAPMInjPHPLibURL,
 	DistDatakitURL string
 }
 
@@ -215,6 +214,11 @@ func (args *InstallerArgs) UpdateDownloadURLs() error {
 		return err
 	}
 
+	if args.DistDatakitAPMInjPHPLibURL, err = url.JoinPath(prefix+baseURL,
+		"ddtrace-lib/dd-trace-php/"); err != nil {
+		return err
+	}
+
 	// 如果命令行传入 -installer_base_url，则表明是离线安装，此刻离线的 java ddtrace 库地址
 	// 是用户自己本地下载的，根据已有[文档](https://docs.guance.com/datakit/datakit-offline-install/#offline-advanced)，
 	// 这个目录是 *apm_lib*，故此处调整一下 lib 的路径。
@@ -261,41 +265,43 @@ func (args *InstallerArgs) SetDatakitLiteAndELinker() {
 
 func (args *InstallerArgs) setupServiceOptions() *service.Config {
 	var (
-		def          = config.DefaultConfig()
-		rl           = def.ResourceLimitOptions // use cpu/mem limit from default configure
-		limitUpdated = false
+		def           = config.DefaultConfig()
+		rl            = def.ResourceLimitOptions // use cpu/mem limit from default configure
+		cgroupUpdated = false
 	)
 
 	// setup CPU limit
 	if args.LimitCPUMax > 0.0 {
 		rl.CPUCores = resourcelimit.CPUMaxToCores(args.LimitCPUMax)
-		limitUpdated = true
+		cgroupUpdated = true
 	}
 
 	if args.LimitCPUCores > 0.0 { // cpu-cores override above cpu-max
 		rl.CPUCores = args.LimitCPUCores
-		limitUpdated = true
+		cgroupUpdated = true
 	}
 
 	// setup mem limit
 	if args.LimitMemMax > 0 {
 		rl.MemMax = args.LimitMemMax
-		limitUpdated = true
+		cgroupUpdated = true
 	}
 
 	rl.Setup() // apply
 
 	svcopts := []dkservice.ServiceOption{
 		dkservice.WithMemLimit(fmt.Sprintf("%dM", rl.MemMax)),
-		dkservice.WithCPULimit(fmt.Sprintf("%f%%", rl.CPUMax())),
+		// see https://www.freedesktop.org/software/systemd/man/latest/systemd.resource-control.html#CPUQuota=
+		dkservice.WithCPULimit(rl.CPUCores),
 	}
 
 	if runtime.GOOS == datakit.OSLinux && args.FlagUserName != "" {
 		svcopts = append(svcopts, dkservice.WithUser(args.FlagUserName))
 
-		if !datakit.IsAdminUser(args.FlagUserName) && limitUpdated && args.FlagDKUpgrade {
+		if !datakit.IsAdminUser(args.FlagUserName) && cgroupUpdated && args.FlagDKUpgrade {
 			// for non-admin user, during upgrade, if user specified new cpu/mem limit, we should
 			// apply them to datakit.service.
+			l.Infof("cgroup configure updated, we should re-install datakit service")
 			args.shouldReinstallService = true
 		}
 	}
@@ -336,11 +342,6 @@ func (args *InstallerArgs) SetupService() (service.Service, error) {
 }
 
 func (args *InstallerArgs) SetupUpgraderService() {
-	var wlist []string
-	if len(args.FlagUpgraderIPWhiteList) > 0 {
-		wlist = strings.Split(strings.TrimSpace(args.FlagUpgraderIPWhiteList), ",")
-	}
-
 	// Apply options from exist datakit.conf.
 	// During upgrade, we still able to re-install dk-upgrader service, at the
 	// time, we should reuse datakit's exist configures(such as datakit HTTP API host),
@@ -351,8 +352,6 @@ func (args *InstallerArgs) SetupUpgraderService() {
 		upgrader.WithDKUpgrade(args.FlagDKUpgrade),
 		upgrader.WithUpgradeService(args.FlagUpgraderEnabled != 0),
 		upgrader.WithInstallOnly(args.FlagInstallOnly != 0),
-		upgrader.WithListen(args.FlagUpgraderListen),
-		upgrader.WithIPWhiteList(wlist),
 		upgrader.WithInstallBaseURL(args.DistBaseURL),
 		upgrader.WithDatakitAPIListen(mc.HTTPAPI.Listen),
 		upgrader.WithProxy(mc.Dataway.HTTPProxy),

@@ -3,6 +3,8 @@ package funcs
 import (
 	_ "embed"
 
+	"github.com/GuanceCloud/cliutils/point"
+	"github.com/GuanceCloud/pipeline-go/ptinput"
 	"github.com/GuanceCloud/platypus/pkg/ast"
 	"github.com/GuanceCloud/platypus/pkg/engine/runtime"
 	"github.com/GuanceCloud/platypus/pkg/errchain"
@@ -35,8 +37,8 @@ var (
 	docPtKvsKeysEN string
 
 	// todo: parse function definition
-	_ = "fn pt_kvs_get(name: str) -> any"
-	_ = "fn pt_kvs_set(name: str, value: any, as_tag: bool = false) -> bool"
+	_ = "fn pt_kvs_get(name: str, raw: bool = false) -> any"
+	_ = "fn pt_kvs_set(name: str, value: any, as_tag: bool = false, raw: bool = false) -> bool"
 	_ = "fn pt_kvs_del(name: str)"
 	_ = "fn pt_kvs_keys(tags: bool = true, fields: bool = true) -> list"
 
@@ -46,6 +48,14 @@ var (
 			{
 				Name: "name",
 				Type: []ast.DType{ast.String},
+			},
+			{
+				Name:     "raw",
+				Type:     []ast.DType{ast.Bool},
+				Optional: true,
+				DefaultVal: func() (any, ast.DType) {
+					return false, ast.Bool
+				},
 			},
 		},
 		[]ast.DType{ast.Bool, ast.Int, ast.Float, ast.String,
@@ -79,6 +89,14 @@ var (
 			},
 			{
 				Name:     "as_tag",
+				Type:     []ast.DType{ast.Bool},
+				Optional: true,
+				DefaultVal: func() (any, ast.DType) {
+					return false, ast.Bool
+				},
+			},
+			{
+				Name:     "raw",
 				Type:     []ast.DType{ast.Bool},
 				Optional: true,
 				DefaultVal: func() (any, ast.DType) {
@@ -164,7 +182,19 @@ var (
 )
 
 func ptKvsGet(ctx *runtime.Task, funcExpr *ast.CallExpr, vals ...any) *errchain.PlError {
-	if val, dtype, err := getPtKey(ctx.InData(), vals[0].(string)); err != nil {
+	var (
+		val   any
+		dtype ast.DType
+		err   error
+	)
+
+	if vals[1].(bool) {
+		val, dtype, err = getPtKeyRaw(ctx.InData(), vals[0].(string))
+	} else {
+		val, dtype, err = getPtKey(ctx.InData(), vals[0].(string))
+	}
+
+	if err != nil {
 		ctx.Regs.ReturnAppend(nil, ast.Nil)
 	} else {
 		ctx.Regs.ReturnAppend(val, dtype)
@@ -176,6 +206,7 @@ func ptKvsGet(ctx *runtime.Task, funcExpr *ast.CallExpr, vals ...any) *errchain.
 func ptKvsSet(ctx *runtime.Task, funcExpr *ast.CallExpr, vals ...any) *errchain.PlError {
 	name := vals[0].(string)
 	asTag := vals[2].(bool)
+	raw := vals[3].(bool)
 	val := vals[1]
 
 	pt, err := getPoint(ctx.InData())
@@ -190,7 +221,15 @@ func ptKvsSet(ctx *runtime.Task, funcExpr *ast.CallExpr, vals ...any) *errchain.
 			return nil
 		}
 	} else {
-		if ok := pt.Set(name, val, getValDtype(val)); !ok {
+		dtype := getValDtype(val)
+		if !raw && (dtype == ast.List || dtype == ast.Map) {
+			if s, err := ptinput.Conv2String(val, dtype); err == nil {
+				val = s
+				dtype = ast.String
+			}
+		}
+
+		if ok := pt.Set(name, val, dtype); !ok {
 			ctx.Regs.ReturnAppend(false, ast.Bool)
 			return nil
 		}
@@ -216,29 +255,32 @@ func ptKvsKeys(ctx *runtime.Task, funcExpr *ast.CallExpr, vals ...any) *errchain
 		return nil
 	}
 
-	var elemCount int
-
-	if tags {
-		elemCount += len(pt.Tags())
-	}
-	if fields {
-		elemCount += len(pt.Fields())
-	}
-
-	keyList := make([]any, 0, elemCount)
-
-	if tags {
-		for k := range pt.Tags() {
-			keyList = append(keyList, k)
-		}
-	}
-	if fields {
-		for k := range pt.Fields() {
-			keyList = append(keyList, k)
-		}
-	}
-
-	ctx.Regs.ReturnAppend(keyList, ast.List)
+	ctx.Regs.ReturnAppend(ptKvsKeyList(pt, tags, fields), ast.List)
 
 	return nil
+}
+
+func ptKvsKeyList(pt ptinput.PlInputPt, tags, fields bool) []any {
+	kvs := pt.Point().KVs()
+	keyList := make([]any, 0, len(kvs))
+	for _, kv := range kvs {
+		if includePtKvsKey(kv, tags, fields) {
+			keyList = append(keyList, kv.Key)
+		}
+	}
+	return keyList
+}
+
+func includePtKvsKey(kv *point.Field, tags, fields bool) bool {
+	if kv == nil {
+		return false
+	}
+	if kv.IsTag {
+		if !tags {
+			return false
+		}
+		_, ok := kv.Val.(*point.Field_S)
+		return ok
+	}
+	return fields
 }

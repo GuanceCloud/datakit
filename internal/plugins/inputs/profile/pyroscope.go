@@ -36,14 +36,15 @@ import (
 	"github.com/pyroscope-io/pyroscope/pkg/util/attime"
 	"github.com/pyroscope-io/pyroscope/pkg/util/cumulativepprof"
 	"github.com/sirupsen/logrus"
-
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/profile/metrics"
 	"golang.org/x/exp/maps"
 	"google.golang.org/protobuf/proto"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/profile/metrics"
 )
 
-var g = datakit.G("pyroscope")
+var g = goroutine.G("pyroscope")
 
 const (
 	pyroscopeFilename = "prof"
@@ -77,11 +78,6 @@ func (p *pyroscopeOpts) run(input *Input) error {
 		return fmt.Errorf("input expected not to be nil")
 	}
 
-	if input.pause {
-		log.Debugf("not leader, skipped")
-		return nil
-	}
-
 	p.input = input
 	if err := p.init(); err != nil {
 		return fmt.Errorf("init pyroscope profiler error: %w", err)
@@ -91,7 +87,7 @@ func (p *pyroscopeOpts) run(input *Input) error {
 	router.Use(APIMiddleware(p))
 	router.POST("/ingest", ingestHandle)
 
-	log.Debugf("HTTP bind addr:%s", p.URL)
+	log.Infof("HTTP bind addr:%s", p.URL)
 
 	srv := &http.Server{
 		Addr:    p.URL,

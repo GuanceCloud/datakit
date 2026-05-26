@@ -7,7 +7,6 @@ package sqlserver
 
 import (
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -34,10 +33,6 @@ type MetricMeasurment struct {
 func (m *MetricMeasurment) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
 
-	if m.election {
-		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
-	}
-
 	return point.NewPoint(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
 		opts...)
@@ -50,10 +45,6 @@ type LoggingMeasurment struct {
 // Point implement MeasurementV2.
 func (m *LoggingMeasurment) Point() *point.Point {
 	opts := point.DefaultLoggingOptions()
-
-	if m.election {
-		opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
-	}
 
 	return point.NewPoint(m.name,
 		append(point.NewTags(m.tags), point.NewKVs(m.fields)...),
@@ -85,8 +76,9 @@ func (m *SqlserverMeasurment) Info() *inputs.MeasurementInfo {
 			"server_memory":       newByteFieldInfo("Memory used"),
 		},
 		Tags: map[string]interface{}{
-			"sqlserver_host": inputs.NewTagInfo("Host name which installed SQLServer"),
-			"server":         inputs.NewTagInfo("The address of the server. The value is `host:port`"),
+			"sqlserver_host":    inputs.NewTagInfo("Host name which installed SQLServer"),
+			"database_instance": inputs.NewTagInfo("SQL Server instance identifier from configured tag or SQL Server server name."),
+			"server":            inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
 }
@@ -99,7 +91,7 @@ type Performance struct {
 var performanceMeasurementInfo = &inputs.MeasurementInfo{
 	Name: "sqlserver_performance",
 	Cat:  point.Metric,
-	Desc: "performance counter maintained by the server,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-performance-counters-transact-sql?view=sql-server-ver15)",
+	Desc: "performance counter maintained by the server,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-performance-counters-transact-sql?view=sql-server-ver15){:target=\"_blank\"}",
 	Fields: map[string]interface{}{
 		"cntr_value":                       newCountFieldInfo("Current value of the counter"),
 		"processes_blocked":                newCountFieldInfo("The number of processes blocked."),
@@ -148,12 +140,12 @@ var performanceMeasurementInfo = &inputs.MeasurementInfo{
 		"user_connections":                 newCountFieldInfo("Number of user connections."),
 	},
 	Tags: map[string]interface{}{
-		"object_name":    inputs.NewTagInfo("Category to which this counter belongs."),
-		"counter_name":   inputs.NewTagInfo("Name of the counter. To get more information about a counter, this is the name of the topic to select from the list of counters in Use SQL Server Objects."),
-		"counter_type":   inputs.NewTagInfo("Type of the counter"),
-		"instance":       inputs.NewTagInfo("Name of the specific instance of the counter"),
-		"sqlserver_host": inputs.NewTagInfo("Host name which installed SQLServer"),
-		"server":         inputs.NewTagInfo("The address of the server. The value is `host:port`"),
+		"object_name":      inputs.NewTagInfo("Category to which this counter belongs."),
+		"counter_name":     inputs.NewTagInfo("Name of the counter. To get more information about a counter, this is the name of the topic to select from the list of counters in Use SQL Server Objects."),
+		"counter_type":     inputs.NewTagInfo("Type of the counter"),
+		"counter_instance": inputs.NewTagInfo("Name of the specific instance of the counter, for example a database, process, wait type, or resource pool."),
+		"sqlserver_host":   inputs.NewTagInfo("Host name which installed SQLServer"),
+		"server":           inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 	},
 }
 
@@ -171,7 +163,7 @@ func (m *WaitStatsCategorized) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_waitstats",
 		Cat:  point.Metric,
-		Desc: "information about all the waits encountered by threads that executed,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-wait-stats-transact-sql?view=sql-server-ver15)",
+		Desc: "information about all the waits encountered by threads that executed,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-wait-stats-transact-sql?view=sql-server-ver15){:target=\"_blank\"}",
 		Fields: map[string]interface{}{
 			"max_wait_time_ms":    newTimeFieldInfo("Maximum wait time on this wait type."),
 			"wait_time_ms":        newTimeFieldInfo("Total wait time for this wait type in milliseconds. This time is inclusive of signal_wait_time_ms"),
@@ -182,7 +174,7 @@ func (m *WaitStatsCategorized) Info() *inputs.MeasurementInfo {
 		Tags: map[string]interface{}{
 			"sqlserver_host": inputs.NewTagInfo("Host name which installed SQLServer"),
 			"wait_type":      inputs.NewTagInfo("Name of the wait type. For more information, see Types of Waits, later in this topic"),
-			"wait_category":  inputs.NewTagInfo("Wait category info"),
+			"wait_category":  inputs.NewTagInfo("Wait category info (e.g., Other Disk IO, Network IO, Parallelism, SQL CLR, Service Broker, etc.)"),
 			"server":         inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
@@ -197,7 +189,7 @@ func (m *DatabaseIO) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_database_io",
 		Cat:  point.Metric,
-		Desc: "I/O statistics for data and log files,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-io-virtual-file-stats-transact-sql?view=sql-server-ver15)",
+		Desc: "I/O statistics for data and log files,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-io-virtual-file-stats-transact-sql?view=sql-server-ver15){:target=\"_blank\"}",
 		Fields: map[string]interface{}{
 			"read_bytes":        newByteFieldInfo("Total number of bytes read on this file"),
 			"write_bytes":       newByteFieldInfo("Total number of bytes written to the file"),
@@ -228,7 +220,7 @@ func (m *Schedulers) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "sqlserver_schedulers",
 		Cat:  point.Metric,
-		Desc: "One row per scheduler in SQL Server where each scheduler is mapped to an individual processor,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-schedulers-transact-sql?view=sql-server-ver15)",
+		Desc: "One row per scheduler in SQL Server where each scheduler is mapped to an individual processor,[detail](https://docs.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-schedulers-transact-sql?view=sql-server-ver15){:target=\"_blank\"}",
 		Fields: map[string]interface{}{
 			"active_workers_count":      newCountFieldInfo("Number of workers that are active. An active worker is never preemptive, must have an associated task, and is either running, runnable, or suspended. Is not nullable."),
 			"context_switches_count":    newCountFieldInfo("Number of context switches that have occurred on this scheduler"),
@@ -301,7 +293,9 @@ func (m *LockRow) Info() *inputs.MeasurementInfo {
 			"message":                 newStringFieldInfo("Text of the SQL query"),
 		},
 		Tags: map[string]interface{}{
-			"server": inputs.NewTagInfo("The address of the server. The value is `host:port`"),
+			"sqlserver_host":    inputs.NewTagInfo("Host name which installed SQLServer"),
+			"database_instance": inputs.NewTagInfo("SQL Server instance identifier from configured tag or SQL Server server name."),
+			"server":            inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
 }
@@ -324,7 +318,9 @@ func (m *LockTable) Info() *inputs.MeasurementInfo {
 			"request_status":     newStringFieldInfo("Current status of this request"),
 		},
 		Tags: map[string]interface{}{
-			"server": inputs.NewTagInfo("The address of the server. The value is `host:port`"),
+			"sqlserver_host":    inputs.NewTagInfo("Host name which installed SQLServer"),
+			"database_instance": inputs.NewTagInfo("SQL Server instance identifier from configured tag or SQL Server server name."),
+			"server":            inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
 }
@@ -350,7 +346,9 @@ func (m *LockDead) Info() *inputs.MeasurementInfo {
 			"message":              newStringFieldInfo("Text of the SQL query which is blocking"),
 		},
 		Tags: map[string]interface{}{
-			"server": inputs.NewTagInfo("The address of the server. The value is `host:port`"),
+			"sqlserver_host":    inputs.NewTagInfo("Host name which installed SQLServer"),
+			"database_instance": inputs.NewTagInfo("SQL Server instance identifier from configured tag or SQL Server server name."),
+			"server":            inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
 }
@@ -372,10 +370,12 @@ func (m *LogicalIO) Info() *inputs.MeasurementInfo {
 			"creation_time":        newCountFieldInfo("The Unix time at which the plan was compiled, in millisecond"),
 			"execution_count":      newCountFieldInfo("Number of times that the plan has been executed since it was last compiled"),
 			"last_execution_time":  newCountFieldInfo("Last time at which the plan started executing, unix time in millisecond"),
+			"message":              newStringFieldInfo("Text of the SQL query"),
 		},
 		Tags: map[string]interface{}{
-			"message": inputs.NewTagInfo("Text of the SQL query"),
-			"server":  inputs.NewTagInfo("The address of the server. The value is `host:port`"),
+			"sqlserver_host":    inputs.NewTagInfo("Host name which installed SQLServer"),
+			"database_instance": inputs.NewTagInfo("SQL Server instance identifier from configured tag or SQL Server server name."),
+			"server":            inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
 }
@@ -395,10 +395,11 @@ func (m *WorkerTime) Info() *inputs.MeasurementInfo {
 			"last_execution_time": newCountFieldInfo("Last time at which the plan started executing, unix time in millisecond"),
 			"total_worker_time":   newCountFieldInfo("Total amount of CPU time, reported in milliseconds"),
 			"avg_worker_time":     newCountFieldInfo("Average amount of CPU time, reported in milliseconds"),
+			"message":             newStringFieldInfo("Text of the SQL query"),
 		},
 		Tags: map[string]interface{}{
-			"message": inputs.NewTagInfo("Text of the SQL query"),
-			"server":  inputs.NewTagInfo("The address of the server. The value is `host:port`"),
+			"sqlserver_host": inputs.NewTagInfo("Host name which installed SQLServer"),
+			"server":         inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
 }
@@ -417,8 +418,9 @@ func (m *DatabaseSize) Info() *inputs.MeasurementInfo {
 			"log_size":  newMByteFieldInfo("The size of file of Log"),
 		},
 		Tags: map[string]interface{}{
-			"database_name": inputs.NewTagInfo("Name of the database"),
-			"server":        inputs.NewTagInfo("The address of the server. The value is `host:port`"),
+			"database_name":  inputs.NewTagInfo("Name of the database"),
+			"sqlserver_host": inputs.NewTagInfo("Host name which installed SQLServer"),
+			"server":         inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 		},
 	}
 }
@@ -440,13 +442,14 @@ var DatabaseFilesMeasurementInfo = &inputs.MeasurementInfo{
 		},
 	},
 	Tags: map[string]interface{}{
-		"database":      inputs.NewTagInfo("Database name"),
-		"state":         inputs.NewTagInfo("Database file state: 0 = Online, 1 = Restoring, 2 = Recovering, 3 = Recovery_Pending, 4 = Suspect, 5 = Unknown, 6 = Offline, 7 = Defunct"),
-		"physical_name": inputs.NewTagInfo("Operating-system file name"),
-		"state_desc":    inputs.NewTagInfo("Description of the file state"),
-		"file_id":       inputs.NewTagInfo("ID of the file within database"),
-		"file_type":     inputs.NewTagInfo("File type: 0 = Rows, 1 = Log, 2 = File-Stream, 3 = Identified for informational purposes only, 4 = Full-text"),
-		"server":        inputs.NewTagInfo("The address of the server. The value is `host:port`"),
+		"database_name":  inputs.NewTagInfo("Database name"),
+		"state":          inputs.NewTagInfo("Database file state: 0 = Online, 1 = Restoring, 2 = Recovering, 3 = Recovery_Pending, 4 = Suspect, 5 = Unknown, 6 = Offline, 7 = Defunct"),
+		"physical_name":  inputs.NewTagInfo("Operating-system file name"),
+		"state_desc":     inputs.NewTagInfo("Description of the file state"),
+		"file_id":        inputs.NewTagInfo("ID of the file within database"),
+		"file_type_code": inputs.NewTagInfo("File type code: 0 = Rows, 1 = Log, 2 = File-Stream, 3 = Identified for informational purposes only, 4 = Full-text"),
+		"sqlserver_host": inputs.NewTagInfo("Host name which installed SQLServer"),
+		"server":         inputs.NewTagInfo("The address of the server. The value is `host:port`"),
 	},
 }
 
@@ -472,8 +475,9 @@ func (m *DatabaseBackupMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"database": inputs.NewTagInfo("Database name"),
-			"server":   inputs.NewTagInfo("The address of the server. The value is `host:port`"),
+			"database_name":  inputs.NewTagInfo("Database name"),
+			"server":         inputs.NewTagInfo("The address of the server. The value is `host:port`"),
+			"sqlserver_host": inputs.NewTagInfo("Host name which installed SQLServer"),
 		},
 	}
 }

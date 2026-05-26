@@ -56,7 +56,7 @@ func (j *JolokiaAgent) Collect() {
 	start := ntp.Now()
 
 	for {
-		if j.pause {
+		if j.pause.Load() {
 			j.L.Debugf("Jolokia plugin %s paused", j.PluginName)
 		} else {
 			collectStart := time.Now()
@@ -93,9 +93,6 @@ func (j *JolokiaAgent) Collect() {
 		case <-j.SemStop.Wait():
 			j.L.Infof("input %s return", j.PluginName)
 			return
-
-		case j.pause = <-j.pauseCh:
-			j.L.Infof("Jolokia plugin %q paused? %v", j.PluginName, j.pause)
 		}
 	}
 }

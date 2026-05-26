@@ -9,6 +9,7 @@ import (
 	"context"
 	"net"
 	"net/url"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/strarr"
@@ -22,21 +23,54 @@ type oplogEntry struct {
 }
 
 type MongodbServer struct {
-	host       string
-	cli        *mongo.Client
-	lastResult *MongoStatus
-	ipt        *Input
+	host                     string
+	cli                      *mongo.Client
+	lastResult               *MongoStatus
+	lastObjectCollectionTime time.Time
+	ipt                      *Input
+	databaseInstance         string
 }
 
 func (svr *MongodbServer) getDefaultTags() map[string]string {
 	tags := make(map[string]string)
 	tags["mongod_host"] = svr.host
+	tags["server"] = svr.host
+	tags["database_instance"] = svr.databaseInstance
 	setHostTagIfNotLoopback(tags, svr.host)
 	for k, v := range defTags {
 		tags[k] = v
 	}
 
 	return tags
+}
+
+func (svr *MongodbServer) initDatabaseInstance() {
+	if databaseInstance := strings.TrimSpace(svr.ipt.Tags["database_instance"]); databaseInstance != "" {
+		svr.databaseInstance = databaseInstance
+	} else {
+		// Fall back to the connection server unless serverStatus.host provides
+		// MongoDB's own instance identity.
+		svr.databaseInstance = svr.host
+
+		var status struct {
+			Host string `bson:"host"`
+		}
+
+		rslt := svr.cli.Database("admin").RunCommand(context.TODO(), bson.M{"serverStatus": 1})
+		if err := rslt.Err(); err != nil {
+			log.Warnf("failed to get mongodb serverStatus for database_instance: %s", err.Error())
+			return
+		}
+
+		if err := rslt.Decode(&status); err != nil {
+			log.Warnf("failed to decode mongodb serverStatus for database_instance: %s", err.Error())
+			return
+		}
+
+		if host := strings.TrimSpace(status.Host); host != "" {
+			svr.databaseInstance = host
+		}
+	}
 }
 
 func (svr *MongodbServer) gatherServerStats() (*ServerStatus, error) {
@@ -210,9 +244,8 @@ func (svr *MongodbServer) gatherData(gatherReplicaSetStats bool, gatherClusterSt
 	start := time.Now()
 	serverStatus, err := svr.gatherServerStats()
 	if err != nil {
-		log.Debugf("gathering server failed: %s", err.Error())
-
-		return err
+		log.Errorf("gathering server failed: %s", err.Error())
+		return nil
 	}
 
 	// Get replica set status, an error indicates that the server is not a member of a replica set.
@@ -222,12 +255,12 @@ func (svr *MongodbServer) gatherData(gatherReplicaSetStats bool, gatherClusterSt
 	)
 	if gatherReplicaSetStats {
 		if ReplSetStats, err = svr.gatherReplSetStats(); err != nil {
-			log.Debugf("Unable to gather replica set status: %s", err.Error())
+			log.Errorf("Unable to gather replica set status: %s", err.Error())
 		}
 		// Gather the oplog if we are a member of a replica set. Non-replica set members do not have the oplog collections.
 		if ReplSetStats != nil {
 			if oplogStats, err = svr.gatherOplogStats(); err != nil {
-				log.Errorf("Unable to get oplog stats: %w", err)
+				log.Errorf("Unable to get oplog stats: %s", err.Error())
 			}
 		}
 	}
@@ -236,29 +269,27 @@ func (svr *MongodbServer) gatherData(gatherReplicaSetStats bool, gatherClusterSt
 	if gatherClusterStats {
 		status, err := svr.gatherClusterStats()
 		if err != nil {
-			log.Debugf("Unable to gather cluster status: %w", err)
+			log.Errorf("Unable to gather cluster status: %s", err.Error())
 		}
 		clusterStats = status
 	}
 
 	shardStats, err := svr.gatherShardConnPoolStats()
 	if err != nil {
-		log.Warnf("Unable to gather shard connection pool stats: %w", err)
+		log.Errorf("Unable to gather shard connection pool stats: %s", err.Error())
 	}
 
 	dbStats := &DBStats{}
 	if gatherPerDBStats {
 		dbNames, err := svr.cli.ListDatabaseNames(context.TODO(), bson.M{})
 		if err != nil {
-			log.Errorf("list database names failed with error: %w", err)
-
-			return err
+			log.Errorf("list database names failed with error: %s", err.Error())
 		}
 
 		for _, dbName := range dbNames {
 			db, err := svr.gatherDBStats(dbName)
 			if err != nil {
-				log.Debugf("gather db stats from [%s] failed with error: %s", dbName, err.Error())
+				log.Errorf("gather db stats from [%s] failed with error: %s", dbName, err.Error())
 				continue
 			}
 			dbStats.DBs = append(dbStats.DBs, *db)
@@ -269,22 +300,20 @@ func (svr *MongodbServer) gatherData(gatherReplicaSetStats bool, gatherClusterSt
 	if gatherPerColStats {
 		stats, err := svr.gatherCollectionStats(colStatsDBs)
 		if err != nil {
-			log.Debugf("Unable to gather collection stats: %w", err)
-
-			return err
+			log.Errorf("Unable to gather collection stats: %s", err.Error())
+		} else {
+			colStats = stats
 		}
-		colStats = stats
 	}
 
-	topStatData := &TopStats{}
+	var topStatData *TopStats
 	if gatherTopStat {
 		topStats, err := svr.gatherTopStatData()
 		if err != nil {
-			log.Debugf("Unable to gather top stat data: %w", err)
-
-			return err
+			log.Errorf("Unable to gather top stat data: %s", err.Error())
+		} else {
+			topStatData = topStats
 		}
-		topStatData = topStats
 	}
 
 	result := &MongoStatus{
@@ -300,6 +329,7 @@ func (svr *MongodbServer) gatherData(gatherReplicaSetStats bool, gatherClusterSt
 	}
 	log.Debugf("### collect result: %#v", *result)
 
+	var statLine *StatLine
 	if svr.lastResult != nil {
 		duration := time.Duration(result.SampleTime - svr.lastResult.SampleTime)
 		durationInSeconds := int64(duration.Seconds())
@@ -307,7 +337,8 @@ func (svr *MongodbServer) gatherData(gatherReplicaSetStats bool, gatherClusterSt
 			durationInSeconds = 1
 		}
 
-		data := NewMongodbData(NewStatLine(svr.lastResult, result, svr.host, true, durationInSeconds), svr.getDefaultTags(), svr.ipt)
+		statLine = NewStatLine(svr.lastResult, result, svr.host, true, durationInSeconds)
+		data := NewMongodbData(statLine, svr.getDefaultTags(), svr.ipt)
 		data.AddDefaultStats()
 		data.AddShardHostStats()
 		data.AddDBStats()
@@ -317,8 +348,8 @@ func (svr *MongodbServer) gatherData(gatherReplicaSetStats bool, gatherClusterSt
 		data.flush(time.Since(start))
 	}
 
+	svr.feedDatabaseObject(result, statLine, ptTS)
 	svr.lastResult = result
-
 	return nil
 }
 
@@ -327,17 +358,27 @@ func setHostTagIfNotLoopback(tags map[string]string, u string) {
 	// localhost:27017/?authMechanism=SCRAM-SHA-256&authSource=admin
 	// 127.0.0.1:27017,
 	// 10.10.3.33:18832,
-	uu, err := url.Parse("mongodb://" + u)
+	host, _, err := splitMongoAddr(u)
 	if err != nil {
-		log.Errorf("parse url: %v", err)
+		log.Errorf("split mongo addr: %v", err)
 		return
 	}
-	host, _, err := net.SplitHostPort(uu.Host)
-	if err != nil {
-		log.Errorf("split host and port: %v", err)
-		return
-	}
+
 	if host != "localhost" && !net.ParseIP(host).IsLoopback() {
 		tags["host"] = host
 	}
+}
+
+func splitMongoAddr(addr string) (host, port string, err error) {
+	uu, err := url.Parse("mongodb://" + addr)
+	if err != nil {
+		return "", "", err
+	}
+
+	host = uu.Hostname()
+	if host == "" {
+		return "", "", net.InvalidAddrError("empty host")
+	}
+
+	return host, uu.Port(), nil
 }

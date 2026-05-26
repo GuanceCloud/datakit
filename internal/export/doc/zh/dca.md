@@ -18,7 +18,7 @@ flowchart LR;
 
 dca_server(DCA Server);
 dca_web(DCA Web);
-dk_upgrader1(Upgrader);
+dk_upgrader1("Upgrade Manager");
 
 dk1(DataKit);
 
@@ -101,12 +101,14 @@ DCA web 服务目前仅支持镜像安装，可通过 Docker 或 Kubernetes 来�
  | `DCA_CONSOLE_WEB_URL` | string | `https://console.<<<custom_key.brand_main_domain>>>`            | <<<custom_key.brand_name>>>平台地址，参考 [节点地址](dca.md#node-address)          |
  | `DCA_STATIC_BASE_URL` | string | `https://static.<<<custom_key.brand_main_domain>>>`             | 静态文件服务器地址                                                                 |
  | `DCA_CONSOLE_PROXY`   | string | 无                                                              | <<<custom_key.brand_name>>> API 代理，不代理 DataKit 接口                          |
- | `DCA_LOG_LEVEL`       | string | info                                                            | 日志等级，取值为 debug/info/warn/error                                             |
+ | `DCA_LOG_LEVEL`       | string | info                                                            | 日志等级，取值为 debug/info/warn/error（小写）                                         |
  | `DCA_LOG_PATH`        | string | 无                                                              | 日志路径，如果需要输出到 stdout，则设置为 `stdout`                                 |
  | `DCA_TLS_ENABLE`      | string | 无                                                              | 是否开启 TLS，设置该值表示开启                                                     |
  | `DCA_TLS_CERT_FILE`   | string | 无                                                              | 证书文件路径，如： `/etc/ssl/certs/server.crt`                                     |
  | `DCA_TLS_KEY_FILE`    | string | 无                                                              | 私钥文件路径，如： `/etc/ssl/certs/server.key`                                     |
  | `DCA_PROM_LISTEN`     | string | `localhost:9090`，指标暴露的请求路由为 `localhost:9090/metrics` | DCA backend 指标暴露地址                                                           |
+ | `DCA_UPLOAD_HOST_STATUS` | string | 否                                                              | 是否开启上传主机状态功能，设置该值表示开启                                         |
+ | `DCA_UPLOAD_HOST_STATUS_INTERVAL` | string | `30s`                                                              | 上传主机状态的时间间隔，如： `30s`、 `1m`、 `1h`                                     |
 
 示例：
 
@@ -200,10 +202,6 @@ docker run -d --name dca -p 8000:80 -e DCA_LOG_PATH=stdout -e DCA_LOG_LEVEL=info
 
 DCA 开启和安装以后，您可在浏览器输入 DCA web 服务地址进行访问。首次访问时，页面将导向一个登录跳转中转页面。点击页面下方「立即前往」按钮后，您将被引导至<<<custom_key.brand_name>>>平台。接下来，按照页面上的说明指引，配置 DCA 的地址。一旦配置完成，您便能够直接通过<<<custom_key.brand_name>>>平台实现无需登录即可访问 DCA 平台的功能。
 
-<figure markdown>
-  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dca/dca-login-redirect.png){ width="800" }
-</figure>
-
 ### 查看 DataKit 列表 {#datakit-list}
 
 登录到 DCA 后，可在左上角选择工作空间管理其对应 DataKit 及采集器，支持通过搜索关键字快速筛选需要查看和管理的主机名称。
@@ -218,17 +216,9 @@ DCA 开启和安装以后，您可在浏览器输入 DCA web 服务地址进行�
 
 默认情况下，只能查看当前工作空间里的 DataKit 相关信息，如果需要对 DataKit 进行管理，如 DataKit 升级、采集器、Pipeline 的 新建、删除、修改等，则需要赋予当前帐号**DCA 配置管理**权限，具体设置可参考[角色管理](../management/role-management.md)。
 
-<figure markdown>
-  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dca/dca-list.png){ width="800" }
-</figure>
-
 ### 查看 DataKit 运行情况 {#view-runtime}
 
 登录到 DCA 后，选择工作空间，即可查看该工作空间下所有已经安装 DataKit 的主机名和 IP 信息。点击 DataKit 主机，即可远程连接到 DataKit ，查看该主机上 DataKit 的运行情况，包括版本、运行时间、发布日期、采集器运行情况等，以及可以对 DataKit 进行重新加载操作。
-
-<figure markdown>
-  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dca/dca-run-info-1.png){ width="800" }
-</figure>
 
 ### 采集器配置管理 {#view-inputs-conf}
 
@@ -238,17 +228,9 @@ DCA 开启和安装以后，您可在浏览器输入 DCA web 服务地址进行�
 - Sample 列表：可查看和编辑其下所有的 sample 文件。
 - 帮助：可查看对应的采集器帮助文档
 
-<figure markdown>
-  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dca/dca-input-conf-1.png){ width="800" }
-</figure>
-
 ### Pipelines 管理 {#view-pipeline}
 
 远程连接到 DataKit 以后，点击「Pipelines」，即可查看，编辑和测试 DataKit 默认自带的 Pipeline 文件。关于 Pipeline 可参考文档 [文本数据处理](../pipeline/use-pipeline/index.md) 。
-
-<figure markdown>
-  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dca/dca-pipeline-1.png){ width="800" }
-</figure>
 
 ### 查看黑名单 {#view-filters}
 
@@ -256,19 +238,19 @@ DCA 开启和安装以后，您可在浏览器输入 DCA web 服务地址进行�
 
 注意：通过<<<custom_key.brand_name>>>创建的黑名单文件统一保存在路径：`/usr/local/datakit/data/.pull` 。
 
-<figure markdown>
-  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dca/dca-filter-1.png){ width="800" }
-</figure>
-
 ### 查看日志 {#view-log}
 
 远程连接到 DataKit 以后，点击「日志」，即可实时查看 DataKit 的日志，并且可以导出相应的日志到本地。
 
-<figure markdown>
-  ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/dca/dca-log-1.png){ width="800" }
-</figure>
-
 ## 更新日志 {#change-log}
+
+### 0.1.6(2026/01/14) {#cl-0.1.6}
+
+- 新增支持上报 DataKit 存活指标 `dk_host_available`
+
+### 0.1.5(2025/11/06) {#cl-0.1.5}
+
+- 增加 DCA 服务 Prometheus 指标，包括 DataKit 数量和网络请求等指标
 
 ### 0.1.4(2025/10/14) {#cl-0.1.4}
 

@@ -13,16 +13,14 @@ import (
 	"io"
 	"net"
 	"net/http"
+	_ "net/http/pprof" //nolint:gosec
 	"net/netip"
+	"os"
 	"path/filepath"
 	"reflect"
 	"runtime"
 	"strings"
 	"sync"
-
-	// nolint:gosec
-	_ "net/http/pprof"
-	"os"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -30,14 +28,15 @@ import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/pipeline-go/constants"
-	"github.com/GuanceCloud/timeout"
 	"github.com/didip/tollbooth/v6/limiter"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.uber.org/zap/zapcore"
 	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
@@ -49,13 +48,15 @@ var (
 
 	pprofServer *http.Server
 
-	g = datakit.G("http")
+	g = goroutine.G("http")
 
 	semReload          *cliutils.Sem // [http server](the normal one, not dca nor pprof) reload signal
 	semReloadCompleted *cliutils.Sem // [http server](the normal one, not dca nor pprof) reload completed signal
 
 	httpConfMtx sync.Mutex
 )
+
+const apiWriteRoute = "/v1/write/:category"
 
 type httpServerConf struct {
 	ginLog         string
@@ -66,8 +67,6 @@ type httpServerConf struct {
 	dw        *dataway.Dataway
 	dcaConfig *config.DCAConfig
 
-	timeout time.Duration
-
 	pprof       bool
 	pprofListen string
 
@@ -75,11 +74,45 @@ type httpServerConf struct {
 }
 
 func defaultHTTPServerConf() *httpServerConf {
+	c := config.DefaultAPIConfig()
+
+	// Default enable APIs.
+	c.PublicAPIs = []string{"/v1/ping", "/v1/ntp"}
+
 	return &httpServerConf{
-		apiConfig: &config.APIConfig{
-			PublicAPIs: []string{"/v1/ping", "/v1/ntp"}, // Default enable APIs.
-		},
+		apiConfig: c,
 	}
+}
+
+func (hs *httpServerConf) setupServer(srv *http.Server) *http.Server {
+	srv.Addr = hs.apiConfig.Listen
+	if srv.Handler == nil {
+		srv.Handler = setupRouter(hs)
+	}
+
+	srv.ReadTimeout = hs.apiConfig.ReadTimeout
+	srv.IdleTimeout = hs.apiConfig.IdleTimeout
+	srv.ReadHeaderTimeout = hs.apiConfig.ReadHeaderTimeout
+	srv.WriteTimeout = hs.apiConfig.WriteTimeout
+
+	srv.ConnState = func(c net.Conn, s http.ConnState) {
+		if l.Level() == zapcore.DebugLevel {
+			switch s {
+			case http.StateClosed:
+				l.Debugf("connection %s closed", c.RemoteAddr())
+			case http.StateNew:
+				l.Debugf("new connection from %s", c.RemoteAddr())
+			case http.StateActive:
+				l.Debugf("connection %s active", c.RemoteAddr())
+			case http.StateIdle:
+				l.Debugf("connection %s idle", c.RemoteAddr())
+			case http.StateHijacked:
+				l.Debugf("connection %s hijacked", c.RemoteAddr())
+			}
+		}
+	}
+
+	return srv
 }
 
 func Start(opts ...option) {
@@ -117,16 +150,6 @@ func Start(opts ...option) {
 		l.Infof("set request limit not set: %f", hs.apiConfig.RequestRateLimit)
 	}
 
-	hs.timeout = 30 * time.Second
-	switch hs.apiConfig.Timeout {
-	case "":
-	default:
-		du, err := time.ParseDuration(hs.apiConfig.Timeout)
-		if err == nil {
-			hs.timeout = du
-		}
-	}
-
 	startDCA(hs)
 
 	// start HTTP server
@@ -151,40 +174,22 @@ func Start(opts ...option) {
 	}
 }
 
-func setupGinLogger(hs *httpServerConf) (gl io.Writer) {
+func setupGinLogger(hs *httpServerConf) io.Writer {
 	// set gin logger
 	l.Infof("set gin log to %s", hs.ginLog)
 	if hs.ginLog == "stdout" {
-		gl = os.Stdout
-	} else {
-		gl = &lumberjack.Logger{
-			Filename:   hs.ginLog,
-			MaxSize:    hs.ginRotate, // MB
-			MaxBackups: 5,
-			MaxAge:     30, // day
-		}
+		return os.Stdout
 	}
-
-	return
+	return &lumberjack.Logger{
+		Filename:   hs.ginLog,
+		MaxSize:    hs.ginRotate, // MB
+		MaxBackups: 5,
+		MaxAge:     30, // day
+	}
 }
 
 func setDKInfo(c *gin.Context) {
 	c.Header("X-DataKit", fmt.Sprintf("%s/%s", datakit.Version, datakit.DKHost))
-}
-
-// dkHTTPTimeout Caution: this middleware must be registered as the first one.
-func dkHTTPTimeout(du time.Duration) gin.HandlerFunc {
-	return timeout.New(
-		timeout.WithTimeout(du),
-
-		timeout.WithHandler(func(c *gin.Context) {
-			c.Next()
-		}),
-
-		timeout.WithResponse(func(c *gin.Context) {
-			c.String(http.StatusRequestTimeout, fmt.Sprintf("timeout(%s)", du))
-		}),
-	)
 }
 
 func setupRouter(hs *httpServerConf) *gin.Engine {
@@ -194,13 +199,9 @@ func setupRouter(hs *httpServerConf) *gin.Engine {
 	}
 
 	router := gin.New()
-
-	// Caution: timeout middleware MUST be registered as the first one, or may crash the process.
-	// DON'T CHANGE ITS ORDER!
-	router.Use(dkHTTPTimeout(hs.timeout))
-
 	router.Use(setDKInfo)
 
+	// should we disable gin log when under ReleaseMode?
 	router.Use(gin.LoggerWithConfig(gin.LoggerConfig{
 		Formatter: uhttp.GinLogFormatter,
 		Output:    setupGinLogger(hs),
@@ -210,13 +211,18 @@ func setupRouter(hs *httpServerConf) *gin.Engine {
 
 	router.Use(uhttp.CORSMiddlewareV2(hs.apiConfig.AllowedCORSOrigins))
 
+	noRouteHandlers := []gin.HandlerFunc{inputNotEnabledNoRoute()}
 	if !hs.apiConfig.Disable404Page {
-		router.NoRoute(page404)
+		noRouteHandlers = append(noRouteHandlers, page404)
 	}
+	router.NoRoute(noRouteHandlers...)
 
-	addNewRegistedAPIs(hs)
 	// use whitelist config
-	if len(hs.apiConfig.PublicAPIs) != 0 {
+	if !hs.apiConfig.DisableWhitelist {
+		// 添加新注册的API到白名单
+		addNewRegistedAPIs(hs)
+
+		// 应用白名单中间件（即使白名单为空，也需要应用以拦截外部访问）
 		router.Use(apiWhiteListMiddleware(hs.apiConfig.PublicAPIs))
 	}
 
@@ -233,7 +239,7 @@ func setupRouter(hs *httpServerConf) *gin.Engine {
 	router.GET("/v1/ntp", wraper2.RawHTTPWrapper(reqLimiter, apiNTP))
 
 	router.GET("/v1/ping", wraper1.RawHTTPWrapper(reqLimiter, apiPing))
-	router.POST("/v1/write/:category", wraper1.RawHTTPWrapper(reqLimiter, apiWrite, &apiWriteImpl{}))
+	router.POST(apiWriteRoute, wraper1.RawHTTPWrapper(reqLimiter, apiWrite, &apiWriteImpl{}))
 
 	router.POST("/v1/query/raw", wraper1.RawHTTPWrapper(reqLimiter, apiQueryRaw, hs.dw))
 
@@ -254,7 +260,43 @@ func setupRouter(hs *httpServerConf) *gin.Engine {
 	router.POST("/v1/global/election/tags", ginLimiter(reqLimiter), postElectionTags)
 	router.DELETE("/v1/global/election/tags", ginLimiter(reqLimiter), deleteElectionTags)
 
+	router.POST("/v1/election", wraper1.RawHTTPWrapper(reqLimiter, apiElectionStatus, nil))
+
 	return router
+}
+
+func inputNotEnabledNoRoute() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if err := inputNotEnabledError(c.Request.Method, c.Request.URL.Path); err != nil {
+			uhttp.HttpErr(c, err)
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
+func inputNotEnabledError(method, path string) error {
+	inputName, match := matchInputHTTPRoute(method, path)
+	if !match {
+		return nil
+	}
+
+	return uhttp.Errorf(ErrInputNotEnabled,
+		"input %q is not enabled for API %q",
+		inputName,
+		path)
+}
+
+func abortIfInputNotEnabled(c *gin.Context) bool {
+	if err := inputNotEnabledError(c.Request.Method, c.Request.URL.Path); err != nil {
+		uhttp.HttpErr(c, err)
+		c.Abort()
+		return true
+	}
+
+	return false
 }
 
 func isLoopbackClient(c *gin.Context) bool {
@@ -289,22 +331,57 @@ func isLoopbackClient(c *gin.Context) bool {
 }
 
 func apiWhiteListMiddleware(apis []string) gin.HandlerFunc {
-	publicAPITable := make(map[string]struct{}, len(apis))
-	for _, apiPath := range apis {
-		l.Infof("apply API %q to white list(maybe duplicated)", apiPath)
-
-		apiPath = strings.TrimSpace(apiPath)
-		if len(apiPath) > 0 && apiPath[0] != '/' {
-			apiPath = "/" + apiPath
+	// Normalize whitelist entries. Both exact paths and regex patterns are supported.
+	whiteList := make([]*datakit.WhiteListItem, 0, len(apis))
+	for _, apiPattern := range apis {
+		// Plain paths may omit the leading slash in config.
+		if len(apiPattern) > 0 && apiPattern[0] != '/' {
+			apiPattern = "/" + apiPattern
 		}
-		publicAPITable[apiPath] = struct{}{}
+
+		item := datakit.NewWhiteListItem(apiPattern)
+		whiteList = append(whiteList, item)
+		l.Infof("apply API %q to white list, is regex: %v", apiPattern, item.IsRegex())
 	}
 
 	return func(c *gin.Context) {
-		if _, ok := publicAPITable[c.Request.URL.Path]; !ok && !isLoopbackClient(c) {
+		// Local clients are always allowed.
+		if isLoopbackClient(c) {
+			c.Next()
+			return
+		}
+
+		if c.FullPath() == "" {
+			// The whitelist only protects registered routes. Unknown routes must
+			// keep Gin's normal 404 behavior, even when public_apis contains them.
+			c.Next()
+			return
+		}
+
+		// Empty whitelist blocks all registered routes from external clients.
+		path := c.Request.URL.Path
+		if len(whiteList) == 0 {
+			if abortIfInputNotEnabled(c) {
+				return
+			}
+
+			uhttp.HttpErr(c, uhttp.Errorf(ErrPublicAccessDisabled,
+				"api %s disabled from external IP, only loopback(localhost) allowed (empty whitelist)",
+				path))
+			c.Abort()
+			return
+		}
+
+		// Match public_apis against the real request path only.
+		if !datakit.WhiteListMatched(path, whiteList) {
+			if abortIfInputNotEnabled(c) {
+				return
+			}
+
+			// The route exists, but is not exposed to external clients.
 			uhttp.HttpErr(c, uhttp.Errorf(ErrPublicAccessDisabled,
 				"api %s disabled from external IP, only loopback(localhost) allowed",
-				c.Request.URL.Path))
+				path))
 			c.Abort()
 			return
 		}
@@ -315,15 +392,7 @@ func apiWhiteListMiddleware(apis []string) gin.HandlerFunc {
 func HTTPStart(hs *httpServerConf) {
 	refreshRebootSem()
 	l.Debugf("HTTP bind addr:%s", hs.apiConfig.Listen)
-
-	srv := &http.Server{
-		Addr:    hs.apiConfig.Listen,
-		Handler: setupRouter(hs),
-	}
-
-	if hs.apiConfig.CloseIdleConnection {
-		srv.ReadTimeout = hs.timeout
-	}
+	srv := hs.setupServer(&http.Server{})
 
 	g.Go(func(ctx context.Context) error {
 		tryStartServer(hs, srv, true, semReload, semReloadCompleted)
@@ -560,6 +629,24 @@ func portInUse(addr string) bool {
 	}
 	defer conn.Close() //nolint:errcheck
 	return true
+}
+
+// CheckHTTPSrvAddr checks whether the HTTP server address can be listened on.
+func CheckHTTPSrvAddr(addr string) error {
+	if portInUse(addr) {
+		return fmt.Errorf("address %q already in use", addr)
+	}
+
+	listener, err := initListener(addr)
+	if err != nil {
+		return fmt.Errorf("init listener %q: %w", addr, err)
+	}
+
+	if err := listener.Close(); err != nil {
+		return fmt.Errorf("close listener %q: %w", addr, err)
+	}
+
+	return nil
 }
 
 func initUnixListener(udsPath string) (net.Listener, error) {

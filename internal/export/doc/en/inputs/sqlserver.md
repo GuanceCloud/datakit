@@ -7,9 +7,13 @@ __int_icon      : 'icon/sqlserver'
 dashboard :
   - desc  : 'SQLServer'
     path  : 'dashboard/en/sqlserver'
+  - desc  : 'SQLServer-v2'
+    path  : 'dashboard/en/sqlserver-v2'
 monitor   :
   - desc  : 'SQLServer'
     path  : 'monitor/en/sqlserver'
+  - desc  : 'SQLServer-v2'
+    path  : 'monitor/en/sqlserver-v2'
 ---
 
 
@@ -94,6 +98,70 @@ To collect SQL Server logs, enable `files` in *{{.InputName}}.conf* and write to
 
 When log collection is turned on, a log with a log (aka *source*) of`sqlserver` is collected.
 
+## Database Monitoring (DBM) {#dbm}
+
+Database Monitoring (DBM) provides deep visibility into SQL Server database performance by collecting query metrics, activity sessions, and execution plans to help analyze and optimize database performance.
+
+### Enable DBM {#dbm-enabled}
+
+```toml
+[inputs.sqlserver.dbm]
+  # Enable DBM feature (default: false)
+  enabled = true
+  # Maximum number of characters to collect from stored procedures (default: 500)
+  stored_procedure_characters_limit = 500
+```
+
+### Query Metrics {#dbm-metric}
+
+Collects cumulative execution statistics of SQL queries aggregated by query signature, query plan hash, and database. Contains execution count, CPU time, logical reads, physical reads, wait time, etc. Reflects actual query execution through derivative metrics (differences between two collections).
+
+> Note: Only queries that appear in two consecutive collection windows will report metrics. Queries collected for the first time are only used as a baseline and will not report metrics.
+
+```toml
+[inputs.sqlserver.dbm.metric]
+  # Enable query metrics collection (default: true)
+  enabled = true
+  # Collection interval (default: 60s)
+  collection_interval = "60s"
+  # Maximum number of rows to collect from sys.dm_exec_query_stats (default: 10000)
+  # This limits the initial query result size before aggregation
+  dm_exec_query_stats_row_limit = 10000
+  # Maximum number of queries to report per collection interval (default: 500)
+  # Only the top N queries (sorted by derivative elapsed time) will be reported as metrics
+  max_queries = 500
+  # Lookback window in seconds for filtering queries (default: 300)
+  # Only queries that executed within this time window (based on last_execution_time + last_elapsed_time) will be collected
+  lookback_window = 300
+  # Enable plan collection (default: true)
+  plan_enabled = true
+  # Plan object cache TTL (default: 1h)
+  plan_cache_ttl = "1h"
+  # Maximum runtime in seconds for plan collection (default: 30)
+  # If collection takes longer than this, plan collection will be skipped
+  max_run_time = 30
+```
+
+**Execution Plans**: When `plan_enabled = true`, execution plans will also be collected.
+
+### Activity Queries {#dbm-activity}
+
+Collects information about currently executing queries and active sessions. Records session status, wait events, blocking information, SQL text (obfuscated), etc., used for real-time monitoring of current database activity.
+
+**Session Metrics**: Session metrics are automatically generated based on activity query data.
+
+**Connection Metrics**: Independently queries database connection information, aggregating connection count by dimensions such as username, status, database.
+
+```toml
+[inputs.sqlserver.dbm.activity]
+  # Enable active query information collection (default: true)
+  enabled = true
+  # Collection interval for activity metrics (default: 10s)
+  collection_interval = "10s"
+  # Maximum number of rows to collect from sys.dm_exec_sessions (default: 1000)
+  dm_exec_sessions_row_limit = 1000
+```
+
 ## Metrics {#measurements}
 
 For all of the following data collections, the global election tags will be added automatically, we can add extra tags in `[inputs.{{.InputName}}.tags]` if needed:
@@ -110,6 +178,8 @@ For all of the following data collections, the global election tags will be adde
 {{if eq $m.Type "metric"}}
 
 ### `{{$m.Name}}`
+
+{{$m.Desc}}
 
 {{$m.MarkdownTable}}
 
@@ -261,6 +331,8 @@ Following measurements are collected as logs with the level of `info`.
 {{if eq $m.Type "logging"}}
 
 ### `{{$m.Name}}`
+
+{{$m.Desc}}
 
 {{$m.MarkdownTable}}
 

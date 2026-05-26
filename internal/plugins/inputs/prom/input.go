@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -85,8 +86,7 @@ type Input struct {
 	Feeder dkio.Feeder
 
 	Election bool `toml:"election"`
-	chPause  chan bool
-	pause    bool
+	pause    atomic.Bool
 
 	Tagger datakit.GlobalTagger
 
@@ -141,7 +141,7 @@ func (i *Input) Run() {
 	i.ptsTime = ntp.Now()
 
 	for {
-		if i.pause {
+		if i.pause.Load() {
 			i.l.Debug("prom paused")
 		} else {
 			i.tryInit()
@@ -161,9 +161,6 @@ func (i *Input) Run() {
 
 		case tt := <-tick.C:
 			i.ptsTime = inputs.AlignTime(tt, i.ptsTime, i.Interval)
-
-		case i.pause = <-i.chPause:
-			// nil
 		}
 	}
 }
@@ -348,23 +345,13 @@ func (i *Input) Terminate() {
 }
 
 func (i *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	select {
-	case i.chPause <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	i.pause.Store(true)
+	return nil
 }
 
 func (i *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	select {
-	case i.chPause <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	i.pause.Store(false)
+	return nil
 }
 
 type promHandleCallback func([]*point.Point) error
@@ -503,8 +490,6 @@ func (i *Input) Init() error {
 	return nil
 }
 
-var maxPauseCh = inputs.ElectionPauseChannelLength
-
 func NewProm() *Input {
 	return &Input{
 		Source:          "prom",
@@ -521,7 +506,7 @@ func NewProm() *Input {
 		Feeder:   dkio.DefaultFeeder(),
 		Tagger:   datakit.DefaultGlobalTagger(),
 		upStates: make(map[string]int),
-		chPause:  make(chan bool, maxPauseCh),
+		pause:    atomic.Bool{},
 	}
 }
 

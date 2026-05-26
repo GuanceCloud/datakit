@@ -7,7 +7,8 @@ package kubernetesprometheus
 
 import (
 	"github.com/GuanceCloud/cliutils/logger"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 var (
@@ -27,10 +28,13 @@ var (
 var (
 	klog = logger.DefaultSLogger(inputName)
 
+	_ inputs.ElectionInput = (*Input)(nil)
+	_ inputs.InputV2       = (*Input)(nil)
+
 	// Maximum: role*4  + manager*1 + Services*N.
-	managerGo = datakit.G("kubernetesprometheus_manager")
+	managerGo = goroutine.G("kubernetesprometheus_manager")
 	// Maximum: 2*maxConcurrent.
-	workerGo = datakit.G("kubernetesprometheus_worker")
+	workerGo = goroutine.G("kubernetesprometheus_worker")
 )
 
 const (

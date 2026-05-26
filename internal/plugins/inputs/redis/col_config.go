@@ -13,6 +13,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -20,9 +21,9 @@ const (
 	CREDENTIALSTR = "******"
 )
 
-func (i *instance) collectConfig(ctx context.Context) {
+func (i *instance) collectConfig(ctx context.Context, cli collectorClient, server, host string) {
 	collectStart := time.Now()
-	allConf, err := i.curCli.configGet(ctx, "*")
+	allConf, err := cli.configGet(ctx, "*")
 	if err != nil {
 		l.Error("redis exec command `config get *`: %s", err)
 		return
@@ -30,7 +31,20 @@ func (i *instance) collectConfig(ctx context.Context) {
 
 	l.Debugf("config get *:\n%+#v", allConf)
 
-	pts := i.parseConfigAll(allConf)
+	// cache specified fields for supplementing INFO
+	if server != "" {
+		nodeCache := make(map[string]string)
+		for _, field := range infoConfigFieldsToCache {
+			if val := allConf[field]; val != "" {
+				nodeCache[field] = val
+			}
+		}
+		i.infoConfigMu.Lock()
+		i.infoConfigCache[server] = nodeCache
+		i.infoConfigMu.Unlock()
+	}
+
+	pts := i.parseConfigAll(allConf, i.buildNodeTags(server, host), ntp.Now())
 
 	if err := i.ipt.feeder.Feed(point.Logging, pts,
 		dkio.WithCollectCost(time.Since(collectStart)),
@@ -41,7 +55,7 @@ func (i *instance) collectConfig(ctx context.Context) {
 	}
 }
 
-func (i *instance) parseConfigAll(conf map[string]string) []*point.Point {
+func (i *instance) parseConfigAll(conf, mergedTags map[string]string, collectTime time.Time) []*point.Point {
 	var (
 		pts []*point.Point
 		kvs point.KVs
@@ -66,7 +80,7 @@ func (i *instance) parseConfigAll(conf map[string]string) []*point.Point {
 
 		switch rawkey {
 		case "client-output-buffer-limit":
-			pts = append(pts, i.parseOBLConf(strVal)...)
+			pts = append(pts, i.parseOBLConf(strVal, collectTime)...)
 		case "requirepass",
 			"masterauth",
 			"tls-key-file-pass",
@@ -87,11 +101,11 @@ func (i *instance) parseConfigAll(conf map[string]string) []*point.Point {
 		}
 	}
 
-	opts := append(point.DefaultLoggingOptions(), point.WithTime(i.ipt.ptsTime))
+	opts := append(point.DefaultLoggingOptions(), point.WithTime(collectTime))
 	pts = append(pts, point.NewPoint(measureuemtRedisConfig, kvs, opts...))
 
 	for _, pt := range pts {
-		for k, v := range i.mergedTags {
+		for k, v := range mergedTags {
 			pt.AddTag(k, v)
 		}
 	}
@@ -99,11 +113,11 @@ func (i *instance) parseConfigAll(conf map[string]string) []*point.Point {
 	return pts
 }
 
-func (i *instance) parseOBLConf(s string) []*point.Point {
+func (i *instance) parseOBLConf(s string, collectTime time.Time) []*point.Point {
 	var (
 		arr  = strings.Split(s, " ")
 		pts  []*point.Point
-		opts = append(point.DefaultLoggingOptions(), point.WithTime(i.ipt.ptsTime))
+		opts = append(point.DefaultLoggingOptions(), point.WithTime(collectTime))
 	)
 
 	// example: normal 0 0 0 slave 268435456 67108864 60 pubsub 33554432 8388608 60

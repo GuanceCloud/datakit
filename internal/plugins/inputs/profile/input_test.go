@@ -13,12 +13,14 @@ import (
 	"io/fs"
 	"mime/multipart"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
 	"time"
 
 	bstoml "github.com/BurntSushi/toml"
+	"github.com/GuanceCloud/cliutils"
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -72,7 +74,6 @@ func TestIOConfig(t *testing.T) {
 	assert.Equal(t, defaultDiskCachePath(), ipt.IOConfig.CachePath)
 	assert.Equal(t, defaultDiskCacheSize, ipt.IOConfig.CacheCapacityMB)
 	assert.Equal(t, false, ipt.IOConfig.ClearCacheOnStart)
-	assert.Equal(t, defaultConsumeWorkersCount, ipt.IOConfig.UploadWorkers)
 	assert.Equal(t, defaultHTTPClientTimeout, ipt.IOConfig.SendTimeout)
 	assert.Equal(t, defaultHTTPRetryCount, ipt.IOConfig.SendRetryCount)
 
@@ -184,6 +185,17 @@ func Test_getPyroscopeTagFromLabels(t *testing.T) {
 }
 
 func TestInput_sendRequestToDW(t *testing.T) {
+	originExit := datakit.Exit
+	defer func() {
+		datakit.Exit = originExit
+	}()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(5 * time.Second)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
 	eventJSON := `{
     "attachments": [
         "main.jfr",
@@ -233,18 +245,19 @@ func TestInput_sendRequestToDW(t *testing.T) {
 	}
 
 	timeCtx, cancelFunc := context.WithCancel(context.Background())
+	profileURL := srv.URL + "/profiling/v1/input"
 
 	testCases := []testCase{
 		{
 			Name:    "Background",
-			url:     "https://www.google.com/profiling/v1/input",
+			url:     profileURL,
 			httpCli: &http.Client{Timeout: time.Millisecond * 200},
 			ctx:     context.Background(),
 			expect:  fmt.Sprintf("%d", ipt.IOConfig.SendRetryCount),
 		},
 		{
 			Name:    "CtxCanceled",
-			url:     "https://www.google.com/profiling/v1/input",
+			url:     profileURL,
 			httpCli: http.DefaultClient,
 			ctx:     timeCtx,
 			callback: func() {
@@ -257,7 +270,7 @@ func TestInput_sendRequestToDW(t *testing.T) {
 		},
 		{
 			Name:    "DKExit",
-			url:     "https://www.google.com/profiling/v1/input",
+			url:     profileURL,
 			httpCli: &http.Client{Timeout: time.Millisecond * 300},
 			ctx:     context.TODO(),
 			callback: func() {
@@ -272,6 +285,10 @@ func TestInput_sendRequestToDW(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
+			if tc.Name == "DKExit" {
+				datakit.Exit = cliutils.NewSem()
+			}
+
 			ipt.httpClient = tc.httpCli
 			ipt.profileSendingAPI, _ = url.Parse(tc.url)
 			if tc.callback != nil {

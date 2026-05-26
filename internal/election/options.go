@@ -10,7 +10,6 @@ type option struct {
 	namespace, id string
 	nodeWhitelist []string
 	puller        Puller
-	mode          electionMode
 }
 
 type ElectionOption func(opt *option)
@@ -42,20 +41,5 @@ func WithNamespace(ns string) ElectionOption {
 func WithDatawayPuller(p Puller) ElectionOption {
 	return func(opt *option) {
 		opt.puller = p
-		opt.mode = modeDataway
 	}
 }
-
-func WithOperatorPuller(p Puller) ElectionOption {
-	return func(opt *option) {
-		opt.puller = p
-		opt.mode = modeOperator
-	}
-}
-
-type electionMode int
-
-const (
-	modeDataway electionMode = iota + 1
-	modeOperator
-)

@@ -8,6 +8,8 @@ package ddtrace
 import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	p8s "github.com/prometheus/client_golang/prometheus"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (
@@ -40,29 +42,21 @@ func metricsSetup() {
 
 	traceSpans = p8s.NewSummaryVec(
 		p8s.SummaryOpts{
-			Namespace: "datakit",
-			Subsystem: "input_ddtrace",
-			Name:      "trace_spans",
-			Help:      "Trace spans(include truncated spans)",
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Namespace:  "datakit",
+			Subsystem:  "input_ddtrace",
+			Name:       "trace_spans",
+			Help:       "Trace spans(include truncated spans)",
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"input"},
 	)
 	proxyTelemetryBody = p8s.NewSummaryVec(
 		p8s.SummaryOpts{
-			Namespace: "datakit",
-			Subsystem: "input_ddtrace",
-			Name:      "proxy_body",
-			Help:      "Body length of DDTrace route:/telemetry/proxy/api/v2/apmtelemetry data",
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Namespace:  "datakit",
+			Subsystem:  "input_ddtrace",
+			Name:       "proxy_body",
+			Help:       "Body length of DDTrace route `/telemetry/proxy/api/v2/apmtelemetry` data",
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"service"},
 	)

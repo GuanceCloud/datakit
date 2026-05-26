@@ -23,6 +23,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -58,7 +59,7 @@ var (
 
 func startConfd() error {
 	doOnce.Do(func() {
-		g := datakit.G("confd")
+		g := goroutine.G("confd")
 
 		g.Go(func(ctx context.Context) error {
 			return confdMain()
@@ -256,7 +257,7 @@ func watchConfds() {
 
 	// Create a watch per backend instance.(There is a pit here, you can't use for range , otherwise only the last watch is valid).
 	for i := 0; i < len(clientConfds); i++ {
-		g := datakit.G("confd")
+		g := goroutine.G("confd")
 		func(c *clientStruct, stopCh chan bool) {
 			g.Go(func(ctx context.Context) error {
 				watchConfd(c, stopCh)

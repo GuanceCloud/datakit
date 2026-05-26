@@ -6,104 +6,72 @@ package l4log
 import (
 	"context"
 	"fmt"
-	"os"
-	"runtime"
+	"sort"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/GuanceCloud/platypus/pkg/ast"
-	"github.com/google/gopacket/afpacket"
-	"github.com/vishvananda/netns"
 	cruntime "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
 )
 
-type cbRawSocket struct {
-	// nic_name, nic_mac
-	tps map[[2]string]*afpacket.TPacket
-
-	hostNS       bool
-	ns           string
-	newSocketErr map[[2]string]error
-}
-
-func (cb *cbRawSocket) cbNewRawSocket() {
-	for nameAndMac, skt := range cb.tps {
-		if skt != nil {
-			continue
-		}
-
-		opt := []any{afpacket.OptInterface(nameAndMac[0])}
-		if cb.hostNS {
-			// https://www.kernel.org/doc/Documentation/networking/packet_mmap.txt
-			// frame nr: 64 * 128, frame size 4096Byte, total ~ 32MiB
-			opt = append(opt, afpacket.OptNumBlocks(64))
-		}
-
-		if h, err := newRawsocket(newBPFFilter(), opt...); err != nil {
-			if cb.newSocketErr == nil {
-				cb.newSocketErr = make(map[[2]string]error)
-			}
-			cb.newSocketErr[nameAndMac] = fmt.Errorf("new raw socket: %w", err)
-			continue
-		} else {
-			log.Infof("new raw socket %s %s %s", nameAndMac[0], nameAndMac[1], cb.ns)
-			time.Sleep(time.Millisecond * 100)
-			cb.tps[nameAndMac] = h
-		}
-	}
-}
-
-type ifaceInfomation struct {
-	// h     *afpacket.TPacket
-	conns *TCPConns
-	cacel context.CancelFunc
-
-	ifaces [2]string
-}
-
-type netnsInformation struct {
-	hostNS      bool
-	nsUID       string
-	contianerID string
-
-	// netns netns.NsHandle
-	nns *netnsHandle
-
-	pid map[int]struct{}
-	// mac:
-	ifaceInf map[[2]string]*ifaceInfomation
-
-	tags map[string]string
-}
-
-func (nsInf *netnsInformation) Close() {
-	for _, v := range nsInf.ifaceInf {
-		if v.cacel != nil {
-			v.cacel()
-		}
-	}
-	if nsInf.nns != nil {
-		nsInf.nns.close()
-	}
-}
-
 type netlogMonitor struct {
 	netnsInfo map[string]*netnsInformation
+	captures  map[string]*namespaceCaptureRuntime
 
 	gtags map[string]string
 
 	transportBlacklist ast.Stmts
 	filterRuntime      *filterRuntime
 
-	portListen *portListen
+	portListen     *portListen
+	stats          *capturePlanStats
+	lastPlans      map[string]string
+	hostPeerOwners map[[2]string]string
+	hostRuntime    *hostNamespaceRuntime
+
+	fallbackFuseUntil        time.Time
+	lastFallbackFuseReason   string
+	lastFallbackFuseLoggedAt time.Time
+}
+
+type fallbackProtectionSnapshot struct {
+	active  int
+	pending int
+	drops   uint64
+	freezes uint64
+}
+
+func shouldTripFallbackFuse(snapshot fallbackProtectionSnapshot) (bool, string) {
+	switch {
+	case snapshot.active == 0:
+		return false, ""
+	case snapshot.pending > 0 && snapshot.active >= maxFallbackSocketLimit:
+		return true, fmt.Sprintf("socket_saturation active=%d pending=%d limit=%d",
+			snapshot.active, snapshot.pending, maxFallbackSocketLimit)
+	case snapshot.drops >= fallbackFuseDropThreshold:
+		return true, fmt.Sprintf("drop_burst drops=%d threshold=%d",
+			snapshot.drops, fallbackFuseDropThreshold)
+	case snapshot.freezes >= fallbackFuseFreezeThreshold:
+		return true, fmt.Sprintf("queue_freeze freezes=%d threshold=%d",
+			snapshot.freezes, fallbackFuseFreezeThreshold)
+	default:
+		return false, ""
+	}
 }
 
 func newNetlogMonitor(gtags map[string]string, blacklist string, fnG *fnGroup,
 ) (*netlogMonitor, error) {
 	m := &netlogMonitor{
-		netnsInfo:     map[string]*netnsInformation{},
-		gtags:         gtags,
-		portListen:    &portListen{},
-		filterRuntime: &filterRuntime{fnG: fnG},
+		netnsInfo:      map[string]*netnsInformation{},
+		captures:       map[string]*namespaceCaptureRuntime{},
+		gtags:          gtags,
+		portListen:     &portListen{},
+		filterRuntime:  &filterRuntime{fnG: fnG},
+		stats:          newCapturePlanStats(),
+		lastPlans:      map[string]string{},
+		hostPeerOwners: map[[2]string]string{},
+		hostRuntime:    &hostNamespaceRuntime{},
 	}
 
 	if blacklist != "" {
@@ -126,7 +94,9 @@ func newNetlogMonitor(gtags map[string]string, blacklist string, fnG *fnGroup,
 func (m *netlogMonitor) Run(ctx context.Context, containerCtr []cruntime.ContainerRuntime,
 ) {
 	ticker := time.NewTicker(time.Second * 20)
+	statsTicker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
+	defer statsTicker.Stop()
 	var allowLo bool
 
 	for {
@@ -135,241 +105,218 @@ func (m *netlogMonitor) Run(ctx context.Context, containerCtr []cruntime.Contain
 		m.CmpAndAddNIC(netnsInfo)
 		select {
 		case <-ctx.Done():
+			for nsUID, infom := range m.netnsInfo {
+				m.stopAllNamespaceCaptures(nsUID)
+				infom.Close()
+			}
+			if m.hostRuntime != nil {
+				m.hostRuntime.stopSharedCapture()
+			}
+			m.netnsInfo = make(map[string]*netnsInformation)
+			m.captures = make(map[string]*namespaceCaptureRuntime)
 			return
+		case <-statsTicker.C:
+			if snapshot := m.collectFallbackProtectionSnapshot(); true {
+				if trip, reason := shouldTripFallbackFuse(snapshot); trip && !m.fallbackFuseActive(time.Now()) {
+					m.tripFallbackFuse(time.Now(), reason)
+				}
+			}
+			if m.stats != nil {
+				log.Info(m.stats.SummaryAndResetDelta())
+			}
+			if m.hostRuntime != nil && m.hostRuntime.sharedCapture != nil {
+				log.Info(m.hostRuntime.sharedCapture.summary())
+			}
 		case <-ticker.C:
 		}
 	}
 }
 
-func (m *netlogMonitor) CmpAndCleanNetNsNIC(netnsInfo map[string]*netnsInformation) {
-	// 如果该命名空间在当前不存在：
-	// 移除整个网络命名空间下的 raw_socket
-	for nsUID, infom := range m.netnsInfo {
-		if _, ok := netnsInfo[nsUID]; !ok {
-			for _, v := range infom.ifaceInf {
-				if v.cacel != nil {
-					v.cacel()
-				}
-			}
+type capturePlanStats struct {
+	mu sync.Mutex
 
-			// 删除当前 ns 的信息
-			delete(m.netnsInfo, nsUID)
-		}
+	snapshot snapshotPlanCounters
+	delta    snapshotPlanCounters
+}
+
+type snapshotPlanCounters struct {
+	hostPeerSelected int64
+	fallbackInNetNS  int64
+	fallbackConflict int64
+	hostNSDirect     int64
+	reasons          map[string]int64
+}
+
+func newSnapshotPlanCounters() snapshotPlanCounters {
+	return snapshotPlanCounters{
+		reasons: map[string]int64{},
 	}
 }
 
-func (m *netlogMonitor) CmpAndAddNIC(netnsInfo map[string]*netnsInformation) {
-	for nsUID, nsInf := range netnsInfo {
-		diffTps := map[[2]string]*afpacket.TPacket{}
-		diffTpsNicInfo := map[[2]string]*NICInfo{}
+func newCapturePlanStats() *capturePlanStats {
+	return &capturePlanStats{
+		snapshot: newSnapshotPlanCounters(),
+		delta:    newSnapshotPlanCounters(),
+	}
+}
 
-		nicIP := []string{}
-		if v, err := nsInf.nns.nicInfo(); err != nil {
+func (s *capturePlanStats) ReplaceSnapshot(counters snapshotPlanCounters) {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	s.snapshot = counters
+	s.mu.Unlock()
+}
+
+func (s *capturePlanStats) IncDelta(plan *capturePlan) {
+	if s == nil || plan == nil {
+		return
+	}
+	s.mu.Lock()
+	applyPlanCounter(&s.delta, plan)
+	s.mu.Unlock()
+}
+
+func (s *capturePlanStats) SummaryAndResetDelta() string {
+	if s == nil {
+		return "capture plan stats unavailable"
+	}
+	s.mu.Lock()
+	snapshot := cloneSnapshotPlanCounters(s.snapshot)
+	delta := cloneSnapshotPlanCounters(s.delta)
+	s.delta = newSnapshotPlanCounters()
+	defer s.mu.Unlock()
+
+	return fmt.Sprintf(
+		"capture plan stats snapshot_host_peer_selected=%d snapshot_fallback_in_netns=%d "+
+			"snapshot_fallback_conflict=%d snapshot_host_namespace_direct=%d "+
+			"delta_host_peer_selected=%d delta_fallback_in_netns=%d "+
+			"delta_fallback_conflict=%d delta_host_namespace_direct=%d "+
+			"snapshot_reasons=[%s] delta_reasons=[%s]",
+		snapshot.hostPeerSelected,
+		snapshot.fallbackInNetNS,
+		snapshot.fallbackConflict,
+		snapshot.hostNSDirect,
+		delta.hostPeerSelected,
+		delta.fallbackInNetNS,
+		delta.fallbackConflict,
+		delta.hostNSDirect,
+		formatReasonCounts(snapshot.reasons),
+		formatReasonCounts(delta.reasons),
+	)
+}
+
+func applyPlanCounter(counters *snapshotPlanCounters, plan *capturePlan) {
+	if counters == nil || plan == nil {
+		return
+	}
+
+	switch plan.reasonCode {
+	case reasonHostPeerSelected:
+		counters.hostPeerSelected++
+	case reasonHostPeerConflict:
+		counters.fallbackConflict++
+	case reasonHostNamespaceOrMissingNIC:
+		counters.hostNSDirect++
+	default:
+		counters.fallbackInNetNS++
+	}
+
+	if counters.reasons == nil {
+		counters.reasons = map[string]int64{}
+	}
+	if plan.reasonCode != "" {
+		counters.reasons[plan.reasonCode]++
+	}
+}
+
+func cloneSnapshotPlanCounters(src snapshotPlanCounters) snapshotPlanCounters {
+	dst := snapshotPlanCounters{
+		hostPeerSelected: src.hostPeerSelected,
+		fallbackInNetNS:  src.fallbackInNetNS,
+		fallbackConflict: src.fallbackConflict,
+		hostNSDirect:     src.hostNSDirect,
+		reasons:          map[string]int64{},
+	}
+	for k, v := range src.reasons {
+		dst.reasons[k] = v
+	}
+	return dst
+}
+
+func formatReasonCounts(reasons map[string]int64) string {
+	reasonKeys := make([]string, 0, len(reasons))
+	for k := range reasons {
+		reasonKeys = append(reasonKeys, k)
+	}
+	sort.Strings(reasonKeys)
+
+	reasonParts := make([]string, 0, len(reasonKeys))
+	for _, k := range reasonKeys {
+		reasonParts = append(reasonParts, fmt.Sprintf("%s=%d", k, reasons[k]))
+	}
+
+	return strings.Join(reasonParts, ",")
+}
+
+func (m *netlogMonitor) CmpAndAddNIC(netnsInfo map[string]*netnsSnapshot) {
+	claimedHostPeerOwners := map[[2]string]string{}
+	currentSnapshot := newSnapshotPlanCounters()
+	nicGroups := newNICGroupSnapshot()
+	bootstrapBudget := containerBootstrapBudgetPerRound
+	now := time.Now()
+	fallbackFuseActive := m.fallbackFuseActive(now)
+	fallbackSlotsRemaining := maxFallbackSocketLimit - m.activeFallbackCaptureCount()
+	if fallbackSlotsRemaining < 0 {
+		fallbackSlotsRemaining = 0
+	}
+
+	nsUIDs := make([]string, 0, len(netnsInfo))
+	for nsUID := range netnsInfo {
+		nsUIDs = append(nsUIDs, nsUID)
+	}
+	sort.Strings(nsUIDs)
+
+	for _, nsUID := range nsUIDs {
+		m.mergeNamespaceState(nsUID, netnsInfo[nsUID])
+	}
+
+	hostInv := m.buildHostNICInventory()
+	hostNSInfo := hostInv.nsInfo
+
+	for _, nsUID := range nsUIDs {
+		preNsInf := m.netnsInfo[nsUID]
+
+		if shouldDeferContainerBootstrap(preNsInf, &bootstrapBudget) {
+			if time.Since(preNsInf.lastBootstrapDeferredAt) >= containerBootstrapDeferLogInterval {
+				log.Infof("defer container netns bootstrap ns=%s container_id=%s remaining_budget=0", preNsInf.nsUID, preNsInf.contianerID)
+				preNsInf.lastBootstrapDeferredAt = time.Now()
+			}
+			continue
+		}
+
+		work, err := m.buildNamespaceCaptureWork(preNsInf, hostInv, claimedHostPeerOwners, &currentSnapshot, nicGroups)
+		if err != nil {
 			log.Errorf("get network interface info: %w, ns: %s", err, nsUID)
 			continue
-		} else {
-			for _, v := range v {
-				for _, v := range v.Addrs {
-					nicIP = append(nicIP, v.IP.String())
-				}
-				diffTps[[2]string{v.Name, v.MAC}] = nil
-				diffTpsNicInfo[[2]string{v.Name, v.MAC}] = v
-			}
 		}
 
-		preNsInf, ok := m.netnsInfo[nsUID]
-		if !ok {
-			preNsInf = nsInf
-			m.netnsInfo[nsUID] = preNsInf
-		} else {
-			nsInf.Close()
-			for k, v := range preNsInf.ifaceInf {
-				// 当前该网卡可能被移除或者 down 了
-				if _, ok := diffTps[k]; !ok {
-					if v.cacel != nil {
-						// 取消抓包任务并关闭该 raw_socket
-						v.cacel()
-					}
-					delete(preNsInf.ifaceInf, k)
-				}
-			}
+		m.pruneNamespaceCaptureWork(work)
+		m.prepareNamespaceCaptureWork(work, now, fallbackFuseActive, &fallbackSlotsRemaining)
 
-			for k := range diffTps {
-				// 已经开启采集的则不再采集
-				if _, ok := preNsInf.ifaceInf[k]; ok {
-					delete(diffTps, k)
-				}
-			}
-		}
-
-		// 生成新的回调用于创建 raw_socket
-		cbRawSkt := &cbRawSocket{
-			hostNS: preNsInf.hostNS,
-			ns:     NSInode(preNsInf.nns.netns),
-			tps:    diffTps,
-		}
-
-		// 创建 raw_socket
-		if err := CallWithNetNS(preNsInf.nns.netns, cbRawSkt.cbNewRawSocket); err != nil {
+		if err := m.openNamespaceCaptureSockets(work, hostNSInfo); err != nil {
 			log.Errorf("call with netns: %w", err)
 			preNsInf.Close()
 			continue
 		}
 
-		for _, v := range cbRawSkt.newSocketErr {
-			log.Error(v)
-		}
-
-		for idx, h := range diffTps {
-			// 未被采集且 raw_socket fd 存在
-			if _, ok := preNsInf.ifaceInf[idx]; !ok && h != nil {
-				ctx, cacel := context.WithCancel(context.Background())
-				tags := map[string]string{}
-				for k, v := range m.gtags {
-					tags[k] = v
-				}
-				for k, v := range preNsInf.tags {
-					tags[k] = v
-				}
-				conns := NewTCPConns(tags, preNsInf.contianerID, preNsInf.nsUID,
-					idx, m.portListen, m.transportBlacklist, m.filterRuntime)
-
-				if inf, ok := diffTpsNicInfo[idx]; ok && inf != nil {
-					conns.virtualNIC = inf.VIface
-					conns.hostNetwork = inf.HostIface
-				}
-				preNsInf.ifaceInf[idx] = &ifaceInfomation{
-					cacel:  cacel,
-					ifaces: idx,
-					conns:  conns,
-				}
-				time.Sleep(time.Millisecond * 100)
-				go conns.CapturePacket(ctx, idx[0], idx[1], nsUID, h)
-				go conns.Gather(context.Background(), nicIP)
-
-				pids := map[int]struct{}{}
-				for k := range preNsInf.pid {
-					pids[k] = struct{}{}
-				}
-				go preNsInf.nns.tcpPortListenWatcher(ctx, m.portListen, pids)
-			} else if h != nil {
-				// 不使用则关闭 raw_socket
-				h.Close()
-			}
-		}
+		m.applyNamespaceCaptureWork(work)
 	}
-}
-
-func CallWithNetNS(newNS netns.NsHandle, fn func()) error {
-	if !newNS.IsOpen() {
-		return fmt.Errorf("ns fd closed")
+	m.syncHostPeerSharedCapture(hostNSInfo)
+	m.hostPeerOwners = claimedHostPeerOwners
+	if m.stats != nil {
+		m.stats.ReplaceSnapshot(currentSnapshot)
 	}
-
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	prevNS, err := netns.Get()
-	if err != nil {
-		return err
-	}
-
-	defer prevNS.Close() //nolint:errcheck
-
-	if newNS.Equal(prevNS) {
-		// call function from param
-		fn()
-	} else {
-		// switch to new network namespace
-		if err := netns.Set(newNS); err != nil {
-			return fmt.Errorf("switch netns failed: %w", err)
-		}
-		// call function from param
-		fn()
-
-		// revert to previous network namespace
-		if err := netns.Set(prevNS); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func ListContainersAndHostNetNS(ctrLi []cruntime.ContainerRuntime, allowLo bool,
-) map[string]*netnsInformation {
-	netnsInfo := map[string]*netnsInformation{}
-	var curNetnsStr string
-	curNetns, err := netns.GetFromPid(os.Getpid())
-	if err != nil {
-		log.Errorf("get netns from pid: %w", err)
-	} else {
-		curNetnsStr = NSInode(curNetns)
-
-		// add host network namespace
-		if _, ok := netnsInfo[curNetnsStr]; !ok {
-			netnsInfo[curNetnsStr] = &netnsInformation{
-				hostNS:      true,
-				nsUID:       curNetnsStr,
-				nns:         newNetNsHandle(true, allowLo, curNetns),
-				contianerID: "",
-				ifaceInf:    map[[2]string]*ifaceInfomation{},
-			}
-		} else {
-			if err := curNetns.Close(); err != nil {
-				log.Error(err)
-			}
-		}
-	}
-
-	for _, containerdCtr := range ctrLi {
-		if containerdCtr != nil {
-			ctrs, err := containerdCtr.ListContainers()
-			if err != nil {
-				log.Errorf("get containers: %s", err.Error())
-			}
-			for _, c := range ctrs {
-				nsH, err := netns.GetFromPid(c.Pid)
-				if err != nil {
-					log.Errorf("get netns from pid: %w", err)
-					continue
-				}
-				nsHStr := NSInode(nsH)
-				if nsHStr == curNetnsStr { // skip host network
-					if err := nsH.Close(); err != nil {
-						log.Error(err)
-					}
-					continue
-				}
-
-				k8sTags := getK8sTags(c.Labels)
-				if v, ok := netnsInfo[nsHStr]; !ok {
-					netnsInfo[nsHStr] = &netnsInformation{
-						nsUID:       nsHStr,
-						nns:         newNetNsHandle(false, allowLo, nsH),
-						contianerID: c.ID,
-						ifaceInf:    map[[2]string]*ifaceInfomation{},
-						pid:         map[int]struct{}{c.Pid: {}},
-						tags:        k8sTags,
-					}
-				} else {
-					v.pid[c.Pid] = struct{}{}
-					if err := nsH.Close(); err != nil {
-						log.Error(err)
-					}
-				}
-			}
-		}
-	}
-	return netnsInfo
-}
-
-func getK8sTags(labels map[string]string) map[string]string {
-	if len(labels) == 0 {
-		return nil
-	}
-	v := map[string]string{}
-	v["k8s_namespace"] = labels["io.kubernetes.pod.namespace"]
-	v["k8s_pod_name"] = labels["io.kubernetes.pod.name"]
-	v["k8s_container_name"] = labels["io.kubernetes.container.name"]
-	return v
+	nicGroups.export()
 }

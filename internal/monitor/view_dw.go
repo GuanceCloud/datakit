@@ -6,6 +6,7 @@
 package monitor
 
 import (
+	"math"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -20,7 +21,7 @@ func (app *monitorAPP) renderDatawayTable(mfs map[string]*dto.MetricFamily, colA
 		return
 	}
 
-	apiLatency := mfs["datakit_io_dataway_api_latency_seconds"]
+	apiLatency := mfs["datakit_io_endpoint_api_latency_seconds"]
 	apiRetry := mfs["datakit_io_http_retry_total"]
 
 	if apiLatency == nil {
@@ -41,9 +42,9 @@ func (app *monitorAPP) renderDatawayTable(mfs map[string]*dto.MetricFamily, colA
 
 	for _, m := range apiLatency.Metric {
 		var (
-			lps         = m.GetLabel()
-			api, status string
-			cnt         uint64
+			lps                = m.GetLabel()
+			api, owner, status string
+			cnt                uint64
 		)
 
 		for _, lp := range lps {
@@ -60,6 +61,9 @@ func (app *monitorAPP) renderDatawayTable(mfs map[string]*dto.MetricFamily, colA
 				status = val
 				cnt = m.GetSummary().GetSampleCount()
 
+			case "owner":
+				owner = val
+
 			default:
 				// pass
 			}
@@ -75,17 +79,25 @@ func (app *monitorAPP) renderDatawayTable(mfs map[string]*dto.MetricFamily, colA
 
 		col := 3
 
-		if x := metricWithLabel(apiLatency, api, status); x != nil {
-			lat := x.GetSummary().GetSampleSum() / float64(x.GetSummary().GetSampleCount())
-			table.SetCell(row, col, tview.NewTableCell(time.Duration(lat*float64(time.Second)).String()).
-				SetMaxWidth(app.maxTableWidth).SetAlign(tview.AlignRight))
+		if x := metricWithLabel(apiLatency, api, owner, status); x != nil {
+			var lat string
+			if x := app.getSummaryValue(x); math.IsNaN(x) {
+				lat = nan
+			} else {
+				lat = time.Duration(x * float64(time.Second)).String()
+			}
+
+			table.SetCell(row, col,
+				tview.NewTableCell(lat).
+					SetMaxWidth(app.maxTableWidth).
+					SetAlign(tview.AlignRight))
 		}
 
 		col++
 
 		retried := 0
 		if apiRetry != nil {
-			x := metricWithLabel(apiRetry, api, status)
+			x := metricWithLabel(apiRetry, api, owner, status)
 			if x == nil {
 				retried = 0
 			} else {

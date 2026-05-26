@@ -150,7 +150,7 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 
 	for {
 		collectStart := time.Now()
-		if ipt.pause {
+		if ipt.pause.Load() {
 			l.Debugf("not leader, custom query %s skipped", query.Metric)
 		} else {
 			l.Debugf("start collecting custom query, metric name: %s", query.Metric)
@@ -170,9 +170,6 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 				pts := []*point.Point{}
 				opts := point.DefaultMetricOptions()
 				opts = append(opts, point.WithTime(ptsTime))
-				if ipt.Election {
-					opts = append(opts, point.WithExtraTags(datakit.GlobalElectionTags()))
-				}
 
 				for _, row := range results {
 					var kvs point.KVs

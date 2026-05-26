@@ -11,7 +11,8 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/graphite/mapper"
 )
@@ -71,7 +72,7 @@ const (
 )
 
 var (
-	g                  = datakit.G("inputs_graphite")
+	g                  = goroutine.G("inputs_graphite")
 	invalidMetricChars = regexp.MustCompile("[^a-zA-Z0-9_:]")
 )
 

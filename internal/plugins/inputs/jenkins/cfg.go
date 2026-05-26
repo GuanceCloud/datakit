@@ -7,6 +7,7 @@ package jenkins
 
 import (
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -21,9 +22,12 @@ import (
 
 var (
 	inputName   = `jenkins`
-	l           = logger.DefaultSLogger(inputName)
 	minInterval = time.Second
 	maxInterval = time.Second * 30
+
+	l                      = logger.DefaultSLogger(inputName)
+	_ inputs.ElectionInput = (*Input)(nil)
+	_ inputs.InputV2       = (*Input)(nil)
 
 	sample = `
 [[inputs.jenkins]]
@@ -123,8 +127,7 @@ type Input struct {
 	feeder  dkio.Feeder
 	Tagger  datakit.GlobalTagger
 
-	pause   bool
-	pauseCh chan bool
+	pause atomic.Bool
 }
 
 func newCountFieldInfo(desc string) *inputs.FieldInfo {

@@ -54,3 +54,30 @@ New Value: {{.NewValue}}`},
 	assert.Equal(t, "Deployment Changed", title)
 	t.Logf(message)
 }
+
+func TestRenderHostTemplate(t *testing.T) {
+	globalManifests = Manifests{
+		HostManifest: &Manifest{
+			Version: "1.0",
+			Changes: []Change{
+				{
+					ID:      "host_change_01_01",
+					Title:   I18n{En: "Create User {{.UserName}}"},
+					Message: I18n{En: `New user created\nUsername: {{.UserName}}`},
+				},
+			},
+		},
+	}
+
+	data := struct {
+		UserName string
+	}{
+		UserName: "test-user",
+	}
+
+	title, message, err := RenderHostTemplate(LangEn, "host_change_01_01", data)
+	assert.NoError(t, err)
+
+	assert.Equal(t, "Create User test-user", title)
+	assert.Equal(t, `New user created\nUsername: test-user`, message)
+}

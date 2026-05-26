@@ -707,3 +707,154 @@ metric_tags:
 		})
 	}
 }
+
+// TestGetConstantMetricValues tests the getConstantMetricValues function
+func TestGetConstantMetricValues(t *testing.T) {
+	tests := []struct {
+		name           string
+		metricTags     MetricTagConfigList
+		values         *ResultValueStore
+		expectedCount  int
+		expectedValues map[string]float64
+	}{
+		{
+			name: "basic constant values from metric_tags",
+			metricTags: []MetricTagConfig{
+				{
+					Tag: "index",
+					Symbol: SymbolConfigCompat(SymbolConfig{
+						OID:  "1.3.6.1.2.1.2.2.1.1",
+						Name: "ifIndex",
+					}),
+				},
+			},
+			values: &ResultValueStore{
+				ColumnValues: ColumnResultValuesType{
+					"1.3.6.1.2.1.2.2.1.1": {
+						"1": ResultValue{Value: int(1)},
+						"2": ResultValue{Value: int(2)},
+						"3": ResultValue{Value: int(3)},
+					},
+				},
+			},
+			expectedCount: 3,
+			expectedValues: map[string]float64{
+				"1": 1.0,
+				"2": 1.0,
+				"3": 1.0,
+			},
+		},
+		{
+			name: "skip metric_tags with index_transform",
+			metricTags: []MetricTagConfig{
+				{
+					Tag: "index",
+					Symbol: SymbolConfigCompat(SymbolConfig{
+						OID:  "1.3.6.1.2.1.2.2.1.1",
+						Name: "ifIndex",
+					}),
+					IndexTransform: []MetricIndexTransform{
+						{Start: 0, End: 1},
+					},
+				},
+			},
+			values: &ResultValueStore{
+				ColumnValues: ColumnResultValuesType{
+					"1.3.6.1.2.1.2.2.1.1": {
+						"1": ResultValue{Value: int(1)},
+						"2": ResultValue{Value: int(2)},
+					},
+				},
+			},
+			expectedCount: 0, // Should skip because of IndexTransform
+		},
+		{
+			name:          "empty metric_tags",
+			metricTags:    []MetricTagConfig{},
+			values:        &ResultValueStore{},
+			expectedCount: 0,
+		},
+		{
+			name: "metric_tag without OID",
+			metricTags: []MetricTagConfig{
+				{
+					Tag: "index",
+					Symbol: SymbolConfigCompat(SymbolConfig{
+						Name: "ifIndex",
+					}),
+				},
+			},
+			values:        &ResultValueStore{},
+			expectedCount: 0,
+		},
+		{
+			name: "multiple metric_tags - should use first valid one",
+			metricTags: []MetricTagConfig{
+				{
+					Tag: "index1",
+					Symbol: SymbolConfigCompat(SymbolConfig{
+						OID:  "1.3.6.1.2.1.2.2.1.1",
+						Name: "ifIndex",
+					}),
+				},
+				{
+					Tag: "index2",
+					Symbol: SymbolConfigCompat(SymbolConfig{
+						OID:  "1.3.6.1.2.1.2.2.1.2",
+						Name: "ifDescr",
+					}),
+				},
+			},
+			values: &ResultValueStore{
+				ColumnValues: ColumnResultValuesType{
+					"1.3.6.1.2.1.2.2.1.1": {
+						"1": ResultValue{Value: int(1)},
+						"2": ResultValue{Value: int(2)},
+					},
+					"1.3.6.1.2.1.2.2.1.2": {
+						"1": ResultValue{Value: "eth0"},
+						"2": ResultValue{Value: "eth1"},
+					},
+				},
+			},
+			expectedCount: 2, // Should use first metric_tag
+			expectedValues: map[string]float64{
+				"1": 1.0,
+				"2": 1.0,
+			},
+		},
+		{
+			name: "metric_tag with error getting column value",
+			metricTags: []MetricTagConfig{
+				{
+					Tag: "index",
+					Symbol: SymbolConfigCompat(SymbolConfig{
+						OID:  "1.3.6.1.2.1.2.2.1.999",
+						Name: "nonExistent",
+					}),
+				},
+			},
+			values: &ResultValueStore{
+				ColumnValues: ColumnResultValuesType{},
+			},
+			expectedCount: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := getConstantMetricValues(tt.metricTags, tt.values)
+			assert.Equal(t, tt.expectedCount, len(result))
+
+			for index, expectedValue := range tt.expectedValues {
+				value, ok := result[index]
+				assert.True(t, ok, "value for index %s should exist", index)
+				if ok {
+					floatValue, err := value.ToFloat64()
+					assert.NoError(t, err)
+					assert.Equal(t, expectedValue, floatValue, "value for index %s should be 1.0", index)
+				}
+			}
+		})
+	}
+}

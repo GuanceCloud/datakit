@@ -153,6 +153,16 @@ curl -X POST -H "Content-Type: application/pbjson; proto=com.guance.Point" -d '<
 
 HTTP body 支持行协议以及两种 JSON 俩种形式。
 
+<!-- markdownlint-disable MD046 -->
+???+ info
+
+    针对不同的数据类型（指标/日志等所有其它类型），以下关于 HTTP body 的一级字段定义都是一致的。
+
+    在简单 JSON 中，不管是指标还是日志，其一级字段都是 `measurement/tags/fields/time`，我们日常在 studio 页面中看到的日志的 `source` 实际上就是这里的 `measurement`。总而言之，这里定义的 body 只是协议封装，而 studio 页面中看到的字段名称是针对不同的数据属性，做了一定的转换。
+
+    在 PBJSON 中，不同数据类型，其一级字段都是一样的，即 `name/fields/time`，其中 `name` 字段最终映射成指标中的 `measurement`、日志中的 `source`。
+<!-- markdownlint-enable -->
+
 ##### 行协议 Body {#api-v1-write-body-line-protocol}
 
 单条行协议形式如下：
@@ -310,11 +320,12 @@ JSON 形式的 body 相比行协议，它无需做太多的转义，一个简单
 
 ```json
 {
-  "key"    : "field-name",        # 字段名（必填）
-  "x"      : <value>,             # 字段值，其类型视 x 而定（必填）
-  "type"   : "<COUNT/GAUGE/...>", # 指标类型（选填）
-  "unit"   : "<kb/s/...>"         # 指标单位（选填）
-  "is_tag" : true/false           # 是否是 tag（选填）
+  "key"           : "field-name",        # 字段名（必填）
+  "x"             : <value>,             # 字段值，其类型视 x 而定（必填）
+  "type"          : "<COUNT/GAUGE/...>", # 指标类型（选填）
+  "unit"          : "<kb/s/...>"         # 指标单位（选填）
+  "description"   : "<metric desc>"      # 指标说明（选填）
+  "is_tag"        : true/false           # 是否是 tag（选填）
 }
 ```
 
@@ -374,7 +385,8 @@ JSON 形式的 body 相比行协议，它无需做太多的转义，一个简单
         "key": "large-bytes",
         "u": "1234567890",
         "type": "COUNT",
-        "unit": "kb"
+        "unit": "kb",
+        "description": "desc of this metric"
       },
       {
         "key": "some-tag",
@@ -1264,7 +1276,7 @@ curl --data-binary @/path/to/dql.json -H "Content-Type:application/json" http://
 | 名称                     | 必填参数 | 说明                                                                                                                                                                                                                         |
 | :---                     | ---      | ---                                                                                                                                                                                                                          |
 | `queries`                |    Y     | 基础查询模块，包含查询语句和各项附加参数                                                                                                                                                                                     |
-| `query`                  |    Y     | DQL 查询语句（DQL [文档](../dql/define.md)）                                                                                                                                                                                 |
+| `query`                  |    Y     | DQL 查询语句（DQL [文档](../dql/index.md)）                                                                                                                                                                                 |
 | `conditions`             |    N     | 额外添加条件表达式，使用 DQL 语法，例如 `hostname="cloudserver01" OR system="ubuntu"`。与现有 `query` 中的条件表达式成 `AND` 关系，且会在最外层添加括号避免与其混乱                                                          |
 | `disable_multiple_field` |    N     | 是否禁用多字段。当为 true 时，只能查询单个字段的数据（不包括 time 字段），默认为 `false`                                                                                                                                     |
 | `disable_slimit`         |    N     | 是否禁用默认 SLimit，当为 true 时，将不添加默认 SLimit 值，否则会强制添加 SLimit 20，默认为 `false`                                                                                                                          |

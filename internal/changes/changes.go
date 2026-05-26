@@ -16,7 +16,15 @@ import (
 
 var globalManifests = Manifests{}
 
-func LoadAllManifests() error {
+func LoadHostManifest() error {
+	var err error
+	if globalManifests.HostManifest, err = loadManifest("manifests/host.toml"); err != nil {
+		return err
+	}
+	return nil
+}
+
+func LoadK8sManifest() error {
 	var err error
 	if globalManifests.K8sManifest, err = loadManifest("manifests/k8s.toml"); err != nil {
 		return err
@@ -31,6 +39,12 @@ func MustLoadAllManifest() *Manifests {
 		panic(fmt.Sprintf("loadManifest.k8s: %s", err.Error()))
 	} else {
 		m.K8sManifest = x
+	}
+
+	if x, err := loadManifest("manifests/host.toml"); err != nil {
+		panic(fmt.Sprintf("loadManifest.host: %s", err.Error()))
+	} else {
+		m.HostManifest = x
 	}
 
 	// TODO: add more
@@ -57,7 +71,19 @@ func RenderK8sTemplate(language Language, changeID ChangeID, data interface{}) (
 		return "", "", fmt.Errorf("k8s manifest not initialized")
 	}
 
-	for _, change := range globalManifests.K8sManifest.Changes {
+	return getMessageAndTitle(changeID, globalManifests.K8sManifest.Changes, language, data)
+}
+
+func RenderHostTemplate(language Language, changeID ChangeID, data interface{}) (title string, message string, err error) {
+	if globalManifests.HostManifest == nil {
+		return "", "", fmt.Errorf("host manifest not initialized")
+	}
+
+	return getMessageAndTitle(changeID, globalManifests.HostManifest.Changes, language, data)
+}
+
+func getMessageAndTitle(changeID ChangeID, changes []Change, language Language, data interface{}) (title string, message string, err error) {
+	for _, change := range changes {
 		if change.ID != string(changeID) {
 			continue
 		}

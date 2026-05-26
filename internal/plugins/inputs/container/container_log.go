@@ -23,6 +23,10 @@ import (
 )
 
 func (c *containerCollector) gatherLogging() {
+	if !c.enableCollectLogging {
+		return
+	}
+
 	list, err := c.runtime.ListContainers()
 	if err != nil {
 		l.Warn("not found containers, err: %s", err)
@@ -37,20 +41,17 @@ func (c *containerCollector) gatherLogging() {
 		}
 
 		info, configStr := c.queryContainerLogInfoAndConfig(item)
-		if info.ownerKind == "job" || info.ownerKind == "cronjob" {
-			continue
-		}
 
 		// l.Debugf("find container %s info: %#v", item.Name, info)
 
+		// 检查容器是否匹配日志采集的过滤规则（镜像和命名空间）
 		imageMatch := c.logFilter.Match(filter.FilterImage, info.image)
 		nsMatch := c.logFilter.Match(filter.FilterNamespace, info.podNamespace)
-		if !(imageMatch && nsMatch) {
-			l.Debugf("log filter matched: containerID=%s, namespace=%s, image=%s, skip", item.ID, info.podNamespace, info.image)
-			continue
-		}
 
-		c.logCoordinator.addTask(item.ID, info, configStr)
+		// 将过滤结果传递给 addTask，用于决定在没有显式配置时是否创建日志采集任务
+		shouldFilter := !(imageMatch && nsMatch)
+
+		c.logCoordinator.addTask(item.ID, info, configStr, shouldFilter)
 		activeContainers = append(activeContainers, item.ID)
 	}
 
@@ -69,6 +70,7 @@ func (c *containerCollector) queryContainerLogInfoAndConfig(item *runtime.Contai
 		runtime:       item.RuntimeName,
 		image:         item.Image,
 		logPath:       item.LogPath,
+		podUID:        getPodUIDForLabels(item.Labels),
 		podName:       podName,
 		podNamespace:  namespace,
 		mergedDir:     item.MergedDir,
@@ -115,7 +117,6 @@ type loggingDefaults struct {
 	extraSourceMap    map[string]string
 
 	sourceMultilineMap         map[string]string
-	autoMultilineDetection     bool
 	autoMultilineExtraPatterns []string
 	maxMultilineLength         int64
 
@@ -141,12 +142,11 @@ func newLoggingDefaults(ipt *Input) *loggingDefaults {
 		extraSourceMap:    ipt.LoggingExtraSourceMap,
 
 		sourceMultilineMap:         ipt.LoggingSourceMultilineMap,
-		autoMultilineDetection:     ipt.LoggingAutoMultilineDetection,
 		autoMultilineExtraPatterns: ipt.LoggingAutoMultilineExtraPatterns,
 		maxMultilineLength:         int64(float64(config.Cfg.Dataway.MaxRawBodySize) * 0.8),
 
 		fileFromBeginning:     ipt.LoggingFileFromBeginning,
-		fileSizeThreshold:     int64(ipt.LoggingFileFromBeginningThresholdSize),
+		fileSizeThreshold:     ipt.LoggingFileFromBeginningThresholdSize,
 		removeAnsiEscapeCodes: ipt.LoggingRemoveAnsiEscapeCodes,
 		fieldWhitelist:        ipt.LoggingFieldWhiteList,
 		maxOpenFiles:          ipt.LoggingMaxOpenFiles,

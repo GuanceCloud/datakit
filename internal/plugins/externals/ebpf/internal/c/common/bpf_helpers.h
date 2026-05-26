@@ -39,6 +39,15 @@ static int (*bpf_map_delete_elem)(void *map, const void *key) =
 	(void *)BPF_FUNC_map_delete_elem;
 static int (*bpf_probe_read)(void *dst, int size, const void *unsafe_ptr) =
 	(void *)BPF_FUNC_probe_read;
+/*
+ * Keep low-kernel compatibility (such as Ubuntu 18.04 / 4.15):
+ * some loaders/kernels cannot resolve bpf_probe_read_user() references.
+ * Route user-memory reads through bpf_probe_read() as a safe fallback.
+ */
+#ifndef bpf_probe_read_user
+#define bpf_probe_read_user(dst, size, unsafe_ptr) \
+	bpf_probe_read((dst), (size), (unsafe_ptr))
+#endif
 static unsigned long long (*bpf_ktime_get_ns)(void) =
 	(void *)BPF_FUNC_ktime_get_ns;
 static int (*bpf_trace_printk)(const char *fmt, int fmt_size, ...) =
@@ -122,6 +131,24 @@ struct bpf_map_def
 		.key_size = sizeof(key_type),                                 \
 		.value_size = sizeof(value_type),                             \
 		.max_entries = map_max_entries};
+
+#define BPF_LRU_HASH_MAP(map_name, key_type, value_type, map_max_entries) \
+	struct bpf_map_def SEC("maps/" #map_name) map_name = {                \
+		.type = BPF_MAP_TYPE_LRU_HASH,                                    \
+		.key_size = sizeof(key_type),                                     \
+		.value_size = sizeof(value_type),                                 \
+		.max_entries = map_max_entries};
+
+/* Prefer LRU on modern objects, but allow legacy objects to keep low-kernel builds working. */
+#ifdef DK_DISABLE_LRU_HASH
+#define BPF_BEST_EFFORT_LRU_HASH BPF_MAP_TYPE_HASH
+#define BPF_BEST_EFFORT_LRU_HASH_MAP(map_name, key_type, value_type, map_max_entries) \
+	BPF_HASH_MAP(map_name, key_type, value_type, map_max_entries)
+#else
+#define BPF_BEST_EFFORT_LRU_HASH BPF_MAP_TYPE_LRU_HASH
+#define BPF_BEST_EFFORT_LRU_HASH_MAP(map_name, key_type, value_type, map_max_entries) \
+	BPF_LRU_HASH_MAP(map_name, key_type, value_type, map_max_entries)
+#endif
 
 #define BPF_PERF_EVENT_MAP(map_name)                       \
 	struct bpf_map_def SEC("maps/" #map_name) map_name = { \

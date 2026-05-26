@@ -21,7 +21,7 @@ var (
 	stat = make(map[string]*StatInfo)
 	mu   sync.Mutex
 
-	log = logger.DefaultSLogger("goroutine")
+	l = logger.DefaultSLogger("goroutine")
 )
 
 // A Group is a collection of goroutines working on subtasks that are part of
@@ -56,7 +56,7 @@ type Option struct {
 
 // NewGroup create a custom group.
 func NewGroup(option Option) *Group {
-	log = logger.SLogger("goroutine")
+	l = logger.SLogger("goroutine")
 
 	name := "default"
 	if len(option.Name) > 0 {
@@ -71,7 +71,7 @@ func NewGroup(option Option) *Group {
 
 	if g.panicCb == nil {
 		g.panicCb = func(crashStack []byte) bool {
-			log.Errorf("recover panic: %s", string(crashStack))
+			l.Errorf("recover panic: %s", string(crashStack))
 			goroutineCrashedVec.WithLabelValues(name).Inc()
 			return true
 		}

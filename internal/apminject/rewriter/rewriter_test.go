@@ -7,6 +7,7 @@ package main
 
 import (
 	"debug/elf"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -55,6 +56,23 @@ func TestRegexp(t *testing.T) {
 
 	v, err := DetectArch("/bin/sh")
 	t.Log(v, err)
+}
+
+func TestRewriteDisableEnvRequiresExactKey(t *testing.T) {
+	_, err := rewrite(&reArgs{
+		path: "/bin/echo",
+		argv: []string{"echo"},
+		envp: []string{"OTHER_" + utils.EnvDKAPMINJECT + "=true"},
+	})
+	assert.Error(t, err)
+	assert.False(t, errors.Is(err, utils.ErrInjectDisabled))
+
+	_, err = rewrite(&reArgs{
+		path: "/bin/echo",
+		argv: []string{"echo"},
+		envp: []string{utils.EnvDKAPMINJECT + "=true"},
+	})
+	assert.True(t, errors.Is(err, utils.ErrInjectDisabled))
 }
 
 func DetectArch(filePath string) (string, error) {

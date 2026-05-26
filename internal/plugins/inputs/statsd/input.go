@@ -30,6 +30,8 @@ const (
 	inputName                  = "statsd"
 	catalog                    = "statsd"
 	defaultIOName              = "statsd/-/-"
+
+	logRate = 1.0
 )
 
 // Input statsd allows the importing of statsd and dogstatsd data.
@@ -83,6 +85,12 @@ type Input struct {
 	// https://docs.datadoghq.com/developers/metrics/types/?tab=distribution#definition
 	DataDogDistributions bool `toml:"datadog_distributions"`
 
+	// Collects DogStatsD events as logging points when DataDogExtensions is enabled.
+	CollectDogStatsDEvents bool `toml:"collect_dogstatsd_events"`
+
+	// Collects DogStatsD service checks as logging points when DataDogExtensions is enabled.
+	CollectDogStatsDServiceChecks bool `toml:"collect_dogstatsd_service_checks"`
+
 	// UDPPacketSize is deprecated, it's only here for legacy support
 	// we now always create 1 max size buffer and then copy only what we need
 	// into the in channel
@@ -122,7 +130,13 @@ func (ipt *Input) Catalog() string {
 }
 
 func (ipt *Input) SampleMeasurement() []inputs.Measurement {
-	return nil
+	return []inputs.Measurement{
+		&istatsd.JVMMeasurement{},
+		&istatsd.StatsdEvent{},
+		&istatsd.StatsdServiceCheck{},
+		&istatsd.JMXMeasurement{},
+		&istatsd.DDtraceMeasurement{},
+	}
 }
 
 func (ipt *Input) AvailableArchs() []string {
@@ -135,7 +149,7 @@ func (ipt *Input) setup() error {
 	}
 
 	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)
-	ipt.l = logger.SLogger(ipt.Source)
+	ipt.l = logger.SLogger(ipt.Source, logger.WithRateLimiter(1, ""))
 
 	if ipt.ParseDataDogTags {
 		ipt.DataDogExtensions = true
@@ -143,7 +157,7 @@ func (ipt *Input) setup() error {
 	}
 
 	opts := []istatsd.CollectorOption{
-		istatsd.WithLogger(ipt.l),
+		istatsd.WithLogger(ipt.l, logRate),
 		istatsd.WithProtocol(ipt.Protocol),
 		istatsd.WithServiceUnixAddress(ipt.ServiceUnixAddress),
 		istatsd.WithServiceAddress(ipt.ServiceAddress),
@@ -162,6 +176,8 @@ func (ipt *Input) setup() error {
 		istatsd.WithMetricSeparator(ipt.MetricSeparator),
 		istatsd.WithDataDogExtensions(ipt.DataDogExtensions),
 		istatsd.WithDataDogDistributions(ipt.DataDogDistributions),
+		istatsd.WithDataDogEvents(ipt.CollectDogStatsDEvents),
+		istatsd.WithDataDogServiceChecks(ipt.CollectDogStatsDServiceChecks),
 		istatsd.WithUDPPacketSize(ipt.UDPPacketSize),
 		istatsd.WithReadBufferSize(ipt.ReadBufferSize),
 		istatsd.WithDropTags(ipt.DropTags),
@@ -193,36 +209,33 @@ func (ipt *Input) Collect() error {
 	}
 
 	if len(points) > 0 {
-		ipt.feedBatch(points)
+		ipt.feedBatch(point.Metric, points)
 	} else {
 		ipt.l.Debug("GetPoints 0 pts")
+	}
+
+	loggings := ipt.Col.GetLoggings()
+	if len(loggings) > 0 {
+		ipt.feedBatch(point.Logging, loggings)
 	}
 
 	return nil
 }
 
-func (ipt *Input) feedBatch(points []*point.Point) {
-	pts := []*point.Point{}
-	for i, v := range points {
-		for kk, vv := range ipt.taggerTags {
-			v.AddTag(kk, vv)
+func (ipt *Input) feedBatch(cat point.Category, points []*point.Point) {
+	for kk, vv := range ipt.taggerTags {
+		for _, pt := range points {
+			pt.AddTag(kk, vv)
 		}
-		pts = append(pts, v)
+	}
 
-		// i >= len(points)-1 --> last batch
-		// len(pts) >= 1024 --> 1024 pts per batch
-		if i >= len(points)-1 || len(pts) >= 1024 {
-			if err := ipt.Feeder.Feed(point.Metric, pts,
-				dkio.WithSource(ipt.Source)); err != nil {
-				ipt.Feeder.FeedLastError(err.Error(),
-					metrics.WithLastErrorInput(inputName),
-					metrics.WithLastErrorSource(ipt.Source),
-				)
-				ipt.l.Errorf("feed measurement: %s", err)
-			}
-
-			pts = []*point.Point{}
-		}
+	if err := ipt.Feeder.Feed(cat, points,
+		dkio.WithSource(ipt.Source)); err != nil {
+		ipt.Feeder.FeedLastError(err.Error(),
+			metrics.WithLastErrorInput(inputName),
+			metrics.WithLastErrorSource(ipt.Source),
+		)
+		ipt.l.Errorf("feed measurement: %s", err)
 	}
 }
 

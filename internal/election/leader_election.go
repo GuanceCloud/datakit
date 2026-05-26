@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -31,14 +30,25 @@ import (
 
 type leaderElection struct {
 	*option
-	status  electionStatus
-	plugins []inputs.ElectionInput
+
+	lastElected time.Time
+	status      ElectionStatus
+	plugins     []inputs.ElectionInput
+}
+
+func (x *leaderElection) reportStatus(status string) {
+	electionStatusVec.WithLabelValues(
+		CurrentElected,
+		x.id,
+		x.namespace,
+		status,
+	).Set(float64(time.Now().Unix()))
 }
 
 func newLeaderElection(opt *option, plugins map[string][]inputs.ElectionInput) *leaderElection {
 	x := &leaderElection{
 		option: opt,
-		status: statusFail,
+		status: StatusFail,
 	}
 	for _, v := range plugins {
 		x.plugins = append(x.plugins, v...)
@@ -47,16 +57,8 @@ func newLeaderElection(opt *option, plugins map[string][]inputs.ElectionInput) *
 }
 
 func (x *leaderElection) Run() {
-	defer func() {
-		electionStatusVec.WithLabelValues(
-			CurrentElected,
-			x.id,
-			x.namespace,
-			x.status.String(),
-		).Set(float64(x.status))
-	}()
-
 	x.pausePlugins()
+	x.reportStatus(x.status.String())
 	tick := time.NewTicker(time.Second * time.Duration(electionIntervalDefault))
 	defer tick.Stop()
 
@@ -66,36 +68,53 @@ func (x *leaderElection) Run() {
 			electionInputs.WithLabelValues(x.namespace).Set(float64(len(x.plugins)))
 			return
 
+		case s := <-chStatus:
+			if s != x.status {
+				log.Infof("switched from %s to %s", x.status, s)
+
+				x.status = s
+				electionStatusSwitched.WithLabelValues(
+					x.namespace,
+					x.status.String(),
+				).Inc()
+
+				x.reportStatus(x.status.String())
+			}
+
 		case <-tick.C:
-			electionInterval := x.runOnce()
-			if electionInterval != electionIntervalDefault {
-				tick.Reset(time.Second * time.Duration(electionInterval))
-				electionIntervalDefault = electionInterval
+			if electionInterval, err := x.runOnce(); err == nil {
+				if electionInterval != electionIntervalDefault {
+					tick.Reset(time.Second * time.Duration(electionInterval))
+					electionIntervalDefault = electionInterval
+				}
 			}
 		}
 	}
 }
 
-func (x *leaderElection) runOnce() int {
+func (x *leaderElection) runOnce() (int, error) {
 	var (
 		elecIntv int
 		err      error
 	)
 
 	switch x.status {
-	case statusSuccess:
+	case StatusSuccess:
 		elecIntv, err = x.keepalive()
-	case statusFail:
+		if err != nil {
+			log.Errorf("keepalive: %s", err)
+		}
+	case StatusFail:
 		elecIntv, err = x.tryElection()
-	case statusDisabled, statusBanned: // pass
-		return electionIntervalDefault
+		if err != nil {
+			log.Errorf("tryElection: %s", err)
+		}
+
+	case StatusDisabled, StatusBanned, StatusImpeached: // pass
+		return electionIntervalDefault, nil
 	}
 
-	if err != nil {
-		metrics.FeedLastError("election", err.Error())
-	}
-
-	return elecIntv
+	return elecIntv, err
 }
 
 type leaderElectionResult struct {
@@ -110,30 +129,11 @@ type leaderElectionResult struct {
 }
 
 func (x *leaderElection) tryElection() (int, error) {
-	var (
-		electedTime int64
-		start       = time.Now()
-	)
-
 	body, err := x.puller.Election(x.namespace, x.id, nil)
 	if err != nil {
 		log.Errorf("puller.Election: %s", err)
 		return electionIntervalDefault, err
 	}
-
-	defer func() {
-		electionVec.WithLabelValues(
-			x.namespace,
-			x.status.String(),
-		).Observe(float64(time.Since(start)) / float64(time.Second))
-
-		electionStatusVec.WithLabelValues(
-			CurrentElected,
-			x.id,
-			x.namespace,
-			x.status.String(),
-		).Set(float64(electedTime))
-	}()
 
 	e := leaderElectionResult{}
 	if err := json.Unmarshal(body, &e); err != nil {
@@ -144,23 +144,33 @@ func (x *leaderElection) tryElection() (int, error) {
 
 	log.Debugf("result body: %s", body)
 
-	if CurrentElected != e.Content.IncumbencyID {
+	electedChanged := CurrentElected != e.Content.IncumbencyID
+	if electedChanged {
 		CurrentElected = e.Content.IncumbencyID
-		electionStatusVec.Reset() // cleanup election status metrics
+	}
+
+	statusChanged := e.Content.Status != x.status.String()
+	if statusChanged {
+		electionStatusSwitched.WithLabelValues(
+			x.namespace,
+			e.Content.Status,
+		).Inc()
+	}
+	if statusChanged || electedChanged {
+		x.reportStatus(e.Content.Status)
 	}
 
 	switch e.Content.Status {
-	case statusFail.String():
-		electionStatusVec.Reset() // cleanup election status if election failed
+	case StatusFail.String():
 
-		x.status = statusFail
+		x.status = StatusFail
 
-	case statusSuccess.String():
-		electionStatusVec.Reset() // cleanup election status if election ok
+	case StatusSuccess.String():
+		log.Info("elected as leader")
 
-		x.status = statusSuccess
+		x.status = StatusSuccess
+		x.lastElected = time.Now()
 		x.resumePlugins()
-		electedTime = time.Now().Unix()
 
 	default:
 		log.Warnf("unknown election status: %s", e.Content.Status)
@@ -184,15 +194,28 @@ func (x *leaderElection) keepalive() (int, error) {
 
 	log.Debugf("result body: %s", body)
 
+	statusChanged := e.Content.Status != x.status.String()
+	if statusChanged {
+		electionStatusSwitched.WithLabelValues(
+			x.namespace,
+			e.Content.Status,
+		).Inc()
+	}
+
+	electedChanged := CurrentElected != e.Content.IncumbencyID
 	CurrentElected = e.Content.IncumbencyID
+	if statusChanged || electedChanged {
+		x.reportStatus(e.Content.Status)
+	}
 
 	switch e.Content.Status {
-	case statusFail.String():
-		electionStatusVec.Reset() // cleanup election status if election fail
-		x.status = statusFail
+	case StatusFail.String():
+		log.Errorf("election keepalive failed, leader dropped(live: %s)", time.Since(x.lastElected))
+
+		x.status = StatusFail
 		x.pausePlugins()
 
-	case statusSuccess.String():
+	case StatusSuccess.String():
 		log.Debugf("%s election keepalive ok", x.id)
 
 	default:
@@ -205,10 +228,11 @@ func (x *leaderElection) pausePlugins() {
 	defer func() {
 		inputsPauseVec.WithLabelValues(x.id, x.namespace).Add(float64(len(x.plugins)))
 	}()
-	for i, p := range x.plugins {
-		log.Debugf("pause %dth inputs...", i)
+
+	log.Infof("pause %d inputs...", len(x.plugins))
+	for _, p := range x.plugins {
 		if err := p.Pause(); err != nil {
-			log.Warn(err)
+			log.Warnf("pause: %s", err)
 		}
 	}
 }
@@ -217,10 +241,11 @@ func (x *leaderElection) resumePlugins() {
 	defer func() {
 		inputsResumeVec.WithLabelValues(x.id, x.namespace).Add(float64(len(x.plugins)))
 	}()
-	for i, p := range x.plugins {
-		log.Debugf("resume %dth inputs...", i)
+
+	log.Infof("resume %d inputs...", len(x.plugins))
+	for _, p := range x.plugins {
 		if err := p.Resume(); err != nil {
-			log.Warn(err)
+			log.Warnf("resume: %s", err)
 		}
 	}
 }

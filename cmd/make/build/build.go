@@ -54,14 +54,15 @@ var (
 	// can override this by set environment VERSION.
 	ReleaseVersion = git.Version
 
-	DCAVersion = ValueNotSet
+	DCAVersion = ValueNotSet // deprecated
 
-	AppName = "datakit"
-	AppBin  = "datakit"
+	VersionsInDoc = ValueNotSet
 
-	StandaloneApps = []string{
-		"datakit-ebpf",
-	}
+	AppName   = "datakit"
+	AppBin    = "datakit"
+	DDAppName = "datadog-agent"
+
+	StandaloneApps = []string{}
 
 	// Architectures and OS distributions, i.e,
 	// darwin/amd64
@@ -211,6 +212,35 @@ func CompileDCA() error {
 	return nil
 }
 
+func CompileFlameshot() error {
+	curArchs = ParseArchs(Archs)
+	l.Debugf("curArchs = %v", curArchs)
+
+	for _, arch := range curArchs {
+		parts := strings.Split(arch, "/")
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid arch: %s", arch)
+		}
+
+		goos, goarch := parts[0], parts[1]
+
+		flameshotDir := fmt.Sprintf("%s/%s-%s-%s", DistDir, "flameshot", goos, goarch)
+		l.Debugf("build flameshot for %s/%s to %s", goos, goarch, flameshotDir)
+		if goos != "linux" {
+			l.Infof("skip build flameshot for %s/%s", goos, goarch)
+			continue
+		}
+		if goarch == "amd64" || goarch == "arm64" {
+			if err := compileArch("flameshot", goos, goarch, flameshotDir, "cmd/flameshot/main.go", ValueNotSet); err != nil {
+				return fmt.Errorf("unable to build flameshot : %w", err)
+			}
+			l.Infof("build flameshot %s/%s ok", goos, goarch)
+		}
+	}
+
+	return nil
+}
+
 func prepare() error {
 	if err := os.RemoveAll(DistDir); err != nil {
 		l.Warnf("os.RemoveAll: %s, ignored", err.Error())
@@ -280,8 +310,6 @@ func ParseArchs(s string) (archs []string) {
 
 var curArchs []string
 
-var curEBpfArchs []string
-
 func Compile() error {
 	start := time.Now()
 
@@ -349,11 +377,16 @@ func Compile() error {
 			(goarch == archAMD64 || goarch == archARM64) && /* enable build under macOS for debugging. */
 			goos != "windows" { // windows not need currently
 			var (
-				dir       = fmt.Sprintf("%s/%s_aws_lambda-%s-%s/extensions", DistDir, AppName, goos, goarch)
-				mainEntry = filepath.Join(filepath.Dir(filepath.Dir(MainEntry)), "awslambda", "main.go")
+				dir         = fmt.Sprintf("%s/%s_aws_lambda-%s-%s/extensions", DistDir, AppName, goos, goarch)
+				mainDKEntry = filepath.Join(filepath.Dir(filepath.Dir(MainEntry)), "awslambda", "datakit/main.go")
+				mainDDEntry = filepath.Join(filepath.Dir(filepath.Dir(MainEntry)), "awslambda", "datadog/main.go")
 			)
 
-			if err := compileArch(AppBin, goos, goarch, dir, mainEntry, "datakit_aws_lambda && with_inputs"); err != nil {
+			if err := compileArch(AppBin, goos, goarch, dir, mainDKEntry, "datakit_aws_lambda && with_inputs"); err != nil {
+				return err
+			}
+
+			if err := compileArch(DDAppName, goos, goarch, dir, mainDDEntry, ""); err != nil {
 				return err
 			}
 
@@ -373,7 +406,7 @@ func Compile() error {
 		}
 
 		if err := compileAPMInject(goos, goarch, DistDir); err != nil {
-			l.Warnf("build APM inject failed: %s, ignored", err)
+			return fmt.Errorf("build APM inject failed: %w", err)
 		}
 
 		upgraderDir := fmt.Sprintf("%s/%s-%s-%s", DistDir, upgrader.BuildBinName, goos, goarch)
@@ -478,7 +511,8 @@ func compileArch(bin, goos, goarch, dir, mainEntranceFile, tags string) error {
 		envs = []string{
 			"GOOS=" + goos,
 			"GOARCH=" + goarch,
-			`GO111MODULE=off`,
+			`GO111MODULE=on`,
+			`GOFLAGS=-mod=vendor`,
 			"CGO_ENABLED=on",
 			"CGO_CFLAGS=-Wno-undef-prefix",
 		}
@@ -486,7 +520,8 @@ func compileArch(bin, goos, goarch, dir, mainEntranceFile, tags string) error {
 		envs = []string{
 			"GOOS=" + goos,
 			"GOARCH=" + goarch,
-			`GO111MODULE=off`,
+			`GO111MODULE=on`,
+			`GOFLAGS=-mod=vendor`,
 			"CGO_CFLAGS=-Wno-undef-prefix",
 			"CGO_ENABLED=" + cgoEnabled,
 		}

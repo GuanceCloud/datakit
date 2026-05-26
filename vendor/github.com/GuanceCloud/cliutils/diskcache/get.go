@@ -7,6 +7,7 @@ package diskcache
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -18,7 +19,8 @@ type Fn func([]byte) error
 func (c *DiskCache) switchNextFile() error {
 	if c.curReadfile != "" {
 		if err := c.removeCurrentReadingFile(); err != nil {
-			return fmt.Errorf("removeCurrentReadingFile: %w", err)
+			return NewCacheError(OpSwitch, err, "failed_to_remove_current_reading_file").
+				WithPath(c.path).WithFile(c.curReadfile)
 		}
 	}
 
@@ -31,7 +33,14 @@ func (c *DiskCache) skipBadFile() error {
 		droppedDataVec.WithLabelValues(c.path, reasonBadDataFile).Observe(float64(c.curReadSize))
 	}()
 
-	return c.switchNextFile()
+	l.Warnf("skip bad file %s with size %d bytes", c.curReadfile, c.curReadSize)
+
+	if err := c.switchNextFile(); err != nil {
+		return NewCacheError(OpGet, err, "failed_to_skip_bad_file").
+			WithPath(c.path).WithFile(c.curReadfile).
+			WithDetails(fmt.Sprintf("file_size=%d", c.curReadSize))
+	}
+	return nil
 }
 
 // Get fetch new data from disk cache, then passing to fn
@@ -39,15 +48,23 @@ func (c *DiskCache) skipBadFile() error {
 // Get is safe to call concurrently with other operations and will
 // block until all other operations finish.
 func (c *DiskCache) Get(fn Fn) error {
-	return c.doGet(nil, fn)
+	return c.doGet(nil, fn, nil)
+}
+
+type BufFunc func() []byte
+
+// BufCallbackGet fetch new data from disk cache, and read into buffer that returned by bfn.
+// If there is nothing to read, the bfn will not be called.
+func (c *DiskCache) BufCallbackGet(bfn BufFunc, fn Fn) error {
+	return c.doGet(nil, fn, bfn)
 }
 
 // BufGet fetch new data from disk cache, and read into buf.
 func (c *DiskCache) BufGet(buf []byte, fn Fn) error {
-	return c.doGet(buf, fn)
+	return c.doGet(buf, fn, nil)
 }
 
-func (c *DiskCache) doGet(buf []byte, fn Fn) error {
+func (c *DiskCache) doGet(buf []byte, fn Fn, bfn BufFunc) error {
 	var (
 		n, nbytes int
 		err       error
@@ -60,10 +77,8 @@ func (c *DiskCache) doGet(buf []byte, fn Fn) error {
 
 	defer func() {
 		if uint32(nbytes) != EOFHint {
-			getBytesVec.WithLabelValues(c.path).Observe(float64(nbytes))
-
 			// get on EOF not counted as a real Get
-			getLatencyVec.WithLabelValues(c.path).Observe(float64(time.Since(start)) / float64(time.Second))
+			getLatencyVec.WithLabelValues(c.path).Observe(time.Since(start).Seconds())
 		}
 	}()
 
@@ -74,15 +89,19 @@ func (c *DiskCache) doGet(buf []byte, fn Fn) error {
 		if err = func() error {
 			c.wlock.Lock()
 			defer c.wlock.Unlock()
+
 			return c.rotate()
 		}(); err != nil {
-			return err
+			return NewCacheError(OpGet, err, "failed_to_wakeup_sleeping_write_file").
+				WithPath(c.path).
+				WithDetails(fmt.Sprintf("idle_time=%v, batch_size=%d",
+					time.Since(c.wfdLastWrite), c.curBatchSize))
 		}
 	}
 
-	if c.rfd == nil {
+	if c.rfd == nil { // no file reading, reading on the first file
 		if err = c.switchNextFile(); err != nil {
-			return err
+			return WrapGetError(err, c.path, "")
 		}
 	}
 
@@ -92,6 +111,17 @@ retry:
 	}
 
 	if n, err = c.rfd.Read(c.batchHeader); err != nil || n != dataHeaderLen {
+		if err != nil && !errors.Is(err, io.EOF) {
+			l.Errorf("read %d bytes header error: %s", dataHeaderLen, err.Error())
+			err = WrapFileOperationError(OpRead, err, c.path, c.rfd.Name()).
+				WithDetails(fmt.Sprintf("header_read: expected=%d, actual=%d", dataHeaderLen, n))
+		} else if n > 0 && n != dataHeaderLen {
+			l.Errorf("invalid header length: %d, expect %d", n, dataHeaderLen)
+			err = NewCacheError(OpRead, ErrUnexpectedReadSize,
+				fmt.Sprintf("header_size_mismatch: expected=%d, actual=%d", dataHeaderLen, n)).
+				WithPath(c.path).WithFile(c.rfd.Name())
+		}
+
 		// On bad datafile, just ignore and delete the file.
 		if err = c.skipBadFile(); err != nil {
 			return err
@@ -105,41 +135,57 @@ retry:
 
 	if uint32(nbytes) == EOFHint { // EOF
 		if err := c.switchNextFile(); err != nil {
-			return fmt.Errorf("switchNextFile: %w", err)
+			return WrapGetError(err, c.path, c.rfd.Name()).
+				WithDetails("eof_encountered_during_get")
 		}
 
 		goto retry // read next new file to save another Get() calling.
 	}
 
-	if buf == nil {
-		buf = make([]byte, nbytes)
+	var readbuf []byte
+
+	switch {
+	case buf == nil && bfn == nil: // malloc memory locally
+		readbuf = make([]byte, nbytes)
+	case buf == nil && bfn != nil:
+		readbuf = bfn()
+	default:
+		readbuf = buf
 	}
 
-	if len(buf) < nbytes {
+	if len(readbuf) < nbytes {
 		// seek to next read position
-		if _, err := c.rfd.Seek(int64(nbytes), io.SeekCurrent); err != nil {
-			return fmt.Errorf("rfd.Seek(%d): %w", nbytes, err)
-		}
+		if x, err := c.rfd.Seek(int64(nbytes), io.SeekCurrent); err != nil {
+			return WrapFileOperationError(OpSeek, err, c.path, c.rfd.Name()).
+				WithDetails(fmt.Sprintf("failed_to_seek_past_data: data_size=%d", nbytes))
+		} else {
+			l.Warnf("got %d bytes to buffer with len %d, seek to new read position %d, drop %d bytes within file %s",
+				nbytes, len(readbuf), x, nbytes, c.curReadfile)
 
-		droppedDataVec.WithLabelValues(c.path, reasonTooSmallReadBuffer).Observe(float64(nbytes))
-		return ErrTooSmallReadBuf
+			droppedDataVec.WithLabelValues(c.path, reasonTooSmallReadBuffer).Observe(float64(nbytes))
+			return WrapGetError(ErrTooSmallReadBuf, c.path, c.rfd.Name()).
+				WithDetails(fmt.Sprintf("buffer_too_small: required=%d, provided=%d", nbytes, len(readbuf)))
+		}
 	}
 
-	if n, err := c.rfd.Read(buf[:nbytes]); err != nil {
-		return fmt.Errorf("rfd.Read(%d buf): %w", len(buf[:nbytes]), err)
+	if n, err := c.rfd.Read(readbuf[:nbytes]); err != nil {
+		return WrapFileOperationError(OpRead, err, c.path, c.rfd.Name()).
+			WithDetails(fmt.Sprintf("data_read: expected=%d, actual=%d", nbytes, n))
 	} else if n != nbytes {
-		return ErrUnexpectedReadSize
+		return WrapGetError(ErrUnexpectedReadSize, c.path, c.rfd.Name()).
+			WithDetails(fmt.Sprintf("partial_read: expected=%d, actual=%d", nbytes, n))
 	}
 
 	if fn == nil {
 		goto __updatePos
 	}
 
-	if err = fn(buf[:nbytes]); err != nil {
+	if err = fn(readbuf[:nbytes]); err != nil {
 		// seek back
 		if !c.noFallbackOnError {
 			if _, serr := c.rfd.Seek(-int64(dataHeaderLen+nbytes), io.SeekCurrent); serr != nil {
-				return fmt.Errorf("c.rfd.Seek(%d) on FallbackOnError: %w", -int64(dataHeaderLen+nbytes), serr)
+				return WrapFileOperationError(OpSeek, serr, c.path, c.rfd.Name()).
+					WithDetails(fmt.Sprintf("fallback_seek_failed: offset=%d", -int64(dataHeaderLen+nbytes)))
 			}
 
 			seekBackVec.WithLabelValues(c.path).Inc()
@@ -151,11 +197,11 @@ __updatePos:
 	// update seek position
 	if !c.noPos && nbytes > 0 {
 		c.pos.Seek += int64(dataHeaderLen + nbytes)
-		if derr := c.pos.dumpFile(); derr != nil {
-			return derr
+		if do, derr := c.pos.dumpFile(); derr != nil {
+			return WrapPosError(derr, c.path, c.pos.Seek).WithDetails("failed_to_update_position_after_get")
+		} else if do {
+			posUpdatedVec.WithLabelValues("get", c.path).Inc()
 		}
-
-		posUpdatedVec.WithLabelValues("get", c.path).Inc()
 	}
 
 __end:

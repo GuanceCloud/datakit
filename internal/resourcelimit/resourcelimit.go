@@ -107,7 +107,7 @@ func Run(c *ResourceLimitOptions, username string) {
 
 	if datakit.IsAdminUser(username) {
 		// cgroup need admin user(root for linux, administrator for windows) to setup.
-		l.Infof("set CPU max to %f%%(%d cores)", c.CPUMax, runtime.NumCPU())
+		l.Infof("set CPU max to %f%%(%d cores)", c.CPUMax(), runtime.NumCPU())
 
 		if err := run(c); err != nil {
 			l.Errorf("set resource limit failed: %s", err.Error())

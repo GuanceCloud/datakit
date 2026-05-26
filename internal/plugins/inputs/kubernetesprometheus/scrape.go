@@ -186,9 +186,12 @@ func (s *scrapeManager) doWork(ctx context.Context, name string, scrapeInterval 
 			if len(tasks) > maxTasksPerWorker {
 				klog.Warnf("%s: tasks is over limit %d", name, maxTasksPerWorker)
 			} else {
-				if _, ok := tasks[sp.targetURL()]; !ok {
-					tasks[sp.targetURL()] = sp
+				if _, exists := tasks[sp.targetURL()]; !exists {
+					klog.Debugf("%s: add scraper %s", name, sp.targetURL())
+				} else {
+					klog.Infof("%s: replace scraper %s", name, sp.targetURL())
 				}
+				tasks[sp.targetURL()] = sp
 			}
 
 		case tt := <-ticker.C:

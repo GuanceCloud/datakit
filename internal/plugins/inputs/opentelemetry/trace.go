@@ -9,10 +9,10 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"strconv"
-	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 
+	"github.com/GuanceCloud/cliutils/otlp"
 	"github.com/GuanceCloud/cliutils/point"
 	common "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
 	trace "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/trace/v1"
@@ -21,194 +21,136 @@ import (
 )
 
 func (ipt *Input) parseResourceSpans(resspans []*trace.ResourceSpans, remoteIP string) itrace.DatakitTraces {
-	var (
-		dktraces           itrace.DatakitTraces
-		spanIDs, parentIDs = ipt.getSpanIDsAndParentIDs(resspans)
-		values             = make([]string, len(ipt.labels))
-	)
+	ipt.ensureTraceParser()
 
-	// otel trace are 3 level:
-	//   level-1: resource spans
-	//   level-2: scope spans
-	//   level-3: spans within a single scope
-	for _, spans := range resspans {
-		var (
-			serviceName          = "unknown_service"
-			runtimeIDInitialized = false
+	opts := otlp.TracesParserOptions{
+		PointName:         inputName,
+		Source:            inputName,
+		CollectorSourceIP: remoteIP,
+		DKFingerprint:     datakit.DKHost + "_" + datakit.Version,
+		GlobalTags:        ipt.Tags,
+		IDConverter:       ipt.convertBinID,
+		SelectAttrs:       ipt.selectTraceAttrs,
+		SpanType:          itrace.FindSpanTypeStrSpanID,
+		SpanStatus:        getDKSpanStatus,
+		SpanKind: func(kind int32) string {
+			return spanKinds[kind]
+		},
+		SourceType:     getSourceType,
+		BaseService:    ipt.traceBaseService,
+		DecorateKVs:    ipt.decorateTraceKVs,
+		MessageEncoder: ipt.traceMessageEncoder,
+	}
+	if ipt.CleanMessage {
+		opts.CleanSpan = ipt.cleanTraceSpanForMessage
+	}
 
-			dktrace   itrace.DatakitTrace
-			runtimeID string
-		)
+	batches := otlp.ParseResourceSpans(resspans, opts)
+	dktraces := make(itrace.DatakitTraces, 0, len(batches))
+	values := make([]string, len(ipt.labels))
 
-		for idx, v := range spans.Resource.Attributes {
-			if v == nil {
-				continue
+	for _, batch := range batches {
+		dktrace := make(itrace.DatakitTrace, 0, len(batch))
+		for _, pt := range batch {
+			values = values[:0]
+			if ipt.TracingMetricEnable {
+				spanMetrics(pt, ipt.labels, values)
 			}
-
-			switch v.Key {
-			case otelResourceServiceKey:
-				serviceName = v.Value.GetStringValue()
-
-				if ipt.CleanMessage {
-					spans.Resource.Attributes[idx] = nil
-				}
-
-			case itrace.FieldRuntimeID:
-				runtimeID = v.Value.GetStringValue()
-
-				if ipt.CleanMessage {
-					spans.Resource.Attributes[idx] = nil
-				}
-
-			default: // pass
-			}
+			dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
 		}
-
-		for _, scopeSpans := range spans.ScopeSpans {
-			for _, span := range scopeSpans.Spans {
-				values = values[:0]
-				var (
-					spanKVs     point.KVs
-					mergedAttrs = make([]*common.KeyValue, 0)
-					spanID      = ipt.convertBinID(span.GetSpanId())
-					parenID     = ipt.convertBinID(span.GetParentSpanId())
-					traceID     = ipt.convertBinID(span.GetTraceId())
-					spanAttrs   = span.GetAttributes()
-					spanTime    = int64(span.StartTimeUnixNano)
-				)
-
-				// extra add converted trace-id to attrs for global text search.
-				spanAttrs = append(spanAttrs, &common.KeyValue{
-					Key:   itrace.FieldTraceID,
-					Value: &common.AnyValue{Value: &common.AnyValue_StringValue{StringValue: traceID}},
-				})
-
-				// commom tags & fields.
-				spanKVs = spanKVs.Add(itrace.FieldTraceID, traceID).
-					Add(itrace.FieldParentID, parenID).
-					Add(itrace.FieldSpanid, spanID).
-					Add(itrace.FieldResource, span.Name).
-					Add(itrace.FieldStart, int64(span.StartTimeUnixNano)/int64(time.Microsecond)).
-					Add(itrace.FieldDuration, int64(span.EndTimeUnixNano-span.StartTimeUnixNano)/int64(time.Microsecond)).
-					AddTag(itrace.TagSpanStatus, getDKSpanStatus(span.GetStatus())).
-					AddTag(itrace.TagSpanType, itrace.FindSpanTypeStrSpanID(spanID, parenID, spanIDs, parentIDs)).
-					AddTag(itrace.TagDKFingerprintKey, datakit.DKHost+"_"+datakit.Version).
-					AddTag(itrace.TagSource, inputName).
-					AddTag(itrace.TagService, serviceName).
-					AddTag(itrace.TagRemoteIP, remoteIP)
-
-				// service_name from xx.system.
-				if ipt.SplitServiceName {
-					baseService := ipt.getServiceNameBySystem(spanAttrs)
-					if baseService != "" { // 只有存在中间件的时候才不为空。
-						spanKVs = spanKVs.SetTag(itrace.TagService, baseService).AddTag(itrace.TagBaseService, serviceName)
-					}
-				}
-
-				for k, v := range ipt.Tags { // span.attribute 优先级大于全局tag。
-					spanKVs = spanKVs.SetTag(k, v)
-				}
-
-				if runtimeID == "" && !runtimeIDInitialized {
-					if v, idx := getAttr(itrace.FieldRuntimeID, spanAttrs); v != nil {
-						runtimeID = v.Value.GetStringValue()
-						if ipt.CleanMessage {
-							spanAttrs[idx] = nil
-						}
-					}
-					runtimeIDInitialized = true
-				}
-
-				if runtimeID != "" {
-					spanKVs = spanKVs.Set(ext.RuntimeID, runtimeID). // NOTE: ext.RuntimeID deprecated
-												Set(itrace.FieldRuntimeID, runtimeID)
-				}
-
-				// extract exception event and related fields
-				for i := range span.Events {
-					if span.Events[i] == nil {
-						continue
-					}
-
-					if span.Events[i].Name == ExceptionEventName {
-						evtAttrs := span.Events[i].Attributes
-						for key, alias := range otelExceptionAliasMap {
-							if v, idx := getAttr(key, evtAttrs); v != nil {
-								spanKVs = spanKVs.Set(alias, v.Value.GetStringValue())
-								if ipt.CleanMessage {
-									evtAttrs[idx] = nil
-								}
-							}
-						}
-
-						if ipt.CleanMessage {
-							span.Events[i] = nil
-						}
-						break
-					}
-				}
-
-				if kind, ok := spanKinds[int32(span.GetKind())]; ok {
-					spanKVs = spanKVs.AddTag(itrace.TagSpanKind, kind)
-				}
-
-				// Extract selected attrs as tags, other attrs are merged into current span's attrs.
-				//
-				// NOTE:
-				//   - all resource attrs(expect selected) are copied into all spans of current trace
-				//   - all scoped attrs(except selected) are copied into all spans of current scope spans
-				for _, x := range [][]*common.KeyValue{
-					spans.Resource.GetAttributes(),
-					scopeSpans.Scope.GetAttributes(),
-					spanAttrs,
-				} {
-					newkv, newattr := ipt.selectAttrs(x)
-					spanKVs = append(spanKVs, newkv...)
-					mergedAttrs = append(mergedAttrs, newattr...)
-				}
-
-				if len(span.GetEvents()) > 0 {
-					for _, event := range span.GetEvents() {
-						newkv, newattr := ipt.selectAttrs(event.GetAttributes())
-						spanKVs = append(spanKVs, newkv...)
-						mergedAttrs = append(mergedAttrs, newattr...)
-					}
-				}
-
-				if dbHost := getDBHost(spanAttrs); dbHost != "" {
-					spanKVs = spanKVs.AddTag("db_host", dbHost)
-				}
-
-				span.Attributes = mergedAttrs
-
-				spanKVs = spanKVs.AddTag(itrace.TagSourceType, getSourceType(spanKVs.Tags()))
-				if !ipt.DelMessage {
-					if ipt.CleanMessage {
-						span = ipt.cleanSpan(span)
-					}
-
-					if buf, err := ipt.jmarshaler.Marshal(span); err != nil {
-						log.Warn(err.Error())
-					} else {
-						spanKVs = spanKVs.Add(itrace.FieldMessage, string(buf))
-					}
-				}
-
-				pt := point.NewPoint(inputName, spanKVs,
-					append(ipt.ptsOpts, point.WithTimestamp(spanTime))...)
-				if ipt.TracingMetricEnable {
-					spanMetrics(pt, ipt.labels, values)
-				}
-				dktrace = append(dktrace, &itrace.DkSpan{Point: pt})
-			}
-		}
-
 		if len(dktrace) != 0 {
 			dktraces = append(dktraces, dktrace)
 		}
 	}
 
 	return dktraces
+}
+
+func (ipt *Input) ensureTraceParser() {
+	if ipt.customTagsX == nil {
+		ipt.customTagsX = itrace.NewCustomTags(ipt.CustomerTags, otelPubAttrs)
+	}
+	if ipt.jmarshaler == nil {
+		ipt.jmarshaler = &protojsonMarshaler{}
+	}
+}
+
+func (ipt *Input) selectTraceAttrs(attrs []*common.KeyValue) (point.KVs, []*common.KeyValue) {
+	if !ipt.CleanMessage {
+		return ipt.selectAttrs(attrs)
+	}
+
+	filtered := make([]*common.KeyValue, 0, len(attrs))
+	for _, attr := range attrs {
+		if attr == nil {
+			continue
+		}
+		switch attr.GetKey() {
+		case otelResourceServiceKey, itrace.FieldRuntimeID:
+			continue
+		default:
+			filtered = append(filtered, attr)
+		}
+	}
+
+	return ipt.selectAttrs(filtered)
+}
+
+func (ipt *Input) traceBaseService(attrs map[string]string) string {
+	if !ipt.SplitServiceName {
+		return ""
+	}
+	for _, key := range []string{"db.system", "rpc.system", "messaging.system"} {
+		if system := attrs[key]; system != "" {
+			return system
+		}
+	}
+
+	return ""
+}
+
+func (ipt *Input) decorateTraceKVs(kvs point.KVs, _ *trace.ResourceSpans, _ *trace.ScopeSpans, _ *trace.Span) point.KVs {
+	if kv := kvs.Get(itrace.FieldRuntimeID); kv != nil {
+		if runtimeID, ok := kv.Raw().(string); ok && runtimeID != "" {
+			kvs = kvs.Set(ext.RuntimeID, runtimeID) // NOTE: ext.RuntimeID deprecated.
+		}
+	}
+
+	if ipt.Tagger != nil {
+		for key, value := range ipt.Tagger.HostTags() {
+			kvs = kvs.AddTag(key, value)
+		}
+	}
+
+	return kvs
+}
+
+func (ipt *Input) traceMessageEncoder(span *trace.Span) (string, error) {
+	if ipt.DelMessage || span == nil {
+		return "", nil
+	}
+
+	buf, err := ipt.jmarshaler.Marshal(span)
+	if err != nil {
+		log.Warn(err.Error())
+		return "", err
+	}
+
+	return string(buf), nil
+}
+
+func (ipt *Input) cleanTraceSpanForMessage(span *trace.Span) *trace.Span {
+	if span == nil {
+		return nil
+	}
+	for idx, event := range span.GetEvents() {
+		if event != nil && event.GetName() == ExceptionEventName {
+			span.Events[idx] = nil
+			break
+		}
+	}
+
+	return ipt.cleanSpan(span)
 }
 
 // cleanSpan try to remove fields of the span and make the marshaled json smaller.
@@ -225,32 +167,22 @@ func (ipt *Input) cleanSpan(span *trace.Span) *trace.Span {
 	return span
 }
 
-func (ipt *Input) getSpanIDsAndParentIDs(resspans []*trace.ResourceSpans) (map[string]bool, map[string]bool) {
-	var (
-		spanIDs   = make(map[string]bool)
-		parentIDs = make(map[string]bool)
-	)
-	for _, spans := range resspans {
-		for _, scopespans := range spans.ScopeSpans {
-			for _, span := range scopespans.Spans {
-				if span == nil {
-					continue
-				}
-				spanIDs[ipt.convertBinID(span.SpanId)] = true
-				parentIDs[ipt.convertBinID(span.ParentSpanId)] = true
-			}
-		}
-	}
-
-	return spanIDs, parentIDs
-}
-
 func byteToString(buf []byte) string {
-	if len(buf) == 0 || string(buf) == "0" {
+	if len(buf) == 0 || string(buf) == "0" || isZeroID(buf) {
 		return "0"
 	}
 
 	return hex.EncodeToString(buf)
+}
+
+func isZeroID(buf []byte) bool {
+	for _, b := range buf {
+		if b != 0 {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (ipt *Input) convertBinID(id []byte) string {
@@ -295,15 +227,26 @@ func getDKSpanStatus(statuspb *trace.Status) string {
 }
 
 func getSourceType(tags point.KVs) string {
+	var hasDB, hasMessaging, hasWeb bool
+
 	for _, v := range tags {
 		switch v.Key {
 		case otelHTTPSchemeKey, otelHTTPMethodKey, otelRPCSystemKey:
-			return itrace.SpanSourceWeb
+			hasWeb = true
 		case otelDBSystemKey:
-			return itrace.SpanSourceDb
+			hasDB = true
 		case otelMessagingSystemKey:
-			return itrace.SpanSourceMsgque
+			hasMessaging = true
 		}
+	}
+
+	switch {
+	case hasDB:
+		return itrace.SpanSourceDb
+	case hasMessaging:
+		return itrace.SpanSourceMsgque
+	case hasWeb:
+		return itrace.SpanSourceWeb
 	}
 
 	return itrace.SpanSourceCustomer

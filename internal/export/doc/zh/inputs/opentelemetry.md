@@ -103,21 +103,24 @@ java -javaagent:/usr/local/ddtrace/opentelemetry-javaagent-2.5.0.jar \
 
 启动应用时常用的有如下这些配置：
 
-| ENV(对应命令)                                              | 说明                                                                                                 |
-| ---:                                                       | ---                                                                                                  |
-| `OTEL_SDK_DISABLED(otel.sdk.disabled)`                     | 关闭 SDK，默认 false。关闭后将不会产生任何链路指标信息                                               |
-| `OTEL_RESOURCE_ATTRIBUTES(otel.resource.attributes)`       | 增加[全局自定义 tag](https://opentelemetry.io/docs/languages/sdk-configuration/general/#otel_resource_attributes){:target="_blank"}，每个 span 中都会带上这些自定义 tag。示例：`service.name=App,project=app-a`       |
-| `OTEL_SERVICE_NAME(otel.service.name)`                     | 设置服务名，优先级高于自定义 tag                                                                     |
-| `OTEL_LOG_LEVEL(otel.log.level)`                           | 日志级别，默认 `info`                                                                                |
-| `OTEL_PROPAGATORS(otel.propagators)`                       | 设置[透传协议](https://opentelemetry.io/docs/languages/sdk-configuration/general/#otel_propagators){:target="_blank"}，默认 `tracecontext,baggage`                                                                |
-| `OTEL_TRACES_SAMPLER(otel.traces.sampler)`                 | 设置[采样率类型](https://opentelemetry.io/docs/languages/sdk-configuration/general/#otel_traces_sampler){:target="_blank"} |
-| `OTEL_TRACES_SAMPLER_ARG(otel.traces.sampler.arg)`         | 配合上面采样参数，取值范围 *0~1.0*，默认 `1.0`                                                       |
-| `OTEL_EXPORTER_OTLP_PROTOCOL(otel.exporter.otlp.protocol)` | 设置传输协议，默认 `grpc`，可选 `grpc,http/protobuf,http/json`                                       |
-| `OTEL_EXPORTER_OTLP_ENDPOINT(otel.exporter.otlp.endpoint)` | 设置 Trace 上传地址，此处需设置成 DataKit 地址 `http://datakit-endpoint:9529/otel/v1/traces`         |
-| `OTEL_TRACES_EXPORTER(otel.traces.exporter)`               | 链路导出器，默认 `otlp`                                                                              |
-| `OTEL_LOGS_EXPORTER(otel.logs.exporter)`                   | 日志导出器，默认 `otlp`，注意：OTEL V1 版本需要显式配置，否则默认不开启                              |
+| ENV(对应命令)                                                  | 说明                                                                                                                                                                                      |
+|:-----------------------------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `OTEL_SDK_DISABLED(otel.sdk.disabled)`                     | 关闭 SDK，默认 false。关闭后将不会产生任何链路指标信息                                                                                                                                                        |
+| `OTEL_RESOURCE_ATTRIBUTES(otel.resource.attributes)`       | 增加[全局自定义 tag](https://opentelemetry.io/docs/languages/sdk-configuration/general/#otel_resource_attributes){:target="_blank"}，每个 span 中都会带上这些自定义 tag。示例：`service.name=App,project=app-a` |
+| `OTEL_SERVICE_NAME(otel.service.name)`                     | 设置服务名，优先级高于自定义 tag                                                                                                                                                                      |
+| `OTEL_LOG_LEVEL(otel.log.level)`                           | 日志级别，默认 `info`                                                                                                                                                                          |
+| `OTEL_PROPAGATORS(otel.propagators)`                       | 设置[透传协议](https://opentelemetry.io/docs/languages/sdk-configuration/general/#otel_propagators){:target="_blank"}，默认 `tracecontext,baggage`                                               |
+| `OTEL_TRACES_SAMPLER(otel.traces.sampler)`                 | 设置[采样率类型](https://opentelemetry.io/docs/languages/sdk-configuration/general/#otel_traces_sampler){:target="_blank"}                                                                     |
+| `OTEL_TRACES_SAMPLER_ARG(otel.traces.sampler.arg)`         | 配合上面采样参数，取值范围 *0~1.0*，默认 `1.0`                                                                                                                                                          |
+| `OTEL_EXPORTER_OTLP_PROTOCOL(otel.exporter.otlp.protocol)` | 设置传输协议，默认 `grpc`，可选 `grpc,http/protobuf`                                                                                                                                                |
+| `OTEL_EXPORTER_OTLP_ENDPOINT(otel.exporter.otlp.endpoint)` | 设置 Trace 上传地址，此处需设置成 DataKit 地址 `http://datakit-endpoint:9529/otel/v1/traces`                                                                                                           |
+| `OTEL_TRACES_EXPORTER(otel.traces.exporter)`               | 链路导出器，默认 `otlp`                                                                                                                                                                         |
+| `OTEL_LOGS_EXPORTER(otel.logs.exporter)`                   | 日志导出器，默认 `otlp`，注意：OTEL V1 版本需要显式配置，否则默认不开启                                                                                                                                             |
 
-> 我们可以将 `otel.javaagent.debug=true` 参数传递给 Agent 以查看调试日志。请注意，这些日志内容相当冗长，生产环境下谨慎使用。
+从 DataKit 版本 [1.85.0](../datakit/changelog.md#cl-1.85.0) 开始，移除协议 `http/json` 请使用 `http/protobuf`，否则会报错 DataKit ERROR log: `unrecognized Content-Type application/json , please use http/protobuf` ，并返回状态码 400.
+
+我们可以将 `otel.javaagent.debug=true` 参数传递给 Agent 以查看调试日志。请注意，这些日志内容相当冗长，生产环境下谨慎使用。
+
 
 ### 链路采样 {#sample}
 
@@ -173,6 +176,9 @@ java -javaagent:/usr/local/ddtrace/opentelemetry-javaagent-2.5.0.jar \
  | `host`                  | `host`                  | Attributes 中的 host 标签            |
  | `pod_name`              | `pod_name`              | Attributes 中的 `pod_name` 标签      |
  | `pod_namespace`         | `pod_namespace`         | Attributes 中的 `pod_namespace` 标签 |
+ | `telemetry.sdk.language` | `sdk_language`          | SDK language                      |
+ | `telemetry.sdk.name`     | `sdk_name`              | OpenTelemetry                     |
+ | `telemetry.sdk.version`  | `sdk_version`           | SDK version                       |
 
 如果想要增加自定义标签，可使用环境变量：
 

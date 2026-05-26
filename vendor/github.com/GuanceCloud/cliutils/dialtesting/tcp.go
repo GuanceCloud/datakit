@@ -8,6 +8,7 @@ package dialtesting
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -69,7 +70,7 @@ func (t *TCPTask) init() error {
 	}
 
 	if len(t.SuccessWhen) == 0 {
-		return fmt.Errorf(`no any check rule`)
+		return errors.New(`no any check rule`)
 	}
 
 	for _, checker := range t.SuccessWhen {
@@ -103,11 +104,11 @@ func (t *TCPTask) init() error {
 
 func (t *TCPTask) check() error {
 	if len(t.Host) == 0 {
-		return fmt.Errorf("host should not be empty")
+		return errors.New("host should not be empty")
 	}
 
 	if len(t.Port) == 0 {
-		return fmt.Errorf("port should not be empty")
+		return errors.New("port should not be empty")
 	}
 
 	return nil
@@ -338,7 +339,7 @@ func (t *TCPTask) getHostName() ([]string, error) {
 }
 
 func (t *TCPTask) getVariableValue(variable Variable) (string, error) {
-	return "", fmt.Errorf("not support")
+	return "", errors.New("not support")
 }
 
 func (t *TCPTask) getRawTask(taskString string) (string, error) {
@@ -375,7 +376,7 @@ func (t *TCPTask) renderTemplate(fm template.FuncMap) error {
 
 	task := t.rawTask
 	if task == nil {
-		return fmt.Errorf("raw task is nil")
+		return errors.New("raw task is nil")
 	}
 
 	// host

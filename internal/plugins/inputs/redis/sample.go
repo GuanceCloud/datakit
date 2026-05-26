@@ -42,7 +42,8 @@ const (
   ## topology refresh interval for cluster/sentinel mode (default 10m)
   topology_refresh_interval = "10m"
 
-  ## v2+ override all measurement names to "redis"
+  ## v2+ override all measurement names to "redis", default: v2
+  ## If you want to use the old metric set, you can change it to "v1"
   measurement_version = "v2"
 
   # Slog log configurations.

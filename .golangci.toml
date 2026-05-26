@@ -103,7 +103,7 @@ disable = [
   "exhaustivestruct", # 结构体初始化字段是否完整
   "golint",           # Too strict
   "scopelint",        # obsoluted: https://github.com/kyoh86/scopelint#obsoleted
-
+  "ifshort",
   # 以下俩个 link 检查代码(函数)复杂度
   "gocognit", 
   "gocyclo",
@@ -134,6 +134,7 @@ disable = [
   "contextcheck",    # [升级 Go1.18 后加入] 函数参数必须传入 context
   "errchkjson",      # [升级 Go1.18 后加入] json 序列化/反序列化必须检查
   "nilnil",          # [升级 Go1.18 后加入] 函数返回 nil, nil 检查
+
 ]
 
 [issues]

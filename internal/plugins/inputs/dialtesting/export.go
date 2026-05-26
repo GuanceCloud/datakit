@@ -73,17 +73,17 @@ func (ipt *Input) Monitor(lang inputs.I18n) map[string]string {
 func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 	infos := []*inputs.ENVInfo{
 		{
-			ENVName:   "ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK",
+			ENVName:   "DISABLE_INTERNAL_NETWORK_TASK",
 			ConfField: "disable_internal_network_task",
 			Type:      doc.Boolean,
 			Example:   "`true`",
-			Default:   "`false`",
+			Default:   "`true`",
 			Desc:      "Enable or disable internal IP/service testing",
 			DescZh:    "是否允许内网地址/服务的拨测。默认不允许",
 		},
 
 		{
-			ENVName:   "ENV_INPUT_DIALTESTING_DISABLED_INTERNAL_NETWORK_CIDR_LIST",
+			ENVName:   "DISABLED_INTERNAL_NETWORK_CIDR_LIST",
 			ConfField: "disabled_internal_network_cidr_list",
 			Type:      doc.List,
 			Example:   "`[\"192.168.0.0/16\"]`",
@@ -93,7 +93,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		},
 
 		{
-			ENVName: "ENV_INPUT_DIALTESTING_ENABLE_DEBUG_API",
+			ENVName: "ENABLE_DEBUG_API",
 			Type:    doc.Boolean,
 			Example: "`false`",
 			Default: "`false`",
@@ -102,7 +102,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		},
 
 		{
-			ENVName: "ENV_INPUT_DIALTESTING_ELECTION",
+			ENVName: "ELECTION",
 			Type:    doc.Boolean,
 			Example: "`false`",
 			Default: "`false`",

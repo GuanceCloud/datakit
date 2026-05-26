@@ -1,7 +1,8 @@
 nav:
   - index.md
   - 'Changelog':
-    - changelog-2025.md
+    - changelog-2026.md
+    - '2025': changelog-2025.md
     - '2021~2024': changelog.md
 
   - 'DataKit Installation':
@@ -34,7 +35,15 @@ nav:
     - 'Collector Configuration': datakit-input-conf.md
     - 'Election Configuration': election.md
     - 'Proxy Configuration': datakit-proxy.md
-    - 'Operator Configuration': datakit-operator.md
+    - 'Operator Configuration':
+      - datakit-operator.md
+      - 'Changelog': operator-changelog.md
+      - 'Asyncprofile': operator-asyncprofile.md
+      - 'DDTrace': operator-ddtrace.md
+      - 'Flameshot': operator-flameshot.md
+      - 'logfwd': operator-logfwd.md
+      - 'logging': operator-logging.md
+      - 'pyspy': operator-pyspy.md
     - 'Other Configurations':
       - 'Configuration Overview': k8s-config-how-to.md
       - 'DCA': dca.md

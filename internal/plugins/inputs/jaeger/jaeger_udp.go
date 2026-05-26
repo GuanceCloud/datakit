@@ -70,7 +70,13 @@ func StartUDPAgent(protocol string, addr string, semStop *cliutils.Sem) error {
 		}
 		log.Debugf("### read from udp server:%s %d bytes", addr, n)
 
-		param := &itrace.TraceParameters{Body: bytes.NewBuffer(buf[:n])}
+		// 从 UDP 地址获取远端 IP
+		remoteIP := ""
+		if addr != nil {
+			remoteIP = addr.IP.String()
+		}
+
+		param := &itrace.TraceParameters{Body: bytes.NewBuffer(buf[:n]), RemoteIP: remoteIP}
 		if err = parseJaegerTraceUDP(protocol, param); err != nil {
 			log.Errorf("### parse jaeger trace from UDP failed: %s", err.Error())
 		}
@@ -110,7 +116,7 @@ func parseJaegerTraceUDP(protocol string, param *itrace.TraceParameters) error {
 		return err
 	}
 
-	if dktrace := batchToDkTrace(batch.Batch); len(dktrace) != 0 && afterGatherRun != nil {
+	if dktrace := batchToDkTrace(batch.Batch, param.RemoteIP); len(dktrace) != 0 && afterGatherRun != nil {
 		afterGatherRun.Run(inputName, itrace.DatakitTraces{dktrace})
 	}
 

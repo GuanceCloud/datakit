@@ -15,6 +15,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 // SQLTableSpace for Oracle 11g+.
@@ -50,7 +51,7 @@ type tableSpaceRowDB struct {
 	Offline        float64        `db:"OFFLINE_"`
 }
 
-func (ipt *Input) collectOracleTableSpace() {
+func (ipt *Input) collectOracleTableSpace(ptsTime time.Time) {
 	var (
 		start      = time.Now()
 		metricName = "oracle_tablespace"
@@ -90,7 +91,7 @@ func (ipt *Input) collectOracleTableSpace() {
 		}
 	}
 
-	opts := ipt.getKVsOpts()
+	opts := ipt.getKVsOptsWithTime(ptsTime)
 	for _, row := range rows {
 		kvs := ipt.getKVs()
 		kvs = kvs.AddTag("tablespace_name", row.TablespaceName)
@@ -110,7 +111,8 @@ func (ipt *Input) collectOracleTableSpace() {
 		pts,
 		dkio.WithCollectCost(time.Since(start)),
 		dkio.WithElection(ipt.Election),
-		dkio.WithSource(inputName)); err != nil {
+		dkio.WithSource(inputName),
+		dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementOracle))); err != nil {
 		l.Warnf("feeder.Feed: %s, ignored", err)
 	}
 }

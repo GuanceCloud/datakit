@@ -20,6 +20,8 @@ import (
 	"strconv"
 	"strings"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
@@ -54,8 +56,10 @@ const (
 	SpanSourceCache     = "cache"
 	SpanSourceMsgque    = "message_queue"
 	SpanSourceCustomer  = "custom"
+	SpanSourceLLM       = "llm"
 	SpanSourceDb        = "db"
 	SpanSourceWeb       = "web"
+	SpanSourceRPC       = "rpc"
 
 	TagHost              = "host"
 	TagContainerHost     = "container_host"
@@ -83,11 +87,11 @@ const (
 	TagPodName           = "pod_name"
 	TagPodNamespace      = "pod_namespace"
 
-	TagDBHost   = "db_host"
-	TagDBSystem = "db_system"
-	TagDBName   = "db_name"
-	TagOutHost  = "out_host"
-	TagRemoteIP = "remote_ip"
+	TagDBHost            = "db_host"
+	TagDBSystem          = "db_system"
+	TagDBName            = "db_name"
+	TagOutHost           = "out_host"
+	TagCollectorSourceIP = "collector_source_ip"
 
 	FieldDuration   = "duration"
 	FieldMessage    = "message"
@@ -140,6 +144,7 @@ var (
 	// SampleRateKey 采样的值.
 	SampleRateKey = "sampling_rate"
 
+	//nolint
 	sourceTypes = map[string]string{
 		"consul": SpanSourceApp,
 
@@ -158,6 +163,7 @@ var (
 		"cache":     SpanSourceCache,
 		"memcached": SpanSourceCache,
 		"redis":     SpanSourceCache,
+		"redisson":  SpanSourceCache,
 
 		"aerospike":     SpanSourceDb,
 		"cassandra":     SpanSourceDb,
@@ -169,28 +175,40 @@ var (
 		"mysql":         SpanSourceDb,
 		"pymysql":       SpanSourceDb,
 		"sql":           SpanSourceDb,
+		"kingbase":      SpanSourceDb,
 
-		"go-nsq":   SpanSourceMsgque,
-		"kafka":    SpanSourceMsgque,
-		"mqtt":     SpanSourceMsgque,
-		"queue":    SpanSourceMsgque,
-		"rabbitmq": SpanSourceMsgque,
-		"rocketmq": SpanSourceMsgque,
+		"go-nsq":       SpanSourceMsgque,
+		"kafka":        SpanSourceMsgque,
+		"mqtt":         SpanSourceMsgque,
+		"queue":        SpanSourceMsgque,
+		"rabbitmq":     SpanSourceMsgque,
+		"rocketmq":     SpanSourceMsgque,
+		"rocketmq-5.0": SpanSourceMsgque,
+		"pulsar":       SpanSourceMsgque,
 
 		"dns":   SpanSourceWeb,
-		"grpc":  SpanSourceWeb,
 		"http":  SpanSourceWeb,
 		"http2": SpanSourceWeb,
-		"rpc":   SpanSourceWeb,
 		"web":   SpanSourceWeb,
 
-		"":          SpanSourceCustomer,
-		"benchmark": SpanSourceCustomer,
-		"build":     SpanSourceCustomer,
-		"custom":    SpanSourceCustomer,
-		"template":  SpanSourceCustomer,
-		"test":      SpanSourceCustomer,
-		"worker":    SpanSourceCustomer,
+		"thrift":        SpanSourceRPC,
+		"taobao-hsf":    SpanSourceRPC,
+		"grpc":          SpanSourceRPC,
+		"rpc":           SpanSourceRPC,
+		"dubbo-apache":  SpanSourceRPC,
+		"dubbo-alibaba": SpanSourceRPC,
+		"one-client":    SpanSourceRPC,
+
+		"":            SpanSourceCustomer,
+		"benchmark":   SpanSourceCustomer,
+		"build":       SpanSourceCustomer,
+		"custom":      SpanSourceCustomer,
+		"template":    SpanSourceCustomer,
+		"test":        SpanSourceCustomer,
+		"worker":      SpanSourceCustomer,
+		"xxl-job-2.3": SpanSourceCustomer,
+
+		"llm": SpanSourceLLM,
 	}
 
 	DefaultGRPCServerOpts = []grpc.ServerOption{
@@ -409,10 +427,15 @@ func ParseTracerRequest(req *http.Request) (contentType, encode string, buf []by
 		body = req.Body
 	}
 
-	if buf, err = io.ReadAll(body); err != nil {
+	pbuf := bufpool.GetBuffer()
+	defer bufpool.PutBuffer(pbuf)
+
+	_, err = io.Copy(pbuf, body) //nolint
+	if err != nil {
 		return
 	}
 
+	buf = pbuf.Bytes()
 	contentType = GetContentType(req)
 
 	return

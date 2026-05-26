@@ -33,8 +33,9 @@ var (
 )
 
 const (
-	inputName    = "newrelic"
-	sampleConfig = `
+	inputName          = "newrelic"
+	defaultNewRelicAPI = "/agent_listener/invoke_raw_method"
+	sampleConfig       = `
 [[inputs.newrelic]]
   ## NewRelic Agent endpoints registered address endpoints for HTTP.
   ## DO NOT EDIT
@@ -245,6 +246,13 @@ func (ipt *Input) Terminate() {
 }
 
 func init() { //nolint:gochecknoinits
+	httpapi.RegInputHTTPRouteMatcher(func(method, path string) (string, bool) {
+		if method == http.MethodPost && path == defaultNewRelicAPI {
+			return inputName, true
+		}
+		return "", false
+	})
+
 	inputs.Add(inputName, func() inputs.Input {
 		return &Input{
 			feeder:  dkio.DefaultFeeder(),

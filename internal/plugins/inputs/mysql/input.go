@@ -16,12 +16,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/go-sql-driver/mysql"
+	"github.com/hashicorp/golang-lru/v2/expirable"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -49,6 +51,8 @@ const (
 	metricNameMySQLDbmMetric      = "mysql_dbm_metric"
 	metricNameMySQLDbmSample      = "mysql_dbm_sample"
 	metricNameMySQLDbmActivity    = "mysql_dbm_activity"
+	metricNameMySQLDbmConnection  = "mysql_dbm_connection"
+	metricNameMySQLDbmSession     = "mysql_dbm_session"
 	metricNameMySQLReplicationLog = "mysql_replication_log"
 )
 
@@ -58,6 +62,7 @@ var (
 	objectFeedName       = dkio.FeedSource(inputName, "O")
 	customQueryFeedName  = dkio.FeedSource(inputName, "custom_query")
 	loggingFeedName      = dkio.FeedSource(inputName, "L")
+	dbmFeedName          = dkio.FeedSource(inputName, "DBM")
 	catalogName          = "db"
 	l                    = logger.DefaultSLogger("mysql")
 )
@@ -128,6 +133,7 @@ type Input struct {
 	UpState int
 
 	Version            *mysqlVersion
+	InstanceName       string
 	Uptime             int
 	CollectCoStatus    string
 	CollectCoErrMsg    string
@@ -143,46 +149,46 @@ type Input struct {
 	collectors map[string]func() ([]*point.Point, error)
 
 	Election bool `toml:"election"`
-	pause    bool
-	pauseCh  chan bool
+	pause    atomic.Bool
+
+	MeasurementVersion string `toml:"measurement_version"`
+
 	binLogOn bool
 
 	semStop *cliutils.Sem // start stop signal
 
-	dbmCache       map[string]dbmRow
-	dbmSampleCache dbmSampleCache
+	dbmCache            map[string]dbmMetricCache
+	dbmSampleCache      dbmSampleCache
+	dbmQueryObjectCache *expirable.LRU[string, struct{}] // Cache for reported SQL DBO objects
+	planSignatureCache  *expirable.LRU[string, struct{}] // LRU for plan_signature frequency limit (skip duplicate plan objects)
 
 	objectMetric *objectMertric
 
 	// collected metrics - mysql
-	globalStatus    map[string]interface{}
-	globalVariables map[string]interface{}
-	binlog          map[string]interface{}
+	globalStatus    map[string]any
+	globalVariables map[string]any
+	binlog          map[string]any
 
 	// collected metrics - mysql_replication
-	mReplication      map[string]interface{}
-	mGroupReplication map[string]interface{}
+	mReplication      map[string]any
+	mGroupReplication map[string]any
 
 	// collected metrics - mysql_schema
-	mSchemaSize          map[string]interface{}
-	mSchemaQueryExecTime map[string]interface{}
+	mSchemaSize          map[string]any
+	mSchemaQueryExecTime map[string]any
 
 	// collected metrics - mysql_innodb
-	mInnodb map[string]interface{}
+	mInnodb map[string]any
 
 	// collected metrics - mysql_table_schema
-	mTableSchema []map[string]interface{}
+	mTableSchema []map[string]any
 
 	// collected metrics - mysql_user_status
-	mUserStatusName       map[string]interface{}
-	mUserStatusVariable   map[string]map[string]interface{}
-	mUserStatusConnection map[string]map[string]interface{}
+	mUserStatusName       map[string]any
+	mUserStatusVariable   map[string]map[string]any
+	mUserStatusConnection map[string]map[string]any
 
-	// collected metrics - mysql_dbm_metric
-	dbmMetricRows []dbmRow
-
-	// collected metrics - mysql_dbm_sample
-	dbmSamplePlans []planObj
+	dbmGroup *goroutine.Group
 
 	lastErrors []string
 	mergedTags map[string]string
@@ -326,7 +332,7 @@ func (ipt *Input) GetPipeline() []tailer.Option {
 func (ipt *Input) initCfg() error {
 	var err error
 	ipt.timeoutDuration, err = time.ParseDuration(ipt.Timeout)
-	if err != nil {
+	if err != nil || ipt.timeoutDuration <= 0 {
 		ipt.timeoutDuration = 10 * time.Second
 	}
 
@@ -358,17 +364,15 @@ func (ipt *Input) initCfg() error {
 	}
 
 	ipt.globalTag()
-	if ipt.Dbm {
-		ipt.initDbm()
-	}
 
 	const sqlSelect = "SELECT VERSION();"
-	version := getCleanMysqlVersion(ipt.q(sqlSelect, getMetricName(metricNameMySQL, "select_version")))
+	versionCtx, versionCancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+	version := getCleanMysqlVersion(ipt.q(versionCtx, sqlSelect, getMetricName(metricNameMySQL, "select_version")))
+	versionCancel()
 	if version == nil || version.version == "" {
 		return fmt.Errorf("failed to get mysql empty version")
-	} else {
-		ipt.Version = version
 	}
+	ipt.Version = version
 
 	ipt.Object.name = fmt.Sprintf("%s:%d", ipt.Host, ipt.Port)
 	if ipt.Object.Enable {
@@ -379,12 +383,19 @@ func (ipt *Input) initCfg() error {
 		ipt.mergedTags["server"] = ipt.Object.name
 	}
 
-	return nil
-}
+	// Prefer user-configured tag value. Fallback to server tag when not configured.
+	if instanceTag, ok := ipt.Tags["database_instance"]; ok && instanceTag != "" {
+		ipt.InstanceName = instanceTag
+	} else {
+		ipt.getInstanceName(ctx)
+	}
+	if ipt.InstanceName != "" {
+		ipt.mergedTags["database_instance"] = ipt.InstanceName
+	} else {
+		ipt.mergedTags["database_instance"] = ipt.mergedTags["server"]
+	}
 
-func (ipt *Input) initDbm() {
-	ipt.dbmSampleCache.explainCache.Size = 1000 // max size
-	ipt.dbmSampleCache.explainCache.TTL = 60    // 60 second to live
+	return nil
 }
 
 func (ipt *Input) globalTag() {
@@ -398,22 +409,33 @@ func (ipt *Input) globalTag() {
 	}
 }
 
-func (ipt *Input) q(s string, names ...string) rows {
+func (ipt *Input) getInstanceName(ctx context.Context) {
+	var instanceName sql.NullString
+	if err := ipt.db.QueryRowContext(ctx, "SELECT @@server_uuid").Scan(&instanceName); err != nil {
+		l.Warnf("failed to get mysql server_uuid: %s", err)
+		return
+	}
+	if instanceName.Valid && instanceName.String != "" {
+		ipt.InstanceName = instanceName.String
+	}
+}
+
+func (ipt *Input) q(ctx context.Context, s string, names ...string) rows {
 	var name string
 	if len(names) == 1 {
 		name = names[0]
 	}
 
 	start := time.Now()
-	rows, err := ipt.db.Query(s)
+	rows, err := ipt.db.QueryContext(ctx, s)
 	if err != nil {
-		l.Errorf(`query failed, sql (%q), error: %s, ignored`, s, err.Error())
+		l.Errorf(`query failed, name (%q), sql (%q), error: %s, ignored`, name, s, err.Error())
 		return nil
 	}
 
 	if err := rows.Err(); err != nil {
 		closeRows(rows)
-		l.Errorf(`query row failed, sql (%q), error: %s, ignored`, s, err.Error())
+		l.Errorf(`query row failed, name (%q), sql (%q), error: %s, ignored`, name, s, err.Error())
 		return nil
 	}
 
@@ -504,25 +526,27 @@ func (ipt *Input) metricCollectMysqlInnodb() ([]*point.Point, error) {
 }
 
 // mysql_dbm_metric.
-func (ipt *Input) metricCollectMysqlDbmMetric() ([]*point.Point, error) {
-	if err := ipt.collectMysqlDbmMetric(); err != nil {
-		return []*point.Point{}, err
+func (ipt *Input) metricCollectMysqlDbmMetric(ptsTime time.Time) ([]*point.Point, []dbmRow, error) {
+	rows, err := ipt.collectMysqlDbmMetric()
+	if err != nil {
+		return []*point.Point{}, nil, err
 	}
 
-	pts, err := ipt.buildMysqlDbmMetric()
+	pts, err := ipt.buildMysqlDbmMetric(rows, ptsTime)
 	if err != nil {
-		return []*point.Point{}, err
+		return []*point.Point{}, nil, err
 	}
-	return pts, nil
+	return pts, rows, nil
 }
 
 // mysql_dbm_sample.
-func (ipt *Input) metricCollectMysqlDbmSample() ([]*point.Point, error) {
-	if err := ipt.collectMysqlDbmSample(); err != nil {
+func (ipt *Input) metricCollectMysqlDbmSample(ptsTime time.Time) ([]*point.Point, error) {
+	plans, err := ipt.collectMysqlDbmSample()
+	if err != nil {
 		return []*point.Point{}, err
 	}
 
-	pts, err := ipt.buildMysqlDbmSample()
+	pts, err := ipt.buildMysqlDbmSample(plans, ptsTime)
 	if err != nil {
 		return []*point.Point{}, err
 	}
@@ -614,68 +638,7 @@ func (ipt *Input) Collect() (map[point.Category][]*point.Point, error) {
 		}
 	}
 
-	if ipt.Dbm && (ipt.DbmMetric.Enabled || ipt.DbmSample.Enabled || ipt.DbmActivity.Enabled) {
-		g := goroutine.NewGroup(goroutine.Option{Name: goroutine.GetInputName("mysql")})
-		if ipt.DbmMetric.Enabled {
-			f, ok := ipt.collectors[metricNameMySQLDbmMetric]
-			if ok {
-				g.Go(func(ctx context.Context) error {
-					// mysql_dbm_metric
-					pts, err := f()
-					if err != nil {
-						l.Errorf("metricCollectMysqlDbmMetric failed: %s", err.Error())
-					}
-
-					if len(pts) > 0 {
-						ptsLoggingMetric = append(ptsLoggingMetric, pts...)
-					}
-					return nil
-				})
-			}
-		}
-
-		if ipt.DbmSample.Enabled {
-			f, ok := ipt.collectors[metricNameMySQLDbmSample]
-			if ok {
-				g.Go(func(ctx context.Context) error {
-					// mysql_dbm_sample
-					pts, err := f()
-					if err != nil {
-						l.Errorf("metricCollectMysqlDbmSample failed: %s", err.Error())
-					}
-
-					if len(pts) > 0 {
-						ptsLoggingSample = append(ptsLoggingSample, pts...)
-					}
-					return nil
-				})
-			}
-		}
-
-		if ipt.DbmActivity.Enabled {
-			f, ok := ipt.collectors[metricNameMySQLDbmActivity]
-			if ok {
-				g.Go(func(ctx context.Context) error {
-					// mysql_dbm_activity
-					if pts, err := f(); err != nil {
-						l.Errorf("Collect mysql dbm activity failed: %s", err.Error())
-					} else if len(pts) > 0 {
-						ptsLoggingSample = append(ptsLoggingSample, pts...)
-					}
-					return nil
-				})
-			}
-		}
-
-		err := g.Wait()
-		if err != nil {
-			l.Errorf("mysql dbm collect error: %v", err)
-			ipt.feeder.FeedLastError(err.Error(),
-				metrics.WithLastErrorInput(inputName),
-				metrics.WithLastErrorCategory(point.Metric),
-			)
-		}
-	}
+	// DBM采集已独立出来，使用各自的interval，不再在主采集循环中执行
 
 	if err := ipt.collectMysqlBasicInfo(); err != nil {
 		l.Errorf("collectMysqlBasicInfo failed: %s", err.Error())
@@ -718,7 +681,7 @@ func (ipt *Input) RunPipeline() {
 		tailer.WithCharacterEncoding(ipt.Log.CharacterEncoding),
 		tailer.EnableMultiline(true),
 		tailer.WithMaxMultilineLength(int64(float64(config.Cfg.Dataway.MaxRawBodySize) * 0.8)),
-		tailer.WithMultilinePatterns([]string{ipt.Log.MultilineMatch}),
+		tailer.WithMultilinePattern(ipt.Log.MultilineMatch),
 		tailer.WithExtraTags(inputs.MergeTags(ipt.tagger.HostTags(), ipt.Tags, "")),
 		tailer.EnableDebugFields(config.Cfg.EnableDebugFields),
 	}
@@ -744,15 +707,13 @@ func (ipt *Input) initCollectors() {
 	l.Infof("init collectors, metric exclude list: %v", ipt.MetricExcludeList)
 
 	ipt.collectors = map[string]func() ([]*point.Point, error){
-		metricNameMySQL:               ipt.metricCollectMysql,
-		metricNameMySQLReplication:    ipt.metricCollectMysqlReplication,
-		metricNameMySQLSchema:         ipt.metricCollectMysqlSchema,
-		metricNameMySQLTableSchema:    ipt.metricCollectMysqlTableSschema,
-		metricNameMySQLUserStatus:     ipt.metricCollectMysqlUserStatus,
-		metricNameMySQLInnodb:         ipt.metricCollectMysqlInnodb,
-		metricNameMySQLDbmMetric:      ipt.metricCollectMysqlDbmMetric,
-		metricNameMySQLDbmSample:      ipt.metricCollectMysqlDbmSample,
-		metricNameMySQLDbmActivity:    ipt.metricCollectMysqlDbmActivity,
+		metricNameMySQL:            ipt.metricCollectMysql,
+		metricNameMySQLReplication: ipt.metricCollectMysqlReplication,
+		metricNameMySQLSchema:      ipt.metricCollectMysqlSchema,
+		metricNameMySQLTableSchema: ipt.metricCollectMysqlTableSschema,
+		metricNameMySQLUserStatus:  ipt.metricCollectMysqlUserStatus,
+		metricNameMySQLInnodb:      ipt.metricCollectMysqlInnodb,
+		// DBM 相关的 collector 已独立出来，不再在主 collectors map 中注册
 		metricNameMySQLReplicationLog: ipt.buildMysqlReplicationLog,
 	}
 
@@ -780,12 +741,14 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 	for {
 		collectStart := time.Now()
 
-		if ipt.pause {
+		if ipt.pause.Load() {
 			l.Debugf("not leader, custom query skipped")
 		} else {
 			l.Debugf("start collecting custom query, metric name: %s", query.Metric)
 
-			arr := getCleanMysqlCustomQueries(ipt.q(query.SQL, query.Metric))
+			queryCtx, cancel := context.WithTimeout(context.Background(), ipt.timeoutDuration)
+			arr := getCleanMysqlCustomQueries(ipt.q(queryCtx, query.SQL, query.Metric))
+			cancel()
 			if arr != nil {
 				points := ipt.getCustomQueryPoints(query, arr)
 				if len(points) > 0 {
@@ -908,8 +871,11 @@ func (ipt *Input) Run() {
 	// run custom queries
 	ipt.runCustomQueries()
 
+	// run dbm collectors
+	ipt.runDbmCollectors()
+
 	for {
-		if ipt.pause {
+		if ipt.pause.Load() {
 			l.Debugf("not leader, skipped")
 		} else {
 			l.Debugf("mysql input gathering...")
@@ -942,11 +908,16 @@ func (ipt *Input) Run() {
 						feedName = objectFeedName
 					}
 
-					if err := ipt.feeder.Feed(category, pts,
+					opts := []dkio.FeedOption{
 						dkio.WithCollectCost(time.Since(collectStart)),
 						dkio.WithElection(ipt.Election),
 						dkio.WithSource(feedName),
-					); err != nil {
+					}
+					if category == point.Metric {
+						opts = append(opts, dkio.WithMeasurement(
+							inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementMySQL)))
+					}
+					if err := ipt.feeder.Feed(category, pts, opts...); err != nil {
 						ipt.feeder.FeedLastError(err.Error(),
 							metrics.WithLastErrorInput(inputName),
 							metrics.WithLastErrorCategory(point.Metric),
@@ -974,9 +945,228 @@ func (ipt *Input) Run() {
 
 		case tt := <-tick.C:
 			ipt.ptsTime = inputs.AlignTime(tt, ipt.ptsTime, ipt.Interval.Duration)
-		case ipt.pause = <-ipt.pauseCh:
 			// nil
 		}
+	}
+}
+
+// runDbmMetricCollector runs DBM Metric collection independently.
+func (ipt *Input) runDbmMetricCollector() {
+	duration := ipt.DbmMetric.Interval.Duration
+	if duration <= 0 {
+		duration = 60 * time.Second
+	}
+	tick := time.NewTicker(duration)
+	defer tick.Stop()
+
+	ptsTime := ntp.Now()
+	for {
+		if ipt.pause.Load() {
+			l.Debugf("not leader, DBM metric collection skipped")
+		} else {
+			l.Debugf("start collecting DBM metric")
+
+			collectStart := time.Now()
+			pts, rows, err := ipt.metricCollectMysqlDbmMetric(ptsTime)
+			if err != nil {
+				l.Errorf("metricCollectMysqlDbmMetric failed: %s", err.Error())
+			}
+			if len(pts) > 0 {
+				if err := ipt.feeder.Feed(point.Metric, pts,
+					dkio.WithCollectCost(time.Since(collectStart)),
+					dkio.WithElection(ipt.Election),
+					dkio.WithSource(dbmFeedName),
+					dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementMySQL)),
+				); err != nil {
+					ipt.feeder.FeedLastError(err.Error(),
+						metrics.WithLastErrorInput(inputName),
+						metrics.WithLastErrorCategory(point.Metric),
+					)
+					l.Errorf("feed dbm_metric: %s", err)
+				}
+			}
+
+			if len(rows) > 0 {
+				// collect dbm query objects
+				ipt.collectDbmQueries(rows, ptsTime)
+			}
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			return
+		case <-ipt.semStop.Wait():
+			return
+		case tt := <-tick.C:
+			ptsTime = inputs.AlignTime(tt, ptsTime, duration)
+		}
+	}
+}
+
+// runDbmSampleCollector runs DBM Sample collection independently.
+func (ipt *Input) runDbmSampleCollector() {
+	duration := ipt.DbmSample.Interval.Duration
+	if duration <= 0 {
+		duration = 60 * time.Second
+	}
+	tick := time.NewTicker(duration)
+	defer tick.Stop()
+
+	ptsTime := ntp.Now()
+	for {
+		if ipt.pause.Load() {
+			l.Debugf("not leader, DBM sample collection skipped")
+		} else {
+			l.Debugf("start collecting DBM sample")
+
+			collectStart := time.Now()
+			pts, err := ipt.metricCollectMysqlDbmSample(ptsTime)
+			if err != nil {
+				l.Errorf("metricCollectMysqlDbmSample failed: %s", err.Error())
+			}
+			if len(pts) > 0 {
+				if err := ipt.feeder.Feed(point.Object, pts,
+					dkio.WithCollectCost(time.Since(collectStart)),
+					dkio.WithElection(ipt.Election),
+					dkio.WithSource(dbmFeedName),
+				); err != nil {
+					ipt.feeder.FeedLastError(err.Error(),
+						metrics.WithLastErrorInput(inputName),
+						metrics.WithLastErrorCategory(point.Object),
+					)
+					l.Errorf("feed dbm_sample: %s", err)
+				}
+			}
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			return
+		case <-ipt.semStop.Wait():
+			return
+		case tt := <-tick.C:
+			ptsTime = inputs.AlignTime(tt, ptsTime, duration)
+		}
+	}
+}
+
+// runDbmActivityCollector runs DBM Activity collection independently.
+func (ipt *Input) runDbmActivityCollector() {
+	duration := ipt.DbmActivity.Interval.Duration
+	if duration <= 0 {
+		duration = 60 * time.Second
+	}
+	tick := time.NewTicker(duration)
+	defer tick.Stop()
+
+	ptsTime := ntp.Now()
+	for {
+		if ipt.pause.Load() {
+			l.Debugf("not leader, DBM activity collection skipped")
+		} else {
+			l.Debugf("start collecting DBM activity")
+
+			collectStart := time.Now()
+			// query connections
+			connections := getActiveConnections(ipt)
+			// activity events
+			pts, activityRows := ipt.metricCollectMysqlDbmActivity(connections)
+			if len(pts) > 0 {
+				if err := ipt.feeder.Feed(point.Logging, pts,
+					dkio.WithCollectCost(time.Since(collectStart)),
+					dkio.WithElection(ipt.Election),
+					dkio.WithSource(dbmFeedName),
+				); err != nil {
+					ipt.feeder.FeedLastError(err.Error(),
+						metrics.WithLastErrorInput(inputName),
+						metrics.WithLastErrorCategory(point.Logging),
+					)
+					l.Errorf("feed dbm_activity: %s", err)
+				}
+			}
+
+			// dbm session metrics aggregated from activity rows
+			sessionPts := ipt.metricCollectMysqlDbmSession(activityRows, ptsTime)
+			if len(sessionPts) > 0 {
+				if err := ipt.feeder.Feed(point.Metric, sessionPts,
+					dkio.WithCollectCost(time.Since(collectStart)),
+					dkio.WithElection(ipt.Election),
+					dkio.WithSource(dbmFeedName),
+					dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementMySQL)),
+				); err != nil {
+					ipt.feeder.FeedLastError(err.Error(),
+						metrics.WithLastErrorInput(inputName),
+						metrics.WithLastErrorCategory(point.Metric),
+					)
+					l.Errorf("feed dbm_session: %s", err)
+				}
+			}
+
+			// connection metrics
+			connPts := ipt.metricCollectMysqlDbmConnections(connections)
+			if len(connPts) > 0 {
+				if err := ipt.feeder.Feed(point.Metric, connPts,
+					dkio.WithCollectCost(time.Since(collectStart)),
+					dkio.WithElection(ipt.Election),
+					dkio.WithSource(dbmFeedName),
+					dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementMySQL)),
+				); err != nil {
+					ipt.feeder.FeedLastError(err.Error(),
+						metrics.WithLastErrorInput(inputName),
+						metrics.WithLastErrorCategory(point.Metric),
+					)
+					l.Errorf("feed dbm_connection: %s", err)
+				}
+			}
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			return
+		case <-ipt.semStop.Wait():
+			return
+		case tt := <-tick.C:
+			ptsTime = inputs.AlignTime(tt, ptsTime, duration)
+		}
+	}
+}
+
+func (ipt *Input) runDbmCollectors() {
+	if !ipt.Dbm {
+		return
+	}
+
+	dbmMetricEnabled := ipt.DbmMetric.Enabled
+	dbmSampleEnabled := ipt.DbmSample.Enabled
+	dbmActivityEnabled := ipt.DbmActivity.Enabled
+	if !dbmMetricEnabled && !dbmSampleEnabled && !dbmActivityEnabled {
+		return
+	}
+
+	ipt.dbmGroup = goroutine.NewGroup(goroutine.Option{Name: "mysql_dbm"})
+
+	// dbm metric collector
+	if ipt.DbmMetric.Enabled {
+		ipt.dbmGroup.Go(func(ctx context.Context) error {
+			ipt.runDbmMetricCollector()
+			return nil
+		})
+	}
+
+	// dbm sample collector
+	if ipt.DbmSample.Enabled {
+		ipt.dbmGroup.Go(func(ctx context.Context) error {
+			ipt.runDbmSampleCollector()
+			return nil
+		})
+	}
+
+	// dbm activity collector
+	if ipt.DbmActivity.Enabled {
+		ipt.dbmGroup.Go(func(ctx context.Context) error {
+			ipt.runDbmActivityCollector()
+			return nil
+		})
 	}
 }
 
@@ -984,6 +1174,12 @@ func (ipt *Input) exit() {
 	if ipt.tail != nil {
 		ipt.tail.Close()
 		l.Info("mysql log exit")
+	}
+
+	if ipt.db != nil {
+		if err := ipt.db.Close(); err != nil {
+			l.Warnf("close database connection: %s", err)
+		}
 	}
 }
 
@@ -1001,13 +1197,8 @@ func (*Input) AvailableArchs() []string { return datakit.AllOSWithElection }
 
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
-		&baseMeasurement{},
-		&replicationMeasurement{},
-		&schemaMeasurement{},
-		&innodbMeasurement{},
-		&tbMeasurement{},
-		&userMeasurement{},
-		&dbmStateMeasurement{},
+		&mysqlMeasurement{},
+		&dbmQueryObjectMeasurement{},
 		&dbmSampleMeasurement{},
 		&dbmActivityMeasurement{},
 		&replicationLogMeasurement{},
@@ -1018,40 +1209,46 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- true:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("pause %s failed", inputName)
-	}
+	ipt.pause.Store(true)
+	return nil
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
-	defer tick.Stop()
-	select {
-	case ipt.pauseCh <- false:
-		return nil
-	case <-tick.C:
-		return fmt.Errorf("resume %s failed", inputName)
-	}
+	ipt.pause.Store(false)
+	return nil
 }
 
 func defaultInput() *Input {
 	return &Input{
-		Tags:     make(map[string]string),
-		Timeout:  "10s",
-		pauseCh:  make(chan bool, inputs.ElectionPauseChannelLength),
-		Election: true,
-		feeder:   dkio.DefaultFeeder(),
-		tagger:   datakit.DefaultGlobalTagger(),
-		semStop:  cliutils.NewSem(),
-		UpState:  0,
+		Tags:               make(map[string]string),
+		Timeout:            "10s",
+		pause:              atomic.Bool{},
+		Election:           true,
+		MeasurementVersion: "v2",
+		feeder:             dkio.DefaultFeeder(),
+		tagger:             datakit.DefaultGlobalTagger(),
+		semStop:            cliutils.NewSem(),
+		UpState:            0,
 		Object: mysqlObject{
 			Enable:   true,
 			Interval: datakit.Duration{Duration: 600 * time.Second},
+		},
+		DbmMetric: dbmMetric{
+			Enabled:  true,
+			Interval: datakit.Duration{Duration: 60 * time.Second},
+			Limit:    10000,
+		},
+		DbmSample: dbmSample{
+			Enabled:               true,
+			Interval:              datakit.Duration{Duration: 60 * time.Second},
+			ExplainCacheTTL:       datakit.Duration{Duration: 10 * time.Minute},
+			PlanCacheTTL:          datakit.Duration{Duration: time.Hour},
+			EventsStatementsLimit: 10,
+		},
+		DbmActivity: dbmActivity{
+			Enabled:  true,
+			Interval: datakit.Duration{Duration: 10 * time.Second},
+			Limit:    1000,
 		},
 	}
 }

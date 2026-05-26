@@ -11,14 +11,15 @@ import (
 )
 
 func DidRotate(file *os.File, lastReadOffset int64) (bool, error) {
-	f, err := OpenFile(file.Name())
+	current, err := OpenFile(file.Name())
 	if err != nil {
 		return false, err
 	}
+	defer func() {
+		_ = current.Close()
+	}()
 
-	defer f.Close() //nolint:errcheck,gosec
-
-	fi1, err := f.Stat()
+	fi1, err := current.Stat()
 	if err != nil {
 		return false, err
 	}
@@ -47,7 +48,7 @@ func FileIsActive(filename string, timeout time.Duration) bool {
 
 func FileExists(filename string) bool {
 	info, err := os.Stat(filename)
-	if os.IsNotExist(err) {
+	if err != nil {
 		return false
 	}
 	return !info.IsDir()

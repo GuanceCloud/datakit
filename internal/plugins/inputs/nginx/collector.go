@@ -8,7 +8,6 @@ package nginx
 import (
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -23,15 +22,16 @@ func (ipt *Input) getStubStatusModuleMetric(port int) {
 	u := ipt.host + ":" + strconv.Itoa(port) + ipt.path
 	resp, err := ipt.client.Get(u)
 	if err != nil {
-		l.Debugf("%s", err)
-		ipt.lastErr = err
+		l.Errorf("get url %s failed: %s", u, err)
 		return
 	}
+
 	defer resp.Body.Close() //nolint:errcheck
 	if resp.StatusCode != http.StatusOK {
-		ipt.lastErr = fmt.Errorf("%s returned HTTP status %s", u, resp.Status)
+		l.Errorf("%s returned HTTP status %s", u, resp.Status)
 		return
 	}
+
 	r := bufio.NewReader(resp.Body)
 
 	// Active connections
@@ -40,11 +40,13 @@ func (ipt *Input) getStubStatusModuleMetric(port int) {
 		l.Errorf("parse err:%s", err.Error())
 		return
 	}
+
 	line, err := r.ReadString('\n')
 	if err != nil {
 		l.Errorf("parse err:%s", err.Error())
 		return
 	}
+
 	active, err := strconv.ParseUint(strings.TrimSpace(line), 10, 64)
 	if err != nil {
 		l.Errorf("parse err:%s", err.Error())
@@ -57,11 +59,13 @@ func (ipt *Input) getStubStatusModuleMetric(port int) {
 		l.Errorf("parse err:%s", err.Error())
 		return
 	}
+
 	line, err = r.ReadString('\n')
 	if err != nil {
 		l.Errorf("parse err:%s", err.Error())
 		return
 	}
+
 	data := strings.Fields(line)
 	accepts, err := strconv.ParseUint(data[0], 10, 64)
 	if err != nil {
@@ -74,6 +78,7 @@ func (ipt *Input) getStubStatusModuleMetric(port int) {
 		l.Errorf("parse err:%s", err.Error())
 		return
 	}
+
 	requests, err := strconv.ParseUint(data[2], 10, 64)
 	if err != nil {
 		l.Errorf("parse err:%s", err.Error())
@@ -86,17 +91,20 @@ func (ipt *Input) getStubStatusModuleMetric(port int) {
 		l.Errorf("parse err:%s", err.Error())
 		return
 	}
+
 	data = strings.Fields(line)
 	reading, err := strconv.ParseUint(data[1], 10, 64)
 	if err != nil {
 		l.Errorf("parse err:%s", err.Error())
 		return
 	}
+
 	writing, err := strconv.ParseUint(data[3], 10, 64)
 	if err != nil {
 		l.Errorf("parse err:%s", err.Error())
 		return
 	}
+
 	waiting, err := strconv.ParseUint(data[5], 10, 64)
 	if err != nil {
 		l.Errorf("parse err:%s", err.Error())
@@ -129,8 +137,7 @@ func (ipt *Input) getVTSMetric(port int) {
 	u := ipt.host + ":" + strconv.Itoa(port) + ipt.path
 	resp, err := ipt.client.Get(u)
 	if err != nil {
-		l.Debugf("%s", err)
-		ipt.lastErr = err
+		l.Errorf("get url %s failed: %s", u, err)
 		return
 	}
 
@@ -139,6 +146,7 @@ func (ipt *Input) getVTSMetric(port int) {
 		l.Errorf("%s returned HTTP status %s", u, resp.Status)
 		return
 	}
+
 	contentType := strings.Split(resp.Header.Get("Content-Type"), ";")[0]
 	switch contentType {
 	case "application/json":
@@ -279,14 +287,15 @@ func (ipt *Input) getPlusMetric() {
 		resp, err := ipt.client.Get(ipt.PlusAPIURL + "/" + plusAPI.endpoint)
 		if err != nil {
 			l.Errorf("error making HTTP request to %s: %s", ipt.URL, err)
-			ipt.lastErr = err
 			return
 		}
+
 		defer resp.Body.Close() //nolint:errcheck
 		if resp.StatusCode != http.StatusOK {
 			l.Errorf("%s returned HTTP status %s", ipt.URL, resp.Status)
 			return
 		}
+
 		contentType := strings.Split(resp.Header.Get("Content-Type"), ";")[0]
 		switch contentType {
 		case "application/json":

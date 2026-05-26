@@ -7,22 +7,25 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
+
+	"github.com/GuanceCloud/cliutils/logger"
 )
+
+var l = logger.DefaultSLogger("builder")
 
 func main() {
 	// defer time.Sleep(time.Hour)
 
 	if err := setup(); err != nil {
-		logOutput("setup() failed: %v", err)
+		l.Errorf("setup() failed: %v", err)
 		return
 	}
 
-	logOutput("=========================================")
-	logOutput("Checking project %s", buildInfo)
-	logOutput("=========================================")
+	l.Info("=========================================")
+	l.Infof("Checking project %s", buildInfo)
+	l.Info("=========================================")
 
 	projects := []IProject{
 		&BuildOceanBaseX86{},
@@ -34,22 +37,22 @@ func main() {
 
 	for _, project := range projects {
 		if project.Info() == buildInfo {
-			logOutput("=========================================")
-			logOutput("Start building project %s", buildInfo)
-			logOutput("=========================================")
+			l.Info("=========================================")
+			l.Infof("Start building project %s", buildInfo)
+			l.Info("=========================================")
 
 			if err := project.Before(); err != nil {
-				logOutput("Before() failed: %v", err)
+				l.Infof("Before() failed: %v", err)
 				return
 			}
 
 			if err := project.Do(); err != nil {
-				logOutput("Do() failed: %v", err)
+				l.Infof("Do() failed: %v", err)
 				return
 			}
 
 			if err := project.After(); err != nil {
-				logOutput("After() failed: %v", err)
+				l.Infof("After() failed: %v", err)
 				return
 			}
 
@@ -57,7 +60,7 @@ func main() {
 		}
 	}
 
-	logOutput("Complete!")
+	l.Info("Complete!")
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -80,16 +83,13 @@ var (
 )
 
 func setup() error {
-	// Enable line numbers in logging
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
 	if err := getEnvs(); err != nil {
 		return err
 	}
 
 	getBuildInfo()
 
-	logOutput("origin LD_LIBRARY_PATH = %s", ldPathOrigin)
+	l.Infof("origin LD_LIBRARY_PATH = %s", ldPathOrigin)
 
 	setEnv("CGO_ENABLED", "1")
 
@@ -112,7 +112,7 @@ func getEnvs() error {
 
 	for name, text := range mEnvs {
 		if len(text) == 0 {
-			logOutput("%s is empty!", name)
+			l.Infof("%s is empty!", name)
 			return errEnvEmpty
 		}
 	}
@@ -148,12 +148,12 @@ func (bd *BuildOceanBaseX86) Before() error {
 	setOceanBaseEnvs(mEnvs["BUILD_ARCH"])
 
 	if err := runGoOci8Install(); err != nil {
-		logOutput("runGoOci8Install() failed: %v", err)
+		l.Errorf("runGoOci8Install() failed: %v", err)
 		return err
 	}
 
 	if err := runCopyOceanBaseLibs(mEnvs["BUILD_ARCH"]); err != nil {
-		logOutput("runCopyOceanBaseLibs() failed: %v", err)
+		l.Errorf("runCopyOceanBaseLibs() failed: %v", err)
 		return err
 	}
 
@@ -187,12 +187,12 @@ func (bd *BuildOceanBaseARM) Before() error {
 	setOceanBaseEnvs(mEnvs["BUILD_ARCH"])
 
 	if err := runGoOci8Install(); err != nil {
-		logOutput("runGoOci8Install() failed: %v", err)
+		l.Errorf("runGoOci8Install() failed: %v", err)
 		return err
 	}
 
 	if err := runCopyOceanBaseLibs(mEnvs["BUILD_ARCH"]); err != nil {
-		logOutput("runCopyOceanBaseLibs() failed: %v", err)
+		l.Errorf("runCopyOceanBaseLibs() failed: %v", err)
 		return err
 	}
 
@@ -222,7 +222,7 @@ func setOceanBaseEnvs(arch string) {
 	newLDPath += ldPathOrigin
 
 	setEnv("LD_LIBRARY_PATH", newLDPath)
-	logOutput("LD_LIBRARY_PATH = %s", newLDPath)
+	l.Errorf("LD_LIBRARY_PATH = %s", newLDPath)
 
 	if arch == "arm64" {
 		setEnv("CGO_LDFLAGS", defaultCgoLdflags+" -L/u01/obclient/lib -lobclnt")
@@ -277,7 +277,7 @@ func setDb2Envs(arch string) {
 	newLDPath += ldPathOrigin
 
 	setEnv("LD_LIBRARY_PATH", newLDPath)
-	logOutput("LD_LIBRARY_PATH = %s", newLDPath)
+	l.Errorf("LD_LIBRARY_PATH = %s", newLDPath)
 
 	setEnv("CGO_CFLAGS", defaultCgoCflags+" -I/opt/ibm/clidriver/include")
 	setEnv("CGO_LDFLAGS", defaultCgoLdflags+" -L/opt/ibm/clidriver/lib")
@@ -339,17 +339,11 @@ func (bd *BuildOracleARM64) After() error {
 	return nil
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
-func logOutput(format string, v ...any) {
-	log.Printf(format+"\n", v...)
-}
-
 func runGoOci8Install() error {
 	// cd /tmp/src/go-oci8
 	// go install
 	if err := os.Chdir(goOci8Path); err != nil {
-		logOutput("os.Chdir() failed: %v", err)
+		l.Errorf("os.Chdir() failed: %v", err)
 		return err
 	}
 
@@ -358,7 +352,7 @@ func runGoOci8Install() error {
 		"install",
 	}
 	if err := runEnv(args, os.Environ()); err != nil {
-		logOutput("runEnv() failed: %v", err)
+		l.Errorf("runEnv() failed: %v", err)
 		return err
 	}
 
@@ -386,7 +380,7 @@ func runCopyOceanBaseLibs(arch string) error {
 			"/",
 		}
 		if err := runEnv(args, os.Environ()); err != nil {
-			logOutput("runEnv() failed: %v", err)
+			l.Errorf("runEnv() failed: %v", err)
 			return err
 		}
 	}
@@ -397,16 +391,16 @@ func runCopyOceanBaseLibs(arch string) error {
 func runBuild(tags string) error {
 	// cd /tmp/src/go-oci8
 	if err := os.Chdir(projectPathPrefix + projectPath); err != nil {
-		logOutput("os.Chdir() failed: %v", err)
+		l.Infof("os.Chdir() failed: %v", err)
 		return err
 	}
 
 	// Remove old.
 	if err := os.RemoveAll(mEnvs["BUILD_DEST"]); err != nil {
-		logOutput("os.RemoveAll() failed: %v", err)
+		l.Infof("os.RemoveAll() failed: %v", err)
 		return err
 	}
-	logOutput("Remove old executable succeeded!")
+	l.Infof("Remove old executable succeeded!")
 
 	// go build xxxx
 	args := []string{"go", "build"}
@@ -424,7 +418,7 @@ func runBuild(tags string) error {
 	args = append(args, moreBuild...)
 
 	if err := runEnv(args, os.Environ()); err != nil {
-		logOutput("runEnv() failed: %v", err)
+		l.Infof("runEnv() failed: %v", err)
 		return err
 	}
 
@@ -453,19 +447,19 @@ func delCrossCompilationEnvs() {
 
 func setEnv(key, value string) {
 	if err := os.Setenv(key, value); err != nil {
-		logOutput("set env %s failed, err = %v, value = %s", key, err, value)
+		l.Infof("set env %s failed, err = %v, value = %s", key, err, value)
 	}
 }
 
 func unSetEnv(key string) {
 	if err := os.Unsetenv(key); err != nil {
-		logOutput("unset env %s failed, err = %v", key, err)
+		l.Infof("unset env %s failed, err = %v", key, err)
 	}
 }
 
 func runEnv(args, envs []string) error {
-	log.Printf("args = %#v\n", args)
-	log.Printf("envs = %#v\n", envs)
+	l.Infof("args = %#v\n", args)
+	l.Infof("envs = %#v\n", envs)
 
 	cmd := exec.Command(args[0], args[1:]...) //nolint:gosec
 	if envs != nil {
@@ -474,7 +468,7 @@ func runEnv(args, envs []string) error {
 
 	out, err := cmd.CombinedOutput()
 
-	log.Println(string(out))
+	l.Info(string(out))
 
 	return err
 }

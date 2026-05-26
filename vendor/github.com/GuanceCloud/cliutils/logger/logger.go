@@ -9,7 +9,10 @@ import (
 	"os"
 	"sync"
 
+	"github.com/GuanceCloud/cliutils"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"golang.org/x/time/rate"
 )
 
 const (
@@ -44,15 +47,196 @@ var (
 )
 
 type Logger struct {
-	*zap.SugaredLogger
+	name    string
+	zsl     *zap.SugaredLogger
+	rlimits []*rate.Limiter
+	hints   []string
+}
+
+func (l *Logger) allowed(r float64) (string, bool) {
+	if len(l.rlimits) == 0 { // no limiter, log them all
+		return "", true
+	}
+
+	for idx, rl := range l.rlimits {
+		if cliutils.FloatEquals(r, float64(rl.Limit())) {
+			return l.hints[idx], rl.Allow()
+		}
+	}
+
+	// @r not found, then no limiter on current log, we allow it.
+	return "", true
+}
+
+func (l *Logger) Name() string {
+	return l.name
+}
+
+func (l *Logger) Sugar() *zap.SugaredLogger {
+	return l.zsl
+}
+
+func (l *Logger) SetSugar(sugar *zap.SugaredLogger) {
+	l.zsl = sugar
+}
+
+func (l *Logger) Infof(fmt string, args ...any) {
+	l.zsl.Infof(fmt, args...)
+}
+
+func (l *Logger) Infow(fmt string, args ...any) {
+	l.zsl.Infow(fmt, args...)
+}
+
+func (l *Logger) Info(args ...any) {
+	l.zsl.Info(args...)
+}
+
+func (l *Logger) RLInfof(r float64, fmt string, args ...any) {
+	if h, ok := l.allowed(r); ok {
+		l.zsl.Infof(h+fmt, args...)
+	}
+}
+
+func (l *Logger) RLInfo(r float64, args ...any) {
+	if h, ok := l.allowed(r); ok {
+		if h != "" {
+			xargs := []any{h}
+			l.zsl.Info(append(xargs, args...)...)
+		} else {
+			l.zsl.Info(args...)
+		}
+	}
+}
+
+func (l *Logger) Warnf(fmt string, args ...any) {
+	l.zsl.Warnf(fmt, args...)
+}
+
+func (l *Logger) Warnw(fmt string, args ...any) {
+	l.zsl.Warnw(fmt, args...)
+}
+
+func (l *Logger) Warn(args ...any) {
+	l.zsl.Warn(args...)
+}
+
+func (l *Logger) RLWarnf(r float64, fmt string, args ...any) {
+	if h, ok := l.allowed(r); ok {
+		l.zsl.Warnf(h+fmt, args...)
+	}
+}
+
+func (l *Logger) RLWarn(r float64, args ...any) {
+	if h, ok := l.allowed(r); ok {
+		if h != "" {
+			xargs := []any{h}
+			l.zsl.Warn(append(xargs, args...)...)
+		} else {
+			l.zsl.Warn(args...)
+		}
+	}
+}
+
+func (l *Logger) Errorf(fmt string, args ...any) {
+	l.zsl.Errorf(fmt, args...)
+}
+
+func (l *Logger) Errorw(fmt string, args ...any) {
+	l.zsl.Errorw(fmt, args...)
+}
+
+func (l *Logger) Error(args ...any) {
+	l.zsl.Error(args...)
+}
+
+func (l *Logger) RLErrorf(r float64, fmt string, args ...any) {
+	if h, ok := l.allowed(r); ok {
+		l.zsl.Errorf(h+fmt, args...)
+	}
+}
+
+func (l *Logger) RLError(r float64, args ...any) {
+	if h, ok := l.allowed(r); ok {
+		if h != "" {
+			xargs := []any{h}
+			l.zsl.Error(append(xargs, args...)...)
+		} else {
+			l.zsl.Error(args...)
+		}
+	}
+}
+
+func (l *Logger) Debugf(fmt string, args ...any) {
+	l.zsl.Debugf(fmt, args...)
+}
+
+func (l *Logger) Debugw(fmt string, args ...any) {
+	l.zsl.Debugw(fmt, args...)
+}
+
+func (l *Logger) Debug(args ...any) {
+	l.zsl.Debug(args...)
+}
+
+func (l *Logger) RLDebugf(r float64, fmt string, args ...any) {
+	if h, ok := l.allowed(r); ok {
+		l.zsl.Debugf(h+fmt, args...)
+	}
+}
+
+func (l *Logger) RLDebug(r float64, args ...any) {
+	if h, ok := l.allowed(r); ok {
+		if h != "" {
+			xargs := []any{h}
+			l.zsl.Debug(append(xargs, args...))
+		} else {
+			l.zsl.Debug(args...)
+		}
+	}
+}
+
+func (l *Logger) Fatalf(fmt string, args ...any) {
+	// fatal log not rate limited
+	l.zsl.Fatalf(fmt, args...)
+}
+
+func (l *Logger) Fatalw(fmt string, args ...any) {
+	// fatal log not rate limited
+	l.zsl.Fatalw(fmt, args...)
+}
+
+func (l *Logger) Fatal(args ...any) {
+	// fatal log not rate limited
+	l.zsl.Fatal(args...)
+}
+
+func (l *Logger) Panicf(fmt string, args ...any) {
+	// panic log not rate limited
+	l.zsl.Panicf(fmt, args...)
+}
+
+func (l *Logger) Panicw(fmt string, args ...any) {
+	// panic log not rate limited
+	l.zsl.Panicw(fmt, args...)
+}
+
+func (l *Logger) Panic(args ...any) {
+	// panic log not rate limited
+	l.zsl.Panic(args...)
+}
+
+func (l *Logger) Level() zapcore.Level {
+	return l.zsl.Level()
 }
 
 type Option struct {
-	Path     string
-	Level    string
-	MaxSize  int
-	Flags    int
-	Compress bool
+	Path      string
+	ErrorPath string
+	Level     string
+	MaxSize   int
+	Flags     int
+	Compress  bool
 }
 
 func Reset() {
@@ -85,9 +269,14 @@ func init() {
 		panic(err.Error())
 	}
 
+	lvl := DEBUG
+	if v, ok := os.LookupEnv("LOGGER_LEVEL"); ok {
+		lvl = v
+	}
+
 	if v, ok := os.LookupEnv("LOGGER_PATH"); ok {
 		opt := &Option{
-			Level: DEBUG,
+			Level: lvl,
 			Flags: OPT_DEFAULT,
 			Path:  v,
 		}

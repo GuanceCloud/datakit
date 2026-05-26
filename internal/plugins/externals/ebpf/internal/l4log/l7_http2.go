@@ -61,6 +61,7 @@ type HTTP2LogElem struct {
 
 	// URL
 	Path  string `json:"path"`
+	Host  string `json:"host,omitempty"`
 	Param string `json:"param"`
 
 	Method string `json:"method"`
@@ -70,6 +71,9 @@ type HTTP2LogElem struct {
 
 	hState    int8 // 1: req, 2: resp
 	hFinished bool
+
+	messageCache string
+	messageDirty bool
 }
 
 type HTTP2Log struct {
@@ -77,6 +81,9 @@ type HTTP2Log struct {
 	isGRPC  bool
 	isHTTP2 bool
 	h2dec   *HTTP2Decoder
+
+	flow      *tcpFlowTracker
+	txPreface http2PrefaceState
 }
 
 func (h2log *HTTP2Log) GetElem(streamid uint32) *HTTP2LogElem {
@@ -86,7 +93,8 @@ func (h2log *HTTP2Log) GetElem(streamid uint32) *HTTP2LogElem {
 		}
 	}
 	elem := &HTTP2LogElem{
-		streamid: streamid,
+		streamid:     streamid,
+		messageDirty: true,
 	}
 
 	h2log.elems = append(h2log.elems, elem)
@@ -98,6 +106,7 @@ var ProtoAllowGRPC = true
 func NewH2Log() *HTTP2Log {
 	return &HTTP2Log{
 		h2dec: NewH2Dec(),
+		flow:  newTCPFlowTracker(8, 64*1024),
 	}
 }
 
@@ -112,132 +121,181 @@ func (h2log *HTTP2Log) Handle(txrx int8, cnt []byte,
 		return
 	}
 
-	if !h2log.isHTTP2 {
-		if v := HasHTTP2Magic(cnt); v > 0 {
-			cnt = cnt[v:]
+	if h2log.flow == nil {
+		h2log.flow = newTCPFlowTracker(8, 64*1024)
+	}
+
+	res := h2log.flow.Push(txrx, ln.Seq, ln.Flags, cnt, ln.TS)
+	if len(res.Deliveries) == 0 {
+		return
+	}
+
+	for _, delivery := range res.Deliveries {
+		payload := delivery.Payload
+
+		if !h2log.isHTTP2 {
+			if txrx != directionTX {
+				continue
+			}
+			payload = h2log.txPreface.Feed(payload)
+			if payload == nil {
+				continue
+			}
 			h2log.isHTTP2 = true
-		} else {
-			return
 		}
-	}
 
-	if len(cnt) == 0 {
-		return
-	}
-
-	frames, err := h2log.h2dec.Decode(txrx == directionTX, cnt)
-	if err != nil {
-		log.Debug(err)
-		return
-	}
-
-	seqOffset := ln.Seq
-	for _, fr := range frames.Fr {
-		frHdr := fr.Header()
-		frLen := frHdr.Length + 9
-
-		curSeqOffset := seqOffset
-		seqOffset += frLen
-
-		streamID := frHdr.StreamID
-		if streamID == 0 {
+		if len(payload) == 0 {
 			continue
 		}
 
-		elem := h2log.GetElem(streamID)
-
-		if pktState == 1 {
-			switch txrx {
-			case directionRX:
-				elem.rxRetransmits++
-			case directionTX:
-				elem.txRetransmits++
-			}
+		frames, err := h2log.h2dec.Decode(txrx == directionTX, payload)
+		if err != nil {
+			log.Debug(err)
+			continue
 		}
 
-		switch fr := fr.(type) {
-		case *H2HeaderFrame:
-			for _, hdr := range fr.Headers {
-				switch hdr.Name {
-				case H2HdrMethod:
-					elem.Method = hdr.Value
-					elem.reqSeq = curSeqOffset
-					elem.hState = 1
+		seqOffset := delivery.Seq
+		for _, fr := range frames.Fr {
+			frHdr := fr.Header()
+			frLen := frHdr.Length + 9
 
-					switch txrx {
-					case directionRX:
-						elem.Direction = DIncoming
-						if elem.rxFirstByteTS == 0 {
-							elem.rxFirstByteTS = ln.TS
-						}
-					case directionTX:
-						elem.Direction = DOutging
-						if elem.txFirstByteTS == 0 {
-							elem.txFirstByteTS = ln.TS
-						}
-					}
+			curSeqOffset := seqOffset
+			seqOffset += frLen
 
-				case H2HdrPath:
-					elem.Path = hdr.Value
-				case H2HdrScheme:
-				case H2HdrHost:
-				case H2HdrStatus:
-					v, _ := strconv.ParseInt(hdr.Value, 10, 32)
-					elem.StatusCode = int(v)
-					elem.respSeq = curSeqOffset
-					elem.hState = 2
-					switch txrx {
-					case directionRX:
-						if elem.rxFirstByteTS == 0 {
-							elem.rxFirstByteTS = ln.TS
-						}
-					case directionTX:
-						if elem.txFirstByteTS == 0 {
-							elem.txFirstByteTS = ln.TS
-						}
-					}
-				case "content-type":
-					if hdr.Value == "application/grpc" {
-						h2log.isGRPC = true
-						if !ProtoAllowGRPC {
-							h2log.elems = nil
-							return
-						}
-					}
-				case "grpc-status":
-					st, _ := strconv.ParseInt(hdr.Value, 10, 32)
-					elem.grpcStatus = int(st)
-				case "grpc-message":
-					elem.grpcMessage = hdr.Value
-				default:
-					// pass
+			streamID := frHdr.StreamID
+			if streamID == 0 {
+				continue
+			}
+
+			elem := h2log.GetElem(streamID)
+			elem.markMessageDirty()
+
+			if pktState == 1 || res.Retransmit {
+				switch txrx {
+				case directionRX:
+					elem.rxRetransmits++
+				case directionTX:
+					elem.txRetransmits++
 				}
 			}
 
-			switch txrx {
-			case directionRX:
-				elem.rxBytes += int64(frLen)
-				elem.rxLastByteTS = ln.TS
-			case directionTX:
-				elem.txBytes += int64(frLen)
-				elem.txLastByteTS = ln.TS
+			switch fr := fr.(type) {
+			case *H2HeaderFrame:
+				for _, hdr := range fr.Headers {
+					switch hdr.Name {
+					case H2HdrMethod:
+						elem.Method = hdr.Value
+						elem.reqSeq = curSeqOffset
+						elem.hState = 1
+
+						switch txrx {
+						case directionRX:
+							elem.Direction = DIncoming
+							if elem.rxFirstByteTS == 0 {
+								elem.rxFirstByteTS = delivery.TS
+							}
+						case directionTX:
+							elem.Direction = DOutging
+							if elem.txFirstByteTS == 0 {
+								elem.txFirstByteTS = delivery.TS
+							}
+						}
+
+					case H2HdrPath:
+						elem.Path = hdr.Value
+					case H2HdrScheme:
+					case H2HdrHost:
+						elem.Host = normalizeHTTPHostString(hdr.Value)
+					case H2HdrStatus:
+						v, _ := strconv.ParseInt(hdr.Value, 10, 32)
+						elem.StatusCode = int(v)
+						elem.respSeq = curSeqOffset
+						elem.hState = 2
+						switch txrx {
+						case directionRX:
+							if elem.rxFirstByteTS == 0 {
+								elem.rxFirstByteTS = delivery.TS
+							}
+						case directionTX:
+							if elem.txFirstByteTS == 0 {
+								elem.txFirstByteTS = delivery.TS
+							}
+						}
+					case "content-type":
+						if hdr.Value == "application/grpc" {
+							h2log.isGRPC = true
+							if !ProtoAllowGRPC {
+								h2log.elems = nil
+								return
+							}
+						}
+					case "grpc-status":
+						st, _ := strconv.ParseInt(hdr.Value, 10, 32)
+						elem.grpcStatus = int(st)
+					case "grpc-message":
+						elem.grpcMessage = hdr.Value
+					default:
+						// pass
+					}
+				}
+
+				switch txrx {
+				case directionRX:
+					elem.rxBytes += int64(frLen)
+					elem.rxLastByteTS = delivery.TS
+				case directionTX:
+					elem.txBytes += int64(frLen)
+					elem.txLastByteTS = delivery.TS
+				}
+
+			case *H2DataFrame:
+				switch txrx {
+				case directionRX:
+					elem.rxBytes += int64(frLen)
+					elem.rxLastByteTS = delivery.TS
+				case directionTX:
+					elem.txBytes += int64(frLen)
+					elem.txLastByteTS = delivery.TS
+				}
 			}
 
-		case *H2DataFrame:
-			switch txrx {
-			case directionRX:
-				elem.rxBytes += int64(frLen)
-				elem.rxLastByteTS = ln.TS
-			case directionTX:
-				elem.txBytes += int64(frLen)
-				elem.txLastByteTS = ln.TS
+			if elem.hState == 2 && frHdr.Flags.Has(http2.FlagDataEndStream) {
+				elem.hFinished = true
 			}
-		}
-
-		if elem.hState == 2 && frHdr.Flags.Has(http2.FlagDataEndStream) {
-			elem.hFinished = true
 		}
 	}
+}
+
+func (h *HTTP2LogElem) markMessageDirty() {
+	h.messageDirty = true
+}
+
+type http2PrefaceState struct {
+	buf []byte
+}
+
+func (p *http2PrefaceState) Feed(payload []byte) []byte {
+	if len(p.buf) == 0 && HasHTTP2Magic(payload) > 0 {
+		return payload[len(_http2Magic):]
+	}
+
+	p.buf = append(p.buf, payload...)
+	if len(p.buf) < len(_http2Magic) {
+		if bytes.Equal(p.buf, _http2Magic[:len(p.buf)]) {
+			return nil
+		}
+		p.buf = p.buf[:0]
+		return nil
+	}
+
+	if !bytes.Equal(p.buf[:len(_http2Magic)], _http2Magic) {
+		p.buf = p.buf[:0]
+		return nil
+	}
+
+	out := append([]byte(nil), p.buf[len(_http2Magic):]...)
+	p.buf = p.buf[:0]
+	return out
 }
 
 type HTTP2Decoder struct {

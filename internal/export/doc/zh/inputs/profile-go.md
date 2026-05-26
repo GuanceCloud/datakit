@@ -100,24 +100,28 @@ func demo() {
 
 DataKit 自 [:octicons-tag-24: Version-1.39.0](../datakit/changelog.md#cl-1.39.0) 开始支持从 `dd-trace-go` 的输出中抽取一组 Go 运行时的相关指标，该组指标被置于 `profiling_metrics` 指标集下，下面列举其中部分指标加以说明：
 
-| 指标名称                              | 说明                                                     | 单位         |
-|-----------------------------------|--------------------------------------------------------|------------|
-| prof_go_cpu_cores                 | 消耗 CPU 核心数                                             | core       |
-| prof_go_cpu_cores_gc_overhead     | 执行 GC 使用的 CPU 核心数                                      | core       |
-| prof_go_alloc_bytes_per_sec       | 每秒分配内存字节数大小                                            | byte       |
-| prof_go_frees_per_sec             | 每秒 GC 回收对象数                                            | count      |
-| prof_go_heap_growth_bytes_per_sec | 每秒堆内存增长大小                                              | byte       |
-| prof_go_allocs_per_sec            | 每秒执行内存分配次数                                             | count      |
-| prof_go_alloc_bytes_total         | 单次 profiling 持续期间（dd-trace 默认以 60 秒为一个采集周期，下同）分配的总内存大小 | byte       |
-| prof_go_blocked_time              | 单次 profiling 持续期间协程阻塞的总时长                              | nanosecond |
-| prof_go_mutex_delay_time          | 单次 profiling 持续期间用于等待锁所消耗的总时间                          | nanosecond |
-| prof_go_gcs_per_sec               | 每秒运行 GC 次数                                             | count      |
-| prof_go_max_gc_pause_time         | 单次 profiling 持续期间由于执行 GC 导致的程序中断的单次最长时长                | nanosecond |
-| prof_go_gc_pause_time             | 单次 profiling 持续期间由于执行 GC 导致的程序中断的总时长                   | nanosecond |
-| prof_go_num_goroutine             | 当前协程总数                                                 | count      |
-| prof_go_lifetime_heap_bytes       | 当前堆内存中存活对象占用的内存总大小                                     | byte       |
-| prof_go_lifetime_heap_objects     | 当前堆内存中存活的对象总数                                          | count      |
-
+| Tags & Fields | Description  |
+|----------:|:------------|
+| `language`<br>(`tag`) | Language of current profile |
+| `host`<br>(`tag`) | Hostname of current profile |
+| `service`<br>(`tag`) | Service name of current profile |
+| `env`<br>(`tag`) | Env settings of current profile |
+| `version`<br>(`tag`) | Version of current profile |
+| `prof_go_cpu_cores` | Number of CPU cores consumed<br> *Unit: core* |
+| `prof_go_cpu_cores_gc_overhead` | Number of CPU cores used for garbage collection<br> *Unit: core* |
+| `prof_go_alloc_bytes_per_sec` | Memory allocation rate per second<br> *Unit: byte* |
+| `prof_go_frees_per_sec` | Number of objects freed by GC per second<br> *Unit: count* |
+| `prof_go_heap_growth_bytes_per_sec` | Heap memory growth rate per second<br> *Unit: byte* |
+| `prof_go_allocs_per_sec` | Memory allocation operations per second<br> *Unit: count* |
+| `prof_go_alloc_bytes_total` | Total memory allocated during a single profiling period (dd-trace defaults to 60-second collection cycles)<br> *Unit: byte* |
+| `prof_go_blocked_time` | Total time goroutines were blocked during a single profiling period<br> *Unit: nanosecond* |
+| `prof_go_mutex_delay_time` | Total time spent waiting for locks during a single profiling period<br> *Unit: nanosecond* |
+| `prof_go_gcs_per_sec` | Number of GC runs per second<br> *Unit: count* |
+| `prof_go_max_gc_pause_time` | Maximum single pause duration caused by GC during a profiling period<br> *Unit: nanosecond* |
+| `prof_go_gc_pause_time` | Total pause time caused by GC during a profiling period<br> *Unit: nanosecond* |
+| `prof_go_num_goroutine` | Current total number of goroutines<br> *Unit: count* |
+| `prof_go_lifetime_heap_bytes` | Total memory size occupied by live objects in the heap<br> *Unit: byte* |
+| `prof_go_lifetime_heap_objects` | Total number of live objects in the heap<br> *Unit: count* |
 
 <!-- markdownlint-disable MD046 -->
 ???+ tips

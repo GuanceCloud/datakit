@@ -37,4 +37,9 @@ var ddTags = map[string]string{
 	"db.instance":  "db_name",
 	"db.operation": "db_operation",
 	"out.host":     "out_host",
+
+	// class sdk. "sdk_name" is ddtrace
+	"dd_ext_version":    "sdk_version",
+	"dd_guance_version": "sdk_version", // old version
+	"language":          "sdk_language",
 }

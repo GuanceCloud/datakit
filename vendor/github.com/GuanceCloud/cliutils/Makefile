@@ -1,8 +1,24 @@
-GOLINT_BINARY         ?= golangci-lint
+.PHONY: test
+
+GOLINT_BINARY ?= golangci-lint
+LINT_FIX      ?= true
 
 lint: lint_deps
 	@$(GOLINT_BINARY) --version
-	@$(GOLINT_BINARY) run --fix | tee lint.err # https://golangci-lint.run/usage/install/#local-installation
+ifeq ($(LINT_FIX),true)
+		@printf "lint with fix...\n"; \
+		$(GOLINT_BINARY) run --fix;
+else
+		@printf "lint without fix...\n"; \
+		$(GOLINT_BINARY) run;
+endif
+
+	@if [ $$? != 0 ]; then \
+		printf "lint failed\n"; \
+		exit -1; \
+	else \
+		printf "lint ok\n"; \
+	fi
 
 lint_deps: gofmt vet
 
@@ -21,7 +37,7 @@ copyright_check_auto_fix:
 	@python3 copyright.py --fix
 
 test:
-		LOGGER_PATH=nul CGO_CFLAGS=-Wno-undef-prefix go test -test.v -timeout 99999m -cover ./...
+		CGO_CFLAGS=-Wno-undef-prefix go test -timeout 99999m -cover ./...
 
 show_metrics:
 	@promlinter list . --add-help -o md --with-vendor

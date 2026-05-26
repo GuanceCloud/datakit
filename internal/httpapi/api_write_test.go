@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 	T "testing"
@@ -489,6 +490,48 @@ func (x *apiWriteMock) Query(ip string) (*ipdb.IPdbRecord, error) {
 
 func (x *apiWriteMock) GetSourceIP(req *http.Request) (string, string) {
 	return "", ""
+}
+
+func TestReadTimeout(t *T.T) {
+	hs := defaultHTTPServerConf()
+	hs.apiConfig.ReadTimeout = 10 * time.Millisecond
+
+	ts := httptest.NewServer(setupRouter(hs))
+	ts.Config = hs.setupServer(ts.Config)
+	defer ts.Close()
+
+	t.Run("slow client", func(t *T.T) {
+		slowbody := &slowReader{
+			r:     bytes.NewBuffer([]byte("this is a very long string that will send very slow...")),
+			delay: time.Millisecond * 10, // fast timeout
+		}
+
+		req, err := http.NewRequest("POST", fmt.Sprintf("%s/v1/write/metric", ts.URL), slowbody)
+		require.NoError(t, err)
+
+		cli := http.Client{}
+		resp, err := cli.Do(req)
+		if err != nil {
+			// A read timeout may close the socket before the client finishes
+			// streaming the request body, which surfaces as a transport error
+			// instead of an HTTP 408 on some Linux runners.
+			require.True(t,
+				strings.Contains(err.Error(), "connection reset by peer") ||
+					strings.Contains(err.Error(), "broken pipe") ||
+					strings.Contains(err.Error(), "EOF"),
+				"unexpected transport error: %v", err)
+			return
+		}
+
+		assert.Equal(t, http.StatusRequestTimeout, resp.StatusCode)
+
+		defer resp.Body.Close()
+
+		respBody, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+
+		t.Logf("body: %s", string(respBody))
+	})
 }
 
 func TestAPIWrite(t *testing.T) {

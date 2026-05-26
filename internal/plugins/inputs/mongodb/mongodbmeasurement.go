@@ -11,11 +11,14 @@ import (
 )
 
 const (
-	MongoDB           = "mongodb"
-	MongoDBStats      = "mongodb_db_stats"
-	MongoDBColStats   = "mongodb_col_stats"
-	MongoDBShardStats = "mongodb_shard_stats"
-	MongoDBTopStats   = "mongodb_top_stats"
+	MongoDB                     = "mongodb"
+	MongoDBStats                = "mongodb_db_stats"
+	MongoDBColStats             = "mongodb_col_stats"
+	MongoDBShardStats           = "mongodb_shard_stats"
+	MongoDBTopStats             = "mongodb_top_stats"
+	mongodbDatabaseInstanceDesc = "MongoDB instance identifier from configured tag `database_instance` or serverStatus.host. Common tag."
+	//nolint:lll
+	mongodbServerDesc = "MongoDB server address from the connection string. The value is `host:port` for standard URIs or the SRV host for `mongodb+srv://` URIs. Common tag."
 )
 
 type mongodbMeasurement struct {
@@ -42,8 +45,10 @@ func (m *mongodbMeasurement) Info() *inputs.MeasurementInfo {
 		Cat:  point.Metric,
 		Desc: "MongoDB measurement. Some metrics may not appear depending on the MongoDB version or DB running status.",
 		Tags: map[string]interface{}{
-			"host":        &inputs.TagInfo{Desc: "mongodb host"},
-			"mongod_host": &inputs.TagInfo{Desc: "mongodb host with port"},
+			"database_instance": &inputs.TagInfo{Desc: mongodbDatabaseInstanceDesc},
+			"host":              &inputs.TagInfo{Desc: "mongodb host"},
+			"mongod_host":       &inputs.TagInfo{Desc: "mongodb host with port"},
+			"server":            &inputs.TagInfo{Desc: mongodbServerDesc},
 			// "node_type":   &inputs.TagInfo{Desc: "node type in replica set"},
 			// "rs_name": &inputs.TagInfo{Desc: "replica set name"},
 		},
@@ -241,9 +246,11 @@ func (m *mongodbDBMeasurement) Info() *inputs.MeasurementInfo {
 		Cat:  point.Metric,
 		Desc: "MongoDB stats measurement. Some metrics may not appear depending on the MongoDB version or DB running status.",
 		Tags: map[string]interface{}{
-			"db_name":     &inputs.TagInfo{Desc: "database name"},
-			"host":        &inputs.TagInfo{Desc: "mongodb host"},
-			"mongod_host": &inputs.TagInfo{Desc: "mongodb host with port"},
+			"database_instance": &inputs.TagInfo{Desc: mongodbDatabaseInstanceDesc},
+			"db_name":           &inputs.TagInfo{Desc: "database name"},
+			"host":              &inputs.TagInfo{Desc: "mongodb host"},
+			"mongod_host":       &inputs.TagInfo{Desc: "mongodb host with port"},
+			"server":            &inputs.TagInfo{Desc: mongodbServerDesc},
 		},
 		Fields: map[string]interface{}{
 			"avg_obj_size": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The average size of each document in bytes."},                                                                    // (float)
@@ -306,10 +313,12 @@ func (m *mongodbColMeasurement) Info() *inputs.MeasurementInfo {
 		Desc: "MongoDB collection measurement. Some metrics may not appear depending on the MongoDB version or DB running status.",
 		Cat:  point.Metric,
 		Tags: map[string]interface{}{
-			"collection":  &inputs.TagInfo{Desc: "collection name"},
-			"db_name":     &inputs.TagInfo{Desc: "database name"},
-			"host":        &inputs.TagInfo{Desc: "mongodb host"},
-			"mongod_host": &inputs.TagInfo{Desc: "mongodb host with port"},
+			"collection":        &inputs.TagInfo{Desc: "collection name"},
+			"database_instance": &inputs.TagInfo{Desc: mongodbDatabaseInstanceDesc},
+			"db_name":           &inputs.TagInfo{Desc: "database name"},
+			"host":              &inputs.TagInfo{Desc: "mongodb host"},
+			"mongod_host":       &inputs.TagInfo{Desc: "mongodb host with port"},
+			"server":            &inputs.TagInfo{Desc: mongodbServerDesc},
 		},
 		Fields: map[string]interface{}{
 			"avg_obj_size":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The average size of an object in the collection. "},                            // (integer)
@@ -370,8 +379,10 @@ func (m *mongodbShardMeasurement) Info() *inputs.MeasurementInfo {
 		Cat:  point.Metric,
 		Desc: "MongoDB shard measurement. Some metrics may not appear depending on the MongoDB version or DB running status.",
 		Tags: map[string]interface{}{
-			"host":        &inputs.TagInfo{Desc: "mongodb host"},
-			"mongod_host": &inputs.TagInfo{Desc: "mongodb host with port"},
+			"database_instance": &inputs.TagInfo{Desc: mongodbDatabaseInstanceDesc},
+			"host":              &inputs.TagInfo{Desc: "mongodb host"},
+			"mongod_host":       &inputs.TagInfo{Desc: "mongodb host with port"},
+			"server":            &inputs.TagInfo{Desc: mongodbServerDesc},
 		},
 		Fields: map[string]interface{}{
 			"available":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The number of connections available for this host to connect to the mongos.`},                                                                                                         // (integer)
@@ -406,9 +417,11 @@ func (m *mongodbTopMeasurement) Info() *inputs.MeasurementInfo {
 		Cat:  point.Metric,
 		Desc: "MongoDB top measurement. Some metrics may not appear depending on the MongoDB version or DB running status.",
 		Tags: map[string]interface{}{
-			"collection":  &inputs.TagInfo{Desc: "collection name"},
-			"host":        &inputs.TagInfo{Desc: "mongodb host"},
-			"mongod_host": &inputs.TagInfo{Desc: "mongodb host with port"},
+			"collection":        &inputs.TagInfo{Desc: "collection name"},
+			"database_instance": &inputs.TagInfo{Desc: mongodbDatabaseInstanceDesc},
+			"host":              &inputs.TagInfo{Desc: "mongodb host"},
+			"mongod_host":       &inputs.TagInfo{Desc: "mongodb host with port"},
+			"server":            &inputs.TagInfo{Desc: mongodbServerDesc},
 		},
 		Fields: map[string]interface{}{
 			"commands_count":                       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: `The total number of "command" event issues.`},                                                                                                                 // (integer)

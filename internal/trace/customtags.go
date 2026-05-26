@@ -44,7 +44,7 @@ func NewCustomTags(configTags []string, publicTags map[string]string) *CustomTag
 func (c *CustomTags) AddTag(configTags map[string]string) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	for _, key := range configTags {
+	for key := range configTags {
 		if _, ok := c.commonTags[key]; !ok {
 			c.commonTags[key] = strings.ReplaceAll(key, ".", "_")
 		}
@@ -107,6 +107,6 @@ func (c *CustomTags) DDTraceRegexKey(meta map[string]string) (map[string]string,
 			delete(meta, k)
 		}
 	}
-
+	kvs = kvs.AddTag("sdk_name", "ddtrace")
 	return meta, kvs
 }

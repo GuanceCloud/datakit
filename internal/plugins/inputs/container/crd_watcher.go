@@ -10,16 +10,18 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	k8sclient "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
 	loggingv1alpha1 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/pkg/apis/datakits/v1alpha1"
 	externalversions "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/pkg/client/informers/externalversions"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 )
 
-var crdWatcherG = datakit.G("crd-watcher")
+var crdWatcherG = goroutine.G("crd-watcher")
 
 type loggingConfigWatcher struct {
 	client      k8sclient.Client
@@ -47,8 +49,15 @@ func (w *loggingConfigWatcher) start(ctx context.Context) {
 	// RBAC 预检：尝试进行一次最小化的 List 调用，若无权限则退出
 	if clientset := w.client.LoggingClient(); clientset != nil {
 		_, err := clientset.LoggingV1alpha1().ClusterLoggingConfigs().List(ctx, metav1.ListOptions{Limit: 1})
-		if apierrors.IsForbidden(err) || apierrors.IsUnauthorized(err) {
-			l.Errorf("missing RBAC to access ClusterLoggingConfig: %v; exit logging config watcher", err)
+		if err != nil {
+			switch {
+			case apierrors.IsForbidden(err):
+				l.Warnf("missing RBAC permission to access ClusterLoggingConfig: %v; exit logging config watcher", err)
+			case apierrors.IsNotFound(err):
+				l.Warnf("ClusterLoggingConfig CRD resource type not found: %v; exit logging config watcher", err)
+			default:
+				l.Warnf("failed to access ClusterLoggingConfig: %v; exit logging config watcher", err)
+			}
 			return
 		}
 	}

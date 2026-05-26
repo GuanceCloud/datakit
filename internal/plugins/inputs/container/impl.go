@@ -114,6 +114,11 @@ func createK8sClientIfNeeded(ipt *Input, logCoordinator *containerLogCoordinator
 		return nil
 	})
 
+	podWatcherG.Go(func(_ context.Context) error {
+		startPodWatcher(client, logCoordinator)
+		return nil
+	})
+
 	return client
 }
 

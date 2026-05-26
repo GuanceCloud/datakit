@@ -56,6 +56,7 @@ const (
 
 	FieldHTTPRoute      = "http_route"
 	FieldHTTPMethod     = "http_method"
+	FieldHTTPHost       = "http_host"
 	FieldHTTPStatusCode = "http_status_code"
 	FieldHTTPVersion    = "http_version"
 

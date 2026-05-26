@@ -9,6 +9,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/awslambda/lambdaapi/metrics"
+	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
 
 type metricMeasurement struct{}
@@ -105,4 +106,10 @@ func measurementTags() map[string]interface{} {
 		LambdaInitializationType: &inputs.TagInfo{Desc: "Initialization type of the Lambda function."},
 		AccountID:                &inputs.TagInfo{Desc: "AWS Account ID."},
 	}
+}
+
+type traceMeasurement struct{}
+
+func (*traceMeasurement) Info() *inputs.MeasurementInfo {
+	return (&itrace.TraceMeasurement{Name: inputName}).Info()
 }

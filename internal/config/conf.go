@@ -21,7 +21,6 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/operator"
 )
 
 var (
@@ -35,16 +34,12 @@ func SetLog() {
 
 type LoggerCfg struct {
 	Log           string `toml:"log"`
+	ErrorLog      string `toml:"error_log"`
 	GinLog        string `toml:"gin_log"`
 	Level         string `toml:"level"`
 	DisableColor  bool   `toml:"disable_color"`
 	Rotate        int    `toml:"rotate,omitzero"`
 	RotateBackups int    `toml:"rotate_backups"`
-}
-
-type DKUpgraderCfg struct {
-	Host string `toml:"host"`
-	Port int    `toml:"port"`
 }
 
 type GitRepository struct {
@@ -68,25 +63,11 @@ type configCrpto struct {
 func (c *Config) String() string {
 	buf := new(bytes.Buffer)
 	if err := bstoml.NewEncoder(buf).Encode(c); err != nil {
+		l.Errorf("encode config to TOML failed: %s", err)
 		return ""
 	}
 
 	return buf.String()
-}
-
-func (c *Config) SetUUID() error {
-	if c.hostname == "" {
-		hn, err := os.Hostname()
-		if err != nil {
-			l.Errorf("get hostname failed: %s", err.Error())
-			return err
-		}
-
-		c.UUID = hn
-	} else {
-		c.UUID = c.hostname
-	}
-	return nil
 }
 
 func (c *Config) doLoadMainTOML(toml string) error {
@@ -111,8 +92,6 @@ func (c *Config) loadMainTOMLString(cfgData string) error {
 	if err != nil {
 		return fmt.Errorf("bstoml.Decode: %w", err)
 	}
-
-	_ = c.SetUUID()
 
 	return nil
 }
@@ -241,25 +220,19 @@ func (c *Config) parseGlobalHostTags() {
 					hostName = c.hostname
 				}
 			} else {
-				if hn, err := c.detectHostname(); err != nil {
-					l.Errorf("get hostname failed: %s", err.Error())
-				} else {
-					hostName = hn
-				}
+				hostName = c.hostname
 			}
 
+			l.Infof("set global tag %s: %s", k, hostName)
 			c.GlobalHostTags[k] = hostName
-			l.Debugf("set global tag %s: %s", k, hostName)
 
 		case `__datakit_ip`, `$datakit_ip`:
-			c.GlobalHostTags[k] = getLocalIPUntilOK()
+			ip := getLocalIPUntilOK()
+			l.Infof("set global tag %s: %s", k, ip)
 
-		case `__datakit_uuid`, `__datakit_id`, `$datakit_uuid`, `$datakit_id`:
-			c.GlobalHostTags[k] = c.UUID
-			l.Debugf("set global tag %s: %s", k, c.UUID)
+			c.GlobalHostTags[k] = ip
 
 		default:
-			// pass
 		}
 	}
 }
@@ -312,6 +285,7 @@ func (c *Config) setLogging() {
 		}
 
 		lopt.Path = c.Logging.Log
+		lopt.ErrorPath = c.Logging.ErrorLog
 	}
 
 	if err := logger.InitRoot(lopt); err != nil {
@@ -336,12 +310,14 @@ func (c *Config) setupGlobalTags() {
 	}
 
 	for k, v := range c.GlobalHostTags {
+		l.Infof("set global feed tag: %s:%s", k, v)
 		datakit.SetGlobalHostTags(k, v)
 	}
 
-	// 此处不将 host 计入 c.GlobalHostTags，因为 c.GlobalHostTags 是读取
-	// 的用户配置，而 host 是不允许修改的, 故单独添加这个 tag 到 io 模块
-	datakit.SetGlobalHostTags("host", c.hostname)
+	if c.GlobalHostTags["host"] != c.hostname {
+		l.Infof("global host tag(%q) not equal to detected hostname %q", c.GlobalHostTags["host"], c.hostname)
+		datakit.RenamedHostname = c.GlobalHostTags["host"]
+	}
 
 	if c.Election.Enable {
 		// 开启选举且开启开关的情况下，将选举的命名空间塞到 global-election-tags 中
@@ -428,8 +404,6 @@ func (c *Config) ApplyMainConfig() error {
 	}
 
 	InitGitreposDir()
-	// Operator 使用 ENV 初始化
-	c.Operator = operator.NewOperatorClientFromEnv()
 	// 初始化 ENC 密码加密功能。
 	initCrypto(c)
 	//
@@ -477,8 +451,13 @@ func (c *Config) GetHostname() string {
 }
 
 func (c *Config) detectHostname() (string, error) {
+	// try get node name from k8s env
+	if v := doGetNodename(); v != "" {
+		return v, nil
+	}
+
 	// try get hostname from configure
-	if v, ok := c.Environments["ENV_HOSTNAME"]; ok && v != "" {
+	if v, ok := c.Environments[envManualHostname]; ok && v != "" {
 		return v, nil
 	}
 

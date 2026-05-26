@@ -342,7 +342,7 @@ SELECT
 	,REPLACE(@@SERVERNAME,'\',':') AS [sqlserver_host]
 	,pc.[object_name]
 	,pc.[counter_name]
-	,CASE pc.[instance_name] WHEN '_Total' THEN 'Total' ELSE ISNULL(pc.[instance_name],'') END AS [instance]
+	,CASE pc.[instance_name] WHEN '_Total' THEN 'Total' ELSE ISNULL(pc.[instance_name],'') END AS [counter_instance]
 	,CAST(CASE WHEN pc.[cntr_type] = 537003264 AND pc1.[cntr_value] > 0 THEN (pc.[cntr_value] * 1.0) / (pc1.[cntr_value] * 1.0) * 100 ELSE pc.[cntr_value] END AS float(10)) AS [cntr_value]
 	,CAST(pc.[cntr_type] AS varchar(25)) AS [counter_type]
 FROM @PCounters AS pc
@@ -1092,5 +1092,124 @@ select 'sqlserver_database_backup' as [measurement],
 from msdb.dbo.backupset right outer join sys.databases
 on sys.databases.name = msdb.dbo.backupset.database_name
 group by sys.databases.name
+`
+
+	dbmIdleBlockingSessionsQuery = `
+SET DEADLOCK_PRIORITY -10;
+IF SERVERPROPERTY('EngineEdition') NOT IN (2,3,4) BEGIN /*NOT IN Standard,Enterprise,Express*/
+	DECLARE @ErrorMessage AS nvarchar(500) = 'DataKit - Connection string Server:'+ @@ServerName + ',Database:' + DB_NAME() +' is not a SQL Server Standard,Enterprise or Express. Check the database_type parameter in the datakit configuration.';
+	RAISERROR (@ErrorMessage,11,1)
+	RETURN
+END
+
+SELECT
+    CONVERT(NVARCHAR, TODATETIMEOFFSET(CURRENT_TIMESTAMP, DATEPART(TZOFFSET, SYSDATETIMEOFFSET())), 126) AS now,
+    sess.login_name AS user_name,
+    sess.last_request_start_time AS last_request_start_time,
+    sess.session_id AS id,
+    DB_NAME(sess.database_id) AS database_name,
+    sess.status AS session_status,
+    lqt.text AS statement_text,
+    OBJECT_SCHEMA_NAME(lqt.objectid, sess.database_id) AS schema_name,
+    OBJECT_NAME(lqt.objectid, sess.database_id) AS procedure_name,
+    REPLACE(@@SERVERNAME,'\',':') AS [sqlserver_host],
+    c.client_tcp_port AS client_port,
+    c.client_net_address AS client_address,
+    sess.host_name AS host_name,
+    sess.program_name AS program_name,
+    sess.is_user_process AS is_user_process,
+    sess.client_interface_name AS client_interface_name
+FROM sys.dm_exec_sessions sess
+INNER JOIN sys.dm_exec_connections c ON sess.session_id = c.session_id
+CROSS APPLY sys.dm_exec_sql_text(c.most_recent_sql_handle) lqt
+WHERE sess.status = 'sleeping'
+    AND sess.session_id IN (__BLOCKING_SESSION_IDS__)
+    AND c.session_id IN (__BLOCKING_SESSION_IDS__)
+`
+
+	dbmIdleBlockingSessionsQuery08 = `
+SET DEADLOCK_PRIORITY -10;
+IF SERVERPROPERTY('EngineEdition') NOT IN (2,3,4) BEGIN /*NOT IN Standard,Enterprise,Express*/
+	DECLARE @ErrorMessage AS nvarchar(500) = 'DataKit - Connection string Server:'+ @@ServerName + ',Database:' + DB_NAME() +' is not a SQL Server Standard,Enterprise or Express. Check the database_type parameter in the datakit configuration.';
+	RAISERROR (@ErrorMessage,11,1)
+	RETURN
+END
+
+SELECT
+    CONVERT(NVARCHAR, TODATETIMEOFFSET(CURRENT_TIMESTAMP, DATEPART(TZOFFSET, SYSDATETIMEOFFSET())), 126) AS now,
+    sess.login_name AS user_name,
+    sess.last_request_start_time AS last_request_start_time,
+    sess.session_id AS id,
+    DB_NAME(p.dbid) AS database_name,
+    sess.status AS session_status,
+    lqt.text AS statement_text,
+    OBJECT_SCHEMA_NAME(lqt.objectid, p.dbid) AS schema_name,
+    OBJECT_NAME(lqt.objectid, p.dbid) AS procedure_name,
+    REPLACE(@@SERVERNAME,'\',':') AS [sqlserver_host],
+    c.client_tcp_port AS client_port,
+    c.client_net_address AS client_address,
+    sess.host_name AS host_name,
+    sess.program_name AS program_name,
+    sess.is_user_process AS is_user_process,
+    sess.client_interface_name AS client_interface_name
+FROM sys.dm_exec_sessions sess
+INNER JOIN sys.dm_exec_connections c ON sess.session_id = c.session_id
+INNER JOIN sys.sysprocesses p ON sess.session_id = p.spid
+CROSS APPLY sys.dm_exec_sql_text(c.most_recent_sql_handle) lqt
+WHERE sess.status = 'sleeping'
+    AND sess.session_id IN (__BLOCKING_SESSION_IDS__)
+    AND c.session_id IN (__BLOCKING_SESSION_IDS__)
+`
+
+	// DBM Plan Lookup Query - gets execution plan for a specific statement using plan_handle and statement offsets.
+	dbmPlanLookupQuery = `
+SET DEADLOCK_PRIORITY -10;
+IF SERVERPROPERTY('EngineEdition') NOT IN (2,3,4) BEGIN /*NOT IN Standard,Enterprise,Express*/
+	DECLARE @ErrorMessage AS nvarchar(500) = 'DataKit - Connection string Server:'+ @@ServerName + ',Database:' + DB_NAME() +' is not a SQL Server Standard,Enterprise or Express. Check the database_type parameter in the datakit configuration.';
+	RAISERROR (@ErrorMessage,11,1)
+	RETURN
+END
+
+SELECT
+    query_plan AS plan_text,
+    encrypted AS is_encrypted
+FROM sys.dm_exec_text_query_plan(CONVERT(VARBINARY(MAX), @p1, 1), @p2, @p3)
+`
+
+	dbmConnectionQuery = `
+SET DEADLOCK_PRIORITY -10;
+IF SERVERPROPERTY('EngineEdition') NOT IN (2,3,4) BEGIN /*NOT IN Standard,Enterprise,Express*/
+	DECLARE @ErrorMessage AS nvarchar(500) = 'DataKit - Connection string Server:'+ @@ServerName + ',Database:' + DB_NAME() +' is not a SQL Server Standard,Enterprise or Express. Check the database_type parameter in the datakit configuration.';
+	RAISERROR (@ErrorMessage,11,1)
+	RETURN
+END
+
+SELECT
+    login_name AS user_name,
+    COUNT(session_id) AS connections,
+    status,
+    DB_NAME(database_id) AS database_name
+FROM sys.dm_exec_sessions
+WHERE is_user_process = 1
+GROUP BY login_name, status, DB_NAME(database_id)
+`
+
+	dbmConnectionQuery08 = `
+SET DEADLOCK_PRIORITY -10;
+IF SERVERPROPERTY('EngineEdition') NOT IN (2,3,4) BEGIN /*NOT IN Standard,Enterprise,Express*/
+	DECLARE @ErrorMessage AS nvarchar(500) = 'DataKit - Connection string Server:'+ @@ServerName + ',Database:' + DB_NAME() +' is not a SQL Server Standard,Enterprise or Express. Check the database_type parameter in the datakit configuration.';
+	RAISERROR (@ErrorMessage,11,1)
+	RETURN
+END
+
+SELECT
+    s.login_name AS user_name,
+    COUNT(s.session_id) AS connections,
+    s.status,
+    DB_NAME(p.dbid) AS database_name
+FROM sys.dm_exec_sessions s
+INNER JOIN sys.sysprocesses p ON s.session_id = p.spid
+WHERE s.is_user_process = 1
+GROUP BY s.login_name, s.status, p.dbid
 `
 )

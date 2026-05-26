@@ -138,8 +138,9 @@ var (
 	flagMonitorModule          = fsMonitor.StringP("module", "M", "", "show only specified module stats, seprated by ',', i.e., -M filter,inputs")
 	flagMonitorOnlyInputs      = fsMonitor.StringP("input", "I", "", "show only specified inputs stats, seprated by ',', i.e., -I cpu,mem")
 	flagMonitorFilePath        = fsMonitor.StringP("path", "P", "", "specify the metric file path")
+	flagMonitorQuantile        = fsMonitor.StringP("quantile", "Q", "", "select quantiles(50/90/99) of summaries, default are avg values")
 	flagMonitorTimestamp       = fsMonitor.Int64P("timestamp", "T", 0, "specify the timestamp(ms) of these metrics")
-	flagDumpMetrics            = fsMonitor.Bool("dump-metrics", false, "dump monitor metrics to local file .monitor-metrics")
+	flagMonitorDumpMetrics     = fsMonitor.Bool("dump-metrics", false, "dump monitor metrics to local file .monitor-metrics")
 	fsMonitorUsage             = func() {
 		cp.Printf("usage: datakit monitor [options]\n\n")
 		cp.Printf("Monitor used to show datakit running statistics\n\n")
@@ -193,8 +194,10 @@ var (
 		"export regex match results, provide a configuration file where the first line is a regular expression and the rest of the file is text.")
 	flagDebugPromConf = fsDebug.String("prom-conf", "", "specify the prom input conf to debug")
 
-	flagDebugBugReport               = fsDebug.Bool("bug-report", false, "export DataKit running information for troubleshooting")
-	flagDebugBugreportOSS            = fsDebug.String("oss", "", "upload bug report file to specified object storage(format host:bucket:ak:sk)")
+	flagDebugBugReport        = fsDebug.Bool("bug-report", false, "export DataKit running information for troubleshooting")
+	flagDebugBugreportOSS     = fsDebug.String("oss", "", "upload bug report file to specified object storage(format host:bucket:ak:sk)")
+	flagDebugBugreportDataway = fsDebug.String("bug-report-dataway", "",
+		"custom dataway URL for bug report upload, multiple URLs separated by comma")
 	flagDebugBugreportDisableProfile = fsDebug.Bool("disable-profile", false, "disable profile collection when running bug-report")
 	flagDebugBugreportNMetrics       = fsDebug.Int("nmetrics", 3, "collect N batch of datakit metrics")
 	flagDebugBugreportTag            = fsDebug.String("tag", "", "ping a tag to current bug report")
@@ -241,6 +244,9 @@ var (
 
 	flagToolChangeDockerContainersRuntime = fsTool.String("change-docker-containers-runtime", "",
 		"change the runtime of the created container, the value is runc or dk-runc")
+
+	flagToolIngestionCanary      = fsTool.Bool("ingestion-canary", false, "test ingestion latency for metric/logging/tracing data")
+	flagToolIngestionCanaryIndex = fsTool.String("ingestion-canary-index", "default", "storage index for logging data (only for ingestion-canary)")
 
 	fsToolUsage = func() {
 		cp.Printf("usage: datakit tool [options]\n\n")

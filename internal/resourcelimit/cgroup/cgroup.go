@@ -28,9 +28,10 @@ var (
 )
 
 const (
-	cgroupName         = "datakit"
-	defaultCgroup2Path = "/sys/fs/cgroup"
-	MB                 = 1024 * 1024
+	cgroupName            = "datakit"
+	defaultCgroup2Path    = "/sys/fs/cgroup"
+	defaultMemorySwapPath = "/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes"
+	MB                    = 1024 * 1024
 )
 
 type CgroupOptions struct {
@@ -136,20 +137,34 @@ func (c *Cgroup) delControl() {
 func (c *Cgroup) start() error {
 	resource := c.makeLinuxResource()
 	pid := os.Getpid()
-	if cgroups.Mode() == cgroups.Unified {
-		l.Infof("use cgroup V2")
+	cgroupMode := cgroups.Mode()
+	l.Infof("cgroup mode:%v", cgroupMode)
+
+	if cgroupMode == cgroups.Unified || cgroupMode == cgroups.Hybrid {
+		l.Infof("try cgroup V2 first")
 		c.opt.version = "v2"
 		c.err = c.setupV2(resource, pid)
-	} else {
-		c.opt.version = "v1"
-		l.Infof("use cgroup V1")
-		c.err = c.setupV1(resource, pid)
+
+		if c.err == nil {
+			l.Infof("add Datakit pid:%d to cgroup V2", pid)
+			return nil
+		}
+
+		l.Warnf("cgroup V2 setup failed: %v, fallback to V1", c.err)
 	}
+
+	l.Infof("use cgroup V1")
+	c.opt.version = "v1"
+	if _, err := os.Stat(defaultMemorySwapPath); err != nil {
+		resource.Memory.Swap = nil
+		l.Infof("system does not support swap in cgroup v1, skip setting swap limit")
+	}
+	c.err = c.setupV1(resource, pid)
 
 	if c.err != nil {
 		return fmt.Errorf("cgroup setup err=%w", c.err)
 	} else {
-		l.Infof("add Datakit pid:%d to cgroup", pid)
+		l.Infof("add Datakit pid:%d to cgroup V1", pid)
 	}
 
 	return nil

@@ -224,9 +224,20 @@ The default logging level for DataKit is `info`. Edit `datakit.conf` to modify t
 - `level`: When you set it to `debug`, you can see more logs (currently only the `debug/info` levels are supported).
 - `rotate`: DataKit slices the log by default. The default slice size is 32MB, and there are 6 slices in total (1 current write slice plus 5 cut slices, and the number of slices is not yet supported). If you dislike that DataKit logs take up too much disk space (maximum 32 x 6 = 192MB), reduce the `rotate` size (for example, change it to 4 in MB). HTTP access logs are automatically cut in the same way.
 
+???+ topic
+
+    DataKit does not collect its own logs by default. You can enable it through configuration. For details, see [Best Practices for DataKit Self-Log Collection](datakit-self-logs.md).
+
 ## Advanced Configuration {#advance-config}
 
 The following content involves some advanced configuration. If you are not sure about the configuration, it is recommended to consult our technical experts.
+
+### Aggregation and Tail Sampling {#aggregator-tail-sampling}
+
+If you need to continue configuring `Aggregator`, `aggr.toml`, or `tail-sampling.toml`, see the following documents:
+
+- [Aggregator Configuration](aggregator.md)
+- [Tail Sampling Configuration](aggregator.md#tail-sampling-config)
 
 ### Time Calibration {#ntp}
 

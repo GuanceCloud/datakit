@@ -22,6 +22,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
@@ -56,7 +57,7 @@ type pipelineRemoteConfig struct {
 func StartPipelineRemote(urls []string, ipr IPipelineRemote) {
 	runPipelineRemote.Do(func() {
 		l = logger.SLogger(pipelineRemoteName)
-		g := datakit.G("pipeline_remote")
+		g := goroutine.G("pipeline_remote")
 		g.Go(func(ctx context.Context) error {
 			l.Info("start pipeline remote...")
 

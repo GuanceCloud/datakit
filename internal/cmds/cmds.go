@@ -9,10 +9,13 @@ package cmds
 import (
 	"github.com/GuanceCloud/cliutils/logger"
 	prompt "github.com/c-bata/go-prompt"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/endpoint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
 
@@ -25,7 +28,7 @@ var (
 	}
 
 	l = logger.DefaultSLogger("cmds")
-	g = datakit.G("cmds")
+	g = goroutine.G("cmds")
 )
 
 type completer struct{}
@@ -70,7 +73,7 @@ func setCmdRootLog(rl string) {
 		Level: logger.DEBUG,
 	}
 
-	if rl == "stdout" {
+	if rl == "stdout" { // nolint:goconst
 		lopt.Path = ""
 		lopt.Flags = logger.OPT_DEFAULT | logger.OPT_STDOUT | logger.OPT_COLOR
 	}
@@ -82,6 +85,8 @@ func setCmdRootLog(rl string) {
 	// setup module log, redirect to @rl
 	config.SetLog()
 	export.SetLog()
+	election.SetLog()
+	endpoint.Setup()
 
 	l = logger.SLogger("cmds")
 

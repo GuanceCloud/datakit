@@ -64,9 +64,9 @@ GitLab 需要开启 Prometheus 数据采集功能，开启方式如下（以英�
 
 ### 开启 GitLab CI 可视化 {#ci-visible}
 
-通过配置 GitLab Webhook，可以实现 GitLab CI 可视化。
+通过配置 GitLab Webhook，可以实现 GitLab CI 可视化。在 DataKit 上，接收 GitLab Webhook 的 URL 默认为 `http://DataKit-IP:9529/v1/gitlab`。
 
-在 GitLab 左边栏，转到 {{ UISteps "Settings,Webhooks" ","}} 中，将 URL 配置为第一步的 API 地址，Trigger 配置 **Job events** 和 **Pipeline events** 两项，点击 Add webhook 确认添加；
+在 GitLab 左边栏，转到 {{ UISteps "Settings,Webhooks" ","}} 中，将 URL 配置为上面的地址，Trigger 配置勾选 {{ UISteps "Job events" ","}} 和 {{ UISteps "Pipeline events" ","}} 两项，点击 {{ UISteps "Add webhook" "," }} 确认添加；
 
 ## 指标 {#metric}
 

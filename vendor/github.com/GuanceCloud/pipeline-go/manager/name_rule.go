@@ -19,6 +19,15 @@ func _rumSName(pt *point.Point) string {
 	return ""
 }
 
+func _llmSName(pt *point.Point) string {
+	if id := pt.Get("app_id"); id != nil {
+		if appID, ok := id.(string); ok {
+			return appID + "_" + pt.Name()
+		}
+	}
+	return ""
+}
+
 func _securitySName(pt *point.Point) string {
 	if scheckCat := pt.Get("category"); scheckCat != nil {
 		if cat, ok := scheckCat.(string); ok {
@@ -61,6 +70,8 @@ func ScriptName(relation *ScriptRelation, cat point.Category, pt *point.Point, s
 	switch cat { //nolint:exhaustive
 	case point.RUM:
 		scriptName = _rumSName(pt)
+	case point.LLM:
+		scriptName = _llmSName(pt)
 	case point.Security:
 		scriptName = _securitySName(pt)
 	case point.Tracing, point.Profiling:

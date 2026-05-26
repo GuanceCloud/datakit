@@ -18,9 +18,12 @@ import (
 	"github.com/GuanceCloud/pipeline-go/offload"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/aggr"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 )
+
+const envManualHostname = "ENV_HOSTNAME"
 
 func (c *Config) loadConfdEnvs() {
 	// k8s ENV confd
@@ -160,6 +163,10 @@ func (c *Config) loadLogEnvs() {
 		c.Logging.Log = v
 	}
 
+	if v := datakit.GetEnv("ENV_ERROR_LOG"); v != "" {
+		c.Logging.ErrorLog = v
+	}
+
 	if v := datakit.GetEnv("ENV_GIN_LOG"); v != "" {
 		c.Logging.GinLog = v
 	}
@@ -296,6 +303,11 @@ func (c *Config) loadPointPoolEnvs() {
 }
 
 func (c *Config) loadDatawayEnvs() {
+	if v := datakit.GetEnv("ENV_DATAWAY_SINKER_HEADER_VERSION"); v != "" {
+		l.Info("ENV_DATAWAY_SINKER_HEADER_VERSION set to %q", v)
+		c.Dataway.SinkerHeaderVersion = v
+	}
+
 	if v := datakit.GetEnv("ENV_DATAWAY_DROP_EXPIRED_PACKAGE_AT"); v != "" {
 		l.Info("ENV_DATAWAY_DROP_EXPIRED_PACKAGE_AT set to %q", v)
 
@@ -307,7 +319,6 @@ func (c *Config) loadDatawayEnvs() {
 	}
 
 	if v := datakit.GetEnv("ENV_DATAWAY_TLS_INSECURE"); v != "" {
-		// NOTE: do not checking encoding here, invalid encoding will reset to line-protocol
 		l.Info("ENV_DATAWAY_TLS_INSECURE set to true")
 		c.Dataway.InsecureSkipVerify = true
 	}
@@ -358,7 +369,9 @@ func (c *Config) loadDatawayEnvs() {
 	}
 
 	if v := datakit.GetEnv("ENV_DATAWAY_ENABLE_HTTPTRACE"); v != "" {
-		c.Dataway.EnableHTTPTrace = true
+		if b, err := strconv.ParseBool(v); err == nil {
+			c.Dataway.EnableHTTPTrace = b
+		}
 	}
 
 	if v := datakit.GetEnv("ENV_DATAWAY_HTTP_PROXY"); v != "" {
@@ -713,12 +726,36 @@ func (c *Config) loadHTTPAPIEnvs() {
 		c.HTTPAPI.ListenSocket = v
 	}
 
-	if v := datakit.GetEnv("ENV_HTTP_TIMEOUT"); v != "" {
-		c.HTTPAPI.Timeout = v
+	if v := datakit.GetEnv("ENV_HTTP_IDLE_TIMEOUT"); v != "" {
+		if x, err := time.ParseDuration(v); err != nil {
+			l.Warnf("invalid ENV_HTTP_IDLE_TIMEOUT: %s", err)
+		} else {
+			c.HTTPAPI.IdleTimeout = x
+		}
 	}
 
-	if v := datakit.GetEnv("ENV_HTTP_CLOSE_IDLE_CONNECTION"); v != "" {
-		c.HTTPAPI.CloseIdleConnection = true
+	if v := datakit.GetEnv("ENV_HTTP_READ_TIMEOUT"); v != "" {
+		if x, err := time.ParseDuration(v); err != nil {
+			l.Warnf("invalid ENV_HTTP_READ_TIMEOUT: %s", err)
+		} else {
+			c.HTTPAPI.ReadTimeout = x
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_HTTP_WRITE_TIMEOUT"); v != "" {
+		if x, err := time.ParseDuration(v); err != nil {
+			l.Warnf("invalid ENV_HTTP_WRITE_TIMEOUT: %s", err)
+		} else {
+			c.HTTPAPI.WriteTimeout = x
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_HTTP_READ_HEADER_TIMEOUT"); v != "" {
+		if x, err := time.ParseDuration(v); err != nil {
+			l.Warnf("invalid ENV_HTTP_READ_HEADER_TIMEOUT: %s", err)
+		} else {
+			c.HTTPAPI.ReadHeaderTimeout = x
+		}
 	}
 
 	if v := datakit.GetEnv("ENV_HTTP_PUBLIC_APIS"); v != "" {
@@ -757,19 +794,24 @@ func (c *Config) loadHTTPAPIEnvs() {
 	}
 }
 
-func (c *Config) setNodenameAsHostname() {
-	var nodeName string
-
+func doGetNodename() string {
 	for _, x := range []string{
 		"ENV_K8S_NODE_NAME",
 		"NODE_NAME", // Deprecated
 	} {
 		if v := datakit.GetEnv(x); v != "" {
-			c.hostname = v
-			datakit.DKHost = v
-			nodeName = v
-			break
+			return v
 		}
+	}
+
+	return ""
+}
+
+func (c *Config) setNodenameAsHostname() {
+	nodeName := doGetNodename()
+	if nodeName != "" {
+		c.hostname = nodeName
+		datakit.DKHost = nodeName
 	}
 
 	if v := datakit.GetEnv("ENV_K8S_CLUSTER_NODE_NAME"); v != "" {
@@ -783,6 +825,60 @@ func (c *Config) setNodenameAsHostname() {
 				nodeNameSuffix = v[index+len(nodeName):]
 			}
 		}
+	}
+}
+
+func (c *Config) loadAggregatorEnvs() {
+	if c.Aggregator == nil {
+		c.Aggregator = &aggr.Aggregator{}
+	}
+
+	if v := datakit.GetEnv("ENV_AGGREGATOR_ENDPOINTS"); v != "" {
+		parts := strings.Split(v, ",")
+		endpoints := make([]string, 0, len(parts))
+		for _, part := range parts {
+			if s := strings.TrimSpace(part); s != "" {
+				endpoints = append(endpoints, s)
+			}
+		}
+		c.Aggregator.Endpoints = endpoints
+	}
+
+	if v := datakit.GetEnv("ENV_AGGREGATOR_TIMEOUT"); v != "" {
+		if du, err := time.ParseDuration(v); err != nil {
+			l.Warnf("invalid ENV_AGGREGATOR_TIMEOUT: %s, ignored", err)
+		} else {
+			c.Aggregator.Timeout = du
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_AGGREGATOR_MAX_RAW_BODY_SIZE"); v != "" {
+		value, err := strconv.ParseInt(v, 10, 64)
+		if err != nil || value <= 0 {
+			l.Warnf("invalid ENV_AGGREGATOR_MAX_RAW_BODY_SIZE: %s, ignored", v)
+		} else {
+			c.Aggregator.MaxRawBodySize = int(value)
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_AGGREGATOR_USE_LOCAL_CONFIG"); v != "" {
+		if b, err := strconv.ParseBool(v); err != nil {
+			l.Warnf("invalid ENV_AGGREGATOR_USE_LOCAL_CONFIG: %s, ignored", err)
+		} else {
+			c.Aggregator.UseLocalConfig = b
+		}
+	}
+
+	if v := datakit.GetEnv("ENV_AGGREGATOR_LOCAL_CONFIG_DIR"); v != "" {
+		c.Aggregator.LocalConfigDir = v
+	}
+
+	if v := datakit.GetEnv("ENV_AGGREGATOR_LOCAL_METRIC_CONFIG_FILE"); v != "" {
+		c.Aggregator.LocalMetricConfigFile = v
+	}
+
+	if v := datakit.GetEnv("ENV_AGGREGATOR_LOCAL_TAIL_SAMPLING_CONFIG_FILE"); v != "" {
+		c.Aggregator.LocalTailSamplingConfigFile = v
 	}
 }
 
@@ -811,6 +907,7 @@ func (c *Config) LoadEnvs() error {
 	c.loadPipelineEnvs()
 	c.loadHTTPAPIEnvs()
 	c.loadElectionEnvs()
+	c.loadAggregatorEnvs()
 
 	for _, x := range []string{
 		"ENV_GLOBAL_HOST_TAGS",
@@ -837,12 +934,9 @@ func (c *Config) LoadEnvs() error {
 	}
 
 	// misc
-	if v := datakit.GetEnv("ENV_HOSTNAME"); v != "" {
+	if v := datakit.GetEnv(envManualHostname); v != "" {
 		c.hostname = v
-	}
-
-	if v := datakit.GetEnv("ENV_NAME"); v != "" {
-		c.Name = v
+		datakit.DKHost = v
 	}
 
 	c.loadDCAEnvs()

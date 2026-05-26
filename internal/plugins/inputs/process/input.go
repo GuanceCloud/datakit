@@ -24,6 +24,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
@@ -31,7 +32,9 @@ import (
 )
 
 var (
-	l                                  = logger.DefaultSLogger(inputName)
+	l       = logger.DefaultSLogger(inputName)
+	logRate = 1.0 // 1 log/sec
+
 	minObjectInterval                  = time.Second * 30
 	maxObjectInterval                  = time.Minute * 15
 	minMetricInterval                  = time.Second * 10
@@ -81,7 +84,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 }
 
 func (ipt *Input) Run() {
-	l = logger.SLogger(inputName)
+	l = logger.SLogger(inputName, logger.WithRateLimiter(logRate, ""))
 
 	l.Info("process start...")
 	for _, x := range ipt.MatchedProcessNames {
@@ -101,7 +104,7 @@ func (ipt *Input) Run() {
 	tick := time.NewTicker(ipt.ObjectInterval.Duration)
 	defer tick.Stop()
 	if ipt.OpenMetric {
-		g := datakit.G("inputs_process")
+		g := goroutine.G("inputs_process")
 		g.Go(func(ctx context.Context) error {
 			ipt.MetricInterval.Duration = config.ProtectedInterval(minMetricInterval,
 				maxMetricInterval,
@@ -170,7 +173,7 @@ func (ipt *Input) matched(name string) bool {
 func (ipt *Input) getProcesses(match bool) (processList []*pr.Process) {
 	pses, err := pr.Processes()
 	if err != nil {
-		l.Warnf("get process err: %s", err.Error())
+		l.RLWarnf(logRate, "get process err: %s", err.Error())
 		ipt.lastErr = err
 		return
 	}
@@ -178,7 +181,7 @@ func (ipt *Input) getProcesses(match bool) (processList []*pr.Process) {
 	for _, ps := range pses {
 		name, err := ps.Name()
 		if err != nil {
-			l.Warnf("ps.Name: %s", err)
+			l.RLWarnf(logRate, "ps.Name: %s", err)
 			continue
 		}
 
@@ -193,7 +196,7 @@ func (ipt *Input) getProcesses(match bool) (processList []*pr.Process) {
 
 		t, err := ps.CreateTime()
 		if err != nil {
-			l.Warnf("ps.CreateTime: %s", err)
+			l.RLWarnf(logRate, "ps.CreateTime: %s", err)
 			continue
 		}
 
@@ -212,15 +215,14 @@ func getUser(proc *pr.Process) (string, error) {
 	if err != nil {
 		uid, err := proc.Uids()
 		if err != nil {
-			l.Warnf("process %v, proc.Uids(): %s", proc, err.Error())
+			l.RLWarnf(logRate, "process %v, proc.Uids(): %s", proc, err.Error())
 			return "", fmt.Errorf("proc.Uids(): %w", err)
 		}
 
 		u, err := luser.LookupId(fmt.Sprintf("%d", uid[0])) //nolint:stylecheck
 		if err != nil {
-			// 此处错误极多，故将其 disable 掉，一般的报错是：unknown userid xxx
 			if !strings.Contains(err.Error(), ignoreError) {
-				l.Debugf("process %v, LookupId(): %s", proc, err.Error())
+				l.RLWarnf(logRate, "process %v, LookupId(): %s", proc, err.Error())
 			}
 			return "", fmt.Errorf("luser.LookupId(): %w", err)
 		}
@@ -233,7 +235,7 @@ func getUser(proc *pr.Process) (string, error) {
 func getCreateTime(ps *pr.Process) int64 {
 	start, err := ps.CreateTime()
 	if err != nil {
-		l.Warnf("get start time err:%s", err.Error())
+		l.RLWarnf(logRate, "get start time err:%s", err.Error())
 		if bootTime, err := host.BootTime(); err != nil {
 			return int64(bootTime) * 1000
 		}
@@ -261,12 +263,12 @@ func (ipt *Input) Parse(proc *pr.Process, procRec *procRecorder, tn time.Time) p
 	if containerID := getContainerID(proc); containerID != "" {
 		kvs = kvs.AddTag("container_id", containerID)
 	} else if ipt.OnlyContainerProcesses {
-		l.Debugf("ignore non-container process %v", proc)
+		l.RLInfof(logRate, "ignore non-container process %v", proc)
 		return nil
 	}
 
 	if x, err := proc.Name(); err != nil {
-		l.Warnf("process: %v, proc.Name(): %s", proc, err.Error())
+		l.RLWarnf(logRate, "process: %v, proc.Name(): %s", proc, err.Error())
 	} else {
 		kvs = kvs.AddTag("process_name", x)
 	}
@@ -279,21 +281,21 @@ func (ipt *Input) Parse(proc *pr.Process, procRec *procRecorder, tn time.Time) p
 
 	// you may get a null pointer here
 	if x, err := proc.MemoryInfo(); err != nil {
-		l.Warnf("process: %v, proc.MemoryInfo(): %s", proc, err.Error())
+		l.RLWarnf(logRate, "process: %v, proc.MemoryInfo(): %s", proc, err.Error())
 	} else {
 		kvs = kvs.Add("rss", x.RSS)
 		kvs = kvs.Add("vms", x.VMS)
 	}
 
 	if x, err := proc.MemoryPercent(); err != nil {
-		l.Warnf("process: %v, proc.MemoryPercent(): %s", proc, err.Error())
+		l.RLWarnf(logRate, "process: %v, proc.MemoryPercent(): %s", proc, err.Error())
 	} else {
 		kvs = kvs.Add("mem_used_percent", x)
 	}
 
 	// you may get a null pointer here
 	if _, err := proc.Times(); err != nil {
-		l.Warnf("process: %v, proc.Times(): %s", proc, err.Error())
+		l.RLWarnf(logRate, "process: %v, proc.Times(): %s", proc, err.Error())
 	} else {
 		cpuUsage := calculatePercent(proc, tn)
 		cpuUsageTop := procRec.calculatePercentTop(proc, tn)
@@ -307,13 +309,13 @@ func (ipt *Input) Parse(proc *pr.Process, procRec *procRecorder, tn time.Time) p
 	}
 
 	if x, err := proc.NumThreads(); err != nil {
-		l.Warnf("process: %v, proc.NumThreads(): %s", proc, err.Error())
+		l.RLWarnf(logRate, "process: %v, proc.NumThreads(): %s", proc, err.Error())
 	} else {
 		kvs = kvs.Add("threads", x)
 	}
 
 	if x, err := proc.IOCounters(); err != nil {
-		l.Warnf("process: %v, proc.IOCounters(): %s", proc, err.Error())
+		l.RLWarnf(logRate, "process: %v, proc.IOCounters(): %s", proc, err.Error())
 	} else {
 		kvs = kvs.Add("proc_syscr", x.ReadCount)
 		kvs = kvs.Add("proc_syscw", x.WriteCount)
@@ -322,14 +324,14 @@ func (ipt *Input) Parse(proc *pr.Process, procRec *procRecorder, tn time.Time) p
 	}
 
 	if x, err := proc.NumCtxSwitches(); err != nil {
-		l.Warnf("process: %v, proc.NumCtxSwitches(): %s", proc, err.Error())
+		l.RLWarnf(logRate, "process: %v, proc.NumCtxSwitches(): %s", proc, err.Error())
 	} else {
 		kvs = kvs.Add("voluntary_ctxt_switches", x.Voluntary)
 		kvs = kvs.Add("nonvoluntary_ctxt_switches", x.Involuntary)
 	}
 
 	if x, err := proc.PageFaults(); err != nil {
-		l.Warnf("process: %v, proc.PageFaults(): %s", proc, err.Error())
+		l.RLWarnf(logRate, "process: %v, proc.PageFaults(): %s", proc, err.Error())
 	} else {
 		kvs = kvs.Add("page_minor_faults", x.MinorFaults)
 		kvs = kvs.Add("page_major_faults", x.MajorFaults)
@@ -339,7 +341,7 @@ func (ipt *Input) Parse(proc *pr.Process, procRec *procRecorder, tn time.Time) p
 
 	if runtime.GOOS == "linux" {
 		if x, err := proc.NumFDs(); err != nil {
-			l.Warnf("process: %v, proc.NumFDs(): %s", proc, err.Error())
+			l.RLWarnf(logRate, "process: %v, proc.NumFDs(): %s", proc, err.Error())
 		} else {
 			kvs = kvs.Add("open_files", x)
 		}
@@ -365,7 +367,7 @@ func (ipt *Input) collectObject(processList []*pr.Process, tn time.Time) {
 
 		if ipt.ListenPorts {
 			if listeningPorts, err := getListeningPortsJSON(proc); err != nil {
-				l.Warnf("getListeningPortsJSON(): %s", err)
+				l.RLWarnf(logRate, "getListeningPortsJSON(): %s", err)
 			} else {
 				kvs = kvs.Add("listen_ports", string(listeningPorts))
 			}
@@ -380,8 +382,8 @@ func (ipt *Input) collectObject(processList []*pr.Process, tn time.Time) {
 		}
 
 		// Add extra tag/field to process object
-		if x, err := proc.Status(); err != nil {
-			l.Warnf("process: %v, proc.Status(): %s", proc, err.Error())
+		if x, err := getProcessStatus(proc); err != nil {
+			l.RLWarnf(logRate, "process: %v, proc.Status(): %s", proc, err.Error())
 		} else {
 			kvs = kvs.AddTag("state", x[0])
 			if x[0] == pr.Zombie {
@@ -399,7 +401,7 @@ func (ipt *Input) collectObject(processList []*pr.Process, tn time.Time) {
 
 		if runtime.GOOS == "linux" {
 			if dir, err := proc.Cwd(); err != nil {
-				l.Warnf("process: %v, get work_directory err:%s", proc, err.Error())
+				l.RLWarnf(logRate, "process: %v, get work_directory err:%s", proc, err.Error())
 			} else {
 				kvs = kvs.Add("work_directory", dir)
 			}
@@ -407,7 +409,7 @@ func (ipt *Input) collectObject(processList []*pr.Process, tn time.Time) {
 
 		if cmd, err := proc.Cmdline(); cmd == "" {
 			if err != nil {
-				l.Warnf("process: %v, proc.Cmdline(): %s", proc, err.Error())
+				l.RLWarnf(logRate, "process: %v, proc.Cmdline(): %s", proc, err.Error())
 			}
 
 			// use proc-name as cmdline
@@ -429,14 +431,14 @@ func (ipt *Input) collectObject(processList []*pr.Process, tn time.Time) {
 
 		// get full info of mem info
 		if x, err := proc.MemoryInfo(); err != nil {
-			l.Warnf("process: %v, proc.MemoryInfo(): %s", proc, err.Error())
+			l.RLWarnf(logRate, "process: %v, proc.MemoryInfo(): %s", proc, err.Error())
 		} else {
 			message["memory"] = x
 		}
 
 		// cpu-time metrics has collected in top kvs. here we get a duplicated for compatibility.
 		if x, err := proc.Times(); err != nil {
-			l.Warnf("process: %v, proc.Times(): %s", proc, err.Error())
+			l.RLWarnf(logRate, "process: %v, proc.Times(): %s", proc, err.Error())
 		} else {
 			message["cpu"] = x
 		}
@@ -474,13 +476,13 @@ func (ipt *Input) collectMetric(processList []*pr.Process, tn time.Time) {
 	for _, proc := range processList {
 		cmdline, err := proc.Cmdline() // 无cmd的进程 没有采集指标的意义
 		if err != nil || cmdline == "" {
-			l.Warnf("Cmdline(): %s, err: %v, ignored", proc.String(), err)
+			l.RLWarnf(1, "Cmdline(): %s, err: %v, ignored", proc.String(), err)
 			continue
 		}
 
 		kvs := ipt.Parse(proc, ipt.mrec, tn)
 		if kvs.FieldCount() == 0 {
-			l.Warnf("no field on process %v, ignored", proc)
+			l.RLWarnf(1, "no field on process %v, ignored", proc)
 			continue
 		}
 

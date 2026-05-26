@@ -67,12 +67,98 @@ java -jar </path/to/jolokia-jvm-agent.jar> --host 127.0.0.1 --port=8080 start <K
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 <!-- markdownlint-enable -->
 
+### Collection Mode {#collection-mode}
+
+The Kafka collector supports two collection modes:
+
+1. **Auto Collect Mode** (default): Automatically discovers and collects all Kafka-related MBean metrics (``kafka.*:*``) without manual configuration.
+2. **Manual Mode**: Requires manual configuration of MBean metrics to collect via `[[inputs.kafka.metric]]` configuration items.
+
+#### Auto Collect Mode (Default) {#enable-auto-collect-mode}
+
+By default, the Kafka collector uses auto collect mode, which automatically discovers and collects all Kafka MBean metrics. No additional configuration is required:
+
+```toml
+[[inputs.kafka]]
+  urls = ["http://localhost:8080/jolokia"]
+  enable_auto_collect = true  # Enabled by default
+```
+
+> **Important**: When auto collect mode is enabled, all metrics will be unified into the `kafka` measurement, and field names will follow the `domain.type.name.attr` format. If you need to use the previous measurements (such as `kafka_controller`, `kafka_replica_manager`, `kafka_topic`, etc.) and field names, please set `enable_auto_collect = false` and use manual mode for configuration.
+
+##### MBean Blacklist {#mbean-blacklist}
+
+In auto collect mode, you can exclude unwanted MBeans using the `mbean_blacklist` configuration item (supports wildcards `*` and `?`):
+
+```toml
+[[inputs.kafka]]
+  mbean_blacklist = [
+    "kafka.log:*",  # Exclude all MBeans under kafka.log domain
+    "kafka.server:name=*,topic=*,type=BrokerTopicMetrics",  # Exclude all topic-level BrokerTopicMetrics MBeans
+  ]
+```
+
+##### Field Naming Rules {#field-naming-rules}
+
+In auto collect mode, field names follow this format: `domain.type.name.attr`
+
+- `domain`: MBean domain name (e.g., `kafka.server`, `kafka.controller`)
+- `type`: MBean type property value (e.g., `BrokerTopicMetrics`, `ReplicaManager`)
+- `name`: MBean name property value (e.g., `MessagesInPerSec`, `BytesInPerSec`)
+- `attr`: MBean attribute name (e.g., `Count`, `Value`, `MeanRate`, `OneMinuteRate`, `FiveMinuteRate`, `FifteenMinuteRate`)
+
+Common MBean attributes include:
+
+- `Count`: Cumulative value since startup
+- `Value`: Current value (for Gauge type metrics)
+- `MeanRate`: Average rate since startup
+- `OneMinuteRate`: Average rate over the last minute
+- `FiveMinuteRate`: Average rate over the last five minutes
+- `FifteenMinuteRate`: Average rate over the last fifteen minutes
+
+Example field names:
+
+- `kafka.controller.KafkaController.GlobalTopicCount.Value`: Global topic count
+- `kafka.server.ReplicaManager.PartitionCount.Value`: Number of partitions
+
+##### Tag Extraction Rules {#tag-extraction-rules}
+
+Auto collect mode extracts tags from MBean properties. Common tags include:
+
+- `request`: Request type
+- `topic`: Kafka topic name
+- `delayedOperation`: Delayed operation type
+- `error`: Error type
+- `version`: Version information
+- `partition`: Kafka partition ID
+
+> Note: `domain`, `type`, and `name` will not be used as tags by default. These are included as part of the field name (format: `domain.type.name.attr`).
+
+???+ tip "MBean Reference Documentation"
+
+For detailed information about Kafka MBeans and their meanings, please refer to the [Kafka official documentation](https://kafka.apache.org/documentation/#monitoring){:target="_blank"} monitoring metrics section.
+
+#### Using Manual Mode {#manual-mode}
+
+If you need to use manual mode, set `enable_auto_collect = false` and configure `[[inputs.kafka.metric]]` items:
+
+```toml
+[[inputs.kafka]]
+  urls = ["http://localhost:8080/jolokia"]
+  enable_auto_collect = false
+
+  [[inputs.kafka.metric]]
+    name         = "kafka_controller"
+    mbean        = "kafka.controller:name=*,type=*"
+    field_prefix = "#1."
+```
+
 ## Metric {#metric}
 
 For all of the following data collections, the global election tags will added automatically, we can add extra tags in `[inputs.{{.InputName}}.tags]` if needed:
 
-``` toml
- [inputs.{{.InputName}}.tags]
+```toml
+[inputs.{{.InputName}}.tags]
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...
@@ -121,7 +207,7 @@ The list of cut fields is as follows:
 ## FAQ {#faq}
 
 <!-- markdownlint-disable MD013 -->
-### Why can't see `kafka_producer/kafka_producer/kafka_connect` measurements? {#faq-no-data}
+### Why can't see `kafka_producer/kafka_consumer/kafka_connect` measurements? {#faq-no-data}
 
 After Kafka service is started, if you need to collect Producer/Consumer/Connector indicators, you need to configure Jolokia for them respectively.
 

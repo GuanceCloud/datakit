@@ -35,7 +35,18 @@ func doSetStdoutLogger(opt *Option) error {
 	// reset default stdout logger
 	defaultStdoutRootLogger = nil
 	var err error
-	defaultStdoutRootLogger, err = stdoutLogger(opt.Level, opt.Flags)
+	defaultStdoutRootLogger, err = stdoutLoggerWithErrors(opt.Level, opt.ErrorPath, opt.Flags)
+	if err != nil {
+		return fmt.Errorf("stdoutLogger: %w", err)
+	}
+	return nil
+}
+
+func doSetStdoutLoggerWithErrors(opt *Option) error { // nolint:deadcode,unused
+	// reset default stdout logger
+	defaultStdoutRootLogger = nil
+	var err error
+	defaultStdoutRootLogger, err = stdoutLoggerWithErrors(opt.Level, opt.ErrorPath, opt.Flags)
 	if err != nil {
 		return fmt.Errorf("stdoutLogger: %w", err)
 	}
@@ -45,7 +56,17 @@ func doSetStdoutLogger(opt *Option) error {
 func stdoutLogger(level string, options int) (*zap.Logger, error) {
 	opt := options | OPT_STDOUT
 
-	if rootlogger, err := newRootLogger("", level, opt); err != nil {
+	if rootlogger, err := newRootLogger("", "", level, opt); err != nil {
+		return nil, err
+	} else {
+		return rootlogger, err
+	}
+}
+
+func stdoutLoggerWithErrors(level, errorPath string, options int) (*zap.Logger, error) {
+	opt := options | OPT_STDOUT
+
+	if rootlogger, err := newRootLogger("", errorPath, level, opt); err != nil {
 		return nil, err
 	} else {
 		return rootlogger, err

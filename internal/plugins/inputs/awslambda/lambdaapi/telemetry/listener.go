@@ -14,8 +14,6 @@ import (
 	"net/http"
 	"os"
 
-	"go.uber.org/zap"
-
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/awslambda/lambdaapi/consts"
 )
 
@@ -86,10 +84,6 @@ func (s *Listener) HandlerTelemetry(_ http.ResponseWriter, r *http.Request) erro
 		return err
 	}
 
-	if l.Level() <= zap.DebugLevel {
-		l.Debug("telemetry body\n", string(body))
-	}
-
 	// Parse and put the log messages into the queue.
 	var events []*Event
 	err = json.Unmarshal(body, &events)
@@ -98,7 +92,7 @@ func (s *Listener) HandlerTelemetry(_ http.ResponseWriter, r *http.Request) erro
 		return err
 	}
 
-	l.Debugf("send %d events to eventsChan", len(events))
+	l.Debugf("telemetry body received: events=%d bytes=%d", len(events), len(body))
 	s.eventsChan <- events
 
 	return nil

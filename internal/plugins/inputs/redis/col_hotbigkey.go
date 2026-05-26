@@ -21,50 +21,40 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (
 	keyBatchScanCostVec = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
-			Namespace: "datakit",
-			Subsystem: "input_redis",
-			Name:      "key_scan_seconds",
-			Help:      "Batch key scan cost in seconds.",
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Namespace:  "datakit",
+			Subsystem:  "input_redis",
+			Name:       "key_scan_seconds",
+			Help:       "Batch key scan cost in seconds.",
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"jobs"},
 	)
 
 	keyScannedVec = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
-			Namespace: "datakit",
-			Subsystem: "input_redis",
-			Name:      "scanned_keys",
-			Help:      "Number of keys scanned.",
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Namespace:  "datakit",
+			Subsystem:  "input_redis",
+			Name:       "scanned_keys",
+			Help:       "Number of keys scanned.",
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"job"},
 	)
 
 	dbScanCostVec = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
-			Namespace: "datakit",
-			Subsystem: "input_redis",
-			Name:      "db_scan_seconds",
-			Help:      "Total DB scan cost in seconds.",
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
+			Namespace:  "datakit",
+			Subsystem:  "input_redis",
+			Name:       "db_scan_seconds",
+			Help:       "Total DB scan cost in seconds.",
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"job"},
 	)
@@ -137,7 +127,7 @@ type hotbigkeyScanner struct {
 	freqCmds []*redis.Cmd
 	bigMemCmds []*redis.IntCmd
 
-	mode, role, replicaof, addr string
+	mode, role, replicaof, addr, host string
 
 	htick, btick *time.Ticker
 	stop         chan any
@@ -535,8 +525,9 @@ func (scanner *hotbigkeyScanner) mergeHotKeys(h *keyInfo) {
 
 func (i *instance) hotbigPoints(scanner *hotbigkeyScanner) []*point.Point {
 	var (
-		pts    []*point.Point
-		dbName = fmt.Sprintf("db%d", scanner.db)
+		pts        []*point.Point
+		dbName     = fmt.Sprintf("db%d", scanner.db)
+		mergedTags = i.buildNodeTags(scanner.addr, scanner.host)
 	)
 
 	opts := append(point.DefaultLoggingOptions(), point.WithTime(ntp.Now()))
@@ -549,10 +540,9 @@ func (i *instance) hotbigPoints(scanner *hotbigkeyScanner) []*point.Point {
 			AddTag("db_name", dbName).
 			AddTag("key", ki.key).
 			Add("status", "info").
-			AddTag("key_type", ki.keyt).
-			AddTag("server", scanner.addr)
+			AddTag("key_type", ki.keyt)
 
-		for k, v := range i.mergedTags {
+		for k, v := range mergedTags {
 			kvs = kvs.AddTag(k, v)
 		}
 
@@ -567,8 +557,7 @@ func (i *instance) hotbigPoints(scanner *hotbigkeyScanner) []*point.Point {
 			Set("keys_sampled", scanner.sampled).
 			AddTag("db_name", dbName).
 			AddTag("key", ki.key).
-			AddTag("key_type", ki.keyt).
-			AddTag("server", scanner.addr)
+			AddTag("key_type", ki.keyt)
 
 		msg := fmt.Sprintf("memory larger than %d bytes", scanner.BigkeyThreshouldMem)
 		if ki.cnt > 0 {
@@ -583,7 +572,7 @@ func (i *instance) hotbigPoints(scanner *hotbigkeyScanner) []*point.Point {
 			kvs = kvs.Add("status", "info")
 		}
 
-		for k, v := range i.mergedTags {
+		for k, v := range mergedTags {
 			kvs = kvs.AddTag(k, v)
 		}
 
@@ -600,8 +589,7 @@ func (i *instance) hotbigPoints(scanner *hotbigkeyScanner) []*point.Point {
 				Set("keys_sampled", scanner.sampled).
 				AddTag("db_name", dbName).
 				AddTag("key", ki.key).
-				AddTag("key_type", ki.keyt).
-				AddTag("server", scanner.addr)
+				AddTag("key_type", ki.keyt)
 
 			msg := fmt.Sprintf("elements larger than %d", scanner.BigkeyThreshouldLen)
 			if ki.cnt > 0 {
@@ -616,7 +604,7 @@ func (i *instance) hotbigPoints(scanner *hotbigkeyScanner) []*point.Point {
 				kvs = kvs.Add("status", "info")
 			}
 
-			for k, v := range i.mergedTags {
+			for k, v := range mergedTags {
 				kvs = kvs.AddTag(k, v)
 			}
 
@@ -649,6 +637,7 @@ func (i *instance) setupHotBigKeyScanners() {
 		scanner.cc = i.cc
 		scanner.addr = i.addr
 		scanner.replicaof = i.addr
+		scanner.host = i.host
 
 		l.Infof("add hot/big key scanner on node %s: %s", i.addr, scanner)
 
@@ -666,6 +655,7 @@ func (i *instance) setupHotBigKeyScanners() {
 		scanner.role = "master"
 		scanner.cc = i.cc
 		scanner.addr = i.addr
+		scanner.host = i.host
 
 		l.Infof("start hot/big key scanner on master node %s: %s", i.addr, scanner)
 		scanners = append(scanners, scanner)
@@ -693,6 +683,7 @@ func (i *instance) randomScannerReplica(scanner *hotbigkeyScanner) {
 			}
 			scanner.cc = rep.cc
 			scanner.addr = rep.addr
+			scanner.host = rep.host
 
 			l.Infof("scanner switched to %s", scanner)
 		}

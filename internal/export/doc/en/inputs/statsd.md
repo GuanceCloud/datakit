@@ -86,6 +86,35 @@ In addition, there is a configuration switch `save_above_key` that determine whe
 
 ## Metric {#metric}
 
-Statsd has no measurement definition at present, and all metrics are subject to the metrics sent by the network.
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.{{.InputName}}.tags]`:
 
-For example, if Tomcat or Kafka uses the default indicator set, [GitHub can view all indicator sets](https://docs.datadoghq.com/integrations/){:target="_blank"}
+``` toml
+ [inputs.{{.InputName}}.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+  # ...
+```
+
+{{ range $i, $m := .Measurements }}
+{{if eq $m.Type "metric"}}
+
+### `{{$m.Name}}`
+
+{{$m.MarkdownTable}}
+
+{{ end }}
+{{ end }}
+
+## Logging {#logging}
+
+statsd will export some event data, DataKit collect them as logging.
+
+{{ range $i, $m := .Measurements }}
+{{if eq $m.Type "logging"}}
+
+### `{{$m.Name}}`
+
+{{$m.MarkdownTable}}
+
+{{ end }}
+{{ end }}

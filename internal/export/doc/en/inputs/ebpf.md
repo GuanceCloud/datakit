@@ -74,6 +74,169 @@ cat /proc/kallsyms | awk '{print $3}' | grep "^nf_ct_delete$\|^__nf_conntrack_ha
     When the DataKit version is lower than **v1.5.2**, because BPF_FUNC_skb_load_bytes does not exist in Linux Kernel <= 4.4, if you want to enable httpflow, you need Linux Kernel >= 4.5, and this problem will be further optimized;
 <!-- markdownlint-enable -->
 
+<!-- markdownlint-disable MD007 -->
+## Prometheus Self Monitoring {#prometheus-self-metrics}
+
+After `pprof_port` is configured, `datakit-ebpf` exposes both endpoints on the same address:
+
+- `/debug/pprof/`
+- `/metrics`
+
+It is recommended to expose them only on localhost or an internal address, for example:
+
+```toml
+pprof_host = "127.0.0.1"
+pprof_port = "6061"
+```
+
+### OOM-focused Metrics {#prometheus-oom-metrics}
+
+The following metrics are the primary signals for OOM investigation:
+
+- `dkebpf_runtime_memory_bytes{type="rss"}`
+  - Process resident memory, the closest signal to actual OOM pressure
+- `dkebpf_runtime_memory_bytes{type="hwm"}`
+  - Historical peak RSS
+- `dkebpf_runtime_memory_bytes{type="go_total"}`
+  - Major Go runtime memory retained from the OS
+- `dkebpf_runtime_memory_bytes{type="heap_alloc"}`
+  - Actively allocated Go heap memory
+- `dkebpf_runtime_memory_bytes{type="non_go_estimate"}`
+  - Approximate value computed as `rss - go_total`
+  - Useful when RSS grows faster than Go heap, indicating cgo, native buffers, mmap, or other non-Go memory
+- `dkebpf_runtime_memory_ratio{type="non_go_vs_rss"}`
+  - Estimated non-Go memory as a ratio of RSS
+
+Additional detailed Go memory breakdowns are also exposed, including:
+
+- `heap_inuse`
+- `heap_idle`
+- `heap_released`
+- `heap_unused`
+- `stack_inuse`
+- `stack_sys`
+- `mspan_inuse`
+- `mspan_sys`
+- `mcache_inuse`
+- `mcache_sys`
+- `gc_sys`
+- `other_sys`
+- `buck_hash_sys`
+
+Supporting metrics:
+
+- `dkebpf_runtime_memory_objects`
+- `dkebpf_runtime_memory_ops_total`
+- `dkebpf_runtime_gc`
+- `dkebpf_runtime_goroutines`
+
+### Aggregation and Cache Pressure Metrics {#prometheus-agg-metrics}
+
+To avoid high-cardinality self metrics, the eBPF collector only exposes low-cardinality aggregation pressure metrics:
+
+- `dkebpf_exporter_agg_entries{component}`
+  - Current number of keys in an aggregation pool
+- `dkebpf_exporter_agg_flush_points_total{component,result}`
+  - Total number of points emitted by flushes
+- `dkebpf_exporter_agg_flush_duration_seconds{component,result}`
+  - Flush duration
+- `dkebpf_exporter_cache_entries{component,cache}`
+  - Current cache or queue length
+
+The current coverage includes:
+
+- `netflow`
+- `dnsflow`
+- `l4log_netflow`
+- `l4log_httpflow`
+- `l7flow_http`
+- `l4log`
+- `l4log_host_peer_shared`
+
+It also covers several intermediate states, for example:
+
+- `dnsflow` pending query / packet queue / flush queue
+- `l4log` connection pool / two-msl pool / blacklist cache
+- `l7flow` conn map / closed conn map / span buffer
+
+### perf and TPacket Metrics {#prometheus-perf-tpacket-metrics}
+
+The collector also exposes cumulative metrics for perf event streams and `afpacket.TPacket` capture rings:
+
+- `dkebpf_exporter_perf_lost_samples_total{component,stream}`
+  - Number of lost perf samples observed in user space
+- `dkebpf_exporter_perf_read_errors_total{component,stream}`
+  - Number of perf reader errors
+- `dkebpf_exporter_tpacket_stats_total{component,type}`
+  - Cumulative `TPacket` statistics
+  - `type` includes:
+    - `packets`
+    - `drops`
+    - `queue_freezes`
+
+These metrics are intentionally exposed as cumulative counters instead of separate rate gauges.
+Use Prometheus `rate()` or `irate()` when you need rates.
+
+### Exporter Send-path Metrics {#prometheus-exporter-metrics}
+
+If memory growth is caused by write-path slowdown or send backlog, focus on:
+
+- `dkebpf_exporter_sender_queue_length`
+  - Number of pending send tasks
+- `dkebpf_exporter_sender_batch_points`
+  - Distribution of points per send batch
+- `dkebpf_exporter_sender_batch_bytes`
+  - Distribution of encoded bytes per send batch
+- `dkebpf_exporter_sender_requests_total{result}`
+  - Total number of send requests
+- `dkebpf_exporter_sender_request_duration_seconds{result}`
+  - Send request duration
+
+`result` uses low-cardinality enum values such as:
+
+- `ok`
+- `request_error`
+- `http_4xx`
+- `http_5xx`
+
+### Periodic Summary Log {#periodic-summary-log}
+
+In addition to Prometheus metrics, `datakit-ebpf` also sends one low-frequency summary log to DataKit on each collection interval:
+
+- category: `Logging`
+- measurement: `ebpf_monitor`
+- source: `ebpf_monitor`
+- input: `ebpf-monitor`
+
+This log is intended as a supplement to metrics. A single log contains:
+
+- runtime memory summary
+- aggregation and cache sizes
+- NIC group counts and route counts
+- exporter queue size and send-result deltas
+- perf lost / read-error deltas
+- TPacket packets / drops / queue-freezes deltas
+- BPF map fill ratios
+- perf buffer / socket / filter configuration and state summaries
+  - for example, perf reader sizing, shared host-peer socket mode, filter attach outcome, and socket-side drops/freezes context
+
+The log contains a larger `message` field encoded as a fixed-schema JSON summary, while keeping a small set of important numeric fields for filtering and search.
+
+For `perf/ringbuf` configuration, socket-buffer-side status, and shared socket/filter mode, prefer the periodic summary log as a supplement instead of introducing more standalone Prometheus metrics. This keeps time-series growth under control and avoids low-value alert noise.
+
+### Troubleshooting Suggestions {#prometheus-troubleshooting}
+
+Use the following order for diagnosis:
+
+1. `rss` keeps growing, while `heap_alloc` and `go_total` do not
+   This usually indicates non-Go memory pressure. Check `non_go_estimate` and `non_go_vs_rss`
+2. `agg_entries` and `cache_entries` keep growing without falling back
+   This usually indicates aggregation or intermediate-state buildup
+3. `sender_queue_length` keeps growing and `sender_request_duration_seconds` becomes larger
+   This usually indicates write-path slowdown and queued flush results
+4. `bpf_map_fill_ratio` stays close to `1`
+   This usually indicates kernel-side BPF map pressure and may correlate with event drops
+
 ### SELinux-enabled System {#selinux}
 
 For SELinux-enabled systems, you need to shut them down (pending subsequent optimization), and execute the following command to shut them down:
@@ -233,8 +396,14 @@ Configuration items:
     - Environment variable: `ENV_INPUT_EBPF_WORKLOAD_LABEL_PREFIX`
     - Example: `k8s_workload_label_`
 
+- `operator_url`
+    - Description: Sets the operator address used to collect workload tags from the Kubernetes cluster.
+    - Environment variable: `ENV_INPUT_EBPF_OPERATOR_URL`
+    - Example: `https://datakit-operator.datakit.svc:443`
+
 <!-- markdownlint-enable -->
 
+<!-- markdownlint-enable MD007 -->
 ## eBPF Tracing function {#ebpf-tracing}
 
 `ebpf-trace` collects and analyzes the network data read and written by the process on the host, and tracks the kernel-level threads/user-level threads (such as golang goroutine) of the process to generate link eBPF Span. This data needs to be collected by `ebpftrace` for further processing.

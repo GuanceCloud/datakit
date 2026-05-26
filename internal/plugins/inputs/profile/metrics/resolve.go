@@ -219,7 +219,7 @@ func ResolveLanguage(runtimes []string) Language {
 	for _, r := range runtimes {
 		r = strings.ToLower(r)
 		for name, lang := range LangMaps {
-			if strings.Contains(r, name) {
+			if r == name {
 				return lang
 			}
 		}
@@ -360,7 +360,7 @@ func ParseMetadata(req *http.Request) (map[string]string, int64, error) {
 			tags = strings.Split(eventFormValues[eventFileTagsKey][0], ",")
 			delete(eventFormValues, eventFileTagsKey)
 		}
-
+		l.Debugf("parse metadata tags len :%d", len(tags))
 		return mixFormValueToTags(NewTags(tags), eventFormValues), filesize, nil
 	}
 	return nil, filesize, fmt.Errorf("the profiling data format not supported, check your datadog trace library version")

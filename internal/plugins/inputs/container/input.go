@@ -58,10 +58,9 @@ type Input struct {
 	LoggingEnableMultline                 bool              `toml:"logging_enable_multiline"`
 	LoggingExtraSourceMap                 map[string]string `toml:"logging_extra_source_map"`
 	LoggingSourceMultilineMap             map[string]string `toml:"logging_source_multiline_map"`
-	LoggingAutoMultilineDetection         bool              `toml:"logging_auto_multiline_detection"`
 	LoggingAutoMultilineExtraPatterns     []string          `toml:"logging_auto_multiline_extra_patterns"`
 	LoggingFileFromBeginning              bool              `toml:"logging_file_from_beginning"`
-	LoggingFileFromBeginningThresholdSize int               `toml:"logging_file_from_beginning_threshold_size"`
+	LoggingFileFromBeginningThresholdSize int64             `toml:"logging_file_from_beginning_threshold_size"`
 	LoggingRemoveAnsiEscapeCodes          bool              `toml:"logging_remove_ansi_escape_codes"`
 	LoggingFieldWhiteList                 []string          `toml:"logging_field_white_list"`
 	LoggingMaxOpenFiles                   int               `toml:"logging_max_open_files"`
@@ -125,7 +124,7 @@ func (ipt *Input) Run() {
 	l.Info("container input start")
 	ipt.setup()
 
-	if err := changes.LoadAllManifests(); err != nil {
+	if err := changes.LoadK8sManifest(); err != nil {
 		l.Errorf("load manifests fail, err: %s", err)
 		return
 	}
@@ -176,7 +175,7 @@ func (ipt *Input) Terminate() {
 }
 
 func (ipt *Input) Pause() error {
-	tick := time.NewTicker(inputs.ElectionPauseTimeout)
+	tick := time.NewTicker(time.Second * 3)
 	select {
 	case ipt.chPause <- true:
 		return nil
@@ -186,7 +185,7 @@ func (ipt *Input) Pause() error {
 }
 
 func (ipt *Input) Resume() error {
-	tick := time.NewTicker(inputs.ElectionResumeTimeout)
+	tick := time.NewTicker(time.Second * 3)
 	select {
 	case ipt.chPause <- false:
 		return nil
@@ -211,7 +210,7 @@ func newInput() *Input {
 		LoggingSourceMultilineMap: make(map[string]string),
 		Feeder:                    dkio.DefaultFeeder(),
 		Tagger:                    datakit.DefaultGlobalTagger(),
-		chPause:                   make(chan bool, inputs.ElectionPauseChannelLength),
+		chPause:                   make(chan bool, 8),
 	}
 }
 

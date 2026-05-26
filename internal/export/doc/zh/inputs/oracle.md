@@ -7,6 +7,8 @@ __int_icon      : 'icon/oracle'
 dashboard :
   - desc  : 'Oracle'
     path  : 'dashboard/zh/oracle'
+  - desc  : 'Oracle-v2'
+    path  : 'dashboard/zh/oracle-v2'
 monitor   :
   - desc  : 'Oracle 监控器'
     path  : 'monitor/zh/oracle'
@@ -244,6 +246,109 @@ apt-get install -y libaio-dev libaio1
 
 <!-- markdownlint-enable -->
 
+### Oracle RAC {#rac}
+
+对于 Oracle RAC，当前采集器推荐按“每实例一个 input”的方式部署，而不是通过单个 input 查询 `GV$` 视图来聚合整个 RAC。
+
+- 为每个 RAC 节点或实例分别配置一个 `[[inputs.oracle]]`
+- 每个 input 应连接固定节点地址、VIP 或实例专属 service
+- 不建议通过 SCAN、负载均衡或连接池连接，否则同一个 input 可能漂移到不同实例
+- 建议连接 CDB service，不要分别连接单独 PDB
+
+可以通过自定义 tag 将同一套 RAC 的多个 input 关联起来，例如：
+
+```toml
+[[inputs.oracle]]
+  host = "rac-node-1-vip"
+  port = 1521
+  user = "datakit"
+  password = "<PASS>"
+  service = "CDB1_NODE1"
+  ...
+
+  [inputs.oracle.tags]
+    rac_cluster = "prod-rac"
+
+[[inputs.oracle]]
+  host = "rac-node-2-vip"
+  port = 1521
+  user = "datakit"
+  password = "<PASS>"
+  service = "CDB1_NODE2"
+  ...
+
+  [inputs.oracle.tags]
+    rac_cluster = "prod-rac"
+```
+
+## 数据库监控 (DBM) {#dbm}
+
+数据库监控（Database Monitoring，DBM）功能提供对 Oracle 数据库性能的深度可见性，通过收集查询指标、活动会话和执行计划来帮助分析和优化数据库性能。
+
+### 启用 DBM {#dbm-enabled}
+
+```toml
+[inputs.oracle.dbm]
+  # 启用 DBM 功能（默认： false）
+  enabled = true
+```
+
+### 查询指标 (Metric) {#dbm-metric}
+
+收集 SQL 查询的累积执行统计信息，按 SQL ID、执行计划哈希值和 PDB 进行聚合。包含执行次数、CPU 时间、逻辑读取、物理读取、等待时间等，通过计算导数指标（两次采集之间的差值）来反映查询的实际执行情况。
+
+> 注意：只有连续两个采集窗口都出现的查询才会上报指标。首次采集到的查询仅作为基线，不会上报指标。
+
+```toml
+[inputs.oracle.dbm.metric]
+  # 启用查询指标采集（默认： false）
+  enabled = true
+  # 采集间隔（默认： 60s）
+  collection_interval = "60s"
+  # 查询的最大行数限制（默认： 10000）
+  db_rows_limit = 10000
+  # 每个采集间隔报告的最大查询数（默认： 500）
+  # 按导数执行时间排序后，只报告前 N 个查询
+  max_queries = 500
+  # 查询过滤的回看窗口（秒，默认： 300）
+  # 只收集在此时间窗口内执行的查询
+  lookback_window = 300
+  # 启用执行计划采集（默认： true）
+  plan_enabled = true
+  # 执行计划对象缓存 TTL（默认： 1h）
+  plan_cache_ttl = "1h"
+  # 执行计划采集的最大运行时间（秒，默认： 30）
+  # 如果采集时间超过此值，将跳过执行计划采集
+  max_run_time = 30
+  # 禁用最后活动时间过滤（默认： false）
+  # 如果设置为 true，将收集所有查询，而不仅仅是最近活动的查询
+  disable_last_active = false
+```
+
+**执行计划 (Plan)**：当 `plan_enabled = true` 时，会同时采集执行计划。
+
+### 活动查询 (Activity) {#dbm-activity}
+
+收集当前正在执行的查询和活动会话信息。记录会话 ID、序列号、状态、等待事件、阻塞信息、SQL 文本（已脱敏）等，用于实时监控数据库的当前活动状态和问题诊断。
+
+**会话指标 (Session)**：基于活动查询数据，会自动生成会话指标。
+
+**连接指标 (Connection)**：独立查询数据库连接信息，按用户名、状态、PDB 等维度统计连接数。
+
+```toml
+[inputs.oracle.dbm.activity]
+  # 启用活动查询信息采集（默认： false）
+  enabled = true
+  # 活动指标采集间隔（默认： 10s）
+  collection_interval = "10s"
+  # 查询的最大行数限制（默认： 1000）
+  db_rows_limit = 1000
+  # 包含所有会话（默认： false）
+  # 如果设置为 true，将收集所有会话，而不仅仅是活动会话
+  include_all_sessions = false
+```
+
+
 ## 指标 {#metric}
 
 以下所有数据采集，默认会追加全局选举 tag，也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
@@ -302,6 +407,8 @@ DataKit 可以将执行超过用户自定义时间的 SQL 语句报告给<<<cust
     更多字段解释可以查看[这里](https://docs.oracle.com/en/database/oracle/oracle-database/19/refrn/V-SQLAREA.html#GUID-09D5169F-EE9E-4297-8E01-8D191D87BDF7)。
 <!-- markdownlint-enable -->
 
+## 日志 {#logging}
+
 {{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "logging"}}
@@ -311,8 +418,8 @@ DataKit 可以将执行超过用户自定义时间的 SQL 语句报告给<<<cust
 {{$m.Desc}}
 
 {{$m.MarkdownTable}}
-{{end}}
 
+{{ end }}
 {{ end }}
 
 ## FAQ {#faq}

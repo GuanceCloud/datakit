@@ -51,7 +51,318 @@ monitor   :
     目前可以通过 [ConfigMap 方式注入 logfwdserver 采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 <!-- markdownlint-enable -->
 
-### logfwd 使用和配置 {#config}
+<!-- markdownlint-disable MD013 -->
+### logfwd 使用和配置（1.86.0 及以后） {#config-1-86-0}
+<!-- markdownlint-enable -->
+
+> logfwd 推荐在 Kubernetes Serverless 环境使用，如果已经部署了 DaemonSet DataKit，再使用 logfwd 可能会数据重复。
+
+自 logfwd 1.86.0 版本起，整体使用方式进一步简化，并移除了部分繁琐配置，主要新增能力如下：
+
+- 支持通过 DataKit-Operator 拉取 `ClusterLoggingConfig` CRD，自动匹配 Pod 并热加载采集配置；
+- 同时兼容手写环境变量配置 (`LOGFWD_LOG_CONFIGS`)，满足无 DataKit-Operator 或调试场景；
+- 采集任务统一通过 WebSocket 与 DataKit `inputs.logfwdserver` 通信，连接失败时自动重连（每秒重试）；
+- 自动补充 Pod 元数据（`pod_name`、`namespace`、`pod_ip`）及目标 Label，可与旧版 volume/挂载方案无缝复用。
+
+#### 启动方式概览 {#config-1-86-0-overview}
+
+| 场景                          | 关键变量                                          | 说明                                                                                                                      |
+| :---                          | :---                                              | :---                                                                                                                      |
+| 搭配 DataKit-Operator（推荐） | `LOGFWD_DATAKIT_OPERATOR_ENDPOINT` + Pod metadata | 由 DataKit-Operator 返回匹配的 CRD JSON，logfwd 自动创建/刷新 tailer；需要在 `ClusterLoggingConfig` 中声明日志路径、Pipeline 等。 |
+| 手动配置                      | `LOGFWD_LOG_CONFIGS`                              | 与旧版 JSON 语义一致，但通过环境变量传入，适合开发/过渡场景，可与 DataKit-Operator 共存（手动配置优先级更高）。                   |
+
+仍需像旧版一样提前准备日志文件的共享 `volume`/`volumeMount`；logfwd 只做监听，不会创建挂载。
+
+#### 全局环境变量 {#config-1-86-0-globals}
+
+| 环境变量名                         | 配置项含义                                                                                                                                                                              |
+| :---                               | :---                                                                                                                                                                                    |
+| `LOGFWD_LOG_LEVEL`                 | 运行日志级别，默认 `info`，设为 `debug` 可查看更多调试输出。                                                                                                                            |
+| `LOGFWD_DATAKIT_HOST`              | DataKit 实例地址（IP 或可解析域名）。                                                                                                                                                   |
+| `LOGFWD_DATAKIT_PORT`              | DataKit `logfwdserver` 监听端口，例如 `9533`。                                                                                                                                          |
+| `LOGFWD_DATAKIT_OPERATOR_ENDPOINT` | DataKit-Operator Endpoint，形如 `datakit-operator.datakit.svc:443` 或 `https://datakit-operator.datakit.svc:443`，用于查询 CRD 配置；留空则不会尝试拉取。支持自动添加 `https://` 前缀。 |
+| `LOGFWD_GLOBAL_SOURCE`             | 全局 `source`，优先级高于单条配置中的 `source` 字段。                                                                                                                                   |
+| `LOGFWD_GLOBAL_SERVICE`            | 全局 `service`，若单条配置中未指定 `service`，则使用全局值；若全局值也为空，则回退为 `source`。                                                                                         |
+| `LOGFWD_GLOBAL_STORAGE_INDEX`      | 全局 `storage_index`，优先级高于单条配置中的 `storage_index` 字段。                                                                                                                     |
+| `LOGFWD_POD_NAME`                  | 自动写入 `pod_name` tag，通常通过 Downward API 注入。                                                                                                                                   |
+| `LOGFWD_POD_NAMESPACE`             | 自动写入 `namespace` tag。                                                                                                                                                              |
+| `LOGFWD_POD_IP`                    | 自动写入 `pod_ip` tag，便于定位容器实例。                                                                                                                                               |
+
+> 提示：如果需要附加更多 tag，可在 Pod 中挂载 `/etc/podinfo/labels` 文件（由 Datakit-Operator 注入 logfwd sidecar 时会自动添加），logfwd 会解析并和 CRD 中的 `podTargetLabels` 对齐。
+
+#### 采集配置 {#config-1-86-0-log-configs}
+
+logfwd 支持两种配置方式，按优先级从高到低：
+
+1. **手动配置（`LOGFWD_LOG_CONFIGS`）**：通过环境变量传入 JSON 字符串，结构与旧版 `loggings` 子项基本一致。存在手动配置时，logfwd 会立即创建 tailer，并在进程存活期间保持该配置；删除变量或清空内容后需重启容器以释放。
+1. **DataKit-Operator CRD**：当指定 `LOGFWD_DATAKIT_OPERATOR_ENDPOINT` 时，logfwd 每分钟调用一次 DataKit-Operator API，通过 MD5 校验配置内容判定是否需要热更新。配置变更后会自动重新创建 tailer，无需重启容器。
+
+> **注意**：如果同时存在手动配置和 CRD 配置，且两者指向同一日志路径，会导致重复采集。建议优先使用 CRD 配置，手动配置仅用于调试或特殊场景。
+
+`LOGFWD_LOG_CONFIGS` 字段结构示例如下：
+
+``` json
+[
+  {
+    "type": "file",
+    "disable": false,
+    "source": "nginx-access",
+    "service": "nginx",
+    "path": "/var/log/nginx/access.log",
+    "pipeline": "nginx-access.p",
+    "storage_index": "app-logs",
+    "multiline_match": "^\\d{4}-\\d{2}-\\d{2}",
+    "remove_ansi_escape_codes": false,
+    "from_beginning": false,
+    "character_encoding": "utf-8",
+    "tags": {
+      "env": "production",
+      "team": "backend"
+    }
+  }
+]
+```
+
+| 字段                            | 类型    | 必填     | 说明                                                                                                  | 示例                      |
+| ------                          | ------  | ------   | ------                                                                                                | ------                    |
+| `type`                          | string  | 是       | logfwd 采集类型只能是 `"file"`                                                                        | `"file"`                  |
+| `disable`                       | boolean | 否       | 是否禁用此采集配置                                                                                    | `false`                   |
+| `source`                        | string  | 是       | 日志来源标识，用于区分不同日志流                                                                      | `"nginx-access"`          |
+| `service`                       | string  | 否       | 日志隶属的服务，默认值为日志来源（source）                                                            | `"nginx"`                 |
+| `path`                          | string  | 条件必填 | 日志文件路径（支持 glob 模式），type=file 时必填                                                      | `"/var/log/nginx/*.log"`  |
+| `multiline_match`               | string  | 否       | 多行日志起始行的正则表达式，注意 JSON 中需要转义反斜杠                                                | `"^\\d{4}-\\d{2}-\\d{2}"` |
+| `pipeline`                      | string  | 否       | 日志解析管道配置文件名称（需在 DataKit 端配置）                                                       | `"nginx-access.p"`        |
+| `storage_index`                 | string  | 否       | 日志存储的索引名称                                                                                    | `"app-logs"`              |
+| `remove_ansi_escape_codes`      | boolean | 否       | 是否删除日志数据的 ANSI 转义字符（颜色代码等）                                                        | `false`                   |
+| `from_beginning`                | boolean | 否       | 是否从文件首部开始采集日志（默认从文件末尾开始）                                                      | `false`                   |
+| `from_beginning_threshold_size` | int     | 否       | 搜寻到文件时，如果文件 size 小于此值就从文件首部采集日志，单位字节，默认 20MB                         | `1000`
+| `character_encoding`            | string  | 否       | 字符编码，支持 `utf-8`, `utf-16le`, `utf-16be`, `gbk`, `gb18030` 或空字符串（自动检测）。默认为空即可 | `"utf-8"`                 |
+| `tags`                          | object  | 否       | 额外的标签键值对，会附加到每条日志记录上                                                              | `{"env": "prod"}`         |
+
+
+当配置了 `LOGFWD_DATAKIT_OPERATOR_ENDPOINT` 时，logfwd 会根据 `LOGFWD_POD_NAMESPACE`、`LOGFWD_POD_NAME` 以及 `pod_labels`（可选，需挂载 `/etc/podinfo/labels` 文件）向 DataKit-Operator 发起请求。只要某条 `ClusterLoggingConfig` CRD 规则匹配当前 Pod，就会返回对应的 `configs` JSON 并触发热更新。
+
+CRD 配置示例：
+
+```yaml
+apiVersion: logging.datakits.io/v1alpha1
+kind: ClusterLoggingConfig
+metadata:
+  name: nginx-logs
+spec:
+  selector:
+    namespaceRegex: "^(default|production)$"
+    podRegex: "^(nginx-.*)$"
+    podLabelSelector: "app=nginx,env=production"
+    containerRegex: "^(nginx|app)$"
+  
+  podTargetLabels:
+    - app
+    - version
+    - team
+  
+  configs:
+    - type: "file"
+      source: "nginx-access"
+      path: "/var/log/nginx/access.log"
+      pipeline: "nginx-access.p"
+      storage_index: "app-logs"
+      tags:
+        log_type: "access"
+        component: "nginx"
+    
+    - type: "file"
+      source: "nginx-error"
+      path: "/var/log/nginx/error.log"
+      pipeline: "nginx-error.p"
+      storage_index: "app-logs"
+      tags:
+        log_type: "error"
+        component: "nginx"
+```
+
+CRD 选择器说明：
+
+| 字段               | 类型   | 必填   | 说明                                      | 示例                                 |
+| ------             | ------ | ------ | ------                                    | ------                               |
+| `namespaceRegex`   | string | 否     | 命名空间名称正则匹配（所有条件为 AND 关系）| `"^(default\|production)$"`          |
+| `podRegex`         | string | 否     | Pod 名称正则匹配                          | `"^(nginx-.*)$"`                     |
+| `podLabelSelector` | string | 否     | Pod 标签选择器（逗号分隔的 key=value 对） | `"app=nginx,environment=production"` |
+| `containerRegex`   | string | 否     | 容器名称正则匹配                          | `"^(nginx\|app-container)$"`         |
+
+`podTargetLabels`：指定需要从 Pod Labels 中提取并附加到日志的标签键列表。logfwd 会读取 `/etc/podinfo/labels` 文件（由 Downward API 或 DataKit-Operator 注入），提取匹配的标签并添加到日志的 `tags` 中。
+
+配置热更新机制：
+
+- logfwd 每分钟轮询一次 DataKit-Operator API
+- 通过计算配置内容的 MD5 值判断是否有变更
+- 配置变更后自动停止旧 tailer 并创建新 tailer，无需重启容器
+- 配置变更通常在 1 分钟内生效
+
+<!-- markdownlint-disable MD046 -->
+??? topic
+
+    - 需要在业务 Pod/sidecar 中预先用 `volumes`/`volumeMounts` 共享日志目录（如 `emptyDir`），否则 logfwd 无法访问日志文件。
+    - `LOGFWD_LOG_CONFIGS` 与 CRD 配置相互独立，若两者指向同一路径会导致重复采集。
+    - DataKit-Operator 支持为目标 Pod 自动注入 logfwd sidecar 及挂载，具体请查看 DataKit-Operator [文档](../datakit/operator-logfwd.md)。
+<!-- markdownlint-enable -->
+
+#### ClusterLoggingConfig CRD 选择器支持 {#config-1-86-0-crd-selector}
+
+logfwd 通过 DataKit-Operator 查询 `ClusterLoggingConfig` CRD 时，支持以下选择器字段用于匹配目标 CRD 及日志采集配置：
+
+| 选择器字段          | 说明                                                                                 | 示例                                    |
+| :------------------ | :-------------------------------------------------------------------                 | :-------------------------------------- |
+| `namespaceRegex`    | 命名空间名称正则匹配，使用 logfwd 容器的 `LOGFWD_POD_NAMESPACE` 环境变量作为查询参数 | `"^(default)$"`                         |
+| `podNameRegex`      | Pod 名称正则匹配，使用 logfwd 容器的 `LOGFWD_POD_NAME` 环境变量作为查询参数          | `"^(nginx-app.*)$"`                     |
+| `podLabelSelector`  | Pod 标签选择器（前提是在 logfwd 容器内的 `/etc/podinfo/labels` 有 labels 内容）      | `"app=nginx,environment=production"`    |
+
+<!-- markdownlint-disable MD046 -->
+??? topic
+
+    - logfwd **不支持** `containerRegex` 选择器。由于 logfwd 以 Pod Sidecar 方式运行，它只负责采集日志文件，无法区分容器名。
+    - `podLabelSelector` 的使用依赖于 `/etc/podinfo/labels` 文件的存在。DataKit-Operator 在注入 logfwd sidecar 时会自动挂载该文件（通过 Downward API），如果该文件不存在或为空，`podLabelSelector` 将无法生效。
+    - 所有选择器条件为 **AND** 关系，即所有指定的选择器都必须匹配，Pod 才会被选中。
+<!-- markdownlint-enable -->
+
+#### 示例：Kubernetes Pod 配置 {#config-1-86-0-example}
+
+- 使用 DataKit-Operator CRD 配置
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-app
+  namespace: default
+  labels:
+    app: nginx
+    version: v1.0
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    volumeMounts:
+    - name: nginx-logs
+      mountPath: /var/log/nginx
+  - name: logfwd
+    image: pubrepo.<<<custom_key.brand_main_domain>>>/datakit/logfwd:{{ .Version }}
+    env:
+    - name: LOGFWD_LOG_LEVEL
+      value: "info"  # 可选：debug 可查看详细日志
+    - name: LOGFWD_DATAKIT_HOST
+      valueFrom:
+        fieldRef:
+          fieldPath: status.hostIP
+    - name: LOGFWD_DATAKIT_PORT
+      value: "9533"
+    - name: LOGFWD_DATAKIT_OPERATOR_ENDPOINT
+      value: datakit-operator.datakit.svc:443
+    - name: LOGFWD_POD_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.name
+    - name: LOGFWD_POD_NAMESPACE
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.namespace
+    - name: LOGFWD_POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+    volumeMounts:
+    - name: podinfo
+      mountPath: /etc/podinfo
+      readOnly: true
+    - name: nginx-logs
+      mountPath: /var/log/nginx
+      readOnly: true
+  volumes:
+  - name: podinfo
+    downwardAPI:
+      items:
+      - path: "labels"
+        fieldRef:
+          fieldPath: metadata.labels
+  - name: nginx-logs
+    emptyDir: {}
+```
+
+对应的 `ClusterLoggingConfig` CRD 配置：
+
+```yaml
+apiVersion: logging.datakits.io/v1alpha1
+kind: ClusterLoggingConfig
+metadata:
+  name: nginx-logs
+spec:
+  selector:
+    namespaceRegex: "^default$"
+    podLabelSelector: "app=nginx"
+  podTargetLabels:
+    - app
+    - version
+  configs:
+    - type: "file"
+      source: "nginx-access"
+      path: "/var/log/nginx/access.log"
+      pipeline: "nginx-access.p"
+    - type: "file"
+      source: "nginx-error"
+      path: "/var/log/nginx/error.log"
+      pipeline: "nginx-error.p"
+```
+
+- 使用手动配置
+
+若需要临时使用手动配置或调试，可添加 `LOGFWD_LOG_CONFIGS` 环境变量：
+
+```yaml
+spec:
+  containers:
+  - name: logfwd
+    image: pubrepo.<<<custom_key.brand_main_domain>>>/datakit/logfwd:{{ .Version }}
+    env:
+    - name: LOGFWD_DATAKIT_HOST
+      valueFrom:
+        fieldRef:
+          fieldPath: status.hostIP
+    - name: LOGFWD_DATAKIT_PORT
+      value: "9533"
+    - name: LOGFWD_POD_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.name
+    - name: LOGFWD_POD_NAMESPACE
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.namespace
+    - name: LOGFWD_LOG_CONFIGS
+      value: |
+        [
+          {
+            "type": "file",
+            "source": "app-logs",
+            "path": "/var/log/app/*.log",
+            "pipeline": "app.p",
+            "from_beginning": false,
+            "tags": {
+              "env": "production"
+            }
+          }
+        ]
+    volumeMounts:
+    - name: app-logs
+      mountPath: /var/log/app
+      readOnly: true
+  volumes:
+  - name: app-logs
+    emptyDir: {}
+```
+
+其余挂载形态、`volumes`/`volumeMounts` 的写法、资源限制等与 1.86.0 之前保持一致，可继续参考下一节中的旧版示例。
+
+### logfwd 使用和配置（1.86.0 之前版本） {#config-before-1-86-0}
 
 logfwd 主配置是 JSON 格式，以下是配置示例：
 
@@ -143,7 +454,7 @@ spec:
           fieldPath: metadata.namespace
     - name: LOGFWD_GLOBAL_SOURCE
       value: nginx-souce-test
-    image: pubrepo.<<<custom_key.brand_main_domain>>>/datakit/logfwd:{{.Version}}
+    image: pubrepo.<<<custom_key.brand_main_domain>>>/datakit/logfwd:1.85.0
     imagePullPolicy: Always
     resources:
       requests:

@@ -258,7 +258,7 @@ static bool try_apm_inject_process(char *const argv[], char *const envp[])
     int stat = 0;
     waitpid(sub_process, &stat, 0);
 
-    return WEXITSTATUS(stat) == 0 ? true : false;
+    return WIFEXITED(stat) && WEXITSTATUS(stat) == 0 ? true : false;
 }
 
 static int varb_array_len(char *const arr[])
@@ -288,6 +288,13 @@ int execve(const char *path, char *const argv[], char *const envp[])
 
     int count_argv = varb_array_len(argv);
     char **dup_argv = malloc((count_argv + 2 + 1) * sizeof(char const *));
+    if (dup_argv == NULL)
+    {
+        debug_perror("malloc argv");
+        return old_execve(path, argv, envp);
+    }
+    __builtin_memset(dup_argv, 0, (count_argv + 2 + 1) * sizeof(char const *));
+
     dup_argv[0] = strdup(tmpid);
     dup_argv[1] = strdup(path);
     dup_argv[count_argv + 2] = NULL;
@@ -295,6 +302,20 @@ int execve(const char *path, char *const argv[], char *const envp[])
     for (int i = 0; i < count_argv; i++)
     {
         dup_argv[i + 2] = strdup(argv[i]);
+    }
+
+    for (int i = 0; i < count_argv + 2; i++)
+    {
+        if (dup_argv[i] == NULL)
+        {
+            for (int j = 0; j < count_argv + 2; j++)
+            {
+                free((void *)dup_argv[j]);
+            }
+            free(dup_argv);
+            debug_perror("strdup argv");
+            return old_execve(path, argv, envp);
+        }
     }
 
     // MT-Unsafe

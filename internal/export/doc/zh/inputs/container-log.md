@@ -41,12 +41,14 @@ DataKit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 ``` json
 [
   {
-    "disable" : false,
-    "source"  : "<your-source>",
-    "service" : "<your-service>",
+    "disable":  false,
+    "type":     "stdout",
+    "source":   "<your-source>",
+    "service":  "<your-service>",
     "pipeline": "<your-pipeline.p>",
+    "storage_index": "<your-storage-index>",
     "remove_ansi_escape_codes": false,
-    "from_beginning"          : false,
+    "from_beginning": false,
     "tags" : {
       "<some-key>" : "<some_other_value>"
     }
@@ -56,19 +58,21 @@ DataKit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 
 字段说明：
 
-| 字段名                     | 取值             | 说明                                                                                                                                                                |
-| -----                      | ----             | ----                                                                                                                                                                |
-| `disable`                  | true/false       | 是否禁用该容器的日志采集，默认是 `false`                                                                                                                            |
-| `type`                     | `file`/不填      | 选择采集类型。如果是采集容器内文件，必须写成 `file`。默认为空是采集 `stdout/stderr`                                                                                 |
-| `path`                     | 字符串           | 配置文件路径。如果是采集容器内文件，必须填写 volume 的 path，注意不是容器内的文件路径，是容器外能访问到的路径。默认采集 `stdout/stderr` 不用填                      |
-| `source`                   | 字符串           | 日志来源，参见[容器日志采集的 source 设置](container.md#config-logging-source)                                                                                      |
-| `service`                  | 字符串           | 日志隶属的服务，默认值为日志来源（source）                                                                                                                          |
-| `pipeline`                 | 字符串           | 适用该日志的 Pipeline 脚本，默认值为与日志来源匹配的脚本名（`<source>.p`）                                                                                          |
-| `remove_ansi_escape_codes` | true/false       | 是否删除日志数据的颜色字符                                                                                                                                          |
-| `from_beginning`           | true/false       | 是否从文件首部采集日志                                                                                                                                              |
-| `multiline_match`          | 正则表达式字符串 | 用于[多行日志匹配](logging.md#multiline)时的首行识别，例如 `"multiline_match":"^\\d{4}"` 表示行首是 4 个数字，在正则表达式规则中 `\d` 是数字，前面的 `\` 是用来转义 |
-| `character_encoding`       | 字符串           | 选择编码，如果编码有误会导致数据无法查看，支持 `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""。默认为空即可                                                |
-| `tags`                     | key/value 键值对 | 添加额外的 tags，如果已经存在同名的 key 将以此为准                                                                                                                  |
+| 字段名                          | 取值             | 说明                                                                                                                                                                |
+| -----                           | ----             | ----                                                                                                                                                                |
+| `disable`                       | true/false       | 是否禁用该容器的日志采集，默认是 `false`                                                                                                                            |
+| `type`                          | `file`/不填      | 选择采集类型。如果是采集容器内文件，必须写成 `file`。默认为空是采集 `stdout/stderr`                                                                                 |
+| `path`                          | 字符串           | 配置文件路径。如果是采集容器内文件，必须填写 volume 的 path，注意不是容器内的文件路径，是容器外能访问到的路径。默认采集 `stdout/stderr` 不用填                      |
+| `source`                        | 字符串           | 日志来源，参见[容器日志采集的 source 设置](container.md#config-logging-source)                                                                                      |
+| `service`                       | 字符串           | 日志隶属的服务，默认值为日志来源（source）                                                                                                                          |
+| `pipeline`                      | 字符串           | 适用该日志的 Pipeline 脚本，默认值为与日志来源匹配的脚本名（`<source>.p`）                                                                                          |
+| `storage_index`                 | 字符串           | 日志存储的索引名称                                                                                                                                                  |
+| `remove_ansi_escape_codes`      | true/false       | 是否删除日志数据的颜色字符                                                                                                                                          |
+| `from_beginning`                | true/false       | 是否从文件首部采集日志                                                                                                                                              |
+| `from_beginning_threshold_size` | int              | 搜寻到文件时，如果文件 size 小于此值就从文件首部采集日志，单位字节，默认 20MB                                                                                       |
+| `multiline_match`               | 正则表达式字符串 | 用于[多行日志匹配](logging.md#multiline)时的首行识别，例如 `"multiline_match":"^\\d{4}"` 表示行首是 4 个数字，在正则表达式规则中 `\d` 是数字，前面的 `\` 是用来转义 |
+| `character_encoding`            | 字符串           | 选择编码，如果编码有误会导致数据无法查看，支持 `utf-8`, `utf-16le`, `utf-16le`, `gbk`, `gb18030` or ""。默认为空即可                                                |
+| `tags`                          | key/value 键值对 | 添加额外的 tags，如果已经存在同名的 key 将以此为准                                                                                                                  |
 
 完整示例如下：
 
@@ -294,25 +298,23 @@ DataKit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 
     现支持以下 4 个字段规则，这 4 个字段都是基础设施的属性字段：
 
-    - image : `image:pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:1.18.0`
-    - image_name : `image_name:pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit`
-    - image_short_name : `image_short_name:datakit`
+    - image : `image:pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:1.85.0`
     - namespace : `namespace:datakit-ns`
 
     对于同一类规则（`image` 或 `namespace`），如果同时存在 `include` 和 `exclude`，需要同时满足 `include` 成立，且 `exclude` 不成立的条件。例如：
     ```toml
     ## 这会导致所有容器都被过滤。如果有一个容器 `datakit`，它满足 include，同时又满足 exclude，那么它会被过滤，不采集日志；如果一个容器 `nginx`，首先它不满足 include，它会被过滤掉不采集。
 
-    container_include_log = ["image_name:datakit"]
-    container_exclude_log = ["image_name:*"]
+    container_include_log = ["image:datakit"]
+    container_exclude_log = ["image:*"]
     ```
 
     多种类型的字段规则有任意一条匹配，就不再采集它的日志。例如：
     ```toml
-    ## 容器只需要满足 `image_name` 和 `namespace` 任意一个，就不再采集日志。
+    ## 容器只需要满足 `image` 和 `namespace` 任意一个，就不再采集日志。
 
     container_include_log = []
-    container_exclude_log = ["image_name:datakit", "namespace:datakit-ns"]
+    container_exclude_log = ["image:datakit", "namespace:datakit-ns"]
     ```
 
     `container_include_log` 和 `container_exclude_log` 的配置规则比较复杂，同时使用会有多种优先级情况。建议只使用 `container_exclude_log` 一种。
@@ -409,7 +411,6 @@ DataKit 提供两种方式来过滤指定容器，防止采集其日志。分别
 过滤过程如下：
 
 1. 如果容器存在 `datakit/logs` 注解或环境变量，并且所有的 `"disable": true` 设置都生效，表示该容器的日志不需要采集，直接忽略。
-1. 如果容器所属的 Pod 是由 `Job` 或 `CronJob` 创建的，则不采集该容器的日志。
 1. `container_include_log` 和 `container_exclude_log` 配置项只有在容器满足所有条件时，才会采集日志：
    - 例如，配置 `container_include_log = ["image:redis*"]` 和 `container_exclude_log = ["namespace:middleware*"]`，只有当容器的 `image` 匹配 `redis*`，且 `namespace` 不匹配 `middleware*` 时，才会采集日志。
    - 如果只配置 `container_include_log = ["image:redis*"]`，只要容器满足该条件，日志就会被采集。

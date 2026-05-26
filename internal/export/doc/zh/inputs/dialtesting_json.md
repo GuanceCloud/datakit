@@ -50,7 +50,7 @@ monitor   :
 
 ### 配置拨测任务 {#config-task}
 
-目前拨测任务支持四种拨测类型，即 HTTP, TCP, ICMP, WEBSOCKET 服务，JSON 格式如下：
+目前拨测任务支持五种拨测类型，即 HTTP, TCP, ICMP, WEBSOCKET, GRPC 服务，JSON 格式如下：
 
 ```json
 {
@@ -95,6 +95,7 @@ monitor   :
         }
       ],
       "advance_options": {
+        "protocol": "auto",
         "request_options": {
           "auth": {}
         },
@@ -394,6 +395,28 @@ HTTP 请求的超时时间，默认是 "60s"，即 60 秒。
   "request_timeout": "60s",
 }
 ```
+
+- HTTP 协议版本（`protocol`）
+
+HTTP 请求协议版本，默认是 `auto`。可选值如下：
+
+| 值            | 说明                                                                                                                                  |
+| :---          | :---                                                                                                                                  |
+| `auto`        | 默认模式。`http://` 走 HTTP/1.1；`https://` 通过 `TLS/ALPN` 自动协商，服务端支持 HTTP/2 就走 HTTP/2，否则回退 HTTP/1.1。不会自动尝试 h2c，也不会尝试 HTTP/3。 |
+| `http/1.1`    | 强制 HTTP/1.1，不会尝试 HTTP/2。                                                                                                      |
+| `http/2`      | 启用 HTTP/2，但允许回退。对 `https://` 会通过 `ALPN` 尝试 HTTP/2，不支持时回退 HTTP/1.1；对普通 `http://` 本质上仍是 HTTP/1.1，不会走 h2c。 |
+| `http/2-only` | 强制 HTTP/2。`https://` 要求 `ALPN` 协商到 `h2`；`http://` 会按 h2c prior knowledge 直接发明文 HTTP/2。服务端不支持 HTTP/2 时任务失败。 |
+| `http/3`      | 使用 HTTP/3，也就是 `QUIC` + TLS。需要服务端支持 HTTP/3；当前不支持代理配置。                                                           |
+
+`protocol` 示例：
+
+```json
+"advance_options": {
+  "protocol": "http/3"
+}
+```
+
+> 注意：HTTP/3 不支持代理配置。如果 `protocol` 配置为 `http/3`，请不要同时配置 `proxy`。
 
 - HTTP 请求证书（`certificate`）
 
@@ -1004,6 +1027,366 @@ if body["code"] == "200" {
   },
 }
 ```
+
+#### GRPC 拨测 {#grpc}
+
+##### 额外字段 {#grpc-extra}
+
+| 字段              | 类型   | 是否必须 | 说明                                    |
+| :---              | ---    | ---      | ---                                     |
+| `server`          | string | Y        | gRPC 服务器地址，如 `localhost:50051`   |
+| `post_script`     | string | N        | Pipeline 脚本，用于结果判断   |
+
+> 注意：gRPC 拨测仅支持 unary RPC（一元 RPC），不支持 streaming RPC（流式 RPC）。
+
+完整 JSON 结构如下：
+
+```json
+{
+  "GRPC": [
+    {
+      "name": "grpc-test",
+      "server": "localhost:50051",
+      "post_url": "https://<your-dataway-host>?token=<your-token>",
+      "status": "OK",
+      "frequency": "5m",
+      "success_when_logic": "and",
+      "success_when": [
+        {
+          "body": [
+            {
+              "contains": "success"
+            }
+          ],
+          "response_time": "500ms"
+        }
+      ],
+      "advance_options": {
+        "request_options": {
+          "request_timeout": "10s",
+          "metadata": {
+            "x-token": "test-token"
+          },
+          "proto_files": {
+            "protofiles": {
+               "greeter.proto": "syntax = \"proto3\";\n\npackage greeter;\n\noption go_package = \"datakittest/grpc/pb\";\n\nimport \"pb/common.proto\";\n\nservice Greeter {\n  rpc SayHello (HelloRequest) returns (common.result) {}\n}\n\nmessage HelloRequest {\n  string name = 1;\n}",
+               "pb/common.proto": "syntax = \"proto3\";\n\npackage common;\n\noption go_package = \"datakittest/grpc/pb\";\n\nmessage result {\n    int32 code = 1;\n    string msg = 2;\n}"
+            },
+            "full_method": "greeter.Greeter/SayHello",
+            "request": "{\"name\": \"world\"}"
+          }
+        },
+        "certificate": {
+          "ignore_server_certificate_error": false
+        }
+      },
+      "post_script": "..."
+    }
+  ]
+}
+```
+
+##### `success_when` 定义 {#grpc-success-when}
+
+- gRPC 响应体判断 (`body`)
+
+`body` 为一个数组对象，每个对象参数如下：
+
+| 字段              | 类型   | 是否必须 | 说明                                                |
+| :---              | ---    | ---      | ---                                                 |
+| `is`              | string | N        | 返回的 body 是否等于该指定字段                      |
+| `is_not`          | string | N        | 返回的 body 是否不等于该指定字段                    |
+| `match_regex`     | string | N        | 返回的 body 是否含有该匹配正则表达式的子字符串      |
+| `not_match_regex` | string | N        | 返回的 body 是否不含有该匹配正则表达式的子字符串    |
+| `contains`        | string | N        | 返回的 body 是否含有该指定的子字符串                |
+| `not_contains`    | string | N        | 返回的 body 是否不含有该指定的子字符串              |
+
+如：
+
+```json
+"success_when": [
+  {
+    "body": [
+      {
+        "contains": "success"
+      }
+    ]
+  }
+]
+```
+
+- gRPC 响应时间判断 (`response_time`)
+
+填写具体的时间值，如果请求的响应时间小于该指定值，则判定拨测成功，如：
+
+```json
+"success_when": [
+  {
+    "response_time": "1000ms"
+  }
+]
+```
+
+> 注意，此处指定的时间单位有 `ns`（纳秒）/`us`（微秒）/`ms`（毫秒）/`s`（秒）/`m`（分钟）/`h`（小时）。对 gRPC 拨测而言，一般使用 `ms` 或 `s` 单位。
+
+##### `advance_options` 定义 {#grpc-advance-options}
+
+- 请求选项 (`request_options`)
+
+| 字段              | 类型              | 是否必须 | 说明                                                       |
+| :---              | ---               | ---      | ---                                                        |
+| `request_timeout` | string            | N        | 请求超时时间，默认 30s                                      |
+| `metadata`        | map[string]string | N        | gRPC 请求的元数据（metadata）                               |
+| `proto_files`     | object            | N        | 通过 proto 文件发现方法（与 `reflection`、`health_check` 三选一） |
+| `reflection`      | object            | N        | 通过 gRPC 反射发现方法（与 `proto_files`、`health_check` 三选一） |
+| `health_check`    | object            | N        | 使用 gRPC 健康检查服务（与 `proto_files`、`reflection` 三选一） |
+
+`proto_files` 对象定义：
+
+| 字段          | 类型                | 是否必须 | 说明                                    |
+| :---          | ---                 | ---      | ---                                     |
+| `protofiles`  | map[string]string   | Y        | proto 文件内容，key 为文件引用路径（主文件为文件名，被 import 的文件必须与 import 语句中的路径一致），value 为文件内容 |
+| `full_method` | string              | Y        | 完整方法名，格式为 `ServiceName/MethodName` |
+| `request`     | string              | N        | JSON 格式的请求体                        |
+
+`reflection` 对象定义：
+
+| 字段          | 类型   | 是否必须 | 说明                                    |
+| :---          | ---    | ---      | ---                                     |
+| `full_method` | string | Y        | 完整方法名，格式为 `ServiceName/MethodName` |
+| `request`     | string | N        | JSON 格式的请求体                        |
+
+`health_check` 对象定义：
+
+| 字段      | 类型   | 是否必须 | 说明                    |
+| :---      | ---    | ---      | ---                     |
+| `service` | string | N        | 要检查的服务名称，为空时表示检查整个服务        |
+
+`request_options` 示例：
+
+```json
+"advance_options": {
+  "request_options": {
+    "request_timeout": "10s",
+    "metadata": {
+      "x-token": "test-token",
+    },
+    "proto_files": {
+      "protofiles": {
+        "greeter.proto": "syntax = \"proto3\";\n\npackage greeter;\n\noption go_package = \"datakittest/grpc/pb\";\n\nimport \"pb/common.proto\";\n\nservice Greeter {\n  rpc SayHello (HelloRequest) returns (common.result) {}\n}\n\nmessage HelloRequest {\n  string name = 1;\n}",
+        "pb/common.proto": "syntax = \"proto3\";\n\npackage common;\n\noption go_package = \"datakittest/grpc/pb\";\n\nmessage result {\n    int32 code = 1;\n    string msg = 2;\n}"
+      },
+      "full_method": "greeter.Greeter/SayHello",
+      "request": "{\"name\": \"world\"}"
+    }
+  }
+}
+```
+
+或使用反射：
+
+> 注意：使用反射方式需要 gRPC 服务器端启用 [gRPC Server Reflection](https://github.com/grpc/grpc/blob/master/doc/server-reflection.md){:target="_blank"} 服务。
+
+```json
+"advance_options": {
+  "request_options": {
+    "reflection": {
+      "full_method": "greeter.Greeter/SayHello",
+      "request": "{\"name\": \"world\"}"
+    }
+  }
+}
+```
+
+或使用健康检查：
+
+> 注意：使用健康检查方式需要 gRPC 服务器端实现 [gRPC Health Checking Protocol](https://github.com/grpc/grpc/blob/master/doc/health-checking.md){:target="_blank"} 服务。
+
+```json
+"advance_options": {
+  "request_options": {
+    "health_check": {
+      "service": "my-service"
+    }
+  }
+}
+```
+
+- 证书配置 (`certificate`)
+
+| 字段                              | 类型   | 是否必须 | 说明                                    |
+| :---                              | ---    | ---      | ---                                     |
+| `ignore_server_certificate_error` | bool   | N        | 是否跳过服务器证书验证（不验证服务器证书的有效性）                  |
+| `private_key`                     | string | N        | 客户端私钥（用于 mTLS）                 |
+| `certificate`                     | string | N        | 客户端证书（用于 mTLS）                 |
+| `ca`                              | string | N        | CA 证书（用于验证服务器证书）           |
+
+`certificate` 示例：
+
+```json
+"advance_options": {
+  "certificate": {
+    "ignore_server_certificate_error": false,
+    "ca": "<your-ca-cert>",
+    "private_key": "<your-private-key>",
+    "certificate": "<your-certificate>"
+  }
+}
+```
+
+- 安全选项 (`secret`)
+
+| 字段                  | 类型 | 是否必须 | 说明                     |
+| :---                  | ---  | ---      | ---                      |
+| `not_save`            | bool | N        | 是否不保存响应体内容     |
+
+`secret` 示例：
+
+```json
+"advance_options": {
+  "secret": {
+    "not_save": true
+  }
+}
+```
+
+##### `post_script` 定义 {#grpc-post-script}
+
+`post_script` 是一个 [Pipeline](../pipeline/use-pipeline/index.md) 脚本，用于对拨测结果进行判断。
+
+注入变量
+
+为了便于 `post_script` 处理 gRPC 响应并对检测结果进行判定，编写脚本时可使用一些预定义的变量。具体如下：
+
+- `response`: 响应对象
+
+| 字段      | 类型   | 说明         |
+| :---      | ---    | ---          |
+| `body`    | string | 响应内容（JSON 格式字符串） |
+
+- `result`： 检测结果
+
+| 字段           | 类型   | 说明     |
+| :---           | ---    | ---      |
+| `is_failed`    | bool   | 是否失败 |
+| `error_message` | string | 失败原因 |
+
+示例
+
+```javascript
+
+body = load_json(response["body"])
+
+if body["message"] == "Hello world" {
+  result["is_failed"] = false
+} else {
+  result["is_failed"] = true
+  result["error_message"] = "Unexpected response"
+}
+
+```
+
+上面的脚本中，首先使用 `load_json` 将响应内容（`response["body"]`）解析为 JSON 对象，然后判断响应中的 message 字段是否为 "Hello world"，如果是，则将 `result` 的 `is_failed` 设置为 false，否则将 `result` 的 `is_failed` 设置为 true，且 `error_message` 设置为错误信息。
+
+#### 多步拨测 {#multi}
+
+[:octicons-tag-24: Version-1.68.0](../datakit/changelog-2025.md#cl-1.68.0)
+
+多步拨测允许您定义一系列按顺序执行的拨测步骤，支持 HTTP 请求和等待操作，并可以在步骤之间传递变量。
+
+额外字段
+
+| 字段        | 类型   | 是否必须 | 说明                                      |
+| :---        | ---    | ---      | ---                                       |
+| `steps`     | array  | Y        | 拨测步骤列表，至少包含一个步骤            |
+
+总体的 JSON 结构如下：
+
+``` json
+{
+  "MULTI": [
+    {
+      "name": "multi-step-test",
+      "status": "OK",
+      "post_url": "https://<your-dataway-host>?token=<your-token>",
+      "frequency": "10s",
+      "steps": [
+        {
+          "type": "http",
+          "name": "step1",
+          "task": "{\"name\": \"step1\", \"method\": \"GET\", \"url\": \"http://api.example.com/resource\", \"post_script\": \"vars[\\\"token\\\"] = \\\"token_value\\\"\"}",
+          "allow_failure": false,
+          "retry": {
+            "retry": 3,
+            "interval": 1000
+          },
+          "extracted_vars": [
+            {
+              "name": "token",
+              "field": "token",
+              "secure": false
+            }
+          ]
+        },
+        {
+          "type": "wait",
+          "name": "step2",
+          "value": 5
+        },
+        {
+          "type": "http",
+          "name": "step3",
+          "task": "{\"name\": \"step3\", \"method\": \"POST\", \"url\": \"http://127.0.0.1:9000?token={{`{{token}}`}}\", \"post_script\":\"result[\\\"is_failed\\\"]=true\"}",
+          "allow_failure": false
+        }
+      ]
+    }
+  ]
+}
+```
+
+##### `steps` 定义 {#multi-steps}
+
+`steps` 是一个拨测步骤数组，每个步骤可以是以下两种类型之一：
+
+- HTTP 步骤 (`type: "http"`)
+
+   | 字段              | 类型   | 是否必须 | 说明                                      |
+   | :---              | ---    | ---      | ---                                       |
+   | `type`            | string | Y        | 步骤类型，必须为 `http`                   |
+   | `name`            | string | Y        | 步骤名称                                  |
+   | `task`            | string | Y        | HTTP 拨测任务的 JSON 字符串               |
+   | `allow_failure`   | bool   | N        | 是否允许步骤失败，默认 `false`            |
+   | `retry`           | object | N        | 重试配置，详见下文                        |
+   | `extracted_vars`  | array  | N        | 提取的变量列表，用于后续步骤      |
+
+- 等待步骤 (`type: "wait"`)
+
+   | 字段              | 类型   | 是否必须 | 说明                                      |
+   | :---              | ---    | ---      | ---                                       |
+   | `type`            | string | Y        | 步骤类型，必须为 `wait`                   |
+   | `name`            | string | Y        | 步骤名称                                  |
+   | `value`           | int    | Y        | 等待时间，单位为秒                        |
+   | `allow_failure`   | bool   | N        | 是否允许步骤失败，默认 `false`            |
+
+##### `retry` 定义 {#multi-retry}
+
+重试配置用于设置当步骤失败时的重试策略。
+
+| 字段              | 类型   | 是否必须 | 说明                                      |
+| :---              | ---    | ---      | ---                                       |
+| `retry`           | int    | Y        | 重试次数，必须在 0-5 之间                 |
+| `interval`        | int    | Y        | 重试间隔，单位为毫秒，必须在 0-5000 之间  |
+
+##### `extracted_vars` 定义 {#multi-extracted-vars}
+
+从 HTTP `post_script` 中定义的 `vars` 中提取变量，用于后续步骤的模板替换。
+
+| 字段              | 类型   | 是否必须 | 说明                                      |
+| :---              | ---    | ---      | ---                                       |
+| `name`            | string | Y        | 变量名称，用于后续步骤的模板替换          |
+| `field`           | string | Y        | `vars` 中定义的变量名    |
+| `secure`          | bool   | N        | 是否为安全变量，安全变量不会在结果中显示  |
 
 ### 模板函数使用说明 {#template-func}
 

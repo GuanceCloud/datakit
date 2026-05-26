@@ -16,8 +16,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/election"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/aggr"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/operator"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/recorder"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/resourcelimit"
@@ -34,10 +34,7 @@ type Config struct {
 	BlackList []*inputHostList `toml:"black_lists,omitempty"`
 	WhiteList []*inputHostList `toml:"white_lists,omitempty"`
 
-	UUID    string `toml:"-"`
-	RunMode int    `toml:"-"`
-
-	Name string `toml:"name,omitempty"`
+	RunMode int `toml:"-"`
 
 	// http config: TODO: merge into APIConfig
 	HTTPBindDeprecated   string `toml:"http_server_addr,omitempty"`
@@ -61,9 +58,6 @@ type Config struct {
 	// DCA config
 	DCAConfig *DCAConfig `toml:"dca"`
 
-	// dk_upgrader
-	DKUpgrader *DKUpgraderCfg `toml:"dk_upgrader"`
-
 	// pipeline
 	Pipeline *plval.PipelineCfg `toml:"pipeline"`
 
@@ -84,8 +78,8 @@ type Config struct {
 	IO                     *io.IOConf         `toml:"io"`
 	IOCacheCountDeprecated int                `toml:"io_cache_count,omitzero"`
 
-	Dataway  *dataway.Dataway   `toml:"dataway"`
-	Operator *operator.Operator `toml:"-"`
+	Dataway    *dataway.Dataway `toml:"dataway"`
+	Aggregator *aggr.Aggregator `toml:"aggregator"`
 
 	GlobalHostTags       map[string]string `toml:"global_host_tags"`
 	GlobalTagsDeprecated map[string]string `toml:"global_tags,omitempty"`
@@ -160,7 +154,7 @@ func DefaultConfig() *Config {
 		},
 
 		Environments: map[string]string{
-			"ENV_HOSTNAME": "", // not set
+			envManualHostname: "", // not set
 		}, // default nothing
 
 		IO: &io.IOConf{
@@ -183,11 +177,9 @@ func DefaultConfig() *Config {
 
 		Dataway: dataway.NewDefaultDataway(),
 
-		Operator: &operator.Operator{},
-
 		ProtectMode: true,
 
-		HTTPAPI: defaultAPIConfig(),
+		HTTPAPI: DefaultAPIConfig(),
 
 		DCAConfig: &DCAConfig{
 			Enable:          false,
@@ -195,11 +187,6 @@ func DefaultConfig() *Config {
 		},
 
 		APMInject: &APMInject{},
-
-		DKUpgrader: &DKUpgraderCfg{
-			Host: "0.0.0.0",
-			Port: 9542,
-		},
 
 		Pipeline: &plval.PipelineCfg{
 			IPdbType:               "iploc",
@@ -218,6 +205,7 @@ func DefaultConfig() *Config {
 			Rotate:        logger.MaxSize,
 			RotateBackups: logger.MaxBackups,
 			Log:           filepath.Join("/var/log/datakit", "log"),
+			ErrorLog:      filepath.Join("/var/log/datakit", "error.log"),
 			GinLog:        filepath.Join("/var/log/datakit", "gin.log"),
 		},
 
@@ -263,11 +251,21 @@ func DefaultConfig() *Config {
 			Interval: "30s",
 			JavaHome: "",
 		},
+		Aggregator: &aggr.Aggregator{
+			Endpoints:                   []string{},
+			Timeout:                     0,
+			MaxRawBodySize:              0,
+			UseLocalConfig:              true,
+			LocalConfigDir:              filepath.Join(datakit.ConfdDir, "aggr"),
+			LocalMetricConfigFile:       "aggr.toml",
+			LocalTailSamplingConfigFile: "tail-sampling.toml",
+		},
 	}
 
-	// windows 下，日志继续跟 datakit 放在一起
+	// for windows, logging set to install dir
 	if runtime.GOOS == datakit.OSWindows {
 		c.Logging.Log = filepath.Join(datakit.InstallDir, "log")
+		c.Logging.ErrorLog = filepath.Join(datakit.InstallDir, "error.log")
 		c.Logging.GinLog = filepath.Join(datakit.InstallDir, "gin.log")
 	}
 

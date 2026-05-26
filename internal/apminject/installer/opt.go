@@ -31,6 +31,7 @@ type config struct {
 	installDir         string
 	launcherURL        string
 	ddJavaLibURL       string
+	ddPhpLibURL        string
 	pyLib              bool
 
 	cli *http.Client
@@ -82,6 +83,12 @@ func WithJavaLibURL(url string) Opt {
 func WithPythonLib(ok bool) Opt {
 	return func(c *config) {
 		c.pyLib = ok
+	}
+}
+
+func WithPhpLibURL(url string) Opt {
+	return func(c *config) {
+		c.ddPhpLibURL = url
 	}
 }
 

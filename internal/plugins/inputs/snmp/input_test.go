@@ -31,7 +31,11 @@ func Test_AvailableArchs(t *testing.T) {
 func Test_SampleMeasurement(t *testing.T) {
 	ipt := &Input{}
 	out := ipt.SampleMeasurement()
-	assert.Equal(t, []inputs.Measurement{&snmpmeasurement.SNMPObject{}, &snmpmeasurement.SNMPMetric{}}, out)
+	assert.Equal(t, []inputs.Measurement{
+		&snmpmeasurement.SNMPObject{},
+		&snmpmeasurement.SNMPMetric{},
+		&snmpmeasurement.SNMPLLDP{},
+	}, out)
 }
 
 // go test -v -timeout 30s -run ^Test_calcTagsHash$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp
@@ -313,8 +317,10 @@ func Test_getFieldTagArr(t *testing.T) {
 				Data: []*tagField{
 					{
 						Tags: map[string]string{
-							"name": "",
-							"host": "",
+							"name":          "",
+							"host":          "",
+							"device_type":   "",
+							"device_vendor": "",
 						},
 						Fields: map[string]interface{}{
 							"interfaces":     "null",
@@ -324,6 +330,7 @@ func Test_getFieldTagArr(t *testing.T) {
 							"cpus":           "null",
 							"all":            `[{"tags":{"abc":"value1","apple":"value3","def":"value2"},"fields":{"key3":3,"key4":4,"key5":5}},{"tags":{"abc":"value1","def":"value2"},"fields":{"key1":1,"key2":2}}]`,
 							"device_meta":    "fruit1=banana, fruit2=pear, fruit3=tomato",
+							"uptime":         float64(0),
 						},
 					},
 				},
@@ -347,9 +354,10 @@ func Test_getFieldTagArr(t *testing.T) {
 					resF5 := reflect.DeepEqual(v.Fields["cpus"], vv.Fields["cpus"])
 					// resF6 := reflect.DeepEqual(v.Fields["all"], vv.Fields["all"])
 					resF7 := reflect.DeepEqual(v.Fields["device_meta"], vv.Fields["device_meta"])
+					resF8 := reflect.DeepEqual(v.Fields["uptime"], vv.Fields["uptime"])
 
 					resT := reflect.DeepEqual(v.Tags, vv.Tags)
-					if resT && resF1 && resF2 && resF3 && resF4 && resF5 && resF7 {
+					if resT && resF1 && resF2 && resF3 && resF4 && resF5 && resF7 && resF8 {
 						foundIdx = kk
 						break
 					}

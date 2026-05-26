@@ -147,42 +147,7 @@ java -javaagent:dd-java-agent.jar \
 
 ## 指标 {#metric}
 
-- 标签
-
-其中每个指标有如下 tags （实际 tags 受 Java 启动参数以及 StatsD 配置影响）
-
-| 标签名        | 描述          |
-| ----          | --------      |
-| `env`         | 对应 `DD_ENV` |
-| `host`        | 主机名        |
-| `instance`    | 实例          |
-| `jmx_domain`  |               |
-| `metric_type` |               |
-| `name`        |               |
-| `service`     |               |
-| `type`        |               |
-| `version`     |               |
-
-- 指标列表
-
-| 指标                        | 描述                                                                                                                          | 数据类型 | 单位   |
-| ----                        | ----                                                                                                                          | :---:    | :----: |
-| `heap_memory`               | The total Java heap memory used                                                                                               | int      | B      |
-| `heap_memory_committed`     | The total Java heap memory committed to be used                                                                               | int      | B      |
-| `heap_memory_init`          | The initial Java heap memory allocated                                                                                        | int      | B      |
-| `heap_memory_max`           | The maximum Java heap memory available                                                                                        | int      | B      |
-| `non_heap_memory`           | The total Java non-heap memory used. Non-heap memory is calculated as follows: `Metaspace + CompressedClassSpace + CodeCache` | int      | B      |
-| `non_heap_memory_committed` | The total Java non-heap memory committed to be used                                                                           | int      | B      |
-| `non_heap_memory_init`      | The initial Java non-heap memory allocated                                                                                    | int      | B      |
-| `non_heap_memory_max`       | The maximum Java non-heap memory available                                                                                    | int      | B      |
-| `thread_count`              | The number of live threads                                                                                                    | int      | count  |
-| `gc_cms_count`              | The total number of garbage collections that have occurred                                                                    | int      | count  |
-| `gc_major_collection_count` | The number of major garbage collections that have occurred. Set `new_gc_metrics: true` to receive this metric                 | int      | count  |
-| `gc_minor_collection_count` | The number of minor garbage collections that have occurred. Set `new_gc_metrics: true` to receive this metric                 | int      | count  |
-| `gc_parnew_time`            | The approximate accumulated garbage collection time elapsed                                                                   | int      | ms     |
-| `gc_major_collection_time`  | The approximate major garbage collection time elapsed. Set `new_gc_metrics: true` to receive this metric                      | int      | ms     |
-| `gc_minor_collection_time`  | The approximate minor garbage collection time elapsed. Set `new_gc_metrics: true` to receive this metric                      | int      | ms     |
-
+参见[这里](statsd.md#metric)
 
 重点解释一下以下几个指标：`gc_major_collection_count` `gc_minor_collection_count` `gc_major_collection_time` `gc_minor_collection_time`:
 
@@ -231,6 +196,8 @@ java -javaagent:/path/to/jolokia-jvm-agent.jar=port=8080,host=localhost -jar you
 {{ range $i, $m := .Measurements }}
 
 #### `{{$m.Name}}`
+
+{{$m.DescZh}}
 
 {{$m.MarkdownTable}}
 

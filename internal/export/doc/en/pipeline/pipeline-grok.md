@@ -98,6 +98,150 @@ grok(_, "%{time}")
     - If a pattern with the same name occurs, the local pattern takes precedence (that is, the local pattern overrides the global pattern).
     - In the Pipeline script, [add_pattern()](#fn-add-pattern) needs to be called before the [grok()](#fn-grok) function, otherwise the first data fetch will fail.
 <!-- markdownlint-enable -->
+
+### Grok Fast Path Optimization {#grok-fast-path}
+
+Pipeline automatically checks whether a Grok pattern can use the Fast Path when the pattern is compiled. Fast Path is designed for structured log patterns that look like "fixed text + explicit fields + stable delimiters". If a pattern is not suitable for this optimization, Pipeline automatically falls back to the standard regular expression path, so Grok semantic compatibility is preserved.
+
+The following patterns are usually good Fast Path candidates:
+
+```python
+grok(_, "%{TIMESTAMP_ISO8601:time} %{LOGLEVEL:level} service=%{NOTSPACE:service} msg=\"%{GREEDYDATA:msg}\"")
+```
+
+```python
+grok(_, "%{IPORHOST:client} - - \\[%{HTTPDATE:time}\\] \"%{WORD:method} %{URIPATHPARAM:path} HTTP/%{NUMBER:http_version}\" %{INT:status} %{INT:bytes}")
+```
+
+These patterns are composed of fixed literals, built-in Grok primitives, and clear field boundaries. Common primitives that can be optimized directly, or after expansion, include:
+
+```text
+WORD, NOTSPACE,
+INT, POSINT, NONNEGINT, NUMBER, BASE10NUM,
+MONTH, MONTHNUM, MONTHNUM2, MONTHDAY, DAY, YEAR,
+HOUR, MINUTE, SECOND, TIME,
+HTTPDATE, TIMESTAMP_ISO8601, LOGLEVEL,
+IPORHOST, HOST, HOSTNAME,
+URIPATH, URIPATHPARAM,
+DATA, GREEDYDATA, GREEDYLINES,
+SPACE, QS, QUOTEDSTRING
+```
+
+Some built-in patterns, such as `IP`, `USER`, `USERNAME`, and `PATH`, are expanded into more specific regular expressions first. They use the Fast Path only when the expanded expression is within the supported subset; otherwise they automatically fall back to the regular expression path.
+
+Custom patterns can also use the Fast Path, as long as they expand mainly into the primitives above and fixed literals. For example:
+
+```python
+add_pattern("APPDATE", "%{YEAR}[./]%{MONTHNUM}[./]%{MONTHDAY} %{TIME}")
+grok(_, "%{APPDATE:time} \\[%{LOGLEVEL:level}\\] %{GREEDYDATA:msg}")
+```
+
+To improve the chance of using the Fast Path:
+
+- Keep stable delimiters between fields, such as spaces, `=`, `,`, `[]`, and `""`
+- Prefer built-in Grok primitives instead of writing many complex raw regular expressions directly
+- Put broad fields such as `%{DATA}` and `%{GREEDYDATA}` in positions with clear boundaries
+- Avoid placing multiple unbounded broad fields next to each other
+
+For example, the following pattern is unlikely to use the Fast Path:
+
+```python
+grok(_, "%{DATA:a}%{DATA:b}%{GREEDYDATA:c}")
+```
+
+In this pattern, both `DATA` and `GREEDYDATA` can match arbitrary text, and there is no delimiter between fields. For the same input, the boundaries of `a`, `b`, and `c` depend on regular expression non-greedy, greedy, and backtracking behavior, so they cannot be split reliably with deterministic scanning. Prefer a bounded form:
+
+```python
+grok(_, "a=%{DATA:a} b=%{DATA:b} msg=%{GREEDYDATA:c}")
+```
+
+Or:
+
+```python
+grok(_, "%{NOTSPACE:a} %{NOTSPACE:b} %{GREEDYDATA:c}")
+```
+
+The following benchmark results were collected on `linux/amd64` with an AMD Ryzen 7 9700X, sorted by log scenario. Each `ns/op` value in the table is the median of 3 runs. They are intended to show the performance scale only; actual gains depend on the log content, pattern shape, and runtime environment:
+
+Among the 51 benchmark scenarios covered here, 50 use the Fast Path and 1 falls back to the regular expression path (`Solr request log`). Fallback cases preserve Grok semantic compatibility, but their performance is close to the regular expression path.
+
+| Category | Grok pattern example | Fast Path | Regexp path | Speedup |
+| --- | --- | ---: | ---: | ---: |
+| Web / access | Apache combined log | 773.4 ns/op | 73,924 ns/op | ~96x |
+| Web / access | Apache access log | 284.5 ns/op | 3,176 ns/op | ~11x |
+| Web / access | Nginx access log | 425.4 ns/op | 64,414 ns/op | ~151x |
+| Web / access | Nginx error log | 384.8 ns/op | 8,116 ns/op | ~21x |
+| Web / access | Gateway access log | 270.1 ns/op | 25,421 ns/op | ~94x |
+| Web / access | Tomcat access log | 315.5 ns/op | 1,720 ns/op | ~5.5x |
+| Web / access | Python Gunicorn access log | 479.1 ns/op | 41,150 ns/op | ~86x |
+| Application | Go logfmt service log | 355.7 ns/op | 2,752 ns/op | ~7.7x |
+| Application | Go Gin access log | 364.9 ns/op | 4,651 ns/op | ~13x |
+| Application | Consul log | 837.6 ns/op | 16,830 ns/op | ~20x |
+| Application | Jenkins log | 134.0 ns/op | 2,892 ns/op | ~22x |
+| Database | PostgreSQL duration log | 305.9 ns/op | 1,180 ns/op | ~3.9x |
+| Database | PostgreSQL log | 1,140 ns/op | 9,715 ns/op | ~8.5x |
+| Database | MySQL log | 142.3 ns/op | 1,682 ns/op | ~12x |
+| Database | MySQL slow log | 1,313 ns/op | 4,012 ns/op | ~3.1x |
+| Database | SQLServer log | 122.9 ns/op | 1,527 ns/op | ~12x |
+| Middleware | Kafka server log | 432.6 ns/op | 2,447 ns/op | ~5.7x |
+| Middleware | RabbitMQ default log | 113.9 ns/op | 1,670 ns/op | ~15x |
+| Middleware | Redis log | 159.6 ns/op | 1,055 ns/op | ~6.6x |
+| Search / analytics | Elasticsearch log | 419.8 ns/op | 10,587 ns/op | ~25x |
+| Search / analytics | Elasticsearch search slow log | 180.5 ns/op | 8,194 ns/op | ~45x |
+| Search / analytics | Elasticsearch index slow log | 189.1 ns/op | 10,109 ns/op | ~54x |
+| Search / analytics | Solr request log | 2,851 ns/op | 2,853 ns/op | ~1.00x |
+| Search / analytics | Solr log | 180.7 ns/op | 1,643 ns/op | ~9.1x |
+| Search / analytics | TDengine log | 280.4 ns/op | 5,137 ns/op | ~18x |
+| Custom pattern | Custom alias Nginx error log | 391.8 ns/op | 22,605 ns/op | ~58x |
+| Custom pattern | Custom alias Postfix log | 199.4 ns/op | 10,288 ns/op | ~52x |
+
+Main pattern examples used by the benchmarks above:
+
+#### Web / access {#benchmark-pattern-web-access}
+
+- Apache combined log: `%{COMBINEDAPACHELOG}`
+- Apache access log: `%{GREEDYDATA:ip_or_host} - - \[%{HTTPDATE:time}\] "%{DATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}" %{NUMBER:http_code}`
+- Nginx access log: `%{IPORHOST:remote_addr} - %{DATA:remote_user} \[%{HTTPDATE:time_local}\] "%{WORD:method} %{URIPATHPARAM:request} HTTP/%{NUMBER:http_version}" %{INT:status} %{INT:body_bytes_sent} "%{DATA:http_referer}" "%{DATA:http_user_agent}"`
+- Nginx error log: `%{date2:time} \[%{LOGLEVEL:status}\] %{GREEDYDATA:msg}, client: %{NOTSPACE:client_ip}, server: %{NOTSPACE:server}, request: "%{DATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}", (upstream: "%{GREEDYDATA:upstream}", )?host: "%{NOTSPACE:ip_or_host}"`
+- Gateway access log: `%{IPORHOST:client} %{WORD:method} %{URIPATHPARAM:path} status=%{INT:status} bytes=%{INT:bytes} duration=%{NUMBER:duration}`
+- Tomcat access log: `%{NOTSPACE:client_ip} %{NOTSPACE:http_ident} %{NOTSPACE:http_auth} \[%{HTTPDATE:time}\] "%{DATA:http_method} %{GREEDYDATA:http_url} HTTP/%{NUMBER:http_version}" %{INT:status_code} %{INT:bytes}`
+- Python Gunicorn access log: `%{IPORHOST:client} - - \[%{HTTPDATE:time}\] "%{WORD:method} %{URIPATHPARAM:path} HTTP/%{NUMBER:http_version}" %{INT:status} %{INT:bytes} "%{GREEDYDATA:referrer}" "%{GREEDYDATA:agent}"`
+
+#### Application {#benchmark-pattern-application}
+
+- Go logfmt service log: `time=%{TIMESTAMP_ISO8601:time} level=%{LOGLEVEL:level} logger=%{NOTSPACE:logger} msg="%{GREEDYDATA:msg}" err="%{GREEDYDATA:error}"`
+- Go Gin access log: `\[%{GINTIME:time}\] %{INT:status} %{WORD:method} %{URIPATHPARAM:path} %{IPORHOST:client} %{NUMBER:latency}ms`
+- Consul log: `%{SYSLOGTIMESTAMP}%{SPACE}%{SYSLOGHOST}%{SPACE}consul\[%{POSINT}\]:%{SPACE}%{_clog_date:date}%{SPACE}\[%{_clog_level:level}\]%{SPACE}%{_clog_character:character}:%{SPACE}%{_clog_message:msg}`
+- Jenkins log: `%{TIMESTAMP_ISO8601:time} \[id=%{GREEDYDATA:id}\]\t%{GREEDYDATA:status}\t`
+
+#### Database {#benchmark-pattern-database}
+
+- PostgreSQL duration log: `%{TIMESTAMP_ISO8601:time} \[%{POSINT:pid}\] %{USER:user}@%{WORD:database} %{WORD:severity}:  duration: %{NUMBER:duration_ms} ms  statement: %{GREEDYDATA:statement}`
+- PostgreSQL log: `%{log_date:time}%{SPACE}\[%{INT:process_id}\]%{SPACE}(%{WORD:db_name}?%{SPACE}%{application_name}%{SPACE}%{USER:user}?%{SPACE}%{remote_host}%{SPACE})?%{session_id:session_id}%{SPACE}(%{status:status}:)?`
+- MySQL log: `%{TIMESTAMP_ISO8601:time}\s+%{INT:thread_id}\s+%{WORD:operation}\s+%{GREEDYDATA:raw_query}`
+- MySQL slow log: `%{timeline}\n%{userline}\n%{kvline01}(\n)?(%{kvline02})?(\n)?(%{kvline03})?\n%{sqls:db_slow_statement}`
+- SQLServer log: `%{TIMESTAMP_ISO8601:time} %{NOTSPACE:origin}\s+%{GREEDYDATA:msg}`
+
+#### Middleware {#benchmark-pattern-middleware}
+
+- Kafka server log: `^\[%{date1:time}\] %{WORD:status} %{DATA:msg} \(%{DATA:name}\)`
+- RabbitMQ default log: `%{DATA:time} \[%{LOGLEVEL:status}\] %{GREEDYDATA:msg}`
+- Redis log: `%{INT:pid}:%{WORD:role} %{date2:time} %{NOTSPACE:serverity} %{GREEDYDATA:msg}`
+
+#### Search / analytics {#benchmark-pattern-search-analytics}
+
+- Elasticsearch log: `^\[%{TIMESTAMP_ISO8601:time}\]\[%{LOGLEVEL:status}%{SPACE}\]\[%{NOTSPACE:name}%{SPACE}\]%{SPACE}(\[%{HOSTNAME:nodeId}\])?.*`
+- Elasticsearch search slow log: `^\[%{TIMESTAMP_ISO8601:time}\]\[%{LOGLEVEL:status}%{SPACE}\]\[i.s.s.(?:query|fetch)%{SPACE}\] (?:\[%{HOSTNAME:nodeId}\] )?\[%{NOTSPACE:index}\]\[%{INT}\] took\[.*\], took_millis\[%{INT:duration}\].*`
+- Elasticsearch index slow log: `^\[%{TIMESTAMP_ISO8601:time}\]\[%{LOGLEVEL:status}%{SPACE}\]\[i.i.s.index%{SPACE}\] (?:\[%{HOSTNAME:nodeId}\] )?\[%{NOTSPACE:index}/%{NOTSPACE}\] took\[.*\], took_millis\[%{INT:duration}\].*`
+- Solr request log: `%{TIMESTAMP_ISO8601:time}%{SPACE}%{LOGLEVEL:status}%{SPACE}\(%{NOTSPACE:thread}\)%{SPACE}\[%{SPACE}%{NOTSPACE}?\]%{SPACE}%{solrReporter:reporter}%{SPACE}\[%{NOTSPACE:core}\]%{SPACE}webapp=%{NOTSPACE:webapp}%{SPACE}path=%{solrPath:path}%{SPACE}params=\{%{solrParams:params}\}(?:%{SPACE}hits=%{NUMBER:hits})?%{SPACE}status=%{NUMBER:qstatus}%{SPACE}QTime=%{NUMBER:qtime}`
+- Solr log: `%{TIMESTAMP_ISO8601:time}%{SPACE}%{LOGLEVEL:status}%{SPACE}\(%{NOTSPACE:thread}\)%{SPACE}\[%{SPACE}%{NOTSPACE}?\]%{SPACE}%{solrReporter:reporter}.*`
+- TDengine log: `%{GREEDYDATA:temp}%{SPACE}TAOS_%{NOTSPACE:module}%{SPACE}%{NOTSPACE:level}%{SPACE}%{GREEDYDATA:http_url}`
+
+#### Custom pattern {#benchmark-pattern-custom}
+
+- Custom alias Nginx error log: `%{APPDATE:time} \[%{LOGLEVEL:level}\] %{GREEDYDATA:msg}, client: %{IPORHOST:client}, server: %{NOTSPACE:server}, request: "%{WORD:method} %{GREEDYDATA:path} HTTP/%{NUMBER:http_version}", %{UPBLOCK}host: "%{NOTSPACE:host}"`
+- Custom alias Postfix log: `%{SYSLOGTIMESTAMP:timestamp} %{SYSLOGHOST:host} %{WORD:program}\[%{POSINT:pid}\]: %{QUEUEID:queue_id}: %{GREEDYDATA:msg}`
+
 ### Built-in Pattern List {#builtin-patterns}
 
 DataKit has some commonly used Patterns built in, which we can use directly when using Grok cutting:

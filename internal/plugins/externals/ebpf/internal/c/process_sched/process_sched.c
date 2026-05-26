@@ -31,17 +31,17 @@ int tracepoint__sched_process_fork(struct tp_sched_process_fork_args *ctx)
 SEC("tracepoint/sched/sched_process_exec")
 int tracepoint__sched_process_exec(struct tp_sched_process_exec_args *ctx)
 {
-    int offset = ctx->filename & 0xFFFF;
-    int len = ctx->filename >> 16;
-
     __u64 pid_tgid = bpf_get_current_pid_tgid();
-
-    __s32 zero = 0;
+    __u32 pid = pid_tgid >> 32;
     rec_process_sched_status_t rec = {0};
 
+    bpf_map_delete_elem(&bmap_tid2goid, &pid_tgid);
+    bpf_map_delete_elem(&bmap_procinject, &pid);
+    bpf_map_delete_elem(&bmap_proc_filter, &pid);
+
     // set status
-    rec.prv_pid = pid_tgid >> 32;
-    rec.nxt_pid = rec.prv_pid;
+    rec.prv_pid = pid;
+    rec.nxt_pid = pid;
     rec.status = REC_SCHED_EXEC;
     bpf_get_current_comm(&rec.comm, KERNEL_TASK_COMM_LEN);
 

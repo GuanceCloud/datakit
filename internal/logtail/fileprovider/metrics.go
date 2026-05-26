@@ -8,6 +8,8 @@ package fileprovider
 import (
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 var (
@@ -18,30 +20,22 @@ var (
 func setupMetrics() {
 	scanCostVec = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
-			Namespace: "datakit",
-			Subsystem: "input_tailer_scanner",
-			Name:      "cost_seconds",
-			Help:      "Scanning costs seconds",
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.90: 0.01,
-				0.99: 0.001,
-			},
+			Namespace:  "datakit",
+			Subsystem:  "input_tailer_scanner",
+			Name:       "cost_seconds",
+			Help:       "Scanning costs seconds",
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"pattern"},
 	)
 
 	scanTotalVec = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
-			Namespace: "datakit",
-			Subsystem: "input_tailer_scanner",
-			Name:      "files",
-			Help:      "Total number of scanned files",
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.90: 0.01,
-				0.99: 0.001,
-			},
+			Namespace:  "datakit",
+			Subsystem:  "input_tailer_scanner",
+			Name:       "files",
+			Help:       "Total number of scanned files",
+			Objectives: datakit.P8sStandardObjectives,
 		},
 		[]string{"pattern"},
 	)

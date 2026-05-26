@@ -7,7 +7,9 @@
 package ploffload
 
 import (
+	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -35,7 +37,8 @@ const (
 `
 	inputName = "ploffload"
 
-	ginHandleURI = "/v1/write/ploffload/:category"
+	ginHandleURI       = "/v1/write/ploffload/:category"
+	ginHandleURIPrefix = "/v1/write/ploffload/"
 )
 
 var (
@@ -209,7 +212,22 @@ func defaultInput() *Input {
 	}
 }
 
+func matchPlOffloadInputHTTPRoute(method, path string) (string, bool) {
+	if method != http.MethodPost || !strings.HasPrefix(path, ginHandleURIPrefix) {
+		return "", false
+	}
+
+	category := path[len(ginHandleURIPrefix):]
+	if category == "" || strings.Contains(category, "/") {
+		return "", false
+	}
+
+	return inputName, true
+}
+
 func init() { //nolint:gochecknoinits
+	httpapi.RegInputHTTPRouteMatcher(matchPlOffloadInputHTTPRoute)
+
 	metrics.MustRegister(chanCapVec)
 	metrics.MustRegister(chanUsageVec)
 	metrics.MustRegister(ptCounterVec)

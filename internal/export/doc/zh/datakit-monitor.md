@@ -59,11 +59,11 @@ DataKit 基本 Monitor 页面信息如下图所示：
     - `Input`: 指采集器名称。某些情况下，这个名称是采集器自定义的（比如日志采集器/Prom 采集器）
     - `Cat`：指该采集器所采集的数据类型（M(指标)/L(日志)/O(对象)...）
     - `Feeds`：指该采集器自启动以来更新数据（采集）的次数
-    - `P90Lat`：指该采集器在上报数据点时的阻塞时长（P90），如果时间越长，表示当前数据发送越慢 [:octicons-tag-24: Version-1.36.0](../datakit/changelog.md#cl-1.36.0)
-    - `P90Pts`：采集器采集的点数（P90）[:octicons-tag-24: Version-1.36.0](../datakit/changelog.md#cl-1.36.0)
+    - `Lat(...)`：指该采集器在上报数据点时的阻塞时长。默认显示平均值（avg），也可通过 `-Q/--quantile` 选择分位数（P50/P90/P99）。如果时间越长，表示当前数据发送越慢 [:octicons-tag-24: Version-1.91.0](../datakit/changelog-2026.md#cl-1.91.0)
+    - `Pts(...)`：采集器采集的点数。默认显示平均值（avg），也可通过 `-Q/--quantile` 选择分位数（P50/P90/P99）[:octicons-tag-24: Version-1.91.0](../datakit/changelog-2026.md#cl-1.91.0)
     - `Filtered`：被黑名单筛选掉的点数
     - `Last Feed`：最后一次更新数据（采集）的时间（相对当前时间）
-    - `Avg Cost`：平均每次采集消耗
+    - `Cost(...)`：每次采集消耗。默认显示平均值（avg），也可通过 `-Q/--quantile` 选择分位数（P50/P90/P99）
     - `Errors`：采集错误次数（如果没有则不显示）
 
 - 底部的提示文本，用于告知如何退出当前的 Monitor 程序，并且显示当前的 Monitor 刷新频率。
@@ -140,6 +140,25 @@ datakit monitor --refresh 1s
 
     这里的单位需注意，必须是如下几种：s（秒）/m（分钟）/h（小时），如果时间范围小于 1s，则按照 1s 来刷新。
 <!-- markdownlint-enable -->
+
+<!-- markdownlint-disable MD013 -->
+### 如何选择展示分位数（P50/P90/P99）？ {#quantile}
+<!-- markdownlint-enable -->
+
+Monitor 默认展示 Summary 指标的平均值（avg）。如果希望改成展示分位数，可通过 `-Q/--quantile` 指定：
+
+```shell
+# 展示 P90（常用）
+datakit monitor -Q 90
+# 或者
+datakit monitor --quantile 90
+
+# 展示 P50 / P99
+datakit monitor -Q 50
+datakit monitor -Q 99
+```
+
+该选项会影响 Monitor 页面中带有 `Lat(...)`、`Pts(...)`、`Cost(...)`、`Body(...)` 等 Summary 列的展示（例如 `Lat(p90)`、`Cost(p99)`）。不传 `-Q/--quantile` 时保持为 avg。
 
 <!-- markdownlint-disable MD013 -->
 ### 如何 Monitor 其它 DataKit？ {#remote-monitor}

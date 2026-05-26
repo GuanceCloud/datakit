@@ -1,6 +1,6 @@
 ---
 title     : 'MongoDB'
-summary   : 'Collect mongodb metrics data'
+summary   : 'Collect MongoDB metrics, objects, and logs'
 tags:
   - 'DATABASE'
 __int_icon      : 'icon/mongodb'
@@ -204,11 +204,11 @@ For all of the following data collections, the global election tags will added a
 {{ end }}
 {{ end }}
 
-## Custom Object {#object}
+## Object {#object}
 
 {{ range $i, $m := .Measurements }}
 
-{{if eq $m.Type "custom_object"}}
+{{if eq $m.Type "object"}}
 
 ### `{{$m.Name}}`
 
@@ -218,6 +218,29 @@ For all of the following data collections, the global election tags will added a
 {{end}}
 
 {{ end }}
+
+### `message` Metric Field Structure {#message-struct}
+
+The `message` field contains MongoDB startup/configuration settings collected from the `parsed` section of the `getCmdLineOpts` admin command. It does not include command-line `argv`, connection counters, or database statistics. The exact keys depend on the MongoDB startup options and configuration file. Its basic structure is as follows:
+
+```json
+{
+  "setting": {
+    "net": {
+      "port": 27017,
+      "bindIp": "127.0.0.1"
+    },
+    "storage": {
+      "dbPath": "/var/lib/mongodb",
+      "engine": "wiredTiger"
+    },
+    "systemLog": {
+      "destination": "file",
+      "path": "/var/log/mongodb/mongod.log"
+    }
+  }
+}
+```
 
 ## Mongod Log Collection {#logging}
 

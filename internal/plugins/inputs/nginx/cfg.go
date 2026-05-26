@@ -7,6 +7,7 @@ package nginx
 
 import (
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -82,13 +83,10 @@ type Input struct {
 	ptsTime time.Time
 	tail    *tailer.Tailer
 
-	lastErr error
-
 	collectCache []*point.Point
 
 	Election bool `toml:"election"`
-	pause    bool
-	pauseCh  chan bool
+	pause    atomic.Bool
 
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder

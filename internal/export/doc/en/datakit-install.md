@@ -305,13 +305,11 @@ DK_USER_NAME="datakit" DK_DATAWAY="..." bash -c ...
 
 ### HTTP/API {#env-http-api}
 
-- `DK_HTTP_LISTEN`: Support the installation-stage specified DataKit HTTP service binding network card (default `localhost`)
-- `DK_HTTP_PORT`: Support specifying the port of the DataKit HTTP service binding during installation (default `9529`)
+- `DK_HTTP_LISTEN`: Support specifying the DataKit HTTP service binding interface or listen address during installation (default `localhost`, for example `0.0.0.0` or `0.0.0.0:9529`)
+- `DK_HTTP_PORT`: Support specifying the port of the DataKit HTTP service binding during installation (default `9529`; if `DK_HTTP_LISTEN` already contains a port and this variable is also set, this variable takes precedence)
 - `DK_RUM_ORIGIN_IP_HEADER`: RUM-specific
 - `DK_DISABLE_404PAGE`: Disable the DataKit 404 page (commonly used when deploying DataKit RUM on the public network. Such as `True`/`False`)
 - `DK_INSTALL_IPDB`: Specify the IP library at installation time (currently only `iploc` and `geolite2` is supported)
-- `DK_UPGRADE_IP_WHITELIST`: Starting from DataKit [1.5.9](changelog.md#cl-1.5.9), we can upgrade DataKit by access remote http API. This environment variable is used to set the IP whitelist of clients that can be accessed remotely(multiple IPs could be separated by commas `,`). Access outside the whitelist will be denied (default not restricted).
-- `DK_UPGRADE_LISTEN`: Specify DK-Upgrader HTTP server address(default `0.0.0.0:9542`)[:octicons-tag-24: Version-1.38.1](changelog.md#cl-1.38.1)
 - `DK_HTTP_PUBLIC_APIS`: Specify which DataKit HTTP APIs can be accessed by remote, generally config combined with RUM input，support from DataKit [1.9.2](changelog.md#cl-1.9.2).
 - `DK_HTTP_SOCKET`: Set HTTP domain socket path(not support Windows).[:octicons-tag-24: Version-1.80.0](changelog-2025.md#cl-1.80.0)
 
@@ -380,7 +378,7 @@ Only Linux and Windows ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.
 
 [:octicons-tag-24: Version-1.62.0](changelog.md#cl-1.62.0) · [:octicons-beaker-24: Experimental](index.md#experimental)
 
-By specifying `DK_APM_INSTRUMENTATION_ENABLED` in the installation command, you can automatically inject APM for Java/Python applications:
+By specifying `DK_APM_INSTRUMENTATION_ENABLED` in the installation command, you can automatically inject APM for Java/Python/PHP applications:
 
 - Enable host inject
 
@@ -398,7 +396,9 @@ DK_APM_INSTRUMENTATION_ENABLED=docker \
   bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
 ```
 
-For host deployment, after DataKit is installed, reopen a terminal and restart the corresponding Java/Python application.
+For host deployment, after DataKit is installed, reopen a terminal and restart the corresponding Java/Python/PHP application.
+
+For containerized PHP and Python applications, the corresponding APM libraries need to be packaged into the image.
 
 For a specific process on the host or in a container, you can disable the automatic injection feature by injecting the environment variable `ENV_DATAKIT_DISABLE_APM_INS` and setting the value to `true`.
 
@@ -452,8 +452,9 @@ Operating environment requirements:
     - C standard library: glibc 2.4 and above, or musl
     - Java 8 and above
     - Python 3.7 and above
+    - PHP 7 and above
 
-In Kubernetes, you can inject APM through the [DataKit Operator](datakit-operator.md#datakit-operator-inject-lib).
+In Kubernetes, you can inject APM through the [DataKit Operator](operator-ddtrace.md).
 
 ### Other Installation Options {#env-others}
 
@@ -462,7 +463,7 @@ In Kubernetes, you can inject APM through the [DataKit Operator](datakit-operato
 | `DK_INSTALL_ONLY`                | `on`                        | Install only, not run                                                                                                                                                                       |
 | `DK_HOSTNAME`                    | `some-host-name`            | Support custom configuration hostname during installation                                                                                                                                   |
 | `DK_UPGRADE`                     | `1`                         | Upgrade to the latest version                                                               |
-| `DK_UPGRADE_MANAGER`             | `on`                        | Whether we upgrade the **Remote Upgrade Service** when upgrading DataKit, it's used in conjunction with `DK_UPGRADE`, supported start from [1.5.9](changelog.md#cl-1.5.9)                   |
+| `DK_UPGRADE_MANAGER`             | `on`                        | Whether to also install or upgrade the **DataKit upgrade management service** when upgrading DataKit. Used together with `DK_UPGRADE`, supported since [1.5.9](changelog.md#cl-1.5.9) |
 | `DK_INSTALLER_BASE_URL`          | `https://your-url`          | You can choose the installation script for different environments, default to `https://static.<<<custom_key.brand_main_domain>>>/datakit`                                                                           |
 | `DK_PROXY_TYPE`                  | -                           | Proxy type. The options are: `datakit` or `nginx`, both lowercase                                                                                                                           |
 | `DK_NGINX_IP`                    | -                           | Proxy server IP address (only need to fill in IP but not port). With the highest priority, this is mutually exclusive with the above "HTTP_PROXY" and "HTTPS_PROXY" and will override both. |

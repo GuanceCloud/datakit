@@ -29,16 +29,16 @@ import (
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )
 
+type pingInfo struct {
+	Content httpapi.Ping `json:"content"`
+}
+
 var Docker = false
 
 const (
 	statusNoUpgrade = 0
 	statusUpgrading = 1
 )
-
-type upgrader interface {
-	upgrade(opts ...upgradeOpt) error
-}
 
 type upgraderImpl struct {
 	c             *MainConfig
@@ -75,6 +75,11 @@ func (u *upgraderImpl) upgrade(opts ...upgradeOpt) error {
 
 	if !u.upgradeStatus.CompareAndSwap(statusNoUpgrade, statusUpgrading) {
 		return httpapi.ErrIsUpgrading
+	}
+
+	if u.c == nil {
+		u.upgradeStatus.Store(statusNoUpgrade)
+		return fmt.Errorf("upgrader config not initialized")
 	}
 
 	defer u.upgradeStatus.Store(statusNoUpgrade)

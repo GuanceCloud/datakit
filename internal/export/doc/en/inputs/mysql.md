@@ -7,9 +7,13 @@ __int_icon      : 'icon/mysql'
 dashboard :
   - desc  : 'MySQL'
     path  : 'dashboard/en/mysql'
+  - desc  : 'MySQL-v2'
+    path  : 'dashboard/en/mysql-v2'
 monitor   :
-  - desc  : 'N/A'
-    path  : '-'
+  - desc  : 'MySQL'
+    path  : 'monitor/en/mysql'
+  - desc  : 'MySQL-v2'
+    path  : 'monitor/en/mysql-v2'
 ---
 
 
@@ -90,18 +94,22 @@ SHOW VARIABLES LIKE 'log_bin';
 
 Binlog starts, see [this](https://stackoverflow.com/questions/40682381/how-do-i-enable-mysql-binary-logging){:target="_blank"} or [this answer](https://serverfault.com/questions/706699/enable-binlog-in-mysql-on-ubuntu){:target="_blank"}.
 
-### Database Performance Metrics Collection {#performance-schema}
+### Database Monitoring (DBM) {#dbm}
 
-The database performance metrics come from MySQL's built-in database `performance_schema`, which provides a way to get the internal performance of the server at runtime. Through this database, DataKit can collect statistics of various metrics of historical query statements, execution plans of query statements and other related performance metrics. The collected performance metric data is saved as a log, and the sources are `mysql_dbm_metric`, `mysql_dbm_sample` and `mysql_dbm_activity`.
+Database Monitoring (DBM) is based on MySQL's built-in database `performance_schema`. It helps analyze and optimize database performance by collecting historical query metrics, sampled execution plan objects, and waiting events of current threads.
+
+You can usually correlate metrics and execution plans via `query_signature` (and `plan_signature` for plan objects).
 
 To turn it on, you need to perform the following steps.
+
+#### Enable DBM {#dbm-enabled}
 
 - Modify the configuration file and start monitoring and collection
 
 ```toml
 [[inputs.mysql]]
 
-# Turn on database performance metric collection
+# Turn on database monitoring (DBM)
 dbm = true
 
 ...
@@ -214,6 +222,60 @@ Method 2: Manually configure `consumers`
 ```sql
 UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name LIKE 'events_statements_%';
 UPDATE performance_schema.setup_consumers SET enabled='YES' WHERE name = 'events_waits_current';
+```
+
+#### Query Metrics {#dbm-metric}
+
+`mysql_dbm_metric` collects cumulative execution statistics of historical queries, and calculates deltas (incremental/derived metrics) between consecutive collection windows.
+
+> Note: queries observed in the first window are used as a baseline only and their derived delta fields are not reported. Delta/derived metrics (for example, `delta_*`) will be output starting from the next collection.
+
+```toml
+[inputs.mysql.dbm_metric]
+  enabled = true
+  interval = "10s"
+  ## Maximum number of statement rows read per collection.
+  limit = 10000
+```
+
+It mainly includes:
+
+- execution count (`count_star`) and wait time (`sum_timer_wait`/`delta_timer_wait`)
+
+- lock wait time (`sum_lock_time`/`delta_lock_time`)
+
+- ...
+
+#### Activity Queries {#dbm-activity}
+
+`mysql_dbm_activity` collects waiting event and session information of current threads, including `wait_event`, the unified `wait_group`, blocking thread details, and thread/processlist dimensions.
+
+**Session Metrics**: Automatically generated from activity query data, aggregated by dimensions such as user/host/db/processlist_state/wait_event/wait_group.
+
+**Connection Metrics**: Connection counts are collected independently and aggregated by dimensions such as `processlist_user`, `processlist_host`, `processlist_db`, and `processlist_state`.
+
+```toml
+[inputs.mysql.dbm_activity]
+  enabled = true
+  interval = "10s"
+  ## Maximum activity rows read from performance_schema per collection.
+  limit = 1000
+```
+
+#### Execution Plans {#dbm-plan}
+
+`mysql_dbm_sample` collects sampled query execution plan objects. Each object is identified by both `plan_signature` and `query_signature`, and the `message` field contains the obfuscated/normalized JSON execution plan.
+
+```toml
+[inputs.mysql.dbm_sample]
+  enabled = true
+  interval = "10s"
+  ## TTL for explain-rate cache.
+  explain_cache_ttl = "10m"
+  ## Do not re-emit the same execution plan within this window.
+  plan_cache_ttl = "1h"
+  ## Maximum rows read from events_statements* per collection.
+  events_statements_limit = 10
 ```
 
 ### Replication Metrics Collection {#replication_metrics}

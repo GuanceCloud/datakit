@@ -22,17 +22,13 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+
 	"github.com/GuanceCloud/cliutils/system/rtpanic"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
-)
-
-const (
-	ElectionPauseTimeout       = time.Second * 15
-	ElectionResumeTimeout      = time.Second * 15
-	ElectionPauseChannelLength = 8
 )
 
 type ConfigInfoItem struct {
@@ -55,13 +51,11 @@ func GetElectionInputs() map[string][]ElectionInput {
 	for k, arr := range AllInputsInfo {
 		for _, x := range arr {
 			if y, ok := x.Input.(ElectionInput); ok {
-				if z, ok := x.Input.(ElectionEnabler); ok {
-					if !z.ElectionEnabled() {
-						l.Debugf("skip election disabled input: %s", k)
-						continue
-					}
+				if !y.ElectionEnabled() {
+					l.Infof("skip election disabled input: %s", k)
+					continue
 				}
-				l.Debugf("find election inputs %s", k)
+				l.Infof("find election inputs %s", k)
 				res[k] = append(res[k], y)
 			}
 		}
@@ -137,9 +131,6 @@ type InputV2 interface {
 type ElectionInput interface {
 	Pause() error
 	Resume() error
-}
-
-type ElectionEnabler interface {
 	ElectionEnabled() bool
 }
 
@@ -469,7 +460,7 @@ func RunInput(name string, ii *InputInfo) {
 		l.Warnf("run input failed: nil input")
 		return
 	}
-	g := datakit.G("inputs")
+	g := goroutine.G("inputs")
 
 	if ii.Input == nil {
 		l.Debugf("skip non-datakit-input %s", name)

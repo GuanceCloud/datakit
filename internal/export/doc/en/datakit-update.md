@@ -80,7 +80,7 @@ If the DataKit is currently in proxy mode, the proxy settings will be automatica
 
 > Note: The service does not support DataKit installed in k8s.
 
-During the installation of DataKit, an additional remote update service is installed by default, which is specifically used to upgrade the DataKit version. If you are using an older version of DataKit, you can specify additional parameters in the DataKit upgrade command to install this service:
+During the installation of DataKit, an additional upgrade management service is installed by default, which is specifically used to manage and upgrade the DataKit version. If you are using an older version of DataKit, you can specify additional parameters in the DataKit upgrade command to install this service:
 
 <!-- markdownlint-disable MD046 -->
 
@@ -101,71 +101,19 @@ During the installation of DataKit, an additional remote update service is insta
     ```shell hl_lines="3"
     DK_UPGRADE=1 \
       DK_UPGRADE_MANAGER=1 \
-      DK_INSTALLER_BASE_URL="http://my.static.com/datakit"  \
+      DK_INSTALLER_BASE_URL="http://my.static.com/datakit" \
       bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
     ```
 
-???+ note
-
-    The service will bind to the `0.0.0.0:9542` address by default. If this address/port is occupied, you can specify an alternative:
-
-    ```shell hl_lines="3"
-    DK_UPGRADE=1 \
-      DK_UPGRADE_MANAGER=1 \
-      DK_UPGRADE_LISTEN=0.0.0.0:19542 \
-      bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
-    ```
-
----
-
-Since the service provides an HTTP API, it has the following parameters available ([:octicons-tag-24: Version-1.38.1](changelog.md#cl-1.38.1)):
-
-- **`version`**: Upgrade/Downgrade DataKit to a specified version number (if it's an offline installation, ensure that the specified version's resources has been synchronized)
-- **`force`**: If the current DataKit is not running or behaving abnormally, you can use this parameter to force an upgrade and start DataKit service
-
-You can manually call APIs to achieve remote updates, or use DCA to achieve remote updates.
-
-=== "Manual Invocation"
-
-    ```shell
-    # Update to the latest DataKit version
-    curl -XPOST "http://<datakit-ip>:9542/v1/datakit/upgrade"
-
-    {"msg":"success"}
-
-    # Update to a specific DataKit version
-    curl -XPOST "http://<datakit-ip>:9542/v1/datakit/upgrade?version=3.4.5"
-
-    # Force upgrade the DataKit
-    curl -XPOST "http://<datakit-ip>:9542/v1/datakit/upgrade?force=1"
-    ```
-
-=== "DCA"
-
-    See [DCA Documentation](../dca/index.md).
+You can use DCA to achieve remote updates, see [DCA Documentation](../dca/index.md).
 
 ---
 
 ???+ info
 
-    - The upgrade process may take a long time depending on network bandwidth (essentially equivalent to manually invoking the DataKit upgrade command), please wait patiently for the API to return. If interrupted midway, **its behavior is undefined**.
-    - During the upgrade process, if the specified version does not exist, the request will return an error (version `3.4.5` does not exist):
+    - The upgrade process may take a long time depending on network bandwidth (essentially equivalent to manually invoking the DataKit upgrade command), please wait patiently.
+    - Starting from version [Version-1.91.1](changelog-2026.md#cl-1.91.1), the direct upgrade function of DataKit through HTTP service has been removed.
 
-    ```json
-    {
-      "error_code": "datakit.upgradeFailed",
-      "message": "unable to download script file http://my.static.com/datakit/install-3.4.5.sh:  resonse status: 404 Not Found"
-    }
-    ```
-
-    - If DataKit is not running, it will return an error(we can specify **force** to fix that):
-
-    ```json
-    {
-      "error_code": "datakit.upgradeFailed",
-      "message": "get datakit version failed: unable to query current DataKit version: Get \"http://localhost:9529/v1/ping\": dial tcp localhost:9529 connect: connection refused)"
-    }
-    ```
 <!-- markdownlint-enable -->
 
 ### Offline Upgrade {#offline-upgrade}

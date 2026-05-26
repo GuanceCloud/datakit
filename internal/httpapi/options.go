@@ -56,11 +56,15 @@ func WithAPIConfig(c *config.APIConfig) option {
 			s.apiConfig.Listen = c.Listen
 			s.apiConfig.ListenSocket = c.ListenSocket
 			s.apiConfig.Disable404Page = c.Disable404Page
+			// 新增一行
+			s.apiConfig.DisableWhitelist = c.DisableWhitelist
 			s.apiConfig.RUMAppIDWhiteList = append(s.apiConfig.RUMAppIDWhiteList, c.RUMAppIDWhiteList...)
 			s.apiConfig.PublicAPIs = append(s.apiConfig.PublicAPIs, c.PublicAPIs...)
 			s.apiConfig.RequestRateLimit = c.RequestRateLimit
-			s.apiConfig.Timeout = c.Timeout
-			s.apiConfig.CloseIdleConnection = c.CloseIdleConnection
+
+			s.apiConfig.ReadTimeout = c.ReadTimeout
+			s.apiConfig.IdleTimeout = c.IdleTimeout
+
 			s.apiConfig.TLSConf = c.TLSConf
 			s.apiConfig.AllowedCORSOrigins = append(s.apiConfig.AllowedCORSOrigins, c.AllowedCORSOrigins...)
 		}

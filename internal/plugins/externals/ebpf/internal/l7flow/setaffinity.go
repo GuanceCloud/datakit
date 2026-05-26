@@ -36,6 +36,7 @@ func newKpFlushTrigger(ctx context.Context) {
 			}
 
 			ticker := time.NewTicker(time.Second * 5)
+			defer ticker.Stop()
 
 			cpuSet := unix.CPUSet{}
 			for {

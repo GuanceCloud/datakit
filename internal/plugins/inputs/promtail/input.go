@@ -27,6 +27,7 @@ const (
 	inputName       = "promtail"
 	measurementName = "default"
 	catalogName     = "log"
+	promtailAPI     = "/v1/write/promtail"
 	sampleConfig    = `
 [inputs.promtail]
   ##  When processing requests with the legacy version interface,
@@ -197,12 +198,12 @@ func (*Input) AvailableArchs() []string {
 }
 
 func (*Input) Terminate() {
-	httpapi.RemoveHTTPRoute("POST", "/v1/write/promtail")
+	httpapi.RemoveHTTPRoute("POST", promtailAPI)
 }
 
 func (ipt *Input) RegHTTPHandler() {
 	l = logger.SLogger(inputName)
-	httpapi.RegHTTPHandler("POST", "/v1/write/promtail", httpapi.ProtectedHandlerFunc(ipt.ServeHTTP, l))
+	httpapi.RegHTTPHandler("POST", promtailAPI, httpapi.ProtectedHandlerFunc(ipt.ServeHTTP, l))
 }
 
 func defaultInput() *Input {
@@ -216,6 +217,13 @@ func defaultInput() *Input {
 
 //nolint:gochecknoinits
 func init() {
+	httpapi.RegInputHTTPRouteMatcher(func(method, path string) (string, bool) {
+		if method == http.MethodPost && path == promtailAPI {
+			return inputName, true
+		}
+		return "", false
+	})
+
 	inputs.Add(inputName, func() inputs.Input {
 		return defaultInput()
 	})

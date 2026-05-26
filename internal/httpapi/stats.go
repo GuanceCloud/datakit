@@ -321,9 +321,9 @@ func GetStats() (*DatakitStats, error) {
 
 		if strings.HasPrefix(name, prefix+"election_status") {
 			if ei := election.MetricElectionInfo(mfamily); ei != nil {
-				if ei.ElectedTime > 0 {
-					stats.Elected = fmt.Sprintf("%s::%s|%s(elected: %s)",
-						ei.Namespace, ei.Status, ei.WhoElected, ei.ElectedTime.String())
+				if ei.UpdateTime > 0 {
+					stats.Elected = fmt.Sprintf("%s::%s|%s(%s)",
+						ei.Namespace, ei.Status, ei.WhoElected, time.Unix(ei.UpdateTime, 0))
 				} else {
 					stats.Elected = fmt.Sprintf("%s::%s|%s", ei.Namespace, ei.Status, ei.WhoElected)
 				}

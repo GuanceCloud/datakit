@@ -4,13 +4,11 @@ go 1.19
 
 require (
 	github.com/BurntSushi/toml v1.2.1
-	github.com/DataDog/datadog-agent/pkg/obfuscate v0.47.1 // indirect
+	github.com/DataDog/datadog-agent/pkg/obfuscate v0.47.1
 	github.com/DataDog/datadog-go v4.8.3+incompatible
-	github.com/DataDog/gopsutil v1.2.1
 	github.com/GuanceCloud/confd v0.1.101
-	github.com/GuanceCloud/grok v1.1.5-0.20250416104424-34917bd63e69
-	github.com/GuanceCloud/platypus v0.3.3-0.20250528074826-e3130ff5a05c
-	github.com/GuanceCloud/timeout v1.9.1
+	github.com/GuanceCloud/grok v1.1.5-0.20260513103143-a1797907b1d0
+	github.com/GuanceCloud/platypus v0.3.4
 	github.com/IBM/sarama v1.41.2
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible // indirect
 	github.com/antchfx/xmlquery v1.3.18 // indirect
@@ -108,7 +106,6 @@ require (
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20210428141323-04723f9f07d7 // indirect
-	github.com/StackExchange/wmi v1.2.1 // indirect
 	github.com/acomagu/bufpipe v1.0.3 // indirect
 	github.com/antchfx/xpath v1.2.4 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
@@ -141,7 +138,7 @@ require (
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/containerd/continuity v0.3.0 // indirect
 	github.com/coreos/go-semver v0.3.0
-	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
+	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
@@ -201,7 +198,7 @@ require (
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2 // indirect
 	github.com/hashicorp/go-sockaddr v1.0.2 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
-	github.com/hashicorp/go-version v1.6.0 // indirect
+	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/serf v0.10.1 // indirect
@@ -218,7 +215,7 @@ require (
 	github.com/jcmturner/rpc/v2 v2.0.3 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/jmoiron/sqlx v1.3.4
-	github.com/josharian/intern v1.0.0 // indirect
+	github.com/josharian/intern v1.0.0
 	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
@@ -237,7 +234,7 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
-	github.com/mitchellh/mapstructure v1.5.0 // indirect
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/moby/term v0.0.0-20210619224110-3f7ff695adc6 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -344,7 +341,6 @@ require (
 )
 
 require (
-	github.com/DataDog/ebpf-manager v0.2.16
 	github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b
 	github.com/GuanceCloud/zipstream v0.1.0 // indirect
 	github.com/andrewkroh/sys v0.0.0-20151128191922-287798fe3e43
@@ -371,10 +367,9 @@ require (
 )
 
 require (
-	github.com/GuanceCloud/cliutils v1.1.22-0.20251016031643-25f6b60f8ebf
+	github.com/GuanceCloud/cliutils v1.1.22-0.20260511083129-45a7568875d8
 	github.com/VictoriaMetrics/easyproto v0.1.4 // indirect
 	github.com/andybalholm/brotli v1.0.4
-	github.com/avast/retry-go/v4 v4.1.0 // indirect
 	github.com/avvmoto/buf-readerat v0.0.0-20171115124131-a17c8cb89270 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -385,12 +380,12 @@ require (
 	github.com/libp2p/go-reuseport v0.3.0 // indirect
 	github.com/outcaste-io/ristretto v0.2.1 // indirect
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4 // indirect
 	github.com/valyala/fastjson v1.6.3
 )
 
 require (
-	github.com/GuanceCloud/pipeline-go v1.0.9-0.20250819095325-01d2a81ed1c2
+	github.com/DATA-DOG/go-sqlmock v1.5.2
+	github.com/GuanceCloud/pipeline-go v1.3.1
 	github.com/go-redis/redis/v8 v8.11.3
 	github.com/hipages/php-fpm_exporter v1.2.1
 	github.com/redis/go-redis/v9 v9.12.0
@@ -399,8 +394,16 @@ require (
 )
 
 require (
-	github.com/DATA-DOG/go-sqlmock v1.5.2 // indirect
+	github.com/bufbuild/protocompile v0.4.0 // indirect
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
+	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
+	github.com/golang/mock v1.6.0 // indirect
+	github.com/jhump/protoreflect v1.15.1 // indirect
+	github.com/onsi/ginkgo/v2 v2.9.5 // indirect
+	github.com/quic-go/qpack v0.4.0 // indirect
+	github.com/quic-go/qtls-go1-19 v0.3.2 // indirect
+	github.com/quic-go/qtls-go1-20 v0.3.2 // indirect
+	github.com/quic-go/quic-go v0.36.0 // indirect
 	github.com/speps/go-hashids v2.0.0+incompatible // indirect
 	github.com/tomasen/fcgi_client v0.0.0-20180423082037-2bb3d819fd19 // indirect
 	k8s.io/gengo v0.0.0-20211129171323-c02415ce4185 // indirect
@@ -409,7 +412,7 @@ require (
 replace (
 	github.com/c-bata/go-prompt => github.com/coanor/go-prompt v0.2.6
 	github.com/fsnotify/fsnotify => github.com/GuanceCloud/fsnotify v1.8.2
-	github.com/google/gopacket => github.com/GuanceCloud/gopacket v0.0.1
+	github.com/google/gopacket => github.com/GuanceCloud/gopacket v0.0.2
 	github.com/grafana/jfr-parser => github.com/GuanceCloud/jfr-parser v0.8.6
 	github.com/influxdata/influxdb1-client => github.com/GuanceCloud/influxdb1-client v0.1.9
 	github.com/iovisor/gobpf => github.com/DataDog/gobpf v0.0.0-20210322155958-9866ef4cd22c

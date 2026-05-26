@@ -36,8 +36,9 @@ var (
 )
 
 const (
-	inputName    = "jaeger"
-	sampleConfig = `
+	inputName        = "jaeger"
+	defaultJaegerAPI = "/apis/traces"
+	sampleConfig     = `
 [[inputs.jaeger]]
   # Jaeger endpoint for receiving tracing span over HTTP.
   # Default value set as below. DO NOT MODIFY THE ENDPOINT if not necessary.
@@ -313,6 +314,13 @@ func defaultInput() *Input {
 }
 
 func init() { //nolint:gochecknoinits
+	httpapi.RegInputHTTPRouteMatcher(func(method, path string) (string, bool) {
+		if method == http.MethodPost && path == defaultJaegerAPI {
+			return inputName, true
+		}
+		return "", false
+	})
+
 	inputs.Add(inputName, func() inputs.Input {
 		return defaultInput()
 	})

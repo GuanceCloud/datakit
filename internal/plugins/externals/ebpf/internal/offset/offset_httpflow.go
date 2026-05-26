@@ -5,33 +5,40 @@ package offset
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"net"
-	"runtime"
+	goruntime "runtime"
 	"syscall"
-	"time"
 	"unsafe"
 
-	manager "github.com/DataDog/ebpf-manager"
 	"github.com/cilium/ebpf"
+	bpfutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/bpfutil"
 	"golang.org/x/sys/unix"
 )
 
-func GuessOffsetHTTPFlow(status *OffsetGuessC) ([]manager.ConstantEditor, error) {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
+const (
+	httpTaskFilesGuessStart = 1024
+	httpTaskFilesGuessEnd   = 4096
+	httpTaskFilesGuessStep  = 8
+)
 
-	bpfManager, err := NewOffsetHTTPFlow()
+func GuessOffsetHTTPFlow(status *OffsetGuessC) ([]bpfutil.ConstantPatch, error) {
+	goruntime.LockOSThread()
+	defer goruntime.UnlockOSThread()
+	_ = status
+
+	rt, err := NewOffsetHTTPFlowRuntime()
 	if err != nil {
 		return nil, err
 	}
 
-	if err := bpfManager.Start(); err != nil {
+	if err := rt.StartRuntime(); err != nil {
 		return nil, err
 	}
-	defer bpfManager.Stop(manager.CleanAll) //nolint:errcheck
+	defer rt.Shutdown() //nolint:errcheck
 
-	m, err := BpfMapGuessHTTPInit(bpfManager)
+	m, err := BpfMapGuessHTTPInit(rt)
 	if err != nil {
 		return nil, err
 	}
@@ -65,27 +72,66 @@ func GuessOffsetHTTPFlow(status *OffsetGuessC) ([]manager.ConstantEditor, error)
 	if err != nil {
 		return nil, fmt.Errorf("get tcp file failed: %w", err)
 	}
-	// Write the offset of pid and socket structure member file (sk - 8)
 	offsetHTTP.fd = _Ctype_int(connFile.Fd())
-	offsetHTTP.offset_socket_file = _Ctype_int(status.offset_socket_sk) - 8
+	if laddr, ok := conn.LocalAddr().(*net.TCPAddr); ok {
+		offsetHTTP.sport = _Ctype_ushort(laddr.Port)
+		if ip4 := laddr.IP.To4(); ip4 != nil {
+			offsetHTTP.saddr[3] = binary.BigEndian.Uint32(ip4)
+		}
+	}
+	if raddr, ok := conn.RemoteAddr().(*net.TCPAddr); ok {
+		offsetHTTP.dport = _Ctype_ushort(raddr.Port)
+		if ip4 := raddr.IP.To4(); ip4 != nil {
+			offsetHTTP.daddr[3] = binary.BigEndian.Uint32(ip4)
+		}
+	}
 
-	const start = 1000
-	const end = 3500
+	taskFilesGuesses := taskStructFilesGuessSequence()
+	if len(taskFilesGuesses) == 0 {
+		return nil, fmt.Errorf("no task_struct.files guess candidates")
+	}
 
-	offsetHTTP.offset_task_struct_files = start
+	offsetHTTP.offset_task_struct_files = taskFilesGuesses[0]
 
 	err = updateMapGuessHTTP(m, offsetHTTP)
 	if err != nil {
 		return nil, err
 	}
 
+	l.Debugf("start HTTP flow offset guess: socket_file=%d task_struct_files=%d fd=%d saddr=%#x daddr=%#x sport=%d dport=%d",
+		offsetHTTP.offset_socket_file, offsetHTTP.offset_task_struct_files, offsetHTTP.fd,
+		offsetHTTP.saddr[3], offsetHTTP.daddr[3], int32(offsetHTTP.sport), int32(offsetHTTP.dport))
+
 	skipCount := 0
-	for i := start; i < end && skipCount < 20; i++ {
+	candidateIdx := 0
+	lastState := int32(-1)
+	lastTaskFiles := offsetHTTP.offset_task_struct_files
+	lastFilesFDT := offsetHTTP.offset_files_struct_fdt
+	lastPrivateData := offsetHTTP.offset_file_private_data
+	for round := 0; round < len(taskFilesGuesses)+32 && skipCount < 20; round++ {
+		if round > 0 {
+			offsetHTTP, err = readMapGuessHTTP(m)
+			if err != nil {
+				return nil, err
+			}
+
+			if offsetHTTP.state&0b10 == 0 {
+				candidateIdx = 0
+			} else if offsetHTTP.state&0b1 == 0 && candidateIdx+1 < len(taskFilesGuesses) {
+				candidateIdx++
+			}
+
+			offsetHTTP.offset_task_struct_files = taskFilesGuesses[candidateIdx]
+			offsetHTTP.times = 0
+			if err := updateMapGuessHTTP(m, offsetHTTP); err != nil {
+				return nil, err
+			}
+		}
+
 		_, err = unix.GetsockoptTCPInfo(int(connFile.Fd()), syscall.SOL_TCP, syscall.TCP_INFO)
 		if err != nil {
 			return nil, err
 		}
-		time.Sleep(time.Millisecond * 5)
 		offsetTmp, err := readMapGuessHTTP(m)
 		if err != nil {
 			return nil, err
@@ -93,13 +139,29 @@ func GuessOffsetHTTPFlow(status *OffsetGuessC) ([]manager.ConstantEditor, error)
 
 		if offsetTmp.times == 0 {
 			skipCount++
-			i--
 			continue
 		} else {
 			skipCount = 0
 		}
 
-		if offsetTmp.state == 0b11 {
+		if offsetTmp.state != lastState ||
+			offsetTmp.offset_task_struct_files != lastTaskFiles ||
+			offsetTmp.offset_files_struct_fdt != lastFilesFDT ||
+			offsetTmp.offset_file_private_data != lastPrivateData {
+			l.Debugf(
+				"HTTP flow offset guess progress: round=%d state=%03b "+
+					"task_struct_files=%d files_struct_fdt=%d "+
+					"file_private_data=%d socket_sk=%d times=%d",
+				round+1, offsetTmp.state, offsetTmp.offset_task_struct_files, offsetTmp.offset_files_struct_fdt,
+				offsetTmp.offset_file_private_data, offsetTmp.offset_socket_sk, offsetTmp.times,
+			)
+			lastState = offsetTmp.state
+			lastTaskFiles = offsetTmp.offset_task_struct_files
+			lastFilesFDT = offsetTmp.offset_files_struct_fdt
+			lastPrivateData = offsetTmp.offset_file_private_data
+		}
+
+		if offsetTmp.state&0b11 == 0b11 {
 			break
 		}
 
@@ -111,6 +173,9 @@ func GuessOffsetHTTPFlow(status *OffsetGuessC) ([]manager.ConstantEditor, error)
 	}
 
 	if skipCount >= 20 {
+		l.Warnf("HTTP flow offset guess stalled: task_struct_files=%d files_struct_fdt=%d socket_file=%d file_private_data=%d socket_sk=%d state=%03b",
+			offsetHTTP.offset_task_struct_files, offsetHTTP.offset_files_struct_fdt, offsetHTTP.offset_socket_file,
+			offsetHTTP.offset_file_private_data, offsetHTTP.offset_socket_sk, offsetHTTP.state)
 		return nil, fmt.Errorf("skipCount >= 20")
 	}
 
@@ -119,9 +184,21 @@ func GuessOffsetHTTPFlow(status *OffsetGuessC) ([]manager.ConstantEditor, error)
 		return nil, err
 	}
 
-	if offsetHTTP.state != 0b11 {
+	if offsetHTTP.state&0b11 != 0b11 {
+		l.Warnf(
+			"HTTP flow offset guess failed: state=%03b task_struct_files=%d "+
+				"files_struct_fdt=%d socket_file=%d file_private_data=%d "+
+				"socket_sk=%d times=%d fd=%d",
+			offsetHTTP.state, offsetHTTP.offset_task_struct_files, offsetHTTP.offset_files_struct_fdt,
+			offsetHTTP.offset_socket_file, offsetHTTP.offset_file_private_data, offsetHTTP.offset_socket_sk,
+			offsetHTTP.times, offsetHTTP.fd,
+		)
 		return nil, fmt.Errorf("offset httpflow: failed")
 	}
+
+	l.Infof("HTTP flow offsets guessed: task_struct_files=%d files_struct_fdt=%d socket_file=%d file_private_data=%d socket_sk=%d",
+		offsetHTTP.offset_task_struct_files, offsetHTTP.offset_files_struct_fdt,
+		offsetHTTP.offset_socket_file, offsetHTTP.offset_file_private_data, offsetHTTP.offset_socket_sk)
 
 	if err = connFile.Close(); err != nil {
 		return nil, err
@@ -131,7 +208,29 @@ func GuessOffsetHTTPFlow(status *OffsetGuessC) ([]manager.ConstantEditor, error)
 		return nil, err
 	}
 
-	return NewConstHTTPEditor(offsetHTTP), nil
+	patches := NewConstHTTPEditor(offsetHTTP)
+	switch {
+	case offsetHTTP.offset_socket_sk > 0:
+		patches = append(patches, bpfutil.ConstantPatch{
+			Name:  "offset_socket_sk",
+			Value: uint64(offsetHTTP.offset_socket_sk),
+		})
+	case offsetHTTP.offset_socket_file > 0:
+		socketSk := uint64(offsetHTTP.offset_socket_file) + uint64(unsafe.Sizeof(uintptr(0))) //nolint:gosec
+		l.Warnf(
+			"HTTP flow socket.sk offset did not converge; "+
+				"derive from socket.file fallback: socket_file=%d socket_sk=%d",
+			offsetHTTP.offset_socket_file, socketSk)
+		patches = append(patches, bpfutil.ConstantPatch{
+			Name:  "offset_socket_sk",
+			Value: socketSk,
+		})
+	default:
+		l.Warnf("HTTP flow socket.sk offset did not converge; keep using kernel offset fallback=%d",
+			status.offset_socket_sk)
+	}
+
+	return patches, nil
 }
 
 func readMapGuessHTTP(m *ebpf.Map) (*OffsetHTTPFlowC, error) {
@@ -147,4 +246,55 @@ func readMapGuessHTTP(m *ebpf.Map) (*OffsetHTTPFlowC, error) {
 func updateMapGuessHTTP(m *ebpf.Map, offset *OffsetHTTPFlowC) error {
 	key := uint64(0)
 	return m.Update(&key, offset, ebpf.UpdateAny)
+}
+
+func taskStructFilesGuessSequence() []int32 {
+	kernelVersion, err := bpfutil.CurrentKernelVersion()
+	if err != nil {
+		l.Debugf("read kernel version for HTTP guess ordering failed: %v", err)
+	}
+
+	return taskStructFilesGuessSequenceForKernel(kernelVersion)
+}
+
+func taskStructFilesGuessSequenceForKernel(kernelVersion uint64) []int32 {
+	const (
+		start = httpTaskFilesGuessStart
+		end   = httpTaskFilesGuessEnd
+		step  = httpTaskFilesGuessStep
+	)
+
+	anchors := []int32{1880, 2704, 2048, 1536}
+	switch {
+	case kernelVersion != 0 && kernelVersion < (4<<48):
+		anchors = []int32{1880, 2048, 1536, 2704}
+	case kernelVersion >= (4<<48|15<<32) && kernelVersion < (5<<48):
+		anchors = []int32{2704, 2688, 2720, 1880, 2048}
+	}
+
+	sequence := make([]int32, 0, (end-start)/step+1)
+	seen := make(map[int32]struct{}, (end-start)/step+1)
+	add := func(v int32) {
+		if v < start || v >= end || v%step != 0 {
+			return
+		}
+		if _, ok := seen[v]; ok {
+			return
+		}
+		seen[v] = struct{}{}
+		sequence = append(sequence, v)
+	}
+
+	deltas := []int32{0, -8, 8, -16, 16, -24, 24, -32, 32, -64, 64, -128, 128}
+	for _, anchor := range anchors {
+		for _, delta := range deltas {
+			add(anchor + delta)
+		}
+	}
+
+	for candidate := int32(start); candidate < end; candidate += step {
+		add(candidate)
+	}
+
+	return sequence
 }

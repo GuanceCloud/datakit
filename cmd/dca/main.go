@@ -8,6 +8,7 @@ package main
 import (
 	"flag"
 	"os"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
 
@@ -102,5 +103,17 @@ func initEnv(opt *server.ServerOptions) {
 
 	if v := os.Getenv("DCA_CONSOLE_PROXY"); v != "" {
 		opt.ConsoleAPIProxy = v
+	}
+
+	if v := os.Getenv("DCA_UPLOAD_HOST_STATUS"); v != "" {
+		opt.UploadHostStatus = true
+	}
+
+	if v := os.Getenv("DCA_UPLOAD_HOST_STATUS_INTERVAL"); v != "" {
+		if interval, err := time.ParseDuration(v); err == nil {
+			opt.UploadHostStatusInterval = interval
+		} else {
+			l.Errorf("parse upload host status interval failed: %s", err.Error())
+		}
 	}
 }

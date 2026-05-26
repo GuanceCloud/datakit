@@ -45,7 +45,9 @@ type exportOptions struct {
 	exclude string
 	topDir  string
 
-	dcaVersion, version string
+	dcaVersion, version string // deprecated
+
+	docVersions map[string]string
 
 	datakitImageURL string
 	ignoreMissing   bool
@@ -74,6 +76,23 @@ func WithExclude(list string) option {
 func WithTopDir(dir string) option {
 	return func(o *exportOptions) {
 		o.topDir = dir
+	}
+}
+
+// WithVersionsInDoc set all components version in docs.
+func WithVersionsInDoc(versions string) option {
+	return func(o *exportOptions) {
+		arr := strings.Split(versions, ",")
+		for _, elem := range arr {
+			kv := strings.Split(elem, ":")
+			if len(kv) != 2 {
+				l.Warn("invalid version %s, ignored", elem)
+				continue
+			}
+			o.docVersions[kv[0]] = kv[1]
+		}
+
+		l.Infof("doc versions: %+#v", o.docVersions)
 	}
 }
 
@@ -115,8 +134,16 @@ type Params struct {
 	Catalog     string
 	InputSample string
 
+	// versions used among docs.
+	FlameshotVersion,
+	DDTraceJavaExtVersion,
+	OTELJavaExtVersion,
+	K8sProfilersAsyncProfileVersion,
+	K8sProfilersPySpyVersion,
+	K8sProfilersPprofVersion,
+	DKOperatorVersion,
 	DCAVersion,
-	Version string
+	Version string // datakit version
 
 	InputENVSample      string
 	InputENVSampleZh    string
@@ -145,6 +172,26 @@ type Params struct {
 	templateDelims [2]string
 }
 
+func defaultParams(opt *exportOptions) *Params {
+	return &Params{
+		Version:                         opt.docVersions["datakit"],
+		DCAVersion:                      opt.docVersions["dca"],
+		DKOperatorVersion:               opt.docVersions["dkoperator"],
+		FlameshotVersion:                opt.docVersions["flameshot"],
+		DDTraceJavaExtVersion:           opt.docVersions["ddtrace-java-ext"],
+		OTELJavaExtVersion:              opt.docVersions["otel-java-ext"],
+		K8sProfilersAsyncProfileVersion: opt.docVersions["k8s-profilers-asyncprofile"],
+		K8sProfilersPySpyVersion:        opt.docVersions["k8s-profilers-pyspy"],
+		K8sProfilersPprofVersion:        opt.docVersions["k8s-profilers-pprof"],
+
+		ReleaseDate:     git.BuildAt,
+		ChangeManifests: changes.MustLoadAllManifest(),
+
+		DatakitConfSample: datakit.MainConfSample(datakit.BrandDomainTemplate),
+		Year:              fmt.Sprintf("%d", time.Now().Year()),
+	}
+}
+
 // buildInputDoc render inputs docs based on input document template.
 func buildInputDoc(inputName string, md []byte, opt *exportOptions) ([]byte, error) {
 	c := inputs.AllInputs[inputName]
@@ -167,21 +214,13 @@ func buildInputDoc(inputName string, md []byte, opt *exportOptions) ([]byte, err
 		return nil, fmt.Errorf("input %s not implement InputV2 interfaces", inputName)
 	}
 
-	p := &Params{
-		InputName:   inputName,
-		InputSample: ipt.SampleConfig(),
-		Catalog:     ipt.Catalog(),
+	p := defaultParams(opt)
 
-		Version:    opt.version,
-		DCAVersion: opt.dcaVersion,
-
-		ChangeManifests: changes.MustLoadAllManifest(),
-
-		ReleaseDate:    git.BuildAt,
-		AvailableArchs: archs,
-		Measurements:   measurements,
-		Year:           fmt.Sprintf("%d", time.Now().Year()),
-	}
+	p.InputName = inputName
+	p.InputSample = ipt.SampleConfig()
+	p.Catalog = ipt.Catalog()
+	p.AvailableArchs = archs
+	p.Measurements = measurements
 
 	if inp, ok := ipt.(inputs.GetENVDoc); ok {
 		p.InputENVSample = inputs.GetENVSample(inp.GetENVDoc(), false)
@@ -197,17 +236,10 @@ func buildInputDoc(inputName string, md []byte, opt *exportOptions) ([]byte, err
 
 // buildNonInputDocs render non-inputs docs.
 func buildNonInputDocs(fileName string, md []byte, opt *exportOptions) ([]byte, error) {
-	p := &Params{
-		Version:             opt.version,
-		DCAVersion:          opt.dcaVersion,
-		ReleaseDate:         git.BuildAt,
-		ChangeManifests:     changes.MustLoadAllManifest(),
-		NonInputENVSample:   make(map[string]string),
-		NonInputENVSampleZh: make(map[string]string),
-		DatakitConfSample:   datakit.MainConfSample(datakit.BrandDomainTemplate),
-		AllMeasurements:     opt.allMeasurements,
-		Year:                fmt.Sprintf("%d", time.Now().Year()),
-	}
+	p := defaultParams(opt)
+
+	p.NonInputENVSample = make(map[string]string)
+	p.NonInputENVSampleZh = make(map[string]string)
 
 	if _, ok := nonInputDocs[fileName]; ok {
 		for contentName, info := range nonInputDocs[fileName] {
@@ -243,16 +275,9 @@ func buildPipelineDocs(
 		sb.WriteString(fndocs[elem].Doc + "\n\n")
 	}
 
-	p := &Params{
-		Version:         opt.version,
-		DCAVersion:      opt.dcaVersion,
-		ReleaseDate:     git.BuildAt,
-		ChangeManifests: changes.MustLoadAllManifest(),
+	p := defaultParams(opt)
 
-		DatakitConfSample: datakit.MainConfSample(datakit.BrandDomainTemplate),
-		PipelineFuncs:     sb.String(),
-		Year:              fmt.Sprintf("%d", time.Now().Year()),
-	}
+	p.PipelineFuncs = sb.String()
 
 	if buf, err := p.renderBuf(md); err != nil {
 		return nil, err

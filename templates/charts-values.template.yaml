@@ -9,6 +9,16 @@ datakit:
   ## @param dataway_url - string - optional
   ## The host of the DataKit intake server to send Agent data to, only set this option
   dataway_url: https://openway.{{.BrandDomain}}?token=<YOUR-Token>
+  ## @param dataway_secret_enabled - boolean - optional - default: false
+  ## Whether to create a Kubernetes Secret to store ENV_DATAWAY value
+  dataway_secret_enabled: false
+  ## @param dataway_secret_name - string - optional
+  ## Name of the Kubernetes Secret containing ENV_DATAWAY value.
+  ## If dataway_secret_enabled is true, a Secret will be created with this name.
+  dataway_secret_name: "datakit-dataway-secret"
+  ## @param dataway_secret_key - string - optional
+  ## Key in the Kubernetes Secret containing ENV_DATAWAY value
+  dataway_secret_key: "ENV_DATAWAY"
   ## @param global_tags - string - optional - default: 'host=__datakit_hostname,host_ip=__datakit_ip'
   ## It supports filling in global tags in the installation phase. The format example is: Project = ABC, owner = Zhang San (multiple tags are separated by English commas)
   global_tags: host=__datakit_hostname,host_ip=__datakit_ip
@@ -102,6 +112,8 @@ extraEnvs:
 #    value: k8s
 #  - name: "NODE_OPTIONS"
 #    value: "--max-old-space-size=1800"
+#  - name: ENV_INPUT_DK_INTERVAL  # DataKit self-monitoring interval
+#    value: "30s"
 
 
 resources:
@@ -125,7 +137,23 @@ fullnameOverride: ""
 
 podAnnotations:
   datakit/logs: |
-    [{"disable": true}]
+    [
+      {
+        "disable":       true,
+        "type":          "file",
+        "path":          "/var/log/datakit/log",
+        "source":        "datakit",
+        "storage_index": ""
+      },
+      {
+        "disable":       true,
+        "type":          "file",
+        "path":          "/var/log/datakit/gin.log",
+        "source":        "datakit-gin",
+        "storage_index": ""
+      }
+    ]
+
 
 ## @param tolerations - array - optional
 ## Allow the DaemonSet to schedule on tainted nodes (requires Kubernetes >= 1.6)
@@ -157,7 +185,7 @@ logfwdServer:
 ## Configure Datakit custom input
 #
 dkconfig: []
-#  - path: "/usr/local/datakit/conf.d/db/mysql.conf"
+#  - path: "/usr/local/datakit/conf.d/mysql.conf"
 #    name: mysql.conf
 #    value: |
 #      # {"version": "1.1.9-rc7.1", "desc": "do NOT edit this line"}

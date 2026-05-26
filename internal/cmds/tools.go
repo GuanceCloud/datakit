@@ -167,6 +167,14 @@ func runToolFlags() error {
 				from, to)
 		}
 		os.Exit(0)
+
+	case *flagToolIngestionCanary:
+		tryLoadMainCfg()
+		if err := runIngestionCanaryTool(); err != nil {
+			cp.Errorf("[E] ingestion canary tool failed: %s\n", err.Error())
+			os.Exit(-1)
+		}
+		os.Exit(0)
 	}
 
 	return fmt.Errorf("unknown tool option: %s", os.Args[2])

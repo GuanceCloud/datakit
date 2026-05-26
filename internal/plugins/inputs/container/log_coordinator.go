@@ -9,10 +9,9 @@ import (
 	"context"
 	"regexp"
 	"sync"
-	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	loggingv1alpha1 "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/pkg/apis/datakits/v1alpha1"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/pkg/labels"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
@@ -29,7 +28,10 @@ type containerLogCoordinator struct {
 }
 
 type containerLogTask struct {
+	mu sync.Mutex
+
 	containerID                  string
+	podUID                       string
 	info                         *containerLogInfo
 	useAnnotationOrEnvLogConfigs bool
 	configStr                    string
@@ -44,6 +46,8 @@ type TailerItem struct {
 	tailer     *tailer.Tailer
 }
 
+var containerLogTailerG = goroutine.G("container-log-tailer")
+
 func newContainerLogCoordinator(defaults *loggingDefaults) *containerLogCoordinator {
 	return &containerLogCoordinator{
 		containerTasks: make(map[string]*containerLogTask),
@@ -52,18 +56,55 @@ func newContainerLogCoordinator(defaults *loggingDefaults) *containerLogCoordina
 	}
 }
 
-func (c *containerLogCoordinator) addTask(containerID string, info *containerLogInfo, configStr string) {
-	c.taskMutex.Lock()
-	defer c.taskMutex.Unlock()
-
-	l.Debugf("addTask start - containerID=%s, existingTasks=%d", containerID, len(c.containerTasks))
-
+func (c *containerLogCoordinator) addTask(containerID string, info *containerLogInfo, configStr string, shouldFilter bool) {
+	c.taskMutex.RLock()
 	task, exists := c.containerTasks[containerID]
+	c.taskMutex.RUnlock()
+
+	created := false
 	if !exists {
 		task = &containerLogTask{
 			containerID: containerID,
+			podUID:      info.podUID,
 			info:        info,
 		}
+		c.taskMutex.Lock()
+		if existing, ok := c.containerTasks[containerID]; ok {
+			task = existing
+			exists = true
+		} else {
+			c.containerTasks[containerID] = task
+			created = true
+		}
+		currentTasks := len(c.containerTasks)
+		c.taskMutex.Unlock()
+
+		l.Debugf("addTask start - containerID=%s, existingTasks=%d", containerID, currentTasks)
+	} else {
+		c.taskMutex.RLock()
+		currentTasks := len(c.containerTasks)
+		c.taskMutex.RUnlock()
+		l.Debugf("addTask start - containerID=%s, existingTasks=%d", containerID, currentTasks)
+	}
+
+	task.mu.Lock()
+	defer task.mu.Unlock()
+
+	committed := false
+	defer func() {
+		if !created || committed {
+			return
+		}
+
+		c.taskMutex.Lock()
+		if existing, ok := c.containerTasks[containerID]; ok && existing == task {
+			delete(c.containerTasks, containerID)
+		}
+		c.taskMutex.Unlock()
+	}()
+
+	if created {
+		l.Infof("creating new log task for container %s", containerID)
 	}
 	task.useAnnotationOrEnvLogConfigs = configStr != ""
 
@@ -71,32 +112,47 @@ func (c *containerLogCoordinator) addTask(containerID string, info *containerLog
 		if task.useAnnotationOrEnvLogConfigs && task.configStr != configStr {
 			return
 		}
-	} else {
-		l.Infof("creating new log task for container %s", containerID)
 	}
 
 	task.configStr = configStr
 
 	var configs []*logConfig
 	var err error
+	var useDefaultStdoutConfigs bool
 
 	if !task.useAnnotationOrEnvLogConfigs {
+		// 容器没有通过 Annotation 或环境变量配置日志采集
 		if crd := c.matchCRDConfigs(task); crd != nil {
+			// 匹配到了 CRD 配置，使用 CRD 配置进行日志采集
 			configs = crd
 		} else {
-			configs, err = newLogConfigs(c.defaults, info, configStr)
+			// 既没有 Annotation/Env 配置，也没有匹配到 CRD 配置
+			// 此时需要根据日志过滤规则（include/exclude）决定是否采集日志
+			// shouldFilter 为 true 表示容器的镜像或命名空间不匹配过滤规则，应该跳过采集
+			if shouldFilter {
+				l.Debugf("log filter matched: containerID=%s, namespace=%s, image=%s, skip", containerID, info.podNamespace, info.image)
+				return
+			}
+
+			// 容器通过了过滤规则，使用默认配置创建日志采集任务
+			// 传入空的 configStr 会创建一个只采集 stdout 的默认配置
+			configs, useDefaultStdoutConfigs, err = newLogConfigs(c.defaults, info, configStr)
 			if err != nil {
 				l.Errorf("failed to parse log configs for container %s: %v", containerID, err)
 				return
 			}
-			// no-op
 		}
 	} else {
-		configs, err = newLogConfigs(c.defaults, info, configStr)
+		configs, useDefaultStdoutConfigs, err = newLogConfigs(c.defaults, info, configStr)
 		if err != nil {
 			l.Errorf("failed to parse log configs for container %s: %v", containerID, err)
 			return
 		}
+	}
+
+	if exists && useDefaultStdoutConfigs {
+		l.Debugf("task exists for container=%s, using default stdout config, skip", containerID)
+		return
 	}
 
 	l.Debugf("task exists for container %s but config changed, updating task", containerID)
@@ -125,7 +181,7 @@ func (c *containerLogCoordinator) addTask(containerID string, info *containerLog
 		task.configs = append(task.configs, cfg)
 	}
 
-	c.containerTasks[containerID] = task
+	committed = true
 	l.Infof("added task for container %s, tailers=%d", containerID, len(task.tailers))
 }
 
@@ -157,17 +213,29 @@ func (c *containerLogCoordinator) cleanMissingContainerLog(activeContainers []st
 
 func (c *containerLogCoordinator) removeTask(containerID string) {
 	c.taskMutex.Lock()
-	defer c.taskMutex.Unlock()
-
-	if task, exists := c.containerTasks[containerID]; exists {
-		for _, it := range task.tailers {
-			if it.tailer != nil {
-				it.tailer.Close()
-			}
-		}
+	task, exists := c.containerTasks[containerID]
+	if exists {
 		delete(c.containerTasks, containerID)
-		l.Infof("removed task for container %s", containerID)
 	}
+	c.taskMutex.Unlock()
+
+	if !exists {
+		return
+	}
+
+	task.mu.Lock()
+	tailers := make([]TailerItem, len(task.tailers))
+	copy(tailers, task.tailers)
+	task.tailers = nil
+	task.configs = nil
+	task.mu.Unlock()
+
+	for _, it := range tailers {
+		if it.tailer != nil {
+			it.tailer.Close()
+		}
+	}
+	l.Infof("removed task for container %s", containerID)
 }
 
 func (c *containerLogCoordinator) updateCRDLoggingConfig(key string, config *crdLoggingConfig) {
@@ -211,7 +279,7 @@ func (c *containerLogCoordinator) matchCRDConfigs(task *containerLogTask) []*log
 	// 遍历 CRD 配置，返回第一个匹配项，以确保匹配顺序稳定
 	for _, crdConfig := range c.crdConfigs {
 		if c.matchesCRDConfig(task, crdConfig) {
-			newConfigs, err := fillLogConfigs(c.defaults, task.info, crdConfig.configs)
+			newConfigs, err := fillLogConfigsWithCRDLogging(c.defaults, task.info, crdConfig)
 			if err != nil {
 				l.Warnf("apply CRD config failed: key=%s container=%s err=%v", crdConfig.key, task.containerID, err)
 				break
@@ -274,7 +342,7 @@ func (c *containerLogCoordinator) updateTailerForTask(task *containerLogTask, ne
 	// 配置存在差异，执行更新
 	l.Infof("config changed for container %s, path %s, will update", task.containerID, targetPath)
 
-	opts := c.buildTailerOptions(task.info, newCfg)
+	opts := c.buildTailerOptions(newCfg)
 	if err := existing.UpdateOptions(opts); err != nil {
 		l.Errorf("failed to update tailer options for container %s: %v", task.containerID, err)
 		return false, tailerIndex
@@ -301,7 +369,7 @@ func (c *containerLogCoordinator) createTailerForTask(task *containerLogTask, cf
 
 	task.tailers = append(task.tailers, TailerItem{path: path, configHash: cfg.getStructHash(), tailer: tailer})
 
-	datakit.G("container-log-tailer").Go(func(ctx context.Context) error {
+	containerLogTailerG.Go(func(ctx context.Context) error {
 		tailer.Start()
 		return nil
 	})
@@ -310,7 +378,7 @@ func (c *containerLogCoordinator) createTailerForTask(task *containerLogTask, cf
 }
 
 func (c *containerLogCoordinator) createTailer(info *containerLogInfo, cfg *logConfig) (*tailer.Tailer, error) {
-	opts := c.buildTailerOptions(info, cfg)
+	opts := c.buildTailerOptions(cfg)
 	opts = append(opts, tailer.WithInsideFilepathFunc(func(filepath string) string {
 		return c.defaults.insideFilepathFunc(cfg.hostDir, cfg.insideDir, filepath)
 	}))
@@ -423,7 +491,7 @@ func (c *containerLogCoordinator) closeTailersForDisabledPaths(task *containerLo
 	return true
 }
 
-func (c *containerLogCoordinator) buildTailerOptions(info *containerLogInfo, cfg *logConfig) []tailer.Option {
+func (c *containerLogCoordinator) buildTailerOptions(cfg *logConfig) []tailer.Option {
 	opts := []tailer.Option{
 		tailer.WithStorageIndex(cfg.StorageIndex),
 		tailer.WithSource(cfg.Source),
@@ -434,16 +502,24 @@ func (c *containerLogCoordinator) buildTailerOptions(info *containerLogInfo, cfg
 		tailer.WithCharacterEncoding(cfg.CharacterEncoding),
 		tailer.WithExtraTags(cfg.Tags),
 		tailer.WithFromBeginning(cfg.FromBeginning || c.defaults.fileFromBeginning),
+		tailer.WithFileSizeThreshold(c.defaults.fileSizeThreshold),
 		tailer.WithRemoveAnsiEscapeCodes(cfg.RemoveAnsiEscapeCodes || c.defaults.removeAnsiEscapeCodes),
 
 		tailer.EnableMultiline(c.defaults.enableMultiline),
-		tailer.WithMultilinePatterns(cfg.multilinePatterns),
 		tailer.WithMaxMultilineLength(c.defaults.maxMultilineLength),
 
 		tailer.WithMaxOpenFiles(c.defaults.maxOpenFiles),
-		tailer.WithFileSizeThreshold(c.defaults.fileSizeThreshold),
 		tailer.WithIgnoreDeadLog(c.defaults.ignoreDeadLog),
 		tailer.WithFieldWhitelist(c.defaults.fieldWhitelist),
+	}
+	if cfg.autoMultiline {
+		opts = append(opts, tailer.WithAutoMultilineExtraPatterns(cfg.extraPatterns))
+	} else {
+		opts = append(opts, tailer.WithMultilinePattern(cfg.multilinePattern))
+	}
+
+	if cfg.FromBeginningThresholdSize > 0 {
+		opts = append(opts, tailer.WithFileSizeThreshold(cfg.FromBeginningThresholdSize))
 	}
 
 	switch cfg.Type {
@@ -459,8 +535,7 @@ func (c *containerLogCoordinator) buildTailerOptions(info *containerLogInfo, cfg
 }
 
 type crdLoggingConfig struct {
-	key        string
-	lastUpdate time.Time
+	key string
 
 	namespaceRegex   string
 	podRegex         string
@@ -472,18 +547,20 @@ type crdLoggingConfig struct {
 	containerMatch        *regexp.Regexp
 	podLabelSelectorMatch labels.Selector
 
-	configs []*logConfig
+	podTargetLabels []string
+	configs         []*logConfig
 }
 
 func newCRDLoggingConfig(key string, item *loggingv1alpha1.ClusterLoggingConfig) (*crdLoggingConfig, error) {
 	cfg := &crdLoggingConfig{
 		key:              key,
-		lastUpdate:       time.Now(),
 		namespaceRegex:   item.Spec.Selector.NamespaceRegex,
 		podRegex:         item.Spec.Selector.PodRegex,
 		podLabelSelector: item.Spec.Selector.PodLabelSelector,
 		containerRegex:   item.Spec.Selector.ContainerRegex,
+		podTargetLabels:  make([]string, len(item.Spec.PodTargetLabels)),
 	}
+	_ = copy(cfg.podTargetLabels, item.Spec.PodTargetLabels)
 
 	var err error
 
@@ -514,18 +591,19 @@ func newCRDLoggingConfig(key string, item *loggingv1alpha1.ClusterLoggingConfig)
 
 	for _, config := range item.Spec.Configs {
 		cfg.configs = append(cfg.configs, &logConfig{
-			Type:                  config.Type,
-			Source:                config.Source,
-			Disable:               config.Disable,
-			Path:                  config.Path,
-			StorageIndex:          config.StorageIndex,
-			Service:               config.Service,
-			CharacterEncoding:     config.CharacterEncoding,
-			Pipeline:              config.Pipeline,
-			Multiline:             config.Multiline,
-			RemoveAnsiEscapeCodes: config.RemoveAnsiEscapeCodes,
-			FromBeginning:         config.FromBeginning,
-			Tags:                  config.Tags,
+			Type:                       config.Type,
+			Source:                     config.Source,
+			Disable:                    config.Disable,
+			Path:                       config.Path,
+			StorageIndex:               config.StorageIndex,
+			Service:                    config.Service,
+			CharacterEncoding:          config.CharacterEncoding,
+			Pipeline:                   config.Pipeline,
+			Multiline:                  config.Multiline,
+			RemoveAnsiEscapeCodes:      config.RemoveAnsiEscapeCodes,
+			FromBeginning:              config.FromBeginning,
+			FromBeginningThresholdSize: config.FromBeginningThresholdSize,
+			Tags:                       config.Tags,
 		})
 	}
 

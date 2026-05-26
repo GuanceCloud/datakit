@@ -31,7 +31,9 @@ func getHostTagsAndFields(host *mo.HostSystem) (map[string]string, map[string]in
 
 	if summary.Runtime != nil {
 		tags[ConnectionState] = string(summary.Runtime.ConnectionState)
-		fields[BootTime] = summary.Runtime.BootTime.UnixNano()
+		if summary.Runtime.BootTime != nil {
+			fields[BootTime] = summary.Runtime.BootTime.UnixNano()
+		}
 		tags[PowerState] = string(summary.Runtime.PowerState)
 		tags[InMaintenanceMode] = fmt.Sprintf("%v", summary.Runtime.InMaintenanceMode)
 	}

@@ -38,6 +38,10 @@ const configSample = `
   # workload_labels = ["app"]  
   # workload_label_prefix = ""
 
+  ## operator url
+  ##
+  # operator_url = "https://datakit-operator.datakit.svc:443"
+
   ## all supported plugins:
   ## - "ebpf-net"  :
   ##     contains L4-network(netflow), L7-network(httpflow, dnsflow) collection
@@ -76,6 +80,13 @@ const configSample = `
   ##
   netlog_metric = true
   netlog_log = false
+
+  ## bpf-netlog AF_PACKET capture ring limits.
+  ## In Kubernetes, datakit-ebpf uses smaller defaults to reduce resident memory.
+  ##
+  # netlog_fallback_sockets = 0
+  # netlog_fallback_blocks = 0
+  # netlog_shared_blocks = 0
   
   ## eBPF trace generation server center address.
   trace_server = ""

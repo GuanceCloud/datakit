@@ -28,28 +28,17 @@ var (
 	droppedDataVec,
 	putBytesVec,
 	getBytesVec,
-	streamPutVec,
 	getLatencyVec,
 	putLatencyVec *prometheus.SummaryVec
+
+	// Lock contention metrics.
+	lockWaitTimeVec   *prometheus.HistogramVec
+	lockContentionVec *prometheus.CounterVec
 
 	ns = "diskcache"
 )
 
 func setupMetrics() {
-	streamPutVec = prometheus.NewSummaryVec(
-		prometheus.SummaryOpts{
-			Namespace: ns,
-			Name:      "stream_put",
-			Help:      "Stream put times",
-			Objectives: map[float64]float64{
-				0.5:  0.05,
-				0.9:  0.01,
-				0.99: 0.001,
-			},
-		},
-		[]string{"path"},
-	)
-
 	getLatencyVec = prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
 			Namespace: ns,
@@ -196,7 +185,7 @@ func setupMetrics() {
 		prometheus.GaugeOpts{
 			Namespace: ns,
 			Name:      "size",
-			Help:      "Current cache size(in bytes)",
+			Help:      "Current cache size that waiting to be consumed(get). The size include header bytes",
 		},
 		[]string{"path"},
 	)
@@ -235,12 +224,31 @@ func setupMetrics() {
 		[]string{"path"},
 	)
 
+	// Lock contention metrics
+	lockWaitTimeVec = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: ns,
+			Name:      "lock_wait_seconds",
+			Help:      "Time spent waiting for locks by lock type",
+			Buckets:   []float64{0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5},
+		},
+		[]string{"lock_type", "path"},
+	)
+
+	lockContentionVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: ns,
+			Name:      "lock_contention_total",
+			Help:      "Number of lock contention events",
+		},
+		[]string{"lock_type", "path"},
+	)
+
 	metrics.MustRegister(Metrics()...)
 }
 
 // ResetMetrics used to cleanup exist metrics of diskcache.
 func ResetMetrics() {
-	streamPutVec.Reset()
 	droppedDataVec.Reset()
 	rotateVec.Reset()
 	wakeupVec.Reset()
@@ -255,6 +263,10 @@ func ResetMetrics() {
 	putLatencyVec.Reset()
 	putBytesVec.Reset()
 	getBytesVec.Reset()
+
+	// Lock contention metrics
+	lockWaitTimeVec.Reset()
+	lockContentionVec.Reset()
 }
 
 func Metrics() []prometheus.Collector {
@@ -278,6 +290,10 @@ func Metrics() []prometheus.Collector {
 		putLatencyVec,
 		getBytesVec,
 		putBytesVec,
+
+		// Lock contention metrics
+		lockWaitTimeVec,
+		lockContentionVec,
 	}
 }
 

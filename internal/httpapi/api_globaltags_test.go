@@ -47,13 +47,13 @@ func Test_All(t *testing.T) {
 	defer ts.Close()
 	time.Sleep(time.Second)
 
-	case_postHostTags(t)
-	case_deleteHostTags(t)
-	case_postElectionTags(t)
-	case_deleteElectionTags(t)
+	casePostHostTags(t)
+	caseDeleteHostTags(t)
+	casePostElectionTags(t)
+	caseDeleteElectionTags(t)
 }
 
-func case_postHostTags(t *testing.T) {
+func casePostHostTags(t *testing.T) {
 	t.Helper()
 	tests := []struct {
 		name                 string
@@ -149,7 +149,7 @@ func case_postHostTags(t *testing.T) {
 	}
 }
 
-func case_deleteHostTags(t *testing.T) {
+func caseDeleteHostTags(t *testing.T) {
 	t.Helper()
 	tests := []struct {
 		name                 string
@@ -246,7 +246,7 @@ func case_deleteHostTags(t *testing.T) {
 	}
 }
 
-func case_postElectionTags(t *testing.T) {
+func casePostElectionTags(t *testing.T) {
 	t.Helper()
 	tests := []struct {
 		name                 string
@@ -335,7 +335,7 @@ func case_postElectionTags(t *testing.T) {
 	}
 }
 
-func case_deleteElectionTags(t *testing.T) {
+func caseDeleteElectionTags(t *testing.T) {
 	t.Helper()
 	tests := []struct {
 		name                 string

@@ -47,3 +47,31 @@ func TestEmpty(t *T.T) {
 		assert.Len(t, ipt.Sockets, 2)
 	})
 }
+
+func TestMultilineCompatibility(t *T.T) {
+	t.Run("enable_multiline controls explicit and automatic patterns", func(t *T.T) {
+		ipt := defaultInput()
+		ipt.MultilineMatch = `^\d{4}-\d{2}-\d{2}`
+		ipt.AutoMultilineExtraPatterns = make([]string, 1, 2)
+		ipt.AutoMultilineExtraPatterns[0] = `^EXTRA`
+
+		assert.False(t, ipt.enableMultiline())
+		assert.Nil(t, ipt.setupMultilineOptions())
+
+		ipt.EnableMultiline = true
+		assert.Len(t, ipt.setupMultilineOptions(), 1)
+
+		ipt.MultilineMatch = ""
+		assert.Len(t, ipt.setupMultilineOptions(), 1)
+		assert.Len(t, ipt.AutoMultilineExtraPatterns, 1)
+	})
+
+	t.Run("deprecated-auto-detection-enables-multiline", func(t *T.T) {
+		ipt := defaultInput()
+		ipt.DeprecatedAutoMultilineDetection = true
+		ipt.AutoMultilineExtraPatterns = []string{`^OLD_EXTRA`}
+
+		assert.True(t, ipt.enableMultiline())
+		assert.Len(t, ipt.setupMultilineOptions(), 1)
+	})
+}

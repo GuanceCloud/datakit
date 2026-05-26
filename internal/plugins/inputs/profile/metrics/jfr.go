@@ -90,7 +90,7 @@ func (j jfrChunks) cpuTimeDurationNS() int64 {
 		for _, event := range chunk.Apply(filters.DatadogExecutionSample) {
 			weight, err := attributes.SampleWeight.GetValue(event)
 			if err != nil {
-				log.Warnf("unable to get datadog execution sample weight: %v", err)
+				l.Warnf("unable to get datadog execution sample weight: %v", err)
 				continue
 			}
 			totalSamples += weight
@@ -104,17 +104,17 @@ func (j jfrChunks) allocations() (allocBytes float64, allocCount float64) {
 		for _, event := range chunk.Apply(filters.DatadogAllocationSample) {
 			size, err := attributes.AllocSize.GetValue(event)
 			if err != nil {
-				log.Warnf("unable to resolve ddprof allocation size: %v", err)
+				l.Warnf("unable to resolve ddprof allocation size: %v", err)
 				continue
 			}
 			byteSize, err := size.In(units.Byte)
 			if err != nil {
-				log.Warnf("unable to convert allocation size to bytes: %v", err)
+				l.Warnf("unable to convert allocation size to bytes: %v", err)
 				continue
 			}
 			weight, err := attributes.AllocWeight.GetValue(event)
 			if err != nil {
-				log.Warnf("unable to resolve ddprof allocation weight: %v", err)
+				l.Warnf("unable to resolve ddprof allocation weight: %v", err)
 				continue
 			}
 			allocBytes += byteSize.FloatValue() * weight
@@ -129,13 +129,13 @@ func (j jfrChunks) directAllocationBytes() (totalBytes int64) {
 		for _, event := range chunk.Apply(filters.DatadogDirectAllocationTotal) {
 			value, err := attributes.Allocated.GetValue(event)
 			if err != nil {
-				log.Warnf("unable to resolve datadog direct allocation allocated bytes: %v", err)
+				l.Warnf("unable to resolve datadog direct allocation allocated bytes: %v", err)
 				continue
 			}
 			if value.Unit() != units.Byte {
 				value, err = value.In(units.Byte)
 				if err != nil {
-					log.Warnf("unable to convert direct allocation allocated to unit byte: %v", err)
+					l.Warnf("unable to convert direct allocation allocated to unit byte: %v", err)
 					continue
 				}
 			}
@@ -164,13 +164,13 @@ func (j jfrChunks) ioRead(filter parser.EventFilter) (maxReadTimeNS int64, maxBy
 		for _, event := range chunk.Apply(filter) {
 			duration, err := attributes.Duration.GetValue(event)
 			if err != nil {
-				log.Warnf("unable to resolve file read duration: %v", err)
+				l.Warnf("unable to resolve file read duration: %v", err)
 				continue
 			}
 			if duration.Unit() != units.Nanosecond {
 				duration, err = duration.In(units.Nanosecond)
 				if err != nil {
-					log.Warnf("unable to convert to file read duration to nanoseconds: %v", err)
+					l.Warnf("unable to convert to file read duration to nanoseconds: %v", err)
 					continue
 				}
 			}
@@ -182,13 +182,13 @@ func (j jfrChunks) ioRead(filter parser.EventFilter) (maxReadTimeNS int64, maxBy
 
 			bytesRead, err := attributes.BytesRead.GetValue(event)
 			if err != nil {
-				log.Warnf("unable to resolve file read bytes: %v", err)
+				l.Warnf("unable to resolve file read bytes: %v", err)
 				continue
 			}
 			if bytesRead.Unit() != units.Byte {
 				bytesRead, err = bytesRead.In(units.Byte)
 				if err != nil {
-					log.Warnf("unable to convert to file bytesread to bytes: %v", err)
+					l.Warnf("unable to convert to file bytesread to bytes: %v", err)
 					continue
 				}
 			}
@@ -208,13 +208,13 @@ func (j jfrChunks) ioWrite(filter parser.EventFilter) (maxWriteTimeNS int64, max
 		for _, event := range chunk.Apply(filter) {
 			duration, err := attributes.Duration.GetValue(event)
 			if err != nil {
-				log.Warnf("unable to resolve file read duration: %v", err)
+				l.Warnf("unable to resolve file read duration: %v", err)
 				continue
 			}
 			if duration.Unit() != units.Nanosecond {
 				duration, err = duration.In(units.Nanosecond)
 				if err != nil {
-					log.Warnf("unable to convert to file read duration to nanoseconds: %v", err)
+					l.Warnf("unable to convert to file read duration to nanoseconds: %v", err)
 					continue
 				}
 			}
@@ -226,13 +226,13 @@ func (j jfrChunks) ioWrite(filter parser.EventFilter) (maxWriteTimeNS int64, max
 
 			bytesWritten, err := attributes.BytesWritten.GetValue(event)
 			if err != nil {
-				log.Warnf("unable to resolve file read bytes: %v", err)
+				l.Warnf("unable to resolve file read bytes: %v", err)
 				continue
 			}
 			if bytesWritten.Unit() != units.Byte {
 				bytesWritten, err = bytesWritten.In(units.Byte)
 				if err != nil {
-					log.Warnf("unable to convert to file bytesread to bytes: %v", err)
+					l.Warnf("unable to convert to file bytesread to bytes: %v", err)
 					continue
 				}
 			}
@@ -260,13 +260,13 @@ func (j jfrChunks) gcDuration() (durationNS, count int64) {
 		for _, event := range chunk.Apply(filters.GarbageCollection) {
 			duration, err := attributes.Duration.GetValue(event)
 			if err != nil {
-				log.Warnf("unable to resolve jfr GC duration: %v", err)
+				l.Warnf("unable to resolve jfr GC duration: %v", err)
 				continue
 			}
 			if duration.Unit() != units.Nanosecond {
 				duration, err = duration.In(units.Nanosecond)
 				if err != nil {
-					log.Warnf("unable to convert to GC duration to ns: %v", err)
+					l.Warnf("unable to convert to GC duration to ns: %v", err)
 					continue
 				}
 			}
@@ -282,13 +282,13 @@ func (j jfrChunks) gcPauseDuration() (maxPauseNS, totalPauseNS, pauseCount int64
 		for _, event := range chunk.Apply(filters.GcPause) {
 			duration, err := attributes.Duration.GetValue(event)
 			if err != nil {
-				log.Warnf("unable to resolve to GC pause duration: %v", err)
+				l.Warnf("unable to resolve to GC pause duration: %v", err)
 				continue
 			}
 			if duration.Unit() != units.Nanosecond {
 				duration, err = duration.In(units.Nanosecond)
 				if err != nil {
-					log.Warnf("unable to convert to GC pause duration to nanoseconds: %v", err)
+					l.Warnf("unable to convert to GC pause duration to nanoseconds: %v", err)
 					continue
 				}
 			}
@@ -316,13 +316,13 @@ func (j jfrChunks) jvmHeapUsage() (usageBytes int64) {
 		for _, event := range chunk.Apply(filters.DatadogHeapUsage) {
 			size, err := attributes.Size.GetValue(event)
 			if err != nil {
-				log.Warnf("unable to resolve jvm heap usage: %v", err)
+				l.Warnf("unable to resolve jvm heap usage: %v", err)
 				continue
 			}
 			if size.Unit() != units.Byte {
 				size, err = size.In(units.Byte)
 				if err != nil {
-					log.Warnf("unable to convert to jvm heap usage to byte: %v", err)
+					l.Warnf("unable to convert to jvm heap usage to byte: %v", err)
 					continue
 				}
 			}
@@ -342,7 +342,7 @@ func (j jfrChunks) threadContextSwitchRate() float64 {
 		for _, event := range chunk.Apply(filters.ContextSwitchRate) {
 			rate, err := attributes.SwitchRate.GetValue(event)
 			if err != nil {
-				log.Warnf("unable to resolve thread context switch rate: %v", err)
+				l.Warnf("unable to resolve thread context switch rate: %v", err)
 				continue
 			}
 			sum += rate
@@ -360,20 +360,20 @@ func (j jfrChunks) liveHeap() (totalBytes, objectCount float64) { //nolint: unus
 		for _, event := range chunk.Apply(filters.DatadogHeapLiveObject) {
 			size, err := attributes.Size.GetValue(event)
 			if err != nil {
-				log.Warnf("unable to resolve live heap size: %v", err)
+				l.Warnf("unable to resolve live heap size: %v", err)
 				continue
 			}
 			if size.Unit() != units.Byte {
 				size, err = size.In(units.Byte)
 				if err != nil {
-					log.Warnf("unable to convert to jfr live heap size to unit bytes: %v", err)
+					l.Warnf("unable to convert to jfr live heap size to unit bytes: %v", err)
 					continue
 				}
 			}
 
 			weight, err := attributes.HeapWeight.GetValue(event)
 			if err != nil {
-				log.Warnf("unable to resolve live heap weight: %v", err)
+				l.Warnf("unable to resolve live heap weight: %v", err)
 				continue
 			}
 
@@ -403,12 +403,12 @@ func (j jfrChunks) monitorEnter() (maxDurationNS, totalDurationNS float64, count
 		for _, event := range chunk.Apply(filters.MonitorEnter) {
 			duration, err := attributes.Duration.GetValue(event)
 			if err != nil {
-				log.Warnf("unable to resolve monitor blocked duration: %v", err)
+				l.Warnf("unable to resolve monitor blocked duration: %v", err)
 				continue
 			}
 			if duration.Unit() != units.Nanosecond {
 				if duration, err = duration.In(units.Nanosecond); err != nil {
-					log.Warnf("unable to convert to nanoseconds: %v", err)
+					l.Warnf("unable to convert to nanoseconds: %v", err)
 					continue
 				}
 			}
@@ -428,12 +428,12 @@ func (j jfrChunks) compilationDuration() (totalDuration int64) {
 		for _, event := range chunk.Apply(filters.Compilation) {
 			duration, err := attributes.Duration.GetValue(event)
 			if err != nil {
-				log.Warnf("unable to resolve jvm compilation duration: %v", err)
+				l.Warnf("unable to resolve jvm compilation duration: %v", err)
 				continue
 			}
 			if duration.Unit() != units.Nanosecond {
 				if duration, err = duration.In(units.Nanosecond); err != nil {
-					log.Warnf("unable to convert to compilation duration to nanoseconds: %v", err)
+					l.Warnf("unable to convert to compilation duration to nanoseconds: %v", err)
 					continue
 				}
 			}

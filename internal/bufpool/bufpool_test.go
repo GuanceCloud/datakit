@@ -21,6 +21,7 @@ func TestBufPool(t *testing.T) {
 		wg      = sync.WaitGroup{}
 	)
 	wg.Add(threads)
+
 	for i := 0; i < threads; i++ {
 		go func() {
 			body := GetBuffer()
