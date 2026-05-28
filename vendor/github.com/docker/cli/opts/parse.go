@@ -41,12 +41,8 @@ func readKVStrings(files []string, override []string, emptyFn func(string) (stri
 func ConvertKVStringsToMap(values []string) map[string]string {
 	result := make(map[string]string, len(values))
 	for _, value := range values {
-		kv := strings.SplitN(value, "=", 2)
-		if len(kv) == 1 {
-			result[kv[0]] = ""
-		} else {
-			result[kv[0]] = kv[1]
-		}
+		k, v, _ := strings.Cut(value, "=")
+		result[k] = v
 	}
 
 	return result
@@ -55,16 +51,18 @@ func ConvertKVStringsToMap(values []string) map[string]string {
 // ConvertKVStringsToMapWithNil converts ["key=value"] to {"key":"value"}
 // but set unset keys to nil - meaning the ones with no "=" in them.
 // We use this in cases where we need to distinguish between
-//   FOO=  and FOO
+//
+//	FOO=  and FOO
+//
 // where the latter case just means FOO was mentioned but not given a value
 func ConvertKVStringsToMapWithNil(values []string) map[string]*string {
 	result := make(map[string]*string, len(values))
 	for _, value := range values {
-		kv := strings.SplitN(value, "=", 2)
-		if len(kv) == 1 {
-			result[kv[0]] = nil
+		k, v, ok := strings.Cut(value, "=")
+		if !ok {
+			result[k] = nil
 		} else {
-			result[kv[0]] = &kv[1]
+			result[k] = &v
 		}
 	}
 
@@ -73,27 +71,26 @@ func ConvertKVStringsToMapWithNil(values []string) map[string]*string {
 
 // ParseRestartPolicy returns the parsed policy or an error indicating what is incorrect
 func ParseRestartPolicy(policy string) (container.RestartPolicy, error) {
-	p := container.RestartPolicy{}
-
 	if policy == "" {
-		return p, nil
+		// for backward-compatibility, we don't set the default ("no")
+		// policy here, because older versions of the engine may not
+		// support it.
+		return container.RestartPolicy{}, nil
 	}
 
-	parts := strings.Split(policy, ":")
-
-	if len(parts) > 2 {
-		return p, fmt.Errorf("invalid restart policy format")
+	p := container.RestartPolicy{}
+	k, v, ok := strings.Cut(policy, ":")
+	if ok && k == "" {
+		return container.RestartPolicy{}, fmt.Errorf("invalid restart policy format: no policy provided before colon")
 	}
-	if len(parts) == 2 {
-		count, err := strconv.Atoi(parts[1])
+	if v != "" {
+		count, err := strconv.Atoi(v)
 		if err != nil {
-			return p, fmt.Errorf("maximum retry count must be an integer")
+			return container.RestartPolicy{}, fmt.Errorf("invalid restart policy format: maximum retry count must be an integer")
 		}
-
 		p.MaximumRetryCount = count
 	}
 
-	p.Name = parts[0]
-
+	p.Name = container.RestartPolicyMode(k)
 	return p, nil
 }

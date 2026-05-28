@@ -18,24 +18,50 @@ import (
 
 // 资源监控对象.
 type processM struct {
-	configProcess   *Process
-	Name            string
-	Cmdline         string
-	Pid             int32
-	p               *process.Process
-	MaxSize         int       // 环形缓冲区最大容量
-	lastProfileTime time.Time // 上次采集profile的时间，不能小于1分钟。
-	lastJcmdTime    time.Time // 上次采集 jcmd 轻量快照的时间，避免高水位时频繁执行。
-	mu              sync.Mutex
+	configProcess            *Process
+	Name                     string
+	Cmdline                  string
+	Pid                      int32
+	p                        *process.Process
+	MaxSize                  int       // 触发判定环形缓冲区最大容量
+	SampleMaxSize            int       // 结构化资源样本缓冲区最大容量
+	lastProfileTime          time.Time // 上次普通 profile 采集时间。
+	lastEmergencyProfileTime time.Time // 上次高水位/紧急 profile 采集时间。
+	mu                       sync.Mutex
 
-	CPUHistory        *list.List // CPU使用率历史记录（环形缓冲区）
-	MemPercentHistory *list.List // 内存使用率历史记录（环形缓冲区）
-	MemHistory        *list.List // 内存使用历史记录（环形缓冲区）
-	lastCPUTimes      time.Time
-	lastCPUTotal      float64
+	CPUHistory             *list.List // CPU使用率历史记录（环形缓冲区）
+	MemPercentHistory      *list.List // 内存使用率历史记录（环形缓冲区）
+	MemHistory             *list.List // 内存使用历史记录（环形缓冲区）
+	SampleHistory          *list.List // 结构化资源样本历史记录
+	lastCPUTimes           time.Time
+	lastCPUTotal           float64
+	lastSeenTime           time.Time
+	lastMemoryPressureTime time.Time
+	lastProfileArtifact    *profileArtifactSummary
 
 	podCPULimit string
 	podMEMLimit string
+}
+
+const (
+	defaultProfileCooldown          = time.Minute
+	defaultEmergencyProfileCooldown = 30 * time.Second
+)
+
+type resourceSample struct {
+	Timestamp  time.Time `json:"timestamp"`
+	CPUPercent float64   `json:"cpu_percent"`
+	MemUsageMB float64   `json:"mem_usage_mb"`
+	MemPercent float64   `json:"mem_percent"`
+}
+
+type profileArtifactSummary struct {
+	OutputPath  string    `json:"output_path"`
+	UploadedAt  time.Time `json:"uploaded_at"`
+	StartTime   string    `json:"start_time"`
+	EndTime     string    `json:"end_time"`
+	Event       string    `json:"event"`
+	DurationSec int       `json:"duration_sec"`
 }
 
 // 创建新的监控对象.
@@ -54,7 +80,9 @@ func newProcessM(name, cmdline string, pid int32, cp *Process) *processM {
 		CPUHistory:        list.New(),
 		MemHistory:        list.New(),
 		MemPercentHistory: list.New(),
-		MaxSize:           10, // 维护10个元素的环形缓冲区
+		SampleHistory:     list.New(),
+		MaxSize:           10,  // 维护10个元素的环形缓冲区
+		SampleMaxSize:     120, // 默认保留最近 120 个结构化样本
 	}
 
 	return pm
@@ -108,6 +136,12 @@ func (pm *processM) updateProcessStats() error {
 	log.Debugf("pid %d: RSS=%d Bytes, Limit=%d Bytes, Usage=%.2f%%, Source=%s",
 		pm.Pid, memInfo.RSS, memLimitBytes, containerMemPercent, memPercentSource)
 	pm.AddMemPercent(containerMemPercent)
+	pm.addResourceSample(resourceSample{
+		Timestamp:  now,
+		CPUPercent: getLatestListValue(pm.CPUHistory),
+		MemUsageMB: memUsage,
+		MemPercent: containerMemPercent,
+	})
 
 	return nil
 }
@@ -222,16 +256,23 @@ func (pm *processM) AddMemPercent(perc float64) {
 	}
 }
 
+func (pm *processM) addResourceSample(sample resourceSample) {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+
+	pm.lastSeenTime = sample.Timestamp
+	pm.SampleHistory.PushBack(sample)
+	if pm.SampleHistory.Len() > pm.SampleMaxSize {
+		pm.SampleHistory.Remove(pm.SampleHistory.Front())
+	}
+}
+
 func (pm *processM) isTrigger() (bool, []string) {
 	trigger, tags, _ := pm.triggerDecision()
 	return trigger, tags
 }
 
 func (pm *processM) triggerDecision() (bool, []string, bool) {
-	if pm.inCooldown(time.Minute) {
-		return false, nil, false
-	}
-
 	trigger := false
 	emergency := false
 	tags := make([]string, 0)
@@ -265,10 +306,20 @@ func (pm *processM) triggerDecision() (bool, []string, bool) {
 		trigger = true
 		tags = append(tags, fmt.Sprintf("mem_perc_avg:%0.2f", memPercAvg))
 	}
-	// log.Debugf("cpu len=%d , mem parcent len %d  mem usage len %d", pm.CPUHistory.Len(), pm.MemPercentHistory.Len(), pm.MemHistory.Len())
-	if trigger {
-		log.Infof("start trigger,because of %+v", tags)
+
+	if !trigger {
+		return false, nil, false
 	}
+
+	if emergency {
+		if pm.inEmergencyCooldown(defaultEmergencyProfileCooldown) {
+			return false, nil, false
+		}
+	} else if pm.inCooldown(defaultProfileCooldown) {
+		return false, nil, false
+	}
+
+	log.Infof("start trigger,because of %+v", tags)
 	return trigger, tags, emergency
 }
 
@@ -279,6 +330,13 @@ func (pm *processM) inCooldown(window time.Duration) bool {
 	return time.Since(pm.lastProfileTime) < window
 }
 
+func (pm *processM) inEmergencyCooldown(window time.Duration) bool {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+
+	return time.Since(pm.lastEmergencyProfileTime) < window
+}
+
 func (pm *processM) markProfileTriggered(now time.Time) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
@@ -286,18 +344,115 @@ func (pm *processM) markProfileTriggered(now time.Time) {
 	pm.lastProfileTime = now
 }
 
-func (pm *processM) inJcmdCooldown(window time.Duration) bool {
+func (pm *processM) markEmergencyProfileTriggered(now time.Time) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
-	return time.Since(pm.lastJcmdTime) < window
+	pm.lastEmergencyProfileTime = now
 }
 
-func (pm *processM) markJcmdTriggered(now time.Time) {
+func (pm *processM) markMemoryPressure(now time.Time) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
-	pm.lastJcmdTime = now
+	pm.lastMemoryPressureTime = now
+}
+
+func (pm *processM) markProfileArtifact(summary *profileArtifactSummary) {
+	if pm == nil || summary == nil {
+		return
+	}
+
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+
+	pm.lastProfileArtifact = summary
+}
+
+func (pm *processM) snapshotRecentSamples(limit int) []resourceSample {
+	if pm == nil {
+		return nil
+	}
+
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+
+	if limit <= 0 || limit > pm.SampleHistory.Len() {
+		limit = pm.SampleHistory.Len()
+	}
+
+	samples := make([]resourceSample, 0, limit)
+	e := pm.SampleHistory.Back()
+	for i := 0; i < limit && e != nil; i++ {
+		if sample, ok := e.Value.(resourceSample); ok {
+			samples = append(samples, sample)
+		}
+		e = e.Prev()
+	}
+
+	for i, j := 0, len(samples)-1; i < j; i, j = i+1, j-1 {
+		samples[i], samples[j] = samples[j], samples[i]
+	}
+
+	return samples
+}
+
+func (pm *processM) recentPeaks(limit int) (float64, float64, float64) {
+	samples := pm.snapshotRecentSamples(limit)
+	var (
+		memPercentPeak float64
+		memUsagePeak   float64
+		cpuPeak        float64
+	)
+
+	for _, sample := range samples {
+		if sample.MemPercent > memPercentPeak {
+			memPercentPeak = sample.MemPercent
+		}
+		if sample.MemUsageMB > memUsagePeak {
+			memUsagePeak = sample.MemUsageMB
+		}
+		if sample.CPUPercent > cpuPeak {
+			cpuPeak = sample.CPUPercent
+		}
+	}
+
+	return memPercentPeak, memUsagePeak, cpuPeak
+}
+
+func (pm *processM) snapshotState() (time.Time, time.Time, time.Time, *profileArtifactSummary) {
+	if pm == nil {
+		return time.Time{}, time.Time{}, time.Time{}, nil
+	}
+
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+
+	var artifact *profileArtifactSummary
+	if pm.lastProfileArtifact != nil {
+		cp := *pm.lastProfileArtifact
+		artifact = &cp
+	}
+
+	lastProfileTime := pm.lastProfileTime
+	if pm.lastEmergencyProfileTime.After(lastProfileTime) {
+		lastProfileTime = pm.lastEmergencyProfileTime
+	}
+
+	return pm.lastSeenTime, lastProfileTime, pm.lastMemoryPressureTime, artifact
+}
+
+var checkProcessRunning = func(pm *processM) bool {
+	if pm == nil || pm.p == nil {
+		return false
+	}
+
+	running, err := pm.p.IsRunning()
+	return err == nil && running
+}
+
+func (pm *processM) isAlive() bool {
+	return checkProcessRunning(pm)
 }
 
 func getLatestValue(history *list.List) (float64, bool) {
@@ -316,6 +471,11 @@ func getLatestValue(history *list.List) (float64, bool) {
 	}
 
 	return usage, true
+}
+
+func getLatestListValue(history *list.List) float64 {
+	val, _ := getLatestValue(history)
+	return val
 }
 
 func getListAvg(history *list.List, recentCount int) float64 {

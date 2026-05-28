@@ -8,8 +8,12 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"runtime/debug"
+	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -83,6 +87,9 @@ const (
 
 	pluginNameConntrack = "ebpf-conntrack"
 	pluginNameTracing   = "ebpf-trace"
+
+	envGoMemoryLimitRatio     = "DK_EBPF_GO_MEMORY_LIMIT_RATIO"
+	defaultGoMemoryLimitRatio = 0.80
 )
 
 // init opt, dkutil.DataKitAPIServer, datakitPostURL.
@@ -212,6 +219,8 @@ func NewRunCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&opt.BPFNetLog.EnableLog, "netlog-log", false, "netlog log")
 	cmd.Flags().StringSliceVar(&opt.BPFNetLog.L7LogProtocols, "netlog-protocols", []string{"http"},
 		"netlog protocols list in 'a,b,...' format")
+	cmd.Flags().StringSliceVar(&opt.BPFNetLog.L7LogHeaders, "netlog-l7log-headers", []string{},
+		"L7 log HTTP headers to record; empty uses recommended defaults, 'none' disables")
 	cmd.Flags().IntVar(&opt.BPFNetLog.FallbackSockets, "netlog-fallback-sockets", 0,
 		"max fallback AF_PACKET sockets for bpf-netlog, 0 uses default")
 	cmd.Flags().IntVar(&opt.BPFNetLog.FallbackBlocks, "netlog-fallback-blocks", 0,
@@ -277,7 +286,10 @@ func mergeOption(cfgFilePath *string, opt *Flag) (*Flag, error) {
 			return nil, fmt.Errorf("the specified path is a directory")
 		}
 
-		data, _ := os.ReadFile(fp)
+		data, err := os.ReadFile(fp)
+		if err != nil {
+			return nil, err
+		}
 
 		newOpt := Flag{}
 		if _, err := toml.Decode(string(data), &newOpt); err != nil {
@@ -307,10 +319,7 @@ func runCmd(cfgFile *string, fl *Flag) error {
 		log.Warn(err.Error())
 	}
 
-	var (
-		pidFile         = filepath.Join(InstallDir, "externals", "datakit-ebpf.pid")
-		signalInterrupt = make(chan os.Signal)
-	)
+	pidFile := filepath.Join(InstallDir, "externals", "datakit-ebpf.pid")
 
 	if fl.PIDFile != "" {
 		pidFile = fl.PIDFile
@@ -318,8 +327,9 @@ func runCmd(cfgFile *string, fl *Flag) error {
 	if err := savePid(pidFile); err != nil {
 		log.Fatal(err)
 	}
+	defer quit(pidFile)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
 	exporter.Init(
@@ -330,7 +340,7 @@ func runCmd(cfgFile *string, fl *Flag) error {
 		exporter.WithSamplingRatePtsPerMin(fl.Sampling.RatePtsPerMinute),
 	)
 
-	initResLimiter(fl, signalInterrupt)
+	limitCh := initResLimiter(ctx, fl, cancel)
 
 	interval := time.Minute
 	if v, err := time.ParseDuration(fl.Interval); err == nil {
@@ -357,6 +367,10 @@ func runCmd(cfgFile *string, fl *Flag) error {
 	ApplyDefaultOperatorURLIfReachable(fl)
 
 	stopCh := make(chan struct{})
+	go func() {
+		<-ctx.Done()
+		close(stopCh)
+	}()
 	var k8sinfo *cli.K8sInfo
 	var c *cli.K8sClient
 
@@ -399,6 +413,7 @@ func runCmd(cfgFile *string, fl *Flag) error {
 		k8sinfo = cli.NewK8sInfo(c, criLi)
 	}
 	if k8sinfo != nil {
+		defer k8sinfo.Close()
 		k8sinfo.AutoUpdate(ctx, time.Minute*2)
 		netflow.SetK8sNetInfo(k8sinfo)
 		dnsflow.SetK8sNetInfo(k8sinfo)
@@ -488,7 +503,7 @@ func runCmd(cfgFile *string, fl *Flag) error {
 		} else {
 			if err := probeWatcher.Start(ctx); err != nil {
 				log.Error(err)
-				feedLastErrorLoop(err, signalInterrupt)
+				feedLastErrorLoop(err, ctx)
 			}
 			defer probeWatcher.Stop() //nolint:errcheck
 		}
@@ -638,7 +653,7 @@ func runCmd(cfgFile *string, fl *Flag) error {
 		log.Info(" >>> datakit bpf-netlog tracer(ebpf) starting ...")
 		blacklist := fl.BPFNetLog.NetFilter
 		l4log.ConfigFunc(fl.BPFNetLog.EnableLog, fl.BPFNetLog.EnableMetric,
-			fl.BPFNetLog.L7LogProtocols)
+			fl.BPFNetLog.L7LogProtocols, fl.BPFNetLog.L7LogHeaders)
 
 		var fnSetEndpoints l4log.CfgFn
 
@@ -661,11 +676,33 @@ func runCmd(cfgFile *string, fl *Flag) error {
 	}
 
 	if enableEbpfBash || enableEbpfNet || enableBpfNetlog {
-		<-signalInterrupt
+		var limitReason string
+		select {
+		case reason, ok := <-limitCh:
+			if ok && reason != "" {
+				limitReason = reason
+			}
+		case <-ctx.Done():
+			// The resource limiter cancels ctx after sending a reason.
+			select {
+			case reason, ok := <-limitCh:
+				if ok && reason != "" {
+					limitReason = reason
+				}
+			default:
+			}
+		}
+		cancel()
+
+		if limitReason != "" {
+			log.Errorf("datakit-ebpf stopping after resource limit exceeded: %s", limitReason)
+			log.Info("datakit-ebpf exit")
+			return fmt.Errorf("resource limit exceeded: %s", limitReason)
+		}
+		log.Infof("datakit-ebpf stopping: %v", ctx.Err())
 	}
 
 	log.Info("datakit-ebpf exit")
-	quit(pidFile)
 
 	return nil
 }
@@ -743,26 +780,84 @@ func initLogger(log **logger.Logger, name, path, level string) error {
 	return nil
 }
 
-func initResLimiter(fl *Flag, signalInterrupt chan os.Signal) {
-	if resLimiter, err := procwatch.NewResourceQuota(
+func initResLimiter(ctx context.Context, fl *Flag, cancel context.CancelFunc) <-chan string {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if fl == nil || (fl.ResourceLimit.LimitCPU <= 0 &&
+		strings.TrimSpace(fl.ResourceLimit.LimitMem) == "" &&
+		strings.TrimSpace(fl.ResourceLimit.LimitBandwidth) == "") {
+		return nil
+	}
+
+	resLimiter, err := procwatch.NewResourceQuota(
 		fl.ResourceLimit.LimitCPU,
 		fl.ResourceLimit.LimitMem,
-		fl.ResourceLimit.LimitBandwidth); err != nil {
+		fl.ResourceLimit.LimitBandwidth)
+	if err != nil {
 		log.Error(err)
-	} else {
-		go func() {
-			ch := resLimiter.Monitor()
-			select {
-			case <-ch:
-				log.Error("resource limit exceed")
-				os.Exit(1)
-			case <-signalInterrupt:
-			}
-		}()
+		return nil
 	}
+
+	applyGoMemoryLimit(resLimiter.MemBytes)
+
+	limitCh := make(chan string, 1)
+	go func() {
+		defer close(limitCh)
+		ch := resLimiter.Monitor(ctx)
+		select {
+		case reason, ok := <-ch:
+			if ok && reason != "" {
+				log.Errorf("resource limit exceed: %s", reason)
+				limitCh <- reason
+				if cancel != nil {
+					cancel()
+				}
+			}
+		case <-ctx.Done():
+		}
+	}()
+	return limitCh
 }
 
-func feedLastErrorLoop(err error, ch chan os.Signal) {
+func applyGoMemoryLimit(memBytes float64) {
+	if memBytes <= 0 {
+		return
+	}
+
+	if strings.TrimSpace(os.Getenv("GOMEMLIMIT")) != "" {
+		log.Infof("skip Go memory limit: GOMEMLIMIT is already set")
+		return
+	}
+
+	ratio := goMemoryLimitRatio()
+	limit := int64(memBytes * ratio)
+	if limit <= 0 {
+		return
+	}
+
+	debug.SetMemoryLimit(limit)
+	log.Infof("set Go memory limit %.3fMiB (%.0f%% of memory resource limit)",
+		float64(limit)/(1024*1024), ratio*100)
+}
+
+func goMemoryLimitRatio() float64 {
+	ratio := defaultGoMemoryLimitRatio
+	if value := strings.TrimSpace(os.Getenv(envGoMemoryLimitRatio)); value != "" {
+		parsed, err := strconv.ParseFloat(value, 64)
+		if err != nil || parsed <= 0 || parsed > 1 {
+			log.Warnf("ignore invalid %s=%q, use %.2f", envGoMemoryLimitRatio, value, ratio)
+			return ratio
+		}
+		ratio = parsed
+	}
+	return ratio
+}
+
+func feedLastErrorLoop(err error, ctx context.Context) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	log.Error(err)
 
 	extLastErr := exporter.ExternalLastErr{
@@ -774,13 +869,14 @@ func feedLastErrorLoop(err error, ch chan os.Signal) {
 	}
 
 	ticker := time.NewTicker(time.Second * 30)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
 			if err := exporter.FeedLastError(extLastErr); err != nil {
 				log.Error(err)
 			}
-		case <-ch:
+		case <-ctx.Done():
 			return
 		}
 	}

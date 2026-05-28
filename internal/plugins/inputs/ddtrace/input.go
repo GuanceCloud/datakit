@@ -347,7 +347,7 @@ func (ipt *Input) RegHTTPHandler() {
 		}
 	}
 	if isReg {
-		httpapi.RegHTTPHandler(http.MethodGet, info, handleDDInfo)
+		httpapi.RegHTTPHandler(http.MethodGet, info, ipt.handleDDInfo)
 		httpapi.RegHTTPHandler(http.MethodGet, stats, handleDDStats)
 		ipt.OMInitAndRunning()
 		httpapi.RegHTTPHandler(http.MethodPost, apmTelemetry, ipt.handleDDProxy)

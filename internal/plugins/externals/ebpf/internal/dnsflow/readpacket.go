@@ -87,6 +87,7 @@ func NewTPacketDNS() (*afpacket.TPacket, error) {
 	}
 	err = h.SetBPF(dnsFilterRawInst)
 	if err != nil {
+		h.Close()
 		return nil, err
 	}
 	return h, nil

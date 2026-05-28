@@ -8,9 +8,11 @@ package flameshot
 import (
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/shirou/gopsutil/v3/process"
 )
 
 func (m *monitor) handlerProfile(w http.ResponseWriter, r *http.Request) {
@@ -36,10 +38,10 @@ func (m *monitor) handlerProfile(w http.ResponseWriter, r *http.Request) {
 			log.Errorf("pid is not a number")
 			return
 		}
-		stats := newTriggerStats(events, d, []string{"pid:" + pids})
-
-		stats.PID = int32(pid)
-		stats.Triggered = true
+		stats := m.buildManualTriggerStats(m.findProcessByPID(int32(pid)), int32(pid), events, d, []string{"pid:" + pids})
+		if stats.CommandName == "" {
+			stats.CommandName = getProcessNameByPID(int32(pid))
+		}
 
 		m.statsChan <- stats
 
@@ -51,14 +53,9 @@ func (m *monitor) handlerProfile(w http.ResponseWriter, r *http.Request) {
 
 	if command := queryParams.Get("command"); command != "" {
 		log.Debugf("command is %s", command)
-		// 需要先获取pid 再进行 profile操作
-		pms := filterProcessesByRegex(&Process{Command: command})
+		pms := m.findProcessesForManualCommand(command)
 		for _, pm := range pms {
-			stats := newTriggerStats(events, d, []string{"command:" + command})
-			stats.PID = pm.Pid
-			stats.Triggered = true
-			stats.Reason = []string{"command:" + command}
-
+			stats := m.buildManualTriggerStats(pm, pm.Pid, events, d, []string{"command:" + command})
 			m.statsChan <- stats
 		}
 		w.WriteHeader(200)
@@ -69,6 +66,85 @@ func (m *monitor) handlerProfile(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(400)
 	_, _ = w.Write([]byte("pid or command is required"))
+}
+
+func (m *monitor) buildManualTriggerStats(pm *processM, pid int32, events, duration string, reasons []string) *triggerStats {
+	tags := make([]string, 0, len(reasons)+1)
+	tags = append(tags, reasons...)
+
+	stats := newTriggerStats(events, duration, tags)
+	stats.PID = pid
+	stats.Triggered = true
+
+	if m != nil && m.config != nil {
+		stats.Reason = append(stats.Reason, m.config.Tags...)
+	}
+
+	if pm == nil {
+		return stats
+	}
+
+	stats.CommandName = pm.Name
+	if pm.configProcess != nil {
+		stats.Service = pm.configProcess.Service
+		stats.Reason = append(stats.Reason, pm.configProcess.Tags...)
+		stats.Reason = append(stats.Reason, fmt.Sprintf("service:%s", pm.configProcess.Service))
+	}
+
+	return stats
+}
+
+func (m *monitor) findProcessesForManualCommand(command string) []*processM {
+	re, err := regexp.Compile(command) //nolint
+	if err != nil {
+		log.Errorf("compile [%s] err: %v", command, err)
+		return nil
+	}
+
+	results := make([]*processM, 0)
+	seen := make(map[int32]struct{})
+	for _, pm := range m.cs {
+		if pm == nil {
+			continue
+		}
+		if re.MatchString(pm.Name) || re.MatchString(pm.Cmdline) {
+			results = append(results, pm)
+			seen[pm.Pid] = struct{}{}
+		}
+	}
+
+	for _, pm := range filterProcessesByRegex(&Process{Command: command}) {
+		if pm == nil {
+			continue
+		}
+		if monitored := m.findProcessByPID(pm.Pid); monitored != nil {
+			if _, ok := seen[pm.Pid]; ok {
+				continue
+			}
+			results = append(results, monitored)
+			seen[pm.Pid] = struct{}{}
+			continue
+		}
+		if _, ok := seen[pm.Pid]; ok {
+			continue
+		}
+		results = append(results, pm)
+		seen[pm.Pid] = struct{}{}
+	}
+
+	return results
+}
+
+func getProcessNameByPID(pid int32) string {
+	p, err := process.NewProcess(pid)
+	if err != nil {
+		return ""
+	}
+	name, err := p.Name()
+	if err != nil {
+		return ""
+	}
+	return name
 }
 
 func (m *monitor) startHTTPServer() {

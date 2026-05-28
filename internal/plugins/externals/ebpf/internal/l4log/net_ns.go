@@ -309,7 +309,7 @@ func newNsInf(nsstr string) *nsInfo {
 	}
 }
 
-func (inf *nsInfo) _portListen(pid int) {
+func (inf *nsInfo) _portListen(pid int) bool {
 	var v4, v6 string
 	if pid > 0 {
 		v4 = fmt.Sprintf("/proc/%d/net/tcp", pid)
@@ -320,6 +320,7 @@ func (inf *nsInfo) _portListen(pid int) {
 	}
 
 	inf.portInf = make([]*tcpPortInf, 0)
+	inf.err = [2]error{}
 	if v, err := parseTCPStFromFile(v4, false, true); err != nil {
 		inf.err[0] = err
 	} else {
@@ -349,6 +350,8 @@ func (inf *nsInfo) _portListen(pid int) {
 			}
 		}
 	}
+
+	return inf.err[0] == nil || inf.err[1] == nil
 }
 
 type netnsHandle struct {
@@ -420,8 +423,10 @@ func (nns *netnsHandle) tcpPortListen(pids map[int]struct{}) ([]*tcpPortInf, err
 	if nns.hostNet {
 		inf._portListen(0)
 	} else {
-		for k := range pids {
-			inf._portListen(k)
+		for _, pid := range sortedPIDs(pids) {
+			if inf._portListen(pid) {
+				break
+			}
 		}
 	}
 	if len(inf.portInf) == 0 {
@@ -434,6 +439,20 @@ func (nns *netnsHandle) tcpPortListen(pids map[int]struct{}) ([]*tcpPortInf, err
 	}
 
 	return inf.portInf, nil
+}
+
+func sortedPIDs(pids map[int]struct{}) []int {
+	if len(pids) == 0 {
+		return nil
+	}
+	list := make([]int, 0, len(pids))
+	for pid := range pids {
+		if pid > 0 {
+			list = append(list, pid)
+		}
+	}
+	sort.Ints(list)
+	return list
 }
 
 func (nns *netnsHandle) portListenWatching() bool {
@@ -507,6 +526,11 @@ func parseTCPStFromFile(fp string, v6 bool, listenOnly bool) ([]*tcpPortInf, err
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if err := f.Close(); err != nil {
+			log.Errorf("close file: %v", err)
+		}
+	}()
 
 	var portInf []*tcpPortInf
 
@@ -519,15 +543,17 @@ func parseTCPStFromFile(fp string, v6 bool, listenOnly bool) ([]*tcpPortInf, err
 			continue
 		}
 		cnt := scanner.Text()
-		if v, ok := parseTCPSt(cnt, v6, listenOnly); ok {
+		if v, ok := parseTCPSt(cnt, v6, false); ok {
+			if listenOnly && v.St != string(TCPListen) {
+				continue
+			}
 			portInf = append(portInf, v)
 		} else {
 			break
 		}
 	}
-
-	if err := f.Close(); err != nil {
-		log.Errorf("close file: %w", err)
+	if err := scanner.Err(); err != nil {
+		return portInf, err
 	}
 
 	return portInf, nil

@@ -44,7 +44,7 @@ func (i *RemoteInfo) PortOK(port string, args ...time.Duration) bool {
 		err error
 	)
 
-	addr := fmt.Sprintf("%s:%s", i.Host, port)
+	addr := net.JoinHostPort(i.Host, port)
 
 	if len(args) > 0 {
 		iter := time.NewTicker(time.Second)

@@ -4,6 +4,7 @@
 package netflow
 
 import (
+	"strconv"
 	"testing"
 	"time"
 )
@@ -102,5 +103,111 @@ func TestKV2PointAddsDstDomainFromSharedRecord(t *testing.T) {
 	}
 	if got := pt.GetTag("dst_domain"); got != "api.example.com" {
 		t.Fatalf("unexpected dst_domain %q", got)
+	}
+}
+
+func TestAddrDomainRecordCleansExpiredPeerRecords(t *testing.T) {
+	record := &addrDomainRecord{
+		ipRecord:   map[string]addrDomainEntry{},
+		peerRecord: map[peerDomainKey]addrDomainEntry{},
+	}
+	record.peerRecord[peerDomainKey{
+		ip:        "10.1.2.3",
+		port:      443,
+		transport: transportTCP,
+		netns:     "42",
+	}] = addrDomainEntry{
+		domain: "old.example.com",
+		ts:     time.Now().Add(-addrDomainTTL - time.Second),
+	}
+	record.lastCleanup = time.Now().Add(-addrDomainCleanupInterval - time.Second)
+
+	record.RecordPeerDomain("10.1.2.4", 443, transportTCP, "42", "new.example.com")
+
+	if len(record.peerRecord) != 1 {
+		t.Fatalf("peerRecord len = %d, want 1", len(record.peerRecord))
+	}
+	if got := record.LookupPeerDomain("10.1.2.4", 443, transportTCP, "42"); got != "new.example.com" {
+		t.Fatalf("LookupPeerDomain = %q, want new.example.com", got)
+	}
+}
+
+func TestAddrDomainRecordZeroValueIsUsable(t *testing.T) {
+	var record addrDomainRecord
+
+	record.RecordAddrDomain("10.1.2.3", "api.example.com")
+	if got := record.LookupPeerDomain("10.1.2.3", 443, transportTCP, "42"); got != "api.example.com" {
+		t.Fatalf("LookupPeerDomain by IP = %q, want api.example.com", got)
+	}
+
+	record.RecordPeerDomain("10.1.2.4", 443, transportTCP, "42", "peer.example.com")
+	if got := record.LookupPeerDomain("10.1.2.4", 443, transportTCP, "42"); got != "peer.example.com" {
+		t.Fatalf("LookupPeerDomain by peer = %q, want peer.example.com", got)
+	}
+}
+
+func TestAddrDomainRecordLimit(t *testing.T) {
+	record := &addrDomainRecord{
+		ipRecord:   map[string]addrDomainEntry{},
+		peerRecord: map[peerDomainKey]addrDomainEntry{},
+		limit:      2,
+	}
+
+	record.RecordAddrDomain("10.1.2.1", "one.example.com")
+	record.RecordPeerDomain("10.1.2.2", 443, transportTCP, "42", "two.example.com")
+	record.RecordPeerDomain("10.1.2.3", 443, transportTCP, "42", "three.example.com")
+
+	if got := record.LookupPeerDomain("10.1.2.3", 443, transportTCP, "42"); got != "" {
+		t.Fatalf("expected over-limit peer domain to be dropped, got %q", got)
+	}
+
+	record.RecordPeerDomain("10.1.2.2", 443, transportTCP, "42", "two-new.example.com")
+	if got := record.LookupPeerDomain("10.1.2.2", 443, transportTCP, "42"); got != "two-new.example.com" {
+		t.Fatalf("expected existing peer domain update, got %q", got)
+	}
+}
+
+func TestSrcIPPortRecorderLimitAndTTL(t *testing.T) {
+	now := time.Unix(1000, 0)
+	rec := &srcIPPortRecorder{
+		Record: map[[4]uint32]IPPortRecord{},
+		limit:  2,
+	}
+	ip1 := [4]uint32{1}
+	ip2 := [4]uint32{2}
+	ip3 := [4]uint32{3}
+
+	if !rec.insertAndUpdateAt(ip1, now) {
+		t.Fatal("insert ip1 failed")
+	}
+	if !rec.insertAndUpdateAt(ip2, now) {
+		t.Fatal("insert ip2 failed")
+	}
+	if rec.insertAndUpdateAt(ip3, now.Add(time.Second)) {
+		t.Fatal("insert ip3 succeeded while recorder is full")
+	}
+	if len(rec.Record) != 2 {
+		t.Fatalf("recorder len = %d, want 2", len(rec.Record))
+	}
+	if _, err := rec.queryAt(ip1, now.Add(cleanIPPortDur+time.Second)); err == nil {
+		t.Fatal("expected stale ip1 query to miss")
+	}
+	if !rec.insertAndUpdateAt(ip3, now.Add(cleanIPPortDur+time.Second)) {
+		t.Fatal("insert ip3 after TTL cleanup failed")
+	}
+	if len(rec.Record) != 1 {
+		t.Fatalf("recorder len after cleanup = %d, want 1", len(rec.Record))
+	}
+}
+
+func TestSrcIPPortRecorderLimitEnv(t *testing.T) {
+	t.Setenv(srcIPPortRecorderLimitEnv, "bad")
+	if got := srcIPPortRecorderLimit(); got != defaultSrcIPPortRecorderLimit {
+		t.Fatalf("invalid env limit = %d, want %d", got, defaultSrcIPPortRecorderLimit)
+	}
+
+	t.Setenv(srcIPPortRecorderLimitEnv, strconv.Itoa(maxSrcIPPortRecorderLimit+1))
+	if got := srcIPPortRecorderLimit(); got != maxSrcIPPortRecorderLimit {
+		t.Fatalf("clamped env limit = %d, want %d", got, maxSrcIPPortRecorderLimit)
 	}
 }

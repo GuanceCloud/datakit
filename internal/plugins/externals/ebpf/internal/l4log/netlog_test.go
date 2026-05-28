@@ -25,13 +25,19 @@ import (
 func TestPortListen(t *testing.T) {
 	nns, err := netns.Get()
 	if err != nil {
-		t.Error(err)
+		if skipPermissionDenied(t, err) {
+			return
+		}
+		t.Fatal(err)
 	}
 
 	h := newNetNsHandle(true, true, nns)
 
 	if v, err := h.tcpPortListen(nil); err != nil {
-		t.Error(err)
+		if skipPermissionDenied(t, err) {
+			return
+		}
+		t.Fatal(err)
 	} else {
 		for _, v := range v {
 			t.Log(v.IP, " ", v.Port, " ", v.St, " ", v.V6)
@@ -39,7 +45,10 @@ func TestPortListen(t *testing.T) {
 	}
 
 	if v, err := h.nicInfo(); err != nil {
-		t.Error(err)
+		if skipPermissionDenied(t, err) {
+			return
+		}
+		t.Fatal(err)
 	} else {
 		for _, v := range v {
 			s := strings.Builder{}
@@ -50,6 +59,50 @@ func TestPortListen(t *testing.T) {
 			t.Log(s.String())
 		}
 	}
+}
+
+func skipPermissionDenied(t *testing.T, err error) bool {
+	t.Helper()
+	if err == nil {
+		return false
+	}
+	if os.IsPermission(err) || strings.Contains(strings.ToLower(err.Error()), "operation not permitted") {
+		t.Skipf("skip privileged net namespace test: %v", err)
+		return true
+	}
+	return false
+}
+
+func TestParseTCPStFromFileSkipsNonListenRows(t *testing.T) {
+	fp := t.TempDir() + "/tcp"
+	content := strings.Join([]string{
+		"  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode",
+		"   0: 0100007F:1F90 00000000:0000 01 00000000:00000000 00:00000000 00000000     0        0 1",
+		"   1: 00000000:0050 00000000:0000 0A 00000000:00000000 00:00000000 00000000     0        0 2",
+	}, "\n")
+	if err := os.WriteFile(fp, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	ports, err := parseTCPStFromFile(fp, false, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ports) != 1 {
+		t.Fatalf("ports len = %d, want 1", len(ports))
+	}
+	assert.Equal(t, 80, ports[0].Port)
+	assert.Equal(t, string(TCPListen), ports[0].St)
+}
+
+func TestSortedPIDs(t *testing.T) {
+	got := sortedPIDs(map[int]struct{}{
+		30: {},
+		10: {},
+		0:  {},
+		20: {},
+	})
+	assert.Equal(t, []int{10, 20, 30}, got)
 }
 
 func TestSpanid(t *testing.T) {

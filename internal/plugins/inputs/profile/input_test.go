@@ -23,7 +23,10 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/rum"
 )
 
@@ -103,6 +106,61 @@ func TestIOConfig(t *testing.T) {
 	assert.Equal(t, 16, ipt.IOConfig.UploadWorkers)
 	assert.Equal(t, time.Second*105, ipt.IOConfig.SendTimeout)
 	assert.Equal(t, 5, ipt.IOConfig.SendRetryCount)
+}
+
+func TestDoSendAddsGlobalTagsHeaderWhenSinkerEnabled(t *testing.T) {
+	origDW := config.Cfg.Dataway
+	t.Cleanup(func() { config.Cfg.Dataway = origDW })
+
+	dw := dataway.NewDefaultDataway(dataway.WithGlobalTags(map[string]string{
+		"env": "prod",
+	}))
+	dw.EnableSinker = true
+	require.NoError(t, dw.Init(dataway.WithURLs("http://127.0.0.1?token=tkn_profile")))
+	config.Cfg.Dataway = dw
+
+	var gotHeader string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotHeader = r.Header.Get(dataway.HeaderXGlobalTags)
+		assert.Empty(t, r.Header.Get(dataway.HeaderXGlobalTagsV2))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	ipt := DefaultInput()
+	ipt.IOConfig.SendRetryCount = 1
+	ipt.httpClient = ts.Client()
+	profileURL, err := url.Parse(ts.URL + datakit.ProfilingUpload)
+	require.NoError(t, err)
+	ipt.profileSendingAPI = profileURL
+
+	buf := &bytes.Buffer{}
+	mw := multipart.NewWriter(buf)
+	eventFile, err := mw.CreateFormFile("event", "event.json")
+	require.NoError(t, err)
+	_, err = eventFile.Write([]byte(`{
+		"attachments": ["main.pprof"],
+		"tags_profiler": "service:svc-profile,env:testing,language:go",
+		"start": "2022-06-17T09:20:07.002305Z",
+		"end": "2022-06-17T09:21:08.261768Z",
+		"family": "go"
+	}`))
+	require.NoError(t, err)
+	profileFile, err := mw.CreateFormFile("auto", "main.pprof")
+	require.NoError(t, err)
+	_, err = profileFile.Write([]byte{0x01, 0x02, 0x03})
+	require.NoError(t, err)
+	require.NoError(t, mw.Close())
+
+	reqPB := &rum.RequestPB{
+		Header: map[string]string{"Content-Type": mw.FormDataContentType()},
+		Body:   buf.Bytes(),
+	}
+	pbBytes, err := proto.Marshal(reqPB)
+	require.NoError(t, err)
+
+	require.NoError(t, ipt.sendRequestToDW(context.Background(), pbBytes))
+	assert.Equal(t, "env=testing", gotHeader)
 }
 
 // go test -v -timeout 30s -run ^Test_originAddTagsSafe$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/profile

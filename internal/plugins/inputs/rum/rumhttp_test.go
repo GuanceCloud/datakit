@@ -192,7 +192,7 @@ func TestRunAtosTool(t *testing.T) {
 	output, err := cmd.Output()
 	assert.NoError(t, err)
 
-	t.Logf(string(output))
+	t.Log(string(output))
 }
 
 func TestScanABI(t *testing.T) {
@@ -201,7 +201,7 @@ func TestScanABI(t *testing.T) {
 
 	abi := scanABI(string(crash))
 
-	t.Logf(abi)
+	t.Log(abi)
 
 	assert.Equal(t, abi, "arm64-v8a")
 }

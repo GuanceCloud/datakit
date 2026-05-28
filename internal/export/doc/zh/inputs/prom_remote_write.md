@@ -113,6 +113,24 @@ remote_write:
 
 指标集以 Prometheus 发送过来的指标集为准。
 
+### 指标集命名规则 {#measurement-naming}
+
+默认使用指标名称第一个下划线 `_` 之前的部分作为指标集名称，剩余部分作为字段名：
+
+- 原始指标：`go_memstats_heap_objects`
+- 指标集名称：`go`
+- 字段名称：`memstats_heap_objects`
+
+**保留原始字段名选项**：
+
+如果需要保持 Prometheus 原始指标名称完整，开启以下配置：
+
+```toml
+keep_exist_metric_name = true
+```
+
+开启后，字段名将保持为完整的 `go_memstats_heap_objects`。
+
 ## 配置 Prometheus Remote Write 指标过滤 {#remote-write-relabel}
 
 当使用 Prometheus 以 remote write 方式往 DataKit 推送指标时，如果指标太多，可能导致

@@ -167,7 +167,7 @@ func Start(opts ...option) {
 
 		l.Infof("start pprof on %s", hs.pprofListen)
 		g.Go(func(ctx context.Context) error {
-			tryStartServer(hs, pprofServer, true, semReload, semReloadCompleted)
+			tryStartServer(hs, pprofServer, false, nil, nil)
 			l.Info("pprof server exit")
 			return nil
 		})
@@ -411,7 +411,7 @@ func HTTPStart(hs *httpServerConf) {
 
 	l.Debug("http server started")
 
-	stopFunc := func() {
+	stopHTTPServer := func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := srv.Shutdown(ctx); err != nil {
@@ -419,25 +419,30 @@ func HTTPStart(hs *httpServerConf) {
 		} else {
 			l.Info("http server shutdown ok")
 		}
+	}
 
-		if hs.pprof {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-			if err := pprofServer.Shutdown(ctx); err != nil {
-				l.Error(err)
-			}
-			l.Infof("pprof stopped")
+	stopPProfServer := func() {
+		if pprofServer == nil {
+			return
 		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := pprofServer.Shutdown(ctx); err != nil {
+			l.Error(err)
+		}
+		l.Infof("pprof stopped")
 	}
 
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			stopFunc()
+			stopHTTPServer()
+			stopPProfServer()
 			return
 		case <-semReload.Wait():
 			l.Info("[HttpServer] reload detected")
-			stopFunc()
+			stopHTTPServer()
 			if semReloadCompleted != nil {
 				l.Debug("[HttpServer] before reload completed")
 				semReloadCompleted.Close()

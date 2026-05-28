@@ -9,8 +9,12 @@ type CreateAclsResponse struct {
 	AclCreationResponses []*AclCreationResponse
 }
 
+func (c *CreateAclsResponse) setVersion(v int16) {
+	c.Version = v
+}
+
 func (c *CreateAclsResponse) encode(pe packetEncoder) error {
-	pe.putInt32(int32(c.ThrottleTime / time.Millisecond))
+	pe.putDurationMs(c.ThrottleTime)
 
 	if err := pe.putArrayLength(len(c.AclCreationResponses)); err != nil {
 		return err
@@ -22,15 +26,16 @@ func (c *CreateAclsResponse) encode(pe packetEncoder) error {
 		}
 	}
 
+	pe.putEmptyTaggedFieldArray()
 	return nil
 }
 
 func (c *CreateAclsResponse) decode(pd packetDecoder, version int16) (err error) {
-	throttleTime, err := pd.getInt32()
+	c.Version = version
+	c.ThrottleTime, err = pd.getDurationMs()
 	if err != nil {
 		return err
 	}
-	c.ThrottleTime = time.Duration(throttleTime) * time.Millisecond
 
 	n, err := pd.getArrayLength()
 	if err != nil {
@@ -45,11 +50,12 @@ func (c *CreateAclsResponse) decode(pd packetDecoder, version int16) (err error)
 		}
 	}
 
-	return nil
+	_, err = pd.getEmptyTaggedFieldArray()
+	return err
 }
 
 func (c *CreateAclsResponse) key() int16 {
-	return 30
+	return apiKeyCreateAcls
 }
 
 func (c *CreateAclsResponse) version() int16 {
@@ -57,15 +63,28 @@ func (c *CreateAclsResponse) version() int16 {
 }
 
 func (c *CreateAclsResponse) headerVersion() int16 {
+	if c.Version >= 2 {
+		return 1
+	}
 	return 0
 }
 
 func (c *CreateAclsResponse) isValidVersion() bool {
-	return c.Version >= 0 && c.Version <= 1
+	return c.Version >= 0 && c.Version <= 2
+}
+
+func (c *CreateAclsResponse) isFlexible() bool {
+	return c.isFlexibleVersion(c.Version)
+}
+
+func (c *CreateAclsResponse) isFlexibleVersion(version int16) bool {
+	return version >= 2
 }
 
 func (c *CreateAclsResponse) requiredVersion() KafkaVersion {
 	switch c.Version {
+	case 2:
+		return V2_5_0_0
 	case 1:
 		return V2_0_0_0
 	default:
@@ -84,25 +103,26 @@ type AclCreationResponse struct {
 }
 
 func (a *AclCreationResponse) encode(pe packetEncoder) error {
-	pe.putInt16(int16(a.Err))
+	pe.putKError(a.Err)
 
 	if err := pe.putNullableString(a.ErrMsg); err != nil {
 		return err
 	}
 
+	pe.putEmptyTaggedFieldArray()
 	return nil
 }
 
 func (a *AclCreationResponse) decode(pd packetDecoder, version int16) (err error) {
-	kerr, err := pd.getInt16()
+	a.Err, err = pd.getKError()
 	if err != nil {
 		return err
 	}
-	a.Err = KError(kerr)
 
 	if a.ErrMsg, err = pd.getNullableString(); err != nil {
 		return err
 	}
 
-	return nil
+	_, err = pd.getEmptyTaggedFieldArray()
+	return err
 }

@@ -1,5 +1,7 @@
 package sarama
 
+import "fmt"
+
 type fetchRequestBlock struct {
 	Version int16
 	// currentLeaderEpoch contains the current leader epoch of the partition.
@@ -85,6 +87,10 @@ type FetchRequest struct {
 	forgotten map[string][]int32
 	// RackID contains a Rack ID of the consumer making this request
 	RackID string
+}
+
+func (r *FetchRequest) setVersion(v int16) {
+	r.Version = v
 }
 
 type IsolationLevel int8
@@ -241,6 +247,9 @@ func (r *FetchRequest) decode(pd packetDecoder, version int16) (err error) {
 			if err != nil {
 				return err
 			}
+			if partitionCount < 0 {
+				return fmt.Errorf("partitionCount %d is invalid", partitionCount)
+			}
 			r.forgotten[topic] = make([]int32, partitionCount)
 
 			for j := 0; j < partitionCount; j++ {
@@ -264,7 +273,7 @@ func (r *FetchRequest) decode(pd packetDecoder, version int16) (err error) {
 }
 
 func (r *FetchRequest) key() int16 {
-	return 1
+	return apiKeyFetch
 }
 
 func (r *FetchRequest) version() int16 {

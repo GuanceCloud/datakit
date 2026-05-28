@@ -182,6 +182,28 @@ func TestGetEffectiveEnvLogConfigsFallbackDeprecatedArray(t *testing.T) {
 	}
 }
 
+func TestParseLogConfigsWithGlobalFromBeginningThresholdSize(t *testing.T) {
+	prevGlobalFromBeginningThresholdSize := globalFromBeginningThresholdSize
+	defer func() {
+		globalFromBeginningThresholdSize = prevGlobalFromBeginningThresholdSize
+	}()
+
+	globalFromBeginningThresholdSize = "20480"
+
+	got, err := parseLogConfigs(`[{"type":"file","path":"/var/log/a.log","source":"app","from_beginning_threshold_size":1000}]`)
+	if err != nil {
+		t.Fatalf("parseLogConfigs() error = %v", err)
+	}
+
+	if len(got) != 1 {
+		t.Fatalf("len(configs) = %d, want 1", len(got))
+	}
+
+	if got[0].FromBeginningThresholdSize != 20480 {
+		t.Fatalf("FromBeginningThresholdSize = %d, want 20480", got[0].FromBeginningThresholdSize)
+	}
+}
+
 func TestGetEndpointConfigPreferEnvOverDeprecated(t *testing.T) {
 	prevDatakitHost := datakitHost
 	prevDatakitPort := datakitPort

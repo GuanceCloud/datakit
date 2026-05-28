@@ -222,7 +222,7 @@ func (cs *caseSpec) checkPoint(pts []*point.Point) error {
 				return fmt.Errorf("check measurement %s failed: %+#v", measurement, msgs)
 			}
 
-			cs.t.Logf(defaultMeasurementName + " check completed!")
+			cs.t.Log(defaultMeasurementName + " check completed!")
 			cs.mCount[defaultMeasurementName] = struct{}{}
 
 		default: // TODO: check other measurement
@@ -287,7 +287,7 @@ func (cs *caseSpec) run() error {
 		break
 	}
 
-	cs.t.Logf("listening port " + randPortStr + "...")
+	cs.t.Log("listening port " + randPortStr + "...")
 
 	srv := &http.Server{Handler: router}
 

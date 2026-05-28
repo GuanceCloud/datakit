@@ -68,7 +68,7 @@ func TestFlush(t *T.T) {
 					nwarns++
 				}
 
-				t.Logf(pt.LineProto())
+				t.Log(pt.LineProto())
 			}
 
 			t.Logf("decode %d points, %d with warnnings", len(pts), nwarns)

@@ -406,7 +406,7 @@ func guessConntrack(svc string, conninfo Conninfo, ebpfMap *ebpf.Map,
 
 	conn, err := net.Dial("tcp4", svc)
 	if err != nil {
-		return fmt.Errorf(err.Error())
+		return err
 	}
 	tcpConn, ok := conn.(*net.TCPConn)
 	if !ok {
@@ -416,7 +416,7 @@ func guessConntrack(svc string, conninfo Conninfo, ebpfMap *ebpf.Map,
 	defer tcpConn.Close() //nolint:errcheck
 
 	if err := tcpConn.SetLinger(0); err != nil {
-		return fmt.Errorf(err.Error())
+		return err
 	}
 
 	clientAddr := strings.Split(tcpConn.LocalAddr().String(), ":")
@@ -436,7 +436,7 @@ func guessConntrack(svc string, conninfo Conninfo, ebpfMap *ebpf.Map,
 
 	statusAct, err := readMapGuessConntrack(ebpfMap)
 	if err != nil {
-		return fmt.Errorf(err.Error())
+		return err
 	}
 
 	if statusAct.state == 0 { // lost

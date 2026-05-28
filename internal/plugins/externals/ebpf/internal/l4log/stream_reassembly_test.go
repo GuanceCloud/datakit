@@ -107,6 +107,38 @@ func TestBufferedSegmentSkipsPayloadWhenDisabled(t *testing.T) {
 	}
 }
 
+func TestStreamReassemblerClearsBufferedPayloadAfterDrain(t *testing.T) {
+	sr := newStreamReassembler(8, 1024, true)
+
+	_ = sr.Push(100, 0, []byte("hello"), 1)
+	_ = sr.Push(110, 0, []byte("world"), 2)
+	backing := sr.buffered
+
+	res := sr.Push(105, 0, []byte("_____"), 3)
+	if len(res.Deliveries) != 2 {
+		t.Fatalf("deliveries = %d, want 2", len(res.Deliveries))
+	}
+	if len(backing) == 0 || backing[0].payload != nil {
+		t.Fatalf("buffered payload was not cleared after drain")
+	}
+}
+
+func TestStreamReassemblerClearsBufferedPayloadAfterReset(t *testing.T) {
+	sr := newStreamReassembler(8, 8, true)
+
+	_ = sr.Push(100, 0, []byte("hello"), 1)
+	_ = sr.Push(110, 0, []byte("world"), 2)
+	backing := sr.buffered
+
+	res := sr.Push(1000, 0, []byte("reset"), 3)
+	if !res.Gap {
+		t.Fatal("expected gap reset")
+	}
+	if len(backing) == 0 || backing[0].payload != nil {
+		t.Fatalf("buffered payload was not cleared after reset")
+	}
+}
+
 func BenchmarkStreamReassemblerPushInOrder(b *testing.B) {
 	b.ReportAllocs()
 

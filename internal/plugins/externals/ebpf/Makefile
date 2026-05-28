@@ -1,7 +1,7 @@
 .PHONY: all clean cleancache bindata bpfobjs build build-go
 
 GO ?= go
-GOTOOLCHAIN ?= go1.26.1
+GOTOOLCHAIN ?= local
 export GOTOOLCHAIN
 
 GOOS ?= linux

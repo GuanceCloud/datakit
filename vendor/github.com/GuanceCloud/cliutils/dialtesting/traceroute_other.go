@@ -80,19 +80,27 @@ func (t *Traceroute) getRandomID() uint32 {
 	return uint32(rand.Intn(60000))  // nolint:gosec
 }
 
+func (t *Traceroute) resolveHostIP() (net.IP, error) {
+	ips, err := lookupIP(t.Host)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(ips) == 0 {
+		return nil, fmt.Errorf("invalid host: %s", t.Host)
+	}
+
+	return preferredIP(ips), nil
+}
+
 func (t *Traceroute) Run() error {
 	var runError error
-	ips, err := net.LookupIP(t.Host)
+	ip, err := t.resolveHostIP()
 	if err != nil {
 		return err
 	}
 
 	t.init()
-
-	if len(ips) == 0 {
-		return fmt.Errorf("invalid host: %s", t.Host)
-	}
-	ip := ips[0]
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -371,11 +379,11 @@ func (t *Traceroute) sendICMP(ip net.IP, ttl int) error {
 }
 
 func TracerouteIP(ip string, opt *TracerouteOption) (routes []*Route, err error) {
-	defaultTimeout := 30 * time.Millisecond
+	defaultTimeout := 500 * time.Millisecond
 	if opt == nil {
 		opt = &TracerouteOption{
 			Hops:    30,
-			Retry:   2,
+			Retry:   3,
 			timeout: defaultTimeout,
 		}
 	} else {

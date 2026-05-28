@@ -7,14 +7,19 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"os"
 	"strconv"
+	"strings"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
 )
 
 type HTTP2LogElem struct {
 	streamid uint32
+
+	StreamID uint32 `json:"stream_id"`
 
 	Direction string `json:"direction"`
 	// tcp seq
@@ -55,9 +60,21 @@ type HTTP2LogElem struct {
 	TraceID  string `json:"trace_id"`
 	ParentID string `json:"parent_id"`
 
+	TraceProvider string `json:"trace_provider,omitempty"`
+
 	// HTTPVersion string
-	// ReqHeaders map[string][]string `json:"req_headers"`
-	// RespHeaders map[string][]string `json:"resp_headers"`
+	ReqHeaders  map[string]string `json:"req_headers,omitempty"`
+	RespHeaders map[string]string `json:"resp_headers,omitempty"`
+	HeaderCount int               `json:"header_count,omitempty"`
+	HeaderBytes int               `json:"header_bytes,omitempty"`
+
+	UserAgent         string `json:"user_agent,omitempty"`
+	ReqContentType    string `json:"req_content_type,omitempty"`
+	RespContentType   string `json:"resp_content_type,omitempty"`
+	ReqContentLength  *int64 `json:"req_content_length,omitempty"`
+	RespContentLength *int64 `json:"resp_content_length,omitempty"`
+	GRPCStatus        string `json:"grpc_status,omitempty"`
+	GRPCMessage       string `json:"grpc_message,omitempty"`
 
 	// URL
 	Path  string `json:"path"`
@@ -82,8 +99,13 @@ type HTTP2Log struct {
 	isHTTP2 bool
 	h2dec   *HTTP2Decoder
 
-	flow      *tcpFlowTracker
-	txPreface http2PrefaceState
+	flow        *tcpFlowTracker
+	txPreface   http2PrefaceState
+	streamLimit int
+
+	probePackets   uint8
+	probeBytes     int
+	probeExhausted bool
 }
 
 func (h2log *HTTP2Log) GetElem(streamid uint32) *HTTP2LogElem {
@@ -92,8 +114,19 @@ func (h2log *HTTP2Log) GetElem(streamid uint32) *HTTP2LogElem {
 			return v
 		}
 	}
+	if h2log.streamLimit <= 0 {
+		h2log.streamLimit = http2StreamLimit()
+	}
+	if h2log.streamLimit > 0 && len(h2log.elems) >= h2log.streamLimit {
+		h2log.trimFinishedElems()
+		if len(h2log.elems) >= h2log.streamLimit {
+			exporter.IncBPFEventDrop("l4log", "http2_stream", "limit")
+			return nil
+		}
+	}
 	elem := &HTTP2LogElem{
 		streamid:     streamid,
+		StreamID:     streamid,
 		messageDirty: true,
 	}
 
@@ -103,11 +136,79 @@ func (h2log *HTTP2Log) GetElem(streamid uint32) *HTTP2LogElem {
 
 var ProtoAllowGRPC = true
 
+const (
+	http2ProbePacketBudget = 8
+	http2ProbeByteBudget   = 4 * 1024
+
+	http2StreamLimitEnv     = "DK_EBPF_L4LOG_HTTP2_STREAM_LIMIT"
+	defaultHTTP2StreamLimit = 1024
+	maxHTTP2StreamLimit     = 65536
+)
+
 func NewH2Log() *HTTP2Log {
 	return &HTTP2Log{
-		h2dec: NewH2Dec(),
-		flow:  newTCPFlowTracker(8, 64*1024),
+		h2dec:       NewH2Dec(),
+		flow:        newTCPFlowTracker(8, 64*1024),
+		streamLimit: http2StreamLimit(),
 	}
+}
+
+func http2StreamLimit() int {
+	raw := strings.TrimSpace(os.Getenv(http2StreamLimitEnv))
+	if raw == "" {
+		return defaultHTTP2StreamLimit
+	}
+	limit, err := strconv.Atoi(raw)
+	if err != nil || limit <= 0 {
+		log.Warnf("invalid %s=%q, use default %d", http2StreamLimitEnv, raw, defaultHTTP2StreamLimit)
+		return defaultHTTP2StreamLimit
+	}
+	if limit > maxHTTP2StreamLimit {
+		return maxHTTP2StreamLimit
+	}
+	return limit
+}
+
+func (h2log *HTTP2Log) trimFinishedElems() {
+	if h2log == nil || len(h2log.elems) == 0 {
+		return
+	}
+	oldLen := len(h2log.elems)
+	keep := h2log.elems[:0]
+	for _, elem := range h2log.elems {
+		if elem != nil && !elem.hFinished {
+			keep = append(keep, elem)
+		}
+	}
+	for i := len(keep); i < oldLen; i++ {
+		h2log.elems[i] = nil
+	}
+	h2log.elems = keep
+}
+
+func (h2log *HTTP2Log) ShouldHandle(txrx int8, cnt []byte) bool {
+	if len(cnt) == 0 {
+		return false
+	}
+
+	if h2log.isHTTP2 || len(h2log.txPreface.buf) > 0 || len(h2log.elems) > 0 {
+		return true
+	}
+
+	if h2log.probeExhausted || txrx != directionTX {
+		return false
+	}
+
+	if maybeHTTP2PrefaceStart(cnt) {
+		return true
+	}
+
+	h2log.probePackets++
+	h2log.probeBytes += len(cnt)
+	if h2log.probePackets >= http2ProbePacketBudget || h2log.probeBytes >= http2ProbeByteBudget {
+		h2log.probeExhausted = true
+	}
+	return false
 }
 
 func (h2log *HTTP2Log) Handle(txrx int8, cnt []byte,
@@ -118,7 +219,7 @@ func (h2log *HTTP2Log) Handle(txrx int8, cnt []byte,
 	}
 
 	if h2log.h2dec == nil {
-		return
+		h2log.h2dec = NewH2Dec()
 	}
 
 	if h2log.flow == nil {
@@ -168,6 +269,9 @@ func (h2log *HTTP2Log) Handle(txrx int8, cnt []byte,
 			}
 
 			elem := h2log.GetElem(streamID)
+			if elem == nil {
+				continue
+			}
 			elem.markMessageDirty()
 
 			if pktState == 1 || res.Retransmit {
@@ -181,9 +285,18 @@ func (h2log *HTTP2Log) Handle(txrx int8, cnt []byte,
 
 			switch fr := fr.(type) {
 			case *H2HeaderFrame:
+				var traceHeaders traceHeaderCarrier
+				var headers map[string]string
+				var headerKind int8
 				for _, hdr := range fr.Headers {
+					traceHeaders.addString(hdr.Name, hdr.Value)
+					if enableNetlog {
+						headers = recordL7LogHeaderString(headers, hdr.Name, hdr.Value)
+					}
+
 					switch hdr.Name {
 					case H2HdrMethod:
+						headerKind = 1
 						elem.Method = hdr.Value
 						elem.reqSeq = curSeqOffset
 						elem.hState = 1
@@ -207,6 +320,7 @@ func (h2log *HTTP2Log) Handle(txrx int8, cnt []byte,
 					case H2HdrHost:
 						elem.Host = normalizeHTTPHostString(hdr.Value)
 					case H2HdrStatus:
+						headerKind = 2
 						v, _ := strconv.ParseInt(hdr.Value, 10, 32)
 						elem.StatusCode = int(v)
 						elem.respSeq = curSeqOffset
@@ -230,13 +344,28 @@ func (h2log *HTTP2Log) Handle(txrx int8, cnt []byte,
 							}
 						}
 					case "grpc-status":
+						headerKind = 2
 						st, _ := strconv.ParseInt(hdr.Value, 10, 32)
 						elem.grpcStatus = int(st)
+						elem.GRPCStatus = hdr.Value
 					case "grpc-message":
+						headerKind = 2
 						elem.grpcMessage = hdr.Value
+						elem.GRPCMessage = hdr.Value
 					default:
 						// pass
 					}
+				}
+				if traceID, parentID, provider := traceHeaders.traceIDsWithProvider(); traceID != "" {
+					elem.TraceID = traceID
+					elem.ParentID = parentID
+					elem.TraceProvider = provider
+				}
+				switch headerKind {
+				case 1:
+					elem.setReqHeaders(mergeL7LogHeaders(elem.ReqHeaders, headers))
+				case 2:
+					elem.setRespHeaders(mergeL7LogHeaders(elem.RespHeaders, headers))
 				}
 
 				switch txrx {
@@ -268,6 +397,41 @@ func (h2log *HTTP2Log) Handle(txrx int8, cnt []byte,
 
 func (h *HTTP2LogElem) markMessageDirty() {
 	h.messageDirty = true
+}
+
+func (h *HTTP2LogElem) setReqHeaders(headers map[string]string) {
+	h.ReqHeaders = headers
+	h.UserAgent = l7HeaderValue(headers, "user-agent")
+	h.ReqContentType = l7HeaderValue(headers, "content-type")
+	h.ReqContentLength = l7ContentLength(headers)
+	h.updateHeaderSummary()
+}
+
+func (h *HTTP2LogElem) setRespHeaders(headers map[string]string) {
+	h.RespHeaders = headers
+	h.RespContentType = l7HeaderValue(headers, "content-type")
+	h.RespContentLength = l7ContentLength(headers)
+	if status := l7HeaderValue(headers, "grpc-status"); status != "" {
+		h.GRPCStatus = status
+	}
+	if msg := l7HeaderValue(headers, "grpc-message"); msg != "" {
+		h.GRPCMessage = msg
+	}
+	h.updateHeaderSummary()
+}
+
+func (h *HTTP2LogElem) updateHeaderSummary() {
+	h.HeaderCount, h.HeaderBytes = l7LogHeadersSummary(h.ReqHeaders, h.RespHeaders)
+}
+
+func maybeHTTP2PrefaceStart(payload []byte) bool {
+	if len(payload) == 0 {
+		return false
+	}
+	if len(payload) >= len(_http2Magic) {
+		return bytes.HasPrefix(payload, _http2Magic)
+	}
+	return bytes.Equal(payload, _http2Magic[:len(payload)])
 }
 
 type http2PrefaceState struct {

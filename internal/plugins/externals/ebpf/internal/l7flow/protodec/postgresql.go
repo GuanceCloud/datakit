@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/obfuscate"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/comm"
 )
 
@@ -209,13 +208,7 @@ func (p *pgsqlInfo) populateInfo(sql []byte) error {
 
 	var resource []byte
 	if ok := p.isPgsql(sql); ok {
-		if output, err := obfuscate.NewObfuscator(nil).Obfuscate("sql", string(clean)); err == nil && output != nil {
-			o := []byte(output.Query)
-			validLen := utf8ValidLength(o)
-			resource = o[:validLen]
-		} else {
-			resource = []byte(string(bytes.Runes(clean)))
-		}
+		resource = obfuscateSQLBytes(clean)
 	} else {
 		return ErrUnknownProto
 	}
@@ -388,6 +381,9 @@ func (dec *pgsqlDecPipe) Export(force bool) []*ProtoData {
 		})
 	}
 
+	for i := range dec.infCache {
+		dec.infCache[i] = nil
+	}
 	dec.infCache = dec.infCache[:0]
 	return result
 }
@@ -436,7 +432,11 @@ func readPgsqlBlock(payload []byte) (byte, int, error) {
 	}
 
 	tag := payload[0]
-	length := int(binary.BigEndian.Uint32(payload[1:]))
+	rawLength := binary.BigEndian.Uint32(payload[1:])
+	if uint64(rawLength) > uint64(maxInt) {
+		return 0, 0, errors.New("block length too large")
+	}
+	length := int(rawLength)
 	if length < PgsqlBlockMinLen || length+1 > len(payload) {
 		return 0, 0, errors.New("block length error")
 	}

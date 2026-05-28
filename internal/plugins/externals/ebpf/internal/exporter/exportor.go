@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -71,6 +72,12 @@ const (
 	maxPtSendCount   = 64
 	senderQueueSize  = 32
 	senderWorkerSize = 4
+
+	defaultSenderEnqueueTimeout = time.Second
+	defaultSenderRequestTimeout = 10 * time.Second
+
+	envSenderEnqueueTimeout = "DK_EBPF_EXPORTER_ENQUEUE_TIMEOUT"
+	envSenderRequestTimeout = "DK_EBPF_EXPORTER_REQUEST_TIMEOUT"
 )
 
 var log = logger.DefaultSLogger("ebpf")
@@ -150,6 +157,7 @@ func Init(ctx context.Context, opts ...opt) {
 		stats.MustRegister(eSenderBatchPoints)
 		stats.MustRegister(eSenderBatchBytes)
 		stats.MustRegister(eSenderRequestTotal)
+		stats.MustRegister(eSenderDroppedPointsTotal)
 		stats.MustRegister(eSenderRequestDuration)
 		stats.MustRegister(ePerfLostTotal)
 		stats.MustRegister(ePerfReadErrorsTotal)
@@ -177,11 +185,12 @@ type task struct {
 }
 
 type Sender struct {
-	ctx      context.Context
-	ch       chan *task
-	httpCli  *http.Client
-	target   *target
-	sampling *sampling
+	ctx            context.Context
+	ch             chan *task
+	httpCli        *http.Client
+	target         *target
+	sampling       *sampling
+	enqueueTimeout time.Duration
 }
 
 type marshaler struct {
@@ -199,6 +208,28 @@ func newHTTPTransport() *http.Transport {
 	}
 }
 
+func durationFromEnv(key string, fallback time.Duration) time.Duration {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback
+	}
+
+	d, err := time.ParseDuration(raw)
+	if err != nil || d <= 0 {
+		log.Warnf("invalid %s=%q, use default %s", key, raw, fallback)
+		return fallback
+	}
+	return d
+}
+
+func senderEnqueueTimeout() time.Duration {
+	return durationFromEnv(envSenderEnqueueTimeout, defaultSenderEnqueueTimeout)
+}
+
+func senderRequestTimeout() time.Duration {
+	return durationFromEnv(envSenderRequestTimeout, defaultSenderRequestTimeout)
+}
+
 func NewSender(ctx context.Context, target *target, sampling *sampling) *Sender {
 	if ctx == nil {
 		ctx = context.Background()
@@ -209,9 +240,11 @@ func NewSender(ctx context.Context, target *target, sampling *sampling) *Sender 
 		ch:  make(chan *task, senderQueueSize),
 		httpCli: &http.Client{
 			Transport: newHTTPTransport(),
+			Timeout:   senderRequestTimeout(),
 		},
-		target:   target,
-		sampling: sampling,
+		target:         target,
+		sampling:       sampling,
+		enqueueTimeout: senderEnqueueTimeout(),
 	}
 	for i := 0; i < senderWorkerSize; i++ {
 		go sender.runner(ctx)
@@ -274,20 +307,62 @@ func (sender *Sender) feed(name string, cat point.Category, data []*point.Point)
 			data:      data[start:end:end],
 		}
 
-		if sender.ctx == nil {
-			sender.ch <- task
-			continue
-		}
-
-		select {
-		case sender.ch <- task:
-			ObserveSenderQueue(len(sender.ch))
-		case <-sender.ctx.Done():
-			return sender.ctx.Err()
+		reason, err := sender.enqueueTask(task)
+		if err != nil {
+			if remaining := len(data) - end; remaining > 0 {
+				AddSenderDropped(reason, remaining)
+				clearPointSlice(data[end:])
+			}
+			return err
 		}
 	}
 
 	return nil
+}
+
+func (sender *Sender) enqueueTask(task *task) (string, error) {
+	if sender == nil {
+		return "enqueue_error", fmt.Errorf("sender not init")
+	}
+	if sender.ch == nil {
+		return "enqueue_error", fmt.Errorf("sender queue not init")
+	}
+	if task == nil || len(task.data) == 0 {
+		return "", nil
+	}
+
+	select {
+	case sender.ch <- task:
+		ObserveSenderQueue(len(sender.ch))
+		return "", nil
+	default:
+	}
+
+	timeout := sender.enqueueTimeout
+	if timeout <= 0 {
+		timeout = defaultSenderEnqueueTimeout
+	}
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
+	var done <-chan struct{}
+	if sender.ctx != nil {
+		done = sender.ctx.Done()
+	}
+
+	select {
+	case sender.ch <- task:
+		ObserveSenderQueue(len(sender.ch))
+		return "", nil
+	case <-done:
+		AddSenderDropped("context_canceled", len(task.data))
+		releaseTaskPoints(task)
+		return "context_canceled", sender.ctx.Err()
+	case <-timer.C:
+		AddSenderDropped("queue_full", len(task.data))
+		releaseTaskPoints(task)
+		return "queue_full", fmt.Errorf("sender queue full for %s after %s", task.targetURL, timeout)
+	}
 }
 
 func (sender *Sender) nextTask(ctx context.Context, pending *task) (*task, *task, bool) {
@@ -422,10 +497,14 @@ func releaseTaskPoints(t *task) {
 	if t == nil {
 		return
 	}
-	for i := range t.data {
-		t.data[i] = nil
-	}
+	clearPointSlice(t.data)
 	t.data = nil
+}
+
+func clearPointSlice(pts []*point.Point) {
+	for i := range pts {
+		pts[i] = nil
+	}
 }
 
 func (m *marshaler) marshal(pts []*point.Point) ([]byte, error) {
@@ -531,7 +610,7 @@ func FeedLastError(extnlErr ExternalLastErr) error {
 	if err != nil {
 		return fmt.Errorf("build url: %w", err)
 	}
-	client := http.Client{}
+	client := http.Client{Timeout: senderRequestTimeout()}
 	data, err := json.Marshal(extnlErr)
 	if err != nil {
 		return err

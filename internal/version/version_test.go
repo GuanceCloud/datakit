@@ -36,7 +36,7 @@ func TestParse(t *testing.T) {
 				assert.NoError(t, err)
 			}
 
-			t.Logf(vi.String())
+			t.Log(vi.String())
 		})
 	}
 }

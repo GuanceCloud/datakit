@@ -6,23 +6,33 @@ package protodec
 
 import (
 	"math"
+	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/spf13/cast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/comm"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/cli"
 )
 
 type HTTPAggP struct {
-	data map[aggKey]*aggValue
+	data  map[aggKey]*aggValue
+	limit int
 
 	sync.RWMutex
 }
+
+const (
+	httpAggLimitEnv     = "DK_EBPF_L7FLOW_HTTP_AGG_LIMIT"
+	defaultHTTPAggLimit = 32_768
+	maxHTTPAggLimit     = 1_000_000
+)
 
 type aggKey struct {
 	netflow.BaseKey
@@ -75,6 +85,10 @@ func ConnNotNeedToFilter(conn *comm.ConnectionInfo) bool {
 }
 
 func (agg *HTTPAggP) Obs(conn *comm.ConnectionInfo, data *ProtoData) {
+	if agg == nil || conn == nil || data == nil {
+		return
+	}
+
 	agg.Lock()
 	defer agg.Unlock()
 	if agg.data == nil {
@@ -155,6 +169,11 @@ func (agg *HTTPAggP) Obs(conn *comm.ConnectionInfo, data *ProtoData) {
 		v.recvBytes += rcv
 		v.sendBytes += snd
 	} else {
+		limit := agg.entryLimitLocked()
+		if len(agg.data) >= limit {
+			exporter.IncBPFEventDrop("l7flow", "http_agg", "limit")
+			return
+		}
 		agg.data[key] = &aggValue{
 			count:     1,
 			latency:   data.Cost,
@@ -168,13 +187,25 @@ func (agg *HTTPAggP) Proto() L7Protocol {
 	return ProtoHTTP
 }
 
-func (agg *HTTPAggP) Export(tags map[string]string, k8sInfo *cli.K8sInfo) []*point.Point {
+func (agg *HTTPAggP) Len() int {
+	if agg == nil {
+		return 0
+	}
 	agg.RLock()
 	defer agg.RUnlock()
+	return len(agg.data)
+}
+
+func (agg *HTTPAggP) Export(tags map[string]string, k8sInfo *cli.K8sInfo) []*point.Point {
+	agg.Lock()
+	data := agg.data
+	agg.data = map[aggKey]*aggValue{}
+	agg.Unlock()
+
 	var result []*point.Point
 
 	pTime := ntp.Now()
-	for k, v := range agg.data {
+	for k, v := range data {
 		if pt, err := kv2point(&k, v, pTime, tags, k8sInfo); err != nil {
 			log.Debug(err)
 		} else {
@@ -193,7 +224,30 @@ func (agg *HTTPAggP) Cleanup() {
 }
 
 func newHTTPAggP(p L7Protocol) AggPool {
-	return &HTTPAggP{}
+	return &HTTPAggP{limit: httpAggLimit()}
+}
+
+func (agg *HTTPAggP) entryLimitLocked() int {
+	if agg.limit <= 0 {
+		agg.limit = httpAggLimit()
+	}
+	return agg.limit
+}
+
+func httpAggLimit() int {
+	raw := strings.TrimSpace(os.Getenv(httpAggLimitEnv))
+	if raw == "" {
+		return defaultHTTPAggLimit
+	}
+	limit, err := strconv.Atoi(raw)
+	if err != nil || limit <= 0 {
+		log.Warnf("invalid %s=%q, use default %d", httpAggLimitEnv, raw, defaultHTTPAggLimit)
+		return defaultHTTPAggLimit
+	}
+	if limit > maxHTTPAggLimit {
+		return maxHTTPAggLimit
+	}
+	return limit
 }
 
 func kv2point(key *aggKey, value *aggValue, pTime time.Time,

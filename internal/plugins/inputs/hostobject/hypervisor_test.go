@@ -45,7 +45,7 @@ func TestHypervisorDetectionConsistency(t *T.T) {
 
 // TestInputVirtualMachineTagsIntegration tests the virtual machine detection integration with Input
 func TestInputVirtualMachineTagsIntegration(t *T.T) {
-	t.Run("virtual_tags_applied", func(t *T.T) {
+	t.Run("setup_caches_detection_result", func(t *T.T) {
 		ipt := defaultInput()
 		ipt.VirtualTags = map[string]string{
 			"host_type": "virtual",
@@ -56,13 +56,14 @@ func TestInputVirtualMachineTagsIntegration(t *T.T) {
 			"env":       "on-premise",
 		}
 
+		expectedVirtual := IsVirtual()
+		expectedHypervisor := GetHypervisorType()
+
 		// Simulate setup
 		ipt.setup()
 
-		// Verify that isVirtual and hypervisorType are set
-		assert.NotZero(t, ipt.isVirtual)
-		// hypervisorType can be empty or non-empty, both are valid
-		assert.IsType(t, "", ipt.hypervisorType)
+		assert.Equal(t, expectedVirtual, ipt.isVirtual)
+		assert.Equal(t, expectedHypervisor, ipt.hypervisorType)
 	})
 
 	t.Run("physical_tags_applied", func(t *T.T) {

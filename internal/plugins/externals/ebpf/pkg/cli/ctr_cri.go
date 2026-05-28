@@ -24,6 +24,7 @@ var CriRuntimeEndpoint = []string{
 
 type CRIClient struct {
 	cli     runtime.RuntimeServiceClient
+	conn    *grpc.ClientConn
 	timeout time.Duration
 }
 
@@ -69,17 +70,26 @@ func NewCRIClient(criEndpoint string, timeout ...time.Duration) (*CRIClient, err
 
 	c := &CRIClient{
 		cli:     runtime.NewRuntimeServiceClient(conn),
+		conn:    conn,
 		timeout: dur,
 	}
 
 	// check if the CRI endpoint is working
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), dur)
 	defer cancel()
 	if _, err := c.cli.Version(ctx, &runtime.VersionRequest{}); err != nil {
+		_ = conn.Close()
 		return nil, fmt.Errorf("failed to get CRI version: %w", err)
 	}
 
 	return c, nil
+}
+
+func (cri *CRIClient) Close() error {
+	if cri == nil || cri.conn == nil {
+		return nil
+	}
+	return cri.conn.Close()
 }
 
 func (cri *CRIClient) ListContainers() ([]*runtime.Container, error) {

@@ -11,7 +11,6 @@ BINARY_PATH="$WORK_DIR/flameshot-linux-arm64"
 SHARED_DIR="$WORK_DIR/shared"
 OUT_DIR="$WORK_DIR/out"
 MOCK_ASYNC_DIR="$WORK_DIR/mock-async-profiler"
-MANUAL_JCMD_DIR="$SHARED_DIR/manual-jcmd"
 APP_DIR="$WORK_DIR/app"
 
 cleanup() {
@@ -24,7 +23,7 @@ cleanup() {
 
 trap cleanup EXIT
 
-mkdir -p "$SHARED_DIR" "$OUT_DIR" "$MOCK_ASYNC_DIR/bin" "$MANUAL_JCMD_DIR" "$APP_DIR"
+mkdir -p "$SHARED_DIR" "$OUT_DIR" "$MOCK_ASYNC_DIR/bin" "$APP_DIR"
 cp "$ROOT_DIR/testdata/flameshot/orbstack/mock_async_profiler.sh" "$MOCK_ASYNC_DIR/bin/asprof"
 chmod +x "$MOCK_ASYNC_DIR/bin/asprof"
 cp "$ROOT_DIR/testdata/flameshot/orbstack/MockMemoryApp.java" "$APP_DIR/MockMemoryApp.java"
@@ -65,7 +64,7 @@ docker run -d --rm \
   -e ALLOC_STEPS=18 \
   -e ALLOC_SLEEP_MS=500 \
   eclipse-temurin:17-jdk \
-  sh -lc 'mkdir -p /data/dumps && exec java -XX:+StartAttachListener -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/data/dumps/app.hprof -Xms64m -Xmx160m -cp /app MockMemoryApp' >/dev/null
+  sh -lc 'mkdir -p /data/dumps && exec java -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/data/dumps/app.hprof -Xms64m -Xmx160m -cp /app MockMemoryApp' >/dev/null
 
 echo "    waiting for mock JVM to be ready"
 for _ in $(seq 1 30); do
@@ -91,39 +90,22 @@ docker run -d --rm \
   -e FLAMESHOT_LOG_LEVEL="debug" \
   -e FLAMESHOT_OOM_HPROF_ENABLED="true" \
   -e FLAMESHOT_OOM_HPROF_MATCH_WINDOW="2m" \
-  -e FLAMESHOT_JCMD_SNAPSHOT_ENABLED="true" \
-  -e FLAMESHOT_JCMD_TIMEOUT="30s" \
   -e FLAMESHOT_PROCESSES='[{"service":"mock-java","command":"MockMemoryApp","duration":"5s","emergency_duration":"5s","events":"cpu","language":"java","mem_usage_percent_emergency":40,"tags":["env:mock","pod_name:flameshot-mock"]}]' \
   eclipse-temurin:17-jdk \
   sh -lc '/work/flameshot -config /dev/null' >/dev/null
 
-echo "[6/6] waiting for jcmd artifacts and summary logs"
+echo "[6/6] waiting for profiling artifacts and summary logs"
 for _ in $(seq 1 40); do
-  if ls "$SHARED_DIR"/jcmd_*.txt >/dev/null 2>&1; then
+  if find "$OUT_DIR" -maxdepth 2 -type f | grep -q .; then
     break
   fi
   sleep 1
 done
 
-echo "    running in-container jcmd control check"
-docker exec "$APP_CONTAINER" sh -lc '
-  pid=$(ps -eo pid,comm,args | awk '"'"'$2 == "java" && $0 ~ /MockMemoryApp/ {print $1; exit}'"'"')
-  if [ -z "$pid" ]; then
-    echo "java pid not found" >&2
-    exit 1
-  fi
-
-  jcmd "$pid" GC.class_histogram > /data/manual-jcmd/gc_class_histogram.txt
-  jcmd "$pid" Thread.print > /data/manual-jcmd/thread_print.txt
-' >/dev/null
-
 echo
 echo "work dir: $WORK_DIR"
 echo "shared artifacts:"
 ls -1 "$SHARED_DIR" || true
-echo
-echo "manual jcmd artifacts:"
-find "$MANUAL_JCMD_DIR" -maxdepth 1 -type f | sort || true
 echo
 echo "mock DataKit requests:"
 find "$OUT_DIR" -maxdepth 2 -type f | sort || true

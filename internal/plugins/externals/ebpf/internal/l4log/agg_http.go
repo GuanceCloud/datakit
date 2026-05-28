@@ -10,6 +10,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/spf13/cast"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/cli"
 )
@@ -34,17 +35,21 @@ type aggHTTPValue struct {
 }
 
 type FlowAggHTTP struct {
-	data map[aggHTTPKey]*aggHTTPValue
+	data  map[aggHTTPKey]*aggHTTPValue
+	limit int
 }
 
 func (agg *FlowAggHTTP) Len() int {
+	if agg == nil {
+		return 0
+	}
 	return len(agg.data)
 }
 
 func (agg *FlowAggHTTP) Append(info *PMeta, stats *HTTPLogElem, netns string,
 	v6, macEQ bool, nicIPList []string, waitTS int64,
 ) {
-	if info == nil || !macEQ {
+	if info == nil || stats == nil || !macEQ {
 		return
 	}
 	var keep bool
@@ -98,6 +103,10 @@ func (agg *FlowAggHTTP) Append(info *PMeta, stats *HTTPLogElem, netns string,
 	if v, ok := agg.data[key]; ok {
 		value = v
 	} else {
+		if len(agg.data) >= agg.entryLimit() {
+			exporter.IncBPFEventDrop("l4log", "http_agg", "limit")
+			return
+		}
 		agg.data[key] = &aggHTTPValue{}
 		value = agg.data[key]
 	}

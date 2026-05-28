@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -45,6 +46,29 @@ const (
 	apiflowDefaultPerfBufferPages    = 1024
 	apiflowDefaultPerfBufferMaxBytes = 128 * 1024 * 1024
 	apiflowMinPerfBufferPages        = 64
+
+	apiflowArgMapMaxEntriesEnv            = "DK_EBPF_L7FLOW_ARG_MAP_MAX_ENTRIES"
+	apiflowSKMapMaxEntriesEnv             = "DK_EBPF_L7FLOW_SK_MAP_MAX_ENTRIES"
+	apiflowProtocolFilterMapMaxEntriesEnv = "DK_EBPF_L7FLOW_PROTOCOL_FILTER_MAP_MAX_ENTRIES"
+	defaultApiflowArgMapMaxEntries        = 2048
+	defaultApiflowSKMapMaxEntries         = 40960
+	defaultApiflowProtocolFilterEntries   = 65536
+	minApiflowArgMapMaxEntries            = 128
+	minApiflowStateMapMaxEntries          = 1024
+	maxApiflowMapMaxEntries               = 1048576
+)
+
+const (
+	mapAPIFlowSyscallRWArg       = "mp_syscall_rw_arg"
+	mapAPIFlowSyscallRWVArg      = "mp_syscall_rw_v_arg"
+	mapAPIFlowSKInfo             = "mp_sk_inf"
+	mapAPIFlowSSLReadArgs        = "bpfmap_ssl_read_args"
+	mapAPIFlowBIONewSocketArgs   = "bpfmap_bio_new_socket_args"
+	mapAPIFlowSSLContextSockFD   = "bpfmap_ssl_ctx_sockfd"
+	mapAPIFlowSSLBIOFD           = "bpfmap_ssl_bio_fd"
+	mapAPIFlowSSLPIDTgidContext  = "bpfmap_ssl_pidtgid_ctx"
+	mapAPIFlowSyscallSendfileArg = "bpfmap_syscall_sendfile_arg"
+	mapAPIFlowProtocolFilter     = "mp_protocol_filter"
 )
 
 // const srcNameM = "httpflow"
@@ -225,7 +249,11 @@ func (l *perfLostWarningLimiter) format(cpu int, count uint64) string {
 }
 
 func apiflowPerfRingBufferSize() int {
-	pages := defaultApiflowPerfBufferPages(runtime.NumCPU(), os.Getpagesize())
+	return apiflowPerfRingBufferPages(runtime.NumCPU(), os.Getpagesize()) * os.Getpagesize()
+}
+
+func apiflowPerfRingBufferPages(numCPU, pageSize int) int {
+	pages := defaultApiflowPerfBufferPages(numCPU, pageSize)
 	if raw := strings.TrimSpace(os.Getenv(apiflowPerfBufferPagesEnv)); raw != "" {
 		switch v, err := strconv.Atoi(raw); {
 		case err != nil:
@@ -236,19 +264,40 @@ func apiflowPerfRingBufferSize() int {
 			pages = v
 		}
 	}
-	return pages * os.Getpagesize()
+	if maxPages := maxApiflowPerfBufferPages(numCPU, pageSize); pages > maxPages {
+		pages = maxPages
+	}
+	return pages
 }
 
 func defaultApiflowPerfBufferPages(numCPU, pageSize int) int {
 	pages := apiflowDefaultPerfBufferPages
 	if numCPU > 0 && pageSize > 0 {
-		capPages := apiflowDefaultPerfBufferMaxBytes / pageSize / numCPU
-		if capPages > 0 && capPages < pages {
-			pages = capPages
+		maxPages := maxApiflowPerfBufferPages(numCPU, pageSize)
+		if maxPages < pages {
+			pages = maxPages
+		}
+		if pages < apiflowMinPerfBufferPages && maxPages >= apiflowMinPerfBufferPages {
+			pages = apiflowMinPerfBufferPages
 		}
 	}
-	if pages < apiflowMinPerfBufferPages {
+	if pages < 1 {
+		return 1
+	}
+	if pages < apiflowMinPerfBufferPages &&
+		(numCPU <= 0 || pageSize <= 0) {
 		return apiflowMinPerfBufferPages
+	}
+	return pages
+}
+
+func maxApiflowPerfBufferPages(numCPU, pageSize int) int {
+	if numCPU <= 0 || pageSize <= 0 {
+		return apiflowDefaultPerfBufferPages
+	}
+	pages := apiflowDefaultPerfBufferMaxBytes / pageSize / numCPU
+	if pages < 1 {
+		return 1
 	}
 	return pages
 }
@@ -287,6 +336,59 @@ func apiflowMinCaptureSizePatch() (bpfutil.ConstantPatch, bool) {
 	return patch, true
 }
 
+func apiflowMapMaxEntriesOverride() map[string]uint32 {
+	argEntries := apiflowMapMaxEntriesFromEnv(
+		apiflowArgMapMaxEntriesEnv,
+		defaultApiflowArgMapMaxEntries,
+		minApiflowArgMapMaxEntries,
+		maxApiflowMapMaxEntries,
+	)
+	skEntries := apiflowMapMaxEntriesFromEnv(
+		apiflowSKMapMaxEntriesEnv,
+		defaultApiflowSKMapMaxEntries,
+		minApiflowStateMapMaxEntries,
+		maxApiflowMapMaxEntries,
+	)
+	protocolFilterEntries := apiflowMapMaxEntriesFromEnv(
+		apiflowProtocolFilterMapMaxEntriesEnv,
+		defaultApiflowProtocolFilterEntries,
+		minApiflowStateMapMaxEntries,
+		maxApiflowMapMaxEntries,
+	)
+
+	return map[string]uint32{
+		mapAPIFlowSyscallRWArg:       argEntries,
+		mapAPIFlowSyscallRWVArg:      argEntries,
+		mapAPIFlowSSLReadArgs:        argEntries,
+		mapAPIFlowBIONewSocketArgs:   argEntries,
+		mapAPIFlowSSLContextSockFD:   argEntries,
+		mapAPIFlowSSLBIOFD:           argEntries,
+		mapAPIFlowSSLPIDTgidContext:  argEntries,
+		mapAPIFlowSyscallSendfileArg: argEntries,
+		mapAPIFlowSKInfo:             skEntries,
+		mapAPIFlowProtocolFilter:     protocolFilterEntries,
+	}
+}
+
+func apiflowMapMaxEntriesFromEnv(key string, fallback, min, max uint32) uint32 {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback
+	}
+	n, err := strconv.ParseUint(raw, 10, 64)
+	if err != nil || n == 0 {
+		log.Warnf("invalid %s=%q, use default %d", key, raw, fallback)
+		return fallback
+	}
+	if n < uint64(min) {
+		return min
+	}
+	if n > uint64(max) {
+		return max
+	}
+	return uint32(n)
+}
+
 func pruneLegacyHTTPFlowProbes(probes []*bpfutil.HookSpec) []*bpfutil.HookSpec {
 	if len(probes) == 0 {
 		return probes
@@ -313,6 +415,157 @@ func pruneLegacyHTTPFlowProbes(probes []*bpfutil.HookSpec) []*bpfutil.HookSpec {
 		trimmed = append(trimmed, probe)
 	}
 	return trimmed
+}
+
+func filterUnavailableAPIFlowKernelProbes(probes []*bpfutil.HookSpec) []*bpfutil.HookSpec {
+	return filterUnavailableAPIFlowKernelProbesWithLookup(probes, bpfutil.HasKernelSymbol)
+}
+
+func filterUnavailableAPIFlowKernelProbesWithLookup(
+	probes []*bpfutil.HookSpec,
+	hasSymbol func(string) (bool, error),
+) []*bpfutil.HookSpec {
+	if len(probes) == 0 || hasSymbol == nil {
+		return probes
+	}
+
+	filtered := make([]*bpfutil.HookSpec, 0, len(probes))
+	for _, probe := range probes {
+		if probe == nil {
+			continue
+		}
+		symbol, ok := bpfutil.KernelProbeSymbol(*probe)
+		if !ok {
+			filtered = append(filtered, probe)
+			continue
+		}
+		found, err := hasSymbol(symbol)
+		if err != nil {
+			exporter.RecordKernelFunctionStatus("l7flow", probe.ID.Program, symbol, "unknown", err.Error())
+			log.Warnf("detect kernel symbol %q for l7flow probe %q failed: %v",
+				symbol, probe.ID.Program, err)
+			filtered = append(filtered, probe)
+			continue
+		}
+		if !found {
+			exporter.RecordKernelFunctionStatus("l7flow", probe.ID.Program, symbol, "missing", "kernel symbol not found")
+			log.Warnf("skip l7flow optional probe %q: kernel symbol %q not found",
+				probe.ID.Program, symbol)
+			continue
+		}
+		exporter.RecordKernelFunctionStatus("l7flow", probe.ID.Program, symbol, "available", "")
+		filtered = append(filtered, probe)
+	}
+	return filtered
+}
+
+func filterUnavailableAPIFlowTracepoints(probes []*bpfutil.HookSpec) []*bpfutil.HookSpec {
+	return filterUnavailableAPIFlowTracepointsWithLookup(probes, tracepointEventExists)
+}
+
+func filterUnavailableAPIFlowTracepointsWithLookup(
+	probes []*bpfutil.HookSpec,
+	hasTracepoint func(group, event string) (bool, error),
+) []*bpfutil.HookSpec {
+	if len(probes) == 0 || hasTracepoint == nil {
+		return probes
+	}
+
+	filtered := make([]*bpfutil.HookSpec, 0, len(probes))
+	for _, probe := range probes {
+		group, event, ok := apiFlowTracepointEvent(probe)
+		if !ok {
+			filtered = append(filtered, probe)
+			continue
+		}
+
+		found, err := hasTracepoint(group, event)
+		eventName := group + "/" + event
+		if err != nil {
+			exporter.RecordKernelFunctionStatus("l7flow", probe.ID.Program, eventName, "unknown", err.Error())
+			log.Warnf("detect tracepoint %q for l7flow probe %q failed: %v",
+				eventName, probe.ID.Program, err)
+			filtered = append(filtered, probe)
+			continue
+		}
+		if !found {
+			exporter.RecordKernelFunctionStatus("l7flow", probe.ID.Program, eventName, "missing", "tracepoint event not found")
+			log.Warnf("skip l7flow optional tracepoint probe %q: event %q not found",
+				probe.ID.Program, eventName)
+			continue
+		}
+		exporter.RecordKernelFunctionStatus("l7flow", probe.ID.Program, eventName, "available", "")
+		filtered = append(filtered, probe)
+	}
+	return filtered
+}
+
+func apiFlowTracepointEvent(probe *bpfutil.HookSpec) (string, string, bool) {
+	if probe == nil {
+		return "", "", false
+	}
+	const tracepointProgramPrefix = "tracepoint__sys_"
+	if !strings.HasPrefix(probe.ID.Program, tracepointProgramPrefix) {
+		return "", "", false
+	}
+	return "syscalls", strings.TrimPrefix(probe.ID.Program, "tracepoint__"), true
+}
+
+func hasAPIFlowSyscallTracepoint(probes []*bpfutil.HookSpec) bool {
+	for _, probe := range probes {
+		if _, _, ok := apiFlowTracepointEvent(probe); ok {
+			return true
+		}
+	}
+	return false
+}
+
+func tracepointEventExists(group, event string) (bool, error) {
+	return tracepointEventExistsInRoots([]string{
+		"/sys/kernel/tracing/events",
+		"/sys/kernel/debug/tracing/events",
+	}, group, event)
+}
+
+func tracepointEventExistsInRoots(roots []string, group, event string) (bool, error) {
+	rootAvailable := false
+	for _, root := range roots {
+		info, err := os.Stat(root)
+		switch {
+		case err == nil && info.IsDir():
+			rootAvailable = true
+		case err == nil:
+			continue
+		case os.IsNotExist(err):
+			continue
+		default:
+			return false, err
+		}
+
+		_, err = os.Stat(filepath.Join(root, group, event))
+		switch {
+		case err == nil:
+			return true, nil
+		case os.IsNotExist(err):
+			continue
+		default:
+			return false, err
+		}
+	}
+	if !rootAvailable {
+		return false, fmt.Errorf("tracepoint events root not found")
+	}
+	return false, nil
+}
+
+const (
+	apiflowSchedGetAffinityProgram = "kprobe__sched_getaffinity"
+	apiflowSchedGetAffinityUID     = "kprobe_sched_getaffinity_apiflow"
+)
+
+var apiflowKpFlushHookID = bpfutil.HookID{
+	Program: apiflowSchedGetAffinityProgram,
+	UID:     apiflowSchedGetAffinityUID,
 }
 
 func NewHTTPFlowRuntime(patches []bpfutil.ConstantPatch, bmaps map[string]*ebpf.Map,
@@ -376,8 +629,8 @@ func NewHTTPFlowRuntime(patches []bpfutil.ConstantPatch, bmaps map[string]*ebpf.
 			},
 			{
 				ID: bpfutil.HookID{
-					Program: "kprobe__sched_getaffinity",
-					UID:     "kprobe_sched_getaffinity_apiflow",
+					Program: apiflowSchedGetAffinityProgram,
+					UID:     apiflowSchedGetAffinityUID,
 				},
 			},
 			{
@@ -418,6 +671,7 @@ func NewHTTPFlowRuntime(patches []bpfutil.ConstantPatch, bmaps map[string]*ebpf.
 			},
 			Constants:       patches,
 			LegacyConstants: legacy,
+			MapMaxEntries:   apiflowMapMaxEntriesOverride(),
 		}
 		if bmaps != nil {
 			loadSpec.MapReplacements = bmaps
@@ -470,8 +724,8 @@ func NewHTTPFlowRuntime(patches []bpfutil.ConstantPatch, bmaps map[string]*ebpf.
 			},
 			{
 				ID: bpfutil.HookID{
-					Program: "kprobe__sched_getaffinity",
-					UID:     "kprobe_sched_getaffinity_apiflow",
+					Program: apiflowSchedGetAffinityProgram,
+					UID:     apiflowSchedGetAffinityUID,
 				},
 			},
 			{
@@ -490,6 +744,11 @@ func NewHTTPFlowRuntime(patches []bpfutil.ConstantPatch, bmaps map[string]*ebpf.
 			binName = "apiflow_legacy.o"
 			binLoader = dkebpf.APIFlowLegacyBin
 			log.Infof("kernel %#x loading legacy apiflow object", kernelVersion)
+		}
+		runtime.Probes = filterUnavailableAPIFlowKernelProbes(runtime.Probes)
+		runtime.Probes = filterUnavailableAPIFlowTracepoints(runtime.Probes)
+		if !hasAPIFlowSyscallTracepoint(runtime.Probes) {
+			return fmt.Errorf("no apiflow syscall tracepoints available")
 		}
 
 		buf, err := binLoader()
@@ -528,6 +787,7 @@ func NewHTTPFlowRuntime(patches []bpfutil.ConstantPatch, bmaps map[string]*ebpf.
 		var err error
 		r, err = procwatch.NewLibraryTracker(opensslRules)
 		if err != nil {
+			_ = runtime.Shutdown()
 			return nil, nil, err
 		}
 	}
@@ -535,8 +795,17 @@ func NewHTTPFlowRuntime(patches []bpfutil.ConstantPatch, bmaps map[string]*ebpf.
 	return runtime, r, nil
 }
 
+func hasAPIFlowKpFlushHook(runtime *bpfutil.Runtime) bool {
+	if runtime == nil {
+		return false
+	}
+	_, ok := runtime.LookupHook(apiflowKpFlushHookID)
+	return ok
+}
+
 type APIFlowTracer struct {
 	tracer *Tracer
+	cancel context.CancelFunc
 }
 
 type APITracerOpt func(*apiTracerConfig)
@@ -594,6 +863,10 @@ func WithK8sNetInfo(k8sNetInfo *cli.K8sInfo) APITracerOpt {
 }
 
 func NewAPIFlowTracer(ctx context.Context, opts ...APITracerOpt) *APIFlowTracer {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	var cfg apiTracerConfig
 	for _, fn := range opts {
 		if fn != nil {
@@ -601,8 +874,10 @@ func NewAPIFlowTracer(ctx context.Context, opts ...APITracerOpt) *APIFlowTracer 
 		}
 	}
 
+	tracerCtx, cancel := context.WithCancel(ctx)
 	return &APIFlowTracer{
-		tracer: newTracer(ctx, &cfg),
+		tracer: newTracer(tracerCtx, &cfg),
+		cancel: cancel,
 	}
 }
 
@@ -611,20 +886,35 @@ const bpfMapProtocolFilter = "mp_protocol_filter"
 func (tracer *APIFlowTracer) Run(ctx context.Context, patches []bpfutil.ConstantPatch,
 	bmaps map[string]*ebpf.Map, enableTLS bool, interval time.Duration,
 ) error {
-	go tracer.tracer.Start(ctx, interval)
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if tracer == nil || tracer.tracer == nil {
+		return fmt.Errorf("api flow tracer is not initialized")
+	}
 
 	runtime, r, err := NewHTTPFlowRuntime(patches, bmaps,
 		tracer.tracer.PerfEventHandle, enableTLS)
 	if err != nil {
+		tracer.stop()
 		return err
 	}
 
 	if err := runtime.StartRuntime(); err != nil {
 		log.Error(err)
+		_ = runtime.Shutdown()
+		tracer.stop()
 		return err
 	}
 
-	newKpFlushTrigger(ctx)
+	go tracer.tracer.Start(ctx, interval)
+
+	if hasAPIFlowKpFlushHook(runtime) {
+		newKpFlushTrigger(ctx)
+	} else {
+		log.Infof("l7flow kernel flush trigger skipped: %s hook is not loaded",
+			apiflowSchedGetAffinityProgram)
+	}
 
 	log.Info("api tracer starting ...")
 
@@ -651,9 +941,17 @@ func (tracer *APIFlowTracer) Run(ctx context.Context, patches []bpfutil.Constant
 	go func() {
 		<-ctx.Done()
 		_ = runtime.Shutdown()
+		tracer.stop()
 	}()
 
 	return nil
+}
+
+func (tracer *APIFlowTracer) stop() {
+	if tracer == nil || tracer.cancel == nil {
+		return
+	}
+	tracer.cancel()
 }
 
 func feed(name string, cat point.Category, data []*point.Point) error {

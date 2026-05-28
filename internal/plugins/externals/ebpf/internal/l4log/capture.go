@@ -9,7 +9,9 @@ import (
 	"encoding/binary"
 	"errors"
 	"net"
+	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -378,7 +380,8 @@ type PValue struct {
 
 	tcpInfo TCPLog
 
-	httpInfo HTTPLog
+	httpInfo  HTTPLog
+	http2Info HTTP2Log
 
 	tlsSNI tlsClientHelloState
 
@@ -406,9 +409,16 @@ const (
 	blacklistCacheTTL             = defaultTCPKeepAlive
 	blacklistCacheCleanupInterval = 30 * time.Second
 	blacklistCacheCleanupMinSize  = 512
+	blacklistCacheLimitEnv        = "DK_EBPF_L4LOG_BLACKLIST_CACHE_LIMIT"
+	defaultBlacklistCacheLimit    = 65_536
+	maxBlacklistCacheLimit        = 1_000_000
 
 	directionProbeBaseInterval = 200 * time.Millisecond
 	directionProbeMaxInterval  = 5 * time.Second
+
+	l4logConnCacheLimitEnv     = "DK_EBPF_L4LOG_CONN_CACHE_LIMIT"
+	defaultL4logConnCacheLimit = 65536
+	maxL4logConnCacheLimit     = 1_000_000
 )
 
 type conns struct {
@@ -432,6 +442,7 @@ type TCPConns struct {
 	blacklistCacheLastCleanup int64
 	blacklistCacheRuleFirst   any
 	blacklistCacheRuleLen     int
+	blacklistCacheLimit       int
 
 	portListen   *portListen
 	ifaceNameMAC [2]string
@@ -452,6 +463,10 @@ type TCPConns struct {
 	aggHTTP FlowAggHTTP
 
 	lastTPacketStats tpacketStatsSnapshot
+
+	directionUnknownLastLog    int64
+	directionUnknownSuppressed uint64
+	connLimit                  int
 
 	stop     chan struct{}
 	stopOnce sync.Once
@@ -482,8 +497,42 @@ func NewTCPConns(gtags map[string]string, ctrID, nsUID string,
 			twoMSLPool: *newConnsMaps(time.Second * 10),
 		},
 
+		connLimit: l4logConnCacheLimit(),
+
 		stop: make(chan struct{}),
 	}
+}
+
+func l4logConnCacheLimit() int {
+	raw := strings.TrimSpace(os.Getenv(l4logConnCacheLimitEnv))
+	if raw == "" {
+		return defaultL4logConnCacheLimit
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n <= 0 {
+		log.Warnf("invalid %s=%q, use default %d", l4logConnCacheLimitEnv, raw, defaultL4logConnCacheLimit)
+		return defaultL4logConnCacheLimit
+	}
+	if n > maxL4logConnCacheLimit {
+		return maxL4logConnCacheLimit
+	}
+	return n
+}
+
+func blacklistCacheLimit() int {
+	raw := strings.TrimSpace(os.Getenv(blacklistCacheLimitEnv))
+	if raw == "" {
+		return defaultBlacklistCacheLimit
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n <= 0 {
+		log.Warnf("invalid %s=%q, use default %d", blacklistCacheLimitEnv, raw, defaultBlacklistCacheLimit)
+		return defaultBlacklistCacheLimit
+	}
+	if n > maxBlacklistCacheLimit {
+		return maxBlacklistCacheLimit
+	}
+	return n
 }
 
 func cloneStringMap(src map[string]string) map[string]string {
@@ -582,6 +631,11 @@ func (conns *TCPConns) getVal(k *PMeta, ts int64, syncFlagOnly bool) (*PValue, *
 		}
 	}
 
+	if conns.connLimit > 0 && conns.connCacheEntries() >= conns.connLimit {
+		exporter.IncBPFEventDrop("l4log", "conn_cache", "limit")
+		return nil, nil, false
+	}
+
 	v := &PValue{
 		sMACEQ: conns.trustLocal,
 		tcpInfo: TCPLog{
@@ -602,6 +656,13 @@ func (conns *TCPConns) getVal(k *PMeta, ts int64, syncFlagOnly bool) (*PValue, *
 
 	mps := conns.conns.pool.insert2LastMap(key, v)
 	return v, mps, true
+}
+
+func (conns *TCPConns) connCacheEntries() int {
+	if conns == nil {
+		return 0
+	}
+	return conns.conns.pool.entries() + conns.conns.twoMSLPool.entries()
 }
 
 func (conns *TCPConns) markTCPTimeWait(k *PMeta) {
@@ -643,6 +704,13 @@ func (conns *TCPConns) update(txRx int8, k *PMeta, ln *PktTCPHdr, pktLen,
 ) {
 	if k == nil {
 		return
+	}
+	if tcpPayloadSize < 0 {
+		exporter.IncBPFEventDrop("l4log", "packet", "negative_payload")
+		return
+	}
+	if tcpPayloadSize > int64(len(payload)) {
+		tcpPayloadSize = int64(len(payload))
 	}
 
 	var smac string
@@ -699,12 +767,23 @@ func (conns *TCPConns) update(txRx int8, k *PMeta, ln *PktTCPHdr, pktLen,
 		_ = pktVal.httpInfo.Handle(pktVal, txRx, payload, tcpPayloadSize, ln, k,
 			pktState, pktVal.tcpInfo.GetPktChunk(false, false).ChunkID)
 	}
+	if enableL7HTTP2 && pktVal.http2Info.ShouldHandle(txRx, payload) {
+		pktVal.http2Info.Handle(txRx, payload, tcpPayloadSize, ln, k,
+			pktState, pktVal.tcpInfo.GetPktChunk(false, false).ChunkID)
+	}
 
 	pktVal.observeTLSSNI(txRx, payload, k, conns.nsUID)
 
 	// maybe proto will change
 	if pktVal.httpInfo.isHTTP {
 		pktVal.tcpInfo.l7proto = L7ProtoHTTP
+	}
+	if pktVal.http2Info.isHTTP2 {
+		if pktVal.http2Info.isGRPC {
+			pktVal.tcpInfo.l7proto = L7ProtoGRPC
+		} else {
+			pktVal.tcpInfo.l7proto = L7ProtoHTTP2
+		}
 	}
 
 	switch pktVal.tcpInfo.direction {
@@ -859,12 +938,43 @@ func (conns *TCPConns) storeBlacklistCache(key blacklistCacheKey, drop bool, now
 		return entry.drop
 	}
 
+	if limit := conns.blacklistCacheEntryLimit(); limit > 0 && len(conns.blacklistCache) >= limit {
+		if evicted := conns.evictExpiredBlacklistCacheLocked(now); evicted > 0 {
+			exporter.AddCacheEvictions("l4log", "blacklist_cache", "expired", evicted)
+		}
+		if len(conns.blacklistCache) >= limit {
+			evicted := len(conns.blacklistCache)
+			conns.blacklistCache = make(map[blacklistCacheKey]blacklistCacheEntry)
+			conns.blacklistCacheLastCleanup = now
+			exporter.AddCacheEvictions("l4log", "blacklist_cache", "limit", evicted)
+		}
+	}
+
 	conns.blacklistCache[key] = blacklistCacheEntry{
 		drop:   drop,
 		lastTS: now,
 	}
 	conns.cleanupBlacklistCacheLocked(now)
 	return drop
+}
+
+func (conns *TCPConns) blacklistCacheEntryLimit() int {
+	if conns == nil {
+		return defaultBlacklistCacheLimit
+	}
+	if conns.blacklistCacheLimit <= 0 {
+		conns.blacklistCacheLimit = blacklistCacheLimit()
+	}
+	return conns.blacklistCacheLimit
+}
+
+func (conns *TCPConns) blacklistCacheLen() int {
+	if conns == nil {
+		return 0
+	}
+	conns.blacklistMu.Lock()
+	defer conns.blacklistMu.Unlock()
+	return len(conns.blacklistCache)
 }
 
 func (conns *TCPConns) refreshBlacklistCacheScopeLocked() {
@@ -892,14 +1002,23 @@ func (conns *TCPConns) cleanupBlacklistCacheLocked(now int64) {
 		return
 	}
 
+	if evicted := conns.evictExpiredBlacklistCacheLocked(now); evicted > 0 {
+		exporter.AddCacheEvictions("l4log", "blacklist_cache", "expired", evicted)
+	}
+	conns.blacklistCacheLastCleanup = now
+}
+
+func (conns *TCPConns) evictExpiredBlacklistCacheLocked(now int64) int {
 	expireBefore := now - blacklistCacheTTL.Nanoseconds()
+	evicted := 0
 	for key, entry := range conns.blacklistCache {
 		if entry.lastTS < expireBefore {
 			delete(conns.blacklistCache, key)
+			evicted++
 		}
 	}
 
-	conns.blacklistCacheLastCleanup = now
+	return evicted
 }
 
 func (conns *TCPConns) _ForceGather(nicIPList []string) {
@@ -997,6 +1116,8 @@ func (conns *TCPConns) CapturePacket(ctx context.Context, name, mac, netns strin
 	layerLi := make([]gopacket.LayerType, 0, 10)
 	decoder := NewPktDecoder()
 	stringCache := newPacketStringCache()
+	var readErrLastLog int64
+	var readErrSuppressed uint64
 
 	ticker := time.NewTicker(time.Minute * 5)
 	defer ticker.Stop()
@@ -1026,7 +1147,7 @@ func (conns *TCPConns) CapturePacket(ctx context.Context, name, mac, netns strin
 			if isPacketReadTimeout(err) {
 				continue
 			}
-			log.Error(err)
+			logPacketReadError(name, mac, netns, err, &readErrLastLog, &readErrSuppressed)
 			continue
 		}
 
@@ -1048,7 +1169,7 @@ func (conns *TCPConns) handleCapturedPacket(decoder *pktDecoder, layerLi []gopac
 
 	txRx, txrxStr := ancillaryDirection(ci.AncillaryData)
 	if txRx == 0 {
-		log.Warnf("iface %s, name %s, packet direction unknown", conns.nsUID, conns.ifaceNameMAC)
+		conns.logPacketDirectionUnknown()
 		return
 	}
 
@@ -1144,6 +1265,56 @@ func (conns *TCPConns) handleCapturedPacket(decoder *pktDecoder, layerLi []gopac
 		int64(ln.TCPPayloadSize), decoder.tcp.BaseLayer.Payload, scale, isipv6)
 }
 
+func (conns *TCPConns) logPacketDirectionUnknown() {
+	if conns == nil {
+		return
+	}
+
+	now := time.Now().UnixNano()
+	last := atomic.LoadInt64(&conns.directionUnknownLastLog)
+	if last != 0 && now-last < int64(time.Minute) {
+		atomic.AddUint64(&conns.directionUnknownSuppressed, 1)
+		return
+	}
+	if !atomic.CompareAndSwapInt64(&conns.directionUnknownLastLog, last, now) {
+		atomic.AddUint64(&conns.directionUnknownSuppressed, 1)
+		return
+	}
+
+	suppressed := atomic.SwapUint64(&conns.directionUnknownSuppressed, 0)
+	if suppressed > 0 {
+		log.Warnf("iface %s, name %s, packet direction unknown (suppressed %d similar packets)",
+			conns.nsUID, conns.ifaceNameMAC, suppressed)
+		return
+	}
+	log.Warnf("iface %s, name %s, packet direction unknown", conns.nsUID, conns.ifaceNameMAC)
+}
+
+func logPacketReadError(name, mac, netns string, err error, lastLog *int64, suppressed *uint64) {
+	if err == nil {
+		return
+	}
+
+	now := time.Now().UnixNano()
+	last := atomic.LoadInt64(lastLog)
+	if last != 0 && now-last < int64(time.Minute) {
+		atomic.AddUint64(suppressed, 1)
+		return
+	}
+	if !atomic.CompareAndSwapInt64(lastLog, last, now) {
+		atomic.AddUint64(suppressed, 1)
+		return
+	}
+
+	n := atomic.SwapUint64(suppressed, 0)
+	if n > 0 {
+		log.Errorf("read packet failed name=%s mac=%s ns=%s err=%v (suppressed %d similar errors)",
+			name, mac, netns, err, n)
+		return
+	}
+	log.Errorf("read packet failed name=%s mac=%s ns=%s err=%v", name, mac, netns, err)
+}
+
 func (conns *TCPConns) Gather(ctx context.Context, nicIPList []string) {
 	aggTicker := time.NewTicker(time.Second * 60)
 	defer aggTicker.Stop()
@@ -1167,7 +1338,7 @@ func (conns *TCPConns) Gather(ctx context.Context, nicIPList []string) {
 		case <-ticker.C:
 			exporter.ObserveCacheEntries("l4log", "conn_pool", conns.conns.pool.entries())
 			exporter.ObserveCacheEntries("l4log", "two_msl_pool", conns.conns.twoMSLPool.entries())
-			exporter.ObserveCacheEntries("l4log", "blacklist_cache", len(conns.blacklistCache))
+			exporter.ObserveCacheEntries("l4log", "blacklist_cache", conns.blacklistCacheLen())
 			conns._Gather(nicIPList)
 
 		case <-aggTicker.C:
@@ -1175,11 +1346,11 @@ func (conns *TCPConns) Gather(ctx context.Context, nicIPList []string) {
 			if enabledNetMetric {
 				exporter.ObserveAggEntries("l4log_netflow", conns.agg.Len())
 				flushStart := time.Now()
-				pts := conns.agg.ToPoint(conns.tags, k8sNetInfo)
+				pts := conns.agg.ToPoint(conns.runtimeTags(), k8sNetInfo)
 				if len(pts) > 0 {
 					if err := exporter.FeedPoint("bpf-netlog/netflow",
 						point.Network, pts); err != nil {
-						log.Errorf("feed point(toatl %d) failed: %w", len(pts), err)
+						log.Errorf("feed point(toatl %d) failed: %v", len(pts), err)
 						exporter.ObserveAggFlush("l4log_netflow", len(pts), time.Since(flushStart), "error")
 					} else {
 						exporter.ObserveAggFlush("l4log_netflow", len(pts), time.Since(flushStart), "ok")
@@ -1197,11 +1368,11 @@ func (conns *TCPConns) Gather(ctx context.Context, nicIPList []string) {
 			if enabledNetMetric {
 				exporter.ObserveAggEntries("l4log_httpflow", conns.aggHTTP.Len())
 				flushStart := time.Now()
-				pts := conns.aggHTTP.ToPoint(conns.tags, k8sNetInfo)
+				pts := conns.aggHTTP.ToPoint(conns.runtimeTags(), k8sNetInfo)
 				if len(pts) > 0 {
 					if err := exporter.FeedPoint("bpf-netlog/httpflow",
 						point.Network, pts); err != nil {
-						log.Errorf("feed point(toatl %d) failed: %w", len(pts), err)
+						log.Errorf("feed point(toatl %d) failed: %v", len(pts), err)
 						exporter.ObserveAggFlush("l4log_httpflow", len(pts), time.Since(flushStart), "error")
 					} else {
 						exporter.ObserveAggFlush("l4log_httpflow", len(pts), time.Since(flushStart), "ok")

@@ -143,7 +143,7 @@ func updateDownloadCDN(rtype string, oc *cliutils.OssCli) {
 			DownloadCDN = fmt.Sprintf("%s.%s/%s", oc.BucketName, oc.Host, oc.WorkDir)
 		}
 	case ReleaseProduction: // pass
-		DownloadCDN = fmt.Sprintf("%s/datakit", brand(Brand).staticURL())
+		DownloadCDN = fmt.Sprintf("%s/datakit-v2", brand(Brand).staticURL())
 		l.Infof("set DownloadCDN: %q", DownloadCDN)
 	}
 }

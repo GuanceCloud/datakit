@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build windows
-// +build windows
 
 package mgr
 
@@ -100,8 +99,13 @@ func (s *Service) ResetPeriod() (uint32, error) {
 // SetRebootMessage sets service s reboot message.
 // If msg is "", the reboot message is deleted and no message is broadcast.
 func (s *Service) SetRebootMessage(msg string) error {
+	msgPointer, err := syscall.UTF16PtrFromString(msg)
+	if err != nil {
+		return err
+	}
+
 	rActions := windows.SERVICE_FAILURE_ACTIONS{
-		RebootMsg: syscall.StringToUTF16Ptr(msg),
+		RebootMsg: msgPointer,
 	}
 	return windows.ChangeServiceConfig2(s.Handle, windows.SERVICE_CONFIG_FAILURE_ACTIONS, (*byte)(unsafe.Pointer(&rActions)))
 }
@@ -119,8 +123,13 @@ func (s *Service) RebootMessage() (string, error) {
 // SetRecoveryCommand sets the command line of the process to execute in response to the RunCommand service controller action.
 // If cmd is "", the command is deleted and no program is run when the service fails.
 func (s *Service) SetRecoveryCommand(cmd string) error {
+	cmdPointer, err := syscall.UTF16PtrFromString(cmd)
+	if err != nil {
+		return err
+	}
+
 	rActions := windows.SERVICE_FAILURE_ACTIONS{
-		Command: syscall.StringToUTF16Ptr(cmd),
+		Command: cmdPointer,
 	}
 	return windows.ChangeServiceConfig2(s.Handle, windows.SERVICE_CONFIG_FAILURE_ACTIONS, (*byte)(unsafe.Pointer(&rActions)))
 }
@@ -138,7 +147,7 @@ func (s *Service) RecoveryCommand() (string, error) {
 // SetRecoveryActionsOnNonCrashFailures sets the failure actions flag. If the
 // flag is set to false, recovery actions will only be performed if the service
 // terminates without reporting a status of SERVICE_STOPPED. If the flag is set
-// to true, recovery actions are also perfomed if the service stops with a
+// to true, recovery actions are also performed if the service stops with a
 // nonzero exit code.
 func (s *Service) SetRecoveryActionsOnNonCrashFailures(flag bool) error {
 	var setting windows.SERVICE_FAILURE_ACTIONS_FLAG
@@ -152,7 +161,7 @@ func (s *Service) SetRecoveryActionsOnNonCrashFailures(flag bool) error {
 // actions flag. If the flag is set to false, recovery actions will only be
 // performed if the service terminates without reporting a status of
 // SERVICE_STOPPED. If the flag is set to true, recovery actions are also
-// perfomed if the service stops with a nonzero exit code.
+// performed if the service stops with a nonzero exit code.
 func (s *Service) RecoveryActionsOnNonCrashFailures() (bool, error) {
 	b, err := s.queryServiceConfig2(windows.SERVICE_CONFIG_FAILURE_ACTIONS_FLAG)
 	if err != nil {

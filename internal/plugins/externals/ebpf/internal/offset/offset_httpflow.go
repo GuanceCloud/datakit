@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	goruntime "runtime"
+	"strconv"
 	"syscall"
 	"unsafe"
 
@@ -56,7 +57,7 @@ func GuessOffsetHTTPFlow(status *OffsetGuessC) ([]bpfutil.ConstantPatch, error) 
 		return nil, err
 	}
 
-	serverAddr := fmt.Sprintf("%s:%d", listenIPv4, tcp4ServerPort)
+	serverAddr := net.JoinHostPort(listenIPv4, strconv.Itoa(int(tcp4ServerPort)))
 
 	conn, err := net.Dial("tcp4", serverAddr)
 	if err != nil {

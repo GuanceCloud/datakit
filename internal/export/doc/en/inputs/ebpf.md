@@ -74,6 +74,370 @@ cat /proc/kallsyms | awk '{print $3}' | grep "^nf_ct_delete$\|^__nf_conntrack_ha
     When the DataKit version is lower than **v1.5.2**, because BPF_FUNC_skb_load_bytes does not exist in Linux Kernel <= 4.4, if you want to enable httpflow, you need Linux Kernel >= 4.5, and this problem will be further optimized;
 <!-- markdownlint-enable -->
 
+### SELinux-enabled System {#selinux}
+
+For SELinux-enabled systems, you need to shut them down (pending subsequent optimization), and execute the following command to shut them down:
+
+```sh
+setenforce 0
+```
+
+### Collector Configuration {#input-config}
+
+<!-- markdownlint-disable MD046 -->
+=== "Host Installation"
+
+    Go to the `conf.d/samples` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. The example is as follows:
+    
+    ```toml
+    {{ CodeBlock .InputSample 4 }}
+    ```
+    
+    After configuration, restart DataKit.
+
+=== "Kubernetes"
+
+    In Kubernetes, you can enable collection through ConfigMap or directly enable the eBPF collector by default:
+
+    1. For the ConfigMap method, refer to the general [Installation Example](../datakit/datakit-daemonset-deploy.md#configmap-setting).
+    2. Add `ebpf` to the environment variable `ENV_ENABLE_INPUTS` in *datakit.yaml*. In this case, the default configuration is used, that is, only `ebpf-net` network data collection is enabled.
+    
+    ```yaml
+    - name: ENV_ENABLE_INPUTS
+           value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container,ebpf
+    ```
+
+### Environment variables and configuration items {#input-cfg-field-env}
+
+The following environment variables can be used to adjust the eBPF collection configuration in Kubernetes:
+
+Configuration items:
+
+- `enabled_plugins`:
+    - Description: Used to configure the built-in plugins for the collector
+    - Environment variable: `ENV_INPUT_EBPF_ENABLED_PLUGINS`
+    - Example: `ebpf-net,ebpf-trace`
+
+- `l7net_enabled`
+    - Description: Enable http protocol data collection
+    - Environment variable: `ENV_INPUT_EBPF_L7NET_ENABLED`
+    - Example: `httpflow`
+
+- `interval`
+    - Description: Set the sampling time interval
+    - Environment variable: `ENV_INPUT_EBPF_INTERVAL`
+    - Example: `1m30s`
+
+- `ipv6_disabled`
+    - Description: Whether the system does not support IPv6
+    - Environment variable: `ENV_INPUT_EBPF_IPV6_DISABLED`
+    - Example: `false`
+
+- `ephemeral_port`
+    - Description: Ephemeral port start location
+    - Environment variable: `ENV_INPUT_EBPF_EPHEMERAL_PORT`
+    - Example: `32768`
+
+- `pprof_host`
+    - Description: pprof host
+    - Environment variable: `ENV_INPUT_EBPF_PPROF_HOST`
+    - Example: `127.0.0.1`
+
+- `pprof_port`
+    - Description: pprof port
+    - Environment variable: `ENV_INPUT_EBPF_PPROF_PORT`
+    - Example: `6061`
+
+<!-- - `interval`
+    - Description: Data aggregation period
+    - Environment variable: `ENV_INPUT_EBPF_INTERVAL`
+    - Example: `60s` -->
+
+- `trace_server`
+    - Description: The address of DataKit ELinker/DataKit to enable the `ebpftrace` collector
+    - Environment variable: `ENV_INPUT_EBPF_TRACE_SERVER`
+    - Example: `<ip>:<port>`
+
+- `trace_name_blacklist`
+    - Description: The process with the specified process name will be disabled from collecting trace data
+    - Environment variable: `ENV_INPUT_EBPF_TRACE_NAME_BLACKLIST`
+    - Example:
+
+- `trace_env_blacklist`
+    - Description: Any process containing any of the specified environment variable names will be disabled from collecting trace data
+    - Environment variable: `ENV_INPUT_EBPF_TRACE_ENV_BLACKLIST`
+    - Example: `DKE_DISABLE_ETRACE`
+
+- `trace_env_list`
+    - Description: Link data for processes with any specified environment variables will be traced and reported
+    - Environment variable: `ENV_INPUT_EBPF_TRACE_ENV_LIST`
+    - Example: `DK_BPFTRACE_SERVICE,DD_SERVICE,OTEL_SERVICE_NAME`
+
+- `trace_name_list`
+    - Description: Processes whose names are in the specified set will be traced and reported
+    - Environment variable: `ENV_INPUT_EBPF_TRACE_NAME_LIST`
+    - Example: `chrome,firefox`
+
+- `conv_to_ddtrace`
+    - Description: Convert all application side link IDs to decimal strings for compatibility purposes, not used unless necessary
+    - Environment variable: `ENV_INPUT_EBPF_CONV_TO_DDTRACE`
+    - Example: `false`
+
+- `netlog_blacklist`
+    - Description: Used to filter packets after packet capture
+    - Environment variable: `ENV_INPUT_EBPF_NETLOG_BLACKLIST`
+    - Example: `ip_saddr=='127.0.0.1' \|\| ip_daddr=='127.0.0.1'`
+
+- `netlog_metric`
+    - Description: Collect network metrics from network packet analysis
+    - Environment variable: `ENV_INPUT_EBPF_NETLOG_METRIC`
+    - Example: `true`
+
+- `netlog_log`
+    - Description: Collect network logs from network packet analysis
+    - Environment variable: `ENV_INPUT_EBPF_NETLOG_LOG`
+    - Example: `false`
+
+- `netlog_l7log_protocols`
+    - Description: Set the L7 log protocols parsed by `bpf-netlog`. `http` enables both HTTP/1.x and HTTP/2; use `http1` only when HTTP/1.x is needed alone. Available values: `http`, `http1`, `http2`, `grpc`
+    - Environment variable: `ENV_INPUT_EBPF_NETLOG_L7LOG_PROTOCOLS`
+    - Example: `http,http2,grpc`
+
+- `netlog_l7log_headers`
+    - Description: Set the HTTP headers recorded in `bpf-netlog` L7 logs. Empty uses the built-in recommended allowlist; `none` disables header capture. Sensitive headers are always ignored
+    - Environment variable: `ENV_INPUT_EBPF_NETLOG_L7LOG_HEADERS`
+    - Example: `host,x-request-id,traceparent`
+
+- `netlog_fallback_sockets`
+    - Description: Set the maximum number of `bpf-netlog` fallback network namespace capture sockets. Fallback capture is disabled by default in Kubernetes and can be raised when needed
+    - Environment variable: `ENV_INPUT_EBPF_NETLOG_FALLBACK_SOCKETS`
+    - Example: `8`
+
+- `netlog_fallback_blocks`
+    - Description: Set the number of AF_PACKET ring blocks for `bpf-netlog` fallback capture
+    - Environment variable: `ENV_INPUT_EBPF_NETLOG_FALLBACK_BLOCKS`
+    - Example: `4`
+
+- `netlog_shared_blocks`
+    - Description: Set the number of AF_PACKET ring blocks for `bpf-netlog` shared host-peer capture
+    - Environment variable: `ENV_INPUT_EBPF_NETLOG_SHARED_BLOCKS`
+    - Example: `64`
+
+- `cpu_limit`
+    - Description: The maximum number of CPU cores used per unit time. When the upper limit is reached, the collector exits.
+    - Environment variable: `ENV_INPUT_EBPF_CPU_LIMIT`
+    - Example: "2.0"`
+
+- `mem_limit`
+    - Description: Memory size usage limit
+    - Environment variable: `ENV_INPUT_EBPF_MEM_LIMIT`
+    - Example: `"4GiB"`
+
+- `net_limit`
+    - Description: Network bandwidth (any network card) limit
+    - Environment variable: `ENV_INPUT_EBPF_NET_LIMIT`
+    - Example: `"100MiB/s"`
+
+- `sampling_rate`
+    - Description: The sampling rate when the eBPF collector reports data, ranging from `0.01 to 1.00`; Mutually exclusive with the `samping_rate_pts_per_min` setting
+    - Environment variable: `ENV_INPUT_EBPF_SAMPLING_RATE`
+    - Example: `0.50`
+
+- `sampling_rate_pts_per_min`
+    - Description: Set the data volume threshold per minute when the eBPF collector reports data, and dynamically adjust the sampling rate
+    - Environment variable: `ENV_INPUT_EBPF_SAMPLING_RATE_PTSPERMIN`
+    - Example: `1500`
+
+- `workload_labels`
+    - Description: Set all specified labels of the K8s workload to be added to the data
+    - Environment variable: `ENV_INPUT_EBPF_WORKLOAD_LABELS`
+    - Example: `app,project_id`
+
+- `workload_label_prefix`
+    - Description: Add a prefix to the k8s workload label
+    - Environment variable: `ENV_INPUT_EBPF_WORKLOAD_LABEL_PREFIX`
+    - Example: `k8s_workload_label_`
+
+- `operator_url`
+    - Description: Sets the operator address used to collect workload tags from the Kubernetes cluster.
+    - Environment variable: `ENV_INPUT_EBPF_OPERATOR_URL`
+    - Example: `https://datakit-operator.datakit.svc:443`
+
+<!-- markdownlint-enable -->
+
+### Advanced Collection Limits {#advanced-collection-limits}
+
+The following are advanced capacity parameters for the `datakit-ebpf` process. They are not recommended for routine tuning. Increase them through `inputs.ebpf.envs` or DaemonSet environment variables only when self-monitoring metrics or the summary log show pressure signals such as `limit`, `queue_full`, `pending_query_limit`, or `bpf_map_fill_ratio` staying close to `1`.
+
+| Environment variable | Default | Max | Scope |
+| --- | --- | --- | --- |
+| `DK_EBPF_NETFLOW_MAP_MAX_ENTRIES` | `65536` | `1048576` | `ebpf-net` kernel connection map capacity |
+| `DK_EBPF_NETFLOW_CLOSED_CONN_CACHE_LIMIT` | `65536` | `1000000` | `ebpf-net` closed connection cache |
+| `DK_EBPF_DNSFLOW_PENDING_QUERY_LIMIT` | `65536` | `1000000` | DNS pending query cache |
+| `DK_EBPF_DNSFLOW_AGG_LIMIT` | `32768` | `1000000` | DNS aggregation keys |
+| `DK_EBPF_DNSFLOW_ANSWER_RECORD_LIMIT` | `65536` | `1000000` | DNS reverse lookup record cache |
+| `DK_EBPF_L4LOG_CONN_CACHE_LIMIT` | `65536` | `1000000` | `bpf-netlog` L4 connection cache |
+| `DK_EBPF_L4LOG_NETFLOW_AGG_LIMIT` | `32768` | `1000000` | `bpf-netlog` L4 metric aggregation keys |
+| `DK_EBPF_L4LOG_HTTP_AGG_LIMIT` | `32768` | `1000000` | `bpf-netlog` HTTP metric aggregation keys |
+| `DK_EBPF_L4LOG_HTTP_ELEM_LIMIT` | `1024` | `65536` | `bpf-netlog` per-connection HTTP request states |
+| `DK_EBPF_L4LOG_HTTP2_STREAM_LIMIT` | `1024` | `65536` | `bpf-netlog` per-connection HTTP/2 stream states |
+| `DK_EBPF_L7FLOW_CONN_MAP_LIMIT` | `65536` | `1000000` | `ebpf-trace`/`httpflow` user-space connection states |
+| `DK_EBPF_L7FLOW_HTTP_AGG_LIMIT` | `32768` | `1000000` | `httpflow` HTTP aggregation keys |
+| `DK_EBPF_L7FLOW_HTTP2_STREAM_LIMIT` | `1024` | `65536` | `httpflow` per-connection HTTP/2 stream states |
+| `DK_EBPF_L7FLOW_MYSQL_PENDING_BUFFER_LIMIT` | `65536` | `4194304` | MySQL protocol partial-packet buffer bytes |
+| `DK_EBPF_CONNTRACK_TUPLE_MAP_MAX_ENTRIES` | `65535` | `1048576` | connection-tracking tuple map capacity |
+| `DK_EBPF_PROCWATCH_MAP_MAX_ENTRIES` | `12800` | `1048576` | process-watch kernel map capacity |
+
+<!-- markdownlint-enable MD007 -->
+## eBPF Tracing function {#ebpf-tracing}
+
+`ebpf-trace` collects and analyzes the network data read and written by the process on the host, and tracks the kernel-level threads/user-level threads (such as golang goroutine) of the process to generate link eBPF Span. This data needs to be collected by `ebpftrace` for further processing.
+
+When using, you need to deploy the eBPF collector with link data collection enabled on multiple nodes, then you need to send all eBPF Span data to the same DataKit ELinker/DataKit with the [`ebpftrace`](./ebpftrace.md#ebpftrace-config) collector plug-in enabled. For more configuration details, see the [eBPF link document](./ebpftrace.md#ebpf-config)
+
+<!-- markdownlint-disable MD013 -->
+### The blacklist function of the `bpf-netlog` plug-in {#blacklist}
+<!-- markdownlint-enable -->
+
+Filter rule example:
+
+Single rule:
+
+The following rules filter network data with ip `1.1.1.1` and port 80. (Line breaks allowed after operator)
+
+```py
+(ip_saddr == "1.1.1.1" || ip_saddr == "1.1.1.1") &&
+      (src_port == 80 || dst_port == 80)
+```
+
+Multiple rules:
+
+Use `;` or `\n` to separate the rules. If any rule is met, the data will be filtered.
+
+```py
+udp
+ip_saddr == "1.1.1.1" && (src_port == 80 || dst_port == 80);
+ip_saddr == "10.10.0.1" && (src_port == 80 || dst_port == 80)
+
+ipnet_contains("127.0.0.0/8", ip_saddr); ipv6
+```
+
+Data available for filtering:
+
+This filter is used to filter network data. Comparable data is as follows:
+
+| key name      | type | description                                                                             |
+| ------------- | ---- | --------------------------------------------------------------------------------------- |
+| `tcp`         | bool | Whether it is `TCP` protocol                                                            |
+| `udp`         | bool | Whether it is `UDP` protocol                                                            |
+| `ipv4`        | bool | Whether it is `IPv4` protocol                                                           |
+| `ipv6`        | bool | Whether it is `IPv6` protocol                                                           |
+| `src_port`    | int  | Source port (based on the observed network card/host/container as the reference system) |
+| `dst_port`    | int  | target port                                                                             |
+| `ip_saddr`    | str  | Source `IPv4` network address                                                           |
+| `ip_saddr`    | str  | Target `IPv4` network address                                                           |
+| `ip6_saddr`   | str  | Source `IPv6` network address                                                           |
+| `ip6_daddr`   | str  | Destination `IPv6` network address                                                      |
+| `k8s_src_pod` | str  | source `pod` name                                                                       |
+| `k8s_dst_pod` | str  | target `pod` name                                                                       |
+
+Operator:
+
+Operators from highest to lowest:
+
+| Priority | Op     | Name                        | Binding Direction |
+| -------- | ------ | --------------------------- | ----------------- |
+| 1        | `()`   | parentheses                 | left              |
+| 2        | `!`    | Logical NOT, unary operator | Right             |
+| 3        | `!=`   | Not equal to                | Left              |
+| 3        | `>=`   | Greater than or equal to    | Left              |
+| 3        | `>`    | greater than                | left              |
+| 3        | `==`   | equal to                    | left              |
+| 3        | `<=`   | Less than or equal to       | Left              |
+| 3        | `<`    | less than                   | left              |
+| 4        | `&&`   | Logical AND                 | Left              |
+| 4        | `\|\|` | Logical OR                  | Left              |
+
+function:
+
+1. **ipnet_contains**
+
+    Function signature: `fn ipnet_contains(ipnet: str, ipaddr: str) bool`
+
+    Description: Determine whether the address is within the specified network segment
+
+     Example:
+
+    ```py
+    ipnet_contains("127.0.0.0/8", ip_saddr)
+    ```
+
+    If the `ip_saddr` value is "127.0.0.1", then this rule returns `true` and the TCP connection packet/UDP packet will be filtered.
+
+2. **has_prefix**
+
+    Function signature: `fn has_prefix(s: str, prefix: str) bool`
+
+    Description: Specifies whether the field contains a certain prefix
+
+    Example:
+
+    ```py
+    has_prefix(k8s_src_pod, "datakit-") || has_prefix(k8s_dst_pod, "datakit-")
+    ```
+
+    This rule returns `true` if the pod name is `datakit-kfez321`.
+
+## Network aggregation data {#network}
+
+For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.{{.InputName}}.tags]`:
+
+``` toml
+ [inputs.{{.InputName}}.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+  # ...
+```
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "network"}}
+
+### `{{$m.Name}}`
+
+{{$m.MarkdownTable}}
+
+{{ end }}
+
+{{ end }}
+
+## Logging {#logging}
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "logging"}}
+
+### `{{$m.Name}}`
+
+{{$m.MarkdownTable}}
+
+{{ end }}
+
+{{ end }}
+
+## Tracing {#tracing}
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "tracing"}}
+
+### `{{$m.Name}}`
+
+{{$m.MarkdownTable}}
+{{end}}
+
+{{ end }}
+
 <!-- markdownlint-disable MD007 -->
 ## Prometheus Self Monitoring {#prometheus-self-metrics}
 
@@ -237,318 +601,4 @@ Use the following order for diagnosis:
 4. `bpf_map_fill_ratio` stays close to `1`
    This usually indicates kernel-side BPF map pressure and may correlate with event drops
 
-### SELinux-enabled System {#selinux}
-
-For SELinux-enabled systems, you need to shut them down (pending subsequent optimization), and execute the following command to shut them down:
-
-```sh
-setenforce 0
-```
-
-### Collector Configuration {#input-config}
-
-<!-- markdownlint-disable MD046 -->
-=== "Host Installation"
-
-    Go to the `conf.d/samples` directory under the DataKit installation directory, copy `{{.InputName}}.conf.sample` and name it `{{.InputName}}.conf`. The example is as follows:
-    
-    ```toml
-    {{ CodeBlock .InputSample 4 }}
-    ```
-    
-    After configuration, restart DataKit.
-
-=== "Kubernetes"
-
-    In Kubernetes, you can enable collection through ConfigMap or directly enable the eBPF collector by default:
-
-    1. For the ConfigMap method, refer to the general [Installation Example](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-    2. Add `ebpf` to the environment variable `ENV_ENABLE_INPUTS` in *datakit.yaml*. In this case, the default configuration is used, that is, only `ebpf-net` network data collection is enabled.
-    
-    ```yaml
-    - name: ENV_ENABLE_INPUTS
-           value: cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container,ebpf
-    ```
-
-### Environment variables and configuration items {#input-cfg-field-env}
-
-The following environment variables can be used to adjust the eBPF collection configuration in Kubernetes:
-
-Configuration items:
-
-- `enabled_plugins`:
-    - Description: Used to configure the built-in plugins for the collector
-    - Environment variable: `ENV_INPUT_EBPF_ENABLED_PLUGINS`
-    - Example: `ebpf-net,ebpf-trace`
-
-- `l7net_enabled`
-    - Description: Enable http protocol data collection
-    - Environment variable: `ENV_INPUT_EBPF_L7NET_ENABLED`
-    - Example: `httpflow`
-
-- `interval`
-    - Description: Set the sampling time interval
-    - Environment variable: `ENV_INPUT_EBPF_INTERVAL`
-    - Example: `1m30s`
-
-- `ipv6_disabled`
-    - Description: Whether the system does not support IPv6
-    - Environment variable: `ENV_INPUT_EBPF_IPV6_DISABLED`
-    - Example: `false`
-
-- `ephemeral_port`
-    - Description: Ephemeral port start location
-    - Environment variable: `ENV_INPUT_EBPF_EPHEMERAL_PORT`
-    - Example: `32768`
-
-- `pprof_host`
-    - Description: pprof host
-    - Environment variable: `ENV_INPUT_EBPF_PPROF_HOST`
-    - Example: `127.0.0.1`
-
-- `pprof_port`
-    - Description: pprof port
-    - Environment variable: `ENV_INPUT_EBPF_PPROF_PORT`
-    - Example: `6061`
-
-<!-- - `interval`
-    - Description: Data aggregation period
-    - Environment variable: `ENV_INPUT_EBPF_INTERVAL`
-    - Example: `60s` -->
-
-- `trace_server`
-    - Description: The address of DataKit ELinker/DataKit to enable the `ebpftrace` collector
-    - Environment variable: `ENV_INPUT_EBPF_TRACE_SERVER`
-    - Example: `<ip>:<port>`
-
-- `trace_name_blacklist`
-    - Description: The process with the specified process name will be disabled from collecting trace data
-    - Environment variable: `ENV_INPUT_EBPF_TRACE_NAME_BLACKLIST`
-    - Example:
-
-- `trace_env_blacklist`
-    - Description: Any process containing any of the specified environment variable names will be disabled from collecting trace data
-    - Environment variable: `ENV_INPUT_EBPF_TRACE_ENV_BLACKLIST`
-    - Example: `DKE_DISABLE_ETRACE`
-
-- `trace_env_list`
-    - Description: Link data for processes with any specified environment variables will be traced and reported
-    - Environment variable: `ENV_INPUT_EBPF_TRACE_ENV_LIST`
-    - Example: `DK_BPFTRACE_SERVICE,DD_SERVICE,OTEL_SERVICE_NAME`
-
-- `trace_name_list`
-    - Description: Processes whose names are in the specified set will be traced and reported
-    - Environment variable: `ENV_INPUT_EBPF_TRACE_NAME_LIST`
-    - Example: `chrome,firefox`
-
-- `conv_to_ddtrace`
-    - Description: Convert all application side link IDs to decimal strings for compatibility purposes, not used unless necessary
-    - Environment variable: `ENV_INPUT_EBPF_CONV_TO_DDTRACE`
-    - Example: `false`
-
-- `netlog_blacklist`
-    - Description: Used to filter packets after packet capture
-    - Environment variable: `ENV_INPUT_EBPF_NETLOG_BLACKLIST`
-    - Example: `ip_saddr=='127.0.0.1' \|\| ip_daddr=='127.0.0.1'`
-
-- `netlog_metric`
-    - Description: Collect network metrics from network packet analysis
-    - Environment variable: `ENV_INPUT_EBPF_NETLOG_METRIC`
-    - Example: `true`
-
-- `netlog_log`
-    - Description: Collect network logs from network packet analysis
-    - Environment variable: `ENV_INPUT_EBPF_NETLOG_LOG`
-    - Example: `false`
-
-- `cpu_limit`
-    - Description: The maximum number of CPU cores used per unit time. When the upper limit is reached, the collector exits.
-    - Environment variable: `ENV_INPUT_EBPF_CPU_LIMIT`
-    - Example: "2.0"`
-
-- `mem_limit`
-    - Description: Memory size usage limit
-    - Environment variable: `ENV_INPUT_EBPF_MEM_LIMIT`
-    - Example: `"4GiB"`
-
-- `net_limit`
-    - Description: Network bandwidth (any network card) limit
-    - Environment variable: `ENV_INPUT_EBPF_NET_LIMIT`
-    - Example: `"100MiB/s"`
-
-- `sampling_rate`
-    - Description: The sampling rate when the eBPF collector reports data, ranging from `0.01 to 1.00`; Mutually exclusive with the `samping_rate_pts_per_min` setting
-    - Environment variable: `ENV_INPUT_EBPF_SAMPLING_RATE`
-    - Example: `0.50`
-
-- `sampling_rate_pts_per_min`
-    - Description: Set the data volume threshold per minute when the eBPF collector reports data, and dynamically adjust the sampling rate
-    - Environment variable: `ENV_INPUT_EBPF_SAMPLING_RATE_PTSPERMIN`
-    - Example: `1500`
-
-- `workload_labels`
-    - Description: Set all specified labels of the K8s workload to be added to the data
-    - Environment variable: `ENV_INPUT_EBPF_WORKLOAD_LABELS`
-    - Example: `app,project_id`
-
-- `workload_label_prefix`
-    - Description: Add a prefix to the k8s workload label
-    - Environment variable: `ENV_INPUT_EBPF_WORKLOAD_LABEL_PREFIX`
-    - Example: `k8s_workload_label_`
-
-- `operator_url`
-    - Description: Sets the operator address used to collect workload tags from the Kubernetes cluster.
-    - Environment variable: `ENV_INPUT_EBPF_OPERATOR_URL`
-    - Example: `https://datakit-operator.datakit.svc:443`
-
-<!-- markdownlint-enable -->
-
 <!-- markdownlint-enable MD007 -->
-## eBPF Tracing function {#ebpf-tracing}
-
-`ebpf-trace` collects and analyzes the network data read and written by the process on the host, and tracks the kernel-level threads/user-level threads (such as golang goroutine) of the process to generate link eBPF Span. This data needs to be collected by `ebpftrace` for further processing.
-
-When using, you need to deploy the eBPF collector with link data collection enabled on multiple nodes, then you need to send all eBPF Span data to the same DataKit ELinker/DataKit with the [`ebpftrace`](./ebpftrace.md#ebpftrace-config) collector plug-in enabled. For more configuration details, see the [eBPF link document](./ebpftrace.md#ebpf-config)
-
-<!-- markdownlint-disable MD013 -->
-### The blacklist function of the `bpf-netlog` plug-in {#blacklist}
-<!-- markdownlint-enable -->
-
-Filter rule example:
-
-Single rule:
-
-The following rules filter network data with ip `1.1.1.1` and port 80. (Line breaks allowed after operator)
-
-```py
-(ip_saddr == "1.1.1.1" || ip_saddr == "1.1.1.1") &&
-      (src_port == 80 || dst_port == 80)
-```
-
-Multiple rules:
-
-Use `;` or `\n` to separate the rules. If any rule is met, the data will be filtered.
-
-```py
-udp
-ip_saddr == "1.1.1.1" && (src_port == 80 || dst_port == 80);
-ip_saddr == "10.10.0.1" && (src_port == 80 || dst_port == 80)
-
-ipnet_contains("127.0.0.0/8", ip_saddr); ipv6
-```
-
-Data available for filtering:
-
-This filter is used to filter network data. Comparable data is as follows:
-
-| key name      | type | description                                                                             |
-| ------------- | ---- | --------------------------------------------------------------------------------------- |
-| `tcp`         | bool | Whether it is `TCP` protocol                                                            |
-| `udp`         | bool | Whether it is `UDP` protocol                                                            |
-| `ipv4`        | bool | Whether it is `IPv4` protocol                                                           |
-| `ipv6`        | bool | Whether it is `IPv6` protocol                                                           |
-| `src_port`    | int  | Source port (based on the observed network card/host/container as the reference system) |
-| `dst_port`    | int  | target port                                                                             |
-| `ip_saddr`    | str  | Source `IPv4` network address                                                           |
-| `ip_saddr`    | str  | Target `IPv4` network address                                                           |
-| `ip6_saddr`   | str  | Source `IPv6` network address                                                           |
-| `ip6_daddr`   | str  | Destination `IPv6` network address                                                      |
-| `k8s_src_pod` | str  | source `pod` name                                                                       |
-| `k8s_dst_pod` | str  | target `pod` name                                                                       |
-
-Operator:
-
-Operators from highest to lowest:
-
-| Priority | Op     | Name                        | Binding Direction |
-| -------- | ------ | --------------------------- | ----------------- |
-| 1        | `()`   | parentheses                 | left              |
-| 2        | `!`    | Logical NOT, unary operator | Right             |
-| 3        | `!=`   | Not equal to                | Left              |
-| 3        | `>=`   | Greater than or equal to    | Left              |
-| 3        | `>`    | greater than                | left              |
-| 3        | `==`   | equal to                    | left              |
-| 3        | `<=`   | Less than or equal to       | Left              |
-| 3        | `<`    | less than                   | left              |
-| 4        | `&&`   | Logical AND                 | Left              |
-| 4        | `\|\|` | Logical OR                  | Left              |
-
-function:
-
-1. **ipnet_contains**
-
-    Function signature: `fn ipnet_contains(ipnet: str, ipaddr: str) bool`
-
-    Description: Determine whether the address is within the specified network segment
-
-     Example:
-
-    ```py
-    ipnet_contains("127.0.0.0/8", ip_saddr)
-    ```
-
-    If the `ip_saddr` value is "127.0.0.1", then this rule returns `true` and the TCP connection packet/UDP packet will be filtered.
-
-2. **has_prefix**
-
-    Function signature: `fn has_prefix(s: str, prefix: str) bool`
-
-    Description: Specifies whether the field contains a certain prefix
-
-    Example:
-
-    ```py
-    has_prefix(k8s_src_pod, "datakit-") || has_prefix(k8s_dst_pod, "datakit-")
-    ```
-
-    This rule returns `true` if the pod name is `datakit-kfez321`.
-
-## Network aggregation data {#network}
-
-For all of the following data collections, a global tag named `host` is appended by default (the tag value is the host name of the DataKit), or other tags can be specified in the configuration by `[inputs.{{.InputName}}.tags]`:
-
-``` toml
- [inputs.{{.InputName}}.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
-  # ...
-```
-
-{{ range $i, $m := .Measurements }}
-
-{{if eq $m.Type "network"}}
-
-### `{{$m.Name}}`
-
-{{$m.MarkdownTable}}
-
-{{ end }}
-
-{{ end }}
-
-## Logging {#logging}
-
-{{ range $i, $m := .Measurements }}
-
-{{if eq $m.Type "logging"}}
-
-### `{{$m.Name}}`
-
-{{$m.MarkdownTable}}
-
-{{ end }}
-
-{{ end }}
-
-## Tracing {#tracing}
-
-{{ range $i, $m := .Measurements }}
-
-{{if eq $m.Type "tracing"}}
-
-### `{{$m.Name}}`
-
-{{$m.MarkdownTable}}
-{{end}}
-
-{{ end }}

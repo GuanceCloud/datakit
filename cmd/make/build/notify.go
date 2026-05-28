@@ -95,7 +95,7 @@ func doNotify(tkn string, body string) {
 		l.Debugf("notify robot ok(%q): %q", resp.Status, respbody)
 		return
 	default:
-		l.Error(fmt.Errorf(string(respbody)))
+		l.Errorf("notify robot failed(%q): %q", resp.Status, respbody)
 	}
 }
 

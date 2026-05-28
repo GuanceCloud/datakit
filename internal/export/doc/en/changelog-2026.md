@@ -1,5 +1,46 @@
 # Changelog
 
+## 2.0.0(2026/05/27) {#cl-2.0.0}
+
+This release is the first DataKit 2.x mainline release and officially enables the independent datakit-v2 install and upgrade source, with the following main updates:
+
+### New Features {#cl-2.0.0-new}
+
+- BPF network logs now support recording HTTP headers, preserving trace-related context in L7 logs (#3081)
+- HTTP API now supports the pull interface and allows filter processing to be disabled for a single data upload (#3076)
+- Prometheus Remote Write collector added the `keep_exist_metric_name` option to preserve original metric names (#3075)
+- Logfwd now supports configuring `from_beginning_threshold_size` through environment variables (#3074)
+- DDTrace collector implemented the info interface to improve collector information output (#3073)
+- `hostobject` added Kingsoft Cloud KEC metadata support (#3068)
+- OceanBase collector added compatibility for 4.x system views (#3067)
+- DataKit can now automatically dump its own profile and upload it to the center for online troubleshooting (#3064)
+- Redis collector added database object collection and reporting (#2984)
+
+### Bug Fixes {#cl-2.0.0-fix}
+
+- Fixed abnormal HTTP/3 dial testing timing data that caused Download duration to display an invalid long value (#3080)
+- Fixed Kubernetes Prometheus collector errors when the ServiceAccount token file expires (#3071)
+- Fixed the 6060 pprof service not restarting after it exits following hot reload (#3063)
+- Fixed delayed disk and `hostobject` filtering that could trigger automatic mounting on special mount points and affect object reporting (#3044)
+- Fixed Flameshot `jcmd` handling and duplicated profile tags (#3062)
+
+### Improvements {#cl-2.0.0-opt}
+
+- Adjusted DataKit v2 file paths on OSS/CDN to support the major version release flow (#3083)
+- Optimized default traceroute configuration for the dial testing collector (#3078)
+- Adjusted DataKit Sinker header handling so global tags are only carried by point write requests (#3070)
+- Improved profile reporting observability by adding info data and related metrics (#3055)
+- Added support for newer Docker API versions to improve container environment compatibility (#2991)
+
+### Compatibility Adjustments {#cl-2.0.0-brk}
+
+- DataKit upgraded to major version v2 while keeping a permanent v1 staging branch; upgrade logic now checks whether the current environment supports upgrading to v2 (#3008)
+- DataKit v2 now uses an independent install and upgrade source at `https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/`, isolated from the 1.x source `https://static.<<<custom_key.brand_main_domain>>>/datakit/`.
+- Automatic upgrades from 1.x will not cross major versions to 2.x; to upgrade from 1.x to 2.x, manually replace `datakit` with `datakit-v2` in the install or upgrade URL.
+- DataKit v2 build toolchain has been upgraded to Go 1.26.2; system requirements are now Linux kernel >= 3.2, Windows Server 2016(included)+, or macOS 12+.
+
+---
+
 ## 1.94.0(2026/05/13) {#cl-1.94.0}
 
 This release is an iterative release, with the following main updates:

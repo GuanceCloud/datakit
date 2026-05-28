@@ -263,10 +263,10 @@ func getNetInfo(enableVIfaces bool) ([]*netInfo, error) {
 }
 
 func (ipt *Input) getDiskInfo() ([]*diskInfo, float64, error) {
-	res, err := pcommon.FilterUsage(ipt.diskStats, ipt.hostRoot)
+	parts, err := ipt.diskStats.Partitions()
 	if err != nil {
 		l.Errorf("fail to get disk info, %s", err)
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("Partitions(): %w", err)
 	}
 
 	var (
@@ -276,25 +276,33 @@ func (ipt *Input) getDiskInfo() ([]*diskInfo, float64, error) {
 		used float64
 	)
 
-	for _, fs := range res {
-		p := pcommon.TrimPartitionHostPath(ipt.hostRoot, fs.Part)
+	for i := range parts {
+		part := &parts[i]
+		p := pcommon.TrimPartitionHostPath(ipt.hostRoot, part)
 
-		if datakit.StrEFInclude(fs.Part.Device, ipt.ExcludeDevice) {
+		if datakit.StrEFInclude(p.Device, ipt.ExcludeDevice) {
 			l.Debugf("part excluded: %+#v", p)
 			continue
 		}
 
-		if ipt.regIgnoreFSTypes != nil && ipt.regIgnoreFSTypes.MatchString(fs.Part.Fstype) {
-			l.Debugf("ignore fs type %s on %+#v", fs.Part.Fstype, fs.Part)
+		if ipt.regIgnoreFSTypes != nil && ipt.regIgnoreFSTypes.MatchString(p.Fstype) {
+			l.Debugf("ignore fs type %s on %+#v", p.Fstype, p)
 			continue
 		}
 
-		if ipt.regIgnoreMountpoints != nil && ipt.regIgnoreMountpoints.MatchString(fs.Part.Mountpoint) {
-			l.Debugf("ignore mount point %s on %+#v", fs.Part.Mountpoint, fs.Part)
+		if ipt.regIgnoreMountpoints != nil && ipt.regIgnoreMountpoints.MatchString(p.Mountpoint) {
+			l.Debugf("ignore mount point %s on %+#v", p.Mountpoint, p)
 			continue
 		}
 
-		if ipt.IgnoreZeroBytesDisk && fs.Usage.Total == 0 {
+		usage, err := ipt.diskStats.Usage(part.Mountpoint, ipt.hostRoot)
+		if err != nil {
+			l.Warnf("Usage on partition %+#v: %s, ignored", part, err)
+			continue
+		}
+		usage.Path = p.Mountpoint
+
+		if ipt.IgnoreZeroBytesDisk && usage.Total == 0 {
 			l.Debugf("skip zero partition %+#v", p)
 			continue
 		}
@@ -303,19 +311,19 @@ func (ipt *Input) getDiskInfo() ([]*diskInfo, float64, error) {
 			Device:            p.Device,
 			Fstype:            p.Fstype,
 			MountPoint:        p.Mountpoint,
-			Total:             fs.Usage.Total,
-			Used:              fs.Usage.Used,
-			UsedPercent:       fs.Usage.UsedPercent,
-			Free:              fs.Usage.Free,
-			InodesTotal:       fs.Usage.InodesTotal,
-			InodesUsed:        fs.Usage.InodesUsed,
-			InodesFree:        fs.Usage.InodesFree,
-			InodesUsedPercent: fs.Usage.InodesUsedPercent,
+			Total:             usage.Total,
+			Used:              usage.Used,
+			UsedPercent:       usage.UsedPercent,
+			Free:              usage.Free,
+			InodesTotal:       usage.InodesTotal,
+			InodesUsed:        usage.InodesUsed,
+			InodesFree:        usage.InodesFree,
+			InodesUsedPercent: usage.InodesUsedPercent,
 		}
 
 		// the sum of disk total and used.
-		total += float64(fs.Usage.Total)
-		used += float64(fs.Usage.Used)
+		total += float64(usage.Total)
+		used += float64(usage.Used)
 
 		l.Debugf("get disk %+#v, total: %f, used: %f", info, total, used)
 		infos = append(infos, info)

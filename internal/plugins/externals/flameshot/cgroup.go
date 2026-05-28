@@ -22,7 +22,7 @@ const (
 	defaultCgroupRoot              = "/sys/fs/cgroup"
 	defaultCgroupPollInterval      = 250 * time.Millisecond
 	defaultCgroupEmergencyPercent  = 95.0
-	defaultCgroupEmergencyCooldown = time.Minute
+	defaultCgroupEmergencyCooldown = defaultEmergencyProfileCooldown
 	cgroupVersionV1                = "v1"
 	cgroupVersionV2                = "v2"
 )
@@ -144,14 +144,15 @@ func resolveCgroupDir(procRoot, cgroupRoot string, pid int32, cgroupPath string,
 	}
 
 	procCgroupRoot := filepath.Join(procRoot, strconv.Itoa(int(pid)), "root", strings.TrimPrefix(cgroupRoot, "/"))
-	addCandidate(cgroupRoot)
-	addCandidate(procCgroupRoot)
 
 	if cgroupPath != "" && cgroupPath != "/" && !strings.Contains(cgroupPath, "..") {
 		rel := strings.TrimPrefix(cgroupPath, "/")
-		addCandidate(filepath.Join(cgroupRoot, rel))
 		addCandidate(filepath.Join(procCgroupRoot, rel))
+		addCandidate(filepath.Join(cgroupRoot, rel))
 	}
+
+	addCandidate(procCgroupRoot)
+	addCandidate(cgroupRoot)
 
 	for _, candidate := range candidates {
 		if hasAllFiles(candidate, requiredFiles...) {
@@ -160,9 +161,24 @@ func resolveCgroupDir(procRoot, cgroupRoot string, pid int32, cgroupPath string,
 	}
 
 	if cgroupPath == "" || cgroupPath == "/" {
+		if hasAllFiles(procCgroupRoot, requiredFiles...) {
+			return procCgroupRoot
+		}
 		return cgroupRoot
 	}
-	return filepath.Join(cgroupRoot, strings.TrimPrefix(cgroupPath, "/"))
+
+	rel := strings.TrimPrefix(cgroupPath, "/")
+	procPath := filepath.Join(procCgroupRoot, rel)
+	if hasAllFiles(procPath, requiredFiles...) {
+		return procPath
+	}
+
+	hostPath := filepath.Join(cgroupRoot, rel)
+	if hasAllFiles(hostPath, requiredFiles...) {
+		return hostPath
+	}
+
+	return procPath
 }
 
 func hasAllFiles(dir string, names ...string) bool {
@@ -177,14 +193,68 @@ func hasAllFiles(dir string, names ...string) bool {
 	return true
 }
 
-func resolveCgroupWatcherTarget(procRoot, cgroupRoot string, pid int32) (string, string, error) {
-	if dir, err := resolveCgroupV2Dir(procRoot, cgroupRoot, pid); err == nil {
-		return dir, cgroupVersionV2, nil
+func resolveCgroupWatcherTarget(procRoot, cgroupRoot string, pid int32) (string, string, string, error) {
+	if key, dir, err := resolveCgroupV2Target(procRoot, cgroupRoot, pid); err == nil {
+		return key, dir, cgroupVersionV2, nil
 	}
-	if dir, err := resolveCgroupV1Dir(procRoot, cgroupRoot, pid); err == nil {
-		return dir, cgroupVersionV1, nil
+	if key, dir, err := resolveCgroupV1Target(procRoot, cgroupRoot, pid); err == nil {
+		return key, dir, cgroupVersionV1, nil
 	}
-	return "", "", errors.New("unable to resolve cgroup watcher target")
+	return "", "", "", errors.New("unable to resolve cgroup watcher target")
+}
+
+func resolveCgroupV2Target(procRoot, cgroupRoot string, pid int32) (string, string, error) {
+	if procRoot == "" {
+		procRoot = defaultProcRoot
+	}
+	if cgroupRoot == "" {
+		cgroupRoot = defaultCgroupRoot
+	}
+
+	bts, err := os.ReadFile(filepath.Join(procRoot, strconv.Itoa(int(pid)), "cgroup")) //nolint:gosec
+	if err != nil {
+		return "", "", err
+	}
+
+	cgroupPath, err := parseProcCgroupV2Path(string(bts))
+	if err != nil {
+		return "", "", err
+	}
+
+	dir := resolveCgroupDir(procRoot, cgroupRoot, pid, cgroupPath,
+		[]string{"memory.current", "memory.max", "memory.events"})
+	return buildCgroupWatcherKey(cgroupRoot, cgroupPath), dir, nil
+}
+
+func resolveCgroupV1Target(procRoot, cgroupRoot string, pid int32) (string, string, error) {
+	if procRoot == "" {
+		procRoot = defaultProcRoot
+	}
+	if cgroupRoot == "" {
+		cgroupRoot = defaultCgroupRoot
+	}
+
+	memoryRoot := filepath.Join(cgroupRoot, "memory")
+	bts, err := os.ReadFile(filepath.Join(procRoot, strconv.Itoa(int(pid)), "cgroup")) //nolint:gosec
+	if err != nil {
+		return "", "", err
+	}
+
+	cgroupPath, err := parseProcCgroupV1Path(string(bts))
+	if err != nil {
+		return "", "", err
+	}
+
+	dir := resolveCgroupDir(procRoot, memoryRoot, pid, cgroupPath,
+		[]string{"memory.usage_in_bytes", "memory.limit_in_bytes", "memory.oom_control"})
+	return buildCgroupWatcherKey(memoryRoot, cgroupPath), dir, nil
+}
+
+func buildCgroupWatcherKey(root, cgroupPath string) string {
+	if cgroupPath == "" || cgroupPath == "/" || strings.Contains(cgroupPath, "..") {
+		return root
+	}
+	return filepath.Join(root, strings.TrimPrefix(cgroupPath, "/"))
 }
 
 func readCgroupV2MemoryStats(dir string) (*cgroupMemoryStats, error) {
@@ -373,42 +443,34 @@ func (m *monitor) handleCgroupMemoryStats(watcher *cgroupWatcher, stats *cgroupM
 	}
 	pm := candidate.pm
 
-	if !pm.inCooldown(defaultCgroupEmergencyCooldown) {
-		pm.markProfileTriggered(now)
-		tags := make([]string, 0, len(m.config.Tags)+len(pm.configProcess.Tags)+3)
+	if !pm.inEmergencyCooldown(defaultCgroupEmergencyCooldown) {
+		threshold := getCgroupEmergencyPercent(pm.configProcess)
+		emergencyDuration := getEmergencyProfileDuration(pm.configProcess)
+		log.Infof("cgroup memory pressure trigger, service=%s pid=%d percent=%.2f threshold=%.2f current=%d max=%d emergency_duration=%s",
+			pm.configProcess.Service, pm.Pid, percent, threshold, stats.Current, stats.Max, emergencyDuration)
+
+		pm.markMemoryPressure(now)
+		pm.markEmergencyProfileTriggered(now)
+		tags := make([]string, 0, len(m.config.Tags)+len(pm.configProcess.Tags)+8)
 		tags = append(tags, m.config.Tags...)
 		tags = append(tags, pm.configProcess.Tags...)
 		tags = append(tags,
 			fmt.Sprintf("service:%s", pm.configProcess.Service),
+			fmt.Sprintf("pid:%d", pm.Pid),
 			"trigger:cgroup_memory_pressure",
 			fmt.Sprintf("cgroup_mem_percent:%0.2f", percent),
+			fmt.Sprintf("cgroup_mem_threshold:%0.2f", threshold),
+			fmt.Sprintf("cgroup_mem_current_bytes:%d", stats.Current),
+			fmt.Sprintf("cgroup_mem_max_bytes:%d", stats.Max),
+			fmt.Sprintf("emergency_duration:%s", emergencyDuration),
 		)
 
-		req := newTriggerStats(pm.configProcess.Events, getEmergencyProfileDuration(pm.configProcess), tags)
+		req := newTriggerStats(pm.configProcess.Events, emergencyDuration, tags)
 		req.CommandName = pm.Name
 		req.PID = pm.Pid
 		req.Triggered = true
 		req.Service = pm.configProcess.Service
 		m.statsChan <- req
-	}
-
-	if m != nil && m.config != nil && m.config.JCmdSnapshotEnabled && !pm.inJcmdCooldown(defaultCgroupEmergencyCooldown) {
-		pm.markJcmdTriggered(now)
-		jcmdTags := make([]string, 0, len(m.config.Tags)+len(pm.configProcess.Tags)+2)
-		jcmdTags = append(jcmdTags, m.config.Tags...)
-		jcmdTags = append(jcmdTags, pm.configProcess.Tags...)
-		jcmdTags = append(jcmdTags,
-			fmt.Sprintf("service:%s", pm.configProcess.Service),
-			"trigger:cgroup_memory_pressure",
-		)
-		m.jcmdChan <- &jcmdSnapshotRequest{
-			Service:     pm.configProcess.Service,
-			PID:         pm.Pid,
-			ProcessName: pm.Name,
-			DetectedAt:  now,
-			MemPercent:  percent,
-			Tags:        jcmdTags,
-		}
 	}
 
 	return lastOOMKill

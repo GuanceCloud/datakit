@@ -6,6 +6,26 @@
 
 本文介绍 DataKit 的基本安装。
 
+## 2.x 与 1.x 的版本说明 {#major-version}
+
+- `2.x` 是当前主线版本（例如 `2.1.0`、`2.2.0`），推荐新装和后续升级优先使用。
+- `1.x` 是历史主线（例如 `1.92.0`），用于兼容旧系统或明确指定旧版本场景。
+- 自动升级会按升级源返回的最新版本执行；如果当前主机已经运行 `2.x`，可直接按升级流程升级到最新 `2.x`。
+- 在不满足 `2.x` 的主机上，如需继续使用 `1.x`，请手动指定具体版本安装/升级。
+
+`2.x` 的系统最低要求：
+
+- Linux：内核版本 >= `3.2`
+- Windows：`Windows 10` / `Windows Server 2016` 及以上
+- macOS：`macOS 12` 及以上
+
+`2.x` 和 `1.x` 使用不同的安装源，推荐使用 `datakit-v2` 路径：
+
+- `https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/`：`2.x` 安装/升级源，**推荐所有新装和升级优先使用**。
+- `https://static.<<<custom_key.brand_main_domain>>>/datakit/`：`1.x` 安装/升级源，仅用于兼容旧系统。
+
+安装脚本会根据当前下载路径自动选择对应的版本线，无需额外配置。由于两条路径各自独立发布，`datakit-v2` 路径只会安装/升级到最新的 `2.x`，`datakit` 路径只会安装/升级到最新的 `1.x`，互不互通。如需手动安装 `1.x`，使用带版本号的脚本（如 `install-1.93.0.sh`）即可。
+
 ## 注册/登陆<<<custom_key.brand_name>>> {#regist-login}
 
 浏览器访问 [<<<custom_key.brand_name>>>注册入口](https://auth.<<<custom_key.brand_main_domain>>>/redirectpage/register){:target="_blank"}，填写对应信息之后，即可[登陆<<<custom_key.brand_name>>>](https://console.<<<custom_key.brand_main_domain>>>/pageloading/login){:target="_blank"}
@@ -169,7 +189,7 @@ NAME1="value1" NAME2="value2"
     ```shell
     DK_DEF_INPUTS="-" \
     DK_DATAWAY=https://openway.<<<custom_key.brand_main_domain>>>?token=<TOKEN> \
-    bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
+    bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/install.sh)"
     ```
 
     另外，如果之前有安装过 DataKit，必须将之前的默认采集器配置都删除掉，因为 DataKit 在安装的过程中只能添加采集器配置，但不能删除采集器配置。
@@ -356,6 +376,14 @@ DK_USER_NAME="datakit" DK_DATAWAY="..." bash -c ...
 {{ InstallCmd 4 (.WithPlatform "windows") (.WithEnvs "DK_SINKER_GLOBAL_CUSTOMER_KEYS" "key1,key2" ) (.WithEnvs "DK_DATAWAY_ENABLE_SINKER" "on" ) }}
     ```
 
+???+ note "注意事项"
+
+    [:octicons-tag-24: Version-1.95.0](changelog-2026.md#cl-1.95.0) 起，DataKit Sinker header 作用范围如下：
+
+    - 仅 point 写入类请求（`/v1/write/*`）会添加 Dataway Sinker header。
+    - Profiling 上传（`/v1/upload/profiling`）与 RUM replay（`/v1/write/rum/replay`）保留显式添加 `X-Global-Tags` 的行为。
+    - 其它 Dataway API 不会携带 `X-Global-Tags` 或 `X-Global-Tags-V2`，例如 `/v1/datakit/pull`、`/v1/datakit/usage_trace`、`/v1/election`、`/v1/query/raw`、`/v1/aggregate`、`/v1/tail_sampling`、`/v1/tail_sampling_config`。
+
 ### 资源限制设置 {#env-cgroup}
 
 目前仅支持 Linux 和 Windows ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.0)) 操作系统。
@@ -376,7 +404,7 @@ DK_USER_NAME="datakit" DK_DATAWAY="..." bash -c ...
 ```shell
 DK_APM_INSTRUMENTATION_ENABLED=host \
   DK_DATAWAY=https://openway.<<<custom_key.brand_main_domain>>>?token=<TOKEN> \
-  bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
+  bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/install.sh)"
 ```
 
 - 开启 docker 注入：
@@ -384,7 +412,7 @@ DK_APM_INSTRUMENTATION_ENABLED=host \
 ```shell
 DK_APM_INSTRUMENTATION_ENABLED=docker \
   DK_DATAWAY=https://openway.<<<custom_key.brand_main_domain>>>?token=<TOKEN> \
-  bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
+  bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/install.sh)"
 ```
 
 对于主机部署，在 DataKit 安装完成后，重新开启一个终端，并重启对应的 Java/Python/PHP 应用即可。
@@ -455,7 +483,7 @@ DK_APM_INSTRUMENTATION_ENABLED=docker \
 | `DK_HOSTNAME`                    | `some-host-name`            | 支持安装阶段自定义配置主机名                                                                                                     |
 | `DK_UPGRADE`                     | `1`                         | 升级到最新版本                                                   |
 | `DK_UPGRADE_MANAGER`             | `on`                        | 升级 DataKit 时是否同时安装或升级 **DataKit 升级管理服务**，需要和 `DK_UPGRADE` 配合使用，从 [1.5.9](changelog.md#cl-1.5.9) 版本开始支持 |
-| `DK_INSTALLER_BASE_URL`          | `https://your-url`          | 可选择不同环境的安装脚本，默认为 `https://static.<<<custom_key.brand_main_domain>>>/datakit`                                                             |
+| `DK_INSTALLER_BASE_URL`          | `https://your-url`          | 可选择不同环境的安装脚本，默认为 `https://static.<<<custom_key.brand_main_domain>>>/datakit-v2`                                                             |
 | `DK_PROXY_TYPE`                  | -                           | 代理类型。选项有：`datakit` 或 `nginx`，均为小写                                                                                 |
 | `DK_NGINX_IP`                    | -                           | 代理服务器 IP 地址（只需要填 IP 不需要填端口）。这个与上面的 "HTTP_PROXY" 和 "HTTPS_PROXY" 互斥，而且优先级最高，会覆盖以上两者  |
 | `DK_INSTALL_LOG`                 | -                           | 设置安装程序日志路径，默认为当前目录下的 *install.log*，如果设置为 `stdout` 则输出到命令行终端                                   |

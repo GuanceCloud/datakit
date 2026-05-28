@@ -9,6 +9,10 @@ type CreatePartitionsRequest struct {
 	ValidateOnly    bool
 }
 
+func (c *CreatePartitionsRequest) setVersion(v int16) {
+	c.Version = v
+}
+
 func (c *CreatePartitionsRequest) encode(pe packetEncoder) error {
 	if err := pe.putArrayLength(len(c.TopicPartitions)); err != nil {
 		return err
@@ -27,6 +31,7 @@ func (c *CreatePartitionsRequest) encode(pe packetEncoder) error {
 
 	pe.putBool(c.ValidateOnly)
 
+	pe.putEmptyTaggedFieldArray()
 	return nil
 }
 
@@ -57,11 +62,12 @@ func (c *CreatePartitionsRequest) decode(pd packetDecoder, version int16) (err e
 		return err
 	}
 
-	return nil
+	_, err = pd.getEmptyTaggedFieldArray()
+	return err
 }
 
 func (r *CreatePartitionsRequest) key() int16 {
-	return 37
+	return apiKeyCreatePartitions
 }
 
 func (r *CreatePartitionsRequest) version() int16 {
@@ -69,15 +75,28 @@ func (r *CreatePartitionsRequest) version() int16 {
 }
 
 func (r *CreatePartitionsRequest) headerVersion() int16 {
+	if r.Version >= 2 {
+		return 2
+	}
 	return 1
 }
 
 func (r *CreatePartitionsRequest) isValidVersion() bool {
-	return r.Version >= 0 && r.Version <= 1
+	return r.Version >= 0 && r.Version <= 2
+}
+
+func (r *CreatePartitionsRequest) isFlexible() bool {
+	return r.isFlexibleVersion(r.Version)
+}
+
+func (r *CreatePartitionsRequest) isFlexibleVersion(version int16) bool {
+	return version >= 2
 }
 
 func (r *CreatePartitionsRequest) requiredVersion() KafkaVersion {
 	switch r.Version {
+	case 2:
+		return V2_5_0_0
 	case 1:
 		return V2_0_0_0
 	case 0:
@@ -96,7 +115,10 @@ func (t *TopicPartition) encode(pe packetEncoder) error {
 	pe.putInt32(t.Count)
 
 	if len(t.Assignment) == 0 {
-		pe.putInt32(-1)
+		if err := pe.putArrayLength(-1); err != nil {
+			return err
+		}
+		pe.putEmptyTaggedFieldArray()
 		return nil
 	}
 
@@ -108,8 +130,10 @@ func (t *TopicPartition) encode(pe packetEncoder) error {
 		if err := pe.putInt32Array(assign); err != nil {
 			return err
 		}
+		pe.putEmptyTaggedFieldArray()
 	}
 
+	pe.putEmptyTaggedFieldArray()
 	return nil
 }
 
@@ -118,20 +142,26 @@ func (t *TopicPartition) decode(pd packetDecoder, version int16) (err error) {
 		return err
 	}
 
-	n, err := pd.getInt32()
+	n, err := pd.getArrayLength()
 	if err != nil {
 		return err
 	}
 	if n <= 0 {
-		return nil
+		_, err = pd.getEmptyTaggedFieldArray()
+		return err
 	}
 	t.Assignment = make([][]int32, n)
 
-	for i := 0; i < int(n); i++ {
+	for i := 0; i < n; i++ {
 		if t.Assignment[i], err = pd.getInt32Array(); err != nil {
+			return err
+		}
+		_, err = pd.getEmptyTaggedFieldArray()
+		if err != nil {
 			return err
 		}
 	}
 
-	return nil
+	_, err = pd.getEmptyTaggedFieldArray()
+	return err
 }

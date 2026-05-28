@@ -427,7 +427,7 @@ func (cs *caseSpec) run() error {
 		break
 	}
 
-	cs.t.Logf("listening port " + randPortStr + "...")
+	cs.t.Log("listening port " + randPortStr + "...")
 
 	srv := &http.Server{Handler: router}
 

@@ -47,8 +47,9 @@ func TestHTTP2(t *testing.T) {
 
 			h, err := pcap.OpenOffline(tCase.fp)
 			if err != nil {
-				t.Error(err)
+				t.Fatal(err)
 			}
+			defer h.Close()
 			decoder := NewPktDecoder()
 
 			h2dec := NewH2Dec()
@@ -97,6 +98,9 @@ func TestHTTP2(t *testing.T) {
 					t.Logf("stream id %v, http2 method %v, path %v, h2 status %v", v.streamid, v.Method, v.Path, v.StatusCode)
 				}
 				t.Logf("\t tx %v Bytes, rx %v bytes", v.txBytes, v.rxBytes)
+			}
+			if len(h2log.elems) == 0 {
+				t.Fatal("expected pcap to produce at least one HTTP2 stream")
 			}
 		})
 	}

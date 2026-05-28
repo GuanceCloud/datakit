@@ -99,6 +99,65 @@ func Test_handleDDTraces(t *testing.T) {
 	}
 }
 
+func TestHandleDDInfo(t *testing.T) {
+	ipt := defaultInput()
+	ipt.Endpoints = []string{v2, v3, stats, v5, "/unknown"}
+	ipt.maxTraceBody = 32 << 20
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, info, nil)
+	ipt.handleDDInfo(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))
+
+	var got struct {
+		Version                string   `json:"version"`
+		GitCommit              string   `json:"git_commit"`
+		Endpoints              []string `json:"endpoints"`
+		FeatureFlags           []string `json:"feature_flags"`
+		ClientDropP0s          bool     `json:"client_drop_p0s"`
+		SpanMetaStructs        bool     `json:"span_meta_structs"`
+		LongRunningSpans       bool     `json:"long_running_spans"`
+		SpanEvents             bool     `json:"span_events"`
+		EvpProxyAllowedHeaders []string `json:"evp_proxy_allowed_headers"`
+		PeerTags               []string `json:"peer_tags"`
+		SpanKindsStatsComputed []string `json:"span_kinds_stats_computed"`
+		Config                 struct {
+			MaxRequestBytes        int64                         `json:"max_request_bytes"`
+			AnalyzedSpansByService map[string]map[string]float64 `json:"analyzed_spans_by_service"`
+		} `json:"config"`
+		FilterTags struct {
+			Require []string `json:"require"`
+			Reject  []string `json:"reject"`
+		} `json:"filter_tags"`
+		FilterTagsRegex struct {
+			Require []string `json:"require"`
+			Reject  []string `json:"reject"`
+		} `json:"filter_tags_regex"`
+	}
+	assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), &got))
+
+	assert.Equal(t, ddInfoAgentVersion, got.Version)
+	assert.NotEmpty(t, got.GitCommit)
+	assert.Equal(t, []string{v3, v5}, got.Endpoints)
+	assert.NotContains(t, got.Endpoints, stats)
+	assert.False(t, got.ClientDropP0s)
+	assert.False(t, got.SpanMetaStructs)
+	assert.False(t, got.LongRunningSpans)
+	assert.False(t, got.SpanEvents)
+	assert.Equal(t, int64(32<<20), got.Config.MaxRequestBytes)
+	assert.NotNil(t, got.FeatureFlags)
+	assert.NotNil(t, got.EvpProxyAllowedHeaders)
+	assert.NotNil(t, got.PeerTags)
+	assert.NotNil(t, got.SpanKindsStatsComputed)
+	assert.NotNil(t, got.Config.AnalyzedSpansByService)
+	assert.NotNil(t, got.FilterTags.Require)
+	assert.NotNil(t, got.FilterTags.Reject)
+	assert.NotNil(t, got.FilterTagsRegex.Require)
+	assert.NotNil(t, got.FilterTagsRegex.Reject)
+}
+
 func BenchmarkDDTrace_Msgsize(b *testing.B) {
 	mockFeed := dkio.NewMockedFeeder()
 	afterGatherRun = itrace.NewAfterGather(itrace.WithLogger(log), itrace.WithPointOptions(), itrace.WithFeeder(mockFeed))

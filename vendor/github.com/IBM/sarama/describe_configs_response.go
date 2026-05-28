@@ -34,10 +34,31 @@ const (
 	SourceDefault
 )
 
+type DescribeConfigError struct {
+	Err    KError
+	ErrMsg string
+}
+
+func (c *DescribeConfigError) Error() string {
+	text := c.Err.Error()
+	if c.ErrMsg != "" {
+		text = fmt.Sprintf("%s - %s", text, c.ErrMsg)
+	}
+	return text
+}
+
+func (c *DescribeConfigError) Unwrap() error {
+	return c.Err
+}
+
 type DescribeConfigsResponse struct {
 	Version      int16
 	ThrottleTime time.Duration
 	Resources    []*ResourceResponse
+}
+
+func (r *DescribeConfigsResponse) setVersion(v int16) {
+	r.Version = v
 }
 
 type ResourceResponse struct {
@@ -65,7 +86,7 @@ type ConfigSynonym struct {
 }
 
 func (r *DescribeConfigsResponse) encode(pe packetEncoder) (err error) {
-	pe.putInt32(int32(r.ThrottleTime / time.Millisecond))
+	pe.putDurationMs(r.ThrottleTime)
 	if err = pe.putArrayLength(len(r.Resources)); err != nil {
 		return err
 	}
@@ -81,11 +102,9 @@ func (r *DescribeConfigsResponse) encode(pe packetEncoder) (err error) {
 
 func (r *DescribeConfigsResponse) decode(pd packetDecoder, version int16) (err error) {
 	r.Version = version
-	throttleTime, err := pd.getInt32()
-	if err != nil {
+	if r.ThrottleTime, err = pd.getDurationMs(); err != nil {
 		return err
 	}
-	r.ThrottleTime = time.Duration(throttleTime) * time.Millisecond
 
 	n, err := pd.getArrayLength()
 	if err != nil {
@@ -105,7 +124,7 @@ func (r *DescribeConfigsResponse) decode(pd packetDecoder, version int16) (err e
 }
 
 func (r *DescribeConfigsResponse) key() int16 {
-	return 32
+	return apiKeyDescribeConfigs
 }
 
 func (r *DescribeConfigsResponse) version() int16 {

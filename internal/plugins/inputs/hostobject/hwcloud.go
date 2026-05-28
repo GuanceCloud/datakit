@@ -7,7 +7,6 @@ package hostobject
 
 import (
 	"encoding/json"
-	"fmt"
 )
 
 type hwcloud struct {
@@ -121,7 +120,7 @@ func (x *hwcloud) InstanceNetworkType() string {
 		}
 		InstanceNetworkTypes := ""
 		for _, v := range res {
-			InstanceNetworkTypes = fmt.Sprintf(InstanceNetworkTypes + v + " ")
+			InstanceNetworkTypes += v + " "
 		}
 		return InstanceNetworkTypes
 	}
@@ -144,7 +143,7 @@ func (x *hwcloud) PrivateIP() string {
 		}
 		privateIP := ""
 		for _, v := range res {
-			privateIP = fmt.Sprintf(privateIP + v + " ")
+			privateIP += v + " "
 		}
 		return privateIP
 	}

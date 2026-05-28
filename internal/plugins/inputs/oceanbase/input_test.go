@@ -66,3 +66,50 @@ func TestObfuscateSQL(t *testing.T) {
 		assert.Equal(t, tc.want, util.ObfuscateSQL(tc.sql))
 	}
 }
+
+func TestOBVersionGreaterOrEqualThan(t *testing.T) {
+	cases := []struct {
+		name      string
+		version   string
+		target    string
+		wantMatch bool
+	}{
+		{
+			name:      "v4 matches",
+			version:   "4.2.1.11",
+			target:    "4.0.0",
+			wantMatch: true,
+		},
+		{
+			name:      "v3 does not match",
+			version:   "3.2.4.3",
+			target:    "4.0.0",
+			wantMatch: false,
+		},
+		{
+			name:      "empty version",
+			version:   "",
+			target:    "4.0.0",
+			wantMatch: false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ipt := &Input{obVersion: tc.version}
+			assert.Equal(t, tc.wantMatch, ipt.isOBVersionGreaterOrEqualThan(tc.target))
+		})
+	}
+}
+
+func TestVersionedSQL(t *testing.T) {
+	v3 := &Input{obVersion: "3.2.4.3"}
+	assert.Equal(t, sqlTenantNamesV3, v3.tenantNamesSQL())
+	assert.Equal(t, SQLPlanCacheV3, v3.planCacheSQL())
+	assert.Equal(t, SQLClogV3, v3.clogSQL())
+
+	v4 := &Input{obVersion: "4.2.1.11"}
+	assert.Equal(t, sqlTenantNamesV4, v4.tenantNamesSQL())
+	assert.Equal(t, SQLPlanCacheV4, v4.planCacheSQL())
+	assert.Equal(t, SQLClogV4, v4.clogSQL())
+}

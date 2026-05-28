@@ -14,6 +14,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/promscrape"
 )
 
 type scrapeManagerInterface interface {
@@ -207,6 +208,11 @@ func (s *scrapeManager) doWork(ctx context.Context, name string, scrapeInterval 
 					err := task.scrape(start.UnixNano())
 					if err == nil {
 						task.resetRetryCount()
+						continue
+					}
+
+					if promscrape.IsRetryableScrapeError(err) {
+						klog.Warnf("%s: failed to scrape url %s, err %s, target kept", name, task.targetURL(), err)
 						continue
 					}
 

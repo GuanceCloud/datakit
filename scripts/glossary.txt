@@ -379,3 +379,4 @@ golangci
 ##############################################
 Dianping
 Meituan
+Kingsoft

@@ -221,7 +221,7 @@ func (d NetwrkData) String() string {
 	str += fmt.Sprintf("\tts %s %s %s\n", time.Duration(ts).String(),
 		time.Duration(tsNano).String(),
 		time.Duration(tsNano+d.TSTail).String())
-	if len(d.Payload) > 10 {
+	if len(d.Payload) > 16 {
 		str += fmt.Sprintf("\t%s\n", string(d.Payload[:16]))
 	} else {
 		str += fmt.Sprintf("\t%s\n", string(d.Payload))
@@ -229,7 +229,10 @@ func (d NetwrkData) String() string {
 	return str
 }
 
-var randInnerID func() int64
+var (
+	randInnerIDMu sync.Mutex
+	randInnerID   = newRandFunc()
+)
 
 func newRandFunc() func() int64 {
 	b := make([]byte, 8)
@@ -244,6 +247,15 @@ func newRandFunc() func() int64 {
 	return func() int64 {
 		return -1
 	}
+}
+
+func nextInnerID() int64 {
+	randInnerIDMu.Lock()
+	defer randInnerIDMu.Unlock()
+	if randInnerID == nil {
+		randInnerID = newRandFunc()
+	}
+	return randInnerID()
 }
 
 type ThrEntry struct {
@@ -291,7 +303,7 @@ func (thrTr *ThreadTrace) Insert(d Direcion, pid int32, thrID2 [2]int32, ts0_1 u
 		thrTr.Threads = make(map[uint64]*ThrEntry)
 	}
 
-	id = randInnerID()
+	id = nextInnerID()
 	insertEntry := &ThrEntry{
 		ts:      ts0_1,
 		innerID: id,
@@ -343,7 +355,7 @@ func (thrTr *ThreadTrace) GetInnerID(pid int32, thrID2 [2]int32, ts uint64) int6
 			}
 		}
 	}
-	return randInnerID()
+	return nextInnerID()
 }
 
 func (thrTr *ThreadTrace) Cleanup() {
@@ -387,7 +399,9 @@ func (thrTr *ThreadTrace) Cleanup() {
 var log = logger.DefaultSLogger("tracer-comm")
 
 func Init(nl *logger.Logger) {
+	randInnerIDMu.Lock()
 	randInnerID = newRandFunc()
+	randInnerIDMu.Unlock()
 	log = nl
 	_ = log
 }

@@ -45,7 +45,7 @@ func TestCloseResource(t *testing.T) {
 				trace, _ := closer.Close(log, testcases[i])
 				if !expected[i](trace) {
 					t.Errorf("close resource %s failed trace:%v", testcases[i][0].GetFiledToString(FieldResource), trace)
-					t.FailNow() // nolint:govet,staticcheck
+					return
 				}
 			}
 		}()

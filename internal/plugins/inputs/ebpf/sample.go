@@ -81,12 +81,34 @@ const configSample = `
   netlog_metric = true
   netlog_log = false
 
+  ## bpf-netlog L7 log protocols.
+  ## "http" enables both HTTP/1.x and HTTP/2. Use "http1" only when HTTP/1.x is needed alone.
+  ## Available values: "http", "http1", "http2", "grpc".
+  ##
+  # netlog_l7log_protocols = ["http"]
+
+  ## bpf-netlog L7 log HTTP headers.
+  ## Empty uses the built-in recommended allowlist, ["none"] disables header capture.
+  ##
+  # netlog_l7log_headers = [
+  #   "host",
+  #   "x-request-id",
+  #   "traceparent",
+  # ]
+
   ## bpf-netlog AF_PACKET capture ring limits.
   ## In Kubernetes, datakit-ebpf uses smaller defaults to reduce resident memory.
   ##
   # netlog_fallback_sockets = 0
   # netlog_fallback_blocks = 0
   # netlog_shared_blocks = 0
+
+  ## Advanced datakit-ebpf capacity tuning can be added to envs above.
+  ## Prefer changing these only when self-monitoring shows drops caused by limits.
+  ##
+  ##   "DK_EBPF_NETFLOW_MAP_MAX_ENTRIES=131072",
+  ##   "DK_EBPF_L4LOG_CONN_CACHE_LIMIT=131072",
+  ##   "DK_EBPF_L7FLOW_CONN_MAP_LIMIT=131072",
   
   ## eBPF trace generation server center address.
   trace_server = ""

@@ -7,11 +7,15 @@ package netflow
 
 import (
 	"fmt"
+	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 	"unsafe"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 )
 
 type ConnectionInfo struct {
@@ -188,9 +192,16 @@ type ConnStatsRecord struct {
 	closedConnInfo  map[ConnectionInfo]ConnectionInfo
 	lastActiveConns map[ConnectionInfo]ConnFullStats
 	lastActiveInfo  map[ConnectionInfo]ConnectionInfo
+	closedConnLimit int
 
 	lastTS time.Time // UTC
 }
+
+const (
+	closedConnCacheLimitEnv     = "DK_EBPF_NETFLOW_CLOSED_CONN_CACHE_LIMIT"
+	defaultClosedConnCacheLimit = 65536
+	maxClosedConnCacheLimit     = 1_000_000
+)
 
 func newConnStatsRecord() *ConnStatsRecord {
 	return &ConnStatsRecord{
@@ -198,8 +209,25 @@ func newConnStatsRecord() *ConnStatsRecord {
 		closedConnInfo:  make(map[ConnectionInfo]ConnectionInfo),
 		lastActiveConns: make(map[ConnectionInfo]ConnFullStats),
 		lastActiveInfo:  make(map[ConnectionInfo]ConnectionInfo),
+		closedConnLimit: netflowClosedConnCacheLimit(),
 		lastTS:          ntp.Now(),
 	}
+}
+
+func netflowClosedConnCacheLimit() int {
+	raw := strings.TrimSpace(os.Getenv(closedConnCacheLimitEnv))
+	if raw == "" {
+		return defaultClosedConnCacheLimit
+	}
+	limit, err := strconv.Atoi(raw)
+	if err != nil || limit <= 0 {
+		l.Warnf("invalid %s=%q, use default %d", closedConnCacheLimitEnv, raw, defaultClosedConnCacheLimit)
+		return defaultClosedConnCacheLimit
+	}
+	if limit > maxClosedConnCacheLimit {
+		return maxClosedConnCacheLimit
+	}
+	return limit
 }
 
 func (c *ConnStatsRecord) clearClosedConnsCache() {
@@ -262,15 +290,26 @@ func mergeConnDisplayInfo(base, update ConnectionInfo) ConnectionInfo {
 	if info.ProcessName == "" {
 		info.ProcessName = base.ProcessName
 	}
-	if info.NATDport == 0 && (info.NATDaddr[0]|info.NATDaddr[1]|info.NATDaddr[2]|info.NATDaddr[3]) == 0 {
+	if (info.NATDaddr[0] | info.NATDaddr[1] | info.NATDaddr[2] | info.NATDaddr[3]) == 0 {
 		info.NATDaddr = base.NATDaddr
+	}
+	if info.NATDport == 0 {
 		info.NATDport = base.NATDport
 	}
 	return info
 }
 
 func (c *ConnStatsRecord) updateClosedUseEvent(closedEvents *ConncetionClosedInfo) {
+	if c == nil || closedEvents == nil {
+		return
+	}
 	key := connStatsCacheKey(closedEvents.Info)
+	_, knownClosed := c.closedConns[key]
+	_, knownActive := c.lastActiveConns[key]
+	if !knownClosed && !knownActive && c.closedConnLimit > 0 && len(c.closedConns) >= c.closedConnLimit {
+		exporter.IncBPFEventDrop(componentID, "conn_closed_cache", "limit")
+		return
+	}
 	if connLastActive, ok := c.lastActiveConns[key]; ok {
 		// Connections that were not closed during the last collection cycle.
 		if ConnProtocolIsTCP(closedEvents.Info.Meta) {

@@ -20,6 +20,8 @@ type multiStream struct {
 
 func TestJsonDump(t *testing.T) {
 	name := "./pcapdata/mysql.data"
+	requirePcapFile(t, name)
+
 	file, err := os.ReadFile(name)
 	if err != nil {
 		t.Fatal(err)

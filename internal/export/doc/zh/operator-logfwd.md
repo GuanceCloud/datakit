@@ -222,6 +222,7 @@ logfwd 注入新增若干环境变量与镜像版本要求，可在 `datakit-ope
 | `LOGFWD_GLOBAL_SOURCE`             | 全局 `source`，优先级高于单条配置中的 `source` 字段                                                                                                                                   |
 | `LOGFWD_GLOBAL_SERVICE`            | 全局 `service`，若单条配置中未指定 `service`，则使用全局值；若全局值也为空，则回退为 `source`                                                                                         |
 | `LOGFWD_GLOBAL_STORAGE_INDEX`      | 全局 `storage_index`，优先级高于单条配置中的 `storage_index` 字段                                                                                                                     |
+| `LOGFWD_GLOBAL_FROM_BEGINNING_THRESHOLD_SIZE` | 全局 `from_beginning_threshold_size`，单位字节，优先级高于单条配置中的 `from_beginning_threshold_size` 字段                                                                           |
 | `LOGFWD_POD_NAME`                  | 自动写入 `pod_name` tag，通常通过 Downward API 注入                                                                                                                                   |
 | `LOGFWD_POD_NAMESPACE`             | 自动写入 `namespace` tag                                                                                                                                                              |
 | `LOGFWD_POD_IP`                    | 自动写入 `pod_ip` tag，便于定位容器实例                                                                                                                                               |

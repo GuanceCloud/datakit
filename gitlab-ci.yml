@@ -1,15 +1,15 @@
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "1.94.0"
+  CI_VERSION: "2.0.0"
   CI_TESTING_VERSION: $CI_VERSION-testing_$CI_COMMIT_BRANCH
   DCA_CI_VERSION: "0.1.6"
   DCA_CI_TESTING_VERSION: $DCA_CI_VERSION-testing_$CI_COMMIT_BRANCH
   DISABLED_MR_TARGET_BRANCHES: "/^master|main/"
   DISABLED_MR_TITLE: '/^(\[Draft\]|\(Draft\)|Draft:)/'
-  FLAMESHOT_VERSION: "0.2.1"
+  FLAMESHOT_VERSION: "0.2.2"
   FLAMESHOT_TESTING_VERSION: $FLAMESHOT_VERSION-testing_$CI_COMMIT_BRANCH
-  DK_GO_VERSION: "1.19.12"
-  GOLANGCI_LINT_VERSION: "v1.46.2"
+  DK_GO_VERSION: "1.26.2"
+  GOLANGCI_LINT_VERSION: "v2.11.4"
   GOLANGCI_LINT_BIN: "./bin/golangci-lint"
 
 before_script:
@@ -143,7 +143,7 @@ release-testing-guance: # release testing packages to guance
     - export OSS_BUCKET="$OSS_BUCKET_TESTING"
     - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TESTING"
     - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TESTING"
-    - export OSS_PATH="datakit"
+    - export OSS_PATH="datakit-v2"
     - make testing GIT_BRANCH=$CI_COMMIT_BRANCH \
         VERSION="$CI_TESTING_VERSION" \
         BRAND="guance"
@@ -200,7 +200,7 @@ release-prod-guance: # CI for guance packages
     - export OSS_BUCKET="$OSS_BUCKET_PROD"
     - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_PROD"
     - export OSS_SECRET_KEY="$OSS_SECRET_KEY_PROD"
-    - export OSS_PATH="datakit"
+    - export OSS_PATH="datakit-v2"
     - make production GIT_BRANCH=$CI_COMMIT_BRANCH \
       VERSION="$CI_VERSION" \
       BRAND="guance" \
@@ -231,7 +231,7 @@ release-prod-tw: # CI for truewatch packages
     - export OSS_BUCKET="$OSS_BUCKET_TW"
     - export OSS_ACCESS_KEY="$OSS_ACCESS_KEY_TW"
     - export OSS_SECRET_KEY="$OSS_SECRET_KEY_TW"
-    - export OSS_PATH="datakit"
+    - export OSS_PATH="datakit-v2"
     - make production GIT_BRANCH=$CI_COMMIT_BRANCH \
       VERSION="$CI_VERSION" \
       BRAND="truewatch" \

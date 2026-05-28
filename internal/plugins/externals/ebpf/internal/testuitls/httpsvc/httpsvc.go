@@ -40,7 +40,7 @@ func main() {
 		log.Info("goid ", goid.Get())
 		val, err := rdb.Get(context.Background(), "abc").Result()
 		if err != nil {
-			log.Infof("val %v, err: %w", val, err)
+			log.Infof("val %v, err: %v", val, err)
 		} else {
 			log.Infof("val %v", val)
 		}

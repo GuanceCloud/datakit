@@ -77,6 +77,33 @@ func TestResolveCgroupV2DirFallbackToProcessRoot(t *testing.T) {
 	assert.Equal(t, processCgroupRoot, dir)
 }
 
+func TestResolveCgroupV2DirPreferTargetProcessPath(t *testing.T) {
+	procRoot := t.TempDir()
+	cgroupRoot := t.TempDir()
+	pidDir := filepath.Join(procRoot, "1234")
+	processCgroupRoot := filepath.Join(pidDir, "root", strings.TrimPrefix(cgroupRoot, "/"))
+	targetRel := filepath.Join("kubepods.slice", "pod123", "container456")
+	hostRootFiles := []string{"memory.current", "memory.max", "memory.events"}
+
+	assert.NoError(t, os.MkdirAll(pidDir, 0o755))
+	assert.NoError(t, os.WriteFile(filepath.Join(pidDir, "cgroup"), []byte("0::/"+targetRel+"\n"), 0o644))
+
+	assert.NoError(t, os.MkdirAll(cgroupRoot, 0o755))
+	for _, name := range hostRootFiles {
+		assert.NoError(t, os.WriteFile(filepath.Join(cgroupRoot, name), []byte("1\n"), 0o644))
+	}
+
+	targetDir := filepath.Join(processCgroupRoot, targetRel)
+	assert.NoError(t, os.MkdirAll(targetDir, 0o755))
+	assert.NoError(t, os.WriteFile(filepath.Join(targetDir, "memory.current"), []byte("1\n"), 0o644))
+	assert.NoError(t, os.WriteFile(filepath.Join(targetDir, "memory.max"), []byte("2\n"), 0o644))
+	assert.NoError(t, os.WriteFile(filepath.Join(targetDir, "memory.events"), []byte("oom_kill 0\n"), 0o644))
+
+	dir, err := resolveCgroupV2Dir(procRoot, cgroupRoot, 1234)
+	assert.NoError(t, err)
+	assert.Equal(t, targetDir, dir)
+}
+
 func TestReadCgroupV2MemoryStats(t *testing.T) {
 	dir := t.TempDir()
 	assert.NoError(t, os.WriteFile(filepath.Join(dir, "memory.current"), []byte("1048576\n"), 0o644))
@@ -114,8 +141,9 @@ func TestResolveCgroupWatcherTargetPreferV2(t *testing.T) {
 	assert.NoError(t, os.WriteFile(filepath.Join(cgroupRoot, "kubepods.slice/pod123/container456", "memory.max"), []byte("2\n"), 0o644))
 	assert.NoError(t, os.WriteFile(filepath.Join(cgroupRoot, "kubepods.slice/pod123/container456", "memory.events"), []byte("oom_kill 0\n"), 0o644))
 
-	dir, version, err := resolveCgroupWatcherTarget(procRoot, cgroupRoot, 1234)
+	key, dir, version, err := resolveCgroupWatcherTarget(procRoot, cgroupRoot, 1234)
 	assert.NoError(t, err)
 	assert.Equal(t, cgroupVersionV2, version)
+	assert.Equal(t, filepath.Join(cgroupRoot, "kubepods.slice/pod123/container456"), key)
 	assert.Equal(t, filepath.Join(cgroupRoot, "kubepods.slice/pod123/container456"), dir)
 }

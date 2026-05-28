@@ -8,6 +8,13 @@ import (
 )
 
 func TestReadPgsqlBlock(t *testing.T) {
+	t.Run("Block Length Too Large", func(t *testing.T) {
+		data := []byte{'Q', 0xff, 0xff, 0xff, 0xff}
+		if _, _, err := readPgsqlBlock(data); err == nil {
+			t.Fatal("expected oversized PostgreSQL block length to be rejected")
+		}
+	})
+
 	t.Run("P Request", func(t *testing.T) {
 		data := "\x50\x00\x00\x00\x45\x00\x2f\x2a\x74\x65\x73\x74\x2a\x2f\x20\x49" +
 			"\x4e\x53\x45\x52\x54\x20\x49\x4e\x54\x4f\x20\x63\x69\x74\x69\x65\x73\x28" +

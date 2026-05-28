@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
@@ -163,6 +164,98 @@ func TestMetaGetV2(t *testing.T) {
 		res := metaGetV2(metaServer.URL, authConfig)
 		assert.Equal(t, Unavailable, res)
 	})
+}
+
+func TestKsyunSync(t *testing.T) {
+	ts := newKsyunMetadataServer(t)
+	defer ts.Close()
+
+	got, err := (&ksyun{baseURL: ts.URL}).Sync()
+	assert.NoError(t, err)
+
+	assert.Equal(t, Ksyun, got["cloud_provider"])
+	assert.Equal(t, "9554895b-968d-4905-a032-0b8f179230dc", got["instance_id"])
+	assert.Equal(t, "vm10-67-0-136", got["instance_name"])
+	assert.Equal(t, "KEC", got["instance_type"])
+	assert.Equal(t, "10.67.0.136", got["private_ip"])
+	assert.Equal(t, "cn-beijing-6", got["region"])
+	assert.Equal(t, "cn-beijing-6a", got["zone_id"])
+	assert.Equal(t,
+		"4b579780-81bc-427c-aee9-bb02943d5a8e dc4c927a-b33d-4c23-b00b-9298580cef8d",
+		got["security_group_id"])
+	assert.Equal(t, Unavailable, got["description"])
+	assert.Equal(t, Unavailable, got["instance_charge_type"])
+	assert.Equal(t, Unavailable, got["instance_network_type"])
+	assert.Equal(t, Unavailable, got["instance_status"])
+	assert.Equal(t, Unavailable, got["project_id"])
+}
+
+func TestSyncCloudInfoKsyunWithCustomMetaURL(t *testing.T) {
+	ts := newKsyunMetadataServer(t)
+	defer ts.Close()
+
+	ipt := defaultInput()
+	ipt.CloudMetaURL = map[string]string{Ksyun: ts.URL}
+
+	got, err := ipt.SyncCloudInfo(Ksyun)
+	assert.NoError(t, err)
+
+	assert.Equal(t, Ksyun, got["cloud_provider"])
+	assert.Equal(t, "9554895b-968d-4905-a032-0b8f179230dc", got["instance_id"])
+	assert.Equal(t, "cn-beijing-6", got["region"])
+	assert.Equal(t, "cn-beijing-6a", got["zone_id"])
+}
+
+func TestMatchCloudProviderKsyunUsesSingleProbe(t *testing.T) {
+	var (
+		mu    sync.Mutex
+		paths []string
+	)
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		paths = append(paths, r.URL.Path)
+		mu.Unlock()
+
+		if r.URL.Path == "/instance-id" {
+			fmt.Fprint(w, "9554895b-968d-4905-a032-0b8f179230dc")
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer ts.Close()
+
+	ipt := defaultInput()
+	ipt.CloudMetaURL = map[string]string{Ksyun: ts.URL}
+
+	assert.True(t, ipt.matchCloudProvider(Ksyun))
+
+	mu.Lock()
+	defer mu.Unlock()
+	assert.Equal(t, []string{"/instance-id"}, paths)
+}
+
+func newKsyunMetadataServer(t *testing.T) *httptest.Server {
+	t.Helper()
+
+	responses := map[string]string{
+		"/instance-id":       "9554895b-968d-4905-a032-0b8f179230dc",
+		"/hostname":          "vm10-67-0-136",
+		"/host-type":         "KEC",
+		"/local-ipv4":        "10.67.0.136",
+		"/placement/region":  "cn-beijing-6",
+		"/placement/zone":    "cn-beijing-6a",
+		"/securitygroup-ids": "4b579780-81bc-427c-aee9-bb02943d5a8e\ndc4c927a-b33d-4c23-b00b-9298580cef8d",
+	}
+
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if body, ok := responses[r.URL.Path]; ok {
+			fmt.Fprint(w, body)
+			return
+		}
+
+		http.NotFound(w, r)
+	}))
 }
 
 // func TestSyncCloudInfo(t *testing.T) {

@@ -11,9 +11,13 @@ type DescribeAclsResponse struct {
 	ResourceAcls []*ResourceAcls
 }
 
+func (d *DescribeAclsResponse) setVersion(v int16) {
+	d.Version = v
+}
+
 func (d *DescribeAclsResponse) encode(pe packetEncoder) error {
-	pe.putInt32(int32(d.ThrottleTime / time.Millisecond))
-	pe.putInt16(int16(d.Err))
+	pe.putDurationMs(d.ThrottleTime)
+	pe.putKError(d.Err)
 
 	if err := pe.putNullableString(d.ErrMsg); err != nil {
 		return err
@@ -29,28 +33,23 @@ func (d *DescribeAclsResponse) encode(pe packetEncoder) error {
 		}
 	}
 
+	pe.putEmptyTaggedFieldArray()
 	return nil
 }
 
 func (d *DescribeAclsResponse) decode(pd packetDecoder, version int16) (err error) {
-	throttleTime, err := pd.getInt32()
-	if err != nil {
+	d.Version = version
+	if d.ThrottleTime, err = pd.getDurationMs(); err != nil {
 		return err
 	}
-	d.ThrottleTime = time.Duration(throttleTime) * time.Millisecond
 
-	kerr, err := pd.getInt16()
+	d.Err, err = pd.getKError()
 	if err != nil {
 		return err
 	}
-	d.Err = KError(kerr)
 
-	errmsg, err := pd.getString()
-	if err != nil {
+	if d.ErrMsg, err = pd.getNullableString(); err != nil {
 		return err
-	}
-	if errmsg != "" {
-		d.ErrMsg = &errmsg
 	}
 
 	n, err := pd.getArrayLength()
@@ -66,11 +65,12 @@ func (d *DescribeAclsResponse) decode(pd packetDecoder, version int16) (err erro
 		}
 	}
 
-	return nil
+	_, err = pd.getEmptyTaggedFieldArray()
+	return err
 }
 
 func (d *DescribeAclsResponse) key() int16 {
-	return 29
+	return apiKeyDescribeAcls
 }
 
 func (d *DescribeAclsResponse) version() int16 {
@@ -78,15 +78,28 @@ func (d *DescribeAclsResponse) version() int16 {
 }
 
 func (d *DescribeAclsResponse) headerVersion() int16 {
+	if d.Version >= 2 {
+		return 1
+	}
 	return 0
 }
 
 func (d *DescribeAclsResponse) isValidVersion() bool {
-	return d.Version >= 0 && d.Version <= 1
+	return d.Version >= 0 && d.Version <= 2
+}
+
+func (d *DescribeAclsResponse) isFlexible() bool {
+	return d.isFlexibleVersion(d.Version)
+}
+
+func (d *DescribeAclsResponse) isFlexibleVersion(version int16) bool {
+	return version >= 2
 }
 
 func (d *DescribeAclsResponse) requiredVersion() KafkaVersion {
 	switch d.Version {
+	case 2:
+		return V2_5_0_0
 	case 1:
 		return V2_0_0_0
 	default:

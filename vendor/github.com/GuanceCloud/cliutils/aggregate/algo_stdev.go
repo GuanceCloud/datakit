@@ -14,7 +14,9 @@ import (
 
 type algoStdev struct {
 	MetricBase
-	data    []float64
+	count   int64
+	mean    float64
+	m2      float64
 	maxTime int64
 }
 
@@ -23,8 +25,21 @@ var _ Calculator = &algoStdev{}
 
 func (c *algoStdev) Add(x any) {
 	if inst, ok := x.(*algoStdev); ok {
-		// 合并数据点
-		c.data = append(c.data, inst.data...)
+		if inst.count == 0 {
+			return
+		}
+
+		if c.count == 0 {
+			c.count = inst.count
+			c.mean = inst.mean
+			c.m2 = inst.m2
+		} else {
+			delta := inst.mean - c.mean
+			total := c.count + inst.count
+			c.mean += delta * float64(inst.count) / float64(total)
+			c.m2 += inst.m2 + delta*delta*float64(c.count)*float64(inst.count)/float64(total)
+			c.count = total
+		}
 
 		if inst.maxTime > c.maxTime {
 			c.maxTime = inst.maxTime
@@ -36,14 +51,13 @@ func (c *algoStdev) Aggr() ([]*point.Point, error) {
 	var kvs point.KVs
 
 	// 计算标准差
-	stdev, err := SampleStdDev(c.data)
+	stdev, err := c.SampleStdDev()
 	if err != nil {
 		return nil, err
 	}
 
-	count := len(c.data)
 	kvs = kvs.Add(c.key, stdev).
-		Add(c.key+"_count", count)
+		Add(c.key+"_count", c.count)
 
 	for _, kv := range c.aggrTags {
 		// NOTE: if same-name tag key exist, apply the last one.
@@ -56,7 +70,9 @@ func (c *algoStdev) Aggr() ([]*point.Point, error) {
 }
 
 func (c *algoStdev) Reset() {
-	c.data = nil
+	c.count = 0
+	c.mean = 0
+	c.m2 = 0
 	c.maxTime = 0
 }
 
@@ -68,6 +84,32 @@ func (c *algoStdev) doHash(h1 uint64) {
 
 func (c *algoStdev) Base() *MetricBase {
 	return &c.MetricBase
+}
+
+func newAlgoStdev(mb MetricBase, maxTime int64, value float64) *algoStdev {
+	c := &algoStdev{
+		MetricBase: mb,
+		maxTime:    maxTime,
+	}
+	c.addValue(value)
+	return c
+}
+
+func (c *algoStdev) addValue(value float64) {
+	c.count++
+	delta := value - c.mean
+	c.mean += delta / float64(c.count)
+	delta2 := value - c.mean
+	c.m2 += delta * delta2
+}
+
+func (c *algoStdev) SampleStdDev() (float64, error) {
+	if c.count < 2 {
+		return 0, errors.New("the sample standard deviation requires at least two data points")
+	}
+
+	variance := c.m2 / float64(c.count-1)
+	return math.Sqrt(variance), nil
 }
 
 // SampleStdDev 计算样本标准差（除以 N-1）.

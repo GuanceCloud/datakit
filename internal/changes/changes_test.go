@@ -52,7 +52,7 @@ New Value: {{.NewValue}}`},
 	assert.NoError(t, err)
 
 	assert.Equal(t, "Deployment Changed", title)
-	t.Logf(message)
+	t.Log(message)
 }
 
 func TestRenderHostTemplate(t *testing.T) {

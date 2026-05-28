@@ -13,9 +13,14 @@ import (
 	"golang.org/x/net/proxy"
 )
 
-const defaultClientID = "sarama"
+const (
+	defaultClientID                 = "sarama"
+	defaultMetadataRefreshFrequency = 10 * time.Minute
+)
 
-var validID = regexp.MustCompile(`\A[A-Za-z0-9._-]+\z`)
+// validClientID specifies the permitted characters for a client.id when
+// connecting to Kafka versions before 1.0.0 (KIP-190)
+var validClientID = regexp.MustCompile(`\A[A-Za-z0-9._-]+\z`)
 
 // Config is used to pass multiple configuration options to Sarama's constructors.
 type Config struct {
@@ -93,7 +98,7 @@ type Config struct {
 			// SASL/PLAIN or SASL/SCRAM authentication
 			User string
 			// Password for SASL/PLAIN authentication
-			Password string
+			Password string // #nosec G117 -- public SASL config schema; callers set this credential explicitly.
 			// authz id used for SASL/SCRAM authentication
 			SCRAMAuthzID string
 			// SCRAMClientGeneratorFunc is a generator of a user provided implementation of a SCRAM
@@ -165,6 +170,14 @@ type Config struct {
 		// the broker may auto-create topics that we requested which do not already exist,
 		// if it is configured to do so (`auto.create.topics.enable` is true). Defaults to true.
 		AllowAutoTopicCreation bool
+
+		// SingleFlight controls whether to send a single metadata refresh request at a given time
+		// or whether to allow anyone to refresh the metadata concurrently.
+		// If this is set to true and the client needs to refresh the metadata from different goroutines,
+		// the requests will be batched together so that a single refresh is sent at a time.
+		// See https://github.com/IBM/sarama/issues/3224 for more details.
+		// SingleFlight defaults to true.
+		SingleFlight bool
 	}
 
 	// Producer is the namespace for configuration related to producing messages,
@@ -195,7 +208,8 @@ type Config struct {
 		// setting for the JVM producer.
 		Partitioner PartitionerConstructor
 		// If enabled, the producer will ensure that exactly one copy of each message is
-		// written.
+		// written, and it will enforce stricter ordering by requiring MaxOpenRequests=1
+		// and WaitForAll acks, which can reduce throughput.
 		Idempotent bool
 		// Transaction specify
 		Transaction struct {
@@ -267,6 +281,20 @@ type Config struct {
 			// more sophisticated backoff strategies. This takes precedence over
 			// `Backoff` if set.
 			BackoffFunc func(retries, maxRetries int) time.Duration
+			// The maximum length of the bridging buffer between `input` and `retries` channels
+			// in AsyncProducer#retryHandler.
+			// The limit is to prevent this buffer from overflowing or causing OOM.
+			// Defaults to 0 for unlimited.
+			// Any value between 0 and 4096 is pushed to 4096.
+			// A zero or negative value indicates unlimited.
+			MaxBufferLength int
+			// The maximum total byte size of messages in the bridging buffer between `input`
+			// and `retries` channels in AsyncProducer#retryHandler.
+			// This limit prevents the buffer from consuming excessive memory.
+			// Defaults to 0 for unlimited.
+			// Any value between 0 and 32 MB is pushed to 32 MB.
+			// A zero or negative value indicates unlimited.
+			MaxBufferBytes int64
 		}
 
 		// Interceptors to be called when the producer dispatcher reads the
@@ -303,6 +331,7 @@ type Config struct {
 			}
 			Rebalance struct {
 				// Strategy for allocating topic partitions to members.
+				//
 				// Deprecated: Strategy exists for historical compatibility
 				// and should not be used. Please use GroupStrategies.
 				Strategy BalanceStrategy
@@ -356,6 +385,12 @@ type Config struct {
 			// more sophisticated backoff strategies. This takes precedence over
 			// `Backoff` if set.
 			BackoffFunc func(retries int) time.Duration
+			// The maximum number of consecutive failed dispatch attempts before a
+			// partition consumer gives up, sends ErrConsumerRetriesExhausted on
+			// its Errors channel and closes itself. In a consumer group this
+			// ends the session and triggers a fresh rejoin. The counter resets
+			// on the next successful fetch. Defaults to 0 (unlimited).
+			Max int
 		}
 
 		// Fetch is the namespace for controlling how many bytes are retrieved by any
@@ -379,13 +414,21 @@ type Config struct {
 			// (no limit). Similar to the JVM's `fetch.message.max.bytes`. The
 			// global `sarama.MaxResponseSize` still applies.
 			Max int32
+			// MaxBytes is the maximum number of bytes the broker should return for
+			// a fetch request across all partitions. Defaults to 50 MiB, matching
+			// the JVM client's `fetch.max.bytes`. This is the value sent as
+			// FetchRequest.MaxBytes for v3+ (KIP-74); the broker may return up to
+			// one extra RecordBatch beyond it to guarantee progress when a single
+			// record exceeds the limit, so keep this comfortably below the global
+			// `sarama.MaxResponseSize` safety net. Only used for Kafka >= 0.10.1.
+			MaxBytes int32
 		}
 		// The maximum amount of time the broker will wait for Consumer.Fetch.Min
 		// bytes to become available before it returns fewer than that anyways. The
 		// default is 250ms, since 0 causes the consumer to spin when no events are
 		// available. 100-500ms is a reasonable range for most cases. Kafka only
 		// supports precision up to milliseconds; nanoseconds will be truncated.
-		// Equivalent to the JVM's `fetch.wait.max.ms`.
+		// Equivalent to the JVM's `fetch.max.wait.ms`.
 		MaxWaitTime time.Duration
 
 		// The maximum amount of time the consumer expects a message takes to
@@ -517,11 +560,12 @@ func NewConfig() *Config {
 
 	c.Metadata.Retry.Max = 3
 	c.Metadata.Retry.Backoff = 250 * time.Millisecond
-	c.Metadata.RefreshFrequency = 10 * time.Minute
+	c.Metadata.RefreshFrequency = defaultMetadataRefreshFrequency
 	c.Metadata.Full = true
 	c.Metadata.AllowAutoTopicCreation = true
+	c.Metadata.SingleFlight = true
 
-	c.Producer.MaxMessageBytes = 1000000
+	c.Producer.MaxMessageBytes = 1024 * 1024
 	c.Producer.RequiredAcks = WaitForLocal
 	c.Producer.Timeout = 10 * time.Second
 	c.Producer.Partitioner = NewHashPartitioner
@@ -536,6 +580,7 @@ func NewConfig() *Config {
 
 	c.Consumer.Fetch.Min = 1
 	c.Consumer.Fetch.Default = 1024 * 1024
+	c.Consumer.Fetch.MaxBytes = 50 * 1024 * 1024
 	c.Consumer.Retry.Backoff = 2 * time.Second
 	c.Consumer.MaxWaitTime = 500 * time.Millisecond
 	c.Consumer.MaxProcessingTime = 100 * time.Millisecond
@@ -630,7 +675,9 @@ func (c *Config) Validate() error {
 		if c.Net.SASL.Mechanism == "" {
 			c.Net.SASL.Mechanism = SASLTypePlaintext
 		}
-
+		if c.Net.SASL.Version == SASLHandshakeV0 && c.ApiVersionsRequest {
+			return ConfigurationError("ApiVersionsRequest must be disabled when SASL v0 is enabled")
+		}
 		switch c.Net.SASL.Mechanism {
 		case SASLTypePlaintext:
 			if c.Net.SASL.User == "" {
@@ -779,12 +826,16 @@ func (c *Config) Validate() error {
 		return ConfigurationError("Consumer.Fetch.Default must be > 0")
 	case c.Consumer.Fetch.Max < 0:
 		return ConfigurationError("Consumer.Fetch.Max must be >= 0")
+	case c.Consumer.Fetch.MaxBytes <= 0:
+		return ConfigurationError("Consumer.Fetch.MaxBytes must be > 0")
 	case c.Consumer.MaxWaitTime < 1*time.Millisecond:
 		return ConfigurationError("Consumer.MaxWaitTime must be >= 1ms")
 	case c.Consumer.MaxProcessingTime <= 0:
 		return ConfigurationError("Consumer.MaxProcessingTime must be > 0")
 	case c.Consumer.Retry.Backoff < 0:
 		return ConfigurationError("Consumer.Retry.Backoff must be >= 0")
+	case c.Consumer.Retry.Max < 0:
+		return ConfigurationError("Consumer.Retry.Max must be >= 0")
 	case c.Consumer.Offsets.AutoCommit.Interval <= 0:
 		return ConfigurationError("Consumer.Offsets.AutoCommit.Interval must be > 0")
 	case c.Consumer.Offsets.Initial != OffsetOldest && c.Consumer.Offsets.Initial != OffsetNewest:
@@ -846,8 +897,11 @@ func (c *Config) Validate() error {
 	switch {
 	case c.ChannelBufferSize < 0:
 		return ConfigurationError("ChannelBufferSize must be >= 0")
-	case !validID.MatchString(c.ClientID):
-		return ConfigurationError("ClientID is invalid")
+	}
+
+	// only validate clientID locally for Kafka versions before KIP-190 was implemented
+	if !c.Version.IsAtLeast(V1_0_0_0) && !validClientID.MatchString(c.ClientID) {
+		return ConfigurationError(fmt.Sprintf("ClientID value %q is not valid for Kafka versions before 1.0.0", c.ClientID))
 	}
 
 	return nil

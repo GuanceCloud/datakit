@@ -7,6 +7,7 @@
 package dk
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -18,6 +19,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/export/doc"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
@@ -77,6 +79,38 @@ var (
   # collect frequency
   interval = "30s"
 
+  # Upload Datakit runtime profiles when resource thresholds are matched. Disabled by default.
+  [inputs.dk.self_profiling]
+    enabled  = false # enable threshold-triggered self profiling
+    interval = "10s" # interval for checking process CPU and memory
+    cooldown = "5m" # minimum interval between two profile collections
+
+    # Profiles to collect on each trigger. CPU is sampled for duration/emergency_duration;
+    # other profile types are collected as snapshots.
+    enabled_types      = ["cpu", "heap", "goroutine"] # cpu, heap, goroutine
+    duration           = "30s"                        # CPU sample duration for normal threshold triggers
+    emergency_duration = "10s"                        # CPU sample duration for emergency threshold triggers
+
+    # Resource bases for percent thresholds. Same unit style as [resource_limit].
+    cpu_cores  = 2.0  # CPU cores used as the 100% base
+    mem_max_mb = 4096 # memory MiB used as the 100% base
+
+    # Normal thresholds use the average of the latest recent_points samples.
+    recent_points     = 5     # number of samples for average thresholds
+    cpu_usage_percent = 80    # average CPU percent threshold, based on cpu_cores; set 0 to disable this threshold
+    mem_usage_percent = 80    # average memory percent threshold, based on mem_max_mb; set 0 to disable this threshold
+    mem_usage_mb      = 3072  # average RSS memory threshold in MiB; set 0 to disable this threshold
+
+    # Emergency thresholds use the current sample.
+    mem_usage_percent_emergency = 95    # current memory percent threshold, based on mem_max_mb; set 0 to disable this threshold
+    mem_usage_mb_emergency      = 0     # current RSS memory threshold in MiB; set 0 to disable this threshold
+
+    # Local queue and upload settings. Profiles are queued locally before uploading to Dataway.
+    cache_path        = "dk_self_profile" # disk queue path; relative path is under DataKit cache dir
+    cache_capacity_mb = 1024              # disk queue capacity in MiB
+    send_timeout      = "60s"             # timeout for each upload attempt
+    send_retry_count  = 4                 # max upload attempts for each queued profile payload
+
 [inputs.dk.tags]
    # tag1 = "val-1"
    # tag2 = "val-2"
@@ -91,12 +125,16 @@ type Input struct {
 	Interval     time.Duration     `toml:"interval"`
 	Tags         map[string]string `toml:"tags"`
 
+	SelfProfiling *SelfProfilingConfig `toml:"self_profiling"`
+
 	Tagger datakit.GlobalTagger `toml:"-"`
 	feeder dkio.Feeder          `toml:"-"`
 
-	url     string
-	prom    *prom.Prom
-	semStop *cliutils.Sem
+	url          string
+	prom         *prom.Prom
+	selfProfiler *selfProfiler
+	selfProfileG *goroutine.Group
+	semStop      *cliutils.Sem
 }
 
 // Singleton make the input only 1 instance when multiple instance configured.
@@ -224,12 +262,50 @@ func (ipt *Input) setup(listen string) {
 	}
 }
 
+func (ipt *Input) startSelfProfiler() {
+	if ipt.selfProfiler == nil {
+		p, err := newSelfProfiler(ipt)
+		if err != nil {
+			l.Errorf("init datakit self profiling failed: %s", err)
+			return
+		}
+		ipt.selfProfiler = p
+	}
+
+	if ipt.selfProfiler == nil {
+		return
+	}
+
+	ipt.selfProfileG = goroutine.NewGroup(goroutine.Option{Name: "inputs_dk_self_profile"})
+	ipt.selfProfileG.Go(func(ctx context.Context) error {
+		ipt.selfProfiler.run(ctx)
+		return nil
+	})
+}
+
+func (ipt *Input) closeSelfProfiler() {
+	if ipt.selfProfileG != nil {
+		if err := ipt.selfProfileG.Wait(); err != nil {
+			l.Warnf("wait datakit self profiling goroutine group failed: %s", err)
+		}
+		ipt.selfProfileG = nil
+	}
+
+	if ipt.selfProfiler != nil {
+		ipt.selfProfiler.close()
+		ipt.selfProfiler = nil
+	}
+}
+
 func (ipt *Input) Run() {
 	l = logger.SLogger(source)
 
 	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)
 
 	ipt.setup(config.Cfg.HTTPAPI.Listen)
+
+	ipt.startSelfProfiler()
+	defer ipt.closeSelfProfiler()
 
 	// init prom
 	for {
@@ -313,6 +389,8 @@ func def() *Input {
 		semStop:  cliutils.NewSem(),
 		Tags:     map[string]string{},
 		Tagger:   datakit.DefaultGlobalTagger(),
+
+		SelfProfiling: defaultSelfProfilingConfig(),
 	}
 }
 

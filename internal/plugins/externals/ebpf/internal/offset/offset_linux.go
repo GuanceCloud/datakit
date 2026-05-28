@@ -758,6 +758,10 @@ func guessUDP4(serverAddrUDP string, conninfoUDP Conninfo, ebpfMapGuess *ebpf.Ma
 }
 
 func runTCPServer(ctx context.Context, network, address string) (uint16, error) {
+	if ctx == nil {
+		return 0, fmt.Errorf("nil context")
+	}
+
 	netListen, err := net.Listen(network, address+":0")
 	if err != nil {
 		return 0, err
@@ -766,13 +770,9 @@ func runTCPServer(ctx context.Context, network, address string) (uint16, error) 
 	addr := netListen.Addr().String()
 
 	l.Debug("start the tcp server to guess the offset: ", addr)
-	var serverPort int
-	if addr[:1] == "[" {
-		serverPort, err = strconv.Atoi(strings.Split(addr, "]")[1][1:])
-	} else {
-		serverPort, err = strconv.Atoi(strings.Split(addr, ":")[1])
-	}
+	serverPort, err := portFromAddr(netListen.Addr())
 	if err != nil {
+		_ = netListen.Close()
 		return 0, err
 	}
 
@@ -793,7 +793,9 @@ func runTCPServer(ctx context.Context, network, address string) (uint16, error) 
 			if tp, ok := conn.(*net.TCPConn); ok {
 				// send RST to avoid generating a lot of TIME_WAIT
 				if err := tp.SetLinger(0); err != nil {
-					return
+					_ = conn.Close()
+					l.Error(err)
+					continue
 				}
 				// wait for the client to send fin
 				_, _ = io.Copy(io.Discard, tp)
@@ -806,22 +808,21 @@ func runTCPServer(ctx context.Context, network, address string) (uint16, error) 
 		}
 	}()
 
-	return uint16(serverPort), nil
+	return serverPort, nil
 }
 
 func runUDPServer(ctx context.Context, network, addr string) (uint16, error) {
+	if ctx == nil {
+		return 0, fmt.Errorf("nil context")
+	}
+
 	netListen, err := net.ListenPacket(network, addr+":0")
 	if err != nil {
 		return 0, err
 	}
-	localAddr := netListen.LocalAddr().String()
-	var serverPort int
-	if localAddr[:1] == "[" {
-		serverPort, err = strconv.Atoi(strings.Split(localAddr, "]")[1][1:])
-	} else {
-		serverPort, err = strconv.Atoi(strings.Split(localAddr, ":")[1])
-	}
+	serverPort, err := portFromAddr(netListen.LocalAddr())
 	if err != nil {
+		_ = netListen.Close()
 		return 0, err
 	}
 	go func() {
@@ -845,7 +846,22 @@ func runUDPServer(ctx context.Context, network, addr string) (uint16, error) {
 		}
 	}()
 
-	return uint16(serverPort), nil
+	return serverPort, nil
+}
+
+func portFromAddr(addr net.Addr) (uint16, error) {
+	if addr == nil {
+		return 0, fmt.Errorf("nil local address")
+	}
+	_, portStr, err := net.SplitHostPort(addr.String())
+	if err != nil {
+		return 0, err
+	}
+	port, err := strconv.ParseUint(portStr, 10, 16)
+	if err != nil {
+		return 0, err
+	}
+	return uint16(port), nil
 }
 
 func DumpOffset(dir string, offset *OffsetGuessC) error {

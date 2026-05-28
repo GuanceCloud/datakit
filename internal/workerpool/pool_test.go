@@ -43,7 +43,7 @@ func TestWorkerPool(t *testing.T) {
 					}),
 				)
 				if err != nil {
-					t.Errorf(err.Error())
+					t.Error(err)
 					continue
 				}
 

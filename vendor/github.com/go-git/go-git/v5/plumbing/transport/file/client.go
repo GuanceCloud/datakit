@@ -7,11 +7,11 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/internal/common"
-	"github.com/go-git/go-git/v5/utils/ioutil"
 	"golang.org/x/sys/execabs"
 )
 
@@ -96,7 +96,23 @@ func (r *runner) Command(cmd string, ep *transport.Endpoint, auth transport.Auth
 		}
 	}
 
-	return &command{cmd: execabs.Command(cmd, ep.Path)}, nil
+	return &command{cmd: execabs.Command(cmd, adjustPathForWindows(ep.Path))}, nil
+}
+
+func isDriveLetter(c byte) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+}
+
+// On Windows, the path that results from a file: URL has a leading slash. This
+// has to be removed if there's a drive letter
+func adjustPathForWindows(p string) string {
+	if runtime.GOOS != "windows" {
+		return p
+	}
+	if len(p) >= 3 && p[0] == '/' && isDriveLetter(p[1]) && p[2] == ':' {
+		return p[1:]
+	}
+	return p
 }
 
 type command struct {
@@ -112,7 +128,7 @@ func (c *command) Start() error {
 func (c *command) StderrPipe() (io.Reader, error) {
 	// Pipe returned by Command.StderrPipe has a race with Read + Command.Wait.
 	// We use an io.Pipe and close it after the command finishes.
-	r, w := ioutil.Pipe()
+	r, w := io.Pipe()
 	c.cmd.Stderr = w
 	c.stderrCloser = r
 	return r, nil

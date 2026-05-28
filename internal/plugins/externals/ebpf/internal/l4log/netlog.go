@@ -5,9 +5,6 @@ package l4log
 
 import (
 	"context"
-	"fmt"
-	"net/url"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -16,7 +13,6 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/afpacket"
 	"github.com/google/gopacket/layers"
-	cruntime "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
 	"golang.org/x/net/bpf"
 )
 
@@ -30,7 +26,8 @@ var (
 	enableNetlog     = false
 	enabledNetMetric = false
 
-	enableL7HTTP = false
+	enableL7HTTP  = false
+	enableL7HTTP2 = false
 
 	fallbackCaptureSocketBlocks = defaultFallbackCaptureSocketBlocks
 	sharedCaptureSocketBlocks   = defaultSharedCaptureSocketBlocks
@@ -47,20 +44,35 @@ const (
 	k8sFallbackCaptureSocketBlocks = 4
 	k8sSharedCaptureSocketBlocks   = 64
 	k8sMaxFallbackSocketLimit      = 0
+	netlogMonitorStopTimeout       = 10 * time.Second
 )
 
-func ConfigFunc(netlog, netMetric bool, enabledL7Proto []string) {
+func ConfigFunc(netlog, netMetric bool, enabledL7Proto []string, l7LogHeaders ...[]string) {
 	log.Info("enable net log: ", netlog)
 	log.Info("enable net metric: ", netMetric)
 
 	enableNetlog = netlog
 	enabledNetMetric = netMetric
+	enableL7HTTP = false
+	enableL7HTTP2 = false
+	if len(l7LogHeaders) > 0 {
+		configureL7LogHeaders(l7LogHeaders[0])
+	} else {
+		configureL7LogHeaders(nil)
+	}
 
 	for _, v := range enabledL7Proto {
 		switch strings.ToLower(v) {
 		case "http":
 			enableL7HTTP = true
+			enableL7HTTP2 = true
 			log.Info("enable http protocol")
+		case "http1":
+			enableL7HTTP = true
+			log.Info("enable http1 protocol")
+		case "http2", "grpc":
+			enableL7HTTP2 = true
+			log.Infof("enable %s protocol", strings.ToLower(v))
 		default:
 		}
 	}
@@ -181,6 +193,7 @@ func newRawsocket(filter []bpf.RawInstruction, opts ...any) (*afpacket.TPacket, 
 
 	if len(filter) > 0 {
 		if err := h.SetBPF(filter); err != nil {
+			h.Close()
 			return nil, err
 		}
 	}
@@ -273,6 +286,9 @@ func DefaultEndpoint(rootPath string) []string {
 }
 
 func NetLog(ctx context.Context, opts ...CfgFn) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	initULID()
 
 	cfg := netlogCfg{}
@@ -289,77 +305,32 @@ func NetLog(ctx context.Context, opts ...CfgFn) {
 		log.Infof("netlog k8s fallback capture disabled by default; shared capture only")
 	}
 
-	dockerCtr, err := cruntime.NewDockerRuntime("unix:///var/run/docker.sock", "")
-	if err != nil {
-		log.Warnf("skip connect to docker: %s", err.Error())
-	}
+	ctrLi := newContainerRuntimes(cfg.ctrEndpoint)
 
-	var ctrLi []cruntime.ContainerRuntime
-
-	for _, ep := range cfg.ctrEndpoint {
-		if err := checkEndpoint(ep); err != nil {
-			log.Warnf("skip connect to %s: %s", ep, err.Error())
-			continue
-		}
-		var r cruntime.ContainerRuntime
-		var err error
-		if verifyErr := cruntime.VerifyDockerRuntime(ep); verifyErr == nil {
-			r, err = cruntime.NewDockerRuntime(ep, "")
-		} else {
-			r, err = cruntime.NewCRIRuntime(ep, "")
-		}
-		if err != nil {
-			log.Warnf("skip connect to %s: %s", ep, err.Error())
-			continue
-		} else {
-			log.Infof("connect to %s success", ep)
-		}
-		ctrLi = append(ctrLi, r)
-	}
-
-	if dockerCtr == nil && len(ctrLi) == 0 {
+	if len(ctrLi) == 0 {
 		log.Warnf("no container runtime")
 	}
 
 	m, err := newNetlogMonitor(cfg.gTags, cfg.blacklist, _fnList)
 	if err != nil {
 		log.Errorf("create netlog monitor failed: %s", err.Error())
+		closeContainerRuntimes(ctrLi)
 		return
 	}
 
 	rCtx, cFn := context.WithCancel(ctx)
-	go m.Run(rCtx, ctrLi)
+	monitorDone := make(chan struct{})
+	go func() {
+		defer close(monitorDone)
+		defer closeContainerRuntimes(ctrLi)
+		m.Run(rCtx, ctrLi)
+	}()
 	<-ctx.Done()
 
 	cFn()
-}
-
-// checkEndpoint check if endpoint is valid, copy from internal/plugins/inputs/container/impl.go
-
-func checkEndpoint(endpoint string) error {
-	u, err := url.Parse(endpoint)
-	if err != nil {
-		return fmt.Errorf("invalid endpoint %s, err: %w", endpoint, err)
+	select {
+	case <-monitorDone:
+	case <-time.After(netlogMonitorStopTimeout):
+		log.Warnf("netlog monitor did not stop within %s", netlogMonitorStopTimeout)
 	}
-
-	switch u.Scheme {
-	case "unix":
-		// nil
-	default:
-		return fmt.Errorf("using %s as endpoint is not supported protocol", endpoint)
-	}
-
-	info, err := os.Stat(u.Path)
-	if os.IsNotExist(err) {
-		return fmt.Errorf("endpoint %s does not exist, maybe it is not running", endpoint)
-	}
-	if err != nil {
-		return err
-	}
-
-	if info.IsDir() {
-		return fmt.Errorf("endpoint %s cannot be a directory", u.Path)
-	}
-
-	return nil
 }

@@ -6,12 +6,15 @@ package procwatch
 import (
 	"context"
 	"errors"
+	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 	"unsafe"
 
 	"github.com/josharian/intern"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 )
 
 type Catalog struct {
@@ -32,8 +35,9 @@ type Catalog struct {
 
 	kernelFilter func(int)
 
-	pendingMu sync.Mutex
-	pending   map[int]struct{}
+	pendingMu  sync.Mutex
+	pending    map[int]struct{}
+	asyncLimit int
 
 	retryMu sync.RWMutex
 	retry   map[int]resolveRetryState
@@ -73,6 +77,12 @@ const (
 	processInfoBaseCost         = int64(unsafe.Sizeof(ProcessInfo{})) //nolint:gosec
 	resolveRetryBaseDelay       = 250 * time.Millisecond
 	resolveRetryMaxDelay        = 5 * time.Second
+	asyncResolveLimitEnv        = "DK_EBPF_PROCWATCH_ASYNC_RESOLVE_LIMIT"
+	defaultAsyncResolveLimit    = 4096
+	maxAsyncResolveLimit        = 65536
+	asyncResolveBatchLimitEnv   = "DK_EBPF_PROCWATCH_ASYNC_RESOLVE_BATCH"
+	defaultAsyncResolveBatch    = 256
+	maxAsyncResolveBatch        = 4096
 )
 
 func (p *ProcessInfo) cacheCost() int64 {
@@ -131,10 +141,11 @@ func WithTraceAllProc(enabled bool) CatalogOption {
 
 func NewCatalog(ctx context.Context, opts ...CatalogOption) *Catalog {
 	catalog := &Catalog{
-		active:  newCache(processCatalogCacheMaxCost, processCatalogCacheCounters),
-		deleted: newCache(processCatalogCacheMaxCost, processCatalogCacheCounters),
-		pending: make(map[int]struct{}),
-		retry:   make(map[int]resolveRetryState),
+		active:     newCache(processCatalogCacheMaxCost, processCatalogCacheCounters),
+		deleted:    newCache(processCatalogCacheMaxCost, processCatalogCacheCounters),
+		pending:    make(map[int]struct{}),
+		asyncLimit: asyncResolveLimit(),
+		retry:      make(map[int]resolveRetryState),
 	}
 	for _, opt := range opts {
 		if opt != nil {
@@ -148,6 +159,38 @@ func NewCatalog(ctx context.Context, opts ...CatalogOption) *Catalog {
 	return catalog
 }
 
+func asyncResolveLimit() int {
+	raw := strings.TrimSpace(os.Getenv(asyncResolveLimitEnv))
+	if raw == "" {
+		return defaultAsyncResolveLimit
+	}
+	limit, err := strconv.Atoi(raw)
+	if err != nil || limit <= 0 {
+		log.Warnf("invalid %s=%q, use default %d", asyncResolveLimitEnv, raw, defaultAsyncResolveLimit)
+		return defaultAsyncResolveLimit
+	}
+	if limit > maxAsyncResolveLimit {
+		return maxAsyncResolveLimit
+	}
+	return limit
+}
+
+func asyncResolveBatchLimit() int {
+	raw := strings.TrimSpace(os.Getenv(asyncResolveBatchLimitEnv))
+	if raw == "" {
+		return defaultAsyncResolveBatch
+	}
+	limit, err := strconv.Atoi(raw)
+	if err != nil || limit <= 0 {
+		log.Warnf("invalid %s=%q, use default %d", asyncResolveBatchLimitEnv, raw, defaultAsyncResolveBatch)
+		return defaultAsyncResolveBatch
+	}
+	if limit > maxAsyncResolveBatch {
+		return maxAsyncResolveBatch
+	}
+	return limit
+}
+
 func (c *Catalog) SetKernelFilter(fn func(int)) {
 	c.kernelFilter = fn
 }
@@ -156,13 +199,18 @@ func (c *Catalog) resolveLoop(ctx context.Context) {
 	pids := make([]int, 0, 128)
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
+	batchLimit := asyncResolveBatchLimit()
 
 	for {
 		select {
 		case pid := <-c.asyncCh:
 			pids = append(pids, pid)
 		case <-ticker.C:
-			for _, pid := range pids {
+			limit := batchLimit
+			if limit > len(pids) {
+				limit = len(pids)
+			}
+			for _, pid := range pids[:limit] {
 				if _, _, err := c.Resolve(pid); err != nil {
 					if shouldLogResolveError(err) {
 						log.Errorf("resolve pid %d: %s", pid, err.Error())
@@ -172,7 +220,7 @@ func (c *Catalog) resolveLoop(ctx context.Context) {
 				}
 				c.clearPending(pid)
 			}
-			pids = pids[:0]
+			pids = append(pids[:0], pids[limit:]...)
 		case <-ctx.Done():
 			return
 		}
@@ -402,6 +450,7 @@ func (c *Catalog) ResolveLater(pid int) {
 	case c.asyncCh <- pid:
 	default:
 		c.clearPending(pid)
+		exporter.IncBPFEventDrop("procwatch", "pid_resolve", "queue_full")
 		log.Debugf("drop async pid resolve: queue full, pid=%d", pid)
 	}
 }
@@ -473,6 +522,13 @@ func (c *Catalog) markPending(pid int) bool {
 	c.pendingMu.Lock()
 	defer c.pendingMu.Unlock()
 	if _, ok := c.pending[pid]; ok {
+		return false
+	}
+	if c.asyncLimit <= 0 {
+		c.asyncLimit = defaultAsyncResolveLimit
+	}
+	if len(c.pending) >= c.asyncLimit {
+		exporter.IncBPFEventDrop("procwatch", "pid_resolve", "pending_limit")
 		return false
 	}
 	c.pending[pid] = struct{}{}

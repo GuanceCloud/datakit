@@ -8,6 +8,7 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -36,6 +37,8 @@ type NetTrace struct {
 	enabledProto   map[protodec.L7Protocol]struct{}
 	protoSet       *protodec.ProtoSet
 
+	connShardLimit int
+
 	ptsPrv []*point.Point
 	ptsCur []*point.Point
 
@@ -50,6 +53,13 @@ const (
 	connWatcherDefaultWorkers   = 4
 	connWatcherWorkersEnv       = "DK_EBPF_L7FLOW_ASYNC_WORKERS"
 	connWatcherQueueSizeEnv     = "DK_EBPF_L7FLOW_ASYNC_QUEUE_SIZE"
+	connMapLimitEnv             = "DK_EBPF_L7FLOW_CONN_MAP_LIMIT"
+	defaultConnMapLimit         = 65_536
+	maxConnMapLimit             = 1_000_000
+	defaultTracePointBufferSize = 20000
+	maxTracePointBufferSize     = 200000
+	tracePointBufferSizeEnv     = "DK_EBPF_L7FLOW_TRACE_POINT_BUFFER_SIZE"
+	maxConnWatcherQueueSize     = 8192
 )
 
 type connWatcherTask struct {
@@ -94,7 +104,53 @@ func connWatcherQueueSize() int {
 			size = v
 		}
 	}
+	if size > maxConnWatcherQueueSize {
+		size = maxConnWatcherQueueSize
+	}
 	return size
+}
+
+func tracePointBufferSize() int {
+	limit := defaultTracePointBufferSize
+	if raw := os.Getenv(tracePointBufferSizeEnv); raw != "" {
+		switch v, err := strconv.Atoi(raw); {
+		case err != nil:
+			log.Warnf("invalid %s=%q: %v", tracePointBufferSizeEnv, raw, err)
+		case v <= 0:
+			log.Warnf("invalid %s=%q: must be > 0", tracePointBufferSizeEnv, raw)
+		default:
+			limit = v
+		}
+	}
+	if limit > maxTracePointBufferSize {
+		limit = maxTracePointBufferSize
+	}
+	return limit
+}
+
+func connMapLimit() int {
+	limit := defaultConnMapLimit
+	if raw := strings.TrimSpace(os.Getenv(connMapLimitEnv)); raw != "" {
+		switch v, err := strconv.Atoi(raw); {
+		case err != nil:
+			log.Warnf("invalid %s=%q: %v", connMapLimitEnv, raw, err)
+		case v <= 0:
+			log.Warnf("invalid %s=%q: must be > 0", connMapLimitEnv, raw)
+		default:
+			limit = v
+		}
+	}
+	if limit > maxConnMapLimit {
+		limit = maxConnMapLimit
+	}
+	if limit < connMapShardCount {
+		limit = connMapShardCount
+	}
+	return limit
+}
+
+func connMapShardLimit() int {
+	return (connMapLimit() + connMapShardCount - 1) / connMapShardCount
 }
 
 type connMapShard struct {
@@ -145,6 +201,7 @@ func (netTrace *NetTrace) StreamHandle(tn int64, uniID CUniID, data *comm.Netwrk
 ) *streamHandleResult {
 	pipe, inClosedMap := netTrace.getOrCreatePipe(tn, uniID, data)
 	if pipe == nil {
+		putNetwrkData(data)
 		return nil
 	}
 
@@ -156,6 +213,10 @@ func (netTrace *NetTrace) StreamHandle(tn int64, uniID CUniID, data *comm.Netwrk
 }
 
 func (netTrace *NetTrace) getOrCreatePipe(tn int64, uniID CUniID, data *comm.NetwrkData) (*FlowPipe, bool) {
+	if data == nil {
+		return nil, false
+	}
+
 	shard := netTrace.shardFor(uniID)
 	shard.mu.Lock()
 	defer shard.mu.Unlock()
@@ -173,6 +234,14 @@ func (netTrace *NetTrace) getOrCreatePipe(tn int64, uniID CUniID, data *comm.Net
 		var ok bool
 		pipe, ok = shard.open[uniID]
 		if !ok {
+			if data.Fn == comm.FnSysClose {
+				return nil, false
+			}
+			limit := netTrace.shardStateLimit()
+			if len(shard.open)+len(shard.closed) >= limit {
+				exporter.IncBPFEventDrop("l7flow", "conn_map", "limit")
+				return nil, false
+			}
 			pipe = &FlowPipe{
 				Conn: data.Conn,
 				sort: dataQueue{prvDataPos: 0},
@@ -191,25 +260,36 @@ func (netTrace *NetTrace) getOrCreatePipe(tn int64, uniID CUniID, data *comm.Net
 	return pipe, inClosedMap
 }
 
+func (netTrace *NetTrace) shardStateLimit() int {
+	if netTrace == nil || netTrace.connShardLimit <= 0 {
+		return connMapShardLimit()
+	}
+	return netTrace.connShardLimit
+}
+
 func (netTrace *NetTrace) finalizePipeClose(uniID CUniID, pipe *FlowPipe, inClosedMap bool) {
 	if pipe == nil {
 		return
 	}
 	shard := netTrace.shardFor(uniID)
 	shard.mu.Lock()
-	defer shard.mu.Unlock()
 
+	removed := false
 	if inClosedMap {
 		if cur, ok := shard.closed[uniID]; ok && cur == pipe {
 			shard.delCount[1]++
 			delete(shard.closed, uniID)
+			removed = true
 		}
-		return
-	}
-
-	if cur, ok := shard.open[uniID]; ok && cur == pipe {
+	} else if cur, ok := shard.open[uniID]; ok && cur == pipe {
 		shard.delCount[0]++
 		delete(shard.open, uniID)
+		removed = true
+	}
+	shard.mu.Unlock()
+
+	if removed {
+		pipe.releaseQueuedData("conn_closed")
 	}
 }
 
@@ -225,16 +305,21 @@ func (netTrace *NetTrace) processPipe(tn int64, pipe *FlowPipe, data *comm.Netwr
 		pipe.connClosed = true
 	}
 
-	var dataLi []*comm.NetwrkData
-	if pipe.detecTimes < maxDetec || pipe.Decoder != nil {
-		dataLi = pipe.sort.Queue(data)
-	} else {
+	if pipe.detecTimes >= maxDetec && pipe.Decoder == nil {
 		if netTrace.protocolFilter != nil && !pipe.protocolFilterQueued {
-			pipe.protocolFilterQueued = netTrace.protocolFilter.tryFilter(data.SockPtr)
+			if data != nil {
+				pipe.protocolFilterQueued = netTrace.protocolFilter.tryFilter(data.SockPtr)
+			}
 		}
-		pipe.sort.li = nil
+		if n := pipe.releaseQueuedDataLocked(); n > 0 {
+			recordFlowPipeQueueRelease("protocol_giveup", n)
+		}
+		connClose := data != nil && data.Fn == comm.FnSysClose
+		putNetwrkData(data)
+		return nil, connClose
 	}
 
+	dataLi := pipe.sort.Queue(data)
 	defer func(li []*comm.NetwrkData) {
 		for _, d := range li {
 			putNetwrkData(d)
@@ -258,7 +343,10 @@ func (netTrace *NetTrace) processPipe(tn int64, pipe *FlowPipe, data *comm.Netwr
 			if proto, dec, ok := netTrace.protoSet.ProtoDetector(d.Payload, d.CaptureSize); ok {
 				pipe.Proto = proto
 				if _, ok := netTrace.enabledProto[pipe.Proto]; !ok {
-					pipe.detecTimes = maxDetec + 1
+					pipe.detecTimes = maxDetec
+					if n := pipe.releaseQueuedDataLocked(); n > 0 {
+						recordFlowPipeQueueRelease("protocol_disabled", n)
+					}
 					continue
 				} else {
 					pipe.Decoder = dec
@@ -269,6 +357,14 @@ func (netTrace *NetTrace) processPipe(tn int64, pipe *FlowPipe, data *comm.Netwr
 				}
 			} else {
 				pipe.detecTimes++
+				if pipe.detecTimes >= maxDetec {
+					if netTrace.protocolFilter != nil && !pipe.protocolFilterQueued {
+						pipe.protocolFilterQueued = netTrace.protocolFilter.tryFilter(d.SockPtr)
+					}
+					if n := pipe.releaseQueuedDataLocked(); n > 0 {
+						recordFlowPipeQueueRelease("protocol_giveup", n)
+					}
+				}
 				continue
 			}
 		}
@@ -326,6 +422,34 @@ type FlowPipe struct {
 	protocolFilterQueued bool
 }
 
+func (pipe *FlowPipe) releaseQueuedData(reason string) {
+	if pipe == nil {
+		return
+	}
+	pipe.mu.Lock()
+	n := pipe.releaseQueuedDataLocked()
+	pipe.mu.Unlock()
+	if n > 0 {
+		recordFlowPipeQueueRelease(reason, n)
+	}
+}
+
+func (pipe *FlowPipe) releaseQueuedDataLocked() int {
+	if pipe == nil || len(pipe.sort.li) == 0 {
+		return 0
+	}
+	n := len(pipe.sort.li)
+	for _, data := range pipe.sort.li {
+		putNetwrkData(data)
+	}
+	pipe.sort.li = nil
+	return n
+}
+
+func recordFlowPipeQueueRelease(reason string, count int) {
+	exporter.AddCacheEvictions("l7flow", "flowpipe_queue", reason, count)
+}
+
 func cloneFlowPipeMap(src map[CUniID]*FlowPipe) map[CUniID]*FlowPipe {
 	dst := make(map[CUniID]*FlowPipe, len(src))
 	for k, v := range src {
@@ -343,12 +467,14 @@ func (netTrace *NetTrace) sweepExpiredConnMaps(groupTime int64) (int, int) {
 	closedTotal := 0
 	for i := range netTrace.connShards {
 		shard := &netTrace.connShards[i]
+		var expired []*FlowPipe
 		shard.mu.Lock()
 		shard.ensureMaps()
 		for uniID, pipe := range shard.open {
 			if groupTime-atomic.LoadInt64(&pipe.lastTime) > int64(time.Minute)*3 {
 				delete(shard.open, uniID)
 				shard.delCount[0]++
+				expired = append(expired, pipe)
 			}
 		}
 
@@ -356,6 +482,7 @@ func (netTrace *NetTrace) sweepExpiredConnMaps(groupTime int64) (int, int) {
 			if groupTime-atomic.LoadInt64(&pipe.lastTime) > int64(time.Minute) {
 				delete(shard.closed, uniID)
 				shard.delCount[1]++
+				expired = append(expired, pipe)
 			}
 		}
 
@@ -363,6 +490,10 @@ func (netTrace *NetTrace) sweepExpiredConnMaps(groupTime int64) (int, int) {
 		openTotal += len(shard.open)
 		closedTotal += len(shard.closed)
 		shard.mu.Unlock()
+
+		for _, pipe := range expired {
+			pipe.releaseQueuedData("expired")
+		}
 	}
 	return openTotal, closedTotal
 }
@@ -375,11 +506,19 @@ type ConnWatcher struct {
 	k8sInfo     *cli.K8sInfo
 	enableTrace bool
 
-	eventQueues []chan connWatcherTask
-	ptsMu       sync.Mutex
+	eventQueues     []chan connWatcherTask
+	stopCh          <-chan struct{}
+	tracePointLimit int
+	ptsMu           sync.Mutex
 }
 
 func (watcher *ConnWatcher) handle(tn int64, uniID CUniID, netdata *comm.NetwrkData) {
+	if watcher.stopped() {
+		putNetwrkData(netdata)
+		exporter.IncBPFEventDrop("l7flow", "async_event", "stopped")
+		return
+	}
+
 	task := connWatcherTask{
 		tn:      tn,
 		uniID:   uniID,
@@ -388,18 +527,51 @@ func (watcher *ConnWatcher) handle(tn int64, uniID CUniID, netdata *comm.NetwrkD
 	if len(watcher.eventQueues) > 0 {
 		q := watcher.eventQueues[connMapShardIndex(uniID)%len(watcher.eventQueues)]
 		waitStart := time.Now()
-		q <- task
-		exporter.ObserveAsyncQueueWait("l7flow", time.Since(waitStart))
-		watcher.observeAsyncQueueDepth()
+		select {
+		case q <- task:
+			exporter.ObserveAsyncQueueWait("l7flow", time.Since(waitStart))
+			watcher.observeAsyncQueueDepth()
+		case <-watcher.stopCh:
+			putNetwrkData(netdata)
+			exporter.IncBPFEventDrop("l7flow", "async_event", "stopped")
+		default:
+			putNetwrkData(netdata)
+			exporter.IncBPFEventDrop("l7flow", "async_event", "queue_full")
+			watcher.observeAsyncQueueDepth()
+		}
 		return
 	}
 
 	watcher.processTask(task)
 }
 
+func (watcher *ConnWatcher) stopped() bool {
+	if watcher == nil || watcher.stopCh == nil {
+		return false
+	}
+	select {
+	case <-watcher.stopCh:
+		return true
+	default:
+		return false
+	}
+}
+
 func (watcher *ConnWatcher) processTask(task connWatcherTask) {
 	start := time.Now()
-	defer exporter.ObserveAsyncProcess("l7flow", time.Since(start))
+	defer func() {
+		if r := recover(); r != nil {
+			log.Errorf("l7flow async event panic recovered: %v", r)
+			exporter.IncBPFEventDrop("l7flow", "async_event", "panic")
+		}
+		exporter.ObserveAsyncProcess("l7flow", time.Since(start))
+	}()
+
+	if watcher == nil || watcher.trace == nil {
+		putNetwrkData(task.netdata)
+		exporter.IncBPFEventDrop("l7flow", "async_event", "invalid_watcher")
+		return
+	}
 
 	result := watcher.trace.StreamHandle(task.tn, task.uniID, task.netdata)
 	if result == nil {
@@ -407,12 +579,15 @@ func (watcher *ConnWatcher) processTask(task connWatcherTask) {
 	}
 
 	if p := watcher.aggPool[result.proto]; p != nil {
-		for i := 0; i < len(result.protoData); i++ {
-			// Maybe the connection was closed before the response was sent.
-			if result.protoData[i].Cost <= 0 {
+		for _, protoData := range result.protoData {
+			if protoData == nil {
 				continue
 			}
-			p.Obs(&result.conn, result.protoData[i])
+			// Maybe the connection was closed before the response was sent.
+			if protoData.Cost <= 0 {
+				continue
+			}
+			p.Obs(&result.conn, protoData)
 		}
 	}
 
@@ -440,10 +615,25 @@ func (watcher *ConnWatcher) startEventWorkers(ctx context.Context) {
 					watcher.processTask(task)
 					watcher.observeAsyncQueueDepth()
 				case <-ctx.Done():
+					drainConnWatcherQueue(queue)
 					return
 				}
 			}
 		}(q)
+	}
+}
+
+func drainConnWatcherQueue(queue <-chan connWatcherTask) {
+	for {
+		select {
+		case task, ok := <-queue:
+			if !ok {
+				return
+			}
+			putNetwrkData(task.netdata)
+		default:
+			return
+		}
 	}
 }
 
@@ -477,6 +667,19 @@ func (watcher *ConnWatcher) appendTracePoints(pts []*point.Point) {
 	defer watcher.ptsMu.Unlock()
 
 	if watcher.trace != nil {
+		limit := watcher.tracePointLimit
+		if limit <= 0 {
+			limit = defaultTracePointBufferSize
+		}
+		available := limit - len(watcher.trace.ptsCur)
+		if available <= 0 {
+			exporter.AddSenderDropped("trace_buffer_full", len(pts))
+			return
+		}
+		if len(pts) > available {
+			exporter.AddSenderDropped("trace_buffer_full", len(pts)-available)
+			pts = pts[:available]
+		}
 		watcher.trace.ptsCur = append(watcher.trace.ptsCur, pts...)
 	}
 }
@@ -540,8 +743,11 @@ func (watcher *ConnWatcher) start(ctx context.Context) {
 }
 
 func setInnerID(pt *point.Point, threadInnerID *comm.ThreadTrace) {
-	d := pt.Get(spanid.Direction).(string)
-	if d != comm.DirectionOutgoing {
+	if pt == nil || threadInnerID == nil {
+		return
+	}
+	direction, _ := pt.Get(spanid.Direction).(string)
+	if direction != comm.DirectionOutgoing {
 		return
 	}
 
@@ -579,11 +785,15 @@ func newConnWatcher(ctx context.Context, cfg *connWatcherConfig) *ConnWatcher {
 			enabledProto:   cfg.protos,
 			allowESPan:     cfg.enableTrace,
 			protoSet:       cfg.protoSet,
+			connShardLimit: connMapShardLimit(),
 		},
 		aggPool:     cfg.aggPool,
 		tags:        cfg.tags,
 		k8sInfo:     cfg.k8sNetInfo,
 		enableTrace: cfg.enableTrace,
+		stopCh:      ctx.Done(),
+
+		tracePointLimit: tracePointBufferSize(),
 	}
 	p.startEventWorkers(ctx)
 	go p.start(ctx)
@@ -615,8 +825,9 @@ func (tracer *Tracer) populateProcessInfo(conn *comm.ConnectionInfo) bool {
 		return true
 	}
 
-	info, ok := tracer.catalog.LookupOrResolve(int(conn.Pid))
+	info, ok := tracer.catalog.Lookup(int(conn.Pid))
 	if !ok || info == nil {
+		tracer.catalog.ResolveLater(int(conn.Pid))
 		return true
 	}
 	if !info.Collectable() {
@@ -629,7 +840,15 @@ func (tracer *Tracer) populateProcessInfo(conn *comm.ConnectionInfo) bool {
 }
 
 func (tracer *Tracer) Start(ctx context.Context, interval time.Duration) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if interval <= 0 {
+		interval = time.Minute
+	}
+
 	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
@@ -640,7 +859,6 @@ func (tracer *Tracer) Start(ctx context.Context, interval time.Duration) {
 				}
 				flushStart := time.Now()
 				pts := p.Export(tracer.tags, tracer.k8sInfo)
-				p.Cleanup()
 				exporter.ObserveAggEntries(component, 0)
 				if len(pts) > 0 {
 					if err := feed(inputHTTPFlow, point.Network, pts); err != nil {
@@ -699,6 +917,11 @@ func (tracer *Tracer) PerfEventHandle(cpu int, data []byte,
 		pos += payloadLen
 
 		netdata := getNetwrkData(payloadLen)
+		if netdata == nil {
+			log.Debugf("drop oversized l7 payload: bytes=%d", payloadLen)
+			exporter.IncBPFEventDrop("l7flow", "perf_event", "oversized_payload")
+			continue
+		}
 		readMeta(&eventHdr, &netdata.Conn)
 		if payloadLen > 0 {
 			v := unsafe.Slice((*byte)(unsafe.Pointer(&data[curPayloadPos])), payloadLen) //nolint:gosec
@@ -708,10 +931,12 @@ func (tracer *Tracer) PerfEventHandle(cpu int, data []byte,
 		// pos must be calculated before the filter is run
 		pid := int(netdata.Conn.Pid)
 		if pid == tracer.selfPid {
+			putNetwrkData(netdata)
 			continue
 		}
 
 		if !tracer.populateProcessInfo(&netdata.Conn) {
+			putNetwrkData(netdata)
 			continue
 		}
 
@@ -754,6 +979,9 @@ type protoKernelFilter struct {
 }
 
 func (f *protoKernelFilter) tryFilter(key uint64) bool {
+	if f == nil || f.keySk == nil {
+		return false
+	}
 	select {
 	case f.keySk <- key:
 		return true
@@ -763,7 +991,24 @@ func (f *protoKernelFilter) tryFilter(key uint64) bool {
 }
 
 func (f *protoKernelFilter) setFn(fn func(uint64)) {
-	f.fn <- fn
+	if f == nil || f.fn == nil {
+		return
+	}
+	select {
+	case f.fn <- fn:
+		return
+	default:
+	}
+
+	select {
+	case <-f.fn:
+	default:
+	}
+
+	select {
+	case f.fn <- fn:
+	default:
+	}
 }
 
 func (f *protoKernelFilter) run(ctx context.Context) {
@@ -791,18 +1036,12 @@ func newTracer(ctx context.Context, cfg *apiTracerConfig) *Tracer {
 		return nil
 	}
 
-	var protos []protodec.L7Protocol
-	for k := range cfg.protos {
-		protos = append(protos, k)
-	}
-	if len(protos) == 0 {
-		protos = append(protos, protodec.ProtoHTTP)
-	}
+	protos := enabledProtoList(cfg.protos)
 	pset := protodec.SubProtoSet(protos...)
 	aggP := pset.NewProtoAggregators()
 
 	protoFilter := &protoKernelFilter{
-		fn:    make(chan func(uint64)),
+		fn:    make(chan func(uint64), 1),
 		keySk: make(chan uint64, 256),
 	}
 	go protoFilter.run(ctx)
@@ -823,9 +1062,31 @@ func newTracer(ctx context.Context, cfg *apiTracerConfig) *Tracer {
 	}
 }
 
+func enabledProtoList(enabled map[protodec.L7Protocol]struct{}) []protodec.L7Protocol {
+	if len(enabled) == 0 {
+		return []protodec.L7Protocol{protodec.ProtoHTTP}
+	}
+
+	protos := make([]protodec.L7Protocol, 0, len(enabled))
+	for _, proto := range protodec.AllProtos {
+		if _, ok := enabled[proto]; ok {
+			protos = append(protos, proto)
+		}
+	}
+	return protos
+}
+
 func genPts(data []*protodec.ProtoData, conn *comm.ConnectionInfo) []*point.Point {
+	if conn == nil {
+		return nil
+	}
+
 	var pts []*point.Point
 	for _, v := range data {
+		if v == nil {
+			continue
+		}
+
 		// comm trace fields
 		var spanType string
 		switch v.Direction { //nolint:exhaustive
@@ -846,9 +1107,9 @@ func genPts(data []*protodec.ProtoData, conn *comm.ConnectionInfo) []*point.Poin
 		if v.Direction == comm.DIn {
 			v.KVs = appendTraceKV(v.KVs, spanid.ThrTraceID, v.Meta.InnerID)
 		}
-		v.KVs = appendTraceKV(v.KVs, comm.FieldKernelThread, v.Meta.Threads[0][0])
+		v.KVs = appendTraceKV(v.KVs, comm.FieldKernelThread, int64(v.Meta.Threads[0][0]))
 		if v.Meta.Threads[0][1] != 0 {
-			v.KVs = appendTraceKV(v.KVs, comm.FieldUserThread, v.Meta.Threads[0][1])
+			v.KVs = appendTraceKV(v.KVs, comm.FieldUserThread, int64(v.Meta.Threads[0][1]))
 		}
 		v.KVs = appendTraceKV(v.KVs, comm.FieldKernelTime, int64(v.KTime))
 
@@ -886,7 +1147,7 @@ func genPts(data []*protodec.ProtoData, conn *comm.ConnectionInfo) []*point.Poin
 		} else {
 			v.KVs = appendTraceKV(v.KVs, "service", conn.ServiceName)
 		}
-		v.KVs = appendTraceKV(v.KVs, comm.FieldPid, strconv.Itoa(int(conn.Pid)))
+		v.KVs = appendTraceKV(v.KVs, comm.FieldPid, int64(conn.Pid))
 
 		// conn info
 		isV6 := !netflow.ConnAddrIsIPv4(conn.Meta)

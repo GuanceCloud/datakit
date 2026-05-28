@@ -63,6 +63,14 @@ curl -X POST -H "Content-Type: application/pbjson; proto=com.guance.Point" -d '<
 - 说明：测试模式，只是将 Point POST 给 DataKit，实际上并不上传到<<<custom_key.brand_name>>>
 - 示例：`curl -X POST -d '<YOUR-DATA>' "http://localhost:9529/v1/write/metric&dry=true"`
 
+**`disable_filter`**
+
+- 类型：bool
+- 是否必选：N
+- 默认值：false
+- 说明：是否跳过 DataKit filter 规则处理，仅当参数值解析为 `true` 时生效
+- 示例：`curl -X POST -d '<YOUR-DATA>' "http://localhost:9529/v1/write/metric&disable_filter=true"`
+
 **`echo`** [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)
 
 - 类型：enum
@@ -143,7 +151,7 @@ curl -X POST -H "Content-Type: application/pbjson; proto=com.guance.Point" -d '<
         - `echo_line_proto` : 用 `echo` 参数替代
         - `echo_json`       : 用 `echo` 参数替代
 
-    - 虽然多个参数都是 bool 类型，如果不需要开启对应的 option，不要传入 `false` 值，API 只会判断对应参数上是否有值，而不管其值内容。
+    - 除 `disable_filter` 外，虽然多个参数都是 bool 类型，如果不需要开启对应的 option，不要传入 `false` 值，API 只会判断对应参数上是否有值，而不管其值内容。
     - 时间精度（`precision`）自动识别（[:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)）指根据传入的时间戳数值，猜测其可能的时间精度，数学意义上它不能保证正确，但是日常使用是足够的。比如对于时间戳 1716544492，其时间戳判断为秒，对 1716544492000 会判断为毫秒，等等。
     - 如果数据点中不带时间，则以 DataKit 所在机器的时间戳为准。
     - 虽然目前协议上支持二进制格式以及 any 格式两种类型，但目前中心尚未支持这两种数据的写入。**特此注明**。
@@ -658,6 +666,60 @@ curl "http://localhost:9529/v1/ntp"
   "timestamp_sec": 1747100923
 }
 ```
+
+### `GET /v1/datakit/pull` {#api-datakit-pull}
+
+获取 DataKit 从上游拉取并缓存在本地的 `logging` 和 `rum` 分类 filter 规则信息。
+
+该接口需要开启 [RUM 采集器](../integrations/rum.md)。开启后该接口会自动加入 [API 访问白名单](datakit-conf.md#public-apis)，无需手动配置 `public_apis`。该接口请求体为空，DataKit 模式下不需要携带 Dataway token。
+
+请求参数说明：
+
+| 参数      | 描述             | 类型   | 是否必填 |
+| ---:      | ---              | ---    | ---      |
+| `filters` | 拉取 filter 信息 | `bool` | 是，固定为 `true` |
+
+请求示例：
+
+``` shell
+curl "http://localhost:9529/v1/datakit/pull?filters=true"
+```
+
+返回示例：
+
+``` json
+{
+  "filters": {
+    "rum": [
+      "{ source = 'resource' and app_id = 'appid_xxx' }"
+    ],
+    "logging": [
+      "{ source = 'browser_log' and message match ['timeout.*'] }"
+    ]
+  },
+  "pull_interval": "30m"
+}
+```
+
+无规则时返回示例：
+
+``` json
+{
+  "filters": {
+    "rum": [],
+    "logging": []
+  },
+  "pull_interval": "30m"
+}
+```
+
+响应字段说明：
+
+| 字段                 | 描述                                      | 类型              |
+| ---:                 | ---                                       | ---               |
+| `filters`            | 按 category 分组的 `logging` 和 `rum` filter 规则列表 | `object`          |
+| `filters.<category>` | 对应 category 的 filter 规则列表，目前仅包含 `logging` 和 `rum` | `array of string` |
+| `pull_interval`      | 建议下次拉取间隔，如 `30m`、`1m20s`、`1h` | `string`          |
 
 ### `PUT /v1/sourcemap` {#api-sourcemap-upload}
 

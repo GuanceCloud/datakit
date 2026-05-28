@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"sync"
 	"time"
@@ -213,8 +214,11 @@ func (c *consumerGroup) Consume(ctx context.Context, topics []string, handler Co
 		return err
 	}
 
-	// Wait for session exit signal
-	<-sess.ctx.Done()
+	// Wait for session exit signal or Close() call
+	select {
+	case <-c.closed:
+	case <-sess.ctx.Done():
+	}
 
 	// Gracefully release session claims
 	return sess.release(true)
@@ -326,7 +330,7 @@ func (c *consumerGroup) newSession(ctx context.Context, topics []string, handler
 		// response and send another join request with that id to actually join the
 		// group
 		c.memberID = join.MemberId
-		return c.retryNewSession(ctx, topics, handler, retries+1 /*keep retry time*/, false)
+		return c.newSession(ctx, topics, handler, retries)
 	case ErrFencedInstancedId:
 		if c.groupInstanceId != nil {
 			Logger.Printf("JoinGroup failed: group instance id %s has been fenced\n", *c.groupInstanceId)
@@ -469,26 +473,53 @@ func (c *consumerGroup) joinGroupRequest(coordinator *Broker, topics []string) (
 	if c.config.Version.IsAtLeast(V2_3_0_0) {
 		req.Version = 5
 		req.GroupInstanceId = c.groupInstanceId
+		if c.config.Version.IsAtLeast(V2_5_0_0) {
+			req.Version = 7
+		} else if c.config.Version.IsAtLeast(V2_4_0_0) {
+			req.Version = 6
+		}
 	}
 
-	meta := &ConsumerGroupMemberMetadata{
-		Topics:   topics,
-		UserData: c.userData,
-	}
-	var strategy BalanceStrategy
-	if strategy = c.config.Consumer.Group.Rebalance.Strategy; strategy != nil {
-		if err := req.AddGroupProtocolMetadata(strategy.Name(), meta); err != nil {
+	if strategy := c.config.Consumer.Group.Rebalance.Strategy; strategy != nil {
+		if err := req.AddGroupProtocolMetadata(strategy.Name(), c.subscriptionMetadata(strategy, topics)); err != nil {
 			return nil, err
 		}
 	} else {
-		for _, strategy = range c.config.Consumer.Group.Rebalance.GroupStrategies {
-			if err := req.AddGroupProtocolMetadata(strategy.Name(), meta); err != nil {
+		for _, strategy := range c.config.Consumer.Group.Rebalance.GroupStrategies {
+			if err := req.AddGroupProtocolMetadata(strategy.Name(), c.subscriptionMetadata(strategy, topics)); err != nil {
 				return nil, err
 			}
 		}
 	}
 
 	return coordinator.JoinGroup(req)
+}
+
+// subscriptionMetadata builds the ConsumerGroupMemberMetadata for a single
+// strategy in a JoinGroup request. If the strategy implements
+// SubscriptionUserDataBalanceStrategy, its SubscriptionUserData hook is invoked
+// to obtain per-cycle UserData; on error the statically configured
+// Consumer.Group.Member.UserData is used and the error is logged.
+func (c *consumerGroup) subscriptionMetadata(strategy BalanceStrategy, topics []string) *ConsumerGroupMemberMetadata {
+	if p, ok := strategy.(SubscriptionUserDataBalanceStrategy); ok {
+		// Hand the provider a throwaway copy so it cannot mutate the slice
+		// we later attach to the JoinGroup request.
+		userData, err := p.SubscriptionUserData(slices.Clone(topics))
+		if err == nil {
+			return &ConsumerGroupMemberMetadata{
+				Topics:   topics,
+				UserData: userData,
+			}
+		}
+		Logger.Printf(
+			"consumergroup/%s: falling back to static user data for strategy %q due to %v\n",
+			c.groupID, strategy.Name(), err,
+		)
+	}
+	return &ConsumerGroupMemberMetadata{
+		Topics:   topics,
+		UserData: c.userData,
+	}
 }
 
 // findStrategy returns the BalanceStrategy with the specified protocolName
@@ -526,6 +557,9 @@ func (c *consumerGroup) syncGroupRequest(
 	if c.config.Version.IsAtLeast(V2_3_0_0) {
 		req.Version = 3
 		req.GroupInstanceId = c.groupInstanceId
+		if c.config.Version.IsAtLeast(V2_4_0_0) {
+			req.Version = 4
+		}
 	}
 
 	for memberID, topics := range plan {
@@ -568,6 +602,10 @@ func (c *consumerGroup) heartbeatRequest(coordinator *Broker, memberID string, g
 	if c.config.Version.IsAtLeast(V2_3_0_0) {
 		req.Version = 3
 		req.GroupInstanceId = c.groupInstanceId
+		// Version 4 is the first flexible version
+		if c.config.Version.IsAtLeast(V2_4_0_0) {
+			req.Version = 4
+		}
 	}
 
 	return coordinator.Heartbeat(req)
@@ -634,7 +672,7 @@ func (c *consumerGroup) leave() error {
 		req.Version = 2
 	}
 	if c.config.Version.IsAtLeast(V2_4_0_0) {
-		req.Version = 3
+		req.Version = 4
 		req.Members = append(req.Members, MemberIdentity{
 			MemberId: c.memberID,
 		})
@@ -858,17 +896,31 @@ func newConsumerGroupSession(ctx context.Context, parent *consumerGroup, claims 
 		return nil, err
 	}
 
-	// start consuming
+	// start consuming each topic partition in its own goroutine
 	for topic, partitions := range claims {
 		for _, partition := range partitions {
-			sess.waitGroup.Add(1)
-
+			sess.waitGroup.Add(1) // increment wait group before spawning goroutine
 			go func(topic string, partition int32) {
 				defer sess.waitGroup.Done()
-
-				// cancel the as session as soon as the first
-				// goroutine exits
+				// cancel the group session as soon as any of the consume calls return
 				defer sess.cancel()
+
+				// if partition not currently readable, wait for it to become readable
+				if sess.parent.client.PartitionNotReadable(topic, partition) {
+					timer := time.NewTimer(5 * time.Second)
+					defer timer.Stop()
+
+					for sess.parent.client.PartitionNotReadable(topic, partition) {
+						select {
+						case <-ctx.Done():
+							return
+						case <-parent.closed:
+							return
+						case <-timer.C:
+							timer.Reset(5 * time.Second)
+						}
+					}
+				}
 
 				// consume a single topic/partition, blocking
 				sess.consume(topic, partition)
@@ -906,6 +958,50 @@ func (s *consumerGroupSession) Context() context.Context {
 	return s.ctx
 }
 
+// newClaimWithRetry calls newConsumerGroupClaim, retrying transient errors so
+// that brief leader/metadata desync around a rebalance doesn't leave a
+// partition permanently unclaimed for the lifetime of this session
+func (s *consumerGroupSession) newClaimWithRetry(topic string, partition int32, offset int64) (*consumerGroupClaim, error) {
+	retries := s.parent.config.Metadata.Retry.Max
+	for {
+		claim, err := newConsumerGroupClaim(s, topic, partition, offset)
+		if err == nil {
+			return claim, nil
+		}
+		if retries <= 0 || !isRetriableClaimError(err) {
+			return nil, err
+		}
+		retries--
+
+		backoff := computeMetadataBackoff(s.parent.config, retries)
+		Logger.Printf(
+			"consumer-group/claim %s/%d retrying after %dms... (%d attempts remaining): %v\n",
+			topic, partition, backoff/time.Millisecond, retries, err)
+
+		select {
+		case <-s.ctx.Done():
+			return nil, err
+		case <-s.parent.closed:
+			return nil, err
+		case <-time.After(backoff):
+		}
+
+		// refresh leader/broker info before retrying
+		_ = s.parent.client.RefreshMetadata(topic)
+	}
+}
+
+// isRetriableClaimError reports whether err from newConsumerGroupClaim is
+// a transient condition worth retrying after a metadata refresh
+func isRetriableClaimError(err error) bool {
+	return errors.Is(err, ErrNotConnected) ||
+		errors.Is(err, ErrLeaderNotAvailable) ||
+		errors.Is(err, ErrNotLeaderForPartition) ||
+		errors.Is(err, ErrFencedLeaderEpoch) ||
+		errors.Is(err, ErrUnknownLeaderEpoch) ||
+		errors.Is(err, ErrReplicaNotAvailable)
+}
+
 func (s *consumerGroupSession) consume(topic string, partition int32) {
 	// quick exit if rebalance is due
 	select {
@@ -923,18 +1019,11 @@ func (s *consumerGroupSession) consume(topic string, partition int32) {
 	}
 
 	// create new claim
-	claim, err := newConsumerGroupClaim(s, topic, partition, offset)
+	claim, err := s.newClaimWithRetry(topic, partition, offset)
 	if err != nil {
 		s.parent.handleError(err, topic, partition)
 		return
 	}
-
-	// handle errors
-	go func() {
-		for err := range claim.Errors() {
-			s.parent.handleError(err, topic, partition)
-		}
-	}()
 
 	// trigger close when session is done
 	go func() {
@@ -1079,7 +1168,9 @@ type ConsumerGroupHandler interface {
 
 	// ConsumeClaim must start a consumer loop of ConsumerGroupClaim's Messages().
 	// Once the Messages() channel is closed, the Handler must finish its processing
-	// loop and exit.
+	// loop and exit. Handlers should also return when ConsumerGroupSession.Context()
+	// is done; Messages() alone can block while the partition consumer is retrying
+	// (e.g. after a broker disconnect). See examples/consumergroup.
 	ConsumeClaim(ConsumerGroupSession, ConsumerGroupClaim) error
 }
 

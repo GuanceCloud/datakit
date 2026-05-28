@@ -137,6 +137,69 @@ func Test_processM_triggerDecisionEmergency(t *testing.T) {
 	assert.Contains(t, tags, "mem_perc_emergency:96.00")
 }
 
+func Test_processM_triggerDecisionCooldownByTriggerType(t *testing.T) {
+	t.Run("normal threshold keeps one minute cooldown", func(t *testing.T) {
+		pm := &processM{
+			CPUHistory:        list.New(),
+			MemHistory:        list.New(),
+			MemPercentHistory: list.New(),
+			MaxSize:           10,
+			configProcess: &Process{
+				CPUUsagePercent: 80,
+			},
+			lastProfileTime: time.Now().Add(-45 * time.Second),
+		}
+
+		for _, usage := range []float64{100, 100, 100, 100, 100} {
+			pm.AddCPUUsage(usage)
+		}
+
+		trigger, _, emergency := pm.triggerDecision()
+		assert.False(t, trigger)
+		assert.False(t, emergency)
+	})
+
+	t.Run("emergency memory threshold uses thirty second cooldown", func(t *testing.T) {
+		pm := &processM{
+			CPUHistory:        list.New(),
+			MemHistory:        list.New(),
+			MemPercentHistory: list.New(),
+			MaxSize:           10,
+			configProcess: &Process{
+				MEMUsagePercentEmergency: 95,
+			},
+			lastProfileTime: time.Now().Add(-45 * time.Second),
+		}
+
+		pm.AddMemPercent(96)
+
+		trigger, tags, emergency := pm.triggerDecision()
+		assert.True(t, trigger)
+		assert.True(t, emergency)
+		assert.Contains(t, tags, "mem_perc_emergency:96.00")
+	})
+
+	t.Run("emergency memory threshold has independent cooldown", func(t *testing.T) {
+		pm := &processM{
+			CPUHistory:        list.New(),
+			MemHistory:        list.New(),
+			MemPercentHistory: list.New(),
+			MaxSize:           10,
+			configProcess: &Process{
+				MEMUsagePercentEmergency: 95,
+			},
+			lastProfileTime:          time.Now().Add(-2 * time.Minute),
+			lastEmergencyProfileTime: time.Now().Add(-10 * time.Second),
+		}
+
+		pm.AddMemPercent(96)
+
+		trigger, _, emergency := pm.triggerDecision()
+		assert.False(t, trigger)
+		assert.False(t, emergency)
+	})
+}
+
 func TestParseCPULimit(t *testing.T) {
 	tests := []struct {
 		name     string

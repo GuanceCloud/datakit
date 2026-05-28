@@ -25,6 +25,7 @@ const (
 	Hwcloud     = "hwcloud"
 	VolcEngine  = "volcengine"
 	GCP         = "gcp"
+	Ksyun       = "ksyun"
 )
 
 var cloudCli = &http.Client{Timeout: 3 * time.Second}
@@ -121,12 +122,28 @@ func (ipt *Input) SyncCloudInfo(provider string) (map[string]interface{}, error)
 			p = &gcp{baseURL: "http://169.254.169.254/computeMetadata/v1"}
 		}
 		return p.Sync()
+	case Ksyun:
+		var p *ksyun
+		if url, ok := ipt.CloudMetaURL[Ksyun]; ok {
+			p = &ksyun{baseURL: url}
+		} else {
+			p = &ksyun{baseURL: ksyunMetaRootURL}
+		}
+		return p.Sync()
 	default:
 		return nil, fmt.Errorf("unknown cloud_provider: %s", provider)
 	}
 }
 
 func (ipt *Input) matchCloudProvider(cloudProvider string) bool {
+	if cloudProvider == Ksyun {
+		detBaseURL := ksyunMetaRootURL
+		if url, ok := ipt.CloudMetaURL[Ksyun]; ok {
+			detBaseURL = url
+		}
+		return metaGet(detBaseURL+"/instance-id") != Unavailable
+	}
+
 	fields, err := ipt.SyncCloudInfo(cloudProvider)
 	if err != nil {
 		return false
@@ -164,7 +181,7 @@ func (ipt *Input) matchCloudProvider(cloudProvider string) bool {
 }
 
 func (ipt *Input) SetCloudProvider() error {
-	cloudProviders := []string{Aliyun, AWS, Tencent, Azure, Hwcloud, VolcEngine, GCP}
+	cloudProviders := []string{Aliyun, Ksyun, AWS, Tencent, Azure, Hwcloud, VolcEngine, GCP}
 	for _, cp := range cloudProviders {
 		if ipt.matchCloudProvider(cp) {
 			ipt.Tags["cloud_provider"] = cp

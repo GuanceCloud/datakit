@@ -4,6 +4,7 @@
 package netflow
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"testing"
@@ -33,6 +34,36 @@ func TestClosedEventHandlerDropsShortRecord(t *testing.T) {
 	case <-tracer.closedEventCh:
 		t.Fatal("unexpected closed event queued for short record")
 	default:
+	}
+}
+
+func TestConnCollectHandlerStopsOnContextCancel(t *testing.T) {
+	tracer := NewNetFlowTracer(nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	done := make(chan struct{})
+	go func() {
+		tracer.connCollectHanllder(ctx, nil, nil, nil, nil, nil, time.Hour, nil)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("connCollectHanllder did not stop after context cancellation")
+	}
+}
+
+func TestNetFlowTracerRunRejectsNilInputs(t *testing.T) {
+	var tracer *NetFlowTracer
+	if err := tracer.Run(context.Background(), nil, nil, time.Minute); err == nil {
+		t.Fatal("expected nil tracer error")
+	}
+
+	tracer = NewNetFlowTracer(nil)
+	if err := tracer.Run(context.Background(), nil, nil, time.Minute); err == nil {
+		t.Fatal("expected nil runtime error")
 	}
 }
 
@@ -73,6 +104,31 @@ func TestConnStatsRecordPruneLastActiveNotSeen(t *testing.T) {
 	assert.NotContains(t, record.lastActiveConns, stale)
 	assert.Contains(t, record.lastActiveConns, closed)
 	assert.NotContains(t, record.lastActiveInfo, stale)
+}
+
+func TestConnStatsRecordDropsNewClosedEventsAtLimit(t *testing.T) {
+	record := newConnStatsRecord()
+	record.closedConnLimit = 1
+	conn1 := ConnectionInfo{Saddr: [4]uint32{1}, Daddr: [4]uint32{2}, Sport: 1000, Dport: 80, Meta: ConnL4TCP | ConnL3IPv4}
+	conn2 := ConnectionInfo{Saddr: [4]uint32{3}, Daddr: [4]uint32{4}, Sport: 1001, Dport: 80, Meta: ConnL4TCP | ConnL3IPv4}
+
+	record.updateClosedUseEvent(&ConncetionClosedInfo{Info: conn1})
+	record.updateClosedUseEvent(&ConncetionClosedInfo{Info: conn2})
+
+	assert.Len(t, record.closedConns, 1)
+	assert.Contains(t, record.closedConns, connStatsCacheKey(conn1))
+	assert.NotContains(t, record.closedConns, connStatsCacheKey(conn2))
+
+	record.updateClosedUseEvent(&ConncetionClosedInfo{Info: conn1})
+	assert.Equal(t, int64(2), record.closedConns[connStatsCacheKey(conn1)].TotalClosed)
+}
+
+func TestNetflowClosedConnCacheLimitEnv(t *testing.T) {
+	t.Setenv(closedConnCacheLimitEnv, "bad")
+	assert.Equal(t, defaultClosedConnCacheLimit, netflowClosedConnCacheLimit())
+
+	t.Setenv(closedConnCacheLimitEnv, fmt.Sprintf("%d", maxClosedConnCacheLimit+1))
+	assert.Equal(t, maxClosedConnCacheLimit, netflowClosedConnCacheLimit())
 }
 
 type caseConnT struct {
@@ -588,6 +644,27 @@ func TestConnStatsRecordUsesStableCacheKey(t *testing.T) {
 	assert.Equal(t, int64(1), got.TotalClosed)
 	assert.Equal(t, "new-name", record.closedConnInfo[key].ProcessName)
 	assert.Equal(t, uint32(8081), record.closedConnInfo[key].NATDport)
+}
+
+func TestMergeConnDisplayInfoFillsPartialNAT(t *testing.T) {
+	base := ConnectionInfo{
+		ProcessName: "curl",
+		NATDaddr:    [4]uint32{0, 0, 0, 0x0200000A},
+		NATDport:    8080,
+	}
+
+	got := mergeConnDisplayInfo(base, ConnectionInfo{
+		NATDport: 9090,
+	})
+	assert.Equal(t, "curl", got.ProcessName)
+	assert.Equal(t, base.NATDaddr, got.NATDaddr)
+	assert.Equal(t, uint32(9090), got.NATDport)
+
+	got = mergeConnDisplayInfo(base, ConnectionInfo{
+		NATDaddr: [4]uint32{0, 0, 0, 0x0300000A},
+	})
+	assert.Equal(t, [4]uint32{0, 0, 0, 0x0300000A}, got.NATDaddr)
+	assert.Equal(t, uint32(8080), got.NATDport)
 }
 
 func TestConnMeta(t *testing.T) {

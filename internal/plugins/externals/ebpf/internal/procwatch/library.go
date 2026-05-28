@@ -211,6 +211,12 @@ func (t *LibraryTracker) Clean() {
 }
 
 func (t *LibraryTracker) Run(ctx context.Context, interval time.Duration) {
+	if t == nil {
+		return
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	if atomic.SwapInt32(&t.running, 1) == 1 {
 		log.Warn(".so monitor started")
 		return

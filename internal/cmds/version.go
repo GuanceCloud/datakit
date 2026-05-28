@@ -203,20 +203,20 @@ func getVersionInfo(addr, proxy string, timeout time.Duration) (*version.VerInfo
 	return &ver, nil
 }
 
-// CanonicalInstallBaseURL add support for install_base_url with the suffix "/datakit" or not.
-// The canonical install_base_url ends with "/datakit/".
+// CanonicalInstallBaseURL add support for install_base_url with the suffix "/datakit-v2" or not.
+// The canonical install_base_url ends with "/datakit-v2/".
 func CanonicalInstallBaseURL(installBaseURL string) string {
-	suffix := "/datakit/"
 	sb := &strings.Builder{}
-	sb.Grow(len(installBaseURL) + len(suffix))
+	sb.Grow(len(installBaseURL) + 12)
 	sb.WriteString(installBaseURL)
 
 	if !strings.HasSuffix(installBaseURL, "/") {
 		sb.WriteByte('/')
 	}
 
-	if !strings.HasSuffix(sb.String(), suffix) {
-		sb.WriteString("datakit/")
+	// If the URL already contains /datakit-v2, skip appending.
+	if !strings.Contains(sb.String(), "/datakit-v2") {
+		sb.WriteString("datakit-v2/")
 	}
 
 	return sb.String()

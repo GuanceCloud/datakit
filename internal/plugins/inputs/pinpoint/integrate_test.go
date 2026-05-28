@@ -261,7 +261,7 @@ func (cs *caseSpec) run() error {
 
 	randPort := testutils.RandPort("tcp")
 	randPortStr := fmt.Sprintf("%d", randPort)
-	cs.t.Logf("listening port " + randPortStr + "...")
+	cs.t.Log("listening port " + randPortStr + "...")
 	cs.ipt.Address += randPortStr
 
 	var wg sync.WaitGroup

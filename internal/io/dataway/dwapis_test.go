@@ -50,11 +50,13 @@ func TestNTP(t *T.T) {
 }
 
 func TestDWAPIs(t *T.T) {
-	t.Run("apis-with-global-tags", func(t *T.T) {
+	t.Run("apis-without-sink-headers", func(t *T.T) {
 		dw := NewDefaultDataway()
+		dw.EnableSinker = true
 
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			assert.Equalf(t, dw.globalTagsHTTPHeaderValue, r.Header.Get(HeaderXGlobalTags), "failed on request %s", r.URL.Path)
+			assert.Emptyf(t, r.Header.Get(HeaderXGlobalTags), "failed on request %s", r.URL.Path)
+			assert.Emptyf(t, r.Header.Get(HeaderXGlobalTagsV2), "failed on request %s", r.URL.Path)
 
 			body, err := io.ReadAll(r.Body)
 			defer r.Body.Close()
@@ -134,7 +136,7 @@ func TestDWAPIs(t *T.T) {
 		})
 	})
 
-	t.Run("apis-with-global-tags-v2", func(t *T.T) {
+	t.Run("apis-without-sink-headers-v2", func(t *T.T) {
 		dw := NewDefaultDataway()
 		dw.EnableSinker = true
 		dw.SinkerHeaderVersion = "v2"
@@ -143,10 +145,9 @@ func TestDWAPIs(t *T.T) {
 			SyncOnDiff: time.Second,
 		}
 
-		expectedHeader := "tag1=value1,tag2=12%0A3"
-
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			assert.Equalf(t, expectedHeader, r.Header.Get(HeaderXGlobalTagsV2), "failed on request %s", r.URL.Path)
+			assert.Emptyf(t, r.Header.Get(HeaderXGlobalTags), "failed on request %s", r.URL.Path)
+			assert.Emptyf(t, r.Header.Get(HeaderXGlobalTagsV2), "failed on request %s", r.URL.Path)
 
 			if r.URL.Path == "/v1/ntp" {
 				n := ntpResp{

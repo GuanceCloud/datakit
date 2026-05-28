@@ -298,6 +298,24 @@ func (dw *Dataway) sinkHeaderKey() string {
 	return HeaderXGlobalTags
 }
 
+// SinkHeaderKey returns the sinker global tags header name.
+func (dw *Dataway) SinkHeaderKey() string {
+	return dw.sinkHeaderKey()
+}
+
+// SinkHeaderValueFromTags returns the sinker header value from point tags.
+func (dw *Dataway) SinkHeaderValueFromTags(tags map[string]string) string {
+	xGlobalTag := sinkHeaderValueFromTags(tags,
+		dw.GlobalTags(),
+		dw.CustomTagKeys(),
+		dw.SinkerHeaderVersion == "v2")
+	if xGlobalTag == "" {
+		xGlobalTag = dw.GlobalTagsHTTPHeaderValue()
+	}
+
+	return xGlobalTag
+}
+
 var defaultInvalidDatawayURL = "https://guance.openway.com?token=YOUR-WORKSPACE-TOKEN"
 
 func (dw *Dataway) doInit() error {
@@ -368,15 +386,6 @@ func (dw *Dataway) doInit() error {
 		if err != nil {
 			l.Errorf("init dataway url %s failed: %s", u, err.Error())
 			return err
-		}
-
-		if dw.EnableSinker {
-			switch dw.SinkerHeaderVersion {
-			case "v2":
-				ep.HTTPHeaders[HeaderXGlobalTagsV2] = dw.globalTagsHTTPHeaderValue
-			default:
-				ep.HTTPHeaders[HeaderXGlobalTags] = dw.globalTagsHTTPHeaderValue
-			}
 		}
 
 		dw.eps = append(dw.eps, ep)

@@ -9,6 +9,26 @@ DataKit supports both manual and automatic upgrade.
 - Automatic upgrade require DataKit version >= 1.1.6-rc1
 - There is no version requirement for manual upgrade
 
+## 2.x and 1.x Upgrade Policy {#major-version-upgrade}
+
+- Auto-upgrade targets the latest `2.x` by default.
+- If the host is already running `2.x`, DataKit continues upgrading to the latest `2.x` available in the configured upgrade source.
+- If the upgrade source is broken (for example, missing usable `2.x` installer artifacts), the upgrade fails and keeps the current version unchanged.
+- If you still need `1.x` (for example `1.92.0`), upgrade by manually specifying that exact version.
+
+Minimum OS requirements for `2.x`:
+
+- Linux: kernel >= `3.2`
+- Windows: `Windows 10` / `Windows Server 2016` or newer
+- macOS: `macOS 12` or newer
+
+`2.x` and `1.x` use separate upgrade sources:
+
+- `https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/`：`2.x` upgrade source, **recommended**.
+- `https://static.<<<custom_key.brand_main_domain>>>/datakit/`：`1.x` upgrade source, for legacy systems only.
+
+The upgrade script selects the matching version line based on the current path. Auto-upgrade always uses the `datakit-v2` source. Since the two paths are independently published, `datakit-v2` only upgrades to the latest `2.x`, and `datakit` only upgrades to the latest `1.x` — they do not share version information. To manually upgrade to `1.x`, use a versioned script (for example `install-1.93.0.sh`).
+
 ### Manually Upgrade {#manual}
 
 Directly execute the following command to view the current DataKit version. If the latest version is available online, the corresponding upgrade
@@ -89,7 +109,7 @@ During the installation of DataKit, an additional upgrade management service is 
     ```shell hl_lines="2"
     DK_UPGRADE=1 \
       DK_UPGRADE_MANAGER=1 \
-      bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
+      bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/install.sh)"
     ```
 
 === "Offline Update"
@@ -102,7 +122,7 @@ During the installation of DataKit, an additional upgrade management service is 
     DK_UPGRADE=1 \
       DK_UPGRADE_MANAGER=1 \
       DK_INSTALLER_BASE_URL="http://my.static.com/datakit" \
-      bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
+      bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/install.sh)"
     ```
 
 You can use DCA to achieve remote updates, see [DCA Documentation](../dca/index.md).
@@ -135,6 +155,30 @@ If the new version is unsatisfactory and eager to roll back the recovery functio
 {{ InstallCmd 4 (.WithPlatform "windows") (.WithUpgrade true) (.WithVersion "1.2.3") }}
     ```
 <!-- markdownlint-enable -->
+
+<!-- markdownlint-disable MD046 -->
+For example, to manually upgrade to `1.93.0`:
+
+=== "Linux/macOS"
+
+    ```shell
+    DK_UPGRADE=1 bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install-1.93.0.sh)"
+    ```
+
+=== "Windows"
+
+    ```powershell
+    $env:DK_UPGRADE="1";
+    Set-ExecutionPolicy Bypass -Scope Process -Force;
+    Import-Module bitstransfer;
+    Start-BitsTransfer -Source https://static.<<<custom_key.brand_main_domain>>>/datakit/install-1.93.0.ps1 -Destination .install.ps1;
+    powershell ./.install.ps1;
+    ```
+
+<!-- markdownlint-enable -->
+
+Replace `1.93.0` with any target `1.x` version you need.
+
 The version number here can be found on the [DataKit release history](changelog-{{.Year}}.md) page. Currently, only rollback to [1.2.0](changelog.md#cl-1.2.0) is supported, and previous rc versions do not recommend rollback. After rolling back the version, you may encounter some configurations that are only available in the new version, which cannot be resolved in the rolled back version. For the time being, you can only manually adjust the configuration to adapt to the old version of DataKit.
 
 ## FAQ {#faq}

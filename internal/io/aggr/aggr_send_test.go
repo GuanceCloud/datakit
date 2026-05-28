@@ -266,6 +266,44 @@ func TestSendMetricBatchHeaders(t *testing.T) {
 	assert.Equal(t, "7", gotRoutingKey)
 }
 
+func TestSendAggrRequestsDoNotInheritDatawaySinkHeaders(t *testing.T) {
+	paths := map[string]int32{}
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case datakit.Aggregate, datakit.TailSampling, datakit.TailSamplingConfig:
+			paths[r.URL.Path]++
+			assert.Emptyf(t, r.Header.Get(dataway.HeaderXGlobalTags), "failed on request %s", r.URL.Path)
+			assert.Emptyf(t, r.Header.Get(dataway.HeaderXGlobalTagsV2), "failed on request %s", r.URL.Path)
+			w.WriteHeader(http.StatusOK)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer ts.Close()
+
+	dw := dataway.NewDefaultDataway(dataway.WithGlobalTags(map[string]string{
+		"host": "test-host",
+	}))
+	dw.EnableSinker = true
+	require.NoError(t, dw.Init(dataway.WithURLs(ts.URL+"?token=tkn_sink")))
+
+	ag := &Aggregator{
+		DW:                  dw,
+		tailSamplingConfig:  &aggregate.TailSamplingConfigs{Version: 1, Tracing: &aggregate.TraceTailSampling{}},
+		tailSamplingEnabled: true,
+	}
+	ag.initHTTP()
+
+	require.NoError(t, ag.sendMetricBatch(point.SMetric, 1, buildMetricBatchs(1, 32)))
+	require.NoError(t, ag.sendTailSamplingPackage(1, buildTailSamplingDataPacket(2, 32)))
+	ag.sendTSConfigToDW()
+
+	assert.Equal(t, int32(1), paths[datakit.Aggregate])
+	assert.Equal(t, int32(1), paths[datakit.TailSampling])
+	assert.Equal(t, int32(1), paths[datakit.TailSamplingConfig])
+}
+
 func TestSendMetricBatchesRunConcurrently(t *testing.T) {
 	origCPUs := datakit.AvailableCPUs
 	t.Cleanup(func() { datakit.AvailableCPUs = origCPUs })

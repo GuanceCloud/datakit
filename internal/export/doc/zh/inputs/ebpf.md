@@ -195,6 +195,31 @@ setenforce 0
     - 环境变量：`ENV_INPUT_EBPF_NETLOG_LOG`
     - 示例：`false`
 
+- `netlog_l7log_protocols`
+    - 描述：设置 `bpf-netlog` 七层日志解析协议。`http` 会同时开启 HTTP/1.x 和 HTTP/2；仅需 HTTP/1.x 时再使用 `http1`。可选值：`http`、`http1`、`http2`、`grpc`
+    - 环境变量：`ENV_INPUT_EBPF_NETLOG_L7LOG_PROTOCOLS`
+    - 示例：`http,http2,grpc`
+
+- `netlog_l7log_headers`
+    - 描述：设置 `bpf-netlog` 七层日志记录的 HTTP Header。空值使用内置推荐列表；设置为 `none` 可关闭 Header 采集。敏感 Header 会被强制忽略
+    - 环境变量：`ENV_INPUT_EBPF_NETLOG_L7LOG_HEADERS`
+    - 示例：`host,x-request-id,traceparent`
+
+- `netlog_fallback_sockets`
+    - 描述：设置 `bpf-netlog` fallback 网络命名空间抓包 socket 数量上限。Kubernetes 中默认关闭 fallback 抓包，可按需调大
+    - 环境变量：`ENV_INPUT_EBPF_NETLOG_FALLBACK_SOCKETS`
+    - 示例：`8`
+
+- `netlog_fallback_blocks`
+    - 描述：设置 `bpf-netlog` fallback 抓包 AF_PACKET ring block 数量
+    - 环境变量：`ENV_INPUT_EBPF_NETLOG_FALLBACK_BLOCKS`
+    - 示例：`4`
+
+- `netlog_shared_blocks`
+    - 描述：设置 `bpf-netlog` 共享 host-peer 抓包 AF_PACKET ring block 数量
+    - 环境变量：`ENV_INPUT_EBPF_NETLOG_SHARED_BLOCKS`
+    - 示例：`64`
+
 - `cpu_limit`
     - 描述：单位时间内 CPU 最大核心数使用限制，到达上限，采集器退出
     - 环境变量：`ENV_INPUT_EBPF_CPU_LIMIT`
@@ -236,6 +261,175 @@ setenforce 0
     - 示例：`https://datakit-operator.datakit.svc:443`
 
 <!-- markdownlint-enable -->
+
+### 高负载采集上限调优 {#advanced-collection-limits}
+
+以下为 `datakit-ebpf` 进程内部的高级容量参数，不建议作为常规配置项调大。只有在自监控指标或摘要日志中看到 `limit`、`queue_full`、`pending_query_limit`、`bpf_map_fill_ratio` 接近 `1` 等压力信号时，再通过 `inputs.ebpf.envs` 或 DaemonSet 环境变量设置。
+
+| 环境变量 | 默认值 | 最大值 | 作用范围 |
+| --- | --- | --- | --- |
+| `DK_EBPF_NETFLOW_MAP_MAX_ENTRIES` | `65536` | `1048576` | `ebpf-net` 内核连接 map 容量 |
+| `DK_EBPF_NETFLOW_CLOSED_CONN_CACHE_LIMIT` | `65536` | `1000000` | `ebpf-net` 已关闭连接缓存 |
+| `DK_EBPF_DNSFLOW_PENDING_QUERY_LIMIT` | `65536` | `1000000` | DNS 未响应 query 缓存 |
+| `DK_EBPF_DNSFLOW_AGG_LIMIT` | `32768` | `1000000` | DNS 聚合 key 数 |
+| `DK_EBPF_DNSFLOW_ANSWER_RECORD_LIMIT` | `65536` | `1000000` | DNS 反查记录缓存 |
+| `DK_EBPF_L4LOG_CONN_CACHE_LIMIT` | `65536` | `1000000` | `bpf-netlog` L4 连接缓存 |
+| `DK_EBPF_L4LOG_NETFLOW_AGG_LIMIT` | `32768` | `1000000` | `bpf-netlog` L4 指标聚合 key 数 |
+| `DK_EBPF_L4LOG_HTTP_AGG_LIMIT` | `32768` | `1000000` | `bpf-netlog` HTTP 指标聚合 key 数 |
+| `DK_EBPF_L4LOG_HTTP_ELEM_LIMIT` | `1024` | `65536` | `bpf-netlog` 单连接 HTTP 请求状态数 |
+| `DK_EBPF_L4LOG_HTTP2_STREAM_LIMIT` | `1024` | `65536` | `bpf-netlog` 单连接 HTTP/2 stream 状态数 |
+| `DK_EBPF_L7FLOW_CONN_MAP_LIMIT` | `65536` | `1000000` | `ebpf-trace`/`httpflow` 用户态连接状态数 |
+| `DK_EBPF_L7FLOW_HTTP_AGG_LIMIT` | `32768` | `1000000` | `httpflow` HTTP 聚合 key 数 |
+| `DK_EBPF_L7FLOW_HTTP2_STREAM_LIMIT` | `1024` | `65536` | `httpflow` 单连接 HTTP/2 stream 状态数 |
+| `DK_EBPF_L7FLOW_MYSQL_PENDING_BUFFER_LIMIT` | `65536` | `4194304` | MySQL 协议半包缓冲字节数 |
+| `DK_EBPF_CONNTRACK_TUPLE_MAP_MAX_ENTRIES` | `65535` | `1048576` | 连接跟踪 tuple map 容量 |
+| `DK_EBPF_PROCWATCH_MAP_MAX_ENTRIES` | `12800` | `1048576` | 进程 watch 内核 map 容量 |
+
+## eBPF 链路功能 {#ebpf-tracing}
+
+`ebpf-trace` 采集分析主机上的进程读写的网络数据，并对进程的内核级线程/用户级线程（如 golang goroutine）进行跟踪，生成链路 eBPF Span 该数据需要被 `ebpftrace` 采集进行进一步的加工处理。
+
+使用时，需要在多个节点部署了该开启链路数据采集的 eBPF 采集器，则需要将所有 eBPF Span 数据发往同一个开启了 [`ebpftrace`](./ebpftrace.md#ebpftrace-config) 采集器插件的 DataKit ELinker/DataKit。更多配置细节见 [eBPF 链路文档](./ebpftrace.md#ebpf-config)
+
+## `bpf-netlog` 插件的黑名单功能 {#blacklist}
+
+过滤器规则示例：
+
+单条规则：
+
+以下规则过滤 ip 为 `1.1.1.1` 且端口为 80 的网络数据。(运算符后允许换行)
+
+```py
+(ip_saddr == "1.1.1.1" || ip_saddr == "1.1.1.1") &&
+     (src_port == 80 || dst_port == 80)
+```
+
+多条规则：
+
+规则间使用 `;` 或 `\n` 分隔，满足任意一条规则就进行数据过滤
+
+```py
+udp
+ip_saddr == "1.1.1.1" && (src_port == 80 || dst_port == 80);
+ip_saddr == "10.10.0.1" && (src_port == 80 || dst_port == 80)
+
+ipnet_contains("127.0.0.0/8", ip_saddr); ipv6
+```
+
+可用于过滤的数据：
+
+该过滤器用于对网络数据进行过滤，可比较的数据如下：
+
+| key 名        | 类型 | 描述                                     |
+| ------------- | ---- | ---------------------------------------- |
+| `tcp`         | bool | 是否为 `TCP` 协议                        |
+| `udp`         | bool | 是否为 `UDP` 协议                        |
+| `ipv4`        | bool | 是否为 `IPv4` 协议                       |
+| `ipv6`        | bool | 是否为 `IPv6` 协议                       |
+| `src_port`    | int  | 源端口（以被观测网卡/主机/容器为参考系） |
+| `dst_port`    | int  | 目标端口                                 |
+| `ip_saddr`    | str  | 源 `IPv4` 网络地址                       |
+| `ip_saddr`    | str  | 目标 `IPv4` 网络地址                     |
+| `ip6_saddr`   | str  | 源 `IPv6` 网络地址                       |
+| `ip6_daddr`   | str  | 目标 `IPv6` 网络地址                     |
+| `k8s_src_pod` | str  | 源 `pod` 名                              |
+| `k8s_dst_pod` | str  | 目标 `pod` 名                            |
+
+运算符：
+
+运算符从高往低：
+
+| 优先级 | Op     | 名称               | 结合方向 |
+| ------ | ------ | ------------------ | -------- |
+| 1      | `()`   | 圆括号             | 左       |
+| 2      | `！`   | 逻辑非，一元运算符 | 右       |
+| 3      | `!=`   | 不等于             | 左       |
+| 3      | `>=`   | 大于等于           | 左       |
+| 3      | `>`    | 大于               | 左       |
+| 3      | `==`   | 等于               | 左       |
+| 3      | `<=`   | 小于等于           | 左       |
+| 3      | `<`    | 小于               | 左       |
+| 4      | `&&`   | 逻辑与             | 左       |
+| 4      | `\|\|` | 逻辑或             | 左       |
+
+函数：
+
+1. **ipnet_contains**
+
+    函数签名： `fn ipnet_contains(ipnet: str, ipaddr: str) bool`
+
+    描述： 判断地址是否在指定的网段内
+
+    示例：
+
+    ```py
+    ipnet_contains("127.0.0.0/8", ip_saddr)
+    ```
+
+    如果 `ip_saddr` 值为 "127.0.0.1"，则该规则返回 `true`，该 TCP 连接数据包/ UDP 数据包将被过滤。
+
+2. **has_prefix**
+
+    函数签名： `fn has_prefix(s: str, prefix: str) bool`
+
+    描述： 指定字段是否包含某一前缀
+
+    示例：
+
+    ```py
+    has_prefix(k8s_src_pod, "datakit-") || has_prefix(k8s_dst_pod, "datakit-")
+    ```
+
+    如果 pod 名为 `datakit-kfez321`，该规则返回 `true`。
+
+## 网络聚合数据 {#network}
+
+以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
+
+``` toml
+ [inputs.{{.InputName}}.tags]
+  # some_tag = "some_value"
+  # more_tag = "some_other_value"
+  # ...
+```
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "network"}}
+
+### `{{$m.Name}}`
+
+
+{{$m.MarkdownTable}}
+{{end}}
+
+{{ end }}
+
+## 日志 {#logging}
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "logging"}}
+
+### `{{$m.Name}}`
+
+{{$m.MarkdownTable}}
+{{ end }}
+
+{{end}}
+
+## 链路 {#tracing}
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "tracing"}}
+
+### `{{$m.Name}}`
+
+{{$m.MarkdownTable}}
+{{end}}
+
+{{ end }}
 
 <!-- markdownlint-disable MD007 -->
 ## Prometheus 自监控 {#prometheus-self-metrics}
@@ -401,148 +595,3 @@ pprof_port = "6061"
    这通常意味着内核态 map 压力过高，可能同时伴随事件丢弃
 
 <!-- markdownlint-enable MD007 -->
-## eBPF 链路功能 {#ebpf-tracing}
-
-`ebpf-trace` 采集分析主机上的进程读写的网络数据，并对进程的内核级线程/用户级线程（如 golang goroutine）进行跟踪，生成链路 eBPF Span 该数据需要被 `ebpftrace` 采集进行进一步的加工处理。
-
-使用时，需要在多个节点部署了该开启链路数据采集的 eBPF 采集器，则需要将所有 eBPF Span 数据发往同一个开启了 [`ebpftrace`](./ebpftrace.md#ebpftrace-config) 采集器插件的 DataKit ELinker/DataKit。更多配置细节见 [eBPF 链路文档](./ebpftrace.md#ebpf-config)
-
-## `bpf-netlog` 插件的黑名单功能 {#blacklist}
-
-过滤器规则示例：
-
-单条规则：
-
-以下规则过滤 ip 为 `1.1.1.1` 且端口为 80 的网络数据。(运算符后允许换行)
-
-```py
-(ip_saddr == "1.1.1.1" || ip_saddr == "1.1.1.1") &&
-     (src_port == 80 || dst_port == 80)
-```
-
-多条规则：
-
-规则间使用 `;` 或 `\n` 分隔，满足任意一条规则就进行数据过滤
-
-```py
-udp
-ip_saddr == "1.1.1.1" && (src_port == 80 || dst_port == 80);
-ip_saddr == "10.10.0.1" && (src_port == 80 || dst_port == 80)
-
-ipnet_contains("127.0.0.0/8", ip_saddr); ipv6
-```
-
-可用于过滤的数据：
-
-该过滤器用于对网络数据进行过滤，可比较的数据如下：
-
-| key 名        | 类型 | 描述                                     |
-| ------------- | ---- | ---------------------------------------- |
-| `tcp`         | bool | 是否为 `TCP` 协议                        |
-| `udp`         | bool | 是否为 `UDP` 协议                        |
-| `ipv4`        | bool | 是否为 `IPv4` 协议                       |
-| `ipv6`        | bool | 是否为 `IPv6` 协议                       |
-| `src_port`    | int  | 源端口（以被观测网卡/主机/容器为参考系） |
-| `dst_port`    | int  | 目标端口                                 |
-| `ip_saddr`    | str  | 源 `IPv4` 网络地址                       |
-| `ip_saddr`    | str  | 目标 `IPv4` 网络地址                     |
-| `ip6_saddr`   | str  | 源 `IPv6` 网络地址                       |
-| `ip6_daddr`   | str  | 目标 `IPv6` 网络地址                     |
-| `k8s_src_pod` | str  | 源 `pod` 名                              |
-| `k8s_dst_pod` | str  | 目标 `pod` 名                            |
-
-运算符：
-
-运算符从高往低：
-
-| 优先级 | Op     | 名称               | 结合方向 |
-| ------ | ------ | ------------------ | -------- |
-| 1      | `()`   | 圆括号             | 左       |
-| 2      | `！`   | 逻辑非，一元运算符 | 右       |
-| 3      | `!=`   | 不等于             | 左       |
-| 3      | `>=`   | 大于等于           | 左       |
-| 3      | `>`    | 大于               | 左       |
-| 3      | `==`   | 等于               | 左       |
-| 3      | `<=`   | 小于等于           | 左       |
-| 3      | `<`    | 小于               | 左       |
-| 4      | `&&`   | 逻辑与             | 左       |
-| 4      | `\|\|` | 逻辑或             | 左       |
-
-函数：
-
-1. **ipnet_contains**
-
-    函数签名： `fn ipnet_contains(ipnet: str, ipaddr: str) bool`
-
-    描述： 判断地址是否在指定的网段内
-
-    示例：
-
-    ```py
-    ipnet_contains("127.0.0.0/8", ip_saddr)
-    ```
-
-    如果 `ip_saddr` 值为 "127.0.0.1"，则该规则返回 `true`，该 TCP 连接数据包/ UDP 数据包将被过滤。
-
-2. **has_prefix**
-
-    函数签名： `fn has_prefix(s: str, prefix: str) bool`
-
-    描述： 指定字段是否包含某一前缀
-
-    示例：
-
-    ```py
-    has_prefix(k8s_src_pod, "datakit-") || has_prefix(k8s_dst_pod, "datakit-")
-    ```
-
-    如果 pod 名为 `datakit-kfez321`，该规则返回 `true`。
-
-## 网络聚合数据 {#network}
-
-以下所有数据采集，默认会追加名为 `host` 的全局 tag（tag 值为 DataKit 所在主机名），也可以在配置中通过 `[inputs.{{.InputName}}.tags]` 指定其它标签：
-
-``` toml
- [inputs.{{.InputName}}.tags]
-  # some_tag = "some_value"
-  # more_tag = "some_other_value"
-  # ...
-```
-
-{{ range $i, $m := .Measurements }}
-
-{{if eq $m.Type "network"}}
-
-### `{{$m.Name}}`
-
-
-{{$m.MarkdownTable}}
-{{end}}
-
-{{ end }}
-
-## 日志 {#logging}
-
-{{ range $i, $m := .Measurements }}
-
-{{if eq $m.Type "logging"}}
-
-### `{{$m.Name}}`
-
-{{$m.MarkdownTable}}
-{{ end }}
-
-{{end}}
-
-## 链路 {#tracing}
-
-{{ range $i, $m := .Measurements }}
-
-{{if eq $m.Type "tracing"}}
-
-### `{{$m.Name}}`
-
-{{$m.MarkdownTable}}
-{{end}}
-
-{{ end }}

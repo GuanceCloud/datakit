@@ -55,6 +55,7 @@ func (conns *TCPConns) netlogConv2Point(k *PMeta, v *PValue,
 
 	if !enableNetlog {
 		trimHTTPLogState(v, rm)
+		trimHTTP2LogState(v, rm)
 		trimTCPLogState(v, rm, tsnow)
 		return nil, nil
 	}
@@ -92,6 +93,44 @@ func (conns *TCPConns) netlogConv2Point(k *PMeta, v *PValue,
 			}
 			elem.messageCache = ""
 		}
+	}
+
+	{ // http2/grpc log and metric
+		var feedH2Elem []*HTTP2LogElem
+		oldLen := len(v.http2Info.elems)
+		keepH2Elem := v.http2Info.elems[:0]
+		for _, elem := range v.http2Info.elems {
+			if elem == nil {
+				continue
+			}
+			if !rm && !elem.hFinished {
+				keepH2Elem = append(keepH2Elem, elem)
+				continue
+			}
+			feedH2Elem = append(feedH2Elem, elem)
+		}
+		if rm {
+			v.http2Info.elems = nil
+		} else {
+			clearHTTP2LogElems(v.http2Info.elems[len(keepH2Elem):oldLen])
+			v.http2Info.elems = keepH2Elem
+		}
+
+		for _, elem := range feedH2Elem {
+			if elem.hState == 0 {
+				continue
+			}
+
+			if kvs, reqTS, ok, err := buildH2Log(k, v, elem, baseKVs,
+				&conns.aggHTTP, conns.nsUID, nicIPList); err != nil {
+				log.Errorf("build http2 log failed: %s", err.Error())
+			} else if ok && enableNetlog {
+				pts = append(pts, point.NewPoint("bpf_net_l7_log", kvs, append(
+					opt, point.WithTime(time.Unix(0, reqTS)))...))
+			}
+			elem.messageCache = ""
+		}
+		clearHTTP2LogElems(feedH2Elem)
 	}
 
 	{ // tcp log
@@ -144,11 +183,43 @@ func trimHTTPLogState(v *PValue, rm bool) {
 
 	hReqLen := len(v.httpInfo.elems)
 	if hReqLen > 0 && !v.httpInfo.elems[hReqLen-1].hFinished {
-		v.httpInfo.elems = v.httpInfo.elems[hReqLen-1:]
+		last := v.httpInfo.elems[hReqLen-1]
+		clearHTTPLogElems(v.httpInfo.elems)
+		v.httpInfo.elems = []*HTTPLogElem{last}
 		return
 	}
 
+	clearHTTPLogElems(v.httpInfo.elems)
 	v.httpInfo.elems = nil
+}
+
+func trimHTTP2LogState(v *PValue, rm bool) {
+	if rm {
+		v.http2Info.elems = nil
+		return
+	}
+
+	oldLen := len(v.http2Info.elems)
+	keep := v.http2Info.elems[:0]
+	for _, elem := range v.http2Info.elems {
+		if elem != nil && !elem.hFinished {
+			keep = append(keep, elem)
+		}
+	}
+	clearHTTP2LogElems(v.http2Info.elems[len(keep):oldLen])
+	v.http2Info.elems = keep
+}
+
+func clearHTTPLogElems(elems []*HTTPLogElem) {
+	for i := range elems {
+		elems[i] = nil
+	}
+}
+
+func clearHTTP2LogElems(elems []*HTTP2LogElem) {
+	for i := range elems {
+		elems[i] = nil
+	}
 }
 
 func trimTCPLogState(v *PValue, rm bool, tsnow int64) {
@@ -268,12 +339,12 @@ func (conns *TCPConns) feedNetworkLog(pool *connMap,
 			count += len(ptsGot)
 			pts = append(pts, ptsGot...)
 		} else if err != nil {
-			log.Errorf("conv metric and event to point failed: %w", err)
+			log.Errorf("conv metric and event to point failed: %v", err)
 		}
 		if count >= maxFeedCount {
 			if len(pts) > 0 && enableNetlog {
 				if err := exporter.FeedPoint("bpf-netlog/netlog", point.Logging, pts); err != nil {
-					log.Errorf("feed point(toatl %d) failed: %w", len(pts), err)
+					log.Errorf("feed point(toatl %d) failed: %v", len(pts), err)
 				}
 			}
 			pts = make([]*point.Point, 0, maxFeedCount)
@@ -298,7 +369,7 @@ func (conns *TCPConns) feedNetworkLog(pool *connMap,
 
 	if len(pts) > 0 && enableNetlog {
 		if err := exporter.FeedPoint("bpf-netlog/netlog", point.Logging, pts); err != nil {
-			log.Errorf("feed point(toatl %d) failed: %w", len(pts), err)
+			log.Errorf("feed point(toatl %d) failed: %v", len(pts), err)
 		}
 	}
 }
@@ -530,7 +601,7 @@ func appendUintFieldKVFast(kvs point.KVs, key string, val uint64) point.KVs {
 func buildHTTPLog(k *PMeta, v *PValue, elem *HTTPLogElem, baseKVs point.KVs,
 	agg *FlowAggHTTP, nsUID string, nicIPList []string,
 ) (point.KVs, int64, bool, error) {
-	kvs := cloneBaseKVs(baseKVs, 24)
+	kvs := cloneBaseKVs(baseKVs, 34)
 	if k != nil && elem.Host != "" {
 		netflow.RecordPeerDomain(k.DstIP, uint32(k.DstPort), "tcp", nsUID, elem.Host)
 		if !containsKVKey(kvs, "dst_domain") {
@@ -548,6 +619,28 @@ func buildHTTPLog(k *PMeta, v *PValue, elem *HTTPLogElem, baseKVs point.KVs,
 	kvs = appendStringTagKVFast(kvs, "http_path", elem.Path)
 	kvs = appendIntFieldKVFast(kvs, "http_status_code", int64(elem.StatusCode))
 	kvs = appendStringTagKVFast(kvs, "http_method", elem.Method)
+	if elem.TraceProvider != "" {
+		kvs = appendStringFieldKVFast(kvs, "trace_provider", elem.TraceProvider)
+	}
+	if elem.UserAgent != "" {
+		kvs = appendStringFieldKVFast(kvs, "http_user_agent", elem.UserAgent)
+	}
+	if elem.ReqContentType != "" {
+		kvs = appendStringFieldKVFast(kvs, "http_req_content_type", elem.ReqContentType)
+	}
+	if elem.RespContentType != "" {
+		kvs = appendStringFieldKVFast(kvs, "http_resp_content_type", elem.RespContentType)
+	}
+	if elem.ReqContentLength != nil {
+		kvs = appendIntFieldKVFast(kvs, "http_req_content_length", *elem.ReqContentLength)
+	}
+	if elem.RespContentLength != nil {
+		kvs = appendIntFieldKVFast(kvs, "http_resp_content_length", *elem.RespContentLength)
+	}
+	if elem.HeaderCount > 0 {
+		kvs = appendIntFieldKVFast(kvs, "http_header_count", int64(elem.HeaderCount))
+		kvs = appendIntFieldKVFast(kvs, "http_header_bytes", int64(elem.HeaderBytes))
+	}
 	kvs = appendStringFieldKVFast(kvs, "req_seq", strconv.FormatInt(int64(elem.reqSeq), 10))
 	kvs = appendStringFieldKVFast(kvs, "resp_seq", strconv.FormatInt(int64(elem.respSeq), 10))
 	kvs = appendStringTagKVFast(kvs, "l7_traceid", formatUintPair(uint64(elem.reqSeq), uint64(elem.respSeq)))
@@ -674,7 +767,7 @@ var _ = buildH2Log
 func buildH2Log(k *PMeta, v *PValue, elem *HTTP2LogElem, baseKVs point.KVs,
 	agg *FlowAggHTTP, nsUID string, nicIPList []string,
 ) (point.KVs, int64, bool, error) {
-	kvs := cloneBaseKVs(baseKVs, 16)
+	kvs := cloneBaseKVs(baseKVs, 30)
 	if k != nil && elem.Host != "" {
 		netflow.RecordPeerDomain(k.DstIP, uint32(k.DstPort), "tcp", nsUID, elem.Host)
 		if !containsKVKey(kvs, "dst_domain") {
@@ -697,6 +790,37 @@ func buildH2Log(k *PMeta, v *PValue, elem *HTTP2LogElem, baseKVs point.KVs,
 	kvs = appendStringFieldKVFast(kvs, "http_method", elem.Method)
 	kvs = appendStringFieldKVFast(kvs, "http_path", elem.Path)
 	kvs = appendIntFieldKVFast(kvs, "http_status_code", int64(elem.StatusCode))
+	if elem.StreamID != 0 {
+		kvs = appendUintFieldKVFast(kvs, "http2_stream_id", uint64(elem.StreamID))
+	}
+	if elem.TraceProvider != "" {
+		kvs = appendStringFieldKVFast(kvs, "trace_provider", elem.TraceProvider)
+	}
+	if elem.UserAgent != "" {
+		kvs = appendStringFieldKVFast(kvs, "http_user_agent", elem.UserAgent)
+	}
+	if elem.ReqContentType != "" {
+		kvs = appendStringFieldKVFast(kvs, "http_req_content_type", elem.ReqContentType)
+	}
+	if elem.RespContentType != "" {
+		kvs = appendStringFieldKVFast(kvs, "http_resp_content_type", elem.RespContentType)
+	}
+	if elem.ReqContentLength != nil {
+		kvs = appendIntFieldKVFast(kvs, "http_req_content_length", *elem.ReqContentLength)
+	}
+	if elem.RespContentLength != nil {
+		kvs = appendIntFieldKVFast(kvs, "http_resp_content_length", *elem.RespContentLength)
+	}
+	if elem.GRPCStatus != "" {
+		kvs = appendStringFieldKVFast(kvs, "grpc_status", elem.GRPCStatus)
+	}
+	if elem.GRPCMessage != "" {
+		kvs = appendStringFieldKVFast(kvs, "grpc_message", elem.GRPCMessage)
+	}
+	if elem.HeaderCount > 0 {
+		kvs = appendIntFieldKVFast(kvs, "http_header_count", int64(elem.HeaderCount))
+		kvs = appendIntFieldKVFast(kvs, "http_header_bytes", int64(elem.HeaderBytes))
+	}
 
 	var reqDlDur, respDlDur float64
 	var reqTS int64

@@ -33,9 +33,10 @@ var (
 	// podLabels is loaded from /etc/podinfo/labels file or environment variables.
 
 	// Global defaults.
-	globalSource       = os.Getenv("LOGFWD_GLOBAL_SOURCE")
-	globalStorageIndex = os.Getenv("LOGFWD_GLOBAL_STORAGE_INDEX")
-	globalService      = os.Getenv("LOGFWD_GLOBAL_SERVICE")
+	globalSource                     = os.Getenv("LOGFWD_GLOBAL_SOURCE")
+	globalStorageIndex               = os.Getenv("LOGFWD_GLOBAL_STORAGE_INDEX")
+	globalService                    = os.Getenv("LOGFWD_GLOBAL_SERVICE")
+	globalFromBeginningThresholdSize = os.Getenv("LOGFWD_GLOBAL_FROM_BEGINNING_THRESHOLD_SIZE")
 
 	// Configuration source.
 	envLogConfigsStr = os.Getenv("LOGFWD_LOG_CONFIGS")
@@ -325,6 +326,10 @@ func setConfigDefaults(cfg *logConfig) {
 	if globalStorageIndex != "" {
 		cfg.StorageIndex = globalStorageIndex
 	}
+
+	if thresholdSize, ok := getGlobalFromBeginningThresholdSize(); ok {
+		cfg.FromBeginningThresholdSize = thresholdSize
+	}
 }
 
 func setPodTags(cfg *logConfig) {
@@ -337,6 +342,21 @@ func setPodTags(cfg *logConfig) {
 	if _, exists := cfg.Tags["pod_ip"]; !exists && podIP != "" {
 		cfg.Tags["pod_ip"] = podIP
 	}
+}
+
+func getGlobalFromBeginningThresholdSize() (int64, bool) {
+	value := strings.TrimSpace(globalFromBeginningThresholdSize)
+	if value == "" {
+		return 0, false
+	}
+
+	thresholdSize, err := strconv.ParseInt(value, 10, 64)
+	if err != nil || thresholdSize <= 0 {
+		log.Warnf("invalid from_beginning_threshold_size: %s", value)
+		return 0, false
+	}
+
+	return thresholdSize, true
 }
 
 func setTagsFromPodLabels(cfg *logConfig, podLabels map[string]string, podTargetLabels []string) {

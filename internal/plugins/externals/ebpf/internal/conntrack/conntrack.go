@@ -29,6 +29,11 @@ const (
 	conntrackTupleMapName        = "bpfmap_conntrack_tuple"
 	conntrackUpdateFailMapName   = "bpfmap_conntrack_update_fail"
 	conntrackDefaultObserveEvery = time.Minute
+
+	conntrackTupleMapMaxEntriesEnv     = "DK_EBPF_CONNTRACK_TUPLE_MAP_MAX_ENTRIES"
+	defaultConntrackTupleMapMaxEntries = 65535
+	minConntrackTupleMapMaxEntries     = 1024
+	maxConntrackTupleMapMaxEntries     = 1048576
 )
 
 var conntrackInsertSymbols = []string{
@@ -77,6 +82,9 @@ var (
 func StartMapObserver(ctx context.Context, runtime *bpfutil.Runtime, interval time.Duration) {
 	if runtime == nil {
 		return
+	}
+	if ctx == nil {
+		ctx = context.Background()
 	}
 	tupleMap, err := runtime.LookupMap(conntrackTupleMapName)
 	if err != nil {
@@ -149,6 +157,26 @@ func uint64ToInt(v uint64) int {
 		return math.MaxInt
 	}
 	return int(v)
+}
+
+func conntrackTupleMapMaxEntries() uint32 {
+	raw := strings.TrimSpace(os.Getenv(conntrackTupleMapMaxEntriesEnv))
+	if raw == "" {
+		return defaultConntrackTupleMapMaxEntries
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n <= 0 {
+		log.Warnf("invalid %s=%q, use default %d",
+			conntrackTupleMapMaxEntriesEnv, raw, defaultConntrackTupleMapMaxEntries)
+		return defaultConntrackTupleMapMaxEntries
+	}
+	if n < minConntrackTupleMapMaxEntries {
+		return minConntrackTupleMapMaxEntries
+	}
+	if n > maxConntrackTupleMapMaxEntries {
+		return maxConntrackTupleMapMaxEntries
+	}
+	return uint32(n)
 }
 
 func SetTupleMap(mp *ebpf.Map) {
@@ -488,6 +516,9 @@ func NewConntrackRuntime(patches []bpfutil.ConstantPatch) (*bpfutil.Runtime, err
 		},
 		Constants:       patches,
 		LegacyConstants: useLegacyConsts,
+		MapMaxEntries: map[string]uint32{
+			conntrackTupleMapName: conntrackTupleMapMaxEntries(),
+		},
 	}
 
 	bufLoader := dkebpf.ConntrackBin

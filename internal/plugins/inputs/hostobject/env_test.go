@@ -21,4 +21,14 @@ func TestReadEnv(t *T.T) {
 
 		assert.True(t, ipt.DisableCloudProviderSync)
 	})
+
+	t.Run("cloud_provider_ksyun", func(t *T.T) {
+		ipt := defaultInput()
+		envs := map[string]string{
+			"ENV_CLOUD_PROVIDER": " KSYUN ",
+		}
+		ipt.ReadEnv(envs)
+
+		assert.Equal(t, Ksyun, ipt.Tags["cloud_provider"])
+	})
 }

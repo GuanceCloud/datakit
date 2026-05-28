@@ -112,7 +112,7 @@ func TestPrefixMultipart(t *testing.T) {
 	_, err = buf.Write(half)
 	assert.NoError(t, err)
 
-	t.Logf(string(all))
+	t.Log(string(all))
 
 	assert.Equal(t, true, bytes.Equal(all, buf.Bytes()))
 }

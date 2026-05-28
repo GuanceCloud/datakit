@@ -19,6 +19,7 @@ import (
 
 const (
 	CREDENTIALSTR = "******"
+	notSet        = "not-set"
 )
 
 func (i *instance) collectConfig(ctx context.Context, cli collectorClient, server, host string) {
@@ -63,7 +64,7 @@ func (i *instance) parseConfigAll(conf, mergedTags map[string]string, collectTim
 
 	for rawkey, strVal := range conf {
 		if strVal == "" {
-			strVal = "not-set"
+			strVal = notSet
 		}
 
 		n, err := strconv.Atoi(strVal)
@@ -86,7 +87,7 @@ func (i *instance) parseConfigAll(conf, mergedTags map[string]string, collectTim
 			"tls-key-file-pass",
 			"tls-client-key-file-pass":
 			// Mask credential fields
-			if strVal != "not-set" {
+			if strVal != notSet {
 				kvs = kvs.Add(key, CREDENTIALSTR)
 			} else {
 				kvs = kvs.Add(key, strVal)

@@ -6,7 +6,6 @@ package packet
 
 import (
 	"io"
-	"io/ioutil"
 	"strings"
 )
 
@@ -66,7 +65,7 @@ func NewUserId(name, comment, email string) *UserId {
 
 func (uid *UserId) parse(r io.Reader) (err error) {
 	// RFC 4880, section 5.11
-	b, err := ioutil.ReadAll(r)
+	b, err := io.ReadAll(r)
 	if err != nil {
 		return
 	}
@@ -156,5 +155,12 @@ func parseUserId(id string) (name, comment, email string) {
 	name = strings.TrimSpace(id[n.start:n.end])
 	comment = strings.TrimSpace(id[c.start:c.end])
 	email = strings.TrimSpace(id[e.start:e.end])
+
+	// RFC 2822 3.4: alternate simple form of a mailbox
+	if email == "" && strings.ContainsRune(name, '@') {
+		email = name
+		name = ""
+	}
+
 	return
 }

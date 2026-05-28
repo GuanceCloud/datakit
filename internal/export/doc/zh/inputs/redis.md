@@ -170,11 +170,11 @@ Redis 集群节点和主从节点的采集和单点节点（standalone）的配�
 
 {{ end }}
 
-## 自定义对象 {#object}
+## 对象 {#object}
 
 {{ range $i, $m := .Measurements }}
 
-{{if eq $m.Type "custom_object"}}
+{{if eq $m.Type "object"}}
 
 ### `{{$m.Name}}`
 
@@ -184,6 +184,24 @@ Redis 集群节点和主从节点的采集和单点节点（standalone）的配�
 {{end}}
 
 {{ end }}
+
+### `message` 指标字段结构 {#message-struct}
+
+`message` 字段基本结构如下：
+
+```json
+{
+  "setting": {
+    "maxmemory": "0",
+    "maxmemory-policy": "noeviction",
+    "requirepass": "******"
+  }
+}
+```
+
+#### `setting` {#setting}
+
+`setting` 字段中的数据来源于当前 Redis 节点的 `CONFIG GET *` 输出。密码类配置（如 `requirepass`、`masterauth`、`tls-key-file-pass`、`tls-client-key-file-pass`）会被脱敏为 `******`。
 
 ## 日志 {#logging}
 

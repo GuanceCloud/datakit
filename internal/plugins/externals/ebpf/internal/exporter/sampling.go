@@ -80,6 +80,7 @@ func (s *sampling) autoRate(ctx context.Context) {
 	fn := func() {
 		var lastStats map[string]float64
 		tk := time.NewTicker(time.Minute)
+		defer tk.Stop()
 		for {
 			select {
 			case <-tk.C:

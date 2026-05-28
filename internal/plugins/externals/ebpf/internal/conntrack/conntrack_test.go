@@ -26,6 +26,20 @@ func TestKernelSymbolsAvailable(t *testing.T) {
 	}
 }
 
+func TestKernelSymbolDetectionIgnoresDerivedSymbols(t *testing.T) {
+	text := "" +
+		"0000000000000000 t nf_conntrack_hash_check_insert.cold\t[nf_conntrack]\n" +
+		"0000000000000000 t __pfx_nf_conntrack_hash_check_insert\t[nf_conntrack]\n" +
+		"0000000000000000 r __kstrtab_nf_conntrack_hash_check_insert\t[nf_conntrack]\n"
+
+	if kernelSymbolsAvailable(text, []string{"nf_conntrack_hash_check_insert"}) {
+		t.Fatal("did not expect derived symbols to satisfy exact hook detection")
+	}
+	if got := firstAvailableKernelSymbol(text, []string{"nf_conntrack_hash_check_insert"}); got != "" {
+		t.Fatalf("unexpected derived symbol match: %q", got)
+	}
+}
+
 func TestResolveHookSelectionPrefersHashCheckInsert(t *testing.T) {
 	text := "" +
 		"0000000000000000 t __nf_conntrack_hash_insert\t[nf_conntrack]\n" +
@@ -119,5 +133,27 @@ func TestConntrackKprobeInterfaceAvailableAt(t *testing.T) {
 	}
 	if conntrackKprobeInterfaceAvailableAt([]string{filepath.Join(dir, "missing")}) {
 		t.Fatal("did not expect missing path to be treated as available")
+	}
+}
+
+func TestConntrackTupleMapMaxEntriesEnv(t *testing.T) {
+	t.Setenv(conntrackTupleMapMaxEntriesEnv, "")
+	if got := conntrackTupleMapMaxEntries(); got != defaultConntrackTupleMapMaxEntries {
+		t.Fatalf("default tuple map entries = %d, want %d", got, defaultConntrackTupleMapMaxEntries)
+	}
+
+	t.Setenv(conntrackTupleMapMaxEntriesEnv, "2048")
+	if got := conntrackTupleMapMaxEntries(); got != 2048 {
+		t.Fatalf("configured tuple map entries = %d, want 2048", got)
+	}
+
+	t.Setenv(conntrackTupleMapMaxEntriesEnv, "1")
+	if got := conntrackTupleMapMaxEntries(); got != minConntrackTupleMapMaxEntries {
+		t.Fatalf("min-clamped tuple map entries = %d, want %d", got, minConntrackTupleMapMaxEntries)
+	}
+
+	t.Setenv(conntrackTupleMapMaxEntriesEnv, "99999999")
+	if got := conntrackTupleMapMaxEntries(); got != maxConntrackTupleMapMaxEntries {
+		t.Fatalf("max-clamped tuple map entries = %d, want %d", got, maxConntrackTupleMapMaxEntries)
 	}
 }

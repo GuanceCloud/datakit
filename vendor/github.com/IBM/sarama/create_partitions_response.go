@@ -11,8 +11,12 @@ type CreatePartitionsResponse struct {
 	TopicPartitionErrors map[string]*TopicPartitionError
 }
 
+func (c *CreatePartitionsResponse) setVersion(v int16) {
+	c.Version = v
+}
+
 func (c *CreatePartitionsResponse) encode(pe packetEncoder) error {
-	pe.putInt32(int32(c.ThrottleTime / time.Millisecond))
+	pe.putDurationMs(c.ThrottleTime)
 	if err := pe.putArrayLength(len(c.TopicPartitionErrors)); err != nil {
 		return err
 	}
@@ -26,15 +30,15 @@ func (c *CreatePartitionsResponse) encode(pe packetEncoder) error {
 		}
 	}
 
+	pe.putEmptyTaggedFieldArray()
 	return nil
 }
 
 func (c *CreatePartitionsResponse) decode(pd packetDecoder, version int16) (err error) {
-	throttleTime, err := pd.getInt32()
-	if err != nil {
+	c.Version = version
+	if c.ThrottleTime, err = pd.getDurationMs(); err != nil {
 		return err
 	}
-	c.ThrottleTime = time.Duration(throttleTime) * time.Millisecond
 
 	n, err := pd.getArrayLength()
 	if err != nil {
@@ -53,11 +57,12 @@ func (c *CreatePartitionsResponse) decode(pd packetDecoder, version int16) (err 
 		}
 	}
 
-	return nil
+	_, err = pd.getEmptyTaggedFieldArray()
+	return err
 }
 
 func (r *CreatePartitionsResponse) key() int16 {
-	return 37
+	return apiKeyCreatePartitions
 }
 
 func (r *CreatePartitionsResponse) version() int16 {
@@ -65,15 +70,28 @@ func (r *CreatePartitionsResponse) version() int16 {
 }
 
 func (r *CreatePartitionsResponse) headerVersion() int16 {
+	if r.Version >= 2 {
+		return 1
+	}
 	return 0
 }
 
 func (r *CreatePartitionsResponse) isValidVersion() bool {
-	return r.Version >= 0 && r.Version <= 1
+	return r.Version >= 0 && r.Version <= 2
+}
+
+func (r *CreatePartitionsResponse) isFlexible() bool {
+	return r.isFlexibleVersion(r.Version)
+}
+
+func (r *CreatePartitionsResponse) isFlexibleVersion(version int16) bool {
+	return version >= 2
 }
 
 func (r *CreatePartitionsResponse) requiredVersion() KafkaVersion {
 	switch r.Version {
+	case 2:
+		return V2_5_0_0
 	case 1:
 		return V2_0_0_0
 	case 0:
@@ -105,25 +123,26 @@ func (t *TopicPartitionError) Unwrap() error {
 }
 
 func (t *TopicPartitionError) encode(pe packetEncoder) error {
-	pe.putInt16(int16(t.Err))
+	pe.putKError(t.Err)
 
 	if err := pe.putNullableString(t.ErrMsg); err != nil {
 		return err
 	}
 
+	pe.putEmptyTaggedFieldArray()
 	return nil
 }
 
 func (t *TopicPartitionError) decode(pd packetDecoder, version int16) (err error) {
-	kerr, err := pd.getInt16()
+	t.Err, err = pd.getKError()
 	if err != nil {
 		return err
 	}
-	t.Err = KError(kerr)
 
 	if t.ErrMsg, err = pd.getNullableString(); err != nil {
 		return err
 	}
 
-	return nil
+	_, err = pd.getEmptyTaggedFieldArray()
+	return err
 }

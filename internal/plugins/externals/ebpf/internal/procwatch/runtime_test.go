@@ -5,14 +5,17 @@ package procwatch
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 	"unsafe"
 
 	dkebpf "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/c"
+	"golang.org/x/sys/unix"
 )
 
 func TestNewProbeWatcherLazyLoad(t *testing.T) {
@@ -51,6 +54,53 @@ func TestNewProbeWatcherWithAllowTraceButNoTarget(t *testing.T) {
 	}
 	if w.Runtime == nil {
 		t.Fatal("probe runtime should be initialized when trace target configured")
+	}
+}
+
+func TestProbeWatcherStartHandlesNilReceiver(t *testing.T) {
+	var watcher *ProbeWatcher
+	if err := watcher.Start(context.Background()); err != nil {
+		t.Fatalf("nil watcher start returned error: %v", err)
+	}
+}
+
+func TestProbeWatcherStartHandlesNilContextWhenDisabled(t *testing.T) {
+	watcher := &ProbeWatcher{}
+	if err := watcher.Start(nil); err != nil {
+		t.Fatalf("disabled watcher start with nil context returned error: %v", err)
+	}
+}
+
+func TestProcwatchMapMaxEntriesEnv(t *testing.T) {
+	t.Setenv(procwatchMapMaxEntriesEnv, "")
+	if got := procwatchMapMaxEntries(); got != defaultProcwatchMapMaxEntries {
+		t.Fatalf("default procwatch map entries = %d, want %d", got, defaultProcwatchMapMaxEntries)
+	}
+
+	t.Setenv(procwatchMapMaxEntriesEnv, "2048")
+	if got := procwatchMapMaxEntries(); got != 2048 {
+		t.Fatalf("configured procwatch map entries = %d, want 2048", got)
+	}
+
+	t.Setenv(procwatchMapMaxEntriesEnv, "1")
+	if got := procwatchMapMaxEntries(); got != minProcwatchMapMaxEntries {
+		t.Fatalf("min-clamped procwatch map entries = %d, want %d", got, minProcwatchMapMaxEntries)
+	}
+
+	t.Setenv(procwatchMapMaxEntriesEnv, strconv.Itoa(maxProcwatchMapMaxEntries+1))
+	if got := procwatchMapMaxEntries(); got != maxProcwatchMapMaxEntries {
+		t.Fatalf("max-clamped procwatch map entries = %d, want %d", got, maxProcwatchMapMaxEntries)
+	}
+}
+
+func TestProcwatchMapMaxEntriesOverrideIncludesProcessSchedMaps(t *testing.T) {
+	t.Setenv(procwatchMapMaxEntriesEnv, "4096")
+
+	got := procwatchMapMaxEntriesOverride()
+	for _, name := range []string{mapProcInject, mapProcFilter, mapTidToGoID} {
+		if got[name] != 4096 {
+			t.Fatalf("map %s max entries = %d, want 4096", name, got[name])
+		}
 	}
 }
 
@@ -214,6 +264,28 @@ func TestHandleEventExecQueuesAttach(t *testing.T) {
 	req.close()
 }
 
+func TestEnqueueAttachSkipsProcFDWhenBacklogHigh(t *testing.T) {
+	procRoot := t.TempDir()
+	t.Setenv("HOST_PROC", procRoot)
+	writeFakeProcStat(t, procRoot, 1234, "app", 1)
+
+	watcher := &ProbeWatcher{
+		attachCh:      make(chan attachRequest, procwatchAttachQueueSize),
+		pendingAttach: make(map[int]struct{}),
+	}
+	for i := 1; i <= procwatchAttachProcFDBudget; i++ {
+		watcher.pendingAttach[i] = struct{}{}
+	}
+
+	watcher.enqueueAttach(1234)
+
+	req := <-watcher.attachCh
+	if req.procDirFD != -1 {
+		req.close()
+		t.Fatalf("expected proc fd to be skipped above budget, got %d", req.procDirFD)
+	}
+}
+
 func TestHandleEventExecQueuesUrgentAttachForWhitelistedName(t *testing.T) {
 	procRoot := t.TempDir()
 	t.Setenv("HOST_PROC", procRoot)
@@ -351,6 +423,60 @@ func TestEnqueueAttachTripsFuseOnBacklog(t *testing.T) {
 	}
 }
 
+func TestDropAttachBacklogClosesQueuedRequests(t *testing.T) {
+	batchFD := testPipeFD(t)
+	queueFD := testPipeFD(t)
+	watcher := &ProbeWatcher{
+		attachCh: make(chan attachRequest, 2),
+		pendingAttach: map[int]struct{}{
+			1: {},
+			2: {},
+		},
+	}
+	watcher.attachCh <- attachRequest{pid: 2, procDirFD: queueFD}
+
+	batch := []attachRequest{{pid: 1, procDirFD: batchFD}}
+	batch = watcher.dropAttachBacklog(batch)
+
+	if len(batch) != 0 {
+		t.Fatalf("batch len = %d, want 0", len(batch))
+	}
+	if len(watcher.attachCh) != 0 {
+		t.Fatalf("attach queue len = %d, want 0", len(watcher.attachCh))
+	}
+	if len(watcher.pendingAttach) != 0 {
+		t.Fatalf("pending attach len = %d, want 0", len(watcher.pendingAttach))
+	}
+	assertFDClosed(t, batchFD)
+	assertFDClosed(t, queueFD)
+}
+
+func TestProbeWatcherStopDrainsQueuedAttachRequests(t *testing.T) {
+	fd := testPipeFD(t)
+	watcher := &ProbeWatcher{
+		attachCh: make(chan attachRequest, 1),
+		pendingAttach: map[int]struct{}{
+			1: {},
+		},
+	}
+	watcher.attachCh <- attachRequest{pid: 1, procDirFD: fd}
+
+	if err := watcher.Stop(); err != nil {
+		t.Fatal(err)
+	}
+
+	if got := len(watcher.attachCh); got != 0 {
+		t.Fatalf("attach queue len = %d, want 0", got)
+	}
+	if got := len(watcher.pendingAttach); got != 0 {
+		t.Fatalf("pending attach len = %d, want 0", got)
+	}
+	if !watcher.stopping {
+		t.Fatal("expected watcher to be marked stopping")
+	}
+	assertFDClosed(t, fd)
+}
+
 func TestAttachProcessSkipsStaleRequestBeforeResolve(t *testing.T) {
 	procRoot := t.TempDir()
 	t.Setenv("HOST_PROC", procRoot)
@@ -361,6 +487,30 @@ func TestAttachProcessSkipsStaleRequestBeforeResolve(t *testing.T) {
 	watcher := &ProbeWatcher{}
 	if err := watcher.attachProcess(attachRequest{pid: pid, startTime: 99999}); err != nil {
 		t.Fatalf("stale attach request should be ignored without error: %v", err)
+	}
+}
+
+func testPipeFD(t *testing.T) int {
+	t.Helper()
+	var fds [2]int
+	if err := unix.Pipe(fds[:]); err != nil {
+		t.Fatalf("pipe: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = unix.Close(fds[0])
+		_ = unix.Close(fds[1])
+	})
+	return fds[0]
+}
+
+func assertFDClosed(t *testing.T, fd int) {
+	t.Helper()
+	err := unix.Close(fd)
+	if err == nil {
+		t.Fatalf("fd %d was still open", fd)
+	}
+	if !errors.Is(err, unix.EBADF) {
+		t.Fatalf("close fd %d = %v, want EBADF", fd, err)
 	}
 }
 

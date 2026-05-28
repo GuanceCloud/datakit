@@ -8,6 +8,7 @@ package windowsremote
 import (
 	"fmt"
 	"net"
+	"strconv"
 	"time"
 )
 
@@ -71,7 +72,7 @@ func incIP(ip net.IP) {
 }
 
 func isPortOpen(protocol, ip string, port int, timeout time.Duration) bool {
-	address := fmt.Sprintf("%s:%d", ip, port)
+	address := net.JoinHostPort(ip, strconv.Itoa(port))
 	_, err := net.DialTimeout(protocol, address, timeout)
 	return err == nil
 }

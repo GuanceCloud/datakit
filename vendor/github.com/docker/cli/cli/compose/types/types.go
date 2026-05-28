@@ -1,8 +1,12 @@
+// FIXME(thaJeztah): remove once we are a module; the go:build directive prevents go from downgrading language version to go1.16:
+//go:build go1.19
+
 package types
 
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -49,7 +53,7 @@ var ForbiddenProperties = map[string]string{
 // ConfigFile is a filename and the contents of the file as a Dict
 type ConfigFile struct {
 	Filename string
-	Config   map[string]interface{}
+	Config   map[string]any
 }
 
 // ConfigDetails are the details about a group of ConfigFiles
@@ -82,7 +86,7 @@ func (d Duration) MarshalJSON() ([]byte, error) {
 }
 
 // MarshalYAML makes Duration implement yaml.Marshaler
-func (d Duration) MarshalYAML() (interface{}, error) {
+func (d Duration) MarshalYAML() (any, error) {
 	return d.String(), nil
 }
 
@@ -101,12 +105,12 @@ type Config struct {
 	Volumes  map[string]VolumeConfig    `yaml:",omitempty" json:"volumes,omitempty"`
 	Secrets  map[string]SecretConfig    `yaml:",omitempty" json:"secrets,omitempty"`
 	Configs  map[string]ConfigObjConfig `yaml:",omitempty" json:"configs,omitempty"`
-	Extras   map[string]interface{}     `yaml:",inline" json:"-"`
+	Extras   map[string]any             `yaml:",inline" json:"-"`
 }
 
 // MarshalJSON makes Config implement json.Marshaler
 func (c Config) MarshalJSON() ([]byte, error) {
-	m := map[string]interface{}{
+	m := map[string]any{
 		"version":  c.Version,
 		"services": c.Services,
 	}
@@ -133,7 +137,7 @@ func (c Config) MarshalJSON() ([]byte, error) {
 type Services []ServiceConfig
 
 // MarshalYAML makes Services implement yaml.Marshaller
-func (s Services) MarshalYAML() (interface{}, error) {
+func (s Services) MarshalYAML() (any, error) {
 	services := map[string]ServiceConfig{}
 	for _, service := range s {
 		services[service.Name] = service
@@ -207,7 +211,7 @@ type ServiceConfig struct {
 	Volumes         []ServiceVolumeConfig            `yaml:",omitempty" json:"volumes,omitempty"`
 	WorkingDir      string                           `mapstructure:"working_dir" yaml:"working_dir,omitempty" json:"working_dir,omitempty"`
 
-	Extras map[string]interface{} `yaml:",inline" json:"-"`
+	Extras map[string]any `yaml:",inline" json:"-"`
 }
 
 // BuildConfig is a type for build
@@ -276,12 +280,13 @@ type DeployConfig struct {
 
 // HealthCheckConfig the healthcheck configuration for a service
 type HealthCheckConfig struct {
-	Test        HealthCheckTest `yaml:",omitempty" json:"test,omitempty"`
-	Timeout     *Duration       `yaml:",omitempty" json:"timeout,omitempty"`
-	Interval    *Duration       `yaml:",omitempty" json:"interval,omitempty"`
-	Retries     *uint64         `yaml:",omitempty" json:"retries,omitempty"`
-	StartPeriod *Duration       `mapstructure:"start_period" yaml:"start_period,omitempty" json:"start_period,omitempty"`
-	Disable     bool            `yaml:",omitempty" json:"disable,omitempty"`
+	Test          HealthCheckTest `yaml:",omitempty" json:"test,omitempty"`
+	Timeout       *Duration       `yaml:",omitempty" json:"timeout,omitempty"`
+	Interval      *Duration       `yaml:",omitempty" json:"interval,omitempty"`
+	Retries       *uint64         `yaml:",omitempty" json:"retries,omitempty"`
+	StartPeriod   *Duration       `mapstructure:"start_period" yaml:"start_period,omitempty" json:"start_period,omitempty"`
+	StartInterval *Duration       `mapstructure:"start_interval" yaml:"start_interval,omitempty" json:"start_interval,omitempty"`
+	Disable       bool            `yaml:",omitempty" json:"disable,omitempty"`
 }
 
 // HealthCheckTest is the command run to test the health of a service
@@ -338,7 +343,7 @@ type DiscreteGenericResource struct {
 type UnitBytes int64
 
 // MarshalYAML makes UnitBytes implement yaml.Marshaller
-func (u UnitBytes) MarshalYAML() (interface{}, error) {
+func (u UnitBytes) MarshalYAML() (any, error) {
 	return fmt.Sprintf("%d", u), nil
 }
 
@@ -384,14 +389,15 @@ type ServicePortConfig struct {
 
 // ServiceVolumeConfig are references to a volume used by a service
 type ServiceVolumeConfig struct {
-	Type        string               `yaml:",omitempty" json:"type,omitempty"`
-	Source      string               `yaml:",omitempty" json:"source,omitempty"`
-	Target      string               `yaml:",omitempty" json:"target,omitempty"`
-	ReadOnly    bool                 `mapstructure:"read_only" yaml:"read_only,omitempty" json:"read_only,omitempty"`
-	Consistency string               `yaml:",omitempty" json:"consistency,omitempty"`
-	Bind        *ServiceVolumeBind   `yaml:",omitempty" json:"bind,omitempty"`
-	Volume      *ServiceVolumeVolume `yaml:",omitempty" json:"volume,omitempty"`
-	Tmpfs       *ServiceVolumeTmpfs  `yaml:",omitempty" json:"tmpfs,omitempty"`
+	Type        string                `yaml:",omitempty" json:"type,omitempty"`
+	Source      string                `yaml:",omitempty" json:"source,omitempty"`
+	Target      string                `yaml:",omitempty" json:"target,omitempty"`
+	ReadOnly    bool                  `mapstructure:"read_only" yaml:"read_only,omitempty" json:"read_only,omitempty"`
+	Consistency string                `yaml:",omitempty" json:"consistency,omitempty"`
+	Bind        *ServiceVolumeBind    `yaml:",omitempty" json:"bind,omitempty"`
+	Volume      *ServiceVolumeVolume  `yaml:",omitempty" json:"volume,omitempty"`
+	Tmpfs       *ServiceVolumeTmpfs   `yaml:",omitempty" json:"tmpfs,omitempty"`
+	Cluster     *ServiceVolumeCluster `yaml:",omitempty" json:"cluster,omitempty"`
 }
 
 // ServiceVolumeBind are options for a service volume of type bind
@@ -408,6 +414,10 @@ type ServiceVolumeVolume struct {
 type ServiceVolumeTmpfs struct {
 	Size int64 `yaml:",omitempty" json:"size,omitempty"`
 }
+
+// ServiceVolumeCluster are options for a service volume of type cluster.
+// Deliberately left blank for future options, but unused now.
+type ServiceVolumeCluster struct{}
 
 // FileReferenceConfig for a reference to a swarm file object
 type FileReferenceConfig struct {
@@ -432,11 +442,12 @@ type UlimitsConfig struct {
 }
 
 // MarshalYAML makes UlimitsConfig implement yaml.Marshaller
-func (u *UlimitsConfig) MarshalYAML() (interface{}, error) {
+func (u *UlimitsConfig) MarshalYAML() (any, error) {
 	if u.Single != 0 {
 		return u.Single, nil
 	}
-	return u, nil
+	// Return as a value to avoid re-entering this method and use the default implementation
+	return *u, nil
 }
 
 // MarshalJSON makes UlimitsConfig implement json.Marshaller
@@ -450,15 +461,15 @@ func (u *UlimitsConfig) MarshalJSON() ([]byte, error) {
 
 // NetworkConfig for a network
 type NetworkConfig struct {
-	Name       string                 `yaml:",omitempty" json:"name,omitempty"`
-	Driver     string                 `yaml:",omitempty" json:"driver,omitempty"`
-	DriverOpts map[string]string      `mapstructure:"driver_opts" yaml:"driver_opts,omitempty" json:"driver_opts,omitempty"`
-	Ipam       IPAMConfig             `yaml:",omitempty" json:"ipam,omitempty"`
-	External   External               `yaml:",omitempty" json:"external,omitempty"`
-	Internal   bool                   `yaml:",omitempty" json:"internal,omitempty"`
-	Attachable bool                   `yaml:",omitempty" json:"attachable,omitempty"`
-	Labels     Labels                 `yaml:",omitempty" json:"labels,omitempty"`
-	Extras     map[string]interface{} `yaml:",inline" json:"-"`
+	Name       string            `yaml:",omitempty" json:"name,omitempty"`
+	Driver     string            `yaml:",omitempty" json:"driver,omitempty"`
+	DriverOpts map[string]string `mapstructure:"driver_opts" yaml:"driver_opts,omitempty" json:"driver_opts,omitempty"`
+	Ipam       IPAMConfig        `yaml:",omitempty" json:"ipam,omitempty"`
+	External   External          `yaml:",omitempty" json:"external,omitempty"`
+	Internal   bool              `yaml:",omitempty" json:"internal,omitempty"`
+	Attachable bool              `yaml:",omitempty" json:"attachable,omitempty"`
+	Labels     Labels            `yaml:",omitempty" json:"labels,omitempty"`
+	Extras     map[string]any    `yaml:",inline" json:"-"`
 }
 
 // IPAMConfig for a network
@@ -474,12 +485,69 @@ type IPAMPool struct {
 
 // VolumeConfig for a volume
 type VolumeConfig struct {
-	Name       string                 `yaml:",omitempty" json:"name,omitempty"`
-	Driver     string                 `yaml:",omitempty" json:"driver,omitempty"`
-	DriverOpts map[string]string      `mapstructure:"driver_opts" yaml:"driver_opts,omitempty" json:"driver_opts,omitempty"`
-	External   External               `yaml:",omitempty" json:"external,omitempty"`
-	Labels     Labels                 `yaml:",omitempty" json:"labels,omitempty"`
-	Extras     map[string]interface{} `yaml:",inline" json:"-"`
+	Name       string             `yaml:",omitempty" json:"name,omitempty"`
+	Driver     string             `yaml:",omitempty" json:"driver,omitempty"`
+	DriverOpts map[string]string  `mapstructure:"driver_opts" yaml:"driver_opts,omitempty" json:"driver_opts,omitempty"`
+	External   External           `yaml:",omitempty" json:"external,omitempty"`
+	Labels     Labels             `yaml:",omitempty" json:"labels,omitempty"`
+	Extras     map[string]any     `yaml:",inline" json:"-"`
+	Spec       *ClusterVolumeSpec `mapstructure:"x-cluster-spec" yaml:"x-cluster-spec,omitempty" json:"x-cluster-spec,omitempty"`
+}
+
+// ClusterVolumeSpec defines all the configuration and options specific to a
+// cluster (CSI) volume.
+type ClusterVolumeSpec struct {
+	Group                     string               `yaml:",omitempty" json:"group,omitempty"`
+	AccessMode                *AccessMode          `mapstructure:"access_mode" yaml:"access_mode,omitempty" json:"access_mode,omitempty"`
+	AccessibilityRequirements *TopologyRequirement `mapstructure:"accessibility_requirements" yaml:"accessibility_requirements,omitempty" json:"accessibility_requirements,omitempty"`
+	CapacityRange             *CapacityRange       `mapstructure:"capacity_range" yaml:"capacity_range,omitempty" json:"capacity_range,omitempty"`
+
+	Secrets []VolumeSecret `yaml:",omitempty" json:"secrets,omitempty"`
+
+	Availability string `yaml:",omitempty" json:"availability,omitempty"`
+}
+
+// AccessMode defines the way a cluster volume is accessed by the tasks
+type AccessMode struct {
+	Scope   string `yaml:",omitempty" json:"scope,omitempty"`
+	Sharing string `yaml:",omitempty" json:"sharing,omitempty"`
+
+	MountVolume *MountVolume `mapstructure:"mount_volume" yaml:"mount_volume,omitempty" json:"mount_volume,omitempty"`
+	BlockVolume *BlockVolume `mapstructure:"block_volume" yaml:"block_volume,omitempty" json:"block_volume,omitempty"`
+}
+
+// MountVolume defines options for using a volume as a Mount
+type MountVolume struct {
+	FsType     string   `mapstructure:"fs_type" yaml:"fs_type,omitempty" json:"fs_type,omitempty"`
+	MountFlags []string `mapstructure:"mount_flags" yaml:"mount_flags,omitempty" json:"mount_flags,omitempty"`
+}
+
+// BlockVolume is deliberately empty
+type BlockVolume struct{}
+
+// TopologyRequirement defines the requirements for volume placement in the
+// cluster.
+type TopologyRequirement struct {
+	Requisite []Topology `yaml:",omitempty" json:"requisite,omitempty"`
+	Preferred []Topology `yaml:",omitempty" json:"preferred,omitempty"`
+}
+
+// Topology defines a particular topology group
+type Topology struct {
+	Segments Mapping `yaml:",omitempty" json:"segments,omitempty"`
+}
+
+// CapacityRange defines the minimum and maximum size of a volume.
+type CapacityRange struct {
+	RequiredBytes UnitBytes `mapstructure:"required_bytes" yaml:"required_bytes,omitempty" json:"required_bytes,omitempty"`
+	LimitBytes    UnitBytes `mapstructure:"limit_bytes" yaml:"limit_bytes,omitempty" json:"limit_bytes,omitempty"`
+}
+
+// VolumeSecret defines a secret that needs to be passed to the CSI plugin when
+// using the volume.
+type VolumeSecret struct {
+	Key    string `yaml:",omitempty" json:"key,omitempty"`
+	Secret string `yaml:",omitempty" json:"secret,omitempty"`
 }
 
 // External identifies a Volume or Network as a reference to a resource that is
@@ -491,7 +559,7 @@ type External struct {
 }
 
 // MarshalYAML makes External implement yaml.Marshaller
-func (e External) MarshalYAML() (interface{}, error) {
+func (e External) MarshalYAML() (any, error) {
 	if e.Name == "" {
 		return e.External, nil
 	}
@@ -501,7 +569,7 @@ func (e External) MarshalYAML() (interface{}, error) {
 // MarshalJSON makes External implement json.Marshaller
 func (e External) MarshalJSON() ([]byte, error) {
 	if e.Name == "" {
-		return []byte(fmt.Sprintf("%v", e.External)), nil
+		return []byte(strconv.FormatBool(e.External)), nil
 	}
 	return []byte(fmt.Sprintf(`{"name": %q}`, e.Name)), nil
 }
@@ -515,14 +583,14 @@ type CredentialSpecConfig struct {
 
 // FileObjectConfig is a config type for a file used by a service
 type FileObjectConfig struct {
-	Name           string                 `yaml:",omitempty" json:"name,omitempty"`
-	File           string                 `yaml:",omitempty" json:"file,omitempty"`
-	External       External               `yaml:",omitempty" json:"external,omitempty"`
-	Labels         Labels                 `yaml:",omitempty" json:"labels,omitempty"`
-	Extras         map[string]interface{} `yaml:",inline" json:"-"`
-	Driver         string                 `yaml:",omitempty" json:"driver,omitempty"`
-	DriverOpts     map[string]string      `mapstructure:"driver_opts" yaml:"driver_opts,omitempty" json:"driver_opts,omitempty"`
-	TemplateDriver string                 `mapstructure:"template_driver" yaml:"template_driver,omitempty" json:"template_driver,omitempty"`
+	Name           string            `yaml:",omitempty" json:"name,omitempty"`
+	File           string            `yaml:",omitempty" json:"file,omitempty"`
+	External       External          `yaml:",omitempty" json:"external,omitempty"`
+	Labels         Labels            `yaml:",omitempty" json:"labels,omitempty"`
+	Extras         map[string]any    `yaml:",inline" json:"-"`
+	Driver         string            `yaml:",omitempty" json:"driver,omitempty"`
+	DriverOpts     map[string]string `mapstructure:"driver_opts" yaml:"driver_opts,omitempty" json:"driver_opts,omitempty"`
+	TemplateDriver string            `mapstructure:"template_driver" yaml:"template_driver,omitempty" json:"template_driver,omitempty"`
 }
 
 // SecretConfig for a secret

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
@@ -78,6 +79,46 @@ func TestSenderFeedBatchesLargePayload(t *testing.T) {
 			"http://127.0.0.1:9529/v1/write/network?input="+url.QueryEscape("bpf-netlog/netflow"),
 			task.targetURL,
 		)
+	}
+}
+
+func TestSenderFeedDropsWhenQueueFull(t *testing.T) {
+	sender := &Sender{
+		ctx:            context.Background(),
+		ch:             make(chan *task, 1),
+		target:         buildTarget("http://127.0.0.1:9529", "http://127.0.0.1:9529"),
+		enqueueTimeout: time.Millisecond,
+	}
+	sender.ch <- &task{
+		targetURL: "http://127.0.0.1:9529/v1/write/network?input=existing",
+		data:      makeTestPoints(1),
+	}
+
+	pts := makeTestPoints(1)
+	start := time.Now()
+	err := sender.feed("bpf-netlog/netflow", point.Network, pts)
+	require.Error(t, err)
+	assert.Less(t, time.Since(start), time.Second)
+	assert.Nil(t, pts[0])
+}
+
+func TestSenderFeedClearsRemainingPointsWhenQueueFull(t *testing.T) {
+	sender := &Sender{
+		ctx:            context.Background(),
+		ch:             make(chan *task, 1),
+		target:         buildTarget("http://127.0.0.1:9529", "http://127.0.0.1:9529"),
+		enqueueTimeout: time.Millisecond,
+	}
+	sender.ch <- &task{
+		targetURL: "http://127.0.0.1:9529/v1/write/network?input=existing",
+		data:      makeTestPoints(1),
+	}
+
+	pts := makeTestPoints(maxPtSendCount + 1)
+	err := sender.feed("bpf-netlog/netflow", point.Network, pts)
+	require.Error(t, err)
+	for i := range pts {
+		assert.Nil(t, pts[i])
 	}
 }
 

@@ -19,6 +19,7 @@ import (
 	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/go-sql-driver/mysql"
+	goVersion "github.com/hashicorp/go-version"
 	"github.com/jmoiron/sqlx"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
@@ -77,6 +78,7 @@ type Input struct {
 	slowQueryTime      time.Duration
 	collectors         map[string]func() (point.Category, []*point.Point, error)
 	tenantNames        map[string]string
+	obVersion          string
 	ptsTime            time.Time
 }
 
@@ -111,7 +113,41 @@ func (ipt *Input) initCfg() error {
 		return err
 	}
 
+	if err := ipt.initOBVersion(); err != nil {
+		l.Warnf("get oceanbase version failed: %s", err.Error())
+	}
+
 	return nil
+}
+
+func (ipt *Input) initOBVersion() error {
+	var version string
+	if err := ipt.db.Get(&version, "SELECT OB_VERSION()"); err != nil {
+		return err
+	}
+
+	ipt.obVersion = strings.TrimSpace(version)
+	return nil
+}
+
+func (ipt *Input) isOBVersionGreaterOrEqualThan(v string) bool {
+	if ipt.obVersion == "" {
+		return false
+	}
+
+	current, err := goVersion.NewVersion(ipt.obVersion)
+	if err != nil {
+		l.Warnf("parse oceanbase version %q failed: %s", ipt.obVersion, err.Error())
+		return false
+	}
+
+	target, err := goVersion.NewVersion(v)
+	if err != nil {
+		l.Warnf("parse target oceanbase version %q failed: %s", v, err.Error())
+		return false
+	}
+
+	return current.GreaterThanOrEqual(target)
 }
 
 func (ipt *Input) getDsnString() (string, error) {

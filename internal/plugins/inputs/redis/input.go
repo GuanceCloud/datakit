@@ -89,6 +89,12 @@ type redisSentinel struct {
 	MasterName string   `toml:"master_name"`
 }
 
+// redisObjectConfig controls object (version/uptime per node) collection.
+type redisObjectConfig struct {
+	Enable   bool             `toml:"enabled"`
+	Interval datakit.Duration `toml:"interval"`
+}
+
 type Input struct {
 	Host           string `toml:"host"`
 	Port           int    `toml:"port"`
@@ -144,6 +150,8 @@ type Input struct {
 	Tags map[string]string `toml:"tags"`
 
 	MeasurementVersion string `toml:"measurement_version"`
+
+	Object redisObjectConfig `toml:"object"`
 
 	instances []*instance
 	tlsConf   *tls.Config
@@ -572,6 +580,13 @@ func (ipt *Input) startCollectors(ctx context.Context) {
 	ipt.collectorCancel = cancel
 	ipt.collectorGroup = goroutine.NewGroup(goroutine.Option{Name: "redis_collectors"})
 
+	if ipt.Object.Enable {
+		ipt.collectorGroup.Go(func(gCtx context.Context) error {
+			ipt.runObjectCollector(subCtx)
+			return nil
+		})
+	}
+
 	// metrics collector
 	ipt.collectorGroup.Go(func(gCtx context.Context) error {
 		ipt.runMetricsCollector(subCtx)
@@ -813,17 +828,11 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&configMeasurement{},
 		&bigKeyMeasurement{},
 		&hotkeyMeasurement{},
-		// &clientMetricMeasurement{},
 		&clientLoggingMeasurement{},
-		// &clusterMeasurement{},
-		// &commandMeasurement{},
-		// &dbMeasurement{},
-		// &infoMeasurement{},
-		// &replicaMeasurement{},
 		&latencyMeasurement{},
 		&slowlogMeasurement{},
 		&topologyChangeMeasurement{},
-		// &customerObjectMeasurement{},
+		&redisObjectMeasurement{},
 		&inputs.UpMeasurement{},
 	}
 }
@@ -865,12 +874,16 @@ func defaultInput() *Input {
 		Interval:                time.Second * 15,
 		TopologyRefreshInterval: 10 * time.Minute,
 		ConfigCollectInterval:   1 * time.Hour,
-		semStop:                 cliutils.NewSem(),
-		Election:                true,
-		feeder:                  dkio.DefaultFeeder(),
-		tagger:                  datakit.DefaultGlobalTagger(),
-		SlowlogMaxLen:           128,
-		HotBigKeys:              defaultHotBitKeyConf(),
+		Object: redisObjectConfig{
+			Enable:   true,
+			Interval: datakit.Duration{Duration: 600 * time.Second},
+		},
+		semStop:       cliutils.NewSem(),
+		Election:      true,
+		feeder:        dkio.DefaultFeeder(),
+		tagger:        datakit.DefaultGlobalTagger(),
+		SlowlogMaxLen: 128,
+		HotBigKeys:    defaultHotBitKeyConf(),
 
 		ClientListCollector: &clientListCollector{
 			CollectLogOnFlags: "bxOR",

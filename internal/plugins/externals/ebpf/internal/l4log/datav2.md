@@ -143,6 +143,20 @@
 
 ### L7 网络相关字段
 
+配置：
+
+- `l7log_headers`
+  - 类型：`[]string`
+  - 描述：配置 HTTP/HTTP2/gRPC L7 日志中需要记录的 header 名称；未配置时使用内置推荐白名单；配置为 `["none"]` 可关闭 header 记录。
+  - 示例：
+
+    ```toml
+    [bpf_netlog]
+      enable_log = true
+      l7log_protocols = ["http"]
+      l7log_headers = ["host", "x-request-id", "traceparent", "x-datadog-trace-id"]
+    ```
+
 标签：
 
 - l7_traceid
@@ -176,9 +190,55 @@
   - 类型：int
   - 描述：对应 l4log 的 rx seq
 
+- trace_provider
+  - 类型：string
+  - 描述：从 L7 trace header 解析出的 trace 来源，如 datadog、w3c、b3、sw8、jaeger、opentracing、xray。
+- http_user_agent
+  - 类型：string
+  - 描述：请求 User-Agent；仅当对应 header 被记录时输出。
+- http_req_content_type
+  - 类型：string
+  - 描述：请求 Content-Type；仅当对应 header 被记录时输出。
+- http_resp_content_type
+  - 类型：string
+  - 描述：响应 Content-Type；仅当对应 header 被记录时输出。
+- http_req_content_length
+  - 类型：int
+  - 描述：请求 Content-Length；仅当对应 header 被记录且可解析时输出。
+- http_resp_content_length
+  - 类型：int
+  - 描述：响应 Content-Length；仅当对应 header 被记录且可解析时输出。
+- http_header_count
+  - 类型：int
+  - 描述：本条 L7 日志中记录的请求与响应 header 总数。
+- http_header_bytes
+  - 类型：int
+  - 描述：本条 L7 日志中记录的请求与响应 header 名称和值的总字节数。
+- http2_stream_id
+  - 类型：uint
+  - 描述：HTTP/2 stream id。
+- grpc_status
+  - 类型：string
+  - 描述：gRPC 响应状态码；仅 HTTP/2/gRPC 且解析到 `grpc-status` 时输出。
+- grpc_message
+  - 类型：string
+  - 描述：gRPC 响应消息；仅 HTTP/2/gRPC 且解析到 `grpc-message` 时输出。
+
 - req_seq
   - 类型：string
   - 描述：请求的 tcp 序列号，diection 为 outgoing 则对应 l4log 的 tx seq，否则为 rx。
 - resp_seq
   - 类型：string
   - 描述：响应的 tcp 序列号，diection 为 outgoing 则对应 l4log 的 rx seq，否则为 tx。
+
+message 中的 HTTP/HTTP2 字段：
+
+- req_headers
+  - 类型：map[string]string
+  - 描述：请求头中命中 `l7log_headers` 配置的 header，敏感 header 不会记录。
+- resp_headers
+  - 类型：map[string]string
+  - 描述：响应头或 gRPC trailer 中命中 `l7log_headers` 配置的 header，敏感 header 不会记录。
+- trace_provider、user_agent、content_type、content_length、header_count、header_bytes、stream_id、grpc_status、grpc_message
+  - 类型：string/int/map
+  - 描述：与同名 point 字段含义一致，记录在 message 中便于查看单条日志完整上下文。

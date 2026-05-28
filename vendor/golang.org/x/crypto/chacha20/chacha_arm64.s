@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build gc && !purego
-// +build gc,!purego
 
 #include "textflag.h"
 
@@ -30,7 +29,7 @@ loop:
 	MOVD	$NUM_ROUNDS, R21
 	VLD1	(R11), [V30.S4, V31.S4]
 
-	// load contants
+	// load constants
 	// VLD4R (R10), [V0.S4, V1.S4, V2.S4, V3.S4]
 	WORD	$0x4D60E940
 

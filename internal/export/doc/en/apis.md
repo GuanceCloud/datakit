@@ -66,6 +66,14 @@ The complete description of URL parameters is as follows:
 - Description: Test mode. It only POSTs the Point to DataKit but does not actually upload it to <<<custom_key.brand_name>>>.
 - Example: `curl -X POST -d '<YOUR-DATA>' "http://localhost:9529/v1/write/metric&dry=true"`
 
+**`disable_filter`**
+
+- Type: bool
+- Required: No
+- Default Value: false
+- Description: Whether to skip DataKit filter rule processing. It only takes effect when the parameter value is parsed as `true`.
+- Example: `curl -X POST -d '<YOUR-DATA>' "http://localhost:9529/v1/write/metric&disable_filter=true"`
+
 **`echo`** [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)
 
 - Type: enum
@@ -144,7 +152,7 @@ The complete description of URL parameters is as follows:
     - The following parameters have been deprecated [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)
         - `echo_line_proto`: Replaced by the `echo` parameter.
         - `echo_json`: Replaced by the `echo` parameter.
-    - Although multiple parameters are of the bool type, if you do not need to enable the corresponding option, do not pass in the `false` value. The API will only determine whether the corresponding parameter has a value, regardless of its content.
+    - Except for `disable_filter`, although multiple parameters are of the bool type, if you do not need to enable the corresponding option, do not pass in the `false` value. The API will only determine whether the corresponding parameter has a value, regardless of its content.
     - The automatic recognition of timestamp precision (`precision`) [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0) means guessing the possible timestamp precision based on the incoming timestamp value. Mathematically, it cannot guarantee correctness, but it is sufficient for daily use. For example, for the timestamp 1716544492, its timestamp is judged as seconds, and for 1716544492000, it will be judged as milliseconds, and so on.
     - If there is no time in the data point, the timestamp of the machine where DataKit is located will be used as the standard.
     - Although the protocol currently supports binary format and any format, the central system does not yet support writing these two types of data. **Specially noted here**.
@@ -645,6 +653,60 @@ curl "http://localhost:9529/v1/ntp"
   "timestamp_sec": 1747100923
 }
 ```
+
+### `GET /v1/datakit/pull` {#api-datakit-pull}
+
+Get `logging` and `rum` filter rules pulled from upstream and cached locally by DataKit.
+
+This interface requires the [RUM Collector](../integrations/rum.md) to be enabled. After it is enabled, this interface is automatically added to the [API access whitelist](datakit-conf.md#public-apis), so `public_apis` does not need to be configured manually. The request body must be empty. In DataKit mode, no Dataway token is required.
+
+Request parameters:
+
+| Parameter | Description             | Type   | Required |
+| ---:      | ---                     | ---    | ---      |
+| `filters` | Pull filter information | `bool` | Yes, fixed to `true` |
+
+Request example:
+
+``` shell
+curl "http://localhost:9529/v1/datakit/pull?filters=true"
+```
+
+Response example:
+
+``` json
+{
+  "filters": {
+    "rum": [
+      "{ source = 'resource' and app_id = 'appid_xxx' }"
+    ],
+    "logging": [
+      "{ source = 'browser_log' and message match ['timeout.*'] }"
+    ]
+  },
+  "pull_interval": "30m"
+}
+```
+
+Response example with no rules:
+
+``` json
+{
+  "filters": {
+    "rum": [],
+    "logging": []
+  },
+  "pull_interval": "30m"
+}
+```
+
+Response fields:
+
+| Field                | Description                                             | Type              |
+| ---:                 | ---                                                     | ---               |
+| `filters`            | `logging` and `rum` filter rule lists grouped by category | `object`        |
+| `filters.<category>` | Filter rule list for each category. Currently only `logging` and `rum` are included. | `array of string` |
+| `pull_interval`      | Suggested next pull interval, such as `30m`, `1m20s`, `1h` | `string`        |
 
 ### `PUT /v1/sourcemap` {#api-sourcemap-upload}
 

@@ -174,7 +174,7 @@ func doBuildExternal(ex *dkexternal, dir, goos, goarch string, standalone bool) 
 
 	l.Info("lang = ", ex.lang)
 	switch {
-	case needContainerBuild(ex, envs):
+	case needContainerBuild(ex, envs, goos, goarch):
 		if err := buildExternalInContainer(ex, outdir, out, goos, goarch); err != nil {
 			return err
 		}
@@ -240,12 +240,18 @@ func ebpfCollectorLocalBuildCommand(outdir, out, goos, goarch string, buildAt ti
 	return args, buildEnv
 }
 
-func needContainerBuild(ex *dkexternal, envs []string) bool {
+func needContainerBuild(ex *dkexternal, envs []string, goos, goarch string) bool {
 	if strings.EqualFold(ex.lang, "makefile") {
 		return true
 	}
 
-	return envValue(envs, "CGO_ENABLED") == "1"
+	// For CGO-based Go externals, prefer local build when target matches host.
+	// This avoids depending on an older toolchain baked in container images.
+	if envValue(envs, "CGO_ENABLED") == "1" {
+		return goos != runtime.GOOS || goarch != runtime.GOARCH
+	}
+
+	return false
 }
 
 func buildExternalWithGo(ex *dkexternal, outdir, out, goos, goarch string, envs []string) error {
@@ -303,6 +309,13 @@ func buildExternalInContainer(ex *dkexternal, outdir, out, goos, goarch string) 
 		containerOutDir = "/out"
 	}
 
+	containerEnvPrefix := ""
+	if goRoot := hostGoRoot(); goRoot != "" {
+		// Reuse host Go toolchain in container so vendored deps requiring newer stdlib can compile.
+		mountArgs = append(mountArgs, "-v", goRoot+":/host-go:ro")
+		containerEnvPrefix = "export GOROOT='/host-go'; export PATH=\"$GOROOT/bin:$PATH\"; export GOTOOLCHAIN=local; "
+	}
+
 	dockerCmd, err := resolveDockerCmd()
 	if err != nil {
 		return err
@@ -319,9 +332,10 @@ func buildExternalInContainer(ex *dkexternal, outdir, out, goos, goarch string) 
 	}
 
 	containerCmd := fmt.Sprintf(
-		"make --no-print-directory -C externals build_external_local "+
+		"%smake --no-print-directory -C externals build_external_local "+
 			"EXTERNAL_NAME=%s EXTERNAL_GOOS=%s EXTERNAL_ARCH=%s "+
 			"EXTERNAL_OUTDIR=%s EXTERNAL_OUTPUT=%s GO_MODULE_MODE=%s%s%s",
+		containerEnvPrefix,
 		shQuote(ex.name),
 		shQuote(goos),
 		shQuote(goarch),
@@ -438,6 +452,15 @@ func envValue(envs []string, key string) string {
 	}
 
 	return ""
+}
+
+func hostGoRoot() string {
+	out, err := exec.Command("go", "env", "GOROOT").Output() //nolint:gosec
+	if err != nil {
+		return ""
+	}
+
+	return strings.TrimSpace(string(out))
 }
 
 func BuidlExternals(dir, goos, goarch string, standalone bool) error {

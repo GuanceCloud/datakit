@@ -16,11 +16,13 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/kardianos/service"
+	hostutil "github.com/shirou/gopsutil/host"
 	"go.uber.org/atomic"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmds"
@@ -51,6 +53,8 @@ type upgradeOptions struct {
 }
 
 type upgradeOpt func(*upgradeOptions)
+
+var checkOSCompatibility = isHostV2Compatible
 
 func withVersion(v string) upgradeOpt {
 	return func(uo *upgradeOptions) {
@@ -90,6 +94,7 @@ func (u *upgraderImpl) upgrade(opts ...upgradeOpt) error {
 		baseURL     = "https://" + cmds.StaticCDN
 		upToDate    = false
 		downloadURL = ""
+		scriptBase  = ""
 	)
 
 	if u.c.InstallerBaseURL != "" {
@@ -109,31 +114,41 @@ func (u *upgraderImpl) upgrade(opts ...upgradeOpt) error {
 		l.Infof("current DK version: %s, commit: %s", dkv.Content.Version, dkv.Content.Commit)
 	}
 
-	if uo.version == "" { // version not specified, we use online(maybe PAAS offline version) latest version.
+	if uo.version == "" { // auto-upgrade to latest version from current OSS path.
+		if v2OK, msg := checkOSCompatibility(); !v2OK {
+			l.Warnf("OS may not meet v2 requirements: %s. Upgrade will proceed, but the installer may reject this host.", msg)
+		}
+
 		onlineVer, err := cmds.GetOnlineVersions(baseURL, u.c.Proxy, 30*time.Second)
 		if err != nil {
 			return uhttp.Errorf(httpapi.ErrUpgradeFailed, "unable to get online version: %s", err)
 		}
+
+		scriptBase = baseURL
 
 		if uo.force {
 			downloadURL = onlineVer.DownloadURL
 		} else {
 			if onlineVer.Commit != dkv.Content.Commit ||
 				onlineVer.VersionString != dkv.Content.Version {
-				l.Infof("current version is %q, online version is %q", dkv.Content.Version, onlineVer.VersionString)
+				l.Infof("current version is %q, target online version is %q", dkv.Content.Version, onlineVer.VersionString)
 				downloadURL = onlineVer.DownloadURL
 			} else {
 				upToDate = true
 			}
 		}
 	} else {
+		l.Infof("upgrade strategy: specified version %q provided", uo.version)
+
 		if uo.force {
 			downloadURL = cmds.CanonicalInstallBaseURL(baseURL)
+			scriptBase = downloadURL
 		} else {
 			// only check if version-string equal, user will not supply Git commit ID in API.
 			if dkv.Content.Version != uo.version {
 				l.Infof("current version is %q, specified version is %q", dkv.Content.Version, uo.version)
 				downloadURL = cmds.CanonicalInstallBaseURL(baseURL)
+				scriptBase = downloadURL
 			} else {
 				upToDate = true
 			}
@@ -156,7 +171,11 @@ func (u *upgraderImpl) upgrade(opts ...upgradeOpt) error {
 		return err
 	}
 
-	if err := u.doUpgrade(scriptFile); err != nil {
+	if scriptBase == "" {
+		scriptBase = baseURL
+	}
+
+	if err := u.doUpgrade(scriptFile, scriptBase); err != nil {
 		l.Errorf("doUpgrade: %s", err.Error())
 		return uhttp.Errorf(httpapi.ErrUpgradeFailed, "doUpgrade: %s", err)
 	}
@@ -274,7 +293,7 @@ func (u *upgraderImpl) restartService() error {
 	return nil
 }
 
-func (u *upgraderImpl) doUpgrade(scriptFile string) error {
+func (u *upgraderImpl) doUpgrade(scriptFile, installBaseURL string) error {
 	// Force stop current running datakit service.
 	// dk-install may failed to stop(why?) the datakit service, and during
 	// download new version datakit binary, we'll get `text file busy' error.
@@ -317,9 +336,9 @@ func (u *upgraderImpl) doUpgrade(scriptFile string) error {
 		envs = append(envs, "HTTPS_PROXY="+u.c.Proxy)
 	}
 
-	if u.c.InstallerBaseURL != "" {
+	if installBaseURL != "" {
 		envs = append(envs, fmt.Sprintf("DK_INSTALLER_BASE_URL=%s",
-			strings.TrimRight(cmds.CanonicalInstallBaseURL(u.c.InstallerBaseURL), "/")))
+			strings.TrimRight(cmds.CanonicalInstallBaseURL(installBaseURL), "/")))
 	}
 
 	cmd.Env = envs
@@ -350,6 +369,88 @@ func (u *upgraderImpl) doUpgrade(scriptFile string) error {
 	}
 
 	return nil
+}
+
+func parseMajorMinor(v string) (int, int, error) {
+	x := strings.TrimSpace(v)
+	if x == "" {
+		return 0, 0, fmt.Errorf("empty version")
+	}
+
+	parts := strings.Split(x, ".")
+	if len(parts) < 2 {
+		return 0, 0, fmt.Errorf("invalid version %q", v)
+	}
+
+	major, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return 0, 0, fmt.Errorf("parse major from %q failed: %w", v, err)
+	}
+
+	minorPart := strings.Builder{}
+	for _, ch := range parts[1] {
+		if ch >= '0' && ch <= '9' {
+			minorPart.WriteRune(ch)
+		} else {
+			break
+		}
+	}
+
+	if minorPart.Len() == 0 {
+		return 0, 0, fmt.Errorf("parse minor from %q failed", v)
+	}
+
+	minor, err := strconv.Atoi(minorPart.String())
+	if err != nil {
+		return 0, 0, fmt.Errorf("parse minor from %q failed: %w", v, err)
+	}
+
+	return major, minor, nil
+}
+
+func isHostV2Compatible() (bool, string) {
+	info, err := hostutil.Info()
+	if err != nil {
+		return false, fmt.Sprintf("host detection failed(%s)", err)
+	}
+
+	switch runtime.GOOS {
+	case datakit.OSLinux:
+		major, minor, err := parseMajorMinor(info.KernelVersion)
+		if err != nil {
+			return false, fmt.Sprintf("linux kernel %q parse failed(%s)", info.KernelVersion, err)
+		}
+
+		if major > 3 || (major == 3 && minor >= 2) {
+			return true, fmt.Sprintf("linux kernel=%s >= 3.2, meets v2 requirement", info.KernelVersion)
+		}
+		return false, fmt.Sprintf("linux kernel=%s < 3.2, below v2 requirement", info.KernelVersion)
+
+	case datakit.OSWindows:
+		major, _, err := parseMajorMinor(info.PlatformVersion)
+		if err != nil {
+			return false, fmt.Sprintf("windows platform_version %q parse failed(%s)", info.PlatformVersion, err)
+		}
+
+		if major >= 10 {
+			return true, fmt.Sprintf("windows platform_version=%s (Win10/Server2016+), meets v2 requirement", info.PlatformVersion)
+		}
+		return false, fmt.Sprintf("windows platform_version=%s (<10), below v2 requirement", info.PlatformVersion)
+
+	case datakit.OSDarwin:
+		major, _, err := parseMajorMinor(info.PlatformVersion)
+		if err != nil {
+			return false, fmt.Sprintf("macOS platform_version %q parse failed(%s)", info.PlatformVersion, err)
+		}
+
+		if major >= 12 {
+			return true, fmt.Sprintf("macOS platform_version=%s >= 12, meets v2 requirement", info.PlatformVersion)
+		}
+		return false, fmt.Sprintf("macOS platform_version=%s < 12, below v2 requirement", info.PlatformVersion)
+
+	default:
+		return false, fmt.Sprintf("unsupported OS %q, unable to check v2 compatibility", runtime.GOOS)
+	}
 }
 
 func dkPing(dklisten string, https bool) ([]byte, error) {

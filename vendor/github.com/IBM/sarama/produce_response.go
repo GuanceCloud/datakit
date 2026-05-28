@@ -22,18 +22,27 @@ import (
 
 // partition_responses in protocol
 type ProduceResponseBlock struct {
-	Err         KError    // v0, error_code
-	Offset      int64     // v0, base_offset
-	Timestamp   time.Time // v2, log_append_time, and the broker is configured with `LogAppendTime`
-	StartOffset int64     // v5, log_start_offset
+	Err          KError                       // v0, error_code
+	Offset       int64                        // v0, base_offset
+	Timestamp    time.Time                    // v2, log_append_time, and the broker is configured with `LogAppendTime`
+	StartOffset  int64                        // v5, log_start_offset
+	RecordErrors []ProduceResponseRecordError // v8, record_errors (KIP-467)
+	ErrorMessage *string                      // v8, error_message (KIP-467)
+}
+
+// ProduceResponseRecordError identifies a record within a produced batch that
+// caused the whole batch to be dropped, along with the per-record error
+// message. Added in Produce response v8 (KIP-467).
+type ProduceResponseRecordError struct {
+	BatchIndex             int32   // v8, batch_index
+	BatchIndexErrorMessage *string // v8, batch_index_error_message (nullable)
 }
 
 func (b *ProduceResponseBlock) decode(pd packetDecoder, version int16) (err error) {
-	tmp, err := pd.getInt16()
+	b.Err, err = pd.getKError()
 	if err != nil {
 		return err
 	}
-	b.Err = KError(tmp)
 
 	b.Offset, err = pd.getInt64()
 	if err != nil {
@@ -55,11 +64,32 @@ func (b *ProduceResponseBlock) decode(pd packetDecoder, version int16) (err erro
 		}
 	}
 
+	if version >= 8 {
+		numRecordErrors, err := pd.getArrayLength()
+		if err != nil {
+			return err
+		}
+		if numRecordErrors > 0 {
+			b.RecordErrors = make([]ProduceResponseRecordError, numRecordErrors)
+			for i := range b.RecordErrors {
+				if b.RecordErrors[i].BatchIndex, err = pd.getInt32(); err != nil {
+					return err
+				}
+				if b.RecordErrors[i].BatchIndexErrorMessage, err = pd.getNullableString(); err != nil {
+					return err
+				}
+			}
+		}
+		if b.ErrorMessage, err = pd.getNullableString(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
 func (b *ProduceResponseBlock) encode(pe packetEncoder, version int16) (err error) {
-	pe.putInt16(int16(b.Err))
+	pe.putKError(b.Err)
 	pe.putInt64(b.Offset)
 
 	if version >= 2 {
@@ -76,6 +106,21 @@ func (b *ProduceResponseBlock) encode(pe packetEncoder, version int16) (err erro
 		pe.putInt64(b.StartOffset)
 	}
 
+	if version >= 8 {
+		if err = pe.putArrayLength(len(b.RecordErrors)); err != nil {
+			return err
+		}
+		for _, re := range b.RecordErrors {
+			pe.putInt32(re.BatchIndex)
+			if err = pe.putNullableString(re.BatchIndexErrorMessage); err != nil {
+				return err
+			}
+		}
+		if err = pe.putNullableString(b.ErrorMessage); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -83,6 +128,10 @@ type ProduceResponse struct {
 	Blocks       map[string]map[int32]*ProduceResponseBlock // v0, responses
 	Version      int16
 	ThrottleTime time.Duration // v1, throttle_time_ms
+}
+
+func (r *ProduceResponse) setVersion(v int16) {
+	r.Version = v
 }
 
 func (r *ProduceResponse) decode(pd packetDecoder, version int16) (err error) {
@@ -123,12 +172,9 @@ func (r *ProduceResponse) decode(pd packetDecoder, version int16) (err error) {
 	}
 
 	if r.Version >= 1 {
-		millis, err := pd.getInt32()
-		if err != nil {
+		if r.ThrottleTime, err = pd.getDurationMs(); err != nil {
 			return err
 		}
-
-		r.ThrottleTime = time.Duration(millis) * time.Millisecond
 	}
 
 	return nil
@@ -158,13 +204,13 @@ func (r *ProduceResponse) encode(pe packetEncoder) error {
 	}
 
 	if r.Version >= 1 {
-		pe.putInt32(int32(r.ThrottleTime / time.Millisecond))
+		pe.putDurationMs(r.ThrottleTime)
 	}
 	return nil
 }
 
 func (r *ProduceResponse) key() int16 {
-	return 0
+	return apiKeyProduce
 }
 
 func (r *ProduceResponse) version() int16 {
@@ -176,11 +222,13 @@ func (r *ProduceResponse) headerVersion() int16 {
 }
 
 func (r *ProduceResponse) isValidVersion() bool {
-	return r.Version >= 0 && r.Version <= 7
+	return r.Version >= 0 && r.Version <= 8
 }
 
 func (r *ProduceResponse) requiredVersion() KafkaVersion {
 	switch r.Version {
+	case 8:
+		return V2_4_0_0
 	case 7:
 		return V2_1_0_0
 	case 6:

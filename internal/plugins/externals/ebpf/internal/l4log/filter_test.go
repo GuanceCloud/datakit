@@ -259,3 +259,19 @@ func TestBlacklistDecisionCache(t *testing.T) {
 	assert.True(t, entry81.drop)
 	assert.Equal(t, int64(2), entry80.lastTS)
 }
+
+func TestBlacklistDecisionCacheLimit(t *testing.T) {
+	conns := &TCPConns{blacklistCacheLimit: 2}
+
+	key1 := blacklistCacheKey{meta: PMeta{SrcIP: "10.0.0.1", SrcPort: 80}}
+	key2 := blacklistCacheKey{meta: PMeta{SrcIP: "10.0.0.2", SrcPort: 81}}
+	key3 := blacklistCacheKey{meta: PMeta{SrcIP: "10.0.0.3", SrcPort: 82}}
+
+	conns.storeBlacklistCache(key1, false, 1)
+	conns.storeBlacklistCache(key2, true, 2)
+	conns.storeBlacklistCache(key3, false, 3)
+
+	assert.Len(t, conns.blacklistCache, 1)
+	_, ok := conns.blacklistCache[key3]
+	assert.True(t, ok)
+}

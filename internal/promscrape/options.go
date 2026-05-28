@@ -36,7 +36,10 @@ type optionClientConn struct {
 	insecureSkipVerify bool
 	tlsClientConfig    *dknet.TLSClientConfig
 
-	httpHeaders map[string]string
+	httpHeaders                map[string]string
+	bearerTokenFile            string
+	bearerTokenRefreshInterval time.Duration
+	bearerTokenSource          *cachedFileBearerTokenSource
 }
 
 type Option func(opt *option)
@@ -111,6 +114,17 @@ func WithBearerToken(str string, force bool) Option {
 		if force || !exist {
 			opt.httpHeaders["Authorization"] = "Bearer " + str
 		}
+	}
+}
+
+func WithBearerTokenFile(path string) Option {
+	return withBearerTokenFile(path, defaultBearerTokenRefreshInterval)
+}
+
+func withBearerTokenFile(path string, refreshInterval time.Duration) Option {
+	return func(opt *option) {
+		opt.bearerTokenFile = path
+		opt.bearerTokenRefreshInterval = refreshInterval
 	}
 }
 

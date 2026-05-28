@@ -7,11 +7,13 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"os"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/obfuscate"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/comm"
 )
 
@@ -161,12 +163,21 @@ type mysqlDecPipe struct {
 	inf          *mysqlInfo
 	reqResp      int // 0, 1, 2 1是请求 2是响应
 	connClosed   bool
+	pendingLimit int
 
 	lastFn             comm.FnID // 用于判断是否是头四个字节丢失的问题
 	lastDur, lastKtime uint64
 }
 
-func (m *mysqlInfo) parse(payload []byte, seq uint32) (uint32, error) {
+const (
+	mysqlPendingBufferLimitEnv     = "DK_EBPF_L7FLOW_MYSQL_PENDING_BUFFER_LIMIT"
+	defaultMysqlPendingBufferLimit = 64 * 1024
+	maxMysqlPendingBufferLimit     = 4 * 1024 * 1024
+)
+
+var errMysqlPendingBufferLimit = errors.New("mysql pending buffer limit reached")
+
+func (m *mysqlInfo) parse(payload []byte, seq uint32, pendingLimit int) (uint32, error) {
 	var (
 		packetType  mysqlPacketType
 		offset      int
@@ -183,7 +194,17 @@ func (m *mysqlInfo) parse(payload []byte, seq uint32) (uint32, error) {
 	}()
 
 	// 用于计算seq偏移量
+	if m.reader == nil {
+		m.reader = bytes.NewBuffer(nil)
+	}
 	length := m.reader.Len()
+	if pendingLimit <= 0 {
+		pendingLimit = defaultMysqlPendingBufferLimit
+	}
+	if length+len(payload) > pendingLimit {
+		m.reader.Reset()
+		return 0, errMysqlPendingBufferLimit
+	}
 	m.reader.Write(payload)
 	m.packetType = packetUnknown
 	hd := &headerDecoder{}
@@ -337,16 +358,16 @@ func decodeCompressInt(payload []byte) uint64 {
 	value := payload[0]
 	switch value {
 	case intFlags2:
-		if len(payload) > intBaseLen+2 {
+		if len(payload) >= intBaseLen+2 {
 			return uint64(binary.LittleEndian.Uint16(payload[intBaseLen:]))
 		}
 	case intFlags3:
-		if len(payload) > intBaseLen+3 {
+		if len(payload) >= intBaseLen+3 {
 			return uint64(binary.LittleEndian.Uint16(payload[intBaseLen:])) |
 				(uint64(payload[intBaseLen+2]) << 16)
 		}
 	case intFlags8:
-		if len(payload) > intBaseLen+8 {
+		if len(payload) >= intBaseLen+8 {
 			return binary.LittleEndian.Uint64(payload[intBaseLen:])
 		}
 	default:
@@ -396,8 +417,11 @@ func (dec *mysqlDecPipe) Decode(txRx comm.NICDirection, data *comm.NetwrkData,
 		dec.lastKtime = 0
 	}
 
-	firstSeq, err := inf.parse(data.Payload, data.TCPSeq)
+	firstSeq, err := inf.parse(data.Payload, data.TCPSeq, dec.mysqlPendingLimit())
 	if err != nil {
+		if errors.Is(err, errMysqlPendingBufferLimit) {
+			exporter.IncBPFEventDrop("l7flow", "mysql_pending", "limit")
+		}
 		return
 	}
 
@@ -543,6 +567,9 @@ func (dec *mysqlDecPipe) Export(force bool) []*ProtoData {
 			})
 		}
 	}
+	for i := range dec.infCache {
+		dec.infCache[i] = nil
+	}
 	dec.infCache = dec.infCache[:0]
 	return result
 }
@@ -552,7 +579,34 @@ func (dec *mysqlDecPipe) ConnClose() {
 }
 
 func newMysqlDecPipe(L7Protocol) ProtoDecPipe {
-	return &mysqlDecPipe{}
+	return &mysqlDecPipe{pendingLimit: mysqlPendingBufferLimit()}
+}
+
+func (dec *mysqlDecPipe) mysqlPendingLimit() int {
+	if dec == nil {
+		return defaultMysqlPendingBufferLimit
+	}
+	if dec.pendingLimit <= 0 {
+		dec.pendingLimit = mysqlPendingBufferLimit()
+	}
+	return dec.pendingLimit
+}
+
+func mysqlPendingBufferLimit() int {
+	raw := strings.TrimSpace(os.Getenv(mysqlPendingBufferLimitEnv))
+	if raw == "" {
+		return defaultMysqlPendingBufferLimit
+	}
+	limit, err := strconv.Atoi(raw)
+	if err != nil || limit <= 0 {
+		log.Warnf("invalid %s=%q, use default %d",
+			mysqlPendingBufferLimitEnv, raw, defaultMysqlPendingBufferLimit)
+		return defaultMysqlPendingBufferLimit
+	}
+	if limit > maxMysqlPendingBufferLimit {
+		return maxMysqlPendingBufferLimit
+	}
+	return limit
 }
 
 func (m *mysqlInfo) decodeRequestString(payload []byte) error {
@@ -562,14 +616,7 @@ func (m *mysqlInfo) decodeRequestString(payload []byte) error {
 	}
 	comment, command, clean := trimCommentGetFirst(payload, 8)
 
-	var resource []byte
-	if output, err := obfuscate.NewObfuscator(nil).Obfuscate("sql", string(clean)); err == nil && output != nil {
-		o := []byte(output.Query)
-		validLen := utf8ValidLength(o)
-		resource = o[:validLen]
-	} else {
-		resource = []byte(string(bytes.Runes(clean)))
-	}
+	resource := obfuscateSQLBytes(clean)
 
 	m.resource = string(bytes.Runes(resource))
 	m.comment = strings.TrimSpace(string(bytes.Runes(comment)))
@@ -578,8 +625,12 @@ func (m *mysqlInfo) decodeRequestString(payload []byte) error {
 }
 
 func (m *mysqlInfo) getStatementID(payload []byte) int {
-	if len(payload) > statementIDLen {
-		return int(binary.LittleEndian.Uint16(payload[:4]))
+	if len(payload) >= statementIDLen {
+		id := binary.LittleEndian.Uint32(payload[:statementIDLen])
+		if uint64(id) > uint64(maxInt) {
+			return -1
+		}
+		return int(id)
 	}
 	return -1
 }

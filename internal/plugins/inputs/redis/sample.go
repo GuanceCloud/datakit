@@ -57,6 +57,11 @@ const (
   # Default enable election on redis collection.
   election = true
 
+  ## collect object
+  [inputs.redis.object]
+    enabled  = true
+    interval = "600s"
+
   # For cluster redis
   # [inputs.redis.cluster]
   #   hosts = [ "localhost:6379" ]

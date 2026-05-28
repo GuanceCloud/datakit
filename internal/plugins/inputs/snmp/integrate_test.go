@@ -483,7 +483,7 @@ func (cs *caseSpec) run() error {
 	cs.t.Logf("get %d points", len(pts))
 
 	for _, v := range pts {
-		cs.t.Logf(v.MustLPPoint().String() + "\n")
+		cs.t.Log(v.MustLPPoint().String())
 	}
 
 	cs.mCount = make(map[string]struct{})

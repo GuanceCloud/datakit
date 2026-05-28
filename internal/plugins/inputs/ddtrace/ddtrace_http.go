@@ -21,6 +21,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/tinylib/msgp/msgp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/bufpool"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 	awslambda "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/awslambda"
 	lambdatrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/awslambda/trace"
@@ -36,6 +37,9 @@ const (
 const (
 	// KeySamplingPriority is the key of the sampling priority value in the metrics map of the root span.
 	keyPriority = "_sampling_priority_v1"
+
+	// Some tracers parse /info.version as a Datadog Agent semantic version.
+	ddInfoAgentVersion = "7.0.0"
 )
 
 var jsonIterator = jsoniter.ConfigFastest
@@ -136,15 +140,134 @@ func (ipt *Input) handleDDTraces(resp http.ResponseWriter, req *http.Request) {
 	httpStatusRespFunc(resp, req, nil)
 }
 
-// TODO:.
+// Stats endpoint is intentionally not implemented.
 func handleDDStats(resp http.ResponseWriter, req *http.Request) {
 	log.Infof("### %s unsupported yet", req.URL.Path)
 	resp.WriteHeader(http.StatusNotFound)
 }
 
-func handleDDInfo(resp http.ResponseWriter, req *http.Request) {
-	log.Debugf("### %s unsupported yet", req.URL.Path)
-	resp.WriteHeader(http.StatusNotFound)
+type ddInfoPayload struct {
+	Version                string       `json:"version"`
+	GitCommit              string       `json:"git_commit"`
+	Endpoints              []string     `json:"endpoints"`
+	FeatureFlags           []string     `json:"feature_flags"`
+	ClientDropP0s          bool         `json:"client_drop_p0s"`
+	SpanMetaStructs        bool         `json:"span_meta_structs"`
+	LongRunningSpans       bool         `json:"long_running_spans"`
+	SpanEvents             bool         `json:"span_events"`
+	EvpProxyAllowedHeaders []string     `json:"evp_proxy_allowed_headers"`
+	Config                 ddInfoConfig `json:"config"`
+	PeerTags               []string     `json:"peer_tags"`
+	SpanKindsStatsComputed []string     `json:"span_kinds_stats_computed"`
+	ObfuscationVersion     int          `json:"obfuscation_version"`
+	FilterTags             ddInfoTags   `json:"filter_tags"`
+	FilterTagsRegex        ddInfoTags   `json:"filter_tags_regex"`
+	IgnoreResources        []string     `json:"ignore_resources,omitempty"`
+}
+
+type ddInfoConfig struct {
+	DefaultEnv             string                        `json:"default_env"`
+	TargetTPS              float64                       `json:"target_tps"`
+	MaxEPS                 float64                       `json:"max_eps"`
+	ReceiverPort           int                           `json:"receiver_port"`
+	ReceiverSocket         string                        `json:"receiver_socket"`
+	ConnectionLimit        int                           `json:"connection_limit"`
+	ReceiverTimeout        int                           `json:"receiver_timeout"`
+	MaxRequestBytes        int64                         `json:"max_request_bytes"`
+	StatsdPort             int                           `json:"statsd_port"`
+	MaxMemory              float64                       `json:"max_memory"`
+	MaxCPU                 float64                       `json:"max_cpu"`
+	AnalyzedSpansByService map[string]map[string]float64 `json:"analyzed_spans_by_service"`
+	Obfuscation            ddInfoObfuscationConfig       `json:"obfuscation"`
+}
+
+type ddInfoObfuscationConfig struct {
+	ElasticSearch        bool              `json:"elastic_search"`
+	Mongo                bool              `json:"mongo"`
+	SQLExecPlan          bool              `json:"sql_exec_plan"`
+	SQLExecPlanNormalize bool              `json:"sql_exec_plan_normalize"`
+	SQLObfuscationMode   string            `json:"sql_obfuscation_mode"`
+	HTTP                 ddInfoHTTPConfig  `json:"http"`
+	RemoveStackTraces    bool              `json:"remove_stack_traces"`
+	Redis                ddInfoKVConfig    `json:"redis"`
+	Valkey               ddInfoKVConfig    `json:"valkey"`
+	Memcached            ddInfoCacheConfig `json:"memcached"`
+}
+
+type ddInfoHTTPConfig struct {
+	RemoveQueryString bool `json:"remove_query_string"`
+	RemovePathDigits  bool `json:"remove_path_digits"`
+}
+
+type ddInfoKVConfig struct {
+	Enabled       bool `json:"enabled"`
+	RemoveAllArgs bool `json:"remove_all_args"`
+}
+
+type ddInfoCacheConfig struct {
+	Enabled     bool `json:"enabled"`
+	KeepCommand bool `json:"keep_command"`
+}
+
+type ddInfoTags struct {
+	Require []string `json:"require"`
+	Reject  []string `json:"reject"`
+}
+
+func (ipt *Input) handleDDInfo(resp http.ResponseWriter, _ *http.Request) {
+	payload := ddInfoPayload{
+		Version:                ddInfoAgentVersion,
+		GitCommit:              datakit.Commit,
+		Endpoints:              ipt.ddInfoEndpoints(),
+		FeatureFlags:           []string{},
+		ClientDropP0s:          false,
+		SpanMetaStructs:        false,
+		LongRunningSpans:       false,
+		SpanEvents:             false,
+		EvpProxyAllowedHeaders: []string{},
+		Config: ddInfoConfig{
+			MaxRequestBytes:        ipt.maxTraceBody,
+			AnalyzedSpansByService: map[string]map[string]float64{},
+			Obfuscation:            ddInfoObfuscationConfig{},
+		},
+		PeerTags:               []string{},
+		SpanKindsStatsComputed: []string{},
+		ObfuscationVersion:     0,
+		FilterTags:             ddInfoTags{Require: []string{}, Reject: []string{}},
+		FilterTagsRegex:        ddInfoTags{Require: []string{}, Reject: []string{}},
+		IgnoreResources:        ipt.IgnoreResources,
+	}
+
+	body, err := jsonIterator.Marshal(payload)
+	if err != nil {
+		log.Errorf("marshal ddtrace info response failed: %s", err.Error())
+		resp.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	resp.Header().Set("Content-Type", "application/json")
+	resp.Header().Set("Content-Length", strconv.Itoa(len(body)))
+	resp.WriteHeader(http.StatusOK)
+	if _, err := resp.Write(body); err != nil {
+		log.Warnf("write ddtrace info response failed: %s", err.Error())
+	}
+}
+
+func (ipt *Input) ddInfoEndpoints() []string {
+	configured := ipt.Endpoints
+	if len(configured) == 0 {
+		configured = []string{v3, v4, v5}
+	}
+
+	endpoints := make([]string, 0, len(configured))
+	for _, endpoint := range configured {
+		switch endpoint {
+		case v3, v4, v5:
+			endpoints = append(endpoints, endpoint)
+		}
+	}
+
+	return endpoints
 }
 
 func (ipt *Input) handleDDProxy(resp http.ResponseWriter, req *http.Request) {

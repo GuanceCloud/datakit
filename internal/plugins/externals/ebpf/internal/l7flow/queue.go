@@ -55,8 +55,12 @@ func (q *dataQueue) Queue(data *comm.NetwrkData) []*comm.NetwrkData {
 		x := queuePopCount
 		val = append(val, q.li[:x]...)
 
+		oldLen := len(q.li)
 		copy(q.li, q.li[x:])
-		q.li = q.li[:len(q.li)-x]
+		for i := oldLen - x; i < oldLen; i++ {
+			q.li[i] = nil
+		}
+		q.li = q.li[:oldLen-x]
 
 		q.prvDataPos = val[x-1].Index
 	}
@@ -72,10 +76,17 @@ func (q *dataQueue) Queue(data *comm.NetwrkData) []*comm.NetwrkData {
 
 	if nxt > 0 {
 		if nxt == len(q.li) {
+			for i := range q.li {
+				q.li[i] = nil
+			}
 			q.li = q.li[:0]
 		} else {
+			oldLen := len(q.li)
 			copy(q.li, q.li[nxt:])
-			q.li = q.li[:len(q.li)-nxt]
+			for i := oldLen - nxt; i < oldLen; i++ {
+				q.li[i] = nil
+			}
+			q.li = q.li[:oldLen-nxt]
 		}
 	}
 	return val

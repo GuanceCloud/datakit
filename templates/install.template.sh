@@ -65,6 +65,51 @@ errorf() {
   printf "${RED}[E] $msg ${CLR}\n" "$@" >&2
 }
 
+compare_kernel_ge_3_2() {
+	kernel_release=$(uname -r 2>/dev/null || true)
+	kernel_major=$(printf "%s" "$kernel_release" | cut -d. -f1)
+	kernel_minor=$(printf "%s" "$kernel_release" | cut -d. -f2)
+
+	case "$kernel_major" in
+		''|*[!0-9]*)
+			return 0
+			;;
+	esac
+
+	case "$kernel_minor" in
+		''|*[!0-9]*)
+			return 0
+			;;
+	esac
+
+	if [ "$kernel_major" -gt 3 ]; then
+		return 0
+	fi
+
+	if [ "$kernel_major" -eq 3 ] && [ "$kernel_minor" -ge 2 ]; then
+		return 0
+	fi
+
+	return 1
+}
+
+compare_macos_ge_12() {
+	mac_version=$(sw_vers -productVersion 2>/dev/null || true)
+	mac_major=$(printf "%s" "$mac_version" | cut -d. -f1)
+
+	case "$mac_major" in
+		''|*[!0-9]*)
+			return 0
+			;;
+	esac
+
+	if [ "$mac_major" -ge 12 ]; then
+		return 0
+	fi
+
+	return 1
+}
+
 ##################
 # Set Variables
 ##################
@@ -117,6 +162,20 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 fi
 
 printf "* Detect OS/Arch ${os}/${arch}\n"
+
+if [ "$os" = "linux" ]; then
+	if ! compare_kernel_ge_3_2; then
+		errorf "Unsupported Linux kernel: %s. DataKit 2.x requires kernel >= 3.2. Use a 1.x installer on this host." "$(uname -r)"
+		exit 1
+	fi
+fi
+
+if [ "$os" = "darwin" ]; then
+	if ! compare_macos_ge_12; then
+		errorf "Unsupported macOS version: %s. DataKit 2.x requires macOS >= 12. Use a 1.x installer on this host." "$(sw_vers -productVersion 2>/dev/null || echo unknown)"
+		exit 1
+	fi
+fi
 
 cmd=()
 

@@ -4,11 +4,13 @@
 package protodec
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/comm"
 )
 
 func TestPrefix(t *testing.T) {
@@ -41,6 +43,61 @@ func TestPrefix(t *testing.T) {
 	})
 }
 
+func TestHTTPDecPipeExportsRequestResponseFields(t *testing.T) {
+	req := []byte("GET /api/v1/users?token=secret HTTP/1.1\r\n" +
+		"Host: example.com\r\n" +
+		"traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01\r\n\r\n")
+	resp := []byte("HTTP/1.1 201 Created\r\nContent-Length: 0\r\n\r\n")
+
+	dec := &httpDecPipe{}
+	dec.Decode(comm.NICDEgress, &comm.NetwrkData{
+		Payload:     req,
+		CaptureSize: len(req),
+		TCPSeq:      100,
+		TS:          1000,
+		TSTail:      1100,
+	}, 123456789, nil)
+	dec.Decode(comm.NICDIngress, &comm.NetwrkData{
+		Payload:     resp,
+		CaptureSize: len(resp),
+		TCPSeq:      200,
+		TS:          1500,
+		TSTail:      1700,
+	}, 0, nil)
+
+	pts := dec.Export(true)
+	if len(pts) != 1 {
+		t.Fatalf("exported HTTP records = %d, want 1", len(pts))
+	}
+	got := pts[0]
+	assert.Equal(t, ProtoHTTP, got.L7Proto)
+	assert.Equal(t, comm.DOut, got.Direction)
+	assert.Equal(t, int64(600), got.Duration)
+	assert.Equal(t, int64(600), got.Cost)
+	assert.Equal(t, int64(123456789), got.Time)
+	assert.Equal(t, int64(len(resp)), got.KVs.Get(comm.FieldBytesRead).GetI())
+	assert.Equal(t, int64(len(req)), got.KVs.Get(comm.FieldBytesWritten).GetI())
+	assert.Equal(t, "GET", got.KVs.Get(comm.FieldHTTPMethod).GetS())
+	assert.Equal(t, "/api/v1/users", got.KVs.Get(comm.FieldHTTPRoute).GetS())
+	assert.Equal(t, "example.com", got.KVs.Get(comm.FieldHTTPHost).GetS())
+	assert.Equal(t, "1.1", got.KVs.Get(comm.FieldHTTPVersion).GetS())
+	assert.Equal(t, "201", got.KVs.Get(comm.FieldHTTPStatusCode).GetS())
+	assert.Equal(t, "ok", got.KVs.Get(comm.FieldStatus).GetS())
+	assert.Equal(t, "GET /api/v1/users", got.KVs.Get(comm.FieldResource).GetS())
+	assert.True(t, got.Meta.SampledSpan)
+	assert.True(t, got.Meta.SpanHexEnc)
+	assert.NotZero(t, got.Meta.TraceID)
+	assert.NotZero(t, got.Meta.ParentSpanID)
+	assert.Equal(t, uint32(100), got.Meta.ReqTCPSeq)
+	assert.Equal(t, uint32(200), got.Meta.RespTCPSeq)
+}
+
+func TestSubProtoSetKeepsDetectorOrder(t *testing.T) {
+	Init()
+	pset := SubProtoSet(ProtoRedis, ProtoHTTP, ProtoMySQL)
+	assert.Equal(t, []L7Protocol{ProtoRedis, ProtoHTTP, ProtoMySQL}, pset.protoOrder)
+}
+
 func TestRedis(t *testing.T) {
 	t.Run("TestReadLength", func(t *testing.T) {
 		msg := "\x2a\x33\x0d\x0a\x24\x33\x0d\x0a\x73\x65\x74\x0d\x0a\x24" +
@@ -54,6 +111,13 @@ func TestRedis(t *testing.T) {
 
 		assert.Equal(t, []byte(msg[4:]), payload)
 		assert.Equal(t, 3, length)
+	})
+
+	t.Run("TestReadLengthTooLarge", func(t *testing.T) {
+		msg := fmt.Sprintf("%d\r\n", uint64(maxInt)+1)
+		if _, _, err := readLength([]byte(msg)); err == nil {
+			t.Fatal("expected oversized RESP length to be rejected")
+		}
 	})
 
 	t.Run("TestDecodeBulkString", func(t *testing.T) {
@@ -310,6 +374,29 @@ func TestMysqlHeaderDecoder(t *testing.T) {
 	}
 	expectedOffset := 4
 	assert.Equal(t, expectedOffset, offset)
+}
+
+func TestMysqlPendingBufferLimit(t *testing.T) {
+	m := &mysqlInfo{}
+	_, err := m.parse([]byte("123456"), 0, 5)
+	if !errors.Is(err, errMysqlPendingBufferLimit) {
+		t.Fatalf("expected pending buffer limit error, got %v", err)
+	}
+	if m.reader == nil || m.reader.Len() != 0 {
+		t.Fatal("expected mysql pending reader to be reset")
+	}
+}
+
+func TestMysqlPendingBufferLimitEnv(t *testing.T) {
+	t.Setenv(mysqlPendingBufferLimitEnv, "bad")
+	if got := mysqlPendingBufferLimit(); got != defaultMysqlPendingBufferLimit {
+		t.Fatalf("invalid env limit = %d, want %d", got, defaultMysqlPendingBufferLimit)
+	}
+
+	t.Setenv(mysqlPendingBufferLimitEnv, "99999999")
+	if got := mysqlPendingBufferLimit(); got != maxMysqlPendingBufferLimit {
+		t.Fatalf("clamped env limit = %d, want %d", got, maxMysqlPendingBufferLimit)
+	}
 }
 
 func TestTrimComment(t *testing.T) {

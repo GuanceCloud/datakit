@@ -25,6 +25,7 @@ type Parser struct {
 	MeasurementPrefix     string       `toml:"measurement_prefix"`
 	MeasurementName       string       `toml:"measurement_name"`
 	Measurements          []iprom.Rule `toml:"measurements"`
+	KeepExistMetricName   bool         `toml:"keep_exist_metric_name"`
 
 	metricNameReFilter      []*regexp.Regexp
 	measurementNameReFilter []*regexp.Regexp

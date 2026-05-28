@@ -6,6 +6,26 @@
 
 This article describes the basic installation of DataKit.
 
+## 2.x and 1.x Version Policy {#major-version}
+
+- `2.x` is the current mainline (for example `2.1.0`, `2.2.0`) and is the recommended target for new installs and future upgrades.
+- `1.x` is the legacy mainline (for example `1.92.0`) for older systems or explicitly pinned legacy deployments.
+- Auto-upgrade follows the latest version from the configured upgrade source. If the host is already running `2.x`, it can continue upgrading to the latest `2.x`.
+- For hosts that cannot run `2.x`, use a manually specified `1.x` version when needed.
+
+Minimum OS requirements for `2.x`:
+
+- Linux: kernel >= `3.2`
+- Windows: `Windows 10` / `Windows Server 2016` or newer
+- macOS: `macOS 12` or newer
+
+`2.x` and `1.x` use separate install sources. Use `datakit-v2` (recommended):
+
+- `https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/`：`2.x` install/upgrade source, **recommended for all new installs and upgrades**.
+- `https://static.<<<custom_key.brand_main_domain>>>/datakit/`：`1.x` install/upgrade source, for legacy systems only.
+
+The install script automatically selects the matching version line based on the download path. Since the two paths are independently published, `datakit-v2` only installs/upgrades to the latest `2.x`, and `datakit` only installs/upgrades to the latest `1.x` — they do not share version information. To manually install a `1.x` version, use a versioned script (for example `install-1.93.0.sh`).
+
 ## Register/log in to <<<custom_key.brand_name>>> {#regist-login}
 
 <<<% if custom_key.brand_key == 'guance' %>>>
@@ -177,7 +197,7 @@ The environment variables supported by the installation script are as follows (s
     ```shell
     DK_DEF_INPUTS="-" \
     DK_DATAWAY=https://openway.<<<custom_key.brand_main_domain>>>?token=<TOKEN> \
-    bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
+    bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/install.sh)"
     ```
 
     Beside, if DataKit has been installed before, we must delete all default inputs *.conf* files manually. During installing, DataKit able to add new inputs configure, not cant delete them.
@@ -366,6 +386,14 @@ DK_USER_NAME="datakit" DK_DATAWAY="..." bash -c ...
 {{ InstallCmd 4 (.WithPlatform "windows") (.WithEnvs "DK_SINKER_GLOBAL_CUSTOMER_KEYS" "key1,key2" ) (.WithEnvs "DK_DATAWAY_ENABLE_SINKER" "on" ) }}
     ```
 
+???+ note "Notes"
+
+    Since [:octicons-tag-24: Version-1.95.0](changelog-2026.md#cl-1.95.0), DataKit Sinker headers apply as follows:
+
+    - Only point upload requests (`/v1/write/*`) carry Dataway Sinker headers.
+    - Profiling upload (`/v1/upload/profiling`) and RUM replay (`/v1/write/rum/replay`) keep their explicit `X-Global-Tags` behavior.
+    - Other Dataway APIs do not carry `X-Global-Tags` or `X-Global-Tags-V2`, such as `/v1/datakit/pull`, `/v1/datakit/usage_trace`, `/v1/election`, `/v1/query/raw`, `/v1/aggregate`, `/v1/tail_sampling`, and `/v1/tail_sampling_config`.
+
 ### Resource Limit {#env-cgroup}
 
 Only Linux and Windows ([:octicons-tag-24: Version-1.15.0](changelog.md#cl-1.15.0)) operating system are supported.
@@ -385,7 +413,7 @@ By specifying `DK_APM_INSTRUMENTATION_ENABLED` in the installation command, you 
 ```shell
 DK_APM_INSTRUMENTATION_ENABLED=host \
   DK_DATAWAY=https://openway.<<<custom_key.brand_main_domain>>>?token=<TOKEN>  \
-  bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
+  bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/install.sh)"
 ```
 
 - Enable host inject:
@@ -393,7 +421,7 @@ DK_APM_INSTRUMENTATION_ENABLED=host \
 ```shell
 DK_APM_INSTRUMENTATION_ENABLED=docker \
   DK_DATAWAY=https://openway.<<<custom_key.brand_main_domain>>>?token=<TOKEN> \
-  bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
+  bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/install.sh)"
 ```
 
 For host deployment, after DataKit is installed, reopen a terminal and restart the corresponding Java/Python/PHP application.
@@ -464,7 +492,7 @@ In Kubernetes, you can inject APM through the [DataKit Operator](operator-ddtrac
 | `DK_HOSTNAME`                    | `some-host-name`            | Support custom configuration hostname during installation                                                                                                                                   |
 | `DK_UPGRADE`                     | `1`                         | Upgrade to the latest version                                                               |
 | `DK_UPGRADE_MANAGER`             | `on`                        | Whether to also install or upgrade the **DataKit upgrade management service** when upgrading DataKit. Used together with `DK_UPGRADE`, supported since [1.5.9](changelog.md#cl-1.5.9) |
-| `DK_INSTALLER_BASE_URL`          | `https://your-url`          | You can choose the installation script for different environments, default to `https://static.<<<custom_key.brand_main_domain>>>/datakit`                                                                           |
+| `DK_INSTALLER_BASE_URL`          | `https://your-url`          | You can choose the installation script for different environments, default to `https://static.<<<custom_key.brand_main_domain>>>/datakit-v2`                                                                           |
 | `DK_PROXY_TYPE`                  | -                           | Proxy type. The options are: `datakit` or `nginx`, both lowercase                                                                                                                           |
 | `DK_NGINX_IP`                    | -                           | Proxy server IP address (only need to fill in IP but not port). With the highest priority, this is mutually exclusive with the above "HTTP_PROXY" and "HTTPS_PROXY" and will override both. |
 | `DK_INSTALL_LOG`                 | -                           | Set the setup log path, default to *install.log* in the current directory, if set to `stdout`, output to the command line terminal.                                                         |

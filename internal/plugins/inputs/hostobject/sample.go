@@ -69,7 +69,7 @@ enable_cloud_aws_ipv6 = false
   # hardware_optimized = "true"
 
 ## [inputs.hostobject.tags] # (optional) custom tags
-  # cloud_provider = "aliyun" # aliyun/tencent/aws/hwcloud/azure/volcengine, probe automatically if not set
+  # cloud_provider = "aliyun" # aliyun/ksyun/tencent/aws/hwcloud/azure/volcengine/gcp, probe automatically if not set
   # some_tag = "some_value"
   # more_tag = "some_other_value"
   # ...
@@ -77,10 +77,12 @@ enable_cloud_aws_ipv6 = false
 ## [inputs.hostobject.cloud_meta_url]
   # tencent = "xxx"  # URL for Tencent Cloud metadata
   # aliyun = "yyy"   # URL for Alibaba Cloud metadata
+  # ksyun = "xxx"    # URL for Kingsoft Cloud metadata
   # aws = "zzz"
   # azure = ""
   # Hwcloud = ""
   # volcengine = ""
+  # gcp = ""
 
 ## [inputs.hostobject.cloud_meta_token_url]
   # aws = "yyy"   # URL for AWS Cloud metadata token

@@ -1,12 +1,36 @@
 package sarama
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // AlterConfigsResponse is a response type for alter config
 type AlterConfigsResponse struct {
 	Version      int16
 	ThrottleTime time.Duration
 	Resources    []*AlterConfigsResourceResponse
+}
+
+func (a *AlterConfigsResponse) setVersion(v int16) {
+	a.Version = v
+}
+
+type AlterConfigError struct {
+	Err    KError
+	ErrMsg string
+}
+
+func (c *AlterConfigError) Error() string {
+	text := c.Err.Error()
+	if c.ErrMsg != "" {
+		text = fmt.Sprintf("%s - %s", text, c.ErrMsg)
+	}
+	return text
+}
+
+func (c *AlterConfigError) Unwrap() error {
+	return c.Err
 }
 
 // AlterConfigsResourceResponse is a response type for alter config resource
@@ -18,7 +42,7 @@ type AlterConfigsResourceResponse struct {
 }
 
 func (a *AlterConfigsResponse) encode(pe packetEncoder) error {
-	pe.putInt32(int32(a.ThrottleTime / time.Millisecond))
+	pe.putDurationMs(a.ThrottleTime)
 
 	if err := pe.putArrayLength(len(a.Resources)); err != nil {
 		return err
@@ -33,12 +57,10 @@ func (a *AlterConfigsResponse) encode(pe packetEncoder) error {
 	return nil
 }
 
-func (a *AlterConfigsResponse) decode(pd packetDecoder, version int16) error {
-	throttleTime, err := pd.getInt32()
-	if err != nil {
+func (a *AlterConfigsResponse) decode(pd packetDecoder, version int16) (err error) {
+	if a.ThrottleTime, err = pd.getDurationMs(); err != nil {
 		return err
 	}
-	a.ThrottleTime = time.Duration(throttleTime) * time.Millisecond
 
 	responseCount, err := pd.getArrayLength()
 	if err != nil {
@@ -69,6 +91,7 @@ func (a *AlterConfigsResourceResponse) encode(pe packetEncoder) error {
 	if err != nil {
 		return err
 	}
+	pe.putEmptyTaggedFieldArray()
 	return nil
 }
 
@@ -79,11 +102,15 @@ func (a *AlterConfigsResourceResponse) decode(pd packetDecoder, version int16) e
 	}
 	a.ErrorCode = errCode
 
-	e, err := pd.getString()
+	e, err := pd.getNullableString()
 	if err != nil {
 		return err
 	}
-	a.ErrorMsg = e
+	if e == nil {
+		a.ErrorMsg = ""
+	} else {
+		a.ErrorMsg = *e
+	}
 
 	t, err := pd.getInt8()
 	if err != nil {
@@ -97,11 +124,12 @@ func (a *AlterConfigsResourceResponse) decode(pd packetDecoder, version int16) e
 	}
 	a.Name = name
 
-	return nil
+	_, err = pd.getEmptyTaggedFieldArray()
+	return err
 }
 
 func (a *AlterConfigsResponse) key() int16 {
-	return 33
+	return apiKeyAlterConfigs
 }
 
 func (a *AlterConfigsResponse) version() int16 {

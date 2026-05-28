@@ -20,6 +20,12 @@ type JoinGroupResponse struct {
 	MemberId string
 	// Members contains the per-group-member information.
 	Members []GroupMember
+	// ProtocolType contains the protocol type of the group (KIP-559)
+	ProtocolType *string
+}
+
+func (r *JoinGroupResponse) setVersion(v int16) {
+	r.Version = v
 }
 
 type GroupMember struct {
@@ -48,11 +54,20 @@ func (r *JoinGroupResponse) encode(pe packetEncoder) error {
 	if r.Version >= 2 {
 		pe.putInt32(r.ThrottleTime)
 	}
-	pe.putInt16(int16(r.Err))
+	pe.putKError(r.Err)
 	pe.putInt32(r.GenerationId)
 
-	if err := pe.putString(r.GroupProtocol); err != nil {
-		return err
+	if r.Version >= 7 {
+		if err := pe.putNullableString(r.ProtocolType); err != nil {
+			return err
+		}
+		if err := pe.putNullableString(&r.GroupProtocol); err != nil {
+			return err
+		}
+	} else {
+		if err := pe.putString(r.GroupProtocol); err != nil {
+			return err
+		}
 	}
 	if err := pe.putString(r.LeaderId); err != nil {
 		return err
@@ -77,8 +92,10 @@ func (r *JoinGroupResponse) encode(pe packetEncoder) error {
 		if err := pe.putBytes(member.Metadata); err != nil {
 			return err
 		}
+		pe.putEmptyTaggedFieldArray()
 	}
 
+	pe.putEmptyTaggedFieldArray()
 	return nil
 }
 
@@ -91,19 +108,28 @@ func (r *JoinGroupResponse) decode(pd packetDecoder, version int16) (err error) 
 		}
 	}
 
-	kerr, err := pd.getInt16()
+	r.Err, err = pd.getKError()
 	if err != nil {
 		return err
 	}
-
-	r.Err = KError(kerr)
 
 	if r.GenerationId, err = pd.getInt32(); err != nil {
 		return
 	}
 
-	if r.GroupProtocol, err = pd.getString(); err != nil {
-		return
+	if r.Version >= 7 {
+		if r.ProtocolType, err = pd.getNullableString(); err != nil {
+			return
+		}
+		if groupProtocol, err := pd.getNullableString(); err != nil {
+			return err
+		} else if groupProtocol != nil {
+			r.GroupProtocol = *groupProtocol
+		}
+	} else {
+		if r.GroupProtocol, err = pd.getString(); err != nil {
+			return
+		}
 	}
 
 	if r.LeaderId, err = pd.getString(); err != nil {
@@ -119,7 +145,8 @@ func (r *JoinGroupResponse) decode(pd packetDecoder, version int16) (err error) 
 		return err
 	}
 	if n == 0 {
-		return nil
+		_, err = pd.getEmptyTaggedFieldArray()
+		return err
 	}
 
 	r.Members = make([]GroupMember, n)
@@ -143,13 +170,18 @@ func (r *JoinGroupResponse) decode(pd packetDecoder, version int16) (err error) 
 		}
 
 		r.Members[i] = GroupMember{MemberId: memberId, GroupInstanceId: groupInstanceId, Metadata: memberMetadata}
+
+		if _, err := pd.getEmptyTaggedFieldArray(); err != nil {
+			return err
+		}
 	}
 
-	return nil
+	_, err = pd.getEmptyTaggedFieldArray()
+	return err
 }
 
 func (r *JoinGroupResponse) key() int16 {
-	return 11
+	return apiKeyJoinGroup
 }
 
 func (r *JoinGroupResponse) version() int16 {
@@ -157,15 +189,30 @@ func (r *JoinGroupResponse) version() int16 {
 }
 
 func (r *JoinGroupResponse) headerVersion() int16 {
+	if r.Version >= 6 {
+		return 1
+	}
 	return 0
 }
 
 func (r *JoinGroupResponse) isValidVersion() bool {
-	return r.Version >= 0 && r.Version <= 5
+	return r.Version >= 0 && r.Version <= 7
+}
+
+func (r *JoinGroupResponse) isFlexible() bool {
+	return r.isFlexibleVersion(r.Version)
+}
+
+func (r *JoinGroupResponse) isFlexibleVersion(version int16) bool {
+	return version >= 6
 }
 
 func (r *JoinGroupResponse) requiredVersion() KafkaVersion {
 	switch r.Version {
+	case 7:
+		return V2_5_0_0
+	case 6:
+		return V2_4_0_0
 	case 5:
 		return V2_3_0_0
 	case 4:

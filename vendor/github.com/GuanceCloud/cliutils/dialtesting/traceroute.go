@@ -18,6 +18,11 @@ const (
 	MaxRetry   = 3
 )
 
+var (
+	lookupIP        = net.LookupIP
+	runTracerouteIP = TracerouteIP
+)
+
 // TracerouteOption represent traceroute option.
 type TracerouteOption struct {
 	Hops    int
@@ -59,6 +64,20 @@ type Packet struct {
 	Dst net.IP
 
 	startTime time.Time
+}
+
+func preferredIP(ips []net.IP) net.IP {
+	for _, ip := range ips {
+		if ip.To4() != nil {
+			return ip
+		}
+	}
+
+	if len(ips) == 0 {
+		return nil
+	}
+
+	return ips[0]
 }
 
 func mean(v []float64) float64 {

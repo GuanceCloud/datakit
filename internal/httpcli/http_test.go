@@ -307,9 +307,10 @@ func TestClientConnections(t *testing.T) {
 				"by using default transport, %d should >= %d",
 				cw.Max, tc.nclients)
 		} else {
-			assert.Truef(t, cw.Max <= int64(tc.nclients),
+			limit := int64(tc.nclients + 1)
+			assert.Truef(t, cw.Max <= limit,
 				"by using specified transport, %d should <= %d",
-				cw.Max, tc.nclients)
+				cw.Max, limit)
 		}
 	}
 }

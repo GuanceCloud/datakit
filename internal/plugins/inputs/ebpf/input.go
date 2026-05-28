@@ -61,6 +61,9 @@ type Input struct {
 	NetlogMetric     bool   `toml:"netlog_metric"`
 	NetlogLog        bool   `toml:"netlog_log"`
 
+	NetlogL7LogProtocols []string `toml:"netlog_l7log_protocols"`
+	NetlogL7LogHeaders   []string `toml:"netlog_l7log_headers"`
+
 	NetlogFallbackSockets int `toml:"netlog_fallback_sockets"`
 	NetlogFallbackBlocks  int `toml:"netlog_fallback_blocks"`
 	NetlogSharedBlocks    int `toml:"netlog_shared_blocks"`
@@ -115,6 +118,44 @@ func appendResourceLimitArgs(args []string, cpuLimit, memLimit, bandwidthLimit s
 	}
 
 	return args
+}
+
+func appendNetlogL7LogArgs(args []string, protocols, headers []string) []string {
+	if v := joinTrimmedList(protocols); v != "" {
+		args = append(args, "--netlog-protocols", v)
+	}
+	if v := joinTrimmedList(headers); v != "" {
+		args = append(args, "--netlog-l7log-headers", v)
+	}
+
+	return args
+}
+
+func joinTrimmedList(items []string) string {
+	if len(items) == 0 {
+		return ""
+	}
+
+	out := make([]string, 0, len(items))
+	for _, item := range items {
+		item = strings.TrimSpace(item)
+		if item != "" {
+			out = append(out, item)
+		}
+	}
+	return strings.Join(out, ",")
+}
+
+func splitTrimmedList(v string) []string {
+	parts := strings.Split(v, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			out = append(out, part)
+		}
+	}
+	return out
 }
 
 func appendNetlogCaptureLimitArgs(args []string, fallbackSockets, fallbackBlocks, sharedBlocks int) []string {
@@ -278,6 +319,8 @@ loop:
 		if !ipt.NetlogMetricOnly || ipt.NetlogLog {
 			netlogArgs = append(netlogArgs, "--netlog-log")
 		}
+		netlogArgs = appendNetlogL7LogArgs(netlogArgs,
+			ipt.NetlogL7LogProtocols, ipt.NetlogL7LogHeaders)
 		netlogArgs = appendNetlogCaptureLimitArgs(netlogArgs,
 			ipt.NetlogFallbackSockets, ipt.NetlogFallbackBlocks, ipt.NetlogSharedBlocks)
 
@@ -390,6 +433,8 @@ func (*Input) AvailableArchs() []string {
 // ENV_INPUT_EBPF_NETLOG_METRIC_ONLY : bool
 // ENV_INPUT_EBPF_NETLOG_METRIC      : bool
 // ENV_INPUT_EBPF_NETLOG_LOG         : bool
+// ENV_INPUT_EBPF_NETLOG_L7LOG_PROTOCOLS : []string
+// ENV_INPUT_EBPF_NETLOG_L7LOG_HEADERS   : []string
 // ENV_INPUT_EBPF_NETLOG_FALLBACK_SOCKETS : int
 // ENV_INPUT_EBPF_NETLOG_FALLBACK_BLOCKS  : int
 // ENV_INPUT_EBPF_NETLOG_SHARED_BLOCKS    : int
@@ -554,6 +599,14 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		default:
 			ipt.NetlogLog = true
 		}
+	}
+
+	if v, ok := envs["ENV_INPUT_EBPF_NETLOG_L7LOG_PROTOCOLS"]; ok {
+		ipt.NetlogL7LogProtocols = splitTrimmedList(v)
+	}
+
+	if v, ok := envs["ENV_INPUT_EBPF_NETLOG_L7LOG_HEADERS"]; ok {
+		ipt.NetlogL7LogHeaders = splitTrimmedList(v)
 	}
 
 	if v, ok := envs["ENV_INPUT_EBPF_NETLOG_FALLBACK_SOCKETS"]; ok {

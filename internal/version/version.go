@@ -162,11 +162,9 @@ func (vi *VerInfo) Parse() error {
 }
 
 func IsNewVersion(newVer, curver *VerInfo, acceptRC bool) bool {
-	if newVer.Commit != curver.Commit {
-		return true
-	}
+	cmp := newVer.Compare(curver)
 
-	if newVer.Compare(curver) > 0 { // new version
+	if cmp > 0 { // newVer is numerically greater
 		if newVer.rc == "" { // no rc version
 			return true
 		}
@@ -174,6 +172,11 @@ func IsNewVersion(newVer, curver *VerInfo, acceptRC bool) bool {
 		if acceptRC {
 			return true
 		}
+	}
+
+	// Same version number but different commit (different build of same version)
+	if cmp == 0 && newVer.Commit != curver.Commit {
+		return true
 	}
 
 	return false

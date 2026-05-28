@@ -48,6 +48,29 @@ type diskStatsMock struct {
 	mountinfo string
 }
 
+type trackingDiskStatsMock struct {
+	partitions []disk.PartitionStat
+	usagePath  []string
+}
+
+func (m *trackingDiskStatsMock) Usage(path, _ string) (*disk.UsageStat, error) {
+	m.usagePath = append(m.usagePath, path)
+	return &disk.UsageStat{
+		Total:             100,
+		Free:              10,
+		Used:              90,
+		UsedPercent:       .9,
+		InodesTotal:       1 << 32,
+		InodesUsed:        1 << 20,
+		InodesFree:        (1 << 32) - (1 << 20),
+		InodesUsedPercent: float64(1<<20) / float64(1<<32),
+	}, nil
+}
+
+func (m *trackingDiskStatsMock) Partitions() ([]disk.PartitionStat, error) {
+	return m.partitions, nil
+}
+
 func (m *diskStatsMock) Usage(path, _ string) (*disk.UsageStat, error) {
 	return &disk.UsageStat{
 		Total:             100,
@@ -123,6 +146,27 @@ func TestFilterUsage(t *T.T) {
 			assert.NotContains(t, x.Part.Mountpoint, "/run/containerd")
 		}
 	})
+}
+
+func TestFilterUsageSkipsIgnoredBeforeUsage(t *T.T) {
+	stats := &trackingDiskStatsMock{
+		partitions: []disk.PartitionStat{
+			{Device: "/dev/sda1", Mountpoint: "/data", Fstype: "xfs"},
+			{Device: "systemd-1", Mountpoint: "/proc/sys/fs/binfmt_misc", Fstype: "autofs"},
+			{Device: "binfmt_misc", Mountpoint: "/proc/sys/fs/binfmt_misc", Fstype: "binfmt_misc"},
+			{Device: "/dev/sdb1", Mountpoint: "/usr/local/datakit/123", Fstype: "xfs"},
+		},
+	}
+
+	ipt := defaultInput()
+	ipt.diskStats = stats
+	ipt.setup()
+
+	arr, err := ipt.filterUsage()
+	require.NoError(t, err)
+	require.Len(t, arr, 1)
+	assert.Equal(t, "/data", arr[0].Part.Mountpoint)
+	assert.Equal(t, []string{"/data"}, stats.usagePath)
 }
 
 func TestLinuxFilterUsage(t *T.T) {

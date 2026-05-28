@@ -3,12 +3,15 @@
 
 package l4log
 
-import "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
+import (
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
+)
 
 func (agg *FlowAggHTTP) AppendH2(info *PMeta, stats *HTTP2LogElem, netns string,
 	v6, macEQ bool, nicIPList []string, waitTS int64,
 ) {
-	if info == nil || !macEQ {
+	if info == nil || stats == nil || !macEQ {
 		return
 	}
 	var keep bool
@@ -62,6 +65,10 @@ func (agg *FlowAggHTTP) AppendH2(info *PMeta, stats *HTTP2LogElem, netns string,
 	if v, ok := agg.data[key]; ok {
 		value = v
 	} else {
+		if len(agg.data) >= agg.entryLimit() {
+			exporter.IncBPFEventDrop("l4log", "http_agg", "limit")
+			return
+		}
 		agg.data[key] = &aggHTTPValue{}
 		value = agg.data[key]
 	}

@@ -5,11 +5,14 @@ package dnsflow
 
 import (
 	"math"
+	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 	dknetflow "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/cli"
 )
@@ -30,21 +33,16 @@ type aggKey struct {
 }
 
 type aggValue struct {
-	latencyMax int
-	latency    []int
-	count      int
+	latencyMax   int64
+	latencyTotal int64
+	count        int
 }
 
-func calLatency(l []int) int {
-	if len(l) == 0 {
+func avgLatency(total int64, count int) int64 {
+	if count <= 0 {
 		return 0
-	} else {
-		t := 0
-		for _, v := range l {
-			t += v
-		}
-		return t / len(l)
 	}
+	return total / int64(count)
 }
 
 func kv2point(key *aggKey, value *aggValue, pTime time.Time,
@@ -105,7 +103,7 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 
 	fields := map[string]any{
 		"rcode":       key.rcode,
-		"latency":     calLatency(value.latency),
+		"latency":     avgLatency(value.latencyTotal, value.count),
 		"latency_max": value.latencyMax,
 		"count":       value.count,
 	}
@@ -123,11 +121,47 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 }
 
 type FlowAgg struct {
-	data map[aggKey]*aggValue
+	data  map[aggKey]*aggValue
+	limit int
 }
 
 func (agg *FlowAgg) Len() int {
+	if agg == nil {
+		return 0
+	}
 	return len(agg.data)
+}
+
+const (
+	dnsAggLimitEnv     = "DK_EBPF_DNSFLOW_AGG_LIMIT"
+	defaultDNSAggLimit = 32_768
+	maxDNSAggLimit     = 1_000_000
+)
+
+func dnsAggLimit() int {
+	raw := strings.TrimSpace(os.Getenv(dnsAggLimitEnv))
+	if raw == "" {
+		return defaultDNSAggLimit
+	}
+	limit, err := strconv.Atoi(raw)
+	if err != nil || limit <= 0 {
+		l.Warnf("invalid %s=%q, use default %d", dnsAggLimitEnv, raw, defaultDNSAggLimit)
+		return defaultDNSAggLimit
+	}
+	if limit > maxDNSAggLimit {
+		return maxDNSAggLimit
+	}
+	return limit
+}
+
+func (agg *FlowAgg) entryLimit() int {
+	if agg == nil {
+		return defaultDNSAggLimit
+	}
+	if agg.limit <= 0 {
+		agg.limit = dnsAggLimit()
+	}
+	return agg.limit
 }
 
 func (agg *FlowAgg) Append(dnsKey DNSQAKey, stats DNSStats) error {
@@ -190,19 +224,22 @@ func (agg *FlowAgg) Append(dnsKey DNSQAKey, stats DNSStats) error {
 	}
 
 	// agg latency and count ++
+	latency := stats.RespTime.Nanoseconds()
 	if v, ok := agg.data[key]; ok {
 		v.count++
-		latency := int(stats.RespTime.Nanoseconds())
-		v.latency = append(v.latency, latency)
 		if latency > v.latencyMax {
 			v.latencyMax = latency
 		}
+		v.latencyTotal += latency
 	} else {
+		if len(agg.data) >= agg.entryLimit() {
+			exporter.IncBPFEventDrop("dnsflow", "agg", "limit")
+			return nil
+		}
 		agg.data[key] = &aggValue{
-			count: 1,
-			latency: []int{
-				int(stats.RespTime.Nanoseconds()),
-			},
+			count:        1,
+			latencyMax:   latency,
+			latencyTotal: latency,
 		}
 	}
 

@@ -176,11 +176,11 @@ For all of the following data collections, the global election tags will added a
 
 {{ end }}
 
-## Custom Object {#object}
+## Object {#object}
 
 {{ range $i, $m := .Measurements }}
 
-{{if eq $m.Type "custom_object"}}
+{{if eq $m.Type "object"}}
 
 ### `{{$m.Name}}`
 
@@ -190,6 +190,24 @@ For all of the following data collections, the global election tags will added a
 {{end}}
 
 {{ end }}
+
+### Structure of the `message` Field {#message-struct}
+
+The basic structure of the `message` field is as follows:
+
+```json
+{
+  "setting": {
+    "maxmemory": "0",
+    "maxmemory-policy": "noeviction",
+    "requirepass": "******"
+  }
+}
+```
+
+#### `setting` {#setting}
+
+The `setting` field is sourced from `CONFIG GET *` on the current Redis node. Credential settings such as `requirepass`, `masterauth`, `tls-key-file-pass`, and `tls-client-key-file-pass` are masked as `******`.
 
 ## Logging {#logging}
 

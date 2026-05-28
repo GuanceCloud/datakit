@@ -80,7 +80,7 @@ func TestGetMetric(t *testing.T) {
 
 	p, err := m.LPPoint()
 	assert.NoError(t, err)
-	t.Logf(p.String())
+	t.Log(p.String())
 }
 
 func TestInput_setHost(t *testing.T) {

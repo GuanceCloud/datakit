@@ -57,7 +57,7 @@ func TestStatsPoint(t *testing.T) {
 	sort.Strings(arr)
 
 	for _, v := range arr {
-		t.Logf(v)
+		t.Log(v)
 	}
 
 	for i, s := range arr {

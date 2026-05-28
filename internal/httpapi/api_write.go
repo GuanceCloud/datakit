@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -276,6 +277,7 @@ const (
 	argEchoJSONDeprecated      = "echo_json"
 	argEcho                    = "echo"
 	argDryRun                  = "dry"
+	argDisableFilter           = "disable_filter"
 
 	argVersion        = "version"
 	argPipelineSource = "source"
@@ -361,6 +363,15 @@ func (wr *APIWriteResult) APIV1Write(req *http.Request) (err error) {
 	if x := q.Get(argVersion); x != "" {
 		wr.FeedOptions = append(wr.FeedOptions, dkio.WithInputVersion(x))
 		wr.inputVersion = x
+	}
+
+	if x := q.Get(argDisableFilter); x != "" {
+		disableFilter, err := strconv.ParseBool(x)
+		if err != nil {
+			l.Warnf("parse %s=%q failed: %s, ignored", argDisableFilter, x, err.Error())
+		} else if disableFilter {
+			wr.FeedOptions = append(wr.FeedOptions, dkio.DisableFilter(true))
+		}
 	}
 
 	if x := q.Get(argPipelineSource); x != "" {

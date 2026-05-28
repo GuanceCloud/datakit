@@ -8,13 +8,16 @@ package openpgp // import "github.com/ProtonMail/go-crypto/openpgp"
 import (
 	"crypto"
 	_ "crypto/sha256"
+	_ "crypto/sha512"
 	"hash"
 	"io"
 	"strconv"
 
 	"github.com/ProtonMail/go-crypto/openpgp/armor"
 	"github.com/ProtonMail/go-crypto/openpgp/errors"
+	"github.com/ProtonMail/go-crypto/openpgp/internal/algorithm"
 	"github.com/ProtonMail/go-crypto/openpgp/packet"
+	_ "golang.org/x/crypto/sha3"
 )
 
 // SignatureType is the armor type for a PGP signature.
@@ -43,6 +46,7 @@ type MessageDetails struct {
 	DecryptedWith            Key                 // the private key used to decrypt the message, if any.
 	IsSigned                 bool                // true if the message is signed.
 	SignedByKeyId            uint64              // the key id of the signer, if any.
+	SignedByFingerprint      []byte              // the key fingerprint of the signer, if any.
 	SignedBy                 *Key                // the key of the signer, if available.
 	LiteralData              *packet.LiteralData // the metadata of the contents
 	UnverifiedBody           io.Reader           // the contents of the message.
@@ -114,22 +118,30 @@ ParsePackets:
 			// This packet contains the decryption key encrypted to a public key.
 			md.EncryptedToKeyIds = append(md.EncryptedToKeyIds, p.KeyId)
 			switch p.Algo {
-			case packet.PubKeyAlgoRSA, packet.PubKeyAlgoRSAEncryptOnly, packet.PubKeyAlgoElGamal, packet.PubKeyAlgoECDH:
+			case packet.PubKeyAlgoRSA, packet.PubKeyAlgoRSAEncryptOnly, packet.PubKeyAlgoElGamal, packet.PubKeyAlgoECDH, packet.PubKeyAlgoX25519, packet.PubKeyAlgoX448:
 				break
 			default:
 				continue
 			}
-			var keys []Key
-			if p.KeyId == 0 {
-				keys = keyring.DecryptionKeys()
-			} else {
-				keys = keyring.KeysById(p.KeyId)
+			if keyring != nil {
+				var keys []Key
+				if p.KeyId == 0 {
+					keys = keyring.DecryptionKeys()
+				} else {
+					keys = keyring.KeysById(p.KeyId)
+				}
+				for _, k := range keys {
+					pubKeys = append(pubKeys, keyEnvelopePair{k, p})
+				}
 			}
-			for _, k := range keys {
-				pubKeys = append(pubKeys, keyEnvelopePair{k, p})
+		case *packet.SymmetricallyEncrypted:
+			if !p.IntegrityProtected && !config.AllowUnauthenticatedMessages() {
+				return nil, errors.UnsupportedError("message is not integrity protected")
 			}
-		case *packet.SymmetricallyEncrypted, *packet.AEADEncrypted:
-			edp = p.(packet.EncryptedDataPacket)
+			edp = p
+			break ParsePackets
+		case *packet.AEADEncrypted:
+			edp = p
 			break ParsePackets
 		case *packet.Compressed, *packet.LiteralData, *packet.OnePassSignature:
 			// This message isn't encrypted.
@@ -200,13 +212,11 @@ FindKey:
 		if len(symKeys) != 0 && passphrase != nil {
 			for _, s := range symKeys {
 				key, cipherFunc, err := s.Decrypt(passphrase)
-				// On wrong passphrase, session key decryption is very likely to result in an invalid cipherFunc:
+				// In v4, on wrong passphrase, session key decryption is very likely to result in an invalid cipherFunc:
 				// only for < 5% of cases we will proceed to decrypt the data
 				if err == nil {
 					decrypted, err = edp.Decrypt(cipherFunc, key)
-					// TODO: ErrKeyIncorrect is no longer thrown on SEIP decryption,
-					// but it might still be relevant for when we implement AEAD decryption (otherwise, remove?)
-					if err != nil && err != errors.ErrKeyIncorrect {
+					if err != nil {
 						return nil, err
 					}
 					if decrypted != nil {
@@ -223,7 +233,7 @@ FindKey:
 	}
 	mdFinal, sensitiveParsingErr := readSignedMessage(packets, md, keyring, config)
 	if sensitiveParsingErr != nil {
-		return nil, errors.StructuralError("parsing error")
+		return nil, errors.HandleSensitiveParsingError(sensitiveParsingErr, md.decrypted != nil)
 	}
 	return mdFinal, nil
 }
@@ -261,16 +271,22 @@ FindLiteralData:
 				prevLast = true
 			}
 
-			h, wrappedHash, err = hashForSignature(p.Hash, p.SigType)
+			h, wrappedHash, err = hashForSignature(p.Hash, p.SigType, p.Salt)
 			if err != nil {
 				md.SignatureError = err
 			}
 
 			md.IsSigned = true
+			if p.Version == 6 {
+				md.SignedByFingerprint = p.KeyFingerprint
+			}
 			md.SignedByKeyId = p.KeyId
-			keys := keyring.KeysByIdUsage(p.KeyId, packet.KeyFlagSign)
-			if len(keys) > 0 {
-				md.SignedBy = &keys[0]
+
+			if keyring != nil {
+				keys := keyring.KeysByIdUsage(p.KeyId, packet.KeyFlagSign)
+				if len(keys) > 0 {
+					md.SignedBy = &keys[0]
+				}
 			}
 		case *packet.LiteralData:
 			md.LiteralData = p
@@ -281,7 +297,7 @@ FindLiteralData:
 	if md.IsSigned && md.SignatureError == nil {
 		md.UnverifiedBody = &signatureCheckReader{packets, h, wrappedHash, md, config}
 	} else if md.decrypted != nil {
-		md.UnverifiedBody = checkReader{md}
+		md.UnverifiedBody = &checkReader{md, false}
 	} else {
 		md.UnverifiedBody = md.LiteralData.Body
 	}
@@ -289,27 +305,42 @@ FindLiteralData:
 	return md, nil
 }
 
+func wrapHashForSignature(hashFunc hash.Hash, sigType packet.SignatureType) (hash.Hash, error) {
+	switch sigType {
+	case packet.SigTypeBinary:
+		return hashFunc, nil
+	case packet.SigTypeText:
+		return NewCanonicalTextHash(hashFunc), nil
+	}
+	return nil, errors.UnsupportedError("unsupported signature type: " + strconv.Itoa(int(sigType)))
+}
+
 // hashForSignature returns a pair of hashes that can be used to verify a
 // signature. The signature may specify that the contents of the signed message
 // should be preprocessed (i.e. to normalize line endings). Thus this function
 // returns two hashes. The second should be used to hash the message itself and
 // performs any needed preprocessing.
-func hashForSignature(hashId crypto.Hash, sigType packet.SignatureType) (hash.Hash, hash.Hash, error) {
-	if hashId == crypto.MD5 {
-		return nil, nil, errors.UnsupportedError("insecure hash algorithm: MD5")
+func hashForSignature(hashFunc crypto.Hash, sigType packet.SignatureType, sigSalt []byte) (hash.Hash, hash.Hash, error) {
+	if _, ok := algorithm.HashToHashIdWithSha1(hashFunc); !ok {
+		return nil, nil, errors.UnsupportedError("unsupported hash function")
 	}
-	if !hashId.Available() {
-		return nil, nil, errors.UnsupportedError("hash not available: " + strconv.Itoa(int(hashId)))
+	if !hashFunc.Available() {
+		return nil, nil, errors.UnsupportedError("hash not available: " + strconv.Itoa(int(hashFunc)))
 	}
-	h := hashId.New()
-
+	h := hashFunc.New()
+	if sigSalt != nil {
+		h.Write(sigSalt)
+	}
+	wrappedHash, err := wrapHashForSignature(h, sigType)
+	if err != nil {
+		return nil, nil, err
+	}
 	switch sigType {
 	case packet.SigTypeBinary:
-		return h, h, nil
+		return h, wrappedHash, nil
 	case packet.SigTypeText:
-		return h, NewCanonicalTextHash(h), nil
+		return h, wrappedHash, nil
 	}
-
 	return nil, nil, errors.UnsupportedError("unsupported signature type: " + strconv.Itoa(int(sigType)))
 }
 
@@ -317,21 +348,27 @@ func hashForSignature(hashId crypto.Hash, sigType packet.SignatureType) (hash.Ha
 // it closes the ReadCloser from any SymmetricallyEncrypted packet to trigger
 // MDC checks.
 type checkReader struct {
-	md *MessageDetails
+	md      *MessageDetails
+	checked bool
 }
 
-func (cr checkReader) Read(buf []byte) (int, error) {
+func (cr *checkReader) Read(buf []byte) (int, error) {
 	n, sensitiveParsingError := cr.md.LiteralData.Body.Read(buf)
 	if sensitiveParsingError == io.EOF {
+		if cr.checked {
+			// Only check once
+			return n, io.EOF
+		}
 		mdcErr := cr.md.decrypted.Close()
 		if mdcErr != nil {
 			return n, mdcErr
 		}
+		cr.checked = true
 		return n, io.EOF
 	}
 
 	if sensitiveParsingError != nil {
-		return n, errors.StructuralError("parsing error")
+		return n, errors.HandleSensitiveParsingError(sensitiveParsingError, true)
 	}
 
 	return n, nil
@@ -355,6 +392,7 @@ func (scr *signatureCheckReader) Read(buf []byte) (int, error) {
 		scr.wrappedHash.Write(buf[:n])
 	}
 
+	readsDecryptedData := scr.md.decrypted != nil
 	if sensitiveParsingError == io.EOF {
 		var p packet.Packet
 		var readError error
@@ -370,11 +408,13 @@ func (scr *signatureCheckReader) Read(buf []byte) (int, error) {
 
 				// If signature KeyID matches
 				if scr.md.SignedBy != nil && *sig.IssuerKeyId == scr.md.SignedByKeyId {
-					scr.md.Signature = sig
-					scr.md.SignatureError = scr.md.SignedBy.PublicKey.VerifySignature(scr.h, scr.md.Signature)
-					if scr.md.SignatureError == nil && scr.md.Signature.SigExpired(scr.config.Now()) {
-						scr.md.SignatureError = errors.ErrSignatureExpired
+					key := scr.md.SignedBy
+					signatureError := key.PublicKey.VerifySignature(scr.h, sig)
+					if signatureError == nil {
+						signatureError = checkMessageSignatureDetails(key, sig, scr.config)
 					}
+					scr.md.Signature = sig
+					scr.md.SignatureError = signatureError
 				} else {
 					scr.md.UnverifiedSignatures = append(scr.md.UnverifiedSignatures, sig)
 				}
@@ -395,71 +435,91 @@ func (scr *signatureCheckReader) Read(buf []byte) (int, error) {
 		// unsigned hash of its own. In order to check this we need to
 		// close that Reader.
 		if scr.md.decrypted != nil {
-			mdcErr := scr.md.decrypted.Close()
-			if mdcErr != nil {
-				return n, mdcErr
+			if sensitiveParsingError := scr.md.decrypted.Close(); sensitiveParsingError != nil {
+				return n, errors.HandleSensitiveParsingError(sensitiveParsingError, true)
 			}
 		}
 		return n, io.EOF
 	}
 
 	if sensitiveParsingError != nil {
-		return n, errors.StructuralError("parsing error")
+		return n, errors.HandleSensitiveParsingError(sensitiveParsingError, readsDecryptedData)
 	}
 
 	return n, nil
 }
 
+// VerifyDetachedSignature takes a signed file and a detached signature and
+// returns the signature packet and the entity the signature was signed by,
+// if any, and a possible signature verification error.
+// If the signer isn't known, ErrUnknownIssuer is returned.
+func VerifyDetachedSignature(keyring KeyRing, signed, signature io.Reader, config *packet.Config) (sig *packet.Signature, signer *Entity, err error) {
+	return verifyDetachedSignature(keyring, signed, signature, nil, false, config)
+}
+
+// VerifyDetachedSignatureAndHash performs the same actions as
+// VerifyDetachedSignature and checks that the expected hash functions were used.
+func VerifyDetachedSignatureAndHash(keyring KeyRing, signed, signature io.Reader, expectedHashes []crypto.Hash, config *packet.Config) (sig *packet.Signature, signer *Entity, err error) {
+	return verifyDetachedSignature(keyring, signed, signature, expectedHashes, true, config)
+}
+
 // CheckDetachedSignature takes a signed file and a detached signature and
-// returns the signer if the signature is valid. If the signer isn't known,
+// returns the entity the signature was signed by, if any, and a possible
+// signature verification error. If the signer isn't known,
 // ErrUnknownIssuer is returned.
 func CheckDetachedSignature(keyring KeyRing, signed, signature io.Reader, config *packet.Config) (signer *Entity, err error) {
-	var expectedHashes []crypto.Hash
-	return CheckDetachedSignatureAndHash(keyring, signed, signature, expectedHashes, config)
+	_, signer, err = verifyDetachedSignature(keyring, signed, signature, nil, false, config)
+	return
 }
 
 // CheckDetachedSignatureAndHash performs the same actions as
 // CheckDetachedSignature and checks that the expected hash functions were used.
 func CheckDetachedSignatureAndHash(keyring KeyRing, signed, signature io.Reader, expectedHashes []crypto.Hash, config *packet.Config) (signer *Entity, err error) {
+	_, signer, err = verifyDetachedSignature(keyring, signed, signature, expectedHashes, true, config)
+	return
+}
+
+func verifyDetachedSignature(keyring KeyRing, signed, signature io.Reader, expectedHashes []crypto.Hash, checkHashes bool, config *packet.Config) (sig *packet.Signature, signer *Entity, err error) {
 	var issuerKeyId uint64
 	var hashFunc crypto.Hash
 	var sigType packet.SignatureType
 	var keys []Key
 	var p packet.Packet
 
-	expectedHashesLen := len(expectedHashes)
 	packets := packet.NewReader(signature)
-	var sig *packet.Signature
 	for {
 		p, err = packets.Next()
 		if err == io.EOF {
-			return nil, errors.ErrUnknownIssuer
+			return nil, nil, errors.ErrUnknownIssuer
 		}
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		var ok bool
 		sig, ok = p.(*packet.Signature)
 		if !ok {
-			return nil, errors.StructuralError("non signature packet found")
+			return nil, nil, errors.StructuralError("non signature packet found")
 		}
 		if sig.IssuerKeyId == nil {
-			return nil, errors.StructuralError("signature doesn't have an issuer")
+			return nil, nil, errors.StructuralError("signature doesn't have an issuer")
 		}
 		issuerKeyId = *sig.IssuerKeyId
 		hashFunc = sig.Hash
 		sigType = sig.SigType
-
-		for i, expectedHash := range expectedHashes {
-			if hashFunc == expectedHash {
-				break
+		if checkHashes {
+			matchFound := false
+			// check for hashes
+			for _, expectedHash := range expectedHashes {
+				if hashFunc == expectedHash {
+					matchFound = true
+					break
+				}
 			}
-			if i+1 == expectedHashesLen {
-				return nil, errors.StructuralError("hash algorithm mismatch with cleartext message headers")
+			if !matchFound {
+				return nil, nil, errors.StructuralError("hash algorithm or salt mismatch with cleartext message headers")
 			}
 		}
-
 		keys = keyring.KeysByIdUsage(issuerKeyId, packet.KeyFlagSign)
 		if len(keys) > 0 {
 			break
@@ -470,30 +530,27 @@ func CheckDetachedSignatureAndHash(keyring KeyRing, signed, signature io.Reader,
 		panic("unreachable")
 	}
 
-	h, wrappedHash, err := hashForSignature(hashFunc, sigType)
+	h, err := sig.PrepareVerify()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	wrappedHash, err := wrapHashForSignature(h, sigType)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	if _, err := io.Copy(wrappedHash, signed); err != nil && err != io.EOF {
-		return nil, err
+		return nil, nil, err
 	}
 
 	for _, key := range keys {
 		err = key.PublicKey.VerifySignature(h, sig)
 		if err == nil {
-			now := config.Now()
-			if sig.SigExpired(now) {
-				return key.Entity, errors.ErrSignatureExpired
-			}
-			if key.PublicKey.KeyExpired(key.SelfSignature, now) {
-				return key.Entity, errors.ErrKeyExpired
-			}
-			return key.Entity, nil
+			return sig, key.Entity, checkMessageSignatureDetails(&key, sig, config)
 		}
 	}
 
-	return nil, err
+	return nil, nil, err
 }
 
 // CheckArmoredDetachedSignature performs the same actions as
@@ -505,4 +562,58 @@ func CheckArmoredDetachedSignature(keyring KeyRing, signed, signature io.Reader,
 	}
 
 	return CheckDetachedSignature(keyring, signed, body, config)
+}
+
+// checkMessageSignatureDetails returns an error if:
+//   - The signature (or one of the binding signatures mentioned below)
+//     has a unknown critical notation data subpacket
+//   - The primary key of the signing entity is revoked
+//   - The primary identity is revoked
+//   - The signature is expired
+//   - The primary key of the signing entity is expired according to the
+//     primary identity binding signature
+//
+// ... or, if the signature was signed by a subkey and:
+//   - The signing subkey is revoked
+//   - The signing subkey is expired according to the subkey binding signature
+//   - The signing subkey binding signature is expired
+//   - The signing subkey cross-signature is expired
+//
+// NOTE: The order of these checks is important, as the caller may choose to
+// ignore ErrSignatureExpired or ErrKeyExpired errors, but should never
+// ignore any other errors.
+func checkMessageSignatureDetails(key *Key, signature *packet.Signature, config *packet.Config) error {
+	now := config.Now()
+	primarySelfSignature, primaryIdentity := key.Entity.PrimarySelfSignature()
+	signedBySubKey := key.PublicKey != key.Entity.PrimaryKey
+	sigsToCheck := []*packet.Signature{signature, primarySelfSignature}
+	if signedBySubKey {
+		sigsToCheck = append(sigsToCheck, key.SelfSignature, key.SelfSignature.EmbeddedSignature)
+	}
+	for _, sig := range sigsToCheck {
+		for _, notation := range sig.Notations {
+			if notation.IsCritical && !config.KnownNotation(notation.Name) {
+				return errors.SignatureError("unknown critical notation: " + notation.Name)
+			}
+		}
+	}
+	if key.Entity.Revoked(now) || // primary key is revoked
+		(signedBySubKey && key.Revoked(now)) || // subkey is revoked
+		(primaryIdentity != nil && primaryIdentity.Revoked(now)) { // primary identity is revoked for v4
+		return errors.ErrKeyRevoked
+	}
+	if key.Entity.PrimaryKey.KeyExpired(primarySelfSignature, now) { // primary key is expired
+		return errors.ErrKeyExpired
+	}
+	if signedBySubKey {
+		if key.PublicKey.KeyExpired(key.SelfSignature, now) { // subkey is expired
+			return errors.ErrKeyExpired
+		}
+	}
+	for _, sig := range sigsToCheck {
+		if sig.SigExpired(now) { // any of the relevant signatures are expired
+			return errors.ErrSignatureExpired
+		}
+	}
+	return nil
 }

@@ -18,6 +18,8 @@ func TestEnv(t *testing.T) {
 	t.Setenv(EnvPrefix+EnvBearerTokenPath, v3)
 	v4 := "netfilter"
 	t.Setenv(EnvPrefix+EnvNetlogNetFilter, v4)
+	v5 := "host, x-request-id, x-tenant-id"
+	t.Setenv(EnvPrefix+EnvNetlogL7LogHeaders, v5)
 
 	fl := Flag{}
 	readEnv(&fl)
@@ -26,6 +28,7 @@ func TestEnv(t *testing.T) {
 	assert.Equal(t, v2, fl.K8sInfo.BearerToken)
 	assert.Equal(t, v3, fl.K8sInfo.BearerTokenPath)
 	assert.Equal(t, v4, fl.BPFNetLog.NetFilter)
+	assert.Equal(t, []string{"host", "x-request-id", "x-tenant-id"}, fl.BPFNetLog.L7LogHeaders)
 
 	t.Log(fl)
 }

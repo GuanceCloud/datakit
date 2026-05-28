@@ -54,7 +54,7 @@ func newStreamReassembler(maxBuffered int, maxWindow uint32, capturePayload bool
 func (sr *streamReassembler) resetTo(seg streamSegment) streamPushResult {
 	sr.initialized = true
 	sr.nextSeq = seg.endSeq
-	sr.buffered = sr.buffered[:0]
+	sr.clearBuffered()
 
 	res := streamPushResult{Gap: true}
 	if sr.capturePayload && len(seg.payload) > 0 {
@@ -135,6 +135,7 @@ func (sr *streamReassembler) drain(res *streamPushResult) {
 			return
 		}
 
+		sr.buffered[0] = streamSegment{}
 		sr.buffered = sr.buffered[1:]
 		if seg.endSeq <= sr.nextSeq {
 			res.Retransmit = true
@@ -154,6 +155,13 @@ func (sr *streamReassembler) drain(res *streamPushResult) {
 
 		sr.nextSeq = seg.endSeq
 	}
+}
+
+func (sr *streamReassembler) clearBuffered() {
+	for i := range sr.buffered {
+		sr.buffered[i] = streamSegment{}
+	}
+	sr.buffered = sr.buffered[:0]
 }
 
 func (sr *streamReassembler) insertBuffered(seg streamSegment) bool {

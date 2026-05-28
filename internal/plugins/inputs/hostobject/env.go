@@ -130,7 +130,7 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 			ENVName:   "CLOUD_PROVIDER",
 			ConfField: "none",
 			Type:      doc.String,
-			Example:   "`aliyun/aws/tencent/hwcloud/azure`",
+			Example:   "`aliyun/ksyun/aws/tencent/hwcloud/azure/volcengine/gcp`",
 			Desc:      "Designate cloud service provider",
 			DescZh:    "指定云服务商",
 		},
@@ -259,7 +259,7 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		cloudProvider := dkstring.TrimString(tagsStr)
 		cloudProvider = strings.ToLower(cloudProvider)
 		switch cloudProvider {
-		case "aliyun", "tencent", "aws", "hwcloud", "azure", "gcp":
+		case Aliyun, Ksyun, Tencent, AWS, Hwcloud, Azure, VolcEngine, GCP:
 			ipt.Tags["cloud_provider"] = cloudProvider
 		}
 	} // ENV_CLOUD_PROVIDER

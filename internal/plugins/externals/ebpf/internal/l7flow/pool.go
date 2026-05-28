@@ -96,6 +96,7 @@ func resetNetwrkData(data *comm.NetwrkData) *comm.NetwrkData {
 	data.TSTail = 0
 	data.Index = 0
 	data.Fn = 0
+	data.SockPtr = 0
 	data.Payload = data.Payload[:0]
 
 	return data

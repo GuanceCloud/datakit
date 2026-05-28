@@ -94,6 +94,51 @@ func TestResolveReturnsCachedExePath(t *testing.T) {
 	}
 }
 
+func TestCatalogResolveLaterHonorsAsyncLimit(t *testing.T) {
+	catalog := &Catalog{
+		active:     newCache(processCatalogCacheMaxCost, processCatalogCacheCounters),
+		deleted:    newCache(processCatalogCacheMaxCost, processCatalogCacheCounters),
+		asyncCh:    make(chan int, 64),
+		pending:    make(map[int]struct{}),
+		retry:      make(map[int]resolveRetryState),
+		asyncLimit: 1,
+	}
+
+	catalog.ResolveLater(101)
+	catalog.ResolveLater(102)
+
+	if len(catalog.pending) != 1 {
+		t.Fatalf("pending len = %d, want 1", len(catalog.pending))
+	}
+	if len(catalog.asyncCh) != 1 {
+		t.Fatalf("async channel len = %d, want 1", len(catalog.asyncCh))
+	}
+}
+
+func TestAsyncResolveLimitEnv(t *testing.T) {
+	t.Setenv(asyncResolveLimitEnv, "bad")
+	if got := asyncResolveLimit(); got != defaultAsyncResolveLimit {
+		t.Fatalf("invalid env limit = %d, want %d", got, defaultAsyncResolveLimit)
+	}
+
+	t.Setenv(asyncResolveLimitEnv, strconv.Itoa(maxAsyncResolveLimit+1))
+	if got := asyncResolveLimit(); got != maxAsyncResolveLimit {
+		t.Fatalf("clamped env limit = %d, want %d", got, maxAsyncResolveLimit)
+	}
+}
+
+func TestAsyncResolveBatchLimitEnv(t *testing.T) {
+	t.Setenv(asyncResolveBatchLimitEnv, "bad")
+	if got := asyncResolveBatchLimit(); got != defaultAsyncResolveBatch {
+		t.Fatalf("invalid env batch limit = %d, want %d", got, defaultAsyncResolveBatch)
+	}
+
+	t.Setenv(asyncResolveBatchLimitEnv, strconv.Itoa(maxAsyncResolveBatch+1))
+	if got := asyncResolveBatchLimit(); got != maxAsyncResolveBatch {
+		t.Fatalf("clamped env batch limit = %d, want %d", got, maxAsyncResolveBatch)
+	}
+}
+
 func TestResolveIgnoresDeletedCache(t *testing.T) {
 	catalog := &Catalog{
 		active:       newCache(processCatalogCacheMaxCost, processCatalogCacheCounters),

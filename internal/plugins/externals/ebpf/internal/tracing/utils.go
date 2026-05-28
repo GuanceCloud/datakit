@@ -47,6 +47,9 @@ type TraceInfo struct {
 }
 
 func GetHTTPHeader(payload []byte) map[string]string {
+	if len(payload) == 0 {
+		return nil
+	}
 	if payload[0] == '0' {
 		return nil
 	}

@@ -66,14 +66,14 @@ func formatHistogramBuckets(leBucket map[string]float64) string {
 	return "{" + strings.Join(parts, ", ") + "}"
 }
 
-func formatDistinctValues(values map[any]struct{}) string {
+func formatDistinctValues(values map[uint64]struct{}) string {
 	if len(values) == 0 {
 		return "[]"
 	}
 
 	parts := make([]string, 0, len(values))
 	for value := range values {
-		parts = append(parts, fmt.Sprintf("%T:%v", value, value))
+		parts = append(parts, fmt.Sprintf("%016x", value))
 	}
 	sort.Strings(parts)
 
@@ -142,8 +142,9 @@ func (c *algoHistogram) ToString() string {
 
 func (a *algoQuantiles) ToString() string {
 	return fmt.Sprintf(
-		"algoQuantiles{count=%d max_time=%d quantiles=%s all=%s %s}",
+		"algoQuantiles{count=%d sample_count=%d max_time=%d quantiles=%s all=%s %s}",
 		a.count,
+		len(a.all),
 		a.maxTime,
 		formatFloat64Slice(a.quantiles),
 		formatFloat64Slice(a.all),
@@ -153,18 +154,20 @@ func (a *algoQuantiles) ToString() string {
 
 func (c *algoStdev) ToString() string {
 	return fmt.Sprintf(
-		"algoStdev{count=%d max_time=%d data=%s %s}",
-		len(c.data),
+		"algoStdev{count=%d mean=%g m2=%g max_time=%d %s}",
+		c.count,
+		c.mean,
+		c.m2,
 		c.maxTime,
-		formatFloat64Slice(c.data),
 		formatMetricBaseForCalc(&c.MetricBase),
 	)
 }
 
 func (c *algoCountDistinct) ToString() string {
 	return fmt.Sprintf(
-		"algoCountDistinct{count=%d max_time=%d distinct_values=%s %s}",
-		len(c.distinctValues),
+		"algoCountDistinct{count=%d sketch=%t max_time=%d distinct_values=%s %s}",
+		c.count(),
+		c.sketch != nil,
 		c.maxTime,
 		formatDistinctValues(c.distinctValues),
 		formatMetricBaseForCalc(&c.MetricBase),

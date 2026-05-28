@@ -24,3 +24,20 @@ func TestReadlineCallBackDropsShortRecord(t *testing.T) {
 		t.Fatal("readlineCallBack blocked on short record")
 	}
 }
+
+func TestBashUserCacheIsBounded(t *testing.T) {
+	tracer := NewBashTracer()
+
+	for i := 0; i < bashUserCacheLimit+16; i++ {
+		tracer.cacheUser(uint32(i), "user")
+	}
+
+	tracer.userMu.RLock()
+	defer tracer.userMu.RUnlock()
+	if got := len(tracer.userCache); got > bashUserCacheLimit {
+		t.Fatalf("user cache entries = %d, want <= %d", got, bashUserCacheLimit)
+	}
+	if _, ok := tracer.userCache[uint32(bashUserCacheLimit+15)]; !ok {
+		t.Fatal("expected latest uid to stay cached after cap enforcement")
+	}
+}

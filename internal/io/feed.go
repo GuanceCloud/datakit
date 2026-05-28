@@ -63,6 +63,7 @@ func putFeedData(fd *feedData) {
 	fd.version = ""
 	fd.storageIndex = ""
 	fd.noGlobalTags = false
+	fd.disableFilter = false
 	fd.cat = point.UnknownCategory
 	fd.postTimeout = 0
 	fd.plOption = nil
@@ -108,6 +109,7 @@ type feedData struct {
 
 	otelAggr,
 	noGlobalTags,
+	disableFilter,
 	syncSend,
 	election bool
 
@@ -129,6 +131,10 @@ func (fd *feedData) NoGlobalTags() bool {
 	return fd.noGlobalTags
 }
 
+func (fd *feedData) FilterDisabled() bool {
+	return fd.disableFilter
+}
+
 // FeedOption used to define various feed options.
 type FeedOption func(*feedData)
 
@@ -141,6 +147,11 @@ func WithOTELAggr(on bool) FeedOption {
 // DisableGlobalTags used to enable/disable adding global host/election tags.
 func DisableGlobalTags(on bool) FeedOption {
 	return func(fd *feedData) { fd.noGlobalTags = on }
+}
+
+// DisableFilter disables IO filter handling for the current feed.
+func DisableFilter(on bool) FeedOption {
+	return func(fd *feedData) { fd.disableFilter = on }
 }
 
 func WithCollectCost(du time.Duration) FeedOption {
@@ -337,14 +348,16 @@ func (x *dkIO) beforeFeed(opt *feedData) ([]*point.Point, map[point.Category][]*
 
 		ptCreate = result.PtsCreated()
 
-		for k, v := range ptCreate {
-			ptCreate[k] = filter.FilterPts(k, v)
-			// run filters
-			if filtered := len(ptCreate[k]) - len(v); filtered > 0 {
-				inputsFilteredPtsVec.WithLabelValues(
-					"pipeline/create_point",
-					opt.cat.String(),
-				).Add(float64(filtered))
+		if !opt.disableFilter {
+			for k, v := range ptCreate {
+				ptCreate[k] = filter.FilterPts(k, v)
+				// run filters
+				if filtered := len(ptCreate[k]) - len(v); filtered > 0 {
+					inputsFilteredPtsVec.WithLabelValues(
+						"pipeline/create_point",
+						opt.cat.String(),
+					).Add(float64(filtered))
+				}
 			}
 		}
 
@@ -352,7 +365,9 @@ func (x *dkIO) beforeFeed(opt *feedData) ([]*point.Point, map[point.Category][]*
 	}
 
 	// run filters
-	after = filter.FilterPts(opt.cat, after)
+	if !opt.disableFilter {
+		after = filter.FilterPts(opt.cat, after)
+	}
 
 	// correct point's time
 	if x.withTimeCorrect {

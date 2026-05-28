@@ -140,6 +140,10 @@ func UnitTestDataKit() error {
 	lenPkgs := len(pkgs)
 	for i, p := range pkgs {
 		i++
+		if p == "" {
+			continue
+		}
+
 		if hugePackages[p] {
 			l.Debugf("%s is HUGE package, testing it later, skip...", p)
 			ut.nhuge.Add(1)
@@ -283,24 +287,33 @@ func (ut *unitTest) doWork(j *job) {
 	}
 
 	if err != nil {
-		if (!strings.Contains(mr.Message, "no Go files in")) || strings.Contains(mr.Message, "FAIL") {
-			ut.addFailedPkgs(j.pkg, string(res))
-
-			mr.Status = testutils.TestFailed
-			mr.FailedMessage = err.Error()
+		if strings.Contains(mr.Message, "no Go files in") {
+			ut.addNoTestPkgs(j.pkg)
+			mr.Status = testutils.TestSkipped
+			mr.NoTest = true
 			if err := testutils.Flush(mr); err != nil {
 				l.Errorf("flush metric failed: %s", err)
+				return
 			}
 
-			l.Errorf("package %s failed: %s", j.pkg, string(res))
+			j.show(ut, mr)
 			return
-		} else {
-			mr.Status = testutils.TestSkipped
 		}
+
+		ut.addFailedPkgs(j.pkg, string(res))
+
+		mr.Status = testutils.TestFailed
+		mr.FailedMessage = err.Error()
+		if err := testutils.Flush(mr); err != nil {
+			l.Errorf("flush metric failed: %s", err)
+		}
+
+		l.Errorf("package %s failed: %s", j.pkg, string(res))
+		return
 	}
 
 	lines := strings.Split(string(res), "\n")
-	coverageLine := lines[len(lines)-2]
+	coverageLine := strings.TrimSpace(lines[len(lines)-2])
 
 	//nolint
 	// go test output example:
@@ -313,11 +326,15 @@ func (ut *unitTest) doWork(j *job) {
 
 	switch {
 	case strings.HasPrefix(coverageLine, "?"),
-		strings.Contains(coverageLine, "[no tests to run]"):
+		strings.Contains(coverageLine, "[no test files]"),
+		strings.Contains(coverageLine, "[no tests to run]"),
+		strings.Contains(coverageLine, "[no statements]"):
 		ut.addNoTestPkgs(j.pkg)
 		mr.NoTest = true
 
 	case strings.HasPrefix(coverageLine, "ok"):
+		fallthrough
+	case strings.Contains(coverageLine, "coverage:"):
 		mr.Status = testutils.TestPassed
 		ut.npassed.Add(1)
 

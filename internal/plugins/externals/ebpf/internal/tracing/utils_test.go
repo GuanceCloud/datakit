@@ -47,6 +47,9 @@ const (
 )
 
 func TestParseHTTPHeader(t *testing.T) {
+	assert.Nil(t, GetHTTPHeader(nil))
+	assert.Nil(t, GetHTTPHeader([]byte{}))
+
 	headers := GetHTTPHeader([]byte(data))
 	assert.Equal(t, map[string]string{
 		"Host":            "10.200.7.127:23306",

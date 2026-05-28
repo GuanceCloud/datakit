@@ -231,7 +231,7 @@ func (p *Params) WithSourceURL(url string) InstallOpt {
 func DefaultInstallCmd() *installCmd {
 	return &installCmd{
 		dwURL:     "https://openway.<<<custom_key.brand_main_domain>>>",
-		sourceURL: "https://static.<<<custom_key.brand_main_domain>>>/datakit",
+		sourceURL: "https://static.<<<custom_key.brand_main_domain>>>/datakit-v2",
 		envs:      map[string]string{},
 		shell:     "bash",
 	}

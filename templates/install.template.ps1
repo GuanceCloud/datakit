@@ -48,11 +48,21 @@ function remove-host([string]$filename, [string]$hostname) {
 	}
 }
 
+function Write-CErr($msg) {
+	Write-COutput red "[E] $msg"
+}
+
 ##########################
 # Detect variables
 ##########################
 
 $cmd = @()
+
+$windowsMajorVersion = [Environment]::OSVersion.Version.Major
+if ($windowsMajorVersion -lt 10) {
+	Write-CErr "Unsupported Windows version: $([Environment]::OSVersion.VersionString). DataKit 2.x requires Windows major version >= 10 (Win10/Server2016+). Use a 1.x installer on this host."
+	exit 1
+}
 
 $installer_base_url="https://{{.InstallBaseURL}}"
 $x = [Environment]::GetEnvironmentVariable("DK_INSTALLER_BASE_URL")

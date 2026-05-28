@@ -16,6 +16,7 @@ package mocks
 import (
 	"errors"
 	"fmt"
+	"maps"
 
 	"github.com/IBM/sarama"
 )
@@ -52,8 +53,8 @@ func messageValueChecker(f ValueChecker) MessageChecker {
 
 var (
 	errProduceSuccess              error = nil
-	errOutOfExpectations                 = errors.New("No more expectations set on mock")
-	errPartitionConsumerNotStarted       = errors.New("The partition consumer was never started")
+	errOutOfExpectations                 = errors.New("no more expectations set on mock")
+	errPartitionConsumerNotStarted       = errors.New("the partition consumer was never started")
 )
 
 const AnyOffset int64 = -1000
@@ -86,9 +87,7 @@ func (pc *TopicConfig) SetDefaultPartitions(n int32) {
 // SetPartitions sets the number of partitions the partitioners will see for specific topics. This
 // only applies to messages produced after setting them.
 func (pc *TopicConfig) SetPartitions(partitions map[string]int32) {
-	for p, n := range partitions {
-		pc.overridePartitions[p] = n
-	}
+	maps.Copy(pc.overridePartitions, partitions)
 }
 
 func (pc *TopicConfig) partitions(topic string) int32 {

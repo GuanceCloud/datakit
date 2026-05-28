@@ -7,16 +7,15 @@ import (
 	"os"
 
 	"github.com/vishvananda/netns"
-	cruntime "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
 )
 
-func ListContainersAndHostNetNS(ctrLi []cruntime.ContainerRuntime, allowLo bool,
+func ListContainersAndHostNetNS(ctrLi []containerRuntime, allowLo bool,
 ) map[string]*netnsSnapshot {
 	netnsInfo := map[string]*netnsSnapshot{}
 	var curNetnsStr string
 	curNetns, err := netns.GetFromPid(os.Getpid())
 	if err != nil {
-		log.Errorf("get netns from pid: %w", err)
+		log.Errorf("get netns from pid: %v", err)
 	} else {
 		curNetnsStr = NSInode(curNetns)
 
@@ -45,7 +44,7 @@ func ListContainersAndHostNetNS(ctrLi []cruntime.ContainerRuntime, allowLo bool,
 		for _, c := range ctrs {
 			nsH, err := netns.GetFromPid(c.Pid)
 			if err != nil {
-				log.Errorf("get netns from pid: %w", err)
+				log.Errorf("get netns from pid: %v", err)
 				continue
 			}
 			nsHStr := NSInode(nsH)

@@ -4,10 +4,12 @@
 package protodec
 
 import (
+	"os"
 	"strconv"
 	"strings"
 
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l4log"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/comm"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/tracing"
@@ -45,7 +47,14 @@ type h2DecPipe struct {
 	proto      L7Protocol
 	isGRPC     bool
 	connClosed bool
+	limit      int
 }
+
+const (
+	h2StreamLimitEnv     = "DK_EBPF_L7FLOW_HTTP2_STREAM_LIMIT"
+	defaultH2StreamLimit = 1024
+	maxH2StreamLimit     = 65_536
+)
 
 func H2ProtoDetect(data []byte, actSize int) (L7Protocol, ProtoDecPipe, bool) {
 	if v := l4log.HasHTTP2Magic(data); v > 0 {
@@ -59,6 +68,11 @@ func (dec *h2DecPipe) GetElem(streamid uint32) *h2Info {
 		if v.streamid == streamid {
 			return v
 		}
+	}
+	limit := dec.streamLimit()
+	if len(dec.elems) >= limit {
+		exporter.IncBPFEventDrop("l7flow", "http2_stream", "limit")
+		return nil
 	}
 	elem := &h2Info{
 		streamid: streamid,
@@ -102,6 +116,9 @@ func (dec *h2DecPipe) Decode(txRx comm.NICDirection, data *comm.NetwrkData,
 			currentStreamID = frHdr.StreamID
 			elem = dec.GetElem(currentStreamID)
 			tsSetted = false
+		}
+		if elem == nil {
+			continue
 		}
 
 		switch fr := fr.(type) {
@@ -283,6 +300,32 @@ func (dec *h2DecPipe) Export(force bool) []*ProtoData {
 	return rst
 }
 
+func (dec *h2DecPipe) streamLimit() int {
+	if dec == nil {
+		return defaultH2StreamLimit
+	}
+	if dec.limit <= 0 {
+		dec.limit = h2StreamLimit()
+	}
+	return dec.limit
+}
+
+func h2StreamLimit() int {
+	raw := strings.TrimSpace(os.Getenv(h2StreamLimitEnv))
+	if raw == "" {
+		return defaultH2StreamLimit
+	}
+	limit, err := strconv.Atoi(raw)
+	if err != nil || limit <= 0 {
+		log.Warnf("invalid %s=%q, use default %d", h2StreamLimitEnv, raw, defaultH2StreamLimit)
+		return defaultH2StreamLimit
+	}
+	if limit > maxH2StreamLimit {
+		return maxH2StreamLimit
+	}
+	return limit
+}
+
 func (dec *h2DecPipe) Proto() L7Protocol {
 	return dec.proto
 }
@@ -293,6 +336,7 @@ func (dec *h2DecPipe) ConnClose() {
 
 func newH2DecPipe(L7Protocol) ProtoDecPipe {
 	return &h2DecPipe{
-		dec: l4log.NewH2Dec(),
+		dec:   l4log.NewH2Dec(),
+		limit: h2StreamLimit(),
 	}
 }

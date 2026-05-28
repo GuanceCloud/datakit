@@ -111,6 +111,24 @@ In addition, when the renamed tag key is the same as the existing tag key: You c
 
 The standard set is based on the measurements sent by Prometheus.
 
+### Measurement Naming {#measurement-naming}
+
+By default, the part before the first underscore `_` is used as the measurement name, and the remaining part as the field name:
+
+- Original metric: `go_memstats_heap_objects`
+- Measurement name: `go`
+- Field name: `memstats_heap_objects`
+
+**Preserve Original Field Name Option**:
+
+To keep the complete original Prometheus metric name, enable:
+
+```toml
+keep_exist_metric_name = true
+```
+
+When enabled, the field name will remain as the complete `go_memstats_heap_objects`.
+
 ## Configuring Prometheus Remote Write {#remote-write-relabel}
 
 When using Prometheus to push metrics to DataKit via remote write, an excessive number of metrics may lead to a surge in data on storage. In such cases, we can utilize Prometheus's own relabeling feature to select specific metrics.

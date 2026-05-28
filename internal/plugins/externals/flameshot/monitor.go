@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -22,10 +23,9 @@ type monitor struct {
 	cs                 []*processM
 	csChan             chan *processM
 	statsChan          chan *triggerStats
+	exitChan           chan *processExitEvent
 	oomChan            chan *OOMEvent
 	oomWorkerSem       chan struct{}
-	jcmdChan           chan *jcmdSnapshotRequest
-	jcmdWorkerSem      chan struct{}
 	watchers           map[string]*cgroupWatcher
 	watcherKeyByPID    map[int32]string
 	procRoot           string
@@ -50,10 +50,9 @@ func NewMonitor(config *Config) *monitor {
 		cs:                 []*processM{},
 		csChan:             make(chan *processM, 10),
 		statsChan:          make(chan *triggerStats, 5),
+		exitChan:           make(chan *processExitEvent, 5),
 		oomChan:            make(chan *OOMEvent, 5),
 		oomWorkerSem:       make(chan struct{}, 1),
-		jcmdChan:           make(chan *jcmdSnapshotRequest, 5),
-		jcmdWorkerSem:      make(chan struct{}, 1),
 		watchers:           make(map[string]*cgroupWatcher),
 		watcherKeyByPID:    make(map[int32]string),
 		procRoot:           defaultProcRoot,
@@ -113,9 +112,17 @@ func (w *cgroupWatcher) snapshotMembers() []*processM {
 
 // 监控单个命令的资源使用情况.
 func (m *monitor) MonitorCommand(p *processM) {
+	if !p.isAlive() {
+		m.handleProcessGone(p, fmt.Errorf("process pid=%d is no longer running", p.Pid))
+		return
+	}
+
 	if err := p.updateProcessStats(); err != nil {
-		m.stopWatcher(p.Pid)
-		m.cs = removePID(m.cs, p)
+		if !p.isAlive() {
+			m.handleProcessGone(p, err)
+			return
+		}
+		log.Debugf("update process stats failed but process is still running, pid=%d err=%v", p.Pid, err)
 		return
 	}
 	trigger, tags, emergency := p.triggerDecision()
@@ -124,24 +131,16 @@ func (m *monitor) MonitorCommand(p *processM) {
 	// 将service作为tag，方便在中心展示。
 	tags = append(tags, fmt.Sprintf("%s:%s", "service", p.configProcess.Service))
 	if trigger {
-		p.markProfileTriggered(time.Now())
+		if emergency || hasMemoryPressureTag(tags) {
+			p.markMemoryPressure(time.Now())
+		}
 		duration := p.configProcess.Duration
 		if emergency {
+			p.markEmergencyProfileTriggered(time.Now())
 			duration = getEmergencyProfileDuration(p.configProcess)
 			tags = append(tags, "trigger:memory_emergency")
-			if m.config != nil && m.config.JCmdSnapshotEnabled && !p.inJcmdCooldown(defaultCgroupEmergencyCooldown) {
-				p.markJcmdTriggered(time.Now())
-				jcmdTags := make([]string, 0, len(tags))
-				jcmdTags = append(jcmdTags, tags...)
-				m.jcmdChan <- &jcmdSnapshotRequest{
-					Service:     p.configProcess.Service,
-					PID:         p.Pid,
-					ProcessName: p.Name,
-					DetectedAt:  time.Now(),
-					MemPercent:  getListAvg(p.MemPercentHistory, 1),
-					Tags:        jcmdTags,
-				}
-			}
+		} else {
+			p.markProfileTriggered(time.Now())
 		}
 		stats := newTriggerStats(p.configProcess.Events, duration, tags)
 		stats.CommandName = p.Name
@@ -161,6 +160,66 @@ func removePID(cs []*processM, command *processM) []*processM {
 	return cs
 }
 
+func (m *monitor) handleProcessGone(pm *processM, reason error) {
+	if pm == nil {
+		return
+	}
+
+	service := ""
+	if pm.configProcess != nil {
+		service = pm.configProcess.Service
+	}
+
+	log.Infof("process exit detected, pid=%d service=%s err=%v", pm.Pid, service, reason)
+	m.stopWatcher(pm.Pid)
+	m.cs = removePID(m.cs, pm)
+	if event := m.buildProcessExitEvent(pm, time.Now(), reason); event != nil {
+		m.enqueueProcessExitEvent(event)
+	}
+}
+
+func (m *monitor) enqueueProcessExitEvent(event *processExitEvent) {
+	if m == nil || event == nil {
+		return
+	}
+
+	select {
+	case m.exitChan <- event:
+	default:
+		log.Warnf("process exit event queue full, upload asynchronously, pid=%d service=%s", event.PID, event.Service)
+		go m.handleProcessExit(event)
+	}
+}
+
+func (m *monitor) runProcessExitWorker(ctx context.Context) {
+	for {
+		select {
+		case event := <-m.exitChan:
+			m.handleProcessExit(event)
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func (m *monitor) findProcessByPID(pid int32) *processM {
+	for _, pm := range m.cs {
+		if pm != nil && pm.Pid == pid {
+			return pm
+		}
+	}
+	return nil
+}
+
+func hasMemoryPressureTag(tags []string) bool {
+	for _, tag := range tags {
+		if strings.Contains(tag, "mem_") || strings.Contains(tag, "cgroup_mem_percent") {
+			return true
+		}
+	}
+	return false
+}
+
 func (m *monitor) Start(osSignal chan os.Signal) {
 	filterProcessesTicker := time.NewTicker(time.Minute)
 
@@ -178,9 +237,13 @@ func (m *monitor) Start(osSignal chan os.Signal) {
 		go m.startHTTPServer()
 	}
 
+	exitWorkerCtx, exitWorkerCancel := context.WithCancel(context.Background())
+	go m.runProcessExitWorker(exitWorkerCtx)
+
 	autoDuration, autoEnabled := m.getAutoProfilingDuration()
 	autoTicker := time.NewTicker(autoDuration)
 	defer func() {
+		exitWorkerCancel()
 		autoTicker.Stop()
 		filterProcessesTicker.Stop()
 		monitorCommandTicker.Stop()
@@ -209,7 +272,8 @@ func (m *monitor) Start(osSignal chan os.Signal) {
 				m.startWatcher(pm)
 			}
 		case <-monitorCommandTicker.C:
-			for _, c := range m.cs {
+			commands := append([]*processM(nil), m.cs...)
+			for _, c := range commands {
 				m.MonitorCommand(c)
 			}
 		case <-autoTicker.C:
@@ -233,6 +297,15 @@ func (m *monitor) Start(osSignal chan os.Signal) {
 				if err != nil {
 					uploadToDK.WithLabelValues(stats.Service, err.Error())
 					log.Errorf("upload to DataKit err: %v", err)
+				} else if pm := m.findProcessByPID(stats.PID); pm != nil {
+					pm.markProfileArtifact(&profileArtifactSummary{
+						OutputPath:  stats.OutputFile,
+						UploadedAt:  time.Now(),
+						StartTime:   stats.startTime,
+						EndTime:     stats.endTime,
+						Event:       stats.Event,
+						DurationSec: stats.Duration,
+					})
 				}
 				deleteFile(stats)
 			}
@@ -245,15 +318,6 @@ func (m *monitor) Start(osSignal chan os.Signal) {
 				defer func() { <-m.oomWorkerSem }()
 				m.handleOOMEvent(evt)
 			}(oomEvent)
-		case snapshotReq := <-m.jcmdChan:
-			if !m.config.JCmdSnapshotEnabled {
-				continue
-			}
-			m.jcmdWorkerSem <- struct{}{}
-			go func(req *jcmdSnapshotRequest) {
-				defer func() { <-m.jcmdWorkerSem }()
-				m.handleJcmdSnapshot(req)
-			}(snapshotReq)
 
 		case <-osSignal:
 			m.stopAllWatchers()
@@ -323,7 +387,7 @@ func (m *monitor) startWatcher(pm *processM) {
 		return
 	}
 
-	key, version, err := resolveCgroupWatcherTarget(m.procRoot, m.cgroupRoot, pm.Pid)
+	key, dir, version, err := resolveCgroupWatcherTarget(m.procRoot, m.cgroupRoot, pm.Pid)
 	if err != nil {
 		log.Debugf("resolve cgroup watcher target failed for pid=%d: %v", pm.Pid, err)
 		return
@@ -336,7 +400,7 @@ func (m *monitor) startWatcher(pm *processM) {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	watcher := newCgroupWatcher(key, version, key, cancel)
+	watcher := newCgroupWatcher(key, version, dir, cancel)
 	watcher.addMember(pm)
 	m.watchers[key] = watcher
 	go m.watchCgroupMemory(ctx, watcher)

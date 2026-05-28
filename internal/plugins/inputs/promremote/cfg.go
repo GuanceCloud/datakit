@@ -34,6 +34,9 @@ const (
   ## The measurement_name configuration takes precedence.
   job_as_measurement = false
 
+  ## If the keep_exist_metric_name is true, keep the raw value for field names.
+  keep_exist_metric_name = false
+
   ## Metric name filter
   # Regex is supported.
   # Only metric matches one of the regex can pass through. No filter if left empty.

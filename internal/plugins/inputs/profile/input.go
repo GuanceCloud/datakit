@@ -241,6 +241,8 @@ type Input struct {
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder
 	Tagger  datakit.GlobalTagger
+
+	observabilityGroup *goroutine.Group
 }
 
 func (ipt *Input) GetBodySizeLimit() int64 {
@@ -293,13 +295,16 @@ func profilingProxyURL() (*url.URL, *http.Transport, error) {
 
 func cacheRequest(w http.ResponseWriter, r *http.Request, bodySizeLimit int64) *dkhttp.HttpError {
 	if r.Body == nil {
+		observeProfileReceived("read_error", 0)
 		return dkhttp.NewErr(fmt.Errorf("incoming profiling request body is nil"), http.StatusBadRequest)
 	}
 
 	bodyBytes, err := io.ReadAll(http.MaxBytesReader(w, r.Body, bodySizeLimit))
 	if err != nil {
+		observeProfileReceived("read_error", int64(len(bodyBytes)))
 		return dkhttp.NewErr(fmt.Errorf("unable to read profile body: %w", err), http.StatusBadRequest)
 	}
+	bodySize := int64(len(bodyBytes))
 
 	headers := make(map[string]string, len(r.Header))
 
@@ -318,12 +323,15 @@ func cacheRequest(w http.ResponseWriter, r *http.Request, bodySizeLimit int64) *
 
 	pbBytes, err := proto.Marshal(reqPB)
 	if err != nil {
+		observeProfileReceived("cache_error", bodySize)
 		return dkhttp.NewErr(fmt.Errorf("unable to marshal request using protobuf: %w", err), http.StatusBadRequest)
 	}
 
 	if err = diskQueue.Put(pbBytes); err != nil {
+		observeProfileReceived("queue_error", bodySize)
 		return dkhttp.NewErr(fmt.Errorf("unable to push request to disk queue: %w", err), http.StatusInternalServerError)
 	}
+	observeProfileReceived(profileObsStatusCached, bodySize)
 	return nil
 }
 
@@ -420,13 +428,9 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 		}
 	}
 
-	if err := req.ParseMultipartForm(ipt.GetBodySizeLimit()); err != nil {
-		return fmt.Errorf("unable to parse multipart/formdata: %w", err)
-	}
-
-	metadata, _, err := metrics.ParseMetadata(req)
+	metadata, attrs, profileSize, err := ipt.parseProfileMetadata(req, int64(len(reqPB.Body)))
 	if err != nil {
-		return fmt.Errorf("unable to resolve profiling tags: %w", err)
+		return err
 	}
 
 	var subCustomTags map[string]string
@@ -502,6 +506,7 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 	pt := point.NewPoint(inputName, point.NewTags(metadata), point.WithTime(time.Now()))
 	if len(filter.FilterPts(point.Profiling, []*point.Point{pt})) == 0 {
 		log.Infof("the profiling data matched the remote or local blacklist and was dropped")
+		observeProfileForward(attrs, profileObsStatusDropped, profileSize, -1)
 		return nil
 	}
 
@@ -599,22 +604,30 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 			log.Warnf("fail to send http request: %s", sendErr)
 		}
 		var re *retryError
-		if !errors.As(sendErr, &re) {
+		if errors.As(sendErr, &re) {
+			observeProfileForward(attrs, profileObsStatusRetry, profileSize, -1)
+		} else {
 			break
 		}
 	}
 	reqCost = time.Since(reqStart)
 
 	metricName := inputName + "/" + language.String()
-	if sendErr == nil && resp.StatusCode/100 == 2 {
+	if sendErr == nil && resp != nil && resp.StatusCode/100 == 2 {
+		observeProfileForward(attrs, profileObsStatusOK, profileSize, reqCost)
 		dkio.InputsFeedVec().WithLabelValues(metricName, point.Profiling.String()).Inc()
 		dkio.InputsFeedPtsVec().WithLabelValues(metricName, point.Profiling.String()).Observe(float64(1))
 		dkio.InputsLastFeedVec().WithLabelValues(metricName, point.Profiling.String()).Set(float64(time.Now().Unix()))
 		dkio.InputsCollectLatencyVec().WithLabelValues(metricName, point.Profiling.String()).Observe(reqCost.Seconds())
 	} else {
+		observeProfileForward(attrs, profileObsStatusFailed, profileSize, reqCost)
 		feedErr := sendErr
 		if feedErr == nil {
-			feedErr = fmt.Errorf("error status code %d", resp.StatusCode)
+			if resp != nil {
+				feedErr = fmt.Errorf("error status code %d", resp.StatusCode)
+			} else {
+				feedErr = fmt.Errorf("no profiling response")
+			}
 		}
 		ipt.feeder.FeedLastError(feedErr.Error(),
 			dkMetrics.WithLastErrorInput(metricName),
@@ -623,6 +636,33 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 	}
 
 	return sendErr
+}
+
+func (ipt *Input) parseProfileMetadata(
+	req *http.Request,
+	bodySize int64,
+) (map[string]string, profileMetricLabels, int64, error) {
+	if err := req.ParseMultipartForm(ipt.GetBodySizeLimit()); err != nil {
+		observeProfileParseError(profileObsReasonMultipart)
+		log.Warnf("unable to parse profiling multipart form: %s", err.Error())
+		return nil, profileMetricLabels{}, 0, fmt.Errorf("unable to parse multipart/formdata: %w", err)
+	}
+
+	metadata, filesize, err := metrics.ParseMetadata(req)
+	if err != nil {
+		observeProfileParseError(profileObsReasonMetadata)
+		log.Warnf("unable to resolve profiling metadata: %s", err.Error())
+		return nil, profileMetricLabels{}, 0, fmt.Errorf("unable to resolve profiling tags: %w", err)
+	}
+
+	attrs := resolveProfileMetricLabels(metadata, req.MultipartForm.File)
+	profileSize := filesize
+	if profileSize <= 0 {
+		profileSize = bodySize
+	}
+	observeProfileParsed(attrs, profileSize)
+
+	return metadata, attrs, profileSize, nil
 }
 
 // RegHTTPHandler simply proxy profiling request to dataway.
@@ -635,6 +675,7 @@ func (ipt *Input) RegHTTPHandler() {
 	if err := ipt.InitDiskQueueIO(); err != nil {
 		log.Errorf("unable to start IO process for profiling: %s", err)
 	}
+	ipt.startProfileObservabilityLogger()
 	for _, endpoint := range ipt.Endpoints {
 		httpapi.RegHTTPHandler(http.MethodPost, endpoint, ipt.ServeHTTP)
 		log.Infof("pattern: %s registered", endpoint)
@@ -789,6 +830,12 @@ func (ipt *Input) Terminate() {
 	if queueConsumerGroup != nil {
 		if err := queueConsumerGroup.Wait(); err != nil {
 			log.Errorf("goroutine group [%s] abnormally exit: %s", queueConsumerGroup.Name(), err)
+		}
+	}
+
+	if ipt.observabilityGroup != nil {
+		if err := ipt.observabilityGroup.Wait(); err != nil {
+			log.Errorf("goroutine group [%s] abnormally exit: %s", ipt.observabilityGroup.Name(), err)
 		}
 	}
 

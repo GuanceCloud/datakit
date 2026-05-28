@@ -46,11 +46,11 @@ monitor   :
 
 ### 开启云同步 {#cloudinfo}
 
-DataKit 默认开启云同步，目前支持阿里云/腾讯云/AWS/华为云/微软云/火山引擎/谷歌云。可以通过设置 cloud_provider tag 显式指定云厂商，也可以由 DataKit 自动进行探测：
+DataKit 默认开启云同步，目前支持阿里云/金山云/腾讯云/AWS/华为云/微软云/火山引擎/谷歌云。可以通过设置 cloud_provider tag 显式指定云厂商，也可以由 DataKit 自动进行探测：
 
 ```toml
 [inputs.hostobject.tags]
-  # 此处目前支持 aliyun/tencent/aws/hwcloud/azure/gcp 几种，若不设置，则由 DataKit 自动探测并设置此 tag
+  # 此处目前支持 aliyun/ksyun/tencent/aws/hwcloud/azure/volcengine/gcp 几种，若不设置，则由 DataKit 自动探测并设置此 tag
   cloud_provider = "aliyun"
 ```
 

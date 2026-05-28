@@ -7,6 +7,7 @@ package remotejob
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -44,7 +45,7 @@ func (j *JVM) check() error {
 		errStr += " can find $JAVA_HOME "
 	}
 	if errStr != "" {
-		return fmt.Errorf(errStr)
+		return errors.New(errStr)
 	} else {
 		return nil
 	}

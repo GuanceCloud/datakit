@@ -1420,7 +1420,7 @@ func TestProtectedRun(t *testing.T) {
 		runFn: func() error {
 			runCount++
 			if runCount == 1 {
-				panic("boom")
+				panic(errors.New("boom"))
 			}
 			return errors.New("run failed")
 		},
@@ -1434,7 +1434,7 @@ func TestProtectedRun(t *testing.T) {
 	assert.NotPanics(t, func() {
 		protectedRun(d)
 	})
-	assert.Equal(t, 1, runCount)
-	assert.NotSame(t, oldUpdateCh, d.updateCh)
+	assert.Equal(t, 2, runCount)
+	assert.False(t, oldUpdateCh == d.updateCh)
 	assert.Equal(t, 1, cap(d.updateCh))
 }

@@ -14,22 +14,23 @@ type FindCoordinatorResponse struct {
 	Coordinator  *Broker
 }
 
+func (f *FindCoordinatorResponse) setVersion(v int16) {
+	f.Version = v
+}
+
 func (f *FindCoordinatorResponse) decode(pd packetDecoder, version int16) (err error) {
 	if version >= 1 {
 		f.Version = version
 
-		throttleTime, err := pd.getInt32()
-		if err != nil {
+		if f.ThrottleTime, err = pd.getDurationMs(); err != nil {
 			return err
 		}
-		f.ThrottleTime = time.Duration(throttleTime) * time.Millisecond
 	}
 
-	tmp, err := pd.getInt16()
+	f.Err, err = pd.getKError()
 	if err != nil {
 		return err
 	}
-	f.Err = KError(tmp)
 
 	if version >= 1 {
 		if f.ErrMsg, err = pd.getNullableString(); err != nil {
@@ -48,15 +49,16 @@ func (f *FindCoordinatorResponse) decode(pd packetDecoder, version int16) (err e
 	}
 	f.Coordinator = coordinator
 
+	// Broker decode parses the tagged fields
 	return nil
 }
 
 func (f *FindCoordinatorResponse) encode(pe packetEncoder) error {
 	if f.Version >= 1 {
-		pe.putInt32(int32(f.ThrottleTime / time.Millisecond))
+		pe.putDurationMs(f.ThrottleTime)
 	}
 
-	pe.putInt16(int16(f.Err))
+	pe.putKError(f.Err)
 
 	if f.Version >= 1 {
 		if err := pe.putNullableString(f.ErrMsg); err != nil {
@@ -71,11 +73,13 @@ func (f *FindCoordinatorResponse) encode(pe packetEncoder) error {
 	if err := coordinator.encode(pe, 0); err != nil {
 		return err
 	}
+
+	// Broker encode parses the tagged fields
 	return nil
 }
 
 func (f *FindCoordinatorResponse) key() int16 {
-	return 10
+	return apiKeyFindCoordinator
 }
 
 func (f *FindCoordinatorResponse) version() int16 {
@@ -83,15 +87,28 @@ func (f *FindCoordinatorResponse) version() int16 {
 }
 
 func (r *FindCoordinatorResponse) headerVersion() int16 {
+	if r.Version >= 3 {
+		return 1
+	}
 	return 0
 }
 
 func (f *FindCoordinatorResponse) isValidVersion() bool {
-	return f.Version >= 0 && f.Version <= 2
+	return f.Version >= 0 && f.Version <= 3
+}
+
+func (f *FindCoordinatorResponse) isFlexible() bool {
+	return f.isFlexibleVersion(f.Version)
+}
+
+func (f *FindCoordinatorResponse) isFlexibleVersion(version int16) bool {
+	return version >= 3
 }
 
 func (f *FindCoordinatorResponse) requiredVersion() KafkaVersion {
 	switch f.Version {
+	case 3:
+		return V2_4_0_0
 	case 2:
 		return V2_0_0_0
 	case 1:

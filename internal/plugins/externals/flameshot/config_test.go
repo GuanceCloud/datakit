@@ -27,8 +27,6 @@ func TestConfigMarshal(t *testing.T) {
 		AutoProfileDuration: "45s",
 		OOMHProfEnabled:     true,
 		OOMHProfMatchWindow: "2m",
-		JCmdSnapshotEnabled: true,
-		JCmdTimeout:         "20s",
 		Processes: []*Process{
 			{
 				Service:                  "tmall",
@@ -86,7 +84,6 @@ func TestConfigMarshal(t *testing.T) {
 	assert.NotEmpty(t, c2.AutoProfiling)
 	assert.NotEmpty(t, c2.AutoProfileDuration)
 	assert.NotEmpty(t, c2.OOMHProfMatchWindow)
-	assert.NotEmpty(t, c2.JCmdTimeout)
 	assert.NotEmpty(t, c2.Tags)
 	assert.NotEmpty(t, c2.Processes)
 	assert.NotEmpty(t, c2.HTTPConfig)
@@ -215,8 +212,6 @@ func TestConfig_FromEnv(t *testing.T) {
 	t.Setenv("FLAMESHOT_AUTO_PROFILING_DURATION", "12s")
 	t.Setenv("FLAMESHOT_OOM_HPROF_ENABLED", "true")
 	t.Setenv("FLAMESHOT_OOM_HPROF_MATCH_WINDOW", "3m")
-	t.Setenv("FLAMESHOT_JCMD_SNAPSHOT_ENABLED", "true")
-	t.Setenv("FLAMESHOT_JCMD_TIMEOUT", "20s")
 	t.Setenv("FLAMESHOT_POD_CPU_LIMIT", "1000")
 	t.Setenv("FLAMESHOT_POD_MEM_LIMIT", "1000")
 
@@ -235,8 +230,6 @@ func TestConfig_FromEnv(t *testing.T) {
 	assert.Equal(t, c.AutoProfileDuration, "12s")
 	assert.Equal(t, c.OOMHProfEnabled, true)
 	assert.Equal(t, c.OOMHProfMatchWindow, "3m")
-	assert.Equal(t, c.JCmdSnapshotEnabled, true)
-	assert.Equal(t, c.JCmdTimeout, "20s")
 	assert.Equal(t, c.PodCPULimit, "1000m")
 	assert.Equal(t, c.PodMEMLimit, "1000Mi")
 }

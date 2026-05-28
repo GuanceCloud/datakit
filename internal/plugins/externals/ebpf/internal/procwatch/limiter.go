@@ -4,6 +4,7 @@
 package procwatch
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strconv"
@@ -52,8 +53,15 @@ func NewResourceQuota(cpuTime float64, memLimit string, bandwidthLimit string) (
 	}, nil
 }
 
-func (q *ResourceQuota) Monitor() <-chan string {
+func (q *ResourceQuota) Monitor(ctx context.Context) <-chan string {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	done := make(chan string, 1)
+	if q == nil {
+		close(done)
+		return done
+	}
 	go func() {
 		defer close(done)
 		ticker := time.NewTicker(3 * time.Second)
@@ -63,13 +71,20 @@ func (q *ResourceQuota) Monitor() <-chan string {
 				done <- reason
 				return
 			}
-			<-ticker.C
+			select {
+			case <-ticker.C:
+			case <-ctx.Done():
+				return
+			}
 		}
 	}()
 	return done
 }
 
 func (q *ResourceQuota) overLimit() (bool, string) {
+	if q == nil || q.proc == nil {
+		return false, ""
+	}
 	if q.MemBytes > 0 {
 		info, err := q.proc.MemoryInfo()
 		if err != nil {

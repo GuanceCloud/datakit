@@ -210,6 +210,9 @@ func (dec *redisDecPipe) Export(force bool) []*ProtoData {
 		})
 	}
 
+	for i := range dec.infCache {
+		dec.infCache[i] = nil
+	}
 	dec.infCache = dec.infCache[:0]
 	return result
 }
@@ -832,6 +835,9 @@ func readLength(payload []byte) ([]byte, int, error) {
 	if err != nil {
 		return nil, 0, errors.New("parse redis request error")
 	}
+	if length > int64(maxInt) {
+		return nil, 0, errors.New("parse redis request error: length too large")
+	}
 	return payload[end+2:], int(length), nil
 }
 
@@ -912,6 +918,7 @@ const (
 	maxCommandLength = 17
 	statusOK         = 200
 	statusError      = 201
+	maxInt           = int(^uint(0) >> 1)
 )
 
 const (

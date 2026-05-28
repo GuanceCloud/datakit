@@ -64,7 +64,12 @@ func (p *Parser) getNamesByDefaultRule(metric string) (measurementName, metricNa
 	index := strings.Index(metric, "_")
 	if index != -1 {
 		measurementName = metric[:index]
-		metricName = metric[index+1:]
+		// If keep_exist_metric_name is true, keep the raw value for field names.
+		if p.KeepExistMetricName {
+			metricName = metric
+		} else {
+			metricName = metric[index+1:]
+		}
 	}
 	return
 }

@@ -70,3 +70,34 @@ func TestAppendNetlogCaptureLimitArgs(t *testing.T) {
 	args = appendNetlogCaptureLimitArgs([]string{"run"}, 0, -1, 0)
 	assert.Equal(t, []string{"run"}, args)
 }
+
+func TestAppendNetlogL7LogArgs(t *testing.T) {
+	args := appendNetlogL7LogArgs([]string{"run"},
+		[]string{"http1", " http2 ", ""},
+		[]string{"host", "x-request-id"},
+	)
+
+	assert.Equal(t, []string{
+		"run",
+		"--netlog-protocols", "http1,http2",
+		"--netlog-l7log-headers", "host,x-request-id",
+	}, args)
+
+	args = appendNetlogL7LogArgs([]string{"run"}, nil, []string{" none "})
+	assert.Equal(t, []string{
+		"run",
+		"--netlog-l7log-headers", "none",
+	}, args)
+}
+
+func TestReadEnvNetlogL7LogConfig(t *testing.T) {
+	ipt := &Input{}
+
+	ipt.ReadEnv(map[string]string{
+		"ENV_INPUT_EBPF_NETLOG_L7LOG_PROTOCOLS": "http1, http2,,grpc",
+		"ENV_INPUT_EBPF_NETLOG_L7LOG_HEADERS":   "host, x-request-id, traceparent",
+	})
+
+	assert.Equal(t, []string{"http1", "http2", "grpc"}, ipt.NetlogL7LogProtocols)
+	assert.Equal(t, []string{"host", "x-request-id", "traceparent"}, ipt.NetlogL7LogHeaders)
+}

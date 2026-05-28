@@ -237,8 +237,7 @@ func addJSONConfig(writer *multipart.Writer, stats *triggerStats) error {
 	version := stats.getKeyFromTags("version", "unknown_version")
 	tags := fmt.Sprintf("library_version:%s,library_type:async_profiler,process_id:%d,process_name:%s,service:%s,host:%s,env:%s,version:%s",
 		asyncProfileVersion, stats.PID, stats.CommandName, service, host, env, version)
-	// 添加 trigger tag
-	tags += "," + strings.Join(stats.Reason, ",")
+	tags = appendUniqueProfilerTags(tags, stats.Reason)
 
 	event.TagProfiler = tags
 	jsonData, _ := json.Marshal(event)
@@ -290,11 +289,43 @@ func addJFRFile(writer *multipart.Writer, filePath string) error {
 
 func (stat *triggerStats) getKeyFromTags(key, defaultVal string) string {
 	for _, s := range stat.Reason {
-		keyVal := strings.Split(s, ":")
-		if len(keyVal) == 2 && keyVal[0] == key {
-			return keyVal[1]
+		k, v, ok := strings.Cut(s, ":")
+		if ok && k == key {
+			return v
 		}
 	}
 
 	return defaultVal
+}
+
+func appendUniqueProfilerTags(base string, tags []string) string {
+	seenKeys := map[string]struct{}{}
+	for _, tag := range strings.Split(base, ",") {
+		key, _, ok := strings.Cut(tag, ":")
+		if !ok {
+			key = tag
+		}
+		seenKeys[key] = struct{}{}
+	}
+
+	unique := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		if tag == "" {
+			continue
+		}
+		key, _, ok := strings.Cut(tag, ":")
+		if !ok {
+			key = tag
+		}
+		if _, ok := seenKeys[key]; ok {
+			continue
+		}
+		seenKeys[key] = struct{}{}
+		unique = append(unique, tag)
+	}
+
+	if len(unique) == 0 {
+		return base
+	}
+	return base + "," + strings.Join(unique, ",")
 }

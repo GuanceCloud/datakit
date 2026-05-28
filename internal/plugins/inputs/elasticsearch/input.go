@@ -10,6 +10,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -393,18 +394,18 @@ func (ipt *Input) setServerInfo() error {
 				if ipt.ClusterStats || len(ipt.IndicesInclude) > 0 || len(ipt.IndicesLevel) > 0 {
 					// Gather node ID
 					if info.nodeID, err = ipt.gatherNodeID(s + "/_nodes/_local/name"); err != nil {
-						return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
+						return errors.New(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 					}
 
 					// get cat/master information here so NodeStats can determine
 					// whether this node is the Master
 					if info.masterID, err = ipt.getCatMaster(s + "/_cat/master"); err != nil {
-						return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
+						return errors.New(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 					}
 				}
 
 				if info.version, err = ipt.getVersion(s); err != nil {
-					return fmt.Errorf(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
+					return errors.New(mask.ReplaceAllString(err.Error(), "http(s)://XXX:XXX@"))
 				}
 
 				if mask.MatchString(s) {

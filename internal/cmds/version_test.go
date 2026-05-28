@@ -20,25 +20,25 @@ func TestCanonicalInstallBaseUrl(t *T.T) {
 
 	testCases := []testCase{
 		{
-			name:     "no-slash-no-datakit",
+			name:     "no-slash-no-datakit-v2",
 			param:    "https://static.guance.com",
-			expected: "https://static.guance.com/datakit/",
+			expected: "https://static.guance.com/datakit-v2/",
 		},
 		{
-			name:     "with-slash-no-datakit",
+			name:     "with-slash-no-datakit-v2",
 			param:    "https://static.guance.com/",
-			expected: "https://static.guance.com/datakit/",
+			expected: "https://static.guance.com/datakit-v2/",
 		},
 
 		{
-			name:     "with-datakit-no-slash",
-			param:    "https://static.guance.com/datakit",
-			expected: "https://static.guance.com/datakit/",
+			name:     "with-datakit-v2-no-slash",
+			param:    "https://static.guance.com/datakit-v2",
+			expected: "https://static.guance.com/datakit-v2/",
 		},
 		{
-			name:     "with-datakit-with-slash",
-			param:    "https://static.guance.com/datakit/",
-			expected: "https://static.guance.com/datakit/",
+			name:     "with-datakit-v2-with-slash",
+			param:    "https://static.guance.com/datakit-v2/",
+			expected: "https://static.guance.com/datakit-v2/",
 		},
 	}
 

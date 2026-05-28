@@ -36,6 +36,7 @@ var (
 	EnvNetlogFallbackSockets = "NETLOG_FALLBACK_SOCKETS"
 	EnvNetlogFallbackBlocks  = "NETLOG_FALLBACK_BLOCKS"
 	EnvNetlogSharedBlocks    = "NETLOG_SHARED_BLOCKS"
+	EnvNetlogL7LogHeaders    = "NETLOG_L7LOG_HEADERS"
 )
 
 type Flag struct {
@@ -83,6 +84,7 @@ type FlagBPFNetLog struct {
 	EnableLog        bool     `toml:"enable_log"`
 	EnableMetric     bool     `toml:"enable_metric"`
 	L7LogProtocols   []string `toml:"l7log_protocols"`
+	L7LogHeaders     []string `toml:"l7log_headers"`
 	NetFilter        string   `toml:"net_filter"`
 	FallbackSockets  int      `toml:"fallback_sockets"`
 	FallbackBlocks   int      `toml:"fallback_blocks"`
@@ -153,6 +155,8 @@ func readEnv(flag *Flag) {
 			flag.K8sInfo.WorkloadLabelPrefix = v
 		case EnvNetlogNetFilter:
 			flag.BPFNetLog.NetFilter = v
+		case EnvNetlogL7LogHeaders:
+			flag.BPFNetLog.L7LogHeaders = splitTrimmedList(v)
 		case EnvNetlogFallbackSockets:
 			if n, err := strconv.Atoi(v); err == nil {
 				flag.BPFNetLog.FallbackSockets = n
@@ -167,6 +171,18 @@ func readEnv(flag *Flag) {
 			}
 		}
 	}
+}
+
+func splitTrimmedList(v string) []string {
+	parts := strings.Split(v, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			out = append(out, part)
+		}
+	}
+	return out
 }
 
 const operatorProbeTimeout = 2 * time.Second

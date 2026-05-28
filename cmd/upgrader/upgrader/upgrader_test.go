@@ -39,12 +39,12 @@ func TestUpgrader(t *T.T) {
 			c.Data(200, "application/json", j)
 		})
 
-		router.GET("/datakit/:file", func(c *gin.Context) {
+		router.GET("/datakit-v2/:file", func(c *gin.Context) {
 			switch c.Request.URL.Path {
-			case "/datakit/install.sh", "/datakit/install.ps1":
+			case "/datakit-v2/install.sh", "/datakit-v2/install.ps1":
 				c.Data(200, "", []byte("echo abc"))
 
-			case "/datakit/version": // online version info
+			case "/datakit-v2/version": // online version info
 				vi := version.VerInfo{
 					VersionString: "1024.1024.1024",
 					Commit:        "fake-online-version-commit",
@@ -91,15 +91,15 @@ func TestUpgrader(t *T.T) {
 			c.Data(200, "application/json", j)
 		})
 
-		specifiedVersion := "4.5.6"
+		specifiedVersion := "1.5.6"
 
-		router.GET("/datakit/:file", func(c *gin.Context) {
+		router.GET("/datakit-v2/:file", func(c *gin.Context) {
 			switch c.Request.URL.Path {
-			case fmt.Sprintf("/datakit/install-%s.sh", specifiedVersion),
-				fmt.Sprintf("/datakit/install-%s.ps1", specifiedVersion):
+			case fmt.Sprintf("/datakit-v2/install-%s.sh", specifiedVersion),
+				fmt.Sprintf("/datakit-v2/install-%s.ps1", specifiedVersion):
 				c.Data(200, "", []byte("echo abc"))
 
-			case "/datakit/version": // online version info
+			case "/datakit-v2/version": // online version info
 				vi := version.VerInfo{
 					VersionString: "1024.1024.1024",
 					Commit:        "fake-online-version-commit",
@@ -133,7 +133,7 @@ func TestUpgrader(t *T.T) {
 	t.Run("up-to-date", func(t *T.T) {
 		router := gin.New()
 
-		upToDateVersion := "1.2.3"
+		upToDateVersion := "2.1.0"
 		router.GET("/v1/ping", func(c *gin.Context) {
 			pi := pingInfo{
 				Content: httpapi.Ping{
@@ -148,9 +148,9 @@ func TestUpgrader(t *T.T) {
 			c.Data(200, "application/json", j)
 		})
 
-		router.GET("/datakit/:file", func(c *gin.Context) {
+		router.GET("/datakit-v2/:file", func(c *gin.Context) {
 			switch c.Request.URL.Path {
-			case "/datakit/version": // online version info
+			case "/datakit-v2/version": // online version info
 				vi := version.VerInfo{
 					VersionString: upToDateVersion,
 					Commit:        "fake-commit-id",
@@ -200,7 +200,7 @@ func TestUpgrader(t *T.T) {
 	t.Run("with-dk-api-https", func(t *T.T) {
 		router := gin.New()
 
-		upToDateVersion := "1.2.3"
+		upToDateVersion := "2.1.0"
 		router.GET("/v1/ping", func(c *gin.Context) {
 			pi := pingInfo{
 				Content: httpapi.Ping{
@@ -215,9 +215,9 @@ func TestUpgrader(t *T.T) {
 			c.Data(200, "application/json", j)
 		})
 
-		router.GET("/datakit/:file", func(c *gin.Context) {
+		router.GET("/datakit-v2/:file", func(c *gin.Context) {
 			switch c.Request.URL.Path {
-			case "/datakit/version": // online version info
+			case "/datakit-v2/version": // online version info
 				vi := version.VerInfo{
 					VersionString: upToDateVersion,
 					Commit:        "fake-commit-id",
@@ -257,7 +257,7 @@ func TestUpgrader(t *T.T) {
 		// start datakit server
 		dkRouter := gin.New()
 
-		upToDateVersion := "1.2.3"
+		upToDateVersion := "2.1.0"
 		dkRouter.GET("/v1/ping", func(c *gin.Context) {
 			pi := pingInfo{
 				Content: httpapi.Ping{
@@ -278,11 +278,11 @@ func TestUpgrader(t *T.T) {
 
 		// start oss server
 		ossRouter := gin.New()
-		ossRouter.GET("/datakit/:file", func(c *gin.Context) {
+		ossRouter.GET("/datakit-v2/:file", func(c *gin.Context) {
 			switch c.Request.URL.Path {
-			case "/datakit/install.sh", "/datakit/install.ps1":
+			case "/datakit-v2/install.sh", "/datakit-v2/install.ps1":
 				c.Data(200, "", []byte("echo abc"))
-			case "/datakit/version": // online version info
+			case "/datakit-v2/version": // online version info
 				vi := version.VerInfo{
 					VersionString: upToDateVersion,
 					Commit:        "fake-commit-id",

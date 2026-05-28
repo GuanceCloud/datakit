@@ -149,7 +149,7 @@ func (m *mockProcess) Process(msg *sarama.ConsumerMessage) error {
 func beforeTest(t *testing.T) (err error) {
 	t.Helper()
 	dockerTCP := dockerRemote.TCPURL()
-	t.Logf(dockerTCP)
+	t.Log(dockerTCP)
 	dockerPool, err = dockertest.NewPool(dockerTCP)
 	if err != nil {
 		t.Errorf("err = %v", err)

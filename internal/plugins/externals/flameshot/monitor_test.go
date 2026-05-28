@@ -35,11 +35,20 @@ func Test_filterRegex(t *testing.T) {
 }
 
 func TestMonitorHttp(t *testing.T) {
+	pm := &processM{
+		Name:    "java",
+		Cmdline: "java -jar app.jar",
+		Pid:     1234,
+		configProcess: &Process{
+			Service: "svc-http",
+			Tags:    []string{"version:test"},
+		},
+	}
 	m := &monitor{
-		config:    &Config{},
-		cs:        make([]*processM, 0),
+		config:    &Config{Tags: []string{"host:test-host", "env:test"}},
+		cs:        []*processM{pm},
 		csChan:    make(chan *processM, 1),
-		statsChan: make(chan *triggerStats, 1),
+		statsChan: make(chan *triggerStats, 2),
 	}
 	req, err := http.NewRequest(http.MethodGet, "/v1/profile?pid=1234&duration=10s&events=all", nil)
 	assert.NoError(t, err)
@@ -52,15 +61,36 @@ func TestMonitorHttp(t *testing.T) {
 		assert.Equal(t, int32(1234), stats.PID)
 		assert.Equal(t, "all", stats.Event)
 		assert.Equal(t, 10, stats.Duration)
+		assert.Equal(t, "svc-http", stats.Service)
+		assert.Equal(t, "java", stats.CommandName)
+		assert.Contains(t, stats.Reason, "host:test-host")
+		assert.Contains(t, stats.Reason, "env:test")
+		assert.Contains(t, stats.Reason, "version:test")
+		assert.Contains(t, stats.Reason, "service:svc-http")
+		assert.Contains(t, stats.Reason, "pid:1234")
 	default:
 		t.Fatal("expected pid request to enqueue a profiling task")
 	}
 
-	req2, err := http.NewRequest(http.MethodGet, "/v1/profile?command=^no_match_process$&duration=10s&events=cpu,alloc", nil)
+	req2, err := http.NewRequest(http.MethodGet, "/v1/profile?command=^java$&duration=10s&events=cpu,alloc", nil)
 	assert.NoError(t, err)
 	rec2 := httptest.NewRecorder()
 	m.handlerProfile(rec2, req2)
 	assert.Equal(t, http.StatusOK, rec2.Code)
+
+	select {
+	case stats := <-m.statsChan:
+		assert.Equal(t, int32(1234), stats.PID)
+		assert.Equal(t, "svc-http", stats.Service)
+		assert.Equal(t, "java", stats.CommandName)
+		assert.Contains(t, stats.Reason, "host:test-host")
+		assert.Contains(t, stats.Reason, "env:test")
+		assert.Contains(t, stats.Reason, "version:test")
+		assert.Contains(t, stats.Reason, "service:svc-http")
+		assert.Contains(t, stats.Reason, "command:^java$")
+	default:
+		t.Fatal("expected command request to enqueue a profiling task")
+	}
 }
 
 func TestURLJoin(t *testing.T) {
@@ -221,51 +251,9 @@ func TestMonitorStartWatcherDedupByCgroup(t *testing.T) {
 	assert.Len(t, m.watchers, 0)
 }
 
-func TestMonitorHandleCgroupMemoryStatsEnqueueJcmd(t *testing.T) {
-	m := NewMonitor(&Config{
-		Tags:                []string{"env:test"},
-		JCmdSnapshotEnabled: true,
-	})
+func TestMonitorHandleCgroupMemoryStatsEnqueueDuringNormalProfileCooldown(t *testing.T) {
+	m := NewMonitor(&Config{Tags: []string{"env:test"}})
 	m.statsChan = make(chan *triggerStats, 1)
-	m.jcmdChan = make(chan *jcmdSnapshotRequest, 1)
-
-	pm := &processM{
-		Name: "java",
-		Pid:  1234,
-		configProcess: &Process{
-			Service:                  "svc-a",
-			Events:                   "cpu",
-			EmergencyDuration:        "10s",
-			MEMUsagePercentEmergency: 90,
-			Tags:                     []string{"version:test"},
-		},
-	}
-	watcher := newCgroupWatcher("cg-jcmd", cgroupVersionV2, "/sys/fs/cgroup/mock", func() {})
-	watcher.addMember(pm)
-
-	m.handleCgroupMemoryStats(watcher, &cgroupMemoryStats{
-		Current: 95,
-		Max:     100,
-		OOMKill: 0,
-	}, 0, time.Now())
-
-	select {
-	case req := <-m.jcmdChan:
-		assert.Equal(t, int32(1234), req.PID)
-		assert.Equal(t, "svc-a", req.Service)
-		assert.InDelta(t, 95.0, req.MemPercent, 0.0001)
-	default:
-		t.Fatal("expected cgroup watcher to enqueue a jcmd snapshot request")
-	}
-}
-
-func TestMonitorHandleCgroupMemoryStatsEnqueueJcmdDuringProfileCooldown(t *testing.T) {
-	m := NewMonitor(&Config{
-		Tags:                []string{"env:test"},
-		JCmdSnapshotEnabled: true,
-	})
-	m.statsChan = make(chan *triggerStats, 1)
-	m.jcmdChan = make(chan *jcmdSnapshotRequest, 1)
 
 	pm := &processM{
 		Name:            "java",
@@ -279,7 +267,77 @@ func TestMonitorHandleCgroupMemoryStatsEnqueueJcmdDuringProfileCooldown(t *testi
 			Tags:                     []string{"version:test"},
 		},
 	}
-	watcher := newCgroupWatcher("cg-jcmd", cgroupVersionV2, "/sys/fs/cgroup/mock", func() {})
+	watcher := newCgroupWatcher("cg-emergency-profile", cgroupVersionV2, "/sys/fs/cgroup/mock", func() {})
+	watcher.addMember(pm)
+
+	m.handleCgroupMemoryStats(watcher, &cgroupMemoryStats{
+		Current: 95,
+		Max:     100,
+		OOMKill: 0,
+	}, 0, time.Now())
+
+	select {
+	case stats := <-m.statsChan:
+		assert.Equal(t, int32(1234), stats.PID)
+		assert.Equal(t, "svc-a", stats.Service)
+		assert.Equal(t, 10, stats.Duration)
+		assert.Contains(t, stats.Reason, "trigger:cgroup_memory_pressure")
+	default:
+		t.Fatal("expected cgroup emergency profiling to ignore normal profile cooldown")
+	}
+}
+
+func TestMonitorHandleCgroupMemoryStatsUsesEmergencyCooldown(t *testing.T) {
+	m := NewMonitor(&Config{Tags: []string{"env:test"}})
+	m.statsChan = make(chan *triggerStats, 1)
+
+	pm := &processM{
+		Name:            "java",
+		Pid:             1234,
+		lastProfileTime: time.Now().Add(-45 * time.Second),
+		configProcess: &Process{
+			Service:                  "svc-a",
+			Events:                   "cpu",
+			EmergencyDuration:        "15s",
+			MEMUsagePercentEmergency: 90,
+			Tags:                     []string{"version:test"},
+		},
+	}
+	watcher := newCgroupWatcher("cg-emergency-cooldown", cgroupVersionV2, "/sys/fs/cgroup/mock", func() {})
+	watcher.addMember(pm)
+
+	m.handleCgroupMemoryStats(watcher, &cgroupMemoryStats{
+		Current: 95,
+		Max:     100,
+		OOMKill: 0,
+	}, 0, time.Now())
+
+	select {
+	case stats := <-m.statsChan:
+		assert.Equal(t, int32(1234), stats.PID)
+		assert.Equal(t, 15, stats.Duration)
+		assert.Contains(t, stats.Reason, "trigger:cgroup_memory_pressure")
+	default:
+		t.Fatal("expected cgroup emergency profiling to use shorter cooldown")
+	}
+}
+
+func TestMonitorHandleCgroupMemoryStatsSuppressesRecentEmergencyProfile(t *testing.T) {
+	m := NewMonitor(&Config{Tags: []string{"env:test"}})
+	m.statsChan = make(chan *triggerStats, 1)
+
+	pm := &processM{
+		Name:                     "java",
+		Pid:                      1234,
+		lastEmergencyProfileTime: time.Now().Add(-10 * time.Second),
+		configProcess: &Process{
+			Service:                  "svc-a",
+			Events:                   "cpu",
+			EmergencyDuration:        "15s",
+			MEMUsagePercentEmergency: 90,
+		},
+	}
+	watcher := newCgroupWatcher("cg-emergency-suppressed", cgroupVersionV2, "/sys/fs/cgroup/mock", func() {})
 	watcher.addMember(pm)
 
 	m.handleCgroupMemoryStats(watcher, &cgroupMemoryStats{
@@ -290,17 +348,8 @@ func TestMonitorHandleCgroupMemoryStatsEnqueueJcmdDuringProfileCooldown(t *testi
 
 	select {
 	case <-m.statsChan:
-		t.Fatal("expected profiling request to be suppressed by profile cooldown")
+		t.Fatal("expected recent emergency profile to suppress cgroup emergency profiling")
 	default:
-	}
-
-	select {
-	case req := <-m.jcmdChan:
-		assert.Equal(t, int32(1234), req.PID)
-		assert.Equal(t, "svc-a", req.Service)
-		assert.InDelta(t, 95.0, req.MemPercent, 0.0001)
-	default:
-		t.Fatal("expected cgroup watcher to enqueue a jcmd snapshot during profile cooldown")
 	}
 }
 

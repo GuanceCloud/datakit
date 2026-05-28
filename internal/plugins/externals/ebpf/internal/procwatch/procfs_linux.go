@@ -31,6 +31,19 @@ type nonRegularExecutablePathError struct {
 	path string
 }
 
+const (
+	maxProcessStatReadBytes    = 16 * 1024
+	maxProcessCmdlineReadBytes = 128 * 1024
+	maxProcessEnvironReadBytes = 256 * 1024
+
+	libraryScanPIDLimitEnv       = "DK_EBPF_PROCWATCH_LIBRARY_SCAN_PID_LIMIT"
+	defaultLibraryScanPIDLimit   = 4096
+	maxLibraryScanPIDLimit       = 100000
+	procMapsScanLineLimitEnv     = "DK_EBPF_PROCWATCH_PROC_MAPS_LINE_LIMIT"
+	defaultProcMapsScanLineLimit = 8192
+	maxProcMapsScanLineLimit     = 1000000
+)
+
 func (e *nonRegularExecutablePathError) Error() string {
 	return fmt.Sprintf("non-regular executable path for pid %d: %s", e.pid, e.path)
 }
@@ -460,14 +473,19 @@ func scanSharedLibraries(pidPath string, filter *regexp.Regexp) []string {
 	if err != nil {
 		return nil
 	}
+	defer file.Close() //nolint:errcheck
 
 	libs := make([]string, 0, 8)
 	seen := make(map[string]struct{})
 	reader := bufio.NewReader(file)
-	for {
-		line, _, err := reader.ReadLine()
+	lineLimit := procMapsScanLineLimit()
+	for lines := 0; lines < lineLimit; lines++ {
+		line, err := readProcMapsLine(reader)
 		if err != nil {
 			break
+		}
+		if len(line) == 0 {
+			continue
 		}
 
 		rawPath, ok := parseProcMapsPathname(line)
@@ -490,9 +508,25 @@ func scanSharedLibraries(pidPath string, filter *regexp.Regexp) []string {
 		libs = append(libs, pathname)
 	}
 
-	_ = file.Close()
-
 	return libs
+}
+
+func readProcMapsLine(reader *bufio.Reader) ([]byte, error) {
+	line, isPrefix, err := reader.ReadLine()
+	if err != nil {
+		return nil, err
+	}
+	if !isPrefix {
+		return line, nil
+	}
+
+	for isPrefix {
+		_, isPrefix, err = reader.ReadLine()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return nil, nil
 }
 
 func parseProcMapsPathname(line []byte) ([]byte, bool) {
@@ -529,16 +563,11 @@ func findLoadedLibraryHostPaths(filter *regexp.Regexp) map[string]struct{} {
 
 	found := make(map[string]struct{})
 	seenNSPaths := make(map[string]struct{})
+	pids := procPIDs(entries)
+	pids = limitLibraryScanPIDs(pids, libraryScanPIDLimit())
 
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			continue
-		}
-		if _, err := strconv.Atoi(entry.Name()); err != nil {
-			continue
-		}
-
-		pidPath := HostProc(entry.Name())
+	for _, pid := range pids {
+		pidPath := HostProc(strconv.Itoa(pid))
 		ns := readMountNamespace(pidPath)
 		for _, libPath := range scanSharedLibraries(pidPath, filter) {
 			key := strconv.FormatUint(ns.dev, 10) + ":" +
@@ -559,12 +588,72 @@ func findLoadedLibraryHostPaths(filter *regexp.Regexp) map[string]struct{} {
 	return found
 }
 
+func procPIDs(entries []os.DirEntry) []int {
+	if len(entries) == 0 {
+		return nil
+	}
+	pids := make([]int, 0, len(entries))
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		pid, err := strconv.Atoi(entry.Name())
+		if err != nil || pid <= 0 {
+			continue
+		}
+		pids = append(pids, pid)
+	}
+	sort.Ints(pids)
+	return pids
+}
+
+func limitLibraryScanPIDs(pids []int, limit int) []int {
+	if len(pids) == 0 || limit <= 0 {
+		return nil
+	}
+	if len(pids) <= limit {
+		return pids
+	}
+
+	// Spread the scan budget across /proc instead of only scanning low PIDs.
+	selected := make([]int, 0, limit)
+	for i := 0; i < limit; i++ {
+		idx := i * len(pids) / limit
+		selected = append(selected, pids[idx])
+	}
+	return selected
+}
+
+func libraryScanPIDLimit() int {
+	return boundedPositiveEnvInt(libraryScanPIDLimitEnv, defaultLibraryScanPIDLimit, maxLibraryScanPIDLimit)
+}
+
+func procMapsScanLineLimit() int {
+	return boundedPositiveEnvInt(procMapsScanLineLimitEnv, defaultProcMapsScanLineLimit, maxProcMapsScanLineLimit)
+}
+
+func boundedPositiveEnvInt(key string, fallback, max int) int {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil || value <= 0 {
+		log.Warnf("invalid %s=%q, use default %d", key, raw, fallback)
+		return fallback
+	}
+	if value > max {
+		return max
+	}
+	return value
+}
+
 func readProcessCmdline(pid int) []string {
 	if pid <= 0 {
 		return nil
 	}
 
-	data, err := os.ReadFile(HostProc(strconv.Itoa(pid), "cmdline"))
+	data, err := readProcFile(HostProc(strconv.Itoa(pid), "cmdline"), maxProcessCmdlineReadBytes)
 	if err != nil || len(data) == 0 {
 		return nil
 	}
@@ -573,7 +662,7 @@ func readProcessCmdline(pid int) []string {
 }
 
 func readProcessCmdlineFromProcFD(dirfd int) []string {
-	data, err := readProcFileAt(dirfd, "cmdline")
+	data, err := readProcFileAt(dirfd, "cmdline", maxProcessCmdlineReadBytes)
 	if err != nil || len(data) == 0 {
 		return nil
 	}
@@ -623,7 +712,7 @@ func readProcessStat(pid int) (string, int, uint64, error) {
 		return "", 0, 0, fmt.Errorf("invalid pid %d", pid)
 	}
 
-	data, err := os.ReadFile(HostProc(strconv.Itoa(pid), "stat"))
+	data, err := readProcFile(HostProc(strconv.Itoa(pid), "stat"), maxProcessStatReadBytes)
 	if err != nil {
 		return "", 0, 0, err
 	}
@@ -635,7 +724,7 @@ func readProcessStatFromProcFD(dirfd int, pid int) (string, int, uint64, error) 
 	if dirfd < 0 {
 		return "", 0, 0, fmt.Errorf("invalid proc dir fd for pid %d", pid)
 	}
-	data, err := readProcFileAt(dirfd, "stat")
+	data, err := readProcFileAt(dirfd, "stat", maxProcessStatReadBytes)
 	if err != nil {
 		return "", 0, 0, err
 	}
@@ -694,7 +783,7 @@ func readProcessEnvironMapForKeys(pid int, keys map[string]struct{}) map[string]
 		return nil
 	}
 
-	data, err := os.ReadFile(HostProc(strconv.Itoa(pid), "environ"))
+	data, err := readProcFileTruncated(HostProc(strconv.Itoa(pid), "environ"), maxProcessEnvironReadBytes)
 	if err != nil || len(data) == 0 {
 		return nil
 	}
@@ -703,7 +792,7 @@ func readProcessEnvironMapForKeys(pid int, keys map[string]struct{}) map[string]
 }
 
 func readProcessEnvironMapForKeysFromProcFD(dirfd int, keys map[string]struct{}) map[string]string {
-	data, err := readProcFileAt(dirfd, "environ")
+	data, err := readProcFileAtTruncated(dirfd, "environ", maxProcessEnvironReadBytes)
 	if err != nil || len(data) == 0 {
 		return nil
 	}
@@ -821,7 +910,43 @@ func openProcessDir(pid int) (int, error) {
 	return unix.Open(HostProc(strconv.Itoa(pid)), unix.O_RDONLY|unix.O_DIRECTORY|unix.O_CLOEXEC, 0)
 }
 
-func readProcFileAt(dirfd int, name string) ([]byte, error) {
+func readProcFile(path string, limit int64) ([]byte, error) {
+	file, err := os.Open(path) //nolint:gosec
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close() //nolint:errcheck
+	return readLimitedProcFile(file, limit)
+}
+
+func readProcFileTruncated(path string, limit int64) ([]byte, error) {
+	file, err := os.Open(path) //nolint:gosec
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close() //nolint:errcheck
+	return readTruncatedProcFile(file, limit)
+}
+
+func readProcFileAt(dirfd int, name string, limit int64) ([]byte, error) {
+	file, err := openProcFileAt(dirfd, name)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close() //nolint:errcheck
+	return readLimitedProcFile(file, limit)
+}
+
+func readProcFileAtTruncated(dirfd int, name string, limit int64) ([]byte, error) {
+	file, err := openProcFileAt(dirfd, name)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close() //nolint:errcheck
+	return readTruncatedProcFile(file, limit)
+}
+
+func openProcFileAt(dirfd int, name string) (*os.File, error) {
 	if dirfd < 0 {
 		return nil, fmt.Errorf("invalid dirfd")
 	}
@@ -834,14 +959,38 @@ func readProcFileAt(dirfd int, name string) ([]byte, error) {
 		_ = unix.Close(fd)
 		return nil, fmt.Errorf("wrap proc file %s", name)
 	}
+	return file, nil
+}
 
-	data, readErr := io.ReadAll(file)
-	closeErr := file.Close()
-	if readErr != nil {
-		return nil, readErr
+func readTruncatedProcFile(r io.Reader, limit int64) ([]byte, error) {
+	if limit <= 0 {
+		return io.ReadAll(r)
 	}
-	if closeErr != nil {
-		return nil, closeErr
+	data, err := io.ReadAll(io.LimitReader(r, limit+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(data)) <= limit {
+		return data, nil
+	}
+
+	data = data[:limit]
+	if end := bytes.LastIndexByte(data, 0); end >= 0 {
+		return data[:end+1], nil
+	}
+	return nil, nil
+}
+
+func readLimitedProcFile(r io.Reader, limit int64) ([]byte, error) {
+	if limit <= 0 {
+		return io.ReadAll(r)
+	}
+	data, err := io.ReadAll(io.LimitReader(r, limit+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(data)) > limit {
+		return nil, fmt.Errorf("proc file exceeds read limit %d", limit)
 	}
 	return data, nil
 }

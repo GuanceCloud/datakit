@@ -5,6 +5,11 @@ package l4log
 
 import (
 	"bytes"
+	"os"
+	"strconv"
+	"strings"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 )
 
 // var _ L7ProtoEventAndMetric = (*HTTPLog)(nil)
@@ -23,11 +28,19 @@ type HTTPLog struct {
 	probePackets   uint8
 	probeBytes     int
 	probeExhausted bool
+	elemLimit      int
 }
 
 const (
 	httpProbePacketBudget = 8
 	httpProbeByteBudget   = 4 * 1024
+
+	httpElemLimitEnv          = "DK_EBPF_L4LOG_HTTP_ELEM_LIMIT"
+	defaultHTTPElemLimit      = 1024
+	maxHTTPElemLimit          = 65536
+	httpPendingPacketLimitEnv = "DK_EBPF_L4LOG_HTTP_PENDING_PACKET_LIMIT"
+	defaultHTTPPendingPackets = 64
+	maxHTTPPendingPackets     = 4096
 )
 
 func (h *HTTPLog) Handle(v any, txrx int8, cnt []byte,
@@ -37,12 +50,20 @@ func (h *HTTPLog) Handle(v any, txrx int8, cnt []byte,
 	needPendingReplay := st != nil && h.activeElem() == nil && cntSize > 0 &&
 		(st.header.active || maybeHTTPStart(cnt))
 	if needPendingReplay && st != nil {
-		st.pendingPackets = append(st.pendingPackets, httpPacketObservation{
-			ln:       *ln,
-			cntSize:  cntSize,
-			pktState: pktState,
-			chunkid:  chunkid,
-		})
+		if st.maxPendingPackets <= 0 {
+			st.maxPendingPackets = httpPendingPacketLimit()
+		}
+		if len(st.pendingPackets) >= st.maxPendingPackets {
+			st.resetPending()
+			exporter.IncBPFEventDrop("l4log", "http_pending_packets", "limit")
+		} else {
+			st.pendingPackets = append(st.pendingPackets, httpPacketObservation{
+				ln:       *ln,
+				cntSize:  cntSize,
+				pktState: pktState,
+				chunkid:  chunkid,
+			})
+		}
 	}
 
 	replayed := false
@@ -155,9 +176,19 @@ type HTTPLogElem struct {
 	TraceID  string `json:"trace_id"`
 	ParentID string `json:"parent_id"`
 
+	TraceProvider string `json:"trace_provider,omitempty"`
+
 	// HTTPVersion string
-	// ReqHeaders map[string][]string `json:"req_headers"`
-	// RespHeaders map[string][]string `json:"resp_headers"`
+	ReqHeaders  map[string]string `json:"req_headers,omitempty"`
+	RespHeaders map[string]string `json:"resp_headers,omitempty"`
+	HeaderCount int               `json:"header_count,omitempty"`
+	HeaderBytes int               `json:"header_bytes,omitempty"`
+
+	UserAgent         string `json:"user_agent,omitempty"`
+	ReqContentType    string `json:"req_content_type,omitempty"`
+	RespContentType   string `json:"resp_content_type,omitempty"`
+	ReqContentLength  *int64 `json:"req_content_length,omitempty"`
+	RespContentLength *int64 `json:"resp_content_length,omitempty"`
 
 	// URL
 	Path string `json:"path"`
@@ -185,6 +216,8 @@ type httpParsedEvent struct {
 	host     string
 	traceID  string
 	parentID string
+	provider string
+	headers  map[string]string
 	status   int
 }
 
@@ -204,8 +237,9 @@ type httpPacketObservation struct {
 }
 
 type httpHTTPStreamState struct {
-	header         httpHeaderAssembler
-	pendingPackets []httpPacketObservation
+	header            httpHeaderAssembler
+	pendingPackets    []httpPacketObservation
+	maxPendingPackets int
 }
 
 func httpReqOrResp(cnt []byte) int8 { // 1: req, 2: resp
@@ -278,8 +312,19 @@ func (h *HTTPLog) ensureStreamState(txrx int8) *httpHTTPStreamState {
 	if st.header.maxPending == 0 {
 		st.header.maxPending = 16 * 1024
 	}
+	if st.maxPendingPackets == 0 {
+		st.maxPendingPackets = httpPendingPacketLimit()
+	}
 
 	return st
+}
+
+func (st *httpHTTPStreamState) resetPending() {
+	if st == nil {
+		return
+	}
+	st.header.reset()
+	st.pendingPackets = st.pendingPackets[:0]
 }
 
 func (h *HTTPLog) hasPendingState() bool {
@@ -327,9 +372,68 @@ func (h *HTTPLog) activeElem() *HTTPLogElem {
 }
 
 func (h *HTTPLog) newElem() *HTTPLogElem {
+	if h.elemLimit <= 0 {
+		h.elemLimit = httpElemLimit()
+	}
+	if h.elemLimit > 0 && len(h.elems) >= h.elemLimit {
+		h.trimFinishedElems()
+		if len(h.elems) >= h.elemLimit {
+			exporter.IncBPFEventDrop("l4log", "http_elem", "limit")
+			return nil
+		}
+	}
 	elem := &HTTPLogElem{messageDirty: true}
 	h.elems = append(h.elems, elem)
 	return elem
+}
+
+func httpElemLimit() int {
+	raw := strings.TrimSpace(os.Getenv(httpElemLimitEnv))
+	if raw == "" {
+		return defaultHTTPElemLimit
+	}
+	limit, err := strconv.Atoi(raw)
+	if err != nil || limit <= 0 {
+		log.Warnf("invalid %s=%q, use default %d", httpElemLimitEnv, raw, defaultHTTPElemLimit)
+		return defaultHTTPElemLimit
+	}
+	if limit > maxHTTPElemLimit {
+		return maxHTTPElemLimit
+	}
+	return limit
+}
+
+func httpPendingPacketLimit() int {
+	raw := strings.TrimSpace(os.Getenv(httpPendingPacketLimitEnv))
+	if raw == "" {
+		return defaultHTTPPendingPackets
+	}
+	limit, err := strconv.Atoi(raw)
+	if err != nil || limit <= 0 {
+		log.Warnf("invalid %s=%q, use default %d", httpPendingPacketLimitEnv, raw, defaultHTTPPendingPackets)
+		return defaultHTTPPendingPackets
+	}
+	if limit > maxHTTPPendingPackets {
+		return maxHTTPPendingPackets
+	}
+	return limit
+}
+
+func (h *HTTPLog) trimFinishedElems() {
+	if h == nil || len(h.elems) == 0 {
+		return
+	}
+	oldLen := len(h.elems)
+	keep := h.elems[:0]
+	for _, elem := range h.elems {
+		if elem != nil && !elem.hFinished {
+			keep = append(keep, elem)
+		}
+	}
+	for i := len(keep); i < oldLen; i++ {
+		h.elems[i] = nil
+	}
+	h.elems = keep
 }
 
 func (h *HTTPLog) applyEvent(txrx int8, ln *PktTCPHdr, evt httpParsedEvent) *HTTPLogElem {
@@ -343,6 +447,9 @@ func (h *HTTPLog) applyEvent(txrx int8, ln *PktTCPHdr, evt httpParsedEvent) *HTT
 		}
 		if elem == nil || elem.hFinished {
 			elem = h.newElem()
+		}
+		if elem == nil {
+			return nil
 		}
 		elem.markMessageDirty()
 		switch txrx {
@@ -358,11 +465,16 @@ func (h *HTTPLog) applyEvent(txrx int8, ln *PktTCPHdr, evt httpParsedEvent) *HTT
 		elem.Host = evt.host
 		elem.TraceID = evt.traceID
 		elem.ParentID = evt.parentID
+		elem.TraceProvider = evt.provider
+		elem.setReqHeaders(evt.headers)
 		return elem
 	case 2:
 		elem := h.lastElem()
 		if elem == nil || elem.hFinished {
 			elem = h.newElem()
+		}
+		if elem == nil {
+			return nil
 		}
 		elem.markMessageDirty()
 		switch txrx {
@@ -374,6 +486,7 @@ func (h *HTTPLog) applyEvent(txrx int8, ln *PktTCPHdr, evt httpParsedEvent) *HTT
 		elem.respSeq = evt.seq
 		elem.hState = 2
 		elem.StatusCode = evt.status
+		elem.setRespHeaders(evt.headers)
 		return elem
 	}
 
@@ -382,6 +495,25 @@ func (h *HTTPLog) applyEvent(txrx int8, ln *PktTCPHdr, evt httpParsedEvent) *HTT
 
 func (h *HTTPLogElem) markMessageDirty() {
 	h.messageDirty = true
+}
+
+func (h *HTTPLogElem) setReqHeaders(headers map[string]string) {
+	h.ReqHeaders = headers
+	h.UserAgent = l7HeaderValue(headers, "user-agent")
+	h.ReqContentType = l7HeaderValue(headers, "content-type")
+	h.ReqContentLength = l7ContentLength(headers)
+	h.updateHeaderSummary()
+}
+
+func (h *HTTPLogElem) setRespHeaders(headers map[string]string) {
+	h.RespHeaders = headers
+	h.RespContentType = l7HeaderValue(headers, "content-type")
+	h.RespContentLength = l7ContentLength(headers)
+	h.updateHeaderSummary()
+}
+
+func (h *HTTPLogElem) updateHeaderSummary() {
+	h.HeaderCount, h.HeaderBytes = l7LogHeadersSummary(h.ReqHeaders, h.RespHeaders)
 }
 
 func (h *HTTPLogElem) recReqRespTS(txrx int8, cntSize int64, ln *PktTCPHdr) {
@@ -452,7 +584,7 @@ func (a *httpHeaderAssembler) Feed(delivery streamDelivery) []httpParsedEvent {
 	reqResp := httpReqOrResp(block)
 	switch reqResp {
 	case 1:
-		method, path, host, traceID, parentID, ok := parseHTTPRequestMeta(block)
+		method, path, host, traceID, parentID, provider, headers, ok := parseHTTPRequestMetaWithHeaders(block, enableNetlog)
 		if ok {
 			evt := httpParsedEvent{
 				reqResp:  1,
@@ -463,17 +595,20 @@ func (a *httpHeaderAssembler) Feed(delivery streamDelivery) []httpParsedEvent {
 				host:     host,
 				traceID:  traceID,
 				parentID: parentID,
+				provider: provider,
+				headers:  headers,
 			}
 			a.reset()
 			return []httpParsedEvent{evt}
 		}
 	case 2:
-		if status, ok := parseHTTPResponseStatus(block); ok {
+		if status, headers, ok := parseHTTPResponseMeta(block, enableNetlog); ok {
 			evt := httpParsedEvent{
 				reqResp: 2,
 				seq:     a.pendingSeq,
 				ts:      a.pendingTS,
 				status:  status,
+				headers: headers,
 			}
 			a.reset()
 			return []httpParsedEvent{evt}
@@ -561,20 +696,29 @@ func nextHTTPLine(cnt []byte, start int) (line []byte, next int, ok bool) {
 }
 
 func parseHTTPRequestMeta(cnt []byte) (method, path, host, traceID, parentID string, ok bool) {
+	method, path, host, traceID, parentID, _, _, ok = parseHTTPRequestMetaWithHeaders(cnt, false)
+	return method, path, host, traceID, parentID, ok
+}
+
+func parseHTTPRequestMetaWithHeaders(
+	cnt []byte, captureHeaders bool,
+) (
+	method, path, host, traceID, parentID, provider string, headers map[string]string, ok bool,
+) {
 	line, next, ok := nextHTTPLine(cnt, 0)
 	if !ok {
-		return "", "", "", "", "", false
+		return "", "", "", "", "", "", nil, false
 	}
 
 	firstSpace := bytes.IndexByte(line, ' ')
 	if firstSpace <= 0 || !isHTTPRequestMethod(line[:firstSpace]) {
-		return "", "", "", "", "", false
+		return "", "", "", "", "", "", nil, false
 	}
 
 	rest := line[firstSpace+1:]
 	secondSpace := bytes.IndexByte(rest, ' ')
 	if secondSpace <= 0 {
-		return "", "", "", "", "", false
+		return "", "", "", "", "", "", nil, false
 	}
 
 	method = string(line[:firstSpace])
@@ -585,6 +729,7 @@ func parseHTTPRequestMeta(cnt []byte) (method, path, host, traceID, parentID str
 	}
 	host = extractAbsoluteFormHost(target)
 
+	var traceHeaders traceHeaderCarrier
 	for next < len(cnt) {
 		header, n, ok := nextHTTPLine(cnt, next)
 		completeLine := n >= 2 && n <= len(cnt) && cnt[n-2] == '\r' && cnt[n-1] == '\n'
@@ -599,51 +744,71 @@ func parseHTTPRequestMeta(cnt []byte) (method, path, host, traceID, parentID str
 		}
 
 		name := header[:colon]
+		value := bytes.TrimLeft(header[colon+1:], " \t")
+		traceHeaders.addBytes(name, value)
+		if captureHeaders {
+			headers = recordL7LogHeaderBytes(headers, name, value)
+		}
+
 		switch {
-		case bytes.EqualFold(name, []byte("traceparent")):
-			value := bytes.TrimLeft(header[colon+1:], " \t")
-			traceID, parentID = parseTraceparentHeader(value)
 		case host == "" && completeLine && bytes.EqualFold(name, []byte("host")):
 			host = normalizeHTTPHostBytes(header[colon+1:])
 		}
 	}
 
-	return method, path, host, traceID, parentID, true
+	traceID, parentID, provider = traceHeaders.traceIDsWithProvider()
+	return method, path, host, traceID, parentID, provider, headers, true
 }
 
 func parseHTTPResponseStatus(cnt []byte) (int, bool) {
+	status, _, ok := parseHTTPResponseMeta(cnt, false)
+	return status, ok
+}
+
+func parseHTTPResponseMeta(cnt []byte, captureHeaders bool) (int, map[string]string, bool) {
 	line, ok := firstHTTPLine(cnt)
 	if !ok || !bytes.HasPrefix(line, []byte("HTTP/")) {
-		return 0, false
+		return 0, nil, false
 	}
 
 	firstSpace := bytes.IndexByte(line, ' ')
 	if firstSpace <= 0 || firstSpace+4 > len(line) {
-		return 0, false
+		return 0, nil, false
 	}
 
 	status := line[firstSpace+1:]
 	if len(status) < 3 {
-		return 0, false
+		return 0, nil, false
 	}
 
 	code := 0
 	for i := 0; i < 3; i++ {
 		ch := status[i]
 		if ch < '0' || ch > '9' {
-			return 0, false
+			return 0, nil, false
 		}
 		code = code*10 + int(ch-'0')
 	}
 
-	return code, true
-}
+	var headers map[string]string
+	next := len(line) + len("\r\n")
+	for next < len(cnt) {
+		header, n, ok := nextHTTPLine(cnt, next)
+		next = n
+		if !ok || len(header) == 0 {
+			break
+		}
 
-func parseTraceparentHeader(value []byte) (traceID, parentID string) {
-	parts := bytes.SplitN(value, []byte{'-'}, 4)
-	if len(parts) != 4 {
-		return "", ""
+		colon := bytes.IndexByte(header, ':')
+		if colon <= 0 {
+			continue
+		}
+
+		if captureHeaders {
+			headers = recordL7LogHeaderBytes(headers, header[:colon],
+				bytes.TrimLeft(header[colon+1:], " \t"))
+		}
 	}
 
-	return string(parts[1]), string(parts[2])
+	return code, headers, true
 }

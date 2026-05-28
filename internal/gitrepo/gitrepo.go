@@ -134,7 +134,7 @@ func doRun(c *config.GitRepository) error {
 		// use ssh to auth
 		tip := "ssh need key file"
 		l.Error(tip)
-		return fmt.Errorf(tip)
+		return errors.New(tip)
 	}
 
 	authMethod, err := getAuthMethod(as, c)
@@ -297,7 +297,7 @@ func isUserNamePasswordAuth(gitURL string) (bool, error) {
 	default:
 		tip := "invalid git url"
 		l.Error(tip)
-		return false, fmt.Errorf(tip)
+		return false, errors.New(tip)
 	}
 }
 

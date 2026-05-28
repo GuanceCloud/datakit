@@ -1046,7 +1046,7 @@ up 1
 
 	f, err := os.CreateTemp("./", "test_collect_from_file_")
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Error(err)
 	}
 	defer os.Remove(f.Name()) //nolint:errcheck,gosec
 
@@ -1065,7 +1065,7 @@ up 1
 		t.Errorf("failed to init prom: %s", err)
 	}
 	if _, err := p.CollectFromFileV2(u); err != nil {
-		t.Errorf(err.Error())
+		t.Error(err)
 	}
 }
 
@@ -2612,7 +2612,7 @@ up 1
 
 	f, err := os.CreateTemp("./", "test_collect_from_file_")
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Error(err)
 	}
 	defer os.Remove(f.Name()) //nolint:errcheck,gosec
 
@@ -2664,7 +2664,7 @@ up 1
 	_, err = p.CollectFromFileV2(u)
 	close(ptCh)
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Error(err)
 	}
 
 	wg.Wait()

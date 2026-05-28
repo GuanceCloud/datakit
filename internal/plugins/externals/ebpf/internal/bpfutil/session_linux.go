@@ -108,6 +108,11 @@ const (
 
 func PerfRingBufferSize(defaultPages, maxBytes, minPages int) int {
 	pageSize := os.Getpagesize()
+	pages := perfRingBufferPages(defaultPages, maxBytes, minPages, pageSize, runtime.NumCPU())
+	return pages * pageSize
+}
+
+func perfRingBufferPages(defaultPages, maxBytes, minPages, pageSize, numCPU int) int {
 	if defaultPages <= 0 {
 		defaultPages = 1
 	}
@@ -116,15 +121,23 @@ func PerfRingBufferSize(defaultPages, maxBytes, minPages int) int {
 	}
 
 	pages := defaultPages
-	if maxBytes > 0 && pageSize > 0 {
-		if capPages := maxBytes / pageSize / runtime.NumCPU(); capPages > 0 && capPages < pages {
-			pages = capPages
+	if maxBytes > 0 && pageSize > 0 && numCPU > 0 {
+		maxPages := maxBytes / pageSize / numCPU
+		if maxPages < 1 {
+			maxPages = 1
 		}
+		if pages > maxPages {
+			pages = maxPages
+		}
+		if pages < minPages && maxPages >= minPages {
+			pages = minPages
+		}
+		return pages
 	}
 	if pages < minPages {
-		pages = minPages
+		return minPages
 	}
-	return pages * pageSize
+	return pages
 }
 
 func SmallPerfRingBufferSize() int {
@@ -342,12 +355,14 @@ func (r *Runtime) Start() error {
 
 	for _, probe := range staticProbes {
 		if err := attachProbe(probe); err != nil {
+			_ = r.Close()
 			return fmt.Errorf("attach probe %q (%s): %w", probe.ID.Program, probe.sectionName, err)
 		}
 	}
 
 	for _, reader := range perfReaders {
 		if err := reader.start(r); err != nil {
+			_ = r.Close()
 			return fmt.Errorf("start perf reader %q: %w", reader.spec.MapName, err)
 		}
 	}
@@ -435,11 +450,32 @@ func (r *Runtime) AttachHook(spec HookSpec) error {
 	if err != nil {
 		return err
 	}
+	key := probeKey(ap.ID)
+	if existing, ok := r.dynamicProbes[key]; ok {
+		if sameProbeSpec(existing.ProbeSpec, ap.ProbeSpec) {
+			return nil
+		}
+		if err := detachProbe(existing); err != nil {
+			return err
+		}
+		delete(r.dynamicProbes, key)
+	}
 	if err := attachProbe(ap); err != nil {
 		return err
 	}
-	r.dynamicProbes[probeKey(spec.ID)] = ap
+	r.dynamicProbes[key] = ap
 	return nil
+}
+
+func sameProbeSpec(a, b ProbeSpec) bool {
+	a = normalizeProbeSpec(a)
+	b = normalizeProbeSpec(b)
+	return probeKey(a.ID) == probeKey(b.ID) &&
+		a.KProbeMaxActive == b.KProbeMaxActive &&
+		a.KernelSymbol == b.KernelSymbol &&
+		a.UprobeOffset == b.UprobeOffset &&
+		a.BinaryPath == b.BinaryPath &&
+		a.SocketFD == b.SocketFD
 }
 
 func (r *Runtime) DetachHookSpec(id HookID) error {
@@ -601,7 +637,10 @@ func (s *PerfStream) start(runtime *Runtime) error {
 					s.spec.ErrorHandler(err, s, runtime)
 				}
 				if s.spec.PerfErrChan != nil {
-					s.spec.PerfErrChan <- err
+					select {
+					case s.spec.PerfErrChan <- err:
+					default:
+					}
 				}
 				return
 			}

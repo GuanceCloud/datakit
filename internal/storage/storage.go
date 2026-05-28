@@ -27,6 +27,7 @@ const (
 	ZIPKIN_HTTP_V1_KEY
 	ZIPKIN_HTTP_V2_KEY
 	PINPOINT_GRPC_KEY
+	PROFILE_KEY
 )
 
 type StorageConfig struct {

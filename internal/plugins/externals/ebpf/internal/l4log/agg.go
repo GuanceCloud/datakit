@@ -10,6 +10,7 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/cli"
 )
@@ -98,17 +99,21 @@ func kv2point(key *aggKey, value *aggValue, pTime time.Time,
 }
 
 type FlowAggTCP struct {
-	data map[aggKey]*aggValue
+	data  map[aggKey]*aggValue
+	limit int
 }
 
 func (agg *FlowAggTCP) Len() int {
+	if agg == nil {
+		return 0
+	}
 	return len(agg.data)
 }
 
 func (agg *FlowAggTCP) Append(info *PMeta, stats *TCPMetrics, netns string,
 	dir conndirection, v6, macEQ bool, nicIPList []string,
 ) {
-	if info == nil || !macEQ {
+	if info == nil || stats == nil || !macEQ {
 		return
 	}
 
@@ -165,35 +170,33 @@ func (agg *FlowAggTCP) Append(info *PMeta, stats *TCPMetrics, netns string,
 		v.count++
 		value = v
 	} else {
+		if len(agg.data) >= agg.entryLimit() {
+			exporter.IncBPFEventDrop("l4log", "netflow_agg", "limit")
+			resetTCPAggStats(stats)
+			return
+		}
 		value = &aggValue{
 			count: 1,
 		}
 		agg.data[key] = value
 	}
 
-	if stats != nil {
-		value.bytesRead += int64(stats.BytesRead)
-		value.bytesWritten += int64(stats.BytesWritten)
+	value.bytesRead += int64(stats.BytesRead)
+	value.bytesWritten += int64(stats.BytesWritten)
 
-		value.rtt += stats.RTT
-		value.rttVar += stats.RTTVar
-		value.retransmits += int64(stats.Retransmits)
+	value.rtt += stats.RTT
+	value.rttVar += stats.RTTVar
+	value.retransmits += int64(stats.Retransmits)
 
-		if stats.recEstab {
-			value.tcpEstablished++
-			stats.recEstab = false
-		}
-
-		if stats.recClose[1] {
-			value.tcpClosed++
-			stats.recClose[1] = false
-		}
-
-		// cleanup stats, for next duration
-		stats.BytesRead = 0
-		stats.BytesWritten = 0
-		stats.Retransmits = 0
+	if stats.recEstab {
+		value.tcpEstablished++
 	}
+
+	if stats.recClose[1] {
+		value.tcpClosed++
+	}
+
+	resetTCPAggStats(stats)
 }
 
 func (agg *FlowAggTCP) ToPoint(tags map[string]string,
@@ -215,4 +218,15 @@ func (agg *FlowAggTCP) ToPoint(tags map[string]string,
 
 func (agg *FlowAggTCP) Clean() {
 	agg.data = make(map[aggKey]*aggValue)
+}
+
+func resetTCPAggStats(stats *TCPMetrics) {
+	if stats == nil {
+		return
+	}
+	stats.BytesRead = 0
+	stats.BytesWritten = 0
+	stats.Retransmits = 0
+	stats.recEstab = false
+	stats.recClose[1] = false
 }

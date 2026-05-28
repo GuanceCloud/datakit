@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"testing"
 
 	"github.com/google/gopacket"
@@ -52,6 +53,8 @@ func TestRedisProto(t *testing.T) {
 
 	for _, fp := range filePorts {
 		t.Run(fp.fp, func(t *testing.T) {
+			requirePcapFile(t, fp.fp)
+
 			stream := &netStream{}
 			if err := stream.Open(fp.fp); err != nil {
 				t.Fatal(err)
@@ -99,7 +102,11 @@ func TestRedisProto(t *testing.T) {
 			}
 
 			// impl.ConnClose()
-			for _, v := range impl.Export(true) {
+			data := impl.Export(true)
+			if len(data) == 0 {
+				t.Fatal("expected redis pcap to export protocol data")
+			}
+			for _, v := range data {
 				t.Log(v.KVs.Pretty())
 			}
 		})
@@ -168,6 +175,8 @@ func TestMySQLProto(t *testing.T) {
 
 	for _, fp := range filePorts {
 		t.Run(fp.fp, func(t *testing.T) {
+			requirePcapFile(t, fp.fp)
+
 			stream := &netStream{}
 			if err := stream.Open(fp.fp); err != nil {
 				t.Fatal(err)
@@ -216,10 +225,27 @@ func TestMySQLProto(t *testing.T) {
 
 			// impl.ConnClose()
 			data := impl.Export(true)
+			if len(data) == 0 {
+				t.Fatal("expected mysql pcap to export protocol data")
+			}
 			for _, v := range data {
 				t.Log(v.KVs.Pretty())
 			}
 		})
+	}
+}
+
+func requirePcapFile(t *testing.T, fp string) {
+	t.Helper()
+
+	_, err := os.Stat(fp)
+	switch {
+	case err == nil:
+		return
+	case os.IsNotExist(err):
+		t.Skipf("pcap fixture %s is not present", fp)
+	default:
+		t.Fatal(err)
 	}
 }
 

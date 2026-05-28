@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/platypus/pkg/ast"
-	cruntime "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
 )
 
 type netlogMonitor struct {
@@ -91,8 +90,11 @@ func newNetlogMonitor(gtags map[string]string, blacklist string, fnG *fnGroup,
 	return m, nil
 }
 
-func (m *netlogMonitor) Run(ctx context.Context, containerCtr []cruntime.ContainerRuntime,
+func (m *netlogMonitor) Run(ctx context.Context, containerCtr []containerRuntime,
 ) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	ticker := time.NewTicker(time.Second * 20)
 	statsTicker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
@@ -298,7 +300,7 @@ func (m *netlogMonitor) CmpAndAddNIC(netnsInfo map[string]*netnsSnapshot) {
 
 		work, err := m.buildNamespaceCaptureWork(preNsInf, hostInv, claimedHostPeerOwners, &currentSnapshot, nicGroups)
 		if err != nil {
-			log.Errorf("get network interface info: %w, ns: %s", err, nsUID)
+			log.Errorf("get network interface info: %v, ns: %s", err, nsUID)
 			continue
 		}
 
@@ -306,7 +308,7 @@ func (m *netlogMonitor) CmpAndAddNIC(netnsInfo map[string]*netnsSnapshot) {
 		m.prepareNamespaceCaptureWork(work, now, fallbackFuseActive, &fallbackSlotsRemaining)
 
 		if err := m.openNamespaceCaptureSockets(work, hostNSInfo); err != nil {
-			log.Errorf("call with netns: %w", err)
+			log.Errorf("call with netns: %v", err)
 			preNsInf.Close()
 			continue
 		}

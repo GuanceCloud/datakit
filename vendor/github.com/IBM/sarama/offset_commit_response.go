@@ -8,6 +8,10 @@ type OffsetCommitResponse struct {
 	Errors         map[string]map[int32]KError
 }
 
+func (r *OffsetCommitResponse) setVersion(v int16) {
+	r.Version = v
+}
+
 func (r *OffsetCommitResponse) AddError(topic string, partition int32, kerror KError) {
 	if r.Errors == nil {
 		r.Errors = make(map[string]map[int32]KError)
@@ -36,9 +40,12 @@ func (r *OffsetCommitResponse) encode(pe packetEncoder) error {
 		}
 		for partition, kerror := range partitions {
 			pe.putInt32(partition)
-			pe.putInt16(int16(kerror))
+			pe.putKError(kerror)
+			pe.putEmptyTaggedFieldArray()
 		}
+		pe.putEmptyTaggedFieldArray()
 	}
+	pe.putEmptyTaggedFieldArray()
 	return nil
 }
 
@@ -53,43 +60,51 @@ func (r *OffsetCommitResponse) decode(pd packetDecoder, version int16) (err erro
 	}
 
 	numTopics, err := pd.getArrayLength()
-	if err != nil || numTopics == 0 {
+	if err != nil {
 		return err
 	}
 
-	r.Errors = make(map[string]map[int32]KError, numTopics)
-	for i := 0; i < numTopics; i++ {
-		name, err := pd.getString()
-		if err != nil {
-			return err
-		}
-
-		numErrors, err := pd.getArrayLength()
-		if err != nil {
-			return err
-		}
-
-		r.Errors[name] = make(map[int32]KError, numErrors)
-
-		for j := 0; j < numErrors; j++ {
-			id, err := pd.getInt32()
+	if numTopics > 0 {
+		r.Errors = make(map[string]map[int32]KError, numTopics)
+		for i := 0; i < numTopics; i++ {
+			name, err := pd.getString()
 			if err != nil {
 				return err
 			}
 
-			tmp, err := pd.getInt16()
+			numErrors, err := pd.getArrayLength()
 			if err != nil {
 				return err
 			}
-			r.Errors[name][id] = KError(tmp)
+
+			r.Errors[name] = make(map[int32]KError, numErrors)
+
+			for j := 0; j < numErrors; j++ {
+				id, err := pd.getInt32()
+				if err != nil {
+					return err
+				}
+
+				r.Errors[name][id], err = pd.getKError()
+				if err != nil {
+					return err
+				}
+				if _, err := pd.getEmptyTaggedFieldArray(); err != nil {
+					return err
+				}
+			}
+			if _, err := pd.getEmptyTaggedFieldArray(); err != nil {
+				return err
+			}
 		}
 	}
 
-	return nil
+	_, err = pd.getEmptyTaggedFieldArray()
+	return err
 }
 
 func (r *OffsetCommitResponse) key() int16 {
-	return 8
+	return apiKeyOffsetCommit
 }
 
 func (r *OffsetCommitResponse) version() int16 {
@@ -97,15 +112,28 @@ func (r *OffsetCommitResponse) version() int16 {
 }
 
 func (r *OffsetCommitResponse) headerVersion() int16 {
+	if r.Version >= 8 {
+		return 1
+	}
 	return 0
 }
 
 func (r *OffsetCommitResponse) isValidVersion() bool {
-	return r.Version >= 0 && r.Version <= 7
+	return r.Version >= 0 && r.Version <= 8
+}
+
+func (r *OffsetCommitResponse) isFlexible() bool {
+	return r.isFlexibleVersion(r.Version)
+}
+
+func (r *OffsetCommitResponse) isFlexibleVersion(version int16) bool {
+	return version >= 8
 }
 
 func (r *OffsetCommitResponse) requiredVersion() KafkaVersion {
 	switch r.Version {
+	case 8:
+		return V2_4_0_0
 	case 7:
 		return V2_3_0_0
 	case 5, 6:

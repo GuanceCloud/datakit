@@ -11,9 +11,33 @@ import (
 	"os"
 	T "testing"
 
+	"github.com/shirou/gopsutil/disk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type trackingDiskStatsMock struct {
+	partitions []disk.PartitionStat
+	usagePath  []string
+}
+
+func (m *trackingDiskStatsMock) Usage(path, _ string) (*disk.UsageStat, error) {
+	m.usagePath = append(m.usagePath, path)
+	return &disk.UsageStat{
+		Total:             100,
+		Free:              10,
+		Used:              90,
+		UsedPercent:       .9,
+		InodesTotal:       1 << 32,
+		InodesUsed:        1 << 20,
+		InodesFree:        (1 << 32) - (1 << 20),
+		InodesUsedPercent: float64(1<<20) / float64(1<<32),
+	}, nil
+}
+
+func (m *trackingDiskStatsMock) Partitions() ([]disk.PartitionStat, error) {
+	return m.partitions, nil
+}
 
 func TestGetNetInfo(t *T.T) {
 	ifs, err := interfaces()
@@ -51,7 +75,9 @@ func TestGetNetInfo(t *T.T) {
 		}
 		infos = append(infos, i)
 	}
-	assert.NotEmpty(t, infos, "infos should not be empty")
+	if len(infos) == 0 {
+		t.Skip("no non-ignored network interfaces found")
+	}
 }
 
 func createTempFile(t *T.T, content []byte) string {
@@ -101,4 +127,25 @@ func TestGetConfigFile(t *T.T) {
 			}
 		})
 	}
+}
+
+func TestGetDiskInfoSkipsIgnoredBeforeUsage(t *T.T) {
+	stats := &trackingDiskStatsMock{
+		partitions: []disk.PartitionStat{
+			{Device: "/dev/sda1", Mountpoint: "/data", Fstype: "xfs"},
+			{Device: "systemd-1", Mountpoint: "/proc/sys/fs/binfmt_misc", Fstype: "autofs"},
+			{Device: "binfmt_misc", Mountpoint: "/proc/sys/fs/binfmt_misc", Fstype: "binfmt_misc"},
+			{Device: "/dev/sdb1", Mountpoint: "/usr/local/datakit/123", Fstype: "xfs"},
+		},
+	}
+
+	ipt := defaultInput()
+	ipt.diskStats = stats
+	ipt.setup()
+
+	disks, _, err := ipt.getDiskInfo()
+	require.NoError(t, err)
+	require.Len(t, disks, 1)
+	assert.Equal(t, "/data", disks[0].MountPoint)
+	assert.Equal(t, []string{"/data"}, stats.usagePath)
 }

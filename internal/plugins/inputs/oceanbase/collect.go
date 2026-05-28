@@ -243,7 +243,7 @@ func (ipt *Input) collectSession() (category point.Category, pts []*point.Point,
 	return category, pts, nil
 }
 
-const SQLPlanCache = `
+const SQLPlanCacheV3 = `
 select 
   /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */
   tenant_id, 
@@ -253,6 +253,18 @@ select
 	svr_port
 from 
   gv$plan_cache_stat
+`
+
+const SQLPlanCacheV4 = `
+select
+  /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */
+  tenant_id,
+  access_count,
+  hit_count,
+  svr_ip,
+  svr_port
+from
+  GV$OB_PLAN_CACHE_STAT
 `
 
 const SQLBlockCache = `
@@ -290,7 +302,7 @@ func (ipt *Input) collectCache() (category point.Category, pts []*point.Point, e
 	// collect plan cache
 	{
 		rows := []obPlanCache{}
-		if err = selectWrapper(ipt, &rows, SQLPlanCache); err != nil {
+		if err = selectWrapper(ipt, &rows, ipt.planCacheSQL()); err != nil {
 			l.Warnf("selectWrapper: %s", err.Error())
 		} else {
 			for _, row := range rows {
@@ -337,16 +349,40 @@ func (ipt *Input) collectCache() (category point.Category, pts []*point.Point, e
 	return category, pts, nil
 }
 
+func (ipt *Input) planCacheSQL() string {
+	if ipt.isOBVersionGreaterOrEqualThan("4.0.0") {
+		return SQLPlanCacheV4
+	}
+
+	return SQLPlanCacheV3
+}
+
 type obTenant struct {
 	TenantID   sql.NullString `db:"tenant_id"`
 	TenantName sql.NullString `db:"tenant_name"`
 }
 
+const (
+	sqlTenantNamesV3 = "select tenant_id, tenant_name from gv$tenant"
+	sqlTenantNamesV4 = "select tenant_id, tenant_name from DBA_OB_TENANTS"
+)
+
 func (ipt *Input) initTenantNames() (err error) {
+	return ipt.selectTenantNames(ipt.tenantNamesSQL())
+}
+
+func (ipt *Input) tenantNamesSQL() string {
+	if ipt.isOBVersionGreaterOrEqualThan("4.0.0") {
+		return sqlTenantNamesV4
+	}
+
+	return sqlTenantNamesV3
+}
+
+func (ipt *Input) selectTenantNames(query string) error {
 	rows := []obTenant{}
-	if err = selectWrapper[*[]obTenant](ipt, &rows, "select tenant_id, tenant_name from gv$tenant"); err != nil {
-		err = fmt.Errorf("selectWrapper: %w", err)
-		return
+	if err := selectWrapper[*[]obTenant](ipt, &rows, query); err != nil {
+		return fmt.Errorf("selectWrapper: %w", err)
 	}
 
 	names := make(map[string]string)
@@ -368,7 +404,7 @@ func (ipt *Input) getTenantNameByID(tenantID string) string {
 	return ""
 }
 
-const SQLClog = `  
+const SQLClogV3 = `
 select
   /*+ MONITOR_AGENT READ_CONSISTENCY(WEAK) */
   stat.table_id >> 40 tenant_id,
@@ -407,6 +443,29 @@ group by
   stat.svr_port
 `
 
+const SQLClogV4 = `
+select
+  leader.tenant_id,
+  '' as replica_type,
+  '' as svr_ip,
+  0 as svr_port,
+  abs(max(cast(leader.leader_ts as signed) - cast(follower.follower_ts as signed))) / 1000000000
+    as max_clog_sync_delay_seconds
+from (
+  select max(end_scn) leader_ts, tenant_id, role
+  from GV$OB_LOG_STAT
+  where role = 'LEADER'
+  group by tenant_id
+) leader
+inner join (
+  select min(end_scn) follower_ts, tenant_id, role
+  from GV$OB_LOG_STAT
+  where role = 'FOLLOWER'
+  group by tenant_id
+) follower on leader.tenant_id = follower.tenant_id
+group by leader.tenant_id
+`
+
 type obClog struct {
 	TenantID                sql.NullString  `db:"tenant_id"`
 	ReplicaType             sql.NullString  `db:"replica_type"`
@@ -420,19 +479,26 @@ func (ipt *Input) collectClog() (category point.Category, pts []*point.Point, er
 	rows := []obClog{}
 
 	pts = make([]*point.Point, 0)
-	if err = selectWrapper(ipt, &rows, SQLClog); err != nil {
+	if err = selectWrapper(ipt, &rows, ipt.clogSQL()); err != nil {
 		err = fmt.Errorf("selectWrapper: %w", err)
 		return
 	}
 	for _, row := range rows {
 		tags := map[string]string{
-			"cluster":      ipt.Cluster,
-			"tenant_id":    row.TenantID.String,
-			"tenant_name":  ipt.getTenantNameByID(row.TenantID.String),
-			"svr_ip":       row.SvrIP.String,
-			"svr_port":     fmt.Sprint(row.SvrPort.Int64),
-			"replica_type": row.ReplicaType.String,
+			"cluster":     ipt.Cluster,
+			"tenant_id":   row.TenantID.String,
+			"tenant_name": ipt.getTenantNameByID(row.TenantID.String),
 		}
+		if row.SvrIP.String != "" {
+			tags["svr_ip"] = row.SvrIP.String
+		}
+		if row.SvrPort.Int64 != 0 {
+			tags["svr_port"] = fmt.Sprint(row.SvrPort.Int64)
+		}
+		if row.ReplicaType.String != "" {
+			tags["replica_type"] = row.ReplicaType.String
+		}
+
 		fields := map[string]interface{}{
 			"max_clog_sync_delay_seconds": row.MaxClogSyncDelaySeconds.Float64,
 		}
@@ -440,6 +506,14 @@ func (ipt *Input) collectClog() (category point.Category, pts []*point.Point, er
 		pts = append(pts, ipt.buildPoint("oceanbase_clog", tags, fields, false))
 	}
 	return category, pts, nil
+}
+
+func (ipt *Input) clogSQL() string {
+	if ipt.isOBVersionGreaterOrEqualThan("4.0.0") {
+		return SQLClogV4
+	}
+
+	return SQLClogV3
 }
 
 func (ipt *Input) q(s string) rows {

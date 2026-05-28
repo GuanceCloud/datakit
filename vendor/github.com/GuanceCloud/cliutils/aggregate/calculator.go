@@ -141,10 +141,18 @@ func AlignNextWallTime(t time.Time, align time.Duration) int64 {
 }
 
 func newCalculators(batch *AggregationBatch) (res []Calculator) {
+	if batch == nil || batch.Points == nil || len(batch.AggregationOpts) == 0 {
+		return nil
+	}
+
 	var ptwrap *point.Point
 	// now    = time.Now()
 
 	for key, algo := range batch.AggregationOpts {
+		if algo == nil {
+			continue
+		}
+
 		var extraTags [][2]string
 		// nextWallTime = AlignNextWallTime(now, time.Duration(algo.Window))
 
@@ -274,12 +282,7 @@ func newCalculators(batch *AggregationBatch) (res []Calculator) {
 				res = append(res, calc)
 
 			case QUANTILES:
-				calc := &algoQuantiles{
-					count:      1,
-					all:        []float64{f64},
-					maxTime:    ptwrap.Time().UnixNano(),
-					MetricBase: mb,
-				}
+				calc := newAlgoQuantiles(mb, ptwrap.Time().UnixNano(), f64)
 				if algo.Options != nil {
 					switch opt := algo.Options.(type) {
 					case *AggregationAlgo_QuantileOpts:
@@ -292,11 +295,7 @@ func newCalculators(batch *AggregationBatch) (res []Calculator) {
 				res = append(res, calc)
 
 			case STDEV:
-				calc := &algoStdev{
-					MetricBase: mb,
-					data:       []float64{f64},
-					maxTime:    ptwrap.Time().UnixNano(),
-				}
+				calc := newAlgoStdev(mb, ptwrap.Time().UnixNano(), f64)
 				calc.doHash(batch.RoutingKey)
 				res = append(res, calc)
 

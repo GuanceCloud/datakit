@@ -31,6 +31,9 @@ func NewPromScraper(opts ...Option) (*PromScraper, error) {
 	for _, fn := range opts {
 		fn(opt)
 	}
+	if opt.bearerTokenFile != "" {
+		opt.bearerTokenSource = newCachedFileBearerTokenSource(opt.bearerTokenFile, opt.bearerTokenRefreshInterval)
+	}
 
 	client, err := buildHTTPClient(&opt.optionClientConn)
 	if err != nil {
@@ -75,7 +78,7 @@ func (p *PromScraper) SetTimestamp(timestamp int64) {
 func (p *PromScraper) ScrapeURL(u string) error {
 	req, err := p.newRequest(u)
 	if err != nil {
-		return err
+		return &ScrapeError{URL: u, Err: err}
 	}
 
 	s := httpcli.GetTracer(p.opt.source, p.opt.remote, "")
@@ -84,12 +87,15 @@ func (p *PromScraper) ScrapeURL(u string) error {
 
 	resp, err := p.client.Do(req)
 	if err != nil {
-		return err
+		return &ScrapeError{URL: u, Err: err}
 	}
 	defer resp.Body.Close() // nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code returned when scraping %q: %d", u, resp.StatusCode)
+		if resp.StatusCode == http.StatusUnauthorized {
+			p.resetBearerToken()
+		}
+		return &ScrapeError{URL: u, StatusCode: resp.StatusCode}
 	}
 
 	return p.ParserStream(resp.Body)
@@ -133,12 +139,30 @@ func (p *PromScraper) callbackForRow(rows []Row) error {
 
 func (p *PromScraper) newRequest(u string) (*http.Request, error) {
 	req, err := http.NewRequest("GET", u, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	req.Header.Set("Accept", "text/plain;version=0.0.4;q=1,*/*;q=0.1")
 	for k, v := range p.opt.httpHeaders {
 		req.Header.Set(k, v)
 	}
 
-	return req, err
+	if req.Header.Get("Authorization") == "" && p.opt.bearerTokenSource != nil {
+		token, err := p.opt.bearerTokenSource.Token()
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	return req, nil
+}
+
+func (p *PromScraper) resetBearerToken() {
+	if p.opt.bearerTokenSource != nil {
+		p.opt.bearerTokenSource.ResetToken()
+	}
 }
 
 func (p *PromScraper) splitMetricName(name string) (measurementName, metricName string) {

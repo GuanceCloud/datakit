@@ -163,7 +163,7 @@ make -C internal/plugins/externals/ebpf bindata
 
 go build -o /tmp/datakit-ebpf-security ./internal/plugins/externals/ebpf/cmd/datakit-ebpf
 
-printf '%s\n' '#!mrst-vir##!' | sudo -S timeout 8s \
+printf '%s\n' '<sudo-password>' | sudo -S timeout 8s \
   /tmp/datakit-ebpf-security run \
   --enabled ebpf-net,bpf-netlog \
   --netlog-log --netlog-metric \

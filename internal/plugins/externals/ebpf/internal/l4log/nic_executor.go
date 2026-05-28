@@ -401,7 +401,7 @@ func (m *netlogMonitor) openNamespaceCaptureSockets(work *namespaceCaptureWork, 
 			tps:    work.hostTPs,
 		}
 		if err := CallWithNetNS(hostNSInfo.nns.netns, cbRawSkt.cbNewRawSocket); err != nil {
-			log.Errorf("call with host netns: %w", err)
+			log.Errorf("call with host netns: %v", err)
 		}
 		for _, v := range cbRawSkt.newSocketErr {
 			log.Error(v)
@@ -466,7 +466,7 @@ func (m *netlogMonitor) startNamespaceCapture(nsInf *netnsInformation, idx [2]st
 	if plan.mode != captureModeHostPeer {
 		go conns.CapturePacket(ctx, idx[0], idx[1], nsInf.nsUID, h)
 	}
-	go conns.Gather(context.Background(), nsInf.nicIPsCache)
+	go conns.Gather(ctx, nsInf.nicIPsCache)
 
 	if !nsInf.nns.portListenWatching() {
 		go nsInf.nns.tcpPortListenWatcher(ctx, m.portListen, nsInf.snapshotPIDs)

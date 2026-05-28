@@ -130,6 +130,9 @@ func (dec *amqpDecPipe) decode(txRx comm.NICDirection, data *comm.NetwrkData,
 		inf.size = binary.BigEndian.Uint32(payload[3:7])
 
 		payload = payload[AMQPClassOffset:]
+		if uint64(inf.size) >= uint64(len(payload)) {
+			return errors.New("amqp frame size exceeds payload length")
+		}
 		if payload[inf.size] != AMQPEnd {
 			return errors.New("payload should end with 'ce'")
 		}
@@ -468,6 +471,9 @@ func (dec *amqpDecPipe) Export(force bool) []*ProtoData {
 		})
 	}
 
+	for i := range dec.infCache {
+		dec.infCache[i] = nil
+	}
 	dec.infCache = dec.infCache[:0]
 
 	return result

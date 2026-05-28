@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	StaticCDN   = "static.guance.com"
+	StaticCDN   = "static.guance.com/datakit-v2"
 	suggestions = []prompt.Suggest{
 		{Text: "exit", Description: "exit cmd"},
 		{Text: "Q", Description: "exit cmd"},

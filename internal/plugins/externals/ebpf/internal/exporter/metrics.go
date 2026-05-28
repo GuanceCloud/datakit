@@ -168,6 +168,16 @@ var (
 		[]string{"result"},
 	)
 
+	eSenderDroppedPointsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "dkebpf",
+			Subsystem: "exporter",
+			Name:      "sender_dropped_points_total",
+			Help:      "Total number of points dropped before entering the exporter send queue",
+		},
+		[]string{"reason"},
+	)
+
 	eSenderRequestDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: "dkebpf",
@@ -312,6 +322,13 @@ func ObserveSenderBatch(points int, bytes int) {
 func ObserveSenderRequest(result string, dur time.Duration) {
 	eSenderRequestTotal.WithLabelValues(result).Inc()
 	eSenderRequestDuration.WithLabelValues(result).Observe(dur.Seconds())
+}
+
+func AddSenderDropped(reason string, points int) {
+	if points <= 0 {
+		return
+	}
+	eSenderDroppedPointsTotal.WithLabelValues(reason).Add(float64(points))
 }
 
 func AddPerfLost(component, stream string, count uint64) {

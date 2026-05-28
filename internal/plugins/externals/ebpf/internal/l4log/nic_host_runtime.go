@@ -142,7 +142,7 @@ func (m *netlogMonitor) buildHostNICInventory() hostNICInventory {
 
 	nics, err := m.hostRuntime.ns.nns.nicInfoWithVirtual(true)
 	if err != nil {
-		log.Errorf("get host network interface info: %w, ns: %s", err, m.hostRuntime.ns.nsUID)
+		log.Errorf("get host network interface info: %v, ns: %s", err, m.hostRuntime.ns.nsUID)
 		return result
 	}
 

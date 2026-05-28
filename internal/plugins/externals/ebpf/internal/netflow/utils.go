@@ -183,15 +183,24 @@ type peerDomainKey struct {
 
 type addrDomainRecord struct {
 	sync.RWMutex
-	ipRecord   map[string]addrDomainEntry
-	peerRecord map[peerDomainKey]addrDomainEntry
+	ipRecord    map[string]addrDomainEntry
+	peerRecord  map[peerDomainKey]addrDomainEntry
+	limit       int
+	lastCleanup time.Time
 }
 
-const addrDomainTTL = 10 * time.Minute
+const (
+	addrDomainTTL                = 10 * time.Minute
+	addrDomainCleanupInterval    = time.Minute
+	addrDomainRecordLimitEnv     = "DK_EBPF_NETFLOW_DOMAIN_RECORD_LIMIT"
+	defaultAddrDomainRecordLimit = 65536
+	maxAddrDomainRecordLimit     = 1_000_000
+)
 
 var sharedAddrDomainRecord = &addrDomainRecord{
 	ipRecord:   map[string]addrDomainEntry{},
 	peerRecord: map[peerDomainKey]addrDomainEntry{},
+	limit:      addrDomainRecordLimit(),
 }
 
 func SetDNSRecord(r dnsRecorder) {
@@ -199,7 +208,7 @@ func SetDNSRecord(r dnsRecorder) {
 }
 
 func (r *addrDomainRecord) RecordAddrDomain(ip, domain string) {
-	if ip == "" || domain == "" {
+	if r == nil || ip == "" || domain == "" {
 		return
 	}
 
@@ -207,11 +216,64 @@ func (r *addrDomainRecord) RecordAddrDomain(ip, domain string) {
 
 	r.Lock()
 	defer r.Unlock()
+	r.ensureMapsLocked()
+
+	r.cleanupLocked(now, false)
+	if _, exists := r.ipRecord[ip]; !exists && !r.allowInsertLocked(now) {
+		return
+	}
 
 	r.ipRecord[ip] = addrDomainEntry{
 		domain: domain,
 		ts:     now,
 	}
+}
+
+func (r *addrDomainRecord) RecordPeerDomain(ip string, port uint32, transport, netns, domain string) {
+	if r == nil || ip == "" || domain == "" {
+		return
+	}
+
+	now := ntp.Now()
+
+	r.Lock()
+	defer r.Unlock()
+	r.ensureMapsLocked()
+
+	key := peerDomainKey{
+		ip:        ip,
+		port:      port,
+		transport: transport,
+		netns:     netns,
+	}
+	r.cleanupLocked(now, false)
+	if _, exists := r.peerRecord[key]; !exists && !r.allowInsertLocked(now) {
+		return
+	}
+
+	r.peerRecord[key] = addrDomainEntry{
+		domain: domain,
+		ts:     now,
+	}
+}
+
+func (r *addrDomainRecord) ensureMapsLocked() {
+	if r.ipRecord == nil {
+		r.ipRecord = map[string]addrDomainEntry{}
+	}
+	if r.peerRecord == nil {
+		r.peerRecord = map[peerDomainKey]addrDomainEntry{}
+	}
+}
+
+func (r *addrDomainRecord) cleanupLocked(now time.Time, force bool) {
+	if r == nil {
+		return
+	}
+	if !force && !r.lastCleanup.IsZero() && now.Sub(r.lastCleanup) < addrDomainCleanupInterval {
+		return
+	}
+	r.lastCleanup = now
 
 	for k, v := range r.ipRecord {
 		if now.Sub(v.ts) > addrDomainTTL {
@@ -226,23 +288,50 @@ func (r *addrDomainRecord) RecordAddrDomain(ip, domain string) {
 	}
 }
 
-func (r *addrDomainRecord) RecordPeerDomain(ip string, port uint32, transport, netns, domain string) {
-	if ip == "" || domain == "" {
-		return
+func (r *addrDomainRecord) allowInsertLocked(now time.Time) bool {
+	limit := r.entryLimit()
+	if limit <= 0 || r.lenLocked() < limit {
+		return true
 	}
-
-	r.Lock()
-	defer r.Unlock()
-
-	r.peerRecord[peerDomainKey{
-		ip:        ip,
-		port:      port,
-		transport: transport,
-		netns:     netns,
-	}] = addrDomainEntry{
-		domain: domain,
-		ts:     ntp.Now(),
+	r.cleanupLocked(now, true)
+	if r.lenLocked() < limit {
+		return true
 	}
+	exporter.IncBPFEventDrop(componentID, "domain_record", "limit")
+	return false
+}
+
+func (r *addrDomainRecord) entryLimit() int {
+	if r == nil {
+		return defaultAddrDomainRecordLimit
+	}
+	if r.limit <= 0 {
+		r.limit = addrDomainRecordLimit()
+	}
+	return r.limit
+}
+
+func (r *addrDomainRecord) lenLocked() int {
+	if r == nil {
+		return 0
+	}
+	return len(r.ipRecord) + len(r.peerRecord)
+}
+
+func addrDomainRecordLimit() int {
+	raw := strings.TrimSpace(os.Getenv(addrDomainRecordLimitEnv))
+	if raw == "" {
+		return defaultAddrDomainRecordLimit
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n <= 0 {
+		l.Warnf("invalid %s=%q, use default %d", addrDomainRecordLimitEnv, raw, defaultAddrDomainRecordLimit)
+		return defaultAddrDomainRecordLimit
+	}
+	if n > maxAddrDomainRecordLimit {
+		return maxAddrDomainRecordLimit
+	}
+	return n
 }
 
 func (r *addrDomainRecord) lookupAddr(ip string, now time.Time) string {
@@ -259,7 +348,7 @@ func (r *addrDomainRecord) lookupAddr(ip string, now time.Time) string {
 }
 
 func (r *addrDomainRecord) LookupPeerDomain(ip string, port uint32, transport, netns string) string {
-	if ip == "" {
+	if r == nil || ip == "" {
 		return ""
 	}
 
@@ -325,13 +414,7 @@ func SetK8sNetInfo(n *cli.K8sInfo) {
 	k8sNetInfo = n
 }
 
-var SrcIPPortRecorder = func() *srcIPPortRecorder {
-	ptr := &srcIPPortRecorder{
-		Record: map[[4]uint32]IPPortRecord{},
-	}
-	go ptr.AutoClean()
-	return ptr
-}()
+var SrcIPPortRecorder = newSrcIPPortRecorder()
 
 type IPPortRecord struct {
 	IP [4]uint32
@@ -341,37 +424,114 @@ type IPPortRecord struct {
 // Assist httpflow to judge server ip.
 type srcIPPortRecorder struct {
 	sync.RWMutex
-	Record map[[4]uint32]IPPortRecord
+	Record    map[[4]uint32]IPPortRecord
+	limit     int
+	lastClean time.Time
 }
 
 func (record *srcIPPortRecorder) InsertAndUpdate(ip [4]uint32) {
+	record.insertAndUpdateAt(ip, ntp.Now())
+}
+
+func (record *srcIPPortRecorder) insertAndUpdateAt(ip [4]uint32, ts time.Time) bool {
+	if record == nil {
+		return false
+	}
 	record.Lock()
 	defer record.Unlock()
+	if record.Record == nil {
+		record.Record = map[[4]uint32]IPPortRecord{}
+	}
+	record.cleanOutdateDataLocked(ts, false)
+
+	if _, ok := record.Record[ip]; !ok && record.limit > 0 && len(record.Record) >= record.limit {
+		record.cleanOutdateDataLocked(ts, true)
+		if len(record.Record) >= record.limit {
+			exporter.IncBPFEventDrop(componentID, "src_ip_recorder", "limit")
+			return false
+		}
+	}
+
 	record.Record[ip] = IPPortRecord{
 		IP: ip,
-		TS: ntp.Now(),
+		TS: ts,
 	}
+	return true
 }
 
 func (record *srcIPPortRecorder) Query(ip [4]uint32) (*IPPortRecord, error) {
-	record.RLock()
-	defer record.RUnlock()
-	if v, ok := record.Record[ip]; ok {
-		return &v, nil
-	} else {
+	return record.queryAt(ip, ntp.Now())
+}
+
+func (record *srcIPPortRecorder) queryAt(ip [4]uint32, ts time.Time) (*IPPortRecord, error) {
+	if record == nil {
 		return nil, fmt.Errorf("not found")
 	}
+	record.Lock()
+	defer record.Unlock()
+	v, ok := record.Record[ip]
+	if !ok {
+		return nil, fmt.Errorf("not found")
+	}
+	if ts.Sub(v.TS) > cleanIPPortDur {
+		delete(record.Record, ip)
+		return nil, fmt.Errorf("not found")
+	}
+	return &v, nil
 }
 
 const (
-	cleanTickerIPPortDur = time.Minute * 3
-	cleanIPPortDur       = time.Minute * 5
+	cleanTickerIPPortDur          = time.Minute * 3
+	cleanIPPortDur                = time.Minute * 5
+	srcIPPortRecorderLimitEnv     = "DK_EBPF_NETFLOW_SRC_IP_RECORDER_LIMIT"
+	defaultSrcIPPortRecorderLimit = 65536
+	maxSrcIPPortRecorderLimit     = 1_000_000
 )
 
+func newSrcIPPortRecorder() *srcIPPortRecorder {
+	return &srcIPPortRecorder{
+		Record: map[[4]uint32]IPPortRecord{},
+		limit:  srcIPPortRecorderLimit(),
+	}
+}
+
+func srcIPPortRecorderLimit() int {
+	raw := strings.TrimSpace(os.Getenv(srcIPPortRecorderLimitEnv))
+	if raw == "" {
+		return defaultSrcIPPortRecorderLimit
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n <= 0 {
+		l.Warnf("invalid %s=%q, use default %d", srcIPPortRecorderLimitEnv, raw, defaultSrcIPPortRecorderLimit)
+		return defaultSrcIPPortRecorderLimit
+	}
+	if n > maxSrcIPPortRecorderLimit {
+		return maxSrcIPPortRecorderLimit
+	}
+	return n
+}
+
 func (record *srcIPPortRecorder) CleanOutdateData() {
+	record.cleanOutdateDataAt(ntp.Now())
+}
+
+func (record *srcIPPortRecorder) cleanOutdateDataAt(ts time.Time) {
+	if record == nil {
+		return
+	}
 	record.Lock()
 	defer record.Unlock()
-	ts := ntp.Now()
+	record.cleanOutdateDataLocked(ts, true)
+}
+
+func (record *srcIPPortRecorder) cleanOutdateDataLocked(ts time.Time, force bool) {
+	if record == nil {
+		return
+	}
+	if !force && !record.lastClean.IsZero() && ts.Sub(record.lastClean) < cleanTickerIPPortDur {
+		return
+	}
+	record.lastClean = ts
 	needDelete := [][4]uint32{}
 	for k, v := range record.Record {
 		if ts.Sub(v.TS) > cleanIPPortDur {
@@ -383,28 +543,33 @@ func (record *srcIPPortRecorder) CleanOutdateData() {
 	}
 }
 
-func (record *srcIPPortRecorder) AutoClean() {
-	ticker := time.NewTicker(cleanTickerIPPortDur)
-	for {
-		<-ticker.C
-		record.CleanOutdateData()
-	}
-}
-
 func resolveSockfdLookupSymbol() string {
 	data, err := os.ReadFile("/proc/kallsyms")
 	if err != nil {
 		return "sockfd_lookup_light"
 	}
+	return resolveSockfdLookupSymbolFromKallsyms(string(data))
+}
 
-	switch {
-	case bytes.Contains(data, []byte(" sockfd_lookup_light\n")):
-		return "sockfd_lookup_light"
-	case bytes.Contains(data, []byte(" sockfd_lookup\n")):
-		return "sockfd_lookup"
-	default:
+func resolveSockfdLookupSymbolFromKallsyms(symbolsText string) string {
+	found := map[string]struct{}{}
+	for _, line := range strings.Split(symbolsText, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) < 3 {
+			continue
+		}
+		switch fields[2] {
+		case "sockfd_lookup_light", "sockfd_lookup":
+			found[fields[2]] = struct{}{}
+		}
+	}
+	if _, ok := found["sockfd_lookup_light"]; ok {
 		return "sockfd_lookup_light"
 	}
+	if _, ok := found["sockfd_lookup"]; ok {
+		return "sockfd_lookup"
+	}
+	return "sockfd_lookup_light"
 }
 
 func disabledNetflowPrograms(kernelVersion uint64, useLegacyConsts bool, ipv6Disabled bool) []string {
@@ -459,6 +624,19 @@ func netflowMapMaxEntries() uint32 {
 		return maxNetflowMapMaxEntries
 	}
 	return uint32(n)
+}
+
+func netflowMapMaxEntriesOverride(maxEntries uint32) map[string]uint32 {
+	return map[string]uint32{
+		mapConnStats:       maxEntries,
+		mapConnTCPStats:    maxEntries,
+		mapConnTCPSegments: maxEntries,
+		mapPortBind:        maxEntries,
+		mapPortBindProc:    maxEntries,
+		mapUDPPortBind:     maxEntries,
+		mapSockFD:          maxEntries,
+		mapSockFDInverted:  maxEntries,
+	}
 }
 
 func newNetflowRuntimeWithDisabledPrograms(
@@ -608,14 +786,7 @@ func newNetflowRuntimeWithDisabledPrograms(
 		Constants:        patches,
 		LegacyConstants:  useLegacyConsts,
 		DisabledPrograms: disabledPrograms,
-		MapMaxEntries: map[string]uint32{
-			mapConnStats:       mapMaxEntries,
-			mapConnTCPStats:    mapMaxEntries,
-			mapConnTCPSegments: mapMaxEntries,
-			mapPortBind:        mapMaxEntries,
-			mapPortBindProc:    mapMaxEntries,
-			mapUDPPortBind:     mapMaxEntries,
-		},
+		MapMaxEntries:    netflowMapMaxEntriesOverride(mapMaxEntries),
 	}
 
 	if ctMap != nil {
@@ -739,6 +910,11 @@ func recordNetflowKprobePathStatus(program, wantPath, foundPath string) {
 }
 
 func kernelFunctionSymbolForProgram(program string) string {
+	switch program {
+	case "kprobe__sockfd_lookup_light", "kretprobe__sockfd_lookup_light":
+		return resolveSockfdLookupSymbol()
+	}
+
 	symbol, _ := bpfutil.KernelProbeSymbol(bpfutil.HookSpec{
 		ID: bpfutil.HookID{
 			Program: program,

@@ -92,6 +92,10 @@ func (g *ptGrouper) setExtraKVs() {
 
 // SinkHeaderValueFromTags generate HTTP header value of key X-Global-Tags from tags.
 func SinkHeaderValueFromTags(tags, globalTags map[string]string, customerKeys []string) string {
+	return sinkHeaderValueFromTags(tags, globalTags, customerKeys, false)
+}
+
+func sinkHeaderValueFromTags(tags, globalTags map[string]string, customerKeys []string, safe bool) string {
 	if len(globalTags) == 0 && len(customerKeys) == 0 {
 		return ""
 	}
@@ -102,6 +106,8 @@ func SinkHeaderValueFromTags(tags, globalTags map[string]string, customerKeys []
 
 	g := getGrouper()
 	defer putGrouper(g)
+
+	g.safe = safe
 
 	var arr []string
 

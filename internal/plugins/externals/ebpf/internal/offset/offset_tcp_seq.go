@@ -11,6 +11,7 @@ import (
 	"net"
 	"reflect"
 	goruntime "runtime"
+	"strconv"
 	"syscall"
 	"time"
 	"unsafe"
@@ -164,7 +165,7 @@ func GuessOffsetTCPSeq(netflowOffset []bpfutil.ConstantPatch) ([]bpfutil.Constan
 		return nil, nil, err
 	}
 
-	serverAddr := fmt.Sprintf("%s:%d", listenIPv4, tcp4ServerPort)
+	serverAddr := net.JoinHostPort(listenIPv4, strconv.Itoa(int(tcp4ServerPort)))
 
 	goruntime.LockOSThread()
 	defer goruntime.UnlockOSThread()
@@ -220,7 +221,7 @@ func GuessOffsetTCPSeq(netflowOffset []bpfutil.ConstantPatch) ([]bpfutil.Constan
 func guessTCPSeq(svc string) error {
 	conn, err := net.Dial("tcp4", svc)
 	if err != nil {
-		return fmt.Errorf(err.Error())
+		return err
 	}
 
 	defer conn.Close() //nolint:errcheck

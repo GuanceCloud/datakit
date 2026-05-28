@@ -20,6 +20,25 @@ func TestSetup(t *T.T) {
 	})
 }
 
+func TestSelfProfilerLifecycle(t *T.T) {
+	t.Run("disabled", func(t *T.T) {
+		i := def()
+		i.startSelfProfiler()
+
+		assert.Nil(t, i.selfProfiler)
+		assert.Nil(t, i.selfProfileG)
+	})
+
+	t.Run("close-reset-profiler", func(t *T.T) {
+		i := def()
+		i.selfProfiler = &selfProfiler{}
+
+		i.closeSelfProfiler()
+
+		assert.Nil(t, i.selfProfiler)
+	})
+}
+
 func TestReadenv(t *T.T) {
 	t.Run("-", func(t *T.T) {
 		i := def()
@@ -101,6 +120,29 @@ func TestReadenv(t *T.T) {
 		// Test default interval is 30s
 		i := def()
 		assert.Equal(t, 30*time.Second, i.Interval)
+	})
+
+	t.Run("default-self-profiling-disabled", func(t *T.T) {
+		i := def()
+		assert.NotNil(t, i.SelfProfiling)
+		assert.False(t, i.SelfProfiling.Enabled)
+		assert.Equal(t, defaultSelfProfileInterval, i.SelfProfiling.Interval)
+		assert.Equal(t, defaultSelfProfileDuration, i.SelfProfiling.Duration)
+		assert.Equal(t, defaultSelfProfileEmergencyDuration, i.SelfProfiling.EmergencyDuration)
+		assert.Equal(t, defaultSelfProfileCooldown, i.SelfProfiling.Cooldown)
+		assert.Equal(t, defaultSelfProfileRecentPoints, i.SelfProfiling.RecentPoints)
+		assert.Equal(t, defaultSelfProfileTypes, i.SelfProfiling.EnabledTypes)
+		assert.Equal(t, defaultSelfProfileCPUCores, i.SelfProfiling.CPUCores)
+		assert.Equal(t, int64(defaultSelfProfileMEMMaxMB), i.SelfProfiling.MEMMaxMB)
+		assert.Equal(t, float64(defaultSelfProfileCPUUsagePercent), i.SelfProfiling.CPUUsagePercent)
+		assert.Equal(t, float64(defaultSelfProfileMEMUsagePercent), i.SelfProfiling.MEMUsagePercent)
+		assert.Equal(t, float64(defaultSelfProfileMEMUsageMB), i.SelfProfiling.MEMUsageMB)
+		assert.Equal(t, float64(defaultSelfProfileMEMPercentEmerg), i.SelfProfiling.MEMUsagePercentEmergency)
+		assert.Equal(t, float64(defaultSelfProfileMEMMBEmerg), i.SelfProfiling.MEMUsageMBEmergency)
+		assert.Equal(t, defaultSelfProfileCachePath, i.SelfProfiling.CachePath)
+		assert.Equal(t, defaultSelfProfileCacheCapacityMB, i.SelfProfiling.CacheCapacityMB)
+		assert.Equal(t, defaultSelfProfileSendTimeout, i.SelfProfiling.SendTimeout)
+		assert.Equal(t, defaultSelfProfileSendRetryCount, i.SelfProfiling.SendRetryCount)
 	})
 
 	t.Run("k8s-env-interval", func(t *T.T) {

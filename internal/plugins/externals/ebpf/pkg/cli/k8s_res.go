@@ -413,6 +413,17 @@ func NewK8sInfo(k8scli *K8sClient, criLi []*CRIClient) *K8sInfo {
 	return k8sInf
 }
 
+func (inf *K8sInfo) Close() {
+	if inf == nil {
+		return
+	}
+	for _, cli := range inf.criCli {
+		if cli != nil {
+			_ = cli.Close()
+		}
+	}
+}
+
 func (inf *K8sInfo) QueryPodName(pid int, ip string) string {
 	inf.RLock()
 	defer inf.RUnlock()
@@ -466,8 +477,15 @@ func (inf *K8sInfo) Update() error {
 }
 
 func (inf *K8sInfo) AutoUpdate(ctx context.Context, dur time.Duration) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if dur <= 0 {
+		dur = time.Minute
+	}
 	ticker := time.NewTicker(dur)
 	go func() {
+		defer ticker.Stop()
 		for {
 			select {
 			case <-ticker.C:

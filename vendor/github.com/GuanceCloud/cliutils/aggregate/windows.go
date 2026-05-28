@@ -7,6 +7,8 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 )
 
+const windowCacheReuseMaxEntries = 4096
+
 type Window struct {
 	lock  sync.Mutex // 为每一个window创建一把锁
 	cache map[uint64]Calculator
@@ -16,6 +18,14 @@ type Window struct {
 // Reset 准备将对象放回池子前调用.
 func (w *Window) Reset() {
 	w.Token = ""
+	if w.cache == nil {
+		w.cache = make(map[uint64]Calculator, 64)
+		return
+	}
+	if len(w.cache) > windowCacheReuseMaxEntries {
+		w.cache = make(map[uint64]Calculator, 64)
+		return
+	}
 	// 清空 Map 但保留底层哈希桶空间
 	// Go 1.11+ 优化：遍历 delete 所有的 key 是极快的
 	for k := range w.cache {
@@ -36,7 +46,8 @@ func (w *Window) AddCal(cal Calculator) {
 }
 
 type Windows struct {
-	lock sync.Mutex
+	lock   sync.Mutex
+	closed bool
 	// 为方便快速定位到用户数据的所在的window需要一个ID表
 	// token -> Window ID
 	IDs map[string]int
@@ -45,20 +56,41 @@ type Windows struct {
 }
 
 func (ws *Windows) AddCal(token string, cal Calculator) {
+	_ = ws.addCal(token, cal)
+}
+
+func (ws *Windows) addCal(token string, cal Calculator) bool {
 	ws.lock.Lock()
+	defer ws.lock.Unlock()
+	if ws.closed {
+		return false
+	}
+
 	id, ok := ws.IDs[token]
 	if !ok {
 		// 从 Pool 获取对象而非直接 new
 		newW := windowPool.Get().(*Window)
+		newW.Reset()
 		newW.Token = token
 
 		id = len(ws.WS)
 		ws.IDs[token] = id
 		ws.WS = append(ws.WS, newW)
 	}
-	ws.lock.Unlock()
 
 	ws.WS[id].AddCal(cal)
+	return true
+}
+
+func (ws *Windows) Close() []*Window {
+	ws.lock.Lock()
+	defer ws.lock.Unlock()
+
+	ws.closed = true
+	windows := append([]*Window(nil), ws.WS...)
+	ws.IDs = nil
+	ws.WS = nil
+	return windows
 }
 
 type Cache struct {
@@ -78,14 +110,26 @@ func NewCache(exp time.Duration) *Cache {
 }
 
 func (c *Cache) GetAndSetBucket(exp int64, token string, cal Calculator) {
-	c.lock.Lock()
-	ws, ok := c.WindowsBuckets[exp]
-	if !ok {
-		ws = &Windows{IDs: make(map[string]int), WS: make([]*Window, 0)}
-		c.WindowsBuckets[exp] = ws
+	_ = c.getAndSetBucket(exp, token, cal)
+}
+
+func (c *Cache) getAndSetBucket(exp int64, token string, cal Calculator) bool {
+	for {
+		c.lock.Lock()
+		ws, ok := c.WindowsBuckets[exp]
+		if !ok {
+			ws = &Windows{IDs: make(map[string]int), WS: make([]*Window, 0)}
+			c.WindowsBuckets[exp] = ws
+		}
+		c.lock.Unlock()
+
+		if ws.addCal(token, cal) {
+			return true
+		}
+		if time.Now().Unix() >= exp {
+			return false
+		}
 	}
-	c.lock.Unlock()
-	ws.AddCal(token, cal)
 }
 
 func (c *Cache) AddBatch(token string, batch *AggregationBatch) (n, expN int) {
@@ -96,8 +140,11 @@ func (c *Cache) AddBatch(token string, batch *AggregationBatch) (n, expN int) {
 			expN++
 			continue
 		}
-		c.GetAndSetBucket(exp, token, cal)
-		n++
+		if c.getAndSetBucket(exp, token, cal) {
+			n++
+		} else {
+			expN++
+		}
 	}
 	return n, expN
 }
@@ -118,7 +165,7 @@ func (c *Cache) GetExpWidows() []*Window {
 	now := time.Now().Unix()
 	for t, ws := range c.WindowsBuckets {
 		if t <= now {
-			wss = append(wss, ws.WS...)
+			wss = append(wss, ws.Close()...)
 			delete(c.WindowsBuckets, t)
 		}
 	}
@@ -143,11 +190,18 @@ func WindowsToData(ws []*Window) []*PointsData {
 			}
 			pts = append(pts, pbs...)
 		}
+		if len(pts) == 0 {
+			window.Reset()
+			windowPool.Put(window)
+			continue
+		}
 		// 每一个用户下的Window 都是一个独立的包
 		pds = append(pds, &PointsData{
 			PTS:   pts,
 			Token: window.Token,
 		})
+		window.Reset()
+		windowPool.Put(window)
 	}
 
 	return pds

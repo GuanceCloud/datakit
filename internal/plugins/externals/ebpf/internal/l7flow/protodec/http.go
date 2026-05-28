@@ -321,6 +321,9 @@ func (dec *httpDecPipe) Export(force bool) []*ProtoData {
 		})
 	}
 
+	for i := range dec.infCache {
+		dec.infCache[i] = nil
+	}
 	dec.infCache = dec.infCache[:0]
 
 	return result

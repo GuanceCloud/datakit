@@ -7,15 +7,19 @@ import (
 	"regexp"
 
 	"github.com/shirou/gopsutil/process"
-	cruntime "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
 )
 
 type ContainerInfo struct {
-	crt cruntime.ContainerRuntime
+	crt containerRuntime
 }
 
-func NewCrtRuntime(ed ...string) (*ContainerInfo, error) {
-	crt, err := cruntime.NewDockerRuntime("unix:///var/run/docker.sock", "")
+func NewCrtRuntime(endpoint ...string) (*ContainerInfo, error) {
+	ep := "unix:///var/run/docker.sock"
+	if len(endpoint) > 0 && endpoint[0] != "" {
+		ep = endpoint[0]
+	}
+
+	crt, err := newContainerRuntime(ep)
 	if err != nil {
 		return nil, err
 	}

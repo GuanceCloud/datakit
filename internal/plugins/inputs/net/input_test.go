@@ -60,7 +60,7 @@ func TestCollect(t *testing.T) {
 		assert.Truef(t, len(tc.i.collectCache) > 0, "no data collected")
 		for _, m := range tc.i.collectCache {
 			p := m.LineProto()
-			t.Logf(p)
+			t.Log(p)
 		}
 	}
 }

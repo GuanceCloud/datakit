@@ -6,6 +6,7 @@ package procwatch
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -44,6 +45,148 @@ func TestIsRegularFile(t *testing.T) {
 	}
 	if isRegularFile(filepath.Join(dir, "missing")) {
 		t.Fatal("expected missing file to be rejected")
+	}
+}
+
+func TestReadLimitedProcFileRejectsOversizedInput(t *testing.T) {
+	data, err := readLimitedProcFile(strings.NewReader("abcd"), 4)
+	if err != nil {
+		t.Fatalf("unexpected read error: %v", err)
+	}
+	if string(data) != "abcd" {
+		t.Fatalf("read data = %q, want abcd", data)
+	}
+
+	if _, err := readLimitedProcFile(strings.NewReader("abcde"), 4); err == nil {
+		t.Fatal("expected oversized proc file to be rejected")
+	}
+}
+
+func TestReadTruncatedProcFileKeepsPrefix(t *testing.T) {
+	data, err := readTruncatedProcFile(strings.NewReader("A=1\x00B=2345"), 8)
+	if err != nil {
+		t.Fatalf("unexpected read error: %v", err)
+	}
+	if string(data) != "A=1\x00" {
+		t.Fatalf("read data = %q, want first complete env entry", data)
+	}
+
+	data, err = readTruncatedProcFile(strings.NewReader("A=1"), 8)
+	if err != nil {
+		t.Fatalf("unexpected read error: %v", err)
+	}
+	if string(data) != "A=1" {
+		t.Fatalf("read data = %q, want full untruncated data", data)
+	}
+}
+
+func TestReadProcessEnvironMapForKeysKeepsEarlyKeysWhenOversized(t *testing.T) {
+	procRoot := t.TempDir()
+	t.Setenv("HOST_PROC", procRoot)
+
+	pidPath := filepath.Join(procRoot, "123")
+	if err := os.MkdirAll(pidPath, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	data := append([]byte("SERVICE_NAME=api\x00"), []byte(strings.Repeat("x", maxProcessEnvironReadBytes+1))...)
+	if err := os.WriteFile(filepath.Join(pidPath, "environ"), data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	env := readProcessEnvironMapForKeys(123, map[string]struct{}{"SERVICE_NAME": {}})
+	if got := env["SERVICE_NAME"]; got != "api" {
+		t.Fatalf("SERVICE_NAME = %q, want api; env=%#v", got, env)
+	}
+}
+
+func TestScanSharedLibrariesHonorsLineLimit(t *testing.T) {
+	t.Setenv(procMapsScanLineLimitEnv, "1")
+
+	pidPath := t.TempDir()
+	maps := strings.Join([]string{
+		"00400000-00452000 r--p 00000000 00:00 0 /tmp/liba.so",
+		"00600000-00652000 r--p 00000000 00:00 0 /tmp/libb.so",
+	}, "\n")
+	if err := os.WriteFile(filepath.Join(pidPath, "maps"), []byte(maps), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	libs := scanSharedLibraries(pidPath, regexp.MustCompile(`\.so$`))
+	if len(libs) != 1 || libs[0] != "/tmp/liba.so" {
+		t.Fatalf("expected one scanned library, got %#v", libs)
+	}
+}
+
+func TestLimitLibraryScanPIDsSpreadsAcrossProcTable(t *testing.T) {
+	pids := make([]int, 0, 100)
+	for i := 1; i <= 100; i++ {
+		pids = append(pids, i)
+	}
+
+	got := limitLibraryScanPIDs(pids, 5)
+	want := []int{1, 21, 41, 61, 81}
+	if len(got) != len(want) {
+		t.Fatalf("sample len = %d, want %d: %#v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("sample[%d] = %d, want %d; got=%#v", i, got[i], want[i], got)
+		}
+	}
+}
+
+func TestFindLoadedLibraryHostPathsHonorsPIDLimit(t *testing.T) {
+	t.Setenv(libraryScanPIDLimitEnv, "1")
+	procRoot := t.TempDir()
+	t.Setenv("HOST_PROC", procRoot)
+	nsFile := filepath.Join(procRoot, "mntns")
+	if err := os.WriteFile(nsFile, []byte("ns"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	libA := filepath.Join(procRoot, "liba.so")
+	libB := filepath.Join(procRoot, "libb.so")
+	if err := os.WriteFile(libA, []byte("a"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(libB, []byte("b"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	writeMaps := func(pid, lib string) {
+		pidPath := filepath.Join(procRoot, pid)
+		if err := os.MkdirAll(filepath.Join(pidPath, "ns"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Symlink(nsFile, filepath.Join(pidPath, "ns", "mnt")); err != nil {
+			t.Fatal(err)
+		}
+		line := "00400000-00452000 r--p 00000000 00:00 0 " + lib
+		if err := os.WriteFile(filepath.Join(pidPath, "maps"), []byte(line), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	writeMaps("100", libA)
+	writeMaps("101", libB)
+
+	oldResolver := sharedResolverCache
+	defer func() { sharedResolverCache = oldResolver }()
+	sharedResolverCache = &pathResolverCache{
+		rootMounts: &mountSnapshot{mounts: []*mountEntry{{mountPoint: string(filepath.Separator)}}},
+		rootNS:     readMountNamespace(filepath.Join(procRoot, "100")),
+		rootByDev:  map[string][]*mountEntry{},
+		nsMounts:   map[mountNamespace]*mountSnapshot{},
+		resolved:   map[mountNamespace]map[string]resolvedPathCacheEntry{},
+		lastAccess: map[mountNamespace]time.Time{},
+	}
+
+	found := findLoadedLibraryHostPaths(regexp.MustCompile(`\.so$`))
+	if _, ok := found[libA]; !ok {
+		t.Fatalf("expected first pid library %s, got %#v", libA, found)
+	}
+	if _, ok := found[libB]; ok {
+		t.Fatalf("expected second pid to be skipped by limit, got %#v", found)
 	}
 }
 

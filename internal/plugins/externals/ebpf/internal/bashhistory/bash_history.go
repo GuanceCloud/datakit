@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"math"
 	"os/user"
+	"strconv"
 	"sync"
 	"time"
 	"unsafe"
@@ -87,17 +88,59 @@ func NewBashRuntime(bashReadlineEventHandler bpfutil.PerfHandler) (*bpfutil.Runt
 }
 
 type BashTracer struct {
-	ch       chan *point.Point
-	stopCh   chan struct{}
-	stopOnce sync.Once
-	gTags    map[string]string
+	ch        chan *point.Point
+	stopCh    chan struct{}
+	stopOnce  sync.Once
+	gTags     map[string]string
+	userMu    sync.RWMutex
+	userCache map[uint32]string
 }
+
+const bashUserCacheLimit = 4096
 
 func NewBashTracer() *BashTracer {
 	return &BashTracer{
-		ch:     make(chan *point.Point, 32),
-		stopCh: make(chan struct{}),
+		ch:        make(chan *point.Point, 32),
+		stopCh:    make(chan struct{}),
+		userCache: make(map[uint32]string),
 	}
+}
+
+func (tracer *BashTracer) lookupUser(uid uint32) string {
+	if tracer == nil {
+		return ""
+	}
+	tracer.userMu.RLock()
+	name, ok := tracer.userCache[uid]
+	tracer.userMu.RUnlock()
+	if ok {
+		return name
+	}
+
+	u, err := user.LookupId(strconv.FormatUint(uint64(uid), 10))
+	if err == nil && u != nil {
+		name = u.Name
+	} else {
+		l.Debugf("lookup user for uid %d failed: %v", uid, err)
+	}
+
+	tracer.cacheUser(uid, name)
+	return name
+}
+
+func (tracer *BashTracer) cacheUser(uid uint32, name string) {
+	tracer.userMu.Lock()
+	defer tracer.userMu.Unlock()
+	if tracer.userCache == nil {
+		tracer.userCache = make(map[uint32]string)
+	}
+	if _, ok := tracer.userCache[uid]; ok {
+		return
+	}
+	if len(tracer.userCache) >= bashUserCacheLimit {
+		tracer.userCache = make(map[uint32]string)
+	}
+	tracer.userCache[uid] = name
 }
 
 func (tracer *BashTracer) readlineCallBack(cpu int, data []byte,
@@ -123,12 +166,12 @@ func (tracer *BashTracer) readlineCallBack(cpu int, data []byte,
 	lineChar := eventC.line
 	mFields["cmd"] = unix.ByteSliceToString(lineChar[:])
 
-	u, err := user.LookupId(fmt.Sprintf("%d", int(eventC.uid_gid>>32)))
-	if err != nil {
-		l.Error(err)
-	} else {
-		mFields["user"] = u.Name
+	uid := uint32(eventC.uid_gid >> 32)
+	userName := tracer.lookupUser(uid)
+	if userName == "" {
+		userName = strconv.FormatUint(uint64(uid), 10)
 	}
+	mFields["user"] = userName
 	mFields["pid"] = fmt.Sprintf("%d", int(eventC.pid_tgid>>32))
 
 	mFields["message"] = fmt.Sprintf("%s pid:`%s` user:`%s` cmd:`%s`",
@@ -147,6 +190,15 @@ func (tracer *BashTracer) readlineCallBack(cpu int, data []byte,
 }
 
 func (tracer *BashTracer) feedHandler(ctx context.Context, interval time.Duration) {
+	if tracer == nil {
+		return
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if interval <= 0 {
+		interval = time.Minute
+	}
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	cache := []*point.Point{}
@@ -160,6 +212,9 @@ func (tracer *BashTracer) feedHandler(ctx context.Context, interval time.Duratio
 				cache = make([]*point.Point, 0)
 			}
 		case pt := <-tracer.ch:
+			if pt == nil {
+				continue
+			}
 			cache = append(cache, pt)
 			if len(cache) > 128 {
 				if err := exporter.FeedPoint(inputNameBash, point.Logging, cache); err != nil {
@@ -169,6 +224,8 @@ func (tracer *BashTracer) feedHandler(ctx context.Context, interval time.Duratio
 			}
 		case <-tracer.stopCh:
 			return
+		case <-ctx.Done():
+			return
 		}
 	}
 }
@@ -176,6 +233,21 @@ func (tracer *BashTracer) feedHandler(ctx context.Context, interval time.Duratio
 func (tracer *BashTracer) Run(ctx context.Context, gTags map[string]string,
 	interval time.Duration,
 ) error {
+	if tracer == nil {
+		return fmt.Errorf("bash tracer is not initialized")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if interval <= 0 {
+		interval = time.Minute
+	}
+	if tracer.ch == nil {
+		tracer.ch = make(chan *point.Point, 32)
+	}
+	if tracer.stopCh == nil {
+		tracer.stopCh = make(chan struct{})
+	}
 	tracer.gTags = gTags
 
 	runtime, err := NewBashRuntime(tracer.readlineCallBack)

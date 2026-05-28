@@ -17,7 +17,10 @@ import (
 
 	"github.com/GuanceCloud/cliutils/diskcache"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -110,6 +113,49 @@ func TestSessionReplayHandler(t *testing.T) {
 	assert.ErrorIs(t, err, diskcache.ErrNoData)
 
 	assert.NoError(t, ipt.replayDiskQueue.Close())
+}
+
+func TestUploadSessionReplayAddsGlobalTagsHeader(t *testing.T) {
+	origDW := config.Cfg.Dataway
+	t.Cleanup(func() { config.Cfg.Dataway = origDW })
+
+	dw := dataway.NewDefaultDataway(dataway.WithGlobalTags(map[string]string{
+		"env": "prod",
+	}))
+	dw.EnableSinker = true
+	require.NoError(t, dw.Init(dataway.WithURLs("http://127.0.0.1?token=tkn_replay")))
+	config.Cfg.Dataway = dw
+
+	var gotHeader string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, datakit.SessionReplayUpload, r.URL.Path)
+		gotHeader = r.Header.Get(dataway.HeaderXGlobalTags)
+		assert.Empty(t, r.Header.Get(dataway.HeaderXGlobalTagsV2))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	ipt := defaultInput()
+	ipt.SessionReplayCfg.SendRetryCount = 1
+	ipt.replayHTTPClient = ts.Client()
+	ipt.replayUploadAPI = ts.URL + datakit.SessionReplayUpload
+
+	reqPB := &RequestPB{
+		Header: map[string]string{
+			"Content-Type": "application/octet-stream",
+		},
+		Body: []byte("session replay payload"),
+		FormValues: map[string]*ValuesSlice{
+			"env":     {Values: []string{"testing"}},
+			"app_id":  {Values: []string{"app-1"}},
+			"service": {Values: []string{"svc-rum"}},
+		},
+	}
+	msg, err := proto.Marshal(reqPB)
+	require.NoError(t, err)
+
+	require.NoError(t, ipt.uploadSessionReplay(msg))
+	assert.Equal(t, "env=testing", gotHeader)
 }
 
 func TestReplayDiskQueue(t *testing.T) {

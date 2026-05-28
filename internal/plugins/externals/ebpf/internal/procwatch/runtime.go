@@ -15,6 +15,8 @@ import (
 	"math"
 	"os"
 	"runtime"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 	"unsafe"
@@ -36,6 +38,7 @@ const (
 	procwatchAttachInterval      = 50 * time.Millisecond
 	procwatchAttachQueueSize     = 1024
 	procwatchAttachFuseBacklog   = 512
+	procwatchAttachProcFDBudget  = 128
 	procwatchAttachFuseCooldown  = 30 * time.Second
 	procwatchDetachGracePeriod   = 30 * time.Second
 	procwatchDetachSweepPeriod   = 5 * time.Second
@@ -53,6 +56,13 @@ const (
 	mapProcInject = "bmap_procinject"
 	mapProcFilter = "bmap_proc_filter"
 	mapTidToGoID  = "bmap_tid2goid"
+)
+
+const (
+	procwatchMapMaxEntriesEnv     = "DK_EBPF_PROCWATCH_MAP_MAX_ENTRIES"
+	defaultProcwatchMapMaxEntries = 12800
+	minProcwatchMapMaxEntries     = 1024
+	maxProcwatchMapMaxEntries     = 1048576
 )
 
 var runtimeExecutePrograms = []string{"uprobe__go_runtime_execute"}
@@ -96,6 +106,7 @@ type ProbeWatcher struct {
 	sync.Mutex
 	pendingAttach   map[int]struct{}
 	attachFuseUntil time.Time
+	stopping        bool
 }
 
 type attachRequest struct {
@@ -314,7 +325,8 @@ func NewProbeWatcher(catalog *Catalog) (*ProbeWatcher, error) {
 	}
 
 	loadSpec := bpfutil.LoadSpec{
-		RLimit: &unix.Rlimit{Cur: math.MaxUint64, Max: math.MaxUint64},
+		RLimit:        &unix.Rlimit{Cur: math.MaxUint64, Max: math.MaxUint64},
+		MapMaxEntries: procwatchMapMaxEntriesOverride(),
 	}
 	buf, err := dkebpf.ProcessSchedBin()
 	if err != nil {
@@ -328,11 +340,47 @@ func NewProbeWatcher(catalog *Catalog) (*ProbeWatcher, error) {
 	return watcher, nil
 }
 
+func procwatchMapMaxEntriesOverride() map[string]uint32 {
+	entries := procwatchMapMaxEntries()
+	return map[string]uint32{
+		mapProcInject: entries,
+		mapProcFilter: entries,
+		mapTidToGoID:  entries,
+	}
+}
+
+func procwatchMapMaxEntries() uint32 {
+	raw := strings.TrimSpace(os.Getenv(procwatchMapMaxEntriesEnv))
+	if raw == "" {
+		return defaultProcwatchMapMaxEntries
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n <= 0 {
+		log.Warnf("invalid %s=%q, use default %d",
+			procwatchMapMaxEntriesEnv, raw, defaultProcwatchMapMaxEntries)
+		return defaultProcwatchMapMaxEntries
+	}
+	if n < minProcwatchMapMaxEntries {
+		return minProcwatchMapMaxEntries
+	}
+	if n > maxProcwatchMapMaxEntries {
+		return maxProcwatchMapMaxEntries
+	}
+	return uint32(n)
+}
+
 func (w *ProbeWatcher) Start(ctx context.Context) error {
+	if w == nil {
+		return nil
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	w.selfPID = os.Getpid()
 	if w.catalog == nil || !w.catalog.allowTrace || w.Runtime == nil {
 		return nil
 	}
+	w.setStopping(false)
 
 	processes, err := listProcessIDs()
 	if err != nil {
@@ -368,6 +416,8 @@ func (w *ProbeWatcher) Start(ctx context.Context) error {
 }
 
 func (w *ProbeWatcher) Stop() error {
+	w.setStopping(true)
+	w.dropAttachBacklog(nil)
 	if w.Runtime == nil {
 		return nil
 	}
@@ -753,6 +803,10 @@ func (w *ProbeWatcher) enqueueAttachWithPriority(pid int, urgent bool) {
 
 	w.Lock()
 	now := time.Now()
+	if w.stopping {
+		w.Unlock()
+		return
+	}
 	if now.Before(w.attachFuseUntil) {
 		w.Unlock()
 		return
@@ -762,6 +816,7 @@ func (w *ProbeWatcher) enqueueAttachWithPriority(pid int, urgent bool) {
 		w.Unlock()
 		return
 	}
+	pendingLen := len(w.pendingAttach)
 	if _, ok := w.pendingAttach[pid]; ok {
 		if !urgent {
 			w.Unlock()
@@ -770,6 +825,7 @@ func (w *ProbeWatcher) enqueueAttachWithPriority(pid int, urgent bool) {
 		w.Unlock()
 	} else {
 		w.pendingAttach[pid] = struct{}{}
+		pendingLen = len(w.pendingAttach)
 		w.Unlock()
 	}
 
@@ -778,9 +834,20 @@ func (w *ProbeWatcher) enqueueAttachWithPriority(pid int, urgent bool) {
 		req.startTime = startTime
 	}
 	req.procDirFD = -1
-	if procDirFD, err := openProcessDir(pid); err == nil {
-		req.procDirFD = procDirFD
+	if pendingLen <= procwatchAttachProcFDBudget {
+		if procDirFD, err := openProcessDir(pid); err == nil {
+			req.procDirFD = procDirFD
+		}
 	}
+
+	w.Lock()
+	if w.stopping {
+		delete(w.pendingAttach, pid)
+		w.Unlock()
+		req.close()
+		return
+	}
+	w.Unlock()
 
 	select {
 	case w.attachCh <- req:
@@ -802,18 +869,6 @@ func (w *ProbeWatcher) attachLoop(ctx context.Context) {
 	defer ticker.Stop()
 
 	batch := make([]attachRequest, 0, procwatchAttachBatchSize)
-	dropBatch := func() {
-		if len(batch) == 0 {
-			return
-		}
-		w.Lock()
-		for _, req := range batch {
-			delete(w.pendingAttach, req.pid)
-			req.close()
-		}
-		w.Unlock()
-		batch = batch[:0]
-	}
 	drain := func() {
 		if len(batch) == 0 {
 			return
@@ -833,7 +888,8 @@ func (w *ProbeWatcher) attachLoop(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			drain()
+			w.setStopping(true)
+			batch = w.dropAttachBacklog(batch)
 			return
 		case req, ok := <-w.attachCh:
 			if !ok {
@@ -845,17 +901,60 @@ func (w *ProbeWatcher) attachLoop(ctx context.Context) {
 				drain()
 			} else if len(batch) >= procwatchAttachBatchSize {
 				if w.attachFuseActive() {
-					dropBatch()
+					batch = w.dropAttachBatch(batch)
 				} else {
 					drain()
 				}
 			}
 		case <-ticker.C:
 			if w.attachFuseActive() {
-				dropBatch()
+				batch = w.dropAttachBatch(batch)
 			} else {
 				drain()
 			}
+		}
+	}
+}
+
+func (w *ProbeWatcher) dropAttachBatch(batch []attachRequest) []attachRequest {
+	if len(batch) == 0 {
+		return batch[:0]
+	}
+	w.Lock()
+	for _, req := range batch {
+		delete(w.pendingAttach, req.pid)
+		req.close()
+	}
+	w.Unlock()
+	return batch[:0]
+}
+
+func (w *ProbeWatcher) setStopping(stopping bool) {
+	if w == nil {
+		return
+	}
+	w.Lock()
+	w.stopping = stopping
+	w.Unlock()
+}
+
+func (w *ProbeWatcher) dropAttachBacklog(batch []attachRequest) []attachRequest {
+	if w == nil {
+		return batch[:0]
+	}
+	batch = w.dropAttachBatch(batch)
+	for {
+		select {
+		case req, ok := <-w.attachCh:
+			if !ok {
+				return batch[:0]
+			}
+			w.Lock()
+			delete(w.pendingAttach, req.pid)
+			w.Unlock()
+			req.close()
+		default:
+			return batch[:0]
 		}
 	}
 }

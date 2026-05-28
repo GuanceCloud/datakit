@@ -13,6 +13,7 @@ import (
 	"io/fs"
 	"mime/multipart"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
@@ -21,7 +22,10 @@ import (
 	bstoml "github.com/BurntSushi/toml"
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/rum"
 )
 
@@ -102,6 +106,40 @@ func TestIOConfig(t *testing.T) {
 	assert.Equal(t, 16, ipt.IOConfig.UploadWorkers)
 	assert.Equal(t, time.Second*105, ipt.IOConfig.SendTimeout)
 	assert.Equal(t, 5, ipt.IOConfig.SendRetryCount)
+}
+
+func TestDoSendAddsGlobalTagsHeaderWhenSinkerEnabled(t *testing.T) {
+	origDW := config.Cfg.Dataway
+	t.Cleanup(func() { config.Cfg.Dataway = origDW })
+
+	dw := dataway.NewDefaultDataway(dataway.WithGlobalTags(map[string]string{
+		"env": "prod",
+	}))
+	dw.EnableSinker = true
+	require.NoError(t, dw.Init(dataway.WithURLs("http://127.0.0.1?token=tkn_pyroscope")))
+	config.Cfg.Dataway = dw
+
+	var gotHeader string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotHeader = r.Header.Get(dataway.HeaderXGlobalTags)
+		assert.Empty(t, r.Header.Get(dataway.HeaderXGlobalTagsV2))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	ipt := defaultInput()
+	ipt.IOConfig.SendRetryCount = 1
+	ipt.httpClient = ts.Client()
+
+	body := []byte("profile payload")
+	req, err := http.NewRequest(http.MethodPost, ts.URL+datakit.ProfilingUpload, bytes.NewReader(body))
+	require.NoError(t, err)
+
+	require.NoError(t, ipt.doSend(req, body, map[string]string{
+		"env":     "testing",
+		"service": "svc-pyroscope",
+	}))
+	assert.Equal(t, "env=testing", gotHeader)
 }
 
 // go test -v -timeout 30s -run ^Test_originAddTagsSafe$ gitlab.jiagouyun.com/cloudcare-tools/datakit/plugins/inputs/profile

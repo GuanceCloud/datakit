@@ -1650,6 +1650,36 @@ func TestAPIV1Write(t *T.T) {
 		assert.Equal(t, "1.0", wr.inputVersion)
 	})
 
+	t.Run("disable-filter", func(t *T.T) {
+		req := httptest.NewRequest("POST", "/v1/write/metric?disable_filter=true", bytes.NewBuffer(lineProtocol))
+		wr := GetAPIWriteResult()
+		defer PutAPIWriteResult(wr)
+
+		assert.NoError(t, wr.APIV1Write(req))
+
+		fo := dkio.GetFeedData()
+		for _, opt := range wr.FeedOptions {
+			opt(fo)
+		}
+
+		assert.True(t, fo.FilterDisabled())
+	})
+
+	t.Run("disable-filter-false", func(t *T.T) {
+		req := httptest.NewRequest("POST", "/v1/write/metric?disable_filter=false", bytes.NewBuffer(lineProtocol))
+		wr := GetAPIWriteResult()
+		defer PutAPIWriteResult(wr)
+
+		assert.NoError(t, wr.APIV1Write(req))
+
+		fo := dkio.GetFeedData()
+		for _, opt := range wr.FeedOptions {
+			opt(fo)
+		}
+
+		assert.False(t, fo.FilterDisabled())
+	})
+
 	t.Run("source", func(t *T.T) {
 		req := httptest.NewRequest("POST", "/v1/write/metric?source=demo", bytes.NewBuffer(lineProtocol))
 		wr := GetAPIWriteResult()

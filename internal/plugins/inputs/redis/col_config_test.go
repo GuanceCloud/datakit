@@ -252,7 +252,7 @@ func Test_getConfigAll(t *T.T) {
 
 					switch k {
 					case "requirepass", "masterauth", "tls-key-file-pass", "tls-client-key-file-pass":
-						assert.Truef(t, pt.Get(_k) == "not-set" || pt.Get(_k) == CREDENTIALSTR, "got %s", pt.Get(_k))
+						assert.Truef(t, pt.Get(_k) == notSet || pt.Get(_k) == CREDENTIALSTR, "got %s", pt.Get(_k))
 					}
 				}
 			}

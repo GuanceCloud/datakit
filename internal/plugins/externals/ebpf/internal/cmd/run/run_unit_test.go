@@ -11,6 +11,9 @@ func TestNewRunCmdRegistersTraceAllProcessFlag(t *testing.T) {
 	if cmd.Flags().Lookup("trace-allprocess") == nil {
 		t.Fatal("expected trace-allprocess flag to be registered")
 	}
+	if cmd.Flags().Lookup("netlog-l7log-headers") == nil {
+		t.Fatal("expected netlog-l7log-headers flag to be registered")
+	}
 }
 
 func TestParseFlagsResetsFeatureGlobals(t *testing.T) {

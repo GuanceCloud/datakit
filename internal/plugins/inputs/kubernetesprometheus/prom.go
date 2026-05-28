@@ -6,10 +6,8 @@
 package kubernetesprometheus
 
 import (
-	"bytes"
 	"fmt"
 	"net/url"
-	"os"
 	"sync/atomic"
 	"time"
 
@@ -177,11 +175,7 @@ func buildPromOptionsWithAuth(auth *Auth) ([]promscrape.Option, error) {
 	var opts []promscrape.Option
 
 	if auth.BearerTokenFile != "" {
-		token, err := os.ReadFile(auth.BearerTokenFile)
-		if err != nil {
-			return nil, err
-		}
-		opts = append(opts, promscrape.WithBearerToken(string(bytes.TrimSpace(token)), false))
+		opts = append(opts, promscrape.WithBearerTokenFile(auth.BearerTokenFile))
 	}
 
 	if auth.TLSConfig != nil {

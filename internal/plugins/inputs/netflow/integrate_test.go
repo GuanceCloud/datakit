@@ -255,7 +255,7 @@ func (cs *caseSpec) run() error {
 		cs.t.Log("net.SplitHostPort failed:" + err.Error())
 		return err
 	}
-	cs.t.Logf("listening port " + port + "...")
+	cs.t.Log("listening port " + port + "...")
 
 	portNum, err := strconv.ParseInt(port, 0, 64)
 	if err != nil {

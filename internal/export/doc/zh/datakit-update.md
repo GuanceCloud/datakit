@@ -10,6 +10,26 @@ DataKit 支持手动更新和自动更新两种方式。
 - 自动更新要求 DataKit 版本 >= 1.1.6-rc1
 - 手动更新暂无版本要求
 
+## 2.x 与 1.x 的升级策略 {#major-version-upgrade}
+
+- 自动升级默认只升级到最新 `2.x`。
+- 如果当前主机已经运行 `2.x`，会按升级源中的最新 `2.x` 继续升级。
+- 升级源如果异常（例如未提供可用的 `2.x` 安装资源），升级会失败并保持当前版本不变。
+- 如果你仍需使用 `1.x`（例如 `1.92.0`），请手动指定目标版本升级。
+
+`2.x` 的系统最低要求：
+
+- Linux：内核版本 >= `3.2`
+- Windows：`Windows 10` / `Windows Server 2016` 及以上
+- macOS：`macOS 12` 及以上
+
+`2.x` 和 `1.x` 使用不同的升级源：
+
+- `https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/`：`2.x` 升级源，**推荐**。
+- `https://static.<<<custom_key.brand_main_domain>>>/datakit/`：`1.x` 升级源，仅用于兼容旧系统。
+
+升级脚本会根据当前路径自动选择对应的版本线，自动升级统一走 `datakit-v2` 路径。由于两条路径各自独立发布，`datakit-v2` 路径只会升级到最新的 `2.x`，`datakit` 路径只会升级到最新的 `1.x`，互不互通。如需手动升级到 `1.x`，使用带版本号的脚本（如 `install-1.93.0.sh`）。
+
 ### 手动更新 {#manual}
 
 直接执行如下命令查看当前 DataKit 版本。如果线上有最新版本，则会提示对应的更新命令，如：
@@ -93,7 +113,7 @@ DataKit 支持手动更新和自动更新两种方式。
     ```shell hl_lines="2"
     DK_UPGRADE=1 \
       DK_UPGRADE_MANAGER=1 \
-      bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
+      bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/install.sh)"
     ```
 
 === "离线更新"
@@ -106,7 +126,7 @@ DataKit 支持手动更新和自动更新两种方式。
     DK_UPGRADE=1 \
       DK_UPGRADE_MANAGER=1 \
       DK_INSTALLER_BASE_URL="http://my.static.com/datakit" \
-      bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
+      bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/install.sh)"
     ```
 
 我们可以通过 DCA 来实现远程更新，具体参见 [DCA 文档](../dca/index.md)。
@@ -140,6 +160,29 @@ DataKit 支持手动更新和自动更新两种方式。
 {{ InstallCmd 4 (.WithPlatform "windows") (.WithUpgrade true) (.WithVersion "-3.4.5") }}
     ```
 <!-- markdownlint-enable -->
+
+<!-- markdownlint-disable MD046 -->
+例如，手动指定升级到 `1.93.0`：
+
+=== "Linux/macOS"
+
+    ```shell
+    DK_UPGRADE=1 bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install-1.93.0.sh)"
+    ```
+
+=== "Windows"
+
+    ```powershell
+    $env:DK_UPGRADE="1";
+    Set-ExecutionPolicy Bypass -Scope Process -Force;
+    Import-Module bitstransfer;
+    Start-BitsTransfer -Source https://static.<<<custom_key.brand_main_domain>>>/datakit/install-1.93.0.ps1 -Destination .install.ps1;
+    powershell ./.install.ps1;
+    ```
+
+<!-- markdownlint-enable -->
+
+其中 `1.93.0` 可替换为任意目标 `1.x` 版本号。
 
 上述命令中的 `<版本号>`，可以从 [DataKit 的发布历史](changelog-{{.Year}}.md)页面找到。
 

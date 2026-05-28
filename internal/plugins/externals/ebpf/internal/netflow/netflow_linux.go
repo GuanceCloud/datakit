@@ -52,6 +52,8 @@ const (
 	mapPortBind          = "bpfmap_port_bind"
 	mapPortBindProc      = "bpfmap_port_bind_proc"
 	mapUDPPortBind       = "bpfmap_udp_port_bind"
+	mapSockFD            = "bpfmap_sockfd"
+	mapSockFDInverted    = "bpfmap_sockfd_inverted"
 
 	portListening = uint8(1)
 )
@@ -147,6 +149,19 @@ func fillConntrackNATFallback(conn *ConnectionInfo) {
 func (tracer *NetFlowTracer) Run(ctx context.Context, runtime *bpfutil.Runtime,
 	gTags map[string]string, interval time.Duration,
 ) error {
+	if tracer == nil {
+		return errors.New("netflow tracer is not initialized")
+	}
+	if runtime == nil {
+		return errors.New("netflow runtime is not initialized")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if interval <= 0 {
+		interval = time.Minute
+	}
+
 	connStatsMap, err := runtime.LookupMap(mapConnStats)
 	if err != nil {
 		return err
@@ -400,13 +415,14 @@ func parseTCPListenPorts(r io.Reader, netns uint32, dst map[tcpListenPort]struct
 	return scanner.Err()
 }
 
-func scanVisibleNetns(procRoot string) (map[uint32][]string, error) {
+func scanTCPListenPorts(procRoot string) (map[tcpListenPort]struct{}, error) {
 	entries, err := os.ReadDir(procRoot)
 	if err != nil {
 		return nil, err
 	}
 
-	netnsRoots := make(map[uint32][]string)
+	result := make(map[tcpListenPort]struct{})
+	scannedNetns := make(map[uint32]struct{})
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			continue
@@ -424,37 +440,25 @@ func scanVisibleNetns(procRoot string) (map[uint32][]string, error) {
 		if !ok {
 			continue
 		}
-		netnsRoots[netns] = append(netnsRoots[netns], pidRoot)
-	}
+		if _, ok := scannedNetns[netns]; ok {
+			continue
+		}
 
-	return netnsRoots, nil
-}
-
-func scanTCPListenPorts(procRoot string) (map[tcpListenPort]struct{}, error) {
-	netnsRoots, err := scanVisibleNetns(procRoot)
-	if err != nil {
-		return nil, err
-	}
-
-	result := make(map[tcpListenPort]struct{})
-	for netns, pidRoots := range netnsRoots {
-		for _, pidRoot := range pidRoots {
-			opened := false
-			for _, name := range []string{"tcp", "tcp6"} {
-				f, err := os.Open(filepath.Join(pidRoot, "net", name)) //nolint:gosec
-				if err != nil {
-					continue
-				}
-				opened = true
-				if err := parseTCPListenPorts(f, netns, result); err != nil {
-					_ = f.Close()
-					return result, err
-				}
+		opened := false
+		for _, name := range []string{"tcp", "tcp6"} {
+			f, err := os.Open(filepath.Join(pidRoot, "net", name)) //nolint:gosec
+			if err != nil {
+				continue
+			}
+			opened = true
+			if err := parseTCPListenPorts(f, netns, result); err != nil {
 				_ = f.Close()
+				return result, err
 			}
-			if opened {
-				break
-			}
+			_ = f.Close()
+		}
+		if opened {
+			scannedNetns[netns] = struct{}{}
 		}
 	}
 
@@ -549,9 +553,17 @@ func (tracer *NetFlowTracer) connCollectHanllder(ctx context.Context, connStatsM
 
 	for {
 		select {
-		case event := <-tracer.closedEventCh:
+		case event, ok := <-tracer.closedEventCh:
+			if !ok {
+				return
+			}
+			if event == nil {
+				continue
+			}
 			tracer.connStatsRecord.updateClosedUseEvent(event)
 			tracer.drainClosedEvents(closedEventDrainLimit)
+		case <-ctx.Done():
+			return
 		case <-ticker.C:
 			tracer.drainClosedEvents(closedEventDrainLimit)
 			exporter.ObserveCacheEntries(componentID, "closed_event_queue", len(tracer.closedEventCh))
@@ -715,8 +727,6 @@ func (tracer *NetFlowTracer) connCollectHanllder(ctx context.Context, connStatsM
 			} else {
 				exporter.ObserveAggFlush(componentID, len(pts), time.Since(flushStart), "ok")
 			}
-		case <-ctx.Done():
-			return
 		}
 	}
 }

@@ -265,6 +265,8 @@ func (ipt *Input) RegHTTPHandler() {
 
 	// enbale env variable api
 	httpapi.RegHTTPRoute(http.MethodGet, "/v1/env_variable", ipt.handleEnvVariable)
+
+	httpapi.RegDatakitPullHTTPRoute()
 }
 
 func (ipt *Input) handleEnvVariable(_ http.ResponseWriter, req *http.Request, _ ...interface{}) (interface{}, error) {
@@ -498,6 +500,7 @@ func (ipt *Input) Terminate() {
 	httpapi.RemoveHTTPRoute(http.MethodDelete, "/v1/sourcemap")
 
 	httpapi.RemoveHTTPRoute(http.MethodGet, "/v1/env_variable")
+	httpapi.RemoveHTTPRoute(http.MethodGet, datakit.DatakitPull)
 }
 
 func defaultInput() *Input {
@@ -533,6 +536,10 @@ func init() { //nolint:gochecknoinits
 				return inputName, true
 			}
 		case "/v1/env_variable":
+			if method == http.MethodGet {
+				return inputName, true
+			}
+		case datakit.DatakitPull:
 			if method == http.MethodGet {
 				return inputName, true
 			}

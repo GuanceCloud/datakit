@@ -1,5 +1,46 @@
 # 更新日志
 
+## 2.0.0(2026/05/27) {#cl-2.0.0}
+
+本次发布是 DataKit 首个 2.x 主线版本，正式启用独立的 datakit-v2 安装/升级源，主要有如下更新：
+
+### 新加功能 {#cl-2.0.0-new}
+
+- BPF 网络日志支持记录 HTTP header，便于在 L7 日志中保留 trace 相关上下文（#3081）
+- HTTP API 新增 pull 接口支持，并支持单次数据上报时关闭 filter 处理（#3076）
+- Prometheus Remote Write 采集器新增 `keep_exist_metric_name` 配置，支持保留原始指标名（#3075）
+- Logfwd 支持通过环境变量配置 `from_beginning_threshold_size`（#3074）
+- DDTrace 采集器实现 info 接口，完善采集器信息输出能力（#3073）
+- `hostobject` 支持金山云 KEC 元数据适配（#3068）
+- OceanBase 采集器兼容 4.x 版本系统视图（#3067）
+- DataKit 支持自动 dump 自身 profile 并上报到中心，便于线上问题定位（#3064）
+- Redis 采集器新增 database object 采集上报能力（#2984）
+
+### 问题修复 {#cl-2.0.0-fix}
+
+- 修复 HTTP/3 拨测 Timing 字段采集异常导致 Download 显示异常时长的问题（#3080）
+- 修复 Kubernetes Prometheus 采集器遇到 ServiceAccount token 文件过期时的异常问题（#3071）
+- 修复热加载后 6060 pprof 服务退出后不再重启的问题（#3063）
+- 修复磁盘和 `hostobject` 采集过滤时机偏晚，可能触发特殊挂载点自动挂载并影响 object 上报的问题（#3044）
+- 修复 Flameshot 中 `jcmd` 相关处理与 profile tag 重复问题（#3062）
+
+### 功能优化 {#cl-2.0.0-opt}
+
+- 调整 OSS/CDN 上 DataKit v2 相关文件路径，适配大版本发布流程（#3083）
+- 优化拨测采集器 traceroute 默认配置（#3078）
+- 调整 DataKit Sinker Header 处理，仅 point 写入类请求携带 global tag（#3070）
+- 优化 profile 上报可观测性，补充 info 信息和相关指标（#3055）
+- 支持新的 Docker API 版本，提升容器环境兼容性（#2991）
+
+### 兼容调整 {#cl-2.0.0-brk}
+
+- DataKit 升级到 v2 大版本，并保留 v1 永久暂存分支；升级逻辑会检测当前环境是否支持升级到 v2（#3008）
+- DataKit v2 启用独立安装/升级源 `https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/`，与 1.x 源 `https://static.<<<custom_key.brand_main_domain>>>/datakit/` 相互隔离且不互通。
+- 1.x 自动升级不会跨代到 2.x；从 1.x 升级到 2.x 需要手动将安装或升级 URL 中的 `datakit` 替换为 `datakit-v2`。
+- DataKit v2 构建工具链升级到 Go 1.26.2；系统要求调整为 Linux kernel >= 3.2、Windows Server 2016 及以上、macOS 12+。
+
+---
+
 ## 1.94.0(2026/05/13) {#cl-1.94.0}
 
 本次发布属于迭代发布，主要有如下更新：

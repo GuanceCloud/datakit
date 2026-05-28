@@ -7,6 +7,9 @@ package dnsflow
 import (
 	"context"
 	"errors"
+	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -20,6 +23,12 @@ const (
 	srcNameM   = "dnsflow"
 	inputName  = "ebpf-net/dnsflow"
 	DNSTIMEOUT = time.Second * 6
+)
+
+const (
+	defaultPendingQueryLimit = 65536
+	maxPendingQueryLimit     = 1_000_000
+	pendingQueryLimitEnv     = "DK_EBPF_DNSFLOW_PENDING_QUERY_LIMIT"
 )
 
 var l = logger.DefaultSLogger("ebpf")
@@ -36,16 +45,35 @@ func SetK8sNetInfo(n *cli.K8sInfo) {
 
 func NewDNSFlowTracer() *DNSFlowTracer {
 	return &DNSFlowTracer{
-		statsMap: map[DNSQAKey]DNSStats{},
-		pInfoCh:  make(chan *DNSPacketInfo, 1024),
+		statsMap:          map[DNSQAKey]DNSStats{},
+		pInfoCh:           make(chan *DNSPacketInfo, 1024),
+		pendingQueryLimit: dnsPendingQueryLimit(),
 	}
 }
 
 type DNSFlowTracer struct {
-	statsMap map[DNSQAKey]DNSStats
-	pInfoCh  chan *DNSPacketInfo
+	statsMap          map[DNSQAKey]DNSStats
+	pInfoCh           chan *DNSPacketInfo
+	pendingQueryLimit int
 
 	lastTPacketStats tpacketStatsSnapshot
+}
+
+func dnsPendingQueryLimit() int {
+	raw := strings.TrimSpace(os.Getenv(pendingQueryLimitEnv))
+	if raw == "" {
+		return defaultPendingQueryLimit
+	}
+
+	limit, err := strconv.Atoi(raw)
+	if err != nil || limit <= 0 {
+		l.Warnf("invalid %s=%q, use default %d", pendingQueryLimitEnv, raw, defaultPendingQueryLimit)
+		return defaultPendingQueryLimit
+	}
+	if limit > maxPendingQueryLimit {
+		return maxPendingQueryLimit
+	}
+	return limit
 }
 
 type tpacketStatsSnapshot struct {
@@ -76,10 +104,30 @@ func (s *tpacketStatsSnapshot) observe(component string, packets, drops, freezes
 }
 
 func (tracer *DNSFlowTracer) updateDNSStats(packetInfo *DNSPacketInfo, dnsRecord *DNSAnswerRecord) *DNSStats {
+	if tracer == nil || packetInfo == nil {
+		return nil
+	}
+	if tracer.statsMap == nil {
+		tracer.statsMap = map[DNSQAKey]DNSStats{}
+	}
+
 	stats, ok := tracer.statsMap[packetInfo.Key]
 
 	if !ok {
 		if !packetInfo.QR { // query
+			if tracer.pendingQueryLimit <= 0 {
+				tracer.pendingQueryLimit = defaultPendingQueryLimit
+			}
+			if len(tracer.statsMap) >= tracer.pendingQueryLimit {
+				timeoutStats := tracer.checkTimeoutDNSQuery()
+				if len(timeoutStats) > 0 {
+					exporter.AddCacheEvictions("dnsflow", "pending_queries", "timeout_on_limit", len(timeoutStats))
+				}
+			}
+			if len(tracer.statsMap) >= tracer.pendingQueryLimit {
+				exporter.IncBPFEventDrop("dnsflow", "query", "pending_query_limit")
+				return nil
+			}
 			tracer.statsMap[packetInfo.Key] = DNSStats{
 				TS:          packetInfo.TS,
 				Timeout:     false,
@@ -88,7 +136,7 @@ func (tracer *DNSFlowTracer) updateDNSStats(packetInfo *DNSPacketInfo, dnsRecord
 				QueryDomain: packetInfo.QueryDomain,
 				QueryType:   packetInfo.QueryType,
 			}
-			return &stats
+			return nil
 		}
 	} else {
 		if packetInfo.QR { // answer
@@ -102,9 +150,11 @@ func (tracer *DNSFlowTracer) updateDNSStats(packetInfo *DNSPacketInfo, dnsRecord
 			stats.RCODE = int(packetInfo.RCODE)
 			stats.Timeout = false
 			delete(tracer.statsMap, packetInfo.Key)
-			if dnsRecord != nil && !stats.Responded {
+			if !stats.Responded {
 				stats.Responded = true
-				dnsRecord.addRecord(packetInfo)
+				if dnsRecord != nil {
+					dnsRecord.addRecord(packetInfo)
+				}
 				return &stats
 			}
 		}
@@ -114,6 +164,9 @@ func (tracer *DNSFlowTracer) updateDNSStats(packetInfo *DNSPacketInfo, dnsRecord
 
 func (tracer *DNSFlowTracer) checkTimeoutDNSQuery() map[DNSQAKey]DNSStats {
 	qaStats := map[DNSQAKey]DNSStats{}
+	if tracer == nil {
+		return qaStats
+	}
 	for k, v := range tracer.statsMap {
 		if !v.Responded && time.Since(v.TS) > DNSTIMEOUT {
 			v.Responded = true
@@ -125,7 +178,30 @@ func (tracer *DNSFlowTracer) checkTimeoutDNSQuery() map[DNSQAKey]DNSStats {
 	return qaStats
 }
 
+func (tracer *DNSFlowTracer) appendTimeoutDNSStats(agg *FlowAgg) {
+	if tracer == nil || agg == nil {
+		return
+	}
+	stats := tracer.checkTimeoutDNSQuery()
+	for k, v := range stats {
+		err := agg.Append(k, v)
+		if err != nil {
+			l.Debug(err)
+		}
+	}
+}
+
 func (tracer *DNSFlowTracer) readPacket(ctx context.Context, tp *afpacket.TPacket) {
+	if tracer == nil || tp == nil {
+		return
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if tracer.pInfoCh == nil {
+		tracer.pInfoCh = make(chan *DNSPacketInfo, 1024)
+	}
+
 	dnsParser := NewDNSParse()
 	for {
 		dnsParser.layers = dnsParser.layers[:0]
@@ -161,6 +237,7 @@ func (tracer *DNSFlowTracer) readPacket(ctx context.Context, tp *afpacket.TPacke
 		case tracer.pInfoCh <- pinfo:
 		default:
 			l.Debug("pinfoCh full")
+			exporter.IncBPFEventDrop("dnsflow", "packet", "queue_full")
 		}
 	}
 }
@@ -168,6 +245,19 @@ func (tracer *DNSFlowTracer) readPacket(ctx context.Context, tp *afpacket.TPacke
 func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket,
 	gTag map[string]string, dnsRecord *DNSAnswerRecord,
 ) {
+	if tracer == nil || tp == nil {
+		return
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if tracer.pInfoCh == nil {
+		tracer.pInfoCh = make(chan *DNSPacketInfo, 1024)
+	}
+	if tracer.statsMap == nil {
+		tracer.statsMap = map[DNSQAKey]DNSStats{}
+	}
+
 	mCh := make(chan []*point.Point, 256)
 	agg := FlowAgg{}
 	go func() {
@@ -187,20 +277,19 @@ func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket,
 	}()
 	go tracer.readPacket(ctx, tp)
 	go func() {
-		t := time.NewTicker(time.Second * 30)
-		defer t.Stop()
+		flushTicker := time.NewTicker(time.Second * 30)
+		timeoutTicker := time.NewTicker(DNSTIMEOUT)
+		defer flushTicker.Stop()
+		defer timeoutTicker.Stop()
 		for {
 			select {
-			case <-t.C:
+			case <-timeoutTicker.C:
+				tracer.appendTimeoutDNSStats(&agg)
+				exporter.ObserveAggEntries("dnsflow", agg.Len())
+			case <-flushTicker.C:
 				exporter.ObserveCacheEntries("dnsflow", "pending_queries", len(tracer.statsMap))
 				exporter.ObserveCacheEntries("dnsflow", "packet_queue", len(tracer.pInfoCh))
-				stats := tracer.checkTimeoutDNSQuery()
-				for k, v := range stats {
-					err := agg.Append(k, v)
-					if err != nil {
-						l.Debug(err)
-					}
-				}
+				tracer.appendTimeoutDNSStats(&agg)
 
 				exporter.ObserveAggEntries("dnsflow", agg.Len())
 				flushStart := time.Now()
@@ -215,6 +304,10 @@ func (tracer *DNSFlowTracer) Run(ctx context.Context, tp *afpacket.TPacket,
 					exporter.ObserveAggFlush("dnsflow", len(pts), time.Since(flushStart), "drop_channel")
 				}
 			case pinfo := <-tracer.pInfoCh:
+				if pinfo == nil {
+					exporter.IncBPFEventDrop("dnsflow", "packet", "nil_info")
+					continue
+				}
 				if stats := tracer.updateDNSStats(pinfo, dnsRecord); stats != nil {
 					err := agg.Append(pinfo.Key, *stats)
 					if err != nil {

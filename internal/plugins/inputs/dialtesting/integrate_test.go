@@ -327,8 +327,16 @@ func TestIntegrate(t *testing.T) {
 			require.NoError(t, err)
 			require.NoError(t, ipt.dispatchTasks(body))
 
-			assert.Eventually(t, func() bool {
-				return len(sender.Points()) >= 1
+			var gotPoint *point.Point
+			require.Eventually(t, func() bool {
+				for _, pt := range sender.Points() {
+					lineProto := pt.LineProto()
+					if pt.Name() == "http_dial_testing" && strings.Contains(lineProto, "name="+taskName) {
+						gotPoint = pt
+						return true
+					}
+				}
+				return false
 			}, 5*time.Second, 50*time.Millisecond)
 
 			points := sender.Points()
@@ -338,14 +346,6 @@ func TestIntegrate(t *testing.T) {
 			assert.Equal(t, "region-en", ipt.regionNameEn)
 			assert.Equal(t, "telecom", ipt.RegionTags["isp"])
 
-			var gotPoint *point.Point
-			for _, pt := range points {
-				lineProto := pt.LineProto()
-				if pt.Name() == "http_dial_testing" && strings.Contains(lineProto, "name="+taskName) {
-					gotPoint = pt
-					break
-				}
-			}
 			require.NotNil(t, gotPoint)
 
 			lineProto := gotPoint.LineProto()

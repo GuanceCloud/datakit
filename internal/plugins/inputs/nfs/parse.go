@@ -84,7 +84,7 @@ func parseServerRPCStats(r io.Reader) (*nfs.ServerRPCStats, error) {
 
 func parseReplyCache(v []uint64) (nfs.ReplyCache, error) {
 	if len(v) != 3 {
-		return nfs.ReplyCache{}, fmt.Errorf("invalid ReplyCache line %q", v)
+		return nfs.ReplyCache{}, fmt.Errorf("invalid ReplyCache line %v", v)
 	}
 
 	return nfs.ReplyCache{
@@ -96,7 +96,7 @@ func parseReplyCache(v []uint64) (nfs.ReplyCache, error) {
 
 func parseFileHandles(v []uint64) (nfs.FileHandles, error) {
 	if len(v) != 5 {
-		return nfs.FileHandles{}, fmt.Errorf("invalid FileHandles, line %q", v)
+		return nfs.FileHandles{}, fmt.Errorf("invalid FileHandles, line %v", v)
 	}
 
 	return nfs.FileHandles{
@@ -110,7 +110,7 @@ func parseFileHandles(v []uint64) (nfs.FileHandles, error) {
 
 func parseInputOutput(v []uint64) (nfs.InputOutput, error) {
 	if len(v) != 2 {
-		return nfs.InputOutput{}, fmt.Errorf("invalid InputOutput line %q", v)
+		return nfs.InputOutput{}, fmt.Errorf("invalid InputOutput line %v", v)
 	}
 
 	return nfs.InputOutput{
@@ -121,7 +121,7 @@ func parseInputOutput(v []uint64) (nfs.InputOutput, error) {
 
 func parseThreads(v []uint64) (nfs.Threads, error) {
 	if len(v) != 2 {
-		return nfs.Threads{}, fmt.Errorf("invalid Threads line %q", v)
+		return nfs.Threads{}, fmt.Errorf("invalid Threads line %v", v)
 	}
 
 	return nfs.Threads{
@@ -132,7 +132,7 @@ func parseThreads(v []uint64) (nfs.Threads, error) {
 
 func parseReadAheadCache(v []uint64) (nfs.ReadAheadCache, error) {
 	if len(v) != 12 {
-		return nfs.ReadAheadCache{}, fmt.Errorf("invalid ReadAheadCache line %q", v)
+		return nfs.ReadAheadCache{}, fmt.Errorf("invalid ReadAheadCache line %v", v)
 	}
 
 	return nfs.ReadAheadCache{
@@ -144,7 +144,7 @@ func parseReadAheadCache(v []uint64) (nfs.ReadAheadCache, error) {
 
 func parseNetwork(v []uint64) (nfs.Network, error) {
 	if len(v) != 4 {
-		return nfs.Network{}, fmt.Errorf("invalid Network line %q", v)
+		return nfs.Network{}, fmt.Errorf("invalid Network line %v", v)
 	}
 
 	return nfs.Network{
@@ -157,7 +157,7 @@ func parseNetwork(v []uint64) (nfs.Network, error) {
 
 func parseServerRPC(v []uint64) (nfs.ServerRPC, error) {
 	if len(v) != 5 {
-		return nfs.ServerRPC{}, fmt.Errorf("invalid RPC line %q", v)
+		return nfs.ServerRPC{}, fmt.Errorf("invalid RPC line %v", v)
 	}
 
 	return nfs.ServerRPC{
@@ -172,7 +172,7 @@ func parseServerRPC(v []uint64) (nfs.ServerRPC, error) {
 func parseV2Stats(v []uint64) (nfs.V2Stats, error) {
 	values := int(v[0])
 	if len(v[1:]) != values || values < 18 {
-		return nfs.V2Stats{}, fmt.Errorf("invalid V2Stats line %q", v)
+		return nfs.V2Stats{}, fmt.Errorf("invalid V2Stats line %v", v)
 	}
 
 	return nfs.V2Stats{
@@ -200,7 +200,7 @@ func parseV2Stats(v []uint64) (nfs.V2Stats, error) {
 func parseV3Stats(v []uint64) (nfs.V3Stats, error) {
 	values := int(v[0])
 	if len(v[1:]) != values || values < 22 {
-		return nfs.V3Stats{}, fmt.Errorf("invalid V3Stats line %q", v)
+		return nfs.V3Stats{}, fmt.Errorf("invalid V3Stats line %v", v)
 	}
 
 	return nfs.V3Stats{
@@ -232,7 +232,7 @@ func parseV3Stats(v []uint64) (nfs.V3Stats, error) {
 func parseServerV4Stats(v []uint64) (nfs.ServerV4Stats, error) {
 	values := int(v[0])
 	if len(v[1:]) != values || values != 2 {
-		return nfs.ServerV4Stats{}, fmt.Errorf("invalid V4Stats line %q", v)
+		return nfs.ServerV4Stats{}, fmt.Errorf("invalid V4Stats line %v", v)
 	}
 
 	return nfs.ServerV4Stats{
@@ -244,7 +244,7 @@ func parseServerV4Stats(v []uint64) (nfs.ServerV4Stats, error) {
 func parseV4Ops(v []uint64) (nfs.V4Ops, error) {
 	values := int(v[0])
 	if len(v[1:]) != values || values < 39 {
-		return nfs.V4Ops{}, fmt.Errorf("invalid V4Ops line %q", v)
+		return nfs.V4Ops{}, fmt.Errorf("invalid V4Ops line %v", v)
 	}
 
 	stats := nfs.V4Ops{

@@ -33,8 +33,6 @@ var (
   auto_profiling_duration = "30s"
   oom_hprof_enabled = false
   oom_hprof_match_window = "2m"
-  jcmd_snapshot_enabled = true
-  jcmd_timeout = "10s"
 
   [[processes]]
     ## service name for profiling
@@ -107,8 +105,6 @@ type Config struct {
 	AutoProfileDuration string      `toml:"auto_profiling_duration"` // 定时自动采集时长
 	OOMHProfEnabled     bool        `toml:"oom_hprof_enabled"`       // 开启 OOM hprof 摘要采集
 	OOMHProfMatchWindow string      `toml:"oom_hprof_match_window"`  // OOM 事件与 hprof 的时间匹配窗口
-	JCmdSnapshotEnabled bool        `toml:"jcmd_snapshot_enabled"`   // 开启高水位 jcmd 轻量快照
-	JCmdTimeout         string      `toml:"jcmd_timeout"`            // jcmd 执行超时
 	PodCPULimit         string      `toml:"pod_cpu_limit"`           // pod resource limit
 	PodMEMLimit         string      `toml:"pod_mem_limit"`           // pod resource limit
 	Processes           []*Process  `toml:"processes"`               // 监控的进程列表
@@ -178,12 +174,6 @@ func (c *Config) fromEnv() {
 	}
 	if x := os.Getenv("FLAMESHOT_OOM_HPROF_MATCH_WINDOW"); x != "" {
 		c.OOMHProfMatchWindow = x
-	}
-	if x := os.Getenv("FLAMESHOT_JCMD_SNAPSHOT_ENABLED"); x != "" {
-		c.JCmdSnapshotEnabled = strings.EqualFold(x, "true") || x == "1"
-	}
-	if x := os.Getenv("FLAMESHOT_JCMD_TIMEOUT"); x != "" {
-		c.JCmdTimeout = x
 	}
 
 	if x := os.Getenv("FLAMESHOT_POD_CPU_LIMIT"); x != "" {
