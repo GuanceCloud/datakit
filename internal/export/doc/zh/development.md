@@ -266,10 +266,10 @@ dist/
 └── datakit-darwin-amd64
     └── datakit          # 将该 datakit 替换掉已有的 datakit 二进制，一般在 /usr/local/datakit/datakit
 
-sudo datakit service -T                                         # 停掉现有 datakit
+sudo datakit service stop                                       # 停掉现有 datakit
 sudo truncate -s 0 /var/log/datakit/log                         # 清空日志
 sudo cp -r dist/datakit-darwin-amd64/datakit /usr/local/datakit # 覆盖二进制
-sudo datakit service -S                                         # 重启 datakit
+sudo datakit service start                                      # 重启 datakit
 datakit monitor                                                 # datakit 运行情况监测
 ```
 

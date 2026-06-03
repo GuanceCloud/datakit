@@ -3,16 +3,13 @@ package protocol
 import "time"
 
 // DesiredReceiveBufferSize is the kernel UDP receive buffer size that we'd like to use.
-const DesiredReceiveBufferSize = (1 << 20) * 2 // 2 MB
+const DesiredReceiveBufferSize = (1 << 20) * 7 // 7 MB
 
 // DesiredSendBufferSize is the kernel UDP send buffer size that we'd like to use.
-const DesiredSendBufferSize = (1 << 20) * 2 // 2 MB
+const DesiredSendBufferSize = (1 << 20) * 7 // 7 MB
 
-// InitialPacketSizeIPv4 is the maximum packet size that we use for sending IPv4 packets.
-const InitialPacketSizeIPv4 = 1252
-
-// InitialPacketSizeIPv6 is the maximum packet size that we use for sending IPv6 packets.
-const InitialPacketSizeIPv6 = 1232
+// InitialPacketSize is the initial (before Path MTU discovery) maximum packet size used.
+const InitialPacketSize = 1280
 
 // MaxCongestionWindowPackets is the maximum congestion window in packet.
 const MaxCongestionWindowPackets = 10000
@@ -105,14 +102,6 @@ const DefaultIdleTimeout = 30 * time.Second
 // DefaultHandshakeIdleTimeout is the default idle timeout used before handshake completion.
 const DefaultHandshakeIdleTimeout = 5 * time.Second
 
-// MaxKeepAliveInterval is the maximum time until we send a packet to keep a connection alive.
-// It should be shorter than the time that NATs clear their mapping.
-const MaxKeepAliveInterval = 20 * time.Second
-
-// RetiredConnectionIDDeleteTimeout is the time we keep closed connections around in order to retransmit the CONNECTION_CLOSE.
-// after this time all information about the old connection will be deleted
-const RetiredConnectionIDDeleteTimeout = 5 * time.Second
-
 // MinStreamFrameSize is the minimum size that has to be left in a packet, so that we add another STREAM frame.
 // This avoids splitting up STREAM frames into small pieces, which has 2 advantages:
 // 1. it reduces the framing overhead
@@ -123,16 +112,13 @@ const MinStreamFrameSize ByteCount = 128
 // we send after the handshake completes.
 const MaxPostHandshakeCryptoFrameSize = 1000
 
-// MaxAckFrameSize is the maximum size for an ACK frame that we write
-// Due to the varint encoding, ACK frames can grow (almost) indefinitely large.
-// The MaxAckFrameSize should be large enough to encode many ACK range,
-// but must ensure that a maximum size ACK frame fits into one packet.
-const MaxAckFrameSize ByteCount = 1000
-
 // MaxNumAckRanges is the maximum number of ACK ranges that we send in an ACK frame.
 // It also serves as a limit for the packet history.
 // If at any point we keep track of more ranges, old ranges are discarded.
-const MaxNumAckRanges = 32
+//
+// This value also guarantees that ACK Range Count value in the ACK frame can be encoded
+// in a single byte varint.
+const MaxNumAckRanges = 64
 
 // MinPacingDelay is the minimum duration that is used for packet pacing
 // If the packet packing frequency is higher, multiple packets might be sent at once.

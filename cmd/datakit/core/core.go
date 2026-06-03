@@ -42,8 +42,13 @@ func New() *Core {
 	return &Core{}
 }
 
+func Start(releaseVersion, inputsReleaseType, lite, eLinker string, runInContainer bool) error {
+	app := New()
+	return app.Initialize(releaseVersion, inputsReleaseType, lite, eLinker, runInContainer)
+}
+
 // Initialize sets up the core application.
-func (c *Core) Initialize(releaseVersion, inputsReleaseType, lite, eLinker string) error {
+func (c *Core) Initialize(releaseVersion, inputsReleaseType, lite, eLinker string, runInContainer bool) error {
 	rand.Seed(time.Now().UTC().UnixNano()) // rand seed global
 
 	if releaseVersion != "" {
@@ -69,8 +74,7 @@ func (c *Core) Initialize(releaseVersion, inputsReleaseType, lite, eLinker strin
 		workdir = v
 	}
 
-	cmds.ParseFlags()
-	c.applyFlags()
+	c.applyFlags(runInContainer)
 
 	if err := c.tryLoadConfig(); err != nil {
 		return err
@@ -119,8 +123,8 @@ func (c *Core) Initialize(releaseVersion, inputsReleaseType, lite, eLinker strin
 }
 
 // applyFlags applies command line flags.
-func (c *Core) applyFlags() {
-	if *cmds.FlagRunInContainer {
+func (c *Core) applyFlags(runInContainer bool) {
+	if runInContainer {
 		datakit.Docker = true
 	}
 }

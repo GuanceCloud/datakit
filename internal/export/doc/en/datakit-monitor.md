@@ -14,7 +14,7 @@ datakit monitor
 <!-- markdownlint-disable MD046 -->
 ???+ tip
 
-    You can see more monitor options through the `datakit help monitor`.
+    You can see more monitor options through the `datakit monitor --help`.
 <!-- markdownlint-enable -->
 The DataKit Basic Monitor page information is shown in the following figure:
 

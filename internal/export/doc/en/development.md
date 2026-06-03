@@ -71,10 +71,10 @@ dist/
 └── datakit-darwin-amd64
     └── datakit          # Replace this dakakit with the existing datakit binary, typically /usr/local/datakit/datakit
 
-sudo datakit service -T                                         # stop existing datakit
+sudo datakit service stop                                       # stop existing datakit
 sudo truncate -s 0 /var/log/datakit/log                         # Empty the log
 sudo cp -r dist/datakit-darwin-amd64/datakit /usr/local/datakit # Overlay binary
-sudo datakit service -S                                         # restart datakit
+sudo datakit service start                                      # restart datakit
 ```
 
 - At this point, you typically have a `zhangsan.conf.sample` in the */usr/local/datakit/conf.d/<Catalog\>/* directory. Note that the `<Catalog>` here is the return value of the interface `Catalog() string` above.

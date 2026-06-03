@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"unicode"
 	"unicode/utf8"
 )
@@ -34,6 +35,65 @@ type GrokRegexp struct {
 	requiredSuffix   string
 	requiredLiterals []string
 	minMatchLength   int
+	patternHash      uint64
+
+	fastPathDisabled       uint32
+	fastPathBudgetExceeded uint32
+}
+
+type RunPath uint8
+
+const (
+	RunPathRegexp RunPath = iota + 1
+	RunPathFastPath
+	RunPathFallback
+)
+
+func (p RunPath) String() string {
+	switch p {
+	case RunPathRegexp:
+		return "regexp"
+	case RunPathFastPath:
+		return "fast_path"
+	case RunPathFallback:
+		return "fallback"
+	default:
+		return ""
+	}
+}
+
+type FallbackReason uint8
+
+const (
+	FallbackNone FallbackReason = iota
+	FallbackCompileRisk
+	FallbackBudgetExceeded
+	FallbackFastPathDisabled
+	FallbackFastPathMismatch
+)
+
+func (r FallbackReason) String() string {
+	switch r {
+	case FallbackNone:
+		return "none"
+	case FallbackCompileRisk:
+		return "compile_risk"
+	case FallbackBudgetExceeded:
+		return "budget_exceeded"
+	case FallbackFastPathDisabled:
+		return "fast_path_disabled"
+	case FallbackFastPathMismatch:
+		return "fast_path_mismatch"
+	default:
+		return ""
+	}
+}
+
+type RunMeta struct {
+	Path           RunPath
+	FallbackReason FallbackReason
+	PatternHash    uint64
+	WorkUnits      int
 }
 
 type valueKind uint8
@@ -115,14 +175,37 @@ func (g *GrokRegexp) GetValCastByName(k string, val []string) (any, bool) {
 }
 
 func (g *GrokRegexp) Run(content string, trimSpace bool) ([]string, error) {
-	return g.runTo(content, trimSpace, nil)
+	return g.runToWithMeta(content, trimSpace, nil, nil)
 }
 
 func (g *GrokRegexp) runTo(content string, trimSpace bool, dst []string) ([]string, error) {
+	return g.runToWithMeta(content, trimSpace, dst, nil)
+}
+
+func (g *GrokRegexp) RunWithMeta(content string, trimSpace bool, meta *RunMeta) ([]string, error) {
+	return g.runToWithMeta(content, trimSpace, nil, meta)
+}
+
+func (g *GrokRegexp) runToWithMeta(content string, trimSpace bool, dst []string, meta *RunMeta) ([]string, error) {
+	g.initRunMeta(meta)
 	if g.fastMatcher != nil {
-		result := ensureStringBuffer(dst, len(g.subMatchNames.name))
-		if g.fastMatcher.match(result, content, trimSpace) {
-			return result, nil
+		if g.fastPathIsDisabled() {
+			setRunFallback(meta, RunPathRegexp, FallbackFastPathDisabled)
+		} else {
+			result := ensureStringBuffer(dst, len(g.subMatchNames.name))
+			budget := newStructuredMatchBudget(len(content), g.fastMatcher.budgetSteps)
+			if g.fastMatcher.match(result, content, trimSpace, &budget) {
+				setRunMetaPath(meta, RunPathFastPath)
+				setRunMetaWork(meta, budget.used)
+				return result, nil
+			}
+			setRunMetaWork(meta, budget.used)
+			if budget.exceeded {
+				g.noteFastPathBudgetExceeded()
+				setRunFallback(meta, RunPathFallback, FallbackBudgetExceeded)
+			} else {
+				setRunFallback(meta, RunPathFallback, FallbackFastPathMismatch)
+			}
 		}
 	}
 
@@ -145,14 +228,37 @@ func (g *GrokRegexp) WithTypeInfo() bool {
 }
 
 func (g *GrokRegexp) RunWithTypeInfo(content string, trimSpace bool) ([]any, error) {
-	return g.runWithTypeInfoTo(content, trimSpace, nil)
+	return g.runWithTypeInfoToWithMeta(content, trimSpace, nil, nil)
 }
 
 func (g *GrokRegexp) runWithTypeInfoTo(content string, trimSpace bool, dst []any) ([]any, error) {
+	return g.runWithTypeInfoToWithMeta(content, trimSpace, dst, nil)
+}
+
+func (g *GrokRegexp) RunWithTypeInfoWithMeta(content string, trimSpace bool, meta *RunMeta) ([]any, error) {
+	return g.runWithTypeInfoToWithMeta(content, trimSpace, nil, meta)
+}
+
+func (g *GrokRegexp) runWithTypeInfoToWithMeta(content string, trimSpace bool, dst []any, meta *RunMeta) ([]any, error) {
+	g.initRunMeta(meta)
 	if g.fastMatcher != nil {
-		castDst := ensureTypedBuffer(dst, g.valueKinds)
-		if g.fastMatcher.matchTyped(castDst, content, trimSpace, g.valueKinds) {
-			return castDst, nil
+		if g.fastPathIsDisabled() {
+			setRunFallback(meta, RunPathRegexp, FallbackFastPathDisabled)
+		} else {
+			castDst := ensureTypedBuffer(dst, g.valueKinds)
+			budget := newStructuredMatchBudget(len(content), g.fastMatcher.budgetSteps)
+			if g.fastMatcher.matchTyped(castDst, content, trimSpace, g.valueKinds, &budget) {
+				setRunMetaPath(meta, RunPathFastPath)
+				setRunMetaWork(meta, budget.used)
+				return castDst, nil
+			}
+			setRunMetaWork(meta, budget.used)
+			if budget.exceeded {
+				g.noteFastPathBudgetExceeded()
+				setRunFallback(meta, RunPathFallback, FallbackBudgetExceeded)
+			} else {
+				setRunFallback(meta, RunPathFallback, FallbackFastPathMismatch)
+			}
 		}
 	}
 
@@ -169,6 +275,60 @@ func (g *GrokRegexp) runWithTypeInfoTo(content string, trimSpace bool, dst []any
 	}
 
 	return castDst, nil
+}
+
+func (g *GrokRegexp) PatternHash() uint64 {
+	return g.patternHash
+}
+
+func (g *GrokRegexp) DisableFastPath() {
+	atomic.StoreUint32(&g.fastPathDisabled, 1)
+}
+
+func (g *GrokRegexp) FastPathDisabled() bool {
+	return g.fastPathIsDisabled()
+}
+
+func (g *GrokRegexp) fastPathIsDisabled() bool {
+	return atomic.LoadUint32(&g.fastPathDisabled) != 0
+}
+
+const fastPathBudgetDisableThreshold = 2
+
+func (g *GrokRegexp) noteFastPathBudgetExceeded() {
+	if atomic.AddUint32(&g.fastPathBudgetExceeded, 1) >= fastPathBudgetDisableThreshold {
+		g.DisableFastPath()
+	}
+}
+
+func (g *GrokRegexp) initRunMeta(meta *RunMeta) {
+	if meta == nil {
+		return
+	}
+	*meta = RunMeta{
+		Path:        RunPathRegexp,
+		PatternHash: g.patternHash,
+	}
+}
+
+func setRunMetaPath(meta *RunMeta, path RunPath) {
+	if meta != nil {
+		meta.Path = path
+	}
+}
+
+func setRunMetaWork(meta *RunMeta, work int) {
+	if meta != nil {
+		meta.WorkUnits = work
+	}
+}
+
+func setRunFallback(meta *RunMeta, path RunPath, reason FallbackReason) {
+	if meta == nil {
+		return
+	}
+	meta.Path = path
+	meta.FallbackReason = reason
 }
 
 func (g *GrokRegexp) matchIndexes(content string) ([]int, error) {

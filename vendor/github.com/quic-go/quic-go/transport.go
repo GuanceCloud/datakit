@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -13,17 +14,45 @@ import (
 	"github.com/quic-go/quic-go/internal/protocol"
 	"github.com/quic-go/quic-go/internal/utils"
 	"github.com/quic-go/quic-go/internal/wire"
-	"github.com/quic-go/quic-go/logging"
+	"github.com/quic-go/quic-go/qlog"
+	"github.com/quic-go/quic-go/qlogwriter"
 )
 
+// ErrTransportClosed is returned by the [Transport]'s Listen or Dial method after it was closed.
+var ErrTransportClosed = &errTransportClosed{}
+
+type errTransportClosed struct {
+	err error
+}
+
+func (e *errTransportClosed) Unwrap() []error { return []error{net.ErrClosed, e.err} }
+
+func (e *errTransportClosed) Error() string {
+	if e.err == nil {
+		return "quic: transport closed"
+	}
+	return fmt.Sprintf("quic: transport closed: %s", e.err)
+}
+
+func (e *errTransportClosed) Is(target error) bool {
+	_, ok := target.(*errTransportClosed)
+	return ok
+}
+
 var errListenerAlreadySet = errors.New("listener already set")
+
+type closePacket struct {
+	payload []byte
+	addr    net.Addr
+	info    packetInfo
+}
 
 // The Transport is the central point to manage incoming and outgoing QUIC connections.
 // QUIC demultiplexes connections based on their QUIC Connection IDs, not based on the 4-tuple.
 // This means that a single UDP socket can be used for listening for incoming connections, as well as
 // for dialing an arbitrary number of outgoing connections.
 // A Transport handles a single net.PacketConn, and offers a range of configuration options
-// compared to the simple helper functions like Listen and Dial that this package provides.
+// compared to the simple helper functions like [Listen] and [Dial] that this package provides.
 type Transport struct {
 	// A single net.PacketConn can only be handled by one Transport.
 	// Bad things will happen if passed to multiple Transports.
@@ -41,7 +70,8 @@ type Transport struct {
 	Conn net.PacketConn
 
 	// The length of the connection ID in bytes.
-	// It can be 0, or any value between 4 and 18.
+	// It can be any value between 1 and 20.
+	// Due to the increased risk of collisions, it is not recommended to use connection IDs shorter than 4 bytes.
 	// If unset, a 4 byte connection ID will be used.
 	ConnectionIDLength int
 
@@ -77,21 +107,46 @@ type Transport struct {
 	// It has no effect for clients.
 	DisableVersionNegotiationPackets bool
 
+	// VerifySourceAddress decides if a connection attempt originating from unvalidated source
+	// addresses first needs to go through source address validation using QUIC's Retry mechanism,
+	// as described in RFC 9000 section 8.1.2.
+	// Note that the address passed to this callback is unvalidated, and might be spoofed in case
+	// of an attack.
+	// Validating the source address adds one additional network roundtrip to the handshake,
+	// and should therefore only be used if a suspiciously high number of incoming connection is recorded.
+	// For most use cases, wrapping the Allow function of a rate.Limiter will be a reasonable
+	// implementation of this callback (negating its return value).
+	VerifySourceAddress func(net.Addr) bool
+
+	// ConnContext is called when the server accepts a new connection. To reject a connection return
+	// a non-nil error.
+	// The context is closed when the connection is closed, or when the handshake fails for any reason.
+	// The context returned from the callback is used to derive every other context used during the
+	// lifetime of the connection:
+	// * the context passed to crypto/tls (and used on the tls.ClientHelloInfo)
+	// * the context used in Config.QlogTrace
+	// * the context returned from Conn.Context
+	// * the context returned from SendStream.Context
+	// It is not used for dialed connections.
+	ConnContext func(context.Context, *ClientInfo) (context.Context, error)
+
 	// A Tracer traces events that don't belong to a single QUIC connection.
-	Tracer *logging.Tracer
+	// Recorder.Close is called when the transport is closed.
+	Tracer qlogwriter.Recorder
 
-	handlerMap packetHandlerManager
+	mutex       sync.Mutex
+	handlers    map[protocol.ConnectionID]packetHandler
+	resetTokens map[protocol.StatelessResetToken]packetHandler
 
-	mutex    sync.Mutex
 	initOnce sync.Once
 	initErr  error
 
-	// Set in init.
 	// If no ConnectionIDGenerator is set, this is the ConnectionIDLength.
 	connIDLen int
 	// Set in init.
 	// If no ConnectionIDGenerator is set, this is set to a default.
-	connIDGenerator ConnectionIDGenerator
+	connIDGenerator   ConnectionIDGenerator
+	statelessResetter *statelessResetter
 
 	server *baseServer
 
@@ -101,7 +156,7 @@ type Transport struct {
 	statelessResetQueue chan receivedPacket
 
 	listening   chan struct{} // is closed when listen returns
-	closed      bool
+	closeErr    error
 	createdConn bool
 	isSingleUse bool // was created for a single server or client, i.e. by calling quic.Listen or quic.Dial
 
@@ -113,7 +168,7 @@ type Transport struct {
 
 // Listen starts listening for incoming QUIC connections.
 // There can only be a single listener on any net.PacketConn.
-// Listen may only be called again after the current Listener was closed.
+// Listen may only be called again after the current listener was closed.
 func (t *Transport) Listen(tlsConf *tls.Config, conf *Config) (*Listener, error) {
 	s, err := t.createServer(tlsConf, conf, false)
 	if err != nil {
@@ -124,7 +179,7 @@ func (t *Transport) Listen(tlsConf *tls.Config, conf *Config) (*Listener, error)
 
 // ListenEarly starts listening for incoming QUIC connections.
 // There can only be a single listener on any net.PacketConn.
-// Listen may only be called again after the current Listener was closed.
+// ListenEarly may only be called again after the current listener was closed.
 func (t *Transport) ListenEarly(tlsConf *tls.Config, conf *Config) (*EarlyListener, error) {
 	s, err := t.createServer(tlsConf, conf, true)
 	if err != nil {
@@ -144,23 +199,33 @@ func (t *Transport) createServer(tlsConf *tls.Config, conf *Config, allow0RTT bo
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 
+	if t.closeErr != nil {
+		return nil, t.closeErr
+	}
 	if t.server != nil {
 		return nil, errListenerAlreadySet
 	}
-	conf = populateServerConfig(conf)
+	conf = populateConfig(conf)
 	if err := t.init(false); err != nil {
 		return nil, err
 	}
+	maxTokenAge := t.MaxTokenAge
+	if maxTokenAge == 0 {
+		maxTokenAge = 24 * time.Hour
+	}
 	s := newServer(
 		t.conn,
-		t.handlerMap,
+		(*packetHandlerMap)(t),
 		t.connIDGenerator,
+		t.statelessResetter,
+		t.ConnContext,
 		tlsConf,
 		conf,
 		t.Tracer,
 		t.closeServer,
 		*t.TokenGeneratorKey,
-		t.MaxTokenAge,
+		maxTokenAge,
+		t.VerifySourceAddress,
 		t.DisableVersionNegotiationPackets,
 		allow0RTT,
 	)
@@ -169,30 +234,142 @@ func (t *Transport) createServer(tlsConf *tls.Config, conf *Config, allow0RTT bo
 }
 
 // Dial dials a new connection to a remote host (not using 0-RTT).
-func (t *Transport) Dial(ctx context.Context, addr net.Addr, tlsConf *tls.Config, conf *Config) (Connection, error) {
+func (t *Transport) Dial(ctx context.Context, addr net.Addr, tlsConf *tls.Config, conf *Config) (*Conn, error) {
 	return t.dial(ctx, addr, "", tlsConf, conf, false)
 }
 
 // DialEarly dials a new connection, attempting to use 0-RTT if possible.
-func (t *Transport) DialEarly(ctx context.Context, addr net.Addr, tlsConf *tls.Config, conf *Config) (EarlyConnection, error) {
+func (t *Transport) DialEarly(ctx context.Context, addr net.Addr, tlsConf *tls.Config, conf *Config) (*Conn, error) {
 	return t.dial(ctx, addr, "", tlsConf, conf, true)
 }
 
-func (t *Transport) dial(ctx context.Context, addr net.Addr, host string, tlsConf *tls.Config, conf *Config, use0RTT bool) (EarlyConnection, error) {
+func (t *Transport) dial(ctx context.Context, addr net.Addr, host string, tlsConf *tls.Config, conf *Config, use0RTT bool) (*Conn, error) {
+	if err := t.init(t.isSingleUse); err != nil {
+		return nil, err
+	}
 	if err := validateConfig(conf); err != nil {
 		return nil, err
 	}
 	conf = populateConfig(conf)
-	if err := t.init(t.isSingleUse); err != nil {
-		return nil, err
-	}
-	var onClose func()
-	if t.isSingleUse {
-		onClose = func() { t.Close() }
-	}
 	tlsConf = tlsConf.Clone()
 	setTLSConfigServerName(tlsConf, addr, host)
-	return dial(ctx, newSendConn(t.conn, addr, packetInfo{}, utils.DefaultLogger), t.connIDGenerator, t.handlerMap, tlsConf, conf, onClose, use0RTT)
+	return t.doDial(ctx,
+		newSendConn(t.conn, addr, packetInfo{}, utils.DefaultLogger),
+		tlsConf,
+		conf,
+		0,
+		false,
+		use0RTT,
+		conf.Versions[0],
+	)
+}
+
+func (t *Transport) doDial(
+	ctx context.Context,
+	sendConn sendConn,
+	tlsConf *tls.Config,
+	config *Config,
+	initialPacketNumber protocol.PacketNumber,
+	hasNegotiatedVersion bool,
+	use0RTT bool,
+	version protocol.Version,
+) (*Conn, error) {
+	srcConnID, err := t.connIDGenerator.GenerateConnectionID()
+	if err != nil {
+		return nil, err
+	}
+	destConnID, err := generateConnectionIDForInitial()
+	if err != nil {
+		return nil, err
+	}
+
+	t.mutex.Lock()
+	if t.closeErr != nil {
+		t.mutex.Unlock()
+		return nil, t.closeErr
+	}
+
+	var qlogTrace qlogwriter.Trace
+	if config.Tracer != nil {
+		qlogTrace = config.Tracer(ctx, true, destConnID)
+	}
+
+	logger := utils.DefaultLogger.WithPrefix("client")
+	logger.Infof("Starting new connection to %s (%s -> %s), source connection ID %s, destination connection ID %s, version %s", tlsConf.ServerName, sendConn.LocalAddr(), sendConn.RemoteAddr(), srcConnID, destConnID, version)
+
+	conn := newClientConnection(
+		context.WithoutCancel(ctx),
+		sendConn,
+		(*packetHandlerMap)(t),
+		destConnID,
+		srcConnID,
+		t.connIDGenerator,
+		t.statelessResetter,
+		config,
+		tlsConf,
+		initialPacketNumber,
+		use0RTT,
+		hasNegotiatedVersion,
+		qlogTrace,
+		logger,
+		version,
+	)
+	t.handlers[srcConnID] = conn
+	t.mutex.Unlock()
+
+	// The error channel needs to be buffered, as the run loop will continue running
+	// after doDial returns (if the handshake is successful).
+	// Similarly, the recreateChan needs to be buffered; in case a different case is selected.
+	errChan := make(chan error, 1)
+	recreateChan := make(chan errCloseForRecreating, 1)
+	go func() {
+		err := conn.run()
+		var recreateErr *errCloseForRecreating
+		if errors.As(err, &recreateErr) {
+			recreateChan <- *recreateErr
+			return
+		}
+		if t.isSingleUse {
+			t.Close()
+		}
+		errChan <- err
+	}()
+
+	// Only set when we're using 0-RTT.
+	// Otherwise, earlyConnChan will be nil. Receiving from a nil chan blocks forever.
+	var earlyConnChan <-chan struct{}
+	if use0RTT {
+		earlyConnChan = conn.earlyConnReady()
+	}
+
+	select {
+	case <-ctx.Done():
+		conn.destroy(nil)
+		// wait until the Go routine that called Conn.run() returns
+		select {
+		case <-errChan:
+		case <-recreateChan:
+		}
+		return nil, context.Cause(ctx)
+	case params := <-recreateChan:
+		return t.doDial(ctx,
+			sendConn,
+			tlsConf,
+			config,
+			params.nextPacketNumber,
+			true,
+			use0RTT,
+			params.nextVersion,
+		)
+	case err := <-errChan:
+		return nil, err
+	case <-earlyConnChan:
+		// ready to send 0-RTT data
+		return conn.Conn, nil
+	case <-conn.HandshakeComplete():
+		// handshake successfully completed
+		return conn.Conn, nil
+	}
 }
 
 func (t *Transport) init(allowZeroLengthConnIDs bool) error {
@@ -211,7 +388,8 @@ func (t *Transport) init(allowZeroLengthConnIDs bool) error {
 
 		t.logger = utils.DefaultLogger // TODO: make this configurable
 		t.conn = conn
-		t.handlerMap = newPacketHandlerMap(t.StatelessResetKey, t.enqueueClosePacket, t.logger)
+		t.handlers = make(map[protocol.ConnectionID]packetHandler)
+		t.resetTokens = make(map[protocol.StatelessResetToken]packetHandler)
 		t.listening = make(chan struct{})
 
 		t.closeQueue = make(chan closePacket, 4)
@@ -236,9 +414,16 @@ func (t *Transport) init(allowZeroLengthConnIDs bool) error {
 			t.connIDLen = connIDLen
 			t.connIDGenerator = &protocol.DefaultConnectionIDGenerator{ConnLen: t.connIDLen}
 		}
+		t.statelessResetter = newStatelessResetter(t.StatelessResetKey)
 
-		getMultiplexer().AddConn(t.Conn)
-		go t.listen(conn)
+		go func() {
+			defer close(t.listening)
+			t.listen(conn)
+
+			if t.createdConn {
+				conn.Close()
+			}
+		}()
 		go t.runSendQueue()
 	})
 	return t.initErr
@@ -250,15 +435,6 @@ func (t *Transport) WriteTo(b []byte, addr net.Addr) (int, error) {
 		return 0, err
 	}
 	return t.conn.WritePacket(b, addr, nil, 0, protocol.ECNUnsupported)
-}
-
-func (t *Transport) enqueueClosePacket(p closePacket) {
-	select {
-	case t.closeQueue <- p:
-	default:
-		// Oops, we're backlogged.
-		// Just drop the packet, sending CONNECTION_CLOSE copies is best effort anyway.
-	}
 }
 
 func (t *Transport) runSendQueue() {
@@ -274,11 +450,18 @@ func (t *Transport) runSendQueue() {
 	}
 }
 
-// Close closes the underlying connection.
-// If any listener was started, it will be closed as well.
-// It is invalid to start new listeners or connections after that.
+// Close stops listening for UDP datagrams on the Transport.Conn.
+// It abruptly terminates all existing connections, without sending a CONNECTION_CLOSE
+// to the peers. It is the application's responsibility to cleanly terminate existing
+// connections prior to calling Close.
+//
+// If a server was started, it will be closed as well.
+// It is not possible to start any new server or dial new connections after that.
 func (t *Transport) Close() error {
-	t.close(errors.New("closing"))
+	// avoid race condition if the transport is currently being initialized
+	t.init(false)
+
+	t.close(nil)
 	if t.createdConn {
 		if err := t.Conn.Close(); err != nil {
 			return err
@@ -295,44 +478,57 @@ func (t *Transport) Close() error {
 
 func (t *Transport) closeServer() {
 	t.mutex.Lock()
+	defer t.mutex.Unlock()
+
 	t.server = nil
 	if t.isSingleUse {
-		t.closed = true
+		t.closeErr = ErrServerClosed
 	}
-	t.mutex.Unlock()
-	if t.createdConn {
-		t.Conn.Close()
-	}
-	if t.isSingleUse {
-		t.conn.SetReadDeadline(time.Now())
-		defer func() { t.conn.SetReadDeadline(time.Time{}) }()
-		<-t.listening // wait until listening returns
+
+	if len(t.handlers) == 0 {
+		t.maybeStopListening()
 	}
 }
 
 func (t *Transport) close(e error) {
 	t.mutex.Lock()
-	defer t.mutex.Unlock()
-	if t.closed {
+
+	if t.closeErr != nil {
+		t.mutex.Unlock()
 		return
 	}
 
-	if t.handlerMap != nil {
-		t.handlerMap.Close(e)
+	e = &errTransportClosed{err: e}
+	t.closeErr = e
+	server := t.server
+	t.server = nil
+	if server != nil {
+		t.mutex.Unlock()
+		server.close(e, true)
+		t.mutex.Lock()
 	}
-	if t.server != nil {
-		t.server.close(e, false)
+
+	// Close existing connections
+	var wg sync.WaitGroup
+	for _, handler := range t.handlers {
+		wg.Add(1)
+		go func(handler packetHandler) {
+			handler.destroy(e)
+			wg.Done()
+		}(handler)
 	}
-	t.closed = true
+	t.mutex.Unlock() // closing connections requires releasing transport mutex
+	wg.Wait()
+
+	if t.Tracer != nil {
+		t.Tracer.Close()
+	}
 }
 
 // only print warnings about the UDP receive buffer size once
 var setBufferWarningOnce sync.Once
 
 func (t *Transport) listen(conn rawConn) {
-	defer close(t.listening)
-	defer getMultiplexer().RemoveConn(t.Conn)
-
 	for {
 		p, err := conn.ReadPacket()
 		//nolint:staticcheck // SA1019 ignore this!
@@ -341,7 +537,7 @@ func (t *Transport) listen(conn rawConn) {
 		// See https://github.com/quic-go/quic-go/issues/1737 for details.
 		if nerr, ok := err.(net.Error); ok && nerr.Temporary() {
 			t.mutex.Lock()
-			closed := t.closed
+			closed := t.closeErr != nil
 			t.mutex.Unlock()
 			if closed {
 				return
@@ -361,6 +557,12 @@ func (t *Transport) listen(conn rawConn) {
 	}
 }
 
+func (t *Transport) maybeStopListening() {
+	if t.isSingleUse && t.closeErr != nil {
+		t.conn.SetReadDeadline(time.Now())
+	}
+}
+
 func (t *Transport) handlePacket(p receivedPacket) {
 	if len(p.data) == 0 {
 		return
@@ -372,22 +574,42 @@ func (t *Transport) handlePacket(p receivedPacket) {
 	connID, err := wire.ParseConnectionID(p.data, t.connIDLen)
 	if err != nil {
 		t.logger.Debugf("error parsing connection ID on packet from %s: %s", p.remoteAddr, err)
-		if t.Tracer != nil && t.Tracer.DroppedPacket != nil {
-			t.Tracer.DroppedPacket(p.remoteAddr, logging.PacketTypeNotDetermined, p.Size(), logging.PacketDropHeaderParseError)
+		if t.Tracer != nil {
+			t.Tracer.RecordEvent(qlog.PacketDropped{
+				Raw:     qlog.RawInfo{Length: int(p.Size())},
+				Trigger: qlog.PacketDropHeaderParseError,
+			})
 		}
 		p.buffer.MaybeRelease()
 		return
 	}
 
-	if isStatelessReset := t.maybeHandleStatelessReset(p.data); isStatelessReset {
-		return
-	}
-	if handler, ok := t.handlerMap.Get(connID); ok {
+	// If there's a connection associated with the connection ID, pass the packet there.
+	if handler, ok := (*packetHandlerMap)(t).Get(connID); ok {
 		handler.handlePacket(p)
 		return
 	}
+	// RFC 9000 section 10.3.1 requires that the stateless reset detection logic is run for both
+	// packets that cannot be associated with any connections, and for packets that can't be decrypted.
+	// We deviate from the RFC and ignore the latter: If a packet's connection ID is associated with an
+	// existing connection, it is dropped there if if it can't be decrypted.
+	// Stateless resets use random connection IDs, and at reasonable connection ID lengths collisions are
+	// exceedingly rare. In the unlikely event that a stateless reset is misrouted to an existing connection,
+	// it is to be expected that the next stateless reset will be correctly detected.
+	if isStatelessReset := t.maybeHandleStatelessReset(p.data); isStatelessReset {
+		return
+	}
 	if !wire.IsLongHeaderPacket(p.data[0]) {
-		t.maybeSendStatelessReset(p)
+		if statelessResetQueued := t.maybeSendStatelessReset(p); !statelessResetQueued {
+			if t.Tracer != nil {
+				t.Tracer.RecordEvent(qlog.PacketDropped{
+					Header:  qlog.PacketHeader{PacketType: qlog.PacketType1RTT},
+					Raw:     qlog.RawInfo{Length: int(p.Size())},
+					Trigger: qlog.PacketDropUnknownConnectionID,
+				})
+			}
+			p.buffer.Release()
+		}
 		return
 	}
 
@@ -395,29 +617,35 @@ func (t *Transport) handlePacket(p receivedPacket) {
 	defer t.mutex.Unlock()
 	if t.server == nil { // no server set
 		t.logger.Debugf("received a packet with an unexpected connection ID %s", connID)
+		if t.Tracer != nil {
+			t.Tracer.RecordEvent(qlog.PacketDropped{
+				Raw:     qlog.RawInfo{Length: int(p.Size())},
+				Trigger: qlog.PacketDropUnknownConnectionID,
+			})
+		}
+		p.buffer.MaybeRelease()
 		return
 	}
 	t.server.handlePacket(p)
 }
 
-func (t *Transport) maybeSendStatelessReset(p receivedPacket) {
+func (t *Transport) maybeSendStatelessReset(p receivedPacket) (statelessResetQueued bool) {
 	if t.StatelessResetKey == nil {
-		p.buffer.Release()
-		return
+		return false
 	}
 
 	// Don't send a stateless reset in response to very small packets.
 	// This includes packets that could be stateless resets.
 	if len(p.data) <= protocol.MinStatelessResetSize {
-		p.buffer.Release()
-		return
+		return false
 	}
 
 	select {
 	case t.statelessResetQueue <- p:
+		return true
 	default:
 		// it's fine to not send a stateless reset when we're busy
-		p.buffer.Release()
+		return false
 	}
 }
 
@@ -429,7 +657,7 @@ func (t *Transport) sendStatelessReset(p receivedPacket) {
 		t.logger.Errorf("error parsing connection ID on packet from %s: %s", p.remoteAddr, err)
 		return
 	}
-	token := t.handlerMap.GetStatelessResetToken(connID)
+	token := t.statelessResetter.GetStatelessResetToken(connID)
 	t.logger.Debugf("Sending stateless reset to %s (connection ID: %s). Token: %#x", p.remoteAddr, connID, token)
 	data := make([]byte, protocol.MinStatelessResetSize-16, protocol.MinStatelessResetSize)
 	rand.Read(data)
@@ -449,10 +677,14 @@ func (t *Transport) maybeHandleStatelessReset(data []byte) bool {
 		return false
 	}
 
-	token := *(*protocol.StatelessResetToken)(data[len(data)-16:])
-	if conn, ok := t.handlerMap.GetByResetToken(token); ok {
+	token := protocol.StatelessResetToken(data[len(data)-16:])
+	t.mutex.Lock()
+	conn, ok := t.resetTokens[token]
+	t.mutex.Unlock()
+
+	if ok {
 		t.logger.Debugf("Received a stateless reset with token %#x. Closing connection.", token)
-		go conn.destroy(&StatelessResetError{Token: token})
+		go conn.destroy(&StatelessResetError{})
 		return true
 	}
 	return false
@@ -467,8 +699,11 @@ func (t *Transport) handleNonQUICPacket(p receivedPacket) {
 	select {
 	case t.nonQUICPackets <- p:
 	default:
-		if t.Tracer != nil && t.Tracer.DroppedPacket != nil {
-			t.Tracer.DroppedPacket(p.remoteAddr, logging.PacketTypeNotDetermined, p.Size(), logging.PacketDropDOSPrevention)
+		if t.Tracer != nil {
+			t.Tracer.RecordEvent(qlog.PacketDropped{
+				Raw:     qlog.RawInfo{Length: int(p.Size())},
+				Trigger: qlog.PacketDropDOSPrevention,
+			})
 		}
 	}
 }
@@ -514,4 +749,104 @@ func setTLSConfigServerName(tlsConf *tls.Config, addr net.Addr, host string) {
 		return
 	}
 	tlsConf.ServerName = h
+}
+
+type packetHandlerMap Transport
+
+var _ connRunner = &packetHandlerMap{}
+
+func (h *packetHandlerMap) Add(id protocol.ConnectionID, handler packetHandler) bool /* was added */ {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+
+	if _, ok := h.handlers[id]; ok {
+		h.logger.Debugf("Not adding connection ID %s, as it already exists.", id)
+		return false
+	}
+	h.handlers[id] = handler
+	h.logger.Debugf("Adding connection ID %s.", id)
+	return true
+}
+
+func (h *packetHandlerMap) Get(connID protocol.ConnectionID) (packetHandler, bool) {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+	handler, ok := h.handlers[connID]
+	return handler, ok
+}
+
+func (h *packetHandlerMap) AddResetToken(token protocol.StatelessResetToken, handler packetHandler) {
+	h.mutex.Lock()
+	h.resetTokens[token] = handler
+	h.mutex.Unlock()
+}
+
+func (h *packetHandlerMap) RemoveResetToken(token protocol.StatelessResetToken) {
+	h.mutex.Lock()
+	delete(h.resetTokens, token)
+	h.mutex.Unlock()
+}
+
+func (h *packetHandlerMap) AddWithConnID(clientDestConnID, newConnID protocol.ConnectionID, handler packetHandler) bool {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+
+	if _, ok := h.handlers[clientDestConnID]; ok {
+		h.logger.Debugf("Not adding connection ID %s for a new connection, as it already exists.", clientDestConnID)
+		return false
+	}
+	h.handlers[clientDestConnID] = handler
+	h.handlers[newConnID] = handler
+	h.logger.Debugf("Adding connection IDs %s and %s for a new connection.", clientDestConnID, newConnID)
+	return true
+}
+
+func (h *packetHandlerMap) Remove(id protocol.ConnectionID) {
+	h.mutex.Lock()
+	delete(h.handlers, id)
+	h.mutex.Unlock()
+	h.logger.Debugf("Removing connection ID %s.", id)
+}
+
+// ReplaceWithClosed is called when a connection is closed.
+// Depending on which side closed the connection, we need to:
+// * remote close: absorb delayed packets
+// * local close: retransmit the CONNECTION_CLOSE packet, in case it was lost
+func (h *packetHandlerMap) ReplaceWithClosed(ids []protocol.ConnectionID, connClosePacket []byte, expiry time.Duration) {
+	var handler packetHandler
+	if connClosePacket != nil {
+		handler = newClosedLocalConn(
+			func(addr net.Addr, info packetInfo) {
+				select {
+				case h.closeQueue <- closePacket{payload: connClosePacket, addr: addr, info: info}:
+				default:
+					// We're backlogged.
+					// Just drop the packet, sending CONNECTION_CLOSE copies is best effort anyway.
+				}
+			},
+			h.logger,
+		)
+	} else {
+		handler = newClosedRemoteConn()
+	}
+
+	h.mutex.Lock()
+	for _, id := range ids {
+		h.handlers[id] = handler
+	}
+	h.mutex.Unlock()
+	h.logger.Debugf("Replacing connection for connection IDs %s with a closed connection.", ids)
+
+	time.AfterFunc(expiry, func() {
+		h.mutex.Lock()
+		for _, id := range ids {
+			delete(h.handlers, id)
+		}
+		if len(h.handlers) == 0 {
+			t := (*Transport)(h)
+			t.maybeStopListening()
+		}
+		h.mutex.Unlock()
+		h.logger.Debugf("Removing connection IDs %s for a closed connection after it has been retired.", ids)
+	})
 }

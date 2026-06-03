@@ -41,7 +41,7 @@ type ingestionCanaryTool struct {
 	storageIndex string
 }
 
-func runIngestionCanaryTool() error {
+func runIngestionCanaryTool(storageIndex string) error {
 	if config.Cfg.Dataway == nil {
 		return errors.New("dataway not configured")
 	}
@@ -50,9 +50,7 @@ func runIngestionCanaryTool() error {
 	}
 
 	tool := &ingestionCanaryTool{}
-	if flagToolIngestionCanaryIndex != nil {
-		tool.storageIndex = *flagToolIngestionCanaryIndex
-	}
+	tool.storageIndex = storageIndex
 
 	// Initialize canary
 	tool.canary = ingestioncanary.New(

@@ -14,8 +14,8 @@ import (
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 )
 
-func parseLineProto() error {
-	x, err := os.ReadFile(*flagToolParseLineProtocol)
+func parseLineProto(path string, outputJSON bool) error {
+	x, err := os.ReadFile(path) //nolint:gosec
 	if err != nil {
 		cp.Errorf("os.ReadFile: %s\n", err.Error())
 		return err
@@ -55,7 +55,7 @@ func parseLineProto() error {
 		}
 	}
 
-	if *flagToolJSON {
+	if outputJSON {
 		j, err := json.MarshalIndent(map[string]any{
 			"point":        len(pts),
 			"time_serial":  len(hashids),

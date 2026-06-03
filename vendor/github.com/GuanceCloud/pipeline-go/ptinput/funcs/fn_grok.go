@@ -7,6 +7,7 @@ package funcs
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/GuanceCloud/grok"
 	"github.com/GuanceCloud/pipeline-go/ptinput"
@@ -89,8 +90,21 @@ func Grok(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 		}
 	}
 
+	observer := currentGrokRunObserver()
+	var start time.Time
+	if observer != nil {
+		start = time.Now()
+	}
+
 	if grokRe.WithTypeInfo() {
-		result, err := grokRe.RunWithTypeInfo(val, trimSpace)
+		var result []any
+		if observer != nil {
+			var meta grok.RunMeta
+			result, err = grokRe.RunWithTypeInfoWithMeta(val, trimSpace, &meta)
+			observeGrokRun(observer, ctx.Name(), funcExpr.NamePos.Ln, funcExpr.NamePos.Col, meta, start)
+		} else {
+			result, err = grokRe.RunWithTypeInfo(val, trimSpace)
+		}
 		if err != nil {
 			ctx.Regs.ReturnAppend(false, ast.Bool)
 			return nil
@@ -119,7 +133,14 @@ func Grok(ctx *runtime.Task, funcExpr *ast.CallExpr) *errchain.PlError {
 			}
 		}
 	} else {
-		result, err := grokRe.Run(val, trimSpace)
+		var result []string
+		if observer != nil {
+			var meta grok.RunMeta
+			result, err = grokRe.RunWithMeta(val, trimSpace, &meta)
+			observeGrokRun(observer, ctx.Name(), funcExpr.NamePos.Ln, funcExpr.NamePos.Col, meta, start)
+		} else {
+			result, err = grokRe.Run(val, trimSpace)
+		}
 		if err != nil {
 			ctx.Regs.ReturnAppend(false, ast.Bool)
 			return nil

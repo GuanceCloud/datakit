@@ -3,6 +3,7 @@ package grok
 import (
 	"bufio"
 	"fmt"
+	"hash/fnv"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -421,7 +422,7 @@ func compileDenormalizedPattern(gP *GrokPattern, storage PatternStorageIface) (*
 	return &GrokRegexp{
 		grokPattern:      gP,
 		re:               meta.re,
-		filter:           meta.filter,
+		filter:           selectRegexpFilter(gP, meta.filter),
 		subMatchNames:    meta.subMatchNames,
 		nameIndex:        meta.nameIndex,
 		valueKinds:       valueKinds,
@@ -432,7 +433,14 @@ func compileDenormalizedPattern(gP *GrokPattern, storage PatternStorageIface) (*
 		requiredSuffix:   requiredSuffix,
 		requiredLiterals: requiredLiterals,
 		minMatchLength:   minMatchLength,
+		patternHash:      hashPattern(gP.pattern),
 	}, nil
+}
+
+func hashPattern(pattern string) uint64 {
+	h := fnv.New64a()
+	_, _ = h.Write([]byte(pattern))
+	return h.Sum64()
 }
 
 func loadCompiledRegexpMeta(denormalized string) (*compiledRegexpMeta, error) {
@@ -483,6 +491,56 @@ func loadCompiledRegexpMeta(denormalized string) (*compiledRegexpMeta, error) {
 	}
 	actual, _ := compiledRegexpCache.LoadOrStore(denormalized, meta)
 	return actual.(*compiledRegexpMeta), nil
+}
+
+func selectRegexpFilter(gP *GrokPattern, filter *regexpFilter) *regexpFilter {
+	if shouldSkipRegexpFilter(gP, filter) {
+		return nil
+	}
+	return filter
+}
+
+func shouldSkipRegexpFilter(gP *GrokPattern, filter *regexpFilter) bool {
+	if gP == nil || filter == nil {
+		return false
+	}
+
+	greedyCaptures := countDenormalizedCaptureBody(gP.denormalized, ".*")
+	lazyCaptures := countDenormalizedCaptureBody(gP.denormalized, ".*?")
+
+	if greedyCaptures >= 8 && filter.captureCount >= 12 {
+		return true
+	}
+	if greedyCaptures >= 4 && lazyCaptures >= 4 && filter.captureCount >= 12 {
+		return true
+	}
+	return false
+}
+
+func countDenormalizedCaptureBody(expr, body string) int {
+	if expr == "" || body == "" {
+		return 0
+	}
+
+	count := 0
+	pos := 0
+	for {
+		start := strings.Index(expr[pos:], "(?P<")
+		if start < 0 {
+			return count
+		}
+		start += pos
+		nameEnd := strings.IndexByte(expr[start:], '>')
+		if nameEnd < 0 {
+			return count
+		}
+		bodyStart := start + nameEnd + 1
+		bodyEnd := bodyStart + len(body)
+		if bodyEnd < len(expr) && expr[bodyStart:bodyEnd] == body && expr[bodyEnd] == ')' {
+			count++
+		}
+		pos = bodyStart
+	}
 }
 
 func LoadPatternsFromPath(path string) (map[string]string, error) {

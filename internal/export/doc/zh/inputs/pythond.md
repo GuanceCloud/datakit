@@ -393,7 +393,7 @@ class MyTest(DataKitFramework):
 第四步：重启 DataKit:
 
 ```shell
-sudo datakit service -R
+sudo datakit service restart
 ```
 
 ## FAQ {#faq}

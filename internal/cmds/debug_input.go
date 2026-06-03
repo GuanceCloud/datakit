@@ -18,7 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-func debugInput(conf string) error {
+func debugInput(conf, kvFile, httpListen string) error {
 	// Enable debuging conf to set small interval to refresh result quickly.
 	config.Cfg.ProtectMode = false
 
@@ -32,9 +32,9 @@ func debugInput(conf string) error {
 		dkio.WithCompactor(false))
 
 	// load kv file
-	if *flagDebugKVFile != "" {
-		cp.Infof("setting kv file to %s...\n", *flagDebugKVFile)
-		datakit.KVFile = *flagDebugKVFile
+	if kvFile != "" {
+		cp.Infof("setting kv file to %s...\n", kvFile)
+		datakit.KVFile = kvFile
 	}
 
 	if err := config.GetKV().LoadKVFile(datakit.KVFile); err != nil {
@@ -75,11 +75,11 @@ func debugInput(conf string) error {
 	// setup HTTP server.
 	// NOTE: we must start HTTP after inputs running. inputs may register HTTP routes
 	// to httpapi module(and the register must action before HTTP server started).
-	if *flagDebugHTTPListen != "" {
-		cp.Infof("start HTTP server on %s ...\n", *flagDebugHTTPListen)
+	if httpListen != "" {
+		cp.Infof("start HTTP server on %s ...\n", httpListen)
 
 		config.Cfg.HTTPAPI = &config.APIConfig{
-			Listen: *flagDebugHTTPListen,
+			Listen: httpListen,
 		}
 
 		httpapi.Start(

@@ -27,11 +27,24 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/targzutil"
 )
 
-func runPLFlags() error {
+type PipelineOptions struct {
+	Category  string
+	Namespace string
+	Name      string
+	LogPath   string
+	Text      string
+	FilePath  string
+	Table     bool
+	Date      bool
+}
+
+func RunPipeline(opts PipelineOptions) error {
+	ConfigureCommandLog(opts.LogPath)
+
 	var txt string
 
-	if *flagPLTxtFile != "" {
-		txtBytes, err := os.ReadFile(*flagPLTxtFile)
+	if opts.FilePath != "" {
+		txtBytes, err := os.ReadFile(opts.FilePath)
 		if err != nil {
 			return fmt.Errorf("os.ReadFile: %w", err)
 		}
@@ -40,8 +53,8 @@ func runPLFlags() error {
 	}
 
 	if txt == "" {
-		if *flagPLTxtData != "" {
-			txt = *flagPLTxtData
+		if opts.Text != "" {
+			txt = opts.Text
 		}
 	}
 
@@ -55,18 +68,18 @@ func runPLFlags() error {
 
 	var cat point.Category
 	switch {
-	case point.CatString(*flagPLCategory) != point.UnknownCategory:
-		cat = point.CatString(*flagPLCategory)
-	case point.CatAlias(*flagPLCategory) != point.UnknownCategory:
-		cat = point.CatAlias(*flagPLCategory)
+	case point.CatString(opts.Category) != point.UnknownCategory:
+		cat = point.CatString(opts.Category)
+	case point.CatAlias(opts.Category) != point.UnknownCategory:
+		cat = point.CatAlias(opts.Category)
 	default:
-		return fmt.Errorf("unsupported category: %s", *flagPLCategory)
+		return fmt.Errorf("unsupported category: %s", opts.Category)
 	}
 
-	return pipelineDebugger(cat, *flagPLName, *flagPLNS, txt, false)
+	return pipelineDebugger(cat, opts.Name, opts.Namespace, txt, false, opts.Table, opts.Date)
 }
 
-func pipelineDebugger(cat point.Category, plname, ns, txt string, isPt bool) error {
+func pipelineDebugger(cat point.Category, plname, ns, txt string, isPt, table, date bool) error {
 	if err := pipeline.InitPipeline(config.Cfg.Pipeline, nil, datakit.GlobalHostTags(),
 		datakit.InstallDir); err != nil {
 		return err
@@ -159,7 +172,7 @@ func pipelineDebugger(cat point.Category, plname, ns, txt string, isPt bool) err
 	result := map[string]any{}
 	maxWidth := 0
 
-	if *flagPLDate {
+	if date {
 		result["time"] = res.Time()
 	} else {
 		result["time"] = res.Time().UnixNano()
@@ -181,7 +194,7 @@ func pipelineDebugger(cat point.Category, plname, ns, txt string, isPt bool) err
 
 	name = res.Name()
 
-	if *flagPLTable {
+	if table {
 		fmtStr := fmt.Sprintf("%% %ds: %%v", maxWidth)
 		lines := []string{}
 		for k, v := range result {

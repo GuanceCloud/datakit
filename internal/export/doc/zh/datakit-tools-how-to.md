@@ -4,7 +4,7 @@
 DataKit 内置很多不同的小工具，便于大家日常使用。可通过如下命令来查看 DataKit 的命令行帮助：
 
 ```shell
-datakit help
+datakit --help
 ```
 
 > 注意：因不同平台的差异，具体帮助内容会有差别。
@@ -12,16 +12,19 @@ datakit help
 如果要查看具体某个命令如何使用（比如 `dql`），可以用如下命令：
 
 ```shell
-$ datakit help dql
-usage: datakit dql [options]
+$ datakit dql --help
+DQL used to query data. If no option specified, query interactively.
 
-DQL used to query data. If no option specified, query interactively. Other available options:
+Usage:
+  datakit dql [flags]
 
+Flags:
       --auto-json      pretty output string if field/tag value is JSON
       --csv string     Specify the directory
   -F, --force          overwrite csv if file exists
+  -h, --help           help for dql
   -H, --host string    specify datakit host to query
-  -J, --json           output in json format
+  -J, --json           output in JSON format
       --log string     log path (default "/dev/null")
   -R, --run string     run single DQL
   -T, --token string   run query for specific token(workspace)
@@ -384,13 +387,15 @@ Total upload 75 kB bytes ok
 通过如下命令可以获取更多数据导入的帮助说明：
 
 ```shell
-$ datakit help import
+$ datakit import --help
+Import used to play recorded history data to <<<custom_key.brand_name>>>.
 
-usage: datakit import [options]
+Usage:
+  datakit import [flags]
 
-Import used to play recorded history data to <<<custom_key.brand_name>>>. Available options:
-
+Flags:
   -D, --dataway strings   dataway list
+  -h, --help              help for import
       --log string        log path (default "/dev/null")
   -P, --path string       point data path (default "/usr/local/datakit/recorder")
 ```
@@ -564,26 +569,97 @@ datakit install --ebpf
 
 ### DataKit 自动命令补全 {#completion}
 
-> DataKit 1.2.12 才支持该补全，且只测试了 Ubuntu 和 CentOS 两个 Linux 发行版。其它 Windows 跟 Mac 均不支持。
+> 新版本补全基于 Cobra 命令树生成，支持 `bash`、`zsh`、`fish` 和 `powershell`。安装或升级 DataKit 不会自动启用 shell completion，如需使用命令补全，请在安装完成后手动执行 `datakit completion <shell>`。
+>
+> 注意：`datakit completion` 适用于 DataKit [:octicons-tag-24: Version-2.1.0](changelog-2026.md#cl-2.1.0) 及以后版本。更早版本请以对应版本文档中的命令写法为准。
 
-在使用 DataKit 命令行的过程中，因为命令行参数很多，此处我们添加了命令提示和补全功能。
+在使用 DataKit 命令行的过程中，因为命令参数较多，这里提供了自动补全功能。
 
-主流的 Linux 基本都有命令补全支持，以 Ubuntu 和 CentOS 为例，如果要使用命令补全功能，可额外安装如下软件包：
+常见使用方式如下：
+
+- 显式按 bash 安装：`datakit completion bash --force`
+- 显式按 zsh 安装：`datakit completion zsh --force`
+- 显式按 fish 安装：`datakit completion fish --force`
+- 显式按 powershell 安装：`datakit completion powershell --force`
+- 自动识别当前 shell 并安装：`datakit completion --force`
+- 只输出脚本不安装：`datakit completion bash --print`
+
+建议显式指定 shell 类型，尤其是在通过 `sudo` 执行时。`datakit completion --force` 依赖当前环境中的 `SHELL` 变量自动识别 shell；如果 `sudo` 或其他受限环境未保留该变量，自动识别会失败。
+
+主流 Linux 环境通常都支持命令补全。以 bash 为例，如果宿主机或容器内尚未安装补全支持，可额外安装如下软件包：
 
 - Ubuntu：`apt install bash-completion`
 - CentOS: `yum install bash-completion bash-completion-extras`
 
-如果安装 DataKit 之前，这些软件已经安装好了，则 DataKit 安装时会自动带上命令补全功能。如果这些软件包是在 DataKit 安装之后才更新的，可执行如下操作来安装 DataKit 命令补全功能：
+指定 shell 后，`datakit completion <shell>` 会：
+
+- 将补全脚本安装到标准路径
+- 输出实际安装路径以及如何立即生效
+
+例如：
 
 ```shell
-datakit tool --setup-completer-script
+$ datakit completion bash --force
+completion for bash installed to /usr/share/bash-completion/completions/datakit
+reload your shell or run: source /usr/share/bash-completion/completions/datakit
 ```
+
+如果当前运行在 Docker 容器中，则补全会安装到容器文件系统内的对应路径，输出中也会明确提示这一点。
+
+#### bash 配置 {#completion-bash}
+
+执行：
+
+```shell
+datakit completion bash --force
+```
+
+如果安装到系统 completion 目录，通常重新打开 shell 后即可生效。如果需要在当前 shell 立即生效，可执行命令输出中的 `source` 提示。
+
+#### zsh 配置 {#completion-zsh}
+
+执行：
+
+```shell
+datakit completion zsh --force
+```
+
+zsh 补全默认会将脚本安装到 `~/.zfunc/_datakit`。如果当前 zsh 尚未加载该目录，需要先将其加入 `fpath` 并重新执行 `compinit`：
+
+```shell
+fpath=(~/.zfunc $fpath)
+autoload -Uz compinit
+compinit
+```
+
+如需每次启动 zsh 自动加载，可将上述配置加入 `~/.zshrc`，并确保 `fpath` 配置位于 `compinit` 之前。也可以直接复制 `datakit completion zsh --force` 输出的命令完成写入和加载。
+
+#### fish 配置 {#completion-fish}
+
+执行：
+
+```shell
+datakit completion fish --force
+```
+
+fish 补全默认安装到 `~/.config/fish/completions/datakit.fish`，通常重新打开 fish 后即可生效。
+
+#### PowerShell 配置 {#completion-powershell}
+
+执行：
+
+```powershell
+datakit completion powershell --force
+```
+
+PowerShell 补全默认会生成独立的补全脚本，不会修改或覆盖用户的 `Microsoft.PowerShell_profile.ps1`。如需当前会话立即生效，可执行命令输出中的 dot-source 提示；如需每次启动 PowerShell 自动加载，可自行将该 dot-source 语句加入 profile。
 
 补全使用示例：
 
 ```shell
 $ datakit <tab> # 输入 \tab 即可提示如下命令
-dql       help      install   monitor   pipeline  run       service   tool
+check       completion  debug       dql         import      install
+monitor     pipeline    run         service     tool        version
 
 $ datakit dql <tab> # 输入 \tab 即可提示如下选项
 --auto-json   --csv         -F,--force    --host        -J,--json     --log         -R,--run      -T,--token    -V,--verbose
@@ -591,11 +667,17 @@ $ datakit dql <tab> # 输入 \tab 即可提示如下选项
 
 以下提及的所有命令，均可使用这一方式来操作。
 
-#### 获取自动补全脚本 {#get-completion}
+#### 只输出自动补全脚本 {#get-completion}
 
-如果大家的 Linux 系统不是 Ubuntu 和 CentOS，可通过如下命令获取补全脚本，然后再按照对应平台的 shell 补全方式，一一添加即可。
+如果需要先审阅脚本内容，或者自行处理安装路径，可以使用 `--print`：
 
 ```shell
-# 导出补全脚本到本地 datakit-completer.sh 文件中
-datakit tool --completer-script > datakit-completer.sh
+# 导出 zsh 补全脚本
+datakit completion zsh --print > _datakit
+```
+
+如需显式指定安装路径，可使用 `--path`：
+
+```shell
+datakit completion fish --path ~/.config/fish/completions/datakit.fish --force
 ```

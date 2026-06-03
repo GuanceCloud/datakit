@@ -167,7 +167,7 @@ DataKit supports direct debugging of the collector configuration files from the 
 Restart DataKit for the configuration file to take effect:
 
 ```shell
-datakit service -R
+datakit service restart
 ```
 
 The *prom_remote_write* collector will then write the collected data to the local file indicated by the output.

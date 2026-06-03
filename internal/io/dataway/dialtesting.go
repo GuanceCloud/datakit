@@ -6,10 +6,15 @@
 package dataway
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
@@ -27,6 +32,23 @@ type DialtestingSender struct {
 type DialtestingSenderOpt struct {
 	HTTPTimeout time.Duration
 	HTTPProxy   string
+}
+
+type BrowserScreenshotUpload struct {
+	FileName    string
+	ContentType string
+	Data        []byte
+	TaskID      string
+	RunID       string
+	StepSeq     string
+}
+
+type BrowserScreenshotUploadResult struct {
+	ScreenshotID   string `json:"screenshot_id"`
+	ScreenshotDate string `json:"screenshot_date"`
+	FileName       string `json:"file_name"`
+	FileSize       int64  `json:"file_size"`
+	SHA256         string `json:"sha256"`
 }
 
 func (d *DialtestingSender) Init(opt *DialtestingSenderOpt) error {
@@ -70,6 +92,107 @@ func (d *DialtestingSender) WriteData(url string, pts []*point.Point) error {
 	}
 
 	return writeError
+}
+
+func (d *DialtestingSender) UploadBrowserScreenshot(
+	url string,
+	req *BrowserScreenshotUpload,
+) (*BrowserScreenshotUploadResult, error) {
+	if d.ep == nil {
+		return nil, fmt.Errorf("endpoint is not set correctly")
+	}
+	if req == nil {
+		return nil, fmt.Errorf("browser screenshot upload request is nil")
+	}
+	if len(req.Data) == 0 {
+		return nil, fmt.Errorf("browser screenshot file is empty")
+	}
+	if req.TaskID == "" || req.RunID == "" || req.StepSeq == "" {
+		return nil, fmt.Errorf("task_id, run_id and step_seq are required")
+	}
+
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	fileName := filepath.Base(req.FileName)
+	if fileName == "." || fileName == string(filepath.Separator) || fileName == "" {
+		fileName = "screenshot"
+	}
+
+	header := make(textproto.MIMEHeader)
+	header.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename="%s"`, escapeQuotes(fileName)))
+	if req.ContentType != "" {
+		header.Set("Content-Type", req.ContentType)
+	}
+
+	part, err := writer.CreatePart(header)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := part.Write(req.Data); err != nil {
+		return nil, err
+	}
+
+	if err := writer.WriteField("task_id", req.TaskID); err != nil {
+		return nil, err
+	}
+	if err := writer.WriteField("run_id", req.RunID); err != nil {
+		return nil, err
+	}
+	if err := writer.WriteField("step_seq", req.StepSeq); err != nil {
+		return nil, err
+	}
+	if err := writer.Close(); err != nil {
+		return nil, err
+	}
+
+	httpReq, err := http.NewRequest("POST", url, &body)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Content-Type", writer.FormDataContentType())
+
+	resp, err := d.ep.SendReq(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close() //nolint:errcheck
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode/100 != 2 {
+		return nil, fmt.Errorf("upload browser screenshot failed(status: %d): %s", resp.StatusCode, string(respBody))
+	}
+
+	result, err := decodeBrowserScreenshotUploadResult(respBody)
+	if err != nil {
+		return nil, fmt.Errorf("invalid JSON body content(%s): %w", respBody, err)
+	}
+
+	return result, nil
+}
+
+func decodeBrowserScreenshotUploadResult(respBody []byte) (*BrowserScreenshotUploadResult, error) {
+	result := &BrowserScreenshotUploadResult{}
+	if err := json.Unmarshal(respBody, result); err != nil {
+		return nil, err
+	}
+	if result.ScreenshotID != "" || result.FileName != "" || result.FileSize > 0 {
+		return result, nil
+	}
+
+	var wrapped struct {
+		Content BrowserScreenshotUploadResult `json:"content"`
+	}
+	if err := json.Unmarshal(respBody, &wrapped); err != nil {
+		return nil, err
+	}
+	return &wrapped.Content, nil
+}
+
+func escapeQuotes(s string) string {
+	return strings.NewReplacer("\\", "\\\\", `"`, "\\\"").Replace(s)
 }
 
 // CheckToken checks if token is valid based on the specified scheme and host.

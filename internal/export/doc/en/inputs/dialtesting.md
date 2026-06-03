@@ -47,6 +47,16 @@ The collector collects the data of network dialing test results, and all the dat
 ???+ note
 
     Currently, only Linux dial-up nodes support, and the tracing data is stored in the [traceroute](#traceroute) field of the relevant metrics.
+
+???+ note
+
+    Browser dialtesting is supported starting from DataKit [:octicons-tag-24: Version-2.1.0](../datakit/changelog-2026.md#cl-2.1.0).
+
+    Browser dial testing tasks (`BROWSER`) run by default on Linux dialtesting nodes. To disable them, set `[inputs.dialtesting.browser].enabled = false`. DataKit must be able to access Chrome/Chromium when running browser tasks. To control resource peaks, set `[inputs.dialtesting.browser].max_concurrency`.
+
+    In Kubernetes, use the `datakit:<version>-dialtesting` image. Failure screenshots are uploaded to the Dataway specified by task `post_url`.
+
+    For deployment, task configuration, and troubleshooting details, see [Browser Dialtesting](dialtesting_browser.md).
 <!-- markdownlint-enable -->
 
 ### Dialtesting Node Deployment {#arch}
@@ -65,6 +75,11 @@ The following is a network deployment topology for dialtesting nodes, which incl
 <!-- markdownlint-enable -->
 
 Whether it is a public or private node, they can both create probe tasks through the Web page.
+
+If a dialtesting node needs to run browser dial testing tasks, make sure the node environment meets the following requirements:
+
+- Chrome/Chromium can be accessed by the DataKit process.
+- The node can access the target site and the Dataway specified by task `post_url`, which is used to report dial testing results and failure screenshots.
 
 ```mermaid
 graph TD

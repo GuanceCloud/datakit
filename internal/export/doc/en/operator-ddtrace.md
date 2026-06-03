@@ -39,22 +39,98 @@
     | `envs`                       | object  | Environment variable map                                        | Y[^envs]     | See example below                |
     | `image`                      | string  | DDTrace image address                                           | Y[^image]    | See example below                |
     | `label_selectors`            | array   | Label selector array                                            | Y[^selector] | `["app=nginx", "tier=frontend"]` |
-    | `language`                   | string  | Supported language type (optional `java`)                       | Y[^lang]     | `"java"`                         |
+    | `language`                   | string  | Supported language type (`java`/`python`/`php`/`nodejs`)         | Y[^lang]     | `"nodejs"`                       |
     | `namespace_selectors`        | array   | Namespace selector, supports regex                              | Y[^selector] | `["prod-*", "test"]`             |
     | `resources`                  | object  | Resource limit configuration                                    | N            | See example below                |
     | ~~`enabled_namespaces`~~     | object  | Select target Kubernetes namespace and set development language | Y            | Deprecated in 1.7.0 `admission_inject_v2` |
     | ~~`enabled_labelselectors`~~ | object  | Select target using Kubernetes label                            | Y            | Deprecated in 1.7.0 `admission_inject_v2` |
 
     [^selector]: This field must be filled; otherwise, the Operator will reject the injection.
-    [^image]: Although the Operator has a built-in default image address, users generally need to copy the image to the internal network for offline environments and then use the internal image address.
+    [^image]: The installation templates provide default image addresses. For offline environments, users generally need to copy the images to an internal registry and then use the internal image addresses.
     [^lang]: The language selected here must match the content of the corresponding DDTrace image. If it does not match, the injection will fail.
     [^envs]: These environment variable settings are crucial and directly affect the final data outcome. For the supported `fieldRef` list here, see [here](datakit-operator.md#downwardapi).
+
+### DDTrace Lib Injection and Image Selection {#ddtrace-lib-image-selection}
+
+When DataKit Operator injects DDTrace, it adds an initContainer named `datakit-lib-init`, copies the DDTrace Lib into the shared volume `/datadog-lib`, and mounts that directory into application containers. Select the image version according to the **language runtime version in the application container**, not according to the initContainer runtime.
+
+Image repositories are brand-specific. The examples below use `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator`, which is replaced with the corresponding repository when the document is published for each brand.
+
+#### Node.js Injection {#ddtrace-nodejs-injection}
+
+Node.js injection sets or appends `NODE_OPTIONS` in the application container:
+
+```shell
+--require=/datadog-lib/node_modules/dd-trace/init
+```
+
+If `NODE_OPTIONS` already exists in the application container, Operator appends the option above. The Node.js image must match the major Node.js version in the application container.
+
+| Application Node.js version | Recommended image | Version requirement |
+| --- | --- | --- |
+| Node.js 18 to 25 | `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-js-init:5.102.0` | Default recommended version. It includes `dd-trace@5.102.0`, which requires `node >=18 <26` |
+| Node.js 16 | `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-js-init:4.55.0` | Use the `dd-trace` 4.x series. Do not use `5.102.0` for Node.js 16 |
+| Node.js 14 and earlier | Not in the default support scope | Requires an older `dd-trace` major version and the corresponding image. Upgrading Node.js is recommended |
+
+Node.js DDTrace configuration example:
+
+```json
+{
+    "namespace_selectors": ["default"],
+    "label_selectors": [],
+    "check_annotation": false,
+    "image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-js-init:5.102.0",
+    "language": "nodejs",
+    "envs": {
+        "DD_AGENT_HOST": "datakit-service.datakit.svc.cluster.local",
+        "DD_TRACE_AGENT_PORT": "9529",
+        "DD_SERVICE": "{fieldRef:metadata.labels['app']}",
+        "POD_NAME": "{fieldRef:metadata.name}",
+        "POD_NAMESPACE": "{fieldRef:metadata.namespace}",
+        "NODE_NAME": "{fieldRef:spec.nodeName}",
+        "DD_TAGS": "pod_name:$(POD_NAME),pod_namespace:$(POD_NAMESPACE),host:$(NODE_NAME)"
+    }
+}
+```
+
+#### Python Injection {#ddtrace-python-injection}
+
+Python injection sets or appends `PYTHONPATH=/datadog-lib/` in the application container, so the Python process can load DDTrace-related libraries from `/datadog-lib`. Python DDTrace packages include CPython ABI-specific wheels, so the image version must match the Python minor version in the application container. If the version does not match, the application may fail with `ModuleNotFoundError`, native extension loading errors, or startup errors.
+
+| Application Python version | Recommended image | Version requirement |
+| --- | --- | --- |
+| Python 3.7 | `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-python-init:v2.21.12` | `ddtrace` 2.x supports Python 3.7. Python 3.7 is not supported by `ddtrace` 3.x/4.x |
+| Python 3.8 | `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-python-init:v3.19.7` | `ddtrace` 3.x supports Python 3.8. `ddtrace` 4.x requires Python 3.9 or later |
+| Python 3.9 to 3.14 | `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-python-init:v4.8.3` | Current `ddtrace` 4.x requires `python >=3.9,<3.15` |
+
+Python DDTrace configuration example:
+
+```json
+{
+    "namespace_selectors": ["default"],
+    "label_selectors": [],
+    "check_annotation": false,
+    "image": "pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator/dd-lib-python-init:v4.8.3",
+    "language": "python",
+    "envs": {
+        "DD_AGENT_HOST": "datakit-service.datakit.svc.cluster.local",
+        "DD_TRACE_AGENT_PORT": "9529",
+        "DD_SERVICE": "{fieldRef:metadata.labels['app']}",
+        "POD_NAME": "{fieldRef:metadata.name}",
+        "POD_NAMESPACE": "{fieldRef:metadata.namespace}",
+        "NODE_NAME": "{fieldRef:spec.nodeName}",
+        "DD_TAGS": "pod_name:$(POD_NAME),pod_namespace:$(POD_NAMESPACE),host:$(NODE_NAME)"
+    }
+}
+```
+
+> Version selection is based on upstream DDTrace package runtime requirements: Node.js uses the npm `dd-trace` `engines.node` field, and Python uses the PyPI `ddtrace` `Requires-Python` field and wheel support.
 
 <!-- markdownlint-disable MD013 -->
 ### `check_annotation` Configuration Item Explanation {#check-annotation-config}
 <!-- markdownlint-enable -->
 
-`check_annotation` is an important configuration field used to control how DataKit Operator handles **version annotations** on Pods (e.g., `admission.datakit/java-lib.version`). The values and behaviors of this field are as follows:
+`check_annotation` is an important configuration field used to control how DataKit Operator handles **version annotations** on Pods (for example, `admission.datakit/java-lib.version`, `admission.datakit/python-lib.version`, and `admission.datakit/nodejs-lib.version`). The values and behaviors of this field are as follows:
 
 | Value | Behavior Description |
 |----------|--------------------------------------------------------------------------|
@@ -69,7 +145,7 @@
    - If `admission.datakit/ddtrace.enabled: "false"`, injection will be directly rejected
 
 2. **Version annotations controlled by `check_annotation`**:
-   - `admission.datakit/java-lib.version` **is affected** by `check_annotation` configuration
+   - `admission.datakit/<language>-lib.version` **is affected** by `check_annotation` configuration
    - When `check_annotation: true`, version annotations must exist to inject
    - When `check_annotation: false`, version annotation checks are ignored
 
@@ -83,6 +159,8 @@ Supported DDTrace-related Annotations:
 |--------------------------------------|----------------------------------------|------------------|---------------------------|----------------------------------------------------------------------|
 | `admission.datakit/ddtrace.enabled` | Controls DDTrace injection | `"true"`/`"false"` | **No** | `"true"`: allows injection; `"false"`: rejects injection; not set: determined by rule matching |
 | `admission.datakit/java-lib.version` | Specifies DDTrace Java Agent version | Version string | **Yes** | e.g., `"1.12.0"`, used to override default image version in configuration |
+| `admission.datakit/python-lib.version` | Specifies DDTrace Python Lib version | Version string | **Yes** | e.g., `"v3.19.7"`, used to override default image version in configuration |
+| `admission.datakit/nodejs-lib.version` | Specifies DDTrace Node.js Lib version | Version string | **Yes** | e.g., `"5.102.0"`, used to override default image version in configuration |
 | `admission.datakit/enabled` | Controls all injection functions (highest priority) | `"true"`/`"false"` | **No** | `"false"`: completely rejects any injection, highest priority |
 
 #### When `check_annotation: true` {#when-check-annotation-true}
@@ -91,7 +169,7 @@ The following conditions must be simultaneously met to perform injection:
 
 1. **Configuration matches**: Pod must match `namespace_selectors` and `label_selectors` rules
 2. **Function annotation allows**: `admission.datakit/ddtrace.enabled` is not `"false"` (if exists)
-3. **Version annotation exists**: Version annotations must exist on Pod (e.g., `admission.datakit/java-lib.version`)
+3. **Version annotation exists**: Version annotations must exist on Pod (for example, `admission.datakit/java-lib.version`, `admission.datakit/python-lib.version`, or `admission.datakit/nodejs-lib.version`)
 
 #### When `check_annotation: false` {#when-check-annotation-false}
 
@@ -190,10 +268,12 @@ The following conditions must be met to perform injection:
 
 The Operator configuration above is for DDTrace injection across the entire cluster. Sometimes this one-size-fits-all approach is not suitable for certain specific Deployments. Therefore, we can make some Annotation markings for these Deployments individually:
 
-The Operator can recognize the following two Annotations:
+The Operator can recognize the following Annotations:
 
 - `admission.datakit/ddtrace.enabled`: Marks whether to enable injection in a single Deployment standard. Fill in `"true"` to enable injection, `"false"` to block injection. If blocked, the Operator will ignore injecting this Deployment.
-- `admission.datakit/java-lib.version`: Specifies a specific DDTrace version.
+- `admission.datakit/java-lib.version`: Specifies a specific DDTrace Java Agent version.
+- `admission.datakit/python-lib.version`: Specifies a specific DDTrace Python Lib version.
+- `admission.datakit/nodejs-lib.version`: Specifies a specific DDTrace Node.js Lib version.
 
 > **Annotation Usage Instructions**: For how `check_annotation` configuration affects version annotation behavior, please refer to [Annotation Configuration Injection](datakit-operator.md#annotation-injection) and [`check_annotation` Configuration Item Explanation](datakit-operator.md#check-annotation-config).
 

@@ -60,24 +60,26 @@ There are two DataKit log files:
 
 ## DataKit Service Management {#manage-service}
 
+> Note: The following Cobra-based service management commands apply to DataKit [:octicons-tag-24: Version-2.1.0](changelog-2026.md#cl-2.1.0) and later. For earlier versions, use the command syntax documented with that release.
+
 You can directly use the following commands to manage DataKit:
 
 ```shell
 # Linux/Mac may require sudo
-datakit service -T # stop
-datakit service -S # start
-datakit service -R # restart
+datakit service stop    # stop
+datakit service start   # start
+datakit service restart # restart
 ```
 
 <!-- markdownlint-disable MD046 -->
 ???+ tip
 
-    You can use `datakit help service` to view more help information.
+    You can use `datakit service --help` to view more help information.
 <!-- markdownlint-enable -->
 
 ### Handling of Service Management Failures {#when-service-failed}
 
-Sometimes, due to bugs in some components of DataKit, the service operation may fail (for example, after `datakit service -T`, the service does not stop). You can force the processing in the following way.
+Sometimes, due to bugs in some components of DataKit, the service operation may fail (for example, after `datakit service stop`, the service does not stop). You can force the processing in the following way.
 
 On Linux, if the above command fails, you can use the following commands instead:
 
@@ -104,8 +106,8 @@ You can directly use the following commands to uninstall or restore the DataKit 
 
 ```shell
 # Linux/Mac shell
-datakit service -I # re-install
-datakit service -U # uninstall
+datakit service reinstall # re-install
+datakit service uninstall # uninstall
 ```
 
 ## Impact of DataKit on the Host Environment {#datakit-overhead}

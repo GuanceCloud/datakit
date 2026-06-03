@@ -18,25 +18,25 @@ type cipherSuite struct {
 	ID     uint16
 	Hash   crypto.Hash
 	KeyLen int
-	AEAD   func(key, nonceMask []byte) cipher.AEAD
+	AEAD   func(key, nonceMask []byte) *xorNonceAEAD
 }
 
 func (s cipherSuite) IVLen() int { return aeadNonceLength }
 
-func getCipherSuite(id uint16) *cipherSuite {
+func getCipherSuite(id uint16) cipherSuite {
 	switch id {
 	case tls.TLS_AES_128_GCM_SHA256:
-		return &cipherSuite{ID: tls.TLS_AES_128_GCM_SHA256, Hash: crypto.SHA256, KeyLen: 16, AEAD: aeadAESGCMTLS13}
+		return cipherSuite{ID: tls.TLS_AES_128_GCM_SHA256, Hash: crypto.SHA256, KeyLen: 16, AEAD: aeadAESGCMTLS13}
 	case tls.TLS_CHACHA20_POLY1305_SHA256:
-		return &cipherSuite{ID: tls.TLS_CHACHA20_POLY1305_SHA256, Hash: crypto.SHA256, KeyLen: 32, AEAD: aeadChaCha20Poly1305}
+		return cipherSuite{ID: tls.TLS_CHACHA20_POLY1305_SHA256, Hash: crypto.SHA256, KeyLen: 32, AEAD: aeadChaCha20Poly1305}
 	case tls.TLS_AES_256_GCM_SHA384:
-		return &cipherSuite{ID: tls.TLS_AES_256_GCM_SHA384, Hash: crypto.SHA384, KeyLen: 32, AEAD: aeadAESGCMTLS13}
+		return cipherSuite{ID: tls.TLS_AES_256_GCM_SHA384, Hash: crypto.SHA384, KeyLen: 32, AEAD: aeadAESGCMTLS13}
 	default:
 		panic(fmt.Sprintf("unknown cypher suite: %d", id))
 	}
 }
 
-func aeadAESGCMTLS13(key, nonceMask []byte) cipher.AEAD {
+func aeadAESGCMTLS13(key, nonceMask []byte) *xorNonceAEAD {
 	if len(nonceMask) != aeadNonceLength {
 		panic("tls: internal error: wrong nonce length")
 	}
@@ -54,7 +54,7 @@ func aeadAESGCMTLS13(key, nonceMask []byte) cipher.AEAD {
 	return ret
 }
 
-func aeadChaCha20Poly1305(key, nonceMask []byte) cipher.AEAD {
+func aeadChaCha20Poly1305(key, nonceMask []byte) *xorNonceAEAD {
 	if len(nonceMask) != aeadNonceLength {
 		panic("tls: internal error: wrong nonce length")
 	}

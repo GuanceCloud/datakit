@@ -63,24 +63,26 @@ DataKit 日志文件有两个：
 
 ## DataKit 服务管理 {#manage-service}
 
+> 注意：以下基于 Cobra 的服务管理命令适用于 DataKit [:octicons-tag-24: Version-2.1.0](changelog-2026.md#cl-2.1.0) 及以后版本。更早版本请以对应版本文档中的命令写法为准。
+
 可直接使用如下命令直接管理 DataKit：
 
 ```shell
 # Linux/Mac 可能需加上 sudo
-datakit service -T # stop
-datakit service -S # start
-datakit service -R # restart
+datakit service stop    # stop
+datakit service start   # start
+datakit service restart # restart
 ```
 
 <!-- markdownlint-disable MD046 -->
 ???+ tip
 
-    可通过 `datakit help service` 查看更多帮助信息。
+    可通过 `datakit service --help` 查看更多帮助信息。
 <!-- markdownlint-enable -->
 
 ### 服务管理失败处理 {#when-service-failed}
 
-有时候可能因为 DataKit 部分组件的 bug，导致服务操作失败（如 `datakit service -T` 之后，服务并未停止），可按照如下方式来强制处理。
+有时候可能因为 DataKit 部分组件的 bug，导致服务操作失败（如 `datakit service stop` 之后，服务并未停止），可按照如下方式来强制处理。
 
 Linux 下，如果上述命令失效，可使用以下命令来替代：
 
@@ -107,8 +109,8 @@ sudo launchctl unload -w /Library/LaunchDaemons/com.datakit.plist
 
 ```shell
 # Linux/Mac shell
-datakit service -I # re-install
-datakit service -U # uninstall
+datakit service reinstall # re-install
+datakit service uninstall # uninstall
 ```
 
 ## DataKit 对宿主环境的影响 {#datakit-overhead}

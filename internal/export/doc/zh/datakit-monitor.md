@@ -15,7 +15,7 @@ datakit monitor
 <!-- markdownlint-disable MD046 -->
 ???+ tip
 
-    可通过 `datakit help monitor` 查看更多 monitor 选项。
+    可通过 `datakit monitor --help` 查看更多 monitor 选项。
 <!-- markdownlint-enable -->
 
 DataKit 基本 Monitor 页面信息如下图所示：

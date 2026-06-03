@@ -43,19 +43,20 @@ const (
 	// TODO: If you add a category, please add the relevant content in the function CategoryList.
 
 	// data category, aka API /v1/write/:category.
-	MetricDeprecated    = "/v1/write/metrics"
-	Metric              = "/v1/write/metric"
-	Network             = "/v1/write/network"
-	KeyEvent            = "/v1/write/keyevent"
-	Object              = "/v1/write/object"
-	CustomObject        = "/v1/write/custom_object"
-	Logging             = "/v1/write/logging"
-	Tracing             = "/v1/write/tracing"
-	RUM                 = "/v1/write/rum"
-	SessionReplayUpload = "/v1/write/rum/replay"
-	Security            = "/v1/write/security"
-	Profiling           = "/v1/write/profiling"  // write profiling metadata.
-	ProfilingUpload     = "/v1/upload/profiling" // upload profiling binary.
+	MetricDeprecated        = "/v1/write/metrics"
+	Metric                  = "/v1/write/metric"
+	Network                 = "/v1/write/network"
+	KeyEvent                = "/v1/write/keyevent"
+	Object                  = "/v1/write/object"
+	CustomObject            = "/v1/write/custom_object"
+	Logging                 = "/v1/write/logging"
+	Tracing                 = "/v1/write/tracing"
+	RUM                     = "/v1/write/rum"
+	SessionReplayUpload     = "/v1/write/rum/replay"
+	BrowserScreenshotUpload = "/v1/write/dialtesting_browser_screenshot"
+	Security                = "/v1/write/security"
+	Profiling               = "/v1/write/profiling"  // write profiling metadata.
+	ProfilingUpload         = "/v1/upload/profiling" // upload profiling binary.
 
 	RemoteJob              = "/v1/write/remote_job"
 	DynamicDatawayCategory = "dynamicDatawayCategory"

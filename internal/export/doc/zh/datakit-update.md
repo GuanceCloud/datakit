@@ -218,12 +218,12 @@ DataKit 支持手动更新和自动更新两种方式。
 此时我们可以强制停止老版本的 DataKit，并重启 DataKit：
 
 ``` shell
-datakit service -T # 停止服务
-datakit service -S # 启动新的服务
+datakit service stop  # 停止服务
+datakit service start # 启动新的服务
 
 # 如若不行，可以先卸载 DataKit 服务，并重装服务
-datakit service -U # 卸载服务
-datakit service -I # 重装服务
+datakit service uninstall # 卸载服务
+datakit service reinstall # 重装服务
 
 # 以上操作完成后，再确认下 DataKit 版本是否是最新版本
 

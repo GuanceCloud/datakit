@@ -7,23 +7,43 @@ package cmds
 
 import (
 	"fmt"
-	"os"
 
 	cp "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/colorprint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 )
 
-func runDebugFlags() error {
+type DebugOptions struct {
+	LogPath                 string
+	UploadLog               bool
+	GlobConf                string
+	RegexConf               string
+	PromConf                string
+	BugReport               bool
+	BugreportOSS            string
+	BugreportDataway        string
+	BugreportDisableProfile bool
+	BugreportNMetrics       int
+	BugreportTag            string
+	InputConf               string
+	HTTPListen              string
+	Filter                  string
+	Data                    string
+	KVFile                  string
+}
+
+func RunDebug(opts DebugOptions) error {
+	ConfigureCommandLog(opts.LogPath)
+
 	switch {
-	case *flagDebugFilter != "":
-		if err := debugFilter([]byte(*flagDebugFilter),
-			[]byte(*flagDebugData)); err != nil {
+	case opts.Filter != "":
+		if err := debugFilter([]byte(opts.Filter),
+			[]byte(opts.Data)); err != nil {
 			cp.Errorf("[E] %s\n", err.Error())
 			return err
 		}
 		return nil
 
-	case *flagDebugInputConf != "":
+	case opts.InputConf != "":
 
 		// Try load global settings, we need to load global-host/env tags
 		// and applied to collected points. This makes the testing points
@@ -33,43 +53,43 @@ func runDebugFlags() error {
 			cp.Warnf("ApplyMainConfig: %s, ignored\n", err)
 		}
 
-		if err := debugInput(*flagDebugInputConf); err != nil {
+		if err := debugInput(opts.InputConf, opts.KVFile, opts.HTTPListen); err != nil {
 			cp.Errorf("[E] %s\n", err.Error())
 			return err
 		}
 
 		return nil
 
-	case *flagDebugBugReport:
+	case opts.BugReport:
 		tryLoadMainCfg()
-		if err := bugReport(); err != nil {
+		if err := bugReport(opts); err != nil {
 			cp.Errorf("[E] export DataKit info failed: %s\n", err.Error())
 			return err
 		}
 		return nil
 
-	case *flagDebugGlobConf != "":
-		if err := globPath(*flagDebugGlobConf); err != nil {
+	case opts.GlobConf != "":
+		if err := globPath(opts.GlobConf); err != nil {
 			cp.Errorf("[E] %s\n", err)
 			return err
 		}
 		return nil
 
-	case *flagDebugRegexConf != "":
-		if err := regexMatching(*flagDebugRegexConf); err != nil {
+	case opts.RegexConf != "":
+		if err := regexMatching(opts.RegexConf); err != nil {
 			cp.Errorf("[E] %s\n", err)
 			return err
 		}
 		return nil
 
-	case *flagDebugPromConf != "":
-		if err := promDebugger(*flagDebugPromConf); err != nil {
+	case opts.PromConf != "":
+		if err := promDebugger(opts.PromConf); err != nil {
 			cp.Errorf("[E] %s\n", err)
 			return err
 		}
 		return nil
 
-	case *flagDebugLoadLog:
+	case opts.UploadLog:
 		tryLoadMainCfg()
 		cp.Infof("Upload log start...\n")
 		if err := uploadLog(config.Cfg.Dataway.URLs); err != nil {
@@ -80,5 +100,5 @@ func runDebugFlags() error {
 		return nil
 	}
 
-	return fmt.Errorf("unknown debug option: %s", os.Args[1])
+	return fmt.Errorf("unknown debug option")
 }

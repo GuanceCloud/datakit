@@ -230,7 +230,7 @@ func CreateTaskChild(taskType string) (TaskChild, error) {
 		ct = &MultiTask{}
 
 	case "headless", "browser", ClassHeadless:
-		return nil, errors.New("headless task deprecated")
+		ct = &BrowserTask{}
 
 	case "tcp", ClassTCP:
 		ct = &TCPTask{}

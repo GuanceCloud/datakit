@@ -6,7 +6,11 @@
 package dialtesting
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -426,6 +430,13 @@ func (e *errSender) checkToken(token, scheme, host string) (bool, error) {
 	return true, nil
 }
 
+func (e *errSender) uploadBrowserScreenshot(
+	url string,
+	req *dataway.BrowserScreenshotUpload,
+) (*dataway.BrowserScreenshotUploadResult, error) {
+	return nil, errors.New("upload failed")
+}
+
 type runTaskStub struct {
 	headlessTaskStub
 	id                string
@@ -617,6 +628,7 @@ func TestPointsFeed(t *testing.T) {
 			Frequency:  "1s",
 			Tags: map[string]string{
 				"task_tag": "task-value",
+				"owner":    "task-owner",
 			},
 		},
 		Host: "example.com",
@@ -635,9 +647,11 @@ func TestPointsFeed(t *testing.T) {
 	ipt := defaultInput()
 	ipt.Tags = map[string]string{
 		"custom_tag": "custom-value",
+		"owner":      "custom-owner",
 	}
 	ipt.RegionTags = map[string]string{
 		"node_name":   "ignored-region-name",
+		"owner":       "region-owner",
 		"unknown_tag": "ignored",
 	}
 
@@ -646,6 +660,7 @@ func TestPointsFeed(t *testing.T) {
 	d.dfTags = map[string]string{
 		LabelDF:  "[]",
 		"df_tag": "df-value",
+		"owner":  "df-owner",
 	}
 	d.dialingTime = time.Unix(100, 0)
 
@@ -661,9 +676,14 @@ func TestPointsFeed(t *testing.T) {
 		assert.Contains(t, line, "custom_tag=custom-value")
 		assert.Contains(t, line, "df_label=[]")
 		assert.Contains(t, line, "df_tag=df-value")
+		assert.Contains(t, line, "owner=region-owner")
+		assert.NotContains(t, line, "owner=task-owner")
+		assert.NotContains(t, line, "owner=custom-owner")
+		assert.NotContains(t, line, "owner=df-owner")
 		assert.Contains(t, line, "node_name=test-node")
 		assert.Contains(t, line, "datakit_version=")
 		assert.Contains(t, line, "seq_number=1i")
+		assert.Contains(t, line, `task_id="icmp-task"`)
 		assert.NotContains(t, line, "unknown_tag=ignored")
 	default:
 		t.Fatal("expected point to be queued")
@@ -953,6 +973,119 @@ func TestDialerHelpers(t *testing.T) {
 	})
 }
 
+func TestDialerRunTaskConcurrency(t *testing.T) {
+	t.Run("browser tasks respect max concurrency", func(t *testing.T) {
+		ipt := defaultInput()
+		ipt.browserConcurrency = make(chan struct{}, 1)
+
+		var (
+			mu     sync.Mutex
+			active int
+			max    int
+		)
+		runFn := func() error {
+			mu.Lock()
+			active++
+			if active > max {
+				max = active
+			}
+			mu.Unlock()
+
+			time.Sleep(30 * time.Millisecond)
+
+			mu.Lock()
+			active--
+			mu.Unlock()
+			return nil
+		}
+
+		d1 := &dialer{
+			task:   &runTaskStub{class: dt.ClassHeadless, runFn: runFn},
+			ipt:    ipt,
+			done:   ipt.semStop.Wait(),
+			stopCh: make(chan interface{}),
+		}
+		d2 := &dialer{
+			task:   &runTaskStub{class: dt.ClassHeadless, runFn: runFn},
+			ipt:    ipt,
+			done:   ipt.semStop.Wait(),
+			stopCh: make(chan interface{}),
+		}
+
+		var wg sync.WaitGroup
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			assert.NoError(t, d1.runTask())
+		}()
+		go func() {
+			defer wg.Done()
+			assert.NoError(t, d2.runTask())
+		}()
+		wg.Wait()
+
+		assert.Equal(t, 1, max)
+	})
+
+	t.Run("non browser tasks are not limited", func(t *testing.T) {
+		ipt := defaultInput()
+		ipt.browserConcurrency = make(chan struct{}, 1)
+		ipt.browserConcurrency <- struct{}{}
+
+		ran := false
+		d := &dialer{
+			task: &runTaskStub{
+				class: dt.ClassHTTP,
+				runFn: func() error {
+					ran = true
+					return nil
+				},
+			},
+			ipt:    ipt,
+			done:   ipt.semStop.Wait(),
+			stopCh: make(chan interface{}),
+		}
+
+		assert.NoError(t, d.runTask())
+		assert.True(t, ran)
+	})
+
+	t.Run("browser task stopped while waiting is skipped", func(t *testing.T) {
+		ipt := defaultInput()
+		ipt.browserConcurrency = make(chan struct{}, 1)
+		ipt.browserConcurrency <- struct{}{}
+
+		ran := false
+		d := &dialer{
+			task: &runTaskStub{
+				class: dt.ClassHeadless,
+				runFn: func() error {
+					ran = true
+					return nil
+				},
+			},
+			ipt:    ipt,
+			done:   ipt.semStop.Wait(),
+			stopCh: make(chan interface{}),
+		}
+
+		errCh := make(chan error, 1)
+		go func() {
+			errCh <- d.runTask()
+		}()
+
+		close(d.stopCh)
+
+		select {
+		case err := <-errCh:
+			assert.ErrorIs(t, err, errTaskRunSkipped)
+		case <-time.After(time.Second):
+			t.Fatal("expected runTask to return after stop")
+		}
+		assert.False(t, ran)
+	})
+}
+
 func TestNewDialer(t *testing.T) {
 	newTask := func(t *testing.T, class string) dt.ITask {
 		t.Helper()
@@ -1062,14 +1195,40 @@ func TestFeedIO(t *testing.T) {
 		assert.Error(t, d.feedIO())
 	})
 
-	t.Run("headless task returns deprecated error", func(t *testing.T) {
-		d := &dialer{
-			task: &genericTaskStub{class: dt.ClassHeadless},
+	t.Run("browser task feeds points", func(t *testing.T) {
+		oldWorker := dialWorker
+		defer func() { dialWorker = oldWorker }()
+		dialWorker = &worker{
+			jobChans:   make(chan *jobData, 1),
+			pointCache: map[string]*DataCache{},
+			failInfo:   map[string]int{},
 		}
 
-		err := d.feedIO()
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "headless task deprecated")
+		d := &dialer{
+			task: &runTaskStub{
+				id:           "browser-task",
+				class:        dt.ClassHeadless,
+				postURL:      "http://example.com?token=test",
+				externalID:   "browser-task",
+				resultTags:   map[string]string{},
+				resultFields: map[string]interface{}{},
+			},
+			ipt:         defaultInput(),
+			regionName:  "test-region",
+			class:       dt.ClassHeadless,
+			dialingTime: time.Unix(100, 0),
+		}
+
+		assert.NoError(t, d.feedIO())
+		assert.Contains(t, d.category, "/v1/write/logging")
+
+		select {
+		case job := <-dialWorker.jobChans:
+			require.NotNil(t, job)
+			assert.Equal(t, dt.ClassHeadless, job.class)
+		default:
+			t.Fatal("expected browser point to be queued")
+		}
 	})
 
 	t.Run("unknown class is ignored", func(t *testing.T) {
@@ -1080,6 +1239,88 @@ func TestFeedIO(t *testing.T) {
 
 		assert.NoError(t, d.feedIO())
 		assert.Equal(t, "before", d.category)
+	})
+}
+
+func TestBrowserScreenshotProcessing(t *testing.T) {
+	oldWorker := dialWorker
+	defer func() { dialWorker = oldWorker }()
+
+	pngPath := filepath.Join(t.TempDir(), "step.png")
+	require.NoError(t, os.WriteFile(pngPath, []byte{
+		0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+		0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+		0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+		0x08, 0x02, 0x00, 0x00, 0x00,
+	}, 0o600))
+
+	t.Run("upload success replaces local path with object", func(t *testing.T) {
+		sender := &mockSender{
+			uploadResult: &dataway.BrowserScreenshotUploadResult{
+				ScreenshotID:   "run_789_step_2",
+				ScreenshotDate: "20260528",
+				FileName:       "run_789_step_2.png",
+				FileSize:       12345,
+			},
+		}
+		dialWorker = &worker{sender: sender}
+
+		fields := map[string]interface{}{
+			"browser_run_id": "run_789",
+			"steps":          fmt.Sprintf(`[{"seq":2,"name":"step","screenshot":%q}]`, pngPath),
+		}
+		d := &dialer{
+			task: &runTaskStub{
+				class:      dt.ClassHeadless,
+				postURL:    "http://example.com/v1/write/logging?token=test",
+				externalID: "task-external-id",
+			},
+		}
+
+		d.processBrowserScreenshots(fields)
+
+		assert.True(t, fields["has_screenshot"].(bool))
+		assert.Len(t, sender.uploadRequests, 1)
+		assert.Equal(t, "task-external-id", sender.uploadRequests[0].TaskID)
+		assert.Equal(t, "run_789", sender.uploadRequests[0].RunID)
+		assert.Equal(t, "2", sender.uploadRequests[0].StepSeq)
+
+		var steps []map[string]interface{}
+		require.NoError(t, json.Unmarshal([]byte(fields["steps"].(string)), &steps))
+		assert.NotContains(t, fields["steps"].(string), pngPath)
+		screenshot, ok := steps[0]["screenshot"].(map[string]interface{})
+		require.True(t, ok)
+		assert.Equal(t, "run_789_step_2", screenshot["id"])
+		assert.Equal(t, "20260528", screenshot["date"])
+		assert.Equal(t, "run_789_step_2.png", screenshot["file"])
+		assert.Equal(t, float64(12345), screenshot["size"])
+		assert.Equal(t, "image/png", screenshot["type"])
+	})
+
+	t.Run("upload failure removes local path and keeps point fields", func(t *testing.T) {
+		dialWorker = &worker{sender: &mockSender{uploadErr: errors.New("upload rejected")}}
+
+		fields := map[string]interface{}{
+			"browser_run_id": "run_789",
+			"steps":          fmt.Sprintf(`[{"seq":2,"name":"step","screenshot":%q}]`, pngPath),
+		}
+		d := &dialer{
+			task: &runTaskStub{
+				class:      dt.ClassHeadless,
+				postURL:    "http://example.com/v1/write/logging?token=test",
+				externalID: "task-external-id",
+			},
+		}
+
+		d.processBrowserScreenshots(fields)
+
+		assert.NotContains(t, fields["steps"].(string), pngPath)
+		assert.Contains(t, fields["screenshot_upload_error"], "upload rejected")
+
+		var steps []map[string]interface{}
+		require.NoError(t, json.Unmarshal([]byte(fields["steps"].(string)), &steps))
+		assert.NotContains(t, steps[0], "screenshot")
+		assert.Contains(t, steps[0]["screenshot_upload_error"], "upload rejected")
 	})
 }
 

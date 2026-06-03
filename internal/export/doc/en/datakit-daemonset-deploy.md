@@ -3,6 +3,8 @@
 
 This document describes how to install DataKit in K8s via DaemonSet.
 
+For Helm-based installation, see [Helm Installation](datakit-helm.md).
+
 ## Installation {#install}
 
 <!-- markdownlint-disable MD046 -->
@@ -39,126 +41,6 @@ This document describes how to install DataKit in K8s via DaemonSet.
     ```shell
     $ kubectl get pod -n datakit
     ```
-
-=== "Helm"
-
-    Precondition:
-    
-    * Kubernetes >= 1.14
-    * Helm >= 3.0+
-    
-    Helm installs DataKit (note modifying the `datakit.dataway_url` parameter)，in which many [default collectors](datakit-input-conf.md#default-enabled-inputs) are turned on without configuration.
-    
-    ```shell
-    helm install datakit datakit \
-        <<<% if custom_key.brand_key == 'guance' -%>>>
-        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
-        <<<% else -%>>>
-        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
-        <<<% endif -%>>>
-        -n datakit --create-namespace \
-        --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>"
-    ```
-    
-    View deployment status:
-    
-    ```shell
-    helm -n datakit list
-    ```
-    
-    You can upgrade with the following command:
-    
-    ```shell
-    helm -n datakit get  values datakit -o yaml > values.yaml
-    helm upgrade datakit datakit \
-        <<<% if custom_key.brand_key == 'guance' -%>>>
-        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
-        <<<% else -%>>>
-        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
-        <<<% endif -%>>>
-        -n datakit \
-        -f values.yaml
-    ```
-    
-    You can uninstall it with the following command:
-    
-    ```shell
-    $ helm uninstall datakit -n datakit
-    ```
-
-    ### More Helm Examples {#helm-examples}
-
-    In addition to manually editing the *values.yaml* to adjust DataKit configurations (it is still recommended to use *values.yaml* directly for complex escape operations), you can also specify these parameters during the Helm installation phase. Note that these parameters must adhere to Helm's command-line syntax.
-
-    **Setting Default Collector List**
-
-    ```shell
-    helm install datakit datakit \
-        <<<% if custom_key.brand_key == 'guance' -%>>>
-        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
-        <<<% else -%>>>
-        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
-        <<<% endif -%>>>
-        -n datakit --create-namespace \
-        --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>" \
-        --set datakit.default_enabled_inputs="statsd\,dk\,cpu\,mem"
-    ```
-
-    **Note**: The comma `,` must be escaped here; otherwise, Helm will throw an error.
-    
-    **Setting Environment Variables**
-
-    DataKit supports numerous [environment variable configurations](datakit-daemonset-install.md#env-setting), which can be appended using the following method:
-
-    ```shell
-    helm install datakit datakit \
-        <<<% if custom_key.brand_key == 'guance' -%>>>
-        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
-        <<<% else -%>>>
-        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
-        <<<% endif -%>>>
-        -n datakit --create-namespace \
-        --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=tkn_xxx" \
-        --set "extraEnvs[0].name=ENV_INPUT_OTEL_GRPC" \
-        --set 'extraEnvs[0].value=\{"trace_enable":true\,"metric_enable":true\,"addr":"0.0.0.0:4317"\}' \
-        --set "extraEnvs[1].name=ENV_INPUT_CPU_PERCPU" \
-        --set 'extraEnvs[1].value=true'
-    ```
-
-    Here, `extraEnvs` is an entry defined in the DataKit Helm chart for setting environment variables. Since environment variables are in array format, we use array indices (starting from 0) to append multiple variables. `name` represents the environment variable name, and `value` is the corresponding value. Notably, if an environment variable's value is a JSON string, characters like `{},` must be escaped.
-    
-    **Installing a Specific Version**
-
-    You can specify the DataKit image version using `image.tag`:
-
-    ```shell
-    helm install datakit datakit \
-    <<<% if custom_key.brand_key == 'guance' -%>>>
-        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
-    <<<% else -%>>>
-        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
-    <<<% endif -%>>>
-        -n datakit --create-namespace \
-        --set image.tag="1.70.0" \
-        ...
-    ```
-
-    **GKE Autopilot**
-
-    For GKE Autopilot, use the separately released `datakit-gke-autopilot` chart. You do not need to specify an image version during installation; the image version declared by this chart is used by default:
-
-    ```shell
-    helm install datakit datakit-gke-autopilot \
-    <<<% if custom_key.brand_key == 'guance' -%>>>
-        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
-    <<<% else -%>>>
-        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
-    <<<% endif -%>>>
-        -n datakit --create-namespace \
-        --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<your-token>"
-    ```
-
-    This chart runs DataKit as a non-privileged, non-root container and reduces host mount capabilities. For detailed differences, upgrade steps, and troubleshooting, see [GKE Autopilot Helm installation](datakit-helm.md#gke-autopilot).
 
 === "Deployment"
 

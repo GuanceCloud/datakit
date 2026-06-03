@@ -31,6 +31,11 @@ monitor   :
     
       # 注意：以 Linux 为例，假定你的 json 目录为 /some/path/my.json，那么此处的
       # server 应该写成 file:///some/path/my.json
+
+      # 浏览器拨测默认开启，可按需指定 Chrome/Chromium 可执行文件路径。
+      [inputs.dialtesting.browser]
+        chrome_path = "/usr/bin/chromium"
+        max_concurrency = 1
     
       # 注意，以下 tag 建议都一一填写（不要修改这里的 tag key），便于在页面上展示完整的拨测结果
       [inputs.dialtesting.tags] 
@@ -50,7 +55,7 @@ monitor   :
 
 ### 配置拨测任务 {#config-task}
 
-目前拨测任务支持五种拨测类型，即 HTTP, TCP, ICMP, WEBSOCKET, GRPC 服务，JSON 格式如下：
+目前拨测任务支持 HTTP, TCP, ICMP, WEBSOCKET, GRPC, BROWSER 以及 MULTI 类型，JSON 格式如下：
 
 ```json
 {
@@ -153,6 +158,8 @@ monitor   :
 | `post_url`           | string | N        | 将拨测结果发往该 Token 所指向的工作空间，如果不填写，则发给当前 DataKit 所在工作空间 |
 | `tags_info`           | string | N        | 拨测任务自定义标签，如： `t1,t2` |
 | `workspace_language`  | string | N        | 当前工作空间语言，如：`zh`，`en` |
+
+> 注意：`BROWSER` 类型任务从 DataKit [:octicons-tag-24: Version-2.1.0](../datakit/changelog-2026.md#cl-2.1.0) 开始支持，在 Linux 拨测节点上默认执行。运行时需要可访问 Chrome/Chromium；如需禁用，可设置 `[inputs.dialtesting.browser].enabled = false`；如需限制并发，可设置 `[inputs.dialtesting.browser].max_concurrency`。更多说明见[浏览器拨测](dialtesting_browser.md)。
 
 #### HTTP 拨测 {#http}
 
@@ -1387,6 +1394,68 @@ if body["message"] == "Hello world" {
 | `name`            | string | Y        | 变量名称，用于后续步骤的模板替换          |
 | `field`           | string | Y        | `vars` 中定义的变量名    |
 | `secure`          | bool   | N        | 是否为安全变量，安全变量不会在结果中显示  |
+
+#### BROWSER 拨测 {#browser}
+
+BROWSER 拨测通过 DataKit 内置浏览器执行器执行浏览器脚本，并将结果作为 `browser_dial_testing` 指标上报。任务中的 `browser_config` 是 YAML 字符串。
+
+额外字段：
+
+| 字段              | 类型   | 是否必须 | 说明                                      |
+| :---              | ---    | ---      | ---                                       |
+| `browser_config`  | string | Y        | 浏览器拨测脚本，YAML 字符串               |
+| `advance_options` | object | N        | 高级选项，当前可配置失败截图等能力        |
+| `retry_options`   | object | N        | 重试配置                                  |
+
+总体的 JSON 结构如下：
+
+```json
+{
+  "BROWSER": [
+    {
+      "name": "browser-homepage",
+      "post_url": "https://<your-dataway-host>?token=<your-token>",
+      "status": "OK",
+      "frequency": "1m",
+      "schedule_type": "frequency",
+      "browser_config": "name: homepage\ntarget: https://example.com\ntimeout_ms: 30000\nsteps:\n  - name: open homepage\n    action: goto\n  - name: check title\n    action: assert_title\n    contains: Example\n",
+      "advance_options": {
+        "screenshot_on_failure": true
+      }
+    }
+  ]
+}
+```
+
+##### `browser_config` 定义 {#browser-config}
+
+`browser_config` 是 YAML 字符串，常用字段如下：
+
+| 字段         | 类型   | 是否必须 | 说明                                      |
+| :---         | ---    | ---      | ---                                       |
+| `name`       | string | N        | 浏览器脚本名称                            |
+| `target`     | string | N        | 默认目标地址，`goto` 步骤未配置 URL 时使用    |
+| `timeout_ms` | int    | N        | 浏览器拨测超时时间，单位为毫秒            |
+| `tags`       | object | N        | 自定义标签                                |
+| `steps`      | array  | Y        | 浏览器执行步骤                            |
+
+`steps` 中可使用 `goto`、`assert_title`、`assert_url`、`assert_text` 等动作和断言。
+
+##### 失败截图 {#browser-screenshot}
+
+当 `advance_options.screenshot_on_failure = true` 时，浏览器执行器会在失败步骤生成截图。DataKit 上报前会将截图上传到任务 `post_url` 所属的 Dataway，并把 `steps[].screenshot` 从本地路径替换为对象：
+
+```json
+{
+  "id": "run_789_step_2",
+  "date": "20260528",
+  "file": "run_789_step_2.png",
+  "size": 12345,
+  "type": "image/png"
+}
+```
+
+如果上传失败，DataKit 会记录 `screenshot_upload_error`，拨测结果仍会继续上报。
 
 ### 模板函数使用说明 {#template-func}
 

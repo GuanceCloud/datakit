@@ -1,5 +1,24 @@
 # 更新日志
 
+## 2.1.0(2026/06/03) {#cl-2.1.0}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-2.1.0-new}
+
+- 新增浏览器拨测任务 `BROWSER`，可用于模拟真实浏览器访问页面、执行交互和上报拨测结果（#3072）
+- DataKit CLI 新增 `datakit completion` 命令，支持生成 bash、zsh、fish、PowerShell 补全脚本（#3066）
+
+### 功能优化 {#cl-2.1.0-opt}
+
+- 优化 Pipeline 指数级性能回退问题，降低连续 `GREEDYDATA` Grok 解析场景下的处理耗时（#3094）
+
+### 兼容调整 {#cl-2.1.0-breaking}
+
+- DataKit CLI 迁移到 Cobra 命令框架，相关命令进行了调整，具体可查看[服务管理](datakit-service-how-to.md#manage-service)和[命令补全](datakit-tools-how-to.md#completion)文档（#3066）
+
+---
+
 ## 2.0.0(2026/05/27) {#cl-2.0.0}
 
 本次发布是 DataKit 首个 2.x 主线版本，正式启用独立的 datakit-v2 安装/升级源，主要有如下更新：
@@ -180,6 +199,10 @@
 ## 1.90.0(2026/03/11) {#cl-1.90.0}
 
 本次发布属于迭代发布，主要有如下更新：
+
+### Breaking Change {#cl-1.90.0-breaking}
+
+- 删除旧的命令补全入口 `datakit tool --setup-completer-script`、`datakit tool --completer-script` 以及静态脚本 `datakit-completer.sh`，统一改为使用 `datakit completion`
 
 ### 新加功能 {#cl-1.90.0-new}
 

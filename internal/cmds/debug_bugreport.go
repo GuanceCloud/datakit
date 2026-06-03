@@ -65,7 +65,7 @@ func (info *datakitInfo) clean() error {
 	return nil
 }
 
-func (info *datakitInfo) collect() error {
+func (info *datakitInfo) collect(opts DebugOptions) error {
 	cp.Infof("collect log files...\n")
 	if err := info.collectLog(); err != nil {
 		cp.Warnf("collect log files error: %s\n", err.Error())
@@ -99,11 +99,11 @@ func (info *datakitInfo) collect() error {
 	}
 
 	cp.Infof("collect externals information...\n")
-	if err := info.collectExternals(!*flagDebugBugreportDisableProfile); err != nil {
+	if err := info.collectExternals(!opts.BugreportDisableProfile); err != nil {
 		cp.Warnf("collect externals error: %s\n", err.Error())
 	}
 
-	if !*flagDebugBugreportDisableProfile {
+	if !opts.BugreportDisableProfile {
 		cp.Infof("collect profile...\n")
 		if err := info.collectProfile(); err != nil {
 			cp.Warnf("collect profile data error: %s, ignored\n", err.Error())
@@ -111,7 +111,7 @@ func (info *datakitInfo) collect() error {
 	}
 
 	cp.Infof("collect metrics...\n")
-	if err := info.collectMetrics(*flagDebugBugreportNMetrics); err != nil {
+	if err := info.collectMetrics(opts.BugreportNMetrics); err != nil {
 		cp.Warnf("collect metrics error: %s\n", err.Error())
 	}
 
@@ -722,14 +722,14 @@ func (info *datakitInfo) copyFile(src, dst string, transform transformFunc) erro
 	return nil
 }
 
-func (info *datakitInfo) compressDir() (string, int64, error) {
+func (info *datakitInfo) compressDir(tag string) (string, int64, error) {
 	srcDir := info.tmpDir
 	date := time.Now().UnixMilli()
 	fileName := fmt.Sprintf("info-%d", date)
 	zipPath := fmt.Sprintf("%s.zip", fileName)
 
-	if *flagDebugBugreportTag != "" {
-		fileName = fmt.Sprintf("%s-info-%d", *flagDebugBugreportTag, date)
+	if tag != "" {
+		fileName = fmt.Sprintf("%s-info-%d", tag, date)
 		zipPath = fmt.Sprintf("%s.zip", fileName)
 	}
 
@@ -851,8 +851,8 @@ func (info *datakitInfo) copyDir(srcDir string, dstDir string, suffixFn suffixFu
 	return nil
 }
 
-func uploadBugReportViaDataway(zipPath string) (string, error) {
-	urls := bugReportDatawayURLs()
+func uploadBugReportViaDataway(zipPath string, opts DebugOptions) (string, error) {
+	urls := bugReportDatawayURLs(opts)
 	if len(urls) == 0 {
 		return "", fmt.Errorf("dataway URLs not configured")
 	}
@@ -914,10 +914,10 @@ func uploadBugReportViaDataway(zipPath string) (string, error) {
 	return res.Content, nil
 }
 
-func bugReportDatawayURLs() []string {
-	if *flagDebugBugreportDataway != "" {
+func bugReportDatawayURLs(opts DebugOptions) []string {
+	if opts.BugreportDataway != "" {
 		urls := []string{}
-		for _, url := range strings.Split(*flagDebugBugreportDataway, ",") {
+		for _, url := range strings.Split(opts.BugreportDataway, ",") {
 			if url = strings.TrimSpace(url); url != "" {
 				urls = append(urls, withBugReportDatawayToken(url))
 			}
@@ -955,8 +955,8 @@ func withBugReportDatawayToken(rawURL string) string {
 	return u.String()
 }
 
-func shouldUploadBugReportViaDataway() bool {
-	return *flagDebugBugreportOSS == ""
+func shouldUploadBugReportViaDataway(opts DebugOptions) bool {
+	return opts.BugreportOSS == ""
 }
 
 func removeUploadedBugReport(zipPath string) {
@@ -965,7 +965,7 @@ func removeUploadedBugReport(zipPath string) {
 	}
 }
 
-func bugReport() error {
+func bugReport(opts DebugOptions) error {
 	infoInstance := &datakitInfo{}
 
 	if err := infoInstance.init(); err != nil {
@@ -979,7 +979,7 @@ func bugReport() error {
 		}
 	}()
 
-	if err := infoInstance.collect(); err != nil {
+	if err := infoInstance.collect(opts); err != nil {
 		return err
 	}
 
@@ -996,7 +996,7 @@ func bugReport() error {
 		err     error
 	)
 
-	zipPath, zipSize, err = infoInstance.compressDir()
+	zipPath, zipSize, err = infoInstance.compressDir(opts.BugreportTag)
 	if err != nil {
 		cp.Errorf("compress zip file failed: %s\n", err.Error())
 		return err
@@ -1005,15 +1005,15 @@ func bugReport() error {
 	bugReportObjectKey := ""
 	yy, mm, dd := time.Now().Date()
 
-	if shouldUploadBugReportViaDataway() {
+	if shouldUploadBugReportViaDataway(opts) {
 		cp.Infof("uploading %s (size: %d bytes) via dataway...\n", zipPath, zipSize)
-		if objectKey, err := uploadBugReportViaDataway(zipPath); err != nil {
+		if objectKey, err := uploadBugReportViaDataway(zipPath, opts); err != nil {
 			cp.Warnf("upload bug report via dataway failed: %s\n", err.Error())
 		} else {
 			bugReportObjectKey = objectKey
 		}
 	} else {
-		arr := strings.SplitN(*flagDebugBugreportOSS, ":", 4)
+		arr := strings.SplitN(opts.BugreportOSS, ":", 4)
 		if len(arr) != 4 {
 			return fmt.Errorf("object storage info missing, we need format host:bucket:ak:sk")
 		}
@@ -1047,7 +1047,7 @@ func bugReport() error {
 		cp.Infof("bug report saved to local file %s\n", zipPath)
 	} else {
 		removeUploadedBugReport(zipPath)
-		if shouldUploadBugReportViaDataway() {
+		if shouldUploadBugReportViaDataway(opts) {
 			cp.Infof(
 				"\nbug report upload summary(size: %s):\nlocal file: deleted after successful upload\nobject key:\n%s\n",
 				humanize.SI(float64(zipSize), ""),

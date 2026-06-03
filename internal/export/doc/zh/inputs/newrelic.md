@@ -47,7 +47,7 @@ New Relic 的 .Net Agent 是基于 .Net 技术框架的开源项目，可用于�
 完成配置后重启 `DataKit` 和 `IIS`
 
 ```powershell
-PS> datakit service -R
+PS> datakit service restart
 PS> iisreset
 ```
 

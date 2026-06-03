@@ -50,6 +50,7 @@ flowchart LR
 | **Access Region** | **Your Server's Region**       | **Endpoint Service Name**                                      |
 | ----------------- | ------------------------------ | -------------------------------------------------------------- |
 | Asia-Pacific Region 1 (Singapore) | `ap-southeast-1` (Singapore) | `com.amazonaws.vpce.ap-southeast-1.vpce-svc-08465b643241dce58` |
+| Overseas Region 1 (Oregon) | `us-west-2` (Oregon) | `com.amazonaws.vpce.us-west-2.vpce-svc-0895f6859469a621e` |
 <<<% else %>>>
 | **Access Region** | **Your Server's Region**       | **Endpoint Service Name**                                      |
 | ----------------- | ------------------------------ | -------------------------------------------------------------- |
@@ -67,6 +68,7 @@ flowchart LR
 | **Access Region** | **Your Server's Region**       | **Endpoint**                                                |
 | ----------------- | ------------------------------ | ------------------------------------------------------------ |
 | Asia-Pacific Region 1 (Singapore) | `ap-southeast-1` (Singapore) | `https://ap1-openway.<<<custom_key.brand_main_domain>>>`                            |
+| Overseas Region 1 (Oregon) | `us-west-2` (Oregon) | `https://us1-openway.<<<custom_key.brand_main_domain>>>` |
 <<<% else %>>>
 | **Access Region** | **Your Server's Region**       | **Endpoint**                                                |
 | ----------------- | ------------------------------ | ------------------------------------------------------------ |

@@ -56,6 +56,7 @@ var (
 		point.RUM.URL(),
 		point.Security.URL(),
 		point.Profiling.URL(),
+		datakit.BrowserScreenshotUpload,
 
 		datakit.DatakitPull,
 		datakit.LogFilter,

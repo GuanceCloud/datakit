@@ -1,3 +1,5 @@
 dist/
 vendor/
 pkg/arbiter/builtin-funcs/local_code_test.go
+skills/dql/references/DQL Functions.md
+skills/dql/references/DQL.md

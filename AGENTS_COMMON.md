@@ -216,7 +216,7 @@ Review milestone code with the following requirements:
 - `dca`: DataKit web manager frontend(DataKit Controller Application)
 - `dockerfiles`: Various Dockerfiles for binaries on multiple platforms and brands
 - `internal`: All internal packages, some of them are:
-    - `cmds`: All DataKit command line are defined, all flags are defined within [parse_flags.go](internal/cmds/parse_flags.go)
+    - `cmds`: DataKit CLI command execution logic shared by Cobra commands
     - `config`: Main configure(`datakit.conf`) loader
     - `datakit`: Global variables used among DataKit
     - `export`: Every DataKit release will build huge number of document, we render and export [these documents](internal/export/doc) for multiple brands.
@@ -283,4 +283,3 @@ make copyright_check_auto_fix
 - Documentation: `*.md`
 
 This document should be referenced by all AI agents working on the DataKit repository to ensure consistent code quality and adherence to project standards.
-

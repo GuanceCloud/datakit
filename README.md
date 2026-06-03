@@ -156,14 +156,14 @@ make testing
 
 ## Basic Usage
 
-We can use `help` command to see more usage of DataKit:
+We can use `--help` to see more usage of DataKit:
 
 ```shell
-datakit help
+datakit --help
 
 # Or
 
-./dist/datakit-linux-amd64/datakit help
+./dist/datakit-linux-amd64/datakit --help
 ```
 
 ## Contributing

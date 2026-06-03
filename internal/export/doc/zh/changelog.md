@@ -2909,7 +2909,7 @@ volumes:
 - 优化日志采集过程中的 Monitor 显示(#587)
 - 优化安装程序的命令行参数检查(#573)
 - 重新调整 DataKit 命令行参数，大部分主要的命令已经支持。另外，**老的命令行参数在一定时间内依然生效**(#499)
-    - 可通过 `datakit help` 查看新的命令行参数风格
+    - 可通过 `datakit --help` 查看新的命令行参数风格
 - 重新实现 [ DataKit Monitor](datakit-monitor)
 
 ### 其它 Bug 修复 {#cl-1.2.7-fix}

@@ -301,8 +301,8 @@ DK_USER_NAME="datakit" DK_DATAWAY="..." bash -c ...
     chown -R datakit cache/
 
     # Reinstall the DataKit service
-    datakit service -U
-    datakit service -I
+    datakit service uninstall
+    datakit service reinstall
     ```
 
 ### Logging {#env-logging}

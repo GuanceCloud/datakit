@@ -1,6 +1,6 @@
-# Managing Configuration with Helm
+# Helm Installation
 
-This document describes how to install and upgrade DataKit with Helm, and how to manage DataKit environment variables and collection configurations. In Kubernetes, DataKit is mainly configured through environment variables and mounted configuration files. Helm configuration is centralized in *values.yaml*.
+This document describes how to install and upgrade DataKit with Helm, and how to manage DataKit environment variables and collection configurations. Helm installation is a container installation method for deploying DataKit in Kubernetes clusters. In Kubernetes, DataKit is mainly configured through environment variables and mounted configuration files. Helm configuration is centralized in *values.yaml*.
 
 ## Installation and Configuration {#install-config}
 

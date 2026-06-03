@@ -9,12 +9,16 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	T "testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
 func Test_trimFileName(t *T.T) {
@@ -91,4 +95,42 @@ func TestCopyFileAtomic(t *T.T) {
 	info, err := os.Stat(dst)
 	assert.NoError(t, err)
 	assert.Equal(t, os.FileMode(0o755), info.Mode().Perm())
+}
+
+func TestInstallTemplateDoesNotInstallCompletion(t *T.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "templates", "install.template.sh"))
+	assert.NoError(t, err)
+
+	script := string(data)
+	assert.NotContains(t, script, "datakit tool --setup-completer-script")
+	assert.NotContains(t, script, "datakit tool --completer-script")
+	assert.NotContains(t, script, "datakit completion")
+}
+
+func TestEnsureDatakitCLIExecutable(t *T.T) {
+	if runtime.GOOS == datakit.OSWindows {
+		t.Skip("Windows does not use unix executable bits")
+	}
+
+	origInstallDir := datakit.InstallDir
+	t.Cleanup(func() {
+		datakit.SetupWorkDir(origInstallDir)
+	})
+
+	dir := t.TempDir()
+	datakit.SetupWorkDir(dir)
+
+	binaryPath := datakit.DatakitBinaryPath()
+	require.NoError(t, os.WriteFile(binaryPath, []byte("datakit"), 0o750))
+	require.NoError(t, os.Chmod(dir, 0o750))
+
+	require.NoError(t, ensureDatakitCLIExecutable())
+
+	dirInfo, err := os.Stat(dir)
+	require.NoError(t, err)
+	assert.Equal(t, os.FileMode(0o755), dirInfo.Mode().Perm())
+
+	binInfo, err := os.Stat(binaryPath)
+	require.NoError(t, err)
+	assert.Equal(t, os.FileMode(0o755), binInfo.Mode().Perm())
 }

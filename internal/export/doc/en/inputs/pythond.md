@@ -390,7 +390,7 @@ Step 3: Configure {{.InputName}}.conf:
 Step 3: Restart DataKit:
 
 ```shell
-sudo datakit service -R
+sudo datakit service restart
 ```
 
 ## FAQ {#faq}

@@ -173,7 +173,7 @@ DataKit 支持命令行直接调试本采集器的配置文件。在配置 `conf
 重启 DataKit，让配置文件生效：
 
 ```shell
-datakit service -R
+datakit service restart
 ```
 
 这时 *prom_remote_write* 采集器将把采集的数据写到 output 指明的本地文件中。

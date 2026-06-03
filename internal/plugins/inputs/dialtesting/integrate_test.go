@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -22,6 +24,7 @@ import (
 	dt "github.com/GuanceCloud/cliutils/dialtesting"
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -34,9 +37,12 @@ const (
 var collectPointsCache = make([]*point.Point, 0)
 
 type mockSender struct {
-	mu   sync.Mutex
-	urls []string
-	pts  []*point.Point
+	mu             sync.Mutex
+	urls           []string
+	pts            []*point.Point
+	uploadResult   *dataway.BrowserScreenshotUploadResult
+	uploadErr      error
+	uploadRequests []*dataway.BrowserScreenshotUpload
 }
 
 func (m *mockSender) send(url string, pt *point.Point) error {
@@ -50,6 +56,30 @@ func (m *mockSender) send(url string, pt *point.Point) error {
 
 func (m *mockSender) checkToken(token, scheme, host string) (bool, error) {
 	return true, nil
+}
+
+func (m *mockSender) uploadBrowserScreenshot(
+	url string,
+	req *dataway.BrowserScreenshotUpload,
+) (*dataway.BrowserScreenshotUploadResult, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.urls = append(m.urls, url)
+	m.uploadRequests = append(m.uploadRequests, req)
+	if m.uploadErr != nil {
+		return nil, m.uploadErr
+	}
+	if m.uploadResult != nil {
+		return m.uploadResult, nil
+	}
+
+	return &dataway.BrowserScreenshotUploadResult{
+		ScreenshotID:   "screenshot-id",
+		ScreenshotDate: "20260528",
+		FileName:       "screenshot.png",
+		FileSize:       int64(len(req.Data)),
+	}, nil
 }
 
 func (m *mockSender) URLs() []string {
@@ -67,6 +97,15 @@ func (m *mockSender) Points() []*point.Point {
 
 	res := make([]*point.Point, len(m.pts))
 	copy(res, m.pts)
+	return res
+}
+
+func (m *mockSender) UploadRequests() []*dataway.BrowserScreenshotUpload {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	res := make([]*dataway.BrowserScreenshotUpload, len(m.uploadRequests))
+	copy(res, m.uploadRequests)
 	return res
 }
 
@@ -558,6 +597,70 @@ func TestIntegrate(t *testing.T) {
 
 			_, ok := ipt.curTasks.Load(task.ID())
 			assert.False(t, ok)
+		})
+	})
+
+	t.Run("browser task results upload local screenshot", func(t *testing.T) {
+		withIntegrationEnv(t, func(sender *mockSender) {
+			tmpDir := t.TempDir()
+			screenshotPath := filepath.Join(tmpDir, "step-2.png")
+			require.NoError(t, os.WriteFile(screenshotPath, []byte{
+				0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+				0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+				0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+				0x08, 0x02, 0x00, 0x00, 0x00,
+			}, 0o600))
+
+			task, err := dt.NewTask("", &dt.BrowserTask{
+				Task: &dt.Task{
+					ExternalID: "browser-result-task",
+					Name:       "browser-result-task",
+					PostURL:    "http://example.com/v1/write/logging?token=test-token",
+					Frequency:  "1s",
+				},
+				URL:           "https://display.example.com",
+				BrowserConfig: "name: browser-result-task\ntarget: https://example.com\nsteps:\n  - action: goto\n    url: https://example.com\n",
+			})
+			require.NoError(t, err)
+
+			fields := map[string]interface{}{
+				"browser_run_id": "run_789",
+				"steps": fmt.Sprintf(`[{
+						"seq": 2,
+						"name": "open",
+						"status": "failed",
+						"duration_us": 120000,
+						"url": "https://example.com",
+						"title": "Example",
+						"screenshot": %q
+					}]`, screenshotPath),
+			}
+			rawSteps, ok := fields["steps"].(string)
+			require.True(t, ok)
+			require.Contains(t, rawSteps, screenshotPath)
+
+			d := &dialer{
+				task: task,
+			}
+			d.processBrowserScreenshots(fields)
+
+			require.True(t, fields["has_screenshot"].(bool))
+			require.NotContains(t, fields["steps"].(string), screenshotPath)
+
+			requests := sender.UploadRequests()
+			require.Len(t, requests, 1)
+			require.Equal(t, "browser-result-task", requests[0].TaskID)
+			require.Equal(t, "run_789", requests[0].RunID)
+			require.Equal(t, "2", requests[0].StepSeq)
+
+			var steps []map[string]interface{}
+			require.NoError(t, json.Unmarshal([]byte(fields["steps"].(string)), &steps))
+			screenshot, ok := steps[0]["screenshot"].(map[string]interface{})
+			require.True(t, ok)
+			require.Equal(t, "screenshot-id", screenshot["id"])
+			require.Equal(t, "20260528", screenshot["date"])
+			require.Equal(t, "screenshot.png", screenshot["file"])
+			require.Equal(t, "image/png", screenshot["type"])
 		})
 	})
 }

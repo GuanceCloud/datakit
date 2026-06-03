@@ -18,48 +18,59 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-// nolint:unparam
-// There may be some error returned here.
-func runToolFlags() error {
+type ToolOptions struct {
+	GrokQ                         bool
+	LogPath                       string
+	ShowCloudInfo                 bool
+	IPInfo                        string
+	WorkspaceInfo                 bool
+	DumpSamples                   string
+	DefaultMainConf               bool
+	ParseLineProtocol             string
+	JSON                          bool
+	UpdateIPDB                    bool
+	ParseKVFile                   string
+	KVFile                        string
+	RemoveApmAutoInject           bool
+	ChangeDockerContainersRuntime string
+	IngestionCanary               bool
+	IngestionCanaryIndex          string
+}
+
+// RunTool runs the selected tool command.
+//
+//nolint:unparam
+func RunTool(opts ToolOptions) error {
+	ConfigureCommandLog(opts.LogPath)
+
 	switch {
-	case *flagToolUpdateIPDB:
+	case opts.UpdateIPDB:
 		if err := updateIPDB(); err != nil {
-			os.Exit(-1)
-		} else {
-			os.Exit(0)
+			return err
 		}
+		return nil
 
-	case *flagToolParseLineProtocol != "":
-		if err := parseLineProto(); err != nil {
-			os.Exit(1)
-		} else {
-			os.Exit(0)
+	case opts.ParseLineProtocol != "":
+		if err := parseLineProto(opts.ParseLineProtocol, opts.JSON); err != nil {
+			return err
 		}
+		return nil
 
-	case *flagToolSetupCompleterScripts:
-		setupCompleterScripts()
-		os.Exit(0)
-
-	case *flagToolCompleterScripts:
-		showCompletionScripts()
-		os.Exit(0)
-
-	case *flagToolGrokQ:
+	case opts.GrokQ:
 		grokq()
-		os.Exit(0)
+		return nil
 
-	case *flagToolDefaultMainConfig:
+	case opts.DefaultMainConf:
 
 		defconf := datakit.MainConfSample(datakit.BrandDomain)
 		cp.Println(defconf)
-		os.Exit(0)
+		return nil
 
-	case *flagToolCloudInfo:
+	case opts.ShowCloudInfo:
 		tryLoadMainCfg()
 		info, err := showCloudInfo()
 		if err != nil {
-			cp.Errorf("[E] Get cloud info failed: %s\n", err.Error())
-			os.Exit(-1)
+			return fmt.Errorf("get cloud info failed: %w", err)
 		}
 
 		var keys []string
@@ -72,112 +83,106 @@ func runToolFlags() error {
 			cp.Infof("\t% 24s: %v\n", k, info[k])
 		}
 
-		os.Exit(0)
+		return nil
 
-	case *flagToolIPInfo != "":
+	case opts.IPInfo != "":
 		tryLoadMainCfg()
-		x, err := ipInfo(*flagToolIPInfo)
+		x, err := ipInfo(opts.IPInfo)
 		if err != nil {
-			cp.Errorf("[E] get IP info failed: %s\n", err.Error())
+			return fmt.Errorf("get IP info failed: %w", err)
 		} else {
 			for k, v := range x {
 				cp.Infof("\t% 8s: %s\n", k, v)
 			}
 		}
 
-		os.Exit(0)
+		return nil
 
-	case *flagToolWorkspaceInfo:
+	case opts.WorkspaceInfo:
 		tryLoadMainCfg()
 		requrl := fmt.Sprintf("http://%s%s", config.Cfg.HTTPAPI.Listen, workspace)
 		body, err := doWorkspace(requrl)
 		if err != nil {
-			cp.Errorf("get worksapceInfo fail %s\n", err.Error())
+			return fmt.Errorf("get worksapceInfo fail %w", err)
 		}
 		outputWorkspaceInfo(body)
-		os.Exit(0)
+		return nil
 
-	case *flagToolDumpSamples != "":
+	case opts.DumpSamples != "":
 		tryLoadMainCfg()
-		fpath := *flagToolDumpSamples
+		fpath := opts.DumpSamples
 
 		if err := os.MkdirAll(fpath, datakit.ConfPerm); err != nil {
-			panic(err)
+			return err
 		}
 
 		for k, v := range inputs.AllInputs {
 			sample := v().SampleConfig()
 			if err := os.WriteFile(filepath.Join(fpath, k+".conf"),
 				[]byte(sample), datakit.ConfPerm); err != nil {
-				panic(err)
+				return err
 			}
 		}
-		os.Exit(0)
+		return nil
 
-	case *flagToolParseKVFile != "":
+	case opts.ParseKVFile != "":
 		tryLoadMainCfg()
-		kvPath := *flagToolKVFile
+		kvPath := opts.KVFile
 		if kvPath == "" {
 			kvPath = datakit.KVFile
 		}
 		kv := config.GetKV()
 		if err := kv.LoadKVFile(kvPath); err != nil {
-			cp.Errorf("load kv file failed: %s\n", err.Error())
-			os.Exit(-1)
+			return fmt.Errorf("load kv file failed: %w", err)
 		}
-		data, err := os.ReadFile(filepath.Clean(*flagToolParseKVFile))
+		data, err := os.ReadFile(filepath.Clean(opts.ParseKVFile))
 		if err != nil {
-			cp.Errorf("read file failed: %s\n", err.Error())
-			os.Exit(-1)
+			return fmt.Errorf("read file failed: %w", err)
 		}
 
 		replacedData, err := kv.ReplaceKV(string(data))
 		if err != nil {
-			cp.Errorf("replace kv failed: %s\n", err.Error())
-			os.Exit(-1)
+			return fmt.Errorf("replace kv failed: %w", err)
 		}
 
 		cp.Printf("%s", replacedData)
-		os.Exit(0)
+		return nil
 
-	case *flagToolRemoveApmAutoInject:
+	case opts.RemoveApmAutoInject:
 		// cleanup apm inject
 		if err := apmInstaller.Uninstall(
 			apmInstaller.WithInstallDir(datakit.InstallDir)); err != nil {
-			cp.Errorf("remove failed: %s\n", err.Error())
+			return fmt.Errorf("remove failed: %w", err)
 		}
 		if err := unsetDKConfAPMInst(datakit.MainConfPath); err != nil {
-			cp.Errorf("clean up datakit config failed: %s\n", err.Error())
+			return fmt.Errorf("clean up datakit config failed: %w", err)
 		}
-		os.Exit(0)
+		return nil
 
-	case *flagToolChangeDockerContainersRuntime != "":
+	case opts.ChangeDockerContainersRuntime != "":
 		var from, to string
-		switch *flagToolChangeDockerContainersRuntime {
+		switch opts.ChangeDockerContainersRuntime {
 		case apmInstaller.RuntimeDkRunc:
 			from, to = apmInstaller.RuntimeRunc, apmInstaller.RuntimeDkRunc
 		case apmInstaller.RuntimeRunc:
 			from, to = apmInstaller.RuntimeDkRunc, apmInstaller.RuntimeRunc
 		}
 		if err := apmInstaller.ChangeDockerHostConfigRunc(from, to, ""); err != nil {
-			cp.Errorf("change runtime of all containers from %s to %s failed: %s\n",
-				from, to, err.Error())
-		} else {
-			cp.Infof("change runtime of all containers from %s to %s succeeded\n",
-				from, to)
+			return fmt.Errorf("change runtime of all containers from %s to %s failed: %w", from, to, err)
 		}
-		os.Exit(0)
+		cp.Infof("change runtime of all containers from %s to %s succeeded\n",
+			from, to)
+		return nil
 
-	case *flagToolIngestionCanary:
+	case opts.IngestionCanary:
 		tryLoadMainCfg()
-		if err := runIngestionCanaryTool(); err != nil {
-			cp.Errorf("[E] ingestion canary tool failed: %s\n", err.Error())
-			os.Exit(-1)
+		if err := runIngestionCanaryTool(opts.IngestionCanaryIndex); err != nil {
+			return fmt.Errorf("ingestion canary tool failed: %w", err)
 		}
-		os.Exit(0)
+		return nil
 	}
 
-	return fmt.Errorf("unknown tool option: %s", os.Args[2])
+	return fmt.Errorf("unknown tool option")
 }
 
 func unsetDKConfAPMInst(path string) error {

@@ -13,6 +13,16 @@ import (
 
 type httpMeasurement struct{}
 
+func withTaskIDField(fields map[string]interface{}) map[string]interface{} {
+	fields["task_id"] = &inputs.FieldInfo{
+		DataType: inputs.String,
+		Type:     inputs.Gauge,
+		Unit:     inputs.NoUnit,
+		Desc:     "The dialtesting task external ID",
+	}
+	return fields
+}
+
 //nolint:lll
 func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
@@ -37,7 +47,7 @@ func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 			"datakit_version":    &inputs.TagInfo{Desc: "The DataKit version"},
 			LabelDF:              &inputs.TagInfo{Desc: "The label of the task"},
 		},
-		Fields: map[string]interface{}{
+		Fields: withTaskIDField(map[string]interface{}{
 			"status_code": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
@@ -134,7 +144,7 @@ func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.DurationDay,
 				Desc:     "The SSL certificate expires in days",
 			},
-		},
+		}),
 	}
 }
 
@@ -162,7 +172,7 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 			"datakit_version": &inputs.TagInfo{Desc: "The DataKit version"},
 			LabelDF:           &inputs.TagInfo{Desc: "The label of the task"},
 		},
-		Fields: map[string]interface{}{
+		Fields: withTaskIDField(map[string]interface{}{
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
@@ -217,7 +227,7 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.NoUnit,
 				Desc:     "The configuration variables of the task",
 			},
-		},
+		}),
 	}
 }
 
@@ -243,7 +253,7 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 			"datakit_version": &inputs.TagInfo{Desc: "The DataKit version"},
 			LabelDF:           &inputs.TagInfo{Desc: "The label of the task"},
 		},
-		Fields: map[string]interface{}{
+		Fields: withTaskIDField(map[string]interface{}{
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
@@ -352,7 +362,7 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.NoUnit,
 				Desc:     "The configuration variables of the task",
 			},
-		},
+		}),
 	}
 }
 
@@ -378,7 +388,7 @@ func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {
 			"datakit_version": &inputs.TagInfo{Desc: "The DataKit version"},
 			LabelDF:           &inputs.TagInfo{Desc: "The label of the task"},
 		},
-		Fields: map[string]interface{}{
+		Fields: withTaskIDField(map[string]interface{}{
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
@@ -451,7 +461,7 @@ func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.DurationDay,
 				Desc:     "The SSL certificate expires in days",
 			},
-		},
+		}),
 	}
 }
 
@@ -475,7 +485,7 @@ func (m *multiMeasurement) Info() *inputs.MeasurementInfo {
 			"datakit_version": &inputs.TagInfo{Desc: "The DataKit version"},
 			LabelDF:           &inputs.TagInfo{Desc: "The label of the task"},
 		},
-		Fields: map[string]interface{}{
+		Fields: withTaskIDField(map[string]interface{}{
 			"last_step": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
@@ -530,7 +540,7 @@ func (m *multiMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.NoUnit,
 				Desc:     "The configuration variables of the task",
 			},
-		},
+		}),
 	}
 }
 
@@ -558,7 +568,7 @@ func (m *grpcMeasurement) Info() *inputs.MeasurementInfo {
 			"datakit_version": &inputs.TagInfo{Desc: "The DataKit version"},
 			LabelDF:           &inputs.TagInfo{Desc: "The label of the task"},
 		},
-		Fields: map[string]interface{}{
+		Fields: withTaskIDField(map[string]interface{}{
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
@@ -613,6 +623,136 @@ func (m *grpcMeasurement) Info() *inputs.MeasurementInfo {
 				Unit:     inputs.DurationDay,
 				Desc:     "The SSL certificate expires in days",
 			},
+		}),
+	}
+}
+
+type browserMeasurement struct{}
+
+//nolint:lll
+func (m *browserMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "browser_dial_testing",
+		Cat:  point.DialTesting,
+		Tags: map[string]interface{}{
+			"name":            &inputs.TagInfo{Desc: "The name of the task"},
+			"url":             &inputs.TagInfo{Desc: "The URL of the page to be monitored"},
+			"node_name":       &inputs.TagInfo{Desc: "The name of the node"},
+			"country":         &inputs.TagInfo{Desc: "The name of the country"},
+			"province":        &inputs.TagInfo{Desc: "The name of the province"},
+			"city":            &inputs.TagInfo{Desc: "The name of the city"},
+			"internal":        &inputs.TagInfo{Desc: "The boolean value, true for domestic and false for overseas"},
+			"isp":             &inputs.TagInfo{Desc: "ISP, such as `chinamobile`, `chinaunicom`, `chinatelecom`"},
+			"status":          &inputs.TagInfo{Desc: "The status of the task, either 'OK' or 'FAIL'"},
+			"browser_engine":  &inputs.TagInfo{Desc: "The browser engine used to run the task"},
+			"viewport":        &inputs.TagInfo{Desc: "The browser viewport size, such as `1920x1080`"},
+			"owner":           &inputs.TagInfo{Desc: "The owner name"},
+			"datakit_version": &inputs.TagInfo{Desc: "The DataKit version"},
+			LabelDF:           &inputs.TagInfo{Desc: "The label of the task"},
 		},
+		Fields: withTaskIDField(map[string]interface{}{
+			"message": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "The message string includes success message or failure reason",
+			},
+			"fail_reason": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "The reason that leads to the failure of the task",
+			},
+			"response_time": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationUS,
+				Desc:     "The browser run duration",
+			},
+			"success": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "The number to specify whether is successful, 1 for success, -1 for failure",
+			},
+			"seq_number": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.Count,
+				Desc:     "The sequence number of the test",
+			},
+			"last_step": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "The last browser step sequence number",
+			},
+			"steps": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "The JSON string of browser step results",
+			},
+			"browser_run_id": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "The browser run ID",
+			},
+			"viewport_width": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "The browser viewport width",
+			},
+			"viewport_height": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "The browser viewport height",
+			},
+			"retry_count": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.Count,
+				Desc:     "The retry count of the browser run",
+			},
+			"retry_records": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "The JSON string of browser retry attempt records",
+			},
+			"trace_id": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "The first trace ID captured during the browser run",
+			},
+			"browser_config_vars": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "The JSON string of variables defined in browser_config",
+			},
+			"has_screenshot": &inputs.FieldInfo{
+				DataType: inputs.Bool,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "Whether the browser run has uploaded screenshots",
+			},
+			"screenshot_upload_error": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "The browser screenshot upload error",
+			},
+			"config_vars": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "The configuration variables of the task",
+			},
+		}),
 	}
 }

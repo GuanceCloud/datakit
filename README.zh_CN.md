@@ -158,7 +158,7 @@ make testing
 可通过如下命令查看更多使用方法：
 
 ```shell
-datakit help
+datakit --help
 ```
 
 ## 如何贡献代码

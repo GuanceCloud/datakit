@@ -7,6 +7,7 @@ package dialtesting
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"path"
@@ -24,9 +25,14 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-const LabelDF = "df_label"
+const (
+	LabelDF       = "df_label"
+	LabelOwnerTag = "owner"
+)
 
 const scheduleTypeCrontab = "crontab"
+
+var errTaskRunSkipped = errors.New("task run skipped")
 
 type dialer struct {
 	task                 dt.ITask
@@ -151,6 +157,8 @@ func newDialer(t dt.ITask, ipt *Input) *dialer {
 		info = (&websocketMeasurement{}).Info()
 	case dt.ClassGRPC:
 		info = (&grpcMeasurement{}).Info()
+	case dt.ClassHeadless:
+		info = (&browserMeasurement{}).Info()
 	}
 
 	tags := make(map[string]string)
@@ -203,6 +211,9 @@ func (d *dialer) run() error {
 		err          error
 		failCount    int
 		tickerChan   <-chan time.Time
+		variablePos  int64
+		taskVars     map[string]dt.Variable
+		now          time.Time
 	)
 
 	if scheduleType == scheduleTypeCrontab {
@@ -304,57 +315,53 @@ func (d *dialer) run() error {
 		l.Debugf(`dialer run %+#v, fail count: %d`, d, failCount)
 		d.testCnt++
 
-		switch d.task.Class() {
-		case dt.ClassHeadless:
-			return fmt.Errorf("headless task deprecated")
-		default:
-			now := ntp.Now()
-			if !d.isCronTask() && !d.dialingTime.IsZero() {
-				lastDialingDuration := now.Sub(d.dialingTime)
-				interval := lastDialingDuration - taskInterval
-				if interval > d.taskExecTimeInterval {
-					taskExecTimeIntervalSummary.WithLabelValues(d.regionName, d.class).Observe(float64(interval) / float64(time.Second))
-				}
+		now = ntp.Now()
+		if !d.isCronTask() && !d.dialingTime.IsZero() {
+			lastDialingDuration := now.Sub(d.dialingTime)
+			interval := lastDialingDuration - taskInterval
+			if interval > d.taskExecTimeInterval {
+				taskExecTimeIntervalSummary.WithLabelValues(d.regionName, d.class).Observe(float64(interval) / float64(time.Second))
 			}
-			d.dialingTime = now
+		}
+		d.dialingTime = now
 
-			// run task
-			// variable task and variable pos changed
-			pos, vars := d.ipt.variables.getVariables(d.task.GetGlobalVars())
-			if pos > d.variablePos {
-				if err := d.task.RenderTemplateAndInit(vars); err != nil {
-					l.Warnf("task reset and run error: %s", err.Error())
+		// run task
+		// variable task and variable pos changed
+		variablePos, taskVars = d.ipt.variables.getVariables(d.task.GetGlobalVars())
+		if variablePos > d.variablePos {
+			if err := d.task.RenderTemplateAndInit(taskVars); err != nil {
+				l.Warnf("task reset and run error: %s", err.Error())
+			} else {
+				d.variablePos = variablePos
+			}
+		}
+
+		if err := d.runTask(); errors.Is(err, errTaskRunSkipped) {
+			goto wait
+		} else if err != nil {
+			l.Warnf("task run error: %s", err.Error())
+			goto wait
+		}
+
+		// update global variables
+		if d.ipt.isServerMode {
+			vars := d.ipt.variables.getVariablesByTask(d.task)
+
+			for _, v := range vars {
+				if value, err := d.task.GetVariableValue(v); err != nil {
+					l.Warnf("get variable value failed: %s", err.Error())
+					d.ipt.variables.updateVariableValue(v, value, 1)
 				} else {
-					d.variablePos = pos
+					l.Debugf("set variable %s value: %s", v.Name, value)
+					d.ipt.variables.updateVariableValue(v, value, 0)
 				}
 			}
+		}
 
-			if err := d.task.Run(); err != nil {
-				l.Warnf("task run error: %s", err.Error())
-				goto wait
-			}
-
-			// update global variables
-			if d.ipt.isServerMode {
-				vars := d.ipt.variables.getVariablesByTask(d.task)
-
-				for _, v := range vars {
-					if value, err := d.task.GetVariableValue(v); err != nil {
-						l.Warnf("get variable value failed: %s", err.Error())
-						d.ipt.variables.updateVariableValue(v, value, 1)
-					} else {
-						l.Debugf("set variable %s value: %s", v.Name, value)
-						d.ipt.variables.updateVariableValue(v, value, 0)
-					}
-				}
-			}
-
-			taskRunCostSummary.WithLabelValues(d.regionName, d.class).Observe(float64(time.Since(d.dialingTime)) / float64(time.Second))
-			// dialtesting start
-			err := d.feedIO()
-			if err != nil {
-				l.Warnf("io feed failed, %s", err.Error())
-			}
+		taskRunCostSummary.WithLabelValues(d.regionName, d.class).Observe(float64(time.Since(d.dialingTime)) / float64(time.Second))
+		// dialtesting start
+		if err := d.feedIO(); err != nil {
+			l.Warnf("io feed failed, %s", err.Error())
 		}
 
 	wait:
@@ -406,6 +413,26 @@ func (d *dialer) run() error {
 	}
 }
 
+func (d *dialer) runTask() error {
+	if d.task.Class() != dt.ClassHeadless || d.ipt == nil || d.ipt.browserConcurrency == nil {
+		return d.task.Run()
+	}
+
+	select {
+	case d.ipt.browserConcurrency <- struct{}{}:
+		defer func() {
+			<-d.ipt.browserConcurrency
+		}()
+		return d.task.Run()
+	case <-datakit.Exit.Wait():
+		return errTaskRunSkipped
+	case <-d.done:
+		return errTaskRunSkipped
+	case <-d.stopCh:
+		return errTaskRunSkipped
+	}
+}
+
 // checkInternalNetwork check whether the host is allowed to be tested.
 func (d *dialer) checkInternalNetwork() error {
 	d.task.SetBeforeRun(func(t *dt.Task) error {
@@ -445,11 +472,9 @@ func (d *dialer) feedIO() error {
 	urlStr := u.String()
 
 	switch d.task.Class() {
-	case dt.ClassHTTP, dt.ClassTCP, dt.ClassICMP, dt.ClassWebsocket, dt.ClassMulti, dt.ClassGRPC:
+	case dt.ClassHTTP, dt.ClassTCP, dt.ClassICMP, dt.ClassWebsocket, dt.ClassMulti, dt.ClassGRPC, dt.ClassHeadless:
 		d.category = urlStr
 		d.pointsFeed(urlStr)
-	case dt.ClassHeadless:
-		return fmt.Errorf("headless task deprecated")
 	default:
 		// TODO other class
 	}

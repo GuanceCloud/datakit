@@ -7,7 +7,7 @@ tags      :
 __int_icon: 'icon/kubernetes'
 ---
 
-[:octicons-tag-24: Version-1.34.0](../datakit/changelog.md#cl-1.34.0) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
+[:octicons-tag-24: Version-1.34.0](../datakit/changelog.md#cl-1.34.0)
 
 ## 概述 {#overview}
 

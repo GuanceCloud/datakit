@@ -21,10 +21,17 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 )
 
-func runVersionFlags(disableUpgradeInfo bool) error {
+type VersionOptions struct {
+	LogPath            string
+	DisableUpgradeInfo bool
+}
+
+func RunVersion(opts VersionOptions) error {
+	ConfigureCommandLog(opts.LogPath)
+
 	showVersion(ReleaseVersion)
 
-	if !disableUpgradeInfo {
+	if !opts.DisableUpgradeInfo {
 		vi, err := CheckNewVersion(ReleaseVersion)
 		if err != nil {
 			return err

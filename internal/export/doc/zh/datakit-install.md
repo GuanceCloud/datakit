@@ -293,8 +293,8 @@ DK_USER_NAME="datakit" DK_DATAWAY="..." bash -c ...
     chown -R datakit cache/
 
     # 重新安装 DataKit 服务
-    datakit service -U
-    datakit service -I
+    datakit service uninstall
+    datakit service reinstall
     ```
 
 ### 日志设置 {#env-logging}

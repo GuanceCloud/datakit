@@ -109,6 +109,36 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 			Desc:    "Enable election(Default disabled)",
 			DescZh:  "开启选举功能（默认禁止）",
 		},
+
+		{
+			ENVName:   "BROWSER_ENABLED",
+			ConfField: "browser.enabled",
+			Type:      doc.Boolean,
+			Example:   "`false`",
+			Default:   "`true`",
+			Desc:      "Enable or disable browser dial testing",
+			DescZh:    "是否开启浏览器拨测",
+		},
+
+		{
+			ENVName:   "BROWSER_CHROME_PATH",
+			ConfField: "browser.chrome_path",
+			Type:      doc.String,
+			Example:   "`/usr/bin/chromium`",
+			Default:   doc.NoDefaultSet,
+			Desc:      "Chrome/Chromium executable path for browser dial testing",
+			DescZh:    "浏览器拨测使用的 Chrome/Chromium 可执行文件路径",
+		},
+
+		{
+			ENVName:   "BROWSER_MAX_CONCURRENCY",
+			ConfField: "browser.max_concurrency",
+			Type:      doc.Int,
+			Example:   "`1`",
+			Default:   "`0`",
+			Desc:      "Maximum number of browser dial testing tasks running at the same time. 0 means no limit",
+			DescZh:    "同一时间最多执行的浏览器拨测任务数，0 表示不限制",
+		},
 	}
 
 	return doc.SetENVDoc("ENV_INPUT_DIALTESTING_", infos)

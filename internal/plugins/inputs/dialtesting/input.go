@@ -75,23 +75,24 @@ const (
 )
 
 type Input struct {
-	Region                          string            `toml:"region,omitempty"`
-	RegionID                        string            `toml:"region_id"`
-	Server                          string            `toml:"server,omitempty"`
-	AK                              string            `toml:"ak"`
-	SK                              string            `toml:"sk"`
-	PullInterval                    string            `toml:"pull_interval,omitempty"`
-	TimeOut                         *datakit.Duration `toml:"time_out,omitempty"`
-	MaxSendFailSleepTime            *datakit.Duration `toml:"max_send_fail_sleep_time,omitempty"`
-	MaxICMPConcurrency              int               `toml:"max_icmp_concurrency,omitempty"`    // max icmp packets sent at one time
-	MaxSendFailCount                int32             `toml:"max_send_fail_count,omitempty"`     // max send fail count
-	MaxJobNumber                    int               `toml:"max_job_number,omitempty"`          // max job number in parallel
-	MaxJobChanNumber                int               `toml:"max_job_chan_number,omitempty"`     // max job chan number
-	MaxCachePointsNumber            int               `toml:"max_cache_points_number,omitempty"` // max points number in cache
-	TaskExecTimeInterval            string            `toml:"task_exec_time_interval,omitempty"`
-	DisableInternalNetworkTask      bool              `toml:"disable_internal_network_task,omitempty"`
-	DisabledInternalNetworkCIDRList []string          `toml:"disabled_internal_network_cidr_list,omitempty"`
-	Election                        bool              `toml:"election"`
+	Region                          string             `toml:"region,omitempty"`
+	RegionID                        string             `toml:"region_id"`
+	Server                          string             `toml:"server,omitempty"`
+	AK                              string             `toml:"ak"`
+	SK                              string             `toml:"sk"`
+	PullInterval                    string             `toml:"pull_interval,omitempty"`
+	TimeOut                         *datakit.Duration  `toml:"time_out,omitempty"`
+	MaxSendFailSleepTime            *datakit.Duration  `toml:"max_send_fail_sleep_time,omitempty"`
+	MaxICMPConcurrency              int                `toml:"max_icmp_concurrency,omitempty"`    // max icmp packets sent at one time
+	MaxSendFailCount                int32              `toml:"max_send_fail_count,omitempty"`     // max send fail count
+	MaxJobNumber                    int                `toml:"max_job_number,omitempty"`          // max job number in parallel
+	MaxJobChanNumber                int                `toml:"max_job_chan_number,omitempty"`     // max job chan number
+	MaxCachePointsNumber            int                `toml:"max_cache_points_number,omitempty"` // max points number in cache
+	TaskExecTimeInterval            string             `toml:"task_exec_time_interval,omitempty"`
+	DisableInternalNetworkTask      bool               `toml:"disable_internal_network_task,omitempty"`
+	DisabledInternalNetworkCIDRList []string           `toml:"disabled_internal_network_cidr_list,omitempty"`
+	Election                        bool               `toml:"election"`
+	Browser                         *BrowserDialConfig `toml:"browser,omitempty"`
 
 	Tags       map[string]string
 	RegionTags map[string]string
@@ -111,7 +112,21 @@ type Input struct {
 
 	variables    Variable
 	isServerMode bool
+
+	browserConcurrency chan struct{}
 }
+
+type BrowserDialConfig struct {
+	Enabled        *bool  `toml:"enabled,omitempty"`
+	ChromePath     string `toml:"chrome_path,omitempty"`
+	MaxConcurrency int    `toml:"max_concurrency,omitempty"`
+}
+
+var browserDialtestingGOOS = runtime.GOOS
+
+const (
+	browserChromeOptionPath = "chrome_path"
+)
 
 // Variable is a global variable manager.
 type Variable struct {
@@ -373,6 +388,17 @@ const sample = `
   # Set true to enable election
   election = false
 
+  [inputs.dialtesting.browser]
+    # Enable browser dialtesting on Linux nodes. Enabled by default.
+    enabled = true
+
+    # Optional Chrome/Chromium executable path.
+    # If empty, the embedded browser runner will use CHROME_EXECUTABLE_PATH or PATH.
+    chrome_path = ""
+
+    # Max browser dialtesting tasks running at the same time. 0 means no limit.
+    max_concurrency = 0
+
   # Custom tags.
   [inputs.dialtesting.tags]
   # some_tag = "some_value"
@@ -395,6 +421,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&websocketMeasurement{},
 		&multiMeasurement{},
 		&grpcMeasurement{},
+		&browserMeasurement{},
 	}
 }
 
@@ -544,6 +571,7 @@ func (ipt *Input) Run() {
 	l.Debugf(`%+#v, %+#v`, ipt.cli, ipt.TimeOut)
 
 	ipt.setupWorker()
+	ipt.setupBrowserConcurrency()
 
 	// set default region name
 	ipt.regionName = ipt.RegionID
@@ -673,7 +701,9 @@ func (ipt *Input) newTaskRun(t dt.ITask) (*dialer, error) {
 	switch t.Class() {
 	case dt.ClassHTTP:
 	case dt.ClassHeadless:
-		return nil, fmt.Errorf("headless task deprecated")
+		if !ipt.browserEnabled() {
+			return nil, fmt.Errorf("browser dialtesting is disabled or unsupported on %s", browserDialtestingGOOS)
+		}
 	case dt.ClassDNS:
 		// TODO
 	case dt.ClassTCP:
@@ -714,6 +744,30 @@ func (ipt *Input) newTaskRun(t dt.ITask) (*dialer, error) {
 	}(t.ID())
 
 	return dialer, nil
+}
+
+func (ipt *Input) browserEnabled() bool {
+	if ipt.Browser != nil && ipt.Browser.Enabled != nil && !*ipt.Browser.Enabled {
+		return false
+	}
+	return browserDialtestingGOOS == datakit.OSLinux || ipt.isDebugMode
+}
+
+func (ipt *Input) browserChromePath() string {
+	if ipt.Browser != nil {
+		if chromePath := strings.TrimSpace(ipt.Browser.ChromePath); chromePath != "" {
+			return chromePath
+		}
+	}
+	return ""
+}
+
+func (ipt *Input) setupBrowserConcurrency() {
+	if ipt.Browser == nil || ipt.Browser.MaxConcurrency <= 0 {
+		ipt.browserConcurrency = nil
+		return
+	}
+	ipt.browserConcurrency = make(chan struct{}, ipt.Browser.MaxConcurrency)
 }
 
 func protectedRun(d *dialer) {
@@ -843,8 +897,8 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 			continue
 		}
 
-		if k == dt.ClassHeadless {
-			l.Debugf("ignore %d headless tasks", len(arr))
+		if k == dt.ClassHeadless && !ipt.browserEnabled() {
+			l.Infof("ignore %d browser dialtesting tasks: browser.enabled is false or unsupported on %s", len(arr), browserDialtestingGOOS)
 			continue
 		}
 
@@ -856,6 +910,8 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 			switch k {
 			case dt.ClassHTTP:
 				ct = &dt.HTTPTask{}
+			case dt.ClassHeadless:
+				ct = &dt.BrowserTask{}
 			case dt.ClassMulti:
 				ct = &dt.MultiTask{}
 			case dt.ClassDNS:
@@ -893,8 +949,14 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 				continue
 			}
 
-			t.SetOption(map[string]string{"userAgent": fmt.Sprintf("datakit-%s-%s/%s/%s",
-				runtime.GOOS, runtime.GOARCH, git.Version, datakit.DKHost)})
+			opt := map[string]string{
+				"userAgent": fmt.Sprintf("datakit-%s-%s/%s/%s",
+					runtime.GOOS, runtime.GOARCH, git.Version, datakit.DKHost),
+			}
+			if browserChromePath := ipt.browserChromePath(); browserChromePath != "" {
+				opt[browserChromeOptionPath] = browserChromePath
+			}
+			t.SetOption(opt)
 
 			l.Debugf("unmarshal task: %+#v", t)
 
@@ -1066,6 +1128,9 @@ func (ipt *Input) pullHTTPTask(reqURL *url.URL, sinceUs, variableSinceUs int64) 
 // ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK: bool.
 // ENV_INPUT_DIALTESTING_DISABLED_INTERNAL_NETWORK_CIDR_LIST: []string.
 // ENV_INPUT_DIALTESTING_ELECTION: bool.
+// ENV_INPUT_DIALTESTING_BROWSER_ENABLED: bool.
+// ENV_INPUT_DIALTESTING_BROWSER_CHROME_PATH: string.
+// ENV_INPUT_DIALTESTING_BROWSER_MAX_CONCURRENCY: int.
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if ak, ok := envs["ENV_INPUT_DIALTESTING_AK"]; ok {
 		ipt.AK = ak
@@ -1104,6 +1169,35 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 					ipt.DisabledInternalNetworkCIDRList = cidrs
 				}
 			}
+		}
+	}
+
+	if v, ok := envs["ENV_INPUT_DIALTESTING_BROWSER_ENABLED"]; ok {
+		if enabled, err := strconv.ParseBool(v); err != nil {
+			l.Warnf("parse ENV_INPUT_DIALTESTING_BROWSER_ENABLED [%s] error: %s, ignored", v, err.Error())
+		} else {
+			if ipt.Browser == nil {
+				ipt.Browser = &BrowserDialConfig{}
+			}
+			ipt.Browser.Enabled = &enabled
+		}
+	}
+
+	if chromePath, ok := envs["ENV_INPUT_DIALTESTING_BROWSER_CHROME_PATH"]; ok {
+		if ipt.Browser == nil {
+			ipt.Browser = &BrowserDialConfig{}
+		}
+		ipt.Browser.ChromePath = chromePath
+	}
+
+	if v, ok := envs["ENV_INPUT_DIALTESTING_BROWSER_MAX_CONCURRENCY"]; ok {
+		if maxConcurrency, err := strconv.Atoi(v); err != nil {
+			l.Warnf("parse ENV_INPUT_DIALTESTING_BROWSER_MAX_CONCURRENCY [%s] error: %s, ignored", v, err.Error())
+		} else {
+			if ipt.Browser == nil {
+				ipt.Browser = &BrowserDialConfig{}
+			}
+			ipt.Browser.MaxConcurrency = maxConcurrency
 		}
 	}
 }

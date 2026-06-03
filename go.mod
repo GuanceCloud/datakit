@@ -7,8 +7,8 @@ require (
 	github.com/DataDog/datadog-agent/pkg/obfuscate v0.47.1
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/GuanceCloud/confd v0.1.101
-	github.com/GuanceCloud/grok v1.1.5-0.20260513103143-a1797907b1d0
-	github.com/GuanceCloud/platypus v0.3.4
+	github.com/GuanceCloud/grok v1.1.5-0.20260603093938-df62b49f2f01
+	github.com/GuanceCloud/platypus v0.3.5-0.20260529080946-6085d331d151
 	github.com/IBM/sarama v1.49.0
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible // indirect
 	github.com/antchfx/xmlquery v1.3.18 // indirect
@@ -34,7 +34,7 @@ require (
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/gobwas/glob v0.2.3
-	github.com/gobwas/ws v1.1.0
+	github.com/gobwas/ws v1.4.0
 	github.com/godror/godror v0.17.0
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/protobuf v1.5.4
@@ -89,7 +89,7 @@ require (
 	golang.org/x/sys v0.44.0
 	golang.org/x/term v0.43.0 // indirect
 	golang.org/x/text v0.37.0
-	google.golang.org/grpc v1.80.0
+	google.golang.org/grpc v1.81.1
 	gopkg.in/CodapeWild/dd-trace-go.v1 v1.35.18
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -101,7 +101,6 @@ require (
 	github.com/DataDog/datadog-go/v5 v5.1.1 // indirect
 	github.com/DataDog/sketches-go v1.4.1 // indirect
 	github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386
-	github.com/GuanceCloud/tracing-protos v0.0.0-20230619071516-54c8cff1b6b3
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/ProtonMail/go-crypto v1.1.3 // indirect
@@ -363,7 +362,7 @@ require (
 )
 
 require (
-	github.com/GuanceCloud/cliutils v1.1.22-0.20260526080823-7a9acec0a0cf
+	github.com/GuanceCloud/cliutils v1.1.22-0.20260603061016-8df3b4b6d625
 	github.com/VictoriaMetrics/easyproto v0.1.4 // indirect
 	github.com/andybalholm/brotli v1.0.4
 	github.com/avvmoto/buf-readerat v0.0.0-20171115124131-a17c8cb89270 // indirect
@@ -381,7 +380,10 @@ require (
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
-	github.com/GuanceCloud/pipeline-go v1.3.1
+	github.com/GuanceCloud/pipeline-go v1.3.2-0.20260603101002-58d46086c6f7
+	github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go v0.0.0-20260601093339-95d5c63392d4
+	github.com/GuanceCloud/tracing-protos/pinpoint-gen-go v0.0.0-20260601093339-95d5c63392d4
+	github.com/GuanceCloud/tracing-protos/skywalking-gen-go v0.0.0-20260601093339-95d5c63392d4
 	github.com/go-redis/redis/v8 v8.11.3
 	github.com/hipages/php-fpm_exporter v1.2.1
 	github.com/redis/go-redis/v9 v9.12.0
@@ -392,18 +394,21 @@ require (
 require (
 	dario.cat/mergo v1.0.2 // indirect
 	github.com/bufbuild/protocompile v0.4.0 // indirect
+	github.com/chromedp/cdproto v0.0.0-20250403032234-65de8f5d025b // indirect
+	github.com/chromedp/chromedp v0.13.7 // indirect
+	github.com/chromedp/sysutil v1.1.0 // indirect
 	github.com/cloudflare/circl v1.3.7 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.5 // indirect
 	github.com/distribution/reference v0.5.0 // indirect
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
+	github.com/go-json-experiment/json v0.0.0-20250211171154-1ae217ad3535 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/jhump/protoreflect v1.15.1 // indirect
 	github.com/onsi/ginkgo/v2 v2.9.5 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
-	github.com/quic-go/qpack v0.4.0 // indirect
-	github.com/quic-go/quic-go v0.41.0 // indirect
+	github.com/quic-go/qpack v0.6.0 // indirect
+	github.com/quic-go/quic-go v0.59.1 // indirect
 	github.com/skeema/knownhosts v1.3.0 // indirect
 	github.com/speps/go-hashids v2.0.0+incompatible // indirect
 	github.com/tomasen/fcgi_client v0.0.0-20180423082037-2bb3d819fd19 // indirect
@@ -414,7 +419,6 @@ require (
 	go.opentelemetry.io/otel/metric v1.43.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.43.0 // indirect
 	go.opentelemetry.io/otel/trace v1.43.0 // indirect
-	go.uber.org/mock v0.3.0 // indirect
 	k8s.io/gengo v0.0.0-20211129171323-c02415ce4185 // indirect
 )
 

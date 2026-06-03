@@ -7,6 +7,8 @@
 package cmds
 
 import (
+	"runtime"
+
 	"github.com/GuanceCloud/cliutils/logger"
 	prompt "github.com/c-bata/go-prompt"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
@@ -91,4 +93,18 @@ func setCmdRootLog(rl string) {
 	l = logger.SLogger("cmds")
 
 	l.Infof("set root log file to %q ok", rl)
+}
+
+func CommonLogFlag() string {
+	if runtime.GOOS == datakit.OSWindows {
+		return "nul"
+	}
+	return "/dev/null"
+}
+
+func ConfigureCommandLog(path string) {
+	if path == "" {
+		path = CommonLogFlag()
+	}
+	setCmdRootLog(path)
 }

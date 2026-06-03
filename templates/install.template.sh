@@ -571,6 +571,3 @@ else
 fi
 
 $sudo_cmd $installer_bin "${cmd[@]}"
-
-# install completion
-$sudo_cmd datakit tool --setup-completer-script

@@ -31,7 +31,7 @@ This document provides guidelines for AI agents working on the GuanceCloud CLI U
 ## Code Style Guidelines
 
 ### General
-- **Go Version**: 1.19+
+- **Go Version**: 1.25+
 - **License Header**: All files must include the MIT license header (see existing files)
 - **Line Length**: Maximum 150 characters (configured in .golangci.toml)
 - **Complexity**: Maximum cyclomatic complexity of 14

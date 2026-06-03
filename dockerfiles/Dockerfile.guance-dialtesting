@@ -1,0 +1,133 @@
+FROM pubrepo.guance.com/base/ubuntu:22.04 AS base
+ARG TARGETARCH
+ARG DIST_DIR
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV CHROME_EXECUTABLE_PATH=/usr/bin/chromium
+
+RUN addgroup --gid 10001 datakit \
+  && adduser --disabled-password --gecos "" --uid 10001 --gid 10001 datakit \
+  && usermod -aG datakit root
+
+RUN mkdir -p /usr/local/datakit \
+  && mkdir -p /usr/local/datakit/conf.d \
+  && mkdir -p /usr/local/datakit/cache \
+  && mkdir -p /usr/local/datakit/data \
+  && mkdir -p /usr/local/datakit/pipeline \
+  && mkdir -p /usr/local/datakit/externals \
+  && mkdir -p /usr/local/datakit/recorder \
+  && mkdir -p /opt/oracle
+
+RUN sed -i 's/\(archive\|security\|ports\).ubuntu.com/mirrors.aliyun.com/' /etc/apt/sources.list \
+  && apt-get update \
+  && apt-get --no-install-recommends install -y \
+    lsb-release \
+    gpg \
+    libaio-dev \
+    libaio1 \
+    unzip \
+    wget \
+    curl \
+    python3 \
+    python3-pip \
+    libxml2 \
+    alien \
+    vim \
+    libsystemd-dev \
+    ca-certificates \
+    fonts-liberation \
+    fonts-noto-cjk \
+    fonts-noto-color-emoji \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libcups2 \
+    libdbus-1-3 \
+    libdrm2 \
+    libgbm1 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
+    libx11-xcb1 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libxshmfence1 \
+    libxss1 \
+    tini \
+    xdg-utils \
+  && echo 'deb [trusted=yes] http://mirrors.aliyun.com/debian bookworm main' > /etc/apt/sources.list.d/debian-bookworm.list \
+  && printf 'Package: *\nPin: release n=bookworm\nPin-Priority: 100\n\nPackage: chromium chromium-common chromium-sandbox libharfbuzz-subset0 libharfbuzz0b libopenjp2-7 libzstd1\nPin: release n=bookworm\nPin-Priority: 990\n' > /etc/apt/preferences.d/debian-bookworm \
+  && apt-get update \
+  && apt-get --no-install-recommends install -y chromium \
+  && pip3 install requests kubernetes esdk-obs-python boto3 -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com \
+  && chromium --version \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
+
+# download 3rd party libraries
+RUN \
+  case "$TARGETARCH" in \
+  amd64) \
+  wget -q https://static.guance.com/otn_software/instantclient/instantclient-basiclite-linux.x64-21.10.0.0.0dbru.zip \
+  -O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
+  && unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle \
+  && mv /opt/oracle/instantclient_21_10 /opt/oracle/instantclient \
+  && rm /usr/local/datakit/externals/instantclient-basiclite-linux.zip; \
+  wget -q https://static.guance.com/otn_software/db2/linuxx64_odbc_cli.tar.gz \
+  -O /usr/local/datakit/externals/linuxx64_odbc_cli.tar.gz \
+  && mkdir /opt/ibm \
+  && tar zxf /usr/local/datakit/externals/linuxx64_odbc_cli.tar.gz -C /opt/ibm \
+  && rm /usr/local/datakit/externals/linuxx64_odbc_cli.tar.gz; \
+  wget -q https://static.guance.com/oceanbase/x86/libobclient-2.1.4.1-20230510140123.el7.alios7.x86_64.rpm \
+  -O /usr/local/datakit/externals/libobclient-2.1.4.1-20230510140123.el7.alios7.x86_64.rpm \
+  && alien -i /usr/local/datakit/externals/libobclient-2.1.4.1-20230510140123.el7.alios7.x86_64.rpm \
+  && rm /usr/local/datakit/externals/libobclient-2.1.4.1-20230510140123.el7.alios7.x86_64.rpm; \
+  wget -q https://static.guance.com/oceanbase/x86/obci-2.0.6.odpi.go-20230510112726.el7.alios7.x86_64.rpm \
+  -O /usr/local/datakit/externals/obci-2.0.6.odpi.go-20230510112726.el7.alios7.x86_64.rpm \
+  && alien -i /usr/local/datakit/externals/obci-2.0.6.odpi.go-20230510112726.el7.alios7.x86_64.rpm \
+  && rm /usr/local/datakit/externals/obci-2.0.6.odpi.go-20230510112726.el7.alios7.x86_64.rpm; \
+  ;; \
+  esac;
+
+RUN \
+  case "$TARGETARCH" in \
+  "arm64") \
+  wget -q https://static.guance.com/otn_software/instantclient/instantclient-basiclite-linux.arm64-19.19.0.0.0dbru.zip \
+  -O /usr/local/datakit/externals/instantclient-basiclite-linux.zip \
+  && unzip /usr/local/datakit/externals/instantclient-basiclite-linux.zip -d /opt/oracle \
+  && mv /opt/oracle/instantclient_19_19 /opt/oracle/instantclient \
+  && rm /usr/local/datakit/externals/instantclient-basiclite-linux.zip; \
+  wget -q https://static.guance.com/oceanbase/arm/libobclient-2.1.4.1-20230510140123.el7.alios7.aarch64.rpm \
+  -O /usr/local/datakit/externals/libobclient-2.1.4.1-20230510140123.el7.alios7.aarch64.rpm \
+  && alien --target=arm64 -i /usr/local/datakit/externals/libobclient-2.1.4.1-20230510140123.el7.alios7.aarch64.rpm \
+  && rm /usr/local/datakit/externals/libobclient-2.1.4.1-20230510140123.el7.alios7.aarch64.rpm; \
+  wget -q https://static.guance.com/oceanbase/arm/obci-2.0.6.odpi.go-20230815181729.el7.alios7.aarch64.rpm \
+  -O /usr/local/datakit/externals/obci-2.0.6.odpi.go-20230815181729.el7.alios7.aarch64.rpm \
+  && alien --target=arm64 -i /usr/local/datakit/externals/obci-2.0.6.odpi.go-20230815181729.el7.alios7.aarch64.rpm \
+  && rm /usr/local/datakit/externals/obci-2.0.6.odpi.go-20230815181729.el7.alios7.aarch64.rpm; \
+  ;; \
+  esac;
+
+# download data files required by datakit
+RUN wget -q -O data.tar.gz https://static.guance.com/datakit/data.tar.gz \
+  && tar -xzf data.tar.gz -C /usr/local/datakit && rm -rf data.tar.gz
+
+COPY --chown=datakit:datakit ${DIST_DIR}/datakit-linux-${TARGETARCH}/ /usr/local/datakit/
+
+ENV PATH=/usr/local/datakit:$PATH
+
+RUN mkdir -p /var/log/datakit \
+  && chown -R datakit:datakit /var/log/datakit \
+  && chmod -R 775 /var/log/datakit
+
+RUN chown -R datakit:datakit /usr/local/datakit \
+  && chown -R datakit:datakit /opt/oracle
+
+RUN chmod -R 775 /usr/local/datakit \
+  && chmod -R 775 /opt/oracle
+
+USER root
+
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["/usr/local/datakit/datakit", "run", "-C"]

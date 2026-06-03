@@ -1,6 +1,6 @@
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "2.0.0"
+  CI_VERSION: "2.1.0"
   CI_TESTING_VERSION: $CI_VERSION-testing_$CI_COMMIT_BRANCH
   DCA_CI_VERSION: "0.1.6"
   DCA_CI_TESTING_VERSION: $DCA_CI_VERSION-testing_$CI_COMMIT_BRANCH
@@ -152,6 +152,10 @@ release-testing-guance: # release testing packages to guance
         DOCKER_IMAGE_REPO="pubrepo.guance.com/datakit" \
         DOCKERFILE_SUFFIX="guance" \
         FLAMESHOT_VERSION="$FLAMESHOT_TESTING_VERSION"
+    - make testing_dialtesting_image VERSION="$CI_TESTING_VERSION-dialtesting" \
+        BRAND="guance" \
+        DOCKER_IMAGE_REPO="pubrepo.guance.com/datakit" \
+        DOCKERFILE_SUFFIX="guance-dialtesting"
     - make uos_image_testing VERSION="$CI_TESTING_VERSION" \
         DOCKER_IMAGE_REPO="pubrepo.guance.com/uos-dataflux"
   tags:
@@ -182,6 +186,10 @@ release-testing-tw: # release testing packages to truewatch
       DOCKER_IMAGE_REPO="pubrepo.guance.com/truewatch" \
       DOCKERFILE_SUFFIX="tw" \
       FLAMESHOT_VERSION="$FLAMESHOT_TESTING_VERSION"
+    - make testing_dialtesting_image VERSION="$CI_TESTING_VERSION-dialtesting" \
+      BRAND="truewatch" \
+      DOCKER_IMAGE_REPO="pubrepo.guance.com/truewatch" \
+      DOCKERFILE_SUFFIX="tw-dialtesting"
   tags:
     - cloudcare-ft
 
@@ -210,6 +218,10 @@ release-prod-guance: # CI for guance packages
       BRAND="guance" \
       DOCKER_IMAGE_REPO="pubrepo.guance.com/datakit" \
       DOCKERFILE_SUFFIX="guance"
+    - make production_dialtesting_image VERSION="$CI_VERSION-dialtesting" \
+      BRAND="guance" \
+      DOCKER_IMAGE_REPO="pubrepo.guance.com/datakit" \
+      DOCKERFILE_SUFFIX="guance-dialtesting"
     - make uos_image_production VERSION="$CI_VERSION" \
       DOCKER_IMAGE_REPO="pubrepo.guance.com/uos-dataflux"
     - make push_new_version VERSION="$CI_VERSION" \
@@ -241,6 +253,10 @@ release-prod-tw: # CI for truewatch packages
       BRAND="truewatch" \
       DOCKER_IMAGE_REPO="pubrepo.guance.com/truewatch" \
       DOCKERFILE_SUFFIX="tw"
+    - make production_dialtesting_image VERSION="$CI_VERSION-dialtesting" \
+      BRAND="truewatch" \
+      DOCKER_IMAGE_REPO="pubrepo.guance.com/truewatch" \
+      DOCKERFILE_SUFFIX="tw-dialtesting"
   tags:
     - cloudcare-ft
 
@@ -272,7 +288,6 @@ build-dca-testing-image-guance:
   stage: _deploy_guance
   resource_group: production
   only:
-    - /^testing-.*$/ # always build DCA for testing, we can check if it is working for daily update.
     - /^dca-testing.*$/
   script:
     - nvm use v22.19.0
@@ -298,7 +313,6 @@ build-dca-testing-image-tw:
   stage: _deploy_truewatch
   resource_group: production
   only:
-    - /^testing-.*$/ # always build DCA for testing, we can check if it is working for daily update.
     - /^dca-testing.*$/
   script:
     - nvm use v22.19.0

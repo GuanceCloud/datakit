@@ -23,6 +23,34 @@ For legal files, checksums, and source code change details, see the <<<custom_ke
 
 ## changelog {#changelog}
 
+## v1.63.0-ext (2026/6/3) {#cl-1.63.0-ext}
+
+### New {#cl-1.63.0-ext-fix}
+
+- Merge the latest code.
+
+
+## v1.60.4-ext (2026/4/27) {#cl-1.60.4-ext}
+
+### New {#cl-1.60.4-ext-fix}
+
+- Fix Redis `service_name` display issue.
+
+
+## v1.60.3-ext (2026/4/24) {#cl-1.60.3-ext}
+
+### New {#cl-1.60.3-ext-fix}
+
+- Improve JDBC support for Oracle.
+
+
+## v1.55.11-ext (2026/3/17) {#cl-1.55.11-ext}
+
+### New {#cl-1.55.11-ext-fix}
+
+- Lower the RocketMQ instrumentation minimum version from 4.8.0 to 4.5.0.
+
+
 ## v1.55.10-ext (2026/2/1) {#cl-1.55.10-ext}
 
 ### New {#cl-1.55.10-ext-fix}

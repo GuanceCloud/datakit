@@ -218,6 +218,14 @@ define build_docker_image
 	fi
 endef
 
+define build_docker_dialtesting_image
+	echo 'publishing dialtesting datakit image to $(2)...';
+	sudo docker buildx build --platform $(1) \
+		--build-arg DIST_DIR=$(DIST_DIR) \
+		-t $(2)/datakit:$(VERSION) \
+		-f dockerfiles/Dockerfile.$(DOCKERFILE_SUFFIX) . --push;
+endef
+
 define build_uos_image
 	echo 'publishing to $(2)...';
 	sudo docker buildx build --platform $(1) \
@@ -322,6 +330,9 @@ testing_image:
 	# we also publishing testing image to public image repo
 	$(call build_docker_image,$(DOCKER_IMAGE_ARCHS),$(DOCKER_IMAGE_REPO))
 
+testing_dialtesting_image:
+	$(call build_docker_dialtesting_image,$(DOCKER_IMAGE_ARCHS),$(DOCKER_IMAGE_REPO))
+
 production_notify: deps
 	$(call notify_build,production,$(DEFAULT_ARCHS))
 
@@ -331,6 +342,9 @@ production: deps # stable release
 
 production_image:
 	$(call build_docker_image,$(DOCKER_IMAGE_ARCHS),$(DOCKER_IMAGE_REPO))
+
+production_dialtesting_image:
+	$(call build_docker_dialtesting_image,$(DOCKER_IMAGE_ARCHS),$(DOCKER_IMAGE_REPO))
 
 uos_image_testing: deps
 	$(call build_uos_image,$(UOS_DOCKER_IMAGE_ARCHS),'registry.jiagouyun.com/uos-dataflux') # testing image always push to registry.jiagouyun.com

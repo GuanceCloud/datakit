@@ -4,6 +4,8 @@
 
 本文档介绍如何在 K8s 中通过 DaemonSet 方式安装 DataKit。
 
+如需通过 Helm 安装 DataKit，请参见 [Helm 安装](datakit-helm.md)。
+
 ## 安装 {#install}
 
 <!-- markdownlint-disable MD046 -->
@@ -40,127 +42,6 @@
     ```shell
     $ kubectl get pod -n datakit
     ```
-
-=== "Helm"
-
-    前提条件
-    
-    * Kubernetes >= 1.14
-    * Helm >= 3.0+
-    
-    Helm 安装 DataKit（注意修改 `datakit.dataway_url` 参数）, 其中开启了很多[默认采集器](datakit-input-conf.md#default-enabled-inputs)，无需配置。更多 Helm 相关可参考 [Helm 管理配置](datakit-helm.md)
-    
-    
-    ```shell
-    helm install datakit datakit \
-        <<<% if custom_key.brand_key == 'guance' -%>>>
-        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
-        <<<% else -%>>>
-        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
-        <<<% endif -%>>>
-        -n datakit --create-namespace \
-        --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>" 
-    ```
-    
-    查看部署状态：
-    
-    ```shell
-    helm -n datakit list
-    ```
-    
-    可以通过如下命令来升级：
-    
-    ```shell
-    helm -n datakit get  values datakit -o yaml > values.yaml
-    helm upgrade datakit datakit \
-        <<<% if custom_key.brand_key == 'guance' -%>>>
-        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
-        <<<% else -%>>>
-        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
-        <<<% endif -%>>>
-        -n datakit \
-        -f values.yaml
-    ```
-    
-    可以通过如下命令来卸载：
-    
-    ```shell
-    helm uninstall datakit -n datakit
-    ```
-
-    ### 更多 Helm 示例 {#helm-examples}
-
-    除了手动编辑上面的 *values.yaml* 来调整 DataKit 配置（如果遇到复杂转义操作，还是建议直接用 *values.yaml* 来操作），还可以在 Helm 安装阶段就指定这些参数。需要注意的是，这些参数的设置需符合 Helm 的命令行语法。
-
-    **设置默认的采集器列表**
-
-    ```shell
-    helm install datakit datakit \
-        <<<% if custom_key.brand_key == 'guance' -%>>>
-        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
-        <<<% else -%>>>
-        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
-        <<<% endif -%>>>
-        -n datakit --create-namespace \
-        --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<your-token>" \
-        --set datakit.default_enabled_inputs="statsd\,dk\,cpu\,mem"
-    ```
-
-    注意，此处需要将 `,` 转义一下，不然 Helm 会报错。
-
-    **设置环境变量**
-
-    DataKit 支持非常多的[环境变量设置](datakit-daemonset-install.md#env-setting)，我们可以用如下的方式来追加一组环境变量设置：
-
-    ```shell
-    helm install datakit datakit \
-        <<<% if custom_key.brand_key == 'guance' -%>>>
-        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
-        <<<% else -%>>>
-        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
-        <<<% endif -%>>>
-        -n datakit --create-namespace \
-        --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=tkn_xxx" \
-        --set "extraEnvs[0].name=ENV_INPUT_OTEL_GRPC" \
-        --set 'extraEnvs[0].value=\{"trace_enable":true\,"metric_enable":true\,"addr":"0.0.0.0:4317"\}' \
-        --set "extraEnvs[1].name=ENV_INPUT_CPU_PERCPU" \
-        --set 'extraEnvs[1].value=true'
-    ```
-
-    此处 `extraEnvs` 是 DataKit Helm 包中定义的设置环境变量的入口，由于环境变量是数组结构，故此处我们用数组下标（从 0 开始）的方式来追加多个环境变量。其中 `name` 即环境变量名，`value` 即对应的值。值得注意的是，某些环境变量的值是 JSON 字符串，此处我们也要注意对一些字符（比 `{},` 等字符）做转义。
-
-    **安装指定版本**
-
-    可以通过 `image.tag` 来指定 DataKit 镜像版本号：
-
-    ```shell
-    helm install datakit datakit \
-        <<<% if custom_key.brand_key == 'guance' -%>>>
-        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
-        <<<% else -%>>>
-        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
-        <<<% endif -%>>>
-        -n datakit --create-namespace \
-        --set image.tag="1.70.0" \
-        ...
-    ```
-
-    **GKE Autopilot**
-
-    GKE Autopilot 请使用单独发布的 `datakit-gke-autopilot` chart。安装时不需要额外指定镜像版本，默认使用该 chart 中声明的镜像版本：
-
-    ```shell
-    helm install datakit datakit-gke-autopilot \
-        <<<% if custom_key.brand_key == 'guance' -%>>>
-        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
-        <<<% else -%>>>
-        --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/truewatch \
-        <<<% endif -%>>>
-        -n datakit --create-namespace \
-        --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<your-token>"
-    ```
-
-    该 chart 会以非特权、非 root 的方式运行 DataKit，并减少宿主机挂载能力。详细差异、升级和排查方式，参见 [GKE Autopilot Helm 安装](datakit-helm.md#gke-autopilot)。
 
 === "Deployment"
 

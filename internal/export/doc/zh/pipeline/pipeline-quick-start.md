@@ -85,7 +85,7 @@ $ datakit pipeline -P other_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG i
 datakit pipeline -P your_pipeline.p -F sample.log
 ```
 
-更多 Pipeline 调试命令，参见 `datakit help pipeline`。
+更多 Pipeline 调试命令，参见 `datakit pipeline --help`。
 
 ### Grok 通配搜索 {#grokq}
 

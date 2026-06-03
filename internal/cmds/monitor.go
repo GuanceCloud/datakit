@@ -7,12 +7,28 @@
 package cmds
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/monitor"
 )
+
+type MonitorOptions struct {
+	To            string
+	MaxTableWidth int
+	LogPath       string
+	Refresh       time.Duration
+	Verbose       bool
+	Module        string
+	OnlyInputs    string
+	FilePath      string
+	TimestampMS   int64
+	DumpMetrics   bool
+	Quantile      string
+}
 
 var moduleMap = map[string]string{
 	"G":   "goroutine",
@@ -36,9 +52,18 @@ func loadLocalDatakitConf() string {
 	return config.Cfg.HTTPAPI.Listen
 }
 
-func runMonitorFlags() error {
-	if *flagMonitorRefreshInterval < time.Second {
-		*flagMonitorRefreshInterval = time.Second
+func RunMonitor(opts MonitorOptions) error {
+	if opts.Module != "" {
+		nomodule := existsModule(strings.Split(opts.Module, ","))
+		if len(nomodule) != 0 {
+			return fmt.Errorf("has no module:%+v,check please", nomodule)
+		}
+	}
+
+	ConfigureCommandLog(opts.LogPath)
+
+	if opts.Refresh < time.Second {
+		opts.Refresh = time.Second
 	}
 
 	// default
@@ -50,8 +75,8 @@ func runMonitorFlags() error {
 	}
 
 	// use command line host if specified
-	if *flagMonitorTo != "" {
-		to = *flagMonitorTo
+	if opts.To != "" {
+		to = opts.To
 	}
 
 	schema := "http"
@@ -60,15 +85,15 @@ func runMonitorFlags() error {
 	}
 	monitor.Start(
 		monitor.WithHost(schema, to),
-		monitor.WithQuantile(*flagMonitorQuantile),
-		monitor.WithDumpMetrics(*flagMonitorDumpMetrics),
-		monitor.WithSource(*flagMonitorFilePath),
-		monitor.WithTimestampMS(*flagMonitorTimestamp),
-		monitor.WithMaxTableWidth(*flagMonitorMaxTableWidth),
-		monitor.WithOnlyInputs(*flagMonitorOnlyInputs),
-		monitor.WithOnlyModules(*flagMonitorModule),
-		monitor.WithRefresh(*flagMonitorRefreshInterval),
-		monitor.WithVerbose(*flagMonitorVerbose),
+		monitor.WithQuantile(opts.Quantile),
+		monitor.WithDumpMetrics(opts.DumpMetrics),
+		monitor.WithSource(opts.FilePath),
+		monitor.WithTimestampMS(opts.TimestampMS),
+		monitor.WithMaxTableWidth(opts.MaxTableWidth),
+		monitor.WithOnlyInputs(opts.OnlyInputs),
+		monitor.WithOnlyModules(opts.Module),
+		monitor.WithRefresh(opts.Refresh),
+		monitor.WithVerbose(opts.Verbose),
 		monitor.WithProxy(config.Cfg.Dataway.HTTPProxy),
 	)
 	return nil

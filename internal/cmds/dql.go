@@ -55,17 +55,29 @@ type dqlCmd struct {
 	dqlcli *http.Client
 }
 
-func runDQLFlags() error {
+type DQLOptions struct {
+	JSON     bool
+	AutoJSON bool
+	Verbose  bool
+	Run      string
+	Token    string
+	CSV      string
+	Force    bool
+	Host     string
+	LogPath  string
+}
+
+func RunDQL(opts DQLOptions) error {
 	dc := &dqlCmd{
-		json:          *flagDQLJSON,
-		autoJSON:      *flagDQLAutoJSON,
-		dqlString:     *flagDQLString,
-		token:         *flagDQLToken,
-		csv:           *flagDQLCSV,
-		forceWriteCSV: *flagDQLForce,
-		host:          *flagDQLDataKitHost,
-		verbose:       *flagDQLVerbose,
-		log:           *flagDQLLogPath,
+		json:          opts.JSON,
+		autoJSON:      opts.AutoJSON,
+		dqlString:     opts.Run,
+		token:         opts.Token,
+		csv:           opts.CSV,
+		forceWriteCSV: opts.Force,
+		host:          opts.Host,
+		verbose:       opts.Verbose,
+		log:           opts.LogPath,
 	}
 
 	if err := dc.prepare(); err != nil {
@@ -89,7 +101,7 @@ func (dc *dqlCmd) prepare() error {
 	}
 
 	dc.dqlcli = &http.Client{}
-	setCmdRootLog(dc.log)
+	ConfigureCommandLog(dc.log)
 
 	return nil
 }

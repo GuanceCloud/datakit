@@ -49,6 +49,7 @@ flowchart LR
 | **接入站点**      | **您的服务器所在 Region** | **接入终端节点服务的名称**                         |
 | --------          | ----------------------    | -----------                          |
 | 亚太区 1（新加坡）  | `ap-southeast-1` (新加坡)     |  `com.amazonaws.vpce.ap-southeast-1.vpce-svc-08465b643241dce58` |
+| 海外区 1（俄勒冈）  | `us-west-2` (俄勒冈)     |  `com.amazonaws.vpce.us-west-2.vpce-svc-0895f6859469a621e` |
 <<<% else %>>>
 | **接入站点**      | **您的服务器所在 Region** | **接入终端节点服务的名称**                         |
 | --------          | ----------------------    | -----------                          |
@@ -65,6 +66,7 @@ flowchart LR
 | **接入站点**      | **您的服务器所在 Region** | **Endpoint**                         |
 | --------          | ----------------------    | -----------                          |
 | 亚太区 1（新加坡）  |  `ap-southeast-1` (新加坡)         | `https://ap1-openway.<<<custom_key.brand_main_domain>>>` |
+| 海外区 1（俄勒冈）  |  `us-west-2` (俄勒冈)          | `https://us1-openway.<<<custom_key.brand_main_domain>>>` |
 <<<% else %>>>
 | **接入站点**      | **您的服务器所在 Region** | **Endpoint**                         |
 | --------          | ----------------------    | -----------                          |

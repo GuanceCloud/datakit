@@ -1,8 +1,8 @@
 
-# 使用 Helm 管理配置
+# Helm 安装
 ---
 
-本文介绍如何使用 Helm 安装、升级 DataKit，并管理 DataKit 的环境变量和采集配置。Kubernetes 中的 DataKit 主要通过环境变量和挂载配置文件来调整行为，Helm 的配置入口集中在 *values.yaml* 中。
+本文介绍如何使用 Helm 安装、升级 DataKit，并管理 DataKit 的环境变量和采集配置。Helm 安装属于容器安装方式，适用于 Kubernetes 集群中的 DataKit 部署。Kubernetes 中的 DataKit 主要通过环境变量和挂载配置文件来调整行为，Helm 的配置入口集中在 *values.yaml* 中。
 
 ## 安装和配置 {#instal-config}
 

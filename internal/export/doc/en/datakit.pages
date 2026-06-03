@@ -9,6 +9,7 @@ nav:
     - 'Host Installation': datakit-install.md
     - 'Containers':
       - 'Kubernetes': datakit-daemonset-deploy.md
+      - 'Helm': datakit-helm.md
       - 'Docker': datakit-docker-deploy.md
       - 'AWS ECS Fargate': ecs-fargate.md
       - 'AWS EKS': datakit-eks-deploy.md

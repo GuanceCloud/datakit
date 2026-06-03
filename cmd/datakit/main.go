@@ -6,7 +6,7 @@
 package main
 
 import (
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/core"
+	cobracmd "gitlab.jiagouyun.com/cloudcare-tools/datakit/cmd/datakit/cmd"
 )
 
 // injected during building: -X.
@@ -18,8 +18,8 @@ var (
 )
 
 func main() {
-	app := core.New()
-	if err := app.Initialize(ReleaseVersion, InputsReleaseType, Lite, ELinker); err != nil {
+	cobracmd.SetBuildInfo(ReleaseVersion, InputsReleaseType, Lite, ELinker)
+	if err := cobracmd.Execute(); err != nil {
 		panic(err)
 	}
 }

@@ -479,7 +479,7 @@ You can end the debug with Ctrl + c. To get the collected data as soon as possib
 <!-- markdownlint-disable MD046 -->
 ???+ tip
 
-    - Some passively receiving data collectors (such as DDTrace/RUM) need to specify the HTTP service (`--http-listen=[IP:Port]`), and then use some HTTP client tools (such as `curl`) to send data to the corresponding address of DataKit. See `datakit help debug` for details
+    - Some passively receiving data collectors (such as DDTrace/RUM) need to specify the HTTP service (`--http-listen=[IP:Port]`), and then use some HTTP client tools (such as `curl`) to send data to the corresponding address of DataKit. See `datakit debug --help` for details
 
     - The collector configuration used for debugging can be of any extension, and does not necessarily [end with `.conf`](datakit-input-conf.md#intro). We can use file names such as *my-input.conf.test* specifically for debugging, while not affecting the normal operation of DataKit.
 <!-- markdownlint-enable -->

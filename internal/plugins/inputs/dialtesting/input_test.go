@@ -21,10 +21,15 @@ import (
 	"github.com/GuanceCloud/cliutils/dialtesting"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
+
+func boolPtr(v bool) *bool {
+	return &v
+}
 
 func TestInternalNetwork(t *testing.T) {
 	dialWorker = &worker{
@@ -316,12 +321,181 @@ func TestDispatchTasks(t *testing.T) {
 		assert.False(t, found)
 	})
 
-	t.Run("headless tasks are ignored", func(t *testing.T) {
+	t.Run("browser tasks are created by default on linux", func(t *testing.T) {
+		oldGOOS := browserDialtestingGOOS
+		browserDialtestingGOOS = datakit.OSLinux
+		t.Cleanup(func() { browserDialtestingGOOS = oldGOOS })
+
 		ipt := defaultInput()
+
+		taskJSON, err := json.Marshal(&dialtesting.BrowserTask{
+			Task: &dialtesting.Task{
+				ExternalID: "browser-task-default",
+				Name:       "browser-task-default",
+				PostURL:    "http://example.com?token=test",
+				Frequency:  "1s",
+			},
+			BrowserConfig: "name: browser-task\ntarget: https://example.com\nsteps:\n  - action: goto\n    url: https://example.com\n",
+		})
+		assert.NoError(t, err)
+
+		payload, err := json.Marshal(map[string]interface{}{
+			"content": map[string]interface{}{
+				dialtesting.ClassHeadless: []string{string(taskJSON)},
+			},
+		})
+		assert.NoError(t, err)
+		assert.NoError(t, ipt.dispatchTasks(payload))
+
+		found := false
+		ipt.curTasks.Range(func(key, value any) bool {
+			found = true
+			return false
+		})
+		assert.True(t, found)
+
+		ipt.semStop.Close()
+		time.Sleep(20 * time.Millisecond)
+	})
+
+	t.Run("browser tasks are ignored when explicitly disabled", func(t *testing.T) {
+		oldGOOS := browserDialtestingGOOS
+		browserDialtestingGOOS = datakit.OSLinux
+		t.Cleanup(func() { browserDialtestingGOOS = oldGOOS })
+
+		ipt := defaultInput()
+		ipt.Browser = &BrowserDialConfig{Enabled: boolPtr(false)}
 
 		payload, err := json.Marshal(map[string]interface{}{
 			"content": map[string]interface{}{
 				dialtesting.ClassHeadless: []string{`{"name":"browser-task"}`},
+			},
+		})
+		assert.NoError(t, err)
+
+		assert.NoError(t, ipt.dispatchTasks(payload))
+
+		found := false
+		ipt.curTasks.Range(func(key, value any) bool {
+			found = true
+			return false
+		})
+		assert.False(t, found)
+	})
+
+	t.Run("browser tasks are created when enabled", func(t *testing.T) {
+		oldGOOS := browserDialtestingGOOS
+		browserDialtestingGOOS = datakit.OSLinux
+		t.Cleanup(func() { browserDialtestingGOOS = oldGOOS })
+
+		ipt := defaultInput()
+		ipt.Browser = &BrowserDialConfig{
+			Enabled: boolPtr(true),
+		}
+
+		taskJSON, err := json.Marshal(&dialtesting.BrowserTask{
+			Task: &dialtesting.Task{
+				ExternalID: "browser-task",
+				Name:       "browser-task",
+				PostURL:    "http://example.com?token=test",
+				Frequency:  "1s",
+			},
+			URL:           "https://display.example.com",
+			BrowserConfig: "name: browser-task\ntarget: https://example.com\nsteps:\n  - action: goto\n    url: https://example.com\n",
+		})
+		assert.NoError(t, err)
+
+		payload, err := json.Marshal(map[string]interface{}{
+			"content": map[string]interface{}{
+				dialtesting.ClassHeadless: []string{string(taskJSON)},
+			},
+		})
+		assert.NoError(t, err)
+
+		assert.NoError(t, ipt.dispatchTasks(payload))
+
+		var got *dialer
+		ipt.curTasks.Range(func(key, value any) bool {
+			got = value.(*dialer)
+			return false
+		})
+		if assert.NotNil(t, got) {
+			require.IsType(t, &dialtesting.BrowserTask{}, got.task)
+			browserTask := got.task.(*dialtesting.BrowserTask)
+			assert.Equal(t, "https://display.example.com", browserTask.URL)
+			assert.Empty(t, got.task.GetOption()["chrome_path"])
+		}
+
+		ipt.semStop.Close()
+		time.Sleep(20 * time.Millisecond)
+	})
+
+	t.Run("browser chrome path is passed to task", func(t *testing.T) {
+		oldGOOS := browserDialtestingGOOS
+		browserDialtestingGOOS = datakit.OSLinux
+		t.Cleanup(func() { browserDialtestingGOOS = oldGOOS })
+
+		ipt := defaultInput()
+		ipt.Browser = &BrowserDialConfig{
+			Enabled:    boolPtr(true),
+			ChromePath: "/usr/bin/google-chrome",
+		}
+
+		taskJSON, err := json.Marshal(&dialtesting.BrowserTask{
+			Task: &dialtesting.Task{
+				ExternalID: "browser-task-explicit-paths",
+				Name:       "browser-task-explicit-paths",
+				PostURL:    "http://example.com?token=test",
+				Frequency:  "1s",
+			},
+			BrowserConfig: "name: browser-task\ntarget: https://example.com\nsteps:\n  - action: goto\n    url: https://example.com\n",
+		})
+		assert.NoError(t, err)
+
+		payload, err := json.Marshal(map[string]interface{}{
+			"content": map[string]interface{}{
+				dialtesting.ClassHeadless: []string{string(taskJSON)},
+			},
+		})
+		assert.NoError(t, err)
+
+		assert.NoError(t, ipt.dispatchTasks(payload))
+
+		var got *dialer
+		ipt.curTasks.Range(func(key, value any) bool {
+			got = value.(*dialer)
+			return false
+		})
+		if assert.NotNil(t, got) {
+			assert.Equal(t, "/usr/bin/google-chrome", got.task.GetOption()["chrome_path"])
+		}
+
+		ipt.semStop.Close()
+		time.Sleep(20 * time.Millisecond)
+	})
+
+	t.Run("browser tasks are ignored on non linux nodes", func(t *testing.T) {
+		oldGOOS := browserDialtestingGOOS
+		browserDialtestingGOOS = datakit.OSWindows
+		t.Cleanup(func() { browserDialtestingGOOS = oldGOOS })
+
+		ipt := defaultInput()
+		ipt.Browser = &BrowserDialConfig{Enabled: boolPtr(true)}
+
+		taskJSON, err := json.Marshal(&dialtesting.BrowserTask{
+			Task: &dialtesting.Task{
+				ExternalID: "browser-task-windows",
+				Name:       "browser-task-windows",
+				PostURL:    "http://example.com?token=test",
+				Frequency:  "1s",
+			},
+			BrowserConfig: "name: browser-task\ntarget: https://example.com\nsteps:\n  - action: goto\n    url: https://example.com\n",
+		})
+		assert.NoError(t, err)
+
+		payload, err := json.Marshal(map[string]interface{}{
+			"content": map[string]interface{}{
+				dialtesting.ClassHeadless: []string{string(taskJSON)},
 			},
 		})
 		assert.NoError(t, err)
@@ -795,6 +969,9 @@ func TestReadEnv(t *testing.T) {
 			"ENV_INPUT_DIALTESTING_ELECTION":                            "true",
 			"ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK":       "true",
 			"ENV_INPUT_DIALTESTING_DISABLED_INTERNAL_NETWORK_CIDR_LIST": `["10.0.0.0/8","192.168.0.0/16"]`,
+			"ENV_INPUT_DIALTESTING_BROWSER_ENABLED":                     "true",
+			"ENV_INPUT_DIALTESTING_BROWSER_CHROME_PATH":                 "/usr/bin/chromium",
+			"ENV_INPUT_DIALTESTING_BROWSER_MAX_CONCURRENCY":             "2",
 		})
 
 		assert.Equal(t, "test-ak", ipt.AK)
@@ -804,20 +981,48 @@ func TestReadEnv(t *testing.T) {
 		assert.True(t, ipt.Election)
 		assert.True(t, ipt.DisableInternalNetworkTask)
 		assert.Equal(t, []string{"10.0.0.0/8", "192.168.0.0/16"}, ipt.DisabledInternalNetworkCIDRList)
+		if assert.NotNil(t, ipt.Browser) {
+			assert.NotNil(t, ipt.Browser.Enabled)
+			assert.True(t, *ipt.Browser.Enabled)
+			assert.Equal(t, "/usr/bin/chromium", ipt.Browser.ChromePath)
+			assert.Equal(t, 2, ipt.Browser.MaxConcurrency)
+		}
 	})
 
 	t.Run("invalid boolean env keeps defaults", func(t *testing.T) {
 		ipt := defaultInput()
 		ipt.Election = false
 		ipt.DisableInternalNetworkTask = false
+		ipt.Browser = &BrowserDialConfig{Enabled: boolPtr(false)}
 
 		ipt.ReadEnv(map[string]string{
 			"ENV_INPUT_DIALTESTING_ELECTION":                      "not-bool",
 			"ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK": "not-bool",
+			"ENV_INPUT_DIALTESTING_BROWSER_ENABLED":               "not-bool",
+			"ENV_INPUT_DIALTESTING_BROWSER_MAX_CONCURRENCY":       "not-int",
 		})
 
 		assert.False(t, ipt.Election)
 		assert.False(t, ipt.DisableInternalNetworkTask)
+		assert.NotNil(t, ipt.Browser.Enabled)
+		assert.False(t, *ipt.Browser.Enabled)
+		assert.Equal(t, 0, ipt.Browser.MaxConcurrency)
+	})
+
+	t.Run("browser envs initialize browser config", func(t *testing.T) {
+		ipt := defaultInput()
+		ipt.Browser = nil
+
+		ipt.ReadEnv(map[string]string{
+			"ENV_INPUT_DIALTESTING_BROWSER_ENABLED":     "true",
+			"ENV_INPUT_DIALTESTING_BROWSER_CHROME_PATH": "/opt/chrome/chrome",
+		})
+
+		if assert.NotNil(t, ipt.Browser) {
+			assert.NotNil(t, ipt.Browser.Enabled)
+			assert.True(t, *ipt.Browser.Enabled)
+			assert.Equal(t, "/opt/chrome/chrome", ipt.Browser.ChromePath)
+		}
 	})
 
 	t.Run("invalid cidr list json is ignored", func(t *testing.T) {
@@ -1043,6 +1248,9 @@ func TestInputHelpers(t *testing.T) {
 	t.Run("sample config and catalog", func(t *testing.T) {
 		ipt := defaultInput()
 		assert.Contains(t, ipt.SampleConfig(), "[[inputs.dialtesting]]")
+		assert.NotContains(t, ipt.SampleConfig(), `install_dir`)
+		assert.Contains(t, ipt.SampleConfig(), `chrome_path = ""`)
+		assert.Contains(t, ipt.SampleConfig(), `max_concurrency = 0`)
 		assert.Equal(t, "network", ipt.Catalog())
 	})
 
@@ -1055,7 +1263,7 @@ func TestInputHelpers(t *testing.T) {
 		ipt := defaultInput()
 		ms := ipt.SampleMeasurement()
 		assert.NotEmpty(t, ms)
-		assert.Len(t, ms, 6)
+		assert.Len(t, ms, 7)
 	})
 
 	t.Run("election enabled", func(t *testing.T) {
@@ -1074,6 +1282,18 @@ func TestInputHelpers(t *testing.T) {
 
 		assert.NoError(t, ipt.Resume())
 		assert.False(t, ipt.pause.Load())
+	})
+
+	t.Run("setup browser concurrency", func(t *testing.T) {
+		ipt := defaultInput()
+		ipt.setupBrowserConcurrency()
+		assert.Nil(t, ipt.browserConcurrency)
+
+		ipt.Browser = &BrowserDialConfig{MaxConcurrency: 2}
+		ipt.setupBrowserConcurrency()
+		if assert.NotNil(t, ipt.browserConcurrency) {
+			assert.Equal(t, 2, cap(ipt.browserConcurrency))
+		}
 	})
 
 	t.Run("terminate closes sem stop", func(t *testing.T) {
@@ -1665,15 +1885,69 @@ func TestNewTaskRun(t *testing.T) {
 		time.Sleep(20 * time.Millisecond)
 	})
 
-	t.Run("headless task returns error", func(t *testing.T) {
+	t.Run("browser task returns error when disabled", func(t *testing.T) {
 		ipt := defaultInput()
+		ipt.Browser = &BrowserDialConfig{Enabled: boolPtr(false)}
 
 		task := &headlessTaskStub{}
 
 		d, err := ipt.newTaskRun(task)
 		assert.Nil(t, d)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "headless task deprecated")
+		assert.Contains(t, err.Error(), "browser dialtesting is disabled")
+	})
+
+	t.Run("browser task can run when enabled", func(t *testing.T) {
+		oldGOOS := browserDialtestingGOOS
+		browserDialtestingGOOS = datakit.OSLinux
+		t.Cleanup(func() { browserDialtestingGOOS = oldGOOS })
+
+		ipt := defaultInput()
+		ipt.Browser = &BrowserDialConfig{Enabled: boolPtr(true)}
+
+		task := &headlessTaskStub{}
+
+		d, err := ipt.newTaskRun(task)
+		assert.NoError(t, err)
+		assert.NotNil(t, d)
+
+		ipt.semStop.Close()
+		time.Sleep(20 * time.Millisecond)
+	})
+
+	t.Run("browser task returns error on non linux nodes", func(t *testing.T) {
+		oldGOOS := browserDialtestingGOOS
+		browserDialtestingGOOS = datakit.OSWindows
+		t.Cleanup(func() { browserDialtestingGOOS = oldGOOS })
+
+		ipt := defaultInput()
+		ipt.Browser = &BrowserDialConfig{Enabled: boolPtr(true)}
+
+		task := &headlessTaskStub{}
+
+		d, err := ipt.newTaskRun(task)
+		assert.Nil(t, d)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "unsupported on windows")
+	})
+
+	t.Run("browser task can run in debug mode on non linux nodes", func(t *testing.T) {
+		oldGOOS := browserDialtestingGOOS
+		browserDialtestingGOOS = datakit.OSDarwin
+		t.Cleanup(func() { browserDialtestingGOOS = oldGOOS })
+
+		ipt := defaultInput()
+		ipt.isDebugMode = true
+		ipt.Browser = &BrowserDialConfig{Enabled: boolPtr(true)}
+
+		task := &headlessTaskStub{}
+
+		d, err := ipt.newTaskRun(task)
+		assert.NoError(t, err)
+		assert.NotNil(t, d)
+
+		ipt.semStop.Close()
+		time.Sleep(20 * time.Millisecond)
 	})
 
 	t.Run("fallback to region id when display names are empty", func(t *testing.T) {

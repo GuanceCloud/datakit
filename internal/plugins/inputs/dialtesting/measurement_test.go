@@ -28,7 +28,7 @@ func TestMeasurementInfo(t *testing.T) {
 			wantName: "http_dial_testing",
 			tagKeys:  []string{"url", "method", "node_name", LabelDF},
 			fieldKeys: []string{
-				"status_code", "message", "response_time", "seq_number", "config_vars",
+				"status_code", "message", "response_time", "seq_number", "config_vars", "task_id",
 			},
 		},
 		{
@@ -37,7 +37,7 @@ func TestMeasurementInfo(t *testing.T) {
 			wantName: "tcp_dial_testing",
 			tagKeys:  []string{"dest_host", "dest_port", "proto", LabelDF},
 			fieldKeys: []string{
-				"message", "traceroute", "response_time", "success", "config_vars",
+				"message", "traceroute", "response_time", "success", "config_vars", "task_id",
 			},
 		},
 		{
@@ -46,7 +46,7 @@ func TestMeasurementInfo(t *testing.T) {
 			wantName: "icmp_dial_testing",
 			tagKeys:  []string{"dest_host", "proto", "node_name", LabelDF},
 			fieldKeys: []string{
-				"average_round_trip_time", "packet_loss_percent", "packets_sent", "success", "config_vars",
+				"average_round_trip_time", "packet_loss_percent", "packets_sent", "success", "config_vars", "task_id",
 			},
 		},
 		{
@@ -55,7 +55,7 @@ func TestMeasurementInfo(t *testing.T) {
 			wantName: "websocket_dial_testing",
 			tagKeys:  []string{"url", "proto", "node_name", LabelDF},
 			fieldKeys: []string{
-				"response_message", "sent_message", "response_time", "success", "config_vars",
+				"response_message", "sent_message", "response_time", "success", "config_vars", "task_id",
 			},
 		},
 		{
@@ -64,7 +64,7 @@ func TestMeasurementInfo(t *testing.T) {
 			wantName: "multi_dial_testing",
 			tagKeys:  []string{"name", "node_name", "status", LabelDF},
 			fieldKeys: []string{
-				"last_step", "steps", "response_time", "success", "config_vars",
+				"last_step", "steps", "response_time", "success", "config_vars", "task_id",
 			},
 		},
 		{
@@ -73,7 +73,16 @@ func TestMeasurementInfo(t *testing.T) {
 			wantName: "grpc_dial_testing",
 			tagKeys:  []string{"server", "dest_host", "method", LabelDF},
 			fieldKeys: []string{
-				"message", "response_time", "success", "seq_number", "config_vars",
+				"message", "response_time", "success", "seq_number", "config_vars", "task_id",
+			},
+		},
+		{
+			name:     "browser",
+			meas:     &browserMeasurement{},
+			wantName: "browser_dial_testing",
+			tagKeys:  []string{"url", "browser_engine", "viewport", LabelDF},
+			fieldKeys: []string{
+				"browser_run_id", "last_step", "steps", "retry_records", "browser_config_vars", "has_screenshot", "task_id",
 			},
 		},
 	}

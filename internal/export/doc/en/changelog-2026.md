@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.1.0(2026/06/03) {#cl-2.1.0}
+
+This release is an iterative release, with the following main updates:
+
+### New Features {#cl-2.1.0-new}
+
+- Added browser dial testing tasks. `inputs.dialtesting` can now pull and execute `BROWSER` tasks to simulate real browser page access, interactions, and result reporting (#3072)
+- DataKit CLI added the `datakit completion` command to generate completion scripts for bash, zsh, fish, and PowerShell (#3066)
+
+### Improvements {#cl-2.1.0-opt}
+
+- Optimized exponential Pipeline performance regression, reducing processing latency for Grok parsing patterns with consecutive `GREEDYDATA` segments (#3094)
+
+### Compatibility Adjustments {#cl-2.1.0-breaking}
+
+- DataKit CLI has been migrated to the Cobra command framework, and related commands have been adjusted. See [service management](datakit-service-how-to.md#manage-service) and [command completion](datakit-tools-how-to.md#completion) for details (#3066)
+
+---
+
 ## 2.0.0(2026/05/27) {#cl-2.0.0}
 
 This release is the first DataKit 2.x mainline release and officially enables the independent datakit-v2 install and upgrade source, with the following main updates:
@@ -180,6 +199,10 @@ This release is an iterative release, with the following main updates:
 ## 1.90.0(2026/03/11) {#cl-1.90.0}
 
 This release is an iterative release, with the following main updates:
+
+### Breaking Changes {#cl-1.90.0-breaking}
+
+- Removed legacy completion entry points `datakit tool --setup-completer-script`, `datakit tool --completer-script`, and the static script `datakit-completer.sh`. Use `datakit completion` instead.
 
 ### New Features {#cl-1.90.0-new}
 

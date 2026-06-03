@@ -22,7 +22,17 @@ var ExternalInstallDir = map[string]string{
 	datakit.OSArchDarwinAmd64: `/usr/local/`,
 }
 
-func installPlugins() error {
+type InstallOptions struct {
+	LogPath     string
+	Telegraf    bool
+	Scheck      bool
+	IPDB        string
+	SymbolTools bool
+}
+
+func RunInstall(opts InstallOptions) error {
+	ConfigureCommandLog(opts.LogPath)
+
 	dir := runtime.GOOS + "/" + runtime.GOARCH
 
 	if _, ok := ExternalInstallDir[dir]; !ok {
@@ -30,20 +40,20 @@ func installPlugins() error {
 	}
 
 	switch {
-	case *flagInstallTelegraf:
+	case opts.Telegraf:
 		return installTelegraf(ExternalInstallDir[dir])
-	case *flagInstallScheck:
+	case opts.Scheck:
 		return installScheck()
-	case *flagInstallIPDB != "":
-		switch *flagInstallIPDB {
+	case opts.IPDB != "":
+		switch opts.IPDB {
 		case "iploc":
 			return installIPDB("iploc")
 		case "geolite2":
 			return installIPDB("geolite2")
 		default:
-			return fmt.Errorf("unknown ipdb `%s'", *flagInstallIPDB)
+			return fmt.Errorf("unknown ipdb `%s'", opts.IPDB)
 		}
-	case *flagInstallSymbolTool:
+	case opts.SymbolTools:
 		return InstallSymbolTools()
 	default:
 		return fmt.Errorf("unknown package or plugin")

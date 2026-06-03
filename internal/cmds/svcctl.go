@@ -9,7 +9,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"os/exec"
 	"os/user"
 	"runtime"
@@ -22,60 +21,59 @@ import (
 	dkservice "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/service"
 )
 
-func runServiceFlags() error {
-	if *flagServiceRestart {
+type ServiceAction string
+
+const (
+	ServiceActionStart     ServiceAction = "start"
+	ServiceActionStop      ServiceAction = "stop"
+	ServiceActionRestart   ServiceAction = "restart"
+	ServiceActionUninstall ServiceAction = "uninstall"
+	ServiceActionReinstall ServiceAction = "reinstall"
+)
+
+type ServiceOptions struct {
+	LogPath string
+	Action  ServiceAction
+}
+
+func RunService(opts ServiceOptions) error {
+	ConfigureCommandLog(opts.LogPath)
+
+	switch opts.Action {
+	case ServiceActionRestart:
 		if err := RestartDatakit(); err != nil {
-			cp.Errorf("[E] restart DataKit failed:%s\n using command to restart: %s\n", err.Error(), errMsg[runtime.GOOS])
-			os.Exit(-1)
+			return fmt.Errorf("restart DataKit failed: %w; using command to restart: %s", err, errMsg[runtime.GOOS])
 		}
-
 		cp.Infof("Restart DataKit OK\n")
-		os.Exit(0)
-	}
-
-	if *flagServiceStop {
+		return nil
+	case ServiceActionStop:
 		if err := stopDatakit(); err != nil {
-			cp.Errorf("[E] stop DataKit failed: %s\n", err.Error())
-			os.Exit(-1)
+			return fmt.Errorf("stop DataKit failed: %w", err)
 		}
-
 		cp.Infof("Stop DataKit OK\n")
-		os.Exit(0)
-	}
-
-	if *flagServiceStart {
+		return nil
+	case ServiceActionStart:
 		if err := startDatakit(); err != nil {
-			cp.Errorf("[E] start DataKit failed: %s\n using command to stop : %s\n", err.Error(), errMsg[runtime.GOOS])
-			os.Exit(-1)
+			return fmt.Errorf("start DataKit failed: %w; using command to stop : %s", err, errMsg[runtime.GOOS])
 		}
-
-		cp.Infof("Start DataKit OK\n") // TODO: 需说明 PID 是多少
-		os.Exit(0)
-	}
-
-	if *flagServiceUninstall {
+		cp.Infof("Start DataKit OK\n")
+		return nil
+	case ServiceActionUninstall:
 		if err := uninstallDatakit(); err != nil {
-			cp.Errorf("[E] uninstall DataKit failed: %s\n", err.Error())
-			os.Exit(-1)
+			return fmt.Errorf("uninstall DataKit failed: %w", err)
 		}
-
 		cp.Infof("Uninstall DataKit OK\n")
-		os.Exit(0)
-	}
-
-	if *flagServiceReinstall {
+		return nil
+	case ServiceActionReinstall:
 		tryLoadMainCfg()
-
 		if err := reinstallDatakit(config.Cfg); err != nil {
-			cp.Errorf("[E] reinstall DataKit failed: %s\n", err.Error())
-			os.Exit(-1)
+			return fmt.Errorf("reinstall DataKit failed: %w", err)
 		}
-
 		cp.Infof("Reinstall DataKit OK\n")
-		os.Exit(0)
+		return nil
+	default:
+		return fmt.Errorf("unknown service action: %s", opts.Action)
 	}
-
-	return fmt.Errorf("no action specified")
 }
 
 func isRoot() error {

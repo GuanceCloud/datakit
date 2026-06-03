@@ -8,6 +8,7 @@ nav:
     - '主机安装': datakit-install.md
     - '容器安装':
       - 'Kubernetes': datakit-daemonset-deploy.md
+      - 'Helm': datakit-helm.md
       - 'Docker': datakit-docker-deploy.md
       - 'AWS ECS Fargate': ecs-fargate.md
       - 'AWS EKS': datakit-eks-deploy.md
@@ -48,7 +49,6 @@ nav:
       - '配置综述': k8s-config-how-to.md
       - 'DCA': dca.md
       - 'Git': git-config-how-to.md
-      - 'Helm 配置': datakit-helm.md
       - '配置中心支持': confd.md
 
   - 'DataKit 开发手册':

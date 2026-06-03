@@ -207,12 +207,12 @@ However, in some cases, the older version of the DataKit service did not uninsta
 At this point, we can force the old version of DataKit to stop and restart the DataKit:
 
 ``` shell
-datakit service -T # Stop service
-datakit service -S # Start a new service
+datakit service stop  # Stop service
+datakit service start # Start a new service
 
 # If not, uninstall the DataKit service and then reinstall the service
-datakit service -U # uninstall service
-datakit service -I # reinstall service
+datakit service uninstall # uninstall service
+datakit service reinstall # reinstall service
 
 # After the above operations are completed, confirm whether the next DataKit version is the latest version
 

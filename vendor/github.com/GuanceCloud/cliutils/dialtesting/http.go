@@ -815,9 +815,9 @@ func (t *HTTPTask) closeHTTP3Transport() {
 }
 
 func (t *HTTPTask) newHTTP3RoundTripper(tlsConfig *tls.Config, httpTimeout time.Duration) http.RoundTripper {
-	return &http3.RoundTripper{
+	return &http3.Transport{
 		TLSClientConfig: tlsConfig,
-		Dial: func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error) {
+		Dial: func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (*quic.Conn, error) {
 			host, port, err := net.SplitHostPort(addr)
 			if err != nil {
 				return nil, err

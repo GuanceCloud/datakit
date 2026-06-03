@@ -6,6 +6,8 @@
 package cmds
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	T "testing"
@@ -82,12 +84,10 @@ func Test_adjustPointTime(t *T.T) {
 func Test_setupUploader(t *T.T) {
 	origCfg := config.Cfg
 	origInstallDir := datakit.InstallDir
-	origImportURLs := append([]string(nil), *flagImportDatawayURL...)
 
 	t.Cleanup(func() {
 		config.Cfg = origCfg
 		datakit.SetupWorkDir(origInstallDir)
-		*flagImportDatawayURL = origImportURLs
 	})
 
 	t.Run("use dataway settings from main config", func(t *T.T) {
@@ -96,8 +96,6 @@ func Test_setupUploader(t *T.T) {
 		require.NoError(t, os.MkdirAll(filepath.Dir(datakit.MainConfPath), 0o755))
 
 		config.Cfg = config.DefaultConfig()
-		*flagImportDatawayURL = nil
-
 		conf := `
 [dataway]
   urls = ["https://config.example.com?token=config-token"]
@@ -106,7 +104,7 @@ func Test_setupUploader(t *T.T) {
 `
 		require.NoError(t, os.WriteFile(datakit.MainConfPath, []byte(conf), 0o644))
 
-		u, err := setupUploader()
+		u, err := setupUploader(nil)
 		require.NoError(t, err)
 
 		impl, ok := u.(*uploaderImpl)
@@ -122,8 +120,6 @@ func Test_setupUploader(t *T.T) {
 		require.NoError(t, os.MkdirAll(filepath.Dir(datakit.MainConfPath), 0o755))
 
 		config.Cfg = config.DefaultConfig()
-		*flagImportDatawayURL = []string{"https://override.example.com?token=override-token"}
-
 		conf := `
 [dataway]
   urls = ["https://config.example.com?token=config-token"]
@@ -132,7 +128,7 @@ func Test_setupUploader(t *T.T) {
 `
 		require.NoError(t, os.WriteFile(datakit.MainConfPath, []byte(conf), 0o644))
 
-		u, err := setupUploader()
+		u, err := setupUploader([]string{"https://override.example.com?token=override-token"})
 		require.NoError(t, err)
 
 		impl, ok := u.(*uploaderImpl)
@@ -147,9 +143,7 @@ func Test_setupUploader(t *T.T) {
 		datakit.SetupWorkDir(tmpDir)
 
 		config.Cfg = config.DefaultConfig()
-		*flagImportDatawayURL = []string{"https://override.example.com?token=override-token"}
-
-		u, err := setupUploader()
+		u, err := setupUploader([]string{"https://override.example.com?token=override-token"})
 		require.NoError(t, err)
 
 		impl, ok := u.(*uploaderImpl)
@@ -157,4 +151,66 @@ func Test_setupUploader(t *T.T) {
 		assert.Equal(t, []string{"https://override.example.com?token=override-token"}, impl.dw.URLs)
 		assert.Equal(t, dataway.DefaultMaxRawBodySize, impl.dw.MaxRawBodySize)
 	})
+}
+
+func TestRunImportNowUploadsLineProtocolToMockDataway(t *T.T) {
+	origCfg := config.Cfg
+	origInstallDir := datakit.InstallDir
+	t.Cleanup(func() {
+		config.Cfg = origCfg
+		datakit.SetupWorkDir(origInstallDir)
+	})
+
+	tmpDir := t.TempDir()
+	datakit.SetupWorkDir(tmpDir)
+	config.Cfg = config.DefaultConfig()
+
+	dataDir := filepath.Join(tmpDir, "recording")
+	loggingDir := filepath.Join(dataDir, point.Logging.String())
+	require.NoError(t, os.MkdirAll(loggingDir, 0o755))
+	require.NoError(t, os.WriteFile(
+		filepath.Join(loggingDir, "001.lp"),
+		[]byte("cpu,host=local usage=1 1000000000\n"),
+		0o644,
+	))
+
+	requests := 0
+	var gotPath string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		gotPath = r.URL.Path
+		assert.Equal(t, http.MethodPost, r.Method)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	err := RunImportNow(ImportOptions{
+		Path:        dataDir,
+		DatawayURLs: []string{ts.URL + "?token=tkn_import"},
+	}, time.Unix(100, 0).UnixNano())
+	require.NoError(t, err)
+	assert.Equal(t, 1, requests)
+	assert.Equal(t, "/v1/write/logging", gotPath)
+}
+
+func TestRunImportNowReturnsErrorForMissingPath(t *T.T) {
+	missingPath := filepath.Join(t.TempDir(), "missing")
+
+	err := RunImportNow(ImportOptions{
+		Path:        missingPath,
+		DatawayURLs: []string{"https://example.com?token=tkn_import"},
+	}, time.Now().UnixNano())
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "stat import path")
+}
+
+func TestRunImportNowReturnsErrorForEmptyPath(t *T.T) {
+	emptyPath := t.TempDir()
+
+	err := RunImportNow(ImportOptions{
+		Path:        emptyPath,
+		DatawayURLs: []string{"https://example.com?token=tkn_import"},
+	}, time.Now().UnixNano())
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "no import data files")
 }

@@ -243,52 +243,40 @@ func TestBugreport_containString(t *testing.T) {
 }
 
 func TestUploadBugReportViaDataway(t *testing.T) {
-	originalOSS := *flagDebugBugreportOSS
-	originalDataway := *flagDebugBugreportDataway
-	defer func() {
-		*flagDebugBugreportOSS = originalOSS
-		*flagDebugBugreportDataway = originalDataway
-	}()
 	t.Run("use dataway when oss flag is empty", func(t *testing.T) {
-		*flagDebugBugreportOSS = ""
-		if !shouldUploadBugReportViaDataway() {
+		if !shouldUploadBugReportViaDataway(DebugOptions{}) {
 			t.Fatalf("expected shouldUploadBugReportViaDataway to return true")
 		}
 	})
 
 	t.Run("do not use dataway when oss flag is set", func(t *testing.T) {
-		*flagDebugBugreportOSS = "host:bucket:ak:sk"
-		if shouldUploadBugReportViaDataway() {
+		if shouldUploadBugReportViaDataway(DebugOptions{BugreportOSS: "host:bucket:ak:sk"}) {
 			t.Fatalf("expected shouldUploadBugReportViaDataway to return false")
 		}
 	})
 
 	t.Run("use custom dataway URLs", func(t *testing.T) {
-		*flagDebugBugreportDataway = " http://dataway-1 , http://dataway-2 "
-
-		urls := bugReportDatawayURLs()
+		urls := bugReportDatawayURLs(DebugOptions{
+			BugreportDataway: " http://dataway-1 , http://dataway-2 ",
+		})
 		if len(urls) != 2 {
 			t.Fatalf("expected 2 custom dataway URLs, got %d", len(urls))
 		}
 		if urls[0] != "http://dataway-1?token=bugreport-default" || urls[1] != "http://dataway-2?token=bugreport-default" {
 			t.Fatalf("unexpected custom dataway URLs: %#v", urls)
 		}
-
-		*flagDebugBugreportDataway = ""
 	})
 
 	t.Run("keep existing custom dataway token", func(t *testing.T) {
-		*flagDebugBugreportDataway = "http://dataway-1?token=tkn_custom"
-
-		urls := bugReportDatawayURLs()
+		urls := bugReportDatawayURLs(DebugOptions{
+			BugreportDataway: "http://dataway-1?token=tkn_custom",
+		})
 		if len(urls) != 1 {
 			t.Fatalf("expected 1 custom dataway URL, got %d", len(urls))
 		}
 		if urls[0] != "http://dataway-1?token=tkn_custom" {
 			t.Fatalf("unexpected custom dataway URL: %s", urls[0])
 		}
-
-		*flagDebugBugreportDataway = ""
 	})
 
 	const zipContent = "fake-zip-content"
@@ -345,7 +333,7 @@ func TestUploadBugReportViaDataway(t *testing.T) {
 			t.Fatalf("set hostname: %v", err)
 		}
 
-		if _, err := uploadBugReportViaDataway(tmpFileName); err != nil {
+		if _, err := uploadBugReportViaDataway(tmpFileName, DebugOptions{}); err != nil {
 			t.Fatalf("uploadBugReportViaDataway failed: %v", err)
 		}
 	})
@@ -370,13 +358,11 @@ func TestUploadBugReportViaDataway(t *testing.T) {
 		defer ts.Close()
 
 		config.Cfg.Dataway = nil
-		*flagDebugBugreportDataway = ts.URL
-
-		if _, err := uploadBugReportViaDataway(tmpFileName); err != nil {
+		if _, err := uploadBugReportViaDataway(tmpFileName, DebugOptions{
+			BugreportDataway: ts.URL,
+		}); err != nil {
 			t.Fatalf("uploadBugReportViaDataway failed: %v", err)
 		}
-
-		*flagDebugBugreportDataway = ""
 	})
 
 	t.Run("use config dataway without token", func(t *testing.T) {
@@ -395,7 +381,7 @@ func TestUploadBugReportViaDataway(t *testing.T) {
 			t.Fatalf("set hostname: %v", err)
 		}
 
-		if _, err := uploadBugReportViaDataway(tmpFileName); err != nil {
+		if _, err := uploadBugReportViaDataway(tmpFileName, DebugOptions{}); err != nil {
 			t.Fatalf("uploadBugReportViaDataway failed: %v", err)
 		}
 	})
@@ -412,7 +398,7 @@ func TestUploadBugReportViaDataway(t *testing.T) {
 			t.Fatalf("set hostname: %v", err)
 		}
 
-		if _, err := uploadBugReportViaDataway(tmpFileName); err == nil {
+		if _, err := uploadBugReportViaDataway(tmpFileName, DebugOptions{}); err == nil {
 			t.Fatalf("expected uploadBugReportViaDataway to fail")
 		} else if !strings.Contains(err.Error(), "all-retry-failed") {
 			t.Fatalf("expected wrapped retry error, got: %v", err)
@@ -431,7 +417,7 @@ func TestUploadBugReportViaDataway(t *testing.T) {
 			t.Fatalf("set hostname: %v", err)
 		}
 
-		if _, err := uploadBugReportViaDataway(tmpFileName); err == nil {
+		if _, err := uploadBugReportViaDataway(tmpFileName, DebugOptions{}); err == nil {
 			t.Fatalf("expected uploadBugReportViaDataway to fail")
 		} else {
 			if !strings.Contains(err.Error(), "dataway does not support uploading bugreport") {

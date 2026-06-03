@@ -25,6 +25,7 @@ import (
 type sender interface {
 	send(url string, pt *pt.Point) error
 	checkToken(token, scheme, host string) (bool, error)
+	uploadBrowserScreenshot(url string, req *dataway.BrowserScreenshotUpload) (*dataway.BrowserScreenshotUploadResult, error)
 }
 
 // emptySender is used for debug or as default sender.
@@ -38,6 +39,13 @@ func (s *emptySender) send(url string, pt *pt.Point) error {
 	cp.Printf("%s\n", pt.LineProto())
 	cp.Infof("# Got 1 point for dataway(%s) | Ctrl+c to exit.\n", url)
 	return nil
+}
+
+func (s *emptySender) uploadBrowserScreenshot(
+	url string,
+	req *dataway.BrowserScreenshotUpload,
+) (*dataway.BrowserScreenshotUploadResult, error) {
+	return nil, fmt.Errorf("browser screenshot upload is unavailable for empty sender")
 }
 
 // dwSender uses dataway as sender.
@@ -59,6 +67,17 @@ func (s *dwSender) checkToken(token, scheme, host string) (bool, error) {
 	}
 
 	return s.dw.CheckToken(token, scheme, host)
+}
+
+func (s *dwSender) uploadBrowserScreenshot(
+	url string,
+	req *dataway.BrowserScreenshotUpload,
+) (*dataway.BrowserScreenshotUploadResult, error) {
+	if s.dw == nil {
+		return nil, fmt.Errorf("sender dw is nil")
+	}
+
+	return s.dw.UploadBrowserScreenshot(url, req)
 }
 
 const (

@@ -6,6 +6,7 @@
 package cmds
 
 import (
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -30,6 +31,12 @@ type uploaderImpl struct {
 	dw *dataway.Dataway
 }
 
+type ImportOptions struct {
+	Path        string
+	LogPath     string
+	DatawayURLs []string
+}
+
 func (u *uploaderImpl) upload(pts []*point.Point, cat point.Category) error {
 	if len(pts) == 0 {
 		return nil
@@ -47,16 +54,17 @@ func (u *uploaderImpl) upload(pts []*point.Point, cat point.Category) error {
 	)
 }
 
-func runImport(u uploader, when int64) error {
+func runImport(u uploader, path string, when int64) error {
 	catFiles := map[point.Category][]string{}
 
 	for _, cat := range point.AllCategories() {
-		catFiles[cat] = findDataFiles(filepath.Join(*flagImportPath, cat.String()))
+		catFiles[cat] = findDataFiles(filepath.Join(path, cat.String()))
 	}
 
 	ts := time.Unix(0, when).Round(0)
 
 	nbytes := 0
+	nfiles := 0
 	for cat, fs := range catFiles {
 		var (
 			dec       *point.Decoder
@@ -66,6 +74,7 @@ func runImport(u uploader, when int64) error {
 		)
 
 		for _, f := range fs {
+			nfiles++
 			dataBytes, err = os.ReadFile(filepath.Clean(f))
 			if err != nil {
 				l.Warnf("os.ReadFile: %s, ignored", err)
@@ -99,6 +108,10 @@ func runImport(u uploader, when int64) error {
 				return err
 			}
 		}
+	}
+
+	if nfiles == 0 {
+		return fmt.Errorf("no import data files found under %s", path)
 	}
 
 	cp.Infof("Total upload %s bytes ok\n", humanize.Bytes(uint64(nbytes)))
@@ -173,11 +186,11 @@ func findDataFiles(p string) (arr []string) {
 	return arr
 }
 
-func setupUploader() (uploader, error) {
+func setupUploader(dwURLs []string) (uploader, error) {
 	dw := dataway.NewDefaultDataway()
 
 	if err := config.Cfg.LoadMainTOML(datakit.MainConfPath); err != nil {
-		if len(*flagImportDatawayURL) == 0 {
+		if len(dwURLs) == 0 {
 			return nil, err
 		}
 
@@ -197,8 +210,8 @@ func setupUploader() (uploader, error) {
 		}
 	}
 
-	if len(*flagImportDatawayURL) > 0 {
-		dw.URLs = *flagImportDatawayURL
+	if len(dwURLs) > 0 {
+		dw.URLs = dwURLs
 	}
 
 	u := &uploaderImpl{dw: dw}
@@ -208,4 +221,27 @@ func setupUploader() (uploader, error) {
 	}
 
 	return u, nil
+}
+
+func RunImportNow(opts ImportOptions, when int64) error {
+	ConfigureCommandLog(opts.LogPath)
+
+	if opts.Path == "" {
+		opts.Path = filepath.Join(datakit.InstallDir, "recorder")
+	}
+
+	fi, err := os.Stat(opts.Path)
+	if err != nil {
+		return fmt.Errorf("stat import path %s: %w", opts.Path, err)
+	}
+	if !fi.IsDir() {
+		return fmt.Errorf("import path %s is not a directory", opts.Path)
+	}
+
+	u, err := setupUploader(opts.DatawayURLs)
+	if err != nil {
+		return err
+	}
+
+	return runImport(u, opts.Path, when)
 }

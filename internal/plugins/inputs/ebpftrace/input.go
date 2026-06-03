@@ -35,7 +35,7 @@ const (
 
 	configSample = `
 [[inputs.ebpftrace]]
-  db_path = "%s"
+  db_path = %s
   use_app_trace_id = true
   window = "20s"
   sampling_rate = 0.1
@@ -74,7 +74,7 @@ func (ipt *Input) Catalog() string {
 
 func (ipt *Input) SampleConfig() string {
 	return fmt.Sprintf(configSample,
-		filepath.Join(datakit.InstallDir, "ebpf_spandb/"))
+		strconv.Quote(filepath.Join(datakit.InstallDir, "ebpf_spandb/")))
 }
 
 func (ipt *Input) RegHTTPHandler() {

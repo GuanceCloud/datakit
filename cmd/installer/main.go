@@ -332,6 +332,22 @@ func retryingDownloadFiles(dlRetry int) error {
 	return fmt.Errorf("download failed")
 }
 
+func ensureDatakitCLIExecutable() error {
+	if runtime.GOOS == datakit.OSWindows {
+		return nil
+	}
+
+	if err := os.Chmod(datakit.InstallDir, 0o755); err != nil { //nolint:gosec
+		return fmt.Errorf("chmod install dir: %w", err)
+	}
+
+	if err := os.Chmod(datakit.DatakitBinaryPath(), 0o755); err != nil { //nolint:gosec
+		return fmt.Errorf("chmod datakit binary: %w", err)
+	}
+
+	return nil
+}
+
 func main() {
 	flag.Parse()
 	if err := applyFlags(config.Cfg); err != nil {
@@ -381,6 +397,10 @@ func main() {
 		} else {
 			l.Infof("Starting service %q ok", dkservice.Name())
 		}
+	}
+
+	if err := ensureDatakitCLIExecutable(); err != nil {
+		l.Warnf("Ensure DataKit CLI executable failed: %s, ignored", err.Error())
 	}
 
 	if err := config.CreateSymlinks(); err != nil {

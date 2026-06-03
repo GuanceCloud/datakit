@@ -29,11 +29,18 @@ github.com/DataDog/sketches-go/ddsketch/mapping
 github.com/DataDog/sketches-go/ddsketch/pb/sketchpb
 github.com/DataDog/sketches-go/ddsketch/stat
 github.com/DataDog/sketches-go/ddsketch/store
-# github.com/GuanceCloud/cliutils v1.1.22-0.20260526080823-7a9acec0a0cf
-## explicit; go 1.19
+# github.com/GuanceCloud/cliutils v1.1.22-0.20260603061016-8df3b4b6d625
+## explicit; go 1.25
 github.com/GuanceCloud/cliutils
 github.com/GuanceCloud/cliutils/aggregate
 github.com/GuanceCloud/cliutils/dialtesting
+github.com/GuanceCloud/cliutils/dialtesting/browserdial/chrome
+github.com/GuanceCloud/cliutils/dialtesting/browserdial/errors
+github.com/GuanceCloud/cliutils/dialtesting/browserdial/evidence
+github.com/GuanceCloud/cliutils/dialtesting/browserdial/lightpanda
+github.com/GuanceCloud/cliutils/dialtesting/browserdial/runner
+github.com/GuanceCloud/cliutils/dialtesting/browserdial/script
+github.com/GuanceCloud/cliutils/dialtesting/browserdial/util
 github.com/GuanceCloud/cliutils/diskcache
 github.com/GuanceCloud/cliutils/filter
 github.com/GuanceCloud/cliutils/lineproto
@@ -77,7 +84,7 @@ github.com/GuanceCloud/confd/backends/vault
 github.com/GuanceCloud/confd/backends/zookeeper
 github.com/GuanceCloud/confd/log
 github.com/GuanceCloud/confd/util
-# github.com/GuanceCloud/grok v1.1.5-0.20260513103143-a1797907b1d0
+# github.com/GuanceCloud/grok v1.1.5-0.20260603093938-df62b49f2f01
 ## explicit; go 1.18
 github.com/GuanceCloud/grok
 github.com/GuanceCloud/grok/internal/backend
@@ -95,7 +102,7 @@ github.com/GuanceCloud/kubernetes/pkg/probe/exec
 # github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386
 ## explicit; go 1.18
 github.com/GuanceCloud/mdcheck/check
-# github.com/GuanceCloud/pipeline-go v1.3.1
+# github.com/GuanceCloud/pipeline-go v1.3.2-0.20260603101002-58d46086c6f7
 ## explicit; go 1.19
 github.com/GuanceCloud/pipeline-go
 github.com/GuanceCloud/pipeline-go/constants
@@ -114,7 +121,7 @@ github.com/GuanceCloud/pipeline-go/ptinput/ptwindow
 github.com/GuanceCloud/pipeline-go/ptinput/refertable
 github.com/GuanceCloud/pipeline-go/ptinput/utils
 github.com/GuanceCloud/pipeline-go/stats
-# github.com/GuanceCloud/platypus v0.3.4
+# github.com/GuanceCloud/platypus v0.3.5-0.20260529080946-6085d331d151
 ## explicit; go 1.19
 github.com/GuanceCloud/platypus/internal/logger
 github.com/GuanceCloud/platypus/pkg/ast
@@ -124,8 +131,8 @@ github.com/GuanceCloud/platypus/pkg/engine/runtimev2
 github.com/GuanceCloud/platypus/pkg/errchain
 github.com/GuanceCloud/platypus/pkg/parser
 github.com/GuanceCloud/platypus/pkg/token
-# github.com/GuanceCloud/tracing-protos v0.0.0-20230619071516-54c8cff1b6b3
-## explicit
+# github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go v0.0.0-20260601093339-95d5c63392d4
+## explicit; go 1.26
 github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/collector/logs/v1
 github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/collector/metrics/v1
 github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/collector/trace/v1
@@ -134,7 +141,11 @@ github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/logs/v1
 github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/metrics/v1
 github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/resource/v1
 github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/trace/v1
+# github.com/GuanceCloud/tracing-protos/pinpoint-gen-go v0.0.0-20260601093339-95d5c63392d4
+## explicit; go 1.26
 github.com/GuanceCloud/tracing-protos/pinpoint-gen-go/v1
+# github.com/GuanceCloud/tracing-protos/skywalking-gen-go v0.0.0-20260601093339-95d5c63392d4
+## explicit; go 1.26
 github.com/GuanceCloud/tracing-protos/skywalking-gen-go/agent/configuration/v3
 github.com/GuanceCloud/tracing-protos/skywalking-gen-go/common/v3
 github.com/GuanceCloud/tracing-protos/skywalking-gen-go/event/v3
@@ -434,6 +445,69 @@ github.com/cespare/xxhash/v2
 # github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311
 ## explicit; go 1.15
 github.com/chenzhuoyu/base64x
+# github.com/chromedp/cdproto v0.0.0-20250403032234-65de8f5d025b
+## explicit; go 1.23
+github.com/chromedp/cdproto
+github.com/chromedp/cdproto/accessibility
+github.com/chromedp/cdproto/animation
+github.com/chromedp/cdproto/audits
+github.com/chromedp/cdproto/autofill
+github.com/chromedp/cdproto/backgroundservice
+github.com/chromedp/cdproto/bluetoothemulation
+github.com/chromedp/cdproto/browser
+github.com/chromedp/cdproto/cachestorage
+github.com/chromedp/cdproto/cast
+github.com/chromedp/cdproto/cdp
+github.com/chromedp/cdproto/css
+github.com/chromedp/cdproto/debugger
+github.com/chromedp/cdproto/deviceaccess
+github.com/chromedp/cdproto/deviceorientation
+github.com/chromedp/cdproto/dom
+github.com/chromedp/cdproto/domdebugger
+github.com/chromedp/cdproto/domsnapshot
+github.com/chromedp/cdproto/domstorage
+github.com/chromedp/cdproto/emulation
+github.com/chromedp/cdproto/eventbreakpoints
+github.com/chromedp/cdproto/extensions
+github.com/chromedp/cdproto/fedcm
+github.com/chromedp/cdproto/fetch
+github.com/chromedp/cdproto/filesystem
+github.com/chromedp/cdproto/headlessexperimental
+github.com/chromedp/cdproto/heapprofiler
+github.com/chromedp/cdproto/indexeddb
+github.com/chromedp/cdproto/input
+github.com/chromedp/cdproto/inspector
+github.com/chromedp/cdproto/io
+github.com/chromedp/cdproto/layertree
+github.com/chromedp/cdproto/log
+github.com/chromedp/cdproto/media
+github.com/chromedp/cdproto/memory
+github.com/chromedp/cdproto/network
+github.com/chromedp/cdproto/overlay
+github.com/chromedp/cdproto/page
+github.com/chromedp/cdproto/performance
+github.com/chromedp/cdproto/performancetimeline
+github.com/chromedp/cdproto/preload
+github.com/chromedp/cdproto/profiler
+github.com/chromedp/cdproto/pwa
+github.com/chromedp/cdproto/runtime
+github.com/chromedp/cdproto/security
+github.com/chromedp/cdproto/serviceworker
+github.com/chromedp/cdproto/storage
+github.com/chromedp/cdproto/systeminfo
+github.com/chromedp/cdproto/target
+github.com/chromedp/cdproto/tethering
+github.com/chromedp/cdproto/tracing
+github.com/chromedp/cdproto/webaudio
+github.com/chromedp/cdproto/webauthn
+# github.com/chromedp/chromedp v0.13.7
+## explicit; go 1.23
+github.com/chromedp/chromedp
+github.com/chromedp/chromedp/device
+github.com/chromedp/chromedp/kb
+# github.com/chromedp/sysutil v1.1.0
+## explicit; go 1.23
+github.com/chromedp/sysutil
 # github.com/cihub/seelog v0.0.0-20170130134532-f561c5e57575
 ## explicit
 github.com/cihub/seelog
@@ -746,6 +820,14 @@ github.com/go-git/go-git/v5/utils/merkletrie/internal/frame
 github.com/go-git/go-git/v5/utils/merkletrie/noder
 github.com/go-git/go-git/v5/utils/sync
 github.com/go-git/go-git/v5/utils/trace
+# github.com/go-json-experiment/json v0.0.0-20250211171154-1ae217ad3535
+## explicit; go 1.23
+github.com/go-json-experiment/json
+github.com/go-json-experiment/json/internal
+github.com/go-json-experiment/json/internal/jsonflags
+github.com/go-json-experiment/json/internal/jsonopts
+github.com/go-json-experiment/json/internal/jsonwire
+github.com/go-json-experiment/json/jsontext
 # github.com/go-kit/kit v0.10.0
 ## explicit; go 1.13
 github.com/go-kit/kit/log
@@ -811,9 +893,6 @@ github.com/go-sourcemap/sourcemap/internal/base64vlq
 # github.com/go-sql-driver/mysql v1.6.0
 ## explicit; go 1.10
 github.com/go-sql-driver/mysql
-# github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572
-## explicit; go 1.13
-github.com/go-task/slim-sprig
 # github.com/gobwas/glob v0.2.3
 ## explicit
 github.com/gobwas/glob
@@ -833,8 +912,8 @@ github.com/gobwas/pool
 github.com/gobwas/pool/internal/pmath
 github.com/gobwas/pool/pbufio
 github.com/gobwas/pool/pbytes
-# github.com/gobwas/ws v1.1.0
-## explicit; go 1.15
+# github.com/gobwas/ws v1.4.0
+## explicit; go 1.16
 github.com/gobwas/ws
 github.com/gobwas/ws/wsutil
 # github.com/goccy/go-json v0.10.3
@@ -1348,22 +1427,6 @@ github.com/oklog/ulid
 ## explicit; go 1.16
 # github.com/onsi/ginkgo/v2 v2.9.5
 ## explicit; go 1.18
-github.com/onsi/ginkgo/v2/config
-github.com/onsi/ginkgo/v2/formatter
-github.com/onsi/ginkgo/v2/ginkgo
-github.com/onsi/ginkgo/v2/ginkgo/build
-github.com/onsi/ginkgo/v2/ginkgo/command
-github.com/onsi/ginkgo/v2/ginkgo/generators
-github.com/onsi/ginkgo/v2/ginkgo/internal
-github.com/onsi/ginkgo/v2/ginkgo/labels
-github.com/onsi/ginkgo/v2/ginkgo/outline
-github.com/onsi/ginkgo/v2/ginkgo/run
-github.com/onsi/ginkgo/v2/ginkgo/unfocus
-github.com/onsi/ginkgo/v2/ginkgo/watch
-github.com/onsi/ginkgo/v2/internal/interrupt_handler
-github.com/onsi/ginkgo/v2/internal/parallel_support
-github.com/onsi/ginkgo/v2/reporters
-github.com/onsi/ginkgo/v2/types
 # github.com/opencontainers/go-digest v1.0.0
 ## explicit; go 1.13
 github.com/opencontainers/go-digest
@@ -1578,26 +1641,28 @@ github.com/pyroscope-io/pyroscope/pkg/util/serialization
 github.com/pyroscope-io/pyroscope/pkg/util/slices
 github.com/pyroscope-io/pyroscope/pkg/util/varint
 github.com/pyroscope-io/pyroscope/webapp
-# github.com/quic-go/qpack v0.4.0
-## explicit; go 1.18
+# github.com/quic-go/qpack v0.6.0
+## explicit; go 1.24
 github.com/quic-go/qpack
-# github.com/quic-go/quic-go v0.41.0
-## explicit; go 1.21
+# github.com/quic-go/quic-go v0.59.1
+## explicit; go 1.24
 github.com/quic-go/quic-go
 github.com/quic-go/quic-go/http3
+github.com/quic-go/quic-go/http3/qlog
 github.com/quic-go/quic-go/internal/ackhandler
 github.com/quic-go/quic-go/internal/congestion
 github.com/quic-go/quic-go/internal/flowcontrol
 github.com/quic-go/quic-go/internal/handshake
-github.com/quic-go/quic-go/internal/logutils
+github.com/quic-go/quic-go/internal/monotime
 github.com/quic-go/quic-go/internal/protocol
 github.com/quic-go/quic-go/internal/qerr
-github.com/quic-go/quic-go/internal/qtls
 github.com/quic-go/quic-go/internal/utils
 github.com/quic-go/quic-go/internal/utils/linkedlist
 github.com/quic-go/quic-go/internal/utils/ringbuffer
 github.com/quic-go/quic-go/internal/wire
-github.com/quic-go/quic-go/logging
+github.com/quic-go/quic-go/qlog
+github.com/quic-go/quic-go/qlogwriter
+github.com/quic-go/quic-go/qlogwriter/jsontext
 github.com/quic-go/quic-go/quicvarint
 # github.com/r3labs/diff/v3 v3.0.0
 ## explicit; go 1.13
@@ -1984,10 +2049,6 @@ go.opentelemetry.io/otel/trace/noop
 # go.uber.org/atomic v1.11.0
 ## explicit; go 1.18
 go.uber.org/atomic
-# go.uber.org/mock v0.3.0
-## explicit; go 1.20
-go.uber.org/mock/mockgen
-go.uber.org/mock/mockgen/model
 # go.uber.org/multierr v1.9.0
 ## explicit; go 1.19
 go.uber.org/multierr
@@ -2037,7 +2098,6 @@ golang.org/x/exp/slices
 # golang.org/x/mod v0.35.0
 ## explicit; go 1.25.0
 golang.org/x/mod/internal/lazyregexp
-golang.org/x/mod/modfile
 golang.org/x/mod/module
 golang.org/x/mod/semver
 # golang.org/x/net v0.54.0
@@ -2173,7 +2233,7 @@ google.golang.org/appengine/internal/remote_api
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.80.0 => google.golang.org/grpc v1.51.0
+# google.golang.org/grpc v1.81.1 => google.golang.org/grpc v1.51.0
 ## explicit; go 1.17
 google.golang.org/grpc
 google.golang.org/grpc/attributes

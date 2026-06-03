@@ -81,7 +81,7 @@ $ datakit pipeline -P other_pipeline.p -T '2021-01-11T17:43:51.887+0800  DEBUG i
 datakit pipeline -P your_pipeline.p -F sample.log
 ```
 
-For more Pipeline debugging commands, see `datakit help pipeline`.
+For more Pipeline debugging commands, see `datakit pipeline --help`.
 
 ### Grok Wildcard Search {#grokq}
 

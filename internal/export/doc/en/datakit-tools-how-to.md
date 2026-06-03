@@ -5,7 +5,7 @@
 DataKit has many different small tools built-in for daily use. You can view the command-line help of DataKit through the following command:
 
 ``` shell
-datakit help
+datakit --help
 ```
 
 > Note: Due to differences between different platforms, the specific help content may vary.
@@ -13,16 +13,19 @@ datakit help
 If you want to see how a specific command is used (such as `dql`), you can use the following command:
 
 ``` shell
-$ datakit help dql
-usage: datakit dql [options]
+$ datakit dql --help
+DQL used to query data. If no option specified, query interactively.
 
-DQL used to query data. If no option specified, query interactively. Other available options:
+Usage:
+  datakit dql [flags]
 
+Flags:
       --auto-json      pretty output string if field/tag value is JSON
       --csv string     Specify the directory
   -F, --force          overwrite csv if file exists
+  -h, --help           help for dql
   -H, --host string    specify datakit host to query
-  -J, --json           output in json format
+  -J, --json           output in JSON format
       --log string     log path (default "/dev/null")
   -R, --run string     run single DQL
   -T, --token string   run query for specific token(workspace)
@@ -385,13 +388,15 @@ Although the recorded data contains absolute timestamps (in nanoseconds), when p
 You can obtain more help information about data import through the following command:
 
 ``` shell
-$ datakit help import
+$ datakit import --help
+Import used to play recorded history data to <<<custom_key.brand_name>>>.
 
-usage: datakit import [options]
+Usage:
+  datakit import [flags]
 
-Import used to play recorded history data to <<<custom_key.brand_name>>>. Available options:
-
+Flags:
   -D, --dataway strings   dataway list
+  -h, --help              help for import
       --log string        log path (default "/dev/null")
   -P, --path string       point data path (default "/usr/local/datakit/recorder")
 ```
@@ -566,26 +571,97 @@ If the prompt `open /usr/local/datakit/externals/datakit-ebpf: text file busy` a
 
 ### Automatic Command Completion {#completion}
 
-> DataKit 1.2.12 supports this completion, and only two Linux distributions, Ubuntu and CentOS, have been tested. It is not supported on Windows and Mac.
+> The new completion flow is generated from the Cobra command tree and supports `bash`, `zsh`, `fish`, and `powershell`. Installing or upgrading DataKit does not enable shell completion automatically. To use completion, run `datakit completion <shell>` after installation.
+>
+> Note: `datakit completion` applies to DataKit [:octicons-tag-24: Version-2.1.0](changelog-2026.md#cl-2.1.0) and later. For earlier versions, use the command syntax documented with that release.
 
-During the use of the DataKit command line, due to the large number of command line parameters, the command prompt and completion function have been added here.
+Because DataKit has many command-line options, it now provides automatic completion.
 
-Most mainstream Linux systems support command completion. Taking Ubuntu and CentOS as examples, if you want to use the command completion function, you can additionally install the following software packages:
+Typical usage:
+
+- Force bash install: `datakit completion bash --force`
+- Force zsh install: `datakit completion zsh --force`
+- Force fish install: `datakit completion fish --force`
+- Force powershell install: `datakit completion powershell --force`
+- Auto-detect current shell and install: `datakit completion --force`
+- Print script only: `datakit completion bash --print`
+
+Specifying the shell explicitly is recommended, especially when running through `sudo`. `datakit completion --force` detects the shell from the `SHELL` environment variable. If `sudo` or another restricted environment does not preserve that variable, auto-detection will fail.
+
+Most mainstream Linux environments support shell completion. For bash, if completion support is missing on the host or inside a container, you can install:
 
 - Ubuntu: `apt install bash-completion`
 - CentOS: `yum install bash-completion bash-completion-extras`
 
-If these software packages are already installed before installing DataKit, the command completion function will be automatically included during the DataKit installation. If these software packages are updated after installing DataKit, you can execute the following operation to install the DataKit command completion function:
+When a shell is specified, `datakit completion <shell>` will:
+
+- install the generated completion script to a standard path
+- print the actual install path and how to activate it immediately
+
+For example:
 
 ``` shell
-datakit tool --setup-completer-script
+$ datakit completion bash --force
+completion for bash installed to /usr/share/bash-completion/completions/datakit
+reload your shell or run: source /usr/share/bash-completion/completions/datakit
 ```
+
+When DataKit is running inside a Docker container, completion is installed into the container filesystem, and the output will state that explicitly.
+
+#### bash Setup {#completion-bash}
+
+Run:
+
+``` shell
+datakit completion bash --force
+```
+
+If the script is installed to a system completion directory, it usually takes effect after opening a new shell. To enable it in the current shell, run the `source` command printed by DataKit.
+
+#### zsh Setup {#completion-zsh}
+
+Run:
+
+``` shell
+datakit completion zsh --force
+```
+
+For zsh, DataKit installs the completion script to `~/.zfunc/_datakit` by default. If your current zsh session has not loaded that directory, add it to `fpath` and run `compinit` again:
+
+``` shell
+fpath=(~/.zfunc $fpath)
+autoload -Uz compinit
+compinit
+```
+
+If you want zsh to load it automatically on startup, add the same configuration to `~/.zshrc`, and make sure the `fpath` line appears before `compinit`. You can also copy the command printed by `datakit completion zsh --force` to write the configuration and load it.
+
+#### fish Setup {#completion-fish}
+
+Run:
+
+``` shell
+datakit completion fish --force
+```
+
+Fish completion is installed to `~/.config/fish/completions/datakit.fish` by default. It usually takes effect after opening a new fish session.
+
+#### PowerShell Setup {#completion-powershell}
+
+Run:
+
+``` powershell
+datakit completion powershell --force
+```
+
+For PowerShell, DataKit generates a standalone completion script by default and does not modify or overwrite the user's `Microsoft.PowerShell_profile.ps1`. To enable it in the current session, run the dot-source command printed by DataKit. If you want PowerShell to load it automatically on startup, add that dot-source command to your profile manually.
 
 Completion usage example:
 
 ``` shell
 $ datakit <tab> # Enter \tab to get the following commands
-dql       help      install   monitor   pipeline  run       service   tool
+check       completion  debug       dql         import      install
+monitor     pipeline    run         service     tool        version
 
 $ datakit dql <tab> # Enter \tab to get the following options
 --auto-json   --csv         -F,--force    --host        -J,--json     --log         -R,--run      -T,--token    -V,--verbose
@@ -593,11 +669,17 @@ $ datakit dql <tab> # Enter \tab to get the following options
 
 All the commands mentioned below can be operated in this way.
 
-#### Obtaining the Automatic Completion Script {#get-completion}
+#### Print the Completion Script Only {#get-completion}
 
-If your Linux system is not Ubuntu or CentOS, you can obtain the completion script through the following command, and then add it one by one according to the shell completion method of the corresponding platform.
+If you want to review the script first or install it manually, use `--print`:
 
 ``` shell
-# Export the completion script to the local datakit-completer.sh file
-datakit tool --completer-script > datakit-completer.sh
+# Export the zsh completion script
+datakit completion zsh --print > _datakit
+```
+
+If you need a custom install path, use `--path`:
+
+```shell
+datakit completion fish --path ~/.config/fish/completions/datakit.fish --force
 ```

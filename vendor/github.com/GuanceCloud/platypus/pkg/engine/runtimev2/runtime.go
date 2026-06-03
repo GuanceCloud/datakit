@@ -21,6 +21,7 @@ type Script struct {
 
 func (s *Script) Run(signal Signal, opt ...Opt) *errchain.PlError {
 	task := NewTask(s.Name, s.Fn)
+	task.signal = signal
 	for _, o := range opt {
 		if o != nil {
 			o(task)

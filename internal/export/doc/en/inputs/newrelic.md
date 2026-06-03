@@ -45,7 +45,7 @@ New Relic's .Net Agent is an open source project based on the .Net technology fr
 After completing the configuration, restart `DataKit` and `IIS`
 
 ```powershell
-PS> datakit service -R
+PS> datakit service restart
 PS> iisreset
 ```
 

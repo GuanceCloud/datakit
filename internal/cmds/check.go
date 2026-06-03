@@ -7,15 +7,23 @@ package cmds
 
 import (
 	"fmt"
-	"os"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
-func runCheckFlags() error {
+type CheckOptions struct {
+	LogPath   string
+	Config    bool
+	ConfigDir string
+	Sample    bool
+}
+
+func RunCheck(opts CheckOptions) error {
+	ConfigureCommandLog(opts.LogPath)
+
 	switch {
-	case *flagCheckConfig:
-		confdir := *flagCheckConfigDir
+	case opts.Config || opts.ConfigDir != "":
+		confdir := opts.ConfigDir
 		if confdir == "" {
 			tryLoadMainCfg()
 			confdir = datakit.ConfdDir
@@ -26,12 +34,12 @@ func runCheckFlags() error {
 		}
 		return nil
 
-	case *flagCheckSample:
+	case opts.Sample:
 		if err := checkSample(); err != nil {
 			return err
 		}
 		return nil
 	}
 
-	return fmt.Errorf("unknown check option: %s", os.Args[2])
+	return fmt.Errorf("unknown check option")
 }

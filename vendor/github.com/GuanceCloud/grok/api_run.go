@@ -12,9 +12,17 @@ func (g *GrokRegexp) RunTo(content string, trimSpace bool, dst []string) ([]stri
 	return g.runTo(content, trimSpace, dst)
 }
 
+func (g *GrokRegexp) RunToWithMeta(content string, trimSpace bool, dst []string, meta *RunMeta) ([]string, error) {
+	return g.runToWithMeta(content, trimSpace, dst, meta)
+}
+
 // RunWithTypeInfoTo matches the content and writes typed results into dst when
 // capacity allows. This is the public reusable-buffer entrypoint intended for
 // pipeline-style callers that want to avoid per-call allocations.
 func (g *GrokRegexp) RunWithTypeInfoTo(content string, trimSpace bool, dst []any) ([]any, error) {
 	return g.runWithTypeInfoTo(content, trimSpace, dst)
+}
+
+func (g *GrokRegexp) RunWithTypeInfoToWithMeta(content string, trimSpace bool, dst []any, meta *RunMeta) ([]any, error) {
+	return g.runWithTypeInfoToWithMeta(content, trimSpace, dst, meta)
 }
