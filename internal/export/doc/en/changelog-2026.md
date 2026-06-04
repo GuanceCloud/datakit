@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.1.1(2026/06/04) {#cl-2.1.1}
+
+This release is a hotfix release, contents are as follows:
+
+### Bug Fixes {#cl-2.1.1-fix}
+
+- Fixed an issue where the `process` collector could miss the `container_id` field in special environments. DataKit now scans all lines in `/proc/{pid}/cgroup` to extract a valid container ID (#3092)
+- Fixed excessive Prometheus metric series for log file path scan duration when containers are created and deleted frequently, reducing high memory usage and OOM risk (#3097)
+- Fixed a race condition in container log collection that could prevent the `Single` goroutine from exiting when a container is deleted, avoiding goroutine leaks (#3100)
+
+### Compatibility Adjustments {#cl-2.1.1-brk}
+
+- Browser dial testing now uses the Lightpanda engine by default, with Lightpanda built into the DataKit image (#3098)
+
+---
+
 ## 2.1.0(2026/06/03) {#cl-2.1.0}
 
 This release is an iterative release, with the following main updates:

@@ -48,13 +48,13 @@ flowchart LR
 <<<% if custom_key.brand_key == "truewatch" %>>>
 | **接入站点**      | **您的服务器所在 Region** | **接入终端节点服务的名称**                         |
 | --------          | ----------------------    | -----------                          |
-| 亚太区 1（新加坡）  | `ap-southeast-1` (新加坡)     |  `com.amazonaws.vpce.ap-southeast-1.vpce-svc-08465b643241dce58` |
-| 海外区 1（俄勒冈）  | `us-west-2` (俄勒冈)     |  `com.amazonaws.vpce.us-west-2.vpce-svc-0895f6859469a621e` |
+| AP1(Singapore)  | `ap-southeast-1` (Singapore)     |  `com.amazonaws.vpce.ap-southeast-1.vpce-svc-08465b643241dce58` |
+| US1(Oregon)  | `us-west-2` (Oregon)     |  `com.amazonaws.vpce.us-west-2.vpce-svc-0895f6859469a621e` |
 <<<% else %>>>
 | **接入站点**      | **您的服务器所在 Region** | **接入终端节点服务的名称**                         |
 | --------          | ----------------------    | -----------                          |
 | 中国区 2（宁夏）  | `cn-northwest-1` (宁夏)   | `cn.com.amazonaws.vpce.cn-northwest-1.vpce-svc-070f9283a2c0d1f0c` |
-| 海外区 1（俄勒冈）  | `us-west-2` (俄勒冈)     |  `com.amazonaws.vpce.us-west-2.vpce-svc-084745e0ec33f0b44` |
+| 美洲区 1（俄勒冈）  | `us-west-2` (俄勒冈)     |  `com.amazonaws.vpce.us-west-2.vpce-svc-084745e0ec33f0b44` |
 | 亚太区 1（新加坡）  | `ap-southeast-1` (新加坡)     |  `com.amazonaws.vpce.ap-southeast-1.vpce-svc-070194ed9d834d571` |
 | 欧洲区 1（法兰克福） | `eu-central-1` (法兰克福)     |  `com.amazonaws.vpce.eu-central-1.vpce-svc-062049100de283a62` |
 <<<% endif %>>>
@@ -65,13 +65,13 @@ flowchart LR
 <<<% if custom_key.brand_key == "truewatch" %>>>
 | **接入站点**      | **您的服务器所在 Region** | **Endpoint**                         |
 | --------          | ----------------------    | -----------                          |
-| 亚太区 1（新加坡）  |  `ap-southeast-1` (新加坡)         | `https://ap1-openway.<<<custom_key.brand_main_domain>>>` |
-| 海外区 1（俄勒冈）  |  `us-west-2` (俄勒冈)          | `https://us1-openway.<<<custom_key.brand_main_domain>>>` |
+| AP1(Singapore)  |  `ap-southeast-1` (Singapore)         | `https://ap1-openway.<<<custom_key.brand_main_domain>>>` |
+| US1(Oregon)  |  `us-west-2` (Oregon)          | `https://us1-openway.<<<custom_key.brand_main_domain>>>` |
 <<<% else %>>>
 | **接入站点**      | **您的服务器所在 Region** | **Endpoint**                         |
 | --------          | ----------------------    | -----------                          |
 | 中国区 2（宁夏）  | `cn-northwest-1` (宁夏)   | `https://aws-openway.<<<custom_key.brand_main_domain>>>`         |
-| 海外区 1（俄勒冈）  |  `us-west-2` (俄勒冈)          | `https://us1-openway.<<<custom_key.brand_main_domain>>>` |
+| 美洲区 1（俄勒冈）  |  `us-west-2` (俄勒冈)          | `https://us1-openway.<<<custom_key.brand_main_domain>>>` |
 | 亚太区 1（新加坡）  |  `ap-southeast-1` (新加坡)         | `https://ap1-openway.<<<custom_key.brand_main_domain>>>` |
 | 欧洲区 1（法兰克福）  |  `eu-central-1` (法兰克福)         | `https://eu1-openway.<<<custom_key.brand_main_domain>>>` |
 <<<% endif %>>>
@@ -85,7 +85,7 @@ flowchart LR
 - [Console Web](https://console.aws.amazon.com/console/home){:target="_blank"}
 <<<% else %>>>
 - [中国区](https://console.amazonaws.cn/console/home){:target="_blank"}
-- [海外区](https://console.aws.amazon.com/console/home){:target="_blank"}
+- [全球区](https://console.aws.amazon.com/console/home){:target="_blank"}
 <<<% endif %>>>
 获取控制台右上角账号 ID, 复制该「账号 ID」并**告知**我方<<<custom_key.brand_name>>>的客户经理，加入到我方白名单中。
 
@@ -100,7 +100,7 @@ flowchart LR
     - [VPC](https://console.amazonaws.cn/vpc/){:target="_blank"}
 <<<% else %>>>
     - [中国区](https://console.amazonaws.cn/vpc/){:target="_blank"}
-    - [海外区](https://console.amazonaws.cn/vpc/){:target="_blank"}
+    - [全球区](https://console.amazonaws.cn/vpc/){:target="_blank"}
 <<<% endif %>>>
 <!-- markdownlint-disable MD051 -->
 1. 新建安全组：

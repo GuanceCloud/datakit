@@ -35,7 +35,7 @@ func TestExportHelpers(t *testing.T) {
 
 	t.Run("env docs are prefixed and complete", func(t *testing.T) {
 		envs := ipt.GetENVDoc()
-		if !assert.Len(t, envs, 7) {
+		if !assert.Len(t, envs, 8) {
 			return
 		}
 
@@ -46,9 +46,11 @@ func TestExportHelpers(t *testing.T) {
 		assert.Equal(t, "ENV_INPUT_DIALTESTING_ELECTION", envs[3].ENVName)
 		assert.Equal(t, "ENV_INPUT_DIALTESTING_BROWSER_ENABLED", envs[4].ENVName)
 		assert.Equal(t, "browser.enabled", envs[4].ConfField)
-		assert.Equal(t, "ENV_INPUT_DIALTESTING_BROWSER_CHROME_PATH", envs[5].ENVName)
-		assert.Equal(t, "browser.chrome_path", envs[5].ConfField)
-		assert.Equal(t, "ENV_INPUT_DIALTESTING_BROWSER_MAX_CONCURRENCY", envs[6].ENVName)
-		assert.Equal(t, "browser.max_concurrency", envs[6].ConfField)
+		assert.Equal(t, "ENV_INPUT_DIALTESTING_BROWSER_ENGINE", envs[5].ENVName)
+		assert.Equal(t, "browser.engine", envs[5].ConfField)
+		assert.Equal(t, "ENV_INPUT_DIALTESTING_BROWSER_ENGINE_PATH", envs[6].ENVName)
+		assert.Equal(t, "browser.engine_path", envs[6].ConfField)
+		assert.Equal(t, "ENV_INPUT_DIALTESTING_BROWSER_MAX_CONCURRENCY", envs[7].ENVName)
+		assert.Equal(t, "browser.max_concurrency", envs[7].ConfField)
 	})
 }

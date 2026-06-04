@@ -30,10 +30,11 @@ In some cases, you may not be able to connect to SAAS's dialing task service. In
       # Note: Taking Linux as an example, assuming your json directory is /some/path/my.json, then the
       # server should be written as file:///some/path/my.json
 
-      # Browser dial testing is enabled by default. Set Chrome/Chromium path when needed.
+      # Browser dial testing is enabled by default. Set browser engine and executable path when needed.
       [inputs.dialtesting.browser]
-        chrome_path = "/usr/bin/chromium"
-        max_concurrency = 1
+        engine = "lightpanda"
+        engine_path = "/usr/local/bin/lightpanda"
+        max_concurrency = 10
     
       # Note that the following tag suggestions are filled in one by one (do not modify the tag key here), so that the complete dialing test results can be displayed on the page.
       [inputs.dialtesting.tags] 
@@ -162,7 +163,7 @@ The public fields of dialing test tasks are defined as follows:
 | `tags_info`           | string | N        | Custom tags, such as `t1,t2` |
 | `workspace_language`  | string | N        | Workspace language, such as `zh`，`en` |
 
-> Note: `BROWSER` tasks are supported starting from DataKit [:octicons-tag-24: Version-2.1.0](../datakit/changelog-2026.md#cl-2.1.0) and run by default on Linux dialtesting nodes. Make sure Chrome/Chromium is accessible at runtime. To disable them, set `[inputs.dialtesting.browser].enabled = false`; to limit concurrency, set `[inputs.dialtesting.browser].max_concurrency`. See [Browser Dialtesting](dialtesting_browser.md) for details.
+> Note: `BROWSER` tasks are supported starting from DataKit [:octicons-tag-24: Version-2.1.0](../datakit/changelog-2026.md#cl-2.1.0) and run by default on Linux dialtesting nodes. Make sure Lightpanda is accessible at runtime. To disable them, set `[inputs.dialtesting.browser].enabled = false`; to limit concurrency, set `[inputs.dialtesting.browser].max_concurrency`. See [Browser Dialtesting](dialtesting_browser.md) for details.
 
 #### HTTP Dial Test {#http}
 
@@ -1412,7 +1413,7 @@ Extra field:
 | Field              | Type   | Whether Required | Description                                      |
 | :---              | ---    | ---      | ---                                       |
 | `browser_config`  | string | Y        | Browser dial script as a YAML string               |
-| `advance_options` | object | N        | Advanced options, such as screenshot on failure        |
+| `advance_options` | object | N        | Advanced options        |
 | `retry_options`   | object | N        | Retry configuration                                  |
 
 The overall JSON structure is as follows:
@@ -1426,10 +1427,7 @@ The overall JSON structure is as follows:
       "status": "OK",
       "frequency": "1m",
       "schedule_type": "frequency",
-      "browser_config": "name: homepage\ntarget: https://example.com\ntimeout_ms: 30000\nsteps:\n  - name: open homepage\n    action: goto\n  - name: check title\n    action: assert_title\n    contains: Example\n",
-      "advance_options": {
-        "screenshot_on_failure": true
-      }
+      "browser_config": "name: homepage\ntarget: https://example.com\ntimeout_ms: 30000\nsteps:\n  - name: open homepage\n    action: goto\n  - name: check title\n    action: assert_title\n    contains: Example\n"
     }
   ]
 }
@@ -1449,21 +1447,9 @@ The overall JSON structure is as follows:
 
 `steps` can contain actions and assertions such as `goto`, `assert_title`, `assert_url`, and `assert_text`.
 
-##### Failure Screenshot {#browser-screenshot}
+##### Screenshot Support {#browser-screenshot}
 
-When `advance_options.screenshot_on_failure = true`, the browser runner captures a screenshot for the failed step. Before reporting, DataKit uploads it to the Dataway in task `post_url` and replaces `steps[].screenshot` from the local path with an object:
-
-```json
-{
-  "id": "run_789_step_2",
-  "date": "20260528",
-  "file": "run_789_step_2.png",
-  "size": 12345,
-  "type": "image/png"
-}
-```
-
-If upload fails, DataKit records `screenshot_upload_error`; the dial test point is still reported.
+The Lightpanda engine currently does not support screenshots. Even when `advance_options.screenshot_on_failure = true` is enabled, no `steps[].screenshot` is generated.
 
 ### Template Function Usage Instructions {#template-func}
 

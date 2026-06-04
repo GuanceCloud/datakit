@@ -1,6 +1,6 @@
 ---
 title     : 'Browser Dialtesting'
-summary   : 'Simulate browser page access, interactions, assertions, and screenshots'
+summary   : 'Simulate browser page access, interactions, and assertions'
 tags:
   - 'Dialtesting'
   - 'Network'
@@ -17,7 +17,7 @@ monitor   :
 
 ---
 
-Browser dialtesting is a `BROWSER` task type under the `inputs.dialtesting` collector. It simulates real browser access, including opening pages, clicking elements, entering text, waiting for selectors, and asserting titles or text. It reports page performance, step details, failure reasons, and failure screenshots.
+Browser dialtesting is a `BROWSER` task type under the `inputs.dialtesting` collector. It simulates page access through the Lightpanda browser engine, including opening pages, clicking elements, entering text, waiting for selectors, and asserting titles or text. It reports page performance, step details, and failure reasons. The Lightpanda engine currently does not support screenshots.
 
 For basic dialtesting node configuration, see [Network Dialtesting](dialtesting.md). This page only describes browser-specific configuration, deployment, and troubleshooting.
 
@@ -35,76 +35,82 @@ Browser dialtesting is enabled by default. To configure it explicitly, set it in
 
 Browser dialtesting currently supports Linux dialtesting nodes only. On non-Linux platforms, DataKit service mode does not run `BROWSER` tasks even when `enabled = true` is configured, except when using local debug verification mode.
 
-DataKit runs `BROWSER` tasks with the embedded browser runner. The node environment must provide Chrome/Chromium. DataKit resolves the browser in the following order:
+DataKit runs `BROWSER` tasks with the embedded browser runner. The node environment must provide the Lightpanda browser engine. DataKit forces `BROWSER` tasks to use Lightpanda; task-level `advance_options.engine` is overwritten by the node configuration.
 
-1. `[inputs.dialtesting.browser].chrome_path`
-1. `CHROME_EXECUTABLE_PATH`
-1. `chromium`, `google-chrome`, or `chrome` from `PATH`
+DataKit resolves Lightpanda in the following order:
+
+1. `[inputs.dialtesting.browser].engine_path`
+1. `LIGHTPANDA_EXECUTABLE_PATH`
+1. `lightpanda` from `PATH`
+1. `~/.cache/lightpanda-node/lightpanda`
 
 Use `max_concurrency` to limit browser tasks running at the same time. `0` means no limit. On resource-limited nodes, `1` is recommended.
 
 ## Kubernetes Deployment {#kubernetes}
 
-For Kubernetes, use the dialtesting image directly:
+For Kubernetes, use the DataKit image directly:
 
 ```text
 <<<% if custom_key.brand_key == 'guance' %>>>
-pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:<version>-dialtesting
+pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:<version>
 <<<% else %>>>
-pubrepo.<<<custom_key.brand_main_domain>>>/truewatch/datakit:<version>-dialtesting
+pubrepo.<<<custom_key.brand_main_domain>>>/truewatch/datakit:<version>
 <<<% endif %>>>
 ```
 
-No extra `chrome_path` setting is needed when using this image.
+The DataKit image includes Lightpanda and can run `BROWSER` tasks directly. To use a custom Lightpanda binary, mount the executable into the container and configure `engine_path`:
+
+```toml
+[[inputs.dialtesting]]
+  [inputs.dialtesting.browser]
+    enabled = true
+    engine = "lightpanda"
+    engine_path = "/opt/datakit-browser/bin/lightpanda"
+    max_concurrency = 10
+```
 
 ## Host Deployment {#host}
 
-For host deployment, install Chrome/Chromium on the dialtesting node first, then confirm browser dialtesting remains enabled. The following examples use a Linux host.
+For host deployment, install Lightpanda on the dialtesting node first, then confirm browser dialtesting remains enabled. The following examples use a Linux host.
 
-### Install Chrome/Chromium {#host-install-chrome}
+### Install Lightpanda {#host-install-lightpanda}
 
-On Debian/Ubuntu, install Chromium:
-
-```shell
-sudo apt-get update
-sudo apt-get install -y \
-  chromium \
-  ca-certificates \
-  fonts-liberation \
-  fonts-noto-cjk \
-  libatk-bridge2.0-0 \
-  libgbm1 \
-  libgtk-3-0 \
-  libnss3
-```
-
-On Red Hat/CentOS/Rocky Linux, install Chromium:
+For Lightpanda installation methods, see the [official installation guide](https://lightpanda.io/docs/open-source/installation){:target="_blank"}. On Linux hosts, use the official installer:
 
 ```shell
-sudo dnf install -y \
-  chromium \
-  google-noto-sans-cjk-fonts \
-  gtk3 \
-  libgbm \
-  liberation-fonts \
-  nss
+curl -fsSL https://pkg.lightpanda.io/install.sh | bash
 ```
 
-If Chromium is not available from the system repository, install Google Chrome stable instead. After installation, verify the browser path and version:
+You can also install a specific version, for example:
 
 ```shell
-for bin in chromium chromium-browser google-chrome chrome; do
-  if command -v "$bin" >/dev/null 2>&1; then
-    CHROME_EXECUTABLE_PATH="$(command -v "$bin")"
-    break
-  fi
-done
-
-echo "$CHROME_EXECUTABLE_PATH"
-"$CHROME_EXECUTABLE_PATH" --version
+curl -fsSL https://pkg.lightpanda.io/install.sh | bash -s "0.3.1"
 ```
 
-If `echo "$CHROME_EXECUTABLE_PATH"` prints nothing, Chrome/Chromium is not installed correctly and must be fixed first.
+To install a pinned binary manually, use the following x86_64 Linux example:
+
+```shell
+curl -L -o lightpanda \
+  https://github.com/lightpanda-io/browser/releases/download/0.3.1/lightpanda-x86_64-linux
+chmod a+x ./lightpanda
+sudo install -m 0755 lightpanda /usr/local/bin/lightpanda
+```
+
+For arm64/aarch64 Linux, use:
+
+```shell
+curl -L -o lightpanda \
+  https://github.com/lightpanda-io/browser/releases/download/0.3.1/lightpanda-aarch64-linux
+chmod a+x ./lightpanda
+sudo install -m 0755 lightpanda /usr/local/bin/lightpanda
+```
+
+Verify the installation:
+
+```shell
+lightpanda version
+lightpanda serve --help
+```
 
 ### Configure DataKit {#host-config-datakit}
 
@@ -115,7 +121,7 @@ cd /usr/local/datakit/conf.d/samples
 sudo cp dialtesting.conf.sample ../dialtesting.conf
 ```
 
-Edit `/usr/local/datakit/conf.d/dialtesting.conf`, confirm browser dialtesting remains enabled, and set the browser path explicitly:
+Edit `/usr/local/datakit/conf.d/dialtesting.conf`, confirm browser dialtesting remains enabled, and set the browser engine and path explicitly:
 
 ```toml
 [[inputs.dialtesting]]
@@ -128,20 +134,21 @@ Edit `/usr/local/datakit/conf.d/dialtesting.conf`, confirm browser dialtesting r
 
   [inputs.dialtesting.browser]
     enabled = true
-    chrome_path = "/usr/bin/chromium"
-    max_concurrency = 1
+    engine = "lightpanda"
+    engine_path = "/usr/local/bin/lightpanda"
+    max_concurrency = 10
 
   [inputs.dialtesting.tags]
     region = "<your-region>"
 ```
 
-If you do not want to set `chrome_path` in the configuration file, set the browser path with an environment variable:
+If you do not want to set `engine_path` in the configuration file, set the browser path with an environment variable:
 
 ```shell
-export CHROME_EXECUTABLE_PATH=/usr/bin/chromium
+export LIGHTPANDA_EXECUTABLE_PATH=/usr/local/bin/lightpanda
 ```
 
-If DataKit runs as a systemd service, exporting the variable in the current shell usually does not pass it to the DataKit service process. For host deployment, setting `chrome_path` in `dialtesting.conf` is recommended. If you prefer the environment variable, write `CHROME_EXECUTABLE_PATH` into the DataKit service environment configuration and restart the service.
+If DataKit runs as a systemd service, exporting the variable in the current shell usually does not pass it to the DataKit service process. For host deployment, setting `engine_path` in `dialtesting.conf` is recommended. If you prefer environment variables, write `LIGHTPANDA_EXECUTABLE_PATH` into the DataKit service environment configuration and restart the service.
 
 Restart DataKit after updating the configuration:
 
@@ -182,9 +189,6 @@ Create `/tmp/dialtesting-browser-task.json`. When writing JSON, put the YAML abo
       "status": "OK",
       "frequency": "1m",
       "post_url": "https://openway.<<<custom_key.brand_main_domain>>>?token=<your-token>",
-      "advance_options": {
-        "screenshot_on_failure": true
-      },
       "browser_config": "name: browser-homepage\ntarget: https://example.com\ntimeout_ms: 60000\nviewport:\n  width: 1280\n  height: 720\nsteps:\n  - name: open page\n    action: goto\n    url: https://example.com\n  - name: assert title\n    action: assert_title\n    contains: Example\n"
     }
   ]
@@ -201,8 +205,9 @@ Temporarily set `server` in `dialtesting.conf` to the local file URL and keep br
 
   [inputs.dialtesting.browser]
     enabled = true
-    chrome_path = "/usr/bin/chromium"
-    max_concurrency = 1
+    engine = "lightpanda"
+    engine_path = "/usr/local/bin/lightpanda"
+    max_concurrency = 10
 ```
 
 After verification, restore `server`, `region_id`, `ak`, `sk`, and other settings to the real dialtesting node configuration.
@@ -256,32 +261,15 @@ In the full task JSON, `browser_config` is inside the `BROWSER` task object:
       "status": "OK",
       "frequency": "1m",
       "post_url": "https://openway.<<<custom_key.brand_main_domain>>>?token=<your-token>",
-      "advance_options": {
-        "screenshot_on_failure": true
-      },
       "browser_config": "<browser_config YAML string>"
     }
   ]
 }
 ```
 
-## Failure Screenshot {#screenshot}
+## Screenshot Support {#screenshot}
 
-When `advance_options.screenshot_on_failure = true` is configured, browser dialtesting generates a screenshot for the failed step. Before reporting the result, DataKit uploads the screenshot to the Dataway specified by task `post_url` and writes the uploaded screenshot object into the dialtesting result.
-
-After a successful upload, `steps[].screenshot` is replaced from the local path with an object:
-
-```json
-{
-  "id": "run_789_step_2",
-  "date": "20260528",
-  "file": "run_789_step_2.png",
-  "size": 12345,
-  "type": "image/png"
-}
-```
-
-If upload fails, DataKit does not keep the local screenshot path and records the `screenshot_upload_error` field. The dialtesting result is still reported.
+The Lightpanda engine currently does not support screenshots. Even when `advance_options.screenshot_on_failure = true` is enabled, no `steps[].screenshot` is generated.
 
 ## Troubleshooting {#troubleshooting}
 
@@ -301,12 +289,12 @@ datakit_dialtesting_worker_cached_points_number
 datakit_dialtesting_worker_dropped_points_number
 ```
 
-Check Chrome/Chromium availability with:
+Check browser engine availability with:
 
 ```shell
-echo $CHROME_EXECUTABLE_PATH
-$CHROME_EXECUTABLE_PATH --version
-command -v chromium || command -v chromium-browser || command -v google-chrome || command -v chrome
+echo $LIGHTPANDA_EXECUTABLE_PATH
+$LIGHTPANDA_EXECUTABLE_PATH version
+command -v lightpanda
 ```
 
 Troubleshoot common issues as follows:
@@ -314,8 +302,8 @@ Troubleshoot common issues as follows:
 - No tasks are pulled: check `server`, `region_id`, `ak`, and `sk`, and confirm that `datakit_dialtesting_task_number{protocol="BROWSER"}` is greater than 0.
 - BROWSER tasks are available in the console but not executed on the node: confirm that `[inputs.dialtesting.browser].enabled = false` is not explicitly configured, and check whether the DataKit log contains `browser.enabled is false or unsupported`.
 - Results are not reported: check that task `post_url` is reachable, and that `datakit_dialtesting_dataway_send_failed_number`, `datakit_dialtesting_worker_cached_points_number`, and `datakit_dialtesting_worker_dropped_points_number` do not keep increasing.
-- Browser fails to start: check that `chrome_path`, `CHROME_EXECUTABLE_PATH`, or Chrome/Chromium from `PATH` is accessible to the DataKit process.
-- Browser dependencies are missing: check NSS, GTK, GBM, fonts, and certificates. In Kubernetes, use the `datakit:<version>-dialtesting` image directly.
-- Screenshot is not uploaded: confirm that `advance_options.screenshot_on_failure = true` is enabled and `has_screenshot` is `true` in the failed result. If upload fails, `screenshot_upload_error` appears in the result fields or step details.
+- Browser fails to start: check that `engine_path`, `LIGHTPANDA_EXECUTABLE_PATH`, or `lightpanda` from `PATH` is accessible to the DataKit process.
+- Browser dependencies are missing: in Kubernetes, use the `datakit:<version>` image directly; on hosts, confirm that Lightpanda is installed correctly.
+- Screenshot is not uploaded: the Lightpanda engine currently does not generate screenshots.
 
 Normally, the node can pull `BROWSER` tasks, `datakit_dialtesting_worker_send_points_number{status="ok"}` keeps increasing, and `datakit_dialtesting_dataway_send_failed_number`, `datakit_dialtesting_worker_cached_points_number`, and `datakit_dialtesting_worker_dropped_points_number` do not keep increasing.

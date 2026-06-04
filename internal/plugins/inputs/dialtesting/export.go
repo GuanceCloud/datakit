@@ -121,13 +121,23 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		},
 
 		{
-			ENVName:   "BROWSER_CHROME_PATH",
-			ConfField: "browser.chrome_path",
+			ENVName:   "BROWSER_ENGINE",
+			ConfField: "browser.engine",
 			Type:      doc.String,
-			Example:   "`/usr/bin/chromium`",
+			Example:   "`lightpanda`",
+			Default:   "`lightpanda`",
+			Desc:      "Browser engine for browser dial testing. Supported value: lightpanda",
+			DescZh:    "浏览器拨测使用的引擎，支持 lightpanda",
+		},
+
+		{
+			ENVName:   "BROWSER_ENGINE_PATH",
+			ConfField: "browser.engine_path",
+			Type:      doc.String,
+			Example:   "`/usr/local/bin/lightpanda`",
 			Default:   doc.NoDefaultSet,
-			Desc:      "Chrome/Chromium executable path for browser dial testing",
-			DescZh:    "浏览器拨测使用的 Chrome/Chromium 可执行文件路径",
+			Desc:      "Browser engine executable path for browser dial testing",
+			DescZh:    "浏览器拨测使用的浏览器引擎可执行文件路径",
 		},
 
 		{

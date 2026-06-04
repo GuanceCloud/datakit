@@ -10,6 +10,9 @@ NEW_VERSION_PUSH_URL   ?=NOT_SET
 DOCKER_IMAGE_REPO      ?= NOT_SET
 BRAND                  ?= NOT_SET
 DIST_DIR               = dist
+LIGHTPANDA_VERSION     ?= 0.3.1
+LIGHTPANDA_SHA256_AMD64 ?= ef91606f43c50b1721cc920ebd1792567ab027ec55abca365190e61798ce85ce
+LIGHTPANDA_SHA256_ARM64 ?= d3caf580e509f180b1a4e4c094db1128890eda948f6935d53a518f6e3a92223d
 BIN                    = datakit
 NAME                   = datakit
 NAME_EBPF              = datakit-ebpf
@@ -184,6 +187,10 @@ define build_docker_image
 	@if [ $(2) = "registry.jiagouyun.com" ]; then \
 		sudo docker buildx build --platform $(1) \
 			--build-arg DIST_DIR=$(DIST_DIR) \
+			--build-arg LIGHTPANDA_VERSION=$(LIGHTPANDA_VERSION) \
+			--build-arg LIGHTPANDA_SHA256_AMD64=$(LIGHTPANDA_SHA256_AMD64) \
+			--build-arg LIGHTPANDA_SHA256_ARM64=$(LIGHTPANDA_SHA256_ARM64) \
+			--build-arg CC_HTTP_PROXY=$(CC_HTTP_PROXY) \
 			-t $(2)/datakit:$(VERSION) \
 			-f dockerfiles/Dockerfile.$(DOCKERFILE_SUFFIX) . --push && \
 		sudo docker buildx build --platform $(1) \
@@ -201,6 +208,10 @@ define build_docker_image
 	else \
 		sudo docker buildx build --platform $(1) \
 			--build-arg DIST_DIR=$(DIST_DIR) \
+			--build-arg LIGHTPANDA_VERSION=$(LIGHTPANDA_VERSION) \
+			--build-arg LIGHTPANDA_SHA256_AMD64=$(LIGHTPANDA_SHA256_AMD64) \
+			--build-arg LIGHTPANDA_SHA256_ARM64=$(LIGHTPANDA_SHA256_ARM64) \
+			--build-arg CC_HTTP_PROXY=$(CC_HTTP_PROXY) \
 			-t $(2)/datakit:$(VERSION) \
 			-f dockerfiles/Dockerfile.$(DOCKERFILE_SUFFIX) . --push && \
 		sudo docker buildx build --platform $(1) \
@@ -216,14 +227,6 @@ define build_docker_image
 			-t $(2)/flameshot:$(FLAMESHOT_VERSION) \
 			-f dockerfiles/Dockerfile_flameshot.$(DOCKERFILE_SUFFIX) . --push; \
 	fi
-endef
-
-define build_docker_dialtesting_image
-	echo 'publishing dialtesting datakit image to $(2)...';
-	sudo docker buildx build --platform $(1) \
-		--build-arg DIST_DIR=$(DIST_DIR) \
-		-t $(2)/datakit:$(VERSION) \
-		-f dockerfiles/Dockerfile.$(DOCKERFILE_SUFFIX) . --push;
 endef
 
 define build_uos_image
@@ -330,9 +333,6 @@ testing_image:
 	# we also publishing testing image to public image repo
 	$(call build_docker_image,$(DOCKER_IMAGE_ARCHS),$(DOCKER_IMAGE_REPO))
 
-testing_dialtesting_image:
-	$(call build_docker_dialtesting_image,$(DOCKER_IMAGE_ARCHS),$(DOCKER_IMAGE_REPO))
-
 production_notify: deps
 	$(call notify_build,production,$(DEFAULT_ARCHS))
 
@@ -342,9 +342,6 @@ production: deps # stable release
 
 production_image:
 	$(call build_docker_image,$(DOCKER_IMAGE_ARCHS),$(DOCKER_IMAGE_REPO))
-
-production_dialtesting_image:
-	$(call build_docker_dialtesting_image,$(DOCKER_IMAGE_ARCHS),$(DOCKER_IMAGE_REPO))
 
 uos_image_testing: deps
 	$(call build_uos_image,$(UOS_DOCKER_IMAGE_ARCHS),'registry.jiagouyun.com/uos-dataflux') # testing image always push to registry.jiagouyun.com

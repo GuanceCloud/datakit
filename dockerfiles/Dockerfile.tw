@@ -1,8 +1,13 @@
 FROM pubrepo.truewatch.com/base/ubuntu:22.04 AS base
 ARG TARGETARCH
 ARG DIST_DIR
+ARG LIGHTPANDA_VERSION=0.3.1
+ARG LIGHTPANDA_SHA256_AMD64=ef91606f43c50b1721cc920ebd1792567ab027ec55abca365190e61798ce85ce
+ARG LIGHTPANDA_SHA256_ARM64=d3caf580e509f180b1a4e4c094db1128890eda948f6935d53a518f6e3a92223d
+ARG CC_HTTP_PROXY=
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV LIGHTPANDA_EXECUTABLE_PATH=/usr/local/bin/lightpanda
 
 RUN addgroup --gid 10001 datakit \
   && adduser --disabled-password --gecos "" --uid 10001 --gid 10001 datakit \
@@ -19,8 +24,24 @@ RUN mkdir -p /usr/local/datakit \
 
 RUN sed -i 's/\(archive\|security\|ports\).ubuntu.com/mirrors.aliyun.com/' /etc/apt/sources.list \
   && apt-get update \
-  && apt-get --no-install-recommends install -y lsb-release gpg libaio-dev libaio1 unzip wget curl python3 python3-pip libxml2 alien vim libsystemd-dev \
+  && apt-get --no-install-recommends install -y lsb-release gpg libaio-dev libaio1 unzip wget curl ca-certificates python3 python3-pip libxml2 alien vim libsystemd-dev \
   && pip3 install requests kubernetes esdk-obs-python boto3 -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
+
+RUN \
+  case "$TARGETARCH" in \
+  amd64) lightpanda_arch=x86_64; lightpanda_sha256="$LIGHTPANDA_SHA256_AMD64" ;; \
+  arm64) lightpanda_arch=aarch64; lightpanda_sha256="$LIGHTPANDA_SHA256_ARM64" ;; \
+  *) echo "unsupported TARGETARCH for lightpanda: $TARGETARCH" >&2; exit 1 ;; \
+  esac \
+  && if [ -n "$CC_HTTP_PROXY" ]; then \
+    export http_proxy="$CC_HTTP_PROXY" https_proxy="$CC_HTTP_PROXY" HTTP_PROXY="$CC_HTTP_PROXY" HTTPS_PROXY="$CC_HTTP_PROXY"; \
+  fi \
+  && curl -fL --retry 5 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 300 \
+    "https://github.com/lightpanda-io/browser/releases/download/${LIGHTPANDA_VERSION}/lightpanda-${lightpanda_arch}-linux" \
+    -o /usr/local/bin/lightpanda \
+  && echo "${lightpanda_sha256}  /usr/local/bin/lightpanda" | sha256sum -c - \
+  && chmod 0755 /usr/local/bin/lightpanda \
+  && /usr/local/bin/lightpanda version
 
 # download 3rd party libraries
 RUN \

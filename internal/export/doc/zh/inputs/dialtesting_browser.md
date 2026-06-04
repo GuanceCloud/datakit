@@ -1,6 +1,6 @@
 ---
 title     : '浏览器拨测'
-summary   : '通过真实浏览器模拟页面访问、交互、断言和截图'
+summary   : '通过浏览器引擎模拟页面访问、交互和断言'
 tags:
   - '拨测'
   - '网络'
@@ -17,7 +17,7 @@ monitor   :
 
 ---
 
-浏览器拨测属于 `inputs.dialtesting` 采集器中的 `BROWSER` 任务类型，用于通过真实浏览器模拟页面访问、交互和断言，并上报页面性能、步骤结果、失败原因和失败截图。
+浏览器拨测属于 `inputs.dialtesting` 采集器中的 `BROWSER` 任务类型，用于通过 Lightpanda 浏览器引擎模拟页面访问、交互和断言，并上报页面性能、步骤结果和失败原因。Lightpanda 引擎当前不支持截图。
 
 基础拨测节点配置请参考[网络拨测](dialtesting.md)。本文只说明浏览器拨测相关的额外配置、部署和排查方式。
 
@@ -25,11 +25,14 @@ monitor   :
 
 浏览器拨测在 Linux 拨测节点上默认开启；非 Linux 环境下，DataKit 服务模式不会执行 `BROWSER` 任务，本地 debug 验证模式除外。
 
-节点运行时需能访问 Chrome/Chromium。DataKit 按以下顺序查找浏览器：
+节点运行时需能访问 Lightpanda 浏览器引擎。DataKit 会强制使用 Lightpanda 执行 `BROWSER` 任务；任务中的 `advance_options.engine` 会被节点配置覆盖。
 
-1. `[inputs.dialtesting.browser].chrome_path`
-1. `CHROME_EXECUTABLE_PATH`
-1. `PATH` 中的 `chromium`、`google-chrome` 或 `chrome`
+DataKit 按以下顺序查找 Lightpanda：
+
+1. `[inputs.dialtesting.browser].engine_path`
+1. `LIGHTPANDA_EXECUTABLE_PATH`
+1. `PATH` 中的 `lightpanda`
+1. `~/.cache/lightpanda-node/lightpanda`
 
 如需显式关闭浏览器拨测，可在 `dialtesting.conf` 中设置：
 
@@ -43,66 +46,69 @@ monitor   :
 
 ## Kubernetes 部署 {#kubernetes}
 
-Kubernetes 中推荐直接使用拨测专用镜像：
+Kubernetes 中推荐直接使用 DataKit 镜像：
 
 ```text
 <<<% if custom_key.brand_key == 'guance' %>>>
-pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:<version>-dialtesting
+pubrepo.<<<custom_key.brand_main_domain>>>/datakit/datakit:<version>
 <<<% else %>>>
-pubrepo.<<<custom_key.brand_main_domain>>>/truewatch/datakit:<version>-dialtesting
+pubrepo.<<<custom_key.brand_main_domain>>>/truewatch/datakit:<version>
 <<<% endif %>>>
 ```
 
-使用该镜像时无需额外配置 `chrome_path`。
+DataKit 镜像内置 Lightpanda，可直接执行 `BROWSER` 任务。如需使用自定义 Lightpanda 二进制，可通过挂载方式提供可执行文件，并配置 `engine_path`：
+
+```toml
+[[inputs.dialtesting]]
+  [inputs.dialtesting.browser]
+    enabled = true
+    engine = "lightpanda"
+    engine_path = "/opt/datakit-browser/bin/lightpanda"
+    max_concurrency = 10
+```
 
 ## 主机部署 {#host}
 
-主机部署时，需要先安装 Chrome/Chromium。以下示例以 Linux 主机为例。
+主机部署时，需要先安装 Lightpanda。以下示例以 Linux 主机为例。
 
-### 安装 Chrome/Chromium {#host-install-chrome}
+### 安装 Lightpanda {#host-install-lightpanda}
 
-Debian/Ubuntu 可使用 Chromium：
-
-```shell
-sudo apt-get update
-sudo apt-get install -y \
-  chromium \
-  ca-certificates \
-  fonts-liberation \
-  fonts-noto-cjk \
-  libatk-bridge2.0-0 \
-  libgbm1 \
-  libgtk-3-0 \
-  libnss3
-```
-
-Red Hat/CentOS/Rocky Linux 可使用 Chromium：
+Lightpanda 安装方式可参考[官方安装文档](https://lightpanda.io/docs/open-source/installation){:target="_blank"}。Linux 主机可使用官方安装脚本：
 
 ```shell
-sudo dnf install -y \
-  chromium \
-  google-noto-sans-cjk-fonts \
-  gtk3 \
-  libgbm \
-  liberation-fonts \
-  nss
+curl -fsSL https://pkg.lightpanda.io/install.sh | bash
 ```
 
-如果系统软件源没有 Chromium，也可以安装 Google Chrome stable。安装完成后，确认浏览器路径和版本：
+也可以指定版本，例如：
 
 ```shell
-for bin in chromium chromium-browser google-chrome chrome; do
-  if command -v "$bin" >/dev/null 2>&1; then
-    CHROME_EXECUTABLE_PATH="$(command -v "$bin")"
-    break
-  fi
-done
-
-echo "$CHROME_EXECUTABLE_PATH"
-"$CHROME_EXECUTABLE_PATH" --version
+curl -fsSL https://pkg.lightpanda.io/install.sh | bash -s "0.3.1"
 ```
 
-如果 `echo "$CHROME_EXECUTABLE_PATH"` 没有输出，说明 Chrome/Chromium 尚未安装成功，需先修复浏览器安装。
+如需手动安装固定版本二进制，x86_64 Linux 示例：
+
+```shell
+curl -L -o lightpanda \
+  https://github.com/lightpanda-io/browser/releases/download/0.3.1/lightpanda-x86_64-linux
+chmod a+x ./lightpanda
+sudo install -m 0755 lightpanda /usr/local/bin/lightpanda
+```
+
+arm64/aarch64 Linux 可使用：
+
+```shell
+curl -L -o lightpanda \
+  https://github.com/lightpanda-io/browser/releases/download/0.3.1/lightpanda-aarch64-linux
+chmod a+x ./lightpanda
+sudo install -m 0755 lightpanda /usr/local/bin/lightpanda
+```
+
+安装完成后确认版本：
+
+```shell
+lightpanda version
+lightpanda serve --help
+```
 
 ### 配置 DataKit {#host-config-datakit}
 
@@ -113,7 +119,7 @@ cd /usr/local/datakit/conf.d/samples
 sudo cp dialtesting.conf.sample ../dialtesting.conf
 ```
 
-编辑 `/usr/local/datakit/conf.d/dialtesting.conf`，建议显式指定浏览器路径：
+编辑 `/usr/local/datakit/conf.d/dialtesting.conf`，建议显式指定浏览器引擎和路径：
 
 ```toml
 [[inputs.dialtesting]]
@@ -125,8 +131,9 @@ sudo cp dialtesting.conf.sample ../dialtesting.conf
   time_out = "30s"
 
   [inputs.dialtesting.browser]
-    chrome_path = "/usr/bin/chromium"
-    max_concurrency = 1
+    engine = "lightpanda"
+    engine_path = "/usr/local/bin/lightpanda"
+    max_concurrency = 10
 
   [inputs.dialtesting.tags]
     region = "<your-region>"
@@ -135,10 +142,10 @@ sudo cp dialtesting.conf.sample ../dialtesting.conf
 也可以通过环境变量指定：
 
 ```shell
-export CHROME_EXECUTABLE_PATH=/usr/bin/chromium
+export LIGHTPANDA_EXECUTABLE_PATH=/usr/local/bin/lightpanda
 ```
 
-如果 DataKit 以 systemd 服务方式运行，当前 shell 中的 `export` 通常不会传递给 DataKit 服务进程。主机部署时更推荐在 `dialtesting.conf` 中配置 `chrome_path`。
+如果 DataKit 以 systemd 服务方式运行，当前 shell 中的 `export` 通常不会传递给 DataKit 服务进程。主机部署时更推荐在 `dialtesting.conf` 中配置 `engine_path`。
 
 修改配置后重启 DataKit：
 
@@ -179,9 +186,6 @@ steps:
       "status": "OK",
       "frequency": "1m",
       "post_url": "https://openway.<<<custom_key.brand_main_domain>>>?token=<your-token>",
-      "advance_options": {
-        "screenshot_on_failure": true
-      },
       "browser_config": "name: browser-homepage\ntarget: https://example.com\ntimeout_ms: 60000\nviewport:\n  width: 1280\n  height: 720\nsteps:\n  - name: open page\n    action: goto\n    url: https://example.com\n  - name: assert title\n    action: assert_title\n    contains: Example\n"
     }
   ]
@@ -196,8 +200,9 @@ steps:
   pull_interval = "10s"
 
   [inputs.dialtesting.browser]
-    chrome_path = "/usr/bin/chromium"
-    max_concurrency = 1
+    engine = "lightpanda"
+    engine_path = "/usr/local/bin/lightpanda"
+    max_concurrency = 10
 ```
 
 使用 debug 运行：
@@ -241,30 +246,15 @@ curl -s http://127.0.0.1:9529/metrics | grep datakit_dialtesting
       "status": "OK",
       "frequency": "1m",
       "post_url": "https://openway.<<<custom_key.brand_main_domain>>>?token=<your-token>",
-      "advance_options": {
-        "screenshot_on_failure": true
-      },
       "browser_config": "<browser_config YAML string>"
     }
   ]
 }
 ```
 
-## 失败截图 {#screenshot}
+## 截图支持 {#screenshot}
 
-当任务配置 `advance_options.screenshot_on_failure = true` 时，浏览器拨测会在失败步骤生成截图。DataKit 上报结果前会将截图上传到任务 `post_url` 对应的 Dataway，并把 `steps[].screenshot` 从本地路径替换为对象：
-
-```json
-{
-  "id": "run_789_step_2",
-  "date": "20260528",
-  "file": "run_789_step_2.png",
-  "size": 12345,
-  "type": "image/png"
-}
-```
-
-如果上传失败，DataKit 会记录 `screenshot_upload_error`，拨测结果仍会继续上报。
+Lightpanda 引擎当前不支持截图。即使任务开启 `advance_options.screenshot_on_failure = true`，也不会生成 `steps[].screenshot`。
 
 ## 排查方式 {#troubleshooting}
 
@@ -274,12 +264,12 @@ curl -s http://127.0.0.1:9529/metrics | grep datakit_dialtesting
 curl -s http://127.0.0.1:9529/metrics | grep datakit_dialtesting
 ```
 
-Chrome/Chromium 环境可通过以下命令确认：
+浏览器引擎环境可通过以下命令确认：
 
 ```shell
-echo $CHROME_EXECUTABLE_PATH
-$CHROME_EXECUTABLE_PATH --version
-command -v chromium || command -v chromium-browser || command -v google-chrome || command -v chrome
+echo $LIGHTPANDA_EXECUTABLE_PATH
+$LIGHTPANDA_EXECUTABLE_PATH version
+command -v lightpanda
 ```
 
 常见问题：
@@ -287,6 +277,6 @@ command -v chromium || command -v chromium-browser || command -v google-chrome |
 - 拉不到任务：确认 `server`、`region_id`、`ak`、`sk` 配置正确，且 `datakit_dialtesting_task_number{protocol="BROWSER"}` 大于 0。
 - 页面已下发 BROWSER 任务但节点没有执行：确认没有显式配置 `[inputs.dialtesting.browser].enabled = false`，并检查 DataKit 日志中是否出现 `browser.enabled is false or unsupported`。
 - 任务不上报：确认任务 `post_url` 可访问，且发送失败、缓存、丢弃相关指标未持续增长。
-- 浏览器无法启动：确认 `chrome_path`、`CHROME_EXECUTABLE_PATH` 或 `PATH` 中的 Chrome/Chromium 可被 DataKit 进程访问。
-- 浏览器依赖缺失：确认已安装 NSS、GTK、GBM、字体和证书等运行依赖；Kubernetes 中建议直接使用 `datakit:<version>-dialtesting` 镜像。
-- 截图未上传：确认任务开启 `advance_options.screenshot_on_failure = true`；如果上传失败，结果中会出现 `screenshot_upload_error`。
+- 浏览器无法启动：确认 `engine_path`、`LIGHTPANDA_EXECUTABLE_PATH` 或 `PATH` 中的 `lightpanda` 可被 DataKit 进程访问。
+- 浏览器依赖缺失：Kubernetes 中建议直接使用 `datakit:<version>` 镜像；主机部署时确认 Lightpanda 已正确安装。
+- 截图未上传：Lightpanda 引擎当前不生成截图。

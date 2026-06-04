@@ -53,9 +53,9 @@ monitor   :
 
     浏览器拨测从 DataKit [:octicons-tag-24: Version-2.1.0](../datakit/changelog-2026.md#cl-2.1.0) 开始支持。
 
-    浏览器拨测任务（`BROWSER`）在 Linux 拨测节点上默认执行；如需关闭，可设置 `[inputs.dialtesting.browser].enabled = false`。执行浏览器任务时，DataKit 需能访问 Chrome/Chromium；如需控制资源峰值，可设置 `[inputs.dialtesting.browser].max_concurrency` 限制并发数。
+    浏览器拨测任务（`BROWSER`）在 Linux 拨测节点上默认执行；如需关闭，可设置 `[inputs.dialtesting.browser].enabled = false`。执行浏览器任务时，DataKit 需能访问 Lightpanda；如需控制资源峰值，可设置 `[inputs.dialtesting.browser].max_concurrency` 限制并发数。
 
-    Kubernetes 中推荐使用 `datakit:<version>-dialtesting` 拨测专用镜像。失败截图会上传到任务 `post_url` 所属的 Dataway。
+    Kubernetes 中推荐使用内置 Lightpanda 的 `datakit:<version>` 镜像。
 
     更多部署、任务配置和排查说明，请参考[浏览器拨测](dialtesting_browser.md)。
 <!-- markdownlint-enable -->
@@ -79,8 +79,8 @@ monitor   :
 
 如果拨测节点需要执行浏览器拨测任务，请确保该节点所在环境满足以下条件：
 
-- Chrome/Chromium 可被 DataKit 进程访问。
-- 节点可以访问被测站点，以及任务 `post_url` 对应的 Dataway，用于上报拨测结果和失败截图。
+- Lightpanda 可被 DataKit 进程访问。
+- 节点可以访问被测站点，以及任务 `post_url` 对应的 Dataway，用于上报拨测结果。
 
 ```mermaid
 graph TD

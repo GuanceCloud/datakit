@@ -118,14 +118,16 @@ type Input struct {
 
 type BrowserDialConfig struct {
 	Enabled        *bool  `toml:"enabled,omitempty"`
-	ChromePath     string `toml:"chrome_path,omitempty"`
+	Engine         string `toml:"engine,omitempty"`
+	EnginePath     string `toml:"engine_path,omitempty"`
 	MaxConcurrency int    `toml:"max_concurrency,omitempty"`
 }
 
 var browserDialtestingGOOS = runtime.GOOS
 
 const (
-	browserChromeOptionPath = "chrome_path"
+	browserLightpandaOptionPath = "lightpanda_path"
+	defaultBrowserEngine        = "lightpanda"
 )
 
 // Variable is a global variable manager.
@@ -392,9 +394,13 @@ const sample = `
     # Enable browser dialtesting on Linux nodes. Enabled by default.
     enabled = true
 
-    # Optional Chrome/Chromium executable path.
-    # If empty, the embedded browser runner will use CHROME_EXECUTABLE_PATH or PATH.
-    chrome_path = ""
+    # Browser engine used for browser dialtesting.
+    # Supported engine: lightpanda.
+    engine = "lightpanda"
+
+    # Optional browser engine executable path.
+    # If empty, the embedded browser runner will use LIGHTPANDA_EXECUTABLE_PATH or PATH.
+    engine_path = ""
 
     # Max browser dialtesting tasks running at the same time. 0 means no limit.
     max_concurrency = 0
@@ -753,21 +759,45 @@ func (ipt *Input) browserEnabled() bool {
 	return browserDialtestingGOOS == datakit.OSLinux || ipt.isDebugMode
 }
 
-func (ipt *Input) browserChromePath() string {
-	if ipt.Browser != nil {
-		if chromePath := strings.TrimSpace(ipt.Browser.ChromePath); chromePath != "" {
-			return chromePath
-		}
-	}
-	return ""
-}
-
 func (ipt *Input) setupBrowserConcurrency() {
 	if ipt.Browser == nil || ipt.Browser.MaxConcurrency <= 0 {
 		ipt.browserConcurrency = nil
 		return
 	}
 	ipt.browserConcurrency = make(chan struct{}, ipt.Browser.MaxConcurrency)
+}
+
+func (ipt *Input) applyBrowserOptions(t dt.ITask, opt map[string]string) {
+	if t == nil || t.Class() != dt.ClassHeadless {
+		return
+	}
+
+	engine := defaultBrowserEngine
+	if ipt.Browser != nil {
+		engine = normalizeBrowserEngine(ipt.Browser.Engine)
+	}
+	if browserTask, ok := t.(*dt.BrowserTask); ok {
+		if browserTask.AdvanceOptions == nil {
+			browserTask.AdvanceOptions = &dt.BrowserAdvanceOption{}
+		}
+		browserTask.AdvanceOptions.Engine = engine
+	}
+
+	if ipt.Browser == nil {
+		return
+	}
+	if enginePath := strings.TrimSpace(ipt.Browser.EnginePath); enginePath != "" {
+		opt[browserLightpandaOptionPath] = enginePath
+	}
+}
+
+func normalizeBrowserEngine(engine string) string {
+	switch strings.TrimSpace(strings.ToLower(engine)) {
+	case "lightpanda":
+		return "lightpanda"
+	default:
+		return defaultBrowserEngine
+	}
 }
 
 func protectedRun(d *dialer) {
@@ -953,9 +983,7 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 				"userAgent": fmt.Sprintf("datakit-%s-%s/%s/%s",
 					runtime.GOOS, runtime.GOARCH, git.Version, datakit.DKHost),
 			}
-			if browserChromePath := ipt.browserChromePath(); browserChromePath != "" {
-				opt[browserChromeOptionPath] = browserChromePath
-			}
+			ipt.applyBrowserOptions(t, opt)
 			t.SetOption(opt)
 
 			l.Debugf("unmarshal task: %+#v", t)
@@ -1129,7 +1157,8 @@ func (ipt *Input) pullHTTPTask(reqURL *url.URL, sinceUs, variableSinceUs int64) 
 // ENV_INPUT_DIALTESTING_DISABLED_INTERNAL_NETWORK_CIDR_LIST: []string.
 // ENV_INPUT_DIALTESTING_ELECTION: bool.
 // ENV_INPUT_DIALTESTING_BROWSER_ENABLED: bool.
-// ENV_INPUT_DIALTESTING_BROWSER_CHROME_PATH: string.
+// ENV_INPUT_DIALTESTING_BROWSER_ENGINE: string.
+// ENV_INPUT_DIALTESTING_BROWSER_ENGINE_PATH: string.
 // ENV_INPUT_DIALTESTING_BROWSER_MAX_CONCURRENCY: int.
 func (ipt *Input) ReadEnv(envs map[string]string) {
 	if ak, ok := envs["ENV_INPUT_DIALTESTING_AK"]; ok {
@@ -1183,11 +1212,18 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		}
 	}
 
-	if chromePath, ok := envs["ENV_INPUT_DIALTESTING_BROWSER_CHROME_PATH"]; ok {
+	if engine, ok := envs["ENV_INPUT_DIALTESTING_BROWSER_ENGINE"]; ok {
 		if ipt.Browser == nil {
 			ipt.Browser = &BrowserDialConfig{}
 		}
-		ipt.Browser.ChromePath = chromePath
+		ipt.Browser.Engine = engine
+	}
+
+	if enginePath, ok := envs["ENV_INPUT_DIALTESTING_BROWSER_ENGINE_PATH"]; ok {
+		if ipt.Browser == nil {
+			ipt.Browser = &BrowserDialConfig{}
+		}
+		ipt.Browser.EnginePath = enginePath
 	}
 
 	if v, ok := envs["ENV_INPUT_DIALTESTING_BROWSER_MAX_CONCURRENCY"]; ok {

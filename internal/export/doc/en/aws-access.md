@@ -49,15 +49,15 @@ flowchart LR
 <<<% if custom_key.brand_key == "truewatch" %>>>
 | **Access Region** | **Your Server's Region**       | **Endpoint Service Name**                                      |
 | ----------------- | ------------------------------ | -------------------------------------------------------------- |
-| Asia-Pacific Region 1 (Singapore) | `ap-southeast-1` (Singapore) | `com.amazonaws.vpce.ap-southeast-1.vpce-svc-08465b643241dce58` |
-| Overseas Region 1 (Oregon) | `us-west-2` (Oregon) | `com.amazonaws.vpce.us-west-2.vpce-svc-0895f6859469a621e` |
+| AP1(Singapore) | `ap-southeast-1` (Singapore) | `com.amazonaws.vpce.ap-southeast-1.vpce-svc-08465b643241dce58` |
+| US1(Oregon) | `us-west-2` (Oregon) | `com.amazonaws.vpce.us-west-2.vpce-svc-0895f6859469a621e` |
 <<<% else %>>>
 | **Access Region** | **Your Server's Region**       | **Endpoint Service Name**                                      |
 | ----------------- | ------------------------------ | -------------------------------------------------------------- |
-| China Region 2 (Ningxia) | `cn-northwest-1` (Ningxia) | `cn.com.amazonaws.vpce.cn-northwest-1.vpce-svc-070f9283a2c0d1f0c` |
-| Overseas Region 1 (Oregon) | `us-west-2` (Oregon)     | `com.amazonaws.vpce.us-west-2.vpce-svc-084745e0ec33f0b44`      |
-| Asia-Pacific Region 1 (Singapore) | `ap-southeast-1` (Singapore) | `com.amazonaws.vpce.ap-southeast-1.vpce-svc-070194ed9d834d571` |
-| European Region 1 (Frankfurt) | `eu-central-1` (Frankfurt) | `com.amazonaws.vpce.eu-central-1.vpce-svc-062049100de283a62` |
+| CN2(Ningxia) | `cn-northwest-1` (Ningxia) | `cn.com.amazonaws.vpce.cn-northwest-1.vpce-svc-070f9283a2c0d1f0c` |
+| US1(Oregon) | `us-west-2` (Oregon)     | `com.amazonaws.vpce.us-west-2.vpce-svc-084745e0ec33f0b44`      |
+| AP1(Singapore) | `ap-southeast-1` (Singapore) | `com.amazonaws.vpce.ap-southeast-1.vpce-svc-070194ed9d834d571` |
+| EU1(Frankfurt) | `eu-central-1` (Frankfurt) | `com.amazonaws.vpce.eu-central-1.vpce-svc-062049100de283a62` |
 <<<% endif %>>>
 
 
@@ -67,15 +67,15 @@ flowchart LR
 <<<% if custom_key.brand_key == "truewatch" %>>>
 | **Access Region** | **Your Server's Region**       | **Endpoint**                                                |
 | ----------------- | ------------------------------ | ------------------------------------------------------------ |
-| Asia-Pacific Region 1 (Singapore) | `ap-southeast-1` (Singapore) | `https://ap1-openway.<<<custom_key.brand_main_domain>>>`                            |
-| Overseas Region 1 (Oregon) | `us-west-2` (Oregon) | `https://us1-openway.<<<custom_key.brand_main_domain>>>` |
+| AP1(Singapore) | `ap-southeast-1` (Singapore) | `https://ap1-openway.<<<custom_key.brand_main_domain>>>`                            |
+| US1(Oregon) | `us-west-2` (Oregon) | `https://us1-openway.<<<custom_key.brand_main_domain>>>` |
 <<<% else %>>>
 | **Access Region** | **Your Server's Region**       | **Endpoint**                                                |
 | ----------------- | ------------------------------ | ------------------------------------------------------------ |
-| China Region 2 (Ningxia) | `cn-northwest-1` (Ningxia) | `https://aws-openway.<<<custom_key.brand_main_domain>>>`                             |
-| Overseas Region 1 (Oregon) | `us-west-2` (Oregon)     | `https://us1-openway.<<<custom_key.brand_main_domain>>>`                             |
-| Asia-Pacific Region 1 (Singapore) | `ap-southeast-1` (Singapore) | `https://ap1-openway.<<<custom_key.brand_main_domain>>>`                            |
-| European Region 1 (Frankfurt) | `eu-central-1` (Frankfurt) | `https://eu1-openway.<<<custom_key.brand_main_domain>>>`                            |
+| CN2(Ningxia) | `cn-northwest-1` (Ningxia) | `https://aws-openway.<<<custom_key.brand_main_domain>>>`                             |
+| US1(Oregon) | `us-west-2` (Oregon)     | `https://us1-openway.<<<custom_key.brand_main_domain>>>`                             |
+| AP1(Singapore) | `ap-southeast-1` (Singapore) | `https://ap1-openway.<<<custom_key.brand_main_domain>>>`                            |
+| EU1(Frankfurt) | `eu-central-1` (Frankfurt) | `https://eu1-openway.<<<custom_key.brand_main_domain>>>`                            |
 <<<% endif %>>>
 
 ### Configure Service Subscription {#config-sub}
@@ -88,7 +88,7 @@ Open the Amazon console via the following links:
 - [Console Web](https://console.aws.amazon.com/console/home){:target="_blank"}
 <<<% else %>>>
 - [China Region](https://console.amazonaws.cn/console/home){:target="_blank"}
-- [Overseas Region](https://console.aws.amazon.com/console/home){:target="_blank"}
+- [Global Region](https://console.aws.amazon.com/console/home){:target="_blank"}
 <<<% endif %>>>
 Obtain the account ID in the upper right corner of the console, copy this "Account ID," and **inform** our customer manager at <<<custom_key.brand_name>>> to add it to our whitelist.
 
@@ -100,7 +100,7 @@ Obtain the account ID in the upper right corner of the console, copy this "Accou
    - [VPC](https://console.amazonaws.cn/vpc/){:target="_blank"}
 <<<% else %>>>
    - [China Region](https://console.amazonaws.cn/vpc/){:target="_blank"}
-   - [Overseas Region](https://console.amazonaws.cn/vpc/){:target="_blank"}
+   - [Global Region](https://console.amazonaws.cn/vpc/){:target="_blank"}
 <<<% endif %>>>
 <!-- markdownlint-disable MD051 -->
 1. Create Security Group:

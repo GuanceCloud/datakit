@@ -423,28 +423,25 @@ func TestDispatchTasks(t *testing.T) {
 			require.IsType(t, &dialtesting.BrowserTask{}, got.task)
 			browserTask := got.task.(*dialtesting.BrowserTask)
 			assert.Equal(t, "https://display.example.com", browserTask.URL)
-			assert.Empty(t, got.task.GetOption()["chrome_path"])
+			assert.Equal(t, "lightpanda", browserTask.AdvanceOptions.Engine)
 		}
 
 		ipt.semStop.Close()
 		time.Sleep(20 * time.Millisecond)
 	})
 
-	t.Run("browser chrome path is passed to task", func(t *testing.T) {
+	t.Run("browser tasks default to lightpanda without browser config", func(t *testing.T) {
 		oldGOOS := browserDialtestingGOOS
 		browserDialtestingGOOS = datakit.OSLinux
 		t.Cleanup(func() { browserDialtestingGOOS = oldGOOS })
 
 		ipt := defaultInput()
-		ipt.Browser = &BrowserDialConfig{
-			Enabled:    boolPtr(true),
-			ChromePath: "/usr/bin/google-chrome",
-		}
+		ipt.Browser = nil
 
 		taskJSON, err := json.Marshal(&dialtesting.BrowserTask{
 			Task: &dialtesting.Task{
-				ExternalID: "browser-task-explicit-paths",
-				Name:       "browser-task-explicit-paths",
+				ExternalID: "browser-task-default-lightpanda",
+				Name:       "browser-task-default-lightpanda",
 				PostURL:    "http://example.com?token=test",
 				Frequency:  "1s",
 			},
@@ -467,7 +464,106 @@ func TestDispatchTasks(t *testing.T) {
 			return false
 		})
 		if assert.NotNil(t, got) {
-			assert.Equal(t, "/usr/bin/google-chrome", got.task.GetOption()["chrome_path"])
+			browserTask := got.task.(*dialtesting.BrowserTask)
+			assert.Equal(t, "lightpanda", browserTask.AdvanceOptions.Engine)
+			assert.Empty(t, got.task.GetOption()["lightpanda_path"])
+		}
+
+		ipt.semStop.Close()
+		time.Sleep(20 * time.Millisecond)
+	})
+
+	t.Run("browser engine path is passed to lightpanda task", func(t *testing.T) {
+		oldGOOS := browserDialtestingGOOS
+		browserDialtestingGOOS = datakit.OSLinux
+		t.Cleanup(func() { browserDialtestingGOOS = oldGOOS })
+
+		ipt := defaultInput()
+		ipt.Browser = &BrowserDialConfig{
+			Enabled:    boolPtr(true),
+			Engine:     "lightpanda",
+			EnginePath: "/opt/browser/lightpanda",
+		}
+
+		taskJSON, err := json.Marshal(&dialtesting.BrowserTask{
+			Task: &dialtesting.Task{
+				ExternalID: "browser-task-engine-path-lightpanda",
+				Name:       "browser-task-engine-path-lightpanda",
+				PostURL:    "http://example.com?token=test",
+				Frequency:  "1s",
+			},
+			BrowserConfig: "name: browser-task\ntarget: https://example.com\nsteps:\n  - action: goto\n    url: https://example.com\n",
+		})
+		assert.NoError(t, err)
+
+		payload, err := json.Marshal(map[string]interface{}{
+			"content": map[string]interface{}{
+				dialtesting.ClassHeadless: []string{string(taskJSON)},
+			},
+		})
+		assert.NoError(t, err)
+
+		assert.NoError(t, ipt.dispatchTasks(payload))
+
+		var got *dialer
+		ipt.curTasks.Range(func(key, value any) bool {
+			got = value.(*dialer)
+			return false
+		})
+		if assert.NotNil(t, got) {
+			browserTask := got.task.(*dialtesting.BrowserTask)
+			assert.Equal(t, "lightpanda", browserTask.AdvanceOptions.Engine)
+			assert.Equal(t, "/opt/browser/lightpanda", got.task.GetOption()["lightpanda_path"])
+		}
+
+		ipt.semStop.Close()
+		time.Sleep(20 * time.Millisecond)
+	})
+
+	t.Run("browser input engine overrides task engine", func(t *testing.T) {
+		oldGOOS := browserDialtestingGOOS
+		browserDialtestingGOOS = datakit.OSLinux
+		t.Cleanup(func() { browserDialtestingGOOS = oldGOOS })
+
+		ipt := defaultInput()
+		ipt.Browser = &BrowserDialConfig{
+			Enabled:    boolPtr(true),
+			Engine:     "lightpanda",
+			EnginePath: "/opt/browser/lightpanda",
+		}
+
+		taskJSON, err := json.Marshal(&dialtesting.BrowserTask{
+			Task: &dialtesting.Task{
+				ExternalID: "browser-task-input-engine-overrides",
+				Name:       "browser-task-input-engine-overrides",
+				PostURL:    "http://example.com?token=test",
+				Frequency:  "1s",
+			},
+			AdvanceOptions: &dialtesting.BrowserAdvanceOption{
+				Engine: "legacy",
+			},
+			BrowserConfig: "name: browser-task\ntarget: https://example.com\nsteps:\n  - action: goto\n    url: https://example.com\n",
+		})
+		assert.NoError(t, err)
+
+		payload, err := json.Marshal(map[string]interface{}{
+			"content": map[string]interface{}{
+				dialtesting.ClassHeadless: []string{string(taskJSON)},
+			},
+		})
+		assert.NoError(t, err)
+
+		assert.NoError(t, ipt.dispatchTasks(payload))
+
+		var got *dialer
+		ipt.curTasks.Range(func(key, value any) bool {
+			got = value.(*dialer)
+			return false
+		})
+		if assert.NotNil(t, got) {
+			browserTask := got.task.(*dialtesting.BrowserTask)
+			assert.Equal(t, "lightpanda", browserTask.AdvanceOptions.Engine)
+			assert.Equal(t, "/opt/browser/lightpanda", got.task.GetOption()["lightpanda_path"])
 		}
 
 		ipt.semStop.Close()
@@ -970,7 +1066,8 @@ func TestReadEnv(t *testing.T) {
 			"ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK":       "true",
 			"ENV_INPUT_DIALTESTING_DISABLED_INTERNAL_NETWORK_CIDR_LIST": `["10.0.0.0/8","192.168.0.0/16"]`,
 			"ENV_INPUT_DIALTESTING_BROWSER_ENABLED":                     "true",
-			"ENV_INPUT_DIALTESTING_BROWSER_CHROME_PATH":                 "/usr/bin/chromium",
+			"ENV_INPUT_DIALTESTING_BROWSER_ENGINE":                      "lightpanda",
+			"ENV_INPUT_DIALTESTING_BROWSER_ENGINE_PATH":                 "/usr/bin/lightpanda",
 			"ENV_INPUT_DIALTESTING_BROWSER_MAX_CONCURRENCY":             "2",
 		})
 
@@ -984,7 +1081,8 @@ func TestReadEnv(t *testing.T) {
 		if assert.NotNil(t, ipt.Browser) {
 			assert.NotNil(t, ipt.Browser.Enabled)
 			assert.True(t, *ipt.Browser.Enabled)
-			assert.Equal(t, "/usr/bin/chromium", ipt.Browser.ChromePath)
+			assert.Equal(t, "lightpanda", ipt.Browser.Engine)
+			assert.Equal(t, "/usr/bin/lightpanda", ipt.Browser.EnginePath)
 			assert.Equal(t, 2, ipt.Browser.MaxConcurrency)
 		}
 	})
@@ -1015,13 +1113,15 @@ func TestReadEnv(t *testing.T) {
 
 		ipt.ReadEnv(map[string]string{
 			"ENV_INPUT_DIALTESTING_BROWSER_ENABLED":     "true",
-			"ENV_INPUT_DIALTESTING_BROWSER_CHROME_PATH": "/opt/chrome/chrome",
+			"ENV_INPUT_DIALTESTING_BROWSER_ENGINE":      "lightpanda",
+			"ENV_INPUT_DIALTESTING_BROWSER_ENGINE_PATH": "/opt/browser/lightpanda",
 		})
 
 		if assert.NotNil(t, ipt.Browser) {
 			assert.NotNil(t, ipt.Browser.Enabled)
 			assert.True(t, *ipt.Browser.Enabled)
-			assert.Equal(t, "/opt/chrome/chrome", ipt.Browser.ChromePath)
+			assert.Equal(t, "lightpanda", ipt.Browser.Engine)
+			assert.Equal(t, "/opt/browser/lightpanda", ipt.Browser.EnginePath)
 		}
 	})
 
@@ -1249,7 +1349,8 @@ func TestInputHelpers(t *testing.T) {
 		ipt := defaultInput()
 		assert.Contains(t, ipt.SampleConfig(), "[[inputs.dialtesting]]")
 		assert.NotContains(t, ipt.SampleConfig(), `install_dir`)
-		assert.Contains(t, ipt.SampleConfig(), `chrome_path = ""`)
+		assert.Contains(t, ipt.SampleConfig(), `engine = "lightpanda"`)
+		assert.Contains(t, ipt.SampleConfig(), `engine_path = ""`)
 		assert.Contains(t, ipt.SampleConfig(), `max_concurrency = 0`)
 		assert.Equal(t, "network", ipt.Catalog())
 	})

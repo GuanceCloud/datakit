@@ -6,6 +6,8 @@
 # 专有名词
 ##############################################
 Apdex
+aarch
+aarch64
 Ligai
 APIServer
 Akka
@@ -79,6 +81,7 @@ KafkaMQ
 Kingbase
 Kodo
 Kubernetes
+Lightpanda
 Log4j
 Logback
 Loki
@@ -178,6 +181,8 @@ klog
 kprobe
 kubedns
 kubelet
+Lightpanda
+lightpanda
 labelselector
 labelselectors
 libc
