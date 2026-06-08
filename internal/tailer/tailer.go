@@ -325,9 +325,13 @@ func (t *Tailer) createFileTailer(ctx context.Context, file string) {
 	t.addToMonitoredFiles(file, single)
 	openFilesGauge.WithLabelValues(t.source, strconv.Itoa(t.maxOpenFiles)).Inc()
 
+	// PrepareRun sets cancelFunc before the goroutine starts, eliminating the
+	// race window where Close() could be called before Run() reaches cancelFunc = cancel.
+	runCtx := single.PrepareRun(ctx)
+
 	// 启动文件采集器协程
 	t.g.Go(func(_ context.Context) error {
-		single.Run(ctx)
+		single.Run(runCtx)
 		t.removeFromMonitoredFiles(file)
 		t.log.Infof("file %s tailer exited", file)
 		openFilesGauge.WithLabelValues(t.source, strconv.Itoa(t.maxOpenFiles)).Dec()

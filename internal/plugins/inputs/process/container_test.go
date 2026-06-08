@@ -50,8 +50,28 @@ func TestParseScopePathForCgroup(t *testing.T) {
 			out: "",
 		},
 		{
-			in:   "0:",
-			fail: true,
+			in:  "0:",
+			out: "",
+		},
+		// cgroup v1 multi-line: container_id on second line, not first (real-world scenario)
+		{
+			in:  "11:freezer:/\n10:devices:/docker/b362fa680d463b43611d956fcaab31640a49de2d11bf2604c2af55570865e46b",
+			out: "b362fa680d463b43611d956fcaab31640a49de2d11bf2604c2af55570865e46b",
+		},
+		// cgroup v1 multi-line: container_id on first line (already working before fix)
+		{
+			in:  "10:devices:/docker/b362fa680d463b43611d956fcaab31640a49de2d11bf2604c2af55570865e46b\n11:freezer:/docker/b362fa680d463b43611d956fcaab31640a49de2d11bf2604c2af55570865e46b",
+			out: "b362fa680d463b43611d956fcaab31640a49de2d11bf2604c2af55570865e46b",
+		},
+		// cgroup v1 multi-line: no container_id on any line
+		{
+			in:  "11:freezer:/\n10:devices:/",
+			out: "",
+		},
+		// cgroup v2 multi-line with container_id on second line
+		{
+			in:  "0::/system.slice/containerd.service\n0::/system.slice/docker-b362fa680d463b43611d956fcaab31640a49de2d11bf2604c2af55570865e46b.scope",
+			out: "b362fa680d463b43611d956fcaab31640a49de2d11bf2604c2af55570865e46b",
 		},
 		{
 			in:  "1::/system.slice/containerd.service\n0::/system.slice/containerd.service",

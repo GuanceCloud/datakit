@@ -198,6 +198,7 @@ func (k *Kube) gatherMetric(timestamp int64) {
 		}
 	}
 
+	g.Wait()
 	collectCostVec.WithLabelValues("metric").Observe(time.Since(start).Seconds())
 }
 
@@ -236,6 +237,7 @@ func (k *Kube) gatherObject() {
 		}
 	}
 
+	g.Wait()
 	collectCostVec.WithLabelValues("object").Observe(time.Since(start).Seconds())
 }
 

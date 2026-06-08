@@ -172,6 +172,15 @@ func (t *Single) setupFile() error {
 	return nil
 }
 
+// PrepareRun creates a derived context and sets cancelFunc before the goroutine starts.
+// This eliminates the race window between t.g.Go() and cancelFunc assignment in Run(),
+// which could cause goroutine leaks when Close() is called before Run() reaches cancelFunc = cancel.
+func (t *Single) PrepareRun(ctx context.Context) context.Context {
+	ctx, cancel := context.WithCancel(ctx)
+	t.cancelFunc = cancel
+	return ctx
+}
+
 func (t *Single) Run(ctx context.Context) {
 	if !t.isRunning.CompareAndSwap(false, true) {
 		t.log.Warn("single tailer is already running")
@@ -181,14 +190,19 @@ func (t *Single) Run(ctx context.Context) {
 	t.startTime = time.Now()
 	t.log.Infof("starting tailer for file: %s, source: %s", t.filepath, t.config.source)
 
-	ctx, cancel := context.WithCancel(ctx)
+	// If cancelFunc was not pre-set by PrepareRun, create it now (backward compatible).
+	if t.cancelFunc == nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithCancel(ctx)
+		t.cancelFunc = cancel
+	}
+
+	cancel := t.cancelFunc
 	defer func() {
 		cancel()
 		t.isRunning.Store(false)
 		t.cleanup()
 	}()
-
-	t.cancelFunc = cancel
 
 	t.forwardMessage(ctx)
 	t.log.Infof("tailer for file %s has stopped, source: %s", t.filepath, t.config.source)
@@ -326,7 +340,7 @@ func (t *Single) reopen() error {
 	t.recordKey = openfile.FileKey(t.filepath)
 
 	t.log.Infof("reopened file %s, offset reset to %d", t.filepath, t.offset)
-	rotateCounter.WithLabelValues(t.config.source, t.filepath).Inc()
+	rotateCounter.WithLabelValues(t.config.source).Inc()
 	return nil
 }
 
@@ -486,7 +500,7 @@ func (t *Single) process(mode Mode, lines [][]byte) {
 		}
 		if err != nil {
 			t.log.Warnf("parse log failed %s", err)
-			parseFailCounter.WithLabelValues(t.config.source, t.filepath, t.config.mode.String()).Inc()
+			parseFailCounter.WithLabelValues(t.config.source, t.config.mode.String()).Inc()
 			continue
 		}
 
@@ -596,7 +610,7 @@ func (t *Single) feedToIO(pending [][]byte) {
 		// only the message field is present, with no match in the whitelist
 		// discard this data
 		if len(kvs) == 1 {
-			discardCounter.WithLabelValues(t.config.source, t.filepath).Inc()
+			discardCounter.WithLabelValues(t.config.source).Inc()
 			continue
 		}
 

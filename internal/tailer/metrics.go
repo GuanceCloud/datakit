@@ -54,8 +54,7 @@ func setupMetrics() {
 			Help:      "Total number of discarded logs based on the whitelist",
 		},
 		[]string{
-			"source",   // 数据源名称
-			"filepath", // 文件路径
+			"source", // 数据源名称
 		},
 	)
 
@@ -82,8 +81,7 @@ func setupMetrics() {
 			Help:      "Total number of file rotations performed",
 		},
 		[]string{
-			"source",   // 数据源名称
-			"filepath", // 文件路径
+			"source", // 数据源名称
 		},
 	)
 
@@ -96,9 +94,8 @@ func setupMetrics() {
 			Help:      "Total number of failed parse attempts",
 		},
 		[]string{
-			"source",   // 数据源名称
-			"filepath", // 文件路径
-			"mode",     // 解析模式
+			"source", // 数据源名称
+			"mode",   // 解析模式
 		},
 	)
 

@@ -216,9 +216,15 @@ func TestInput_rw_rate(t *testing.T) {
 			}
 
 			ipt.setup()
-			ipt.ioCounters = DiskIO4Test
+
+			diskIOData := cloneTestData()
+			ipt.ioCounters = func(names ...string) (map[string]disk.IOCountersStat, error) {
+				return cloneDiskIOData(diskIOData), nil
+			}
+
 			// First collect - initialize lastStat
-			ipt.start = time.Now()
+			baseTime := time.Unix(1700000000, 0)
+			ipt.start = baseTime
 			err := ipt.collect()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("error = %v, wantErr %v", err, tt.wantErr)
@@ -229,17 +235,14 @@ func TestInput_rw_rate(t *testing.T) {
 			}
 
 			// 2nd loop with updated data
-			time.Sleep(time.Second * 1)
-			ipt.start = time.Now()
-			temp01 := testData["sdb"]
+			ipt.start = baseTime.Add(time.Second)
+			temp01 := diskIOData["sdb"]
 			temp01.ReadBytes += 1234
-			testData["sdb"] = temp01
+			diskIOData["sdb"] = temp01
 
-			temp02 := testData["sdb2"]
+			temp02 := diskIOData["sdb2"]
 			temp02.WriteBytes += 5678
-			testData["sdb2"] = temp02
-
-			ipt.ioCounters = DiskIO4Test
+			diskIOData["sdb2"] = temp02
 
 			// Clear cache before second collect to ensure we only have the latest data
 			ipt.collectCache = make([]*point.Point, 0)
@@ -419,9 +422,17 @@ var testData = map[string]IOCountersStat{
 }
 
 func DiskIO4Test(names ...string) (map[string]disk.IOCountersStat, error) {
-	m := map[string]IOCountersStat{}
-	for k, v := range testData {
-		m[k] = v
+	return cloneDiskIOData(testData), nil
+}
+
+func cloneTestData() map[string]IOCountersStat {
+	return cloneDiskIOData(testData)
+}
+
+func cloneDiskIOData(src map[string]IOCountersStat) map[string]IOCountersStat {
+	dst := map[string]IOCountersStat{}
+	for k, v := range src {
+		dst[k] = v
 	}
-	return m, nil
+	return dst
 }

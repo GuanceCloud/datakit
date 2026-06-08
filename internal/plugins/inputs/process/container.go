@@ -45,20 +45,27 @@ func parseScopePathForCgroup(s string) (string, error) {
 		return "", fmt.Errorf("cannot parse cgroup content")
 	}
 
-	// like hierarchy-ID:subsystem:cgroup_paths
-	items := strings.Split(strings.TrimSpace(lines[0]), ":")
-	if len(items) != 3 {
-		return "", fmt.Errorf("cannot parse cgroup items")
-	}
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
 
-	content := items[2]
+		// like hierarchy-ID:subsystem:cgroup_paths
+		items := strings.Split(line, ":")
+		if len(items) != 3 {
+			continue
+		}
 
-	if id := parseContainerIDForUbuntuCgroup(content); id != "" && containerIDregex.MatchString(id) {
-		return id, nil
-	}
+		content := items[2]
 
-	if id := parseContainerIDForCentOSCgroup(content); id != "" && containerIDregex.MatchString(id) {
-		return id, nil
+		if id := parseContainerIDForUbuntuCgroup(content); id != "" && containerIDregex.MatchString(id) {
+			return id, nil
+		}
+
+		if id := parseContainerIDForCentOSCgroup(content); id != "" && containerIDregex.MatchString(id) {
+			return id, nil
+		}
 	}
 
 	// This process was not created by the container and does not return an error.

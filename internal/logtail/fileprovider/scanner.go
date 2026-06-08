@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/bmatcuk/doublestar/v4"
 )
@@ -37,16 +36,11 @@ func (sc *Scanner) ScanFiles() ([]string, error) {
 				files = append(files, pattern)
 			}
 		} else {
-			start := time.Now()
-
 			paths, err := doublestar.FilepathGlob(pattern)
 			if err != nil {
 				return nil, err
 			}
 			files = append(files, paths...)
-
-			scanCostVec.WithLabelValues(pattern).Observe(float64(time.Since(start)) / float64(time.Second))
-			scanTotalVec.WithLabelValues(pattern).Observe(float64(len(paths)))
 		}
 	}
 

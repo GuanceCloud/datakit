@@ -67,6 +67,8 @@ func init() { //nolint:gochecknoinits
 	flag.BoolVar(&buildISP, "build-isp", false, "generate ISP data")
 
 	flag.BoolVar(&ut, "ut", false, "test all DataKit code")
+	flag.BoolVar(&build.UTImpacted, "ut-impacted", false, "only run unit tests impacted by current git diff")
+	flag.StringVar(&build.UTBaseBranch, "ut-base-branch", "", "base branch used by -ut-impacted")
 	flag.IntVar(&build.Parallel, "ut-parallel", runtime.NumCPU(), "specify concurrent worker on unit testing")
 	flag.StringVar(&build.UTExclude, "ut-exclude", "", "exclude packages for testing")
 	flag.StringVar(&build.UTOnly, "ut-only", "", "select packages for testing")

@@ -7,34 +7,33 @@ default: local
 NEW_VERSION_PUSH_TOKEN ?=NOT_SET
 NEW_VERSION_PUSH_URL   ?=NOT_SET
 
-DOCKER_IMAGE_REPO      ?= NOT_SET
-BRAND                  ?= NOT_SET
-DIST_DIR               = dist
-LIGHTPANDA_VERSION     ?= 0.3.1
-LIGHTPANDA_SHA256_AMD64 ?= ef91606f43c50b1721cc920ebd1792567ab027ec55abca365190e61798ce85ce
-LIGHTPANDA_SHA256_ARM64 ?= d3caf580e509f180b1a4e4c094db1128890eda948f6935d53a518f6e3a92223d
-BIN                    = datakit
-NAME                   = datakit
-NAME_EBPF              = datakit-ebpf
-ENTRY                  = cmd/datakit/main.go
-LOCAL_ARCHS            = local
-DEFAULT_ARCHS          = all
-MAC_ARCHS              = darwin/amd64
-DOCKER_IMAGE_ARCHS     = linux/arm64,linux/amd64
-UOS_DOCKER_IMAGE_ARCHS = linux/arm64,linux/amd64
-DCA_BUILD_ARCH         = linux/arm64,linux/amd64
-FLAMESHOT_NAME        = flameshot
-FLAMESHOT_ARCHS       = linux/amd64,linux/arm64
-GOLINT_BINARY         ?= golangci-lint
-CGO_FLAGS              = "-Wno-undef-prefix -Wno-deprecated-declarations" # to disable warnings from gopsutil on macOS
-HL                     = \033[0;32m # high light
-NC                     = \033[0m    # no color
-RED                    = \033[31m   # red
-LOG_LEVEL             ?= "info"
-GO_MODULE_MODE        ?= vendor
-GO_MODULE_ENV         = GO111MODULE=on GOFLAGS=-mod=$(GO_MODULE_MODE)
-GO_VERSION_EXPECTED   ?= 1.26.2
-DK_BUILD_ENV_IMAGE    ?= pubrepo.jiagouyun.com/ebpf-dev/dk_build_env:3.1
+DOCKER_IMAGE_REPO        ?= NOT_SET
+DOCKER_BUILDX_CACHE_REPO ?=
+BRAND                    ?= NOT_SET
+DIST_DIR                 = dist
+BIN                      = datakit
+NAME                     = datakit
+NAME_EBPF                = datakit-ebpf
+ENTRY                    = cmd/datakit/main.go
+LOCAL_ARCHS              = local
+DEFAULT_ARCHS            = all
+MAC_ARCHS                = darwin/amd64
+DOCKER_IMAGE_ARCHS       = linux/arm64,linux/amd64
+UOS_DOCKER_IMAGE_ARCHS   = linux/arm64,linux/amd64
+DCA_BUILD_ARCH           = linux/arm64,linux/amd64
+FLAMESHOT_NAME           = flameshot
+FLAMESHOT_ARCHS          = linux/amd64,linux/arm64
+GOLINT_BINARY           ?= golangci-lint
+CGO_FLAGS                = "-Wno-undef-prefix -Wno-deprecated-declarations" # to disable warnings from gopsutil on macOS
+HL                       = \033[0;32m # high light
+NC                       = \033[0m    # no color
+RED                      = \033[31m   # red
+LOG_LEVEL               ?= "info"
+GO_MODULE_MODE          ?= vendor
+GO_MODULE_ENV           = GO111MODULE=on GOFLAGS=-mod=$(GO_MODULE_MODE)
+GO_VERSION_EXPECTED     ?= 1.26.2
+DK_BUILD_ENV_IMAGE      ?= pubrepo.jiagouyun.com/ebpf-dev/dk_build_env:3.1
+comma                   := ,
 export DK_BUILD_ENV_IMAGE
 
 SUPPORTED_GOLINT_VERSION         = 2.11.4
@@ -72,6 +71,8 @@ RACE_DETECTION               ?= off
 AUTO_FIX                     ?= false
 UT_EXCLUDE                   ?= "-"
 UT_ONLY                      ?= "-"
+UT_IMPACTED                  ?= false
+UT_BASE_BRANCH               ?= ""
 UT_PARALLEL                  ?= "0"
 DOCKER_REMOTE_HOST           ?= "0.0.0.0" # default use localhost as docker server
 DOCKER_IMAGE_PROJECT_PATH    ?= NOT_SET
@@ -182,47 +183,45 @@ define publish
 		-docker-image-repo $(DOCKER_IMAGE_REPO)
 endef
 
+define buildx_cache_args
+$(if $(DOCKER_BUILDX_CACHE_REPO),--cache-from type=registry$(comma)ref=$(DOCKER_BUILDX_CACHE_REPO)/$(1):buildcache --cache-to type=registry$(comma)ref=$(DOCKER_BUILDX_CACHE_REPO)/$(1):buildcache$(comma)mode=max)
+endef
+
 define build_docker_image
 	echo 'publishing to $(2)...';
 	@if [ $(2) = "registry.jiagouyun.com" ]; then \
-		sudo docker buildx build --platform $(1) \
+		sudo docker buildx build --platform $(1) $(call buildx_cache_args,datakit) \
 			--build-arg DIST_DIR=$(DIST_DIR) \
-			--build-arg LIGHTPANDA_VERSION=$(LIGHTPANDA_VERSION) \
-			--build-arg LIGHTPANDA_SHA256_AMD64=$(LIGHTPANDA_SHA256_AMD64) \
-			--build-arg LIGHTPANDA_SHA256_ARM64=$(LIGHTPANDA_SHA256_ARM64) \
 			--build-arg CC_HTTP_PROXY=$(CC_HTTP_PROXY) \
 			-t $(2)/datakit:$(VERSION) \
 			-f dockerfiles/Dockerfile.$(DOCKERFILE_SUFFIX) . --push && \
-		sudo docker buildx build --platform $(1) \
+		sudo docker buildx build --platform $(1) $(call buildx_cache_args,datakit-elinker) \
 			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/datakit-elinker:$(VERSION) \
 			-f dockerfiles/Dockerfile_elinker.$(DOCKERFILE_SUFFIX) . --push && \
-		sudo docker buildx build --platform $(1) \
+		sudo docker buildx build --platform $(1) $(call buildx_cache_args,logfwd) \
 			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/logfwd:$(VERSION) \
 			-f dockerfiles/Dockerfile_logfwd.$(DOCKERFILE_SUFFIX) . --push && \
-		sudo docker buildx build --platform $(1) \
+		sudo docker buildx build --platform $(1) $(call buildx_cache_args,flameshot) \
 			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/flameshot:$(FLAMESHOT_VERSION) \
 			-f dockerfiles/Dockerfile_flameshot.$(DOCKERFILE_SUFFIX) . --push; \
 	else \
-		sudo docker buildx build --platform $(1) \
+		sudo docker buildx build --platform $(1) $(call buildx_cache_args,datakit) \
 			--build-arg DIST_DIR=$(DIST_DIR) \
-			--build-arg LIGHTPANDA_VERSION=$(LIGHTPANDA_VERSION) \
-			--build-arg LIGHTPANDA_SHA256_AMD64=$(LIGHTPANDA_SHA256_AMD64) \
-			--build-arg LIGHTPANDA_SHA256_ARM64=$(LIGHTPANDA_SHA256_ARM64) \
 			--build-arg CC_HTTP_PROXY=$(CC_HTTP_PROXY) \
 			-t $(2)/datakit:$(VERSION) \
 			-f dockerfiles/Dockerfile.$(DOCKERFILE_SUFFIX) . --push && \
-		sudo docker buildx build --platform $(1) \
+		sudo docker buildx build --platform $(1) $(call buildx_cache_args,datakit-elinker) \
 			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/datakit-elinker:$(VERSION) \
 			-f dockerfiles/Dockerfile_elinker.$(DOCKERFILE_SUFFIX) . --push && \
-		sudo docker buildx build --platform $(1) \
+		sudo docker buildx build --platform $(1) $(call buildx_cache_args,logfwd) \
 			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/logfwd:$(VERSION) \
 			-f dockerfiles/Dockerfile_logfwd.$(DOCKERFILE_SUFFIX) . --push && \
-		sudo docker buildx build --platform $(1) \
+		sudo docker buildx build --platform $(1) $(call buildx_cache_args,flameshot) \
 			--build-arg DIST_DIR=$(DIST_DIR) \
 			-t $(2)/flameshot:$(FLAMESHOT_VERSION) \
 			-f dockerfiles/Dockerfile_flameshot.$(DOCKERFILE_SUFFIX) . --push; \
@@ -231,15 +230,15 @@ endef
 
 define build_uos_image
 	echo 'publishing to $(2)...';
-	sudo docker buildx build --platform $(1) \
+	sudo docker buildx build --platform $(1) $(call buildx_cache_args,datakit-uos) \
 	--build-arg DIST_DIR=$(DIST_DIR) \
 	-t $(2)/datakit:$(VERSION) \
 	-f dockerfiles/Dockerfile.uos . --push && \
-	sudo docker buildx build --platform $(1) \
+	sudo docker buildx build --platform $(1) $(call buildx_cache_args,datakit-elinker-uos) \
 	--build-arg DIST_DIR=$(DIST_DIR) \
 	-t $(2)/datakit-elinker:$(VERSION) \
 	-f dockerfiles/Dockerfile_elinker.uos . --push && \
-	sudo docker buildx build --platform $(1) \
+	sudo docker buildx build --platform $(1) $(call buildx_cache_args,logfwd-uos) \
 	--build-arg DIST_DIR=$(DIST_DIR) \
 	-t $(2)/logfwd:$(VERSION) \
 	-f dockerfiles/Dockerfile_logfwd.uos . --push;
@@ -388,6 +387,7 @@ build_dca_image:
 build_dca_image_test:
 	sudo docker buildx build \
 		--platform $(DOCKER_IMAGE_ARCHS) \
+		$(call buildx_cache_args,dca) \
 		--build-arg DIST_DIR=$(DIST_DIR) \
 		-t $(DOCKER_IMAGE_REPO):$(DCA_VERSION) \
 		-f dca/Dockerfile.$(DOCKERFILE_SUFFIX) . --push;
@@ -415,7 +415,7 @@ ut: deps
 	REMOTE_HOST=$(DOCKER_REMOTE_HOST) \
 	go run cmd/make/make.go \
 	--log-level $(LOG_LEVEL) \
-	-ut -ut-exclude $(UT_EXCLUDE) -ut-only $(UT_ONLY) -ut-parallel $(UT_PARALLEL) \
+	-ut -ut-exclude $(UT_EXCLUDE) -ut-only $(UT_ONLY) -ut-impacted=$(UT_IMPACTED) -ut-base-branch "$(UT_BASE_BRANCH)" -ut-parallel $(UT_PARALLEL) \
 	-log-level $(LOG_LEVEL) \
 	-dataway-url $(DATAWAY_URL); \
 		if [ $$? != 0 ]; then \

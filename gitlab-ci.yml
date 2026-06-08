@@ -1,6 +1,6 @@
 variables:
   PROJECT: "datakit"
-  CI_VERSION: "2.1.1"
+  CI_VERSION: "2.1.2"
   CI_TESTING_VERSION: $CI_VERSION-testing_$CI_COMMIT_BRANCH
   DCA_CI_VERSION: "0.1.6"
   DCA_CI_TESTING_VERSION: $DCA_CI_VERSION-testing_$CI_COMMIT_BRANCH
@@ -54,6 +54,19 @@ stages:
 ci_lint_and_ut:
   stage: _deploy_guance
   resource_group: production
+  variables:
+    GOMODCACHE: "$CI_PROJECT_DIR/.cache/go/pkg/mod"
+    GOLANGCI_LINT_CACHE: "$CI_PROJECT_DIR/.cache/golangci-lint"
+  cache:
+    key:
+      prefix: ci-lint-and-ut
+      files:
+        - go.mod
+        - go.sum
+    paths:
+      - .cache/go/pkg/mod
+      - .cache/golangci-lint
+    policy: pull-push
   rules:
     # No pipeline when there is a MR whose title starts with Draft
     # Disable merge request to master/main branch
@@ -69,7 +82,7 @@ ci_lint_and_ut:
     - make detect_mr_target_branch MERGE_REQUEST_TARGET_BRANCH="$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
     - make local # build binary
     - make lint GOLINT_BINARY="$GOLANGCI_LINT_BIN" AUTO_FIX=false
-    - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE" UT_ONLY="$UT_ONLY" UT_PARALLEL="$UT_PARALLEL"
+    - make ut DATAWAY_URL="$TESTING_METRIC_DATAWAY" UT_EXCLUDE="$UT_EXCLUDE" UT_ONLY="$UT_ONLY" UT_IMPACTED="${UT_IMPACTED:-true}" UT_BASE_BRANCH="$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" UT_PARALLEL="$UT_PARALLEL"
   tags:
     - cloudcare-ft
 
@@ -151,9 +164,11 @@ release-testing-guance: # release testing packages to guance
         BRAND="guance" \
         DOCKER_IMAGE_REPO="pubrepo.guance.com/datakit" \
         DOCKERFILE_SUFFIX="guance" \
+        DOCKER_BUILDX_CACHE_REPO="pubrepo.guance.com/datakit/build-cache" \
         FLAMESHOT_VERSION="$FLAMESHOT_TESTING_VERSION"
     - make uos_image_testing VERSION="$CI_TESTING_VERSION" \
-        DOCKER_IMAGE_REPO="pubrepo.guance.com/uos-dataflux"
+        DOCKER_IMAGE_REPO="pubrepo.guance.com/uos-dataflux" \
+        DOCKER_BUILDX_CACHE_REPO="pubrepo.guance.com/uos-dataflux/build-cache"
   tags:
     - cloudcare-ft
 
@@ -181,6 +196,7 @@ release-testing-tw: # release testing packages to truewatch
       BRAND="truewatch" \
       DOCKER_IMAGE_REPO="pubrepo.guance.com/truewatch" \
       DOCKERFILE_SUFFIX="tw" \
+      DOCKER_BUILDX_CACHE_REPO="pubrepo.guance.com/truewatch/build-cache" \
       FLAMESHOT_VERSION="$FLAMESHOT_TESTING_VERSION"
   tags:
     - cloudcare-ft
@@ -285,10 +301,12 @@ build-dca-testing-image-guance:
     - make build_dca_image_test \
       DOCKER_IMAGE_REPO="pubrepo.guance.com/tools/dca" \
       DOCKERFILE_SUFFIX="guance" \
+      DOCKER_BUILDX_CACHE_REPO="pubrepo.guance.com/tools/dca-build-cache" \
       DCA_VERSION="$DCA_CI_TESTING_VERSION"
     - make build_dca_image_test \
       DOCKER_IMAGE_REPO="pubrepo.guance.com/tools/dca-uos" \
       DOCKERFILE_SUFFIX="uos" \
+      DOCKER_BUILDX_CACHE_REPO="pubrepo.guance.com/tools/dca-uos-build-cache" \
       DCA_VERSION="$DCA_CI_TESTING_VERSION"
   tags:
     - cloudcare-ft
@@ -310,6 +328,7 @@ build-dca-testing-image-tw:
     - make build_dca_image_test \
       DOCKER_IMAGE_REPO="pubrepo.guance.com/truewatch/dca" \
       DOCKERFILE_SUFFIX="tw" \
+      DOCKER_BUILDX_CACHE_REPO="pubrepo.guance.com/truewatch/dca-build-cache" \
       DCA_VERSION="$DCA_CI_TESTING_VERSION"
       # NOTE: no UOS image for truewatch
   tags:

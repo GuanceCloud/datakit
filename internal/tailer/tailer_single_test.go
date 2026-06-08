@@ -297,3 +297,72 @@ func TestSingleWithExtraTags(t *testing.T) {
 	assert.Equal(t, "test", single.extraTags["env"])
 	assert.Equal(t, "1.0.0", single.extraTags["version"])
 }
+
+// TestPrepareRunThenCloseRace 验证 PrepareRun 消除了 cancelFunc 竞态条件。
+// 原 bug: createFileTailer 中 t.g.Go(single.Run) 之后，若 goroutine 未被及时调度，
+// Close() 时 cancelFunc 为 nil，导致 Close() 空操作，goroutine 永久泄露。
+func TestPrepareRunThenCloseRace(t *testing.T) {
+	tmpFile, err := os.CreateTemp("", "test-race-*.log")
+	require.NoError(t, err)
+	defer os.Remove(tmpFile.Name())
+	tmpFile.Close()
+
+	single, err := NewTailerSingle(tmpFile.Name(), WithSource("test-race"))
+	require.NoError(t, err)
+
+	// 模拟修复后流程：先 PrepareRun，再启动 goroutine
+	runCtx := single.PrepareRun(context.Background())
+
+	// 关键断言：PrepareRun 之后立刻 cancelFunc 已非 nil
+	assert.NotNil(t, single.cancelFunc, "PrepareRun must set cancelFunc immediately")
+
+	done := make(chan struct{})
+	go func() {
+		single.Run(runCtx)
+		close(done)
+	}()
+
+	// 立刻 Close——模拟容器刚创建就被删除的极端场景
+	single.Close()
+
+	// goroutine 必须在超时前退出（否则就是泄露）
+	select {
+	case <-done:
+		t.Log("goroutine exited cleanly after Close")
+	case <-time.After(5 * time.Second):
+		t.Fatal("goroutine LEAKED: did not exit within 5s after Close()")
+	}
+}
+
+// TestPrepareRunThenCloseRaceStress 高频率反复触发竞态窗口，验证稳定性。
+func TestPrepareRunThenCloseRaceStress(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		tmpFile, err := os.CreateTemp("", "test-stress-*.log")
+		require.NoError(t, err)
+		path := tmpFile.Name()
+		tmpFile.Close()
+
+		single, err := NewTailerSingle(path, WithSource("test-stress"))
+		require.NoError(t, err)
+
+		runCtx := single.PrepareRun(context.Background())
+
+		done := make(chan struct{})
+		go func() {
+			single.Run(runCtx)
+			close(done)
+		}()
+
+		// 不 sleep，直接 Close，最大化竞态概率
+		single.Close()
+
+		select {
+		case <-done:
+			// OK
+		case <-time.After(10 * time.Second):
+			t.Fatalf("goroutine LEAKED on iteration %d", i)
+		}
+
+		os.Remove(path)
+	}
+}
