@@ -92,6 +92,43 @@ func TestSingleClose(t *testing.T) {
 	// assert.NotNil(t, single.cancel)
 }
 
+func TestSingleCloseReadsToEOF(t *testing.T) {
+	tmpFile, err := os.CreateTemp("", "test-close-eof-*.log")
+	require.NoError(t, err)
+	defer os.Remove(tmpFile.Name())
+
+	_, err = tmpFile.WriteString("before close\n")
+	require.NoError(t, err)
+	require.NoError(t, tmpFile.Close())
+
+	feeder := dkio.NewMockedFeeder()
+	single, err := NewTailerSingle(tmpFile.Name(),
+		WithSource("test-close-eof"),
+		WithFromBeginning(true),
+		WithFeeder(feeder),
+	)
+	require.NoError(t, err)
+	require.NoError(t, single.setupFile())
+	defer single.closeFile()
+
+	require.NoError(t, single.readOnce())
+	points, err := feeder.NPoints(1, time.Second)
+	require.NoError(t, err)
+	require.Len(t, points, 1)
+
+	file, err := os.OpenFile(tmpFile.Name(), os.O_APPEND|os.O_WRONLY, 0)
+	require.NoError(t, err)
+	_, err = file.WriteString("during close\n")
+	require.NoError(t, err)
+	require.NoError(t, file.Close())
+
+	single.handleContextCancellation()
+
+	points, err = feeder.NPoints(1, time.Second)
+	require.NoError(t, err)
+	require.Len(t, points, 1)
+}
+
 // TestSingleUpdateOptions 测试更新选项
 func TestSingleUpdateOptions(t *testing.T) {
 	// 创建临时文件

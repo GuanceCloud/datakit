@@ -369,6 +369,9 @@ func (t *Single) forwardMessage(ctx context.Context) {
 }
 
 func (t *Single) handleContextCancellation() {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancel()
+	t.readToEOF(ctx)
 	t.flushCache()
 	t.log.Infof("context canceled, exiting forwardMessage for file: %s, source: %s", t.filepath, t.config.source)
 }
