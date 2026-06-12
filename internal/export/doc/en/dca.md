@@ -152,6 +152,8 @@ docker run -d --name dca -p 8000:80 -e DCA_LOG_PATH=stdout -e DCA_LOG_LEVEL=info
 
 === "DCA enabled on host installation"
 
+    > **Installing DataKit 1.x:** The command in this section installs DataKit `2.x` by default, so the install script uses the `/datakit-v2/` path. To install DataKit `1.x`, replace `/datakit-v2/` with `/datakit/` in the URL. The static resource domain in the URL is rendered for the current documentation brand.
+
     Add the following environment variables before installing the command:
     
     - `DK_DCA_ENABLE`: Whether to turn on, turn on set to `on`
@@ -160,7 +162,7 @@ docker run -d --name dca -p 8000:80 -e DCA_LOG_PATH=stdout -e DCA_LOG_LEVEL=info
     Example:
     
     ```shell
-    DK_DCA_ENABLE=on DK_DCA_WEBSOCKET_SERVER="ws://127.0.0.1:8000/ws" DK_DATAWAY=https://openway.<<<custom_key.brand_main_domain>>>?token=<TOKEN> bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
+    DK_DCA_ENABLE=on DK_DCA_WEBSOCKET_SERVER="ws://127.0.0.1:8000/ws" DK_DATAWAY=https://openway.<<<custom_key.brand_main_domain>>>?token=<TOKEN> bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/install.sh)"
     ```
     
     After successful installation, the DataKit will automatically connect to the DCA service.。

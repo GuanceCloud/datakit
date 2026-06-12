@@ -308,22 +308,23 @@ $ datakit debug --bug-report
     $ datakit debug --bug-report --disable-profile
     ```
     
-    - 自 [:octicons-tag-24: Version-1.94.0](changelog-2026.md#cl-1.94.0) 开始，DataKit 会默认尝试通过 Dataway 上传生成的 zip 包，并在上传成功后删除本地 zip 文件：
+    - 默认情况下，DataKit 只会在本地生成并保留 bug report zip 文件：
 
     ```shell
     $ datakit debug --bug-report
     ...
-    uploading info-1776234260403.zip (size: 1953771 bytes) via dataway...
-
-    bug report upload summary(size: 1.394224 M):
-    local file: deleted after successful upload
-    object key:
-    2026-04-15/your-hostname/dkbr_xxxxx.zip
+    bug report saved to local file info-1776234260403.zip
     ```
 
-    将底部的 object key 贴给我们即可，售后团队会从配置的 OSS 前缀下通过内部 OSS 权限下载对应文件。
+    将生成的 zip 文件提供给售后团队即可。
 
-    如果排查问题时需要临时上传到指定 Dataway 地址，可以使用 `--bug-report-dataway`：
+    如果排查问题时需要通过当前配置的 Dataway 上传，可以显式使用 `--bug-report-dataway`。上传成功后，本地 zip 文件会被删除，并在输出中显示 object key：
+
+    ```shell
+    $ datakit debug --bug-report --bug-report-dataway
+    ```
+
+    如果排查问题时需要临时上传到指定 Dataway 地址，可以在 `--bug-report-dataway` 后指定地址：
 
     ```shell
     $ datakit debug --bug-report --bug-report-dataway http://dataway.example.com

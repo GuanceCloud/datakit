@@ -302,22 +302,23 @@ After successful execution, a zip file is generated in the current directory, wi
     $ datakit debug --bug-report --disable-profile
     ```
 
-    - Starting from [:octicons-tag-24: Version-1.94.0](changelog-2026.md#cl-1.94.0), DataKit will try to upload the generated zip package through Dataway by default and the local zip file will be deleted after a successful upload:
+    - By default, DataKit only generates and keeps the bug report zip file locally:
 
     ```shell
     $ datakit debug --bug-report
     ...
-    uploading info-1776234260403.zip (size: 1953771 bytes) via dataway...
-
-    bug report upload summary(size: 1.394224 M):
-    local file: deleted after successful upload
-    object key:
-    2026-04-15/your-hostname/dkbr_xxxxx.zip
+    bug report saved to local file info-1776234260403.zip
     ```
 
-    Paste the object key at the bottom to us. The support team can download the file from the configured OSS prefix through internal OSS permissions.
+    Provide the generated zip file to the support team.
 
-    If you need to upload to a temporary Dataway address for troubleshooting, use `--bug-report-dataway`:
+    If you need to upload through the currently configured Dataway for troubleshooting, explicitly use `--bug-report-dataway`. After a successful upload, the local zip file will be deleted and the output will show the object key:
+
+    ```shell
+    $ datakit debug --bug-report --bug-report-dataway
+    ```
+
+    If you need to upload to a temporary Dataway address for troubleshooting, specify the address after `--bug-report-dataway`:
 
     ```shell
     $ datakit debug --bug-report --bug-report-dataway http://dataway.example.com

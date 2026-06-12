@@ -153,6 +153,8 @@ docker run -d --name dca -p 8000:80 -e DCA_LOG_PATH=stdout -e DCA_LOG_LEVEL=info
 
 === "主机安装时启用 DCA 功能"
 
+    > **DataKit 1.x 安装说明**：本节命令默认安装 DataKit `2.x`，因此安装脚本使用 `/datakit-v2/` 路径。如需安装 DataKit `1.x`，请将 URL 中的 `/datakit-v2/` 替换为 `/datakit/`。URL 中的静态资源域名会按当前文档品牌渲染。
+
     在安装命令前添加以下环境变量：
     
     - `DK_DCA_ENABLE` 
@@ -166,7 +168,7 @@ docker run -d --name dca -p 8000:80 -e DCA_LOG_PATH=stdout -e DCA_LOG_LEVEL=info
     示例：
     
     ```shell
-    DK_DCA_ENABLE=on DK_DCA_WEBSOCKET_SERVER="ws://<DCA_SERVER_ADDRESS>/ws" DK_DATAWAY=https://openway.<<<custom_key.brand_main_domain>>>?token=<TOKEN> bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh)"
+    DK_DCA_ENABLE=on DK_DCA_WEBSOCKET_SERVER="ws://<DCA_SERVER_ADDRESS>/ws" DK_DATAWAY=https://openway.<<<custom_key.brand_main_domain>>>?token=<TOKEN> bash -c "$(curl -L https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/install.sh)"
     ```
 
     安装成功后，DataKit 将自动连接 DCA 服务。

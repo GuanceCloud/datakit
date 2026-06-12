@@ -8,10 +8,12 @@
 
 ## 安装 {#install}
 
+> **DataKit 1.x 安装说明**：本节清单下载链接默认指向 DataKit `2.x` 的 `/datakit-v2/` 路径。如需安装 DataKit `1.x`，请将 URL 中的 `/datakit-v2/` 替换为 `/datakit/`。URL 中的静态资源域名会按当前文档品牌渲染。
+
 <!-- markdownlint-disable MD046 -->
 === "DaemonSet"
 
-    先下载 [*datakit.yaml*](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit.yaml){:target="_blank"}，其中开启了很多[默认采集器](datakit-input-conf.md#default-enabled-inputs)，无需配置。
+    先下载 [*datakit.yaml*](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit.yaml){:target="_blank"}，其中开启了很多[默认采集器](datakit-input-conf.md#default-enabled-inputs)，无需配置。
     
     ???+ note
     
@@ -45,7 +47,7 @@
 
 === "Deployment"
 
-    也可以将 DataKit 部署成普通的 Deployment，下载 [*datakit-deployment.yaml*](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-deployment.yaml){:target="_blank"}。相比 DaemonSet 部署，只是稍作调整，其可用的配置参数基本一致。
+    也可以将 DataKit 部署成普通的 Deployment，下载 [*datakit-deployment.yaml*](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit-deployment.yaml){:target="_blank"}。相比 DaemonSet 部署，只是稍作调整，其可用的配置参数基本一致。
 
 <!-- markdownlint-enable -->
 

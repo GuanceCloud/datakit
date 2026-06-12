@@ -956,7 +956,11 @@ func withBugReportDatawayToken(rawURL string) string {
 }
 
 func shouldUploadBugReportViaDataway(opts DebugOptions) bool {
-	return opts.BugreportOSS == ""
+	return opts.BugreportDatawayEnabled && opts.BugreportOSS == ""
+}
+
+func shouldUploadBugReportViaOSS(opts DebugOptions) bool {
+	return opts.BugreportOSS != ""
 }
 
 func removeUploadedBugReport(zipPath string) {
@@ -1012,7 +1016,7 @@ func bugReport(opts DebugOptions) error {
 		} else {
 			bugReportObjectKey = objectKey
 		}
-	} else {
+	} else if shouldUploadBugReportViaOSS(opts) {
 		arr := strings.SplitN(opts.BugreportOSS, ":", 4)
 		if len(arr) != 4 {
 			return fmt.Errorf("object storage info missing, we need format host:bucket:ak:sk")

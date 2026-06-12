@@ -7,12 +7,16 @@
 package debug
 
 import (
+	"strings"
+
 	"github.com/spf13/cobra"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmds"
 )
 
 var runDebugFn = cmds.RunDebug
+
+const bugreportDatawayNoOptDefVal = "__datakit_default_dataway__"
 
 var (
 	logFlag                     string
@@ -52,6 +56,7 @@ func NewDebugCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&bugReportFlag, "bug-report", false, "export DataKit running information for troubleshooting")
 	cmd.Flags().StringVar(&bugreportOSSFlag, "oss", "", "upload bug report file to specified object storage(format host:bucket:ak:sk)")
 	cmd.Flags().StringVar(&bugreportDatawayFlag, "bug-report-dataway", "", "upload bug report file via specified dataway URLs, comma-separated")
+	cmd.Flags().Lookup("bug-report-dataway").NoOptDefVal = bugreportDatawayNoOptDefVal
 	cmd.Flags().BoolVar(&bugreportDisableProfileFlag, "disable-profile", false, "disable profile collection when running bug-report")
 	cmd.Flags().IntVar(&bugreportNMetricsFlag, "nmetrics", 3, "collect N batch of datakit metrics")
 	cmd.Flags().StringVar(&bugreportTagFlag, "tag", "", "ping a tag to current bug report")
@@ -65,6 +70,15 @@ func NewDebugCmd() *cobra.Command {
 }
 
 func runDebug(cmd *cobra.Command, args []string) error {
+	bugreportDatawayEnabled := cmd.Flags().Changed("bug-report-dataway")
+	bugreportDataway := bugreportDatawayFlag
+	if bugreportDataway == bugreportDatawayNoOptDefVal {
+		bugreportDataway = ""
+	}
+	if bugreportDatawayEnabled && bugreportDataway == "" && len(args) > 0 && !strings.HasPrefix(args[0], "-") {
+		bugreportDataway = args[0]
+	}
+
 	return runDebugFn(cmds.DebugOptions{
 		LogPath:                 logFlag,
 		UploadLog:               uploadLogFlag,
@@ -73,7 +87,8 @@ func runDebug(cmd *cobra.Command, args []string) error {
 		PromConf:                promConfFlag,
 		BugReport:               bugReportFlag,
 		BugreportOSS:            bugreportOSSFlag,
-		BugreportDataway:        bugreportDatawayFlag,
+		BugreportDataway:        bugreportDataway,
+		BugreportDatawayEnabled: bugreportDatawayEnabled,
 		BugreportDisableProfile: bugreportDisableProfileFlag,
 		BugreportNMetrics:       bugreportNMetricsFlag,
 		BugreportTag:            bugreportTagFlag,

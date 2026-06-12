@@ -22,13 +22,15 @@ AWS Lambda 采集器是通过 AWS Lambda Extension 的方式采集 AWS Lambda �
 
 ## 安装 {#installation}
 
+> **DataKit 1.x 安装说明**：本节扩展包下载链接默认指向 DataKit `2.x` 的 `/datakit-v2/` 路径。如需使用 DataKit `1.x` 对应的扩展包，请将 URL 中的 `/datakit-v2/` 替换为 `/datakit/`。URL 中的静态资源域名会按当前文档品牌渲染。
+
 ### 添加 DataKit 层 {#layer}
 
 - [通过 Zip 创建层](https://docs.aws.amazon.com/zh_cn/lambda/latest/dg/creating-deleting-layers.html#layers-create){:target="_blank"}
 
     - zip 下载地址：
-        - [Linux amd64](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_aws_extension-linux-amd64.zip)
-        - [Linux arm64](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_aws_extension-linux-arm64.zip)
+        - [Linux amd64](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit_aws_extension-linux-amd64.zip)
+        - [Linux arm64](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit_aws_extension-linux-arm64.zip)
 
     - 打开 Lambda 控制台的 [Layers page](https://console.amazonaws.cn/lambda/home#/layers){:target="_blank"}（层页面）。
     - 选择 **Create layer**（创建层）。

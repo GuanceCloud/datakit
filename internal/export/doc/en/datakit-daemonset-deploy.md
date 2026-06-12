@@ -7,10 +7,12 @@ For Helm-based installation, see [Helm Installation](datakit-helm.md).
 
 ## Installation {#install}
 
+> **Installing DataKit 1.x:** The manifest download links in this section point to the DataKit `2.x` `/datakit-v2/` path by default. To install DataKit `1.x`, replace `/datakit-v2/` with `/datakit/` in the URLs. The static resource domain in each URL is rendered for the current documentation brand.
+
 <!-- markdownlint-disable MD046 -->
 === "DaemonSet"
 
-    Download [`datakit.yaml`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit.yaml){:target="_blank"}, in which many [default collectors](datakit-input-conf.md#default-enabled-inputs) are turned on without configuration.
+    Download [`datakit.yaml`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit.yaml){:target="_blank"}, in which many [default collectors](datakit-input-conf.md#default-enabled-inputs) are turned on without configuration.
     
     ???+ note
     
@@ -44,7 +46,7 @@ For Helm-based installation, see [Helm Installation](datakit-helm.md).
 
 === "Deployment"
 
-    DataKit can also be deployed as a regular Deployment by downloading [*datakit-deployment.yaml*](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-deployment.yaml){:target="_blank"}. Compared to DaemonSet deployment, only minor adjustments are required while maintaining essentially the same configuration parameters.
+    DataKit can also be deployed as a regular Deployment by downloading [*datakit-deployment.yaml*](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit-deployment.yaml){:target="_blank"}. Compared to DaemonSet deployment, only minor adjustments are required while maintaining essentially the same configuration parameters.
 
 <!-- markdownlint-enable -->
 

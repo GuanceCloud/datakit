@@ -118,9 +118,7 @@ func (h *httpConfig) handleOTElMetrics(resp http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	remoteIP, _ := net.RemoteAddr(req)
-
-	h.input.parseResourceMetricsV2(msreq.ResourceMetrics, remoteIP)
+	h.input.parseResourceMetricsV2(msreq.ResourceMetrics)
 }
 
 func (h *httpConfig) handleOTELLogging(resp http.ResponseWriter, req *http.Request) {
@@ -147,7 +145,8 @@ func (h *httpConfig) handleOTELLogging(resp http.ResponseWriter, req *http.Reque
 	remoteIP, _ := net.RemoteAddr(req)
 	pts := h.input.parseLogRequest(otelLogs.GetResourceLogs(), remoteIP)
 	if len(pts) > 0 {
-		if err = h.input.feeder.Feed(point.Logging, pts, dkio.WithSource(inputName)); err != nil {
+		if err = h.input.feeder.Feed(point.Logging, pts,
+			dkio.WithSource(inputName)); err != nil {
 			log.Errorf("feed logging to io err=%v", err)
 		}
 	}

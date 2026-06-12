@@ -21,6 +21,8 @@ monitor   :
 
 ## Installation {#install}
 
+> **Installing DataKit 1.x:** The download links in this section point to the DataKit `2.x` `/datakit-v2/` path by default. To install DataKit `1.x`, replace `/datakit-v2/` with `/datakit/` in the URLs. The static resource domain in each URL is rendered for the current documentation brand.
+
 The eBPF link function is divided into the eBPF Span (hereinafter referred to as eSpan) collector and the linker that collects and links eSpan to generate traces.
 
 - eSpan's collection functionality is implemented by the `ebpf` external collector in DataKit
@@ -43,7 +45,7 @@ There are host deployment and Kubernetes deployment installation solutions:
 
 - Deploy DataKit ELinker on Kubernetes:
 
-Download [*datakit-elinker.yaml*](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-elinker.yaml), execute the command `kubectl apply -f datakit-elinker.yaml`, we can view related resources by specifying the namespace `datakit-elinker`, such as `kubectl -n datakit-elinker get all -owide`
+Download [*datakit-elinker.yaml*](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit-elinker.yaml), execute the command `kubectl apply -f datakit-elinker.yaml`, we can view related resources by specifying the namespace `datakit-elinker`, such as `kubectl -n datakit-elinker get all -owide`
 
 *In order to reduce the possibility of data pollution caused by misoperation, it is recommended to deploy DataKit ELinker instead of DataKit. The ELinker version of DataKit is about 50% and 75% smaller than the binary and image size of DataKit, respectively.*
 

@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.1.3(2026/06/12) {#cl-2.1.3}
+
+This release is a hotfix release, contents are as follows:
+
+### Bug Fixes {#cl-2.1.3-fix}
+
+- Fixed time series expansion caused by DataKit automatically injecting the `collector_source_ip` tag into metric data. Metrics no longer get this tag automatically, while traces and logs keep the existing `collector_source_ip` behavior. OpenTelemetry metrics also support disabling global tags added by DataKit through `tracing_metric_disable_global_host_tags` (#3112)
+
+### Improvements {#cl-2.1.3-opt}
+
+- Adjusted the default behavior of `datakit debug --bug-report`: it now only generates and keeps the local zip file by default instead of uploading automatically. Use `--bug-report-dataway` explicitly for Dataway upload, or continue using `--oss` for OSS upload (#3089)
+
+---
+
 ## 2.1.2(2026/06/08) {#cl-2.1.2}
 
 This release is a hotfix release, contents are as follows:

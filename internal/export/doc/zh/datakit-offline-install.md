@@ -9,6 +9,8 @@
 
 如果内网有可以通外网的机器，可以在该节点部署一个 proxy，将内网机器的访问流量通过该机器代理出来。
 
+> **DataKit 1.x 安装说明**：本节示例默认安装 DataKit `2.x`，因此公网下载地址使用 `/datakit-v2/` 路径。如需安装 DataKit `1.x`，请将示例 URL 中的 `/datakit-v2/` 替换为 `/datakit/`。URL 中的静态资源域名会按当前文档品牌渲染。
+
 当前 DataKit 自己内置了一个 proxy 采集器；也能通过 Nginx 正向代理功能来实现同一目的。基本流程如下：
 
 ```mermaid
@@ -103,12 +105,14 @@ proxy -->> dw: Proxy request to DataWay
 
 以下文件的地址，可通过 wget 等下载工具，也可以直接在浏览器中输入对应的 URL 下载。
 
+> **DataKit 1.x 安装说明**：本节下载链接默认指向 DataKit `2.x` 的 `/datakit-v2/` 路径。如需安装 DataKit `1.x`，请将 URL 中的 `/datakit-v2/` 替换为 `/datakit/`。URL 中的静态资源域名会按当前文档品牌渲染。
+
 <!-- markdownlint-disable MD046 MD034 -->
 ???+ note
 
     Safari 浏览器下载时，后缀名可能不同（如将 `.tar.gz` 文件下载成 `.tar`），会导致安装失败。建议用 Chrome 浏览器下载。
 
-- 先下载数据包 [data.tar.gz](https://static.<<<custom_key.brand_main_domain>>>/datakit/data.tar.gz)，每个平台都一样。
+- 先下载数据包 [data.tar.gz](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/data.tar.gz)，每个平台都一样。
 
 - 然后再下载其他所需安装程序：
 
@@ -116,46 +120,46 @@ proxy -->> dw: Proxy request to DataWay
 === "Linux"
 
     - **X86 32 位**
-        - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-386){:target="_blank"}
-        - [`DataKit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-386-{{.Version}}.tar.gz){:target="_blank"}
-        - [`DataKit-Lite`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-386-{{.Version}}.tar.gz){:target="_blank"}
-        - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-386-{{ .Version }}.tar.gz){:target="_blank"}
+        - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/installer-linux-386){:target="_blank"}
+        - [`DataKit`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit-linux-386-{{.Version}}.tar.gz){:target="_blank"}
+        - [`DataKit-Lite`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit_lite-linux-386-{{.Version}}.tar.gz){:target="_blank"}
+        - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/dk_upgrader-linux-386-{{ .Version }}.tar.gz){:target="_blank"}
 
     - **X86 64 位**
-        - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-amd64){:target="_blank"}
-        - [`DataKit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-amd64-{{.Version}}.tar.gz){:target="_blank"}
-        - [`DataKit-Lite`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-amd64-{{.Version}}.tar.gz){:target="_blank"}
-        - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
-        - [`APM Auto Instrumentation`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-apm-inject-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
+        - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/installer-linux-amd64){:target="_blank"}
+        - [`DataKit`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit-linux-amd64-{{.Version}}.tar.gz){:target="_blank"}
+        - [`DataKit-Lite`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit_lite-linux-amd64-{{.Version}}.tar.gz){:target="_blank"}
+        - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/dk_upgrader-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
+        - [`APM Auto Instrumentation`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit-apm-inject-linux-amd64-{{ .Version }}.tar.gz){:target="_blank"}
 
     - **Arm 32 位**
-        - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-arm){:target="_blank"}
-        - [`DataKit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-arm-{{.Version}}.tar.gz){:target="_blank"}
-        - [`DataKit-Lite`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-arm-{{.Version}}.tar.gz){:target="_blank"}
-        - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-arm-{{ .Version }}.tar.gz){:target="_blank"}
+        - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/installer-linux-arm){:target="_blank"}
+        - [`DataKit`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit-linux-arm-{{.Version}}.tar.gz){:target="_blank"}
+        - [`DataKit-Lite`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit_lite-linux-arm-{{.Version}}.tar.gz){:target="_blank"}
+        - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/dk_upgrader-linux-arm-{{ .Version }}.tar.gz){:target="_blank"}
 
     - **Arm 64 位**
-        - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-arm64){:target="_blank"}
-        - [`DataKit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-arm64-{{.Version}}.tar.gz){:target="_blank"}
-        - [`DataKit-Lite`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-arm64-{{.Version}}.tar.gz){:target="_blank"}
-        - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
-        - [`APM Auto Instrumentation`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-apm-inject-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
+        - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/installer-linux-arm64){:target="_blank"}
+        - [`DataKit`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit-linux-arm64-{{.Version}}.tar.gz){:target="_blank"}
+        - [`DataKit-Lite`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit_lite-linux-arm64-{{.Version}}.tar.gz){:target="_blank"}
+        - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/dk_upgrader-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
+        - [`APM Auto Instrumentation`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit-apm-inject-linux-arm64-{{ .Version }}.tar.gz){:target="_blank"}
 
 === "Windows"
 
     Windows 安装目前只支持 X86 平台。
 
     - **32 位**
-        - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-386.exe){:target="_blank"}
-        - [`DataKit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-windows-386-{{.Version}}.tar.gz){:target="_blank"}
-        - [`DataKit-Lite`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-windows-386-{{.Version}}.tar.gz){:target="_blank"}
-        - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-windows-386-{{ .Version }}.tar.gz){:target="_blank"}
+        - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/installer-windows-386.exe){:target="_blank"}
+        - [`DataKit`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit-windows-386-{{.Version}}.tar.gz){:target="_blank"}
+        - [`DataKit-Lite`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit_lite-windows-386-{{.Version}}.tar.gz){:target="_blank"}
+        - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/dk_upgrader-windows-386-{{ .Version }}.tar.gz){:target="_blank"}
 
     - **64 位**
-        - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-amd64.exe){:target="_blank"}
-        - [`DataKit`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-windows-amd64-{{.Version}}.tar.gz){:target="_blank"}
-        - [`DataKit-Lite`](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-windows-amd64-{{.Version}}.tar.gz){:target="_blank"}
-        - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-windows-amd64-{{ .Version }}.tar.gz){:target="_blank"}
+        - [`Installer`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/installer-windows-amd64.exe){:target="_blank"}
+        - [`DataKit`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit-windows-amd64-{{.Version}}.tar.gz){:target="_blank"}
+        - [`DataKit-Lite`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit_lite-windows-amd64-{{.Version}}.tar.gz){:target="_blank"}
+        - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/dk_upgrader-windows-amd64-{{ .Version }}.tar.gz){:target="_blank"}
 
 <!-- markdownlint-enable -->
 
@@ -230,6 +234,8 @@ proxy -->> dw: Proxy request to DataWay
 
 全托管模式指，在用户内网构建一个文件服务器，将公网 CDN 安装包全部托管到用户本地环境，以替代公网 CDN 功能。
 
+> **DataKit 1.x 安装说明**：本节公网下载示例默认同步 DataKit `2.x` 的 `/datakit-v2/` 路径。如需同步并安装 DataKit `1.x`，请将公网 URL 中的 `/datakit-v2/` 替换为 `/datakit/`。内网 Nginx 的目录名称可自行设置，无需随公网路径调整；URL 中的静态资源域名会按当前文档品牌渲染。
+
 DataKit 目前的安装地址是公网地址，所有二进制数据以及安装脚本都是从 CDN static.<<<custom_key.brand_main_domain>>> 站点下载。对于不能访问该站点的机器，可以通过在内网部署一个文件服务器，以替代 static.<<<custom_key.brand_main_domain>>> 站点。
 
 全托管模式的工作流程如下：
@@ -293,52 +299,53 @@ nginx -s reload # reload 配置
     
     mkdir -p /datakit
     mkdir -p /datakit/apm_lib
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/install.sh  # for Linux
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/install.ps1 # for Windows
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/version
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/data.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/install.sh  # for Linux
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/install.ps1 # for Windows
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/version
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/data.tar.gz
     
     # linux-amd64
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-amd64-{{.Version}}
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-amd64-{{.Version}}.tar.gz
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-amd64-{{.Version}}.tar.gz
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-amd64-{{.Version}}.tar.gz
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-apm-inject-linux-amd64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/installer-linux-amd64-{{.Version}}
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit-linux-amd64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit_lite-linux-amd64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/dk_upgrader-linux-amd64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit-apm-inject-linux-amd64-{{.Version}}.tar.gz
     
     # linux-386
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-386-{{.Version}}
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-386-{{.Version}}.tar.gz
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-386-{{.Version}}.tar.gz
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-386-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/installer-linux-386-{{.Version}}
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit-linux-386-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit_lite-linux-386-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/dk_upgrader-linux-386-{{.Version}}.tar.gz
     
     # linux-arm64
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-arm64-{{.Version}}
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-arm64-{{.Version}}.tar.gz
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-arm64-{{.Version}}.tar.gz
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-arm64-{{.Version}}.tar.gz
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-apm-inject-linux-arm64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/installer-linux-arm64-{{.Version}}
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit-linux-arm64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit_lite-linux-arm64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/dk_upgrader-linux-arm64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit-apm-inject-linux-arm64-{{.Version}}.tar.gz
     
     # linux-arm
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-linux-arm-{{.Version}}
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-linux-arm-{{.Version}}.tar.gz
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-linux-arm-{{.Version}}.tar.gz
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-linux-arm-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/installer-linux-arm-{{.Version}}
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit-linux-arm-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit_lite-linux-arm-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/dk_upgrader-linux-arm-{{.Version}}.tar.gz
     
     # windows-amd64
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-amd64-{{.Version}}.exe
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-windows-amd64-{{.Version}}.tar.gz
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-windows-amd64-{{.Version}}.tar.gz
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-windows-amd64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/installer-windows-amd64-{{.Version}}.exe
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit-windows-amd64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit_lite-windows-amd64-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/dk_upgrader-windows-amd64-{{.Version}}.tar.gz
     
     # windows-386
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/installer-windows-386-{{.Version}}.exe
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-windows-386-{{.Version}}.tar.gz
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit_lite-windows-386-{{.Version}}.tar.gz
-    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit/dk_upgrader-windows-386-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/installer-windows-386-{{.Version}}.exe
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit-windows-386-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit_lite-windows-386-{{.Version}}.tar.gz
+    wget -P /datakit https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/dk_upgrader-windows-386-{{.Version}}.tar.gz
     
     wget -P /datakit/apm_lib https://static.<<<custom_key.brand_main_domain>>>/dd-image/dd-java-agent.jar
     
-    # Optional resource: for RUM sourcemap 
+    # Optional resource: for RUM sourcemap
+    # These resources are still published under /datakit/, not /datakit-v2/.
     sources=(
       "/datakit/sourcemap/jdk/OpenJDK11U-jdk_x64_linux_hotspot_11.0.16_8.tar.gz"
       "/datakit/sourcemap/jdk/OpenJDK11U-jdk_aarch64_linux_hotspot_11.0.16_8.tar.gz"
@@ -533,10 +540,12 @@ chmod +x datakit_tools.sh
 
 **如果内网有可以通外网的机器，可以在该节点部署一个 NGINX 服务器，当作获取镜像使用。**
 
+> **DataKit 1.x 安装说明**：本节 `datakit.yaml` 下载地址默认指向 DataKit `2.x` 的 `/datakit-v2/` 路径。如需安装 DataKit `1.x`，请将 URL 中的 `/datakit-v2/` 替换为 `/datakit/`。URL 中的静态资源域名会按当前文档品牌渲染。
+
 - 下载 *datakit.yaml* 文件
 
 ```shell
-wget https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit.yaml -P /home/guance/
+wget https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit.yaml -P /home/guance/
 ```
 
 - 下载 DataKit 镜像并打包

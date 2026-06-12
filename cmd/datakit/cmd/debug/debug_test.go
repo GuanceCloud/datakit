@@ -55,6 +55,7 @@ func TestDebugExecutePassesOptions(t *testing.T) {
 		assert.True(t, opts.BugReport)
 		assert.Equal(t, "host:bucket:ak:sk", opts.BugreportOSS)
 		assert.Equal(t, "https://dw.example", opts.BugreportDataway)
+		assert.True(t, opts.BugreportDatawayEnabled)
 		assert.True(t, opts.BugreportDisableProfile)
 		assert.Equal(t, 7, opts.BugreportNMetrics)
 		assert.Equal(t, "case-1", opts.BugreportTag)
@@ -84,6 +85,31 @@ func TestDebugExecutePassesOptions(t *testing.T) {
 		"--filter", "/tmp/filter.json",
 		"--data", "payload",
 		"--kv-file", "/tmp/kv",
+	})
+
+	err := cmd.Execute()
+	require.NoError(t, err)
+	assert.True(t, called)
+}
+
+func TestDebugExecutePassesBareDatawayFlag(t *testing.T) {
+	orig := runDebugFn
+	defer func() { runDebugFn = orig }()
+
+	called := false
+	runDebugFn = func(opts cmds.DebugOptions) error {
+		called = true
+		assert.True(t, opts.BugreportDatawayEnabled)
+		assert.Empty(t, opts.BugreportDataway)
+		assert.True(t, opts.BugreportDisableProfile)
+		return nil
+	}
+
+	cmd := NewDebugCmd()
+	cmd.SetArgs([]string{
+		"--bug-report",
+		"--bug-report-dataway",
+		"--disable-profile",
 	})
 
 	err := cmd.Execute()

@@ -120,6 +120,42 @@ func Test_commonTagFields(t *T.T) {
 	})
 }
 
+type staticGlobalTagger struct {
+	hostTags map[string]string
+}
+
+func (g *staticGlobalTagger) HostTags() map[string]string     { return g.hostTags }
+func (g *staticGlobalTagger) ElectionTags() map[string]string { return nil }
+func (g *staticGlobalTagger) Updated() bool                   { return false }
+func (g *staticGlobalTagger) UpdateVersion()                  {}
+
+func Test_parseResourceSpansGlobalTags(t *T.T) {
+	traces := createTestTraceData(1)
+
+	t.Run("default", func(t *T.T) {
+		ipt := defaultInput()
+		ipt.setup()
+		ipt.Tagger = &staticGlobalTagger{hostTags: map[string]string{"global_key": "global_value"}}
+
+		arr := ipt.parseResourceSpans(traces.ResourceSpans, "localhost")
+
+		assert.Len(t, arr, 1)
+		assert.Equal(t, "global_value", arr[0][0].GetTag("global_key"))
+	})
+
+	t.Run("tracing metric switch keeps global tags", func(t *T.T) {
+		ipt := defaultInput()
+		ipt.setup()
+		ipt.TracingMetricDisableGlobalHostTags = true
+		ipt.Tagger = &staticGlobalTagger{hostTags: map[string]string{"global_key": "global_value"}}
+
+		arr := ipt.parseResourceSpans(traces.ResourceSpans, "localhost")
+
+		assert.Len(t, arr, 1)
+		assert.Equal(t, "global_value", arr[0][0].GetTag("global_key"))
+	})
+}
+
 func Test_customTags(t *T.T) {
 	t.Run("custome_tags", func(t *T.T) {
 		traces := createTestTraceData(1)

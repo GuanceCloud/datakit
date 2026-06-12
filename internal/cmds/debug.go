@@ -21,6 +21,7 @@ type DebugOptions struct {
 	BugReport               bool
 	BugreportOSS            string
 	BugreportDataway        string
+	BugreportDatawayEnabled bool
 	BugreportDisableProfile bool
 	BugreportNMetrics       int
 	BugreportTag            string

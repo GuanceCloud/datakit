@@ -7,9 +7,12 @@
 package opentelemetry
 
 import (
+	"context"
 	"encoding/hex"
 	"testing"
 
+	"github.com/GuanceCloud/cliutils/point"
+	clogs "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/collector/logs/v1"
 	v11 "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
 	logs "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/logs/v1"
 	v1 "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/resource/v1"
@@ -156,4 +159,46 @@ func Test_splitByByteLength(t *testing.T) {
 			assert.Equalf(t, tt.want, splitByByteLength(tt.args.s, tt.args.length), "splitByByteLength(%v, %v)", tt.args.s, tt.args.length)
 		})
 	}
+}
+
+func TestLogsServiceServerTracingMetricDisableGlobalHostTagsDoesNotDisableGlobalTags(t *testing.T) {
+	ipt := defaultInput()
+	ipt.TracingMetricDisableGlobalHostTags = true
+	feeder := &captureFeeder{}
+	ipt.feeder = feeder
+
+	lss := &LogsServiceServer{input: ipt}
+	_, err := lss.Export(context.Background(), &clogs.ExportLogsServiceRequest{
+		ResourceLogs: []*logs.ResourceLogs{
+			{
+				Resource: &v1.Resource{
+					Attributes: []*v11.KeyValue{
+						{
+							Key: "service.name",
+							Value: &v11.AnyValue{
+								Value: &v11.AnyValue_StringValue{StringValue: "tmall"},
+							},
+						},
+					},
+				},
+				ScopeLogs: []*logs.ScopeLogs{
+					{
+						LogRecords: []*logs.LogRecord{
+							{
+								SeverityNumber: logs.SeverityNumber_SEVERITY_NUMBER_INFO,
+								Body: &v11.AnyValue{
+									Value: &v11.AnyValue_StringValue{StringValue: "this message"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	assert.NoError(t, err)
+	assert.Equal(t, point.Logging, feeder.category)
+	assert.Len(t, feeder.pts, 1)
+	assert.False(t, feeder.noGlobalTags)
 }

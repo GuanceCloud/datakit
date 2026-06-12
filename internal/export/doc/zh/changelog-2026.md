@@ -1,5 +1,19 @@
 # 更新日志
 
+## 2.1.3(2026/06/12) {#cl-2.1.3}
+
+本次发布属于 hotfix 修复，内容如下：
+
+### 问题修复 {#cl-2.1.3-fix}
+
+- 修复指标数据中由 DataKit 自动注入 `collector_source_ip` 导致时间线膨胀的问题，指标不再自动添加该标签，链路和日志中的 `collector_source_ip` 保持不变；OpenTelemetry 指标同时支持通过 `tracing_metric_disable_global_host_tags` 关闭 DataKit 附加的全局标签（#3112）
+
+### 功能优化 {#cl-2.1.3-opt}
+
+- 调整 `datakit debug --bug-report` 默认行为：默认仅生成并保留本地 zip，不再自动上传；需要上传时可显式使用 `--bug-report-dataway` 或继续使用 `--oss`（#3089）
+
+---
+
 ## 2.1.2(2026/06/08) {#cl-2.1.2}
 
 本次发布属于 hotfix 修复，内容如下：

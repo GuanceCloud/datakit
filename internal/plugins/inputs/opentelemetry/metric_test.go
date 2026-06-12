@@ -134,7 +134,7 @@ func Test_parseResourceMetricsV2(t *T.T) {
 
 	ipt := defaultInput()
 	ipt.feeder = &feeder{t: t}
-	ipt.parseResourceMetricsV2(msource, "")
+	ipt.parseResourceMetricsV2(msource)
 }
 
 func getPtr(f float64) *float64 {
@@ -162,13 +162,23 @@ func (f *feeder) FeedLastError(err string, opts ...dkMetrics.LastErrorOption) {
 }
 
 type captureFeeder struct {
-	category point.Category
-	pts      []*point.Point
+	category     point.Category
+	pts          []*point.Point
+	noGlobalTags bool
 }
 
 func (f *captureFeeder) Feed(category point.Category, pts []*point.Point, opts ...dkio.FeedOption) error {
 	f.category = category
 	f.pts = append(f.pts, pts...)
+
+	fd := dkio.GetFeedData()
+	for _, opt := range opts {
+		if opt != nil {
+			opt(fd)
+		}
+	}
+	f.noGlobalTags = fd.NoGlobalTags()
+
 	return nil
 }
 
@@ -183,6 +193,12 @@ func Test_parseResourceMetricsV2CoreFields(t *T.T) {
 						Key: "service.name",
 						Value: &v1.AnyValue{
 							Value: &v1.AnyValue_StringValue{StringValue: "checkout"},
+						},
+					},
+					{
+						Key: "collector_source_ip",
+						Value: &v1.AnyValue{
+							Value: &v1.AnyValue_StringValue{StringValue: "10.0.0.2"},
 						},
 					},
 				},
@@ -223,7 +239,7 @@ func Test_parseResourceMetricsV2CoreFields(t *T.T) {
 	ipt := defaultInput()
 	feeder := &captureFeeder{}
 	ipt.feeder = feeder
-	ipt.parseResourceMetricsV2(msource, "10.0.0.1")
+	ipt.parseResourceMetricsV2(msource)
 
 	require.Len(t, feeder.pts, 1)
 	pt := feeder.pts[0]
@@ -234,7 +250,65 @@ func Test_parseResourceMetricsV2CoreFields(t *T.T) {
 	assert.Equal(t, "runtime", pt.Get("scope_name"))
 	assert.Equal(t, "heap", pt.Get("pool"))
 	assert.Equal(t, "By", pt.Get("unit"))
-	assert.Equal(t, "10.0.0.1", pt.Get("collector_source_ip"))
+}
+
+func Test_parseResourceMetricsV2DisableGlobalTags(t *T.T) {
+	msource := []*metrics.ResourceMetrics{
+		{
+			Resource: &resource.Resource{
+				Attributes: []*v1.KeyValue{
+					{
+						Key: "service.name",
+						Value: &v1.AnyValue{
+							Value: &v1.AnyValue_StringValue{StringValue: "checkout"},
+						},
+					},
+				},
+			},
+			ScopeMetrics: []*metrics.ScopeMetrics{
+				{
+					Metrics: []*metrics.Metric{
+						{
+							Name: "runtime.jvm.memory",
+							Data: &metrics.Metric_Gauge{
+								Gauge: &metrics.Gauge{
+									DataPoints: []*metrics.NumberDataPoint{
+										{
+											TimeUnixNano: uint64(123),
+											Value:        &metrics.NumberDataPoint_AsDouble{AsDouble: 12.5},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	t.Run("default", func(t *T.T) {
+		ipt := defaultInput()
+		feeder := &captureFeeder{}
+		ipt.feeder = feeder
+
+		ipt.parseResourceMetricsV2(msource)
+
+		require.Len(t, feeder.pts, 1)
+		assert.False(t, feeder.noGlobalTags)
+	})
+
+	t.Run("disabled", func(t *T.T) {
+		ipt := defaultInput()
+		ipt.TracingMetricDisableGlobalHostTags = true
+		feeder := &captureFeeder{}
+		ipt.feeder = feeder
+
+		ipt.parseResourceMetricsV2(msource)
+
+		require.Len(t, feeder.pts, 1)
+		assert.True(t, feeder.noGlobalTags)
+	})
 }
 
 type expBucket struct {

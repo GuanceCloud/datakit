@@ -243,15 +243,36 @@ func TestBugreport_containString(t *testing.T) {
 }
 
 func TestUploadBugReportViaDataway(t *testing.T) {
-	t.Run("use dataway when oss flag is empty", func(t *testing.T) {
-		if !shouldUploadBugReportViaDataway(DebugOptions{}) {
+	t.Run("do not use dataway by default", func(t *testing.T) {
+		if shouldUploadBugReportViaDataway(DebugOptions{}) {
+			t.Fatalf("expected shouldUploadBugReportViaDataway to return false")
+		}
+	})
+
+	t.Run("use dataway when dataway flag is set", func(t *testing.T) {
+		if !shouldUploadBugReportViaDataway(DebugOptions{BugreportDatawayEnabled: true}) {
 			t.Fatalf("expected shouldUploadBugReportViaDataway to return true")
 		}
 	})
 
-	t.Run("do not use dataway when oss flag is set", func(t *testing.T) {
-		if shouldUploadBugReportViaDataway(DebugOptions{BugreportOSS: "host:bucket:ak:sk"}) {
+	t.Run("oss wins over dataway", func(t *testing.T) {
+		if shouldUploadBugReportViaDataway(DebugOptions{
+			BugreportOSS:            "host:bucket:ak:sk",
+			BugreportDatawayEnabled: true,
+		}) {
 			t.Fatalf("expected shouldUploadBugReportViaDataway to return false")
+		}
+	})
+
+	t.Run("do not use oss by default", func(t *testing.T) {
+		if shouldUploadBugReportViaOSS(DebugOptions{}) {
+			t.Fatalf("expected shouldUploadBugReportViaOSS to return false")
+		}
+	})
+
+	t.Run("use oss when oss flag is set", func(t *testing.T) {
+		if !shouldUploadBugReportViaOSS(DebugOptions{BugreportOSS: "host:bucket:ak:sk"}) {
+			t.Fatalf("expected shouldUploadBugReportViaOSS to return true")
 		}
 	})
 

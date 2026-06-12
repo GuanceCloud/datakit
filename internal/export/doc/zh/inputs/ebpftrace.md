@@ -19,6 +19,8 @@ monitor   :
 
 ## 安装 {#install}
 
+> **DataKit 1.x 安装说明**：本节下载链接默认指向 DataKit `2.x` 的 `/datakit-v2/` 路径。如需安装 DataKit `1.x`，请将 URL 中的 `/datakit-v2/` 替换为 `/datakit/`。URL 中的静态资源域名会按当前文档品牌渲染。
+
 eBPF 链路功能分为 eBPF Span(以下简称 eSpan) 的采集器和汇集并链接 eSpan 生成 Trace 的链接器。
 
 - eSpan 的采集功能由 DataKit 中的 `ebpf` 外部采集器实现
@@ -40,7 +42,7 @@ eBPF 链路功能分为 eBPF Span(以下简称 eSpan) 的采集器和汇集并�
 
 - Kubernetes 部署 DataKit ELinker：
 
-下载 [*datakit-elinker.yaml*](https://static.<<<custom_key.brand_main_domain>>>/datakit/datakit-elinker.yaml)，执行命令 `kubectl apply -f datakit-elinker.yaml`，可通过指定命名空间 `datakit-elinker`，如 `kubectl -n datakit-elinker get all -owide` 查看相关资源
+下载 [*datakit-elinker.yaml*](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit-elinker.yaml)，执行命令 `kubectl apply -f datakit-elinker.yaml`，可通过指定命名空间 `datakit-elinker`，如 `kubectl -n datakit-elinker get all -owide` 查看相关资源
 
 *为了降低误操作造成的数据污染可能性，推荐部署 DataKit ELinker 而非 DataKit。DataKit 的 ELinker 版本相较于 DataKit 的二进制和镜像大小分别减少约 50% 和 75%。*
 

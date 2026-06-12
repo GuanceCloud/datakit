@@ -102,10 +102,7 @@ type MetricsServiceServer struct {
 func (mss *MetricsServiceServer) Export(ctx context.Context, msreq *metrics.ExportMetricsServiceRequest) (
 	*metrics.ExportMetricsServiceResponse, error,
 ) {
-	remoteIP := getRemoteIP(ctx)
-
-	log.Debugf("get gRPC metric from %s", remoteIP)
-	mss.input.parseResourceMetricsV2(msreq.ResourceMetrics, remoteIP)
+	mss.input.parseResourceMetricsV2(msreq.ResourceMetrics)
 
 	return &metrics.ExportMetricsServiceResponse{PartialSuccess: &metrics.ExportMetricsPartialSuccess{
 		RejectedDataPoints: 0,

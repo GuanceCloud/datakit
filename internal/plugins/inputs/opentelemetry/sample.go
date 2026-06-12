@@ -53,6 +53,9 @@ const (
   ## Extract the above metrics from the collection traces.
   # tracing_metric_enable = true
 
+  ## If true, global host tags will not be added to OTEL metrics.
+  # tracing_metric_disable_global_host_tags = false
+
   ## Blacklist of metric tags: There are many labels in the metric: "tracing_metrics".
   ## If you want to remove certain tag, you can use the blacklist to remove them.
   ## By default, it includes: source,span_name,env,service,status,version,resource,http_status_code,http_status_class

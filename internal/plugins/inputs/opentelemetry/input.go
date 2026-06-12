@@ -206,7 +206,8 @@ func (ipt *Input) RegHTTPHandler() {
 		ipt.localCache = localCache
 	} else {
 		afterGather = itrace.NewAfterGather(itrace.WithLogger(log),
-			itrace.WithPointOptions(point.WithExtraTags(ipt.Tagger.HostTags())), itrace.WithFeeder(ipt.feeder))
+			itrace.WithPointOptions(point.WithExtraTags(ipt.Tagger.HostTags())),
+			itrace.WithFeeder(ipt.feeder))
 	}
 
 	// add filters: the order of appending filters into AfterGather is important!!!
@@ -332,6 +333,7 @@ func (ipt *Input) gatherMetrics() {
 	if len(pts) > 0 {
 		err := ipt.feeder.Feed(point.Metric, pts,
 			dkio.WithSource(dkio.FeedSource(inputName, itrace.TracingMetricName)),
+			dkio.DisableGlobalTags(ipt.TracingMetricDisableGlobalHostTags),
 			dkio.WithCollectCost(time.Since(startTime)))
 		if err != nil {
 			log.Errorf("opentelemetry send metrics points error: %v", err)
