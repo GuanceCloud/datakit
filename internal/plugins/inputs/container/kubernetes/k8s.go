@@ -117,26 +117,34 @@ func (k *Kube) StartCollect() {
 	}
 
 	var (
-		ctx    context.Context
-		cancel context.CancelFunc
-
 		start = ntp.Now()
+		watch *struct {
+			ctx    context.Context
+			cancel context.CancelFunc
+		}
 	)
+
+	stopWatching := func() {
+		if watch == nil {
+			return
+		}
+		watch.cancel()
+		watch = nil
+	}
 
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			cancel()
+			stopWatching()
+			if err := g.Wait(); err != nil {
+				klog.Warnf("wait k8s pod prom worker failed: %s", err)
+			}
 			klog.Info("k8s collect exit")
 			return
 
 		case k.paused = <-k.chanPause:
 			if k.paused {
-				if cancel != nil {
-					cancel()
-					cancel = nil
-					ctx = nil
-				}
+				stopWatching()
 				klog.Info("not leader for election")
 			}
 
@@ -155,10 +163,14 @@ func (k *Kube) StartCollect() {
 			if k.paused {
 				continue
 			}
-			if ctx == nil {
-				ctx, cancel = context.WithCancel(context.Background())
+			if watch == nil {
+				ctx, cancel := context.WithCancel(context.Background())
+				watch = &struct {
+					ctx    context.Context
+					cancel context.CancelFunc
+				}{ctx: ctx, cancel: cancel}
 			}
-			k.tryWatchEventAndChange(ctx)
+			k.tryWatchEventAndChange(watch.ctx)
 		}
 	}
 }

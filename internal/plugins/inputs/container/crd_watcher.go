@@ -155,6 +155,7 @@ func (w *loggingConfigWatcher) processNextItem() bool {
 
 	if !exists {
 		w.coordinator.deleteCRDLoggingConfig(key)
+		w.coordinator.requestLoggingScan()
 		l.Infof("logging config deleted: %s", key)
 		return true
 	}
@@ -174,6 +175,7 @@ func (w *loggingConfigWatcher) processNextItem() bool {
 	}
 
 	w.coordinator.updateCRDLoggingConfig(key, crdConfig)
+	w.coordinator.requestLoggingScan()
 	return true
 }
 

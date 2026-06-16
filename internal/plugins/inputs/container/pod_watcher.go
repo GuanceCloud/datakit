@@ -7,6 +7,7 @@ package container
 
 import (
 	"context"
+	"os"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -22,6 +23,14 @@ import (
 )
 
 var podWatcherG = goroutine.G("pod-watcher")
+
+var podLoggingScanRetryDelays = []time.Duration{
+	0,
+	time.Second,
+	3 * time.Second,
+}
+
+type podLoggingScanAttempt int
 
 type podWatcher struct {
 	client      k8sclient.Client
@@ -89,15 +98,32 @@ func (w *podWatcher) setupInformer() {
 
 	w.informer = informerFactory.Core().V1().Pods().Informer()
 
-	// 只关心 Pod 是否被删除，关闭对应的日志采集任务
-
 	w.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			pod, ok := obj.(*corev1.Pod)
+			if !ok {
+				l.Warnf("failed to convert add object to Pod: %T", obj)
+				return
+			}
+			w.enqueueLoggingScans(pod)
+		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
-			newPod := newObj.(*corev1.Pod)
+			oldPod, oldOK := oldObj.(*corev1.Pod)
+			newPod, newOK := newObj.(*corev1.Pod)
+			if !oldOK || !newOK {
+				l.Warnf("failed to convert update objects to Pod: old=%T, new=%T", oldObj, newObj)
+				return
+			}
 
 			// 检查 Pod 是否进入 Terminating 状态
 			if newPod.DeletionTimestamp != nil {
 				w.enqueue(newPod, "update")
+				return
+			}
+
+			if oldPod.Spec.NodeName != newPod.Spec.NodeName ||
+				(oldPod.Status.Phase != corev1.PodRunning && newPod.Status.Phase == corev1.PodRunning) {
+				w.enqueueLoggingScans(newPod)
 			}
 		},
 		// DeleteFunc 通常是在 Pod 彻底消失后触发
@@ -107,22 +133,30 @@ func (w *podWatcher) setupInformer() {
 	})
 }
 
-func (w *podWatcher) enqueue(obj interface{}, action string) {
-	var pod *corev1.Pod
+func (w *podWatcher) enqueueLoggingScans(pod *corev1.Pod) {
+	nodeName := os.Getenv("ENV_K8S_NODE_NAME")
+	if nodeName == "" {
+		nodeName = datakit.DKHost
+	}
+	if pod.Spec.NodeName == "" || pod.Spec.NodeName != nodeName {
+		return
+	}
 
+	for attempt, delay := range podLoggingScanRetryDelays {
+		w.queue.AddAfter(podLoggingScanAttempt(attempt), delay)
+	}
+	l.Debugf("enqueued logging scans for podUID: %s", pod.UID)
+}
+
+func (w *podWatcher) enqueue(obj interface{}, action string) {
 	// 处理删除事件，可能被包装在 DeletedFinalStateUnknown 中
 	if deletedObj, ok := obj.(cache.DeletedFinalStateUnknown); ok {
 		obj = deletedObj.Obj
 	}
 
 	pod, ok := obj.(*corev1.Pod)
-	if !ok {
+	if !ok || pod == nil {
 		l.Warnf("failed to convert object to Pod: %v", obj)
-		return
-	}
-
-	if pod == nil {
-		l.Warnf("pod is nil in %s event", action)
 		return
 	}
 
@@ -150,41 +184,31 @@ func (w *podWatcher) processQueue(ctx context.Context) {
 }
 
 func (w *podWatcher) processNextItem() bool {
-	uidObj, quit := w.queue.Get()
+	queueObj, quit := w.queue.Get()
 	if quit {
 		return false
 	}
-	defer w.queue.Done(uidObj)
+	defer w.queue.Done(queueObj)
 
-	podUID, ok := uidObj.(string)
-	if !ok {
-		l.Errorf("failed to convert queue item to string: %v", uidObj)
+	var podUID string
+	switch item := queueObj.(type) {
+	case podLoggingScanAttempt:
+		w.coordinator.requestLoggingScan()
+		l.Debugf("requested logging scan, attempt=%d", item)
 		return true
-	}
-
-	if podUID == "" {
-		l.Warnf("pod UID is empty")
+	case string:
+		if item == "" {
+			l.Warn("pod UID is empty")
+			return true
+		}
+		podUID = item
+	default:
+		l.Errorf("unexpected pod queue item: %v", queueObj)
 		return true
 	}
 
 	l.Debugf("processing pod terminating/deletion event: podUID=%s", podUID)
-
-	// 遍历 containerTasks，找到匹配的 podUID，执行 removeTask
-	w.coordinator.taskMutex.RLock()
-	toRemove := make([]string, 0)
-	for containerID, task := range w.coordinator.containerTasks {
-		if task.podUID == podUID {
-			toRemove = append(toRemove, containerID)
-		}
-	}
-	w.coordinator.taskMutex.RUnlock()
-
-	// 在不持锁的情况下逐个删除（removeTask 内部自行加锁）
-	for _, containerID := range toRemove {
-		w.coordinator.removeTask(containerID)
-		l.Infof("removed task for container %s due to pod terminating/deletion, podUID=%s", containerID, podUID)
-	}
-
+	w.coordinator.requestLoggingScan()
 	return true
 }
 

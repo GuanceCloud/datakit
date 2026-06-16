@@ -25,6 +25,10 @@ import (
 
 func (c *containerCollector) gatherMetric() {
 	start := time.Now()
+	defer func() {
+		collectCostVec.WithLabelValues("metric").Observe(time.Since(start).Seconds())
+	}()
+
 	list, err := c.runtime.ListContainers()
 	if err != nil {
 		l.Warn(err)
@@ -62,12 +66,14 @@ func (c *containerCollector) gatherMetric() {
 	); err != nil {
 		l.Warnf("container-metric feed failed, err: %s", err)
 	}
-
-	collectCostVec.WithLabelValues("metric").Observe(time.Since(start).Seconds())
 }
 
 func (c *containerCollector) gatherObject() {
 	start := time.Now()
+	defer func() {
+		collectCostVec.WithLabelValues("object").Observe(time.Since(start).Seconds())
+	}()
+
 	list, err := c.runtime.ListContainers()
 	if err != nil {
 		l.Warn(err)
@@ -85,8 +91,6 @@ func (c *containerCollector) gatherObject() {
 	); err != nil {
 		l.Warnf("container-object feed failed, err: %s", err)
 	}
-
-	collectCostVec.WithLabelValues("object").Observe(time.Since(start).Seconds())
 }
 
 func (c *containerCollector) runGather(

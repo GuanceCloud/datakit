@@ -6,6 +6,7 @@
 package container
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"os"
@@ -17,6 +18,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	k8sclient "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -37,6 +39,7 @@ type containerCollector struct {
 
 	logFilter      filter.Filter
 	logCoordinator *containerLogCoordinator
+	loggingScanCh  <-chan struct{}
 
 	extraTags map[string]string
 	feeder    dkio.Feeder
@@ -96,6 +99,7 @@ func newContainerCollector(ipt *Input, endpoint string, mountPoint string, k8sCl
 
 		logFilter:      logFilter,
 		logCoordinator: logCoordinator,
+		loggingScanCh:  logCoordinator.registerLoggingScanSignal(),
 
 		extraTags: inputs.MergeTags(ipt.Tagger.HostTags(), ipt.Tags, ""),
 		feeder:    ipt.Feeder,
@@ -143,37 +147,100 @@ func buildLabelOptions(ipt *Input) labelOptions {
 }
 
 func (c *containerCollector) StartCollect() {
+	g := goroutine.NewGroup(goroutine.Option{Name: "container-collector"})
+
+	if c.ipt.EnableContainerMetric {
+		g.Go(func(_ context.Context) error {
+			c.runMetricCollector()
+			return nil
+		})
+	}
+
+	g.Go(func(_ context.Context) error {
+		c.runObjectCollector()
+		return nil
+	})
+
+	if c.enableCollectLogging {
+		g.Go(func(_ context.Context) error {
+			c.runLoggingDiscovery()
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		l.Warnf("container collector stopped with error: %s", err)
+	}
+	l.Info("container collector stopped")
+}
+
+func (c *containerCollector) runMetricCollector() {
 	metricTicker := time.NewTicker(c.ipt.MetricCollecInterval)
-	loggingTicker := time.NewTicker(c.ipt.LoggingSearchInterval)
-	objectTicker := time.NewTicker(c.ipt.ObjectCollecInterval)
-
 	defer metricTicker.Stop()
-	defer loggingTicker.Stop()
-	defer objectTicker.Stop()
-
-	c.gatherLogging()
-	time.Sleep(3 * time.Second)
-	c.gatherObject()
 
 	for {
 		select {
 		case <-datakit.Exit.Wait():
-			l.Info("container collector stopped")
 			return
-
 		case tt := <-metricTicker.C:
-			if c.ipt.EnableContainerMetric {
-				c.ptsTime = inputs.AlignTime(tt, c.ptsTime, c.ipt.MetricCollecInterval)
-				c.gatherMetric()
-			}
+			c.ptsTime = inputs.AlignTime(tt, c.ptsTime, c.ipt.MetricCollecInterval)
+			c.gatherMetric()
+		}
+	}
+}
 
-		case <-loggingTicker.C:
-			if c.enableCollectLogging {
-				c.gatherLogging()
-			}
+func (c *containerCollector) runObjectCollector() {
+	objectTicker := time.NewTicker(c.ipt.ObjectCollecInterval)
+	defer objectTicker.Stop()
 
+	initialTimer := time.NewTimer(3 * time.Second)
+	defer initialTimer.Stop()
+
+	select {
+	case <-datakit.Exit.Wait():
+		return
+	case <-initialTimer.C:
+		c.gatherObject()
+	}
+
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			return
 		case <-objectTicker.C:
 			c.gatherObject()
+		}
+	}
+}
+
+func (c *containerCollector) runLoggingDiscovery() {
+	loggingTicker := time.NewTicker(c.ipt.LoggingSearchInterval)
+	defer loggingTicker.Stop()
+
+	c.gatherLogging("initial")
+
+	var lastPodEventScan time.Time
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			return
+		case scheduledAt := <-loggingTicker.C:
+			loggingDiscoveryScheduleDelayVec.Observe(time.Since(scheduledAt).Seconds())
+			c.gatherLogging("ticker")
+		case <-c.loggingScanCh:
+			if !lastPodEventScan.IsZero() {
+				if wait := time.Second - time.Since(lastPodEventScan); wait > 0 {
+					timer := time.NewTimer(wait)
+					select {
+					case <-datakit.Exit.Wait():
+						timer.Stop()
+						return
+					case <-timer.C:
+					}
+				}
+			}
+			c.gatherLogging("pod-event")
+			lastPodEventScan = time.Now()
 		}
 	}
 }

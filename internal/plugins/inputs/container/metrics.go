@@ -13,8 +13,10 @@ import (
 )
 
 var (
-	collectCostVec *prometheus.SummaryVec
-	collectPtsVec  *prometheus.CounterVec
+	collectCostVec                   *prometheus.SummaryVec
+	collectPtsVec                    *prometheus.CounterVec
+	loggingDiscoveryCostVec          *prometheus.SummaryVec
+	loggingDiscoveryScheduleDelayVec prometheus.Summary
 )
 
 func setupMetrics() {
@@ -23,7 +25,7 @@ func setupMetrics() {
 			Namespace: "datakit",
 			Subsystem: "input",
 			Name:      "container_collect_cost_seconds",
-			Help:      "Total time (in seconds) spent collecting container metrics",
+			Help:      "Total time (in seconds) spent collecting container metrics or objects",
 
 			Objectives: datakit.P8sStandardObjectives,
 		},
@@ -44,8 +46,31 @@ func setupMetrics() {
 		},
 	)
 
+	loggingDiscoveryCostVec = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace:  "datakit",
+			Subsystem:  "input",
+			Name:       "container_logging_discovery_cost_seconds",
+			Help:       "Total time (in seconds) spent discovering container logs",
+			Objectives: datakit.P8sStandardObjectives,
+		},
+		[]string{"trigger"},
+	)
+
+	loggingDiscoveryScheduleDelayVec = prometheus.NewSummary(
+		prometheus.SummaryOpts{
+			Namespace:  "datakit",
+			Subsystem:  "input",
+			Name:       "container_logging_discovery_schedule_delay_seconds",
+			Help:       "Delay (in seconds) between a scheduled container log discovery and its execution",
+			Objectives: datakit.P8sStandardObjectives,
+		},
+	)
+
 	metrics.MustRegister(
 		collectCostVec,
 		collectPtsVec,
+		loggingDiscoveryCostVec,
+		loggingDiscoveryScheduleDelayVec,
 	)
 }

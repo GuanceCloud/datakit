@@ -24,7 +24,9 @@ type containerLogCoordinator struct {
 	crdConfigs  []*crdLoggingConfig
 	configMutex sync.RWMutex
 
-	defaults *loggingDefaults
+	defaults           *loggingDefaults
+	loggingScanMutex   sync.RWMutex
+	loggingScanSignals []chan struct{}
 }
 
 type containerLogTask struct {
@@ -53,6 +55,28 @@ func newContainerLogCoordinator(defaults *loggingDefaults) *containerLogCoordina
 		containerTasks: make(map[string]*containerLogTask),
 		crdConfigs:     make([]*crdLoggingConfig, 0),
 		defaults:       defaults,
+	}
+}
+
+func (c *containerLogCoordinator) registerLoggingScanSignal() <-chan struct{} {
+	signal := make(chan struct{}, 1)
+
+	c.loggingScanMutex.Lock()
+	c.loggingScanSignals = append(c.loggingScanSignals, signal)
+	c.loggingScanMutex.Unlock()
+
+	return signal
+}
+
+func (c *containerLogCoordinator) requestLoggingScan() {
+	c.loggingScanMutex.RLock()
+	defer c.loggingScanMutex.RUnlock()
+
+	for _, signal := range c.loggingScanSignals {
+		select {
+		case signal <- struct{}{}:
+		default:
+		}
 	}
 }
 
@@ -106,21 +130,13 @@ func (c *containerLogCoordinator) addTask(containerID string, info *containerLog
 	if created {
 		l.Infof("creating new log task for container %s", containerID)
 	}
-	task.useAnnotationOrEnvLogConfigs = configStr != ""
-
-	if exists {
-		if task.useAnnotationOrEnvLogConfigs && task.configStr != configStr {
-			return
-		}
-	}
-
-	task.configStr = configStr
+	useAnnotationOrEnvLogConfigs := configStr != ""
 
 	var configs []*logConfig
 	var err error
 	var useDefaultStdoutConfigs bool
 
-	if !task.useAnnotationOrEnvLogConfigs {
+	if !useAnnotationOrEnvLogConfigs {
 		// 容器没有通过 Annotation 或环境变量配置日志采集
 		if crd := c.matchCRDConfigs(task); crd != nil {
 			// 匹配到了 CRD 配置，使用 CRD 配置进行日志采集
@@ -149,6 +165,9 @@ func (c *containerLogCoordinator) addTask(containerID string, info *containerLog
 			return
 		}
 	}
+
+	task.useAnnotationOrEnvLogConfigs = useAnnotationOrEnvLogConfigs
+	task.configStr = configStr
 
 	if exists && useDefaultStdoutConfigs {
 		l.Debugf("task exists for container=%s, using default stdout config, skip", containerID)

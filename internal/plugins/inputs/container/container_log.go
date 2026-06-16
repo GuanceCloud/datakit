@@ -22,10 +22,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (c *containerCollector) gatherLogging() {
+func (c *containerCollector) gatherLogging(trigger string) {
 	if !c.enableCollectLogging {
 		return
 	}
+
+	start := time.Now()
+	defer func() {
+		loggingDiscoveryCostVec.WithLabelValues(trigger).Observe(time.Since(start).Seconds())
+	}()
 
 	list, err := c.runtime.ListContainers()
 	if err != nil {

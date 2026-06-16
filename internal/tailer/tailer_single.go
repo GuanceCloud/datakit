@@ -37,6 +37,7 @@ const (
 	defaultSleepDuration = time.Second
 	checkInterval        = time.Second * 3
 	emptyReadSleep       = checkInterval
+	maxDrainDuration     = time.Minute * 5
 	maxRetryAttempts     = 3
 )
 
@@ -369,7 +370,7 @@ func (t *Single) forwardMessage(ctx context.Context) {
 }
 
 func (t *Single) handleContextCancellation() {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	ctx, cancel := context.WithTimeout(context.Background(), maxDrainDuration)
 	defer cancel()
 	t.readToEOF(ctx)
 	t.flushCache()
@@ -395,10 +396,9 @@ func (t *Single) handleFileCheck() bool {
 	if did || !exist {
 		t.log.Debugf("file %s rotated or removed, reading to EOF", t.filepath)
 
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+		ctx, cancel := context.WithTimeout(context.Background(), maxDrainDuration)
 		defer cancel()
 		if shouldExit := t.readToEOF(ctx); shouldExit {
-			t.log.Debugf("readToEOF indicated exit, stopping forwardMessage for file: %s", t.filepath)
 			return true
 		}
 	}
@@ -447,7 +447,7 @@ func (t *Single) readToEOF(ctx context.Context) (shouldExit bool) {
 	for {
 		select {
 		case <-ctx.Done():
-			t.log.Warnf("readToEOF timed out after 1 minute for file %s", t.filepath)
+			t.log.Warnf("readToEOF timed out after %s for file %s", maxDrainDuration, t.filepath)
 			return true
 
 		case <-datakit.Exit.Wait():
@@ -456,10 +456,12 @@ func (t *Single) readToEOF(ctx context.Context) (shouldExit bool) {
 
 		default:
 			if err := t.readOnce(); err != nil {
-				if !errors.Is(err, reader.ErrReadEmpty) {
-					t.log.Warnf("read to EOF error: %s", err)
+				if errors.Is(err, reader.ErrReadEmpty) {
+					t.log.Infof("finished reading to EOF for file %s, reason: empty read", t.filepath)
+					return false
 				}
-				t.log.Infof("finished reading to EOF for file %s", t.filepath)
+
+				t.log.Warnf("read to EOF error for file %s: %s", t.filepath, err)
 				return false
 			}
 		}

@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.1.5(2026/06/16) {#cl-2.1.5}
+
+This release is a hotfix release, contents are as follows:
+
+### Bug Fixes {#cl-2.1.5-fix}
+
+- Fixed a case where logs could be lost for short-lived Pods (#3117)
+
+---
+
+## 2.1.4(2026/06/12) {#cl-2.1.4}
+
+This release is a hotfix release, contents are as follows:
+
+### Bug Fixes {#cl-2.1.4-fix}
+
+- Fixed an issue where log collection could lose data when a Pod shuts down (#3115)
+
+---
+
 ## 2.1.3(2026/06/12) {#cl-2.1.3}
 
 This release is a hotfix release, contents are as follows:

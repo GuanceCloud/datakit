@@ -64,6 +64,46 @@ func TestAddTaskRollbackWhenAllDisabled(t *testing.T) {
 	require.Equal(t, 0, taskCount(coordinator))
 }
 
+func TestAddTaskProcessesChangedAnnotationConfig(t *testing.T) {
+	coordinator := newContainerLogCoordinator(testLoggingDefaults())
+	info := testContainerLogInfo()
+	task := &containerLogTask{
+		containerID:                  "cid-test",
+		podUID:                       info.podUID,
+		info:                         info,
+		useAnnotationOrEnvLogConfigs: true,
+		configStr:                    `[{"type":"file","path":"/old.log"}]`,
+	}
+	coordinator.containerTasks["cid-test"] = task
+
+	newConfig := `[{"disable":true}]`
+	coordinator.addTask("cid-test", info, newConfig, false)
+
+	require.Equal(t, 1, taskCount(coordinator))
+	require.Equal(t, newConfig, task.configStr)
+	require.True(t, task.useAnnotationOrEnvLogConfigs)
+}
+
+func TestAddTaskKeepsExistingConfigOnChangedAnnotationParseError(t *testing.T) {
+	coordinator := newContainerLogCoordinator(testLoggingDefaults())
+	info := testContainerLogInfo()
+	oldConfig := `[{"type":"file","path":"/old.log"}]`
+	task := &containerLogTask{
+		containerID:                  "cid-test",
+		podUID:                       info.podUID,
+		info:                         info,
+		useAnnotationOrEnvLogConfigs: true,
+		configStr:                    oldConfig,
+	}
+	coordinator.containerTasks["cid-test"] = task
+
+	coordinator.addTask("cid-test", info, "[", false)
+
+	require.Equal(t, 1, taskCount(coordinator))
+	require.Equal(t, oldConfig, task.configStr)
+	require.True(t, task.useAnnotationOrEnvLogConfigs)
+}
+
 func TestRemoveTaskDeletesFromMap(t *testing.T) {
 	coordinator := newContainerLogCoordinator(testLoggingDefaults())
 	coordinator.containerTasks["cid-test"] = &containerLogTask{
@@ -90,4 +130,16 @@ func TestAddTaskConcurrentFilteredNoLeak(t *testing.T) {
 	wg.Wait()
 
 	require.Equal(t, 0, taskCount(coordinator))
+}
+
+func TestRequestLoggingScanBroadcastAndMerge(t *testing.T) {
+	coordinator := newContainerLogCoordinator(testLoggingDefaults())
+	first := coordinator.registerLoggingScanSignal()
+	second := coordinator.registerLoggingScanSignal()
+
+	coordinator.requestLoggingScan()
+	coordinator.requestLoggingScan()
+
+	require.Len(t, first, 1)
+	require.Len(t, second, 1)
 }
