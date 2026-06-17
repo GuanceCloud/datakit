@@ -6,6 +6,7 @@
 package kubernetesprometheus
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"sync/atomic"
@@ -31,8 +32,11 @@ type promScraper struct {
 
 	checkPaused func() bool
 	retryCount  int
+	nextRetry   time.Time
 	terminated  atomic.Bool
 }
+
+const aggregateMetricLabel = "all"
 
 func newPromScraper(
 	role Role,
@@ -72,13 +76,18 @@ func newPromScraper(
 	return &p, nil
 }
 
-func (p *promScraper) targetURL() string  { return p.urlstr }
-func (p *promScraper) resetRetryCount()   { p.retryCount = 0 }
+func (p *promScraper) targetURL() string { return p.urlstr }
+func (p *promScraper) resetRetryCount() {
+	p.retryCount = 0
+	p.nextRetry = time.Time{}
+}
 func (p *promScraper) isTerminated() bool { return p.terminated.Load() }
 
 func (p *promScraper) markAsTerminated() {
+	if p.terminated.Swap(true) {
+		return
+	}
 	p.recordUp(0, 0)
-	p.terminated.Store(true)
 }
 
 func (p *promScraper) shouldScrape() bool {
@@ -89,28 +98,31 @@ func (p *promScraper) shouldScrape() bool {
 	return true
 }
 
-func (p *promScraper) scrape(defaultTimestamp int64) error {
+func (p *promScraper) canScrape(now time.Time) bool {
+	return p.nextRetry.IsZero() || !now.Before(p.nextRetry)
+}
+
+func (p *promScraper) recordFailure(interval time.Duration) (int, time.Time) {
+	p.retryCount++
+	delay := scrapeBackoff(interval, p.retryCount)
+	p.nextRetry = ntp.Now().Add(delay + scrapeJitter(delay))
+	return p.retryCount, p.nextRetry
+}
+
+func (p *promScraper) scrape(ctx context.Context, defaultTimestamp int64) error {
 	start := time.Now()
-	p.recordUp(1, defaultTimestamp)
 
 	p.pm.SetTimestamp(defaultTimestamp)
-	err := p.pm.ScrapeURL(p.urlstr)
+	err := p.pm.ScrapeURLWithContext(ctx, p.urlstr)
 	if err != nil {
 		p.recordUp(0, defaultTimestamp)
 	} else {
 		p.recordUp(1, defaultTimestamp)
 	}
 
-	collectCostVec.WithLabelValues(p.role, p.key, p.remote).Observe(float64(time.Since(start)) / float64(time.Second))
+	collectCostVec.WithLabelValues(p.role, aggregateMetricLabel, aggregateMetricLabel).
+		Observe(float64(time.Since(start)) / float64(time.Second))
 	return err
-}
-
-func (p *promScraper) shouldRetry(maxScrapeRetry int) (bool, int) {
-	p.retryCount++
-	if p.retryCount >= maxScrapeRetry {
-		return false, p.retryCount
-	}
-	return true, p.retryCount
 }
 
 func (p *promScraper) recordUp(up int, timestamp int64) {
@@ -137,11 +149,8 @@ func (p *promScraper) recordUp(up int, timestamp int64) {
 }
 
 func buildPromOptions(role Role, key string, auth *Auth, feeder dkio.Feeder, opts ...promscrape.Option) []promscrape.Option {
-	// source 由 key 拼接而来，作为 feed 参数传入
-	// 如果 role 是 Pod，对应的 key 就是 pod_name，且每次重启都会变化，可能影响到 dkio metrics 数量
-	// key 的传值链路特别长，无法精确还原它的 owner_name，或许使用中横线切割取前半部分是可行方案
-	source := fmt.Sprintf("kubernetesprometheus/%s::%s", role, key)
-	remote := key
+	const source = "kubernetesprometheus"
+	remote := string(role)
 
 	callbackFn := func(pts []*point.Point) error {
 		if len(pts) == 0 {
@@ -151,7 +160,7 @@ func buildPromOptions(role Role, key string, auth *Auth, feeder dkio.Feeder, opt
 		if err := feeder.Feed(point.Metric, pts, dkio.WithSource(source)); err != nil {
 			klog.Warnf("failed to feed prom metrics: %s, ignored", err)
 		}
-		collectPtsVec.WithLabelValues(string(role), key).Add(float64(len(pts)))
+		collectPtsVec.WithLabelValues(string(role), aggregateMetricLabel).Add(float64(len(pts)))
 		return nil
 	}
 
@@ -159,6 +168,10 @@ func buildPromOptions(role Role, key string, auth *Auth, feeder dkio.Feeder, opt
 		promscrape.WithSource(source),
 		promscrape.WithRemote(remote),
 		promscrape.WithCallback(callbackFn),
+		promscrape.WithRequestTimeout(defaultScrapeTimeout),
+		promscrape.WithMaxBodySize(defaultMaxScrapeSize),
+		promscrape.WithMaxSamples(defaultMaxSamplesPerScrape),
+		promscrape.WithMaxLabels(defaultMaxLabelsPerSample),
 	}
 	res = append(res, opts...)
 

@@ -6,6 +6,7 @@
 package funcs
 
 import (
+	"runtime/debug"
 	"sync/atomic"
 	"time"
 
@@ -47,6 +48,12 @@ func observeGrokRun(observer GrokRunObserver, scriptName string, line, column in
 	if observer == nil {
 		return
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			l.Errorf("grok run observer panic: %v\n%s", r, debug.Stack())
+		}
+	}()
+
 	observer(GrokRunInfo{
 		ScriptName:     scriptName,
 		Line:           line,

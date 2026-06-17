@@ -6,9 +6,7 @@ tags:
 __int_icon      : 'icon/postgresql'
 dashboard :
   - desc  : 'PostgreSQL'
-    path  : 'dashboard/en/postgresql'
-  - desc  : 'PostgreSQL-v2'
-    path  : 'dashboard/en/postgresql-v2'
+    path  : 'dashboard/en/postgresql_explorer'
 monitor   :
   - desc  : 'PostgreSQL'
     path  : 'monitor/en/postgresql'

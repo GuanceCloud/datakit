@@ -56,7 +56,7 @@ monitor   :
 
 ### 配置拨测任务 {#config-task}
 
-目前拨测任务支持 HTTP, TCP, ICMP, WEBSOCKET, GRPC, BROWSER 以及 MULTI 类型，JSON 格式如下：
+目前拨测任务支持 HTTP, TCP, ICMP, WEBSOCKET, SSL, GRPC, BROWSER 以及 MULTI 类型，JSON 格式如下：
 
 ```json
 {
@@ -1035,6 +1035,165 @@ if body["code"] == "200" {
   },
 }
 ```
+
+#### SSL 拨测 {#ssl}
+
+SSL 拨测用于检查目标主机的 TLS 握手、证书有效期、证书主题/签发者以及 TLS 协议版本，结果会上报为 `ssl_dial_testing` 指标。
+
+##### 额外字段 {#ssl-extra}
+
+| 字段                              | 类型   | 是否必须 | 说明                                                                 |
+| :---                              | ---    | ---      | ---                                                                  |
+| `host`                            | string | Y        | 目标主机，如 `example.com`                                           |
+| `port`                            | string | Y        | 目标端口，如 `443`                                                   |
+| `server_name`                     | string | N        | TLS SNI 和证书校验使用的服务器名称；未填写时使用 `host`              |
+| `timeout`                         | string | N        | 连接和 TLS 握手超时时间，默认 `10s`                                  |
+| `ignore_server_certificate_error` | bool   | N        | 是否跳过服务器证书验证，默认 `false`                                 |
+
+完整 JSON 结构如下：
+
+```json
+{
+  "SSL": [
+    {
+      "name": "ssl-test",
+      "host": "example.com",
+      "port": "443",
+      "server_name": "example.com",
+      "post_url": "https://<your-dataway-host>?token=<your-token>",
+      "status": "OK",
+      "frequency": "1m",
+      "timeout": "10s",
+      "ignore_server_certificate_error": false,
+      "success_when_logic": "and",
+      "success_when": [
+        {
+          "response_time": "1s",
+          "ssl_cert_expires_in_days": [
+            {
+              "op": "gt",
+              "target": 7
+            }
+          ],
+          "tls_version": [
+            {
+              "is_not": "TLS1.0"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+##### `success_when` 定义 {#ssl-success-when}
+
+- 响应时间判断 (`response_time`)
+
+`response_time` 为时间字符串，如 `1s`、`500ms`。当实际响应时间小于该值时判定通过。
+
+```json
+"success_when": [
+  {
+    "response_time": "1s"
+  }
+]
+```
+
+- 证书剩余天数判断 (`ssl_cert_expires_in_days`)
+
+`ssl_cert_expires_in_days` 为数组对象，每个对象参数如下：
+
+| 字段     | 类型   | 是否必须 | 说明                                            |
+| :---     | ---    | ---      | ---                                             |
+| `op`     | string | Y        | 比较操作符，支持 `eq/lt/leq/gt/geq`             |
+| `target` | number | Y        | 比较目标值，单位为天                            |
+
+```json
+"success_when": [
+  {
+    "ssl_cert_expires_in_days": [
+      {
+        "op": "gt",
+        "target": 7
+      }
+    ]
+  }
+]
+```
+
+- 证书过期时间判断 (`ssl_cert_not_after`)
+
+`ssl_cert_not_after` 为数组对象，参数同 `ssl_cert_expires_in_days`，比较值为证书过期时间的 Unix 微秒时间戳。
+
+```json
+"success_when": [
+  {
+    "ssl_cert_not_after": [
+      {
+        "op": "gt",
+        "target": 1767225600000000
+      }
+    ]
+  }
+]
+```
+
+- 证书主题、签发者和 TLS 版本判断（`subject`、`issuer`、`tls_version`）
+
+这些字段均为数组对象，每个对象参数如下：
+
+| 字段              | 类型   | 是否必须 | 说明                                       |
+| :---              | ---    | ---      | ---                                        |
+| `is`              | string | N        | 是否等于指定值                             |
+| `is_not`          | string | N        | 是否不等于指定值                           |
+| `contains`        | string | N        | 是否包含指定字符串                         |
+| `not_contains`    | string | N        | 是否不包含指定字符串                       |
+| `match_regex`     | string | N        | 是否匹配指定正则表达式                     |
+| `not_match_regex` | string | N        | 是否不匹配指定正则表达式                   |
+
+```json
+"success_when": [
+  {
+    "subject": [
+      {
+        "contains": "example.com"
+      }
+    ],
+    "issuer": [
+      {
+        "not_contains": "Self-Signed"
+      }
+    ],
+    "tls_version": [
+      {
+        "is_not": "TLS1.0"
+      }
+    ]
+  }
+]
+```
+
+##### 上报指标 {#ssl-measurement}
+
+SSL 拨测上报 `ssl_dial_testing` 指标，主要字段如下：
+
+| 字段                         | 类型   | 说明                         |
+| :---                         | ---    | ---                          |
+| `response_time`              | int    | TCP 连接和 TLS 握手耗时，单位微秒 |
+| `tls_handshake_time`         | int    | TLS 握手耗时，单位微秒        |
+| `tls_version`                | string | TLS 协议版本                 |
+| `ssl_cert_subject`           | string | 证书主题                     |
+| `ssl_cert_issuer`            | string | 证书签发者                   |
+| `ssl_cert_not_before`        | int    | 证书生效时间，Unix 微秒时间戳 |
+| `ssl_cert_not_after`         | int    | 证书过期时间，Unix 微秒时间戳 |
+| `ssl_cert_expires_in_days`   | int    | 证书剩余有效天数             |
+| `success`                    | int    | 拨测是否成功，`1` 表示成功，`-1` 表示失败 |
+| `fail_reason`                | string | 拨测失败原因                 |
+| `message`                    | string | 拨测结果消息                 |
+
+主要标签包括 `name`、`dest_host`、`dest_port`、`dest_ip`、`server_name`、`status` 和 `proto`。当 TCP 连接或 TLS 握手在获取证书前失败时，不会再执行证书相关的 `success_when` 判断。
 
 #### GRPC 拨测 {#grpc}
 

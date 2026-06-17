@@ -77,6 +77,8 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 		ct = &dt.MultiTask{}
 	case dt.ClassGRPC:
 		ct = &dt.GRPCTask{}
+	case dt.ClassSSL:
+		ct = &dt.SSLTask{}
 	default:
 		l.Errorf("unknown task type: %s", taskType)
 		return nil, uhttp.Error(ErrInvalidRequest, fmt.Sprintf("unknown task type:%s", taskType))

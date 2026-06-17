@@ -58,6 +58,54 @@ func TestMakeMetricIdentifier(t *testing.T) {
 	}
 }
 
+func TestSelectVMHistoricalMetrics(t *testing.T) {
+	info := map[string]*types.PerfCounterInfo{
+		vmDiskUsedMetric:        {Key: 1},
+		vmDiskProvisionedMetric: {Key: 2},
+		vmDiskUnsharedMetric:    {Key: 3},
+	}
+
+	metricFilter := newFilterOrPanic(
+		[]string{vmDiskUsedMetric, vmDiskProvisionedMetric},
+		[]string{vmDiskProvisionedMetric},
+	)
+	metrics := selectMetricsByName(
+		info,
+		[]string{vmDiskUsedMetric, vmDiskProvisionedMetric, vmDiskUnsharedMetric},
+		metricFilter,
+	)
+	if len(metrics) != 1 {
+		t.Fatalf("historical metrics length = %d, want 1", len(metrics))
+	}
+	if metrics[0].CounterId != 1 {
+		t.Fatalf("historical metric counter ID = %d, want 1", metrics[0].CounterId)
+	}
+	if metrics[0].Instance != "" {
+		t.Fatalf("historical metric instance = %q, want aggregate", metrics[0].Instance)
+	}
+}
+
+func TestExcludeHistoricalMetrics(t *testing.T) {
+	metrics := performance.MetricList{
+		{CounterId: 1, Instance: "*"},
+		{CounterId: 2, Instance: "*"},
+		{CounterId: 3, Instance: "*"},
+	}
+	excluded := performance.MetricList{{CounterId: 2}}
+
+	got := excludeMetrics(metrics, excluded)
+	if len(got) != 2 || got[0].CounterId != 1 || got[1].CounterId != 3 {
+		t.Fatalf("filtered metrics = %#v, want counter IDs 1 and 3", got)
+	}
+}
+
+func TestLatestValidValue(t *testing.T) {
+	got, ok := latestValidValue([]int64{10, 20, -1})
+	if !ok || got != 20 {
+		t.Fatalf("latest value = %v/%v, want 20/true", got, ok)
+	}
+}
+
 func TestCleanGuestID(t *testing.T) {
 	tests := []struct {
 		name string

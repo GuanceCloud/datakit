@@ -119,22 +119,38 @@ func newLogConfigs(defaults *loggingDefaults, info *containerLogInfo, str string
 		cfg.setSourceMultilineMap(defaults)
 	}
 
-	if hasDuplicatePath(configs) {
-		return nil, false, fmt.Errorf("configs(len=%d) has duplicate path", len(configs))
-	}
+	configs = deduplicateLogConfigsByPath(configs)
 
 	return configs, useDefaultStdoutConfigs, nil
 }
 
-func hasDuplicatePath(configs []*logConfig) bool {
-	paths := make(map[string]interface{})
-	for _, cfg := range configs {
-		if _, exists := paths[cfg.Path]; exists {
-			return true
-		}
-		paths[cfg.Path] = nil
+func deduplicateLogConfigsByPath(configs []*logConfig) []*logConfig {
+	if len(configs) < 2 {
+		return configs
 	}
-	return false
+
+	lastIndex := make(map[string]int, len(configs))
+	for idx, cfg := range configs {
+		if cfg == nil || cfg.Path == "" {
+			continue
+		}
+		lastIndex[cfg.Path] = idx
+	}
+
+	deduplicated := make([]*logConfig, 0, len(configs))
+	for idx, cfg := range configs {
+		if cfg == nil || cfg.Path == "" {
+			deduplicated = append(deduplicated, cfg)
+			continue
+		}
+		if last := lastIndex[cfg.Path]; last != idx {
+			l.Warnf("duplicate log path config found, path=%s, index=%d overridden by later index=%d", cfg.Path, idx, last)
+			continue
+		}
+		deduplicated = append(deduplicated, cfg)
+	}
+
+	return deduplicated
 }
 
 func fillLogConfigsWithCRDLogging(

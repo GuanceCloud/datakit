@@ -37,8 +37,7 @@ type GrokRegexp struct {
 	minMatchLength   int
 	patternHash      uint64
 
-	fastPathDisabled       uint32
-	fastPathBudgetExceeded uint32
+	fastPathDisabled uint32
 }
 
 type RunPath uint8
@@ -201,7 +200,6 @@ func (g *GrokRegexp) runToWithMeta(content string, trimSpace bool, dst []string,
 			}
 			setRunMetaWork(meta, budget.used)
 			if budget.exceeded {
-				g.noteFastPathBudgetExceeded()
 				setRunFallback(meta, RunPathFallback, FallbackBudgetExceeded)
 			} else {
 				setRunFallback(meta, RunPathFallback, FallbackFastPathMismatch)
@@ -254,7 +252,6 @@ func (g *GrokRegexp) runWithTypeInfoToWithMeta(content string, trimSpace bool, d
 			}
 			setRunMetaWork(meta, budget.used)
 			if budget.exceeded {
-				g.noteFastPathBudgetExceeded()
 				setRunFallback(meta, RunPathFallback, FallbackBudgetExceeded)
 			} else {
 				setRunFallback(meta, RunPathFallback, FallbackFastPathMismatch)
@@ -291,14 +288,6 @@ func (g *GrokRegexp) FastPathDisabled() bool {
 
 func (g *GrokRegexp) fastPathIsDisabled() bool {
 	return atomic.LoadUint32(&g.fastPathDisabled) != 0
-}
-
-const fastPathBudgetDisableThreshold = 2
-
-func (g *GrokRegexp) noteFastPathBudgetExceeded() {
-	if atomic.AddUint32(&g.fastPathBudgetExceeded, 1) >= fastPathBudgetDisableThreshold {
-		g.DisableFastPath()
-	}
 }
 
 func (g *GrokRegexp) initRunMeta(meta *RunMeta) {

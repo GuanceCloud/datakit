@@ -24,6 +24,7 @@ import (
 func (d *dialer) pointsFeed(urlStr string) {
 	d.seqNumber++
 	startTime := time.Now()
+	regionName := d.regionName()
 	tags, fields := d.task.GetResults()
 
 	if d.task.Class() == dt.ClassHeadless {
@@ -31,7 +32,7 @@ func (d *dialer) pointsFeed(urlStr string) {
 	}
 
 	if status, ok := tags["status"]; ok {
-		taskCheckCostSummary.WithLabelValues(d.regionName, d.class, status).Observe(float64(time.Since(startTime)) / float64(time.Second))
+		taskCheckCostSummary.WithLabelValues(regionName, d.class, status).Observe(float64(time.Since(startTime)) / float64(time.Second))
 	}
 
 	for k, v := range d.tags {
@@ -56,7 +57,7 @@ func (d *dialer) pointsFeed(urlStr string) {
 	fields["seq_number"] = d.seqNumber
 	fields["task_id"] = d.task.GetExternalID()
 	tags["datakit_version"] = datakit.Version
-	tags["node_name"] = d.regionName
+	tags["node_name"] = regionName
 
 	// df tags
 	for k, v := range d.dfTags {
@@ -83,7 +84,7 @@ func (d *dialer) pointsFeed(urlStr string) {
 	dialWorker.addPoints(&jobData{
 		url:        urlStr,
 		pt:         data,
-		regionName: d.regionName,
+		regionName: regionName,
 		class:      d.class,
 	})
 }

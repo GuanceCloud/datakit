@@ -68,6 +68,21 @@ var externals = []*dkexternal{
 		},
 	},
 	{
+		// IBM i Access ODBC driver requires CGO and is shipped for Linux AMD64.
+		name: "ibm_i",
+		lang: "go",
+
+		entry: "internal/plugins/externals/ibm_i/main.go",
+		tags:  "ibm_i netgo",
+		osarchs: map[string]bool{
+			"linux/amd64": true,
+		},
+
+		envs: []string{
+			"CGO_ENABLED=1",
+		},
+	},
+	{
 		// requirement: apt install clang llvm linux-headers-$(uname -r)
 		name:       externalEBPFName,
 		out:        "datakit-ebpf",

@@ -39,6 +39,9 @@ var (
 	//go:embed md/json.en.md
 	docJSONEN string
 
+	//go:embed md/json_all.en.md
+	docJSONAllEN string
+
 	//go:embed md/query_refer_table.en.md
 	docQueryReferTableEN string
 
@@ -390,6 +393,12 @@ var (
 	}
 	jsonMarkdownEN = PLDoc{
 		Doc: docJSONEN, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagEnUS: {eJSON},
+		},
+	}
+	jsonAllMarkdownEN = PLDoc{
+		Doc: docJSONAllEN, Deprecated: false,
 		FnCategory: map[string][]string{
 			langTagEnUS: {eJSON},
 		},

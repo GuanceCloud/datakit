@@ -113,6 +113,7 @@ func (e *Endpoints) process(ctx context.Context) bool {
 	}
 
 	if shouldSkipEndpoints(ep) {
+		e.terminateScrape(key)
 		return true
 	}
 
@@ -197,21 +198,29 @@ func (e *Endpoints) terminateScrape(key string) {
 }
 
 func endpointsTraits(item *corev1.Endpoints) string {
-	var ips []string
+	var targets []string
 	for _, sub := range item.Subsets {
 		for _, address := range sub.Addresses {
 			id := "uid"
 			if address.TargetRef != nil {
 				id = string(address.TargetRef.UID)
 			}
-			ips = append(ips, id+":"+address.IP)
+			targets = append(targets, id+":"+address.IP)
+		}
+		for _, port := range sub.Ports {
+			targets = append(targets, port.Name+":"+strconv.Itoa(int(port.Port)))
 		}
 	}
-	return strconv.Itoa(len(ips)) + "::" + strings.Join(ips, ",")
+	return strconv.Itoa(len(targets)) + "::" + strings.Join(targets, ",")
 }
 
 func shouldSkipEndpoints(item *corev1.Endpoints) bool {
-	return len(item.Subsets) == 0 || len(item.Subsets[0].Addresses) == 0
+	for _, subset := range item.Subsets {
+		if len(subset.Addresses) != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 func tryCreateScrapeForEndpoints(

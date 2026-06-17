@@ -12,8 +12,8 @@ import (
 	"net/url"
 	"os"
 	"sort"
-	"time"
 
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	k8sclient "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
 	dknet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
@@ -101,246 +101,269 @@ func (ipt *Input) applyPredefinedInstances() {
 }
 
 func (ipt *Input) applyCRDs(ctx context.Context, client k8sclient.Client, scrapeManager scrapeManagerInterface) {
-	if ipt.EnableDiscoveryOfPrometheusPodMonitors || ipt.EnableDiscoveryOfPrometheusServiceMonitors {
-		klog.Info("apply PodMonitors and ServiceMonitors from predefined instance")
-		asTags := getExtraLabelAsTags()
-
-		managerGo.Go(func(_ context.Context) error {
-			tick := time.NewTicker(time.Second * 20)
-			defer tick.Stop()
-
-			for {
-				select {
-				case <-ctx.Done():
-					klog.Info("podmonitor/servicemonitor fetcher exit")
-					return nil
-
-				case <-tick.C:
-					if ipt.EnableDiscoveryOfPrometheusPodMonitors {
-						if err := fetchPodMonitor(ctx, ipt, client, scrapeManager, asTags); err != nil {
-							klog.Warn(err)
-						}
-					}
-
-					if ipt.EnableDiscoveryOfPrometheusServiceMonitors {
-						if err := fetchServiceMonitor(ctx, ipt, client, scrapeManager, asTags); err != nil {
-							klog.Warn(err)
-						}
-					}
+	asTags := getExtraLabelAsTags()
+	if ipt.EnableDiscoveryOfPrometheusPodMonitors {
+		klog.Info("apply PodMonitors from predefined instance")
+		informer, list, watchUnavailable := newPodMonitorInformer(client)
+		watcher := newMonitorWatcher(
+			RolePodMonitor,
+			informer,
+			scrapeManager,
+			func(ctx context.Context, key string, obj interface{}) ([]string, error) {
+				item, ok := obj.(*monitoringv1.PodMonitor)
+				if !ok {
+					return nil, monitorObjectError(RolePodMonitor, obj)
 				}
-			}
+				return ipt.reconcilePodMonitor(ctx, key, item, client, scrapeManager, asTags)
+			},
+		)
+		watcher.list = list
+		watcher.watchUnavailable = watchUnavailable
+		managerGo.Go(func(_ context.Context) error {
+			watcher.Run(ctx)
+			return nil
+		})
+	}
+
+	if ipt.EnableDiscoveryOfPrometheusServiceMonitors {
+		klog.Info("apply ServiceMonitors from predefined instance")
+		informer, list, watchUnavailable := newServiceMonitorInformer(client)
+		watcher := newMonitorWatcher(
+			RoleServiceMonitor,
+			informer,
+			scrapeManager,
+			func(ctx context.Context, key string, obj interface{}) ([]string, error) {
+				item, ok := obj.(*monitoringv1.ServiceMonitor)
+				if !ok {
+					return nil, monitorObjectError(RoleServiceMonitor, obj)
+				}
+				return ipt.reconcileServiceMonitor(ctx, key, item, client, scrapeManager, asTags)
+			},
+		)
+		watcher.list = list
+		watcher.watchUnavailable = watchUnavailable
+		managerGo.Go(func(_ context.Context) error {
+			watcher.Run(ctx)
+			return nil
 		})
 	}
 }
 
-func fetchPodMonitor(
+func (ipt *Input) reconcilePodMonitor(
 	ctx context.Context,
-	ipt *Input,
+	monitorKey string,
+	item *monitoringv1.PodMonitor,
 	client k8sclient.Client,
 	scrapeManager scrapeManagerInterface,
 	asTags []string,
-) error {
-	list, err := client.GetPrmetheusPodMonitors("").List(context.Background(), metav1.ListOptions{ResourceVersion: "0"})
-	if err != nil {
-		return err
+) ([]string, error) {
+	if len(item.Spec.PodMetricsEndpoints) == 0 {
+		return nil, nil
 	}
 
-	for idx, item := range list.Items {
-		if item == nil || len(item.Spec.PodMetricsEndpoints) == 0 {
+	var instances []*Instance
+
+	for _, endpoints := range item.Spec.PodMetricsEndpoints {
+		ins := &Instance{
+			Role:   "pod",
+			Scrape: "true",
+			Target: Target{
+				Scheme: endpoints.Scheme,
+				Port:   fmt.Sprintf("__kubernetes_pod_container_port_%s_number", endpoints.Port),
+				Path:   endpoints.Path,
+				Params: url.Values(endpoints.Params).Encode(),
+			},
+			Custom: Custom{
+				Measurement:      getParamMeasurement(endpoints.Params),
+				JobAsMeasurement: false,
+				Tags: map[string]string{
+					"instance":  "__kubernetes_mate_instance",
+					"host":      "__kubernetes_mate_host",
+					"namespace": "__kubernetes_pod_namespace",
+					"pod_name":  "__kubernetes_pod_name",
+				},
+			},
+		}
+
+		for _, key := range asTags {
+			ins.Custom.Tags[key] = "__kubernetes_pod_label_" + key
+		}
+
+		if endpoints.TLSConfig != nil {
+			ins.Auth = Auth{
+				TLSConfig: &dknet.TLSClientConfig{
+					InsecureSkipVerify: endpoints.TLSConfig.SafeTLSConfig.InsecureSkipVerify,
+				},
+			}
+			if ins.Target.Scheme == "" {
+				ins.Target.Scheme = "https"
+			}
+		}
+
+		for _, labelName := range item.Spec.PodTargetLabels {
+			ins.Custom.Tags[labelName] = "__kubernetes_pod_label_" + labelName
+		}
+
+		ins.setDefault(ipt)
+		instances = append(instances, ins)
+	}
+
+	var pods []*apicorev1.Pod
+	if item.Spec.NamespaceSelector.Any {
+		items, err := getLocalPodsFromLabelSelector(ctx, client, ipt.nodeName, "", &item.Spec.Selector)
+		if err != nil {
+			return nil, err
+		}
+		pods = items
+	} else if len(item.Spec.NamespaceSelector.MatchNames) != 0 {
+		for _, namespace := range item.Spec.NamespaceSelector.MatchNames {
+			items, err := getLocalPodsFromLabelSelector(ctx, client, ipt.nodeName, namespace, &item.Spec.Selector)
+			if err != nil {
+				return nil, err
+			}
+			pods = append(pods, items...)
+		}
+	} else {
+		items, err := getLocalPodsFromLabelSelector(ctx, client, ipt.nodeName, item.Namespace, &item.Spec.Selector)
+		if err != nil {
+			return nil, err
+		}
+		pods = items
+	}
+
+	p := &Pod{
+		role:      RolePodMonitor,
+		instances: instances,
+		scrape:    scrapeManager,
+		feeder:    ipt.feeder,
+	}
+
+	var taskKeys []string
+	for _, podItem := range pods {
+		if shouldSkipPod(podItem) {
 			continue
 		}
 
-		var instances []*Instance
+		key := fmt.Sprintf("podMonitor:%s/pod:%s/%s", monitorKey, podItem.Namespace, podItem.Name)
+		taskKeys = append(taskKeys, key)
+		traits := podTraits(podItem)
 
-		for _, endpoints := range item.Spec.PodMetricsEndpoints {
-			ins := &Instance{
-				Role:   "pod",
-				Scrape: "true",
-				Target: Target{
-					Scheme: endpoints.Scheme,
-					Port:   fmt.Sprintf("__kubernetes_pod_container_port_%s_number", endpoints.Port),
-					Path:   endpoints.Path,
-					Params: url.Values(endpoints.Params).Encode(),
-				},
-				Custom: Custom{
-					Measurement:      getParamMeasurement(endpoints.Params),
-					JobAsMeasurement: false,
-					Tags: map[string]string{
-						"instance":  "__kubernetes_mate_instance",
-						"host":      "__kubernetes_mate_host",
-						"namespace": "__kubernetes_pod_namespace",
-						"pod_name":  "__kubernetes_pod_name",
-					},
-				},
-			}
-
-			for _, key := range asTags {
-				ins.Custom.Tags[key] = "__kubernetes_pod_label_" + key
-			}
-
-			if endpoints.TLSConfig != nil {
-				ins.Auth = Auth{
-					TLSConfig: &dknet.TLSClientConfig{
-						InsecureSkipVerify: endpoints.TLSConfig.SafeTLSConfig.InsecureSkipVerify,
-					},
-				}
-				if ins.Target.Scheme == "" {
-					ins.Target.Scheme = "https"
-				}
-			}
-
-			for _, labelName := range item.Spec.PodTargetLabels {
-				ins.Custom.Tags[labelName] = "__kubernetes_pod_label_" + labelName
-			}
-
-			ins.setDefault(ipt)
-			instances = append(instances, ins)
-		}
-
-		pods := []*apicorev1.Pod{}
-
-		if item.Spec.NamespaceSelector.Any {
-			pods = getLocalPodsFromLabelSelector(client, ipt.nodeName, "", &list.Items[idx].Spec.Selector)
-		} else {
-			if len(item.Spec.NamespaceSelector.MatchNames) != 0 {
-				for _, namespace := range item.Spec.NamespaceSelector.MatchNames {
-					pods = append(pods, getLocalPodsFromLabelSelector(client, ipt.nodeName, namespace, &list.Items[idx].Spec.Selector)...)
-				}
-			} else {
-				pods = getLocalPodsFromLabelSelector(client, ipt.nodeName, item.Namespace, &list.Items[idx].Spec.Selector)
-			}
-		}
-
-		if len(pods) == 0 {
+		if p.scrape.isTraitsExists(p.role, key, traits) {
 			continue
 		}
 
-		p := &Pod{
-			role:      RolePodMonitor,
-			instances: instances,
-			scrape:    scrapeManager,
-			feeder:    ipt.feeder,
-		}
-
-		for _, podItem := range pods {
-			if shouldSkipPod(podItem) {
-				continue
-			}
-
-			key := fmt.Sprintf("podMonitor:%s/pod:%s", item.Name, podItem.Name)
-			traits := podTraits(podItem)
-
-			if p.scrape.isTraitsExists(p.role, key, traits) {
-				continue
-			}
-
-			p.startScrape(ctx, key, traits, podItem)
-		}
+		p.scrape.removeScrape(p.role, key)
+		p.startScrape(ctx, key, traits, podItem)
 	}
 
-	return nil
+	return taskKeys, nil
 }
 
-func fetchServiceMonitor(
+func (ipt *Input) reconcileServiceMonitor(
 	ctx context.Context,
-	ipt *Input,
+	monitorKey string,
+	item *monitoringv1.ServiceMonitor,
 	client k8sclient.Client,
 	scrapeManager scrapeManagerInterface,
 	asTags []string,
-) error {
-	list, err := client.GetPrmetheusServiceMonitors("").List(context.Background(), metav1.ListOptions{ResourceVersion: "0"})
-	if err != nil {
-		return err
+) ([]string, error) {
+	if len(item.Spec.Endpoints) == 0 {
+		return nil, nil
 	}
 
-	for idx, item := range list.Items {
-		if item == nil || len(item.Spec.Endpoints) == 0 {
-			continue
-		}
-
-		var instances []*Instance
-
-		for _, endpoints := range item.Spec.Endpoints {
-			ins := &Instance{
-				Role:   "endpoints",
-				Scrape: "true",
-				Target: Target{
-					Scheme: endpoints.Scheme,
-					Port:   fmt.Sprintf("__kubernetes_endpoints_port_%s_number", endpoints.Port),
-					Path:   endpoints.Path,
-					Params: url.Values(endpoints.Params).Encode(),
+	var instances []*Instance
+	for _, endpoints := range item.Spec.Endpoints {
+		ins := &Instance{
+			Role:   "endpoints",
+			Scrape: "true",
+			Target: Target{
+				Scheme: endpoints.Scheme,
+				Port:   fmt.Sprintf("__kubernetes_endpoints_port_%s_number", endpoints.Port),
+				Path:   endpoints.Path,
+				Params: url.Values(endpoints.Params).Encode(),
+			},
+			Custom: Custom{
+				Measurement:      getParamMeasurement(endpoints.Params),
+				JobAsMeasurement: false,
+				Tags: map[string]string{
+					"instance":  "__kubernetes_mate_instance",
+					"host":      "__kubernetes_mate_host",
+					"namespace": "__kubernetes_endpoints_namespace",
+					"pod_name":  "__kubernetes_endpoints_address_target_name",
 				},
-				Custom: Custom{
-					Measurement:      getParamMeasurement(endpoints.Params),
-					JobAsMeasurement: false,
-					Tags: map[string]string{
-						"instance":  "__kubernetes_mate_instance",
-						"host":      "__kubernetes_mate_host",
-						"namespace": "__kubernetes_endpoints_namespace",
-						"pod_name":  "__kubernetes_endpoints_address_target_name",
-					},
+			},
+		}
+
+		for _, key := range asTags {
+			ins.Custom.Tags[key] = "__kubernetes_endpoints_label_" + key
+		}
+
+		if endpoints.TLSConfig != nil {
+			ins.Auth = Auth{
+				TLSConfig: &dknet.TLSClientConfig{
+					InsecureSkipVerify: endpoints.TLSConfig.SafeTLSConfig.InsecureSkipVerify,
 				},
 			}
-
-			for _, key := range asTags {
-				ins.Custom.Tags[key] = "__kubernetes_endpoints_label_" + key
-			}
-
-			if endpoints.TLSConfig != nil {
-				ins.Auth = Auth{
-					TLSConfig: &dknet.TLSClientConfig{
-						InsecureSkipVerify: endpoints.TLSConfig.SafeTLSConfig.InsecureSkipVerify,
-					},
-				}
-				if ins.Target.Scheme == "" {
-					ins.Target.Scheme = "https"
-				}
-			}
-
-			for _, labelName := range item.Spec.TargetLabels {
-				ins.Custom.Tags[labelName] = "__kubernetes_endpoints_label_" + labelName
-			}
-
-			ins.setDefault(ipt)
-			instances = append(instances, ins)
-		}
-
-		endpointsList := []*apicorev1.Endpoints{}
-
-		if item.Spec.NamespaceSelector.Any {
-			endpointsList = getLocalEndpointsFromLabelSelector(client, ipt.nodeName, "", &list.Items[idx].Spec.Selector)
-		} else {
-			if len(item.Spec.NamespaceSelector.MatchNames) != 0 {
-				for _, namespace := range item.Spec.NamespaceSelector.MatchNames {
-					endpointsList = append(endpointsList,
-						getLocalEndpointsFromLabelSelector(client, ipt.nodeName, namespace, &list.Items[idx].Spec.Selector)...,
-					)
-				}
-			} else {
-				endpointsList = getLocalEndpointsFromLabelSelector(client, ipt.nodeName, item.Namespace, &list.Items[idx].Spec.Selector)
+			if ins.Target.Scheme == "" {
+				ins.Target.Scheme = "https"
 			}
 		}
 
-		if len(endpointsList) == 0 {
-			continue
+		for _, labelName := range item.Spec.TargetLabels {
+			ins.Custom.Tags[labelName] = "__kubernetes_endpoints_label_" + labelName
 		}
 
-		for _, ep := range endpointsList {
-			for insIdx, ins := range instances {
-				key := fmt.Sprintf("serviceMonitor:%s/endpoints:%s/ins[%d]", item.Name, ep.Name, insIdx)
-				tryCreateScrapeForEndpoints(ctx, RoleServiceMonitor, key, ep, ins, scrapeManager, ipt.feeder)
+		ins.setDefault(ipt)
+		instances = append(instances, ins)
+	}
+
+	var endpointsList []*apicorev1.Endpoints
+	if item.Spec.NamespaceSelector.Any {
+		items, err := getLocalEndpointsFromLabelSelector(ctx, client, "", &item.Spec.Selector)
+		if err != nil {
+			return nil, err
+		}
+		endpointsList = items
+	} else if len(item.Spec.NamespaceSelector.MatchNames) != 0 {
+		for _, namespace := range item.Spec.NamespaceSelector.MatchNames {
+			items, err := getLocalEndpointsFromLabelSelector(ctx, client, namespace, &item.Spec.Selector)
+			if err != nil {
+				return nil, err
 			}
+			endpointsList = append(endpointsList, items...)
+		}
+	} else {
+		items, err := getLocalEndpointsFromLabelSelector(ctx, client, item.Namespace, &item.Spec.Selector)
+		if err != nil {
+			return nil, err
+		}
+		endpointsList = items
+	}
+
+	var taskKeys []string
+	for _, ep := range endpointsList {
+		for insIdx, ins := range instances {
+			key := fmt.Sprintf(
+				"serviceMonitor:%s/endpoints:%s/%s/ins[%d]",
+				monitorKey, ep.Namespace, ep.Name, insIdx,
+			)
+			taskKeys = append(taskKeys, key)
+			if !scrapeManager.isTraitsExists(RoleServiceMonitor, key, endpointsTraits(ep)) {
+				scrapeManager.removeScrape(RoleServiceMonitor, key)
+			}
+			tryCreateScrapeForEndpoints(ctx, RoleServiceMonitor, key, ep, ins, scrapeManager, ipt.feeder)
 		}
 	}
 
-	return nil
+	return taskKeys, nil
 }
 
 func getLocalPodsFromLabelSelector(
+	ctx context.Context,
 	client k8sclient.Client,
 	nodeName, namespace string,
 	selector *metav1.LabelSelector,
-) (res []*apicorev1.Pod) {
+) ([]*apicorev1.Pod, error) {
 	opt := metav1.ListOptions{
 		ResourceVersion: "0",
 		FieldSelector:   "spec.nodeName=" + nodeName,
@@ -349,40 +372,41 @@ func getLocalPodsFromLabelSelector(
 		opt.LabelSelector = labelSelectorToString(selector)
 	}
 
-	list, err := client.GetPods(namespace).List(context.Background(), opt)
+	list, err := client.GetPods(namespace).List(ctx, opt)
 	if err != nil {
-		klog.Warnf("failed to get pods from namespace '%s', err: %s", namespace, err)
-		return
+		return nil, fmt.Errorf("failed to get pods from namespace %q: %w", namespace, err)
 	}
+	var res []*apicorev1.Pod
 	for idx := range list.Items {
 		if list.Items[idx].Status.Phase == apicorev1.PodRunning {
 			res = append(res, &list.Items[idx])
 		}
 	}
-	return
+	return res, nil
 }
 
 func getLocalEndpointsFromLabelSelector(
+	ctx context.Context,
 	client k8sclient.Client,
-	nodeName, namespace string,
+	namespace string,
 	selector *metav1.LabelSelector,
-) (res []*apicorev1.Endpoints) {
+) ([]*apicorev1.Endpoints, error) {
 	opt := metav1.ListOptions{ResourceVersion: "0"}
 	if selector != nil {
 		opt.LabelSelector = labelSelectorToString(selector)
 	}
 
-	list, err := client.GetEndpoints(namespace).List(context.Background(), opt)
+	list, err := client.GetEndpoints(namespace).List(ctx, opt)
 	if err != nil {
-		klog.Warnf("failed to get endpoints from namespace '%s', err: %s", namespace, err)
-		return
+		return nil, fmt.Errorf("failed to get endpoints from namespace %q: %w", namespace, err)
 	}
+	var res []*apicorev1.Endpoints
 	for idx := range list.Items {
 		if len(list.Items[idx].Subsets) != 0 && len(list.Items[idx].Subsets[0].Addresses) != 0 {
 			res = append(res, &list.Items[idx])
 		}
 	}
-	return
+	return res, nil
 }
 
 func getParamMeasurement(params map[string][]string) string {

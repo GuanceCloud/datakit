@@ -141,15 +141,12 @@ func (ipt *Input) buildMountStats() ([]*point.Point, error) {
 		}
 		var stat unix.Statfs_t
 		if err := unix.Statfs(mount.Mount, &stat); err == nil {
-			// 计算总大小和已使用大小
-			totalBytes := stat.Blocks * uint64(stat.Bsize)
-			freeBytes := stat.Bavail * uint64(stat.Bsize)
-			usedBytes := totalBytes - freeBytes
+			totalBytes, availBytes, usedBytes, usedPercent := filesystemUsageFromStat(stat)
 
 			m.fields["fs_size"] = totalBytes
-			m.fields["fs_avail"] = freeBytes
+			m.fields["fs_avail"] = availBytes
 			m.fields["fs_used"] = usedBytes
-			m.fields["fs_used_percent"] = (float64(usedBytes) / float64(totalBytes)) * 100
+			m.fields["fs_used_percent"] = usedPercent
 		}
 
 		if ipt.MountstatsMetric.Rw {
@@ -221,6 +218,19 @@ func (ipt *Input) buildMountStats() ([]*point.Point, error) {
 	pts := getPointsFromMeasurement(ms)
 
 	return pts, nil
+}
+
+func filesystemUsageFromStat(stat unix.Statfs_t) (totalBytes, availBytes, usedBytes uint64, usedPercent float64) {
+	blockSize := uint64(stat.Bsize)
+	totalBytes = stat.Blocks * blockSize
+	availBytes = stat.Bavail * blockSize
+	usedBytes = (stat.Blocks - stat.Bfree) * blockSize
+
+	if usedBytes+availBytes != 0 {
+		usedPercent = float64(usedBytes) / float64(usedBytes+availBytes) * 100
+	}
+
+	return totalBytes, availBytes, usedBytes, usedPercent
 }
 
 func getPointsFromMeasurement(ms []inputs.MeasurementV2) []*point.Point {

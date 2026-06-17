@@ -118,6 +118,8 @@ func (b *Body) RawLen() int32 {
 }
 
 func (b *Body) LoadCache(data []byte) error {
+	b.CacheData.Reset()
+
 	if err := b.CacheData.Unmarshal(data); err != nil {
 		return fmt.Errorf("Unmarshal: %w", err)
 	}

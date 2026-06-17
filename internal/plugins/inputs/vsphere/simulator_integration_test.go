@@ -73,6 +73,24 @@ func TestSimulatorDiscover(t *testing.T) {
 			t.Fatalf("resource kind %q discovered no objects", resourceType)
 		}
 	}
+
+	vm := ipt.client.resourceKinds["vm"]
+	if len(vm.historicalMetrics) != len(vm.historicalMetricNames) {
+		t.Fatalf(
+			"VM historical metrics length = %d, want %d",
+			len(vm.historicalMetrics),
+			len(vm.historicalMetricNames),
+		)
+	}
+	historicalIDs := make(map[int32]struct{}, len(vm.historicalMetrics))
+	for _, metric := range vm.historicalMetrics {
+		historicalIDs[metric.CounterId] = struct{}{}
+	}
+	for _, metric := range vm.metrics {
+		if _, ok := historicalIDs[metric.CounterId]; ok {
+			t.Fatalf("VM historical counter ID %d is also in realtime metrics", metric.CounterId)
+		}
+	}
 }
 
 func TestSimulatorCollectResourceObject(t *testing.T) {

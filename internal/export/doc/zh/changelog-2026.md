@@ -1,5 +1,45 @@
 # 更新日志
 
+## 2.2.0(2026/06/17) {#cl-2.2.0}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-2.2.0-new}
+
+- 新增 IBM AS/400 (IBM i) 外部采集器，通过 ODBC 连接采集系统、磁盘、作业、内存池、子系统、作业队列和消息队列等指标（#3082）
+- vSphere 采集器新增虚拟机维度磁盘存储指标 `disk_used_latest`、`disk_provisioned_latest`、`disk_unshared_latest`（#3111）
+- 拨测采集器新增 SSL/TLS 证书检测任务，支持证书过期时间、剩余天数、TLS 版本等检测（#3106）
+- Pipeline 新增 `json_all` 和 `pt_kvs_set_map` 函数（#3109）
+- SNMP 采集器新增 `oid_batch_size` 和 `bulk_max_repetitions` 配置，适配 iDRAC 等对 GetBulk 请求敏感的 SNMP Agent（#3093）
+- PodMonitor/ServiceMonitor 改为 informer 架构，创建后修改 YAML 可动态生效，无需重启采集（#2832）
+
+### 问题修复 {#cl-2.2.0-fix}
+
+- 修复 APM 自动注入在特定场景下失败的问题（#3120）
+- 修复 Windows 低延迟场景下 ICMP 拨测将 0ns 回包误判为丢包的问题（#3118）
+- 修复 PostgreSQL 9.1+ 主从复制延迟指标因 numeric 类型转换失败导致无法上报的问题（#3114）
+- 修复 prom_remote_write 采集器解析失败时缺少 `return` 导致继续处理无效数据的问题（#3105）
+- 修复 compact Body 缓存 dump/load 后 PayloadType 字段不一致的 bug（#3102）
+- 修复 diskio 采集器单测中读写速率偶发翻倍的稳定性问题（#3101）
+- 修复磁盘使用率在特定条件下计算异常的问题（#3090）
+- 修复 HTTP API reload 后请求限流和超时配置丢失的问题，热加载后配置与首次启动保持一致（#3079）
+
+### 功能优化 {#cl-2.2.0-opt}
+
+- 容器日志采集出现重复路径时，改为保留最后一条配置并告警，不再直接丢弃采集任务（#3119）
+- 浏览器拨测结果中隐藏 Lightpanda 底层启动错误细节，避免暴露运行环境路径信息（#3103）
+- 拨测节点名称变更后自动同步到 Dialtesting 任务的上报数据中（#3099）
+- 补充 SNMP 自定义 YAML 模版字段格式说明文档（#3116）
+- 更新数据库集成 Dashboard 路径指向新的 dashboard（#3113）
+- CI 增加 Go module/golangci-lint 缓存复用，Docker buildx 支持 registry cache 加速镜像构建（#3096）
+
+### 兼容调整 {#cl-2.2.0-brk}
+
+- DK 自身指标采集改为全量/关闭模式，不再支持白名单过滤；Profile 采集改为手动控制（#3110）
+- ddtrace 采集器 telemetry tag 兼容 `DD_TRACE_TAGS` 字段名，正确写入 JVM 指标 tags（#3108）
+
+---
+
 ## 2.1.5(2026/06/16) {#cl-2.1.5}
 
 本次发布属于 hotfix 修复，内容如下：
@@ -22,7 +62,7 @@
 
 ### 问题修复 {#cl-2.1.3-fix}
 
-- 修复指标数据中由 DataKit 自动注入 `collector_source_ip` 导致时间线膨胀的问题，指标不再自动添加该标签，链路和日志中的 `collector_source_ip` 保持不变；OpenTelemetry 指标同时支持通过 `tracing_metric_disable_global_host_tags` 关闭 DataKit 附加的全局标签（#3112）
+- 修复指标自动注入 `collector_source_ip` 导致时间线膨胀的问题，指标不再添加该标签；OpenTelemetry 指标新增关闭全局标签的配置项（#3112）
 
 ### 功能优化 {#cl-2.1.3-opt}
 

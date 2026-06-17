@@ -6,9 +6,7 @@ tags:
 __int_icon      : 'icon/sqlserver'
 dashboard :
   - desc  : 'SQLServer'
-    path  : 'dashboard/en/sqlserver'
-  - desc  : 'SQLServer-v2'
-    path  : 'dashboard/en/sqlserver-v2'
+    path  : 'dashboard/en/sqlserver_explorer'
 monitor   :
   - desc  : 'SQLServer'
     path  : 'monitor/en/sqlserver'

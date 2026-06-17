@@ -21,6 +21,20 @@ type trackingDiskStatsMock struct {
 	usagePath  []string
 }
 
+type singleDiskStatsMock struct {
+	usage *disk.UsageStat
+}
+
+func (m *singleDiskStatsMock) Usage(_, _ string) (*disk.UsageStat, error) {
+	return m.usage, nil
+}
+
+func (m *singleDiskStatsMock) Partitions() ([]disk.PartitionStat, error) {
+	return []disk.PartitionStat{
+		{Device: "/dev/dm-0", Mountpoint: "/data", Fstype: "ext4"},
+	}, nil
+}
+
 func (m *trackingDiskStatsMock) Usage(path, _ string) (*disk.UsageStat, error) {
 	m.usagePath = append(m.usagePath, path)
 	return &disk.UsageStat{
@@ -148,4 +162,29 @@ func TestGetDiskInfoSkipsIgnoredBeforeUsage(t *T.T) {
 	require.Len(t, disks, 1)
 	assert.Equal(t, "/data", disks[0].MountPoint)
 	assert.Equal(t, []string{"/data"}, stats.usagePath)
+}
+
+func TestGetDiskInfoUsesAvailableSpaceForUsedPercent(t *T.T) {
+	usage := &disk.UsageStat{
+		Total:             100,
+		Free:              20,
+		Used:              70,
+		UsedPercent:       100.0 * 70.0 / (70.0 + 20.0),
+		InodesTotal:       100,
+		InodesFree:        50,
+		InodesUsed:        50,
+		InodesUsedPercent: 50,
+	}
+
+	ipt := defaultInput()
+	ipt.diskStats = &singleDiskStatsMock{usage: usage}
+	ipt.setup()
+
+	disks, usedPercent, err := ipt.getDiskInfo()
+	require.NoError(t, err)
+	require.Len(t, disks, 1)
+
+	assert.Equal(t, usage.UsedPercent, disks[0].UsedPercent)
+	assert.InDelta(t, usage.UsedPercent, usedPercent, 0.000001)
+	assert.NotEqual(t, float64(usage.Used)/float64(usage.Total)*100.0, usedPercent)
 }

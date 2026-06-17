@@ -47,6 +47,7 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"group_in()":               &groupInMarkdown,
 	"kv_split()":               &kvSplitMarkdown,
 	"json()":                   &jsonMarkdown,
+	"json_all()":               &jsonAllMarkdown,
 	"len()":                    &lenMarkdown,
 	"load_json()":              &loadJSONMarkdown,
 	"lowercase()":              &lowercaseMarkdown,
@@ -85,6 +86,7 @@ var PipelineFunctionDocs = map[string]*PLDoc{
 	"point_window()":           &pointWinodoeMarkdown,
 	"window_hit()":             &winHitMarkdown,
 	"pt_kvs_set()":             FnPtKvsSet.Doc[0],
+	"pt_kvs_set_map()":         FnPtKvsSetMap.Doc[0],
 	"pt_kvs_get()":             FnPtKvsGet.Doc[0],
 	"pt_kvs_del()":             FnPtKvsDel.Doc[0],
 	"pt_kvs_keys()":            FnPtKvsKeys.Doc[0],
@@ -122,6 +124,7 @@ var PipelineFunctionDocsEN = map[string]*PLDoc{
 	"group_in()":               &groupInMarkdownEN,
 	"kv_split()":               &kvSplitMarkdownEN,
 	"json()":                   &jsonMarkdownEN,
+	"json_all()":               &jsonAllMarkdownEN,
 	"len()":                    &lenMarkdownEN,
 	"load_json()":              &loadJSONMarkdownEN,
 	"lowercase()":              &lowercaseMarkdownEN,
@@ -160,6 +163,7 @@ var PipelineFunctionDocsEN = map[string]*PLDoc{
 	"point_window()":           &pointWinodoeMarkdownEN,
 	"window_hit()":             &winHitMarkdownEN,
 	"pt_kvs_set()":             FnPtKvsSet.Doc[1],
+	"pt_kvs_set_map()":         FnPtKvsSetMap.Doc[1],
 	"pt_kvs_get()":             FnPtKvsGet.Doc[1],
 	"pt_kvs_del()":             FnPtKvsDel.Doc[1],
 	"pt_kvs_keys()":            FnPtKvsKeys.Doc[1],
@@ -198,6 +202,9 @@ var (
 
 	//go:embed md/json.md
 	docJSON string
+
+	//go:embed md/json_all.md
+	docJSONAll string
 
 	//go:embed md/query_refer_table.md
 	docQueryReferTable string
@@ -553,6 +560,12 @@ var (
 	}
 	jsonMarkdown = PLDoc{
 		Doc: docJSON, Deprecated: false,
+		FnCategory: map[string][]string{
+			langTagZhCN: {cJSON},
+		},
+	}
+	jsonAllMarkdown = PLDoc{
+		Doc: docJSONAll, Deprecated: false,
 		FnCategory: map[string][]string{
 			langTagZhCN: {cJSON},
 		},

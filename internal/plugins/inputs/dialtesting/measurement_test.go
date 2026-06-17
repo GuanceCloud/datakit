@@ -77,6 +77,17 @@ func TestMeasurementInfo(t *testing.T) {
 			},
 		},
 		{
+			name:     "ssl",
+			meas:     &sslMeasurement{},
+			wantName: "ssl_dial_testing",
+			tagKeys:  []string{"dest_host", "dest_port", "dest_ip", "server_name", "proto", LabelDF},
+			fieldKeys: []string{
+				"message", "fail_reason", "response_time", "tls_handshake_time", "tls_version",
+				"ssl_cert_subject", "ssl_cert_issuer", "ssl_cert_not_before", "ssl_cert_not_after",
+				"ssl_cert_expires_in_days", "success", "seq_number", "config_vars", "task_id",
+			},
+		},
+		{
 			name:     "browser",
 			meas:     &browserMeasurement{},
 			wantName: "browser_dial_testing",

@@ -190,21 +190,4 @@ All of the following data collections are appended with a global tag named `host
 
 ## Metric {#metric}
 
-Dialtesting collector could expose some [Prometheus metrics](../datakit/datakit-metrics.md). You can upload these metrics to <<<custom_key.brand_name>>> through [DataKit collector](dk.md). The relevant configuration is as follows:
-
-```toml
-[[inputs.dk]]
-  ......
-
-  metric_name_filter = [
-  
-  ### others...
-  
-  ### dialtesting
-  "datakit_dialtesting_.*",
-
-  ]
-
-  ......
-
-```
+The dialtesting collector exposes [Prometheus metrics](../datakit/datakit-metrics.md). By default, the [DataKit collector](dk.md) collects and uploads these `datakit_dialtesting_*` metrics to <<<custom_key.brand_name>>> without additional configuration.

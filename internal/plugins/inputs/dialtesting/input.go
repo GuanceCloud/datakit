@@ -105,6 +105,7 @@ type Input struct {
 
 	regionName   string
 	regionNameEn string
+	regionNames  atomic.Value // stores regionNames
 
 	curTasks    sync.Map
 	pos         int64 // current largest-task-update-time
@@ -114,6 +115,11 @@ type Input struct {
 	isServerMode bool
 
 	browserConcurrency chan struct{}
+}
+
+type regionNames struct {
+	name   string
+	nameEn string
 }
 
 type BrowserDialConfig struct {
@@ -580,7 +586,7 @@ func (ipt *Input) Run() {
 	ipt.setupBrowserConcurrency()
 
 	// set default region name
-	ipt.regionName = ipt.RegionID
+	ipt.setRegionNames(ipt.RegionID, "")
 
 	switch reqURL.Scheme {
 	case "http", "https":
@@ -644,7 +650,7 @@ func (ipt *Input) doServerTask() {
 					if err := ipt.dispatchTasks(j); err != nil {
 						l.Warnf("dispatchTasks: %s, ignored", err.Error())
 					} else {
-						taskPullCostSummary.WithLabelValues(ipt.regionName, "0").
+						taskPullCostSummary.WithLabelValues(ipt.regionMetricName(), "0").
 							Observe(float64(endPullTime.Sub(startPullTime)) / float64(time.Second))
 					}
 				}
@@ -695,15 +701,6 @@ func (ipt *Input) doLocalTask(path string) {
 }
 
 func (ipt *Input) newTaskRun(t dt.ITask) (*dialer, error) {
-	regionName := ipt.RegionID
-	if len(ipt.regionName) > 0 {
-		regionName = ipt.regionName
-	}
-
-	if t.GetWorkspaceLanguage() == "en" && ipt.regionNameEn != "" {
-		regionName = ipt.regionNameEn
-	}
-
 	switch t.Class() {
 	case dt.ClassHTTP:
 	case dt.ClassHeadless:
@@ -722,6 +719,8 @@ func (ipt *Input) newTaskRun(t dt.ITask) (*dialer, error) {
 		// TODO
 	case dt.ClassGRPC:
 		// TODO
+	case dt.ClassSSL:
+		// TODO
 	case dt.ClassOther:
 		// TODO
 	case RegionInfo:
@@ -736,7 +735,6 @@ func (ipt *Input) newTaskRun(t dt.ITask) (*dialer, error) {
 
 	dialer := newDialer(t, ipt)
 	dialer.done = ipt.semStop.Wait()
-	dialer.regionName = regionName
 
 	func(id string) {
 		g.Go(func(ctx context.Context) error {
@@ -750,6 +748,68 @@ func (ipt *Input) newTaskRun(t dt.ITask) (*dialer, error) {
 	}(t.ID())
 
 	return dialer, nil
+}
+
+func (ipt *Input) dialerRegionNameByLanguage(language string) string {
+	names := ipt.regionNamesSnapshot()
+
+	regionName := ipt.RegionID
+	if len(names.name) > 0 {
+		regionName = names.name
+	}
+
+	if language == "en" && names.nameEn != "" {
+		regionName = names.nameEn
+	}
+
+	return regionName
+}
+
+func (ipt *Input) regionMetricName() string {
+	names := ipt.regionNamesSnapshot()
+	if names.name != "" {
+		return names.name
+	}
+	return ipt.RegionID
+}
+
+func (ipt *Input) regionNamesSnapshot() regionNames {
+	if v := ipt.regionNames.Load(); v != nil {
+		if names, ok := v.(regionNames); ok {
+			return names
+		}
+	}
+
+	return regionNames{
+		name:   ipt.regionName,
+		nameEn: ipt.regionNameEn,
+	}
+}
+
+func (ipt *Input) setRegionNames(name, nameEn string) bool {
+	current := ipt.regionNamesSnapshot()
+	changed := current.name != name || current.nameEn != nameEn
+
+	ipt.regionName = name
+	ipt.regionNameEn = nameEn
+	ipt.regionNames.Store(regionNames{
+		name:   name,
+		nameEn: nameEn,
+	})
+
+	return changed
+}
+
+func (ipt *Input) refreshTaskGaugeRegions() {
+	ipt.curTasks.Range(func(_, value any) bool {
+		dialer, ok := value.(*dialer)
+		if !ok || dialer == nil {
+			return true
+		}
+
+		dialer.refreshTaskGaugeRegion()
+		return true
+	})
 }
 
 func (ipt *Input) browserEnabled() bool {
@@ -868,6 +928,10 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 				continue
 			}
 
+			names := ipt.regionNamesSnapshot()
+			regionName := names.name
+			regionNameEn := names.nameEn
+
 			for k, v := range regionInfo {
 				switch v_ := v.(type) {
 				case bool:
@@ -885,14 +949,17 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 							l.Debugf("ignore tag %s:%s from region info", k, v_)
 						}
 						if k == "name" {
-							ipt.regionName = v_
+							regionName = v_
 						} else if k == "name_en" {
-							ipt.regionNameEn = v_
+							regionNameEn = v_
 						}
 					}
 				default:
 					l.Debugf("ignore key `%s' of type %s", k, reflect.TypeOf(v).String())
 				}
+			}
+			if ipt.setRegionNames(regionName, regionNameEn) {
+				ipt.refreshTaskGaugeRegions()
 			}
 
 		case VariablesInfo:
@@ -955,6 +1022,8 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 				ct = &dt.ICMPTask{}
 			case dt.ClassGRPC:
 				ct = &dt.GRPCTask{}
+			case dt.ClassSSL:
+				ct = &dt.SSLTask{}
 			case dt.ClassOther:
 				// TODO
 				l.Warnf("OTHER task deprecated, ignored")
@@ -988,7 +1057,7 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 
 			l.Debugf("unmarshal task: %+#v", t)
 
-			taskSynchronizedCounter.WithLabelValues(ipt.regionName, t.Class()).Inc()
+			taskSynchronizedCounter.WithLabelValues(ipt.regionMetricName(), t.Class()).Inc()
 
 			// update dialer pos
 			ts := t.UpdateTimeUs()

@@ -10,6 +10,31 @@ import (
 	"time"
 )
 
+func TestIBMIExternalBuildRegistration(t *testing.T) {
+	for _, external := range externals {
+		if external.name != "ibm_i" {
+			continue
+		}
+		if !external.osarchs["linux/amd64"] {
+			t.Fatal("ibm_i external must target linux/amd64")
+		}
+		if external.tags != "ibm_i netgo" {
+			t.Fatalf("ibm_i tags = %q", external.tags)
+		}
+		if envValue(external.envs, "CGO_ENABLED") != "1" {
+			t.Fatal("ibm_i external must enable CGO")
+		}
+		if envValue(external.envs, "CGO_CFLAGS") != "" {
+			t.Fatalf("ibm_i CGO_CFLAGS = %q", envValue(external.envs, "CGO_CFLAGS"))
+		}
+		if envValue(external.envs, "CGO_LDFLAGS") != "" {
+			t.Fatalf("ibm_i CGO_LDFLAGS = %q", envValue(external.envs, "CGO_LDFLAGS"))
+		}
+		return
+	}
+	t.Fatal("ibm_i external build registration is missing")
+}
+
 func Test_getProjectPrefix(t *testing.T) {
 	type args struct {
 		str string

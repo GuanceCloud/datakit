@@ -466,6 +466,28 @@ func Test_validateConfig(t *testing.T) {
 	}
 }
 
+func Test_validateConfig_snmpBatchDefaults(t *testing.T) {
+	ipt := &Input{SNMPVersion: 2}
+	err := ipt.ValidateConfig()
+
+	assert.NoError(t, err)
+	assert.Equal(t, defaultOidBatchSize, ipt.OIDBatchSize)
+	assert.Equal(t, defaultBulkMaxRepetitions, ipt.BulkMaxRepetitions)
+}
+
+func Test_validateConfig_snmpBatchOverrides(t *testing.T) {
+	ipt := &Input{
+		SNMPVersion:        2,
+		OIDBatchSize:       60,
+		BulkMaxRepetitions: 20,
+	}
+	err := ipt.ValidateConfig()
+
+	assert.NoError(t, err)
+	assert.Equal(t, 60, ipt.OIDBatchSize)
+	assert.Equal(t, uint32(20), ipt.BulkMaxRepetitions)
+}
+
 // go test -v -timeout 30s -run ^Test_checkIPWorking_checkIPDone$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp
 func Test_checkIPWorking_checkIPDone(t *testing.T) {
 	deviceIP1 := "1.2.3.4"

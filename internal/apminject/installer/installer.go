@@ -334,6 +334,8 @@ func installHostInject(installDir string, log *logger.Logger) error {
 		return fmt.Errorf("set preload failed: %w", err)
 	}
 
+	prepareAndWarnAppArmor(log, installDir)
+
 	return nil
 }
 

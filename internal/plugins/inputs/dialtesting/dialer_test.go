@@ -459,6 +459,7 @@ type runTaskStub struct {
 	resultTags        map[string]string
 	resultFields      map[string]interface{}
 	renderFn          func(map[string]dt.Variable) error
+	metricNameFunc    func() string
 }
 
 func (r *runTaskStub) ID() string                   { return r.id }
@@ -502,6 +503,13 @@ func (r *runTaskStub) GetResults() (map[string]string, map[string]interface{}) {
 		r.resultFields = map[string]interface{}{}
 	}
 	return r.resultTags, r.resultFields
+}
+
+func (r *runTaskStub) MetricName() string {
+	if r.metricNameFunc != nil {
+		return r.metricNameFunc()
+	}
+	return r.headlessTaskStub.MetricName()
 }
 
 func TestWorkerRunConsumerPaths(t *testing.T) {
@@ -655,8 +663,8 @@ func TestPointsFeed(t *testing.T) {
 		"unknown_tag": "ignored",
 	}
 
+	ipt.setRegionNames("test-node", "")
 	d := newDialer(task, ipt)
-	d.regionName = "test-node"
 	d.dfTags = map[string]string{
 		LabelDF:  "[]",
 		"df_tag": "df-value",
@@ -1111,6 +1119,16 @@ func TestNewDialer(t *testing.T) {
 			child = &dt.WebsocketTask{URL: "ws://example.com"}
 		case dt.ClassGRPC:
 			child = &dt.GRPCTask{Server: "127.0.0.1:9529"}
+		case dt.ClassSSL:
+			child = &dt.SSLTask{
+				Host: "example.com",
+				Port: "443",
+				SuccessWhen: []*dt.SSLSuccess{
+					{
+						ResponseTime: "1s",
+					},
+				},
+			}
 		default:
 			t.Fatalf("unsupported class %s", class)
 		}
@@ -1130,6 +1148,7 @@ func TestNewDialer(t *testing.T) {
 		{name: "icmp", class: dt.ClassICMP},
 		{name: "websocket", class: dt.ClassWebsocket},
 		{name: "grpc", class: dt.ClassGRPC},
+		{name: "ssl", class: dt.ClassSSL},
 	}
 
 	for _, tc := range cases {
@@ -1171,8 +1190,9 @@ func TestFeedIO(t *testing.T) {
 			failInfo:   map[string]int{},
 		}
 
-		d := newDialer(task, defaultInput())
-		d.regionName = "test-region"
+		ipt := defaultInput()
+		ipt.setRegionNames("test-region", "")
+		d := newDialer(task, ipt)
 		d.dialingTime = time.Unix(100, 0)
 
 		assert.NoError(t, d.feedIO())
@@ -1204,6 +1224,8 @@ func TestFeedIO(t *testing.T) {
 			failInfo:   map[string]int{},
 		}
 
+		ipt := defaultInput()
+		ipt.setRegionNames("test-region", "")
 		d := &dialer{
 			task: &runTaskStub{
 				id:           "browser-task",
@@ -1213,8 +1235,7 @@ func TestFeedIO(t *testing.T) {
 				resultTags:   map[string]string{},
 				resultFields: map[string]interface{}{},
 			},
-			ipt:         defaultInput(),
-			regionName:  "test-region",
+			ipt:         ipt,
 			class:       dt.ClassHeadless,
 			dialingTime: time.Unix(100, 0),
 		}
@@ -1228,6 +1249,46 @@ func TestFeedIO(t *testing.T) {
 			assert.Equal(t, dt.ClassHeadless, job.class)
 		default:
 			t.Fatal("expected browser point to be queued")
+		}
+	})
+
+	t.Run("ssl task feeds points", func(t *testing.T) {
+		oldWorker := dialWorker
+		defer func() { dialWorker = oldWorker }()
+		dialWorker = &worker{
+			jobChans:   make(chan *jobData, 1),
+			pointCache: map[string]*DataCache{},
+			failInfo:   map[string]int{},
+		}
+
+		ipt := defaultInput()
+		ipt.setRegionNames("test-region", "")
+
+		d := &dialer{
+			task: &runTaskStub{
+				id:             "ssl-task",
+				class:          dt.ClassSSL,
+				postURL:        "http://example.com?token=test",
+				externalID:     "ssl-task",
+				resultTags:     map[string]string{"status": "OK"},
+				resultFields:   map[string]interface{}{"success": int64(1)},
+				metricNameFunc: func() string { return "ssl_dial_testing" },
+			},
+			ipt:         ipt,
+			class:       dt.ClassSSL,
+			dialingTime: time.Unix(100, 0),
+		}
+
+		assert.NoError(t, d.feedIO())
+		assert.Contains(t, d.category, "/v1/write/logging")
+
+		select {
+		case job := <-dialWorker.jobChans:
+			require.NotNil(t, job)
+			assert.Equal(t, dt.ClassSSL, job.class)
+			assert.Contains(t, job.pt.LineProto(), "ssl_dial_testing")
+		default:
+			t.Fatal("expected ssl point to be queued")
 		}
 	})
 
@@ -1480,7 +1541,7 @@ func TestDialerRun(t *testing.T) {
 		err := d.run()
 		require.NoError(t, err)
 		assert.Same(t, stopTask, d.task)
-		assert.Empty(t, d.regionName)
+		assert.Empty(t, d.regionName())
 		assert.Equal(t, "[]", d.dfTags[LabelDF])
 	})
 

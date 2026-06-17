@@ -460,7 +460,7 @@ func getICMPSequence() uint16 {
 	return icmpSequence
 }
 
-func doPing(timeout time.Duration, target string) (rtt time.Duration, err error) {
+func doPing(timeout time.Duration, target string) (rtt time.Duration, received bool, err error) {
 	// limit icmp concurrent
 	isReturnCh := false
 	if ICMPConcurrentCh != nil {
@@ -471,7 +471,7 @@ func doPing(timeout time.Duration, target string) (rtt time.Duration, err error)
 			isReturnCh = true
 		case <-waitCtx.Done():
 			logger.Errorf("exceed max icmp concurrent %d", len(ICMPConcurrentCh))
-			return 0, nil
+			return 0, false, nil
 		}
 
 		defer func() {
@@ -498,7 +498,7 @@ func doPing(timeout time.Duration, target string) (rtt time.Duration, err error)
 	{
 		dstIPAddr, _, err = chooseProtocol(timeout, "ip4", true, target)
 		if err != nil {
-			return 0, fmt.Errorf("error resolving address: %w", err)
+			return 0, false, fmt.Errorf("error resolving address: %w", err)
 		}
 		srcIP := net.ParseIP("::")
 		privileged := true
@@ -520,7 +520,7 @@ func doPing(timeout time.Duration, target string) (rtt time.Duration, err error)
 			if privileged {
 				icmpConn, err = icmp.ListenPacket("ip6:ipv6-icmp", srcIP.String())
 				if err != nil {
-					return 0, fmt.Errorf("error listening to socket: %w", err)
+					return 0, false, fmt.Errorf("error listening to socket: %w", err)
 				}
 			}
 			defer icmpConn.Close() // nolint: errcheck
@@ -542,7 +542,7 @@ func doPing(timeout time.Duration, target string) (rtt time.Duration, err error)
 			if privileged {
 				icmpConn, err = icmp.ListenPacket("ip4:icmp", srcIP.String())
 				if err != nil {
-					return 0, fmt.Errorf("error listening to socket: %w", err)
+					return 0, false, fmt.Errorf("error listening to socket: %w", err)
 				}
 			}
 			defer icmpConn.Close() // nolint: errcheck
@@ -572,14 +572,14 @@ func doPing(timeout time.Duration, target string) (rtt time.Duration, err error)
 
 		wb, err = wm.Marshal(nil)
 		if err != nil {
-			return 0, fmt.Errorf("error marshaling packet: %w", err)
+			return 0, false, fmt.Errorf("error marshaling packet: %w", err)
 		}
 
 		rttStart = time.Now()
 
 		_, err = icmpConn.WriteTo(wb, dst)
 		if err != nil {
-			return 0, fmt.Errorf("error writing to socket: %w", err)
+			return 0, false, fmt.Errorf("error writing to socket: %w", err)
 		}
 
 		// Reply should be the same except for the message type and ID if
@@ -592,7 +592,7 @@ func doPing(timeout time.Duration, target string) (rtt time.Duration, err error)
 		}
 		wb, err = wm.Marshal(nil)
 		if err != nil {
-			return 0, fmt.Errorf("error marshaling packet: %w", err)
+			return 0, false, fmt.Errorf("error marshaling packet: %w", err)
 		}
 
 		if idUnknown {
@@ -606,7 +606,7 @@ func doPing(timeout time.Duration, target string) (rtt time.Duration, err error)
 		deadline := time.Now().Add(timeout)
 		err = icmpConn.SetReadDeadline(deadline)
 		if err != nil {
-			return 0, fmt.Errorf("error setting socket deadline: %w", err)
+			return 0, false, fmt.Errorf("error setting socket deadline: %w", err)
 		}
 	}
 
@@ -621,9 +621,9 @@ func doPing(timeout time.Duration, target string) (rtt time.Duration, err error)
 		}
 		if err != nil {
 			if nerr, ok := err.(net.Error); ok && nerr.Timeout() { // nolint: errorlint
-				return 0, nil
+				return 0, false, nil
 			}
-			return 0, fmt.Errorf("error reading from socket: %w", err)
+			return 0, false, fmt.Errorf("error reading from socket: %w", err)
 		}
 		if peer.String() != dst.String() {
 			//  if read time is too big, then return concurrent channel
@@ -649,9 +649,17 @@ func doPing(timeout time.Duration, target string) (rtt time.Duration, err error)
 		}
 		if bytes.Equal(rb[:n], wb) {
 			rtt = time.Since(rttStart)
-			return rtt, nil
+			rtt = normalizeICMPRTT(rtt)
+			return rtt, true, nil
 		}
 	}
+}
+
+func normalizeICMPRTT(rtt time.Duration) time.Duration {
+	if rtt <= 0 {
+		return time.Microsecond
+	}
+	return rtt
 }
 
 // Returns the IP for the ipproto and lookup time.
@@ -742,12 +750,12 @@ func pingTarget(target string, count int, interval, timeout time.Duration) (stat
 	rtts := []time.Duration{}
 	for i := 0; i < count; i++ {
 		err = func() error {
-			rtt, err := doPing(timeout, target)
+			rtt, received, err := doPing(timeout, target)
 			if err != nil {
 				return fmt.Errorf("ping failed: %w", err)
 			}
 			stat.PacketsSent++
-			if rtt > 0 {
+			if received {
 				stat.PacketsRecv++
 				rtts = append(rtts, rtt)
 			} else {

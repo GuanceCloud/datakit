@@ -29,7 +29,7 @@ github.com/DataDog/sketches-go/ddsketch/mapping
 github.com/DataDog/sketches-go/ddsketch/pb/sketchpb
 github.com/DataDog/sketches-go/ddsketch/stat
 github.com/DataDog/sketches-go/ddsketch/store
-# github.com/GuanceCloud/cliutils v1.1.22-0.20260603061016-8df3b4b6d625
+# github.com/GuanceCloud/cliutils v1.1.22-0.20260617063530-d4c5e91791c9
 ## explicit; go 1.25
 github.com/GuanceCloud/cliutils
 github.com/GuanceCloud/cliutils/aggregate
@@ -84,7 +84,7 @@ github.com/GuanceCloud/confd/backends/vault
 github.com/GuanceCloud/confd/backends/zookeeper
 github.com/GuanceCloud/confd/log
 github.com/GuanceCloud/confd/util
-# github.com/GuanceCloud/grok v1.1.5-0.20260603093938-df62b49f2f01
+# github.com/GuanceCloud/grok v1.1.5-0.20260617045039-38219b0a7154
 ## explicit; go 1.18
 github.com/GuanceCloud/grok
 github.com/GuanceCloud/grok/internal/backend
@@ -102,7 +102,7 @@ github.com/GuanceCloud/kubernetes/pkg/probe/exec
 # github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386
 ## explicit; go 1.18
 github.com/GuanceCloud/mdcheck/check
-# github.com/GuanceCloud/pipeline-go v1.3.2-0.20260603101002-58d46086c6f7
+# github.com/GuanceCloud/pipeline-go v1.3.2-0.20260617045458-79ef0a886fb9
 ## explicit; go 1.19
 github.com/GuanceCloud/pipeline-go
 github.com/GuanceCloud/pipeline-go/constants
@@ -200,6 +200,10 @@ github.com/ProtonMail/go-crypto/openpgp/x448
 # github.com/VictoriaMetrics/easyproto v0.1.4
 ## explicit; go 1.18
 github.com/VictoriaMetrics/easyproto
+# github.com/alexbrainman/odbc v0.0.0-20250601004241-49e6b2bc0cf0
+## explicit
+github.com/alexbrainman/odbc
+github.com/alexbrainman/odbc/api
 # github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
 ## explicit
 github.com/aliyun/aliyun-oss-go-sdk/oss

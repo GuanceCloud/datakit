@@ -30,6 +30,7 @@ const (
 	ClassWebsocket = "WEBSOCKET"
 	ClassICMP      = "ICMP"
 	ClassGRPC      = "GRPC"
+	ClassSSL       = "SSL"
 	ClassDNS       = "DNS"
 	ClassHeadless  = "BROWSER"
 	ClassOther     = "OTHER"
@@ -40,7 +41,7 @@ const (
 	ScheduleTypeFrequency = "frequency"
 )
 
-var logger = log.DefaultSLogger("icmp")
+var logger = log.DefaultSLogger("dialtesting")
 
 var (
 	setupLock        sync.Mutex // setup global variable
@@ -243,6 +244,9 @@ func CreateTaskChild(taskType string) (TaskChild, error) {
 
 	case "grpc", ClassGRPC:
 		ct = &GRPCTask{}
+
+	case "ssl", ClassSSL:
+		ct = &SSLTask{}
 
 	default:
 		return nil, fmt.Errorf("unknown task type %s", taskType)

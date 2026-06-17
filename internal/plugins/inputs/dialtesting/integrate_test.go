@@ -272,6 +272,21 @@ func assertSelectedMeasurements(selected []string) func(pts []*point.Point) erro
 		"websocket_dial_testing": {
 			measurement: &websocketMeasurement{},
 		},
+		"ssl_dial_testing": {
+			measurement: &sslMeasurement{},
+			optionalFields: []string{
+				"fail_reason",
+				"tls_version",
+				"ssl_cert_subject",
+				"ssl_cert_issuer",
+				"ssl_cert_not_before",
+				"ssl_cert_not_after",
+				"ssl_cert_expires_in_days",
+			},
+			optionalTags: []string{
+				"server_name",
+			},
+		},
 	}
 
 	return func(pts []*point.Point) error {

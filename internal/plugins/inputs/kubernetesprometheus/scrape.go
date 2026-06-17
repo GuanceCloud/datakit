@@ -30,8 +30,9 @@ type scrapeManagerInterface interface {
 type scraper interface {
 	targetURL() string
 	shouldScrape() bool
-	scrape(timestamp int64) error
-	shouldRetry(maxScrapeRetry int) (bool, int)
+	scrape(ctx context.Context, timestamp int64) error
+	canScrape(now time.Time) bool
+	recordFailure(interval time.Duration) (int, time.Time)
 	resetRetryCount()
 	isTerminated() bool
 	markAsTerminated()
@@ -45,6 +46,7 @@ type scrapeManager struct {
 	podmonitorStore     *scrapeStore
 	servicemonitorStore *scrapeStore
 
+	ctx           context.Context
 	workerChan    chan scraper
 	runWorkerOnce sync.Once
 	mu            sync.Mutex
@@ -60,25 +62,30 @@ func newScrapeManager() scrapeManagerInterface {
 		podStore:            newScrapeStore(),
 		podmonitorStore:     newScrapeStore(),
 		servicemonitorStore: newScrapeStore(),
+		ctx:                 context.Background(),
 		workerChan:          make(chan scraper, defaultScraperChanNum),
 	}
 }
 
 func (s *scrapeManager) registerScrape(role Role, key, traits string, sp scraper) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	ctx := s.ctx
+	s.mu.Unlock()
 
 	select {
 	case s.workerChan <- sp:
-		s.store(role).addTraits(key, traits)
-		s.store(role).addScraper(key, sp)
-	default:
-		klog.Warnf("manager channel is stuffed, register failed for key %s", key)
+	case <-ctx.Done():
 		return
 	}
 
-	klog.Infof("%s added scraper url %s for %s, current len(%d)", role, sp.targetURL(), key, s.store(role).scraperCount(key))
-	scraperNumberVec.WithLabelValues(string(role), key).Add(1)
+	s.mu.Lock()
+	s.store(role).addTraits(key, traits)
+	s.store(role).addScraper(key, sp)
+	count := s.store(role).scraperCount(key)
+	s.mu.Unlock()
+
+	klog.Infof("%s added scraper url %s for %s, current len(%d)", role, sp.targetURL(), key, count)
+	scraperNumberVec.WithLabelValues(string(role), aggregateMetricLabel).Add(1)
 }
 
 func (s *scrapeManager) refreshTraits(role Role, key string, traits string) {
@@ -104,12 +111,12 @@ func (s *scrapeManager) isScrapeExists(role Role, key string, targetURL string) 
 
 func (s *scrapeManager) removeScrape(role Role, key string) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	count := s.store(role).deleteKeyAndTerminateScrapers(key)
+	s.mu.Unlock()
+
 	if count != 0 {
 		klog.Infof("%s terminated scraper len(%d) for key %s", role, count, key)
-		scraperNumberVec.WithLabelValues(string(role), key).Sub(float64(count))
+		scraperNumberVec.WithLabelValues(string(role), aggregateMetricLabel).Sub(float64(count))
 	}
 }
 
@@ -135,6 +142,10 @@ func (s *scrapeManager) tryCleanScrapes(role Role, key string, keepTargetURLs []
 
 func (s *scrapeManager) runWorker(ctx context.Context, workerNum int, scrapeInterval time.Duration) {
 	s.runWorkerOnce.Do(func() {
+		s.mu.Lock()
+		s.ctx = ctx
+		s.mu.Unlock()
+
 		managerGo.Go(func(_ context.Context) error {
 			ticker := time.NewTicker(time.Minute)
 			defer ticker.Stop()
@@ -142,7 +153,6 @@ func (s *scrapeManager) runWorker(ctx context.Context, workerNum int, scrapeInte
 			for {
 				select {
 				case <-ctx.Done():
-					s.stop()
 					klog.Info("manager exit")
 					return nil
 
@@ -178,22 +188,16 @@ func (s *scrapeManager) doWork(ctx context.Context, name string, scrapeInterval 
 		case <-ctx.Done():
 			return
 
-		case sp, ok := <-s.workerChan:
-			if !ok {
-				klog.Warnf("%s: channel is closed, exit", name)
-				return
+		case sp := <-s.workerChan:
+			if len(tasks) >= maxTasksPerWorker {
+				klog.Warnf("%s: tasks is over recommended limit %d", name, maxTasksPerWorker)
 			}
-
-			if len(tasks) > maxTasksPerWorker {
-				klog.Warnf("%s: tasks is over limit %d", name, maxTasksPerWorker)
+			if _, exists := tasks[sp.targetURL()]; !exists {
+				klog.Debugf("%s: add scraper %s", name, sp.targetURL())
 			} else {
-				if _, exists := tasks[sp.targetURL()]; !exists {
-					klog.Debugf("%s: add scraper %s", name, sp.targetURL())
-				} else {
-					klog.Infof("%s: replace scraper %s", name, sp.targetURL())
-				}
-				tasks[sp.targetURL()] = sp
+				klog.Infof("%s: replace scraper %s", name, sp.targetURL())
 			}
+			tasks[sp.targetURL()] = sp
 
 		case tt := <-ticker.C:
 			start = inputs.AlignTime(tt, start, scrapeInterval)
@@ -204,35 +208,29 @@ func (s *scrapeManager) doWork(ctx context.Context, name string, scrapeInterval 
 					removeTasks = append(removeTasks, task.targetURL())
 					continue
 				}
-				if task.shouldScrape() {
-					err := task.scrape(start.UnixNano())
-					if err == nil {
-						task.resetRetryCount()
-						continue
-					}
+				if !task.shouldScrape() || !task.canScrape(tt) {
+					continue
+				}
 
-					if promscrape.IsRetryableScrapeError(err) {
-						klog.Warnf("%s: failed to scrape url %s, err %s, target kept", name, task.targetURL(), err)
-						continue
-					}
+				err := task.scrape(ctx, start.UnixNano())
+				if err == nil {
+					task.resetRetryCount()
+					continue
+				}
 
-					retry, count := task.shouldRetry(maxScrapeRetry)
-					klog.Warnf("%s: failed to scrape url %s, err %s, retry count %d of %d", name, task.targetURL(), err, count, maxScrapeRetry)
-
-					if !retry {
-						klog.Warnf("%s: task %s will be removed", name, task.targetURL())
-						task.markAsTerminated()
-						removeTasks = append(removeTasks, task.targetURL())
-					}
+				count, nextRetry := task.recordFailure(scrapeInterval)
+				if shouldLogScrapeFailure(count) {
+					klog.Warnf(
+						"%s: failed to scrape url %s, err %s, retryable=%t, failures=%d, next retry at %s",
+						name, task.targetURL(), err, promscrape.IsRetryableScrapeError(err),
+						count, nextRetry.Format(time.RFC3339),
+					)
 				}
 			}
 
-			if len(removeTasks) != 0 {
-				for _, taskURL := range removeTasks {
-					delete(tasks, taskURL)
-				}
+			for _, taskURL := range removeTasks {
+				delete(tasks, taskURL)
 			}
-
 			taskNumerVec.WithLabelValues(name).Set(float64(len(tasks)))
 		}
 	}
@@ -255,15 +253,6 @@ func (s *scrapeManager) cleanDeadScraper() {
 	}
 }
 
-func (s *scrapeManager) stop() {
-	select {
-	case <-s.workerChan:
-		// nil
-	default:
-		close(s.workerChan)
-	}
-}
-
 func (s *scrapeManager) store(role Role) *scrapeStore {
 	switch role {
 	case RoleNode:
@@ -282,6 +271,35 @@ func (s *scrapeManager) store(role Role) *scrapeStore {
 		// unreachable
 		return nil
 	}
+}
+
+func scrapeBackoff(interval time.Duration, failures int) time.Duration {
+	if interval <= 0 {
+		interval = time.Second
+	}
+	delay := interval
+	for i := 1; i < failures && delay < maxScrapeBackoff; i++ {
+		if delay >= maxScrapeBackoff/2 {
+			return maxScrapeBackoff
+		}
+		delay *= 2
+	}
+	if delay > maxScrapeBackoff {
+		return maxScrapeBackoff
+	}
+	return delay
+}
+
+func scrapeJitter(delay time.Duration) time.Duration {
+	maxJitter := delay / 10
+	if maxJitter <= 0 {
+		return 0
+	}
+	return time.Duration(rand.Int63n(int64(maxJitter))) //nolint:gosec
+}
+
+func shouldLogScrapeFailure(failures int) bool {
+	return failures <= 1 || failures&(failures-1) == 0
 }
 
 type scrapeStore struct {
@@ -335,7 +353,7 @@ func (store *scrapeStore) cleanDeadScraper(roleName string) int {
 
 		if num != 0 {
 			store.scrapers[key] = newScrapers
-			scraperNumberVec.WithLabelValues(roleName, key).Sub(float64(num))
+			scraperNumberVec.WithLabelValues(roleName, aggregateMetricLabel).Sub(float64(num))
 			count += num
 		}
 	}

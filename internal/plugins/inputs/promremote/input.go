@@ -226,13 +226,17 @@ func (ipt *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
 	}
 
 	promReq := reqPool.Get().(*prompb.WriteRequest)
-	if err := promReq.Unmarshal(bytes); err != nil {
-		l.Errorf("unable to unmarshal request body: %w", err)
-	}
 	defer func() {
 		promReq.Reset()
 		reqPool.Put(promReq)
 	}()
+	if err := promReq.Unmarshal(bytes); err != nil {
+		l.Errorf("unable to unmarshal request body: %v", err)
+		if err := badRequest(res); err != nil {
+			l.Debugf("error in bad-request: %v", err)
+		}
+		return
+	}
 
 	pts, err := ipt.Parse(promReq.Timeseries, ipt, additionalTags)
 	if err != nil {

@@ -20,14 +20,18 @@ type option struct {
 	measurement         string
 	keepExistMetricName bool
 	honorTimestamps     bool
+	maxBodySize         int64
+	maxSamples          int
+	maxLabels           int
 
 	extraTags map[string]string
 	callback  func([]*point.Point) error
 }
 
 type optionClientConn struct {
-	timeout   time.Duration
-	keepAlive time.Duration
+	timeout        time.Duration
+	requestTimeout time.Duration
+	keepAlive      time.Duration
 
 	tlsOpen            bool
 	cacertFiles        []string
@@ -79,10 +83,42 @@ func WithTimeout(dur time.Duration) Option {
 	}
 }
 
+func WithRequestTimeout(dur time.Duration) Option {
+	return func(opt *option) {
+		if dur > 0 {
+			opt.requestTimeout = dur
+		}
+	}
+}
+
 func WithKeepAlive(dur time.Duration) Option {
 	return func(opt *option) {
 		if dur > 0 {
 			opt.keepAlive = dur
+		}
+	}
+}
+
+func WithMaxBodySize(size int64) Option {
+	return func(opt *option) {
+		if size > 0 {
+			opt.maxBodySize = size
+		}
+	}
+}
+
+func WithMaxSamples(count int) Option {
+	return func(opt *option) {
+		if count > 0 {
+			opt.maxSamples = count
+		}
+	}
+}
+
+func WithMaxLabels(count int) Option {
+	return func(opt *option) {
+		if count > 0 {
+			opt.maxLabels = count
 		}
 	}
 }

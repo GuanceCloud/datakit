@@ -6,6 +6,8 @@
 package kubernetesprometheus
 
 import (
+	"time"
+
 	"github.com/GuanceCloud/cliutils/logger"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
@@ -21,8 +23,12 @@ var (
 	annotationPrometheusioParamMeasurement = "prometheus.io/param_measurement"
 	annotationPrometheusioParamTags        = "prometheus.io/param_tags"
 
-	maxTasksPerWorker = 100
-	maxScrapeRetry    = 10
+	defaultScrapeTimeout       = 10 * time.Second
+	defaultMaxScrapeSize       = int64(32 * 1024 * 1024)
+	defaultMaxSamplesPerScrape = 200000
+	defaultMaxLabelsPerSample  = 64
+	maxScrapeBackoff           = 5 * time.Minute
+	maxTasksPerWorker          = 100
 )
 
 var (

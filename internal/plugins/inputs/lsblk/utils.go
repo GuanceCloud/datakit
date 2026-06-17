@@ -345,13 +345,16 @@ func setFilesystemStats(device *BlockDeviceStat) {
 		return
 	}
 
-	device.FSSize = float64(stat.Blocks * uint64(stat.Bsize))
-	device.FSUsed = float64((stat.Blocks - stat.Bfree) * uint64(stat.Bsize))
-	device.FSAvail = float64(stat.Bavail * uint64(stat.Bsize))
+	setFilesystemStatsFromStat(device, stat.Blocks, stat.Bfree, stat.Bavail, uint64(stat.Bsize))
+}
 
-	// "if file system size is zero, cannot calculate usage percentage"
-	if device.FSSize != 0 {
-		device.FSUsePercent = (device.FSUsed / device.FSSize) * 100
+func setFilesystemStatsFromStat(device *BlockDeviceStat, blocks, bfree, bavail, bsize uint64) {
+	device.FSSize = float64(blocks * bsize)
+	device.FSUsed = float64((blocks - bfree) * bsize)
+	device.FSAvail = float64(bavail * bsize)
+
+	if device.FSUsed+device.FSAvail != 0 {
+		device.FSUsePercent = device.FSUsed / (device.FSUsed + device.FSAvail) * 100
 	}
 }
 

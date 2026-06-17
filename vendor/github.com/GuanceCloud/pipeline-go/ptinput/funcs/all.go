@@ -52,6 +52,7 @@ var FuncsMap = map[string]runtime.FuncCall{
 	"delete":                 DeleteMapItem,
 	"adjust_timezone":        AdjustTimezone,
 	"json":                   JSON,
+	"json_all":               JSONAll,
 	"add_pattern":            AddPattern,
 	"b64dec":                 B64dec,
 	"b64enc":                 B64enc,
@@ -110,6 +111,7 @@ var FuncsMap = map[string]runtime.FuncCall{
 	"point_window":           PtWindow,
 	"window_hit":             PtWindowHit,
 	"pt_kvs_set":             FnPtKvsSet.Call,
+	"pt_kvs_set_map":         FnPtKvsSetMap.Call,
 	"pt_kvs_get":             FnPtKvsGet.Call,
 	"pt_kvs_del":             FnPtKvsDel.Call,
 	"pt_kvs_keys":            FnPtKvsKeys.Call,
@@ -119,9 +121,6 @@ var FuncsMap = map[string]runtime.FuncCall{
 	"strlen": StrLen,
 
 	"setopt": Setopt,
-
-	// disable
-	"json_all": JSONAll,
 }
 
 var FuncsCheckMap = map[string]runtime.FuncCheck{
@@ -134,6 +133,7 @@ var FuncsCheckMap = map[string]runtime.FuncCheck{
 	"delete":                 DeleteMapItemChecking,
 	"adjust_timezone":        AdjustTimezoneChecking,
 	"json":                   JSONChecking,
+	"json_all":               JSONAllChecking,
 	"add_pattern":            AddPatternChecking,
 	"b64dec":                 B64decChecking,
 	"b64enc":                 B64encChecking,
@@ -192,15 +192,13 @@ var FuncsCheckMap = map[string]runtime.FuncCheck{
 	"point_window":           PtWindowChecking,
 	"window_hit":             PtWindowHitChecking,
 
-	"pt_kvs_set":   FnPtKvsSet.Check,
-	"pt_kvs_get":   FnPtKvsGet.Check,
-	"pt_kvs_del":   FnPtKvsDel.Check,
-	"pt_kvs_keys":  FnPtKvsKeys.Check,
-	"hash":         FnHash.Check,
-	"slice_string": FnSliceString.Check,
-
-	// disable
-	"json_all": JSONAllChecking,
+	"pt_kvs_set":     FnPtKvsSet.Check,
+	"pt_kvs_set_map": FnPtKvsSetMap.Check,
+	"pt_kvs_get":     FnPtKvsGet.Check,
+	"pt_kvs_del":     FnPtKvsDel.Check,
+	"pt_kvs_keys":    FnPtKvsKeys.Check,
+	"hash":           FnHash.Check,
+	"slice_string":   FnSliceString.Check,
 
 	"strlen": StrLenChecking,
 	"setopt": SetoptChecking,

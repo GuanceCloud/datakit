@@ -189,21 +189,4 @@ graph TD
 
 ## 拨测采集器自身指标采集 {#metric}
 
-拨测采集器会暴露 [Prometheus 指标](../datakit/datakit-metrics.md)，如果需要上报这些指标至<<<custom_key.brand_name>>>，可以通过 [DataKit 采集器](dk.md) 进行采集，相关配置参考如下：
-
-```toml
-[[inputs.dk]]
-  ......
-
-  metric_name_filter = [
-  
-  ### others...
-  
-  ### dialtesting
-  "datakit_dialtesting_.*",
-
-  ]
-
-  ......
-
-```
+拨测采集器会暴露 [Prometheus 指标](../datakit/datakit-metrics.md)。默认情况下，[DataKit 采集器](dk.md) 会采集这些 `datakit_dialtesting_*` 指标并上报至<<<custom_key.brand_name>>>，无需额外配置。

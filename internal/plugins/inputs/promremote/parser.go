@@ -10,6 +10,7 @@ import (
 	"math"
 	"regexp"
 	"time"
+	"unicode/utf8"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/prometheus/common/model"
@@ -42,6 +43,10 @@ func (p *Parser) Parse(timeSeries []prompb.TimeSeries, ipt *Input, additionalTag
 		timeOpt = point.WithTime(now)
 		opts    = append(point.DefaultMetricOptions(), timeOpt)
 	)
+	validMetricNames := map[string]struct{}{}
+	validLabelNames := map[string]struct{}{
+		model.MetricNameLabel: {},
+	}
 
 	demoSource, ok := additionalTags["__source"]
 	if !ok {
@@ -57,13 +62,45 @@ func (p *Parser) Parse(timeSeries []prompb.TimeSeries, ipt *Input, additionalTag
 		ts := &timeSeries[_i]
 		tags := map[string][]byte{}
 
-		var ok bool
-		var metric string
-		for _, l := range ts.Labels {
+		var (
+			ok                bool
+			metric            string
+			previousLabelName string
+		)
+		for idx, l := range ts.Labels {
 			lName := string(l.Name)
 			if lName == model.MetricNameLabel {
 				ok = true
 				metric = string(l.Value)
+				if _, ok := validMetricNames[metric]; !ok {
+					if !model.IsValidMetricName(model.LabelValue(metric)) {
+						return nil, fmt.Errorf("invalid prometheus metric name %q", metric)
+					}
+					validMetricNames[metric] = struct{}{}
+				}
+			} else if _, ok := validLabelNames[lName]; !ok {
+				if !model.LabelName(lName).IsValid() {
+					return nil, fmt.Errorf("invalid prometheus label name %q", lName)
+				}
+				validLabelNames[lName] = struct{}{}
+			}
+			if !utf8.Valid(l.Value) {
+				return nil, fmt.Errorf("invalid prometheus label value for %q", lName)
+			}
+			if len(l.Value) == 0 {
+				return nil, fmt.Errorf("empty prometheus label value for %q", lName)
+			}
+			if idx > 0 {
+				switch {
+				case lName == previousLabelName:
+					return nil, fmt.Errorf("duplicate prometheus label name %q", lName)
+				case lName < previousLabelName:
+					return nil, fmt.Errorf("prometheus label name %q is out of order", lName)
+				}
+			}
+			previousLabelName = lName
+
+			if lName == model.MetricNameLabel {
 				continue
 			}
 			if ipt.tagFilter(lName) {

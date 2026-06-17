@@ -25,6 +25,7 @@ default_enabled_inputs = [
   "cpu",
   "disk",
   "diskio",
+  "dk",
   "host_processes",
   "hostobject",
   "mem",

@@ -42,6 +42,8 @@ const (
 	optionLightpandaPathCamel = "lightpandaPath"
 	optionChromePath          = "chrome_path"
 	optionChromePathCamel     = "chromePath"
+
+	browserSystemErrorMessage = "Browser dial testing system error, please check agent logs"
 )
 
 type BrowserTask struct {
@@ -597,8 +599,9 @@ func (t *BrowserTask) getResults() (tags map[string]string, fields map[string]in
 		fields["message"] = "success"
 	} else {
 		reasons, _ := t.checkResult()
-		fields["fail_reason"] = strings.Join(reasons, ";")
-		fields["message"] = strings.Join(reasons, ";")
+		displayReasons := t.displayReasons(reasons)
+		fields["fail_reason"] = strings.Join(displayReasons, ";")
+		fields["message"] = strings.Join(displayReasons, ";")
 		fields["failure_type"] = t.result.FailureType
 		if fields["failure_type"] == "" && t.reqError != "" {
 			fields["failure_type"] = "config_error"
@@ -607,15 +610,16 @@ func (t *BrowserTask) getResults() (tags map[string]string, fields map[string]in
 	if len(t.result.TraceIDs) > 0 {
 		fields["trace_id"] = t.result.TraceIDs[0]
 	}
-	if steps, err := json.Marshal(compactBrowserSteps(t.result.Steps)); err == nil {
+	displayError := t.displayRunnerError()
+	if steps, err := json.Marshal(sanitizeBrowserSteps(compactBrowserSteps(t.result.Steps), displayError)); err == nil {
 		fields["steps"] = string(steps)
 	}
 	if len(result.retryRecords) > 0 {
-		if data, err := json.Marshal(result.retryRecords); err == nil {
+		if data, err := json.Marshal(sanitizeBrowserRetryRecords(result.retryRecords, displayError)); err == nil {
 			fields["retry_records"] = string(data)
 		}
 	} else if len(t.result.RetryRecords) > 0 {
-		if data, err := json.Marshal(t.result.RetryRecords); err == nil {
+		if data, err := json.Marshal(sanitizeBrowserRetryRecords(t.result.RetryRecords, displayError)); err == nil {
 			fields["retry_records"] = string(data)
 		}
 	}
@@ -681,6 +685,89 @@ func compactBrowserSteps(steps []browserDialStep) []browserDialStep {
 		}
 	}
 	return compact
+}
+
+func (t *BrowserTask) displayReasons(reasons []string) []string {
+	if displayError := t.displayRunnerError(); displayError != "" {
+		raw := strings.Join(reasons, ";")
+		if raw == "" {
+			raw = t.runnerErrorText()
+		}
+		logger.Warnf("browser runner error sanitized for dialtesting result: %s", raw)
+		return []string{displayError}
+	}
+	return reasons
+}
+
+func (t *BrowserTask) displayRunnerError() string {
+	if !t.isRunnerError() {
+		return ""
+	}
+	return browserSystemErrorMessage
+}
+
+func (t *BrowserTask) isRunnerError() bool {
+	return strings.EqualFold(t.result.FailReason, "runner_error")
+}
+
+func (t *BrowserTask) runnerErrorText() string {
+	parts := []string{t.reqError, t.result.FailReason}
+	if t.result.Error != nil {
+		parts = append(parts, t.result.Error.Message)
+	}
+	for _, step := range t.result.Steps {
+		if step.Error != nil {
+			parts = append(parts, step.Error.Message)
+		}
+	}
+	for _, record := range t.result.RetryRecords {
+		parts = append(parts, record.Message)
+	}
+	return strings.Join(parts, "\n")
+}
+
+func sanitizeBrowserSteps(steps []browserDialStep, displayError string) []browserDialStep {
+	if displayError == "" || len(steps) == 0 {
+		return steps
+	}
+
+	out := make([]browserDialStep, len(steps))
+	copy(out, steps)
+	for i := range out {
+		if out[i].Error == nil {
+			continue
+		}
+		errInfo := *out[i].Error
+		errInfo.Message = displayError
+		errInfo.Stack = ""
+		out[i].Error = &errInfo
+	}
+	return out
+}
+
+func sanitizeBrowserRetryRecords(records []browserRetryRecord, displayError string) []browserRetryRecord {
+	if len(records) == 0 {
+		return records
+	}
+
+	out := make([]browserRetryRecord, len(records))
+	copy(out, records)
+	for i := range out {
+		if !isBrowserRunnerRetryRecord(out[i]) {
+			continue
+		}
+		if displayError != "" {
+			out[i].Message = displayError
+		} else {
+			out[i].Message = browserSystemErrorMessage
+		}
+	}
+	return out
+}
+
+func isBrowserRunnerRetryRecord(record browserRetryRecord) bool {
+	return strings.EqualFold(record.FailReason, "runner_error") ||
+		strings.EqualFold(record.FailureType, "runner_error")
 }
 
 func (t *BrowserTask) check() error {

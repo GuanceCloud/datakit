@@ -7,6 +7,8 @@
 package promscrape
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -68,7 +70,12 @@ func buildHTTPClient(opt *optionClientConn) (*http.Client, error) {
 		clientOpts.TLSClientConfig = conf
 	}
 
-	return httpcli.Cli(clientOpts), nil
+	client := httpcli.Cli(clientOpts)
+	client.Timeout = opt.requestTimeout
+	if transport, ok := client.Transport.(*http.Transport); ok {
+		transport.ResponseHeaderTimeout = opt.requestTimeout
+	}
+	return client, nil
 }
 
 func (p *PromScraper) SetTimestamp(timestamp int64) {
@@ -76,7 +83,11 @@ func (p *PromScraper) SetTimestamp(timestamp int64) {
 }
 
 func (p *PromScraper) ScrapeURL(u string) error {
-	req, err := p.newRequest(u)
+	return p.ScrapeURLWithContext(context.Background(), u)
+}
+
+func (p *PromScraper) ScrapeURLWithContext(ctx context.Context, u string) error {
+	req, err := p.newRequest(ctx, u)
 	if err != nil {
 		return &ScrapeError{URL: u, Err: err}
 	}
@@ -98,14 +109,39 @@ func (p *PromScraper) ScrapeURL(u string) error {
 		return &ScrapeError{URL: u, StatusCode: resp.StatusCode}
 	}
 
-	return p.ParserStream(resp.Body)
+	reader := io.Reader(resp.Body)
+	if p.opt.maxBodySize > 0 {
+		reader = &limitReader{reader: reader, remaining: p.opt.maxBodySize}
+	}
+	return p.ParserStream(reader)
 }
 
 func (p *PromScraper) ParserStream(in io.Reader) error {
 	defaultTimestamp := time.Unix(0, 0).UnixNano() / 1e6
 	isGzipped := false
+	samples := 0
 
-	return ParseStream(in, defaultTimestamp, isGzipped, p.callbackForRow)
+	return ParseStream(in, defaultTimestamp, isGzipped, func(rows []Row) error {
+		if err := p.validateRows(rows, &samples); err != nil {
+			return err
+		}
+		return p.callbackForRow(rows)
+	})
+}
+
+func (p *PromScraper) validateRows(rows []Row, samples *int) error {
+	if p.opt.maxSamples > 0 && *samples+len(rows) > p.opt.maxSamples {
+		return fmt.Errorf("prometheus sample limit exceeded: %d", p.opt.maxSamples)
+	}
+	*samples += len(rows)
+
+	for i := range rows {
+		row := &rows[i]
+		if p.opt.maxLabels > 0 && len(row.Tags)+len(p.opt.extraTags) > p.opt.maxLabels {
+			return fmt.Errorf("prometheus label limit exceeded: %d", p.opt.maxLabels)
+		}
+	}
+	return nil
 }
 
 func (p *PromScraper) callbackForRow(rows []Row) error {
@@ -137,8 +173,8 @@ func (p *PromScraper) callbackForRow(rows []Row) error {
 	return p.opt.callback(pts)
 }
 
-func (p *PromScraper) newRequest(u string) (*http.Request, error) {
-	req, err := http.NewRequest("GET", u, nil)
+func (p *PromScraper) newRequest(ctx context.Context, u string) (*http.Request, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", u, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -157,6 +193,30 @@ func (p *PromScraper) newRequest(u string) (*http.Request, error) {
 	}
 
 	return req, nil
+}
+
+var errBodySizeLimit = errors.New("prometheus response body size limit exceeded")
+
+type limitReader struct {
+	reader    io.Reader
+	remaining int64
+}
+
+func (r *limitReader) Read(buf []byte) (int, error) {
+	if r.remaining <= 0 {
+		var probe [1]byte
+		n, err := r.reader.Read(probe[:])
+		if n > 0 {
+			return 0, errBodySizeLimit
+		}
+		return 0, err
+	}
+	if int64(len(buf)) > r.remaining {
+		buf = buf[:r.remaining]
+	}
+	n, err := r.reader.Read(buf)
+	r.remaining -= int64(n)
+	return n, err
 }
 
 func (p *PromScraper) resetBearerToken() {

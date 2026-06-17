@@ -7,7 +7,7 @@ require (
 	github.com/DataDog/datadog-agent/pkg/obfuscate v0.47.1
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/GuanceCloud/confd v0.1.101
-	github.com/GuanceCloud/grok v1.1.5-0.20260603093938-df62b49f2f01
+	github.com/GuanceCloud/grok v1.1.5-0.20260617045039-38219b0a7154
 	github.com/GuanceCloud/platypus v0.3.5-0.20260529080946-6085d331d151
 	github.com/IBM/sarama v1.49.0
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible // indirect
@@ -362,7 +362,7 @@ require (
 )
 
 require (
-	github.com/GuanceCloud/cliutils v1.1.22-0.20260603061016-8df3b4b6d625
+	github.com/GuanceCloud/cliutils v1.1.22-0.20260617063530-d4c5e91791c9
 	github.com/VictoriaMetrics/easyproto v0.1.4 // indirect
 	github.com/andybalholm/brotli v1.0.4
 	github.com/avvmoto/buf-readerat v0.0.0-20171115124131-a17c8cb89270 // indirect
@@ -380,10 +380,11 @@ require (
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
-	github.com/GuanceCloud/pipeline-go v1.3.2-0.20260603101002-58d46086c6f7
+	github.com/GuanceCloud/pipeline-go v1.3.2-0.20260617045458-79ef0a886fb9
 	github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go v0.0.0-20260601093339-95d5c63392d4
 	github.com/GuanceCloud/tracing-protos/pinpoint-gen-go v0.0.0-20260601093339-95d5c63392d4
 	github.com/GuanceCloud/tracing-protos/skywalking-gen-go v0.0.0-20260601093339-95d5c63392d4
+	github.com/alexbrainman/odbc v0.0.0-20250601004241-49e6b2bc0cf0
 	github.com/go-redis/redis/v8 v8.11.3
 	github.com/hipages/php-fpm_exporter v1.2.1
 	github.com/redis/go-redis/v9 v9.12.0

@@ -8,11 +8,9 @@ package kubernetesprometheus
 import (
 	"context"
 	"fmt"
-	"time"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 	infov1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -21,21 +19,21 @@ import (
 )
 
 type Service struct {
-	role      Role
-	clientset *kubernetes.Clientset
-	informer  infov1.ServiceInformer
-	queue     workqueue.DelayingInterface
-	store     cache.Store
+	role              Role
+	informer          infov1.ServiceInformer
+	endpointsInformer infov1.EndpointsInformer
+	queue             workqueue.DelayingInterface
+	store             cache.Store
+	endpointsStore    cache.Store
 
-	instances  []*Instance
-	svcTraits  map[string]string // It is safe from race conditions
-	svcCancels map[string]context.CancelFunc
-	scrape     scrapeManagerInterface
-	feeder     dkio.Feeder
+	instances []*Instance
+	svcTraits map[string]string // It is safe from race conditions
+	scrape    scrapeManagerInterface
+	feeder    dkio.Feeder
 }
 
 func NewService(
-	clientset *kubernetes.Clientset,
+	_ *kubernetes.Clientset,
 	informerFactory informers.SharedInformerFactory,
 	instances []*Instance,
 	scrape scrapeManagerInterface,
@@ -45,25 +43,30 @@ func NewService(
 	if informer == nil {
 		return nil, fmt.Errorf("cannot get service informer")
 	}
-	return &Service{
-		role:      RoleService,
-		clientset: clientset,
-		informer:  informer,
-		queue:     workqueue.NewNamedDelayingQueue(string(RoleService)),
-		store:     informer.Informer().GetStore(),
+	endpointsInformer := informerFactory.Core().V1().Endpoints()
+	if endpointsInformer == nil {
+		return nil, fmt.Errorf("cannot get endpoints informer")
+	}
 
-		instances:  instances,
-		svcTraits:  make(map[string]string),
-		svcCancels: make(map[string]context.CancelFunc),
-		scrape:     scrape,
-		feeder:     feeder,
+	return &Service{
+		role:              RoleService,
+		informer:          informer,
+		endpointsInformer: endpointsInformer,
+		queue:             workqueue.NewNamedDelayingQueue(string(RoleService)),
+		store:             informer.Informer().GetStore(),
+		endpointsStore:    endpointsInformer.Informer().GetStore(),
+
+		instances: instances,
+		svcTraits: make(map[string]string),
+		scrape:    scrape,
+		feeder:    feeder,
 	}, nil
 }
 
 func (s *Service) Run(ctx context.Context) {
 	defer s.queue.ShutDown()
 
-	s.informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	handler := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			s.enqueue(obj)
 		},
@@ -73,7 +76,9 @@ func (s *Service) Run(ctx context.Context) {
 		DeleteFunc: func(obj interface{}) {
 			s.enqueue(obj)
 		},
-	})
+	}
+	s.informer.Informer().AddEventHandler(handler)
+	s.endpointsInformer.Informer().AddEventHandler(handler)
 
 	managerGo.Go(func(_ context.Context) error {
 		for s.process(ctx) {
@@ -119,25 +124,46 @@ func (s *Service) process(ctx context.Context) bool {
 	}
 
 	if shouldSkipService(svc) {
+		s.terminateScrape(key)
 		return true
 	}
 
-	traits := serviceTraits(svc)
+	obj, exists, err = s.endpointsStore.GetByKey(key)
+	if err != nil {
+		return true
+	}
+	if !exists {
+		s.terminateScrape(key)
+		return true
+	}
+	ep, ok := obj.(*corev1.Endpoints)
+	if !ok {
+		klog.Warnf("converting to Endpoints object failed, %v", obj)
+		return true
+	}
+	if shouldSkipEndpoints(ep) {
+		s.terminateScrape(key)
+		return true
+	}
+
+	traits := serviceTraits(svc) + "::" + endpointsTraits(ep)
 	if svcTraits, ok := s.svcTraits[key]; ok && svcTraits == traits {
 		return true
 	}
 
 	klog.Infof("discovered Service %s", key)
 	s.terminateScrape(key)
-	s.startScrape(ctx, key, traits, svc)
+	s.startScrape(ctx, key, traits, svc, ep)
 	return true
 }
 
-func (s *Service) startScrape(ctx context.Context, key, traits string, item *corev1.Service) {
-	ctx, cancel := context.WithCancel(ctx)
-
+func (s *Service) startScrape(
+	ctx context.Context,
+	key, traits string,
+	item *corev1.Service,
+	ep *corev1.Endpoints,
+) {
 	s.svcTraits[key] = traits
-	s.svcCancels[key] = cancel
 
 	for idx, ins := range s.instances {
 		if !ins.validator.Matches(item.Namespace, item.Labels) {
@@ -150,45 +176,19 @@ func (s *Service) startScrape(ctx context.Context, key, traits string, item *cor
 		}
 
 		idxKey := fmt.Sprintf("%s::index%d", key, idx)
-
-		// record idxKey
 		klog.Infof("added Service %s", idxKey)
 
-		namespace := item.Namespace
-		name := item.Name
 		endpointsInstance := pr.transToEndpointsInstance(ins)
-
-		managerGo.Go(func(_ context.Context) error {
-			tick := time.NewTicker(time.Second * 20)
-			defer tick.Stop()
-
-			for {
-				select {
-				case <-ctx.Done():
-					s.scrape.removeScrape(s.role, idxKey)
-					klog.Infof("svc-ep %s exit", idxKey)
-					return nil
-
-				case <-tick.C:
-					// Maybe the Service Name and Endpoint Name are not the same, so the Selector should be used here.
-					ep, err := s.clientset.CoreV1().Endpoints(namespace).Get(context.Background(), name, metav1.GetOptions{})
-					if err != nil {
-						klog.Warnf("get endpoints fail %s", err)
-					} else {
-						tryCreateScrapeForEndpoints(ctx, s.role, idxKey, ep, endpointsInstance, s.scrape, s.feeder)
-					}
-				}
-			}
-		})
+		tryCreateScrapeForEndpoints(ctx, s.role, idxKey, ep, endpointsInstance, s.scrape, s.feeder)
 	}
 }
 
 func (s *Service) terminateScrape(key string) {
 	delete(s.svcTraits, key)
-	if cancel, ok := s.svcCancels[key]; ok {
-		cancel()
+	for idx := range s.instances {
+		idxKey := fmt.Sprintf("%s::index%d", key, idx)
+		s.scrape.removeScrape(s.role, idxKey)
 	}
-	delete(s.svcCancels, key)
 	klog.Infof("%s for key %s was terminated", s.role, key)
 }
 

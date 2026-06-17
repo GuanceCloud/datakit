@@ -273,6 +273,7 @@ func (ipt *Input) getDiskInfo() ([]*diskInfo, float64, error) {
 		infos []*diskInfo
 		usedPercent,
 		total, // use float64 to avoid overflow
+		free,
 		used float64
 	)
 
@@ -324,14 +325,15 @@ func (ipt *Input) getDiskInfo() ([]*diskInfo, float64, error) {
 		// the sum of disk total and used.
 		total += float64(usage.Total)
 		used += float64(usage.Used)
+		free += float64(usage.Free)
 
-		l.Debugf("get disk %+#v, total: %f, used: %f", info, total, used)
+		l.Debugf("get disk %+#v, total: %f, used: %f, free: %f", info, total, used, free)
 		infos = append(infos, info)
 	}
 
 	// disk used percent
-	if total > 0 {
-		usedPercent = used / total * 100
+	if used+free > 0 {
+		usedPercent = used / (used + free) * 100
 	}
 
 	return infos, usedPercent, nil

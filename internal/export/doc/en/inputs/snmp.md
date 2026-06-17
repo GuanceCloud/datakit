@@ -87,6 +87,510 @@ If you choose v3 version, you need to provide `v3_user/v3_auth_protocol/v3_auth_
 
 ### Multiple configuration formats {#configuration-formats}
 
+#### Built-in Profile Format {#advanced-custom-oid}
+
+A built-in Profile uses YAML to describe the device `sysObjectID`, OIDs to collect, metric types, tags, and metadata.
+
+This format is suitable when:
+
+- The built-in Profiles do not cover the device model;
+- Vendor-specific MIB metrics need to be added;
+- The device returns numeric values as String/OCTET STRING;
+- Device metadata needs to be added.
+
+Profile YAML is different from Zabbix Template and Prometheus `snmp_exporter` formats. Their fields cannot be mixed.
+
+##### Prepare OID Information {#profile-prepare-oid}
+
+Before writing a Profile, obtain the device MIB/OID manual and use `snmpget` or `snmpwalk` to verify the actual values returned by the device. At minimum, confirm:
+
+- The `sysObjectID`, which is the value of OID `1.3.6.1.2.1.1.2.0`;
+- Whether each metric is a scalar or a table column;
+- The metric OID, data type, meaning, and unit;
+- The complete String/OCTET STRING value format;
+- The table index and tag columns that distinguish each row.
+
+##### Add a Profile {#profile-add}
+
+Place the YAML file in the `conf.d/snmp/profiles/` directory under the DataKit installation directory. For example:
+
+```text
+/usr/local/datakit/conf.d/snmp/profiles/vendor-router.yaml
+```
+
+File requirements:
+
+- The extension must be `.yaml`;
+- The file name must not start with `_`; files starting with `_` are inheritance templates only;
+- Do not use the same file name as an existing built-in Profile, because DataKit releases built-in files with the same name during startup;
+- Back up site-specific YAML files before upgrading DataKit.
+
+Restart DataKit after adding the file.
+
+##### Basic Structure {#profile-structure}
+
+```yaml
+extends:
+  - generic-router.yaml
+
+sysobjectid: 1.3.6.1.4.1.<enterprise_id>.<product_id>
+
+device:
+  vendor: vendor_name
+
+static_tags:
+  - "device_type:router"
+
+metadata:
+  device:
+    fields:
+      model:
+        symbol:
+          OID: 1.3.6.1.4.1.<enterprise_id>.1.1.0
+          name: vendorModel
+
+metric_tags:
+  - symbol:
+      OID: 1.3.6.1.2.1.1.5.0
+      name: sysName
+    tag: snmp_host
+
+metrics:
+  - MIB: VENDOR-MIB
+    symbol:
+      OID: 1.3.6.1.4.1.<enterprise_id>.2.1.0
+      name: vendor.system.cpu_usage
+      metric_type: gauge
+```
+
+Root-level fields:
+
+| Field | Required | Description |
+| --- | --- | --- |
+| `extends` | No | Inherits other Profiles to reuse common metrics and metadata |
+| `sysobjectid` | Required for automatic matching | A string or list of strings; supports the `*` wildcard |
+| `device.vendor` | No | Generates the `device_vendor` tag and serves as the fallback device vendor metadata |
+| `static_tags` | No | Fixed `key:value` tags applied to Profile data |
+| `metadata` | No | Device metadata definitions |
+| `metric_tags` | No | Profile-level dynamic tags generated from scalar OIDs |
+| `metrics` | No | Scalar and table metric definitions |
+
+`MIB` and `table` improve YAML readability but do not determine which SNMP queries are executed. DataKit queries the OIDs configured in `symbol`, `symbols`, `metric_tags`, and `metadata`.
+
+##### Inherit Profiles {#profile-inheritance}
+
+Use `extends` to inherit existing Profiles. Metrics, tags, and metadata from inherited Profiles are merged into the current Profile, reducing duplicate standard MIB configuration.
+
+```yaml
+extends:
+  - _base.yaml
+  - _generic-if.yaml
+```
+
+Installed Profiles are located in `conf.d/snmp/profiles/`. Before writing YAML, check the files starting with `_` in this directory and select reusable templates provided by the current DataKit version. Common templates include:
+
+| Profile | Purpose |
+| --- | --- |
+| `_base.yaml` | Common device tags and basic device metadata |
+| `_generic-if.yaml` | IF-MIB interface metrics and interface metadata |
+| `_generic-ip.yaml` | IP-MIB metrics |
+| `_generic-tcp.yaml` | TCP-MIB metrics |
+| `_generic-udp.yaml` | UDP-MIB metrics |
+| `_generic-ospf.yaml` | OSPF-MIB metrics |
+| `_generic-bgp4.yaml` | BGP4-MIB metrics |
+| `_generic-lldp.yaml` | LLDP metrics and metadata |
+| `_generic-entity-sensor.yaml` | ENTITY-SENSOR-MIB sensor metrics |
+| `_generic-host-resources.yaml` | HOST-RESOURCES-MIB host resource metrics |
+| `_generic-ups.yaml` | Common UPS metrics |
+| `_cisco-generic.yaml` | Common Cisco interface, IP, TCP, UDP, OSPF, BGP, CPU, memory, and metadata definitions |
+| `_huawei.yaml` | Common Huawei interface and vendor metadata definitions |
+| `_juniper.yaml` | Common Juniper base configuration and vendor metadata |
+
+Files starting with `_` are inheritance templates and do not independently participate in automatic `sysObjectID` matching. A complete Profile without the `_` prefix can also be inherited. For example:
+
+```yaml
+extends:
+  - generic-router.yaml
+```
+
+`generic-router.yaml` already inherits `_base.yaml`, `_generic-if.yaml`, `_generic-ip.yaml`, `_generic-tcp.yaml`, `_generic-udp.yaml`, and `_generic-ospf.yaml`. Do not inherit these files again after inheriting `generic-router.yaml`.
+
+For a Cisco device, inherit the common Cisco template and add device-specific metrics:
+
+```yaml
+extends:
+  - _base.yaml
+  - _cisco-generic.yaml
+
+sysobjectid: 1.3.6.1.4.1.9.1.<product_id>
+```
+
+Notes:
+
+- File names in `extends` are resolved relative to `conf.d/snmp/profiles/`;
+- Multiple and nested inheritance are supported, but circular inheritance is not allowed;
+- Metrics, dynamic tags, and static tags are appended during merging;
+- A metadata field defined by the current Profile is not overwritten by inherited content;
+- Do not inherit a template that an upper-level Profile already includes, or duplicate metrics and tags may be generated;
+- More inherited modules result in more OID queries. Select modules according to the MIBs supported by the device.
+
+##### sysObjectID Matching {#profile-sysobjectid}
+
+Exact match:
+
+```yaml
+sysobjectid: 1.3.6.1.4.1.99999.1.2
+```
+
+Wildcard match:
+
+```yaml
+sysobjectid: 1.3.6.1.4.1.99999.*
+```
+
+Match multiple models:
+
+```yaml
+sysobjectid:
+  - 1.3.6.1.4.1.99999.1.*
+  - 1.3.6.1.4.1.99999.2.*
+```
+
+When multiple Profiles match, DataKit selects the more specific rule. Different Profiles must not define the same `sysobjectid`. Use vendor- or product-specific values whenever possible to prevent a broad rule from matching unrelated devices.
+
+For example, `1.3.6.1.4.1.8072.3.2.10` is a common Net-SNMP Linux `sysObjectID`, not a value exclusive to a specific device vendor.
+
+##### Scalar Metrics {#profile-scalar-metrics}
+
+A scalar has one value and is defined with `symbol`. Scalar OIDs usually end with `.0`:
+
+```yaml
+metrics:
+  - MIB: VENDOR-SYSTEM-MIB
+    symbol:
+      OID: 1.3.6.1.4.1.99999.1.2.0
+      name: vendor.system.cpu_usage
+      metric_type: gauge
+```
+
+##### Table Metrics {#profile-table-metrics}
+
+A table contains multiple rows. Use `symbols` to define the columns to collect and `metric_tags` to distinguish each row:
+
+```yaml
+metrics:
+  - MIB: IF-MIB
+    table:
+      OID: 1.3.6.1.2.1.2.2
+      name: ifTable
+    symbols:
+      - OID: 1.3.6.1.2.1.2.2.1.10
+        name: vendor.interface.in_octets
+        metric_type: monotonic_count
+      - OID: 1.3.6.1.2.1.2.2.1.16
+        name: vendor.interface.out_octets
+        metric_type: monotonic_count
+    metric_tags:
+      - symbol:
+          OID: 1.3.6.1.2.1.31.1.1.1.1
+          name: ifName
+        tag: interface
+```
+
+A table must have at least one tag that distinguishes its rows. Otherwise, multiple rows may have identical tags and only one row will be retained.
+
+Tags can also be generated from the OID row index. `index` starts at `1`:
+
+```yaml
+metric_tags:
+  - index: 1
+    tag: disk_index
+```
+
+For a composite row index of `3.24`, the following configuration generates `slot:3` and `port:24`:
+
+```yaml
+metric_tags:
+  - index: 1
+    tag: slot
+  - index: 2
+    tag: port
+```
+
+##### Convert String Values to Numbers {#profile-string-to-number}
+
+Metric field values must be numeric. A numeric String/OCTET STRING such as `"52.20"` can be converted directly. If the value contains a unit or other characters, use `extract_value` to extract the first capture group.
+
+For a device value of `STRING: "5331MB"`:
+
+```yaml
+- OID: 1.3.6.1.4.1.99999.2.1.4
+  name: vendor.disk.used
+  extract_value: '^([0-9]+[.]?[0-9]*)MB$'
+  metric_type: gauge
+```
+
+For a device value of `STRING: "52.20%"`:
+
+```yaml
+- OID: 1.3.6.1.4.1.99999.2.1.6
+  name: vendor.disk.used_percent
+  extract_value: '^([0-9]+[.]?[0-9]*)%?$'
+  metric_type: gauge
+```
+
+Notes:
+
+- The regular expression must contain at least one capture group. DataKit only uses the first group;
+- Enclose regular expressions in single quotes and use `^` and `$` to match the complete value;
+- Go regular expression syntax is used. Lookahead and lookbehind are not supported;
+- A value is not reported when the regular expression does not match;
+- Plain text String values should be configured as tags or metadata instead of time-series metric values.
+
+##### Metric Types and Value Scaling {#profile-metric-type}
+
+The following `metric_type` values are recommended for custom Profiles:
+
+| Type | Use Case |
+| --- | --- |
+| `gauge` | Current values that can increase or decrease, such as utilization, temperature, capacity, and connection count |
+| `monotonic_count` | Monotonically increasing cumulative values, such as byte, packet, and request counts |
+
+`metric_type` can be configured on an individual `symbol`, or at the table metric root to apply to all its `symbols`. A value configured on an individual `symbol` takes precedence. When omitted, DataKit infers the type from the SNMP return type and uses `gauge` when it cannot infer a type.
+
+Use `scale_factor` for numeric conversion. For example, if the device returns `5234` but the actual value is `52.34%`:
+
+```yaml
+- OID: 1.3.6.1.4.1.99999.1.2.0
+  name: vendor.system.cpu_usage
+  scale_factor: 0.01
+  metric_type: gauge
+```
+
+`scale_factor` only affects the final reported metric value. For a String metric, use `extract_value` first and then apply `scale_factor`.
+
+##### Report a Fixed Value of 1 {#profile-constant-value-one}
+
+When a table represents a set of entities but has no suitable numeric column, use `constant_value_one` to report a fixed value of `1` for every row:
+
+```yaml
+metrics:
+  - MIB: VENDOR-DISK-MIB
+    table:
+      OID: 1.3.6.1.4.1.99999.3.1
+      name: vendorDiskTable
+    symbols:
+      - name: vendor.disk.present
+        constant_value_one: true
+    metric_tags:
+      - symbol:
+          OID: 1.3.6.1.4.1.99999.3.1.1
+          name: diskName
+        tag: disk_name
+      - symbol:
+          OID: 1.3.6.1.4.1.99999.3.1.2
+          name: diskState
+        tag: disk_state
+        mapping:
+          1: normal
+          2: warning
+          3: failed
+```
+
+`constant_value_one` can only be used in table `symbols`, not scalar metrics. Do not configure an OID for this symbol, but configure its `name` and at least one OID-based `metric_tags.symbol` without `index_transform`, so DataKit can discover the table rows.
+
+##### Tags {#profile-tags}
+
+Use root-level `static_tags` to add fixed tags:
+
+```yaml
+static_tags:
+  - "device_type:router"
+  - "environment:production"
+```
+
+Root-level `metric_tags` generate dynamic tags from scalar OIDs and apply them to device metrics:
+
+```yaml
+metric_tags:
+  - symbol:
+      OID: 1.3.6.1.2.1.1.5.0
+      name: sysName
+    tag: snmp_host
+```
+
+Within a table, `metric_tags` can use `mapping` to convert raw values into readable tag values:
+
+```yaml
+metric_tags:
+  - symbol:
+      OID: 1.3.6.1.4.1.99999.3.1.2
+      name: diskState
+    tag: disk_state
+    mapping:
+      1: normal
+      2: warning
+      3: failed
+```
+
+Use `match` and `tags` to generate multiple tags from one table column value:
+
+```yaml
+metric_tags:
+  - symbol:
+      OID: 1.3.6.1.4.1.99999.4.1.2
+      name: interfaceLabel
+    match: '^([A-Za-z]+)-([0-9]+)$'
+    tags:
+      interface_type: '$1'
+      interface_number: '$2'
+```
+
+For a raw value of `ethernet-12`, this generates `interface_type:ethernet` and `interface_number:12`. A non-empty `tags` mapping is required when `match` is configured. No tag is generated when the regular expression does not match.
+
+When the metric table and tag source table use different index structures, use `index_transform` to extract and rebuild the index:
+
+```yaml
+metric_tags:
+  - symbol:
+      OID: 1.3.6.1.4.1.99999.5.1.2
+      name: parentName
+    index_transform:
+      - start: 1
+        end: 2
+      - start: 6
+        end: 7
+    tag: parent_name
+```
+
+For a current index of `1.2.3.4.5.6.7.8`, the transformed index is `2.3.7.8`. Both `start` and `end` are zero-based, and the value at `end` is included. This option is only needed for cross-table association.
+
+##### Metadata {#profile-metadata}
+
+A custom Profile can add device metadata through `metadata.device`. Supported fields are `name`, `description`, `sys_object_id`, `location`, `serial_number`, `vendor`, `version`, `product_name`, `model`, `os_name`, `os_version`, `os_hostname`, and `type`. A field can obtain its value from a scalar OID or use a fixed `value`:
+
+```yaml
+metadata:
+  device:
+    fields:
+      name:
+        symbol:
+          OID: 1.3.6.1.2.1.1.5.0
+          name: sysName
+      serial_number:
+        symbol:
+          OID: 1.3.6.1.4.1.99999.1.1.0
+          name: vendorSerialNumber
+      vendor:
+        value: vendor_name
+      type:
+        value: router
+```
+
+A field can define multiple candidate `symbols`. DataKit uses the first OID that returns a value. Use `match_pattern` and `match_value` to extract or replace text:
+
+```yaml
+metadata:
+  device:
+    fields:
+      model:
+        symbols:
+          - OID: 1.3.6.1.4.1.99999.1.2.0
+            name: vendorModel
+          - OID: 1.3.6.1.2.1.1.1.0
+            name: sysDescr
+            match_pattern: 'Model[=: ]+([A-Za-z0-9._-]+)'
+            match_value: '$1'
+```
+
+When `match_value` is omitted, the first capture group `$1` is used. If the regular expression does not match, DataKit tries the next candidate `symbol`.
+
+After inheriting `_generic-if.yaml` or `generic-router.yaml`, common interface metadata is already included and usually does not need to be configured again.
+
+##### Metric Naming {#profile-metric-naming}
+
+Metric names are converted before reporting according to these rules:
+
+1. If the name contains an underscore `_`, all dots `.` are replaced with underscores `_`;
+1. If the name contains no underscore `_`, dots `.` are removed and the first letter after each dot is converted to uppercase;
+1. A name without dots `.` remains unchanged.
+
+Examples:
+
+| Profile `name` | Reported Field Name |
+| --- | --- |
+| `sangfor.disk.used` | `sangforDiskUsed` |
+| `sangfor.disk.used_percent` | `sangfor_disk_used_percent` |
+| `vendor.interface.in_octets` | `vendor_interface_in_octets` |
+| `cpu_usage` | `cpu_usage` |
+
+The same conversion applies to tag keys but not tag values.
+
+Use one naming style consistently within a Profile. A dot-separated name without underscores, such as `vendor.disk.used`, or an underscore name without dots, such as `vendor_disk_used`, can be used. Avoid mixing dots and underscores because all dots will then be converted to underscores. Existing built-in Profiles commonly use names such as `huawei.hwEntityTemperature`, which is reported as `huaweiHwEntityTemperature`.
+
+##### Complete Example {#profile-example}
+
+The following example inherits common router metrics and collects device metadata, a numeric scalar, String disk metrics, and an entity-presence metric:
+
+```yaml
+extends:
+  - generic-router.yaml
+
+sysobjectid: 1.3.6.1.4.1.99999.1.2
+
+device:
+  vendor: vendor_name
+
+metadata:
+  device:
+    fields:
+      model:
+        symbol:
+          OID: 1.3.6.1.4.1.99999.1.1.0
+          name: vendorModel
+
+metrics:
+  - MIB: VENDOR-SYSTEM-MIB
+    symbol:
+      OID: 1.3.6.1.4.1.99999.1.2.0
+      name: vendor.system.cpu_usage
+      metric_type: gauge
+
+  - MIB: VENDOR-DISK-MIB
+    table:
+      OID: 1.3.6.1.4.1.99999.2.1
+      name: vendorDiskTable
+    symbols:
+      - OID: 1.3.6.1.4.1.99999.2.1.4
+        name: vendor.disk.used
+        extract_value: '^([0-9]+[.]?[0-9]*)MB$'
+        metric_type: gauge
+      - OID: 1.3.6.1.4.1.99999.2.1.6
+        name: vendor.disk.used_percent
+        extract_value: '^([0-9]+[.]?[0-9]*)%?$'
+        metric_type: gauge
+      - name: vendor.disk.present
+        constant_value_one: true
+    metric_tags:
+      - index: 1
+        tag: disk_index
+      - symbol:
+          OID: 1.3.6.1.4.1.99999.2.1.2
+          name: diskName
+        tag: disk_name
+```
+
+##### Validation and Troubleshooting {#profile-troubleshooting}
+
+Common issues:
+
+- Profile not matched: Check the device's actual `sysObjectID`, wildcard range, and whether a more specific matching rule exists;
+- YAML not loaded: Check the file extension, file name, indentation, and Profile validation errors in the DataKit logs;
+- No OID data: Run `snmpget` or `snmpwalk` with the same SNMP version and authentication settings as DataKit;
+- String metric not reported: Check that `extract_value` contains a capture group and matches the complete actual value;
+- Only one table row reported: Add `metric_tags` that distinguish every row;
+- Metric skipped: Confirm that the final value can be converted to a number, and check `metric_type` and `scale_factor`.
+
 #### Zabbix format {#format-zabbix}
 
 - Config
@@ -399,11 +903,11 @@ In "specified device mode", DataKit communicates with the specified IP device us
 
 In "auto-discovery mode", DataKit sends SNMP packets to all address in the specified IP segment one by one, and if the response matches the corresponding profile, DataKit assumes that there is a SNMP device on that IP.
 
-### Device not support {#faq-not-support}
+### Device Not Supported {#faq-not-support}
 
-DataKit collects generic basic metrics from all devices. If you can't find the metric you want, you can [write a custom profile](snmp.md#advanced-custom-oid).
+DataKit collects common baseline metrics from SNMP devices. If the collected data does not contain the required metrics, you may need to [add a custom Profile](snmp.md#advanced-custom-oid).
 
-To archiving this, you probably needs to download the device's OID manual from its official website.
+To do this, obtain the OID manual for the device model from the vendor's website.
 
 ### Can't see any metrics after configuration? {#faq-no-metrics}
 
@@ -412,4 +916,3 @@ To archiving this, you probably needs to download the device's OID manual from i
 Try loosening ACLs/firewall rules for your devices.
 
 Run `snmpwalk -O bentU -v 2c -c <COMMUNITY_STRING> <IP_ADDRESS>:<PORT> 1.3.6` from the host DataKit is running on. If you get a timeout without any response, there is likely something blocking DataKit from collecting metrics from your device.
-

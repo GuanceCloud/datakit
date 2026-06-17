@@ -146,7 +146,8 @@ func (ipt *Input) precheck() error {
 func (ipt *Input) start() error {
 	ipt.getCustomQuery()
 
-	log.Infof("starting %s cmd %s %s, envs: %+#v", ipt.Name, ipt.Cmd, strings.Join(ipt.Args, " "), ipt.Envs)
+	log.Infof("starting %s cmd %s %s, envs: %+#v",
+		ipt.Name, ipt.Cmd, strings.Join(redactArgs(ipt.Args), " "), redactEnvs(ipt.Envs))
 	ipt.cmd = exec.Command(ipt.Cmd, ipt.Args...) //nolint:gosec
 	if ipt.Envs != nil {
 		ipt.cmd.Env = ipt.Envs
@@ -169,9 +170,53 @@ func (ipt *Input) start() error {
 	return nil
 }
 
+func redactArgs(args []string) []string {
+	result := append([]string(nil), args...)
+	redactNext := false
+	for i, arg := range result {
+		if redactNext {
+			result[i] = "<redacted>"
+			redactNext = false
+			continue
+		}
+
+		flag, _, hasValue := strings.Cut(arg, "=")
+		switch strings.ToLower(flag) {
+		case "--password", "--dsn":
+			if hasValue {
+				result[i] = flag + "=<redacted>"
+			} else {
+				redactNext = true
+			}
+		}
+	}
+	return result
+}
+
+func redactEnvs(envs []string) []string {
+	result := append([]string(nil), envs...)
+	for i, env := range result {
+		key, _, ok := strings.Cut(env, "=")
+		if ok && sensitiveEnvKey(key) {
+			result[i] = key + "=<redacted>"
+		}
+	}
+	return result
+}
+
+func sensitiveEnvKey(key string) bool {
+	key = strings.ToLower(key)
+	return strings.Contains(key, "password") ||
+		strings.Contains(key, "passwd") ||
+		strings.Contains(key, "secret") ||
+		strings.Contains(key, "token") ||
+		key == "pwd" ||
+		strings.HasSuffix(key, "_pwd")
+}
+
 // NeedElectionFlag decides if an external input start-up needs flag 'election = T/F'.
 func NeedElectionFlag(name string) bool {
-	list := []string{"oracle", "db2", "oceanbase"}
+	list := []string{"oracle", "db2", "oceanbase", "ibm_i"}
 	for _, v := range list {
 		if name == v {
 			return true

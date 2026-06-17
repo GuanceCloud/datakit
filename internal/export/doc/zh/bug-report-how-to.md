@@ -147,10 +147,9 @@ $ datakit monitor -P info-1717645398232/metrics
 
 BR 在分析问题时能提供非常多的帮助，但是很多时候，用户发现问题的时候，会重启 DataKit 进而丢失现场，导致 BR 收集到的数据无效。
 
-此时我们可以通过 DataKit 内置的 [`dk` 采集器](../integrations/dk.md) 来采集其自身数据（建议将其添加到默认启动的采集器中，较新的 DataKit 版本[:octicons-tag-24: Version-1.11.0](changelog.md#cl-1.11.0)已经这么做了），上报给用户的空间，这相当于将 DataKit 自身的指标存档了。而在 `dk` 采集器中，可以更进一步开启所有自身指标采集（这会消耗更多时间线）
+此时我们可以通过 DataKit 内置的 [`dk` 采集器](../integrations/dk.md) 来采集其自身数据（建议将其添加到默认启动的采集器中，较新的 DataKit 版本[:octicons-tag-24: Version-1.11.0](changelog.md#cl-1.11.0)已经这么做了），上报给用户的空间，这相当于将 DataKit 自身的指标存档。
 
-- Kubernetes 中安装时，通过 `ENV_INPUT_DK_ENABLE_ALL_METRICS` 来开启所有 DataKit 自身指标上报
-- 主机安装，修改 `dk.conf`，在 `metric_name_filter` 中，打开第一个指标注释（`# ".*"`），相当于放行所有指标采集
+- DataKit 自身指标默认全量采集；如需只保留部分数据，请使用 Pipeline 过滤
 
 这样会将 DataKit 暴露的所有指标都采集一份到用户的工作空间。在工作空间中，通过「内置视图」中搜索 `datakit`（选择「DataKit(New)」），即可看到这些指标的可视化效果。
 

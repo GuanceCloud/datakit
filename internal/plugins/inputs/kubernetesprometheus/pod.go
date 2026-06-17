@@ -112,10 +112,12 @@ func (p *Pod) process(ctx context.Context) bool {
 
 	nodeName, exists := nodeNameFrom(ctx)
 	if exists && pod.Spec.NodeName != nodeName {
+		p.terminateScrape(key)
 		return true
 	}
 
 	if shouldSkipPod(pod) {
+		p.terminateScrape(key)
 		return true
 	}
 

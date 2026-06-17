@@ -802,7 +802,7 @@ In the Kubernetes (K8S) environment, access to the Kubernetes API is required, s
       verbs: ["get","list"]
     - apiGroups: ["monitoring.coreos.com"]
       resources: ["podmonitors", "servicemonitors"]
-      verbs: ["get", "list"]
+      verbs: ["get", "list", "watch"]
     - apiGroups: ["metrics.k8s.io"]
       resources: ["pods", "nodes"]
       verbs: ["get", "list"]

@@ -143,6 +143,30 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 			expectRes: map[string]interface{}{"Status": "success"},
 		},
 		{
+			name: "test-dial-success-ssl",
+			dr: &dialtestingDebugRequest{
+				TaskType: "SSL",
+				Task: &dt.SSLTask{
+					Task: &dt.Task{
+						Name:      "ssl-debug",
+						Frequency: "1m",
+					},
+					Host: "example.com",
+					Port: "443",
+					SuccessWhen: []*dt.SSLSuccess{
+						{
+							ResponseTime: "1s",
+						},
+					},
+				},
+			},
+			debugFields: map[string]interface{}{
+				"tls_version": "TLS1.3",
+			},
+			errInit:   nil,
+			expectRes: map[string]interface{}{"Status": "success"},
+		},
+		{
 			name: "test-internal-host-private",
 			dr: &dialtestingDebugRequest{
 				TaskType: "ICMP",

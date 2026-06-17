@@ -25,41 +25,43 @@ Prometheus has a complete Kubernetes application metrics collection scheme, and 
     Prometheus-Operator [official link](https://github.com/prometheus-operator/prometheus-operator) and [application example](https://alexandrev.medium.com/prometheus-concepts-servicemonitor-and-podmonitor-8110ce904908){:target="_blank"}。
 <!-- markdownlint-enable -->
 
-Here, DataKit plays the role of step 3, in which DataKit monitors and discovers Prometheus-Operator CRD, starts metric collection according to configuration, and finally uploads it to <<<custom_key.brand_name>>>.
+Here, DataKit plays the role of step 3. DataKit watches and discovers Prometheus-Operator CRDs, starts metric collection based on their configuration, and uploads the metrics to <<<custom_key.brand_name>>>. When a PodMonitor or ServiceMonitor is created, updated, or deleted, the corresponding collection tasks are dynamically added, rebuilt, or stopped without restarting DataKit.
 
-Currently, DataKit supports Prometheus-Operator CRD resources —— `PodMonitor` and `ServiceMonitor` —— and their required configuration:
+DataKit supports `PodMonitor` and `ServiceMonitor` in `monitoring.coreos.com/v1`. The main supported fields are:
 
 ```markdown
-- PodMonitor [monitoring.coreos.com/v1]
+- PodMonitor
+    - selector
     - podTargetLabels
     - podMetricsEndpoints:
-        - interval
+        - scheme
           port
           path
-      params
+          params
+          tlsConfig.insecureSkipVerify
     - namespaceSelector:
         any
         matchNames
-- ServiceMonitor:
-    - bearerTokenFile
+- ServiceMonitor
+    - selector
     - targetLabels
-    - podTargetLabels
     - endpoints:
-        - interval
+        - scheme
           port
           path
-          tlsConfig
-              caFile
-              certFile
-              keyFile
-              insecureSkipVerify
-      params
+          params
+          tlsConfig.insecureSkipVerify
     - namespaceSelector:
         any
         matchNames
 ```
 
-Note: The `tlsConfig` only supports configuring insecureSkipVerify, it does not support getting certificates from Kubernetes Secret/ConfigMap.
+Notes:
+
+- The `interval` field in a Monitor does not control the actual scrape interval. Use the KubernetesPrometheus collector's `scrape_interval` setting instead.
+- For `tlsConfig`, only `insecureSkipVerify` is supported. Certificates cannot be loaded from Kubernetes Secrets or ConfigMaps.
+- Monitor authentication fields such as `basicAuth`, `bearerTokenSecret`, and `authorization` are not supported.
+- `podTargetLabels` in ServiceMonitor is not supported.
 
 Use `params` to specify `measurement`, for example:
 
@@ -68,6 +70,26 @@ params:
     measurement:
     - new-measurement
 ```
+
+## Enablement and RBAC {#enable-and-rbac}
+
+Enable PodMonitor and ServiceMonitor discovery as needed in the KubernetesPrometheus collector configuration:
+
+```toml
+[inputs.kubernetesprometheus]
+  enable_discovery_of_prometheus_pod_monitors     = true
+  enable_discovery_of_prometheus_service_monitors = true
+```
+
+The following permissions are recommended for the DataKit ServiceAccount:
+
+```yaml
+- apiGroups: ["monitoring.coreos.com"]
+  resources: ["podmonitors", "servicemonitors"]
+  verbs: ["get", "list", "watch"]
+```
+
+DataKit uses `list` to load existing Monitors and `watch` to receive creation, update, and deletion events. When DataKit is upgraded with an older RBAC configuration that grants only `get` and `list`, collection does not fail. DataKit emits one WARN log and automatically falls back to running `list` every 20 seconds. In fallback mode, configuration changes may take up to about 20 seconds to take effect. Update RBAC to receive changes in real time.
 
 ## Examples {#example}
 
@@ -139,7 +161,6 @@ metadata:
 spec:
   podMetricsEndpoints:
   - port: client
-    interval: 15s
     path: /nacos/actuator/prometheus
   namespaceSelector:
     matchNames:
@@ -158,11 +179,11 @@ Several important configuration items should be consistent with Nacos:
 - port: client
 - path: `/nacos/actuator/prometheus`
 
-Configuration parameters [document](https://doc.crds.dev/github.com/prometheus-operator/kube-prometheus/monitoring.coreos.com/PodMonitor/v1@v0.7.0){:target="_blank"}. Currently, DataKit only supports the requirement part, and does not support authentication configurations such as `baseAuth`, `bearerTokenSecret` and `tlsConfig`.
+See the [Prometheus Operator API reference](https://prometheus-operator.dev/docs/api-reference/api/){:target="_blank"} for the complete PodMonitor schema. The fields supported by DataKit are listed above.
 
 ### Measurements and Tags {#measurement-and-tags}
 
-Refer to [doc](kubernetes-prom.md#measurement-and-tags).
+See [Measurement Naming Rules](kubernetesprometheus.md#measurement-naming-rules) and [Automatically Added Tags](kubernetesprometheus.md#auto-added-tags).
 
 ### Check {#check}
 

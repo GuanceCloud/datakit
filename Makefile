@@ -80,6 +80,7 @@ DOCKERFILE_SUFFIX            ?= NOT_SET
 HELM_CHART_DIR               ?= "charts/datakit"
 SKIP_HELM                    ?= 0
 MERGE_REQUEST_TARGET_BRANCH  ?= ""
+MERGE_REQUEST_SOURCE_BRANCH  ?= ""
 ONLY_BUILD_INPUTS_EXTENTIONS ?= 0
 EXTERNAL_NAME                ?=
 EXTERNAL_GOOS                ?= linux
@@ -552,15 +553,17 @@ clean:
 	@rm -rf check.err
 	@rm -rf $(DIST_DIR)/*
 
-define check_mr_target_branch
-	@if [ $1 = main -o $1 = master ]; then \
-		printf "$(RED)[FAIL] merge request to branch '$1' disabled\n$(NC)"; \
-		exit -1; \
-	fi
-endef
-
 detect_mr_target_branch:
-	$(call check_mr_target_branch,$(MERGE_REQUEST_TARGET_BRANCH))
+	@if [ "$(MERGE_REQUEST_TARGET_BRANCH)" = master ] || [ "$(MERGE_REQUEST_TARGET_BRANCH)" = main ]; then \
+		case "$(MERGE_REQUEST_SOURCE_BRANCH)" in \
+			dev|hotfix*) \
+				;; \
+			*) \
+				printf "$(RED)[FAIL] merge request from branch '$(MERGE_REQUEST_SOURCE_BRANCH)' to branch '$(MERGE_REQUEST_TARGET_BRANCH)' disabled\n$(NC)"; \
+				exit 1; \
+				;; \
+		esac; \
+	fi
 
 push_new_version:
 	@printf "$(HL)push new datakit version $(VERSION)...\n$(NC)"

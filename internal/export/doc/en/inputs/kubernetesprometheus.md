@@ -143,6 +143,8 @@ Additionally, there is a type of global configuration, which is the highest-leve
 
 `global_tags` will add tags to all instances. Only two placeholders are supported: `__kubernetes_mate_instance` and `__kubernetes_mate_host`. Please refer to the following text for specific functionality.
 
+After PodMonitor or ServiceMonitor discovery is enabled, DataKit dynamically handles Monitor creation, updates, and deletion. The recommended RBAC permissions for `podmonitors` and `servicemonitors` are `get`, `list`, and `watch`. If an older deployment does not grant `watch`, DataKit automatically falls back to periodic `list` operations. Collection continues, but configuration changes may take up to about 20 seconds to take effect. See [Kubernetes Prometheus CRD](kubernetes-prometheus-operator-crd.md) for complete configuration and RBAC examples.
+
 ```markdown
 <!-- markdownlint-disable MD046 -->
 ???+ info

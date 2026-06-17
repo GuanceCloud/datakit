@@ -270,19 +270,22 @@ func (ob *jvmTelemetry) parseEvent(requestType RequestType, payload interface{})
 
 func getConfigTags(configs []Configuration) map[string]string {
 	tags := make(map[string]string)
-	if len(configs) > 0 {
-		for _, conf := range configs {
-			if conf.Name == "trace_tags" {
-				str, ok := (conf.Value).(string)
-				if ok {
-					kvsStr := strings.Split(str, ",")
-					for _, st := range kvsStr {
-						kvs := strings.Split(st, ":")
-						if len(kvs) == 2 {
-							tags[kvs[0]] = kvs[1]
-						}
-					}
-				}
+	if len(configs) == 0 {
+		return tags
+	}
+	for _, conf := range configs {
+		if conf.Name != "trace_tags" && conf.Name != "DD_TRACE_TAGS" {
+			continue
+		}
+		str, ok := (conf.Value).(string)
+		if !ok || str == "" || str == "-" {
+			continue
+		}
+		kvsStr := strings.Split(str, ",")
+		for _, st := range kvsStr {
+			kvs := strings.SplitN(st, ":", 2)
+			if len(kvs) == 2 {
+				tags[kvs[0]] = kvs[1]
 			}
 		}
 	}

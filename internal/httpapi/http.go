@@ -132,24 +132,7 @@ func Start(opts ...option) {
 		}
 	}
 
-	if hs.apiConfig.RequestRateLimit > 0.0 {
-		ttl := hs.apiConfig.RequestRateLimitTTL
-		if ttl <= 0 {
-			ttl = time.Minute // default 1min
-		}
-
-		hs.reqLimiter = setupLimiter(hs.apiConfig.RequestRateLimit, ttl)
-
-		if hs.apiConfig.RequestRateLimitBurst > 0 {
-			hs.reqLimiter.SetBurst(hs.apiConfig.RequestRateLimitBurst)
-		}
-
-		l.Infof("set up request limit at %f, ttl: %s, burst: %d",
-			hs.apiConfig.RequestRateLimit, ttl, hs.apiConfig.RequestRateLimitBurst)
-	} else {
-		l.Infof("set request limit not set: %f", hs.apiConfig.RequestRateLimit)
-	}
-
+	setupRequestLimiter(hs)
 	startDCA(hs)
 
 	// start HTTP server
@@ -171,6 +154,30 @@ func Start(opts ...option) {
 			l.Info("pprof server exit")
 			return nil
 		})
+	}
+}
+
+func setupRequestLimiter(hs *httpServerConf) {
+	if hs == nil || hs.apiConfig == nil {
+		return
+	}
+
+	if hs.apiConfig.RequestRateLimit > 0.0 {
+		ttl := hs.apiConfig.RequestRateLimitTTL
+		if ttl <= 0 {
+			ttl = time.Minute // default 1min
+		}
+
+		hs.reqLimiter = setupLimiter(hs.apiConfig.RequestRateLimit, ttl)
+
+		if hs.apiConfig.RequestRateLimitBurst > 0 {
+			hs.reqLimiter.SetBurst(hs.apiConfig.RequestRateLimitBurst)
+		}
+
+		l.Infof("set up request limit at %f, ttl: %s, burst: %d",
+			hs.apiConfig.RequestRateLimit, ttl, hs.apiConfig.RequestRateLimitBurst)
+	} else {
+		l.Infof("set request limit not set: %f", hs.apiConfig.RequestRateLimit)
 	}
 }
 
@@ -460,9 +467,7 @@ func refreshRebootSem() {
 
 func ReloadTheNormalServer(opts ...option) {
 	if semReload != nil {
-		hs := &httpServerConf{
-			apiConfig: &config.APIConfig{},
-		}
+		hs := defaultHTTPServerConf()
 
 		for _, opt := range opts {
 			if opt != nil {
@@ -470,6 +475,7 @@ func ReloadTheNormalServer(opts ...option) {
 			}
 		}
 
+		setupRequestLimiter(hs)
 		semReload.Close()
 
 		// wait stop completed

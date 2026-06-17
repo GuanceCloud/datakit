@@ -147,10 +147,9 @@ Since the default BR will collect three sets of metrics (each set of data is abo
 
 While BR can provide a lot of help when analyzing problems, many times when users find problems, they will restart DataKit and lose the scene, causing the data collected by BR to be invalid.
 
-At this time, we can use the built-in [`dk` collector](../integrations/dk.md) of DataKit to collect its own data (it is recommended to add it to the collectors that start by default. The newer version of DataKit[:octicons-tag-24: Version-1.11.0](changelog.md#cl-1.11.0) has already done so), and report it to the user's space, which is equivalent to archiving DataKit's own metrics. And in the `dk` collector, you can further turn on all self-metric collection (this will consume more timelines)
+At this time, we can use the built-in [`dk` collector](../integrations/dk.md) of DataKit to collect its own data (it is recommended to add it to the collectors that start by default. The newer version of DataKit[:octicons-tag-24: Version-1.11.0](changelog.md#cl-1.11.0) has already done so), and report it to the user's space, which is equivalent to archiving DataKit's own metrics.
 
-- When installed in Kubernetes, turn on all DataKit self-metrics reporting through `ENV_INPUT_DK_ENABLE_ALL_METRICS`
-- For host installation, modify `dk.conf`, and open the first metric comment in `metric_name_filter` (remove the comment `# ".*"`), which is equivalent to allowing all metrics to be collected
+- DataKit self-metrics are collected in full by default. Use Pipeline filtering if only part of the data should be kept.
 
 This will collect a copy of all the metrics exposed by DataKit to the user's workspace. In the workspace, search for `datakit` in the 'built-in views' (select 'DataKit(New)') to see the visual effect of these metrics.
 
@@ -209,4 +208,3 @@ gtp profile/heap
 ## Summary {#conclude}
 
 Although BR may not be able to solve all problems, it can avoid a lot of communication information differences and misguidance. It is still recommended that everyone provide the corresponding BR when reporting problems. At the same time, the existing BR will continue to improve, by exposing more metrics, collecting more other aspects of environmental information (such as Tracing-related client information, etc.), and further optimizing the experience of troubleshooting problems.
-

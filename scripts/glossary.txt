@@ -8,6 +8,7 @@
 Apdex
 aarch
 aarch64
+buildx
 Ligai
 APIServer
 Akka
@@ -35,6 +36,7 @@ DDTrace
 DIMM
 DKProto
 DKSpan
+DRAC
 DaemonSet
 Dameng
 DataDog
@@ -115,6 +117,9 @@ PushGateway
 Pushgateway
 Pyroscope
 Pythond
+QHST
+QSYS
+QSYS2
 RabbitMQ
 Redisson
 ReplicaSet
@@ -275,6 +280,7 @@ LLDP
 NVMe
 OTEL
 OTLP
+OSPF
 RUM
 SAAS
 SNMP

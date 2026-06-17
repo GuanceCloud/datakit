@@ -15,6 +15,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/point"
+	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/require"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
@@ -93,6 +94,96 @@ func Benchmark_Parse(b *testing.B) {
 			_, _ = ipt.Parse(promReq.Timeseries, ipt, additionalTags)
 		}
 	})
+}
+
+func TestParseRejectsInvalidPrometheusLabels(t *testing.T) {
+	tests := []struct {
+		name          string
+		parser        Parser
+		labels        []prompb.Label
+		wantErr       string
+		wantPointName string
+	}{
+		{
+			name:   "invalid metric name rejected before measurement name override",
+			parser: Parser{MeasurementName: "fixed"},
+			labels: []prompb.Label{
+				{Name: []byte(model.MetricNameLabel), Value: []byte("go\xff_gc_duration_seconds")},
+				{Name: []byte("job"), Value: []byte("prometheus")},
+			},
+			wantErr: "invalid prometheus metric name",
+		},
+		{
+			name: "invalid label name",
+			labels: []prompb.Label{
+				{Name: []byte(model.MetricNameLabel), Value: []byte("go_gc_duration_seconds")},
+				{Name: []byte("bad-label"), Value: []byte("prometheus")},
+			},
+			wantErr: "invalid prometheus label name",
+		},
+		{
+			name:   "invalid label value rejected before job as measurement",
+			parser: Parser{JobAsMeasurement: true},
+			labels: []prompb.Label{
+				{Name: []byte(model.MetricNameLabel), Value: []byte("go_gc_duration_seconds")},
+				{Name: []byte("job"), Value: []byte("prom\xffetheus")},
+			},
+			wantErr: "invalid prometheus label value",
+		},
+		{
+			name: "duplicate label name",
+			labels: []prompb.Label{
+				{Name: []byte(model.MetricNameLabel), Value: []byte("go_gc_duration_seconds")},
+				{Name: []byte("job"), Value: []byte("prometheus")},
+				{Name: []byte("job"), Value: []byte("other")},
+			},
+			wantErr: "duplicate prometheus label name",
+		},
+		{
+			name: "out of order label name",
+			labels: []prompb.Label{
+				{Name: []byte(model.MetricNameLabel), Value: []byte("go_gc_duration_seconds")},
+				{Name: []byte("job"), Value: []byte("prometheus")},
+				{Name: []byte("instance"), Value: []byte("localhost:9090")},
+			},
+			wantErr: "prometheus label name \"instance\" is out of order",
+		},
+		{
+			name: "empty label value",
+			labels: []prompb.Label{
+				{Name: []byte(model.MetricNameLabel), Value: []byte("go_gc_duration_seconds")},
+				{Name: []byte("job"), Value: []byte{}},
+			},
+			wantErr: "empty prometheus label value",
+		},
+		{
+			name:   "valid labels with measurement name",
+			parser: Parser{MeasurementName: "fixed"},
+			labels: []prompb.Label{
+				{Name: []byte(model.MetricNameLabel), Value: []byte("go_gc_duration_seconds")},
+				{Name: []byte("job"), Value: []byte("prometheus")},
+			},
+			wantPointName: "fixed",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pts, err := tt.parser.Parse([]prompb.TimeSeries{{
+				Labels:  tt.labels,
+				Samples: []prompb.Sample{{Value: 1}},
+			}}, defaultInput(), map[string]string{})
+
+			if tt.wantErr != "" {
+				require.ErrorContains(t, err, tt.wantErr)
+				require.Nil(t, pts)
+				return
+			}
+			require.NoError(t, err)
+			require.Len(t, pts, 1)
+			require.Equal(t, tt.wantPointName, pts[0].Name())
+		})
+	}
 }
 
 // ------ benchmark mock feeder ------

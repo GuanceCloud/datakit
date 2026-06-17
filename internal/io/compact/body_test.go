@@ -547,6 +547,7 @@ func TestBodyCacheData(t *T.T) {
 			newBody := GetNewBufferBody(WithNewBuffer(defaultBatchSize))
 			defer PutBody(newBody)
 
+			newBody.CacheData.PayloadType = int32(encNotSet)
 			assert.NoError(t, newBody.LoadCache(pb)) // newBody load pb data
 			assert.Equal(t, newBody.CacheData, b.CacheData)
 			assert.Equal(t, b.Buf(), newBody.Buf())

@@ -752,7 +752,7 @@ K8S 环境下需要调用 Kubernetes API 所以需要 RBAC 基于角色的访问
       verbs: ["get","list"]
     - apiGroups: ["monitoring.coreos.com"]
       resources: ["podmonitors", "servicemonitors"]
-      verbs: ["get", "list"]
+      verbs: ["get", "list", "watch"]
     - apiGroups: ["metrics.k8s.io"]
       resources: ["pods", "nodes"]
       verbs: ["get", "list"]

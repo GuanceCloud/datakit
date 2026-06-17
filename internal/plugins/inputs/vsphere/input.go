@@ -500,6 +500,8 @@ func (ipt *Input) collectResource(resourceType string) {
 	if len(pqs) > 0 {
 		ipt.collectResourcePoints(pqs, res, estInterval)
 	}
+
+	ipt.collectVMHistoricalMetrics(res, now)
 }
 
 type queryChunk []types.PerfQuerySpec
@@ -595,6 +597,106 @@ func (ipt *Input) collectResourcePoints(specs queryChunk, res *resourceKind, int
 	if latestSample.After(res.latestSample) && !latestSample.IsZero() {
 		res.latestSample = latestSample
 	}
+}
+
+func (ipt *Input) collectVMHistoricalMetrics(res *resourceKind, now time.Time) {
+	if len(res.historicalMetrics) == 0 {
+		return
+	}
+
+	metricInfo, err := ipt.client.CounterInfoByName(context.Background())
+	if err != nil {
+		l.Warnf("Failed to get counter info: %s", err.Error())
+		return
+	}
+
+	start := now.Add(-2 * time.Hour)
+	specs := make(queryChunk, 0, ipt.MaxQueryObjects)
+	metricCount := 0
+	for _, obj := range res.objects {
+		if len(specs) > 0 && metricCount+len(res.historicalMetrics) > ipt.MaxQueryObjects {
+			ipt.collectVMHistoricalMetricPoints(specs, res, metricInfo)
+			specs = make(queryChunk, 0, ipt.MaxQueryObjects)
+			metricCount = 0
+		}
+		specs = append(specs, types.PerfQuerySpec{
+			Entity:    obj.ref,
+			MetricId:  res.historicalMetrics,
+			StartTime: &start,
+			Format:    "normal",
+		})
+		metricCount += len(res.historicalMetrics)
+	}
+	if len(specs) > 0 {
+		ipt.collectVMHistoricalMetricPoints(specs, res, metricInfo)
+	}
+}
+
+func (ipt *Input) collectVMHistoricalMetricPoints(
+	specs queryChunk,
+	res *resourceKind,
+	metricInfo map[string]*types.PerfCounterInfo,
+) {
+	client := ipt.client
+	ems, err := client.QueryMetrics(context.Background(), specs)
+	if err != nil {
+		l.Warnf("Failed to query VM historical metrics: %s", err.Error())
+		return
+	}
+
+	collectionTime := time.Now()
+	prefix := "vsphere_" + res.name
+	for _, em := range ems {
+		moid := em.Entity.Reference().Value
+		objectRef, ok := res.objects[moid]
+		if !ok {
+			l.Errorf("MOID %s not found in cache. Skipping", moid)
+			continue
+		}
+
+		buckets := make(map[string]metricEntry)
+		for _, metric := range em.Value {
+			value, ok := latestValidValue(metric.Value)
+			if !ok {
+				l.Debugf("Missing value for: %s, %s", metric.Name, objectRef.name)
+				continue
+			}
+			value, ok = scaleMetricValue(metricInfo, metric.Name, value)
+			if !ok {
+				l.Errorf("Could not determine unit for %s. Skipping", metric.Name)
+				continue
+			}
+
+			tags := map[string]string{
+				"host":   ipt.vcenter.Host,
+				"source": objectRef.name,
+				"moid":   moid,
+			}
+			client.populateTags(objectRef, res, tags, metric)
+			measurement, field := client.makeMetricIdentifier(prefix, metric.Name)
+			bucket, found := buckets[measurement]
+			if !found {
+				bucket = metricEntry{
+					name:   measurement,
+					ts:     collectionTime,
+					fields: make(map[string]interface{}),
+					tags:   tags,
+				}
+			}
+			bucket.fields[field] = value
+			buckets[measurement] = bucket
+		}
+		ipt.makePoints(buckets)
+	}
+}
+
+func latestValidValue(values []int64) (float64, bool) {
+	for i := len(values) - 1; i >= 0; i-- {
+		if values[i] >= 0 {
+			return float64(values[i]), true
+		}
+	}
+	return 0, false
 }
 
 func scaleMetricValue(metricInfo map[string]*types.PerfCounterInfo, name string, value float64) (float64, bool) {

@@ -16,6 +16,7 @@ REPO_PATH   ?= $(abspath $(MAKEFILE_DIR)/../..)
 SOURCE_PATH := $(REPO_PATH)/internal/apminject
 DIST_DIR    ?= $(REPO_PATH)/internal/apminject/dist/datakit-apm-inject-linux-$(ARCH)
 CC          ?= gcc
+LAUNCHER_LDLIBS ?= -ldl
 
 DATAKIT_INJ_REWRITE_PROC ?= \"/usr/local/datakit/apm_inject/inject/rewriter\"
 
@@ -33,27 +34,27 @@ launcher:
 	mkdir -p $(DIST_DIR)
 	$(CC) -DDATAKIT_INJ_REWRITE_PROC=${DATAKIT_INJ_REWRITE_PROC} \
 		$(SOURCE_PATH)/apm_launcher.c -fPIC -shared \
-		-o $(DIST_DIR)/apm_launcher.so
+		-o $(DIST_DIR)/apm_launcher.so $(LAUNCHER_LDLIBS)
 
 launcher_musl:
 	mkdir -p $(DIST_DIR)
 	$(CC) -DDATAKIT_INJ_REWRITE_PROC=${DATAKIT_INJ_REWRITE_PROC} \
 		$(SOURCE_PATH)/apm_launcher.c -fPIC -shared \
-		-o $(DIST_DIR)/apm_launcher_musl.so
+		-o $(DIST_DIR)/apm_launcher_musl.so $(LAUNCHER_LDLIBS)
 
 launcher_debug:
 	mkdir -p ${DIST_DIR}
 	$(CC) -DDATAKIT_DEBUG -DDATAKIT_INJ_REWRITE_PROC=${DATAKIT_INJ_REWRITE_PROC} \
 		$(SOURCE_PATH)/apm_launcher.c -fPIC -shared \
-		-o $(DIST_DIR)/apm_launcher_debug.so
+		-o $(DIST_DIR)/apm_launcher_debug.so $(LAUNCHER_LDLIBS)
 
 launcher_musl_debug:
 	mkdir -p ${DIST_DIR}
 	$(CC) -DDATAKIT_DEBUG -DDATAKIT_INJ_REWRITE_PROC=${DATAKIT_INJ_REWRITE_PROC} \
 		$(SOURCE_PATH)/apm_launcher.c -fPIC -shared \
-		-o $(DIST_DIR)/apm_launcher_musl_debug.so
+		-o $(DIST_DIR)/apm_launcher_musl_debug.so $(LAUNCHER_LDLIBS)
 
 test:
 	mkdir -p ${DIST_DIR}
 	$(CC) $(SOURCE_PATH)/launcher_test.c -o $(DIST_DIR)/launcher_test \
-		&& $(DIST_DIR)/launcher_test && rm $(DIST_DIR)/launcher_test
+		$(LAUNCHER_LDLIBS) && $(DIST_DIR)/launcher_test && rm $(DIST_DIR)/launcher_test

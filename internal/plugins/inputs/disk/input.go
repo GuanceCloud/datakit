@@ -172,7 +172,7 @@ func (ipt *Input) collect(ptTS int64) error {
 		}
 
 		var kvs point.KVs
-		kvs = kvs.Set("used_percent", float64(f.Usage.Used)/float64(f.Usage.Total)*100.0)
+		kvs = kvs.Set("used_percent", f.Usage.UsedPercent)
 		kvs = kvs.SetTag("device", f.Part.Device)
 		kvs = kvs.SetTag("fstype", f.Part.Fstype)
 

@@ -43,6 +43,12 @@ const maxMetadataSamples = 100 // Number of resources to sample for metric metad
 
 const maxRealtimeMetrics = 50000 // Absolute maximum metrics per realtime query
 
+const (
+	vmDiskUsedMetric        = "disk.used.latest"
+	vmDiskProvisionedMetric = "disk.provisioned.latest"
+	vmDiskUnsharedMetric    = "disk.unshared.latest"
+)
+
 var queryEvents = func(ctx context.Context, client *Client, filter types.EventFilterSpec) ([]types.BaseEvent, error) {
 	return event.NewManager(client.Client.Client).QueryEvents(ctx, filter)
 }
@@ -84,25 +90,27 @@ type metricEntry struct {
 }
 
 type resourceKind struct {
-	name             string
-	vcName           string
-	pKey             string
-	parentTag        string
-	enabled          bool
-	realTime         bool
-	sampling         int32
-	objects          objectMap
-	filters          filter.Filter
-	paths            []string
-	excludePaths     []string
-	collectInstances bool
-	getObjects       func(context.Context, *Client, *ResourceFilter) (objectMap, error)
-	include          []string
-	simple           bool
-	metrics          performance.MetricList
-	parent           string
-	latestSample     time.Time
-	lastColl         time.Time
+	name                  string
+	vcName                string
+	pKey                  string
+	parentTag             string
+	enabled               bool
+	realTime              bool
+	sampling              int32
+	objects               objectMap
+	filters               filter.Filter
+	paths                 []string
+	excludePaths          []string
+	collectInstances      bool
+	getObjects            func(context.Context, *Client, *ResourceFilter) (objectMap, error)
+	include               []string
+	simple                bool
+	metrics               performance.MetricList
+	historicalMetricNames []string
+	historicalMetrics     performance.MetricList
+	parent                string
+	latestSample          time.Time
+	lastColl              time.Time
 }
 
 // CounterInfoByKey wraps performance.CounterInfoByKey to give it proper timeouts.
@@ -152,6 +160,7 @@ func (c *Client) discover(ctx context.Context) error {
 	// Populate resource objects, and endpoint instance info.
 	newObjects := make(map[string]objectMap)
 	newMetrics := make(map[string]performance.MetricList)
+	newHistoricalMetrics := make(map[string]performance.MetricList)
 
 	for k, res := range c.resourceKinds {
 		// Need to do this for all resource types even if they are not enabled
@@ -188,6 +197,14 @@ func (c *Client) discover(ctx context.Context) error {
 				} else {
 					c.complexMetadataSelect(ctx, &discoveredRes, objects)
 				}
+				if len(res.historicalMetricNames) > 0 {
+					metrics, err := c.metricsByName(ctx, res.historicalMetricNames, res.filters)
+					if err != nil {
+						return err
+					}
+					newHistoricalMetrics[k] = metrics
+					discoveredRes.metrics = excludeMetrics(discoveredRes.metrics, metrics)
+				}
 				newMetrics[k] = discoveredRes.metrics
 			}
 			newObjects[k] = objects
@@ -216,10 +233,61 @@ func (c *Client) discover(ctx context.Context) error {
 		if metrics, ok := newMetrics[k]; ok {
 			c.resourceKinds[k].metrics = metrics
 		}
+		if metrics, ok := newHistoricalMetrics[k]; ok {
+			c.resourceKinds[k].historicalMetrics = metrics
+		}
 	}
 	c.lun2ds = l2d
 
 	return nil
+}
+
+func (c *Client) metricsByName(
+	ctx context.Context,
+	names []string,
+	metricFilter filter.Filter,
+) (performance.MetricList, error) {
+	info, err := c.CounterInfoByName(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return selectMetricsByName(info, names, metricFilter), nil
+}
+
+func selectMetricsByName(
+	info map[string]*types.PerfCounterInfo,
+	names []string,
+	metricFilter filter.Filter,
+) performance.MetricList {
+	metrics := make(performance.MetricList, 0, len(names))
+	for _, name := range names {
+		if metricFilter != nil && !metricFilter.Match(name) {
+			continue
+		}
+		counter, ok := info[name]
+		if !ok {
+			l.Warnf("Metric name %s is unknown. Will not be collected", name)
+			continue
+		}
+		metrics = append(metrics, types.PerfMetricId{CounterId: counter.Key})
+	}
+	return metrics
+}
+
+func excludeMetrics(metrics, excluded performance.MetricList) performance.MetricList {
+	excludedIDs := make(map[int32]struct{}, len(excluded))
+	for _, metric := range excluded {
+		excludedIDs[metric.CounterId] = struct{}{}
+	}
+
+	result := make(performance.MetricList, 0, len(metrics))
+	for _, metric := range metrics {
+		if _, ok := excludedIDs[metric.CounterId]; !ok {
+			result = append(result, metric)
+		}
+	}
+	return result
 }
 
 // CounterInfoByName wraps performance.CounterInfoByName to give it proper timeouts.
@@ -910,22 +978,23 @@ func (ipt *Input) setupResource(client *Client) {
 			parent:           "cluster",
 		},
 		"vm": {
-			name:             "vm",
-			vcName:           "VirtualMachine",
-			pKey:             "vm_name",
-			parentTag:        "esx_hostname",
-			enabled:          anythingEnabled(ipt.VMMetricExclude),
-			realTime:         true,
-			sampling:         20,
-			objects:          make(objectMap),
-			filters:          newFilterOrPanic(ipt.VMMetricInclude, ipt.VMMetricExclude),
-			paths:            ipt.VMInclude,
-			excludePaths:     ipt.VMExclude,
-			simple:           isSimple(ipt.VMMetricInclude, ipt.VMMetricExclude),
-			include:          ipt.VMMetricInclude,
-			collectInstances: ipt.VMInstances,
-			getObjects:       getVMs,
-			parent:           "host",
+			name:                  "vm",
+			vcName:                "VirtualMachine",
+			pKey:                  "vm_name",
+			parentTag:             "esx_hostname",
+			enabled:               anythingEnabled(ipt.VMMetricExclude),
+			realTime:              true,
+			sampling:              20,
+			objects:               make(objectMap),
+			filters:               newFilterOrPanic(ipt.VMMetricInclude, ipt.VMMetricExclude),
+			paths:                 ipt.VMInclude,
+			excludePaths:          ipt.VMExclude,
+			simple:                isSimple(ipt.VMMetricInclude, ipt.VMMetricExclude),
+			include:               ipt.VMMetricInclude,
+			collectInstances:      ipt.VMInstances,
+			getObjects:            getVMs,
+			parent:                "host",
+			historicalMetricNames: []string{vmDiskUsedMetric, vmDiskProvisionedMetric, vmDiskUnsharedMetric},
 		},
 		"datastore": {
 			name:             "datastore",

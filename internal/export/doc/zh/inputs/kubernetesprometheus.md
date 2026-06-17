@@ -144,6 +144,8 @@ KubernetesPrometheus 是一个只能应用在 Kubernetes 的采集器，它根�
 
 `global_tags` 会给全部 instance 添加 tags，只支持 `__kubernetes_mate_instance` 和 `__kubernetes_mate_host` 两个占位符，占位符功能请查看后文。
 
+启用 PodMonitor 或 ServiceMonitor 自动发现后，DataKit 会动态处理 Monitor 资源的创建、更新和删除。建议为 `podmonitors` 和 `servicemonitors` 配置 `get`、`list`、`watch` 权限；如果旧版部署配置缺少 `watch` 权限，DataKit 会自动降级为定期 `list`，采集仍可继续，但配置变更最多延迟约 20 秒生效。完整配置和 RBAC 示例参见 [Prometheus CRD](kubernetes-prometheus-operator-crd.md)。
+
 <!-- markdownlint-disable MD046 -->
 ???+ info
 

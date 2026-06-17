@@ -8,9 +8,9 @@ package dk
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
@@ -39,39 +39,8 @@ var (
 	configSample = `
 [[inputs.dk]]
 
-  # See https://docs.<<<custom_key.brand_main_domain>>>/datakit/datakit-metrics/#metrics for all metrics exported by Datakit.
-  metric_name_filter = [
-    ### Collect all metrics(these may collect 300+ metrics of Datakit)
-    ### if you want to collect all, make this rule the first in the list.
-    # ".*",
-
-    "datakit_http.*",       # HTTP API
-    "datakit_goroutine.*",  # Goroutine
-
-    ### runtime related
-    "datakit_cpu_.*",
-    "datakit_.*_alloc_bytes", # Memory
-    "datakit_open_files",
-    "datakit_uptime_seconds",
-    "datakit_data_overuse",
-    "datakit_process_.*",
-
-    ### election
-    "datakit_election_status",
-
-    ### Dataway related
-    #"datakit_io_dataway_.*",
-    #"datakit_io_http_retry_total",
-
-    ### Filter
-    #"datakit_filter_.*",
-
-    ### dialtesting
-    #"datakit_dialtesting_.*",
-
-    ### Input feed
-    #".*_feed_.*",
-  ]
+  # set false to disable Datakit self-metrics collection
+  enabled = true
 
   # keep empty to collect all types(count/gauge/summary/...)
   metric_types = []
@@ -120,10 +89,11 @@ var (
 )
 
 type Input struct {
-	MetricFilter []string          `toml:"metric_name_filter"`
-	MetricTypes  []string          `toml:"metric_types"`
-	Interval     time.Duration     `toml:"interval"`
-	Tags         map[string]string `toml:"tags"`
+	Enabled bool `toml:"enabled"`
+
+	MetricTypes []string          `toml:"metric_types"`
+	Interval    time.Duration     `toml:"interval"`
+	Tags        map[string]string `toml:"tags"`
 
 	SelfProfiling *SelfProfilingConfig `toml:"self_profiling"`
 
@@ -149,35 +119,6 @@ var alwaysBlockedMetrics = []string{
 func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 	infos := []*inputs.ENVInfo{
 		{
-			ENVName:   "ENABLE_ALL_METRICS",
-			Type:      doc.Boolean,
-			Example:   `true`,
-			Default:   doc.NoDefaultSet,
-			ConfField: doc.NoField,
-			Desc:      "Collect all metrics, any string",
-			DescZh:    "采集所有指标，任意非空字符串",
-		},
-		{
-			ENVName:   "ADD_METRICS",
-			Type:      doc.List,
-			Default:   doc.NoDefaultSet,
-			ConfField: doc.NoField,
-			Example:   "`[\"datakit_io_.*\", \"datakit_pipeline_.*\"]`",
-			Desc:      "Additional metrics, Available metrics list [here](../datakit/datakit-metrics.md)",
-			DescZh:    "追加指标列表，可用的指标名参见[这里](../datakit/datakit-metrics.md)",
-		},
-
-		{
-			ENVName:   "ONLY_METRICS",
-			Type:      doc.List,
-			ConfField: doc.NoField,
-			Example:   "`[\"datakit_io_.*\", \"datakit_pipeline_.*\"]`",
-			Default:   doc.NoDefaultSet,
-			Desc:      "Only enable metrics",
-			DescZh:    "只开启指定指标",
-		},
-
-		{
 			ENVName:   "INTERVAL",
 			Type:      doc.TimeDuration,
 			ConfField: "interval",
@@ -186,6 +127,15 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 			Desc:      "Collect interval",
 			DescZh:    "采集间隔",
 		},
+		{
+			ENVName:   "ENABLE_SELF_PROFILING",
+			Type:      doc.Boolean,
+			ConfField: "self_profiling.enabled",
+			Example:   "`true`",
+			Default:   "`false`",
+			Desc:      "Enable threshold-triggered DataKit self profiling",
+			DescZh:    "开启 DataKit 自身阈值触发 Profile 采集",
+		},
 	}
 
 	return doc.SetENVDoc("ENV_INPUT_DK_", infos)
@@ -193,33 +143,9 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 
 // ReadEnv accept specific ENV settings to input.
 //
-//	ENV_INPUT_DK_ENABLE_ALL_METRICS(bool)
-//	ENV_INPUT_DK_ADD_METRICS(json-string-list)
-//	ENV_INPUT_DK_ONLY_METRICS(json-string-list)
 //	ENV_INPUT_DK_INTERVAL(duration)
+//	ENV_INPUT_DK_ENABLE_SELF_PROFILING(bool)
 func (ipt *Input) ReadEnv(envs map[string]string) {
-	if _, ok := envs["ENV_INPUT_DK_ENABLE_ALL_METRICS"]; ok {
-		ipt.MetricFilter = nil
-	}
-
-	if x := envs["ENV_INPUT_DK_ADD_METRICS"]; x != "" {
-		arr := []string{}
-		if err := json.Unmarshal([]byte(x), &arr); err != nil {
-			l.Warnf("json.Unmarshal: %s, ignored", err)
-		} else {
-			ipt.MetricFilter = append(ipt.MetricFilter, arr...)
-		}
-	}
-
-	if x := envs["ENV_INPUT_DK_ONLY_METRICS"]; x != "" {
-		arr := []string{}
-		if err := json.Unmarshal([]byte(x), &arr); err != nil {
-			l.Warnf("json.Unmarshal: %s, ignored", err)
-		} else {
-			ipt.MetricFilter = arr
-		}
-	}
-
 	if x := envs["ENV_INPUT_DK_INTERVAL"]; x != "" {
 		if du, err := time.ParseDuration(x); err != nil {
 			l.Warnf("parse ENV_INPUT_DK_INTERVAL %s failed: %s, ignored", x, err)
@@ -227,6 +153,22 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 			ipt.Interval = du
 		}
 	}
+
+	if x, ok := envs["ENV_INPUT_DK_ENABLE_SELF_PROFILING"]; ok {
+		ipt.setSelfProfilingEnabledFromEnv(x)
+	}
+}
+
+func (ipt *Input) setSelfProfilingEnabledFromEnv(x string) {
+	enabled, err := strconv.ParseBool(x)
+	if err != nil {
+		l.Warnf("parse ENV_INPUT_DK_ENABLE_SELF_PROFILING %s failed: %s, ignored", x, err)
+		return
+	}
+	if ipt.SelfProfiling == nil {
+		ipt.SelfProfiling = defaultSelfProfilingConfig()
+	}
+	ipt.SelfProfiling.Enabled = enabled
 }
 
 func (ipt *Input) Terminate() {
@@ -300,9 +242,20 @@ func (ipt *Input) closeSelfProfiler() {
 func (ipt *Input) Run() {
 	l = logger.SLogger(source)
 
+	if !ipt.Enabled {
+		l.Infof("%s input disabled", inputName)
+		return
+	}
+
 	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)
 
 	ipt.setup(config.Cfg.HTTPAPI.Listen)
+
+	if !datakit.Docker {
+		if x := datakit.GetEnv("ENV_INPUT_DK_ENABLE_SELF_PROFILING"); x != "" {
+			ipt.setSelfProfilingEnabledFromEnv(x)
+		}
+	}
 
 	ipt.startSelfProfiler()
 	defer ipt.closeSelfProfiler()
@@ -313,7 +266,6 @@ func (ipt *Input) Run() {
 			prom.WithLogger(l),
 			prom.WithSource(source),
 			prom.WithMetricTypes(ipt.MetricTypes),
-			prom.WithMetricNameFilter(ipt.MetricFilter),
 			prom.WithMetricNameFilterIgnore(alwaysBlockedMetrics),
 			prom.WithMeasurementName(measurement),
 			prom.WithTags(ipt.Tags),
@@ -384,6 +336,7 @@ func (*Input) AvailableArchs() []string {
 func def() *Input {
 	return &Input{
 		feeder:   dkio.DefaultFeeder(),
+		Enabled:  true,
 		url:      fmt.Sprintf("http://%s/metrics", defaultHost),
 		Interval: time.Second * 30,
 		semStop:  cliutils.NewSem(),

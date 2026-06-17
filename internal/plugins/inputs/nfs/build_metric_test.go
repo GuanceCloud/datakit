@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/sys/unix"
 )
 
 func TestNFSMountStats(t *testing.T) {
@@ -21,6 +22,21 @@ func TestNFSMountStats(t *testing.T) {
 	if _, err := ipt.buildMountStats(); err != nil {
 		t.Skipf("collect nfs mountstats failed: %v", err)
 	}
+}
+
+func TestFilesystemUsageFromStat(t *testing.T) {
+	total, avail, used, usedPercent := filesystemUsageFromStat(unix.Statfs_t{
+		Bsize:  1024,
+		Blocks: 100,
+		Bfree:  30,
+		Bavail: 20,
+	})
+
+	assert.Equal(t, uint64(100*1024), total)
+	assert.Equal(t, uint64(20*1024), avail)
+	assert.Equal(t, uint64(70*1024), used)
+	assert.Equal(t, float64(70)/float64(70+20)*100.0, usedPercent)
+	assert.NotEqual(t, float64(70)/float64(100)*100.0, usedPercent)
 }
 
 func TestNFSBase(t *testing.T) {

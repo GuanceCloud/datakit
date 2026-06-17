@@ -29,7 +29,7 @@ build_external_local:
 	esac; \
 	needs_cgo_toolchain=0; \
 	case "$(EXTERNAL_NAME)" in \
-		db2|journald|oracle) needs_cgo_toolchain=1 ;; \
+		db2|ibm_i|journald|oracle) needs_cgo_toolchain=1 ;; \
 	esac; \
 	if [ "$$needs_cgo_toolchain" = "1" ]; then \
 		host_arch="$$(uname -m)"; \
@@ -92,13 +92,19 @@ build_external_local:
 				ARGS="$(EXTERNAL_EBPF_ARGS)" \
 				"$(EXTERNAL_EBPF_TARGET)"; \
 			;; \
-		db2|journald|oracle) \
+		db2|ibm_i|journald|oracle) \
+			build_tags="netgo"; \
+			source_name="$(EXTERNAL_NAME)"; \
+			if [ "$(EXTERNAL_NAME)" = "ibm_i" ]; then \
+				build_tags="ibm_i netgo"; \
+				source_name="ibm_i"; \
+			fi; \
 			GO111MODULE=on GOFLAGS=-mod=$(GO_MODULE_MODE) CGO_ENABLED=1 \
 				GOOS="$(EXTERNAL_GOOS)" GOARCH="$(EXTERNAL_ARCH)" \
-				go build -tags netgo -buildvcs=false \
+				go build -tags "$$build_tags" -buildvcs=false \
 				-ldflags "$(EXTERNAL_LDFLAGS)" \
 				-o "$$outdir_abs/$$output_name" \
-				"$(ROOT_DIR)/internal/plugins/externals/$(EXTERNAL_NAME)/main.go"; \
+				"$(ROOT_DIR)/internal/plugins/externals/$$source_name/main.go"; \
 			;; \
 		logfwd) \
 			GO111MODULE=on GOFLAGS=-mod=$(GO_MODULE_MODE) CGO_ENABLED=0 \

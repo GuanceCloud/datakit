@@ -59,6 +59,9 @@ var sampleConfig = `
     "virtualDisk.totalWriteLatency.average",
     "virtualDisk.write.average",
     "virtualDisk.writeOIO.latest",
+    "disk.used.latest",
+    "disk.provisioned.latest",
+    "disk.unshared.latest",
     "sys.uptime.latest",
   ]
   # vm_metric_exclude = [] ## Nothing is excluded by default

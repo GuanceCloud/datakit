@@ -112,10 +112,12 @@ func (n *Node) process(ctx context.Context) bool {
 
 	nodeName, exists := nodeNameFrom(ctx)
 	if exists && node.Name != nodeName {
+		n.terminateScrape(key)
 		return true
 	}
 
 	if shouldSkipNode(node) {
+		n.terminateScrape(key)
 		return true
 	}
 

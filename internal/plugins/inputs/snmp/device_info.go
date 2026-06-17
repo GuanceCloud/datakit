@@ -137,8 +137,8 @@ func (di *deviceInfo) getValuesAndTags() (bool, []string, *snmputil.ResultValueS
 
 	valuesStore, err := snmputil.Fetch(di.Session, &snmputil.FetchOpts{
 		OidConfig:          di.OidConfig,
-		OidBatchSize:       defaultOidBatchSize,
-		BulkMaxRepetitions: defaultBulkMaxRepetitions,
+		OidBatchSize:       di.Ipt.OIDBatchSize,
+		BulkMaxRepetitions: di.Ipt.BulkMaxRepetitions,
 	})
 	// l.Debugf("fetched values: %v", snmputil.ResultValueStoreAsString(valuesStore))
 

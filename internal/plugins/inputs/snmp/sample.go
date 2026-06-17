@@ -71,6 +71,12 @@ const sampleCfg = `
   ## Number of max OIDs during walk(default 1000)
   # max_oids = 1000
 
+  ## Number of OIDs retrieved in a single SNMP Get/GetBulk call. Default is 5.
+  # oid_batch_size = 5
+
+  ## Max repetitions used in SNMP GetBulk calls. Default is 10.
+  # bulk_max_repetitions = 10
+
   ## Interval between each auto discovery in seconds. Default is "1h".
   ## Only worked in auto discovery feature.
   ## This is optional.

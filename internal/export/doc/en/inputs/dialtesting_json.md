@@ -59,7 +59,7 @@ The specific country/region and ISP selection can be selected as shown in the fo
 
 ### Configure the Dial Test Task {#config-task}
 
-At present, the dialing test task supports HTTP, TCP, ICMP, WEBSOCKET, GRPC, BROWSER and MULTI types. The JSON format is as follows:
+At present, the dialing test task supports HTTP, TCP, ICMP, WEBSOCKET, SSL, GRPC, BROWSER and MULTI types. The JSON format is as follows:
 
 ```json
 {
@@ -1044,6 +1044,165 @@ Support for common user name and password authentication (Basic access authentic
   },
 }
 ```
+
+#### SSL Dial Test {#ssl}
+
+SSL dial testing checks the TLS handshake, certificate validity, certificate subject/issuer, and TLS protocol version of a target host. Results are reported as the `ssl_dial_testing` metric.
+
+##### Extra Field {#ssl-extra}
+
+| Field                             | Type   | Whether Required | Description                                                                  |
+| :---                              | ---    | ---      | ---                                                                           |
+| `host`                            | string | Y        | Target host, such as `example.com`                                            |
+| `port`                            | string | Y        | Target port, such as `443`                                                    |
+| `server_name`                     | string | N        | Server name used for TLS SNI and certificate verification. Defaults to `host` |
+| `timeout`                         | string | N        | Timeout for TCP connection and TLS handshake. Default is `10s`                |
+| `ignore_server_certificate_error` | bool   | N        | Whether to skip server certificate verification. Default is `false`           |
+
+The complete JSON structure is as follows:
+
+```json
+{
+  "SSL": [
+    {
+      "name": "ssl-test",
+      "host": "example.com",
+      "port": "443",
+      "server_name": "example.com",
+      "post_url": "https://<your-dataway-host>?token=<your-token>",
+      "status": "OK",
+      "frequency": "1m",
+      "timeout": "10s",
+      "ignore_server_certificate_error": false,
+      "success_when_logic": "and",
+      "success_when": [
+        {
+          "response_time": "1s",
+          "ssl_cert_expires_in_days": [
+            {
+              "op": "gt",
+              "target": 7
+            }
+          ],
+          "tls_version": [
+            {
+              "is_not": "TLS1.0"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+##### `success_when` Definition {#ssl-success-when}
+
+- Response time judgment (`response_time`)
+
+`response_time` is a duration string, such as `1s` or `500ms`. The condition passes when the actual response time is lower than this value.
+
+```json
+"success_when": [
+  {
+    "response_time": "1s"
+  }
+]
+```
+
+- Certificate remaining-days judgment (`ssl_cert_expires_in_days`)
+
+`ssl_cert_expires_in_days` is an array object with the following parameters for each object:
+
+| Field    | Type   | Whether Required | Description                                       |
+| :---     | ---    | ---      | ---                                                |
+| `op`     | string | Y        | Comparison operator, supports `eq/lt/leq/gt/geq`   |
+| `target` | number | Y        | Target value in days                              |
+
+```json
+"success_when": [
+  {
+    "ssl_cert_expires_in_days": [
+      {
+        "op": "gt",
+        "target": 7
+      }
+    ]
+  }
+]
+```
+
+- Certificate expiration-time judgment (`ssl_cert_not_after`)
+
+`ssl_cert_not_after` is an array object with the same parameters as `ssl_cert_expires_in_days`. The compared value is the certificate expiration time as a Unix microsecond timestamp.
+
+```json
+"success_when": [
+  {
+    "ssl_cert_not_after": [
+      {
+        "op": "gt",
+        "target": 1767225600000000
+      }
+    ]
+  }
+]
+```
+
+- Certificate subject, issuer, and TLS version judgment (`subject`, `issuer`, `tls_version`)
+
+These fields are array objects with the following parameters for each object:
+
+| Field             | Type   | Whether Required | Description                                      |
+| :---              | ---    | ---      | ---                                               |
+| `is`              | string | N        | Whether the value equals the specified value      |
+| `is_not`          | string | N        | Whether the value does not equal the specified value |
+| `contains`        | string | N        | Whether the value contains the specified string   |
+| `not_contains`    | string | N        | Whether the value does not contain the specified string |
+| `match_regex`     | string | N        | Whether the value matches the specified regex     |
+| `not_match_regex` | string | N        | Whether the value does not match the specified regex |
+
+```json
+"success_when": [
+  {
+    "subject": [
+      {
+        "contains": "example.com"
+      }
+    ],
+    "issuer": [
+      {
+        "not_contains": "Self-Signed"
+      }
+    ],
+    "tls_version": [
+      {
+        "is_not": "TLS1.0"
+      }
+    ]
+  }
+]
+```
+
+##### Reported Metric {#ssl-measurement}
+
+SSL dial testing reports the `ssl_dial_testing` metric. Main fields are as follows:
+
+| Field                        | Type   | Description                                        |
+| :---                         | ---    | ---                                                |
+| `response_time`              | int    | TCP connection and TLS handshake duration, in microseconds |
+| `tls_handshake_time`         | int    | TLS handshake duration, in microseconds            |
+| `tls_version`                | string | TLS protocol version                               |
+| `ssl_cert_subject`           | string | Certificate subject                                |
+| `ssl_cert_issuer`            | string | Certificate issuer                                 |
+| `ssl_cert_not_before`        | int    | Certificate not-before time as a Unix microsecond timestamp |
+| `ssl_cert_not_after`         | int    | Certificate not-after time as a Unix microsecond timestamp |
+| `ssl_cert_expires_in_days`   | int    | Remaining valid days of the certificate            |
+| `success`                    | int    | Whether the test succeeded. `1` means success, `-1` means failure |
+| `fail_reason`                | string | Failure reason                                     |
+| `message`                    | string | Result message                                     |
+
+Main tags include `name`, `dest_host`, `dest_port`, `dest_ip`, `server_name`, `status`, and `proto`. If the TCP connection or TLS handshake fails before a certificate is collected, certificate-related `success_when` checks are not evaluated.
 
 #### GRPC Dial Test {#grpc}
 

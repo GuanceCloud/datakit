@@ -6,9 +6,7 @@ tags:
 __int_icon      : 'icon/mysql'
 dashboard :
   - desc  : 'MySQL'
-    path  : 'dashboard/en/mysql'
-  - desc  : 'MySQL-v2'
-    path  : 'dashboard/en/mysql-v2'
+    path  : 'dashboard/en/mysql_explorer'
 monitor   :
   - desc  : 'MySQL'
     path  : 'monitor/en/mysql'

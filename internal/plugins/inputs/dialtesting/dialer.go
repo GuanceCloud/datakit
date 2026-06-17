@@ -13,6 +13,7 @@ import (
 	"path"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	dt "github.com/GuanceCloud/cliutils/dialtesting"
@@ -44,10 +45,13 @@ type dialer struct {
 	taskExecTimeInterval time.Duration
 	testCnt              int64
 	class                string
+	workspaceLanguage    atomic.Value // stores string
 	tags                 map[string]string
 	dfTags               map[string]string // tags from df_label
 	category             string
-	regionName           string
+	taskGaugeMu          sync.Mutex
+	taskGaugeRegion      string
+	taskGaugeActive      bool
 	measurementInfo      *inputs.MeasurementInfo
 	seqNumber            int64 // the number of test has been executed
 	failCnt              int
@@ -56,6 +60,79 @@ type dialer struct {
 	updateCh chan dt.ITask      // buffered with size 1, keeps only the latest pending update
 	done     <-chan interface{} // input exit signal
 	stopCh   chan interface{}   // dialer stop signal
+}
+
+func (d *dialer) regionName() string {
+	if d == nil || d.ipt == nil {
+		return ""
+	}
+
+	return d.ipt.dialerRegionNameByLanguage(d.getWorkspaceLanguage())
+}
+
+func (d *dialer) getWorkspaceLanguage() string {
+	if d == nil {
+		return ""
+	}
+
+	if v := d.workspaceLanguage.Load(); v != nil {
+		if lang, ok := v.(string); ok {
+			return lang
+		}
+	}
+
+	if d.task == nil {
+		return ""
+	}
+
+	return d.task.GetWorkspaceLanguage()
+}
+
+func (d *dialer) setWorkspaceLanguage(language string) {
+	d.workspaceLanguage.Store(language)
+}
+
+func (d *dialer) activateTaskGauge() {
+	regionName := d.regionName()
+
+	d.taskGaugeMu.Lock()
+	defer d.taskGaugeMu.Unlock()
+
+	if d.taskGaugeActive {
+		return
+	}
+
+	taskGauge.WithLabelValues(regionName, d.class).Inc()
+	d.taskGaugeRegion = regionName
+	d.taskGaugeActive = true
+}
+
+func (d *dialer) deactivateTaskGauge() {
+	d.taskGaugeMu.Lock()
+	defer d.taskGaugeMu.Unlock()
+
+	if !d.taskGaugeActive {
+		return
+	}
+
+	taskGauge.WithLabelValues(d.taskGaugeRegion, d.class).Dec()
+	d.taskGaugeRegion = ""
+	d.taskGaugeActive = false
+}
+
+func (d *dialer) refreshTaskGaugeRegion() {
+	regionName := d.regionName()
+
+	d.taskGaugeMu.Lock()
+	defer d.taskGaugeMu.Unlock()
+
+	if !d.taskGaugeActive || d.taskGaugeRegion == regionName {
+		return
+	}
+
+	taskGauge.WithLabelValues(d.taskGaugeRegion, d.class).Dec()
+	taskGauge.WithLabelValues(regionName, d.class).Inc()
+	d.taskGaugeRegion = regionName
 }
 
 func (d *dialer) updateTask(t dt.ITask) error {
@@ -157,6 +234,8 @@ func newDialer(t dt.ITask, ipt *Input) *dialer {
 		info = (&websocketMeasurement{}).Info()
 	case dt.ClassGRPC:
 		info = (&grpcMeasurement{}).Info()
+	case dt.ClassSSL:
+		info = (&sslMeasurement{}).Info()
 	case dt.ClassHeadless:
 		info = (&browserMeasurement{}).Info()
 	}
@@ -169,7 +248,7 @@ func newDialer(t dt.ITask, ipt *Input) *dialer {
 	dfTags := make(map[string]string)
 	populateDFLabelTags(t.GetDFLabel(), dfTags)
 
-	return &dialer{
+	d := &dialer{
 		task:                 t,
 		updateCh:             make(chan dt.ITask, 1),
 		initTime:             time.Now(),
@@ -181,6 +260,9 @@ func newDialer(t dt.ITask, ipt *Input) *dialer {
 		ipt:                  ipt,
 		stopCh:               make(chan interface{}),
 	}
+	d.setWorkspaceLanguage(t.GetWorkspaceLanguage())
+
+	return d
 }
 
 func (d *dialer) getSendFailCount() int {
@@ -246,13 +328,11 @@ func (d *dialer) run() error {
 		l.Debugf("dialer: %+#v, using frequency schedule: %s", d, d.task.GetFrequency())
 	}
 
-	taskGauge.WithLabelValues(d.regionName, d.class).Inc()
-	defer func() {
-		taskGauge.WithLabelValues(d.regionName, d.class).Dec()
-	}()
+	d.activateTaskGauge()
+	defer d.deactivateTaskGauge()
 
 	if parts, err := url.Parse(d.task.PostURLStr()); err != nil {
-		taskInvalidCounter.WithLabelValues(d.regionName, d.class, "invalid_post_url").Inc()
+		taskInvalidCounter.WithLabelValues(d.regionName(), d.class, "invalid_post_url").Inc()
 		return fmt.Errorf("invalid post url")
 	} else {
 		params := parts.Query()
@@ -262,15 +342,15 @@ func (d *dialer) run() error {
 				if isValid, err := dialWorker.sender.checkToken(tokens[0], parts.Scheme, parts.Host); err != nil {
 					l.Warnf("check token error: %s", err.Error())
 				} else if !isValid {
-					taskInvalidCounter.WithLabelValues(d.regionName, d.class, "invalid_token").Inc()
+					taskInvalidCounter.WithLabelValues(d.regionName(), d.class, "invalid_token").Inc()
 					return fmt.Errorf("invalid token")
 				}
 			} else {
-				taskInvalidCounter.WithLabelValues(d.regionName, d.class, "token_empty").Inc()
+				taskInvalidCounter.WithLabelValues(d.regionName(), d.class, "token_empty").Inc()
 				return fmt.Errorf("token is required")
 			}
 		} else {
-			taskInvalidCounter.WithLabelValues(d.regionName, d.class, "token_empty").Inc()
+			taskInvalidCounter.WithLabelValues(d.regionName(), d.class, "token_empty").Inc()
 			return fmt.Errorf("token is required")
 		}
 	}
@@ -299,7 +379,7 @@ func (d *dialer) run() error {
 		}
 
 		failCount = d.getSendFailCount()
-		taskDatawaySendFailedGauge.WithLabelValues(d.regionName, d.class).Set(float64(failCount))
+		taskDatawaySendFailedGauge.WithLabelValues(d.regionName(), d.class).Set(float64(failCount))
 
 		// exceed max send fail count, sleep for MaxSendFailSleepTime
 		if failCount > MaxSendFailCount {
@@ -308,7 +388,7 @@ func (d *dialer) run() error {
 			}
 			isSleep = true
 			sleepTimer.Reset(d.ipt.MaxSendFailSleepTime.Duration)
-			taskInvalidCounter.WithLabelValues(d.regionName, d.class, "exceed_max_failure_count").Inc()
+			taskInvalidCounter.WithLabelValues(d.regionName(), d.class, "exceed_max_failure_count").Inc()
 			l.Warnf("dial testing %s send data failed %d times", d.task.ID(), failCount)
 		}
 
@@ -320,7 +400,7 @@ func (d *dialer) run() error {
 			lastDialingDuration := now.Sub(d.dialingTime)
 			interval := lastDialingDuration - taskInterval
 			if interval > d.taskExecTimeInterval {
-				taskExecTimeIntervalSummary.WithLabelValues(d.regionName, d.class).Observe(float64(interval) / float64(time.Second))
+				taskExecTimeIntervalSummary.WithLabelValues(d.regionName(), d.class).Observe(float64(interval) / float64(time.Second))
 			}
 		}
 		d.dialingTime = now
@@ -358,7 +438,7 @@ func (d *dialer) run() error {
 			}
 		}
 
-		taskRunCostSummary.WithLabelValues(d.regionName, d.class).Observe(float64(time.Since(d.dialingTime)) / float64(time.Second))
+		taskRunCostSummary.WithLabelValues(d.regionName(), d.class).Observe(float64(time.Since(d.dialingTime)) / float64(time.Second))
 		// dialtesting start
 		if err := d.feedIO(); err != nil {
 			l.Warnf("io feed failed, %s", err.Error())
@@ -394,12 +474,7 @@ func (d *dialer) run() error {
 				l.Info("task %s stopped", d.task.ID())
 				return nil
 			}
-			// update regionName
-			if t.GetWorkspaceLanguage() == "en" && d.ipt.regionNameEn != "" {
-				d.regionName = d.ipt.regionNameEn
-			} else {
-				d.regionName = d.ipt.regionName
-			}
+			d.refreshTaskGaugeRegion()
 
 			d.dfTags = make(map[string]string)
 			// update df_label
@@ -472,7 +547,7 @@ func (d *dialer) feedIO() error {
 	urlStr := u.String()
 
 	switch d.task.Class() {
-	case dt.ClassHTTP, dt.ClassTCP, dt.ClassICMP, dt.ClassWebsocket, dt.ClassMulti, dt.ClassGRPC, dt.ClassHeadless:
+	case dt.ClassHTTP, dt.ClassTCP, dt.ClassICMP, dt.ClassWebsocket, dt.ClassMulti, dt.ClassGRPC, dt.ClassSSL, dt.ClassHeadless:
 		d.category = urlStr
 		d.pointsFeed(urlStr)
 	default:
@@ -524,6 +599,7 @@ func (d *dialer) doUpdateTask(t dt.ITask) error {
 	}
 
 	d.task = t
+	d.setWorkspaceLanguage(t.GetWorkspaceLanguage())
 	return nil
 }
 

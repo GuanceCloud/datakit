@@ -91,6 +91,8 @@ type Input struct {
 	V3ContextName       string            `toml:"v3_context_name"`
 	Workers             int               `toml:"workers"`
 	MaxOIDs             int               `toml:"max_oids"`
+	OIDBatchSize        int               `toml:"oid_batch_size"`
+	BulkMaxRepetitions  uint32            `toml:"bulk_max_repetitions"`
 	DiscoveryInterval   time.Duration     `toml:"discovery_interval"`
 	DiscoveryIgnoredIPs []string          `toml:"discovery_ignored_ip"`
 	Tags                map[string]string `toml:"tags"`
@@ -788,7 +790,7 @@ func (ipt *Input) doCollectCore(ip string,
 				return
 			}
 		}
-		l.Warnf("getValuesAndTags failed: %v", checkErr)
+		l.Warnf("getValuesAndTags failed, ip=%s: %v", ip, checkErr)
 	}
 	for k, v := range ipt.Tags {
 		tags = append(tags, k+":"+v)
@@ -1250,6 +1252,12 @@ func (ipt *Input) ValidateConfig() error {
 	}
 	if ipt.LLDPInterval == 0 {
 		ipt.LLDPInterval = defaultLLDPInterval
+	}
+	if ipt.OIDBatchSize == 0 {
+		ipt.OIDBatchSize = defaultOidBatchSize
+	}
+	if ipt.BulkMaxRepetitions == 0 {
+		ipt.BulkMaxRepetitions = defaultBulkMaxRepetitions
 	}
 	if len(ipt.DeviceNamespace) == 0 {
 		ipt.DeviceNamespace = defaultDeviceNamespace

@@ -835,16 +835,21 @@ const (
 	structuredBudgetBase        = 2048
 	structuredBudgetInputFactor = 16
 	structuredBudgetStepFactor  = 96
+	structuredBudgetMax         = 262144
 )
 
 func newStructuredMatchBudget(inputLen, stepCount int) matchBudget {
 	if stepCount <= 0 {
 		stepCount = 1
 	}
+	remain := structuredBudgetBase +
+		inputLen*structuredBudgetInputFactor +
+		stepCount*structuredBudgetStepFactor
+	if remain > structuredBudgetMax {
+		remain = structuredBudgetMax
+	}
 	return matchBudget{
-		remain: structuredBudgetBase +
-			inputLen*structuredBudgetInputFactor +
-			stepCount*structuredBudgetStepFactor,
+		remain: remain,
 	}
 }
 
@@ -869,6 +874,20 @@ func parserWorkUnits(start, next int) int {
 		return 1
 	}
 	return 1 + (next-start)/32
+}
+
+func scanWorkUnits(length int) int {
+	if length <= 0 {
+		return 1
+	}
+	return 1 + length/8
+}
+
+func searchAdvanceWorkUnits(from, to int) int {
+	if to <= from {
+		return 1
+	}
+	return 1 + (to-from)/64
 }
 
 func stepChangeCapacity(step structuredStep) int {
@@ -2332,8 +2351,14 @@ func (m structuredMatcher) matchEndOK(next int, content string) bool {
 }
 
 func (m structuredMatcher) matchSearch(dst []string, content string, trimSpace bool, budget *matchBudget) bool {
-	for pos := m.nextSearchPos(content, 0); pos <= len(content); pos = m.nextSearchPos(content, pos+1) {
-		if !budget.consume(4) {
+	searchFrom := 0
+	for {
+		pos := m.nextSearchPos(content, searchFrom)
+		if pos > len(content) {
+			budget.consume(searchAdvanceWorkUnits(searchFrom, len(content)))
+			return false
+		}
+		if !budget.consume(4 + searchAdvanceWorkUnits(searchFrom, pos)) {
 			return false
 		}
 		resetStringResults(dst)
@@ -2343,13 +2368,20 @@ func (m structuredMatcher) matchSearch(dst []string, content string, trimSpace b
 		if len(content)-pos < m.ir.MinWidth {
 			break
 		}
+		searchFrom = pos + 1
 	}
 	return false
 }
 
 func (m structuredMatcher) matchTypedSearch(dst []any, content string, trimSpace bool, kinds []valueKind, budget *matchBudget) bool {
-	for pos := m.nextSearchPos(content, 0); pos <= len(content); pos = m.nextSearchPos(content, pos+1) {
-		if !budget.consume(4) {
+	searchFrom := 0
+	for {
+		pos := m.nextSearchPos(content, searchFrom)
+		if pos > len(content) {
+			budget.consume(searchAdvanceWorkUnits(searchFrom, len(content)))
+			return false
+		}
+		if !budget.consume(4 + searchAdvanceWorkUnits(searchFrom, pos)) {
 			return false
 		}
 		resetAnyResults(dst)
@@ -2359,6 +2391,7 @@ func (m structuredMatcher) matchTypedSearch(dst []any, content string, trimSpace
 		if len(content)-pos < m.ir.MinWidth {
 			break
 		}
+		searchFrom = pos + 1
 	}
 	return false
 }
@@ -2918,7 +2951,7 @@ func matchStructuredBacktrackingParserStep(steps []structuredStep, idx int, step
 	end := len(rest)
 
 	for {
-		if !budget.consume(8) {
+		if !budget.consume(8 + scanWorkUnits(end)) {
 			return 0, false, changes[:mark]
 		}
 		rel := lastLiteralIndex(rest[:end], step.parser.nextLiteral)
@@ -2959,7 +2992,7 @@ func matchTypedBacktrackingParserStep(steps []structuredStep, idx int, step stru
 	end := len(rest)
 
 	for {
-		if !budget.consume(8) {
+		if !budget.consume(8 + scanWorkUnits(end)) {
 			return 0, false, changes[:mark]
 		}
 		rel := lastLiteralIndex(rest[:end], step.parser.nextLiteral)

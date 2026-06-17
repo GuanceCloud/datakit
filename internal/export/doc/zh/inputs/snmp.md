@@ -66,6 +66,510 @@ DataKit 支持以上所有版本。
 
 ### 多种配置格式 {#configuration-formats}
 
+#### 内置 Profile 格式 {#advanced-custom-oid}
+
+内置 Profile 使用 YAML 描述设备的 `sysObjectID`、采集 OID、指标类型、标签和元数据。
+
+该格式适合以下场景：
+
+- 内置 Profile 未覆盖当前设备型号；
+- 需要增加厂商私有 MIB 指标；
+- 设备将数值以 String/OCTET STRING 形式返回；
+- 需要补充设备元数据。
+
+Profile YAML 与 Zabbix Template、Prometheus `snmp_exporter` 格式不同，字段不能混用。
+
+##### 准备 OID 信息 {#profile-prepare-oid}
+
+编写 Profile 前，应先获取设备 MIB/OID 手册，并使用 `snmpget` 或 `snmpwalk` 确认设备的实际返回结果。至少需要确认：
+
+- `sysObjectID`，即 OID `1.3.6.1.2.1.1.2.0` 的值；
+- 指标是标量还是表格列；
+- 指标 OID、数据类型、含义和单位；
+- String/OCTET STRING 的完整返回格式；
+- 表格索引和能够区分每一行的标签列。
+
+##### 新增 Profile {#profile-add}
+
+将 YAML 文件放入 DataKit 安装目录的 `conf.d/snmp/profiles/` 目录，例如：
+
+```text
+/usr/local/datakit/conf.d/snmp/profiles/vendor-router.yaml
+```
+
+文件要求：
+
+- 扩展名必须为 `.yaml`；
+- 文件名不能以 `_` 开头，以 `_` 开头的文件只作为继承模板；
+- 不要与已有内置 Profile 使用相同文件名，DataKit 启动时会重新释放同名内置文件；
+- DataKit 升级前应备份现场新增的 YAML 文件。
+
+新增后重启 DataKit。
+
+##### 基本结构 {#profile-structure}
+
+```yaml
+extends:
+  - generic-router.yaml
+
+sysobjectid: 1.3.6.1.4.1.<enterprise_id>.<product_id>
+
+device:
+  vendor: vendor_name
+
+static_tags:
+  - "device_type:router"
+
+metadata:
+  device:
+    fields:
+      model:
+        symbol:
+          OID: 1.3.6.1.4.1.<enterprise_id>.1.1.0
+          name: vendorModel
+
+metric_tags:
+  - symbol:
+      OID: 1.3.6.1.2.1.1.5.0
+      name: sysName
+    tag: snmp_host
+
+metrics:
+  - MIB: VENDOR-MIB
+    symbol:
+      OID: 1.3.6.1.4.1.<enterprise_id>.2.1.0
+      name: vendor.system.cpu_usage
+      metric_type: gauge
+```
+
+根级字段说明：
+
+| 字段 | 是否必需 | 说明 |
+| --- | --- | --- |
+| `extends` | 否 | 继承其他 Profile，常用于复用通用指标和元数据 |
+| `sysobjectid` | 自动匹配时必需 | 一个字符串或字符串列表，支持 `*` 通配符 |
+| `device.vendor` | 否 | 生成 `device_vendor` 标签，并作为设备厂商元数据的回退值 |
+| `static_tags` | 否 | 应用于 Profile 数据的固定 `key:value` 标签 |
+| `metadata` | 否 | 设备元数据定义 |
+| `metric_tags` | 否 | 从标量 OID 生成 Profile 级动态标签 |
+| `metrics` | 否 | 标量和表格指标定义 |
+
+`MIB` 和 `table` 用于提高 YAML 可读性，不决定实际 SNMP 查询。DataKit 实际查询的是 `symbol`、`symbols`、`metric_tags` 和 `metadata` 中配置的 OID。
+
+##### 继承 Profile {#profile-inheritance}
+
+`extends` 用于继承已有 Profile。被继承 Profile 中的指标、标签和元数据会合并到当前 Profile，可以减少标准 MIB 的重复配置。
+
+```yaml
+extends:
+  - _base.yaml
+  - _generic-if.yaml
+```
+
+DataKit 已安装的 Profile 位于 `conf.d/snmp/profiles/`。编写 YAML 前，建议先查看该目录中以 `_` 开头的文件，并根据当前 DataKit 版本选择可复用的模板。常用模板包括：
+
+| Profile | 用途 |
+| --- | --- |
+| `_base.yaml` | 通用设备标签和基础设备元数据 |
+| `_generic-if.yaml` | IF-MIB 接口指标和接口元数据 |
+| `_generic-ip.yaml` | IP-MIB 指标 |
+| `_generic-tcp.yaml` | TCP-MIB 指标 |
+| `_generic-udp.yaml` | UDP-MIB 指标 |
+| `_generic-ospf.yaml` | OSPF-MIB 指标 |
+| `_generic-bgp4.yaml` | BGP4-MIB 指标 |
+| `_generic-lldp.yaml` | LLDP 相关指标和元数据 |
+| `_generic-entity-sensor.yaml` | ENTITY-SENSOR-MIB 传感器指标 |
+| `_generic-host-resources.yaml` | HOST-RESOURCES-MIB 主机资源指标 |
+| `_generic-ups.yaml` | 通用 UPS 指标 |
+| `_cisco-generic.yaml` | Cisco 通用接口、IP、TCP、UDP、OSPF、BGP、CPU、内存和元数据 |
+| `_huawei.yaml` | Huawei 通用接口和厂商元数据 |
+| `_juniper.yaml` | Juniper 通用基础配置和厂商元数据 |
+
+以 `_` 开头的文件只作为继承模板，不独立参与 `sysObjectID` 自动匹配。也可以继承不以 `_` 开头的完整 Profile，例如 `generic-router.yaml`：
+
+```yaml
+extends:
+  - generic-router.yaml
+```
+
+`generic-router.yaml` 已经继承 `_base.yaml`、`_generic-if.yaml`、`_generic-ip.yaml`、`_generic-tcp.yaml`、`_generic-udp.yaml` 和 `_generic-ospf.yaml`。因此继承它以后，不需要再次显式继承这些文件。
+
+Cisco 设备可以继承通用 Cisco 模板，并追加设备专属指标：
+
+```yaml
+extends:
+  - _base.yaml
+  - _cisco-generic.yaml
+
+sysobjectid: 1.3.6.1.4.1.9.1.<product_id>
+```
+
+注意：
+
+- `extends` 中的文件名相对于 `conf.d/snmp/profiles/` 解析；
+- 支持继承多个 Profile 和多层继承，但不能循环继承；
+- 指标、动态标签和静态标签采用追加方式合并；
+- 当前 Profile 已定义的同名元数据字段不会被继承内容覆盖；
+- 不要重复继承已经被上层 Profile 包含的模板，否则可能产生重复指标或标签；
+- 继承的通用模块越多，需要查询的 OID 越多，应按设备实际支持的 MIB 选择。
+
+##### sysObjectID 匹配 {#profile-sysobjectid}
+
+精确匹配：
+
+```yaml
+sysobjectid: 1.3.6.1.4.1.99999.1.2
+```
+
+通配匹配：
+
+```yaml
+sysobjectid: 1.3.6.1.4.1.99999.*
+```
+
+匹配多个型号：
+
+```yaml
+sysobjectid:
+  - 1.3.6.1.4.1.99999.1.*
+  - 1.3.6.1.4.1.99999.2.*
+```
+
+多个 Profile 同时匹配时，DataKit 选择更具体的规则。不同 Profile 不应配置完全相同的 `sysobjectid`。应尽量使用厂商或产品专属值，避免宽泛规则误匹配其他设备。
+
+例如 `1.3.6.1.4.1.8072.3.2.10` 是常见的 Net-SNMP Linux `sysObjectID`，并非某个设备厂商独占。
+
+##### 标量指标 {#profile-scalar-metrics}
+
+标量只有一个值，使用 `symbol` 定义。标量 OID 通常以 `.0` 结尾：
+
+```yaml
+metrics:
+  - MIB: VENDOR-SYSTEM-MIB
+    symbol:
+      OID: 1.3.6.1.4.1.99999.1.2.0
+      name: vendor.system.cpu_usage
+      metric_type: gauge
+```
+
+##### 表格指标 {#profile-table-metrics}
+
+表格有多行数据，使用 `symbols` 定义需要采集的列，并使用 `metric_tags` 区分每一行：
+
+```yaml
+metrics:
+  - MIB: IF-MIB
+    table:
+      OID: 1.3.6.1.2.1.2.2
+      name: ifTable
+    symbols:
+      - OID: 1.3.6.1.2.1.2.2.1.10
+        name: vendor.interface.in_octets
+        metric_type: monotonic_count
+      - OID: 1.3.6.1.2.1.2.2.1.16
+        name: vendor.interface.out_octets
+        metric_type: monotonic_count
+    metric_tags:
+      - symbol:
+          OID: 1.3.6.1.2.1.31.1.1.1.1
+          name: ifName
+        tag: interface
+```
+
+表格必须至少配置一个能够区分行的标签，否则多行指标可能拥有相同标签，最终只能保留一行。
+
+也可以从 OID 行索引中生成标签。`index` 从 `1` 开始：
+
+```yaml
+metric_tags:
+  - index: 1
+    tag: disk_index
+```
+
+如果完整索引为 `3.24`，以下配置会生成 `slot:3` 和 `port:24`：
+
+```yaml
+metric_tags:
+  - index: 1
+    tag: slot
+  - index: 2
+    tag: port
+```
+
+##### String 转数值 {#profile-string-to-number}
+
+指标字段值需要是数值类型。纯数字 String/OCTET STRING（如 `"52.20"`）可直接转换；值中包含单位或其他字符时，使用 `extract_value` 提取第一个捕获组。
+
+设备返回 `STRING: "5331MB"`：
+
+```yaml
+- OID: 1.3.6.1.4.1.99999.2.1.4
+  name: vendor.disk.used
+  extract_value: '^([0-9]+[.]?[0-9]*)MB$'
+  metric_type: gauge
+```
+
+设备返回 `STRING: "52.20%"`：
+
+```yaml
+- OID: 1.3.6.1.4.1.99999.2.1.6
+  name: vendor.disk.used_percent
+  extract_value: '^([0-9]+[.]?[0-9]*)%?$'
+  metric_type: gauge
+```
+
+注意：
+
+- 正则必须至少包含一个捕获组，DataKit 只使用第一个捕获组；
+- 建议使用单引号包裹正则，并使用 `^` 和 `$` 完整匹配；
+- 使用 Go 正则语法，不支持 lookahead 和 lookbehind；
+- 正则不匹配时，当前值不会上报；
+- 普通文本 String 不应作为时序指标值，应配置为标签或元数据。
+
+##### 指标类型和数值换算 {#profile-metric-type}
+
+自定义 Profile 推荐使用以下 `metric_type`：
+
+| 类型 | 适用场景 |
+| --- | --- |
+| `gauge` | 使用率、温度、容量、连接数等可增可减的当前值 |
+| `monotonic_count` | 字节数、包数、请求数等单调递增累计值 |
+
+可以在具体 `symbol` 中配置，也可以在表格指标根级配置并应用于该表格的所有 `symbols`。具体 `symbol` 中的配置优先级更高。不配置时，DataKit 根据 SNMP 返回类型推断，无法推断时按 `gauge` 处理。
+
+`scale_factor` 用于数值换算。例如设备返回 `5234`，实际值为 `52.34%`：
+
+```yaml
+- OID: 1.3.6.1.4.1.99999.1.2.0
+  name: vendor.system.cpu_usage
+  scale_factor: 0.01
+  metric_type: gauge
+```
+
+`scale_factor` 只作用于最终上报的指标数值。String 指标可先使用 `extract_value` 提取数值，再应用 `scale_factor`。
+
+##### 固定上报数值 1 {#profile-constant-value-one}
+
+表格表示一组实体，但没有合适的数值列时，可使用 `constant_value_one` 为每一行固定上报 `1`：
+
+```yaml
+metrics:
+  - MIB: VENDOR-DISK-MIB
+    table:
+      OID: 1.3.6.1.4.1.99999.3.1
+      name: vendorDiskTable
+    symbols:
+      - name: vendor.disk.present
+        constant_value_one: true
+    metric_tags:
+      - symbol:
+          OID: 1.3.6.1.4.1.99999.3.1.1
+          name: diskName
+        tag: disk_name
+      - symbol:
+          OID: 1.3.6.1.4.1.99999.3.1.2
+          name: diskState
+        tag: disk_state
+        mapping:
+          1: normal
+          2: warning
+          3: failed
+```
+
+`constant_value_one` 只能用于表格 `symbols`，不能用于标量。使用时不填写指标 OID，但必须配置 `name`，并至少配置一个不含 `index_transform`、带 OID 的 `metric_tags.symbol`，以便 DataKit 发现表格行。
+
+##### 标签 {#profile-tags}
+
+Profile 根级 `static_tags` 用于增加固定标签：
+
+```yaml
+static_tags:
+  - "device_type:router"
+  - "environment:production"
+```
+
+Profile 根级 `metric_tags` 从标量 OID 生成应用于设备指标的动态标签：
+
+```yaml
+metric_tags:
+  - symbol:
+      OID: 1.3.6.1.2.1.1.5.0
+      name: sysName
+    tag: snmp_host
+```
+
+表格内的 `metric_tags` 可以使用 `mapping` 将原始值转换为可读标签：
+
+```yaml
+metric_tags:
+  - symbol:
+      OID: 1.3.6.1.4.1.99999.3.1.2
+      name: diskState
+    tag: disk_state
+    mapping:
+      1: normal
+      2: warning
+      3: failed
+```
+
+使用 `match` 和 `tags` 可从一个表格列值生成多个标签：
+
+```yaml
+metric_tags:
+  - symbol:
+      OID: 1.3.6.1.4.1.99999.4.1.2
+      name: interfaceLabel
+    match: '^([A-Za-z]+)-([0-9]+)$'
+    tags:
+      interface_type: '$1'
+      interface_number: '$2'
+```
+
+原始值为 `ethernet-12` 时，将生成 `interface_type:ethernet` 和 `interface_number:12`。配置 `match` 时必须同时配置非空的 `tags`，正则不匹配时不会生成标签。
+
+当指标表和标签来源表的索引结构不一致时，可以使用 `index_transform` 截取并重组索引：
+
+```yaml
+metric_tags:
+  - symbol:
+      OID: 1.3.6.1.4.1.99999.5.1.2
+      name: parentName
+    index_transform:
+      - start: 1
+        end: 2
+      - start: 6
+        end: 7
+    tag: parent_name
+```
+
+如果当前索引为 `1.2.3.4.5.6.7.8`，转换结果为 `2.3.7.8`。`start` 和 `end` 都从 `0` 开始，且 `end` 所在位置包含在结果中。只有在跨表关联时才需要使用该配置。
+
+##### 元数据 {#profile-metadata}
+
+自定义 Profile 可以通过 `metadata.device` 补充设备元数据，支持 `name`、`description`、`sys_object_id`、`location`、`serial_number`、`vendor`、`version`、`product_name`、`model`、`os_name`、`os_version`、`os_hostname` 和 `type` 字段。字段值可以来自标量 OID，也可以使用固定 `value`：
+
+```yaml
+metadata:
+  device:
+    fields:
+      name:
+        symbol:
+          OID: 1.3.6.1.2.1.1.5.0
+          name: sysName
+      serial_number:
+        symbol:
+          OID: 1.3.6.1.4.1.99999.1.1.0
+          name: vendorSerialNumber
+      vendor:
+        value: vendor_name
+      type:
+        value: router
+```
+
+一个字段可配置多个候选 `symbols`，DataKit 按顺序使用第一个能够取得值的 OID。`match_pattern` 和 `match_value` 可从文本中提取或替换内容：
+
+```yaml
+metadata:
+  device:
+    fields:
+      model:
+        symbols:
+          - OID: 1.3.6.1.4.1.99999.1.2.0
+            name: vendorModel
+          - OID: 1.3.6.1.2.1.1.1.0
+            name: sysDescr
+            match_pattern: 'Model[=: ]+([A-Za-z0-9._-]+)'
+            match_value: '$1'
+```
+
+省略 `match_value` 时默认使用第一个捕获组 `$1`；正则不匹配时，DataKit 尝试下一个候选 `symbol`。
+
+继承 `_generic-if.yaml` 或 `generic-router.yaml` 后，通用接口元数据已经包含在继承内容中，通常不需要重复配置。
+
+##### 指标命名 {#profile-metric-naming}
+
+指标名按以下规则转换后上报：
+
+1. 名称中包含下划线 `_` 时，将所有点号 `.` 替换为下划线 `_`；
+1. 名称中不包含下划线 `_` 时，删除点号 `.`，并将点号后第一个字母转换为大写；
+1. 名称中没有点号 `.` 时，保持不变。
+
+示例：
+
+| Profile 中的 `name` | 最终上报字段名 |
+| --- | --- |
+| `sangfor.disk.used` | `sangforDiskUsed` |
+| `sangfor.disk.used_percent` | `sangfor_disk_used_percent` |
+| `vendor.interface.in_octets` | `vendor_interface_in_octets` |
+| `cpu_usage` | `cpu_usage` |
+
+该转换也适用于标签键，但不会修改标签值。
+
+同一个 Profile 应统一命名风格。可以使用不含下划线的点号分层名称，例如 `vendor.disk.used`；也可以直接使用不含点号的下划线名称，例如 `vendor_disk_used`。避免混用点号和下划线，因为点号最终会转换为下划线。现有内置 Profile 常使用 `huawei.hwEntityTemperature` 这类名称，最终上报为 `huaweiHwEntityTemperature`。
+
+##### 完整示例 {#profile-example}
+
+以下示例继承通用路由器指标，采集设备元数据、数值标量、String 类型磁盘指标和实体存在性指标：
+
+```yaml
+extends:
+  - generic-router.yaml
+
+sysobjectid: 1.3.6.1.4.1.99999.1.2
+
+device:
+  vendor: vendor_name
+
+metadata:
+  device:
+    fields:
+      model:
+        symbol:
+          OID: 1.3.6.1.4.1.99999.1.1.0
+          name: vendorModel
+
+metrics:
+  - MIB: VENDOR-SYSTEM-MIB
+    symbol:
+      OID: 1.3.6.1.4.1.99999.1.2.0
+      name: vendor.system.cpu_usage
+      metric_type: gauge
+
+  - MIB: VENDOR-DISK-MIB
+    table:
+      OID: 1.3.6.1.4.1.99999.2.1
+      name: vendorDiskTable
+    symbols:
+      - OID: 1.3.6.1.4.1.99999.2.1.4
+        name: vendor.disk.used
+        extract_value: '^([0-9]+[.]?[0-9]*)MB$'
+        metric_type: gauge
+      - OID: 1.3.6.1.4.1.99999.2.1.6
+        name: vendor.disk.used_percent
+        extract_value: '^([0-9]+[.]?[0-9]*)%?$'
+        metric_type: gauge
+      - name: vendor.disk.present
+        constant_value_one: true
+    metric_tags:
+      - index: 1
+        tag: disk_index
+      - symbol:
+          OID: 1.3.6.1.4.1.99999.2.1.2
+          name: diskName
+        tag: disk_name
+```
+
+##### 验证和排错 {#profile-troubleshooting}
+
+常见问题：
+
+- Profile 未匹配：检查设备实际 `sysObjectID`、通配符范围以及是否存在更具体的匹配规则；
+- YAML 未加载：检查文件扩展名、文件名、缩进和 DataKit 日志中的 Profile 校验错误；
+- OID 无数据：使用与 DataKit 相同的 SNMP 版本和认证信息运行 `snmpget`/`snmpwalk`；
+- String 指标未上报：检查 `extract_value` 是否包含捕获组并匹配实际完整值；
+- 表格只上报一行：为表格增加能够区分每一行的 `metric_tags`；
+- 指标被跳过：确认最终值能够转换为数值，并检查 `metric_type` 和 `scale_factor`。
+
 #### Zabbix 格式 {#format-zabbix}
 
 - 配置
@@ -388,7 +892,7 @@ DataKit 支持 "指定设备" 和 "自动发现" 两种模式。两种模式可�
 
 ### 设备不支持采集 {#faq-not-support}
 
-DataKit 可以从所有 SNMP 设备中收集通用的基线指标。如果你发现被采集的设备上报的数据中没有你想要的指标，那么，你可以需要为该设备[自定义一份 Profile](snmp.md#advanced-custom-oid)。
+DataKit 可以从所有 SNMP 设备中收集通用的基线指标。如果你发现被采集的设备上报的数据中没有你想要的指标，那么，你可能需要为该设备[自定义一份 Profile](snmp.md#advanced-custom-oid)。
 
 为了完成上述工作，你很可能需要从设备厂商的官网下载该设备型号的 OID 手册。
 

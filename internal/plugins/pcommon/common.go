@@ -108,6 +108,7 @@ func parseStatF(output string) (*disk.UsageStat, error) {
 		lines = strings.Split(output, "\n")
 		blockSize,
 		freeBlocks,
+		availableBlocks,
 		totalInodes,
 		freeInodes,
 		totalBlocks uint64
@@ -135,9 +136,11 @@ func parseStatF(output string) (*disk.UsageStat, error) {
 				totalBlocks = val
 			case 2: // blocks-free
 				freeBlocks = val
-			case 3: // inodes-total
+			case 3: // blocks-available
+				availableBlocks = val
+			case 4: // inodes-total
 				totalInodes = val
-			case 4: // inodes-free
+			case 5: // inodes-free
 				freeInodes = val
 			}
 		}
@@ -150,8 +153,10 @@ func parseStatF(output string) (*disk.UsageStat, error) {
 
 	stats.Total = totalBlocks * blockSize
 	stats.Used = (totalBlocks - freeBlocks) * blockSize
-	stats.Free = freeBlocks * blockSize
-	stats.UsedPercent = float64(stats.Used) / float64(stats.Used+stats.Free) * 100
+	stats.Free = availableBlocks * blockSize
+	if stats.Used+stats.Free != 0 {
+		stats.UsedPercent = float64(stats.Used) / float64(stats.Used+stats.Free) * 100
+	}
 
 	stats.InodesTotal = totalInodes
 	stats.InodesFree = freeInodes
@@ -169,8 +174,8 @@ func nsenterDiskStat(path string) (*disk.UsageStat, error) {
 
 	cmd := exec.Command("nsenter", "--target", "1", "--mount", "--", "stat",
 		"-c",
-		// block-size/blocks/block-free/inodes-total/inodes-free
-		"%s %b %f %c %d",
+		// block-size/blocks/block-free/blocks-available/inodes-total/inodes-free
+		"%s %b %f %a %c %d",
 		"-f", path)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout

@@ -1,5 +1,45 @@
 # Changelog
 
+## 2.2.0(2026/06/17) {#cl-2.2.0}
+
+This release is an iterative release, with the following updates:
+
+### New Features {#cl-2.2.0-new}
+
+- Added IBM AS/400 (IBM i) external collector, collecting system, disk, job, memory pool, subsystem, job queue, and message queue metrics via ODBC (#3082)
+- vSphere collector added VM-level disk storage metrics `disk_used_latest`, `disk_provisioned_latest`, `disk_unshared_latest` (#3111)
+- Dialtesting collector added SSL/TLS certificate check task, supporting certificate expiration, TLS version detection, etc. (#3106)
+- Pipeline added `json_all` and `pt_kvs_set_map` functions (#3109)
+- SNMP collector added `oid_batch_size` and `bulk_max_repetitions` configs, for SNMP agents sensitive to GetBulk requests like iDRAC (#3093)
+- PodMonitor/ServiceMonitor switched to informer architecture; YAML modifications take effect dynamically without restarting collection (#2832)
+
+### Bug Fixes {#cl-2.2.0-fix}
+
+- Fixed APM auto-injection failure in certain scenarios (#3120)
+- Fixed ICMP dial test misidentifying 0ns response as packet loss on low-latency Windows environments (#3118)
+- Fixed PostgreSQL 9.1+ replication delay metrics not being reported due to numeric type conversion (#3114)
+- Fixed prom_remote_write collector continuing to process invalid data due to missing `return` after parse failure (#3105)
+- Fixed PayloadType field inconsistency after compact Body cache dump/load (#3102)
+- Fixed diskio collector unit test occasional doubled read/write rate (#3101)
+- Fixed disk usage calculation anomaly under certain conditions (#3090)
+- Fixed HTTP API reload losing rate limit and timeout configs; hot-reloaded config now matches initial startup (#3079)
+
+### Improvements {#cl-2.2.0-opt}
+
+- Container log collection now keeps the last config and warns on duplicate paths instead of discarding the task (#3119)
+- Browser dial test results now hide low-level Lightpanda startup errors to avoid exposing runtime paths (#3103)
+- Dial test node name changes are now automatically synced to task reporting data (#3099)
+- Added SNMP custom YAML template documentation (#3116)
+- Updated database integration Dashboard path (#3113)
+- CI added Go module/golangci-lint cache reuse, Docker buildx supports registry cache (#3096)
+
+### Compatibility Adjustments {#cl-2.2.0-brk}
+
+- DK self-metric collection changed to all-or-nothing mode, whitelist filtering removed; Profile collection changed to manual control (#3110)
+- ddtrace collector telemetry tag now compatible with `DD_TRACE_TAGS` field name, correctly writing to JVM metric tags (#3108)
+
+---
+
 ## 2.1.5(2026/06/16) {#cl-2.1.5}
 
 This release is a hotfix release, contents are as follows:
@@ -26,7 +66,7 @@ This release is a hotfix release, contents are as follows:
 
 ### Bug Fixes {#cl-2.1.3-fix}
 
-- Fixed time series expansion caused by DataKit automatically injecting the `collector_source_ip` tag into metric data. Metrics no longer get this tag automatically, while traces and logs keep the existing `collector_source_ip` behavior. OpenTelemetry metrics also support disabling global tags added by DataKit through `tracing_metric_disable_global_host_tags` (#3112)
+- Fixed time series expansion caused by `collector_source_ip` auto-injection in metrics; OpenTelemetry metrics now support disabling global tags via configuration (#3112)
 
 ### Improvements {#cl-2.1.3-opt}
 

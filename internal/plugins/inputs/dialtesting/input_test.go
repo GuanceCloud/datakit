@@ -20,6 +20,7 @@ import (
 	"github.com/GuanceCloud/cliutils"
 	"github.com/GuanceCloud/cliutils/dialtesting"
 	"github.com/GuanceCloud/cliutils/point"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -29,6 +30,14 @@ import (
 
 func boolPtr(v bool) *bool {
 	return &v
+}
+
+func taskGaugeValue(t *testing.T, regionName, class string) float64 {
+	t.Helper()
+
+	var metric dto.Metric
+	require.NoError(t, taskGauge.WithLabelValues(regionName, class).Write(&metric))
+	return metric.GetGauge().GetValue()
 }
 
 func TestInternalNetwork(t *testing.T) {
@@ -732,6 +741,92 @@ func TestDispatchTasks(t *testing.T) {
 		if assert.Contains(t, gotVars, "var-1") {
 			assert.Equal(t, "value-1", gotVars["var-1"].Value)
 		}
+	})
+
+	t.Run("region name change refreshes existing dialers", func(t *testing.T) {
+		ipt := defaultInput()
+		ipt.RegionID = "region-id"
+		oldRegionName := "old-region"
+		oldRegionNameEn := "old-region-en"
+		newRegionName := "new-region"
+		newRegionNameEn := "new-region-en"
+		ipt.setRegionNames(oldRegionName, oldRegionNameEn)
+
+		for _, regionName := range []string{oldRegionName, oldRegionNameEn, newRegionName, newRegionNameEn} {
+			taskGauge.DeleteLabelValues(regionName, dialtesting.ClassHTTP)
+		}
+		defer func() {
+			for _, regionName := range []string{oldRegionName, oldRegionNameEn, newRegionName, newRegionNameEn} {
+				taskGauge.DeleteLabelValues(regionName, dialtesting.ClassHTTP)
+			}
+		}()
+
+		taskCN, err := dialtesting.NewTask("", &dialtesting.HTTPTask{
+			Method: "GET",
+			Task: &dialtesting.Task{
+				ExternalID: "task-cn",
+				Name:       "task-cn",
+				Frequency:  "1s",
+			},
+			URL: "http://example.com",
+			SuccessWhen: []*dialtesting.HTTPSuccess{
+				{
+					StatusCode: []*dialtesting.SuccessOption{
+						{Is: "200"},
+					},
+				},
+			},
+		})
+		assert.NoError(t, err)
+
+		taskEN, err := dialtesting.NewTask("", &dialtesting.HTTPTask{
+			Method: "GET",
+			Task: &dialtesting.Task{
+				ExternalID:        "task-en",
+				Name:              "task-en",
+				WorkspaceLanguage: "en",
+				Frequency:         "1s",
+			},
+			URL: "http://example.com",
+			SuccessWhen: []*dialtesting.HTTPSuccess{
+				{
+					StatusCode: []*dialtesting.SuccessOption{
+						{Is: "200"},
+					},
+				},
+			},
+		})
+		assert.NoError(t, err)
+
+		dialerCN := newDialer(taskCN, ipt)
+		dialerEN := newDialer(taskEN, ipt)
+		ipt.curTasks.Store(taskCN.ID(), dialerCN)
+		ipt.curTasks.Store(taskEN.ID(), dialerEN)
+		dialerCN.activateTaskGauge()
+		dialerEN.activateTaskGauge()
+		defer dialerCN.deactivateTaskGauge()
+		defer dialerEN.deactivateTaskGauge()
+
+		assert.Equal(t, float64(1), taskGaugeValue(t, oldRegionName, dialtesting.ClassHTTP))
+		assert.Equal(t, float64(1), taskGaugeValue(t, oldRegionNameEn, dialtesting.ClassHTTP))
+
+		payload, err := json.Marshal(map[string]interface{}{
+			"content": map[string]interface{}{
+				RegionInfo: map[string]interface{}{
+					"name":    newRegionName,
+					"name_en": newRegionNameEn,
+				},
+			},
+		})
+		assert.NoError(t, err)
+
+		assert.NoError(t, ipt.dispatchTasks(payload))
+		assert.Equal(t, newRegionName, dialerCN.regionName())
+		assert.Equal(t, newRegionNameEn, dialerEN.regionName())
+		assert.Equal(t, float64(0), taskGaugeValue(t, oldRegionName, dialtesting.ClassHTTP))
+		assert.Equal(t, float64(0), taskGaugeValue(t, oldRegionNameEn, dialtesting.ClassHTTP))
+		assert.Equal(t, float64(1), taskGaugeValue(t, newRegionName, dialtesting.ClassHTTP))
+		assert.Equal(t, float64(1), taskGaugeValue(t, newRegionNameEn, dialtesting.ClassHTTP))
 	})
 
 	t.Run("create new task stores dialer", func(t *testing.T) {
@@ -1953,8 +2048,7 @@ func TestNewTaskRun(t *testing.T) {
 	t.Run("use english region name for english workspace", func(t *testing.T) {
 		ipt := defaultInput()
 		ipt.RegionID = "region-id"
-		ipt.regionName = "region-zh"
-		ipt.regionNameEn = "region-en"
+		ipt.setRegionNames("region-zh", "region-en")
 
 		task, err := dialtesting.NewTask("", &dialtesting.HTTPTask{
 			Method: "GET",
@@ -1978,7 +2072,7 @@ func TestNewTaskRun(t *testing.T) {
 		d, err := ipt.newTaskRun(task)
 		assert.NoError(t, err)
 		if assert.NotNil(t, d) {
-			assert.Equal(t, "region-en", d.regionName)
+			assert.Equal(t, "region-en", d.regionName())
 			assert.NotNil(t, d.done)
 		}
 
@@ -2076,7 +2170,7 @@ func TestNewTaskRun(t *testing.T) {
 		d, err := ipt.newTaskRun(task)
 		assert.NoError(t, err)
 		if assert.NotNil(t, d) {
-			assert.Equal(t, "region-id", d.regionName)
+			assert.Equal(t, "region-id", d.regionName())
 		}
 
 		ipt.semStop.Close()
@@ -2144,6 +2238,18 @@ func TestNewTaskRun(t *testing.T) {
 				},
 			},
 			{
+				name: "ssl",
+				child: &dialtesting.SSLTask{
+					Task: &dialtesting.Task{
+						ExternalID: "task-ssl",
+						Name:       "task-ssl",
+						Frequency:  "1s",
+					},
+					Host: "example.com",
+					Port: "443",
+				},
+			},
+			{
 				name: "multi",
 				child: &dialtesting.MultiTask{
 					Task: &dialtesting.Task{
@@ -2167,7 +2273,7 @@ func TestNewTaskRun(t *testing.T) {
 				assert.NoError(t, err)
 				if assert.NotNil(t, d) {
 					assert.Equal(t, task.Class(), d.class)
-					assert.Equal(t, "region-id", d.regionName)
+					assert.Equal(t, "region-id", d.regionName())
 					assert.NotNil(t, d.done)
 				}
 

@@ -122,6 +122,34 @@ func TestInput_serveWrite(t *testing.T) {
 	}
 }
 
+func TestInputServeWriteRejectsInvalidProtobuf(t *testing.T) {
+	ipt := defaultInput()
+
+	feeder := NewUnitTestMockedFeeder()
+	ipt.feeder = feeder
+	ipt.tagger = &mockTagger{}
+	ipt.Run()
+
+	req := &http.Request{
+		Method: http.MethodPut,
+		URL: &url.URL{
+			Path: defaultRemoteWritePath,
+		},
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		Header:     make(http.Header),
+		Host:       "1.1.1.1",
+		Body:       io.NopCloser(bytes.NewReader(mock90pts[:len(mock90pts)-1])),
+	}
+	res := newCaptureResponseWriter()
+
+	ipt.serveWrite(res, req)
+
+	require.Equal(t, http.StatusBadRequest, res.statusCode)
+	require.Empty(t, feeder.GetPoints())
+}
+
 func TestInput_serveWrite_with_source(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -191,6 +219,30 @@ type httpResponseWriter struct{}
 func (m httpResponseWriter) Header() http.Header        { return http.Header{} }
 func (m httpResponseWriter) Write([]byte) (int, error)  { return 0, nil }
 func (m httpResponseWriter) WriteHeader(statusCode int) {}
+
+type captureResponseWriter struct {
+	header     http.Header
+	statusCode int
+	body       bytes.Buffer
+}
+
+func newCaptureResponseWriter() *captureResponseWriter {
+	return &captureResponseWriter{
+		header: http.Header{},
+	}
+}
+
+func (m *captureResponseWriter) Header() http.Header {
+	return m.header
+}
+
+func (m *captureResponseWriter) Write(p []byte) (int, error) {
+	return m.body.Write(p)
+}
+
+func (m *captureResponseWriter) WriteHeader(statusCode int) {
+	m.statusCode = statusCode
+}
 
 type mockTagger struct{}
 

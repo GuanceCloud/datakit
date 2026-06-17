@@ -9,6 +9,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
 )
 
 func TestParseLogConfigs(t *testing.T) {
@@ -105,4 +108,80 @@ func TestSetAutoMultiline(t *testing.T) {
 		cfg.extraPatterns[0] = `^CHANGED`
 		assert.Equal(t, `^EXTRA`, defaults.autoMultilineExtraPatterns[0])
 	})
+}
+
+func TestDuplicateLogConfigPathUsesLaterConfig(t *testing.T) {
+	defaults := &loggingDefaults{
+		extraTags: make(map[string]string),
+		setLabelAsTags: func(labels map[string]string) map[string]string {
+			return make(map[string]string)
+		},
+	}
+	info := &containerLogInfo{
+		containerName: "test-container",
+		runtime:       runtime.DockerRuntime,
+		logPath:       "/var/log/container.log",
+	}
+
+	configs, _, err := newLogConfigs(defaults, info, `[
+		{"source":"first","service":"first-service","pipeline":"first.p"},
+		{"source":"second","service":"second-service","pipeline":"second.p"}
+	]`)
+	require.NoError(t, err)
+	require.Len(t, configs, 1)
+	assert.Equal(t, "/var/log/container.log", configs[0].Path)
+	assert.Equal(t, "second", configs[0].Source)
+	assert.Equal(t, "second-service", configs[0].Service)
+	assert.Equal(t, "second.p", configs[0].Pipeline)
+}
+
+func TestDuplicateFileLogConfigPathUsesLaterConfig(t *testing.T) {
+	defaults := &loggingDefaults{
+		extraTags: make(map[string]string),
+		setLabelAsTags: func(labels map[string]string) map[string]string {
+			return make(map[string]string)
+		},
+	}
+	info := &containerLogInfo{
+		containerName: "test-container",
+		runtime:       runtime.DockerRuntime,
+		logPath:       "/var/log/container.log",
+		mounts: runtime.Mounts{
+			{Destination: "/var/log/app", Source: "/host/var/log/app"},
+		},
+	}
+
+	configs, _, err := newLogConfigs(defaults, info, `[
+		{"type":"file","path":"/var/log/app/app.log","source":"first","service":"first-service"},
+		{"type":"file","path":"/var/log/app/app.log","source":"second","service":"second-service"}
+	]`)
+	require.NoError(t, err)
+	require.Len(t, configs, 1)
+	assert.Equal(t, "/var/log/app/app.log", configs[0].Path)
+	assert.Equal(t, "/host/var/log/app/app.log", configs[0].hostFilePath)
+	assert.Equal(t, "second", configs[0].Source)
+	assert.Equal(t, "second-service", configs[0].Service)
+}
+
+func TestDuplicateLogConfigPathUsesLaterDisabledConfig(t *testing.T) {
+	defaults := &loggingDefaults{
+		extraTags: make(map[string]string),
+		setLabelAsTags: func(labels map[string]string) map[string]string {
+			return make(map[string]string)
+		},
+	}
+	info := &containerLogInfo{
+		containerName: "test-container",
+		runtime:       runtime.DockerRuntime,
+		logPath:       "/var/log/container.log",
+	}
+
+	configs, _, err := newLogConfigs(defaults, info, `[
+		{"path":"/var/log/container.log","source":"first"},
+		{"path":"/var/log/container.log","disable":true}
+	]`)
+	require.NoError(t, err)
+	require.Len(t, configs, 1)
+	assert.Equal(t, "/var/log/container.log", configs[0].Path)
+	assert.True(t, configs[0].Disable)
 }

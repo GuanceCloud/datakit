@@ -53,6 +53,20 @@ type trackingDiskStatsMock struct {
 	usagePath  []string
 }
 
+type singleDiskStatsMock struct {
+	usage *disk.UsageStat
+}
+
+func (m *singleDiskStatsMock) Usage(_, _ string) (*disk.UsageStat, error) {
+	return m.usage, nil
+}
+
+func (m *singleDiskStatsMock) Partitions() ([]disk.PartitionStat, error) {
+	return []disk.PartitionStat{
+		{Device: "/dev/dm-0", Mountpoint: "/data", Fstype: "ext4"},
+	}, nil
+}
+
 func (m *trackingDiskStatsMock) Usage(path, _ string) (*disk.UsageStat, error) {
 	m.usagePath = append(m.usagePath, path)
 	return &disk.UsageStat{
@@ -112,6 +126,33 @@ func (m *diskStatsMock) Partitions() ([]disk.PartitionStat, error) {
 	}
 
 	return arr, nil
+}
+
+func TestCollectUsesUsageStatUsedPercent(t *T.T) {
+	usage := &disk.UsageStat{
+		Total:             100,
+		Free:              20,
+		Used:              70,
+		UsedPercent:       100.0 * 70.0 / (70.0 + 20.0),
+		InodesTotal:       100,
+		InodesFree:        50,
+		InodesUsed:        50,
+		InodesUsedPercent: 50,
+	}
+
+	ipt := defaultInput()
+	ipt.diskStats = &singleDiskStatsMock{usage: usage}
+	ipt.setup()
+
+	require.NoError(t, ipt.collect(time.Now().UnixNano()))
+	require.Len(t, ipt.collectCache, 1)
+
+	pt := ipt.collectCache[0]
+	assert.Equal(t, usage.Total, pt.Get("total"))
+	assert.Equal(t, usage.Free, pt.Get("free"))
+	assert.Equal(t, usage.Used, pt.Get("used"))
+	assert.Equal(t, usage.UsedPercent, pt.Get("used_percent"))
+	assert.NotEqual(t, float64(usage.Used)/float64(usage.Total)*100.0, pt.Get("used_percent"))
 }
 
 func TestFilterUsage(t *T.T) {

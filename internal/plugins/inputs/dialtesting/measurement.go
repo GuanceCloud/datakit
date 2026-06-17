@@ -627,6 +627,120 @@ func (m *grpcMeasurement) Info() *inputs.MeasurementInfo {
 	}
 }
 
+type sslMeasurement struct{}
+
+//nolint:lll
+func (m *sslMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: "ssl_dial_testing",
+		Cat:  point.DialTesting,
+		Tags: map[string]interface{}{
+			"name":            &inputs.TagInfo{Desc: "The name of the task"},
+			"dest_host":       &inputs.TagInfo{Desc: "The name of the host to be monitored"},
+			"dest_port":       &inputs.TagInfo{Desc: "The port of the SSL connection"},
+			"dest_ip":         &inputs.TagInfo{Desc: "The IP address"},
+			"server_name":     &inputs.TagInfo{Desc: "The TLS server name"},
+			"node_name":       &inputs.TagInfo{Desc: "The name of the node"},
+			"country":         &inputs.TagInfo{Desc: "The name of the country"},
+			"province":        &inputs.TagInfo{Desc: "The name of the province"},
+			"city":            &inputs.TagInfo{Desc: "The name of the city"},
+			"internal":        &inputs.TagInfo{Desc: "The boolean value, true for domestic and false for overseas"},
+			"isp":             &inputs.TagInfo{Desc: "ISP, such as `chinamobile`, `chinaunicom`, `chinatelecom`"},
+			"status":          &inputs.TagInfo{Desc: "The status of the task, either 'OK' or 'FAIL'"},
+			"proto":           &inputs.TagInfo{Desc: "The protocol of the task"},
+			"owner":           &inputs.TagInfo{Desc: "The owner name"}, // used for fees calculation
+			"datakit_version": &inputs.TagInfo{Desc: "The DataKit version"},
+			LabelDF:           &inputs.TagInfo{Desc: "The label of the task"},
+		},
+		Fields: withTaskIDField(map[string]interface{}{
+			"message": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "The message string includes the response time or fail reason",
+			},
+			"task": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "The raw task string",
+			},
+			"fail_reason": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "The reason that leads to the failure of the task",
+			},
+			"response_time": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationUS,
+				Desc:     "The TCP connection and TLS handshake duration",
+			},
+			"tls_handshake_time": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationUS,
+				Desc:     "The TLS handshake duration",
+			},
+			"tls_version": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "The TLS protocol version",
+			},
+			"ssl_cert_subject": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "The SSL certificate subject",
+			},
+			"ssl_cert_issuer": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "The SSL certificate issuer",
+			},
+			"ssl_cert_not_before": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.TimestampUS,
+				Desc:     "The SSL certificate not before time",
+			},
+			"ssl_cert_not_after": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.TimestampUS,
+				Desc:     "The SSL certificate not after time",
+			},
+			"ssl_cert_expires_in_days": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationDay,
+				Desc:     "The SSL certificate expires in days",
+			},
+			"success": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "The number to specify whether is successful, 1 for success, -1 for failure",
+			},
+			"seq_number": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.Count,
+				Desc:     "The sequence number of the test",
+			},
+			"config_vars": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc:     "The configuration variables of the task",
+			},
+		}),
+	}
+}
+
 type browserMeasurement struct{}
 
 //nolint:lll

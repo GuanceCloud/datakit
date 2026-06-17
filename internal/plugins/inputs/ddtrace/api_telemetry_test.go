@@ -14,6 +14,104 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func Test_getConfigTags(t *testing.T) {
+	tests := []struct {
+		name     string
+		configs  []Configuration
+		expected map[string]string
+	}{
+		{
+			name:     "empty-configs",
+			configs:  nil,
+			expected: map[string]string{},
+		},
+		{
+			name:     "empty-slice",
+			configs:  []Configuration{},
+			expected: map[string]string{},
+		},
+		{
+			name: "old-name-trace_tags",
+			configs: []Configuration{
+				{Name: "trace_tags", Value: "env:prod,team:backend"},
+			},
+			expected: map[string]string{"env": "prod", "team": "backend"},
+		},
+		{
+			name: "new-name-DD_TRACE_TAGS",
+			configs: []Configuration{
+				{Name: "DD_TRACE_TAGS", Value: "env:prod,team:backend"},
+			},
+			expected: map[string]string{"env": "prod", "team": "backend"},
+		},
+		{
+			name: "both-old-and-new-names",
+			configs: []Configuration{
+				{Name: "trace_tags", Value: "env:staging"},
+				{Name: "DD_TRACE_TAGS", Value: "team:backend"},
+			},
+			expected: map[string]string{"env": "staging", "team": "backend"},
+		},
+		{
+			name: "empty-value",
+			configs: []Configuration{
+				{Name: "DD_TRACE_TAGS", Value: ""},
+			},
+			expected: map[string]string{},
+		},
+		{
+			name: "dash-value",
+			configs: []Configuration{
+				{Name: "DD_TRACE_TAGS", Value: "-"},
+			},
+			expected: map[string]string{},
+		},
+		{
+			name: "non-string-value",
+			configs: []Configuration{
+				{Name: "DD_TRACE_TAGS", Value: 12345},
+			},
+			expected: map[string]string{},
+		},
+		{
+			name: "value-with-colon",
+			configs: []Configuration{
+				{Name: "DD_TRACE_TAGS", Value: "url:http://example.com:8080"},
+			},
+			expected: map[string]string{"url": "http://example.com:8080"},
+		},
+		{
+			name: "other-config-names-ignored",
+			configs: []Configuration{
+				{Name: "dd.trace.enable", Value: "true"},
+				{Name: "DD_SERVICE", Value: "myapp"},
+			},
+			expected: map[string]string{},
+		},
+		{
+			name: "malformed-pair-no-colon",
+			configs: []Configuration{
+				{Name: "DD_TRACE_TAGS", Value: "env:prod,nocolon,team:backend"},
+			},
+			expected: map[string]string{"env": "prod", "team": "backend"},
+		},
+		{
+			name: "single-tag",
+			configs: []Configuration{
+				{Name: "trace_tags", Value: "env:production"},
+			},
+			expected: map[string]string{"env": "production"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := getConfigTags(tt.configs)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+}
+
 func Test_parseTelemetryRequest(t *testing.T) {
 	om := Manager{
 		OBS:    map[string]*jvmTelemetry{},

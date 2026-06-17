@@ -71,6 +71,11 @@ func TestSetupResourceKinds(t *testing.T) {
 			t.Fatalf("resource kind %q not fully initialized: %#v", name, res)
 		}
 	}
+
+	vm := client.resourceKinds["vm"]
+	if len(vm.historicalMetricNames) != 3 {
+		t.Fatalf("VM historical metric names length = %d, want 3", len(vm.historicalMetricNames))
+	}
 }
 
 func TestInputLifecycleMethods(t *testing.T) {

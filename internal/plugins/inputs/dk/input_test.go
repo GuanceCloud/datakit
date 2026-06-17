@@ -44,33 +44,6 @@ func TestReadenv(t *T.T) {
 		i := def()
 
 		i.ReadEnv(map[string]string{
-			"ENV_INPUT_DK_ENABLE_ALL_METRICS": "on",
-		})
-
-		assert.Nil(t, i.MetricFilter)
-
-		i = def()
-
-		i.ReadEnv(map[string]string{
-			"ENV_INPUT_DK_ADD_METRICS": `["a", "b"]`,
-		})
-
-		assert.Contains(t, i.MetricFilter, "a")
-		assert.Contains(t, i.MetricFilter, "b")
-
-		i = def()
-
-		i.ReadEnv(map[string]string{
-			"ENV_INPUT_DK_ONLY_METRICS": `["a", "b"]`,
-		})
-
-		assert.Len(t, i.MetricFilter, 2)
-		assert.Contains(t, i.MetricFilter, "a")
-		assert.Contains(t, i.MetricFilter, "b")
-
-		i = def()
-
-		i.ReadEnv(map[string]string{
 			"ENV_INPUT_DK_INTERVAL": "10s",
 		})
 
@@ -83,26 +56,6 @@ func TestReadenv(t *T.T) {
 		})
 
 		assert.Equal(t, time.Minute, i.Interval)
-	})
-
-	t.Run("invalid-json", func(t *T.T) {
-		// Test invalid JSON for ADD_METRICS
-		i := def()
-		i.MetricFilter = []string{"default"}
-		i.ReadEnv(map[string]string{
-			"ENV_INPUT_DK_ADD_METRICS": `invalid json`,
-		})
-		// Should keep the default filter when JSON is invalid
-		assert.Equal(t, []string{"default"}, i.MetricFilter)
-
-		// Test invalid JSON for ONLY_METRICS
-		i = def()
-		i.MetricFilter = []string{"default"}
-		i.ReadEnv(map[string]string{
-			"ENV_INPUT_DK_ONLY_METRICS": `{"key": "value"}`,
-		})
-		// Should keep the default filter when JSON is invalid
-		assert.Equal(t, []string{"default"}, i.MetricFilter)
 	})
 
 	t.Run("invalid-interval", func(t *T.T) {
@@ -119,6 +72,7 @@ func TestReadenv(t *T.T) {
 	t.Run("default-interval", func(t *T.T) {
 		// Test default interval is 30s
 		i := def()
+		assert.True(t, i.Enabled)
 		assert.Equal(t, 30*time.Second, i.Interval)
 	})
 
@@ -143,6 +97,35 @@ func TestReadenv(t *T.T) {
 		assert.Equal(t, defaultSelfProfileCacheCapacityMB, i.SelfProfiling.CacheCapacityMB)
 		assert.Equal(t, defaultSelfProfileSendTimeout, i.SelfProfiling.SendTimeout)
 		assert.Equal(t, defaultSelfProfileSendRetryCount, i.SelfProfiling.SendRetryCount)
+	})
+
+	t.Run("enable-self-profiling-env", func(t *T.T) {
+		i := def()
+		i.ReadEnv(map[string]string{
+			"ENV_INPUT_DK_ENABLE_SELF_PROFILING": "true",
+		})
+
+		assert.NotNil(t, i.SelfProfiling)
+		assert.True(t, i.SelfProfiling.Enabled)
+	})
+
+	t.Run("disable-self-profiling-env", func(t *T.T) {
+		i := def()
+		i.SelfProfiling.Enabled = true
+		i.ReadEnv(map[string]string{
+			"ENV_INPUT_DK_ENABLE_SELF_PROFILING": "false",
+		})
+
+		assert.False(t, i.SelfProfiling.Enabled)
+	})
+
+	t.Run("invalid-self-profiling-env", func(t *T.T) {
+		i := def()
+		i.ReadEnv(map[string]string{
+			"ENV_INPUT_DK_ENABLE_SELF_PROFILING": "invalid",
+		})
+
+		assert.False(t, i.SelfProfiling.Enabled)
 	})
 
 	t.Run("k8s-env-interval", func(t *T.T) {

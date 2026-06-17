@@ -12,12 +12,44 @@ import (
 	"encoding/gob"
 	"math/rand"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
 )
+
+func TestNeedElectionFlagForIBMI(t *testing.T) {
+	if !NeedElectionFlag("ibm_i") {
+		t.Fatal("ibm_i external collector must receive the election flag")
+	}
+	if !NeedElectionFlag("ibm_i") {
+		t.Fatal("legacy ibm_i external collector must receive the election flag")
+	}
+}
+
+func TestRedactStartupSecrets(t *testing.T) {
+	args := redactArgs([]string{
+		"--host", "ibmi.example.com",
+		"--password", "secret",
+		"--dsn=HOSTNAME=ibmi.example.com;PWD=secret",
+	})
+	if got := strings.Join(args, " "); strings.Contains(got, "secret") {
+		t.Fatalf("redacted args expose password: %q", got)
+	}
+
+	envs := redactEnvs([]string{
+		"ENV_INPUT_IBM_I_PASSWORD=secret",
+		"LD_LIBRARY_PATH=/opt/ibm/clidriver/lib",
+	})
+	if got := strings.Join(envs, " "); strings.Contains(got, "secret") {
+		t.Fatalf("redacted envs expose password: %q", got)
+	}
+	if envs[1] != "LD_LIBRARY_PATH=/opt/ibm/clidriver/lib" {
+		t.Fatalf("non-sensitive env was altered: %q", envs[1])
+	}
+}
 
 func TestInput(t *testing.T) {
 	interval := ".1s"
