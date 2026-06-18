@@ -554,7 +554,7 @@ func (ipt *Input) getDBMetrics() error {
 		FROM pg_stat_database psd
 		JOIN pg_database pd ON psd.datname = pd.datname
 		WHERE psd.datname not ilike 'template%' AND psd.datname not ilike 'rdsadmin'
-		AND psd.datname not ilike 'azure_maintenance' AND psd.datname not ilike 'postgres'
+		AND psd.datname not ilike 'azure_maintenance'
 		`
 		if len(ipt.IgnoredDatabases) != 0 {
 			query += fmt.Sprintf(` AND psd.datname NOT IN ('%s')`, strings.Join(ipt.IgnoredDatabases, "','"))

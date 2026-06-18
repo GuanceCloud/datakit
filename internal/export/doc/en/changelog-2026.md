@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.2.1(2026/06/18) {#cl-2.2.1}
+
+This release is a hotfix release, contents are as follows:
+
+### Bug Fixes {#cl-2.2.1-fix}
+
+- Fixed the PostgreSQL collector excluding the default `postgres` database by default, which prevented metrics for that database from being collected. To exclude it, configure `ignored_databases` explicitly (#3123)
+
+---
+
 ## 2.2.0(2026/06/17) {#cl-2.2.0}
 
 This release is an iterative release, with the following updates:

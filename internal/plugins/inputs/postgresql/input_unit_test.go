@@ -201,6 +201,31 @@ func TestCollect(t *testing.T) {
 	assert.Error(t, input.Collect())
 }
 
+func TestDatabaseQueriesDoNotExcludeDefaultDatabaseByDefault(t *testing.T) {
+	input := defaultInput()
+	input.version = &semver.Version{Major: 12}
+	input.ptsTime = time.Now()
+	input.metricQueryCache = map[string]*queryCacheItem{}
+	input.collectCache = map[point.Category][]*point.Point{}
+	input.service = &MockCollectService{}
+
+	assert.NoError(t, input.getDBMetrics())
+	assert.NotContains(t, input.metricQueryCache[DBMetric].q, "psd.datname not ilike 'postgres'")
+	assert.Contains(t, input.metricQueryCache[DBMetric].q, "psd.datname not ilike 'template%'")
+
+	input.metricQueryCache = map[string]*queryCacheItem{}
+	input.IgnoredDatabases = []string{"postgres"}
+	assert.NoError(t, input.getDBMetrics())
+	assert.Contains(t, input.metricQueryCache[DBMetric].q, "AND psd.datname NOT IN ('postgres')")
+
+	input.metricQueryCache = map[string]*queryCacheItem{}
+	input.IgnoredDatabases = []string{}
+	input.Databases = []string{"postgres"}
+	assert.NoError(t, input.getDBMetrics())
+	assert.NotContains(t, input.metricQueryCache[DBMetric].q, "psd.datname not ilike 'postgres'")
+	assert.Contains(t, input.metricQueryCache[DBMetric].q, "AND psd.datname IN ('postgres')")
+}
+
 func TestParseUrl(t *testing.T) {
 	uri := "postgres://postgres@localhost/test?sslmode=disable"
 	parsedUri, err := parseURL(uri)
