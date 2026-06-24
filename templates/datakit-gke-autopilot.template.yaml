@@ -1,0 +1,226 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: datakit
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: datakit
+rules:
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["clusterroles"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["nodes", "nodes/stats", "nodes/metrics", "namespaces", "pods", "pods/log", "events", "services", "endpoints", "persistentvolumes", "persistentvolumeclaims", "pods/exec"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "daemonsets", "statefulsets", "replicasets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["monitoring.coreos.com"]
+  resources: ["podmonitors", "servicemonitors"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["logging.datakits.io"]
+  resources: ["clusterloggingconfigs"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["pods", "nodes"]
+  verbs: ["get", "list"]
+- nonResourceURLs: ["/metrics"]
+  verbs: ["get"]
+
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: datakit
+  namespace: datakit
+  annotations:
+    iam.gke.io/gcp-service-account: datakit-cloud-monitor@<YOUR-GCP-PROJECT>.iam.gserviceaccount.com
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: datakit-service
+  namespace: datakit
+spec:
+  selector:
+    app: datakit-gke-autopilot
+  ports:
+    - name: svc-http-port
+      protocol: TCP
+      port: 9529
+      targetPort: http-port
+    - name: svc-statsd-port
+      protocol: UDP
+      port: 8125
+      targetPort: statsd-port
+    - name: svc-otel-grpc-port
+      protocol: TCP
+      port: 4317
+      targetPort: otel-grpc-port
+    - name: svc-logfwd-port
+      protocol: TCP
+      port: 9533
+      targetPort: logfwd-port
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: datakit
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: datakit
+subjects:
+- kind: ServiceAccount
+  name: datakit
+  namespace: datakit
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: datakit-gke-autopilot
+  name: datakit
+  namespace: datakit
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: datakit-gke-autopilot
+  template:
+    metadata:
+      labels:
+        app: datakit-gke-autopilot
+      annotations:
+        datakit/logs: |
+          [
+            {
+              "disable":       true,
+              "type":          "file",
+              "path":          "/var/log/datakit/log",
+              "source":        "datakit",
+              "storage_index": ""
+            },
+            {
+              "disable":       true,
+              "type":          "file",
+              "path":          "/var/log/datakit/gin.log",
+              "source":        "datakit-gin",
+              "storage_index": ""
+            }
+          ]
+    spec:
+      hostNetwork: false
+      dnsPolicy: ClusterFirst
+      # Optional non-root mode. Uncomment to run DataKit as the built-in datakit user.
+      # securityContext:
+      #   runAsNonRoot: true
+      #   runAsUser: 10001
+      #   runAsGroup: 10001
+      #   fsGroup: 10001
+      containers:
+      - env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+
+        - name: ENV_K8S_NODE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+
+        - name: ENV_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+
+        - name: ENV_DATAWAY
+          value: https://openway.{{.BrandDomain}}?token=<YOUR-WORKSPACE-TOKEN> # Fill your real Dataway server and(or) workspace token
+        - name: ENV_CLUSTER_NAME_K8S
+          value: default
+        - name: ENV_GLOBAL_HOST_TAGS
+          value: host=__datakit_hostname,host_ip=__datakit_ip
+        - name: ENV_GLOBAL_ELECTION_TAGS # Default not set
+          value: ""
+        - name: ENV_DEFAULT_ENABLED_INPUTS
+          value: dk,container
+        - name: ENV_ENABLE_ELECTION
+          value: "true"
+        - name: ENV_HTTP_LISTEN
+          value: 0.0.0.0:9529
+        - name: ENV_INPUT_CONTAINER_GCP_CLOUD_API_ENABLED
+          value: "true"
+        - name: ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL
+          value: "false"
+        # GCP project, GKE cluster, and location are discovered from the GKE metadata server by default.
+        # Uncomment the following optional values only when metadata discovery must be overridden.
+        # - name: ENV_INPUT_CONTAINER_GCP_PROJECT_ID
+        #   value: <YOUR-GCP-PROJECT>
+        # - name: ENV_INPUT_CONTAINER_GCP_CLUSTER_NAME
+        #   value: <YOUR-GKE-CLUSTER>
+        # - name: ENV_INPUT_CONTAINER_GCP_CLUSTER_LOCATION
+        #   value: <YOUR-GKE-REGION-OR-ZONE>
+        image: {{.DockerImageRepo}}/datakit:{{.Version}}
+        imagePullPolicy: IfNotPresent
+        name: datakit
+        ports:
+        - containerPort: 9529
+          name: http-port
+          protocol: TCP
+        - containerPort: 8125
+          name: statsd-port
+          protocol: UDP
+        - containerPort: 4317
+          name: otel-grpc-port
+          protocol: TCP
+        - containerPort: 9533
+          name: logfwd-port
+          protocol: TCP
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "500Mi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+        securityContext:
+          privileged: false
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - mountPath: /usr/local/datakit/cache
+          name: cache
+          readOnly: false
+        workingDir: /usr/local/datakit
+      hostIPC: false
+      hostPID: false
+      restartPolicy: Always
+      serviceAccount: datakit
+      serviceAccountName: datakit
+      volumes:
+      - emptyDir: {}
+        name: cache
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate

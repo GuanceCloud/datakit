@@ -25,9 +25,10 @@ func (m *dbmConnectionMeasurement) Point() *point.Point {
 // Info describes the mysql_dbm_connection metrics: connection_count grouped by user/host/db/state.
 func (m *dbmConnectionMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: metricNameMySQLDbmConnection,
-		Desc: "MySQL DBM connection metrics, aggregated by user/host/db/state",
-		Cat:  point.Metric,
+		Name:   metricNameMySQLDbmConnection,
+		Desc:   "MySQL DBM connection metrics, aggregated by user/host/db/state",
+		DescZh: "按 user、host、db 和 state 聚合的 MySQL DBM 连接指标。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			"connection_count": &inputs.FieldInfo{
 				DataType: inputs.Int,

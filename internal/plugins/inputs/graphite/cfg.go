@@ -89,6 +89,7 @@ func (m *Measurement) Info() *inputs.MeasurementInfo {
 		Name:   inputName,
 		Cat:    point.Metric,
 		Desc:   "Graphite exporter metrics",
+		DescZh: "由 Graphite 行协议输入解析生成的动态指标，指标集、字段和标签可由原始指标名及 mapper 规则决定。",
 		Fields: map[string]interface{}{},
 		Tags:   map[string]interface{}{},
 	}

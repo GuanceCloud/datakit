@@ -443,15 +443,15 @@ func (ipt *Input) makeCacheLine(plusAPIResp NginxPlusAPIResponse) {
 		kvs = kvs.Set("used_size", v.Size)
 		kvs = kvs.Set("max_size", v.MaxSize)
 
-		kvs = kvs.Set("responses_hit", v.Hit.Bytes)
-		kvs = kvs.Set("responses_stale", v.Stale.Bytes)
-		kvs = kvs.Set("responses_updating", v.Updating.Bytes)
-		kvs = kvs.Set("responses_revalidated", v.Revalidated.Bytes)
-		kvs = kvs.Set("responses_miss", v.Miss.Bytes)
-		kvs = kvs.Set("responses_expired", v.Expired.Bytes)
-		kvs = kvs.Set("responses_bypass", v.Bypass.Bytes)
+		kvs = kvs.Set("responses_hit", v.Hit.Responses)
+		kvs = kvs.Set("responses_stale", v.Stale.Responses)
+		kvs = kvs.Set("responses_updating", v.Updating.Responses)
+		kvs = kvs.Set("responses_revalidated", v.Revalidated.Responses)
+		kvs = kvs.Set("responses_miss", v.Miss.Responses)
+		kvs = kvs.Set("responses_expired", v.Expired.Responses)
+		kvs = kvs.Set("responses_bypass", v.Bypass.Responses)
 
-		ipt.collectCache = append(ipt.collectCache, point.NewPoint(measurementServerZone, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPoint(measurementCacheZone, kvs, opts...))
 	}
 }
 
@@ -464,22 +464,22 @@ func (ipt *Input) makeLocationLine(plusAPIResp NginxPlusAPIResponse) {
 		for kk, vv := range plusAPIResp.tags {
 			kvs = kvs.SetTag(kk, vv)
 		}
-		kvs.SetTag("location_zone", locationName)
+		kvs = kvs.SetTag("location_zone", locationName)
 
-		kvs.Set("requests", location.Requests)
-		kvs.Set("response", location.Responses.Total)
-		kvs.Set("discarded", location.Discarded)
-		kvs.Set("received", location.Received)
-		kvs.Set("sent", location.Sent)
-		kvs.Set("response_1xx", location.Responses.OneXX)
-		kvs.Set("response_2xx", location.Responses.TwoXX)
-		kvs.Set("response_3xx", location.Responses.ThreeXX)
-		kvs.Set("response_4xx", location.Responses.FourXX)
-		kvs.Set("response_5xx", location.Responses.FiveXX)
-		kvs.Set("code_200", location.Responses.Codes.Code200)
-		kvs.Set("code_301", location.Responses.Codes.Code301)
-		kvs.Set("code_404", location.Responses.Codes.Code404)
-		kvs.Set("code_503", location.Responses.Codes.Code503)
+		kvs = kvs.Set("requests", location.Requests)
+		kvs = kvs.Set("response", location.Responses.Total)
+		kvs = kvs.Set("discarded", location.Discarded)
+		kvs = kvs.Set("received", location.Received)
+		kvs = kvs.Set("sent", location.Sent)
+		kvs = kvs.Set("response_1xx", location.Responses.OneXX)
+		kvs = kvs.Set("response_2xx", location.Responses.TwoXX)
+		kvs = kvs.Set("response_3xx", location.Responses.ThreeXX)
+		kvs = kvs.Set("response_4xx", location.Responses.FourXX)
+		kvs = kvs.Set("response_5xx", location.Responses.FiveXX)
+		kvs = kvs.Set("code_200", location.Responses.Codes.Code200)
+		kvs = kvs.Set("code_301", location.Responses.Codes.Code301)
+		kvs = kvs.Set("code_404", location.Responses.Codes.Code404)
+		kvs = kvs.Set("code_503", location.Responses.Codes.Code503)
 
 		ipt.collectCache = append(ipt.collectCache, point.NewPoint(measurementLocationZone, kvs, opts...))
 	}

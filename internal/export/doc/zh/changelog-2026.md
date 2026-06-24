@@ -1,5 +1,31 @@
 # 更新日志
 
+## 2.3.0(2026/06/24) {#cl-2.3.0}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-2.3.0-new}
+
+- 新增 GKE Autopilot 集成，通过 `datakit-gke-autopilot` Helm Chart/YAML 以 Deployment 方式部署 DataKit，并通过 GCP Cloud API 采集容器指标和 stdout/stderr 日志（#3107）
+
+### 问题修复 {#cl-2.3.0-fix}
+
+- 修复 PostgreSQL 表对象采集在不同版本间的兼容性问题，并修复分批采集时索引信息可能重复的问题（#3127）
+
+### 功能优化 {#cl-2.3.0-opt}
+
+- SNMP 采集调度优化：同一 IP 的同类采集任务会跳过重复执行，不同类型采集仍保持串行，降低重复采集和等待开销（#3121）
+- 优化 eBPF 与 DataKit Operator 的通信效率，降低大规模集群下的查询和解析开销；该能力需要 DataKit Operator v1.8.9 及以上版本支持（#3125）
+- Kafka 集成补充新版 Dashboard 和 Monitor 入口（#3040）
+- DCA 升级至 0.1.7，优化管理端稳定性和交互体验，并补充前后端单元测试覆盖（#3065）
+- 完善指标集元数据，`measurements-meta.json` 新增 `desc_i18n` 描述，并补充多个采集器的单位、标签和字段说明（!3956）
+
+### 兼容调整 {#cl-2.3.0-brk}
+
+- DataKit 上报的指标点新增 `__input_source` tag，取值形如 `dk.<input>`，用于标识指标来源采集器；HTTP API 和 Pipeline 生成的指标也会写入对应来源（#3124）
+
+---
+
 ## 2.2.1(2026/06/18) {#cl-2.2.1}
 
 本次发布属于 hotfix 修复，内容如下：

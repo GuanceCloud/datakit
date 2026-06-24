@@ -94,9 +94,10 @@ type EndpointMetric struct{}
 //nolint:lll
 func (*EndpointMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: endpointMetricMeasurement,
-		Desc: "The metric of the Kubernetes Endpoints.",
-		Cat:  point.Metric,
+		Name:   endpointMetricMeasurement,
+		Desc:   "The metric of the Kubernetes Endpoints.",
+		DescZh: "Kubernetes Endpoints 指标，记录 endpoint 中可用和未就绪地址数量。",
+		Cat:    point.Metric,
 		Tags: map[string]interface{}{
 			"uid":              inputs.NewTagInfo("The UID of Endpoint."),
 			"endpoint":         inputs.NewTagInfo("Name must be unique within a namespace."),
@@ -104,8 +105,8 @@ func (*EndpointMetric) Info() *inputs.MeasurementInfo {
 			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
-			"address_available": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of addresses available in endpoint."},
-			"address_not_ready": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Number of addresses not ready in endpoint."},
+			"address_available": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of addresses available in endpoint."},
+			"address_not_ready": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of addresses not ready in endpoint."},
 		},
 	}
 }

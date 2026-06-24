@@ -64,17 +64,17 @@ default_time(time)
 
 var (
 	filedMap = map[string]string{
-		"IdleWorkers":         "idle_workers",
-		"BusyWorkers":         "busy_workers",
-		"MaxWorkers":          "max_workers",
-		"CPULoad":             "cpu_load",
-		"Uptime":              "uptime",
-		"TotalkBytes":         "net_bytes",
-		"TotalAccesses":       "net_hits",
-		"ConnsTotal":          "conns_total",
-		"ConnsAsyncWriting":   "conns_async_writing",
-		"ConnsAsyncKeepAlive": "conns_async_keep_alive",
-		"ConnsAsyncClosing":   "conns_async_closing",
+		"IdleWorkers":         idleWorkers,
+		"BusyWorkers":         busyWorkers,
+		"MaxWorkers":          maxWorkers,
+		"CPULoad":             cpuLoad,
+		"Uptime":              uptime,
+		"TotalkBytes":         netBytes,
+		"TotalAccesses":       netHits,
+		"ConnsTotal":          connsTotal,
+		"ConnsAsyncWriting":   connsAsyncWriting,
+		"ConnsAsyncKeepAlive": connsAsyncKeepAlive,
+		"ConnsAsyncClosing":   connsAsyncClosing,
 		"Scoreboard":          "scoreboard",
 	}
 	tagMap = map[string]string{
@@ -85,8 +85,18 @@ var (
 	customObjectFeedName = dkio.FeedSource(inputName, "CO")
 )
 
-// scoreboard metrics.
 const (
+	idleWorkers          = "idle_workers"
+	busyWorkers          = "busy_workers"
+	maxWorkers           = "max_workers"
+	cpuLoad              = "cpu_load"
+	uptime               = "uptime"
+	netBytes             = "net_bytes"
+	netHits              = "net_hits"
+	connsTotal           = "conns_total"
+	connsAsyncWriting    = "conns_async_writing"
+	connsAsyncKeepAlive  = "conns_async_keep_alive"
+	connsAsyncClosing    = "conns_async_closing"
 	waitingForConnection = "waiting_for_connection"
 	startingUp           = "starting_up"
 	readingRequest       = "reading_request"
@@ -99,4 +109,9 @@ const (
 	idleCleanup          = "idle_cleanup"
 	openSlot             = "open_slot"
 	disabled             = "disabled"
+
+	apacheTagURL           = "url"
+	apacheTagHost          = "host"
+	apacheTagServerVersion = "server_version"
+	apacheTagServerMPM     = "server_mpm"
 )

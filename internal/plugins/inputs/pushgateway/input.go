@@ -143,7 +143,7 @@ func textProcessor(opts []iprom.PromOption, feeder dkio.Feeder, body io.Reader, 
 		return err
 	}
 
-	return feeder.Feed(point.Metric, pts, dkio.WithSource(inputName), dkio.DisableGlobalTags(true))
+	return feeder.Feed(point.Metric, pts, dkio.WithSource(inputName), dkio.WithInput(inputName), dkio.DisableGlobalTags(true))
 }
 
 func protobufProcessor(opts []iprom.PromOption, feeder dkio.Feeder, body io.Reader, tags map[string]string) error {
@@ -173,7 +173,7 @@ func protobufProcessor(opts []iprom.PromOption, feeder dkio.Feeder, body io.Read
 		return err
 	}
 
-	return feeder.Feed(point.Metric, pts, dkio.WithSource(inputName), dkio.DisableGlobalTags(true))
+	return feeder.Feed(point.Metric, pts, dkio.WithSource(inputName), dkio.WithInput(inputName), dkio.DisableGlobalTags(true))
 }
 
 func matchPushgatewayInputHTTPRoute(method, path string) (string, bool) {

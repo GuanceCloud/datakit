@@ -792,7 +792,7 @@ func (m *hotkeyMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
-				Desc:     "Key count times.",
+				Desc:     "Observed access-frequency counter for this hot key.",
 			},
 			"keys_sampled": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -804,15 +804,15 @@ func (m *hotkeyMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.String,
 				Type:     inputs.EnumType,
 				Unit:     inputs.NoUnit,
-				Desc:     "`warn` or `info`",
+				Desc:     "Severity of the hot-key finding, either `warn` or `info`.",
 			},
 		},
 		Tags: map[string]interface{}{
-			"host":     &inputs.TagInfo{Desc: "Hostname."},
-			"server":   &inputs.TagInfo{Desc: "Server addr."},
-			"db_name":  &inputs.TagInfo{Desc: "DB name."},
-			"key":      &inputs.TagInfo{Desc: "Key name."},
-			"key_type": &inputs.TagInfo{Desc: "Key type(`string`/`hash`/`list`/`set`/`zset`)"},
+			"host":     &inputs.TagInfo{Desc: "Hostname of the Redis instance."},
+			"server":   &inputs.TagInfo{Desc: "Redis server address including port."},
+			"db_name":  &inputs.TagInfo{Desc: "Redis logical database name."},
+			"key":      &inputs.TagInfo{Desc: "Redis key name."},
+			"key_type": &inputs.TagInfo{Desc: "Redis key type (`string`, `hash`, `list`, `set`, or `zset`)."},
 		},
 	}
 }
@@ -831,7 +831,7 @@ func (m *bigKeyMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.SizeByte,
-				Desc:     "Key length.",
+				Desc:     "Serialized value length of this big key in bytes.",
 			},
 			"keys_sampled": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -842,22 +842,22 @@ func (m *bigKeyMeasurement) Info() *inputs.MeasurementInfo {
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.NoType,
-				Unit:     inputs.NCount,
-				Desc:     "Big key message details",
+				Unit:     inputs.NoUnit,
+				Desc:     "Detailed text describing the big-key finding.",
 			},
 			"status": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.EnumType,
 				Unit:     inputs.NoUnit,
-				Desc:     "`warn` or `info`",
+				Desc:     "Severity of the big-key finding, either `warn` or `info`.",
 			},
 		},
 		Tags: map[string]interface{}{
-			"host":     &inputs.TagInfo{Desc: "Hostname."},
-			"server":   &inputs.TagInfo{Desc: "Server addr."},
-			"db_name":  &inputs.TagInfo{Desc: "DB name."},
-			"key":      &inputs.TagInfo{Desc: "Key name."},
-			"key_type": &inputs.TagInfo{Desc: "Key type(`string`/`hash`/`list`/`set`/`zset`)"},
+			"host":     &inputs.TagInfo{Desc: "Hostname of the Redis instance."},
+			"server":   &inputs.TagInfo{Desc: "Redis server address including port."},
+			"db_name":  &inputs.TagInfo{Desc: "Redis logical database name."},
+			"key":      &inputs.TagInfo{Desc: "Redis key name."},
+			"key_type": &inputs.TagInfo{Desc: "Redis key type (`string`, `hash`, `list`, `set`, or `zset`)."},
 		},
 	}
 }

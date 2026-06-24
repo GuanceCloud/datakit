@@ -104,6 +104,7 @@ func (ipt *Input) Run() {
 					dkio.WithCollectCost(time.Since(collectStart)),
 					dkio.WithElection(ipt.Election),
 					dkio.WithSource(metricName),
+					dkio.WithInput(inputName),
 				); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
 						metrics.WithLastErrorInput(inputName),

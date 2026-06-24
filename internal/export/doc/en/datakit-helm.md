@@ -222,49 +222,18 @@ helm uninstall datakit -n datakit
 
 ## GKE Autopilot {#gke-autopilot}
 
-GKE Autopilot has additional restrictions on workload privileges and host access. The regular DataKit chart may fail Autopilot admission checks because it uses settings such as `hostNetwork`, `hostPID`, `hostIPC`, `hostPath`, and privileged containers. Use the separately released Helm chart instead: `datakit-gke-autopilot`.
-
-The GKE Autopilot chart is not released in sync with the main DataKit version. You do not need to specify an image version during installation; the image version declared by this chart is used by default.
-
-Main differences from the regular DataKit chart:
-
-- The default collector list is reduced to `dk,cpu,mem,container,kubernetesprometheus`.
-- The DataKit container runs as a non-root user, with UID/GID `10001` by default, and privileged mode and privilege escalation are disabled.
-- `hostNetwork`, `hostPID`, and `hostIPC` are disabled, and `emptyDir` is used instead of host `hostPath` mounts.
-- Host filesystem, container runtime socket, eBPF, and similar host-level collection capabilities are limited. If these capabilities are required, use GKE Standard or a regular Kubernetes cluster with the DataKit chart.
-
-### Install {#gke-autopilot-install}
+GKE Autopilot uses the separately published `datakit-gke-autopilot` chart, which installs a Deployment by default. The regular `datakit` chart installs a DaemonSet by default. For full installation steps, Workload Identity configuration, root/non-root mode, and collection capabilities, see [GCP GKE Autopilot Integration](gcp-gke-autopilot.md).
 
 ```shell
-helm install datakit datakit-gke-autopilot \
-         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
+helm repo add datakit-gke https://pubrepo.truewatch.com/chartrepo/truewatch
+```
+
+```shell
+helm install my-datakit datakit-gke/datakit-gke-autopilot \
          -n datakit --create-namespace \
-         --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>"
+         --set datakit.dataway_url="https://openway.<<<custom_key.brand_main_domain>>>?token=<YOUR-TOKEN>" \
+         --set serviceAccountAnnotations."iam\\.gke\\.io/gcp-service-account"="datakit-cloud-monitor@my-project.iam.gserviceaccount.com"
 ```
-
-### Upgrade {#gke-autopilot-upgrade}
-
-Back up the current values before upgrading:
-
-```shell
-helm -n datakit get values datakit -o yaml > values-gke-autopilot.yaml
-```
-
-```shell
-helm upgrade datakit datakit-gke-autopilot \
-         --repo  https://pubrepo.<<<custom_key.brand_main_domain>>>/chartrepo/datakit \
-         -n datakit \
-         -f values-gke-autopilot.yaml
-```
-
-Check the status:
-
-```shell
-helm -n datakit list
-kubectl -n datakit get pod -l app.kubernetes.io/instance=datakit
-```
-
-If the Pod is rejected by GKE Autopilot, first check whether the regular `datakit` chart was used by mistake, or whether extra `hostPath`, privileged container, host network, or other Autopilot-disallowed settings were enabled in values.
 
 ## Configuration File Reference {#config-reference}
 

@@ -230,7 +230,8 @@ func (ipt *Input) feedBatch(cat point.Category, points []*point.Point) {
 	}
 
 	if err := ipt.Feeder.Feed(cat, points,
-		dkio.WithSource(ipt.Source)); err != nil {
+		dkio.WithSource(ipt.Source),
+		dkio.WithInput(inputName)); err != nil {
 		ipt.Feeder.FeedLastError(err.Error(),
 			metrics.WithLastErrorInput(inputName),
 			metrics.WithLastErrorSource(ipt.Source),

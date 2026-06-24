@@ -81,8 +81,8 @@ export const useAdditionalColumnOptions = () => {
   if (columnsString) {
     try {
       columns = JSON.parse(columnsString);
-    } catch (error) {
-      console.log(error)
+    } catch {
+      localStorage.removeItem(storageColumnsKey)
     }
   }
   const [newColumns, setNewColumns] = useState<ColumnState>(columns);
@@ -112,5 +112,4 @@ export const useAdditionalColumnOptions = () => {
     handleColumnToggle,
   }
 }
-
 

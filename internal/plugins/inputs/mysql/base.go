@@ -35,8 +35,10 @@ func (m *baseMeasurement) Point() *point.Point {
 
 //nolint:lll
 var baseMeasurementInfo = &inputs.MeasurementInfo{
-	Name: metricNameMySQL,
-	Cat:  point.Metric,
+	Name:   metricNameMySQL,
+	Desc:   "MySQL global status and variable metrics collected from the configured server.",
+	DescZh: "从配置的 MySQL 服务器采集的全局状态与变量指标。",
+	Cat:    point.Metric,
 	Fields: map[string]interface{}{
 		// huge max-values
 		"parser_max_mem_size": &inputs.FieldInfo{

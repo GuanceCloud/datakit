@@ -19,65 +19,84 @@ type baseMeasurement struct {
 
 //nolint:lll
 func (*baseMeasurement) Info() *inputs.MeasurementInfo {
+	poolTags := []string{"pool", "address", "process_manager"}
+	processTags := []string{"pool", "address", "process_manager", "pid", "process_state"}
+
 	return &inputs.MeasurementInfo{
-		Name: metricName,
-		Cat:  point.Metric,
+		Name:   metricName,
+		Desc:   "PHP-FPM pool and worker-process status metrics collected from the PHP-FPM status endpoint.",
+		DescZh: "从 PHP-FPM status 端点采集的 PHP-FPM 进程池和工作进程状态指标。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			"accepted_connections": &inputs.FieldInfo{
 				Type: inputs.Count, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "The number of requests accepted by the pool.",
+				Desc:     "The number of requests accepted by the pool.",
+				Taggedby: poolTags,
 			},
 			"listen_queue": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "The number of requests in the queue of pending connections.",
+				Desc:     "The number of requests in the queue of pending connections.",
+				Taggedby: poolTags,
 			},
 			"max_listen_queue": &inputs.FieldInfo{
 				Type: inputs.Count, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "The maximum number of requests in the queue of pending connections since FPM has started.",
+				Desc:     "The maximum number of requests in the queue of pending connections since FPM has started.",
+				Taggedby: poolTags,
 			},
 			"listen_queue_length": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
-				Desc: "The size of the socket queue of pending connections.",
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
+				Desc:     "The size of the socket queue of pending connections.",
+				Taggedby: poolTags,
 			},
 			"idle_processes": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "The number of idle processes.",
+				Desc:     "The number of idle processes.",
+				Taggedby: poolTags,
 			},
 			"active_processes": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "The number of active processes.",
+				Desc:     "The number of active processes.",
+				Taggedby: poolTags,
 			},
 			"total_processes": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "The number of idle + active processes.",
+				Desc:     "The number of idle + active processes.",
+				Taggedby: poolTags,
 			},
 			"max_active_processes": &inputs.FieldInfo{
 				Type: inputs.Count, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "The maximum number of active processes since FPM has started.",
+				Desc:     "The maximum number of active processes since FPM has started.",
+				Taggedby: poolTags,
 			},
 			"max_children_reached": &inputs.FieldInfo{
 				Type: inputs.Count, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "The number of times, the process limit has been reached, when pm tries to start more children (works only for pm 'dynamic' and 'ondemand').",
+				Desc:     "The number of times, the process limit has been reached, when pm tries to start more children (works only for pm 'dynamic' and 'ondemand').",
+				Taggedby: poolTags,
 			},
 			"slow_requests": &inputs.FieldInfo{
 				Type: inputs.Count, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "The number of requests that exceeded your 'request_slowlog_timeout' value.",
+				Desc:     "The number of requests that exceeded your 'request_slowlog_timeout' value.",
+				Taggedby: poolTags,
 			},
 			"process_requests": &inputs.FieldInfo{
 				Type: inputs.Count, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "The number of requests the process has served.",
+				Desc:     "The number of requests the process has served.",
+				Taggedby: processTags,
 			},
 			"process_last_request_memory": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "The max amount of memory the last request consumed.",
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
+				Desc:     "The max amount of memory the last request consumed.",
+				Taggedby: processTags,
 			},
 			"process_last_request_cpu": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
-				Desc: "The %cpu the last request consumed.",
+				Desc:     "The %cpu the last request consumed.",
+				Taggedby: processTags,
 			},
 			"process_request_duration": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.DurationUS,
-				Desc: "The duration in microseconds of the requests.",
+				Desc:     "The duration in microseconds of the requests.",
+				Taggedby: processTags,
 			},
 		},
 		Tags: map[string]interface{}{

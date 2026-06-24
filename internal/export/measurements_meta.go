@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"sync"
 
 	"github.com/GuanceCloud/cliutils/point"
 
@@ -39,8 +40,162 @@ type metaInfoMeasurement struct {
 	From string `json:"from"`
 }
 
+type metaInfoDescI18n struct {
+	Zh     string `json:"zh"`
+	En     string `json:"en"`
+	ID     string `json:"id"`
+	ZhHant string `json:"zh-hant"`
+}
+
+type metaInfoMeasurementJSON struct {
+	Desc     string                 `json:"desc"`
+	DescZh   string                 `json:"desc_zh"`
+	DescI18n metaInfoDescI18n       `json:"desc_i18n"`
+	Fields   map[string]interface{} `json:"fields"`
+	Tags     map[string]interface{} `json:"tags"`
+	From     string                 `json:"from"`
+}
+
+type metaInfoFieldJSON struct {
+	Type     string           `json:"type"`
+	DataType string           `json:"data_type"`
+	Unit     string           `json:"unit"`
+	Desc     string           `json:"desc"`
+	DescI18n metaInfoDescI18n `json:"desc_i18n"`
+	Taggedby []string         `json:"taggedby,omitempty"`
+	Disabled bool             `json:"disabled"`
+}
+
+type metaInfoTagJSON struct {
+	Desc     string           `json:"desc"`
+	DescI18n metaInfoDescI18n `json:"desc_i18n"`
+}
+
 func (m *metaInfoMeasurement) String() string {
 	return fmt.Sprintf("From: %s, Type: %s, Desc: %s", m.From, m.Cat, m.Desc)
+}
+
+var (
+	measurementsMetaI18nOnce sync.Once
+	measurementsMetaI18n     map[string]metaInfoDescI18n
+)
+
+func (m metaInfoMeasurement) MarshalJSON() ([]byte, error) {
+	if m.MeasurementInfo == nil {
+		return []byte("null"), nil
+	}
+
+	return json.Marshal(metaInfoMeasurementJSON{
+		Desc:     m.Desc,
+		DescZh:   m.DescZh,
+		DescI18n: newMetaInfoDescI18n(m.Desc, m.DescZh),
+		Fields:   exportMetaInfoFields(m.Fields),
+		Tags:     exportMetaInfoTags(m.Tags),
+		From:     m.From,
+	})
+}
+
+func newMetaInfoDescI18n(en, zh string) metaInfoDescI18n {
+	for _, key := range []string{en, zh} {
+		if key == "" {
+			continue
+		}
+
+		if translated, ok := getMeasurementsMetaI18n()[key]; ok {
+			return translated.withFallback(en, zh)
+		}
+	}
+
+	if en == "" {
+		en = zh
+	}
+
+	if zh == "" {
+		zh = en
+	}
+
+	return metaInfoDescI18n{
+		Zh:     zh,
+		En:     en,
+		ID:     en,
+		ZhHant: zh,
+	}
+}
+
+func getMeasurementsMetaI18n() map[string]metaInfoDescI18n {
+	measurementsMetaI18nOnce.Do(func() {
+		measurementsMetaI18n = map[string]metaInfoDescI18n{}
+		if err := json.Unmarshal(measurementsMetaI18nJSON, &measurementsMetaI18n); err != nil {
+			l.Warnf("load measurements meta i18n: %s", err)
+		}
+	})
+
+	return measurementsMetaI18n
+}
+
+func (x metaInfoDescI18n) withFallback(en, zh string) metaInfoDescI18n {
+	if en == "" {
+		en = zh
+	}
+	if zh == "" {
+		zh = en
+	}
+
+	if x.En == "" {
+		x.En = en
+	}
+	if x.Zh == "" {
+		x.Zh = zh
+	}
+	if x.ID == "" {
+		x.ID = x.En
+	}
+	if x.ZhHant == "" {
+		x.ZhHant = x.Zh
+	}
+
+	return x
+}
+
+func exportMetaInfoFields(fields map[string]interface{}) map[string]interface{} {
+	out := make(map[string]interface{}, len(fields))
+	for name, field := range fields {
+		info, ok := field.(*inputs.FieldInfo)
+		if !ok {
+			out[name] = field
+			continue
+		}
+
+		out[name] = metaInfoFieldJSON{
+			Type:     info.Type,
+			DataType: info.DataType,
+			Unit:     info.Unit,
+			Desc:     info.Desc,
+			DescI18n: newMetaInfoDescI18n(info.Desc, ""),
+			Taggedby: info.Taggedby,
+			Disabled: info.Disabled,
+		}
+	}
+
+	return out
+}
+
+func exportMetaInfoTags(tags map[string]interface{}) map[string]interface{} {
+	out := make(map[string]interface{}, len(tags))
+	for name, tag := range tags {
+		info, ok := tag.(*inputs.TagInfo)
+		if !ok {
+			out[name] = tag
+			continue
+		}
+
+		out[name] = metaInfoTagJSON{
+			Desc:     info.Desc,
+			DescI18n: newMetaInfoDescI18n(info.Desc, ""),
+		}
+	}
+
+	return out
 }
 
 func doExportMetaInfo(ipts map[string]inputs.Creator) ([]byte, error) {

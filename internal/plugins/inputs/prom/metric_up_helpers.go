@@ -93,6 +93,7 @@ func (i *Input) FeedUpMetric(server string) {
 		if err := i.Feeder.Feed(point.Metric, pts,
 			dkio.WithElection(i.Election),
 			dkio.WithSource(feedSource),
+			dkio.WithInput(inputName),
 		); err != nil {
 			i.Feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),

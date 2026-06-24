@@ -34,9 +34,10 @@ func (m *tbMeasurement) Point() *point.Point {
 //nolint:lll
 func (m *tbMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Desc: "MySQL table information",
-		Cat:  point.Metric,
-		Name: metricNameMySQLTableSchema,
+		Desc:   "MySQL table information",
+		DescZh: "MySQL 表信息。",
+		Cat:    point.Metric,
+		Name:   metricNameMySQLTableSchema,
 		Fields: map[string]interface{}{
 			// status
 			"data_free": &inputs.FieldInfo{

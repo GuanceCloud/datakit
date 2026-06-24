@@ -11,10 +11,10 @@ import (
 
 //nolint:lll
 var elasticsearchMeasurementFields = map[string]interface{}{
-	"active_shards_percent_as_number": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "active shards percent"},
-	"active_primary_shards":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "active primary shards"},
-	"status":                          &inputs.FieldInfo{DataType: inputs.String, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "status"},
-	"timed_out":                       &inputs.FieldInfo{DataType: inputs.Bool, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "timed_out"},
+	"active_shards_percent_as_number": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Percentage of active shards in the Elasticsearch cluster."},
+	"active_primary_shards":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of active primary shards in the Elasticsearch cluster."},
+	"status":                          &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Cluster health status reported by Elasticsearch, such as green, yellow, or red."},
+	"timed_out":                       &inputs.FieldInfo{DataType: inputs.Bool, Type: inputs.Gauge, Unit: inputs.Bool, Desc: "Whether the Elasticsearch cluster health request timed out."},
 }
 
 // nodeStats.
@@ -45,11 +45,11 @@ var nodeStatsFields = map[string]interface{}{
 	"jvm_gc_collectors_young_collection_count":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of JVM garbage collectors that collect young generation objects."},
 	"jvm_gc_collectors_young_collection_time_in_millis": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Total time in milliseconds spent by JVM collecting young generation objects."},
 	"jvm_mem_heap_committed_in_bytes":                   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Amount of memory, in bytes, available for use by the heap."},
-	"jvm_mem_heap_used_percent":                         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Percentage of memory currently in use by the heap."},
+	"jvm_mem_heap_used_percent":                         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Percentage of memory currently in use by the heap."},
 	"os_cpu_load_average_15m":                           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Fifteen-minute load average on the system (field is not present if fifteen-minute load average is not available)."},
 	"os_cpu_load_average_1m":                            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "One-minute load average on the system (field is not present if one-minute load average is not available)."},
 	"os_cpu_load_average_5m":                            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: " Five-minute load average on the system (field is not present if five-minute load average is not available)."},
-	"os_cpu_percent":                                    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Recent CPU usage for the whole system, or -1 if not supported."},
+	"os_cpu_percent":                                    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Recent CPU usage for the whole system, or -1 if not supported."},
 	"os_mem_total_in_bytes":                             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total amount of physical memory in bytes."},
 	"os_mem_used_in_bytes":                              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Amount of used physical memory in bytes."},
 	"os_mem_used_percent":                               &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Percentage of used memory."},
@@ -62,23 +62,23 @@ var nodeStatsFields = map[string]interface{}{
 	"thread_pool_force_merge_rejected":                  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of tasks rejected by the thread pool executor."},
 	"thread_pool_transform_indexing_rejected":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of tasks rejected by the thread pool executor."},
 	"thread_pool_search_rejected":                       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of tasks rejected by the thread pool executor."},
-	"fs_data_0_available_in_gigabytes":                  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total number of gigabytes available to this Java virtual machine on this file store."},
-	"fs_data_0_free_in_gigabytes":                       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total number of unallocated gigabytes in the file store."},
-	"fs_data_0_total_in_gigabytes":                      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total size (in gigabytes) of the file store."},
+	"fs_data_0_available_in_gigabytes":                  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeGB, Desc: "Total number of gigabytes available to this Java virtual machine on this file store."},
+	"fs_data_0_free_in_gigabytes":                       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeGB, Desc: "Total number of unallocated gigabytes in the file store."},
+	"fs_data_0_total_in_gigabytes":                      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeGB, Desc: "Total size (in gigabytes) of the file store."},
 	"fs_io_stats_devices_0_operations":                  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The total number of read and write operations for the device completed since starting Elasticsearch."},
-	"fs_io_stats_devices_0_read_kilobytes":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The total number of kilobytes read for the device since starting Elasticsearch."},
+	"fs_io_stats_devices_0_read_kilobytes":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeKB, Desc: "The total number of kilobytes read for the device since starting Elasticsearch."},
 	"fs_io_stats_devices_0_read_operations":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The total number of read operations for the device completed since starting Elasticsearch."},
-	"fs_io_stats_devices_0_write_kilobytes":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The total number of kilobytes written for the device since starting Elasticsearch."},
+	"fs_io_stats_devices_0_write_kilobytes":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeKB, Desc: "The total number of kilobytes written for the device since starting Elasticsearch."},
 	"fs_io_stats_devices_0_write_operations":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The total number of write operations for the device completed since starting Elasticsearch."},
 	"fs_io_stats_total_operations":                      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The total number of read and write operations across all devices used by Elasticsearch completed since starting Elasticsearch."},
-	"fs_io_stats_total_read_kilobytes":                  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The total number of kilobytes read across all devices used by Elasticsearch since starting Elasticsearch."},
+	"fs_io_stats_total_read_kilobytes":                  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeKB, Desc: "The total number of kilobytes read across all devices used by Elasticsearch since starting Elasticsearch."},
 	"fs_io_stats_total_read_operations":                 &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The total number of read operations for across all devices used by Elasticsearch completed since starting Elasticsearch."},
-	"fs_io_stats_total_write_kilobytes":                 &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The total number of kilobytes written across all devices used by Elasticsearch since starting Elasticsearch."},
+	"fs_io_stats_total_write_kilobytes":                 &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeKB, Desc: "The total number of kilobytes written across all devices used by Elasticsearch since starting Elasticsearch."},
 	"fs_io_stats_total_write_operations":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The total number of write operations across all devices used by Elasticsearch completed since starting Elasticsearch."},
 	"fs_timestamp":                                      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Last time the file stores statistics were refreshed. Recorded in milliseconds since the Unix Epoch."},
-	"fs_total_available_in_gigabytes":                   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total number of gigabytes available to this Java virtual machine on all file stores."},
-	"fs_total_free_in_gigabytes":                        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total number of unallocated gigabytes in all file stores."},
-	"fs_total_total_in_gigabytes":                       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total size (in gigabytes) of all file stores."},
+	"fs_total_available_in_gigabytes":                   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeGB, Desc: "Total number of gigabytes available to this Java virtual machine on all file stores."},
+	"fs_total_free_in_gigabytes":                        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeGB, Desc: "Total number of unallocated gigabytes in all file stores."},
+	"fs_total_total_in_gigabytes":                       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeGB, Desc: "Total size (in gigabytes) of all file stores."},
 }
 
 // clusterStats.
@@ -108,7 +108,7 @@ var clusterHealthFields = map[string]interface{}{
 	"number_of_pending_tasks":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The total number of pending tasks."},
 	"relocating_shards":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of shards that are relocating from one node to another."},
 	"unassigned_shards":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of shards that are unassigned to a node."},
-	"status_code":                   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The health as a number: red = 3, yellow = 2, green = 1."},
+	"status_code":                   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "The health as a numeric code: red = 3, yellow = 2, green = 1."},
 	"indices_lifecycle_error_count": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of indices that are managed by ILM and are in an error state."},
 }
 
@@ -126,8 +126,8 @@ var clusterHealthIndicesFields = map[string]interface{}{
 	"number_of_replicas":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of replica in the target index."},
 	"number_of_shards":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of shards in the target index."},
 	"relocating_shards":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of shards that are relocating from one node to another."},
-	"status":                &inputs.FieldInfo{DataType: inputs.String, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "The status: red, yellow, green."},
-	"status_code":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The health as a number: red = 0, yellow = 1, green = 2."},
+	"status":                &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Index health status reported by Elasticsearch: green, yellow, or red."},
+	"status_code":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "The health as a numeric code: red = 0, yellow = 1, green = 2."},
 	"unassigned_shards":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of shards that are unassigned to a node."},
 }
 
@@ -170,8 +170,8 @@ var indicesStatsFields = map[string]interface{}{
 	"total_search_query_time_in_millis":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Time in milliseconds spent performing query operations."},
 	"total_search_query_total":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Total number of query operations."},
 	"total_store_size_in_bytes":               &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total size, in bytes, of all shards assigned to selected nodes."},
-	"total_docs_count":                        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Number of documents."},
-	"total_docs_deleted":                      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Number of deleted documents."},
+	"total_docs_count":                        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of documents."},
+	"total_docs_deleted":                      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of deleted documents."},
 	"primaries_indexing_index_current":        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of indexing operations currently running. Only for the primary shards."},
 	"primaries_get_missing_total":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Total number of failed get operations. Only for the primary shards."},
 	"primaries_indexing_index_time_in_millis": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Total time in milliseconds spent performing indexing operations. Only for the primary shards."},
@@ -207,7 +207,7 @@ var indicesStatsShardsTags = map[string]interface{}{
 
 //nolint:lll
 var indicesStatsShardsFields = map[string]interface{}{
-	"commit_generation":                      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "The commit generation"},
+	"commit_generation":                      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "Lucene commit generation identifier for this shard."},
 	"commit_num_docs":                        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of docs"},
 	"completion_size_in_bytes":               &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total bytes used for completion."},
 	"docs_count":                             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Total number of non-deleted documents."},
@@ -231,7 +231,7 @@ var indicesStatsShardsFields = map[string]interface{}{
 	"indexing_index_failed":                  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of failed indexing operations."},
 	"indexing_index_time_in_millis":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Total time in milliseconds spent performing indexing operations."},
 	"indexing_index_total":                   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Total number of indexing operations."},
-	"indexing_is_throttled":                  &inputs.FieldInfo{DataType: inputs.Bool, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of times operations were throttled."},
+	"indexing_is_throttled":                  &inputs.FieldInfo{DataType: inputs.Bool, Type: inputs.Gauge, Unit: inputs.Bool, Desc: "Whether indexing operations are currently throttled."},
 	"indexing_noop_update_total":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Total number of noop operations."},
 	"indexing_throttle_time_in_millis":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Total time in milliseconds spent throttling operations."},
 	"merges_current":                         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of merge operations currently running."},
@@ -240,7 +240,7 @@ var indicesStatsShardsFields = map[string]interface{}{
 	"merges_total":                           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Total number of merge operations."},
 	"merges_total_auto_throttle_in_bytes":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Size, in bytes, of automatically throttled merge operations."},
 	"merges_total_docs":                      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Total number of merged documents."},
-	"merges_total_size_in_bytes":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Total size of document merges in bytes."},
+	"merges_total_size_in_bytes":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total size of document merges in bytes."},
 	"merges_total_stopped_time_in_millis":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Total time in milliseconds spent stopping merge operations."},
 	"merges_total_throttled_time_in_millis":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Total time in milliseconds spent throttling merge operations."},
 	"merges_total_time_in_millis":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Total time in milliseconds spent performing merge operations."},
@@ -283,7 +283,7 @@ var indicesStatsShardsFields = map[string]interface{}{
 	"segments_doc_values_memory_in_bytes":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total amount of memory, in bytes, used for doc values across all shards assigned to the node."},
 	"segments_fixed_bit_set_memory_in_bytes": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total amount of memory, in bytes, used by fixed bit sets across all shards assigned to the node."},
 	"segments_index_writer_memory_in_bytes":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total amount of memory, in bytes, used by all index writers across all shards assigned to the node."},
-	"segments_max_unsafe_auto_id_timestamp":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: " Unix timestamp, in milliseconds, of the most recently retried indexing request."},
+	"segments_max_unsafe_auto_id_timestamp":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Unix timestamp, in milliseconds, of the most recently retried indexing request."},
 	"segments_memory_in_bytes":               &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total amount, in bytes, of memory used for segments across all shards assigned to selected nodes."},
 	"segments_norms_memory_in_bytes":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total amount, in bytes, of memory used for normalization factors across all shards assigned to selected nodes."},
 	"segments_points_memory_in_bytes":        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total amount, in bytes, of memory used for points across all shards assigned to selected nodes."},
@@ -294,7 +294,7 @@ var indicesStatsShardsFields = map[string]interface{}{
 	"seq_no_global_checkpoint":               &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "seq_no_global_checkpoint"},
 	"seq_no_local_checkpoint":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "seq_no_local_checkpoint"},
 	"seq_no_max_seq_no":                      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "seq_no_max_seq_no"},
-	"shard_path_is_custom_data_path":         &inputs.FieldInfo{DataType: inputs.Bool, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "shard_path_is_custom_data_path"},
+	"shard_path_is_custom_data_path":         &inputs.FieldInfo{DataType: inputs.Bool, Type: inputs.Gauge, Unit: inputs.Bool, Desc: "Whether the shard uses a custom data path."},
 	"store_size_in_bytes":                    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total size, in bytes, of all shards assigned to selected nodes."},
 	"translog_earliest_last_modified_age":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Earliest last modified age for the transaction log."},
 	"translog_operations":                    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of operations in the transaction log."},
@@ -303,5 +303,5 @@ var indicesStatsShardsFields = map[string]interface{}{
 	"translog_uncommitted_size_in_bytes":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total amount, in bytes, of uncommitted operations in the transaction log."},
 	"warmer_current":                         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of active index warmers."},
 	"warmer_total":                           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Total number of index warmers."},
-	"warmer_total_time_in_millis":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Total time in milliseconds spent performing index warming operations."},
+	"warmer_total_time_in_millis":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Total time in milliseconds spent performing index warming operations."},
 }

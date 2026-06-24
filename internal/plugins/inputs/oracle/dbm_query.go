@@ -48,8 +48,9 @@ func (*dbmQueryObjectMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "The obfuscated/normalized SQL text (full text)",
+				Type:     inputs.String,
+				Unit:     inputs.NoUnit,
+				Desc:     "Obfuscated normalized SQL text for this Oracle query signature.",
 			},
 		},
 	}

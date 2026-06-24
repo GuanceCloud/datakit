@@ -165,6 +165,7 @@ func (ipt *Input) collectDbmMetric(ctx context.Context, ptsTime time.Time) ([]*d
 			dkio.WithElection(ipt.Election),
 			dkio.WithSource(dbmFeedName),
 			dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementSQLServer)),
+			dkio.WithInput(inputName),
 		); err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),

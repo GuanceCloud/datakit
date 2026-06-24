@@ -18,6 +18,8 @@ type customerObjectMeasurement struct {
 	election bool
 }
 
+var apacheWebServerTaggedby = []string{"name", "ip", "host", "col_co_status", "reason"}
+
 // Point implement MeasurementV2.
 func (m *customerObjectMeasurement) Point() *point.Point {
 	opts := point.DefaultObjectOptions()
@@ -38,46 +40,51 @@ func (m *customerObjectMeasurement) Info() *inputs.MeasurementInfo { //nolint:fu
 		Name:           "web_server",
 		Cat:            point.CustomObject,
 		MetaDuplicated: true,
+		Desc:           "Apache web server instance inventory and collector status information emitted as a custom object.",
+		DescZh:         "以自定义对象形式上报的 Apache Web Server 实例清单与采集器状态信息。",
 		Fields: map[string]interface{}{
 			"uptime": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationSecond,
-				Desc:     "Current instance uptime",
+				Desc:     "Time in seconds since this instance last started.",
+				Taggedby: apacheWebServerTaggedby,
 			},
 
 			"display_name": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
-				Desc:     "Displayed name in UI",
+				Desc:     "Display name shown for this instance in the Datakit UI.",
+				Taggedby: apacheWebServerTaggedby,
 			},
 
 			"version": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
-				Desc:     "Current version of the instance",
+				Desc:     "Server version reported by this instance.",
+				Taggedby: apacheWebServerTaggedby,
 			},
 		},
 		Tags: map[string]interface{}{
 			"name": &inputs.TagInfo{
-				Desc: "Object uniq ID",
+				Desc: "Stable object identifier for this monitored instance.",
 			},
 
 			"col_co_status": &inputs.TagInfo{
-				Desc: "Current status of collector on instance(`OK/NotOK`)",
+				Desc: "Collector status for this instance, such as `OK` or `NotOK`.",
 			},
 
 			"ip": &inputs.TagInfo{
-				Desc: "Connection IP of the instance",
+				Desc: "Configured connection IP address for this instance.",
 			},
 
 			"host": &inputs.TagInfo{
-				Desc: "The server host address",
+				Desc: "Hostname or address of the server that runs this instance.",
 			},
 			"reason": &inputs.TagInfo{
-				Desc: "If status not ok, we'll get some reasons about the status",
+				Desc: "Reason reported when the collector status is not `OK`.",
 			},
 		},
 	}

@@ -132,8 +132,10 @@ func (m *inputMeasurement) Point() *point.Point {
 //nolint:lll
 func (m inputMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: inputName,
-		Cat:  point.Metric,
+		Name:   inputName,
+		Desc:   "PostgreSQL database metrics collected from pg_stat_database and related catalog views.",
+		DescZh: "从 pg_stat_database 及相关系统目录视图采集的 PostgreSQL 数据库指标。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			"numbackends":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of active connections to this database."},
 			"xact_commit":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of transactions that have been committed in this database."},
@@ -171,13 +173,14 @@ type functionMeasurement struct {
 
 //nolint:lll
 var functionMeasurementInfo = &inputs.MeasurementInfo{
-	Name: "postgresql_function",
-	Desc: "Enabled with `collect_function_metrics`. The metrics related to PostgreSQL functions are derived from the `pg_stat_user_functions` system view([:octicons-tag-24: Version-1.85.0](../datakit/changelog-2025.md#cl-1.85.0)).",
-	Cat:  point.Metric,
+	Name:   "postgresql_function",
+	Desc:   "Enabled with `collect_function_metrics`. The metrics related to PostgreSQL functions are derived from the `pg_stat_user_functions` system view([:octicons-tag-24: Version-1.85.0](../datakit/changelog-2025.md#cl-1.85.0)).",
+	DescZh: "启用 collect_function_metrics 后采集的 PostgreSQL 函数相关指标，来源于 pg_stat_user_functions 系统视图。",
+	Cat:    point.Metric,
 	Fields: map[string]interface{}{
 		"function_calls":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of times this function has been called."},
-		"function_total_time": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.TimestampMS, Unit: inputs.NCount, Desc: "Total time spent in this function, in milliseconds."},
-		"function_self_time":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.TimestampMS, Unit: inputs.NCount, Desc: "Time spent in this function, not including time spent in called functions, in milliseconds."},
+		"function_total_time": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Total time spent in this function, in milliseconds."},
+		"function_self_time":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Time spent in this function, not including time spent in called functions, in milliseconds."},
 	},
 	Tags: map[string]interface{}{
 		"server":   inputs.NewTagInfo("The address of the server. The value is `host:port`"),
@@ -197,8 +200,10 @@ type lockMeasurement struct {
 
 func (m lockMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "postgresql_lock",
-		Cat:  point.Metric,
+		Name:   "postgresql_lock",
+		Desc:   "PostgreSQL relation lock metrics collected from pg_locks joined with database and relation catalogs.",
+		DescZh: "从 pg_locks 关联数据库与关系系统目录采集的 PostgreSQL 关系锁指标。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			"lock_count": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -224,8 +229,10 @@ type statMeasurement struct {
 
 func (m statMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "postgresql_stat",
-		Cat:  point.Metric,
+		Name:   "postgresql_stat",
+		Desc:   "PostgreSQL user table statistics collected from pg_stat_user_tables.",
+		DescZh: "从 pg_stat_user_tables 采集的 PostgreSQL 用户表统计指标。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			"seq_scan": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -327,8 +334,10 @@ type indexMeasurement struct {
 
 func (m indexMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "postgresql_index",
-		Cat:  point.Metric,
+		Name:   "postgresql_index",
+		Desc:   "PostgreSQL user index statistics collected from pg_stat_user_indexes.",
+		DescZh: "从 pg_stat_user_indexes 采集的 PostgreSQL 用户索引统计指标。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			"idx_scan": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -365,8 +374,10 @@ type sizeMeasurement struct {
 
 func (m sizeMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "postgresql_size",
-		Cat:  point.Metric,
+		Name:   "postgresql_size",
+		Desc:   "PostgreSQL relation size metrics collected from pg_class and size helper functions.",
+		DescZh: "从 pg_class 和大小统计函数采集的 PostgreSQL 关系大小指标。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			"table_size": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -402,8 +413,10 @@ type statIOMeasurement struct {
 
 func (m statIOMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "postgresql_statio",
-		Cat:  point.Metric,
+		Name:   "postgresql_statio",
+		Desc:   "PostgreSQL user table I/O statistics collected from pg_statio_user_tables.",
+		DescZh: "从 pg_statio_user_tables 采集的 PostgreSQL 用户表 I/O 统计指标。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			"heap_blks_read": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -469,8 +482,10 @@ type replicationMeasurement struct {
 
 func (m replicationMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "postgresql_replication",
-		Cat:  point.Metric,
+		Name:   "postgresql_replication",
+		Desc:   "PostgreSQL replication delay metrics collected from replication catalog views.",
+		DescZh: "从复制相关系统视图采集的 PostgreSQL 复制延迟指标。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			"replication_delay": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -499,8 +514,10 @@ type replicationSlotMeasurement struct {
 //nolint:lll
 func (m replicationSlotMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "postgresql_replication_slot",
-		Cat:  point.Metric,
+		Name:   "postgresql_replication_slot",
+		Desc:   "PostgreSQL replication slot metrics collected from pg_stat_replication_slots.",
+		DescZh: "从 pg_stat_replication_slots 采集的 PostgreSQL 复制槽指标。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			"spill_bytes":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Amount of decoded transaction data spilled to disk while performing decoding of changes from WAL for this slot. This and other spill counters can be used to gauge the I/O which occurred during logical decoding and allow tuning `logical_decoding_work_mem`. Only available with PostgreSQL 14 and newer."},
 			"spill_count":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of times transactions were spilled to disk while decoding changes from WAL for this slot. This counter is incremented each time a transaction is spilled, and the same transaction may be spilled multiple times. Only available with PostgreSQL 14 and newer."},
@@ -527,8 +544,10 @@ type slruMeasurement struct {
 //nolint:lll
 func (m slruMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "postgresql_slru",
-		Cat:  point.Metric,
+		Name:   "postgresql_slru",
+		Desc:   "PostgreSQL SLRU cache metrics collected from pg_stat_slru.",
+		DescZh: "从 pg_stat_slru 采集的 PostgreSQL SLRU 缓存指标。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			"blks_zeroed":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of blocks zeroed during initializations of `SLRU` (simple least-recently-used) cache."},
 			"blks_hit":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of times disk blocks were found already in the `SLRU` (simple least-recently-used.)"},
@@ -552,19 +571,20 @@ type ioMeasurement struct {
 //nolint:lll
 func (m ioMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "postgresql_io",
-		Desc: "The metrics are obtained from the view pg_stat_io, only available with PostgreSQL 16 and newer. (DBM only)",
-		Cat:  point.Metric,
+		Name:   "postgresql_io",
+		Desc:   "The metrics are obtained from the view pg_stat_io, only available with PostgreSQL 16 and newer. (DBM only)",
+		DescZh: "从 pg_stat_io 视图采集的 PostgreSQL I/O 指标，仅 PostgreSQL 16 及以上版本可用（仅 DBM）。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			"evictions":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of times a block has been written out from a shared or local buffer in order to make it available for another use."},
-			"extend_time": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Time spent in extend operations in milliseconds (if track_io_timing is enabled, otherwise zero)."},
+			"extend_time": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Time spent in extend operations in milliseconds (if track_io_timing is enabled, otherwise zero)."},
 			"extends":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of relation extend operations, each of the size specified in op_bytes."},
-			"fsync_time":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Time spent in fsync operations in milliseconds (if track_io_timing is enabled, otherwise zero)."},
+			"fsync_time":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Time spent in fsync operations in milliseconds (if track_io_timing is enabled, otherwise zero)."},
 			"fsyncs":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of fsync calls. These are only tracked in context normal."},
 			"hits":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of times a desired block was found in a shared buffer."},
-			"read_time":   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Time spent in read operations in milliseconds (if track_io_timing is enabled, otherwise zero)."},
+			"read_time":   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Time spent in read operations in milliseconds (if track_io_timing is enabled, otherwise zero)."},
 			"reads":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of read operations, each of the size specified in op_bytes."},
-			"write_time":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Time spent in write operations in milliseconds (if track_io_timing is enabled, otherwise zero)."},
+			"write_time":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Time spent in write operations in milliseconds (if track_io_timing is enabled, otherwise zero)."},
 			"writes":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of write operations, each of the size specified in op_bytes."},
 		},
 		Tags: map[string]interface{}{
@@ -583,8 +603,10 @@ type bgwriterMeasurement struct {
 //nolint:lll
 func (m bgwriterMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "postgresql_bgwriter",
-		Cat:  point.Metric,
+		Name:   "postgresql_bgwriter",
+		Desc:   "PostgreSQL background writer and checkpoint metrics collected from pg_stat_bgwriter.",
+		DescZh: "从 pg_stat_bgwriter 采集的 PostgreSQL 后台写入器与检查点指标。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			"checkpoints_timed":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of scheduled checkpoints that were performed."},
 			"checkpoints_req":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of requested checkpoints that were performed."},
@@ -610,8 +632,10 @@ type connectionMeasurement struct {
 //nolint:lll
 func (m connectionMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "postgresql_connection",
-		Cat:  point.Metric,
+		Name:   "postgresql_connection",
+		Desc:   "PostgreSQL connection capacity metrics collected from server settings and current sessions.",
+		DescZh: "从服务器设置和当前会话采集的 PostgreSQL 连接容量指标。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			"max_connections":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The maximum number of client connections allowed to this database."},
 			"percent_usage_connections": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of connections to this database as a fraction of the maximum number of allowed connections."},
@@ -629,8 +653,10 @@ type conflictMeasurement struct {
 //nolint:lll
 func (m conflictMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "postgresql_conflict",
-		Cat:  point.Metric,
+		Name:   "postgresql_conflict",
+		Desc:   "PostgreSQL standby conflict metrics collected from pg_stat_database_conflicts.",
+		DescZh: "从 pg_stat_database_conflicts 采集的 PostgreSQL 备库冲突指标。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			"confl_tablespace": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of queries in this database that have been canceled due to dropped tablespaces. This will occur when a `temp_tablespace` is dropped while being used on a standby."},
 			"confl_lock":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of queries in this database that have been canceled due to dropped tablespaces. This will occur when a `temp_tablespace` is dropped while being used on a standby."},
@@ -652,8 +678,10 @@ type archiverMeasurement struct {
 //nolint:lll
 func (m archiverMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "postgresql_archiver",
-		Cat:  point.Metric,
+		Name:   "postgresql_archiver",
+		Desc:   "PostgreSQL WAL archiver metrics collected from pg_stat_archiver.",
+		DescZh: "从 pg_stat_archiver 采集的 PostgreSQL WAL 归档指标。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			// archiver metric
 			"archived_count":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of WAL files that have been successfully archived."},
@@ -671,18 +699,19 @@ type dbmMetricMeasurement struct {
 
 //nolint:lll
 var dbmMetricMeasurementInfo = &inputs.MeasurementInfo{
-	Name: "postgresql_dbm_metric",
-	Desc: "PostgreSQL database statement execution performance metrics, collected from the `pg_stat_statements` extension. Provides detailed statistics on query performance and resource usage.([:octicons-tag-24: Version-1.84.0](../datakit/changelog-2025.md#cl-1.84.0))",
-	Cat:  point.Metric,
+	Name:   "postgresql_dbm_metric",
+	Desc:   "PostgreSQL database statement execution performance metrics, collected from the `pg_stat_statements` extension. Provides detailed statistics on query performance and resource usage.([:octicons-tag-24: Version-1.84.0](../datakit/changelog-2025.md#cl-1.84.0))",
+	DescZh: "从 pg_stat_statements 扩展采集的 PostgreSQL 数据库语句执行性能指标，用于展示查询性能和资源使用统计。",
+	Cat:    point.Metric,
 	Fields: map[string]interface{}{
-		"shared_blk_read_time":        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Total time the statement spent reading shared blocks, in milliseconds (if track_io_timing is enabled, otherwise zero). Postgres >= 17"},
-		"shared_blk_write_time":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Total time the statement spent writing shared blocks, in milliseconds (if track_io_timing is enabled, otherwise zero). Postgres >= 17"},
-		"blk_read_time":               &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Total time the statement spent reading data file blocks, in milliseconds (if track_io_timing is enabled, otherwise zero). Postgres < 17"},
-		"blk_write_time":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Total time the statement spent writing data file blocks, in milliseconds (if track_io_timing is enabled, otherwise zero). Postgres < 17"},
-		"total_exec_time":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Total time spent executing the statement, in milliseconds."},
-		"total_plan_time":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Total time spent planning the statement, in milliseconds (if pg_stat_statements.track_planning is enabled, otherwise zero)."},
-		"min_plan_time":               &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Minimum time spent planning the statement, in milliseconds (if pg_stat_statements.track_planning is enabled, otherwise zero)."},
-		"max_plan_time":               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Maximum time spent planning the statement, in milliseconds (if pg_stat_statements.track_planning is enabled, otherwise zero)."},
+		"shared_blk_read_time":        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Total time the statement spent reading shared blocks, in milliseconds (if track_io_timing is enabled, otherwise zero). Postgres >= 17"},
+		"shared_blk_write_time":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Total time the statement spent writing shared blocks, in milliseconds (if track_io_timing is enabled, otherwise zero). Postgres >= 17"},
+		"blk_read_time":               &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Total time the statement spent reading data file blocks, in milliseconds (if track_io_timing is enabled, otherwise zero). Postgres < 17"},
+		"blk_write_time":              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Total time the statement spent writing data file blocks, in milliseconds (if track_io_timing is enabled, otherwise zero). Postgres < 17"},
+		"total_exec_time":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Total time spent executing the statement, in milliseconds."},
+		"total_plan_time":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Total time spent planning the statement, in milliseconds (if pg_stat_statements.track_planning is enabled, otherwise zero)."},
+		"min_plan_time":               &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Minimum time spent planning the statement, in milliseconds (if pg_stat_statements.track_planning is enabled, otherwise zero)."},
+		"max_plan_time":               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Maximum time spent planning the statement, in milliseconds (if pg_stat_statements.track_planning is enabled, otherwise zero)."},
 		"local_blks_dirtied":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Total number of local blocks dirtied by the statement."},
 		"local_blks_hit":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Total number of local block cache hits by the statement."},
 		"local_blks_read":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Total number of local blocks read by the statement."},
@@ -702,8 +731,8 @@ var dbmMetricMeasurementInfo = &inputs.MeasurementInfo{
 		"delta_calls":                 &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Delta value of calls between collection intervals."},
 		"delta_total_calls":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Delta value of total_calls between collection intervals."},
 		"delta_rows":                  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Delta value of rows between collection intervals."},
-		"delta_total_exec_time":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Delta value of execution time between collection intervals. For older PostgreSQL versions this is derived from total_time."},
-		"delta_total_plan_time":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Delta value of total_plan_time between collection intervals."},
+		"delta_total_exec_time":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Delta value of execution time between collection intervals. For older PostgreSQL versions this is derived from total_time."},
+		"delta_total_plan_time":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Delta value of total_plan_time between collection intervals."},
 		"delta_shared_blks_hit":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Delta value of shared_blks_hit between collection intervals."},
 		"delta_shared_blks_read":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Delta value of shared_blks_read between collection intervals."},
 		"delta_shared_blks_dirtied":   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Delta value of shared_blks_dirtied between collection intervals."},
@@ -717,12 +746,12 @@ var dbmMetricMeasurementInfo = &inputs.MeasurementInfo{
 		"delta_wal_records":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Delta value of wal_records between collection intervals."},
 		"delta_wal_fpi":               &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Delta value of wal_fpi between collection intervals."},
 		"delta_wal_bytes":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Delta value of wal_bytes between collection intervals."},
-		"delta_shared_blk_read_time":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Delta value of shared_blk_read_time between collection intervals."},
-		"delta_shared_blk_write_time": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Delta value of shared_blk_write_time between collection intervals."},
-		"delta_blk_read_time":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Delta value of blk_read_time between collection intervals."},
-		"delta_blk_write_time":        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Delta value of blk_write_time between collection intervals."},
-		"avg_total_exec_time":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Average execution time per call in current interval."},
-		"avg_total_plan_time":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.TimestampMS, Desc: "Average plan time per call in current interval."},
+		"delta_shared_blk_read_time":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Delta value of shared_blk_read_time between collection intervals."},
+		"delta_shared_blk_write_time": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Delta value of shared_blk_write_time between collection intervals."},
+		"delta_blk_read_time":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Delta value of blk_read_time between collection intervals."},
+		"delta_blk_write_time":        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Delta value of blk_write_time between collection intervals."},
+		"avg_total_exec_time":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Average execution time per call in current interval."},
+		"avg_total_plan_time":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Average plan time per call in current interval."},
 		"dbm_qps":                     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "DBM query throughput derived from delta_total_calls divided by the elapsed time between DBM metric collection points."},
 	},
 	Tags: map[string]interface{}{
@@ -740,9 +769,10 @@ func (m dbmMetricMeasurement) Info() *inputs.MeasurementInfo {
 
 //nolint:lll
 var dbmSampleMeasurementInfo = &inputs.MeasurementInfo{
-	Name: dbmPlanObjectName,
-	Desc: "PostgreSQL database statement sample information, including statement text, execution plans, used for detailed analysis of SQL execution and performance issues.([:octicons-tag-24: Version-1.84.0](../datakit/changelog-2025.md#cl-1.84.0))",
-	Cat:  point.Object,
+	Name:   dbmPlanObjectName,
+	Desc:   "PostgreSQL database statement sample information, including statement text, execution plans, used for detailed analysis of SQL execution and performance issues.([:octicons-tag-24: Version-1.84.0](../datakit/changelog-2025.md#cl-1.84.0))",
+	DescZh: "PostgreSQL 数据库语句样本信息，包括语句文本与执行计划，用于分析 SQL 执行和性能问题。",
+	Cat:    point.Object,
 	Fields: map[string]interface{}{
 		"message":   &inputs.FieldInfo{DataType: inputs.String, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "The obfuscated/normalized JSON execution plan definition."},
 		"statement": &inputs.FieldInfo{DataType: inputs.String, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "The obfuscated/normalized SQL text corresponding to this execution plan."},
@@ -771,9 +801,10 @@ type dbmActivityMeasurement struct {
 
 //nolint:lll
 var dbmActivityMeasurementInfo = &inputs.MeasurementInfo{
-	Name: "postgresql_dbm_activity",
-	Desc: "PostgreSQL database activity information collected from the `pg_stat_activity` view. Provides detailed information about the current activity of each backend, including query status, execution time, and resource usage.([:octicons-tag-24: Version-1.84.0](../datakit/changelog-2025.md#cl-1.84.0))",
-	Cat:  point.Logging,
+	Name:   "postgresql_dbm_activity",
+	Desc:   "PostgreSQL database activity information collected from the `pg_stat_activity` view. Provides detailed information about the current activity of each backend, including query status, execution time, and resource usage.([:octicons-tag-24: Version-1.84.0](../datakit/changelog-2025.md#cl-1.84.0))",
+	DescZh: "从 pg_stat_activity 视图采集的 PostgreSQL 数据库活动日志，包含后端当前活动、查询状态、执行时间和资源使用信息。",
+	Cat:    point.Logging,
 	Fields: map[string]interface{}{
 		"backend_start": &inputs.FieldInfo{
 			DataType: inputs.Int,

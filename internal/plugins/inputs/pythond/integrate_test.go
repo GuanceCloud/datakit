@@ -346,7 +346,7 @@ func (cs *caseSpec) run() error {
 	cs.t.Log("listening port " + port + "...")
 
 	go func() {
-		if err := srv.Serve(lsn); err != nil && err != http.ErrServerClosed {
+		if err := srv.Serve(lsn); err != nil && err != http.ErrServerClosed && !errors.Is(err, net.ErrClosed) {
 			cs.t.Logf("Serve failed: %v", err)
 			panic(err)
 		}

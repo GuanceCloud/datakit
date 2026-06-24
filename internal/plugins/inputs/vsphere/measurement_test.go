@@ -105,8 +105,8 @@ func TestMeasurementInfo(t *testing.T) {
 			m:          &eventMeasurement{},
 			wantName:   EventMeasurementName,
 			wantCat:    point.Logging,
-			wantFields: []string{Message, ChainID, EventKey},
-			wantTags:   []string{Status, "host", EventTypeID, ObjectName, UserName, ResourceType, ChangeTag},
+			wantFields: []string{Message, ChainID, EventKey, ChangeTag},
+			wantTags:   []string{Status, "host", EventTypeID, ObjectName, UserName, ResourceType},
 		},
 	}
 

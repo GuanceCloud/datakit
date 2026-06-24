@@ -240,6 +240,17 @@ After connecting to DataKit remotely, click "Log" to view the logs of DataKit an
 
 ## Changelog {#change-log}
 
+### 0.1.7 (2026/06/18) {#cl-0.1.7}
+
+- DataKit list now supports workspace search filtering, improving workspace switching in multi-workspace scenarios.
+- DataKit log page now supports connection status, pause/resume, clear, search highlighting, log level filtering, auto-follow, reconnect, and log download.
+- Improved the DataKit running status page to show runtime overview, basic information, enabled collectors, and collector runtime metrics.
+- Improved DataKit list filtering, searching, and operation interactions for better usability in advanced filtering scenarios.
+- Improved disabled action hints for reload and upgrade operations by showing the unavailable reason.
+- Fixed page loading failures when some DataKit runtime information is unavailable.
+- Fixed log page access failures in some error scenarios.
+- Improved the stability and security of collector configuration, Pipeline, and upgrade operations.
+
 ### 0.1.6 (2026/01/14) {#cl-0.1.6}
 
 - Add support for reporting DataKit availability metric `dk_host_available`

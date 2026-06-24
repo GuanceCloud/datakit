@@ -488,21 +488,26 @@ func Test_validateConfig_snmpBatchOverrides(t *testing.T) {
 	assert.Equal(t, uint32(20), ipt.BulkMaxRepetitions)
 }
 
-// go test -v -timeout 30s -run ^Test_checkIPWorking_checkIPDone$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp
-func Test_checkIPWorking_checkIPDone(t *testing.T) {
+func TestCheckIPWorking(t *testing.T) {
 	deviceIP1 := "1.2.3.4"
 	deviceIP2 := "2.3.4.5"
-	mWorkingIP.Store(deviceIP1, struct{}{})
+	mWorkingIP.Store(deviceIP1, COLLECT_OBJECT)
+	t.Cleanup(func() {
+		mWorkingIP.Delete(deviceIP1)
+		mWorkingIP.Delete(deviceIP2)
+	})
 
 	ipt := &Input{semStop: cliutils.NewSem()}
-	ipt.checkIPWorking(deviceIP2)
+	assert.True(t, ipt.checkIPWorking(deviceIP2, COLLECT_METRICS))
+	assert.False(t, ipt.checkIPWorking(deviceIP2, COLLECT_METRICS))
+	checkIPDone(deviceIP2)
 
 	go func() {
 		time.Sleep(time.Second)
 		checkIPDone(deviceIP1)
 	}()
 
-	ipt.checkIPWorking(deviceIP1)
+	assert.True(t, ipt.checkIPWorking(deviceIP1, COLLECT_METRICS))
 }
 
 // go test -v -timeout 30s -run ^Test_normalizeFieldTags$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp

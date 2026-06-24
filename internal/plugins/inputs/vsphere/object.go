@@ -31,5 +31,8 @@ func (m *Object) Point() *point.Point {
 }
 
 func (m *Object) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{}
+	return &inputs.MeasurementInfo{
+		Desc:   "vSphere object data emitted with the vSphere inventory class name.",
+		DescZh: "使用 vSphere 清单类别名称上报的 vSphere 对象数据。",
+	}
 }

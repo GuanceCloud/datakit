@@ -137,7 +137,7 @@ func (ipt *Input) handleMsg(buf *bytes.Buffer) {
 		pts := parseMetrics(ctx.mTree.heartbeats, ctx.mTree.domain, ctx.mTree.hostName)
 		if len(pts) > 0 {
 			if err := ipt.feeder.Feed(point.Metric, pts,
-				dkio.WithSource(metricName)); err != nil {
+				dkio.WithSource(metricName), dkio.WithInput(inputName)); err != nil {
 				log.Error("io feed err=%v", err)
 			}
 			log.Debugf("feed %d metric pts", len(pts))

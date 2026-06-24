@@ -256,9 +256,10 @@ type StatefulsetMetric struct{}
 //nolint:lll
 func (*StatefulsetMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: statefulsetMetricMeasurement,
-		Desc: "The metric of the Kubernetes StatefulSet.",
-		Cat:  point.Metric,
+		Name:   statefulsetMetricMeasurement,
+		Desc:   "The metric of the Kubernetes StatefulSet.",
+		DescZh: "Kubernetes StatefulSet 指标，记录期望、就绪、当前、已更新和可用副本数量。",
+		Cat:    point.Metric,
 		Tags: map[string]interface{}{
 			"uid":              inputs.NewTagInfo("The UID of StatefulSet."),
 			"statefulset":      inputs.NewTagInfo("Name must be unique within a namespace."),
@@ -266,12 +267,12 @@ func (*StatefulsetMetric) Info() *inputs.MeasurementInfo {
 			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
-			"replicas":           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of Pods created by the StatefulSet controller."},
-			"replicas_desired":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The desired number of replicas of the given Template."},
-			"replicas_ready":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of pods created for this StatefulSet with a Ready Condition."},
-			"replicas_current":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of Pods created by the StatefulSet controller from the StatefulSet version indicated by currentRevision."},
-			"replicas_updated":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of Pods created by the StatefulSet controller from the StatefulSet version indicated by updateRevision."},
-			"replicas_available": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Total number of available pods (ready for at least minReadySeconds) targeted by this StatefulSet."},
+			"replicas":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of Pods created by the StatefulSet controller."},
+			"replicas_desired":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The desired number of replicas of the given Template."},
+			"replicas_ready":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of pods created for this StatefulSet with a Ready Condition."},
+			"replicas_current":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of Pods created by the StatefulSet controller from the StatefulSet version indicated by currentRevision."},
+			"replicas_updated":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of Pods created by the StatefulSet controller from the StatefulSet version indicated by updateRevision."},
+			"replicas_available": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Total number of available pods (ready for at least minReadySeconds) targeted by this StatefulSet."},
 		},
 	}
 }
@@ -281,9 +282,10 @@ type StatefulsetObject struct{}
 //nolint:lll
 func (*StatefulsetObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: statefulsetObjectClass,
-		Desc: "The object of the Kubernetes StatefulSet.",
-		Cat:  point.Object,
+		Name:   statefulsetObjectClass,
+		Desc:   "The object of the Kubernetes StatefulSet.",
+		DescZh: "Kubernetes StatefulSet 对象信息，记录副本状态、版本修订状态和对象详情。",
+		Cat:    point.Object,
 		Tags: map[string]interface{}{
 			"name":                              inputs.NewTagInfo("The UID of StatefulSet."),
 			"uid":                               inputs.NewTagInfo("The UID of StatefulSet."),
@@ -294,14 +296,14 @@ func (*StatefulsetObject) Info() *inputs.MeasurementInfo {
 			"&lt;ALL-SELECTOR-MATCH-LABELS&gt;": inputs.NewTagInfo("Represents the selector.matchLabels for Kubernetes resources"),
 		},
 		Fields: map[string]interface{}{
-			"age":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},
-			"replicas":           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of Pods created by the StatefulSet controller."},
-			"replicas_desired":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The desired number of replicas of the given Template."},
-			"replicas_ready":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of pods created for this StatefulSet with a Ready Condition."},
-			"replicas_current":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of Pods created by the StatefulSet controller from the StatefulSet version indicated by currentRevision."},
-			"replicas_updated":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of Pods created by the StatefulSet controller from the StatefulSet version indicated by updateRevision."},
-			"replicas_available": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Total number of available pods (ready for at least minReadySeconds) targeted by this StatefulSet."},
-			"message":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Object details"},
+			"age":                &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},
+			"replicas":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of Pods created by the StatefulSet controller."},
+			"replicas_desired":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The desired number of replicas of the given Template."},
+			"replicas_ready":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of pods created for this StatefulSet with a Ready Condition."},
+			"replicas_current":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of Pods created by the StatefulSet controller from the StatefulSet version indicated by currentRevision."},
+			"replicas_updated":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of Pods created by the StatefulSet controller from the StatefulSet version indicated by updateRevision."},
+			"replicas_available": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Total number of available pods (ready for at least minReadySeconds) targeted by this StatefulSet."},
+			"message":            &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Serialized Kubernetes object details for this resource."},
 		},
 	}
 }

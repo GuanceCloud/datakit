@@ -756,6 +756,7 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 						dkio.WithCollectCost(time.Since(collectStart)),
 						dkio.WithElection(ipt.Election),
 						dkio.WithSource(customQueryFeedName),
+						dkio.WithInput(inputName),
 					); err != nil {
 						ipt.feeder.FeedLastError(err.Error(),
 							metrics.WithLastErrorInput(customQueryFeedName),
@@ -912,6 +913,7 @@ func (ipt *Input) Run() {
 						dkio.WithCollectCost(time.Since(collectStart)),
 						dkio.WithElection(ipt.Election),
 						dkio.WithSource(feedName),
+						dkio.WithInput(inputName),
 					}
 					if category == point.Metric {
 						opts = append(opts, dkio.WithMeasurement(
@@ -977,6 +979,7 @@ func (ipt *Input) runDbmMetricCollector() {
 					dkio.WithElection(ipt.Election),
 					dkio.WithSource(dbmFeedName),
 					dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementMySQL)),
+					dkio.WithInput(inputName),
 				); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
 						metrics.WithLastErrorInput(inputName),
@@ -1093,6 +1096,7 @@ func (ipt *Input) runDbmActivityCollector() {
 					dkio.WithElection(ipt.Election),
 					dkio.WithSource(dbmFeedName),
 					dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementMySQL)),
+					dkio.WithInput(inputName),
 				); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
 						metrics.WithLastErrorInput(inputName),
@@ -1110,6 +1114,7 @@ func (ipt *Input) runDbmActivityCollector() {
 					dkio.WithElection(ipt.Election),
 					dkio.WithSource(dbmFeedName),
 					dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementMySQL)),
+					dkio.WithInput(inputName),
 				); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
 						metrics.WithLastErrorInput(inputName),

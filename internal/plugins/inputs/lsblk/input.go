@@ -103,7 +103,7 @@ func (ipt *Input) Run() {
 			if err := ipt.feeder.Feed(point.Metric, ipt.collectCache,
 				dkio.WithCollectCost(time.Since(collectStart)),
 				dkio.WithElection(false),
-				dkio.WithSource(metricName)); err != nil {
+				dkio.WithSource(metricName), dkio.WithInput(inputName)); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
 					metrics.WithLastErrorCategory(point.Metric),
@@ -172,10 +172,10 @@ func (ipt *Input) collect() error {
 			kvs = kvs.Set("fs_used", device.FSUsed)
 			kvs = kvs.Set("fs_used_percent", device.FSUsePercent)
 
-			kvs = kvs.AddTag("is_mounted", "是")
+			kvs = kvs.AddTag("is_mounted", "yes")
 			kvs = kvs.AddTag("mountpoint", device.MountPoint)
 		} else {
-			kvs = kvs.AddTag("is_mounted", "否")
+			kvs = kvs.AddTag("is_mounted", "no")
 		}
 
 		for k, v := range ipt.mergedTags {

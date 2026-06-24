@@ -67,11 +67,11 @@ Collect indicators, objects and log data of container and Kubernetes and report 
     Can be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting) or [Config ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) .
 
     Can also be turned on by environment variables, (needs to be added as the default collector in ENV_DEFAULT_ENABLED_INPUTS):
-    
+
 {{ CodeBlock .InputENVSample 4 }}
 
     Additional description of environment variables:
-    
+
     - ENV_INPUT_CONTAINER_TAGS: If there is a tag with the same name in the configuration file (*container.conf*), it will be overwritten by the configuration here.
     
     - ENV_INPUT_CONTAINER_LOGGING_EXTRA_SOURCE_MAP: Specifying the replacement source with the argument format `regular expression=new_source`, which is replaced by new_source when a source matches the regular expression. If the replacement is successful, the source（[:octicons-tag-24: Version-1.4.7](../datakit/changelog.md#cl-1.4.7)）configured in `annotations/labels` is no longer used. If you want to make an exact match, you need to use `^` and `$` to enclose the content. For example, if a regular expression is written as `datakit`, it can not only match the word `datakit` , but also match `datakit123`; Written as `^datakit$` , you can only match `datakit`.
@@ -83,6 +83,14 @@ Collect indicators, objects and log data of container and Kubernetes and report 
 
     - Object data collection interval is 5 minutes and metric data collection interval is 20 seconds. Configuration is not supported for the time being.
     - Acquired log has a maximum length of ~800KB per line (including after `multiline_match` processing), the excess will split into new logging lines.
+
+### GKE Autopilot Cloud API Mode {#gke-autopilot-cloud-api}
+
+???+ note "Version Requirement"
+
+    Collecting container metrics, objects, and logs through Cloud APIs requires DataKit 2.3.0 or later.
+
+GKE Autopilot does not allow mounting the container runtime socket and host directories. Use the `datakit-gke-autopilot` chart, which deploys DataKit as a Deployment and collects data through Cloud APIs. See [GCP GKE Autopilot Integration](../datakit/gcp-gke-autopilot.md) for installation, configuration, and capabilities.
 
 ### Docker and Containerd Sock File Configuration {#sock-config}
 

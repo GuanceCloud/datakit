@@ -53,23 +53,23 @@ func (*dbmPlanObjectMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "The obfuscated/normalized execution plan content (full content)",
+				Unit:     inputs.NoUnit,
+				Desc:     "Obfuscated normalized Oracle execution plan content.",
 			},
 			"timestamp": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "The timestamp when the execution plan was created",
+				Unit:     inputs.NoUnit,
+				Desc:     "Oracle timestamp string indicating when the execution plan was created.",
 			},
 			"optimizer_mode": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "The optimizer mode used for the execution plan",
+				Unit:     inputs.NoUnit,
+				Desc:     "Oracle optimizer mode used to produce the execution plan.",
 			},
 			"other": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "Other information about the execution plan",
+				Unit:     inputs.NoUnit,
+				Desc:     "Additional Oracle execution-plan metadata returned by the database.",
 			},
 		},
 	}

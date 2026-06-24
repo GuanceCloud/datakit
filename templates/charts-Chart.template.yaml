@@ -1,6 +1,6 @@
 apiVersion: v2
 name: datakit
-description: Chart for the DaemonSet Datakit
+description: Helm chart for DataKit
 annotations:
   catalog.cattle.io/certified: partner # Enables the "partner" badge in the UI for easier identification
   catalog.cattle.io/release-name: datakit # Your chart's name in kebab-case, this is used for deployment

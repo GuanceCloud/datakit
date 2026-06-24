@@ -20,9 +20,10 @@ type nsqTopicMeasurement struct{}
 //nolint:lll
 func (*nsqTopicMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: nsqTopics,
-		Cat:  point.Metric,
-		Desc: "Metrics of all topics in the NSQ cluster",
+		Name:   nsqTopics,
+		Cat:    point.Metric,
+		Desc:   "Metrics of all topics in the NSQ cluster",
+		DescZh: "NSQ 集群中 topic 和 channel 维度的消息堆积、发送中、延迟、重试、超时和处理数量指标。",
 		Tags: map[string]interface{}{
 			"topic":   inputs.NewTagInfo("Topic name"),
 			"channel": inputs.NewTagInfo("Channel name"),
@@ -45,9 +46,10 @@ type nsqNodesMeasurement struct{}
 //nolint:lll
 func (*nsqNodesMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: nsqNodes,
-		Cat:  point.Metric,
-		Desc: "Metrics of all nodes in the NSQ cluster.",
+		Name:   nsqNodes,
+		Cat:    point.Metric,
+		Desc:   "Metrics of all nodes in the NSQ cluster.",
+		DescZh: "NSQ 集群中节点维度的消息堆积和消息处理数量指标。",
 		Tags: map[string]interface{}{
 			"server_host": inputs.NewTagInfo("Service address, that is `host:ip`."),
 			"host":        inputs.NewTagInfo("Hostname"),

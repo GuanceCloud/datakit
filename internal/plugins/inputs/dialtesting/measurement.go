@@ -26,8 +26,10 @@ func withTaskIDField(fields map[string]interface{}) map[string]interface{} {
 //nolint:lll
 func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "http_dial_testing",
-		Cat:  point.DialTesting,
+		Name:   "http_dial_testing",
+		Cat:    point.DialTesting,
+		Desc:   "HTTP synthetic test results, including response status, phase timings, payload size, certificate expiry, and failure details.",
+		DescZh: "HTTP 拨测结果，包含响应状态、各阶段耗时、响应体大小、证书到期时间和失败详情。",
 		Tags: map[string]interface{}{
 			"name":               &inputs.TagInfo{Desc: "The name of the task"},
 			"url":                &inputs.TagInfo{Desc: "The URL of the endpoint to be monitored"},
@@ -56,19 +58,19 @@ func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 			},
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The message string which includes the header and the body of the request or the response",
 			},
 			"task": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The raw task string",
 			},
 			"fail_reason": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The reason that leads to the failure of the task",
 			},
@@ -123,12 +125,12 @@ func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 			"seq_number": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.Count,
+				Unit:     inputs.NCount,
 				Desc:     "The sequence number of the test",
 			},
 			"config_vars": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The configuration variables of the task",
 			},
@@ -153,8 +155,10 @@ type tcpMeasurement struct{}
 //nolint:lll
 func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "tcp_dial_testing",
-		Cat:  point.DialTesting,
+		Name:   "tcp_dial_testing",
+		Cat:    point.DialTesting,
+		Desc:   "TCP synthetic test results, including connection latency, DNS-inclusive latency, traceroute output, and failure details.",
+		DescZh: "TCP 拨测结果，包含连接耗时、含 DNS 的总耗时、路由追踪结果和失败详情。",
 		Tags: map[string]interface{}{
 			"name":            &inputs.TagInfo{Desc: "The name of the task"},
 			"dest_host":       &inputs.TagInfo{Desc: "The name of the host to be monitored"},
@@ -175,25 +179,25 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: withTaskIDField(map[string]interface{}{
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The message string includes the response time or fail reason",
 			},
 			"task": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The raw task string",
 			},
 			"traceroute": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The json string fo the `traceroute` result",
 			},
 			"fail_reason": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The reason that leads to the failure of the task",
 			},
@@ -218,12 +222,12 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 			"seq_number": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.Count,
+				Unit:     inputs.NCount,
 				Desc:     "The sequence number of the test",
 			},
 			"config_vars": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The configuration variables of the task",
 			},
@@ -236,8 +240,10 @@ type icmpMeasurement struct{}
 //nolint:lll
 func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "icmp_dial_testing",
-		Cat:  point.DialTesting,
+		Name:   "icmp_dial_testing",
+		Cat:    point.DialTesting,
+		Desc:   "ICMP synthetic test results, including packet latency, packet loss, routing information, and failure details.",
+		DescZh: "ICMP 拨测结果，包含报文时延、丢包、路由信息和失败详情。",
 		Tags: map[string]interface{}{
 			"name":            &inputs.TagInfo{Desc: "The name of the task"},
 			"dest_host":       &inputs.TagInfo{Desc: "The name of the host to be monitored"},
@@ -256,25 +262,25 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: withTaskIDField(map[string]interface{}{
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The message string includes the average time of the round trip or the failure reason",
 			},
 			"task": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The raw task string",
 			},
 			"fail_reason": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The reason that leads to the failure of the task",
 			},
 			"traceroute": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The `json` string fo the `traceroute` result",
 			},
@@ -335,13 +341,13 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 			"packets_received": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.Count,
+				Unit:     inputs.NCount,
 				Desc:     "The number of the packets received",
 			},
 			"packets_sent": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.Count,
+				Unit:     inputs.NCount,
 				Desc:     "The number of the packets sent",
 			},
 			"success": &inputs.FieldInfo{
@@ -353,12 +359,12 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 			"seq_number": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.Count,
+				Unit:     inputs.NCount,
 				Desc:     "The sequence number of the test",
 			},
 			"config_vars": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The configuration variables of the task",
 			},
@@ -371,8 +377,10 @@ type websocketMeasurement struct{}
 //nolint:lll
 func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "websocket_dial_testing",
-		Cat:  point.DialTesting,
+		Name:   "websocket_dial_testing",
+		Cat:    point.DialTesting,
+		Desc:   "WebSocket synthetic test results, including handshake status, response latency, and failure details.",
+		DescZh: "WebSocket 拨测结果，包含握手状态、响应耗时和失败详情。",
 		Tags: map[string]interface{}{
 			"name":            &inputs.TagInfo{Desc: "The name of the task"},
 			"url":             &inputs.TagInfo{Desc: "The URL string, such as `ws://www.abc.com`"},
@@ -391,31 +399,31 @@ func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: withTaskIDField(map[string]interface{}{
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The message string includes the response time or the failure reason",
 			},
 			"task": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The raw task string",
 			},
 			"fail_reason": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The reason that leads to the failure of the task",
 			},
 			"response_message": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The message of the response",
 			},
 			"sent_message": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The sent message ",
 			},
@@ -440,12 +448,12 @@ func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {
 			"seq_number": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.Count,
+				Unit:     inputs.NCount,
 				Desc:     "The sequence number of the test",
 			},
 			"config_vars": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The configuration variables of the task",
 			},
@@ -470,8 +478,10 @@ type multiMeasurement struct{}
 //nolint:lll
 func (m *multiMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "multi_dial_testing",
-		Cat:  point.DialTesting,
+		Name:   "multi_dial_testing",
+		Cat:    point.DialTesting,
+		Desc:   "Multi-step synthetic test results, including step execution status, elapsed time, and failure details.",
+		DescZh: "多步骤拨测结果，包含步骤执行状态、耗时和失败详情。",
 		Tags: map[string]interface{}{
 			"name":            &inputs.TagInfo{Desc: "The name of the task"},
 			"node_name":       &inputs.TagInfo{Desc: "The name of the node"},
@@ -494,25 +504,25 @@ func (m *multiMeasurement) Info() *inputs.MeasurementInfo {
 			},
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The message string which includes the header and the body of the request or the response",
 			},
 			"task": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The raw task string",
 			},
 			"fail_reason": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The reason that leads to the failure of the task",
 			},
 			"steps": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The result of each step",
 			},
@@ -531,12 +541,12 @@ func (m *multiMeasurement) Info() *inputs.MeasurementInfo {
 			"seq_number": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.Count,
+				Unit:     inputs.NCount,
 				Desc:     "The sequence number of the test",
 			},
 			"config_vars": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The configuration variables of the task",
 			},
@@ -549,8 +559,10 @@ type grpcMeasurement struct{}
 //nolint:lll
 func (m *grpcMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "grpc_dial_testing",
-		Cat:  point.DialTesting,
+		Name:   "grpc_dial_testing",
+		Cat:    point.DialTesting,
+		Desc:   "gRPC synthetic test results, including RPC response status, latency, response data, and failure details.",
+		DescZh: "gRPC 拨测结果，包含 RPC 响应状态、耗时、响应数据和失败详情。",
 		Tags: map[string]interface{}{
 			"name":            &inputs.TagInfo{Desc: "The name of the task"},
 			"server":          &inputs.TagInfo{Desc: "The gRPC server address"},
@@ -571,19 +583,19 @@ func (m *grpcMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: withTaskIDField(map[string]interface{}{
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The message string includes the response time or the failure reason",
 			},
 			"task": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The raw task string",
 			},
 			"fail_reason": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The reason that leads to the failure of the task",
 			},
@@ -602,12 +614,12 @@ func (m *grpcMeasurement) Info() *inputs.MeasurementInfo {
 			"seq_number": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.Count,
+				Unit:     inputs.NCount,
 				Desc:     "The sequence number of the test",
 			},
 			"config_vars": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
+				Type:     inputs.String,
 				Unit:     inputs.NoUnit,
 				Desc:     "The configuration variables of the task",
 			},

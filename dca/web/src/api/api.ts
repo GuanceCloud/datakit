@@ -50,11 +50,13 @@ function fetchWithTimeout(url: string, opt: FetchTimeoutOpt = { timeout: 30000 }
   })
 }
 
-function getQueryPath(path: string, params?: Record<string, unknown>): string {
+export function getQueryPath(path: string, params?: Record<string, unknown>): string {
   let queryStrList: Array<string> = []
   let query = params || {}
   Object.keys(query).forEach((key: string) => {
-    queryStrList.push(`${key}=${query[key]}`)
+    if (query[key] !== undefined && query[key] !== null) {
+      queryStrList.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(query[key]))}`)
+    }
   })
   if (queryStrList.length > 0) {
     path += `?${queryStrList.join("&")}`
@@ -93,7 +95,7 @@ function datakitApi(datakit: IDatakit) {
       params["datakit_id"] = datakit.id
       path = getQueryPath(path, params)
     } else {
-      path = path + "?datakit_id=" + datakit.id
+      path = getQueryPath(path, { datakit_id: datakit.id })
     }
     if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
       opt.body = JSON.stringify(params)
@@ -121,7 +123,6 @@ function datakitApi(datakit: IDatakit) {
           }
         })
       })
-      logger.debug(JSON.stringify({ params: opt, result: resResult }))
       return resResult as [ResonseError | null, any]
     } catch (error: any) {
       logger.error(error)
@@ -307,7 +308,10 @@ export async function getLogTail(datakit: IDatakit, type = "log", controller?: A
   if (!controller) {
     controller = new AbortController()
   }
-  return fetch(apiPath.datakit.logTail + "?datakit_id=" + datakit.id + "&type=" + type, {
+  return fetch(getQueryPath(apiPath.datakit.logTail, {
+    datakit_id: datakit.id,
+    type,
+  }), {
     method: "GET",
     signal: controller.signal,
   }).then((response) => {
@@ -325,8 +329,13 @@ export async function getLogTail(datakit: IDatakit, type = "log", controller?: A
 }
 
 export async function downloadLogFile(datakit: IDatakit, type: string = "log"): Promise<string | null> {
-  const downloadURL = apiPath.datakit.logDownload + "?datakit_id=" + datakit.id + "&type=" + type
-  window.open(downloadURL)
+  const downloadURL = getQueryPath(apiPath.datakit.logDownload, {
+    datakit_id: datakit.id,
+    type,
+  })
+  const downloadWindow = window.open(downloadURL)
+  if (!downloadWindow) {
+    return "download log failed"
+  }
   return ""
 }
-

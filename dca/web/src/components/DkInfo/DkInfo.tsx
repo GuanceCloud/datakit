@@ -1,6 +1,6 @@
-import { createContext, SetStateAction, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, ReactNode, SetStateAction, useCallback, useContext, useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import { App, Avatar, Button, message, Select, SelectProps, Space, Spin } from 'antd'
+import { App, Avatar, Button, message, Select, SelectProps, Space, Spin, Tooltip } from 'antd'
 import { LoadingOutlined, ReloadOutlined, SyncOutlined } from '@ant-design/icons';
 import { connect } from 'react-redux';
 
@@ -13,7 +13,7 @@ import { IDatakit, IDatakitStat } from 'src/store/type';
 import { useLazyGetDatakitStatQuery, useLazyReloadDatakitQuery, useLazyUpgradeDatakitQuery } from 'src/store/datakitApi';
 import { DatakitInfoNav } from '../DatakitInfoNav/DatakitInfoNav';
 import { useAppSelector } from 'src/hooks';
-import { alertError, isContainerMode, isDatakitManagement, isDatakitUpgradeable } from 'src/helper/helper';
+import { alertError, isContainerMode, isDatakitManagement } from 'src/helper/helper';
 import { DashboardContext, getOSIcon } from 'src/pages/Dashboard/Dashboard';
 import { useTranslation } from 'react-i18next';
 
@@ -66,10 +66,10 @@ function DkInfo() {
   const { modal } = App.useApp()
   const location = useLocation()
   const { state } = location
+  const routesWithoutDatakitStat = ['/log']
+  const requiresDatakitStat = !routesWithoutDatakitStat.some((suffix) => location.pathname.endsWith(suffix))
   const [datakit, setDatakit] = useState<IDatakit>(state?.datakit)
   const [datakitStat, setDatakitStat] = useState<IDatakitStat>()
-  const [isLoading, setIsLoading] = useState(false)
-  const [isError, setIsError] = useState(false)
   const [datakitsOptions, setDatakitsOptions] = useState<SelectProps["options"]>([])
 
   const datakits = useAppSelector((state) => state.datakit.value)
@@ -98,14 +98,6 @@ function DkInfo() {
     getDatakitStat(datakit)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [datakit])
-
-  useEffect(() => {
-    setIsLoading(isFetchingDatakitStat || isFetchingReloadDatakit || isFetchingUpgradeDatakit)
-  }, [isFetchingDatakitStat, isFetchingReloadDatakit, isFetchingUpgradeDatakit])
-
-  useEffect(() => {
-    setIsError(isErrorDatakitStat || isErrorReloadDatakit || isErrorUpgradeDatakit)
-  }, [isErrorDatakitStat, isErrorReloadDatakit, isErrorUpgradeDatakit])
 
   useEffect(() => {
     if (isErrorDatakitStat) {
@@ -165,10 +157,9 @@ function DkInfo() {
     }
     modal.confirm({
       title: t("upgrade_datakit"),
-      content: t("confirm_upgrade_datakit"),
-      onOk: async () => {
-        return upgradeDatakit(datakit).unwrap().then((res) => {
-          console.log(res)
+        content: t("confirm_upgrade_datakit"),
+        onOk: async () => {
+          return upgradeDatakit(datakit).unwrap().then((res) => {
           if (res.success) {
             message.success(t("upgrade_datakit_success"))
           }
@@ -183,6 +174,41 @@ function DkInfo() {
     fetchDatakitStat()
   }
 
+  const getReloadDisabledReason = useCallback((dk: IDatakit) => {
+    if (!isDatakitManagement(dk)) {
+      return t("datakit.operation_disabled.not_running")
+    }
+    if (isContainerMode(dk)) {
+      return t("datakit.operation_disabled.container_reload")
+    }
+    return ""
+  }, [t])
+
+  const getUpgradeDisabledReason = useCallback((dk: IDatakit) => {
+    if (!isDatakitManagement(dk)) {
+      return t("datakit.operation_disabled.not_running")
+    }
+    if (isContainerMode(dk)) {
+      return t("datakit.operation_disabled.container_upgrade")
+    }
+    if (dk.version === latestDatakitVersion) {
+      return t("datakit.operation_disabled.latest_version")
+    }
+    return ""
+  }, [latestDatakitVersion, t])
+
+  const renderActionButton = (button: ReactNode, disabledReason: string) => {
+    if (!disabledReason) {
+      return button
+    }
+
+    return (
+      <Tooltip title={disabledReason}>
+        <span>{button}</span>
+      </Tooltip>
+    )
+  }
+
   // change datakit
   const changeDatakit = (value, option) => {
     if (option?.datakit) {
@@ -190,9 +216,7 @@ function DkInfo() {
     }
   }
 
-  const searchDatakit = (value) => {
-    console.log("search", value)
-  }
+  const searchDatakit = () => { }
 
   if (!datakit) {
     return <div className={styles.nodata}>
@@ -200,6 +224,12 @@ function DkInfo() {
       <div className={styles.text}>{t("select_datakit_view")}</div>
     </div>
   }
+
+  const isBlockingLoading = isFetchingReloadDatakit || isFetchingUpgradeDatakit || (requiresDatakitStat && isFetchingDatakitStat)
+  const isBlockingError = isErrorReloadDatakit || isErrorUpgradeDatakit || (requiresDatakitStat && isErrorDatakitStat)
+  const canRenderContent = datakit && !isBlockingLoading && (!requiresDatakitStat || !!datakitStat)
+  const reloadDisabledReason = getReloadDisabledReason(datakit)
+  const upgradeDisabledReason = getUpgradeDisabledReason(datakit)
 
   return (
     <div className={styles.dkinfo}>
@@ -219,14 +249,20 @@ function DkInfo() {
           <DatakitInfoNav datakit={datakit} />
         </div>
         <Space className={styles["buttons"]}>
-          <Button type="default" size={'small'} disabled={!isDatakitUpgradeable(datakit, latestDatakitVersion)} onClick={() => upgrade()}>
-            <span className="fth-iconfont-Update size-14"> </span>
-            <span className={styles.text}>{t("upgrade")}</span>
-          </Button>
-          <Button type="default" size={'small'} disabled={!isDatakitManagement(datakit) || isContainerMode(datakit)} onClick={reload}>
-            <ReloadOutlined className={styles.icon} />
-            <span className={styles.text}>{t("reload")}</span>
-          </Button>
+          {renderActionButton(
+            <Button type="default" size={'small'} disabled={!!upgradeDisabledReason} onClick={() => upgrade()}>
+              <span className="fth-iconfont-Update size-14"> </span>
+              <span className={styles.text}>{t("upgrade")}</span>
+            </Button>,
+            upgradeDisabledReason
+          )}
+          {renderActionButton(
+            <Button type="default" size={'small'} disabled={!!reloadDisabledReason} onClick={reload}>
+              <ReloadOutlined className={styles.icon} />
+              <span className={styles.text}>{t("reload")}</span>
+            </Button>,
+            reloadDisabledReason
+          )}
           <Button type="default" size={'small'} onClick={() => refresh()}>
             <SyncOutlined className={styles.icon} />
             <span className={styles.text}>{t("refresh")}</span>
@@ -235,7 +271,7 @@ function DkInfo() {
       </div>
       <div className={styles.content} >
         {
-          datakit && datakitStat && !isLoading ?
+          canRenderContent ?
             <DkInfoContext.Provider value={{
               datakit,
               datakitStat,
@@ -244,8 +280,8 @@ function DkInfo() {
             </DkInfoContext.Provider>
             :
             <Nodata
-              loading={isLoading}
-              isError={isError}
+              loading={isBlockingLoading}
+              isError={isBlockingError}
               refresh={refresh} />
         }
       </div>

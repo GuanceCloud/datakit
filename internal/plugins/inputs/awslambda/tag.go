@@ -32,6 +32,8 @@ const (
 	LambdaInitializationType = "aws_lambda_initialization_type"
 	AccountID                = "aws_account_id"
 	AWSLogFrom               = "aws_log_from"
+	AWSRuntimeVersion        = "aws_runtime_version"
+	AWSRuntimeVersionARN     = "aws_runtime_version_arn"
 )
 
 func IsLambdaEnvironment() bool {

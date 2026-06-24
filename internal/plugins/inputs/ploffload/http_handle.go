@@ -47,7 +47,9 @@ func (ipt *Input) handlePlOffload(resp http.ResponseWriter, req *http.Request) {
 	ptCounterVec.WithLabelValues(ptsData.cat.String()).Add(float64(len(ptsData.pts)))
 
 	log.Debugf("category: %s, pts num: %d", ptsData.cat, len(ptsData.pts))
-	if err := ipt.feeder.Feed(ptsData.cat, ptsData.pts, dkio.WithSource(ptsData.inputName)); err != nil {
+	if err := ipt.feeder.Feed(ptsData.cat, ptsData.pts,
+		dkio.WithSource(ptsData.inputName),
+		dkio.WithInput(inputName)); err != nil {
 		log.Error(err.Error())
 		httpStatusRespFunc(resp, req, err)
 		return

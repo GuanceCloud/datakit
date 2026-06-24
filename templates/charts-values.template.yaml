@@ -2,6 +2,21 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+## Workload type. The default node-level installation uses a DaemonSet.
+workload:
+  kind: DaemonSet
+  replicas: 1
+
+## Enable GKE Autopilot-compatible pod security and storage settings.
+## This option requires workload.kind=Deployment.
+gkeAutopilot:
+  enabled: false
+  ## Keep root as the default for compatibility. Set runAsNonRoot=true to run
+  ## the DataKit container as the built-in datakit user.
+  runAsNonRoot: false
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
 
 #
 datakit:
@@ -114,6 +129,25 @@ extraEnvs:
 #    value: "--max-old-space-size=1800"
 #  - name: ENV_INPUT_DK_INTERVAL  # DataKit self-monitoring interval
 #    value: "30s"
+#  # GKE Autopilot Cloud API mode
+#  - name: ENV_INPUT_CONTAINER_GCP_CLOUD_API_ENABLED
+#    value: "true"
+#  # Project, cluster, and location are discovered from the GKE metadata server.
+#  # The following optional values override metadata discovery:
+#  - name: ENV_INPUT_CONTAINER_GCP_PROJECT_ID
+#    value: "my-project"
+#  - name: ENV_INPUT_CONTAINER_GCP_CLUSTER_NAME
+#    value: "my-autopilot-cluster"
+#  - name: ENV_INPUT_CONTAINER_GCP_CLUSTER_LOCATION
+#    value: "asia-southeast1"
+#  - name: ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL
+#    value: "false"
+
+## Annotations added to the DataKit Kubernetes ServiceAccount.
+## GKE Workload Identity example:
+# serviceAccountAnnotations:
+#   iam.gke.io/gcp-service-account: datakit-cloud-monitor@my-project.iam.gserviceaccount.com
+serviceAccountAnnotations: {}
 
 
 resources:
@@ -156,7 +190,7 @@ podAnnotations:
 
 
 ## @param tolerations - array - optional
-## Allow the DaemonSet to schedule on tainted nodes (requires Kubernetes >= 1.6)
+## Allow the DataKit workload to schedule on tainted nodes (requires Kubernetes >= 1.6)
 #
 tolerations:
   - operator: Exists

@@ -82,6 +82,14 @@ monitor:
     - 对象数据采集间隔是 5 分钟，指标数据采集间隔是 60 秒，不支持配置
     - 采集到的日志，单行（包括经过 `multiline_match` 处理后）最大长度默认为 800KB 左右，超出部分会被分割成多条日志
 
+### GKE Autopilot Cloud API 模式 {#gke-autopilot-cloud-api}
+
+???+ note "版本要求"
+
+    Cloud API 采集容器指标、对象和日志的功能需要 DataKit 2.3.0 及以上版本。
+
+GKE Autopilot 不允许挂载容器运行时 socket 和宿主机目录，需要使用 `datakit-gke-autopilot` Chart 以 Deployment 方式部署，通过 Cloud API 采集数据。安装配置和采集能力详见 [GCP GKE Autopilot 集成](../datakit/gcp-gke-autopilot.md)。
+
 ### Docker 和 Containerd sock 文件配置 {#sock-config}
 
 如果 Docker 或 Containerd 的 sock 路径不是默认的，则需要指定一下 sock 文件路径，根据 DataKit 不同部署方式，其方式有所差别，以 Containerd 为例：

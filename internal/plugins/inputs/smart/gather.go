@@ -79,7 +79,7 @@ func (ipt *Input) getAttributes(devices []string) error {
 				} else {
 					return ipt.feeder.Feed(point.Metric, []*point.Point{pt},
 						dkio.WithCollectCost(time.Since(start)),
-						dkio.WithSource(inputName),
+						dkio.WithSource(inputName), dkio.WithInput(inputName),
 					)
 				}
 
@@ -108,7 +108,7 @@ func (ipt *Input) getVendorNVMeAttributes(devices []string) error {
 						} else {
 							return ipt.feeder.Feed(point.Metric, []*point.Point{pt},
 								dkio.WithCollectCost(time.Since(start)),
-								dkio.WithSource(inputName),
+								dkio.WithSource(inputName), dkio.WithInput(inputName),
 							)
 						}
 						return nil
@@ -124,7 +124,7 @@ func (ipt *Input) getVendorNVMeAttributes(devices []string) error {
 					} else {
 						return ipt.feeder.Feed(point.Metric, []*point.Point{pt},
 							dkio.WithCollectCost(time.Since(start)),
-							dkio.WithSource(inputName),
+							dkio.WithSource(inputName), dkio.WithInput(inputName),
 						)
 					}
 

@@ -213,7 +213,7 @@ func (ipt *Input) Run() {
 				if err := ipt.feeder.Feed(point.Metric, []*point.Point{m},
 					dkio.WithCollectCost(time.Since(ipt.start)),
 					dkio.WithElection(ipt.Election),
-					dkio.WithSource(inputName)); err != nil {
+					dkio.WithSource(inputName), dkio.WithInput(inputName)); err != nil {
 					l.Errorf("Feed failed: %s, ignored", err.Error())
 				}
 			}
@@ -278,10 +278,10 @@ func (ipt *Input) parse(body io.Reader) (*point.Point, error) {
 	sc := bufio.NewScanner(body)
 
 	tags := map[string]string{
-		"url": ipt.URL,
+		apacheTagURL: ipt.URL,
 	}
 	if ipt.host != "" {
-		tags["host"] = ipt.host
+		tags[apacheTagHost] = ipt.host
 	}
 	for k, v := range ipt.Tags {
 		tags[k] = v
@@ -359,7 +359,7 @@ func (ipt *Input) parse(body io.Reader) (*point.Point, error) {
 				for k, v := range scoreboard {
 					metric.fields[k] = v
 				}
-				metric.fields[filedMap["MaxWorkers"]] = len(part)
+				metric.fields[maxWorkers] = len(part)
 			default:
 				value, err := strconv.ParseInt(part, 10, 64)
 				if err != nil {

@@ -17,6 +17,8 @@ type Measurement struct {
 	ts     int64
 }
 
+var apacheMetricTaggedby = []string{apacheTagURL, apacheTagServerVersion, apacheTagServerMPM}
+
 // Point implement MeasurementV2.
 func (m *Measurement) Point() *point.Point {
 	opts := point.DefaultMetricOptions()
@@ -30,57 +32,40 @@ func (m *Measurement) Point() *point.Point {
 //nolint:lll
 func (m *Measurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: inputName,
-		Cat:  point.Metric,
-		Desc: "The collected metrics are affected by the environment in which Apache is installed. The metrics shown on the `http://<your-apache-server>/server-status?auto` page will prevail.",
+		Name:   inputName,
+		Cat:    point.Metric,
+		Desc:   "Apache HTTP Server metrics parsed from the machine-readable `mod_status` `server-status?auto` output. Available fields depend on Apache version, MPM, platform, and `ExtendedStatus` configuration.",
+		DescZh: "从 Apache HTTP Server 的机器可读 `mod_status` `server-status?auto` 输出解析出的指标。可用字段取决于 Apache 版本、MPM、运行平台以及 `ExtendedStatus` 配置。",
 		Fields: map[string]interface{}{
-			"idle_workers":           newCountFieldInfo("The number of idle workers"),
-			"busy_workers":           newCountFieldInfo("The number of workers serving requests."),
-			"max_workers":            newCountFieldInfo("The maximum number of workers apache can start."),
-			"cpu_load":               newOtherFieldInfo(inputs.Float, inputs.Gauge, inputs.Percent, "The percent of CPU used,windows not support. Optional."),
-			"uptime":                 newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.DurationSecond, "The amount of time the server has been running"),
-			"net_bytes":              newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.SizeByte, "The total number of bytes served."),
-			"net_hits":               newCountFieldInfo("The total number of requests performed"),
-			"conns_total":            newCountFieldInfo("The total number of requests performed,windows not support"),
-			"conns_async_writing":    newCountFieldInfo("The number of asynchronous writes connections,windows not support"),
-			"conns_async_keep_alive": newCountFieldInfo("The number of asynchronous keep alive connections,windows not support"),
-			"conns_async_closing":    newCountFieldInfo("The number of asynchronous closing connections,windows not support"),
-			waitingForConnection:     newCountFieldInfo("The number of workers that can immediately process an incoming request"),
-			startingUp:               newCountFieldInfo("The workers that are still starting up and not yet able to handle a request"),
-			readingRequest:           newCountFieldInfo("The workers reading the incoming request"),
-			sendingReply:             newCountFieldInfo("The number of workers sending a reply/response or waiting on a script (like PHP) to finish so they can send a reply"),
-			keepAlive:                newCountFieldInfo("The workers intended for a new request from the same client, because it asked to keep the connection alive"),
-			dnsLookup:                newCountFieldInfo("The workers waiting on a DNS lookup"),
-			closingConnection:        newCountFieldInfo("The amount of workers that are currently closing a connection"),
-			logging:                  newCountFieldInfo("The workers writing something to the Apache logs"),
-			gracefullyFinishing:      newCountFieldInfo("The number of workers finishing their request"),
-			idleCleanup:              newCountFieldInfo("These workers were idle and their process is being stopped"),
-			openSlot:                 newCountFieldInfo("The amount of workers that Apache can still start before hitting the maximum number of workers"),
-			disabled:                 newCountFieldInfo("These slots will never be able to handle any requests, indicates a misconfiguration."),
+			idleWorkers:          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Current number of idle workers.", Taggedby: apacheMetricTaggedby},
+			busyWorkers:          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Current number of workers serving requests.", Taggedby: apacheMetricTaggedby},
+			maxWorkers:           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Current total number of worker slots in the Apache scoreboard.", Taggedby: apacheMetricTaggedby},
+			cpuLoad:              &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Current CPU usage percentage reported by Apache `mod_status`; unavailable on Windows and optional depending on configuration.", Taggedby: apacheMetricTaggedby},
+			uptime:               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationSecond, Desc: "Seconds since the Apache server started.", Taggedby: apacheMetricTaggedby},
+			netBytes:             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.SizeByte, Desc: "Cumulative bytes served since the Apache server started.", Taggedby: apacheMetricTaggedby},
+			netHits:              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative requests served since the Apache server started.", Taggedby: apacheMetricTaggedby},
+			connsTotal:           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Current total asynchronous connections; unavailable on Windows.", Taggedby: apacheMetricTaggedby},
+			connsAsyncWriting:    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Current asynchronous connections in writing state; unavailable on Windows.", Taggedby: apacheMetricTaggedby},
+			connsAsyncKeepAlive:  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Current asynchronous connections in keep-alive state; unavailable on Windows.", Taggedby: apacheMetricTaggedby},
+			connsAsyncClosing:    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Current asynchronous connections in closing state; unavailable on Windows.", Taggedby: apacheMetricTaggedby},
+			waitingForConnection: &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Current workers waiting for a connection.", Taggedby: apacheMetricTaggedby},
+			startingUp:           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Current workers starting up.", Taggedby: apacheMetricTaggedby},
+			readingRequest:       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Current workers reading requests.", Taggedby: apacheMetricTaggedby},
+			sendingReply:         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Current workers sending replies.", Taggedby: apacheMetricTaggedby},
+			keepAlive:            &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Current workers in keep-alive state.", Taggedby: apacheMetricTaggedby},
+			dnsLookup:            &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Current workers waiting for DNS lookup.", Taggedby: apacheMetricTaggedby},
+			closingConnection:    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Current workers closing connections.", Taggedby: apacheMetricTaggedby},
+			logging:              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Current workers writing to Apache logs.", Taggedby: apacheMetricTaggedby},
+			gracefullyFinishing:  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Current workers gracefully finishing requests.", Taggedby: apacheMetricTaggedby},
+			idleCleanup:          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Current workers in idle cleanup.", Taggedby: apacheMetricTaggedby},
+			openSlot:             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Current open scoreboard slots with no process.", Taggedby: apacheMetricTaggedby},
+			disabled:             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Current disabled scoreboard slots.", Taggedby: apacheMetricTaggedby},
 		},
 		Tags: map[string]interface{}{
-			"url":            inputs.NewTagInfo("Apache server status url."),
-			"server_version": inputs.NewTagInfo("Apache server version. Optional."),
-			"server_mpm":     inputs.NewTagInfo("Apache server Multi-Processing Module, `prefork`, `worker` and `event`. Optional."),
-			"host":           inputs.NewTagInfo("Hostname."),
+			apacheTagURL:           inputs.NewTagInfo("Apache server status url."),
+			apacheTagServerVersion: inputs.NewTagInfo("Apache server version. Optional."),
+			apacheTagServerMPM:     inputs.NewTagInfo("Apache server Multi-Processing Module, `prefork`, `worker` and `event`. Optional."),
+			apacheTagHost:          inputs.NewTagInfo("Hostname."),
 		},
-	}
-}
-
-func newCountFieldInfo(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		DataType: inputs.Int,
-		Type:     inputs.Count,
-		Unit:     inputs.NCount,
-		Desc:     desc,
-	}
-}
-
-func newOtherFieldInfo(datatype, ftype, unit, desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		DataType: datatype,
-		Type:     ftype,
-		Unit:     unit,
-		Desc:     desc,
 	}
 }

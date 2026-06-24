@@ -219,7 +219,7 @@ func (t *tdEngine) run() {
 			if len(msm) > 0 && t.upstream {
 				if err := t.Ipt.feeder.Feed(point.Metric, msm,
 					dkio.WithElection(t.Ipt.Election),
-					dkio.WithSource(inputName),
+					dkio.WithSource(inputName), dkio.WithInput(inputName),
 				); err != nil {
 					l.Errorf("FeedMeasurement: %s", err)
 				}

@@ -265,7 +265,7 @@ func (m *oracleMeasurement) getSystemFields() map[string]interface{} {
 		DataType: inputs.Float,
 		Type:     inputs.Gauge,
 		Unit:     inputs.Percent,
-		Desc:     "Memory sorts per second",
+		Desc:     "Database wait time ratio",
 	}
 	fields["db_block_changes"] = &inputs.FieldInfo{
 		DataType: inputs.Float,
@@ -294,7 +294,7 @@ func (m *oracleMeasurement) getSystemFields() map[string]interface{} {
 	fields["execute_without_parse"] = &inputs.FieldInfo{
 		DataType: inputs.Float,
 		Type:     inputs.Gauge,
-		Unit:     inputs.NCount,
+		Unit:     inputs.Percent,
 		Desc:     "Execute without parse ratio",
 	}
 	fields["gc_cr_block_received"] = &inputs.FieldInfo{
@@ -397,7 +397,7 @@ func (m *oracleMeasurement) getSystemFields() map[string]interface{} {
 		DataType: inputs.Float,
 		Type:     inputs.Gauge,
 		Unit:     inputs.Percent,
-		Desc:     "Shared pool free memory %",
+		Desc:     "Percentage of shared pool memory that is free",
 	}
 	fields["soft_parse_ratio"] = &inputs.FieldInfo{
 		DataType: inputs.Float,

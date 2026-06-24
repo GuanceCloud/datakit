@@ -23,21 +23,22 @@ func (m *dbmSessionMeasurement) Point() *point.Point {
 
 func (m *dbmSessionMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: metricNameMySQLDbmSession,
-		Desc: "MySQL DBM session metrics aggregated by user/host/db/session_status/wait_event (with wait_group for unified taxonomy).",
-		Cat:  point.Metric,
+		Name:   metricNameMySQLDbmSession,
+		Desc:   "MySQL DBM session metrics aggregated by user/host/db/session_status/wait_event (with wait_group for unified taxonomy).",
+		DescZh: "按 user、host、db、session_status 和 wait_event 聚合的 MySQL DBM 会话指标，并通过 wait_group 统一分类。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			"session_group_count": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
-				Desc:     "Number of sessions in this dimension group",
+				Desc:     "Number of sessions in this dimension group.",
 			},
 			"session_blocked_count": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
-				Desc:     "Number of sessions that are being blocked",
+				Desc:     "Number of blocked sessions in this dimension group.",
 			},
 		},
 		Tags: map[string]interface{}{

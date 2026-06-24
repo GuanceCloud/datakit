@@ -76,7 +76,7 @@ func (ipt *Input) collect(ptTS int64) error {
 							points,
 							dkio.WithCollectCost(time.Since(collectStart)),
 							dkio.WithElection(ipt.Election),
-							dkio.WithSource(inputName)); err != nil {
+							dkio.WithSource(inputName), dkio.WithInput(inputName)); err != nil {
 							l.Errorf("Feed failed for %s: %s, ignored", client.URL(), err.Error())
 						}
 					}
@@ -260,7 +260,7 @@ func (ipt *Input) autoCollect(client *jolokia.Client, ptTS int64) error {
 				batchPoints,
 				dkio.WithCollectCost(time.Since(batchCollectStart)),
 				dkio.WithElection(ipt.Election),
-				dkio.WithSource(inputName)); err != nil {
+				dkio.WithSource(inputName), dkio.WithInput(inputName)); err != nil {
 				l.Errorf("feed batch %d-%d failed: %v", startIdx+1, startIdx+len(batch), err)
 			}
 			l.Debugf("Fed batch %d-%d (%d points) successfully", startIdx+1, startIdx+len(batch), len(batchPoints))

@@ -251,7 +251,7 @@ func (ipt *Input) serveWrite(res http.ResponseWriter, req *http.Request) {
 		if err := ipt.feeder.Feed(point.Metric, pts,
 			dkio.WithCollectCost(time.Since(start)),
 			dkio.DisableGlobalTags(true),
-			dkio.WithSource(inputName)); err != nil {
+			dkio.WithSource(inputName), dkio.WithInput(inputName)); err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),
 				metrics.WithLastErrorCategory(point.Metric),

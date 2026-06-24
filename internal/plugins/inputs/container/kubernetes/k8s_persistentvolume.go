@@ -124,9 +124,10 @@ type PersistentvolumeObject struct{}
 //nolint:lll
 func (*PersistentvolumeObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: persistentvolumeObjectClass,
-		Desc: "The object of the Kubernetes PersistentVolume.",
-		Cat:  point.Object,
+		Name:   persistentvolumeObjectClass,
+		Desc:   "The object of the Kubernetes PersistentVolume.",
+		DescZh: "Kubernetes PersistentVolume 对象信息，记录绑定声明、容量、访问模式、生命周期阶段和对象详情。",
+		Cat:    point.Object,
 		Tags: map[string]interface{}{
 			"name":                  inputs.NewTagInfo("The UID of PersistentVolume."),
 			"uid":                   inputs.NewTagInfo("The UID of PersistentVolume."),
@@ -135,13 +136,13 @@ func (*PersistentvolumeObject) Info() *inputs.MeasurementInfo {
 			"cluster_name_k8s":      inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
-			"age":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},
-			"phase":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The phase indicates if a volume is available, bound to a claim, or released by a claim.(Pending/Available/Bound/Released/Failed)"},
-			"claimRef_name":      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Name of the bound PersistentVolumeClaim."},
-			"claimRef_namespace": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Namespace of the PersistentVolumeClaim."},
-			"capacity_storage":   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Specifies the maximum storage capacity of a PersistentVolume (PV), which Kubernetes uses for scheduling and resource allocation."},
-			"access_modes":       &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "AccessModes contains the desired access modes the volume should have."},
-			"message":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Object details"},
+			"age":                &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},
+			"phase":              &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "The phase indicates if a volume is available, bound to a claim, or released by a claim.(Pending/Available/Bound/Released/Failed)"},
+			"claimRef_name":      &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Name of the bound PersistentVolumeClaim."},
+			"claimRef_namespace": &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Namespace of the PersistentVolumeClaim."},
+			"capacity_storage":   &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Specifies the maximum storage capacity of a PersistentVolume (PV), which Kubernetes uses for scheduling and resource allocation."},
+			"access_modes":       &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "AccessModes contains the desired access modes the volume should have."},
+			"message":            &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Serialized Kubernetes object details for this resource."},
 		},
 	}
 }

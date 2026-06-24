@@ -16,6 +16,7 @@ DataKit Operator 通过 Kubernetes Admission Controller 机制，为 Kubernetes 
 - **日志采集**：通过 logfwd Sidecar 自动采集容器日志
 - **性能分析**：注入 Flameshot 或 Profiler 组件进行应用性能监控
 - **配置管理**：支持全局配置和声明式配置两种注入方式
+- **Cluster API**：提供集群内 Pod 查询代理，供 DataKit 等组件获取 Kubernetes 元数据
 
 **核心优势**：
 
@@ -137,6 +138,32 @@ DataKit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
     }
     ```
 <!-- markdownlint-enable -->
+
+## Cluster API {#cluster-api}
+
+DataKit Operator [:octicons-tag-24: v1.8.1](operator-changelog.md#cl-1.8.1) 及以后版本提供 Cluster API，用于在集群内代理查询 Pod 数据。DataKit 可以通过该接口获取 Kubernetes 元数据，减少各 DataKit 实例直接访问 API Server 的压力。
+
+Cluster API 默认开启，不需要额外配置开关。Operator 启动时会检查自身 ServiceAccount 是否具备 Pod 读取权限；如果缺少权限，Operator 会在日志中提示 RBAC 检查失败，并禁用 Cluster API 相关路由。使用最新的 `datakit-operator.yaml` 或 Helm Chart 会包含所需权限；如果是从旧版 YAML 升级，需要确认 ClusterRole 至少包含以下权限：
+
+```yaml
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+```
+
+接口地址复用 Operator Service，默认地址为 `https://datakit-operator.datakit.svc:443`。当前支持的 Pod 查询接口如下：
+
+| 接口 | 说明 |
+| --- | --- |
+| `/v1/cluster/api/v1/pods` | 查询全量 Pod 列表 |
+| `/v1/cluster/api/v1/namespaces/{namespace}/pods` | 查询指定命名空间下的 Pod 列表 |
+| `/v1/cluster/api/v1/namespaces/{namespace}/pods/{name}` | 查询指定 Pod |
+
+从 DataKit Operator [:octicons-tag-24: v1.8.9](operator-changelog.md#cl-1.8.9) 开始，Pod 查询接口支持 `view=ebpf-v1` 查询参数。该视图会裁剪 eBPF 不需要的大字段，只保留其识别工作负载所需的 Pod 基础信息，用于降低大集群场景下的 JSON 传输和解析开销。
+
+```shell
+curl -k "https://datakit-operator.datakit.svc:443/v1/cluster/api/v1/pods?view=ebpf-v1"
+```
 
 ## 注入方式 {#datakit-operator-inject}
 

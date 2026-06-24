@@ -33,8 +33,10 @@ func (m *replicationMeasurement) Point() *point.Point {
 
 //nolint:lll
 var replicationMeasurementInfo = &inputs.MeasurementInfo{
-	Name: metricNameMySQLReplication,
-	Cat:  point.Metric,
+	Name:   metricNameMySQLReplication,
+	Desc:   "MySQL replication and group replication metrics collected from the configured server.",
+	DescZh: "从配置的 MySQL 服务器采集的复制与组复制指标。",
+	Cat:    point.Metric,
 	Fields: map[string]interface{}{
 		"Connect_Retry:": &inputs.FieldInfo{
 			DataType: inputs.Int,
@@ -45,13 +47,13 @@ var replicationMeasurementInfo = &inputs.MeasurementInfo{
 		"Slave_IO_Running": &inputs.FieldInfo{
 			DataType: inputs.Bool,
 			Type:     inputs.Gauge,
-			Unit:     inputs.NCount,
+			Unit:     inputs.Bool,
 			Desc:     "Whether the I/O thread is started and has connected successfully to the source. 1 if the state is Yes, 0 if the state is No.",
 		},
 		"Slave_SQL_Running": &inputs.FieldInfo{
 			DataType: inputs.Bool,
 			Type:     inputs.Gauge,
-			Unit:     inputs.NCount,
+			Unit:     inputs.Bool,
 			Desc:     "Whether the SQL thread is started. 1 if the state is Yes, 0 if the state is No.",
 		},
 		"Last_Errno": &inputs.FieldInfo{
@@ -111,7 +113,7 @@ var replicationMeasurementInfo = &inputs.MeasurementInfo{
 		"Auto_Position": &inputs.FieldInfo{
 			DataType: inputs.Bool,
 			Type:     inputs.Gauge,
-			Unit:     inputs.NCount,
+			Unit:     inputs.Bool,
 			Desc:     "1 if auto-positioning is in use; otherwise 0.",
 		},
 		"Replicas_connected": &inputs.FieldInfo{
@@ -205,9 +207,10 @@ func (m *replicationLogMeasurement) Point() *point.Point {
 }
 
 var replicationLogMeasurementInfo = &inputs.MeasurementInfo{
-	Desc: "Record the replication string information.",
-	Name: metricNameMySQLReplicationLog,
-	Cat:  point.Logging,
+	Desc:   "Record the replication string information.",
+	DescZh: "记录 MySQL 复制相关的字符串信息。",
+	Name:   metricNameMySQLReplicationLog,
+	Cat:    point.Logging,
 	Fields: map[string]interface{}{
 		"Master_Host": &inputs.FieldInfo{
 			DataType: inputs.String,

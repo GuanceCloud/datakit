@@ -85,6 +85,7 @@ const (
 	RequestsPerSec = "throughput,reqps"
 	Celsius        = "temperature,C"
 	Ampere         = "ampere"
+	Joule          = "joule"
 	Watt           = "watt"
 	Volt           = "volt"
 	FrequencyMHz   = "frequency,MHz"
@@ -129,12 +130,14 @@ func (m *UpMeasurement) Info() *MeasurementInfo { //nolint:funlen
 		Name:           CollectorUpMeasurement,
 		Cat:            point.Metric,
 		MetaDuplicated: true, // This measurement are shared among multiple collectors.
+		Desc:           "Shared collector availability metric emitted by multiple collectors to report whether the target was successfully scraped.",
+		DescZh:         "多个采集器共用的采集可用性指标，用于上报目标在最近一次采集周期中是否成功采集。",
 		Fields: map[string]interface{}{
 			"up": &FieldInfo{
 				DataType: Int,
 				Type:     Gauge,
-				Unit:     UnknownUnit,
-				Desc:     "",
+				Unit:     Bool,
+				Desc:     "Whether the collector successfully scraped the target during the last collection cycle: 1 means true and 0 means false.",
 			},
 		},
 		Tags: map[string]interface{}{

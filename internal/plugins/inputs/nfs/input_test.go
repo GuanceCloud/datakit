@@ -20,22 +20,30 @@ import (
 func TestCollect(t *testing.T) {
 	i := defaultInput()
 
-	for x := 0; x < 1; x++ {
-		if err := i.collect(); err != nil {
-			t.Error(err)
-		}
-		time.Sleep(time.Second * 1)
+	i.ptsTime = time.Now()
+	if err := i.collect(); err != nil {
+		t.Error(err)
 	}
 	if len(i.collectCache) == 0 {
 		t.Log("nfs data is empty!")
 		return
 	}
-	tmap := map[string]bool{}
+
+	firstCollectTimes := map[string]bool{}
 	for _, pt := range i.collectCache {
-		tmap[pt.Time().String()] = true
+		firstCollectTimes[pt.Time().String()] = true
 	}
-	if len(tmap) != 1 {
-		t.Error("Need to clear collectCache.")
+
+	time.Sleep(time.Second)
+	i.ptsTime = time.Now()
+	if err := i.collect(); err != nil {
+		t.Error(err)
+	}
+
+	for _, pt := range i.collectCache {
+		if firstCollectTimes[pt.Time().String()] {
+			t.Error("Need to clear collectCache.")
+		}
 	}
 }
 

@@ -310,7 +310,7 @@ func (configMeasurement) Info() *inputs.MeasurementInfo {
 			},
 			"replica_ignore_disk_write_errors": &inputs.FieldInfo{
 				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
+				Unit:     inputs.NoUnit,
 				DataType: inputs.Bool,
 				Desc:     "Whether replicas should ignore disk write errors (1=yes, -1=no)",
 			},
@@ -340,19 +340,19 @@ func (configMeasurement) Info() *inputs.MeasurementInfo {
 			},
 			"aof_use_rdb_preamble": &inputs.FieldInfo{
 				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
+				Unit:     inputs.NoUnit,
 				DataType: inputs.Bool,
 				Desc:     "Whether to use RDB preamble in AOF rewrites (1=yes, -1=no)",
 			},
 			"slave_serve_stale_data": &inputs.FieldInfo{
 				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
+				Unit:     inputs.NoUnit,
 				DataType: inputs.Bool,
 				Desc:     "Whether replicas should serve stale data when master is down (1=yes, -1=no)",
 			},
 			"cluster_allow_replica_migration": &inputs.FieldInfo{
 				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
+				Unit:     inputs.NoUnit,
 				DataType: inputs.Bool,
 				Desc:     "Whether cluster allows replica migration between masters (1=yes, -1=no)",
 			},
@@ -364,7 +364,7 @@ func (configMeasurement) Info() *inputs.MeasurementInfo {
 			},
 			"repl_disable_tcp_nodelay": &inputs.FieldInfo{
 				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
+				Unit:     inputs.NoUnit,
 				DataType: inputs.Bool,
 				Desc:     "Disable `TCP_NODELAY` on replica sockets (-1=no, 1=yes)",
 			},

@@ -76,6 +76,7 @@ func AttachOperator(k *K8sClient, operatorURL string) error {
 	if err != nil {
 		return fmt.Errorf("create operator client: %w", err)
 	}
+	opClient.SetPodListView(k8sclient.PodListViewEBPFV1)
 	k.operatorClient = opClient
 	return nil
 }
@@ -86,6 +87,7 @@ func NewK8sClientFromOperator(cfg K8sConfig) (*K8sClient, error) {
 	if err != nil {
 		return nil, fmt.Errorf("create operator client: %w", err)
 	}
+	opClient.SetPodListView(k8sclient.PodListViewEBPFV1)
 
 	k := &K8sClient{
 		informer:            nil,

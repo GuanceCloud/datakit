@@ -334,7 +334,7 @@ func (ipt *Input) gatherMetrics() {
 		err := ipt.feeder.Feed(point.Metric, pts,
 			dkio.WithSource(dkio.FeedSource(inputName, itrace.TracingMetricName)),
 			dkio.DisableGlobalTags(ipt.TracingMetricDisableGlobalHostTags),
-			dkio.WithCollectCost(time.Since(startTime)))
+			dkio.WithCollectCost(time.Since(startTime)), dkio.WithInput(inputName))
 		if err != nil {
 			log.Errorf("opentelemetry send metrics points error: %v", err)
 		}

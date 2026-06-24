@@ -1,0 +1,38 @@
+# GKE Autopilot preset for the DataKit Helm chart.
+# Fill in the Workload Identity Service Account.
+
+workload:
+  kind: Deployment
+  replicas: 1
+
+gkeAutopilot:
+  enabled: true
+  runAsNonRoot: false
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+
+fullnameOverride: datakit
+
+datakit:
+  default_enabled_inputs: dk,container
+  enabled_election: true
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "500Mi"
+  limits:
+    cpu: "2000m"
+    memory: "4Gi"
+
+serviceAccountAnnotations:
+  iam.gke.io/gcp-service-account: datakit-cloud-monitor@my-project.iam.gserviceaccount.com
+
+extraEnvs:
+  - name: ENV_NAMESPACE
+    value: "datakit"
+  - name: ENV_INPUT_CONTAINER_GCP_CLOUD_API_ENABLED
+    value: "true"
+  - name: ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL
+    value: "false"

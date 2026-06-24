@@ -1,13 +1,25 @@
 
+{{- /* Keep this template path stable while supporting both workload kinds. */ -}}
+{{- $isDeployment := eq .Values.workload.kind "Deployment" -}}
+{{- $isDaemonSet := eq .Values.workload.kind "DaemonSet" -}}
+{{- if not (or $isDeployment $isDaemonSet) -}}
+{{- fail "workload.kind must be either DaemonSet or Deployment" -}}
+{{- end -}}
+{{- if and .Values.gkeAutopilot.enabled (not $isDeployment) -}}
+{{- fail "gkeAutopilot.enabled requires workload.kind=Deployment" -}}
+{{- end }}
 ---
 apiVersion: apps/v1
-kind: DaemonSet
+kind: {{ .Values.workload.kind }}
 metadata:
   labels:
     app: {{ include "datakit.fullname" . }}
   {{- include "datakit.labels" . | nindent 4 }}
   name: {{ include "datakit.fullname" . }}
 spec:
+  {{- if $isDeployment }}
+  replicas: {{ .Values.workload.replicas }}
+  {{- end }}
   revisionHistoryLimit: 10
   selector:
     matchLabels:
@@ -23,8 +35,20 @@ spec:
         app: {{ include "datakit.fullname" . }}
     {{- include "datakit.selectorLabels" . | nindent 8 }}
     spec:
+      {{- if .Values.gkeAutopilot.enabled }}
+      hostNetwork: false
+      dnsPolicy: ClusterFirst
+      {{- else }}
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
+      {{- end }}
+      {{- if and .Values.gkeAutopilot.enabled .Values.gkeAutopilot.runAsNonRoot }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: {{ .Values.gkeAutopilot.runAsUser }}
+        runAsGroup: {{ .Values.gkeAutopilot.runAsGroup }}
+        fsGroup: {{ .Values.gkeAutopilot.fsGroup }}
+      {{- end }}
       containers:
         - env:
             - name: POD_NAME
@@ -63,6 +87,7 @@ spec:
               value: {{ .Values.datakit.log_level }}
             - name: ENV_HTTP_LISTEN
               value: {{ .Values.datakit.http_listen }}
+            {{- if not .Values.gkeAutopilot.enabled }}
             - name: HOST_PROC
               value: /rootfs/proc
             - name: HOST_SYS
@@ -77,6 +102,7 @@ spec:
               value: /rootfs/dev
             - name: HOST_ROOT
               value: /rootfs
+            {{- end }}
             {{- if .Values.iploc.enable }}
             - name: ENV_IPDB
               value: iploc
@@ -124,9 +150,23 @@ spec:
             name: {{ .Values.logfwdServer.targetPortName}}
             protocol: TCP
           resources: {{ toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.gkeAutopilot.enabled }}
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          {{- else }}
           securityContext:
             privileged: true
+          {{- end }}
           volumeMounts:
+            {{- if .Values.gkeAutopilot.enabled }}
+            - mountPath: /usr/local/datakit/cache
+              name: cache
+              readOnly: false
+            {{- else }}
             - mountPath: /var/run
               name: run
             - mountPath: /rootfs
@@ -136,6 +176,7 @@ spec:
             - mountPath: /usr/local/datakit/cache
               name: cache
               readOnly: false
+            {{- end }}
             {{- if .Values.iploc.enable }}
             - mountPath: /usr/local/datakit/data/ipdb/iploc/
               name: datakit-ipdb
@@ -157,8 +198,13 @@ spec:
           {{- end }}
           {{- end }}
           workingDir: /usr/local/datakit
+      {{- if .Values.gkeAutopilot.enabled }}
+      hostIPC: false
+      hostPID: false
+      {{- else }}
       hostIPC: true
       hostPID: true
+      {{- end }}
       restartPolicy: Always
       {{- if .Values.iploc.enable }}
       initContainers:
@@ -185,6 +231,10 @@ spec:
       serviceAccount: {{ include "datakit.fullname" . }}
       serviceAccountName: {{ include "datakit.fullname" . }}
       volumes:
+        {{- if .Values.gkeAutopilot.enabled }}
+        - emptyDir: {}
+          name: cache
+        {{- else }}
         - hostPath:
             path: /var/run
           name: run
@@ -197,6 +247,7 @@ spec:
         - hostPath:
             path: /sys/kernel/debug
           name: debugfs
+        {{- end }}
         {{- if .Values.iploc.enable }}
         - emptyDir: {}
           name: datakit-ipdb
@@ -213,7 +264,15 @@ spec:
             name: datakit-conf
           name: datakit-conf
         {{- end }}
+  {{- if $isDeployment }}
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  {{- else }}
   updateStrategy:
     rollingUpdate:
       maxUnavailable: 1
     type: RollingUpdate
+  {{- end }}

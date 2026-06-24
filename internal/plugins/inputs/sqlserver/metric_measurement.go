@@ -193,19 +193,19 @@ func mergeMaps(fieldMaps ...map[string]interface{}) map[string]interface{} {
 //nolint:funlen
 func (m *sqlserverMeasurement) getServerFields() map[string]interface{} {
 	fields := make(map[string]interface{})
-	fields["cpu_count"] = newCountFieldInfo("Specifies the number of logical CPUs on the system. Not nullable")
-	fields["uptime"] = newTimeFieldInfo("Total time elapsed since the last computer restart")
-	fields["committed_memory"] = newByteFieldInfo("The amount of memory committed to the memory manager. Version > 2008")
-	fields["physical_memory"] = newByteFieldInfo("Total physical memory on the machine. Version > 2008")
-	fields["virtual_memory"] = newByteFieldInfo("Amount of virtual memory available to the process in user mode. Version > 2008")
-	fields["target_memory"] = newByteFieldInfo("Amount of memory that can be consumed by the memory manager. When this value is larger than the committed memory, then the memory manager will try to obtain more memory. When it is smaller, the memory manager will try to shrink the amount of memory committed. Version > 2008")
-	fields["db_online"] = newCountFieldInfo("Num of database state in online")
-	fields["db_offline"] = newCountFieldInfo("Num of database state in offline")
-	fields["db_recovering"] = newCountFieldInfo("Num of database state in recovering")
-	fields["db_recovery_pending"] = newCountFieldInfo("Num of database state in recovery_pending")
-	fields["db_restoring"] = newCountFieldInfo("Num of database state in restoring")
-	fields["db_suspect"] = newCountFieldInfo("Num of database state in suspect")
-	fields["server_memory"] = newByteFieldInfo("Memory used")
+	fields["cpu_count"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Specifies the number of logical CPUs on the system. Not nullable"}
+	fields["uptime"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Total time elapsed since the last computer restart"}
+	fields["committed_memory"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory committed to the memory manager. Version > 2008"}
+	fields["physical_memory"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total physical memory on the machine. Version > 2008"}
+	fields["virtual_memory"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Amount of virtual memory available to the process in user mode. Version > 2008"}
+	fields["target_memory"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Amount of memory that can be consumed by the memory manager. When this value is larger than the committed memory, then the memory manager will try to obtain more memory. When it is smaller, the memory manager will try to shrink the amount of memory committed. Version > 2008"}
+	fields["db_online"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Num of database state in online"}
+	fields["db_offline"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Num of database state in offline"}
+	fields["db_recovering"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Num of database state in recovering"}
+	fields["db_recovery_pending"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Num of database state in recovery_pending"}
+	fields["db_restoring"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Num of database state in restoring"}
+	fields["db_suspect"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Num of database state in suspect"}
+	fields["server_memory"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Memory used"}
 
 	m.addTaggedbyToFields(fields, TagGroupServer)
 	return fields
@@ -214,51 +214,51 @@ func (m *sqlserverMeasurement) getServerFields() map[string]interface{} {
 //nolint:funlen
 func (m *sqlserverMeasurement) getPerformanceFields() map[string]interface{} {
 	fields := make(map[string]interface{})
-	fields["cntr_value"] = newCountFieldInfo("Current value of the counter")
-	fields["processes_blocked"] = newCountFieldInfo("The number of processes blocked.")
-	fields["page_splits"] = newCountFieldInfo("The number of page splits per second.")
-	fields["full_scans"] = newCountFieldInfo("Number of unrestricted full scans per second. These can be either base-table or full-index scans.")
-	fields["memory_grants_pending"] = newCountFieldInfo("Specifies the total number of processes waiting for a workspace memory grant.")
-	fields["total_server_memory"] = newIntKByteFieldInfo("Specifies the amount of memory the server has committed using the memory manager.")
-	fields["sql_cache_memory"] = newIntKByteFieldInfo("Specifies the amount of memory the server is using for the dynamic SQL cache.")
-	fields["memory_grants_outstanding"] = newCountFieldInfo("Specifies the total number of processes that have successfully acquired a workspace memory grant.")
-	fields["database_cache_memory"] = newIntKByteFieldInfo("Specifies the amount of memory the server is currently using for the database pages cache.")
-	fields["connection_memory"] = newIntKByteFieldInfo("Specifies the total amount of dynamic memory the server is using for maintaining connections.")
-	fields["optimizer_memory"] = newIntKByteFieldInfo("Specifies the total amount of dynamic memory the server is using for query optimization.")
-	fields["granted_workspace_memory"] = newIntKByteFieldInfo("Specifies the total amount of memory currently granted to executing processes, such as hash, sort, bulk copy, and index creation operations.")
-	fields["lock_memory"] = newIntKByteFieldInfo("Specifies the total amount of dynamic memory the server is using for locks.")
-	fields["stolen_server_memory"] = newIntKByteFieldInfo("Specifies the amount of memory the server is using for purposes other than database pages.")
-	fields["log_pool_memory"] = newIntKByteFieldInfo("Total amount of dynamic memory the server is using for Log Pool.")
-	fields["buffer_cache_hit_ratio"] = newPercentFieldInfo("The ratio of data pages found and read from the buffer cache over all data page requests.")
-	fields["page_life_expectancy"] = newTimeFieldInfo("Duration that a page resides in the buffer pool.")
-	fields["page_reads"] = newCountFieldInfo("Indicates the number of physical database page reads that are issued per second. This statistic displays the total number of physical page reads across all databases.")
-	fields["page_writes"] = newCountFieldInfo("Indicates the number of physical database page writes that are issued per second.")
-	fields["checkpoint_pages"] = newCountFieldInfo("The number of pages flushed to disk per second by a checkpoint or other operation that require all dirty pages to be flushed.")
-	fields["auto_param_attempts"] = newCountFieldInfo("Number of auto-parameterization attempts per second.")
-	fields["failed_auto_params"] = newCountFieldInfo("Number of failed auto-parameterization attempts per second.")
-	fields["safe_auto_params"] = newCountFieldInfo("Number of safe auto-parameterization attempts per second.")
-	fields["batch_requests"] = newCountFieldInfo("The number of batch requests per second.")
-	fields["sql_compilations"] = newCountFieldInfo("The number of SQL compilations per second.")
-	fields["sql_re_compilations"] = newCountFieldInfo("The number of SQL re-compilations per second.")
-	fields["lock_waits"] = newCountFieldInfo("The number of times per second that SQL Server is unable to retain a lock right away for a resource.")
-	fields["latch_waits"] = newCountFieldInfo("Number of latch requests that could not be granted immediately.")
-	fields["deadlocks"] = newCountFieldInfo("Number of lock requests per second that resulted in a deadlock.")
-	fields["cache_object_counts"] = newCountFieldInfo("Number of cache objects in the cache.")
-	fields["cache_pages"] = newCountFieldInfo("Number of 8-kilobyte (KB) pages used by cache objects.")
-	fields["transaction_delay"] = newCountFieldInfo("Total delay in waiting for unterminated commit acknowledgment for all the current transactions, in milliseconds.")
-	fields["flow_control"] = newCountFieldInfo("Number of times flow-control initiated in the last second. Flow Control Time (ms/sec) divided by Flow Control/sec is the average time per wait.")
-	fields["version_store_size"] = newIntKByteFieldInfo("The size of the version store in tempdb.")
-	fields["version_cleanup_rate"] = newIntKByteFieldInfo("The cleanup rate of the version store in tempdb.")
-	fields["version_generation_rate"] = newIntKByteFieldInfo("The generation rate of the version store in tempdb.")
-	fields["longest_transaction_running_time"] = newTimeFieldInfo("The time (in seconds) that the oldest active transaction has been running. Only works if database is under read committed snapshot isolation level.")
-	fields["backup_restore_throughput"] = newCountFieldInfo("Read/write throughput for backup and restore operations of a database per second.")
-	fields["log_bytes_flushed"] = newByteFieldInfo("Total number of log bytes flushed.")
-	fields["log_flushes"] = newCountFieldInfo("Number of log flushes per second.")
-	fields["log_flush_wait_time"] = newTimeFieldInfo("Total wait time (in milliseconds) to flush the log. On an Always On secondary database, this value indicates the wait time for log records to be hardened to disk.")
-	fields["transactions"] = newCountFieldInfo("Number of transactions started for the SQL Server instance per second.")
-	fields["write_transactions"] = newCountFieldInfo("Number of transactions that wrote to all databases on the SQL Server instance and committed, in the last second.")
-	fields["active_transactions"] = newCountFieldInfo("Number of active transactions across all databases on the SQL Server instance.")
-	fields["user_connections"] = newCountFieldInfo("Number of user connections.")
+	fields["cntr_value"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Current value of the counter"}
+	fields["processes_blocked"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of processes blocked."}
+	fields["page_splits"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of page splits per second."}
+	fields["full_scans"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of unrestricted full scans per second. These can be either base-table or full-index scans."}
+	fields["memory_grants_pending"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Specifies the total number of processes waiting for a workspace memory grant."}
+	fields["total_server_memory"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeKB, Desc: "Specifies the amount of memory the server has committed using the memory manager."}
+	fields["sql_cache_memory"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeKB, Desc: "Specifies the amount of memory the server is using for the dynamic SQL cache."}
+	fields["memory_grants_outstanding"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Specifies the total number of processes that have successfully acquired a workspace memory grant."}
+	fields["database_cache_memory"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeKB, Desc: "Specifies the amount of memory the server is currently using for the database pages cache."}
+	fields["connection_memory"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeKB, Desc: "Specifies the total amount of dynamic memory the server is using for maintaining connections."}
+	fields["optimizer_memory"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeKB, Desc: "Specifies the total amount of dynamic memory the server is using for query optimization."}
+	fields["granted_workspace_memory"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeKB, Desc: "Specifies the total amount of memory currently granted to executing processes, such as hash, sort, bulk copy, and index creation operations."}
+	fields["lock_memory"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeKB, Desc: "Specifies the total amount of dynamic memory the server is using for locks."}
+	fields["stolen_server_memory"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeKB, Desc: "Specifies the amount of memory the server is using for purposes other than database pages."}
+	fields["log_pool_memory"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeKB, Desc: "Total amount of dynamic memory the server is using for Log Pool."}
+	fields["buffer_cache_hit_ratio"] = &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "The ratio of data pages found and read from the buffer cache over all data page requests."}
+	fields["page_life_expectancy"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Duration that a page resides in the buffer pool."}
+	fields["page_reads"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Indicates the number of physical database page reads that are issued per second. This statistic displays the total number of physical page reads across all databases."}
+	fields["page_writes"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Indicates the number of physical database page writes that are issued per second."}
+	fields["checkpoint_pages"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of pages flushed to disk per second by a checkpoint or other operation that require all dirty pages to be flushed."}
+	fields["auto_param_attempts"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of auto-parameterization attempts per second."}
+	fields["failed_auto_params"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of failed auto-parameterization attempts per second."}
+	fields["safe_auto_params"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of safe auto-parameterization attempts per second."}
+	fields["batch_requests"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of batch requests per second."}
+	fields["sql_compilations"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of SQL compilations per second."}
+	fields["sql_re_compilations"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of SQL re-compilations per second."}
+	fields["lock_waits"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of times per second that SQL Server is unable to retain a lock right away for a resource."}
+	fields["latch_waits"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of latch requests that could not be granted immediately."}
+	fields["deadlocks"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of lock requests per second that resulted in a deadlock."}
+	fields["cache_object_counts"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of cache objects in the cache."}
+	fields["cache_pages"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of 8-kilobyte (KB) pages used by cache objects."}
+	fields["transaction_delay"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Total delay in waiting for unterminated commit acknowledgment for all the current transactions, in milliseconds."}
+	fields["flow_control"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of times flow-control initiated in the last second. Flow Control Time (ms/sec) divided by Flow Control/sec is the average time per wait."}
+	fields["version_store_size"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeKB, Desc: "The size of the version store in tempdb."}
+	fields["version_cleanup_rate"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeKB, Desc: "The cleanup rate of the version store in tempdb."}
+	fields["version_generation_rate"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeKB, Desc: "The generation rate of the version store in tempdb."}
+	fields["longest_transaction_running_time"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "The time (in seconds) that the oldest active transaction has been running. Only works if database is under read committed snapshot isolation level."}
+	fields["backup_restore_throughput"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Read/write throughput for backup and restore operations of a database per second."}
+	fields["log_bytes_flushed"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total number of log bytes flushed."}
+	fields["log_flushes"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of log flushes per second."}
+	fields["log_flush_wait_time"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Total wait time (in milliseconds) to flush the log. On an Always On secondary database, this value indicates the wait time for log records to be hardened to disk."}
+	fields["transactions"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of transactions started for the SQL Server instance per second."}
+	fields["write_transactions"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of transactions that wrote to all databases on the SQL Server instance and committed, in the last second."}
+	fields["active_transactions"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of active transactions across all databases on the SQL Server instance."}
+	fields["user_connections"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of user connections."}
 
 	m.addTaggedbyToFields(fields, TagGroupPerformance)
 	return fields
@@ -266,11 +266,11 @@ func (m *sqlserverMeasurement) getPerformanceFields() map[string]interface{} {
 
 func (m *sqlserverMeasurement) getWaitStatsFields() map[string]interface{} {
 	fields := make(map[string]interface{})
-	fields["max_wait_time_ms"] = newTimeFieldInfo("Maximum wait time on this wait type.")
-	fields["wait_time_ms"] = newTimeFieldInfo("Total wait time for this wait type in milliseconds. This time is inclusive of signal_wait_time_ms")
-	fields["signal_wait_time_ms"] = newTimeFieldInfo("Difference between the time that the waiting thread was signaled and when it started running")
-	fields["resource_wait_ms"] = newTimeFieldInfo("wait_time_ms-signal_wait_time_ms")
-	fields["waiting_tasks_count"] = newCountFieldInfo("Number of waits on this wait type. This counter is incremented at the start of each wait.")
+	fields["max_wait_time_ms"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Maximum wait time on this wait type."}
+	fields["wait_time_ms"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Total wait time for this wait type in milliseconds. This time is inclusive of signal_wait_time_ms"}
+	fields["signal_wait_time_ms"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Difference between the time that the waiting thread was signaled and when it started running"}
+	fields["resource_wait_ms"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "wait_time_ms-signal_wait_time_ms"}
+	fields["waiting_tasks_count"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of waits on this wait type. This counter is incremented at the start of each wait."}
 
 	m.addTaggedbyToFields(fields, TagGroupWaitStats)
 	return fields
@@ -278,14 +278,14 @@ func (m *sqlserverMeasurement) getWaitStatsFields() map[string]interface{} {
 
 func (m *sqlserverMeasurement) getDatabaseIOFields() map[string]interface{} {
 	fields := make(map[string]interface{})
-	fields["read_bytes"] = newByteFieldInfo("Total number of bytes read on this file")
-	fields["write_bytes"] = newByteFieldInfo("Total number of bytes written to the file")
-	fields["read_latency_ms"] = newTimeFieldInfo("Total time, in milliseconds, that the users waited for reads issued on the file.")
-	fields["write_latency_ms"] = newTimeFieldInfo("Total time, in milliseconds, that users waited for writes to be completed on the file")
-	fields["reads"] = newCountFieldInfo("Number of reads issued on the file.")
-	fields["writes"] = newCountFieldInfo("Number of writes issued on the file.")
-	fields["rg_read_stall_ms"] = newTimeFieldInfo("Does not apply to:: SQL Server 2008 through SQL Server 2012 (11.x).Total IO latency introduced by IO resource governance for reads")
-	fields["rg_write_stall_ms"] = newTimeFieldInfo("Does not apply to:: SQL Server 2008 through SQL Server 2012 (11.x).Total IO latency introduced by IO resource governance for writes. Is not nullable.")
+	fields["read_bytes"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total number of bytes read on this file"}
+	fields["write_bytes"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total number of bytes written to the file"}
+	fields["read_latency_ms"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Total time, in milliseconds, that the users waited for reads issued on the file."}
+	fields["write_latency_ms"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Total time, in milliseconds, that users waited for writes to be completed on the file"}
+	fields["reads"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of reads issued on the file."}
+	fields["writes"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of writes issued on the file."}
+	fields["rg_read_stall_ms"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Does not apply to:: SQL Server 2008 through SQL Server 2012 (11.x).Total IO latency introduced by IO resource governance for reads"}
+	fields["rg_write_stall_ms"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Does not apply to:: SQL Server 2008 through SQL Server 2012 (11.x).Total IO latency introduced by IO resource governance for writes. Is not nullable."}
 
 	m.addTaggedbyToFields(fields, TagGroupDatabaseIO)
 	return fields
@@ -293,20 +293,20 @@ func (m *sqlserverMeasurement) getDatabaseIOFields() map[string]interface{} {
 
 func (m *sqlserverMeasurement) getSchedulersFields() map[string]interface{} {
 	fields := make(map[string]interface{})
-	fields["active_workers_count"] = newCountFieldInfo("Number of workers that are active. An active worker is never preemptive, must have an associated task, and is either running, runnable, or suspended. Is not nullable.")
-	fields["context_switches_count"] = newCountFieldInfo("Number of context switches that have occurred on this scheduler")
-	fields["current_tasks_count"] = newCountFieldInfo("Number of current tasks that are associated with this scheduler.")
-	fields["current_workers_count"] = newCountFieldInfo("Number of workers that are associated with this scheduler. This count includes workers that are not assigned any task. Is not nullable.")
-	fields["is_idle"] = newBoolFieldInfo("Scheduler is idle. No workers are currently running")
-	fields["is_online"] = newBoolFieldInfo("If SQL Server is configured to use only some of the available processors on the server, this configuration can mean that some schedulers are mapped to processors that are not in the affinity mask. If that is the case, this column returns 0. This value means that the scheduler is not being used to process queries or batches.")
-	fields["load_factor"] = newCountFieldInfo("Internal value that indicates the perceived load on this scheduler")
-	fields["pending_disk_io_count"] = newCountFieldInfo("Number of pending I/Os that are waiting to be completed.")
-	fields["preemptive_switches_count"] = newCountFieldInfo("Number of times that workers on this scheduler have switched to the preemptive mode")
-	fields["runnable_tasks_count"] = newCountFieldInfo("Number of workers, with tasks assigned to them, that are waiting to be scheduled on the runnable queue.")
-	fields["total_cpu_usage_ms"] = newTimeFieldInfo("Applies to: SQL Server 2016 (13.x) and laterTotal CPU consumed by this scheduler as reported by non-preemptive workers.")
-	fields["total_scheduler_delay_ms"] = newTimeFieldInfo("Applies to: SQL Server 2016 (13.x) and laterThe time between one worker switching out and another one switching in")
-	fields["work_queue_count"] = newCountFieldInfo("Number of tasks in the pending queue. These tasks are waiting for a worker to pick them up")
-	fields["yield_count"] = newCountFieldInfo("Internal value that is used to indicate progress on this scheduler. This value is used by the Scheduler Monitor to determine whether a worker on the scheduler is not yielding to other workers on time.")
+	fields["active_workers_count"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of workers that are active. An active worker is never preemptive, must have an associated task, and is either running, runnable, or suspended. Is not nullable."}
+	fields["context_switches_count"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of context switches that have occurred on this scheduler"}
+	fields["current_tasks_count"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of current tasks that are associated with this scheduler."}
+	fields["current_workers_count"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of workers that are associated with this scheduler. This count includes workers that are not assigned any task. Is not nullable."}
+	fields["is_idle"] = &inputs.FieldInfo{DataType: inputs.Bool, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "Scheduler is idle. No workers are currently running"}
+	fields["is_online"] = &inputs.FieldInfo{DataType: inputs.Bool, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "If SQL Server is configured to use only some of the available processors on the server, this configuration can mean that some schedulers are mapped to processors that are not in the affinity mask. If that is the case, this column returns 0. This value means that the scheduler is not being used to process queries or batches."}
+	fields["load_factor"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Internal value that indicates the perceived load on this scheduler"}
+	fields["pending_disk_io_count"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of pending I/Os that are waiting to be completed."}
+	fields["preemptive_switches_count"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of times that workers on this scheduler have switched to the preemptive mode"}
+	fields["runnable_tasks_count"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of workers, with tasks assigned to them, that are waiting to be scheduled on the runnable queue."}
+	fields["total_cpu_usage_ms"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Applies to: SQL Server 2016 (13.x) and laterTotal CPU consumed by this scheduler as reported by non-preemptive workers."}
+	fields["total_scheduler_delay_ms"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Applies to: SQL Server 2016 (13.x) and laterThe time between one worker switching out and another one switching in"}
+	fields["work_queue_count"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of tasks in the pending queue. These tasks are waiting for a worker to pick them up"}
+	fields["yield_count"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Internal value that is used to indicate progress on this scheduler. This value is used by the Scheduler Monitor to determine whether a worker on the scheduler is not yielding to other workers on time."}
 
 	m.addTaggedbyToFields(fields, TagGroupSchedulers)
 	return fields
@@ -314,9 +314,9 @@ func (m *sqlserverMeasurement) getSchedulersFields() map[string]interface{} {
 
 func (m *sqlserverMeasurement) getVolumeSpaceFields() map[string]interface{} {
 	fields := make(map[string]interface{})
-	fields["volume_available_space_bytes"] = newByteFieldInfo("Available free space on the volume")
-	fields["volume_total_space_bytes"] = newByteFieldInfo("Total size in bytes of the volume")
-	fields["volume_used_space_bytes"] = newByteFieldInfo("Used size in bytes of the volume")
+	fields["volume_available_space_bytes"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Available free space on the volume"}
+	fields["volume_total_space_bytes"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total size in bytes of the volume"}
+	fields["volume_used_space_bytes"] = &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Used size in bytes of the volume"}
 
 	m.addTaggedbyToFields(fields, TagGroupVolumeSpace)
 	return fields
@@ -324,8 +324,8 @@ func (m *sqlserverMeasurement) getVolumeSpaceFields() map[string]interface{} {
 
 func (m *sqlserverMeasurement) getDatabaseSizeFields() map[string]interface{} {
 	fields := make(map[string]interface{})
-	fields["data_size"] = newMByteFieldInfo("The size of file of Rows")
-	fields["log_size"] = newMByteFieldInfo("The size of file of Log")
+	fields["data_size"] = &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeMB, Desc: "The size of file of Rows"}
+	fields["log_size"] = &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeMB, Desc: "The size of file of Log"}
 
 	m.addTaggedbyToFields(fields, TagGroupDatabaseSize)
 	return fields

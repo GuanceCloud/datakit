@@ -40,6 +40,7 @@ func (ipt *Input) feedUpMetric() {
 	if err := ipt.feeder.Feed(point.Metric, pts,
 		dkio.WithElection(ipt.Election),
 		dkio.WithSource(upFeedSource),
+		dkio.WithInput(inputName),
 	); err != nil {
 		l.Warnf("feed : %s, ignored", err)
 	}

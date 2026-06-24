@@ -54,6 +54,7 @@
     "start": "cross-env BROWSER=none react-scripts start",
     "build": "PUBLIC_URL=public react-scripts build",
     "test": "react-scripts test",
+    "test:coverage": "react-scripts test --coverage --watchAll=false --runInBand --coverageDirectory=../.tmp/coverage-web",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {

@@ -326,11 +326,13 @@ func (u *upgraderImpl) doUpgrade(scriptFile, installBaseURL string) error {
 	stdout := &bytes.Buffer{}
 
 	cmd := exec.Command(shellBin, args...) // nolint:gosec
+	cmd.Dir = filepath.Dir(scriptFile)
 	cmd.Stderr = stderr
 	cmd.Stdout = stdout
 
 	envs := os.Environ()
 	envs = append(envs, "DK_UPGRADE=1")
+	envs = append(envs, fmt.Sprintf("TMPDIR=%s", cmd.Dir))
 
 	if u.c.Proxy != "" {
 		envs = append(envs, "HTTPS_PROXY="+u.c.Proxy)
@@ -343,7 +345,7 @@ func (u *upgraderImpl) doUpgrade(scriptFile, installBaseURL string) error {
 
 	cmd.Env = envs
 
-	l.Infof("run upgrade script envs: %s", strings.Join(cmd.Env, "\n\t"))
+	l.Infof("run upgrade script envs: %s", formatUpgradeEnvsForLog(cmd.Env))
 
 	l.Infof("datakit manager will start execute upgrade cmd: %s", cmd.String())
 	if err := cmd.Start(); err != nil {
@@ -369,6 +371,37 @@ func (u *upgraderImpl) doUpgrade(scriptFile, installBaseURL string) error {
 	}
 
 	return nil
+}
+
+func formatUpgradeEnvsForLog(envs []string) string {
+	formatted := make([]string, 0, len(envs))
+	for _, env := range envs {
+		key, _, ok := strings.Cut(env, "=")
+		if !ok {
+			formatted = append(formatted, env)
+			continue
+		}
+
+		if isSensitiveEnvKey(key) {
+			formatted = append(formatted, key+"=******")
+			continue
+		}
+
+		formatted = append(formatted, env)
+	}
+
+	return strings.Join(formatted, "\n\t")
+}
+
+func isSensitiveEnvKey(key string) bool {
+	key = strings.ToUpper(key)
+	for _, pattern := range []string{"TOKEN", "KEY", "SECRET", "PASSWORD", "PASSWD", "PROXY", "AUTH", "CREDENTIAL"} {
+		if strings.Contains(key, pattern) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func parseMajorMinor(v string) (int, int, error) {

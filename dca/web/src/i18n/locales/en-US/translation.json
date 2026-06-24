@@ -4,6 +4,7 @@
   "language": "Language",
   "logout": "Logout",
   "clone": "Clone",
+  "copy": "Copy",
   "filter": "Filter",
   "set_filter": "Set filter conditions",
   "match_below": "Meet the following",
@@ -44,6 +45,7 @@
   "batch_operation": "Batch operation",
   "refresh": "Refresh",
   "workspace_list": "Workspace list",
+  "search_workspace": "Search workspace",
   "confirm": "Confirm",
   "cancel": "Cancel",
   "reload": "Reload",
@@ -96,6 +98,31 @@
     "blacklist": "Blacklist",
     "log": "Logs"
   },
+  "log": {
+    "description": {
+      "datakit": "DataKit log",
+      "gin": "gin log"
+    },
+    "connection": {
+      "connecting": "Connecting",
+      "connected": "Connected",
+      "disconnected": "Disconnected"
+    },
+    "meta": {
+      "showing": "Showing {{shown}} / {{total}}",
+      "matches": "{{count}} matches",
+      "follow": "Follow"
+    },
+    "search": {
+      "placeholder": "Search logs"
+    },
+    "action": {
+      "reconnect": "Reconnect",
+      "resume": "Resume",
+      "pause": "Pause",
+      "clear": "Clear"
+    }
+  },
   "status": {
     "running": "Online",
     "stopped": "Stopped",
@@ -103,6 +130,29 @@
     "restarting": "Restarting",
     "upgrading": "Upgrading",
     "unknown": "Unknown status"
+  },
+  "datakit": {
+    "operation_disabled": {
+      "not_running": "DataKit is not online. Management operations are available only when it is running.",
+      "container_reload": "This DataKit is running in a container. Reload is not supported here.",
+      "container_upgrade": "This DataKit is running in a container. Upgrade is not supported here.",
+      "latest_version": "This DataKit is already on the latest version."
+    }
+  },
+  "run_info": {
+    "overview": "Overview",
+    "stats_realtime": "Live DataKit stats",
+    "basic_info": "Basic information",
+    "enabled_collectors": "Enabled collectors",
+    "collector_metrics": "Collector runtime metrics",
+    "inputs_count": "{{count}} inputs",
+    "instances_count": "{{count}} instances",
+    "crash_count": "{{count}} crashes in total",
+    "crashed_count": "{{count}} crashed",
+    "no_crash_record": "No crash records",
+    "no_enabled_collectors": "No enabled collectors",
+    "normal": "Normal",
+    "last_feed_zero_time_filtered": "LastFeed hides invalid zero timestamps"
   },
   "config": {
     "format_error": "Configuration format error!",

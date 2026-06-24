@@ -17,6 +17,18 @@ const baseQuery = fetchBaseQuery({
   baseUrl: '',
 });
 
+function isResponseError(value: unknown): value is ResonseError {
+  return !!value && typeof value === "object" && "errorCode" in value
+}
+
+function isFetchAbortError(error: FetchBaseQueryError): boolean {
+  return "status" in error
+    && error.status === "FETCH_ERROR"
+    && "error" in error
+    && typeof error.error === "string"
+    && error.error.includes("AbortError")
+}
+
 export function getMsg(err: ResonseError, params?: Record<string, string>): string {
   if (!err) {
     return i18n.t("api.unknown_error")
@@ -24,10 +36,30 @@ export function getMsg(err: ResonseError, params?: Record<string, string>): stri
 
   let msg = i18n.t("api." + err.errorCode, params)
   if (err.message) {
-    msg += ": " + err.message
+    msg += ": " + formatErrorMessage(err.message)
   }
 
   return msg
+}
+
+function formatErrorMessage(message: unknown): string {
+  if (typeof message === "string") {
+    return message
+  }
+
+  if (message instanceof Error) {
+    return message.message
+  }
+
+  if (typeof message === "object") {
+    try {
+      return JSON.stringify(message)
+    } catch {
+      return String(message)
+    }
+  }
+
+  return String(message)
 }
 
 const fetchWithIntercept: BaseQueryFn<
@@ -42,16 +74,28 @@ const fetchWithIntercept: BaseQueryFn<
   > = await baseQuery(args, api, extraOptions);
 
   const { data, error } = result;
-  console.log(data, error)
-  if (!data) {
-    console.error(error)
-    alertError("Unexpected server error")
-    return Promise.reject(error);
+  if (error) {
+    if (isFetchAbortError(error)) {
+      return Promise.reject(error);
+    }
+
+    const errorData = "data" in error ? error.data : undefined
+
+    if (isResponseError(errorData)) {
+      alertError(getMsg(errorData))
+    } else if (typeof errorData === "string" && errorData) {
+      alertError(errorData)
+    } else {
+      console.error(error)
+      alertError("Unexpected server error")
+    }
+
+    return Promise.reject(errorData || error);
   }
 
-  if (error) {
-    alertError(error.data)
-    return Promise.reject(error);
+  if (!data) {
+    alertError("Unexpected server error")
+    return Promise.reject(new Error("empty response data"));
   }
 
   if (data?.code === 401) {
@@ -78,6 +122,8 @@ const fetchWithIntercept: BaseQueryFn<
   return result
 
 };
+
+export { fetchWithIntercept };
 
 export const baseApi = createApi({
   baseQuery: fetchWithIntercept,

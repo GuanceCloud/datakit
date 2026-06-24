@@ -45,21 +45,21 @@ func (m *redisMeasurement) getTags() map[string]interface{} {
 
 func (m *redisMeasurement) getCommonTags() map[string]interface{} {
 	tags := make(map[string]interface{})
-	tags["host"] = &inputs.TagInfo{Desc: "Hostname."}
-	tags["server"] = &inputs.TagInfo{Desc: "Server addr."}
+	tags["host"] = &inputs.TagInfo{Desc: "Hostname of the Redis instance."}
+	tags["server"] = &inputs.TagInfo{Desc: "Address of the Redis server endpoint."}
 	return tags
 }
 
 func (m *redisMeasurement) getInfoTags() map[string]interface{} {
 	tags := make(map[string]interface{})
-	tags["redis_version"] = &inputs.TagInfo{Desc: "Version of the Redis server."}
-	tags["command_type"] = &inputs.TagInfo{Desc: "Command type."}
-	tags["error_type"] = &inputs.TagInfo{Desc: "Error type."}
+	tags["redis_version"] = &inputs.TagInfo{Desc: "Version string reported by the Redis server."}
+	tags["command_type"] = &inputs.TagInfo{Desc: "Redis command category associated with the metric."}
+	tags["error_type"] = &inputs.TagInfo{Desc: "Redis error category associated with the metric."}
 	tags["quantile"] = &inputs.TagInfo{Desc: "Histogram `quantile`."}
 	tags["role"] = &inputs.TagInfo{
 		Desc: "Value is `master` if the instance is replica of no one, or `slave` if the instance is a replica of some master instance.",
 	}
-	tags["redis_mode"] = &inputs.TagInfo{Desc: "Mode of the Redis server."}
+	tags["redis_mode"] = &inputs.TagInfo{Desc: "Deployment mode of the Redis server, such as standalone, sentinel, or cluster."}
 	tags["os"] = &inputs.TagInfo{Desc: "Operating system of the Redis server."}
 	tags["maxmemory_policy"] = &inputs.TagInfo{Desc: "The value of the maxmemory-policy configuration directive."}
 	return tags
@@ -67,7 +67,7 @@ func (m *redisMeasurement) getInfoTags() map[string]interface{} {
 
 func (m *redisMeasurement) getCommandTags() map[string]interface{} {
 	tags := make(map[string]interface{})
-	tags["method"] = &inputs.TagInfo{Desc: "Command type"}
+	tags["method"] = &inputs.TagInfo{Desc: "Redis command name associated with the metric."}
 	return tags
 }
 
@@ -82,7 +82,7 @@ func (m *redisMeasurement) getReplicaTags() map[string]interface{} {
 
 func (m *redisMeasurement) getDatabaseTags() map[string]interface{} {
 	tags := make(map[string]interface{})
-	tags["db_name"] = &inputs.TagInfo{Desc: "DB name."}
+	tags["db_name"] = &inputs.TagInfo{Desc: "Redis logical database name, such as `db0`."}
 	return tags
 }
 
@@ -1266,7 +1266,7 @@ func (m *redisMeasurement) getInfoFields() map[string]interface{} {
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.Bool,
-		Desc:     "Indicate Redis cluster is enabled.",
+		Desc:     "Whether Redis cluster mode is enabled on this instance, encoded as 0 or 1.",
 	}
 
 	// # Keyspace
@@ -1276,7 +1276,7 @@ func (m *redisMeasurement) getInfoFields() map[string]interface{} {
 		DataType: inputs.Float,
 		Type:     inputs.Gauge,
 		Unit:     inputs.DurationMS,
-		Desc:     "The latency of the redis INFO command.",
+		Desc:     "Execution latency in milliseconds of the Redis INFO command.",
 	}
 	fields["used_cpu_sys_percent"] = &inputs.FieldInfo{
 		DataType: inputs.Float,
@@ -1310,97 +1310,97 @@ func (m *redisMeasurement) getInfoFields() map[string]interface{} {
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.DurationSecond,
-		Desc:     "Max idle time of the connection in seconds of all these clients",
+		Desc:     "Maximum idle time in seconds across the sampled client connections.",
 	}
 	fields["max_multi"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.NCount,
-		Desc:     "Max number of commands in a MULTI/EXEC context of all these clients",
+		Desc:     "Maximum number of commands queued in a MULTI/EXEC context across sampled clients.",
 	}
 	fields["max_obl"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "Max output buffer length of all these clients",
+		Desc:     "Maximum output buffer length in bytes across sampled clients.",
 	}
 	fields["max_qbuf"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "Max query buffer length (0 means no query pending) of all these clients",
+		Desc:     "Maximum query buffer length in bytes across sampled clients; 0 means no query is pending.",
 	}
 	fields["max_totmem"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "Max total memory consumed by various buffers of all these clients",
+		Desc:     "Maximum total memory consumed by client buffers across sampled clients.",
 	}
 	fields["multi_avg"] = &inputs.FieldInfo{
 		DataType: inputs.Float,
 		Type:     inputs.Gauge,
 		Unit:     inputs.NCount,
-		Desc:     "Avg number of commands in a MULTI/EXEC context of all these clients",
+		Desc:     "Average number of commands queued in a MULTI/EXEC context across sampled clients.",
 	}
 	fields["multi_total"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.NCount,
-		Desc:     "Sum of all client's total number of commands in a MULTI/EXEC context",
+		Desc:     "Total number of commands queued in MULTI/EXEC contexts across sampled clients.",
 	}
 	fields["total_cmds"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.NCount,
-		Desc:     "Sum of all client's total count of commands this client executed.",
+		Desc:     "Total number of commands executed across sampled clients.",
 	}
 	fields["total_netin"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "Sum of all client's total network input bytes read from the client",
+		Desc:     "Total network input bytes read from sampled clients.",
 	}
 	fields["total_netout"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "Sum of all client's total network output bytes send to the client",
+		Desc:     "Total network output bytes sent to sampled clients.",
 	}
 	fields["total_obl"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "Sum of all client's output buffer length of all these clients",
+		Desc:     "Total output buffer length in bytes across sampled clients.",
 	}
 	fields["total_psub"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.NCount,
-		Desc:     "Sum of all client's number of pattern matching subscriptions",
+		Desc:     "Total number of pattern subscriptions across sampled clients.",
 	}
 	fields["total_ssub"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.NCount,
-		Desc:     "Sum of all client's number of shard channel subscriptions.(Redis >= 7.0.3)",
+		Desc:     "Total number of shard channel subscriptions across sampled clients (Redis >= 7.0.3).",
 	}
 	fields["total_qbuf"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "Sum of all client's query buffer length",
+		Desc:     "Total query buffer length in bytes across sampled clients.",
 	}
 	fields["total_sub"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.NCount,
-		Desc:     "Sum of all client's number of channel subscriptions",
+		Desc:     "Total number of channel subscriptions across sampled clients.",
 	}
 	fields["total_totmem"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "Sum of all client's total memory consumed in various buffers",
+		Desc:     "Total memory consumed by client buffers across sampled clients.",
 	}
 
 	m.addTaggedbyToFields(fields, TagGroupInfo)
@@ -1475,17 +1475,20 @@ func (m *redisMeasurement) getDatabaseFields() map[string]interface{} {
 	fields["keys"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
-		Desc:     "Key.",
+		Unit:     inputs.NCount,
+		Desc:     "Current number of keys stored in this Redis logical database.",
 	}
 	fields["expires"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
-		Desc:     "expires time.",
+		Unit:     inputs.NCount,
+		Desc:     "Current number of keys in this Redis logical database that have an expiration time set.",
 	}
 	fields["avg_ttl"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
-		Desc:     "Average ttl.",
+		Unit:     inputs.DurationMS,
+		Desc:     "Average remaining time to live for keys with expiration in this Redis logical database, measured in milliseconds.",
 	}
 
 	m.addTaggedbyToFields(fields, TagGroupDatabase)

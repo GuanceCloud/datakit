@@ -156,9 +156,10 @@ type ServiceMetric struct{}
 //nolint:lll
 func (*ServiceMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: serviceMetricMeasurement,
-		Desc: "The metric of the Kubernetes Service.",
-		Cat:  point.Metric,
+		Name:   serviceMetricMeasurement,
+		Desc:   "The metric of the Kubernetes Service.",
+		DescZh: "Kubernetes Service 指标，记录 Service 暴露端口数量。",
+		Cat:    point.Metric,
 		Tags: map[string]interface{}{
 			"uid":              inputs.NewTagInfo("The UID of Service"),
 			"service":          inputs.NewTagInfo("Name must be unique within a namespace."),
@@ -166,7 +167,7 @@ func (*ServiceMetric) Info() *inputs.MeasurementInfo {
 			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
-			"ports": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.Count, Desc: "Total number of ports that are exposed by this service."},
+			"ports": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.Count, Desc: "Total number of ports that are exposed by this service."},
 		},
 	}
 }
@@ -176,9 +177,10 @@ type ServiceObject struct{}
 //nolint:lll
 func (*ServiceObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: serviceObjectClass,
-		Desc: "The object of the Kubernetes Service.",
-		Cat:  point.Object,
+		Name:   serviceObjectClass,
+		Desc:   "The object of the Kubernetes Service.",
+		DescZh: "Kubernetes Service 对象信息，记录 ClusterIP、ExternalIP、ExternalName、流量策略、会话亲和性和对象详情。",
+		Cat:    point.Object,
 		Tags: map[string]interface{}{
 			"name":                 inputs.NewTagInfo("The UID of Service"),
 			"uid":                  inputs.NewTagInfo("The UID of Service"),
@@ -190,13 +192,13 @@ func (*ServiceObject) Info() *inputs.MeasurementInfo {
 			"&lt;ALL-SELECTOR&gt;": inputs.NewTagInfo("Represents the selector for Kubernetes resources"),
 		},
 		Fields: map[string]interface{}{
-			"age":                     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},
-			"cluster_ip":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "ClusterIP is the IP address of the service and is usually assigned randomly by the master."},
-			"external_ips":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "ExternalIPs is a list of IP addresses for which nodes in the cluster will also accept traffic for this service."},
-			"external_name":           &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "ExternalName is the external reference that kubedns or equivalent will return as a CNAME record for this service."},
-			"external_traffic_policy": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "ExternalTrafficPolicy denotes if this Service desires to route external traffic to node-local or cluster-wide endpoints."},
-			"session_affinity":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: `Supports "ClientIP" and "None".`},
-			"message":                 &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Object details"},
+			"age":                     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},
+			"cluster_ip":              &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "ClusterIP is the IP address of the service and is usually assigned randomly by the master."},
+			"external_ips":            &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "ExternalIPs is a list of IP addresses for which nodes in the cluster will also accept traffic for this service."},
+			"external_name":           &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "ExternalName is the external reference that kubedns or equivalent will return as a CNAME record for this service."},
+			"external_traffic_policy": &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "ExternalTrafficPolicy denotes if this Service desires to route external traffic to node-local or cluster-wide endpoints."},
+			"session_affinity":        &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: `Supports "ClientIP" and "None".`},
+			"message":                 &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Serialized Kubernetes object details for this resource."},
 		},
 	}
 }

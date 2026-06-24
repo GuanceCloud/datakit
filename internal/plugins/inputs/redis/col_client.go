@@ -471,7 +471,7 @@ func (i *instance) collectClientList(ctx context.Context) {
 			dkio.WithCollectCost(ccost),
 			dkio.WithElection(i.ipt.Election),
 			dkio.WithSource(dkio.FeedSource(inputName, "client-stat")),
-			dkio.WithMeasurement(inputs.GetOverrideMeasurement(i.ipt.MeasurementVersion, measureuemtRedis))); err != nil {
+			dkio.WithMeasurement(inputs.GetOverrideMeasurement(i.ipt.MeasurementVersion, measureuemtRedis)), dkio.WithInput(inputName)); err != nil {
 			l.Warnf("feed: %s, ignored", err)
 		}
 	}

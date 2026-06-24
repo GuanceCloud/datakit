@@ -30,9 +30,10 @@ type mysqlObjectMeasurement struct{}
 //nolint:lll
 func (*mysqlObjectMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: mysqlObjectMeasurementName,
-		Cat:  point.Object,
-		Desc: "MySQL object metrics([:octicons-tag-24: Version-1.74.0](../datakit/changelog-2025.md#cl-1.74.0))",
+		Name:   mysqlObjectMeasurementName,
+		Cat:    point.Object,
+		Desc:   "MySQL object metrics([:octicons-tag-24: Version-1.74.0](../datakit/changelog-2025.md#cl-1.74.0))",
+		DescZh: "MySQL 数据库对象指标。",
 		Tags: map[string]interface{}{
 			"host":              &inputs.TagInfo{Desc: "The hostname of the MySQL server"},
 			"server":            &inputs.TagInfo{Desc: "The server address of the MySQL server"},
@@ -43,13 +44,13 @@ func (*mysqlObjectMeasurement) Info() *inputs.MeasurementInfo {
 			"port":              &inputs.TagInfo{Desc: "The port of the MySQL server"},
 		},
 		Fields: map[string]interface{}{
-			"message":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Summary of database information"},
-			"uptime":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "The number of seconds that the server has been up"},
-			"slow_queries":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of queries that have taken more than long_query_time seconds. This counter increments regardless of whether the slow query log is enabled."},
-			"avg_query_time": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.TimestampUS, Desc: "The average time taken by a query to execute"},
-			"qps":            &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Gauge, Desc: "The number of queries executed by the database per second"},
-			"tps":            &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Gauge, Desc: "The number of transactions executed by the database per second"},
-			"slow_query_log": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Whether the slow query log is enabled. The value can be 0 (or OFF) to disable the log or 1 (or ON) to enable the log."},
+			"message":        &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Serialized summary of collected MySQL settings and schema metadata for this instance."},
+			"uptime":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationSecond, Desc: "Time in seconds since the MySQL server last started."},
+			"slow_queries":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of queries that have taken more than long_query_time seconds. This counter increments regardless of whether the slow query log is enabled."},
+			"avg_query_time": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationUS, Desc: "Average execution time in microseconds across observed MySQL queries."},
+			"qps":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.RequestsPerSec, Desc: "Current MySQL query throughput in queries per second."},
+			"tps":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.RequestsPerSec, Desc: "Current MySQL transaction throughput in transactions per second."},
+			"slow_query_log": &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Whether the MySQL slow query log is enabled, reported as `ON` or `OFF`."},
 		},
 	}
 }

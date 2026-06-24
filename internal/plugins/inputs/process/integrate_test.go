@@ -99,9 +99,14 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 					"rss",
 					"threads",
 					"cpu_usage",
+					"proc_syscr",
+					"proc_syscw",
+					"proc_read_bytes",
+					"proc_write_bytes",
+					"listen_ports",
 				),
 				inputs.WithOptionalTags(
-					"listen_ports",
+					"container_id",
 				),
 			},
 			m: &processObject{},
@@ -113,6 +118,13 @@ func buildCases(t *testing.T) ([]*caseSpec, error) {
 			opts: []inputs.PointCheckOption{
 				inputs.WithOptionalFields(
 					"open_files",
+					"proc_syscr",
+					"proc_syscw",
+					"proc_read_bytes",
+					"proc_write_bytes",
+				),
+				inputs.WithOptionalTags(
+					"container_id",
 				),
 			},
 			m: &processMetric{},

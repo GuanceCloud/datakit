@@ -129,21 +129,3 @@ type Input struct {
 
 	pause atomic.Bool
 }
-
-func newCountFieldInfo(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		DataType: inputs.Float,
-		Type:     inputs.Count,
-		Unit:     inputs.NCount,
-		Desc:     desc,
-	}
-}
-
-func newRateFieldInfo(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		DataType: inputs.Float,
-		Type:     inputs.Gauge,
-		Unit:     inputs.Percent,
-		Desc:     desc,
-	}
-}

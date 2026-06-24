@@ -13,9 +13,23 @@ import (
 	"github.com/GuanceCloud/pipeline-go/constants"
 	"github.com/GuanceCloud/pipeline-go/lang"
 	"github.com/stretchr/testify/assert"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
 )
+
+type mockFeederOutputer struct {
+	feeds []*feedData
+}
+
+func (m *mockFeederOutputer) Write(fd *feedData) error {
+	m.feeds = append(m.feeds, fd)
+	return nil
+}
+
+func (*mockFeederOutputer) WriteLastError(string, ...metrics.LastErrorOption) {}
+
+func (*mockFeederOutputer) Reader(point.Category) <-chan *feedData { return nil }
 
 type plcase struct {
 	name string
@@ -146,4 +160,34 @@ func Test_correctPointTime(t *T.T) {
 		assert.Equal(t, now.UnixNano(), after[0].Time().UnixNano())
 		assert.Equal(t, int64(123), after[0].Get("__orig_time").(int64))
 	})
+}
+
+func TestAddMetricInputTag(t *T.T) {
+	metricPt := point.NewPoint("metric", point.NewKVs(nil).Set("value", 1), point.DefaultMetricOptions()...)
+	loggingPt := point.NewPoint("logging", point.NewKVs(nil).Set("message", "test"), point.DefaultLoggingOptions()...)
+
+	feeder := new(ioFeeder)
+	feeder.addMetricInputTag(&feedData{cat: point.Metric, pts: []*point.Point{metricPt}, inputName: "snmp"})
+	feeder.addMetricInputTag(&feedData{cat: point.Logging, pts: []*point.Point{loggingPt}, inputName: "snmp"})
+
+	assert.Equal(t, "dk.snmp", metricPt.GetTag(InputSourceTagKey))
+	assert.Empty(t, loggingPt.GetTag(InputSourceTagKey))
+
+	unknownPt := point.NewPoint("metric", point.NewKVs(nil).Set("value", 1), point.DefaultMetricOptions()...)
+	feeder.addMetricInputTag(&feedData{cat: point.Metric, pts: []*point.Point{unknownPt}})
+	assert.Equal(t, "dk."+unknownInputName, unknownPt.GetTag(InputSourceTagKey))
+}
+
+func TestPLAggFeedAddsInputTag(t *T.T) {
+	oldDefIO := defIO
+	output := &mockFeederOutputer{}
+	defIO = getIO()
+	defIO.foDataway = output
+	t.Cleanup(func() { defIO = oldDefIO })
+
+	pt := point.NewPoint("metric", point.NewKVs(nil).Set("value", 1), point.DefaultMetricOptions()...)
+	assert.NoError(t, PLAggFeed(point.Metric, "aggregation", []*point.Point{pt}))
+
+	assert.Len(t, output.feeds, 1)
+	assert.Equal(t, "dk."+pipelineInputName, output.feeds[0].pts[0].GetTag(InputSourceTagKey))
 }

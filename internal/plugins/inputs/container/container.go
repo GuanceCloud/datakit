@@ -8,12 +8,14 @@ package container
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
 	"sort"
 	"sync"
 	"time"
 
+	gcpmonitoring "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cloudprovider/gcp/monitoring"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/runtime"
@@ -32,6 +34,8 @@ type containerCollector struct {
 	localNodeName        string
 	maxConcurrent        int
 	enableCollectLogging bool
+	election             bool
+	leaderOnly           bool
 
 	enableExtractK8sLabelAsTagsV1 bool
 	podLabelAsTagsForNonMetric    labelsOption
@@ -62,6 +66,42 @@ func newECSFargate(ipt *Input, agentURL string) (Collector, error) {
 		enableCollectLogging: false,
 		extraTags:            tags,
 		feeder:               ipt.Feeder,
+	}, nil
+}
+
+func newGCPCloudMonitoringCollector(ipt *Input, httpClient *http.Client, k8sClient k8sclient.Client) (Collector, error) {
+	r, err := gcpmonitoring.NewRuntime(gcpmonitoring.Config{
+		ProjectID:   ipt.GCPProjectID,
+		ClusterName: ipt.GCPClusterName,
+		Location:    ipt.GCPClusterLocation,
+	}, httpClient)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateRuntimeUniqueness(r); err != nil {
+		return nil, err
+	}
+
+	labelOptions := buildLabelOptions(ipt)
+	tags := inputs.MergeTags(ipt.Tagger.ElectionTags(), ipt.Tags, "")
+	tags["cluster_name_k8s"] = ipt.GCPClusterName
+	tags["gcp_project_id"] = ipt.GCPProjectID
+	tags["gcp_location"] = ipt.GCPClusterLocation
+	return &containerCollector{
+		ipt:           ipt,
+		runtime:       r,
+		k8sClient:     k8sClient,
+		maxConcurrent: ipt.ContainerMaxConcurrent,
+
+		enableCollectLogging:          false,
+		enableExtractK8sLabelAsTagsV1: ipt.EnableExtractK8sLabelAsTags,
+		podLabelAsTagsForNonMetric:    labelOptions.nonMetric,
+		podLabelAsTagsForMetric:       labelOptions.metric,
+		election:                      true,
+		leaderOnly:                    true,
+
+		extraTags: tags,
+		feeder:    ipt.Feeder,
 	}, nil
 }
 
@@ -147,6 +187,11 @@ func buildLabelOptions(ipt *Input) labelOptions {
 }
 
 func (c *containerCollector) StartCollect() {
+	if c.leaderOnly {
+		c.startLeaderOnlyCollect()
+		return
+	}
+
 	g := goroutine.NewGroup(goroutine.Option{Name: "container-collector"})
 
 	if c.ipt.EnableContainerMetric {
@@ -208,6 +253,51 @@ func (c *containerCollector) runObjectCollector() {
 		case <-datakit.Exit.Wait():
 			return
 		case <-objectTicker.C:
+			c.gatherObject()
+		}
+	}
+}
+
+func (c *containerCollector) startLeaderOnlyCollect() {
+	activationTicker := time.NewTicker(5 * time.Second)
+	metricTicker := time.NewTicker(c.ipt.MetricCollecInterval)
+	objectTicker := time.NewTicker(c.ipt.ObjectCollecInterval)
+	defer activationTicker.Stop()
+	defer metricTicker.Stop()
+	defer objectTicker.Stop()
+
+	active := false
+	for {
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("cloud monitoring collector stopped")
+			return
+
+		case now := <-activationTicker.C:
+			if !c.ipt.leaderGate().Allowed() {
+				active = false
+				continue
+			}
+			if !active {
+				active = true
+				if c.ipt.EnableContainerMetric {
+					c.ptsTime = inputs.AlignTime(now, c.ptsTime, c.ipt.MetricCollecInterval)
+					c.gatherMetric()
+				}
+				c.gatherObject()
+			}
+
+		case now := <-metricTicker.C:
+			if !c.ipt.leaderGate().Allowed() || !c.ipt.EnableContainerMetric {
+				continue
+			}
+			c.ptsTime = inputs.AlignTime(now, c.ptsTime, c.ipt.MetricCollecInterval)
+			c.gatherMetric()
+
+		case <-objectTicker.C:
+			if !c.ipt.leaderGate().Allowed() {
+				continue
+			}
 			c.gatherObject()
 		}
 	}

@@ -49,7 +49,7 @@ func (ipt *Input) feedUpMetric(client *jolokia.Client, upState int) {
 		[]*point.Point{pt},
 		dkio.WithCollectCost(time.Since(time.Now())),
 		dkio.WithElection(ipt.Election),
-		dkio.WithSource(upFeedSource)); err != nil {
+		dkio.WithSource(upFeedSource), dkio.WithInput(inputName)); err != nil {
 		l.Errorf("Feed up metric failed for %s: %s, ignored", clientURL, err.Error())
 	}
 }

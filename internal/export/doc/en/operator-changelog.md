@@ -1,5 +1,38 @@
 # Operator Changelog
 
+## 1.8.9(2026-06-23) {#cl-1.8.9}
+
+- Optimized Cluster API Pod queries and added an eBPF-oriented compact view to reduce response size and JSON parsing overhead in large clusters (#94)
+
+## 1.8.8(2026-05-28) {#cl-1.8.8}
+
+- Fixed an issue where `check_annotation` might not take effect as expected during ddtrace injection (#91)
+
+## 1.8.7(2026-05-14) {#cl-1.8.7}
+
+- Updated image tags in the Helm Chart and YAML manifests
+
+## 1.8.6(2026-05-12) {#cl-1.8.6}
+
+- Added support for injecting the Node.js ddtrace agent (#89)
+
+## 1.8.5(2026-05-09) {#cl-1.8.5}
+
+- Fixed an issue where some injection scenarios could overwrite or drop original Pod fields and prevent the Pod from running normally (#88)
+
+## 1.8.4(2026-04-03) {#cl-1.8.4}
+
+- Fixed an issue where the RestartPolicy of initContainers could be dropped during resource injection (#86)
+
+## 1.8.3(2026-03-20) {#cl-1.8.3}
+
+- Added support for injecting the PHP ddtrace agent (#82)
+
+## 1.8.2(2026-03-10) {#cl-1.8.2}
+
+- Fixed abnormal responses from the `/logging/configs` API in some scenarios (#85)
+- Improved log output to make Operator runtime troubleshooting easier
+
 ## 1.8.1(2026-02-11) {#cl-1.8.1}
 
 - Added support for injecting environment variables in `resourceFieldRef` format, now allowing reference to container resource limits and requests, including limits.cpu, limits.memory, requests.cpu, and requests.memory (#84)

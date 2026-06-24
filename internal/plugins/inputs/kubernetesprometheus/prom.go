@@ -143,6 +143,7 @@ func (p *promScraper) recordUp(up int, timestamp int64) {
 		[]*point.Point{pt},
 		dkio.WithSource("kubernetesprometheus-collector"),
 		dkio.WithElection(true),
+		dkio.WithInput(inputName),
 	); err != nil {
 		klog.Warnf("failed to feed collector metrics: %s, ignored", err)
 	}
@@ -157,7 +158,7 @@ func buildPromOptions(role Role, key string, auth *Auth, feeder dkio.Feeder, opt
 			return nil
 		}
 
-		if err := feeder.Feed(point.Metric, pts, dkio.WithSource(source)); err != nil {
+		if err := feeder.Feed(point.Metric, pts, dkio.WithSource(source), dkio.WithInput(inputName)); err != nil {
 			klog.Warnf("failed to feed prom metrics: %s, ignored", err)
 		}
 		collectPtsVec.WithLabelValues(string(role), aggregateMetricLabel).Add(float64(len(pts)))

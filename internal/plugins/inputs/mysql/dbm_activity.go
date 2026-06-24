@@ -195,9 +195,10 @@ func (m *dbmActivityMeasurement) Point() *point.Point {
 
 func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Desc: "Collect the waiting event of the current thread",
-		Name: metricNameMySQLDbmActivity,
-		Cat:  point.Logging,
+		Desc:   "Collect the waiting event of the current thread",
+		DescZh: "采集当前线程的等待事件。",
+		Name:   metricNameMySQLDbmActivity,
+		Cat:    point.Logging,
 		Fields: map[string]interface{}{
 			"query_signature": &inputs.FieldInfo{
 				DataType: inputs.String,
@@ -226,31 +227,37 @@ func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 			"processlist_user": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
+				Unit:     inputs.NoUnit,
 				Desc:     "The user associated with a thread",
 			},
 			"processlist_host": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
+				Unit:     inputs.NoUnit,
 				Desc:     "The host name of the client with a thread",
 			},
 			"processlist_db": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
+				Unit:     inputs.NoUnit,
 				Desc:     "The default database for the thread, or NULL if none has been selected",
 			},
 			"processlist_command": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
+				Unit:     inputs.NoUnit,
 				Desc:     "The command of the thread",
 			},
 			"processlist_state": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
+				Unit:     inputs.NoUnit,
 				Desc:     "The state of the thread",
 			},
 			"sql_text": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
+				Unit:     inputs.NoUnit,
 				Desc:     "The statement the thread is executing",
 			},
 			"digest_text": &inputs.FieldInfo{
@@ -286,26 +293,31 @@ func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 			"current_schema": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
+				Unit:     inputs.NoUnit,
 				Desc:     "The default database for the statement, NULL if there is none",
 			},
 			"wait_event": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
+				Unit:     inputs.NoUnit,
 				Desc:     "The name of the wait event",
 			},
 			"wait_group": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
+				Unit:     inputs.NoUnit,
 				Desc:     "Datakit unified wait group: Lock, I/O, Concurrency, Memory, Network, CPU, Commit/Log, Other (derived from wait_event).",
 			},
 			"event_id": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
+				Unit:     inputs.NoUnit,
 				Desc:     "The event id",
 			},
 			"end_event_id": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
+				Unit:     inputs.NoUnit,
 				Desc:     "The thread current event number when the event ends",
 			},
 			"operation": &inputs.FieldInfo{
@@ -335,26 +347,31 @@ func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 			"object_schema": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
+				Unit:     inputs.NoUnit,
 				Desc:     "The schema of th object being acted on",
 			},
 			"object_name": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
+				Unit:     inputs.NoUnit,
 				Desc:     "The name of the object being acted on",
 			},
 			"index_name": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
+				Unit:     inputs.NoUnit,
 				Desc:     "The name of the index used",
 			},
 			"object_type": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
+				Unit:     inputs.NoUnit,
 				Desc:     "The type of the object being acted on",
 			},
 			"event_source": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
+				Unit:     inputs.NoUnit,
 				Desc:     "The name of the source file",
 			},
 			"blocking_thread_id": &inputs.FieldInfo{
@@ -373,7 +390,7 @@ func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NCount,
-				Desc:     "The total number of the connection",
+				Desc:     "Total number of connections in this activity group.",
 			},
 		},
 		Tags: map[string]interface{}{

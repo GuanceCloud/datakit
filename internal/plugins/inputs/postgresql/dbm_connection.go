@@ -47,9 +47,10 @@ type dbmConnectionMeasurement struct{}
 
 func (*dbmConnectionMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "postgresql_dbm_connection",
-		Desc: "PostgreSQL DBM active connection metrics grouped by application_name, state, usename and db.",
-		Cat:  point.Metric,
+		Name:   "postgresql_dbm_connection",
+		Desc:   "PostgreSQL DBM active connection metrics grouped by application_name, state, usename and db.",
+		DescZh: "按 application_name、state、usename 和 db 分组的 PostgreSQL DBM 活跃连接指标。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			"connection_count": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -143,6 +144,7 @@ func (ipt *Input) collectDbmConnections(ptsTime time.Time) error {
 		dkio.WithElection(ipt.Election),
 		dkio.WithSource(dbmFeedName),
 		dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementPostgreSQL)),
+		dkio.WithInput(inputName),
 	); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
 			metrics.WithLastErrorInput(inputName),

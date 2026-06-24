@@ -153,9 +153,10 @@ type CronjobMetric struct{}
 //nolint:lll
 func (*CronjobMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: cronjobMetricMeasurement,
-		Desc: "The metric of the Kubernetes CronJob.",
-		Cat:  point.Metric,
+		Name:   cronjobMetricMeasurement,
+		Desc:   "The metric of the Kubernetes CronJob.",
+		DescZh: "Kubernetes CronJob 指标，记录 CronJob 调度挂起状态等运行信息。",
+		Cat:    point.Metric,
 		Tags: map[string]interface{}{
 			"uid":              inputs.NewTagInfo("The UID of CronJob."),
 			"cronjob":          inputs.NewTagInfo("Name must be unique within a namespace."),
@@ -163,7 +164,7 @@ func (*CronjobMetric) Info() *inputs.MeasurementInfo {
 			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
-			"spec_suspend": &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "This flag tells the controller to suspend subsequent executions."},
+			"spec_suspend": &inputs.FieldInfo{DataType: inputs.Bool, Type: inputs.Bool, Unit: inputs.Bool, Desc: "This flag tells the controller to suspend subsequent executions."},
 		},
 	}
 }
@@ -173,9 +174,10 @@ type CronjobObject struct{}
 //nolint:lll
 func (*CronjobObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: cronjobObjectClass,
-		Desc: "The object of the Kubernetes CronJob.",
-		Cat:  point.Object,
+		Name:   cronjobObjectClass,
+		Desc:   "The object of the Kubernetes CronJob.",
+		DescZh: "Kubernetes CronJob 对象信息，记录调度表达式、活跃 Job 数、挂起状态和对象详情。",
+		Cat:    point.Object,
 		Tags: map[string]interface{}{
 			"name":             inputs.NewTagInfo("The UID of CronJob."),
 			"uid":              inputs.NewTagInfo("The UID of CronJob."),
@@ -185,11 +187,11 @@ func (*CronjobObject) Info() *inputs.MeasurementInfo {
 			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
-			"age":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},
-			"schedule":    &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: `The schedule in Cron format, see [doc](https://en.wikipedia.org/wiki/Cron){:target="_blank"}`},
-			"active_jobs": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of pointers to currently running jobs."},
-			"suspend":     &inputs.FieldInfo{DataType: inputs.Bool, Unit: inputs.UnknownUnit, Desc: "This flag tells the controller to suspend subsequent executions, it does not apply to already started executions."},
-			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Object details"},
+			"age":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},
+			"schedule":    &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: `The schedule in Cron format, see [doc](https://en.wikipedia.org/wiki/Cron){:target="_blank"}`},
+			"active_jobs": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of pointers to currently running jobs."},
+			"suspend":     &inputs.FieldInfo{DataType: inputs.Bool, Type: inputs.Bool, Unit: inputs.Bool, Desc: "This flag tells the controller to suspend subsequent executions, it does not apply to already started executions."},
+			"message":     &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Serialized Kubernetes object details for this resource."},
 		},
 	}
 }

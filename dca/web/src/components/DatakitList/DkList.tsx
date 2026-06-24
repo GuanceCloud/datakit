@@ -221,8 +221,6 @@ function DatakitList({ updateDatakits }: Props) {
       onOk: async () => {
         return runJob(maxRequestNumber, upgradeDatakits, (dk) => {
           return upgradeSingleDatakit(dk)
-        }).then((res) => {
-          console.log("batch upgrade res: ", res)
         })
       }
     })
@@ -324,8 +322,6 @@ function DatakitList({ updateDatakits }: Props) {
         }
         return runJob(maxRequestNumber, reloadDatakits, (dk) => {
           return reloadSingleDatakit(dk)
-        }).then((res) => {
-          console.log("batch reload res: ", res)
         })
       }
     })
@@ -344,6 +340,41 @@ function DatakitList({ updateDatakits }: Props) {
       }
     })
   }, [t, modal, reloadSingleDatakit])
+
+  const getReloadDisabledReason = useCallback((dk: IDatakit) => {
+    if (!isDatakitManagement(dk)) {
+      return t("datakit.operation_disabled.not_running")
+    }
+    if (isContainerMode(dk)) {
+      return t("datakit.operation_disabled.container_reload")
+    }
+    return ""
+  }, [t])
+
+  const getUpgradeDisabledReason = useCallback((dk: IDatakit) => {
+    if (!isDatakitManagement(dk)) {
+      return t("datakit.operation_disabled.not_running")
+    }
+    if (isContainerMode(dk)) {
+      return t("datakit.operation_disabled.container_upgrade")
+    }
+    if (dk.version === latestDatakitVersion) {
+      return t("datakit.operation_disabled.latest_version")
+    }
+    return ""
+  }, [latestDatakitVersion, t])
+
+  const renderActionButton = (button: React.ReactNode, disabledReason: string) => {
+    if (!disabledReason) {
+      return button
+    }
+
+    return (
+      <Tooltip title={disabledReason}>
+        <span>{button}</span>
+      </Tooltip>
+    )
+  }
 
   // useMemo
   const DefaultDatakitListColumns: TableColumnsType<DataKitDataType> = useMemo(() => [
@@ -436,19 +467,27 @@ function DatakitList({ updateDatakits }: Props) {
       title: t("operation"),
       key: "operation",
       render(text, record) {
+        const reloadDisabledReason = getReloadDisabledReason(record)
+        const upgradeDisabledReason = getUpgradeDisabledReason(record)
         return (
           loadingDatakits[record.id] ?
             <Spin size='small' /> // loading row
             :
             <Space>
               <Button size='small' type='link' disabled={!isDatakitManagement(record)} onClick={() => { navigate("/dashboard/runinfo", { state: { datakit: record } }) }}>{t("management")}</Button>
-              <Button size='small' type='link' disabled={!isDatakitManagement(record) || isContainerMode(record)} onClick={() => { reload(record) }}>{t("reload")}</Button>
-              <Button size='small' type='link' disabled={!isDatakitUpgradeable(record, latestDatakitVersion)} onClick={() => { upgrade(record) }}>{t("upgrade")}</Button>
+              {renderActionButton(
+                <Button size='small' type='link' disabled={!!reloadDisabledReason} onClick={() => { reload(record) }}>{t("reload")}</Button>,
+                reloadDisabledReason
+              )}
+              {renderActionButton(
+                <Button size='small' type='link' disabled={!!upgradeDisabledReason} onClick={() => { upgrade(record) }}>{t("upgrade")}</Button>,
+                upgradeDisabledReason
+              )}
             </Space>
         )
       }
     }
-  ], [t, latestDatakitVersion, loadingDatakits, navigate, reload, upgrade]);
+  ], [t, latestDatakitVersion, loadingDatakits, getReloadDisabledReason, getUpgradeDisabledReason, navigate, reload, upgrade]);
 
 
   const handleRelationChange = (value) => {
@@ -489,7 +528,7 @@ function DatakitList({ updateDatakits }: Props) {
       items
     }
 
-    setFilterParams(encodeURIComponent(JSON.stringify(filter)))
+    setFilterParams(JSON.stringify(filter))
   };
 
 
@@ -518,7 +557,6 @@ function DatakitList({ updateDatakits }: Props) {
   }
 
   const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
-    console.log('selectedRowKeys changed: ', newSelectedRowKeys);
     setSelectedRowKeys(newSelectedRowKeys);
     setIsSelectAll(false)
   };
@@ -775,4 +813,4 @@ const connector = connect((state: RootState) => {
   updateDatakits: (datakits: Array<IDatakit>) => update(datakits),
 })
 
-export default connector(DatakitList) 
+export default connector(DatakitList)

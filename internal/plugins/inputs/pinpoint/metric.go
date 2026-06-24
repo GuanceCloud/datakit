@@ -23,7 +23,7 @@ func ParsePPAgentStatMessage(md metadata.MD, msg *ppv1.PStatMessage) {
 		pts = statBatchToPoints(md, statBatch)
 		if len(pts) > 0 && metricFeeder != nil {
 			if err := metricFeeder.Feed(point.Metric, pts,
-				dkio.WithSource(inputName),
+				dkio.WithSource(inputName), dkio.WithInput(inputName),
 			); err != nil {
 				log.Errorf("feed metric to io err=%v", err)
 			}
@@ -85,7 +85,7 @@ func statBatchToPoints(md metadata.MD, batch *ppv1.PAgentStatBatch) (pts []*poin
 		for k, v := range infoTags {
 			statKV = statKV.AddTag(k, v)
 		}
-		pt := point.NewPoint("pp-agentStats", statKV, opts...)
+		pt := point.NewPoint(agentStatsMeasurement, statKV, opts...)
 		pts = append(pts, pt)
 	}
 

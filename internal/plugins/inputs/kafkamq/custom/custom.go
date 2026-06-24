@@ -213,7 +213,10 @@ func (mq *Custom) DoMsg(msg *sarama.ConsumerMessage) error {
 		feedName = dkio.FeedSource("kafkamq", topic)
 	}
 
-	feedopts = append(feedopts, dkio.WithSource(feedName))
+	feedopts = append(feedopts,
+		dkio.WithSource(feedName),
+		dkio.WithInput("kafkamq"),
+	)
 
 	return mq.feeder.Feed(category, pts, feedopts...)
 }

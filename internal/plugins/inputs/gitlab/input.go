@@ -391,6 +391,7 @@ func (ipt *Input) callback(pts []*point.Point) error {
 		dkio.WithCollectCost(cost),
 		dkio.WithSource("gitlab"),
 		dkio.WithElection(ipt.Election),
+		dkio.WithInput(inputName),
 	); err != nil {
 		ipt.logger.Warnf("feed metrics failed: %s", err)
 		return err

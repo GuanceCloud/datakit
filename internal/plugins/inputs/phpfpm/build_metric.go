@@ -128,7 +128,7 @@ func (ipt *Input) collectPoolsPts() ([]*point.Point, error) {
 			kvs = kvs.AddTag("process_state", process.State)
 
 			kvs = kvs.Set("process_requests", process.Requests)
-			kvs = kvs.Set("process_last_requestMemory", process.LastRequestMemory)
+			kvs = kvs.Set("process_last_request_memory", process.LastRequestMemory)
 			kvs = kvs.Set("process_last_request_cpu", process.LastRequestCPU)
 			kvs = kvs.Set("process_request_duration", process.RequestDuration)
 		}

@@ -80,6 +80,8 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 				ptsTime: ptsTime, // set point's time on custome query aligned-time
 				measurementInfo: &inputs.MeasurementInfo{
 					Name:   query.Metric,
+					Desc:   "PostgreSQL custom query metrics defined by the input configuration.",
+					DescZh: "由输入配置定义的 PostgreSQL 自定义查询指标。",
 					Tags:   tags,
 					Fields: fields,
 				},
@@ -95,6 +97,7 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 						dkio.WithCollectCost(time.Since(collectStart)),
 						dkio.WithElection(ipt.Election),
 						dkio.WithSource(customQueryFeedName),
+						dkio.WithInput(inputName),
 					); err != nil {
 						ipt.feeder.FeedLastError(err.Error(),
 							metrics.WithLastErrorInput(customQueryFeedName),

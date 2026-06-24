@@ -62,7 +62,7 @@ func (ipt *Input) feedMetric() {
 	err := ipt.feeder.Feed(point.Metric, []*point.Point{metricPts},
 		dkio.WithElection(ipt.Election),
 		dkio.WithCollectCost(time.Since(ts)),
-		dkio.WithSource(inputName),
+		dkio.WithSource(inputName), dkio.WithInput(inputName),
 		dkio.DisableGlobalTags(true))
 	if err != nil {
 		l.Errorf("feed metric failed: %s", err)
@@ -186,6 +186,7 @@ func (ipt *Input) buildResultPoint(category ingestioncanary.Category, status str
 
 	kvs = kvs.AddTag("category", string(category))
 	kvs = kvs.AddTag("status", status)
+	kvs = kvs.AddTag(dkio.InputSourceTagKey, dkio.InputSourceTagValue(inputName))
 	for k, v := range ipt.Tags {
 		kvs = kvs.AddTag(k, v)
 	}

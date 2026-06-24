@@ -120,6 +120,7 @@ this is message
 					url:           &url.URL{Scheme: "http", Host: "127.0.0.1", Path: "/"},
 					queryValues:   url.Values{"type": []string{"influxdb"}},
 					body:          io.NopCloser(buf), // 用 io.NopCloser 包装
+					remoteIP:      "127.0.0.1",
 				},
 			},
 			wantErr: false,
@@ -143,7 +144,8 @@ this is message
 						"pipeline": []string{"log.p"},
 						"source":   []string{"testSource"},
 					},
-					body: io.NopCloser(obuf), // 用 io.NopCloser 包装
+					body:     io.NopCloser(obuf), // 用 io.NopCloser 包装
+					remoteIP: "127.0.0.1",
 				},
 			},
 			wantErr: false,

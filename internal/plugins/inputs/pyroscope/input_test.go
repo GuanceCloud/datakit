@@ -20,6 +20,7 @@ import (
 	"time"
 
 	bstoml "github.com/BurntSushi/toml"
+	"github.com/GuanceCloud/cliutils"
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -265,12 +266,18 @@ func TestInput_sendRequestToDW(t *testing.T) {
 	pbBytes, err := proto.Marshal(pbOBJ)
 	assert.NoError(t, err)
 
+	oldExit := datakit.Exit
+	datakit.Exit = cliutils.NewSem()
+	t.Cleanup(func() {
+		datakit.Exit = oldExit
+	})
+
 	type testCase struct {
 		Name     string
-		url      string
 		httpCli  *http.Client
 		ctx      context.Context
 		callback func()
+		handler  http.HandlerFunc
 		expect   string
 	}
 
@@ -278,35 +285,32 @@ func TestInput_sendRequestToDW(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			Name:    "Background",
-			url:     "https://www.google.com/profiling/v1/input",
-			httpCli: &http.Client{Timeout: time.Millisecond * 200},
-			ctx:     context.Background(),
-			expect:  fmt.Sprintf("%d", ipt.IOConfig.SendRetryCount),
+			Name: "Background",
+			ctx:  context.Background(),
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				http.Error(w, "retry", http.StatusInternalServerError)
+			},
+			expect: fmt.Sprintf("%d", ipt.IOConfig.SendRetryCount),
 		},
 		{
-			Name:    "CtxCanceled",
-			url:     "https://www.google.com/profiling/v1/input",
-			httpCli: http.DefaultClient,
-			ctx:     timeCtx,
+			Name: "CtxCanceled",
+			ctx:  timeCtx,
 			callback: func() {
-				go func() {
-					time.Sleep(time.Millisecond * 500)
-					cancelFunc()
-				}()
+				cancelFunc()
+			},
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
 			},
 			expect: ErrRequestCtxCanceled.Error(),
 		},
 		{
-			Name:    "DKExit",
-			url:     "https://www.google.com/profiling/v1/input",
-			httpCli: &http.Client{Timeout: time.Millisecond * 300},
-			ctx:     context.TODO(),
+			Name: "DKExit",
+			ctx:  context.TODO(),
 			callback: func() {
-				go func() {
-					time.Sleep(time.Millisecond * 500)
-					datakit.Exit.Close()
-				}()
+				datakit.Exit.Close()
+			},
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
 			},
 			expect: ErrDatakitExiting.Error(),
 		},
@@ -314,8 +318,16 @@ func TestInput_sendRequestToDW(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			ipt.httpClient = tc.httpCli
-			ipt.profileSendingAPI, _ = url.Parse(tc.url)
+			datakit.Exit = cliutils.NewSem()
+
+			ts := httptest.NewServer(tc.handler)
+			defer ts.Close()
+
+			ipt.httpClient = ts.Client()
+			if tc.httpCli != nil {
+				ipt.httpClient = tc.httpCli
+			}
+			ipt.profileSendingAPI, _ = url.Parse(ts.URL + datakit.ProfilingUpload)
 			if tc.callback != nil {
 				tc.callback()
 			}

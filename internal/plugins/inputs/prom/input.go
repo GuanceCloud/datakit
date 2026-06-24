@@ -257,6 +257,7 @@ func (i *Input) collectFormURLs() error {
 				dkio.WithCollectCost(i.collectCost),
 				dkio.WithElection(i.Election),
 				dkio.WithSource(dkio.FeedSource(inputName, i.Source)),
+				dkio.WithInput(inputName),
 			); err != nil {
 				i.Feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
@@ -390,6 +391,7 @@ func (i *Input) defaultHandleCallback() promHandleCallback {
 			dkio.WithCollectCost(time.Since(i.collectStart)),
 			dkio.WithElection(i.Election),
 			dkio.WithSource(dkio.FeedSource(inputName, i.Source)),
+			dkio.WithInput(inputName),
 		); err != nil {
 			i.Feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),

@@ -56,24 +56,25 @@ func (m *NetflowMeasurement) Point() *point.Point {
 //nolint:lll
 func (*NetflowMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: DefaultSource,
-		Cat:  point.Metric,
-		Desc: "Using `source` field in the config file, default is `default`.",
+		Name:   DefaultSource,
+		Cat:    point.Logging,
+		Desc:   "NetFlow log records built from decoded flow payloads.",
+		DescZh: "从解码后的 NetFlow 流量载荷生成的日志记录，包含流量源/目的、协议、字节数和导出设备信息。",
 		Tags: map[string]interface{}{
 			"ip":   inputs.NewTagInfo("Collector IP address."),
 			"host": inputs.NewTagInfo("Hostname."),
 		},
 		Fields: map[string]interface{}{
-			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.NoUnit, Desc: "The text of the logging."},
-			"status":      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.NoUnit, Desc: "The status of the logging, only supported `info/emerg/alert/critical/error/warning/debug/OK/unknown`."},
-			"bytes":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "Flow bytes."},
-			"dest_ip":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.NoUnit, Desc: "Flow destination IP."},
-			"dest_port":   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.NoUnit, Desc: "Flow destination port."},
-			"device_ip":   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.NoUnit, Desc: "NetFlow exporter IP."},
-			"ip_protocol": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.NoUnit, Desc: "Flow network protocol."},
-			"source_ip":   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.NoUnit, Desc: "Flow source IP."},
-			"source_port": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.NoUnit, Desc: "Flow source port."},
-			"type":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.NoUnit, Desc: "Flow type."},
+			"message":     &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Rendered NetFlow log message."},
+			"status":      &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Normalized NetFlow log status."},
+			"bytes":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Number of bytes observed for this flow."},
+			"dest_ip":     &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Flow destination IP address."},
+			"dest_port":   &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Flow destination port."},
+			"device_ip":   &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "NetFlow exporter IP address."},
+			"ip_protocol": &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Flow network protocol."},
+			"source_ip":   &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Flow source IP address."},
+			"source_port": &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Flow source port."},
+			"type":        &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "NetFlow record type."},
 		},
 	}
 }

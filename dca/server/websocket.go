@@ -12,8 +12,11 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -41,6 +44,7 @@ type Client struct {
 	HeartbeatInterval time.Duration
 
 	messageNumber int64
+	closeOnce     sync.Once
 }
 
 func (c *Client) getActionHandler(action string) ActionHandler {
@@ -125,9 +129,11 @@ func (c *Client) Read() {
 }
 
 func (c *Client) Exit() {
-	Manager.Unregister <- c
-	c.Socket.Close() // nolint:errcheck,gosec
-	close(c.Close)
+	c.closeOnce.Do(func() {
+		Manager.Unregister <- c
+		c.Socket.Close() // nolint:errcheck,gosec
+		close(c.Close)
+	})
 }
 
 func (c *Client) getMessageNumber() (int64, <-chan []byte) {
@@ -226,9 +232,57 @@ type ClientManager struct {
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
+	CheckOrigin:     checkWebsocketOrigin,
+}
+
+func checkWebsocketOrigin(r *http.Request) bool {
+	origin := r.Header.Get("Origin")
+	if origin == "" {
 		return true
-	},
+	}
+
+	originURL, err := url.Parse(origin)
+	if err != nil || originURL.Host == "" {
+		l.Warnf("reject websocket origin %q: invalid origin", origin)
+		return false
+	}
+
+	originHost := normalizeWebsocketHost(originURL.Host)
+	requestHost := normalizeWebsocketHost(r.Host)
+	if originHost == "" || requestHost == "" {
+		l.Warnf("reject websocket origin %q for host %q", origin, r.Host)
+		return false
+	}
+
+	if originHost == requestHost {
+		return true
+	}
+
+	if isLocalWebsocketHost(originHost) && isLocalWebsocketHost(requestHost) {
+		return true
+	}
+
+	l.Warnf("reject websocket origin %q for host %q", origin, r.Host)
+	return false
+}
+
+func normalizeWebsocketHost(hostport string) string {
+	hostport = strings.TrimSpace(hostport)
+	host := hostport
+	if h, _, err := net.SplitHostPort(hostport); err == nil {
+		host = h
+	} else if idx := strings.LastIndex(hostport, ":"); idx > -1 && !strings.Contains(hostport[:idx], ":") {
+		if _, err := strconv.Atoi(hostport[idx+1:]); err == nil {
+			host = hostport[:idx]
+		}
+	}
+
+	return strings.ToLower(strings.Trim(host, "[]"))
+}
+
+func isLocalWebsocketHost(host string) bool {
+	host = normalizeWebsocketHost(host)
+	return host == "localhost" || host == "127.0.0.1" || host == "::1"
 }
 
 // Message is return msg.
@@ -385,7 +439,9 @@ func websocketHandler(c *gin.Context) {
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		l.Errorf("failed to upgrade websocket connection: %s", err.Error())
-		conn.Close() //nolint:errcheck,gosec
+		if conn != nil {
+			conn.Close() //nolint:errcheck,gosec
+		}
 		return
 	}
 

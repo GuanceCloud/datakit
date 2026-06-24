@@ -28,9 +28,10 @@ type mongodbObjectMeasurement struct{}
 //nolint:lll
 func (*mongodbObjectMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: mongodbObjectMeasurementName,
-		Cat:  point.Object,
-		Desc: "MongoDB object metrics.",
+		Name:   mongodbObjectMeasurementName,
+		Cat:    point.Object,
+		Desc:   "MongoDB object metrics.",
+		DescZh: "MongoDB 数据库对象指标。",
 		Tags: map[string]interface{}{
 			"database_instance": &inputs.TagInfo{Desc: mongodbDatabaseInstanceDesc},
 			"database_type":     &inputs.TagInfo{Desc: "The type of the database. The value is `MongoDB`"},

@@ -172,7 +172,7 @@ func (ipt *Input) doCollect(idx int) error {
 		if err := ipt.feeder.Feed(point.Metric, pts,
 			dkio.WithCollectCost(time.Since(start)),
 			dkio.WithElection(ipt.Election),
-			dkio.WithSource(metricName)); err != nil {
+			dkio.WithSource(metricName), dkio.WithInput(inputName)); err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),
 				metrics.WithLastErrorCategory(point.Metric),
@@ -307,7 +307,7 @@ func (ipt *Input) handleServerDropWarn() {
 			if err := ipt.feeder.Feed(point.Metric, pts,
 				dkio.WithCollectCost(time.Since(ipt.start)),
 				dkio.WithElection(ipt.Election),
-				dkio.WithSource(metricName)); err != nil {
+				dkio.WithSource(metricName), dkio.WithInput(inputName)); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
 					metrics.WithLastErrorCategory(point.Metric),

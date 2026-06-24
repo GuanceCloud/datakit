@@ -25,8 +25,10 @@ type nfsdMeasurement struct {
 //nolint:lll
 func (m *nfsdMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 	return &inputs.MeasurementInfo{
-		Name: "nfsd",
-		Cat:  point.Metric,
+		Name:   "nfsd",
+		Cat:    point.Metric,
+		Desc:   "NFS server metrics collected from procfs nfsd statistics, including packets, connections, reply cache, file handles, disk I/O, server threads, and RPC procedure counts.",
+		DescZh: "从 procfs nfsd 统计中采集的 NFS 服务端指标，包含报文、连接、回复缓存、文件句柄、磁盘 IO、服务线程和 RPC 过程计数。",
 		Fields: map[string]interface{}{
 			"tcp_packets_total": &inputs.FieldInfo{
 				Type:     inputs.Count,

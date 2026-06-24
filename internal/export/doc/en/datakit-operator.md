@@ -16,6 +16,7 @@ DataKit Operator provides automated injection capabilities for Kubernetes cluste
 - **Log Collection**: Automatically collect container logs via logfwd sidecar
 - **Performance Profiling**: Inject Flameshot or Profiler components for application performance monitoring
 - **Configuration Management**: Support both global configuration and declarative configuration injection methods
+- **Cluster API**: Provide an in-cluster Pod query proxy for DataKit and related components to retrieve Kubernetes metadata
 
 **Core Advantages**:
 
@@ -137,6 +138,32 @@ DataKit Operator configuration is in JSON format, stored separately as a ConfigM
     }
     ```
 <!-- markdownlint-enable -->
+
+## Cluster API {#cluster-api}
+
+DataKit Operator [:octicons-tag-24: v1.8.1](operator-changelog.md#cl-1.8.1) and later provide Cluster API to proxy Pod queries inside the cluster. DataKit can use this API to retrieve Kubernetes metadata and reduce direct API Server requests from each DataKit instance.
+
+Cluster API is enabled by default and does not require a separate configuration switch. When Operator starts, it checks whether its ServiceAccount has Pod read permissions. If the permissions are missing, Operator logs an RBAC check failure and disables the Cluster API routes. The latest `datakit-operator.yaml` and Helm Chart already include the required permissions. If you upgrade from an older YAML, make sure the ClusterRole includes at least:
+
+```yaml
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+```
+
+The API reuses the Operator Service. The default endpoint is `https://datakit-operator.datakit.svc:443`. The following Pod query APIs are supported:
+
+| API | Description |
+| --- | --- |
+| `/v1/cluster/api/v1/pods` | List all Pods |
+| `/v1/cluster/api/v1/namespaces/{namespace}/pods` | List Pods in the specified namespace |
+| `/v1/cluster/api/v1/namespaces/{namespace}/pods/{name}` | Get a specified Pod |
+
+Starting from DataKit Operator [:octicons-tag-24: v1.8.9](operator-changelog.md#cl-1.8.9), Pod query APIs support the `view=ebpf-v1` query parameter. This view trims large fields that eBPF does not need and keeps only the basic Pod information required for workload identification, reducing JSON transfer and parsing overhead in large clusters.
+
+```shell
+curl -k "https://datakit-operator.datakit.svc:443/v1/cluster/api/v1/pods?view=ebpf-v1"
+```
 
 ## Injection Methods {#datakit-operator-inject}
 

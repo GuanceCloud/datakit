@@ -114,7 +114,7 @@ func (ipt *Input) Run() {
 		// If there is data in the collectCache, submit it
 		if len(ipt.collectCache) > 0 {
 			if err := ipt.feeder.Feed(point.Metric, ipt.collectCache,
-				dkio.WithSource(metricName)); err != nil {
+				dkio.WithSource(metricName), dkio.WithInput(inputName)); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
 					metrics.WithLastErrorCategory(point.Metric),
@@ -126,7 +126,7 @@ func (ipt *Input) Run() {
 		// If there is data in the collectCachePort, submit it
 		if len(ipt.collectCachePort) > 0 {
 			if err := ipt.feeder.Feed(point.Metric, ipt.collectCachePort,
-				dkio.WithSource(metricNamePort)); err != nil {
+				dkio.WithSource(metricNamePort), dkio.WithInput(inputName)); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
 					metrics.WithLastErrorCategory(point.Metric),
@@ -373,6 +373,7 @@ func (*Input) AvailableArchs() []string { return datakit.AllOS }
 func (*Input) SampleMeasurement() []inputs.Measurement {
 	return []inputs.Measurement{
 		&docMeasurement{},
+		&portMeasurement{},
 	}
 }
 

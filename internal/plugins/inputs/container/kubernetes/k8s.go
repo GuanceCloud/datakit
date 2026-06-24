@@ -314,17 +314,17 @@ func (*K8sResourceCount) Info() *inputs.MeasurementInfo {
 			"node_name": &inputs.TagInfo{Desc: "NodeName is a request to schedule this pod onto a specific node (only supported Pod and Container)."},
 		},
 		Fields: map[string]interface{}{
-			"cronjob":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "CronJob count"},
-			"daemonset":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "Service count"},
-			"deployment":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "Deployment count"},
-			"job":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "Job count"},
-			"node":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "Node count"},
-			"endpoint":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "Endpoint count"},
-			"pod":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "Pod count"},
-			"replicaset":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "ReplicaSet count"},
-			"statefulset": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "StatefulSet count"},
-			"service":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "Service count"},
-			"container":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.UnknownUnit, Desc: "Container count"},
+			"cronjob":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of Kubernetes CronJobs in the selected scope."},
+			"daemonset":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of Kubernetes DaemonSets in the selected scope."},
+			"deployment":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of Kubernetes Deployments in the selected scope."},
+			"job":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of Kubernetes Jobs in the selected scope."},
+			"node":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of Kubernetes Nodes in the selected scope."},
+			"endpoint":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of Kubernetes Endpoints in the selected scope."},
+			"pod":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of Kubernetes Pods in the selected scope."},
+			"replicaset":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of Kubernetes ReplicaSets in the selected scope."},
+			"statefulset": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of Kubernetes StatefulSets in the selected scope."},
+			"service":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of Kubernetes Services in the selected scope."},
+			"container":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of containers in the selected Kubernetes scope."},
 		},
 	}
 }
@@ -349,9 +349,9 @@ func (*ObjectChangeEvent) Info() *inputs.MeasurementInfo {
 			"namespace":                    inputs.NewTagInfo("The namespace of Kubernetes resource."),
 		},
 		Fields: map[string]interface{}{
-			"df_title":   &inputs.FieldInfo{DataType: inputs.String, Type: inputs.UnknownType, Unit: inputs.UnknownUnit, Desc: "Diff text of resource changes."},
-			"df_message": &inputs.FieldInfo{DataType: inputs.String, Type: inputs.UnknownType, Unit: inputs.UnknownUnit, Desc: "This is a template field, concatenated from other values: `[{{df_resource_type}}] {{df_resource}} configuration changed`."},
-			"diff":       &inputs.FieldInfo{DataType: inputs.String, Type: inputs.UnknownType, Unit: inputs.UnknownUnit, Desc: "Diff text of resource changes."},
+			"df_title":   &inputs.FieldInfo{DataType: inputs.String, Type: inputs.UnknownType, Unit: inputs.NoUnit, Desc: "Title text summarizing the Kubernetes resource change."},
+			"df_message": &inputs.FieldInfo{DataType: inputs.String, Type: inputs.UnknownType, Unit: inputs.NoUnit, Desc: "This is a template field, concatenated from other values: `[{{df_resource_type}}] {{df_resource}} configuration changed`."},
+			"diff":       &inputs.FieldInfo{DataType: inputs.String, Type: inputs.UnknownType, Unit: inputs.NoUnit, Desc: "Serialized diff text showing the Kubernetes resource changes."},
 		},
 	}
 }

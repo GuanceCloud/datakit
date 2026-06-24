@@ -3,6 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
+//nolint:lll,goconst,funlen // Measurement metadata contains intentionally long repeated literals.
 package jenkins
 
 import (
@@ -62,16 +63,17 @@ func (m *jenkinsPipelineMeasurement) Point() *point.Point {
 //nolint:lll
 func (*jenkinsPipelineMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "jenkins_pipeline",
-		Cat:  point.Metric,
-		Desc: "Jenkins Pipeline Event Metrics",
+		Name:   "jenkins_pipeline",
+		Cat:    point.Metric,
+		Desc:   "Jenkins Pipeline Event Metrics",
+		DescZh: "Jenkins Pipeline 事件指标，记录流水线 ID、耗时、提交信息、创建和完成时间。",
 		Fields: map[string]interface{}{
-			"pipeline_id":    &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Pipeline id"},
+			"pipeline_id":    &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Pipeline identifier."},
 			"duration":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationUS, Desc: "Pipeline duration(μs)"},
-			"commit_message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The message accompanying the most recent commit of the code that triggered the Pipeline"},
+			"commit_message": &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "The message accompanying the most recent commit of the code that triggered the pipeline."},
 			"created_at":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampMS, Desc: "The millisecond timestamp when Pipeline created"},
 			"finished_at":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampMS, Desc: "The millisecond timestamp when Pipeline finished"},
-			"message":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Pipeline id,same as `pipeline_id`"},
+			"message":        &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Pipeline identifier, same as `pipeline_id`."},
 		},
 		Tags: map[string]interface{}{
 			"object_kind":    inputs.NewTagInfo("Event type,here is Pipeline"),
@@ -108,18 +110,19 @@ func (m *jenkinsJobMeasurement) Point() *point.Point {
 //nolint:lll
 func (*jenkinsJobMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "jenkins_job",
-		Cat:  point.Metric,
-		Desc: "Jenkins Job Event Metrics",
+		Name:   "jenkins_job",
+		Cat:    point.Metric,
+		Desc:   "Jenkins Job Event Metrics",
+		DescZh: "Jenkins Job 事件指标，记录构建 ID、构建时间、耗时、关联流水线、Runner 和提交信息。",
 		Fields: map[string]interface{}{
-			"build_id":             &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Build id"},
+			"build_id":             &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Build identifier."},
 			"build_started_at":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampMS, Desc: "The millisecond timestamp when Build started"},
 			"build_finished_at":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.TimestampMS, Desc: "The millisecond timestamp when Build finished"},
 			"build_duration":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationUS, Desc: "Build duration(μs)"},
-			"pipeline_id":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Pipeline id corresponding to Build"},
-			"runner_id":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Runner id corresponding to Build"},
-			"build_commit_message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The message of the latest commit that triggered this Build"},
-			"message":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The job name corresponding to Build"},
+			"pipeline_id":          &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Pipeline identifier corresponding to the build."},
+			"runner_id":            &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Runner identifier corresponding to the build."},
+			"build_commit_message": &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Message of the latest commit that triggered this build."},
+			"message":              &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Job name corresponding to the build."},
 		},
 		Tags: map[string]interface{}{
 			"object_kind":          inputs.NewTagInfo("Event type,here is Job"),
@@ -208,8 +211,10 @@ func (m *metricMeasurement) Point() *point.Point {
 //nolint:lll
 func (m *metricMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: inputName,
-		Cat:  point.Metric,
+		Name:   inputName,
+		Cat:    point.Metric,
+		Desc:   "Jenkins controller metrics collected from the Jenkins metrics plugin, covering executors, jobs, nodes, plugins, build queue, system load, JVM threads, and JVM memory.",
+		DescZh: "从 Jenkins metrics 插件采集的 Jenkins 控制器指标，涵盖执行器、任务、节点、插件、构建队列、系统负载、JVM 线程和 JVM 内存。",
 		Tags: map[string]interface{}{
 			"host":                  inputs.NewTagInfo("Hostname"),
 			"metric_plugin_version": inputs.NewTagInfo("Jenkins plugin version"),
@@ -217,27 +222,27 @@ func (m *metricMeasurement) Info() *inputs.MeasurementInfo {
 			"version":               inputs.NewTagInfo("Jenkins  version"),
 		},
 		Fields: map[string]interface{}{
-			"executor_count":        newCountFieldInfo("The number of executors available to Jenkins"),
-			"executor_free_count":   newCountFieldInfo("The number of executors available to Jenkins that are not currently in use."),
-			"executor_in_use_count": newCountFieldInfo("The number of executors available to Jenkins that are currently in use."),
-			"job_count":             newCountFieldInfo("The number of jobs in Jenkins"),
-			"node_offline_count":    newCountFieldInfo("The number of build nodes available to Jenkins but currently off-line."),
-			"node_online_count":     newCountFieldInfo("The number of build nodes available to Jenkins and currently on-line."),
-			"plugins_active":        newCountFieldInfo("The number of plugins in the Jenkins instance that started successfully."),
-			"plugins_failed":        newCountFieldInfo("The number of plugins in the Jenkins instance that failed to start."),
-			"project_count":         newCountFieldInfo("The number of project to Jenkins"),
-			"queue_blocked":         newCountFieldInfo("The number of jobs that are in the Jenkins build queue and currently in the blocked state."),
-			"queue_buildable":       newCountFieldInfo("The number of jobs that are in the Jenkins build queue and currently in the blocked state."),
-			"queue_pending":         newCountFieldInfo("Number of times a Job has been Pending in a Queue"),
-			"queue_size":            newCountFieldInfo("The number of jobs that are in the Jenkins build queue."),
-			"queue_stuck":           newCountFieldInfo("he number of jobs that are in the Jenkins build queue and currently in the blocked state"),
+			"executor_count":        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of executors available to Jenkins"},
+			"executor_free_count":   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of executors available to Jenkins that are not currently in use."},
+			"executor_in_use_count": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of executors available to Jenkins that are currently in use."},
+			"job_count":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of jobs in Jenkins"},
+			"node_offline_count":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of build nodes available to Jenkins but currently off-line."},
+			"node_online_count":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of build nodes available to Jenkins and currently on-line."},
+			"plugins_active":        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of plugins in the Jenkins instance that started successfully."},
+			"plugins_failed":        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of plugins in the Jenkins instance that failed to start."},
+			"project_count":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of project to Jenkins"},
+			"queue_blocked":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of jobs that are in the Jenkins build queue and currently in the blocked state."},
+			"queue_buildable":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of jobs that are in the Jenkins build queue and currently in the blocked state."},
+			"queue_pending":         &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "Number of times a Job has been Pending in a Queue"},
+			"queue_size":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of jobs that are in the Jenkins build queue."},
+			"queue_stuck":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "he number of jobs that are in the Jenkins build queue and currently in the blocked state"},
 
-			"system_cpu_load":           newRateFieldInfo("The system load on the Jenkins controller as reported by the JVM Operating System JMX bean"),
-			"vm_blocked_count":          newCountFieldInfo("The number of threads in the Jenkins JVM that are currently blocked waiting for a monitor lock."),
-			"vm_count":                  newCountFieldInfo("The total number of threads in the Jenkins JVM. This is the sum of: vm.blocked.count, vm.new.count, vm.runnable.count, vm.terminated.count, vm.timed_waiting.count and vm.waiting.count"),
-			"vm_cpu_load":               newRateFieldInfo("The rate of CPU time usage by the JVM per unit time on the Jenkins controller. This is equivalent to the number of CPU cores being used by the Jenkins JVM."),
-			"vm_memory_total_used":      newCountFieldInfo("The total amount of memory that the Jenkins JVM is currently using.(Units of measurement: bytes)"),
-			"vm_memory_total_committed": newCountFieldInfo("The total amount of memory that is guaranteed by the operating system as available for use by the Jenkins JVM. (Units of measurement: bytes)"),
+			"system_cpu_load":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "The system load on the Jenkins controller as reported by the JVM Operating System JMX bean"},
+			"vm_blocked_count":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of threads in the Jenkins JVM that are currently blocked waiting for a monitor lock."},
+			"vm_count":                  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Count, Unit: inputs.NCount, Desc: "The total number of threads in the Jenkins JVM. This is the sum of: vm.blocked.count, vm.new.count, vm.runnable.count, vm.terminated.count, vm.timed_waiting.count and vm.waiting.count"},
+			"vm_cpu_load":               &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "The rate of CPU time usage by the JVM per unit time on the Jenkins controller. This is equivalent to the number of CPU cores being used by the Jenkins JVM."},
+			"vm_memory_total_used":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total amount of memory that the Jenkins JVM is currently using, in bytes."},
+			"vm_memory_total_committed": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total amount of memory that is guaranteed by the operating system as available for use by the Jenkins JVM, in bytes."},
 		},
 	}
 }

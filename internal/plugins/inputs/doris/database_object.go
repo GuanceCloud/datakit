@@ -37,9 +37,10 @@ type dorisObjectMeasurement struct{}
 //nolint:lll
 func (*dorisObjectMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: dorisObjectMeasurementName,
-		Cat:  point.Object,
-		Desc: "Doris object metrics.",
+		Name:   dorisObjectMeasurementName,
+		Cat:    point.Object,
+		Desc:   "Doris object metrics.",
+		DescZh: "Doris 数据库对象信息，包含 FE/BE 拓扑摘要、查询速率和平均查询耗时。",
 		Tags: map[string]interface{}{
 			"host":              &inputs.TagInfo{Desc: "The configured Doris FE host."},
 			"server":            &inputs.TagInfo{Desc: "The Doris FE SQL endpoint. The value is `host:query_port`."},

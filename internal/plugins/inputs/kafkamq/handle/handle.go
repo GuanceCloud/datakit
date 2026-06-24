@@ -199,6 +199,7 @@ func (h *Handle) sendToRemote(data []byte) {
 		}
 		if err := h.feeder.Feed(category, pts,
 			dkio.WithSource("kafkamq_handle"),
+			dkio.WithInput("kafkamq"),
 		); err != nil {
 			log.Warnf("feed io err=%v", err)
 		}

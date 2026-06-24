@@ -484,7 +484,7 @@ define check_docs
 	@if [ -s $(DIST_DIR)/cspell.lint ]; then \
 		printf "$(RED) [FAIL] $(DIST_DIR)/cspell.lint not empty \n$(NC)"; \
 		cat $(DIST_DIR)/cspell.lint; \
-		exit -1; \
+		exit 1; \
 	fi
 
   # check markdown style
@@ -496,7 +496,7 @@ define check_docs
 	else \
 		printf "$(RED) [FAIL] $(DIST_DIR)/md-lint.json not empty \n$(NC)"; \
 		cat $(DIST_DIR)/md-lint.json; \
-		exit -1; \
+		exit 1; \
 	fi
 endef
 

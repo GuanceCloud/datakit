@@ -129,9 +129,10 @@ type PersistentvolumeclaimObject struct{}
 //nolint:lll
 func (*PersistentvolumeclaimObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: persistentvolumeclaimObjectClass,
-		Desc: "The object of the Kubernetes PersistentVolumeClaim.",
-		Cat:  point.Object,
+		Name:   persistentvolumeclaimObjectClass,
+		Desc:   "The object of the Kubernetes PersistentVolumeClaim.",
+		DescZh: "Kubernetes PersistentVolumeClaim 对象信息，记录绑定卷、卷模式、存储类、访问模式、请求容量和对象详情。",
+		Cat:    point.Object,
 		Tags: map[string]interface{}{
 			"name":                              inputs.NewTagInfo("The UID of PersistentVolume."),
 			"uid":                               inputs.NewTagInfo("The UID of PersistentVolume."),
@@ -142,14 +143,14 @@ func (*PersistentvolumeclaimObject) Info() *inputs.MeasurementInfo {
 			"&lt;ALL-SELECTOR-MATCH-LABELS&gt;": inputs.NewTagInfo("Represents the selector.matchLabels for Kubernetes resources"),
 		},
 		Fields: map[string]interface{}{
-			"age":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},
-			"phase":              &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The phase indicates if a volume is available, bound to a claim, or released by a claim.(Pending/Bound/Lost)"},
-			"volume_name":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "VolumeName is the binding reference to the PersistentVolume backing this claim."},
-			"volume_mode":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "VolumeMode defines what type of volume is required by the claim.(Block/Filesystem)"},
-			"storage_class_name": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "StorageClassName is the name of the StorageClass required by the claim."},
-			"access_modes":       &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "AccessModes contains the desired access modes the volume should have."},
-			"requests_storage":   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Specifies the maximum storage capacity of a PersistentVolume (PV), which Kubernetes uses for scheduling and resource allocation."},
-			"message":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Object details"},
+			"age":                &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},
+			"phase":              &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "The phase indicates if a volume is available, bound to a claim, or released by a claim.(Pending/Bound/Lost)"},
+			"volume_name":        &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "VolumeName is the binding reference to the PersistentVolume backing this claim."},
+			"volume_mode":        &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "VolumeMode defines what type of volume is required by the claim.(Block/Filesystem)"},
+			"storage_class_name": &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "StorageClassName is the name of the StorageClass required by the claim."},
+			"access_modes":       &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "AccessModes contains the desired access modes the volume should have."},
+			"requests_storage":   &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Specifies the maximum storage capacity of a PersistentVolume (PV), which Kubernetes uses for scheduling and resource allocation."},
+			"message":            &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Serialized Kubernetes object details for this resource."},
 		},
 	}
 }

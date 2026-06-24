@@ -564,7 +564,9 @@ func (ipt *Input) dispatchDiscovery(subnet string, discovery *discoveryInfo, mSp
 }
 
 func (ipt *Input) doJob(job snmpJob) {
-	ipt.checkIPWorking(job.IP)
+	if !ipt.checkIPWorking(job.IP, job.ID) {
+		return
+	}
 	defer checkIPDone(job.IP)
 
 	l.Debugf("doJob entry: %#v", job)
@@ -588,29 +590,34 @@ func (ipt *Input) doJob(job snmpJob) {
 
 var mWorkingIP sync.Map
 
-// If the IP is working, then waiting.
-func (ipt *Input) checkIPWorking(deviceIP string) {
+// checkIPWorking skips a duplicate collection type and waits for other types.
+func (ipt *Input) checkIPWorking(deviceIP string, collectType jobType) bool {
+	tk := time.NewTicker(time.Second)
+	defer tk.Stop()
+
 	for {
-		if _, ok := mWorkingIP.Load(deviceIP); !ok {
-			mWorkingIP.Store(deviceIP, struct{}{})
-			return
+		workingType, loaded := mWorkingIP.LoadOrStore(deviceIP, collectType)
+		if !loaded {
+			return true
+		}
+
+		if workingType == collectType {
+			l.Debugf("skip duplicate SNMP job, ip=%s, job_type=%d", deviceIP, collectType)
+			return false
 		}
 
 		l.Debugf("IP working: %s", deviceIP)
-
-		tk := time.NewTicker(time.Second)
-		defer tk.Stop()
 
 		select {
 		case <-tk.C:
 
 		case <-datakit.Exit.Wait():
 			l.Info(snmpmeasurement.InputName + " exit")
-			return
+			return false
 
 		case <-ipt.semStop.Wait():
 			l.Infof(snmpmeasurement.InputName + " return")
-			return
+			return false
 		}
 	}
 }
@@ -651,6 +658,7 @@ func (ipt *Input) doCollectMetrics(deviceIP string, device *deviceInfo) {
 		dkio.WithCollectCost(time.Since(collectStart)),
 		dkio.WithElection(ipt.Election),
 		dkio.WithSource(snmpmeasurement.SNMPMetricName),
+		dkio.WithInput(snmpmeasurement.InputName),
 	); err != nil {
 		l.Errorf("FeedMeasurement metric err: %v", err)
 		ipt.feeder.FeedLastError(err.Error(),

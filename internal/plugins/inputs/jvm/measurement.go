@@ -64,9 +64,10 @@ type jvmMeasurement struct{}
 // Info returns the unified JVM measurement info (v2).
 func (m *jvmMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name:   measurementJVM,
-		Desc:   "Metric set including JVM runtime, memory, garbage collector, threading, class loading, and memory pool statistics, unified in v2",
-		DescZh: "指标集包含 JVM runtime、memory、garbage collector、threading、class loading 和 memory pool 相关指标，v2 版本统一",
+		Name: measurementJVM,
+		Desc: "JVM runtime, memory, garbage collector, threading, " +
+			"class loading, and memory-pool statistics collected through Jolokia Java platform MXBeans.",
+		DescZh: "通过 Jolokia Java 平台 MXBean 采集的 JVM 运行时、内存、垃圾回收、线程、类加载和内存池指标。",
 		Cat:    point.Metric,
 		Tags:   m.getTags(),
 		Fields: m.getFields(),
@@ -83,20 +84,20 @@ func (m *jvmMeasurement) getTags() map[string]interface{} {
 
 func (m *jvmMeasurement) getCommonTags() map[string]interface{} {
 	tags := make(map[string]interface{})
-	tags["jolokia_agent_url"] = &inputs.TagInfo{Desc: "Jolokia agent url path."}
-	tags["host"] = &inputs.TagInfo{Desc: "The hostname of the Jolokia agent/proxy running on."}
+	tags["jolokia_agent_url"] = &inputs.TagInfo{Desc: "Jolokia agent URL used to collect the JVM metrics."}
+	tags["host"] = &inputs.TagInfo{Desc: "Hostname reported by the Jolokia agent or proxy."}
 	return tags
 }
 
 func (m *jvmMeasurement) getGCTags() map[string]interface{} {
 	tags := make(map[string]interface{})
-	tags["name"] = &inputs.TagInfo{Desc: "The name of GC generation."}
+	tags["name"] = &inputs.TagInfo{Desc: "Garbage collector or memory pool name associated with fields tagged by name."}
 	return tags
 }
 
 func (m *jvmMeasurement) getPoolTags() map[string]interface{} {
 	tags := make(map[string]interface{})
-	tags["name"] = &inputs.TagInfo{Desc: "The name of memory pool."}
+	tags["name"] = &inputs.TagInfo{Desc: "Garbage collector or memory pool name associated with fields tagged by name."}
 	return tags
 }
 
@@ -125,9 +126,9 @@ func (m *jvmMeasurement) getRuntimeFields() map[string]interface{} {
 	fields := make(map[string]interface{})
 	fields["Uptime"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
-		Type:     inputs.Count,
+		Type:     inputs.Gauge,
 		Unit:     inputs.DurationMS,
-		Desc:     "The total runtime.",
+		Desc:     "Elapsed time since the JVM started.",
 	}
 	return fields
 }
@@ -139,57 +140,57 @@ func (m *jvmMeasurement) getMemoryFields() map[string]interface{} {
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "The initial Java heap memory allocated.",
+		Desc:     "Initial heap memory size requested by the JVM.",
 	}
 	fields["HeapMemoryUsageused"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "The total Java heap memory used.",
+		Desc:     "Current heap memory used by the JVM.",
 	}
 	fields["HeapMemoryUsagemax"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "The maximum Java heap memory available.",
+		Desc:     "Maximum heap memory available to the JVM, or -1 if undefined.",
 	}
 	fields["HeapMemoryUsagecommitted"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "The total Java heap memory committed to be used.",
+		Desc:     "Heap memory currently committed for JVM use.",
 	}
 
 	fields["NonHeapMemoryUsageinit"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "The initial Java non-heap memory allocated.",
+		Desc:     "Initial non-heap memory size requested by the JVM.",
 	}
 	fields["NonHeapMemoryUsageused"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "The total Java non-heap memory used.",
+		Desc:     "Current non-heap memory used by the JVM.",
 	}
 	fields["NonHeapMemoryUsagemax"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "The maximum Java non-heap memory available.",
+		Desc:     "Maximum non-heap memory available to the JVM, or -1 if undefined.",
 	}
 	fields["NonHeapMemoryUsagecommitted"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "The total Java non-heap memory committed to be used.",
+		Desc:     "Non-heap memory currently committed for JVM use.",
 	}
 
 	fields["ObjectPendingFinalizationCount"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
-		Type:     inputs.Count,
+		Type:     inputs.Gauge,
 		Unit:     inputs.NCount,
-		Desc:     "The count of object pending finalization.",
+		Desc:     "Approximate current number of objects pending finalization.",
 	}
 	return fields
 }
@@ -201,13 +202,13 @@ func (m *jvmMeasurement) getGCFields() map[string]interface{} {
 		DataType: inputs.Int,
 		Type:     inputs.Count,
 		Unit:     inputs.DurationMS,
-		Desc:     "The approximate GC collection time elapsed.",
+		Desc:     "Approximate accumulated elapsed time spent in garbage collection.",
 	}
 	fields["CollectionCount"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Count,
 		Unit:     inputs.NCount,
-		Desc:     "The number of GC that have occurred.",
+		Desc:     "Total number of garbage collections that have occurred for the collector.",
 	}
 
 	// GC fields are tagged by name (GC generation name)
@@ -220,27 +221,27 @@ func (m *jvmMeasurement) getThreadingFields() map[string]interface{} {
 	fields := make(map[string]interface{})
 	fields["DaemonThreadCount"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
-		Type:     inputs.Count,
+		Type:     inputs.Gauge,
 		Unit:     inputs.NCount,
-		Desc:     "The count of daemon thread.",
+		Desc:     "Current number of live daemon threads.",
 	}
 	fields["PeakThreadCount"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
-		Type:     inputs.Count,
+		Type:     inputs.Gauge,
 		Unit:     inputs.NCount,
-		Desc:     "The peak count of thread.",
+		Desc:     "Peak live thread count since the JVM started or the peak was reset.",
 	}
 	fields["ThreadCount"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
-		Type:     inputs.Count,
+		Type:     inputs.Gauge,
 		Unit:     inputs.NCount,
-		Desc:     "The count of thread.",
+		Desc:     "Current number of live threads.",
 	}
 	fields["TotalStartedThreadCount"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Count,
 		Unit:     inputs.NCount,
-		Desc:     "The total count of started thread.",
+		Desc:     "Total number of threads created and started since the JVM started.",
 	}
 	return fields
 }
@@ -250,21 +251,21 @@ func (m *jvmMeasurement) getClassLoadingFields() map[string]interface{} {
 	fields := make(map[string]interface{})
 	fields["LoadedClassCount"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
-		Type:     inputs.Count,
+		Type:     inputs.Gauge,
 		Unit:     inputs.NCount,
-		Desc:     "The count of loaded class.",
+		Desc:     "Current number of classes loaded in the JVM.",
 	}
 	fields["TotalLoadedClassCount"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Count,
 		Unit:     inputs.NCount,
-		Desc:     "The total count of loaded class.",
+		Desc:     "Total number of classes loaded since the JVM started.",
 	}
 	fields["UnloadedClassCount"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Count,
 		Unit:     inputs.NCount,
-		Desc:     "The count of unloaded class.",
+		Desc:     "Total number of classes unloaded since the JVM started.",
 	}
 	return fields
 }
@@ -276,50 +277,50 @@ func (m *jvmMeasurement) getMemoryPoolFields() map[string]interface{} {
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "The initial Java memory pool allocated.",
+		Desc:     "Initial memory size requested for this memory pool.",
 	}
 	fields["Usagemax"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "The maximum Java memory pool available.",
+		Desc:     "Maximum memory available for this memory pool, or -1 if undefined.",
 	}
 	fields["Usagecommitted"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "The total Java memory pool committed to be used.",
+		Desc:     "Memory currently committed for this memory pool.",
 	}
 	fields["Usageused"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "The total Java memory pool used.",
+		Desc:     "Current memory used by this memory pool.",
 	}
 
 	fields["PeakUsageinit"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "The initial peak Java memory pool allocated.",
+		Desc:     "Initial memory size in the peak usage snapshot for this memory pool.",
 	}
 	fields["PeakUsagemax"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "The maximum peak Java memory pool available.",
+		Desc:     "Maximum memory in the peak usage snapshot for this memory pool, or -1 if undefined.",
 	}
 	fields["PeakUsagecommitted"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "The total peak Java memory pool committed to be used.",
+		Desc:     "Committed memory in the peak usage snapshot for this memory pool.",
 	}
 	fields["PeakUsageused"] = &inputs.FieldInfo{
 		DataType: inputs.Int,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "The total peak Java memory pool used.",
+		Desc:     "Used memory in the peak usage snapshot for this memory pool.",
 	}
 
 	// Collection usage fields (shared across multiple measurements)
@@ -327,25 +328,25 @@ func (m *jvmMeasurement) getMemoryPoolFields() map[string]interface{} {
 		DataType: inputs.Float,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "The amount of memory in bytes that the Java virtual machine initially requests from the operating system for memory management.",
+		Desc:     "Initial memory size in the post-GC collection usage snapshot for this memory pool.",
 	}
 	fields["CollectionUsagecommitted"] = &inputs.FieldInfo{
 		DataType: inputs.Float,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "The amount of memory in bytes that is committed for the Java virtual machine to use.",
+		Desc:     "Committed memory in the post-GC collection usage snapshot for this memory pool.",
 	}
 	fields["CollectionUsagemax"] = &inputs.FieldInfo{
 		DataType: inputs.Float,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "The maximum amount of memory in bytes that can be used for memory management.",
+		Desc:     "Maximum memory in the post-GC collection usage snapshot for this memory pool, or -1 if undefined.",
 	}
 	fields["CollectionUsageused"] = &inputs.FieldInfo{
 		DataType: inputs.Float,
 		Type:     inputs.Gauge,
 		Unit:     inputs.SizeByte,
-		Desc:     "The amount of used memory in bytes.",
+		Desc:     "Used memory in the post-GC collection usage snapshot for this memory pool.",
 	}
 
 	m.addTaggedbyToFields(fields, TagGroupPool)
@@ -394,7 +395,10 @@ func (m *JvmMeasurement) Point() *point.Point {
 }
 
 func (*JvmMeasurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{}
+	return &inputs.MeasurementInfo{
+		Desc:   "JVM metrics emitted with the runtime measurement name.",
+		DescZh: "使用运行时指标集名称上报的 JVM 指标。",
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -412,10 +416,12 @@ func (m *JavaRuntimeMemt) Point() *point.Point {
 //nolint:lll
 func (*JavaRuntimeMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: javaRuntime,
-		Cat:  point.Metric,
+		Name:   javaRuntime,
+		Cat:    point.Metric,
+		Desc:   "Legacy JVM runtime measurement collected from `java.lang:type=Runtime` through Jolokia.",
+		DescZh: "通过 Jolokia 从 `java.lang:type=Runtime` 采集的旧版 JVM 运行时指标。",
 		Fields: map[string]interface{}{
-			"Uptime": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.DurationMS, Desc: "The total runtime."},
+			"Uptime": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Elapsed time since the JVM started."},
 
 			"CollectionUsageinit":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory in bytes that the Java virtual machine initially requests from the operating system for memory management."},
 			"CollectionUsagecommitted": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory in bytes that is committed for the Java virtual machine to use."},
@@ -423,8 +429,8 @@ func (*JavaRuntimeMemt) Info() *inputs.MeasurementInfo {
 			"CollectionUsageused":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of used memory in bytes."},
 		},
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": &inputs.TagInfo{Desc: "Jolokia agent url path."},
-			"host":              &inputs.TagInfo{Desc: "The hostname of the Jolokia agent/proxy running on."},
+			"jolokia_agent_url": &inputs.TagInfo{Desc: "Jolokia agent URL used to collect the JVM metrics."},
+			"host":              &inputs.TagInfo{Desc: "Hostname reported by the Jolokia agent or proxy."},
 		},
 	}
 }
@@ -444,20 +450,22 @@ func (m *JavaMemoryMemt) Point() *point.Point {
 //nolint:lll
 func (*JavaMemoryMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: javaMemory,
-		Cat:  point.Metric,
+		Name:   javaMemory,
+		Cat:    point.Metric,
+		Desc:   "Legacy JVM heap and non-heap memory measurement collected from `java.lang:type=Memory` through Jolokia.",
+		DescZh: "通过 Jolokia 从 `java.lang:type=Memory` 采集的旧版 JVM 堆内和非堆内存指标。",
 		Fields: map[string]interface{}{
-			"HeapMemoryUsageinit":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The initial Java heap memory allocated."},
-			"HeapMemoryUsageused":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java heap memory used."},
-			"HeapMemoryUsagemax":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The maximum Java heap memory available."},
-			"HeapMemoryUsagecommitted": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java heap memory committed to be used."},
+			"HeapMemoryUsageinit":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Initial heap memory size requested by the JVM."},
+			"HeapMemoryUsageused":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Current heap memory used by the JVM."},
+			"HeapMemoryUsagemax":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Maximum heap memory available to the JVM, or -1 if undefined."},
+			"HeapMemoryUsagecommitted": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Heap memory currently committed for JVM use."},
 
-			"NonHeapMemoryUsageinit":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The initial Java non-heap memory allocated."},
-			"NonHeapMemoryUsageused":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java non-heap memory used."},
-			"NonHeapMemoryUsagemax":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The maximum Java non-heap memory available."},
-			"NonHeapMemoryUsagecommitted": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java non-heap memory committed to be used."},
+			"NonHeapMemoryUsageinit":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Initial non-heap memory size requested by the JVM."},
+			"NonHeapMemoryUsageused":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Current non-heap memory used by the JVM."},
+			"NonHeapMemoryUsagemax":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Maximum non-heap memory available to the JVM, or -1 if undefined."},
+			"NonHeapMemoryUsagecommitted": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Non-heap memory currently committed for JVM use."},
 
-			"ObjectPendingFinalizationCount": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The count of object pending finalization."},
+			"ObjectPendingFinalizationCount": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Approximate current number of objects pending finalization."},
 
 			"CollectionUsageinit":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory in bytes that the Java virtual machine initially requests from the operating system for memory management."},
 			"CollectionUsagecommitted": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory in bytes that is committed for the Java virtual machine to use."},
@@ -466,8 +474,8 @@ func (*JavaMemoryMemt) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url path."),
-			"host":              inputs.NewTagInfo("The hostname of the Jolokia agent/proxy running on."),
+			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent URL used to collect the JVM metrics."),
+			"host":              inputs.NewTagInfo("Hostname reported by the Jolokia agent or proxy."),
 		},
 	}
 }
@@ -487,11 +495,13 @@ func (m *JavaGcMemt) Point() *point.Point {
 //nolint:lll
 func (*JavaGcMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: javaGarbageCollector,
-		Cat:  point.Metric,
+		Name:   javaGarbageCollector,
+		Cat:    point.Metric,
+		Desc:   "Legacy JVM garbage-collector measurement collected from `java.lang:name=*,type=GarbageCollector` through Jolokia.",
+		DescZh: "通过 Jolokia 从 `java.lang:name=*,type=GarbageCollector` 采集的旧版 JVM 垃圾回收指标。",
 		Fields: map[string]interface{}{
-			"CollectionTime":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The approximate GC collection time elapsed."},
-			"CollectionCount": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of GC that have occurred."},
+			"CollectionTime":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.DurationMS, Desc: "Approximate accumulated elapsed time spent in garbage collection."},
+			"CollectionCount": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Total number of garbage collections that have occurred for the collector."},
 
 			"CollectionUsageinit":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory in bytes that the Java virtual machine initially requests from the operating system for memory management."},
 			"CollectionUsagecommitted": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory in bytes that is committed for the Java virtual machine to use."},
@@ -500,9 +510,9 @@ func (*JavaGcMemt) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url path."),
-			"name":              inputs.NewTagInfo("The name of GC generation."),
-			"host":              inputs.NewTagInfo("The hostname of the Jolokia agent/proxy running on."),
+			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent URL used to collect the JVM metrics."),
+			"name":              inputs.NewTagInfo("Garbage collector name."),
+			"host":              inputs.NewTagInfo("Hostname reported by the Jolokia agent or proxy."),
 		},
 	}
 }
@@ -522,13 +532,15 @@ func (m *JavaThreadMemt) Point() *point.Point {
 //nolint:lll
 func (*JavaThreadMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: javaThreading,
-		Cat:  point.Metric,
+		Name:   javaThreading,
+		Cat:    point.Metric,
+		Desc:   "Legacy JVM threading measurement collected from `java.lang:type=Threading` through Jolokia.",
+		DescZh: "通过 Jolokia 从 `java.lang:type=Threading` 采集的旧版 JVM 线程指标。",
 		Fields: map[string]interface{}{
-			"DaemonThreadCount":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The count of daemon thread."},
-			"PeakThreadCount":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The peak count of thread."},
-			"ThreadCount":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The count of thread."},
-			"TotalStartedThreadCount": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The total count of started thread."},
+			"DaemonThreadCount":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Current number of live daemon threads."},
+			"PeakThreadCount":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Peak live thread count since the JVM started or the peak was reset."},
+			"ThreadCount":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Current number of live threads."},
+			"TotalStartedThreadCount": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Total number of threads created and started since the JVM started."},
 
 			"CollectionUsageinit":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory in bytes that the Java virtual machine initially requests from the operating system for memory management."},
 			"CollectionUsagecommitted": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory in bytes that is committed for the Java virtual machine to use."},
@@ -537,8 +549,8 @@ func (*JavaThreadMemt) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url path."),
-			"host":              inputs.NewTagInfo("The hostname of the Jolokia agent/proxy running on."),
+			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent URL used to collect the JVM metrics."),
+			"host":              inputs.NewTagInfo("Hostname reported by the Jolokia agent or proxy."),
 		},
 	}
 }
@@ -558,12 +570,14 @@ func (m *JavaClassLoadMemt) Point() *point.Point {
 //nolint:lll
 func (*JavaClassLoadMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: javaClassLoading,
-		Cat:  point.Metric,
+		Name:   javaClassLoading,
+		Cat:    point.Metric,
+		Desc:   "Legacy JVM class-loading measurement collected from `java.lang:type=ClassLoading` through Jolokia.",
+		DescZh: "通过 Jolokia 从 `java.lang:type=ClassLoading` 采集的旧版 JVM 类加载指标。",
 		Fields: map[string]interface{}{
-			"LoadedClassCount":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The count of loaded class."},
-			"TotalLoadedClassCount": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The total count of loaded class."},
-			"UnloadedClassCount":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The count of unloaded class."},
+			"LoadedClassCount":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Current number of classes loaded in the JVM."},
+			"TotalLoadedClassCount": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Total number of classes loaded since the JVM started."},
+			"UnloadedClassCount":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Total number of classes unloaded since the JVM started."},
 
 			"CollectionUsageinit":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory in bytes that the Java virtual machine initially requests from the operating system for memory management."},
 			"CollectionUsagecommitted": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory in bytes that is committed for the Java virtual machine to use."},
@@ -572,8 +586,8 @@ func (*JavaClassLoadMemt) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url path."),
-			"host":              inputs.NewTagInfo("The hostname of the Jolokia agent/proxy running on."),
+			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent URL used to collect the JVM metrics."),
+			"host":              inputs.NewTagInfo("Hostname reported by the Jolokia agent or proxy."),
 		},
 	}
 }
@@ -593,18 +607,20 @@ func (m *JavaMemoryPoolMemt) Point() *point.Point {
 //nolint:lll
 func (*JavaMemoryPoolMemt) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: javaMemoryPool,
-		Cat:  point.Metric,
+		Name:   javaMemoryPool,
+		Cat:    point.Metric,
+		Desc:   "Legacy JVM memory-pool measurement collected from `java.lang:name=*,type=MemoryPool` through Jolokia.",
+		DescZh: "通过 Jolokia 从 `java.lang:name=*,type=MemoryPool` 采集的旧版 JVM 内存池指标。",
 		Fields: map[string]interface{}{
-			"Usageinit":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The initial Java memory pool allocated."},
-			"Usagemax":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The maximum Java  memory pool available."},
-			"Usagecommitted": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java memory pool committed to be used."},
-			"Usageused":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total Java memory pool used."},
+			"Usageinit":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Initial memory size requested for this memory pool."},
+			"Usagemax":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Maximum memory available for this memory pool, or -1 if undefined."},
+			"Usagecommitted": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Memory currently committed for this memory pool."},
+			"Usageused":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Current memory used by this memory pool."},
 
-			"PeakUsageinit":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The initial peak Java memory pool allocated."},
-			"PeakUsagemax":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The maximum peak Java  memory pool available."},
-			"PeakUsagecommitted": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total peak Java memory pool committed to be used."},
-			"PeakUsageused":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The total peak Java memory pool used."},
+			"PeakUsageinit":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Initial memory size in the peak usage snapshot for this memory pool."},
+			"PeakUsagemax":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Maximum memory in the peak usage snapshot for this memory pool, or -1 if undefined."},
+			"PeakUsagecommitted": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Committed memory in the peak usage snapshot for this memory pool."},
+			"PeakUsageused":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Used memory in the peak usage snapshot for this memory pool."},
 
 			"CollectionUsageinit":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory in bytes that the Java virtual machine initially requests from the operating system for memory management."},
 			"CollectionUsagecommitted": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "The amount of memory in bytes that is committed for the Java virtual machine to use."},
@@ -613,9 +629,9 @@ func (*JavaMemoryPoolMemt) Info() *inputs.MeasurementInfo {
 		},
 
 		Tags: map[string]interface{}{
-			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent url path."),
-			"name":              inputs.NewTagInfo("The name of space."),
-			"host":              inputs.NewTagInfo("The hostname of the Jolokia agent/proxy running on."),
+			"jolokia_agent_url": inputs.NewTagInfo("Jolokia agent URL used to collect the JVM metrics."),
+			"name":              inputs.NewTagInfo("Memory pool name."),
+			"host":              inputs.NewTagInfo("Hostname reported by the Jolokia agent or proxy."),
 		},
 	}
 }

@@ -38,8 +38,10 @@ type mountstatsMeasurement struct {
 //nolint:lll
 func (m *mountstatsMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 	return &inputs.MeasurementInfo{
-		Name: "nfs_mountstats",
-		Cat:  point.Metric,
+		Name:   "nfs_mountstats",
+		Cat:    point.Metric,
+		Desc:   "NFS mount statistics collected from procfs mountstats, including filesystem capacity, read/write bytes, transport activity, events, and per-operation timings.",
+		DescZh: "从 procfs mountstats 采集的 NFS 挂载统计指标，包含文件系统容量、读写字节、传输活动、事件和操作耗时。",
 		Fields: map[string]interface{}{
 			// base
 			"fs_avail": &inputs.FieldInfo{

@@ -201,6 +201,7 @@ func newPromRunnerWithConfig(feeder dkio.Feeder, c *promConfig) (*promRunner, er
 				dkio.WithCollectCost(time.Since(p.collectStart)),
 				dkio.WithElection(defaultPromElection),
 				dkio.WithSource(p.conf.Source),
+				dkio.WithInput("container"),
 			)
 			if err != nil {
 				klog.Warnf("failed to feed prom metrics: %s, ignored", err)

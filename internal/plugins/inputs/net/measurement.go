@@ -18,101 +18,57 @@ type docMeasurement struct{}
 // nolint:lll
 func (*docMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: metricName,
-		Cat:  point.Metric,
-		Desc: "All `tcp_*/udp_*` metrics comes from */proc/net/snmp*",
+		Name:   metricName,
+		Cat:    point.Metric,
+		Desc:   "Network interface counters from gopsutil and Linux TCP/UDP protocol counters from `/proc/net/snmp`; `*/sec` fields are derived per-second rates.",
+		DescZh: "通过 gopsutil 采集网络接口计数，并从 Linux `/proc/net/snmp` 采集 TCP/UDP 协议计数；`*/sec` 字段为派生的每秒速率。",
 		Fields: map[string]interface{}{
-			"bytes_sent":       newFieldsInfoIByte("The number of bytes sent by the interface."),
-			"bytes_sent/sec":   newFieldsInfoIBytePerSec("The number of bytes sent by the interface per second."),
-			"bytes_recv":       newFieldsInfoIByte("The number of bytes received by the interface."),
-			"bytes_recv/sec":   newFieldsInfoIBytePerSec("The number of bytes received by the interface per second."),
-			"packets_sent":     newFieldsInfoCount("The number of packets sent by the interface."),
-			"packets_sent/sec": newFieldsInfoCountPerSec("The number of packets sent by the interface per second."),
-			"packets_recv":     newFieldsInfoCount("The number of packets received by the interface."),
-			"packets_recv/sec": newFieldsInfoCountPerSec("The number of packets received by the interface per second."),
-			"err_in":           newFieldsInfoCount("The number of receive errors detected by the interface."),
-			"err_out":          newFieldsInfoCount("The number of transmit errors detected by the interface."),
-			"drop_in":          newFieldsInfoCount("The number of received packets dropped by the interface."),
-			"drop_out":         newFieldsInfoCount("The number of transmitted packets dropped by the interface."),
+			"bytes_sent":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.SizeByte, Desc: "Cumulative bytes sent by the interface."},
+			"bytes_sent/sec":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.BytesPerSec, Desc: "The number of bytes sent by the interface per second."},
+			"bytes_recv":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.SizeByte, Desc: "Cumulative bytes received by the interface."},
+			"bytes_recv/sec":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.BytesPerSec, Desc: "The number of bytes received by the interface per second."},
+			"packets_sent":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative packets sent by the interface."},
+			"packets_sent/sec": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of packets sent by the interface per second."},
+			"packets_recv":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative packets received by the interface."},
+			"packets_recv/sec": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of packets received by the interface per second."},
+			"err_in":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative receive errors detected by the interface."},
+			"err_out":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative transmit errors detected by the interface."},
+			"drop_in":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative received packets dropped by the interface."},
+			"drop_out":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative transmitted packets dropped by the interface."},
 
 			// linux only
-			"tcp_insegs":           newFieldsInfoCount("The number of packets received by the TCP layer. Linux only"),
-			"tcp_insegs/sec":       newFieldsInfoCountPerSec("The number of packets received by the TCP layer per second. Linux only"),
-			"tcp_outsegs":          newFieldsInfoCount("The number of packets sent by the TCP layer. Linux only"),
-			"tcp_outsegs/sec":      newFieldsInfoCountPerSec("The number of packets sent by the TCP layer per second. Linux only"),
-			"tcp_activeopens":      newFieldsInfoCount("It means the TCP layer sends a SYN, and come into the SYN-SENT state. Linux only"),
-			"tcp_passiveopens":     newFieldsInfoCount("It means the TCP layer receives a SYN, replies a SYN+ACK, come into the SYN-RCVD state. Linux only"),
-			"tcp_estabresets":      newFieldsInfoCount("The number of times TCP connections have made a direct transition to the CLOSED state from either the ESTABLISHED state or the CLOSE-WAIT state. Linux only"),
-			"tcp_attemptfails":     newFieldsInfoCount("The number of times TCP connections have made a direct transition to the CLOSED state from either the SYN-SENT state or the SYN-RCVD state, plus the number of times TCP connections have made a direct transition to the LISTEN state from the SYN-RCVD state. Linux only"),
-			"tcp_outrsts":          newFieldsInfoCount("The number of TCP segments sent containing the RST flag. Linux only"),
-			"tcp_retranssegs":      newFieldsInfoCount("The total number of segments re-transmitted - that is, the number of TCP segments transmitted containing one or more previously transmitted octets. Linux only"),
-			"tcp_inerrs":           newFieldsInfoCount("The number of incoming TCP segments in error. Linux only"),
-			"tcp_incsumerrors":     newFieldsInfoCount("The number of incoming TCP segments in checksum error. Linux only"),
-			"tcp_rtoalgorithm":     newFieldsInfoCount("The algorithm used to determine the timeout value used for retransmitting unacknowledged octets. Linux only"),
-			"tcp_rtomin":           newFieldsInfoMS("The minimum value permitted by a TCP implementation for the retransmission timeout, measured in milliseconds. Linux only"),
-			"tcp_rtomax":           newFieldsInfoMS("The maximum value permitted by a TCP implementation for the retransmission timeout, measured in milliseconds. Linux only"),
-			"tcp_maxconn":          newFieldsInfoCount("The limit on the total number of TCP connections the entity can support. Linux only"),
-			"tcp_currestab":        newFieldsInfoCount("The number of TCP connections for which the current state is either ESTABLISHED or CLOSE-WAIT. Linux only"),
-			"udp_incsumerrors":     newFieldsInfoCount("The number of incoming UDP datagram in checksum errors. Linux only"),
-			"udp_indatagrams":      newFieldsInfoCount("The number of UDP datagram delivered to UDP users. Linux only"),
-			"udp_indatagrams/sec":  newFieldsInfoCountPerSec("The number of UDP datagram delivered to UDP users per second. Linux only"),
-			"udp_outdatagrams":     newFieldsInfoCount("The number of UDP datagram sent from this entity. Linux only"),
-			"udp_outdatagrams/sec": newFieldsInfoCountPerSec("The number of UDP datagram sent from this entity per second. Linux only"),
-			"udp_rcvbuferrors":     newFieldsInfoCount("The number of receive buffer errors. Linux only"),
-			"udp_noports":          newFieldsInfoCount("The number of packets to unknown port received. Linux only"),
-			"udp_sndbuferrors":     newFieldsInfoCount("The number of send buffer errors. Linux only"),
-			"udp_inerrors":         newFieldsInfoCount("The number of packet receive errors. Linux only"),
-			"udp_memerrors":        newFieldsInfoCount("The number of memory errors. Linux only"),
-			"udp_ignoredmulti":     newFieldsInfoCount("The number of ignored multicast packets"),
+			"tcp_insegs":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative TCP segments received by the TCP layer. Linux only"},
+			"tcp_insegs/sec":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of packets received by the TCP layer per second. Linux only"},
+			"tcp_outsegs":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative TCP segments sent by the TCP layer. Linux only"},
+			"tcp_outsegs/sec":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of packets sent by the TCP layer per second. Linux only"},
+			"tcp_activeopens":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative TCP active opens, where TCP sends SYN and enters SYN-SENT. Linux only"},
+			"tcp_passiveopens":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative TCP passive opens, where TCP receives SYN, replies SYN+ACK, and enters SYN-RCVD. Linux only"},
+			"tcp_estabresets":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative TCP connections that transitioned directly to CLOSED from ESTABLISHED or CLOSE-WAIT. Linux only"},
+			"tcp_attemptfails":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative failed TCP connection attempts as defined by TCP-MIB AttemptFails. Linux only"},
+			"tcp_outrsts":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative TCP segments sent containing the RST flag. Linux only"},
+			"tcp_retranssegs":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative TCP segments retransmitted with one or more previously transmitted octets. Linux only"},
+			"tcp_inerrs":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative incoming TCP segments received in error. Linux only"},
+			"tcp_incsumerrors":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative incoming TCP segments with checksum errors. Linux only"},
+			"tcp_rtoalgorithm":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "Algorithm identifier used to determine retransmission timeout values. Linux only"},
+			"tcp_rtomin":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "The minimum value permitted by a TCP implementation for the retransmission timeout, measured in milliseconds. Linux only"},
+			"tcp_rtomax":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "The maximum value permitted by a TCP implementation for the retransmission timeout, measured in milliseconds. Linux only"},
+			"tcp_maxconn":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The limit on the total number of TCP connections the entity can support. Linux only"},
+			"tcp_currestab":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of TCP connections for which the current state is either ESTABLISHED or CLOSE-WAIT. Linux only"},
+			"udp_incsumerrors":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative incoming UDP datagrams with checksum errors. Linux only"},
+			"udp_indatagrams":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative UDP datagrams delivered to UDP users. Linux only"},
+			"udp_indatagrams/sec":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of UDP datagram delivered to UDP users per second. Linux only"},
+			"udp_outdatagrams":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative UDP datagrams sent from this entity. Linux only"},
+			"udp_outdatagrams/sec": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of UDP datagram sent from this entity per second. Linux only"},
+			"udp_rcvbuferrors":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative UDP receive buffer errors. Linux only"},
+			"udp_noports":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative UDP packets received for unknown ports. Linux only"},
+			"udp_sndbuferrors":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative UDP send buffer errors. Linux only"},
+			"udp_inerrors":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative UDP packet receive errors. Linux only"},
+			"udp_memerrors":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative UDP memory errors. Linux only"},
+			"udp_ignoredmulti":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative ignored UDP multicast packets. Linux only"},
 		},
 		Tags: map[string]interface{}{
 			"host":      &inputs.TagInfo{Desc: "System hostname."},
 			"interface": &inputs.TagInfo{Desc: "Network interface name."},
 		},
-	}
-}
-
-func newFieldsInfoIByte(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		Type:     inputs.Gauge,
-		DataType: inputs.Int,
-		Unit:     inputs.SizeByte,
-		Desc:     desc,
-	}
-}
-
-func newFieldsInfoIBytePerSec(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		Type:     inputs.Gauge,
-		DataType: inputs.Int,
-		Unit:     inputs.BytesPerSec,
-		Desc:     desc,
-	}
-}
-
-func newFieldsInfoCount(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		Type:     inputs.Gauge,
-		DataType: inputs.Int,
-		Unit:     inputs.NCount,
-		Desc:     desc,
-	}
-}
-
-func newFieldsInfoCountPerSec(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		Type:     inputs.Gauge,
-		DataType: inputs.Int,
-		Unit:     inputs.NCount,
-		Desc:     desc,
-	}
-}
-
-func newFieldsInfoMS(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		Type:     inputs.Gauge,
-		DataType: inputs.Int,
-		Unit:     inputs.DurationMS,
-		Desc:     desc,
 	}
 }

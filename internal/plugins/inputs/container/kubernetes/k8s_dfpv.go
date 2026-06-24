@@ -147,9 +147,10 @@ type DfpvMetric struct{}
 //nolint:lll
 func (*DfpvMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: dfpvMetricMeasurement,
-		Desc: "The metric of the Kubernetes PersistentVolume.",
-		Cat:  point.Metric,
+		Name:   dfpvMetricMeasurement,
+		Desc:   "The metric of the Kubernetes PersistentVolume.",
+		DescZh: "Kubernetes PersistentVolume 文件系统容量指标，记录可用、总量、已用空间和 inode 使用情况。",
+		Cat:    point.Metric,
 		Tags: map[string]interface{}{
 			"name":              inputs.NewTagInfo("The dfpv name, consists of pvc name and pod name"),
 			"pvc_name":          inputs.NewTagInfo("Reference to the PVC."),
@@ -160,12 +161,12 @@ func (*DfpvMetric) Info() *inputs.MeasurementInfo {
 			"cluster_name_k8s":  inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
-			"available":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "AvailableBytes represents the storage space available (bytes) for the filesystem."},
-			"capacity":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "CapacityBytes represents the total capacity (bytes) of the filesystems underlying storage."},
-			"used":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "UsedBytes represents the bytes used for a specific task on the filesystem."},
-			"inodes":      &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Inodes represents the total inodes in the filesystem."},
-			"inodes_used": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "InodesUsed represents the inodes used by the filesystem."},
-			"inodes_free": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "InodesFree represents the free inodes in the filesystem."},
+			"available":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "AvailableBytes represents the storage space available (bytes) for the filesystem."},
+			"capacity":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "CapacityBytes represents the total capacity (bytes) of the filesystems underlying storage."},
+			"used":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "UsedBytes represents the bytes used for a specific task on the filesystem."},
+			"inodes":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Inodes represents the total inodes in the filesystem."},
+			"inodes_used": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "InodesUsed represents the inodes used by the filesystem."},
+			"inodes_free": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "InodesFree represents the free inodes in the filesystem."},
 		},
 	}
 }
@@ -175,9 +176,10 @@ type DfpvObject struct{}
 //nolint:lll
 func (*DfpvObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: dfpvObjectClass,
-		Desc: "The object of the Kubernetes PersistentVolume.",
-		Cat:  point.Object,
+		Name:   dfpvObjectClass,
+		Desc:   "The object of the Kubernetes PersistentVolume.",
+		DescZh: "Kubernetes PersistentVolume 对象信息，记录文件系统容量、inode 使用和对象详情。",
+		Cat:    point.Object,
 		Tags: map[string]interface{}{
 			"name":              inputs.NewTagInfo("The dfpv name, consists of pvc name and pod name"),
 			"pvc_name":          inputs.NewTagInfo("Reference to the PVC."),
@@ -188,13 +190,13 @@ func (*DfpvObject) Info() *inputs.MeasurementInfo {
 			"cluster_name_k8s":  inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
-			"available":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "AvailableBytes represents the storage space available (bytes) for the filesystem."},
-			"capacity":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "CapacityBytes represents the total capacity (bytes) of the filesystems underlying storage."},
-			"used":        &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.SizeByte, Desc: "UsedBytes represents the bytes used for a specific task on the filesystem."},
-			"inodes":      &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "Inodes represents the total inodes in the filesystem."},
-			"inodes_used": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "InodesUsed represents the inodes used by the filesystem."},
-			"inodes_free": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "InodesFree represents the free inodes in the filesystem."},
-			"message":     &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Object details"},
+			"available":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "AvailableBytes represents the storage space available (bytes) for the filesystem."},
+			"capacity":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "CapacityBytes represents the total capacity (bytes) of the filesystems underlying storage."},
+			"used":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "UsedBytes represents the bytes used for a specific task on the filesystem."},
+			"inodes":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Inodes represents the total inodes in the filesystem."},
+			"inodes_used": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "InodesUsed represents the inodes used by the filesystem."},
+			"inodes_free": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "InodesFree represents the free inodes in the filesystem."},
+			"message":     &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Serialized Kubernetes object details for this resource."},
 		},
 	}
 }

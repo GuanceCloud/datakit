@@ -225,6 +225,19 @@ func getRuntimeInfo() *RuntimeInfo {
 	}
 }
 
+func formatElectionInfo(ei *election.ElectionInfo) string {
+	if ei == nil {
+		return "not-ready"
+	}
+
+	if ei.UpdateTime > 0 {
+		return fmt.Sprintf("%s::%s|%s(%s)",
+			ei.Namespace, ei.Status, ei.WhoElected, time.Unix(ei.UpdateTime, 0))
+	}
+
+	return fmt.Sprintf("%s::%s|%s", ei.Namespace, ei.Status, ei.WhoElected)
+}
+
 func GetStats() (*DatakitStats, error) {
 	var err error
 	family, err := metrics.Gather()
@@ -242,7 +255,7 @@ func GetStats() (*DatakitStats, error) {
 		Uptime:        fmt.Sprintf("%v", now.Sub(dkm.Uptime)),
 		OSArch:        fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 		WithinDocker:  datakit.Docker,
-		Elected:       fmt.Sprintf("%s::%s|%s", elecMetric.Status, elecMetric.Namespace, elecMetric.WhoElected),
+		Elected:       formatElectionInfo(elecMetric),
 		AutoUpdate:    datakit.AutoUpdate,
 		UsageTrace:    usagetrace.GetUsageTraceInstance(),
 		HostName:      datakit.DKHost,
@@ -321,12 +334,7 @@ func GetStats() (*DatakitStats, error) {
 
 		if strings.HasPrefix(name, prefix+"election_status") {
 			if ei := election.MetricElectionInfo(mfamily); ei != nil {
-				if ei.UpdateTime > 0 {
-					stats.Elected = fmt.Sprintf("%s::%s|%s(%s)",
-						ei.Namespace, ei.Status, ei.WhoElected, time.Unix(ei.UpdateTime, 0))
-				} else {
-					stats.Elected = fmt.Sprintf("%s::%s|%s", ei.Namespace, ei.Status, ei.WhoElected)
-				}
+				stats.Elected = formatElectionInfo(ei)
 			}
 			continue
 		}

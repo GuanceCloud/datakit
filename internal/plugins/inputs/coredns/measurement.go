@@ -23,8 +23,10 @@ type (
 
 func (*aCLMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "coredns_acl",
-		Cat:  point.Metric,
+		Name:   "coredns_acl",
+		Cat:    point.Metric,
+		Desc:   "CoreDNS acl plugin metrics scraped from Prometheus output.",
+		DescZh: "从 Prometheus 输出采集的 CoreDNS ACL 插件指标，记录被阻止、过滤、允许和丢弃的 DNS 请求。",
 		Fields: map[string]interface{}{
 			"blocked_requests_total": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -62,8 +64,10 @@ func (*aCLMeasurement) Info() *inputs.MeasurementInfo {
 
 func (*cacheMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "coredns_cache",
-		Cat:  point.Metric,
+		Name:   "coredns_cache",
+		Cat:    point.Metric,
+		Desc:   "CoreDNS cache plugin metrics scraped from Prometheus output.",
+		DescZh: "从 Prometheus 输出采集的 CoreDNS 缓存插件指标，涵盖缓存条目、请求、命中、未命中、预取、丢弃和淘汰。",
 		Fields: map[string]interface{}{
 			"entries": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -99,7 +103,7 @@ func (*cacheMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Float,
 				Type:     inputs.Count,
 				Unit:     inputs.NCount,
-				Desc:     "The number responses that are not cached, because the reply is malformed",
+				Desc:     "Number of responses that were not cached because the reply was malformed.",
 			},
 			"served_stale_total": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -126,8 +130,10 @@ func (*cacheMeasurement) Info() *inputs.MeasurementInfo {
 
 func (*dnsSecMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "coredns_dnssec",
-		Cat:  point.Metric,
+		Name:   "coredns_dnssec",
+		Cat:    point.Metric,
+		Desc:   "CoreDNS dnssec plugin metrics scraped from Prometheus output.",
+		DescZh: "从 Prometheus 输出采集的 CoreDNS DNSSEC 插件指标，记录 DNSSEC 缓存条目、命中和未命中。",
 		Fields: map[string]interface{}{
 			"cache_entries": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -159,8 +165,10 @@ func (*dnsSecMeasurement) Info() *inputs.MeasurementInfo {
 
 func (*forwardMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "coredns_forward",
-		Cat:  point.Metric,
+		Name:   "coredns_forward",
+		Cat:    point.Metric,
+		Desc:   "CoreDNS forward plugin metrics scraped from Prometheus output.",
+		DescZh: "从 Prometheus 输出采集的 CoreDNS 转发插件指标，涵盖上游请求、响应、耗时、健康检查和连接缓存。",
 		Fields: map[string]interface{}{
 			"requests_total": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -223,20 +231,22 @@ func (*forwardMeasurement) Info() *inputs.MeasurementInfo {
 
 func (*grpcMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "coredns_grpc",
-		Cat:  point.Metric,
+		Name:   "coredns_grpc",
+		Cat:    point.Metric,
+		Desc:   "CoreDNS grpc plugin metrics scraped from Prometheus output.",
+		DescZh: "从 Prometheus 输出采集的 CoreDNS gRPC 插件指标，记录上游请求、响应和请求耗时。",
 		Fields: map[string]interface{}{
 			"requests_total": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Count,
 				Unit:     inputs.NCount,
-				Desc:     "Counter of requests made per upstream",
+				Desc:     "Counter of requests made per upstream.",
 			},
 			"responses_total": &inputs.FieldInfo{
 				DataType: inputs.Float,
 				Type:     inputs.Count,
 				Unit:     inputs.NCount,
-				Desc:     "Counter of requests made per upstream",
+				Desc:     "Counter of responses received per upstream.",
 			},
 			"request_duration_seconds": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -256,8 +266,10 @@ func (*grpcMeasurement) Info() *inputs.MeasurementInfo {
 
 func (*hostsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "coredns_hosts",
-		Cat:  point.Metric,
+		Name:   "coredns_hosts",
+		Cat:    point.Metric,
+		Desc:   "CoreDNS hosts plugin metrics scraped from Prometheus output.",
+		DescZh: "从 Prometheus 输出采集的 CoreDNS hosts 插件指标，记录主机条目数量和 hosts 文件最近重载时间。",
 		Fields: map[string]interface{}{
 			"entries": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -281,8 +293,10 @@ func (*hostsMeasurement) Info() *inputs.MeasurementInfo {
 
 func (*templateMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "coredns_template",
-		Cat:  point.Metric,
+		Name:   "coredns_template",
+		Cat:    point.Metric,
+		Desc:   "CoreDNS template plugin metrics scraped from Prometheus output.",
+		DescZh: "从 Prometheus 输出采集的 CoreDNS template 插件指标，记录模板匹配、模板执行失败和资源记录构造失败。",
 		Fields: map[string]interface{}{
 			"matches_total": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -308,7 +322,7 @@ func (*templateMeasurement) Info() *inputs.MeasurementInfo {
 			"zone":     inputs.NewTagInfo("Zone name"),
 			"view":     inputs.NewTagInfo("View name"),
 			"class":    inputs.NewTagInfo("The query class (usually `IN`)"),
-			"type":     inputs.NewTagInfo("The RR type requested (e.g. `PTR`"),
+			"type":     inputs.NewTagInfo("The DNS resource record type requested, for example `PTR`."),
 			"section":  inputs.NewTagInfo("Section label"),
 			"template": inputs.NewTagInfo("Template label"),
 			"instance": inputs.NewTagInfo("Instance endpoint"),
@@ -319,8 +333,10 @@ func (*templateMeasurement) Info() *inputs.MeasurementInfo {
 
 func (*promMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "coredns",
-		Cat:  point.Metric,
+		Name:   "coredns",
+		Cat:    point.Metric,
+		Desc:   "CoreDNS server and plugin metrics scraped from Prometheus output.",
+		DescZh: "从 Prometheus 输出采集的 CoreDNS 服务端和插件综合指标，涵盖 DNS 请求、响应、耗时、健康检查和插件运行状态。",
 		Fields: map[string]interface{}{
 			"dns64_requests_translated_total": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -398,7 +414,7 @@ func (*promMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Float,
 				Type:     inputs.Count,
 				Unit:     inputs.NCount,
-				Desc:     "A metrics that counts the number of panics",
+				Desc:     "Counter of CoreDNS panics.",
 			},
 			"dns_plugin_enabled": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -422,7 +438,7 @@ func (*promMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Unit:     inputs.Bool,
-				Desc:     "A metric with a constant '1' value labeled by hash, and value which type of hash generated",
+				Desc:     "Constant value of 1 labeled with the reload hash type and hash value.",
 			},
 			"autopath_success_total": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -435,7 +451,7 @@ func (*promMeasurement) Info() *inputs.MeasurementInfo {
 			"server":       inputs.NewTagInfo("Server responsible for the request"),
 			"service_kind": inputs.NewTagInfo("Service kind"),
 			"version":      inputs.NewTagInfo("CoreDNS version"),
-			"revision":     inputs.NewTagInfo("Gitcommit contains the commit where we built CoreDNS from"),
+			"revision":     inputs.NewTagInfo("Git commit revision used to build CoreDNS."),
 			"goversion":    inputs.NewTagInfo("Golang version"),
 			"zone":         inputs.NewTagInfo("Zone name used for the request/response"),
 			"view":         inputs.NewTagInfo("View name"),
@@ -443,9 +459,9 @@ func (*promMeasurement) Info() *inputs.MeasurementInfo {
 			"rcode":        inputs.NewTagInfo("Upstream returned `RCODE`"),
 			"plugin":       inputs.NewTagInfo("The name of the plugin that made the write to the client"),
 			"name":         inputs.NewTagInfo("Handler name"),
-			"status":       inputs.NewTagInfo("HTTPs status code"),
-			"hash":         inputs.NewTagInfo("Is `sha512`"),
-			"value":        inputs.NewTagInfo("The returned hash value"),
+			"status":       inputs.NewTagInfo("HTTPS response status code."),
+			"hash":         inputs.NewTagInfo("Hash algorithm label for reload_version_info, such as `sha512`."),
+			"value":        inputs.NewTagInfo("Hash value label for reload_version_info."),
 			"instance":     inputs.NewTagInfo("Instance endpoint"),
 			"host":         inputs.NewTagInfo("Host name"),
 		},

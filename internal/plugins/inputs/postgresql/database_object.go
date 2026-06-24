@@ -56,9 +56,10 @@ type postgresqlObjectMeasurement struct{}
 //nolint:lll
 func (*postgresqlObjectMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: postgresqlObjectMeasurementName,
-		Cat:  point.Object,
-		Desc: "PostgreSQL object metrics([:octicons-tag-24: Version-1.76.0](../datakit/changelog-2025.md#cl-1.76.0))",
+		Name:   postgresqlObjectMeasurementName,
+		Cat:    point.Object,
+		Desc:   "PostgreSQL object metrics([:octicons-tag-24: Version-1.76.0](../datakit/changelog-2025.md#cl-1.76.0))",
+		DescZh: "PostgreSQL 数据库对象指标。",
 		Tags: map[string]interface{}{
 			"host":              &inputs.TagInfo{Desc: "The hostname of the PostgreSQL server"},
 			"server":            &inputs.TagInfo{Desc: "The server address of the PostgreSQL server. The value is `host:port`"},
@@ -69,13 +70,13 @@ func (*postgresqlObjectMeasurement) Info() *inputs.MeasurementInfo {
 			"port":              &inputs.TagInfo{Desc: "The port of the PostgreSQL server"},
 		},
 		Fields: map[string]interface{}{
-			"message":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Summary of database information"},
-			"uptime":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "The number of seconds that the server has been up"},
-			"slow_queries":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of queries that have taken more than long_query_time seconds. This counter increments regardless of whether the slow query log is enabled."},
-			"avg_query_time": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.TimestampUS, Desc: "The average time taken by a query to execute"},
-			"qps":            &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Gauge, Desc: "The number of queries executed by the database per second"},
-			"tps":            &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Gauge, Desc: "The number of transactions executed by the database per second"},
-			"slow_query_log": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Whether the slow query log is enabled. The value can OFF to disable the log or ON to enable the log."},
+			"message":        &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Serialized summary of collected PostgreSQL settings and schema metadata for this instance."},
+			"uptime":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationSecond, Desc: "Time in seconds since the PostgreSQL server last started."},
+			"slow_queries":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of queries that have taken more than long_query_time seconds. This counter increments regardless of whether the slow query log is enabled."},
+			"avg_query_time": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationUS, Desc: "Average execution time in microseconds across observed PostgreSQL queries."},
+			"qps":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.RequestsPerSec, Desc: "Current PostgreSQL query throughput in queries per second."},
+			"tps":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.RequestsPerSec, Desc: "Current PostgreSQL transaction throughput in transactions per second."},
+			"slow_query_log": &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Whether slow-query logging is enabled for this PostgreSQL instance, reported as `ON` or `OFF`."},
 		},
 	}
 }
@@ -674,12 +675,6 @@ func (ipt *Input) populateTablesData(tables []*tableInfo, database string) ([]*t
 			}
 		}
 
-		for _, t := range tableMap {
-			for _, v := range t.indexMap {
-				t.Indexes = append(t.Indexes, v)
-			}
-		}
-
 		// get partitions
 		if ipt.version.Major != 9 {
 			if partitionKeys, err := ipt.getPartitionKeys(tableIDs, database); err != nil {
@@ -748,6 +743,12 @@ func (ipt *Input) populateTablesData(tables []*tableInfo, database string) ([]*t
 	if len(tableIDs) > 0 {
 		if err := populateTable(tableIDs, database); err != nil {
 			return tables, fmt.Errorf("populate table data failed: %w", err)
+		}
+	}
+
+	for _, table := range tables {
+		for _, index := range table.indexMap {
+			table.Indexes = append(table.Indexes, index)
 		}
 	}
 
@@ -973,6 +974,7 @@ WHERE  contype = 'f'
 GROUP BY
     connamespace.nspname,
     con.conname,
+	con.conrelid,
     attrel.relname,
     refnamespace.nspname,
     refrel.relname,
@@ -1082,15 +1084,25 @@ func (ipt *Input) getColumns(tableIDs []string, database string) ([]*columnInfo,
 	return columns, nil
 }
 
-const sqlGetCalls = `
+const (
+	sqlGetCallsBefore13 = `
+select sum(calls) as calls, sum(total_time) as total_exec_time from pg_stat_statements;
+`
+	sqlGetCalls13Plus = `
 select sum(calls) as calls, sum(total_exec_time) as total_exec_time from pg_stat_statements;
 `
+)
 
 func (ipt *Input) getQPSAndAvgQueryTime() (float64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), ipt.Timeout.Duration)
 	defer cancel()
 
-	rows, err := ipt.service.QueryByDatabase(ctx, sqlGetCalls, "")
+	query := sqlGetCalls13Plus
+	if ipt.version.Major < 13 {
+		query = sqlGetCallsBefore13
+	}
+
+	rows, err := ipt.service.QueryByDatabase(ctx, query, "")
 	if err != nil {
 		return 0, fmt.Errorf("query columns failed: %w", err)
 	}

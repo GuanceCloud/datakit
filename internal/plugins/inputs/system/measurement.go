@@ -19,7 +19,10 @@ type measurement struct {
 
 //nolint:lll
 func (m *measurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{}
+	return &inputs.MeasurementInfo{
+		Desc:   "System metrics emitted with the runtime measurement name.",
+		DescZh: "使用运行时指标集名称上报的 system 指标。",
+	}
 }
 
 type conntrackMeasurement measurement
@@ -37,20 +40,21 @@ func (m *conntrackMeasurement) Point() *point.Point {
 //nolint:lll
 func (m *conntrackMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: metricNameConntrack,
-		Cat:  point.Metric,
-		Desc: "Connection track metrics (Linux only).",
+		Name:   metricNameConntrack,
+		Cat:    point.Metric,
+		Desc:   "Linux connection-tracking table usage and cumulative conntrack event counters.",
+		DescZh: "Linux 连接跟踪表使用情况和累计 conntrack 事件计数。",
 		Fields: map[string]interface{}{
-			"entries":             newFieldInfoCount("Current number of connections."),
-			"entries_limit":       newFieldInfoCount("The size of the connection tracking table."),
-			"stat_found":          newFieldInfoCount("The number of successful search entries."),
-			"stat_invalid":        newFieldInfoCount("The number of packets that cannot be tracked."),
-			"stat_ignore":         newFieldInfoCount("The number of reports that have been tracked."),
-			"stat_insert":         newFieldInfoCount("The number of packets inserted."),
-			"stat_insert_failed":  newFieldInfoCount("The number of packages that failed to insert."),
-			"stat_drop":           newFieldInfoCount("The number of packets dropped due to connection tracking failure."),
-			"stat_early_drop":     newFieldInfoCount("The number of partially tracked packet entries dropped due to connection tracking table full."),
-			"stat_search_restart": newFieldInfoCount("The number of connection tracking table query restarts due to hash table size modification."),
+			"entries":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Current number of connections."},
+			"entries_limit":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The size of the connection tracking table."},
+			"stat_found":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative number of successful connection-tracking lookups."},
+			"stat_invalid":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative number of packets that could not be tracked."},
+			"stat_ignore":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative number of packets ignored by connection tracking."},
+			"stat_insert":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative number of new connection-tracking entries inserted."},
+			"stat_insert_failed":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative number of connection-tracking entry insert failures."},
+			"stat_drop":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative number of packets dropped because connection tracking failed."},
+			"stat_early_drop":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative number of tracked entries dropped because the conntrack table was full."},
+			"stat_search_restart": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "Cumulative number of conntrack lookup restarts caused by hash-table changes."},
 		},
 		Tags: map[string]interface{}{
 			"host": &inputs.TagInfo{Desc: "hostname"},
@@ -73,12 +77,13 @@ func (m *filefdMeasurement) Point() *point.Point {
 //nolint:lll
 func (m *filefdMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: metricNameFilefd,
-		Cat:  point.Metric,
-		Desc: "System file handle metrics (Linux only).",
+		Name:   metricNameFilefd,
+		Cat:    point.Metric,
+		Desc:   "Linux open file handle allocation and limit metrics.",
+		DescZh: "Linux 已分配文件句柄数量和文件句柄上限指标。",
 		Fields: map[string]interface{}{
-			"allocated":    newFieldInfoCount("The number of allocated file handles."),
-			"maximum_mega": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount, Desc: "The maximum number of file handles, unit M(10^6)."},
+			"allocated":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of allocated file handles."},
+			"maximum_mega": &inputs.FieldInfo{Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount, Desc: "Maximum open file handles, expressed in millions."},
 		},
 		Tags: map[string]interface{}{
 			"host": &inputs.TagInfo{Desc: "hostname"},
@@ -101,34 +106,23 @@ func (m *systemMeasurement) Point() *point.Point {
 //nolint:lll
 func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: metricNameSystem,
-		Cat:  point.Metric,
-		Desc: "Basic information about system operation.",
+		Name:   metricNameSystem,
+		Cat:    point.Metric,
+		Desc:   "Host-wide CPU, load, memory, process, user, and uptime summary metrics.",
+		DescZh: "主机 CPU、负载、内存、进程、登录用户和运行时长汇总指标。",
 		Fields: map[string]interface{}{
-			"cpu_total_usage": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "The percentage of used CPU."},
-			"load1_per_core":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "CPU single core load average over the past 1 minute."},
-			"load1":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "CPU load average over the past 1 minute."},
-			"load15_per_core": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "CPU single core load average over the past 15 minutes."},
-			"load15":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "CPU load average over the past 15 minutes."},
-			"load5_per_core":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "CPU single core load average over the last 5 minutes."},
-			"load5":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "CPU load average over the past 5 minutes."},
-			"memory_usage":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "The percentage of used memory."},
+			"cpu_total_usage": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Percentage of host CPU time currently in use."},
+			"load1_per_core":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "One-minute load average normalized by logical CPU count."},
+			"load1":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "One-minute system load average."},
+			"load15_per_core": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "Fifteen-minute load average normalized by logical CPU count."},
+			"load15":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "Fifteen-minute system load average."},
+			"load5_per_core":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "Five-minute load average normalized by logical CPU count."},
+			"load5":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "Five-minute system load average."},
+			"memory_usage":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Percentage of host memory currently in use."},
 			"n_cpus":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "CPU logical core count."},
-			"n_users":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "User number."},
-			"process_count":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of Processes running on the machine."},
-			"uptime":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationSecond, Desc: "System uptime."},
+			"n_users":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of logged-in users."},
+			"process_count":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of processes currently running on the host."},
+			"uptime":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationSecond, Desc: "Time since the host last booted."},
 		},
-		Tags: map[string]interface{}{
-			"host": &inputs.TagInfo{Desc: "hostname"},
-		},
-	}
-}
-
-func newFieldInfoCount(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		Type:     inputs.Gauge,
-		DataType: inputs.Int,
-		Unit:     inputs.NCount,
-		Desc:     desc,
 	}
 }

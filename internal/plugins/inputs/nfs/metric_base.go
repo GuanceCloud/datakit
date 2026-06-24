@@ -25,8 +25,10 @@ type baseMeasurement struct {
 //nolint:lll
 func (m *baseMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 	return &inputs.MeasurementInfo{
-		Name: "nfs",
-		Cat:  point.Metric,
+		Name:   "nfs",
+		Cat:    point.Metric,
+		Desc:   "NFS client RPC and network counters collected from procfs, including protocol packet totals, RPC totals, retransmissions, authentication refreshes, and procedure counts.",
+		DescZh: "从 procfs 采集的 NFS 客户端 RPC 和网络计数指标，包含协议报文总数、RPC 总数、重传、认证刷新和过程调用次数。",
 		Fields: map[string]interface{}{
 			"tcp_packets_total": &inputs.FieldInfo{
 				Type:     inputs.Count,

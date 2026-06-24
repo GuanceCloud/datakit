@@ -265,6 +265,8 @@ func (wr *APIWriteResult) getIPInfo(req *http.Request) error {
 }
 
 const (
+	defaultHTTPAPIInputName = "http_api"
+
 	argPrecision            = "precision"
 	argInput                = "input"
 	argStorageIndex         = "storage_index"
@@ -351,7 +353,10 @@ func (wr *APIWriteResult) APIV1Write(req *http.Request) (err error) {
 		feedName = dkio.FeedSource(feedName, x)
 	}
 
-	wr.FeedOptions = append(wr.FeedOptions, dkio.WithSource(feedName))
+	wr.FeedOptions = append(wr.FeedOptions,
+		dkio.WithSource(feedName),
+		dkio.WithInput(defaultHTTPAPIInputName),
+	)
 
 	if x := q.Get(argPrecision); x != "" {
 		opts = append(opts, point.WithPrecision(point.PrecStr(x)))

@@ -107,7 +107,6 @@ test.jso
 test.output
 testing_metrics
 y.output
-.docs/
 *.sqlite
 datakit*.tar
 internal/plugins/externals/ebpf/cmd/datakit-ebpf/datakit-ebpf
@@ -120,6 +119,7 @@ export-songlq.sh
 
 # DCA files
 node_modules
+dca/.tmp/
 dca/web/build
 dca/web/src/config.ts
 !dca/dca.yaml

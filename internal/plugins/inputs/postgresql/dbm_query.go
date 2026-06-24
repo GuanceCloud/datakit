@@ -29,7 +29,8 @@ func (*dbmQueryObjectMeasurement) Info() *inputs.MeasurementInfo {
 		Name: dbmQueryObjectMeasurementID,
 		Cat:  point.Object,
 		//nolint:lll
-		Desc: "PostgreSQL DBM query object. Each object represents a unique normalized SQL statement identified by query_signature, which is derived from db, rolname, and query text.",
+		Desc:   "PostgreSQL DBM query object. Each object represents a unique normalized SQL statement identified by query_signature, which is derived from db, rolname, and query text.",
+		DescZh: "PostgreSQL DBM 查询对象，每个对象表示由 query_signature 标识的唯一规范化 SQL 语句。",
 		Tags: map[string]interface{}{
 			"name":              inputs.NewTagInfo("Object identity built from server, optional database_instance, and query_signature."),
 			"server":            inputs.NewTagInfo("The PostgreSQL server address"),
@@ -43,8 +44,9 @@ func (*dbmQueryObjectMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "The normalized/obfuscated SQL text.",
+				Type:     inputs.String,
+				Unit:     inputs.NoUnit,
+				Desc:     "Obfuscated normalized SQL text for this PostgreSQL query signature.",
 			},
 		},
 	}

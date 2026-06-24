@@ -27,8 +27,9 @@ import (
 var _ inputs.InputV2 = &Input{}
 
 const (
-	inputName    = "pinpoint"
-	sampleConfig = `
+	inputName             = "pinpoint"
+	agentStatsMeasurement = "pp-agentStats"
+	sampleConfig          = `
 [[inputs.pinpoint]]
   ## Pinpoint service endpoint for
   ## - Span Server

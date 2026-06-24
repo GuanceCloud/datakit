@@ -50,9 +50,10 @@ type sqlserverObjectMeasurement struct{}
 //nolint:lll
 func (*sqlserverObjectMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: sqlserverObjectMeasurementName,
-		Cat:  point.Object,
-		Desc: "SQLServer object metrics([:octicons-tag-24: Version-1.78.0](../datakit/changelog-2025.md#cl-1.78.0))",
+		Name:   sqlserverObjectMeasurementName,
+		Cat:    point.Object,
+		Desc:   "SQLServer object metrics([:octicons-tag-24: Version-1.78.0](../datakit/changelog-2025.md#cl-1.78.0))",
+		DescZh: "SQL Server 数据库对象指标。",
 		Tags: map[string]interface{}{
 			"host":              &inputs.TagInfo{Desc: "The hostname of the SQLServer server"},
 			"server":            &inputs.TagInfo{Desc: "The server address of the SQLServer server"},
@@ -63,13 +64,13 @@ func (*sqlserverObjectMeasurement) Info() *inputs.MeasurementInfo {
 			"port":              &inputs.TagInfo{Desc: "The port of the SQLServer server"},
 		},
 		Fields: map[string]interface{}{
-			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Summary of database information"},
-			"uptime":  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "The number of seconds that the server has been up"},
+			"message": &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Serialized summary of collected SQL Server settings and schema metadata for this instance."},
+			"uptime":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationSecond, Desc: "Time in seconds since the SQL Server instance last started."},
 			// "slow_queries":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of queries that have taken more than long_query_time seconds. This counter increments regardless of whether the slow query log is enabled."},
-			"avg_query_time": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.TimestampUS, Desc: "The average time taken by a query to execute"},
-			"qps":            &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Gauge, Desc: "The number of queries executed by the database per second"},
-			"tps":            &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Gauge, Desc: "The number of transactions executed by the database per second"},
-			// "slow_query_log": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Whether the slow query log is enabled. The value can be 0 (or OFF) to disable the log or 1 (or ON) to enable the log."},
+			"avg_query_time": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Average execution time in milliseconds across observed SQL Server queries."},
+			"qps":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.RequestsPerSec, Desc: "Current SQL Server query throughput in queries per second."},
+			"tps":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.RequestsPerSec, Desc: "Current SQL Server transaction throughput in transactions per second."},
+			// "slow_query_log": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.NoUnit, Desc: "Whether the slow query log is enabled. The value can be 0 (or OFF) to disable the log or 1 (or ON) to enable the log."},
 		},
 	}
 }

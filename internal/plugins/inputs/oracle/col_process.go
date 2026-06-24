@@ -113,7 +113,7 @@ func (ipt *Input) collectOracleProcess(ptsTime time.Time) {
 		pts,
 		dkio.WithCollectCost(time.Since(start)),
 		dkio.WithElection(ipt.Election),
-		dkio.WithSource(inputName),
+		dkio.WithSource(inputName), dkio.WithInput(inputName),
 		dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementOracle))); err != nil {
 		l.Warnf("feeder.Feed: %s, ignored", err)
 	}

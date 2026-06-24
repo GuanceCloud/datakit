@@ -41,9 +41,10 @@ func (m *dbmStateMeasurement) Point() *point.Point {
 
 func (m *dbmStateMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Desc: "Record the number of executions of the query statement, wait time, lock time, and the number of rows queried.",
-		Name: metricNameMySQLDbmMetric,
-		Cat:  point.Metric,
+		Desc:   "Record the number of executions of the query statement, wait time, lock time, and the number of rows queried.",
+		DescZh: "记录查询语句执行次数、等待时间、锁定时间和查询行数。",
+		Name:   metricNameMySQLDbmMetric,
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			// Total values (cumulative values from MySQL)
 			"count_star": &inputs.FieldInfo{

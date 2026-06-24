@@ -34,9 +34,10 @@ func (m *userMeasurement) Point() *point.Point {
 //nolint:lll
 func (m *userMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Desc: "MySQL user information",
-		Name: metricNameMySQLUserStatus,
-		Cat:  point.Metric,
+		Desc:   "MySQL user information",
+		DescZh: "MySQL 用户信息。",
+		Name:   metricNameMySQLUserStatus,
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			// status
 			"bytes_received": &inputs.FieldInfo{

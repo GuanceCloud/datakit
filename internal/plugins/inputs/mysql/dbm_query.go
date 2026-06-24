@@ -40,8 +40,9 @@ func (*dbmQueryObjectMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "The obfuscated/normalized SQL text (digest_text)",
+				Type:     inputs.String,
+				Unit:     inputs.NoUnit,
+				Desc:     "Obfuscated normalized SQL text for this MySQL query digest.",
 			},
 		},
 	}

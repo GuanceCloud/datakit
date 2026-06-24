@@ -38,6 +38,7 @@ func (i *instance) collectCommandStats(ctx context.Context) {
 		dkio.WithElection(i.ipt.Election),
 		dkio.WithSource(dkio.FeedSource(inputName, "cmdstat")),
 		dkio.WithMeasurement(inputs.GetOverrideMeasurement(i.ipt.MeasurementVersion, measureuemtRedis)),
+		dkio.WithInput(inputName),
 	); err != nil {
 		l.Warnf("feed measurement: %s, ignored", err)
 	}
@@ -111,8 +112,10 @@ type commandMeasurement struct{}
 //nolint:lll
 func (m *commandMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "redis_command_stat",
-		Cat:  point.Metric,
+		Name:   "redis_command_stat",
+		Desc:   "Redis command statistics collected from INFO commandstats.",
+		DescZh: "从 INFO commandstats 采集的 Redis 命令统计指标。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			"calls": &inputs.FieldInfo{
 				DataType: inputs.Float,
@@ -146,10 +149,10 @@ func (m *commandMeasurement) Info() *inputs.MeasurementInfo {
 			},
 		},
 		Tags: map[string]interface{}{
-			"host":         &inputs.TagInfo{Desc: "Hostname"},
-			"method":       &inputs.TagInfo{Desc: "Command type"},
-			"server":       &inputs.TagInfo{Desc: "Server addr"},
-			"service_name": &inputs.TagInfo{Desc: "Service name"},
+			"host":         &inputs.TagInfo{Desc: "Hostname of the Redis instance."},
+			"method":       &inputs.TagInfo{Desc: "Redis command name."},
+			"server":       &inputs.TagInfo{Desc: "Redis server address including port."},
+			"service_name": &inputs.TagInfo{Desc: "Configured Redis service name."},
 		},
 	}
 }

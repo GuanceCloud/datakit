@@ -212,6 +212,7 @@ func (ipt *Input) collectDbmSessionMetrics(activityRows []*OracleActivityRow, pt
 		dkio.WithElection(ipt.Election),
 		dkio.WithSource(dbmFeedName),
 		dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementOracle)),
+		dkio.WithInput(inputName),
 	); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
 			metrics.WithLastErrorInput(inputName),

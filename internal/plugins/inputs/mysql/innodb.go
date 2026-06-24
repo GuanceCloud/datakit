@@ -33,8 +33,10 @@ func (m *innodbMeasurement) Point() *point.Point {
 
 //nolint:lll
 var innoDBMeasurementInfo = &inputs.MeasurementInfo{
-	Name: metricNameMySQLInnodb,
-	Cat:  point.Metric,
+	Name:   metricNameMySQLInnodb,
+	Desc:   "MySQL InnoDB metrics collected from the configured server.",
+	DescZh: "从配置的 MySQL 服务器采集的 InnoDB 指标。",
+	Cat:    point.Metric,
 	Fields: map[string]interface{}{
 		"lock_deadlocks": &inputs.FieldInfo{
 			DataType: inputs.Int,

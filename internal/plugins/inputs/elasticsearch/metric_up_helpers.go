@@ -111,7 +111,7 @@ func (ipt *Input) FeedUpMetric(server string) {
 		if err := ipt.feeder.Feed(point.Metric, pts,
 			dkio.WithCollectCost(time.Since(time.Now())),
 			dkio.WithElection(ipt.Election),
-			dkio.WithSource(inputName),
+			dkio.WithSource(inputName), dkio.WithInput(inputName),
 		); err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),

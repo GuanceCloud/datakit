@@ -8,6 +8,7 @@ package server
 import (
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	ws "gitlab.jiagouyun.com/cloudcare-tools/datakit/dca/websocket"
@@ -105,8 +106,23 @@ func (h *handler) send(res *ws.DCAResponse) {
 			Code:      500,
 		}
 	}
+	normalizeDCAResponse(res)
 
 	h.c.JSON(http.StatusOK, res)
+}
+
+func normalizeDCAResponse(res *ws.DCAResponse) {
+	if res.Success {
+		return
+	}
+
+	if res.Code >= http.StatusInternalServerError && isDCAParamError(res.ErrorCode) {
+		res.Code = http.StatusBadRequest
+	}
+}
+
+func isDCAParamError(errorCode string) bool {
+	return errorCode == "param.invalid" || strings.HasPrefix(errorCode, "params.")
 }
 
 func (h *handler) getCookie(name string) string {

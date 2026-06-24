@@ -130,7 +130,7 @@ func (ipt *Input) Run() {
 				if err := ipt.feeder.Feed(point.Metric, pts,
 					dkio.WithCollectCost(time.Since(start)),
 					dkio.WithElection(ipt.Election),
-					dkio.WithSource(inputName),
+					dkio.WithSource(inputName), dkio.WithInput(inputName),
 				); err != nil {
 					l.Errorf("io.Feed: %s, ignored", err)
 				}

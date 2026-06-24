@@ -47,6 +47,15 @@ var (
 	defaultFeederFun = func() Feeder { return &ioFeeder{} }
 )
 
+const (
+	// InputSourceTagKey identifies the input source that produced a metric point.
+	InputSourceTagKey = "__input_source"
+
+	dkInputSourcePrefix = "dk."
+	unknownInputName    = "unknown"
+	pipelineInputName   = "pipeline"
+)
+
 // GetFeedData create or get-back a raw feed-option.
 func GetFeedData() *feedData {
 	if fd := feedOptionPool.Get(); fd == nil {
@@ -60,6 +69,7 @@ func GetFeedData() *feedData {
 func putFeedData(fd *feedData) {
 	fd.collectCost = 0
 	fd.input = "unknown"
+	fd.inputName = ""
 	fd.version = ""
 	fd.storageIndex = ""
 	fd.noGlobalTags = false
@@ -101,6 +111,7 @@ type feedData struct {
 
 	storageIndex,
 	input,
+	inputName,
 	measurement,
 	version string
 
@@ -170,6 +181,7 @@ func WithInputVersion(v string) FeedOption { return func(fd *feedData) { fd.vers
 func WithSyncSend(on bool) FeedOption      { return func(fd *feedData) { fd.syncSend = on } }
 func WithElection(on bool) FeedOption      { return func(fd *feedData) { fd.election = on } }
 func WithSource(name string) FeedOption    { return func(fd *feedData) { fd.input = name } }
+func WithInput(name string) FeedOption     { return func(fd *feedData) { fd.inputName = name } }
 
 // WithStorageIndex set storage index name on curren feed.
 // Currently only category L allowed to set set storage index name.
@@ -265,6 +277,9 @@ func (f *ioFeeder) Feed(cat point.Category, pts []*point.Point, opts ...FeedOpti
 	fdata.cat = cat
 	fdata.pts = pts
 
+	// Attach the collector input to metric points.
+	f.addMetricInputTag(fdata)
+
 	if fdata.collectCost > 0 {
 		inputsCollectLatencyVec.WithLabelValues(fdata.input, cat.String()).Observe(float64(fdata.collectCost) / float64(time.Second))
 	}
@@ -308,6 +323,8 @@ func PLAggFeed(cat point.Category, name string, data any) error {
 	fd.pts = pts
 	fd.cat = cat
 	fd.input = name
+	fd.inputName = pipelineInputName
+	setMetricInputTag(fd)
 
 	if defIO.foDataway != nil {
 		return defIO.foDataway.Write(fd)
@@ -485,8 +502,10 @@ func (x *dkIO) doFeed(fd *feedData) error {
 
 			ptsCreateOpt := GetFeedData()
 			ptsCreateOpt.input = "pipeline/create_point"
+			ptsCreateOpt.inputName = pipelineInputName
 			ptsCreateOpt.cat = cat
 			ptsCreateOpt.pts = v
+			setMetricInputTag(ptsCreateOpt)
 
 			if err := x.foDataway.Write(ptsCreateOpt); err != nil {
 				log.Warnf("send pts created by the script: %s", err.Error())
@@ -497,6 +516,28 @@ func (x *dkIO) doFeed(fd *feedData) error {
 	}
 	log.Warnf("feed output not set, ignored")
 	return nil
+}
+func (*ioFeeder) addMetricInputTag(fd *feedData) {
+	setMetricInputTag(fd)
+}
+
+func setMetricInputTag(fd *feedData) {
+	if fd.cat != point.Metric {
+		return
+	}
+
+	if fd.inputName == "" {
+		fd.inputName = unknownInputName
+	}
+
+	for _, pt := range fd.pts {
+		pt.SetTag(InputSourceTagKey, InputSourceTagValue(fd.inputName))
+	}
+}
+
+// InputSourceTagValue returns the input source tag value emitted by DataKit.
+func InputSourceTagValue(input string) string {
+	return dkInputSourcePrefix + input
 }
 
 func correctPointTime(pts []*point.Point, now time.Time, bias float64) ([]*point.Point, int) {

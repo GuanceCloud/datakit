@@ -83,7 +83,7 @@ temp2:
 
 | 指标               | 类型       | 指标源       | 单位          | 描述                                                                               |
 | ------------------ | ---------- | ------------ | ------------- | ---------------------------------------------------------------------------------- |
-| tmep\*\_crit       | inputs.Int | inputs.Gauge | inputs.NCount | critical temperature of this chip, '\*' is the order number in the chip list.      |
-| temp\*\_crit_alarm | inputs.Int | inputs.Gauge | inputs.NCount | alarm count, '\*' is the order number in the chip list.                            |
-| temp\*\_input      | inputs.Int | inputs.Gauge | inputs.NCount | current input temperature of this chip, '\*' is the order number in the chip list. |
-| tmep\*\_max        | inputs.Int | inputs.Gauge | inputs.NCount | max temperature of this chip, '\*' is the order number in the chip list.           |
+| temp\*\_crit       | inputs.Float | inputs.Gauge | inputs.Celsius | critical temperature threshold for this sensor, where '\*' is the sensor index.      |
+| temp\*\_crit_alarm | inputs.Float | inputs.Gauge | inputs.Bool    | whether the critical temperature alarm is active for this sensor, where '\*' is the sensor index. |
+| temp\*\_input      | inputs.Float | inputs.Gauge | inputs.Celsius | current input temperature reported by this sensor, where '\*' is the sensor index. |
+| temp\*\_max        | inputs.Float | inputs.Gauge | inputs.Celsius | maximum temperature threshold for this sensor, where '\*' is the sensor index.     |

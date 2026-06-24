@@ -41,9 +41,10 @@ func (m *mongodbMeasurement) Point() *point.Point {
 //nolint:lll
 func (m *mongodbMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: MongoDB,
-		Cat:  point.Metric,
-		Desc: "MongoDB measurement. Some metrics may not appear depending on the MongoDB version or DB running status.",
+		Name:   MongoDB,
+		Desc:   "MongoDB serverStatus metrics collected from the configured MongoDB instance.",
+		DescZh: "从配置的 MongoDB 实例采集的 serverStatus 指标。",
+		Cat:    point.Metric,
 		Tags: map[string]interface{}{
 			"database_instance": &inputs.TagInfo{Desc: mongodbDatabaseInstanceDesc},
 			"host":              &inputs.TagInfo{Desc: "mongodb host"},
@@ -242,9 +243,10 @@ func (m *mongodbDBMeasurement) Point() *point.Point {
 //nolint:lll
 func (m *mongodbDBMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: MongoDBStats,
-		Cat:  point.Metric,
-		Desc: "MongoDB stats measurement. Some metrics may not appear depending on the MongoDB version or DB running status.",
+		Name:   MongoDBStats,
+		Cat:    point.Metric,
+		Desc:   "MongoDB stats measurement. Some metrics may not appear depending on the MongoDB version or DB running status.",
+		DescZh: "MongoDB 数据库统计指标，部分指标会随 MongoDB 版本或数据库运行状态变化。",
 		Tags: map[string]interface{}{
 			"database_instance": &inputs.TagInfo{Desc: mongodbDatabaseInstanceDesc},
 			"db_name":           &inputs.TagInfo{Desc: "database name"},
@@ -309,9 +311,10 @@ func (m *mongodbColMeasurement) Point() *point.Point {
 //nolint:lll
 func (m *mongodbColMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: MongoDBColStats,
-		Desc: "MongoDB collection measurement. Some metrics may not appear depending on the MongoDB version or DB running status.",
-		Cat:  point.Metric,
+		Name:   MongoDBColStats,
+		Desc:   "MongoDB collection measurement. Some metrics may not appear depending on the MongoDB version or DB running status.",
+		DescZh: "MongoDB 集合统计指标，部分指标会随 MongoDB 版本或数据库运行状态变化。",
+		Cat:    point.Metric,
 		Tags: map[string]interface{}{
 			"collection":        &inputs.TagInfo{Desc: "collection name"},
 			"database_instance": &inputs.TagInfo{Desc: mongodbDatabaseInstanceDesc},
@@ -375,9 +378,10 @@ func (m *mongodbShardMeasurement) Point() *point.Point {
 //nolint:lll
 func (m *mongodbShardMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: MongoDBShardStats,
-		Cat:  point.Metric,
-		Desc: "MongoDB shard measurement. Some metrics may not appear depending on the MongoDB version or DB running status.",
+		Name:   MongoDBShardStats,
+		Cat:    point.Metric,
+		Desc:   "MongoDB shard measurement. Some metrics may not appear depending on the MongoDB version or DB running status.",
+		DescZh: "MongoDB 分片连接统计指标，部分指标会随 MongoDB 版本或数据库运行状态变化。",
 		Tags: map[string]interface{}{
 			"database_instance": &inputs.TagInfo{Desc: mongodbDatabaseInstanceDesc},
 			"host":              &inputs.TagInfo{Desc: "mongodb host"},
@@ -413,9 +417,10 @@ func (m *mongodbTopMeasurement) Point() *point.Point {
 //nolint:lll
 func (m *mongodbTopMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: MongoDBTopStats,
-		Cat:  point.Metric,
-		Desc: "MongoDB top measurement. Some metrics may not appear depending on the MongoDB version or DB running status.",
+		Name:   MongoDBTopStats,
+		Cat:    point.Metric,
+		Desc:   "MongoDB top measurement. Some metrics may not appear depending on the MongoDB version or DB running status.",
+		DescZh: "MongoDB top 命令统计指标，部分指标会随 MongoDB 版本或数据库运行状态变化。",
 		Tags: map[string]interface{}{
 			"collection":        &inputs.TagInfo{Desc: "collection name"},
 			"database_instance": &inputs.TagInfo{Desc: mongodbDatabaseInstanceDesc},

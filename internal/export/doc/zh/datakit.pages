@@ -12,6 +12,7 @@ nav:
       - 'Docker': datakit-docker-deploy.md
       - 'AWS ECS Fargate': ecs-fargate.md
       - 'AWS EKS': datakit-eks-deploy.md
+      - 'GCP GKE Autopilot': gcp-gke-autopilot.md
     - '批量安装': datakit-batch-deploy.md
     - '离线安装': datakit-offline-install.md
 

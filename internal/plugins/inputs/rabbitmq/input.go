@@ -292,15 +292,6 @@ func (ipt *Input) requestJSON(u string, target interface{}) error {
 	return json.NewDecoder(resp.Body).Decode(target)
 }
 
-func newCountFieldInfo(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		DataType: inputs.Int,
-		Type:     inputs.Count,
-		Unit:     inputs.NCount,
-		Desc:     desc,
-	}
-}
-
 func defaultInput() *Input {
 	return &Input{
 		Interval: datakit.Duration{Duration: time.Second * 10},

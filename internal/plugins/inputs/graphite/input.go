@@ -332,7 +332,7 @@ func (ipt *Input) sendMetric(measurements []*graphiteMetric, start time.Time) {
 	if len(pts) > 0 {
 		if err := ipt.feeder.Feed(point.Metric, pts,
 			dkio.WithCollectCost(time.Since(start)),
-			dkio.WithSource(inputName),
+			dkio.WithSource(inputName), dkio.WithInput(inputName),
 		); err != nil {
 			ipt.feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),

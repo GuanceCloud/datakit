@@ -132,14 +132,26 @@ func (*loggingMeasurement) Info() *inputs.MeasurementInfo {
 		Cat:            point.Logging,
 		MetaDuplicated: true,
 		Desc:           "Using `source` field in the config file, default is `default`.",
+		DescZh:         "使用配置中的 `source` 字段作为采集源名称，默认值为 `default`。",
 		Tags: map[string]interface{}{
-			"filepath": inputs.NewTagInfo(`This item source file, full path.`), // log.file.path
-			"host":     inputs.NewTagInfo(`Host name.`),                        // host.name
-			"service":  inputs.NewTagInfo("Service name, equal to `service` field in the config file."),
+			"filepath":            inputs.NewTagInfo(`This item source file, full path.`), // log.file.path
+			"host":                inputs.NewTagInfo(`Host name.`),                        // host.name
+			"service":             inputs.NewTagInfo("Service name, equal to `service` field in the config file."),
+			"collector_source_ip": inputs.NewTagInfo("Client socket IP address that sends beats payloads."),
 		},
 		Fields: map[string]interface{}{
-			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.NoUnit, Desc: "Message text, existed when default. Could use Pipeline to delete this field."}, // message
-			"status":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.NoUnit, Desc: "Log status."},
+			"message": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Unit:     inputs.NoUnit,
+				Desc:     "Message text, existed when default. Could use Pipeline to delete this field.",
+				Taggedby: []string{"host", "filepath", "service", "collector_source_ip"},
+			}, // message
+			"status": &inputs.FieldInfo{
+				DataType: inputs.String,
+				Unit:     inputs.NoUnit,
+				Desc:     "Normalized status value assigned to the collected log entry.",
+				Taggedby: []string{"host", "filepath", "service", "collector_source_ip"},
+			},
 		},
 	}
 }

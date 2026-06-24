@@ -33,6 +33,19 @@ const sampleCfg = `
   # object_collect_interval = "5m"     # Default: 5m
   # logging_search_interval = "60s"    # Default: 60s
 
+  # GKE Autopilot Cloud API mode. Authentication uses Workload Identity through
+  # the GKE metadata server; project, cluster, and location are auto-discovered.
+  # gcp_cloud_api_enabled        = false
+  # Optional overrides for cross-project or non-standard collection:
+  # gcp_project_id               = "my-project"
+  # gcp_cluster_name             = "my-autopilot-cluster"
+  # gcp_cluster_location         = "us-central1"
+  # Advanced feature overrides (both enabled by default):
+  # enable_gcp_cloud_monitoring  = true
+  # enable_gcp_cloud_logging     = true
+  # gcp_cloud_logging_lookback   = "2m"
+  # gcp_cloud_logging_overlap    = "2m"
+
   # Feature toggles
   enable_container_metric = true  # Collect container metrics
   enable_k8s_metric       = true  # Collect Kubernetes metrics

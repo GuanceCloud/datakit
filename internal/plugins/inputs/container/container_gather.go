@@ -50,7 +50,9 @@ func (c *containerCollector) gatherMetric() {
 		var kvs point.KVs
 		kvs = kvs.AddTag("namespace", ns)
 		kvs = kvs.Add("container", count)
-		kvs = kvs.AddTag("node_name", c.localNodeName)
+		if c.localNodeName != "" {
+			kvs = kvs.AddTag("node_name", c.localNodeName)
+		}
 
 		pt := point.NewPoint("kubernetes", kvs, append(opts, point.WithTime(c.ptsTime))...)
 		pts = append(pts, pt)
@@ -61,8 +63,9 @@ func (c *containerCollector) gatherMetric() {
 	if err := c.feeder.Feed(
 		point.Metric,
 		pts,
-		dkio.WithElection(false),
+		dkio.WithElection(c.election),
 		dkio.WithSource("container-metric"),
+		dkio.WithInput(inputName),
 	); err != nil {
 		l.Warnf("container-metric feed failed, err: %s", err)
 	}
@@ -86,7 +89,7 @@ func (c *containerCollector) gatherObject() {
 	if err := c.feeder.Feed(
 		point.Object,
 		pts,
-		dkio.WithElection(false),
+		dkio.WithElection(c.election),
 		dkio.WithSource("container-object"),
 	); err != nil {
 		l.Warnf("container-object feed failed, err: %s", err)
@@ -148,6 +151,7 @@ func (c *containerCollector) buildMetricPoints(item *runtime.Container) *point.P
 		podname       = getPodNameForLabels(item.Labels)
 		namespace     = getPodNamespaceForLabels(item.Labels)
 		image         = item.Image
+		nodeName      string
 	)
 
 	if c.k8sClient != nil && podname != "" {
@@ -158,6 +162,7 @@ func (c *containerCollector) buildMetricPoints(item *runtime.Container) *point.P
 		if err != nil {
 			l.Warnf("query pod failed, err: %s", err)
 		} else {
+			kvs = kvs.SetTag("pod_uid", string(pod.UID))
 			if img := podutil.ContainerImageFromPod(containerName, pod); img != "" {
 				image = img
 			}
@@ -166,11 +171,16 @@ func (c *containerCollector) buildMetricPoints(item *runtime.Container) *point.P
 			kvs = append(kvs, pointutil.LabelsToPointKVs(pod.Labels,
 				c.podLabelAsTagsForMetric.all,
 				c.podLabelAsTagsForMetric.keys)...)
+			nodeName = pod.Spec.NodeName
 		}
 	}
 
 	kvs = kvs.AddTag("image", image)
 	kvs = append(kvs, point.NewTags(c.extraTags)...)
+
+	if c.leaderOnly && nodeName != "" {
+		kvs = kvs.SetTag("host", nodeName)
+	}
 
 	return point.NewPoint(containerMeasurement, kvs,
 		append(point.DefaultMetricOptions(), point.WithTime(c.ptsTime))...)
@@ -194,6 +204,7 @@ func (c *containerCollector) buildObjectPoint(item *runtime.Container) *point.Po
 		podname       = getPodNameForLabels(item.Labels)
 		namespace     = getPodNamespaceForLabels(item.Labels)
 		image         = item.Image
+		nodeName      string
 	)
 
 	if c.k8sClient != nil && podname != "" {
@@ -201,6 +212,7 @@ func (c *containerCollector) buildObjectPoint(item *runtime.Container) *point.Po
 		if err != nil {
 			l.Warnf("query pod failed, err: %s", err)
 		} else {
+			kvs = kvs.SetTag("pod_uid", string(pod.UID))
 			if img := podutil.ContainerImageFromPod(containerName, pod); img != "" {
 				// 优先使用 Pod 存在的 image
 				image = img
@@ -212,6 +224,7 @@ func (c *containerCollector) buildObjectPoint(item *runtime.Container) *point.Po
 
 			// 容器的 message 包含 Labels，k8s message 不包含 Labels
 			kvs = append(kvs, pointutil.LabelsToPointKVs(pod.Labels, c.podLabelAsTagsForNonMetric.all, c.podLabelAsTagsForNonMetric.keys)...)
+			nodeName = pod.Spec.NodeName
 		}
 	}
 
@@ -222,6 +235,11 @@ func (c *containerCollector) buildObjectPoint(item *runtime.Container) *point.Po
 	msg := pointutil.PointKVsToJSON(kvs)
 	kvs = kvs.Add("message", pointutil.TrimString(msg, maxMessageLength))
 	kvs = append(kvs, point.NewTags(c.extraTags)...)
+
+	if c.leaderOnly && nodeName != "" {
+		kvs = kvs.SetTag("host", nodeName)
+	}
+
 	return point.NewPoint(containerMeasurement, kvs,
 		append(point.DefaultObjectOptions(), point.WithTime(ntp.Now()))...)
 }
@@ -379,8 +397,11 @@ func getPodUIDForLabels(labels map[string]string) string {
 }
 
 func containerIsFromKubernetes(labels map[string]string) bool {
-	uid, ok := labels["io.kubernetes.pod.uid"]
-	return ok && uid != ""
+	if labels["io.kubernetes.pod.uid"] != "" {
+		return true
+	}
+	return labels["io.kubernetes.pod.name"] != "" &&
+		labels["io.kubernetes.pod.namespace"] != ""
 }
 
 func getPodNamespaceForLabels(labels map[string]string) string {

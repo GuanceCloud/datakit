@@ -13,12 +13,14 @@ import (
 type swapMetric struct{}
 
 var swapMeasurement = &inputs.MeasurementInfo{
-	Name: metricName,
-	Cat:  point.Metric,
+	Name:   metricName,
+	Desc:   "Host swap memory usage and cumulative swap I/O statistics.",
+	DescZh: "主机交换分区内存使用情况和累计 swap I/O 统计。",
+	Cat:    point.Metric,
 	Fields: map[string]interface{}{
 		"total": &inputs.FieldInfo{
 			Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
-			Desc: "Host swap memory free.",
+			Desc: "Total host swap memory.",
 		},
 		"used": &inputs.FieldInfo{
 			Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
@@ -26,17 +28,17 @@ var swapMeasurement = &inputs.MeasurementInfo{
 		},
 		"free": &inputs.FieldInfo{
 			Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
-			Desc: "Host swap memory total.",
+			Desc: "Host swap memory free.",
 		},
 		"used_percent": &inputs.FieldInfo{
 			Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
 			Desc: "Host swap memory percentage used.",
 		},
-		"in": &inputs.FieldInfo{
+		"sin": &inputs.FieldInfo{
 			Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
 			Desc: "Moving data from swap space to main memory of the machine.",
 		},
-		"out": &inputs.FieldInfo{
+		"sout": &inputs.FieldInfo{
 			Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.SizeByte,
 			Desc: "Moving main memory contents to swap disk when main memory space fills up.",
 		},

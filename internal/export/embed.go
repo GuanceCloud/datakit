@@ -12,4 +12,7 @@ import (
 //go:embed doc/*
 var AllDocs embed.FS
 
+//go:embed measurements_meta_i18n.json
+var measurementsMetaI18nJSON []byte
+
 var AllTemplates *embed.FS = nil

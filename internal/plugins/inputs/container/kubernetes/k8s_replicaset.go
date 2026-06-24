@@ -178,9 +178,10 @@ type ReplicasetMetric struct{}
 //nolint:lll
 func (*ReplicasetMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: replicasetMetricMeasurement,
-		Desc: "The metric of the Kubernetes ReplicaSet.",
-		Cat:  point.Metric,
+		Name:   replicasetMetricMeasurement,
+		Desc:   "The metric of the Kubernetes ReplicaSet.",
+		DescZh: "Kubernetes ReplicaSet 指标，记录期望、就绪、可用和完全标签匹配的副本数量。",
+		Cat:    point.Metric,
 		Tags: map[string]interface{}{
 			"uid":              inputs.NewTagInfo("The UID of ReplicaSet."),
 			"replicaset":       inputs.NewTagInfo("Name must be unique within a namespace."),
@@ -188,11 +189,11 @@ func (*ReplicasetMetric) Info() *inputs.MeasurementInfo {
 			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
-			"replicas":               &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The most recently observed number of replicas."},
-			"replicas_desired":       &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of desired replicas."},
-			"replicas_ready":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of ready replicas for this replica set."},
-			"replicas_available":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of available replicas (ready for at least minReadySeconds) for this replica set."},
-			"fully_labeled_replicas": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of fully labeled replicas per ReplicaSet."},
+			"replicas":               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The most recently observed number of replicas."},
+			"replicas_desired":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of desired replicas."},
+			"replicas_ready":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of ready replicas for this replica set."},
+			"replicas_available":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of available replicas (ready for at least minReadySeconds) for this replica set."},
+			"fully_labeled_replicas": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of fully labeled replicas per ReplicaSet."},
 		},
 	}
 }
@@ -202,9 +203,10 @@ type ReplicasetObject struct{}
 //nolint:lll
 func (*ReplicasetObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: replicasetObjectClass,
-		Desc: "The object of the Kubernetes ReplicaSet.",
-		Cat:  point.Object,
+		Name:   replicasetObjectClass,
+		Desc:   "The object of the Kubernetes ReplicaSet.",
+		DescZh: "Kubernetes ReplicaSet 对象信息，记录副本状态、可用状态和对象详情。",
+		Cat:    point.Object,
 		Tags: map[string]interface{}{
 			"name":                              inputs.NewTagInfo("The UID of ReplicaSet."),
 			"uid":                               inputs.NewTagInfo("The UID of ReplicaSet."),
@@ -217,14 +219,14 @@ func (*ReplicasetObject) Info() *inputs.MeasurementInfo {
 			"&lt;ALL-SELECTOR-MATCH-LABELS&gt;": inputs.NewTagInfo("Represents the selector.matchLabels for Kubernetes resources"),
 		},
 		Fields: map[string]interface{}{
-			"age":                &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},
-			"replicas":           &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The most recently observed number of replicas."},
-			"replicas_desired":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of desired replicas."},
-			"replicas_ready":     &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of ready replicas for this replica set."},
-			"replicas_available": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of available replicas (ready for at least minReadySeconds) for this replica set."},
-			"message":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Object details"},
-			"ready":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The number of ready replicas for this replica set. (Deprecated)"},
-			"available":          &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The number of available replicas (ready for at least minReadySeconds) for this replica set. (Deprecated)"},
+			"age":                &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationSecond, Desc: "Age (seconds)"},
+			"replicas":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The most recently observed number of replicas."},
+			"replicas_desired":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of desired replicas."},
+			"replicas_ready":     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of ready replicas for this replica set."},
+			"replicas_available": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The number of available replicas (ready for at least minReadySeconds) for this replica set."},
+			"message":            &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Serialized Kubernetes object details for this resource."},
+			"ready":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Deprecated alias for the number of ready replicas in this ReplicaSet."},
+			"available":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Deprecated alias for the number of available replicas in this ReplicaSet."},
 		},
 	}
 }

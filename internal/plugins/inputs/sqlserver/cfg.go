@@ -19,7 +19,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/tailer"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/util"
 )
@@ -337,78 +336,6 @@ type sqlserverlog struct {
 	Pipeline          string   `toml:"pipeline"`
 	IgnoreStatus      []string `toml:"ignore"`
 	CharacterEncoding string   `toml:"character_encoding"`
-}
-
-func newCountFieldInfo(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		DataType: inputs.Int,
-		Type:     inputs.Count,
-		Unit:     inputs.NCount,
-		Desc:     desc,
-	}
-}
-
-func newStringFieldInfo(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		DataType: inputs.String,
-		Type:     inputs.String,
-		Unit:     inputs.TODO,
-		Desc:     desc,
-	}
-}
-
-func newTimeFieldInfo(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		DataType: inputs.Int,
-		Type:     inputs.Gauge,
-		Unit:     inputs.DurationMS,
-		Desc:     desc,
-	}
-}
-
-func newByteFieldInfo(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		DataType: inputs.Int,
-		Type:     inputs.Gauge,
-		Unit:     inputs.SizeByte,
-		Desc:     desc,
-	}
-}
-
-func newMByteFieldInfo(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		DataType: inputs.Float,
-		Type:     inputs.Gauge,
-		Unit:     inputs.SizeMB,
-		Desc:     desc,
-	}
-}
-
-func newIntKByteFieldInfo(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		DataType: inputs.Int,
-		Type:     inputs.Gauge,
-		Unit:     inputs.SizeKB,
-		Desc:     desc,
-	}
-}
-
-func newBoolFieldInfo(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		DataType: inputs.Bool,
-		Type:     inputs.Gauge,
-		Unit:     inputs.NoUnit,
-		Desc:     desc,
-	}
-}
-
-func newPercentFieldInfo(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		DataType: inputs.Float,
-		Type:     inputs.Gauge,
-		Unit:     inputs.Percent,
-		Desc:     desc,
-	}
 }
 
 func transformData(measurement string, kvs point.KVs) point.KVs {

@@ -11,6 +11,9 @@ import (
 	"net/http/httptest"
 	"net/http/httputil"
 	"net/url"
+	"os"
+	"path/filepath"
+	"runtime"
 	T "testing"
 	"time"
 
@@ -327,4 +330,63 @@ func TestUpgrader(t *T.T) {
 	t.Run("with-https-proxy", func(t *T.T) {
 		t.Skip("TODO")
 	})
+}
+
+func TestDoUpgradeRunsScriptInWritableInstallDir(t *T.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("shell script cwd assertion is for non-Windows upgrader")
+	}
+
+	installDir := t.TempDir()
+	scriptFile := filepath.Join(installDir, "install.sh")
+	script := `#!/bin/sh
+set -eu
+script_dir="$(cd "$(dirname "$0")" && pwd -P)"
+pwd_dir="$(pwd -P)"
+tmp_dir="$(cd "${TMPDIR:-}" && pwd -P)"
+if [ "$pwd_dir" != "$script_dir" ]; then
+	echo "unexpected pwd: $pwd_dir, want: $script_dir" >&2
+	exit 23
+fi
+if [ "$tmp_dir" != "$script_dir" ]; then
+	echo "unexpected TMPDIR: $tmp_dir, want: $script_dir" >&2
+	exit 24
+fi
+`
+	assert.NoError(t, os.WriteFile(scriptFile, []byte(script), 0o755))
+
+	u := upgraderImpl{
+		upgradeStatus: atomic.NewInt32(0),
+		c: &MainConfig{
+			InstallDir: installDir,
+		},
+	}
+
+	assert.NoError(t, u.doUpgrade(scriptFile, ""))
+}
+
+func TestFormatUpgradeEnvsForLogRedactsSensitiveValues(t *T.T) {
+	envs := []string{
+		"PATH=/usr/bin:/bin",
+		"DK_UPGRADE=1",
+		"GUANCE_API_KEY_DF=secret-api-key",
+		"OSS_SECRET_KEY=secret-oss-key",
+		"HTTPS_PROXY=http://user:pass@127.0.0.1:7890",
+		"PASSWORD=secret-password",
+		"MALFORMED_ENV",
+	}
+
+	logText := formatUpgradeEnvsForLog(envs)
+
+	assert.Contains(t, logText, "PATH=/usr/bin:/bin")
+	assert.Contains(t, logText, "DK_UPGRADE=1")
+	assert.Contains(t, logText, "GUANCE_API_KEY_DF=******")
+	assert.Contains(t, logText, "OSS_SECRET_KEY=******")
+	assert.Contains(t, logText, "HTTPS_PROXY=******")
+	assert.Contains(t, logText, "PASSWORD=******")
+	assert.Contains(t, logText, "MALFORMED_ENV")
+	assert.NotContains(t, logText, "secret-api-key")
+	assert.NotContains(t, logText, "secret-oss-key")
+	assert.NotContains(t, logText, "user:pass")
+	assert.NotContains(t, logText, "secret-password")
 }

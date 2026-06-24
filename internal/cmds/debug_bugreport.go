@@ -18,7 +18,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -34,6 +33,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/sensitive"
 )
 
 type datakitInfo struct {
@@ -293,13 +293,7 @@ func (info *datakitInfo) collectInfo() error {
 			if len(parts) >= 2 {
 				key := parts[0]
 				value := strings.Join(parts[1:], "=")
-				if info.containString(key, []string{
-					"password",
-					"token",
-					"key",
-					"key_pw",
-					"secret",
-				}) {
+				if sensitive.IsSensitiveKey(key) {
 					value = "******"
 				}
 				if key == "ENV_DATAWAY" {
@@ -370,30 +364,7 @@ func (info *datakitInfo) collectData() error {
 }
 
 func (info *datakitInfo) escapeString(str string, kinds []string) string {
-	for _, kind := range kinds {
-		switch kind {
-		case "dataway":
-			str = regexp.MustCompile(`token=tkn_[A-Za-z0-9_]+`).ReplaceAllString(str, `token=******`)
-		case "password":
-			str = regexp.MustCompile(`(pass|password|bearer_token_string|sk|token)\s*=\s*(".*")`).ReplaceAllString(str, `${1} = "******"`)
-			str = regexp.MustCompile(`('--password'\s*,\s*)'.*'\s*,`).ReplaceAllString(str, `${1}'******',`)
-		case "uri":
-			str = regexp.MustCompile(`(["']?[A-Za-z0-9]+)\:\/\/([A-Za-z0-9_]+)\:(.+)\@`).ReplaceAllString(str, `${1}://${2}:******@`)
-		default:
-		}
-	}
-
-	return str
-}
-
-func (info *datakitInfo) containString(str string, substrs []string) bool {
-	for _, substr := range substrs {
-		if strings.Contains(strings.ToLower(str), strings.ToLower(substr)) {
-			return true
-		}
-	}
-
-	return false
+	return sensitive.RedactBugReportString(str, kinds)
 }
 
 func (info *datakitInfo) makeDir(name string) (string, error) {

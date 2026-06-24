@@ -25,6 +25,7 @@ func (m *demoMetric2) Info() *inputs.MeasurementInfo {
 		Cat:        point.Metric,
 		ExportSkip: true,
 		Desc:       "这是一个指标集的 demo(**务必加上每个指标集的描述**)",
+		DescZh:     "用于演示 DataKit 指标类 MeasurementInfo 元数据结构的第二个示例指标集。",
 		Tags: map[string]interface{}{
 			"tag_a": &inputs.TagInfo{Desc: "示例 tag A"},
 			"tag_b": &inputs.TagInfo{Desc: "示例 tag B"},
@@ -51,14 +52,14 @@ func (m *demoMetric2) Info() *inputs.MeasurementInfo {
 			"some_string": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "some string field",
+				Unit:     inputs.NoUnit,
+				Desc:     "Example string field used to demonstrate metadata for metric measurements.",
 			},
 			"ok": &inputs.FieldInfo{
 				DataType: inputs.Bool,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "some boolean field",
+				Unit:     inputs.Bool,
+				Desc:     "Example boolean field used to demonstrate metadata for metric measurements.",
 			},
 		},
 	}

@@ -8,9 +8,13 @@ __int_icon      : 'icon/kafka'
 dashboard :
   - desc  : 'Kafka'
     path  : 'dashboard/en/kafka'
+  - desc  : 'Kafka-new'
+    path  : 'dashboard/en/kafka_new'
 monitor   :
   - desc  : 'Kafka'
     path  : 'monitor/en/kafka'
+  - desc  : 'Kafka-new'
+    path  : 'monitor/en/kafka_new'
 ---
 
 

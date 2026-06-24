@@ -131,7 +131,7 @@ func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 			"context_info": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "The CONTEXT_INFO value for the session.",
 			},
 			"cpu_time": &inputs.FieldInfo{
@@ -191,13 +191,13 @@ func (m *dbmActivityMeasurement) Info() *inputs.MeasurementInfo {
 			"last_request_start_time": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.DurationMS,
+				Unit:     inputs.TimestampMS,
 				Desc:     "The last time a request started in the session.",
 			},
 			"is_user_process": &inputs.FieldInfo{
 				DataType: inputs.Bool,
 				Type:     inputs.Bool,
-				Unit:     inputs.UnknownUnit,
+				Unit:     inputs.NoUnit,
 				Desc:     "Indicates whether the session is a user process (1) or a system process (0).",
 			},
 			"client_interface_name": &inputs.FieldInfo{

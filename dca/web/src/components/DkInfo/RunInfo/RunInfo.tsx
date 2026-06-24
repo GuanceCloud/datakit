@@ -1,8 +1,9 @@
-import { Col, Row, Space, Table } from 'antd'
+import { Space, Table } from 'antd'
 import { ColumnsType } from 'antd/lib/table'
 import humanformat from 'human-format'
 import moment from 'moment'
-import { useContext, useEffect, useState } from 'react'
+import { ReactNode, useContext, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { DkInfoContext } from '../DkInfo'
 import styles from './RunInfo.module.scss'
@@ -131,11 +132,15 @@ function getDataType(category: string): string {
 }
 
 function humanFormat(value) {
+  if (typeof value === "number" && !Number.isFinite(value)) {
+    return "-"
+  }
+
   try {
     const v = humanformat(value)
-    return v
+    return String(v) === "NaN" ? "-" : v
   } catch (err) {
-    return ""
+    return "-"
   }
 }
 
@@ -166,30 +171,41 @@ function showTimeString(time: string): string {
   return prev + "." + post.slice(0, 2) + post.slice(-1)
 }
 
+function showRelativeTime(time: string): string {
+  if (!time) {
+    return "-"
+  }
+
+  const m = moment(time)
+  if (!m.isValid() || m.year() < 2000 || m.isAfter(moment().add(5, "minutes"))) {
+    return "-"
+  }
+
+  return m.fromNow()
+}
+
+function displayValue(value: ReactNode): ReactNode {
+  if (value === undefined || value === null || value === "" || value === "NaN") {
+    return "-"
+  }
+
+  if (typeof value === "number" && !Number.isFinite(value)) {
+    return "-"
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "true" : "false"
+  }
+
+  return value
+}
+
 export default function RunInfo() {
+  const { t } = useTranslation()
   const dkInfoContext = useContext(DkInfoContext)
 
   const { datakitStat, datakit } = dkInfoContext
 
-  const enabledInputsColumns: ColumnsType<any> = [
-    {
-      title: "Input",
-      dataIndex: "input",
-      ellipsis: true,
-      width: "180px"
-    },
-    {
-      title: "Instances",
-      dataIndex: "instances",
-      ellipsis: true,
-      width: "150px"
-    },
-    {
-      title: "Crashed",
-      dataIndex: "panic",
-      ellipsis: true,
-    }
-  ]
   const inputsInfoColumns: ColumnsType<any> = [
     {
       title: 'Input',
@@ -230,7 +246,8 @@ export default function RunInfo() {
       dataIndex: 'last',
       key: 'last',
       width: '100px',
-      ellipsis: true
+      ellipsis: true,
+      render: (text) => displayValue(text)
     },
     {
       title: 'AvgCost',
@@ -278,19 +295,19 @@ export default function RunInfo() {
         avgSize: info.avg_size,
         category: info.category,
         pts_total: info.pts_total,
-        first: moment(info.first).fromNow(),
+        first: showRelativeTime(info.first),
         frequency: info.frequency || '-',
-        last: moment(info.last).fromNow(),
+        last: showRelativeTime(info.last),
         lastError: info.last_error,
         lastErrorTime: info.last_error_ts,
         maxCollectCost: info.max_collect_cost,
         feed_total: info.feed_total,
         instanceCount,
         dataType: getDataType(info.category),
-        crashCount,
-        p90_lat: info.p90_lat,
-        p90_pts: info.p90_pts,
-      })
+	        crashCount,
+	        p90_lat: displayValue(info.p90_lat) as string,
+	        p90_pts: displayValue(info.p90_pts) as string,
+	      })
     })
 
     const goroutineStat: GoroutineInfo[] = []
@@ -358,136 +375,129 @@ export default function RunInfo() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [datakitStat])
 
+  const renderInfoItem = (label: string, value: ReactNode) => (
+    <div className={styles.infoItem}>
+      <div className={styles.infoLabel}>{label}</div>
+      <div className={styles.infoValue}>
+        <span>{displayValue(value)}</span>
+      </div>
+    </div>
+  )
+
+  const totalCrashCount = dkStat?.enabledInputs.reduce((count, input) => count + (input.panic || 0), 0) || 0
+  const runningStatus = datakit?.status === "running"
+
   return (
     <div className={styles.info}>
       {datakitStat && dkStat ?
-        <>
-          <div className={styles.detail}>
-            <div className={styles.row}>
-              <div className={styles.basic} style={{ flex: 1 }}>
-                <div className={styles.title}>
-                  <span>Basic Info</span>
-                </div>
-                <div className={styles.content}>
-                  <Row gutter={16}>
-                    <Col span={6} className={styles.label}> Hostname</Col>
-                    <Col span={18}>{dkStat.hostname}</Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col span={6} className={styles.label}> OS/ARCH</Col>
-                    <Col span={18}>{dkStat.os_arch}</Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col span={6} className={styles.label}> DataKit Version</Col>
-                    <Col span={18}>{datakit?.version}</Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col span={6} className={styles.label}> IP Address</Col>
-                    <Col span={18}>{datakit?.ip || "-"}</Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col span={6} className={styles.label}> Runtime ID</Col>
-                    <Col span={18}>{datakit?.runtime_id}</Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col span={6} className={styles.label}> Run Mode</Col>
-                    <Col span={18}>{datakitStat?.usage_trace?.run_mode || "-"}</Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col span={6} className={styles.label}> Run in Container</Col>
-                    <Col span={18}>{datakit?.run_in_container ? "yes" : "no"}</Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col span={6} className={styles.label}> Usage Cores</Col>
-                    <Col span={18}>{datakitStat?.usage_trace?.usage_cores}</Col>
-                  </Row>
-                </div>
+        <div className={styles.detail}>
+          <section className={styles.overview}>
+            <div className={styles.sectionHeader}>
+              <span>{t("run_info.overview")}</span>
+              <span className={styles.refreshTime}>{t("run_info.stats_realtime")}</span>
+            </div>
+            <div className={styles.metrics}>
+              <div className={`${styles.metricItem} ${runningStatus ? styles.statusOk : styles.statusWarn}`}>
+                <div className={styles.metricLabel}>{t("status_text")}</div>
+                <div className={styles.metricValue}>{datakit?.status || "unknown"}</div>
               </div>
-              <div className={styles.basic} style={{ flex: 1 }}>
-                <div className={styles.title}>
-                  <Space>
-                    <span></span>
-                  </Space>
-                </div>
-                <div className={styles.content}>
-                  <Row gutter={16}>
-                    <Col span={6} className={styles.label}> Uptime</Col>
-                    <Col span={18}>{dkStat.uptime}</Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col span={6} className={styles.label}> Goroutines</Col>
-                    <Col span={18}>{dkStat.golang_runtime?.goroutines}</Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col span={6} className={styles.label}> Resource Limit</Col>
-                    <Col span={18}>{dkStat.resource_limit}</Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col span={6} className={styles.label}> CPU(%)</Col>
-                    <Col span={18}>{dkStat.datakit_runtime_info?.cpu_usage ? dkStat.datakit_runtime_info?.cpu_usage : 0}</Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col span={6} className={styles.label}> SysMem</Col>
-                    <Col span={18}>{showMemSize(dkStat.golang_runtime?.total_sys)}</Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col span={6} className={styles.label}> Mem </Col>
-                    <Col span={18}>{showMemSize(dkStat.golang_runtime?.heap_alloc)}</Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col span={6} className={styles.label}> OpenFiles</Col>
-                    <Col span={18}>{dkStat.open_files}</Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col span={6} className={styles.label}> Elected</Col>
-                    <Col span={18}>{dkStat.elected}</Col>
-                  </Row>
-                </div>
+              <div className={styles.metricItem}>
+                <div className={styles.metricLabel}>Uptime</div>
+                <div className={styles.metricValue}>{displayValue(dkStat.uptime)}</div>
               </div>
+              <div className={styles.metricItem}>
+                <div className={styles.metricLabel}>CPU(%)</div>
+                <div className={styles.metricValue}>{dkStat.datakit_runtime_info?.cpu_usage || 0}</div>
+              </div>
+              <div className={styles.metricItem}>
+                <div className={styles.metricLabel}>Mem</div>
+                <div className={styles.metricValue}>{displayValue(showMemSize(dkStat.golang_runtime?.heap_alloc))}</div>
+              </div>
+              <div className={styles.metricItem}>
+                <div className={styles.metricLabel}>Goroutines</div>
+                <div className={styles.metricValue}>{displayValue(dkStat.golang_runtime?.goroutines)}</div>
+              </div>
+              <div className={styles.metricItem}>
+                <div className={styles.metricLabel}>OpenFiles</div>
+                <div className={styles.metricValue}>{displayValue(dkStat.open_files)}</div>
+              </div>
+              <div className={styles.metricItem}>
+                <div className={styles.metricLabel}>Inputs</div>
+                <div className={styles.metricValue}>{dkStat.enabledInputs.length} / {dkStat.inputsStatus.length}</div>
+              </div>
+              <div className={styles.metricItem}>
+                <div className={styles.metricLabel}>Election</div>
+                <div className={styles.metricValue}>{displayValue(dkStat.elected)}</div>
+              </div>
+            </div>
+          </section>
 
+          <section className={styles.basicPanel}>
+            <div className={styles.sectionHeader}>
+              <span>{t("run_info.basic_info")}</span>
             </div>
-            <div className={styles.row}>
-              <div className={styles.table} style={{ width: "30%" }}>
-                <div className={styles.title}>
+            <div className={styles.infoGrid}>
+              {renderInfoItem("Hostname", dkStat.hostname)}
+              {renderInfoItem("OS/ARCH", dkStat.os_arch)}
+              {renderInfoItem("DataKit Version", datakit?.version)}
+              {renderInfoItem("IP Address", datakit?.ip)}
+              {renderInfoItem("Runtime ID", datakit?.runtime_id)}
+              {renderInfoItem("Run Mode", datakitStat?.usage_trace?.run_mode)}
+              {renderInfoItem("Run in Container", datakit?.run_in_container ? t("yes") : t("no"))}
+              {renderInfoItem("Usage Cores", datakitStat?.usage_trace?.usage_cores)}
+              {renderInfoItem("Resource Limit", dkStat.resource_limit)}
+              {renderInfoItem("SysMem", showMemSize(dkStat.golang_runtime?.total_sys))}
+            </div>
+          </section>
+
+          <div className={styles.tablesLayout}>
+            <section className={styles.enabledPanel}>
+              <div className={styles.sectionHeader}>
+                <span>{t("run_info.enabled_collectors")}</span>
+                <span className={styles.countText}>{t("run_info.inputs_count", { count: dkStat.enabledInputs.length })}</span>
+              </div>
+              <div className={totalCrashCount > 0 ? styles.crashAlert : styles.crashOk}>
+                {totalCrashCount > 0 ? t("run_info.crash_count", { count: totalCrashCount }) : t("run_info.no_crash_record")}
+              </div>
+              <div className={styles.inputList}>
+                {dkStat.enabledInputs.length > 0 ? dkStat.enabledInputs.map((input) => (
+                  <div className={styles.inputItem} key={input.input}>
+                    <div>
+                      <div className={styles.inputName}>{input.input}</div>
+                      <div className={styles.inputMeta}>{t("run_info.instances_count", { count: input.instances || 0 })}</div>
+                    </div>
+                    <span className={input.panic > 0 ? styles.crashedTag : styles.normalTag}>
+                      {input.panic > 0 ? t("run_info.crashed_count", { count: input.panic }) : t("run_info.normal")}
+                    </span>
+                  </div>
+                )) : (
+                  <div className={styles.emptyText}>{t("run_info.no_enabled_collectors")}</div>
+                )}
+              </div>
+            </section>
+
+            <section className={styles.inputsPanel}>
+              <div className={styles.tableHeader}>
+                <div className={styles.sectionHeader}>
                   <Space>
-                    {/* <span className="fth-iconfont-Operation"></span> */}
-                    <span>Enabled Inputs({dkStat.enabledInputs.length} inputs)</span>
+                    <span>{t("run_info.collector_metrics")}</span>
+                    <span className={styles.countText}>{t("run_info.inputs_count", { count: dkStat.inputsStatus.length })}</span>
                   </Space>
                 </div>
-                <div className={styles.content}>
-                  <Table
-                    size={'small'}
-                    // style={{ "width": "500px" }}
-                    columns={enabledInputsColumns}
-                    scroll={{ x: 100, y: 500 }}
-                    dataSource={dkStat.enabledInputs}
-                    className="run-info-table"
-                    rowKey={'input'}
-                    pagination={{ hideOnSinglePage: true, pageSize: dkStat.enabledInputs.length }}
-                  />
-                </div>
+                <span className={styles.refreshTime}>{t("run_info.last_feed_zero_time_filtered")}</span>
               </div>
-              <div className={styles.table} style={{ width: "calc(70% - 3calc(70% - 20px)0px)" }}>
-                <div className={styles.title}>
-                  <Space>
-                    <span>Inputs Info({dkStat.inputsStatus.length} inputs)</span>
-                  </Space>
-                </div>
-                <div className={styles.content}>
-                  <Table
-                    size={'small'}
-                    columns={inputsInfoColumns}
-                    scroll={{ y: 500 }}
-                    dataSource={dkStat.inputsStatus}
-                    className="run-info-table"
-                    rowKey={'name'}
-                    pagination={{ hideOnSinglePage: true, pageSize: dkStat.inputsStatus.length }}
-                  />
-                </div>
-              </div>
-            </div>
+              <Table
+                size={'small'}
+                columns={inputsInfoColumns}
+                scroll={{ y: 500 }}
+                dataSource={dkStat.inputsStatus}
+                className="run-info-table"
+                rowKey={'name'}
+                pagination={{ hideOnSinglePage: true, pageSize: dkStat.inputsStatus.length }}
+              />
+            </section>
           </div>
-        </>
+        </div>
         :
         <div>no data</div>
       }

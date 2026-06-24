@@ -29,8 +29,10 @@ func (m *processMeasurement) Point() *point.Point { return nil }
 //nolint:lll
 func (m *processMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: measurementOracleProcess,
-		Cat:  point.Metric,
+		Name:   measurementOracleProcess,
+		Desc:   "Oracle process metrics collected from V.",
+		DescZh: "从 V 采集的 Oracle 进程指标。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			"pga_alloc_mem":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "PGA memory allocated by process"},
 			"pga_freeable_mem": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "PGA memory freeable by process"},
@@ -57,8 +59,10 @@ func (m *tablespaceMeasurement) Point() *point.Point { return nil }
 //nolint:lll
 func (m *tablespaceMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: measurementOracleTablespace,
-		Cat:  point.Metric,
+		Name:   measurementOracleTablespace,
+		Desc:   "Oracle tablespace usage metrics collected from database tablespace views.",
+		DescZh: "从数据库表空间视图采集的 Oracle 表空间使用指标。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			"in_use":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Percentage of used space,as a function of the maximum possible Tablespace size"},
 			"off_use":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total space consumed by the Tablespace, in database blocks"},
@@ -84,9 +88,10 @@ func (m *systemMeasurement) Point() *point.Point { return nil }
 //nolint:lll
 func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: measurementOracleSystem,
-		Cat:  point.Metric,
-		Desc: "You have to wait for a few minutes to see these metrics when your running Oracle database's version is earlier than 12c.",
+		Name:   measurementOracleSystem,
+		Cat:    point.Metric,
+		Desc:   "You have to wait for a few minutes to see these metrics when your running Oracle database's version is earlier than 12c.",
+		DescZh: "当运行中的 Oracle 数据库版本早于 12c 时，需要等待数分钟才能看到这些系统指标。",
 		Fields: map[string]interface{}{
 			"active_sessions":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Number of active sessions"},
 			"buffer_cachehit_ratio":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Ratio of buffer cache hits"},
@@ -96,12 +101,12 @@ func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 			"consistent_read_gets":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Consistent read gets per second"},
 			"cursor_cachehit_ratio":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Ratio of cursor cache hits"},
 			"database_cpu_time_ratio":   &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Database CPU time ratio"},
-			"database_wait_time_ratio":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Memory sorts per second"},
+			"database_wait_time_ratio":  &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Database wait time ratio"},
 			"db_block_changes":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "DB block changes per second"},
 			"db_block_gets":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "DB block gets per second"},
 			"disk_sorts":                &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Disk sorts per second"},
 			"enqueue_timeouts":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Enqueue timeouts per second"},
-			"execute_without_parse":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Execute without parse ratio"},
+			"execute_without_parse":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Execute without parse ratio"},
 			"gc_cr_block_received":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "GC CR block received"},
 			"host_cpu_utilization":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Host CPU utilization (%)"},
 			"library_cachehit_ratio":    &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Ratio of library cache hits"},
@@ -118,7 +123,7 @@ func (m *systemMeasurement) Info() *inputs.MeasurementInfo {
 			"service_response_time":     &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationMS, Desc: "Service response time"},
 			"session_count":             &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Session count"},
 			"session_limit_usage":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Session limit usage"},
-			"shared_pool_free":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Shared pool free memory %"},
+			"shared_pool_free":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Percentage of shared pool memory that is free"},
 			"soft_parse_ratio":          &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Percent, Desc: "Soft parse ratio"},
 			"sorts_per_user_call":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Sorts per user call"},
 			"temp_space_used":           &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Temp space used"},
@@ -140,38 +145,39 @@ type slowQueryMeasurement struct{}
 //nolint:lll
 func (x *slowQueryMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: measurementOracleLog,
-		Cat:  point.Logging,
-		Desc: `For full and detailed field into, see [here](https://docs.oracle.com/en/database/oracle/oracle-database/19/refrn/V-SQLAREA.html){:target="_blank"}`,
+		Name:   measurementOracleLog,
+		Cat:    point.Logging,
+		Desc:   `For full and detailed field into, see [here](https://docs.oracle.com/en/database/oracle/oracle-database/19/refrn/V-SQLAREA.html){:target="_blank"}`,
+		DescZh: "Oracle 慢查询日志指标，字段详情可参考 Oracle V$SQLAREA 文档。",
 		Fields: map[string]any{
 			// core performance metrics
-			`sql_fulltext`:   &inputs.FieldInfo{Unit: inputs.NoUnit, DataType: inputs.String, Desc: "All characters of the SQL text for the current cursor"},
-			`elapsed_time`:   &inputs.FieldInfo{Unit: inputs.DurationUS, DataType: inputs.Int, Desc: "Elapsed time (in microseconds) used by this cursor for parsing, executing, and fetching. If the cursor uses parallel execution, then `ELAPSED_TIME` is the cumulative time..."},
-			`cpu_time`:       &inputs.FieldInfo{Unit: inputs.DurationUS, DataType: inputs.Int, Desc: "CPU time (in microseconds) used by this cursor for parsing, executing, and fetching"},
-			`executions`:     &inputs.FieldInfo{Unit: inputs.NCount, DataType: inputs.Int, Desc: "Total number of executions, totalled over all the child cursors"},
-			`disk_reads`:     &inputs.FieldInfo{Unit: inputs.NCount, DataType: inputs.Int, Desc: "Sum of the number of disk reads over all child cursors"},
-			`buffer_gets`:    &inputs.FieldInfo{Unit: inputs.NCount, DataType: inputs.Int, Desc: "Sum of buffer gets over all child cursors"},
-			`rows_processed`: &inputs.FieldInfo{Unit: inputs.NCount, DataType: inputs.Int, Desc: "Total number of rows processed on behalf of this SQL statement"},
+			`sql_fulltext`:   &inputs.FieldInfo{Unit: inputs.NoUnit, DataType: inputs.String, Type: inputs.String, Desc: "All characters of the SQL text for the current cursor"},
+			`elapsed_time`:   &inputs.FieldInfo{Unit: inputs.DurationUS, DataType: inputs.Int, Type: inputs.Gauge, Desc: "Elapsed time (in microseconds) used by this cursor for parsing, executing, and fetching. If the cursor uses parallel execution, then `ELAPSED_TIME` is the cumulative time..."},
+			`cpu_time`:       &inputs.FieldInfo{Unit: inputs.DurationUS, DataType: inputs.Int, Type: inputs.Gauge, Desc: "CPU time (in microseconds) used by this cursor for parsing, executing, and fetching"},
+			`executions`:     &inputs.FieldInfo{Unit: inputs.NCount, DataType: inputs.Int, Type: inputs.Count, Desc: "Total number of executions, totalled over all the child cursors"},
+			`disk_reads`:     &inputs.FieldInfo{Unit: inputs.NCount, DataType: inputs.Int, Type: inputs.Count, Desc: "Sum of the number of disk reads over all child cursors"},
+			`buffer_gets`:    &inputs.FieldInfo{Unit: inputs.NCount, DataType: inputs.Int, Type: inputs.Count, Desc: "Sum of buffer gets over all child cursors"},
+			`rows_processed`: &inputs.FieldInfo{Unit: inputs.NCount, DataType: inputs.Int, Type: inputs.Count, Desc: "Total number of rows processed on behalf of this SQL statement"},
 
 			// wait metrics
-			`user_io_wait_time`:     &inputs.FieldInfo{Unit: inputs.DurationUS, DataType: inputs.Int, Desc: "User I/O Wait Time (in microseconds)"},
-			`concurrency_wait_time`: &inputs.FieldInfo{Unit: inputs.DurationUS, DataType: inputs.Int, Desc: "Concurrency wait time (in microseconds)"},
-			`application_wait_time`: &inputs.FieldInfo{Unit: inputs.DurationUS, DataType: inputs.Int, Desc: "Application wait time (in microseconds)"},
-			`cluster_wait_time`:     &inputs.FieldInfo{Unit: inputs.DurationUS, DataType: inputs.Int, Desc: "Cluster wait time (in microseconds)"},
+			`user_io_wait_time`:     &inputs.FieldInfo{Unit: inputs.DurationUS, DataType: inputs.Int, Type: inputs.Gauge, Desc: "User I/O Wait Time (in microseconds)"},
+			`concurrency_wait_time`: &inputs.FieldInfo{Unit: inputs.DurationUS, DataType: inputs.Int, Type: inputs.Gauge, Desc: "Concurrency wait time (in microseconds)"},
+			`application_wait_time`: &inputs.FieldInfo{Unit: inputs.DurationUS, DataType: inputs.Int, Type: inputs.Gauge, Desc: "Application wait time (in microseconds)"},
+			`cluster_wait_time`:     &inputs.FieldInfo{Unit: inputs.DurationUS, DataType: inputs.Int, Type: inputs.Gauge, Desc: "Cluster wait time (in microseconds)"},
 
 			// execution plan metrics
-			`plan_hash_value`: &inputs.FieldInfo{Unit: inputs.NoUnit, DataType: inputs.Int, Desc: "Numeric representation of the current SQL plan for this cursor. Comparing one `PLAN_HASH_VALUE` to another easily identifies whether or not two plans are the same (rather than comparing the two plans line by line)."},
-			`parse_calls`:     &inputs.FieldInfo{Unit: inputs.NCount, DataType: inputs.Int, Desc: "Sum of all parse calls to all the child cursors under this parent"},
-			`sorts`:           &inputs.FieldInfo{Unit: inputs.NCount, DataType: inputs.Int, Desc: "Sum of the number of sorts that were done for all the child cursors"},
+			`plan_hash_value`: &inputs.FieldInfo{Unit: inputs.NoUnit, DataType: inputs.Int, Type: inputs.Gauge, Desc: "Numeric representation of the current SQL plan for this cursor. Comparing one `PLAN_HASH_VALUE` to another easily identifies whether or not two plans are the same (rather than comparing the two plans line by line)."},
+			`parse_calls`:     &inputs.FieldInfo{Unit: inputs.NCount, DataType: inputs.Int, Type: inputs.Count, Desc: "Sum of all parse calls to all the child cursors under this parent"},
+			`sorts`:           &inputs.FieldInfo{Unit: inputs.NCount, DataType: inputs.Int, Type: inputs.Count, Desc: "Sum of the number of sorts that were done for all the child cursors"},
 
 			// context metrics
-			`parsing_schema_name`: &inputs.FieldInfo{Unit: inputs.NoUnit, DataType: inputs.String, Desc: "Schema name that was used to parse this child cursor"},
-			`last_active_time`:    &inputs.FieldInfo{Unit: inputs.NoUnit, DataType: inputs.String, Desc: "Time at which the query plan was last active"},
+			`parsing_schema_name`: &inputs.FieldInfo{Unit: inputs.NoUnit, DataType: inputs.String, Type: inputs.String, Desc: "Schema name that was used to parse this child cursor"},
+			`last_active_time`:    &inputs.FieldInfo{Unit: inputs.NoUnit, DataType: inputs.String, Type: inputs.String, Desc: "Time at which the query plan was last active"},
 
 			// other fields
-			`username`:    &inputs.FieldInfo{Unit: inputs.NoUnit, DataType: inputs.String, Desc: "Name of the user"},
-			`avg_elapsed`: &inputs.FieldInfo{Unit: inputs.DurationUS, DataType: inputs.Int, Desc: "Average elapsed time of executions(`elapsed_time/executions`)"},
-			`message`:     &inputs.FieldInfo{Unit: inputs.NoUnit, DataType: inputs.String, Desc: "JSON dump of all queried fields of table `V$SQLAREA`"},
+			`username`:    &inputs.FieldInfo{Unit: inputs.NoUnit, DataType: inputs.String, Type: inputs.String, Desc: "Name of the user"},
+			`avg_elapsed`: &inputs.FieldInfo{Unit: inputs.DurationUS, DataType: inputs.Int, Type: inputs.Gauge, Desc: "Average elapsed time of executions(`elapsed_time/executions`)"},
+			`message`:     &inputs.FieldInfo{Unit: inputs.NoUnit, DataType: inputs.String, Type: inputs.String, Desc: "JSON dump of all queried fields of table `V$SQLAREA`"},
 		},
 
 		Tags: map[string]any{

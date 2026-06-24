@@ -99,5 +99,8 @@ func (j *JolokiaAgent) Terminate() {
 }
 
 func (*JolokiaMeasurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{}
+	return &inputs.MeasurementInfo{
+		Desc:   "Jolokia JMX metrics emitted with the configured measurement name.",
+		DescZh: "使用配置的指标集名称上报的 Jolokia JMX 指标。",
+	}
 }

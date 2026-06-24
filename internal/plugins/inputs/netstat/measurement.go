@@ -10,46 +10,260 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
-type docMeasurement struct{}
+type (
+	docMeasurement  struct{}
+	portMeasurement struct{}
+)
 
 // Info , reflected in the document
 //
 //nolint:lll
 func (*docMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: metricName,
-		Cat:  point.Metric,
+		Name:   metricName,
+		Cat:    point.Metric,
+		Desc:   "Host network socket state metrics, reporting the current number of TCP sockets in each TCP state and UDP sockets grouped by IP version.",
+		DescZh: "主机网络 socket 状态指标，按 IP 版本上报当前各 TCP 状态连接数和 UDP socket 数。",
 		Fields: map[string]interface{}{
-			"tcp_established": newFieldInfoC("ESTABLISHED : The number of TCP state be open connection, data received to be delivered to the user. "),
-			"tcp_syn_sent":    newFieldInfoC("SYN_SENT : The number of TCP state be waiting for a machine connection request after sending a connecting request."),
-			"tcp_syn_recv":    newFieldInfoC("SYN_RECV : The number of TCP state be waiting for confirmation of connection acknowledgement after both sender and receiver has sent / received connection request."),
-			"tcp_fin_wait1":   newFieldInfoC("FIN_WAIT1 : The number of TCP state be waiting for a connection termination request from remote TCP host or acknowledgment of connection termination request sent previously."),
-			"tcp_fin_wait2":   newFieldInfoC("FIN_WAIT2 : The number of TCP state be waiting for connection termination request from remote TCP host."),
-			"tcp_time_wait":   newFieldInfoC("TIME_WAIT : The number of TCP state be waiting sufficient time to pass to ensure remote TCP host received acknowledgement of its request for connection termination."),
-			"tcp_close":       newFieldInfoC("CLOSE : The number of TCP state be waiting for a connection termination request acknowledgement from remote TCP host."),
-			"tcp_close_wait":  newFieldInfoC("CLOSE_WAIT : The number of TCP state be waiting for a connection termination request from local user."),
-			"tcp_last_ack":    newFieldInfoC("LAST_ACK : The number of TCP state be waiting for connection termination request acknowledgement previously sent to remote TCP host including its acknowledgement of connection termination request."),
-			"tcp_listen":      newFieldInfoC("LISTEN : The number of TCP state be waiting for a connection request from any remote TCP host."),
-			"tcp_closing":     newFieldInfoC("CLOSING : The number of TCP state be waiting for a connection termination request acknowledgement from remote TCP host."),
-			"tcp_none":        newFieldInfoC("NONE"),
-			"udp_socket":      newFieldInfoC("UDP : The number of UDP connection."),
-			"pid":             newFieldInfoC("PID. Optional."),
+			"tcp_established": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of TCP sockets in ESTABLISHED state.",
+				Taggedby: []string{"ip_version"},
+			},
+			"tcp_syn_sent": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of TCP sockets in SYN_SENT state after sending a connection request.",
+				Taggedby: []string{
+					"ip_version",
+				},
+			},
+			"tcp_syn_recv": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of TCP sockets in SYN_RECV state after receiving a connection request and sending an acknowledgement.",
+				Taggedby: []string{
+					"ip_version",
+				},
+			},
+			"tcp_fin_wait1": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of TCP sockets in FIN_WAIT1 state after the local endpoint has requested connection termination.",
+				Taggedby: []string{
+					"ip_version",
+				},
+			},
+			"tcp_fin_wait2": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of TCP sockets in FIN_WAIT2 state while waiting for the remote endpoint to terminate the connection.",
+				Taggedby: []string{
+					"ip_version",
+				},
+			},
+			"tcp_time_wait": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of TCP sockets in TIME_WAIT state after connection termination.",
+				Taggedby: []string{
+					"ip_version",
+				},
+			},
+			"tcp_close": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of TCP sockets in CLOSE state.",
+				Taggedby: []string{"ip_version"},
+			},
+			"tcp_close_wait": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of TCP sockets in CLOSE_WAIT state after the remote endpoint has requested termination.",
+				Taggedby: []string{
+					"ip_version",
+				},
+			},
+			"tcp_last_ack": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of TCP sockets in LAST_ACK state while waiting for acknowledgement of the final termination segment.",
+				Taggedby: []string{
+					"ip_version",
+				},
+			},
+			"tcp_listen": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of TCP sockets in LISTEN state waiting for incoming connection requests.",
+				Taggedby: []string{
+					"ip_version",
+				},
+			},
+			"tcp_closing": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of TCP sockets in CLOSING state while both endpoints are closing the connection.",
+				Taggedby: []string{
+					"ip_version",
+				},
+			},
+			"tcp_none": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of TCP sockets whose state was reported as NONE by the operating system.",
+				Taggedby: []string{
+					"ip_version",
+				},
+			},
+			"udp_socket": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of UDP sockets.",
+				Taggedby: []string{
+					"ip_version",
+				},
+			},
 		},
 
 		Tags: map[string]interface{}{
-			"host":       &inputs.TagInfo{Desc: "Host name"},
+			"host":       &inputs.TagInfo{Desc: "Host name."},
 			"addr_port":  &inputs.TagInfo{Desc: "Addr and port. Optional."},
 			"ip_version": &inputs.TagInfo{Desc: "IP version, 4 for IPV4, 6 for IPV6, unknown for others"},
 		},
 	}
 }
 
-// NewFieldInfoC new count field.
-func newFieldInfoC(desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		Type:     inputs.Gauge,
-		DataType: inputs.Int,
-		Unit:     inputs.NCount,
-		Desc:     desc,
+// Info , reflected in the document
+//
+//nolint:lll
+func (*portMeasurement) Info() *inputs.MeasurementInfo {
+	return &inputs.MeasurementInfo{
+		Name: metricNamePort,
+		Cat:  point.Metric,
+		Desc: "Configured port-level network socket state metrics, reporting current " +
+			"TCP state counts and UDP socket counts for each matched local address and port.",
+		DescZh: "配置端口级别的网络 socket 状态指标，按匹配的本地地址和端口上报当前 TCP 状态连接数和 UDP socket 数。",
+		Fields: map[string]interface{}{
+			"tcp_established": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of matched TCP sockets in ESTABLISHED state.",
+				Taggedby: []string{"addr_port", "ip_version"},
+			},
+			"tcp_syn_sent": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of matched TCP sockets in SYN_SENT state after sending a connection request.",
+				Taggedby: []string{"addr_port", "ip_version"},
+			},
+			"tcp_syn_recv": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of matched TCP sockets in SYN_RECV state after receiving a connection request and sending an acknowledgement.",
+				Taggedby: []string{"addr_port", "ip_version"},
+			},
+			"tcp_fin_wait1": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of matched TCP sockets in FIN_WAIT1 state after the local endpoint has requested connection termination.",
+				Taggedby: []string{"addr_port", "ip_version"},
+			},
+			"tcp_fin_wait2": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of matched TCP sockets in FIN_WAIT2 state while waiting for the remote endpoint to terminate the connection.",
+				Taggedby: []string{"addr_port", "ip_version"},
+			},
+			"tcp_time_wait": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of matched TCP sockets in TIME_WAIT state after connection termination.",
+				Taggedby: []string{"addr_port", "ip_version"},
+			},
+			"tcp_close": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of matched TCP sockets in CLOSE state.",
+				Taggedby: []string{"addr_port", "ip_version"},
+			},
+			"tcp_close_wait": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of matched TCP sockets in CLOSE_WAIT state after the remote endpoint has requested termination.",
+				Taggedby: []string{"addr_port", "ip_version"},
+			},
+			"tcp_last_ack": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of matched TCP sockets in LAST_ACK state while waiting for acknowledgement of the final termination segment.",
+				Taggedby: []string{"addr_port", "ip_version"},
+			},
+			"tcp_listen": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of matched TCP sockets in LISTEN state waiting for incoming connection requests.",
+				Taggedby: []string{"addr_port", "ip_version"},
+			},
+			"tcp_closing": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of matched TCP sockets in CLOSING state while both endpoints are closing the connection.",
+				Taggedby: []string{"addr_port", "ip_version"},
+			},
+			"tcp_none": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of matched TCP sockets whose state was reported as NONE by the operating system.",
+				Taggedby: []string{"addr_port", "ip_version"},
+			},
+			"udp_socket": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of matched UDP sockets.",
+				Taggedby: []string{"addr_port", "ip_version"},
+			},
+			"pid": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
+				Desc: "Process ID associated with the last matched socket in this address/port group. " +
+					"This field is omitted from the aggregate `netstat` measurement.",
+				Taggedby: []string{"addr_port", "ip_version"},
+			},
+		},
+
+		Tags: map[string]interface{}{
+			"host":       &inputs.TagInfo{Desc: "Host name."},
+			"addr_port":  &inputs.TagInfo{Desc: "Matched local address and port, or configured port value when the input is configured without an address."},
+			"ip_version": &inputs.TagInfo{Desc: "IP version, 4 for IPV4, 6 for IPV6, unknown for others"},
+		},
 	}
 }

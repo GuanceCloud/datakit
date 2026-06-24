@@ -1,0 +1,25 @@
+apiVersion: v2
+name: datakit-gke-autopilot
+description: Helm chart for DataKit on GKE Autopilot
+annotations:
+  catalog.cattle.io/certified: partner # Enables the "partner" badge in the UI for easier identification
+  catalog.cattle.io/release-name: datakit # Your chart's name in kebab-case, this is used for deployment
+  catalog.cattle.io/display-name: Datakit # The chart's name you want displayed in the UI
+type: application
+
+appVersion: {{.Version}}
+version: {{.HelmVersion}}
+
+home: https://www.{{.BrandDomain}}
+icon: https://static.{{.BrandDomain}}/images/datakit/datakit-icon-white-bg.png
+
+keywords:
+- Observability
+
+dependencies:
+- condition: kubeStateMetricsEnabled
+  name: kube-state-metrics
+  repository: file://./charts/kube-state-metrics
+- condition: MetricsServerEnabled
+  name: metrics-server
+  repository: file://./charts/metrics-server

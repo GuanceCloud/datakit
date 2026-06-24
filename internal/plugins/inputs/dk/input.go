@@ -306,7 +306,7 @@ func (ipt *Input) Run() {
 			if err := ipt.feeder.Feed(point.Metric, pts,
 				dkio.WithCollectCost(time.Since(collectStart)),
 				dkio.WithElection(false),
-				dkio.WithSource(source)); err != nil {
+				dkio.WithSource(source), dkio.WithInput(inputName)); err != nil {
 				ipt.feeder.FeedLastError(err.Error(),
 					metrics.WithLastErrorInput(inputName),
 					metrics.WithLastErrorCategory(point.Metric),

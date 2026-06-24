@@ -30,7 +30,7 @@ func (ipt *Input) parseResourceMetricsV2(resmcs []*metrics.ResourceMetrics) {
 		}
 
 		if err := ipt.feeder.Feed(point.Metric, batch,
-			dkio.WithSource(inputName),
+			dkio.WithSource(inputName), dkio.WithInput(inputName),
 			dkio.DisableGlobalTags(ipt.TracingMetricDisableGlobalHostTags),
 			dkio.WithCollectCost(time.Since(start)),
 		); err != nil {

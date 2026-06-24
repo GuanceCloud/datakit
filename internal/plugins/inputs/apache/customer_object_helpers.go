@@ -187,7 +187,7 @@ func (ipt *Input) collectCustomerObjectMeasurement() ([]*gcPoint.Point, error) {
 	fields := map[string]interface{}{
 		"display_name": fmt.Sprintf("%s:%d", host, port),
 		"version":      ipt.Version,
-		"uptime":       fmt.Sprintf("%d", ipt.Uptime),
+		"uptime":       ipt.Uptime,
 	}
 	tags := map[string]string{
 		"name":          fmt.Sprintf("%s-%s:%d", inputName, host, port),

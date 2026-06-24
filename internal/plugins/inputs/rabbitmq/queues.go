@@ -84,7 +84,7 @@ func getQueues(n *Input) {
 	if err := n.feeder.Feed(point.Metric, pts,
 		dkio.WithCollectCost(time.Since(collectStart)),
 		dkio.WithElection(n.Election),
-		dkio.WithSource(inputName),
+		dkio.WithSource(inputName), dkio.WithInput(inputName),
 	); err != nil {
 		l.Errorf("FeedMeasurement: %s", err.Error())
 	}

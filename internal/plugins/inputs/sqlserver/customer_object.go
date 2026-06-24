@@ -29,6 +29,8 @@ func (m *customerObjectMeasurement) Point() *point.Point {
 func (m *customerObjectMeasurement) Info() *inputs.MeasurementInfo { //nolint:funlen
 	return &inputs.MeasurementInfo{
 		Name:           "database",
+		Desc:           "SQL Server database custom object metadata collected from database discovery.",
+		DescZh:         "从数据库发现结果采集的 SQL Server 数据库自定义对象元数据。",
 		Cat:            point.CustomObject,
 		MetaDuplicated: true,
 		Fields: map[string]interface{}{
@@ -36,41 +38,41 @@ func (m *customerObjectMeasurement) Info() *inputs.MeasurementInfo { //nolint:fu
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationSecond,
-				Desc:     "Current instance uptime",
+				Desc:     "Time in seconds since this instance last started.",
 			},
 
 			"display_name": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NoUnit,
-				Desc:     "Displayed name in UI",
+				Desc:     "Display name shown for this instance in the Datakit UI.",
 			},
 
 			"version": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NoUnit,
-				Desc:     "Current version of the instance",
+				Desc:     "Server version reported by this instance.",
 			},
 		},
 		Tags: map[string]interface{}{
 			"name": &inputs.TagInfo{
-				Desc: "Object uniq ID",
+				Desc: "Stable object identifier for this monitored instance.",
 			},
 
 			"col_co_status": &inputs.TagInfo{
-				Desc: "Current status of collector on instance(`OK/NotOK`)",
+				Desc: "Collector status for this instance, such as `OK` or `NotOK`.",
 			},
 
 			"ip": &inputs.TagInfo{
-				Desc: "Connection IP of the instance",
+				Desc: "Configured connection IP address for this instance.",
 			},
 
 			"host": &inputs.TagInfo{
-				Desc: "The server host address",
+				Desc: "Hostname or address of the server that runs this instance.",
 			},
 			"reason": &inputs.TagInfo{
-				Desc: "If status not ok, we'll get some reasons about the status",
+				Desc: "Reason reported when the collector status is not `OK`.",
 			},
 		},
 	}

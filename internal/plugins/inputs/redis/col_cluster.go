@@ -38,6 +38,7 @@ func (i *instance) collectCluster(ctx context.Context) {
 		dkio.WithElection(i.ipt.Election),
 		dkio.WithSource(dkio.FeedSource(inputName, "cluster")),
 		dkio.WithMeasurement(inputs.GetOverrideMeasurement(i.ipt.MeasurementVersion, measureuemtRedis)),
+		dkio.WithInput(inputName),
 	); err != nil {
 		l.Warnf("feed measurement: %s, ignored", err)
 	}
@@ -95,8 +96,10 @@ type clusterMeasurement struct{}
 //nolint:lll
 func (m *clusterMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: measureuemtRedisCluster,
-		Cat:  point.Metric,
+		Name:   measureuemtRedisCluster,
+		Desc:   "Redis cluster metrics collected from CLUSTER INFO.",
+		DescZh: "从 CLUSTER INFO 采集的 Redis 集群指标。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			"cluster_state": &inputs.FieldInfo{
 				DataType: inputs.Int,

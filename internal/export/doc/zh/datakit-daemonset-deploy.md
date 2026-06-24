@@ -6,6 +6,8 @@
 
 如需通过 Helm 安装 DataKit，请参见 [Helm 安装](datakit-helm.md)。
 
+GKE Autopilot 需要使用不依赖宿主机挂载的 Deployment 形态，参见 [GCP GKE Autopilot 集成](gcp-gke-autopilot.md)。
+
 ## 安装 {#install}
 
 > **DataKit 1.x 安装说明**：本节清单下载链接默认指向 DataKit `2.x` 的 `/datakit-v2/` 路径。如需安装 DataKit `1.x`，请将 URL 中的 `/datakit-v2/` 替换为 `/datakit/`。URL 中的静态资源域名会按当前文档品牌渲染。
@@ -498,6 +500,12 @@ spec:
 ```
 
 这样之后，该集群获取到的主机名（主机对象列表）会多一个 `cluster_a_` 的前缀，除此之外，主机日志/进程/CPU/Mem 等指标集上，`host` 这个 tag 的值也都多了这个前缀。
+
+<!-- markdownlint-disable MD046 -->
+???+ note
+
+    GKE Autopilot Cloud API 模式不支持 `ENV_K8S_CLUSTER_NODE_NAME`。该模式由 Deployment 通过 Cloud API 采集全局容器数据，容器指标、对象和日志中的 `host` 取自 GKE Pod 所在的原始 Node 名称。
+<!-- markdownlint-enable MD046 -->
 
 ### 采集器专用环境变量 {#inputs-envs}
 

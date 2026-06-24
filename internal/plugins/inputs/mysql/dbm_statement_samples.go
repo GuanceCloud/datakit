@@ -115,9 +115,10 @@ type planObj struct {
 
 func (m *dbmSampleMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Desc: "MySQL DBM execution plan objects. Each object represents a sampled query execution plan identified by query_signature and plan_signature.",
-		Name: dbmExecPlanObjectName,
-		Cat:  point.Object,
+		Desc:   "MySQL DBM execution plan objects. Each object represents a sampled query execution plan identified by query_signature and plan_signature.",
+		DescZh: "MySQL DBM 执行计划对象，每个对象表示由 query_signature 和 plan_signature 标识的采样查询执行计划。",
+		Name:   dbmExecPlanObjectName,
+		Cat:    point.Object,
 		Fields: map[string]interface{}{
 			"timestamp": &inputs.FieldInfo{
 				DataType: inputs.Float,

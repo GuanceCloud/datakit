@@ -40,6 +40,7 @@ func (i *instance) collectInfo(ctx context.Context) error {
 		dkio.WithElection(i.ipt.Election),
 		dkio.WithSource(dkio.FeedSource(inputName, "info")),
 		dkio.WithMeasurement(inputs.GetOverrideMeasurement(i.ipt.MeasurementVersion, measureuemtRedis)),
+		dkio.WithInput(inputName),
 	); err != nil {
 		l.Warnf("feed measurement: %s, ignored", err)
 	}
@@ -1561,7 +1562,7 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.Bool,
-				Desc:     "Indicate Redis cluster is enabled.",
+				Desc:     "Whether Redis cluster mode is enabled on this instance, encoded as 0 or 1.",
 			},
 
 			// # Keyspace
@@ -1571,7 +1572,7 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 				DataType: inputs.Float,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationMS,
-				Desc:     "The latency of the redis INFO command.",
+				Desc:     "Execution latency in milliseconds of the Redis INFO command.",
 			},
 			"used_cpu_sys_percent": &inputs.FieldInfo{
 				DataType: inputs.Float,

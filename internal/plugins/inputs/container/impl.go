@@ -42,6 +42,10 @@ func newCollectors(ipt *Input) []Collector {
 func newContainerCollectors(ipt *Input) []Collector {
 	var collectors []Collector
 
+	if ipt.GCPCloudAPIEnabled {
+		return newGCPCloudCollectors(ipt)
+	}
+
 	if config.IsECSFargate() {
 		collector, err := createECSFargateCollector(ipt)
 		if err != nil {
@@ -65,6 +69,58 @@ func newContainerCollectors(ipt *Input) []Collector {
 	}
 
 	return collectors
+}
+
+func newGCPCloudCollectors(ipt *Input) []Collector {
+	var collectors []Collector
+
+	if !config.IsKubernetes() {
+		l.Errorf("gcp cloud api mode requires kubernetes")
+		return collectors
+	}
+
+	if err := resolveGCPCloudConfig(context.Background(), ipt, newGCPMetadataClient()); err != nil {
+		l.Errorf("failed to resolve GKE cloud configuration: %s", err)
+		return collectors
+	}
+	l.Infof("GKE cloud configuration: project=%s, cluster=%s, location=%s",
+		ipt.GCPProjectID, ipt.GCPClusterName, ipt.GCPClusterLocation)
+
+	k8sClient := createK8sClientForCloud()
+	httpClient := newGCPHTTPClient()
+
+	if ipt.EnableGCPCloudMonitoring {
+		collector, err := newGCPCloudMonitoringCollector(ipt, httpClient, k8sClient)
+		if err != nil {
+			l.Errorf("failed to create GCP Cloud Monitoring collector: %s", err)
+		} else {
+			collectors = append(collectors, collector)
+		}
+	}
+
+	if ipt.EnableGCPCloudLogging {
+		collector, err := newGCPCloudLoggingCollector(ipt, httpClient, k8sClient)
+		if err != nil {
+			l.Errorf("failed to create GCP Cloud Logging collector: %s", err)
+		} else {
+			collectors = append(collectors, collector)
+		}
+	}
+
+	return collectors
+}
+
+func createK8sClientForCloud() k8sclient.Client {
+	if !datakit.Docker || !config.IsKubernetes() {
+		return nil
+	}
+
+	client, err := k8sclient.NewKubernetesClientInCluster()
+	if err != nil {
+		l.Warnf("unable to connect k8s client for GCP cloud mode: %s", err)
+		return nil
+	}
+	return client
 }
 
 func newK8sCollectors(ipt *Input) (Collector, error) {

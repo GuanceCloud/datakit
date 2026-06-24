@@ -54,7 +54,7 @@ func (*journalMeasurement) Info() *inputs.MeasurementInfo {
 			},
 			"journald_timestamp": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Unit:     inputs.DurationNS,
+				Unit:     inputs.TimestampNS,
 				Desc:     "Journal entry timestamp in nanoseconds (from `_SOURCE_REALTIME_TIMESTAMP` or `__REALTIME_TIMESTAMP`, v188+)",
 			},
 
@@ -242,7 +242,7 @@ func (*journalMeasurement) Info() *inputs.MeasurementInfo {
 			// =================================================================
 			"_SOURCE_REALTIME_TIMESTAMP": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Unit:     inputs.DurationUS,
+				Unit:     inputs.TimestampUS,
 				Desc:     "Source timestamp in microseconds `CLOCK_REALTIME` (v188+)",
 			},
 			"_SOURCE_BOOTTIME_TIMESTAMP": &inputs.FieldInfo{
@@ -252,7 +252,7 @@ func (*journalMeasurement) Info() *inputs.MeasurementInfo {
 			},
 			"__REALTIME_TIMESTAMP": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Unit:     inputs.DurationUS,
+				Unit:     inputs.TimestampUS,
 				Desc:     "Reception timestamp in microseconds, address field export only (v188+)",
 			},
 			"__MONOTONIC_TIMESTAMP": &inputs.FieldInfo{
@@ -359,7 +359,7 @@ func (*journalMeasurement) Info() *inputs.MeasurementInfo {
 			},
 			"COREDUMP_TIMESTAMP": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Unit:     inputs.DurationUS,
+				Unit:     inputs.TimestampUS,
 				Desc:     "Crash timestamp in microseconds (v188+)",
 			},
 			"COREDUMP_EXE": &inputs.FieldInfo{

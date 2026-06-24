@@ -206,7 +206,7 @@ func (ipt *Input) gather() {
 		if len(collectCache) != 0 {
 			if err := ipt.feeder.Feed(point.Metric, collectCache,
 				dkio.WithCollectCost(time.Since(collectStart)),
-				dkio.WithSource(inputName),
+				dkio.WithSource(inputName), dkio.WithInput(inputName),
 			); err != nil {
 				l.Errorf("Feed failed: %s", err.Error())
 			}

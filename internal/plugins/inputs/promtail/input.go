@@ -74,6 +74,7 @@ func (*promtailSampleMeasurement) Info() *inputs.MeasurementInfo {
 		Cat:            point.Logging,
 		MetaDuplicated: true, // same as logging collector's measurement meta.
 		Desc:           "Using `source` field in the config file, default is `default`.",
+		DescZh:         "Promtail 兼容 HTTP 输入接收的日志记录，指标集名称默认使用 default，可由请求参数或配置 source 决定。",
 		Tags: map[string]interface{}{
 			"filename": inputs.NewTagInfo("File name. Optional."),
 			"job":      inputs.NewTagInfo("Job name. Optional."),
@@ -81,7 +82,7 @@ func (*promtailSampleMeasurement) Info() *inputs.MeasurementInfo {
 		},
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.NoUnit, Desc: "Message text, existed when default. Could use Pipeline to delete this field."}, // message
-			"status":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.EnumValue, Desc: "Log status."},
+			"status":  &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.EnumValue, Desc: "Normalized status value assigned to the collected log entry."},
 		},
 	}
 }

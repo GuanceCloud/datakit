@@ -8,9 +8,13 @@ __int_icon      : 'icon/kafka'
 dashboard :
   - desc  : 'Kafka'
     path  : 'dashboard/zh/kafka'
+  - desc  : 'Kafka-new'
+    path  : 'dashboard/zh/kafka_new'
 monitor   :
   - desc  : 'Kafka'
     path  : 'monitor/zh/kafka'
+  - desc  : 'Kafka-new'
+    path  : 'monitor/zh/kafka_new'
 ---
 
 {{.AvailableArchs}}

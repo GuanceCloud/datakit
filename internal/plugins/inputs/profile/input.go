@@ -478,6 +478,7 @@ func (ipt *Input) sendRequestToDW(ctx context.Context, pbBytes []byte) error {
 			if err := ipt.feeder.Feed(point.Metric, pts,
 				dkio.WithSource(dkio.FeedSource("profile", "extracted", "metrics")),
 				dkio.WithCollectCost(time.Since(start)),
+				dkio.WithInput(inputName),
 			); err != nil {
 				log.Warnf("feed: %s, ignored", err.Error())
 			}

@@ -130,22 +130,23 @@ type K8sEventLog struct{}
 //nolint:lll
 func (*K8sEventLog) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: eventLoggingMeasurement,
-		Desc: "The logging of the Kubernetes Event.",
-		Cat:  point.Logging,
+		Name:   eventLoggingMeasurement,
+		Desc:   "The logging of the Kubernetes Event.",
+		DescZh: "Kubernetes Event 日志，记录事件涉及对象、来源组件、来源节点、事件消息和原因。",
+		Cat:    point.Logging,
 		Tags: map[string]interface{}{
 			"uid":    inputs.NewTagInfo("The UID of event."),
 			"type":   inputs.NewTagInfo("Type of this event."),
 			"reason": inputs.NewTagInfo("This should be a short, machine understandable string that gives the reason, for the transition into the object's current status."),
 		},
 		Fields: map[string]interface{}{
-			"involved_kind":      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Kind of the referent for involved object."},
-			"involved_uid":       &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "The UID of involved object."},
-			"involved_name":      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Name must be unique within a namespace for involved object."},
-			"involved_namespace": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Namespace defines the space within which each name must be unique for involved object."},
-			"source_component":   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Component from which the event is generated."},
-			"source_host":        &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Node name on which the event is generated."},
-			"message":            &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Details of event log"},
+			"involved_kind":      &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Kind of the referent for involved object."},
+			"involved_uid":       &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "The UID of involved object."},
+			"involved_name":      &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Name must be unique within a namespace for involved object."},
+			"involved_namespace": &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Namespace defines the space within which each name must be unique for involved object."},
+			"source_component":   &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Component from which the event is generated."},
+			"source_host":        &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Node name on which the event is generated."},
+			"message":            &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Details of event log"},
 		},
 	}
 }

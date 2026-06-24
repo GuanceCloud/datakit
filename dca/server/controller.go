@@ -6,6 +6,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -13,6 +14,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -21,6 +23,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	ws "gitlab.jiagouyun.com/cloudcare-tools/datakit/dca/websocket"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/sensitive"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/version"
 )
 
@@ -186,17 +189,27 @@ func datakitLogDownladHandler(ctx *gin.Context) {
 		return
 	}
 
+	redactor := &logDownloadRedactor{}
+	wroteBody := false
 	for {
-		if messageType, bytes, err := conn.ReadMessage(); err != nil {
+		if messageType, data, err := conn.ReadMessage(); err != nil {
+			if wroteBody {
+				if flushed := redactor.Flush(); len(flushed) > 0 {
+					if _, err := h.c.Writer.Write(flushed); err != nil {
+						l.Warnf("write response failed: %s", err.Error())
+					}
+				}
+				return
+			}
 			h.fatal(500, fmt.Sprintf("read message from websocket error: %s", err.Error()))
 			l.Warnf("failed to read message from websocket: %s", err.Error())
 			return
 		} else {
-			l.Info("received messages, length: %d, messageType: %s", len(bytes), messageType)
+			l.Info("received messages, length: %d, messageType: %s", len(data), messageType)
 			switch messageType {
 			case websocket.TextMessage:
-				dest := ws.WebsocketMessage{}
-				if err := json.Unmarshal(bytes, &dest); err != nil {
+				dest := ws.WebsocketMessage{Data: &ws.DCAResponse{}}
+				if err := json.Unmarshal(data, &dest); err != nil {
 					l.Errorf("failed to unmarshal message: %s", err.Error())
 					h.fatal(500, fmt.Sprintf("failed to unmarshal message: %s", err.Error()))
 					return
@@ -212,13 +225,24 @@ func datakitLogDownladHandler(ctx *gin.Context) {
 						return
 					}
 				}
+				if wroteBody {
+					if flushed := redactor.Flush(); len(flushed) > 0 {
+						if _, err := h.c.Writer.Write(flushed); err != nil {
+							l.Warnf("write response failed: %s", err.Error())
+						}
+					}
+				}
+				return
 			case websocket.BinaryMessage:
 				h.c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", logType))
 				h.c.Header("Content-Type", "application/octet-stream")
 				// h.c.Data(200, "application/octet-stream", bytes)
-				if _, err := h.c.Writer.Write(bytes); err != nil {
-					l.Warnf("write response failed: %s", err.Error())
-					return
+				wroteBody = true
+				if redacted := redactor.RedactChunk(data); len(redacted) > 0 {
+					if _, err := h.c.Writer.Write(redacted); err != nil {
+						l.Warnf("write response failed: %s", err.Error())
+						return
+					}
 				}
 			default:
 				l.Warnf("got unknow message type: %d", messageType)
@@ -227,6 +251,69 @@ func datakitLogDownladHandler(ctx *gin.Context) {
 			}
 		}
 	}
+}
+
+const (
+	logRedactMaxLineBuffer = 1 << 20 // 1 MiB
+	logRedactOversizedLine = "[redacted oversized log line]\n"
+)
+
+type logDownloadRedactor struct {
+	buf                     []byte
+	discardingOversizedLine bool
+}
+
+func (r *logDownloadRedactor) RedactChunk(chunk []byte) []byte {
+	if len(chunk) == 0 {
+		return nil
+	}
+
+	r.buf = append(r.buf, chunk...)
+
+	if r.discardingOversizedLine {
+		if idx := bytes.IndexByte(r.buf, '\n'); idx >= 0 {
+			r.buf = append(r.buf[:0], r.buf[idx+1:]...)
+			r.discardingOversizedLine = false
+		} else {
+			r.buf = r.buf[:0]
+			return nil
+		}
+	}
+
+	if idx := bytes.LastIndexByte(r.buf, '\n'); idx >= 0 {
+		out := cloneBytes(r.buf[:idx+1])
+		r.buf = append(r.buf[:0], r.buf[idx+1:]...)
+		return []byte(sensitive.RedactLogString(string(out)))
+	}
+
+	if len(r.buf) <= logRedactMaxLineBuffer {
+		return nil
+	}
+
+	r.buf = r.buf[:0]
+	r.discardingOversizedLine = true
+	return []byte(logRedactOversizedLine)
+}
+
+func cloneBytes(data []byte) []byte {
+	out := make([]byte, len(data))
+	copy(out, data)
+	return out
+}
+
+func (r *logDownloadRedactor) Flush() []byte {
+	if r.discardingOversizedLine {
+		r.buf = nil
+		r.discardingOversizedLine = false
+		return nil
+	}
+	if len(r.buf) == 0 {
+		return nil
+	}
+
+	out := []byte(sensitive.RedactLogString(string(r.buf)))
+	r.buf = nil
+	return out
 }
 
 func getNewWebsocketConn(datakit *ws.DataKit, action string) (*websocket.Conn, error) {
@@ -301,14 +388,14 @@ func getLastDatakitVersionHandler(c *gin.Context) {
 }
 
 func websocketLogHandler(ctx *gin.Context) {
-	timeout := 30 * time.Second
 	conn, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
 		l.Errorf("failed to upgrade websocket connection: %s", err.Error())
 		ctx.String(http.StatusInternalServerError, "Failed to upgrade websocket connection")
 		return
 	}
-	closeCh := make(chan interface{})
+	defer conn.Close() //nolint:errcheck
+	closeCh := make(chan struct{})
 
 	g.Go(func(ctx context.Context) error {
 		time.Sleep(time.Second * 5)
@@ -347,17 +434,6 @@ func websocketLogHandler(ctx *gin.Context) {
 		return
 	}
 
-	data := []byte{}
-	resp := ws.DCAResponse{
-		Content: &data,
-	}
-	dest := ws.WebsocketMessage{
-		Action: ws.GetDatakitLogTailAction,
-		Data:   &resp,
-	}
-
-	timeoutTicker := time.NewTicker(timeout)
-	defer timeoutTicker.Stop()
 	var actionError error
 
 	defer func() {
@@ -369,34 +445,65 @@ func websocketLogHandler(ctx *gin.Context) {
 		}
 	}()
 
+	if err := forwardDatakitLogMessages(conn, newConn, ws.GetDatakitLogTailAction, closeCh); err != nil {
+		actionError = err
+	}
+}
+
+func forwardDatakitLogMessages(frontConn, datakitConn *websocket.Conn, action string, done <-chan struct{}) error {
+	stop := make(chan struct{})
+	doneClosed := make(chan struct{})
+	if done != nil {
+		go func() {
+			select {
+			case <-done:
+				close(doneClosed)
+				_ = datakitConn.Close()
+			case <-stop:
+			}
+		}()
+	}
+	defer close(stop)
+
 	for {
-		_, bytes, err := newConn.ReadMessage()
+		data := []byte{}
+		resp := ws.DCAResponse{
+			Content: &data,
+		}
+		dest := ws.WebsocketMessage{
+			Action: action,
+			Data:   &resp,
+		}
+
+		_, bytes, err := datakitConn.ReadMessage()
 		if err != nil {
+			select {
+			case <-doneClosed:
+				return nil
+			default:
+			}
 			l.Warnf("failed to read message: %s, exit", err.Error())
-			actionError = fmt.Errorf("get log failed: %w", err)
-			return
+			return fmt.Errorf("get log failed: %w", err)
 		}
 		if err := json.Unmarshal(bytes, &dest); err != nil {
 			l.Errorf("failed to unmarshal message: %s", err.Error())
-			actionError = errors.New("get log failed")
-			return
+			return errors.New("get log failed")
 		}
 
-		if msg.Action != dest.Action {
-			l.Errorf("message action not match: %s, %s", msg.Action, dest.Action)
-			actionError = errors.New("get log failed")
-			return
+		if action != dest.Action {
+			l.Errorf("message action not match: %s, %s", action, dest.Action)
+			return errors.New("get log failed")
 		}
 
 		if !resp.Success {
 			l.Warnf("failed to get log data: %s", resp.Message)
-			actionError = fmt.Errorf("get log failed: %s", resp.Message)
-			return
+			return fmt.Errorf("get log failed: %s", resp.Message)
 		}
 
-		if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
+		data = []byte(sensitive.RedactLogString(string(data)))
+		if err := frontConn.WriteMessage(websocket.TextMessage, data); err != nil {
 			l.Warnf("failed to write message: %s, exit", err.Error())
-			return
+			return nil
 		}
 	}
 }
@@ -597,6 +704,21 @@ type filterItem struct {
 	Value    []string `json:"value"`
 }
 
+const (
+	filterRelationAnd = "and"
+	filterRelationOr  = "or"
+)
+
+var globalHostTagFieldRegexp = regexp.MustCompile(`^[A-Za-z0-9_.-]+$`)
+
+func isGlobalHostTagFilterField(field string) bool {
+	return globalHostTagFieldRegexp.MatchString(field)
+}
+
+func globalHostTagJSONPath(field string) string {
+	return fmt.Sprintf(`$."%s"`, field)
+}
+
 // datakitListHandler is the handler for datakit list.
 func datakitListHandler(c *gin.Context) {
 	h := newHandler(c)
@@ -706,7 +828,7 @@ func getWhereSQL(workspaceUUID, filter, search string) (string, []any, error) {
 			return "", whereValues, fmt.Errorf("invalid filed filter: %w", err)
 		}
 
-		if filterParam.Relation != "and" && filterParam.Relation != "or" {
+		if filterParam.Relation != filterRelationAnd && filterParam.Relation != filterRelationOr {
 			return "", whereValues, fmt.Errorf("invalid field relation %s", filterParam.Relation)
 		}
 
@@ -757,16 +879,22 @@ func getWhereSQL(workspaceUUID, filter, search string) (string, []any, error) {
 					values = append(values, item.Value[0])
 				}
 			default: // from global host tags
+				if !isGlobalHostTagFilterField(fieldName) {
+					return "", whereValues, fmt.Errorf("invalid field name %s", fieldName)
+				}
+				jsonPath := globalHostTagJSONPath(fieldName)
 				if inOperator != "" {
 					globalHostTagsWhereSQL = append(globalHostTagsWhereSQL,
-						fmt.Sprintf("(json_extract(tags,'$.%s') %s (%s))",
-							fieldName, inOperator, strings.Join(placeHolders, ",")))
+						fmt.Sprintf("(json_extract(tags, ?) %s (%s))",
+							inOperator, strings.Join(placeHolders, ",")))
+					golbalHostTagsValues = append(golbalHostTagsValues, jsonPath)
 					golbalHostTagsValues = append(golbalHostTagsValues, wheres...)
 				}
 				if matchOperator != "" {
 					globalHostTagsWhereSQL = append(globalHostTagsWhereSQL,
-						fmt.Sprintf("(json_extract(tags,'$.%s') %s ?)", fieldName,
+						fmt.Sprintf("(json_extract(tags, ?) %s ?)",
 							matchOperator))
+					golbalHostTagsValues = append(golbalHostTagsValues, jsonPath)
 					golbalHostTagsValues = append(golbalHostTagsValues, item.Value[0])
 				}
 			}
@@ -786,7 +914,7 @@ func getWhereSQL(workspaceUUID, filter, search string) (string, []any, error) {
 
 			if len(dkConnIDs) > 0 {
 				whereSQLs = append(whereSQLs, fmt.Sprintf("(conn_id in ('%s'))", strings.Join((dkConnIDs), "','")))
-			} else if filterParam.Relation == "and" {
+			} else if filterParam.Relation == filterRelationAnd {
 				return "", nil, nil
 			}
 		}

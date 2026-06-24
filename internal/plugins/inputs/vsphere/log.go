@@ -31,5 +31,8 @@ func (m *Log) Point() *point.Point {
 }
 
 func (m *Log) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{}
+	return &inputs.MeasurementInfo{
+		Desc:   "vSphere log records emitted with the configured source name.",
+		DescZh: "使用配置的 source 名称上报的 vSphere 日志数据。",
+	}
 }

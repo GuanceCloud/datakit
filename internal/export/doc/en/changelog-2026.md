@@ -1,5 +1,31 @@
 # Changelog
 
+## 2.3.0(2026/06/24) {#cl-2.3.0}
+
+This release is an iterative release, with the following main updates:
+
+### New Features {#cl-2.3.0-new}
+
+- Added GKE Autopilot integration. DataKit can now be deployed as a Deployment through the `datakit-gke-autopilot` Helm Chart/YAML and collect container metrics plus stdout/stderr logs through GCP Cloud APIs (#3107)
+
+### Bug Fixes {#cl-2.3.0-fix}
+
+- Fixed PostgreSQL table object collection compatibility across versions and duplicate index data during batched collection (#3127)
+
+### Improvements {#cl-2.3.0-opt}
+
+- Optimized SNMP collection scheduling: duplicate jobs of the same type for the same IP are skipped, while different collection types remain serialized, reducing duplicate collection and wait overhead (#3121)
+- Improved communication efficiency between eBPF and DataKit Operator, reducing query and parsing overhead in large clusters. This requires DataKit Operator v1.8.9 or later (#3125)
+- Added the new Kafka Dashboard and Monitor entries to the Kafka integration (#3040)
+- Upgraded DCA to 0.1.7, improving management UI stability and interaction experience, with additional frontend and backend unit test coverage (#3065)
+- Improved measurement metadata: `measurements-meta.json` now includes `desc_i18n`, and units, tags, and field descriptions have been completed for multiple collectors (!3956)
+
+### Compatibility Adjustments {#cl-2.3.0-brk}
+
+- DataKit metric points now include a `__input_source` tag with values like `dk.<input>` to identify the source collector. Metrics generated through HTTP API and Pipeline also include the corresponding source (#3124)
+
+---
+
 ## 2.2.1(2026/06/18) {#cl-2.2.1}
 
 This release is a hotfix release, contents are as follows:

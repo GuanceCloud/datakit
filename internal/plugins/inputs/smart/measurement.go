@@ -3,6 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
+//nolint:lll,goconst,funlen // Measurement metadata contains intentionally long repeated literals.
 package smart
 
 import (
@@ -15,13 +16,15 @@ type smartMeasurement struct{}
 //nolint:lll
 func (s *smartMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: inputName,
-		Cat:  point.Metric,
+		Name:   inputName,
+		Cat:    point.Metric,
+		Desc:   "Disk SMART health metrics parsed from smartctl output, including device identity, health status, and SMART attribute values.",
+		DescZh: "从 smartctl 输出解析的磁盘 SMART 健康指标，包含设备身份、健康状态和 SMART 属性值。",
 		Tags: map[string]interface{}{
 			"capacity":    &inputs.TagInfo{Desc: "disk capacity"},
 			"device":      &inputs.TagInfo{Desc: "device mount name"},
 			"enabled":     &inputs.TagInfo{Desc: "is SMART supported"},
-			"exit_status": &inputs.TagInfo{Desc: "command process status"},
+			"exit_status": &inputs.TagInfo{Desc: "smartctl command execution status."},
 			"health_ok":   &inputs.TagInfo{Desc: "SMART overall-health self-assessment test result"},
 			"host":        &inputs.TagInfo{Desc: "host name"},
 			"model":       &inputs.TagInfo{Desc: "device model"},
@@ -51,9 +54,9 @@ func (s *smartMeasurement) Info() *inputs.MeasurementInfo {
 			"erase_fail_count_raw_value":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The raw value of erase failed count."},
 			"erase_fail_count_value":            &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The value of erase failed count."},
 			"erase_fail_count_worst":            &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The worst value of erase failed count."},
-			"fail":                              &inputs.FieldInfo{DataType: inputs.Bool, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Read attribute failed."},
+			"fail":                              &inputs.FieldInfo{DataType: inputs.Bool, Type: inputs.Gauge, Unit: inputs.Bool, Desc: "Whether reading the SMART attribute failed."},
 			"flags":                             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Attribute flags."},
-			"g-sense_error_rate_raw_value":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The raw value of"},
+			"g-sense_error_rate_raw_value":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The raw value of the G-sense error rate."},
 			"g-sense_error_rate_threshold":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The threshold value of g-sensor error rate."},
 			"g-sense_error_rate_value":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The value of g-sensor error rate."},
 			"g-sense_error_rate_worst":          &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The worst value of g-sensor error rate."},
@@ -167,9 +170,9 @@ func (s *smartMeasurement) Info() *inputs.MeasurementInfo {
 			"unexpect_power_loss_ct_raw_value":  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The raw value of unexpected power loss count."},
 			"unexpect_power_loss_ct_value":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The value of unexpected power loss count."},
 			"unexpect_power_loss_ct_worst":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "The worst value of unexpected power loss count."},
-			"unknown_attribute_raw_value":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "The raw value of unknown attribute."},
-			"unknown_attribute_value":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "The value of unknown attribute."},
-			"unknown_attribute_worst":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.UnknownUnit, Desc: "The worst value of unknown attribute."},
+			"unknown_attribute_raw_value":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "Raw value of an unclassified SMART attribute reported by the device."},
+			"unknown_attribute_value":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "Normalized value of an unclassified SMART attribute reported by the device."},
+			"unknown_attribute_worst":           &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "Worst recorded normalized value of an unclassified SMART attribute reported by the device."},
 		},
 	}
 }

@@ -82,6 +82,7 @@ func (m *MeterReportServiceServerImpl) Collect(collect agentv3.MeterReportServic
 
 	if err := m.feeder.Feed(point.Metric, []*point.Point{pt},
 		dkio.WithSource("skywalking_meter"),
+		dkio.WithInput(inputName),
 	); err != nil {
 		log.Warnf("feeder error=%v", err)
 	}
@@ -103,6 +104,7 @@ func (m *MeterReportServiceServerImpl) CollectBatch(collects agentv3.MeterReport
 	}
 	if err := m.feeder.Feed(point.Metric, pts,
 		dkio.WithSource("skywalking_meter"),
+		dkio.WithInput(inputName),
 	); err != nil {
 		log.Warnf("feeder error=%v", err)
 	}
@@ -208,6 +210,7 @@ func (r *JVMMetricReportServerV3Old) Collect(ctx context.Context, jvm *agentv3.J
 		if err := r.ipt.feeder.Feed(point.Metric, pts,
 			dkio.WithCollectCost(time.Since(start)),
 			dkio.WithSource(jvmMetricName),
+			dkio.WithInput(inputName),
 		); err != nil {
 			r.ipt.feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),
@@ -371,6 +374,7 @@ func (r *JVMMetricReportServerV3) Collect(ctx context.Context, jvm *agentv3.JVMM
 		if err := r.ipt.feeder.Feed(point.Metric, pts,
 			dkio.WithCollectCost(time.Since(start)),
 			dkio.WithSource(jvmMetricName),
+			dkio.WithInput(inputName),
 		); err != nil {
 			r.ipt.feeder.FeedLastError(err.Error(),
 				metrics.WithLastErrorInput(inputName),

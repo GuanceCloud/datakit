@@ -16,17 +16,18 @@ type JVMMeasurement struct{}
 //nolint:funlen
 func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: metricName,
-		Desc: "OpenTelemetry JVM Metrics",
-		Cat:  point.Metric,
+		Name:   metricName,
+		Desc:   "OpenTelemetry JVM, HTTP, process, Tomcat, and Kafka metric metadata for common OTLP metric names",
+		DescZh: "OpenTelemetry 常见 JVM、HTTP、进程、Tomcat 和 Kafka 指标元数据",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			"application.ready.time": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.TimestampMS,
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.DurationMS,
 				Desc: "Time taken (ms) for the application to be ready to service requests",
 			},
 
 			"application.started.time": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.TimestampMS,
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.DurationMS,
 				Desc: "Time taken (ms) to start the application",
 			},
 
@@ -56,7 +57,7 @@ func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 			},
 
 			"executor.pool.size": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeByte,
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
 				Desc: "The current number of threads in the pool",
 			},
 
@@ -72,7 +73,7 @@ func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 
 			// JVM metrics.
 			"jvm.classes.loaded": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Count,
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
 				Desc: "The number of classes that are currently loaded in the Java virtual machine",
 			},
 
@@ -102,22 +103,22 @@ func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 			},
 
 			"jvm.gc.overhead": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.PercentDecimal,
 				Desc: "An approximation of the percent of CPU time used by GC activities over the last look back period or since monitoring began, whichever is shorter, in the range [0..1]", //nolint:lll
 			},
 
 			"jvm.gc.pause.max": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.TimestampMS,
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.DurationMS,
 				Desc: "Time spent in GC pause",
 			},
 
 			"jvm.gc.pause": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.TimestampNS,
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.DurationNS,
 				Desc: "Time spent in GC pause",
 			},
 
 			"jvm.memory.usage.after.gc": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.PercentDecimal,
 				Desc: "The percentage of long-lived heap pool used after the last GC event, in the range [0..1]",
 			},
 
@@ -127,7 +128,7 @@ func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 			},
 
 			"jvm.classes.unloaded": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
+				Type: inputs.Count, DataType: inputs.Float, Unit: inputs.NCount,
 				Desc: "The total number of classes unloaded since the Java virtual machine has started execution",
 			},
 
@@ -152,17 +153,17 @@ func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 			},
 
 			"jvm.threads.live": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeByte,
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
 				Desc: "The current number of live threads including both daemon and non-daemon threads",
 			},
 
 			"jvm.threads.states": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeByte,
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
 				Desc: "The current number of threads having NEW state",
 			},
 
 			"jvm.threads.peak": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeByte,
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
 				Desc: "The peak live thread count since the Java virtual machine started or peak was reset",
 			},
 
@@ -197,23 +198,23 @@ func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 			},
 
 			"executor.completed": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
+				Type: inputs.Count, DataType: inputs.Float, Unit: inputs.NCount,
 				Desc: "The approximate total number of tasks that have completed execution",
 			},
 
 			"executor.pool.core": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeByte,
-				Desc: "The core number of threads for the pool",
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
+				Desc: "The configured core number of threads kept in the executor pool",
 			},
 
 			// http metrics
 			"http.server.requests.max": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeByte,
-				Desc: "None",
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.DurationNS,
+				Desc: "The maximum observed duration of inbound HTTP requests",
 			},
 
 			"http.server.requests": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
+				Type: inputs.Count, DataType: inputs.Float, Unit: inputs.NCount,
 				Desc: "The http request count",
 			},
 
@@ -233,24 +234,24 @@ func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 			},
 
 			"otlp.exporter.seen": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "OTLP exporter",
+				Type: inputs.Count, DataType: inputs.Int, Unit: inputs.NCount,
+				Desc: "The number of telemetry items seen by the OTLP exporter",
 			},
 
 			"otlp.exporter.exported": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
-				Desc: "OTLP exporter to remote",
+				Type: inputs.Count, DataType: inputs.Int, Unit: inputs.NCount,
+				Desc: "The number of telemetry items successfully exported by the OTLP exporter",
 			},
 
 			// process metrics
 			"process.start.time": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeByte,
-				Desc: "Start time of the process since unix epoch",
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.TimestampSec,
+				Desc: "The process start time as Unix epoch seconds",
 			},
 
 			"process.uptime": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.TimestampSec,
-				Desc: "The uptime of the Java virtual machine",
+				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.DurationSecond,
+				Desc: "The time the process has been running in seconds",
 			},
 
 			"process.cpu.usage": &inputs.FieldInfo{
@@ -264,12 +265,12 @@ func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 			},
 
 			"process.runtime.jvm.cpu.utilization": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeByte,
-				Desc: "Recent cpu utilization for the process",
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.PercentDecimal,
+				Desc: "Recent CPU utilization of the process as a value from 0 to 1",
 			},
 
 			"process.runtime.jvm.classes.unloaded": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
+				Type: inputs.Count, DataType: inputs.Float, Unit: inputs.NCount,
 				Desc: "Number of classes unloaded since JVM start",
 			},
 
@@ -294,12 +295,12 @@ func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 			},
 
 			"process.runtime.jvm.system.cpu.utilization": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.PercentDecimal,
 				Desc: "Recent cpu utilization for the whole system",
 			},
 
 			"process.runtime.jvm.system.cpu.load_1m": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.Percent,
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
 				Desc: "Average CPU load of the whole system for the last minute",
 			},
 
@@ -309,7 +310,7 @@ func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 			},
 
 			"process.runtime.jvm.classes.loaded": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Int, Unit: inputs.NCount,
+				Type: inputs.Count, DataType: inputs.Int, Unit: inputs.NCount,
 				Desc: "Number of classes loaded since JVM start",
 			},
 
@@ -334,12 +335,12 @@ func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 			},
 
 			"process.runtime.jvm.gc.duration": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.TimestampNS,
+				Type: inputs.Histogram, DataType: inputs.Float, Unit: inputs.DurationSecond,
 				Desc: "Duration of JVM garbage collection actions",
 			},
 
 			"process.files.open": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.SizeByte,
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
 				Desc: "The open file descriptor count",
 			},
 
@@ -352,7 +353,7 @@ func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 				Desc: "The count of HTTP request duration time in each bucket",
 			},
 			"http.server.tomcat.sessions.activeSessions": &inputs.FieldInfo{
-				Type: inputs.Count, DataType: inputs.Float, Unit: inputs.NCount,
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
 				Desc: "The number of active sessions",
 			},
 			"http.server.tomcat.errorCount": &inputs.FieldInfo{
@@ -364,19 +365,19 @@ func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 				Desc: "The number of requests per second across all request processors",
 			},
 			"http.server.tomcat.maxTime": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.TimestampMS,
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.DurationMS,
 				Desc: "The longest request processing time",
 			},
 			"http.server.tomcat.processingTime": &inputs.FieldInfo{
-				Type: inputs.Count, DataType: inputs.Float, Unit: inputs.TimestampMS,
+				Type: inputs.Count, DataType: inputs.Float, Unit: inputs.DurationMS,
 				Desc: "Represents the total time for processing all requests",
 			},
 			"http.server.tomcat.traffic": &inputs.FieldInfo{
-				Type: inputs.Count, DataType: inputs.Float, Unit: inputs.BytesPerSec,
+				Type: inputs.Count, DataType: inputs.Float, Unit: inputs.SizeByte,
 				Desc: "The number of bytes transmitted",
 			},
 			"http.server.tomcat.threads": &inputs.FieldInfo{
-				Type: inputs.Count, DataType: inputs.Float, Unit: inputs.NCount,
+				Type: inputs.Gauge, DataType: inputs.Float, Unit: inputs.NCount,
 				Desc: "Thread Count of the Thread Pool",
 			},
 			"kafka.message.count": &inputs.FieldInfo{
@@ -396,17 +397,17 @@ func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 
 			"kafka.request.time.total": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float,
-				Unit: inputs.TimestampMS, Desc: "The total time the broker has taken to service requests",
+				Unit: inputs.DurationMS, Desc: "The total time in milliseconds the broker has taken to service requests",
 			},
 
 			"kafka.request.time.50p": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float,
-				Unit: inputs.TimestampMS, Desc: "The 50th percentile time the broker has taken to service requests",
+				Unit: inputs.DurationMS, Desc: "The 50th percentile request service time in milliseconds for the broker",
 			},
 
 			"kafka.request.time.99p": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float,
-				Unit: inputs.TimestampMS, Desc: "The 99th percentile time the broker has taken to service requests",
+				Unit: inputs.DurationMS, Desc: "The 99th percentile request service time in milliseconds for the broker",
 			},
 
 			"kafka.request.queue": &inputs.FieldInfo{
@@ -420,22 +421,22 @@ func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 			},
 
 			"kafka.purgatory.size": &inputs.FieldInfo{
-				Type: inputs.Count, DataType: inputs.Float,
+				Type: inputs.Gauge, DataType: inputs.Float,
 				Unit: inputs.NCount, Desc: "The number of requests waiting in purgatory",
 			},
 
 			"kafka.partition.count": &inputs.FieldInfo{
-				Type: inputs.Count, DataType: inputs.Float,
+				Type: inputs.Gauge, DataType: inputs.Float,
 				Unit: inputs.NCount, Desc: "The number of partitions on the broker",
 			},
 
 			"kafka.partition.offline": &inputs.FieldInfo{
-				Type: inputs.Count, DataType: inputs.Float,
+				Type: inputs.Gauge, DataType: inputs.Float,
 				Unit: inputs.NCount, Desc: "The number of partitions offline",
 			},
 
 			"kafka.partition.underReplicated": &inputs.FieldInfo{
-				Type: inputs.Count, DataType: inputs.Float,
+				Type: inputs.Gauge, DataType: inputs.Float,
 				Unit: inputs.NCount, Desc: "The number of under replicated partitions",
 			},
 
@@ -446,7 +447,7 @@ func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 
 			"kafka.lag.max": &inputs.FieldInfo{
 				Type: inputs.Gauge, DataType: inputs.Float,
-				Unit: inputs.TimestampMS, Desc: "The max lag in messages between follower and leader replicas",
+				Unit: inputs.NCount, Desc: "Maximum lag in messages between follower and leader replicas",
 			},
 
 			"kafka.controller.active.count": &inputs.FieldInfo{
@@ -455,12 +456,12 @@ func (m *JVMMeasurement) Info() *inputs.MeasurementInfo {
 			},
 
 			"kafka.leaderElection.count": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float,
+				Type: inputs.Count, DataType: inputs.Float,
 				Unit: inputs.NCount, Desc: "The leader election count",
 			},
 
 			"kafka.leaderElection.unclean.count": &inputs.FieldInfo{
-				Type: inputs.Gauge, DataType: inputs.Float,
+				Type: inputs.Count, DataType: inputs.Float,
 				Unit: inputs.NCount, Desc: "Unclean leader election count - increasing indicates broker failures",
 			},
 		},

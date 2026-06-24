@@ -35,9 +35,10 @@ type oracleObjectMeasurement struct{}
 //nolint:lll
 func (*oracleObjectMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: oracleObjectMeasurementName,
-		Cat:  point.Object,
-		Desc: "Oracle object metrics([:octicons-tag-24: Version-1.77.0](../datakit/changelog-2025.md#cl-1.77.0))",
+		Name:   oracleObjectMeasurementName,
+		Cat:    point.Object,
+		Desc:   "Oracle object metrics([:octicons-tag-24: Version-1.77.0](../datakit/changelog-2025.md#cl-1.77.0))",
+		DescZh: "Oracle 数据库对象指标。",
 		Tags: map[string]interface{}{
 			"host":              &inputs.TagInfo{Desc: "The hostname of the Oracle server"},
 			"server":            &inputs.TagInfo{Desc: "The address of the server. The value is `host:port`"},
@@ -48,12 +49,12 @@ func (*oracleObjectMeasurement) Info() *inputs.MeasurementInfo {
 			"port":              &inputs.TagInfo{Desc: "The port of the Oracle server"},
 		},
 		Fields: map[string]interface{}{
-			"uptime":         &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "The number of seconds that the server has been up"},
-			"slow_query_log": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Whether the slow query log is enabled according to whether `slow_query_time` is greater than 0 . The value can be OFF to disable the log or ON to enable the log."},
-			"slow_queries":   &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.NCount, Desc: "The number of queries that have taken more than `slow_query_time`."},
-			"avg_query_time": &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.TimestampUS, Desc: "The average time taken by a query to execute"},
-			"qps":            &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Gauge, Desc: "The number of queries executed by the database per second"},
-			"tps":            &inputs.FieldInfo{DataType: inputs.Float, Unit: inputs.Gauge, Desc: "The number of transactions executed by the database per second"},
+			"uptime":         &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationSecond, Desc: "Time in seconds since the Oracle instance last started."},
+			"slow_query_log": &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Whether slow-query tracking is enabled for this Oracle instance, reported as `ON` or `OFF`."},
+			"slow_queries":   &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Count, Unit: inputs.NCount, Desc: "The number of queries that have taken more than `slow_query_time`."},
+			"avg_query_time": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.DurationUS, Desc: "Average execution time in microseconds across observed Oracle queries."},
+			"qps":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.RequestsPerSec, Desc: "Current Oracle query throughput in queries per second."},
+			"tps":            &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.RequestsPerSec, Desc: "Current Oracle transaction throughput in transactions per second."},
 		},
 	}
 }

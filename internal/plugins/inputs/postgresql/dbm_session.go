@@ -32,9 +32,10 @@ type dbmSessionMeasurement struct{}
 
 func (*dbmSessionMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: metricNamePostgreSQLDbmSession,
-		Desc: "PostgreSQL DBM session metrics aggregated from pg_stat_activity by db/usename/session_status/wait_event dimensions.",
-		Cat:  point.Metric,
+		Name:   metricNamePostgreSQLDbmSession,
+		Desc:   "PostgreSQL DBM session metrics aggregated from pg_stat_activity by db/usename/session_status/wait_event dimensions.",
+		DescZh: "从 pg_stat_activity 按 db、usename、session_status 和 wait_event 维度聚合的 PostgreSQL DBM 会话指标。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			"session_group_count": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -110,6 +111,7 @@ func (ipt *Input) collectDbmSessionMetrics(activityRows []map[string]any, ptsTim
 		dkio.WithElection(ipt.Election),
 		dkio.WithSource(dbmFeedName),
 		dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementPostgreSQL)),
+		dkio.WithInput(inputName),
 	); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
 			metrics.WithLastErrorInput(inputName),

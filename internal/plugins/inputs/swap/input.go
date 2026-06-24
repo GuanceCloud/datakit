@@ -110,8 +110,8 @@ func (ipt *Input) Collect() error {
 		"used":         swap.Used,
 		"free":         swap.Free,
 		"used_percent": swap.UsedPercent,
-		"in":           swap.Sin,
-		"out":          swap.Sout,
+		"sin":          swap.Sin,
+		"sout":         swap.Sout,
 	}
 	tags := map[string]string{}
 	for k, v := range ipt.Tags {
@@ -137,6 +137,7 @@ func (ipt *Input) Run() {
 				point.Metric, ipt.collectCache,
 				dkio.WithCollectCost(time.Since(collectStart)),
 				dkio.WithSource(metricName),
+				dkio.WithInput(inputName),
 			); errFeed != nil {
 				ipt.feeder.FeedLastError(errFeed.Error(),
 					metrics.WithLastErrorInput(inputName),

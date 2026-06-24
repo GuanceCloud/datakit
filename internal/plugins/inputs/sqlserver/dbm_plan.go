@@ -50,20 +50,20 @@ func (*dbmPlanObjectMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "The obfuscated/normalized execution plan content (full content)",
+				Unit:     inputs.NoUnit,
+				Desc:     "Obfuscated normalized SQL Server execution plan content.",
 			},
 			"is_encrypted": &inputs.FieldInfo{
 				DataType: inputs.Bool,
 				Type:     inputs.Bool,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "Whether the execution plan is encrypted in the database",
+				Unit:     inputs.NoUnit,
+				Desc:     "Whether the execution plan is encrypted in the database.",
 			},
 			"plan_handle": &inputs.FieldInfo{
 				DataType: inputs.String,
 				Type:     inputs.String,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "The plan handle of the execution plan",
+				Unit:     inputs.NoUnit,
+				Desc:     "SQL Server plan handle that identifies the cached execution plan.",
 			},
 			"statement_start_offset": &inputs.FieldInfo{
 				DataType: inputs.Int,

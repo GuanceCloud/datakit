@@ -5,6 +5,8 @@ This document describes how to install DataKit in K8s via DaemonSet.
 
 For Helm-based installation, see [Helm Installation](datakit-helm.md).
 
+GKE Autopilot requires a Deployment form that does not depend on host mounts. See [GCP GKE Autopilot Integration](gcp-gke-autopilot.md).
+
 ## Installation {#install}
 
 > **Installing DataKit 1.x:** The manifest download links in this section point to the DataKit `2.x` `/datakit-v2/` path by default. To install DataKit `1.x`, replace `/datakit-v2/` with `/datakit/` in the URLs. The static resource domain in each URL is rendered for the current documentation brand.
@@ -491,6 +493,12 @@ When multiple clusters share a workspace and contain nodes with identical names,
 ```
 
 This configuration appends `cluster_a_` to the original hostname, effectively creating a unique identifier for nodes in this cluster. As a result, the `host` tag associated with metrics such as logs, processes, CPU usage, and memory will also be prefixed with `cluster_a_`, enabling better data organization and filtering.
+
+<!-- markdownlint-disable MD046 -->
+???+ note
+
+    GKE Autopilot Cloud API mode does not support `ENV_K8S_CLUSTER_NODE_NAME`. In this mode, a Deployment collects cluster-wide container data through Cloud APIs, and the `host` tag on container metrics, objects, and logs is taken from the original GKE Node name of each Pod.
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD013 -->
 ### Collector-specific Environment Variable {#inputs-envs}

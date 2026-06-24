@@ -1,5 +1,38 @@
 # Operator 更新记录
 
+## 1.8.9(2026-06-23) {#cl-1.8.9}
+
+- 优化 Cluster API Pod 查询性能，支持面向 eBPF 的精简视图，降低大规模集群下的响应体大小和解析开销（#94）
+
+## 1.8.8(2026-05-28) {#cl-1.8.8}
+
+- 修复 ddtrace 注入场景下 `check_annotation` 配置项可能未按预期生效的问题（#91）
+
+## 1.8.7(2026-05-14) {#cl-1.8.7}
+
+- 更新 Helm Chart 和 YAML 中的镜像 tag
+
+## 1.8.6(2026-05-12) {#cl-1.8.6}
+
+- 支持注入 Node.js ddtrace agent（#89）
+
+## 1.8.5(2026-05-09) {#cl-1.8.5}
+
+- 修复部分资源注入场景中原 Pod 字段被覆盖或丢失，导致 Pod 无法正常运行的问题（#88）
+
+## 1.8.4(2026-04-03) {#cl-1.8.4}
+
+- 修复注入资源时 initContainer 的 RestartPolicy 配置可能被丢弃的问题（#86）
+
+## 1.8.3(2026-03-20) {#cl-1.8.3}
+
+- 支持注入 PHP ddtrace agent（#82）
+
+## 1.8.2(2026-03-10) {#cl-1.8.2}
+
+- 修复 `/logging/configs` 接口在部分场景下返回异常的问题（#85）
+- 优化部分日志输出，便于排查 Operator 运行状态
+
 ## 1.8.1(2026-02-11) {#cl-1.8.1}
 
 - 支持以 `resourceFieldRef` 格式注入环境变量，现可引用容器资源限制与请求值，包括 limits.cpu、limits.memory、requests.cpu、requests.memory（#84）
@@ -195,4 +228,3 @@
 
 - 添加 Makefile、Dockerfile 和 CI 配置 (#2)
 - 支持以 Kubernetes Admission 方式注入 ddtrace 文件和环境变量 (#1)
-

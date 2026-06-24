@@ -46,14 +46,14 @@ func (*dbmQueryObjectMeasurement) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "The obfuscated/normalized SQL text (full text)",
+				Unit:     inputs.NoUnit,
+				Desc:     "Obfuscated normalized SQL text for this SQL Server query signature.",
 			},
 			"is_encrypted": &inputs.FieldInfo{
 				DataType: inputs.Bool,
 				Type:     inputs.Bool,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "Whether the SQL text is encrypted in the database",
+				Unit:     inputs.NoUnit,
+				Desc:     "Whether the SQL text is encrypted in the database.",
 			},
 		},
 	}

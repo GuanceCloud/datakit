@@ -65,12 +65,23 @@ type Input struct {
 	LoggingFieldWhiteList                 []string          `toml:"logging_field_white_list"`
 	LoggingMaxOpenFiles                   int               `toml:"logging_max_open_files"`
 
+	GCPCloudAPIEnabled       bool          `toml:"gcp_cloud_api_enabled"`
+	GCPProjectID             string        `toml:"gcp_project_id"`
+	GCPClusterName           string        `toml:"gcp_cluster_name"`
+	GCPClusterLocation       string        `toml:"gcp_cluster_location"`
+	EnableGCPCloudMonitoring bool          `toml:"enable_gcp_cloud_monitoring"`
+	EnableGCPCloudLogging    bool          `toml:"enable_gcp_cloud_logging"`
+	GCPCloudLoggingLookback  time.Duration `toml:"gcp_cloud_logging_lookback"`
+	GCPCloudLoggingOverlap   time.Duration `toml:"gcp_cloud_logging_overlap"`
+	GCPCloudLoggingStateFile string        `toml:"gcp_cloud_logging_state_file"`
+
 	Tags map[string]string `toml:"tags"`
 	DeprecatedConf
 
 	Feeder  dkio.Feeder
 	Tagger  datakit.GlobalTagger
 	chPause chan bool
+	leader  *leaderGate
 }
 
 func (*Input) SampleConfig() string              { return sampleCfg }
@@ -168,6 +179,21 @@ func (ipt *Input) setup() {
 	ipt.MetricCollecInterval = config.ProtectedInterval(minInterval, maxInterval, ipt.MetricCollecInterval)
 	ipt.ObjectCollecInterval = config.ProtectedInterval(minInterval, maxInterval, ipt.ObjectCollecInterval)
 	ipt.LoggingSearchInterval = config.ProtectedInterval(minInterval, maxInterval, ipt.LoggingSearchInterval)
+
+	if ipt.GCPCloudLoggingLookback <= 0 {
+		ipt.GCPCloudLoggingLookback = 2 * time.Minute
+	}
+	if ipt.GCPCloudLoggingOverlap <= 0 {
+		ipt.GCPCloudLoggingOverlap = 2 * time.Minute
+	}
+	if ipt.GCPCloudLoggingStateFile == "" {
+		ipt.GCPCloudLoggingStateFile = datakit.JoinToCacheDir("gcp-cloud-logging-state.json")
+	}
+	electionEnabled := config.Cfg != nil && config.Cfg.Election != nil && config.Cfg.Election.Enable
+	ipt.leaderGate().ConfigureElection(electionEnabled)
+	if !electionEnabled {
+		ipt.trySendPause(false)
+	}
 }
 
 func (ipt *Input) Terminate() {
@@ -175,7 +201,9 @@ func (ipt *Input) Terminate() {
 }
 
 func (ipt *Input) Pause() error {
+	ipt.leaderGate().Pause()
 	tick := time.NewTicker(time.Second * 3)
+	defer tick.Stop()
 	select {
 	case ipt.chPause <- true:
 		return nil
@@ -185,12 +213,31 @@ func (ipt *Input) Pause() error {
 }
 
 func (ipt *Input) Resume() error {
+	ipt.leaderGate().Resume()
 	tick := time.NewTicker(time.Second * 3)
+	defer tick.Stop()
 	select {
 	case ipt.chPause <- false:
 		return nil
 	case <-tick.C:
 		return fmt.Errorf("resume %s failed", inputName)
+	}
+}
+
+func (ipt *Input) leaderGate() *leaderGate {
+	if ipt.leader == nil {
+		ipt.leader = newLeaderGate()
+	}
+	return ipt.leader
+}
+
+func (ipt *Input) trySendPause(paused bool) {
+	if ipt.chPause == nil {
+		return
+	}
+	select {
+	case ipt.chPause <- paused:
+	default:
 	}
 }
 
@@ -208,9 +255,14 @@ func newInput() *Input {
 		LoggingEnableMultline:     true,
 		LoggingExtraSourceMap:     make(map[string]string),
 		LoggingSourceMultilineMap: make(map[string]string),
+		EnableGCPCloudMonitoring:  true,
+		EnableGCPCloudLogging:     true,
+		GCPCloudLoggingLookback:   2 * time.Minute,
+		GCPCloudLoggingOverlap:    2 * time.Minute,
 		Feeder:                    dkio.DefaultFeeder(),
 		Tagger:                    datakit.DefaultGlobalTagger(),
 		chPause:                   make(chan bool, 8),
+		leader:                    newLeaderGate(),
 	}
 }
 

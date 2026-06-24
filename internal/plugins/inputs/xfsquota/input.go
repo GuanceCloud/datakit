@@ -128,7 +128,7 @@ func (ipt *Input) collectXFSQuota(timestamp int64) {
 		point.Metric,
 		pts,
 		dkio.WithCollectCost(time.Since(start)),
-		dkio.WithSource(inputName),
+		dkio.WithSource(inputName), dkio.WithInput(inputName),
 	); err != nil {
 		l.Warnf("failed to feed xfsquota metrics: %s", err)
 	}

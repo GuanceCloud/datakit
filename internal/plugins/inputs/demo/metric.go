@@ -3,6 +3,7 @@
 // This product includes software developed at Guance Cloud (https://www.guance.com/).
 // Copyright 2021-present Guance, Inc.
 
+//nolint:lll,goconst,funlen // Measurement metadata contains intentionally long repeated literals.
 package demo
 
 import (
@@ -25,6 +26,7 @@ func (m *demoMetric) Info() *inputs.MeasurementInfo {
 		Cat:        point.Metric,
 		ExportSkip: true,
 		Desc:       "这是一个指标集的 demo(**务必加上每个指标集的描述**)",
+		DescZh:     "用于演示 DataKit 指标类 MeasurementInfo 元数据结构的示例指标集。",
 		Tags: map[string]interface{}{
 			"tag_a": &inputs.TagInfo{Desc: "示例 tag A"},
 			"tag_b": &inputs.TagInfo{Desc: "示例 tag B"},
@@ -50,15 +52,15 @@ func (m *demoMetric) Info() *inputs.MeasurementInfo {
 			},
 			"some_string": &inputs.FieldInfo{
 				DataType: inputs.String,
-				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "some string field",
+				Type:     inputs.String,
+				Unit:     inputs.NoUnit,
+				Desc:     "Example string field.",
 			},
 			"ok": &inputs.FieldInfo{
 				DataType: inputs.Bool,
 				Type:     inputs.Gauge,
-				Unit:     inputs.UnknownUnit,
-				Desc:     "some boolean field",
+				Unit:     inputs.Bool,
+				Desc:     "Example boolean field.",
 			},
 		},
 	}

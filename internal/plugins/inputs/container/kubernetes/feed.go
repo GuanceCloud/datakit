@@ -32,6 +32,7 @@ func feedMetric(name string, feeder dkio.Feeder, pts []*point.Point, election bo
 		pts,
 		dkio.WithElection(election),
 		dkio.WithSource("k8s-metric"),
+		dkio.WithInput("container"),
 	); err != nil {
 		klog.Warnf("%s feed failed, err: %s", name, err)
 	}

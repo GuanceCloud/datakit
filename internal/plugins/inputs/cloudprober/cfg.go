@@ -69,5 +69,8 @@ func (m *Measurement) Point() *point.Point {
 }
 
 func (m *Measurement) Info() *inputs.MeasurementInfo {
-	return &inputs.MeasurementInfo{}
+	return &inputs.MeasurementInfo{
+		Desc:   "Cloudprober probe metrics emitted with the configured measurement name.",
+		DescZh: "使用配置的指标集名称上报的 Cloudprober 探测指标。",
+	}
 }

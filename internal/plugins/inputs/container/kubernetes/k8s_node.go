@@ -212,23 +212,24 @@ type NodeMetric struct{}
 //nolint:lll
 func (*NodeMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: nodeMetricMeasurement,
-		Desc: "The metric of the Kubernetes Node.",
-		Cat:  point.Metric,
+		Name:   nodeMetricMeasurement,
+		Desc:   "The metric of the Kubernetes Node.",
+		DescZh: "Kubernetes Node 指标，记录节点 CPU、内存、Pod 和临时存储的可分配量与容量。",
+		Cat:    point.Metric,
 		Tags: map[string]interface{}{
 			"uid":              inputs.NewTagInfo("The UID of Node."),
 			"node":             inputs.NewTagInfo("Name must be unique within a namespace"),
 			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
-			"cpu_allocatable":               &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The allocatable CPU of a node that is available for scheduling."},
-			"memory_allocatable":            &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The allocatable memory of a node that is available for scheduling."},
-			"pods_allocatable":              &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The allocatable pods of a node that is available for scheduling."},
-			"ephemeral_storage_allocatable": &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The allocatable ephemeral-storage of a node that is available for scheduling."},
-			"cpu_capacity":                  &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The CPU capacity of a node."},
-			"memory_capacity":               &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The memory capacity of a node."},
-			"pods_capacity":                 &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The pods capacity of a node."},
-			"ephemeral_storage_capacity":    &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.UnknownUnit, Desc: "The ephemeral-storage capacity of a node."},
+			"cpu_allocatable":               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "Allocatable CPU cores on this node that are available for scheduling."},
+			"memory_allocatable":            &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Allocatable memory in bytes on this node that is available for scheduling."},
+			"pods_allocatable":              &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Maximum number of pods that can be scheduled on this node."},
+			"ephemeral_storage_allocatable": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Allocatable ephemeral storage in bytes on this node that is available for scheduling."},
+			"cpu_capacity":                  &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "Total CPU capacity of this node in cores."},
+			"memory_capacity":               &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total memory capacity of this node in bytes."},
+			"pods_capacity":                 &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NCount, Desc: "Total pod capacity configured for this node."},
+			"ephemeral_storage_capacity":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.SizeByte, Desc: "Total ephemeral storage capacity of this node in bytes."},
 		},
 	}
 }
@@ -238,9 +239,10 @@ type NodeObject struct{}
 //nolint:lll
 func (*NodeObject) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: nodeObjectClass,
-		Desc: "The object of the Kubernetes Node.",
-		Cat:  point.Object,
+		Name:   nodeObjectClass,
+		Desc:   "The object of the Kubernetes Node.",
+		DescZh: "Kubernetes Node 对象信息，记录 kubelet 版本、就绪状态、污点、调度状态和对象详情。",
+		Cat:    point.Object,
 		Tags: map[string]interface{}{
 			"name":             inputs.NewTagInfo("The UID of Node."),
 			"uid":              inputs.NewTagInfo("The UID of Node."),
@@ -252,12 +254,12 @@ func (*NodeObject) Info() *inputs.MeasurementInfo {
 			"cluster_name_k8s": inputs.NewTagInfo("K8s cluster name(default is `default`). We can rename it in datakit.yaml on ENV_CLUSTER_NAME_K8S."),
 		},
 		Fields: map[string]interface{}{
-			"age":             &inputs.FieldInfo{DataType: inputs.Int, Unit: inputs.DurationSecond, Desc: "Age (seconds)."},
-			"kubelet_version": &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Kubelet Version reported by the node."},
-			"node_ready":      &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "NodeReady means kubelet is healthy and ready to accept pods (true/false/unknown)."},
-			"taints":          &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Node's taints."},
-			"unschedulable":   &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Unschedulable controls node schedulability of new pods (yes/no)."},
-			"message":         &inputs.FieldInfo{DataType: inputs.String, Unit: inputs.UnknownUnit, Desc: "Object details."},
+			"age":             &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationSecond, Desc: "Age (seconds)."},
+			"kubelet_version": &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Kubelet Version reported by the node."},
+			"node_ready":      &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "NodeReady means kubelet is healthy and ready to accept pods (true/false/unknown)."},
+			"taints":          &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Node's taints."},
+			"unschedulable":   &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Unschedulable controls node schedulability of new pods (yes/no)."},
+			"message":         &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: "Serialized Kubernetes object details for this resource."},
 		},
 	}
 }

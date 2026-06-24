@@ -16,6 +16,7 @@ import (
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/sensitive"
 )
 
 func TestBugreport_collectGitRepos(t *testing.T) {
@@ -197,46 +198,44 @@ func TestBugreport_escapeString(t *testing.T) {
 	}
 }
 
-func TestBugreport_containString(t *testing.T) {
-	info := &datakitInfo{}
-
+func TestBugreport_sensitiveKey(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    string
-		substrs  []string
 		expected bool
 	}{
 		{
 			name:     "contains substring",
 			input:    "password123",
-			substrs:  []string{"password"},
 			expected: true,
 		},
 		{
 			name:     "case insensitive",
 			input:    "PASSWORD123",
-			substrs:  []string{"password"},
 			expected: true,
 		},
 		{
 			name:     "does not contain",
 			input:    "user123",
-			substrs:  []string{"password"},
 			expected: false,
 		},
 		{
-			name:     "multiple substrs",
+			name:     "token key",
 			input:    "token123",
-			substrs:  []string{"password", "token"},
+			expected: true,
+		},
+		{
+			name:     "secret key",
+			input:    "OSS_ACCESS_KEY_SECRET",
 			expected: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := info.containString(tt.input, tt.substrs)
+			result := sensitive.IsSensitiveKey(tt.input)
 			if result != tt.expected {
-				t.Errorf("containString(%q, %v) = %v, want %v", tt.input, tt.substrs, result, tt.expected)
+				t.Errorf("IsSensitiveKey(%q) = %v, want %v", tt.input, result, tt.expected)
 			}
 		})
 	}

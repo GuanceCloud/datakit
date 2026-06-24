@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -25,12 +26,14 @@ const (
 	DefaultOperatorBaseURL = "https://datakit-operator.datakit.svc:443"
 	// DefaultHTTPTimeout 默认 HTTP 请求超时时间.
 	DefaultHTTPTimeout = 10 * time.Second
+	// PodListViewEBPFV1 asks datakit-operator to return pods trimmed for eBPF.
+	PodListViewEBPFV1 = "ebpf-v1"
 )
 
 // OperatorPodInterface 定义 operator pod 接口，模仿 k8s client-go 的 PodInterface.
 type OperatorPodInterface interface {
 	// List 获取 pod 列表
-	// 注意：opts 参数会被忽略，operator API 不支持 ListOptions（如 labelSelector、fieldSelector 等）
+	// 注意：operator API 当前不支持 ListOptions（如 labelSelector、fieldSelector 等）。
 	List(ctx context.Context, opts metav1.ListOptions) (*corev1.PodList, error)
 	// Get 获取指定的 pod
 	// 注意：opts 参数会被忽略，operator API 不支持 GetOptions.
@@ -40,6 +43,7 @@ type OperatorPodInterface interface {
 type OperatorClient struct {
 	baseURL    string
 	httpClient *http.Client
+	podView    string
 }
 
 // NewKubernetesClientForOperator 创建一个新的 operator 客户端。
@@ -66,6 +70,11 @@ func NewKubernetesClientForOperator(baseURL string) (*OperatorClient, error) {
 	return client, nil
 }
 
+// SetPodListView configures the optional view query parameter for pod list requests.
+func (c *OperatorClient) SetPodListView(view string) {
+	c.podView = strings.TrimSpace(view)
+}
+
 func (c *OperatorClient) GetPods(namespace string) OperatorPodInterface {
 	return &operatorPods{
 		client:    c,
@@ -90,6 +99,7 @@ func (p *operatorPods) List(ctx context.Context, opts metav1.ListOptions) (*core
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
+	p.setListQuery(req.URL)
 
 	resp, err := p.client.httpClient.Do(req)
 	if err != nil {
@@ -121,6 +131,15 @@ func (p *operatorPods) List(ctx context.Context, opts metav1.ListOptions) (*core
 	}
 
 	return podList, nil
+}
+
+func (p *operatorPods) setListQuery(u *url.URL) {
+	if p.client.podView == "" {
+		return
+	}
+	q := u.Query()
+	q.Set("view", p.client.podView)
+	u.RawQuery = q.Encode()
 }
 
 func (p *operatorPods) Get(ctx context.Context, name string, opts metav1.GetOptions) (*corev1.Pod, error) {

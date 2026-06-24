@@ -126,3 +126,43 @@ $height: 50px;
     }
   }
 }
+
+.workspaceDropdown {
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+  padding: 8px 0;
+}
+
+.workspaceSearch {
+  display: block;
+  width: calc(100% - 16px);
+  height: 30px;
+  margin: 0 8px 6px;
+  padding: 4px 8px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 12px;
+  outline: none;
+
+  &:focus {
+    border-color: #1677ff;
+    box-shadow: 0 0 0 2px rgba(5, 145, 255, 0.1);
+  }
+}
+
+.workspaceMenuList {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.workspaceItem {
+  max-width: 180px;
+}
+
+.noWorkspace {
+  color: #C6C6C6;
+  height: 72px;
+  line-height: 72px;
+  text-align: center;
+}

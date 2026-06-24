@@ -208,6 +208,7 @@ func (ipt *Input) callbackFn(pts []*point.Point) error {
 		pts,
 		dkio.WithSource(dkio.FeedSource(inputName, ipt.Source)),
 		dkio.WithElection(ipt.Election),
+		dkio.WithInput(inputName),
 	); err != nil {
 		ipt.logger.Warnf("failed to feed prom metrics: %s", err)
 	}

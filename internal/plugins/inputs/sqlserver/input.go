@@ -463,6 +463,7 @@ func (ipt *Input) runCustomQuery(query *customQuery) {
 						dkio.WithCollectCost(time.Since(start)),
 						dkio.WithElection(ipt.Election),
 						dkio.WithSource(customQueryFeedName),
+						dkio.WithInput(inputName),
 					); err != nil {
 						ipt.feeder.FeedLastError(err.Error(),
 							metrics.WithLastErrorInput(customQueryFeedName),
@@ -578,7 +579,7 @@ func (ipt *Input) Run() {
 				err := ipt.feeder.Feed(point.Metric, ipt.collectCache,
 					dkio.WithCollectCost(time.Since(ipt.start)),
 					dkio.WithElection(ipt.Election),
-					dkio.WithSource(inputName),
+					dkio.WithSource(inputName), dkio.WithInput(inputName),
 					dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementSQLServer)),
 				)
 				ipt.collectCache = ipt.collectCache[:0]

@@ -36,31 +36,36 @@ func (m *UDPMeasurement) Point() *point.Point {
 
 func (m *TCPMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "tcp",
-		Cat:  point.Metric,
+		Name:   "tcp",
+		Desc:   "TCP socket probe metrics for configured destination hosts and ports.",
+		DescZh: "针对已配置目标主机和端口的 TCP socket 探测指标。",
+		Cat:    point.Metric,
 		Tags: map[string]interface{}{
-			"dest_host": &inputs.TagInfo{Desc: "TCP domain or host, such as `wwww.google.com`, `1.2.3.4`"},
-			"dest_port": &inputs.TagInfo{Desc: "TCP port, such as `80`"},
-			"proto":     &inputs.TagInfo{Desc: "Protocol, const to be `tcp`"},
+			"dest_host": &inputs.TagInfo{Desc: "Configured TCP destination domain name or IP address, such as `www.google.com` or `1.2.3.4`."},
+			"dest_port": &inputs.TagInfo{Desc: "Configured TCP destination port, such as `80`."},
+			"proto":     &inputs.TagInfo{Desc: "Socket protocol. Always `tcp` for this measurement."},
 		},
 		Fields: map[string]interface{}{
 			"response_time": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationUS,
-				Desc:     "TCP connection time(without DNS query time)",
+				Desc:     "TCP connection duration excluding DNS lookup time.",
+				Taggedby: []string{"dest_host", "dest_port", "proto"},
 			},
 			"response_time_with_dns": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.DurationUS,
-				Desc:     "TCP connection time(with DNS query time)",
+				Desc:     "TCP connection duration including DNS lookup time.",
+				Taggedby: []string{"dest_host", "dest_port", "proto"},
 			},
 			"success": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NoUnit,
-				Desc:     "1: success/-1: failed",
+				Desc:     "Socket probe result: 1 for success and -1 for failure.",
+				Taggedby: []string{"dest_host", "dest_port", "proto"},
 			},
 		},
 	}
@@ -68,20 +73,23 @@ func (m *TCPMeasurement) Info() *inputs.MeasurementInfo {
 
 func (m *UDPMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "udp",
-		Cat:  point.Metric,
+		Name:   "udp",
+		Desc:   "UDP socket probe result metrics for configured destination hosts and ports.",
+		DescZh: "针对已配置目标主机和端口的 UDP socket 探测结果指标。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			"success": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
 				Unit:     inputs.NoUnit,
-				Desc:     "1: success/-1: failed",
+				Desc:     "Socket probe result: 1 for success and -1 for failure.",
+				Taggedby: []string{"dest_host", "dest_port", "proto"},
 			},
 		},
 		Tags: map[string]interface{}{
-			"dest_host": &inputs.TagInfo{Desc: "UDP host"},
-			"dest_port": &inputs.TagInfo{Desc: "UDP port"},
-			"proto":     &inputs.TagInfo{Desc: "Protocol, const to be `udp`"},
+			"dest_host": &inputs.TagInfo{Desc: "Configured UDP destination domain name or IP address."},
+			"dest_port": &inputs.TagInfo{Desc: "Configured UDP destination port."},
+			"proto":     &inputs.TagInfo{Desc: "Socket protocol. Always `udp` for this measurement."},
 		},
 	}
 }

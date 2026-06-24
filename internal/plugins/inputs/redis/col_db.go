@@ -36,6 +36,7 @@ func (i *instance) collectDB(ctx context.Context) {
 		dkio.WithElection(i.ipt.Election),
 		dkio.WithSource(dkio.FeedSource(inputName, "db")),
 		dkio.WithMeasurement(inputs.GetOverrideMeasurement(i.ipt.MeasurementVersion, measureuemtRedis)),
+		dkio.WithInput(inputName),
 	); err != nil {
 		l.Warnf("feed measurement: %s, ignored", err)
 	}
@@ -117,18 +118,35 @@ type dbMeasurement struct{}
 
 func (m *dbMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: measureuemtRedisDB,
-		Cat:  point.Metric,
+		Name:   measureuemtRedisDB,
+		Desc:   "Redis logical database keyspace metrics collected from INFO keyspace.",
+		DescZh: "从 INFO keyspace 采集的 Redis 逻辑数据库键空间指标。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
-			"keys":    &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Desc: "Key."},
-			"expires": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Desc: "expires time."},
-			"avg_ttl": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Desc: "Average ttl."},
+			"keys": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of keys stored in this Redis logical database.",
+			},
+			"expires": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.NCount,
+				Desc:     "Current number of keys in this Redis logical database that have an expiration time set.",
+			},
+			"avg_ttl": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationMS,
+				Desc:     "Average remaining time to live for keys with expiration in this Redis logical database, measured in milliseconds.",
+			},
 		},
 		Tags: map[string]interface{}{
-			"db_name":      &inputs.TagInfo{Desc: "DB name."},
-			"host":         &inputs.TagInfo{Desc: "Hostname."},
-			"server":       &inputs.TagInfo{Desc: "Server addr."},
-			"service_name": &inputs.TagInfo{Desc: "Service name."},
+			"db_name":      &inputs.TagInfo{Desc: "Redis logical database name, such as `db0`."},
+			"host":         &inputs.TagInfo{Desc: "Hostname of the Redis instance."},
+			"server":       &inputs.TagInfo{Desc: "Address of the Redis server endpoint."},
+			"service_name": &inputs.TagInfo{Desc: "Service name assigned to the Redis instance."},
 		},
 	}
 }

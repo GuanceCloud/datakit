@@ -81,18 +81,20 @@ type ProcessMetric struct{}
 //nolint:lll
 func (m *ProcessMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: processMetricName,
-		Cat:  point.Metric,
+		Name:   processMetricName,
+		Cat:    point.Metric,
+		Desc:   "Host process health-check results for configured process match rules, reporting whether a previously observed process is missing and how long it has been running.",
+		DescZh: "主机进程健康检查结果，用于配置的进程匹配规则，报告已发现进程是否缺失以及进程已运行时长。",
 		Fields: map[string]interface{}{
-			"exception":      newOtherFieldInfo(inputs.Int, inputs.Bool, inputs.UnknownUnit, "Exception value, 1 or 0"),
-			"pid":            newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.Int, "The process ID"),
-			"start_duration": newOtherFieldInfo(inputs.Int, inputs.Gauge, inputs.DurationUS, "The total time the process has run"),
+			"exception":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Bool, Unit: inputs.Bool, Desc: "Whether the monitored process is missing. 1 means an exception was detected, 0 means no exception."},
+			"pid":            &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.NoUnit, Desc: "Operating-system process identifier for the monitored process."},
+			"start_duration": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.DurationUS, Desc: "Elapsed runtime of the monitored process, in microseconds."},
 		},
 		Tags: map[string]interface{}{
-			"type":     inputs.NewTagInfo("The type of the exception"),
-			"process":  inputs.NewTagInfo("The name of the process"),
-			"host":     inputs.NewTagInfo("System hostname"),
-			"cmd_line": inputs.NewTagInfo("The command line of the process"),
+			"type":     inputs.NewTagInfo("Process health-check result type, such as none or missing."),
+			"process":  inputs.NewTagInfo("Configured process name matched by the health check."),
+			"host":     inputs.NewTagInfo("System hostname."),
+			"cmd_line": inputs.NewTagInfo("Command line of the monitored process."),
 		},
 	}
 }
@@ -102,15 +104,17 @@ type TCPMetric struct{}
 //nolint:lll
 func (m *TCPMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: tcpMetricName,
-		Cat:  point.Metric,
+		Name:   tcpMetricName,
+		Cat:    point.Metric,
+		Desc:   "Host TCP health-check results for configured ports, reporting whether the connection check failed and the failure category.",
+		DescZh: "主机 TCP 健康检查结果，用于配置的端口，报告连接检查是否失败以及失败类别。",
 		Fields: map[string]interface{}{
-			"exception": newOtherFieldInfo(inputs.Int, inputs.Bool, inputs.UnknownUnit, "Exception value, 1 or 0"),
+			"exception": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Bool, Unit: inputs.Bool, Desc: "Whether the TCP connection check failed. 1 means an exception was detected, 0 means no exception."},
 		},
 		Tags: map[string]interface{}{
-			"type": inputs.NewTagInfo("The type of the exception"),
-			"port": inputs.NewTagInfo("The port"),
-			"host": inputs.NewTagInfo("System hostname"),
+			"type": inputs.NewTagInfo("TCP health-check result type, such as none, connection-timeout, connection-refused, or unknown-type."),
+			"port": inputs.NewTagInfo("Configured TCP endpoint checked by the collector."),
+			"host": inputs.NewTagInfo("System hostname."),
 		},
 	}
 }
@@ -120,24 +124,17 @@ type HTTPMetric struct{}
 //nolint:lll
 func (m *HTTPMetric) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: httpMetricName,
-		Cat:  point.Metric,
+		Name:   httpMetricName,
+		Cat:    point.Metric,
+		Desc:   "Host HTTP health-check results for configured URLs, reporting whether the request check failed and the failure message.",
+		DescZh: "主机 HTTP 健康检查结果，用于配置的 URL，报告请求检查是否失败以及失败信息。",
 		Fields: map[string]interface{}{
-			"exception": newOtherFieldInfo(inputs.Int, inputs.Bool, inputs.UnknownUnit, "Exception value, 1 or 0"),
+			"exception": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Bool, Unit: inputs.Bool, Desc: "Whether the HTTP request check failed. 1 means an exception was detected, 0 means no exception."},
 		},
 		Tags: map[string]interface{}{
-			"url":   inputs.NewTagInfo("The URL"),
-			"error": inputs.NewTagInfo("The error message"),
-			"host":  inputs.NewTagInfo("System hostname"),
+			"url":   inputs.NewTagInfo("Configured HTTP URL checked by the collector."),
+			"error": inputs.NewTagInfo("HTTP health-check error message, or none when no exception was detected."),
+			"host":  inputs.NewTagInfo("System hostname."),
 		},
-	}
-}
-
-func newOtherFieldInfo(datatype, ftype, unit, desc string) *inputs.FieldInfo {
-	return &inputs.FieldInfo{
-		DataType: datatype,
-		Type:     ftype,
-		Unit:     unit,
-		Desc:     desc,
 	}
 }

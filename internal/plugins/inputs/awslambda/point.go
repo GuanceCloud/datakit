@@ -44,10 +44,10 @@ func (ipt *Input) toMetricPoint(e *telemetry.Event) (metric *point.Point) {
 	case telemetry.TypePlatformInitStart:
 		r := e.Record.(*telemetry.PlatformInitStart)
 		if r.RuntimeVersion != "" {
-			ipt.tags["aws_runtime_version"] = r.RuntimeVersion
+			ipt.tags[AWSRuntimeVersion] = r.RuntimeVersion
 		}
 		if r.RuntimeVersionArn != "" {
-			ipt.tags["aws_runtime_version_arn"] = r.RuntimeVersionArn
+			ipt.tags[AWSRuntimeVersionARN] = r.RuntimeVersionArn
 		}
 	case telemetry.TypePlatformInitRuntimeDone:
 	case telemetry.TypePlatformInitReport:
@@ -56,10 +56,10 @@ func (ipt *Input) toMetricPoint(e *telemetry.Event) (metric *point.Point) {
 	case telemetry.TypePlatformRestoreStart:
 		r := e.Record.(*telemetry.PlatformRestoreStart)
 		if r.RuntimeVersion != "" {
-			ipt.tags["aws_runtime_version"] = r.RuntimeVersion
+			ipt.tags[AWSRuntimeVersion] = r.RuntimeVersion
 		}
 		if r.RuntimeVersionArn != "" {
-			ipt.tags["aws_runtime_version_arn"] = r.RuntimeVersionArn
+			ipt.tags[AWSRuntimeVersionARN] = r.RuntimeVersionArn
 		}
 	case telemetry.TypePlatformRestoreRuntimeDone:
 	case telemetry.TypePlatformRestoreReport:

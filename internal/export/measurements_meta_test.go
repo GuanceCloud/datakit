@@ -64,10 +64,71 @@ func Test_exportMetaInfo(t *testing.T) {
 				t.Errorf("Unmarshal error = %v", err)
 			}
 
-			assert.Equal(t, gotObj.MMetaInfo, tt.expect.MMetaInfo)
-			assert.Equal(t, gotObj.OMetaInfo, tt.expect.OMetaInfo)
+			assertMetaInfoMeasurements(t, gotObj.MMetaInfo, tt.expect.MMetaInfo)
+			assertMetaInfoMeasurements(t, gotObj.OMetaInfo, tt.expect.OMetaInfo)
 		})
 	}
+}
+
+func assertMetaInfoMeasurements(t *testing.T, got, expect map[string]metaInfoMeasurement) {
+	t.Helper()
+
+	assert.Equal(t, len(expect), len(got))
+	for name, expectedMeasurement := range expect {
+		gotMeasurement, ok := got[name]
+		if assert.True(t, ok, "missing measurement %q", name) {
+			assert.Equal(t, expectedMeasurement.From, gotMeasurement.From)
+			assert.Equal(t, expectedMeasurement.Desc, gotMeasurement.Desc)
+			assert.Equal(t, expectedMeasurement.DescZh, gotMeasurement.DescZh)
+		}
+	}
+}
+
+func Test_exportMetaInfoDescI18n(t *testing.T) {
+	got, err := doExportMetaInfo(mockIpts01())
+	assert.NoError(t, err)
+
+	var raw map[string]interface{}
+	assert.NoError(t, json.Unmarshal(got, &raw))
+
+	metric := raw["metric"].(map[string]interface{})
+	demoMetric := metric["demo-metric"].(map[string]interface{})
+	assertDescI18n(t, demoMetric["desc_i18n"].(map[string]interface{}), "这是一个指标集的 demo(**务必加上每个指标集的描述**)", "这是一个指标集的 demo(**务必加上每个指标集的描述**)")
+
+	fields := demoMetric["fields"].(map[string]interface{})
+	usage := fields["usage"].(map[string]interface{})
+	assertDescI18n(t, usage["desc_i18n"].(map[string]interface{}), "this is CPU usage", "this is CPU usage")
+
+	tags := demoMetric["tags"].(map[string]interface{})
+	tagA := tags["tag_a"].(map[string]interface{})
+	assert.Equal(t, "示例 tag A", tagA["desc"])
+	assert.Nil(t, tagA["Desc"])
+	assertDescI18n(t, tagA["desc_i18n"].(map[string]interface{}), "示例 tag A", "示例 tag A")
+
+	cpu := metric["mockCPU"].(map[string]interface{})
+	assertDescI18n(t, cpu["desc_i18n"].(map[string]interface{}), "", "")
+
+	cpuFields := cpu["fields"].(map[string]interface{})
+	usageUser := cpuFields["usage_user"].(map[string]interface{})
+	assertDescI18n(t, usageUser["desc_i18n"].(map[string]interface{}), "% CPU in user mode.", "% CPU in user mode.")
+}
+
+func Test_newMetaInfoDescI18nUsesTranslationTable(t *testing.T) {
+	got := newMetaInfoDescI18n("System hostname.", "")
+
+	assert.Equal(t, "系统主机名。", got.Zh)
+	assert.Equal(t, "System hostname.", got.En)
+	assert.Equal(t, "Nama host sistem.", got.ID)
+	assert.Equal(t, "系統主機名稱。", got.ZhHant)
+}
+
+func assertDescI18n(t *testing.T, got map[string]interface{}, zh, en string) {
+	t.Helper()
+
+	assert.Equal(t, zh, got["zh"])
+	assert.Equal(t, en, got["en"])
+	assert.Equal(t, en, got["id"])
+	assert.Equal(t, zh, got["zh-hant"])
 }
 
 func mockIpts01() map[string]inputs.Creator {

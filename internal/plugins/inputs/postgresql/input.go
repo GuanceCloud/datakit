@@ -1495,6 +1495,7 @@ func (ipt *Input) Run() {
 						dkio.WithCollectCost(time.Since(start)),
 						dkio.WithElection(ipt.Election),
 						dkio.WithSource(feedName),
+						dkio.WithInput(inputName),
 					}
 					if category == point.Metric {
 						opts = append(opts, dkio.WithMeasurement(
@@ -1595,6 +1596,7 @@ func (ipt *Input) runDbmMetricCollector() {
 					dkio.WithElection(ipt.Election),
 					dkio.WithSource(dbmFeedName),
 					dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementPostgreSQL)),
+					dkio.WithInput(inputName),
 				); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
 						metrics.WithLastErrorInput(inputName),

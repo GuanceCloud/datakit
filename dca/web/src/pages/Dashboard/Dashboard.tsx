@@ -2,7 +2,7 @@ import { Divider, Dropdown, message, Modal, Space, Tooltip } from 'antd'
 import { Outlet, useNavigate } from 'react-router-dom';
 import { CaretDownOutlined, ExclamationCircleOutlined, LogoutOutlined, TranslationOutlined, UserOutlined } from '@ant-design/icons';
 import { connect, ConnectedProps } from 'react-redux';
-import { createContext, useEffect, useState } from 'react';
+import { createContext, useEffect, useMemo, useState } from 'react';
 import { Typography } from 'antd';
 
 import styles from './Dashboard.module.scss'
@@ -46,20 +46,11 @@ export function getOSIcon(os: string): string {
 function Dashboard({ user, setUserInfo }: Props) {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const defaultMenu = {
-    items:
-      [
-        {
-          key: "1",
-          label: (
-            <div style={{ color: "#C6C6C6", textAlign: "center", height: "110px", lineHeight: "110px" }}>{t("no_data")}</div>
-          )
-        }
-      ]
-  }
-  const [menu, setMenu] = useState(defaultMenu)
   const [visible, setVisible] = useState<Boolean>(false)
   const [latestDatakitVersion, setLatestDatakitVersion] = useState("")
+  const [workspaces, setWorkspaces] = useState<IWorkspace[]>([])
+  const [workspaceKeyword, setWorkspaceKeyword] = useState("")
+  const [selectedWorkspace, setSelectedWorkspace] = useState<IWorkspace | undefined>()
 
   // rtk query
   const [getWorkSpaceList, { data: workspaceListData }] = useLazyGetWorkspaceListQuery()
@@ -82,40 +73,72 @@ function Dashboard({ user, setUserInfo }: Props) {
     }
     let { code, content: { data } } = workspaceListData
     if (code !== 200) {
-      setMenu(defaultMenu)
+      setWorkspaces([])
       return
     }
-    if (data && data.length > 0) {
-      const menu = {
-        items:
-          data.map((w, index) => {
-            return (
-              {
-                key: `${index}`,
-                label: (
-                  <Text
-                    style={{ maxWidth: "130px" }}
-                    ellipsis={true}>
-                    {w.name}
-                  </Text>
-                )
-              }
-
-            )
-          }),
-        onClick: ({ key }) => {
-          changeWorkspace(data[key].uuid).then(() => {
-            return getCurrentWorkspace()
-          }).catch((error) => {
-            alertError(error)
-          })
-        }
-      }
-      setMenu(menu)
-
-    }
+    setWorkspaces(data || [])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceListData])
+
+  const workspaceMenu = useMemo(() => {
+    const keyword = workspaceKeyword.trim().toLowerCase()
+    const filteredWorkspaces = keyword
+      ? workspaces.filter((workspace) => {
+        const searchText = [
+          workspace.name,
+          workspace.wsName,
+          workspace.uuid,
+        ].filter(Boolean).join(" ").toLowerCase()
+        return searchText.includes(keyword)
+      })
+      : workspaces
+
+    if (filteredWorkspaces.length === 0) {
+      return {
+        items: [
+          {
+            key: "__empty",
+            disabled: true,
+            label: (
+              <div className={styles.noWorkspace}>{t("no_data")}</div>
+            )
+          }
+        ]
+      }
+    }
+
+    return {
+      items: filteredWorkspaces.map((workspace) => {
+        return {
+          key: workspace.uuid,
+          label: (
+            <Text
+              className={styles.workspaceItem}
+              ellipsis={true}>
+              {workspace.name || workspace.wsName}
+            </Text>
+          )
+        }
+      }),
+      onClick: async ({ key }) => {
+        const workspace = workspaces.find((item) => item.uuid === key)
+        if (!workspace) {
+          return
+        }
+
+	        try {
+	          await changeWorkspace(key).unwrap()
+	          setVisible(false)
+	          setWorkspaceKeyword("")
+	          setSelectedWorkspace(workspace)
+	          getWorkSpaceList(undefined, false)
+	          getCurrentWorkspace(undefined, false)
+	        } catch (error) {
+	          alertError(error)
+	        }
+      }
+    }
+	  }, [changeWorkspace, getCurrentWorkspace, getWorkSpaceList, t, workspaceKeyword, workspaces])
 
   const logout = async () => {
     const isOk = await new Promise((resolve) => {
@@ -196,6 +219,10 @@ function Dashboard({ user, setUserInfo }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentWorkspace])
 
+	  useEffect(() => {
+	    setSelectedWorkspace(currentWorkspace)
+	  }, [currentWorkspace])
+
   useEffect(() => {
     init()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -209,16 +236,41 @@ function Dashboard({ user, setUserInfo }: Props) {
         ></div>
         <div className={styles.list}>
           <Dropdown
-            menu={menu}
+            menu={workspaceMenu}
             className={styles.menu}
             open={Boolean(visible)}
-            overlayStyle={{ maxHeight: "300px", overflow: "auto", }}
-            onOpenChange={(flag) => setVisible(flag)}
+            overlayStyle={{ width: "220px" }}
+            dropdownRender={(originNode) => (
+              <div className={styles.workspaceDropdown}>
+                <input
+                  className={styles.workspaceSearch}
+                  placeholder={t("search_workspace")}
+                  value={workspaceKeyword}
+                  onChange={(event) => setWorkspaceKeyword(event.target.value)}
+                  onClick={(event) => event.stopPropagation()}
+                  onKeyDown={(event) => {
+                    event.stopPropagation()
+                    if (["Enter", "ArrowUp", "ArrowDown"].includes(event.key)) {
+                      event.preventDefault()
+                    }
+                  }}
+                />
+                <div className={styles.workspaceMenuList}>
+                  {originNode}
+                </div>
+              </div>
+            )}
+            onOpenChange={(flag) => {
+              setVisible(flag)
+              if (flag) {
+                setWorkspaceKeyword("")
+              }
+            }}
           >
             <div>
               <div className={styles.name}>
                 <Text className={styles.text} ellipsis={true}>
-                  {getWorkSpaceName(currentWorkspace)}
+                  {getWorkSpaceName(selectedWorkspace)}
                 </Text>
               </div>
               <div className={styles.arrow}>
@@ -265,7 +317,7 @@ function Dashboard({ user, setUserInfo }: Props) {
       <div className={styles.body}>
         <div className={styles.info}>
           <DashboardContext.Provider value={{
-            currentWorkspace: currentWorkspace,
+            currentWorkspace: selectedWorkspace,
             latestDatakitVersion,
           }}>
             <Outlet />

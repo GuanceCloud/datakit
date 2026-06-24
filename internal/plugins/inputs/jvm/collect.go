@@ -46,7 +46,7 @@ func (ipt *Input) collect(ptTS int64) error {
 					if err := ipt.Feeder.Feed(point.Metric, points,
 						dkio.WithCollectCost(time.Since(collectStart)),
 						dkio.WithElection(ipt.Election),
-						dkio.WithSource(inputName),
+						dkio.WithSource(inputName), dkio.WithInput(inputName),
 						dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementJVM))); err != nil {
 						l.Errorf("Feed failed for %s: %s, ignored", client.URL(), err.Error())
 					}

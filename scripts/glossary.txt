@@ -5,6 +5,10 @@
 ##############################################
 # 专有名词
 ##############################################
+conntrack
+smartctl
+chronyc
+chrony
 Apdex
 aarch
 aarch64
@@ -198,6 +202,7 @@ logfiles
 logfwd
 logfwdserver
 logstreaming
+lookback
 malloc
 macOS
 mcache

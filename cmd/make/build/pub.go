@@ -145,11 +145,13 @@ func PubDatakit() error {
 		// NOTE: these will overwrite online files, you should instead use xxx-<version>.
 		{"datakit.yaml", filepath.Join(DistDir, "datakit.yaml")},
 		{"datakit-deployment.yaml", filepath.Join(DistDir, "datakit-deployment.yaml")},
+		{"datakit-gke-autopilot.yaml", filepath.Join(DistDir, "datakit-gke-autopilot.yaml")},
 		{"datakit-elinker.yaml", filepath.Join(DistDir, "datakit-elinker.yaml")},
 		{"install.sh", filepath.Join(DistDir, "install.sh")},
 		{"install.ps1", filepath.Join(DistDir, "install.ps1")},
 		{fmt.Sprintf("datakit-%s.yaml", ReleaseVersion), filepath.Join(DistDir, "datakit.yaml")},
-		{fmt.Sprintf("datakit-deployment-%s.yaml", ReleaseVersion), filepath.Join(DistDir, "datakit.yaml")},
+		{fmt.Sprintf("datakit-deployment-%s.yaml", ReleaseVersion), filepath.Join(DistDir, "datakit-deployment.yaml")},
+		{fmt.Sprintf("datakit-gke-autopilot-%s.yaml", ReleaseVersion), filepath.Join(DistDir, "datakit-gke-autopilot.yaml")},
 		{fmt.Sprintf("datakit-elinker-%s.yaml", ReleaseVersion), filepath.Join(DistDir, "datakit-elinker.yaml")},
 		{fmt.Sprintf("install-%s.sh", ReleaseVersion), filepath.Join(DistDir, "install.sh")},
 		{fmt.Sprintf("install-%s.ps1", ReleaseVersion), filepath.Join(DistDir, "install.ps1")},
@@ -286,18 +288,21 @@ func pubDatakitHelm() error {
 		return nil
 	}
 
-	// run helm push command
-	cmdArgs := []string{
-		// TODO: we should switch to the new style: "helm push filepath.Join(DistDir, "datakit-"+ReleaseVersion+".tgz") HelmChartRepo "
-		// old-style helm push
-		"helm", "cm-push", "-f", /* force push */
-		filepath.Join(DistDir, "datakit-"+strings.Split(ReleaseVersion, "-")[0]+".tgz"),
-		brand(Brand).chartRepoName(ReleaseType != ReleaseProduction),
-	}
+	helmVersion := strings.Split(ReleaseVersion, "-")[0]
+	for _, chart := range []string{"datakit", "datakit-gke-autopilot"} {
+		// run helm push command
+		cmdArgs := []string{
+			// TODO: we should switch to the new style: "helm push filepath.Join(DistDir, "datakit-"+ReleaseVersion+".tgz") HelmChartRepo "
+			// old-style helm push
+			"helm", "cm-push", "-f", /* force push */
+			filepath.Join(DistDir, chart+"-"+helmVersion+".tgz"),
+			brand(Brand).chartRepoName(ReleaseType != ReleaseProduction),
+		}
 
-	msg, err := runEnv(cmdArgs, nil)
-	if err != nil {
-		return fmt.Errorf("failed to run %v: %w, msg: %s", cmdArgs, err, string(msg))
+		msg, err := runEnv(cmdArgs, nil)
+		if err != nil {
+			return fmt.Errorf("failed to run %v: %w, msg: %s", cmdArgs, err, string(msg))
+		}
 	}
 	return nil
 }

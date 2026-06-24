@@ -112,8 +112,10 @@ type latencyMeasurement struct{}
 //nolint:lll,funlen
 func (m *latencyMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: measureuemtRedisLatency,
-		Cat:  point.Logging,
+		Name:   measureuemtRedisLatency,
+		Desc:   "Redis latency metrics collected from LATENCY LATEST.",
+		DescZh: "从 LATENCY LATEST 采集的 Redis 延迟指标。",
+		Cat:    point.Logging,
 		Fields: map[string]interface{}{
 			"occur_time": &inputs.FieldInfo{
 				DataType: inputs.Int,

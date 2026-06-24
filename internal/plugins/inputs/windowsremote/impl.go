@@ -166,6 +166,7 @@ func feedMetric(name string, feeder dkio.Feeder, pts []*point.Point, election bo
 		dkio.WithElection(election),
 		dkio.WithCollectCost(cost),
 		dkio.WithSource(name),
+		dkio.WithInput(inputName),
 	); err != nil {
 		l.Warnf("%s feed failed, err: %s", name, err)
 	}

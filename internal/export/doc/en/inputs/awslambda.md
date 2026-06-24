@@ -53,11 +53,35 @@ The AWS Lambda collector collects AWS Lambda metrics and logs through the Lambda
 
 ## Metrics {#metric}
 
+<!-- markdownlint-disable MD024 -->
+
 {{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "metric"}}
 
 ### `{{$m.Name}}`
 
+{{$m.Desc}}
+
 {{$m.MarkdownTable}}
+{{end}}
+
+{{ end }}
+
+## Logging {#logging}
+
+<!-- markdownlint-disable MD024 -->
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "logging"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+{{$m.MarkdownTable}}
+{{end}}
 
 {{ end }}
 

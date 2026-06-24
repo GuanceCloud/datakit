@@ -72,7 +72,7 @@ func (j *JolokiaAgent) Collect() {
 					j.collectCache,
 					dkio.WithCollectCost(time.Since(collectStart)),
 					dkio.WithElection(j.Election),
-					dkio.WithSource(j.PluginName)); err != nil {
+					dkio.WithSource(j.PluginName), dkio.WithInput("jolokia")); err != nil {
 					j.L.Errorf("Feed: %s, ignored", err.Error())
 				}
 
@@ -138,7 +138,7 @@ func (j *JolokiaAgent) Gather(ptTS int64) error {
 				if err := j.Feeder.Feed(point.Metric, pts,
 					dkio.WithCollectCost(time.Since(time.Now())),
 					dkio.WithElection(j.Election),
-					dkio.WithSource(j.PluginName)); err != nil {
+					dkio.WithSource(j.PluginName), dkio.WithInput("jolokia")); err != nil {
 					j.L.Errorf("Feed: %s, ignored", err.Error())
 				}
 

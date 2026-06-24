@@ -52,11 +52,35 @@ AWS Lambda 采集器是通过 AWS Lambda Extension 的方式采集 AWS Lambda �
 
 ## 指标 {#metric}
 
+<!-- markdownlint-disable MD024 -->
+
 {{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "metric"}}
 
 ### `{{$m.Name}}`
 
+{{$m.Desc}}
+
 {{$m.MarkdownTable}}
+{{end}}
+
+{{ end }}
+
+## 日志 {#logging}
+
+<!-- markdownlint-disable MD024 -->
+
+{{ range $i, $m := .Measurements }}
+
+{{if eq $m.Type "logging"}}
+
+### `{{$m.Name}}`
+
+{{$m.Desc}}
+
+{{$m.MarkdownTable}}
+{{end}}
 
 {{ end }}
 

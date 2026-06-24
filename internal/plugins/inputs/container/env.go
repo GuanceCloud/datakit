@@ -24,6 +24,16 @@ func (ipt *Input) GetENVDoc() []*inputs.ENVInfo {
 		{FieldName: "ObjectCollecInterval", Type: doc.TimeDuration, Default: "5m", Desc: "The object collection interval", DescZh: "容器/k8s 对象数据采集间隔"},
 		{FieldName: "LoggingSearchInterval", Type: doc.TimeDuration, Default: "60s", Desc: `The time interval of log discovery, that is, how often logs are retrieved. If the interval is too long, some logs with short survival will be ignored`, DescZh: `日志发现的时间间隔，即每隔多久检索一次日志，如果间隔太长，会导致忽略了一些存活较短的日志`},
 
+		{FieldName: "GCPCloudAPIEnabled", Type: doc.Boolean, Default: "false", Desc: "Collect GKE container metrics and stdout/stderr logs through Google Cloud APIs", DescZh: "通过 Google Cloud API 采集 GKE 容器指标和 stdout/stderr 日志"},
+		{FieldName: "GCPProjectID", Type: doc.String, Desc: "Optional Google Cloud project ID override; discovered from the GKE metadata server by default", DescZh: "可选的 Google Cloud 项目 ID 覆盖值；默认从 GKE metadata server 自动发现"},
+		{FieldName: "GCPClusterName", Type: doc.String, Desc: "Optional GKE cluster name override; discovered from the GKE metadata server by default", DescZh: "可选的 GKE 集群名称覆盖值；默认从 GKE metadata server 自动发现"},
+		{FieldName: "GCPClusterLocation", Type: doc.String, Desc: "Optional GKE cluster region or zone override; discovered from the GKE metadata server by default", DescZh: "可选的 GKE 集群区域或可用区覆盖值；默认从 GKE metadata server 自动发现"},
+		{FieldName: "EnableGCPCloudMonitoring", Type: doc.Boolean, Default: "true", Desc: "Advanced override to collect container metrics from Cloud Monitoring", DescZh: "高级覆盖项：是否从 Cloud Monitoring 采集容器指标"},
+		{FieldName: "EnableGCPCloudLogging", Type: doc.Boolean, Default: "true", Desc: "Advanced override to collect container stdout/stderr from Cloud Logging", DescZh: "高级覆盖项：是否从 Cloud Logging 采集容器 stdout/stderr"},
+		{FieldName: "GCPCloudLoggingLookback", Type: doc.TimeDuration, Default: "2m", Desc: "Initial Cloud Logging lookback window", DescZh: "Cloud Logging 首次采集的回看时间窗口"},
+		{FieldName: "GCPCloudLoggingOverlap", Type: doc.TimeDuration, Default: "2m", Desc: "Cloud Logging overlap window used to tolerate delayed entries", DescZh: "Cloud Logging 用于容忍延迟日志的重叠窗口"},
+		{FieldName: "GCPCloudLoggingStateFile", Type: doc.String, Desc: "File used to persist the Cloud Logging watermark and deduplication state", DescZh: "持久化 Cloud Logging 水位和去重状态的文件"},
+
 		{FieldName: "EnableContainerMetric", Type: doc.Boolean, Default: "true", Desc: "Start container index collection", DescZh: "开启容器指标采集"},
 		{FieldName: "EnableK8sMetric", ENVName: "ENABLE_K8S_METRIC", Type: doc.Boolean, Default: "true", Desc: "Start k8s index collection", DescZh: "开启 k8s 指标采集"},
 		{FieldName: "EnablePodMetric", Type: doc.Boolean, Default: "false", Desc: `Turn on Pod index collection`, DescZh: `是否开启 Pod 指标采集（CPU 和内存使用情况）`},
@@ -111,6 +121,53 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 		for k, v := range tags {
 			ipt.Tags[k] = v
 		}
+	}
+	if str, ok := envs["ENV_INPUT_CONTAINER_GCP_CLOUD_API_ENABLED"]; ok {
+		if b, err := strconv.ParseBool(str); err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_GCP_CLOUD_API_ENABLED to bool: %s, ignore", err)
+		} else {
+			ipt.GCPCloudAPIEnabled = b
+		}
+	}
+	if str, ok := envs["ENV_INPUT_CONTAINER_GCP_PROJECT_ID"]; ok {
+		ipt.GCPProjectID = str
+	}
+	if str, ok := envs["ENV_INPUT_CONTAINER_GCP_CLUSTER_NAME"]; ok {
+		ipt.GCPClusterName = str
+	}
+	if str, ok := envs["ENV_INPUT_CONTAINER_GCP_CLUSTER_LOCATION"]; ok {
+		ipt.GCPClusterLocation = str
+	}
+	if str, ok := envs["ENV_INPUT_CONTAINER_ENABLE_GCP_CLOUD_MONITORING"]; ok {
+		if b, err := strconv.ParseBool(str); err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_GCP_CLOUD_MONITORING to bool: %s, ignore", err)
+		} else {
+			ipt.EnableGCPCloudMonitoring = b
+		}
+	}
+	if str, ok := envs["ENV_INPUT_CONTAINER_ENABLE_GCP_CLOUD_LOGGING"]; ok {
+		if b, err := strconv.ParseBool(str); err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_ENABLE_GCP_CLOUD_LOGGING to bool: %s, ignore", err)
+		} else {
+			ipt.EnableGCPCloudLogging = b
+		}
+	}
+	if str, ok := envs["ENV_INPUT_CONTAINER_GCP_CLOUD_LOGGING_LOOKBACK"]; ok {
+		if dur, err := time.ParseDuration(str); err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_GCP_CLOUD_LOGGING_LOOKBACK to time.Duration: %s, ignore", err)
+		} else {
+			ipt.GCPCloudLoggingLookback = dur
+		}
+	}
+	if str, ok := envs["ENV_INPUT_CONTAINER_GCP_CLOUD_LOGGING_OVERLAP"]; ok {
+		if dur, err := time.ParseDuration(str); err != nil {
+			l.Warnf("parse ENV_INPUT_CONTAINER_GCP_CLOUD_LOGGING_OVERLAP to time.Duration: %s, ignore", err)
+		} else {
+			ipt.GCPCloudLoggingOverlap = dur
+		}
+	}
+	if str, ok := envs["ENV_INPUT_CONTAINER_GCP_CLOUD_LOGGING_STATE_FILE"]; ok {
+		ipt.GCPCloudLoggingStateFile = str
 	}
 
 	///

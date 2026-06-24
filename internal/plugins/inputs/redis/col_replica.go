@@ -39,6 +39,7 @@ func (i *instance) collectReplica(ctx context.Context) {
 		dkio.WithElection(i.ipt.Election),
 		dkio.WithSource(dkio.FeedSource(inputName, "replica")),
 		dkio.WithMeasurement(inputs.GetOverrideMeasurement(i.ipt.MeasurementVersion, measureuemtRedis)),
+		dkio.WithInput(inputName),
 	); err != nil {
 		l.Warnf("feed measurement: %s, ignored", err)
 	}
@@ -231,35 +232,42 @@ type replicaMeasurement struct{}
 //nolint:lll
 func (m *replicaMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: measureuemtRedisReplica,
-		Cat:  point.Metric,
+		Name:   measureuemtRedisReplica,
+		Desc:   "Redis replication metrics collected from INFO replication.",
+		DescZh: "从 INFO replication 采集的 Redis 复制指标。",
+		Cat:    point.Metric,
 		Fields: map[string]interface{}{
 			"master_repl_offset": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Desc:     "The server's current replication offset.",
+				Unit:     inputs.SizeByte,
+				Desc:     "The server's current replication stream byte offset.",
 			},
 			// "repl_delay":                     &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Desc:
 			// "Replica delay"},
 			"master_link_down_since_seconds": &inputs.FieldInfo{
 				DataType: inputs.Int,
-				Type:     inputs.Count,
+				Type:     inputs.Gauge,
+				Unit:     inputs.DurationSecond,
 				Desc:     "Number of seconds since the link is down when the link between master and replica is down, only collected for slave redis.",
 			},
 			"master_link_status": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
+				Unit:     inputs.NoUnit,
 				Desc:     "Status of the link (up/down), `1` for up, `0` for down, only collected for slave redis.",
 			},
 			"slave_offset": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Desc:     "Slave offset, only collected for master redis.",
+				Unit:     inputs.SizeByte,
+				Desc:     "Replica replication stream byte offset, only collected for master redis.",
 			},
 			"slave_lag": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Desc:     "Slave lag, only collected for master redis.",
+				Unit:     inputs.DurationSecond,
+				Desc:     "Replica lag in seconds, only collected for master redis.",
 			},
 		},
 		Tags: map[string]interface{}{

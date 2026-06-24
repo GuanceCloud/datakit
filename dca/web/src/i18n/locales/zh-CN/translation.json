@@ -6,6 +6,7 @@
   "filter": "筛选",
   "set_filter": "设置筛选条件",
   "clone": "克隆",
+  "copy": "复制",
   "match_below": "满足下面",
   "condition": "条件",
   "all": "所有",
@@ -44,6 +45,7 @@
   "batch_operation": "批量操作",
   "refresh": "刷新",
   "workspace_list": "工作空间列表",
+  "search_workspace": "搜索工作空间",
   "confirm": "确定",
   "cancel": "取消",
   "reload": "重启",
@@ -96,6 +98,31 @@
     "blacklist": "黑名单",
     "log": "日志"
   },
+  "log": {
+    "description": {
+      "datakit": "DataKit 日志",
+      "gin": "gin 日志"
+    },
+    "connection": {
+      "connecting": "连接中",
+      "connected": "已连接",
+      "disconnected": "已断开"
+    },
+    "meta": {
+      "showing": "显示 {{shown}} / {{total}}",
+      "matches": "匹配 {{count}} 条",
+      "follow": "跟随"
+    },
+    "search": {
+      "placeholder": "搜索日志"
+    },
+    "action": {
+      "reconnect": "重新连接",
+      "resume": "继续",
+      "pause": "暂停",
+      "clear": "清空"
+    }
+  },
   "status": {
     "running": "在线",
     "stopped": "已停止",
@@ -103,6 +130,29 @@
     "restarting": "重启中",
     "upgrading": "升级中",
     "unknown": "未知状态"
+  },
+  "datakit": {
+    "operation_disabled": {
+      "not_running": "DataKit 不在线，仅 running 状态支持管理操作。",
+      "container_reload": "该 DataKit 运行在容器中，暂不支持在 DCA 中重启。",
+      "container_upgrade": "该 DataKit 运行在容器中，暂不支持在 DCA 中升级。",
+      "latest_version": "当前 DataKit 已是最新版本。"
+    }
+  },
+  "run_info": {
+    "overview": "运行概览",
+    "stats_realtime": "DataKit stats 实时数据",
+    "basic_info": "基础信息",
+    "enabled_collectors": "已启用采集器",
+    "collector_metrics": "采集器运行指标",
+    "inputs_count": "{{count}} 个采集器",
+    "instances_count": "{{count}} 个实例",
+    "crash_count": "累计 {{count}} 次崩溃",
+    "crashed_count": "{{count}} 次崩溃",
+    "no_crash_record": "暂无崩溃记录",
+    "no_enabled_collectors": "暂无启用采集器",
+    "normal": "正常",
+    "last_feed_zero_time_filtered": "LastFeed 已过滤无效零时间"
   },
   "config": {
     "format_error": "配置格式错误!",

@@ -382,7 +382,7 @@ func (ipt *Input) feedUpMetric() {
 
 	if err := ipt.feeder.Feed(point.Metric, []*point.Point{pt},
 		dkio.WithElection(ipt.Election),
-		dkio.WithSource(inputName),
+		dkio.WithSource(inputName), dkio.WithInput(inputName),
 	); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
 			metrics.WithLastErrorInput(inputName),

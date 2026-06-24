@@ -74,11 +74,15 @@ func preOperation(datakit *ws.DataKit, status ws.DataKitStatus) (response *ws.DC
 		return
 	}
 
-	if dk, err := datakitDB.Find(datakit); err != nil {
+	switch dk, err := datakitDB.Find(datakit); {
+	case err != nil:
 		l.Errorf("failed to find datakit: %s", err.Error())
 		response.SetError(&ws.ResponseError{Code: 500, ErrorMsg: "failed to find datakit"})
 		return
-	} else if !isOperationAllowed(dk.Status) {
+	case dk == nil:
+		response.SetError(&ws.ResponseError{Code: 400, ErrorMsg: "datakit is not available"})
+		return
+	case !isOperationAllowed(dk.Status):
 		response.SetError(&ws.ResponseError{Code: 400, ErrorMsg: fmt.Sprintf("Operation is not allowed, current status is %s", dk.Status.String())})
 		return
 	}

@@ -20,8 +20,10 @@ type sensorsMeasurement struct {
 //nolint:lll
 func (m *sensorsMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
-		Name: "sensors",
-		Cat:  point.Metric,
+		Name:   "sensors",
+		Cat:    point.Metric,
+		Desc:   "Hardware temperature sensor metrics collected from system sensor output, keyed by adapter, chip, and feature.",
+		DescZh: "从系统传感器输出采集的硬件温度传感器指标，按 adapter、chip 和 feature 标识上报。",
 		Tags: map[string]interface{}{
 			"hostname": &inputs.TagInfo{Desc: "Host name"},
 			"adapter":  &inputs.TagInfo{Desc: "Device adapter"},
@@ -29,10 +31,10 @@ func (m *sensorsMeasurement) Info() *inputs.MeasurementInfo {
 			"feature":  &inputs.TagInfo{Desc: "Gathering target"},
 		},
 		Fields: map[string]interface{}{
-			"tmep*_crit":       &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.Celsius, Desc: `Critical temperature of this chip, '*' is the order number in the chip list.`},
-			"temp*_crit_alarm": &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.Celsius, Desc: `Alarm count, '*' is the order number in the chip list.`},
-			"temp*_input":      &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.Celsius, Desc: `Current input temperature of this chip, '*' is the order number in the chip list.`},
-			"tmep*_max":        &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: inputs.Celsius, Desc: `Max temperature of this chip, '*' is the order number in the chip list.`},
+			"temp*_crit":       &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Celsius, Desc: `Critical temperature threshold for this sensor, where '*' is the sensor index.`},
+			"temp*_crit_alarm": &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Bool, Desc: `Whether the critical temperature alarm is active for this sensor, where '*' is the sensor index.`},
+			"temp*_input":      &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Celsius, Desc: `Current input temperature reported by this sensor, where '*' is the sensor index.`},
+			"temp*_max":        &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: inputs.Celsius, Desc: `Maximum temperature threshold for this sensor, where '*' is the sensor index.`},
 		},
 	}
 }

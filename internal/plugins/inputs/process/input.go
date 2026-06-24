@@ -508,6 +508,7 @@ func (ipt *Input) collectMetric(processList []*pr.Process, tn time.Time) {
 	if err := ipt.feeder.Feed(point.Metric, collectCache,
 		dkio.WithCollectCost(time.Since(tn)),
 		dkio.WithSource(dkio.FeedSource(inputName, "metric")),
+		dkio.WithInput(inputName),
 	); err != nil {
 		l.Errorf("Feed() :%s", err.Error())
 		ipt.feeder.FeedLastError(err.Error(),

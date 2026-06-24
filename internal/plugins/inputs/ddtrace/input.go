@@ -424,7 +424,8 @@ func (ipt *Input) gatherMetrics() {
 		err := ipt.feeder.Feed(point.Metric, pts,
 			dkio.WithSource(dkio.FeedSource(inputName, itrace.TracingMetricName)),
 			dkio.WithCollectCost(time.Since(startTime)),
-		)
+
+			dkio.WithInput(inputName))
 		if err != nil {
 			log.Errorf("ddtrace send metrics points error: %v", err)
 		}

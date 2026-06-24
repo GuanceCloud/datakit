@@ -52,41 +52,57 @@ func getDatakitStatsAction(_ *ws.Client, response *ws.DCAResponse, data *ws.Acti
 	}
 }
 
-func checkPath(path string) *ws.ResponseError {
+func checkPath(filePath string, createParentDir bool) (string, *ws.ResponseError) {
 	// path should under conf.d
-	dir := filepath.Dir(path)
+	cleanPath, err := filepath.Abs(filepath.Clean(filePath))
+	if err != nil {
+		return "", &ws.ResponseError{Code: 400, ErrorCode: "params.invalid.path_invalid", ErrorMsg: "invalid param 'path'"}
+	}
 
 	pathReg := regexp.MustCompile(`\.conf$`)
-
 	if pathReg == nil {
-		return &ws.ResponseError{Code: 400, ErrorCode: "params.invalid.path_invalid", ErrorMsg: "invalid param 'path'"}
+		return "", &ws.ResponseError{Code: 400, ErrorCode: "params.invalid.path_invalid", ErrorMsg: "invalid param 'path'"}
 	}
 
-	// check path
-	if !strings.Contains(path, dk.ConfdDir) || !pathReg.Match([]byte(path)) {
-		return &ws.ResponseError{ErrorCode: "params.invalid.path_invalid", ErrorMsg: "invalid param 'path'"}
+	confdDir, err := filepath.Abs(filepath.Clean(dk.ConfdDir))
+	if err != nil {
+		return "", &ws.ResponseError{Code: 500, ErrorCode: "confd.dir.invalid", ErrorMsg: err.Error()}
 	}
 
-	// check dir and create if not exist
+	rel, err := filepath.Rel(confdDir, cleanPath)
+	if err != nil || rel == ".." || filepath.IsAbs(rel) || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+		return "", &ws.ResponseError{Code: 400, ErrorCode: "params.invalid.path_invalid", ErrorMsg: "invalid param 'path'"}
+	}
+
+	if !pathReg.Match([]byte(cleanPath)) {
+		return "", &ws.ResponseError{Code: 400, ErrorCode: "params.invalid.path_invalid", ErrorMsg: "invalid param 'path'"}
+	}
+
+	// check dir and create if needed
+	dir := filepath.Dir(cleanPath)
 	if _, err := os.Stat(dir); err != nil {
 		if os.IsNotExist(err) {
+			if !createParentDir {
+				return cleanPath, nil
+			}
 			if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-				return &ws.ResponseError{ErrorCode: "dir.mkdir.failed", ErrorMsg: err.Error()}
+				return "", &ws.ResponseError{ErrorCode: "dir.mkdir.failed", ErrorMsg: err.Error()}
 			} else {
-				return nil
+				return cleanPath, nil
 			}
 		}
 		l.Errorf("Stat config dir %s error: %s", dir, err.Error())
-		return &ws.ResponseError{Code: 500, ErrorCode: "file.stat.failed", ErrorMsg: err.Error()}
+		return "", &ws.ResponseError{Code: 500, ErrorCode: "file.stat.failed", ErrorMsg: err.Error()}
 	}
 
-	return nil
+	return cleanPath, nil
 }
 
 func doGetConfig(path string) (string, *ws.ResponseError) {
-	if err := checkPath(path); err != nil {
+	cleanPath, err := checkPath(path, false)
+	if err != nil {
 		return "", err
-	} else if content, err := os.ReadFile(filepath.Clean(path)); err != nil {
+	} else if content, err := os.ReadFile(cleanPath); err != nil { //nolint:gosec
 		l.Errorf("Read config file %s error: %s", path, err.Error())
 		return "", &ws.ResponseError{ErrorCode: "invalid.path", ErrorMsg: "invalid path"}
 	} else {
@@ -112,9 +128,11 @@ type saveConfigParam struct {
 }
 
 func doSaveConfig(param *saveConfigParam) *ws.ResponseError {
-	if err := checkPath(param.Path); err != nil {
+	cleanPath, err := checkPath(param.Path, false)
+	if err != nil {
 		return err
 	}
+	param.Path = cleanPath
 
 	configContent := []byte(param.Config)
 
@@ -137,10 +155,13 @@ func doSaveConfig(param *saveConfigParam) *ws.ResponseError {
 		return &ws.ResponseError{ErrorCode: "toml.format.error", ErrorMsg: "toml format error"}
 	}
 
+	if err := os.MkdirAll(filepath.Dir(param.Path), os.ModePerm); err != nil {
+		return &ws.ResponseError{ErrorCode: "dir.mkdir.failed", ErrorMsg: err.Error()}
+	}
+
 	// create and save
-	err := os.WriteFile(param.Path, configContent, dk.ConfPerm)
-	if err != nil {
-		l.Errorf("Write file %s failed: %s", param.Path, err.Error())
+	if writeErr := os.WriteFile(param.Path, configContent, dk.ConfPerm); writeErr != nil {
+		l.Errorf("Write file %s failed: %s", param.Path, writeErr.Error())
 		return &ws.ResponseError{ErrorCode: "save.file.failed", ErrorMsg: "save file failed"}
 	}
 
@@ -171,11 +192,19 @@ func saveDatakitConfigAction(_ *ws.Client, response *ws.DCAResponse, data *ws.Ac
 }
 
 func doDeleteConfig(inputName, filePath string) *ws.ResponseError {
-	if filePath == dk.MainConfPath {
-		return &ws.ResponseError{Code: 400, ErrorCode: "file.path.invalid", ErrorMsg: "Not supporet to delete main conf file"}
-	}
-	if err := checkPath(filePath); err != nil {
+	cleanPath, err := checkPath(filePath, false)
+	if err != nil {
 		return err
+	}
+	filePath = cleanPath
+
+	mainConfPath, absErr := filepath.Abs(filepath.Clean(dk.MainConfPath))
+	if absErr != nil {
+		return &ws.ResponseError{Code: 500, ErrorCode: "file.path.invalid", ErrorMsg: absErr.Error()}
+	}
+
+	if filePath == mainConfPath {
+		return &ws.ResponseError{Code: 400, ErrorCode: "file.path.invalid", ErrorMsg: "Not supporet to delete main conf file"}
 	}
 
 	if !path.IsFileExists(filePath) {
@@ -218,16 +247,67 @@ type pipelineInfo struct {
 	Category string `json:"category"`
 }
 
+var readPipelineDir = os.ReadDir
+
+func invalidPipelineParamError(msg string) *ws.ResponseError {
+	return &ws.ResponseError{Code: 400, ErrorCode: "param.invalid", ErrorMsg: msg}
+}
+
 func isValidPipelineFileName(name string) bool {
+	if name == "" || filepath.IsAbs(name) || filepath.Base(name) != name || strings.ContainsAny(name, `/\`) {
+		return false
+	}
+
 	pipelineFileRegxp := regexp.MustCompile(`.+\.p$`)
 
 	return pipelineFileRegxp.Match([]byte(name))
 }
 
+func normalizePipelineCategory(category string) (string, bool) {
+	if category == "default" {
+		category = ""
+	}
+
+	if category == "" {
+		return "", true
+	}
+
+	if filepath.IsAbs(category) || category == "." || category == ".." || strings.ContainsAny(category, `/\`) {
+		return "", false
+	}
+
+	return category, true
+}
+
+func getPipelineFilePath(datakit *ws.DataKit, category, fileName string) (string, *ws.ResponseError) {
+	category, ok := normalizePipelineCategory(category)
+	if !ok || !isValidPipelineFileName(fileName) {
+		return "", invalidPipelineParamError("pipeline path is not valid")
+	}
+
+	pipelineDir, err := filepath.Abs(filepath.Clean(datakit.DataKitRuntimeInfo.PipelineDir))
+	if err != nil {
+		return "", &ws.ResponseError{Code: 500, ErrorCode: "pipeline.dir.invalid", ErrorMsg: err.Error()}
+	}
+
+	filePath := filepath.Join(pipelineDir, category, fileName)
+	cleanPath, err := filepath.Abs(filepath.Clean(filePath))
+	if err != nil {
+		return "", invalidPipelineParamError("pipeline path is not valid")
+	}
+
+	rel, err := filepath.Rel(pipelineDir, cleanPath)
+	if err != nil || rel == ".." || filepath.IsAbs(rel) || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+		return "", invalidPipelineParamError("pipeline path is not valid")
+	}
+
+	return cleanPath, nil
+}
+
 func getDatakitPipelineAction(_ *ws.Client, response *ws.DCAResponse, data *ws.ActionData, datakit *ws.DataKit) {
 	pipelines := []pipelineInfo{}
 
-	allFiles, err := os.ReadDir(datakit.DataKitRuntimeInfo.PipelineDir)
+	allFiles, err := readPipelineDir(datakit.DataKitRuntimeInfo.PipelineDir)
 	if err != nil {
 		response.SetError()
 		return
@@ -241,12 +321,13 @@ func getDatakitPipelineAction(_ *ws.Client, response *ws.DCAResponse, data *ws.A
 				pipelines = append(pipelines, pipelineInfo{FileName: name, FileDir: datakit.DataKitRuntimeInfo.PipelineDir})
 			}
 		} else {
-			pipelines = append(pipelines, pipelineInfo{Category: file.Name()})
-			allFiles, err := os.ReadDir(filepath.Join(datakit.DataKitRuntimeInfo.PipelineDir, file.Name()))
+			categoryDir := filepath.Join(datakit.DataKitRuntimeInfo.PipelineDir, file.Name())
+			allFiles, err := readPipelineDir(categoryDir)
 			if err != nil {
-				response.SetError()
-				return
+				l.Warnf("read pipeline category dir %s failed: %s", categoryDir, err.Error())
+				continue
 			}
+			pipelines = append(pipelines, pipelineInfo{Category: file.Name()})
 			for _, subFile := range allFiles {
 				if !subFile.IsDir() {
 					name := subFile.Name()
@@ -254,7 +335,7 @@ func getDatakitPipelineAction(_ *ws.Client, response *ws.DCAResponse, data *ws.A
 						pipelines = append(pipelines,
 							pipelineInfo{
 								FileName: name,
-								FileDir:  filepath.Join(datakit.DataKitRuntimeInfo.PipelineDir, file.Name()),
+								FileDir:  categoryDir,
 								Category: file.Name(),
 							},
 						)
@@ -273,7 +354,7 @@ type pipelineDetailResponse struct {
 }
 
 func getDatakitPipelineDetailAction(_ *ws.Client, response *ws.DCAResponse, data *ws.ActionData, datakit *ws.DataKit) {
-	var fileName, category, path string
+	var fileName, category string
 	var contentBytes []byte
 	var err error
 
@@ -285,22 +366,21 @@ func getDatakitPipelineDetailAction(_ *ws.Client, response *ws.DCAResponse, data
 
 	category = data.Query.Get("category")
 
-	if !isValidPipelineFileName(fileName) {
-		response.SetError(&ws.ResponseError{ErrorCode: "param.invalid", ErrorMsg: fmt.Sprintf("param %s is not valid", fileName)})
+	pipelinePath, responseErr := getPipelineFilePath(datakit, category, fileName)
+	if responseErr != nil {
+		response.SetError(responseErr)
 		return
 	}
 
-	path = filepath.Join(datakit.DataKitRuntimeInfo.PipelineDir, category, fileName)
-
-	contentBytes, err = os.ReadFile(filepath.Clean(path))
+	contentBytes, err = os.ReadFile(pipelinePath) // #nosec G304 -- pipelinePath is validated by getPipelineFilePath
 	if err != nil {
-		l.Errorf("Read pipeline file %s failed: %s", path, err.Error())
-		response.SetError(&ws.ResponseError{ErrorCode: "param.invalid", ErrorMsg: fmt.Sprintf("param %s is not valid", fileName)})
+		l.Errorf("Read pipeline file %s failed: %s", pipelinePath, err.Error())
+		response.SetError(invalidPipelineParamError(fmt.Sprintf("param %s is not valid", fileName)))
 		return
 	}
 
 	response.SetSuccess(pipelineDetailResponse{
-		Path:    path,
+		Path:    pipelinePath,
 		Content: string(contentBytes),
 	})
 }
@@ -317,19 +397,17 @@ func saveDatakitPipelineAction(isUpdate bool) ws.HandlerFunc {
 			return
 		}
 
-		if pipeline.Category == "default" {
-			pipeline.Category = ""
-		}
-
 		fileName = pipeline.FileName
 		category := pipeline.Category
-		filePath = filepath.Join(datakit.DataKitRuntimeInfo.PipelineDir, category, fileName)
+		pipelinePath, responseErr := getPipelineFilePath(datakit, category, fileName)
+		if responseErr != nil {
+			response.SetError(responseErr)
+			return
+		}
+		filePath = pipelinePath
 
 		if isUpdate && len(pipeline.Content) == 0 {
-			response.SetError(&ws.ResponseError{
-				ErrorCode: "param.invalid",
-				ErrorMsg:  "'content' should not be empty",
-			})
+			response.SetError(invalidPipelineParamError("'content' should not be empty"))
 			return
 		}
 
@@ -342,19 +420,12 @@ func saveDatakitPipelineAction(isUpdate bool) ws.HandlerFunc {
 		} else { // new pipeline
 			if path.IsFileExists(filePath) {
 				response.SetError(&ws.ResponseError{
+					Code:      400,
 					ErrorCode: "param.invalid.duplicate",
 					ErrorMsg:  fmt.Sprintf("current name '%s' is duplicate", pipeline.FileName),
 				})
 				return
 			}
-		}
-
-		if !isValidPipelineFileName(fileName) {
-			response.SetError(&ws.ResponseError{
-				ErrorCode: "param.invalid",
-				ErrorMsg:  "fileName is not valid pipeline name",
-			})
-			return
 		}
 
 		err := os.WriteFile(filePath, []byte(pipeline.Content), dk.ConfPerm)
@@ -380,11 +451,11 @@ func deleteDatakitPipelineAction(_ *ws.Client, response *ws.DCAResponse, data *w
 		return
 	}
 
-	if param.Category == "default" {
-		param.Category = ""
+	fp, responseErr := getPipelineFilePath(datakit, param.Category, param.FileName)
+	if responseErr != nil {
+		response.SetError(responseErr)
+		return
 	}
-
-	fp := filepath.Join(datakit.DataKitRuntimeInfo.PipelineDir, param.Category, param.FileName)
 
 	if !path.IsFileExists(fp) {
 		response.SetError(&ws.ResponseError{Code: 400, ErrorCode: "file.path.invalid", ErrorMsg: "The file to be deleted is not existed!"})
@@ -418,15 +489,41 @@ func testDatakitPipelineAction(_ *ws.Client, response *ws.DCAResponse, data *ws.
 		body.Category = "logging"
 	}
 
+	if body.Pipeline == nil {
+		response.SetError(invalidPipelineParamError("pipeline is required"))
+		return
+	}
+
+	if strings.TrimSpace(body.ScriptName) == "" {
+		response.SetError(invalidPipelineParamError("script_name is required"))
+		return
+	}
+
 	// deal with default
 	if body.Category == "default" {
-		body.Pipeline["logging"] = body.Pipeline["default"]
+		defaultPipeline, ok := body.Pipeline["default"]
+		if !ok || defaultPipeline == nil {
+			response.SetError(invalidPipelineParamError("default pipeline is required"))
+			return
+		}
+		body.Pipeline["logging"] = defaultPipeline
 		body.Category = "logging"
+	}
+
+	scripts, ok := body.Pipeline[body.Category]
+	if !ok || scripts == nil {
+		response.SetError(invalidPipelineParamError(fmt.Sprintf("pipeline category %s is required", body.Category)))
+		return
+	}
+
+	if strings.TrimSpace(scripts[body.ScriptName]) == "" {
+		response.SetError(invalidPipelineParamError(fmt.Sprintf("pipeline script %s is required", body.ScriptName)))
+		return
 	}
 
 	category := point.CatString(body.Category)
 
-	pls, errs := pipeline.NewPipelineMulti(category, body.Pipeline[body.Category], nil)
+	pls, errs := pipeline.NewPipelineMulti(category, scripts, nil)
 	if err, ok := errs[body.ScriptName]; ok && err != nil {
 		response.SetError(&ws.ResponseError{ErrorCode: "400", ErrorMsg: fmt.Sprintf("pipeline parse error: %s", err.Error())})
 		return

@@ -428,6 +428,7 @@ func (ipt *Input) doCollectUserMetrics(deviceIP string, device *deviceInfo) {
 		dkio.WithCollectCost(time.Since(tn)),
 		dkio.WithElection(ipt.Election),
 		dkio.WithSource(snmpmeasurement.SNMPMetricName),
+		dkio.WithInput(snmpmeasurement.InputName),
 	); err != nil {
 		l.Errorf("FeedMeasurement metric err: %v", err)
 		ipt.feeder.FeedLastError(err.Error(),
