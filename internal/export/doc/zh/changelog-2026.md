@@ -1,5 +1,30 @@
 # 更新日志
 
+## 2.4.0(2026/07/02) {#cl-2.4.0}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-2.4.0-new}
+
+- DataKit 连接 DataWay 时支持 IPv4/IPv6 双栈自适应，默认优先 IPv6 并自动回退到 IPv4，同时支持配置地址族策略（#3131）
+- Pipeline 新增 `enable_grok_fast_path` 配置项，可显式控制 Grok fast path 优化，默认关闭（#3133）
+- SNMP 新增用户 Profile 目录 `conf.d/snmp/extra_profiles`，支持覆盖或继承内置 Profile，避免升级时覆盖用户配置（#3128）
+
+### 问题修复 {#cl-2.4.0-fix}
+
+- 修复 `gpu_smi` 采集器对 NVIDIA SMI v12/v13 XML 的兼容问题，支持新版功耗字段及新增 GPU 指标（#3129）
+
+### 功能优化 {#cl-2.4.0-opt}
+
+- SNMP 内置 Profile 指标支持 `tags_ignore` 和 `tags_ignore_regexp` 过滤，减少高基数 tag 产生的无效时间线（#3130）
+- 修正 MySQL、MySQL 用户状态、DBM 和 InnoDB 指标的类型、单位及描述，明确累计计数与当前状态值（#3135）
+
+### 兼容调整 {#cl-2.4.0-brk}
+
+- OpenTelemetry 采集器兼容 LoongSuite/Alibaba ARMS 的新版语义字段，补充 DB、HTTP/Network、MQ 和 RPC 属性映射（#3085）
+
+---
+
 ## 2.3.0(2026/06/24) {#cl-2.3.0}
 
 本次发布属于迭代发布，主要有如下更新：

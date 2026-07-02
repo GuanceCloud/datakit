@@ -157,6 +157,25 @@ func Test_getScalarValueFromSymbol(t *testing.T) {
 			expectedError: "",
 		},
 		{
+			name: "Formatter IP address OK",
+			values: &ResultValueStore{
+				ScalarValues: map[string]ResultValue{
+					"1.2.3.4": {
+						Value: []byte{192, 0, 2, 10},
+					},
+				},
+			},
+			symbol: SymbolConfig{
+				OID:    "1.2.3.4",
+				Name:   "mySymbol",
+				Format: "ip_address",
+			},
+			expectedValue: ResultValue{
+				Value: "192.0.2.10",
+			},
+			expectedError: "",
+		},
+		{
 			name: "Formatter Error",
 			values: &ResultValueStore{
 				ScalarValues: map[string]ResultValue{
@@ -401,6 +420,35 @@ metric_tags:
 				},
 			},
 			expectedTags: []string{"prefix:e", "suffix:th0"},
+		},
+		{
+			name: "format ip address",
+			// language=yaml
+			rawMetricConfig: []byte(`
+table:
+  OID:  1.2.3.4.5
+  name: peerTable
+symbols:
+  - OID: 1.2.3.4.5.1.2
+    name: peerMetric
+metric_tags:
+  - column:
+      OID:  1.2.3.4.8.1.2
+      name: peerAddress
+      format: ip_address
+    tag: peer_ip
+`),
+			fullIndex: "1",
+			values: &ResultValueStore{
+				ColumnValues: map[string]map[string]ResultValue{
+					"1.2.3.4.8.1.2": {
+						"1": ResultValue{
+							Value: []byte{192, 0, 2, 10},
+						},
+					},
+				},
+			},
+			expectedTags: []string{"peer_ip:192.0.2.10"},
 		},
 		{
 			name: "regex match only once",

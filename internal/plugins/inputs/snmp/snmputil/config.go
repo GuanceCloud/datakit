@@ -204,6 +204,12 @@ var LegacyMetadataConfig = MetadataConfig{
 					Format: "mac_address",
 				},
 			},
+			"type": {
+				Symbol: SymbolConfig{
+					OID:  "1.3.6.1.2.1.2.2.1.3",
+					Name: "ifType",
+				},
+			},
 		},
 		IDTags: MetricTagConfigList{
 			{
@@ -663,6 +669,7 @@ var validMetadataResources = map[string]map[string]bool{
 		"mac_address":  true,
 		"admin_status": true,
 		"oper_status":  true,
+		"type":         true,
 	},
 }
 

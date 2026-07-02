@@ -358,6 +358,19 @@ func (c *Config) loadDatawayEnvs() {
 		c.Dataway.URLs = strings.Split(v, ",")
 	}
 
+	if v := datakit.GetEnv("ENV_DATAWAY_IP_FAMILY_POLICY"); v != "" {
+		c.Dataway.IPFamilyPolicy = v
+	}
+
+	if v := datakit.GetEnv("ENV_DATAWAY_IPV4_FALLBACK_DELAY"); v != "" {
+		du, err := time.ParseDuration(v)
+		if err != nil || du <= 0 {
+			l.Warnf("invalid ENV_DATAWAY_IPV4_FALLBACK_DELAY %q, ignored", v)
+		} else {
+			c.Dataway.IPv4FallbackDelay = du
+		}
+	}
+
 	if v := datakit.GetEnv("ENV_DATAWAY_TIMEOUT"); v != "" {
 		du, err := time.ParseDuration(v)
 		if err != nil {

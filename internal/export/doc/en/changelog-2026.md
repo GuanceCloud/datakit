@@ -1,5 +1,30 @@
 # Changelog
 
+## 2.4.0(2026/07/02) {#cl-2.4.0}
+
+This release is an iterative release, with the following main updates:
+
+### New Features {#cl-2.4.0-new}
+
+- DataKit now supports adaptive IPv4/IPv6 dual-stack connections to DataWay, preferring IPv6 by default and automatically falling back to IPv4, with configurable IP family policies (#3131)
+- Pipeline added the `enable_grok_fast_path` option to explicitly control the Grok fast path optimization, which is disabled by default (#3133)
+- SNMP added the user Profile directory `conf.d/snmp/extra_profiles`, allowing user Profiles to override or extend built-in Profiles without being overwritten during upgrades (#3128)
+
+### Bug Fixes {#cl-2.4.0-fix}
+
+- Fixed `gpu_smi` compatibility with NVIDIA SMI v12/v13 XML, including newer power fields and additional GPU metrics (#3129)
+
+### Improvements {#cl-2.4.0-opt}
+
+- SNMP built-in Profile metrics now support `tags_ignore` and `tags_ignore_regexp`, reducing unnecessary time series caused by high-cardinality tags (#3130)
+- Corrected types, units, and descriptions for MySQL, MySQL user status, DBM, and InnoDB metrics to distinguish cumulative counters from current-state values (#3135)
+
+### Compatibility Adjustments {#cl-2.4.0-brk}
+
+- The OpenTelemetry collector now supports newer LoongSuite/Alibaba ARMS semantic fields, adding DB, HTTP/Network, messaging, and RPC attribute mappings (#3085)
+
+---
+
 ## 2.3.0(2026/06/24) {#cl-2.3.0}
 
 This release is an iterative release, with the following main updates:

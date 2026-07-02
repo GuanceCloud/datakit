@@ -66,6 +66,8 @@ type InterfaceMetadata struct {
 	MacAddress  string   `json:"mac_address,omitempty"`
 	AdminStatus int32    `json:"admin_status,omitempty"` // IF-MIB ifAdminStatus type is INTEGER
 	OperStatus  int32    `json:"oper_status,omitempty"`  // IF-MIB ifOperStatus type is INTEGER
+	Type        int32    `json:"type,omitempty"`         // IF-MIB ifType (RFC7224 IANAifType)
+	IsPhysical  *bool    `json:"is_physical,omitempty"`  // true for physical ethernet interface types (6, 62, 69, 117)
 }
 
 // IPAddressMetadata contains ip address metadata.

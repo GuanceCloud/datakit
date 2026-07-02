@@ -364,6 +364,59 @@ Dataway 部分有如下几个配置可以配置，其它部分不建议改动：
 
 Kubernetes 下部署相关配置参见[这里](datakit-daemonset-deploy.md#env-dataway)。
 
+#### DataWay IP 地址族策略 {#dataway-ip-family}
+
+DataKit 连接 DataWay 时默认优先使用 IPv6：IPv6 可用时使用 IPv6，否则自动回退到 IPv4。用户通常无需增加配置。
+
+DataWay 从 1.16.0 版本开始支持 IPv6。
+
+可以通过 `ip_family_policy` 调整地址族策略：
+
+| 配置值 | 行为 |
+| --- | --- |
+| `prefer_ipv6` | 默认值。IPv6 可用时使用 IPv6，否则自动回退到 IPv4 |
+| `ipv4_only` | 只解析和连接 IPv4。适用于不希望使用 IPv6 的环境 |
+| `ipv6_only` | 只解析和连接 IPv6；没有可用 IPv6 地址时连接失败 |
+| `auto` | 兼容原有的地址选择行为 |
+
+如果需要强制 DataKit 使用 IPv4，可以配置：
+
+```toml
+[dataway]
+  ip_family_policy = "ipv4_only"
+```
+
+Kubernetes 中使用对应的环境变量：
+
+```yaml
+- name: ENV_DATAWAY_IP_FAMILY_POLICY
+  value: ipv4_only
+```
+
+使用该功能时需注意：
+
+- DataWay、负载均衡、防火墙及路由需支持对应的地址族。
+- 配置 HTTP Proxy 时，地址族策略作用于 DataKit 到代理的连接；代理到 DataWay 使用哪个地址族由代理决定。
+- HTTP 长连接不会主动从 IPv4 切换到 IPv6。只有建立新连接时才会重新执行地址族选择。
+- 直接配置 IPv6 地址时必须使用方括号，例如 `http://[2001:db8::10]:9528?token=xxx`；HTTPS 场景建议使用证书匹配的域名。
+
+DataKit 首次成功连接每个 DataWay 地址时会记录实际使用的地址族：
+
+```text
+dataway connection established: policy=prefer_ipv6, family=ipv6, remote=[2001:db8::10]:9528
+```
+
+可以通过以下指标判断实际连接地址族及 IPv4 回退情况：
+
+| 指标 | 标签 | 说明 |
+| --- | --- | --- |
+| `datakit_dataway_dial_total` | `family=ipv4\|ipv6`、`result=success\|failed\|canceled` | TCP 建连尝试次数及结果 |
+| `datakit_dataway_ipv4_fallback_total` | 无 | IPv4 回退次数 |
+| `datakit_dataway_dial_seconds` | `family=ipv4\|ipv6` | 各地址族 TCP 建连耗时 |
+| `datakit_dataway_active_connections` | `family=ipv4\|ipv6` | 当前活跃的 DataWay TCP 连接数 |
+
+如果 `datakit_dataway_ipv4_fallback_total` 持续增长，同时出现 IPv6 `failed` 或 `canceled`、IPv4 `success`，通常表示 IPv6 链路不可达、丢包或延迟过高。连接池中可能同时存在 IPv4 和 IPv6 长连接，因此两个地址族的活跃连接数可以同时大于零。
+
 #### WAL 队列配置 {#dataway-wal}
 
 [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)

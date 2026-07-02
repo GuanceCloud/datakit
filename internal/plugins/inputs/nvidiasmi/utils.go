@@ -6,8 +6,11 @@
 package nvidiasmi
 
 import (
+	"bytes"
 	"encoding/xml"
+	"errors"
 	"fmt"
+	"io"
 	"sort"
 	"strconv"
 	"strings"
@@ -17,19 +20,17 @@ import (
 )
 
 func (ipt *Input) getPts(data []byte, server string) error {
-	// convert xml -> SMI{} struct
-	smi := &SMI{}
-	err := xml.Unmarshal(data, smi)
+	// ts := time.Now()
+	metricOpts := point.DefaultMetricOptions()
+	metricOpts = append(metricOpts, point.WithTime(ipt.ptsTime))
+	loggingOpts := point.DefaultLoggingOptions()
+	loggingOpts = append(loggingOpts, point.WithTime(ipt.ptsTime))
+
+	metrics, metricsLog, err := ipt.parseSMIMetrics(data, server)
 	if err != nil {
 		l.Errorf("Unmarshal xml data log: %s .", err)
 		return err
 	}
-
-	// ts := time.Now()
-	opts := point.DefaultMetricOptions()
-	opts = append(opts, point.WithTime(ipt.ptsTime))
-
-	metrics, metricsLog := smi.genTagsFields(ipt, server, ipt.ptsTime)
 
 	for _, metric := range metrics {
 		var kvs point.KVs
@@ -46,7 +47,7 @@ func (ipt *Input) getPts(data []byte, server string) error {
 			kvs = kvs.AddTag(k, v)
 		}
 
-		ipt.collectCache = append(ipt.collectCache, point.NewPoint(inputName, kvs, opts...))
+		ipt.collectCache = append(ipt.collectCache, point.NewPoint(inputName, kvs, metricOpts...))
 	}
 
 	for i := 0; i < len(metricsLog); i++ {
@@ -64,14 +65,103 @@ func (ipt *Input) getPts(data []byte, server string) error {
 			kvs = kvs.AddTag(k, v)
 		}
 
-		ipt.collectCacheLog = append(ipt.collectCacheLog, point.NewPoint(inputName, kvs, opts...))
+		ipt.collectCacheLog = append(ipt.collectCacheLog, point.NewPoint(inputName, kvs, loggingOpts...))
 	}
 	return nil
+}
+
+func (ipt *Input) parseSMIMetrics(data []byte, server string) ([]metric, []metric, error) {
+	schema, err := detectSMISchema(data)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	switch schema {
+	case "v12":
+		smi := &SMIV12{}
+		if err := xml.Unmarshal(data, smi); err != nil {
+			return nil, nil, err
+		}
+		metrics, metricsLog := smi.genTagsFields(ipt, server, ipt.ptsTime)
+		return metrics, metricsLog, nil
+	case "v13":
+		smi := &SMIV13{}
+		if err := xml.Unmarshal(data, smi); err != nil {
+			return nil, nil, err
+		}
+		metrics, metricsLog := smi.genTagsFields(ipt, server, ipt.ptsTime)
+		return metrics, metricsLog, nil
+	case "v10", "v11":
+		smi := &SMI{}
+		if err := xml.Unmarshal(data, smi); err != nil {
+			return nil, nil, err
+		}
+		metrics, metricsLog := smi.genTagsFields(ipt, server, ipt.ptsTime)
+		return metrics, metricsLog, nil
+	default:
+		smi := &SMIV13{}
+		if err := xml.Unmarshal(data, smi); err != nil {
+			return nil, nil, err
+		}
+		metrics, metricsLog := smi.genTagsFields(ipt, server, ipt.ptsTime)
+		return metrics, metricsLog, nil
+	}
+}
+
+func detectSMISchema(data []byte) (string, error) {
+	schema := "v11"
+
+	decoder := xml.NewDecoder(bytes.NewBuffer(data))
+	for {
+		token, err := decoder.Token()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return "", fmt.Errorf("reading nvidia-smi XML schema failed: %w", err)
+		}
+		d, ok := token.(xml.Directive)
+		if !ok {
+			continue
+		}
+
+		directive := string(d)
+		if !strings.HasPrefix(directive, "DOCTYPE") {
+			continue
+		}
+
+		parts := strings.Split(directive, " ")
+		s := strings.Trim(parts[len(parts)-1], "\" ")
+		if strings.HasPrefix(s, "nvsmi_device_") && strings.HasSuffix(s, ".dtd") {
+			schema = strings.TrimSuffix(strings.TrimPrefix(s, "nvsmi_device_"), ".dtd")
+		} else {
+			l.Warnf("Cannot find schema version in %q", directive)
+		}
+		break
+	}
+	return schema, nil
 }
 
 type metric struct {
 	tags   map[string]string
 	fields map[string]interface{}
+}
+
+type processMetricContext struct {
+	PState      string
+	ProdName    string
+	UUID        string
+	PCIBusID    string
+	ComputeMode string
+}
+
+type processMetricData struct {
+	GpuInstanceID     string
+	ComputeInstanceID string
+	Pid               string
+	Type              string
+	ProcessName       string
+	UsedMemory        string
 }
 
 func setTagIfUsed(m map[string]string, k, v string) {
@@ -113,6 +203,105 @@ func setIfUsed(t string, m map[string]interface{}, k, v string) {
 	}
 }
 
+func genProcessMetrics(
+	ipt *Input,
+	server string,
+	gpu processMetricContext,
+	processes Processes,
+) []metric {
+	if ipt.ProcessInfoMaxLen == 0 || len(processes.ProcessInfos) == 0 {
+		return nil
+	}
+
+	data := make([]processMetricData, 0, len(processes.ProcessInfos))
+	for _, process := range processes.ProcessInfos {
+		data = append(data, processMetricData{
+			GpuInstanceID:     process.GpuInstanceID,
+			ComputeInstanceID: process.ComputeInstanceID,
+			Pid:               process.Pid,
+			Type:              process.Type,
+			ProcessName:       process.ProcessName,
+			UsedMemory:        process.UsedMemory,
+		})
+	}
+
+	return genProcessMetricsData(ipt, server, gpu, data)
+}
+
+func genProcessMetricsData(
+	ipt *Input,
+	server string,
+	gpu processMetricContext,
+	processes []processMetricData,
+) []metric {
+	if ipt.ProcessInfoMaxLen == 0 || len(processes) == 0 {
+		return nil
+	}
+
+	metricsLog := []metric{}
+	processIndex := make([][2]int, 0, 2) // cap=2, can reduce cpu
+	usedMemory := 0
+	var err error
+	for j := 0; j < len(processes); j++ {
+		vals := strings.Fields(processes[j].UsedMemory)
+		if len(vals) < 1 {
+			processIndex = append(processIndex, [2]int{0, j})
+			continue
+		}
+		val := vals[0]
+		if val != "" {
+			usedMemory, err = strconv.Atoi(val)
+			if err != nil {
+				usedMemory = 0
+			}
+		}
+		processIndex = append(processIndex, [2]int{usedMemory, j})
+	}
+	sort.Slice(processIndex, func(i, j int) bool {
+		return processIndex[i][0] > processIndex[j][0]
+	})
+
+	endIndex := ipt.ProcessInfoMaxLen
+	if endIndex == -1 {
+		endIndex = len(processIndex)
+	}
+	for j := 0; j < endIndex; j++ {
+		if j >= len(processIndex) {
+			break
+		}
+		tagsLog := map[string]string{}
+		fieldsLog := map[string]interface{}{}
+
+		if server != "" {
+			// for ssh remote server
+			setTagIfUsed(tagsLog, "host", server)
+		}
+		setTagIfUsed(tagsLog, "pstate", gpu.PState)
+		setTagIfUsed(tagsLog, "name", gpu.ProdName)
+		setTagIfUsed(tagsLog, "uuid", gpu.UUID)
+		setTagIfUsed(tagsLog, "pci_bus_id", gpu.PCIBusID)
+		setTagIfUsed(tagsLog, "compute_mode", gpu.ComputeMode)
+		setTagIfUsed(tagsLog, "service", "msi_service")
+
+		process := processes[processIndex[j][1]]
+		s := strings.Split(process.ProcessName, "/") // 去除路径名字
+		fieldsLog["message"] = fmt.Sprintf("%s:ProcessName=%s,UsedMemory= %s",
+			gpu.UUID,
+			s[len(s)-1],
+			process.UsedMemory)
+		fieldsLog["gpu_instance_id"] = process.GpuInstanceID
+		fieldsLog["compute_instance_id"] = process.ComputeInstanceID
+		setIfUsed("int", fieldsLog, "pid", process.Pid)
+		setIfUsed("str", fieldsLog, "type", process.Type)
+		setIfUsed("str", fieldsLog, "process_name", process.ProcessName)
+		fieldsLog["used_memory"] = processIndex[j][0]
+		fieldsLog["status"] = "info"
+
+		metricsLog = append(metricsLog, metric{tagsLog, fieldsLog})
+	}
+	return metricsLog
+}
+
 // SMI defines the structure for the output of _nvidia-smi -q -x_.
 type SMI struct {
 	GPU           GPU    `xml:"gpu"`
@@ -127,6 +316,7 @@ type GPU []struct {
 	PState      string           `xml:"performance_state"`
 	Temp        TempStats        `xml:"temperature"`
 	ProdName    string           `xml:"product_name"`
+	Arch        string           `xml:"product_architecture"`
 	UUID        string           `xml:"uuid"`
 	ComputeMode string           `xml:"compute_mode"`
 	Utilization UtilizationStats `xml:"utilization"`
@@ -135,13 +325,17 @@ type GPU []struct {
 	Encoder     EncoderStats     `xml:"encoder_stats"`
 	FBC         FBCStats         `xml:"fbc_stats"`
 	Clocks      ClockStats       `xml:"clocks"`
+	Retired     RetiredPages     `xml:"retired_pages"`
+	Remapped    RemappedRows     `xml:"remapped_rows"`
 	Processes   Processes        `xml:"processes"`
 }
 
 // MemoryStats defines the structure of the memory portions in the smi output.
 type MemoryStats struct {
-	Total string `xml:"total"` // int
-	Used  string `xml:"used"`  // int
+	Total    string `xml:"total"`    // int
+	Used     string `xml:"used"`     // int
+	Free     string `xml:"free"`     // int
+	Reserved string `xml:"reserved"` // int
 }
 
 // TempStats defines the structure of the temperature portion of the smi output.
@@ -159,7 +353,24 @@ type UtilizationStats struct {
 
 // PowerReadings defines the structure of the power_readings portion of the smi output.
 type PowerReadings struct {
-	PowerDraw string `xml:"power_draw"` // float
+	PowerDraw  string `xml:"power_draw"`  // float
+	PowerLimit string `xml:"power_limit"` // float
+}
+
+// RetiredPages defines the numeric retired-page counters in the smi output.
+type RetiredPages struct {
+	MultipleSingleBit struct {
+		Count string `xml:"retired_count"` // int
+	} `xml:"multiple_single_bit_retirement"`
+	DoubleBit struct {
+		Count string `xml:"retired_count"` // int
+	} `xml:"double_bit_retirement"`
+}
+
+// RemappedRows defines the numeric remapped-row counters in the smi output.
+type RemappedRows struct {
+	Correctable   string `xml:"remapped_row_corr"` // int
+	Uncorrectable string `xml:"remapped_row_unc"`  // int
 }
 
 // PCI defines the structure of the pci portion of the smi output.
@@ -222,6 +433,7 @@ func (s *SMI) genTagsFields(ipt *Input, server string, ptsTime time.Time) ([]met
 
 		setTagIfUsed(tags, "pstate", gpu.PState)
 		setTagIfUsed(tags, "name", gpu.ProdName)
+		setTagIfUsed(tags, "arch", gpu.Arch)
 		setTagIfUsed(tags, "uuid", gpu.UUID)
 		setTagIfUsed(tags, "compute_mode", gpu.ComputeMode)
 		setTagIfUsed(tags, "pci_bus_id", gpu.PCI.PciBusID)
@@ -231,6 +443,12 @@ func (s *SMI) genTagsFields(ipt *Input, server string, ptsTime time.Time) ([]met
 		setIfUsed("int", fields, "fan_speed", gpu.FanSpeed)
 		setIfUsed("int", fields, "memory_total", gpu.Memory.Total)
 		setIfUsed("int", fields, "memory_used", gpu.Memory.Used)
+		setIfUsed("int", fields, "memory_free", gpu.Memory.Free)
+		setIfUsed("int", fields, "memory_reserved", gpu.Memory.Reserved)
+		setIfUsed("int", fields, "retired_pages_multiple_single_bit", gpu.Retired.MultipleSingleBit.Count)
+		setIfUsed("int", fields, "retired_pages_double_bit", gpu.Retired.DoubleBit.Count)
+		setIfUsed("int", fields, "remapped_rows_correctable", gpu.Remapped.Correctable)
+		setIfUsed("int", fields, "remapped_rows_uncorrectable", gpu.Remapped.Uncorrectable)
 
 		setIfUsed("int", fields, "temperature_gpu", gpu.Temp.GPUTemp)
 		setIfUsed("int", fields, "utilization_gpu", gpu.Utilization.GPU)
@@ -251,75 +469,18 @@ func (s *SMI) genTagsFields(ipt *Input, server string, ptsTime time.Time) ([]met
 		setIfUsed("int", fields, "clocks_current_video", gpu.Clocks.Video)
 
 		setIfUsed("float", fields, "power_draw", gpu.Power.PowerDraw)
+		setIfUsed("float", fields, "power_limit", gpu.Power.PowerLimit)
 		metrics = append(metrics, metric{tags, fields})
 
-		// Sort and collect the processInfoMaxLen with the largest memory usage, default 10
-		if ipt.ProcessInfoMaxLen == 0 {
-			continue
-		}
-
-		// get GPU processes info for log
-		if len(gpu.Processes.ProcessInfos) > 0 {
-			// sort by usedMemory
-			processIndex := make([][2]int, 0, 2) // cap=2, can reduce cpu
-			usedMemory := 0
-			var err error
-			for j := 0; j < len(gpu.Processes.ProcessInfos); j++ {
-				vals := strings.Fields(gpu.Processes.ProcessInfos[j].UsedMemory)
-				if len(vals) < 1 {
-					usedMemory = 0
-				}
-				val := vals[0]
-				if val != "" {
-					usedMemory, err = strconv.Atoi(val)
-					if err != nil {
-						usedMemory = 0
-					}
-				}
-				processIndex = append(processIndex, [2]int{usedMemory, j})
-			}
-			sort.Slice(processIndex, func(i, j int) bool {
-				return processIndex[i][0] > processIndex[j][0]
-			})
-
-			// pick processInfoMaxLen data
-			endIndex := ipt.ProcessInfoMaxLen
-			if endIndex == -1 {
-				endIndex = len(processIndex)
-			}
-			for j := 0; j < endIndex; j++ {
-				if j >= len(processIndex) {
-					break
-				}
-				tagsLog := map[string]string{}
-				fieldsLog := map[string]interface{}{}
-
-				if server != "" {
-					// for ssh remote server
-					setTagIfUsed(tagsLog, "host", server)
-				}
-				setTagIfUsed(tagsLog, "pstate", gpu.PState)
-				setTagIfUsed(tagsLog, "name", gpu.ProdName)
-				setTagIfUsed(tagsLog, "uuid", gpu.UUID)
-				setTagIfUsed(tagsLog, "pci_bus_id", gpu.PCI.PciBusID)
-				setTagIfUsed(tagsLog, "compute_mode", gpu.ComputeMode)
-				setTagIfUsed(tagsLog, "service", "msi_service")
-
-				s := strings.Split(gpu.Processes.ProcessInfos[processIndex[j][1]].ProcessName, "/") // 去除路径名字
-				fieldsLog["message"] = fmt.Sprintf("%s:ProcessName=%s,UsedMemory= %s",
-					gpu.UUID,
-					s[len(s)-1],
-					gpu.Processes.ProcessInfos[processIndex[j][1]].UsedMemory)
-				fieldsLog["gpu_instance_id"] = gpu.Processes.ProcessInfos[processIndex[j][1]].GpuInstanceID
-				fieldsLog["compute_instance_id"] = gpu.Processes.ProcessInfos[processIndex[j][1]].ComputeInstanceID
-				setIfUsed("int", fieldsLog, "pid", gpu.Processes.ProcessInfos[processIndex[j][1]].Pid)
-				setIfUsed("str", fieldsLog, "type", gpu.Processes.ProcessInfos[processIndex[j][1]].Type)
-				setIfUsed("str", fieldsLog, "process_name", gpu.Processes.ProcessInfos[processIndex[j][1]].ProcessName)
-				fieldsLog["used_memory"] = processIndex[j][0]
-				fieldsLog["status"] = "info"
-
-				metricsLog = append(metricsLog, metric{tagsLog, fieldsLog})
-			}
+		processMetrics := genProcessMetrics(ipt, server, processMetricContext{
+			PState:      gpu.PState,
+			ProdName:    gpu.ProdName,
+			UUID:        gpu.UUID,
+			PCIBusID:    gpu.PCI.PciBusID,
+			ComputeMode: gpu.ComputeMode,
+		}, gpu.Processes)
+		if len(processMetrics) > 0 {
+			metricsLog = append(metricsLog, processMetrics...)
 		}
 	}
 	return metrics, metricsLog

@@ -380,7 +380,7 @@ require (
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
-	github.com/GuanceCloud/pipeline-go v1.3.2-0.20260617045458-79ef0a886fb9
+	github.com/GuanceCloud/pipeline-go v1.4.1
 	github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go v0.0.0-20260601093339-95d5c63392d4
 	github.com/GuanceCloud/tracing-protos/pinpoint-gen-go v0.0.0-20260601093339-95d5c63392d4
 	github.com/GuanceCloud/tracing-protos/skywalking-gen-go v0.0.0-20260601093339-95d5c63392d4

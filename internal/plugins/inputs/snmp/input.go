@@ -908,10 +908,57 @@ func replaceMetricsName(in string) string {
 }
 
 func aggregateDeviceData(metricData *snmputil.MetricDatas, fts *tagFields, metaData *deviceMetaData, origTags []string, ipt *Input) {
+	ipt.filterMetricDataTags(metricData)
 	calcTagsHash(metricData)
 	mHash := make(map[string]map[string]interface{}) // map[hash]map[value_key]value_value
 	aggregateHash(metricData, mHash)
 	getFieldTagArr(metricData, mHash, fts, metaData, origTags, ipt)
+}
+
+func (ipt *Input) filterMetricDataTags(metricData *snmputil.MetricDatas) {
+	if !ipt.hasTagFilter() || metricData == nil {
+		return
+	}
+
+	for _, data := range metricData.Data {
+		if data == nil || len(data.Tags) == 0 {
+			continue
+		}
+
+		filteredTags := make([]string, 0, len(data.Tags))
+		for _, tag := range data.Tags {
+			key, _, _ := strings.Cut(tag, ":")
+			if ipt.shouldIgnoreTag(key) {
+				continue
+			}
+			filteredTags = append(filteredTags, tag)
+		}
+		data.Tags = filteredTags
+	}
+}
+
+func (ipt *Input) hasTagFilter() bool {
+	return ipt != nil && (len(ipt.TagsIgnore) > 0 || len(ipt.TagsIgnoreRule) > 0)
+}
+
+func (ipt *Input) shouldIgnoreTag(k string) bool {
+	if ipt == nil {
+		return false
+	}
+
+	for _, s := range ipt.TagsIgnore {
+		if s == k {
+			return true
+		}
+	}
+
+	for _, r := range ipt.TagsIgnoreRule {
+		if r.MatchString(k) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func calcTagsHash(metricData *snmputil.MetricDatas) {

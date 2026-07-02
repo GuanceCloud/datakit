@@ -36,6 +36,72 @@ skip: 'not-searchable-on-index-page'
 
 --->
 
+## v1.63.7-ext (2026/7/1) {#cl-1.63.7-ext}
+
+### 更新 {#cl-1.63.7-ext-fix}
+
+- Spring WebMVC 请求体采集新增对 `text/x-gwt-rpc` 的支持；开启 `dd.trace.request.body.enabled` 后，POST GWT RPC 请求会写入 `request_body` span 标签。
+- 请求体解码优先使用请求声明的 character encoding，未声明或无效时回退 UTF-8。
+- 未启用 OTLP runtime metrics 时，通过 DogStatsD 上报 `jvm.thread.count`，并按 `jvm.thread.daemon:true|false` 与 `jvm.thread.state:<state>` 区分 daemon / 非 daemon 线程和线程状态。
+- 新增原始 GC MXBean 指标 `jvm.gc.collection_count` 与 `jvm.gc.collection_time`，并保留 collector 名称为 `gc:<collector name>` 标签。
+- 复用 JVM 线程状态分桶逻辑，补充 GWT RPC 请求体采集、JVM 线程状态统计和 GC StatsD 上报的测试覆盖。
+
+
+## v1.63.6-ext (2026/6/29) {#cl-1.63.6-ext}
+
+### 修复 {#cl-1.63.6-ext-fix}
+
+- 修复 BES 探针 root span 丢失问题。
+- 支持在 Spring WebMVC 过滤器中为 `text/x-gwt-rpc` 请求打上 `request_body` 标签，并补充对应的 forked coverage。
+
+
+## v1.63.5-ext (2026/6/24) {#cl-1.63.5-ext}
+
+### 更新 {#cl-1.63.5-ext-fix}
+
+- 增强 Spring RabbitMQ 消费链路与日志串联能力。
+- 修复 Spring RabbitMQ 消费消息时缺少业务消费 span 的问题，使消费者日志可在 listener 执行期间获取 `trace_id` / `span_id`。
+- 保留 RabbitMQ `basic.deliver` 低层 AMQP span，同时补充 Spring listener 业务处理阶段 span。
+- 新增 BES 11.0 应用服务器探针支持。
+
+
+## v1.63.4-ext (2026/6/10) {#cl-1.63.4-ext}
+
+### 新增 {#cl-1.63.4-ext-fix}
+
+- 新增 `netty.client.stream` span，用于统计 SSE 响应体持续读取阶段。
+- 保留现有 `netty.client.request` span，继续表示请求发出到响应头返回阶段。
+- 新增指标 `stream.first_chunk.ms` 与 `stream.chunk_count`，用于观察首包延迟和 Netty 内容分片数量。
+- 对 `text/event-stream` 响应，将 stream span 标记为 `internal`，并使用 `SSE stream ...` 资源名。
+
+
+## v1.63.3-ext (2026/6/11) {#cl-1.63.3-ext}
+
+### 新增 {#cl-1.63.3-ext-fix}
+
+- 新增配置项 `DD_TRACE_PEER_HOSTNAME_FROM_CONFIG_ENABLED` / `trace.peer.hostname.from.config.enabled`。
+- 默认关闭；开启后优先使用客户端连接配置中的 host 作为 `peer.hostname`。
+- 覆盖 `Jedis`、`Lettuce 5`、`Redisson`、`Valkey`、`Vertx Redis Client`。
+
+
+## v1.63.2-ext (2026/6/8) {#cl-1.63.2-ext}
+
+### 修复 {#cl-1.63.2-ext-fix}
+
+- 修复 JMXFetch 对 `17-ea` 等 Java 版本字符串的识别问题。
+- 新增 `org.datadog.jmxfetch.util.JavaVersion` 版本解析工具。
+- 同时兼容 `java.specification.version` 与 `java.version` 的多种格式。
+
+
+## v1.63.1-ext (2026/6/4) {#cl-1.63.1-ext}
+
+### 新增 {#cl-1.63.1-ext-fix}
+
+- 新增配置项 `DD_SERVICE_MAPPING_FILE` / `dd.service.mapping.file`。
+- 支持从外部文件读取 service mapping，并与 `DD_SERVICE_MAPPING` 的内联配置合并。
+- 补充 `supported-configurations` 元数据以及对应单元测试。
+
+
 ## v1.63.0-ext (2026/6/3) {#cl-1.63.0-ext}
 
 ### 新增 {#cl-1.63.0-ext-fix}

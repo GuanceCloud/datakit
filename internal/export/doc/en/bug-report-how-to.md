@@ -121,6 +121,10 @@ Data upload metrics mainly refer to some HTTP-related metrics of the Dataway rep
 - `datakit_io_dataway_http_drop_point_total`: During the upload process, if the data points still fail after retrying, DataKit will discard these data points
 - `datakit_io_dataway_api_latency_seconds`: The time taken to call the Dataway API. If the time is long, it will block the operation of the collector
 - `datakit_io_http_retry_total`: If the number of retries is high, it indicates that the network quality is not very good, and the center may be under a lot of pressure
+- `datakit_dataway_dial_total`: DataWay IPv4/IPv6 TCP connection attempts and results, partitioned by the `family` (`ipv4` or `ipv6`) and `result` (`success`, `failed`, or `canceled`) labels
+- `datakit_dataway_ipv4_fallback_total`: Number of IPv4 fallbacks started because IPv6 did not succeed in time; continuous growth usually indicates an IPv6 path problem
+- `datakit_dataway_dial_seconds`: IPv4/IPv6 TCP connection latency, partitioned by the `family` label
+- `datakit_dataway_active_connections`: Current active DataWay TCP connections, partitioned by the `family` label
 
 ### Basic Metrics {#basic-metrics}
 

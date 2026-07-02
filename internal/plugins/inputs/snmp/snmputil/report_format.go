@@ -9,6 +9,7 @@ package snmputil
 import (
 	"encoding/hex"
 	"fmt"
+	"net"
 	"strings"
 )
 
@@ -20,6 +21,12 @@ func formatValue(value ResultValue, format string) (ResultValue, error) {
 		case "mac_address":
 			// Format mac address from OctetString to IEEE 802.1a canonical format e.g. `82:a5:6e:a5:c8:01`
 			value.Value = formatColonSepBytes(val)
+		case "ip_address":
+			if len(val) == 0 {
+				value.Value = ""
+			} else {
+				value.Value = net.IP(val).String()
+			}
 		default:
 			return ResultValue{}, fmt.Errorf("unknown format `%s` (value type `%T`)", format, value.Value)
 		}

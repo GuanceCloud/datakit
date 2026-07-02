@@ -23,6 +23,72 @@ For legal files, checksums, and source code change details, see the <<<custom_ke
 
 ## changelog {#changelog}
 
+## v1.63.7-ext (2026/7/1) {#cl-1.63.7-ext}
+
+### update {#cl-1.63.7-ext-fix}
+
+- Add Spring WebMVC request body collection support for `text/x-gwt-rpc`; when `dd.trace.request.body.enabled` is enabled, POST GWT RPC requests are written to the `request_body` span tag.
+- Decode request bodies with the request character encoding first, and fall back to UTF-8 when it is missing or invalid.
+- When OTLP runtime metrics are not enabled, report `jvm.thread.count` through DogStatsD, split by `jvm.thread.daemon:true|false` and `jvm.thread.state:<state>`.
+- Add raw GC MXBean metrics `jvm.gc.collection_count` and `jvm.gc.collection_time`, preserving the collector name as the `gc:<collector name>` tag.
+- Reuse JVM thread state bucket logic and add test coverage for GWT RPC request body collection, JVM thread state statistics, and GC StatsD reporting.
+
+
+## v1.63.6-ext (2026/6/29) {#cl-1.63.6-ext}
+
+### fix {#cl-1.63.6-ext-fix}
+
+- Fix the BES instrumentation root span loss issue.
+- Support `request_body` tagging for `text/x-gwt-rpc` requests in Spring WebMVC filters, and add corresponding forked coverage.
+
+
+## v1.63.5-ext (2026/6/24) {#cl-1.63.5-ext}
+
+### update {#cl-1.63.5-ext-fix}
+
+- Enhance Spring RabbitMQ consumer trace and log correlation.
+- Fix the missing business consumer span when Spring RabbitMQ consumes messages, so listener execution can expose `trace_id` / `span_id` to logs.
+- Keep the RabbitMQ `basic.deliver` low-level AMQP span and add a Spring listener business processing span.
+- Add BES 11.0 application server instrumentation support.
+
+
+## v1.63.4-ext (2026/6/10) {#cl-1.63.4-ext}
+
+### new {#cl-1.63.4-ext-fix}
+
+- Add the `netty.client.stream` span to measure continuous SSE response body reads.
+- Keep the existing `netty.client.request` span for the request-to-response-header phase.
+- Add the `stream.first_chunk.ms` and `stream.chunk_count` metrics for first chunk latency and Netty content chunk count.
+- For `text/event-stream` responses, mark the stream span as `internal` and use the `SSE stream ...` resource name.
+
+
+## v1.63.3-ext (2026/6/11) {#cl-1.63.3-ext}
+
+### new {#cl-1.63.3-ext-fix}
+
+- Add `DD_TRACE_PEER_HOSTNAME_FROM_CONFIG_ENABLED` / `trace.peer.hostname.from.config.enabled`.
+- The option is disabled by default. When enabled, the client connection host is preferred as `peer.hostname`.
+- Cover `Jedis`,`Lettuce 5`,`Redisson`,`Valkey`,`Vertx Redis Client`.
+
+
+## v1.63.2-ext (2026/6/8) {#cl-1.63.2-ext}
+
+### fix {#cl-1.63.2-ext-fix}
+
+- Fix JMXFetch parsing for Java version strings such as `17-ea`.
+- Add the `org.datadog.jmxfetch.util.JavaVersion` version parsing utility.
+- Support multiple `java.specification.version` and `java.version` formats.
+
+
+## v1.63.1-ext (2026/6/4) {#cl-1.63.1-ext}
+
+### new {#cl-1.63.1-ext-fix}
+
+- Add `DD_SERVICE_MAPPING_FILE` / `dd.service.mapping.file`.
+- Support reading service mapping from an external file and merging it with inline `DD_SERVICE_MAPPING` configuration.
+- Add `supported-configurations` metadata and related unit tests.
+
+
 ## v1.63.0-ext (2026/6/3) {#cl-1.63.0-ext}
 
 ### New {#cl-1.63.0-ext-fix}

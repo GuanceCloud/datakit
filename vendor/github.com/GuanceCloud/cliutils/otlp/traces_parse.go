@@ -352,7 +352,10 @@ func TraceSourceTypeFromTags(tags point.KVs) string {
 }
 
 func DBHostFromAttributes(resourceAttrs, spanAttrs map[string]string) string {
-	if resourceAttrs["db.system"] == "" && spanAttrs["db.system"] == "" {
+	if resourceAttrs["db.system"] == "" &&
+		resourceAttrs["db.system.name"] == "" &&
+		spanAttrs["db.system"] == "" &&
+		spanAttrs["db.system.name"] == "" {
 		return ""
 	}
 	if host := spanAttrs["server.address"]; host != "" {

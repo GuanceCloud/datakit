@@ -93,7 +93,15 @@ func TestEndpointMetrics(t *T.T) {
 		assert.Equal(t, "https", ep.scheme)
 		assert.Equal(t, "tkn_for_testing", ep.Token)
 		assert.Equal(t, "openway.guance.com", ep.Host)
+		assert.Equal(t, "openway.guance.com", ep.Hostname)
 		assert.Equal(t, 0, len(ep.CategoryURL))
+	})
+
+	t.Run("IPv6 hostname", func(t *T.T) {
+		ep, err := NewEndpoint("https://[2001:db8::10]:9528?token=tkn_for_testing")
+		require.NoError(t, err)
+		assert.Equal(t, "[2001:db8::10]:9528", ep.Host)
+		assert.Equal(t, "2001:db8::10", ep.Hostname)
 	})
 
 	t.Run("write-points-4xx", func(t *T.T) {

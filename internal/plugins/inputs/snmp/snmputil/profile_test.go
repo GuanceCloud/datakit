@@ -8,11 +8,49 @@ package snmputil
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"testing"
 
 	assert "github.com/stretchr/testify/require"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmprefiles"
 )
+
+func setupProfileTestConfd(t *testing.T, defaultProfiles map[string]string, extraProfiles map[string]string) {
+	t.Helper()
+
+	savedConfdDir := datakit.ConfdDir
+	datakit.ConfdDir = t.TempDir()
+
+	defaultProfilesMu.Lock()
+	globalProfileConfigMap = nil
+	defaultProfilesMu.Unlock()
+
+	t.Cleanup(func() {
+		datakit.ConfdDir = savedConfdDir
+		defaultProfilesMu.Lock()
+		globalProfileConfigMap = nil
+		defaultProfilesMu.Unlock()
+	})
+
+	if defaultProfiles != nil {
+		writeProfileTestFiles(t, snmprefiles.GetProfilesRoot(), defaultProfiles)
+	}
+	if extraProfiles != nil {
+		writeProfileTestFiles(t, snmprefiles.GetExtraProfilesRoot(), extraProfiles)
+	}
+}
+
+func writeProfileTestFiles(t *testing.T, root string, profiles map[string]string) {
+	t.Helper()
+
+	assert.NoError(t, os.MkdirAll(root, 0755))
+	for name, content := range profiles {
+		assert.NoError(t, os.WriteFile(filepath.Join(root, name), []byte(content), 0644))
+	}
+}
 
 func fixtureProfileDefinitionMap() ProfileDefinitionMap {
 	metrics := []MetricsConfig{
@@ -146,6 +184,198 @@ func fixtureProfileDefinitionMap() ProfileDefinitionMap {
 			},
 		},
 	}}
+}
+
+func TestLoadDefaultProfilesWithExtraProfiles(t *testing.T) {
+	setupProfileTestConfd(t, map[string]string{
+		"default-router.yaml": `
+sysobjectid:
+  - 1.3.6.1.4.1.100
+static_tags:
+  - "source:default"
+metrics:
+  - symbol:
+      OID: 1.3.6.1.4.1.100.1.0
+      name: default.metric
+`,
+	}, map[string]string{
+		"extra-router.yaml": `
+sysobjectid:
+  - 1.3.6.1.4.1.200
+static_tags:
+  - "source:extra"
+metrics:
+  - symbol:
+      OID: 1.3.6.1.4.1.200.1.0
+      name: extra.metric
+`,
+	})
+
+	profiles, err := LoadDefaultProfiles()
+	assert.NoError(t, err)
+	assert.Contains(t, profiles, "default-router")
+	assert.Contains(t, profiles, "extra-router")
+	assert.Contains(t, profiles["extra-router"].StaticTags, "source:extra")
+
+	profile, err := GetProfileForSysObjectID(profiles, "1.3.6.1.4.1.200")
+	assert.NoError(t, err)
+	assert.Equal(t, "extra-router", profile)
+}
+
+func TestLoadDefaultProfilesAllowsMissingExtraProfilesDir(t *testing.T) {
+	setupProfileTestConfd(t, map[string]string{
+		"default-router.yaml": `
+sysobjectid:
+  - 1.3.6.1.4.1.250
+static_tags:
+  - "source:default"
+metrics:
+  - symbol:
+      OID: 1.3.6.1.4.1.250.1.0
+      name: default.metric
+`,
+	}, nil)
+
+	_, err := os.Stat(snmprefiles.GetExtraProfilesRoot())
+	assert.True(t, os.IsNotExist(err))
+
+	profiles, err := LoadDefaultProfiles()
+	assert.NoError(t, err)
+	assert.Contains(t, profiles, "default-router")
+	assert.Contains(t, profiles["default-router"].StaticTags, "source:default")
+}
+
+func TestLoadDefaultProfilesExtraOverridesSameNameAndCanExtendDefault(t *testing.T) {
+	setupProfileTestConfd(t, map[string]string{
+		"router.yaml": `
+sysobjectid:
+  - 1.3.6.1.4.1.300
+static_tags:
+  - "source:default"
+metrics:
+  - symbol:
+      OID: 1.3.6.1.4.1.300.1.0
+      name: default.metric
+`,
+	}, map[string]string{
+		"router.yaml": `
+extends:
+  - router.yaml
+sysobjectid:
+  - 1.3.6.1.4.1.300
+static_tags:
+  - "source:extra"
+metrics:
+  - symbol:
+      OID: 1.3.6.1.4.1.300.2.0
+      name: extra.metric
+`,
+	})
+
+	profiles, err := LoadDefaultProfiles()
+	assert.NoError(t, err)
+	assert.Contains(t, profiles, "router")
+	assert.Contains(t, profiles["router"].StaticTags, "source:extra")
+	assert.Contains(t, profiles["router"].StaticTags, "source:default")
+	assert.Len(t, profiles["router"].Metrics, 2)
+}
+
+func TestLoadDefaultProfilesExtraBaseHasPrecedence(t *testing.T) {
+	setupProfileTestConfd(t, map[string]string{
+		"_base.yaml": `
+static_tags:
+  - "base:default"
+metrics:
+  - symbol:
+      OID: 1.3.6.1.4.1.400.1.0
+      name: default.base.metric
+`,
+	}, map[string]string{
+		"_base.yaml": `
+static_tags:
+  - "base:extra"
+metrics:
+  - symbol:
+      OID: 1.3.6.1.4.1.400.2.0
+      name: extra.base.metric
+`,
+		"router.yaml": `
+extends:
+  - _base.yaml
+sysobjectid:
+  - 1.3.6.1.4.1.400
+static_tags:
+  - "source:extra"
+metrics:
+  - symbol:
+      OID: 1.3.6.1.4.1.400.3.0
+      name: extra.metric
+`,
+	})
+
+	profiles, err := LoadDefaultProfiles()
+	assert.NoError(t, err)
+	assert.Contains(t, profiles, "router")
+	assert.Contains(t, profiles["router"].StaticTags, "base:extra")
+	assert.NotContains(t, profiles["router"].StaticTags, "base:default")
+}
+
+func TestLoadProfilesKeepsCustomProfilesSeparateFromExtraProfiles(t *testing.T) {
+	setupProfileTestConfd(t, map[string]string{
+		"_base.yaml": `
+static_tags:
+  - "base:default"
+metrics:
+  - symbol:
+      OID: 1.3.6.1.4.1.500.1.0
+      name: default.base.metric
+`,
+	}, map[string]string{
+		"_base.yaml": `
+static_tags:
+  - "base:extra"
+metrics:
+  - symbol:
+      OID: 1.3.6.1.4.1.500.2.0
+      name: extra.base.metric
+`,
+		"extra-router.yaml": `
+sysobjectid:
+  - 1.3.6.1.4.1.501
+metrics:
+  - symbol:
+      OID: 1.3.6.1.4.1.501.1.0
+      name: extra.metric
+`,
+	})
+
+	customProfileFile := filepath.Join(datakit.ConfdDir, "custom-router.yaml")
+	assert.NoError(t, os.WriteFile(customProfileFile, []byte(`
+extends:
+  - _base.yaml
+sysobjectid:
+  - 1.3.6.1.4.1.500
+static_tags:
+  - "source:custom"
+metrics:
+  - symbol:
+      OID: 1.3.6.1.4.1.500.3.0
+      name: custom.metric
+`), 0644))
+
+	profiles, err := LoadProfiles(ProfileConfigMap{
+		"custom-router": {
+			DefinitionFile: customProfileFile,
+		},
+	})
+	assert.NoError(t, err)
+	assert.Len(t, profiles, 1)
+	assert.Contains(t, profiles, "custom-router")
+	assert.NotContains(t, profiles, "extra-router")
+	assert.Contains(t, profiles["custom-router"].StaticTags, "source:custom")
+	assert.Contains(t, profiles["custom-router"].StaticTags, "base:default")
+	assert.NotContains(t, profiles["custom-router"].StaticTags, "base:extra")
+	assert.Len(t, profiles["custom-router"].Metrics, 2)
 }
 
 func Test_getMostSpecificOid(t *testing.T) {

@@ -24,9 +24,22 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/compact"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/endpoint"
+	dnet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 )
 
 func TestDWInit(t *T.T) {
+	t.Run("default IP family policy", func(t *T.T) {
+		dw := NewDefaultDataway()
+		assert.Equal(t, dnet.IPFamilyPolicyPreferIPv6, dw.IPFamilyPolicy)
+		assert.Equal(t, dnet.DefaultIPv4FallbackDelay, dw.IPv4FallbackDelay)
+	})
+
+	t.Run("invalid IP family policy", func(t *T.T) {
+		dw := NewDefaultDataway()
+		dw.IPFamilyPolicy = "invalid"
+		assert.Error(t, dw.Init(WithURLs("https://fake-dataway.example?token=tkn_xxxxxxxxxx")))
+	})
+
 	t.Run("basic", func(t *T.T) {
 		dw := NewDefaultDataway()
 		urls := []string{
@@ -74,6 +87,50 @@ func TestDWInit(t *T.T) {
 		require.NoError(t, dw.Init(WithURLs(urls...)))
 		assert.Equal(t, 1, dw.MaxRetryCount)
 	})
+}
+
+func TestDatawayDialMetrics(t *T.T) {
+	metricsReset()
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(Metrics()...)
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(ts.Close)
+
+	dw := NewDefaultDataway()
+	require.NoError(t, dw.Init(WithURLs(ts.URL+"?token=tkn_xxxxxxxxxx")))
+	require.Len(t, dw.eps, 1)
+
+	req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
+	require.NoError(t, err)
+	resp, err := dw.eps[0].SendReq(req)
+	require.NoError(t, err)
+	require.NoError(t, resp.Body.Close())
+	dw.eps[0].CloseIdleConnections()
+
+	mfs, err := reg.Gather()
+	require.NoError(t, err)
+	dialTotal := metrics.GetMetricOnLabels(mfs,
+		"datakit_dataway_dial_total", "ipv4", "success")
+	require.NotNil(t, dialTotal)
+	assert.Equal(t, 1.0, dialTotal.GetCounter().GetValue())
+
+	dialSeconds := metrics.GetMetricOnLabels(mfs,
+		"datakit_dataway_dial_seconds", "ipv4")
+	require.NotNil(t, dialSeconds)
+	assert.Equal(t, uint64(1), dialSeconds.GetHistogram().GetSampleCount())
+
+	fallbackTotal := metrics.GetMetricOnLabels(mfs,
+		"datakit_dataway_ipv4_fallback_total")
+	require.NotNil(t, fallbackTotal)
+	assert.Equal(t, 0.0, fallbackTotal.GetCounter().GetValue())
+
+	unusedIPv6 := metrics.GetMetricOnLabels(mfs,
+		"datakit_dataway_dial_total", "ipv6", "success")
+	require.NotNil(t, unusedIPv6)
+	assert.Equal(t, 0.0, unusedIPv6.GetCounter().GetValue())
 }
 
 func TestTagHeaderValueV2(t *T.T) {

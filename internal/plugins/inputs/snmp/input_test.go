@@ -9,11 +9,13 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"regexp"
 	"testing"
 	"time"
 
 	"github.com/GuanceCloud/cliutils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmpmeasurement"
@@ -124,6 +126,79 @@ func Test_calcTagsHash(t *testing.T) {
 			assert.Equal(t, tc.out, tc.in)
 		})
 	}
+}
+
+// go test -v -timeout 30s -run ^Test_aggregateDeviceDataWithTagsIgnore$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp
+func Test_aggregateDeviceDataWithTagsIgnore(t *testing.T) {
+	ipt := &Input{
+		TagsIgnore: []string{"interface_index"},
+		TagsIgnoreRule: []*regexp.Regexp{
+			regexp.MustCompile(`^volatile_`),
+		},
+	}
+
+	metricData := &snmputil.MetricDatas{
+		Data: []*snmputil.MetricData{
+			{
+				Name:  "ifOperStatus",
+				Value: 1.0,
+				Tags: []string{
+					"ip:192.168.1.1",
+					"interface:eth0",
+					"interface_index:100",
+					"volatile_tag:first",
+				},
+			},
+			{
+				Name:  "ifOperStatus",
+				Value: 2.0,
+				Tags: []string{
+					"ip:192.168.1.1",
+					"interface:eth0",
+					"interface_index:200",
+					"volatile_tag:second",
+				},
+			},
+		},
+	}
+
+	fts := &tagFields{}
+	aggregateDeviceData(metricData, fts, &deviceMetaData{}, nil, ipt)
+
+	require.Len(t, fts.Data, 1)
+	assert.NotContains(t, fts.Data[0].Tags, "interface_index")
+	assert.NotContains(t, fts.Data[0].Tags, "volatile_tag")
+	assert.Equal(t, "192.168.1.1", fts.Data[0].Tags["ip"])
+	assert.Equal(t, "eth0", fts.Data[0].Tags["interface"])
+	assert.Equal(t, 2.0, fts.Data[0].Fields["ifOperStatus"])
+}
+
+func Test_filterMetricDataTagsWithSharedTags(t *testing.T) {
+	ipt := &Input{
+		TagsIgnore: []string{"interface_index"},
+		TagsIgnoreRule: []*regexp.Regexp{
+			regexp.MustCompile(`^volatile_`),
+		},
+	}
+
+	sharedTags := []string{
+		"ip:192.168.1.1",
+		"volatile_tag:temporary",
+		"interface:eth0",
+		"interface_index:100",
+	}
+	metricData := &snmputil.MetricDatas{
+		Data: []*snmputil.MetricData{
+			{Name: "ifOperStatus", Value: 1.0, Tags: sharedTags},
+			{Name: "ifAdminStatus", Value: 1.0, Tags: sharedTags},
+		},
+	}
+
+	ipt.filterMetricDataTags(metricData)
+
+	wantTags := []string{"ip:192.168.1.1", "interface:eth0"}
+	require.Equal(t, wantTags, metricData.Data[0].Tags)
+	require.Equal(t, wantTags, metricData.Data[1].Tags)
 }
 
 // go test -v -timeout 30s -run ^Test_aggregateHash$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp

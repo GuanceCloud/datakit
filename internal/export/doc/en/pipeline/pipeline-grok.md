@@ -101,7 +101,14 @@ grok(_, "%{time}")
 
 ### Grok Fast Path Optimization {#grok-fast-path}
 
-Pipeline automatically checks whether a Grok pattern can use the Fast Path when the pattern is compiled. Fast Path is designed for structured log patterns that look like "fixed text + explicit fields + stable delimiters". If a pattern is not suitable for this optimization, Pipeline automatically falls back to the standard regular expression path, so Grok semantic compatibility is preserved.
+Grok Fast Path is disabled by default. To enable it, set the following option in the `[pipeline]` section of `datakit.conf`:
+
+```toml
+[pipeline]
+  enable_grok_fast_path = true
+```
+
+After it is enabled, Pipeline automatically checks whether a Grok pattern can use the Fast Path when the pattern is compiled. Fast Path is designed for structured log patterns that look like "fixed text + explicit fields + stable delimiters". If a pattern is not suitable for this optimization, Pipeline automatically falls back to the standard regular expression path, so Grok semantic compatibility is preserved.
 
 The following patterns are usually good Fast Path candidates:
 

@@ -112,18 +112,20 @@ Before writing a Profile, obtain the device MIB/OID manual and use `snmpget` or 
 
 ##### Add a Profile {#profile-add}
 
-Place the YAML file in the `conf.d/snmp/profiles/` directory under the DataKit installation directory. For example:
+DataKit releases built-in Profiles to `conf.d/snmp/profiles/` under the installation directory, and this directory may be overwritten during startup or upgrade. To add a site-specific Profile or override a built-in Profile, place the YAML file in `conf.d/snmp/extra_profiles/`. DataKit merges both directories during the default Profile loading flow, with `extra_profiles` taking precedence.
+
+Example:
 
 ```text
-/usr/local/datakit/conf.d/snmp/profiles/vendor-router.yaml
+/usr/local/datakit/conf.d/snmp/extra_profiles/vendor-router.yaml
 ```
 
 File requirements:
 
 - The extension must be `.yaml`;
 - The file name must not start with `_`; files starting with `_` are inheritance templates only;
-- Do not use the same file name as an existing built-in Profile, because DataKit releases built-in files with the same name during startup;
-- Back up site-specific YAML files before upgrading DataKit.
+- If a file has the same name as a built-in Profile, the file in `extra_profiles` takes precedence; to keep the built-in content, extend the same file name in the supplemental Profile;
+- Different file names should not use the same `sysobjectid`, otherwise automatic matching treats them as duplicate Profiles.
 
 Restart DataKit after adding the file.
 
@@ -187,7 +189,7 @@ extends:
   - _generic-if.yaml
 ```
 
-Installed Profiles are located in `conf.d/snmp/profiles/`. Before writing YAML, check the files starting with `_` in this directory and select reusable templates provided by the current DataKit version. Common templates include:
+Built-in Profiles are located in `conf.d/snmp/profiles/`, and site-specific supplemental Profiles are located in `conf.d/snmp/extra_profiles/`. Before writing YAML, check the files starting with `_` in the built-in directory and select reusable templates provided by the current DataKit version. Common templates include:
 
 | Profile | Purpose |
 | --- | --- |
@@ -227,7 +229,8 @@ sysobjectid: 1.3.6.1.4.1.9.1.<product_id>
 
 Notes:
 
-- File names in `extends` are resolved relative to `conf.d/snmp/profiles/`;
+- File names in `extends` are resolved from `conf.d/snmp/extra_profiles/` first, then from `conf.d/snmp/profiles/`;
+- A same-name Profile in `extra_profiles` can extend its own file name to inherit the built-in Profile with the same name;
 - Multiple and nested inheritance are supported, but circular inheritance is not allowed;
 - Metrics, dynamic tags, and static tags are appended during merging;
 - A metadata field defined by the current Profile is not overwritten by inherited content;

@@ -88,6 +88,9 @@ ulimit = 64000
   # How often reftab sync the remote
   refer_table_pull_interval = "5m"
 
+  # enable Grok fast path optimization
+  enable_grok_fast_path = false
+
   # use sqlite to store reftab data to release memory usage
   use_sqlite = false
   # or use pure memory to cache the reftab data

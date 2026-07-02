@@ -182,6 +182,8 @@ github.com/GuanceCloud/pipeline-go v1.3.2-0.20260610072326-166a20afc933 h1:p983H
 github.com/GuanceCloud/pipeline-go v1.3.2-0.20260610072326-166a20afc933/go.mod h1:8Aqy/2PjGXzy9jj/yhZsqjXbK/HG8euya/+bqS83FTQ=
 github.com/GuanceCloud/pipeline-go v1.3.2-0.20260617045458-79ef0a886fb9 h1:sBcL71c0Jtijx5A6t33psdigNAt4QF2A62humoiqXf0=
 github.com/GuanceCloud/pipeline-go v1.3.2-0.20260617045458-79ef0a886fb9/go.mod h1:MHmcR4+QF6OOw1/39/o+PMU9E84QewQGNIKu1Y5riKA=
+github.com/GuanceCloud/pipeline-go v1.4.1 h1:6vw68E3dU8dqyr1iKL4AQR87re1S3wqsQ/Pykanfxl4=
+github.com/GuanceCloud/pipeline-go v1.4.1/go.mod h1:MHmcR4+QF6OOw1/39/o+PMU9E84QewQGNIKu1Y5riKA=
 github.com/GuanceCloud/platypus v0.3.5-0.20260529080946-6085d331d151 h1:tdqFZIXm0nHHjzJ8G0zyPS4PJBC5FhvFn9i0szmOufM=
 github.com/GuanceCloud/platypus v0.3.5-0.20260529080946-6085d331d151/go.mod h1:H9Sol/SI+A9ppJUohdn9m/UA0aiNvh+G0/GnY6IVDnI=
 github.com/GuanceCloud/promcommon v0.0.0-20230828165048-8a8ac696e616 h1:l2/OF8jg2mcvAv5OzJWyooCEEcL2b0yATSl/iXUrvQ8=

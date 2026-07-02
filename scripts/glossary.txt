@@ -271,6 +271,9 @@ zabbix
 zhangsan
 Proto
 proto
+Loong
+loongsuite
+LoongSuite
 
 ##############################################
 # 缩写

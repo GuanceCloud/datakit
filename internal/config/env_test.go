@@ -103,6 +103,8 @@ func TestLoadEnv(t *testing.T) {
 				"ENV_DATAWAY_MAX_IDLE_CONNS_PER_HOST": "123",
 				"ENV_DATAWAY_TLS_INSECURE":            "on",
 				"ENV_DATAWAY_DROP_EXPIRED_PACKAGE_AT": "1h",
+				"ENV_DATAWAY_IP_FAMILY_POLICY":        "ipv4_only",
+				"ENV_DATAWAY_IPV4_FALLBACK_DELAY":     "500ms",
 
 				"ENV_DEFAULT_ENABLED_INPUTS": "cpu,mem,disk",
 				"ENV_DISABLE_404PAGE":        "on",
@@ -158,6 +160,8 @@ func TestLoadEnv(t *testing.T) {
 				cfg.Dataway.GlobalCustomerKeys = []string{}
 				cfg.Dataway.GZip = true
 				cfg.Dataway.DropExpiredPackageAt = time.Hour
+				cfg.Dataway.IPFamilyPolicy = "ipv4_only"
+				cfg.Dataway.IPv4FallbackDelay = 500 * time.Millisecond
 
 				cfg.HTTPAPI.AllowedCORSOrigins = []string{"https://foo", "https://bar"}
 				cfg.HTTPAPI.RUMOriginIPHeader = "not-set"

@@ -44,7 +44,8 @@ type EndPoint struct {
 	scheme,
 	RawURL,
 	Token,
-	Host string
+	Host,
+	Hostname string
 
 	HTTPHeaders,
 	CategoryURL map[string]string
@@ -68,6 +69,8 @@ type EndPoint struct {
 	insecureSkipVerify,
 	disablePkgID,
 	httpTrace bool
+
+	dnsDialOpts dnet.DNSCacheDialOptions
 }
 
 func (ep *EndPoint) String() string {
@@ -98,6 +101,12 @@ func WithAPIs(arr []string) endPointOption {
 func WithHTTPTrace(on bool) endPointOption {
 	return func(ep *EndPoint) {
 		ep.httpTrace = on
+	}
+}
+
+func WithDNSDialOptions(opts dnet.DNSCacheDialOptions) endPointOption {
+	return func(ep *EndPoint) {
+		ep.dnsDialOpts = opts
 	}
 }
 
@@ -189,8 +198,12 @@ func NewEndpoint(urlstr string, opts ...endPointOption) (*EndPoint, error) {
 		HTTPHeaders: map[string]string{},
 		Token:       u.Query().Get("token"),
 		Host:        u.Host,
+		Hostname:    u.Hostname(),
 		scheme:      u.Scheme,
 		owner:       "NOT-SET",
+		dnsDialOpts: dnet.DNSCacheDialOptions{
+			IPFamilyPolicy: dnet.IPFamilyPolicyAuto,
+		},
 	}
 
 	// setup options on enpoint URL string.
@@ -249,7 +262,13 @@ func NewEndpoint(urlstr string, opts ...endPointOption) (*EndPoint, error) {
 }
 
 func (ep *EndPoint) getHTTPCliOpts() *httpcli.Options {
-	dialContext, err := dnet.GetDNSCacheDialContext(defaultDNSCacheFreq, defaultDNSCacheLookUpTimeout)
+	dnsDialOpts := ep.dnsDialOpts
+	if dnsDialOpts.IPFamilyPolicy == "" {
+		dnsDialOpts.IPFamilyPolicy = dnet.IPFamilyPolicyAuto
+	}
+	dnsDialOpts.Freq = defaultDNSCacheFreq
+	dnsDialOpts.LookupTimeout = defaultDNSCacheLookUpTimeout
+	dialContext, err := dnet.GetDNSCacheDialContext(dnsDialOpts)
 	if err != nil {
 		l.Warnf("GetDNSCacheDialContext failed: %v", err)
 		dialContext = nil // if failed, then not use dns cache.

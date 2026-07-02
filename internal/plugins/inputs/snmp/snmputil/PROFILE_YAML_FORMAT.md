@@ -96,9 +96,11 @@ extends:
 ```
 
 **注意**:
-- Base profile 会被先加载，然后当前 profile 的配置会覆盖或合并到 base profile 的配置上
+- Base profile 会被先加载，然后与当前 profile 合并
 - 支持多层继承（base profile 也可以继承其他 base profile）
-- 继承顺序：从左到右，后面的会覆盖前面的
+- `extends` 中的文件名会优先从 `conf.d/snmp/extra_profiles` 查找，再从 `conf.d/snmp/profiles` 查找
+- `extra_profiles` 中的同名 profile 可以通过 `extends` 自身文件名继承内置同名 profile
+- 指标、动态标签和静态标签采用追加方式合并；当前 profile 已定义的同名元数据字段不会被继承内容覆盖
 - 不能有循环依赖
 
 ### sysobjectid
@@ -221,6 +223,10 @@ metadata:
         symbol:
           OID: 1.3.6.1.2.1.2.2.1.7
           name: ifAdminStatus
+      type:
+        symbol:
+          OID: 1.3.6.1.2.1.2.2.1.3
+          name: ifType
     id_tags:  # 用于标识每个接口的标签
       - symbol:
           OID: 1.3.6.1.2.1.31.1.1.1.1
@@ -367,7 +373,7 @@ symbol:
   scale_factor: 0.001
   
   # 格式化
-  format: "mac_address"  # 支持: mac_address
+  format: "mac_address"  # 支持: mac_address, ip_address
   
   # 常量值（仅用于表格指标）
   constant_value_one: true  # 如果为 true，每个表格行都报告值为 1
@@ -422,6 +428,7 @@ symbol:
 
 **支持的值**:
 - `mac_address`: 将字节数组格式化为 MAC 地址（如 `00:11:22:33:44:55`）
+- `ip_address`: 将字节数组格式化为 IP 地址（如 `192.0.2.1`）
 
 **示例**:
 ```yaml
@@ -744,3 +751,4 @@ metadata:
 
 7. **Base Profile**: 以 `_` 开头的 profile 文件是 base profile，不会被直接加载为可用 profile，只能被其他 profile 继承。
 
+8. **补充 Profile 目录**: `conf.d/snmp/profiles` 用于存放 DataKit 内置 Profile，启动或升级时可能被覆盖。用户补充或覆盖内置 Profile 时，建议放到 `conf.d/snmp/extra_profiles`。默认加载流程会合并这两个目录，同名文件以 `extra_profiles` 为准；如需保留原内置内容，可在补充文件中 `extends` 同名文件。不同文件名不应配置相同的 `sysobjectid`，否则自动匹配时会按重复 Profile 处理。

@@ -343,6 +343,59 @@ Dataway got following settings to be configured:
 
 See [here](datakit-daemonset-deploy.md#env-dataway) for configuration under Kubernetes.
 
+#### DataWay IP Family Policy {#dataway-ip-family}
+
+DataKit prefers IPv6 when connecting to DataWay by default. It uses IPv6 when available and automatically falls back to IPv4 otherwise. Users normally do not need to add any configuration.
+
+DataWay supports IPv6 starting with version 1.16.0.
+
+Use `ip_family_policy` to control the address-family policy:
+
+| Value | Behavior |
+| --- | --- |
+| `prefer_ipv6` | Default. Use IPv6 when available and automatically fall back to IPv4 otherwise |
+| `ipv4_only` | Resolve and connect only to IPv4. Use this when IPv6 must not be used |
+| `ipv6_only` | Resolve and connect only to IPv6; the connection fails if no IPv6 address is available |
+| `auto` | Preserve the legacy address-selection behavior |
+
+To force DataKit to use IPv4, configure:
+
+```toml
+[dataway]
+  ip_family_policy = "ipv4_only"
+```
+
+For Kubernetes, use the corresponding environment variable:
+
+```yaml
+- name: ENV_DATAWAY_IP_FAMILY_POLICY
+  value: ipv4_only
+```
+
+Consider the following when using this feature:
+
+- DataWay, load balancers, firewalls, and routes must support the corresponding address family.
+- When an HTTP proxy is configured, the policy applies to the connection from DataKit to the proxy. The proxy decides which address family is used to connect to DataWay.
+- Existing persistent HTTP connections do not proactively switch from IPv4 to IPv6. Address-family selection runs again only when a new connection is established.
+- An IPv6 literal must be enclosed in brackets, for example `http://[2001:db8::10]:9528?token=xxx`. For HTTPS, using a domain that matches the certificate is recommended.
+
+When each DataWay endpoint is connected for the first time, DataKit logs the address family actually used:
+
+```text
+dataway connection established: policy=prefer_ipv6, family=ipv6, remote=[2001:db8::10]:9528
+```
+
+Use the following metrics to determine the address family in use and diagnose IPv4 fallback:
+
+| Metric | Labels | Description |
+| --- | --- | --- |
+| `datakit_dataway_dial_total` | `family=ipv4\|ipv6`, `result=success\|failed\|canceled` | Number and result of TCP connection attempts |
+| `datakit_dataway_ipv4_fallback_total` | None | Number of IPv4 fallbacks |
+| `datakit_dataway_dial_seconds` | `family=ipv4\|ipv6` | TCP connection latency for each address family |
+| `datakit_dataway_active_connections` | `family=ipv4\|ipv6` | Current active DataWay TCP connections |
+
+If `datakit_dataway_ipv4_fallback_total` keeps increasing while IPv6 attempts are `failed` or `canceled` and IPv4 attempts are `success`, the IPv6 path is usually unreachable, dropping packets, or experiencing excessive latency. Persistent IPv4 and IPv6 connections can coexist in the connection pool, so both active-connection values may be greater than zero.
+
 #### WAL Queue Configuration {#dataway-wal}
 
 [:octicons-tag-24: Version-1.60.0](changelog.md#cl-1.60.0)

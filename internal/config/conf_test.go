@@ -606,6 +606,18 @@ func Test_setupDataway(t *T.T) {
 	}
 }
 
+func TestDatawayIPFamilyConfig(t *T.T) {
+	c := DefaultConfig()
+	_, err := bstoml.Decode(`
+[dataway]
+  ip_family_policy = "ipv6_only"
+  ipv4_fallback_delay = "400ms"
+`, c)
+	require.NoError(t, err)
+	assert.Equal(t, "ipv6_only", c.Dataway.IPFamilyPolicy)
+	assert.Equal(t, 400*time.Millisecond, c.Dataway.IPv4FallbackDelay)
+}
+
 func TestTryUpgradeCfg(t *T.T) {
 	t.Run(`basic`, func(t *T.T) {
 		pwd := t.TempDir()

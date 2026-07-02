@@ -6,13 +6,16 @@
 package nvidiasmi
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
-	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/getdatassh"
 )
 
@@ -47,7 +50,7 @@ func Test_getPts(t *testing.T) {
 				newPoint(
 					"gpu_smi",
 					map[string]string{"host": "me", "pstate": "P3", "name": "NVIDIA GeForce GTX 1050", "uuid": "GPU-06e04616-0ed5-4069-5ebc-345349a0d4f3", "compute_mode": "Default", "pci_bus_id": "00000000:01:00.0", "driver_version": "515.65.01", "cuda_version": "11.7"},
-					map[string]interface{}{"memory_total": 4096, "utilization_encoder": 0, "encoder_stats_session_count": 0, "fbc_stats_session_count": 0, "fbc_stats_average_latency": 0, "clocks_current_sm": 683, "clocks_current_memory": 2504, "fbc_stats_average_fps": 0, "temperature_gpu": 44, "utilization_memory": 3, "pcie_link_gen_current": 3, "clocks_current_graphics": 683, "clocks_current_video": 620, "memory_used": 65, "utilization_gpu": 7, "utilization_decoder": 0, "pcie_link_width_current": 8, "encoder_stats_average_fps": 0, "encoder_stats_average_latency": 0},
+					map[string]interface{}{"memory_total": 4096, "memory_used": 65, "memory_free": 3974, "memory_reserved": 55, "utilization_encoder": 0, "encoder_stats_session_count": 0, "fbc_stats_session_count": 0, "fbc_stats_average_latency": 0, "clocks_current_sm": 683, "clocks_current_memory": 2504, "fbc_stats_average_fps": 0, "temperature_gpu": 44, "utilization_memory": 3, "pcie_link_gen_current": 3, "clocks_current_graphics": 683, "clocks_current_video": 620, "utilization_gpu": 7, "utilization_decoder": 0, "pcie_link_width_current": 8, "encoder_stats_average_fps": 0, "encoder_stats_average_latency": 0},
 				),
 			},
 		},
@@ -132,27 +135,632 @@ func Test_getPts(t *testing.T) {
 				t.Errorf("got %d points, want %d points,", len(ipt.collectCache), len(tt.want))
 			}
 
-			var want []string
-			for _, p := range tt.want {
-				s := p.LineProto()
-				s = s[:strings.LastIndex(s, " ")]
-				want = append(want, s)
-			}
-			sort.Strings(want)
-
-			var got []string
-			for _, p := range ipt.collectCache {
-				s := p.LineProto()
-				s = s[:strings.LastIndex(s, " ")]
-				got = append(got, s)
-			}
-			sort.Strings(got)
-
-			if !reflect.DeepEqual(got, want) {
-				t.Errorf("%s Input.getPts() got: %v, want: %v", tt.name, got, want)
-			}
+			assertPointSuperset(t, ipt.collectCache, tt.want)
 		})
 	}
+}
+
+func Test_detectSMISchema(t *testing.T) {
+	tests := []struct {
+		name string
+		data []byte
+		want string
+	}{
+		{
+			name: "default v11 without doctype",
+			data: []byte(`<nvidia_smi_log></nvidia_smi_log>`),
+			want: "v11",
+		},
+		{
+			name: "v10",
+			data: []byte(`<?xml version="1.0" ?>
+<!DOCTYPE nvidia_smi_log SYSTEM "nvsmi_device_v10.dtd">
+<nvidia_smi_log></nvidia_smi_log>`),
+			want: "v10",
+		},
+		{
+			name: "v11",
+			data: []byte(`<?xml version="1.0" ?>
+<!DOCTYPE nvidia_smi_log SYSTEM "nvsmi_device_v11.dtd">
+<nvidia_smi_log></nvidia_smi_log>`),
+			want: "v11",
+		},
+		{
+			name: "v12",
+			data: []byte(`<?xml version="1.0" ?>
+<!DOCTYPE nvidia_smi_log SYSTEM "nvsmi_device_v12.dtd">
+<nvidia_smi_log></nvidia_smi_log>`),
+			want: "v12",
+		},
+		{
+			name: "v13",
+			data: []byte(`<?xml version="1.0" ?>
+<!DOCTYPE nvidia_smi_log SYSTEM "nvsmi_device_v13.dtd">
+<nvidia_smi_log></nvidia_smi_log>`),
+			want: "v13",
+		},
+		{
+			name: "unknown",
+			data: []byte(`<?xml version="1.0" ?>
+<!DOCTYPE nvidia_smi_log SYSTEM "nvsmi_device_v14.dtd">
+<nvidia_smi_log></nvidia_smi_log>`),
+			want: "v14",
+		},
+		{
+			name: "non nvidia doctype",
+			data: []byte(`<?xml version="1.0" ?>
+<!DOCTYPE nvidia_smi_log SYSTEM "unknown.dtd">
+<nvidia_smi_log></nvidia_smi_log>`),
+			want: "v11",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := detectSMISchema(tt.data)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func Test_getPtsTelegrafTestdata(t *testing.T) {
+	tests := []string{
+		"a100-sxm4-v12.xml",
+		"a10g.xml",
+		"gtx-1070-ti.xml",
+		"gtx-1660-ti.xml",
+		"quadro-p2000-v12.xml",
+		"quadro-p400.xml",
+		"rtx-3060-v12.xml",
+		"rtx-3080-v12.xml",
+		"rtx-3080-v13.xml",
+		"rtx-3090-v12.xml",
+		"tesla-t4.xml",
+	}
+
+	for _, filename := range tests {
+		t.Run(filename, func(t *testing.T) {
+			ipt := newTestInput()
+			data := readNvidiaSMITestdata(t, filename)
+
+			err := ipt.getPts(data, "localhost")
+			require.NoError(t, err)
+			require.NotEmpty(t, ipt.collectCache)
+		})
+	}
+}
+
+func Test_getPtsA100V12TestdataMigDevice(t *testing.T) {
+	ipt := newTestInput()
+
+	err := ipt.getPts(readNvidiaSMITestdata(t, "a100-sxm4-v12.xml"), "localhost")
+	require.NoError(t, err)
+	require.Len(t, ipt.collectCache, 5)
+
+	pt := ipt.collectCache[1]
+	assert.Equal(t, inputName, pt.Name())
+	assert.Equal(t, "0", pt.Get("index"))
+	assert.Equal(t, "3", pt.Get("gpu_index"))
+	assert.Equal(t, "0", pt.Get("compute_index"))
+	assert.Equal(t, "P0", pt.Get("pstate"))
+	assert.Equal(t, "NVIDIA A100-SXM4-80GB", pt.Get("name"))
+	assert.Equal(t, "Ampere", pt.Get("arch"))
+	assert.Equal(t, "GPU-513536b6-7d19-9063-b049-1e69664bb298", pt.Get("uuid"))
+	assert.Equal(t, int64(0), pt.Get("sram_uncorrectable"))
+	assert.Equal(t, int64(19968), pt.Get("memory_fb_total"))
+	assert.Equal(t, int64(0), pt.Get("memory_fb_reserved"))
+	assert.Equal(t, int64(12), pt.Get("memory_fb_used"))
+	assert.Equal(t, int64(19955), pt.Get("memory_fb_free"))
+	assert.Equal(t, int64(32767), pt.Get("memory_bar1_total"))
+	assert.Equal(t, int64(0), pt.Get("memory_bar1_used"))
+	assert.Equal(t, int64(32767), pt.Get("memory_bar1_free"))
+}
+
+func Test_getPtsRTX3080V13TestdataPowerReadings(t *testing.T) {
+	ipt := newTestInput()
+
+	err := ipt.getPts(readNvidiaSMITestdata(t, "rtx-3080-v13.xml"), "localhost")
+	require.NoError(t, err)
+	require.Len(t, ipt.collectCache, 1)
+
+	pt := ipt.collectCache[0]
+	assert.Equal(t, "595.58.03", pt.Get("driver_version"))
+	assert.Equal(t, "13.2", pt.Get("cuda_version"))
+	assert.Equal(t, "Ampere", pt.Get("arch"))
+	assert.Equal(t, 142.33, pt.Get("power_draw"))
+	assert.Equal(t, 320.0, pt.Get("power_limit"))
+	assert.Equal(t, int64(660), pt.Get("memory_free"))
+	assert.Equal(t, int64(397), pt.Get("memory_reserved"))
+	assert.Equal(t, int64(0), pt.Get("utilization_jpeg"))
+	assert.Equal(t, int64(0), pt.Get("utilization_ofa"))
+}
+
+func Test_getPtsLoggingStringFields(t *testing.T) {
+	ipt := newTestInput()
+	ipt.ProcessInfoMaxLen = 10
+
+	err := ipt.getPts([]byte(`<nvidia_smi_log>
+<driver_version>515.65.01</driver_version>
+<cuda_version>11.7</cuda_version>
+<gpu id="00000000:01:00.0">
+	<product_name>NVIDIA Test GPU</product_name>
+	<product_architecture>Pascal</product_architecture>
+	<performance_state>P0</performance_state>
+	<uuid>GPU-logging-string-fields</uuid>
+	<compute_mode>Default</compute_mode>
+	<pci>
+		<pci_bus_id>00000000:01:00.0</pci_bus_id>
+	</pci>
+	<fb_memory_usage>
+		<total>100 MiB</total>
+		<used>3 MiB</used>
+	</fb_memory_usage>
+	<processes>
+		<process_info>
+			<gpu_instance_id>N/A</gpu_instance_id>
+			<compute_instance_id>N/A</compute_instance_id>
+			<pid>1234</pid>
+			<type>C</type>
+			<process_name>/usr/bin/python</process_name>
+			<used_memory>256 MiB</used_memory>
+		</process_info>
+	</processes>
+</gpu>
+</nvidia_smi_log>`), "localhost")
+	require.NoError(t, err)
+	require.Len(t, ipt.collectCacheLog, 1)
+
+	pt := ipt.collectCacheLog[0]
+	assert.Equal(t, "GPU-logging-string-fields:ProcessName=python,UsedMemory= 256 MiB", pt.Get("message"))
+	assert.Equal(t, "info", pt.Get("status"))
+	assert.Equal(t, "/usr/bin/python", pt.Get("process_name"))
+	assert.Equal(t, "C", pt.Get("type"))
+	assert.Equal(t, "N/A", pt.Get("gpu_instance_id"))
+	assert.Equal(t, "N/A", pt.Get("compute_instance_id"))
+	assert.Equal(t, int64(1234), pt.Get("pid"))
+	assert.Equal(t, int64(256), pt.Get("used_memory"))
+	assert.Empty(t, pt.Warns())
+}
+
+func Test_gpuOnlineInfoLoggingStringFields(t *testing.T) {
+	ipt := newTestInput()
+	ipt.gpuOnlineInfo("GPU-online-string-fields", "localhost", time.Unix(1, 0))
+
+	require.Len(t, ipt.collectCacheWarn, 1)
+	pt := ipt.collectCacheWarn[0]
+	assert.Equal(t, "GPU-online-string-fields", pt.Get("uuid"))
+	assert.Equal(t, "msi_service", pt.Get("service"))
+	assert.Equal(t, "Info! GPU online! GPU UUID: GPU-online-string-fields", pt.Get("message"))
+	assert.Equal(t, "info", pt.Get("status"))
+	assert.Equal(t, int64(1), pt.Get("status_gpu"))
+	assert.Empty(t, pt.Warns())
+}
+
+func Test_getPtsV11AdditionalNumericFields(t *testing.T) {
+	ipt := &Input{
+		collectCache:      []*point.Point{},
+		collectCacheLog:   []*point.Point{},
+		collectCacheWarn:  []*point.Point{},
+		gpus:              []gpuInfo{},
+		ProcessInfoMaxLen: 0,
+		BinPaths:          []string{"/usr/bin/nvidia-smi"},
+		tagger:            &mockTagger{},
+		Election:          false,
+	}
+	ipt.mergedTags = make(map[string]urlTags)
+	ipt.setup()
+
+	err := ipt.getPts([]byte(`<nvidia_smi_log>
+<driver_version>515.65.01</driver_version>
+<cuda_version>11.7</cuda_version>
+<gpu id="00000000:01:00.0">
+	<product_name>NVIDIA Test GPU</product_name>
+	<product_architecture>Pascal</product_architecture>
+	<uuid>GPU-v11-extra-fields</uuid>
+	<fb_memory_usage>
+		<total>100 MiB</total>
+		<reserved>2 MiB</reserved>
+		<used>3 MiB</used>
+		<free>95 MiB</free>
+	</fb_memory_usage>
+	<retired_pages>
+		<multiple_single_bit_retirement>
+			<retired_count>4</retired_count>
+		</multiple_single_bit_retirement>
+		<double_bit_retirement>
+			<retired_count>5</retired_count>
+		</double_bit_retirement>
+	</retired_pages>
+	<remapped_rows>
+		<remapped_row_corr>6</remapped_row_corr>
+		<remapped_row_unc>7</remapped_row_unc>
+	</remapped_rows>
+	<power_readings>
+		<power_draw>8.50 W</power_draw>
+		<power_limit>9.50 W</power_limit>
+	</power_readings>
+</gpu>
+</nvidia_smi_log>`), "localhost")
+	require.NoError(t, err)
+	require.Len(t, ipt.collectCache, 1)
+
+	pt := ipt.collectCache[0]
+	assert.Equal(t, "Pascal", pt.Get("arch"))
+	assert.Equal(t, int64(100), pt.Get("memory_total"))
+	assert.Equal(t, int64(3), pt.Get("memory_used"))
+	assert.Equal(t, int64(95), pt.Get("memory_free"))
+	assert.Equal(t, int64(2), pt.Get("memory_reserved"))
+	assert.Equal(t, int64(4), pt.Get("retired_pages_multiple_single_bit"))
+	assert.Equal(t, int64(5), pt.Get("retired_pages_double_bit"))
+	assert.Equal(t, int64(6), pt.Get("remapped_rows_correctable"))
+	assert.Equal(t, int64(7), pt.Get("remapped_rows_uncorrectable"))
+	assert.Equal(t, 8.5, pt.Get("power_draw"))
+	assert.Equal(t, 9.5, pt.Get("power_limit"))
+}
+
+func Test_getPtsV12PowerReadings(t *testing.T) {
+	ipt := newTestInput()
+
+	err := ipt.getPts([]byte(`<?xml version="1.0" ?>
+<!DOCTYPE nvidia_smi_log SYSTEM "nvsmi_device_v12.dtd">
+<nvidia_smi_log>
+<driver_version>570.124.04</driver_version>
+<cuda_version>12.8</cuda_version>
+<gpu id="00000000:01:00.0">
+	<product_name>NVIDIA V12 GPU</product_name>
+	<uuid>GPU-v12-power</uuid>
+	<compute_mode>Default</compute_mode>
+	<fb_memory_usage>
+		<total>1000 MiB</total>
+		<reserved>10 MiB</reserved>
+		<used>20 MiB</used>
+		<free>970 MiB</free>
+	</fb_memory_usage>
+	<utilization>
+		<gpu_util>1 %</gpu_util>
+		<memory_util>2 %</memory_util>
+		<encoder_util>3 %</encoder_util>
+		<decoder_util>4 %</decoder_util>
+		<jpeg_util>5 %</jpeg_util>
+		<ofa_util>6 %</ofa_util>
+	</utilization>
+	<power_readings>
+		<power_draw>11.00 W</power_draw>
+		<instant_power_draw>12.00 W</instant_power_draw>
+		<power_limit>100.00 W</power_limit>
+	</power_readings>
+	<gpu_power_readings>
+		<average_power_draw>21.00 W</average_power_draw>
+		<instant_power_draw>22.00 W</instant_power_draw>
+		<current_power_limit>120.00 W</current_power_limit>
+		<power_limit>130.00 W</power_limit>
+	</gpu_power_readings>
+	<module_power_readings>
+		<power_draw>31.00 W</power_draw>
+		<instant_power_draw>32.00 W</instant_power_draw>
+	</module_power_readings>
+</gpu>
+</nvidia_smi_log>`), "localhost")
+	require.NoError(t, err)
+	require.Len(t, ipt.collectCache, 1)
+
+	pt := ipt.collectCache[0]
+	assert.Equal(t, "570.124.04", pt.Get("driver_version"))
+	assert.Equal(t, int64(970), pt.Get("memory_free"))
+	assert.Equal(t, int64(5), pt.Get("utilization_jpeg"))
+	assert.Equal(t, int64(6), pt.Get("utilization_ofa"))
+	assert.Equal(t, 22.0, pt.Get("power_draw"))
+	assert.Equal(t, 130.0, pt.Get("power_limit"))
+	assert.Equal(t, 32.0, pt.Get("module_power_draw"))
+}
+
+func Test_getPtsV12MigDevice(t *testing.T) {
+	ipt := newTestInput()
+
+	err := ipt.getPts([]byte(`<?xml version="1.0" ?>
+<!DOCTYPE nvidia_smi_log SYSTEM "nvsmi_device_v12.dtd">
+<nvidia_smi_log>
+<gpu id="00000000:04:00.0">
+	<product_name>NVIDIA A100-SXM4-80GB</product_name>
+	<product_architecture>Ampere</product_architecture>
+	<uuid>GPU-v12-mig</uuid>
+	<compute_mode>Default</compute_mode>
+	<performance_state>P0</performance_state>
+	<mig_devices>
+		<mig_device>
+			<index>0</index>
+			<gpu_instance_id>3</gpu_instance_id>
+			<compute_instance_id>0</compute_instance_id>
+			<ecc_error_count>
+				<volatile_count>
+					<sram_uncorrectable>1</sram_uncorrectable>
+				</volatile_count>
+			</ecc_error_count>
+			<fb_memory_usage>
+				<total>19968 MiB</total>
+				<reserved>2 MiB</reserved>
+				<used>12 MiB</used>
+				<free>19954 MiB</free>
+			</fb_memory_usage>
+			<bar1_memory_usage>
+				<total>32767 MiB</total>
+				<used>4 MiB</used>
+				<free>32763 MiB</free>
+			</bar1_memory_usage>
+		</mig_device>
+	</mig_devices>
+</gpu>
+</nvidia_smi_log>`), "localhost")
+	require.NoError(t, err)
+	require.Len(t, ipt.collectCache, 2)
+
+	pt := ipt.collectCache[1]
+	assert.Equal(t, inputName, pt.Name())
+	assert.Equal(t, "0", pt.Get("index"))
+	assert.Equal(t, "3", pt.Get("gpu_index"))
+	assert.Equal(t, "0", pt.Get("compute_index"))
+	assert.Equal(t, "P0", pt.Get("pstate"))
+	assert.Equal(t, "NVIDIA A100-SXM4-80GB", pt.Get("name"))
+	assert.Equal(t, "Ampere", pt.Get("arch"))
+	assert.Equal(t, "GPU-v12-mig", pt.Get("uuid"))
+	assert.Equal(t, "Default", pt.Get("compute_mode"))
+	assert.Equal(t, int64(1), pt.Get("sram_uncorrectable"))
+	assert.Equal(t, int64(19968), pt.Get("memory_fb_total"))
+	assert.Equal(t, int64(2), pt.Get("memory_fb_reserved"))
+	assert.Equal(t, int64(12), pt.Get("memory_fb_used"))
+	assert.Equal(t, int64(19954), pt.Get("memory_fb_free"))
+	assert.Equal(t, int64(32767), pt.Get("memory_bar1_total"))
+	assert.Equal(t, int64(4), pt.Get("memory_bar1_used"))
+	assert.Equal(t, int64(32763), pt.Get("memory_bar1_free"))
+}
+
+func Test_getPtsV13PowerReadings(t *testing.T) {
+	ipt := newTestInput()
+
+	err := ipt.getPts([]byte(`<?xml version="1.0" ?>
+<!DOCTYPE nvidia_smi_log SYSTEM "nvsmi_device_v13.dtd">
+<nvidia_smi_log>
+<driver_version>595.71.05</driver_version>
+<cuda_version>13.2</cuda_version>
+<gpu id="00000000:02:00.0">
+	<product_name>NVIDIA V13 GPU</product_name>
+	<uuid>GPU-v13-power</uuid>
+	<compute_mode>Default</compute_mode>
+	<power_readings>
+		<power_draw>41.00 W</power_draw>
+		<instant_power_draw>42.00 W</instant_power_draw>
+		<power_limit>140.00 W</power_limit>
+	</power_readings>
+	<gpu_power_readings>
+		<average_power_draw>51.00 W</average_power_draw>
+		<instant_power_draw>52.00 W</instant_power_draw>
+		<current_power_limit>150.00 W</current_power_limit>
+	</gpu_power_readings>
+	<module_power_readings>
+		<instant_power_draw>62.00 W</instant_power_draw>
+	</module_power_readings>
+</gpu>
+</nvidia_smi_log>`), "localhost")
+	require.NoError(t, err)
+	require.Len(t, ipt.collectCache, 1)
+
+	pt := ipt.collectCache[0]
+	assert.Equal(t, "595.71.05", pt.Get("driver_version"))
+	assert.Equal(t, "13.2", pt.Get("cuda_version"))
+	assert.Equal(t, 52.0, pt.Get("power_draw"))
+	assert.Equal(t, 150.0, pt.Get("power_limit"))
+	assert.Equal(t, 62.0, pt.Get("module_power_draw"))
+}
+
+func Test_getPtsV13EccErrors(t *testing.T) {
+	ipt := newTestInput()
+
+	err := ipt.getPts([]byte(`<?xml version="1.0" ?>
+<!DOCTYPE nvidia_smi_log SYSTEM "nvsmi_device_v13.dtd">
+<nvidia_smi_log>
+<gpu id="00000000:02:00.0">
+	<product_name>NVIDIA V13 ECC GPU</product_name>
+	<uuid>GPU-v13-ecc</uuid>
+	<ecc_errors>
+		<volatile>
+			<dram_correctable>1</dram_correctable>
+			<dram_uncorrectable>2</dram_uncorrectable>
+			<sram_correctable>3</sram_correctable>
+			<sram_uncorrectable>4</sram_uncorrectable>
+			<sram_uncorrectable_parity>5</sram_uncorrectable_parity>
+			<sram_uncorrectable_secded>6</sram_uncorrectable_secded>
+		</volatile>
+		<aggregate>
+			<dram_correctable>7</dram_correctable>
+			<dram_uncorrectable>8</dram_uncorrectable>
+			<sram_correctable>9</sram_correctable>
+			<sram_uncorrectable>10</sram_uncorrectable>
+			<sram_uncorrectable_parity>11</sram_uncorrectable_parity>
+			<sram_uncorrectable_secded>12</sram_uncorrectable_secded>
+		</aggregate>
+		<aggregate_uncorrectable_sram_sources>
+			<sram_l2>13</sram_l2>
+			<sram_microcontroller>14</sram_microcontroller>
+			<sram_other>15</sram_other>
+			<sram_pcie>16</sram_pcie>
+			<sram_sm>17</sram_sm>
+		</aggregate_uncorrectable_sram_sources>
+	</ecc_errors>
+</gpu>
+</nvidia_smi_log>`), "localhost")
+	require.NoError(t, err)
+	require.Len(t, ipt.collectCache, 1)
+
+	pt := ipt.collectCache[0]
+	assert.Equal(t, int64(1), pt.Get("ecc_errors_volatile_dram_correctable"))
+	assert.Equal(t, int64(2), pt.Get("ecc_errors_volatile_dram_uncorrectable"))
+	assert.Equal(t, int64(3), pt.Get("ecc_errors_volatile_sram_correctable"))
+	assert.Equal(t, int64(4), pt.Get("ecc_errors_volatile_sram_uncorrectable"))
+	assert.Equal(t, int64(5), pt.Get("ecc_errors_volatile_sram_uncorrectable_parity"))
+	assert.Equal(t, int64(6), pt.Get("ecc_errors_volatile_sram_uncorrectable_secded"))
+	assert.Equal(t, int64(7), pt.Get("ecc_errors_aggregate_dram_correctable"))
+	assert.Equal(t, int64(8), pt.Get("ecc_errors_aggregate_dram_uncorrectable"))
+	assert.Equal(t, int64(9), pt.Get("ecc_errors_aggregate_sram_correctable"))
+	assert.Equal(t, int64(10), pt.Get("ecc_errors_aggregate_sram_uncorrectable"))
+	assert.Equal(t, int64(11), pt.Get("ecc_errors_aggregate_sram_uncorrectable_parity"))
+	assert.Equal(t, int64(12), pt.Get("ecc_errors_aggregate_sram_uncorrectable_secded"))
+	assert.Equal(t, int64(13), pt.Get("ecc_errors_aggregate_sram_uncorrectable_l2"))
+	assert.Equal(t, int64(14), pt.Get("ecc_errors_aggregate_sram_uncorrectable_microcontroller"))
+	assert.Equal(t, int64(15), pt.Get("ecc_errors_aggregate_sram_uncorrectable_other"))
+	assert.Equal(t, int64(16), pt.Get("ecc_errors_aggregate_sram_uncorrectable_pcie"))
+	assert.Equal(t, int64(17), pt.Get("ecc_errors_aggregate_sram_uncorrectable_sm"))
+}
+
+func Test_getPtsV13MigDevice(t *testing.T) {
+	ipt := newTestInput()
+
+	err := ipt.getPts([]byte(`<?xml version="1.0" ?>
+<!DOCTYPE nvidia_smi_log SYSTEM "nvsmi_device_v13.dtd">
+<nvidia_smi_log>
+<gpu id="00000000:05:00.0">
+	<product_name>NVIDIA H100</product_name>
+	<product_architecture>Hopper</product_architecture>
+	<uuid>GPU-v13-mig</uuid>
+	<compute_mode>Default</compute_mode>
+	<performance_state>P0</performance_state>
+	<mig_devices>
+		<mig_device>
+			<index>1</index>
+			<gpu_instance_id>4</gpu_instance_id>
+			<compute_instance_id>2</compute_instance_id>
+			<ecc_error_count>
+				<volatile_count>
+					<sram_uncorrectable>2</sram_uncorrectable>
+				</volatile_count>
+			</ecc_error_count>
+			<fb_memory_usage>
+				<total>10000 MiB</total>
+				<reserved>100 MiB</reserved>
+				<used>200 MiB</used>
+				<free>9700 MiB</free>
+			</fb_memory_usage>
+			<bar1_memory_usage>
+				<total>16000 MiB</total>
+				<used>300 MiB</used>
+				<free>15700 MiB</free>
+			</bar1_memory_usage>
+		</mig_device>
+	</mig_devices>
+</gpu>
+</nvidia_smi_log>`), "localhost")
+	require.NoError(t, err)
+	require.Len(t, ipt.collectCache, 2)
+
+	pt := ipt.collectCache[1]
+	assert.Equal(t, inputName, pt.Name())
+	assert.Equal(t, "1", pt.Get("index"))
+	assert.Equal(t, "4", pt.Get("gpu_index"))
+	assert.Equal(t, "2", pt.Get("compute_index"))
+	assert.Equal(t, "Hopper", pt.Get("arch"))
+	assert.Equal(t, "GPU-v13-mig", pt.Get("uuid"))
+	assert.Equal(t, int64(2), pt.Get("sram_uncorrectable"))
+	assert.Equal(t, int64(10000), pt.Get("memory_fb_total"))
+	assert.Equal(t, int64(100), pt.Get("memory_fb_reserved"))
+	assert.Equal(t, int64(200), pt.Get("memory_fb_used"))
+	assert.Equal(t, int64(9700), pt.Get("memory_fb_free"))
+	assert.Equal(t, int64(16000), pt.Get("memory_bar1_total"))
+	assert.Equal(t, int64(300), pt.Get("memory_bar1_used"))
+	assert.Equal(t, int64(15700), pt.Get("memory_bar1_free"))
+}
+
+func Test_getPtsUnknownSchemaUsesV13Parser(t *testing.T) {
+	ipt := newTestInput()
+
+	err := ipt.getPts([]byte(`<?xml version="1.0" ?>
+<!DOCTYPE nvidia_smi_log SYSTEM "nvsmi_device_v14.dtd">
+<nvidia_smi_log>
+<driver_version>600.00.00</driver_version>
+<cuda_version>14.0</cuda_version>
+<gpu id="00000000:03:00.0">
+	<product_name>NVIDIA Future GPU</product_name>
+	<uuid>GPU-v14-power</uuid>
+	<gpu_power_readings>
+		<instant_power_draw>72.00 W</instant_power_draw>
+		<current_power_limit>175.00 W</current_power_limit>
+	</gpu_power_readings>
+</gpu>
+</nvidia_smi_log>`), "localhost")
+	require.NoError(t, err)
+	require.Len(t, ipt.collectCache, 1)
+
+	pt := ipt.collectCache[0]
+	assert.Equal(t, "600.00.00", pt.Get("driver_version"))
+	assert.Equal(t, 72.0, pt.Get("power_draw"))
+	assert.Equal(t, 175.0, pt.Get("power_limit"))
+}
+
+func assertPointSuperset(t *testing.T, got, want []*point.Point) {
+	t.Helper()
+
+	used := make([]bool, len(got))
+	for _, wantPoint := range want {
+		matchIndex := -1
+		for i, gotPoint := range got {
+			if used[i] {
+				continue
+			}
+			if pointHasExpectedKVs(gotPoint, wantPoint) {
+				matchIndex = i
+				break
+			}
+		}
+
+		if matchIndex == -1 {
+			t.Fatalf("point not found: want subset\n%s\ngot:\n%s", wantPoint.Pretty(), prettyPoints(got))
+		}
+		used[matchIndex] = true
+	}
+}
+
+func pointHasExpectedKVs(got, want *point.Point) bool {
+	if got.Name() != want.Name() {
+		return false
+	}
+
+	for _, kv := range want.KVs() {
+		if !reflect.DeepEqual(got.Get(kv.Key), want.Get(kv.Key)) {
+			return false
+		}
+	}
+	return true
+}
+
+func prettyPoints(pts []*point.Point) string {
+	var parts []string
+	for _, pt := range pts {
+		parts = append(parts, pt.Pretty())
+	}
+	return strings.Join(parts, "\n\n")
+}
+
+func newTestInput() *Input {
+	ipt := &Input{
+		collectCache:      []*point.Point{},
+		collectCacheLog:   []*point.Point{},
+		collectCacheWarn:  []*point.Point{},
+		gpus:              []gpuInfo{},
+		ProcessInfoMaxLen: 0,
+		BinPaths:          []string{"/usr/bin/nvidia-smi"},
+		tagger:            &mockTagger{},
+		Election:          false,
+	}
+	ipt.mergedTags = make(map[string]urlTags)
+	ipt.setup()
+	return ipt
+}
+
+func readNvidiaSMITestdata(t *testing.T, filename string) []byte {
+	t.Helper()
+
+	data, err := os.ReadFile(filepath.Join("testdata", filename))
+	require.NoError(t, err)
+	return data
 }
 
 type mockTagger struct{}

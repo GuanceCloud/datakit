@@ -158,6 +158,22 @@ func envDataway() []*inputs.ENVInfo {
 		},
 
 		{
+			ENVName: "ENV_DATAWAY_IP_FAMILY_POLICY",
+			Type:    doc.String,
+			Default: "`prefer_ipv6`",
+			Desc:    "Set DataWay IP family policy: auto, prefer_ipv6, ipv6_only, or ipv4_only",
+			DescZh:  "设置 DataWay IP 地址族策略：auto、prefer_ipv6、ipv6_only 或 ipv4_only",
+		},
+
+		{
+			ENVName: "ENV_DATAWAY_IPV4_FALLBACK_DELAY",
+			Type:    doc.TimeDuration,
+			Default: "`250ms`",
+			Desc:    "Set the delay before starting the IPv4 fallback when IPv6 is preferred",
+			DescZh:  "设置 IPv6 优先时启动 IPv4 回退连接的等待时间",
+		},
+
+		{
 			ENVName: "ENV_DATAWAY_TIMEOUT",
 			Type:    doc.TimeDuration,
 			Default: `30s`,

@@ -118,6 +118,15 @@ func (script *PlScript) Engine() *plruntime.Script {
 
 func (script *PlScript) Run(plpt ptinput.PlInputPt, signal plruntime.Signal, opt *lang.LogOption,
 ) error {
+	return script.RunWithRuntimeOpts(plpt, signal, opt)
+}
+
+func (script *PlScript) RunWithRuntimeOpts(
+	plpt ptinput.PlInputPt,
+	signal plruntime.Signal,
+	opt *lang.LogOption,
+	runtimeOpts ...plruntime.Opt,
+) error {
 	startTime := time.Now()
 	if script.proc == nil {
 		return fmt.Errorf("no script")
@@ -131,7 +140,7 @@ func (script *PlScript) Run(plpt ptinput.PlInputPt, signal plruntime.Signal, opt
 	plpt.SetCache(script.opt.Cache)
 	plpt.SetPtWinPool(script.opt.PtWindow)
 
-	err := script.proc.Run(plpt, signal)
+	err := script.proc.Run(plpt, signal, runtimeOpts...)
 	if err != nil {
 		stats.WriteMetric(script.opt.Meta, 1, 0, 1, time.Since(startTime))
 		return err

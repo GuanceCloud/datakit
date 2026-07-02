@@ -289,7 +289,7 @@ func (ipt *Input) gpuOnlineInfo(uuid, server string, ptsTime time.Time) {
 	defer ipt.gpusMu.Unlock()
 
 	// ts := time.Now()
-	opts := point.DefaultMetricOptions()
+	opts := point.DefaultLoggingOptions()
 	opts = append(opts, point.WithTime(ptsTime))
 
 	for i := 0; i < len(ipt.gpus); i++ {
@@ -324,7 +324,7 @@ func (ipt *Input) gpuDropWarning() {
 	defer ipt.gpusMu.Unlock()
 
 	// ts := time.Now()
-	opts := point.DefaultMetricOptions()
+	opts := point.DefaultLoggingOptions()
 	opts = append(opts, point.WithTime(ipt.ptsTime))
 
 	for i := 0; i < len(ipt.gpus); {

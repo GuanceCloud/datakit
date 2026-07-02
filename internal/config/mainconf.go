@@ -193,6 +193,7 @@ func DefaultConfig() *Config {
 			RemotePullInterval:     "1m",
 			ReferTableURL:          "",
 			ReferTablePullInterval: "5m",
+			EnableGrokFastPath:     false,
 			DefaultPipeline:        map[string]string{},
 			Offload: &offload.OffloadConfig{
 				Receiver:  offload.DKRcv,

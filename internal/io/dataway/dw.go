@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -22,6 +23,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/compact"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/endpoint"
+	dnet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 )
 
 const (
@@ -98,8 +100,10 @@ func NewDefaultDataway(opts ...DWOption) *Dataway {
 		ContentEncoding:      "v2",
 		GZip:                 true,
 
-		MaxRetryCount: endpoint.DefaultRetryCount,
-		RetryDelay:    endpoint.DefaultRetryDelay,
+		MaxRetryCount:     endpoint.DefaultRetryCount,
+		RetryDelay:        endpoint.DefaultRetryDelay,
+		IPFamilyPolicy:    dnet.IPFamilyPolicyPreferIPv6,
+		IPv4FallbackDelay: dnet.DefaultIPv4FallbackDelay,
 
 		EnableHTTPTrace: true,
 
@@ -142,6 +146,8 @@ type Dataway struct {
 	HTTPTimeout           time.Duration `toml:"timeout_v2"`
 	MaxRetryCount         int           `toml:"max_retry_count"`
 	RetryDelay            time.Duration `toml:"retry_delay"`
+	IPFamilyPolicy        string        `toml:"ip_family_policy"`
+	IPv4FallbackDelay     time.Duration `toml:"ipv4_fallback_delay"`
 
 	HTTPProxy string `toml:"http_proxy"`
 
@@ -355,12 +361,25 @@ func (dw *Dataway) doInit() error {
 		dw.MaxRetryCount = 10
 	}
 
+	if dw.IPFamilyPolicy == "" {
+		dw.IPFamilyPolicy = dnet.IPFamilyPolicyPreferIPv6
+	}
+	if err := dnet.ValidateIPFamilyPolicy(dw.IPFamilyPolicy); err != nil {
+		return err
+	}
+	if dw.IPv4FallbackDelay <= 0 {
+		dw.IPv4FallbackDelay = dnet.DefaultIPv4FallbackDelay
+	}
+	l.Infof("dataway IP family policy: %s, IPv4 fallback delay: %s",
+		dw.IPFamilyPolicy, dw.IPv4FallbackDelay)
+
 	l.Infof("set %d global tags to dataway", len(dw.globalTags))
 	if len(dw.globalTags) > 0 && dw.EnableSinker {
 		dw.globalTagsHTTPHeaderValue = dw.sinkHeaderValueFromGlobalTags()
 	}
 
 	for _, u := range dw.URLs {
+		var connectionLogged atomic.Bool
 		ep, err := endpoint.NewEndpoint(u,
 			endpoint.WithOwner("dataway"),
 			endpoint.WithProxy(dw.HTTPProxy),
@@ -383,6 +402,27 @@ func (dw *Dataway) doInit() error {
 			endpoint.WithHTTPIdleTimeout(dw.IdleTimeout),
 			endpoint.WithMaxRetryCount(dw.MaxRetryCount),
 			endpoint.WithRetryDelay(dw.RetryDelay),
+			endpoint.WithDNSDialOptions(dnet.DNSCacheDialOptions{
+				IPFamilyPolicy: dw.IPFamilyPolicy,
+				FallbackDelay:  dw.IPv4FallbackDelay,
+				DialDone: func(family, result string, elapsed time.Duration) {
+					datawayDialTotal.WithLabelValues(family, result).Inc()
+					datawayDialSeconds.WithLabelValues(family).Observe(elapsed.Seconds())
+				},
+				FallbackStarted: func() {
+					datawayIPv4FallbackTotal.WithLabelValues().Inc()
+				},
+				ConnectionOpened: func(family, remote string) {
+					datawayActiveConnections.WithLabelValues(family).Inc()
+					if connectionLogged.CompareAndSwap(false, true) {
+						l.Infof("dataway connection established: policy=%s, family=%s, remote=%s",
+							dw.IPFamilyPolicy, family, remote)
+					}
+				},
+				ConnectionClosed: func(family string) {
+					datawayActiveConnections.WithLabelValues(family).Dec()
+				},
+			}),
 		)
 		if err != nil {
 			l.Errorf("init dataway url %s failed: %s", u, err.Error())
@@ -391,7 +431,7 @@ func (dw *Dataway) doInit() error {
 
 		dw.eps = append(dw.eps, ep)
 
-		dw.addDNSCache(ep.Host)
+		dw.addDNSCache(ep.Hostname)
 	}
 
 	// set main token

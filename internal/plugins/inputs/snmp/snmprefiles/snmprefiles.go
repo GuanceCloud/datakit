@@ -23,8 +23,9 @@ import (
 )
 
 const (
-	profilesDir = "profiles"
-	trapsDBDir  = "traps_db"
+	profilesDir      = "profiles"
+	extraProfilesDir = "extra_profiles"
+	trapsDBDir       = "traps_db"
 )
 
 var l = logger.DefaultSLogger("snmprefiles")
@@ -43,6 +44,10 @@ func ReleaseFiles() error {
 
 func GetProfilesRoot() string {
 	return filepath.Join(datakit.ConfdDir, snmpmeasurement.InputName, profilesDir)
+}
+
+func GetExtraProfilesRoot() string {
+	return filepath.Join(datakit.ConfdDir, snmpmeasurement.InputName, extraProfilesDir)
 }
 
 func GetUserProfilesRoot() string {

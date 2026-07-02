@@ -121,6 +121,10 @@ cat data/.pull | jq
 - `datakit_io_dataway_http_drop_point_total`：上传过程中，重传后仍失败，DataKit 会丢弃这些数据点
 - `datakit_io_dataway_api_latency_seconds`：调用 Dataway API 的耗时。如果耗时较大，会阻塞采集器的运行
 - `datakit_io_http_retry_total`：retry 数如果较多，表明网络质量不太好，也可能中心的压力很大
+- `datakit_dataway_dial_total`：DataWay IPv4/IPv6 TCP 建连尝试及结果，可通过 `family`（`ipv4` 或 `ipv6`）和 `result`（`success`、`failed` 或 `canceled`）标签区分
+- `datakit_dataway_ipv4_fallback_total`：IPv6 未及时成功后启动 IPv4 回退的次数；持续增长通常表示 IPv6 链路存在异常
+- `datakit_dataway_dial_seconds`：IPv4/IPv6 TCP 建连耗时，通过 `family` 标签区分
+- `datakit_dataway_active_connections`：当前各地址族的活跃 DataWay TCP 连接数，通过 `family` 标签区分
 
 ### 基础指标 {#basic-metrics}
 

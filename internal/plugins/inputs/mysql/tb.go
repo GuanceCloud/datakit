@@ -43,21 +43,21 @@ func (m *tbMeasurement) Info() *inputs.MeasurementInfo {
 			"data_free": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
-				Desc:     "The number of rows. Some storage engines, such as MyISAM, store the exact count. For other storage engines, such as InnoDB, this value is an approximation, and may vary from the actual value by as much as 40% to 50%. In such cases, use SELECT COUNT(*) to obtain an accurate count.",
+				Unit:     inputs.SizeByte,
+				Desc:     "The amount of allocated but unused space, in bytes.",
 			},
 			// status
 			"data_length": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
+				Unit:     inputs.SizeByte,
 				Desc:     "For InnoDB, DATA_LENGTH is the approximate amount of space allocated for the clustered index, in bytes. Specifically, it is the clustered index size, in pages, multiplied by the InnoDB page size",
 			},
 			// status
 			"index_length": &inputs.FieldInfo{
 				DataType: inputs.Int,
 				Type:     inputs.Gauge,
-				Unit:     inputs.NCount,
+				Unit:     inputs.SizeByte,
 				Desc:     "For InnoDB, INDEX_LENGTH is the approximate amount of space allocated for non-clustered indexes, in bytes. Specifically, it is the sum of non-clustered index sizes, in pages, multiplied by the InnoDB page size",
 			},
 			// status

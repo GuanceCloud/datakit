@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"math"
 	"path/filepath"
+	"sync/atomic"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
@@ -48,10 +49,27 @@ var (
 	_offloadWkr *offload.OffloadWorker
 
 	_enableAppendRunInfo bool = false
+	grokFastPathEnabled  uint32
 )
+
+func init() { //nolint:gochecknoinits
+	installDisableGrokFastPath()
+}
 
 func EnableAppendRunInfo() bool {
 	return _enableAppendRunInfo
+}
+
+func setGrokFastPathEnabled(enabled bool) {
+	if enabled {
+		atomic.StoreUint32(&grokFastPathEnabled, 1)
+		return
+	}
+	atomic.StoreUint32(&grokFastPathEnabled, 0)
+}
+
+func isGrokFastPathEnabled() bool {
+	return atomic.LoadUint32(&grokFastPathEnabled) != 0
 }
 
 func SetManager(m *plmanager.Manager) {
@@ -122,6 +140,8 @@ func InitPlVal(cfg *PipelineCfg, upFn plmap.UploadFunc, gTags map[string]string,
 	installDir string,
 ) error {
 	l = logger.SLogger("plval")
+
+	setGrokFastPathEnabled(cfg != nil && cfg.EnableGrokFastPath)
 
 	if cfg != nil {
 		if cfg.DisableHTTPRequestFunc {

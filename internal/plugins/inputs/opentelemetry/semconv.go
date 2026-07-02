@@ -12,7 +12,11 @@ const (
 	otelHTTPMethodKey      = "http_method"
 	otelDBSystemKey        = "db_system"
 	otelMessagingSystemKey = "messaging_system"
+	otelMessagingOpKey     = "messaging_operation"
+	otelMessagingDestKey   = "messaging_destination_name"
 	otelRPCSystemKey       = "rpc_system"
+	otelRPCMethodKey       = "rpc_method"
+	otelRPCGRPCStatusKey   = "rpc_grpc_status_code"
 	defaultTraceAPI        = "/otel/v1/traces"
 	defaultMetricAPI       = "/otel/v1/metrics"
 	defaultLogAPI          = "/otel/v1/logs"
@@ -45,19 +49,30 @@ var (
 	// otelPubAttrs 公共标签，其中有版本变更的以使用最新的为准。
 	otelPubAttrs = map[string]string{
 		// DB
-		"db.system":    "db_system",
-		"db.operation": "db_operation",
-		"db.name":      "db_name",
-		"db.statement": "db_statement",
+		"db.system":               "db_system",
+		"db.system.name":          "db_system",
+		"db.operation":            "db_operation",
+		"db.operation.name":       "db_operation",
+		"db.operation.batch.size": "db_operation_batch_size",
+		"db.name":                 "db_name",
+		"db.namespace":            "db_name",
+		"db.statement":            "db_statement",
+		"db.query.text":           "db_statement",
+		"db.collection.name":      "db_collection",
 
 		// common
-		"server.address":       "server_address",
-		"net.host.name":        "net_host_name",
-		"server.port":          "server_port",
-		"net.host.port":        "net_host_port",
-		"network.peer.address": "network_peer_address",
-		"network.peer.port":    "network_peer_port",
-		"network.transport":    "network_transport",
+		"server.address":           "server_address",
+		"net.host.name":            "net_host_name",
+		"server.port":              "server_port",
+		"net.host.port":            "net_host_port",
+		"network.peer.address":     "network_peer_address",
+		"network.peer.port":        "network_peer_port",
+		"network.transport":        "network_transport",
+		"network.protocol.name":    "net_protocol_name",
+		"network.protocol.version": "net_protocol_version",
+		"network.type":             "network_type",
+		"network.local.address":    "network_local_address",
+		"network.local.port":       "network_local_port",
 
 		// HTTP
 		"http.request.method":       "http_method", // V2 版本重大变更。
@@ -75,16 +90,22 @@ var (
 		"url.query":                 "url_query",
 		"client.address":            "client_address",
 		"client.port":               "client_port",
+		"user_agent.original":       "user_agent_original",
 
 		// MQ
 		"messaging.system":           "messaging_system",
 		"messaging.operation":        "messaging_operation",
-		"messaging.message.id":       "messaging_message.id",
-		"messaging.destination.name": "messaging_destination.name",
+		"messaging.operation.name":   "messaging_operation",
+		"messaging.operation.type":   "messaging_operation_type",
+		"messaging.destination.name": otelMessagingDestKey,
+		"messaging.message.id":       "messaging_message_id",
 
 		// RPC
-		"rpc.service": "rpc_service",
-		"rpc.system":  "rpc_system",
+		"rpc.service":          "rpc_service",
+		"rpc.system":           "rpc_system",
+		"rpc.system.name":      "rpc_system",
+		"rpc.method":           "rpc_method",
+		"rpc.grpc.status_code": "rpc_grpc_status_code",
 
 		// error
 		"exception":            "exception",

@@ -91,18 +91,20 @@ Profile YAML 与 Zabbix Template、Prometheus `snmp_exporter` 格式不同，字
 
 ##### 新增 Profile {#profile-add}
 
-将 YAML 文件放入 DataKit 安装目录的 `conf.d/snmp/profiles/` 目录，例如：
+DataKit 会将内置 Profile 释放到安装目录的 `conf.d/snmp/profiles/`，该目录可能在启动或升级时被覆盖。用户新增或覆盖内置 Profile 时，建议将 YAML 文件放入 `conf.d/snmp/extra_profiles/`，DataKit 会在默认 Profile 加载流程中合并这两个目录，且 `extra_profiles` 优先级更高。
+
+示例：
 
 ```text
-/usr/local/datakit/conf.d/snmp/profiles/vendor-router.yaml
+/usr/local/datakit/conf.d/snmp/extra_profiles/vendor-router.yaml
 ```
 
 文件要求：
 
 - 扩展名必须为 `.yaml`；
 - 文件名不能以 `_` 开头，以 `_` 开头的文件只作为继承模板；
-- 不要与已有内置 Profile 使用相同文件名，DataKit 启动时会重新释放同名内置文件；
-- DataKit 升级前应备份现场新增的 YAML 文件。
+- 与内置 Profile 同名时，`extra_profiles` 中的文件优先；如仍需继承原内置内容，可在该文件中 `extends` 同名文件；
+- 不同文件名不应配置相同的 `sysobjectid`，否则自动匹配时会按重复 Profile 处理。
 
 新增后重启 DataKit。
 
@@ -166,7 +168,7 @@ extends:
   - _generic-if.yaml
 ```
 
-DataKit 已安装的 Profile 位于 `conf.d/snmp/profiles/`。编写 YAML 前，建议先查看该目录中以 `_` 开头的文件，并根据当前 DataKit 版本选择可复用的模板。常用模板包括：
+DataKit 已安装的内置 Profile 位于 `conf.d/snmp/profiles/`，用户补充 Profile 位于 `conf.d/snmp/extra_profiles/`。编写 YAML 前，建议先查看内置目录中以 `_` 开头的文件，并根据当前 DataKit 版本选择可复用的模板。常用模板包括：
 
 | Profile | 用途 |
 | --- | --- |
@@ -206,7 +208,8 @@ sysobjectid: 1.3.6.1.4.1.9.1.<product_id>
 
 注意：
 
-- `extends` 中的文件名相对于 `conf.d/snmp/profiles/` 解析；
+- `extends` 中的文件名会优先从 `conf.d/snmp/extra_profiles/` 查找，再从 `conf.d/snmp/profiles/` 查找；
+- `extra_profiles` 中的同名 Profile 可以通过 `extends` 自身文件名继承内置同名 Profile；
 - 支持继承多个 Profile 和多层继承，但不能循环继承；
 - 指标、动态标签和静态标签采用追加方式合并；
 - 当前 Profile 已定义的同名元数据字段不会被继承内容覆盖；

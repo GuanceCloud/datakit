@@ -100,7 +100,13 @@ func (ipt *Input) traceBaseService(attrs map[string]string) string {
 	if !ipt.SplitServiceName {
 		return ""
 	}
-	for _, key := range []string{"db.system", "rpc.system", "messaging.system"} {
+	for _, key := range []string{
+		"db.system",
+		"db.system.name",
+		"rpc.system",
+		"rpc.system.name",
+		"messaging.system",
+		"messaging.system.name"} {
 		if system := attrs[key]; system != "" {
 			return system
 		}
@@ -231,11 +237,11 @@ func getSourceType(tags point.KVs) string {
 
 	for _, v := range tags {
 		switch v.Key {
-		case otelHTTPSchemeKey, otelHTTPMethodKey, otelRPCSystemKey:
+		case otelHTTPSchemeKey, otelHTTPMethodKey, otelRPCSystemKey, otelRPCMethodKey, otelRPCGRPCStatusKey:
 			hasWeb = true
 		case otelDBSystemKey:
 			hasDB = true
-		case otelMessagingSystemKey:
+		case otelMessagingSystemKey, otelMessagingOpKey, otelMessagingDestKey:
 			hasMessaging = true
 		}
 	}

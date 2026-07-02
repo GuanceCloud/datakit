@@ -95,6 +95,14 @@ func BuildNetworkInterfacesMetadata(deviceID string, store *Store) []InterfaceMe
 		ifIDTags := store.GetIDTags("interface", strIndex)
 
 		name := store.GetColumnAsString("interface.name", strIndex)
+		ifType := int32(store.GetColumnAsFloat("interface.type", strIndex))
+
+		var isPhysical *bool
+		if ifType != 0 {
+			physical := ifType == 6 || ifType == 62 || ifType == 69 || ifType == 117
+			isPhysical = &physical
+		}
+
 		networkInterface := InterfaceMetadata{
 			DeviceID:    deviceID,
 			Index:       int32(index),
@@ -104,6 +112,8 @@ func BuildNetworkInterfacesMetadata(deviceID string, store *Store) []InterfaceMe
 			MacAddress:  store.GetColumnAsString("interface.mac_address", strIndex),
 			AdminStatus: int32(store.GetColumnAsFloat("interface.admin_status", strIndex)),
 			OperStatus:  int32(store.GetColumnAsFloat("interface.oper_status", strIndex)),
+			Type:        ifType,
+			IsPhysical:  isPhysical,
 			IDTags:      ifIDTags,
 		}
 		interfaces = append(interfaces, networkInterface)

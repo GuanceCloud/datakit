@@ -102,7 +102,14 @@ grok(_, "%{time}")
 
 ### Grok Fast Path 优化 {#grok-fast-path}
 
-Pipeline 会在编译 Grok 模式时自动判断是否可以使用 Fast Path。Fast Path 主要面向“固定文本 + 明确字段 + 明确分隔符”的结构化日志模式；如果模式不满足优化条件，会自动回退到标准正则匹配路径，不影响 Grok 语义兼容性。
+Grok Fast Path 默认关闭。如需开启，可在 `datakit.conf` 的 `[pipeline]` 中设置：
+
+```toml
+[pipeline]
+  enable_grok_fast_path = true
+```
+
+开启后，Pipeline 会在编译 Grok 模式时自动判断是否可以使用 Fast Path。Fast Path 主要面向“固定文本 + 明确字段 + 明确分隔符”的结构化日志模式；如果模式不满足优化条件，会自动回退到标准正则匹配路径，不影响 Grok 语义兼容性。
 
 通常以下写法更容易命中 Fast Path：
 

@@ -36,6 +36,7 @@ type PipelineCfg struct {
 	RemotePullInterval     string                 `toml:"remote_pull_interval"`
 	ReferTableURL          string                 `toml:"refer_table_url"`
 	ReferTablePullInterval string                 `toml:"refer_table_pull_interval"`
+	EnableGrokFastPath     bool                   `toml:"enable_grok_fast_path"`
 	UseSQLite              bool                   `toml:"use_sqlite"`
 	SQLiteMemMode          bool                   `toml:"sqlite_mem_mode"`
 	Offload                *offload.OffloadConfig `toml:"offload"`

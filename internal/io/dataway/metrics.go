@@ -11,6 +11,47 @@ import (
 )
 
 var (
+	datawayDialTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "dataway",
+			Name:      "dial_total",
+			Help:      "Dataway TCP dial attempts partitioned by IP family and result",
+		},
+		[]string{"family", "result"},
+	)
+
+	datawayIPv4FallbackTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "dataway",
+			Name:      "ipv4_fallback_total",
+			Help:      "Dataway IPv4 fallback attempts started after an IPv6 attempt",
+		},
+		[]string{},
+	)
+
+	datawayDialSeconds = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: "datakit",
+			Subsystem: "dataway",
+			Name:      "dial_seconds",
+			Help:      "Dataway TCP dial latency partitioned by IP family",
+			Buckets:   prometheus.DefBuckets,
+		},
+		[]string{"family"},
+	)
+
+	datawayActiveConnections = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "dataway",
+			Name:      "active_connections",
+			Help:      "Current active Dataway TCP connections partitioned by IP family",
+		},
+		[]string{"family"},
+	)
+
 	walQueueMemLenVec = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "datakit",
@@ -124,6 +165,10 @@ var (
 // Metrics get all metrics aboud dataway.
 func Metrics() []prometheus.Collector {
 	return []prometheus.Collector{
+		datawayDialTotal,
+		datawayIPv4FallbackTotal,
+		datawayDialSeconds,
+		datawayActiveConnections,
 		walWorkerFlush,
 		walPointCounterVec,
 		walPutRetriedVec,
@@ -136,6 +181,12 @@ func Metrics() []prometheus.Collector {
 }
 
 func metricsReset() {
+	datawayDialTotal.Reset()
+	datawayIPv4FallbackTotal.Reset()
+	datawayDialSeconds.Reset()
+	datawayActiveConnections.Reset()
+	initIPFamilyMetrics()
+
 	walWorkerFlush.Reset()
 	walPointCounterVec.Reset()
 	walPutRetriedVec.Reset()
@@ -148,7 +199,12 @@ func metricsReset() {
 }
 
 func doRegister() {
+	initIPFamilyMetrics()
 	metrics.MustRegister(
+		datawayDialTotal,
+		datawayIPv4FallbackTotal,
+		datawayDialSeconds,
+		datawayActiveConnections,
 		walWorkerFlush,
 		walPointCounterVec,
 		walPutRetriedVec,
@@ -159,6 +215,17 @@ func doRegister() {
 		flushDroppedPackageVec,
 		groupedRequestVec,
 	)
+}
+
+func initIPFamilyMetrics() {
+	for _, family := range []string{"ipv4", "ipv6"} {
+		for _, result := range []string{"success", "failed", "canceled"} {
+			datawayDialTotal.WithLabelValues(family, result).Add(0)
+		}
+		datawayDialSeconds.WithLabelValues(family)
+		datawayActiveConnections.WithLabelValues(family).Set(0)
+	}
+	datawayIPv4FallbackTotal.WithLabelValues().Add(0)
 }
 
 // nolint:gochecknoinits

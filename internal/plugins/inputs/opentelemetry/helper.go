@@ -63,7 +63,7 @@ func getDBHost(atts []*common.KeyValue) string {
 		if v == nil {
 			continue
 		}
-		if v.Key == "db.system" {
+		if v.Key == "db.system" || v.Key == "db.system.name" {
 			isDB = true
 		}
 		if v.Key == "net.peer.name" || v.Key == "server.address" {

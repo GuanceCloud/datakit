@@ -31,6 +31,26 @@ func Test_formatValue(t *testing.T) {
 			},
 		},
 		{
+			name: "format ip address",
+			value: ResultValue{
+				Value: []byte{192, 0, 2, 1},
+			},
+			format: "ip_address",
+			expectedValue: ResultValue{
+				Value: "192.0.2.1",
+			},
+		},
+		{
+			name: "format empty ip address",
+			value: ResultValue{
+				Value: []byte{},
+			},
+			format: "ip_address",
+			expectedValue: ResultValue{
+				Value: "",
+			},
+		},
+		{
 			name: "error unknown value type",
 			value: ResultValue{
 				Value: ResultValue{},

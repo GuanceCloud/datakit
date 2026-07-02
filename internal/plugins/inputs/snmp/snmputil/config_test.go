@@ -1023,6 +1023,33 @@ func Test_validateEnrichMetadata(t *testing.T) {
 			},
 		},
 		{
+			name: "interface type field is valid",
+			metadata: MetadataConfig{
+				"interface": MetadataResourceConfig{
+					Fields: map[string]MetadataField{
+						"type": {
+							Symbol: SymbolConfig{
+								OID:  "1.3.6.1.2.1.2.2.1.3",
+								Name: "ifType",
+							},
+						},
+					},
+				},
+			},
+			expectedMetadata: MetadataConfig{
+				"interface": MetadataResourceConfig{
+					Fields: map[string]MetadataField{
+						"type": {
+							Symbol: SymbolConfig{
+								OID:  "1.3.6.1.2.1.2.2.1.3",
+								Name: "ifType",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			name: "device resource does not support id_tags",
 			metadata: MetadataConfig{
 				"device": MetadataResourceConfig{

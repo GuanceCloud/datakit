@@ -11,6 +11,7 @@ import (
 	T "testing"
 
 	"github.com/GuanceCloud/cliutils/point"
+	cv1 "github.com/GuanceCloud/tracing-protos/opentelemetry-gen-go/common/v1"
 	"github.com/stretchr/testify/assert"
 	itrace "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/trace"
 )
@@ -53,6 +54,12 @@ func Test_getSourceType(t *T.T) {
 	kvs = kvs.Add(otelDBSystemKey, "postgresql")
 
 	assert.Equal(t, itrace.SpanSourceDb, getSourceType(kvs))
+
+	kvs = point.KVs{}.Add(otelMessagingDestKey, "topic")
+	assert.Equal(t, itrace.SpanSourceMsgque, getSourceType(kvs))
+
+	kvs = point.KVs{}.Add(otelRPCGRPCStatusKey, "0")
+	assert.Equal(t, itrace.SpanSourceWeb, getSourceType(kvs))
 }
 
 func Test_commonTagFields(t *T.T) {
@@ -154,6 +161,74 @@ func Test_parseResourceSpansGlobalTags(t *T.T) {
 		assert.Len(t, arr, 1)
 		assert.Equal(t, "global_value", arr[0][0].GetTag("global_key"))
 	})
+}
+
+func Test_parseResourceSpansLoongSuiteDBSystemName(t *T.T) {
+	traces := createTestTraceData(1)
+	span := traces.ResourceSpans[0].ScopeSpans[0].Spans[0]
+	span.Attributes = []*cv1.KeyValue{
+		{
+			Key: "db.system.name",
+			Value: &cv1.AnyValue{
+				Value: &cv1.AnyValue_StringValue{StringValue: "mysql"},
+			},
+		},
+		{
+			Key: "db.operation.name",
+			Value: &cv1.AnyValue{
+				Value: &cv1.AnyValue_StringValue{StringValue: "SELECT"},
+			},
+		},
+		{
+			Key: "db.query.text",
+			Value: &cv1.AnyValue{
+				Value: &cv1.AnyValue_StringValue{StringValue: "select * from t"},
+			},
+		},
+		{
+			Key: "server.address",
+			Value: &cv1.AnyValue{
+				Value: &cv1.AnyValue_StringValue{StringValue: "mysql.local"},
+			},
+		},
+	}
+
+	ipt := defaultInput()
+	ipt.setup()
+	arr := ipt.parseResourceSpans(traces.ResourceSpans, "localhost")
+
+	assert.Len(t, arr, 1)
+	assert.Len(t, arr[0], 1)
+	assert.Equal(t, "mysql", arr[0][0].Get("db_system"))
+	assert.Equal(t, "SELECT", arr[0][0].Get("db_operation"))
+	assert.Equal(t, "select * from t", arr[0][0].Get("db_statement"))
+	assert.Equal(t, "mysql", arr[0][0].Get(itrace.TagService))
+	assert.Equal(t, "test-service", arr[0][0].Get(itrace.TagBaseService))
+	assert.Equal(t, "mysql.local", arr[0][0].Get(itrace.TagDBHost))
+	assert.Equal(t, itrace.SpanSourceDb, arr[0][0].Get(itrace.TagSourceType))
+}
+
+func Test_parseResourceSpansMessagingDestinationName(t *T.T) {
+	traces := createTestTraceData(1)
+	span := traces.ResourceSpans[0].ScopeSpans[0].Spans[0]
+	span.Attributes = []*cv1.KeyValue{
+		{
+			Key: "messaging.destination.name",
+			Value: &cv1.AnyValue{
+				Value: &cv1.AnyValue_StringValue{StringValue: "orders"},
+			},
+		},
+	}
+
+	ipt := defaultInput()
+	ipt.setup()
+	arr := ipt.parseResourceSpans(traces.ResourceSpans, "localhost")
+
+	assert.Len(t, arr, 1)
+	assert.Len(t, arr[0], 1)
+	assert.Equal(t, itrace.SpanSourceMsgque, arr[0][0].Get(itrace.TagSourceType))
+	assert.Equal(t, "orders", arr[0][0].Get(otelMessagingDestKey))
+	assert.Nil(t, arr[0][0].Get("messaging_destination.name"))
 }
 
 func Test_customTags(t *T.T) {
