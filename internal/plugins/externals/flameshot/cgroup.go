@@ -443,29 +443,36 @@ func (m *monitor) handleCgroupMemoryStats(watcher *cgroupWatcher, stats *cgroupM
 	}
 	pm := candidate.pm
 
+	threshold := getCgroupEmergencyPercent(pm.configProcess)
+	emergencyDuration := getEmergencyProfileDuration(pm.configProcess)
+	tags := make([]string, 0, len(m.config.Tags)+len(pm.configProcess.Tags)+8)
+	tags = append(tags, m.config.Tags...)
+	tags = append(tags, pm.configProcess.Tags...)
+	tags = append(tags,
+		fmt.Sprintf("service:%s", pm.configProcess.Service),
+		fmt.Sprintf("pid:%d", pm.Pid),
+		"trigger:cgroup_memory_pressure",
+		fmt.Sprintf("cgroup_mem_percent:%0.2f", percent),
+		fmt.Sprintf("cgroup_mem_threshold:%0.2f", threshold),
+		fmt.Sprintf("cgroup_mem_current_bytes:%d", stats.Current),
+		fmt.Sprintf("cgroup_mem_max_bytes:%d", stats.Max),
+		fmt.Sprintf("emergency_duration:%s", emergencyDuration),
+	)
+
+	pm.markMemoryPressure(now)
+	m.enqueueHeapDumpIfNeeded(pm, "cgroup_memory_pressure", tags, now)
+
+	if !m.config.profilingEnabled() {
+		log.Debugf("profiling disabled, skip cgroup profiling trigger for pid=%d service=%s", pm.Pid, pm.configProcess.Service)
+		return lastOOMKill
+	}
+
 	if !pm.inEmergencyCooldown(defaultCgroupEmergencyCooldown) {
-		threshold := getCgroupEmergencyPercent(pm.configProcess)
-		emergencyDuration := getEmergencyProfileDuration(pm.configProcess)
 		log.Infof("cgroup memory pressure trigger, service=%s pid=%d percent=%.2f threshold=%.2f current=%d max=%d emergency_duration=%s",
 			pm.configProcess.Service, pm.Pid, percent, threshold, stats.Current, stats.Max, emergencyDuration)
 
-		pm.markMemoryPressure(now)
 		pm.markEmergencyProfileTriggered(now)
-		tags := make([]string, 0, len(m.config.Tags)+len(pm.configProcess.Tags)+8)
-		tags = append(tags, m.config.Tags...)
-		tags = append(tags, pm.configProcess.Tags...)
-		tags = append(tags,
-			fmt.Sprintf("service:%s", pm.configProcess.Service),
-			fmt.Sprintf("pid:%d", pm.Pid),
-			"trigger:cgroup_memory_pressure",
-			fmt.Sprintf("cgroup_mem_percent:%0.2f", percent),
-			fmt.Sprintf("cgroup_mem_threshold:%0.2f", threshold),
-			fmt.Sprintf("cgroup_mem_current_bytes:%d", stats.Current),
-			fmt.Sprintf("cgroup_mem_max_bytes:%d", stats.Max),
-			fmt.Sprintf("emergency_duration:%s", emergencyDuration),
-		)
-
-		req := newTriggerStats(pm.configProcess.Events, emergencyDuration, tags)
+		req := m.newTriggerStatsForProcess(pm, emergencyDuration, tags)
 		req.CommandName = pm.Name
 		req.PID = pm.Pid
 		req.Triggered = true

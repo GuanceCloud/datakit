@@ -18,6 +18,24 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/filter"
 )
 
+func TestLoadMeasurementVersionEnv(t *testing.T) {
+	t.Run("valid", func(t *testing.T) {
+		t.Setenv("ENV_MEASUREMENT_VERSION", " V2 ")
+
+		c := DefaultConfig()
+		assert.NoError(t, c.LoadEnvs())
+		assert.Equal(t, "v2", c.MeasurementVersion)
+	})
+
+	t.Run("invalid", func(t *testing.T) {
+		t.Setenv("ENV_MEASUREMENT_VERSION", "latest")
+
+		c := DefaultConfig()
+		assert.NoError(t, c.LoadEnvs())
+		assert.Empty(t, c.MeasurementVersion)
+	})
+}
+
 func TestLoadEnv(t *testing.T) {
 	cases := []struct {
 		name   string

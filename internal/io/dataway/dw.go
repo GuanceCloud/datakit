@@ -507,6 +507,39 @@ func (dw *Dataway) groupPoints(ptg *ptGrouper,
 	groupedRequestVec.WithLabelValues(cat.String()).Observe(float64(len(ptg.groupedPts)))
 }
 
+// SinkPointGroup groups points that should share the same sinker header.
+type SinkPointGroup struct {
+	HeaderKey   string
+	HeaderValue string
+	Points      []*point.Point
+}
+
+// GroupPointsBySinkHeader groups points using the same sinker rules as normal
+// writes. If sinker is disabled, it returns a single group without headers.
+func (dw *Dataway) GroupPointsBySinkHeader(cat point.Category, points []*point.Point) []SinkPointGroup {
+	if dw == nil || !dw.sinkEnabled() {
+		return []SinkPointGroup{{Points: points}}
+	}
+
+	ptg := getGrouper()
+	defer putGrouper(ptg)
+	ptg.safe = dw.SinkerHeaderVersion == "v2"
+
+	dw.doGroupPoints(ptg, cat, points)
+
+	headerKey := dw.sinkHeaderKey()
+	groups := make([]SinkPointGroup, 0, len(ptg.groupedPts))
+	for headerValue, pts := range ptg.groupedPts {
+		groups = append(groups, SinkPointGroup{
+			HeaderKey:   headerKey,
+			HeaderValue: headerValue,
+			Points:      []*point.Point(pts),
+		})
+	}
+
+	return groups
+}
+
 func (dw *Dataway) Write(opts ...compact.WriteOption) error {
 	gzOn := compact.GzipNotSet
 	if dw.GZip {

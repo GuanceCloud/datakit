@@ -172,6 +172,8 @@ github.com/GuanceCloud/jfr-parser v0.8.6 h1:kyiVxH5LcxNc1Xc3R9uSJz8f8RmBDhy9ytJr
 github.com/GuanceCloud/jfr-parser v0.8.6/go.mod h1:mngmZuDZbFhqGn2F+fK7tyxq+EmwvNZqWnQQ+heWmE4=
 github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b h1:9pkl38Cro+7xCCruRvPh9z1L6DwX8xo2N4RDgHGUmtg=
 github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b/go.mod h1:Acv+3eRHxCb4Qvs1YQcZ17X/D0H7DArQrew+WJtsLiE=
+github.com/GuanceCloud/kubernetes v0.0.0-20260706033920-1c12edcbd89d h1:QJdBgL0cRCg9H1abMxyO9950HF8+lSYsQj9MYymkDAw=
+github.com/GuanceCloud/kubernetes v0.0.0-20260706033920-1c12edcbd89d/go.mod h1:Acv+3eRHxCb4Qvs1YQcZ17X/D0H7DArQrew+WJtsLiE=
 github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386 h1:p2P0It6jjN66GO1+acZCb6JAPT9bAxNMarrIxPo+ZWk=
 github.com/GuanceCloud/mdcheck v0.0.2-0.20250110081153-61d47275e386/go.mod h1:xrC7I8mMBOD93+A7fLJXU1lBaej49hZj7DaaFXFdSBE=
 github.com/GuanceCloud/pipeline-go v1.3.2-0.20260603101002-58d46086c6f7 h1:Mp46D2k4Z01XLaPwyVooWNifH48qMsqL1ubopTdFupc=

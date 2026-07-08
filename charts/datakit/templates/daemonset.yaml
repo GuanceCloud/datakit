@@ -150,6 +150,19 @@ spec:
             name: {{ .Values.logfwdServer.targetPortName}}
             protocol: TCP
           resources: {{ toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.componentHealthLivenessProbe }}
+          {{- if and .Values.componentHealthLivenessProbe.enabled (not .Values.gkeAutopilot.enabled) }}
+          livenessProbe:
+            httpGet:
+              path: /v1/health
+              port: {{ .Values.service.targetPortName }}
+              scheme: HTTP
+            initialDelaySeconds: {{ .Values.componentHealthLivenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.componentHealthLivenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.componentHealthLivenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.componentHealthLivenessProbe.failureThreshold }}
+          {{- end }}
+          {{- end }}
           {{- if .Values.gkeAutopilot.enabled }}
           securityContext:
             privileged: false

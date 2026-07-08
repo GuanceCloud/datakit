@@ -58,12 +58,19 @@ Flameshot Configuration Example:
                     "FLAMESHOT_LOG_LEVEL":        "info",
                     "FLAMESHOT_PROFILING_PATH":   "/flameshot-data",
                     "FLAMESHOT_LOG_PATH":         "/var/log/flameshot.log",
+                    "FLAMESHOT_PROFILING_ENABLED": "true",
                     "FLAMESHOT_AUTO_PROFILING":   "10m",
                     "FLAMESHOT_AUTO_PROFILING_DURATION": "15s",
-                    "FLAMESHOT_JCMD_SNAPSHOT_ENABLED": "true",
-                    "FLAMESHOT_JCMD_TIMEOUT": "20s",
                     "FLAMESHOT_OOM_HPROF_ENABLED": "true",
                     "FLAMESHOT_OOM_HPROF_MATCH_WINDOW": "3m",
+                    "FLAMESHOT_HPROF_UPLOAD_ENABLED": "true",
+                    "FLAMESHOT_HPROF_UPLOAD_PROVIDER": "s3",
+                    "FLAMESHOT_HPROF_UPLOAD_ENDPOINT": "https://s3.example.com",
+                    "FLAMESHOT_HPROF_UPLOAD_REGION": "us-east-1",
+                    "FLAMESHOT_HPROF_UPLOAD_BUCKET": "heap-dumps",
+                    "FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_ID": "<access-key-id>",
+                    "FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_SECRET": "<access-key-secret>",
+                    "FLAMESHOT_HEAP_DUMP_ENABLED": "true",
                     "FLAMESHOT_POD_MEM_LIMIT": "2048",
                     "FLAMESHOT_HTTP_LOCAL_IP":    "{fieldRef:status.podIP}",
                     "FLAMESHOT_HTTP_LOCAL_PORT":  "8089",
@@ -115,12 +122,20 @@ Configuration Field Description:
 | `FLAMESHOT_LOG_LEVEL` | Log level, e.g., `info` |
 | `FLAMESHOT_PROFILING_PATH` | Profiling data storage path, e.g., `/flameshot-data` |
 | `FLAMESHOT_LOG_PATH` | Log file path, e.g., `/var/log/flameshot.log` |
+| `FLAMESHOT_PROFILING_ENABLED` | Whether to enable JFR Profiling, e.g., `true` |
 | `FLAMESHOT_AUTO_PROFILING` | Timed profiling interval, e.g., `10m` |
 | `FLAMESHOT_AUTO_PROFILING_DURATION` | Timed profiling sample duration, e.g., `15s` |
-| `FLAMESHOT_JCMD_SNAPSHOT_ENABLED` | Whether to enable lightweight high-watermark `jcmd` snapshots, e.g., `true` |
-| `FLAMESHOT_JCMD_TIMEOUT` | Timeout for each `jcmd` command, e.g., `20s` |
 | `FLAMESHOT_OOM_HPROF_ENABLED` | Whether to enable OOM `.hprof` summary recovery, e.g., `true` |
 | `FLAMESHOT_OOM_HPROF_MATCH_WINDOW` | Matching window between OOM events and `.hprof`, e.g., `3m` |
+| `FLAMESHOT_HPROF_UPLOAD_ENABLED` | Whether to enable hprof object storage upload, e.g., `true` |
+| `FLAMESHOT_HPROF_UPLOAD_PROVIDER` | Object storage provider: `oss` or `s3` |
+| `FLAMESHOT_HPROF_UPLOAD_ENDPOINT` | OSS/S3 endpoint |
+| `FLAMESHOT_HPROF_UPLOAD_REGION` | S3 region, e.g., `us-east-1` |
+| `FLAMESHOT_HPROF_UPLOAD_BUCKET` | Target bucket |
+| `FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_ID` | Object storage access key ID |
+| `FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_SECRET` | Object storage access key secret |
+| `FLAMESHOT_HEAP_DUMP_ENABLED` | Whether to enable proactive Heap Dump on emergency memory threshold, e.g., `true` |
+| `FLAMESHOT_HEAP_DUMP_JMAP_PATH` | `jmap` executable path. Official Sidecar images do not include a JVM/JDK by default; provide an available `jmap` explicitly before enabling proactive Heap Dump. |
 | `FLAMESHOT_POD_MEM_LIMIT` | Pod memory limit in Mi, e.g., `2048` |
 | `FLAMESHOT_HTTP_LOCAL_IP` | HTTP service local IP, usually injected via Downward API, e.g., `{fieldRef:status.podIP}` |
 | `FLAMESHOT_HTTP_LOCAL_PORT` | HTTP service port, e.g., `8089` |

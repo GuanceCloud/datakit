@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
@@ -471,7 +472,8 @@ func (i *instance) collectClientList(ctx context.Context) {
 			dkio.WithCollectCost(ccost),
 			dkio.WithElection(i.ipt.Election),
 			dkio.WithSource(dkio.FeedSource(inputName, "client-stat")),
-			dkio.WithMeasurement(inputs.GetOverrideMeasurement(i.ipt.MeasurementVersion, measureuemtRedis)), dkio.WithInput(inputName)); err != nil {
+			dkio.WithMeasurement(i.ipt.overrideMeasurement),
+			dkio.WithInput(inputName)); err != nil {
 			l.Warnf("feed: %s, ignored", err)
 		}
 	}

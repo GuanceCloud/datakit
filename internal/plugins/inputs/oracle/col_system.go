@@ -9,12 +9,12 @@ import (
 	"database/sql"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 var systemCols = map[string]string{
@@ -157,6 +157,25 @@ ORDER BY begin_time DESC, metric_name ASC`,
 FROM v$con_sysmetric s, v$containers c 
 WHERE s.con_id = c.con_id(+)`,
 	}
+
+	sqlDatabaseOpenMode = `SELECT
+CASE open_mode
+  WHEN 'MOUNTED' THEN 1
+  WHEN 'READ WRITE' THEN 2
+  WHEN 'READ ONLY' THEN 3
+  WHEN 'READ ONLY WITH APPLY' THEN 4
+  ELSE 0
+END AS database_open_mode
+FROM v$database`
+
+	sqlResourceLimit = `SELECT resource_name, current_utilization, limit_value
+FROM v$resource_limit
+WHERE resource_name IN ('sessions', 'processes')`
+
+	sqlDatafileLimit = `SELECT
+  (SELECT COUNT(*) FROM v$datafile) AS datafile_count,
+  TO_NUMBER((SELECT value FROM v$parameter WHERE name = 'db_files')) AS datafile_limit
+FROM dual`
 )
 
 type sysmetricsRowDB struct {
@@ -164,6 +183,21 @@ type sysmetricsRowDB struct {
 	Value      sql.NullFloat64 `db:"VALUE"`
 	MetricUnit sql.NullString  `db:"METRIC_UNIT,omitempty"`
 	PdbName    sql.NullString  `db:"PDB_NAME,omitempty"`
+}
+
+type databaseOpenModeRowDB struct {
+	DatabaseOpenMode sql.NullInt64 `db:"DATABASE_OPEN_MODE"`
+}
+
+type resourceLimitRowDB struct {
+	ResourceName       sql.NullString `db:"RESOURCE_NAME"`
+	CurrentUtilization sql.NullInt64  `db:"CURRENT_UTILIZATION"`
+	LimitValue         sql.NullString `db:"LIMIT_VALUE"`
+}
+
+type datafileLimitRowDB struct {
+	DatafileCount sql.NullInt64 `db:"DATAFILE_COUNT"`
+	DatafileLimit sql.NullInt64 `db:"DATAFILE_LIMIT"`
 }
 
 func getSystemMetricFieldAndValue(row sysmetricsRowDB) (string, float64, bool) {
@@ -207,6 +241,92 @@ func (ipt *Input) updateObjectMetricFromSystemRow(row sysmetricsRowDB) {
 	case "user_rollbacks":
 		ipt.objectMetric.TranRolls = row.Value.Float64
 	}
+}
+
+func (ipt *Input) collectDatabaseOpenModeField(metricName string) (int64, bool) {
+	rows := []databaseOpenModeRowDB{}
+	if err := selectWrapper(ipt, &rows, sqlDatabaseOpenMode, getMetricName(metricName, "database_open_mode")); err != nil {
+		l.Warnf("failed to collect database open mode(%q): %s", sqlDatabaseOpenMode, err)
+		return 0, false
+	}
+
+	if len(rows) == 0 || !rows[0].DatabaseOpenMode.Valid {
+		return 0, false
+	}
+
+	return rows[0].DatabaseOpenMode.Int64, true
+}
+
+func parseResourceLimitValue(value sql.NullString) (int64, bool) {
+	if !value.Valid {
+		return 0, false
+	}
+
+	limit, err := strconv.ParseInt(strings.TrimSpace(value.String), 10, 64)
+	if err != nil {
+		return 0, false
+	}
+
+	return limit, true
+}
+
+func (ipt *Input) collectResourceLimitFields(metricName string) map[string]int64 {
+	rows := []resourceLimitRowDB{}
+	if err := selectWrapper(ipt, &rows, sqlResourceLimit, getMetricName(metricName, "resource_limit")); err != nil {
+		l.Warnf("failed to collect resource limit(%q): %s", sqlResourceLimit, err)
+		return nil
+	}
+
+	fields := map[string]int64{}
+	for _, row := range rows {
+		if !row.ResourceName.Valid {
+			continue
+		}
+
+		var countField, limitField string
+		switch row.ResourceName.String {
+		case "sessions":
+			countField = "resource_session_count"
+			limitField = "resource_session_limit"
+		case "processes":
+			countField = "resource_process_count"
+			limitField = "resource_process_limit"
+		default:
+			continue
+		}
+
+		if row.CurrentUtilization.Valid {
+			fields[countField] = row.CurrentUtilization.Int64
+		}
+
+		if limit, ok := parseResourceLimitValue(row.LimitValue); ok {
+			fields[limitField] = limit
+		}
+	}
+
+	return fields
+}
+
+func (ipt *Input) collectDatafileLimitFields(metricName string) map[string]int64 {
+	rows := []datafileLimitRowDB{}
+	if err := selectWrapper(ipt, &rows, sqlDatafileLimit, getMetricName(metricName, "datafile_limit")); err != nil {
+		l.Warnf("failed to collect datafile limit(%q): %s", sqlDatafileLimit, err)
+		return nil
+	}
+
+	if len(rows) == 0 {
+		return nil
+	}
+
+	fields := map[string]int64{}
+	if rows[0].DatafileCount.Valid {
+		fields["datafile_count"] = rows[0].DatafileCount.Int64
+	}
+	if rows[0].DatafileLimit.Valid {
+		fields["datafile_limit"] = rows[0].DatafileLimit.Int64
+	}
+
+	return fields
 }
 
 func (ipt *Input) collectOracleSystem(ptsTime time.Time) {
@@ -292,6 +412,25 @@ func (ipt *Input) collectOracleSystem(ptsTime time.Time) {
 		hasGlobalMetric = true
 	}
 
+	if openMode, ok := ipt.collectDatabaseOpenModeField(metricName); ok {
+		kvs = kvs.Set("database_open_mode", openMode)
+		hasGlobalMetric = true
+	}
+
+	if fields := ipt.collectResourceLimitFields(metricName); len(fields) > 0 {
+		for name, value := range fields {
+			kvs = kvs.Set(name, value)
+		}
+		hasGlobalMetric = true
+	}
+
+	if fields := ipt.collectDatafileLimitFields(metricName); len(fields) > 0 {
+		for name, value := range fields {
+			kvs = kvs.Set(name, value)
+		}
+		hasGlobalMetric = true
+	}
+
 	if hasGlobalMetric {
 		pts = append(pts, point.NewPoint(metricName, kvs, opts...))
 	}
@@ -304,7 +443,7 @@ func (ipt *Input) collectOracleSystem(ptsTime time.Time) {
 			dkio.WithCollectCost(time.Since(start)),
 			dkio.WithElection(ipt.Election),
 			dkio.WithSource(inputName), dkio.WithInput(inputName),
-			dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementOracle))); err != nil {
+			dkio.WithMeasurement(ipt.overrideMeasurement)); err != nil {
 			l.Warnf("feeder.Feed: %s, ignored", err)
 		}
 	}

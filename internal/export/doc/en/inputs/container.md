@@ -102,25 +102,28 @@ If the sock path of Docker or Containerd is not the default, you need to specify
 
 === "Kubernetes"
 
-    Change the volumes `containerd-socket` of DataKit.yaml, mount the new path into the DataKit, and configure the environment variables`ENV_INPUT_CONTAINER_ENDPOINTS`：
+    Change *datakit.yaml*, mount the directory that contains the socket into DataKit, and configure `ENV_INPUT_CONTAINER_ENDPOINTS`:
     
-    ``` yaml hl_lines="3 4 7 14"
+    ``` yaml hl_lines="3 4 7 8 13 14"
     # add envs
     - env:
       - name: ENV_INPUT_CONTAINER_ENDPOINTS
-        value: ["unix:///path/to/new/containerd/containerd.sock"]
+        value: '["unix:///path/to/new/containerd/containerd.sock"]'
     
-    # modify mountPath
-      - mountPath: /path/to/new/containerd/containerd.sock
-        name: containerd-socket
+    # mount the directory that contains the socket
+      - mountPath: /path/to/new/containerd
+        name: containerd-run
         readOnly: true
     
     # modify volumes
     volumes:
     - hostPath:
-        path: /path/to/new/containerd/containerd.sock
-      name: containerd-socket
+        path: /path/to/new/containerd
+        type: Directory
+      name: containerd-run
     ```
+
+    Prefer mounting the directory that contains the socket. Avoid `subPath` or mounting only the socket file. A container runtime may delete and recreate its socket during restart. A directory mount exposes the new file to DataKit, while a single-file mount may continue to reference the stale file.
 ---
 <!-- markdownlint-enable -->
 
@@ -148,6 +151,19 @@ Using Environment Variables `ENV_INPUT_CONTAINER_ENDPOINTS` is`["unix:///path/to
 ```
 
 The collector will connect and collect these containers during runtime. If the sock file does not exist, an error log will be output when the first connection fails, which does not affect subsequent collection.
+
+### Node Failure Recovery {#runtime-recovery}
+
+When DataKit runs as a DaemonSet, it accesses the container runtime on each node to discover containers and manage log collection tasks. A node, containerd, or kubelet failure can interrupt container discovery and log collection. In exceptional cases, the DataKit process remains running after node recovery while container collection does not recover.
+
+DataKit provides the following safeguards and recovery behavior:
+
+- If the container runtime is not ready when DataKit starts, DataKit keeps retrying. It also rebuilds the connection after runtime communication failures. Once the dependency recovers, container discovery and log collection resume without restarting DataKit.
+- The independent `/v1/health` endpoint reports component health without relying on Prometheus metrics or log keywords.
+- DataKit continues self-recovery after a container runtime connection failure and does not restart immediately. Health fails after recovery keeps failing for two minutes or no state is reported for ten minutes. By default, the DaemonSet liveness probe checks every 15 seconds and restarts DataKit after four consecutive failures.
+- `/v1/ping` only confirms that the main process is running and does not prove that container log collection is healthy.
+
+Use the current stable release and validate node restart, containerd restart, and kubelet restart scenarios after upgrading. Ensure the runtime endpoint matches the DaemonSet directory mount. If the issue recurs, preserve a Bug Report before the Pod restarts and collect the node runtime logs and failure time range.
 
 ### Prometheus Exporter Metrics Collection {#k8s-prom-exporter}
 

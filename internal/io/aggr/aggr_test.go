@@ -256,6 +256,95 @@ func TestProcessTracingConsumed(t *testing.T) {
 	assert.Equal(t, int32(1), atomic.LoadInt32(&tsReqs))
 }
 
+func TestProcessTracingOnlySinksMetricAggregate(t *testing.T) {
+	var (
+		mu            sync.Mutex
+		metricHeaders []string
+		tsHeaders     []string
+	)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case datakit.Aggregate:
+			mu.Lock()
+			metricHeaders = append(metricHeaders, r.Header.Get(dataway.HeaderXGlobalTags))
+			mu.Unlock()
+		case datakit.TailSampling:
+			mu.Lock()
+			tsHeaders = append(tsHeaders, r.Header.Get(dataway.HeaderXGlobalTags))
+			mu.Unlock()
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	dw := dataway.NewDefaultDataway()
+	dw.EnableSinker = true
+	dw.GlobalCustomerKeys = []string{"tenant"}
+	require.NoError(t, dw.Init(dataway.WithURLs(ts.URL+"?token=tkn_sink")))
+
+	ag := &Aggregator{
+		DW:                  dw,
+		metricConfig:        newTracingMetricConfig(),
+		metricEnabled:       true,
+		tailSamplingConfig:  &aggregate.TailSamplingConfigs{Version: 1, Tracing: &aggregate.TraceTailSampling{}},
+		tailSamplingEnabled: true,
+	}
+	require.NoError(t, ag.metricConfig.Setup())
+	ag.initHTTP()
+
+	result, err := ag.Process(point.Tracing, "ddtrace", newAPMPointsWithTenants("team-a", "team-b"))
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.True(t, result.Consumed)
+	assert.Nil(t, result.Points)
+	assert.Equal(t, 4, result.SelectedPoints)
+	assert.Equal(t, 2, result.BatchPackages)
+	assert.Equal(t, 1, result.TailSamplingPackages)
+
+	assert.ElementsMatch(t, []string{"tenant=team-a", "tenant=team-b"}, metricHeaders)
+	assert.Equal(t, []string{""}, tsHeaders)
+}
+
+func TestProcessMetricGroupsAggrRequestsBySinkHeaderV2(t *testing.T) {
+	var (
+		mu      sync.Mutex
+		headers []string
+	)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == datakit.Aggregate {
+			mu.Lock()
+			headers = append(headers, r.Header.Get(dataway.HeaderXGlobalTagsV2))
+			mu.Unlock()
+			assert.Empty(t, r.Header.Get(dataway.HeaderXGlobalTags))
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	dw := dataway.NewDefaultDataway()
+	dw.EnableSinker = true
+	dw.SinkerHeaderVersion = "v2"
+	dw.GlobalCustomerKeys = []string{"tenant"}
+	require.NoError(t, dw.Init(dataway.WithURLs(ts.URL+"?token=tkn_sink")))
+
+	ag := &Aggregator{
+		DW:            dw,
+		metricConfig:  newMetricConfig(),
+		metricEnabled: true,
+	}
+	require.NoError(t, ag.metricConfig.Setup())
+	ag.initHTTP()
+
+	result, err := ag.Process(point.Metric, "metric", newMetricPointsWithTenants("team a", "team/b"))
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.False(t, result.Consumed)
+	assert.Equal(t, 2, result.SelectedPoints)
+	assert.Equal(t, 2, result.BatchPackages)
+
+	assert.ElementsMatch(t, []string{"tenant=team+a", "tenant=team%2Fb"}, headers)
+}
+
 func TestProcessLoggingReturnsPassthrough(t *testing.T) {
 	var metricReqs int32
 	var tsReqs int32
@@ -486,6 +575,19 @@ func newMetricPoints() []*point.Point {
 	}
 }
 
+func newMetricPointsWithTenants(tenants ...string) []*point.Point {
+	pts := make([]*point.Point, 0, len(tenants))
+	for idx, tenant := range tenants {
+		kvs := point.KVs{}
+		kvs = kvs.Add("jvm.buffer.memory.used", float64(100+idx)).
+			AddTag("service_name", "test").
+			AddTag("id", "1").
+			AddTag("tenant", tenant)
+		pts = append(pts, point.NewPoint("opentelemetry", kvs, point.DefaultMetricOptions()...))
+	}
+	return pts
+}
+
 func newMetricPointsForAggrToml() []*point.Point {
 	legacyPoint := point.NewPoint("otel_service", point.KVs{}.
 		Add("jvm.buffer.memory.used", float64(128)).
@@ -575,6 +677,24 @@ func newAPMPoints() []*point.Point {
 	pt2.SetTime(now)
 
 	return []*point.Point{pt1, pt2}
+}
+
+func newAPMPointsWithTenants(tenants ...string) []*point.Point {
+	now := time.Now()
+	pts := make([]*point.Point, 0, len(tenants))
+	for idx, tenant := range tenants {
+		pt := point.NewPoint("ddtrace", point.NewKVs(map[string]interface{}{
+			"resource":   "/resource",
+			"trace_id":   "1000000000",
+			"span_id":    strconv.Itoa(123456789 + idx),
+			"start_time": now.Unix(),
+			"duration":   int64(1000 + idx),
+			"tenant":     tenant,
+		}), point.CommonLoggingOptions()...)
+		pt.SetTime(now)
+		pts = append(pts, pt)
+	}
+	return pts
 }
 
 func newLargeAPMPoints(count int, payloadSize int) []*point.Point {

@@ -36,13 +36,26 @@ type triggerStats struct {
 	Triggered    bool
 	Reason       []string
 	Service      string
+	Language     string
 	ProfilerPath string // async-profiler 的安装目录（例如：/opt/async-profiler）
 	Event        string // 采集的事件类型：cpu, alloc, lock, wall 支持 all
 	Duration     int    // 采集持续时间
 	OutputFile   string // 输出文件路径
 	OutputFormat string // output format: flat|traces|collapsed|flamegraph|tree|jfr|otlp
+	PProfURL     string
+	PProfTypes   []string
+	PProfTimeout string
+	Attachments  []*profileAttachment
 	startTime    string
 	endTime      string
+
+	goPProfDeltas *goPProfDeltaStore
+}
+
+type profileAttachment struct {
+	FieldName string
+	FileName  string
+	Data      []byte
 }
 
 func newTriggerStats(e string, d string, tags []string) *triggerStats {
@@ -68,6 +81,13 @@ func newTriggerStats(e string, d string, tags []string) *triggerStats {
 
 // runProfiling 执行一次性能分析采集并生成报告文件.
 func runProfiling(ctx context.Context, stats *triggerStats) error {
+	if isGoLanguage(stats.Language) {
+		return runGoPProf(ctx, stats)
+	}
+	return runJavaAsyncProfiler(ctx, stats)
+}
+
+func runJavaAsyncProfiler(ctx context.Context, stats *triggerStats) error {
 	// 1. 基础检查
 	if stats.ProfilerPath == "" {
 		return fmt.Errorf("ProfilerPath is required")
@@ -163,9 +183,17 @@ func uploadFileToDataKit(stats *triggerStats, datakitURL string) error {
 	var requestBody bytes.Buffer
 	writer := multipart.NewWriter(&requestBody)
 
-	// 1. 上传硬盘中的 JFR 文件
-	if err := addJFRFile(writer, stats.OutputFile); err != nil {
-		return fmt.Errorf("add jfr file to request body err: %w", err)
+	if len(stats.Attachments) > 0 {
+		for _, attachment := range stats.Attachments {
+			if err := addProfileAttachment(writer, attachment); err != nil {
+				return fmt.Errorf("add profile attachment to request body err: %w", err)
+			}
+		}
+	} else {
+		// 1. 上传硬盘中的 JFR 文件
+		if err := addJFRFile(writer, stats.OutputFile); err != nil {
+			return fmt.Errorf("add jfr file to request body err: %w", err)
+		}
 	}
 
 	// 2. 添加上传手动组装的JSON数据
@@ -201,12 +229,15 @@ func uploadFileToDataKit(stats *triggerStats, datakitURL string) error {
 		return fmt.Errorf("response code: %d, body: %s", resp.StatusCode, string(body))
 	} else {
 		uploadToDK.WithLabelValues(stats.Service, "200")
-		log.Infof("upload ok, %s", stats.OutputFile)
+		log.Infof("upload ok, %s", stats.artifactOutputPath())
 		return nil
 	}
 }
 
 func deleteFile(stats *triggerStats) {
+	if stats == nil || stats.OutputFile == "" {
+		return
+	}
 	if err := os.Remove(stats.OutputFile); err != nil {
 		log.Errorf("delete file err: %w", err)
 	} else {
@@ -215,32 +246,22 @@ func deleteFile(stats *triggerStats) {
 }
 
 type Event struct {
-	TagProfiler string `json:"tags_profiler"`
-	Start       string `json:"start"`
-	End         string `json:"end"`
-	Family      string `json:"family"`
-	Format      string `json:"format"`
+	Attachments []string `json:"attachments,omitempty"`
+	TagProfiler string   `json:"tags_profiler"`
+	Start       string   `json:"start"`
+	End         string   `json:"end"`
+	Family      string   `json:"family"`
+	Format      string   `json:"format"`
+	Profiler    string   `json:"profiler,omitempty"`
 }
 
 func addJSONConfig(writer *multipart.Writer, stats *triggerStats) error {
 	// 序列化JSON配置
-	event := &Event{
-		Start:  stats.startTime,
-		End:    stats.endTime,
-		Family: "java",
-		Format: "jfr",
+	event := stats.profileEvent()
+	jsonData, err := json.Marshal(event)
+	if err != nil {
+		return fmt.Errorf("marshal event json err: %w", err)
 	}
-
-	service := stats.getKeyFromTags("service", "unknown_service")
-	host := stats.getKeyFromTags("host", "unknown_host")
-	env := stats.getKeyFromTags("env", "unknown_env")
-	version := stats.getKeyFromTags("version", "unknown_version")
-	tags := fmt.Sprintf("library_version:%s,library_type:async_profiler,process_id:%d,process_name:%s,service:%s,host:%s,env:%s,version:%s",
-		asyncProfileVersion, stats.PID, stats.CommandName, service, host, env, version)
-	tags = appendUniqueProfilerTags(tags, stats.Reason)
-
-	event.TagProfiler = tags
-	jsonData, _ := json.Marshal(event)
 
 	// 创建自定义MIME类型的文件部分
 	header := make(textproto.MIMEHeader)
@@ -260,6 +281,35 @@ func addJSONConfig(writer *multipart.Writer, stats *triggerStats) error {
 
 	log.Debugf("add json 'event': %s", string(jsonData))
 	return nil
+}
+
+func (stat *triggerStats) profileEvent() *Event {
+	event := &Event{
+		Start:  stat.startTime,
+		End:    stat.endTime,
+		Family: "java",
+		Format: "jfr",
+	}
+
+	service := stat.getKeyFromTags("service", "unknown_service")
+	host := stat.getKeyFromTags("host", "unknown_host")
+	env := stat.getKeyFromTags("env", "unknown_env")
+	version := stat.getKeyFromTags("version", "unknown_version")
+	if isGoLanguage(stat.Language) {
+		event.Family = "go"
+		event.Format = "pprof"
+		event.Profiler = "pprof"
+		event.Attachments = stat.attachmentFileNames()
+		tags := fmt.Sprintf("library_type:go_pprof,profiler:pprof,language:golang,process_id:%d,process_name:%s,service:%s,host:%s,env:%s,version:%s",
+			stat.PID, stat.CommandName, service, host, env, version)
+		event.TagProfiler = appendUniqueProfilerTags(tags, stat.Reason)
+		return event
+	}
+
+	tags := fmt.Sprintf("library_version:%s,library_type:async_profiler,process_id:%d,process_name:%s,service:%s,host:%s,env:%s,version:%s",
+		asyncProfileVersion, stat.PID, stat.CommandName, service, host, env, version)
+	event.TagProfiler = appendUniqueProfilerTags(tags, stat.Reason)
+	return event
 }
 
 func addJFRFile(writer *multipart.Writer, filePath string) error {
@@ -284,6 +334,29 @@ func addJFRFile(writer *multipart.Writer, filePath string) error {
 		return fmt.Errorf("write file err: %w", err)
 	}
 	log.Debugf("JFR add to part ok, %s", filePath)
+	return nil
+}
+
+func addProfileAttachment(writer *multipart.Writer, attachment *profileAttachment) error {
+	if attachment == nil {
+		return nil
+	}
+	if attachment.FileName == "" {
+		return fmt.Errorf("profile attachment filename is empty")
+	}
+	fieldName := attachment.FieldName
+	if fieldName == "" {
+		fieldName = attachment.FileName
+	}
+
+	part, err := writer.CreateFormFile(fieldName, attachment.FileName)
+	if err != nil {
+		return fmt.Errorf("create file err: %w", err)
+	}
+	if _, err := part.Write(attachment.Data); err != nil {
+		return fmt.Errorf("write file err: %w", err)
+	}
+	log.Debugf("profile attachment add to part ok, %s", attachment.FileName)
 	return nil
 }
 
@@ -328,4 +401,33 @@ func appendUniqueProfilerTags(base string, tags []string) string {
 		return base
 	}
 	return base + "," + strings.Join(unique, ",")
+}
+
+func isGoLanguage(language string) bool {
+	language = strings.ToLower(strings.TrimSpace(language))
+	return language == "go" || language == "golang"
+}
+
+func (stat *triggerStats) attachmentFileNames() []string {
+	if stat == nil || len(stat.Attachments) == 0 {
+		return nil
+	}
+
+	names := make([]string, 0, len(stat.Attachments))
+	for _, attachment := range stat.Attachments {
+		if attachment != nil && attachment.FileName != "" {
+			names = append(names, attachment.FileName)
+		}
+	}
+	return names
+}
+
+func (stat *triggerStats) artifactOutputPath() string {
+	if stat == nil {
+		return ""
+	}
+	if stat.OutputFile != "" {
+		return stat.OutputFile
+	}
+	return strings.Join(stat.attachmentFileNames(), ",")
 }

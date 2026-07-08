@@ -708,6 +708,10 @@ man_version=`git tag -l | sort -nr | head -n 1` # 获取最近发布的 tag 版�
 datakit doc --export-docs /path/to/doc --version $man_version --TODO "-" --ignore demo
 ```
 
+### 接入组件健康检查 {#component-health}
+
+采集器可通过 `internal/health` 注册组件实例，并通过统一的 Reporter 接口上报存活或恢复失败。组件退出时应注销对应实例。健康状态由 `/v1/health` 统一输出，不应为 liveness 单独增加 Prometheus 指标。只有无法自行恢复、需要重启 DataKit 的组件才应注册。
+
 ## 延伸阅读 {#more-readings}
 
 - [DataKit Monitor 查看器](datakit-monitor.md)

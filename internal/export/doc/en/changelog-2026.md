@@ -1,5 +1,29 @@
 # Changelog
 
+## 2.5.0(2026/07/08) {#cl-2.5.0}
+
+This release is an iterative release, with the following main updates:
+
+### New Features {#cl-2.5.0-new}
+
+- Oracle collector added ASM diskgroup metrics (#3136)
+- Oracle collector added database open mode, resource limits, and datafile limit metrics (#3136)
+- Flameshot added Go language pprof collection support (#3132)
+- Flameshot added proactive Heap Dump and hprof upload to OSS/S3 (#3122)
+
+### Bug Fixes {#cl-2.5.0-fix}
+
+- Fixed `gpu_smi` infinite loop risk in GPU drop warning logic (#3144)
+- Fixed aggregation tail sampling not grouping by sinker header (#3095)
+
+### Improvements {#cl-2.5.0-opt}
+
+- Redis added `role_status` metric field for master/replica role change detection (#3141)
+- Added global `measurement_version` config for unified measurement version during install/upgrade, covering MySQL, Oracle, PostgreSQL, SQLServer, Redis, JVM collectors (#3142)
+- Added `/v1/health` endpoint and CRI runtime auto-recovery for better K8s liveness detection (#3140)
+
+---
+
 ## 2.4.0(2026/07/02) {#cl-2.4.0}
 
 This release is an iterative release, with the following main updates:
@@ -248,6 +272,16 @@ This release is an iterative release, with the following main updates:
 - Added hot reload support for `cat`, `xfsquota`, `windowsremote`, `logfwdserver`, and related collectors (#3042)
 - Optimized DataKit startup by removing unnecessary collection work during initialization, reducing startup time (#3038)
 - Refactored the OpenTelemetry collector to reuse shared `cliutils/otlp` parsers, consolidating metrics/logs/traces parsing loops while preserving DataKit-specific semantics (#3026)
+
+---
+
+## 1.94.1(2026/07/08) {#cl-1.94.1}
+
+This release is a hotfix release, contents are as follows:
+
+### Compatibility Adjustments {#cl-1.94.1-brk}
+
+- Added global `measurement_version` config for unified measurement version during install/upgrade, covering MySQL, Oracle, PostgreSQL, SQLServer, Redis, JVM collectors (#3142)
 
 ---
 

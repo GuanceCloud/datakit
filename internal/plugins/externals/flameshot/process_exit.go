@@ -49,6 +49,11 @@ type processExitEvent struct {
 	LastProfileArtifact  *profileArtifactSummary
 	RecentJFRArtifact    *localArtifact
 	RecentHProfArtifact  *localArtifact
+	HProfUploadProvider  string
+	HProfUploadStatus    string
+	HProfUploadError     string
+	HProfObjectKey       string
+	HProfDownloadURL     string
 	SuspectedReason      string
 	ExitError            string
 	Tags                 []string
@@ -207,12 +212,61 @@ func (m *monitor) handleProcessExit(event *processExitEvent) {
 		return
 	}
 
+	m.uploadProcessExitHProf(event)
+
 	if err := uploadProcessExitLog(event, m.config.DataKitAddr); err != nil {
 		log.Errorf("upload process exit event failed: %v", err)
 		return
 	}
 
+	if event.RecentHProfArtifact != nil && event.HProfUploadStatus != "" && m.processedHProf != nil {
+		m.processedHProf.mark(processExitHProfKey(event.RecentHProfArtifact))
+	}
 	log.Infof("uploaded process exit event for service=%s pid=%d reason=%s", event.Service, event.PID, event.SuspectedReason)
+}
+
+func (m *monitor) uploadProcessExitHProf(event *processExitEvent) {
+	if m == nil || m.config == nil || event == nil || event.RecentHProfArtifact == nil || !m.config.hprofUploadEnabled() {
+		return
+	}
+
+	key := processExitHProfKey(event.RecentHProfArtifact)
+	if key == "" || (m.processedHProf != nil && m.processedHProf.seen(key)) {
+		return
+	}
+
+	summary := &hprofSummary{
+		Service:        event.Service,
+		PID:            event.PID,
+		ProcessName:    event.ProcessName,
+		DetectedAt:     event.DetectedAt,
+		HProfPath:      event.RecentHProfArtifact.Path,
+		HProfSizeBytes: event.RecentHProfArtifact.SizeBytes,
+		HProfModTime:   event.RecentHProfArtifact.ModTime,
+		MatchedBy:      "process_exit_heap_dump",
+		SummaryText: fmt.Sprintf(
+			"process exit detected with heap dump at %s (%d bytes)",
+			event.RecentHProfArtifact.Path, event.RecentHProfArtifact.SizeBytes,
+		),
+	}
+	uploadHProfForSummary(context.Background(), m.config, summary, event.Tags)
+
+	event.HProfUploadProvider = summary.HProfUploadProvider
+	event.HProfUploadStatus = summary.HProfUploadStatus
+	event.HProfUploadError = summary.HProfUploadError
+	event.HProfObjectKey = summary.HProfObjectKey
+	event.HProfDownloadURL = summary.HProfDownloadURL
+}
+
+func processExitHProfKey(file *localArtifact) string {
+	if file == nil {
+		return ""
+	}
+	return processedHProfKey(&hprofFile{
+		Path:      file.Path,
+		SizeBytes: file.SizeBytes,
+		ModTime:   file.ModTime,
+	})
 }
 
 func uploadProcessExitLog(event *processExitEvent, datakitAddr string) error {
@@ -255,6 +309,21 @@ func uploadProcessExitLog(event *processExitEvent, datakitAddr string) error {
 		kvs = kvs.Add("recent_hprof_path", event.RecentHProfArtifact.Path)
 		kvs = kvs.Add("recent_hprof_size_bytes", event.RecentHProfArtifact.SizeBytes)
 		kvs = kvs.Add("recent_hprof_mod_time", formatLogTime(event.RecentHProfArtifact.ModTime))
+	}
+	if event.HProfUploadProvider != "" {
+		kvs = kvs.Add("hprof_upload_provider", event.HProfUploadProvider)
+	}
+	if event.HProfUploadStatus != "" {
+		kvs = kvs.Add("hprof_upload_status", event.HProfUploadStatus)
+	}
+	if event.HProfUploadError != "" {
+		kvs = kvs.Add("hprof_upload_error", event.HProfUploadError)
+	}
+	if event.HProfObjectKey != "" {
+		kvs = kvs.Add("hprof_object_key", event.HProfObjectKey)
+	}
+	if event.HProfDownloadURL != "" {
+		kvs = kvs.Add("hprof_download_url", event.HProfDownloadURL)
 	}
 	if event.LastProfileArtifact != nil {
 		kvs = kvs.Add("last_profile_output_path", event.LastProfileArtifact.OutputPath)

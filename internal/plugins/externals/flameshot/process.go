@@ -27,6 +27,7 @@ type processM struct {
 	SampleMaxSize            int       // 结构化资源样本缓冲区最大容量
 	lastProfileTime          time.Time // 上次普通 profile 采集时间。
 	lastEmergencyProfileTime time.Time // 上次高水位/紧急 profile 采集时间。
+	lastHeapDumpTime         time.Time // 上次主动 heap dump 时间。
 	mu                       sync.Mutex
 
 	CPUHistory             *list.List // CPU使用率历史记录（环形缓冲区）
@@ -349,6 +350,20 @@ func (pm *processM) markEmergencyProfileTriggered(now time.Time) {
 	defer pm.mu.Unlock()
 
 	pm.lastEmergencyProfileTime = now
+}
+
+func (pm *processM) inHeapDumpCooldown(window time.Duration) bool {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+
+	return time.Since(pm.lastHeapDumpTime) < window
+}
+
+func (pm *processM) markHeapDumpTriggered(now time.Time) {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+
+	pm.lastHeapDumpTime = now
 }
 
 func (pm *processM) markMemoryPressure(now time.Time) {

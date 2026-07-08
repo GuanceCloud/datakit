@@ -15,6 +15,7 @@ const (
 	TagGroupCommon        = "common"
 	TagGroupProcess       = "process"
 	TagGroupTablespace    = "tablespace"
+	TagGroupASMDiskgroup  = "asm_diskgroup"
 	TagGroupSystem        = "system"
 	TagGroupLockedSession = "locked_session"
 	TagGroupWaitingEvent  = "waiting_event"
@@ -29,8 +30,8 @@ type oracleMeasurement struct{}
 func (m *oracleMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name:   measurementOracle,
-		Desc:   "Metric set including Oracle process, tablespace, system, locked session, waiting event, and DBM (metric/session/connection) statistics, unified in v2",
-		DescZh: "指标集包含 Oracle process、tablespace、system、locked session、waiting event 和 DBM (metric/session/connection) 相关指标，v2 版本统一",
+		Desc:   "Metric set including Oracle process, tablespace, ASM diskgroup, system, locked session, waiting event, and DBM (metric/session/connection) statistics, unified in v2",
+		DescZh: "指标集包含 Oracle process、tablespace、ASM diskgroup、system、locked session、waiting event 和 DBM (metric/session/connection) 相关指标，v2 版本统一",
 		Cat:    point.Metric,
 		Tags:   m.getTags(),
 		Fields: m.getFields(),
@@ -42,6 +43,7 @@ func (m *oracleMeasurement) getTags() map[string]interface{} {
 		m.getCommonTags(),
 		m.getProcessTags(),
 		m.getTablespaceTags(),
+		m.getASMDiskgroupTags(),
 		m.getSystemTags(),
 		m.getLockedSessionTags(),
 		m.getWaitingEventTags(),
@@ -72,6 +74,12 @@ func (m *oracleMeasurement) getTablespaceTags() map[string]interface{} {
 	tags := make(map[string]interface{})
 	tags["pdb_name"] = &inputs.TagInfo{Desc: "PDB name"}
 	tags["tablespace_name"] = &inputs.TagInfo{Desc: "Table space name"}
+	return tags
+}
+
+func (m *oracleMeasurement) getASMDiskgroupTags() map[string]interface{} {
+	tags := make(map[string]interface{})
+	tags["asm_diskgroup_name"] = &inputs.TagInfo{Desc: "ASM diskgroup name"}
 	return tags
 }
 
@@ -134,6 +142,7 @@ func (m *oracleMeasurement) getFields() map[string]interface{} {
 	return mergeMaps(
 		m.getProcessFields(),
 		m.getTablespaceFields(),
+		m.getASMDiskgroupFields(),
 		m.getSystemFields(),
 		m.getLockedSessionFields(),
 		m.getWaitingEventFields(),
@@ -194,6 +203,12 @@ func (m *oracleMeasurement) getTablespaceFields() map[string]interface{} {
 		Unit:     inputs.SizeByte,
 		Desc:     "Total space consumed by the Tablespace, in database blocks",
 	}
+	fields["tablespace_status"] = &inputs.FieldInfo{
+		DataType: inputs.Int,
+		Type:     inputs.Gauge,
+		Unit:     inputs.NoUnit,
+		Desc:     "Tablespace status: 1 ONLINE, 2 OFFLINE, 3 READ ONLY, 0 UNKNOWN",
+	}
 	fields["ts_size"] = &inputs.FieldInfo{
 		DataType: inputs.Float,
 		Type:     inputs.Gauge,
@@ -211,6 +226,38 @@ func (m *oracleMeasurement) getTablespaceFields() map[string]interface{} {
 	return fields
 }
 
+func (m *oracleMeasurement) getASMDiskgroupFields() map[string]interface{} {
+	fields := make(map[string]interface{})
+	fields["asm_diskgroup_free_mb"] = &inputs.FieldInfo{
+		DataType: inputs.Float,
+		Type:     inputs.Gauge,
+		Unit:     inputs.SizeMB,
+		Desc:     "ASM diskgroup free space",
+	}
+	fields["asm_diskgroup_offline_disks"] = &inputs.FieldInfo{
+		DataType: inputs.Int,
+		Type:     inputs.Gauge,
+		Unit:     inputs.NCount,
+		Desc:     "ASM diskgroup offline disk count",
+	}
+	fields["asm_diskgroup_state"] = &inputs.FieldInfo{
+		DataType: inputs.Int,
+		Type:     inputs.Gauge,
+		Unit:     inputs.NoUnit,
+		Desc:     "ASM diskgroup state: 1 CONNECTED, 2 MOUNTED, 3 DISMOUNTED, 4 QUIESCING, 5 BROKEN, 0 UNKNOWN",
+	}
+	fields["asm_diskgroup_total_mb"] = &inputs.FieldInfo{
+		DataType: inputs.Float,
+		Type:     inputs.Gauge,
+		Unit:     inputs.SizeMB,
+		Desc:     "ASM diskgroup total space",
+	}
+
+	m.addTaggedbyToFields(fields, TagGroupASMDiskgroup)
+	return fields
+}
+
+//nolint:funlen
 func (m *oracleMeasurement) getSystemFields() map[string]interface{} {
 	fields := make(map[string]interface{})
 	fields["active_sessions"] = &inputs.FieldInfo{
@@ -261,11 +308,28 @@ func (m *oracleMeasurement) getSystemFields() map[string]interface{} {
 		Unit:     inputs.Percent,
 		Desc:     "Database CPU time ratio",
 	}
+	fields["database_open_mode"] = &inputs.FieldInfo{
+		DataType: inputs.Int,
+		Type:     inputs.Gauge,
+		Desc:     "Database open mode: 1 MOUNTED, 2 READ WRITE, 3 READ ONLY, 4 READ ONLY WITH APPLY, 0 UNKNOWN",
+	}
 	fields["database_wait_time_ratio"] = &inputs.FieldInfo{
 		DataType: inputs.Float,
 		Type:     inputs.Gauge,
 		Unit:     inputs.Percent,
 		Desc:     "Database wait time ratio",
+	}
+	fields["datafile_count"] = &inputs.FieldInfo{
+		DataType: inputs.Int,
+		Type:     inputs.Gauge,
+		Unit:     inputs.NCount,
+		Desc:     "Current number of Oracle datafiles",
+	}
+	fields["datafile_limit"] = &inputs.FieldInfo{
+		DataType: inputs.Int,
+		Type:     inputs.Gauge,
+		Unit:     inputs.NCount,
+		Desc:     "Oracle db_files parameter limit",
 	}
 	fields["db_block_changes"] = &inputs.FieldInfo{
 		DataType: inputs.Float,
@@ -368,6 +432,30 @@ func (m *oracleMeasurement) getSystemFields() map[string]interface{} {
 		Type:     inputs.Gauge,
 		Unit:     inputs.NCount,
 		Desc:     "Redo writes per second",
+	}
+	fields["resource_process_count"] = &inputs.FieldInfo{
+		DataType: inputs.Int,
+		Type:     inputs.Gauge,
+		Unit:     inputs.NCount,
+		Desc:     "Current Oracle processes resource utilization at instance level",
+	}
+	fields["resource_process_limit"] = &inputs.FieldInfo{
+		DataType: inputs.Int,
+		Type:     inputs.Gauge,
+		Unit:     inputs.NCount,
+		Desc:     "Oracle processes resource limit at instance level",
+	}
+	fields["resource_session_count"] = &inputs.FieldInfo{
+		DataType: inputs.Int,
+		Type:     inputs.Gauge,
+		Unit:     inputs.NCount,
+		Desc:     "Current Oracle sessions resource utilization at instance level",
+	}
+	fields["resource_session_limit"] = &inputs.FieldInfo{
+		DataType: inputs.Int,
+		Type:     inputs.Gauge,
+		Unit:     inputs.NCount,
+		Desc:     "Oracle sessions resource limit at instance level",
 	}
 	fields["rows_per_sort"] = &inputs.FieldInfo{
 		DataType: inputs.Float,
@@ -770,6 +858,8 @@ func (m *oracleMeasurement) addTaggedbyToFields(fields map[string]interface{}, t
 		tags = m.getProcessTags()
 	case TagGroupTablespace:
 		tags = m.getTablespaceTags()
+	case TagGroupASMDiskgroup:
+		tags = m.getASMDiskgroupTags()
 	case TagGroupSystem:
 		tags = m.getSystemTags()
 	case TagGroupLockedSession:

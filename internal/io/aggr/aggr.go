@@ -178,15 +178,17 @@ func (ag *Aggregator) Process(cat point.Category, input string, pts []*point.Poi
 	}()
 
 	if snapshot.metricEnabled {
-		batchMap := ag.pickMetricWithConfig(snapshot.metricConfig, cat.String(), pts)
-		res.SelectedPoints += countSelectedMetricPoints(batchMap)
-		res.BatchPackages = countMetricBatchPackages(batchMap)
-		if len(batchMap) > 0 {
-			log.Debugf("metric enable,pick metric batch len=%d for category =%s", len(batchMap), cat.String())
-		}
+		for _, group := range ag.sinkPointGroups(cat, pts) {
+			batchMap := ag.pickMetricWithConfig(snapshot.metricConfig, cat.String(), group.points)
+			res.SelectedPoints += countSelectedMetricPoints(batchMap)
+			res.BatchPackages += countMetricBatchPackages(batchMap)
+			if len(batchMap) > 0 {
+				log.Debugf("metric enable,pick metric batch len=%d for category =%s", len(batchMap), cat.String())
+			}
 
-		if err := ag.SendMetricBatches(cat.String(), batchMap); err != nil {
-			log.Errorf("send metric batches failed: %v", err)
+			if err := ag.sendMetricBatches(cat.String(), batchMap, group.sinkHeaders); err != nil {
+				log.Errorf("send metric batches failed: %v", err)
+			}
 		}
 	}
 
@@ -247,6 +249,35 @@ func (ag *Aggregator) Process(cat point.Category, input string, pts []*point.Poi
 	default:
 		return res, nil
 	}
+}
+
+type sinkPointGroup struct {
+	points []*point.Point
+	sinkHeaders
+}
+
+func (ag *Aggregator) sinkPointGroups(cat point.Category, pts []*point.Point) []sinkPointGroup {
+	if ag == nil || ag.DW == nil {
+		return []sinkPointGroup{{points: pts}}
+	}
+
+	dwGroups := ag.DW.GroupPointsBySinkHeader(cat, pts)
+	if len(dwGroups) == 0 {
+		return nil
+	}
+
+	groups := make([]sinkPointGroup, 0, len(dwGroups))
+	for _, group := range dwGroups {
+		groups = append(groups, sinkPointGroup{
+			points: group.Points,
+			sinkHeaders: sinkHeaders{
+				key:   group.HeaderKey,
+				value: group.HeaderValue,
+			},
+		})
+	}
+
+	return groups
 }
 
 func countSelectedMetricPoints(batchMap map[uint64]*aggregate.Batchs) int {

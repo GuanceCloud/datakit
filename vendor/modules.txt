@@ -91,7 +91,7 @@ github.com/GuanceCloud/grok/internal/backend
 github.com/GuanceCloud/grok/internal/filter
 github.com/GuanceCloud/grok/internal/match
 github.com/GuanceCloud/grok/internal/scan
-# github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b
+# github.com/GuanceCloud/kubernetes v0.0.0-20260706033920-1c12edcbd89d
 ## explicit
 github.com/GuanceCloud/kubernetes/pkg/features
 github.com/GuanceCloud/kubernetes/pkg/kubelet/cri/remote

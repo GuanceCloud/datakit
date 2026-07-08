@@ -324,37 +324,6 @@ timeout = "30s"
 	}
 
 	measurementsInfo := map[string]measurementInfo{
-		"oracle_process": {
-			measurement:    &processMeasurement{},
-			optionalFields: []string{"pid"},
-			optionalTags:   []string{"pdb_name"},
-		},
-		"oracle_tablespace": {
-			measurement:  &tablespaceMeasurement{},
-			optionalTags: []string{"pdb_name"},
-		},
-		"oracle_system": {
-			measurement:  &systemMeasurement{},
-			optionalTags: []string{"pdb_name"},
-			optionalFields: []string{
-				"cache_blocks_corrupt",
-				"cache_blocks_lost",
-				"cursor_cachehit_ratio",
-				"database_wait_time_ratio",
-				"disk_sorts",
-				"enqueue_timeouts",
-				"gc_cr_block_received",
-				"memory_sorts_ratio",
-				"rows_per_sort",
-				"service_response_time",
-				"session_count",
-				"session_limit_usage",
-				"sorts_per_user_call",
-				"temp_space_used",
-				"user_rollbacks",
-				"pga_over_allocation_count",
-			},
-		},
 		"oracle_custom": {
 			measurement: &customMeasurement{},
 		},

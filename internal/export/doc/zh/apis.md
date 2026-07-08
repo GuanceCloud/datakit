@@ -9,6 +9,7 @@
 | Method | API                                           |
 | ---    | ---                                           |
 | `GET`  | [`/v1/ping`](apis.md#api-ping)                |
+| `GET`  | [`/v1/health`](apis.md#api-health)            |
 | `GET`  | [`/v1/ntp`](apis.md#api-ntp)                  |
 | `POST` | [`/v1/write/:category`](apis.md#api-v1-write) |
 
@@ -1069,6 +1070,10 @@ $ curl "http://localhost:9529/v1/ping"
   }
 }
 ```
+
+### `/v1/health` {#api-health}
+
+获取 DataKit 及已注册组件的存活状态。组件正常运行时返回 HTTP 200；任一组件持续恢复失败或长时间没有状态更新时返回 HTTP 503，可直接用于 Kubernetes liveness probe。接口返回是否存活、检查时间和失败组件，详细错误请查看 DataKit 日志。
 
 ### `/v1/pipeline/debug` {#api-debug-pl}
 

@@ -231,6 +231,31 @@ total_system_memory:4171165696`)
 		assert.Equal(t, "linux", pts[0].Get("os").(string), "pt: %s", pts[0].Pretty())
 	})
 
+	t.Run(`role-status`, func(t *T.T) {
+		tests := []struct {
+			name       string
+			role       string
+			wantStatus int64
+		}{
+			{name: "master", role: "master", wantStatus: 1},
+			{name: "slave", role: "slave", wantStatus: 0},
+			{name: "replica", role: "replica", wantStatus: 0},
+			{name: "unknown", role: "other", wantStatus: -1},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *T.T) {
+				inst := newInstance()
+				inst.ipt = ipt
+				pts := inst.parseInfoData("role:" + tt.role)
+
+				assert.Len(t, pts, 1)
+				assert.Equal(t, tt.role, pts[0].GetTag("role"), "pt: %s", pts[0].Pretty())
+				assert.Equal(t, tt.wantStatus, pts[0].Get("role_status"), "pt: %s", pts[0].Pretty())
+			})
+		}
+	})
+
 	t.Run(`drop-keys`, func(t *T.T) {
 		inst := newInstance()
 		inst.ipt = ipt

@@ -85,21 +85,28 @@ type systemConfig struct {
 	Interval datakit.Duration `toml:"interval"`
 }
 
+// asmConfig holds ASM diskgroup collection config (runs in separate goroutine with own interval).
+type asmConfig struct {
+	Enable   bool             `toml:"enabled"`
+	Interval datakit.Duration `toml:"interval"`
+}
+
 type Input struct {
-	Host               string           `toml:"host"`
-	Port               int              `toml:"port"`
-	User               string           `toml:"user"`
-	Password           string           `toml:"password"`
-	Interval           datakit.Duration `toml:"interval"`
-	Timeout            string           `toml:"connect_timeout"`
-	Service            string           `toml:"service"`
-	MetricExcludeList  []string         `toml:"metric_exclude_list"`
-	timeoutDuration    time.Duration
-	Query              []*customQuery    `toml:"custom_queries"`
-	SlowQueryTime      string            `toml:"slow_query_time"`
-	Election           bool              `toml:"election"`
-	Tags               map[string]string `toml:"tags"`
-	MeasurementVersion string            `toml:"measurement_version"` // v1 or v2, default: v2
+	Host                string           `toml:"host"`
+	Port                int              `toml:"port"`
+	User                string           `toml:"user"`
+	Password            string           `toml:"password"`
+	Interval            datakit.Duration `toml:"interval"`
+	Timeout             string           `toml:"connect_timeout"`
+	Service             string           `toml:"service"`
+	MetricExcludeList   []string         `toml:"metric_exclude_list"`
+	timeoutDuration     time.Duration
+	Query               []*customQuery    `toml:"custom_queries"`
+	SlowQueryTime       string            `toml:"slow_query_time"`
+	Election            bool              `toml:"election"`
+	Tags                map[string]string `toml:"tags"`
+	MeasurementVersion  string            `toml:"measurement_version"` // v1 or v2, default: v2
+	overrideMeasurement string
 
 	Object oracleObject `toml:"object"`
 
@@ -107,6 +114,7 @@ type Input struct {
 	SlowQuery  *slowQueryConfig  `toml:"slow_query"`
 	Process    *processConfig    `toml:"process"`
 	System     *systemConfig     `toml:"system"`
+	ASM        *asmConfig        `toml:"asm"`
 
 	// DBM configuration
 	Dbm *dbmConfig `toml:"dbm"`
@@ -397,6 +405,11 @@ func (ipt *Input) Collect() {
 
 func (ipt *Input) Init() error {
 	l = logger.SLogger(inputName)
+
+	if config.IsOverrideMeasurement(ipt.MeasurementVersion) {
+		ipt.overrideMeasurement = measurementOracle
+	}
+
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()
@@ -598,6 +611,12 @@ func (ipt *Input) runLowFrequencyCollectors() {
 			return nil
 		})
 	}
+	if ipt.ASM != nil && ipt.ASM.Enable {
+		ipt.collectorsGroup.Go(func(ctx context.Context) error {
+			ipt.runASMDiskgroupCollector()
+			return nil
+		})
+	}
 }
 
 // runTablespaceCollector runs tablespace collection in its own goroutine with dedicated interval.
@@ -686,6 +705,37 @@ func (ipt *Input) runSystemCollector() {
 			return
 		case <-ipt.semStop.Wait():
 			l.Info("system collection return")
+			return
+		case tt := <-tick.C:
+			ptsTime = inputs.AlignTime(tt, ptsTime, duration)
+		}
+	}
+}
+
+// runASMDiskgroupCollector runs ASM diskgroup collection in its own goroutine with dedicated interval.
+func (ipt *Input) runASMDiskgroupCollector() {
+	duration := ipt.ASM.Interval.Duration
+	if duration <= 0 {
+		duration = 600 * time.Second
+	}
+
+	tick := time.NewTicker(duration)
+	defer tick.Stop()
+
+	ptsTime := ntp.Now()
+	for {
+		if ipt.pause.Load() {
+			l.Debugf("not leader, ASM diskgroup collection skipped")
+		} else {
+			ipt.collectOracleASMDiskgroup(ptsTime)
+		}
+
+		select {
+		case <-datakit.Exit.Wait():
+			l.Info("ASM diskgroup collection exit")
+			return
+		case <-ipt.semStop.Wait():
+			l.Info("ASM diskgroup collection return")
 			return
 		case tt := <-tick.C:
 			ptsTime = inputs.AlignTime(tt, ptsTime, duration)
@@ -975,6 +1025,10 @@ func defaultInput() *Input {
 		System: &systemConfig{
 			Enable:   true,
 			Interval: datakit.Duration{Duration: 60 * time.Second},
+		},
+		ASM: &asmConfig{
+			Enable:   true,
+			Interval: datakit.Duration{Duration: 600 * time.Second},
 		},
 		Object: oracleObject{
 			Enable:   true,

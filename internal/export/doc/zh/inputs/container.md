@@ -100,25 +100,28 @@ GKE Autopilot 不允许挂载容器运行时 socket 和宿主机目录，需要�
 
 === "Kubernetes"
 
-    更改 *datakit.yaml* 的 volumes `containerd-socket`，将新路径 mount 到 DataKit 中，同时配置环境变量 `ENV_INPUT_CONTAINER_ENDPOINTS`：
+    更改 *datakit.yaml*，将 sock 所在目录 mount 到 DataKit 中，同时配置环境变量 `ENV_INPUT_CONTAINER_ENDPOINTS`：
 
-    ``` yaml hl_lines="3 4 7 14"
+    ``` yaml hl_lines="3 4 7 8 13 14"
     # 添加 env
     - env:
       - name: ENV_INPUT_CONTAINER_ENDPOINTS
-        value: ["unix:///path/to/new/containerd/containerd.sock"]
+        value: '["unix:///path/to/new/containerd/containerd.sock"]'
     
-    # 修改 mountPath
-      - mountPath: /path/to/new/containerd/containerd.sock
-        name: containerd-socket
+    # 挂载 sock 所在目录
+      - mountPath: /path/to/new/containerd
+        name: containerd-run
         readOnly: true
     
     # 修改 volumes
     volumes:
     - hostPath:
-        path: /path/to/new/containerd/containerd.sock
-      name: containerd-socket
+        path: /path/to/new/containerd
+        type: Directory
+      name: containerd-run
     ```
+
+    应优先挂载 sock 所在目录，不建议使用 `subPath` 或只挂载 sock 文件。容器运行时重启时可能删除并重新创建 sock 文件；目录挂载可以让 DataKit 看到新文件，单文件挂载则可能仍指向已经失效的旧文件。
 <!-- markdownlint-enable -->
 
 环境变量 `ENV_INPUT_CONTAINER_ENDPOINTS` 是追加到现有的 endpoints 配置，最终实际 endpoints 配置可能有很多项，采集器会去重然后逐一连接、采集。
@@ -145,6 +148,19 @@ GKE Autopilot 不允许挂载容器运行时 socket 和宿主机目录，需要�
 ```
 
 采集器会连接和采集这些容器运行时，如果 sock 文件不存在，会在第一次连接失败时输出报错日志，不影响后续采集。
+
+### 节点或容器运行时故障后的恢复 {#runtime-recovery}
+
+DataKit 以 DaemonSet 方式运行时，需要访问节点上的容器运行时以发现容器并管理日志采集任务。节点、containerd 或 kubelet 故障期间，容器发现和日志采集可能中断。极端情况下，节点恢复后 DataKit 主进程仍处于运行状态，但容器采集没有正常恢复。
+
+针对该场景，DataKit 提供以下预防和恢复措施：
+
+- DataKit 启动时容器运行时尚未就绪，会持续重试；运行期间通信失败时会主动重建连接。依赖恢复后，无需重启 DataKit 即可重新发现容器并恢复日志采集任务。
+- 通过独立的 `/v1/health` 接口检查组件健康状态，不依赖 Prometheus 指标或日志关键字。
+- 容器运行时连接失败时会继续自愈，不会立即重启 DataKit。连续恢复失败 2 分钟，或 10 分钟没有状态更新后，健康检查失败。DaemonSet liveness probe 默认每 15 秒检查一次，连续失败 4 次后自动重启 DataKit。
+- `/v1/ping` 只能说明主进程存活，不能代表容器日志采集链路正常。
+
+建议使用当前稳定版本，并在升级后分别验证节点重启、containerd 重启和 kubelet 重启三类恢复场景。同时确保容器运行时 endpoint 与 DaemonSet 目录挂载一致。如果问题仍然出现，应在 Pod 自动重启前保留 Bug Report，并同时收集节点容器运行时日志和故障时间范围。
 
 ### Prometheus Exporter 指标采集 {#k8s-prom-exporter}
 

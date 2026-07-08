@@ -336,7 +336,7 @@ require (
 )
 
 require (
-	github.com/GuanceCloud/kubernetes v0.0.0-20230801080916-ca299820872b
+	github.com/GuanceCloud/kubernetes v0.0.0-20260706033920-1c12edcbd89d
 	github.com/GuanceCloud/zipstream v0.1.0 // indirect
 	github.com/andrewkroh/sys v0.0.0-20151128191922-287798fe3e43
 	github.com/brianvoe/gofakeit/v6 v6.28.0

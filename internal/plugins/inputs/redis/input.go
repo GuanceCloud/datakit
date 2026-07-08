@@ -149,7 +149,8 @@ type Input struct {
 	mergedTags,
 	Tags map[string]string `toml:"tags"`
 
-	MeasurementVersion string `toml:"measurement_version"`
+	MeasurementVersion  string `toml:"measurement_version"`
+	overrideMeasurement string
 
 	Object redisObjectConfig `toml:"object"`
 
@@ -747,6 +748,10 @@ func (ipt *Input) setup() {
 	l = logger.SLogger(inputName)
 
 	l.Infof("%s input started", inputName)
+
+	if config.IsOverrideMeasurement(ipt.MeasurementVersion) {
+		ipt.overrideMeasurement = measureuemtRedis
+	}
 
 	ipt.startUpUnix = time.Now().Unix()
 	ipt.Interval = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval)

@@ -327,7 +327,7 @@ func (ipt *Input) gpuDropWarning() {
 	opts := point.DefaultLoggingOptions()
 	opts = append(opts, point.WithTime(ipt.ptsTime))
 
-	for i := 0; i < len(ipt.gpus); {
+	for i := 0; i < len(ipt.gpus); i++ {
 		// Several items may be deleted, so i++ is placed later
 		if time.Now().UnixNano() > ipt.gpus[i].activeTimestamp+ipt.GPUDropWarningDelay.Nanoseconds() {
 			// The survival time stamp of this card exceeds the threshold
@@ -347,8 +347,6 @@ func (ipt *Input) gpuDropWarning() {
 			}
 
 			ipt.collectCacheWarn = append(ipt.collectCacheWarn, point.NewPoint(inputName, kvs, opts...))
-		} else {
-			i++
 		}
 	}
 }

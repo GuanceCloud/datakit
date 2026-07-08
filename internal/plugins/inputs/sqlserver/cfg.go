@@ -270,9 +270,10 @@ type Input struct {
 	start   time.Time
 	db      *sql.DB
 
-	Election           bool   `toml:"election"`
-	MeasurementVersion string `toml:"measurement_version"` // v1 or v2, default: v2
-	pause              atomic.Bool
+	Election            bool   `toml:"election"`
+	MeasurementVersion  string `toml:"measurement_version"` // v1 or v2, default: v2
+	overrideMeasurement string
+	pause               atomic.Bool
 
 	semStop *cliutils.Sem // start stop signal
 	feeder  dkio.Feeder

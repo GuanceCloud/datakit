@@ -37,6 +37,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
+	componenthealth "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/health"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/pipeline/plval"
@@ -77,7 +78,7 @@ func defaultHTTPServerConf() *httpServerConf {
 	c := config.DefaultAPIConfig()
 
 	// Default enable APIs.
-	c.PublicAPIs = []string{"/v1/ping", "/v1/ntp"}
+	c.PublicAPIs = []string{"/v1/ping", "/v1/ntp", "/v1/health"}
 
 	return &httpServerConf{
 		apiConfig: c,
@@ -246,6 +247,9 @@ func setupRouter(hs *httpServerConf) *gin.Engine {
 	router.GET("/v1/ntp", wraper2.RawHTTPWrapper(reqLimiter, apiNTP))
 
 	router.GET("/v1/ping", wraper1.RawHTTPWrapper(reqLimiter, apiPing))
+	// Liveness must not share the public API rate limit. A busy API must not
+	// cause Kubernetes to restart an otherwise healthy DataKit process.
+	router.GET("/v1/health", ginLimiter(nil), healthHandler(componenthealth.Default))
 	router.POST(apiWriteRoute, wraper1.RawHTTPWrapper(reqLimiter, apiWrite, &apiWriteImpl{}))
 
 	router.POST("/v1/query/raw", wraper1.RawHTTPWrapper(reqLimiter, apiQueryRaw, hs.dw))

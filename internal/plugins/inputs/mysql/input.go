@@ -151,7 +151,8 @@ type Input struct {
 	Election bool `toml:"election"`
 	pause    atomic.Bool
 
-	MeasurementVersion string `toml:"measurement_version"`
+	MeasurementVersion  string `toml:"measurement_version"`
+	overrideMeasurement string
 
 	binLogOn bool
 
@@ -809,6 +810,11 @@ func (ipt *Input) runCustomQueries() {
 
 func (ipt *Input) Run() {
 	l = logger.SLogger("mysql")
+
+	if config.IsOverrideMeasurement(ipt.MeasurementVersion) {
+		ipt.overrideMeasurement = measurementMySQL
+	}
+
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 
 	tick := time.NewTicker(ipt.Interval.Duration)
@@ -916,8 +922,7 @@ func (ipt *Input) Run() {
 						dkio.WithInput(inputName),
 					}
 					if category == point.Metric {
-						opts = append(opts, dkio.WithMeasurement(
-							inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementMySQL)))
+						opts = append(opts, dkio.WithMeasurement(ipt.overrideMeasurement))
 					}
 					if err := ipt.feeder.Feed(category, pts, opts...); err != nil {
 						ipt.feeder.FeedLastError(err.Error(),
@@ -978,7 +983,7 @@ func (ipt *Input) runDbmMetricCollector() {
 					dkio.WithCollectCost(time.Since(collectStart)),
 					dkio.WithElection(ipt.Election),
 					dkio.WithSource(dbmFeedName),
-					dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementMySQL)),
+					dkio.WithMeasurement(ipt.overrideMeasurement),
 					dkio.WithInput(inputName),
 				); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
@@ -1095,7 +1100,7 @@ func (ipt *Input) runDbmActivityCollector() {
 					dkio.WithCollectCost(time.Since(collectStart)),
 					dkio.WithElection(ipt.Election),
 					dkio.WithSource(dbmFeedName),
-					dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementMySQL)),
+					dkio.WithMeasurement(ipt.overrideMeasurement),
 					dkio.WithInput(inputName),
 				); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
@@ -1113,7 +1118,7 @@ func (ipt *Input) runDbmActivityCollector() {
 					dkio.WithCollectCost(time.Since(collectStart)),
 					dkio.WithElection(ipt.Election),
 					dkio.WithSource(dbmFeedName),
-					dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementMySQL)),
+					dkio.WithMeasurement(ipt.overrideMeasurement),
 					dkio.WithInput(inputName),
 				); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),

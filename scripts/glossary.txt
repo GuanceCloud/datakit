@@ -158,9 +158,11 @@ configfile
 containerd
 datagram
 datakit
+datafile
 ddtrace
 dfpv
 diskcache
+diskgroup
 diskio
 dnodes
 dnodes
@@ -271,6 +273,8 @@ zabbix
 zhangsan
 Proto
 proto
+hprof
+cooldown
 Loong
 loongsuite
 LoongSuite

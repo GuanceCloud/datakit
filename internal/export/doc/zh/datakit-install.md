@@ -178,6 +178,7 @@ NAME1="value1" NAME2="value2"
 - `DK_GLOBAL_TAGS`：已弃用，改用 DK_GLOBAL_HOST_TAGS
 - `DK_GLOBAL_HOST_TAGS`：支持安装阶段填写全局主机 tag，格式范例：`host=__datakit_hostname,host_ip=__datakit_ip`（多个 tag 之间以英文逗号分隔）
 - `DK_GLOBAL_ELECTION_TAGS`：支持安装阶段填写全局选举 tag，格式范例：`project=my-porject,cluster=my-cluster`（多个 tag 之间以英文逗号分隔）
+- `DK_MEASUREMENT_VERSION`：支持安装/升级阶段写入全局指标集版本，可选值为 `v1`/`v2`。默认为空；非空时运行时优先级高于各采集器配置文件中的 `measurement_version`
 - `DK_CLOUD_PROVIDER`：支持安装阶段填写云厂商(目前支持如下几类云主机 `aliyun/aws/tencent/hwcloud/azure`)。**该功能已弃用**，DataKit 已经可以自动识别云主机类型。
 - `DK_DEF_INPUTS`：[默认开启的采集器](datakit-input-conf.md#default-enabled-inputs)配置。如果要禁用某些采集器，需手动将其屏蔽，比如，要禁用 `cpu` 和 `mem` 采集器，需这样指定：`-cpu,-mem`，即除了这两个采集器之外，其它默认采集器均开启。
 - `DK_LITE`：安装精简版 DataKit 时，可设置该变量为 `1`。([:octicons-tag-24: Version-1.14.0](changelog.md#cl-1.14.0))

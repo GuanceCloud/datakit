@@ -39,7 +39,7 @@ func (i *instance) collectInfo(ctx context.Context) error {
 		dkio.WithCollectCost(time.Since(start)),
 		dkio.WithElection(i.ipt.Election),
 		dkio.WithSource(dkio.FeedSource(inputName, "info")),
-		dkio.WithMeasurement(inputs.GetOverrideMeasurement(i.ipt.MeasurementVersion, measureuemtRedis)),
+		dkio.WithMeasurement(i.ipt.overrideMeasurement),
 		dkio.WithInput(inputName),
 	); err != nil {
 		l.Warnf("feed measurement: %s, ignored", err)
@@ -74,6 +74,17 @@ func (i *instance) infoReservedTags(k, v string) bool {
 	}
 
 	return false
+}
+
+func redisRoleStatus(role string) int64 {
+	switch strings.ToLower(role) {
+	case "master":
+		return 1
+	case "slave", "replica":
+		return 0
+	default:
+		return -1
+	}
 }
 
 // supplementInfoFromConfigCache supplements missing fields in INFO from CONFIG cache.
@@ -166,6 +177,9 @@ func (i *instance) parseInfoData(info string) []*point.Point {
 
 				l.Debugf("set tag %s:%s", key, val)
 				kvs = kvs.AddTag(key, val)
+				if key == "role" {
+					kvs = kvs.Add("role_status", redisRoleStatus(val))
+				}
 				i.infoTags[key] = val
 			} else {
 				if infoSkippedKeys(key, val) {
@@ -1364,6 +1378,12 @@ func (m *infoMeasurement) Info() *inputs.MeasurementInfo {
 			// Not number, discard. "role": "Value is `master` if the instance is replica of no one, or `slave` if the
 			// instance is a replica of some
 			// master instance."
+			"role_status": &inputs.FieldInfo{
+				DataType: inputs.Int,
+				Type:     inputs.Gauge,
+				Unit:     inputs.EnumValue,
+				Desc:     "Numeric role status of the Redis instance. `1` for master, `0` for slave/replica, and `-1` for unknown.",
+			},
 			// Not number, discard. "master_failover_state": "The state of an ongoing failover, if any.."
 			// Not number, discard. "master_replid": "The replication ID of the Redis server.."
 			// Not number, discard. "master_replid2": "The secondary replication ID, used for PSYNC after a failover.."

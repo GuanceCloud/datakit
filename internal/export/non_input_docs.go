@@ -75,6 +75,14 @@ func envCommon() []*inputs.ENVInfo {
 			DescZh:  "全局 tag，多个 tag 之间以英文逗号分割",
 		},
 		{
+			ENVName: "ENV_MEASUREMENT_VERSION",
+			Type:    doc.String,
+			Example: "`v1`",
+			Desc: "Set the global measurement version for collectors that support `measurement_version`. " +
+				"Empty by default; if set, it takes precedence over `measurement_version` in input configs. Available: `v1`, `v2`.",
+			DescZh: "配置全局指标集版本，可选值为 `v1`/`v2`。默认为空；非空时运行时优先级高于各采集器配置文件中的 `measurement_version`",
+		},
+		{
 			ENVName: "ENV_PIPELINE_DEFAULT_PIPELINE",
 			Type:    doc.Map,
 			Example: "`{\"logging\":\"abc.p\",\"metric\":\"xyz.p\"}`",

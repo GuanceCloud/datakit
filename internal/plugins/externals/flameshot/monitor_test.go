@@ -93,6 +93,27 @@ func TestMonitorHttp(t *testing.T) {
 	}
 }
 
+func TestMonitorHttpProfilingDisabled(t *testing.T) {
+	enabled := false
+	m := &monitor{
+		config:    &Config{ProfilingEnabled: &enabled},
+		statsChan: make(chan *triggerStats, 1),
+	}
+	req, err := http.NewRequest(http.MethodGet, "/v1/profile?pid=1234&duration=10s&events=all", nil)
+	assert.NoError(t, err)
+	rec := httptest.NewRecorder()
+
+	m.handlerProfile(rec, req)
+
+	assert.Equal(t, http.StatusForbidden, rec.Code)
+	assert.Contains(t, rec.Body.String(), "profiling is disabled")
+	select {
+	case <-m.statsChan:
+		t.Fatal("expected profiling disabled request not to enqueue task")
+	default:
+	}
+}
+
 func TestURLJoin(t *testing.T) {
 	type args struct {
 		addr string
@@ -144,6 +165,13 @@ func Test_filterProcessesByRegex(t *testing.T) {
 	}
 	f = re1.MatchString("java")
 	assert.Equal(t, f, true)
+}
+
+func TestShouldSkipMatchedProcess(t *testing.T) {
+	assert.True(t, shouldSkipMatchedProcess("jmap", "/opt/java/openjdk/bin/jmap -dump:format=b,file=/tmp/a.hprof 14"))
+	assert.True(t, shouldSkipMatchedProcess("", "/opt/java/openjdk/bin/jcmd 14 VM.command_line"))
+	assert.False(t, shouldSkipMatchedProcess("java", "java -Xmx512m -jar app.jar"))
+	assert.False(t, shouldSkipMatchedProcess("app", "/opt/app/bin/app"))
 }
 
 func TestGetEmergencyProfileDuration(t *testing.T) {

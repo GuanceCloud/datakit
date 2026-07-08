@@ -31,8 +31,24 @@ var (
   tags = ["globle_tag_1:xxx","other_tag:aaa"]
   auto_profiling = "10m"
   auto_profiling_duration = "30s"
+  profiling_enabled = true
   oom_hprof_enabled = false
   oom_hprof_match_window = "2m"
+  hprof_upload_enabled = false
+  hprof_upload_provider = ""
+  hprof_upload_endpoint = ""
+  hprof_upload_region = ""
+  hprof_upload_bucket = ""
+  hprof_upload_access_key_id = ""
+  hprof_upload_access_key_secret = ""
+  hprof_upload_path_template = "{service}/{pod_name}/{timestamp}/{filename}"
+  hprof_download_url_template = ""
+  hprof_upload_timeout = "5m"
+  heap_dump_enabled = false
+  heap_dump_path_template = "{profiling_path}/dumps/{service}_{pod_name}_{pid}_{timestamp}.hprof"
+  heap_dump_jmap_path = "jmap"
+  heap_dump_timeout = "120s"
+  heap_dump_cooldown = "10m"
 
   [[processes]]
     ## service name for profiling
@@ -40,14 +56,19 @@ var (
     command = '''^java\b.*xxx-name\.jar$'''
     # -e profiling event: cpu|alloc|nativemem|lock|cache-misses etc.
     # and 'all' for all events. 
-    events = "cpu,alloc,nativemem"
-    ## -d duration for profiling, in seconds.
-    duration = "30s"
-    ## duration for emergency memory trigger.
-    emergency_duration = "15s"
-    language = "java"
-    jdk_version = "-"
-    tags = ["env:env", "version:1.0.0"]
+	    events = "cpu,alloc,nativemem"
+	    ## -d duration for profiling, in seconds.
+	    duration = "30s"
+	    ## duration for emergency memory trigger.
+	    emergency_duration = "15s"
+	    language = "java"
+	    jdk_version = "-"
+	    ## Go pprof HTTP base URL, required when language is go/golang.
+	    # pprof_url = "http://127.0.0.1:6060"
+	    ## Go pprof types: cpu, goroutine, heap, mutex, block.
+	    # pprof_types = ["cpu", "goroutine", "heap", "mutex", "block"]
+	    # pprof_timeout = "45s"
+	    tags = ["env:env", "version:1.0.0"]
     ## cpu usage percent. 4C max is 400, 80% is 320
     cpu_usage_percent = 80
     ##memory usage percentage based limit, 0~100
@@ -58,6 +79,8 @@ var (
     mem_usage_mb = 1024
     ## emergency memory usage in MB
     mem_usage_mb_emergency = 2048
+    ## trigger jmap heap dump when emergency memory threshold is reached
+    heap_dump_on_memory_emergency = true
 
   [http]
     local_host = "localhost"
@@ -81,35 +104,56 @@ type Logging struct {
 }
 
 type Process struct {
-	Service                  string   `toml:"service" json:"service"`                                         // 服务名称
-	Command                  string   `toml:"command" json:"command" `                                        // 命令支持正则
-	Duration                 string   `toml:"duration" json:"duration"`                                       // 采集时长
-	EmergencyDuration        string   `toml:"emergency_duration" json:"emergency_duration"`                   // 紧急触发时采集时长
-	Events                   string   `toml:"events" json:"events"`                                           // 采集的事件 用逗号隔开 支持 'all'
-	Language                 string   `toml:"language" json:"language"`                                       // 目标程序语言 java go
-	JDKVersion               string   `toml:"jdk_version" json:"jdk_version"`                                 // jdk 版本
-	Tags                     []string `toml:"tags" json:"tags"`                                               // 自定义标签
-	CPUUsagePercent          int      `toml:"cpu_usage_percent" json:"cpu_usage_percent"`                     // cpu 使用率
-	MEMUsagePercent          int      `toml:"mem_usage_percent" json:"mem_usage_percent"`                     // 内存使用率平均值阈值
-	MEMUsageMB               int      `toml:"mem_usage_mb" json:"mem_usage_mb"`                               // 内存使用量平均值阈值
-	MEMUsagePercentEmergency int      `toml:"mem_usage_percent_emergency" json:"mem_usage_percent_emergency"` // 内存使用率紧急瞬时阈值
-	MEMUsageMBEmergency      int      `toml:"mem_usage_mb_emergency" json:"mem_usage_mb_emergency"`           // 内存使用量紧急瞬时阈值
+	Service                   string   `toml:"service" json:"service"`                                         // 服务名称
+	Command                   string   `toml:"command" json:"command" `                                        // 命令支持正则
+	Duration                  string   `toml:"duration" json:"duration"`                                       // 采集时长
+	EmergencyDuration         string   `toml:"emergency_duration" json:"emergency_duration"`                   // 紧急触发时采集时长
+	Events                    string   `toml:"events" json:"events"`                                           // 采集的事件 用逗号隔开 支持 'all'
+	Language                  string   `toml:"language" json:"language"`                                       // 目标程序语言 java go
+	JDKVersion                string   `toml:"jdk_version" json:"jdk_version"`                                 // jdk 版本
+	PProfURL                  string   `toml:"pprof_url" json:"pprof_url"`                                     // Go pprof HTTP 地址
+	PProfTypes                []string `toml:"pprof_types" json:"pprof_types"`                                 // Go pprof 类型
+	PProfTimeout              string   `toml:"pprof_timeout" json:"pprof_timeout"`                             // Go pprof 请求超时
+	Tags                      []string `toml:"tags" json:"tags"`                                               // 自定义标签
+	CPUUsagePercent           int      `toml:"cpu_usage_percent" json:"cpu_usage_percent"`                     // cpu 使用率
+	MEMUsagePercent           int      `toml:"mem_usage_percent" json:"mem_usage_percent"`                     // 内存使用率平均值阈值
+	MEMUsageMB                int      `toml:"mem_usage_mb" json:"mem_usage_mb"`                               // 内存使用量平均值阈值
+	MEMUsagePercentEmergency  int      `toml:"mem_usage_percent_emergency" json:"mem_usage_percent_emergency"` // 内存使用率紧急瞬时阈值
+	MEMUsageMBEmergency       int      `toml:"mem_usage_mb_emergency" json:"mem_usage_mb_emergency"`           // 内存使用量紧急瞬时阈值
+	HeapDumpOnMemoryEmergency *bool    `toml:"heap_dump_on_memory_emergency,omitempty" json:"heap_dump_on_memory_emergency,omitempty"`
 }
 
 type Config struct {
-	DataKitAddr         string      `toml:"datakit_addr"`            // datakit 地址
-	ProfilingPath       string      `toml:"profiling_path"`          // 虚拟环境下必须保证是共享目录
-	MonitorInterval     string      `toml:"monitor_interval"`        // 监控间隔，单位 秒
-	Tags                []string    `toml:"tags"`                    // 全局自定义标签
-	AutoProfiling       string      `toml:"auto_profiling"`          // 开关定时自动执行, 配置 0 则关闭
-	AutoProfileDuration string      `toml:"auto_profiling_duration"` // 定时自动采集时长
-	OOMHProfEnabled     bool        `toml:"oom_hprof_enabled"`       // 开启 OOM hprof 摘要采集
-	OOMHProfMatchWindow string      `toml:"oom_hprof_match_window"`  // OOM 事件与 hprof 的时间匹配窗口
-	PodCPULimit         string      `toml:"pod_cpu_limit"`           // pod resource limit
-	PodMEMLimit         string      `toml:"pod_mem_limit"`           // pod resource limit
-	Processes           []*Process  `toml:"processes"`               // 监控的进程列表
-	HTTPConfig          *HTTPConfig `toml:"http"`                    // http 配置
-	Log                 *Logging    `toml:"logging"`                 // 日志配置
+	DataKitAddr                string      `toml:"datakit_addr"`                         // datakit 地址
+	ProfilingPath              string      `toml:"profiling_path"`                       // 虚拟环境下必须保证是共享目录
+	MonitorInterval            string      `toml:"monitor_interval"`                     // 监控间隔，单位 秒
+	Tags                       []string    `toml:"tags"`                                 // 全局自定义标签
+	AutoProfiling              string      `toml:"auto_profiling"`                       // 开关定时自动执行, 配置 0 则关闭
+	AutoProfileDuration        string      `toml:"auto_profiling_duration"`              // 定时自动采集时长
+	ProfilingEnabled           *bool       `toml:"profiling_enabled,omitempty"`          // 开启 JFR profiling，nil 表示默认开启
+	OOMHProfEnabled            bool        `toml:"oom_hprof_enabled"`                    // 开启 OOM hprof 摘要采集
+	OOMHProfMatchWindow        string      `toml:"oom_hprof_match_window"`               // OOM 事件与 hprof 的时间匹配窗口
+	HProfUploadEnabled         bool        `toml:"hprof_upload_enabled"`                 // 开启 hprof 对象存储上传
+	HProfUploadProvider        string      `toml:"hprof_upload_provider"`                // oss/s3
+	HProfUploadEndpoint        string      `toml:"hprof_upload_endpoint"`                // 对象存储 endpoint
+	HProfUploadRegion          string      `toml:"hprof_upload_region"`                  // S3 region
+	HProfUploadBucket          string      `toml:"hprof_upload_bucket"`                  // bucket
+	HProfUploadAccessKeyID     string      `toml:"hprof_upload_access_key_id"`           // AK
+	HProfUploadAccessKeySecret string      `toml:"hprof_upload_access_key_secret"`       // SK
+	HProfUploadPathTemplate    string      `toml:"hprof_upload_path_template"`           // object key template
+	HProfDownloadURLTemplate   string      `toml:"hprof_download_url_template"`          // download URL template
+	HProfUploadTimeout         string      `toml:"hprof_upload_timeout"`                 // upload timeout
+	HProfUploadS3PathStyle     *bool       `toml:"hprof_upload_s3_path_style,omitempty"` // S3 path-style endpoint
+	HeapDumpEnabled            bool        `toml:"heap_dump_enabled"`                    // 开启主动 heap dump
+	HeapDumpPathTemplate       string      `toml:"heap_dump_path_template"`              // heap dump 文件路径模板
+	HeapDumpJMapPath           string      `toml:"heap_dump_jmap_path"`                  // jmap 路径
+	HeapDumpTimeout            string      `toml:"heap_dump_timeout"`                    // jmap 超时
+	HeapDumpCooldown           string      `toml:"heap_dump_cooldown"`                   // 每进程 heap dump 冷却时间
+	PodCPULimit                string      `toml:"pod_cpu_limit"`                        // pod resource limit
+	PodMEMLimit                string      `toml:"pod_mem_limit"`                        // pod resource limit
+	Processes                  []*Process  `toml:"processes"`                            // 监控的进程列表
+	HTTPConfig                 *HTTPConfig `toml:"http"`                                 // http 配置
+	Log                        *Logging    `toml:"logging"`                              // 日志配置
 }
 
 func (c *Config) fromEnv() {
@@ -169,11 +213,62 @@ func (c *Config) fromEnv() {
 	if x := os.Getenv("FLAMESHOT_AUTO_PROFILING_DURATION"); x != "" {
 		c.AutoProfileDuration = x
 	}
+	if x := os.Getenv("FLAMESHOT_PROFILING_ENABLED"); x != "" {
+		c.ProfilingEnabled = boolPtr(parseBoolEnv(x))
+	}
 	if x := os.Getenv("FLAMESHOT_OOM_HPROF_ENABLED"); x != "" {
-		c.OOMHProfEnabled = strings.EqualFold(x, "true") || x == "1"
+		c.OOMHProfEnabled = parseBoolEnv(x)
 	}
 	if x := os.Getenv("FLAMESHOT_OOM_HPROF_MATCH_WINDOW"); x != "" {
 		c.OOMHProfMatchWindow = x
+	}
+	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_ENABLED"); x != "" {
+		c.HProfUploadEnabled = parseBoolEnv(x)
+	}
+	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_PROVIDER"); x != "" {
+		c.HProfUploadProvider = x
+	}
+	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_ENDPOINT"); x != "" {
+		c.HProfUploadEndpoint = x
+	}
+	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_REGION"); x != "" {
+		c.HProfUploadRegion = x
+	}
+	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_BUCKET"); x != "" {
+		c.HProfUploadBucket = x
+	}
+	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_ID"); x != "" {
+		c.HProfUploadAccessKeyID = x
+	}
+	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_SECRET"); x != "" {
+		c.HProfUploadAccessKeySecret = x
+	}
+	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_PATH_TEMPLATE"); x != "" {
+		c.HProfUploadPathTemplate = x
+	}
+	if x := os.Getenv("FLAMESHOT_HPROF_DOWNLOAD_URL_TEMPLATE"); x != "" {
+		c.HProfDownloadURLTemplate = x
+	}
+	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_TIMEOUT"); x != "" {
+		c.HProfUploadTimeout = x
+	}
+	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_S3_PATH_STYLE"); x != "" {
+		c.HProfUploadS3PathStyle = boolPtr(parseBoolEnv(x))
+	}
+	if x := os.Getenv("FLAMESHOT_HEAP_DUMP_ENABLED"); x != "" {
+		c.HeapDumpEnabled = parseBoolEnv(x)
+	}
+	if x := os.Getenv("FLAMESHOT_HEAP_DUMP_PATH_TEMPLATE"); x != "" {
+		c.HeapDumpPathTemplate = x
+	}
+	if x := os.Getenv("FLAMESHOT_HEAP_DUMP_JMAP_PATH"); x != "" {
+		c.HeapDumpJMapPath = x
+	}
+	if x := os.Getenv("FLAMESHOT_HEAP_DUMP_TIMEOUT"); x != "" {
+		c.HeapDumpTimeout = x
+	}
+	if x := os.Getenv("FLAMESHOT_HEAP_DUMP_COOLDOWN"); x != "" {
+		c.HeapDumpCooldown = x
 	}
 
 	if x := os.Getenv("FLAMESHOT_POD_CPU_LIMIT"); x != "" {
@@ -224,6 +319,20 @@ func (c *Config) loadProcessesFromEnv() {
 		if val := getEnvString(fmt.Sprintf("FLAMESHOT_PROCESSES_%d_JDK_VERSION", i)); val != nil {
 			process.JDKVersion = *val
 		}
+		if val := getEnvString(fmt.Sprintf("FLAMESHOT_PROCESSES_%d_PPROF_URL", i)); val != nil {
+			process.PProfURL = *val
+		}
+		if val := getEnvString(fmt.Sprintf("FLAMESHOT_PROCESSES_%d_PPROF_TYPES", i)); val != nil {
+			list, err := parseEnvStringList(*val)
+			if err != nil {
+				log.Warnf("parse %s=%s failed: %s", "FLAMESHOT_PROCESSES_PPROF_TYPES", *val, err.Error())
+			} else {
+				process.PProfTypes = list
+			}
+		}
+		if val := getEnvString(fmt.Sprintf("FLAMESHOT_PROCESSES_%d_PPROF_TIMEOUT", i)); val != nil {
+			process.PProfTimeout = *val
+		}
 		if val := getEnvInt(fmt.Sprintf("FLAMESHOT_PROCESSES_%d_CPU_USAGE_PERCENT", i)); val != nil {
 			process.CPUUsagePercent = *val
 		}
@@ -238,6 +347,9 @@ func (c *Config) loadProcessesFromEnv() {
 		}
 		if val := getEnvInt(fmt.Sprintf("FLAMESHOT_PROCESSES_%d_MEM_USAGE_MB_EMERGENCY", i)); val != nil {
 			process.MEMUsageMBEmergency = *val
+		}
+		if val := getEnvString(fmt.Sprintf("FLAMESHOT_PROCESSES_%d_HEAP_DUMP_ON_MEMORY_EMERGENCY", i)); val != nil {
+			process.HeapDumpOnMemoryEmergency = boolPtr(parseBoolEnv(*val))
 		}
 		if val := getEnvString(fmt.Sprintf("FLAMESHOT_PROCESSES_%d_TAGS", i)); val != nil {
 			var list []string
@@ -269,6 +381,41 @@ func (c *Config) loadProcessesFromEnv() {
 			c.Processes = append(c.Processes, ps...)
 		}
 	}
+	c.applyDefaults()
+}
+
+func boolPtr(v bool) *bool {
+	return &v
+}
+
+func parseBoolEnv(v string) bool {
+	return strings.EqualFold(v, "true") || strings.EqualFold(v, "yes") || strings.EqualFold(v, "on") || v == "1"
+}
+
+func parseEnvStringList(val string) ([]string, error) {
+	val = strings.TrimSpace(val)
+	if val == "" {
+		return nil, nil
+	}
+
+	var list []string
+	if strings.HasPrefix(val, "[") {
+		if err := json.Unmarshal([]byte(val), &list); err != nil {
+			return nil, err
+		}
+		return list, nil
+	}
+
+	parts := strings.Split(val, ",")
+	list = make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			list = append(list, part)
+		}
+	}
+
+	return list, nil
 }
 
 func getEnvString(key string) *string {
@@ -295,7 +442,7 @@ func getEnvInt(key string) *int {
 }
 
 func InitConfig(logPath string) *Config {
-	conf := &Config{}
+	conf := defaultFlameshotConfig()
 	bts, err := os.ReadFile(logPath) //nolint:gosec
 	if err != nil {
 		log.Errorf("read config file failed, err:%v", err)
@@ -307,6 +454,7 @@ func InitConfig(logPath string) *Config {
 	}
 
 	conf.fromEnv()
+	conf.applyDefaults()
 	conf.initLogging()
 	// copy profiler files to share dir
 	if conf.ProfilingPath != "" {
@@ -322,6 +470,49 @@ func InitConfig(logPath string) *Config {
 	}
 
 	return conf
+}
+
+func defaultFlameshotConfig() *Config {
+	return &Config{
+		ProfilingEnabled:        boolPtr(true),
+		HProfUploadPathTemplate: "{service}/{pod_name}/{timestamp}/{filename}",
+		HProfUploadTimeout:      "5m",
+		HProfUploadS3PathStyle:  boolPtr(true),
+		HeapDumpPathTemplate:    "{profiling_path}/dumps/{service}_{pod_name}_{pid}_{timestamp}.hprof",
+		HeapDumpJMapPath:        "jmap",
+		HeapDumpTimeout:         "120s",
+		HeapDumpCooldown:        "10m",
+	}
+}
+
+func (c *Config) applyDefaults() {
+	if c == nil {
+		return
+	}
+	if c.ProfilingEnabled == nil {
+		c.ProfilingEnabled = boolPtr(true)
+	}
+	if c.HProfUploadPathTemplate == "" {
+		c.HProfUploadPathTemplate = "{service}/{pod_name}/{timestamp}/{filename}"
+	}
+	if c.HProfUploadTimeout == "" {
+		c.HProfUploadTimeout = "5m"
+	}
+	if c.HProfUploadS3PathStyle == nil {
+		c.HProfUploadS3PathStyle = boolPtr(true)
+	}
+	if c.HeapDumpPathTemplate == "" {
+		c.HeapDumpPathTemplate = "{profiling_path}/dumps/{service}_{pod_name}_{pid}_{timestamp}.hprof"
+	}
+	if c.HeapDumpJMapPath == "" {
+		c.HeapDumpJMapPath = "jmap"
+	}
+	if c.HeapDumpTimeout == "" {
+		c.HeapDumpTimeout = "120s"
+	}
+	if c.HeapDumpCooldown == "" {
+		c.HeapDumpCooldown = "10m"
+	}
 }
 
 func copyProfilerFiles(src, dst string) error {

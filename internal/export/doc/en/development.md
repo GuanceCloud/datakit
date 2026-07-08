@@ -515,6 +515,10 @@ man_version=`git tag -l | sort -nr | head -n 1` # Get the most recently released
 datakit doc --export-docs /path/to/doc --version $man_version --TODO "-" --ignore demo
 ```
 
+### Component Health Integration {#component-health}
+
+Collectors can register component instances through `internal/health` and report whether they are alive or have failed to recover through the common Reporter interface. A component must unregister its instance when it exits. `/v1/health` exposes the combined result; Prometheus metrics should not be added solely for liveness decisions. Only components that cannot recover without restarting DataKit should register.
+
 ## More Readings {#more-readings}
 
 - [DataKit Monitor observer](datakit-monitor.md)

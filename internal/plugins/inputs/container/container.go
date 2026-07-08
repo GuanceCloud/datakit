@@ -7,12 +7,15 @@ package container
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"sort"
 	"sync"
+	"syscall"
 	"time"
 
 	gcpmonitoring "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cloudprovider/gcp/monitoring"
@@ -24,6 +27,8 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	k8sclient "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type containerCollector struct {
@@ -79,6 +84,7 @@ func newGCPCloudMonitoringCollector(ipt *Input, httpClient *http.Client, k8sClie
 		return nil, err
 	}
 	if err := validateRuntimeUniqueness(r); err != nil {
+		closeContainerRuntime(r)
 		return nil, err
 	}
 
@@ -120,6 +126,7 @@ func newContainerCollector(ipt *Input, endpoint string, mountPoint string, k8sCl
 	}
 
 	if err := validateRuntimeUniqueness(runtime); err != nil {
+		closeContainerRuntime(runtime)
 		return nil, err
 	}
 
@@ -146,6 +153,14 @@ func newContainerCollector(ipt *Input, endpoint string, mountPoint string, k8sCl
 	}, nil
 }
 
+func closeContainerRuntime(rt runtime.ContainerRuntime) {
+	if closer, ok := rt.(interface{ Close() error }); ok {
+		if err := closer.Close(); err != nil {
+			l.Warnf("close duplicate container runtime failed: %s", err)
+		}
+	}
+}
+
 func createLogFilter(ipt *Input) (filter.Filter, error) {
 	return filter.NewFilter(ipt.ContainerIncludeLog, ipt.ContainerExcludeLog)
 }
@@ -157,6 +172,24 @@ func createContainerRuntime(endpoint, mountPoint string) (runtime.ContainerRunti
 	return runtime.NewCRIRuntime(endpoint, mountPoint)
 }
 
+func isRuntimeConnectionError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, os.ErrNotExist) ||
+		errors.Is(err, syscall.ECONNREFUSED) || errors.Is(err, syscall.ECONNRESET) ||
+		errors.Is(err, syscall.EPIPE) {
+		return true
+	}
+	for current := err; current != nil; current = errors.Unwrap(current) {
+		if code := status.Code(current); code == codes.Unavailable || code == codes.DeadlineExceeded {
+			return true
+		}
+	}
+	var netErr net.Error
+	return errors.As(err, &netErr) && netErr.Timeout()
+}
+
 func validateRuntimeUniqueness(rt runtime.ContainerRuntime) error {
 	version, err := rt.Version()
 	if err != nil {
@@ -166,11 +199,9 @@ func validateRuntimeUniqueness(rt runtime.ContainerRuntime) error {
 	l.Infof("runtime platform %s, api-version %s", version.PlatformName, version.APIVersion)
 
 	key := fmt.Sprintf("%s:%s", version.PlatformName, version.APIVersion)
-	if _, exist := existingRuntimes.Load(key); exist {
+	if _, exist := existingRuntimes.LoadOrStore(key, struct{}{}); exist {
 		return fmt.Errorf("runtime %s already exists", key)
 	}
-
-	existingRuntimes.Store(key, nil)
 	return nil
 }
 
@@ -355,7 +386,7 @@ func checkEndpoint(endpoint string) error {
 
 	info, err := os.Stat(u.Path)
 	if os.IsNotExist(err) {
-		return fmt.Errorf("endpoint %s does not exist, maybe it is not running", endpoint)
+		return fmt.Errorf("endpoint %s does not exist, maybe it is not running: %w", endpoint, err)
 	}
 	if err != nil {
 		return err

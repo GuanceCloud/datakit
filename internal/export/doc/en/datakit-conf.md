@@ -209,6 +209,21 @@ In this case, we can bypass the global tag on DataKit in two ways:
 
     Starting from version [1.4.20](changelog.md#cl-1.4.20), DataKit defaults to using the IP/Host from the connection address of the collected service as the value for the `host` tag.
 
+## Global Measurement Version {#measurement-version}
+
+For collectors that support `measurement_version`, you can configure a global measurement version in *datakit.conf*:
+
+```toml
+measurement_version = "v1"
+```
+
+This setting is empty by default. When it is not empty, it has higher runtime priority than the collector's own `measurement_version` setting.
+
+Available values:
+
+- `v1`: Use the historical measurement mode and keep the original multiple measurements
+- `v2`: Use the merged measurement mode and merge multiple measurements into one measurement
+
 ## DataKit Own Running Log Configuration {#logging-config}
 
 DataKit has two own logs, one is its own run log（*/var/log/datakit/log*）and the other is HTTP Access log（*/var/log/datakit/gin.log*）.

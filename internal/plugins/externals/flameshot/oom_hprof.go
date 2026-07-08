@@ -51,16 +51,21 @@ type hprofFile struct {
 }
 
 type hprofSummary struct {
-	Service        string
-	PID            int32
-	ProcessName    string
-	DetectedAt     time.Time
-	HProfPath      string
-	HProfSizeBytes int64
-	HProfModTime   time.Time
-	MatchedBy      string
-	SummaryText    string
-	OOMKillDelta   uint64
+	Service             string
+	PID                 int32
+	ProcessName         string
+	DetectedAt          time.Time
+	HProfPath           string
+	HProfSizeBytes      int64
+	HProfModTime        time.Time
+	MatchedBy           string
+	SummaryText         string
+	OOMKillDelta        uint64
+	HProfUploadProvider string
+	HProfUploadStatus   string
+	HProfUploadError    string
+	HProfObjectKey      string
+	HProfDownloadURL    string
 }
 
 type processedHProfStore struct {
@@ -252,6 +257,21 @@ func uploadOOMSummaryLog(summary *hprofSummary, datakitAddr string, tags []strin
 		point.NewKV("matched_by", summary.MatchedBy),
 		point.NewKV("process_name", summary.ProcessName),
 	}
+	if summary.HProfUploadProvider != "" {
+		kvs = kvs.Add("hprof_upload_provider", summary.HProfUploadProvider)
+	}
+	if summary.HProfUploadStatus != "" {
+		kvs = kvs.Add("hprof_upload_status", summary.HProfUploadStatus)
+	}
+	if summary.HProfUploadError != "" {
+		kvs = kvs.Add("hprof_upload_error", summary.HProfUploadError)
+	}
+	if summary.HProfObjectKey != "" {
+		kvs = kvs.Add("hprof_object_key", summary.HProfObjectKey)
+	}
+	if summary.HProfDownloadURL != "" {
+		kvs = kvs.Add("hprof_download_url", summary.HProfDownloadURL)
+	}
 	opts := point.DefaultLoggingOptions()
 	for _, tag := range tags {
 		if k, v, ok := strings.Cut(tag, ":"); ok && k != "" {
@@ -311,6 +331,7 @@ func (m *monitor) handleOOMEvent(event *OOMEvent) {
 	if summary == nil {
 		return
 	}
+	uploadHProfForSummary(context.Background(), m.config, summary, candidate.Tags)
 
 	if err := uploadOOMSummaryLog(summary, m.config.DataKitAddr, candidate.Tags); err != nil {
 		log.Errorf("upload oom hprof summary failed: %v", err)

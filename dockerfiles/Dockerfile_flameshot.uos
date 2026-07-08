@@ -6,7 +6,8 @@ ARG TARGETARCH
 RUN mkdir -p /opt/async-profiler
 RUN mkdir -p /flameshot
 
-RUN apt-get update && apt-get install -y --no-install-recommends wget curl
+RUN apt-get update && apt-get install -y --no-install-recommends wget curl ca-certificates && \
+    rm -rf /var/cache/apt /var/lib/apt/lists/*
 
 RUN \
     if [ "$TARGETARCH" = "amd64" ]; then \

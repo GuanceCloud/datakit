@@ -20,8 +20,8 @@ Flameshot 采用 **Sidecar 容器** 模式部署。它必须与业务主容器�
 
 1. **监控 (Monitor)**：Flameshot 持续轮询主容器内目标进程的资源水位。
 1. **触发 (Trigger)**：当满足阈值（如 CPU > 80%）或收到 HTTP API 请求时，触发采集任务。
-1. **执行 (Execute)**：根据配置的语言类型（目前支持 Java），调用对应的 Profiler 工具 attach 到目标进程。
-1. **收集 (Collect)**：生成的 Profile 文件（如 `.jfr`）存储于共享卷中，随后上传至数据观测中心。
+1. **执行 (Execute)**：根据配置的语言类型（目前支持 Java 和 Go），调用对应的 Profiler 工具采集目标进程。
+1. **收集 (Collect)**：生成的 Profile 文件（如 `.jfr` 或 `.pprof`）随后上传至数据观测中心。
 1. **定时**: 配置 `FLAMESHOT_AUTO_PROFILING` 后，会定时对所有匹配到的进程采集一次 Profiling 数据，采集时长默认 30s，可通过 `FLAMESHOT_AUTO_PROFILING_DURATION` 调整。
 1. **OOM 摘要**: 当检测到容器 `oom_kill` 增量时，Flameshot 会尝试从目标 Java 进程启动参数中自动解析 `-XX:+HeapDumpOnOutOfMemoryError` 与 `-XX:HeapDumpPath=...`。如果 dump 文件位于共享卷内且生成成功，Flameshot 会找到对应 `.hprof`，并上传一条摘要日志。
 
@@ -48,14 +48,42 @@ Flameshot 的所有行为均通过环境变量进行控制。配置分为 **全�
 | `FLAMESHOT_LOG_LEVEL`        | 否     | `info`  | 日志级别，可选：`debug`, `info`, `warn`, `error`。                                 |
 | `FLAMESHOT_HTTP_LOCAL_IP`    | **是** | `-`     | Sidecar 自身 HTTP 服务监听地址。                                                   |
 | `FLAMESHOT_HTTP_LOCAL_PORT`  | **是** | `8089`  | Sidecar 自身 HTTP 服务监听端口。                                                   |
+| `FLAMESHOT_PROFILING_ENABLED` | 否 | `true` | 是否开启 JFR Profiling。设置为 `false` 后会关闭定时、阈值、cgroup 高水位和 HTTP 手动 Profiling，但保留 OOM 检测、hprof 上传和主动 Heap Dump。 |
 | `FLAMESHOT_AUTO_PROFILING`   | 否     | -       | 定时对所有匹配到的进程采集一次 Profiling 数据。最小不得低于一分钟，如五分钟："5m" 或者一小时 "1h"         |
 | `FLAMESHOT_AUTO_PROFILING_DURATION` | 否 | `30s` | 定时采集模式下的单次采样时长。 |
 | `FLAMESHOT_OOM_HPROF_ENABLED` | 否    | `false` | 开启 OOM 后 `.hprof` 摘要恢复链路。仅对 Java 进程生效，且要求目标 JVM 显式开启 `-XX:+HeapDumpOnOutOfMemoryError` 并配置位于共享卷内的 `-XX:HeapDumpPath=...`。建议在发布配置中显式声明。 |
 | `FLAMESHOT_OOM_HPROF_MATCH_WINDOW` | 否 | `2m` | OOM 事件与 `.hprof` 文件修改时间的匹配窗口。 |
+| `FLAMESHOT_HPROF_UPLOAD_ENABLED` | 否 | `false` | 是否将匹配到或主动生成的 `.hprof` 上传到对象存储。 |
+| `FLAMESHOT_HPROF_UPLOAD_PROVIDER` | 否 | - | 对象存储类型，支持 `oss` 和 `s3`。 |
+| `FLAMESHOT_HPROF_UPLOAD_ENDPOINT` | 否 | - | OSS/S3 endpoint。 |
+| `FLAMESHOT_HPROF_UPLOAD_REGION` | 否 | S3 默认为 `us-east-1` | S3 region。 |
+| `FLAMESHOT_HPROF_UPLOAD_BUCKET` | 否 | - | 目标 bucket。 |
+| `FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_ID` | 否 | - | 对象存储 AK。 |
+| `FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_SECRET` | 否 | - | 对象存储 SK。 |
+| `FLAMESHOT_HPROF_UPLOAD_PATH_TEMPLATE` | 否 | `{service}/{pod_name}/{timestamp}/{filename}` | 对象路径模板，支持 service / pod_name / pod_namespace / host / pid / timestamp / filename 等变量。 |
+| `FLAMESHOT_HPROF_DOWNLOAD_URL_TEMPLATE` | 否 | - | 可选下载链接模板；配置后事件中按该模板生成 `hprof_download_url`。 |
+| `FLAMESHOT_HEAP_DUMP_ENABLED` | 否 | `false` | 内存紧急阈值命中时是否主动执行 Java Heap Dump。 |
+| `FLAMESHOT_HEAP_DUMP_PATH_TEMPLATE` | 否 | `{profiling_path}/dumps/{service}_{pod_name}_{pid}_{timestamp}.hprof` | 本地 Heap Dump 输出路径模板。 |
+| `FLAMESHOT_HEAP_DUMP_JMAP_PATH` | 否 | `jmap` | `jmap` 可执行文件路径。官方 Sidecar 镜像默认不内置 JVM/JDK，开启主动 Heap Dump 时需显式提供可用 `jmap`。 |
+| `FLAMESHOT_HEAP_DUMP_TIMEOUT` | 否 | `120s` | Heap Dump 命令超时时间。 |
+| `FLAMESHOT_HEAP_DUMP_COOLDOWN` | 否 | `10m` | 单进程主动 Heap Dump 冷却时间。 |
 | `FLAMESHOT_POD_MEM_LIMIT` | 否 | - | Pod 内存 limit，单位 Mi。配置后会优先按 Pod limit 计算内存使用率。 |
 | `FLAMESHOT_POD_CPU_LIMIT` | 否 | - | Pod CPU limit，单位 m。配置后会按 Pod CPU limit 计算 CPU 使用率。 |
 | `FLAMESHOT_SERVICE`          | 否     | -       | 可以不用在 `FLAMESHOT_PROCESSES` 中配置 `service`, 会全部替换。                         |
 | `FLAMESHOT_TAGS`             | 否     | -       | 建议配置 `host` `pod_name` `pod_namespace` 如： "host:host_name,pod_name:pod_a" |
+
+如果 DataKit 以 DaemonSet 方式部署，并通过 `hostNetwork`/`hostPort` 暴露 `9529`，推荐让 Flameshot 直连**当前业务 Pod 所在节点**的 DataKit，而不是通过普通 Service 域名随机转发：
+
+```yaml
+- name: NODE_IP
+  valueFrom:
+    fieldRef:
+      fieldPath: status.hostIP
+- name: FLAMESHOT_DATAKIT_ADDR
+  value: "http://$(NODE_IP):9529/profiling/v1/input"
+```
+
+这样每个业务 Pod 都会将 Profile 上传到本节点 DataKit，便于排查和保持节点本地采集语义。
 
 ### 采集策略配置 (`FLAMESHOT_PROCESSES`) {#profiling-policy}
 
@@ -80,6 +108,7 @@ Flameshot 的所有行为均通过环境变量进行控制。配置分为 **全�
               "mem_usage_mb": 1024,
               "mem_usage_percent_emergency": 92,
               "mem_usage_mb_emergency": 1536,
+              "heap_dump_on_memory_emergency": true,
               "emergency_duration": "10s",
               "tags": [
                 "env:prod",
@@ -92,18 +121,23 @@ Flameshot 的所有行为均通过环境变量进行控制。配置分为 **全�
 **通用字段说明：**
 
 - **`service`** (String): 上报到观测中心的服务名称。
-- **`language`** (String): 目标进程语言。目前支持 `java`。
+- **`language`** (String): 目标进程语言。目前支持 `java`、`go`、`golang`。
 - **`command`** (String): 匹配进程命令行的正则表达式。
 - **`duration`** (String): 单次采集时长（例如 `30s`, `1m`）。**注意**：受限于执行超时，建议不超过 5 分钟。
 - **`emergency_duration`** (String): 内存紧急阈值命中后的快速采集时长，建议配置为 `10s` 或 `15s`。
+- **`pprof_url`** (String): Go pprof HTTP 地址，例如 `http://127.0.0.1:6060`。当 `language` 为 `go` 或 `golang` 时需要配置。
+- **`pprof_types`** (List): Go pprof 类型，支持 `cpu`、`goroutine`、`heap`、`mutex`、`block`，与 profile 采集器现有 Go pull 模式保持一致。
+- **`pprof_timeout`** (String): Go pprof 请求超时时间，建议大于 CPU profile 的 `duration`。
 - **`tags`** (List): 自定义标签列表，建议包含 `env`, `version` 等元信息。
 - **`cpu_usage_percent`** (Int): CPU 触发阈值 (0-N)。多核环境下数值可能超过 100。
 - **`mem_usage_percent`** (Int): 内存使用率平均阈值 (0-100)，按最近 5 个点平均值触发。
 - **`mem_usage_mb`** (Int): 内存使用量平均阈值 (MB)，按最近 5 个点平均值触发。
 - **`mem_usage_percent_emergency`** (Int): 内存使用率紧急瞬时阈值 (0-100)，单点命中立即触发。
 - **`mem_usage_mb_emergency`** (Int): 内存使用量紧急瞬时阈值 (MB)，单点命中立即触发。
+- **`heap_dump_on_memory_emergency`** (Bool): 内存紧急阈值命中时是否允许该进程规则主动 Heap Dump。未配置时，在 `FLAMESHOT_HEAP_DUMP_ENABLED=true` 的情况下默认允许。
 - `cpu_usage_percent`、`mem_usage_percent`、`mem_usage_mb` 不配置或者配置 0 都会略过该项的阈值检查。
 - 配置了 `FLAMESHOT_POD_MEM_LIMIT` 后，`mem_usage_percent` 与 `mem_usage_percent_emergency` 会优先按 Pod limit 视角计算，而不是宿主机视角。
+- 配置 `FLAMESHOT_HEAP_DUMP_ENABLED=true` 后，内存紧急阈值命中会投递 `jmap` Heap Dump 任务；该能力要求 Sidecar 内可执行 `FLAMESHOT_HEAP_DUMP_JMAP_PATH` 指向的 `jmap`。如果同时配置 hprof 对象存储上传，生成的 `.hprof` 会继续上传，并在事件中带上 `hprof_object_key`、`hprof_download_url` 和上传状态。
 
 
 ---
@@ -129,19 +163,82 @@ Flameshot 的所有行为均通过环境变量进行控制。配置分为 **全�
 
     - 无需依赖 JVM Safepoint，开销极低。
     - 如果希望在 OOM 后自动发现并上传 `.hprof` 摘要日志，业务 JVM 必须显式开启 `-XX:+HeapDumpOnOutOfMemoryError`，并配置 `-XX:HeapDumpPath=...`。仅设置 `FLAMESHOT_OOM_HPROF_ENABLED=true` 并不会自动修改目标 JVM 的启动参数。
+    - 如果开启 `FLAMESHOT_HEAP_DUMP_ENABLED=true`，Flameshot 会在内存紧急阈值命中时执行 `jmap -dump:format=b,file=<path> <pid>` 主动生成 `.hprof`。官方 Sidecar 镜像默认不内置 JVM/JDK，需要通过自定义镜像、挂载工具或其它方式显式提供与目标 JVM 兼容的 `jmap`，并用 `FLAMESHOT_HEAP_DUMP_JMAP_PATH` 指向它。
     - `HeapDumpPath` 必须指向业务容器和 Flameshot Sidecar **共同挂载**的共享目录；建议为每个进程配置稳定且可区分的 dump 路径。否则 Flameshot 即使检测到 OOM，也无法读取 dump 文件。
     - 建议在发布配置中显式声明 `.hprof` 摘要恢复相关开关，而不要依赖隐式默认值。
 
-=== "Go (Coming Soon)"
+=== "Go"
 
     ### Go Profiling {#go-profiling}
-    
-    *计划中*：将集成 `pprof` 工具链。
-    
-    **预期特性：**
 
-    -   支持 Goroutine 阻塞分析。
-    -   支持 Heap 内存快照。
+    针对 Go 应用，Flameshot 通过业务进程暴露的 `net/http/pprof` HTTP 接口拉取 `.pprof` 数据并上传到 DataKit。
+
+    **关键配置字段 (`FLAMESHOT_PROCESSES`):**
+
+    - **`language`**: 必须设置为 `go` 或 `golang`。
+    - **`pprof_url`**: 业务进程 pprof HTTP 地址，例如 `http://127.0.0.1:6060`。
+    - **`pprof_types`**: 支持 `cpu`、`goroutine`、`heap`、`mutex`、`block`。
+    - **`duration`**: `cpu` profile 的采集时长，会映射到 `/debug/pprof/profile?seconds=<duration>`。
+    - **`pprof_timeout`**: pprof 请求超时时间，应大于 `duration`。
+
+    **Go 应用侧要求：**
+
+    ```go
+    import (
+        "net/http"
+        _ "net/http/pprof"
+    )
+
+    func main() {
+        go http.ListenAndServe("127.0.0.1:6060", nil)
+    }
+    ```
+
+    `pprof_url` 必须填写 Flameshot Sidecar **实际能够访问到**的地址。常见有两种情况：
+
+    - pprof 监听 `127.0.0.1:6060` 或 `0.0.0.0:6060`：可以配置 `http://127.0.0.1:6060`。
+    - pprof 只监听 Pod IP，例如 `10.x.x.x:6060`：需要通过 Downward API 注入 Pod IP，并配置 `http://$(POD_IP):6060`。
+
+    ```yaml
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+    - name: FLAMESHOT_PROCESSES
+      value: |
+        [
+          {
+            "service": "go-app",
+            "language": "go",
+            "command": "^/app/go-app$",
+            "pprof_url": "http://$(POD_IP):6060",
+            "pprof_types": ["cpu", "goroutine", "heap", "mutex", "block"],
+            "duration": "30s",
+            "pprof_timeout": "45s"
+          }
+        ]
+    ```
+
+    配置示例：
+
+    ```json
+    {
+      "service": "go-app",
+      "language": "go",
+      "command": "^/app/go-app",
+      "pprof_url": "http://127.0.0.1:6060",
+      "pprof_types": ["cpu", "goroutine", "heap", "mutex", "block"],
+      "duration": "30s",
+      "pprof_timeout": "45s",
+      "tags": ["env:prod", "version:v1"]
+    }
+    ```
+
+    **注意事项：**
+
+    - `heap`、`mutex`、`block` 以 delta profile 形式上传，首次采样会作为基线保存，不上传这些 delta 类型。
+    - `mutex` 和 `block` 默认不会采集有效数据，业务代码需要显式开启 `runtime.SetMutexProfileFraction` 和 `runtime.SetBlockProfileRate`。
+    - pprof 接口可能暴露敏感运行时信息，建议只监听 Pod 内本地地址，不要通过 Service 或公网暴露。
 
 === "Python (Coming Soon)"
 
@@ -203,6 +300,43 @@ spec:
     - name: shared-data
       mountPath: /data
 ```
+
+### DataKit DaemonSet 配置注意事项 {#datakit-daemonset}
+
+当 DataKit 以 DaemonSet 方式部署时，Flameshot 推荐通过当前节点 IP 上传 Profile：
+
+```yaml
+- name: NODE_IP
+  valueFrom:
+    fieldRef:
+      fieldPath: status.hostIP
+- name: FLAMESHOT_DATAKIT_ADDR
+  value: "http://$(NODE_IP):9529/profiling/v1/input"
+```
+
+同时需要确认 DataKit 已满足以下条件：
+
+1. **已开启 profile 采集器**，并注册 Profiling 上传接口：
+
+    ```toml
+    [[inputs.profile]]
+      endpoints = ["/profiling/v1/input"]
+    ```
+
+1. **允许非 localhost 访问 Profiling API**。如果 DataKit 开启了 HTTP API 白名单，需要将 `/profiling/v1/input` 加入 `ENV_HTTP_PUBLIC_APIS`：
+
+    ```yaml
+    - name: ENV_HTTP_PUBLIC_APIS
+      value: /otel/v1/trace,/otel/v1/metric,/otel/v1/logs,/profiling/v1/input
+    ```
+
+    如果该变量已经配置了其它接口，不要直接覆盖原值，应在原列表后追加 `/profiling/v1/input`。否则会出现：
+
+    ```text
+    datakit.publicAccessDisabled: api /profiling/v1/input disabled from external IP, only loopback(localhost) allowed
+    ```
+
+1. **DataKit 监听地址能被节点 IP 访问**。DaemonSet 常见配置是 `hostNetwork: true`、`hostPort: 9529`、`ENV_HTTP_LISTEN=0.0.0.0:9529`。
 
 ### OOM HProf 摘要要求 {#oom-hprof}
 
@@ -269,7 +403,7 @@ Flameshot 提供了 HTTP 接口，允许用户或自动化运维脚本**主动�
 | `pid` | **二选一** | 目标进程 ID。优先级高于 `command`。 | `1234` |
 | `command` | **二选一** | 目标进程名正则。用于匹配目标进程。 | `^java.*app.jar$` |
 | `duration` | 否 | 采集时长。默认为 `30s`。 | `30s` |
-| `events` | 否 | 采集事件类型。默认为 `all`。 | `cpu,alloc` |
+| `events` | 否 | Java 采集事件类型。默认为 `all`。Go 采集优先使用 `pprof_types`。 | `cpu,alloc` |
 
 **使用示例：**
 
@@ -312,11 +446,42 @@ Flameshot 提供了 HTTP 接口，允许用户或自动化运维脚本**主动�
 
     - 检查 Pod 是否开启了 `shareProcessNamespace: true`。
     - 检查 Sidecar 是否拥有 `SYS_PTRACE` 权限。
+    - Go 应用检查 `pprof_url` 是否能在 Flameshot Sidecar 内访问。
+    - 对 Go 应用，先在 Flameshot 容器内确认 pprof endpoint 可访问：
+
+        ```bash
+        curl -v "http://<pprof-host>:6060/debug/pprof/"
+        curl -v "http://<pprof-host>:6060/debug/pprof/goroutine?debug=0"
+        ```
+
+    - 如果日志中出现 `connect: connection refused`，说明对应 IP:Port 没有监听。进入 Pod 检查：
+
+        ```bash
+        netstat -lntp | grep ':6060'
+        ss -ltnp | grep ':6060'
+        ```
+
+      如果没有 `LISTEN`，说明业务进程没有打开 pprof，或监听端口不是 6060。仅看到 `60602 ... ESTABLISHED` 这类连接不代表 6060 已监听。
+    - 如果 pprof 监听在 Pod IP 上，`pprof_url` 应配置为 `http://$(POD_IP):6060`；如果监听在 loopback 或所有地址上，可以使用 `http://127.0.0.1:6060`。
 
 2. **文件未上传？**
 
     - 检查 `FLAMESHOT_PROFILING_PATH` 是否在两个容器间正确挂载。
     - 系统会自动管理文件生命周期，采集完成后会尝试删除临时文件。
+    - Go 采集直接以内存附件形式上传 `.pprof`，通常不依赖本地落盘；如果 Go 采集日志已经显示 `upload to DataKit err`，应优先检查 DataKit 返回的 HTTP 状态码和响应体。
+    - 如果 DataKit 返回 `403`，并包含 `datakit.publicAccessDisabled`，说明 `/profiling/v1/input` 没有对非 localhost 放行。请在 DataKit 配置中追加：
+
+        ```yaml
+        - name: ENV_HTTP_PUBLIC_APIS
+          value: /otel/v1/trace,/otel/v1/metric,/otel/v1/logs,/profiling/v1/input
+        ```
+
+    - 如果 DataKit 返回 `input "profile" is not enabled for API "/profiling/v1/input"`，说明 DataKit 没有开启 profile 采集器。请启用：
+
+        ```toml
+        [[inputs.profile]]
+          endpoints = ["/profiling/v1/input"]
+        ```
 
 3. **配置正则太麻烦**
 

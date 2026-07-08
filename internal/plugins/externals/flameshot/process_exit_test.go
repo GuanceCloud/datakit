@@ -8,6 +8,9 @@ package flameshot
 import (
 	"container/list"
 	"errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -161,4 +164,68 @@ func TestMonitorHandleProcessGoneDoesNotBlockWhenExitQueueFull(t *testing.T) {
 	}
 
 	assert.Empty(t, m.cs)
+}
+
+func TestMonitorHandleProcessExitUploadsRecentHProf(t *testing.T) {
+	hprofPath := filepath.Join(t.TempDir(), "app.hprof")
+	assert.NoError(t, os.WriteFile(hprofPath, []byte("dump"), 0o644))
+	modTime := time.Now().Add(-10 * time.Second)
+	assert.NoError(t, os.Chtimes(hprofPath, modTime, modTime))
+
+	var putPath string
+	var putBody string
+	var logBody string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		switch r.Method {
+		case http.MethodPut:
+			putPath = r.URL.Path
+			putBody = string(body)
+		case http.MethodPost:
+			logBody = string(body)
+		default:
+			t.Fatalf("unexpected request method %s", r.Method)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	m := NewMonitor(&Config{
+		DataKitAddr:                server.URL + "/profiling/v1/input",
+		HProfUploadEnabled:         true,
+		HProfUploadProvider:        hprofUploadProviderS3,
+		HProfUploadEndpoint:        server.URL,
+		HProfUploadBucket:          "dump-bucket",
+		HProfUploadAccessKeyID:     "ak",
+		HProfUploadAccessKeySecret: "sk",
+		HProfUploadPathTemplate:    "{service}/{filename}",
+		HProfUploadS3PathStyle:     boolPtr(true),
+		HProfUploadTimeout:         "5s",
+	})
+	event := &processExitEvent{
+		Service:         "svc-exit",
+		PID:             1234,
+		ProcessName:     "java",
+		DetectedAt:      time.Now(),
+		SuspectedReason: "process_exit_with_heap_dump",
+		Tags:            []string{"pod_name:pod-a"},
+		RecentHProfArtifact: &localArtifact{
+			Path:      hprofPath,
+			SizeBytes: 4,
+			ModTime:   modTime,
+		},
+	}
+
+	m.handleProcessExit(event)
+
+	assert.Equal(t, "/dump-bucket/svc-exit/app.hprof", putPath)
+	assert.Equal(t, "dump", putBody)
+	assert.Equal(t, "ok", event.HProfUploadStatus)
+	assert.Equal(t, hprofUploadProviderS3, event.HProfUploadProvider)
+	assert.Equal(t, "svc-exit/app.hprof", event.HProfObjectKey)
+	assert.Contains(t, event.HProfDownloadURL, "/dump-bucket/svc-exit/app.hprof")
+	assert.Contains(t, logBody, "flameshot_process_exit")
+	assert.Contains(t, logBody, "hprof_upload_status")
+	assert.Contains(t, logBody, "hprof_download_url")
+	assert.True(t, m.processedHProf.seen(processExitHProfKey(event.RecentHProfArtifact)))
 }

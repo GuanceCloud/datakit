@@ -1,5 +1,29 @@
 # 更新日志
 
+## 2.5.0(2026/07/08) {#cl-2.5.0}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-2.5.0-new}
+
+- Oracle 采集器新增 ASM 磁盘组指标采集（#3136）
+- Oracle 采集器新增数据库打开模式、资源上限及数据文件限额指标（#3136）
+- Flameshot 新增 Go 语言 pprof 采集支持（#3132）
+- Flameshot 新增主动 Heap Dump 与 hprof 上传至 OSS/S3（#3122）
+
+### 问题修复 {#cl-2.5.0-fix}
+
+- 修复 `gpu_smi` 掉卡告警逻辑死循环风险（#3144）
+- 修复聚合链路 tail sampling 未按 sinker header 分组的问题（#3095）
+
+### 功能优化 {#cl-2.5.0-opt}
+
+- Redis 新增 `role_status` 指标字段，支持主从角色变化检测（#3141）
+- 新增全局 `measurement_version` 配置，支持安装/升级时统一指定指标集版本，覆盖 MySQL、Oracle、PostgreSQL、SQLServer、Redis、JVM 等采集器（#3142）
+- 新增 `/v1/health` 端点与 CRI 运行时故障自恢复，优化 K8s liveness 检测（#3140）
+
+---
+
 ## 2.4.0(2026/07/02) {#cl-2.4.0}
 
 本次发布属于迭代发布，主要有如下更新：
@@ -244,6 +268,16 @@
 - 补齐 `cat`、`xfsquota`、`windowsremote`、`logfwdserver` 等采集器热加载能力（#3042）
 - 优化 DataKit 启动过程，移除初始化阶段不必要的采集行为，降低启动耗时（#3038）
 - OpenTelemetry 采集器复用 `cliutils/otlp` 共享解析器，收敛 metrics/logs/traces 解析主循环并保持 DataKit 本地语义（#3026）
+
+---
+
+## 1.94.1(2026/07/08) {#cl-1.94.1}
+
+本次发布属于 hotfix 修复，内容如下：
+
+### 兼容调整 {#cl-1.94.1-brk}
+
+- 新增全局 `measurement_version` 配置，支持安装/升级时统一指定指标集版本，覆盖 MySQL、Oracle、PostgreSQL、SQLServer、Redis、JVM 等采集器（#3142）
 
 ---
 

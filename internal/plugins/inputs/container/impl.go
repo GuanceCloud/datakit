@@ -8,6 +8,7 @@ package container
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
 
@@ -41,6 +42,7 @@ func newCollectors(ipt *Input) []Collector {
 
 func newContainerCollectors(ipt *Input) []Collector {
 	var collectors []Collector
+	var waitingEndpoints []string
 
 	if ipt.GCPCloudAPIEnabled {
 		return newGCPCloudCollectors(ipt)
@@ -63,12 +65,78 @@ func newContainerCollectors(ipt *Input) []Collector {
 		collector, err := createContainerCollector(ipt, endpoint, k8sClient, logCoordinator)
 		if err != nil {
 			l.Warnf("failed to create collector for endpoint %s: %s", endpoint, err)
+			if isRuntimeConnectionError(err) {
+				waitingEndpoints = append(waitingEndpoints, endpoint)
+			}
 			continue
 		}
 		collectors = append(collectors, collector)
 	}
+	if len(collectors) == 0 && len(waitingEndpoints) != 0 {
+		collectors = append(collectors, newRuntimeWaitingCollector(waitingEndpoints, func(endpoint string) (Collector, error) {
+			return createContainerCollector(ipt, endpoint, k8sClient, logCoordinator)
+		}))
+	}
 
 	return collectors
+}
+
+const runtimeWaitInterval = 10 * time.Second
+
+// runtimeWaitingCollector occupies the container collector slot until one
+// configured runtime is ready, then hands control to the real collector.
+type runtimeWaitingCollector struct {
+	endpoints []string
+	create    func(string) (Collector, error)
+	interval  time.Duration
+	stop      <-chan interface{}
+}
+
+func newRuntimeWaitingCollector(endpoints []string, create func(string) (Collector, error)) Collector {
+	return &runtimeWaitingCollector{
+		endpoints: endpoints,
+		create:    create,
+		interval:  runtimeWaitInterval,
+		stop:      datakit.Exit.Wait(),
+	}
+}
+
+func (c *runtimeWaitingCollector) StartCollect() {
+	endpoints := append([]string(nil), c.endpoints...)
+	attempts := 0
+	ticker := time.NewTicker(c.interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-c.stop:
+			return
+		case <-ticker.C:
+		}
+
+		attempts++
+		remaining := endpoints[:0]
+		for _, endpoint := range endpoints {
+			collector, err := c.create(endpoint)
+			if err == nil {
+				l.Infof("runtime at %s recovered", endpoint)
+				collector.StartCollect()
+				return
+			}
+			if !isRuntimeConnectionError(err) {
+				l.Infof("stop retrying runtime at %s: %s", endpoint, err)
+				continue
+			}
+			remaining = append(remaining, endpoint)
+			if attempts%3 == 0 {
+				l.Warnf("runtime at %s is still unavailable: %s", endpoint, err)
+			}
+		}
+		endpoints = remaining
+		if len(endpoints) == 0 {
+			return
+		}
+	}
 }
 
 func newGCPCloudCollectors(ipt *Input) []Collector {

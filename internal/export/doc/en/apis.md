@@ -8,6 +8,7 @@ In this document, among the interfaces involved, only the following interfaces a
 | Method | API                                           |
 | ---    | ---                                           |
 | `GET`  | [`/v1/ping`](apis.md#api-ping)                |
+| `GET`  | [`/v1/health`](apis.md#api-health)            |
 | `GET`  | [`/v1/ntp`](apis.md#api-ntp)                  |
 | `POST` | [`/v1/write/:category`](apis.md#api-v1-write) |
 
@@ -1043,6 +1044,10 @@ $ curl "http://localhost:9529/v1/ping"
   }
 }
 ```
+
+### `/v1/health` {#api-health}
+
+Returns the liveness of DataKit and its registered components. The endpoint returns HTTP 200 while components are running, and HTTP 503 when any component keeps failing to recover or stops reporting its state. It can be used directly as a Kubernetes liveness probe. The response contains liveness, check time, and failed components; see the DataKit logs for error details.
 
 ### `/v1/pipeline/debug` {#api-debug-pl}
 

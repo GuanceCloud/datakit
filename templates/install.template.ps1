@@ -158,6 +158,12 @@ if ($x -ne $null) {
 	Write-COutput green "* Set def_inputs => $x"
 }
 
+$x = [Environment]::GetEnvironmentVariable("DK_MEASUREMENT_VERSION")
+if ($x -ne $null) {
+	$cmd += "--measurement-version='$x'"
+	Write-COutput green "* Set measurement_version => $x"
+}
+
 $proxy=""
 $x = [Environment]::GetEnvironmentVariable("HTTP_PROXY")
 if ($x -ne $null) {

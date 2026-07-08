@@ -15,13 +15,18 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 // SQLTableSpace for Oracle 11g+.
 const SQLTableSpace = `SELECT
   c.name pdb_name,
   t.tablespace_name tablespace_name,
+  CASE UPPER(t.status)
+    WHEN 'ONLINE' THEN 1
+    WHEN 'OFFLINE' THEN 2
+    WHEN 'READ ONLY' THEN 3
+    ELSE 0
+  END tablespace_status,
   NVL(m.used_space * t.block_size, 0) used,
   NVL(m.tablespace_size * t.block_size, 0) size_,
   NVL(m.used_percent, 0) in_use,
@@ -34,6 +39,12 @@ WHERE
 // SQLTableSpaceOld for Oracle 11g and 11g-.
 const SQLTableSpaceOld = `SELECT
   m.tablespace_name,
+  CASE UPPER(t.status)
+    WHEN 'ONLINE' THEN 1
+    WHEN 'OFFLINE' THEN 2
+    WHEN 'READ ONLY' THEN 3
+    ELSE 0
+  END tablespace_status,
   NVL(m.used_space * t.block_size, 0) as used,
   m.tablespace_size * t.block_size as size_,
   NVL(m.used_percent, 0) as in_use,
@@ -43,12 +54,13 @@ FROM
   join dba_tablespaces t on m.tablespace_name = t.tablespace_name`
 
 type tableSpaceRowDB struct {
-	PdbName        sql.NullString `db:"PDB_NAME"`
-	TablespaceName string         `db:"TABLESPACE_NAME"`
-	Used           float64        `db:"USED"`
-	Size           float64        `db:"SIZE_"`
-	InUse          float64        `db:"IN_USE"`
-	Offline        float64        `db:"OFFLINE_"`
+	PdbName          sql.NullString `db:"PDB_NAME"`
+	TablespaceName   string         `db:"TABLESPACE_NAME"`
+	TablespaceStatus int64          `db:"TABLESPACE_STATUS"`
+	Used             float64        `db:"USED"`
+	Size             float64        `db:"SIZE_"`
+	InUse            float64        `db:"IN_USE"`
+	Offline          float64        `db:"OFFLINE_"`
 }
 
 func (ipt *Input) collectOracleTableSpace(ptsTime time.Time) {
@@ -101,6 +113,7 @@ func (ipt *Input) collectOracleTableSpace(ptsTime time.Time) {
 
 		kvs = kvs.Set("in_use", row.InUse)
 		kvs = kvs.Set("off_use", row.Offline)
+		kvs = kvs.Set("tablespace_status", row.TablespaceStatus)
 		kvs = kvs.Set("ts_size", row.Size)
 		kvs = kvs.Set("used_space", row.Used)
 
@@ -112,7 +125,7 @@ func (ipt *Input) collectOracleTableSpace(ptsTime time.Time) {
 		dkio.WithCollectCost(time.Since(start)),
 		dkio.WithElection(ipt.Election),
 		dkio.WithSource(inputName), dkio.WithInput(inputName),
-		dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementOracle))); err != nil {
+		dkio.WithMeasurement(ipt.overrideMeasurement)); err != nil {
 		l.Warnf("feeder.Feed: %s, ignored", err)
 	}
 }

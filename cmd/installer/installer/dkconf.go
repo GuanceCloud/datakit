@@ -446,6 +446,15 @@ func (args *InstallerArgs) LoadInstallerArgs(mc *config.Config) (*config.Config,
 		mc = args.loadHTTPPublicAPIs(mc)
 	}
 
+	if args.MeasurementVersion != "" {
+		mc.MeasurementVersion = config.NormalizeMeasurementVersion(args.MeasurementVersion)
+		if mc.MeasurementVersion == "" {
+			l.Warnf("invalid measurement version %q, ignored", args.MeasurementVersion)
+		} else {
+			l.Infof("set measurement version to %q", mc.MeasurementVersion)
+		}
+	}
+
 	if args.DCAEnable != "" {
 		config.Cfg.DCAConfig.Enable = true
 		l.Infof("set dca enabled")

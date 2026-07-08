@@ -78,6 +78,13 @@ const (
     # Collection interval for system metrics (default: 60s)
     interval = "60s"
 
+  ## ASM diskgroup collection
+  [inputs.oracle.asm]
+    # Set true to enable collecting ASM diskgroup metrics (default: true)
+    enabled = true
+    # Collection interval for ASM diskgroup metrics (default: 600s)
+    interval = "600s"
+
   ## Database Monitoring (DBM) configuration
   ## DBM provides deep visibility into database performance by collecting query metrics, activity, and execution plans
   [inputs.oracle.dbm]

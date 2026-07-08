@@ -47,8 +47,9 @@ type tailSamplingSendTask struct {
 }
 
 type metricBatchSendTask struct {
-	pickKey uint64
-	batch   *aggregate.Batchs
+	pickKey     uint64
+	batch       *aggregate.Batchs
+	sinkHeaders sinkHeaders
 }
 
 type sendStatusError struct {
@@ -58,6 +59,18 @@ type sendStatusError struct {
 
 func (e *sendStatusError) Error() string {
 	return e.msg
+}
+
+type sinkHeaders struct {
+	key   string
+	value string
+}
+
+func (h sinkHeaders) apply(headers map[string]string) {
+	if h.key == "" || h.value == "" {
+		return
+	}
+	headers[h.key] = h.value
 }
 
 func (ag *Aggregator) SendTailSamplingPackages(packages map[uint64]*aggregate.DataPacket) error {
@@ -201,6 +214,10 @@ func (ag *Aggregator) sendTailSamplingPackage(pickKey uint64, pkg *aggregate.Dat
 }
 
 func (ag *Aggregator) SendMetricBatches(category string, batchMap map[uint64]*aggregate.Batchs) error {
+	return ag.sendMetricBatches(category, batchMap, sinkHeaders{})
+}
+
+func (ag *Aggregator) sendMetricBatches(category string, batchMap map[uint64]*aggregate.Batchs, headers sinkHeaders) error {
 	if len(batchMap) == 0 {
 		log.Debugf("skip sending metric batches: no batches")
 		return nil
@@ -220,7 +237,7 @@ func (ag *Aggregator) SendMetricBatches(category string, batchMap map[uint64]*ag
 				pickKey, len(batch.Batchs), len(splitBatches), maxRawBodySize)
 		}
 		for _, splitBatch := range splitBatches {
-			tasks = append(tasks, metricBatchSendTask{pickKey: pickKey, batch: splitBatch})
+			tasks = append(tasks, metricBatchSendTask{pickKey: pickKey, batch: splitBatch, sinkHeaders: headers})
 		}
 	}
 
@@ -233,7 +250,7 @@ func (ag *Aggregator) SendMetricBatches(category string, batchMap map[uint64]*ag
 
 	if err := ag.runAsyncSend(len(tasks), func(i int) error {
 		task := tasks[i]
-		return ag.sendMetricBatch(category, task.pickKey, task.batch)
+		return ag.sendMetricBatchWithHeaders(category, task.pickKey, task.batch, task.sinkHeaders)
 	}); err != nil {
 		log.Errorf("send metric batches failed: %v", err)
 		return err
@@ -243,6 +260,10 @@ func (ag *Aggregator) SendMetricBatches(category string, batchMap map[uint64]*ag
 }
 
 func (ag *Aggregator) sendMetricBatch(category string, pickKey uint64, batch *aggregate.Batchs) error {
+	return ag.sendMetricBatchWithHeaders(category, pickKey, batch, sinkHeaders{})
+}
+
+func (ag *Aggregator) sendMetricBatchWithHeaders(category string, pickKey uint64, batch *aggregate.Batchs, headers sinkHeaders) error {
 	startTime := time.Now()
 	pointsCount := countSelectedMetricPointsInBatch(batch)
 
@@ -276,6 +297,13 @@ func (ag *Aggregator) sendMetricBatch(category string, pickKey uint64, batch *ag
 		log.Debugf("send metric batches: url=%s pick_key=%d batches=%d body_size=%d",
 			ep.CategoryURL[datakit.Aggregate], pickKey, len(batch.Batchs), len(body.buf))
 
+		httpHeaders := map[string]string{
+			aggregate.GuancePickKey:    strconv.FormatUint(pickKey, 10),
+			aggregate.GuanceRoutingKey: strconv.FormatUint(pickKey, 10),
+			payloadSizeHeader:          strconv.Itoa(len(body.buf)),
+		}
+		headers.apply(httpHeaders)
+
 		resp, respBody, err := ep.WriteAggrData(&endpoint.AggrData{
 			API:             datakit.Aggregate,
 			Category:        category,
@@ -284,11 +312,7 @@ func (ag *Aggregator) sendMetricBatch(category string, pickKey uint64, batch *ag
 			Body:            body.buf,
 			RawLen:          len(body.buf),
 			Points:          pointsCount,
-			Headers: map[string]string{
-				aggregate.GuancePickKey:    strconv.FormatUint(pickKey, 10),
-				aggregate.GuanceRoutingKey: strconv.FormatUint(pickKey, 10),
-				payloadSizeHeader:          strconv.Itoa(len(body.buf)),
-			},
+			Headers:         httpHeaders,
 		})
 		if resp == nil {
 			if err != nil {

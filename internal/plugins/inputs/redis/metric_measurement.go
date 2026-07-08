@@ -1068,6 +1068,12 @@ func (m *redisMeasurement) getInfoFields() map[string]interface{} {
 	// Not number, discard. "role": "Value is `master` if the instance is replica of no one, or `slave` if the
 	// instance is a replica of some
 	// master instance."
+	fields["role_status"] = &inputs.FieldInfo{
+		DataType: inputs.Int,
+		Type:     inputs.Gauge,
+		Unit:     inputs.EnumValue,
+		Desc:     "Numeric role status of the Redis instance. `1` for master, `0` for slave/replica, and `-1` for unknown.",
+	}
 	// Not number, discard. "master_failover_state": "The state of an ongoing failover, if any.."
 	// Not number, discard. "master_replid": "The replication ID of the Redis server.."
 	// Not number, discard. "master_replid2": "The secondary replication ID, used for PSYNC after a failover.."

@@ -210,6 +210,21 @@ DataKit 允许给其采集的所有数据配置全局标签，全局标签分为
 
     自 [1.4.20](changelog.md#cl-1.4.20) 之后，DataKit 默认会以被采集服务连接地址中的的 IP/Host 作为 `host` 的标签值。
 
+## 全局指标集版本配置 {#measurement-version}
+
+对于支持 `measurement_version` 的采集器，可以在 *datakit.conf* 中配置全局指标集版本：
+
+```toml
+measurement_version = "v1"
+```
+
+该配置默认为空；非空时运行时优先级高于各采集器自己的 `measurement_version` 配置。
+
+目前可选值为：
+
+- `v1`：使用历史指标集模式，保留原有的多个指标集
+- `v2`：使用合并指标集模式，将多个指标集合并为一个指标集
+
 ## DataKit 自身运行日志配置 {#logging-config}
 
 DataKit 自身日志有两个，一个是自身运行日志（*/var/log/datakit/log*），一个是 HTTP Access 日志（*/var/log/datakit/gin.log*）。

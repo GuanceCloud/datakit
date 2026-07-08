@@ -14,7 +14,6 @@ import (
 
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/jolokia"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 // collect collects metrics from all clients concurrently.
@@ -47,7 +46,7 @@ func (ipt *Input) collect(ptTS int64) error {
 						dkio.WithCollectCost(time.Since(collectStart)),
 						dkio.WithElection(ipt.Election),
 						dkio.WithSource(inputName), dkio.WithInput(inputName),
-						dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementJVM))); err != nil {
+						dkio.WithMeasurement(ipt.overrideMeasurement)); err != nil {
 						l.Errorf("Feed failed for %s: %s, ignored", client.URL(), err.Error())
 					}
 				}

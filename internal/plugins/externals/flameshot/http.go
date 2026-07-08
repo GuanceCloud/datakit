@@ -18,6 +18,11 @@ import (
 func (m *monitor) handlerProfile(w http.ResponseWriter, r *http.Request) {
 	// 为指定的Pid生成profile文件 /v1/monitor?pid=1234&duration=10&events=all
 	// 或者为指定的进程 名生成profile文件 /v1/monitor?command=flameshot&duration=10&events=cpu,alloc
+	if m != nil && m.config != nil && !m.config.profilingEnabled() {
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte("profiling is disabled"))
+		return
+	}
 
 	queryParams := r.URL.Query()
 	d := queryParams.Get("duration")
@@ -85,6 +90,7 @@ func (m *monitor) buildManualTriggerStats(pm *processM, pid int32, events, durat
 	}
 
 	stats.CommandName = pm.Name
+	m.applyProcessConfigToStats(stats, pm.configProcess)
 	if pm.configProcess != nil {
 		stats.Service = pm.configProcess.Service
 		stats.Reason = append(stats.Reason, pm.configProcess.Tags...)

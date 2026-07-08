@@ -201,6 +201,28 @@ DataKit 默认会在 Kubernetes 集群的所有 Node 上部署（即忽略所有
 
 具体绕过策略，参见[官方文档](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration){:target="_blank"}。
 
+### 健康检查 {#liveness-probe}
+
+[:octicons-tag-24: Version-2.5.0](changelog-2026.md#cl-2.5.0)
+
+*datakit.yaml* 默认包含基于 `/v1/health` 的 livenessProbe，用于检测 DataKit 内部组件（如容器运行时）是否可自恢复：
+
+```yaml
+livenessProbe:
+  httpGet:
+    path: /v1/health
+    port: http-port
+    scheme: HTTP
+  initialDelaySeconds: 120
+  periodSeconds: 15
+  timeoutSeconds: 3
+  failureThreshold: 4
+```
+
+`/v1/health` 接口仅 DataKit >= 2.5.0 可用。如果使用旧版 DataKit 镜像部署新版 *datakit.yaml*，该接口不存在会导致 livenessProbe 持续失败，Pod 陷入 CrashLoop。请确保镜像版本与 YAML 版本匹配，或手动删除该段配置。
+
+Helm 用户可通过 `componentHealthLivenessProbe.enabled` 控制此功能，默认关闭。
+
 ## 采集器配置 {#input-config}
 
 DataKit 在 Kubernetes 中采集器配置方式有两种：

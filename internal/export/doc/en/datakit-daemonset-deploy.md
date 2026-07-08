@@ -201,6 +201,28 @@ DataKit is deployed on all nodes in the Kubernetes cluster by default (that is, 
 
 For specific bypass strategies, see [official doc](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration){:target="_blank"}。
 
+### Health Check {#liveness-probe}
+
+[:octicons-tag-24: Version-2.5.0](changelog-2026.md#cl-2.5.0)
+
+*datakit.yaml* includes a livenessProbe based on `/v1/health` by default, which checks whether DataKit internal components (e.g., container runtime) can self-recover:
+
+```yaml
+livenessProbe:
+  httpGet:
+    path: /v1/health
+    port: http-port
+    scheme: HTTP
+  initialDelaySeconds: 120
+  periodSeconds: 15
+  timeoutSeconds: 3
+  failureThreshold: 4
+```
+
+The `/v1/health` endpoint is only available in DataKit >= 2.5.0. If you deploy the new *datakit.yaml* with an older DataKit image, the missing endpoint will cause the livenessProbe to fail continuously, and the Pod will enter CrashLoop. Ensure the image version matches the YAML version, or remove this configuration block manually.
+
+Helm users can control this feature via `componentHealthLivenessProbe.enabled`, which is disabled by default.
+
 ## Collector Configuration {#input-config}
 
 There are two ways to configure collectors in DataKit for Kubernetes:

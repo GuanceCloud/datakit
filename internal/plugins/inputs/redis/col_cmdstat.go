@@ -37,7 +37,7 @@ func (i *instance) collectCommandStats(ctx context.Context) {
 		dkio.WithCollectCost(time.Since(collectStart)),
 		dkio.WithElection(i.ipt.Election),
 		dkio.WithSource(dkio.FeedSource(inputName, "cmdstat")),
-		dkio.WithMeasurement(inputs.GetOverrideMeasurement(i.ipt.MeasurementVersion, measureuemtRedis)),
+		dkio.WithMeasurement(i.ipt.overrideMeasurement),
 		dkio.WithInput(inputName),
 	); err != nil {
 		l.Warnf("feed measurement: %s, ignored", err)

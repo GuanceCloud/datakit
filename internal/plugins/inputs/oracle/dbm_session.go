@@ -13,7 +13,6 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/metrics"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 const (
@@ -211,7 +210,7 @@ func (ipt *Input) collectDbmSessionMetrics(activityRows []*OracleActivityRow, pt
 		dkio.WithCollectCost(time.Since(start)),
 		dkio.WithElection(ipt.Election),
 		dkio.WithSource(dbmFeedName),
-		dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementOracle)),
+		dkio.WithMeasurement(ipt.overrideMeasurement),
 		dkio.WithInput(inputName),
 	); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),

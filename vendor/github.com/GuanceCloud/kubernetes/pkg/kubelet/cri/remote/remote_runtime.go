@@ -40,6 +40,7 @@ import (
 
 // remoteRuntimeService is a gRPC implementation of internalapi.RuntimeService.
 type remoteRuntimeService struct {
+	conn                  *grpc.ClientConn
 	timeout               time.Duration
 	runtimeClient         runtimeapi.RuntimeServiceClient
 	runtimeClientV1alpha2 runtimeapiV1alpha2.RuntimeServiceClient
@@ -89,15 +90,22 @@ func NewRemoteRuntimeService(endpoint string, connectionTimeout time.Duration) (
 	}
 
 	service := &remoteRuntimeService{
+		conn:         conn,
 		timeout:      connectionTimeout,
 		logReduction: logreduction.NewLogReduction(identicalErrorDelay),
 	}
 
 	if err := service.determineAPIVersion(conn); err != nil {
+		_ = conn.Close()
 		return nil, err
 	}
 
 	return service, nil
+}
+
+// Close releases the underlying gRPC connection.
+func (r *remoteRuntimeService) Close() error {
+	return r.conn.Close()
 }
 
 // useV1API returns true if the v1 CRI API should be used instead of v1alpha2.

@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -26,12 +27,15 @@ type monitor struct {
 	exitChan           chan *processExitEvent
 	oomChan            chan *OOMEvent
 	oomWorkerSem       chan struct{}
+	heapDumpChan       chan *heapDumpTask
+	heapDumpWorkerSem  chan struct{}
 	watchers           map[string]*cgroupWatcher
 	watcherKeyByPID    map[int32]string
 	procRoot           string
 	cgroupRoot         string
 	cgroupPollInterval time.Duration
 	processedHProf     *processedHProfStore
+	goPProfDeltas      *goPProfDeltaStore
 }
 
 type cgroupWatcher struct {
@@ -53,12 +57,15 @@ func NewMonitor(config *Config) *monitor {
 		exitChan:           make(chan *processExitEvent, 5),
 		oomChan:            make(chan *OOMEvent, 5),
 		oomWorkerSem:       make(chan struct{}, 1),
+		heapDumpChan:       make(chan *heapDumpTask, 5),
+		heapDumpWorkerSem:  make(chan struct{}, 1),
 		watchers:           make(map[string]*cgroupWatcher),
 		watcherKeyByPID:    make(map[int32]string),
 		procRoot:           defaultProcRoot,
 		cgroupRoot:         defaultCgroupRoot,
 		cgroupPollInterval: defaultCgroupPollInterval,
 		processedHProf:     newProcessedHProfStore(),
+		goPProfDeltas:      newGoPProfDeltaStore(),
 	}
 }
 
@@ -131,18 +138,26 @@ func (m *monitor) MonitorCommand(p *processM) {
 	// 将service作为tag，方便在中心展示。
 	tags = append(tags, fmt.Sprintf("%s:%s", "service", p.configProcess.Service))
 	if trigger {
+		now := time.Now()
 		if emergency || hasMemoryPressureTag(tags) {
-			p.markMemoryPressure(time.Now())
+			p.markMemoryPressure(now)
+		}
+		if emergency {
+			m.enqueueHeapDumpIfNeeded(p, "process_memory_emergency", tags, now)
+		}
+		if !m.config.profilingEnabled() {
+			log.Debugf("profiling disabled, skip profiling trigger for pid=%d service=%s", p.Pid, p.configProcess.Service)
+			return
 		}
 		duration := p.configProcess.Duration
 		if emergency {
-			p.markEmergencyProfileTriggered(time.Now())
+			p.markEmergencyProfileTriggered(now)
 			duration = getEmergencyProfileDuration(p.configProcess)
 			tags = append(tags, "trigger:memory_emergency")
 		} else {
-			p.markProfileTriggered(time.Now())
+			p.markProfileTriggered(now)
 		}
-		stats := newTriggerStats(p.configProcess.Events, duration, tags)
+		stats := m.newTriggerStatsForProcess(p, duration, tags)
 		stats.CommandName = p.Name
 		stats.PID = p.Pid
 		stats.Triggered = true
@@ -278,7 +293,7 @@ func (m *monitor) Start(osSignal chan os.Signal) {
 			}
 		case <-autoTicker.C:
 			// 对所有的监控列表 顺序进行 profiling 采集
-			if autoEnabled {
+			if autoEnabled && m.config.profilingEnabled() {
 				for _, c := range m.cs {
 					m.autoProfilingProcess(c)
 				}
@@ -299,7 +314,7 @@ func (m *monitor) Start(osSignal chan os.Signal) {
 					log.Errorf("upload to DataKit err: %v", err)
 				} else if pm := m.findProcessByPID(stats.PID); pm != nil {
 					pm.markProfileArtifact(&profileArtifactSummary{
-						OutputPath:  stats.OutputFile,
+						OutputPath:  stats.artifactOutputPath(),
 						UploadedAt:  time.Now(),
 						StartTime:   stats.startTime,
 						EndTime:     stats.endTime,
@@ -318,6 +333,8 @@ func (m *monitor) Start(osSignal chan os.Signal) {
 				defer func() { <-m.oomWorkerSem }()
 				m.handleOOMEvent(evt)
 			}(oomEvent)
+		case task := <-m.heapDumpChan:
+			go m.runHeapDumpTask(task)
 
 		case <-osSignal:
 			m.stopAllWatchers()
@@ -325,6 +342,15 @@ func (m *monitor) Start(osSignal chan os.Signal) {
 			return
 		}
 	}
+}
+
+func (m *monitor) runHeapDumpTask(task *heapDumpTask) {
+	if m == nil || task == nil {
+		return
+	}
+	m.heapDumpWorkerSem <- struct{}{}
+	defer func() { <-m.heapDumpWorkerSem }()
+	m.handleHeapDumpTask(task)
 }
 
 // 抽取配置解析逻辑，保持主流程清晰.
@@ -337,6 +363,9 @@ func (m *monitor) getAutoProfilingDuration() (time.Duration, bool) {
 	if err != nil {
 		log.Warnf("invalid AutoProfiling format, fallback to 5m: %v", err)
 		return time.Minute * 5, true
+	}
+	if d <= 0 {
+		return time.Hour * 24, false
 	}
 	return d, true
 }
@@ -357,12 +386,42 @@ func (m *monitor) autoProfilingProcess(p *processM) {
 	tags = append(tags, p.configProcess.Tags...)
 	tags = append(tags, fmt.Sprintf("%s:%s", "service", p.configProcess.Service))
 	stats := newTriggerStats(p.configProcess.Events, m.getAutoProfileSampleDuration(), tags)
+	m.applyProcessConfigToStats(stats, p.configProcess)
 	stats.PID = p.Pid
 	stats.Triggered = true
 	stats.CommandName = p.Name
 	stats.Service = p.configProcess.Service
 
 	m.statsChan <- stats
+}
+
+func (m *monitor) newTriggerStatsForProcess(p *processM, duration string, tags []string) *triggerStats {
+	events := ""
+	if p != nil && p.configProcess != nil {
+		events = p.configProcess.Events
+	}
+	stats := newTriggerStats(events, duration, tags)
+	if p != nil {
+		m.applyProcessConfigToStats(stats, p.configProcess)
+	}
+	return stats
+}
+
+func (m *monitor) applyProcessConfigToStats(stats *triggerStats, p *Process) {
+	if stats == nil || p == nil {
+		return
+	}
+
+	stats.Language = p.Language
+	stats.PProfURL = p.PProfURL
+	stats.PProfTypes = append([]string(nil), p.PProfTypes...)
+	stats.PProfTimeout = p.PProfTimeout
+	if isGoLanguage(p.Language) && len(p.PProfTypes) == 0 && strings.TrimSpace(p.Events) == "" {
+		stats.PProfTypes = []string{defaultGoPProfType}
+	}
+	if m != nil {
+		stats.goPProfDeltas = m.goPProfDeltas
+	}
 }
 
 func getEmergencyProfileDuration(p *Process) string {
@@ -473,6 +532,10 @@ func filterProcessesByRegex(p *Process) []*processM {
 		}
 		// 使用正则表达式匹配进程名 或者启动命令
 		if re.MatchString(name) || re.MatchString(cmd) || name == p.Language {
+			if shouldSkipMatchedProcess(name, cmd) {
+				log.Debugf("skip helper process match: PID=%d, name=%s, cmd=%s", pid, name, cmd)
+				continue
+			}
 			matchedCount++
 			processInfo := newProcessM(name, cmd, pid, p)
 			pms = append(pms, processInfo)
@@ -481,4 +544,35 @@ func filterProcessesByRegex(p *Process) []*processM {
 
 	log.Debugf("filter matched command count: %d", matchedCount)
 	return pms
+}
+
+var ignoredJavaToolNames = map[string]struct{}{
+	"jcmd":   {},
+	"jhsdb":  {},
+	"jinfo":  {},
+	"jmap":   {},
+	"jps":    {},
+	"jstack": {},
+	"jstat":  {},
+}
+
+func shouldSkipMatchedProcess(name, cmdline string) bool {
+	if isIgnoredJavaToolName(name) {
+		return true
+	}
+
+	fields := strings.Fields(cmdline)
+	if len(fields) == 0 {
+		return false
+	}
+	return isIgnoredJavaToolName(filepath.Base(fields[0]))
+}
+
+func isIgnoredJavaToolName(name string) bool {
+	name = strings.ToLower(strings.TrimSpace(filepath.Base(name)))
+	if name == "" {
+		return false
+	}
+	_, ok := ignoredJavaToolNames[name]
+	return ok
 }
