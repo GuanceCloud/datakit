@@ -46,6 +46,11 @@ protect_mode = true
 # The user name running datakit. Generally for audit purpose. Default is root.
 datakit_user = "root"
 
+# Global measurement version for collectors that support measurement_version.
+# Empty by default; if set, it takes precedence over measurement_version in input configs.
+# Available: "v1", "v2".
+measurement_version = ""
+
 ################################################
 # ulimit: set max open-files limit(Linux only)
 ################################################

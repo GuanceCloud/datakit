@@ -109,7 +109,7 @@ func (ipt *Input) collectDbmSessionMetrics(activityRows []map[string]any, ptsTim
 		dkio.WithCollectCost(time.Since(start)),
 		dkio.WithElection(ipt.Election),
 		dkio.WithSource(dbmFeedName),
-		dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementPostgreSQL)),
+		dkio.WithMeasurement(ipt.overrideMeasurement),
 	); err != nil {
 		ipt.feeder.FeedLastError(err.Error(),
 			metrics.WithLastErrorInput(inputName),

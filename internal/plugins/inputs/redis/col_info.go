@@ -39,7 +39,7 @@ func (i *instance) collectInfo(ctx context.Context) error {
 		dkio.WithCollectCost(time.Since(start)),
 		dkio.WithElection(i.ipt.Election),
 		dkio.WithSource(dkio.FeedSource(inputName, "info")),
-		dkio.WithMeasurement(inputs.GetOverrideMeasurement(i.ipt.MeasurementVersion, measureuemtRedis)),
+		dkio.WithMeasurement(i.ipt.overrideMeasurement),
 	); err != nil {
 		l.Warnf("feed measurement: %s, ignored", err)
 	}

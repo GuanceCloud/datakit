@@ -91,7 +91,7 @@ func TestUpgrader(t *T.T) {
 			c.Data(200, "application/json", j)
 		})
 
-		specifiedVersion := "4.5.6"
+		specifiedVersion := "1.5.6"
 
 		router.GET("/datakit/:file", func(c *gin.Context) {
 			switch c.Request.URL.Path {
@@ -130,10 +130,115 @@ func TestUpgrader(t *T.T) {
 		assert.Equal(t, int32(0), u.upgradeStatus.Load())
 	})
 
+	t.Run("specified-v1-hotfix-skips-v2-eligibility", func(t *T.T) {
+		oldCheck := checkHostUpgradeToV2
+		checkHostUpgradeToV2 = func() (bool, string) {
+			return false, "legacy OS"
+		}
+		t.Cleanup(func() {
+			checkHostUpgradeToV2 = oldCheck
+		})
+
+		router := gin.New()
+		router.GET("/v1/ping", func(c *gin.Context) {
+			pi := pingInfo{
+				Content: httpapi.Ping{
+					Version: "1.90.2",
+					Commit:  "fake-commit-id",
+				},
+			}
+
+			j, err := json.Marshal(pi)
+			assert.NoError(t, err)
+
+			c.Data(200, "application/json", j)
+		})
+
+		specifiedVersion := "1.90.3"
+		installRequested := atomic.NewBool(false)
+
+		router.GET("/datakit/:file", func(c *gin.Context) {
+			switch c.Request.URL.Path {
+			case fmt.Sprintf("/datakit/install-%s.sh", specifiedVersion),
+				fmt.Sprintf("/datakit/install-%s.ps1", specifiedVersion):
+				installRequested.Store(true)
+				c.Data(200, "", []byte("echo abc"))
+
+			default:
+				assert.Truef(t, false, "should not been here, get path: %s", c.Request.URL.Path)
+			}
+		})
+
+		fakeServer := httptest.NewServer(router)
+		defer fakeServer.Close()
+		time.Sleep(time.Second)
+
+		u := upgraderImpl{
+			upgradeStatus: atomic.NewInt32(0),
+			c: &MainConfig{
+				DatakitAPIListen: fakeServer.Listener.Addr().String(),
+				InstallerBaseURL: fakeServer.URL,
+			},
+		}
+
+		assert.NoError(t, u.upgrade(withVersion(specifiedVersion)))
+		assert.True(t, installRequested.Load())
+		assert.Equal(t, int32(0), u.upgradeStatus.Load())
+	})
+
+	t.Run("specified-v2-requires-eligibility", func(t *T.T) {
+		oldCheck := checkHostUpgradeToV2
+		checkHostUpgradeToV2 = func() (bool, string) {
+			return false, "legacy OS"
+		}
+		t.Cleanup(func() {
+			checkHostUpgradeToV2 = oldCheck
+		})
+
+		router := gin.New()
+		router.GET("/v1/ping", func(c *gin.Context) {
+			pi := pingInfo{
+				Content: httpapi.Ping{
+					Version: "1.90.2",
+					Commit:  "fake-commit-id",
+				},
+			}
+
+			j, err := json.Marshal(pi)
+			assert.NoError(t, err)
+
+			c.Data(200, "application/json", j)
+		})
+
+		installRequested := atomic.NewBool(false)
+		router.GET("/datakit/:file", func(c *gin.Context) {
+			installRequested.Store(true)
+			c.Data(200, "", []byte("echo abc"))
+		})
+
+		fakeServer := httptest.NewServer(router)
+		defer fakeServer.Close()
+		time.Sleep(time.Second)
+
+		u := upgraderImpl{
+			upgradeStatus: atomic.NewInt32(0),
+			c: &MainConfig{
+				DatakitAPIListen: fakeServer.Listener.Addr().String(),
+				InstallerBaseURL: fakeServer.URL,
+			},
+		}
+
+		err := u.upgrade(withVersion("2.0.1"))
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "host is not eligible for specified Datakit v2 upgrade")
+		assert.False(t, installRequested.Load())
+		assert.Equal(t, int32(0), u.upgradeStatus.Load())
+	})
+
 	t.Run("up-to-date", func(t *T.T) {
 		router := gin.New()
 
-		upToDateVersion := "1.2.3"
+		upToDateVersion := "2.1.0"
 		router.GET("/v1/ping", func(c *gin.Context) {
 			pi := pingInfo{
 				Content: httpapi.Ping{
@@ -200,7 +305,7 @@ func TestUpgrader(t *T.T) {
 	t.Run("with-dk-api-https", func(t *T.T) {
 		router := gin.New()
 
-		upToDateVersion := "1.2.3"
+		upToDateVersion := "2.1.0"
 		router.GET("/v1/ping", func(c *gin.Context) {
 			pi := pingInfo{
 				Content: httpapi.Ping{
@@ -257,7 +362,7 @@ func TestUpgrader(t *T.T) {
 		// start datakit server
 		dkRouter := gin.New()
 
-		upToDateVersion := "1.2.3"
+		upToDateVersion := "2.1.0"
 		dkRouter.GET("/v1/ping", func(c *gin.Context) {
 			pi := pingInfo{
 				Content: httpapi.Ping{

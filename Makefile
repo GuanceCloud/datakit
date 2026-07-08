@@ -30,6 +30,7 @@ RED                    = \033[31m   # red
 LOG_LEVEL             ?= "info"
 GO_MODULE_MODE        ?= vendor
 GO_MODULE_ENV         = GO111MODULE=on GOFLAGS=-mod=$(GO_MODULE_MODE)
+GO_VERSION_EXPECTED   ?= 1.19.12
 DK_BUILD_ENV_IMAGE    ?= pubrepo.jiagouyun.com/ebpf-dev/dk_build_env:3.1
 export DK_BUILD_ENV_IMAGE
 
@@ -39,6 +40,8 @@ SUPPORTED_GOLINT_VERSION_ANOTHER = v1.46.2
 MINIMUM_GO_MAJOR_VERSION = 1
 MINIMUM_GO_MINOR_VERSION = 16
 GO_VERSION_ERR_MSG := Golang version is not supported, please update to at least $(MINIMUM_GO_MAJOR_VERSION).$(MINIMUM_GO_MINOR_VERSION)
+GO_VERSION_ACTUAL  := $(shell go version | awk '{print $$3}' | sed 's/^go//')
+GO_VERSION_LOCK_ERR_MSG := Golang version mismatch: expect $(GO_VERSION_EXPECTED), got $(GO_VERSION_ACTUAL) from go. Switch current shell PATH or CI-installed Go before running make.
 
 # Make them evaluate(expand) only once
 UNAME_S                := $(shell uname -s)
@@ -52,8 +55,8 @@ GO_MAJOR_VERSION       := $(shell go version | cut -c 14- | cut -d' ' -f1 | cut 
 GO_MINOR_VERSION       := $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f2)
 GO_PATCH_VERSION       := $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f3)
 BUILDER_GOOS_GOARCH    := $(shell go env GOOS)-$(shell go env GOARCH)
-GOLINT_VERSION         := $(shell $(GOLINT_BINARY) --version | cut -c 27- | cut -d' ' -f1)
-GOLINT_VERSION_ERR_MSG := golangci-lint version($(GOLINT_VERSION)) is not supported, please use version $(SUPPORTED_GOLINT_VERSION)
+GOLINT_VERSION         = $(shell $(GOLINT_BINARY) --version 2>/dev/null | cut -c 27- | cut -d' ' -f1)
+GOLINT_VERSION_ERR_MSG = golangci-lint version($(GOLINT_VERSION)) is not supported, please use version $(SUPPORTED_GOLINT_VERSION)
 
 # These can be override at runtime by make variables
 VERSION                      ?= $(shell git describe --always --tags)
@@ -112,13 +115,8 @@ export GIT_INFO
 ##############################################################################
 
 define notify_build
-	@if [ $(GO_MAJOR_VERSION) -gt $(MINIMUM_GO_MAJOR_VERSION) ]; then \
-		exit 0 ; \
-	elif [ $(GO_MAJOR_VERSION) -lt $(MINIMUM_GO_MAJOR_VERSION) ]; then \
-		echo '$(GO_VERSION_ERR_MSG)';\
-		exit 1; \
-	elif [ $(GO_MINOR_VERSION) -lt $(MINIMUM_GO_MINOR_VERSION) ] ; then \
-		echo '$(GO_VERSION_ERR_MSG)';\
+	@if [ "$(GO_VERSION_ACTUAL)" != "$(GO_VERSION_EXPECTED)" ]; then \
+		echo '$(GO_VERSION_LOCK_ERR_MSG)'; \
 		exit 1; \
 	fi
 	@echo "===== notify $(BIN) $(1) ===="
@@ -135,13 +133,8 @@ endef
 
 # build used to compile datakit binary and related dists
 define build_bin
-	@if [ $(GO_MAJOR_VERSION) -gt $(MINIMUM_GO_MAJOR_VERSION) ]; then \
-		exit 0 ; \
-	elif [ $(GO_MAJOR_VERSION) -lt $(MINIMUM_GO_MAJOR_VERSION) ]; then \
-		echo '$(GO_VERSION_ERR_MSG)';\
-		exit 1; \
-	elif [ $(GO_MINOR_VERSION) -lt $(MINIMUM_GO_MINOR_VERSION) ] ; then \
-		echo '$(GO_VERSION_ERR_MSG)';\
+	@if [ "$(GO_VERSION_ACTUAL)" != "$(GO_VERSION_EXPECTED)" ]; then \
+		echo '$(GO_VERSION_LOCK_ERR_MSG)'; \
 		exit 1; \
 	fi
 
@@ -388,7 +381,13 @@ build_dca_image_test:
 		-t $(DOCKER_IMAGE_REPO):$(DCA_VERSION) \
 		-f dca/Dockerfile.$(DOCKERFILE_SUFFIX) . --push;
 
-deps: prepare
+deps: prepare check_go_version
+
+check_go_version:
+	@if [ "$(GO_VERSION_ACTUAL)" != "$(GO_VERSION_EXPECTED)" ]; then \
+		echo '$(GO_VERSION_LOCK_ERR_MSG)'; \
+		exit 1; \
+	fi
 
 # ignore files under vendor/.git/git
 gofmt:

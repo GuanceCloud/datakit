@@ -37,7 +37,7 @@ func (i *instance) collectCluster(ctx context.Context) {
 		dkio.WithCollectCost(time.Since(collectStart)),
 		dkio.WithElection(i.ipt.Election),
 		dkio.WithSource(dkio.FeedSource(inputName, "cluster")),
-		dkio.WithMeasurement(inputs.GetOverrideMeasurement(i.ipt.MeasurementVersion, measureuemtRedis)),
+		dkio.WithMeasurement(i.ipt.overrideMeasurement),
 	); err != nil {
 		l.Warnf("feed measurement: %s, ignored", err)
 	}

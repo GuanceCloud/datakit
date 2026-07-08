@@ -86,20 +86,21 @@ type systemConfig struct {
 }
 
 type Input struct {
-	Host               string           `toml:"host"`
-	Port               int              `toml:"port"`
-	User               string           `toml:"user"`
-	Password           string           `toml:"password"`
-	Interval           datakit.Duration `toml:"interval"`
-	Timeout            string           `toml:"connect_timeout"`
-	Service            string           `toml:"service"`
-	MetricExcludeList  []string         `toml:"metric_exclude_list"`
-	timeoutDuration    time.Duration
-	Query              []*customQuery    `toml:"custom_queries"`
-	SlowQueryTime      string            `toml:"slow_query_time"`
-	Election           bool              `toml:"election"`
-	Tags               map[string]string `toml:"tags"`
-	MeasurementVersion string            `toml:"measurement_version"` // v1 or v2, default: v2
+	Host                string           `toml:"host"`
+	Port                int              `toml:"port"`
+	User                string           `toml:"user"`
+	Password            string           `toml:"password"`
+	Interval            datakit.Duration `toml:"interval"`
+	Timeout             string           `toml:"connect_timeout"`
+	Service             string           `toml:"service"`
+	MetricExcludeList   []string         `toml:"metric_exclude_list"`
+	timeoutDuration     time.Duration
+	Query               []*customQuery    `toml:"custom_queries"`
+	SlowQueryTime       string            `toml:"slow_query_time"`
+	Election            bool              `toml:"election"`
+	Tags                map[string]string `toml:"tags"`
+	MeasurementVersion  string            `toml:"measurement_version"` // v1 or v2, default: v2
+	overrideMeasurement string
 
 	Object oracleObject `toml:"object"`
 
@@ -397,6 +398,11 @@ func (ipt *Input) Collect() {
 
 func (ipt *Input) Init() error {
 	l = logger.SLogger(inputName)
+
+	if config.IsOverrideMeasurement(ipt.MeasurementVersion) {
+		ipt.overrideMeasurement = measurementOracle
+	}
+
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 	tick := time.NewTicker(ipt.Interval.Duration)
 	defer tick.Stop()

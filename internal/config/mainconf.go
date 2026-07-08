@@ -109,6 +109,8 @@ type Config struct {
 	Ulimit      uint64 `toml:"ulimit"`
 	DatakitUser string `toml:"datakit_user"`
 
+	MeasurementVersion string `toml:"measurement_version"`
+
 	// crypto
 	Crypto *configCrpto `toml:"crypto,omitempty"`
 

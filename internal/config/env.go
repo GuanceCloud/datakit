@@ -984,6 +984,13 @@ func (c *Config) LoadEnvs() error {
 		c.Crypto.AESKeyFile = v
 	}
 
+	if v := datakit.GetEnv("ENV_MEASUREMENT_VERSION"); v != "" {
+		c.MeasurementVersion = NormalizeMeasurementVersion(v)
+		if c.MeasurementVersion == "" {
+			l.Warnf("invalid measurement_version %q from ENV_MEASUREMENT_VERSION, ignored", v)
+		}
+	}
+
 	c.loadConfdEnvs()
 
 	return nil

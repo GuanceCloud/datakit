@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.94.1(2026/07/08) {#cl-1.94.1}
+
+This release is a compatibility adjustment, with the following updates:
+
+### Compatibility {#cl-1.94.1-compat}
+
+- Support global `measurement_version` configuration via `datakit.conf` or installation parameters to set metric set version (v1/v2) for collectors such as JVM/MySQL/Oracle/PostgreSQL/Redis/SQLServer (#3142)
+
+---
+
 ## 1.94.0(2026/05/13) {#cl-1.94.0}
 
 This release is an iterative release, with the following main updates:
