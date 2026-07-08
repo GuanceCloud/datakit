@@ -207,6 +207,11 @@ if [ -n "$DK_DEF_INPUTS" ]; then
 	printf "* Set def-inputs => ${DK_DEF_INPUTS} \n"
 fi
 
+if [ -n "$DK_MEASUREMENT_VERSION" ]; then
+	cmd+=("--measurement-version=$DK_MEASUREMENT_VERSION")
+	printf "* Set measurement-version => ${DK_MEASUREMENT_VERSION} \n"
+fi
+
 if [ -n "$DK_INSTALL_RUM_SYMBOL_TOOLS" ]; then
 	cmd+=("--install-rum-symbol-tools=1")
 	printf "* Set install-rum-symbol-tools => ON\n"

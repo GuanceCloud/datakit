@@ -579,7 +579,7 @@ func (ipt *Input) Run() {
 					dkio.WithCollectCost(time.Since(ipt.start)),
 					dkio.WithElection(ipt.Election),
 					dkio.WithSource(inputName),
-					dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementSQLServer)),
+					dkio.WithMeasurement(ipt.overrideMeasurement),
 				)
 				ipt.collectCache = ipt.collectCache[:0]
 				if err != nil {
@@ -932,6 +932,10 @@ func (ipt *Input) filterOutDBName(name string) bool {
 }
 
 func (ipt *Input) init() {
+	if config.IsOverrideMeasurement(ipt.MeasurementVersion) {
+		ipt.overrideMeasurement = measurementSQLServer
+	}
+
 	port := "1433"
 	host := ipt.Host
 	parts := strings.Split(ipt.Host, ":")

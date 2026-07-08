@@ -67,6 +67,7 @@ func init() {
 	flag.StringVar(&args.DatawayURLs, "dataway", "", "DataWay host(https://guance.openway.com?token=xxx)")
 	flag.StringVar(&args.Proxy, "proxy", "", "http proxy http://ip:port for datakit")
 	flag.StringVar(&args.EnableInputs, "enable-inputs", "", "default enable inputs(comma splited, example:cpu,mem,disk)")
+	flag.StringVar(&args.MeasurementVersion, "measurement-version", "", "global measurement version")
 
 	flag.IntVar(&args.InstallRUMSymbolTools, "install-rum-symbol-tools", 0, "whether to install RUM source map tools")
 	flag.BoolVar(&args.OTA, "ota", false, "auto update")

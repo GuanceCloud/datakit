@@ -44,6 +44,7 @@ type InstallerArgs struct {
 	InstallExternals string
 
 	EnableInputs,
+	MeasurementVersion,
 	CloudProvider,
 	Proxy,
 	DatawayURLs string

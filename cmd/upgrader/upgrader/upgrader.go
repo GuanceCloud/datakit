@@ -16,11 +16,13 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/kardianos/service"
+	hostutil "github.com/shirou/gopsutil/host"
 	"go.uber.org/atomic"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/cmds"
@@ -51,6 +53,8 @@ type upgradeOptions struct {
 }
 
 type upgradeOpt func(*upgradeOptions)
+
+var checkHostUpgradeToV2 = canHostUpgradeToV2
 
 func withVersion(v string) upgradeOpt {
 	return func(uo *upgradeOptions) {
@@ -90,6 +94,7 @@ func (u *upgraderImpl) upgrade(opts ...upgradeOpt) error {
 		baseURL     = "https://" + cmds.StaticCDN
 		upToDate    = false
 		downloadURL = ""
+		scriptBase  = ""
 	)
 
 	if u.c.InstallerBaseURL != "" {
@@ -109,31 +114,59 @@ func (u *upgraderImpl) upgrade(opts ...upgradeOpt) error {
 		l.Infof("current DK version: %s, commit: %s", dkv.Content.Version, dkv.Content.Commit)
 	}
 
-	if uo.version == "" { // version not specified, we use online(maybe PAAS offline version) latest version.
+	if uo.version == "" { // version not specified, decide v2/v1 channel first.
+		l.Infof("upgrade strategy: auto-upgrade only targets Datakit v2. If host is not eligible for v2, upgrade will fail with reason.")
+		v2OK, decision := checkHostUpgradeToV2()
+		l.Infof("upgrade decision: %s", decision)
+		if !v2OK {
+			return uhttp.Errorf(httpapi.ErrUpgradeFailed, "host is not eligible for Datakit v2 auto-upgrade: %s", decision)
+		}
+
 		onlineVer, err := cmds.GetOnlineVersions(baseURL, u.c.Proxy, 30*time.Second)
 		if err != nil {
 			return uhttp.Errorf(httpapi.ErrUpgradeFailed, "unable to get online version: %s", err)
 		}
+
+		if onlineVer.GetMajor() < 2 {
+			return uhttp.Errorf(httpapi.ErrUpgradeFailed,
+				"auto-upgrade expects Datakit v2 from source %s, but got non-v2 version %q",
+				cmds.CanonicalInstallBaseURL(baseURL), onlineVer.VersionString)
+		}
+
+		scriptBase = baseURL
 
 		if uo.force {
 			downloadURL = onlineVer.DownloadURL
 		} else {
 			if onlineVer.Commit != dkv.Content.Commit ||
 				onlineVer.VersionString != dkv.Content.Version {
-				l.Infof("current version is %q, online version is %q", dkv.Content.Version, onlineVer.VersionString)
+				l.Infof("current version is %q, target online version is %q", dkv.Content.Version, onlineVer.VersionString)
 				downloadURL = onlineVer.DownloadURL
 			} else {
 				upToDate = true
 			}
 		}
 	} else {
+		l.Infof("upgrade strategy: specified version %q provided", uo.version)
+		if specifiedVersionTargetsV2(uo.version) {
+			v2OK, decision := checkHostUpgradeToV2()
+			l.Infof("upgrade decision for specified version %q: %s", uo.version, decision)
+			if !v2OK {
+				return uhttp.Errorf(httpapi.ErrUpgradeFailed,
+					"host is not eligible for specified Datakit v2 upgrade %q: %s",
+					uo.version, decision)
+			}
+		}
+
 		if uo.force {
 			downloadURL = cmds.CanonicalInstallBaseURL(baseURL)
+			scriptBase = downloadURL
 		} else {
 			// only check if version-string equal, user will not supply Git commit ID in API.
 			if dkv.Content.Version != uo.version {
 				l.Infof("current version is %q, specified version is %q", dkv.Content.Version, uo.version)
 				downloadURL = cmds.CanonicalInstallBaseURL(baseURL)
+				scriptBase = downloadURL
 			} else {
 				upToDate = true
 			}
@@ -156,7 +189,11 @@ func (u *upgraderImpl) upgrade(opts ...upgradeOpt) error {
 		return err
 	}
 
-	if err := u.doUpgrade(scriptFile); err != nil {
+	if scriptBase == "" {
+		scriptBase = baseURL
+	}
+
+	if err := u.doUpgrade(scriptFile, scriptBase); err != nil {
 		l.Errorf("doUpgrade: %s", err.Error())
 		return uhttp.Errorf(httpapi.ErrUpgradeFailed, "doUpgrade: %s", err)
 	}
@@ -274,7 +311,7 @@ func (u *upgraderImpl) restartService() error {
 	return nil
 }
 
-func (u *upgraderImpl) doUpgrade(scriptFile string) error {
+func (u *upgraderImpl) doUpgrade(scriptFile, installBaseURL string) error {
 	// Force stop current running datakit service.
 	// dk-install may failed to stop(why?) the datakit service, and during
 	// download new version datakit binary, we'll get `text file busy' error.
@@ -317,9 +354,9 @@ func (u *upgraderImpl) doUpgrade(scriptFile string) error {
 		envs = append(envs, "HTTPS_PROXY="+u.c.Proxy)
 	}
 
-	if u.c.InstallerBaseURL != "" {
+	if installBaseURL != "" {
 		envs = append(envs, fmt.Sprintf("DK_INSTALLER_BASE_URL=%s",
-			strings.TrimRight(cmds.CanonicalInstallBaseURL(u.c.InstallerBaseURL), "/")))
+			strings.TrimRight(cmds.CanonicalInstallBaseURL(installBaseURL), "/")))
 	}
 
 	cmd.Env = envs
@@ -350,6 +387,105 @@ func (u *upgraderImpl) doUpgrade(scriptFile string) error {
 	}
 
 	return nil
+}
+
+func specifiedVersionTargetsV2(v string) bool {
+	x := strings.TrimSpace(v)
+	x = strings.TrimPrefix(x, "v")
+
+	parts := strings.SplitN(x, ".", 2)
+	if len(parts) == 0 || parts[0] == "" {
+		return false
+	}
+
+	major, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return false
+	}
+
+	return major >= 2
+}
+
+func parseMajorMinor(v string) (int, int, error) {
+	x := strings.TrimSpace(v)
+	if x == "" {
+		return 0, 0, fmt.Errorf("empty version")
+	}
+
+	parts := strings.Split(x, ".")
+	if len(parts) < 2 {
+		return 0, 0, fmt.Errorf("invalid version %q", v)
+	}
+
+	major, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return 0, 0, fmt.Errorf("parse major from %q failed: %w", v, err)
+	}
+
+	minorPart := strings.Builder{}
+	for _, ch := range parts[1] {
+		if ch >= '0' && ch <= '9' {
+			minorPart.WriteRune(ch)
+		} else {
+			break
+		}
+	}
+
+	if minorPart.Len() == 0 {
+		return 0, 0, fmt.Errorf("parse minor from %q failed", v)
+	}
+
+	minor, err := strconv.Atoi(minorPart.String())
+	if err != nil {
+		return 0, 0, fmt.Errorf("parse minor from %q failed: %w", v, err)
+	}
+
+	return major, minor, nil
+}
+
+func canHostUpgradeToV2() (bool, string) {
+	info, err := hostutil.Info()
+	if err != nil {
+		return false, fmt.Sprintf("host detection failed(%s), fallback to v1 latest", err)
+	}
+
+	switch runtime.GOOS {
+	case datakit.OSLinux:
+		major, minor, err := parseMajorMinor(info.KernelVersion)
+		if err != nil {
+			return false, fmt.Sprintf("linux kernel %q parse failed(%s), auto-upgrade blocked", info.KernelVersion, err)
+		}
+
+		if major > 3 || (major == 3 && minor >= 2) {
+			return true, fmt.Sprintf("linux kernel=%s >= 3.2, eligible for v2", info.KernelVersion)
+		}
+		return false, fmt.Sprintf("linux kernel=%s < 3.2, auto-upgrade blocked", info.KernelVersion)
+
+	case datakit.OSWindows:
+		major, _, err := parseMajorMinor(info.PlatformVersion)
+		if err != nil {
+			return false, fmt.Sprintf("windows platform_version %q parse failed(%s), auto-upgrade blocked", info.PlatformVersion, err)
+		}
+
+		if major >= 10 {
+			return true, fmt.Sprintf("windows platform_version=%s (Win10/Server2016+), eligible for v2", info.PlatformVersion)
+		}
+		return false, fmt.Sprintf("windows platform_version=%s (<10), auto-upgrade blocked", info.PlatformVersion)
+
+	case datakit.OSDarwin:
+		major, _, err := parseMajorMinor(info.PlatformVersion)
+		if err != nil {
+			return false, fmt.Sprintf("macOS platform_version %q parse failed(%s), auto-upgrade blocked", info.PlatformVersion, err)
+		}
+
+		if major >= 12 {
+			return true, fmt.Sprintf("macOS platform_version=%s >= 12, eligible for v2", info.PlatformVersion)
+		}
+		return false, fmt.Sprintf("macOS platform_version=%s < 12, auto-upgrade blocked", info.PlatformVersion)
+
+	default:
+		return false, fmt.Sprintf("unsupported OS %q for v2 rule, auto-upgrade blocked", runtime.GOOS)
+	}
 }
 
 func dkPing(dklisten string, https bool) ([]byte, error) {

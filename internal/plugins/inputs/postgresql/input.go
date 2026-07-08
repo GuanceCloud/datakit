@@ -328,13 +328,14 @@ type dbQueryCache struct {
 }
 
 type Input struct {
-	Address                string            `toml:"address"`
-	Outputaddress          string            `toml:"outputaddress"`
-	IgnoredDatabases       []string          `toml:"ignored_databases"`
-	Databases              []string          `toml:"databases"`
-	Timeout                datakit.Duration  `toml:"connect_timeout"`
-	Interval               datakit.Duration  `toml:"interval"`
-	MeasurementVersion     string            `toml:"measurement_version"`
+	Address                string           `toml:"address"`
+	Outputaddress          string           `toml:"outputaddress"`
+	IgnoredDatabases       []string         `toml:"ignored_databases"`
+	Databases              []string         `toml:"databases"`
+	Timeout                datakit.Duration `toml:"connect_timeout"`
+	Interval               datakit.Duration `toml:"interval"`
+	MeasurementVersion     string           `toml:"measurement_version"`
+	overrideMeasurement    string
 	MetricExcludeList      []string          `toml:"metric_exclude_list"`
 	Tags                   map[string]string `toml:"tags"`
 	mergedTags             map[string]string
@@ -1409,6 +1410,10 @@ func (ipt *Input) getDatabaseInstance() string {
 func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
+	if config.IsOverrideMeasurement(ipt.MeasurementVersion) {
+		ipt.overrideMeasurement = measurementPostgreSQL
+	}
+
 	ipt.Interval.Duration = config.ProtectedInterval(minInterval, maxInterval, ipt.Interval.Duration)
 
 	tick := time.NewTicker(ipt.Interval.Duration)
@@ -1498,7 +1503,7 @@ func (ipt *Input) Run() {
 					}
 					if category == point.Metric {
 						opts = append(opts, dkio.WithMeasurement(
-							inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementPostgreSQL)))
+							ipt.overrideMeasurement))
 					}
 
 					if err := ipt.feeder.Feed(category, points, opts...); err != nil {
@@ -1594,7 +1599,7 @@ func (ipt *Input) runDbmMetricCollector() {
 					dkio.WithCollectCost(time.Since(collectStart)),
 					dkio.WithElection(ipt.Election),
 					dkio.WithSource(dbmFeedName),
-					dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementPostgreSQL)),
+					dkio.WithMeasurement(ipt.overrideMeasurement),
 				); err != nil {
 					ipt.feeder.FeedLastError(err.Error(),
 						metrics.WithLastErrorInput(inputName),

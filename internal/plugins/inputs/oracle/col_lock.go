@@ -11,7 +11,6 @@ import (
 
 	"github.com/GuanceCloud/cliutils/point"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 const colLockedSession = `
@@ -67,7 +66,7 @@ func (ipt *Input) collectLockedSession() {
 		dkio.WithCollectCost(time.Since(start)),
 		dkio.WithElection(ipt.Election),
 		dkio.WithSource(inputName),
-		dkio.WithMeasurement(inputs.GetOverrideMeasurement(ipt.MeasurementVersion, measurementOracle))); err != nil {
+		dkio.WithMeasurement(ipt.overrideMeasurement)); err != nil {
 		l.Warnf("feeder.Feed: %s, ignored", err)
 	}
 }

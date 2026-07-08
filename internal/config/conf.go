@@ -362,6 +362,7 @@ func (c *Config) ApplyMainConfig() error {
 	l = logger.SLogger("config")
 
 	c.setupUlimit()
+	c.setupMeasurementVersion()
 
 	if c.hostname == "" {
 		if err := c.SetHostname(); err != nil {

@@ -17,6 +17,7 @@ import (
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/influxdata/telegraf/plugins/common/tls"
 
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
@@ -108,8 +109,9 @@ type Input struct {
 
 	tls.ClientConfig
 
-	Metrics            []MetricConfig `toml:"metric"`
-	MeasurementVersion string         `toml:"measurement_version"`
+	Metrics             []MetricConfig `toml:"metric"`
+	MeasurementVersion  string         `toml:"measurement_version"`
+	overrideMeasurement string
 
 	DefaultTagPrefix      string `toml:"default_tag_prefix"`
 	DefaultFieldPrefix    string `toml:"default_field_prefix"`
@@ -232,6 +234,10 @@ func (ipt *Input) Run() {
 
 func (ipt *Input) setup() error {
 	l = logger.SLogger(inputName)
+
+	if config.IsOverrideMeasurement(ipt.MeasurementVersion) {
+		ipt.overrideMeasurement = measurementJVM
+	}
 
 	// Adapt metrics: replace # with $ in FieldPrefix, FieldSeparator, and FieldName
 	ipt.adaptor()

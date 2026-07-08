@@ -38,7 +38,7 @@ func (i *instance) collectReplica(ctx context.Context) {
 		dkio.WithCollectCost(time.Since(collectStart)),
 		dkio.WithElection(i.ipt.Election),
 		dkio.WithSource(dkio.FeedSource(inputName, "replica")),
-		dkio.WithMeasurement(inputs.GetOverrideMeasurement(i.ipt.MeasurementVersion, measureuemtRedis)),
+		dkio.WithMeasurement(i.ipt.overrideMeasurement),
 	); err != nil {
 		l.Warnf("feed measurement: %s, ignored", err)
 	}
@@ -148,7 +148,7 @@ func (i *instance) parseReplicaData(list string) ([]*point.Point, error) {
 				}
 			} else {
 				// New version (v2+): skip blacklisted fields
-				if inputs.IsOverrideMesurementVersion(i.ipt.MeasurementVersion) && MesurementVersionReplicaBlacklist[key] {
+				if i.ipt.overrideMeasurement != "" && MesurementVersionReplicaBlacklist[key] {
 					continue
 				}
 				float, err := strconv.ParseFloat(value, 64)

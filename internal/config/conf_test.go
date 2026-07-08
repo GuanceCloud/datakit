@@ -65,6 +65,76 @@ func TestEnableDefaultsInputs(t *T.T) {
 	}
 }
 
+func TestNormalizeMeasurementVersion(t *T.T) {
+	cases := []struct {
+		name    string
+		version string
+		want    string
+	}{
+		{
+			name:    "empty",
+			version: "",
+			want:    "",
+		},
+		{
+			name:    "valid-v1",
+			version: "v1",
+			want:    "v1",
+		},
+		{
+			name:    "trim-and-lower",
+			version: " V2 ",
+			want:    "v2",
+		},
+		{
+			name:    "invalid-future-version",
+			version: "v3",
+			want:    "",
+		},
+		{
+			name:    "invalid-prefix",
+			version: "latest",
+			want:    "",
+		},
+		{
+			name:    "invalid-zero",
+			version: "v0",
+			want:    "",
+		},
+		{
+			name:    "invalid-number",
+			version: "v1.1",
+			want:    "",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *T.T) {
+			assert.Equal(t, tc.want, NormalizeMeasurementVersion(tc.version))
+		})
+	}
+}
+
+func TestSetupMeasurementVersion(t *T.T) {
+	t.Run("valid", func(t *T.T) {
+		c := DefaultConfig()
+		c.MeasurementVersion = " V2 "
+
+		c.setupMeasurementVersion()
+
+		assert.Equal(t, "v2", c.MeasurementVersion)
+	})
+
+	t.Run("invalid", func(t *T.T) {
+		c := DefaultConfig()
+		c.MeasurementVersion = "latest"
+
+		c.setupMeasurementVersion()
+
+		assert.Empty(t, c.MeasurementVersion)
+	})
+}
+
 func TestHostTags(t *T.T) {
 	trueHostname, err := os.Hostname()
 
