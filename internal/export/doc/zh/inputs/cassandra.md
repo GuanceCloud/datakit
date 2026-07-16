@@ -77,7 +77,7 @@ export CATALINA_OPTS="-javaagent:dd-java-agent.jar \
 
 ---
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 指标 {#metric}
 

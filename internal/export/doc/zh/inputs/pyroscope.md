@@ -36,7 +36,7 @@ DataKit 从[:octicons-tag-24: Version-1.67.0](../datakit/changelog-2025.md#cl-1.
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 设置采集器全局 Tag {#custom-tags}
 
@@ -450,4 +450,4 @@ Pyroscope 采集器目前支持 [Java](https://grafana.com/docs/pyroscope/latest
     }  
     
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->

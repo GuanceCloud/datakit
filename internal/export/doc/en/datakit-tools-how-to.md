@@ -116,7 +116,7 @@ To debug whether a piece of data will be filtered by the centrally configured bl
     
         { service = 'web_front' and ( http_url in [ '/webproxy/api/online_status' ] )}
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 The above output indicates that the data in the file *lineproto.data* is matched by the 7th rule (counting from 1) in the `tracing` category in the *.pull* file. Once matched, this piece of data will be discarded.
 
@@ -196,7 +196,7 @@ For the usage of monitor, please refer to [here](datakit-monitor.md).
 
 <!-- markdownlint-disable MD013 -->
 ### Checking the Correctness of Collector Configuration {#check-conf}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 After editing the collector configuration file, there may be some configuration errors (such as incorrect configuration file format). You can check whether it is correct through the following command:
 
@@ -364,7 +364,7 @@ After the recording starts, the directory structure is roughly as follows (showi
 
     - After the data recording is completed, remember to turn off this function (`enable = false`). Otherwise, every time DataKit starts, recording will be launched, which may consume a large amount of disk space.
     - The collector name is not exactly the same as the name in the collector configuration (`[[inputs.some-name]]`), but the name shown in the first column of the *Inputs Info* panel of monitor. The name of some collectors may be like this: `logging/<some-pod-name>`. Here, the data directory it stores is */usr/local/datakit/recorder/logging/logging-some-pod-name.1705636073033197000.pbjson*, and the `/` in the collector name is replaced with `-` (to avoid an extra directory structure).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 #### Data Replay {#do-replay}
 
@@ -405,7 +405,7 @@ Flags:
 ???+ warning
 
     For RUM data, if there is no corresponding APP ID in the target workspace for playback, the data cannot be written. You can create a new application in the target workspace, change the APP ID to be consistent with that in the recorded data, or replace the APP ID in the existing recorded data with the APP ID of the corresponding RUM application in the target workspace.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Others {#others}
 
@@ -453,7 +453,7 @@ If the prompt `open /usr/local/datakit/externals/datakit-ebpf: text file busy` a
 ???+ warning
 
     This command has been removed in [:octicons-tag-24: Version-1.5.6](changelog.md#cl-1.5.6-brk). The eBPF integration is built-in by default in the new version.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Update IP Database {#install-ipdb}
 
@@ -567,7 +567,7 @@ If the prompt `open /usr/local/datakit/externals/datakit-ebpf: text file busy` a
       province:
        country:
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Automatic Command Completion {#completion}
 

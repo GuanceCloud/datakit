@@ -49,7 +49,7 @@ The Jenkins collector monitors Jenkins through plugin `Metrics` data collection,
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Jenkins CI Visibility {#ci-visibility}
 

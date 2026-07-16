@@ -108,7 +108,7 @@ server {
 ???+ note
 
     The `url` address is subject to the specific configuration of NGINX. The common usage is to use the `/basic_status` route.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Metric {#metric}
 

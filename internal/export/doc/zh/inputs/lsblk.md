@@ -37,7 +37,7 @@ lsblk 采集器用于 Linux 主机块设备信息采集，如设备名称、主�
 
 {{ CodeBlock .InputENVSampleZh 4 }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 指标 {#metric}
 

@@ -405,6 +405,7 @@ func TestIntegrate(t *testing.T) {
 			lineProto := gotPoint.LineProto()
 			assert.Contains(t, lineProto, "http_dial_testing,")
 			assert.Contains(t, lineProto, "node_name=region-cn")
+			assert.Contains(t, lineProto, "node_id="+RegionID)
 			assert.Contains(t, lineProto, "datakit_version=")
 			assert.Contains(t, lineProto, "url=http://127.0.0.1:1")
 			assert.Contains(t, lineProto, "seq_number=1i")

@@ -4,7 +4,6 @@
 package dnsflow
 
 import (
-	"net"
 	"testing"
 	"time"
 
@@ -14,11 +13,11 @@ import (
 func TestDNSAnswerRecordLookupAndCleanup(t *testing.T) {
 	record := NewDNSRecord()
 	record.addRecord(&DNSPacketInfo{
-		Answers: []layers.DNSResourceRecord{
+		Answers: []dnsAnswer{
 			{
-				Type: layers.DNSTypeA,
-				Name: []byte("Example.COM."),
-				IP:   net.ParseIP("10.1.2.3"),
+				recordType: layers.DNSTypeA,
+				name:       "Example.COM.",
+				ip:         "10.1.2.3",
 			},
 		},
 	})
@@ -47,11 +46,11 @@ func TestDNSAnswerRecordAddCleanupIsRateLimited(t *testing.T) {
 	record.lastCleanup = time.Now()
 
 	record.addRecord(&DNSPacketInfo{
-		Answers: []layers.DNSResourceRecord{
+		Answers: []dnsAnswer{
 			{
-				Type: layers.DNSTypeA,
-				Name: []byte("Example.COM."),
-				IP:   net.ParseIP("10.1.2.3"),
+				recordType: layers.DNSTypeA,
+				name:       "Example.COM.",
+				ip:         "10.1.2.3",
 			},
 		},
 	})
@@ -62,11 +61,11 @@ func TestDNSAnswerRecordAddCleanupIsRateLimited(t *testing.T) {
 
 	record.lastCleanup = time.Now().Add(-dnsAnswerRecordCleanupInterval - time.Second)
 	record.addRecord(&DNSPacketInfo{
-		Answers: []layers.DNSResourceRecord{
+		Answers: []dnsAnswer{
 			{
-				Type: layers.DNSTypeA,
-				Name: []byte("Other.COM."),
-				IP:   net.ParseIP("10.1.2.4"),
+				recordType: layers.DNSTypeA,
+				name:       "Other.COM.",
+				ip:         "10.1.2.4",
 			},
 		},
 	})
@@ -83,20 +82,20 @@ func TestDNSAnswerRecordLimitDropsNewIPsAndKeepsExisting(t *testing.T) {
 	}
 
 	record.addRecord(&DNSPacketInfo{
-		Answers: []layers.DNSResourceRecord{
+		Answers: []dnsAnswer{
 			{
-				Type: layers.DNSTypeA,
-				Name: []byte("First.COM."),
-				IP:   net.ParseIP("10.1.2.3"),
+				recordType: layers.DNSTypeA,
+				name:       "First.COM.",
+				ip:         "10.1.2.3",
 			},
 		},
 	})
 	record.addRecord(&DNSPacketInfo{
-		Answers: []layers.DNSResourceRecord{
+		Answers: []dnsAnswer{
 			{
-				Type: layers.DNSTypeA,
-				Name: []byte("Second.COM."),
-				IP:   net.ParseIP("10.1.2.4"),
+				recordType: layers.DNSTypeA,
+				name:       "Second.COM.",
+				ip:         "10.1.2.4",
 			},
 		},
 	})
@@ -106,11 +105,11 @@ func TestDNSAnswerRecordLimitDropsNewIPsAndKeepsExisting(t *testing.T) {
 	}
 
 	record.addRecord(&DNSPacketInfo{
-		Answers: []layers.DNSResourceRecord{
+		Answers: []dnsAnswer{
 			{
-				Type: layers.DNSTypeA,
-				Name: []byte("First-New.COM."),
-				IP:   net.ParseIP("10.1.2.3"),
+				recordType: layers.DNSTypeA,
+				name:       "First-New.COM.",
+				ip:         "10.1.2.3",
 			},
 		},
 	})
@@ -122,11 +121,11 @@ func TestDNSAnswerRecordLimitDropsNewIPsAndKeepsExisting(t *testing.T) {
 func TestDNSAnswerRecordZeroValueIsUsable(t *testing.T) {
 	var record DNSAnswerRecord
 	record.addRecord(&DNSPacketInfo{
-		Answers: []layers.DNSResourceRecord{
+		Answers: []dnsAnswer{
 			{
-				Type: layers.DNSTypeA,
-				Name: []byte("Example.COM."),
-				IP:   net.ParseIP("10.1.2.3"),
+				recordType: layers.DNSTypeA,
+				name:       "Example.COM.",
+				ip:         "10.1.2.3",
 			},
 		},
 	})

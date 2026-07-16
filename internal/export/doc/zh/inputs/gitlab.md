@@ -40,7 +40,7 @@ GitLab 设置完成后，对 DataKit 进行配置。注意，根据 GitLab 版�
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### GitLab 开启数据采集功能 {#enable-prom}
 

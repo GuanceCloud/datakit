@@ -1,6 +1,6 @@
 ---
 title      : 'OpenTelemetry Extensions'
-summary    : '<<<custom_key.brand_name>>> added more OpenTelemetry plugins'
+summary    : '<<<custom_key.brand_name>>> adds extra plugins for OpenTelemetry'
 __int_icon : 'icon/opentelemetry'
 tags       :
   - 'OTEL'
@@ -10,78 +10,69 @@ tags       :
 
 ## SQL obfuscation {#sql-obfuscation}
 
-Before understanding SQL Obfuscation, please read the official preprocessing scheme：
+OpenTelemetry Java Agent sanitizes SQL by default (`db.statement` parameters are replaced with `?`) to protect sensitive data.
+This is defined in [DB statement sanitization](https://opentelemetry.io/docs/instrumentation/java/automatic/agent-config/#db-statement-sanitization){:target="_blank"}.
 
-[DB statement sanitization](https://opentelemetry.io/docs/instrumentation/java/automatic/agent-config/#db-statement-sanitization)
+By default:
 
-### DB statement sanitization {#db-statement-sanitization}
+- SQL values such as usernames, phone numbers, and card numbers are replaced.
+- Multiple spaces and line breaks are normalized.
 
-Most of the sentences contain some sensitive data including: user name, mobile phone number, password, card number and so on. Another reason why these data can be filtered out through sensitive processing is to facilitate group filtering operations.
-
-There are two ways to write SQL statements:
-
-example:
+### Example {#example}
 
 ```java
 ps = conn.prepareStatement("SELECT name,password,id FROM student where name=? and password=?");
-ps.setString(1,username);   // set first?
-ps.setString(2,pw);        //  second ?
+ps.setString(1, username);
+ps.setString(2, password);
 ```
 
-This is the way of writing JDBC, such as the three-party library has nothing to do (both Oracle and Mysql are written in this way).
+The span receives `db.statement` with placeholders:
 
-The result is that what you get in the link of this writing method is `db.statement` with two '?'
+`SELECT name,password,id FROM student where name=? and password=?`
 
-Another way of writing less:
+If you write SQL with inline literals (not recommended for sensitive data), OTEL will keep the raw text:
 
 ```java
-    ps = conn.prepareStatement("SELECT name,password,id FROM student where name='your-name' and password='123456'");
-   // ps.setString(1,username); 
-   // ps.setString(2,pw);
+ps = conn.prepareStatement("SELECT name,password,id FROM student where name='abc' and password='123456'");
 ```
 
-At this time, what the agent gets is the SQL statement without placeholders.
+### Enable raw SQL capture in extension {#extension}
 
-The `OTEL_INSTRUMENTATION_COMMON_DB_STATEMENT_SANITIZER_ENABLED` mentioned above is here.
-
-The reason is that the agent's probe is on the function `prepareStatement()` or `Statement()`.
-
-Solve the desensitization problem fundamentally. Need to add probes to `set`. The parameters are cached before `executue()`, and finally the parameters are put into Attributes.
-
-### <<<custom_key.brand_name>>> extension {#guacne-branch}
-
-If you want to get the data before cleaning and the value added by the `set` function later, you need to make a new buried point and add an environment variable:
+To capture values passed by `setXXX` and keep sensitive information for troubleshooting, enable one of:
 
 ```shell
 -Dotel.jdbc.sql.obfuscation=true
-# or k8s 
+# or k8s env
 export OTEL_JDBC_SQL_OBFUSCATION=true
 ```
 
-Alternatively, the same effect can be achieved using the switch control in version `v2.20.0-ext` and above:
+Or use the V2 extension switch:
 
 ```shell
 -Dotel.instrumentation.jdbc.experimental.capture-query-parameters=true
-# or k8s
+# or k8s env
 export OTEL_INSTRUMENTATION_JDBC_EXPERIMENTAL_CAPTURE_QUERY_PARAMETERS=true
 ```
 
-
-In the end, the link details on <<<custom_key.brand_name>>> look like this:
+Resulting trace detail:
 
 <!-- markdownlint-disable MD046 MD033 -->
 <figure >
   <img src="https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/songlongqi/otel-sql.png" style="height: 500px" alt="trace">
   <figcaption> trace </figcaption>
 </figure>
+<!-- markdownlint-enable -->
 
-### Question {#question}
+### FAQ {#question}
 
-1. Enabling `-Dotel.jdbc.sql.obfuscation=true`, but SQL obfuscation not disabled.
+1. I enabled `-Dotel.jdbc.sql.obfuscation=true` but obfuscation still seems active.
 
-   You may encounter a mismatch between placeholders and the number of `origin_sql_x` fields. This discrepancy occurs because some parameters have already been replaced by placeholders during the DB statement obfuscation process.
+   This can happen when some parameters have already been replaced during DB statement sanitization before extension capture.
 
-1. Enabling `-Dotel.jdbc.sql.obfuscation=true` and disabling DB statement obfuscation
+2. After enabling raw SQL capture, SQL appears noisy or too long.
 
-   If the statements are excessively long or contain numerous line breaks, the formatting may become chaotic without proper formatting. Additionally, this can lead to unnecessary traffic consumption.
+   Unformatted SQL (many line breaks, long values) can increase storage and transfer. This is expected and should be handled at log/trace retention and query policy levels.
 
+If you need more help:
+
+- [OpenTelemetry Java instrumentation docs](https://opentelemetry.io/docs/languages/java/instrumentation/){:target="_blank"}

@@ -60,7 +60,7 @@ ACL SETUSER username on +info +config|get +slowlog +latency +cluster +@connectio
     - `+latency`：获取延迟统计（`LATENCY LATEST` 命令）
     - `+cluster`：获取集群信息（`CLUSTER INFO`、`CLUSTER NODES`、`CLUSTER REPLICAS`/`SLAVES` 命令，集群模式需要）
     - `+@connection`：连接管理命令（`PING`、`CLIENT LIST`、`CLIENT SETNAME`、`SELECT` 等）
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 - 如需授权统计 `hotkey/bigkey` 信息，则在上述基础权限基础上，额外增加以下权限：
 
@@ -77,7 +77,7 @@ ACL SETUSER username +@read +@keyspace ~*
     - `+@read`：数据读取命令（`SCAN`、`TYPE`、`OBJECT`、`MEMORY` 等）
     - `+@keyspace`：键空间权限
     - `~*`：允许访问所有键
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 > **注意**：部分云厂商（如华为云）的 Redis 不支持或未开放 ACL 功能时，只读权限无法满足 DataKit 采集需求，需使用读写权限账号。
 
@@ -103,7 +103,7 @@ ACL SETUSER username +@read +@keyspace ~*
 ???+ note
 
     如果是阿里云 Redis，且设置了对应的用户名密码，conf 中的 `<PASSWORD>` 应该设置成 `your-user:your-password`，如 `datakit:Pa55W0rd`
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 #### 集群/主从节点采集 {#cluster}
 
@@ -144,7 +144,7 @@ Redis 集群节点和主从节点的采集和单点节点（standalone）的配�
     在配置日志采集时，需要将 DataKit 安装在 Redis 服务同一台主机中，或使用其它方式将日志挂载到 DataKit 所在机器。
 
     在 K8s 中，可以将 Redis 日志暴露到 stdout，DataKit 能自动找到其对应的日志。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 指标 {#metric}
 
@@ -218,7 +218,7 @@ Redis 集群节点和主从节点的采集和单点节点（standalone）的配�
 {{end}}
 
 {{ end }}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD024 -->
 
 ### Pipeline 日志切割 {#pipeline}
 

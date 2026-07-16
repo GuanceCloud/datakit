@@ -439,22 +439,34 @@ func TestDatakitLogDownloadHandlerReportsDownstreamErrors(t *testing.T) {
 			client.DataKit = dk
 			Manager.Clients[dk.ConnID] = client
 
+			serverConn, clientConn := newTestWebsocketPair(t)
+			t.Cleanup(func() { clientConn.Close() }) //nolint:errcheck
+			result := make(chan error, 1)
 			go func() {
 				raw := <-client.Send
 				msg := ws.WebsocketMessage{Data: &ActionData{}}
-				require.NoError(t, json.Unmarshal(raw, &msg))
+				if err := json.Unmarshal(raw, &msg); err != nil {
+					result <- err
+					return
+				}
 				data := msg.Data.(*ActionData)
-				serverConn, clientConn := newTestWebsocketPair(t)
-				defer clientConn.Close() //nolint:errcheck
 				Manager.addWebsocketConnChan(data.Query.Get(ws.HeaderNewWebSocketConnectionID), serverConn)
-				_, _, err := clientConn.ReadMessage()
-				require.NoError(t, err)
-				require.NoError(t, clientConn.WriteMessage(websocket.TextMessage, tc.message))
+				if _, _, err := clientConn.ReadMessage(); err != nil {
+					result <- err
+					return
+				}
+				result <- clientConn.WriteMessage(websocket.TextMessage, tc.message)
 			}()
 
 			ctx, rec := newGinTestContext(http.MethodGet, "/api/datakit/log/download?datakit_id="+rows[0].ID, nil)
 			addWorkspaceCookie(ctx)
 			datakitLogDownladHandler(ctx)
+			select {
+			case err := <-result:
+				require.NoError(t, err)
+			case <-time.After(time.Second):
+				t.Fatal("timeout waiting for downstream websocket response")
+			}
 			require.False(t, decodeDCAResponse(t, rec.Body.String()).Success)
 		})
 	}

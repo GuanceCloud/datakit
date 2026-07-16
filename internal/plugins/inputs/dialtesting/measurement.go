@@ -23,6 +23,24 @@ func withTaskIDField(fields map[string]interface{}) map[string]interface{} {
 	return fields
 }
 
+func withCommonDialtestingTags(tags map[string]interface{}) map[string]interface{} {
+	tags["name"] = &inputs.TagInfo{Desc: "The name of the task"}
+	tags["node_id"] = &inputs.TagInfo{Desc: "The ID of the node"}
+	tags["node_name"] = &inputs.TagInfo{Desc: "The name of the node"}
+	tags["country"] = &inputs.TagInfo{Desc: "The name of the country"}
+	tags["province"] = &inputs.TagInfo{Desc: "The name of the province"}
+	tags["city"] = &inputs.TagInfo{Desc: "The name of the city"}
+	tags["internal"] = &inputs.TagInfo{Desc: "The boolean value, true for domestic and false for overseas"}
+	tags["isp"] = &inputs.TagInfo{Desc: "ISP, such as `chinamobile`, `chinaunicom`, `chinatelecom`"}
+	tags["status"] = &inputs.TagInfo{Desc: "The status of the task, either 'OK' or 'FAIL'"}
+	tags["owner"] = &inputs.TagInfo{Desc: "The owner name"}
+	tags["datakit_version"] = &inputs.TagInfo{Desc: "The DataKit version"}
+	tags["trigger_type"] = &inputs.TagInfo{Desc: "The trigger type of the dialtesting run, such as `scheduled` or `manual`"}
+	tags["run_batch_id"] = &inputs.TagInfo{Desc: "The batch ID of a manual one-shot dialtesting run"}
+	tags[LabelDF] = &inputs.TagInfo{Desc: "The label of the task"}
+	return tags
+}
+
 //nolint:lll
 func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
@@ -30,25 +48,14 @@ func (m *httpMeasurement) Info() *inputs.MeasurementInfo {
 		Cat:    point.DialTesting,
 		Desc:   "HTTP synthetic test results, including response status, phase timings, payload size, certificate expiry, and failure details.",
 		DescZh: "HTTP 拨测结果，包含响应状态、各阶段耗时、响应体大小、证书到期时间和失败详情。",
-		Tags: map[string]interface{}{
-			"name":               &inputs.TagInfo{Desc: "The name of the task"},
+		Tags: withCommonDialtestingTags(map[string]interface{}{
 			"url":                &inputs.TagInfo{Desc: "The URL of the endpoint to be monitored"},
-			"node_name":          &inputs.TagInfo{Desc: "The name of the node"},
 			"dest_ip":            &inputs.TagInfo{Desc: "The IP address of the destination"},
-			"country":            &inputs.TagInfo{Desc: "The name of the country"},
-			"province":           &inputs.TagInfo{Desc: "The name of the province"},
-			"city":               &inputs.TagInfo{Desc: "The name of the city"},
-			"internal":           &inputs.TagInfo{Desc: "The boolean value, true for domestic and false for overseas"},
-			"isp":                &inputs.TagInfo{Desc: "ISP, such as `chinamobile`, `chinaunicom`, `chinatelecom`"},
-			"status":             &inputs.TagInfo{Desc: "The status of the task, either 'OK' or 'FAIL'"},
 			"status_code_class":  &inputs.TagInfo{Desc: "The class of the status code, such as '2xx'"},
 			"status_code_string": &inputs.TagInfo{Desc: "The status string, such as '200 OK'"},
 			"proto":              &inputs.TagInfo{Desc: "The protocol of the HTTP, such as 'HTTP/1.1'"},
 			"method":             &inputs.TagInfo{Desc: "HTTP method, such as `GET`"},
-			"owner":              &inputs.TagInfo{Desc: "The owner name"}, // used for fees calculation
-			"datakit_version":    &inputs.TagInfo{Desc: "The DataKit version"},
-			LabelDF:              &inputs.TagInfo{Desc: "The label of the task"},
-		},
+		}),
 		Fields: withTaskIDField(map[string]interface{}{
 			"status_code": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -159,23 +166,12 @@ func (m *tcpMeasurement) Info() *inputs.MeasurementInfo {
 		Cat:    point.DialTesting,
 		Desc:   "TCP synthetic test results, including connection latency, DNS-inclusive latency, traceroute output, and failure details.",
 		DescZh: "TCP 拨测结果，包含连接耗时、含 DNS 的总耗时、路由追踪结果和失败详情。",
-		Tags: map[string]interface{}{
-			"name":            &inputs.TagInfo{Desc: "The name of the task"},
-			"dest_host":       &inputs.TagInfo{Desc: "The name of the host to be monitored"},
-			"dest_port":       &inputs.TagInfo{Desc: "The port of the TCP connection"},
-			"dest_ip":         &inputs.TagInfo{Desc: "The IP address"},
-			"node_name":       &inputs.TagInfo{Desc: "The name of the node"},
-			"country":         &inputs.TagInfo{Desc: "The name of the country"},
-			"province":        &inputs.TagInfo{Desc: "The name of the province"},
-			"city":            &inputs.TagInfo{Desc: "The name of the city"},
-			"internal":        &inputs.TagInfo{Desc: "The boolean value, true for domestic and false for overseas"},
-			"isp":             &inputs.TagInfo{Desc: "ISP, such as `chinamobile`, `chinaunicom`, `chinatelecom`"},
-			"status":          &inputs.TagInfo{Desc: "The status of the task, either 'OK' or 'FAIL'"},
-			"proto":           &inputs.TagInfo{Desc: "The protocol of the task"},
-			"owner":           &inputs.TagInfo{Desc: "The owner name"}, // used for fees calculation
-			"datakit_version": &inputs.TagInfo{Desc: "The DataKit version"},
-			LabelDF:           &inputs.TagInfo{Desc: "The label of the task"},
-		},
+		Tags: withCommonDialtestingTags(map[string]interface{}{
+			"dest_host": &inputs.TagInfo{Desc: "The name of the host to be monitored"},
+			"dest_port": &inputs.TagInfo{Desc: "The port of the TCP connection"},
+			"dest_ip":   &inputs.TagInfo{Desc: "The IP address"},
+			"proto":     &inputs.TagInfo{Desc: "The protocol of the task"},
+		}),
 		Fields: withTaskIDField(map[string]interface{}{
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
@@ -244,21 +240,10 @@ func (m *icmpMeasurement) Info() *inputs.MeasurementInfo {
 		Cat:    point.DialTesting,
 		Desc:   "ICMP synthetic test results, including packet latency, packet loss, routing information, and failure details.",
 		DescZh: "ICMP 拨测结果，包含报文时延、丢包、路由信息和失败详情。",
-		Tags: map[string]interface{}{
-			"name":            &inputs.TagInfo{Desc: "The name of the task"},
-			"dest_host":       &inputs.TagInfo{Desc: "The name of the host to be monitored"},
-			"node_name":       &inputs.TagInfo{Desc: "The name of the node"},
-			"country":         &inputs.TagInfo{Desc: "The name of the country"},
-			"province":        &inputs.TagInfo{Desc: "The name of the province"},
-			"city":            &inputs.TagInfo{Desc: "The name of the city"},
-			"internal":        &inputs.TagInfo{Desc: "The boolean value, true for domestic and false for overseas"},
-			"isp":             &inputs.TagInfo{Desc: "ISP, such as `chinamobile`, `chinaunicom`, `chinatelecom`"},
-			"status":          &inputs.TagInfo{Desc: "The status of the task, either 'OK' or 'FAIL'"},
-			"proto":           &inputs.TagInfo{Desc: "The protocol of the task"},
-			"owner":           &inputs.TagInfo{Desc: "The owner name"}, // used for fees calculation
-			"datakit_version": &inputs.TagInfo{Desc: "The DataKit version"},
-			LabelDF:           &inputs.TagInfo{Desc: "The label of the task"},
-		},
+		Tags: withCommonDialtestingTags(map[string]interface{}{
+			"dest_host": &inputs.TagInfo{Desc: "The name of the host to be monitored"},
+			"proto":     &inputs.TagInfo{Desc: "The protocol of the task"},
+		}),
 		Fields: withTaskIDField(map[string]interface{}{
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
@@ -381,21 +366,10 @@ func (m *websocketMeasurement) Info() *inputs.MeasurementInfo {
 		Cat:    point.DialTesting,
 		Desc:   "WebSocket synthetic test results, including handshake status, response latency, and failure details.",
 		DescZh: "WebSocket 拨测结果，包含握手状态、响应耗时和失败详情。",
-		Tags: map[string]interface{}{
-			"name":            &inputs.TagInfo{Desc: "The name of the task"},
-			"url":             &inputs.TagInfo{Desc: "The URL string, such as `ws://www.abc.com`"},
-			"node_name":       &inputs.TagInfo{Desc: "The name of the node"},
-			"country":         &inputs.TagInfo{Desc: "The name of the country"},
-			"province":        &inputs.TagInfo{Desc: "The name of the province"},
-			"city":            &inputs.TagInfo{Desc: "The name of the city"},
-			"internal":        &inputs.TagInfo{Desc: "The boolean value, true for domestic and false for overseas"},
-			"isp":             &inputs.TagInfo{Desc: "ISP, such as `chinamobile`, `chinaunicom`, `chinatelecom`"},
-			"status":          &inputs.TagInfo{Desc: "The status of the task, either 'OK' or 'FAIL'"},
-			"proto":           &inputs.TagInfo{Desc: "The protocol of the task"},
-			"owner":           &inputs.TagInfo{Desc: "The owner name"}, // used for fees calculation
-			"datakit_version": &inputs.TagInfo{Desc: "The DataKit version"},
-			LabelDF:           &inputs.TagInfo{Desc: "The label of the task"},
-		},
+		Tags: withCommonDialtestingTags(map[string]interface{}{
+			"url":   &inputs.TagInfo{Desc: "The URL string, such as `ws://www.abc.com`"},
+			"proto": &inputs.TagInfo{Desc: "The protocol of the task"},
+		}),
 		Fields: withTaskIDField(map[string]interface{}{
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
@@ -482,19 +456,7 @@ func (m *multiMeasurement) Info() *inputs.MeasurementInfo {
 		Cat:    point.DialTesting,
 		Desc:   "Multi-step synthetic test results, including step execution status, elapsed time, and failure details.",
 		DescZh: "多步骤拨测结果，包含步骤执行状态、耗时和失败详情。",
-		Tags: map[string]interface{}{
-			"name":            &inputs.TagInfo{Desc: "The name of the task"},
-			"node_name":       &inputs.TagInfo{Desc: "The name of the node"},
-			"country":         &inputs.TagInfo{Desc: "The name of the country"},
-			"province":        &inputs.TagInfo{Desc: "The name of the province"},
-			"city":            &inputs.TagInfo{Desc: "The name of the city"},
-			"internal":        &inputs.TagInfo{Desc: "The boolean value, true for domestic and false for overseas"},
-			"isp":             &inputs.TagInfo{Desc: "ISP, such as `chinamobile`, `chinaunicom`, `chinatelecom`"},
-			"status":          &inputs.TagInfo{Desc: "The status of the task, either 'OK' or 'FAIL'"},
-			"owner":           &inputs.TagInfo{Desc: "The owner name"}, // used for fees calculation
-			"datakit_version": &inputs.TagInfo{Desc: "The DataKit version"},
-			LabelDF:           &inputs.TagInfo{Desc: "The label of the task"},
-		},
+		Tags:   withCommonDialtestingTags(map[string]interface{}{}),
 		Fields: withTaskIDField(map[string]interface{}{
 			"last_step": &inputs.FieldInfo{
 				DataType: inputs.Int,
@@ -563,23 +525,12 @@ func (m *grpcMeasurement) Info() *inputs.MeasurementInfo {
 		Cat:    point.DialTesting,
 		Desc:   "gRPC synthetic test results, including RPC response status, latency, response data, and failure details.",
 		DescZh: "gRPC 拨测结果，包含 RPC 响应状态、耗时、响应数据和失败详情。",
-		Tags: map[string]interface{}{
-			"name":            &inputs.TagInfo{Desc: "The name of the task"},
-			"server":          &inputs.TagInfo{Desc: "The gRPC server address"},
-			"dest_host":       &inputs.TagInfo{Desc: "The name of the host to be monitored"},
-			"method":          &inputs.TagInfo{Desc: "The gRPC method name"},
-			"node_name":       &inputs.TagInfo{Desc: "The name of the node"},
-			"country":         &inputs.TagInfo{Desc: "The name of the country"},
-			"province":        &inputs.TagInfo{Desc: "The name of the province"},
-			"city":            &inputs.TagInfo{Desc: "The name of the city"},
-			"internal":        &inputs.TagInfo{Desc: "The boolean value, true for domestic and false for overseas"},
-			"isp":             &inputs.TagInfo{Desc: "ISP, such as `chinamobile`, `chinaunicom`, `chinatelecom`"},
-			"status":          &inputs.TagInfo{Desc: "The status of the task, either 'OK' or 'FAIL'"},
-			"proto":           &inputs.TagInfo{Desc: "The protocol of the task"},
-			"owner":           &inputs.TagInfo{Desc: "The owner name"},
-			"datakit_version": &inputs.TagInfo{Desc: "The DataKit version"},
-			LabelDF:           &inputs.TagInfo{Desc: "The label of the task"},
-		},
+		Tags: withCommonDialtestingTags(map[string]interface{}{
+			"server":    &inputs.TagInfo{Desc: "The gRPC server address"},
+			"dest_host": &inputs.TagInfo{Desc: "The name of the host to be monitored"},
+			"method":    &inputs.TagInfo{Desc: "The gRPC method name"},
+			"proto":     &inputs.TagInfo{Desc: "The protocol of the task"},
+		}),
 		Fields: withTaskIDField(map[string]interface{}{
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
@@ -646,24 +597,13 @@ func (m *sslMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "ssl_dial_testing",
 		Cat:  point.DialTesting,
-		Tags: map[string]interface{}{
-			"name":            &inputs.TagInfo{Desc: "The name of the task"},
-			"dest_host":       &inputs.TagInfo{Desc: "The name of the host to be monitored"},
-			"dest_port":       &inputs.TagInfo{Desc: "The port of the SSL connection"},
-			"dest_ip":         &inputs.TagInfo{Desc: "The IP address"},
-			"server_name":     &inputs.TagInfo{Desc: "The TLS server name"},
-			"node_name":       &inputs.TagInfo{Desc: "The name of the node"},
-			"country":         &inputs.TagInfo{Desc: "The name of the country"},
-			"province":        &inputs.TagInfo{Desc: "The name of the province"},
-			"city":            &inputs.TagInfo{Desc: "The name of the city"},
-			"internal":        &inputs.TagInfo{Desc: "The boolean value, true for domestic and false for overseas"},
-			"isp":             &inputs.TagInfo{Desc: "ISP, such as `chinamobile`, `chinaunicom`, `chinatelecom`"},
-			"status":          &inputs.TagInfo{Desc: "The status of the task, either 'OK' or 'FAIL'"},
-			"proto":           &inputs.TagInfo{Desc: "The protocol of the task"},
-			"owner":           &inputs.TagInfo{Desc: "The owner name"}, // used for fees calculation
-			"datakit_version": &inputs.TagInfo{Desc: "The DataKit version"},
-			LabelDF:           &inputs.TagInfo{Desc: "The label of the task"},
-		},
+		Tags: withCommonDialtestingTags(map[string]interface{}{
+			"dest_host":   &inputs.TagInfo{Desc: "The name of the host to be monitored"},
+			"dest_port":   &inputs.TagInfo{Desc: "The port of the SSL connection"},
+			"dest_ip":     &inputs.TagInfo{Desc: "The IP address"},
+			"server_name": &inputs.TagInfo{Desc: "The TLS server name"},
+			"proto":       &inputs.TagInfo{Desc: "The protocol of the task"},
+		}),
 		Fields: withTaskIDField(map[string]interface{}{
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,
@@ -760,22 +700,11 @@ func (m *browserMeasurement) Info() *inputs.MeasurementInfo {
 	return &inputs.MeasurementInfo{
 		Name: "browser_dial_testing",
 		Cat:  point.DialTesting,
-		Tags: map[string]interface{}{
-			"name":            &inputs.TagInfo{Desc: "The name of the task"},
-			"url":             &inputs.TagInfo{Desc: "The URL of the page to be monitored"},
-			"node_name":       &inputs.TagInfo{Desc: "The name of the node"},
-			"country":         &inputs.TagInfo{Desc: "The name of the country"},
-			"province":        &inputs.TagInfo{Desc: "The name of the province"},
-			"city":            &inputs.TagInfo{Desc: "The name of the city"},
-			"internal":        &inputs.TagInfo{Desc: "The boolean value, true for domestic and false for overseas"},
-			"isp":             &inputs.TagInfo{Desc: "ISP, such as `chinamobile`, `chinaunicom`, `chinatelecom`"},
-			"status":          &inputs.TagInfo{Desc: "The status of the task, either 'OK' or 'FAIL'"},
-			"browser_engine":  &inputs.TagInfo{Desc: "The browser engine used to run the task"},
-			"viewport":        &inputs.TagInfo{Desc: "The browser viewport size, such as `1920x1080`"},
-			"owner":           &inputs.TagInfo{Desc: "The owner name"},
-			"datakit_version": &inputs.TagInfo{Desc: "The DataKit version"},
-			LabelDF:           &inputs.TagInfo{Desc: "The label of the task"},
-		},
+		Tags: withCommonDialtestingTags(map[string]interface{}{
+			"url":            &inputs.TagInfo{Desc: "The URL of the page to be monitored"},
+			"browser_engine": &inputs.TagInfo{Desc: "The browser engine used to run the task"},
+			"viewport":       &inputs.TagInfo{Desc: "The browser viewport size, such as `1920x1080`"},
+		}),
 		Fields: withTaskIDField(map[string]interface{}{
 			"message": &inputs.FieldInfo{
 				DataType: inputs.String,

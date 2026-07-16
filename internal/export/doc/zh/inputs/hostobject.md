@@ -42,7 +42,7 @@ monitor   :
 
 {{ CodeBlock .InputENVSampleZh 4 }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 开启云同步 {#cloudinfo}
 
@@ -196,7 +196,7 @@ DataKit 默认开启云同步，目前支持阿里云/金山云/腾讯云/AWS/�
         ```shell
         modprobe nf_conntrack
         ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 | 字段名                | 描述                                           | 类型 |
 | ---------------------:| ---------------------------------------------- | :--: |
@@ -216,7 +216,7 @@ DataKit 默认开启云同步，目前支持阿里云/金山云/腾讯云/AWS/�
 <!-- markdownlint-disable MD046 -->
 ???+ quote
     `filefd` 仅 Linux 平台支持
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 | 字段名         | 描述                                                 | 类型  |
 | --------------:| ---------------------------------------------------- | :---: |

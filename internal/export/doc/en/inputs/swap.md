@@ -42,7 +42,7 @@ The swap collector is used to collect the usage of the host swap memory.
     
 {{ CodeBlock .InputENVSample 4 }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Metric {#metric}
 

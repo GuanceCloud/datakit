@@ -47,11 +47,11 @@ It is divided into two parts, one is to configure DataKit to start the correspon
 === "Kubernetes"
 
     The collector can now be turned on by [injecting logfwdserver collector configuration in ConfigMap mode](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD013 -->
 ### logfwd Usage and Configuration (1.86.0 and later) {#config-1-86-0}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 > logfwd is recommended for use in Kubernetes Serverless environments. If DaemonSet DataKit is already deployed, using logfwd may result in duplicate data.
 
@@ -203,11 +203,11 @@ Configuration Hot Update Mechanism:
     - Log directories need to be shared in advance using `volumes`/`volumeMounts` in the business Pod/sidecar (such as `emptyDir`), otherwise logfwd cannot access log files.
     - `LOGFWD_LOG_CONFIGS` and CRD configurations are independent of each other. If both point to the same path, duplicate collection will occur.
     - DataKit Operator supports automatic injection of logfwd sidecar and mounts for target Pods. For details, please refer to the DataKit Operator [documentation](../datakit/operator-logfwd.md).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD013 -->
 #### ClusterLoggingConfig CRD Selector Support {#config-1-86-0-crd-selector}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 When logfwd queries the `ClusterLoggingConfig` CRD through DataKit-Operator, it supports the following selector fields to match target CRDs and log collection configurations:
 
@@ -223,7 +223,7 @@ When logfwd queries the `ClusterLoggingConfig` CRD through DataKit-Operator, it 
     - logfwd **does not support** the `containerRegex` selector. Since logfwd runs as a Pod Sidecar, it only collects log files and cannot distinguish container names.
     - The use of `podLabelSelector` depends on the existence of the `/etc/podinfo/labels` file. DataKit-Operator automatically mounts this file when injecting the logfwd sidecar (via Downward API). If this file does not exist or is empty, `podLabelSelector` will not take effect.
     - All selector conditions have an **AND** relationship, meaning all specified selectors must match for a Pod to be selected.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 #### Example: Kubernetes Pod Configuration {#config-1-86-0-example}
 
@@ -364,7 +364,7 @@ The mounting patterns, `volumes`/`volumeMounts` syntax, resource limits, etc. re
 
 <!-- markdownlint-disable MD013 -->
 ### logfwd Usage and Configuration (Before 1.86.0) {#config-before-1-86-0}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 The logfwd main configuration is in JSON format, and the following is a configuration example:
 

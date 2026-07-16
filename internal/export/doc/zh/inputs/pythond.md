@@ -197,7 +197,7 @@ Python 脚本需要用户继承 `DataKitFramework` 类，然后对 `run` 方法�
         #         **kwargs
         #         )
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 Python SDK API 定义(详情参见 `datakit_framework.py`)：
 

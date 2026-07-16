@@ -143,4 +143,4 @@ $ sudo vi /etc/hosts
     ```PowerShell
     [Net.ServicePointManager]::SecurityProtocol
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->

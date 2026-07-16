@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/changes"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/diff"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/unifieddiff"
 )
 
 // Network configuration related change ID.
@@ -651,7 +651,7 @@ func (nc *NetworkConfigChecker) modifyDNSChange(changeItems *[]*ChangeItem) GetC
 
 		// Check for DNS changes
 		if newDNS != oldDNS {
-			diffText := diff.LineDiffWithContextLines(oldDNS, newDNS, 3)
+			diffText := networkUnifiedDiff("dns", key, oldDNS, newDNS)
 			changeItem := nc.createNetworkChangeItem(NetworkChangeParams{
 				ChangeID:   ChangeIDNetworkDNS,
 				IfaceName:  "",
@@ -756,7 +756,7 @@ func (nc *NetworkConfigChecker) modifyRouteChange(changeItems *[]*ChangeItem) Ge
 
 		// Check for route changes
 		if newRoute != oldRoute {
-			diffText := diff.LineDiffWithContextLines(oldRoute, newRoute, 3)
+			diffText := networkUnifiedDiff("routes", key, oldRoute, newRoute)
 			changeItem := nc.createNetworkChangeItem(NetworkChangeParams{
 				ChangeID:   ChangeIDNetworkRoute,
 				IfaceName:  "",
@@ -861,7 +861,7 @@ func (nc *NetworkConfigChecker) modifyFirewallChange(changeItems *[]*ChangeItem)
 
 		// Check for firewall rule changes
 		if newRules != oldRules {
-			diffText := diff.LineDiffWithContextLines(oldRules, newRules, 3)
+			diffText := networkUnifiedDiff("firewall", key, oldRules, newRules)
 			changeItem := nc.createNetworkChangeItem(NetworkChangeParams{
 				ChangeID:   ChangeIDNetworkFirewall,
 				IfaceName:  "",
@@ -966,7 +966,7 @@ func (nc *NetworkConfigChecker) modifyHostsChange(changeItems *[]*ChangeItem) Ge
 		oldIP := strings.Join(oldValues, "\n")
 
 		if newIP != oldIP {
-			diffText := diff.LineDiffWithContextLines(oldIP, newIP, 3)
+			diffText := networkUnifiedDiff("hosts", key, oldIP, newIP)
 			changeItem := nc.createNetworkChangeItem(NetworkChangeParams{
 				ChangeID:   ChangeIDNetworkHosts,
 				IfaceName:  key,
@@ -1065,6 +1065,10 @@ func (nc *NetworkConfigChecker) createNetworkChangeItem(params NetworkChangePara
 }
 
 // Helper functions
+
+func networkUnifiedDiff(configType, key, oldText, newText string) string {
+	return unifieddiff.Text("network/"+configType+"/"+key, oldText, newText)
+}
 
 // compareStringSlices compares two string slices for equality.
 func compareStringSlices(a, b []string) bool {

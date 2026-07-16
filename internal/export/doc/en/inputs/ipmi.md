@@ -100,7 +100,7 @@ Temp             | 0Fh | ok  |  3.2 | 45 degrees C
 
     - The keywords for each parameter classification are all in lowercase
     - Refer to `ipmitool -I ...` The data returned by the command, then the keywords are reasonably configured
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!--
 ## Election Configuration {#election-config}

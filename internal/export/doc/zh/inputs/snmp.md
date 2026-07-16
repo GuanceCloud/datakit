@@ -674,7 +674,7 @@ metrics:
     1. 上面配置的 `inputs.snmp.tags` 中如果与原始 fields 中的 key 同名重复，则会被原始数据覆盖
     1. 设备的 IP 地址(指定设备模式)/网段(自动发现模式)、SNMP 协议的版本号及相对应的鉴权字段是必填字段
     1. 「指定设备」模式和「自动发现」模式，两种模式可以共存，但设备间的 SNMP 协议的版本号及相对应的鉴权字段必须保持一致
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 配置被采集 SNMP 设备 {#config-snmp}
 
@@ -699,7 +699,7 @@ SNMP 设备在默认情况下，一般 SNMP 协议处于关闭状态，需要进
     sudo yum install net-snmp net-snmp-utils # CentOS
     sudo apt–get install snmp                # Ubuntu
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 #### SNMPv3 示例 {#snmpv3-example}
 
@@ -835,7 +835,7 @@ snmpwalk -v3 -u [USERNAME] -l authPriv \
 ???+ note
 
     以下所有指标集以及其指标，只包含部分常见的字段，一些设备特定的字段，根据配置和设备型号不同，会额外多出一些字段。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD024 -->
 {{ range $i, $m := .Measurements }}
@@ -881,7 +881,7 @@ snmpwalk -v3 -u [USERNAME] -l authPriv \
 {{end}}
 
 {{ end }}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD024 -->
 
 ## FAQ {#faq}
 

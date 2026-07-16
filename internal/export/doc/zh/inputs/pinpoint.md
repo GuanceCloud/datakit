@@ -62,7 +62,7 @@ DataKit 内置的 Pinpoint Agent 用于接收，运算，分析 Pinpoint Tracing
     - 多服务（Agent/Metadata/Stat/Span）合一的服务使用同一个端口
     - Pinpoint 链路与 DataKit 链路存在差异，详见[下文](pinpoint.md#opentracing-vs-pinpoint)
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Pinpoint Agent 配置 {#agent-config}
 

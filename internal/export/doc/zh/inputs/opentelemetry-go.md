@@ -4,22 +4,26 @@ summary   : 'OpenTelemetry Golang 集成'
 tags      :
   - 'GOLANG'
   - 'OTEL'
+  - 'APM'
   - '链路追踪'
 __int_icon: 'icon/opentelemetry'
 ---
 
+本示例以常见三层 Web 架构展示如何使用 OpenTelemetry 在 Go 服务中接入链路追踪。
 
-本文以常见 Web 端三层架构模式实现 OTEL 的链路追踪及可观测性。
+在向 DataKit 上报 Trace 前，请先完成 [OpenTelemetry 采集器配置](opentelemetry.md)。
 
-在使用 OTEL 发送 Trace 到 DataKit 之前，请先确定您已经[配置好了采集器](opentelemetry.md)。
+## 示例流程 {#code}
 
-## 伪实现 {#code}
+示例流程：
 
-模拟场景：一条用户的登录请求在服务端的各个模块流转并返回到客户端的过程。在每一个过程中都加上链路追踪并标记，最后登录<<<custom_key.brand_name>>>平台查看在这个过程中每个模块的处理时间和服务状态。
+1. 客户端发起登录请求；
+2. Web 层接收请求并创建一个顶层 Span；
+3. Web 层调用服务层；
+4. 服务层执行数据库查询；
+5. 各层均创建子 Span，并记录时延与属性。
 
-流程介绍：用户请求到 web 层，解析后发送到 service 层，需要查询数据库的 dao 层，最终将结果返回到用户。
-
-``` go
+```go
 package main
 
 import (
@@ -29,8 +33,8 @@ import (
     "os"
     "time"
 
-    "go.opentelemetry.io/otel/codes"
     "go.opentelemetry.io/otel"
+    "go.opentelemetry.io/otel/codes"
     "go.opentelemetry.io/otel/attribute"
     "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
     "go.opentelemetry.io/otel/propagation"
@@ -42,50 +46,35 @@ import (
     "google.golang.org/grpc/credentials/insecure"
 )
 
-// Initializes an OTLP exporter, and configures the corresponding trace and
-// metric providers.
+// 初始化 OTLP gRPC exporter 与 trace provider。
 func initProvider() func() {
     ctx := context.Background()
 
     res, err := resource.New(ctx,
         resource.WithAttributes(
-            // the service name used to display traces in backends
             semconv.ServiceNameKey.String("ServerName"),
-            // semconv.FaaSIDKey.String(""),
         ),
-        //resource.WithOS(), // and so on ...
     )
-
     handleErr(err, "failed to create resource")
-    var bsp sdktrace.SpanProcessor
 
-    // If the OpenTelemetry Collector is running on a local cluster (minikube or
-    // microk8s), it should be accessible through the NodePort service at the
-    // `localhost:30080` endpoint. Otherwise, replace `localhost` with the
-    // endpoint of your cluster. If you run the app inside k8s, then you can
-    // probably connect directly to the service through dns
-    conn, err := grpc.DialContext(ctx, "10.200.14.226:4317", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+    // 示例环境中，Collector 运行在本机 127.0.0.1:4317
+    conn, err := grpc.DialContext(ctx, "127.0.0.1:4317",
+        grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
     handleErr(err, "failed to create gRPC connection to collector")
-    // Set up a trace exporter
+
     traceExporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithGRPCConn(conn))
     handleErr(err, "failed to create trace exporter")
 
-    bsp = sdktrace.NewBatchSpanProcessor(traceExporter)
-
-    // Register the trace exporter with a TracerProvider, using a batch
-    // span processor to aggregate spans before export.
+    bsp := sdktrace.NewBatchSpanProcessor(traceExporter)
     tracerProvider := sdktrace.NewTracerProvider(
         sdktrace.WithSampler(sdktrace.AlwaysSample()),
         sdktrace.WithResource(res),
         sdktrace.WithSpanProcessor(bsp),
     )
     otel.SetTracerProvider(tracerProvider)
-
-    // set global propagator to tracecontext (the default is no-op).
     otel.SetTextMapPropagator(propagation.TraceContext{})
 
     return func() {
-        // Shutdown will flush any remaining spans and shut down the exporter.
         handleErr(tracerProvider.Shutdown(ctx), "failed to shutdown TracerProvider")
         time.Sleep(time.Second)
     }
@@ -93,51 +82,41 @@ func initProvider() func() {
 
 var tracer = otel.Tracer("tracer_user_login")
 
-// web handler 处理请求数据
+// user 接收请求并按业务步骤创建 span。
 func user(w http.ResponseWriter, r *http.Request) {
-    // ... 接收客户端请求
-    log.Println("doing user")
-    // labels represent additional key-value descriptors that can be bound to a
-    // metric observer or recorder.
+    log.Println("receiving user request")
     commonLabels := []attribute.KeyValue{attribute.String("key1", "val1")}
-    // work begins
+
     ctx, span := tracer.Start(
         context.Background(),
         "span-Example",
-        trace.WithAttributes(commonLabels...))
+        trace.WithAttributes(commonLabels...),
+    )
     defer span.End()
+
     <-time.After(time.Millisecond * 50)
     service(ctx)
-
-    log.Printf("Doing really hard work")
-    <-time.After(time.Millisecond * 40)
 
     log.Printf("Done!")
     w.Write([]byte("ok"))
 }
 
-// service 调用 service 层处理业务
 func service(ctx context.Context) {
-    log.Println("service")
     ctx1, iSpan := tracer.Start(ctx, "Sample-service")
-    <-time.After(time.Second / 2) // do something...
+    defer iSpan.End()
+
+    <-time.After(time.Second / 2)
     dao(ctx1)
-    iSpan.End()
 }
 
-// dao 数据访问层
 func dao(ctx context.Context) {
-    log.Println("dao")
     ctxD, iSpan := tracer.Start(ctx, "Sample-dao")
-    <-time.After(time.Second / 2)
+    defer iSpan.End()
 
-    // 创建子 span 查询数据库等操作
     _, sqlSpan := tracer.Start(ctxD, "do_sql")
-    sqlSpan.SetStatus(codes.Ok, "is ok") //
+    sqlSpan.SetStatus(codes.Ok, "query done")
     <-time.After(time.Second)
     sqlSpan.End()
-
-    iSpan.End()
 }
 
 func handleErr(err error, message string) {
@@ -149,7 +128,8 @@ func handleErr(err error, message string) {
 func main() {
     shutdown := initProvider()
     defer shutdown()
-    log.Println("connect ...")
+
+    log.Println("listening on :8080")
     http.HandleFunc("/user", user)
     go handleErr(http.ListenAndServe(":8080", nil), "open server")
     time.Sleep(time.Minute * 2)
@@ -157,9 +137,7 @@ func main() {
 }
 ```
 
----
-
 ## 参考 {#more-readings}
 
-- [Golang OpenTelemetry 源码示例](https://github.com/open-telemetry/opentelemetry-go/tree/main/example/otel-collector){:target="_blank"}
-- [官方文档](https://opentelemetry.io/docs/instrumentation/go/getting-started/){:target="_blank"}
+- [OpenTelemetry Go 示例](https://github.com/open-telemetry/opentelemetry-go/tree/main/example/otel-collector){:target="_blank"}
+- [OpenTelemetry Go 官方文档](https://opentelemetry.io/docs/instrumentation/go/getting-started/){:target="_blank"}

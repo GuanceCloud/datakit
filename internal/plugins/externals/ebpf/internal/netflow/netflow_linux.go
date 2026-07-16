@@ -21,6 +21,7 @@ import (
 	bpfutil "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/bpfutil"
 	dkct "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/conntrack"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/exporter"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netpath"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/procwatch"
 	"golang.org/x/net/context"
 )
@@ -68,10 +69,15 @@ type NetFlowTracer struct {
 	connStatsRecord        *ConnStatsRecord
 	closedEventCh          chan *ConncetionClosedInfo
 	catalog                *procwatch.Catalog
+	pathScheduler          PathScheduler
 	seededListenPorts      map[tcpListenPort]struct{}
 	listenPorts            map[tcpListenPort]struct{}
 	lastListenPortScan     time.Time
 	listenPortScanInterval time.Duration
+}
+
+type PathScheduler interface {
+	Schedule(netpath.Candidate) bool
 }
 
 func NewNetFlowTracer(catalog *procwatch.Catalog) *NetFlowTracer {
@@ -81,6 +87,12 @@ func NewNetFlowTracer(catalog *procwatch.Catalog) *NetFlowTracer {
 		catalog:                catalog,
 		seededListenPorts:      make(map[tcpListenPort]struct{}),
 		listenPortScanInterval: netflowListenPortScanInterval(),
+	}
+}
+
+func (tracer *NetFlowTracer) SetPathScheduler(scheduler PathScheduler) {
+	if tracer != nil {
+		tracer.pathScheduler = scheduler
 	}
 }
 
@@ -231,6 +243,7 @@ func (tracer *NetFlowTracer) ClosedEventHandler(cpu int, data []byte,
 	if tracer.catalog != nil {
 		if v, ok := tracer.catalog.Lookup(int(event.Info.Pid)); ok {
 			event.Info.ProcessName = v.Name()
+			event.Info.ServiceName = v.ServiceName()
 		} else {
 			tracer.catalog.ResolveLater(int(event.Info.Pid))
 		}
@@ -539,6 +552,74 @@ func directionStringToC(direction string) uint8 {
 	}
 }
 
+func hasAddr(addr [4]uint32) bool {
+	return (addr[0] | addr[1] | addr[2] | addr[3]) != 0
+}
+
+func (tracer *NetFlowTracer) schedulePathCandidate(info ConnectionInfo, stats ConnFullStats) {
+	if tracer == nil || tracer.pathScheduler == nil {
+		return
+	}
+	if !ConnAddrIsIPv4(info.Meta) || !ConnProtocolIsTCP(info.Meta) {
+		return
+	}
+	if ConnDirection2Str(stats.Stats.Direction) != DirectionOutgoing {
+		return
+	}
+	if info.Dport == 0 || info.Dport > 65535 {
+		return
+	}
+
+	srcIP := U32BEToIP(info.Saddr, false).String()
+	dstIP := U32BEToIP(info.Daddr, false).String()
+	targetIP := dstIP
+	targetPort := info.Dport
+	if info.NATDport != 0 && hasAddr(info.NATDaddr) {
+		targetIP = U32BEToIP(info.NATDaddr, false).String()
+		targetPort = info.NATDport
+	}
+	if targetPort == 0 || targetPort > 65535 {
+		return
+	}
+
+	netns := strconv.FormatUint(uint64(info.Netns), 10)
+	namespace := ""
+	if k8sNetInfo != nil {
+		if tag, ok := k8sNetInfo.QueryPodInfo(
+			int(info.Pid), srcIP, int(info.Sport), transportTCP,
+		); ok && tag != nil {
+			namespace = strings.TrimSpace(tag.NS)
+		}
+	}
+
+	// The hostname identifies the domain observed for this exact destination
+	// tuple and network namespace. TargetIP remains the active probe endpoint.
+	domain := lookupPeerDomainExact(dstIP, info.Dport, transportTCP, netns)
+	if domain == "" && targetIP != dstIP {
+		domain = lookupPeerDomainExact(targetIP, targetPort, transportTCP, netns)
+	}
+
+	tracer.pathScheduler.Schedule(netpath.Candidate{
+		Hostname:  domain,
+		TargetIP:  targetIP,
+		IP:        targetIP,
+		Port:      uint16(targetPort),
+		DstIP:     dstIP,
+		DstPort:   uint16(info.Dport),
+		Protocol:  transportTCP,
+		Origin:    "ebpf_netflow",
+		Namespace: namespace,
+		Source: netpath.Source{
+			IP:          srcIP,
+			Port:        uint16(info.Sport),
+			NetNS:       netns,
+			PID:         info.Pid,
+			ProcessName: info.ProcessName,
+			ServiceName: info.ServiceName,
+		},
+	})
+}
+
 const KernelTaskCommLen = 16
 
 // Lock resource connStatsRecord while scanning connStatMap.
@@ -620,6 +701,7 @@ func (tracer *NetFlowTracer) connCollectHanllder(ctx context.Context, connStatsM
 				if tracer.catalog != nil {
 					if v, ok := tracer.catalog.Lookup(int(connInfoC.pid)); ok {
 						connInfo.ProcessName = v.Name()
+						connInfo.ServiceName = v.ServiceName()
 					} else {
 						tracer.catalog.ResolveLater(int(connInfoC.pid))
 					}
@@ -660,6 +742,7 @@ func (tracer *NetFlowTracer) connCollectHanllder(ctx context.Context, connStatsM
 						continue
 					}
 				}
+				tracer.schedulePathCandidate(connInfo, connFullStats)
 				err := agg.Append(connInfo, connFullStats)
 				if err != nil {
 					l.Debug(err)
@@ -710,6 +793,7 @@ func (tracer *NetFlowTracer) connCollectHanllder(ctx context.Context, connStatsM
 				}
 				v.Stats.Direction = directionStringToC(directionFromTCPListenPorts(
 					ConnDirection2Str(v.Stats.Direction), connInfo, listenPorts))
+				tracer.schedulePathCandidate(connInfo, v)
 				err := agg.Append(connInfo, v)
 				if err != nil {
 					l.Debug(err)

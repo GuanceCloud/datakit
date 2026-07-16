@@ -96,7 +96,7 @@ In `datakt.conf`, you can manually configure blacklist filtering, as shown in th
     Filters in *datakit.conf* developped for debugging, you should use web-side Blacklist for production usage. Once the filter is configured in *datakit.conf*, the Blacklist configured in web-side will **no longer take effect**.
 
     PS: Blacklist will be deprecated in the future, we recommend use Pipeline `drop()` to drop unwanted data.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 The configuration here should follow the following rules:
 
@@ -170,7 +170,7 @@ In addition, the following list operations are supported:
     { 'abc' != 'ABC' }  # String comparison is case-sensitive
     ```
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Usage of nil/null {#nil}
 
@@ -378,7 +378,7 @@ You can see in the DataKit monitor that `regionid` for `cn-qingdao` is filtered 
 
 <!-- markdownlint-disable MD013 -->
 ### View Synchronized Filters {#debug-filter}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 [:octicons-tag-24: Version-1.4.2](changelog.md#cl-1.4.2)
 

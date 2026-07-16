@@ -31,6 +31,7 @@ type ConnectionInfo struct {
 	NATDport uint32
 
 	ProcessName string
+	ServiceName string
 }
 
 func ReadConnInfo(conn *ConnectionInfoC, dnatAddr [4]uint32, dnatPort uint32) ConnectionInfo {
@@ -282,6 +283,7 @@ func connStatsCacheKey(conn ConnectionInfo) ConnectionInfo {
 	conn.NATDaddr = [4]uint32{}
 	conn.NATDport = 0
 	conn.ProcessName = ""
+	conn.ServiceName = ""
 	return conn
 }
 
@@ -289,6 +291,9 @@ func mergeConnDisplayInfo(base, update ConnectionInfo) ConnectionInfo {
 	info := update
 	if info.ProcessName == "" {
 		info.ProcessName = base.ProcessName
+	}
+	if info.ServiceName == "" {
+		info.ServiceName = base.ServiceName
 	}
 	if (info.NATDaddr[0] | info.NATDaddr[1] | info.NATDaddr[2] | info.NATDaddr[3]) == 0 {
 		info.NATDaddr = base.NATDaddr

@@ -60,7 +60,7 @@ sudo tar -zxvf consul_exporter-0.7.1.linux-amd64.tar.gz
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 指标 {#metric}
 

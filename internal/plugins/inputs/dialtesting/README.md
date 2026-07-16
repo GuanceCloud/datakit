@@ -16,11 +16,39 @@ http 模块暴露如下 metrics：
 | datakit_dialtesting_pull_cost_seconds | summary | The cost time to the pull tasks | region,is_first |
 | datakit_dialtesting_task_exec_time_interval_seconds | summary | The execution time interval |  protocol,region |
 | datakit_dialtesting_task_synchronized_total | count | The total number of the synchronized tasks| protocol,region |
+| datakit_dialtesting_one_shot_batch_total | count | The total number of one-shot dialtesting execution chunks | region,status |
+| datakit_dialtesting_one_shot_batch_cost_seconds | summary | The cost time of one-shot dialtesting execution chunks | region,status |
+| datakit_dialtesting_one_shot_task_total | count | The total number of one-shot dialtesting tasks | region,protocol,status |
+| datakit_dialtesting_one_shot_batch_queue_total | count | The total number of one-shot execution chunk queue events | status |
+| datakit_dialtesting_one_shot_batch_queue_number | gauge | The current number of queued one-shot execution chunks | - |
+| datakit_dialtesting_one_shot_batch_running_number | gauge | The current number of running one-shot execution chunks | - |
 | datakit_dialtesting_worker_cached_points_number | count | The total number of the cached points in memory | protocol,region |
 | datakit_dialtesting_worker_job_chan_number | count | The total number of the job chan | type |
 | datakit_dialtesting_worker_job_number | count | The number of the jobs to send data in parallel | - |
 | datakit_dialtesting_worker_send_points_number | count | The total number of the points which have been sent | protocol,region,status |
 | datakit_dialtesting_worker_send_cost_seconds | summary | The cost time to send points | protocol,region |
+
+One-shot batch `status` values:
+
+A single manual run may be split into multiple transport chunks with the same `run_batch_id`. The one-shot batch, queue, running, and cost metrics count these execution chunks; `datakit_dialtesting_one_shot_task_total` continues to count individual tasks.
+
+- `success`: all one-shot tasks in the batch were executed successfully.
+- `partial_failed`: part of the batch succeeded or was skipped, and part failed.
+- `failed`: all parsed one-shot tasks failed, or all tasks failed to parse.
+- `skipped`: all one-shot tasks in the batch were skipped before execution.
+- `invalid`: the one-shot batch payload was invalid.
+
+One-shot task `status` values:
+
+- `success`: the one-shot task was executed successfully.
+- `failed`: the one-shot task failed during execution.
+- `skipped`: the one-shot task was skipped before execution, such as when browser dial testing is disabled or the input is stopping.
+- `parse_failed`: the one-shot task payload failed to parse.
+
+One-shot batch queue `status` values:
+
+- `full`: the bounded queue was full when a batch arrived. The receiver applies backpressure and waits for queue capacity instead of silently dropping the batch.
+- `exit`: the batch was still queued, waiting to enter the queue, or arrived after the input stopped accepting batches. Such batches are discarded explicitly and counted exactly once.
 
 # 网络拨测功能定义
 

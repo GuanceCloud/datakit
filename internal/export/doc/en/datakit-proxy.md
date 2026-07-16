@@ -103,7 +103,7 @@ $ nginx -s reload # reload configuration
 
 <!-- markdownlint-disable MD013 -->
 ## Configure the Domain Name on the `DataKit` Agent Machine {#config-domain-name}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 Let's assume that `192.168.1.66` is the IP address of the nginx transparent proxy server.
 
@@ -152,4 +152,4 @@ On the agent machine, test whether the agent is normal:
     ```PowerShell
     [Net.ServicePointManager]::SecurityProtocol
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->

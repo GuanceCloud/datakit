@@ -75,7 +75,7 @@ NetStat 指标展示，包括 Tcp 连接数、等待连接、等待处理请求�
 
 {{ CodeBlock .InputENVSampleZh 4 }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 ---
 
 ## 指标 {#metric}

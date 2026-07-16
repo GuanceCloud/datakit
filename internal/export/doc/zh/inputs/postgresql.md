@@ -92,7 +92,7 @@ PostgreSQL 采集器可以从 PostgreSQL 实例中采集实例运行状态指标
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 数据库性能指标采集 {#performance-schema}
 
@@ -202,7 +202,7 @@ track_activity_query_size = 4096 # Required for collection of larger queries.
 
     ```
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 - 额外权限与执行计划 helper 函数
 
@@ -481,4 +481,4 @@ log_file_mode = 0644
 
 对于 `postgresql_lock/postgresql_stat/postgresql_index/postgresql_size/postgresql_statio` 这些指标，需要开启配置文件中的 `relations` 字段。如果这些指标存在部分缺失，可能是因为相关指标不存在数据导致的。
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->

@@ -38,4 +38,4 @@ External Collector launch outside program to collecting data.
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->

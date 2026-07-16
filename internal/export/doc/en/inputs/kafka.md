@@ -51,7 +51,7 @@ java -jar </path/to/jolokia-jvm-agent.jar> --host 127.0.0.1 --port=8080 start <K
 
     For more Jolokia command information can refer to [here](https://jolokia.org/reference/html/agents.html#jvm-agent){:target="_blank"}.
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Collector Configuration {#input-config}
 
@@ -69,7 +69,7 @@ java -jar </path/to/jolokia-jvm-agent.jar> --host 127.0.0.1 --port=8080 start <K
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Collection Mode {#collection-mode}
 
@@ -245,4 +245,4 @@ And remove comments from the fields in the collect producer metrics section:
 
 Restart DataKit, which then collects metrics for the Producer instance.
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->

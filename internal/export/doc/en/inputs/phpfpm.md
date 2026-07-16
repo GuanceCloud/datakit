@@ -82,7 +82,7 @@ PHP-FPM collector is used for PHP-FPM metrics collection, such as the number of 
     
 {{ CodeBlock .InputENVSample 4 }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Metric {#metric}
 

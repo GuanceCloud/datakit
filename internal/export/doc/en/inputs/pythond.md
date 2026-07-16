@@ -187,7 +187,7 @@ You need the user to inherit the `DataKitFramework` class and then override the 
         #         **kwargs
         #         )
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 Python SDK API definition (see `datakit_framework.py`):
 
 - Reporting metrics data: `feed_metric(self, input=None, measurement=None, tags=None, fields=None, time=None, **kwargs)`;

@@ -23,7 +23,7 @@ __int_icon: 'icon/profiling'
 ???+ info "版本要求"
 
     DataKit 目前支持 `dd-trace-py 1.14.x` 及以下版本，更高版本未经系统性测试，兼容性未知。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ```shell
 pip3 install ddtrace
@@ -108,7 +108,7 @@ DataKit 自 [:octicons-tag-24: Version-1.39.0](../datakit/changelog.md#cl-1.39.0
     ## set false to stop generating apm metrics from ddtrace output.
     generate_metrics = false
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 
 ## `py-spy` 接入 {#py-spy}

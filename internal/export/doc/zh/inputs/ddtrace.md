@@ -18,9 +18,26 @@ monitor   :
 
 ---
 
-DDTrace 是 DataDog 开源的 APM 产品，DataKit 内嵌的 DDTrace Agent 用于接收，运算，分析 DataDog Tracing 协议数据。
+DataKit 的 `ddtrace` 采集器是一个 **DataDog Trace 协议接收端**：应用内的 DDTrace SDK 或 Java Agent 将 trace 通过 HTTP 发送给 DataKit，DataKit 再解析、处理并上报这些数据。它不会替应用安装 SDK，也不会替代应用侧的插桩。
 
-## DDTrace 文档和示例 {#doc-example}
+数据链路如下：
+
+应用代码 → DDTrace SDK / Java Agent → DataKit HTTP 接收端 → <<<custom_key.brand_name>>>
+
+链路、Profiling 数据和运行时/JMX 指标使用的接收端不同：
+
+- Trace 由本采集器接收，默认使用 DataKit HTTP 端口 `9529`；
+- Profiling 需要单独开启 [Profiling 采集器](profile.md)；
+- JMX、runtime metrics 等 DogStatsD 指标需要单独开启 [StatsD 采集器](statsd.md)，通常使用 `8125` 端口。
+
+## 使用前请确认 {#overview}
+
+1. DataKit 已安装并已启用本采集器；应用侧也已按所用语言完成 SDK 或 Agent 的插桩。
+1. 应用与 DataKit 的网络连通。DataKit 默认仅监听 `localhost:9529`；应用不在同一主机或同一 Pod 时，需调整 [HTTP 服务监听地址](../datakit/datakit-conf.md#config-http-server) 并通过防火墙、Kubernetes Service 或 NetworkPolicy 限制访问范围。
+1. 显式将应用侧的 trace 目标设置为 DataKit 地址和端口，例如 `DD_AGENT_HOST=<datakit-host>`、`DD_TRACE_AGENT_PORT=9529`。上游 Datadog Agent 的常见默认端口是 `8126`，不要依赖默认值，也不要把 StatsD 的 `8125` 当作 trace 端口。
+1. 为服务设置稳定的 `DD_SERVICE`、`DD_ENV` 和 `DD_VERSION`；这三个维度决定服务、环境和版本在链路视图中的归属。
+
+## 按语言接入 {#doc-example}
 
 <!-- markdownlint-disable MD046 MD032 MD030 -->
 <div class="grid cards" markdown>
@@ -72,7 +89,7 @@ DDTrace 是 DataDog 开源的 APM 产品，DataKit 内嵌的 DDTrace Agent 用�
     [:octicons-book-16: 文档](https://docs.datadoghq.com/tracing/setup_overview/setup/nodejs?tab=containers){:target="_blank"} ·
     [:octicons-arrow-right-24: 示例](ddtrace-nodejs.md)
 
--   :material-language-cpp:
+-   :material-language-cpp: **C++（兼容模式）**
 
     ---
 
@@ -91,9 +108,11 @@ DDTrace 是 DataDog 开源的 APM 产品，DataKit 内嵌的 DDTrace Agent 用�
 
 ???+ info
 
-    我们对 DDTrace 做了一些[功能扩展](ddtrace-ext-changelog.md)，便于支持更多的主流框架和更细粒度的数据追踪。
+    <<<custom_key.brand_name>>> 提供了一个扩展版 Java Agent，用于补充部分框架和细粒度采集能力。该扩展只在使用<<<custom_key.brand_name>>>版 JAR 时生效；配置和数据暴露风险请先阅读 [Java 扩展说明](ddtrace-ext-java.md) 与[更新日志](ddtrace-ext-changelog.md)。
 
 ## 配置 {#config}
+
+本节配置的是 **DataKit 接收端**。应用侧 SDK 的地址、服务名、采样等配置仍需在应用的启动参数或环境变量中设置，具体见对应语言文档。
 
 === "主机安装"
 
@@ -113,28 +132,29 @@ DDTrace 是 DataDog 开源的 APM 产品，DataKit 内嵌的 DDTrace Agent 用�
 
 {{ CodeBlock .InputENVSampleZh 4 }}
 
-> customer_tags 参数支持正则表达式，但是有固定的前缀格式 `reg:` ，例如 `reg:key_*` ，表示匹配所有以 `key_` 开头的 key 。
+`customer_tags` 用于将指定的 `meta` 字段提升为一级标签。普通字段名中的 `.` 会自动转为 `_`，例如 `http.route` 会变为 `http_route`。正则必须以 `reg:` 开头，并使用 Go 正则表达式；例如 `reg:^key_.*$` 匹配所有以 `key_` 开头的字段。请先在测试环境验证正则，非法表达式会使采集器无法正常初始化。
 
 ### 多线路工具串联注意事项 {#trace_propagator}
 
-DDTrace 数据结构中 TraceID 是 uint64 类型，在使用透传协议 `tracecontext` 时，DDTrace 链路详情内部会增加一个 `_dd.p.tid:67c573cf00000000` 原因是因为 `tracecontext` 协议
-中的 `trace_id` 是 128 位 16 进制编码的字符串，为了兼容只能增加了一个高位的 tag 。
+DDTrace 传统 Trace ID 为 64 位整数；W3C `tracecontext` 使用 128 位、32 个十六进制字符的 Trace ID。DDTrace 载荷会把高 64 位放在 `_dd.p.tid` 中，DataKit 需要据此重建完整的 128 位 ID。
 
-DDTrace 目前支持的透传协议有：`datadog/b3multi/tracecontext` ，有两种情况需要注意：
+请让调用链上的 SDK 使用一致的透传协议，并按实际协议配置 DataKit：
 
-- 当使用 `tracecontext` 时，由于链路 ID 为 128 位需要将配置中的 `compatible_otel=true` 和 `trace_128_bit_id` 开关打开。
-- 当使用 `b3multi` 时，需要注意 `trace_id` 的长度，如果为 64 位的 16 进制编码，需要将配置文件中的 `trace_id_64_bit_hex=true` 打开。
-- 更多的透传协议及工具使用请查看： [多链路串联](tracing-propagator.md){:target="_blank"}
+- 使用 `tracecontext` 与 OpenTelemetry 串联时，启用 `compatible_otel=true`，以十六进制格式输出 span 和父 span ID；`trace_128_bit_id` 默认已启用，用于拼接 `_dd.p.tid` 与低 64 位 Trace ID。
+- 使用 `b3multi` 且上游发送 64 位十六进制 Trace ID 时，启用 `trace_id_64_bit_hex=true`。
+- 变更协议后，用一个跨服务请求验证 Trace ID 与 parent ID 是否连续；协议不一致通常表现为服务拓扑断开，而不是 DataKit 收不到数据。
+
+更多协议组合见[多链路串联](tracing-propagator.md){:target="_blank"}。
 
 ???+ info
 
-    - `compatible_otel` ：将 `span_id` 和 `parent_id` 转成 16 进制的字符串
-    - `trace_128_bit_id` ：将 `meta` 中的 `_dd.p.tid` 加上 `trace_id` 组合成一个长度为 32 的 16 进制编码的字符串
-    - `trace_id_64_bit_hex`：将 64 位的 `trace_id` 转成 16 进制编码的字符串
+    - `compatible_otel`：将 `span_id` 和 `parent_id` 输出为十六进制字符串。
+    - `trace_128_bit_id`：将 `meta` 中的 `_dd.p.tid` 与低 64 位 `trace_id` 拼接为 32 位十六进制字符串；默认值为 `true`。
+    - `trace_id_64_bit_hex`：将上游 64 位十六进制 `trace_id` 按十六进制解析。
 
 ### 注入 Pod 和 Node 信息 {#add-pod-node-info}
 
-当应用在 Kubernetes 等容器环境部署时，我们可以在在最终的 Span 数据上追加 Pod/Node 信息，通过修改应用的 Yaml 即可，下面是一个 Kubernetes Deployment 的 yaml 示例：
+当应用部署在 Kubernetes 等容器环境时，可通过 Downward API 将 Pod、Namespace 和 Node 信息写入 `DD_TAGS`。这些字段会随应用侧 span 发送；如需在链路列表中作为一级标签筛选，再在 DataKit 的 `customer_tags` 中显式添加相应字段。
 
 ```yaml hl_lines="21-30"
 ---
@@ -165,15 +185,19 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
             - name: DD_TAGS
-              value: pod_name:$(POD_NAME),host:$(NODE_NAME)
+              value: pod_name:$(POD_NAME),pod_namespace:$(POD_NAMESPACE),host:$(NODE_NAME)
             - name: DD_SERVICE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.labels['service']
 ```
 
-注意，此处要先定义 `POD_NAME` 和 `NODE_NAME`，然后再将它们嵌入到到 DDTrace 专用的环境变量中。
+变量替换只能引用同一容器中**先定义**的环境变量，因此应先定义 `POD_NAME`、`POD_NAMESPACE` 和 `NODE_NAME`，再定义 `DD_TAGS`。
 
 应用启动后，进入对应的 Pod，我们可以验证 ENV 是否生效：
 
@@ -194,20 +218,27 @@ $ env | grep DD_
     endpoints = ["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]
     ```
 
-    - 如果要关闭采样（即采集所有数据），采样率字段需做如下设置：
+    - DataKit 的 `[inputs.ddtrace.sampler]` 是**接收端采样**，与 SDK 的 `DD_TRACE_SAMPLE_RATE` 相互独立。要让接收端不再采样，请删除或完整注释该表；若保留该表，必须显式设置采样率：
 
     ``` toml
     # [inputs.{{.InputName}}.sampler]
     # sampling_rate = 1.0
     ```
 
-    不要只注释 `sampling_rate = 1.0` 这一行，必须连同 `[inputs.{{.InputName}}.sampler]` 也一并注释掉，否则采集器会认为 `sampling_rate` 被置为 0.0，从而导致所有数据都被丢弃。
+    `sampling_rate = 1.0` 表示保留全部 trace。不要只注释 `sampling_rate` 而保留表头，否则该表会按零值处理并丢弃所有 trace。默认情况下错误 trace 会绕过接收端采样；如配置 `omit_err_status`，对应 HTTP 错误状态才可能被过滤。
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 MD032 MD030 -->
 
 ### HTTP 设置 {#http}
 
-如果 Trace 数据是跨机器发送过来的，那么需要设置 [DataKit 的 HTTP 设置](../datakit/datakit-conf.md#config-http-server)。
+DataKit 默认监听 `localhost:9529`。若 trace 来自远端主机或其他 Pod，需要在 `datakit.conf` 的 `[http_api]` 中设置应用可达的监听地址，例如：
+
+```toml
+[http_api]
+  listen = "0.0.0.0:9529"
+```
+
+仅在受控网络中使用该配置：trace 端点不应直接暴露到公网，生产环境应使用防火墙、安全组、Kubernetes Service/NetworkPolicy 或 TLS 进行访问控制。DataKit 默认接收 `/v0.3/traces`、`/v0.4/traces` 和 `/v0.5/traces`，除非明确了解兼容性影响，否则不要修改 `endpoints`。
 
 如果有 DDTrace 数据发送给 DataKit，那么在 [DataKit 的 monitor](../datakit/datakit-monitor.md) 上能看到：
 
@@ -218,7 +249,7 @@ $ env | grep DD_
 
 ### 开启磁盘缓存 {#disk-cache}
 
-如果 Trace 数据量很大，为避免给主机造成大量的资源开销，可以将 Trace 数据临时缓存到磁盘中，延迟处理：
+磁盘缓存用于在瞬时流量较高时延后处理 HTTP 请求体，降低内存和处理峰值；它不是长期归档，也不能替代应用侧采样。目录必须可写、具备足够空间，并应位于容器重建后仍可保留的卷上（如确有恢复需求）。`capacity` 单位为 MiB。
 
 ``` toml
 [inputs.{{.InputName}}.storage]
@@ -228,20 +259,18 @@ $ env | grep DD_
 
 ### DDtrace SDK 配置 {#sdk}
 
-配置完采集器之后，还可以对 DDtrace SDK 端做一些配置。
+配置完采集器后，再配置 SDK。不同语言对变量的支持和优先级略有差异；下列变量是通用概念，最终以所用语言 SDK 的版本文档为准。若 SDK 支持 `DD_TRACE_AGENT_URL`，该 URL 通常优先于主机和端口配置，避免同时设置相互冲突的值。
 
 ### 环境变量设置 {#sdk-envs}
 
-- `DD_TRACE_ENABLED`: Enable global tracer (部分语言平台支持)
-- `DD_AGENT_HOST`: DDtrace agent host address
-- `DD_TRACE_AGENT_PORT`: DDtrace agent host port
-- `DD_SERVICE`: Service name
-- `DD_TRACE_SAMPLE_RATE`: Set sampling rate
-- `DD_VERSION`: Application version (optional)
-- `DD_TRACE_STARTUP_LOGS`: DDtrace logger
-- `DD_TRACE_DEBUG`: DDtrace debug mode
-- `DD_ENV`: Application env values
-- `DD_TAGS`: Application
+| 变量 | 用途 | 使用建议 |
+| --- | --- | --- |
+| `DD_AGENT_HOST`、`DD_TRACE_AGENT_PORT` | Trace 接收端地址和端口 | 指向 DataKit，例如 `datakit-service:9529`；不要误用 StatsD 端口 `8125`。 |
+| `DD_SERVICE`、`DD_ENV`、`DD_VERSION` | 服务、环境和版本标识 | 在所有服务中使用稳定、可检索的值。 |
+| `DD_TAGS` | 应用侧全局标签 | 使用 `key:value` 对；避免写入令牌、请求体、个人信息等敏感数据。 |
+| `DD_TRACE_SAMPLE_RATE` | SDK 侧采样率 | `0.0` 到 `1.0`；优先在源头控制高流量。 |
+| `DD_TRACE_ENABLED` | 是否启用插桩/trace 发送 | 具体行为因语言而异，排障时确认没有被设为 `false`。 |
+| `DD_TRACE_STARTUP_LOGS`、`DD_TRACE_DEBUG` | SDK 启动与调试日志 | 仅在排障期间临时开启，避免增加日志量或暴露配置细节。 |
 
 除了在应用初始化时设置项目名，环境名以及版本号外，还可通过如下两种方式设置：
 
@@ -251,7 +280,7 @@ $ env | grep DD_
 DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.py
 ```
 
-- 在 *ddtrace.conf* 中直接配置自定义标签。这种方式会影响所有发送给 DataKit tracing 服务的数据，需慎重考虑：
+- 在 *ddtrace.conf* 中直接配置接收端标签。这种方式会影响所有进入该 DataKit 的 DDTrace 数据，适合注入统一的部署标签；不要用它表达某个应用独有的服务信息：
 
 ```toml
 # tags is ddtrace configed key value pairs
@@ -264,13 +293,13 @@ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.p
 
 [:octicons-tag-24: Version-1.35.0](../datakit/changelog.md#cl-1.35.0) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
 
-DDTrace 探针启动后，会不断通额外的接口上报服务有关的信息，比如启动配置、心跳、加载的探针列表等信息。可在<<<custom_key.brand_name>>> 基础设施 -> 资源目录 中查看。展示的数据对于排查启动命令和引用的三方库版本问题有帮助。其中还包括主机信息、服务信息、产生的 Span 数信息等。
+Java Agent 可以通过 `/telemetry/proxy/api/v2/apmtelemetry` 上报启动配置、心跳、依赖与已加载集成等元数据。DataKit 默认接收该路由；如不需要，可关闭 `apmtelemetry_route_enable`。数据可在 <<<custom_key.brand_name>>> 基础设施的资源目录中查看，适合排查启动命令、依赖版本和探针加载情况。
 
 语言不同和版本不同数据可能会有很大的差异，以实际收到的数据为准。
 
 ### 固定提取 tag {#add-tags}
 
-从 DataKit 版本 [1.21.0](../datakit/changelog.md#cl-1.21.0) 开始，黑名单功能废弃，并且不在将 Span.Mate 中全部都提前到一级标签中，而是选择性提取。
+从 DataKit 版本 [1.21.0](../datakit/changelog.md#cl-1.21.0) 开始，不再把 `Span.Meta` 的所有字段提升为一级标签，而是仅提取下列常用字段，以控制标签基数和索引成本。
 
 以下是可能会提取出的标签列表：
 
@@ -306,14 +335,24 @@ DDTrace 探针启动后，会不断通额外的接口上报服务有关的信息
 | `dd_ext_version`    | `sdk_version`       | SDK 扩展版本号              |
 | `language`          | `sdk_language`      | SDK 语言                 |
 
-在 Studio 的链路界面，不在列表中的标签也可以进行筛选。
+未在列表中的字段仍保留在 span 的 `meta` 中，可在链路详情中查看；是否能作为一级标签筛选取决于界面与索引配置。
 
-从 DataKit 版本 [1.22.0](../datakit/changelog.md#cl-1.22.0) 恢复白名单功能，如果有必须要提取到一级标签列表中的标签，可以在 `customer_tags` 中配置。配置的白名单标签如果是原生的 `message.meta` 中，会使用 `.` 作为分隔符，采集器会进行转换将 `.` 替换成 `_` 。
+从 DataKit 版本 [1.22.0](../datakit/changelog.md#cl-1.22.0) 起，可通过 `customer_tags` 增加白名单字段。提取后字段名中的 `.` 会变成 `_`；请只添加稳定且低基数的字段，避免把用户 ID、请求 ID 等高基数字段提升为标签。
+
+### 常见排障路径 {#troubleshooting}
+
+| 现象 | 优先检查项 |
+| --- | --- |
+| 完全没有 trace | DataKit 的 `ddtrace` 是否启用；应用是否真的加载 SDK/Agent；`DD_AGENT_HOST`、`DD_TRACE_AGENT_PORT`、Service、NetworkPolicy 和防火墙是否正确。 |
+| 只有部分服务或调用链断开 | 上下游的透传协议是否一致；`tracecontext`/B3 对应的 DataKit ID 兼容开关是否正确。 |
+| JVM 指标或 Profiling 缺失 | 它们不由本采集器接收；分别检查 `statsd` 或 `profile` 采集器和对应端口。 |
+| 数据量或资源占用过高 | 先缩小应用侧采样，再评估接收端采样、`trace_max_spans`、`max_trace_body_mb` 与磁盘缓存。 |
 
 ## 数据采集字段说明 {#collected-data}
 
 ### 链路 {#tracing}
 
+<!-- markdownlint-disable MD024 -->
 {{range $i, $m := .Measurements}}
 
 {{if eq $m.Type "tracing"}}
@@ -344,7 +383,7 @@ DDTrace 探针启动后，会不断通额外的接口上报服务有关的信息
 
 ### 资源对象 {#custom-object}
 
-DDTrace 在启动后会上报自身配置信息、集成列表、依赖关系以及服务相关信息到 DataKit 。目前仅支持 Java Agent ，以下是各个字段说明：
+扩展版 Java Agent 启动后可上报自身配置、集成列表、依赖关系和服务元数据。当前该类资源对象仅适用于 Java Agent，常见事件如下：
 
 - `app_client_configuration_change` 其中包含 Agent 的配置信息
 - `app_dependencies_loaded` 依赖列表，包括包名和版本信息
@@ -363,6 +402,8 @@ DDTrace 在启动后会上报自身配置信息、集成列表、依赖关系以
 {{end}}
 
 {{end}}
+
+<!-- markdownlint-enable MD024 -->
 
 ## 延伸阅读 {#more-reading}
 

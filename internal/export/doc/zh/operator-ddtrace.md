@@ -1,5 +1,13 @@
 # DataKit Operator 注入 DDTrace
 
+DataKit Operator 在 Pod **创建时**通过 admission webhook 修改 Pod 模板：它添加 `datakit-lib-init` initContainer，将语言库复制到共享卷 `/datadog-lib`，再把该卷和必要的启动环境注入业务容器。它不会修改已经运行的 Pod；变更 Operator ConfigMap、镜像版本或 Deployment 注解后，需要通过发布/重启创建新 Pod 才会生效。
+
+使用前请明确三件事：
+
+1. 选择器决定哪些工作负载会被注入，空选择器可能扩大影响范围，应先在独立命名空间试点；
+1. `image` 中的库版本必须匹配**业务容器**的语言运行时版本，而不是 initContainer 的运行时；
+1. 注入库不等于目标应用一定能启动或产生链路，仍需验证业务容器的启动参数、环境变量和实际 trace 请求。
+
 ## 使用说明 {#datakit-operator-inject-lib-usage}
 
 1. 在目标 Kubernetes 集群，[下载和安装 DataKit-Operator](datakit-operator.md#install)
@@ -7,32 +15,30 @@
 
     ```json
     {
-        "server_listen": "0.0.0.0:9543", // 服务监听地址
-        "log_level": "info", // 日志级别
-
-        "admission_inject_v2": { // 注入配置 v2(operator version >= v1.8.0)
-            "ddtraces": [ // DDTrace 配置数组
+        "server_listen": "0.0.0.0:9543",
+        "log_level": "info",
+        "admission_inject_v2": {
+            "ddtraces": [
                 {
-                  // 此处填写 DDTrace 注入配置。..
-                },
-                {
-                  // 可再注入另一个 DDTrace 配置。..
+                    "namespace_selectors": ["staging"],
+                    "label_selectors": ["app=example"],
+                    "check_annotation": false,
+                    "image": "<ddtrace-library-image>",
+                    "language": "java",
+                    "envs": {
+                        "DD_AGENT_HOST": "datakit-service.datakit.svc.cluster.local",
+                        "DD_TRACE_AGENT_PORT": "9529"
+                    }
                 }
-            ]                   
+            ]
         },
-    
-        "admission_inject": { // 注入配置 v1
-            "ddtrace": {
-                // 此处填写 DDTrace 注入配置。..
-                // 对 v1 版本的配置，operator 只支持注入一份 DDTrace 配置，建议使用 v2 更灵活一些
-            }
-        },
+        "admission_inject": {
+            "ddtrace": {}
+        }
     }
     ```
 
-    <!-- 1. 在 deployment 添加指定 Annotation `admission.datakit/java-lib.version: "{{.DDTraceJavaExtVersion}}"`，表示需要注入默认版本的 DDtrace Java Agent。 -->
-
-
+    上例是可解析的 JSON。`admission_inject_v2`（Operator `v1.8.0+`）支持多个 DDTrace 配置，建议优先使用；`admission_inject` 是旧版兼容配置，通常只能表达一套 DDTrace 规则。不要把带 `//` 注释的 JSON 直接复制到 ConfigMap。
 
     DDTrace 注入有如下可配置字段：
 
@@ -42,19 +48,32 @@
     | `image`                      | string  | DDTrace 镜像地址                                       | Y[^image]    | 见下方示例                       |
     | `label_selectors`            | array   | 标签选择器数组                                         | Y[^selector] | `["app=nginx", "tier=frontend"]` |
     | `language`                   | string  | 支持的语言类型（可选 `java`/`python`/`php`/`nodejs`）   | Y[^lang]     | `"nodejs"`                       |
-    | `namespace_selectors`        | array   | 命名空间选择器，支持正则                               | Y[^selector] | `["prod-*", "test"]`             |
+    | `namespace_selectors`        | array   | 命名空间选择器，使用正则表达式                         | Y[^selector] | `["^prod-.*$", "^test$"]`       |
     | `resources`                  | object  | 资源限制配置                                           | N            | 见下方示例                       |
     | ~~`enabled_namespaces`~~     | object  | 选择要注入的 Kubernetes namespace 并设定对应的开发语言 | Y            | 1.7.0 中 `admission_inject_v2` 已弃用|
     | ~~`enabled_labelselectors`~~ | object  | 通过 Kubernetes label 选择要注入的目标                 | Y            | 1.7.0 中 `admission_inject_v2` 已弃用|
 
-    [^selector]: 此处必须填写，否则 Operator 会拒绝注入。
+    [^selector]: 字段本身必须填写，否则 Operator 会拒绝注入。空数组会使选择范围变宽；上线前应明确它是否符合预期。
     [^image]: 安装模板中提供了默认镜像地址，对于离线环境，用户一般需要将镜像拷贝到内网，进而需要使用内网的镜像地址。
     [^lang]: 此处选择的语言必须和对应的 DDTrace 镜像内容匹配，如果不匹配，会导致注入失效。
     [^envs]: 这些环境变量设置非常关键，直接影响最终的数据效果。这里支持的 `fieldRef` 支持列表，参见[这里](datakit-operator.md#downwardapi)
 
+    `language` 字段允许的值不代表任意版本都已有可用镜像。本页给出 Node.js 和 Python 的已核对版本映射；Java 使用下文示例并验证最终 JVM 命令已加载 Agent；PHP 仅应使用安装模板或发行说明中明确匹配 PHP 运行方式的镜像。不要用一种语言的镜像尝试注入另一种运行时。
+
+### 先小范围试点 {#pilot}
+
+建议先使用一个测试 namespace 和一个明确的 `app=<name>` 标签选择器，再逐步扩大范围。镜像标签应固定为具体版本，不要在生产规则中使用 `latest`。每次变更后至少验证：
+
+```shell
+kubectl get pod <pod-name> -o jsonpath='{.spec.initContainers[*].name}'
+kubectl describe pod <pod-name>
+```
+
+第一个命令应包含 `datakit-lib-init`；第二个命令用于检查挂载、环境变量和 webhook 事件。随后还要从业务容器确认语言启动参数，并在 DataKit monitor 中确认 trace 请求。
+
 ### DDTrace Lib 注入方式和镜像选择 {#ddtrace-lib-image-selection}
 
-DataKit Operator 注入 DDTrace 时，会添加名为 `datakit-lib-init` 的 initContainer，将 DDTrace Lib 拷贝到共享卷 `/datadog-lib`，再把该目录挂载到业务容器。镜像版本需要按**业务容器内的语言运行时版本**选择，而不是按 initContainer 的运行时选择。
+DataKit Operator 注入 DDTrace 时，会添加名为 `datakit-lib-init` 的 initContainer，将 DDTrace 库拷贝到共享卷 `/datadog-lib`，再把该目录挂载到业务容器。镜像版本必须按**业务容器内的语言运行时版本**选择，而不是按 initContainer 的运行时选择。
 
 镜像仓库按品牌区分。本文示例统一使用 `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator`，发布到不同品牌站点时会替换为对应仓库地址。
 
@@ -67,6 +86,8 @@ Node.js 注入会在业务容器中设置或追加 `NODE_OPTIONS`：
 ```
 
 如果业务容器中已经存在 `NODE_OPTIONS`，Operator 会在原值后追加上述参数。Node.js 镜像必须和业务容器中的 Node.js 主版本匹配。
+
+业务应用若自行覆盖 `NODE_OPTIONS`，会丢失注入参数并导致没有 trace。部署后可通过 `kubectl exec` 查看 `NODE_OPTIONS`，确认其中保留 `--require=/datadog-lib/node_modules/dd-trace/init`。
 
 | 业务容器 Node.js 版本 | 推荐镜像 | 版本要求说明 |
 | --- | --- | --- |
@@ -97,7 +118,9 @@ Node.js DDTrace 配置示例：
 
 #### Python 注入 {#ddtrace-python-injection}
 
-Python 注入会在业务容器中设置或追加 `PYTHONPATH=/datadog-lib/`，让 Python 进程从 `/datadog-lib` 加载 DDTrace 相关库。Python 的 DDTrace 包含 CPython ABI 相关 wheel，镜像版本需要和业务容器 Python 小版本匹配；版本不匹配时，可能出现 `ModuleNotFoundError`、native extension 加载失败或启动失败。
+Python 注入会在业务容器中设置或追加 `PYTHONPATH=/datadog-lib/`，让 Python 进程从 `/datadog-lib` 加载 DDTrace 相关库和注入 bootstrap。Python 的 DDTrace 包含 CPython ABI 相关 wheel，镜像版本需要和业务容器 Python 小版本匹配；版本不匹配时，可能出现 `ModuleNotFoundError`、native extension 加载失败或启动失败。
+
+应用镜像或启动脚本如自行覆盖 `PYTHONPATH`，必须保留 `/datadog-lib/`，否则注入库无法被加载。启动后可执行 `python -c 'import ddtrace; print(ddtrace.__version__)'` 做最小加载验证。
 
 | 业务容器 Python 版本 | 推荐镜像 | 版本要求说明 |
 | --- | --- | --- |
@@ -127,6 +150,10 @@ Python DDTrace 配置示例：
 ```
 
 > 版本选择依据来自 DDTrace 上游包的运行时要求：Node.js 以 npm `dd-trace` 的 `engines.node` 为准，Python 以 PyPI `ddtrace` 的 `Requires-Python` 和 wheel 支持为准。
+
+#### Java 注入验证 {#ddtrace-java-injection}
+
+Java 注入除库卷外还必须让 JVM 实际加载 `-javaagent`。应用启动后检查最终 Pod 的 `JAVA_TOOL_OPTIONS`、容器 command/args 或进程命令行，确认其中包含 Operator 注入的 Agent 路径；再确认 `DD_AGENT_HOST` 和 `DD_TRACE_AGENT_PORT=9529`。仅看到 `datakit-lib-init` 成功并不能证明 JVM 已加载 Agent。
 
 ### `check_annotation` 配置项说明 {#check-annotation-config}
 
@@ -205,7 +232,7 @@ Python DDTrace 配置示例：
        "namespace_selectors": ["staging"],
        "label_selectors": ["env=test"],
        "check_annotation": false,
-       "image": "internal-registry/dd-lib-java:latest",
+       "image": "internal-registry/dd-lib-java:<pinned-version>",
        "language": "java"
    }
    ```
@@ -222,7 +249,7 @@ Python DDTrace 配置示例：
        "namespace_selectors": ["prod"],
        "label_selectors": ["app=java-app"],
        "check_annotation": false,
-       "image": "internal-registry/dd-lib-java:latest",
+       "image": "internal-registry/dd-lib-java:<pinned-version>",
        "language": "java"
    }
    ```
@@ -276,7 +303,7 @@ Operator 能识别如下 Annotation：
 - `admission.datakit/python-lib.version`：指定特定的 DDTrace Python Lib 版本
 - `admission.datakit/nodejs-lib.version`：指定特定的 DDTrace Node.js Lib 版本
 
-> **注解使用说明**：关于 `check_annotation` 配置如何影响版本注解的行为，请参考 [Annotation 配置注入](datakit-operator.md#annotation-injection) 和 [`check_annotation` 配置项说明](datakit-operator.md#check-annotation-config)。
+> **注解使用说明**：关于 `check_annotation` 配置如何影响版本注解的行为，请参考 [Annotation 配置注入](datakit-operator.md#annotation-injection) 和[本页的 `check_annotation` 配置项说明](operator-ddtrace.md#check-annotation-config)。
 
 ### Annotation 示例 {#anno-demo}
 

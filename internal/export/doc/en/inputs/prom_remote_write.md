@@ -52,7 +52,7 @@ remote_write:
 === "Kubernetes"
 
     Can be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting) or [Config ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) .
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 ### Add, Ignore and Rename Tags {#tag-ops}
 
 We can label the collected metrics by configuring `tags`, as follows:
@@ -235,4 +235,4 @@ Output description:
     - Total time series: Number of timelines
     - Total line protocol points: Line protocol points
     - Total measurements: The number of measurements and their names.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD007 -->

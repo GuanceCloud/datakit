@@ -61,7 +61,7 @@ monitor   :
 
 {{ CodeBlock .InputENVSampleZh 4 }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 指标 {#metric}
 
@@ -104,4 +104,4 @@ monitor   :
 
 {{ end }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD024 -->

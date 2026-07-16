@@ -32,6 +32,10 @@ const (
 )
 
 const scheduleTypeCrontab = "crontab"
+const (
+	triggerTypeScheduled = "scheduled"
+	triggerTypeManual    = "manual"
+)
 
 var errTaskRunSkipped = errors.New("task run skipped")
 
@@ -56,6 +60,8 @@ type dialer struct {
 	seqNumber            int64 // the number of test has been executed
 	failCnt              int
 	variablePos          int64
+	triggerType          string
+	runBatchID           string
 
 	updateCh chan dt.ITask      // buffered with size 1, keeps only the latest pending update
 	done     <-chan interface{} // input exit signal
@@ -68,6 +74,14 @@ func (d *dialer) regionName() string {
 	}
 
 	return d.ipt.dialerRegionNameByLanguage(d.getWorkspaceLanguage())
+}
+
+func (d *dialer) regionID() string {
+	if d == nil || d.ipt == nil {
+		return ""
+	}
+
+	return d.ipt.RegionID
 }
 
 func (d *dialer) getWorkspaceLanguage() string {
@@ -240,10 +254,7 @@ func newDialer(t dt.ITask, ipt *Input) *dialer {
 		info = (&browserMeasurement{}).Info()
 	}
 
-	tags := make(map[string]string)
-	for k, v := range ipt.RegionTags {
-		tags[k] = v
-	}
+	tags := ipt.regionTagsSnapshot()
 
 	dfTags := make(map[string]string)
 	populateDFLabelTags(t.GetDFLabel(), dfTags)
@@ -331,28 +342,8 @@ func (d *dialer) run() error {
 	d.activateTaskGauge()
 	defer d.deactivateTaskGauge()
 
-	if parts, err := url.Parse(d.task.PostURLStr()); err != nil {
-		taskInvalidCounter.WithLabelValues(d.regionName(), d.class, "invalid_post_url").Inc()
-		return fmt.Errorf("invalid post url")
-	} else {
-		params := parts.Query()
-		if tokens, ok := params["token"]; ok {
-			// check token
-			if len(tokens) >= 1 {
-				if isValid, err := dialWorker.sender.checkToken(tokens[0], parts.Scheme, parts.Host); err != nil {
-					l.Warnf("check token error: %s", err.Error())
-				} else if !isValid {
-					taskInvalidCounter.WithLabelValues(d.regionName(), d.class, "invalid_token").Inc()
-					return fmt.Errorf("invalid token")
-				}
-			} else {
-				taskInvalidCounter.WithLabelValues(d.regionName(), d.class, "token_empty").Inc()
-				return fmt.Errorf("token is required")
-			}
-		} else {
-			taskInvalidCounter.WithLabelValues(d.regionName(), d.class, "token_empty").Inc()
-			return fmt.Errorf("token is required")
-		}
+	if err := d.checkPostURLToken(); err != nil {
+		return err
 	}
 
 	if err := d.checkInternalNetwork(); err != nil {
@@ -486,6 +477,30 @@ func (d *dialer) run() error {
 		}
 		isFirstRun = false
 	}
+}
+
+func (d *dialer) checkPostURLToken() error {
+	parts, err := url.Parse(d.task.PostURLStr())
+	if err != nil {
+		taskInvalidCounter.WithLabelValues(d.regionName(), d.class, "invalid_post_url").Inc()
+		return fmt.Errorf("invalid post url")
+	}
+
+	params := parts.Query()
+	tokens, ok := params["token"]
+	if !ok || len(tokens) == 0 {
+		taskInvalidCounter.WithLabelValues(d.regionName(), d.class, "token_empty").Inc()
+		return fmt.Errorf("token is required")
+	}
+
+	if isValid, err := dialWorker.sender.checkToken(tokens[0], parts.Scheme, parts.Host); err != nil {
+		l.Warnf("check token error: %s", err.Error())
+	} else if !isValid {
+		taskInvalidCounter.WithLabelValues(d.regionName(), d.class, "invalid_token").Inc()
+		return fmt.Errorf("invalid token")
+	}
+
+	return nil
 }
 
 func (d *dialer) runTask() error {

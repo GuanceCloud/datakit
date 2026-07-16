@@ -57,7 +57,7 @@ Already tested Filebeat version:
 ???+ warning
 
     If the `inputs.beats_output.tags` configured above duplicates the key in the original fields with the same name, it will be overwritten by the original data.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Configure Filebeat {#config-filebeat}
 

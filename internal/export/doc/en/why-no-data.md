@@ -344,7 +344,7 @@ After successful execution, a zip file is generated in the current directory, wi
     ```shell
     $ datakit debug --bug-report --nmetrics 10
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 The list of files after unzipping is as follows:
 
@@ -483,7 +483,7 @@ You can end the debug with Ctrl + c. To get the collected data as soon as possib
     - Some passively receiving data collectors (such as DDTrace/RUM) need to specify the HTTP service (`--http-listen=[IP:Port]`), and then use some HTTP client tools (such as `curl`) to send data to the corresponding address of DataKit. See `datakit debug --help` for details
 
     - The collector configuration used for debugging can be of any extension, and does not necessarily [end with `.conf`](datakit-input-conf.md#intro). We can use file names such as *my-input.conf.test* specifically for debugging, while not affecting the normal operation of DataKit.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### View Monitor Page {#monitor}
 
@@ -549,7 +549,7 @@ Get the latest 10 ERROR, WARN level logs through Shell/Powershell
     PS > Select-String -Path 'C:\Program Files\datakit\log' -Pattern "ERROR", "WARN"  | Select-Object Line -Last 10
     ...
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 - If you find descriptions such as `Beyond...` in the logs, it is generally because the data volume exceeds the free quota
 - If there are some `ERROR/WARN` words, it generally indicates that DataKit has encountered some problems

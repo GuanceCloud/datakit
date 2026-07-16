@@ -9,6 +9,15 @@ This document records updates to the Java extension package used in DataKit for 
 This extension is developed based on `DataDog/dd-trace-java` and follows the `Apache License 2.0`.
 For legal files, checksums, and source code change details, see the <<<custom_key.brand_name>>> [Java Tracer Extension Notice](../../application-performance-monitoring/java-tracer-extension).
 
+Use this changelog to identify the version where an extension capability first appeared, changed behavior, or was fixed. It is not a complete configuration manual. For a safe rollout:
+
+1. Pin the exact extended-JAR version in the deployment manifest.
+1. Use this log to confirm the target capability's minimum version and later behavior changes.
+1. Return to the [Java extension guide](ddtrace-ext-java.md) for configuration, data-safety boundaries, and verification.
+1. Complete compatibility tests in pre-production before a production upgrade.
+
+Historical entries preserve their release-time meaning. A newer version does not necessarily retain every early experimental behavior.
+
 <!-- markdownlint-disable MD046 MD030 -->
 <div class="grid cards" markdown>
 
@@ -19,9 +28,9 @@ For legal files, checksums, and source code change details, see the <<<custom_ke
     [SDK :material-download:](https://static.<<<custom_key.brand_main_domain>>>/dd-image/dd-java-agent.jar){:target="_blank"}
 
 </div>
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 MD030 -->
 
-## changelog {#changelog}
+## Changelog {#changelog}
 
 ## v1.63.7-ext (2026/7/1) {#cl-1.63.7-ext}
 

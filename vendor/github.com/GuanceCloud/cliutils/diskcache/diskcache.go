@@ -51,6 +51,9 @@ var (
 	// Diskcache full, no data can be write now.
 	ErrCacheFull = errors.New("cache full")
 
+	// ErrClosed indicates an operation was attempted on a closed cache.
+	ErrClosed = errors.New("diskcache closed")
+
 	ErrInvalidStreamSize = errors.New("invalid stream size")
 
 	// Invalid cache filename.
@@ -71,6 +74,11 @@ type DiskCache struct {
 	path string
 
 	dataFiles []string
+
+	// lifecycleMu excludes Close from in-flight I/O and protects closed and closeErr.
+	lifecycleMu sync.RWMutex
+	closed      bool
+	closeErr    error
 
 	// current writing/reading file.
 	curWriteFile,
@@ -164,7 +172,7 @@ func (c *DiskCache) Pretty() string {
 	}
 
 	if c.rfd != nil {
-		arr = append(arr, "cur-read: "+c.rfd.Name())
+		arr = append(arr, "cur-read: "+c.readFileName())
 	} else {
 		arr = append(arr, "no-Get()")
 	}

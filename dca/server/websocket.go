@@ -204,9 +204,9 @@ func (c *Client) Write() {
 			if !ok {
 				if err := c.Socket.WriteMessage(websocket.CloseMessage, []byte{}); err != nil {
 					l.Errorf("write message failed: %s", err.Error())
-					c.Exit()
-					return
 				}
+				c.Exit()
+				return
 			}
 
 			if err := c.Socket.SetWriteDeadline(time.Now().Add(c.Timeout)); err != nil {
@@ -292,25 +292,25 @@ type Message struct {
 	Content   string `json:"content,omitempty"`
 }
 
-func (manager *ClientManager) addWebsocketConnChan(connID string, conn *websocket.Conn) {
+func (manager *ClientManager) addWebsocketConnChan(connID string, conn *websocket.Conn) error {
 	manager.Lock()
 	defer manager.Unlock()
 	if ch, ok := manager.WebsocketConns[connID]; ok {
 		select {
 		case ch <- conn:
+			return nil
 		default:
-			l.Warnf("websocket conn chan is full, connID: %s, add failed", connID)
+			return fmt.Errorf("websocket conn chan is full, connID: %s", connID)
 		}
-		return
-	} else {
-		l.Warnf("websocket conn chan not existed, connID: %s")
 	}
+
+	return fmt.Errorf("websocket conn chan not existed, connID: %s", connID)
 }
 
 func (manager *ClientManager) initWebsocketConnChan(connID string) chan *websocket.Conn {
 	manager.Lock()
 	defer manager.Unlock()
-	manager.WebsocketConns[connID] = make(chan *websocket.Conn)
+	manager.WebsocketConns[connID] = make(chan *websocket.Conn, 1)
 	return manager.WebsocketConns[connID]
 }
 
@@ -321,7 +321,7 @@ func (manager *ClientManager) deleteWebsocketConnChan(connID string) {
 		close(ch)
 		delete(manager.WebsocketConns, connID)
 	} else {
-		l.Warnf("websocket conn chan not existed, connID: %s")
+		l.Warnf("websocket conn chan not existed, connID: %s", connID)
 	}
 }
 
@@ -395,7 +395,10 @@ func (manager *ClientManager) Action(action string, datakit *ws.DataKit, ctx *gi
 }
 
 func dealNewWebsocketConnection(conn *websocket.Conn, websocketConnID string) error {
-	Manager.addWebsocketConnChan(websocketConnID, conn)
+	if err := Manager.addWebsocketConnChan(websocketConnID, conn); err != nil {
+		conn.Close() //nolint:errcheck,gosec
+		return err
+	}
 	return nil
 }
 
@@ -449,7 +452,6 @@ func websocketHandler(c *gin.Context) {
 		l.Infof("new websocket connection")
 		if err := dealNewWebsocketConnection(conn, websocketConnID); err != nil {
 			l.Errorf("failed to deal new websocket connection: %s", err.Error())
-			conn.Close() //nolint:errcheck,gosec
 		}
 		return
 	}

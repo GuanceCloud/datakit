@@ -53,7 +53,7 @@ The Zipkin Agent embedded in DataKit is used to receive, calculate and analyze t
     | `ENV_INPUT_ZIPKIN_TAGS`               | JSON string | `'{"k1":"v1", "k2":"v2", "k3":"v3"}'`                                              |
     | `ENV_INPUT_ZIPKIN_THREADS`            | JSON string | `'{"buffer":1000, "threads":100}'`                                                 |
     | `ENV_INPUT_ZIPKIN_STORAGE`            | JSON string | `'{"storage":"./zipkin_storage", "capacity": 5120}'`                               |
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Tracing {#tracing}
 

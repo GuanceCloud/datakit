@@ -62,7 +62,7 @@ monitor   :
     iptables -A INPUT -p tcp --dport 9530 -j DROP
     ```
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 网络拓扑结构 {#network-topo}
 
@@ -108,7 +108,7 @@ end
 ???+ warning
 
     开启 MITM 模式后，会大幅度降低 Proxy 的性能，参见下面的性能测试结果。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 指标 {#metric}
 
@@ -118,7 +118,7 @@ end
 ???+ info
 
     如果不开启 mitm 功能，则不会有 `datakit_input_proxy_api_total` 和 `datakit_input_proxy_api_latency_seconds` 两个指标。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 性能测试 {#benchmark}
 

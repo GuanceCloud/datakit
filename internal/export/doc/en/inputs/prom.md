@@ -49,7 +49,7 @@ Only metric data in Prometheus form can be accessed.
     [[inputs.prom]]
         interval = "10s"
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 ### Configure Extra header {#extra-header}
 
 The Prom collector supports configuring additional request headers in HTTP requests for data pull, (Example basic authentication):

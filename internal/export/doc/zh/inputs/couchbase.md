@@ -46,7 +46,7 @@ Couchbase 采集器支持远程采集，可以运行在多种操作系统中。
 ???+ note
 
     - 采集数据需要用到 `8091` `9102` `18091` `19102` 几个端口，远程采集的时候，被采集服务器这些端口需要打开。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 采集器配置 {#input-config}
 
@@ -69,7 +69,7 @@ Couchbase 采集器支持远程采集，可以运行在多种操作系统中。
 
 {{ CodeBlock .InputENVSampleZh 4 }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### TLS 配置 {#tls}
 

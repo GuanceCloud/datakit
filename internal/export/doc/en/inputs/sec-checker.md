@@ -13,7 +13,7 @@ Operating system support: :fontawesome-brands-linux: :fontawesome-brands-windows
 DataKit has direct access to Security Checker's data. For specific use of Security Checker, see [here](../scheck/scheck-install.md).
 <!-- markdownlint-disable MD013 -->
 ## To Install the Security Checker Installation Through the DataKit {#install}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 ```shell
 sudo datakit install --scheck
 ```

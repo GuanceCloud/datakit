@@ -42,4 +42,4 @@ See [here](logfwd.md) for the use of logfwd.
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->

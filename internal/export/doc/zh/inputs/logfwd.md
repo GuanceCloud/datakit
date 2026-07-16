@@ -49,11 +49,11 @@ monitor   :
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入 logfwdserver 采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD013 -->
 ### logfwd 使用和配置（1.86.0 及以后） {#config-1-86-0}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 > logfwd 推荐在 Kubernetes Serverless 环境使用，如果已经部署了 DaemonSet DataKit，再使用 logfwd 可能会数据重复。
 
@@ -206,7 +206,7 @@ CRD 选择器说明：
     - 需要在业务 Pod/sidecar 中预先用 `volumes`/`volumeMounts` 共享日志目录（如 `emptyDir`），否则 logfwd 无法访问日志文件。
     - `LOGFWD_LOG_CONFIGS` 与 CRD 配置相互独立，若两者指向同一路径会导致重复采集。
     - DataKit-Operator 支持为目标 Pod 自动注入 logfwd sidecar 及挂载，具体请查看 DataKit-Operator [文档](../datakit/operator-logfwd.md)。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 #### ClusterLoggingConfig CRD 选择器支持 {#config-1-86-0-crd-selector}
 
@@ -224,7 +224,7 @@ logfwd 通过 DataKit-Operator 查询 `ClusterLoggingConfig` CRD 时，支持以
     - logfwd **不支持** `containerRegex` 选择器。由于 logfwd 以 Pod Sidecar 方式运行，它只负责采集日志文件，无法区分容器名。
     - `podLabelSelector` 的使用依赖于 `/etc/podinfo/labels` 文件的存在。DataKit-Operator 在注入 logfwd sidecar 时会自动挂载该文件（通过 Downward API），如果该文件不存在或为空，`podLabelSelector` 将无法生效。
     - 所有选择器条件为 **AND** 关系，即所有指定的选择器都必须匹配，Pod 才会被选中。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 #### 示例：Kubernetes Pod 配置 {#config-1-86-0-example}
 

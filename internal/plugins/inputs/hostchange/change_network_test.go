@@ -12,6 +12,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/changes"
 )
 
 func TestNetworkConfigChecker_Init(t *testing.T) {
@@ -54,6 +57,26 @@ func TestCompareStringSlices(t *testing.T) {
 	assert.False(t, compareStringSlices([]string{"a", "b", "c"}, []string{"a", "b", "d"}))
 	// Test different order
 	assert.False(t, compareStringSlices([]string{"a", "b", "c"}, []string{"c", "b", "a"}))
+}
+
+func TestNetworkDNSModifyUsesUnifiedDiff(t *testing.T) {
+	require.NoError(t, changes.LoadHostManifest())
+
+	checker := &NetworkConfigChecker{}
+	var items []*ChangeItem
+	checker.modifyDNSChange(&items)(
+		"nameserver", []string{"8.8.8.8"}, []string{"1.1.1.1"},
+	)
+
+	require.Len(t, items, 1)
+	assert.Contains(t, items[0].Message, `--- a/network/dns/nameserver
++++ b/network/dns/nameserver
+@@ -1 +1 @@
+-1.1.1.1
+\ No newline at end of file
++8.8.8.8
+\ No newline at end of file
+`)
 }
 
 func TestNetworkConfigChecker_CreateNetworkChangeItem(t *testing.T) {

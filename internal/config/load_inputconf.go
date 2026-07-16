@@ -47,10 +47,12 @@ func reloadKVConf(changedConfs map[string]string) error {
 			for inputName, inputArr := range inputsInfo {
 				l.Infof("kv reload, start input: %s", inputName)
 				for _, input := range inputArr {
-					kvInputReloadCount.WithLabelValues(input.Name).Inc()
-					kvInputLastReload.WithLabelValues(input.Name).Set(float64(time.Now().Unix()))
-					inputs.RunInput(input.Name, input)
-					inputs.AddInput(input.Name, input)
+					startName, rebuildHTTP := prepareKVInputStart(inputName, input)
+					containHTTPInput = containHTTPInput || rebuildHTTP
+					kvInputReloadCount.WithLabelValues(startName).Inc()
+					kvInputLastReload.WithLabelValues(startName).Set(float64(time.Now().Unix()))
+					inputs.RunInput(startName, input)
+					inputs.AddInput(startName, input)
 				}
 			}
 		}
@@ -67,6 +69,17 @@ func reloadKVConf(changedConfs map[string]string) error {
 	}
 
 	return nil
+}
+
+func prepareKVInputStart(inputName string, input *inputs.InputInfo) (string, bool) {
+	startName := input.Name
+	if _, ok := input.Input.(inputs.HTTPInputKVRebuild); !ok {
+		return startName, false
+	}
+	// Single-table KV configs do not populate InputInfo.Name. The map key is
+	// authoritative and preserves singleton accounting for opted-in inputs.
+	input.Name = inputName
+	return inputName, true
 }
 
 func getInputsFromConfData(confKey string, confData string, ipts map[string]inputs.Creator) (map[string][]*inputs.InputInfo, error) {

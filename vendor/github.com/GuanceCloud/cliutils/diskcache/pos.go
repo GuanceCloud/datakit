@@ -31,12 +31,12 @@ type pos struct {
 
 func (p *pos) close() error {
 	if p.fd != nil {
-		if err := p.fd.Close(); err != nil {
+		fd := p.fd
+		p.fd = nil
+		if err := fd.Close(); err != nil {
 			return WrapFileOperationError(OpClose, err, "", p.fname).
 				WithDetails("failed_to_close_position_fd")
 		}
-
-		p.fd = nil
 	}
 
 	return nil

@@ -92,7 +92,7 @@ DataKit has a built-in [statsd collector](statsd.md) for receiving statsd protoc
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ---
 
@@ -145,7 +145,7 @@ When turned on, you can collect jvm metrics exposed by DDTrace.
 ???+ info
 
     The actual collected indicators are based on [DataDog's doc](https://docs.datadoghq.com/tracing/metrics/runtime_metrics/java/#data-collected){:target="_blank"}.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Metric {#metric}
 

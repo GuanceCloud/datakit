@@ -125,7 +125,7 @@ If the sock path of Docker or Containerd is not the default, you need to specify
 
     Prefer mounting the directory that contains the socket. Avoid `subPath` or mounting only the socket file. A container runtime may delete and recreate its socket during restart. A directory mount exposes the new file to DataKit, while a single-file mount may continue to reference the stale file.
 ---
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 Environment Variables `ENV_INPUT_CONTAINER_ENDPOINTS` is added to the existing endpoints configuration, and the actual endpoints configuration may have many items. The collector will remove duplicates and connect and collect them one by one.
 
@@ -243,7 +243,7 @@ For all of the following data collections, a global tag named `host` is appended
 {{$m.MarkdownTable}}{{end}}
 
 {{ end }}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD024 -->
 
 ## Link Dataway Sink Function {#link-dataway-sink}
 
@@ -307,7 +307,7 @@ You can control which Pods are included or excluded from metrics collection by c
 
 <!-- markdownlint-disable MD013 -->
 ### NODE_LOCAL Mode Requires New RBAC Permissions {#rbac-nodes-stats}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 The `ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL` mode is only recommended for DaemonSet deployment and requires access to kubelet, so the `nodes/stats` permission needs to be added to RBAC. For example:
 
@@ -326,7 +326,7 @@ In addition, the DataKit Pod needs to have the `hostNetwork: true` configuration
 
 <!-- markdownlint-disable MD013 -->
 ### Collect PersistentVolumes and PersistentVolumeClaims Requires New Permissions {#rbac-pv-pvc}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 DataKit version 1.25.0[:octicons-tag-24: Version-1.25.0](../datakit/changelog.md#cl-1.25.0) supported the collection of object data for Kubernetes PersistentVolume and PersistentVolumeClaim, which require new RBAC permissions, as described below:
 
@@ -370,7 +370,7 @@ nginx.ingress.kubernetes.io/*
 
 <!-- markdownlint-disable MD013 -->
 ### Kubernetes YAML Sensitive Field Mask {#yaml-secret}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 DataKit collects yaml configurations for resources such as Kubernetes Pod or Service and stores them in the `yaml` field of the object data. If the yaml contains sensitive data (such as passwords), DataKit does not support manually configuring and shielding sensitive fields for the time being. It is recommended to use Kubernetes' official practice, that is, to use ConfigMap or Secret to hide sensitive fields.
 

@@ -13,15 +13,14 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/changes"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/diff"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-
 	apiappsv1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/tools/cache"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/changes"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
 const (
@@ -276,11 +275,13 @@ func compareDeployment(oldVal, newVal *apiappsv1.Deployment) []FieldDiff {
 			ChangeID: changes.DeploymentReplicas,
 			OldValue: oldReplicas,
 			NewValue: newReplicas,
-			DiffText: formatAsDiffLines("replicas", oldReplicas, newReplicas),
+			DiffText: scalarAsUnifiedDiff(
+				"spec.replicas", "replicas", *oldVal.Spec.Replicas, *newVal.Spec.Replicas,
+			),
 		})
 	}
 
-	if equal, difftext := diff.Compare(oldVal.Spec.Strategy, newVal.Spec.Strategy); !equal {
+	if equal, difftext := compareAsUnifiedDiff("spec.strategy", oldVal.Spec.Strategy, newVal.Spec.Strategy); !equal {
 		oldRollingUpdate := []string{}
 		newRollingUpdate := []string{}
 
@@ -294,10 +295,10 @@ func compareDeployment(oldVal, newVal *apiappsv1.Deployment) []FieldDiff {
 		}
 		if newVal.Spec.Strategy.RollingUpdate != nil {
 			if newVal.Spec.Strategy.RollingUpdate.MaxUnavailable != nil {
-				oldRollingUpdate = append(oldRollingUpdate, fmt.Sprintf("MaxUnavailable=%s", newVal.Spec.Strategy.RollingUpdate.MaxUnavailable))
+				newRollingUpdate = append(newRollingUpdate, fmt.Sprintf("MaxUnavailable=%s", newVal.Spec.Strategy.RollingUpdate.MaxUnavailable))
 			}
 			if newVal.Spec.Strategy.RollingUpdate.MaxSurge != nil {
-				oldRollingUpdate = append(oldRollingUpdate, fmt.Sprintf("MaxSurge=%s", newVal.Spec.Strategy.RollingUpdate.MaxSurge))
+				newRollingUpdate = append(newRollingUpdate, fmt.Sprintf("MaxSurge=%s", newVal.Spec.Strategy.RollingUpdate.MaxSurge))
 			}
 		}
 		res = append(res, FieldDiff{

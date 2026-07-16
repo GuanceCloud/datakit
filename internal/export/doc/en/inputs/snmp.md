@@ -83,7 +83,7 @@ If you choose v3 version, you need to provide `v3_user/v3_auth_protocol/v3_auth_
     1. The IP address (required in specified device mode)/segment (required in auto-discovery mode) of the device, the version number of the SNMP protocol and the corresponding authentication fields are required.
     1. "Specified device mode" and "auto-discovery mode", the two modes can coexist, but the SNMP protocol version number and the corresponding authentication fields must be the same among devices.
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Multiple configuration formats {#configuration-formats}
 
@@ -710,7 +710,7 @@ When SNMP devices are in the default, the general SNMP protocol is closed, you n
     sudo apt–get install snmp                # Ubuntu
     ```
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 
 #### SNMPv3 Example {#snmpv3-example}
@@ -847,7 +847,7 @@ For all of the following data collections, the global election tags will added a
 ???+ note
 
     All the following measurements and their metrics contain only some common fields, some device-specific fields, and some additional fields will be added according to different configurations and device models.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD024 -->
 {{ range $i, $m := .Measurements }}
@@ -893,7 +893,7 @@ For all of the following data collections, the global election tags will added a
 {{end}}
 
 {{ end }}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD024 -->
 
 <!-- markdownlint-disable MD013 -->
 ## FAQ {#faq}
@@ -914,7 +914,7 @@ To do this, obtain the OID manual for the device model from the vendor's website
 
 ### Can't see any metrics after configuration? {#faq-no-metrics}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 Try loosening ACLs/firewall rules for your devices.
 

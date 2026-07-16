@@ -14,7 +14,7 @@ Since DataKit 1.4.0, you can directly operate DataKit to collect data through th
     - Even data reported through the [DataKit API](../../datakit/apis.md) supports Pipeline processing.
     - Using Pipeline to process the existing data (especially non-logging data) may destroy the existing data structure and lead to abnormal performance of the data on <<<custom_key.brand_name>>>.
     - Before applying Pipeline, be sure to use the [Pipeline debugging tool](pipeline-quick-start.md#debug) to confirm that the data processing is as expected.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 Pipeline can do the following on the data collected by DataKit:
 
@@ -73,7 +73,7 @@ Prompt:
 - You can use the `drop()` function to mark the input Point as being dropped. After the script execution ends, the data will not be uploaded.
 <!-- markdownlint-disable MD013 -->
 ## Pipeline Script Storage, Indexing, and Matching {#script-store-index-match}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 ### Script Storage and Indexing {#store-and-index}
 
 Currently, Pipeline scripts are divided into four namespaces by source, with indexing priority decreasing, as shown in the following table:

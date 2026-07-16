@@ -10,9 +10,9 @@ skip: 'not-searchable-on-index-page'
 
 ## 简介 {#intro}
 
-原生 OTEL agent 对部分熟知的主流框架支持不够完善，我们在这个基础上，对其做了一些改进，以支持更多的主流框架和关键的数据追踪。
+原生 OpenTelemetry agent 对部分主流框架支持有限。扩展版本增强了兼容性和关键链路追踪能力。
 
-当前 OTEL 已增加了如下技术栈的扩展：
+当前已提供如下扩展方向：
 
 <!-- markdownlint-disable MD046 MD030 -->
 <div class="grid cards" markdown>
@@ -21,79 +21,54 @@ skip: 'not-searchable-on-index-page'
 
     ---
 
-    [SDK :material-download:](https://static.<<<custom_key.brand_main_domain>>>/dd-image/opentelemetry-javaagent.jar){:target="_blank"}
+    [SDK 下载 :material-download:](https://static.<<<custom_key.brand_main_domain>>>/dd-image/opentelemetry-javaagent.jar){:target="_blank"}
 
 </div>
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 MD030 -->
 
-> V1 版本已经不再更新，V2 版本已经发布稳定版本。
+> V1 已停止维护，当前使用 V2 稳定版本。
 
 ## 更新历史 {#changelog}
-
-<!--
-
-更新历史可以参考 DataKit 的基本范式：
-
-## 1.2.3(2022/12/12) {#cl-1.2.3}
-本次发布主要有如下更新：
-
-### 新加功能 {#cl-1.2.3-new}
-### 问题修复 {#cl-1.2.3-fix}
-### 功能优化 {#cl-1.2.3-opt}
-### 兼容调整 {#cl-1.2.3-brk}
-
---->
 
 ## 2.20.0-ext (2025/9/24) {#cl-2.20.0-ext}
 
 ### 新加功能 {#cl-2.20.0-ext-new}
 
-- 合并 open-telemetry V2 版本最新分支
-- SQL 脱敏功能与主分支合并
-
+- 合并 OpenTelemetry 2.20.0
+- 与上游合并 SQL 脱敏能力
 
 ## 1.28.0-ext (2023/7/7) {#cl-1.28.0-ext}
 
 ### 新加功能 {#cl-1.28.0-ext-new}
 
-- 合并 open-telemetry 最新分支
-
----
+- 合并 OpenTelemetry 最新主干版本
 
 ## 1.26.2-ext (2023/6/15) {#cl-1.26.2-ext}
-下载当前版本 jar 包： [v1.26.2-ext](https://static.<<<custom_key.brand_main_domain>>>/dd-image/opentelemetry-javaagent-1.26.2-ext.jar){:target="_blank"}
+当前版本 jar 下载： [v1.26.2-ext](https://static.<<<custom_key.brand_main_domain>>>/dd-image/opentelemetry-javaagent-1.26.2-ext.jar){:target="_blank"}
 
 ### 新加功能 {#cl-1.26.2-ext-new}
 
-- 增加 DB 语句脱敏
-
----
+- 增加数据库语句脱敏能力
 
 ## 1.26.1-ext (2023/6/9) {#cl-1.26.1-ext}
 
 ### 新加功能 {#cl-1.26.1-ext-new}
 
-- 非侵入方式支持获取特定方法的入参信息。
-- 阿里云 HSF 框架集成。
-
----
+- 支持非侵入式方式采集特定方法入参
+- 集成阿里云 HSF 框架
 
 ## 1.26.0-ext (2023/6/1) {#cl-1.26.0-ext}
 
 ### 新加功能 {#cl-1.26.0-ext-new}
 
-- 合并最新 OpenTelemetry 分支 v1.26.0
-- 支持国产达梦数据库。
-
----
+- 合并 OpenTelemetry `v1.26.0`
+- 支持国产 Dameng 数据库
 
 ## 1.25.0-ext (2023/5/10) {#cl-1.25.0-ext}
 
 ### 新加功能 {#cl-1.25.0-ext-new}
 
-- 合并最新 OpenTelemetry 分支 v1.25.0
+- 合并 OpenTelemetry `v1.25.0`
 - 支持 xxl-job 2.3
-- 增加支持阿里巴巴 Dubbo 及 Dubbox 框架支持。
-- 支持 thrift。
-
----
+- 支持阿里巴巴 Dubbo 与 Dubbox 框架
+- 增加 Thrift 支持

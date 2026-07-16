@@ -12,6 +12,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/point"
 	"github.com/stretchr/testify/assert"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 )
 
@@ -46,6 +47,23 @@ func TestCollect(t *testing.T) {
 	}
 
 	t.Log("TestCollect succeeded!")
+}
+
+func TestUpdateCloudHostTagsExcludesProvider(t *testing.T) {
+	tags := map[string]string{}
+	kvs := point.NewTags(map[string]string{
+		"cloud_provider": "aws",
+		"region":         "us-east-1",
+		"zone_id":        "use1-az1",
+	})
+
+	assert.True(t, updateCloudHostTags(tags, kvs))
+	assert.Equal(t, map[string]string{
+		"region":  "us-east-1",
+		"zone_id": "use1-az1",
+	}, tags)
+	assert.NotContains(t, tags, "cloud_provider")
+	assert.False(t, updateCloudHostTags(tags, kvs))
 }
 
 func TestInput_setup(t *testing.T) {

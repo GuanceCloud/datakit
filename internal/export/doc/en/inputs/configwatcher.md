@@ -34,7 +34,7 @@ The ConfigWatcher collector monitors content changes in files or directories, co
 
     Currently enabled by injecting collector configuration via [ConfigMap](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Example Configuration: Crontab {#example-crontab}
 

@@ -60,7 +60,7 @@ GRANT replication client on *.*  to 'datakit'@'localhost';
         ```
 
     - 以上创建、授权操作，均限定了 `datakit` 这个用户，只能在 MySQL 主机上（`localhost`）访问 MySQL。如果需要对 MySQL 进行远程采集，建议将 `localhost` 替换成 `%`（表示 DataKit 可以在任意机器上访问 MySQL），也可用特定的 DataKit 安装机器地址。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 采集器配置 {#input-config}
 
@@ -78,7 +78,7 @@ GRANT replication client on *.*  to 'datakit'@'localhost';
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ---
 
@@ -502,7 +502,7 @@ plugin_load_add ='group_replication.so'
 
 {{ end }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD024 -->
 
 ### MySQL 运行日志 {#mysql-logging}
 
@@ -592,4 +592,4 @@ show variables like "performance_schema";
 
 如果值是 `OFF`，请参考阿里云相关 [文档](https://help.aliyun.com/document_detail/41726.html?spm=a2c4g.276975.0.i9){:target="_blank"} 进行开启。
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->

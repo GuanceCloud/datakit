@@ -96,6 +96,14 @@ type Input struct {
 	SamplingRate          string `toml:"sampling_rate"`
 	SamplingRatePtsPerMin string `toml:"sampling_rate_pts_per_min"`
 
+	NetworkPathEnabled       bool   `toml:"network_path_enabled"`
+	NetworkPathAPI           string `toml:"network_path_api"`
+	NetworkPathToken         string `toml:"network_path_token"`
+	NetworkPathFlushInterval string `toml:"network_path_flush_interval"`
+	NetworkPathBatchSize     int    `toml:"network_path_batch_size"`
+	NetworkPathHTTPTimeout   string `toml:"network_path_http_timeout"`
+	NetworkPathQueueSize     int    `toml:"network_path_queue_size"`
+
 	OperatorURL string `toml:"operator_url"`
 
 	semStop *cliutils.Sem // start stop signal
@@ -170,6 +178,36 @@ func appendNetlogCaptureLimitArgs(args []string, fallbackSockets, fallbackBlocks
 	}
 
 	return args
+}
+
+func appendNetworkPathArgs(args []string, ipt *Input) []string {
+	if ipt == nil || !ipt.NetworkPathEnabled {
+		return args
+	}
+	args = append(args, "--network-path-enabled")
+	if ipt.NetworkPathAPI != "" {
+		args = append(args, "--network-path-api", ipt.NetworkPathAPI)
+	}
+	if ipt.NetworkPathFlushInterval != "" {
+		args = append(args, "--network-path-flush-interval", ipt.NetworkPathFlushInterval)
+	}
+	if ipt.NetworkPathBatchSize > 0 {
+		args = append(args, "--network-path-batch-size", strconv.Itoa(ipt.NetworkPathBatchSize))
+	}
+	if ipt.NetworkPathHTTPTimeout != "" {
+		args = append(args, "--network-path-http-timeout", ipt.NetworkPathHTTPTimeout)
+	}
+	if ipt.NetworkPathQueueSize > 0 {
+		args = append(args, "--network-path-queue-size", strconv.Itoa(ipt.NetworkPathQueueSize))
+	}
+	return args
+}
+
+func appendNetworkPathEnvs(envs []string, ipt *Input) []string {
+	if ipt == nil || !ipt.NetworkPathEnabled || ipt.NetworkPathToken == "" {
+		return envs
+	}
+	return append(envs, "DKE_NETWORK_PATH_TOKEN="+ipt.NetworkPathToken)
 }
 
 func (ipt *Input) Run() {
@@ -310,6 +348,8 @@ loop:
 		ipt.Input.Args = append(ipt.Input.Args,
 			"--interval", ipt.Interval)
 	}
+	ipt.Input.Args = appendNetworkPathArgs(ipt.Input.Args, ipt)
+	ipt.Input.Envs = appendNetworkPathEnvs(ipt.Input.Envs, ipt)
 
 	{
 		var netlogArgs []string
@@ -428,6 +468,13 @@ func (*Input) AvailableArchs() []string {
 // ENV_INPUT_EBPF_INTERVAL        : string
 // ENV_INPUT_EBPF_PPROF_HOST      : string
 // ENV_INPUT_EBPF_PPROF_PORT      : string
+// ENV_INPUT_EBPF_NETWORK_PATH_ENABLED        : bool
+// ENV_INPUT_EBPF_NETWORK_PATH_API            : string
+// ENV_INPUT_EBPF_NETWORK_PATH_TOKEN          : string
+// ENV_INPUT_EBPF_NETWORK_PATH_FLUSH_INTERVAL : string
+// ENV_INPUT_EBPF_NETWORK_PATH_BATCH_SIZE     : int
+// ENV_INPUT_EBPF_NETWORK_PATH_HTTP_TIMEOUT   : string
+// ENV_INPUT_EBPF_NETWORK_PATH_QUEUE_SIZE     : int
 //
 // ENV_INPUT_EBPF_NETLOG_BLACKLIST   : string
 // ENV_INPUT_EBPF_NETLOG_METRIC_ONLY : bool
@@ -524,6 +571,40 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 
 	if v, ok := envs["ENV_INPUT_EBPF_INTERVAL"]; ok {
 		ipt.Interval = v
+	}
+	if v, ok := envs["ENV_INPUT_EBPF_NETWORK_PATH_ENABLED"]; ok {
+		switch v {
+		case "", "f", "false", "FALSE", "False", "0":
+			ipt.NetworkPathEnabled = false
+		default:
+			ipt.NetworkPathEnabled = true
+		}
+	}
+	if v, ok := envs["ENV_INPUT_EBPF_NETWORK_PATH_API"]; ok {
+		ipt.NetworkPathAPI = v
+	}
+	if v, ok := envs["ENV_INPUT_EBPF_NETWORK_PATH_TOKEN"]; ok {
+		ipt.NetworkPathToken = v
+	}
+	if v, ok := envs["ENV_INPUT_EBPF_NETWORK_PATH_FLUSH_INTERVAL"]; ok {
+		ipt.NetworkPathFlushInterval = v
+	}
+	if v, ok := envs["ENV_INPUT_EBPF_NETWORK_PATH_BATCH_SIZE"]; ok {
+		if n, err := strconv.Atoi(v); err != nil {
+			l.Warnf("parse ENV_INPUT_EBPF_NETWORK_PATH_BATCH_SIZE: %v", err)
+		} else {
+			ipt.NetworkPathBatchSize = n
+		}
+	}
+	if v, ok := envs["ENV_INPUT_EBPF_NETWORK_PATH_HTTP_TIMEOUT"]; ok {
+		ipt.NetworkPathHTTPTimeout = v
+	}
+	if v, ok := envs["ENV_INPUT_EBPF_NETWORK_PATH_QUEUE_SIZE"]; ok {
+		if n, err := strconv.Atoi(v); err != nil {
+			l.Warnf("parse ENV_INPUT_EBPF_NETWORK_PATH_QUEUE_SIZE: %v", err)
+		} else {
+			ipt.NetworkPathQueueSize = n
+		}
 	}
 
 	if v, ok := envs["ENV_INPUT_EBPF_TRACE_SERVER"]; ok {

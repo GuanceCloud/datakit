@@ -120,7 +120,13 @@ type DNSPacketInfo struct {
 	TS          time.Time
 	QueryDomain string
 	QueryType   string
-	Answers     []layers.DNSResourceRecord
+	Answers     []dnsAnswer
+}
+
+type dnsAnswer struct {
+	recordType layers.DNSType
+	name       string
+	ip         string
 }
 
 func ReadPacketInfoFromDNSParser(ts time.Time, dnsParser *DNSParser) (*DNSPacketInfo, error) {
@@ -154,7 +160,7 @@ func ReadPacketInfoFromDNSParser(ts time.Time, dnsParser *DNSParser) (*DNSPacket
 			pinfo.Key.TransactionID = dnsParser.dns.ID
 			pinfo.QR = dnsParser.dns.QR
 			pinfo.RCODE = uint8(dnsParser.dns.ResponseCode)
-			pinfo.Answers = dnsParser.dns.Answers
+			pinfo.Answers = snapshotDNSAnswers(dnsParser.dns.Answers)
 			if len(dnsParser.dns.Questions) > 0 {
 				question := dnsParser.dns.Questions[0]
 				pinfo.QueryDomain = normalizeDNSDomain(string(question.Name))
@@ -176,6 +182,33 @@ func ReadPacketInfoFromDNSParser(ts time.Time, dnsParser *DNSParser) (*DNSPacket
 	}
 
 	return &pinfo, nil
+}
+
+// snapshotDNSAnswers detaches queued packet information from gopacket's
+// reusable DNS decode buffer. Keep only the fields consumed by the address to
+// domain cache so high-volume DNS traffic does not copy unrelated RDATA.
+func snapshotDNSAnswers(answers []layers.DNSResourceRecord) []dnsAnswer {
+	if len(answers) == 0 {
+		return nil
+	}
+
+	snapshot := make([]dnsAnswer, 0, len(answers))
+	for i := range answers {
+		switch answers[i].Type { //nolint:exhaustive
+		case layers.DNSTypeA, layers.DNSTypeAAAA, layers.DNSTypeCNAME:
+		default:
+			continue
+		}
+		answer := dnsAnswer{
+			recordType: answers[i].Type,
+			name:       string(answers[i].Name),
+		}
+		if answers[i].IP != nil {
+			answer.ip = answers[i].IP.String()
+		}
+		snapshot = append(snapshot, answer)
+	}
+	return snapshot
 }
 
 func conv2arr(ip net.IP) [4]uint32 {

@@ -11,13 +11,14 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
+	apiappsv1 "k8s.io/api/apps/v1"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/tools/cache"
+
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/changes"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-	apiappsv1 "k8s.io/api/apps/v1"
-	"k8s.io/client-go/informers"
-	"k8s.io/client-go/tools/cache"
 )
 
 const (
@@ -243,7 +244,9 @@ func compareStatefulSet(oldVal, newVal *apiappsv1.StatefulSet) []FieldDiff {
 			ChangeID: changes.StatefulSetReplicas,
 			OldValue: oldReplicas,
 			NewValue: newReplicas,
-			DiffText: formatAsDiffLines("replicas", oldReplicas, newReplicas),
+			DiffText: scalarAsUnifiedDiff(
+				"spec.replicas", "replicas", *oldVal.Spec.Replicas, *newVal.Spec.Replicas,
+			),
 		})
 	}
 

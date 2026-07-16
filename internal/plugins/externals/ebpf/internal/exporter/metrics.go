@@ -189,6 +189,35 @@ var (
 		[]string{"result"},
 	)
 
+	eNetpathCandidateRequestsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "dkebpf",
+			Subsystem: "netpath",
+			Name:      "candidate_requests_total",
+			Help:      "Total number of netpath candidate API requests",
+		},
+		[]string{"result"},
+	)
+
+	eNetpathCandidatesDroppedTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "dkebpf",
+			Subsystem: "netpath",
+			Name:      "candidates_dropped_total",
+			Help:      "Total number of netpath candidates dropped by the eBPF reporter",
+		},
+		[]string{"reason"},
+	)
+
+	eNetpathPendingCandidates = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "dkebpf",
+			Subsystem: "netpath",
+			Name:      "pending_candidates",
+			Help:      "Current number of netpath candidates waiting for API delivery",
+		},
+	)
+
 	ePerfLostTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "dkebpf",
@@ -329,6 +358,21 @@ func AddSenderDropped(reason string, points int) {
 		return
 	}
 	eSenderDroppedPointsTotal.WithLabelValues(reason).Add(float64(points))
+}
+
+func ObserveNetpathCandidateRequest(result string) {
+	eNetpathCandidateRequestsTotal.WithLabelValues(result).Inc()
+}
+
+func AddNetpathCandidatesDropped(reason string, candidates int) {
+	if candidates <= 0 {
+		return
+	}
+	eNetpathCandidatesDroppedTotal.WithLabelValues(reason).Add(float64(candidates))
+}
+
+func ObserveNetpathPendingCandidates(candidates int) {
+	eNetpathPendingCandidates.Set(float64(candidates))
 }
 
 func AddPerfLost(component, stream string, count uint64) {

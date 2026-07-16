@@ -150,6 +150,18 @@ const configSample = `
   ##
   # ephemeral_port = 10001
 
+  ## Dynamic network path discovery.
+  ## datakit-ebpf only reports candidates; DataKit netpath runs traceroute
+  ## and uploads netpath points.
+  ##
+  # network_path_enabled = false
+  # network_path_api = "http://127.0.0.1:9529/v1/netpath/candidates"
+  # network_path_token = ""
+  # network_path_flush_interval = "10s"
+  # network_path_batch_size = 100
+  # network_path_http_timeout = "3s"
+  # network_path_queue_size = 4096
+
   # interval = "60s"
 
   # sampling_rate = "0.50"

@@ -22,6 +22,7 @@ Autodiscovery
 BATIS
 Batis
 Binlog
+CGNAT
 CORB
 CUBRID
 Chrony
@@ -91,6 +92,7 @@ Lightpanda
 Log4j
 Logback
 Loki
+MMDB
 Memtable
 MkDocs
 MyISAM

@@ -44,7 +44,7 @@ After successfully installing and launching DataKit, the Net Collector is automa
     
 {{ CodeBlock .InputENVSample 4 }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Metric {#metric}
 

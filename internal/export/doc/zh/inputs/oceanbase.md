@@ -52,7 +52,7 @@ GRANT SELECT ON *.* TO 'datakit'@'localhost';
         ```
 
     - 以上创建、授权操作，均限定了 `datakit` 这个用户，只能在 OceanBase 主机上（`localhost`）访问。如果需要远程采集，建议将 `localhost` 替换成 `%`（表示 DataKit 可以在任意机器上访问），也可用特定的 DataKit 安装机器地址。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 采集器配置 {#input-config}
 
@@ -71,7 +71,7 @@ GRANT SELECT ON *.* TO 'datakit'@'localhost';
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 慢查询支持 {#slow}
 
@@ -91,7 +91,7 @@ slow_query_time = "10s"
     - `failed_obfuscate`：SQL 脱敏失败的原因。只有在 SQL 脱敏失败才会出现。SQL 脱敏失败后原 SQL 会被上报。更多字段解释可以查看[这里](https://www.oceanbase.com/docs/enterprise-oceanbase-database-cn-10000000000376688){:target="_blank"}
     - 如果值是 `0s` 或空或小于 1 毫秒，则不会开启 OceanBase 采集器的慢查询功能，即默认状态
     - 没有执行完成的 SQL 语句不会被查询到
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 指标 {#metric}
 

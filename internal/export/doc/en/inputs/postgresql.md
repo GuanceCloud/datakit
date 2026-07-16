@@ -93,7 +93,7 @@ PostgreSQL collector can collect the running status index from PostgreSQL instan
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Database Performance Metrics Collection {#performance-schema}
 
@@ -202,7 +202,7 @@ track_activity_query_size = 4096 # Required for collection of larger queries.
 
     ```
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 - Additional permissions and explain-plan helper
 
@@ -483,4 +483,4 @@ Description of the cut field:
 
 For metrics `postgresql_lock/postgresql_stat/postgresql_index/postgresql_size/postgresql_statio`, the `relations` field in the configuration file needs to be enabled. If some of these metrics are partially missing, it may be because there is no data for the relevant metrics.
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->

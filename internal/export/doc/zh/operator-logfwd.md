@@ -289,7 +289,7 @@ Operator logfwd 注入支持在应用 Pod 上增加如下 Annotation：
 ???+ warning
 
     如果配置中的 `log_configs` 字段为空，logfwd 注入将被跳过。即使 Pod 添加了 Annotation `admission.datakit/logfwd.enabled: "true"` ，且匹配了选择器规则，也需要确保 `log_configs` 字段不为空才能成功注入。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 注入用例 {#inject-logfwd-example}
 

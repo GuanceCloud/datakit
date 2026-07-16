@@ -40,18 +40,22 @@ func (wl *walLock) tryLock() (bool, error) {
 	return true, nil
 }
 
-func (wl *walLock) unlock() {
+func (wl *walLock) unlock() error {
 	if wl.f != nil {
-		if err := syscall.Flock(int(wl.f.Fd()), syscall.LOCK_UN); err != nil {
-			l.Errorf("Flock: %s", err.Error())
+		f := wl.f
+		wl.f = nil
+		var errs []error
+
+		if err := syscall.Flock(int(f.Fd()), syscall.LOCK_UN); err != nil {
+			errs = append(errs, fmt.Errorf("unlock lock file: %w", err))
 		}
 
-		if err := wl.f.Close(); err != nil {
-			l.Errorf("CLose: %s", err.Error())
+		if err := f.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("close lock file: %w", err))
 		}
 
-		if err := os.Remove(wl.file); err != nil { // Optional on Unix
-			l.Errorf("Remove: %s", err.Error())
-		}
+		return errors.Join(errs...)
 	}
+
+	return nil
 }

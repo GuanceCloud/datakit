@@ -55,7 +55,7 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
 ???+ note
 
     在 RUM 数据中，可能会在 Tracing 数据上触发一个 root span，该 root span 是在**中心生成**的，其目的是避免由 RUM 触发的链路数据缺少 root span 而凭空创建的一个 span（保持链路的完整性）。由于该 span 不经过 DataKit，故其无法通过过滤器来丢弃。同理，该数据也无法进行 Pipeline 处理。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### DataKit 中手动配置 filter {#manual}
 
@@ -103,7 +103,7 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
     过滤器只适用于调试，日常使用的话，还是建议大家使用黑名单的网页模式。一旦 *datakit.conf* 中配置了过滤器，那么则以该过滤器为准，**<<<custom_key.brand_name>>> Studio 配置的黑名单将不再生效**。
 
     另外，黑名单功能在未来将被下线，最好的数据过滤方式还是通过 Pipeline 的 `drop()` 函数实现。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 这里的配置需遵循如下规则：
 
@@ -178,7 +178,7 @@ Filter 的主要功能就是数据筛选，其筛选依据是通过一定的筛�
     { true = false  }
     { 'abc' = 'ABC' } # 字符串大小写敏感
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### nil/null 用法 {#nil}
 

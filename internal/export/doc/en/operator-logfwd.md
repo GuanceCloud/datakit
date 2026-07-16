@@ -286,7 +286,7 @@ Operator logfwd injection supports adding the following Annotations to applicati
 ???+ warning
 
     If the `log_configs` field in the configuration is empty, logfwd injection will be skipped. Even if the Pod adds Annotation `admission.datakit/logfwd.enabled: "true"` and matches the selector rules, ensure that the `log_configs` field is not empty for successful injection.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Injection Example {#inject-logfwd-example}
 

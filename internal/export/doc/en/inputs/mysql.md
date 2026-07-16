@@ -59,7 +59,7 @@ GRANT replication client on *.*  to 'datakit'@'localhost';
         ```text
         Error 1045: Access denied for user 'datakit'@'localhost' (using password: YES)`
         ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Collector Configuration {#input-config}
 
@@ -77,7 +77,7 @@ GRANT replication client on *.*  to 'datakit'@'localhost';
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ---
 
@@ -496,7 +496,7 @@ The `subpartition` information field `partitions.subpartitions` contains details
 {{$m.MarkdownTable}}{{end}}
 
 {{ end }}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD024 -->
 
 ### MySQL Run Log {#mysql-logging}
 
@@ -586,4 +586,4 @@ show variables like "performance_schema";
 
 If the value is `OFF`, please refer to the [document](https://help.aliyun.com/document_detail/41726.html?spm=a2c4g.276975.0.i9){:target="_blank"} to enable it.
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->

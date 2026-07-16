@@ -88,7 +88,7 @@ proxy -->> dw: Proxy request to DataWay
     ```
 
     > 注意：其它安装参数设置，跟[正常安装](datakit-install.md) 无异。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 MD034 -->
 
 ---
 
@@ -161,7 +161,7 @@ proxy -->> dw: Proxy request to DataWay
         - [`DataKit-Lite`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit_lite-windows-amd64-{{.Version}}.tar.gz){:target="_blank"}
         - [`Upgrader`](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/dk_upgrader-windows-amd64-{{ .Version }}.tar.gz){:target="_blank"}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 MD034 -->
 
 下载完后，应该有以下文件（此处 *[OS-ARCH]* 指特定平台的安装包，如 `linux-amd64`）：
 
@@ -427,7 +427,7 @@ nginx -s reload # reload 配置
 (.WithEnvs "DK_INSTALLER_BASE_URL" "http://[Nginx-Server]:8080/datakit")
 }}
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD034 -->
 
 ## Kubernetes 离线部署 {#k8s-offline}
 

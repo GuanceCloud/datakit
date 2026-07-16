@@ -31,7 +31,7 @@ skip: 'not-searchable-on-index-page'
 ???+ info
 
     Pipeline 耗时期间，CPU 单核心满负载运行，使用率持续在 100% 左右，当 10w 条日志处理结束时 CPU 回落。测试期间内存消耗稳定，没有明显的使用率增加，耗时为 DataKit 程序计算，不同环境下可能会有偏差。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 对比 {#compare}
 

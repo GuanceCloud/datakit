@@ -51,7 +51,7 @@ GKE Autopilot 需要使用不依赖宿主机挂载的 Deployment 形态，参见
 
     也可以将 DataKit 部署成普通的 Deployment，下载 [*datakit-deployment.yaml*](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit-deployment.yaml){:target="_blank"}。相比 DaemonSet 部署，只是稍作调整，其可用的配置参数基本一致。
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 资源限制 {#requests-limits}
 
@@ -89,7 +89,7 @@ DataKit 默认设置了 Requests 和 Limits，如果 DataKit 容器状态变为 
         memory: "4Gi"
     ...
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 具体配置，参见[官方文档](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#requests-and-limits){:target="_blank"}。
 
@@ -357,7 +357,7 @@ spec:
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.envCommon 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD046 -->
 ???+ note "区分*全局主机 tag* 和*全局选举 tag*"
@@ -371,7 +371,7 @@ spec:
 ???+ note "关于禁用保护模式（ENV_DISABLE_PROTECT_MODE）"
 
     保护模式一旦被禁用，即可以设置一些危险的配置参数，DataKit 将接受任何配置参数。这些参数可能会导致 DataKit 一些功能异常，或者影响采集器的采集功能。比如 HTTP 发送 Body 设置太小，会影响数据上传功能；某些采集器的采集频率过高，可能影响被采集的实体。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!--
 ### Point Pool {#env-pointpool}
@@ -384,19 +384,19 @@ spec:
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.envDataway 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 日志配置 {#env-log}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.envLog 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Pprof 相关 {#env-pprof}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.envPprof 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 > `ENV_ENABLE_PPROF`：[:octicons-tag-24: Version-1.9.2](changelog.md#cl-1.9.2) 已默认开启 pprof。
 
@@ -404,43 +404,43 @@ spec:
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.envElect 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### HTTP/API {#env-http-api}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.envHTTPAPI 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Confd {#env-confd}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.envConfd 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Git {#env-git}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.envGit 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Sinker {#env-sinker}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.envSinker 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### IO 模块 {#env-io}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.envIO 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD046 -->
 ???+ note "关于 buffer 和 queue 的说明"
 
     `ENV_IO_MAX_CACHE_COUNT` 用来控制数据的发送策略，即当内存中 cache 的（行协议）点数超过该数值的时候，就会尝试将内存中当前 cache 的点数发送到中心。如果该 cache 的阈值调的太大，数据就都堆积在内存，导致内存飙升，但会提高 GZip 的压缩效果。如果太小，可能影响发送吞吐率。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 `ENV_IO_FILTERS` 是一个 JSON 字符串，示例如下：
 
@@ -461,13 +461,13 @@ spec:
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.envDca 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Refer Table {#env-reftab}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.envRefta 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 数据录制 {#env-recorder}
 
@@ -477,7 +477,7 @@ spec:
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.envRecorder 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Remote Job 远程任务 {#remote_job}
 
@@ -485,13 +485,13 @@ spec:
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.remote_job 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 其它杂项 {#env-others}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSampleZh.envOthers 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 特殊环境变量 {#env-special}
 

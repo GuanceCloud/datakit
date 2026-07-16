@@ -269,7 +269,7 @@ Pinpoint Golang Agent 也支持运行期动态更改配置，所有标记了 dyn
    - default: 10
    - dynamic
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD006 MD007 -->
 
 ## 手动检测应用程序 {#manual-instrumentation}
 
@@ -466,4 +466,4 @@ Pinpoint Golang Agent 中可以通过两种方式进行手动检测：
           wg.Wait()
       }
       ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD006 MD007 MD038 -->

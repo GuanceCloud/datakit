@@ -104,7 +104,7 @@ These commands will enable the database system monitor switches for each of the 
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Metric {#metric}
 
@@ -163,4 +163,4 @@ externals/db2: /lib64/libc.so.6: version  `GLIBC_2.14` not found (required by ex
 
 This means that the IBM Db2 collector can only run on AMD64 Linux, and no other platform can run the current IBM Db2 collector.
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->

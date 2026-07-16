@@ -34,7 +34,7 @@ __int_icon: 'icon/profiling'
 ???+ info
 
     当前最高支持到 `dd-trace-dotnet v2.34.0` 版本，更高的版本没有经过系统性测试，兼容性未知，如您在使用中遇到任何问题，可与我们联系。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 
 ## 开启 Profiling {#start-profiling}
@@ -48,7 +48,7 @@ __int_icon: 'icon/profiling'
 
     .NET Core 编译（build）后的输出目录通常位于项目根目录下的 *./bin/<Configuration\>/<Framework\>*，可以用参数指定 `-o|--output <OUTPUT_DIR>`，在本文档中假设为 *./bin/Release/net7.0*。
     .NET Core 发布（publish）后的输出目录默认位于项目根目录下的 *./bin/<Configuration\>/<Framework\>/publish*，同样可以用参数指定 `-o|--output <OUTPUT_DIR>`，在本文档中假设为 *./bin/Release/net7.0/publish*。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 
 ```shell
@@ -105,7 +105,7 @@ dotnet bin/Release/net7.0/<your-project-name>.dll
 
     如果你当前的架构是 `linux/arm64`，则需要修改设置 `CORECLR_PROFILER_PATH="$DDTRACE_HOME/linux-arm64/Datadog.Trace.ClrProfiler.Native.so"` 和
     `LD_PRELOAD="$DDTRACE_HOME/linux-arm64/Datadog.Linux.ApiWrapper.x64.so"`
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 稍等几分钟后便可以在 [<<<custom_key.brand_name>>>控制台](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile){:target="_blank"} 查看相关数据。
 

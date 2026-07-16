@@ -43,7 +43,7 @@ Wed Jul 21 08:22:32 UTC 2021
 ???+ info
 
     DataKit 自 [:octicons-tag-24: Version-1.75.0](../datakit/changelog-2025.md#cl-1.75.0) 开始使用 DataWay 机器时间作为数据采集时间，一定程度上避免了本机时间偏差较大带来的问题。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 主机软硬件不支持 {#iss-os-arch}
 
@@ -350,7 +350,7 @@ $ datakit debug --bug-report
     ```shell
     $ datakit debug --bug-report --nmetrics 10
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 解压后的文件列表参考如下：
 
@@ -489,7 +489,7 @@ disk,device=/dev/disk3s1,fstype=apfs free=167050518528i,inodes_free=1631352720i,
     - 部分被动接收数据的采集器（比如 DDTrace/RUM）需要指定 HTTP 服务（`--http-listen=[IP:Port]`），然后通过一些 HTTP 客户端工具（比如 `curl`）将数据发送给 DataKit 对应地址。详见 `datakit debug --help` 帮助
 
     - 调试用的采集器配置可以是任何形式的扩展名，不一定要[以 `.conf` 作为后缀](datakit-input-conf.md#intro)，我们可以用诸如 *my-input.conf.test* 这样的文件名专用于调试，同时又不影响 DataKit 的正常运行
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 查看 Monitor 页面 {#monitor}
 
@@ -555,7 +555,7 @@ show_tracing_service()
     PS > Select-String -Path 'C:\Program Files\datakit\log' -Pattern "ERROR", "WARN"  | Select-Object Line -Last 10
     ...
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 - 如果日志中发现诸如 `Beyond...` 这样的描述，一般情况下，是因为数据量超过了免费额度
 - 如果出现一些 `ERROR/WARN` 等字样，一般情况下，都表明 DataKit 遇到了一些问题

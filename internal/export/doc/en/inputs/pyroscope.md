@@ -35,7 +35,7 @@ Starting from the [:octicons-tag-24: Version-1.67.0](../datakit/changelog-2025.m
 === "Kubernetes"
 
     Currently, the profiler can be enabled by injecting the profiler configuration through the [ConfigMap method](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Custom Tag {#custom-tags}
 
@@ -441,4 +441,4 @@ By associating with tracing data (which Grafana calls *Span profiles*), users ca
     }
     ```
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->

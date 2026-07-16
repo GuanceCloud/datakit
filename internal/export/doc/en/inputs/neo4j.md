@@ -64,7 +64,7 @@ See [official document](https://neo4j.com/docs/operations-manual/current/install
 
     - To collect data, port `2004` need to be used. When collecting data remotely, need to be opened.
     - 0.0.0.0:2004 If it is a local collection, need be localhost:2004.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Config {#input-config}
 
@@ -83,7 +83,7 @@ See [official document](https://neo4j.com/docs/operations-manual/current/install
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Metric {#metric}
 

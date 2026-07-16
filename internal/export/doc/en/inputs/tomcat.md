@@ -88,7 +88,7 @@ For all of the following data collections, the global election tags will be adde
 {{end}}
 
 {{ end }}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD024 -->
 
 ## Log Collection {#logging}
 
@@ -96,7 +96,7 @@ For all of the following data collections, the global election tags will be adde
 ???+ info
 
     Log collection only supports log collection on installed DataKit hosts.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 If you want to collect Tomcat logs, you need to enable the [file collection](logging.md) function. You can write the absolute path to the Tomcat log file in `logging.conf`. For example:
 
@@ -275,7 +275,7 @@ Go to `http://localhost:8080/jolokia` to see if the configuration was successful
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Measurement {#measurements}
 
@@ -306,7 +306,7 @@ For all of the following data collections, a global tag named `host` is appended
 ???+ info
 
     Log collection only supports log collection on installed DataKit hosts.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 To collect Tomcat logs, open `files` in {{.InputName}}.conf and write to the absolute path of the Tomcat log file. For example:
 

@@ -48,7 +48,7 @@ java -jar </path/to/jolokia-jvm-agent.jar> --host 127.0.0.1 --port=8080 start <K
     - Jolokia 不允许运行过程中修改端口号。如果发现通过 `--port` 命令无法修改端口号，就是这个原因。若想修改 Jolokia 端口号必须先退出 Jolokia 再启动才能成功。
     - 退出 Jolokia 命令是： `java -jar </path/to/jolokia-jvm-agent.jar> --quiet stop <Kafka-PID>`。更多 Jolokia 命令信息可参考[这里](https://jolokia.org/reference/html/agents.html#jvm-agent){:target="_blank"}。
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 采集器配置 {#input-config}
 
@@ -66,7 +66,7 @@ java -jar </path/to/jolokia-jvm-agent.jar> --host 127.0.0.1 --port=8080 start <K
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 采集模式 {#collection-mode}
 
@@ -242,4 +242,4 @@ bin/kafka-console-producer.sh --topic quickstart-events --bootstrap-server local
 
 重启 DataKit，这时 DataKit 便可采集到 Producer 实例的指标。
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->

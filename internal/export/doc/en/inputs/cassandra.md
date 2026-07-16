@@ -82,7 +82,7 @@ Restart DataKit to make configuration take effect.
 
     Can be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting) or [Config ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) .
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 ---
 
 ## Metric {#metric}
@@ -95,4 +95,4 @@ Restart DataKit to make configuration take effect.
 {{$m.MarkdownTable}}
 
 {{ end }}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD024 -->

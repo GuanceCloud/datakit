@@ -59,7 +59,7 @@ DataKit 日志文件有两个：
 
     - Linux/Mac：`uname -r`
     - Windows：执行 `cmd` 命令（按住 Win 键 + `r`，输入 `cmd` 回车），输入 `winver` 即可获取系统版本信息
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## DataKit 服务管理 {#manage-service}
 
@@ -78,7 +78,7 @@ datakit service restart # restart
 ???+ tip
 
     可通过 `datakit service --help` 查看更多帮助信息。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 服务管理失败处理 {#when-service-failed}
 

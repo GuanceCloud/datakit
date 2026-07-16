@@ -38,7 +38,7 @@ The Graphite collector can receive metrics data in Graphite plaintext protocol f
 === "Kubernetes"
 
     Can be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting) or [Config ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) .
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Metric Mapping Configuration {#metric-mapping-configuration}
 

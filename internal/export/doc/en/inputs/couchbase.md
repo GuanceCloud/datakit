@@ -43,7 +43,7 @@ Already tested version:
 <!-- markdownlint-disable MD046 -->
 ???+ note
     - To collect data, several ports `8091` `9102` `18091` `19102` need to be used. When collecting data remotely, these ports need to be opened.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Collector Configuration {#input-conifg}
 
@@ -66,7 +66,7 @@ Already tested version:
     
 {{ CodeBlock .InputENVSample 4 }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### TLS config {#tls}
 

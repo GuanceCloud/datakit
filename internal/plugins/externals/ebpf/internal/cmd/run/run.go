@@ -30,6 +30,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/l7flow/protodec"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netflow"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/netpath"
 	dkoffset "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/offset"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/internal/procwatch"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/externals/ebpf/pkg/cli"
@@ -176,6 +177,42 @@ func parseFlags(opt *Flag) (*Flag, map[string]string, error) {
 	return opt, gTags, nil
 }
 
+func networkPathConfig(fl *Flag, tags map[string]string) netpath.Config {
+	flushInterval := parseDurationOrDefault("network_path.flush_interval",
+		fl.NetworkPath.FlushInterval, netpath.DefaultFlushInterval)
+	httpTimeout := parseDurationOrDefault("network_path.http_timeout",
+		fl.NetworkPath.HTTPTimeout, netpath.DefaultTimeout)
+
+	cfgTags := make(map[string]string, len(tags))
+	for k, v := range tags {
+		cfgTags[k] = v
+	}
+
+	return netpath.Config{
+		Enabled:       fl.NetworkPath.Enabled,
+		API:           fl.NetworkPath.API,
+		Token:         fl.NetworkPath.Token,
+		FlushInterval: flushInterval,
+		BatchSize:     fl.NetworkPath.BatchSize,
+		Timeout:       httpTimeout,
+		QueueSize:     fl.NetworkPath.QueueSize,
+		Host:          tags["host"],
+		Tags:          cfgTags,
+	}
+}
+
+func parseDurationOrDefault(name, value string, fallback time.Duration) time.Duration {
+	if strings.TrimSpace(value) == "" {
+		return fallback
+	}
+	d, err := time.ParseDuration(value)
+	if err != nil || d <= 0 {
+		log.Warnf("invalid %s=%q, use default %s", name, value, fallback)
+		return fallback
+	}
+	return d
+}
+
 func NewRunCmd() *cobra.Command {
 	opt := Flag{}
 	var cfgFilePath string
@@ -237,6 +274,21 @@ func NewRunCmd() *cobra.Command {
 		"enabled sub plugins of epbf-net list in 'a,b,...' format")
 
 	cmd.Flags().BoolVar(&opt.EBPFNet.IPv6Disabled, "ipv6-disabled", false, "ipv6 is not enabled on the system")
+
+	cmd.Flags().BoolVar(&opt.NetworkPath.Enabled, "network-path-enabled", false,
+		"send netpath candidates to DataKit")
+	cmd.Flags().StringVar(&opt.NetworkPath.API, "network-path-api", netpath.DefaultAPI,
+		"DataKit netpath candidate API")
+	cmd.Flags().StringVar(&opt.NetworkPath.Token, "network-path-token", "",
+		"netpath candidate API token")
+	cmd.Flags().StringVar(&opt.NetworkPath.FlushInterval, "network-path-flush-interval",
+		netpath.DefaultFlushInterval.String(), "netpath candidate flush interval")
+	cmd.Flags().IntVar(&opt.NetworkPath.BatchSize, "network-path-batch-size",
+		netpath.DefaultBatchSize, "netpath candidate batch size")
+	cmd.Flags().StringVar(&opt.NetworkPath.HTTPTimeout, "network-path-http-timeout",
+		netpath.DefaultTimeout.String(), "netpath candidate API HTTP timeout")
+	cmd.Flags().IntVar(&opt.NetworkPath.QueueSize, "network-path-queue-size",
+		netpath.DefaultQueueSize, "netpath candidate queue size")
 
 	cmd.Flags().StringVar(&opt.PprofHost, "pprof-host", "", "set pprof host")
 	cmd.Flags().StringVar(&opt.PprofPort, "pprof-port", "", "set pprof port")
@@ -569,6 +621,13 @@ func runCmd(cfgFile *string, fl *Flag) error {
 		}
 
 		netflowTracer := netflow.NewNetFlowTracer(catalog)
+		if fl.NetworkPath.Enabled {
+			pathConfig := networkPathConfig(fl, gTags)
+			pathScheduler := netpath.NewScheduler(pathConfig)
+			defer pathScheduler.Close()
+			netflowTracer.SetPathScheduler(pathScheduler)
+			log.Infof("netpath candidate reporting enabled, api=%s", pathConfig.API)
+		}
 		ebpfNetRuntime, err := netflow.StartNetFlowRuntime(constEditor, bmaps,
 			netflowTracer.ClosedEventHandler, ipv6Disabled)
 		netflowReady := err == nil

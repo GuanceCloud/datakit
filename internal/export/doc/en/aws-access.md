@@ -118,10 +118,10 @@ Obtain the account ID in the upper right corner of the console, copy this "Accou
         - VPC: VPC for business services
         - Subnets: Select the business Subnets
         - Security Group: private-link
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD051 -->
 1. Notify the account manager of <<<custom_key.brand_name>>> for review
 1. Wait for the creation to be successful, click on "Operations" of the terminal node - "Modify Private DNS Name", and set 'Enable DNS name'
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD032 -->
 #### Verification {#verify}
 
 Run the following command on EC2:

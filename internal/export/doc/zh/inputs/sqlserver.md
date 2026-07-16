@@ -79,7 +79,7 @@ GO
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 日志采集配置 {#logging-config}
 
@@ -87,7 +87,7 @@ GO
 ???+ note
 
     必须将 DataKit 安装在 SQLServer 所在主机才能采集日志。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 如需采集 SQL Server 的日志，可在 *{{.InputName}}.conf* 中 将 `files` 打开，并写入 SQL Server 日志文件的绝对路径。比如：
 
@@ -339,7 +339,7 @@ GO
 
 {{ end }}
 {{ end }}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD024 -->
 
 ### 日志 Pipeline 功能切割字段说明 {#pipeline}
 

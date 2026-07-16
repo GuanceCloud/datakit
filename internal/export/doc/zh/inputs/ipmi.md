@@ -101,7 +101,7 @@ Temp             | 0Fh | ok  |  3.2 | 45 degrees C
     - 各个参数归类的关键词，一律用小写
     - 参考 `ipmitool -I ...` 指令返回的数据，合理配置关键词
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!--
 ## 选举配置 {#election-config}

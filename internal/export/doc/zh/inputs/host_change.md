@@ -50,7 +50,7 @@ monitor   :
 
     可通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting) 开启采集器。
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 变更事件 {#change-event}
 

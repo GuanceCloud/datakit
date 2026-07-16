@@ -21,7 +21,7 @@ The complete steps for the usage example are as follows:
 ???+ note
 
     The Git repository does not have to be created in this order. For example, you can first create a remote repository address and then clone it to make changes. The following example creates a local Git repository first, then pushes it to a remote repository.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Create a Git Repository {#new-repo}
 
@@ -95,7 +95,7 @@ Refer to [here](datakit-daemonset-deploy.md#env-git).
 
 <!-- markdownlint-disable MD013 -->
 ### Error: authentication required {#auth-required}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 This error may occur in the following situations.
 
@@ -120,7 +120,7 @@ That is, `https` was changed to `http`, which will also result in this error. Ch
 
 <!-- markdownlint-disable MD013 -->
 ### Repository Directory Constraints {#repo-dirs}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 The Git repository must be stored with the following directory structure for various configurations:
 
@@ -154,7 +154,7 @@ DataKit root directory
 
 <!-- markdownlint-disable MD013 -->
 ### Git Configuration Loading Mechanism {#repo-apply-rules}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 After Git synchronization is enabled, the configuration (*.conf/pipeline*) priority is defined as follows:
 
@@ -168,4 +168,4 @@ After Git synchronization is enabled, the configuration (*.conf/pipeline*) prior
     After enabling the remote Pipeline feature, the first loaded Pipeline is the one synchronized from the center.
 
     After enabling Git synchronization, the original collector configurations in the *conf.d* directory will no longer be effective. In addition, the main configuration *datakit.conf* **cannot** be managed through Git.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->

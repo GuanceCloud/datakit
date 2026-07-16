@@ -40,7 +40,7 @@ New Relic's .Net Agent is an open source project based on the .Net technology fr
 === "Kubernetes"
 
     Currently, the collector can be enabled through [ConfigMap method to inject collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 After completing the configuration, restart `DataKit` and `IIS`
 
@@ -82,7 +82,7 @@ Right-click the `Windows` logo in the lower left corner of the desktop, select S
     - `CORECLR_ENABLE_PROFILING`: Numeric value 1 enables by default
     - `NEW_RELIC_APP_NAME`: character value, fill in the name of the observed `APP` (optional)
     - `NEWRELIC_INSTALL_PATH`: `New Relic Agent` installation path
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 - Configure `New Relic` through configuration file
 

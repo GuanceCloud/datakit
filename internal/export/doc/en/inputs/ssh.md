@@ -37,7 +37,7 @@ Monitor SSH/SFTP services and report data to <<<custom_key.brand_name>>>.
 === "Kubernetes"
 
     The collector can now be turned on by [configMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Metric {#metric}
 

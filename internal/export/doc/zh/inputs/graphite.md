@@ -34,7 +34,7 @@ Graphite 采集器可以接收以 Graphite plaintext protocol 格式的指标数
 === "Kubernetes"
 
     可通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting) 或 [配置 ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) 开启采集器。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 指标映射配置 {#metric-mapping-configuration}
 

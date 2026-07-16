@@ -108,7 +108,7 @@ Bye!
 ???+ note
 
     In Windows environment, debug in Powershell.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 ### How to Handle with Multiple Lines {#multiline}
 
 When dealing with some call stack related logs, the logs of the following situations cannot be handled directly with the pattern `GREEDYDATA` since the number of log lines is not fixed:
@@ -178,7 +178,7 @@ In addition, all collected logs have the following reserved fields. We should no
 ???+ tip
 
     Of course, we can override the values of these tags by [specific Pipeline function](pipeline-built-in-function.md#fn-set-tag).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 Once the Pipeline cut-out field has the same name as the existing Tag (case sensitive), it will cause the following data error. Therefore, it is recommended to bypass these field naming in Pipeline cutting.
 
@@ -242,7 +242,7 @@ Extracted data(cost: 421.705µs):
 ## FAQ {#faq}
 <!-- markdownlint-disable MD013 -->
 ### Why can't variables be referenced when Pipeline is debugging? {#ref-variables}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 Pipeline:
 
 ```python
@@ -269,7 +269,7 @@ json(_, `@timestamp`, "time")
 See [Basic syntax rules of Pipeline](pipeline-platypus-grammar.md)
 <!-- markdownlint-disable MD013 -->
 ### When debugging Pipeline, why can't you find the corresponding Pipeline script? {#pl404}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 The order is as follows:
 
 ```shell
@@ -282,7 +282,7 @@ $ datakit pipeline -P test.p -T "..."
 A: Pipeline scripts for debugging. Place them in *[DataKit installation path]/pipeline* Directory.
 <!-- markdownlint-disable MD013 -->
 ### How to cut logs in many different formats in one Pipeline? {#if-else}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 In daily logs, because of different services, logs will take on various forms. At this time, multiple Grok cuts need to be written. In order to improve the running efficiency of Grok, you can give priority to matching the Grok with higher frequency according to the frequency of logs, so that high probability logs can be matched in the previous Groks, avoiding invalid matching.
 <!-- markdownlint-disable MD046 -->
 ???+ note
@@ -305,7 +305,7 @@ In daily logs, because of different services, logs will take on various forms. A
         }
     }
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD013 -->
 ### How to discard field cut? {#drop-keys}
@@ -345,4 +345,4 @@ add_pattern('source_file', '(/?[\\w_%!$@:.,-]?/?)(\\S+)?')
 ```
 
 That is, the backslash needs to be escaped.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->

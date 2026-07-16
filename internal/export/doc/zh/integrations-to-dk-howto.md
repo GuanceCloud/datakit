@@ -9,7 +9,7 @@
 ???+ note
 
     DataKit 集成相关的文档，均不建议直接在 *dataflux-doc/docs/integrations* 中修改，因为 datakit 自身的文档导出是覆盖式写到该目录的，可能导致手动添加到 *dataflux-doc/docs/integrations* 的文档被覆盖。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 名词定义：
 
@@ -102,7 +102,7 @@ pip install -r requirements.txt # 期间可能要求你更新 pip 版本
     ``` shell
     PATH="/System/Volumes/Data/Users/<user-name>/Library/Python/3.8/bin:$PATH"
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 - 熟悉 *mkdocs.sh*
 

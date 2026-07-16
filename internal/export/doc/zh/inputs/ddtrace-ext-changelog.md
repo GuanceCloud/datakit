@@ -8,6 +8,15 @@ skip: 'not-searchable-on-index-page'
 本文记录 DataKit 中用于兼容 DDTrace Java 探针接入场景的 Java 扩展包更新内容。该扩展基于 `DataDog/dd-trace-java` 开发，遵循 `Apache License 2.0`。
 有关法律文件、校验和及源代码变更信息，请参阅<<<custom_key.brand_name>>> [Java Tracer 扩展声明](../../application-performance-monitoring/java-tracer-extension)
 
+本日志用于确认某个扩展能力首次出现、行为变更或修复所在的版本，不是完整的配置手册。接入时请按以下顺序使用：
+
+1. 在部署清单中固定实际使用的扩展 JAR 版本；
+1. 在本日志中确认目标能力的最低版本和后续行为变化；
+1. 回到 [Java 扩展说明](ddtrace-ext-java.md) 查看配置、数据安全边界和验证步骤；
+1. 在预发布环境完成兼容性测试后再升级生产环境。
+
+历史条目保留当时的发布语义；较新的版本并不保证继续保留每个早期实验性行为。
+
 <!-- markdownlint-disable MD046 MD030 -->
 <div class="grid cards" markdown>
 
@@ -18,7 +27,7 @@ skip: 'not-searchable-on-index-page'
     [SDK :material-download:](https://static.<<<custom_key.brand_main_domain>>>/dd-image/dd-java-agent.jar){:target="_blank"}
 
 </div>
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 MD030 -->
 
 ## 更新历史 {#changelog}
 

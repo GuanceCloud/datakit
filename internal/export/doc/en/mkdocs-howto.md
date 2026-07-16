@@ -204,7 +204,7 @@ In the following situations, we need to modify the *glossary.txt* file:
 
 <!-- markdownlint-disable MD013 -->
 #### Detection of Chinese-English Mixed Arrangement {#zh-en-mix}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 The Chinese-English mixed arrangement involves two aspects:
 

@@ -45,7 +45,7 @@ PlOffload 采集器用于接收来自 DataKit Pipeline Offload 功能卸载的�
     | `ENV_INPUT_PLOFFLOAD_STORAGE_PATH`     | `storage.path`     | `./ploffload_storage` |
     | `ENV_INPUT_PLOFFLOAD_STORAGE_CAPACITY` | `storage.capacity` | `5120`                |
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 使用方法 {#usage}
 

@@ -32,7 +32,7 @@ Starting from DataKit [:octicons-tag-24: Version-1.12.0](../datakit/changelog.md
 ???+ note
 
     The highest supported version is `dd-trace-dotnet v2.34.0`. Higher versions have not been systematically tested, and compatibility is unknown. If you encounter any issues during use, please contact us.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 
 ## Start Profiling {#start-profiling}
@@ -46,7 +46,7 @@ Navigate to the output directory of your project's compilation or release, where
 
     The output directory of .NET Core compilation (build) is usually located under the project root directory in *./bin/<Configuration\>/<Framework\>*. You can specify the output directory with the `-o|--output <OUTPUT_DIR>` parameter. In this document, it is assumed to be *./bin/Release/net7.0*.
     The output directory of .NET Core release (publish) is by default located under the project root directory in *./bin/<Configuration\>/<Framework\>/publish*. You can also specify the output directory with the `-o|--output <OUTPUT_DIR>` parameter. In this document, it is assumed to be *./bin/Release/net7.0/publish*.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 
 ```shell
@@ -103,7 +103,7 @@ dotnet bin/Release/net7.0/<your-project-name>.dll
 
     If your current architecture is `Linux arm64`, you will need to modify the settings to `CORECLR_PROFILER_PATH="$DDTRACE_HOME/linux-arm64/Datadog.Trace.ClrProfiler.Native.so"` and
     `LD_PRELOAD="$DDTRACE_HOME/linux-arm64/Datadog.Linux.ApiWrapper.x64.so"`
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 After a few minutes, you should be able to view the relevant data in the [<<<custom_key.brand_name>>> Console](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile){:target="_blank"}.
 

@@ -70,6 +70,25 @@ func TestFileChecker_shouldIgnore(t *testing.T) {
 	assert.False(t, fc.shouldIgnore("/home/user/file.txt"))
 }
 
+func TestFileCheckerModifyUsesUnifiedDiff(t *testing.T) {
+	checker := &FileChecker{}
+	changesByPath := make(FileChangesByPath)
+
+	checker.modify(changesByPath)(
+		"/etc/example.conf",
+		[]*FileChange{{FilePath: "/etc/example.conf", NewContent: "new\n"}},
+		[]*FileChange{{FilePath: "/etc/example.conf", NewContent: "old\n"}},
+	)
+
+	require.Contains(t, changesByPath, "/etc/example.conf")
+	assert.Equal(t, `--- a/etc/example.conf
++++ b/etc/example.conf
+@@ -1 +1 @@
+-old
++new
+`, changesByPath["/etc/example.conf"].Diff)
+}
+
 func TestFileChecker_Collect(t *testing.T) {
 	// Initialize host manifest
 	err := changes.LoadHostManifest()

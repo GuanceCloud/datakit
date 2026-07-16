@@ -23,7 +23,7 @@ Prometheus has a complete Kubernetes application metrics collection scheme, and 
 ???+ note
 
     Prometheus-Operator [official link](https://github.com/prometheus-operator/prometheus-operator) and [application example](https://alexandrev.medium.com/prometheus-concepts-servicemonitor-and-podmonitor-8110ce904908){:target="_blank"}。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 Here, DataKit plays the role of step 3. DataKit watches and discovers Prometheus-Operator CRDs, starts metric collection based on their configuration, and uploads the metrics to <<<custom_key.brand_name>>>. When a PodMonitor or ServiceMonitor is created, updated, or deleted, the corresponding collection tasks are dynamically added, rebuilt, or stopped without restarting DataKit.
 

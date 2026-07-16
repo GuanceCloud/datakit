@@ -104,7 +104,7 @@ update dbm cfg using DFT_MON_BUFPOOL on
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 指标 {#metric}
 
@@ -163,4 +163,4 @@ externals/db2: /lib64/libc.so.6: version  `GLIBC_2.14` not found (required by ex
 
 这意味着 IBM Db2 这个采集器只能在 AMD64 的 Linux 上运行，其它平台一律无法运行当前的 IBM Db2 采集器。
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->

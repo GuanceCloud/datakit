@@ -67,7 +67,7 @@ It is recommended that RUM be deployed separately on the public network, not wit
     - name: ENV_DEFAULT_ENABLED_INPUTS
       value: rum,cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 ### Security Restrictions {#security-setting}
 
 See [DataKit API access control](../datakit/datakit-conf.md#public-apis).
@@ -102,11 +102,11 @@ DataKit supports this mapping of source code file information by zipping the cor
 ???+ warning "Limits on Sourcemap files"
 
     All Sourcemap files must with extension *.map*, and single *.map* file(after unzip) should not exceed 4GiB.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD025 -->
 ### Install the sourcemap tools {#install-tools}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD025 -->
 First, you need to install the corresponding symbol restoration tool. DataKit provides a one-click installation command to simplify the installation of the tool:
 
 ```shell
@@ -283,7 +283,7 @@ If a software installation fails during the installation process, you may need t
 ???+ info "For RUM Headless"
 
     For [RUM headless](../dataflux-func/headless.md), you can upload these package files on web pages, and following upload/delete operations are not required.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### File Upload and Delete {#upload-delete}
 
@@ -327,7 +327,7 @@ Variable description:
     - Currently only Javascript/Android/iOS sourcemap conversion is supported.
     - If the corresponding sourcemap file is not found, no conversion will be performed.
     - Sourcemap compressed package uploaded through the interface, which does not need to restart DataKit to take effect. However, if it is uploaded manually, you need to restart the DataKit before it can take effect.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## CDN resolve {#cdn-resolve}
 
@@ -371,7 +371,7 @@ As of version [:octicons-tag-24: Version-1.5.5](../datakit/changelog.md#cl-1.5.5
 ???+ info
 
     RUM configuration file is located at */usr/local/datakit/conf.d/rum/rum.conf*(Linux/macOS) and *C:\\Program Files\\datakit\\conf.d\\rum*（Windows） by default, which depend on the operating system you use and the installation location of DataKit.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### RUM Session Replay Filter {#rum-session-replay-filter}
 

@@ -43,7 +43,7 @@ In general, the host object is turned on by default and does not need to be conf
     Can also be turned on by environment variables, (needs to be added as the default collector in ENV_DEFAULT_ENABLED_INPUTS):
 {{ CodeBlock .InputENVSample 4 }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Turn on Cloud Synchronization {#cloudinfo}
 
@@ -72,7 +72,7 @@ For all of the following data collections, a global tag named `host` is appended
 ???+ quote
 
     When adding custom tags here, try not to have the same name as the existing tag key/field key. If it has the same name, DataKit will choose to configure the tag inside to overwrite the collected data, which may cause some data problems.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 {{ range $i, $m := .Measurements }}
 
@@ -196,7 +196,7 @@ The basic structure of the `message` field is as follows:
 
     `conntrack` 仅 Linux 平台支持
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 | Field Name            | Description                                                                  | Type  |
 | ---:                  | ---                                                                          | :---: |
@@ -219,7 +219,7 @@ The basic structure of the `message` field is as follows:
 
     `filefd` Linux platform only
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 | Field Name     | Description                                                             | Type  |
 | ---:           | ---                                                                     | :---: |
@@ -254,6 +254,6 @@ The `collectors` field is a list of objects with the following fields for each o
 
 ### Why no `entries` and `entries_limit`, the value shows -1？ {#no-entries}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 Need to load `nf_conntrack` module, run `modprobe nf_conntrack` in a terminal.

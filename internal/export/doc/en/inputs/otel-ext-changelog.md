@@ -5,9 +5,10 @@ title: 'OTEL Plugins ChangeLog'
 
 ## Intro {#intro}
 
-The native OTEL agent does not fully support some well-known mainstream frameworks. On this basis, we have made some improvements to support more mainstream frameworks and key data tracking.
+OpenTelemetry native agent does not cover every mainstream framework equally.
+This extension set improves compatibility and trace data quality for additional frameworks.
 
-Currently, OTEL has added the following technology stack extensions:
+Current extensions are available for:
 
 <!-- markdownlint-disable MD046 MD030 -->
 <div class="grid cards" markdown>
@@ -16,59 +17,54 @@ Currently, OTEL has added the following technology stack extensions:
 
     ---
 
-    [SDK :material-download:](https://static.<<<custom_key.brand_main_domain>>>/dd-image/opentelemetry-javaagent.jar){:target="_blank"}
+    [Download SDK :material-download:](https://static.<<<custom_key.brand_main_domain>>>/dd-image/opentelemetry-javaagent.jar){:target="_blank"}
 
 </div>
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 MD030 -->
 
-## changelog {#changelog}
+> V1 is no longer maintained; V2 is in production.
+
+## Changelog {#changelog}
 
 ## 2.20.0-ext (2025/9/24) {#cl-2.20.0-ext}
 
-### new {#cl-2.20.0-ext-new}
+### New {#cl-2.20.0-ext-new}
 
-- Merge open-telemetry V2 tag v2.20.0
-- Fix SQL obfuscation, see [docs](otel-ext-java#sql-obfuscation){:target="_blank"}
-
+- Merge OpenTelemetry `v2.20.0`.
+- Merge SQL obfuscation from upstream.
 
 ## 1.28.0-ext (2023/7/7) {#cl-1.28.0-ext}
 
-### new {#cl-1.28.0-ext-new}
+### New {#cl-1.28.0-ext-new}
 
-- Merge open-telemetry v1.28.0
-
----
+- Merge OpenTelemetry latest version for `v1.28.0`.
 
 ## 1.26.2-ext (2023/6/15) {#cl-1.26.2-ext}
-download this version jar: [v1.26.2-ext](https://static.<<<custom_key.brand_main_domain>>>/dd-image/opentelemetry-javaagent-1.26.2-ext.jar)
+Download jar: [v1.26.2-ext](https://static.<<<custom_key.brand_main_domain>>>/dd-image/opentelemetry-javaagent-1.26.2-ext.jar){:target="_blank"}
 
-### new {#cl-1.26.2-ext-new}
+### New {#cl-1.26.2-ext-new}
 
-- Obfuscation of database type data.
+- Add DB statement obfuscation logic.
 
 ## 1.26.1-ext (2023/6/9) {#cl-1.26.1-ext}
 
-### new {#cl-1.26.1-ext-new}
+### New {#cl-1.26.1-ext-new}
 
-- The non-intrusive method supports obtaining the input parameter information of a specific method.
-- Alibaba Cloud HSF framework integration.
-
----
+- Support non-invasive method argument capture.
+- Integrate Alibaba HSF framework.
 
 ## 1.26.0-ext (2023/6/1) {#cl-1.26.0-ext}
 
-### new {#cl-1.26.0-ext-new}
+### New {#cl-1.26.0-ext-new}
 
-- Merge OpenTelemetry tag v1.26.0
-- Support Damned database.
-
----
+- Merge OpenTelemetry `v1.26.0`.
+- Support Dameng database.
 
 ## 1.25.0-ext (2023/5/10) {#cl-1.25.0-ext}
 
-### new {#cl-1.25.0-ext-new}
+### New {#cl-1.25.0-ext-new}
 
-- Merge OpenTelemetry tag v1.25.0
+- Merge OpenTelemetry latest version for `v1.25.0`.
 - Support xxl-job 2.3.
-- Support Alibaba Dubbo and Dubbox framework integration.
-- Support thrift framework.
+- Support Alibaba Dubbo and Dubbox frameworks.
+- Add Thrift framework support.

@@ -67,7 +67,7 @@ See [ClickHouse official documents](https://ClickHouse.com/docs/en/operations/se
 === "Kubernetes"
 
     At present, you can [inject collector configuration in ConfigMap mode](../datakit/datakit-daemonset-deploy.md#configmap-setting)。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Metric {#metric}
 

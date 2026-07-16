@@ -41,13 +41,14 @@ func TestRedactStartupSecrets(t *testing.T) {
 
 	envs := redactEnvs([]string{
 		"ENV_INPUT_IBM_I_PASSWORD=secret",
+		"DKE_NETWORK_PATH_TOKEN=network-secret",
 		"LD_LIBRARY_PATH=/opt/ibm/clidriver/lib",
 	})
 	if got := strings.Join(envs, " "); strings.Contains(got, "secret") {
 		t.Fatalf("redacted envs expose password: %q", got)
 	}
-	if envs[1] != "LD_LIBRARY_PATH=/opt/ibm/clidriver/lib" {
-		t.Fatalf("non-sensitive env was altered: %q", envs[1])
+	if envs[2] != "LD_LIBRARY_PATH=/opt/ibm/clidriver/lib" {
+		t.Fatalf("non-sensitive env was altered: %q", envs[2])
 	}
 }
 

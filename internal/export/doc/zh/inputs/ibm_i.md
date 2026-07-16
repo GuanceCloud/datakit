@@ -109,7 +109,7 @@ ldd /usr/local/datakit/externals/ibm_i
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 也可以通过 `--dsn` 传入完整的 ODBC connection string。配置 `--dsn` 后，`--host`、`--username`、`--password` 和 `--driver` 不再参与连接串构造：
 

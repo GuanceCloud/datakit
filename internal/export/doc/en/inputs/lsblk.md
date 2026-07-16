@@ -39,7 +39,7 @@ Lsblk collector is used for Linux host block device information collection, such
     
 {{ CodeBlock .InputENVSample 4 }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Metric {#metric}
 

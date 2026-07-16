@@ -17,7 +17,7 @@
     $ sudo sh -c 'echo 1 >/proc/sys/kernel/perf_event_paranoid'
     $ sudo sh -c 'echo 0 >/proc/sys/kernel/kptr_restrict'
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Configuration Injection {#annotation-injection}
 
@@ -98,4 +98,4 @@ Wait a few minutes, and you can view the application performance data on the <<<
     $ kubectl exec -it movies-java-784f4bb8c7-59g6s -c datakit-profiler -- bash
     $ tail -n 2000 log/main.log
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->

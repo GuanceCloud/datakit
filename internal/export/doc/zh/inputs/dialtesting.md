@@ -58,7 +58,7 @@ monitor   :
     Kubernetes 中推荐使用内置 Lightpanda 的 `datakit:<version>` 镜像。
 
     更多部署、任务配置和排查说明，请参考[浏览器拨测](dialtesting_browser.md)。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 拨测节点部署 {#arch}
 
@@ -73,7 +73,7 @@ monitor   :
 
     当拨测节点部署在内网环境而无法访问外网时，可通过配置代理服务实现流量转发。具体配置方法请参考 [DataKit 内置代理](../datakit/datakit-proxy.md#datakit)的相关说明。
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 不管是公网拨测节点，还是私有拨测节点，它们都能通过 Web 页面创建拨测任务。
 

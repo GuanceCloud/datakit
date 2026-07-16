@@ -347,51 +347,51 @@ func (r *addrDomainRecord) lookupAddr(ip string, now time.Time) string {
 	return v.domain
 }
 
-func (r *addrDomainRecord) LookupPeerDomain(ip string, port uint32, transport, netns string) string {
+func (r *addrDomainRecord) lookupPeerDomain(ip string, port uint32, transport, netns string, allowIPFallback bool) string {
 	if r == nil || ip == "" {
 		return ""
 	}
 
 	now := ntp.Now()
-
-	r.RLock()
-	v, ok := r.peerRecord[peerDomainKey{
+	key := peerDomainKey{
 		ip:        ip,
 		port:      port,
 		transport: transport,
 		netns:     netns,
-	}]
+	}
+
+	r.RLock()
+	v, ok := r.peerRecord[key]
 	if ok && now.Sub(v.ts) <= addrDomainTTL {
 		domain := v.domain
 		r.RUnlock()
 		return domain
 	}
-	domain := r.lookupAddr(ip, now)
+	domain := ""
+	if allowIPFallback {
+		domain = r.lookupAddr(ip, now)
+	}
 	r.RUnlock()
 
 	if domain != "" {
 		return domain
 	}
-	if !ok {
-		return ""
-	}
-
-	if now.Sub(v.ts) > addrDomainTTL {
-		key := peerDomainKey{
-			ip:        ip,
-			port:      port,
-			transport: transport,
-			netns:     netns,
-		}
+	if ok {
 		r.Lock()
-		if cur, ok := r.peerRecord[key]; ok && now.Sub(cur.ts) > addrDomainTTL {
+		if cur, exists := r.peerRecord[key]; exists && now.Sub(cur.ts) > addrDomainTTL {
 			delete(r.peerRecord, key)
 		}
 		r.Unlock()
-		return ""
 	}
-
 	return ""
+}
+
+func (r *addrDomainRecord) LookupPeerDomain(ip string, port uint32, transport, netns string) string {
+	return r.lookupPeerDomain(ip, port, transport, netns, true)
+}
+
+func (r *addrDomainRecord) lookupPeerDomainExact(ip string, port uint32, transport, netns string) string {
+	return r.lookupPeerDomain(ip, port, transport, netns, false)
 }
 
 func RecordAddrDomain(ip, domain string) {
@@ -404,6 +404,10 @@ func RecordPeerDomain(ip string, port uint32, transport, netns, domain string) {
 
 func LookupPeerDomain(ip string, port uint32, transport, netns string) string {
 	return sharedAddrDomainRecord.LookupPeerDomain(ip, port, transport, netns)
+}
+
+func lookupPeerDomainExact(ip string, port uint32, transport, netns string) string {
+	return sharedAddrDomainRecord.lookupPeerDomainExact(ip, port, transport, netns)
 }
 
 func SetLogger(nl *logger.Logger) {

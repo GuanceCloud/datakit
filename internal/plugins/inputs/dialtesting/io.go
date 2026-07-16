@@ -58,6 +58,9 @@ func (d *dialer) pointsFeed(urlStr string) {
 	fields["task_id"] = d.task.GetExternalID()
 	tags["datakit_version"] = datakit.Version
 	tags["node_name"] = regionName
+	if nodeID := d.regionID(); nodeID != "" {
+		tags["node_id"] = nodeID
+	}
 
 	// df tags
 	for k, v := range d.dfTags {
@@ -75,6 +78,17 @@ func (d *dialer) pointsFeed(urlStr string) {
 		} else {
 			l.Warnf("duplicate tag, ignore custom tag %s", k)
 		}
+	}
+
+	triggerType := d.triggerType
+	if triggerType == "" {
+		triggerType = triggerTypeScheduled
+	}
+	tags["trigger_type"] = triggerType
+	if triggerType == triggerTypeManual && d.runBatchID != "" {
+		tags["run_batch_id"] = d.runBatchID
+	} else {
+		delete(tags, "run_batch_id")
 	}
 
 	opt := append(pt.DefaultLoggingOptions(), pt.WithTime(d.dialingTime))

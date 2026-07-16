@@ -68,7 +68,7 @@ RUM（Real User Monitor）采集器用于收集网页端或移动端上报的用
     - name: ENV_DEFAULT_ENABLED_INPUTS
       value: rum,cpu,disk,diskio,mem,swap,system,hostobject,net,host_processes,container
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 安全限制 {#security-setting}
 
@@ -104,7 +104,7 @@ DataKit 支持这种源代码文件信息的映射，方法是将对应符号表
 ???+ warning "Sourcemap 文件限制"
 
     所有 Sourcemap 文件必须以 (*.map*) 作为扩展名，且单个 *.map* 文件（解压后）不超过 4GiB。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 安装 sourcemap 工具集 {#install-tools}
 
@@ -279,7 +279,7 @@ sudo datakit install --symbol-tools
                     └── App
     
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ---
 
@@ -287,7 +287,7 @@ sudo datakit install --symbol-tools
 ???+ info "RUM Headless 说明"
 
     对于 [RUM Headless](../dataflux-func/headless.md) 用户，可以直接在页面上上传压缩包即可，无需执行下面的文件上传和删除操作。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 文件上传和删除 {#upload-delete}
 
@@ -331,7 +331,7 @@ curl -X GET '<datakit_address>/v1/sourcemap/check?app_id=<app_id>&env=<env>&vers
     - 当前只支持 Javascript/Android/iOS 的 sourcemap 转换
     - 如果未找到对应的 sourcemap 文件，将不进行转换
     - 通过接口上传的 sourcemap 压缩包，不需要重启 DataKit 即可生效。但如果是手动上传，需要重启 DataKit，方可生效
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## CDN 标注 {#cdn-resolve}
 
@@ -375,7 +375,7 @@ DataKit 内置了一个主流 CDN 厂家信息列表，如果发现你所使用�
 ???+ info
 
     RUM 配置文件默认位于 */usr/local/datakit/conf.d/rum/rum.conf*（Linux/macOS）和 *C:\\Program Files\\datakit\\conf.d\\rum*（Windows），具体根据你所使用的操作系统和 DataKit 安装位置确定。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### RUM 会话重放数据的过滤 {#rum-session-replay-filter}
 

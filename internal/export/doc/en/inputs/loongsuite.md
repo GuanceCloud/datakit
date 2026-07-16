@@ -54,7 +54,7 @@ export OTEL_RESOURCE_ATTRIBUTES=deployment.environment=prod,service.version=1.0.
 ???+ warning
 
     The default HTTP Trace path of the DataKit OpenTelemetry input is `/otel/v1/traces`. If LoongSuite or the OpenTelemetry SDK uses the default OTLP HTTP path `/v1/traces`, explicitly adjust the endpoint on the LoongSuite side.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Field Mapping {#fields}
 

@@ -72,7 +72,7 @@ cat /proc/kallsyms | awk '{print $3}' | grep "^nf_ct_delete$\|^__nf_conntrack_ha
     When the DataKit version is lower than **v1.5.2**, the httpflow data collection in the eBPF-net category cannot be enabled for CentOS 7.6+, because its Linux 3.10.x kernel does not support the BPF_PROG_TYPE_SOCKET_FILTER type in the eBPF program;
 
     When the DataKit version is lower than **v1.5.2**, because BPF_FUNC_skb_load_bytes does not exist in Linux Kernel <= 4.4, if you want to enable httpflow, you need Linux Kernel >= 4.5, and this problem will be further optimized;
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### SELinux-enabled System {#selinux}
 
@@ -263,7 +263,7 @@ Configuration items:
     - Environment variable: `ENV_INPUT_EBPF_OPERATOR_URL`
     - Example: `https://datakit-operator.datakit.svc:443`
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Advanced Collection Limits {#advanced-collection-limits}
 
@@ -297,7 +297,7 @@ When using, you need to deploy the eBPF collector with link data collection enab
 
 <!-- markdownlint-disable MD013 -->
 ### The blacklist function of the `bpf-netlog` plug-in {#blacklist}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 Filter rule example:
 

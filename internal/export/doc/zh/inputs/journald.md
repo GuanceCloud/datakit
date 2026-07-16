@@ -103,7 +103,7 @@ systemctl --version >/dev/null 2>&1 && journalctl -n 1 >/dev/null 2>&1 && echo "
     echo
     echo "=== 检查完成 ==="
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 保存为 `journald-prereq-check.sh` 并运行：
 
@@ -158,7 +158,7 @@ chmod +x journald-prereq-check.sh
 === "Kubernetes"
 
     可以通过 [ConfigMap 注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting) 或 [配置 ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) 开启。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 配置选项 {#config-options}
 

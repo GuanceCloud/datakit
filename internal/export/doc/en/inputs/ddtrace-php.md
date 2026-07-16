@@ -12,25 +12,36 @@ __int_icon: 'icon/ddtrace'
 
 ## Install Dependencies {#dependence}
 
-For the installation of the PHP APM plugin, refer to the [Datadog PHP Integration Documentation](https://docs.datadoghq.com/tracing/trace_collection/automatic_instrumentation/dd_libraries/php/#install-the-extension){:target="_blank"}.
+The PHP tracer is an extension that loads before user code runs. Install an extension compatible with the current PHP version and execution mode (CLI, PHP-FPM, or Apache) by following the [Datadog PHP setup guide](https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/php/){:target="_blank"}. Do not rely on setting configuration dynamically in application PHP code: automatic instrumentation has normally initialized by then.
 
 ## Configuration {#config}
 
-Depending on the PHP runtime environment (Apache/NGINX), there are some differences in the configuration. See the [Datadog PHP Trace SDK Configuration Documentation](https://docs.datadoghq.com/tracing/trace_collection/library_config/php/){:target="_blank"}.
+The configuration location depends on the PHP execution model (CLI, PHP-FPM, or Apache module). Set environment variables at the container, FPM-pool, or web-server process level; set INI values in `php.ini` or the matching execution-mode configuration. Restart the corresponding FPM/Apache/container process after changes. See the [Datadog PHP tracer configuration guide](https://docs.datadoghq.com/tracing/trace_collection/library_config/php/){:target="_blank"} for complete settings.
 
-A request in a Web project is like a process, which can cause a large data flow in the central resource directory. Therefore, it is recommended to turn off resource reporting:
+When using DataKit, explicitly override the upstream default trace port `8126`. This environment-variable example is suitable for a container or process startup:
 
 ```shell
-#ENV
-export DD_INSTRUMENTATION_TELEMETRY_ENABLED=false
-
-#command
--Ddd.instrumentation.telemetry.enable=false
+DD_SERVICE=my-php-service \
+DD_ENV=production \
+DD_VERSION=1.0.0 \
+DD_AGENT_HOST=datakit-service \
+DD_TRACE_AGENT_PORT=9529 \
+php -S 0.0.0.0:8080 -t public
 ```
+
+You can instead use the `datadog.agent_host` and `datadog.trace.agent_port` INI settings. `DD_TRACE_AGENT_URL` / `datadog.trace.agent_url`, when set, takes precedence over host and port; use only one destination mechanism.
+
+High-traffic Web applications create PHP request contexts frequently. If the installed tracer supports the telemetry option and you do not need SDK telemetry, disable it in the process startup environment to reduce additional diagnostic reporting:
+
+```shell
+export DD_INSTRUMENTATION_TELEMETRY_ENABLED=false
+```
+
+After startup, request an instrumented page and confirm trace traffic in the DataKit monitor. In PHP-FPM, tracer logs normally go to the effective `error_log`; do not use only `php -i` output to diagnose runtime configuration.
 
 ## Environment Variable Support {#envs}
 
-Below are common PHP APM parameter configurations. For a complete list of parameters, refer to the [Datadog Documentation](https://docs.datadoghq.com/tracing/trace_collection/library_config/php/){:target="_blank"}.
+The following are common PHP APM parameters. See the [Datadog PHP configuration guide](https://docs.datadoghq.com/tracing/trace_collection/library_config/php/){:target="_blank"} for the full set and version-specific behavior.
 
 - **`DD_AGENT_HOST`**
 
@@ -38,15 +49,15 @@ Below are common PHP APM parameter configurations. For a complete list of parame
 
     **Default**: `localhost`
 
-    The host address where DataKit is listening.
+    The trace receiver host. For DataKit, use the DataKit host or Kubernetes Service.
 
 - **`DD_TRACE_AGENT_PORT`**
 
     **INI**: `datadog.trace.agent_port`
 
-    **Default**: `8126`
+    **Upstream default**: `8126`
 
-    The port number where DataKit is listening, which should be manually set to 9529.
+    The trace receiver port. Explicitly set it to `9529` for DataKit.
 
 - **`DD_ENV`**
 
@@ -54,7 +65,7 @@ Below are common PHP APM parameter configurations. For a complete list of parame
 
     **Default**: `null`
 
-    Sets the environment information for the program, such as `prod/pre-prod`.
+    Sets the deployment environment, for example `production` or `staging`.
 
 - **`DD_SERVICE`**
 
@@ -62,7 +73,7 @@ Below are common PHP APM parameter configurations. For a complete list of parame
 
     **Default**: `null`
 
-    Sets the APP service name.
+    Sets the application service name. Set it explicitly in production.
 
 - **`DD_SERVICE_MAPPING`**
 
@@ -78,7 +89,7 @@ Below are common PHP APM parameter configurations. For a complete list of parame
 
     **Default**: `100`
 
-    Agent connection timeout configuration to DataKit (unit ms), default is 100.
+    The trace receiver connection timeout in milliseconds. For remote, proxied, or cross-cluster deployments, evaluate it against actual latency rather than increasing it blindly.
 
 - **`DD_TAGS`**
 
@@ -86,7 +97,7 @@ Below are common PHP APM parameter configurations. For a complete list of parame
 
     **Default**: `null`
 
-    Sets a list of tags that will be appended to each span by default, for example: `key1:value1,key2:value2`.
+    Sets tags appended to every span, for example `key1:value1,key2:value2`. Avoid user IDs, session IDs, tokens, and request bodies because they are high-cardinality or sensitive.
 
 - **`DD_VERSION`**
 
@@ -100,4 +111,4 @@ Below are common PHP APM parameter configurations. For a complete list of parame
 
     **Default**: `-1`
 
-    Sets the sampling rate from 0.0 (0%) to 1.0 (100%).
+    Sets the SDK-side sampling rate from `0.0` (0%) to `1.0` (100%). It is independent of DataKit receiver-side sampling.

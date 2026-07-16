@@ -90,6 +90,42 @@ func TestAppendNetlogL7LogArgs(t *testing.T) {
 	}, args)
 }
 
+func TestAppendNetworkPathArgs(t *testing.T) {
+	args := appendNetworkPathArgs([]string{"run"}, &Input{
+		NetworkPathEnabled:       true,
+		NetworkPathAPI:           "http://127.0.0.1:9529/v1/netpath/candidates",
+		NetworkPathToken:         "secret",
+		NetworkPathFlushInterval: "5s",
+		NetworkPathBatchSize:     10,
+		NetworkPathHTTPTimeout:   "2s",
+		NetworkPathQueueSize:     100,
+	})
+
+	assert.Equal(t, []string{
+		"run",
+		"--network-path-enabled",
+		"--network-path-api", "http://127.0.0.1:9529/v1/netpath/candidates",
+		"--network-path-flush-interval", "5s",
+		"--network-path-batch-size", "10",
+		"--network-path-http-timeout", "2s",
+		"--network-path-queue-size", "100",
+	}, args)
+
+	args = appendNetworkPathArgs([]string{"run"}, &Input{})
+	assert.Equal(t, []string{"run"}, args)
+}
+
+func TestAppendNetworkPathEnvs(t *testing.T) {
+	envs := appendNetworkPathEnvs([]string{"EXISTING=value"}, &Input{
+		NetworkPathEnabled: true,
+		NetworkPathToken:   "secret",
+	})
+	assert.Equal(t, []string{"EXISTING=value", "DKE_NETWORK_PATH_TOKEN=secret"}, envs)
+
+	envs = appendNetworkPathEnvs([]string{"EXISTING=value"}, &Input{})
+	assert.Equal(t, []string{"EXISTING=value"}, envs)
+}
+
 func TestReadEnvNetlogL7LogConfig(t *testing.T) {
 	ipt := &Input{}
 
@@ -100,4 +136,26 @@ func TestReadEnvNetlogL7LogConfig(t *testing.T) {
 
 	assert.Equal(t, []string{"http1", "http2", "grpc"}, ipt.NetlogL7LogProtocols)
 	assert.Equal(t, []string{"host", "x-request-id", "traceparent"}, ipt.NetlogL7LogHeaders)
+}
+
+func TestReadEnvNetworkPathConfig(t *testing.T) {
+	ipt := &Input{}
+
+	ipt.ReadEnv(map[string]string{
+		"ENV_INPUT_EBPF_NETWORK_PATH_ENABLED":        "true",
+		"ENV_INPUT_EBPF_NETWORK_PATH_API":            "http://datakit/v1/netpath/candidates",
+		"ENV_INPUT_EBPF_NETWORK_PATH_TOKEN":          "secret",
+		"ENV_INPUT_EBPF_NETWORK_PATH_FLUSH_INTERVAL": "5s",
+		"ENV_INPUT_EBPF_NETWORK_PATH_BATCH_SIZE":     "20",
+		"ENV_INPUT_EBPF_NETWORK_PATH_HTTP_TIMEOUT":   "2s",
+		"ENV_INPUT_EBPF_NETWORK_PATH_QUEUE_SIZE":     "200",
+	})
+
+	assert.True(t, ipt.NetworkPathEnabled)
+	assert.Equal(t, "http://datakit/v1/netpath/candidates", ipt.NetworkPathAPI)
+	assert.Equal(t, "secret", ipt.NetworkPathToken)
+	assert.Equal(t, "5s", ipt.NetworkPathFlushInterval)
+	assert.Equal(t, 20, ipt.NetworkPathBatchSize)
+	assert.Equal(t, "2s", ipt.NetworkPathHTTPTimeout)
+	assert.Equal(t, 200, ipt.NetworkPathQueueSize)
 }

@@ -78,7 +78,7 @@ DataKit 支持手动更新和自动更新两种方式。
     Upgrade:
 {{ InstallCmd 4 (.WithPlatform "windows") (.WithUpgrade true) }}
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ---
 
@@ -96,7 +96,7 @@ DataKit 支持手动更新和自动更新两种方式。
     ``` powershell
     $env:HTTPS_PROXY="http://10.100.64.198:9530"; $env:DK_UPGRADE="1" ...
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 远程更新服务 {#auto}
 
@@ -138,7 +138,7 @@ DataKit 支持手动更新和自动更新两种方式。
     - 升级过程根据网络带宽情况，可能耗时较长（基本等同于手动调用 DataKit 升级命令），请耐心等待。
     - 自版本 [Version-1.91.1](changelog-2026.md#cl-1.91.1) 开始，移除了直接通过 HTTP 服务升级 DataKit 的功能。
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 离线更新 {#offline-upgrade}
 
@@ -159,7 +159,7 @@ DataKit 支持手动更新和自动更新两种方式。
     ```powershell
 {{ InstallCmd 4 (.WithPlatform "windows") (.WithUpgrade true) (.WithVersion "-3.4.5") }}
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD046 -->
 例如，手动指定升级到 `1.93.0`：
@@ -180,7 +180,7 @@ DataKit 支持手动更新和自动更新两种方式。
     powershell ./.install.ps1;
     ```
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 其中 `1.93.0` 可替换为任意目标 `1.x` 版本号。
 

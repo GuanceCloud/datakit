@@ -239,7 +239,7 @@ apt-get install -y libaio-dev libaio1
         ```
 
         The environment variable has highest priority, which means if existed that environment variable, the value in the environment variable will always treated as the password.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Oracle RAC {#rac}
 
@@ -401,7 +401,7 @@ Change the value of the field `slow_query_time` from `0s` to the threshold time,
 
     For more fields, see [here](https://docs.oracle.com/en/database/oracle/oracle-database/19/refrn/V-SQLAREA.html#GUID-09D5169F-EE9E-4297-8E01-8D191D87BDF7).
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Logging {#logging}
 
@@ -463,4 +463,4 @@ This means that the Oracle collector can only run on x86_64/ARM64 Linux, and no 
 
 It needs to taking 1 minute to see them after the database system starting up.
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->

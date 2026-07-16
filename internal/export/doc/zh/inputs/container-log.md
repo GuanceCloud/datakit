@@ -34,7 +34,7 @@ DataKit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 
     - 如果一个容器存在环境变量 `DATAKIT_LOGS_CONFIG`，同时又能找到它所属 Pod 的 Annotation `datakit/logs`，按照就近原则，以容器环境变量的配置为准。
     - 从[:octicons-tag-24: Version-1.84.0](../datakit/changelog-2025.md#cl-1.84.0)开始，通过 Pod Annotation 配置的容器日志采集支持动态热更新，配置变更可在 1 分钟内生效。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 - 自定义配置的 Value 如下：
 
@@ -165,7 +165,7 @@ DataKit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 
     如果一个 Pod/容器日志已经在采集中，此时再通过 `kubectl annotate` 命令添加配置不生效
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 容器内日志文件采集 {#logging-with-inside-config}
 
@@ -180,7 +180,7 @@ DataKit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
 
     - 从[:octicons-tag-24: Version-1.84.0](../datakit/changelog-2025.md#cl-1.84.0)开始，对于 Docker 或 Containerd 运行时（不包括 CRI-O），已无需通过挂载 `emptyDir` 来采集容器内日志文件。
     - 从[:octicons-tag-24: Version-1.84.0](../datakit/changelog-2025.md#cl-1.84.0)开始，通过 Pod Annotation 配置的容器日志采集支持动态热更新，配置变更可在 1 分钟内生效。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD046 -->
 === "容器环境变量"
@@ -275,7 +275,7 @@ DataKit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
     $ kubectl apply -f logging.yaml
     ...
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 对于容器内部的日志文件，在 Kubernetes 环境中还可以通过添加 sidecar 实现采集，参见[这里](logfwd.md)。
 
@@ -388,7 +388,7 @@ DataKit 支持采集 Kubernetes 和主机容器日志，从数据来源上，可
     这份配置距离容器更近，优先级更高。配置的 `disable=fasle` 表明要采集日志文件，把上面的全局配置覆盖了。
 
     所以这个容器日志文件最终还是会采集，但是控制台输出 stdout/stderr 不采集，因为 `disable=true`。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 使用 Kubernetes CRD 配置容器日志采集 {#k8s-crd-configs}
 

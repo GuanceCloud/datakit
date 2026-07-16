@@ -109,7 +109,8 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 	} else if isAllowed, err := IsAllowedHost(hostNames); err != nil {
 		return nil, uhttp.Errorf(ErrInvalidRequest, "dest host is not valid: %s", err.Error())
 	} else if !isAllowed {
-		return nil, uhttp.Errorf(ErrInvalidRequest, "dest host [%s] is not allowed to be tested", strings.Join(hostNames, ","))
+		return nil, uhttp.Error(ErrInvalidRequest,
+			"The internal network address does not support online testing. However, it can be saved and then used normally.")
 	}
 
 	// disable redirect

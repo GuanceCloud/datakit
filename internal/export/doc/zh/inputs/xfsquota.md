@@ -31,7 +31,7 @@ xfsquota 采集器通过运行 `xfs_quota` 解析标准输出，采集 xfs 文�
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 指标 {#metric}
 

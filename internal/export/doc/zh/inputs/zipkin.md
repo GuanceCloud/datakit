@@ -52,7 +52,7 @@ DataKit 内嵌的 Zipkin Agent 用于接收，运算，分析 Zipkin Tracing 协
     | `ENV_INPUT_ZIPKIN_THREADS`            | JSON string | `'{"buffer":1000, "threads":100}'`                                                 |
     | `ENV_INPUT_ZIPKIN_STORAGE`            | JSON string | `'{"storage":"./zipkin_storage", "capacity": 5120}'`                               |
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 链路字段 {#tracing}
 

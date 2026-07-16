@@ -179,7 +179,7 @@ datakit -M --vvv            # Check the operation of all collectors
 === "Windows"
 
     not supported
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 ## Install, Upgrade and Test {#install-upgrade-testing}
 
 After DataKit released new features, we had better do a full set of testing, including installation, upgrade and other processes. All existing DataKit installation files are stored on OSS. Let's use another isolated OSS bucket to do installation and upgrade tests.

@@ -53,7 +53,7 @@ Baggage 真正的意义是传播 `key:value` 性质的键值对，常用于传�
 ???+ warning
 
     需要注意的是，这些透传协议的具体实现和使用方式可能略有不同，但它们都旨在通过 HTTP 头部字段在不同的服务之间传递跟踪信息和上下文信息，以实现分布式跟踪和连续性。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 链路厂商及产品介绍 {#tracing-info}
 
@@ -135,7 +135,7 @@ $ export DD_TRACE_PROPAGATION_STYLE="datadog,b3" ...
 ???+ note
 
     在版本 V1.7.0 之后，默认的支持协议改为 `DD_TRACE_PROPAGATION_STYLE="tracecontext,datadog"`，B3 已被弃用，请使用 B3multi。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 更多语言示例，参见[这里](https://github.com/DataDog/documentation/blob/4ff75ed0bcaa1269bf98e9d185935cfda675b08c/content/en/tracing/trace_collection/trace_context_propagation/_index.md){:target="_blank"}。
 
@@ -220,6 +220,6 @@ Client 端会发送 HTTP 请求到 Server 端，DDTrace 会通过 `tracecontext`
     # 将 int64 转 string
     fn format_int(val: int64, base: int) str
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 至此， DDTrace 和 OTEL 在链路上实现了串联，服务调用关系和日志也能串联。

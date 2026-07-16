@@ -111,7 +111,7 @@
 ???+ info
 
     如果一个容器存在环境变量 `datakit_logs_config`，同时又能找到它所属 Pod 的 Annotation `datakit/logs`，按照就近原则，以容器环境变量的配置为准。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 - 自定义配置的 value 如下：
 
@@ -416,7 +416,7 @@ Connection to 127.1 (127.0.0.1) 9531 port [udp/*] succeeded!
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 #### logstreaming 支持参数 {#logstreaming-args}
 
@@ -683,7 +683,7 @@ $ red='\033[0;31m' && nc='\033[0m' && print "${red}red${nc}"
     开源社区有许多案例，大部分都使用正则表达式进行实现，性能不是很出色。但是对于一个成熟的日志输出框架，一定有关闭颜色字符的方法，DataKit 更推荐这种做法，由日志产生端从避免打印颜色字符。
 
     对于此类颜色字符，通常建议在日志输出框架中关闭，而不是由 DataKit 进行过滤。特殊字符的筛选和过滤是由正则表达式处理，可能覆盖不够全面，且有一定的性能开销。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 处理性能基准测试结果如下，仅供参考：
 
@@ -793,7 +793,7 @@ Pipeline 的几个注意事项：
 ???+ note
 
     字段白名单是一个全局配置，同时对容器日志和 logging 采集器生效。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 最大文件采集数 {#max-collecting-files}
 
@@ -896,7 +896,7 @@ bytes * 2 * 8 /1024/1024 = xxx mbit
 ???+ info
 
     此处 `*2` 考虑到了 [Pipeline 切割](../pipeline/use-pipeline/index.md)导致的实际数据膨胀，而一般情况下，切割完都是要带上原始数据的，故按照最坏情况考虑，此处以加倍方式来计算。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 日志目录的软链接问题 {#soft-links}
 

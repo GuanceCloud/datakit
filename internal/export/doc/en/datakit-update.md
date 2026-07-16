@@ -92,7 +92,7 @@ If the DataKit is currently in proxy mode, the proxy settings will be automatica
     ``` powershell
     $env:HTTPS_PROXY="http://10.100.64.198:9530"; $env:DK_UPGRADE="1" ...
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Remote Update Service {#auto}
 
@@ -134,7 +134,7 @@ You can use DCA to achieve remote updates, see [DCA Documentation](../dca/index.
     - The upgrade process may take a long time depending on network bandwidth (essentially equivalent to manually invoking the DataKit upgrade command), please wait patiently.
     - Starting from version [Version-1.91.1](changelog-2026.md#cl-1.91.1), the direct upgrade function of DataKit through HTTP service has been removed.
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Offline Upgrade {#offline-upgrade}
 
@@ -154,7 +154,7 @@ If the new version is unsatisfactory and eager to roll back the recovery functio
     ```powershell
 {{ InstallCmd 4 (.WithPlatform "windows") (.WithUpgrade true) (.WithVersion "1.2.3") }}
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD046 -->
 For example, to manually upgrade to `1.93.0`:
@@ -175,7 +175,7 @@ For example, to manually upgrade to `1.93.0`:
     powershell ./.install.ps1;
     ```
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 Replace `1.93.0` with any target `1.x` version you need.
 

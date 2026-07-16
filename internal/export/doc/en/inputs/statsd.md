@@ -63,13 +63,13 @@ For example, Tomcat or Kafka:
 === "Kubernetes"
 
     The collector can now be turned on by [configMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD046 -->
 ???+ info
 
     If find lot of Feed: io busy in the log, can configure interval='1s', minimum is 1s.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Tag data sources {#config-tag}
 

@@ -22,7 +22,7 @@ DataKit 集成了 Git 客户端功能，它会定期（默认 1min）拉取 Git 
 ???+ note
 
     Git 仓库的创建不必以这个顺序。比如可以先创建远程仓库地址，然后将该仓库 clone 下来进行更改。以下示例是先创建本地 Git 仓库，然后再将其推送到远程仓库中。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 创建 Git 仓库 {#new-repo}
 
@@ -96,7 +96,7 @@ git push origin --all
 
 <!-- markdownlint-disable MD013 -->
 ### 报错：authentication required {#auth-required}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 出现这个报错可能是以下几种情况。
 
@@ -165,4 +165,4 @@ Git 同步开启后，配置（*.conf*/Pipeline）优先级定义如下：
     开启远程 Pipeline 功能后，最先加载的是从中心同步下来的 Pipeline。
 
     开启 Git 同步后，原 *conf.d* 目录下的采集器配置将不再生效。另外，主配置 *datakit.conf* **不能** 通过 Git 来管理。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->

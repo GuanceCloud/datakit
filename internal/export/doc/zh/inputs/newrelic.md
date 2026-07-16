@@ -40,9 +40,9 @@ New Relic 的 .Net Agent 是基于 .Net 技术框架的开源项目，可用于�
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 完成配置后重启 `DataKit` 和 `IIS`
 
@@ -84,7 +84,7 @@ PS> iisreset
     - `CORECLR_ENABLE_PROFILING`: 数字值 1 默认开启
     - `NEW_RELIC_APP_NAME`: 字符值，填写被观测的 `APP` 名字 （可选）
     - `NEWRELIC_INSTALL_PATH`: `New Relic Agent` 安装路径
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 - 通过配置文件配置 `New Relic`
 

@@ -42,7 +42,7 @@ After successfully installing and starting DataKit, the Mem collector will be en
     Can also be turned on by environment variables, (needs to be added as the default collector in ENV_DEFAULT_ENABLED_INPUTS):
 
 {{ CodeBlock .InputENVSample 4 }}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Metric {#metric}
 

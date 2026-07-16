@@ -89,7 +89,7 @@ DCA web 服务目前仅支持镜像安装，可通过 Docker 或 Kubernetes 来�
     kubectl apply -f dca.yaml
     kubectl get pod -n datakit
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 环境变量配置 {#envs}
 
@@ -196,7 +196,7 @@ docker run -d --name dca -p 8000:80 -e DCA_LOG_PATH=stdout -e DCA_LOG_LEVEL=info
 ---
 
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## DCA 功能使用 {#dca-manage}
 

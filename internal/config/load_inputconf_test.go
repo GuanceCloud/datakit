@@ -46,6 +46,25 @@ func (*disk) Run()                 {}
 func (*disk) SampleConfig() string { return "no sample" }
 func (a *disk) eq(b *disk) bool    { return (a.Interval == b.Interval && a.Percpu == b.Percpu) }
 
+type kvHTTPRebuildInput struct{ cpu }
+
+func (*kvHTTPRebuildInput) RegHTTPHandler()              {}
+func (*kvHTTPRebuildInput) RebuildHTTPServerOnKVReload() {}
+
+func TestPrepareKVInputStart(t *testing.T) {
+	regular := &inputs.InputInfo{Input: &cpu{}}
+	name, rebuild := prepareKVInputStart("cpu", regular)
+	assert.Empty(t, name)
+	assert.False(t, rebuild)
+	assert.Empty(t, regular.Name)
+
+	netpathLike := &inputs.InputInfo{Input: &kvHTTPRebuildInput{}}
+	name, rebuild = prepareKVInputStart("netpath", netpathLike)
+	assert.Equal(t, "netpath", name)
+	assert.True(t, rebuild)
+	assert.Equal(t, "netpath", netpathLike.Name)
+}
+
 func TestDoLoadConf(t *testing.T) {
 	var _ inputs.Input = &cpu{}
 

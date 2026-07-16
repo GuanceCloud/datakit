@@ -41,7 +41,7 @@ Pushgateway 采集器会开启对应的 API 接口，用于接收 Prometheus 指
 
 {{ CodeBlock .InputENVSampleZh 4 }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ---
 

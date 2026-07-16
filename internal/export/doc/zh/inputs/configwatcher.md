@@ -34,7 +34,7 @@ ConfigWatcher 采集器支持监控文件或目录的内容变更，构建变更
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 示例配置 Crontab {#example-crontab}
 

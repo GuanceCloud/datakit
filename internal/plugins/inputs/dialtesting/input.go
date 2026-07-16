@@ -8,11 +8,13 @@
 package dialtesting
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"crypto/md5"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -21,6 +23,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -41,6 +44,7 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpcli"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/endpoint"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 )
 
@@ -69,9 +73,19 @@ var (
 )
 
 const (
-	maxCrashCnt   = 6
-	RegionInfo    = "region"
-	VariablesInfo = "variables"
+	maxCrashCnt                    = 6
+	defaultOneShotBatchConcurrency = 4
+	defaultOneShotBatchQueueSize   = 64
+	RegionInfo                     = "region"
+	VariablesInfo                  = "variables"
+)
+
+const (
+	streamEventMessage           = "message"
+	streamMessageTypeOneShotDial = "dialtesting.one_shot_run"
+	streamMessageTypeRegionInfo  = "dialtesting.region_update"
+	maxSSELineBytes              = 10 * 1024 * 1024
+	maxSSEEventBytes             = 8 * 1024 * 1024
 )
 
 type Input struct {
@@ -94,8 +108,9 @@ type Input struct {
 	Election                        bool               `toml:"election"`
 	Browser                         *BrowserDialConfig `toml:"browser,omitempty"`
 
-	Tags       map[string]string
-	RegionTags map[string]string
+	Tags         map[string]string
+	RegionTags   map[string]string
+	regionTagsMu sync.RWMutex
 
 	pause atomic.Bool
 
@@ -115,11 +130,40 @@ type Input struct {
 	isServerMode bool
 
 	browserConcurrency chan struct{}
+	streamWatchMu      sync.Mutex
+	streamWatchCancel  context.CancelFunc
+	streamWatchDone    chan struct{}
+	streamWatchSeq     int64
+
+	oneShotBatchOnce        sync.Once
+	oneShotBatchMu          sync.Mutex
+	oneShotBatchCond        *sync.Cond
+	oneShotBatchQueue       []oneShotRunPayload
+	oneShotBatchCapacity    int
+	oneShotBatchAccepting   bool
+	oneShotBatchConcurrency int
+	oneShotBatchQueueSize   int
+	oneShotTaskRunner       func(string, dt.ITask) error
+}
+
+type streamEnvelope struct {
+	Type      string          `json:"type"`
+	MessageID string          `json:"message_id"`
+	Payload   json.RawMessage `json:"payload"`
+}
+
+type oneShotRunPayload struct {
+	RunBatchID string              `json:"run_batch_id"`
+	ChunkIndex int                 `json:"chunk_index,omitempty"`
+	ChunkTotal int                 `json:"chunk_total,omitempty"`
+	Tasks      map[string][]string `json:"tasks"`
+	MessageID  string              `json:"-"`
 }
 
 type regionNames struct {
-	name   string
-	nameEn string
+	name     string
+	nameEn   string
+	nameI18n map[string]string
 }
 
 type BrowserDialConfig struct {
@@ -442,6 +486,8 @@ func (*Input) AvailableArchs() []string {
 }
 
 func (ipt *Input) Terminate() {
+	ipt.stopStreamWatcher()
+	ipt.stopOneShotBatchExecutor()
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
 	}
@@ -539,11 +585,13 @@ func (ipt *Input) ElectionEnabled() bool {
 
 func (ipt *Input) Pause() error {
 	ipt.pause.Store(true)
+	ipt.stopStreamWatcher()
 	return nil
 }
 
 func (ipt *Input) Resume() error {
 	ipt.pause.Store(false)
+	ipt.startStreamWatcher()
 	return nil
 }
 
@@ -636,6 +684,7 @@ func (ipt *Input) doServerTask() {
 		// set regionID
 		ipt.variables.ipt = ipt
 		ipt.variables.run()
+		ipt.startStreamWatcher()
 
 		for {
 			if !ipt.pause.Load() {
@@ -731,7 +780,7 @@ func (ipt *Input) newTaskRun(t dt.ITask) (*dialer, error) {
 		return nil, fmt.Errorf("invalid task type")
 	}
 
-	l.Debugf("input region tags: %+#v", ipt.RegionTags)
+	l.Debugf("input region tags: %+#v", ipt.regionTagsSnapshot())
 
 	dialer := newDialer(t, ipt)
 	dialer.done = ipt.semStop.Wait()
@@ -752,17 +801,34 @@ func (ipt *Input) newTaskRun(t dt.ITask) (*dialer, error) {
 
 func (ipt *Input) dialerRegionNameByLanguage(language string) string {
 	names := ipt.regionNamesSnapshot()
-
-	regionName := ipt.RegionID
-	if len(names.name) > 0 {
-		regionName = names.name
+	nameI18n := names.nameI18n
+	if nameI18n == nil {
+		nameI18n = map[string]string{}
 	}
 
-	if language == "en" && names.nameEn != "" {
-		regionName = names.nameEn
+	for _, lang := range regionNameFallbackLanguages(dt.NormalizeWorkspaceLanguage(language)) {
+		if name := nameI18n[lang]; name != "" {
+			return name
+		}
+	}
+	switch dt.NormalizeWorkspaceLanguage(language) {
+	case "en", "id":
+		if names.nameEn != "" {
+			return names.nameEn
+		}
+		if names.name != "" {
+			return names.name
+		}
+	default:
+		if names.name != "" {
+			return names.name
+		}
+		if names.nameEn != "" {
+			return names.nameEn
+		}
 	}
 
-	return regionName
+	return ipt.RegionID
 }
 
 func (ipt *Input) regionMetricName() string {
@@ -781,23 +847,165 @@ func (ipt *Input) regionNamesSnapshot() regionNames {
 	}
 
 	return regionNames{
-		name:   ipt.regionName,
-		nameEn: ipt.regionNameEn,
+		name:     ipt.regionName,
+		nameEn:   ipt.regionNameEn,
+		nameI18n: buildRegionNameI18n(ipt.regionName, ipt.regionNameEn, nil),
 	}
 }
 
 func (ipt *Input) setRegionNames(name, nameEn string) bool {
+	return ipt.setRegionNamesWithI18n(name, nameEn, nil)
+}
+
+func (ipt *Input) setRegionNamesWithI18n(name, nameEn string, nameI18n map[string]string) bool {
 	current := ipt.regionNamesSnapshot()
-	changed := current.name != name || current.nameEn != nameEn
+	normalizedNameI18n := buildRegionNameI18n(name, nameEn, nameI18n)
+	changed := current.name != name || current.nameEn != nameEn || !reflect.DeepEqual(current.nameI18n, normalizedNameI18n)
 
 	ipt.regionName = name
 	ipt.regionNameEn = nameEn
 	ipt.regionNames.Store(regionNames{
-		name:   name,
-		nameEn: nameEn,
+		name:     name,
+		nameEn:   nameEn,
+		nameI18n: normalizedNameI18n,
 	})
 
 	return changed
+}
+
+func regionNameFallbackLanguages(language string) []string {
+	switch language {
+	case "en":
+		return []string{"en", "zh"}
+	case "id":
+		return []string{"id", "en", "zh"}
+	case "zh-hant":
+		return []string{"zh-hant", "zh", "en"}
+	default:
+		return []string{"zh", "en"}
+	}
+}
+
+func buildRegionNameI18n(name, nameEn string, raw map[string]string) map[string]string {
+	out := map[string]string{}
+	for k, v := range raw {
+		lang := dt.NormalizeWorkspaceLanguage(k)
+		if v != "" {
+			out[lang] = v
+		}
+	}
+	if name != "" && out["zh"] == "" {
+		out["zh"] = name
+	}
+	if nameEn != "" && out["en"] == "" {
+		out["en"] = nameEn
+	}
+	return out
+}
+
+func parseRegionNameI18n(raw interface{}) map[string]string {
+	switch v := raw.(type) {
+	case map[string]string:
+		return buildRegionNameI18n("", "", v)
+	case map[string]interface{}:
+		out := map[string]string{}
+		for k, value := range v {
+			if s, ok := value.(string); ok && s != "" {
+				out[k] = s
+			}
+		}
+		return buildRegionNameI18n("", "", out)
+	default:
+		return nil
+	}
+}
+
+func cloneRegionNameI18n(names map[string]string) map[string]string {
+	if len(names) == 0 {
+		return nil
+	}
+
+	out := make(map[string]string, len(names))
+	for k, v := range names {
+		out[k] = v
+	}
+	return out
+}
+
+func (ipt *Input) applyRegionInfo(regionInfo map[string]interface{}) bool {
+	ipt.regionTagsMu.Lock()
+	defer ipt.regionTagsMu.Unlock()
+
+	if ipt.RegionTags == nil {
+		ipt.RegionTags = map[string]string{}
+	}
+
+	names := ipt.regionNamesSnapshot()
+	regionName := names.name
+	regionNameEn := names.nameEn
+	regionNameI18n := cloneRegionNameI18n(names.nameI18n)
+	regionNameSeen := false
+	regionNameEnSeen := false
+	regionNameI18nSeen := false
+
+	for k, v := range regionInfo {
+		switch v_ := v.(type) {
+		case bool:
+			if v_ {
+				ipt.RegionTags[k] = `true`
+			} else {
+				ipt.RegionTags[k] = `false`
+			}
+
+		case string:
+			if len(v_) > 0 {
+				if k != "name" && k != "status" && k != "name_en" {
+					ipt.RegionTags[k] = v_
+				} else {
+					l.Debugf("ignore tag %s:%s from region info", k, v_)
+				}
+				if k == "name" {
+					regionName = v_
+					regionNameSeen = true
+				} else if k == "name_en" {
+					regionNameEn = v_
+					regionNameEnSeen = true
+				}
+			}
+		default:
+			if k == "name_i18n" {
+				regionNameI18n = parseRegionNameI18n(v)
+				regionNameI18nSeen = true
+			} else {
+				l.Debugf("ignore key `%s' of type %T", k, v)
+			}
+		}
+	}
+
+	if !regionNameI18nSeen && (regionNameSeen || regionNameEnSeen) {
+		if regionNameI18n == nil {
+			regionNameI18n = map[string]string{}
+		}
+		if regionNameSeen && regionName != "" {
+			regionNameI18n["zh"] = regionName
+		}
+		if regionNameEnSeen && regionNameEn != "" {
+			regionNameI18n["en"] = regionNameEn
+		}
+	}
+
+	return ipt.setRegionNamesWithI18n(regionName, regionNameEn, regionNameI18n)
+}
+
+func (ipt *Input) regionTagsSnapshot() map[string]string {
+	ipt.regionTagsMu.RLock()
+	defer ipt.regionTagsMu.RUnlock()
+
+	tags := make(map[string]string, len(ipt.RegionTags))
+	for k, v := range ipt.RegionTags {
+		tags[k] = v
+	}
+	return tags
 }
 
 func (ipt *Input) refreshTaskGaugeRegions() {
@@ -889,6 +1097,635 @@ func protectedRun(d *dialer) {
 	f(nil, nil)
 }
 
+func (ipt *Input) newTaskFromClassJSON(class, taskJSON string) (dt.ITask, error) {
+	var ct dt.TaskChild
+	switch class {
+	case dt.ClassHTTP:
+		ct = &dt.HTTPTask{}
+	case dt.ClassHeadless:
+		ct = &dt.BrowserTask{}
+	case dt.ClassMulti:
+		ct = &dt.MultiTask{}
+	case dt.ClassDNS:
+		return nil, fmt.Errorf("DNS task deprecated")
+	case dt.ClassTCP:
+		ct = &dt.TCPTask{}
+	case dt.ClassWebsocket:
+		ct = &dt.WebsocketTask{}
+	case dt.ClassICMP:
+		ct = &dt.ICMPTask{}
+	case dt.ClassGRPC:
+		ct = &dt.GRPCTask{}
+	case dt.ClassSSL:
+		ct = &dt.SSLTask{}
+	case dt.ClassOther:
+		return nil, fmt.Errorf("OTHER task deprecated")
+	default:
+		return nil, fmt.Errorf("unknown task type: %s", class)
+	}
+
+	t, err := dt.NewTask(taskJSON, ct)
+	if err != nil {
+		return nil, fmt.Errorf("newTask failed: %w", err)
+	}
+
+	opt := map[string]string{
+		"userAgent": fmt.Sprintf("datakit-%s-%s/%s/%s",
+			runtime.GOOS, runtime.GOARCH, git.Version, datakit.DKHost),
+	}
+	ipt.applyBrowserOptions(t, opt)
+	t.SetOption(opt)
+
+	return t, nil
+}
+
+func (ipt *Input) runOneShotTask(runBatchID string, task dt.ITask) error {
+	defer task.Stop()
+
+	task.SetStatus("OK")
+	d := newDialer(task, ipt)
+	d.done = ipt.semStop.Wait()
+	d.triggerType = triggerTypeManual
+	d.runBatchID = runBatchID
+
+	_, vars := ipt.variables.getVariables(task.GetGlobalVars())
+	if err := task.RenderTemplateAndInit(vars); err != nil {
+		return fmt.Errorf("task render template error: %w", err)
+	}
+	if err := d.checkPostURLToken(); err != nil {
+		return err
+	}
+	if err := d.checkInternalNetwork(); err != nil {
+		return err
+	}
+
+	d.dialingTime = ntp.Now()
+	if err := d.runTask(); errors.Is(err, errTaskRunSkipped) {
+		return err
+	} else if err != nil {
+		return err
+	}
+
+	taskRunCostSummary.WithLabelValues(d.regionName(), d.class).Observe(float64(time.Since(d.dialingTime)) / float64(time.Second))
+	return d.feedIO()
+}
+
+func (ipt *Input) runOneShotTaskSafely(runBatchID, class string, task dt.ITask) (err error) {
+	taskID := ""
+	defer func() {
+		if panicValue := recover(); panicValue != nil {
+			err = fmt.Errorf("one-shot task panicked: %v", panicValue)
+			l.Errorf("one-shot dialtesting task panicked, run_batch_id=%s, task_id=%s, class=%s, panic=%v\n%s",
+				runBatchID, taskID, class, panicValue, debug.Stack())
+		}
+	}()
+	taskID = task.ID()
+
+	if ipt.oneShotTaskRunner != nil {
+		return ipt.oneShotTaskRunner(runBatchID, task)
+	}
+	return ipt.runOneShotTask(runBatchID, task)
+}
+
+func (ipt *Input) executeOneShotPayload(payload oneShotRunPayload) {
+	oneShotBatchRunningGauge.Inc()
+	defer oneShotBatchRunningGauge.Dec()
+	ipt.runOneShotPayload(payload)
+}
+
+func oneShotMetricProtocol(class string) string {
+	switch class {
+	case dt.ClassHTTP, dt.ClassHeadless, dt.ClassMulti, dt.ClassTCP, dt.ClassWebsocket, dt.ClassICMP, dt.ClassGRPC, dt.ClassSSL:
+		return class
+	default:
+		return "unknown"
+	}
+}
+
+func (ipt *Input) recordInvalidOneShotBatch(runBatchID, messageID string, reason error) {
+	oneShotBatchCounter.WithLabelValues(ipt.regionMetricName(), "invalid").Inc()
+	l.Warnf("invalid one-shot dialtesting batch, run_batch_id=%s, message_id=%s: %s", runBatchID, messageID, reason.Error())
+}
+
+func (ipt *Input) runOneShotPayload(payload oneShotRunPayload) {
+	start := time.Now()
+	region := ipt.regionMetricName()
+	if err := normalizeOneShotRunChunk(&payload); err != nil {
+		ipt.recordInvalidOneShotBatch(payload.RunBatchID, payload.MessageID, err)
+		return
+	}
+	if payload.RunBatchID == "" {
+		ipt.recordInvalidOneShotBatch(payload.RunBatchID, payload.MessageID, errors.New("run batch id is empty"))
+		return
+	}
+
+	total := 0
+	for _, tasks := range payload.Tasks {
+		total += len(tasks)
+	}
+	if total == 0 {
+		l.Warnf("ignore empty one-shot dialtesting batch, run_batch_id=%s, message_id=%s, chunk=%d/%d",
+			payload.RunBatchID, payload.MessageID, payload.ChunkIndex, payload.ChunkTotal)
+		return
+	}
+
+	success, failed, skipped, parseFailed := 0, 0, 0, 0
+	batchStatus := "success"
+
+	defer func() {
+		if failed > 0 || parseFailed > 0 {
+			if success > 0 || skipped > 0 {
+				batchStatus = "partial_failed"
+			} else {
+				batchStatus = "failed"
+			}
+		} else if success == 0 && skipped > 0 {
+			batchStatus = "skipped"
+		}
+
+		oneShotBatchCounter.WithLabelValues(region, batchStatus).Inc()
+		oneShotBatchCostSummary.WithLabelValues(region, batchStatus).Observe(time.Since(start).Seconds())
+		l.Infof("one-shot dialtesting batch chunk finished, run_batch_id=%s, message_id=%s, chunk=%d/%d, region=%s, status=%s, total=%d, success=%d, failed=%d, skipped=%d, parse_failed=%d, cost=%s",
+			payload.RunBatchID, payload.MessageID, payload.ChunkIndex, payload.ChunkTotal, region, batchStatus, total, success, failed, skipped, parseFailed, time.Since(start))
+	}()
+
+	for class, tasks := range payload.Tasks {
+		metricProtocol := oneShotMetricProtocol(class)
+		if class == dt.ClassHeadless && !ipt.browserEnabled() {
+			skipped += len(tasks)
+			oneShotTaskCounter.WithLabelValues(region, metricProtocol, "skipped").Add(float64(len(tasks)))
+			l.Infof("ignore %d browser one-shot dialtesting tasks: browser.enabled is false or unsupported on %s", len(tasks), browserDialtestingGOOS)
+			continue
+		}
+		for _, taskJSON := range tasks {
+			task, err := ipt.newTaskFromClassJSON(class, taskJSON)
+			if err != nil {
+				parseFailed++
+				oneShotTaskCounter.WithLabelValues(region, metricProtocol, "parse_failed").Inc()
+				l.Warnf("parse one-shot task failed: %s, class=%s, task json(%d bytes)", err.Error(), class, len(taskJSON))
+				continue
+			}
+			if err := ipt.runOneShotTaskSafely(payload.RunBatchID, class, task); err != nil {
+				if errors.Is(err, errTaskRunSkipped) {
+					skipped++
+					oneShotTaskCounter.WithLabelValues(region, metricProtocol, "skipped").Inc()
+					continue
+				}
+				failed++
+				oneShotTaskCounter.WithLabelValues(region, metricProtocol, "failed").Inc()
+				l.Warnf("run one-shot task %s failed: %s", task.ID(), err.Error())
+				continue
+			}
+			success++
+			oneShotTaskCounter.WithLabelValues(region, metricProtocol, "success").Inc()
+		}
+	}
+}
+
+func (ipt *Input) setupOneShotBatchExecutor() {
+	ipt.oneShotBatchOnce.Do(func() {
+		concurrency := ipt.oneShotBatchConcurrency
+		if concurrency <= 0 {
+			concurrency = defaultOneShotBatchConcurrency
+		}
+		queueSize := ipt.oneShotBatchQueueSize
+		if queueSize <= 0 {
+			queueSize = defaultOneShotBatchQueueSize
+		}
+
+		ipt.oneShotBatchMu.Lock()
+		ipt.oneShotBatchCapacity = queueSize
+		ipt.oneShotBatchQueue = make([]oneShotRunPayload, 0, queueSize)
+		ipt.oneShotBatchCond = sync.NewCond(&ipt.oneShotBatchMu)
+		ipt.oneShotBatchAccepting = true
+		if ipt.semStop != nil {
+			select {
+			case <-ipt.semStop.Wait():
+				ipt.oneShotBatchAccepting = false
+			default:
+			}
+		}
+		select {
+		case <-datakit.Exit.Wait():
+			ipt.oneShotBatchAccepting = false
+		default:
+		}
+		ipt.oneShotBatchMu.Unlock()
+
+		for i := 0; i < concurrency; i++ {
+			g.Go(func(ctx context.Context) error {
+				for {
+					ipt.oneShotBatchMu.Lock()
+					for len(ipt.oneShotBatchQueue) == 0 && ipt.oneShotBatchAccepting {
+						ipt.oneShotBatchCond.Wait()
+					}
+					if !ipt.oneShotBatchAccepting {
+						ipt.oneShotBatchMu.Unlock()
+						return nil
+					}
+
+					payload := ipt.oneShotBatchQueue[0]
+					ipt.oneShotBatchQueue[0] = oneShotRunPayload{}
+					ipt.oneShotBatchQueue = ipt.oneShotBatchQueue[1:]
+					oneShotBatchQueueGauge.Dec()
+					ipt.oneShotBatchCond.Broadcast()
+					ipt.oneShotBatchMu.Unlock()
+
+					ipt.executeOneShotPayload(payload)
+				}
+			})
+		}
+
+		g.Go(func(ctx context.Context) error {
+			if ipt.semStop == nil {
+				<-datakit.Exit.Wait()
+			} else {
+				select {
+				case <-ipt.semStop.Wait():
+				case <-datakit.Exit.Wait():
+				}
+			}
+			ipt.stopOneShotBatchExecutor()
+			return nil
+		})
+	})
+}
+
+func (ipt *Input) stopOneShotBatchExecutor() {
+	ipt.oneShotBatchMu.Lock()
+	if ipt.oneShotBatchCond == nil || !ipt.oneShotBatchAccepting {
+		ipt.oneShotBatchMu.Unlock()
+		return
+	}
+
+	ipt.oneShotBatchAccepting = false
+	queued := len(ipt.oneShotBatchQueue)
+	for i := range ipt.oneShotBatchQueue {
+		ipt.oneShotBatchQueue[i] = oneShotRunPayload{}
+	}
+	ipt.oneShotBatchQueue = nil
+	if queued > 0 {
+		oneShotBatchQueueCounter.WithLabelValues("exit").Add(float64(queued))
+		oneShotBatchQueueGauge.Sub(float64(queued))
+	}
+	ipt.oneShotBatchCond.Broadcast()
+	ipt.oneShotBatchMu.Unlock()
+
+	if queued > 0 {
+		l.Warnf("discard %d queued one-shot dialtesting batches on exit", queued)
+	}
+}
+
+func (ipt *Input) enqueueOneShotPayload(payload oneShotRunPayload) bool {
+	return ipt.enqueueOneShotPayloadContext(context.Background(), payload)
+}
+
+func (ipt *Input) enqueueOneShotPayloadContext(ctx context.Context, payload oneShotRunPayload) bool {
+	ipt.setupOneShotBatchExecutor()
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	stopWake := context.AfterFunc(ctx, func() {
+		ipt.oneShotBatchMu.Lock()
+		if ipt.oneShotBatchCond != nil {
+			ipt.oneShotBatchCond.Broadcast()
+		}
+		ipt.oneShotBatchMu.Unlock()
+	})
+	defer stopWake()
+
+	ipt.oneShotBatchMu.Lock()
+	queueFull := false
+	for ipt.oneShotBatchAccepting && ctx.Err() == nil && len(ipt.oneShotBatchQueue) >= ipt.oneShotBatchCapacity {
+		if !queueFull {
+			queueFull = true
+			oneShotBatchQueueCounter.WithLabelValues("full").Inc()
+			l.Warnf("one-shot dialtesting batch queue is full, wait to enqueue, run_batch_id=%s, message_id=%s, chunk=%d/%d",
+				payload.RunBatchID, payload.MessageID, payload.ChunkIndex, payload.ChunkTotal)
+		}
+		ipt.oneShotBatchCond.Wait()
+	}
+	if ctx.Err() != nil {
+		ipt.oneShotBatchMu.Unlock()
+		return false
+	}
+	if !ipt.oneShotBatchAccepting {
+		ipt.oneShotBatchMu.Unlock()
+
+		oneShotBatchQueueCounter.WithLabelValues("exit").Inc()
+		l.Warnf("discard one-shot dialtesting batch while exiting, run_batch_id=%s, message_id=%s, chunk=%d/%d",
+			payload.RunBatchID, payload.MessageID, payload.ChunkIndex, payload.ChunkTotal)
+		return false
+	}
+
+	ipt.oneShotBatchQueue = append(ipt.oneShotBatchQueue, payload)
+	oneShotBatchQueueGauge.Inc()
+	ipt.oneShotBatchCond.Signal()
+	ipt.oneShotBatchMu.Unlock()
+	return true
+}
+
+func (ipt *Input) startStreamWatcher() {
+	if !ipt.isServerMode || ipt.pause.Load() {
+		return
+	}
+	if ipt.Server == "" || ipt.RegionID == "" {
+		l.Warn("dialtesting stream watcher disabled: server or region_id is empty")
+		return
+	}
+	if ipt.cli == nil {
+		l.Warn("dialtesting stream watcher disabled: http client is nil")
+		return
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	ipt.streamWatchMu.Lock()
+	if ipt.streamWatchCancel != nil {
+		ipt.streamWatchMu.Unlock()
+		cancel()
+		return
+	}
+	ipt.streamWatchSeq++
+	seq := ipt.streamWatchSeq
+	done := make(chan struct{})
+	ipt.streamWatchCancel = cancel
+	ipt.streamWatchDone = done
+	ipt.streamWatchMu.Unlock()
+
+	var cleanupOnce sync.Once
+	cleanup := func() {
+		cleanupOnce.Do(func() {
+			cancel()
+			ipt.streamWatchMu.Lock()
+			if ipt.streamWatchSeq == seq {
+				ipt.streamWatchCancel = nil
+				ipt.streamWatchDone = nil
+			}
+			ipt.streamWatchMu.Unlock()
+			close(done)
+		})
+	}
+
+	g.Go(func(_ context.Context) error {
+		defer cleanup()
+		ipt.watchStreamLoop(ctx)
+		return nil
+	})
+}
+
+func (ipt *Input) stopStreamWatcher() {
+	ipt.streamWatchMu.Lock()
+	cancel := ipt.streamWatchCancel
+	done := ipt.streamWatchDone
+	ipt.streamWatchMu.Unlock()
+
+	if cancel != nil {
+		cancel()
+	}
+	if done != nil {
+		<-done
+	}
+}
+
+func (ipt *Input) watchStreamLoop(ctx context.Context) {
+	backoff := time.Second
+	const maxBackoff = 30 * time.Second
+
+	for {
+		if ipt.pause.Load() {
+			return
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		case <-datakit.Exit.Wait():
+			return
+		case <-ipt.semStop.Wait():
+			return
+		default:
+		}
+
+		connected, err := ipt.watchStreamOnce(ctx)
+		if err != nil {
+			if ctx.Err() != nil || ipt.pause.Load() {
+				return
+			}
+			l.Warnf("dialtesting stream watch disconnected: %s", err.Error())
+		}
+		if connected {
+			backoff = time.Second
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		case <-datakit.Exit.Wait():
+			return
+		case <-ipt.semStop.Wait():
+			return
+		case <-time.After(backoff):
+		}
+
+		if !connected && backoff < maxBackoff {
+			backoff *= 2
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+		}
+	}
+}
+
+func (ipt *Input) watchStreamOnce(ctx context.Context) (bool, error) {
+	reqURL, err := url.Parse(ipt.Server)
+	if err != nil {
+		return false, fmt.Errorf("parse server url failed: %w", err)
+	}
+
+	reqURL.Path = "/v1/stream/watch"
+	q := reqURL.Query()
+	q.Set("region_id", ipt.RegionID)
+	reqURL.RawQuery = q.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL.String(), nil)
+	if err != nil {
+		return false, err
+	}
+
+	bodymd5 := fmt.Sprintf("%x", md5.Sum([]byte(""))) //nolint:gosec
+	req.Header.Set("Accept", "text/event-stream")
+	req.Header.Set("Date", time.Now().Format(http.TimeFormat))
+	req.Header.Set("Content-MD5", bodymd5)
+	signReq(req, ipt.AK, ipt.SK)
+
+	resp, err := ipt.cli.Do(req)
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close() //nolint:errcheck
+
+	if resp.StatusCode/100 != 2 {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		return false, fmt.Errorf("unexpected status %d: %s", resp.StatusCode, string(body))
+	}
+
+	l.Infof("dialtesting stream watch connected, region_id=%s", ipt.RegionID)
+	return true, ipt.readSSEContext(ctx, resp.Body)
+}
+
+func (ipt *Input) readSSE(r io.Reader) error {
+	return ipt.readSSEContext(context.Background(), r)
+}
+
+func (ipt *Input) readSSEContext(ctx context.Context, r io.Reader) error {
+	scanner := bufio.NewScanner(r)
+	scanner.Buffer(make([]byte, 0, 64*1024), maxSSELineBytes)
+
+	eventName := streamEventMessage
+	var eventData strings.Builder
+	hasData := false
+
+	flush := func() {
+		if !hasData {
+			eventName = streamEventMessage
+			return
+		}
+		if eventName == "" {
+			eventName = streamEventMessage
+		}
+		if eventName == streamEventMessage {
+			ipt.handleStreamMessageContext(ctx, []byte(eventData.String()))
+		} else {
+			l.Debugf("ignore dialtesting stream event: %s", eventName)
+		}
+		eventName = streamEventMessage
+		eventData.Reset()
+		hasData = false
+	}
+
+	for scanner.Scan() {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		line := strings.TrimSuffix(scanner.Text(), "\r")
+		if line == "" {
+			flush()
+			continue
+		}
+		if strings.HasPrefix(line, ":") {
+			continue
+		}
+
+		field, value, ok := strings.Cut(line, ":")
+		if ok && strings.HasPrefix(value, " ") {
+			value = strings.TrimPrefix(value, " ")
+		}
+		if !ok {
+			field = line
+			value = ""
+		}
+
+		switch field {
+		case "event":
+			eventName = value
+		case "data":
+			additionalBytes := len(value)
+			if hasData {
+				additionalBytes++
+			}
+			if eventData.Len()+additionalBytes > maxSSEEventBytes {
+				return fmt.Errorf("sse event exceeds %d bytes", maxSSEEventBytes)
+			}
+			if hasData {
+				eventData.WriteByte('\n')
+			}
+			eventData.WriteString(value)
+			hasData = true
+		}
+	}
+
+	flush()
+	return scanner.Err()
+}
+
+func (ipt *Input) handleStreamMessage(data []byte) {
+	ipt.handleStreamMessageContext(context.Background(), data)
+}
+
+func (ipt *Input) handleStreamMessageContext(ctx context.Context, data []byte) {
+	var env streamEnvelope
+	if err := json.Unmarshal(data, &env); err != nil {
+		l.Warnf("decode dialtesting stream message failed: %s", err.Error())
+		return
+	}
+
+	switch env.Type {
+	case streamMessageTypeOneShotDial:
+		ipt.handleOneShotStreamPayloadContext(ctx, env.MessageID, env.Payload)
+	case streamMessageTypeRegionInfo:
+		ipt.handleRegionInfoStreamPayload(env.Payload)
+	default:
+		l.Debugf("ignore unknown dialtesting stream message type: %s", env.Type)
+	}
+}
+
+func (ipt *Input) handleRegionInfoStreamPayload(raw json.RawMessage) bool {
+	if ipt.pause.Load() {
+		l.Infof("ignore region info stream payload: input is paused")
+		return false
+	}
+
+	regionInfo := map[string]interface{}{}
+	if err := json.Unmarshal(raw, &regionInfo); err != nil {
+		l.Warnf("decode region info stream payload failed: %s", err.Error())
+		return false
+	}
+	if ipt.applyRegionInfo(regionInfo) {
+		ipt.refreshTaskGaugeRegions()
+	}
+	return true
+}
+
+func normalizeOneShotRunChunk(payload *oneShotRunPayload) error {
+	if payload == nil {
+		return fmt.Errorf("one-shot payload is nil")
+	}
+	if payload.ChunkIndex == 0 && payload.ChunkTotal == 0 {
+		payload.ChunkIndex = 1
+		payload.ChunkTotal = 1
+		return nil
+	}
+	if payload.ChunkIndex < 1 || payload.ChunkTotal < 1 || payload.ChunkIndex > payload.ChunkTotal {
+		return fmt.Errorf("invalid chunk position %d/%d", payload.ChunkIndex, payload.ChunkTotal)
+	}
+	return nil
+}
+
+func (ipt *Input) handleOneShotStreamPayload(messageID string, raw json.RawMessage) bool {
+	return ipt.handleOneShotStreamPayloadContext(context.Background(), messageID, raw)
+}
+
+func (ipt *Input) handleOneShotStreamPayloadContext(ctx context.Context, messageID string, raw json.RawMessage) bool {
+	if ipt.pause.Load() {
+		l.Infof("ignore one-shot dialtesting payload: input is paused")
+		return false
+	}
+
+	var payload oneShotRunPayload
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		ipt.recordInvalidOneShotBatch("", messageID, fmt.Errorf("decode payload: %w", err))
+		return false
+	}
+	payload.MessageID = messageID
+	if err := normalizeOneShotRunChunk(&payload); err != nil {
+		ipt.recordInvalidOneShotBatch(payload.RunBatchID, messageID, err)
+		return false
+	}
+
+	return ipt.enqueueOneShotPayloadContext(ctx, payload)
+}
+
 type taskPullResp struct {
 	Content map[string]interface{} `json:"content"`
 }
@@ -928,37 +1765,7 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 				continue
 			}
 
-			names := ipt.regionNamesSnapshot()
-			regionName := names.name
-			regionNameEn := names.nameEn
-
-			for k, v := range regionInfo {
-				switch v_ := v.(type) {
-				case bool:
-					if v_ {
-						ipt.RegionTags[k] = `true`
-					} else {
-						ipt.RegionTags[k] = `false`
-					}
-
-				case string:
-					if len(v_) > 0 {
-						if k != "name" && k != "status" && k != "name_en" {
-							ipt.RegionTags[k] = v_
-						} else {
-							l.Debugf("ignore tag %s:%s from region info", k, v_)
-						}
-						if k == "name" {
-							regionName = v_
-						} else if k == "name_en" {
-							regionNameEn = v_
-						}
-					}
-				default:
-					l.Debugf("ignore key `%s' of type %s", k, reflect.TypeOf(v).String())
-				}
-			}
-			if ipt.setRegionNames(regionName, regionNameEn) {
+			if ipt.applyRegionInfo(regionInfo) {
 				ipt.refreshTaskGaugeRegions()
 			}
 
@@ -1257,14 +2064,16 @@ func (ipt *Input) ReadEnv(envs map[string]string) {
 	if v, ok := envs["ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK"]; ok {
 		if isDisabled, err := strconv.ParseBool(v); err != nil {
 			l.Warnf("parse ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK [%s] error: %s, ignored", v, err.Error())
-		} else if isDisabled {
-			ipt.DisableInternalNetworkTask = true
-			cidrs := []string{}
-			if v, ok := envs["ENV_INPUT_DIALTESTING_DISABLED_INTERNAL_NETWORK_CIDR_LIST"]; ok {
-				if err := json.Unmarshal([]byte(v), &cidrs); err != nil {
-					l.Warnf("parse ENV_INPUT_DIALTESTING_DISABLED_INTERNAL_NETWORK_CIDR_LIST[%s] error: %s, ignored", v, err.Error())
-				} else {
-					ipt.DisabledInternalNetworkCIDRList = cidrs
+		} else {
+			ipt.DisableInternalNetworkTask = isDisabled
+			if isDisabled {
+				cidrs := []string{}
+				if v, ok := envs["ENV_INPUT_DIALTESTING_DISABLED_INTERNAL_NETWORK_CIDR_LIST"]; ok {
+					if err := json.Unmarshal([]byte(v), &cidrs); err != nil {
+						l.Warnf("parse ENV_INPUT_DIALTESTING_DISABLED_INTERNAL_NETWORK_CIDR_LIST[%s] error: %s, ignored", v, err.Error())
+					} else {
+						ipt.DisabledInternalNetworkCIDRList = cidrs
+					}
 				}
 			}
 		}

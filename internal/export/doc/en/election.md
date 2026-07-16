@@ -102,7 +102,7 @@ Take MySQL as an example. In the same cluster (such as k8s cluster), suppose the
 
 <!-- markdownlint-disable MD013 -->
 ### Election Class Collector's Global Tag Settings {#global-tags}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 <!-- markdownlint-disable MD046 -->
 === "`datakit.conf`"
@@ -130,7 +130,7 @@ Take MySQL as an example. In the same cluster (such as k8s cluster), suppose the
 === "Kubernetes"
 
     See [here](datakit-daemonset-deploy.md#env-elect) for the configuration of elections in Kubernetes and [here](datakit-daemonset-deploy.md#env-common) for the setting of global tags.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Election Whitelist {#election-whitelist}
 
@@ -151,7 +151,7 @@ Take MySQL as an example. In the same cluster (such as k8s cluster), suppose the
 === "Kubernetes"
 
     See [here](datakit-daemonset-deploy.md#env-elect)
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Collection List Supporting Election {#inputs}
 

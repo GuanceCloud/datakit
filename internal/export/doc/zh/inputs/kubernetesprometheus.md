@@ -157,7 +157,7 @@ KubernetesPrometheus 是一个只能应用在 Kubernetes 的采集器，它根�
     - `Endpoints` 使用对应 Address IP（多个）
 
     另外需要注意，端口不能绑定到环回地址，否则外部无法访问。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 假设这个 Pod IP 是 `172.16.10.10`，容器 nginx 的 metrics 端口是 9090。
 
@@ -208,7 +208,7 @@ KubernetesPrometheus 采集器主要使用占位符进行配置，只保留最�
 ???+ info
 
     KubernetesPrometheus 采集器会添加 DataKit 的 `global_tags`[:octicons-tag-24: Version-1.65.1](../datakit/changelog.md#cl-1.65.1)。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 权限和验证 {#input-config-auth}
 
@@ -246,7 +246,7 @@ KubernetesPrometheus 采集器主要使用占位符进行配置，只保留最�
 | -----------                  | -----------                                                           | -----                                                                                   |
 | `__kubernetes_mate_instance` | 采集目标的 instance，即 `IP:PORT`                                     | 仅支持在 `global_tags/custom.tags` 使用，例如 `instance = "__kubernetes_mate_instance"` |
 | `__kubernetes_mate_host`     | 采集目标的 host，即 `IP`。如果该值是 `localhost` 或环回地址将不再添加 | 仅支持在 `global_tags/custom.tags` 使用，例如 `host = "__kubernetes_mate_host"`         |
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD049 -->
 
 ### Node Role {#placeholders-node}
 
@@ -260,7 +260,7 @@ KubernetesPrometheus 采集器主要使用占位符进行配置，只保留最�
 | `__kubernetes_node_annotation_%s`         | Node 注解                            | `.metadata.annotations['%s']`                           |
 | `__kubernetes_node_address_Hostname`      | Node 主机名                          | `.status.addresses[*].address ("type" is "Hostname")`   |
 | `__kubernetes_node_kubelet_endpoint_port` | Node 的 kubelet 端口，一般都是 10250 | `.status.daemonEndpoints.kubeletEndpoint.Port`          |
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD049 -->
 
 ### Pod Role {#placeholders-pod}
 
@@ -275,7 +275,7 @@ KubernetesPrometheus 采集器主要使用占位符进行配置，只保留最�
  | `__kubernetes_pod_annotation_%s`               | Pod 注解，例如 `_kubernetes_pod_annotation_prometheus.io/port`                                                             | `.metadata.annotations['%s']`                                        |
  | `__kubernetes_pod_node_name`                   | Pod 所属的 Node                                                                                                            | `.spec.nodeName`                                                     |
  | `__kubernetes_pod_container_%s_port_%s_number` | 指定 container 的指定 port，例如 `__kubernetes_pod_container_nginx_port_metrics_number` 指向 `nginx` 容器的 `metrics` 端口 | `.spec.containers[*].ports[*].containerPort` (`"name"` equal `"%s"`) |
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD049 -->
 
 对于 `__kubernetes_pod_container_%s_port_%s_number` 举例：
 
@@ -301,7 +301,7 @@ Service 资源没有 IP 属性，所以使用跟它对应的 Endpoints Address I
  | `__kubernetes_service_target_namespace`     | Service 中没有 target，这是指向对应 endpoints 的 targetRef，取它的 `namespace` 字段 | `Endpoints: .subsets[*].addresses[*].targetRef.namespace` |
  | `__kubernetes_service_target_pod_name`      | Deprecated, 请使用 `__kubernetes_service_target_name`                               | `Endpoints: .subsets[*].addresses[*].targetRef.name`      |
  | `__kubernetes_service_target_pod_namespace` | Deprecated, 请使用 `__kubernetes_service_target_namespace`                          | `Endpoints: .subsets[*].addresses[*].targetRef.namespace` |
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD049 -->
 
 ### Endpoints Role {#placeholders-endpoints}
 
@@ -321,7 +321,7 @@ Service 资源没有 IP 属性，所以使用跟它对应的 Endpoints Address I
 | `__kubernetes_endpoints_address_target_pod_name`      | Deprecated, 请使用 `__kubernetes_endpoints_address_target_name`      | `.subsets[*].addresses[*].targetRef.name`       |
 | `__kubernetes_endpoints_address_target_pod_namespace` | Deprecated, 请使用 `__kubernetes_endpoints_address_target_namespace` | `.subsets[*].addresses[*].targetRef.namespace`  |
 | `__kubernetes_endpoints_port_%s_number`               | 指定 port 名称，例如 `__kubernetes_endpoints_port_metrics_number`    | `.subsets[*].ports[*].port ("name" equal "%s")` |
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD049 -->
 
 ## 实际案例 {#example}
 
@@ -605,7 +605,7 @@ kube-system   kube-controller-manager   1/1     Running   0          15d
 <!-- markdownlint-disable MD046 -->
 ???+ warning
     在此处 Glob 模式中不支持 `!` 排除符。例如，`app=middleware-[!0123]` 会在解析阶段报错。这是因为在 Selector 语法中，`!` 是关键字符（例如用于 `app!=nginx`），因此不能用于 Glob 模式。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Bearer Token 验证 {#http-bearer-token}
 

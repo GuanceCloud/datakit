@@ -9,17 +9,21 @@ tags      :
 __int_icon: 'icon/opentelemetry'
 ---
 
-In this paper, the common Web-side three-tier architecture mode is used to realize the link tracing and observability of OTEL.
+This example shows a simple three-layer web architecture in Go and how to add OTEL spans.
 
-Before using OTEL to send Trace to DataKit, make sure you have [configured the collector](opentelemetry.md).
+Before you export traces to DataKit, make sure [the OpenTelemetry collector input is configured](opentelemetry.md).
 
-## implement in pseudo code {#code}
+## Example Scenario {#code}
 
-Simulation scenario: A user's login request flows through various modules on the server and is returned to the client. Add link tracking and marking in each process, and finally log in to the <<<custom_key.brand_name>>> platform to check the processing time and service status of each module in this process.
+Workflow:
 
-Process introduction: The user requests to the web layer, after analysis, send to the service layer, need to query the database of the dao layer, and finally return the results to the user.
+1. A client sends a login request.
+2. Web layer receives request and creates a top-level span.
+3. Web layer calls service layer.
+4. Service layer executes database query.
+5. Each stage creates child spans with attributes and timing.
 
-``` go
+```go
 package main
 
 import (
@@ -29,8 +33,8 @@ import (
     "os"
     "time"
 
-    "go.opentelemetry.io/otel/codes"
     "go.opentelemetry.io/otel"
+    "go.opentelemetry.io/otel/codes"
     "go.opentelemetry.io/otel/attribute"
     "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
     "go.opentelemetry.io/otel/propagation"
@@ -42,50 +46,35 @@ import (
     "google.golang.org/grpc/credentials/insecure"
 )
 
-// Initializes an OTLP exporter, and configures the corresponding trace and
-// metric providers.
+// initProvider initializes OTLP gRPC exporter and trace provider.
 func initProvider() func() {
     ctx := context.Background()
 
     res, err := resource.New(ctx,
         resource.WithAttributes(
-            // the service name used to display traces in backends
             semconv.ServiceNameKey.String("ServerName"),
-            // semconv.FaaSIDKey.String(""),
         ),
-        //resource.WithOS(), // and so on ...
     )
-
     handleErr(err, "failed to create resource")
-    var bsp sdktrace.SpanProcessor
 
-    // If the OpenTelemetry Collector is running on a local cluster (minikube or
-    // microk8s), it should be accessible through the NodePort service at the
-    // `localhost:30080` endpoint. Otherwise, replace `localhost` with the
-    // endpoint of your cluster. If you run the app inside k8s, then you can
-    // probably connect directly to the service through dns
-    conn, err := grpc.DialContext(ctx, "10.200.14.226:4317", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
+    // For demo purposes, use local collector at 127.0.0.1:4317.
+    conn, err := grpc.DialContext(ctx, "127.0.0.1:4317",
+        grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
     handleErr(err, "failed to create gRPC connection to collector")
-    // Set up a trace exporter
+
     traceExporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithGRPCConn(conn))
     handleErr(err, "failed to create trace exporter")
 
-    bsp = sdktrace.NewBatchSpanProcessor(traceExporter)
-
-    // Register the trace exporter with a TracerProvider, using a batch
-    // span processor to aggregate spans before export.
+    bsp := sdktrace.NewBatchSpanProcessor(traceExporter)
     tracerProvider := sdktrace.NewTracerProvider(
         sdktrace.WithSampler(sdktrace.AlwaysSample()),
         sdktrace.WithResource(res),
         sdktrace.WithSpanProcessor(bsp),
     )
     otel.SetTracerProvider(tracerProvider)
-
-    // set global propagator to tracecontext (the default is no-op).
     otel.SetTextMapPropagator(propagation.TraceContext{})
 
     return func() {
-        // Shutdown will flush any remaining spans and shut down the exporter.
         handleErr(tracerProvider.Shutdown(ctx), "failed to shutdown TracerProvider")
         time.Sleep(time.Second)
     }
@@ -93,51 +82,41 @@ func initProvider() func() {
 
 var tracer = otel.Tracer("tracer_user_login")
 
-// web handler process request data
+// user receives request and creates one span per business step.
 func user(w http.ResponseWriter, r *http.Request) {
-    // ... receving client request
-    log.Println("doing user")
-    // labels represent additional key-value descriptors that can be bound to a
-    // metric observer or recorder.
+    log.Println("receiving user request")
     commonLabels := []attribute.KeyValue{attribute.String("key1", "val1")}
-    // work begins
+
     ctx, span := tracer.Start(
         context.Background(),
         "span-Example",
-        trace.WithAttributes(commonLabels...))
+        trace.WithAttributes(commonLabels...),
+    )
     defer span.End()
+
     <-time.After(time.Millisecond * 50)
     service(ctx)
-
-    log.Printf("Doing really hard work")
-    <-time.After(time.Millisecond * 40)
 
     log.Printf("Done!")
     w.Write([]byte("ok"))
 }
 
-// service invoke service to handle biz.
 func service(ctx context.Context) {
-    log.Println("service")
     ctx1, iSpan := tracer.Start(ctx, "Sample-service")
-    <-time.After(time.Second / 2) // do something...
+    defer iSpan.End()
+
+    <-time.After(time.Second / 2)
     dao(ctx1)
-    iSpan.End()
 }
 
-// dao data access layer
 func dao(ctx context.Context) {
-    log.Println("dao")
     ctxD, iSpan := tracer.Start(ctx, "Sample-dao")
-    <-time.After(time.Second / 2)
+    defer iSpan.End()
 
-    // create a child span for query etc.
     _, sqlSpan := tracer.Start(ctxD, "do_sql")
-    sqlSpan.SetStatus(codes.Ok, "is ok") //
+    sqlSpan.SetStatus(codes.Ok, "query done")
     <-time.After(time.Second)
     sqlSpan.End()
-
-    iSpan.End()
 }
 
 func handleErr(err error, message string) {
@@ -149,7 +128,8 @@ func handleErr(err error, message string) {
 func main() {
     shutdown := initProvider()
     defer shutdown()
-    log.Println("connect ...")
+
+    log.Println("listening on :8080")
     http.HandleFunc("/user", user)
     go handleErr(http.ListenAndServe(":8080", nil), "open server")
     time.Sleep(time.Minute * 2)
@@ -157,9 +137,7 @@ func main() {
 }
 ```
 
----
-
 ## Reference {#more-readings}
 
-- Source sample [GitHub-OpenTelemetry-go](https://github.com/open-telemetry/opentelemetry-go/tree/main/example/otel-collector){:target="_blank"}
-- [Doc](https://opentelemetry.io/docs/instrumentation/go/getting-started/){:target="_blank"}
+- [OpenTelemetry Go sample](https://github.com/open-telemetry/opentelemetry-go/tree/main/example/otel-collector){:target="_blank"}
+- [OpenTelemetry Go getting started](https://opentelemetry.io/docs/instrumentation/go/getting-started/){:target="_blank"}

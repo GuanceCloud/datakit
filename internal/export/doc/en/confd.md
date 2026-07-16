@@ -104,7 +104,7 @@ When the configuration center data changes, DataKit can automatically change the
     ```
     
     See [host installation documentation](datakit-install.md#env-confd) for more information.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Collector Turned on by Default {#default-enabled-inputs}
 
@@ -148,7 +148,7 @@ file mode: the contents of the. conf file are the contents of the original conf 
 
 <!-- markdownlint-disable MD013 -->
 ## How the Configuration Center Updates the Configuration {#update-config}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 ### zookeeper {#update-zookeeper}
 
@@ -420,7 +420,7 @@ Update Pipeline supports etcd-v3 consul redis zookeeper, not file backend.
 
 <!-- markdownlint-disable MD013 -->
 ## Backend Data Source Software Version Description {#backend-version}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 In the process of development and testing, the back-end data source software uses the following version.
 

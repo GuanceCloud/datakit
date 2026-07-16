@@ -81,7 +81,7 @@ PHP-FPM 采集器用于 PHP-FPM 指标采集，如活动进程总数、空闲进
 
 {{ CodeBlock .InputENVSampleZh 4 }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 指标 {#metric}
 

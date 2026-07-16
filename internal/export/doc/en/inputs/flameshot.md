@@ -245,7 +245,7 @@ Flameshot invokes different underlying tools depending on the technology stack o
     ### Python Profiling {#python-profiling}
     
     *Planned*: Integration with non-intrusive tools like `py-spy`.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ---
 

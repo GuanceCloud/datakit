@@ -42,7 +42,7 @@ After the GitLab setup is complete, configure the DataKit. Note that the data co
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### GitLab Turns on Data Collection {#enable-prom}
 

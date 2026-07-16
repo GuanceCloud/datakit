@@ -278,19 +278,7 @@ func (ipt *Input) collect(ptTS int64) error {
 
 	ipt.collectCache = append(ipt.collectCache, point.NewPoint(hostObjMeasurementName, kvs, opts...))
 
-	needUpdateGlobalTags := false
-	if field := kvs.Get("region"); field != nil {
-		if s := field.GetS(); s != "" && s != ipt.cloudHostTags["region"] {
-			ipt.cloudHostTags["region"] = s
-			needUpdateGlobalTags = true
-		}
-	}
-	if field := kvs.Get("zone_id"); field != nil {
-		if s := field.GetS(); s != "" && s != ipt.cloudHostTags["zone_id"] {
-			ipt.cloudHostTags["zone_id"] = s
-			needUpdateGlobalTags = true
-		}
-	}
+	needUpdateGlobalTags := updateCloudHostTags(ipt.cloudHostTags, kvs)
 	if needUpdateGlobalTags {
 		if ipt.EnableCloudHostTagsGlobalHost {
 			httpapi.UpdateHostTags(ipt.cloudHostTags, "cloud_host_meta")
@@ -301,6 +289,19 @@ func (ipt *Input) collect(ptTS int64) error {
 	}
 
 	return nil
+}
+
+func updateCloudHostTags(cloudHostTags map[string]string, kvs point.KVs) bool {
+	updated := false
+	for _, key := range []string{"region", "zone_id"} {
+		if field := kvs.Get(key); field != nil {
+			if s := field.GetS(); s != "" && s != cloudHostTags[key] {
+				cloudHostTags[key] = s
+				updated = true
+			}
+		}
+	}
+	return updated
 }
 
 func (*Input) Singleton() {}

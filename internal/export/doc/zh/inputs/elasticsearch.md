@@ -148,7 +148,7 @@ PUT _plugins/_security/api/roles/monitor
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 指标 {#metric}
 
@@ -193,7 +193,7 @@ PUT _plugins/_security/api/roles/monitor
 ???+ info
 
     需将 DataKit 安装到 ElasticSearch 主机上才能采集到对应日志。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 如需采集 ElasticSearch 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 ElasticSearch 日志文件的绝对路径。比如：
 

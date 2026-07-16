@@ -21,7 +21,7 @@ Install [DataKit](https://www.<<<custom_key.brand_main_domain>>>){:target="_blan
 ???+ info
 
     DataKit is now compatible with dd-trace-py 1.14.x and below, higher versions are not tested.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ```shell
 pip3 install ddtrace

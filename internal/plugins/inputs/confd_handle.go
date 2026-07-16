@@ -169,16 +169,16 @@ func addInputs(confdInputs map[string][]*ConfdInfo, handles []handle, errs *[]er
 				continue
 			}
 
+			if inp, ok := newInput.Input.(ReadEnv); ok && datakit.Docker {
+				inp.ReadEnv(envs)
+			}
+
 			if inp, ok := newInput.Input.(HTTPInput); ok {
 				inp.RegHTTPHandler()
 			}
 
 			if inp, ok := newInput.Input.(PipelineInput); ok {
 				inp.RunPipeline()
-			}
-
-			if inp, ok := newInput.Input.(ReadEnv); ok && datakit.Docker {
-				inp.ReadEnv(envs)
 			}
 
 			AllInputsInfo[h.name] = append(AllInputsInfo[h.name], newInput)

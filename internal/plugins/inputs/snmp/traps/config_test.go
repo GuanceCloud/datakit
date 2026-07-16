@@ -31,6 +31,7 @@ func TestFullConfig(t *testing.T) {
 		CommunityStrings: []string{"public"},
 		StopTimeout:      12,
 		Namespace:        "foo",
+		Source:           "custom-traps",
 	}
 	err := checkDefaultConfig(config, "")
 	assert.NoError(t, err)
@@ -39,6 +40,7 @@ func TestFullConfig(t *testing.T) {
 	assert.Equal(t, []string{"public"}, config.CommunityStrings)
 	assert.Equal(t, "127.0.0.1", config.BindHost)
 	assert.Equal(t, "foo", config.Namespace)
+	assert.Equal(t, "custom-traps", config.Source)
 	assert.Equal(t, []UserV3{
 		{
 			Username:     "user",
@@ -76,6 +78,7 @@ func TestMinimalConfig(t *testing.T) {
 	assert.Equal(t, "0.0.0.0", config.BindHost)
 	assert.Equal(t, []UserV3{}, config.Users)
 	assert.Equal(t, "default", config.Namespace)
+	assert.Empty(t, config.Source)
 
 	params, err := BuildSNMPParams(config)
 	assert.NoError(t, err)

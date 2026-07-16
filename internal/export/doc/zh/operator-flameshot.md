@@ -111,7 +111,7 @@ Flameshot 配置示例：
 ???+ important
 
     **重要说明**：`processes` 字段是一个 JSON 字符串，该值会直接作为 `FLAMESHOT_PROCESSES` 环境变量注入到 Flameshot 容器中。`processes` 字段的格式和含义请参考 [Flameshot 相关文档](../integrations/flameshot.md)。如果 `processes` 为空，Flameshot 注入将被跳过。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 环境变量 {#envs}
 
@@ -156,7 +156,7 @@ Flameshot 配置示例：
 
     1. 如果 Pod 已存在任意一个 `prometheus.io/` 开头的 Annotation，DataKit-Operator 将不会注入上述 Prometheus Annotations，避免覆盖已有的指标采集配置
     1. 要使用此功能，需要在 DataKit 中开启 KubernetesPrometheus 采集器，并配置 `EnableDiscoveryOfPrometheusPodAnnotations = true` 启用 Pod Annotations 自动发现功能
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 用例 {#flameshot-example}
 
@@ -167,7 +167,7 @@ Flameshot 配置示例：
 
     - 仅添加 `admission.datakit/flameshot.enabled: "true"` Annotation 不足以触发注入，还需要在 DataKit-Operator 配置中设置匹配的 `flameshots` 规则（包括 `namespace_selectors`/`label_selectors` 和 `processes` 字段）
     - 如果 `processes` 字段为空，注入将被跳过。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 下面是一个 Deployment 示例，给 Deployment 创建的所有 Pod 注入 Flameshot（前提是 DataKit-Operator 配置中已设置匹配的规则）：
 
@@ -227,4 +227,4 @@ app datakit-flameshot
     $ kubectl exec -it app-deployment-7bd8dd85f-fzmt2 -c datakit-flameshot -- bash
     $ cat /var/log/flameshot.log
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->

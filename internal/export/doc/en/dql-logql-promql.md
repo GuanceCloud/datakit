@@ -100,7 +100,7 @@ T::my_service { duration > 1000 } [10m] BY operation
 
 <!-- markdownlint-disable MD013 -->
 ## Comparison of common query statement writing methods {#basic-query}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 ### General data query and filtering {#q-filter}
 
 ```not-set

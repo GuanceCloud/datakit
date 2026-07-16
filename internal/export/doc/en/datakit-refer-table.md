@@ -12,7 +12,7 @@ Through the Reference Table function, Pipeline supports importing external data 
 ???+ warning
 
     This feature consumes high memory, with reference to 1.5 million rows of disk occupying about 200MB (JSON file) of non-repetitive data (string type two columns; int, float, bool), the memory footprint is maintained at 950MB ~ 1.2 GB, and the peak memory at update is 2.2 GB ~ 2.7 GB.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Table Structure and Column Data Type {#table-struct}
 
@@ -45,7 +45,7 @@ Setting primary keys to tables is not supported yet, but you can query through a
 === "Kubernetes"
 
     [see here](../datakit/datakit-daemonset-deploy.md#env-reftab)
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 ---
 
 Supported data formats:

@@ -54,7 +54,7 @@ export OTEL_RESOURCE_ATTRIBUTES=deployment.environment=prod,service.version=1.0.
 ???+ warning
 
     DataKit OpenTelemetry 采集器的 HTTP Trace 默认路径为 `/otel/v1/traces`。如果 LoongSuite 或 OpenTelemetry SDK 使用默认 OTLP HTTP 路径 `/v1/traces`，需要在 LoongSuite 侧显式调整 endpoint。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 字段映射 {#fields}
 

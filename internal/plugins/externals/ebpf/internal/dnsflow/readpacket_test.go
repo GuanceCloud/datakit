@@ -4,6 +4,7 @@
 package dnsflow
 
 import (
+	"net"
 	"testing"
 	"time"
 
@@ -53,4 +54,31 @@ func TestReadPacketInfoFromDNSParser_QueryMeta(t *testing.T) {
 			require.Equal(t, uint16(53), info.Key.ServerPort)
 		})
 	}
+}
+
+func TestReadPacketInfoFromDNSParser_ClonesAnswers(t *testing.T) {
+	parser := NewDNSParse()
+	parser.layers = []gopacket.LayerType{layers.LayerTypeDNS}
+	parser.dns.Answers = []layers.DNSResourceRecord{
+		{
+			Name: []byte("mysql.default.svc.cluster.local"),
+			Type: layers.DNSTypeA,
+			IP:   net.IPv4(172, 16, 162, 15),
+		},
+	}
+
+	info, err := ReadPacketInfoFromDNSParser(time.Now(), &parser)
+	require.NoError(t, err)
+	require.Len(t, info.Answers, 1)
+
+	// The parser reuses both the answer slice and its DNS decode buffer for the
+	// next packet. Mutating them here simulates that reuse.
+	parser.dns.Answers[0].Type = layers.DNSTypeAAAA
+	copy(parser.dns.Answers[0].Name, ".local.cluster.local.ns.dns.clust")
+	copy(parser.dns.Answers[0].IP, net.IPv4(10, 0, 0, 1))
+
+	answer := info.Answers[0]
+	require.Equal(t, layers.DNSTypeA, answer.recordType)
+	require.Equal(t, "mysql.default.svc.cluster.local", answer.name)
+	require.Equal(t, "172.16.162.15", answer.ip)
 }

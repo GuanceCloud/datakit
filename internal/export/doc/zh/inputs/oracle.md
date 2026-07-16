@@ -147,7 +147,7 @@ GRANT SELECT ON DBA_USERS TO datakit;
         && mv /opt/oracle/instantclient_19_19 /opt/oracle/instantclient;
     ```
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
  部分系统需要安装额外的依赖库：
 
@@ -242,7 +242,7 @@ apt-get install -y libaio-dev libaio1
 
         该环境变量在读取密码时有最高优先级，即只要出现该环境变量，那密码就以该环境变量中的值为准。如果密码中有特殊字符，可以参见[这里](../datakit/datakit-input-conf.md#toml-raw-string)的做法来处理。
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Oracle RAC {#rac}
 
@@ -403,7 +403,7 @@ DataKit 可以将执行超过用户自定义时间的 SQL 语句报告给<<<cust
     - 没有执行完成的 SQL 语句不会被查询到
 
     更多字段解释可以查看[这里](https://docs.oracle.com/en/database/oracle/oracle-database/19/refrn/V-SQLAREA.html#GUID-09D5169F-EE9E-4297-8E01-8D191D87BDF7)。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 日志 {#logging}
 
@@ -466,4 +466,4 @@ externals/oracle: /lib64/libc.so.6: version  `GLIBC_2.14` not found (required by
 
 需要数据库运行起来之后，过 1 分钟才能看到。
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->

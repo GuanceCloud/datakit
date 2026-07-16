@@ -127,10 +127,10 @@ The following lists the load conditions of DataKit under high, medium, and low s
       ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/low-upload-bytes-irate.png){ width="800" }
       </figure>
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD053 -->
 [^1]: DataKit has enabled [Point Pool](datakit-conf.md#point-pool) and is using [V2 encoding](datakit-conf.md#dataway-settings) for uploads.
 [^2]: This value may differ slightly from the Pod traffic, as the Pod statistics represent the network traffic information at the Kubernetes level, which will be larger than the traffic shown here.
 [^3]: The low-load DataKit was tested on an additional Linux server, which only enabled basic collectors. Since there was no Pipeline involved, there is no corresponding data.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD053 -->

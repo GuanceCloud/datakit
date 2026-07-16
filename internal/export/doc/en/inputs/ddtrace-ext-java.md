@@ -1,365 +1,243 @@
 ---
-title     : 'DDTrace Extensions'
-summary   : 'Extensions on DDTrace'
+title     : 'DDTrace Java Extensions'
+summary   : 'Extended capabilities and safe configuration for the <<<custom_key.brand_name>>> DDTrace Java Agent'
 __int_icon: 'icon/ddtrace'
 tags      :
   - 'DDTRACE'
+  - 'JAVA'
   - 'APM'
   - 'TRACING'
 ---
 
 ## Introduction {#intro}
 
-Here we mainly introduce some extended functions of DDTrace-Java. List of main features:
+This page describes capabilities added by the <<<custom_key.brand_name>>> extended DDTrace Java Agent. It is built from upstream `dd-trace-java`, but it is not the same JAR: extension settings on this page work only with the <<<custom_key.brand_name>>> Agent. Complete the base receiver, DataKit address, and port setup in [DDTrace Java](ddtrace-java.md) first.
 
-- JDBC SQL obfuscation
-- xxl-jobs
-- Dubbo 2/3
-- Thrift
-- RocketMQ
-- log pattern
-- hsf
-- Support Alibaba Cloud RocketMQ 5.0
-- redis trace parameters
-- Get the input parameter information of a specific function
-- MongoDB obfuscation
-- Supported DM8 Database
-- Supported Apache Pulsar MQ
-- Support placing `trace_id` in the response header
-- Support putting the requested header information into the span tags
-- Support add HTTP `Response Body` information in the trace data
-- Support add HTTP `Request Body` information in the trace data
-- Use `-Ddd.http.error.enabled=true` to change the HTTP 4xx request link status to error
-- Support `Mybatis-plus:batch`
-- Support Redis tag:peer_ip
+Extension capabilities change with Agent versions. Pin the JAR version, validate it in pre-production, and use the [changelog](ddtrace-ext-changelog.md) to confirm the minimum supported version and known changes. A setting appearing in this document does not mean every historical JAR supports it.
 
-## Third party agent {#third-party}
+<!-- markdownlint-disable MD046 -->
+???+ warning "Assess data-exposure risk first"
+
+    Request/response bodies, HTTP headers, Redis arguments, JDBC arguments, and custom-method parameters can contain passwords, tokens, cookies, personal data, or business secrets. Keep them disabled by default. Enable only the minimum approved low-risk endpoints or fields, and validate redaction, access control, retention, and volume before release.
+<!-- markdownlint-enable MD046 -->
+
+## Feature Overview {#feature-overview}
+
+| Capability | Scope | Minimum extended version / note |
+| --- | --- | --- |
+| Java-WebSocket | Connection, message, and close tracing; message collection is off by default | `v1.55.10-ext` |
+| Dubbo | Dubbo 2 (`2.7+`) and Dubbo 3 | `v1.30.4-ext` |
+| RocketMQ | Apache RocketMQ `4.5+`; Alibaba Cloud RocketMQ 5.x uses a different artifact | Minimum-version note from `v1.55.11-ext` |
+| Thrift | `0.9.3+` | `v0.113.0` |
+| Redis arguments | Jedis `1.4+`, Lettuce, Redisson | `v1.3.2-ext` |
+| MongoDB argument obfuscation and DM8 | Common MongoDB scalar values; DM8 | `v1.12.1-ext` |
+| HTTP headers / request and response bodies | Servlet HTTP scenarios | Headers: `v1.25.2-ext`; body: `v1.55.6-ext` |
+| Package/method instrumentation | Custom business classes and methods | Package: `v1.47.6-ext`; file-based method rules: `v1.47.4-ext` |
+| 128-bit trace ID and W3C | `tracecontext` chaining with OpenTelemetry | `v1.14.0-ext` |
+| Log4j2 log pattern | Log correlation with trace/span IDs | `v1.3.0-ext` |
+
+For other extensions, including HSF, XXL-JOB, PowerJob, Pulsar, Kingbase, and MyBatis-Plus, use the version-specific [changelog](ddtrace-ext-changelog.md) and pre-production validation as the source of truth.
+
+## Third-Party Instrumentation {#third-party}
 
 ### Java-WebSocket {#java-websocket}
 
-- Added the `java-websocket` module for tracking WebSocket connections, message sending and receiving, and close events
-- Implement decorator classes for tracking operations in WebSocket clients and servers
-- Add distributed tracing support for handshakes, message transmission, and connection state changes
-- Integrate the `TraceDraft_6455` class to support tracing the WebSocket protocol draft
-- Create a WebsocketAgentSpanContext to manage the tracing context of WebSocket connections
-- Implement tag-based recording of WebSocket message types and sizes
-- Add WebSocket error handling and exception tracking mechanism
-- WebSocket link tracing is disabled by default. To enable it, use the parameter **-Ddd.trace.websocket.messages.enabled=true**
+The extended Agent can trace WebSocket handshakes, message send/receive, and connection closure. Message volume and contents can be large, so message tracing is disabled by default. Enable it only after assessing throughput and privacy impact:
 
-supported version:
+```shell
+-Ddd.trace.websocket.messages.enabled=true
+```
 
-- [x] all
-
-DDTrace supported version: [:octicons-tag-24:  v1.55.10-ext](ddtrace-ext-changelog.md#cl-1.55.10-ext)
-
+Use sampling and capacity protection for high-frequency connections.
 
 ### Dubbo {#dubbo}
 
-Dubbo is an open source framework of Alibaba Cloud, which currently supports Dubbo2 and Dubbo3.
-
-supported version: Dubbo2: 2.7.0 and above, Dubbo3 has no version restrictions.
-
-DDTrace supported version: [:octicons-tag-24:  v1.30.4](ddtrace-ext-changelog.md#cl-1.30.4-ext)
+The extension supports context propagation and RPC spans for Dubbo 2 and Dubbo 3. The call path still needs compatible propagation on consumers and providers. If topology is disconnected, first check Agent versions, Dubbo versions, and [Multi-Tracing Propagation](tracing-propagator.md).
 
 ### RocketMQ {#rocketmq}
 
-RocketMQ is an open source message queuing framework contributed by Alibaba Cloud to the Apache Foundation. Note: Alibaba Cloud RocketMQ 5.0 and the Apache Foundation are two different libraries.
-
-There is a difference when referencing the library, the apache RocketMQ artifactId: `rocketmq-client`, and the artifactId of Alibaba Cloud RocketMQ 5.0: `rocketmq-client-java`
-
-supported version: Currently supports version 4.8.0 and above. Alibaba Cloud RocketMQ service supports version 5.0 and above.
-
-DDTrace supported version: [:octicons-tag-24:  v1.4.1](ddtrace-ext-changelog.md#cl-1.4.1-ext)
+Apache RocketMQ and Alibaba Cloud RocketMQ 5.x use different client artifacts, so name alone is not enough to determine compatibility. Record client coordinates and version, then compare them with the extension changelog. Under load, validate that async-consumer spans finish, context propagates, and retries do not create unexpected duplicate spans.
 
 ### Thrift {#thrift}
 
-Thrift is an apache project. Some customers use thrift RPC for communication in the project, and we support it.
+The extension supports Thrift `0.9.3+`. For connection reuse, asynchronous clients, or multiplexed protocols, validate parent/child relationships end to end rather than checking only for a local span.
 
-supported version: 0.9.3 and above.
+### HSF {#hsf}
 
-DDTrace supported version: [:octicons-tag-24:  v0.113.0](ddtrace-ext-changelog.md#cl-0.113.0)
+[HSF](https://help.aliyun.com/document_detail/100087.html){:target="_blank"} is an Alibaba RPC framework. The extension documents support for `2.2.8.2--2019-06-stable`; validate other versions before production use.
 
-### Redis Command Args {#redis-command-args}
+### Other Job and Messaging Frameworks {#xxl-jobs}
 
-The Resource in the redis link will only display redis.command information, and will not display parameter information.
+Support for these frameworks evolves with the extension. Verify the runtime dependency version and extension-JAR version, then test a successful task, a failed task, and a retry path. A successfully loaded Agent does not by itself prove that a framework is instrumented.
 
-Enable this function: start the command to add the environment variable `-Ddd.redis.command.args`, and a tag will be added in the details of the <<<custom_key.brand_name>>> trace message: `redis.command.args=key val`.
+## Safety Before Collecting Additional Data {#data-safety}
 
+### Redis Command Arguments {#redis-command-args}
+
+Redis span resources normally show only the command name. The following setting writes command arguments into the `redis.command.args` tag:
 
 ```shell
 -Ddd.redis.command.args=true
+# or
+export DD_REDIS_COMMAND_ARGS=true
 ```
 
-k8s:
+Arguments often contain sessions, cached payloads, or business keys. Enable this only when needed, and make sure DataKit access control, redaction, and retention policies cover the resulting data.
 
-```shell
-export DD_REDIS_COMMAND_ARGS=TRUE
-```
+### JDBC Parameter Collection {#jdbc-sql-obfuscation}
 
-
-Supported version:
-
-- [x] `Jedis1.4.0` and above
-- [x] Lettuce
-- [x] Redisson
-
-DDTrace supported version: [:octicons-tag-24:  v1.17.3](ddtrace-ext-changelog.md#cl-1.17.3-ext)
-
-### log pattern {#log-pattern}
-
-By modifying the default log pattern, application logs and links are correlated, thereby reducing deployment costs. The logging framework `log4j2` is currently supported, but `logback` is not currently supported.
-
-```shell
-#command
--Ddd.logs.pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %X{dd.service} %X{dd.trace_id} %X{dd.span_id} - %msg%n"
-
-#or env
-DD_LOGS_PATTERN="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %X{dd.service} %X{dd.trace_id} %X{dd.span_id} - %msg%n"
-```
-
-supported version： log4j2
-
-### SQL obfuscation {#jdbc-sql-obfuscation}
-
-By default, DDTrace converts parameters in SQL to `?`, which prevents users from obtaining more accurate information when troubleshooting. The new probe will extract the parameters into the Trace data separately in Key-Value mode, which is convenient for users to view.
-
-In the Java startup command, add the following command line parameters to enable this function:
+Although the setting is named `dd.jdbc.sql.obfuscation`, the extension stores `PreparedStatement` placeholder values as `sql.params.index_N` tags to help SQL troubleshooting. It is **not a general-purpose data-redaction mechanism**: parameters can be plaintext sensitive values.
 
 ```shell
 -Ddd.jdbc.sql.obfuscation=true
-
-#or env:
+# or
 export DD_JDBC_SQL_OBFUSCATION=true
 ```
 
-Display of results:
+The original SQL remains parameterized in `db.sql.origin`, while values are stored separately to avoid unreliable string replacement. Use this only for short, approved troubleshooting windows, then disable it and review access to data already collected.
 
-Take setString() as an example. The location of the new probe is at `java.sql.PreparedStatement/setString(key, value)`。
+### MongoDB Argument Obfuscation {#mongo-obfuscation}
 
-There are two parameters here, the first one is the subscript of the placeholder parameter (starting from 1), the second one is the string type, after calling the `setString(index, value)` method, the corresponding string value will be stored into the span.
-
-After the SQL is executed, this map will be filled into the Span. The final data structure format is as follows:
-
-```json hl_lines="17 26 27 28 29 30 31 32"
-"meta": {
-  "component":
-  "java-jdbc-prepared_statement",
-
-  "db.instance":"tmalldemodb",
-  "db.operation":"INSERT",
-
-  "db.sql.origin":"INSERT product
-    (product_id,
-     product_name,
-     product_title,
-     product_price,
-     product_sale_price,
-     product_create_date,
-     product_isEnabled,
-     product_category_id)
-    VALUES(null, ?, ?, ?, ?, ?, ?, ?)",
-
-  "db.type":"mysql",
-  "db.user":"root",
-  "env":"test",
-  "peer.hostname":"49.232.153.84",
-  "span.kind":"client",
-  "thread.name": "http-nio-8080-exec-6",
-
-  "sql.params.index_1":"图书",
-  "sql.params.index_2":"十万个为什么",
-  "sql.params.index_3":"100.0",
-  "sql.params.index_4":"99.0",
-  "sql.params.index_5":"2022-11-10 14:08:21",
-  "sql.params.index_6":"0",
-  "sql.params.index_7":"16"
-}
-```
-<!-- markdownlint-disable MD046 -->
-???+ question "Why is it not filled into the span？"
-
-    The meta information here is actually for the relevant developers to check the specific content of the SQL statement. 
-    After getting the specific details of the placeholder parameters, by replacing the `?` in `db.sql.origin`, the placeholder parameters can actually be The value is filled in, 
-    but the correct replacement cannot be accurately found through string replacement (rather than SQL precise parsing) (may lead to wrong replacement), so **try to keep the original SQL** here, and the details of placeholder parameters are listed separately Listed, here `index_1` means the first placeholder parameter, and so on.
-<!-- markdownlint-enable -->
-
-supported version： Version 2.3 and above are currently supported.
-
-DDTrace supported version：[:octicons-tag-24: v0.113.0](ddtrace-ext-changelog.md#ccl-0.113.0-new)
-
-### supported DM8 Database {#dameng-db}
-
-Add DM8 Database trace information.
-
-supported version：
-
-- [x] v8
-
-
-### supported MongoDB obfuscation {#mongo-obfuscation}
-
-Use startup parameter `-DDd.mongo.obfuscation=true` or environment variable `DD_MONGO_OBFUSION` Turn on desensitization. This way, a specific command can be seen from the <<<custom_key.brand_name>>>.
-
-Currently, the types that can achieve desensitization include Int32, Int64, Boolean, Double, and String. The remaining ones have no reference significance, so they are currently not supported.
-
-supported version：
-
-- [x] all
-
-DDTrace supported version: [:octicons-tag-24:  v1.12.1](ddtrace-ext-changelog.md#cl-1.12.1-ext)
-
-
-## HTTP {#http}
-
-### Attach trace method {#trace-method}
-
-Enhance method tracing operations by specifying the `-Ddd.trace.method.file` parameter to extend the `dd.trace.methods` configuration.
-
-This allows maintaining the classes and methods requiring instrumentation in a file, as shown below:
+Enable the MongoDB-related extension with:
 
 ```shell
-#command line:
--Ddd.trace.method.file="/home/root/agent/methods.txt"
-
-#or env
-DD_TRACE_METHOD_FILE="/home/root/agent/methods.txt"
+-Ddd.mongo.obfuscation=true
+# or
+export DD_MONGO_OBFUSCATION=true
 ```
 
-The content format of `methods.txt` should follow this example:
+The feature is intended to reduce command-argument exposure, but it does not replace application data classification and verification. Supported MongoDB value types and presentation can vary by version; validate with representative, already-sanitized data before release.
 
-```text
-com.zy.observable.server.controller.ProfilingController[*]
-com.zy.observable.server.bean.AjaxResult[*]
-com.zy.observable.server.controller.ServerController[auth]
-com.zy.observable.server.service.TestService[*]
-```
+### DM8 Database {#dameng-db}
 
-Each line adheres to the format described in the Datadog documentation for [dd.trace.methods](https://docs.datadoghq.com/tracing/trace_collection/library_config/java/){:target="_blank"}
+The extended Agent supports DM8 tracing. Verify driver version, connection mode, and expected `db.system`, instance, and error fields in a database span.
 
-Note: Using `-Ddd.trace.method.file` eliminates the need to configure `dd.trace.methods` separately.
+## HTTP Data Collection {#http}
 
-DDTrace supported version:  [:octicons-tag-24: v1.47.4](ddtrace-ext-changelog.md#cl-1.47.4-ext)
+### HTTP Status Classification {#http-error}
 
-### HTTP Response,Request Body in the trace {#response_body}
-
-The command line opening parameter is `-Ddd.trace.response.body.enabled=true`, the corresponding environment variable is `DD_TRACE_RESPONSE_BODY_ENABLED=true`, and the default value is `false`.
-
-The command line opening parameter is `-Ddd.trace.request.body.enabled=true`, the corresponding environment variable is `DD_TRACE_REQUEST_BODY_ENABLED=true`, and the default value is `false`.
-
-Since getting `response body` causes damage to `response`, the encoding adjustment of `response body` defaults to `utf-8`. If you need to adjust it, use `-Ddd.trace.response.body.encoding=gbk`.
-
-Obtaining the response body requires reading the response stream, which will occupy a certain amount of Java memory space. It is recommended to add blacklist processing to requests with large response bodies (such as file download interfaces) to prevent OOM. The URLs on the blacklist will not be Then parse the response body content.
-The blacklist configuration is as follows:
+The extended Agent can mark HTTP 4xx requests as errors with:
 
 ```shell
-# Command
--Ddd.trace.response.body.blacklist.urls="/auth,/download/file"
-
-# ENV:
-export DD_TRACE_RESPONSE_BODY_BLACKLIST_URLS="/auth,/download/file"
+-Ddd.http.error.enabled=true
 ```
 
-**whitelist**config:
+Decide the business semantics first. Marking expected 401, 404, or validation failures as errors can distort error rates and alerts. Compare error data before and after enabling it in a test environment.
+
+### Request and Response Bodies {#response_body}
+
+These settings are disabled by default:
 
 ```shell
-# command line:
--Ddd.trace.response.body.whitelist.urls="/auth,/download/file"
+-Ddd.trace.request.body.enabled=true
+-Ddd.trace.response.body.enabled=true
 
-# ENV
-export DD_TRACE_RESPONSE_BODY_WHITELIST_URLS="/user/*,/system"
+# Environment-variable equivalents
+export DD_TRACE_REQUEST_BODY_ENABLED=true
+export DD_TRACE_RESPONSE_BODY_ENABLED=true
 ```
 
-DDTrace supported version: [:octicons-tag-24:  v1.55.6-ext](ddtrace-ext-changelog.md#cl-1.55.6-ext)
+Reading response streams consumes memory and can affect large, streaming, or download responses. Use it only for small, low-risk APIs and restrict paths with a list:
 
-### Tracing Header {#trace_header}
+```shell
+# Blacklist: never collect response bodies on these paths
+-Ddd.trace.response.body.blacklist.urls="/download,/export"
 
-The link information will put the header information of the request and response into the tag.The default state is off. If it needs to be turned on, add the parameter `-Ddd.trace.headers.enabled=true`  during startup.
+# Whitelist: collect response bodies only on these paths
+-Ddd.trace.response.body.whitelist.urls="/health/detail,/api/debug/*"
+```
 
-DDTrace supported version: [:octicons-tag-24: v1.25.2](ddtrace-ext-changelog.md#cl-1.25.2-ext)
+The environment variables are `DD_TRACE_RESPONSE_BODY_BLACKLIST_URLS` and `DD_TRACE_RESPONSE_BODY_WHITELIST_URLS`. Do not rely on both lists in one environment to express policy; choose one auditable rule set and validate actual matching. Response bodies use UTF-8 by default; adjust with `dd.trace.response.body.encoding` only when required.
 
-### Get the parameter of function {#dd_trace_methods}
+### HTTP Headers {#trace_header}
 
+```shell
+-Ddd.trace.headers.enabled=true
+# or
+export DD_TRACE_HEADERS_ENABLED=true
+```
 
-**Specific function** mainly refers to the function specified by the business to obtain the corresponding input parameters.
+When enabled, request and response headers are written to span tags such as `servlet_request_header` and `servlet_response_header`. Do not collect `Authorization`, `Cookie`, `Set-Cookie`, or tenant/user headers unless they are removed, redacted, or limited upstream.
 
-**Specific functions** need to be defined and declared through specific parameters. Currently, ddtrace provides two ways to trace specific functions:
-
-1. Marked by startup parameters: `-Ddd.trace.methods` ，reference documents： [Class or method injection Trace](https://docs.<<<custom_key.brand_main_domain>>>/integrations/apm/ddtrace/ddtrace-skill-param/#5-trace){:target="_blank"}
-
-2. By introducing the SDK, use @Trace to mark, refer to the document [function level burying point](https://docs.<<<custom_key.brand_main_domain>>>/integrations/apm/ddtrace/ddtrace-skill-api/#2){:target="_blank"}
-
-After the declaration is made in the above way, the corresponding method will be marked as trace, and the corresponding Span information will be generated at the same time, including the input parameter information of the function (input parameter name, type, value).
-
-<!-- markdownlint-disable MD046 -->
-???+ info
-
-    Since the data type cannot be converted and JSON serialization requires additional dependencies and overhead, so far only `toString()` processing is done for the parameter value, and secondary processing is done for the result of `toString()`, the length of the field value It cannot exceed <font color="red">1024 characters</font>, and the excess part is discarded.
-
-<!-- markdownlint-enable -->
-
-DDTrace supported version： [:octicons-tag-24: v1.12.1](ddtrace-ext-changelog.md#cl-1.12.1-ext)
-
-## Others {#other}
-
+## Custom Business Instrumentation {#other}
 
 ### Package Instrumentation {#package}
 
-It is possible to enhance all class methods under the custom business package name. Some of the methods added are meaningless, so they are not open, as follows:
-
-- `isEquals()`
-- `isToString()`
-- `isFinalizer()`
-- `isGetter()`
-- `isSetter()`
-- `isSynthetic()`
-
-Add parameter settings as follows:
+Instrument selected business packages with:
 
 ```shell
-# Use commas to separate package names.
--Ddd.trace.method.packages=com.zy,javax.servlet,com.example.package
-
-# or use ENV.
-export DD_TRACE_METHOD_PACKAGES=com.zy,javax.servlet,com.example.package
+-Ddd.trace.method.packages=com.example.api,com.example.service
+# or
+export DD_TRACE_METHOD_PACKAGES=com.example.api,com.example.service
 ```
 
-Note:
+Package instrumentation can greatly increase span volume. Start with a small number of business packages, avoid framework packages and high-frequency getters/setters, and recheck performance and span naming after upgrades.
 
-1. It also supports obtaining the input parameters of the corresponding method. If it is a basic object type, the input parameter information can be directly viewed;
-2. The resource method currently supports up to 5 input parameters;
-3. String type field values support a maximum of 1024 characters;
+### File-Based Method Rules {#trace-method}
 
-## supported trace-128-id {#trace_128_bit_id}
-
-[:octicons-tag-24: DataKit-1.8.0](../datakit/changelog.md#cl-1.8.0)
-[:octicons-tag-24: DDTrace-1.4.0](ddtrace-ext-changelog.md#cl-1.14.0-ext)
-
-The default trace-id of the DDTrace agent is 64 bit, and the DataKit also supports 64 bit trace-id in the received link data.
-Starting from `v1.11.0`, it supports the `W3C protocol` and supports receiving 128 bit trace-id. However, the trace id sent to the link is still 64 bit.
-
-To this end, secondary development was carried out on the <<<custom_key.brand_name>>>, which incorporated `trace_128_bit_id` is placed in the link data and sent to the DataKit, the DDTrace and OTEL links can be concatenated.
-
-how to config:
+Keep method rules in a file instead of a long startup option:
 
 ```shell
-# open trace.128.bit, and use W3C propagation.
--Ddd.trace.128.bit.traceid.generation.enabled=true -Ddd.trace.propagation.style=tracecontext
+-Ddd.trace.method.file=/opt/ddtrace/methods.txt
+# or
+export DD_TRACE_METHOD_FILE=/opt/ddtrace/methods.txt
+```
 
-#or env
+Each `methods.txt` line is one rule, for example:
+
+```text
+com.example.api.OrderController[*]
+com.example.service.PaymentService[charge]
+```
+
+The rule syntax follows upstream [`dd.trace.methods` configuration](https://docs.datadoghq.com/tracing/trace_collection/library_config/java/){:target="_blank"}. Version the file with the application image or Pod volume and confirm in startup logs that it was loaded.
+
+### Parameters of Specific Methods {#dd_trace_methods}
+
+<!-- markdownlint-disable MD033 -->
+<span id="dd-trace-methods"></span>
+<!-- markdownlint-enable MD033 -->
+
+Use `dd.trace.methods` or `@Trace` to create spans for selected methods. The extended Agent can record parameter names, types, and values. Current limits include no more than five method parameters, string values capped at 1024 characters, and object representation based on `toString()`. `toString()` is not safe serialization and can expose data or be expensive, so enable it only for reviewed methods.
+
+## Propagation and Logs {#propagation-and-logs}
+
+### 128-Bit Trace ID {#trace_128_bit_id}
+
+When chaining with OpenTelemetry through W3C `tracecontext`, enable 128-bit ID generation and W3C propagation in the extended Agent:
+
+```shell
+-Ddd.trace.128.bit.traceid.generation.enabled=true \
+  -Ddd.trace.propagation.style=tracecontext
+
+# or
 export DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED=true
 export DD_TRACE_PROPAGATION_STYLE=tracecontext
 ```
 
-At present, only DDTrace and OTEL are connected in series, and there is currently no testing with other APM manufacturers.
+Also enable `compatible_otel=true` in the DataKit `ddtrace` collector and keep its default `trace_128_bit_id=true`; see the [DDTrace receiver guide](ddtrace.md#trace_propagator). Verify the full 32-character Trace ID and parent/child relationships with a cross-service request.
 
+### Log4j2 Pattern {#log-pattern}
 
-## ddtrace agent default port {#agent_port}
+The extension can customize the Log4j2 pattern so logs include service, trace ID, and span ID:
 
-ddtrace changes the default remote port 8126 to 9529.
+```shell
+-Ddd.logs.pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %X{dd.service} %X{dd.trace_id} %X{dd.span_id} - %msg%n"
+```
 
+The environment-variable equivalent is `DD_LOGS_PATTERN`. This extension currently declares Log4j2 support only. The log collector must preserve these MDC fields for trace/log correlation.
 
-## batch injection DDTrace-Java Agent {#java-attach}
+## Default Port and Bulk Injection {#agent_port}
 
-The native DDTrace-Java batch injection method has certain flaws, and does not support dynamic parameter injection (such as `-Ddd.agent=xxx, -Ddd.agent.port=yyy`, etc.).
+The common upstream Java Agent default trace port is `8126`, while some <<<custom_key.brand_name>>> extended versions have used `9529`. To avoid version-dependent routing, always set `DD_TRACE_AGENT_PORT=9529` or `-Ddd.trace.agent.port=9529` explicitly.
 
-The extended DDTrace-Java adds dynamic parameter injection. For specific usage, see [here](ddtrace-attach.md)
+### Kubernetes Bulk Injection {#java-attach}
+
+Use the [DataKit Operator](../operator-ddtrace.md) for Kubernetes bulk injection. It injects at Pod creation through a webhook; after configuration changes, recreate Pods and verify initContainer, volume mounts, startup options, and environment variables using the Operator guide. There is no separately maintained attach guide, so do not rely on stale links or manual Agent copies that are not managed by the Operator.
+
+## Verify an Extension {#verify}
+
+1. Pin the extended JAR version and confirm the feature's minimum version in the [changelog](ddtrace-ext-changelog.md).
+1. Temporarily enable `DD_TRACE_STARTUP_LOGS=true` and confirm that the Agent loaded without compatibility warnings.
+1. Enable one extension at a time, send a minimal test request, and check the expected span/tag before enabling another feature.
+1. For any content or parameter collection, review the resulting data for sensitive values, acceptable span volume, and correct path-list matching.

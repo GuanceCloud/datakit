@@ -12,7 +12,25 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestFileWatcherUsesUnifiedDiff(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "datakit.conf")
+	require.NoError(t, os.WriteFile(path, []byte("old\n"), 0o600))
+
+	watcher, err := newFileWatcher(path, withMaxDiffSize(1024))
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(path, []byte("new value\n"), 0o600))
+
+	events, err := watcher.checkChanges()
+	require.NoError(t, err)
+	require.Len(t, events, 1)
+	assert.Contains(t, events[0].diff, "--- a/")
+	assert.Contains(t, events[0].diff, "+++ b/")
+	assert.Contains(t, events[0].diff, "@@ -1 +1 @@")
+	assert.Contains(t, events[0].diff, "-old\n+new value\n")
+}
 
 func TestNewFileWatcher(t *testing.T) {
 	t.Run("testfile", func(t *testing.T) {

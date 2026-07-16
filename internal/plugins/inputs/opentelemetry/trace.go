@@ -100,6 +100,9 @@ func (ipt *Input) traceBaseService(attrs map[string]string) string {
 	if !ipt.SplitServiceName {
 		return ""
 	}
+	if attrs["rpc.system"] == "grpc" || attrs["rpc.system.name"] == "grpc" {
+		return ""
+	}
 	for _, key := range []string{
 		"db.system",
 		"db.system.name",

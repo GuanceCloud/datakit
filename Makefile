@@ -185,7 +185,7 @@ define publish
 endef
 
 define buildx_cache_args
-$(if $(DOCKER_BUILDX_CACHE_REPO),--cache-from type=registry$(comma)ref=$(DOCKER_BUILDX_CACHE_REPO)/$(1):buildcache --cache-to type=registry$(comma)ref=$(DOCKER_BUILDX_CACHE_REPO)/$(1):buildcache$(comma)mode=max)
+$(if $(DOCKER_BUILDX_CACHE_REPO),--cache-from type=registry$(comma)ref=$(DOCKER_BUILDX_CACHE_REPO)/$(1):buildcache --cache-to type=registry$(comma)ref=$(DOCKER_BUILDX_CACHE_REPO)/$(1):buildcache$(comma)mode=max$(comma)ignore-error=true)
 endef
 
 define build_docker_image

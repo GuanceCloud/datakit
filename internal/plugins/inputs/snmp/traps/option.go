@@ -35,6 +35,7 @@ type TrapsServerOpt struct {
 	InputTags             map[string]string
 	Feeder                dkio.Feeder
 	Tagger                datakit.GlobalTagger
+	Source                string
 	authoritativeEngineID string
 }
 

@@ -14,7 +14,7 @@ monitor   :
 
 <!-- markdownlint-disable MD025 -->
 # vSphere
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD025 -->
 
 ---
 
@@ -48,7 +48,7 @@ In the vCenter management interface, create a user `datakit` and assign `read-on
 === "Kubernetes"
 
     The collector can now be turned on by [configMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Metric {#metric}
 
@@ -66,7 +66,7 @@ For all of the following data collections, a global tag named `host` is appended
 
     - Not all of the metrics listed below are collected; for specifics, refer to the explanations in the [Data Collection Levels](https://techdocs.broadcom.com/us/en/vmware-cis/vsphere/vsphere/9-0/vsphere-monitoring-and-performance/monitoring-inventory-objects/data-collection-levels.html){:target="_blank"}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 {{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "metric"}}
@@ -95,7 +95,7 @@ For all of the following data collections, a global tag named `host` is appended
 
 {{ end }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD024 -->
 ## Logs {#logging}
 
 {{ range $i, $m := .Measurements }}

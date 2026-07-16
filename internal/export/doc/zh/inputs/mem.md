@@ -43,7 +43,7 @@ Memory 采集器用于收集系统内存信息，一些通用的指标如主机�
 
 {{ CodeBlock .InputENVSampleZh 4 }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 指标 {#metric}
 

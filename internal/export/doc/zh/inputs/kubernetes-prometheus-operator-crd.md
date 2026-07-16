@@ -23,7 +23,7 @@ Prometheus 有一套完善的 Kubernetes 应用指标采集方案，流程简述
 ???+ note
 
     Prometheus-Operator [官方链接](https://github.com/prometheus-operator/prometheus-operator){:target="_blank"} 和 [应用示例](https://alexandrev.medium.com/prometheus-concepts-servicemonitor-and-podmonitor-8110ce904908){:target="_blank"}。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 在此处，DataKit 扮演了第 3 步的角色。DataKit 会监听和发现 Prometheus-Operator CRD，根据配置开启指标采集，并最终上传到<<<custom_key.brand_name>>>。创建、更新或删除 PodMonitor/ServiceMonitor 时，对应采集任务会动态增加、重建或停止，不需要重启 DataKit。
 
@@ -104,7 +104,7 @@ $ cd nacos-k8s
 $ chmod +x quick-startup.sh
 $ ./quick-startup.sh
 ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD014 -->
 
 *nacos/nacos-quick-start.yaml* 容器端口配置：
 
@@ -148,7 +148,7 @@ prometheuses.monitoring.coreos.com          2022-08-11T03:15:57Z
 servicemonitors.monitoring.coreos.com       2022-08-11T03:15:57Z
 thanosrulers.monitoring.coreos.com          2022-08-11T03:15:57Z
 ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD014 -->
 
 - 创建 PodMonitor
 
@@ -175,7 +175,7 @@ spec:
 
 $ kubectl apply -f pod-monitor.yaml
 ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD014 -->
 
 几个重要的配置项要和 Nacos 一致：
 

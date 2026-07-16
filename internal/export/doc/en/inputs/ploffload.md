@@ -43,7 +43,7 @@ The collector will register the route on the http service enabled by DataKit: `/
     | `ENV_INPUT_PLOFFLOAD_STORAGE_PATH`     | `storage.path`                             | `./ploffload_storage` |
     | `ENV_INPUT_PLOFFLOAD_STORAGE_CAPACITY` | `storage.capacity`                         | `5120`                |
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Usage {#usage}
 

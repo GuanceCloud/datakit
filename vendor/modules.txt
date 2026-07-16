@@ -29,7 +29,7 @@ github.com/DataDog/sketches-go/ddsketch/mapping
 github.com/DataDog/sketches-go/ddsketch/pb/sketchpb
 github.com/DataDog/sketches-go/ddsketch/stat
 github.com/DataDog/sketches-go/ddsketch/store
-# github.com/GuanceCloud/cliutils v1.1.22-0.20260617063530-d4c5e91791c9
+# github.com/GuanceCloud/cliutils v1.1.22-0.20260716095158-f4ce33b549e6
 ## explicit; go 1.25
 github.com/GuanceCloud/cliutils
 github.com/GuanceCloud/cliutils/aggregate
@@ -67,6 +67,7 @@ github.com/GuanceCloud/cliutils/pprofparser/tools/mathtoolkit
 github.com/GuanceCloud/cliutils/pprofparser/tools/parsetoolkit
 github.com/GuanceCloud/cliutils/system/rtpanic
 github.com/GuanceCloud/cliutils/tracer
+github.com/GuanceCloud/cliutils/traceroute
 # github.com/GuanceCloud/confd v0.1.101
 ## explicit; go 1.18
 github.com/GuanceCloud/confd/backends

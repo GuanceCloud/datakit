@@ -24,6 +24,12 @@ var (
 	taskExecTimeIntervalSummary *prometheus.SummaryVec
 	taskMaxICMPConcurrency      prometheus.Gauge
 	taskICMPConcurrency         prometheus.GaugeFunc
+	oneShotBatchCounter         *prometheus.CounterVec
+	oneShotBatchCostSummary     *prometheus.SummaryVec
+	oneShotTaskCounter          *prometheus.CounterVec
+	oneShotBatchQueueCounter    *prometheus.CounterVec
+	oneShotBatchQueueGauge      prometheus.Gauge
+	oneShotBatchRunningGauge    prometheus.Gauge
 
 	workerJobChanGauge         *prometheus.GaugeVec
 	workerJobGauge             prometheus.Gauge
@@ -142,6 +148,65 @@ func metricsSetup() {
 		},
 	)
 
+	oneShotBatchCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "dialtesting",
+			Name:      "one_shot_batch_total",
+			Help:      "The number of one-shot dialtesting execution chunks",
+		},
+		[]string{"region", "status"},
+	)
+
+	oneShotBatchCostSummary = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace:  "datakit",
+			Subsystem:  "dialtesting",
+			Name:       "one_shot_batch_cost_seconds",
+			Help:       "Time cost to run one-shot dialtesting execution chunks",
+			Objectives: datakit.P8sStandardObjectives,
+		},
+		[]string{"region", "status"},
+	)
+
+	oneShotTaskCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "dialtesting",
+			Name:      "one_shot_task_total",
+			Help:      "The number of one-shot dialtesting tasks",
+		},
+		[]string{"region", "protocol", "status"},
+	)
+
+	oneShotBatchQueueCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "dialtesting",
+			Name:      "one_shot_batch_queue_total",
+			Help:      "The number of one-shot dialtesting execution chunk queue events",
+		},
+		[]string{"status"},
+	)
+
+	oneShotBatchQueueGauge = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "dialtesting",
+			Name:      "one_shot_batch_queue_number",
+			Help:      "The number of queued one-shot dialtesting execution chunks",
+		},
+	)
+
+	oneShotBatchRunningGauge = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "dialtesting",
+			Name:      "one_shot_batch_running_number",
+			Help:      "The number of running one-shot dialtesting execution chunks",
+		},
+	)
+
 	workerJobChanGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "datakit",
@@ -216,6 +281,12 @@ func init() {
 		taskRunCostSummary,
 		taskExecTimeIntervalSummary,
 		taskInvalidCounter,
+		oneShotBatchCounter,
+		oneShotBatchCostSummary,
+		oneShotTaskCounter,
+		oneShotBatchQueueCounter,
+		oneShotBatchQueueGauge,
+		oneShotBatchRunningGauge,
 		workerCachePointsGauge,
 		workerCacheDropPointsGauge,
 		workerJobChanGauge,

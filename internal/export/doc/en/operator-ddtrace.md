@@ -1,5 +1,13 @@
 # Injecting DDTrace via DataKit Operator
 
+At **Pod creation time**, DataKit Operator mutates the Pod template through an admission webhook. It adds a `datakit-lib-init` initContainer, copies language libraries to the shared `/datadog-lib` volume, then injects that volume and required startup environment into application containers. It does not modify running Pods. After changing an Operator ConfigMap, image version, or Deployment annotation, create new Pods through a rollout/restart for the change to take effect.
+
+Establish these facts before enabling injection:
+
+1. Selectors decide which workloads are injected. Empty selectors can broaden impact, so pilot in a dedicated namespace first.
+1. The library version in `image` must match the **language runtime in the application container**, not the initContainer runtime.
+1. Library injection does not guarantee that an application starts or emits traces. Verify the application's startup settings, environment, and actual trace requests.
+
 ## Usage Instructions {#datakit-operator-inject-lib-usage}
 
 1. [Download and install DataKit-Operator](datakit-operator.md#install) in the target Kubernetes cluster.
@@ -7,30 +15,30 @@
 
     ```json
     {
-        "server_listen": "0.0.0.0:9543", // Service listening address
-        "log_level": "info", // Log level
-
-        "admission_inject_v2": { // Injection config v2 (operator version >= v1.8.0)
-            "ddtraces": [ // DDTrace configuration array
+        "server_listen": "0.0.0.0:9543",
+        "log_level": "info",
+        "admission_inject_v2": {
+            "ddtraces": [
                 {
-                  // Fill in DDTrace injection config here...
-                },
-                {
-                  // Can inject another DDTrace config...
+                    "namespace_selectors": ["staging"],
+                    "label_selectors": ["app=example"],
+                    "check_annotation": false,
+                    "image": "<ddtrace-library-image>",
+                    "language": "java",
+                    "envs": {
+                        "DD_AGENT_HOST": "datakit-service.datakit.svc.cluster.local",
+                        "DD_TRACE_AGENT_PORT": "9529"
+                    }
                 }
-            ]                   
+            ]
         },
-    
-        "admission_inject": { // Injection config v1
-            "ddtrace": {
-                // Fill in DDTrace injection config here...
-                // For v1 config, operator only supports injecting one DDTrace config. v2 is recommended for flexibility.
-            }
-        },
+        "admission_inject": {
+            "ddtrace": {}
+        }
     }
     ```
 
-    <!-- 1. Add the specified Annotation `admission.datakit/java-lib.version: "{{.DDTraceJavaExtVersion}}"` to the deployment, indicating the need to inject the default version of DDtrace Java Agent. -->
+    This is valid JSON. `admission_inject_v2` (Operator `v1.8.0+`) supports multiple DDTrace configurations and is preferred. `admission_inject` is a legacy compatibility configuration that normally expresses only one DDTrace rule. Do not paste JSON containing `//` comments directly into a ConfigMap.
 
     DDTrace injection has the following configurable fields:
 
@@ -40,19 +48,32 @@
     | `image`                      | string  | DDTrace image address                                           | Y[^image]    | See example below                |
     | `label_selectors`            | array   | Label selector array                                            | Y[^selector] | `["app=nginx", "tier=frontend"]` |
     | `language`                   | string  | Supported language type (`java`/`python`/`php`/`nodejs`)         | Y[^lang]     | `"nodejs"`                       |
-    | `namespace_selectors`        | array   | Namespace selector, supports regex                              | Y[^selector] | `["prod-*", "test"]`             |
+    | `namespace_selectors`        | array   | Namespace selector using regular expressions                    | Y[^selector] | `["^prod-.*$", "^test$"]`       |
     | `resources`                  | object  | Resource limit configuration                                    | N            | See example below                |
     | ~~`enabled_namespaces`~~     | object  | Select target Kubernetes namespace and set development language | Y            | Deprecated in 1.7.0 `admission_inject_v2` |
     | ~~`enabled_labelselectors`~~ | object  | Select target using Kubernetes label                            | Y            | Deprecated in 1.7.0 `admission_inject_v2` |
 
-    [^selector]: This field must be filled; otherwise, the Operator will reject the injection.
+    [^selector]: The field itself must be present or Operator rejects the injection. An empty array broadens selection; verify that scope before production.
     [^image]: The installation templates provide default image addresses. For offline environments, users generally need to copy the images to an internal registry and then use the internal image addresses.
     [^lang]: The language selected here must match the content of the corresponding DDTrace image. If it does not match, the injection will fail.
     [^envs]: These environment variable settings are crucial and directly affect the final data outcome. For the supported `fieldRef` list here, see [here](datakit-operator.md#downwardapi).
 
+    An allowed `language` value does not mean that every version has an available image. This page includes verified version mappings for Node.js and Python. For Java, use the example below and verify that the final JVM command loaded the Agent. For PHP, use only an image explicitly matched to the PHP execution mode in installation templates or release notes. Never use one language's image to inject another runtime.
+
+### Pilot a Narrow Scope First {#pilot}
+
+Start with a test namespace and an explicit `app=<name>` label selector, then expand gradually. Pin an exact image tag instead of using `latest` in a production rule. After each change, at minimum verify:
+
+```shell
+kubectl get pod <pod-name> -o jsonpath='{.spec.initContainers[*].name}'
+kubectl describe pod <pod-name>
+```
+
+The first command should include `datakit-lib-init`; the second helps inspect mounts, environment variables, and webhook events. Then check language startup settings in the application container and trace requests in the DataKit monitor.
+
 ### DDTrace Lib Injection and Image Selection {#ddtrace-lib-image-selection}
 
-When DataKit Operator injects DDTrace, it adds an initContainer named `datakit-lib-init`, copies the DDTrace Lib into the shared volume `/datadog-lib`, and mounts that directory into application containers. Select the image version according to the **language runtime version in the application container**, not according to the initContainer runtime.
+When DataKit Operator injects DDTrace, it adds an initContainer named `datakit-lib-init`, copies DDTrace libraries into the shared `/datadog-lib` volume, and mounts that directory into application containers. Select the image version according to the **language runtime version in the application container**, not according to the initContainer runtime.
 
 Image repositories are brand-specific. The examples below use `pubrepo.<<<custom_key.brand_main_domain>>>/datakit-operator`, which is replaced with the corresponding repository when the document is published for each brand.
 
@@ -65,6 +86,8 @@ Node.js injection sets or appends `NODE_OPTIONS` in the application container:
 ```
 
 If `NODE_OPTIONS` already exists in the application container, Operator appends the option above. The Node.js image must match the major Node.js version in the application container.
+
+If an application image or startup script overwrites `NODE_OPTIONS`, the injected option is lost and no traces are produced. After deployment, use `kubectl exec` to check that `NODE_OPTIONS` still contains `--require=/datadog-lib/node_modules/dd-trace/init`.
 
 | Application Node.js version | Recommended image | Version requirement |
 | --- | --- | --- |
@@ -95,7 +118,9 @@ Node.js DDTrace configuration example:
 
 #### Python Injection {#ddtrace-python-injection}
 
-Python injection sets or appends `PYTHONPATH=/datadog-lib/` in the application container, so the Python process can load DDTrace-related libraries from `/datadog-lib`. Python DDTrace packages include CPython ABI-specific wheels, so the image version must match the Python minor version in the application container. If the version does not match, the application may fail with `ModuleNotFoundError`, native extension loading errors, or startup errors.
+Python injection sets or appends `PYTHONPATH=/datadog-lib/` in the application container, so the Python process can load DDTrace libraries and the injection bootstrap from `/datadog-lib`. Python DDTrace packages include CPython ABI-specific wheels, so the image version must match the Python minor version in the application container. If the version does not match, the application may fail with `ModuleNotFoundError`, native extension loading errors, or startup errors.
+
+If an application image or startup script overwrites `PYTHONPATH`, it must preserve `/datadog-lib/` or the injected library cannot load. After startup, `python -c 'import ddtrace; print(ddtrace.__version__)'` provides a minimal load check.
 
 | Application Python version | Recommended image | Version requirement |
 | --- | --- | --- |
@@ -126,9 +151,13 @@ Python DDTrace configuration example:
 
 > Version selection is based on upstream DDTrace package runtime requirements: Node.js uses the npm `dd-trace` `engines.node` field, and Python uses the PyPI `ddtrace` `Requires-Python` field and wheel support.
 
+#### Verify Java Injection {#ddtrace-java-injection}
+
+Java injection needs more than a library volume: the JVM must actually load `-javaagent`. After startup, inspect the final Pod's `JAVA_TOOL_OPTIONS`, container command/args, or process command line to confirm that it contains the Operator-injected Agent path; also confirm `DD_AGENT_HOST` and `DD_TRACE_AGENT_PORT=9529`. A successful `datakit-lib-init` alone does not prove that the JVM loaded an Agent.
+
 <!-- markdownlint-disable MD013 -->
 ### `check_annotation` Configuration Item Explanation {#check-annotation-config}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 `check_annotation` is an important configuration field used to control how DataKit Operator handles **version annotations** on Pods (for example, `admission.datakit/java-lib.version`, `admission.datakit/python-lib.version`, and `admission.datakit/nodejs-lib.version`). The values and behaviors of this field are as follows:
 
@@ -205,7 +234,7 @@ The following conditions must be met to perform injection:
        "namespace_selectors": ["staging"],
        "label_selectors": ["env=test"],
        "check_annotation": false,
-       "image": "internal-registry/dd-lib-java:latest",
+       "image": "internal-registry/dd-lib-java:<pinned-version>",
        "language": "java"
    }
    ```
@@ -222,7 +251,7 @@ The following conditions must be met to perform injection:
        "namespace_selectors": ["prod"],
        "label_selectors": ["app=java-app"],
        "check_annotation": false,
-       "image": "internal-registry/dd-lib-java:latest",
+       "image": "internal-registry/dd-lib-java:<pinned-version>",
        "language": "java"
    }
    ```
@@ -275,7 +304,7 @@ The Operator can recognize the following Annotations:
 - `admission.datakit/python-lib.version`: Specifies a specific DDTrace Python Lib version.
 - `admission.datakit/nodejs-lib.version`: Specifies a specific DDTrace Node.js Lib version.
 
-> **Annotation Usage Instructions**: For how `check_annotation` configuration affects version annotation behavior, please refer to [Annotation Configuration Injection](datakit-operator.md#annotation-injection) and [`check_annotation` Configuration Item Explanation](datakit-operator.md#check-annotation-config).
+> **Annotation Usage Instructions**: For how `check_annotation` affects version annotations, see [Annotation Configuration Injection](datakit-operator.md#annotation-injection) and [the `check_annotation` explanation on this page](operator-ddtrace.md#check-annotation-config).
 
 ### Annotation Example {#anno-demo}
 

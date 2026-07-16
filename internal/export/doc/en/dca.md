@@ -90,7 +90,7 @@ The DCA web service currently supports deployment via container images only, whi
     $ kubectl get pod -n datakit
     ```
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 ### Environment Variable Configuration {#envs}
 
 By default, DCA will adopt the default configuration of the system. If you need to customize the configuration, you can modify it by injecting environment variables. The following environment variables are currently supported:
@@ -189,7 +189,7 @@ docker run -d --name dca -p 8000:80 -e DCA_LOG_PATH=stdout -e DCA_LOG_LEVEL=info
 
 ---
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 ## DCA management {#dca-manage}
 
 ### Login to DCA {#login}

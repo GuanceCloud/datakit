@@ -61,7 +61,7 @@ Collect NSQ operation data and report it to <<<custom_key.brand_name>>> in the f
     The above two configuration methods are mutually exclusive, and `lookupd` has higher priority, so it is recommended to use `lookupd` configuration method.
 
 ---
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Metric {#metric}
 

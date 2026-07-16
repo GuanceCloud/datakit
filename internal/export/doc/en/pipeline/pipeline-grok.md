@@ -97,7 +97,7 @@ grok(_, "%{time}")
 
     - If a pattern with the same name occurs, the local pattern takes precedence (that is, the local pattern overrides the global pattern).
     - In the Pipeline script, [add_pattern()](#fn-add-pattern) needs to be called before the [grok()](#fn-grok) function, otherwise the first data fetch will fail.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Grok Fast Path Optimization {#grok-fast-path}
 

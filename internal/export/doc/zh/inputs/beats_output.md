@@ -57,7 +57,7 @@ monitor   :
 ???+ warning
 
     上面配置的 `inputs.beats_output.tags` 中如果与原始 fields 中的 key 同名重复，则会被原始数据覆盖。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 配置 Filebeat {#config-filebeat}
 

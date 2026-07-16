@@ -42,7 +42,7 @@ swap 采集器用于采集主机 swap 内存的使用情况。
 
 {{ CodeBlock .InputENVSampleZh 4 }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 指标 {#metric}
 

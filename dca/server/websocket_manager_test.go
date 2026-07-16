@@ -42,23 +42,37 @@ func replaceManagerState(t *testing.T, register chan *Client, unregister chan *C
 
 func TestClientManagerWebsocketConnChannels(t *testing.T) {
 	manager := &ClientManager{WebsocketConns: map[string]chan *websocket.Conn{}}
-	manager.initWebsocketConnChan("conn-chan")
-	ch := make(chan *websocket.Conn, 1)
-	manager.WebsocketConns["conn-chan"] = ch
+	ch := manager.initWebsocketConnChan("conn-chan")
 
 	serverConn, clientConn := newTestWebsocketPair(t)
 	defer serverConn.Close() //nolint:errcheck
 	defer clientConn.Close() //nolint:errcheck
 
-	manager.addWebsocketConnChan("conn-chan", serverConn)
+	require.NoError(t, manager.addWebsocketConnChan("conn-chan", serverConn))
 	require.Same(t, serverConn, <-ch)
 
 	manager.deleteWebsocketConnChan("conn-chan")
 	_, ok := manager.WebsocketConns["conn-chan"]
 	require.False(t, ok)
 
-	manager.addWebsocketConnChan("missing", serverConn)
+	require.Error(t, manager.addWebsocketConnChan("missing", serverConn))
 	manager.deleteWebsocketConnChan("missing")
+}
+
+func TestClientManagerRejectsWebsocketConnWhenChannelIsFull(t *testing.T) {
+	manager := &ClientManager{WebsocketConns: map[string]chan *websocket.Conn{}}
+	ch := manager.initWebsocketConnChan("conn-chan")
+
+	firstServerConn, firstClientConn := newTestWebsocketPair(t)
+	defer firstServerConn.Close() //nolint:errcheck
+	defer firstClientConn.Close() //nolint:errcheck
+	secondServerConn, secondClientConn := newTestWebsocketPair(t)
+	defer secondServerConn.Close() //nolint:errcheck
+	defer secondClientConn.Close() //nolint:errcheck
+
+	require.NoError(t, manager.addWebsocketConnChan("conn-chan", firstServerConn))
+	require.Error(t, manager.addWebsocketConnChan("conn-chan", secondServerConn))
+	require.Same(t, firstServerConn, <-ch)
 }
 
 func TestClientManagerAction(t *testing.T) {
@@ -88,15 +102,29 @@ func TestClientManagerAction(t *testing.T) {
 func TestDealNewWebsocketConnection(t *testing.T) {
 	replaceManagerState(t, Manager.Register, Manager.Unregister, Manager.Clients, map[string]chan *websocket.Conn{})
 
-	Manager.initWebsocketConnChan("new-conn")
-	ch := make(chan *websocket.Conn, 1)
-	Manager.WebsocketConns["new-conn"] = ch
+	ch := Manager.initWebsocketConnChan("new-conn")
 	serverConn, clientConn := newTestWebsocketPair(t)
 	defer serverConn.Close() //nolint:errcheck
 	defer clientConn.Close() //nolint:errcheck
 
 	require.NoError(t, dealNewWebsocketConnection(serverConn, "new-conn"))
 	require.Same(t, serverConn, <-ch)
+
+	queuedServerConn, queuedClientConn := newTestWebsocketPair(t)
+	defer queuedServerConn.Close() //nolint:errcheck
+	defer queuedClientConn.Close() //nolint:errcheck
+	require.NoError(t, dealNewWebsocketConnection(queuedServerConn, "new-conn"))
+
+	fullServerConn, fullClientConn := newTestWebsocketPair(t)
+	defer fullClientConn.Close() //nolint:errcheck
+	require.Error(t, dealNewWebsocketConnection(fullServerConn, "new-conn"))
+	require.Error(t, fullServerConn.WriteMessage(websocket.TextMessage, []byte("closed")))
+	require.Same(t, queuedServerConn, <-ch)
+
+	rejectedServerConn, rejectedClientConn := newTestWebsocketPair(t)
+	defer rejectedClientConn.Close() //nolint:errcheck
+	require.Error(t, dealNewWebsocketConnection(rejectedServerConn, "missing"))
+	require.Error(t, rejectedServerConn.WriteMessage(websocket.TextMessage, []byte("closed")))
 }
 
 func TestGetNewWebsocketConn(t *testing.T) {
@@ -134,7 +162,7 @@ func TestGetNewWebsocketConn(t *testing.T) {
 }
 
 func TestClientReadAndWrite(t *testing.T) {
-	replaceManagerState(t, Manager.Register, make(chan *Client, 1), Manager.Clients, Manager.WebsocketConns)
+	replaceManagerState(t, Manager.Register, make(chan *Client, 3), Manager.Clients, Manager.WebsocketConns)
 
 	serverConn, clientConn := newTestWebsocketPair(t)
 	client := &Client{
@@ -171,12 +199,21 @@ func TestClientReadAndWrite(t *testing.T) {
 		DataKit: newTestDataKit("write-client"),
 		Timeout: time.Second,
 	}
-	go writeClient.Write()
+	writeDone := make(chan struct{})
+	go func() {
+		defer close(writeDone)
+		writeClient.Write()
+	}()
 	writeClient.Send <- []byte("hello")
 	_, body, err := clientConn.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, []byte("hello"), body)
 	close(writeClient.Close)
+	select {
+	case <-writeDone:
+	case <-time.After(time.Second):
+		t.Fatal("timeout waiting for client write exit")
+	}
 	require.NoError(t, clientConn.Close())
 	require.NoError(t, serverConn.Close())
 
@@ -189,7 +226,11 @@ func TestClientReadAndWrite(t *testing.T) {
 		DataKit: newTestDataKit("close-send-client"),
 		Timeout: time.Second,
 	}
-	go closeSendClient.Write()
+	closeSendDone := make(chan struct{})
+	go func() {
+		defer close(closeSendDone)
+		closeSendClient.Write()
+	}()
 	close(closeSendClient.Send)
 	messageType, _, err := clientConn.ReadMessage()
 	if err == nil {
@@ -197,9 +238,17 @@ func TestClientReadAndWrite(t *testing.T) {
 	} else {
 		require.True(t, websocket.IsCloseError(err, websocket.CloseNoStatusReceived))
 	}
-	close(closeSendClient.Close)
+	select {
+	case <-closeSendClient.Close:
+	case <-time.After(time.Second):
+		t.Fatal("timeout waiting for closed send client exit")
+	}
+	select {
+	case <-closeSendDone:
+	case <-time.After(time.Second):
+		t.Fatal("timeout waiting for closed send client write exit")
+	}
 	require.NoError(t, clientConn.Close())
-	require.NoError(t, serverConn.Close())
 }
 
 func TestClientReceiveMessageBranches(t *testing.T) {

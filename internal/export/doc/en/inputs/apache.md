@@ -128,7 +128,7 @@ When log collection is turned on, logs with `apache` log (`source`) will be gene
 ???+ info
 
     DataKit must be installed on the host where Apache is located to collect Apache logs.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Log Pipeline Function Cut Field Description {#pipeline}
 

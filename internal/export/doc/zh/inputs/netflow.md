@@ -50,7 +50,7 @@ NetFlow 是最广泛使用的流量数据统计标准，由 Cisco 开发，用�
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 日志 {#logging}
 
@@ -192,7 +192,7 @@ NetFlow 是最广泛使用的流量数据统计标准，由 Cisco 开发，用�
 ???+ info
 
     Netflow 采集的数据，存放在日志类（`L`）数据中。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 {{ range $i, $m := .Measurements }}
 

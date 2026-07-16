@@ -628,15 +628,17 @@ func TestSenders(t *testing.T) {
 	})
 }
 
-func TestPointsFeed(t *testing.T) {
+func TestPointsFeedScheduledTriggerTags(t *testing.T) {
 	task, err := dt.NewTask("", &dt.ICMPTask{
 		Task: &dt.Task{
 			ExternalID: "icmp-task",
 			Name:       "icmp-task",
 			Frequency:  "1s",
 			Tags: map[string]string{
-				"task_tag": "task-value",
-				"owner":    "task-owner",
+				"task_tag":     "task-value",
+				"owner":        "task-owner",
+				"trigger_type": "manual",
+				"run_batch_id": "task-batch",
 			},
 		},
 		Host: "example.com",
@@ -654,21 +656,28 @@ func TestPointsFeed(t *testing.T) {
 
 	ipt := defaultInput()
 	ipt.Tags = map[string]string{
-		"custom_tag": "custom-value",
-		"owner":      "custom-owner",
+		"custom_tag":   "custom-value",
+		"owner":        "custom-owner",
+		"trigger_type": "manual",
+		"run_batch_id": "custom-batch",
 	}
 	ipt.RegionTags = map[string]string{
-		"node_name":   "ignored-region-name",
-		"owner":       "region-owner",
-		"unknown_tag": "ignored",
+		"node_name":    "ignored-region-name",
+		"owner":        "region-owner",
+		"unknown_tag":  "ignored",
+		"trigger_type": "manual",
+		"run_batch_id": "region-batch",
 	}
+	ipt.RegionID = "test-node-id"
 
 	ipt.setRegionNames("test-node", "")
 	d := newDialer(task, ipt)
 	d.dfTags = map[string]string{
-		LabelDF:  "[]",
-		"df_tag": "df-value",
-		"owner":  "df-owner",
+		LabelDF:        "[]",
+		"df_tag":       "df-value",
+		"owner":        "df-owner",
+		"trigger_type": "manual",
+		"run_batch_id": "df-batch",
 	}
 	d.dialingTime = time.Unix(100, 0)
 
@@ -689,10 +698,69 @@ func TestPointsFeed(t *testing.T) {
 		assert.NotContains(t, line, "owner=custom-owner")
 		assert.NotContains(t, line, "owner=df-owner")
 		assert.Contains(t, line, "node_name=test-node")
+		assert.Contains(t, line, "node_id=test-node-id")
 		assert.Contains(t, line, "datakit_version=")
+		assert.Contains(t, line, "trigger_type=scheduled")
+		assert.NotContains(t, line, "run_batch_id=")
 		assert.Contains(t, line, "seq_number=1i")
 		assert.Contains(t, line, `task_id="icmp-task"`)
 		assert.NotContains(t, line, "unknown_tag=ignored")
+	default:
+		t.Fatal("expected point to be queued")
+	}
+}
+
+func TestPointsFeedAddsManualTriggerType(t *testing.T) {
+	task, err := dt.NewTask("", &dt.ICMPTask{
+		Task: &dt.Task{
+			ExternalID: "icmp-task",
+			Name:       "icmp-task",
+			Frequency:  "1s",
+			Tags: map[string]string{
+				"trigger_type": "scheduled",
+				"run_batch_id": "task-batch",
+			},
+		},
+		Host: "example.com",
+	})
+	require.NoError(t, err)
+
+	oldWorker := dialWorker
+	defer func() { dialWorker = oldWorker }()
+
+	dialWorker = &worker{
+		jobChans:   make(chan *jobData, 1),
+		pointCache: map[string]*DataCache{},
+		failInfo:   map[string]int{},
+	}
+
+	ipt := defaultInput()
+	ipt.Tags = map[string]string{
+		"trigger_type": "scheduled",
+		"run_batch_id": "custom-batch",
+	}
+	ipt.RegionTags = map[string]string{
+		"trigger_type": "scheduled",
+		"run_batch_id": "region-batch",
+	}
+	ipt.setRegionNames("test-node", "")
+	d := newDialer(task, ipt)
+	d.dfTags = map[string]string{
+		"trigger_type": "scheduled",
+		"run_batch_id": "df-batch",
+	}
+	d.triggerType = triggerTypeManual
+	d.runBatchID = "rb-test"
+	d.dialingTime = time.Unix(100, 0)
+
+	d.pointsFeed("http://example.com/v1/write/logging?token=test")
+
+	select {
+	case job := <-dialWorker.jobChans:
+		require.NotNil(t, job)
+		line := job.pt.LineProto()
+		assert.Contains(t, line, "trigger_type=manual")
+		assert.Contains(t, line, "run_batch_id=rb-test")
 	default:
 		t.Fatal("expected point to be queued")
 	}

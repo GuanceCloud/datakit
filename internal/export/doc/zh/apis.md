@@ -156,7 +156,7 @@ curl -X POST -H "Content-Type: application/pbjson; proto=com.guance.Point" -d '<
     - 时间精度（`precision`）自动识别（[:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0)）指根据传入的时间戳数值，猜测其可能的时间精度，数学意义上它不能保证正确，但是日常使用是足够的。比如对于时间戳 1716544492，其时间戳判断为秒，对 1716544492000 会判断为毫秒，等等。
     - 如果数据点中不带时间，则以 DataKit 所在机器的时间戳为准。
     - 虽然目前协议上支持二进制格式以及 any 格式两种类型，但目前中心尚未支持这两种数据的写入。**特此注明**。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 #### Body 说明 {#api-v1-write-body}
 
@@ -170,7 +170,7 @@ HTTP body 支持行协议以及两种 JSON 俩种形式。
     在简单 JSON 中，不管是指标还是日志，其一级字段都是 `measurement/tags/fields/time`，我们日常在 studio 页面中看到的日志的 `source` 实际上就是这里的 `measurement`。总而言之，这里定义的 body 只是协议封装，而 studio 页面中看到的字段名称是针对不同的数据属性，做了一定的转换。
 
     在 PBJSON 中，不同数据类型，其一级字段都是一样的，即 `name/fields/time`，其中 `name` 字段最终映射成指标中的 `measurement`、日志中的 `source`。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ##### 行协议 Body {#api-v1-write-body-line-protocol}
 
@@ -304,7 +304,7 @@ JSON 形式的 body 相比行协议，它无需做太多的转义，一个简单
     - 不能区分 int/uint/float 这几种数值类型，比如，对于所有的数值，JSON 默认都以 float 来处理，而对于数值 42，JSON 无法区分它是有符号还是无符号
     - 不支持表示二进制（`[]byte`）数据：虽然某些情况下，JSON 编码自动会将 `[]byte` 表示为 base64 字符串，但 JSON 自身并无二进制的类型表示
     - 它无法表示具体 field 的其它信息，比如单位、指标类型（gauge/count/...）等
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ##### PBJSON Body {#api-v1-write-body-pbjson-protocol}
 
@@ -354,7 +354,7 @@ JSON 形式的 body 相比行协议，它无需做太多的转义，一个简单
 ???+ warning
 
     此处的 `i` 和 `u` 以及每个 Point 的 `time` 字段值在 JSON 中均为字符串表示
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 以下是一个具体 JSON 的示例：
 
@@ -424,7 +424,7 @@ JSON 形式的 body 相比行协议，它无需做太多的转义，一个简单
 
     - field 中数组支持要求 [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0) 以上（含）版本才支持
     - 相比行协议的 Body，JSON 形式的 body 性能较差，大概有 7~8 倍的差距
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ---
 
@@ -501,7 +501,7 @@ $ curl -s http://datakit-ip:9529/v1/write/logging --data-binary "@path/to/some/f
     unable to parse 'some2,t1=1,t2 f1=1i,f2='(pos: 82): missing tag value
     with 2 point parse ok, 2 points failed. Origin data: "some1,t1=1,t2=v2 f1=1i,f2=3\nsome2,t1=1,t2 f1=1i,f2=3\nsome3,t1=1,t2=v3 f1=1i,f2=3\nsome2,t1=1,t2 f1=1i,f2=\n"
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 此处 `message` 展开为：
 
@@ -554,7 +554,7 @@ with 2 point parse ok, 2 points failed. Origin data: "some1,t1=1,t2=v2 f1=1i,f2=
 === "行协议（`echo=lp`）"
 
     参见[行协议格式](apis.md#api-v1-write-body-line-protocol)
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ---
 

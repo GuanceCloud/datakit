@@ -70,13 +70,13 @@ func (c *DNSAnswerRecord) addRecord(packetInfo *DNSPacketInfo) {
 
 	var cnameDomain string
 	for _, answer := range packetInfo.Answers {
-		switch answer.Type { //nolint:exhaustive
+		switch answer.recordType { //nolint:exhaustive
 		case layers.DNSTypeA, layers.DNSTypeAAAA:
-			if answer.IP == nil || answer.Name == nil {
+			if answer.ip == "" || answer.name == "" {
 				continue
 			}
-			ip := answer.IP.String()
-			domain := normalizeDNSDomain(string(answer.Name))
+			ip := answer.ip
+			domain := normalizeDNSDomain(answer.name)
 			if _, exists := c.record[ip]; !exists && !c.allowInsertLocked(now) {
 				exporter.IncBPFEventDrop("dnsflow", "answer_record", "limit")
 				continue
@@ -97,7 +97,7 @@ func (c *DNSAnswerRecord) addRecord(packetInfo *DNSPacketInfo) {
 
 		case layers.DNSTypeCNAME:
 			if cnameDomain == "" {
-				cnameDomain = normalizeDNSDomain(string(answer.Name))
+				cnameDomain = normalizeDNSDomain(answer.name)
 			}
 		default:
 		}

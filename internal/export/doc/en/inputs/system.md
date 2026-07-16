@@ -45,7 +45,7 @@ After successfully installing and starting DataKit, the system collector will be
 {{ CodeBlock .InputENVSample 4 }}
 
 ---
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Metric {#metric}
 

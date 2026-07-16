@@ -88,7 +88,7 @@ snmpwalk -v 2c -c datakit <Localhost IP> .1.3.6.1.2.1.1.1.0
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## WMI 数据采集配置指南 {#wmi}
 

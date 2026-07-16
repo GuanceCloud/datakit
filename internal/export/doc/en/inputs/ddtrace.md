@@ -18,9 +18,26 @@ monitor   :
 
 ---
 
-DDTrace is an open-source APM (Application Performance Monitoring) product by DataDog. The DDTrace Agent embedded in DataKit is used to receive, process, and analyze data in the DataDog Tracing protocol.
+The DataKit `ddtrace` collector is a **DataDog Trace protocol receiver**. A DDTrace SDK or Java Agent in your application sends trace payloads to DataKit over HTTP; DataKit then parses, processes, and uploads them. The collector neither installs an SDK in the application nor instruments application code for you.
 
-## DDTrace Documentation and Examples {#doc-example}
+The data path is:
+
+`application code` → `DDTrace SDK / Java Agent` → `DataKit HTTP receiver` → `<<<custom_key.brand_name>>>`
+
+Traces, profiling data, and runtime/JMX metrics use different receivers:
+
+- This collector receives traces through the DataKit HTTP port, normally `9529`.
+- Profiling requires the separate [Profiling collector](profile.md).
+- JMX and runtime metrics sent through DogStatsD require the separate [StatsD collector](statsd.md), normally on port `8125`.
+
+## Before You Begin {#overview}
+
+1. Install DataKit, enable this collector, and instrument the application with the SDK or Agent for its language.
+1. Ensure that the application can reach DataKit. DataKit listens on `localhost:9529` by default. If the application is on another host or Pod, adjust the [HTTP listener](../datakit/datakit-conf.md#config-http-server) and restrict access with firewalls, a Kubernetes Service, or NetworkPolicy.
+1. Explicitly configure the trace destination in the application, for example `DD_AGENT_HOST=<datakit-host>` and `DD_TRACE_AGENT_PORT=9529`. The common upstream Datadog Agent default is `8126`; do not rely on a default and do not confuse the trace port with the StatsD port `8125`.
+1. Set stable `DD_SERVICE`, `DD_ENV`, and `DD_VERSION` values. They determine the service, environment, and version shown in the tracing UI.
+
+## Language-Specific Setup {#doc-example}
 
 <!-- markdownlint-disable MD046 MD032 MD030 -->
 <div class="grid cards" markdown>
@@ -72,7 +89,7 @@ DDTrace is an open-source APM (Application Performance Monitoring) product by Da
     [:octicons-book-16: Documentation](https://docs.datadoghq.com/tracing/setup_overview/setup/nodejs?tab=containers){:target="_blank"} ·
     [:octicons-arrow-right-24: Example](ddtrace-nodejs.md)
 
--   :material-language-cpp: **C++**
+-   :material-language-cpp: **C++ (Legacy Compatibility)**
 
     ---
 
@@ -91,9 +108,11 @@ DDTrace is an open-source APM (Application Performance Monitoring) product by Da
 
 ???+ info
 
-    We have made some [functional extensions](ddtrace-ext-changelog.md) to DDTrace to support more mainstream frameworks and more granular data tracing.
+    <<<custom_key.brand_name>>> provides an extended Java Agent for selected frameworks and more granular collection. These extensions apply only when you use the <<<custom_key.brand_name>>> JAR. Review the [Java extension guide](ddtrace-ext-java.md) and its [changelog](ddtrace-ext-changelog.md), especially the configuration and data-exposure warnings.
 
 ## Configuration {#config}
+
+This section configures the **DataKit receiver**. Configure the SDK's destination, service identity, and sampling separately in the application's startup options or environment variables; see the language-specific guide.
 
 === "Host Installation"
 
@@ -113,26 +132,29 @@ DDTrace is an open-source APM (Application Performance Monitoring) product by Da
 
 {{ CodeBlock .InputENVSample 4 }}
 
-> The `customer_tags` parameter supports regular expressions but requires a fixed prefix format `reg:`. For example, `reg:key_*` matches all keys starting with `key_`.
+`customer_tags` promotes selected `meta` fields to top-level tags. A `.` in a literal field name becomes `_`; for example, `http.route` becomes `http_route`. A regular expression must begin with `reg:` and uses Go regular-expression syntax; for example, `reg:^key_.*$` matches fields beginning with `key_`. Validate expressions in a test environment first: an invalid expression prevents the collector from initializing correctly.
 
-### Notes on Multi-Tool Tracing Propagation {#trace_propagator}
+### Notes on Multi-Tool Trace Propagation {#trace_propagator}
 
-The TraceID in the DDTrace data structure is of uint64 type. When using the `tracecontext` propagation protocol, a `_dd.p.tid:67c573cf00000000` field is added inside the DDTrace trace details. This is because the `trace_id` in the `tracecontext` protocol is a 128-bit hexadecimal-encoded string, and this high-bit tag is added for compatibility purposes.
+A traditional DDTrace Trace ID is a 64-bit integer, whereas W3C `tracecontext` uses a 128-bit, 32-character hexadecimal Trace ID. DDTrace places the upper 64 bits in `_dd.p.tid`; DataKit uses that field to reconstruct the full 128-bit ID.
 
-Currently, DDTrace supports the following propagation protocols: `datadog/b3multi/tracecontext`. Note the following two scenarios:
-- When using `tracecontext`, since the trace ID is 128-bit, you need to enable the `compatible_otel=true` and `trace_128_bit_id` switches in the configuration.
-- When using `b3multi`, pay attention to the length of the `trace_id`. If it is a 64-bit hexadecimal encoding, you need to enable `trace_id_64_bit_hex=true` in the configuration file.
-- For more propagation protocols and tool usage, refer to: [Multi-Tracing Propagation](tracing-propagator.md){:target="_blank"}
+Use a consistent propagation protocol across the call path and configure DataKit for the protocol actually emitted:
+
+- When linking `tracecontext` traffic with OpenTelemetry, enable `compatible_otel=true` so span and parent IDs are formatted in hexadecimal. `trace_128_bit_id` is enabled by default and combines `_dd.p.tid` with the lower 64-bit Trace ID.
+- When using `b3multi` and the upstream sends a 64-bit hexadecimal Trace ID, enable `trace_id_64_bit_hex=true`.
+- After changing propagation, validate one cross-service request. A protocol mismatch normally produces disconnected service topology rather than an ingestion failure.
+
+For more combinations, see [Multi-Tracing Propagation](tracing-propagator.md){:target="_blank"}.
 
 ???+ info
 
-    - `compatible_otel`: Converts `span_id` and `parent_id` to hexadecimal strings.
-    - `trace_128_bit_id`: Combines `_dd.p.tid` in `meta` with `trace_id` into a 32-character hexadecimal-encoded string.
-    - `trace_id_64_bit_hex`: Converts 64-bit `trace_id` to a hexadecimal-encoded string.
+    - `compatible_otel`: Formats `span_id` and `parent_id` as hexadecimal strings.
+    - `trace_128_bit_id`: Combines `_dd.p.tid` in `meta` and the lower 64-bit `trace_id` into a 32-character hexadecimal string. Default: `true`.
+    - `trace_id_64_bit_hex`: Parses an upstream 64-bit `trace_id` as hexadecimal.
 
 ### Inject Pod and Node Information {#add-pod-node-info}
 
-When the application is deployed in a container environment such as Kubernetes, you can append Pod/Node information to the final Span data by modifying the application's YAML file. Below is an example YAML for a Kubernetes Deployment:
+When an application runs in Kubernetes, use the Downward API to put Pod, Namespace, and Node values in `DD_TAGS`. They travel with application spans. Add the fields to DataKit `customer_tags` as well if you need them as top-level tags in the trace list.
 
 ```yaml hl_lines="21-30"
 ---
@@ -163,15 +185,19 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
             - name: DD_TAGS
-              value: pod_name:$(POD_NAME),host:$(NODE_NAME)
+              value: pod_name:$(POD_NAME),pod_namespace:$(POD_NAMESPACE),host:$(NODE_NAME)
             - name: DD_SERVICE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.labels['service']
 ```
 
-Note that you need to first define `POD_NAME` and `NODE_NAME`, then embed them into the DDTrace-specific environment variables.
+Kubernetes environment substitution can reference only environment variables defined **earlier in the same container**. Define `POD_NAME`, `POD_NAMESPACE`, and `NODE_NAME` before `DD_TAGS`.
 
 After the application starts, enter the corresponding Pod and verify if the ENV is in effect:
 
@@ -192,20 +218,27 @@ Once injected successfully, you can see the Pod and Node names where the Span is
     endpoints = ["/v0.3/traces", "/v0.4/traces", "/v0.5/traces"]
     ```
 
-    - To disable sampling (i.e., collect all data), set the sampling rate field as follows:
+    - `[inputs.ddtrace.sampler]` is **receiver-side sampling**, independent of SDK-side `DD_TRACE_SAMPLE_RATE`. To stop sampling at the receiver, remove or comment out the whole table. If the table remains, always set its rate explicitly:
 
     ``` toml
     # [inputs.{{.InputName}}.sampler]
     # sampling_rate = 1.0
     ```
 
-    Do not only comment out the line `sampling_rate = 1.0`; you must also comment out `[inputs.{{.InputName}}.sampler]`. Otherwise, the collector will treat `sampling_rate` as 0.0, resulting in all data being discarded.
+    `sampling_rate = 1.0` keeps all traces. Do not comment out only `sampling_rate` while keeping the table header: the table is then interpreted as a zero rate and drops every trace. Error traces bypass receiver-side sampling by default; they can be filtered only when matching statuses are configured in `omit_err_status`.
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 MD032 MD030 -->
 
 ### HTTP Settings {#http}
 
-If Trace data is sent from a remote machine, you need to configure the [HTTP settings of DataKit](../datakit/datakit-conf.md#config-http-server).
+DataKit listens on `localhost:9529` by default. If traces arrive from a remote host or another Pod, set a reachable listener in `datakit.conf`, for example:
+
+```toml
+[http_api]
+  listen = "0.0.0.0:9529"
+```
+
+Use this only on a controlled network. Do not expose trace endpoints directly to the Internet; apply firewall rules, security groups, Kubernetes Services/NetworkPolicies, or TLS as appropriate. DataKit receives `/v0.3/traces`, `/v0.4/traces`, and `/v0.5/traces` by default. Do not change `endpoints` unless you understand the compatibility impact.
 
 If DDTrace data is sent to DataKit, you can view it on the [DataKit monitor](../datakit/datakit-monitor.md):
 
@@ -216,7 +249,7 @@ If DDTrace data is sent to DataKit, you can view it on the [DataKit monitor](../
 
 ### Enable Disk Cache {#disk-cache}
 
-If the volume of Trace data is large, to avoid excessive resource consumption on the host, you can temporarily cache Trace data to disk for delayed processing:
+Disk cache defers processing of HTTP request bodies during traffic spikes, reducing memory and processing peaks. It is not long-term archival and does not replace SDK-side sampling. The directory must be writable, have enough capacity, and be on persistent storage when recovery after a container restart matters. `capacity` is in MiB.
 
 ``` toml
 [inputs.{{.InputName}}.storage]
@@ -226,20 +259,18 @@ If the volume of Trace data is large, to avoid excessive resource consumption on
 
 ### DDTrace SDK Configuration {#sdk}
 
-After configuring the collector, you can also make additional configurations on the DDTrace SDK side.
+After configuring the collector, configure the SDK. Supported variables and precedence vary by language and SDK version. The variables below describe common concepts. When an SDK supports `DD_TRACE_AGENT_URL`, that URL normally overrides separate host and port values, so do not set conflicting destinations.
 
 ### Environment Variable Settings {#sdk-envs}
 
-- `DD_TRACE_ENABLED`: Enable global tracer (supported by some language platforms)
-- `DD_AGENT_HOST`: DDTrace agent host address
-- `DD_TRACE_AGENT_PORT`: DDTrace agent host port
-- `DD_SERVICE`: Service name
-- `DD_TRACE_SAMPLE_RATE`: Set sampling rate
-- `DD_VERSION`: Application version (optional)
-- `DD_TRACE_STARTUP_LOGS`: DDTrace logger
-- `DD_TRACE_DEBUG`: DDTrace debug mode
-- `DD_ENV`: Application environment value
-- `DD_TAGS`: Application tags
+| Variable | Purpose | Recommendation |
+| --- | --- | --- |
+| `DD_AGENT_HOST`, `DD_TRACE_AGENT_PORT` | Trace receiver address and port | Point them at DataKit, such as `datakit-service:9529`; do not use the StatsD port `8125`. |
+| `DD_SERVICE`, `DD_ENV`, `DD_VERSION` | Service, environment, and version identity | Use stable, searchable values for every service. |
+| `DD_TAGS` | Application-wide tags | Use `key:value` pairs. Never put tokens, request bodies, or personal data here. |
+| `DD_TRACE_SAMPLE_RATE` | SDK-side sampling rate | Use a value from `0.0` to `1.0`; control high traffic at the source first. |
+| `DD_TRACE_ENABLED` | Enables instrumentation/trace delivery | Exact behavior is language-dependent; during troubleshooting verify it is not `false`. |
+| `DD_TRACE_STARTUP_LOGS`, `DD_TRACE_DEBUG` | SDK startup and debug logs | Enable only temporarily for troubleshooting to avoid extra volume or configuration exposure. |
 
 In addition to setting the project name, environment name, and version number during application initialization, you can also set them in the following two ways:
 
@@ -249,7 +280,7 @@ In addition to setting the project name, environment name, and version number du
 DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.py
 ```
 
-- Configure custom tags directly in *ddtrace.conf*. This method affects all data sent to the DataKit tracing service, so use it with caution:
+- Configure receiver-side tags directly in *ddtrace.conf*. They affect every DDTrace payload entering this DataKit and are suitable for shared deployment tags, not application-specific service identity:
 
 ```toml
 # tags are key-value pairs configured for ddtrace
@@ -262,13 +293,13 @@ DD_TAGS="project:your_project_name,env=test,version=v1" ddtrace-run python app.p
 
 [:octicons-tag-24: Version-1.35.0](../datakit/changelog.md#cl-1.35.0) · [:octicons-beaker-24: Experimental](../datakit/index.md#experimental)
 
-After the DDTrace agent starts, it continuously reports service-related information through an additional interface, such as startup configuration, heartbeat, and the list of loaded agents. You can view this information in <<<custom_key.brand_name>>> Infrastructure -> Resource Directory. The displayed data is helpful for troubleshooting issues related to startup commands and versions of referenced third-party libraries. It also includes host information, service information, and the number of Spans generated.
+The Java Agent can report startup configuration, heartbeat, dependencies, and loaded integrations through `/telemetry/proxy/api/v2/apmtelemetry`. DataKit accepts this route by default; disable `apmtelemetry_route_enable` if it is not needed. View the data in the <<<custom_key.brand_name>>> Infrastructure Resource Directory to troubleshoot startup options, dependency versions, and loaded instrumentation.
 
 Data may vary significantly across different languages and versions; please refer to the actual received data.
 
 ### Fixed Tag Extraction {#add-tags}
 
-Starting from DataKit version [1.21.0](../datakit/changelog.md#cl-1.21.0), the blacklist function is deprecated, and not all fields in Span.Meta are extracted into top-level tags anymore—only selected fields are extracted.
+Starting with DataKit [1.21.0](../datakit/changelog.md#cl-1.21.0), DataKit no longer promotes every `Span.Meta` field to a top-level tag. It extracts only the commonly used fields below to control tag cardinality and indexing cost.
 
 The following is a list of tags that may be extracted:
 
@@ -304,14 +335,24 @@ The following is a list of tags that may be extracted:
 | `dd_ext_version`    | `sdk_version`        | SDK extend version                                     |
 | `language`          | `sdk_language`       | SDK language                                           |
 
-In the Studio tracing interface, tags not in the list can also be used for filtering.
+Fields outside the list remain in the span `meta` and are available in trace details. Whether they can be used as top-level filters depends on the UI and indexing configuration.
 
-Starting from DataKit version [1.22.0](../datakit/changelog.md#cl-1.22.0), the whitelist function is restored. If there are tags that must be extracted into the top-level tag list, you can configure them in `customer_tags`. If the whitelisted tags are in the original `message.meta`, the collector will use `.` as a separator and convert `.` to `_` during extraction.
+Starting with DataKit [1.22.0](../datakit/changelog.md#cl-1.22.0), add fields to the `customer_tags` allowlist when they must become top-level tags. A `.` becomes `_` during extraction. Add only stable, low-cardinality fields; never promote values such as user IDs or request IDs.
+
+### Common Troubleshooting Paths {#troubleshooting}
+
+| Symptom | Check first |
+| --- | --- |
+| No traces at all | Confirm that `ddtrace` is enabled in DataKit, that the application actually loaded its SDK/Agent, and that `DD_AGENT_HOST`, `DD_TRACE_AGENT_PORT`, Service, NetworkPolicy, and firewall settings are correct. |
+| Only some services appear or topology is broken | Ensure propagation protocols match on both sides and that the appropriate `tracecontext`/B3 DataKit ID compatibility switches are enabled. |
+| JVM metrics or profiling are missing | They are not received by this collector. Check the `statsd` or `profile` collector and its separate port. |
+| Data volume or resource use is too high | Reduce SDK-side sampling first, then evaluate receiver-side sampling, `trace_max_spans`, `max_trace_body_mb`, and disk cache. |
 
 ## Collected Data Field Description {#collected-data}
 
 ### Tracing {#tracing}
 
+<!-- markdownlint-disable MD024 -->
 {{range $i, $m := .Measurements}}
 
 {{if eq $m.Type "tracing"}}
@@ -342,7 +383,7 @@ Starting from DataKit version [1.22.0](../datakit/changelog.md#cl-1.22.0), the w
 
 ### Custom Objects {#custom-object}
 
-After DDTrace starts, it reports its own configuration information, integration list, dependencies, and service-related information to DataKit. Currently, only Java Agent is supported. The following is a description of each field:
+The extended Java Agent can report its configuration, integration list, dependencies, and service metadata after startup. These resource objects currently apply only to the Java Agent. Common events include:
 
 - `app_client_configuration_change`: Contains the agent's configuration information
 - `app_dependencies_loaded`: Dependency list (including package names and version information)
@@ -361,6 +402,8 @@ After DDTrace starts, it reports its own configuration information, integration 
 {{end}}
 
 {{end}}
+
+<!-- markdownlint-enable MD024 -->
 
 ## More Readings {#more-reading}
 

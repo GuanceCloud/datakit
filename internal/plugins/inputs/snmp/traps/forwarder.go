@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/GuanceCloud/cliutils/point"
@@ -20,7 +21,10 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmpmeasurement"
 )
 
-const trapsLogging = "traps-logging"
+const (
+	defaultTrapSource = "traps"
+	trapsLogging      = "traps-logging"
+)
 
 // TrapForwarder consumes from a trapsIn channel, format traps and send them as EventPlatformEvents
 // The TrapForwarder is an intermediate step between the listener and the epforwarder in order to limit the processing of the listener
@@ -34,6 +38,7 @@ type TrapForwarder struct {
 	inputTags map[string]string
 	feeder    dkio.Feeder
 	tagger    datakit.GlobalTagger
+	source    string
 }
 
 // NewTrapForwarder creates a simple TrapForwarder instance.
@@ -46,9 +51,18 @@ func NewTrapForwarder(formatter Formatter, packets PacketsChannel, opt *TrapsSer
 		inputTags: opt.InputTags,
 		feeder:    opt.Feeder,
 		tagger:    opt.Tagger,
+		source:    opt.Source,
 	}
 
 	return trapForwarder, nil
+}
+
+func trapSource(source string) string {
+	source = strings.TrimSpace(source)
+	if source == "" {
+		return defaultTrapSource
+	}
+	return source
 }
 
 // Start the TrapForwarder instance. Need to Stop it manually.
@@ -127,7 +141,7 @@ func (tf *TrapForwarder) sendTrap(packet *SnmpPacket) {
 	}
 
 	metric := &snmpmeasurement.SNMPObject{
-		Name:   "traps",
+		Name:   trapSource(tf.source),
 		Tags:   tags,
 		Fields: fields,
 		TS:     tn,

@@ -53,9 +53,12 @@ func (wl *walLock) tryLock() (bool, error) {
 	return true, nil
 }
 
-func (wl *walLock) unlock() {
+func (wl *walLock) unlock() error {
 	if wl.f != nil {
-		wl.f.Close() // Closing the file handle automatically releases the lock in Windows
-		os.Remove(wl.file)
+		f := wl.f
+		wl.f = nil
+		return f.Close() // Closing the file handle automatically releases the lock in Windows
 	}
+
+	return nil
 }

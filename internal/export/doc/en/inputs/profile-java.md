@@ -37,7 +37,7 @@ Both engines have their own requirements for the platform and JDK version, which
     ???+ note
 
         `JFR` is a commercial feature of Oracle JDK 8 and is disabled by default. If you need to enable it, you need to add the parameters `-XX:+UnlockCommercialFeatures -XX:+FlightRecorder` when starting the project. Since JDK 11, `JFR` has become an open-source project and is no longer a commercial feature of Oracle JDK.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 Run Java Code
 
@@ -136,7 +136,7 @@ Starting from [:octicons-tag-24: Version-1.39.0](../datakit/changelog.md#cl-1.39
     ## Set to false to stop generating APM metrics from dd-trace output.
     generate_metrics = false
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Async Profiler {#async-profiler}
 
@@ -155,7 +155,7 @@ async-profiler can trace the following kinds of events:
 ???+ node "Requirements"
 
     DataKit is now compatible with async-profiler v2.9 and below, higher version compatibility is unknown.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 The official website provides download for different platform binaries：
 
@@ -211,7 +211,7 @@ gdb $JAVA_HOME/lib/server/libjvm.so -ex 'info address UseG1GC'
 ```
 
 This command's output will either contain Symbol "UseG1GC" is at 0xxxxx or No symbol "UseG1GC" in current context.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 - Check Java process PID
 
 Before collection, you need to know the Java process's PID（use `jps` command）
@@ -235,7 +235,7 @@ Done
 ```
 <!-- markdownlint-disable MD046 -->
 After about 10s, there will generate a file named `profiling.html` in current dir, you can use browser to open it.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 ### Combine DataKit with async-profiler {#async-datakit}
 
 Requirements:
@@ -437,7 +437,7 @@ Create a file named "collect.sh" in current dir, type follow text：
         fi
     done
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 - Execute script
 
@@ -474,7 +474,7 @@ Compared to automated scripts, manual operations have higher degrees of freedom 
 ```
 <!-- markdownlint-disable MD046 -->
 - prepare "event.JSON" file
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 ```json
 {
     "tags_profiler": "library_version:2.8.3,library_type:async_profiler,process_id:16718,host:host_name,service:profiling-demo,env:dev,version:1.0.0",

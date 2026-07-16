@@ -84,7 +84,7 @@ export CATALINA_OPTS="-javaagent:dd-java-agent.jar \
 {{end}}
 
 {{ end }}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD024 -->
 
 ## 日志 {#logging}
 
@@ -92,7 +92,7 @@ export CATALINA_OPTS="-javaagent:dd-java-agent.jar \
 ???+ info
 
     日志采集仅支持采集已安装 DataKit 主机上的日志
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 如需采集 Tomcat 的日志，需开启[文件采集](logging.md)功能。可在 `logging.conf` 中写入 Tomcat 日志文件的绝对路径。比如：
 
@@ -279,7 +279,7 @@ Tomcat started.
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 指标 {#jolokia-metric}
 
@@ -309,7 +309,7 @@ Tomcat started.
 ???+ info
 
     日志采集仅支持采集已安装 DataKit 主机上的日志
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 如需采集 Tomcat 的日志，可在 {{.InputName}}.conf 中 将 `files` 打开，并写入 Tomcat 日志文件的绝对路径。比如：
 

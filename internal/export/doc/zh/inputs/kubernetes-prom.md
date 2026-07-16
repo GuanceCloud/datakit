@@ -60,7 +60,7 @@ __int_icon: 'icon/kubernetes'
         pod_name = "$PODNAME"
         node_name = "$NODENAME"
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 操作步骤 {#annotations-of-prometheus-steps}
 
@@ -95,7 +95,7 @@ spec:
 ???+ note
 
     `annotations` 一定添加在 `template` 字段下，这样 *deployment.yaml* 创建的 Pod 才会携带 `datakit/prom.instances`。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 - 使用新的 yaml 创建资源
 

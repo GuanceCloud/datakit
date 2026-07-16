@@ -270,7 +270,7 @@ Each of the following titles is a configuration item in the configuration file, 
    - default: 10
    - dynamic
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD006 MD007 -->
 
 ## Manual instrumentation of applications {#manual-instrumentation}
 
@@ -467,4 +467,4 @@ Manual detection can be done in two ways in Pinpoint Golang Agent:
           wg.Wait()
       }
       ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD006 MD007 MD038 -->

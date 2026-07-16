@@ -11,6 +11,6 @@ If you have custom data send to DataKit, you can refer to this list to avoid sam
 ???+ info
 
     - For logging, the measurement in the following table correspond to the `source` field in Studio. For object and custom object, they correspond to the `class` field in Studio.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 {{ .AllMeasurements }}

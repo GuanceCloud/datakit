@@ -111,7 +111,7 @@ Configuration Field Description:
 ???+ important
 
     **Important Note**: The `processes` field is a JSON string, and its value will be directly injected into the Flameshot container as the `FLAMESHOT_PROCESSES` environment variable. Please refer to [Flameshot related documentation](../integrations/flameshot.md) for the format and meaning of the `processes` field. If `processes` is empty, Flameshot injection will be skipped.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Environment Variables {#envs}
 
@@ -156,7 +156,7 @@ When `enable_prometheus_annotations` is set to `true` (it is `true` in the defau
 
     1. If the Pod already has any Annotation starting with `prometheus.io/`, DataKit-Operator will not inject the above Prometheus Annotations to avoid overwriting existing metric collection configurations.
     1. To use this feature, you need to enable the KubernetesPrometheus collector in DataKit and configure `EnableDiscoveryOfPrometheusPodAnnotations = true` to enable Pod Annotations auto-discovery.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Example Case {#flameshot-example}
 
@@ -165,7 +165,7 @@ When `enable_prometheus_annotations` is set to `true` (it is `true` in the defau
 
     - Adding only `admission.datakit/flameshot.enabled: "true"` Annotation is not enough to trigger injection; matching `flameshots` rules (including `namespace_selectors`/`label_selectors` and `processes` fields) must also be set in the DataKit-Operator configuration.
     - If the `processes` field is empty, injection will be skipped.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 Below is a Deployment example that injects Flameshot into all Pods created by the Deployment (assuming matching rules are set in DataKit-Operator configuration):
 
@@ -225,4 +225,4 @@ Wait a few minutes, and you can view application performance data on the <<<cust
     $ kubectl exec -it app-deployment-7bd8dd85f-fzmt2 -c datakit-flameshot -- bash
     $ cat /var/log/flameshot.log
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->

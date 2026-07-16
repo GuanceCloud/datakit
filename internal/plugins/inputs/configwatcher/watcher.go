@@ -15,7 +15,8 @@ import (
 	"time"
 
 	"github.com/cespare/xxhash/v2"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/diff"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/unifieddiff"
 )
 
 const defaultMaxOpenFiles = 1000
@@ -210,7 +211,7 @@ func (w *fileWatcher) checkChanges() ([]changeEvent, error) {
 				newState: currentState,
 			}
 			if currentState.size <= w.maxDiffSize {
-				event.diff = w.generateDiff(nil, currentState.content)
+				event.diff = unifieddiff.Text(path, "", string(currentState.content))
 			}
 			events = append(events, event)
 		} else if lastState.exists && currentState.exists {
@@ -225,7 +226,9 @@ func (w *fileWatcher) checkChanges() ([]changeEvent, error) {
 							oldState: lastState,
 							newState: currentState,
 						}
-						event.diff = w.generateDiff(lastState.content, currentState.content)
+						event.diff = unifieddiff.Text(
+							path, string(lastState.content), string(currentState.content),
+						)
 						events = append(events, event)
 					}
 				} else {
@@ -243,10 +246,6 @@ func (w *fileWatcher) checkChanges() ([]changeEvent, error) {
 
 	w.lastStates = currentStates
 	return events, nil
-}
-
-func (w *fileWatcher) generateDiff(oldContent, newContent []byte) string {
-	return diff.LineDiffWithContextLines(string(oldContent), string(newContent), 4)
 }
 
 func (w *fileWatcher) getCurrentStates() map[string]*fileState {

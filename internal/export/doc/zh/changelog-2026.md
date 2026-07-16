@@ -1,5 +1,31 @@
 # 更新日志
 
+## 2.6.0(2026/07/16) {#cl-2.6.0}
+
+本次发布属于迭代发布，主要有如下更新：
+
+### 新加功能 {#cl-2.6.0-new}
+
+- 拨测采集器支持通过 SSE 接收并立即执行一次性拨测任务，不影响现有周期调度；拨测结果新增 `trigger_type` 标签用于区分定时与手动触发，手动任务另带 `run_batch_id` 标签用于关联同一执行批次（#3139）
+- 拨测节点名称新增 `name_i18n` 多语言适配，可根据工作空间语言选择中文、英文、印尼语或繁体中文名称，并保留旧字段回退逻辑（#3126）
+- SNMP Trap 新增 `source` 配置，可按环境或设备组自定义日志 Source；未配置时仍使用 `traps`（#3145）
+- NetPath 网络路径采集器支持配置 TCP、UDP 和 ICMP 静态目标，并可从 eBPF 出站流量动态发现 TCP 目标；周期执行 traceroute 与端到端质量探测，并提供过滤、去重、限速和任务调度能力（#3143）
+
+### 问题修复 {#cl-2.6.0-fix}
+
+- 修复容器环境中将 `ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK` 设为 `false` 时仍无法开启内网拨测的问题（#3147）
+- 修复 OpenTelemetry 采集器开启 `split_service_name` 后，将 gRPC span 的原服务名替换为 `grpc` 的问题（#3148）
+
+### 功能优化 {#cl-2.6.0-opt}
+
+- 变更事件的 `diff` 统一调整为标准 unified diff，覆盖 Kubernetes、主机文件/网络/服务及配置文件监听；同时优化 K8s annotation、env 和 probe 变更的展示与长文本截断处理（#3137）
+
+### 兼容调整 {#cl-2.6.0-brk}
+
+- Helm Chart 的 `componentHealthLivenessProbe` 默认改为关闭，避免 DataKit 2.5.0 之前的镜像因不支持 `/v1/health` 而持续探测失败并进入 CrashLoop；使用 DataKit 2.5.0 及以上版本时可手动开启
+
+---
+
 ## 2.5.0(2026/07/08) {#cl-2.5.0}
 
 本次发布属于迭代发布，主要有如下更新：

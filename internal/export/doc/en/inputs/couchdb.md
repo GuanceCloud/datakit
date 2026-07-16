@@ -66,7 +66,7 @@ See [official document](https://docs.couchdb.org/en/stable/install/index.html){:
 
     - To collect data, several ports `5984/17986` need to be used. When collecting data remotely, these ports need to be opened.
     - `bind_address = 127.0.0.1` If it is a local collection, there is no need to modify it.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Collector Configuration {#input-config}
 
@@ -85,7 +85,7 @@ See [official document](https://docs.couchdb.org/en/stable/install/index.html){:
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Metric {#metric}
 

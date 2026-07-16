@@ -60,7 +60,7 @@ The following wildcard characters are supported:
         pod_name = "$PODNAME"
         node_name = "$NODENAME"
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Action Steps {#annotations-of-prometheus-steps}
 
@@ -95,7 +95,7 @@ spec:
 ???+ note
 
     The `annotations` must be added under the `template` field so that the Pod created by *deployment.yaml* carries `datakit/prom.instances`.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 
 - Create a resource with the new yaml
@@ -108,7 +108,7 @@ At this point, Annotations has been added. DataKit later reads the Pod's Annotat
 
 <!-- markdownlint-disable MD013 -->
 ## Auto-discovery of Prometheus Metrics from Pods/Services {#auto-discovery-metrics-with-prometheus}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 **Note: The complete documentation and latest configuration for this feature have been moved to [KubernetesPrometheus Collector - "Auto-discovery of Prometheus Metrics via Declarative Annotations"](kubernetesprometheus.md). This document retains only the basic environment variable configuration instructions. It is recommended to refer to the new document for detailed configuration examples and best practices.**
 

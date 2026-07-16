@@ -11,7 +11,7 @@ Core issues:
 - How the log data is processed
 <!-- markdownlint-disable MD013 -->
 ## Why is the Configuration of Log Collection So Complicated {#why}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 We can know from [this document](datakit-logging.md) that because of the various sources of logs, there are various ways to configure logs, so it is necessary for us to sort them out here for everyone to understand.
 
 In the process of log collection, DataKit has two types of collection methods: active and passive:

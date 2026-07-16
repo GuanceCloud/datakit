@@ -245,7 +245,7 @@ Flameshot 的所有行为均通过环境变量进行控制。配置分为 **全�
     ### Python Profiling {#python-profiling}
     
     *计划中*：将集成 `py-spy` 等无侵入式工具。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ---
 

@@ -9,151 +9,98 @@ tags      :
 __int_icon: 'icon/ddtrace'
 ---
 
-There are two ways to instrument your Go application:
+There are two ways to instrument a Go application:
 
 ## 1. Compile-time Instrumentation {#compile-time}
 
-- **Ensures maximum coverage** of your tracing instrumentation.
-- **Does not require source code modifications**, making it ideal for integrating at the CI/CD level.
-- Install DataKit and config [DDTrace](ddtrace.md){:target="_blank"}
+- **Does not require source-code changes** and instruments supported libraries at build time.
+- **Works well in CI/CD** when you want broad, centrally managed coverage.
 
 ## 2. Manual Instrumentation {#manual}
 
-Use `dd-trace-go` in conjunction with our integration packages to automatically generate spans for libraries of your choosing. This option:
+Use `dd-trace-go` in code to create spans around selected operations. This option:
 
-- **Gives you complete control** over which parts of your application are traced.
-- **Requires modifying the application’s source code**.
+- **Gives precise control** over which parts of the application are traced.
+- **Requires source-code changes**.
+
+This guide uses `dd-trace-go/v2`. Upstream no longer maintains v1. A legacy application that cannot migrate must keep its matching v1 API; never mix v1 and v2 import paths.
 
 ---
 
 ### Requirements {#requirements}
 
-- Applications must be managed using Go modules. Module vendoring is supported.
-- Go Tracer requires **Go 1.18+**.
+- Applications must use Go modules. Module vendoring is supported.
+- Go must be **1.18+**; for production, prefer a Go version still maintained upstream.
+- Install DataKit and enable the [DDTrace collector](ddtrace.md){:target="_blank"}.
 
 <!-- markdownlint-disable MD046 -->
 
-=== "≥1.24"
+=== "Recommended Workflow"
 
-    1. Install Orchestrion
+    1. Install Orchestrion and ensure `$(go env GOBIN)` or `$(go env GOPATH)/bin` is on `PATH`:
 
     ```shell
     go install github.com/DataDog/orchestrion@latest
     ```
 
-    If installation fails, try cloning the project locally and then compiling.
-
-    ```shell
-    git clone https://github.com/DataDog/orchestrion.git
-    cd orchestrion/
-    go build
-    cp orchestrion $GOPATH/bin/
-    ```
-
-    2. Initialize Orchestrion
+    2. Register Orchestrion in the project root:
 
     ```shell
     orchestrion pin
     ```
 
-    3. Compile & Run
+    This updates `go.mod`, `go.sum`, and creates `orchestrion.tool.go`. Commit those files with the application so local and CI builds use the same instrumentation dependency.
 
-    Use one of the following three methods to compile your project:
-
-    - **Before the `go build` command**:
+    3. Build, test, and run through Orchestrion:
 
     ```shell
     orchestrion go build .
-    orchestrion go run .
     orchestrion go test ./...
+    DD_SERVICE=my-go-service DD_AGENT_HOST=localhost DD_TRACE_AGENT_PORT=9529 \
+      orchestrion go run .
     ```
 
-    - **Using the `-toolexec` method**:
+<!-- cspell:ignore toolexec -->
+=== "Use -toolexec in CI"
+
+    If the build system cannot invoke `orchestrion go`, pass `-toolexec` explicitly to each relevant `go` command:
 
     ```shell
     go build -toolexec="orchestrion toolexec" .
-    go run -toolexec="orchestrion toolexec" .
     go test -toolexec="orchestrion toolexec" ./...
     ```
-
-    - **Modify the environment variable `$GOFLAGS`**:
-
-    ```shell
-    # Make sure to include the quotes as shown below, as these are required for
-    # the Go toolchain to parse GOFLAGS properly!
-    export GOFLAGS="${GOFLAGS} '-toolexec=orchestrion toolexec'"
-    go build .
-    go run .
-    go test ./...
-    ```
-
-=== "≥1.18 && <1.24"
-
-    1. Install Orchestrion
-
-    ```shell
-    # Install dependencies
-    go install github.com/datadog/orchestrion@v0.6.0
-    ```
-    
-    2. Initialize Orchestrion
-
-    ```shell
-    # Execute the initialization command in the root directory of the current project
-    orchestrion -w ./ 
-    ```
-
-    3. Download dependencies
-    
-    ```shell
-    go get github.com/datadog/orchestrion@v0.6.0
-    ```
-    4. Build
-
-    ```shell
-    go mod tidy
-    go build .
-    ```
-
-    5. Run
-
-    ```shell
-    export DD_SERVICE=<service-name>
-    export DD_TRACE_AGENT_PORT=9529
-    ./<application-name>
-    ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### More Documentation {#docs}
 
-- [Tracing Go Applications](https://docs.datadoghq.com/tracing/trace_collection/automatic_instrumentation/dd_libraries/go/?tab=compiletimeinstrumentation){:target="_blank"}
+- [Tracing Go Applications](https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/go/){:target="_blank"}
 - [GitHub Orchestrion](https://github.com/DataDog/orchestrion){:target="_blank"}
 
 ---
 
 ## Manual instrumentation {#dependence}
 
-Install the DDTrace Golang SDK:
+Install the v2 trace SDK:
 
 ```shell
-go get gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer
+go get github.com/DataDog/dd-trace-go/v2/ddtrace/tracer
 ```
 
-Install the profiling library
+If profiling is needed, install the profiler as well and enable the DataKit [Profiling collector](profile.md):
 
 ```shell
-go get gopkg.in/DataDog/dd-trace-go.v1/profiler
+go get github.com/DataDog/dd-trace-go/v2/profiler
 ```
 
 Other libraries related to components, as needed, for example:
 
 ```shell
-go get gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux
-go get gopkg.in/DataDog/dd-trace-go.v1/contrib/net/http
-go get gopkg.in/DataDog/dd-trace-go.v1/contrib/database/sql
+go get github.com/DataDog/dd-trace-go/contrib/gorilla/mux/v2
+go get github.com/DataDog/dd-trace-go/contrib/net/http/v2
+go get github.com/DataDog/dd-trace-go/contrib/database/sql/v2
 ```
 
-We can learn more about available tracing SDKs from the [Github plugin library](https://github.com/DataDog/dd-trace-go/tree/main/contrib){:target="_blank"} or [Datadog's related support documentation](https://docs.datadoghq.com/tracing/trace_collection/compatibility/go/#integrations){:target="_blank"}.
+See the [GitHub integration library](https://github.com/DataDog/dd-trace-go/tree/main/contrib){:target="_blank"} or the [Datadog support matrix](https://docs.datadoghq.com/tracing/trace_collection/compatibility/go/#integrations){:target="_blank"} for available integrations. Automatic HTTP integration does not cover every business operation, so add manual spans for critical business logic.
 
 ## Code Examples {#examples}
 
@@ -167,9 +114,9 @@ import (
   "net/http"
   "time"
 
-  httptrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/net/http"
-  "gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
-  "gopkg.in/DataDog/dd-trace-go.v1/profiler"
+  httptrace "github.com/DataDog/dd-trace-go/contrib/net/http/v2"
+  "github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
+  "github.com/DataDog/dd-trace-go/v2/profiler"
 )
 
 func main() {
@@ -217,34 +164,35 @@ Compile and run
 === "Linux/Mac"
 
     ```shell
-    go build http-server.go -o http-server
-    DD_AGENT_HOST=localhost DD_TRACE_AGENT_PORT=9529 ./http-server
+    go build -o http-server http-server.go
+    DD_SERVICE=go-http-server DD_AGENT_HOST=localhost DD_TRACE_AGENT_PORT=9529 ./http-server
     ```
 
 === "Windows"
 
     ```powershell
-    go build http-server.go -o http-server
-    $env:DD_AGENT_HOST="localhost"; $env:DD_TRACE_AGENT_PORT="9529"; .\http-server.exe
+    go build -o http-server.exe http-server.go
+    $env:DD_SERVICE="go-http-server"; $env:DD_AGENT_HOST="localhost"; $env:DD_TRACE_AGENT_PORT="9529"; .\http-server.exe
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
+
+`profiler.Start()` is optional. When enabled, profiling data is delivered to the DataKit Profiling receiver, not the trace receiver described on this page. Confirm that the `profile` collector is enabled.
 
 ### Manual Tracing {#manual-tracing}
 
 The following code demonstrates trace data collection for a file opening operation.
 
-In the `main()` entry code, set the basic trace parameters and start tracing:
+Start the tracer at the application entry point and pass the parent span context to downstream operations. In v2, use `StartChild` or `StartSpanFromContext` to establish parent/child relationships instead of the v1 `ChildOf` pattern:
 
-``` go hl_lines="8-9 14-17 40-45 57-66" linenums="1" title="main.go"
+``` go linenums="1" title="main.go"
 package main
 
 import (
-    "io/ioutil"
     "os"
     "time"
 
-    "gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext"
-    "gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+    "github.com/DataDog/dd-trace-go/v2/ddtrace/ext"
+    "github.com/DataDog/dd-trace-go/v2/ddtrace/tracer"
 )
 
 func main() {
@@ -274,28 +222,21 @@ func main() {
 
 func runApp() {
     var err error
-    // Start a root span.
     span := tracer.StartSpan("get.data")
-    defer span.Finish(tracer.WithError(err))
+    defer func() { span.Finish(tracer.WithError(err)) }()
 
-    // Create a child of it, computing the time needed to read a file.
-    child := tracer.StartSpan("read.file", tracer.ChildOf(span.Context()))
+    child := span.StartChild("read.file")
     child.SetTag(ext.ResourceName, os.Args[0])
 
-    // Perform an operation.
-    var bts []byte
-    bts, err = ioutil.ReadFile(os.Args[0])
+    bts, err := os.ReadFile(os.Args[0])
     span.SetTag("file_len", len(bts))
     child.Finish(tracer.WithError(err))
 }
 
 func runAppWithError() {
     var err error
-    // Start a root span.
     span := tracer.StartSpan("get.data")
-
-    // Create a child of it, computing the time needed to read a file.
-    child := tracer.StartSpan("read.file", tracer.ChildOf(span.Context()))
+    child := span.StartChild("read.file")
     child.SetTag(ext.ResourceName, "somefile-not-found.go")
 
     defer func() {
@@ -303,10 +244,7 @@ func runAppWithError() {
         span.Finish(tracer.WithError(err))
     }()
 
-    // Perform an error operation.
-    if _, err = ioutil.ReadFile("somefile-not-found.go"); err != nil {
-        // error handle
-    }
+    _, err = os.ReadFile("somefile-not-found.go")
 }
 ```
 
@@ -316,17 +254,17 @@ Compile and run
 === "Linux/Mac"
 
     ```shell
-    go build main.go -o my-app
-    DD_AGENT_HOST=localhost DD_TRACE_AGENT_PORT=9529 ./my-app
+    go build -o my-app main.go
+    DD_SERVICE=test-file-read DD_AGENT_HOST=localhost DD_TRACE_AGENT_PORT=9529 ./my-app
     ```
 
 === "Windows"
 
     ```powershell
-    go build main.go -o my-app.exe
-    $env:DD_AGENT_HOST="localhost"; $env:DD_TRACE_AGENT_PORT="9529"; .\my-app.exe
+    go build -o my-app.exe main.go
+    $env:DD_SERVICE="test-file-read"; $env:DD_AGENT_HOST="localhost"; $env:DD_TRACE_AGENT_PORT="9529"; .\my-app.exe
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 After running the program for a while, you can see trace data similar to the following in <<<custom_key.brand_name>>>:
 
@@ -337,19 +275,19 @@ After running the program for a while, you can see trace data similar to the fol
 
 ## Supported Environment Variables {#start-options}
 
-The following environment variables are supported to specify some configuration parameters of DDTrace when starting the program, and their basic form is:
+The following environment variables configure DDTrace at process startup:
 
 ```shell
 DD_XXX=<env-value> DD_YYY=<env-value> ./my-app
 ```
 
-For more environment variable support, see [DDTrace-Go Documentation](https://docs.datadoghq.com/tracing/trace_collection/library_config/go/){:target="_blank"}.
+See [DDTrace-Go documentation](https://docs.datadoghq.com/tracing/trace_collection/library_config/go/){:target="_blank"} for the complete list, precedence, and version-specific behavior.
 
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
-    These environment variables will be overridden by the corresponding fields injected with `WithXXX()` in the code, so the configuration injected by the code has a higher priority. These ENVs only take effect when the corresponding fields are not specified in the code.
-<!-- markdownlint-enable -->
+    Avoid setting conflicting values for the same setting in code and environment variables. Precedence can differ by Go SDK version; when overriding a value, use the running SDK's documentation and startup logs as the source of truth.
+<!-- markdownlint-enable MD046 -->
 
 - **`DD_VERSION`**
 
@@ -367,36 +305,33 @@ For more environment variable support, see [DDTrace-Go Documentation](https://do
 
     **Default**: `localhost`
 
-    Sets the IP address of DataKit, and the trace data generated by the application will be sent to DataKit
+    Sets the DataKit host name or IP to which traces are sent. `DD_TRACE_AGENT_URL`, when set, normally takes precedence.
 
 - **`DD_TRACE_AGENT_PORT`**
 
-    Sets the DataKit trace data receiving port. Here you need to manually specify the [DataKit HTTP port](datakit-conf.md#config-http-server) (usually 9529)
+    Sets the trace receiver port. The common upstream default is `8126`; explicitly specify the [DataKit HTTP port][4] (normally `9529`) for DataKit.
 
-- **`DD_DOGSTATSD_PORT`**
+- **`DD_DOGSTATSD_HOST`**, **`DD_DOGSTATSD_PORT`**
 
-    Default value: `8125`
-    If you want to receive StatsD data generated by DDTrace, you need to manually enable the [StatsD collector](../integrations/statsd.md) on DataKit
+    The DogStatsD destination for runtime metrics. The normal default port is `8125`. To receive DogStatsD data from the Go SDK, enable the DataKit [StatsD collector][5]; do not point it at the trace port `9529`.
 
 - **`DD_TRACE_SAMPLING_RULES`**
 
-    **Default**: `nil`
-
-    Here a JSON array is used to represent the sampling settings (sampling rate application is in array order), where `sample_rate` is the sampling rate, and the value range is `[0.0, 1.0]`.
+    A JSON rule array evaluated in order. `sample_rate` ranges from `[0.0, 1.0]`.
 
     **Example 1**: Set the global sampling rate to 20%: `DD_TRACE_SAMPLING_RULES='[{"sample_rate": 0.2}]' ./my-app`
 
-    **Example 2**: Service name wildcard `app1.*`, and the span name is `abc`, set the sampling rate to 10%, otherwise, set the sampling rate to 20%: `DD_TRACE_SAMPLING_RULES='[{"service": "app1.*", "name": "b", "sample_rate": 0.1}, {"sample_rate": 0.2}]' ./my-app`
+    **Example 2**: Sample traces at 10% when service matches `app1.*` and the span name is `abc`, otherwise at 20%: `DD_TRACE_SAMPLING_RULES='[{"service": "app1.*", "name": "abc", "sample_rate": 0.1}, {"sample_rate": 0.2}]' ./my-app`
 
 - **`DD_TRACE_SAMPLE_RATE`**
 
-    **Default**: `nil`
+    **v2 default**: `1.0`
 
-    Enable the above sampling rate switch
+    Sets the global SDK-side sample rate. It is a simpler, separate setting from `DD_TRACE_SAMPLING_RULES`; use rules when sampling must vary by service or operation.
 
 - **`DD_TRACE_RATE_LIMIT`**
 
-    Sets the number of span samples per second for each Golang process. If `DD_TRACE_SAMPLE_RATE` is already turned on, the default is 100
+    Sets the maximum number of sampled traces per second for each Go process. When sampling rules or a sample rate are set, the usual default is `100`.
 
 - **`DD_TAGS`**
 
@@ -430,6 +365,6 @@ For more environment variable support, see [DDTrace-Go Documentation](https://do
 ---
 
 <!-- markdownlint-disable MD053 -->
-[4]: datakit-conf.md#config-http-server
-[5]: ../integrations/statsd.md
-<!-- markdownlint-enable -->
+[4]: ../datakit/datakit-conf.md#config-http-server
+[5]: statsd.md
+<!-- markdownlint-enable MD053 -->

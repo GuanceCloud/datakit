@@ -37,6 +37,14 @@ var (
 	EnvNetlogFallbackBlocks  = "NETLOG_FALLBACK_BLOCKS"
 	EnvNetlogSharedBlocks    = "NETLOG_SHARED_BLOCKS"
 	EnvNetlogL7LogHeaders    = "NETLOG_L7LOG_HEADERS"
+
+	EnvNetworkPathEnabled       = "NETWORK_PATH_ENABLED"
+	EnvNetworkPathAPI           = "NETWORK_PATH_API"
+	EnvNetworkPathToken         = "NETWORK_PATH_TOKEN" //nolint:gosec
+	EnvNetworkPathFlushInterval = "NETWORK_PATH_FLUSH_INTERVAL"
+	EnvNetworkPathBatchSize     = "NETWORK_PATH_BATCH_SIZE"
+	EnvNetworkPathHTTPTimeout   = "NETWORK_PATH_HTTP_TIMEOUT"
+	EnvNetworkPathQueueSize     = "NETWORK_PATH_QUEUE_SIZE"
 )
 
 type Flag struct {
@@ -62,6 +70,7 @@ type Flag struct {
 	EBPFNet       FlagNet          `toml:"ebpf_net"`
 	EBPFTrace     FlagTrace        `toml:"ebpf_trace"`
 	BPFNetLog     FlagBPFNetLog    `toml:"bpf_netlog"`
+	NetworkPath   FlagNetworkPath  `toml:"network_path"`
 	ResourceLimit FlagResLimit     `toml:"resource_limit"`
 
 	Sampling FlagSampling `toml:"sampling"`
@@ -78,6 +87,16 @@ type FlagNet struct {
 
 	EphemeralPort int32 `toml:"ephemeral_port"`
 	IPv6Disabled  bool  `toml:"ipv6_diabled"`
+}
+
+type FlagNetworkPath struct {
+	Enabled       bool   `toml:"enabled"`
+	API           string `toml:"api"`
+	Token         string `toml:"token"`
+	FlushInterval string `toml:"flush_interval"`
+	BatchSize     int    `toml:"batch_size"`
+	HTTPTimeout   string `toml:"http_timeout"`
+	QueueSize     int    `toml:"queue_size"`
 }
 
 type FlagBPFNetLog struct {
@@ -169,7 +188,34 @@ func readEnv(flag *Flag) {
 			if n, err := strconv.Atoi(v); err == nil {
 				flag.BPFNetLog.SharedRingBlocks = n
 			}
+		case EnvNetworkPathEnabled:
+			flag.NetworkPath.Enabled = parseBool(v)
+		case EnvNetworkPathAPI:
+			flag.NetworkPath.API = v
+		case EnvNetworkPathToken:
+			flag.NetworkPath.Token = v
+		case EnvNetworkPathFlushInterval:
+			flag.NetworkPath.FlushInterval = v
+		case EnvNetworkPathBatchSize:
+			if n, err := strconv.Atoi(v); err == nil {
+				flag.NetworkPath.BatchSize = n
+			}
+		case EnvNetworkPathHTTPTimeout:
+			flag.NetworkPath.HTTPTimeout = v
+		case EnvNetworkPathQueueSize:
+			if n, err := strconv.Atoi(v); err == nil {
+				flag.NetworkPath.QueueSize = n
+			}
 		}
+	}
+}
+
+func parseBool(v string) bool {
+	switch strings.ToLower(strings.TrimSpace(v)) {
+	case "", "0", "f", "false", "no", "off":
+		return false
+	default:
+		return true
 	}
 }
 

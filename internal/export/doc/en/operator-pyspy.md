@@ -81,4 +81,4 @@ Wait a few minutes, and you can view the application performance data on the <<<
     $ kubectl exec -it movies-python-78b6cf55f-ptzxf -c datakit-profiler -- bash
     $ tail -n 2000 log/main.log
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->

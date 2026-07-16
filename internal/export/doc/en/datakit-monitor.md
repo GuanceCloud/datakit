@@ -15,7 +15,7 @@ datakit monitor
 ???+ tip
 
     You can see more monitor options through the `datakit monitor --help`.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 The DataKit Basic Monitor page information is shown in the following figure:
 
 ![`onitor-basic-v1`](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/monitor-basic-v1.png)
@@ -89,7 +89,7 @@ If the verbose option (`-V`) is specified when Monitor is run, additional inform
 ## FAQ {#faq}
 <!-- markdownlint-disable MD013 -->
 ### How to show only the operation of the specified module? {#specify-module}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 You can specify a list of module names (multiple modules are separated by English commas): [:octicons-tag-24: Version-1.5.7](changelog.md#cl-1.5.7)
 
 ```shell
@@ -102,7 +102,7 @@ datakit monitor -M in,f
 ```
 <!-- markdownlint-disable MD013 -->
 ### How to show only the operation of the specified collector? {#specify-inputs}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 You can specify a list of collector names (multiple collectors are separated by English commas):
 
 ```shell
@@ -112,7 +112,7 @@ datakit monitor --input cpu,mem
 ```
 <!-- markdownlint-disable MD013 -->
 ### How to display too long text? {#too-long}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 When some collectors report errors, their error information will be very long and incomplete in the table.
 
 Complete information can be displayed by setting the column width of the display:
@@ -124,7 +124,7 @@ datakit monitor --max-table-width 1024
 ```
 <!-- markdownlint-disable MD013 -->
 ### How to change the Monitor refresh rate? {#freq}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 It can be changed by setting the refresh frequency:
 
 ```shell
@@ -136,11 +136,11 @@ datakit monitor --refresh 1s
 ???+ note
 
     Note that the units here must be the following: s (seconds)/m (minutes)/h (hours). If the time range is less than 1s, refresh according to 1s. 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD013 -->
 ### How to select a quantile (P50/P90/P99) for display? {#quantile}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 Monitor shows average (avg) for Summary metrics by default. If you want to display quantile values, use `-Q/--quantile`:
 
@@ -159,7 +159,7 @@ This option affects Summary columns such as `Lat(...)`, `Pts(...)`, `Cost(...)`,
 
 <!-- markdownlint-disable MD013 -->
 ### How to Monitor other DataKits? {#remote-monitor}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 We can specify other DataKit's IP to show it's monitor:
 
@@ -171,4 +171,4 @@ datakit monitor --to <remote-ip>:9529
 ???+ info
 
     By default, metrics data used by monitor are not accessible for non-localhost, we can [add API `/metrics` to API white list](datakit-conf.md#public-apis).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->

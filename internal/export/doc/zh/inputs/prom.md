@@ -44,7 +44,7 @@ Prom 采集器可以获取各种 Prometheus Exporters 暴露出来的指标数�
     [[inputs.prom]]
         interval = "10s"
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 配置额外的 header {#extra-header}
 

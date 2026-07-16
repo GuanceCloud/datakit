@@ -12,32 +12,36 @@ __int_icon: 'icon/ddtrace'
 
 ## Install Dependencies {#dependence}
 
-To install the DDTrace extension for NodeJS, follow the complete APM integration steps in the [Datadog NodeJS Integration Documentation](https://docs.datadoghq.com/tracing/trace_collection/automatic_instrumentation/dd_libraries/nodejs/){:target="_blank"}.
+Confirm that the Node.js runtime is compatible with the `dd-trace` major version before installing the SDK. Use a maintained Node.js release for new applications; an incompatible SDK can fail during startup. See the [Datadog Node.js setup guide](https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/nodejs/){:target="_blank"} for compatibility and complete setup.
 
-## NodeJS v12+ {#node-12}
+## Currently Supported Node.js Versions {#node-12}
 
 ```shell
 npm install dd-trace --save
 ```
 
-## NodeJS v10 v8 {#node-10-8}
+The current `dd-trace` line targets modern Node.js runtimes. For containers, pin and validate the SDK major version, the Node.js major version, and the image together before release.
+
+## Node.js 10 / 8 (Legacy Maintenance Only) {#node-10-8}
 
 ```shell
 npm install dd-trace@latest-node10
 ```
 
-> Note: You must import and initialize the DDTrace library before any NodeJS code or any Module is loaded. If the DDTrace library is not properly initialized, it may not receive trace data.
+Node.js 10 and 8 are end of life. Use this branch only for applications that cannot yet be upgraded, and validate compatibility and security in a pre-production environment.
+
+> Load and initialize DDTrace before any module that should be auto-instrumented. Initialization cannot retroactively instrument modules that have already been loaded, so their calls will not produce the expected traces.
 
 ## Example {#example}
 
-In an environment that only runs JavaScript:
+In a CommonJS application, put initialization on the first line of the entry file:
 
 ```nodejs
 // This line must come before importing any instrumented module.
 const tracer = require("dd-trace").init();
 ```
 
-For environments that use TypeScript and bundlers and support ECMAScript Module syntax, you need to initialize DDTrace in a different file:
+For TypeScript, bundlers, or ECMAScript Modules, use a dedicated initialization file and make it the first import of the application:
 
 ```nodejs
 //
@@ -55,7 +59,7 @@ tracer.init(); // initialized in a different file to avoid hoisting.
 export default tracer;
 ```
 
-Additionally, if the default configuration is sufficient or DDTrace is successfully configured via environment variables, you can directly import the module in your code:
+If all configuration is provided through environment variables, you can preload the module instead:
 
 ```typescript
 import "dd-trace/init";
@@ -63,44 +67,55 @@ import "dd-trace/init";
 
 ## Run {#run}
 
-Run Node Code
+This example sends traces to a local DataKit. For another host or Kubernetes, replace the host with the DataKit Service/DNS name and make sure DataKit's HTTP service accepts remote connections:
 
 ```shell
-DD_AGENT_HOST=localhost DD_TRACE_AGENT_PORT=9529 node server
+DD_SERVICE=my-node-service \
+DD_ENV=production \
+DD_VERSION=1.0.0 \
+DD_AGENT_HOST=localhost \
+DD_TRACE_AGENT_PORT=9529 \
+node server.js
 ```
+
+After startup, call an instrumented route and confirm requests to `/v0.4/traces` (or another SDK-compatible endpoint) in the DataKit monitor. For troubleshooting, temporarily set `DD_TRACE_DEBUG=true` and disable it after verification.
 
 ## Environment Variable Support {#envs}
 
-The following lists common ENV support. For a complete list of ENV support, see [Datadog Documentation](https://docs.datadoghq.com/tracing/trace_collection/library_config/nodejs/){:target="_blank"}.
+Set these variables before the Node.js process starts. For the complete list and version-specific behavior, see the [Datadog configuration guide](https://docs.datadoghq.com/tracing/trace_collection/library_config/nodejs/){:target="_blank"}.
 
 - **DD_ENV**
 
-    Sets the environment variable for the service.
+    Sets the deployment environment, for example `production` or `staging`.
 
 - **DD_VERSION**
 
-    The version number of the APP.
+    Sets the application version.
 
 - **DD_SERVICE**
 
-    Used to set the application's service name, defaults to the `name` field in *package.json*.
+    Sets the service name. It usually falls back to `name` in *package.json*, but production deployments should set it explicitly.
 
 - **DD_SERVICE_MAPPING**
 
-    Defines service name mappings for renaming services in Tracing.
+    Defines dependency-service mappings, for example `postgres:orders-db`. It does not change this service's `DD_SERVICE`.
 
 - **DD_TAGS**
 
-    Adds default Tags to each Span.
+    Adds default tags to each span in `key:value,key:value` form. Do not include user identifiers, tokens, or request contents.
 
-- **DD_TRACE_AGENT_HOSTNAME**
+- **DD_AGENT_HOST**
 
-    The hostname where DataKit is listening, default is localhost.
+    The DataKit host name or IP address. It normally defaults to `localhost`; `DD_TRACE_AGENT_URL`, when set, takes precedence.
 
 - **DD_TRACE_AGENT_PORT**
 
-    The port number where DataKit is listening, default is 9529.
+    The trace receiver port. The common upstream default is `8126`; explicitly set `9529` for DataKit.
 
 - **DD_TRACE_SAMPLE_RATE**
 
-    Sets the sampling rate from 0.0 (0%) to 1.0 (100%).
+    Sets the SDK-side sampling rate from `0.0` (0%) to `1.0` (100%). It is independent of DataKit receiver-side sampling.
+
+- **DD_TRACE_ENABLED**
+
+    Controls automatic instrumentation and trace generation. During troubleshooting, make sure it is not set to `false`.

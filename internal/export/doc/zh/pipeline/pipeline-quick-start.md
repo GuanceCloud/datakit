@@ -113,7 +113,7 @@ Bye!
 ???+ note
 
     Windows 下，请在 Powershell 中执行调试。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 多行如何处理 {#multiline}
 
@@ -184,7 +184,7 @@ datakit pipeline -P test.p -T "$(<multi-line.log)"
 ???+ tip
 
     当然我们可以通过[特定的 Pipeline 函数](pipeline-built-in-function.md#fn-set-tag)覆盖上面这些 tag 的值。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 完整 Pipeline 示例 {#example}
 
@@ -228,7 +228,7 @@ drop_origin_data()       # 丢弃原始日志文本(不建议这么做)
     _dklog_source_file (/?[\w_%!$@:.,-]?/?)(\S+)?
     _dklog_msg %{GREEDYDATA}
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 现在 Pipeline 以及其引用的 pattern 都有了，就能通过 DataKit 内置的 Pipeline 调试工具，对这一行日志进行切割：
 
@@ -250,7 +250,7 @@ Extracted data(cost: 421.705µs):
 
 <!-- markdownlint-disable MD013 -->
 ### Pipeline 调试时，为什么变量无法引用？ {#ref-variables}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 现有如下 Pipeline：
 
@@ -277,7 +277,7 @@ json(_, `@timestamp`, "time")
 
 <!-- markdownlint-disable MD013 -->
 ### Pipeline 调试时，为什么找不到对应的 Pipeline 脚本？ {#pl404}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 命令如下：
 
@@ -290,7 +290,7 @@ $ datakit pipeline -P test.p -T "..."
 
 <!-- markdownlint-disable MD013 -->
 ### 如何在一个 Pipeline 中切割多种不同格式的日志？ {#if-else}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 在日常的日志中，因为业务的不同，日志会呈现出多种形态，此时，需写多个 Grok 切割，为提高 Grok 的运行效率，**可根据日志出现的频率高低，优先匹配出现频率更高的那个 Grok**，这样，大概率日志在前面几个 Grok 中就匹配上了，避免了无效的匹配。
 
@@ -315,7 +315,7 @@ $ datakit pipeline -P test.p -T "..."
         }
     }
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 如何丢弃字段切割 {#drop-keys}
 

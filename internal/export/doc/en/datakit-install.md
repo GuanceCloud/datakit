@@ -505,7 +505,7 @@ In Kubernetes, you can inject APM through the [DataKit Operator](operator-ddtrac
 ## FAQ {#faq}
 <!-- markdownlint-disable MD013 -->
 ### How to Deal with the Unfriendly Host Name {#bad-hostname}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 Because DataKit uses Hostname as the basis for data concatenation, in some cases, some host names are not very friendly, such as  `iZbp141ahn....`, but for some reasons, these host names cannot be modified, which brings some troubles to use. In DataKit, this unfriendly host name can be overwritten in the main configuration.
 
 In `datakit.conf`, modify the following configuration and the DataKit will read `ENV_HOSTNAME` to overwrite the current real hostname:
@@ -519,7 +519,7 @@ In `datakit.conf`, modify the following configuration and the DataKit will read 
 
 <!-- markdownlint-disable MD013 -->
 ### Issue on macOS installation {#mac-failed}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 If it appears during the installation/upgrade process when installing on macOS:
 
@@ -541,7 +541,7 @@ sudo launchctl load -w /Library/LaunchDaemons/com.datakit.plist
 
 <!-- markdownlint-disable MD013 -->
 ### Are there any high-risk operations on files and data in DataKit? {#danger-ops}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 During its operation, DataKit reads a significant amount of system information based on the collection configuration, such as process lists, hardware and software information (e.g., OS information, CPU, memory, disk, network card, etc.). However, it does not proactively execute deletion or modification of data outside of itself. About file reading and writing, there are two parts: one related to data collection read file/port operations, and one for the necessary file reading and writing operations during DataKit's own runtime.
 
@@ -573,13 +573,13 @@ Some data collection requires the use of disk cache functionality (which must be
 
 <!-- markdownlint-disable MD013 -->
 ### How does DataKit control its own resource consumption? {#resource-limit}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 DataKit's resource usage can be limited through mechanisms such as cgroup. For more information, see [here](datakit-conf.md#resource-limit). If DataKit is deployed in Kubernetes, see [here](datakit-daemonset-deploy.md#requests-limits).
 
 <!-- markdownlint-disable MD013 -->
 ### What is DataKit's own observability? {#self-obs}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 During its operation, DataKit exposes many [internal metrics](datakit-metrics.md). By default, DataKit collects these metrics using the [built-in collector](../integrations/dk.md) and reports them to the user's workspace.
 
@@ -587,6 +587,6 @@ In addition, DataKit also comes with a [monitor command-line](datakit-monitor.md
 
 <!-- markdownlint-disable MD013 -->
 ## More Readings {#more-reading}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 - [Getting started with DataKit](datakit-service-how-to.md)

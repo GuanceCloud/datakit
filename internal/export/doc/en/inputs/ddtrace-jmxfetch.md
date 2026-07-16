@@ -1,99 +1,129 @@
 ---
 title     : 'DDTrace JMX'
-summary   : 'Export JVM metrics with DDTrace JMX'
+summary   : 'Collect JVM JMX metrics through the DDTrace Java Agent'
 tags      :
   - 'DDTRACE'
   - 'JAVA'
+  - 'JMX'
 __int_icon: 'icon/ddtrace'
 ---
 
 ## JMXFetch {#ddtrace-jmxfetch}
 
-When DDTrace is run in agent form, the user does not need to specifically open the jmx port. If the port is not opened, the agent will randomly open a local port.
+JMXFetch is embedded in `dd-java-agent`. It reads JVM MBeans and sends metrics through DogStatsD. It is independent of trace ingestion:
 
-JMXFetch collects metrics from the JMX server and sends them out in the form of a statsD data structure. Itself integrated in *dd-java-agent*.
+`Java Agent JMXFetch` → `DogStatsD` → `DataKit StatsD collector` → `<<<custom_key.brand_name>>>`
 
-By default, JVM information will be collected: JVM CPU, Mem, Thread, Class, etc. Specific [metric set list](jvm.md#metric)
+The default JVM configuration uses `jvm_direct: true` to read MBeans **inside the current JVM process**, so JMXFetch normally does not require opening `com.sun.management.jmxremote.port`. Remote JMX is a separate operations capability. If the application genuinely needs it, configure authentication, TLS, and network access independently; never disable authentication and expose a port in production just for JMXFetch.
 
-By default, the collected indicator information is sent to `localhost:8125`. Make sure [turn on statsd collector](statsd.md) is enabled.
+### Prerequisites {#prerequisites}
 
-If it is a k8s environment, you need to configure StatsD host and port:
+1. The Java application has loaded the Agent through [DDTrace Java](ddtrace-java.md).
+1. DataKit has the [StatsD collector](statsd.md) enabled. Its default listener is UDP `:8125`; across hosts or Pods, verify Service, NetworkPolicy, and UDP reachability.
+1. `DD_JMXFETCH_STATSD_HOST` and `DD_JMXFETCH_STATSD_PORT` point to the DataKit StatsD receiver, not trace port `9529`.
 
-```shell
-DD_JMXFETCH_STATSD_HOST=datakit_url
-DD_JMXFETCH_STATSD_PORT=8125
-```
+### Default Metrics and Built-In Integrations {#default-metrics}
 
-You can use `dd.jmxfetch.<INTEGRATION_NAME>.enabled=true` to enable the specified collector.
+JMXFetch commonly collects JVM memory, threads, class loading, and GC metrics. The actual set varies by Java Agent version, JVM, and configuration; use the observed [JVM metric set](jvm.md#metric) as the source of truth.
 
-Before filling in `INTEGRATION_NAME`, you can check [Default supported third-party software](https://docs.datadoghq.com/integrations/){:target="_blank"}
-
-You can use `dd.jmxfetch.<INTEGRATION_NAME>.enabled=true` to enable the specified collector.
-
-Before filling in `INTEGRATION_NAME`, you can check [Default supported third-party software](https://docs.datadoghq.com/integrations/){:target="_blank"}
-
-For example tomcat:
-
-## custom metrics {#custom_metric}
+Some Java Agent versions also include JMX configurations for third-party products. Enable one only when needed, for example:
 
 ```shell
 -Ddd.jmxfetch.tomcat.enabled=true
 ```
 
-<!-- markdownlint-disable MD013 -->
-## How to collect metrics through custom configuration {#custom-metric}
-<!-- markdownlint-enable -->
+Here, `tomcat` is the integration name. Confirm that the installed Agent contains the integration before enabling it, and avoid unnecessary checks that create extra queries or metric cardinality.
 
-How to collect metrics through custom configuration.
+## Configure the DataKit DogStatsD Target {#statsd-target}
 
-- `jvm.total_thread_count`
-- `jvm.peak_thread_count`
-- `jvm.daemon_thread_count`
-
-> `dd-java-agent` has built-in these three indicators starting from v1.17.3-ext, and no additional configuration is required. However, other MBean indicators can still be configured in this customized way.
-
-Custom indicators need to add configuration files:
-
-1. mkdir `/usr/local/ddtrace/conf.d`, Other directories can be used.
-2. Create a configuration file under the folder `ext.d/conf.yaml`.
-3. `conf.yaml` at end of doc.
-
-My service name is `tmall.jar` and the merged startup parameters are:
+For local deployment, defaults may be sufficient. Across containers or Kubernetes, configure the target explicitly:
 
 ```shell
-java -javaagent:/usr/local/dd-java-agent.jar \
-  -Dcom.sun.management.jmxremote.host=127.0.0.1 \
-  -Dcom.sun.manaagement.jmxremote.port=9012 \
-  -Dcom.sun.management.jmxremote.ssl=false \
-  -Dcom.sun.management.jmxremote.authenticate=false \
-  -Ddd.jmxfetch.config.dir="/usr/local/ddtrace/conf.d/" \
-  -Ddd.jmxfetch.config="ext.d/conf.yaml" \
-  -jar tmall.jar
+DD_JMXFETCH_ENABLED=true \
+DD_JMXFETCH_STATSD_HOST=datakit-service.datakit.svc.cluster.local \
+DD_JMXFETCH_STATSD_PORT=8125 \
+java -javaagent:/opt/dd-java-agent.jar \
+  -Ddd.agent.host=datakit-service.datakit.svc.cluster.local \
+  -Ddd.trace.agent.port=9529 \
+  -jar /opt/my-app.jar
 ```
 
-The conf.yaml configuration file is as follows:
+`DD_AGENT_HOST` / `DD_TRACE_AGENT_PORT` configure the trace destination; `DD_JMXFETCH_STATSD_HOST` / `DD_JMXFETCH_STATSD_PORT` configure the metric destination. They are not interchangeable.
 
-```yaml
+## Collect Metrics with a Custom Configuration {#custom-metric}
+
+When built-in metrics are insufficient, provide an additional JMXFetch YAML file to the Java Agent. Supply it through a ConfigMap, version-controlled image file, or managed volume, and make sure the JVM runtime user can read it.
+
+### 1. Create the Configuration Directory {#create-config-dir}
+
+```shell
+mkdir -p /opt/ddtrace/conf.d/ext.d
+```
+
+Save the following content as `/opt/ddtrace/conf.d/ext.d/conf.yaml`.
+
+### 2. Write the YAML {#write-yaml}
+
+This example reads the current JVM's `java.lang:type=Threading` MBean. With `jvm_direct: true`, no remote-JMX host, port, or disabled authentication is needed:
+
+```yaml title="conf.yaml"
 init_config:
   is_jmx: true
   collect_default_metrics: true
 
 instances:
   - jvm_direct: true
-    host: localhost
-    port: 9012
-    conf: 
+    name: application-jvm
+    conf:
       - include:
           domain: java.lang
           type: Threading
           attribute:
-            TotalStartedThreadCount:
-              alias: jvm.total_thread_count
+            ThreadCount:
+              alias: jvm.thread.count
               metric_type: gauge
             PeakThreadCount:
-              alias: jvm.peak_thread_count
+              alias: jvm.thread.peak_count
               metric_type: gauge
             DaemonThreadCount:
-              alias: jvm.daemon_thread_count
+              alias: jvm.thread.daemon_count
               metric_type: gauge
 ```
+
+`alias` becomes the metric name in DataKit. Use stable, readable names that do not grow indefinitely with dynamic values such as instance IDs. Assess cardinality and collection overhead before adding many MBeans or tags.
+
+### 3. Load the Configuration in the Agent {#load-config}
+
+Specify the directory and relative file name:
+
+```shell
+java -javaagent:/opt/dd-java-agent.jar \
+  -Ddd.jmxfetch.config.dir=/opt/ddtrace/conf.d \
+  -Ddd.jmxfetch.config=ext.d/conf.yaml \
+  -Ddd.jmxfetch.statsd.host=datakit-service.datakit.svc.cluster.local \
+  -Ddd.jmxfetch.statsd.port=8125 \
+  -jar /opt/my-app.jar
+```
+
+The corresponding environment variables are `DD_JMXFETCH_CONFIG_DIR`, `DD_JMXFETCH_CONFIG`, `DD_JMXFETCH_STATSD_HOST`, and `DD_JMXFETCH_STATSD_PORT`. Do not set conflicting JVM properties and environment variables for the same setting.
+
+### 4. Verify {#verify}
+
+1. Temporarily enable Agent startup or JMXFetch logging and confirm that the YAML file loaded and the DogStatsD target is correct.
+1. Confirm that the DataKit StatsD collector is running on the expected protocol and port.
+1. Wait for one collection cycle, then find `jvm.thread.count`, `jvm.thread.peak_count`, and `jvm.thread.daemon_count` in Metric Explorer.
+1. If data is missing, check the mount path and permissions, UDP connectivity, whether JMXFetch is enabled, and YAML indentation and MBean names in that order.
+
+## Related Configuration {#configuration}
+
+| JVM property | Environment variable | Description |
+| --- | --- | --- |
+| `dd.jmxfetch.enabled` | `DD_JMXFETCH_ENABLED` | Enables or disables JMXFetch. |
+| `dd.jmxfetch.check-period` | `DD_JMXFETCH_CHECK_PERIOD` | Metric send interval in milliseconds. |
+| `dd.jmxfetch.refresh-beans-period` | `DD_JMXFETCH_REFRESH_BEANS_PERIOD` | MBean-list refresh interval in seconds. |
+| `dd.jmxfetch.config.dir` | `DD_JMXFETCH_CONFIG_DIR` | Additional configuration directory. |
+| `dd.jmxfetch.config` | `DD_JMXFETCH_CONFIG` | Additional YAML configuration file. |
+| `dd.jmxfetch.statsd.host` | `DD_JMXFETCH_STATSD_HOST` | DataKit StatsD address. |
+| `dd.jmxfetch.statsd.port` | `DD_JMXFETCH_STATSD_PORT` | DataKit StatsD port, normally `8125`. |
+
+For complete settings and built-in integrations, consult the [Datadog Java configuration guide](https://docs.datadoghq.com/tracing/trace_collection/library_config/java/){:target="_blank"} and the installed Agent version.

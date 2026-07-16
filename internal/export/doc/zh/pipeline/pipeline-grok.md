@@ -98,7 +98,7 @@ grok(_, "%{time}")
 
     - 如果出现同名模式，则以局部模式优先（即局部模式覆盖全局模式）
     - Pipeline 脚本中，[add_pattern()](pipeline-built-in-function.md#fn-add-pattern) 需在 [grok()](pipeline-built-in-function.md#fn-grok) 函数前面调用，否则会导致第一条数据提取失败
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Grok Fast Path 优化 {#grok-fast-path}
 

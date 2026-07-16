@@ -36,7 +36,7 @@ The Promsd collector dynamically discovers monitoring targets through various se
 
     Currently enabled by injecting collector configuration via [ConfigMap](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Basic Scrape Configuration {#scrape-config}
 

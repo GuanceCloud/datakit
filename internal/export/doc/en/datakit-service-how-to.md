@@ -56,7 +56,7 @@ There are two DataKit log files:
 
     - Linux/Mac: `uname -r`
     - Windows: Execute the `cmd` command (Press Win key + `r`, enter `cmd` and press Enter), and input `winver` to get the system version information.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## DataKit Service Management {#manage-service}
 
@@ -75,7 +75,7 @@ datakit service restart # restart
 ???+ tip
 
     You can use `datakit service --help` to view more help information.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Handling of Service Management Failures {#when-service-failed}
 

@@ -52,7 +52,7 @@
     注入 logfwd 时，DataKit Operator 默认复用相同路径的 volume，避免因为存在同样路径的 volume 而注入报错。
 
     路径末尾有斜线和无斜线的意义不同，例如 `/var/log` 和 `/var/log/` 是不同路径，不能复用。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 用例 {#datakit-operator-inject-logfwd-example}
 

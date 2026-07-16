@@ -1,86 +1,57 @@
 ---
 title      : 'OpenTelemetry 扩展'
-summary    : '<<<custom_key.brand_name>>>对 OpenTelemetry 插件做了额外的扩展'
+summary    : '<<<custom_key.brand_name>>> 对 OpenTelemetry 做了额外扩展'
 __int_icon : 'icon/opentelemetry'
 tags       :
   - 'OTEL'
   - '链路追踪'
+  - 'APM'
 ---
 
-> *作者： 宋龙奇*
+> *作者：宋龙奇*
 
 ## SQL 脱敏 {#sql-obfuscation}
 
-SQL 脱敏 也是狭义的 DB 语句清理。
+OpenTelemetry Java Agent 默认会对 SQL 进行脱敏：`db.statement` 中的参数值会被替换为 `?`，以降低敏感信息泄露风险。
+官方说明见：
+[DB statement sanitization](https://opentelemetry.io/docs/instrumentation/java/automatic/agent-config/#db-statement-sanitization){:target="_blank"}
 
-按照 OTEL 官方说法是：
+默认脱敏行为包括：
 
-```text
-agent 在设置 `db.statement` 语义属性之前清理所有数据库查询/语句。查询字符串中的所有值（字符串、数字）都替换为问号 ( ?)，并对整条 sql 进行格式化（用空格替换换行符，空格只留一个）等操作。
+- 替换值（字符串、数字）为占位符
+- 压缩空白字符（多空格、换行）以便统一展示
 
-
-例子：
-
-- SQL 查询 SELECT a from b where password="secret" 那么在 span 中将出现 SELECT a from b where password=?
-
-
-默认情况下，所有数据库检测都启用此行为。使用以下属性禁用它：
-
-系统属性： otel.instrumentation.common.db-statement-sanitizer.enabled
-环境变量： OTEL_INSTRUMENTATION_COMMON_DB_STATEMENT_SANITIZER_ENABLED
-
-默认值：true
-说明：启用 DB 语句清理。
-```
-
-### DB 语句清理和结果 {#why}
-
-大部分语句中都包括一些敏感数据包括：用户名，手机号，密码，卡号等等。通过敏感处理能够过滤掉这些数据，另一个原因就是方便进行分组筛选操作。
-
-SQL 语句的写法有两种：
-
-比如 ：
+### 示例 {#example}
 
 ```java
 ps = conn.prepareStatement("SELECT name,password,id FROM student where name=? and password=?");
-ps.setString(1,username);   // set   替换第一个?
-ps.setString(2,pw);        //  替换第二个?
+ps.setString(1, username);   // set 了参数占位符 1
+ps.setString(2, password);   // set 了参数占位符 2
 ```
 
-这是 JDBC 的写法 如库无关（ oracle 和 mysql 都是这么写的）。
+链路中看到的会是：
 
-结果就是，这种写法链路中拿到的就是 两个 '?' 的 `db.statement`
+`SELECT name,password,id FROM student where name=? and password=?`
 
-较少的另一种写法：
+如果使用内联 SQL（不建议在敏感数据场景下使用）：
 
 ```java
-    ps = conn.prepareStatement("SELECT name,password,id FROM student where name='abc' and password='123456'");
-   // ps.setString(1,username);  不再使用 set
-   // ps.setString(2,pw);
+ps = conn.prepareStatement("SELECT name,password,id FROM student where name='abc' and password='123456'");
 ```
 
-这时候 agent 拿到的就是 不带占位符的 SQL 语句。
+链路会保留原始 SQL 文本。
 
-上面说的 `OTEL_INSTRUMENTATION_COMMON_DB_STATEMENT_SANITIZER_ENABLED` 是作用是这里的。
+### 开启脱敏参数采集（扩展） {#obfuscation}
 
-究其原因，是因为 agent 的探针 是在函数 `prepareStatement` 或者 `Statement` 上。
-
-
-从根本上解决脱敏问题。需要加探针加在 `set` 上。先将参数缓存之后才是 `exectue()` , 最终将参数放到 Attributes 中。
-
-### 开启功能 {#obfuscation}
-
-想要获取脱敏前的数据以及后续通过 `set` 函数添加的值，就需要进行新的埋点， 并添加环境变量：
+如果需要拿到经过 `setXXX` 参数填充的 SQL 内容，请启用以下配置之一：
 
 ```shell
 -Dotel.jdbc.sql.obfuscation=true
-# or k8s 
+# or k8s
 export OTEL_JDBC_SQL_OBFUSCATION=true
 ```
 
-在 V2 版本中，OTEL 官方也做了同样的功能，为了不做同样的事情我们决定删除此功能，但依旧保留开关。
-
-所以，使用版本：`v2.20.0-ext` 及以上中的开关控制也可以实现相同的效果：
+在 V2 扩展中也可使用官方参数：
 
 ```shell
 -Dotel.instrumentation.jdbc.experimental.capture-query-parameters=true
@@ -88,24 +59,25 @@ export OTEL_JDBC_SQL_OBFUSCATION=true
 export OTEL_INSTRUMENTATION_JDBC_EXPERIMENTAL_CAPTURE_QUERY_PARAMETERS=true
 ```
 
-最终，在<<<custom_key.brand_name>>>上的链路详情里是这样的：
+最终在 <<<custom_key.brand_name>>> 上看到的链路详情类似：
 
 <!-- markdownlint-disable MD046 MD033 -->
 <figure >
-  <img src="https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/songlongqi/otel-sql.png" style="height: 500px" alt="链路详情">
+  <img src="https://df-storage-dev.oss-cn-hangzhou.aliyuncs.com/songlongqi/otel-sql.png" style="height: 500px" alt="trace">
   <figcaption> 链路详情 </figcaption>
 </figure>
+<!-- markdownlint-enable -->
 
 ### 常见问题 {#question}
 
-1. 开启 `-Dotel.jdbc.sql.obfuscation=true` 但是没有关闭 DB 语句脱敏
+1. 开启 `-Dotel.jdbc.sql.obfuscation=true` 后仍有参数被替换。
 
-可能会出现占位符和 `origin_sql_x` 数量对不上，原因是因为有的参数已经在 DB 语句脱敏中被占位符替换掉了。
+   部分参数可能在 `db.statement` 处理阶段已被替换，占位符与 `origin_sql_x` 数量不一致属于正常现象。
 
-1. 开启 `-Dotel.jdbc.sql.obfuscation=true` 关闭 DB 语句脱敏
+2. 开启原始 SQL 后内容很长、换行较多。
 
-如果语句过长或者换行符很多，没有进行格式化的情况下语句会很混乱。同时也会造成没必要的流量浪费。
+   这会产生更大的链路体积，建议结合 trace 保留策略与字段长度策略评估存储影响。
 
-## 更多 {#more}
+更多说明可参考：
 
-更多文档问题以及使用问题请前往：[GitHub-Issue](https://opentelemetry.io/docs/languages/java/instrumentation/){:target="_blank"}
+- [OpenTelemetry Java Instrumentation 文档](https://opentelemetry.io/docs/languages/java/instrumentation/){:target="_blank"}

@@ -75,7 +75,7 @@ GO
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 #### Log Collector Configuration {#logging-config}
 
@@ -83,7 +83,7 @@ GO
 ???+ note
 
      DataKit must be installed on the host where SQLServer is running.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 To collect SQL Server logs, enable `files` in *{{.InputName}}.conf* and write to the absolute path of the SQL Server log file. For example:
 
@@ -336,7 +336,7 @@ Following measurements are collected as logs with the level of `info`.
 
 {{ end }}
 {{ end }}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD024 -->
 
 ### Pipeline for  SQLServer logging {#pipeline}
 

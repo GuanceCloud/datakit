@@ -36,7 +36,7 @@ Promsd 采集器支持通过各类服务发现动态获取监控目标，并采�
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 基础采集配置 {#scrape-config}
 

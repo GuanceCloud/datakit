@@ -52,7 +52,7 @@ Parameter description, refer to [logfwd configuration](../integrations/logfwd.md
     When injecting logfwd, DataKit Operator defaults to reusing volumes with the same path to avoid injection errors due to duplicate volume paths.
 
     Paths ending with a slash and without a slash have different meanings. For example, `/var/log` and `/var/log/` are different paths and cannot be reused.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Example Case {#datakit-operator-inject-logfwd-example}
 

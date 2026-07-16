@@ -63,7 +63,7 @@ The built-in Pinpoint Agent in DataKit is used to receive, calculate, and analyz
     - Multiple services (Agent/Metadata/Stat/Span) combined into one service use the same port
     - There are differences between Pinpoint links and DataKit links, see [below](pinpoint.md#opentracing-vs-pinpoint) for details
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Pinpoint Agent configuration {#agent-config}
 

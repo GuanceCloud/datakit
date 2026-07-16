@@ -25,7 +25,7 @@ PromV2 采集器是 Prom 采集器的升级版，简化了配置方式，提高�
 ???+ attention
 
     PromV2 缺少很多数据修改的配置项，只能通过 Pipeline 来对采集的数据进行调整。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD046 -->
 
@@ -43,4 +43,4 @@ PromV2 采集器是 Prom 采集器的升级版，简化了配置方式，提高�
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->

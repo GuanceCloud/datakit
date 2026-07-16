@@ -97,7 +97,7 @@ graph LR
 
 <!-- markdownlint-disable MD013 -->
 ### DataKit ELinker/DataKit `ebpftrace` plugin configuration {#ebpftrace-config}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 Enable the `ebpftrace` plugin in DataKit ELinker or DataKit.
 

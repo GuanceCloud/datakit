@@ -67,7 +67,7 @@ ACL SETUSER username on +info +config|get +slowlog +latency +cluster +@connectio
     - `+latency`: Get latency statistics (`LATENCY LATEST` command)
     - `+cluster`: Get cluster information (`CLUSTER INFO`, `CLUSTER NODES`, `CLUSTER REPLICAS`/`SLAVES` commands, required for cluster mode)
     - `+@connection`: Connection management commands (`PING`, `CLIENT LIST`, `CLIENT SETNAME`, `SELECT`, etc.)
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 - If you need to collect `hotkey/bigkey` statistics, add the following permissions on top of the base permissions above:
 
@@ -84,7 +84,7 @@ ACL SETUSER username +@read +@keyspace ~*
     - `+@read`: Data read commands (`SCAN`, `TYPE`, `OBJECT`, `MEMORY`, etc.)
     - `+@keyspace`: Keyspace permissions
     - `~*`: Allow access to all keys
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 > **Note**: For some cloud providers (such as Huawei Cloud), when Redis does not support or provide ACL functionality, read-only permissions are insufficient for DataKit collection. You need to use an account with read-write permissions.
 
@@ -110,7 +110,7 @@ ACL SETUSER username +@read +@keyspace ~*
 ???+ note
 
     If it is Alibaba Cloud Redis and the corresponding username and PASSWORD are set, the `<PASSWORD>` should be set to `your-user:your-password`, such as `datakit:Pa55W0rd`.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 #### Cluster/Master-Slave Node Collection {#cluster}
 
@@ -151,7 +151,7 @@ To collect Redis logs, you need to open the log file `redis.config` output confi
     When configuring log collection, you need to install the DataKit on the same host as the Redis service, or otherwise mount the log on the DataKit machine.
     
     In K8s, Redis logs can be exposed to stdout, and DataKit can automatically find its corresponding log.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Metrics {#metric}
 <!-- markdownlint-disable MD009 -->
@@ -223,7 +223,7 @@ The `setting` field is sourced from `CONFIG GET *` on the current Redis node. Cr
 {{$m.MarkdownTable}} {{end}}
 
 {{ end }}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD024 -->
 ### Logging Pipeline {#pipeline}
 
 The original log is:

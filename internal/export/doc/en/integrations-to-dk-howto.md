@@ -6,7 +6,7 @@ This document focuses on how to incorporate existing integration documents into 
 ???+ note
 
     Documents related to DataKit integration are not recommended to be modified directly in *dataflux-doc/docs/integrations*, because DataKit's own document export is overwritten to this directory, which may cause documents manually added to *dataflux-doc/docs/integrations* to be overwritten.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 Noun definition:
 
 - Document library: Refers to the new document library `dataflux-doc`
@@ -98,7 +98,7 @@ pip install -r requirements.txt # You may be asked to update the pip version dur
     ``` shell
     PATH="/System/Volumes/Data/Users/<user-name>/Library/Python/3.8/bin:$PATH"
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 - Familiar with `mkdocs.sh`
 
 There is a `mkdocs.sh` script in the DataKit root directory, which exports all DataKit documents, copies them to different directories in the document library and finally starts the local document service.

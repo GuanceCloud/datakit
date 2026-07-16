@@ -62,6 +62,41 @@ func Test_getSourceType(t *T.T) {
 	assert.Equal(t, itrace.SpanSourceWeb, getSourceType(kvs))
 }
 
+func Test_traceBaseService(t *T.T) {
+	ipt := defaultInput()
+
+	for _, tt := range []struct {
+		name  string
+		attrs map[string]string
+		want  string
+	}{
+		{
+			name: "gRPC keeps original service name",
+			attrs: map[string]string{
+				"rpc.system":       "grpc",
+				"messaging.system": "kafka",
+			},
+		},
+		{
+			name: "gRPC semantic convention name keeps original service name",
+			attrs: map[string]string{
+				"rpc.system.name": "grpc",
+			},
+		},
+		{
+			name: "non-gRPC RPC splits service name",
+			attrs: map[string]string{
+				"rpc.system": "thrift",
+			},
+			want: "thrift",
+		},
+	} {
+		t.Run(tt.name, func(t *T.T) {
+			assert.Equal(t, tt.want, ipt.traceBaseService(tt.attrs))
+		})
+	}
+}
+
 func Test_commonTagFields(t *T.T) {
 	t.Run("tag-fields", func(t *T.T) {
 		nspans := 10

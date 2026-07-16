@@ -58,7 +58,7 @@
 === "Kubernetes"
 
     参见[这里](datakit-daemonset-deploy.md#env-elect)
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 选举状态查看 {#status}
 
@@ -129,7 +129,7 @@ Elected default::defeat|host-abc
 === "Kubernetes"
 
     Kubernetes 中选举的配置参见[这里](datakit-daemonset-deploy.md#env-elect)，全局 tag 的设置参见[这里](datakit-daemonset-deploy.md#env-common)。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 选举白名单 {#election-whitelist}
 
@@ -150,7 +150,7 @@ Elected default::defeat|host-abc
 === "Kubernetes"
 
     参见[这里](datakit-daemonset-deploy.md#env-elect)
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 支持选举的采集列表 {#inputs}
 

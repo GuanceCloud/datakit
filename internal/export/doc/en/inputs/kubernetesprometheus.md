@@ -157,7 +157,7 @@ After PodMonitor or ServiceMonitor discovery is enabled, DataKit dynamically han
   - `Endpoints` uses the corresponding Address IPs (multiple)
 
   Additionally, ensure that ports are not bound to the loopback address to allow external access.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 ```
 
 Assuming the Pod IP is `172.16.10.10` and the metrics port for the nginx container is 9090.
@@ -214,7 +214,7 @@ Allow configuring multiple Key/Value pairs and adding them in the HTTP request. 
 ???+ info
 
     The KubernetesPrometheus collector will add DataKit's `global_tags`[:octicons-tag-24: Version-1.65.1](../datakit/changelog.md#cl-1.65.1).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Permissions and Authentication {#input-config-auth}
 
@@ -252,7 +252,7 @@ Global placeholders are common across all Roles and are often used to specify ce
 | -----------                | -----------                                                                                                                | -----                                                                                        |
 | `__kubernetes_mate_instance` | The instance of the target for collection, i.e., `IP:PORT`                                                                 | Supported only in `global_tags/custom.tags`, e.g., `instance = "__kubernetes_mate_instance"` |
 | `__kubernetes_mate_host`     | The host of the target for collection, i.e., `IP`. If the value is `localhost` or a loopback address, it will not be added | Supported only in `global_tags/custom.tags`, e.g., `host = "__kubernetes_mate_host"`         |
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD049 -->
 
 ### Node Role {#placeholders-node}
 
@@ -266,7 +266,7 @@ The collection address for these resources is the InternalIP, corresponding to [
 | `__kubernetes_node_annotation_%s`         | Node annotation                    | `.metadata.annotations['%s']`                         |
 | `__kubernetes_node_address_Hostname`      | Node hostname                      | `.status.addresses[*].address` ("type" is "Hostname") |
 | `__kubernetes_node_kubelet_endpoint_port` | Node's kubelet port, usually 10250 | `.status.daemonEndpoints.kubeletEndpoint.Port`        |
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD049 -->
 
 ### Pod Role {#placeholders-pod}
 
@@ -281,7 +281,7 @@ The collection address for these resources is the PodIP, corresponding to JSONPa
 | `__kubernetes_pod_annotation_%s`               | Pod annotation, for example, `_kubernetes_pod_annotation_prometheus.io/port`                                                                                     | `.metadata.annotations['%s']`                                        |
 | `__kubernetes_pod_node_name`                   | Node where the Pod is located                                                                                                                                    | `.spec.nodeName`                                                     |
 | `__kubernetes_pod_container_%s_port_%s_number` | Specific port of a specific container, for example, `__kubernetes_pod_container_nginx_port_metrics_number` refers to the `metrics` port of the `nginx` container | `.spec.containers[*].ports[*].containerPort` (`"name"` equal `"%s"`) |
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD049 -->
 
 For example, for `__kubernetes_pod_container_%s_port_%s_number`:
 
@@ -307,7 +307,7 @@ Since Service resources do not have an IP property, the corresponding Endpoints 
 | `__kubernetes_service_target_namespace`     | Services do not have a direct target, this refers to the `targetRef` of the corresponding endpoints, specifically its `namespace` field | `Endpoints: .subsets[*].addresses[*].targetRef.namespace` |
 | `__kubernetes_service_target_pod_name`      | Deprecated, please use `__kubernetes_service_target_name`                                                                               | `Endpoints: .subsets[*].addresses[*].targetRef.name`      |
 | `__kubernetes_service_target_pod_namespace` | Deprecated, please use `__kubernetes_service_target_namespace`                                                                          | `Endpoints: .subsets[*].addresses[*].targetRef.namespace` |
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD049 -->
 
 ### Endpoints Role {#placeholders-endpoints}
 
@@ -327,7 +327,7 @@ The collection address for these types of resources is the Address IP (which can
  | `__kubernetes_endpoints_address_target_pod_name`      | Deprecated, please use `__kubernetes_endpoints_address_target_name`         | `.subsets[*].addresses[*].targetRef.name`           |
  | `__kubernetes_endpoints_address_target_pod_namespace` | Deprecated, please use `__kubernetes_endpoints_address_target_namespace`    | `.subsets[*].addresses[*].targetRef.namespace`      |
  | `__kubernetes_endpoints_port_%s_number`               | Specifies the port name, e.g., `__kubernetes_endpoints_port_metrics_number` | `.subsets[*].ports[*].port` (`"name"` equal `"%s"`) |
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD049 -->
 
 ## Example {#example}
 
@@ -429,7 +429,7 @@ data:
 
 <!-- markdownlint-disable MD013 -->
 ## Auto-Discovery of Prometheus Metrics via Pod/Service Annotations {#auto-discovery-metrics-with-prometheus}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 By adding specific annotations to Pods or Services, DataKit can automatically discover and collect Prometheus metrics. This mechanism automatically constructs HTTP URL endpoints and creates corresponding Prometheus metric collection tasks.
 
@@ -614,7 +614,7 @@ In addition, DataKit extends the `selector` functionality to support **Glob matc
 <!-- markdownlint-disable MD046 -->
 ???+ warning
     The Glob pattern syntax does not support the `!` exclusion operator. For example, `app=middleware-[!0123]` will result in an error during the parsing stage. This is because the `!` character is a reserved keyword in Selector syntax (e.g., for `app!=nginx`) and cannot be used in Glob patterns.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Bearer Token Authentication {#http-bearer-token}
 

@@ -74,7 +74,7 @@ monitor   :
 
     更多 Java/Go/Python 主流日志组件的配置及代码示例，请参阅 [Socket 日志采集](logging_socket.md)。
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 高级主题 {#deepin-topics}
 
@@ -331,7 +331,7 @@ Pipeline 的几个注意事项：
     - value 是此文件的读取偏移位置（position），并且实施更新
 
     日志采集在启动时，会根据 key 取得 position 作为读取偏移量，避免漏采和重复采集。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 日志的特殊字节码处理 {#ansi-decode}
 
@@ -356,7 +356,7 @@ Pipeline 的几个注意事项：
     ```
     
     每一条文本的处理耗时增加 1700 ns 不等。如果不开启此功能将无额外损耗。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 根据白名单保留指定字段 {#field-whitelist}
 
@@ -405,7 +405,7 @@ Pipeline 的几个注意事项：
 
 <!-- markdownlint-disable MD053 -->
 [^1]: 早期 Pipeline 实现的时候，只能切割出 field，而 status 大部分都是通过 Pipeline 切割出来的，故将其归类到 field 中。但语义上，它应该属于 tag 的范畴。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD053 -->
 
 <!-- markdownlint-disable MD013 -->
 ## FAQ {#faq}
@@ -468,7 +468,7 @@ bytes * 2 * 8 /1024/1024 = xxx MBit
 ??? info
 
     此处 `*2` 考虑到了 [Pipeline 切割](../pipeline/use-pipeline/index.md)导致的实际数据膨胀，而一般情况下，切割完都是要带上原始数据的，故按照最坏情况考虑，此处以加倍方式来计算。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 延伸阅读 {#more-reading}
 

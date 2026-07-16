@@ -45,7 +45,7 @@ After successfully installing and starting DataKit, the CPU collector will be en
     
 {{ CodeBlock .InputENVSample 4 }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ---
 

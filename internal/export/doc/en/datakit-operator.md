@@ -95,7 +95,7 @@ DataKit Operator provides automated injection capabilities for Kubernetes cluste
 
     - DataKit Operator has a strict correspondence between the program and yaml. If an outdated yaml is used, the new version of DataKit-Operator may not be installed. Please download the latest yaml.
     - If `InvalidImageName` error occurs, you can manually pull the image.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Configuration Explanation {#jsonconfig}
 
@@ -137,7 +137,7 @@ DataKit Operator configuration is in JSON format, stored separately as a ConfigM
         }
     }
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Cluster API {#cluster-api}
 
@@ -238,11 +238,11 @@ Example:
 
     1. Set matching rules (`namespace_selectors`/`label_selectors`) and corresponding configuration fields in DataKit-Operator configuration
     2. Pod matches configured selectors
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD013 -->
 ### `check_annotation` Configuration Item Explanation {#check-annotation-config}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 `check_annotation` is a configuration field used to control how DataKit Operator handles **version annotations** on Pods. The values and behaviors of this field are as follows:
 
@@ -313,26 +313,27 @@ These annotations are used to specify component versions, **controlled by `check
 | py-spy | Inject py-spy for Profiling of Python applications, see [py-spy](operator-pyspy.md) |
 | logging | Inject log collection configuration, see [Logging](operator-logging.md) |
 
-## Downward API {#downwardapi}
+## Environment Variable Value References {#downwardapi}
 
-In DataKit Operator [:octicons-tag-24: v1.4.2](operator-changelog.md#cl-1.4.2) and later versions, `envs` supports Kubernetes Downward API [environment variable value fields](https://kubernetes.io/docs/concepts/workloads/pods/downward-api/#downwardapi-fieldRef). The following are currently supported:
+DataKit Operator can convert placeholders in `envs` to native Kubernetes environment variable value references. `fieldRef` has been supported since [:octicons-tag-24: v1.4.2](operator-changelog.md#cl-1.4.2); see the Kubernetes [Downward API](https://kubernetes.io/docs/concepts/workloads/pods/downward-api/#downwardapi-fieldRef) for details about these fields. The following formats are currently supported:
 
 | Field | Description | Example |
 | ------: | :------ | :------ |
-| `{fieldRef.metadata.name}` | The name of the Pod | nginx-123 |
-| `{fieldRef.metadata.namespace}` | The namespace of the Pod | middleware |
-| `{fieldRef.metadata.uid}` | The unique ID of the Pod | 12345678-1234-1234-1234-123456789abc |
-| `{fieldRef.metadata.annotations['<KEY>']}` | The value of the Pod's annotation `<KEY>` | metadata.annotations['myannotation'] |
-| `{fieldRef.metadata.labels['<KEY>']}` | The value of the Pod's label `<KEY>` | metadata.labels['app'] |
-| `{fieldRef.spec.serviceAccountName}` | The name of the Pod's service account | default |
-| `{fieldRef.spec.nodeName}` | The name of the node where the Pod is running | node-01 |
-| `{fieldRef.status.hostIP}` | The primary IP address of the node where the Pod is located | 192.168.1.1 |
-| `{fieldRef.status.hostIPs}` | Dual-stack version of status.hostIP | ["192.168.1.1", "2001:db8::1"] |
-| `{fieldRef.status.podIP}` | The primary IP address of the Pod | 10.0.0.1 |
+| `{fieldRef:metadata.name}` | The name of the Pod | nginx-123 |
+| `{fieldRef:metadata.namespace}` | The namespace of the Pod | middleware |
+| `{fieldRef:metadata.uid}` | The unique ID of the Pod | 12345678-1234-1234-1234-123456789abc |
+| `{fieldRef:metadata.annotations['<KEY>']}` | The value of the Pod's annotation `<KEY>` | metadata.annotations['myannotation'] |
+| `{fieldRef:metadata.labels['<KEY>']}` | The value of the Pod's label `<KEY>` | metadata.labels['app'] |
+| `{fieldRef:spec.serviceAccountName}` | The name of the Pod's service account | default |
+| `{fieldRef:spec.nodeName}` | The name of the node where the Pod is running | node-01 |
+| `{fieldRef:status.hostIP}` | The primary IP address of the node where the Pod is located | 192.168.1.1 |
+| `{fieldRef:status.hostIPs}` | Dual-stack version of status.hostIP | ["192.168.1.1", "2001:db8::1"] |
+| `{fieldRef:status.podIP}` | The primary IP address of the Pod | 10.0.0.1 |
 | `{resourceFieldRef:limits.cpu}` | CPU Limit of the Pod's first container (unit: millicores) | 500 |
 | `{resourceFieldRef:limits.memory}` | Memory Limit of the Pod's first container (unit: MiB) | 1024 |
 | `{resourceFieldRef:requests.cpu}` | CPU Request of the Pod's first container (unit: millicores) | 200 |
 | `{resourceFieldRef:requests.memory}` | Memory Request of the Pod's first container (unit: MiB) | 512 |
+| `{secretKeyRef:<SECRET_NAME>.<KEY>}` | References a Secret key in the Pod's namespace | `{secretKeyRef:flameshot-oss.access_key_id}` |
 
 For example, if there is a Pod named `nginx-123` in the `middleware` namespace, and you want to inject the environment variables `POD_NAME` and `POD_NAMESPACE`, refer to the following:
 
@@ -399,7 +400,50 @@ kubectl exec <pod-name> -- env | grep APP_
 APP_CPU_LIMIT=500
 APP_MEMORY_REQUEST=512
 ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
+
+### Notes on `{secretKeyRef:*}` {#secretkeyref}
+
+DataKit Operator injection configurations can reference a Kubernetes Secret in `envs` using the following syntax:
+
+```text
+{secretKeyRef:<secret-name>.<key>}
+```
+
+For example, if the `flameshot-oss` Secret contains the keys `access_key_id` and `access_key_secret`, configure the environment variables as follows:
+
+```json
+{
+    "envs": {
+        "FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_ID": "{secretKeyRef:flameshot-oss.access_key_id}",
+        "FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_SECRET": "{secretKeyRef:flameshot-oss.access_key_secret}"
+    }
+}
+```
+
+The Operator converts them to native Kubernetes environment variable references:
+
+```yaml
+env:
+  - name: FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_ID
+    valueFrom:
+      secretKeyRef:
+        name: flameshot-oss
+        key: access_key_id
+  - name: FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: flameshot-oss
+        key: access_key_secret
+```
+
+Keep the following points in mind:
+
+1. The Secret must be in the same namespace as the injected Pod. The Operator does not read or check the Secret; Kubernetes resolves it when starting the container.
+1. `<secret-name>` must be a valid Kubernetes Secret name. Because `.` separates the Secret name from the key, Secret names containing `.` are not supported by this syntax.
+1. `<key>` must be a valid Kubernetes Secret data key: no more than 253 characters, containing only letters, digits, `-`, `_`, or `.`, and it must not be `.`, `..`, or start with `..`.
+1. If the Secret or key does not exist, the Pod enters `CreateContainerConfigError` until the required Secret and key become available.
+1. An unrecognized or invalid expression is injected as a literal string instead of generating a `secretKeyRef`.
 
 ## FAQ {#faq}
 

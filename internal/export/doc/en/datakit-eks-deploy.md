@@ -6,7 +6,7 @@
 
 <!-- markdownlint-disable MD013 -->
 ## Architecture overview {#architecture-overview}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 
 <<<% if custom_key.brand_key == "truewatch" %>>>
@@ -81,7 +81,7 @@ Deploying DataKit on an Amazon EKS cluster using Amazon EKS add-on.
     ```shell
     aws eks describe-addon --addon-name guance_datakit --cluster-name $YOUR_CLUSTER_NAME --region $AWS_REGION
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 
 ### configuration DataKit {#config-addon-datakit}
@@ -132,7 +132,7 @@ datakit dataki  1 2024-01-12 14:50:07.880846 +0800 CST  deployed  datakit-1.20.0
 
 <!-- markdownlint-disable MD013 -->
 ## Deploying DataKit on an Amazon EKS Cluster using Helm {#helm-install}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 ### Prerequisites {#prerequisites-helm-install}
 
@@ -168,7 +168,7 @@ aws ecr get-login-password \
 
     - Helm Version must be 3.7.1.
     - `datakit.datawayUrl` Must be modified.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ```shell
 helm upgrade -i datakit oci://709825985650.dkr.ecr.us-east-1.amazonaws.com/guance/datakit-charts --version 1.23.5 \

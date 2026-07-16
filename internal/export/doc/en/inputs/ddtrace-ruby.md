@@ -12,42 +12,67 @@ __int_icon: 'icon/ddtrace'
 
 ## Install Dependencies {#dependence}
 
-For Ruby APM installation and auto-instrumentation, refer to the [Datadog Ruby Integration Documentation](https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby/){:target="_blank"}.
+<!-- cspell:ignore datadog -->
+The current Ruby SDK uses the `datadog` gem, while older applications may still use `ddtrace`. Their loading methods and configuration precedence can differ, so first identify the Gemfile and SDK version in use. See the [Datadog Ruby setup guide](https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby/){:target="_blank"} for compatibility and complete setup.
+
+<!-- markdownlint-disable MD046 -->
+=== "datadog gem (recommended)"
+
+    Add the auto-instrumentation entry point to `Gemfile`, then run `bundle install`:
+
+    ```ruby
+    gem "datadog", require: "datadog/auto_instrument"
+    ```
+
+=== "ddtrace gem (legacy)"
+
+    For applications still on the 1.x line, keep the legacy dependency and load it according to that version's documentation:
+
+    ```ruby
+    gem "ddtrace", require: "ddtrace/auto_instrument"
+    ```
+<!-- markdownlint-enable -->
 
 ## Configuration {#config}
 
-Ruby applications usually configure DDTrace either through environment variables or in a `Datadog.configure` block. For complete configuration details, refer to the [Datadog Ruby Tracing Documentation](https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby/){:target="_blank"}.
+Ruby applications usually configure tracing through startup environment variables or a `Datadog.configure` block. Environment variables work well for containers and platforms; code configuration is useful when settings are managed by the application. Do not set conflicting destinations or service identity in both places. See the [Datadog Ruby configuration guide](https://docs.datadoghq.com/tracing/trace_collection/library_config/ruby/){:target="_blank"} for complete settings.
 
-When using DataKit as the trace receiver, make sure the trace target points to DataKit instead of the default Datadog Agent endpoint. For example:
+When DataKit is the trace receiver, explicitly replace the upstream default `127.0.0.1:8126` with the DataKit address and port `9529`. For example:
 
 ```ruby
 Datadog.configure do |c|
   c.agent.host = '127.0.0.1'
   c.agent.port = 9529
+  c.service = 'my-ruby-service'
+  c.env = 'production'
 end
 ```
 
-If you do not need tracer telemetry data, you can disable it to reduce extra diagnostic reporting:
+You can instead set `DD_AGENT_HOST`, `DD_TRACE_AGENT_PORT`, `DD_SERVICE`, `DD_ENV`, and `DD_VERSION` before the process starts. `DD_TRACE_AGENT_URL`, when set, normally takes precedence over host/port; use only one destination mechanism.
+
+If you do not need SDK telemetry, disable it only after confirming that the installed SDK supports the option, to reduce additional diagnostic reporting:
 
 ```shell
 export DD_INSTRUMENTATION_TELEMETRY_ENABLED=false
 ```
 
+Start the application, call an instrumented route, and confirm a trace request in the DataKit monitor. Enable detailed SDK logging only temporarily during troubleshooting.
+
 ## Environment Variable Support {#envs}
 
-Below are common Ruby APM parameters. For a complete list, refer to the [Datadog Ruby configuration documentation](https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby/){:target="_blank"}.
+The following are common Ruby APM parameters. Set them before the Ruby process starts; see the [Datadog Ruby configuration guide](https://docs.datadoghq.com/tracing/trace_collection/library_config/ruby/){:target="_blank"} for the complete list and precedence.
 
 - **`DD_AGENT_HOST`**
 
     **Default**: `127.0.0.1`
 
-    The host address where DataKit is listening.
+    The trace receiver host. For DataKit, use the DataKit host or Kubernetes Service.
 
 - **`DD_TRACE_AGENT_PORT`**
 
-    **Default**: `8126`
+    **Upstream default**: `8126`
 
-    The port number where trace data is sent. When using DataKit, set it to `9529`.
+    The trace delivery port. When using DataKit, explicitly set it to `9529`.
 
 - **`DD_ENV`**
 
@@ -57,15 +82,15 @@ Below are common Ruby APM parameters. For a complete list, refer to the [Datadog
 
 - **`DD_SERVICE`**
 
-    **Default**: Ruby filename
+    **Default**: Determined by SDK and application startup mode
 
-    Sets the default service name for the application.
+    Sets the application service name. Set it explicitly in production so it does not vary with an entry file or framework.
 
 - **`DD_TAGS`**
 
     **Default**: `nil`
 
-    Sets custom tags on all traces, for example: `team:core,layer:api`.
+    Sets custom tags on all traces, for example `team:core,layer:api`. Do not send tokens, personal data, or high-cardinality request identifiers.
 
 - **`DD_VERSION`**
 
@@ -77,13 +102,13 @@ Below are common Ruby APM parameters. For a complete list, refer to the [Datadog
 
     **Default**: `true`
 
-    Enables or disables trace sending. When set to `false`, instrumentation still runs, but traces are not sent.
+    Enables or disables trace delivery. Behavior after disabling can vary by SDK version; during troubleshooting, make sure it is not `false`.
 
 - **`DD_LOGS_INJECTION`**
 
     **Default**: `true`
 
-    Injects trace correlation information into supported logs. In Rails, this is enabled by default for common loggers.
+    Injects trace-correlation information into supported logs. The log-collection path must retain those fields for log-to-trace correlation.
 
 - **`DD_TRACE_SAMPLE_RATE`**
 
@@ -95,7 +120,7 @@ Below are common Ruby APM parameters. For a complete list, refer to the [Datadog
 
     **Default**: `100`
 
-    Sets the maximum number of sampled traces per second.
+    Sets the maximum number of sampled traces per second. It applies when SDK-side sampling rules or a sample rate are active.
 
 - **`DD_INSTRUMENTATION_TELEMETRY_ENABLED`**
 

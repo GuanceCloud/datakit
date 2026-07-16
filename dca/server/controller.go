@@ -331,6 +331,9 @@ func getNewWebsocketConn(datakit *ws.DataKit, action string) (*websocket.Conn, e
 			Data:   ActionData{Query: query},
 		}
 
+		ch := Manager.initWebsocketConnChan(connID)
+		defer Manager.deleteWebsocketConnChan(connID)
+
 		timeoutCtx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
@@ -339,9 +342,6 @@ func getNewWebsocketConn(datakit *ws.DataKit, action string) (*websocket.Conn, e
 		case <-timeoutCtx.Done():
 			return nil, ErrRequestTimeout
 		}
-
-		ch := Manager.initWebsocketConnChan(connID)
-		defer Manager.deleteWebsocketConnChan(connID)
 
 		ctx1, cancel1 := context.WithTimeout(context.Background(), timeout)
 		defer cancel1()

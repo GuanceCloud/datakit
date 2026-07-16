@@ -46,7 +46,7 @@ The health check collector can regularly monitor the health of processes and net
     
 {{ CodeBlock .InputENVSample 4 }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Metric {#metric}
 

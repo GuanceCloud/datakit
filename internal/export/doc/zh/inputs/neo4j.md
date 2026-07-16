@@ -63,7 +63,7 @@ Neo4j 采集器用于采集 Neo4j 相关的指标数据，目前只支持 Promet
 
     - 采集数据需要用到 `2004` 端口，远程采集的时候，被采集服务器这些端口需要打开
     - `0.0.0.0:2004` 如果是本地采集，可以改为 `localhost:2004`
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 配置 {#input-config}
 
@@ -82,7 +82,7 @@ Neo4j 采集器用于采集 Neo4j 相关的指标数据，目前只支持 Promet
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 指标 {#metric}
 

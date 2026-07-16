@@ -11,6 +11,6 @@ DataKit 内置的数据采集能采集到如下这些指标。以下这些指标
 ???+ info
 
     - 对于日志而言，下表中的指标集名字对应 Studio 中的 `source` 字段。对对象/自定义对象而言，则对应 Studio 中的 `class` 字段。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 {{ .AllMeasurements }}

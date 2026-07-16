@@ -260,7 +260,7 @@ setenforce 0
     - 环境变量：`ENV_INPUT_EBPF_OPERATOR_URL`
     - 示例：`https://datakit-operator.datakit.svc:443`
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 高负载采集上限调优 {#advanced-collection-limits}
 

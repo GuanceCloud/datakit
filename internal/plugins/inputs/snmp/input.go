@@ -156,6 +156,7 @@ type TrapsConfig struct {
 	BindHost    string `toml:"bind_host"`
 	Port        uint16 `toml:"port"`
 	StopTimeout int    `toml:"stop_timeout"`
+	Source      string `toml:"source"`
 }
 
 func (*Input) Catalog() string { return snmpmeasurement.InputName }
@@ -232,6 +233,7 @@ func (ipt *Input) Run() {
 			InputTags:        ipt.Tags,
 			Feeder:           ipt.feeder,
 			Tagger:           ipt.Tagger,
+			Source:           ipt.Traps.Source,
 		}); err != nil {
 			l.Errorf("traps.StartServer failed: %v, port = %d", err, ipt.Traps.Port)
 		}

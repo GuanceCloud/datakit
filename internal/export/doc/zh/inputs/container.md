@@ -122,7 +122,7 @@ GKE Autopilot 不允许挂载容器运行时 socket 和宿主机目录，需要�
     ```
 
     应优先挂载 sock 所在目录，不建议使用 `subPath` 或只挂载 sock 文件。容器运行时重启时可能删除并重新创建 sock 文件；目录挂载可以让 DataKit 看到新文件，单文件挂载则可能仍指向已经失效的旧文件。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 环境变量 `ENV_INPUT_CONTAINER_ENDPOINTS` 是追加到现有的 endpoints 配置，最终实际 endpoints 配置可能有很多项，采集器会去重然后逐一连接、采集。
 
@@ -241,7 +241,7 @@ DataKit 以 DaemonSet 方式运行时，需要访问节点上的容器运行时�
 {{end}}
 
 {{ end }}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD024 -->
 
 ## 联动 Dataway Sink 功能 {#link-dataway-sink}
 
@@ -306,7 +306,7 @@ Dataway Sink [详见文档](../deployment/dataway-sink.md)。
 
 <!-- markdownlint-disable MD013 -->
 ### NODE_LOCAL 需要新的权限 {#rbac-nodes-stats}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 `ENV_INPUT_CONTAINER_ENABLE_K8S_NODE_LOCAL` 模式只推荐 DaemonSet 部署时使用，该模式需要访问 kubelet，所以需要在 RBAC 添加 `nodes/stats` 权限。例如：
 
@@ -325,7 +325,7 @@ rules:
 
 <!-- markdownlint-disable MD013 -->
 ### 采集 PersistentVolumes 和 PersistentVolumeClaims 需要新的权限 {#rbac-pv-pvc}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 DataKit 在 1.25.0[:octicons-tag-24: Version-1.25.0](../datakit/changelog.md#cl-1.25.0) 版本支持采集 Kubernetes PersistentVolume 和 PersistentVolumeClaim 的对象数据，采集这两种资源需要新的 RBAC 权限，详细见下：
 
@@ -342,7 +342,7 @@ rules:
 
 <!-- markdownlint-disable MD013 -->
 ### Kubernetes 对象 YAML 字段过滤 {#yaml-filter-fields}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 DataKit 在采集 Kubernetes 对象数据时，会获取并存储对应资源的 YAML 配置。为了减少存储空间占用、提高传输效率并避免包含不必要或敏感的信息，DataKit 会对原始 YAML 进行字段过滤处理。
 
@@ -371,7 +371,7 @@ nginx.ingress.kubernetes.io/*
 
 <!-- markdownlint-disable MD013 -->
 ### Kubernetes YAML 敏感字段屏蔽 {#yaml-secret}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 DataKit 会采集 Kubernetes Pod 或 Service 等资源的 yaml 配置，并存储到对象数据的 `yaml` 字段中。如果该 yaml 中包含敏感数据（例如密码），DataKit 暂不支持手动配置屏蔽敏感字段，推荐使用 Kubernetes 官方的做法，即使用 ConfigMap 或者 Secret 来隐藏敏感字段。
 

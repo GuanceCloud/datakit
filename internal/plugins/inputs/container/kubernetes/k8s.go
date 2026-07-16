@@ -351,7 +351,7 @@ func (*ObjectChangeEvent) Info() *inputs.MeasurementInfo {
 		Fields: map[string]interface{}{
 			"df_title":   &inputs.FieldInfo{DataType: inputs.String, Type: inputs.UnknownType, Unit: inputs.NoUnit, Desc: "Title text summarizing the Kubernetes resource change."},
 			"df_message": &inputs.FieldInfo{DataType: inputs.String, Type: inputs.UnknownType, Unit: inputs.NoUnit, Desc: "This is a template field, concatenated from other values: `[{{df_resource_type}}] {{df_resource}} configuration changed`."},
-			"diff":       &inputs.FieldInfo{DataType: inputs.String, Type: inputs.UnknownType, Unit: inputs.NoUnit, Desc: "Serialized diff text showing the Kubernetes resource changes."},
+			"diff":       &inputs.FieldInfo{DataType: inputs.String, Type: inputs.UnknownType, Unit: inputs.NoUnit, Desc: "Unified diff text showing the Kubernetes resource changes."},
 		},
 	}
 }

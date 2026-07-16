@@ -22,7 +22,7 @@ helm pull datakit --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/char
 ???+ info
 
      `values.yaml` is located in the `datakit` directory.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 #### Modify `dataway url`  {#helm-dataway}
 
@@ -194,7 +194,7 @@ helm install datakit datakit \
 ???+ info
 
      If *values.yaml* is lost, you can execute `helm -n datakit get values datakit -o yaml > values.yaml` to retrieve it.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ```shell
 helm upgrade datakit datakit \
@@ -427,7 +427,7 @@ helm install my-datakit datakit-gke/datakit-gke-autopilot \
     # ref: https://github.com/kubernetes-sigs/metrics-server/tree/master/charts/metrics-server
     MetricsServerEnabled: false
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## FAQ {#faq}
 

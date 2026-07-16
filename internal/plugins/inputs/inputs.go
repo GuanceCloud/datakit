@@ -84,6 +84,14 @@ type HTTPInput interface {
 	RegHTTPHandler()
 }
 
+// HTTPInputKVRebuild marks an HTTP input whose route must be applied to a new
+// Gin router when it is added by a KV reload. Most HTTP inputs retain the
+// existing reload behavior; implementations opt in explicitly.
+type HTTPInputKVRebuild interface {
+	HTTPInput
+	RebuildHTTPServerOnKVReload()
+}
+
 type DebugInput interface {
 	DebugRun()
 }

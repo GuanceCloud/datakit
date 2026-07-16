@@ -34,7 +34,7 @@ monitor:
 - 这里尽量说明下必要前置条件，比如 Redis 版本要求，需要额外安装的软件等等
 <!-- markdownlint-disable MD038 -->
 - 这里不用加 ` 安装 DataKit` 这个条件，实属废话
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD038 -->
 
 进入 DataKit 安装目录下的 `conf.d/samples` 目录，复制 `{{.InputName}}.conf.sample` 并命名为 `{{.InputName}}.conf`。示例如下：
 
@@ -50,7 +50,7 @@ Sample 注意事项：
 1. 一些默认打开的选项，不要注释掉了，不然用户使用的时候，还要手动去打开
 <!-- markdownlint-disable MD038 -->
 1. 当某些采集器无需额外配置时，在 sample 中加一行 `# 这里无需额外配置 `，让用户知道不用其它配置了
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD038 -->
 1. 总体原则是，配置项能不注释就不注释
 
 配置好后，重启 DataKit 即可。
@@ -108,4 +108,4 @@ Sample 注意事项：
 {{end}}
 
 {{ end }}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD024 -->

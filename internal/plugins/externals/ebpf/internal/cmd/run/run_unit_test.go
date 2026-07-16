@@ -14,6 +14,9 @@ func TestNewRunCmdRegistersTraceAllProcessFlag(t *testing.T) {
 	if cmd.Flags().Lookup("netlog-l7log-headers") == nil {
 		t.Fatal("expected netlog-l7log-headers flag to be registered")
 	}
+	if cmd.Flags().Lookup("network-path-enabled") == nil {
+		t.Fatal("expected network-path-enabled flag to be registered")
+	}
 }
 
 func TestParseFlagsResetsFeatureGlobals(t *testing.T) {
@@ -58,5 +61,32 @@ func TestParseFlagsResetsFeatureGlobals(t *testing.T) {
 	}
 	if enableHTTPFlow || enableHTTPFlowTLS || ipv6Disabled || conv2ddID {
 		t.Fatal("expected protocol and trace flags to be reset on second parse")
+	}
+}
+
+func TestReadEnvNetworkPathConfig(t *testing.T) {
+	t.Setenv("DKE_NETWORK_PATH_ENABLED", "true")
+	t.Setenv("DKE_NETWORK_PATH_API", "http://127.0.0.1:9529/v1/netpath/candidates")
+	t.Setenv("DKE_NETWORK_PATH_TOKEN", "secret")
+	t.Setenv("DKE_NETWORK_PATH_FLUSH_INTERVAL", "5s")
+	t.Setenv("DKE_NETWORK_PATH_BATCH_SIZE", "10")
+	t.Setenv("DKE_NETWORK_PATH_HTTP_TIMEOUT", "2s")
+	t.Setenv("DKE_NETWORK_PATH_QUEUE_SIZE", "100")
+
+	var flag Flag
+	readEnv(&flag)
+
+	if !flag.NetworkPath.Enabled {
+		t.Fatal("expected network path to be enabled")
+	}
+	if flag.NetworkPath.API != "http://127.0.0.1:9529/v1/netpath/candidates" {
+		t.Fatalf("unexpected api %q", flag.NetworkPath.API)
+	}
+	if flag.NetworkPath.Token != "secret" ||
+		flag.NetworkPath.FlushInterval != "5s" ||
+		flag.NetworkPath.BatchSize != 10 ||
+		flag.NetworkPath.HTTPTimeout != "2s" ||
+		flag.NetworkPath.QueueSize != 100 {
+		t.Fatalf("unexpected network path config %#v", flag.NetworkPath)
 	}
 }

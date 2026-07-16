@@ -109,7 +109,7 @@ server {
 ???+ note
 
     `url` 地址以 NGINX 具体配置为准，一般常见的用法就是用 `/basic_status` 这个路由。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 指标 {#metric}
 

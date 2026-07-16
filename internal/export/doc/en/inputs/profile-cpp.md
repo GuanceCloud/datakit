@@ -81,7 +81,7 @@ app --> pyro --> |profiling data|dk --> brand_name
 
 <!-- markdownlint-disable MD013 -->
 ### Pyroscope Agent Configures eBPF Collection Mode {#pyroscope-ebpf}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 The [eBPF](https://pyroscope.io/docs/ebpf/){:target="_blank"} mode of the Pyroscope Agent supports profiling collection of C/C + + programs.
 

@@ -66,7 +66,7 @@ CouchDB 采集器用于采集 CouchDB 相关的指标数据，目前只支持 Pr
 
     - 采集数据需要用到 `5984/17986` 几个端口，远程采集的时候，被采集服务器这些端口需要打开。
     - `bind_address = 127.0.0.1` 如果是本地采集，就不需要修改。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 采集器配置 {#input-config}
 
@@ -85,7 +85,7 @@ CouchDB 采集器用于采集 CouchDB 相关的指标数据，目前只支持 Pr
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 指标 {#metric}
 

@@ -103,7 +103,7 @@ Comprehensive pre-flight check script:
     echo
     echo "=== Check Complete ==="
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 Save as `journald-prereq-check.sh` and run:
 
@@ -158,7 +158,7 @@ After successfully installing and starting DataKit, enable the Journald collecto
 === "Kubernetes"
 
     Can be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting) or [Config ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Configuration Options {#config-options}
 

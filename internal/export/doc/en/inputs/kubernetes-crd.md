@@ -35,7 +35,7 @@ If it is an upgraded version of DataKit, you need to add authentication in the `
 
 <!-- markdownlint-disable MD013 -->
 ### Create v1beta1 DataKit Instance, Create DataKit Object {#create}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 Write the following to the yaml configuration, such as `datakit-crd.yaml`, where each field has the following meaning:
 
@@ -56,7 +56,7 @@ Execute the `kubectl apply -f datakit-crd.yaml` command.
     - DaemonSet and Deployment are two different Kubernetes resources, but here `k8s DaemonSet` and `k8s Deployment` can exist at the same time. That is, under the same Namespace, the Pod created by DaemonSet and the Pod created by Deployment share the same CRD configuration. This is not recommended, however, because fields like `source` are used to identify data sources in specific configurations, and mixing them leads to unclear data boundaries. It is recommended that only one `k8s DaemonSet` and `k8s Deployment` exist in the same CRD configuration.
 
     - DataKit only collects Pod in the same node as it, which belongs to nearby collection and will not be collected across nodes.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Example {#example}
 

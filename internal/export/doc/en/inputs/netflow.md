@@ -52,7 +52,7 @@ The following protocols are currently supported by DataKit:
 === "Kubernetes"
 
     The collector can now be turned on by [configMap injection collector configuration](datakit-daemonset-deploy.md#configmap-setting).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Log {#logging}
 
@@ -194,7 +194,7 @@ For all the following data collections, a global tag named  `host` is appended b
 ???+ info
 
     The data collected by Netflow is stored as logging category(`L`).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 {{ range $i, $m := .Measurements }}
 

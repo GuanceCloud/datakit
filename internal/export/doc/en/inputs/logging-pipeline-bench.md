@@ -31,7 +31,7 @@ title: 'DataKit Performance of Log Collector'
 ???+ info
 
     Pipeline time-consuming period, the CPU single core runs at full load, the utilization rate continues at about 100%, and the CPU falls back when the 10w log processing is finished. Memory consumption was stable during the test, with no significant increase in usage. Time-consuming computation for DataKit programs, which may be biased in different environments.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Comparison {#compare}
 

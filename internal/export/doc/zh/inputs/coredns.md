@@ -53,7 +53,7 @@ CoreDNS 采集器用于采集 CoreDNS 相关的指标数据。
           [inputs.kubernetesprometheus.instances.custom.tags]
             cluster = "demo"
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 指标 {#metric}
 

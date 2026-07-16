@@ -50,7 +50,7 @@ The HostChange collector supports the following change detection features:
 
     Currently, you can enable the collector by [injecting collector configuration through ConfigMap](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Change Events {#change-event}
 

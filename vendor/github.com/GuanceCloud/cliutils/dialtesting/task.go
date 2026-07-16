@@ -538,10 +538,22 @@ func (t *Task) GetHostName() ([]string, error) {
 }
 
 func (t *Task) GetWorkspaceLanguage() string {
-	if t.WorkspaceLanguage == "en" {
+	return NormalizeWorkspaceLanguage(t.WorkspaceLanguage)
+}
+
+func NormalizeWorkspaceLanguage(language string) string {
+	switch strings.ToLower(strings.ReplaceAll(strings.TrimSpace(language), "_", "-")) {
+	case "en":
 		return "en"
+	case "id":
+		return "id"
+	case "zh-hant", "zh-tw", "zh-hk":
+		return "zh-hant"
+	case "zh", "zh-cn", "zh-hans":
+		return "zh"
+	default:
+		return "zh"
 	}
-	return "zh"
 }
 
 func (t *Task) GetDFLabel() string {

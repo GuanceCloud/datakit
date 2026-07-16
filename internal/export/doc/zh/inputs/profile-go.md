@@ -136,7 +136,7 @@ DataKit 自 [:octicons-tag-24: Version-1.39.0](../datakit/changelog.md#cl-1.39.0
     ## set false to stop generating apm metrics from ddtrace output.
     generate_metrics = false
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Pull 方式 {#pull-mode}
 
@@ -218,7 +218,7 @@ runtime.SetBlockProfileRate(rate)
 ???+ note
 
     如果不需要开启 Profile 的 HTTP 服务，可将 `endpoints` 字段注释掉。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 字段说明 {#fields-info}
 

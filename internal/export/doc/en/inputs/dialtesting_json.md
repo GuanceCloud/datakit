@@ -48,7 +48,7 @@ In some cases, you may not be able to connect to SAAS's dialing task service. In
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap injection collector configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 ---
 
 The specific country/region and ISP selection can be selected as shown in the following figure (note that you don't really create a new "self-built node", just provide an alternative source here):

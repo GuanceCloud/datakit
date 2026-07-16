@@ -47,7 +47,7 @@ Already tested CockroachDB version:
 
     Can be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting) or [Config ENV_DATAKIT_INPUTS](../datakit/datakit-daemonset-deploy.md#env-setting) .
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 ---
 
 ## Metric {#metric}
@@ -60,4 +60,4 @@ Already tested CockroachDB version:
 {{$m.MarkdownTable}}
 
 {{ end }}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD024 -->

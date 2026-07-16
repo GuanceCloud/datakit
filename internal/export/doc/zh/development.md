@@ -64,7 +64,7 @@ ElectionEnabled() bool
 ???+ note
 
     由于不断会新增一些采集器功能，新增的采集器应该尽可能实现 plugins/inputs/inputs.go 中的所有 interface。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 - 建议 `Run()` 方法的结构：
 
@@ -372,7 +372,7 @@ datakit -M --vvv            # 检查所有采集器的运行情况
 === "Windows"
 
     暂不支持
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 安装、升级测试 {#install-upgrade-testing}
 

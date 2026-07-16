@@ -157,7 +157,7 @@ The complete description of URL parameters is as follows:
     - The automatic recognition of timestamp precision (`precision`) [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0) means guessing the possible timestamp precision based on the incoming timestamp value. Mathematically, it cannot guarantee correctness, but it is sufficient for daily use. For example, for the timestamp 1716544492, its timestamp is judged as seconds, and for 1716544492000, it will be judged as milliseconds, and so on.
     - If there is no time in the data point, the timestamp of the machine where DataKit is located will be used as the standard.
     - Although the protocol currently supports binary format and any format, the central system does not yet support writing these two types of data. **Specially noted here**.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 #### Body Description {#api-v1-write-body}
 
@@ -171,7 +171,7 @@ The HTTP body supports the line protocol and two JSON forms.
     In simple JSON, regardless of whether it is a metric or a log, the top-level fields are always `measurement/tags/fields/time`. The `source` of a log commonly seen on the studio page is actually the `measurement` here. In short, the body defined here is merely the protocol encapsulation, while the field names seen on the studio page have undergone certain transformations targeting different data attributes.
 
     In PBJSON, for different data types, the top-level fields are all the same, namely `name/fields/time`, where the `name` field is ultimately mapped to `measurement` in metrics and `source` in logs.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ##### Line Protocol Body {#api-v1-write-body-line-protocol}
 
@@ -298,7 +298,7 @@ The following is a simple JSON example:
     - It cannot distinguish between int/uint/float numerical types. For example, for all numerical values, JSON defaults to treating them as floats. For the value 42, JSON cannot distinguish whether it is signed or unsigned.
     - It does not support representing binary (`[]byte`) data. Although in some cases, JSON encoding will automatically represent `[]byte` as a base64 - encoded string, JSON itself has no binary type representation.
     - It cannot represent other information of specific fields, such as units, metric types (gauge/count/...), etc.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ##### PBJSON Body {#api-v1-write-body-pbjson-protocol}
 
@@ -348,7 +348,7 @@ Here, there are several options for "x", listed as follows:
 ???+ warning
 
     The values of "i" and "u" here, as well as the "time" field value of each Point, are represented as strings in JSON.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 The following is a specific JSON example:
 
@@ -417,7 +417,7 @@ The following is a specific JSON example:
           - PBJSON: `Content-Type: application/pbjson; proto=com.guance.Point`
     - The support for arrays in fields requires a version of 1.30.0 or above (including 1.30.0) [:octicons-tag-24: Version-1.30.0](changelog.md#cl-1.30.0).
     - Compared with the line - protocol request body, the performance of the JSON - formatted request body is relatively poor, with approximately a 7 - to 8 - fold difference.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ---
 
@@ -493,7 +493,7 @@ $ curl -s http://datakit-ip:9529/v1/write/logging --data-binary "@path/to/some/f
     unable to parse'some2,t1=1,t2 f1=1i,f2='(pos: 82): missing tag value
     with 2 point parse ok, 2 points failed. Origin data: "some1,t1=1,t2=v2 f1=1i,f2=3\nsome2,t1=1,t2 f1=1i,f2=3\nsome3,t1=1,t2=v3 f1=1i,f2=3\nsome2,t1=1,t2 f1=1i,f2=\n"
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 Here, the `message` is expanded as follows:
 
@@ -545,7 +545,7 @@ Regardless of the method (`lp`/`pbjson`/`json`) used to write data, DataKit will
 === "Line Protocol (`echo=lp`)"
 
     See [Line Protocol Format](apis.md#api-v1-write-body-line-protocol).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ---
 

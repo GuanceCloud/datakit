@@ -24,14 +24,14 @@ A typical configuration collector file has the following structure:
 ???+ note
 
     Because DataKit only searches for files in the `conf.d/` directory that are extended by `.conf`, all collector configurations must be placed in the `conf.d` directory (or its lower subdirectory) and must be suffixed by `.conf`, otherwise DataKit will ignore the processing of the configuration file.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 ## How to Modify Collector Configuration {#modify-input-conf}
 
 At present, some collectors can be turned on without configuration, while others need to edit the configuration manually.
 
 <!-- markdownlint-disable MD013 -->
 ### Enable Multiple Collections with the Same Collector {#input-multi-inst}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 Taking MySQL as an example, if you want to configure multiple different MySQL collections, there are two ways:
 
 1. Add a new conf file, such as *mysql-2.conf*, which can be placed in the same directory as the existing *mysql.conf*.
@@ -101,7 +101,7 @@ This is actually a Toml array structure, the structure is suitable for multiple 
     - Configuring multiple different collectors (such as MySQL and Nginx) into one conf is not recommended, which can cause some odd problems and is not easy to administer.
     
     - Some collectors are limited to single-instance operation, see [input-singleton for details](#input-singleton).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 ### Single Instance Collector {#input-singleton}
 
 Some collectors only allow a single instance to run, and even if multiple copies are configured, only a single instance will run. These single instance collectors are listed as follows:
@@ -168,7 +168,7 @@ Sometimes, we want to temporarily shut down a collector, and there are two ways:
 In contrast, the first approach is more crude and simple, and the second one needs to be carefully modified, which may lead to Toml configuration errors.
 <!-- markdownlint-disable MD013 -->
 ### Regular Expressions in Collector Configuration {#debug-regex}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 When editing the collector configuration, some regular expressions may need to be configured.
 
 Since DataKit is mostly developed using Golang, the regular wild match used in the configuration section is also implemented using Golang's own regular implementation. As there are some differences in the regular systems of different languages, it is difficult to write the configuration correctly at one time.
@@ -190,7 +190,7 @@ The primary purpose of the KV (Key-Value) pair design is to enable users to edit
 
     - Currently, it is only supported for use in the configuration files of collectors.
     - Only support for the Host configuration file, not for the [Git](./git-config-how-to.md) and [Confd](./confd.md).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Dynamic Loading Process {#kv-load-flow}
 
@@ -201,7 +201,7 @@ It's important to note that this comparison is done on a per-configuration-file 
 <!-- markdownlint-disable MD046 -->
 ???+ note
     - If the reload includes collectors for HTTP services, such as the `ddtrace` collector, then the entire HTTP service will be restarted.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 Please refer to the following diagram for a better understanding:
 

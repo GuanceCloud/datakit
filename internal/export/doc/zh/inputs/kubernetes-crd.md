@@ -54,7 +54,7 @@ __int_icon: 'icon/kubernetes'
     - DaemonSet 和 Deployment 是两种不同的 Kubernetes resource，但在此处，`k8sDaemonSet` 和 `k8sDeployment` 是可以同时存在的。即在同一个 Namespace 下，DaemonSet 创建的 Pod 和 Deployment 创建的 Pod 共用同一份 CRD 配置。但是不推荐这样做，因为在具体配置中会有类似 `source` 这种字段用来标识数据源，混用会导致数据界线不够清晰。建议在同一份 CRD 配置中 `k8sDaemonSet` 和 `k8sDeployment` 只存在一个。
 
     - DataKit 只采集和它处于同一个 node 的 Pod，属于就近采集，不会跨 node 采集。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 示例 {#example}
 

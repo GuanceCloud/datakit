@@ -75,7 +75,7 @@ This document focuses on local disk log collection and Socket log collection:
     ```
     
     More: For configuration and code examples of Java Go Python mainstream logging components, see: [socket client configuration](logging_socket.md)
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ---
 
@@ -162,7 +162,7 @@ The default rules are used to identify the first line of a log entry, not to par
 
 <!-- markdownlint-disable MD013 -->
 #### Restrictions on Processing Very Long Multi-line Logs {#too-long-logs}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 An individual multiline log should not exceed the size of `MaxRawBodySize * 0.8` (default 819KiB) as configured in DataKit. If it exceeds this value, DataKit will concatenate the remaining logs, even if they are not valid multiline data. An example is as follows, assuming the following multiline logs:
 
@@ -310,7 +310,7 @@ In DataKit, there are mainly 3 scenarios, prioritized as follows:
     - value is the read offset position (position) of this file, which is updated in real-time
 
     When log collection starts, it retrieves the position based on the key as the read offset to avoid missing or duplicate collection.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Special Bytecode Filtering for Logs {#ansi-decode}
 
@@ -334,7 +334,7 @@ The log may contain some unreadable bytecode (such as the color of terminal outp
     ```
 
     The processing time of each text increases by 1700 ns. If this function is not turned on, there will be no extra loss.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 
 ### Retain Specific Fields Based on Whitelist {#field-whitelist}
@@ -399,7 +399,7 @@ If you see such information, prove that the specified file ==has started to be c
 
 <!-- markdownlint-disable MD013 -->
 ### Mutex of Disk Log Collection and Socket Log Collection {#exclusion}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 The two collection methods are mutually exclusive at present. When collecting logs in Socket mode, the `logfiles` field in the configuration should be left blank: `logfiles=[]`
 
@@ -409,7 +409,7 @@ On Linux, you can mount the file path of the host where the log is located to th
 
 <!-- markdownlint-disable MD013 -->
 ### MacOS Log Collector Error `operation not permitted` {#mac-no-permission}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 In MacOS, because of system security policy, the DataKit log collector may fail to open files, error `operation not permitted`, refer to [apple developer doc](https://developer.apple.com/documentation/security/disabling_and_enabling_system_integrity_protection){:target="_blank"}.
 
@@ -447,7 +447,7 @@ But in fact, the compression ratio of DataKit will not be so high, because DataK
 ??? info
 
     Here `*2` takes into account the actual data inflation caused by [Pipeline cutting](../pipeline/index.md) and the original data should be brought after cutting in general, so according to the worst case, the calculation here is doubled.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Extended reading {#more-reading}
 

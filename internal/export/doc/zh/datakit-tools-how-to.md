@@ -119,7 +119,7 @@ create_time 1639657028706
     
         { service = 'web_front' and ( http_url in [ '/webproxy/api/online_status' ] )}
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 此处输出表明，文件 *lineproto.data* 中的这条数据，被位于 *.pull* 文件中 `tracing` 所在分类的第 7 条（从 1 开始计数）规则匹配。一旦匹配，则该条数据将被丢弃。
 
@@ -363,7 +363,7 @@ datakit tool --parse-lp /path/to/file --json
 
     - 数据录制完成后，记得关闭该功能（`enable = false`），否则每次 DataKit 启动都会启动录制，可能会消耗大量磁盘
     - 采集器名字不完全等同于采集器配置中的名字（`[[inputs.some-name`]]`），而是 monitor *Inputs Info* 面板中第一列中显示的名字。部分采集器的名字可能这样：`logging/<some-pod-name>`。此处其存放的数据目录为 */usr/local/datakit/recorder/logging/logging-some-pod-name.1705636073033197000.pbjson*，此处将采集器名字中的 `/` 替换成了 `-`（避免多一层目录结构）
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 #### 数据回放 {#do-replay}
 
@@ -404,7 +404,7 @@ Flags:
 ???+ warning
 
     对 RUM 数据而言，如果回放的目标工作空间没有对应的 APP ID，则数据无法写入，可以在目标工作空间新建一个应用，将 APP ID 改成和录制数据中的一致，或者替换已有的录制数据中 APP ID 为目标工作空间中对应 RUM 应用的 APP ID。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 其它 {#others}
 
@@ -452,7 +452,7 @@ datakit install --ebpf
 ???+ warning
 
     该命令在 [:octicons-tag-24: Version-1.5.6](changelog.md#cl-1.5.6-brk) 已经被移除。新版本默认就内置了 eBPF 集成。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### DataKit 更新 IP 数据库文件 {#install-ipdb}
 
@@ -565,7 +565,7 @@ datakit install --ebpf
       province:
        country:
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### DataKit 自动命令补全 {#completion}
 

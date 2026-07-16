@@ -114,7 +114,7 @@ DataKit 支持 `etcd-v3` `consul` `redis` `zookeeper` `aws secrets manager` `nac
 
     具体参见[主机安装文档](datakit-install.md#env-confd)
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 默认开启的采集器 {#default-enabled-inputs}
 DataKit 安装完成后，会默认开启一批主机相关的采集器，无需手动配置，如 `cpu`、`disk`、`diskio`、`mem` 等。具体参见[采集器配置](datakit-input-conf.md#default-enabled-inputs)

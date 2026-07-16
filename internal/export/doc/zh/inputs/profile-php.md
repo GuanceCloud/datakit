@@ -62,7 +62,7 @@ Allocation Profiling Enabled => true
 ???+ info
 
     在编写此文档时 `DataKit` 最高支持到 [`dd-trace-php v0.90.0`](https://github.com/DataDog/dd-trace-php/releases/tag/0.90.0){:target="_blank"} 版本，更高的版本没有经过系统性测试，兼容性未知，如您在使用中遇到任何问题，可随时与我们联系。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 
 ## 开启 Profiling {#start-profiling}
@@ -138,7 +138,7 @@ Allocation Profiling Enabled => true
         Process: 630872 ExecStopPost=/usr/lib/php/php-fpm-socket-helper remove /run/php/php-fpm.sock /etc/php/8.1/fpm/pool.d/www.conf 81 (code=exited, status=0/SUCCESS)
         ...
         ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 稍等几分钟后便可以在 [<<<custom_key.brand_name>>>控制台](https://console.<<<custom_key.brand_main_domain>>>/tracing/profile){:target="_blank"} 查看相关数据。
 

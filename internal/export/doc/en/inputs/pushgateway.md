@@ -42,7 +42,7 @@ The Pushgateway collector will open the corresponding API interface to receive P
 
 {{ CodeBlock .InputENVSample 4 }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ---
 

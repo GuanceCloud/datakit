@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/changes"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/diff"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/unifieddiff"
 )
 
 const (
@@ -137,8 +137,11 @@ func (fc *FileChecker) modify(changesByPath FileChangesByPath) func(key string,
 			mergedFileChange.Diff = fmt.Sprintf("Large file changed (size: %d bytes, max allowed: %d bytes)",
 				len(mergedFileChange.NewContent), fc.MaxFileSize)
 		} else {
-			diffResult := diff.LineDiffWithContextLines(mergedFileChange.OldContent, mergedFileChange.NewContent, 4)
-			mergedFileChange.Diff = diffResult
+			mergedFileChange.Diff = unifieddiff.Text(
+				mergedFileChange.FilePath,
+				mergedFileChange.OldContent,
+				mergedFileChange.NewContent,
+			)
 		}
 
 		changesByPath[key] = mergedFileChange

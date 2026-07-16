@@ -51,7 +51,7 @@ NFS metrics collector that collects the following data:
 
 {{ CodeBlock .InputENVSampleZh 4 }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### NFSd Start {#nfsd}
 

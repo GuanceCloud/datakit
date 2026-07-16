@@ -15,7 +15,7 @@ source_name,key1=value1,key2=value2 field1=value1,field2=value2 ts
 ```
 <!-- markdownlint-disable MD013 -->
 ## DataKit line protocol tags and fields used in profiling {#tags-fields}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 | **Section** | **Name** | **Unit** | **Description**        |
 |----------------------------------------------|-------------------------------------------|-------------------------------------------|---------------------------------------------------------|
 | Tag                                          | `host`                                      |                                           | host name                                               |

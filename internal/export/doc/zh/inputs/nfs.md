@@ -49,7 +49,7 @@ NFS 指标采集器，采集以下数据：
 
 {{ CodeBlock .InputENVSampleZh 4 }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### NFSd 开启 {#nfsd}
 

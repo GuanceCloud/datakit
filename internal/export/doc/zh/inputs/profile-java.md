@@ -36,7 +36,7 @@ DataKit 支持两种采集器来采集 Java profiling 数据， [`dd-trace-java`
 
         `JFR` 是 Oracle JDK 8 的商业特性，默认是关闭的，如需启用需在启动项目时增加参数 `-XX:+UnlockCommercialFeatures -XX:+FlightRecorder`，而从 JDK 11 开始，`JFR` 已经成为开源项目且不再是 Oracle JDK 的商业特性。
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 开启 profiling
 
@@ -125,7 +125,7 @@ DataKit 自 [:octicons-tag-24: Version-1.39.0](../datakit/changelog.md#cl-1.39.0
  | `prof_jvm_threads_created_per_sec`    | Number of threads created per second<br>*Unit: count*                                                                                  |
  | `prof_jvm_threads_deadlocked`         | Number of threads in deadlock state<br>*Unit: count*                                                                                   |
  | `prof_jvm_uptime_nanoseconds`         | Application uptime duration<br>*Unit: nanosecond*                                                                                      |
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD038 -->
 
 <!-- markdownlint-disable MD046 -->
 ???+ note
@@ -138,7 +138,7 @@ DataKit 自 [:octicons-tag-24: Version-1.39.0](../datakit/changelog.md#cl-1.39.0
     ## set false to stop generating apm metrics from ddtrace output.
     generate_metrics = false
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Async Profiler {#async-profiler}
 
@@ -157,7 +157,7 @@ async-profiler 可以收集以下几种事件：
 ???+ node "版本要求"
 
     DataKit 目前支持 `async-profiler v2.9` 及以下版本，更高版本未经测试，兼容性未知。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 官网提供了不同平台的安装包的下载（以 v2.8.3 为例）：
 
@@ -206,7 +206,7 @@ sudo sysctl kernel.kptr_restrict=0
     ```shell
     sudo debuginfo-install java-1.8.0-openjdk
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 Linux 平台可以通过 `gdb` 查看是否正确安装：
 
@@ -455,7 +455,7 @@ java -Ddk.service=<service-name> ... -jar <your-jar>
         fi
     done
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 - 执行脚本
 

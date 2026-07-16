@@ -52,7 +52,7 @@ The real meaning of Baggage is to propagate key-value pairs of the `key:value` n
 ???+ warning
 
     It should be noted that the specific implementation and usage of these transparent transmission protocols may be slightly different, but they all aim to pass tracking information and context information between different services through HTTP header fields to achieve distributed tracking and continuous sex.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Link manufacturers and product introduction {#tracing-info}
 
@@ -134,7 +134,7 @@ $ export DD_TRACE_PROPAGATION_STYLE="datadog,b3" ...
 ???+ note
 
     After version V1.7.0, the default support protocol is changed to `DD_TRACE_PROPAGATION_STYLE="tracecontext,datadog"`, B3 has been deprecated, please use B3multi.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 For more language examples, see [here](https://github.com/DataDog/documentation/blob/4ff75ed0bcaa1269bf98e9d185935cfda675b08c/content/en/tracing/trace_collection/trace_context_propagation/_index.md){:target="_blank"}.
 
@@ -218,6 +218,6 @@ After `compatible_otel=true`, all DDTrace `span_id` and `parent_id` will become 
     # convert int64 to string
     fn format_int(val: int64, base: int) str
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 So far, DDTrace and OTEL have been connected in series on the link, and the service call relationship and logs can also be connected in series.

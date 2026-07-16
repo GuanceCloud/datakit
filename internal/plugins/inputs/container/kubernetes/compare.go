@@ -10,11 +10,12 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/changes"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/diff"
 	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/changes"
 )
 
 var filterAnnotationPatterns = []string{
@@ -78,12 +79,19 @@ func compareContainers(oldPod, newPod *apicorev1.PodTemplateSpec) (res []FieldDi
 						ContainerName: oldContainer.Name,
 						OldValue:      oldContainer.Image,
 						NewValue:      newContainer.Image,
-						DiffText:      formatAsDiffLines("image", oldContainer.Image, newContainer.Image),
+						DiffText: scalarAsUnifiedDiff(
+							containerDiffPath(oldContainer.Name, "image"),
+							"image", oldContainer.Image, newContainer.Image,
+						),
 					})
 				}
 			}
 			{
-				if equal, difftext := diff.Compare(oldContainer.Env, newContainer.Env); !equal {
+				oldChangedEnvs, newChangedEnvs := changedEnvVars(oldContainer.Env, newContainer.Env)
+				if equal, difftext := compareAsUnifiedDiff(
+					containerDiffPath(oldContainer.Name, "env"),
+					envDiffValues(oldChangedEnvs), envDiffValues(newChangedEnvs),
+				); !equal {
 					oldEnvMap := envSliceToMap(oldContainer.Env)
 					newEnvMap := envSliceToMap(newContainer.Env)
 					res = append(res, FieldDiff{
@@ -95,7 +103,9 @@ func compareContainers(oldPod, newPod *apicorev1.PodTemplateSpec) (res []FieldDi
 				}
 			}
 			{
-				if equal, difftext := diff.Compare(oldContainer.Command, newContainer.Command); !equal {
+				if equal, difftext := compareAsUnifiedDiff(
+					containerDiffPath(oldContainer.Name, "command"), oldContainer.Command, newContainer.Command,
+				); !equal {
 					oldStr := stringSliceToString(oldContainer.Command)
 					newStr := stringSliceToString(newContainer.Command)
 					res = append(res, FieldDiff{
@@ -108,7 +118,10 @@ func compareContainers(oldPod, newPod *apicorev1.PodTemplateSpec) (res []FieldDi
 				}
 			}
 			{
-				if equal, difftext := diff.Compare(oldContainer.Resources.Limits, newContainer.Resources.Limits); !equal {
+				if equal, difftext := compareAsUnifiedDiff(
+					containerDiffPath(oldContainer.Name, "resources.limits"),
+					oldContainer.Resources.Limits, newContainer.Resources.Limits,
+				); !equal {
 					oldLimits := resourceToStringSlice(oldContainer.Resources.Limits)
 					newLimits := resourceToStringSlice(newContainer.Resources.Limits)
 					res = append(res, FieldDiff{
@@ -121,7 +134,10 @@ func compareContainers(oldPod, newPod *apicorev1.PodTemplateSpec) (res []FieldDi
 				}
 			}
 			{
-				if equal, difftext := diff.Compare(oldContainer.VolumeMounts, newContainer.VolumeMounts); !equal {
+				if equal, difftext := compareAsUnifiedDiff(
+					containerDiffPath(oldContainer.Name, "volumeMounts"),
+					oldContainer.VolumeMounts, newContainer.VolumeMounts,
+				); !equal {
 					oldVolumeMountMap := volumeMountsToMap(oldContainer.VolumeMounts)
 					newVolumeMountMap := volumeMountsToMap(newContainer.VolumeMounts)
 					res = append(res, FieldDiff{
@@ -133,7 +149,10 @@ func compareContainers(oldPod, newPod *apicorev1.PodTemplateSpec) (res []FieldDi
 				}
 			}
 			{
-				if equal, difftext := diff.Compare(oldContainer.SecurityContext, newContainer.SecurityContext); !equal {
+				if equal, difftext := compareAsUnifiedDiff(
+					containerDiffPath(oldContainer.Name, "securityContext"),
+					oldContainer.SecurityContext, newContainer.SecurityContext,
+				); !equal {
 					oldSecurityContextMap := securityContextToMap(oldContainer.SecurityContext)
 					newSecurityContextMap := securityContextToMap(newContainer.SecurityContext)
 					res = append(res, FieldDiff{
@@ -146,31 +165,36 @@ func compareContainers(oldPod, newPod *apicorev1.PodTemplateSpec) (res []FieldDi
 			}
 			{
 				changeValueList := []string{}
-				difftextList := []string{}
 
-				if equal, difftext := diff.Compare(oldContainer.LivenessProbe, newContainer.LivenessProbe); !equal {
-					oldLivenessProbeMap := probeToMap(oldContainer.LivenessProbe)
-					newLivenessProbeMap := probeToMap(newContainer.LivenessProbe)
-					for _, key := range diffMaps(oldLivenessProbeMap, newLivenessProbeMap) {
-						changeValueList = append(changeValueList, "- LivenessProbe."+key)
-					}
-					difftextList = append(difftextList, difftext)
+				oldLivenessProbeMap := probeToMap(oldContainer.LivenessProbe)
+				newLivenessProbeMap := probeToMap(newContainer.LivenessProbe)
+				for _, key := range diffMaps(oldLivenessProbeMap, newLivenessProbeMap) {
+					changeValueList = append(changeValueList, "- LivenessProbe."+key)
 				}
-				if equal, difftext := diff.Compare(oldContainer.ReadinessProbe, newContainer.ReadinessProbe); !equal {
-					oldReadinessProbeMap := probeToMap(oldContainer.ReadinessProbe)
-					newReadinessProbeMap := probeToMap(newContainer.ReadinessProbe)
-					for _, key := range diffMaps(oldReadinessProbeMap, newReadinessProbeMap) {
-						changeValueList = append(changeValueList, "- ReadinessProbe."+key)
-					}
-					difftextList = append(difftextList, difftext)
+
+				oldReadinessProbeMap := probeToMap(oldContainer.ReadinessProbe)
+				newReadinessProbeMap := probeToMap(newContainer.ReadinessProbe)
+				for _, key := range diffMaps(oldReadinessProbeMap, newReadinessProbeMap) {
+					changeValueList = append(changeValueList, "- ReadinessProbe."+key)
 				}
 
 				if len(changeValueList) != 0 {
+					oldProbes := containerProbes{
+						LivenessProbe:  oldContainer.LivenessProbe,
+						ReadinessProbe: oldContainer.ReadinessProbe,
+					}
+					newProbes := containerProbes{
+						LivenessProbe:  newContainer.LivenessProbe,
+						ReadinessProbe: newContainer.ReadinessProbe,
+					}
+					_, difftext := compareAsUnifiedDiff(
+						containerDiffPath(oldContainer.Name, "probes"), oldProbes, newProbes,
+					)
 					res = append(res, FieldDiff{
 						ChangeID:        changes.PodTemplateProbe,
 						ContainerName:   oldContainer.Name,
 						ChangeValueList: changeValueList,
-						DiffText:        strings.Join(difftextList, "\n"),
+						DiffText:        difftext,
 					})
 				}
 			}
@@ -180,7 +204,9 @@ func compareContainers(oldPod, newPod *apicorev1.PodTemplateSpec) (res []FieldDi
 }
 
 func compareTolerations(oldPod, newPod *apicorev1.PodTemplateSpec) (res []FieldDiff) {
-	if equal, difftext := diff.Compare(oldPod.Spec.Tolerations, newPod.Spec.Tolerations); !equal {
+	if equal, difftext := compareAsUnifiedDiff(
+		"spec.template.spec.tolerations", oldPod.Spec.Tolerations, newPod.Spec.Tolerations,
+	); !equal {
 		oldTolerationMap := tolerationsToMap(oldPod.Spec.Tolerations)
 		newTolerationMap := tolerationsToMap(newPod.Spec.Tolerations)
 		res = append(res, FieldDiff{
@@ -198,14 +224,19 @@ func compareServiceAccount(oldPod, newPod *apicorev1.PodTemplateSpec) (res []Fie
 			ChangeID: changes.PodTemplateServiceAccount,
 			OldValue: oldPod.Spec.ServiceAccountName,
 			NewValue: newPod.Spec.ServiceAccountName,
-			DiffText: formatAsDiffLines("serviceAccountName", oldPod.Spec.ServiceAccountName, newPod.Spec.ServiceAccountName),
+			DiffText: scalarAsUnifiedDiff(
+				"spec.template.spec.serviceAccountName", "serviceAccountName",
+				oldPod.Spec.ServiceAccountName, newPod.Spec.ServiceAccountName,
+			),
 		})
 	}
 	return
 }
 
 func compareNodeSelector(oldPod, newPod *apicorev1.PodTemplateSpec) (res []FieldDiff) {
-	if equal, difftext := diff.Compare(oldPod.Spec.NodeSelector, newPod.Spec.NodeSelector); !equal {
+	if equal, difftext := compareAsUnifiedDiff(
+		"spec.template.spec.nodeSelector", oldPod.Spec.NodeSelector, newPod.Spec.NodeSelector,
+	); !equal {
 		res = append(res, FieldDiff{
 			ChangeID:        changes.PodTemplateNodeSelector,
 			ChangeValueList: diffMaps(oldPod.Spec.NodeSelector, newPod.Spec.NodeSelector),
@@ -216,7 +247,9 @@ func compareNodeSelector(oldPod, newPod *apicorev1.PodTemplateSpec) (res []Field
 }
 
 func compareVolumes(oldPod, newPod *apicorev1.PodTemplateSpec) (res []FieldDiff) {
-	if equal, difftext := diff.Compare(oldPod.Spec.Volumes, newPod.Spec.Volumes); !equal {
+	if equal, difftext := compareAsUnifiedDiff(
+		"spec.template.spec.volumes", oldPod.Spec.Volumes, newPod.Spec.Volumes,
+	); !equal {
 		res = append(res, FieldDiff{
 			ChangeID: changes.PodTemplateVolumes,
 			DiffText: difftext,
@@ -229,7 +262,9 @@ func compareAffinity(oldPod, newPod *apicorev1.PodTemplateSpec) (res []FieldDiff
 	if oldPod.Spec.Affinity == nil && newPod.Spec.Affinity == nil {
 		return
 	}
-	if equal, difftext := diff.Compare(oldPod.Spec.Affinity, newPod.Spec.Affinity); !equal {
+	if equal, difftext := compareAsUnifiedDiff(
+		"spec.template.spec.affinity", oldPod.Spec.Affinity, newPod.Spec.Affinity,
+	); !equal {
 		res = append(res, FieldDiff{
 			ChangeID: changes.PodTemplateAffinity,
 			DiffText: difftext,
@@ -253,7 +288,9 @@ func compareNetworkPolicy(oldPod, newPod *apicorev1.PodTemplateSpec) (res []Fiel
 		DNSConfig:             newPod.Spec.DNSConfig,
 		HostAliases:           newPod.Spec.HostAliases,
 	}
-	if equal, difftext := diff.Compare(oldNetworkPolicyInfo, newNetworkPolicyInfo); !equal {
+	if equal, difftext := compareAsUnifiedDiff(
+		"spec.template.spec.network", oldNetworkPolicyInfo, newNetworkPolicyInfo,
+	); !equal {
 		oldNetworkPolicyMap := networkPolicyInfoToMap(oldNetworkPolicyInfo)
 		newNetworkPolicyMap := networkPolicyInfoToMap(newNetworkPolicyInfo)
 		res = append(res, FieldDiff{
@@ -266,7 +303,7 @@ func compareNetworkPolicy(oldPod, newPod *apicorev1.PodTemplateSpec) (res []Fiel
 }
 
 func compareLabels(changeID changes.ChangeID, oldObj, newObj *metav1.ObjectMeta) (res []FieldDiff) {
-	if equal, difftext := diff.Compare(oldObj.Labels, newObj.Labels); !equal {
+	if equal, difftext := compareAsUnifiedDiff("metadata.labels", oldObj.Labels, newObj.Labels); !equal {
 		res = append(res, FieldDiff{
 			ChangeID:        changeID,
 			ChangeValueList: diffMaps(oldObj.Labels, newObj.Labels),
@@ -282,7 +319,7 @@ func compareAnnotations(changeID changes.ChangeID, oldObj, newObj *metav1.Object
 	filterMeaninglessAnnotations(oldAnnotations)
 	filterMeaninglessAnnotations(newAnnotations)
 
-	if equal, difftext := diff.Compare(oldAnnotations, newAnnotations); !equal {
+	if equal, difftext := compareAsUnifiedDiff("metadata.annotations", oldAnnotations, newAnnotations); !equal {
 		res = append(res, FieldDiff{
 			ChangeID:        changeID,
 			ChangeValueList: diffMaps(oldAnnotations, newAnnotations),
@@ -316,13 +353,16 @@ func diffMaps(oldMap, newMap map[string]string) []string {
 func envSliceToMap(envs []apicorev1.EnvVar) map[string]string {
 	res := make(map[string]string)
 	for _, env := range envs {
-		if env.ValueFrom != nil {
-			res[env.Name] = fmt.Sprintf("Ref:%s", env.ValueFrom.String())
-		} else {
-			res[env.Name] = env.Value
-		}
+		res[env.Name] = envVarValue(env)
 	}
 	return res
+}
+
+func envVarValue(env apicorev1.EnvVar) string {
+	if env.ValueFrom != nil {
+		return fmt.Sprintf("Ref:%s", env.ValueFrom.String())
+	}
+	return env.Value
 }
 
 func volumeMountsToMap(mounts []apicorev1.VolumeMount) map[string]string {
@@ -354,6 +394,11 @@ type networkPolicyInfo struct {
 	ShareProcessNamespace *bool                   `json:"shareProcessNamespace,omitempty"`
 	DNSConfig             *apicorev1.PodDNSConfig `json:"dnsConfig,omitempty"`
 	HostAliases           []apicorev1.HostAlias   `json:"hostAliases,omitempty"`
+}
+
+type containerProbes struct {
+	LivenessProbe  *apicorev1.Probe `json:"livenessProbe,omitempty"`
+	ReadinessProbe *apicorev1.Probe `json:"readinessProbe,omitempty"`
 }
 
 func networkPolicyInfoToMap(spec *networkPolicyInfo) map[string]string {
@@ -553,18 +598,38 @@ func resourceToStringSlice(resources apicorev1.ResourceList) []string {
 	return res
 }
 
-func formatAsDiffLines(key, oldVal, newVal string) string {
-	return fmt.Sprintf("- %s: %s\n+ %s: %s", key, oldVal, key, newVal)
-}
+const (
+	maxChangeListValueRunes         = 128
+	changeListValueTruncationSuffix = "... (truncated)"
+)
 
 func formatChangeValue(key, oldVal, newVal string) string {
 	if oldVal == "" && newVal == "" {
 		return fmt.Sprintf("- Delete: %s", key)
 	}
+
+	oldVal = truncateChangeListValue(oldVal)
+	newVal = truncateChangeListValue(newVal)
 	if oldVal == "" && newVal != "" {
 		return fmt.Sprintf("- Add: %s = %s", key, newVal)
 	}
 	return fmt.Sprintf("- %s: %s -> %s", key, oldVal, newVal)
+}
+
+func truncateChangeListValue(value string) string {
+	keptRunes := maxChangeListValueRunes - utf8.RuneCountInString(changeListValueTruncationSuffix)
+	truncateAt := 0
+	runeCount := 0
+	for byteIndex := range value {
+		if runeCount == keptRunes {
+			truncateAt = byteIndex
+		}
+		if runeCount == maxChangeListValueRunes {
+			return value[:truncateAt] + changeListValueTruncationSuffix
+		}
+		runeCount++
+	}
+	return value
 }
 
 func deepCopyAnnotations(annotations map[string]string) map[string]string {

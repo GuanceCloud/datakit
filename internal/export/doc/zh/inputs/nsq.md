@@ -57,7 +57,7 @@ monitor   :
     
     以上两种配置方式是互斥的，**`lookupd` 优先级更高，推荐使用 `lookupd` 配置方式**。
 ---
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 
 ## 指标 {#metric}

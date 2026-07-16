@@ -57,7 +57,7 @@ The collector collects the data of network dialing test results, and all the dat
     In Kubernetes, use the `datakit:<version>` image with Lightpanda built in.
 
     For deployment, task configuration, and troubleshooting details, see [Browser Dialtesting](dialtesting_browser.md).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Dialtesting Node Deployment {#arch}
 
@@ -72,7 +72,7 @@ The following is a network deployment topology for dialtesting nodes, which incl
 ???+ note
 
     When the node is deployed in an internal network environment and unable to access the external network, traffic forwarding can be achieved by configuring a proxy server. For specific configuration steps, please refer to the detailed instructions in the [Use DataKit Proxy](../datakit/datakit-proxy.md#datakit).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 Whether it is a public or private node, they can both create probe tasks through the Web page.
 

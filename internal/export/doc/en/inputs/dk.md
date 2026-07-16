@@ -61,7 +61,7 @@ To disable DataKit self-metric collection, set the following in `dk.conf`:
     
 {{ CodeBlock .InputENVSample 4 }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Metric {#metric}
 

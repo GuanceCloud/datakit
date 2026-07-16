@@ -6,6 +6,7 @@
 package diskcache
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -186,42 +187,57 @@ func (c *DiskCache) doOpen() error {
 	return nil
 }
 
-// Close reclame fd resources.
-// Close is safe to call concurrently with other operations and will
-// block until all other operations finish.
+// Close permanently closes the cache and reclaims its file descriptors.
+// It waits for in-flight operations, is idempotent, and causes later I/O
+// operations to return ErrClosed.
 func (c *DiskCache) Close() error {
-	c.rwlock.Lock()
-	defer c.rwlock.Unlock()
+	c.lifecycleMu.Lock()
+	defer c.lifecycleMu.Unlock()
 
 	defer func() {
 		lastCloseTimeVec.WithLabelValues(c.path).Set(float64(time.Now().Unix()))
 	}()
 
-	if c.rfd != nil {
-		if err := c.rfd.Close(); err != nil {
-			return WrapCloseError(err, c.path, "read_fd")
-		}
-		c.rfd = nil
+	if c.closed {
+		return c.closeErr
 	}
+	c.closed = true
 
-	if !c.noLock {
-		if c.flock != nil {
-			c.flock.unlock()
+	c.rwlock.Lock()
+	defer c.rwlock.Unlock()
+
+	var errs []error
+
+	if c.rfd != nil {
+		fd := c.rfd
+		c.rfd = nil
+		if err := fd.Close(); err != nil {
+			errs = append(errs, WrapCloseError(err, c.path, "read_fd"))
 		}
 	}
 
 	if c.wfd != nil {
-		if err := c.wfd.Close(); err != nil {
-			return WrapCloseError(err, c.path, "write_fd")
-		}
+		fd := c.wfd
 		c.wfd = nil
+		if err := fd.Close(); err != nil {
+			errs = append(errs, WrapCloseError(err, c.path, "write_fd"))
+		}
 	}
 
 	if c.pos != nil {
 		if err := c.pos.close(); err != nil {
-			return WrapPosError(err, c.path, c.pos.Seek).WithDetails("failed_to_close_position_file")
+			errs = append(errs, WrapPosError(err, c.path, c.pos.Seek).WithDetails("failed_to_close_position_file"))
 		}
 	}
 
-	return nil
+	if !c.noLock && c.flock != nil {
+		flock := c.flock
+		c.flock = nil
+		if err := flock.unlock(); err != nil {
+			errs = append(errs, NewCacheError(OpUnlock, err, "failed_to_release_directory_lock").WithPath(c.path))
+		}
+	}
+
+	c.closeErr = errors.Join(errs...)
+	return c.closeErr
 }

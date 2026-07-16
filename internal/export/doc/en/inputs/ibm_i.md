@@ -111,7 +111,7 @@ ldd /usr/local/datakit/externals/ibm_i
 === "Kubernetes"
 
     The collector can be enabled through [ConfigMap injection](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 A raw ODBC connection string can be supplied through `--dsn`. When `--dsn` is configured, `--host`, `--username`, `--password`, and `--driver` are not used to build the connection string:
 

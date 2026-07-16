@@ -58,7 +58,7 @@ In some cases, if the disk performance is insufficient, we can use a portion of 
         - name: ENV_DATAWAY_WAL_PATH
           value: /usr/local/datakit/cache/ramdisk
         ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ---
 
@@ -68,7 +68,7 @@ In some cases, if the disk performance is insufficient, we can use a portion of 
     By default, the disk space for each category in WAL is set to 2 GiB, which is generally sufficient. In a tmpfs scenario, it may not be practical to allocate such a large amount of memory for each category. Here, only 1 GiB (i.e., all data categories share 1 GiB of tmpfs space) of memory is used to meet the disk requirements of WAL. This may be enough under conditions where the data volume is not large and the network (between DataKit and Dataway) is ok.
 
     If the host (or Kubernetes Node) restarts, the data in WAL will be lost, but a DataKit restart will not affect this.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 After setting this up, you will see a *ramdisk* directory in the cache directory. Once DataKit starts, if WAL is generated, you will see various data category disk files in the *ramdisk* directory:
 

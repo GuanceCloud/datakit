@@ -95,7 +95,7 @@ DataKit Operator 通过 Kubernetes Admission Controller 机制，为 Kubernetes 
 
     - DataKit Operator 有严格的程序和 yaml 对应关系，如果使用一份过旧的 yaml 可能无法安装新版 DataKit Operator，请重新下载最新版 yaml。
     - 如果出现 `InvalidImageName` 报错，可以手动 pull 镜像。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 配置说明 {#jsonconfig}
 
@@ -137,7 +137,7 @@ DataKit Operator 配置是 JSON 格式，在 Kubernetes 中单独以 ConfigMap �
         }
     }
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Cluster API {#cluster-api}
 
@@ -238,7 +238,7 @@ DataKit Operator 支持两种资源输入方式，分别是
 
     1. 在 DataKit-Operator 配置中设置匹配规则（`namespace_selectors`/`label_selectors`）和相应的配置字段
     1. Pod 匹配配置中的配置 selectors
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### `check_annotation` 配置项说明 {#check-annotation-config}
 
@@ -313,26 +313,27 @@ DataKit Operator 支持两种类型的注解，它们的行为不同：
 | py-spy         | 注入 py-spy 采集 Python 应用的 Profiling， 参见[这里](operator-pyspy.md)                  |
 | logging        | 注入日志采集配置， 参见[这里](operator-logging.md)                                        |
 
-## Downward API {#downwardapi}
+## 环境变量值引用 {#downwardapi}
 
-在 DataKit Operator [:octicons-tag-24: v1.4.2](operator-changelog.md#cl-1.4.2) 及以后版本，`envs` 支持 Kubernetes Downward API 的 [环境变量取值字段](https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/downward-api/#downwardapi-fieldRef)。现支持以下几种：
+DataKit Operator 的 `envs` 支持将占位符转换为 Kubernetes 原生的环境变量值引用。其中，`fieldRef` 从 [:octicons-tag-24: v1.4.2](operator-changelog.md#cl-1.4.2) 开始支持，具体字段可参考 Kubernetes [Downward API](https://kubernetes.io/zh-cn/docs/concepts/workloads/pods/downward-api/#downwardapi-fieldRef)。当前支持以下格式：
 
 | 字段                                       | 描述                                            | 示例                                 |
 | ------:                                    | :------                                         | :------                              |
-| `{fieldRef.metadata.name}`                 | Pod 的名称                                      | `nginx-123`                          |
-| `{fieldRef.metadata.namespace}`            | Pod 的命名空间                                  | middleware                           |
-| `{fieldRef.metadata.uid}`                  | Pod 的唯一 ID                                   | 12345678-1234-1234-1234-123456789abc |
-| `{fieldRef.metadata.annotations['<KEY>']}` | Pod 的注解 `<KEY>` 的值                         | metadata.annotations['myannotation'] |
-| `{fieldRef.metadata.labels['<KEY>']}`      | Pod 的标签 `<KEY>` 的值                         | metadata.labels['app']               |
-| `{fieldRef.spec.serviceAccountName}`       | Pod 的服务账号名称                              | default                              |
-| `{fieldRef.spec.nodeName}`                 | Pod 运行时所处的节点名称                        | node-01                              |
-| `{fieldRef.status.hostIP}`                 | Pod 所在节点的主 IP 地址                        | 192.168.1.1                          |
-| `{fieldRef.status.hostIPs}`                | status.hostIP 的双协议栈版本                    | ["192.168.1.1", "2001:db8::1"]       |
-| `{fieldRef.status.podIP}`                  | Pod 的主 IP 地址                                | 10.0.0.1                             |
+| `{fieldRef:metadata.name}`                 | Pod 的名称                                      | `nginx-123`                          |
+| `{fieldRef:metadata.namespace}`            | Pod 的命名空间                                  | middleware                           |
+| `{fieldRef:metadata.uid}`                  | Pod 的唯一 ID                                   | 12345678-1234-1234-1234-123456789abc |
+| `{fieldRef:metadata.annotations['<KEY>']}` | Pod 的注解 `<KEY>` 的值                         | metadata.annotations['myannotation'] |
+| `{fieldRef:metadata.labels['<KEY>']}`      | Pod 的标签 `<KEY>` 的值                         | metadata.labels['app']               |
+| `{fieldRef:spec.serviceAccountName}`       | Pod 的服务账号名称                              | default                              |
+| `{fieldRef:spec.nodeName}`                 | Pod 运行时所处的节点名称                        | node-01                              |
+| `{fieldRef:status.hostIP}`                 | Pod 所在节点的主 IP 地址                        | 192.168.1.1                          |
+| `{fieldRef:status.hostIPs}`                | status.hostIP 的双协议栈版本                    | ["192.168.1.1", "2001:db8::1"]       |
+| `{fieldRef:status.podIP}`                  | Pod 的主 IP 地址                                | 10.0.0.1                             |
 | `{resourceFieldRef:limits.cpu}`            | Pod 第一个容器的 CPU Limit（单位 millicores）   | 500                                  |
 | `{resourceFieldRef:limits.memory}`         | Pod 第一个容器的 Memory Limit（单位 MiB）       | 1024                                 |
 | `{resourceFieldRef:requests.cpu}`          | Pod 第一个容器的 CPU Request（单位 millicores） | 200                                  |
 | `{resourceFieldRef:requests.memory}`       | Pod 第一个容器的 Memory Request（单位 MiB）     | 512                                  |
+| `{secretKeyRef:<SECRET_NAME>.<KEY>}`       | 引用 Pod 所在 namespace 中的 Secret key         | `{secretKeyRef:flameshot-oss.access_key_id}` |
 
 举个例子，现有一个 Pod 名称是 `nginx-123`，namespace 是 `middleware`，要给它注入环境变量 `POD_NAME` 和 `POD_NAMESPACE`，参考以下：
 
@@ -399,7 +400,50 @@ kubectl exec <pod-name> -- env | grep APP_
 APP_CPU_LIMIT=500
 APP_MEMORY_REQUEST=512
 ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
+
+### 关于 `{secretKeyRef:*}` 的说明 {#secretkeyref}
+
+DataKit Operator 的注入配置可通过以下格式，在 `envs` 中引用 Kubernetes Secret：
+
+```text
+{secretKeyRef:<secret-name>.<key>}
+```
+
+例如，Secret `flameshot-oss` 中包含 `access_key_id` 和 `access_key_secret` 两个 key，可按以下方式配置：
+
+```json
+{
+    "envs": {
+        "FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_ID": "{secretKeyRef:flameshot-oss.access_key_id}",
+        "FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_SECRET": "{secretKeyRef:flameshot-oss.access_key_secret}"
+    }
+}
+```
+
+Operator 会将其转换为 Kubernetes 原生的环境变量引用：
+
+```yaml
+env:
+  - name: FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_ID
+    valueFrom:
+      secretKeyRef:
+        name: flameshot-oss
+        key: access_key_id
+  - name: FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: flameshot-oss
+        key: access_key_secret
+```
+
+使用时注意：
+
+1. Secret 必须与被注入的 Pod 位于同一个 namespace。Operator 不会读取或检查 Secret，Secret 的解析由 Kubernetes 在容器启动时完成。
+1. `<secret-name>` 必须是合法的 Kubernetes Secret 名称。由于 `.` 用作 Secret 名称和 key 的分隔符，此格式中的 Secret 名称不能包含 `.`。
+1. `<key>` 必须是合法的 Kubernetes Secret data key：长度不超过 253 个字符，只能包含字母、数字、`-`、`_` 或 `.`，并且不能是 `.`、`..` 或以 `..` 开头。
+1. Secret 不存在或 key 不存在时，Pod 会进入 `CreateContainerConfigError`，直到对应的 Secret 和 key 可用。
+1. 无法识别或校验不通过的表达式不会生成 `secretKeyRef`，而是作为普通字符串注入。
 
 ## FAQ {#faq}
 

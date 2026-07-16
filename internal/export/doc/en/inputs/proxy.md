@@ -35,7 +35,7 @@ Proxy collector used to proxy HTTP request.
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Network Topology {#network-topo}
 
@@ -93,7 +93,7 @@ Here the *insecure* means all local DataKit must trust the TLS certificate withi
 ???+ warning
 
     While MITM enabled, the performance of Proxy input will decrease dramatically, because the Proxy need to read&copy incoming request. See more details about the benchmark below.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Metrics {#metric}
 
@@ -111,7 +111,7 @@ If some DataKit enabled Proxy input, there will be some metrics in dashboard of 
 ???+ attention
 
     Without MITM, `datakit_input_proxy_api_total` and `datakit_input_proxy_api_latency_seconds` will be null.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Benchmark {#benchmark}
 

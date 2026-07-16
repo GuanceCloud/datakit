@@ -57,7 +57,7 @@ The DataKit service needs to be restarted after successful execution.
     
 {{ CodeBlock .InputENVSample 4 }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Metric {#metric}
 

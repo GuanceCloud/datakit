@@ -1,368 +1,242 @@
 ---
-title     : 'DDTrace 扩展'
-summary   : '<<<custom_key.brand_name>>>扩展了 DDTrace 对组建的支持'
+title     : 'DDTrace Java 扩展'
+summary   : '<<<custom_key.brand_name>>> DDTrace Java Agent 的扩展能力与安全配置'
 __int_icon: 'icon/ddtrace'
 tags      :
   - 'DDTRACE'
+  - 'JAVA'
   - '链路追踪'
 ---
 
 ## 简介 {#intro}
 
-这里主要介绍一下 DDTrace-Java 的一些扩展功能。主要功能列表：
+本文说明<<<custom_key.brand_name>>>扩展版 DDTrace Java Agent 的附加能力。它基于上游 `dd-trace-java`，但并不等同于上游 JAR：本页中的扩展配置只有在使用<<<custom_key.brand_name>>>版 Agent 时才生效。基础接入、DataKit 地址与端口配置请先完成 [DDTrace Java](ddtrace-java.md)。
 
-- `JDBC SQL` 脱敏功能
-- `xxl-jobs` 支持
-- `Dubbo 2/3` 支持
-- `Thrift` 框架支持
-- `RocketMQ` 支持
-- `Log Pattern` 自定义
-- 阿里巴巴 RPC 框架 `HSF` 探针支持
-- 阿里云 `RocketMQ` 5.0 支持
-- Redis 链路增加参数
-- 获取特定函数的入参信息
-- 支持 `MongoDB` 脱敏
-- 支持达梦国产数据库
-- 支持 `PowerJob` 框架
-- 支持 `Apache Pulsar` 消息队列
-- 支持将链路 ID 放到响应的头部中
-- 支持将请求的头部信息 `Header` 放到链路标签中
-- 支持将请求的响应体 `Response Body` 放到链路标签中
-- 支持将请求的请求体 `Request Body` 放到链路标签中
-- http 4xx 相关的链设置为 error ，开启参数： `-Ddd.http.error.enabled=true`
-- 支持 `Mybatis-plus:batch` 的使用。
-- redis 集群支持获取 peer_ip.
-- 支持 `KingBase` 数据库驱动。
-- 支持 `java-websocket` 框架。
+扩展能力会随 Agent 版本变化。部署前应固定 JAR 版本，在预发布环境验证，并用[更新日志](ddtrace-ext-changelog.md)确认最低支持版本与已知变更。不要将“当前文档出现某配置”理解为任意历史 JAR 都支持它。
+
+<!-- markdownlint-disable MD046 -->
+???+ warning "先评估数据暴露风险"
+
+    请求/响应 Body、HTTP Header、Redis 参数、JDBC 参数和自定义方法入参都可能包含密码、令牌、Cookie、个人信息或业务机密。它们默认应保持关闭，仅对经过审批的低风险接口或字段最小化开启，并在上线前验证脱敏、访问权限、保留周期和数据量。
+<!-- markdownlint-enable MD046 -->
+
+## 功能概览 {#feature-overview}
+
+| 能力 | 适用范围 | 最低扩展版本/说明 |
+| --- | --- | --- |
+| Java-WebSocket | 连接、消息和关闭事件的链路；消息采集默认关闭 | `v1.55.10-ext` |
+| Dubbo | Dubbo 2（`2.7+`）和 Dubbo 3 | `v1.30.4-ext` |
+| RocketMQ | Apache RocketMQ `4.5+`；阿里云 RocketMQ 5.x 使用不同 artifact | `v1.55.11-ext` 起的最低版本说明 |
+| Thrift | `0.9.3+` | `v0.113.0` |
+| Redis 参数 | Jedis `1.4+`、Lettuce、Redisson | `v1.3.2-ext` |
+| MongoDB 参数脱敏、达梦 DM8 | MongoDB 常见标量参数；DM8 | `v1.12.1-ext` |
+| HTTP Header / 请求与响应 Body | Servlet HTTP 场景 | Header：`v1.25.2-ext`；Body：`v1.55.6-ext` |
+| 包/方法级插桩 | 自定义业务类与方法 | 包：`v1.47.6-ext`；文件化方法规则：`v1.47.4-ext` |
+| 128 位 Trace ID 与 W3C | 与 OpenTelemetry 的 `tracecontext` 串联 | `v1.14.0-ext` |
+| Log4j2 日志 Pattern | 日志与 trace/span ID 关联 | `v1.3.0-ext` |
+
+其他扩展（如 HSF、XXL-JOB、PowerJob、Pulsar、Kingbase、MyBatis-Plus 等）请以对应版本的[更新日志](ddtrace-ext-changelog.md)和预发布验证结果为准。
 
 ## 三方库插桩 {#third-party-agent}
 
-### 支持 Java-WebSocket {#java-websocket}
+### Java-WebSocket {#java-websocket}
 
-- 新增 `java-websocket` 模块用于追踪 WebSocket 连接、消息发送接收和关闭事件
-- 实现 WebSocket 客户端和服务器端的装饰器类进行操作追踪
-- 添加握手、消息传输和连接状态变更的分布式追踪支持
-- 集成 `TraceDraft_6455` 类以支持 WebSocket 协议草案的追踪
-- 创建 WebsocketAgentSpanContext 管理 WebSocket 连接的追踪上下文
-- 实现 WebSocket 消息类型和大小的标签记录功能
-- 添加 WebSocket 错误处理和异常追踪机制
-- 默认关闭 websocket 链路追踪，如需开启，需要使用参数 **-Ddd.trace.websocket.messages.enabled=true**
+扩展版可为 WebSocket 握手、消息收发和连接关闭创建链路信息。消息内容和消息量可能很大，因此默认不采集消息链路；确认吞吐与隐私影响后再开启：
 
-支持的版本：
+```shell
+-Ddd.trace.websocket.messages.enabled=true
+```
 
-- [x] all
+仅在需要分析消息收发链路时开启，并为高频连接配置采样和容量保护。
 
-DDTrace 最低支持版本： [:octicons-tag-24:  v1.55.10-ext](ddtrace-ext-changelog.md#cl-1.55.10-ext)
+### Dubbo {#dubbo}
 
-### 支持 MongoDB 数据库脱敏 {#mongo-obfuscation}
-
-使用启动参数 `-Ddd.mongo.obfuscation=true` 或者环境变量 `DD_MONGO_OBFUSCATION=TRUE` 开启脱敏。这样从<<<custom_key.brand_name>>>上就可以看见一条具体的命令。
-
-目前可以实现脱敏的类型有：Int32/Int64/Boolean/Double/String 。 剩余的并没有参考意义，所以目前暂不支持。
-
-支持的版本：
-
-- [x] all
-
-DDTrace 最低版本支持： [:octicons-tag-24: v1.12.1](ddtrace-ext-changelog.md#cl-1.12.1-ext)
-
-### 支持达梦国产数据库 {#dameng-db}
-
-支持版本：
-
-- [x] v8
-
-DDTrace 最低版本支持： [:octicons-tag-24: v1.12.1](ddtrace-ext-changelog.md#cl-1.12.1-ext)
-
-
-### HSF {#hsf}
-
-[HSF](https://help.aliyun.com/document_detail/100087.html){:target="_blank"} 是在阿里巴巴广泛使用的分布式 RPC 服务框架。
-
-支持版本：
-
-- [x] 2.2.8.2--2019-06-stable
-
-DDTrace 最低版本支持： [:octicons-tag-24: v1.3.0](ddtrace-ext-changelog.md#cl-1.3.0)
-
-### xxl-jobs 支持 {#xxl-jobs}
-
-[xxl-jobs](https://github.com/xuxueli/xxl-job){:target="_blank"} 是一个 Java 开发的分布式任务调度框架。
-
-支持版本：
-
-- [x] 2.3 及以上版本
-
-### Dubbo 支持 {#dubbo}
-
-Dubbo 是阿里云的一个开源框架，目前已经支持 Dubbo2 以及 Dubbo3。
-
-支持版本：
-
-- [x] Dubbo2：2.7.0+
-- [x] Dubbo3：全支持
-
-DDTrace 最低支持版本： [:octicons-tag-24:  v1.30.4](ddtrace-ext-changelog.md#cl-1.30.4-ext)
+扩展版支持 Dubbo 2 和 Dubbo 3 的上下文透传与 RPC span。调用链仍要求消费端、提供端使用兼容的透传协议；若拓扑断开，请先检查服务端和客户端 Agent 版本、Dubbo 版本与 [多链路串联](tracing-propagator.md) 配置。
 
 ### RocketMQ {#rocketmq}
 
-RocketMQ 是阿里云贡献 Apache 基金会的开源消息队列框架。注意：阿里云 RocketMQ 5.0 与 Apache 基金会的是两个不同的库。
+Apache RocketMQ 与阿里云 RocketMQ 5.x 使用不同客户端 artifact，不能仅按名称判断兼容性。请记录客户端坐标和版本，并与扩展版更新日志逐项核对。异步消费链路应在压测中检查 span 是否闭合、上下文是否正确传递以及失败重试是否产生重复 span。
 
-引用库时有区别，`apache rocketmq artifactId: rocketmq-client`, 而阿里云 RocketMQ 5.0 的 `artifactId：rocketmq-client-java`
+### Thrift {#thrift}
 
-版本支持：目前支持 4.8.0 及以上版本。 阿里云 RocketMQ 服务支持 5.0 以上。
+Thrift `0.9.3+` 可使用扩展插桩。对复用连接、异步客户端或多路复用协议，应通过端到端测试确认父子关系，而不是仅检查单服务内是否有 span。
 
-DDTrace 最低版本支持： [:octicons-tag-24: v1.17.4](ddtrace-ext-changelog.md#cl-1.17.4-ext)
+### HSF {#hsf}
 
-### Thrift 支持 {#thrift}
+[HSF](https://help.aliyun.com/document_detail/100087.html){:target="_blank"} 是阿里巴巴 RPC 框架。扩展版对文档记录的 `2.2.8.2--2019-06-stable` 版本提供支持；其他版本必须先验证。
 
-Thrift 属于 apache 的项目。有的客户在项目中使用 thrift RPC 进行通讯，我们就做了支持。
+### XXL-JOB、PowerJob、Pulsar 与其他框架 {#xxl-jobs}
 
-支持版本：
+这些框架的支持随扩展版本演进。启用前请确认运行时依赖版本和扩展 JAR 版本，并通过一次成功任务、失败任务和重试任务验证链路是否连续。不要因 Agent 加载成功就假设某个框架已经被插桩。
 
-- [x] 0.9.3 及以上版本
+## 采集额外数据前的安全边界 {#data-safety}
 
-DDTrace 最低版本支持： [:octicons-tag-24: v0.113.0](ddtrace-ext-changelog.md#cl-0.113.0)
+### Redis 命令参数 {#redis-command-args}
 
-### Redis 链路中查看参数 {#redis-command-args}
-
-Redis 的链路中的 Resource 只会显示 `redis.command` 信息，并不会显示参数（args）信息。如果想要查看每条语句中的参数，可开启此功能。
-
-开启此功能：启动命令添加环境变量：
+Redis span 的 Resource 默认只显示命令名。以下开关会将命令参数写入 `redis.command.args` 标签：
 
 ```shell
 -Ddd.redis.command.args=true
+# 或
+export DD_REDIS_COMMAND_ARGS=true
 ```
 
-k8s:
+参数常包含 session、缓存内容或业务主键。启用后应在 DataKit 权限、脱敏和保留策略中覆盖这些数据；如只需命令耗时和错误，不要开启。
+
+### JDBC 参数采集 {#jdbc-sql-obfuscation}
+
+配置名为 `dd.jdbc.sql.obfuscation`，但扩展行为是把 `PreparedStatement` 占位参数以 `sql.params.index_N` 写入 span，便于排查 SQL。它**不是通用的数据脱敏机制**：参数可能是明文敏感信息。
 
 ```shell
-export DD_REDIS_COMMAND_ARGS=TRUE
-```
-
-在<<<custom_key.brand_name>>>链路的详情中会增加一个 Tag：`redis.command.args=key val...`。其中 `key val ...` 对应的就是 redis 语句中的 `jedis.set(key,val)`
-
-> 注意：val 中可能涉及到一些私密的信息，请谨慎开启。
-
-支持版本：
-
-- [x] Jedis 1.4.0 以上
-- [x] Lettuce
-- [x] Redisson
-
-DDTrace 最低版本支持：  [:octicons-tag-24: v1.3.2](ddtrace-ext-changelog.md#cl-1.3.2)
-
-
-### SQL 脱敏 {#jdbc-sql-obfuscation}
-
-DDTrace 默认会将 SQL 中参数转化为 `?`，这导致用户在排查问题时无法获取更准确的信息。新的探针会将占位参数单独以 Key-Value 方式提取到 Trace 数据中，便于用户查看。
-
-在 Java 启动命令中，增加如下命令行参数来开启该功能：
-
-```shell
-# ddtrace 启动时增加参数，默认是 false
 -Ddd.jdbc.sql.obfuscation=true
-
-#或者环境变量方式
+# 或
 export DD_JDBC_SQL_OBFUSCATION=true
 ```
 
-效果示例：
+原 SQL 仍以占位符形式保留在 `db.sql.origin`，参数独立存储，避免不可靠的字符串替换。仅在短期排障、经过审批的环境中开启；排障结束后关闭，并检查已有数据的访问范围。
 
-以 setString() 为例。新增探针的位置在 `java.sql.PreparedStatement/setString(key, value)`。
+### MongoDB 参数脱敏 {#mongo-obfuscation}
 
-这里有两个参数，启动第一个是占位参数下标（从 1 开始），第二个为 string 类型，在调用 `setString(index, value)` 方法之后，会将对应的字符串值存放到 span 中。
-
-在 SQL 被执行之后，这个 map 会填充到 Span 中。 最终的数据结构格式如下所示：
-
-```json hl_lines="17 26 27 28 29 30 31 32"
-"meta": {
-  "component":
-  "java-jdbc-prepared_statement",
-
-  "db.instance":"tmalldemodb",
-  "db.operation":"INSERT",
-
-  "db.sql.origin":"INSERT product
-      (product_id,
-       product_name,
-       product_title,
-       product_price,
-       product_sale_price,
-       product_create_date,
-       product_isEnabled,
-       product_category_id)
-      VALUES(null, ?, ?, ?, ?, ?, ?, ?)",
-
-  "db.type":"mysql",
-  "db.user":"root",
-  "env":"test",
-  "peer.hostname":"49.232.153.84",
-  "span.kind":"client",
-  "thread.name": "http-nio-8080-exec-6",
-
-  "sql.params.index_1":"图书",
-  "sql.params.index_2":"十万个为什么",
-  "sql.params.index_3":"100.0",
-  "sql.params.index_4":"99.0",
-  "sql.params.index_5":"2022-11-10 14:08:21",
-  "sql.params.index_6":"0",
-  "sql.params.index_7":"16"
-}
-```
-
-<!-- markdownlint-disable MD046 -->
-???+ question "为什么没有填充到 `db.sql.origin` 中？"
-
-    这里的 `meta` 信息实际是给相关开发人员排查 SQL 语句具体内容的，在拿到具体的占位参数详情后，通过替换 `db.sql.origin` 中的 `?` 实际上是可以将占位参数的值填充进去，但通过字符串替换（而不是 SQL 精确解析）并不能准确的找到正确的替换（可能导致错误的替换），故此处**尽量保留原始 SQL**，占位参数详情则单独列出来，此处 `index_1` 即表示第一个占位参数，以此类推。
-<!-- markdownlint-enable -->
-
-DDTrace 最低版本支持： [:octicons-tag-24: v0.113.0](ddtrace-ext-changelog.md#cl-0.113.0-new)
-
-
-## HTTP 类型 {#http}
-
-
-### 在链路数据中添加 Response,Request Body 信息 {#response_body}
-
-开启参数：`-Ddd.trace.response.body.enabled=true` 对应的环境变量为 `DD_TRACE_RESPONSE_BODY_ENABLED=true` 默认值为 `false`.
-
-开启参数：`-Ddd.trace.request.body.enabled=true` 对应的环境变量为 `DD_TRACE_REQUEST_BODY_ENABLED=true` 默认值为 `false`.
-
-由于获取 `response body` 对 `response` 造成破坏，所以 `response body` 的编码调整默认为 `utf-8`，如需调整，则使用 `-Ddd.trace.response.body.encoding=gbk`.
-
-获取 response body 需要对响应流进行读取操作，会占用一定的 Java 内存空间，建议对响应体较大的请求(如文件下载接口)加上黑名单处理，防止 OOM，黑名上的 URL 将不再解析响应体内容。
-
-**黑名单**配置如下：
+使用下列开关启用 MongoDB 相关扩展：
 
 ```shell
-#参数方式
--Ddd.trace.response.body.blacklist.urls="/auth,/download/file"
-
-#环境变量方式
-export DD_TRACE_RESPONSE_BODY_BLACKLIST_URLS="/auth,/download/file"
+-Ddd.mongo.obfuscation=true
+# 或
+export DD_MONGO_OBFUSCATION=true
 ```
 
-**白名单**配置：
+该能力的目标是降低命令参数暴露风险，但不能替代对应用数据的分类与验证。支持的 MongoDB 类型和展示效果会随版本变化；上线前必须用真实但脱敏的样本确认结果。
+
+### 达梦数据库 {#dameng-db}
+
+扩展版支持 DM8 的数据库链路信息。请同时验证驱动版本、连接方式和数据库 span 中的 `db.system`、实例名、错误字段是否符合预期。
+
+## HTTP 数据采集 {#http}
+
+### HTTP 状态标记 {#http-error}
+
+扩展版可通过以下参数将 HTTP 4xx 请求标记为错误：
 
 ```shell
-#参数方式
--Ddd.trace.response.body.whitelist.urls="/auth,/download/file"
-
-#环境变量方式
-export DD_TRACE_RESPONSE_BODY_WHITELIST_URLS="/user/*,/system"
+-Ddd.http.error.enabled=true
 ```
 
-DDTrace supported version: [:octicons-tag-24:  v1.55.6-ext](ddtrace-ext-changelog.md#cl-1.55.6-ext)
+启用前先明确业务语义：大量预期的 401、404 或参数校验错误被标为错误后，错误率和告警可能失真。应在测试环境比较开启前后的错误数据。
 
-### 链路数据中添加 HTTP Header 信息 {#trace_header}
+### 请求与响应 Body {#response_body}
 
-链路详情中会将请求和响应的头部信息放到标签中。
-
-默认为关闭状态，如需开启，则启动时添加参数 `-Ddd.trace.headers.enabled=true`, 或者环境变量方式 `DD_TRACE_HEADERS_ENABLED=true`.
-
-开启后，在链路详情中可以看到请求头部信息会在 `servlet_request_header`  响应的头部信息会在 `servlet_response_header` 中。
-
-DDTrace 最低版本支持： [:octicons-tag-24: v1.25.2](ddtrace-ext-changelog.md#cl-1.25.2-ext)
-
-
-## 其他 {#others}
-
-### 包级别的自定义插桩 {#package}
-
-可以针对自定义业务包名，对包下的所有类方法进行增强。其中部分方法添加没有意义，所以不开放，如下：
-
-- `isEquals()`
-- `isToString()`
-- `isFinalizer()`
-- `isGetter()`
-- `isSetter()`
-- `isSynthetic()`
-
-新增参数设置，如下：
+以下开关默认关闭：
 
 ```shell
-# 使用逗号分割包名
--Ddd.trace.method.packages=com.zy,javax.servlet,com.example.package
+-Ddd.trace.request.body.enabled=true
+-Ddd.trace.response.body.enabled=true
 
-# 或者使用环境变量
-export DD_TRACE_METHOD_PACKAGES=com.zy,javax.servlet,com.example.package
+# 对应环境变量
+export DD_TRACE_REQUEST_BODY_ENABLED=true
+export DD_TRACE_RESPONSE_BODY_ENABLED=true
 ```
 
-注意：
-
-1. 同时支持获取对应方法的入参，如果是基础对象类型，可以直接看到入参信息；
-2. resource 方法入参数目前最多支持 5 个；
-3. 字符串类型的字段值最多支持 1024 个字符；
-
-### 方法级的插桩 {#trace-method}
-
-增强 method 埋点操作，通过指定参数 `-Ddd.trace.method.file` 扩展 `dd.trace.methods` 配置，将需要增强的方法、类放在文件中进行维护，如下所示：
+读取响应流会增加内存占用，并可能影响大响应、流式响应或下载接口。仅对低风险、小体积 API 使用，并通过名单限制路径：
 
 ```shell
-#使用命令行形式
--Ddd.trace.method.file=/home/root/agent/methods.txt
+# 黑名单：这些路径不采集响应 Body
+-Ddd.trace.response.body.blacklist.urls="/download,/export"
 
-#或者使用环境变量
-export DD_TRACE_METHOD_FILE=/home/root/agent/methods.txt
+# 白名单：仅允许指定路径采集响应 Body
+-Ddd.trace.response.body.whitelist.urls="/health/detail,/api/debug/*"
 ```
 
-methods.txt 内容格式参考如下：
+环境变量分别为 `DD_TRACE_RESPONSE_BODY_BLACKLIST_URLS` 和 `DD_TRACE_RESPONSE_BODY_WHITELIST_URLS`。同一环境不要同时依赖白名单与黑名单来表达策略；选择一种可审计的规则并验证实际匹配结果。响应 Body 默认按 UTF-8 处理，必要时可通过 `dd.trace.response.body.encoding` 调整编码。
+
+### HTTP Header {#trace_header}
+
+```shell
+-Ddd.trace.headers.enabled=true
+# 或
+export DD_TRACE_HEADERS_ENABLED=true
+```
+
+开启后，请求和响应 Header 会写入 `servlet_request_header`、`servlet_response_header` 等 span 标签。`Authorization`、`Cookie`、`Set-Cookie` 和租户/用户 Header 通常不应采集；在启用前先通过网关或应用移除、脱敏或限制这些值。
+
+## 自定义业务插桩 {#others}
+
+### 包级插桩 {#package}
+
+可按包名增强业务方法：
+
+```shell
+-Ddd.trace.method.packages=com.example.api,com.example.service
+# 或
+export DD_TRACE_METHOD_PACKAGES=com.example.api,com.example.service
+```
+
+包级插桩会显著增加 span 数量。应从少量业务包开始，避免框架包和高频 getter/setter；升级后重新检查性能与 span 命名。
+
+### 文件化方法规则 {#trace-method}
+
+用文件维护方法规则可避免把长规则写入启动命令：
+
+```shell
+-Ddd.trace.method.file=/opt/ddtrace/methods.txt
+# 或
+export DD_TRACE_METHOD_FILE=/opt/ddtrace/methods.txt
+```
+
+`methods.txt` 每行一条规则，例如：
 
 ```text
-com.zy.observable.server.controller.ProfilingController[*]
-com.zy.observable.server.bean.AjaxResult[*]
-com.zy.observable.server.controller.ServerController[auth]
-com.zy.observable.server.service.TestService[*]
+com.example.api.OrderController[*]
+com.example.service.PaymentService[charge]
 ```
 
-每行的书写格式参考 [dd.trace.method](https://docs.datadoghq.com/tracing/trace_collection/library_config/java/){:target="_blank"} 中的 `dd.trace.methods`
+规则语法与上游 [`dd.trace.methods` 配置](https://docs.datadoghq.com/tracing/trace_collection/library_config/java/){:target="_blank"}保持一致。配置文件必须随应用镜像或 Pod 卷一起版本化，并在启动日志中确认已加载。
 
-使用 `-Ddd.trace.method.file` 可以不必再配置 `dd.trace.methods`
+### 特定方法的入参 {#dd-trace-methods}
 
-DDTrace 最低版本支持： [:octicons-tag-24: v1.47.4](ddtrace-ext-changelog.md#cl-1.47.4-ext)
+<!-- markdownlint-disable MD033 -->
+<span id="dd_trace_methods"></span>
+<!-- markdownlint-enable MD033 -->
 
+可通过 `dd.trace.methods` 或 `@Trace` 标注生成特定方法的 span。扩展版可能记录入参名称、类型和值；当前限制包括最多 5 个方法入参、字符串值最多 1024 个字符，并基于 `toString()` 表示对象。`toString()` 的输出不等于安全序列化，可能泄露敏感字段或产生昂贵计算，因此只对经过审查的方法开启。
 
-### 获取特定函数的入参信息 {#dd-trace-methods}
+## 透传与日志 {#propagation-and-logs}
 
-特定函数主要是指业务指定的函数，来获取对应的入参情况。特定函数需要通过特定的参数进行定义声明，目前 DDTrace 提供了两种方式对特定的函数进行 trace 声明：
+### 128 位 Trace ID {#trace_128_bit_id}
 
-1. 通过启动参数标记 `-Ddd.trace.methods`，或者通过引入 SDK 的方式，使用 `@Trace` 进行标记，参考 [类或方法注入 Trace](https://docs.<<<custom_key.brand_main_domain>>>/best-practices/insight/ddtrace-skill-param/#trace){:target="_blank"}
-
-通过上述方式进行声明后，会将对应的方法标记为 trace，同时生成对应的 Span 信息并包含函数（方法）的入参信息（入参名称、类型、值）。
-
-<!-- markdownlint-disable MD046 -->
-???+ info
-
-    由于无法对数据类型进行转化以及 JSON 序列化需要额外的依赖和开销，所以目前只是针对参数值做了 `toString()` 处理，且对于 `toString()` 结果做了二次处理，字段值长度不能超过 1024 个字符，对于超过部分做了丢弃操作。
-<!-- markdownlint-enable -->
-
-### DDTrace agent 默认远端端口 {#agent-port}
-
-DDTrace 二次开发将默认的远端端口 8126 修改为 9529。
-
-### log pattern 支持自定义 {#log-pattern}
-
-通过修改默认的 log pattern 来实现应用日志和链路互相关联，从而降低部署成本。目前已支持 Log4j2 日志框架，对于 Logback 暂不支持。
-
-通过 `-Ddd.logs.pattern` 来调整默认的 Pattern，比如：
+与 OpenTelemetry 使用 W3C `tracecontext` 串联时，可在扩展版 Agent 中开启 128 位 ID 生成与 W3C 透传：
 
 ```shell
-#使用命令行形式
--Ddd.logs.pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %X{dd.service} %X{dd.trace_id} %X{dd.span_id} - %msg%n"
+-Ddd.trace.128.bit.traceid.generation.enabled=true \
+  -Ddd.trace.propagation.style=tracecontext
 
-#或者，使用环境变量
-export DD_LOGS_PATTERN="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %X{dd.service} %X{dd.trace_id} %X{dd.span_id} - %msg%n"
+# 或
+export DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED=true
+export DD_TRACE_PROPAGATION_STYLE=tracecontext
 ```
 
-支持版本：
+同时在 DataKit `ddtrace` 采集器中启用 `compatible_otel=true`，并保留默认的 `trace_128_bit_id=true`，详见 [DDTrace 接收端](ddtrace.md#trace_propagator)。配置前后应以跨服务请求验证完整 32 位 Trace ID 和父子关系。
 
-- [x] log4j2
+### Log4j2 Pattern {#log-pattern}
 
-DDTrace 最低版本支持：  [:octicons-tag-24: v1.3.0](ddtrace-ext-changelog.md#cl-1.3.0)
+扩展版可通过 `dd.logs.pattern` 调整 Log4j2 Pattern，使日志包含服务、trace ID 和 span ID：
 
-### 批量注入 DDTrace-Java Agent {#java-attach}
+```shell
+-Ddd.logs.pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %X{dd.service} %X{dd.trace_id} %X{dd.span_id} - %msg%n"
+```
 
-原生的 DDTrace-Java 批量注入方式有一定的缺陷，不支持动态参数注入（比如 `-Ddd.agent=xxx, -Ddd.agent.port=yyy` 等）。
+对应环境变量为 `DD_LOGS_PATTERN`。该扩展当前仅声明支持 Log4j2；日志采集器还必须保留这些 MDC 字段，才能实现日志与链路关联。
 
-扩展的 DDTrace-Java 增加了动态参数注入功能。具体用法，参见[这里](ddtrace-attach.md){:target="_blank"}
+## 默认端口与批量注入 {#agent-port}
+
+上游 Java Agent 常见 trace 端口默认值为 `8126`，而某些<<<custom_key.brand_name>>>扩展版本曾将默认值调整为 `9529`。为避免版本差异导致数据发错位置，始终显式设置 `DD_TRACE_AGENT_PORT=9529` 或 `-Ddd.trace.agent.port=9529`。
+
+### Kubernetes 批量注入 {#java-attach}
+
+Kubernetes 批量注入请使用 [DataKit Operator](../operator-ddtrace.md)。它基于 Pod 创建时的 webhook 注入；修改配置后应重新创建 Pod，并按 Operator 文档验证 initContainer、卷挂载、启动参数与环境变量。当前没有独立维护的“attach”文档，因此不要依赖失效链接或手工复制未由 Operator 管理的 Agent 文件。
+
+## 验证扩展是否生效 {#verify}
+
+1. 固定扩展 JAR 版本，并从 [更新日志](ddtrace-ext-changelog.md)确认所用功能的最低版本。
+1. 临时开启 `DD_TRACE_STARTUP_LOGS=true`，确认 Agent 被加载且没有兼容性告警。
+1. 只启用一个扩展能力，发送最小测试请求，并在 trace 详情中检查预期 span/tag；随后再逐项开启其他能力。
+1. 对任何会采集内容或参数的功能，复核数据是否包含敏感信息、span 数量是否可接受、是否命中路径名单。

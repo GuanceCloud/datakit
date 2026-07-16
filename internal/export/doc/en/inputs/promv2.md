@@ -25,7 +25,7 @@ The PromV2 collector is an upgraded version of the Prom collector, which simplif
 ???+ attention
 
     PromV2 lacks many data modification configuration options and can only adjust the collected data through the Pipeline.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD046 -->
 === "Host Installation"
@@ -42,5 +42,5 @@ The PromV2 collector is an upgraded version of the Prom collector, which simplif
 
     Currently enabled by injecting collector configuration via [ConfigMap](../datakit/datakit-daemonset-deploy.md#configmap-setting).
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 

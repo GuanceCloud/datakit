@@ -14,7 +14,7 @@ monitor   :
 
 <!-- markdownlint-disable MD025 -->
 # vSphere
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD025 -->
 
 ---
 
@@ -48,7 +48,7 @@ monitor   :
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 指标 {#metric}
 
@@ -66,7 +66,7 @@ monitor   :
 
     下面的指标并非全部被采集到，具体可参阅[数据集合级别](https://techdocs.broadcom.com/us/en/vmware-cis/vsphere/vsphere/9-0/vsphere-monitoring-and-performance/monitoring-inventory-objects/data-collection-levels.html){:target="_blank"}中的说明。
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 {{ range $i, $m := .Measurements }}
 
 {{if eq $m.Type "metric"}}
@@ -96,7 +96,7 @@ monitor   :
 
 {{ end }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD024 -->
 ## 日志 {#logging}
 
 {{ range $i, $l := .Measurements }}

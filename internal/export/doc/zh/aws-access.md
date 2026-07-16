@@ -119,11 +119,11 @@ flowchart LR
         - VPC：业务服务的 VPC
         - 子网：选择业务子网
         - 安全组：private-link
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD051 -->
 1. 通知 <<<custom_key.brand_name>>> 的客户经理审核
 1. 等待创建成功，点击终端节点的「操作」- 「修改私有 DNS 名称」，设置「为此终端节点启用」
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD032 -->
 
 #### 验证 {#verify}
 

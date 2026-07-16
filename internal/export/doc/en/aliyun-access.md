@@ -32,7 +32,7 @@ The structure is as follows:
 
 <!-- markdownlint-disable MD013 -->
 ### Private Network Data Gateway Default Endpoint for Different Regions  {#region-endpoint}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 | **Access Site**     | **Region Where the Server is Located** | **Endpoint**                         |
 | ------------------- | -------------------------------------- | ------------------------------------ |

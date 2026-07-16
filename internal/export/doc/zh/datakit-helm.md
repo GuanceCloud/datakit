@@ -24,7 +24,7 @@ helm pull datakit --repo https://pubrepo.<<<custom_key.brand_main_domain>>>/char
 ???+ info
 
      `values.yaml` 在 `datakit` 目录下。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 #### 修改 `dataway url`  {#helm-dataway}
 
@@ -196,7 +196,7 @@ helm install datakit datakit \
 ???+ info
 
     如果 *values.yaml* 丢失，可执行 `helm -n datakit get values datakit -o yaml > values.yaml` 获取。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ```shell
 helm upgrade datakit datakit \
@@ -429,7 +429,7 @@ helm install my-datakit datakit-gke/datakit-gke-autopilot \
     # ref: https://github.com/kubernetes-sigs/metrics-server/tree/master/charts/metrics-server
     MetricsServerEnabled: false
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## FAQ {#faq}
 

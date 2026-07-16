@@ -55,7 +55,7 @@ CoreDNS collector is used to collect metric data related to CoreDNS.
             cluster = "demo"
     ```
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Metric {#metric}
 

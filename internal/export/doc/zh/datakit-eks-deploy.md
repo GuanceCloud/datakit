@@ -78,7 +78,7 @@ DataKit 为 Amazon EKS 集群提供按命名空间、集群、Pod 不同维度�
     ```shell
     aws eks describe-addon --addon-name guance_datakit --cluster-name $YOUR_CLUSTER_NAME --region $AWS_REGION
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 
 ### 配置 DataKit {#config-addon-datakit}
@@ -160,7 +160,7 @@ aws ecr get-login-password \
     - Helm 版本必须是 3.7.1
     - `datakit.datawayUrl` 必须要修改。
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ```shell
 helm upgrade -i datakit oci://709825985650.dkr.ecr.us-east-1.amazonaws.com/guance/datakit-charts --version 1.23.5 \

@@ -128,10 +128,10 @@
     ![](https://static.<<<custom_key.brand_main_domain>>>/images/datakit/performance/low-upload-bytes-irate.png){ width="800" }
     </figure>
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD053 -->
 [^1]: DataKit 都开启了 [Point Pool](datakit-conf.md#point-pool)，且使用 [V2 的编码](datakit-conf.md#dataway-settings)上传
 [^2]: 该数值跟 Pod 流量会有一定的出入，Pod 统计的是 Kubernetes 层面网络流量信息，它的值会比此处的流量要大
 [^3]: 该低负载的 DataKit 是在额外的一台 Linux 服务器上测试的，它只开启了基础的采集器。由于没有 Pipeline 参与，所以没有对应的数据
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD053 -->

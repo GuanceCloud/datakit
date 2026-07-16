@@ -25,7 +25,7 @@ DataKit 中采集器配置均使用 [Toml 格式](https://toml.io/cn){:target="_
 ???+ tip
 
     由于 DataKit 只会搜索 `conf.d/` 目录下以 `.conf` 为扩展的文件，故所有采集器配置 **必须放在 `conf.d` 目录下（或其下层子目录下），且必须以 `.conf` 作为文件后缀**。否则，DataKit 会忽略处理该配置文件。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 默认开启的采集器 {#default-enabled-inputs}
 
@@ -76,7 +76,7 @@ DataKit 安装完成后，默认会开启一批采集器，无需手动开启。
 === "Kubernetes"
 
     通过[环境变量（`ENV_ENABLE_INPUTS`）](datakit-daemonset-deploy.md#env-common)可设置要开启的采集器。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 修改采集器配置 {#modify-input-conf}
 
@@ -152,7 +152,7 @@ DataKit 安装完成后，默认会开启一批采集器，无需手动开启。
 
     - 方式一，可能导致配置目录混乱。
     - 方式二，管理起来较为简单。它将所有的同名采集器，都用同一个 `conf` 管理起来。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 单实例采集器 {#input-singleton}
 
@@ -222,7 +222,7 @@ DataKit 安装完成后，默认会开启一批采集器，无需手动开启。
   
     # 省略其它配置项 ...
 ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 采集器配置中的正则表达式 {#debug-regex}
 
@@ -246,7 +246,7 @@ KV 键值对（KV）设计的主要目的是为了使用户能够通过模板方
 ???+ note
     - 仅支持主机配置，不支持 [Git](./git-config-how-to.md) 和[配置中心](./confd.md)方式的配置。
     - 仅支持采集器的配置文件中使用。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### 动态加载流程 {#kv-load-flow}
 
@@ -257,7 +257,7 @@ KV 键值对（KV）设计的主要目的是为了使用户能够通过模板方
 <!-- markdownlint-disable MD046 -->
 ???+ note
     - 如果重新加载的采集中，包含 HTTP 服务的，如 `ddtrace` 采集器，则整个 HTTP 服务将被重启。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 完整流程参考下图：
 

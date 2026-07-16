@@ -6,14 +6,18 @@
 package dialtesting
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -38,6 +42,60 @@ func taskGaugeValue(t *testing.T, regionName, class string) float64 {
 	var metric dto.Metric
 	require.NoError(t, taskGauge.WithLabelValues(regionName, class).Write(&metric))
 	return metric.GetGauge().GetValue()
+}
+
+func oneShotBatchCounterValue(t *testing.T, regionName, status string) float64 {
+	t.Helper()
+
+	var metric dto.Metric
+	require.NoError(t, oneShotBatchCounter.WithLabelValues(regionName, status).Write(&metric))
+	return metric.GetCounter().GetValue()
+}
+
+func oneShotTaskCounterValue(t *testing.T, regionName, class, status string) float64 {
+	t.Helper()
+
+	var metric dto.Metric
+	require.NoError(t, oneShotTaskCounter.WithLabelValues(regionName, class, status).Write(&metric))
+	return metric.GetCounter().GetValue()
+}
+
+func oneShotBatchCostCount(t *testing.T, regionName, status string) uint64 {
+	t.Helper()
+
+	var metric dto.Metric
+	metricWriter, ok := oneShotBatchCostSummary.WithLabelValues(regionName, status).(interface {
+		Write(*dto.Metric) error
+	})
+	require.True(t, ok)
+	require.NoError(t, metricWriter.Write(&metric))
+	return metric.GetSummary().GetSampleCount()
+}
+
+func oneShotBatchQueueCounterValue(t *testing.T, status string) float64 {
+	t.Helper()
+
+	var metric dto.Metric
+	require.NoError(t, oneShotBatchQueueCounter.WithLabelValues(status).Write(&metric))
+	return metric.GetCounter().GetValue()
+}
+
+func oneShotBatchQueueGaugeValue(t *testing.T) float64 {
+	t.Helper()
+
+	var metric dto.Metric
+	require.NoError(t, oneShotBatchQueueGauge.Write(&metric))
+	return metric.GetGauge().GetValue()
+}
+
+type stopTrackingTask struct {
+	dialtesting.ITask
+	stopCount int
+}
+
+func (t *stopTrackingTask) Stop() {
+	t.stopCount++
+	t.ITask.Stop()
 }
 
 func TestInternalNetwork(t *testing.T) {
@@ -721,6 +779,7 @@ func TestDispatchTasks(t *testing.T) {
 				RegionInfo: map[string]interface{}{
 					"name":      "shanghai",
 					"name_en":   "shanghai-en",
+					"name_i18n": map[string]interface{}{"zh": "上海", "en": "Shanghai", "id": "Shanghai ID", "zh-hant": "上海繁中"},
 					"status":    "online",
 					"isp":       "telecom",
 					"internal":  true,
@@ -734,6 +793,12 @@ func TestDispatchTasks(t *testing.T) {
 		assert.NoError(t, ipt.dispatchTasks(payload))
 		assert.Equal(t, "shanghai", ipt.regionName)
 		assert.Equal(t, "shanghai-en", ipt.regionNameEn)
+		assert.Equal(t, map[string]string{
+			"zh":      "上海",
+			"en":      "Shanghai",
+			"id":      "Shanghai ID",
+			"zh-hant": "上海繁中",
+		}, ipt.regionNamesSnapshot().nameI18n)
 		assert.Equal(t, "telecom", ipt.RegionTags["isp"])
 		assert.Equal(t, "true", ipt.RegionTags["internal"])
 		assert.Equal(t, "false", ipt.RegionTags["available"])
@@ -1233,9 +1298,10 @@ func TestReadEnv(t *testing.T) {
 		assert.Nil(t, ipt.DisabledInternalNetworkCIDRList)
 	})
 
-	t.Run("cidr list is ignored when disable switch is false", func(t *testing.T) {
-		ipt := &Input{}
+	t.Run("false env overrides default and ignores cidr list", func(t *testing.T) {
+		ipt := defaultInput()
 		ipt.DisabledInternalNetworkCIDRList = nil
+		assert.True(t, ipt.DisableInternalNetworkTask)
 
 		ipt.ReadEnv(map[string]string{
 			"ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK":       "false",
@@ -1460,6 +1526,12 @@ func TestInputHelpers(t *testing.T) {
 		ms := ipt.SampleMeasurement()
 		assert.NotEmpty(t, ms)
 		assert.Len(t, ms, 7)
+		names := make([]string, 0, len(ms))
+		for _, m := range ms {
+			names = append(names, m.Info().Name)
+		}
+		assert.Contains(t, names, "http_dial_testing")
+		assert.Contains(t, names, "browser_dial_testing")
 	})
 
 	t.Run("election enabled", func(t *testing.T) {
@@ -1840,6 +1912,1032 @@ func TestPullHTTPTask(t *testing.T) {
 	})
 }
 
+func TestWatchStreamOnceBuildsSignedSSERequest(t *testing.T) {
+	var gotPath, gotRegion, gotAccept, gotAuth, gotDate, gotMD5 string
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		gotRegion = r.URL.Query().Get("region_id")
+		gotAccept = r.Header.Get("Accept")
+		gotAuth = r.Header.Get("Authorization")
+		gotDate = r.Header.Get("Date")
+		gotMD5 = r.Header.Get("Content-MD5")
+
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = io.WriteString(w, "event: message\n")
+		_, _ = io.WriteString(w, `data: {"type":"unknown","payload":{}}`+"\n\n")
+	}))
+	defer ts.Close()
+
+	ipt := defaultInput()
+	ipt.Server = ts.URL
+	ipt.RegionID = "test-region"
+	ipt.AK = "test-ak"
+	ipt.SK = "test-sk"
+	ipt.cli = ts.Client()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	connected, err := ipt.watchStreamOnce(ctx)
+	require.NoError(t, err)
+	assert.True(t, connected)
+	assert.Equal(t, "/v1/stream/watch", gotPath)
+	assert.Equal(t, "test-region", gotRegion)
+	assert.Equal(t, "text/event-stream", gotAccept)
+	assert.Contains(t, gotAuth, "DIAL_TESTING test-ak:")
+	assert.NotEmpty(t, gotDate)
+	assert.Equal(t, "d41d8cd98f00b204e9800998ecf8427e", gotMD5)
+}
+
+func TestWatchStreamLoopResetsBackoffAfterSuccessfulConnection(t *testing.T) {
+	var attempts atomic.Int32
+	fourthAttempt := make(chan struct{})
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		switch attempts.Add(1) {
+		case 1, 2:
+			http.Error(w, "temporary failure", http.StatusServiceUnavailable)
+		case 3:
+			w.Header().Set("Content-Type", "text/event-stream")
+			w.WriteHeader(http.StatusOK)
+		case 4:
+			close(fourthAttempt)
+			http.Error(w, "temporary failure", http.StatusServiceUnavailable)
+		default:
+			http.Error(w, "unexpected reconnect", http.StatusInternalServerError)
+		}
+	}))
+	defer ts.Close()
+
+	ipt := defaultInput()
+	ipt.Server = ts.URL
+	ipt.RegionID = "test-region"
+	ipt.cli = ts.Client()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		ipt.watchStreamLoop(ctx)
+	}()
+
+	select {
+	case <-fourthAttempt:
+		cancel()
+	case <-time.After(5500 * time.Millisecond):
+		cancel()
+		t.Fatal("stream reconnect backoff was not reset after a successful connection")
+	}
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("stream watcher did not stop after cancellation")
+	}
+}
+
+func TestStreamWatcherOnlyRunsWhileActive(t *testing.T) {
+	connected := make(chan struct{}, 1)
+	disconnected := make(chan struct{}, 1)
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		if flusher, ok := w.(http.Flusher); ok {
+			flusher.Flush()
+		}
+
+		select {
+		case connected <- struct{}{}:
+		default:
+		}
+
+		<-r.Context().Done()
+		select {
+		case disconnected <- struct{}{}:
+		default:
+		}
+	}))
+	defer ts.Close()
+
+	ipt := defaultInput()
+	ipt.Server = ts.URL
+	ipt.RegionID = "test-region"
+	ipt.AK = "test-ak"
+	ipt.SK = "test-sk"
+	ipt.cli = ts.Client()
+	ipt.isServerMode = true
+	ipt.pause.Store(true)
+
+	ipt.startStreamWatcher()
+	select {
+	case <-connected:
+		t.Fatal("paused input should not connect stream watcher")
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	require.NoError(t, ipt.Resume())
+	select {
+	case <-connected:
+	case <-time.After(time.Second):
+		t.Fatal("active input should connect stream watcher")
+	}
+
+	require.NoError(t, ipt.Pause())
+	select {
+	case <-disconnected:
+	case <-time.After(time.Second):
+		t.Fatal("paused input should disconnect stream watcher")
+	}
+}
+
+func TestStreamWatcherPanicCleanupCancelsRetry(t *testing.T) {
+	var attempts atomic.Int32
+	ipt := defaultInput()
+	ipt.Server = "http://example.com"
+	ipt.RegionID = "test-region"
+	ipt.isServerMode = true
+	ipt.cli = &http.Client{
+		Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+			attempts.Add(1)
+			panic("stream watcher transport panic")
+		}),
+	}
+
+	ipt.startStreamWatcher()
+	ipt.streamWatchMu.Lock()
+	done := ipt.streamWatchDone
+	ipt.streamWatchMu.Unlock()
+	require.NotNil(t, done)
+
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("stream watcher cleanup did not finish after panic")
+	}
+
+	require.Never(t, func() bool {
+		return attempts.Load() > 1
+	}, 100*time.Millisecond, 10*time.Millisecond)
+	require.NoError(t, ipt.Pause())
+}
+
+func TestHandleStreamMessageAcceptsOneShotPayload(t *testing.T) {
+	ipt := defaultInput()
+	ipt.handleStreamMessage([]byte(`{"type":"dialtesting.one_shot_run","payload":{}}`))
+	ipt.handleStreamMessage([]byte(`{"type":"unknown","payload":{}}`))
+	ipt.handleStreamMessage([]byte(`{`))
+}
+
+func TestHandleStreamMessageUpdatesRegionNames(t *testing.T) {
+	ipt := defaultInput()
+	ipt.RegionID = "region-id"
+	ipt.setRegionNames("old-region", "old-region-en")
+
+	ipt.handleStreamMessage([]byte(`{
+		"type":"dialtesting.region_update",
+		"payload":{
+			"uuid":"region-id",
+			"name":"杭州",
+			"name_en":"Hangzhou",
+			"name_i18n":{
+				"zh":"杭州",
+				"en":"Hangzhou",
+				"id":"Hangzhou ID",
+				"zh-hant":"杭州繁中"
+			}
+		}
+	}`))
+
+	assert.Equal(t, "杭州", ipt.dialerRegionNameByLanguage("zh"))
+	assert.Equal(t, "Hangzhou", ipt.dialerRegionNameByLanguage("en"))
+	assert.Equal(t, "Hangzhou ID", ipt.dialerRegionNameByLanguage("id"))
+	assert.Equal(t, "杭州繁中", ipt.dialerRegionNameByLanguage("zh_HK"))
+}
+
+func TestApplyRegionInfoPreservesI18nNamesWhenUpdateOmitsNameI18n(t *testing.T) {
+	ipt := defaultInput()
+	ipt.RegionID = "region-id"
+	ipt.setRegionNamesWithI18n("杭州", "Hangzhou", map[string]string{
+		"zh":      "杭州",
+		"en":      "Hangzhou",
+		"id":      "Hangzhou ID",
+		"zh-hant": "杭州繁中",
+	})
+
+	changed := ipt.applyRegionInfo(map[string]interface{}{
+		"status": "OK",
+	})
+
+	assert.False(t, changed)
+	assert.Equal(t, "Hangzhou ID", ipt.dialerRegionNameByLanguage("id"))
+	assert.Equal(t, "杭州繁中", ipt.dialerRegionNameByLanguage("zh-hant"))
+}
+
+func TestApplyRegionInfoClearsI18nNamesWhenExplicitlyEmpty(t *testing.T) {
+	tests := []struct {
+		name     string
+		nameI18n interface{}
+	}{
+		{name: "null", nameI18n: nil},
+		{name: "empty object", nameI18n: map[string]interface{}{}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ipt := defaultInput()
+			ipt.RegionID = "region-id"
+			ipt.setRegionNamesWithI18n("杭州", "Hangzhou", map[string]string{
+				"zh":      "杭州",
+				"en":      "Hangzhou",
+				"id":      "Hangzhou ID",
+				"zh-hant": "杭州繁中",
+			})
+
+			changed := ipt.applyRegionInfo(map[string]interface{}{
+				"name":      "杭州",
+				"name_en":   "Hangzhou",
+				"name_i18n": tt.nameI18n,
+			})
+
+			assert.True(t, changed)
+			names := ipt.regionNamesSnapshot()
+			assert.Equal(t, map[string]string{
+				"zh": "杭州",
+				"en": "Hangzhou",
+			}, names.nameI18n)
+			assert.Equal(t, "Hangzhou", ipt.dialerRegionNameByLanguage("id"))
+			assert.Equal(t, "杭州", ipt.dialerRegionNameByLanguage("zh-hant"))
+		})
+	}
+}
+
+func TestApplyRegionInfoMergesLegacyNamesWithExistingI18nNames(t *testing.T) {
+	ipt := defaultInput()
+	ipt.RegionID = "region-id"
+	ipt.setRegionNamesWithI18n("杭州", "Hangzhou", map[string]string{
+		"zh":      "杭州",
+		"en":      "Hangzhou",
+		"id":      "Hangzhou ID",
+		"zh-hant": "杭州繁中",
+	})
+
+	changed := ipt.applyRegionInfo(map[string]interface{}{
+		"name":    "上海",
+		"name_en": "Shanghai",
+	})
+
+	assert.True(t, changed)
+	assert.Equal(t, "上海", ipt.dialerRegionNameByLanguage("zh"))
+	assert.Equal(t, "Shanghai", ipt.dialerRegionNameByLanguage("en"))
+	assert.Equal(t, "Hangzhou ID", ipt.dialerRegionNameByLanguage("id"))
+	assert.Equal(t, "杭州繁中", ipt.dialerRegionNameByLanguage("zh-hant"))
+}
+
+func TestHandleRegionInfoStreamPayloadRespectsPause(t *testing.T) {
+	ipt := defaultInput()
+	ipt.pause.Store(true)
+
+	assert.False(t, ipt.handleRegionInfoStreamPayload(json.RawMessage(`{"name":"new-region"}`)))
+	assert.Equal(t, "", ipt.regionName)
+
+	ipt.pause.Store(false)
+	assert.False(t, ipt.handleRegionInfoStreamPayload(json.RawMessage(`{`)))
+}
+
+func TestHandleRegionInfoStreamPayloadAllowsNullExtraField(t *testing.T) {
+	ipt := defaultInput()
+
+	assert.True(t, ipt.handleRegionInfoStreamPayload(json.RawMessage(`{"extra":null}`)))
+	assert.True(t, ipt.handleRegionInfoStreamPayload(json.RawMessage(`{"name":"new-region"}`)))
+	assert.Equal(t, "new-region", ipt.dialerRegionNameByLanguage("zh"))
+}
+
+func TestRegionTagsConcurrentUpdateAndDialerSnapshot(t *testing.T) {
+	ipt := defaultInput()
+	task := &runTaskStub{
+		id:    "region-snapshot-task",
+		class: dialtesting.ClassICMP,
+	}
+
+	const iterations = 1000
+	var wg sync.WaitGroup
+	for writer := 0; writer < 4; writer++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; i < iterations; i++ {
+				ipt.applyRegionInfo(map[string]interface{}{
+					"isp":      "telecom",
+					"internal": i%2 == 0,
+				})
+			}
+		}()
+	}
+	for reader := 0; reader < 4; reader++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; i < iterations; i++ {
+				d := newDialer(task, ipt)
+				if value, ok := d.tags["isp"]; ok {
+					assert.Equal(t, "telecom", value)
+				}
+			}
+		}()
+	}
+	wg.Wait()
+}
+
+func TestHandleOneShotStreamPayloadRespectsPause(t *testing.T) {
+	ipt := defaultInput()
+	ipt.pause.Store(true)
+
+	assert.False(t, ipt.handleOneShotStreamPayload("msg-paused", json.RawMessage(`{`)))
+
+	ipt.pause.Store(false)
+	assert.False(t, ipt.handleOneShotStreamPayload("msg-invalid", json.RawMessage(`{`)))
+}
+
+func TestHandleOneShotStreamPayloadRecordsInvalidMetrics(t *testing.T) {
+	t.Run("malformed payload", func(t *testing.T) {
+		ipt := defaultInput()
+		ipt.RegionID = "one-shot-invalid-json-region"
+		before := oneShotBatchCounterValue(t, ipt.RegionID, "invalid")
+
+		require.False(t, ipt.handleOneShotStreamPayload("msg-invalid-json", json.RawMessage(`{`)))
+		require.Equal(t, before+1, oneShotBatchCounterValue(t, ipt.RegionID, "invalid"))
+	})
+
+	t.Run("invalid chunk", func(t *testing.T) {
+		ipt := defaultInput()
+		ipt.RegionID = "one-shot-invalid-chunk-region"
+		before := oneShotBatchCounterValue(t, ipt.RegionID, "invalid")
+		raw := json.RawMessage(`{"run_batch_id":"rb-invalid","chunk_index":3,"chunk_total":2}`)
+
+		require.False(t, ipt.handleOneShotStreamPayload("msg-invalid-chunk", raw))
+		require.Equal(t, before+1, oneShotBatchCounterValue(t, ipt.RegionID, "invalid"))
+	})
+
+	t.Run("paused payload is not invalid", func(t *testing.T) {
+		ipt := defaultInput()
+		ipt.RegionID = "one-shot-paused-region"
+		ipt.pause.Store(true)
+		before := oneShotBatchCounterValue(t, ipt.RegionID, "invalid")
+
+		require.False(t, ipt.handleOneShotStreamPayload("msg-paused", json.RawMessage(`{`)))
+		require.Equal(t, before, oneShotBatchCounterValue(t, ipt.RegionID, "invalid"))
+	})
+}
+
+func TestNormalizeOneShotRunChunk(t *testing.T) {
+	tests := []struct {
+		name    string
+		payload oneShotRunPayload
+		want    oneShotRunPayload
+		wantErr bool
+	}{
+		{
+			name:    "legacy payload defaults to one chunk",
+			payload: oneShotRunPayload{},
+			want:    oneShotRunPayload{ChunkIndex: 1, ChunkTotal: 1},
+		},
+		{
+			name:    "chunk metadata is preserved",
+			payload: oneShotRunPayload{ChunkIndex: 2, ChunkTotal: 3},
+			want:    oneShotRunPayload{ChunkIndex: 2, ChunkTotal: 3},
+		},
+		{
+			name:    "chunk index cannot exceed total",
+			payload: oneShotRunPayload{ChunkIndex: 3, ChunkTotal: 2},
+			wantErr: true,
+		},
+		{
+			name:    "partial chunk metadata is invalid",
+			payload: oneShotRunPayload{ChunkIndex: 1},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := normalizeOneShotRunChunk(&tt.payload)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.want.ChunkIndex, tt.payload.ChunkIndex)
+			require.Equal(t, tt.want.ChunkTotal, tt.payload.ChunkTotal)
+		})
+	}
+}
+
+func TestReadSSEDispatchesChunkedOneShotRun(t *testing.T) {
+	ipt := defaultInput()
+	ipt.RegionID = "one-shot-chunk-region"
+	ipt.oneShotBatchConcurrency = 1
+	ipt.oneShotBatchQueueSize = 4
+	executed := make(chan string, 2)
+	ipt.oneShotTaskRunner = func(_ string, task dialtesting.ITask) error {
+		executed <- task.GetExternalID()
+		return nil
+	}
+	t.Cleanup(ipt.Terminate)
+
+	taskJSON := func(id string) string {
+		return fmt.Sprintf(`{
+			"name": %q,
+			"external_id": %q,
+			"post_url": "http://example.com",
+			"frequency": "1s",
+			"method": "GET",
+			"url": "http://example.com"
+		}`, id, id)
+	}
+
+	var stream strings.Builder
+	for i, id := range []string{"chunk-task-1", "chunk-task-2"} {
+		payload, err := json.Marshal(oneShotRunPayload{
+			RunBatchID: "rb-chunked",
+			ChunkIndex: i + 1,
+			ChunkTotal: 2,
+			Tasks: map[string][]string{
+				dialtesting.ClassHTTP: {taskJSON(id)},
+			},
+		})
+		require.NoError(t, err)
+		envelope, err := json.Marshal(streamEnvelope{
+			Type:      streamMessageTypeOneShotDial,
+			MessageID: fmt.Sprintf("msg-chunk-%d", i+1),
+			Payload:   payload,
+		})
+		require.NoError(t, err)
+		fmt.Fprintf(&stream, "event: message\ndata: %s\n\n", envelope)
+	}
+
+	require.NoError(t, ipt.readSSE(strings.NewReader(stream.String())))
+	got := map[string]bool{}
+	for len(got) < 2 {
+		select {
+		case id := <-executed:
+			got[id] = true
+		case <-time.After(5 * time.Second):
+			t.Fatal("timed out waiting for chunked one-shot tasks")
+		}
+	}
+	require.Equal(t, map[string]bool{"chunk-task-1": true, "chunk-task-2": true}, got)
+}
+
+func TestReadSSERejectsOversizedEvent(t *testing.T) {
+	ipt := defaultInput()
+	line := "data: " + strings.Repeat("x", 1024*1024) + "\n"
+	readers := make([]io.Reader, 9)
+	for i := range readers {
+		readers[i] = strings.NewReader(line)
+	}
+
+	err := ipt.readSSE(io.MultiReader(readers...))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "sse event exceeds")
+}
+
+func TestReadSSEEventLimitResetsAfterDelimiter(t *testing.T) {
+	ipt := defaultInput()
+	line := "data: " + strings.Repeat("x", 4*1024*1024) + "\n\n"
+
+	require.NoError(t, ipt.readSSE(strings.NewReader("event: ignored\n"+line+"event: ignored\n"+line)))
+}
+
+func TestRunOneShotPayloadRecordsMetrics(t *testing.T) {
+	t.Run("empty batch id records invalid batch", func(t *testing.T) {
+		ipt := defaultInput()
+		ipt.RegionID = "one-shot-invalid-region"
+
+		before := oneShotBatchCounterValue(t, ipt.RegionID, "invalid")
+		ipt.runOneShotPayload(oneShotRunPayload{})
+		after := oneShotBatchCounterValue(t, ipt.RegionID, "invalid")
+
+		assert.Equal(t, before+1, after)
+	})
+
+	t.Run("empty tasks do not record metrics", func(t *testing.T) {
+		for _, tasks := range []map[string][]string{
+			nil,
+			{},
+			{dialtesting.ClassHTTP: {}},
+		} {
+			ipt := defaultInput()
+			ipt.RegionID = "one-shot-empty-tasks-region"
+
+			batchStatuses := []string{"success", "partial_failed", "failed", "skipped", "invalid"}
+			beforeBatch := make(map[string]float64, len(batchStatuses))
+			beforeCost := make(map[string]uint64, len(batchStatuses))
+			for _, status := range batchStatuses {
+				beforeBatch[status] = oneShotBatchCounterValue(t, ipt.RegionID, status)
+				beforeCost[status] = oneShotBatchCostCount(t, ipt.RegionID, status)
+			}
+			beforeTask := oneShotTaskCounterValue(t, ipt.RegionID, dialtesting.ClassHTTP, "success")
+
+			ipt.runOneShotPayload(oneShotRunPayload{
+				RunBatchID: "rb-empty-tasks",
+				Tasks:      tasks,
+			})
+
+			for _, status := range batchStatuses {
+				assert.Equal(t, beforeBatch[status], oneShotBatchCounterValue(t, ipt.RegionID, status))
+				assert.Equal(t, beforeCost[status], oneShotBatchCostCount(t, ipt.RegionID, status))
+			}
+			assert.Equal(t, beforeTask, oneShotTaskCounterValue(t, ipt.RegionID, dialtesting.ClassHTTP, "success"))
+		}
+	})
+
+	t.Run("parse failure records failed batch and task", func(t *testing.T) {
+		ipt := defaultInput()
+		ipt.RegionID = "one-shot-parse-region"
+
+		beforeBatch := oneShotBatchCounterValue(t, ipt.RegionID, "failed")
+		beforeTask := oneShotTaskCounterValue(t, ipt.RegionID, dialtesting.ClassHTTP, "parse_failed")
+		ipt.runOneShotPayload(oneShotRunPayload{
+			RunBatchID: "rb-parse",
+			Tasks: map[string][]string{
+				dialtesting.ClassHTTP: {"{"},
+			},
+		})
+
+		assert.Equal(t, beforeBatch+1, oneShotBatchCounterValue(t, ipt.RegionID, "failed"))
+		assert.Equal(t, beforeTask+1, oneShotTaskCounterValue(t, ipt.RegionID, dialtesting.ClassHTTP, "parse_failed"))
+	})
+
+	t.Run("unknown protocol parse failure uses bounded label", func(t *testing.T) {
+		ipt := defaultInput()
+		ipt.RegionID = "one-shot-unknown-region"
+
+		beforeBatch := oneShotBatchCounterValue(t, ipt.RegionID, "failed")
+		beforeTask := oneShotTaskCounterValue(t, ipt.RegionID, "unknown", "parse_failed")
+		ipt.runOneShotPayload(oneShotRunPayload{
+			RunBatchID: "rb-unknown",
+			Tasks: map[string][]string{
+				"HTTP-RANDOM": {"{}"},
+			},
+		})
+
+		assert.Equal(t, beforeBatch+1, oneShotBatchCounterValue(t, ipt.RegionID, "failed"))
+		assert.Equal(t, beforeTask+1, oneShotTaskCounterValue(t, ipt.RegionID, "unknown", "parse_failed"))
+	})
+
+	t.Run("task failure records failed batch", func(t *testing.T) {
+		ipt := defaultInput()
+		ipt.RegionID = "one-shot-failed-region"
+
+		taskJSON := `{
+			"name": "one-shot-failed-task",
+			"external_id": "one-shot-failed-task",
+			"post_url": "http://example.com",
+			"frequency": "1s",
+			"method": "GET",
+			"url": "http://example.com"
+		}`
+
+		beforeBatch := oneShotBatchCounterValue(t, ipt.RegionID, "failed")
+		beforeTask := oneShotTaskCounterValue(t, ipt.RegionID, dialtesting.ClassHTTP, "failed")
+		ipt.runOneShotPayload(oneShotRunPayload{
+			RunBatchID: "rb-failed",
+			Tasks: map[string][]string{
+				dialtesting.ClassHTTP: {taskJSON},
+			},
+		})
+
+		assert.Equal(t, beforeBatch+1, oneShotBatchCounterValue(t, ipt.RegionID, "failed"))
+		assert.Equal(t, beforeTask+1, oneShotTaskCounterValue(t, ipt.RegionID, dialtesting.ClassHTTP, "failed"))
+	})
+
+	t.Run("task run skipped records skipped batch and task", func(t *testing.T) {
+		oldGOOS := browserDialtestingGOOS
+		browserDialtestingGOOS = datakit.OSLinux
+		t.Cleanup(func() { browserDialtestingGOOS = oldGOOS })
+
+		oldWorker := dialWorker
+		dialWorker = &worker{sender: &mockSender{}}
+		t.Cleanup(func() { dialWorker = oldWorker })
+
+		ipt := defaultInput()
+		ipt.RegionID = "one-shot-skipped-region"
+		ipt.Browser = &BrowserDialConfig{Enabled: boolPtr(true)}
+		ipt.browserConcurrency = make(chan struct{}, 1)
+		ipt.browserConcurrency <- struct{}{}
+		ipt.semStop.Close()
+
+		taskJSON, err := json.Marshal(&dialtesting.BrowserTask{
+			Task: &dialtesting.Task{
+				ExternalID: "one-shot-skipped-task",
+				Name:       "one-shot-skipped-task",
+				PostURL:    "http://example.com?token=test",
+				Frequency:  "1s",
+			},
+			BrowserConfig: "name: one-shot-skipped-task\ntarget: https://example.com\nsteps:\n  - action: goto\n    url: https://example.com\n",
+		})
+		require.NoError(t, err)
+
+		beforeBatch := oneShotBatchCounterValue(t, ipt.RegionID, "skipped")
+		beforeTask := oneShotTaskCounterValue(t, ipt.RegionID, dialtesting.ClassHeadless, "skipped")
+		ipt.runOneShotPayload(oneShotRunPayload{
+			RunBatchID: "rb-skipped",
+			Tasks: map[string][]string{
+				dialtesting.ClassHeadless: {string(taskJSON)},
+			},
+		})
+
+		assert.Equal(t, beforeBatch+1, oneShotBatchCounterValue(t, ipt.RegionID, "skipped"))
+		assert.Equal(t, beforeTask+1, oneShotTaskCounterValue(t, ipt.RegionID, dialtesting.ClassHeadless, "skipped"))
+	})
+}
+
+func TestRunOneShotTaskStopsTask(t *testing.T) {
+	oldWorker := dialWorker
+	dialWorker = &worker{sender: &mockSender{}}
+	t.Cleanup(func() { dialWorker = oldWorker })
+
+	tests := []struct {
+		name      string
+		postURL   string
+		renderErr error
+		runErr    error
+		wantErr   bool
+	}{
+		{
+			name:    "success",
+			postURL: "http://example.com?token=test",
+		},
+		{
+			name:      "render failure",
+			postURL:   "http://example.com?token=test",
+			renderErr: errors.New("render failed"),
+			wantErr:   true,
+		},
+		{
+			name:    "invalid post URL",
+			postURL: "://invalid",
+			wantErr: true,
+		},
+		{
+			name:    "run failure",
+			postURL: "http://example.com?token=test",
+			runErr:  errors.New("run failed"),
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ipt := defaultInput()
+			t.Cleanup(ipt.Terminate)
+
+			task := &stopTrackingTask{ITask: &runTaskStub{
+				id:        "one-shot-stop-task",
+				class:     dialtesting.ClassOther,
+				postURL:   tt.postURL,
+				renderErr: tt.renderErr,
+				runErr:    tt.runErr,
+			}}
+
+			err := ipt.runOneShotTask("one-shot-stop-batch", task)
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+			assert.Equal(t, 1, task.stopCount)
+		})
+	}
+}
+
+func TestOneShotTaskPanicDoesNotReplayBatch(t *testing.T) {
+	ipt := defaultInput()
+	ipt.RegionID = "one-shot-panic-region"
+
+	taskJSON := func(id string) string {
+		return fmt.Sprintf(`{
+			"name": %q,
+			"external_id": %q,
+			"post_url": "http://example.com?token=test",
+			"frequency": "1s",
+			"method": "GET",
+			"url": "http://example.com"
+		}`, id, id)
+	}
+
+	runCounts := map[string]int{}
+	ipt.oneShotTaskRunner = func(_ string, task dialtesting.ITask) error {
+		id := task.GetExternalID()
+		runCounts[id]++
+		if id == "panic-task" {
+			panic("test panic")
+		}
+		return nil
+	}
+
+	beforeBatch := oneShotBatchCounterValue(t, ipt.RegionID, "partial_failed")
+	beforeSuccess := oneShotTaskCounterValue(t, ipt.RegionID, dialtesting.ClassHTTP, "success")
+	beforeFailed := oneShotTaskCounterValue(t, ipt.RegionID, dialtesting.ClassHTTP, "failed")
+	ipt.runOneShotPayload(oneShotRunPayload{
+		RunBatchID: "rb-panic",
+		Tasks: map[string][]string{
+			dialtesting.ClassHTTP: {
+				taskJSON("before-task"),
+				taskJSON("panic-task"),
+				taskJSON("after-task"),
+			},
+		},
+	})
+
+	assert.Equal(t, map[string]int{
+		"before-task": 1,
+		"panic-task":  1,
+		"after-task":  1,
+	}, runCounts)
+	assert.Equal(t, beforeBatch+1, oneShotBatchCounterValue(t, ipt.RegionID, "partial_failed"))
+	assert.Equal(t, beforeSuccess+2, oneShotTaskCounterValue(t, ipt.RegionID, dialtesting.ClassHTTP, "success"))
+	assert.Equal(t, beforeFailed+1, oneShotTaskCounterValue(t, ipt.RegionID, dialtesting.ClassHTTP, "failed"))
+}
+
+func TestOneShotBatchConcurrencyIsBounded(t *testing.T) {
+	ipt := defaultInput()
+	ipt.RegionID = "one-shot-batch-concurrency-region"
+	ipt.oneShotBatchConcurrency = 2
+	ipt.oneShotBatchQueueSize = 8
+
+	const batches = 6
+	release := make(chan struct{})
+	started := make(chan struct{})
+	done := make(chan struct{}, batches)
+	var startedOnce sync.Once
+	var mu sync.Mutex
+	active := 0
+	maxActive := 0
+	startedCount := 0
+	ipt.oneShotTaskRunner = func(_ string, _ dialtesting.ITask) error {
+		mu.Lock()
+		active++
+		startedCount++
+		if active > maxActive {
+			maxActive = active
+		}
+		if startedCount == 2 {
+			startedOnce.Do(func() { close(started) })
+		}
+		mu.Unlock()
+
+		<-release
+
+		mu.Lock()
+		active--
+		mu.Unlock()
+		done <- struct{}{}
+		return nil
+	}
+
+	taskJSON := `{
+		"name": "batch-task",
+		"external_id": "batch-task",
+		"post_url": "http://example.com?token=test",
+		"frequency": "1s",
+		"method": "GET",
+		"url": "http://example.com"
+	}`
+	for i := 0; i < batches; i++ {
+		assert.True(t, ipt.enqueueOneShotPayload(oneShotRunPayload{
+			RunBatchID: fmt.Sprintf("rb-concurrency-%d", i),
+			Tasks: map[string][]string{
+				dialtesting.ClassHTTP: {taskJSON},
+			},
+		}))
+	}
+
+	select {
+	case <-started:
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for concurrent batches")
+	}
+	mu.Lock()
+	assert.Equal(t, 2, maxActive)
+	mu.Unlock()
+	close(release)
+
+	for i := 0; i < batches; i++ {
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			t.Fatal("timed out waiting for one-shot batch completion")
+		}
+	}
+	ipt.Terminate()
+}
+
+func TestOneShotBatchQueueFullAppliesBackpressure(t *testing.T) {
+	ipt := defaultInput()
+	ipt.RegionID = "one-shot-batch-queue-region"
+	ipt.oneShotBatchConcurrency = 1
+	ipt.oneShotBatchQueueSize = 1
+
+	release := make(chan struct{})
+	started := make(chan struct{})
+	done := make(chan struct{}, 3)
+	var startedOnce sync.Once
+	ipt.oneShotTaskRunner = func(_ string, _ dialtesting.ITask) error {
+		startedOnce.Do(func() { close(started) })
+		<-release
+		done <- struct{}{}
+		return nil
+	}
+
+	payload := oneShotRunPayload{
+		RunBatchID: "rb-backpressure",
+		Tasks: map[string][]string{
+			dialtesting.ClassHTTP: {`{
+				"name": "batch-task",
+				"external_id": "batch-task",
+				"post_url": "http://example.com?token=test",
+				"frequency": "1s",
+				"method": "GET",
+				"url": "http://example.com"
+			}`},
+		},
+	}
+
+	assert.True(t, ipt.enqueueOneShotPayload(payload))
+	select {
+	case <-started:
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for first batch")
+	}
+	assert.True(t, ipt.enqueueOneShotPayload(payload))
+
+	beforeFull := oneShotBatchQueueCounterValue(t, "full")
+	enqueued := make(chan bool, 1)
+	go func() {
+		enqueued <- ipt.enqueueOneShotPayload(payload)
+	}()
+	select {
+	case <-enqueued:
+		t.Fatal("queue-full enqueue returned without backpressure")
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	close(release)
+	select {
+	case ok := <-enqueued:
+		assert.True(t, ok)
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for blocked enqueue")
+	}
+	for i := 0; i < 3; i++ {
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			t.Fatal("timed out waiting for queued batch")
+		}
+	}
+	assert.Equal(t, beforeFull+1, oneShotBatchQueueCounterValue(t, "full"))
+	ipt.Terminate()
+}
+
+func TestOneShotBatchQueueFullHonorsContextCancellation(t *testing.T) {
+	ipt := defaultInput()
+	ipt.RegionID = "one-shot-batch-cancel-region"
+	ipt.oneShotBatchConcurrency = 1
+	ipt.oneShotBatchQueueSize = 1
+
+	release := make(chan struct{})
+	started := make(chan struct{})
+	var startedOnce sync.Once
+	ipt.oneShotTaskRunner = func(_ string, _ dialtesting.ITask) error {
+		startedOnce.Do(func() { close(started) })
+		<-release
+		return nil
+	}
+
+	payload := oneShotRunPayload{
+		RunBatchID: "rb-cancel",
+		Tasks: map[string][]string{
+			dialtesting.ClassHTTP: {`{
+				"name": "batch-task",
+				"external_id": "batch-task",
+				"post_url": "http://example.com?token=test",
+				"frequency": "1s",
+				"method": "GET",
+				"url": "http://example.com"
+			}`},
+		},
+	}
+
+	assert.True(t, ipt.enqueueOneShotPayload(payload))
+	select {
+	case <-started:
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for first batch")
+	}
+	assert.True(t, ipt.enqueueOneShotPayload(payload))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	enqueued := make(chan bool, 1)
+	beforeFull := oneShotBatchQueueCounterValue(t, "full")
+	go func() {
+		enqueued <- ipt.enqueueOneShotPayloadContext(ctx, payload)
+	}()
+
+	require.Eventually(t, func() bool {
+		return oneShotBatchQueueCounterValue(t, "full") == beforeFull+1
+	}, time.Second, 10*time.Millisecond)
+	cancel()
+
+	select {
+	case ok := <-enqueued:
+		assert.False(t, ok)
+	case <-time.After(time.Second):
+		t.Fatal("context cancellation did not unblock queue-full enqueue")
+	}
+
+	close(release)
+	ipt.Terminate()
+}
+
+func TestOneShotBatchExitIsReported(t *testing.T) {
+	ipt := defaultInput()
+	ipt.semStop.Close()
+
+	beforeExit := oneShotBatchQueueCounterValue(t, "exit")
+	assert.False(t, ipt.enqueueOneShotPayload(oneShotRunPayload{RunBatchID: "rb-exit"}))
+	assert.Equal(t, beforeExit+1, oneShotBatchQueueCounterValue(t, "exit"))
+}
+
+func TestOneShotBatchTerminateDrainsQueuedTasks(t *testing.T) {
+	ipt := defaultInput()
+	ipt.RegionID = "one-shot-batch-terminate-region"
+	ipt.oneShotBatchConcurrency = 1
+	ipt.oneShotBatchQueueSize = 4
+
+	started := make(chan struct{})
+	release := make(chan struct{})
+	done := make(chan struct{})
+	var startedOnce sync.Once
+	var mu sync.Mutex
+	executed := []string{}
+	ipt.oneShotTaskRunner = func(_ string, task dialtesting.ITask) error {
+		mu.Lock()
+		executed = append(executed, task.GetExternalID())
+		mu.Unlock()
+		startedOnce.Do(func() { close(started) })
+		<-release
+		close(done)
+		return nil
+	}
+
+	payload := func(id string) oneShotRunPayload {
+		return oneShotRunPayload{
+			RunBatchID: "rb-terminate-" + id,
+			Tasks: map[string][]string{
+				dialtesting.ClassHTTP: {fmt.Sprintf(`{
+					"name": %q,
+					"external_id": %q,
+					"post_url": "http://example.com?token=test",
+					"frequency": "1s",
+					"method": "GET",
+					"url": "http://example.com"
+				}`, id, id)},
+			},
+		}
+	}
+
+	assert.True(t, ipt.enqueueOneShotPayload(payload("running")))
+	select {
+	case <-started:
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for running batch")
+	}
+	assert.True(t, ipt.enqueueOneShotPayload(payload("queued-1")))
+	assert.True(t, ipt.enqueueOneShotPayload(payload("queued-2")))
+	require.Equal(t, float64(2), oneShotBatchQueueGaugeValue(t))
+
+	beforeExit := oneShotBatchQueueCounterValue(t, "exit")
+	ipt.Terminate()
+	assert.Equal(t, beforeExit+2, oneShotBatchQueueCounterValue(t, "exit"))
+	assert.Zero(t, oneShotBatchQueueGaugeValue(t))
+	assert.False(t, ipt.enqueueOneShotPayload(payload("after-exit")))
+	assert.Equal(t, beforeExit+3, oneShotBatchQueueCounterValue(t, "exit"))
+
+	close(release)
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for running batch completion")
+	}
+	time.Sleep(100 * time.Millisecond)
+	mu.Lock()
+	assert.Equal(t, []string{"running"}, executed)
+	mu.Unlock()
+	assert.Zero(t, oneShotBatchQueueGaugeValue(t))
+}
+
 func TestUpdateRemoteVariables(t *testing.T) {
 	t.Run("return early when reqURL is nil", func(t *testing.T) {
 		v := &Variable{
@@ -2074,6 +3172,107 @@ func TestNewTaskRun(t *testing.T) {
 		if assert.NotNil(t, d) {
 			assert.Equal(t, "region-en", d.regionName())
 			assert.NotNil(t, d.done)
+		}
+
+		ipt.semStop.Close()
+		time.Sleep(20 * time.Millisecond)
+	})
+
+	t.Run("use localized region names from region name i18n", func(t *testing.T) {
+		ipt := defaultInput()
+		ipt.RegionID = "region-id"
+		ipt.setRegionNamesWithI18n("region-zh", "region-en", map[string]string{
+			"zh":      "region-zh-i18n",
+			"en":      "region-en-i18n",
+			"id":      "region-id-i18n",
+			"zh-hant": "region-hant-i18n",
+		})
+
+		taskID, err := dialtesting.NewTask("", &dialtesting.HTTPTask{
+			Method: "GET",
+			Task: &dialtesting.Task{
+				ExternalID:        "task-id",
+				Name:              "task-id",
+				WorkspaceLanguage: "id",
+				Frequency:         "1s",
+			},
+			URL: "http://example.com",
+			SuccessWhen: []*dialtesting.HTTPSuccess{
+				{
+					StatusCode: []*dialtesting.SuccessOption{
+						{Is: "200"},
+					},
+				},
+			},
+		})
+		assert.NoError(t, err)
+
+		dID, err := ipt.newTaskRun(taskID)
+		assert.NoError(t, err)
+		if assert.NotNil(t, dID) {
+			assert.Equal(t, "region-id-i18n", dID.regionName())
+		}
+
+		taskHant, err := dialtesting.NewTask("", &dialtesting.HTTPTask{
+			Method: "GET",
+			Task: &dialtesting.Task{
+				ExternalID:        "task-hant",
+				Name:              "task-hant",
+				WorkspaceLanguage: "zh_HK",
+				Frequency:         "1s",
+			},
+			URL: "http://example.com",
+			SuccessWhen: []*dialtesting.HTTPSuccess{
+				{
+					StatusCode: []*dialtesting.SuccessOption{
+						{Is: "200"},
+					},
+				},
+			},
+		})
+		assert.NoError(t, err)
+
+		dHant, err := ipt.newTaskRun(taskHant)
+		assert.NoError(t, err)
+		if assert.NotNil(t, dHant) {
+			assert.Equal(t, "region-hant-i18n", dHant.regionName())
+		}
+
+		ipt.semStop.Close()
+		time.Sleep(20 * time.Millisecond)
+	})
+
+	t.Run("fallback to english then chinese when localized region name is missing", func(t *testing.T) {
+		ipt := defaultInput()
+		ipt.RegionID = "region-id"
+		ipt.setRegionNamesWithI18n("region-zh", "region-en", map[string]string{
+			"zh": "region-zh-i18n",
+			"en": "region-en-i18n",
+		})
+
+		task, err := dialtesting.NewTask("", &dialtesting.HTTPTask{
+			Method: "GET",
+			Task: &dialtesting.Task{
+				ExternalID:        "task-id-fallback",
+				Name:              "task-id-fallback",
+				WorkspaceLanguage: "id",
+				Frequency:         "1s",
+			},
+			URL: "http://example.com",
+			SuccessWhen: []*dialtesting.HTTPSuccess{
+				{
+					StatusCode: []*dialtesting.SuccessOption{
+						{Is: "200"},
+					},
+				},
+			},
+		})
+		assert.NoError(t, err)
+
+		d, err := ipt.newTaskRun(task)
+		assert.NoError(t, err)
+		if assert.NotNil(t, d) {
+			assert.Equal(t, "region-en-i18n", d.regionName())
 		}
 
 		ipt.semStop.Close()

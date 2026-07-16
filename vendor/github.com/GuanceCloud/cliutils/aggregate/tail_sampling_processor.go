@@ -117,6 +117,24 @@ func (r *TailSamplingProcessor) AdvanceTime() map[uint64]*DataGroup {
 }
 
 func (r *TailSamplingProcessor) TailSamplingData(dataGroups map[uint64]*DataGroup) map[uint64]*DataPacket {
+	outcomes := r.TailSamplingOutcomes(dataGroups)
+	if outcomes == nil {
+		return nil
+	}
+
+	keptPackets := make(map[uint64]*DataPacket)
+
+	for key, outcome := range outcomes {
+		if outcome == nil || outcome.Packet == nil {
+			continue
+		}
+		keptPackets[key] = outcome.Packet
+	}
+
+	return keptPackets
+}
+
+func (r *TailSamplingProcessor) TailSamplingOutcomes(dataGroups map[uint64]*DataGroup) map[uint64]*TailSamplingOutcome {
 	if r == nil || r.sampler == nil {
 		return nil
 	}
@@ -131,19 +149,12 @@ func (r *TailSamplingProcessor) TailSamplingData(dataGroups map[uint64]*DataGrou
 	}
 
 	outcomes := r.sampler.TailSamplingOutcomes(dataGroups)
-	keptPackets := make(map[uint64]*DataPacket)
 
 	if r.collector == nil || len(r.metrics) == 0 {
-		for key, outcome := range outcomes {
-			if outcome == nil || outcome.Packet == nil {
-				continue
-			}
-			keptPackets[key] = outcome.Packet
-		}
-		return keptPackets
+		return outcomes
 	}
 
-	for key, outcome := range outcomes {
+	for _, outcome := range outcomes {
 		if outcome == nil {
 			continue
 		}
@@ -152,13 +163,9 @@ func (r *TailSamplingProcessor) TailSamplingData(dataGroups map[uint64]*DataGrou
 		if packetForMetrics != nil {
 			r.collector.Add(r.filterBuiltinRecords(packetForMetrics, r.metrics.OnDecision(packetForMetrics, outcome.Decision)))
 		}
-
-		if outcome.Packet != nil {
-			keptPackets[key] = outcome.Packet
-		}
 	}
 
-	return keptPackets
+	return outcomes
 }
 
 func (r *TailSamplingProcessor) RecordDecision(packet *DataPacket, decision DerivedMetricDecision) {

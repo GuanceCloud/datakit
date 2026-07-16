@@ -89,7 +89,7 @@ Git mode is supported in both host mode and K8s mode, and is essentially a conf 
 > Note: The DataKit master configuration (*datakit.conf*) cannot be managed by Git.
 <!-- markdownlint-disable MD013 -->
 #### Configuration of Default Collector in Git Mode {#def-inputs-under-git}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 In Git mode, there is a very important feature, that is, **conf files of [default collector](datakit-input-conf.md#default-enabled-inputs) are stealthy**, whether in K8s mode or host mode, so it needs some extra work to manage these collector configuration files with Git, otherwise it will cause them to be **collected repeatedly**.
 
 In Git mode, if you want to adjust the configuration of the default collector (you don't want to turn it on or configure it accordingly), there are several ways:

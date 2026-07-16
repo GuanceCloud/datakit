@@ -76,7 +76,7 @@ After done with commands above, filling the `user` and `pwd` to DataKit configur
 === "Kubernetes"
 
     The collector can now be turned on by [ConfigMap Injection Collector Configuration](../datakit/datakit-daemonset-deploy.md#configmap-setting).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### TLS config (self-signed) {#tls}
 

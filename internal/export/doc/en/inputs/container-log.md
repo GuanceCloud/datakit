@@ -33,7 +33,7 @@ If you want to customize the collection configuration, it can be done through ad
 
     - If a container has an environment variable `DATAKIT_LOGS_CONFIG` and can also find the Annotation `datakit/logs` of its corresponding Pod, the configuration from the container environment variable will take precedence.
     - Starting from [:octicons-tag-24: Version-1.84.0](../datakit/changelog-2025.md#cl-1.84.0), container log collection configured through Pod Annotations supports dynamic hot-reload, with configuration changes taking effect within one minute.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 - The value for custom configurations is as follows:
 
@@ -160,7 +160,7 @@ Below is a complete example:
         ```
     If a Pod/Container log is already being collected, adding configuration via the `kubectl annotate` command does not take effect
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## Logging for Log Files Inside Containers {#logging-with-inside-config}
 
@@ -175,7 +175,7 @@ Here is a complete example:
 
     - Starting from [:octicons-tag-24: Version-1.84.0](../datakit/changelog-2025.md#cl-1.84.0), collecting log files from within containers no longer requires an emptyDir mount for Docker or Containerd runtimes (excluding CRI-O).
     - Starting from [:octicons-tag-24: Version-1.84.0](../datakit/changelog-2025.md#cl-1.84.0), container log collection configured through Pod Annotations supports dynamic hot-reload, with configuration changes taking effect within one minute.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD046 -->
 === "Container Environment Variables"
@@ -267,13 +267,13 @@ Here is a complete example:
     ``` yaml
     $ kubectl apply -f logging.yaml
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 For log files inside containers, in a Kubernetes environment, you can also achieve collection by adding a sidecar. Please refer to [here](logfwd.md) for more information.
 
 <!-- markdownlint-disable MD013 -->
 ### Adjust Log Collection According to Container Image {#logging-with-image-config}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 By default, DataKit collects stdout/stderr logs for all containers on your machine/Node, which may not be expected. Sometimes, we want to collect only (or not) the logs of some containers, where the target container/Pod can be indirectly referred to by the mirror name.
 
 <!-- markdownlint-disable MD046 -->
@@ -355,7 +355,7 @@ By default, DataKit collects stdout/stderr logs for all containers on your machi
     echo `kubectl get pod -o=jsonpath="{.items[0].spec.containers[0].image}"`
     ```
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD046 -->
 ???+ warning
@@ -383,11 +383,11 @@ By default, DataKit collects stdout/stderr logs for all containers on your machi
     This configuration is closer to the container and has a higher priority. The `disable=false` in the configuration indicates that log files should be collected, overriding the global configuration.
 
     Therefore, the log files for this container will still be collected, but the stdout/stderr console output will not be collected because of `disable=true`.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD013 -->
 ## Configuring Container Log Collection Using Kubernetes CRD {#k8s-crd-configs}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 DataKit provides a declarative approach for configuring container log collection through Kubernetes Custom Resource Definitions (CRD). By creating a ClusterLoggingConfig resource, users can automatically configure DataKit's log collection without manually editing configuration files or restarting the service.
 
@@ -397,7 +397,7 @@ For specific operations, please refer to the Complete [Documentation](container-
 
 <!-- markdownlint-disable MD013 -->
 ### Filtering Specific Containers from Log Collection {#filter-container-logs}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 DataKit offers two methods for filtering specific containers and preventing their logs from being collected. These methods include using the `container_include_log` and `container_exclude_log` settings in the `container.conf` file, along with their corresponding environment variables. Additionally, you can achieve the same effect by using the `datakit/logs` annotation with `"disable": true`.
 
@@ -413,7 +413,7 @@ Since using both `container_include_log` and `container_exclude_log` together ca
 
 <!-- markdownlint-disable MD013 -->
 ### Issue with Soft Links in Log Directories {#log-path-link}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 Normally, DataKit retrieves the path of log files from the container/Kubernetes API and collects the file accordingly.
 
@@ -448,14 +448,14 @@ spec:
 This situation is not very common and is usually only executed when it is known in advance that there is a soft link in the path or when DataKit logs indicate collection errors.
 <!-- markdownlint-disable MD013 -->
 ### Source Setting for Container Log Collection {#config-logging-source}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 In the container environment, the log `source` setting is a very important configuration item, which directly affects the display effect on the page. However, it would be cruel to configure a source for each container's logs one by one. Without manually configuring the container log source, DataKit has the following rule (descending priority) for automatically inferring the source of the container log:
 
 <!-- markdownlint-disable MD046 -->
 ???+ attention
 
     The so-called not manually specifying the container log source means that it is not specified in Pod Annotation or in container.conf (currently there is no configuration item specifying the container log source in container.conf).
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 - Container's own name: The name that can be seen through `docker ps` or `crictl ps`.
 - Container name specified by Kubernetes: Obtained from the `io.kubernetes.container.name` label of the container.
@@ -494,7 +494,7 @@ For tags from other sources, the following situations apply:
 
 <!-- markdownlint-disable MD013 -->
 ### Wildcard Collection of Log Files in Containers {#config-logging-source}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 To collect log files within a container, you need to add a configuration in Annotations/Labels and specify the `path` as follows:
 

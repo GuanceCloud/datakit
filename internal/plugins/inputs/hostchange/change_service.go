@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/changes"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/diff"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/unifieddiff"
 )
 
 const (
@@ -266,8 +266,14 @@ func (sc *ServiceChecker) modify(changesByType ServiceChangesByType) GetChangeIt
 			// Calculate diff text if content changed
 			diffText := ""
 			if contentChanged {
-				diffResult := diff.LineDiffWithContextLines(oldService.Content, newService.Content, 4)
-				diffText = diffResult
+				diffPath := newService.Path
+				if diffPath == "" {
+					diffPath = oldService.Path
+				}
+				if diffPath == "" {
+					diffPath = "services/" + newService.Name
+				}
+				diffText = unifieddiff.Text(diffPath, oldService.Content, newService.Content)
 			}
 
 			// Service configuration changed

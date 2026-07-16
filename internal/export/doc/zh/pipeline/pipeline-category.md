@@ -14,7 +14,7 @@
     - 即使是通过 [DataKit API](../../datakit/apis.md) 上报的数据也支持 Pipeline 处理。
     - 用 Pipeline 对现有采集的数据进行处理（特别是非日志类数据），极有可能破坏已有的数据结构，导致数据在<<<custom_key.brand_name>>>上表现异常
     - 应用 Pipeline 之前，请大家务必使用 [Pipeline 调试工具](pipeline-quick-start.md#debug)确认数据处理是否符合预期
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 Pipeline 可以对 DataKit 采集的数据执行如下操作：
 

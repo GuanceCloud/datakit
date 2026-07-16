@@ -16,7 +16,7 @@ datakit monitor
 ???+ tip
 
     可通过 `datakit monitor --help` 查看更多 monitor 选项。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 DataKit 基本 Monitor 页面信息如下图所示：
 
@@ -92,7 +92,7 @@ DataKit 基本 Monitor 页面信息如下图所示：
 
 <!-- markdownlint-disable MD013 -->
 ### 如何展示 DataKit 指定模块的运行情况？ {#specify-module}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 可指定一个模块名字列表（多个模块之间以英文逗号分割）：[:octicons-tag-24: Version-1.5.7](changelog.md#cl-1.5.7)
 
@@ -139,11 +139,11 @@ datakit monitor --refresh 1s
 ???+ info
 
     这里的单位需注意，必须是如下几种：s（秒）/m（分钟）/h（小时），如果时间范围小于 1s，则按照 1s 来刷新。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD013 -->
 ### 如何选择展示分位数（P50/P90/P99）？ {#quantile}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 Monitor 默认展示 Summary 指标的平均值（avg）。如果希望改成展示分位数，可通过 `-Q/--quantile` 指定：
 
@@ -162,7 +162,7 @@ datakit monitor -Q 99
 
 <!-- markdownlint-disable MD013 -->
 ### 如何 Monitor 其它 DataKit？ {#remote-monitor}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 可通过指定 DataKit 地址来查看其 monitor 数据：
 
@@ -174,4 +174,4 @@ datakit monitor --to <remote-ip>:9529
 ???+ info
 
     默认情况下，monitor 数据是不能通过非 localhost 访问的，可以[手动将其添加到 API 白名单中](datakit-conf.md#public-apis)。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->

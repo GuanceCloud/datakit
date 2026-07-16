@@ -71,7 +71,7 @@ $ sudo apachectl restart
 === "Kubernetes"
 
     目前可以通过 [ConfigMap 方式注入采集器配置](../datakit/datakit-daemonset-deploy.md#configmap-setting)来开启采集器。
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 指标集 {#metric}
 
@@ -131,7 +131,7 @@ $ sudo apachectl restart
 ???+ info
 
     必须将 DataKit 安装在 Apache 所在主机才能采集 Apache 日志
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Pipeline 字段说明 {#pipeline}
 

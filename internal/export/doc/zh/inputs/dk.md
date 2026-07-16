@@ -60,7 +60,7 @@ DataKit 启动后会暴露 [Prometheus 指标](../datakit/datakit-metrics.md)。
 
 {{ CodeBlock .InputENVSampleZh 4 }}
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ## 指标 {#metric}
 

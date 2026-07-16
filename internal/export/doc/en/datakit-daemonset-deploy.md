@@ -50,7 +50,7 @@ GKE Autopilot requires a Deployment form that does not depend on host mounts. Se
 
     DataKit can also be deployed as a regular Deployment by downloading [*datakit-deployment.yaml*](https://static.<<<custom_key.brand_main_domain>>>/datakit-v2/datakit-deployment.yaml){:target="_blank"}. Compared to DaemonSet deployment, only minor adjustments are required while maintaining essentially the same configuration parameters.
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Resource Limits {#requests-limits}
 
@@ -88,7 +88,7 @@ DataKit has set default Requests and Limits. If the DataKit container status cha
             memory: "4Gi"
     ...
     ```
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 For specific configurations, refer to the [official document](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#requests-and-limits){:target="_blank"}.
 
@@ -357,7 +357,7 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSample.envCommon 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD046 -->
 ???+ note "Distinguish between *global host tag*  and *global election tag*"
@@ -371,7 +371,7 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 ???+ note "About Protect Mode(`ENV_DISABLE_PROTECT_MODE`)"
 
     Once protected mode is disabled, some dangerous configuration parameters can be set, and DataKit will accept any configuration parameters. These parameters may cause some DataKit functions to be abnormal or affect the collection function of the collector. For example, if the HTTP sending body is too small, the data upload function will be affected. And the collection frequency of some collectors set too high, which may affect the entities(for example MySQL) to be collected.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!--
 ### Point Pool Environments {#env-pointpool}
@@ -385,55 +385,55 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSample.envDataway 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Logging {#env-log}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSample.envLog 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Election {#env-elect}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSample.envElect 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### HTTP/API {#env-http-api}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSample.envHTTPAPI 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Confd {#env-confd}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSample.envConfd 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Git {#env-git}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSample.envGit 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Sinker {#env-sinker}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSample.envSinker 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### IO {#env-io}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSample.envIO 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 <!-- markdownlint-disable MD046 -->
 ???+ note "description on buffer and queue"
 
     `ENV_IO_MAX_CACHE_COUNT` is used to control the data sending policy, that is, when the number of (row protocol) points of the cache in memory exceeds this value, an attempt is made to send the number of points of the current cache in memory to the center. If the threshold of the cache is set too high, the data will accumulate in memory, causing memory to soar, but will improve the compression effect of GZip. If it is too small, it may affect the transmission throughput.
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 `ENV_IO_FILTERS` is a JSON string, as shown below:
 
@@ -454,13 +454,13 @@ For string/bool/string-list/duration, it is recommended to use double quotation 
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSample.envDca 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Refer Table {#env-reftab}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSample.envRefta 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Recorder {#env-recorder}
 
@@ -470,7 +470,7 @@ For more info about recorder, see [here](datakit-tools-how-to.md#record-and-repl
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSample.envRecorder 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Remote Job {#remote_job}
 
@@ -478,13 +478,13 @@ For more info about recorder, see [here](datakit-tools-how-to.md#record-and-repl
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSample.remote_job 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Others {#env-others}
 
 <!-- markdownlint-disable MD046 -->
 {{ CodeBlock .NonInputENVSample.envOthers 0}}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD046 -->
 
 ### Special Environments {#env-special}
 
@@ -524,7 +524,7 @@ This configuration appends `cluster_a_` to the original hostname, effectively cr
 
 <!-- markdownlint-disable MD013 -->
 ### Collector-specific Environment Variable {#inputs-envs}
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD013 -->
 
 Some collectors support external injection of environment variables to adjust the default configuration of the collector itself. See each specific collector document for details.
 

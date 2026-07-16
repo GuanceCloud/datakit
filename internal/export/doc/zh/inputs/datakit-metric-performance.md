@@ -70,7 +70,7 @@ title: 'DataKit 指标性能测试报告'
 
 ![mp-3-upload](imgs/mp-3-upload.png)
 
-<!-- markdownlint-enable -->
+<!-- markdownlint-enable MD024 -->
 
 ## 其它测试结果 {#others}
 

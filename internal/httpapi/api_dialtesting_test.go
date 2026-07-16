@@ -178,7 +178,7 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 				os.Setenv("ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK", "true")
 			},
 			errInit:     nil,
-			errContains: "is not allowed to be tested",
+			errContains: "The internal network address does not support online testing. However, it can be saved and then used normally.",
 		},
 		{
 			name: "test-internal-host-illegal-host",
@@ -207,7 +207,7 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 				os.Setenv("ENV_INPUT_DIALTESTING_DISABLED_INTERNAL_NETWORK_CIDR_LIST", `["36.155.132.76/24"]`)
 			},
 			errInit:     nil,
-			errContains: "is not allowed to be tested",
+			errContains: "The internal network address does not support online testing. However, it can be saved and then used normally.",
 		},
 		{
 			name: "test-internal-host-ok",
@@ -235,7 +235,7 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 				os.Setenv("ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK", "true")
 			},
 			errInit:     nil,
-			errContains: "is not allowed to be tested",
+			errContains: "The internal network address does not support online testing. However, it can be saved and then used normally.",
 		},
 
 		{
@@ -250,7 +250,7 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 				os.Setenv("ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK", "true")
 			},
 			errInit:     nil,
-			errContains: "is not allowed to be tested",
+			errContains: "The internal network address does not support online testing. However, it can be saved and then used normally.",
 		},
 	}
 
