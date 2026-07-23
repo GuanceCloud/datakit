@@ -333,6 +333,19 @@ DK_USER_NAME="datakit" DK_DATAWAY="..." bash -c ...
 - `DK_HTTP_PUBLIC_APIS`: Specify which DataKit HTTP APIs can be accessed by remote, generally config combined with RUM input，support from DataKit [1.9.2](changelog.md#cl-1.9.2).
 - `DK_HTTP_SOCKET`: Set HTTP domain socket path(not support Windows).[:octicons-tag-24: Version-1.80.0](changelog-2025.md#cl-1.80.0)
 
+???+ warning "Sending APM data across networks through the 9529 HTTP API"
+
+    A host-installed DataKit listens on `localhost:9529` by default and accepts loopback connections only. If the APM Agent shares the same network namespace as DataKit—for example, a native process on the same host—and reports to `localhost:9529`, no listener change is required.
+
+    If the APM Agent cannot reach DataKit through the loopback address, as is common with containers, virtual machines, or remote hosts, or it connects through the DataKit host IP/DNS, configure DataKit to listen on an address reachable from the sender:
+
+    - During installation, set `DK_HTTP_LISTEN="0.0.0.0:9529"`.
+    - For an existing installation, update `[http_api].listen` as described in [HTTP service configuration](datakit-conf.md#update-http-server-host), and then [restart DataKit](datakit-service-how-to.md#manage-service).
+
+    `0.0.0.0` is a server bind address only. Configure the APM Agent to use the actual DataKit IP address or domain name, for example `http://<DataKit-IP>:9529`; do not use `0.0.0.0` as the reporting destination.
+
+    Listening on `0.0.0.0` exposes the service on all IPv4 interfaces. Prefer binding to a specific private IP address, or restrict access to TCP/9529 with a firewall or security group.
+
 ### DCA {#env-dca}
 
 - `DK_DCA_ENABLE`: Support DCA service to be turned on during installation (not turned on by default)

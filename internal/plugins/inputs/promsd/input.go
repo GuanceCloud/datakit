@@ -169,6 +169,9 @@ func (ipt *Input) buildPromOptions() ([]promscrape.Option, error) {
 	if ipt.Scrape == nil {
 		return nil, fmt.Errorf("scrape config is required")
 	}
+	if err := ipt.Scrape.setupRelabelConfigs(); err != nil {
+		return nil, err
+	}
 
 	var globalTags map[string]string
 	if ipt.Election {

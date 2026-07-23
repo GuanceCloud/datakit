@@ -112,7 +112,7 @@ function test_upgrade() {
 			"curl ${new_version_url} -o dk-installer && chmod +x ./dk-installer && ./dk-installer -upgrade && rm -rf ./dk-installer"
 		test_datakit_run_ok "latest"
 
-		sudo datakit --stop
+		sudo datakit service stop
 	done
 }
 

@@ -117,6 +117,13 @@ func (p *Prom) SetClient(cli *http.Client) {
 	p.client = cli
 }
 
+// CloseIdleConnections closes idle HTTP connections owned by this Prom instance.
+func (p *Prom) CloseIdleConnections() {
+	if p.client != nil {
+		p.client.CloseIdleConnections()
+	}
+}
+
 func (p *Prom) GetReq(url string) (*http.Request, error) {
 	var (
 		req *http.Request
@@ -124,23 +131,35 @@ func (p *Prom) GetReq(url string) (*http.Request, error) {
 	)
 
 	if len(p.opt.auth) > 0 {
-		if authType, ok := p.opt.auth["type"]; ok {
-			if authFunc, ok := AuthMaps[authType]; ok {
-				req, err = authFunc(p.opt.auth, url)
-			} else {
-				req, err = http.NewRequest("GET", url, nil)
-			}
+		authType, ok := p.opt.auth["type"]
+		if !ok || authType == "" {
+			return nil, fmt.Errorf("auth type is required")
 		}
+		authFunc, ok := AuthMaps[authType]
+		if !ok {
+			return nil, fmt.Errorf("unsupported auth type %q", authType)
+		}
+		req, err = authFunc(p.opt.auth, url)
 	} else {
 		req, err = http.NewRequest("GET", url, nil)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if req == nil {
+		return nil, fmt.Errorf("auth type %q returned a nil request", p.opt.auth["type"])
 	}
 	for k, v := range p.opt.httpHeaders {
 		req.Header.Set(k, v)
 	}
-	return req, err
+	return req, nil
 }
 
 func (p *Prom) Request(url string) (*http.Response, error) {
+	return p.request(context.Background(), url)
+}
+
+func (p *Prom) request(ctx context.Context, url string) (*http.Response, error) {
 	start := time.Now()
 	defer func() {
 		httpLatencyVec.WithLabelValues(p.getMode(), p.opt.source).Observe(time.Since(start).Seconds())
@@ -149,12 +168,15 @@ func (p *Prom) Request(url string) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
+	req = req.WithContext(ctx)
 
-	// HTTP tracer
-	s := httpcli.GetTracer("prom/"+p.opt.source, "", "")
-	defer s.Metrics()
-
-	req = req.WithContext(httptrace.WithClientTrace(req.Context(), s.Trace()))
+	// A canceled transport may finish trace callbacks after Do returns. Keep the
+	// pooled tracer on the legacy, non-cancelable request path only.
+	if ctx.Done() == nil {
+		s := httpcli.GetTracer("prom/"+p.opt.source, "", "")
+		defer s.Metrics()
+		req = req.WithContext(httptrace.WithClientTrace(req.Context(), s.Trace()))
+	}
 
 	r, err := p.client.Do(req)
 	if err != nil {
@@ -166,11 +188,20 @@ func (p *Prom) Request(url string) (*http.Response, error) {
 
 // CollectFromHTTPV2 collect points.
 func (p *Prom) CollectFromHTTPV2(u string, opts ...PromOption) ([]*point.Point, error) {
+	return p.collectFromHTTPV2(context.Background(), u, opts...)
+}
+
+// CollectFromHTTPV2Context collects points and cancels the HTTP request when ctx is done.
+func (p *Prom) CollectFromHTTPV2Context(ctx context.Context, u string, opts ...PromOption) ([]*point.Point, error) {
+	return p.collectFromHTTPV2(ctx, u, opts...)
+}
+
+func (p *Prom) collectFromHTTPV2(ctx context.Context, u string, opts ...PromOption) ([]*point.Point, error) {
 	for _, opt := range opts {
 		opt(p.opt)
 	}
 
-	resp, err := p.Request(u)
+	resp, err := p.request(ctx, u)
 	if err != nil {
 		if p.opt.ignoreReqErr {
 			return []*point.Point{}, nil

@@ -279,7 +279,7 @@ datakit monitor                                                 # datakit 运行
 
 ```shell
 sudo datakit check --config # 检查采集器配置文件是否正常
-datakit -M --vvv            # 检查所有采集器的运行情况
+datakit monitor --verbose   # 检查所有采集器的运行情况
 ```
 
 - 增加 `man/docs/zh/zhangsan.md` 文档，这个可参考 `demo.md`，安装里面的模板来写即可
@@ -701,11 +701,10 @@ checked 52 sample, 0 ignored, 51 passed, 0 failed, 0 unknown, cost 10.938125ms
 
 ### 导出文档 {#export-docs}
 
-将 DataKit 现有文档，导出到指定目录，同时指定文档版本，将文档中标记为 `TODO` 的用 `-` 代替，同时忽略采集器 `demo`
+在仓库根目录执行文档导出脚本。生成的文档和集成文件将写入 `-D` 指定的目录。
 
 ```shell
-man_version=`git tag -l | sort -nr | head -n 1` # 获取最近发布的 tag 版本
-datakit doc --export-docs /path/to/doc --version $man_version --TODO "-" --ignore demo
+./export.sh -D /path/to/output -E
 ```
 
 ### 接入组件健康检查 {#component-health}

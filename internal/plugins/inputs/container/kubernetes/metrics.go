@@ -13,12 +13,15 @@ import (
 )
 
 var (
-	collectCostVec          *prometheus.SummaryVec
-	collectPtsVec           *prometheus.CounterVec
-	collectResourceCostVec  *prometheus.SummaryVec
-	podMetricsQueryCountVec *prometheus.CounterVec
-	podAnnotationPromVec    *prometheus.SummaryVec
-	objectChangeCountVec    *prometheus.CounterVec
+	collectCostVec                   *prometheus.SummaryVec
+	collectPtsVec                    *prometheus.CounterVec
+	collectResourceCostVec           *prometheus.SummaryVec
+	podMetricsQueryCountVec          *prometheus.CounterVec
+	podAnnotationPromVec             *prometheus.SummaryVec
+	podAnnotationPromActiveTasks     prometheus.Gauge
+	podAnnotationPromInflightScrapes prometheus.Gauge
+	podAnnotationPromScrapesTotal    *prometheus.CounterVec
+	objectChangeCountVec             *prometheus.CounterVec
 )
 
 func setupMetrics() {
@@ -89,6 +92,39 @@ func setupMetrics() {
 		},
 	)
 
+	podAnnotationPromActiveTasks = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "input_container",
+			Name:      "kubernetes_pod_annotation_prom_active_tasks",
+			Help:      "Current number of active scrape tasks for the legacy datakit/prom.instances Kubernetes Pod annotation; excludes the kubernetesPrometheus collector.",
+		},
+	)
+
+	podAnnotationPromInflightScrapes = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "input_container",
+			Name:      "kubernetes_pod_annotation_prom_inflight_scrapes",
+			Help:      "Current number of in-flight HTTP scrapes for the legacy datakit/prom.instances Kubernetes Pod annotation; excludes the kubernetesPrometheus collector.",
+		},
+	)
+
+	podAnnotationPromScrapesTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "input_container",
+			Name:      "kubernetes_pod_annotation_prom_scrapes_total",
+			Help:      "Total number of completed HTTP scrapes for the legacy datakit/prom.instances Kubernetes Pod annotation, partitioned by result; excludes the kubernetesPrometheus collector.",
+		},
+		[]string{"result"},
+	)
+	for _, result := range []string{"success", "error", "timeout", "canceled"} {
+		podAnnotationPromScrapesTotal.WithLabelValues(result).Add(0)
+	}
+	podAnnotationPromActiveTasks.Set(0)
+	podAnnotationPromInflightScrapes.Set(0)
+
 	objectChangeCountVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "datakit",
@@ -108,6 +144,9 @@ func setupMetrics() {
 		collectPtsVec,
 		podMetricsQueryCountVec,
 		podAnnotationPromVec,
+		podAnnotationPromActiveTasks,
+		podAnnotationPromInflightScrapes,
+		podAnnotationPromScrapesTotal,
 		objectChangeCountVec,
 	)
 }

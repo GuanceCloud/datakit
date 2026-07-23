@@ -29,6 +29,10 @@ type promScraper struct {
 }
 
 func newPromScraper(urlstr string, opts []promscrape.Option) (*promScraper, error) {
+	return newPromScraperWithTags(urlstr, opts, nil)
+}
+
+func newPromScraperWithTags(urlstr string, opts []promscrape.Option, extraTags map[string]string) (*promScraper, error) {
 	u, err := url.Parse(urlstr)
 	if err != nil {
 		return nil, err
@@ -36,8 +40,12 @@ func newPromScraper(urlstr string, opts []promscrape.Option) (*promScraper, erro
 
 	p := promScraper{urlstr: u.String()}
 	tags := buildScraperTags(u.Host)
+	for key, value := range extraTags {
+		tags[key] = value
+	}
 
-	p.pm, err = promscrape.NewPromScraper(append(opts, promscrape.WithExtraTags(tags))...)
+	scraperOpts := append([]promscrape.Option{}, opts...)
+	p.pm, err = promscrape.NewPromScraper(append(scraperOpts, promscrape.WithExtraTags(tags))...)
 	if err != nil {
 		return nil, err
 	}

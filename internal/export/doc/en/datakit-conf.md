@@ -35,16 +35,38 @@ DataKit opens an HTTP service to receive external data or provide basic data ser
 
     ### Modify the HTTP Service Address {#update-http-server-host}
     
-    The default HTTP service address is `localhost:9529`, and if port 9529 is occupied, or you want to access the HTTP service of DataKit from outside (for example, you want to receive [RUM](rum.md) or [Tracing](datakit-tracing.md) data), you can modify it to:
+    DataKit listens on `localhost:9529` by default and accepts loopback connections only. No listener change is required when a client in the same network namespace connects to `localhost:9529`.
+
+    If a data sender cannot reach DataKit through the loopback address—for example, an APM Agent running in a container, virtual machine, or remote host—and needs to access the 9529 HTTP API through the DataKit host IP/DNS, configure a listener address reachable from the sender:
     
     ```toml
     [http_api]
-       listen = "0.0.0.0:<other-port>"
-       # or using IPV6 address
-       # listen = "[::]:<other-port>"
+      listen = "0.0.0.0:9529"
+
+      # Alternatively, listen only on a specific private IPv4 address
+      # listen = "192.168.1.10:9529"
+
+      # Or listen on all IPv6 interfaces
+      # listen = "[::]:9529"
     ```
 
-    > NOTE: IPv6 need DataKit [version 1.5.7](changelog.md#cl-1.5.7-new).
+    After saving the configuration, [restart DataKit](datakit-service-how-to.md#manage-service):
+
+    ```shell
+    datakit service restart
+    ```
+
+    Verify connectivity from the data sender's network environment:
+
+    ```shell
+    curl http://<DataKit-IP-or-domain>:9529/v1/ping
+    ```
+
+    ???+ warning "Restrict network access"
+
+        `0.0.0.0` is a server bind address only; clients must use the actual DataKit IP address or domain name. This configuration exposes the HTTP service on all IPv4 interfaces. Do not expose port 9529 directly to the public Internet, and restrict its allowed sources with a firewall or security group.
+
+    IPv6 listeners require DataKit 1.5.7 or later.
     
     #### Using Unix Domain Socket {#uds}
     

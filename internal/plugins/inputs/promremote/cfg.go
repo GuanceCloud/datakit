@@ -27,7 +27,7 @@ const (
   ## output source
   # specify this to output collected metrics to local file
   # if not specified, metrics is sent to datakit io
-  # if specified, you can use 'datakit --prom-conf /path/to/this/conf' to debug collected data
+  # if specified, you can use 'datakit debug --prom-conf /path/to/this/conf' to debug collected data
   # output = "/abs/path/file"
 
   ## If job_as_measurement is true, use the job field for the measurement name.

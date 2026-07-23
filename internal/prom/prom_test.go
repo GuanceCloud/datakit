@@ -533,6 +533,38 @@ func Test_Auth(t *testing.T) {
 	assert.Contains(t, authHeader[0], "Bearer ")
 }
 
+func Test_AuthValidation(t *testing.T) {
+	for name, auth := range map[string]map[string]string{
+		"missing type":     {"token": "secret"},
+		"unsupported type": {"type": "basic"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			p, err := NewProm(WithAuth(auth))
+			require.NoError(t, err)
+			req, err := p.GetReq(promURL)
+			require.Error(t, err)
+			require.Nil(t, req)
+		})
+	}
+
+	oldAuth, existed := AuthMaps["nil_request"]
+	AuthMaps["nil_request"] = func(map[string]string, string) (*http.Request, error) {
+		return nil, nil
+	}
+	t.Cleanup(func() {
+		if existed {
+			AuthMaps["nil_request"] = oldAuth
+		} else {
+			delete(AuthMaps, "nil_request")
+		}
+	})
+	p, err := NewProm(WithAuth(map[string]string{"type": "nil_request"}))
+	require.NoError(t, err)
+	req, err := p.GetReq(promURL)
+	require.Error(t, err)
+	require.Nil(t, req)
+}
+
 func Test_Option(t *testing.T) {
 	o := option{}
 

@@ -324,6 +324,19 @@ DK_USER_NAME="datakit" DK_DATAWAY="..." bash -c ...
 - `DK_HTTP_PUBLIC_APIS`: 设置 DataKit 允许远程访问的 HTTP API ，RUM 功能通常需要进行此配置，从 DataKit [1.9.2](changelog.md#cl-1.9.2) 开始支持。
 - `DK_HTTP_SOCKET`: 设置 HTTP 监听的本地 Socket 路径（Windows 不支持）。[:octicons-tag-24: Version-1.80.0](changelog-2025.md#cl-1.80.0)
 
+???+ warning "APM 通过 9529 HTTP API 跨网络上报"
+
+    主机安装的 DataKit 默认监听 `localhost:9529`，仅接受回环连接。如果 APM Agent 与 DataKit 位于同一网络命名空间（例如同一主机上的原生进程），并上报到 `localhost:9529`，无需修改监听地址。
+
+    如果 APM Agent 无法通过 DataKit 所在环境的回环地址访问（常见于容器、虚拟机或其他主机），或者通过 DataKit 主机 IP/DNS 访问 9529 HTTP API，需要让 DataKit 监听发送端可达的地址：
+
+    - 安装时设置 `DK_HTTP_LISTEN="0.0.0.0:9529"`；
+    - 已安装时，按照 [HTTP 服务配置](datakit-conf.md#update-http-server-host)修改 `[http_api].listen`，然后[重启 DataKit](datakit-service-how-to.md#manage-service)。
+
+    `0.0.0.0` 只用于 DataKit 服务端监听。APM Agent 应使用 DataKit 的实际 IP 或域名，例如 `http://<DataKit-IP>:9529`，不能将 `0.0.0.0` 作为上报目标。
+
+    监听 `0.0.0.0` 会开放所有 IPv4 网卡。建议优先绑定具体私网 IP，或通过防火墙、安全组限制 TCP/9529 的访问来源。
+
 ### DCA 设置 {#env-dca}
 
 - `DK_DCA_ENABLE`：支持安装阶段开启 DCA 服务（默认未开启）

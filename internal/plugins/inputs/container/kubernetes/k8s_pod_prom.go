@@ -6,16 +6,23 @@
 package kubernetes
 
 import (
+	"context"
+	"crypto/sha256"
+	"errors"
 	"fmt"
+	"maps"
+	"net"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	bstoml "github.com/BurntSushi/toml"
 	"github.com/GuanceCloud/cliutils/point"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/pointutil"
-	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/podutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
@@ -27,61 +34,27 @@ import (
 var (
 	defaultPrometheusioConnectKeepAlive = time.Second * 20
 	defaultPromElection                 = false /*collect self node, not election*/
-
-	promRunnersChan = make(chan []*promRunner)
 )
 
-func startPromWorker() {
-	ticker := time.NewTicker(time.Second * 1)
-	defer ticker.Stop()
-
-	var runners []*promRunner
-
-	for {
-		select {
-		case <-datakit.Exit.Wait():
-			klog.Info("prom worker exit")
-			return
-		case rs := <-promRunnersChan:
-			runners = mergePromRunners(runners, rs)
-			podAnnotationPromVec.WithLabelValues("prom").Observe(float64(len(runners)))
-
-		case <-ticker.C:
-			for _, runner := range runners {
-				runner.scrapOnce()
-			}
+func stopPromRunners(runners []*promRunner) {
+	for _, runner := range runners {
+		if runner != nil {
+			runner.close()
 		}
 	}
-}
-
-func mergePromRunners(oldRunners, newRunners []*promRunner) []*promRunner {
-	for _, oldRunner := range oldRunners {
-		tickReused := false
-
-		for _, newRunner := range newRunners {
-			if newRunner.identifier != oldRunner.identifier {
-				continue
-			}
-			newRunner.tick = oldRunner.tick
-			newRunner.lastTime = oldRunner.lastTime
-			tickReused = true
-			break
-		}
-
-		if !tickReused {
-			oldRunner.tick.Stop()
-		}
-	}
-	return newRunners
 }
 
 type promRunner struct {
-	identifier string
 	conf       *promConfig
 	pm         *iprom.Prom
 	feeder     dkio.Feeder
+	promSource string
+	mu         sync.Mutex
+	closed     bool
 
-	tick *time.Ticker
+	tlsFileRevision [sha256.Size]byte
+	reloadTLSFiles  bool
+
 	collectStart,
 	lastTime time.Time
 
@@ -89,80 +62,91 @@ type promRunner struct {
 	instanceTags map[string]string // map["urlstr"] = "url.Host"
 }
 
-func newPromRunnersForPod(pod *apicorev1.Pod, inputConfig string, cfg *Config) []*promRunner {
-	cfgStr := completePromConfig(pod, inputConfig)
-
-	runners, err := newPromRunnersWithTomlConfig(cfg.Feeder, cfgStr)
-	if err != nil {
-		klog.Warnf("failed to new prom runner of pod %s export-config, err: %s", pod.Name, err)
-		return nil
-	}
-
-	for idx := range runners {
-		if runners[idx].conf == nil {
+func clonePromConfigs(configs []*promConfig) []*promConfig {
+	cloned := make([]*promConfig, len(configs))
+	for idx, config := range configs {
+		if config == nil {
 			continue
 		}
-
-		name := pod.Name
-		if _, ownerName := podutil.PodOwner(pod); ownerName != "" {
-			name = ownerName
-		}
-
-		if runners[idx].conf.Source == "" {
-			runners[idx].conf.Source = pod.Namespace + "/" + name
-		}
-
-		for _, key := range cfg.LabelAsTagsForMetric.Keys {
-			v, exist := pod.Labels[key]
-			if !exist {
-				continue
-			}
-			if runners[idx].conf.Tags == nil {
-				runners[idx].conf.Tags = make(map[string]string)
-			}
-
-			newKey := pointutil.ReplaceLabelKey(key)
-			if _, exist := runners[idx].conf.Tags[newKey]; !exist {
-				runners[idx].conf.Tags[newKey] = v
-			}
-		}
+		value := *config
+		value.Tags = maps.Clone(config.Tags)
+		cloned[idx] = &value
 	}
-
-	return runners
+	return cloned
 }
 
-func newPromRunnersWithTomlConfig(feeder dkio.Feeder, configStr string) ([]*promRunner, error) {
-	cfgs, err := parsePromConfigs(configStr)
-	if err != nil {
-		return nil, fmt.Errorf("parse config error: %w", err)
+func applyPromPodMetadata(pod *apicorev1.Pod, configs []*promConfig, labelKeys []string) {
+	name := pod.Name
+	if _, ownerName := podutil.PodOwner(pod); ownerName != "" {
+		name = ownerName
 	}
 
-	var runners []*promRunner
-
-	for _, c := range cfgs {
-		p, err := newPromRunnerWithConfig(feeder, c)
-		if err != nil {
-			return nil, err
-		}
-
-		if p.conf.Interval > 0 {
-			p.tick = time.NewTicker(p.conf.Interval)
-		} else {
-			klog.Warnf("ignore prom scrap due to invalid interval(%v), ignored", p.conf.Interval)
+	for _, config := range configs {
+		if config == nil {
 			continue
 		}
-
-		runners = append(runners, p)
+		if config.Source == "" {
+			config.Source = pod.Namespace + "/" + name
+		}
+		for _, key := range labelKeys {
+			value, found := pod.Labels[key]
+			if !found {
+				continue
+			}
+			if config.Tags == nil {
+				config.Tags = make(map[string]string)
+			}
+			tagKey := pointutil.ReplaceLabelKey(key)
+			if _, found := config.Tags[tagKey]; !found {
+				config.Tags[tagKey] = value
+			}
+		}
 	}
+}
+
+func newPromRunnersForPod(pod *apicorev1.Pod, configs []*promConfig, cfg *Config) ([]*promRunner, error) {
+	runners := make([]*promRunner, 0, len(configs))
+	for _, key := range cfg.LabelAsTagsForMetric.Keys {
+		if _, found := pod.Labels[key]; !found {
+			continue
+		}
+		for _, config := range configs {
+			if config != nil && config.Tags == nil {
+				config.Tags = make(map[string]string)
+			}
+		}
+		break
+	}
+	for _, promConfig := range configs {
+		runner, err := newPromRunnerWithConfig(cfg.Feeder, promConfig)
+		if err != nil {
+			stopPromRunners(runners)
+			return nil, err
+		}
+		runners = append(runners, runner)
+	}
+	applyPromPodMetadata(pod, configs, cfg.LabelAsTagsForMetric.Keys)
 
 	return runners, nil
 }
 
+func readPromBearerToken(path string) (string, error) {
+	content, err := os.ReadFile(filepath.Clean(path))
+	if err != nil {
+		return "", fmt.Errorf("read bearer token file %q: %w", path, err)
+	}
+	token := strings.TrimSpace(string(content))
+	if token == "" {
+		return "", fmt.Errorf("bearer token file %q is empty", path)
+	}
+	return token, nil
+}
+
 func newPromRunnerWithConfig(feeder dkio.Feeder, c *promConfig) (*promRunner, error) {
 	p := &promRunner{
-		identifier:   fmt.Sprintf("%s: %v", c.Source, c.URLs),
 		conf:         c,
 		feeder:       feeder,
+		promSource:   c.Source,
 		lastTime:     ntp.Now(),
 		instanceTags: make(map[string]string),
 	}
@@ -173,6 +157,24 @@ func newPromRunnerWithConfig(feeder dkio.Feeder, c *promConfig) (*promRunner, er
 	}
 	p.instanceTags = hosts
 
+	if c.BearerTokenFile != "" {
+		if _, err := readPromBearerToken(c.BearerTokenFile); err != nil {
+			return nil, err
+		}
+	}
+
+	pm, tlsFileRevision, reloadTLSFiles, err := p.buildPromWithStableTLSFiles()
+	if err != nil {
+		return nil, err
+	}
+	p.pm = pm
+	p.tlsFileRevision = tlsFileRevision
+	p.reloadTLSFiles = reloadTLSFiles
+	return p, nil
+}
+
+func (p *promRunner) buildProm() (*iprom.Prom, error) {
+	c := p.conf
 	callbackFunc := func(pts []*point.Point) error {
 		if len(pts) == 0 {
 			return nil
@@ -212,7 +214,7 @@ func newPromRunnerWithConfig(feeder dkio.Feeder, c *promConfig) (*promRunner, er
 
 	opts := []iprom.PromOption{
 		iprom.WithLogger(klog), // WithLogger must in the first
-		iprom.WithSource(c.Source),
+		iprom.WithSource(p.promSource),
 		iprom.WithTimeout(c.Timeout),
 		iprom.WithKeepAlive(defaultPrometheusioConnectKeepAlive),
 		iprom.WithIgnoreReqErr(c.IgnoreReqErr),
@@ -239,53 +241,197 @@ func newPromRunnerWithConfig(feeder dkio.Feeder, c *promConfig) (*promRunner, er
 		iprom.WithMaxBatchCallback(1, callbackFunc),
 	}
 
-	if c.BearerTokenFile != "" {
-		token, err := os.ReadFile(c.BearerTokenFile)
-		if err != nil {
-			return nil, err
-		}
-		opts = append(opts, iprom.WithBearerToken(string(token)))
-	}
-
 	pm, err := iprom.NewProm(opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create prom: %w", err)
 	}
-
-	p.pm = pm
-	return p, nil
+	return pm, nil
 }
 
-func (p *promRunner) scrapOnce() {
-	if p.conf == nil {
-		return
+func promTLSFileRevision(c *promConfig) ([sha256.Size]byte, bool, error) {
+	var zero [sha256.Size]byte
+	if c == nil || !c.TLSOpen {
+		return zero, false, nil
 	}
 
-	select {
-	case tt := <-p.tick.C:
-		p.lastTime = inputs.AlignTime(tt, p.lastTime, p.conf.Interval)
+	paths := [...]string{c.CacertFile, c.CertFile, c.KeyFile}
+	material := make([]byte, 0, len(paths)*(sha256.Size+1))
+	watched := false
+	for _, path := range paths {
+		if path == "" {
+			material = append(material, 0)
+			material = append(material, zero[:]...)
+			continue
+		}
+		watched = true
+		content, err := os.ReadFile(filepath.Clean(path))
+		if err != nil {
+			return zero, true, fmt.Errorf("read TLS credential file %q: %w", path, err)
+		}
+		contentHash := sha256.Sum256(content)
+		material = append(material, 1)
+		material = append(material, contentHash[:]...)
+	}
+	if !watched {
+		return zero, false, nil
+	}
+	return sha256.Sum256(material), true, nil
+}
 
-		klog.Debugf("running collect from source %s", p.conf.Source)
+func (p *promRunner) buildPromWithStableTLSFiles() (*iprom.Prom, [sha256.Size]byte, bool, error) {
+	var zero [sha256.Size]byte
+	for range 2 {
+		before, watched, err := promTLSFileRevision(p.conf)
+		if err != nil {
+			return nil, zero, watched, err
+		}
+		pm, err := p.buildProm()
+		if err != nil {
+			return nil, zero, watched, err
+		}
+		after, stillWatched, err := promTLSFileRevision(p.conf)
+		if err != nil {
+			pm.CloseIdleConnections()
+			return nil, zero, watched, err
+		}
+		if watched == stillWatched && before == after {
+			return pm, after, watched, nil
+		}
+		pm.CloseIdleConnections()
+	}
+	return nil, zero, true, fmt.Errorf("TLS credential files changed while reloading")
+}
 
-		for _, u := range p.conf.URLs {
-			p.currentURL = u
-			p.collectStart = time.Now()
-			// use callback processor, not return pts
-			_, err := p.pm.CollectFromHTTPV2(u, iprom.WithTimestamp(p.lastTime.UnixNano()))
-			if err != nil {
-				klog.Warnf("failed to collect prom: %s", err)
-				return
-			}
+func (p *promRunner) promForRequest() (*iprom.Prom, error) {
+	revision, watched, err := promTLSFileRevision(p.conf)
+	if err != nil {
+		return nil, err
+	}
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.closed {
+		return nil, context.Canceled
+	}
+	if !watched || !p.reloadTLSFiles || revision == p.tlsFileRevision {
+		return p.pm, nil
+	}
+
+	pm, stableRevision, reloadTLSFiles, err := p.buildPromWithStableTLSFiles()
+	if err != nil {
+		return nil, err
+	}
+	if stableRevision == p.tlsFileRevision {
+		pm.CloseIdleConnections()
+		return p.pm, nil
+	}
+
+	oldProm := p.pm
+	p.pm = pm
+	p.tlsFileRevision = stableRevision
+	p.reloadTLSFiles = reloadTLSFiles
+	oldProm.CloseIdleConnections()
+	return p.pm, nil
+}
+
+func (p *promRunner) scrape(ctx context.Context, scheduledAt time.Time, requestTimeout time.Duration) error {
+	if p.conf == nil {
+		return nil
+	}
+	requestTimeout = maxPromRequestTimeout(requestTimeout, p.conf.Timeout)
+
+	p.lastTime = inputs.AlignTime(scheduledAt, p.lastTime, p.conf.Interval)
+	klog.Debugf("running collect from source %s", p.conf.Source)
+
+	for _, u := range p.conf.URLs {
+		if err := ctx.Err(); err != nil {
+			return err
 		}
 
-	default: // pass: not on current scrap tick
+		p.currentURL = u
+		p.collectStart = time.Now()
+		pm, err := p.promForRequest()
+		if err != nil {
+			podAnnotationPromScrapesTotal.WithLabelValues(promScrapeResult(err)).Inc()
+			return err
+		}
+		collectOptions := []iprom.PromOption{iprom.WithTimestamp(p.lastTime.UnixNano())}
+		if p.conf.BearerTokenFile != "" {
+			token, err := readPromBearerToken(p.conf.BearerTokenFile)
+			if err != nil {
+				podAnnotationPromScrapesTotal.WithLabelValues(promScrapeResult(err)).Inc()
+				return err
+			}
+			collectOptions = append(collectOptions, iprom.WithBearerToken(token))
+		}
+		err = p.collectFromURL(ctx, pm, u, requestTimeout, collectOptions...)
+		podAnnotationPromScrapesTotal.WithLabelValues(promScrapeResult(err)).Inc()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *promRunner) collectFromURL(ctx context.Context, pm *iprom.Prom, u string,
+	requestTimeout time.Duration, opts ...iprom.PromOption,
+) (err error) {
+	requestCtx, cancel := context.WithTimeout(ctx, requestTimeout)
+	defer cancel()
+	podAnnotationPromInflightScrapes.Inc()
+	defer podAnnotationPromInflightScrapes.Dec()
+
+	// use callback processor, not return pts
+	_, err = pm.CollectFromHTTPV2Context(requestCtx, u, opts...)
+	if requestErr := requestCtx.Err(); requestErr != nil {
+		err = requestErr
+	}
+	return err
+}
+
+func maxPromRequestTimeout(managerTimeout, configuredTimeout time.Duration) time.Duration {
+	if configuredTimeout > managerTimeout {
+		return configuredTimeout
+	}
+	return managerTimeout
+}
+
+func promScrapeResult(err error) string {
+	if err == nil {
+		return "success"
+	}
+	if errors.Is(err, context.Canceled) {
+		return "canceled"
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return "timeout"
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return "timeout"
+	}
+	return "error"
+}
+
+func (p *promRunner) close() {
+	p.mu.Lock()
+	if p.closed {
+		p.mu.Unlock()
 		return
+	}
+	p.closed = true
+	pm := p.pm
+	p.mu.Unlock()
+	if pm != nil {
+		pm.CloseIdleConnections()
 	}
 }
 
 const (
 	annotationPromExport = "datakit/prom.instances"
 	defaultInterval      = time.Second * 30
+	minPromInterval      = 10 * time.Second
+	maxPromInterval      = 5 * time.Minute
 )
 
 type promConfig struct {
@@ -354,6 +500,7 @@ func parsePromConfigs(str string) ([]*promConfig, error) {
 		if cfg.Interval <= 0 {
 			cfg.Interval = defaultInterval
 		}
+		cfg.Interval = config.ProtectedInterval(minPromInterval, maxPromInterval, cfg.Interval)
 	}
 	return c.Inputs.Prom, nil
 }

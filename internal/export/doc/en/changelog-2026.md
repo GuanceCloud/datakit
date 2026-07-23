@@ -1,28 +1,45 @@
 # Changelog
 
+## 2.6.1(2026/07/23) {#cl-2.6.1}
+
+This release is a hotfix release, contents are as follows:
+
+### Bug Fixes {#cl-2.6.1-fix}
+
+- Fixed Lightpanda encoding `#` as `%23` in browser dial test URLs (#3157)
+
+### Improvements {#cl-2.6.1-opt}
+
+- Added `relabel_configs` to Promsd for filtering and relabeling HTTP and file service discovery targets; Consul is not yet supported (#3138)
+- Improved scheduling and resource controls for Prometheus collection configured through the Kubernetes Pod annotation `datakit/prom.instances`, improving configuration refresh and task cleanup reliability (#3155)
+- Clarified HTTP listener and security guidance for cross-network APM reporting to host-installed DataKit (!4099)
+- Updated outdated DataKit CLI commands and option examples in the documentation (!4101)
+
+---
+
 ## 2.6.0(2026/07/16) {#cl-2.6.0}
 
 This release is an iterative release, with the following main updates:
 
 ### New Features {#cl-2.6.0-new}
 
-- The Dialtesting collector can now receive one-shot dial test tasks over SSE and execute them immediately without affecting existing periodic schedules. Results include the `trigger_type` tag to distinguish scheduled and manually triggered runs, while manual tasks also include `run_batch_id` to correlate tasks in the same execution batch (#3139)
-- Dialtesting node names now support localized `name_i18n` values, selecting Simplified Chinese, English, Indonesian, or Traditional Chinese based on the workspace language, with fallback to the legacy field (#3126)
-- SNMP Trap added the `source` option, allowing the log source to be customized by environment or device group. It continues to use `traps` when the option is unset (#3145)
-- Added the NetPath network path collector, which supports statically configured TCP, UDP, and ICMP targets and can dynamically discover outbound TCP targets from eBPF-observed traffic; it periodically performs traceroute and end-to-end quality probes, with filtering, deduplication, rate limiting, and task scheduling (#3143)
+- Dialtesting collector supports one-shot tasks over SSE without affecting periodic schedules; results include `trigger_type`, and manual tasks include `run_batch_id` (#3139)
+- Dialtesting node names support `name_i18n` localization with fallback to the legacy field (#3126)
+- SNMP Trap added the `source` option for custom log sources and uses `traps` when unset (#3145)
+- Added the NetPath collector with TCP, UDP, and ICMP target probing and eBPF-based TCP target discovery (#3143)
 
 ### Bug Fixes {#cl-2.6.0-fix}
 
-- Fixed `ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK=false` failing to enable internal-network dial tests in container environments (#3147)
-- Fixed the OpenTelemetry collector replacing a gRPC span's original service name with `grpc` when `split_service_name` was enabled (#3148)
+- Fixed `ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK=false` failing to enable internal-network dial tests in containers (#3147)
+- Fixed OpenTelemetry replacing gRPC span service names with `grpc` when `split_service_name` was enabled (#3148)
 
 ### Improvements {#cl-2.6.0-opt}
 
-- Standardized change-event `diff` output on unified diff for Kubernetes, host files, networks, services, and configuration-file watching; also improved the rendering of K8s annotation, environment variable, and probe changes, as well as long-text truncation (#3137)
+- Standardized change events on unified diff and improved K8s annotation, environment variable, and probe change rendering (#3137)
 
 ### Compatibility Adjustments {#cl-2.6.0-brk}
 
-- The Helm Chart's `componentHealthLivenessProbe` is now disabled by default to prevent DataKit images older than 2.5.0, which do not expose `/v1/health`, from repeatedly failing liveness checks and entering CrashLoop. It can be enabled manually when using DataKit 2.5.0 or later
+- Helm Chart disables `componentHealthLivenessProbe` by default to keep older images without `/v1/health` from entering CrashLoop; it can be enabled for DataKit 2.5.0 and later
 
 ---
 

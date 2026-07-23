@@ -84,14 +84,14 @@ curl -fsSL https://pkg.lightpanda.io/install.sh | bash
 You can also install a specific version, for example:
 
 ```shell
-curl -fsSL https://pkg.lightpanda.io/install.sh | bash -s "0.3.1"
+curl -fsSL https://pkg.lightpanda.io/install.sh | bash -s "0.3.5"
 ```
 
 To install a pinned binary manually, use the following x86_64 Linux example:
 
 ```shell
 curl -L -o lightpanda \
-  https://github.com/lightpanda-io/browser/releases/download/0.3.1/lightpanda-x86_64-linux
+  https://github.com/lightpanda-io/browser/releases/download/0.3.5/lightpanda-x86_64-linux
 chmod a+x ./lightpanda
 sudo install -m 0755 lightpanda /usr/local/bin/lightpanda
 ```
@@ -100,7 +100,7 @@ For arm64/aarch64 Linux, use:
 
 ```shell
 curl -L -o lightpanda \
-  https://github.com/lightpanda-io/browser/releases/download/0.3.1/lightpanda-aarch64-linux
+  https://github.com/lightpanda-io/browser/releases/download/0.3.5/lightpanda-aarch64-linux
 chmod a+x ./lightpanda
 sudo install -m 0755 lightpanda /usr/local/bin/lightpanda
 ```
@@ -153,7 +153,7 @@ If DataKit runs as a systemd service, exporting the variable in the current shel
 Restart DataKit after updating the configuration:
 
 ```shell
-sudo datakit service -R
+sudo datakit service restart
 ```
 
 ### Verify with a Local Task {#host-local-test}
@@ -221,7 +221,7 @@ datakit debug --input-conf /usr/local/datakit/conf.d/dialtesting.conf
 If DataKit runs as a service:
 
 ```shell
-sudo datakit service -R
+sudo datakit service restart
 ```
 
 After 1~2 pull intervals, check metrics:

@@ -7,7 +7,7 @@ DataKit 支持以交互式方式执行 DQL 查询，在交互模式下，DataKit
 > 通过 `datakit dql --help` 可获取更多命令行参数帮助。
 
 ```shell
-datakit dql      # 或者 datakit -Q
+datakit dql
 ```
 
 <figure markdown>
@@ -39,7 +39,7 @@ datakit dql --run 'O::HOST:(os, message)' --csv="path/to/your.csv"
 datakit dql --run 'O::HOST:(os, message)' --csv /path/to/xxx.csv --force
 
 # 将结果写入 CSV 的同时，在终端也显示查询结果
-datakit dql --run 'O::HOST:(os, message)' --csv="path/to/your.csv" --vvv
+datakit dql --run 'O::HOST:(os, message)' --csv="path/to/your.csv" --verbose
 ```
 
 导出的 CSV 文件样式示例：

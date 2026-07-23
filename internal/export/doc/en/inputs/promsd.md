@@ -75,6 +75,49 @@ Key Notes:
 - **Protocol Override**: If `__scheme__` label is returned by `http_sd_config`, it overrides this `scheme` value
 - **TLS Configuration**: Takes effect when `scheme = "https"`, self-signed certificates require `ca_certs`
 
+#### Target relabeling {#relabel-config}
+
+`relabel_configs` are applied in order after service discovery and before a scraper is created. They can filter targets, rewrite scrape addresses and paths, or turn discovery labels into metric labels. HTTP and File service discovery are currently supported; Consul service discovery is not supported.
+
+```toml
+[[inputs.promsd.scrape.relabel_configs]]
+  source_labels = ["context_path"]
+  regex = "(.+)"
+  target_label = "__metrics_path__"
+  replacement = "$1/actuator/prometheus"
+  action = "replace"
+
+[[inputs.promsd.scrape.relabel_configs]]
+  source_labels = ["__metrics_path__"]
+  regex = "^/*(.+)"
+  target_label = "__metrics_path__"
+  replacement = "/$1"
+  action = "replace"
+
+[[inputs.promsd.scrape.relabel_configs]]
+  source_labels = ["context_path"]
+  target_label = "app_context_path"
+  action = "replace"
+```
+
+The first rule overrides the default path only when service discovery returns `context_path`. The second rule ensures that the path starts with exactly one `/`. The third rule copies `context_path` to the final metric label `app_context_path`. Targets without `context_path` continue to use `inputs.promsd.scrape.metrics_path`.
+
+Each rule supports the following fields:
+
+| Field | Default | Description |
+| --- | --- | --- |
+| `source_labels` | `[]` | Source labels read and concatenated in order |
+| `separator` | `;` | Separator used between source label values |
+| `regex` | `(.*)` | Fully anchored regular expression matched against the concatenated value |
+| `modulus` | `0` | Modulus used by the `hashmod` action |
+| `target_label` | empty | Target label to write or compare |
+| `replacement` | `$1` | Regular expression replacement |
+| `action` | `replace` | Relabel action |
+
+Supported actions are `replace`, `keep`, `drop`, `keepequal`, `dropequal`, `hashmod`, `labelmap`, `labeldrop`, `labelkeep`, `lowercase`, and `uppercase`.
+
+Rules can use internal labels such as `__address__`, `__scheme__`, `__metrics_path__`, and `__param_<name>`. Internal `__*` labels participate in target processing but are not attached to final metrics; ordinary labels become metric labels.
+
 ### HTTP Service Discovery Configuration {#http-sd-config}
 
 Dynamically retrieves target lists via HTTP API with real-time updates.

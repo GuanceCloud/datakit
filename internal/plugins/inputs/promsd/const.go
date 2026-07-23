@@ -127,6 +127,28 @@ const (
       # cert     = "/opt/tls/client.crt"
       # cert_key = "/opt/tls/client.key"
 
+    ## Optional: Prometheus-compatible target relabeling rules.
+    ## Supported only for HTTP SD and File SD; Consul SD is not supported.
+    ## Rules are applied in order after discovery and before a scraper is created.
+    # [[inputs.promsd.scrape.relabel_configs]]
+    #   source_labels = ["context_path"]
+    #   regex = "(.+)"
+    #   target_label = "__metrics_path__"
+    #   replacement = "$1/actuator/prometheus"
+    #   action = "replace"
+
+    # [[inputs.promsd.scrape.relabel_configs]]
+    #   source_labels = ["__metrics_path__"]
+    #   regex = "^/*(.+)"
+    #   target_label = "__metrics_path__"
+    #   replacement = "/$1"
+    #   action = "replace"
+
+    # [[inputs.promsd.scrape.relabel_configs]]
+    #   source_labels = ["context_path"]
+    #   target_label = "app_context_path"
+    #   action = "replace"
+
   # ============================================================================
   # Additional Tags
   # ============================================================================

@@ -83,7 +83,7 @@ sudo datakit service start                                      # restart dataki
 
 ```shell
 sudo datakit check --config # Check whether the collector configuration file is normal
-datakit -M --vvv            # Check the operation of all collectors
+datakit monitor --verbose   # Check the operation of all collectors
 ```
 
 - If the collector function is complete, add `man/manuals/zhangsan.md` document, this can refer to `demo.md`, install the template inside to write
@@ -508,11 +508,10 @@ checked 52 sample, 0 ignored, 51 passed, 0 failed, 0 unknown, cost 10.938125ms
 
 ### Export Document {#export-docs}
 
-Exports the existing DataKit document to the specified directory, specifies the document version, replaces the document marked `TODO` with `-` and ignores the collector `demo`.
+Run the documentation export script from the repository root. The generated documentation and integration files are written below the directory specified by `-D`.
 
 ```shell
-man_version=`git tag -l | sort -nr | head -n 1` # Get the most recently released tag version
-datakit doc --export-docs /path/to/doc --version $man_version --TODO "-" --ignore demo
+./export.sh -D /path/to/output -E
 ```
 
 ### Component Health Integration {#component-health}

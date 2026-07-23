@@ -82,14 +82,14 @@ curl -fsSL https://pkg.lightpanda.io/install.sh | bash
 也可以指定版本，例如：
 
 ```shell
-curl -fsSL https://pkg.lightpanda.io/install.sh | bash -s "0.3.1"
+curl -fsSL https://pkg.lightpanda.io/install.sh | bash -s "0.3.5"
 ```
 
 如需手动安装固定版本二进制，x86_64 Linux 示例：
 
 ```shell
 curl -L -o lightpanda \
-  https://github.com/lightpanda-io/browser/releases/download/0.3.1/lightpanda-x86_64-linux
+  https://github.com/lightpanda-io/browser/releases/download/0.3.5/lightpanda-x86_64-linux
 chmod a+x ./lightpanda
 sudo install -m 0755 lightpanda /usr/local/bin/lightpanda
 ```
@@ -98,7 +98,7 @@ arm64/aarch64 Linux 可使用：
 
 ```shell
 curl -L -o lightpanda \
-  https://github.com/lightpanda-io/browser/releases/download/0.3.1/lightpanda-aarch64-linux
+  https://github.com/lightpanda-io/browser/releases/download/0.3.5/lightpanda-aarch64-linux
 chmod a+x ./lightpanda
 sudo install -m 0755 lightpanda /usr/local/bin/lightpanda
 ```
@@ -150,7 +150,7 @@ export LIGHTPANDA_EXECUTABLE_PATH=/usr/local/bin/lightpanda
 修改配置后重启 DataKit：
 
 ```shell
-sudo datakit service -R
+sudo datakit service restart
 ```
 
 ## 本地验证 {#local-test}

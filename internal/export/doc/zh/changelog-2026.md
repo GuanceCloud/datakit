@@ -1,28 +1,45 @@
 # 更新日志
 
+## 2.6.1(2026/07/23) {#cl-2.6.1}
+
+本次发布属于 hotfix 修复，内容如下：
+
+### 问题修复 {#cl-2.6.1-fix}
+
+- 修复 Lightpanda 将浏览器拨测 URL 中的 `#` 编码为 `%23` 的问题（#3157）
+
+### 功能优化 {#cl-2.6.1-opt}
+
+- Promsd 采集器新增 `relabel_configs`，支持筛选及重标记 HTTP 和 File 服务发现目标，暂不支持 Consul（#3138）
+- 优化通过 Kubernetes Pod 注解 `datakit/prom.instances` 配置的 Prometheus 采集调度与资源控制，提升配置刷新和任务清理稳定性（#3155）
+- 完善主机部署 DataKit 接收跨网络 APM 上报时的 HTTP 监听与安全说明（!4099）
+- 更新文档中过时的 DataKit CLI 命令与参数示例（!4101）
+
+---
+
 ## 2.6.0(2026/07/16) {#cl-2.6.0}
 
 本次发布属于迭代发布，主要有如下更新：
 
 ### 新加功能 {#cl-2.6.0-new}
 
-- 拨测采集器支持通过 SSE 接收并立即执行一次性拨测任务，不影响现有周期调度；拨测结果新增 `trigger_type` 标签用于区分定时与手动触发，手动任务另带 `run_batch_id` 标签用于关联同一执行批次（#3139）
-- 拨测节点名称新增 `name_i18n` 多语言适配，可根据工作空间语言选择中文、英文、印尼语或繁体中文名称，并保留旧字段回退逻辑（#3126）
-- SNMP Trap 新增 `source` 配置，可按环境或设备组自定义日志 Source；未配置时仍使用 `traps`（#3145）
-- NetPath 网络路径采集器支持配置 TCP、UDP 和 ICMP 静态目标，并可从 eBPF 出站流量动态发现 TCP 目标；周期执行 traceroute 与端到端质量探测，并提供过滤、去重、限速和任务调度能力（#3143）
+- 拨测采集器支持通过 SSE 执行一次性任务，不影响周期调度；拨测结果新增 `trigger_type`，手动任务新增 `run_batch_id`（#3139）
+- 拨测节点名称支持 `name_i18n` 多语言适配，并保留旧字段回退（#3126）
+- SNMP Trap 新增 `source` 配置，支持自定义日志 Source，未配置时使用 `traps`（#3145）
+- 新增 NetPath 网络路径采集器，支持 TCP、UDP、ICMP 目标探测及基于 eBPF 的 TCP 目标发现（#3143）
 
 ### 问题修复 {#cl-2.6.0-fix}
 
-- 修复容器环境中将 `ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK` 设为 `false` 时仍无法开启内网拨测的问题（#3147）
-- 修复 OpenTelemetry 采集器开启 `split_service_name` 后，将 gRPC span 的原服务名替换为 `grpc` 的问题（#3148）
+- 修复容器环境中 `ENV_INPUT_DIALTESTING_DISABLE_INTERNAL_NETWORK_TASK=false` 无法开启内网拨测的问题（#3147）
+- 修复 OpenTelemetry 开启 `split_service_name` 后将 gRPC span 服务名替换为 `grpc` 的问题（#3148）
 
 ### 功能优化 {#cl-2.6.0-opt}
 
-- 变更事件的 `diff` 统一调整为标准 unified diff，覆盖 Kubernetes、主机文件/网络/服务及配置文件监听；同时优化 K8s annotation、env 和 probe 变更的展示与长文本截断处理（#3137）
+- 变更事件统一使用 unified diff，并优化 K8s annotation、env 和 probe 的变更展示（#3137）
 
 ### 兼容调整 {#cl-2.6.0-brk}
 
-- Helm Chart 的 `componentHealthLivenessProbe` 默认改为关闭，避免 DataKit 2.5.0 之前的镜像因不支持 `/v1/health` 而持续探测失败并进入 CrashLoop；使用 DataKit 2.5.0 及以上版本时可手动开启
+- Helm Chart 默认关闭 `componentHealthLivenessProbe`，避免旧版镜像因缺少 `/v1/health` 进入 CrashLoop；DataKit 2.5.0 及以上版本可手动开启
 
 ---
 

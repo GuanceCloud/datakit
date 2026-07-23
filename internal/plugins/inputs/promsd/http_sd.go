@@ -67,7 +67,7 @@ func (sd *HTTPSD) produceScrapers(ctx context.Context, cfg *ScrapeConfig, opts [
 		return nil
 	}
 
-	scrapers, err := convertTargetGroupsToScraper(cfg, opts, newTargetGroups)
+	scrapers, err := convertTargetGroupsToScraper(cfg, opts, newTargetGroups, sd.logger)
 	if err != nil {
 		return err
 	}

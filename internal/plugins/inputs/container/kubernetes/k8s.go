@@ -56,6 +56,8 @@ type Config struct {
 
 	ExtraTags map[string]string
 	Feeder    dkio.Feeder
+
+	promPodPublisher promPodPublisher
 }
 
 type Kube struct {
@@ -71,7 +73,7 @@ type Kube struct {
 }
 
 func NewKubeCollector(client k8sclient.Client, cfg *Config, chanPause chan bool) (*Kube, error) {
-	klog = logger.SLogger("k8s")
+	klog = logger.SLogger("k8s", logger.WithRateLimiter(promTaskLimitLogRate, "legacy-pod-prom-task-limit"))
 
 	if client == nil {
 		return nil, fmt.Errorf("invalid kubernetes client, cannot be nil")
@@ -106,9 +108,11 @@ func (k *Kube) StartCollect() {
 		defer t.Stop()
 	}
 
-	g := goroutine.NewGroup(goroutine.Option{Name: "k8s-pod-prom-worker"})
+	promManager := newPromTaskManager(k.cfg)
+	k.cfg.promPodPublisher = promManager
+	g := goroutine.NewGroup(goroutine.Option{Name: "k8s-pod-prom-manager"})
 	g.Go(func(_ context.Context) error {
-		startPromWorker()
+		promManager.run()
 		return nil
 	})
 
@@ -136,13 +140,17 @@ func (k *Kube) StartCollect() {
 		select {
 		case <-datakit.Exit.Wait():
 			stopWatching()
+			promManager.close()
 			if err := g.Wait(); err != nil {
-				klog.Warnf("wait k8s pod prom worker failed: %s", err)
+				klog.Warnf("wait k8s Pod annotation Prometheus manager failed: %s", err)
 			}
 			klog.Info("k8s collect exit")
 			return
 
 		case k.paused = <-k.chanPause:
+			if !k.cfg.NodeLocal {
+				promManager.setActive(!k.paused)
+			}
 			if k.paused {
 				stopWatching()
 				klog.Info("not leader for election")

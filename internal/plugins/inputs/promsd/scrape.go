@@ -34,6 +34,9 @@ type ScrapeConfig struct {
 	KeepExistMetricName bool              `toml:"keep_exist_metric_name"`
 	HTTPHeaders         map[string]string `toml:"http_headers"`
 	Auth                *Auth             `toml:"auth"`
+	RelabelConfigs      []*RelabelConfig  `toml:"relabel_configs"`
+
+	compiledRelabelConfigs []*compiledRelabelConfig
 }
 
 func startScraperConsumer(ctx context.Context, logger *logger.Logger, workerName string, scrapeInterval time.Duration, in <-chan scraper) {

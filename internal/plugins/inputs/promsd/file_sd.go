@@ -74,7 +74,7 @@ func (sd *FileSD) produceScrapers(ctx context.Context, cfg *ScrapeConfig, opts [
 		return err
 	}
 
-	scrapers, err := convertTargetGroupsToScraper(cfg, opts, targetGroups)
+	scrapers, err := convertTargetGroupsToScraper(cfg, opts, targetGroups, sd.logger)
 	if err != nil {
 		return err
 	}

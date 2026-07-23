@@ -35,16 +35,38 @@ DataKit 会开启 HTTP 服务，用来接收外部数据，或者对外提供基
 
     ### 修改 HTTP 服务地址 {#update-http-server-host}
 
-    默认的 HTTP 服务地址是 `localhost:9529`，如果 9529 端口被占用，或希望从外部访问 DataKit 的 HTTP 服务（比如希望接收 [RUM](../integrations/rum.md) 或 [Tracing](../integrations/datakit-tracing.md) 数据），可将其修改成：
+    DataKit 默认监听 `localhost:9529`，仅接受本机回环连接。同一网络命名空间内的客户端通过 `localhost:9529` 访问时，无需修改监听地址。
+
+    如果数据发送端无法通过回环地址访问 DataKit，例如 APM Agent 位于容器、虚拟机或其他主机，并需要通过主机 IP/DNS 访问 9529 HTTP API，可将监听地址修改为发送端可达的地址：
 
     ```toml
     [http_api]
-       listen = "0.0.0.0:<other-port>"
-       # 或使用 IPV6 地址
-       # listen = "[::]:<other-port>"
+      listen = "0.0.0.0:9529"
+
+      # 也可以只监听指定的私网 IPv4 地址
+      # listen = "192.168.1.10:9529"
+
+      # 或监听所有 IPv6 地址
+      # listen = "[::]:9529"
     ```
 
-    注意，IPv6 支持需 [DataKit 升级到 1.5.7](changelog.md#cl-1.5.7-new)。
+    保存配置后，[重启 DataKit](datakit-service-how-to.md#manage-service)：
+
+    ```shell
+    datakit service restart
+    ```
+
+    可从数据发送端所在的网络环境检查连通性：
+
+    ```shell
+    curl http://<DataKit-IP-or-domain>:9529/v1/ping
+    ```
+
+    ???+ warning "限制网络访问"
+
+        `0.0.0.0` 只用于服务端监听，客户端必须使用 DataKit 的实际 IP 或域名。该配置会使 HTTP 服务监听所有 IPv4 网卡，请避免将 9529 端口直接暴露到公网，并通过防火墙、安全组等方式限制访问来源。
+
+    IPv6 监听需要 DataKit 1.5.7 或更高版本。
 
     #### 使用 Unix domain socket {#uds}
 

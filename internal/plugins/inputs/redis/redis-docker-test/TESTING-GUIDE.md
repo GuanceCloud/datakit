@@ -421,8 +421,8 @@ redis-cli -h 192.168.139.162 -p 26379 SENTINEL get-master-addr-by-name mymaster-
 echo "=== 验证集群 ==="
 redis-cli -h 192.168.139.162 -p 7001 -a abc123456 CLUSTER INFO
 
-# 4. 运行 DataKit 测试
-# ./datakit --test
+# 4. 使用 Redis 采集器配置调试 DataKit
+datakit debug --input-conf /path/to/redis.conf
 
 # 5. 清理环境
 docker-compose -f docker-compose-standalone-multi-version.yml down -v

@@ -19,6 +19,8 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 
 	apicorev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/informers"
 )
 
@@ -26,6 +28,33 @@ const (
 	podMetricMeasurement = "kube_pod"
 	podObjectClass       = "kubelet_pod"
 )
+
+type promPodPublisher interface {
+	publishPromPods([]promPodCandidate)
+}
+
+type promPodCandidate struct {
+	uid       types.UID
+	rawConfig string
+	pod       *apicorev1.Pod
+}
+
+func newPromPodCandidate(pod *apicorev1.Pod, rawConfig string) promPodCandidate {
+	labels := make(map[string]string, len(pod.Labels))
+	for key, value := range pod.Labels {
+		labels[key] = value
+	}
+	return promPodCandidate{
+		uid:       pod.UID,
+		rawConfig: rawConfig,
+		pod: &apicorev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{UID: pod.UID, Name: pod.Name, Namespace: pod.Namespace,
+				Labels: labels, OwnerReferences: append([]metav1.OwnerReference(nil), pod.OwnerReferences...)},
+			Spec:   apicorev1.PodSpec{NodeName: pod.Spec.NodeName},
+			Status: apicorev1.PodStatus{PodIP: pod.Status.PodIP},
+		},
+	}
+}
 
 //nolint:gochecknoinits
 func init() {
@@ -143,14 +172,14 @@ func (p *pod) gatherMetric(ctx context.Context, fieldSelector string, timestamp 
 }
 
 func (p *pod) gatherObject(ctx context.Context, fieldSelector string, pending bool) {
-	var runners []*promRunner
+	var promPods []promPodCandidate
 	var continued string
 
 	for {
 		list, err := p.client.GetPods(allNamespaces).List(ctx, newListOptions(fieldSelector, continued))
 		if err != nil {
 			klog.Warn(err)
-			break
+			return
 		}
 		continued = list.Continue
 
@@ -171,7 +200,9 @@ func (p *pod) gatherObject(ctx context.Context, fieldSelector string, pending bo
 		pts := p.buildObjectPoints(list, metricsClient, nodeInfo)
 		feedObject("k8s-pod-object", p.cfg.Feeder, pts, true)
 
-		runners = append(runners, p.newPromRunners(list)...)
+		if !pending {
+			promPods = append(promPods, p.newPromPods(list)...)
+		}
 
 		if continued == "" {
 			break
@@ -182,11 +213,8 @@ func (p *pod) gatherObject(ctx context.Context, fieldSelector string, pending bo
 		return
 	}
 
-	select {
-	case promRunnersChan <- runners:
-		// nil
-	default:
-		// nil
+	if p.cfg.promPodPublisher != nil {
+		p.cfg.promPodPublisher.publishPromPods(promPods)
 	}
 }
 
@@ -294,8 +322,8 @@ func (p *pod) buildObjectPoints(list *apicorev1.PodList, metricsClient PodMetric
 	return pts
 }
 
-func (p *pod) newPromRunners(list *apicorev1.PodList) []*promRunner {
-	var runners []*promRunner
+func (*pod) newPromPods(list *apicorev1.PodList) []promPodCandidate {
+	var pods []promPodCandidate
 	for idx, item := range list.Items {
 		if item.Status.Phase != apicorev1.PodRunning {
 			continue
@@ -306,9 +334,9 @@ func (p *pod) newPromRunners(list *apicorev1.PodList) []*promRunner {
 			continue
 		}
 
-		runners = append(runners, newPromRunnersForPod(&list.Items[idx], inputConfig, p.cfg)...)
+		pods = append(pods, newPromPodCandidate(&list.Items[idx], inputConfig))
 	}
-	return runners
+	return pods
 }
 
 func buildPodKVs(item *apicorev1.Pod) point.KVs {

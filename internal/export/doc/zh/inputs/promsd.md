@@ -76,6 +76,49 @@ Promsd 采集器支持通过各类服务发现动态获取监控目标，并采�
 - 协议覆盖：如果 `http_sd_config` 返回的标签含 `__scheme__`，将覆盖此处的 `scheme` 值
 - TLS 配置：当 `scheme = "https"` 时生效，自签名证书需指定 `ca_certs`
 
+#### 目标 Relabel {#relabel-config}
+
+`relabel_configs` 在服务发现之后、创建抓取任务之前按配置顺序执行，可用于筛选目标、修改抓取地址和路径，或把发现标签转换成指标标签。当前支持 HTTP 和 File 服务发现，不支持 Consul 服务发现。
+
+```toml
+[[inputs.promsd.scrape.relabel_configs]]
+  source_labels = ["context_path"]
+  regex = "(.+)"
+  target_label = "__metrics_path__"
+  replacement = "$1/actuator/prometheus"
+  action = "replace"
+
+[[inputs.promsd.scrape.relabel_configs]]
+  source_labels = ["__metrics_path__"]
+  regex = "^/*(.+)"
+  target_label = "__metrics_path__"
+  replacement = "/$1"
+  action = "replace"
+
+[[inputs.promsd.scrape.relabel_configs]]
+  source_labels = ["context_path"]
+  target_label = "app_context_path"
+  action = "replace"
+```
+
+第一条规则仅在服务发现返回 `context_path` 时覆盖默认路径，第二条规则保证路径以单个 `/` 开头，第三条规则把 `context_path` 复制成最终指标标签 `app_context_path`。没有 `context_path` 的目标继续使用 `inputs.promsd.scrape.metrics_path`。
+
+每条规则支持以下字段：
+
+| 字段 | 默认值 | 说明 |
+| --- | --- | --- |
+| `source_labels` | `[]` | 按顺序读取并拼接的源标签 |
+| `separator` | `;` | 多个源标签值的连接符 |
+| `regex` | `(.*)` | 对拼接值执行的全匹配正则表达式 |
+| `modulus` | `0` | `hashmod` 动作使用的模数 |
+| `target_label` | 空 | 写入或比较的目标标签 |
+| `replacement` | `$1` | 正则替换表达式 |
+| `action` | `replace` | Relabel 动作 |
+
+支持的动作包括 `replace`、`keep`、`drop`、`keepequal`、`dropequal`、`hashmod`、`labelmap`、`labeldrop`、`labelkeep`、`lowercase` 和 `uppercase`。
+
+可在规则中使用 `__address__`、`__scheme__`、`__metrics_path__`、`__param_<name>` 等内部标签。内部 `__*` 标签只参与目标处理，不会附加到最终指标；普通标签会作为指标标签。
+
 ### HTTP 服务发现配置 {#http-sd-config}
 
 通过 HTTP 接口动态获取监控目标列表。

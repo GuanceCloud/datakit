@@ -4,10 +4,10 @@
 
 DataKit supports interactive execution of DQL queries. In interactive mode, DataKit comes with statement completion function:
 
-> More command-line parameter help is available through DataKit help dql.
+> Run `datakit dql --help` for more command-line options.
 
 ```shell
-datakit dql      # or datakit -Q
+datakit dql
 ```
 
 <figure markdown>
@@ -39,7 +39,7 @@ datakit dql --run 'O::HOST:(os, message)' --csv="path/to/your.csv"
 datakit dql --run 'O::HOST:(os, message)' --csv /path/to/xxx.csv --force
 
 # When the result is written into CSV, the query result is also displayed at the terminal
-datakit dql --run 'O::HOST:(os, message)' --csv="path/to/your.csv" --vvv
+datakit dql --run 'O::HOST:(os, message)' --csv="path/to/your.csv" --verbose
 ```
 
 Example of exported CSV file style:
