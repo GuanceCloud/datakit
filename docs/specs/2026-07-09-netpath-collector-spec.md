@@ -187,7 +187,7 @@ HTTP 路由注册或输入启动时会初始化 scheduler。worker 尚未启动�
 
 每次执行产生一条网络（N）分类的 `netpath` point。
 
-tags 表示探测身份和路径上下文，包括 `task_name`、`task_source`、`origin`、`run_type`、`protocol`、`src_ip`、`src_port`、`dst_ip`、`dst_port`、`dst_domain`、`namespace`、`source_host`、`source_process`、`source_service`、`netns`、`traceroute_protocol`、`traceroute_status` 和 `traceroute_fail_type`。四元组命名及 DNAT 字段 `dst_nat_ip`、`dst_nat_port` 与 NetFlow 对齐；`dst_*` 始终表示原始目的，`dst_nat_*` 仅在实际探测目标发生转换时存在。内部 schedule key 仅用于本地任务调度，不上传到 Dataway。Dataway 不上传 `branch_key`、`path_key`、`proto`、`target*`、`dest_*`、`source_ip`、`observed_dest_*` 和 `nat_dest_*` 等内部字段、旧字段或别名。
+tags 表示探测身份和路径上下文，包括 `path_key`、`task_name`、`task_source`、`origin`、`run_type`、`protocol`、`src_ip`、`src_port`、`dst_ip`、`dst_port`、`dst_domain`、`namespace`、`source_host`、`source_process`、`source_service`、`netns`、`traceroute_protocol`、`traceroute_status` 和 `traceroute_fail_type`。`path_key` 是 DataKit 根据版本、`source_host` 和内部调度身份生成的稳定逻辑路径标识，格式为 `np-v1-<32 位十六进制>`，用于列表去重和历史关联，不能由自定义 tags 覆盖。四元组命名及 DNAT 字段 `dst_nat_ip`、`dst_nat_port` 与 NetFlow 对齐；`dst_*` 始终表示原始目的，`dst_nat_*` 仅在实际探测目标发生转换时存在。内部 schedule key 仅用于本地任务调度，不原样上传到 Dataway。Dataway 不上传 `branch_key`、`proto`、`target*`、`dest_*`、`source_ip`、`observed_dest_*` 和 `nat_dest_*` 等内部字段、旧字段或别名。
 
 candidate 只接收结构化的端点、来源实体和自定义 tags，不再接收或转发任意 `metadata` fields。eBPF Candidate 不在 tags 中重复传递四元组、进程、服务或流量统计。
 

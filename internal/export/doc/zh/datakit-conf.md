@@ -398,6 +398,7 @@ Dataway 部分有如下几个配置可以配置，其它部分不建议改动：
 - `content_encoding`：可选择 v1 或 v2 [:octicons-tag-24: Version-1.17.1](changelog.md#cl-1.17.1)
     - v1 即行协议（默认 v1）
     - v2 即 Protobuf 协议，相比 v1，它各方面的性能都更优越。运行稳定后，后续将默认采用 v2
+- `payload_obfuscation`：默认空（关闭）。仅支持 `gzip-caesar-v1` 且需开启 `gzip`；配置错误时会禁用混淆并继续运行。该功能不是加密，仍须使用 HTTPS
 
 Kubernetes 下部署相关配置参见[这里](datakit-daemonset-deploy.md#env-dataway)。
 

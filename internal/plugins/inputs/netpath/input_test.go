@@ -276,6 +276,29 @@ func TestTaskFromTargetConfig(t *testing.T) {
 	assert.NotEmpty(t, task.ScheduleKey)
 }
 
+func TestTaskDisplayName(t *testing.T) {
+	tests := []struct {
+		name     string
+		taskName string
+		host     string
+		port     uint16
+		protocol string
+		expected string
+	}{
+		{name: "domain", host: "example.com", port: 443, protocol: protocolTCP, expected: "example.com"},
+		{name: "IP and TCP port", host: "192.0.2.10", port: 443, protocol: protocolTCP, expected: "192.0.2.10:443"},
+		{name: "IP and UDP port", host: "192.0.2.10", port: 53, protocol: protocolUDP, expected: "192.0.2.10:53"},
+		{name: "IP and ICMP", host: "192.0.2.10", protocol: protocolICMP, expected: "192.0.2.10"},
+		{name: "custom name", taskName: "database", host: "192.0.2.10", port: 5432, protocol: protocolTCP, expected: "database"},
+		{name: "generated IP name", taskName: "192.0.2.10", host: "192.0.2.10", port: 443, protocol: protocolTCP, expected: "192.0.2.10:443"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, TaskDisplayName(tt.taskName, tt.host, tt.port, tt.protocol))
+		})
+	}
+}
+
 func TestTaskFromTargetConfigCapsTracerouteQueries(t *testing.T) {
 	ipt := defaultInput()
 	task, err := taskFromTargetConfig(TargetConfig{
@@ -324,6 +347,7 @@ func TestTaskFromCandidate(t *testing.T) {
 
 	task, err := taskFromCandidate(req, spec, cfg)
 	require.NoError(t, err)
+	assert.Equal(t, "db.example.com", task.Name)
 	assert.Equal(t, sourceDynamic, task.Source)
 	assert.Equal(t, runTypeDynamic, task.RunType)
 	assert.Equal(t, protocolTCP, task.Protocol)
@@ -415,6 +439,44 @@ func TestScheduleKeyEncodingPreventsDelimiterCollisions(t *testing.T) {
 	assert.NotEqual(t, makeScheduleKey(sourceLocal, "same"), makeScheduleKey(sourceDynamic, "same"))
 }
 
+func TestPathKeyStableScopedAndProtected(t *testing.T) {
+	scheduleKey := makeScheduleKey(sourceDynamic, "frontend", "api.example.com", "443", protocolTCP)
+	task := task{
+		Name:        "api.example.com",
+		Source:      sourceDynamic,
+		Origin:      "ebpf_netflow",
+		RunType:     runTypeDynamic,
+		Target:      "api.example.com",
+		Hostname:    "api.example.com",
+		Port:        443,
+		Protocol:    protocolTCP,
+		SourceHost:  "node-a",
+		ScheduleKey: scheduleKey,
+		RequestTags: map[string]string{"path_key": "forged"},
+	}
+
+	expected := makePathKey("node-a", scheduleKey)
+	assert.Regexp(t, `^np-v1-[0-9a-f]{32}$`, expected)
+	assert.Equal(t, expected, makePathKey(" node-a ", scheduleKey))
+	assert.NotEqual(t, expected, makePathKey("node-b", scheduleKey))
+	assert.NotEqual(t, expected, makePathKey("node-a", makeScheduleKey(sourceDynamic, "frontend", "api.example.com", "80", protocolTCP)))
+	assert.Empty(t, makePathKey("node-a", ""))
+
+	first := (&Input{}).pointsForResult(probeResult{
+		task:      task,
+		startedAt: time.Unix(10, 0),
+	})
+	second := (&Input{}).pointsForResult(probeResult{
+		task:      task,
+		startedAt: time.Unix(20, 0),
+	})
+	require.Len(t, first, 1)
+	require.Len(t, second, 1)
+	assert.Equal(t, expected, first[0].GetTag("path_key"))
+	assert.Equal(t, expected, second[0].GetTag("path_key"))
+	assert.NotEqual(t, "forged", first[0].GetTag("path_key"))
+}
+
 func TestEnrichProbeGateway(t *testing.T) {
 	ipt := &Input{
 		gatewayLookup: func(destinationIP string) (probeGateway, error) {
@@ -451,6 +513,7 @@ func TestTaskFromCandidateAcceptsUDP(t *testing.T) {
 	}, cfg)
 	require.NoError(t, err)
 	assert.Equal(t, protocolUDP, task.Protocol)
+	assert.Equal(t, "10.0.0.12:53", task.Name)
 	assert.Equal(t, maxTTL, task.MaxTTL)
 
 	tcpTask, err := taskFromCandidate(candidateRequest{Host: "node-a"}, candidateSpec{

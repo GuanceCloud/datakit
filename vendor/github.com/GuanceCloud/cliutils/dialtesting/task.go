@@ -33,6 +33,7 @@ const (
 	ClassSSL       = "SSL"
 	ClassDNS       = "DNS"
 	ClassHeadless  = "BROWSER"
+	ClassNetPath   = "NETPATH"
 	ClassOther     = "OTHER"
 	ClassWait      = "WAIT"
 	ClassMulti     = "MULTI"
@@ -247,6 +248,9 @@ func CreateTaskChild(taskType string) (TaskChild, error) {
 
 	case "ssl", ClassSSL:
 		ct = &SSLTask{}
+
+	case "netpath", ClassNetPath:
+		ct = &NetPathTask{}
 
 	default:
 		return nil, fmt.Errorf("unknown task type %s", taskType)

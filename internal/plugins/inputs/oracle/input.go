@@ -515,6 +515,7 @@ func (ipt *Input) Run() {
 			l.Info("not leader, skipped")
 		} else {
 			ipt.Collect()
+			ipt.FeedUpMetric()
 		}
 
 		select {

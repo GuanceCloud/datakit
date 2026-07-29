@@ -97,6 +97,52 @@ func TestS3HProfUploaderPutObjectSignsRequest(t *testing.T) {
 	assert.Contains(t, result.DownloadURL, "/dump-bucket/svc-a/pod-a/20260625T071122Z/app.hprof")
 }
 
+func TestOSSHProfUploaderPutObjectUsesSecurityToken(t *testing.T) {
+	filePath := filepath.Join(t.TempDir(), "app.hprof")
+	require.NoError(t, os.WriteFile(filePath, []byte("dump"), 0o644))
+
+	var gotSecurityToken string
+	var gotPath string
+	var gotBody string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotSecurityToken = r.Header.Get("X-Oss-Security-Token")
+		gotPath = r.URL.Path
+		body, _ := io.ReadAll(r.Body)
+		gotBody = string(body)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	cfg := &Config{
+		HProfUploadEnabled:         true,
+		HProfUploadProvider:        hprofUploadProviderOSS,
+		HProfUploadEndpoint:        server.URL,
+		HProfUploadBucket:          "dump-bucket",
+		HProfUploadAccessKeyID:     "sts-ak",
+		HProfUploadAccessKeySecret: "sts-sk",
+		HProfUploadSecurityToken:   "sts-token",
+		HProfUploadPathTemplate:    "{service}/{filename}",
+	}
+	uploader, err := newHProfUploader(cfg)
+	require.NoError(t, err)
+
+	result, err := uploader.Upload(context.Background(), &hprofUploadRequest{
+		FilePath: filePath,
+		Context: hprofTemplateContext{
+			Service:   "svc-a",
+			Timestamp: "20260720T060000Z",
+			Filename:  "app.hprof",
+		},
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, "/dump-bucket/svc-a/app.hprof", gotPath)
+	assert.Equal(t, "sts-token", gotSecurityToken)
+	assert.Equal(t, "dump", gotBody)
+	assert.Equal(t, hprofUploadProviderOSS, result.Provider)
+	assert.Equal(t, "svc-a/app.hprof", result.ObjectKey)
+}
+
 func TestBuildHProfTemplateContextFromTags(t *testing.T) {
 	ctx := buildHProfTemplateContext(
 		"svc-a",

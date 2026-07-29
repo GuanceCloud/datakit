@@ -37,7 +37,10 @@ const (
 	triggerTypeManual    = "manual"
 )
 
-var errTaskRunSkipped = errors.New("task run skipped")
+var (
+	errTaskRunSkipped        = errors.New("task run skipped")
+	errNetPathPlatformUpdate = errors.New("netpath platform validation failed")
+)
 
 type dialer struct {
 	task                 dt.ITask
@@ -66,6 +69,7 @@ type dialer struct {
 	updateCh chan dt.ITask      // buffered with size 1, keeps only the latest pending update
 	done     <-chan interface{} // input exit signal
 	stopCh   chan interface{}   // dialer stop signal
+	stopOnce sync.Once
 }
 
 func (d *dialer) regionName() string {
@@ -153,9 +157,14 @@ func (d *dialer) updateTask(t dt.ITask) error {
 	// Check if the task has been stopped.
 	select {
 	case <-d.stopCh:
-		l.Warnf("task %s closed", d.task.ID())
+		l.Warnf("task %s closed", taskLogID(d.task))
 		return fmt.Errorf("task exited")
 	default:
+	}
+
+	if t.Class() == dt.ClassNetPath && strings.EqualFold(t.Status(), dt.StatusStop) {
+		d.stop()
+		return nil
 	}
 
 	// Keep only the latest pending update.
@@ -166,7 +175,7 @@ func (d *dialer) updateTask(t dt.ITask) error {
 
 	select {
 	case <-d.stopCh:
-		l.Warnf("task %s closed", d.task.ID())
+		l.Warnf("task %s closed", taskLogID(d.task))
 		return fmt.Errorf("task exited")
 	case d.updateCh <- t:
 		return nil
@@ -176,13 +185,15 @@ func (d *dialer) updateTask(t dt.ITask) error {
 }
 
 func (d *dialer) stop() {
-	d.task.Stop()
+	d.stopOnce.Do(func() {
+		close(d.stopCh)
+		d.task.Stop()
+	})
 }
 
 // exit stop the dialer.
 func (d *dialer) exit() {
 	d.stop()
-	close(d.stopCh)
 }
 
 // populateDFLabelTags populate df_label tags.
@@ -252,6 +263,8 @@ func newDialer(t dt.ITask, ipt *Input) *dialer {
 		info = (&sslMeasurement{}).Info()
 	case dt.ClassHeadless:
 		info = (&browserMeasurement{}).Info()
+	case dt.ClassNetPath:
+		info = (&netPathMeasurement{}).Info()
 	}
 
 	tags := ipt.regionTagsSnapshot()
@@ -272,8 +285,18 @@ func newDialer(t dt.ITask, ipt *Input) *dialer {
 		stopCh:               make(chan interface{}),
 	}
 	d.setWorkspaceLanguage(t.GetWorkspaceLanguage())
+	d.bindNetPathExecutor(t)
 
 	return d
+}
+
+func (d *dialer) bindNetPathExecutor(t dt.ITask) {
+	task, ok := t.(*dt.NetPathTask)
+	if !ok || d.ipt == nil {
+		return
+	}
+	task.SetExecutor(newNetPathExecutor(task, d.ipt.stopWaitChan(), d.stopCh).
+		withResolvedIPValidator(d.ipt.netPathResolvedIPValidator()))
 }
 
 func (d *dialer) getSendFailCount() int {
@@ -281,6 +304,26 @@ func (d *dialer) getSendFailCount() int {
 		return dialWorker.getFailCount(d.category)
 	}
 	return 0
+}
+
+func taskLogID(task dt.ITask) string {
+	if task == nil {
+		return ""
+	}
+	if task.Class() == dt.ClassNetPath {
+		return task.GetExternalID()
+	}
+	return task.ID()
+}
+
+// logSafeValue returns a representation of the dialer that is safe to write
+// to logs. Dumping the full dialer struct would include NETPATH task secrets,
+// such as the access key, post_url token, and secure config vars.
+func (d *dialer) logSafeValue() interface{} {
+	if d.class == dt.ClassNetPath {
+		return fmt.Sprintf("netpath task %s", taskLogID(d.task))
+	}
+	return d
 }
 
 func (d *dialer) isCronTask() bool {
@@ -324,7 +367,7 @@ func (d *dialer) run() error {
 			}
 		}()
 
-		l.Debugf("dialer: %+#v, using crontab schedule: %s", d, crontab)
+		l.Debugf("dialer: %+#v, using crontab schedule: %s", d.logSafeValue(), crontab)
 	} else {
 		taskInterval, err = time.ParseDuration(d.task.GetFrequency())
 		if err != nil {
@@ -336,7 +379,7 @@ func (d *dialer) run() error {
 		}
 		defer d.ticker.Stop()
 
-		l.Debugf("dialer: %+#v, using frequency schedule: %s", d, d.task.GetFrequency())
+		l.Debugf("dialer: %+#v, using frequency schedule: %s", d.logSafeValue(), d.task.GetFrequency())
 	}
 
 	d.activateTaskGauge()
@@ -361,7 +404,7 @@ func (d *dialer) run() error {
 		// get ticker channel
 		tickerChan = d.getTickerChan()
 		if tickerChan == nil {
-			return fmt.Errorf("dial testing %s get ticker chan error", d.task.ID())
+			return fmt.Errorf("dial testing %s get ticker chan error", taskLogID(d.task))
 		}
 
 		// cron task, wait until the time is up
@@ -380,10 +423,10 @@ func (d *dialer) run() error {
 			isSleep = true
 			sleepTimer.Reset(d.ipt.MaxSendFailSleepTime.Duration)
 			taskInvalidCounter.WithLabelValues(d.regionName(), d.class, "exceed_max_failure_count").Inc()
-			l.Warnf("dial testing %s send data failed %d times", d.task.ID(), failCount)
+			l.Warnf("dial testing %s send data failed %d times", taskLogID(d.task), failCount)
 		}
 
-		l.Debugf(`dialer run %+#v, fail count: %d`, d, failCount)
+		l.Debugf(`dialer run %+#v, fail count: %d`, d.logSafeValue(), failCount)
 		d.testCnt++
 
 		now = ntp.Now()
@@ -401,7 +444,7 @@ func (d *dialer) run() error {
 		variablePos, taskVars = d.ipt.variables.getVariables(d.task.GetGlobalVars())
 		if variablePos > d.variablePos {
 			if err := d.task.RenderTemplateAndInit(taskVars); err != nil {
-				l.Warnf("task reset and run error: %s", err.Error())
+				l.Warnf("task reset and run error: %s", taskErrorForLog(d.task, err))
 			} else {
 				d.variablePos = variablePos
 			}
@@ -410,7 +453,7 @@ func (d *dialer) run() error {
 		if err := d.runTask(); errors.Is(err, errTaskRunSkipped) {
 			goto wait
 		} else if err != nil {
-			l.Warnf("task run error: %s", err.Error())
+			l.Warnf("task run error: %s", taskErrorForLog(d.task, err))
 			goto wait
 		}
 
@@ -438,17 +481,17 @@ func (d *dialer) run() error {
 	wait:
 		select {
 		case <-datakit.Exit.Wait():
-			l.Infof("dial testing %s exit", d.task.ID())
+			l.Infof("dial testing %s exit", taskLogID(d.task))
 			return nil
 
 		case <-d.done:
-			l.Infof("dial testing %s exit", d.task.ID())
+			l.Infof("dial testing %s exit", taskLogID(d.task))
 			return nil
 
 		case <-tickerChan:
 
 		case <-d.stopCh:
-			l.Infof("stop dial testing %s, exit", d.task.ID())
+			l.Infof("stop dial testing %s, exit", taskLogID(d.task))
 			return nil
 		case <-sleepTimer.C:
 			isSleep = false
@@ -456,13 +499,20 @@ func (d *dialer) run() error {
 			goto wait
 		case t := <-d.updateCh:
 			if err := d.doUpdateTask(t); err != nil {
+				if errors.Is(err, errNetPathPlatformUpdate) {
+					l.Errorf("update task %s failed: %s, keeping current task",
+						taskLogID(d.task), taskErrorForLog(t, err))
+					goto wait
+				}
 				d.stop()
-				l.Errorf("update task %s failed: %s, stopped", d.task.ID(), err.Error())
+				l.Errorf("update task %s failed: %s, stopped",
+					taskLogID(d.task), taskErrorForLog(t, err))
+				return nil
 			}
 
 			if strings.ToLower(d.task.Status()) == dt.StatusStop {
 				d.stop()
-				l.Info("task %s stopped", d.task.ID())
+				l.Infof("task %s stopped", taskLogID(d.task))
 				return nil
 			}
 			d.refreshTaskGaugeRegion()
@@ -504,14 +554,19 @@ func (d *dialer) checkPostURLToken() error {
 }
 
 func (d *dialer) runTask() error {
-	if d.task.Class() != dt.ClassHeadless || d.ipt == nil || d.ipt.browserConcurrency == nil {
+	sem := d.taskConcurrencySem()
+	if sem == nil {
 		return d.task.Run()
 	}
 
 	select {
-	case d.ipt.browserConcurrency <- struct{}{}:
+	case sem <- struct{}{}:
+		if d.task.Class() == dt.ClassNetPath {
+			netPathProbesInFlight.Add(1)
+			defer netPathProbesInFlight.Add(-1)
+		}
 		defer func() {
-			<-d.ipt.browserConcurrency
+			<-sem
 		}()
 		return d.task.Run()
 	case <-datakit.Exit.Wait():
@@ -520,6 +575,25 @@ func (d *dialer) runTask() error {
 		return errTaskRunSkipped
 	case <-d.stopCh:
 		return errTaskRunSkipped
+	}
+}
+
+// taskConcurrencySem returns the per-class concurrency limiter channel, if
+// any. Browser tasks are capped by browser.max_concurrency; NETPATH probes
+// are capped by defaultNetPathMaxConcurrency to bound traceroute/E2E
+// overhead on the host. Waiting on the semaphore is cancellable via the
+// exit/stop signals.
+func (d *dialer) taskConcurrencySem() chan struct{} {
+	if d.ipt == nil {
+		return nil
+	}
+	switch d.task.Class() {
+	case dt.ClassHeadless:
+		return d.ipt.browserConcurrency
+	case dt.ClassNetPath:
+		return d.ipt.netPathConcurrency
+	default:
+		return nil
 	}
 }
 
@@ -562,7 +636,8 @@ func (d *dialer) feedIO() error {
 	urlStr := u.String()
 
 	switch d.task.Class() {
-	case dt.ClassHTTP, dt.ClassTCP, dt.ClassICMP, dt.ClassWebsocket, dt.ClassMulti, dt.ClassGRPC, dt.ClassSSL, dt.ClassHeadless:
+	case dt.ClassHTTP, dt.ClassTCP, dt.ClassICMP, dt.ClassWebsocket, dt.ClassMulti, dt.ClassGRPC, dt.ClassSSL, dt.ClassHeadless,
+		dt.ClassNetPath:
 		d.category = urlStr
 		d.pointsFeed(urlStr)
 	default:
@@ -576,6 +651,11 @@ func (d *dialer) doUpdateTask(t dt.ITask) error {
 	_, vars := d.ipt.variables.getVariables(d.task.GetGlobalVars())
 	if err := t.RenderTemplateAndInit(vars); err != nil {
 		return fmt.Errorf("render template and init error: %w", err)
+	}
+	if task, ok := t.(*dt.NetPathTask); ok && !strings.EqualFold(t.Status(), dt.StatusStop) {
+		if err := netPathPlatformCheck(task.Protocol); err != nil {
+			return fmt.Errorf("%w: %v", errNetPathPlatformUpdate, err)
+		}
 	}
 
 	scheduleType := t.GetScheduleType()
@@ -613,6 +693,7 @@ func (d *dialer) doUpdateTask(t dt.ITask) error {
 		}
 	}
 
+	d.bindNetPathExecutor(t)
 	d.task = t
 	d.setWorkspaceLanguage(t.GetWorkspaceLanguage())
 	return nil

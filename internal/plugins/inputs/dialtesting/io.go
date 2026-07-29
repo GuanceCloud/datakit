@@ -35,6 +35,25 @@ func (d *dialer) pointsFeed(urlStr string) {
 		taskCheckCostSummary.WithLabelValues(regionName, d.class, status).Observe(float64(time.Since(startTime)) / float64(time.Second))
 	}
 
+	d.enrichPointResult(tags, fields, regionName)
+
+	opt := append(pt.DefaultLoggingOptions(), pt.WithTime(d.dialingTime))
+	data := pt.NewPoint(d.task.MetricName(),
+		append(pt.NewTags(tags), pt.NewKVs(fields)...), opt...)
+
+	dialWorker.addPoints(&jobData{
+		url:        urlStr,
+		pt:         data,
+		regionName: regionName,
+		class:      d.class,
+	})
+}
+
+func (d *dialer) enrichPointResult(
+	tags map[string]string,
+	fields map[string]interface{},
+	regionName string,
+) {
 	for k, v := range d.tags {
 		if d.measurementInfo != nil && d.measurementInfo.Tags != nil {
 			if _, ok := d.measurementInfo.Tags[k]; !ok {
@@ -58,8 +77,22 @@ func (d *dialer) pointsFeed(urlStr string) {
 	fields["task_id"] = d.task.GetExternalID()
 	tags["datakit_version"] = datakit.Version
 	tags["node_name"] = regionName
-	if nodeID := d.regionID(); nodeID != "" {
+	nodeID := d.regionID()
+	if nodeID != "" {
 		tags["node_id"] = nodeID
+	}
+	if d.task.Class() == dt.ClassNetPath {
+		if tags["source_name"] == "" && regionName != "" {
+			tags["source_name"] = regionName
+		}
+		if nodeID != "" {
+			tags["source_host"] = nodeID
+		} else if regionName != "" {
+			tags["source_host"] = regionName
+		}
+		if pathKey := makeNetPathDialtestingPathKey(nodeID, d.task.GetExternalID()); pathKey != "" {
+			tags["path_key"] = pathKey
+		}
 	}
 
 	// df tags
@@ -90,17 +123,6 @@ func (d *dialer) pointsFeed(urlStr string) {
 	} else {
 		delete(tags, "run_batch_id")
 	}
-
-	opt := append(pt.DefaultLoggingOptions(), pt.WithTime(d.dialingTime))
-	data := pt.NewPoint(d.task.MetricName(),
-		append(pt.NewTags(tags), pt.NewKVs(fields)...), opt...)
-
-	dialWorker.addPoints(&jobData{
-		url:        urlStr,
-		pt:         data,
-		regionName: regionName,
-		class:      d.class,
-	})
 }
 
 type browserScreenshotObject struct {

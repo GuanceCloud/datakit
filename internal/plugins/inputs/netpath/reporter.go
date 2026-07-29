@@ -127,7 +127,6 @@ func dropLegacyTags(tags map[string]string) {
 		"fail_type",
 		"path_status",
 		"e2e_protocol",
-		"path_key",
 		"branch_key",
 		"cloud_provider",
 		"source_cloud_provider",
@@ -171,6 +170,7 @@ func pointData(res probeResult) (map[string]string, map[string]interface{}) {
 	tags["source_service"] = t.SourceService
 	tags["netns"] = t.NetNS
 	normalizeEndpointTags(tags, t)
+	tags["path_key"] = makePathKey(tags["source_host"], t.ScheduleKey)
 
 	fields := map[string]interface{}{
 		"test_run_id":        res.testRunID,

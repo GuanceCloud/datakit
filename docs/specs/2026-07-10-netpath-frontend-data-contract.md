@@ -33,6 +33,7 @@
 
 | 字段 | 类型 | 是否稳定存在 | 说明 |
 | --- | --- | --- | --- |
+| `path_key` | string | 是 | 稳定的逻辑探测路径标识，用于列表去重和关联历史记录。 |
 | `task_name` | string | 是 | 探测任务名称。 |
 | `task_source` | string | 是 | 任务来源。当前为 `local` 或 `dynamic`；`server` 为预留值。 |
 | `origin` | string | 是 | 原始候选来源，例如 `local`、`ebpf_netflow`。 |
@@ -92,9 +93,11 @@ DNAT 示例：原始连接为 `10.0.0.10:53000 -> 203.0.113.10:443`，实际探�
 
 ### 3.4 历史检索和自定义 Tags
 
-NetPath 不上传 `branch_key` 或 `path_key`。历史记录应使用结构化的任务、源端和目的端 tags 检索，例如 `task_source`、`origin`、`protocol`、`namespace`、`netns`、`source_host`、`source_service`、`source_container_id`、`dst_domain`、`dst_ip` 和 `dst_port`；发生 DNAT 时还应结合 `dst_nat_ip`、`dst_nat_port`。实际路由分支及其变化应从 `message.runs[].hops[]` 计算，不要使用 hop 序列作为顶层检索身份。
+`path_key` 用于列表去重和关联同一逻辑探测路径的历史记录。DataKit 将版本、`source_host` 和内部调度身份进行长度前缀编码，再对其计算 SHA-256，取前 128 bit，格式为 `np-v1-<32 位十六进制>`。静态任务的调度身份包含任务名、目的地址、端口和协议；动态任务还包含源实体、namespace、netns 和 DNAT 上下文。同一任务的执行时间、状态、延迟或 traceroute hop 变化不会改变 `path_key`。
 
-DataKit 全局 host tags、NetPath 配置 tags 和动态候选 tags 也会随记录上传。固定契约字段不能被自定义 tags 覆盖；`branch_key` 和 `path_key` 即使作为自定义 tags 提供也会被过滤。全局 `cloud_provider` 会规范化为 `src_cloud_provider`，不再重复上传。其他扩展 tags 不属于固定协议，前端可以作为扩展筛选维度展示。
+`path_key` 不表示某次执行，也不表示实际 hop 分支。单次执行使用 `test_run_id`；实际路由分支及其变化从 `message.runs[].hops[]` 计算。需要按条件检索历史时，仍可结合 `task_source`、`origin`、`protocol`、`namespace`、`netns`、`source_host`、`source_service`、`source_container_id`、`dst_domain`、`dst_ip` 和 `dst_port`，发生 DNAT 时再结合 `dst_nat_ip`、`dst_nat_port`。
+
+DataKit 全局 host tags、NetPath 配置 tags 和动态候选 tags 也会随记录上传。固定契约字段不能被自定义 tags 覆盖；`path_key` 由 DataKit 生成，自定义同名 tag 会被过滤；`branch_key` 不上传。全局 `cloud_provider` 会规范化为 `src_cloud_provider`，不再重复上传。其他扩展 tags 不属于固定协议，前端可以作为扩展筛选维度展示。
 
 源、目的 tags 独立于 `message.runs[].hops[]`。即使 traceroute 没有产生 hop 或探测提前失败，前端仍应使用这些顶层 tags 检索、筛选和展示端点；不要从第一跳或最后一跳反推源、目的信息。
 
@@ -358,7 +361,7 @@ ASN 和云厂商富化使用 Kodo 本地离线 IP 数据库，不会向第三方
 | `e2e_protocol` | 不再上传；E2E 使用任务 `protocol` |
 | `e2e_success` | 不再上传；使用 `e2e_status` 和 `e2e_packets_received` |
 | `task_id`、`result_id`、`finished_at` | 不再上传 |
-| `path_key`、`branch_key` | 不再上传；使用结构化的任务、源端和目的端 tags 检索历史，路由分支从 `message.runs[].hops[]` 计算 |
+| `branch_key` | 不再上传；路由分支从 `message.runs[].hops[]` 计算 |
 
 迁移完成后不要同时查询新旧字段，否则会导致分组维度重复或新数据无法命中。
 
@@ -379,6 +382,7 @@ ASN 和云厂商富化使用 Kodo 本地离线 IP 数据库，不会向第三方
 ```json
 {
   "source": "netpath",
+  "path_key": "np-v1-74bd920d68104c2ec181d7de6cfa3f38",
   "task_name": "dns-google",
   "task_source": "dynamic",
   "origin": "ebpf_netflow",

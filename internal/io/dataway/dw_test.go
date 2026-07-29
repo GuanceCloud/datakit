@@ -6,11 +6,14 @@
 package dataway
 
 import (
+	"bytes"
+	"compress/gzip"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"sync/atomic"
 	T "testing"
 	"time"
 
@@ -27,7 +30,101 @@ import (
 	dnet "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/net"
 )
 
+type capturedPayload struct {
+	header string
+	body   []byte
+}
+
+const payloadObfuscationHeaderName = "X-Payload-Obfuscation"
+
+func newPayloadTestServer(t *T.T, statuses ...int) (*httptest.Server, chan capturedPayload) {
+	t.Helper()
+	require.NotEmpty(t, statuses)
+
+	requests := make(chan capturedPayload, len(statuses))
+	var attempt atomic.Int64
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("read request body: %s", err)
+		}
+		requests <- capturedPayload{
+			header: r.Header.Get(payloadObfuscationHeaderName),
+			body:   body,
+		}
+
+		idx := min(int(attempt.Add(1)-1), len(statuses)-1)
+		w.WriteHeader(statuses[idx])
+	}))
+	t.Cleanup(ts.Close)
+
+	return ts, requests
+}
+
+func newGzipTestBody(t *T.T, raw string, cat point.Category) (*compact.Body, []byte) {
+	t.Helper()
+
+	var gz bytes.Buffer
+	zw := gzip.NewWriter(&gz)
+	_, err := zw.Write([]byte(raw))
+	require.NoError(t, err)
+	require.NoError(t, zw.Close())
+
+	payload := bytes.Clone(gz.Bytes())
+	b := &compact.Body{}
+	b.CacheData.Payload = payload
+	b.CacheData.PayloadType = int32(point.Protobuf)
+	b.CacheData.Category = int32(cat)
+	b.CacheData.Pts = 1
+	b.CacheData.RawLen = int32(len(raw))
+
+	return b, bytes.Clone(payload)
+}
+
 func TestDWInit(t *T.T) {
+	t.Run("payload-obfuscation", func(t *T.T) {
+		const datawayURL = "https://fake-dataway.example?token=tkn_xxxxxxxxxx"
+
+		tests := []struct {
+			name string
+			mode string
+			gzip bool
+			want string
+		}{
+			{
+				name: "disabled-by-default",
+				gzip: true,
+			},
+			{
+				name: "enabled",
+				mode: uhttp.PayloadObfuscationGzipCaesarV1,
+				gzip: true,
+				want: uhttp.PayloadObfuscationGzipCaesarV1,
+			},
+			{
+				name: "unknown-mode-is-disabled",
+				mode: "unknown",
+				gzip: true,
+			},
+			{
+				name: "gzip-is-required",
+				mode: uhttp.PayloadObfuscationGzipCaesarV1,
+				gzip: false,
+			},
+		}
+
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *T.T) {
+				dw := NewDefaultDataway()
+				dw.PayloadObfuscation = tc.mode
+				dw.GZip = tc.gzip
+
+				require.NoError(t, dw.Init(WithURLs(datawayURL)))
+				assert.Equal(t, tc.want, dw.PayloadObfuscation)
+			})
+		}
+	})
+
 	t.Run("default IP family policy", func(t *T.T) {
 		dw := NewDefaultDataway()
 		assert.Equal(t, dnet.IPFamilyPolicyPreferIPv6, dw.IPFamilyPolicy)
@@ -131,6 +228,170 @@ func TestDatawayDialMetrics(t *T.T) {
 		"datakit_dataway_dial_total", "ipv6", "success")
 	require.NotNil(t, unusedIPv6)
 	assert.Equal(t, 0.0, unusedIPv6.GetCounter().GetValue())
+}
+
+func TestWritePayloadObfuscationNoWAL(t *T.T) {
+	ts, requests := newPayloadTestServer(t, http.StatusOK)
+
+	dw := NewDefaultDataway()
+	dw.PayloadObfuscation = uhttp.PayloadObfuscationGzipCaesarV1
+	require.NoError(t, dw.Init(WithURLs(ts.URL+"?token=tkn_xxxxxxxxxx")))
+
+	require.NoError(t, dw.Write(
+		compact.WithNoWAL(true),
+		compact.WithGzipDuringBuildBody(true),
+		compact.WithCategory(point.Logging),
+		compact.WithPoints(point.RandPoints(10)),
+	))
+
+	got := <-requests
+	assert.Equal(t, uhttp.PayloadObfuscationGzipCaesarV1, got.header)
+	require.NoError(t, uhttp.DeobfuscatePayload(got.header, got.body))
+	assert.Equal(t, []byte{0x1f, 0x8b}, got.body[:2])
+	_, err := uhttp.Unzip(got.body)
+	assert.NoError(t, err)
+}
+
+func TestPayloadObfuscationDynamicURLScope(t *T.T) {
+	ts, requests := newPayloadTestServer(t, http.StatusOK)
+	b, original := newGzipTestBody(t, "bug report", point.DynamicDWCategory)
+
+	w := compact.GetWriter(
+		compact.WithGzip(compact.GzipSet),
+		compact.WithHTTPEncoding(point.Protobuf),
+		compact.WithCategory(point.DynamicDWCategory),
+		compact.WithDynamicURL(ts.URL+datakit.BugReportUpload),
+	)
+	defer compact.PutWriter(w)
+
+	dw := NewDefaultDataway()
+	dw.PayloadObfuscation = uhttp.PayloadObfuscationGzipCaesarV1
+	require.NoError(t, dw.Init(WithURLs(ts.URL+"?token=tkn_xxxxxxxxxx")))
+	require.NoError(t, dw.writePointData(dw.eps[0], w, b))
+
+	got := <-requests
+	assert.Empty(t, got.header)
+	assert.Equal(t, []byte{0x1f, 0x8b}, got.body[:2])
+	assert.Equal(t, original, b.Buf())
+
+	b.CacheData.Category = int32(point.ObjectChange)
+	compact.WithCategory(point.ObjectChange)(w)
+	require.NoError(t, dw.writePointData(dw.eps[0], w, b))
+
+	got = <-requests
+	assert.Empty(t, got.header)
+	assert.Equal(t, []byte{0x1f, 0x8b}, got.body[:2])
+	assert.Equal(t, original, b.Buf())
+
+	b.CacheData.Category = int32(point.DynamicDWCategory)
+	compact.WithCategory(point.DynamicDWCategory)(w)
+	compact.WithDynamicURL(ts.URL + point.URLObjectChange)(w)
+	require.NoError(t, dw.writePointData(dw.eps[0], w, b))
+
+	got = <-requests
+	assert.Empty(t, got.header)
+	assert.Equal(t, []byte{0x1f, 0x8b}, got.body[:2])
+	assert.Equal(t, original, b.Buf())
+
+	b.CacheData.Category = int32(point.LLM)
+	compact.WithCategory(point.LLM)(w)
+	require.NoError(t, dw.writePointData(dw.eps[0], w, b))
+
+	got = <-requests
+	assert.Empty(t, got.header)
+	assert.Equal(t, []byte{0x1f, 0x8b}, got.body[:2])
+	assert.Equal(t, original, b.Buf())
+
+	b.CacheData.Category = int32(point.DynamicDWCategory)
+	compact.WithCategory(point.DynamicDWCategory)(w)
+	compact.WithDynamicURL(ts.URL + point.URLLogging)(w)
+	require.NoError(t, dw.writePointData(dw.eps[0], w, b))
+
+	got = <-requests
+	assert.Equal(t, uhttp.PayloadObfuscationGzipCaesarV1, got.header)
+	assert.NotEqual(t, []byte{0x1f, 0x8b}, got.body[:2])
+	require.NoError(t, uhttp.DeobfuscatePayload(got.header, got.body))
+	assert.Equal(t, original, got.body)
+	assert.Equal(t, original, b.Buf())
+}
+
+func TestPayloadObfuscationRetryAndFailCache(t *T.T) {
+	t.Run("retry-restores-body-and-header", func(t *T.T) {
+		ts, requests := newPayloadTestServer(t, http.StatusInternalServerError, http.StatusOK)
+		b, original := newGzipTestBody(t, "point data", point.Logging)
+		backing := &b.CacheData.Payload[0]
+
+		w := compact.GetWriter(
+			compact.WithGzip(compact.GzipSet),
+			compact.WithHTTPEncoding(point.Protobuf),
+			compact.WithCategory(point.Logging),
+		)
+		defer compact.PutWriter(w)
+		w.HTTPHeaders[uhttp.PayloadObfuscationHeader] = "previous"
+
+		dw := NewDefaultDataway()
+		dw.MaxRetryCount = 2
+		dw.RetryDelay = 0
+		dw.PayloadObfuscation = uhttp.PayloadObfuscationGzipCaesarV1
+		require.NoError(t, dw.Init(WithURLs(ts.URL+"?token=tkn_xxxxxxxxxx")))
+		require.NoError(t, dw.writePointData(dw.eps[0], w, b))
+
+		assert.Equal(t, "previous", w.HTTPHeaders[uhttp.PayloadObfuscationHeader])
+		assert.True(t, backing == &b.CacheData.Payload[0])
+		assert.Equal(t, original, b.Buf())
+		require.Equal(t, 2, len(requests))
+		for range 2 {
+			got := <-requests
+			assert.Equal(t, uhttp.PayloadObfuscationGzipCaesarV1, got.header)
+			assert.NotEqual(t, []byte{0x1f, 0x8b}, got.body[:2])
+			require.NoError(t, uhttp.DeobfuscatePayload(got.header, got.body))
+			assert.Equal(t, original, got.body)
+		}
+	})
+
+	t.Run("fail-cache-keeps-standard-gzip", func(t *T.T) {
+		ts, requests := newPayloadTestServer(t, http.StatusInternalServerError)
+
+		dw := NewDefaultDataway()
+		dw.WAL.Path = t.TempDir()
+		dw.MaxRetryCount = 1
+		dw.PayloadObfuscation = uhttp.PayloadObfuscationGzipCaesarV1
+		require.NoError(t, dw.Init(WithURLs(ts.URL+"?token=tkn_xxxxxxxxxx")))
+		require.NoError(t, dw.setupWAL())
+
+		const cat = point.Logging
+		require.NoError(t, dw.Write(
+			compact.WithCategory(cat),
+			compact.WithPoints(point.RandPoints(10)),
+		))
+
+		f := dw.newFlusher(cat)
+		b, err := f.wal.Get(compact.WithNewBuffer(dw.MaxRawBodySize))
+		require.NoError(t, err)
+		require.NotNil(t, b)
+		require.NoError(t, f.do(b))
+
+		gotRequest := <-requests
+		assert.Equal(t, uhttp.PayloadObfuscationGzipCaesarV1, gotRequest.header)
+		assert.NotEqual(t, []byte{0x1f, 0x8b}, gotRequest.body[:2])
+
+		dc := dw.walFail.disk.(*diskcache.DiskCache)
+		require.NoError(t, dc.Rotate())
+		found := false
+		require.NoError(t, dw.walFail.DiskGet(func(cached *compact.Body) error {
+			defer compact.PutBody(cached)
+			found = true
+
+			assert.Equal(t, compact.GzipSet, compact.IsGzip(cached.Buf()))
+			_, err := uhttp.Unzip(cached.Buf())
+			assert.NoError(t, err)
+			for _, h := range cached.GetHeaders() {
+				assert.NotEqual(t, uhttp.PayloadObfuscationHeader, h.Key)
+			}
+			return nil
+		}, compact.WithNewBuffer(dw.MaxRawBodySize)))
+		assert.True(t, found)
+	})
 }
 
 func TestTagHeaderValueV2(t *T.T) {

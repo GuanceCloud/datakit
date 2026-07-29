@@ -6,6 +6,7 @@
 package dialtesting
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -27,6 +28,8 @@ import (
 	dto "github.com/prometheus/client_model/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
@@ -1525,13 +1528,14 @@ func TestInputHelpers(t *testing.T) {
 		ipt := defaultInput()
 		ms := ipt.SampleMeasurement()
 		assert.NotEmpty(t, ms)
-		assert.Len(t, ms, 7)
+		assert.Len(t, ms, 8)
 		names := make([]string, 0, len(ms))
 		for _, m := range ms {
 			names = append(names, m.Info().Name)
 		}
 		assert.Contains(t, names, "http_dial_testing")
 		assert.Contains(t, names, "browser_dial_testing")
+		assert.Contains(t, names, "netpath_dial_testing")
 	})
 
 	t.Run("election enabled", func(t *testing.T) {
@@ -1725,6 +1729,46 @@ func TestPullTask(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, b)
 		assert.Equal(t, 1, reqCount)
+	})
+
+	t.Run("response body is not written to debug logs", func(t *testing.T) {
+		const responseBody = `{"content":{"NETPATH":["{\"access_key\":\"ak-sensitive-sentinel\",\"post_url\":\"https://example.com?token=token-sensitive-sentinel\",\"config_vars\":[{\"value\":\"variable-sensitive-sentinel\"}]}"]}}`
+
+		ipt := defaultInput()
+		ipt.Server = "http://example.com"
+		ipt.RegionID = "test-region"
+		ipt.AK = "test-ak"
+		ipt.SK = "test-sk"
+		ipt.cli = &http.Client{
+			Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Status:     "200 OK",
+					Body:       io.NopCloser(strings.NewReader(responseBody)),
+					Header:     make(http.Header),
+				}, nil
+			}),
+		}
+
+		var logs bytes.Buffer
+		core := zapcore.NewCore(
+			zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()),
+			zapcore.AddSync(&logs),
+			zap.DebugLevel,
+		)
+		previousLogger := l.Sugar()
+		l.SetSugar(zap.New(core).Sugar())
+		t.Cleanup(func() {
+			l.SetSugar(previousLogger)
+		})
+
+		body, err := ipt.pullTask()
+		require.NoError(t, err)
+		assert.Equal(t, responseBody, string(body))
+		assert.Contains(t, logs.String(), fmt.Sprintf("task body received: %d bytes", len(responseBody)))
+		assert.NotContains(t, logs.String(), "ak-sensitive-sentinel")
+		assert.NotContains(t, logs.String(), "token-sensitive-sentinel")
+		assert.NotContains(t, logs.String(), "variable-sensitive-sentinel")
 	})
 }
 

@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -26,6 +27,68 @@ const (
 )
 
 type mysqlObjectMeasurement struct{}
+
+type regexNameFilter struct {
+	include []*regexp.Regexp
+	exclude []*regexp.Regexp
+}
+
+func newRegexNameFilter(include, exclude []string) (*regexNameFilter, error) {
+	filter := &regexNameFilter{}
+	for _, pattern := range include {
+		re, err := regexp.Compile(pattern)
+		if err != nil {
+			return nil, fmt.Errorf("invalid include pattern %q: %w", pattern, err)
+		}
+		filter.include = append(filter.include, re)
+	}
+	for _, pattern := range exclude {
+		re, err := regexp.Compile(pattern)
+		if err != nil {
+			return nil, fmt.Errorf("invalid exclude pattern %q: %w", pattern, err)
+		}
+		filter.exclude = append(filter.exclude, re)
+	}
+	return filter, nil
+}
+
+func (f *regexNameFilter) allow(name string) bool {
+	for _, re := range f.exclude {
+		if re.MatchString(name) {
+			return false
+		}
+	}
+	if len(f.include) == 0 {
+		return true
+	}
+	for _, re := range f.include {
+		if re.MatchString(name) {
+			return true
+		}
+	}
+	return false
+}
+
+func (cfg *mysqlCollectSchemas) initFilters() error {
+	databaseFilter, err := newRegexNameFilter(cfg.IncludeDatabases, cfg.ExcludeDatabases)
+	if err != nil {
+		return fmt.Errorf("database filter: %w", err)
+	}
+	tableFilter, err := newRegexNameFilter(cfg.IncludeTables, cfg.ExcludeTables)
+	if err != nil {
+		return fmt.Errorf("table filter: %w", err)
+	}
+	cfg.databaseFilter = databaseFilter
+	cfg.tableFilter = tableFilter
+	return nil
+}
+
+func (ipt *Input) initObjectCollectSchemas() {
+	if err := ipt.Object.CollectSchemas.initFilters(); err != nil {
+		l.Errorf("invalid object collect_schemas config: %s", err)
+		ipt.Object.CollectSchemas.Enabled = false
+	}
+}
 
 //nolint:lll
 func (*mysqlObjectMeasurement) Info() *inputs.MeasurementInfo {
@@ -197,11 +260,13 @@ func (ipt *Input) metricCollectMysqlObject() ([]*point.Point, error) {
 		message.Setting = setting
 	}
 
-	databases, err := ipt.getMysqlDatabases()
-	if err != nil {
-		l.Warnf("getMysqlDatabases failed: %s", err.Error())
-	} else {
-		message.Databases = databases
+	if ipt.Object.CollectSchemas.Enabled {
+		databases, err := ipt.getMysqlDatabases()
+		if err != nil {
+			l.Warnf("getMysqlDatabases failed: %s", err.Error())
+		} else {
+			message.Databases = databases
+		}
 	}
 
 	objectName := ipt.Object.name
@@ -337,6 +402,9 @@ func (ipt *Input) getMysqlDatabases() ([]*mysqlDatabase, error) {
 		if err := rows.Scan(&name, &characterSetName, &defaultCollationName); err != nil {
 			return nil, fmt.Errorf("scan error: %w", err)
 		}
+		if !ipt.Object.CollectSchemas.databaseFilter.allow(name) {
+			continue
+		}
 
 		databases = append(databases, &mysqlDatabase{
 			Name:                    name,
@@ -395,6 +463,9 @@ func (ipt *Input) getDatabaseTables(databaseName string) ([]*mysqlTable, error) 
 
 		if err := rows.Scan(&name, &engine, &rowFormat, &createTime); err != nil {
 			return nil, fmt.Errorf("scan error: %w", err)
+		}
+		if !ipt.Object.CollectSchemas.tableFilter.allow(name) {
+			continue
 		}
 		tables = append(tables, &mysqlTable{
 			Name:       name,

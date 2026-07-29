@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/pipeline-go/offload"
 	"github.com/stretchr/testify/assert"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
@@ -34,6 +35,14 @@ func TestLoadMeasurementVersionEnv(t *testing.T) {
 		assert.NoError(t, c.LoadEnvs())
 		assert.Empty(t, c.MeasurementVersion)
 	})
+}
+
+func TestLoadDatawayPayloadObfuscationEnv(t *testing.T) {
+	t.Setenv("ENV_DATAWAY_PAYLOAD_OBFUSCATION", uhttp.PayloadObfuscationGzipCaesarV1)
+
+	c := DefaultConfig()
+	assert.NoError(t, c.LoadEnvs())
+	assert.Equal(t, uhttp.PayloadObfuscationGzipCaesarV1, c.Dataway.PayloadObfuscation)
 }
 
 func TestLoadEnv(t *testing.T) {

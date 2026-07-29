@@ -7,6 +7,7 @@ package httpapi
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -15,6 +16,7 @@ import (
 	dt "github.com/GuanceCloud/cliutils/dialtesting"
 	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type debugDialtestingMock struct{}
@@ -46,6 +48,12 @@ func init() { // nolint:gochecknoinits
 }
 
 func TestApiDebugDialtestingHandler(t *testing.T) {
+	previousSetup := dialtestingNetPathDebugTaskSetup
+	dialtestingNetPathDebugTaskSetup = func(context.Context, *dt.NetPathTask) {}
+	t.Cleanup(func() {
+		dialtestingNetPathDebugTaskSetup = previousSetup
+	})
+
 	httpCases := []struct {
 		name        string
 		dr          *dialtestingDebugRequest
@@ -165,6 +173,53 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 			},
 			errInit:   nil,
 			expectRes: map[string]interface{}{"Status": "success"},
+		},
+		{
+			name: "test-dial-success-netpath",
+			dr: &dialtestingDebugRequest{
+				TaskType: "netpath",
+				Task: &dt.NetPathTask{
+					Task:     &dt.Task{ExternalID: "netpath-debug", Name: "netpath-debug"},
+					Protocol: "tcp",
+					Host:     "example.com",
+					Port:     "443",
+				},
+			},
+			debugFields: map[string]interface{}{
+				"fail_reason": "",
+				"traceroute":  `{"runs":[],"hop_count":{"avg":0,"min":0,"max":0}}`,
+			},
+			errInit: nil,
+			expectRes: map[string]interface{}{
+				"Status":     "success",
+				"Traceroute": `{"runs":[],"hop_count":{"avg":0,"min":0,"max":0}}`,
+			},
+		},
+		{
+			name: "test-dial-netpath-init-error-redacted",
+			dr: &dialtestingDebugRequest{
+				TaskType: "netpath",
+				Task: &dt.NetPathTask{
+					Task:     &dt.Task{ExternalID: "netpath-debug", Name: "netpath-debug"},
+					Protocol: "icmp",
+					Host:     "example.com",
+				},
+			},
+			errInit:     assert.AnError,
+			errContains: "invalid NETPATH task configuration",
+		},
+		{
+			name: "test-dial-netpath-run-error-redacted",
+			dr: &dialtestingDebugRequest{
+				TaskType: "netpath",
+				Task: &dt.NetPathTask{
+					Task:     &dt.Task{ExternalID: "netpath-debug", Name: "netpath-debug"},
+					Protocol: "icmp",
+					Host:     "example.com",
+				},
+			},
+			errRun:      assert.AnError,
+			errContains: "NETPATH task run failed",
 		},
 		{
 			name: "test-internal-host-private",
@@ -298,9 +353,56 @@ func TestApiDebugDialtestingHandler(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tc.expectRes["Status"], res.(*dialtestingDebugResponse).Status)
+				if expected, ok := tc.expectRes["Traceroute"]; ok {
+					assert.Equal(t, expected, res.(*dialtestingDebugResponse).Traceroute)
+				}
 			}
 		})
 	}
+}
+
+func TestAPIDebugDialtestingNetPathRejectsMissingExecutor(t *testing.T) {
+	previousSetup := dialtestingNetPathDebugTaskSetup
+	dialtestingNetPathDebugTaskSetup = nil
+	t.Cleanup(func() {
+		dialtestingNetPathDebugTaskSetup = previousSetup
+	})
+
+	body := []byte(`{
+		"task_type":"netpath",
+		"task":{
+			"external_id":"netpath-debug",
+			"status":"OK",
+			"protocol":"tcp",
+			"host":"example.com",
+			"port":"443"
+		}
+	}`)
+	req, err := http.NewRequest(http.MethodPost, "not-set", bytes.NewReader(body))
+	require.NoError(t, err)
+
+	_, err = apiDebugDialtestingHandler(nil, req)
+	assert.ErrorContains(t, err, "NETPATH debug executor is not registered")
+}
+
+func TestAPIDebugDialtestingNetPathParseErrorRedactsPayload(t *testing.T) {
+	body := []byte(`{
+		"task_type":"netpath",
+		"task":{
+			"external_id":"netpath-debug",
+			"access_key":"ak-secret",
+			"post_url":"https://openway.example.com?token=tkn-secret",
+			"advance_options":"invalid"
+		}
+	}`)
+	req, err := http.NewRequest(http.MethodPost, "not-set", bytes.NewReader(body))
+	require.NoError(t, err)
+
+	_, err = apiDebugDialtestingHandler(nil, req)
+	assert.Error(t, err)
+	assert.ErrorContains(t, err, "invalid NETPATH task payload")
+	assert.NotContains(t, err.Error(), "ak-secret")
+	assert.NotContains(t, err.Error(), "tkn-secret")
 }
 
 func TestIsAllowedHost(t *testing.T) {

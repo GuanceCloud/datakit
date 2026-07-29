@@ -329,6 +329,11 @@ func (c *Config) loadDatawayEnvs() {
 		c.Dataway.ContentEncoding = v
 	}
 
+	if v := datakit.GetEnv("ENV_DATAWAY_PAYLOAD_OBFUSCATION"); v != "" {
+		l.Infof("ENV_DATAWAY_PAYLOAD_OBFUSCATION set to %q", v)
+		c.Dataway.PayloadObfuscation = v
+	}
+
 	if v := datakit.GetEnv("ENV_DATAWAY_DISABLE_GZIP"); v != "" {
 		// NOTE: list the entry here only for test.
 		// Do NOT enable this ENV, kodo only accept gzip /v1/write/ payload

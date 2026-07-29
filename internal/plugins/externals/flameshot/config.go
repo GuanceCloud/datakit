@@ -41,6 +41,7 @@ var (
   hprof_upload_bucket = ""
   hprof_upload_access_key_id = ""
   hprof_upload_access_key_secret = ""
+  hprof_upload_security_token = ""
   hprof_upload_path_template = "{service}/{pod_name}/{timestamp}/{filename}"
   hprof_download_url_template = ""
   hprof_upload_timeout = "5m"
@@ -140,6 +141,7 @@ type Config struct {
 	HProfUploadBucket          string      `toml:"hprof_upload_bucket"`                  // bucket
 	HProfUploadAccessKeyID     string      `toml:"hprof_upload_access_key_id"`           // AK
 	HProfUploadAccessKeySecret string      `toml:"hprof_upload_access_key_secret"`       // SK
+	HProfUploadSecurityToken   string      `toml:"hprof_upload_security_token"`          // STS security token
 	HProfUploadPathTemplate    string      `toml:"hprof_upload_path_template"`           // object key template
 	HProfDownloadURLTemplate   string      `toml:"hprof_download_url_template"`          // download URL template
 	HProfUploadTimeout         string      `toml:"hprof_upload_timeout"`                 // upload timeout
@@ -242,6 +244,9 @@ func (c *Config) fromEnv() {
 	}
 	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_SECRET"); x != "" {
 		c.HProfUploadAccessKeySecret = x
+	}
+	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_SECURITY_TOKEN"); x != "" {
+		c.HProfUploadSecurityToken = x
 	}
 	if x := os.Getenv("FLAMESHOT_HPROF_UPLOAD_PATH_TEMPLATE"); x != "" {
 		c.HProfUploadPathTemplate = x

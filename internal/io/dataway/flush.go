@@ -216,7 +216,7 @@ func (dw *Dataway) doFlush(w *compact.Writer, b *compact.Body, opts ...compact.W
 	}
 
 	for _, ep := range dw.eps {
-		if err := ep.WritePointData(w, b); err != nil {
+		if err := dw.writePointData(ep, w, b); err != nil {
 			// 4xx error do not cache data.
 			if errors.Is(err, endpoint.ErrWritePoints4XX) {
 				writeDropPointsCounterVec.WithLabelValues(w.Category.String(), err.Error()).Add(float64(b.Npts()))

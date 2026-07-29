@@ -21,6 +21,7 @@ func (*netpathMeasurement) Info() *inputs.MeasurementInfo {
 		Desc:   "Network path probe results from static targets or dynamic local traffic candidates, including TCP/UDP/ICMP latency and traceroute hops.",
 		DescZh: "网络路径探测结果，来源于静态目标或本机流量动态候选目标，包含 TCP/UDP/ICMP 时延和 traceroute 跳点信息。",
 		Tags: map[string]interface{}{
+			"path_key":             &inputs.TagInfo{Desc: "Stable logical path key used to group probe history."},
 			"task_name":            &inputs.TagInfo{Desc: "Probe task name."},
 			"task_source":          &inputs.TagInfo{Desc: "Task source: local, server, or dynamic."},
 			"origin":               &inputs.TagInfo{Desc: "Original source name, such as `config` or `ebpf_netflow`."},

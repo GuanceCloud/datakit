@@ -248,6 +248,14 @@ func envDataway() []*inputs.ENVInfo {
 		},
 
 		{
+			ENVName: "ENV_DATAWAY_PAYLOAD_OBFUSCATION",
+			Type:    doc.String,
+			Default: `""`,
+			Desc:    "Only `gzip-caesar-v1` is supported and requires gzip; empty or invalid values disable it without stopping DataKit. This is not encryption, so keep HTTPS enabled.",
+			DescZh:  "仅支持 `gzip-caesar-v1` 且需开启 gzip；空值或错误值会禁用混淆但不影响 DataKit 运行。该功能不是加密，仍须使用 HTTPS。",
+		},
+
+		{
 			ENVName: "ENV_DATAWAY_TLS_INSECURE",
 			Type:    doc.Boolean,
 			Desc:    "Enable self-signed TLS certificate on Dataway [:octicons-tag-24: Version-1.29.0](changelog.md#cl-1.29.0)",

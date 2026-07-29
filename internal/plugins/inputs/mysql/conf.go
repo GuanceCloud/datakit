@@ -58,6 +58,18 @@ const (
     ## interval to collect mysql object which will be greater than collection interval
     interval = "600s"
 
+    [inputs.mysql.object.collect_schemas]
+      ## Set true to collect database and table schemas
+      enabled = true
+      ## Regex patterns to include databases. Empty means all databases.
+      # include_databases = []
+      ## Regex patterns to exclude databases. Exclude takes precedence over include.
+      # exclude_databases = []
+      ## Regex patterns to include tables. Empty means all tables.
+      # include_tables = []
+      ## Regex patterns to exclude tables. Exclude takes precedence over include.
+      # exclude_tables = []
+
   [inputs.mysql.log]
     # #required, glob logfiles
     # files = ["/var/log/mysql/*.log"]

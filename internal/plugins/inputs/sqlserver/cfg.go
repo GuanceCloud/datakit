@@ -79,6 +79,18 @@ var (
     # interval to collect sqlserver object which will be greater than collection interval
     interval = "600s"
 
+    [inputs.sqlserver.object.collect_schemas]
+      # Set true to collect schema and table structures
+      enabled = true
+      # Regex patterns to include schemas. Empty means all schemas.
+      # include_schemas = []
+      # Regex patterns to exclude schemas. Exclude takes precedence over include.
+      # exclude_schemas = []
+      # Regex patterns to include tables. Empty means all tables.
+      # include_tables = []
+      # Regex patterns to exclude tables. Exclude takes precedence over include.
+      # exclude_tables = []
+
   ## Database Monitoring (DBM) configuration
   ## DBM provides deep visibility into database performance by collecting query metrics, activity, and execution plans
   [inputs.sqlserver.dbm]
@@ -191,14 +203,26 @@ type customQuery struct {
 }
 
 type sqlserverObject struct {
-	Enable   bool             `toml:"enabled"`
-	Interval datakit.Duration `toml:"interval"`
+	Enable         bool                    `toml:"enabled"`
+	Interval       datakit.Duration        `toml:"interval"`
+	CollectSchemas sqlserverCollectSchemas `toml:"collect_schemas"`
 
 	name               string
 	host               string
 	port               string
 	lastCollectionTime time.Time
 	queryCache         map[string]string
+}
+
+type sqlserverCollectSchemas struct {
+	Enabled        bool     `toml:"enabled"`
+	IncludeSchemas []string `toml:"include_schemas"`
+	ExcludeSchemas []string `toml:"exclude_schemas"`
+	IncludeTables  []string `toml:"include_tables"`
+	ExcludeTables  []string `toml:"exclude_tables"`
+
+	schemaFilter *regexNameFilter
+	tableFilter  *regexNameFilter
 }
 
 // dbmConfig represents the top-level DBM configuration.

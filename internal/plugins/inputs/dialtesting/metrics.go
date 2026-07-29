@@ -6,6 +6,8 @@
 package dialtesting
 
 import (
+	"sync/atomic"
+
 	dt "github.com/GuanceCloud/cliutils/dialtesting"
 	"github.com/GuanceCloud/cliutils/metrics"
 	"github.com/prometheus/client_golang/prometheus"
@@ -24,6 +26,8 @@ var (
 	taskExecTimeIntervalSummary *prometheus.SummaryVec
 	taskMaxICMPConcurrency      prometheus.Gauge
 	taskICMPConcurrency         prometheus.GaugeFunc
+	taskMaxNetPathConcurrency   prometheus.Gauge
+	taskNetPathConcurrency      prometheus.GaugeFunc
 	oneShotBatchCounter         *prometheus.CounterVec
 	oneShotBatchCostSummary     *prometheus.SummaryVec
 	oneShotTaskCounter          *prometheus.CounterVec
@@ -37,6 +41,10 @@ var (
 	workerCacheDropPointsGauge *prometheus.GaugeVec
 	workerSendPointsGauge      *prometheus.GaugeVec
 	workerSendCost             *prometheus.SummaryVec
+
+	// netPathProbesInFlight tracks how many NETPATH probes are currently
+	// running under the central dialtesting concurrency limiter.
+	netPathProbesInFlight atomic.Int64
 )
 
 func metricsSetup() {
@@ -147,6 +155,8 @@ func metricsSetup() {
 			return float64(len(dt.ICMPConcurrentCh))
 		},
 	)
+
+	netPathMetricsSetup()
 
 	oneShotBatchCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -269,6 +279,29 @@ func metricsSetup() {
 	)
 }
 
+func netPathMetricsSetup() {
+	taskMaxNetPathConcurrency = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "dialtesting",
+			Name:      "task_max_netpath_concurrency",
+			Help:      "The max number of NETPATH probes running at one time",
+		},
+	)
+
+	taskNetPathConcurrency = prometheus.NewGaugeFunc(
+		prometheus.GaugeOpts{
+			Namespace: "datakit",
+			Subsystem: "dialtesting",
+			Name:      "task_netpath_concurrency",
+			Help:      "The current number of NETPATH probes running",
+		},
+		func() float64 {
+			return float64(netPathProbesInFlight.Load())
+		},
+	)
+}
+
 //nolint:gochecknoinits
 func init() {
 	metricsSetup()
@@ -295,5 +328,7 @@ func init() {
 		workerSendCost,
 		taskMaxICMPConcurrency,
 		taskICMPConcurrency,
+		taskMaxNetPathConcurrency,
+		taskNetPathConcurrency,
 	}...)
 }

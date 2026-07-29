@@ -458,7 +458,7 @@ func candidateErrorReason(err error) string {
 	}
 }
 
-func init() { //nolint:gochecknoinits
+func registerHTTPRouteMatcher() {
 	httpapi.RegInputHTTPRouteMatcher(func(method, path string) (string, bool) {
 		if method == http.MethodPost && path == apiPath {
 			return inputName, true

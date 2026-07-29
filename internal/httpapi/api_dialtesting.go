@@ -6,6 +6,7 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -32,7 +33,19 @@ var (
 	DialtestingDisableInternalNetworkTask      = false
 	DialtestingEnableDebugAPI                  = false
 	DialtestingDisabledInternalNetworkCidrList = []string{}
+	dialtestingNetPathDebugTaskSetup           func(context.Context, *dt.NetPathTask)
+	dialtestingNetPathDebugResultEnricher      func(*dt.NetPathTask, map[string]string, map[string]interface{})
 )
+
+func RegisterDialtestingNetPathDebugTaskSetup(setup func(context.Context, *dt.NetPathTask)) {
+	dialtestingNetPathDebugTaskSetup = setup
+}
+
+func RegisterDialtestingNetPathDebugResultEnricher(
+	enrich func(*dt.NetPathTask, map[string]string, map[string]interface{}),
+) {
+	dialtestingNetPathDebugResultEnricher = enrich
+}
 
 type dialtestingDebugResponse struct {
 	Cost         string                 `json:"cost"`
@@ -79,6 +92,8 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 		ct = &dt.GRPCTask{}
 	case dt.ClassSSL:
 		ct = &dt.SSLTask{}
+	case dt.ClassNetPath:
+		ct = &dt.NetPathTask{}
 	default:
 		l.Errorf("unknown task type: %s", taskType)
 		return nil, uhttp.Error(ErrInvalidRequest, fmt.Sprintf("unknown task type:%s", taskType))
@@ -92,7 +107,16 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 
 	t, err := dt.NewTask(string(bys), ct)
 	if err != nil {
+		if taskType == dt.ClassNetPath {
+			return nil, uhttp.Error(ErrInvalidRequest, "invalid NETPATH task payload")
+		}
 		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
+	}
+	if netPathTask, ok := t.(*dt.NetPathTask); ok {
+		if dialtestingNetPathDebugTaskSetup == nil {
+			return nil, uhttp.Error(ErrInvalidRequest, "NETPATH debug executor is not registered")
+		}
+		dialtestingNetPathDebugTaskSetup(req.Context(), netPathTask)
 	}
 
 	t.SetOption(map[string]string{"userAgent": fmt.Sprintf("datakit-%s-%s/%s/%s",
@@ -123,15 +147,26 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 
 	// -- dialtesting debug procedure start --
 	if err := defDialtestingMock.debugInit(t, reqDebug.Variables); err != nil {
+		if taskType == dt.ClassNetPath {
+			l.Errorf("[%s] NETPATH task %s initialization failed", tid, t.GetExternalID())
+			return nil, uhttp.Error(ErrInvalidRequest, "invalid NETPATH task configuration")
+		}
 		l.Errorf("[%s] %s", tid, err.Error())
 		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
 	}
 	if err := defDialtestingMock.debugRun(t); err != nil {
+		if taskType == dt.ClassNetPath {
+			l.Errorf("[%s] NETPATH task %s run failed", tid, t.GetExternalID())
+			return nil, uhttp.Error(ErrInvalidRequest, "NETPATH task run failed")
+		}
 		l.Errorf("[%s] %s", tid, err.Error())
 		return nil, uhttp.Error(ErrInvalidRequest, err.Error())
 	}
 
 	tags, fields := defDialtestingMock.getResults(t)
+	if netPathTask, ok := t.(*dt.NetPathTask); ok && dialtestingNetPathDebugResultEnricher != nil {
+		dialtestingNetPathDebugResultEnricher(netPathTask, tags, fields)
+	}
 
 	if vars := defDialtestingMock.getVars(t); vars != nil {
 		bytes, _ := json.Marshal(vars)
@@ -139,10 +174,10 @@ func apiDebugDialtestingHandler(w http.ResponseWriter, req *http.Request, whatev
 	}
 
 	failReason, ok := fields["fail_reason"].(string)
-	if ok {
+	if ok && (taskType != dt.ClassNetPath || strings.TrimSpace(failReason) != "") {
 		status = "fail"
 	}
-	if taskType == dt.ClassTCP || taskType == dt.ClassICMP {
+	if taskType == dt.ClassTCP || taskType == dt.ClassICMP || taskType == dt.ClassNetPath {
 		traceroute, _ = fields["traceroute"].(string)
 	}
 

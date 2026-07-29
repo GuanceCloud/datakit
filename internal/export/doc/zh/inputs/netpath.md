@@ -100,7 +100,7 @@ Reverse DNS 默认关闭。开启后，DataKit 会对目的 IP 和有响应的 h
 
 一条结果的 tags 用于筛选任务、源端、目的端和路径，主要包括：
 
-- 任务：`task_name`、`task_source`、`origin`、`run_type`、`protocol`；
+- 任务：`path_key`、`task_name`、`task_source`、`origin`、`run_type`、`protocol`；
 - 四元组：`src_ip`、`src_port`、`dst_ip`、`dst_port`，发生 DNAT 时另有 `dst_nat_ip`、`dst_nat_port`；
 - 端点上下文：`dst_domain`、`source_host`、`source_service`、`source_process`、`source_container_id`、`src_cloud_provider`、`dst_cloud_provider`；
 - 实际探测出口：`probe_source_ip`、`probe_gateway_ip`、`probe_interface`、`probe_netns`；
@@ -108,7 +108,7 @@ Reverse DNS 默认关闭。开启后，DataKit 会对目的 IP 和有响应的 h
 
 源、目的 tags 不依赖逐跳结果。四元组命名与 NetFlow 对齐：`dst_*` 表示原始目的，`dst_nat_*` 表示实际探测使用的 DNAT 后目的；未知端口使用 `"*"`。即使探测没有产生 hop，顶层端点仍可用于检索。端点 `*_cloud_provider` 是可选云厂商信息。
 
-NetPath 不上传 `branch_key` 或 `path_key`。历史记录应使用上述结构化的任务、源端和目的端 tags 检索；实际路由分支及其变化从 `message.runs[].hops[]` 计算。
+`path_key` 是 DataKit 生成的稳定逻辑路径标识，格式为 `np-v1-<32 位十六进制>`，用于列表去重和关联同一路径的历史记录。它不会因执行时间、探测状态、延迟或 traceroute hop 变化而改变，也不能被自定义 tags 覆盖。NetPath 不上传 `branch_key`；实际路由分支及其变化从 `message.runs[].hops[]` 计算。
 
 路径完成状态使用 `traceroute_status`（`reached`、`partial` 或 `failed`）；它描述 traceroute 是否到达目的端，不表示端到端质量。
 

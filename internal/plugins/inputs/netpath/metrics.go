@@ -155,9 +155,11 @@ func probeStatus(res probeResult) string {
 	return "unknown"
 }
 
-//nolint:gochecknoinits
-func init() {
+func init() { //nolint:gochecknoinits
 	metricsSetup()
+}
+
+func registerMetrics() {
 	metrics.MustRegister([]prometheus.Collector{
 		candidateCounter,
 		dropCounter,

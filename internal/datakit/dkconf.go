@@ -296,6 +296,10 @@ ulimit = 64000
   # do NOT disable gzip or your get large network payload.
   gzip = true
 
+  # Optional gzip obfuscation, disabled by default. Only "gzip-caesar-v1" is supported and requires gzip.
+  # Invalid settings disable it without stopping DataKit. This is not encryption, so keep HTTPS enabled.
+  payload_obfuscation = ""
+
   max_raw_body_size = 1048576 # max body size(before gizp) in bytes
 
   # Customer tag or field keys that will extract from exist points

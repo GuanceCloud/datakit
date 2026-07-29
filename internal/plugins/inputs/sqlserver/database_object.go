@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -46,6 +47,68 @@ var (
 )
 
 type sqlserverObjectMeasurement struct{}
+
+type regexNameFilter struct {
+	include []*regexp.Regexp
+	exclude []*regexp.Regexp
+}
+
+func newRegexNameFilter(include, exclude []string) (*regexNameFilter, error) {
+	filter := &regexNameFilter{}
+	for _, pattern := range include {
+		re, err := regexp.Compile(pattern)
+		if err != nil {
+			return nil, fmt.Errorf("invalid include pattern %q: %w", pattern, err)
+		}
+		filter.include = append(filter.include, re)
+	}
+	for _, pattern := range exclude {
+		re, err := regexp.Compile(pattern)
+		if err != nil {
+			return nil, fmt.Errorf("invalid exclude pattern %q: %w", pattern, err)
+		}
+		filter.exclude = append(filter.exclude, re)
+	}
+	return filter, nil
+}
+
+func (f *regexNameFilter) allow(name string) bool {
+	for _, re := range f.exclude {
+		if re.MatchString(name) {
+			return false
+		}
+	}
+	if len(f.include) == 0 {
+		return true
+	}
+	for _, re := range f.include {
+		if re.MatchString(name) {
+			return true
+		}
+	}
+	return false
+}
+
+func (cfg *sqlserverCollectSchemas) initFilters() error {
+	schemaFilter, err := newRegexNameFilter(cfg.IncludeSchemas, cfg.ExcludeSchemas)
+	if err != nil {
+		return fmt.Errorf("schema filter: %w", err)
+	}
+	tableFilter, err := newRegexNameFilter(cfg.IncludeTables, cfg.ExcludeTables)
+	if err != nil {
+		return fmt.Errorf("table filter: %w", err)
+	}
+	cfg.schemaFilter = schemaFilter
+	cfg.tableFilter = tableFilter
+	return nil
+}
+
+func (ipt *Input) initObjectCollectSchemas() {
+	if err := ipt.Object.CollectSchemas.initFilters(); err != nil {
+		l.Errorf("invalid object collect_schemas config: %s", err)
+		ipt.Object.CollectSchemas.Enabled = false
+	}
+}
 
 //nolint:lll
 func (*sqlserverObjectMeasurement) Info() *inputs.MeasurementInfo {
@@ -184,11 +247,13 @@ func (ipt *Input) metricCollectSqlserverObject() {
 		message.Setting = setting
 	}
 
-	databases, err := ipt.getSqlserverDatabases()
-	if err != nil {
-		l.Warnf("getSqlserverDatabases failed: %s", err.Error())
-	} else {
-		message.Databases = databases
+	if ipt.Object.CollectSchemas.Enabled {
+		databases, err := ipt.getSqlserverDatabases()
+		if err != nil {
+			l.Warnf("getSqlserverDatabases failed: %s", err.Error())
+		} else {
+			message.Databases = databases
+		}
 	}
 
 	version := ipt.Version
@@ -381,8 +446,12 @@ func (ipt *Input) getSchemas(database string) ([]*sqlserverSchema, error) {
 	}
 
 	for _, row := range rows {
+		name := getFieldString(row["name"])
+		if !ipt.Object.CollectSchemas.schemaFilter.allow(name) {
+			continue
+		}
 		schema := &sqlserverSchema{
-			Name:      getFieldString(row["name"]),
+			Name:      name,
 			OwnerName: getFieldString(row["owner_name"]),
 			ID:        getFieldString(row["id"]),
 		}
@@ -414,9 +483,13 @@ func (ipt *Input) getTables(database string, schema *sqlserverSchema) ([]*sqlser
 	}
 
 	for _, row := range rows {
+		name := getFieldString(row["name"])
+		if !ipt.Object.CollectSchemas.tableFilter.allow(name) {
+			continue
+		}
 		tables = append(tables, &sqlserverTable{
 			ID:   getFieldString(row["id"]),
-			Name: getFieldString(row["name"]),
+			Name: name,
 		})
 	}
 

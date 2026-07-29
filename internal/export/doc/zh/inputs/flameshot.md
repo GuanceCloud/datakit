@@ -60,6 +60,7 @@ Flameshot 的所有行为均通过环境变量进行控制。配置分为 **全�
 | `FLAMESHOT_HPROF_UPLOAD_BUCKET` | 否 | - | 目标 bucket。 |
 | `FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_ID` | 否 | - | 对象存储 AK。 |
 | `FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_SECRET` | 否 | - | 对象存储 SK。 |
+| `FLAMESHOT_HPROF_UPLOAD_SECURITY_TOKEN` | 否 | - | 阿里云 OSS STS 临时凭证的 SecurityToken；与临时 AK/SK 同时配置时使用 STS 认证。运行中的容器不会自动读取更新后的环境变量，需在凭证过期前重建 Pod。 :octicons-tag-24: Version-0.2.3 |
 | `FLAMESHOT_HPROF_UPLOAD_PATH_TEMPLATE` | 否 | `{service}/{pod_name}/{timestamp}/{filename}` | 对象路径模板，支持 service / pod_name / pod_namespace / host / pid / timestamp / filename 等变量。 |
 | `FLAMESHOT_HPROF_DOWNLOAD_URL_TEMPLATE` | 否 | - | 可选下载链接模板；配置后事件中按该模板生成 `hprof_download_url`。 |
 | `FLAMESHOT_HEAP_DUMP_ENABLED` | 否 | `false` | 内存紧急阈值命中时是否主动执行 Java Heap Dump。 |
@@ -492,6 +493,12 @@ Flameshot 提供了 HTTP 接口，允许用户或自动化运维脚本**主动�
 
 ## 更新日志 (Changelog) {#changelog}
 
+### 0.2.3 (2026-7-20) {#cl-0.2.3}
+
+#### 新增功能 {#cl-0.2.3-new}
+
+- **增加配置**
+    - hprof 上传到阿里云 OSS 时支持配置 STS 临时凭证的 SecurityToken，可与临时 AK/SK 配合使用，避免在 Flameshot 中配置长期静态 AK/SK。（#3152）
 
 ### 0.2.2 (2026-5-12) {#cl-0.2.2}
 

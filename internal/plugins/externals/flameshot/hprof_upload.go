@@ -146,11 +146,17 @@ func (u *ossHProfUploader) Upload(ctx context.Context, req *hprofUploadRequest) 
 	if readWriteTimeout <= 0 {
 		readWriteTimeout = int64(defaultHProfUploadTimeout.Seconds())
 	}
+	clientOptions := []oss.ClientOption{
+		oss.Timeout(connectTimeout, readWriteTimeout),
+	}
+	if u.cfg.HProfUploadSecurityToken != "" {
+		clientOptions = append(clientOptions, oss.SecurityToken(u.cfg.HProfUploadSecurityToken))
+	}
 	client, err := oss.New(
 		normalizeEndpoint(u.cfg.HProfUploadEndpoint),
 		u.cfg.HProfUploadAccessKeyID,
 		u.cfg.HProfUploadAccessKeySecret,
-		oss.Timeout(connectTimeout, readWriteTimeout),
+		clientOptions...,
 	)
 	if err != nil {
 		return nil, err

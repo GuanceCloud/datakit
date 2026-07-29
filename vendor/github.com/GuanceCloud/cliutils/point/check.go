@@ -10,7 +10,11 @@ import (
 	"math"
 	"reflect"
 	"strings"
+	"sync"
 )
+
+// One pool per power-of-two size from 16 through 2048 keys.
+var keyConflictMapPools [8]sync.Pool
 
 type checker struct {
 	*cfg
@@ -75,10 +79,14 @@ func (c *checker) checkKVs(kvs KVs) KVs {
 		kvs = kvs.TrimTags(c.cfg.maxTags)
 	}
 
+	// PointPool operations may mutate fields still referenced by kvs, so retain
+	// the legacy conflict scans when pooling is enabled.
+	skipKeyConflicts := defaultPTPool == nil && canSkipKeyConflicts(kvs)
+
 	// check each kv valid
 	idx := 0
 	for _, kv := range kvs {
-		if x, ok := c.checkKV(kv, kvs); ok {
+		if x, ok := c.checkKV(kv, kvs, skipKeyConflicts); ok {
 			kvs[idx] = x
 			idx++
 		} else if defaultPTPool != nil {
@@ -99,6 +107,62 @@ func (c *checker) checkKVs(kvs KVs) KVs {
 	return kvs
 }
 
+// canSkipKeyConflicts keeps duplicate inputs on the legacy scan path because
+// in-place compaction makes conflict order observable.
+func canSkipKeyConflicts(kvs KVs) bool {
+	keys, pool := getKeyConflictMap(len(kvs))
+	if keys == nil {
+		return false
+	}
+
+	unique := true
+	for _, kv := range kvs {
+		if _, ok := keys[kv.Key]; ok {
+			unique = false
+			break
+		}
+		keys[kv.Key] = struct{}{}
+	}
+
+	if pool != nil {
+		clear(keys)
+		pool.Put(keys)
+	}
+
+	return unique
+}
+
+func getKeyConflictMap(size int) (map[string]struct{}, *sync.Pool) {
+	const (
+		// A scratch map is faster than repeatedly scanning KVs once a point is this wide.
+		KEY_CONFLICT_MAP_THRESHOLD = 16
+		// Bound scratch-map retention when callers disable the default field and tag limits.
+		KEY_CONFLICT_MAP_MAX_RETAINED_KEYS = 2048
+	)
+
+	if size < KEY_CONFLICT_MAP_THRESHOLD {
+		return nil, nil
+	}
+
+	if size > KEY_CONFLICT_MAP_MAX_RETAINED_KEYS {
+		return make(map[string]struct{}, KEY_CONFLICT_MAP_MAX_RETAINED_KEYS), nil
+	}
+
+	poolIndex := 0
+	poolCapacity := KEY_CONFLICT_MAP_THRESHOLD
+	for poolCapacity < size {
+		poolIndex++
+		poolCapacity *= 2
+	}
+
+	pool := &keyConflictMapPools[poolIndex]
+	if pooled := pool.Get(); pooled != nil {
+		return pooled.(map[string]struct{}), pool
+	}
+
+	return make(map[string]struct{}, poolCapacity), pool
+}
+
 // Remove all `\` suffix on key/val
 // Replace all `\n` with ` `.
 func adjustKV(x string) string {
@@ -113,15 +177,19 @@ func adjustKV(x string) string {
 	return x
 }
 
-func (c *checker) checkKV(f *Field, kvs KVs) (*Field, bool) {
+func (c *checker) checkKV(f *Field, kvs KVs, skipKeyConflicts bool) (*Field, bool) {
 	if f.IsTag {
-		return c.checkTag(f, kvs)
+		return c.checkTag(f, kvs, skipKeyConflicts)
 	} else {
-		return c.checkField(f, kvs)
+		return c.checkField(f, kvs, skipKeyConflicts)
 	}
 }
 
-func (c *checker) keyConflict(key string, kvs KVs) bool {
+func (c *checker) keyConflict(key string, kvs KVs, skip bool) bool {
+	if skip {
+		return false
+	}
+
 	i := 0
 	for _, kv := range kvs {
 		if kv.Key == key {
@@ -139,7 +207,7 @@ func (c *checker) keyConflict(key string, kvs KVs) bool {
 
 // checkTag try to auto modify the f. If we need to drop
 // f, we return false.
-func (c *checker) checkTag(f *Field, kvs KVs) (*Field, bool) {
+func (c *checker) checkTag(f *Field, kvs KVs, skipKeyConflicts bool) (*Field, bool) {
 	if c.cfg.maxTagKeyLen > 0 && len(f.Key) > c.cfg.maxTagKeyLen {
 		c.addWarn(WarnMaxTagKeyLen,
 			fmt.Sprintf("exceed max tag key length(%d), got %d, key truncated",
@@ -184,7 +252,7 @@ func (c *checker) checkTag(f *Field, kvs KVs) (*Field, bool) {
 		return f, false
 	}
 
-	if c.keyConflict(f.Key, kvs) {
+	if c.keyConflict(f.Key, kvs, skipKeyConflicts) {
 		return f, false
 	}
 
@@ -212,7 +280,7 @@ func (c *checker) checkTag(f *Field, kvs KVs) (*Field, bool) {
 
 // checkField try to auto modify the f. If we need to drop
 // f, we return false.
-func (c *checker) checkField(f *Field, kvs KVs) (*Field, bool) {
+func (c *checker) checkField(f *Field, kvs KVs, skipKeyConflicts bool) (*Field, bool) {
 	// trim key
 	if c.cfg.maxFieldKeyLen > 0 && len(f.Key) > c.cfg.maxFieldKeyLen {
 		c.addWarn(WarnMaxFieldKeyLen,
@@ -253,7 +321,7 @@ func (c *checker) checkField(f *Field, kvs KVs) (*Field, bool) {
 		return f, false
 	}
 
-	if c.keyConflict(f.Key, kvs) {
+	if c.keyConflict(f.Key, kvs, skipKeyConflicts) {
 		return f, false
 	}
 

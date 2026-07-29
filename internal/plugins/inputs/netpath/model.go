@@ -7,6 +7,7 @@ package netpath
 
 import (
 	"crypto/sha1" //nolint:gosec
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -160,19 +161,20 @@ type task struct {
 	DstPort           uint16
 	NetNS             string
 	// ConfigTags and RequestTags are immutable maps shared by queued dynamic tasks.
-	ConfigTags        map[string]string
-	RequestTags       map[string]string
-	Tags              map[string]string
-	ScheduleKey       string
-	Interval          time.Duration
-	TTL               time.Duration
-	Timeout           time.Duration
-	MaxTTL            int
-	TracerouteQueries int
-	E2EQueries        int
-	ScheduledAt       time.Time
-	resolvedFilters   []compiledFilter
-	filterValues      candidateFilterValues
+	ConfigTags          map[string]string
+	RequestTags         map[string]string
+	Tags                map[string]string
+	ScheduleKey         string
+	Interval            time.Duration
+	TTL                 time.Duration
+	Timeout             time.Duration
+	MaxTTL              int
+	TracerouteQueries   int
+	E2EQueries          int
+	ScheduledAt         time.Time
+	resolvedIPValidator func(net.IP) error
+	resolvedFilters     []compiledFilter
+	filterValues        candidateFilterValues
 }
 
 var errIPv6TargetUnsupported = errors.New("netpath IPv6 targets are unsupported; only IPv4 targets are supported")
@@ -211,7 +213,7 @@ func taskFromTargetConfig(target TargetConfig, defaults *Input) (task, error) {
 		return task{}, fmt.Errorf("%s netpath target missing port", protocol)
 	}
 
-	name := valueOrDefault(target.Name, dest)
+	name := TaskDisplayName(target.Name, dest, target.Port, protocol)
 	hostname := strings.TrimSpace(target.Target)
 	if net.ParseIP(hostname) != nil {
 		hostname = ""
@@ -320,7 +322,7 @@ func taskFromCandidate(req candidateRequest, spec candidateSpec, cfg DynamicConf
 
 	t := task{
 		ID:                "dynamic-" + shortHash(scheduleKey),
-		Name:              "dynamic " + displayHost,
+		Name:              TaskDisplayName("", displayHost, spec.Port, protocol),
 		Source:            sourceDynamic,
 		Origin:            valueOrDefault(spec.Origin, req.Source),
 		RunType:           runTypeDynamic,
@@ -464,6 +466,25 @@ func valueOrDefault(v, fallback string) string {
 	return strings.TrimSpace(fallback)
 }
 
+// TaskDisplayName returns a user-facing task name while distinguishing
+// port-based IP targets that otherwise have the same display value.
+func TaskDisplayName(name, host string, port uint16, protocol string) string {
+	name = strings.TrimSpace(name)
+	host = strings.TrimSpace(host)
+	if name != "" && name != host {
+		return name
+	}
+
+	displayHost := valueOrDefault(name, host)
+	protocol = normalizeProtocol(protocol)
+	if net.ParseIP(displayHost) != nil &&
+		(protocol == protocolTCP || protocol == protocolUDP) &&
+		port > 0 {
+		return net.JoinHostPort(displayHost, strconv.Itoa(int(port)))
+	}
+	return displayHost
+}
+
 func firstPositive(values ...int) int {
 	for _, v := range values {
 		if v > 0 {
@@ -476,6 +497,15 @@ func firstPositive(values ...int) int {
 func shortHash(v string) string {
 	sum := sha1.Sum([]byte(v)) //nolint:gosec
 	return hex.EncodeToString(sum[:])[:12]
+}
+
+func makePathKey(sourceHost, scheduleKey string) string {
+	if strings.TrimSpace(scheduleKey) == "" {
+		return ""
+	}
+	identity := makeScheduleKey("v1", strings.TrimSpace(sourceHost), scheduleKey)
+	sum := sha256.Sum256([]byte(identity))
+	return "np-v1-" + hex.EncodeToString(sum[:16])
 }
 
 func makeScheduleKey(parts ...string) string {

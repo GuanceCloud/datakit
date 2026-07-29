@@ -209,8 +209,8 @@ func resolveTaskTarget(t task, host string, timeout time.Duration) (net.IP, erro
 	if err != nil {
 		return nil, err
 	}
-	if reason := resolvedDestinationDropReason(t, ip.String()); reason != "" {
-		return nil, fmt.Errorf("resolved target %q is blocked by %s", host, reason)
+	if err := validateResolvedTaskIP(t, host, ip); err != nil {
+		return nil, err
 	}
 	return ip, nil
 }
@@ -220,10 +220,22 @@ func resolveTaskTargetContext(ctx context.Context, t task, host string, timeout 
 	if err != nil {
 		return nil, err
 	}
-	if reason := resolvedDestinationDropReason(t, ip.String()); reason != "" {
-		return nil, fmt.Errorf("resolved target %q is blocked by %s", host, reason)
+	if err := validateResolvedTaskIP(t, host, ip); err != nil {
+		return nil, err
 	}
 	return ip, nil
+}
+
+func validateResolvedTaskIP(t task, host string, ip net.IP) error {
+	if t.resolvedIPValidator != nil {
+		if err := t.resolvedIPValidator(ip); err != nil {
+			return fmt.Errorf("invalid target: resolved target %q is not allowed: %w", host, err)
+		}
+	}
+	if reason := resolvedDestinationDropReason(t, ip.String()); reason != "" {
+		return fmt.Errorf("resolved target %q is blocked by %s", host, reason)
+	}
+	return nil
 }
 
 func resolverForTask(t task) targetResolver {

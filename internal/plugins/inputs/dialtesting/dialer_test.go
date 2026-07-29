@@ -214,6 +214,39 @@ func TestUpdateTask(t *testing.T) {
 	})
 }
 
+func TestDialerRunStopsOnNonPlatformUpdateError(t *testing.T) {
+	oldWorker := dialWorker
+	dialWorker = &worker{sender: &emptySender{}}
+	t.Cleanup(func() {
+		dialWorker = oldWorker
+	})
+
+	current := &runTaskStub{
+		id:        "current-task",
+		class:     dt.ClassHTTP,
+		frequency: "1s",
+		postURL:   "http://example.com?token=test",
+		runErr:    errors.New("run failed"),
+	}
+	updated := &runTaskStub{
+		id:        "updated-task",
+		class:     dt.ClassHTTP,
+		frequency: "1s",
+		postURL:   "http://example.com?token=test",
+		renderErr: errors.New("invalid update"),
+	}
+	d := newDialer(current, defaultInput())
+	d.updateCh <- updated
+
+	require.NoError(t, d.run())
+	assert.Same(t, current, d.task)
+	select {
+	case <-d.stopCh:
+	default:
+		t.Fatal("dialer must stop after a non-platform update error")
+	}
+}
+
 func TestDataCache(t *testing.T) {
 	t.Run("basic push and pop", func(t *testing.T) {
 		cache := NewDataCache(2)

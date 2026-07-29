@@ -394,7 +394,7 @@ func normalizeProbeTimeout(timeout time.Duration) time.Duration {
 	return timeout
 }
 
-func init() { //nolint:gochecknoinits
+func registerInput() {
 	inputs.Add(inputName, func() inputs.Input {
 		return defaultInput()
 	})

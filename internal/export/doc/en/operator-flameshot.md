@@ -134,6 +134,7 @@ Configuration Field Description:
 | `FLAMESHOT_HPROF_UPLOAD_BUCKET` | Target bucket |
 | `FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_ID` | Object storage access key ID |
 | `FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_SECRET` | Object storage access key secret |
+| `FLAMESHOT_HPROF_UPLOAD_SECURITY_TOKEN` | Optional Alibaba Cloud OSS STS SecurityToken. When set with temporary AK/SK, STS authentication is used. Requires Flameshot 0.2.3 or later. Restart the Pod with renewed credentials before they expire. |
 | `FLAMESHOT_HEAP_DUMP_ENABLED` | Whether to enable proactive Heap Dump on emergency memory threshold, e.g., `true` |
 | `FLAMESHOT_HEAP_DUMP_JMAP_PATH` | `jmap` executable path. Official Sidecar images do not include a JVM/JDK by default; provide an available `jmap` explicitly before enabling proactive Heap Dump. |
 | `FLAMESHOT_POD_MEM_LIMIT` | Pod memory limit in Mi, e.g., `2048` |

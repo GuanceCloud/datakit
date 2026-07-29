@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/GuanceCloud/cliutils/logger"
+	uhttp "github.com/GuanceCloud/cliutils/network/http"
 	"github.com/GuanceCloud/cliutils/point"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
@@ -173,6 +174,8 @@ type Dataway struct {
 	DropExpiredPackageAt time.Duration `toml:"drop_expired_package_at"`
 
 	GZip bool `toml:"gzip"`
+
+	PayloadObfuscation string `toml:"payload_obfuscation"`
 
 	EnableHTTPTrace bool `toml:"enable_httptrace"`
 	EnableSinker    bool `toml:"enable_sinker"`
@@ -334,6 +337,17 @@ func (dw *Dataway) doInit() error {
 	}
 
 	dw.contentEncoding = point.EncodingStr(dw.ContentEncoding)
+
+	if dw.PayloadObfuscation != "" {
+		switch {
+		case dw.PayloadObfuscation != uhttp.PayloadObfuscationGzipCaesarV1:
+			l.Warnf("unsupported dataway payload obfuscation %q, disabled", dw.PayloadObfuscation)
+			dw.PayloadObfuscation = ""
+		case !dw.GZip:
+			l.Warn("dataway payload obfuscation requires gzip, disabled")
+			dw.PayloadObfuscation = ""
+		}
+	}
 
 	// set default raw body size to 10MB
 	if dw.MaxRawBodySize == 0 {
@@ -576,7 +590,9 @@ func (dw *Dataway) Write(opts ...compact.WriteOption) error {
 			}
 
 			// NOTE: only send to 1st dataway endpoint.
-			w.Callback = dw.eps[0].WritePointData
+			w.Callback = func(w *compact.Writer, b *compact.Body) error {
+				return dw.writePointData(dw.eps[0], w, b)
+			}
 		} else {
 			w.Callback = dw.enqueueBody // enqueu to WAL
 		}
@@ -609,6 +625,56 @@ func (dw *Dataway) Write(opts ...compact.WriteOption) error {
 	}
 
 	return nil
+}
+
+func (dw *Dataway) writePointData(ep *endpoint.EndPoint, w *compact.Writer, b *compact.Body) error {
+	mode := dw.PayloadObfuscation
+	if mode == "" || w.Gzip != compact.GzipSet {
+		return ep.WritePointData(w, b)
+	}
+
+	cat := b.Cat()
+	path := cat.URL()
+	if cat == point.DynamicDWCategory {
+		u, err := url.ParseRequestURI(w.DynamicURL)
+		if err != nil {
+			return ep.WritePointData(w, b)
+		}
+		path = u.Path
+		cat = point.CatURL(path)
+		if cat == point.UnknownCategory {
+			return ep.WritePointData(w, b)
+		}
+	}
+	if cat == point.UnknownCategory ||
+		cat == point.ObjectChange ||
+		cat == point.LLM ||
+		cat == point.AgentLLM ||
+		!strings.HasPrefix(path, "/v1/write/") {
+		return ep.WritePointData(w, b)
+	}
+
+	if err := uhttp.ObfuscatePayload(mode, b.Buf()); err != nil {
+		l.Warnf("obfuscate dataway payload: %s, send standard gzip", err)
+		return ep.WritePointData(w, b)
+	}
+
+	previousHeader, hadHeader := w.HTTPHeaders[uhttp.PayloadObfuscationHeader]
+	compact.WithHTTPHeader(uhttp.PayloadObfuscationHeader, mode)(w)
+	defer func() {
+		if hadHeader {
+			w.HTTPHeaders[uhttp.PayloadObfuscationHeader] = previousHeader
+		} else {
+			delete(w.HTTPHeaders, uhttp.PayloadObfuscationHeader)
+		}
+	}()
+	defer func() {
+		if err := uhttp.DeobfuscatePayload(mode, b.Buf()); err != nil {
+			l.Errorf("restore dataway payload: %s", err)
+		}
+	}()
+
+	return ep.WritePointData(w, b)
 }
 
 func (dw *Dataway) sinkEnabled() bool {

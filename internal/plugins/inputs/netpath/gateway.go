@@ -28,6 +28,18 @@ func (ipt *Input) enrichProbeGateway(res *probeResult) {
 		return
 	}
 
+	lookup := ipt.gatewayLookup
+	if lookup == nil {
+		lookup = lookupCurrentProbeGateway
+	}
+	enrichProbeGatewayWithLookup(res, lookup)
+}
+
+func enrichProbeGatewayWithLookup(res *probeResult, lookup probeGatewayLookup) {
+	if res == nil || lookup == nil {
+		return
+	}
+
 	destinationIP := strings.TrimSpace(res.tags["probe_dest_ip"])
 	if destinationIP == "" && net.ParseIP(strings.TrimSpace(res.task.Target)) != nil {
 		destinationIP = strings.TrimSpace(res.task.Target)
@@ -36,10 +48,6 @@ func (ipt *Input) enrichProbeGateway(res *probeResult) {
 		return
 	}
 
-	lookup := ipt.gatewayLookup
-	if lookup == nil {
-		lookup = lookupCurrentProbeGateway
-	}
 	via, err := lookup(destinationIP)
 	if err != nil {
 		return

@@ -196,11 +196,23 @@ type Input struct {
 }
 
 type mysqlObject struct {
-	Enable   bool             `toml:"enabled"`
-	Interval datakit.Duration `toml:"interval"`
+	Enable         bool                `toml:"enabled"`
+	Interval       datakit.Duration    `toml:"interval"`
+	CollectSchemas mysqlCollectSchemas `toml:"collect_schemas"`
 
 	name               string
 	lastCollectionTime time.Time
+}
+
+type mysqlCollectSchemas struct {
+	Enabled          bool     `toml:"enabled"`
+	IncludeDatabases []string `toml:"include_databases"`
+	ExcludeDatabases []string `toml:"exclude_databases"`
+	IncludeTables    []string `toml:"include_tables"`
+	ExcludeTables    []string `toml:"exclude_tables"`
+
+	databaseFilter *regexNameFilter
+	tableFilter    *regexNameFilter
 }
 
 func (ipt *Input) ElectionEnabled() bool {
@@ -331,6 +343,10 @@ func (ipt *Input) GetPipeline() []tailer.Option {
 }
 
 func (ipt *Input) initCfg() error {
+	if ipt.Object.Enable && ipt.Object.CollectSchemas.Enabled {
+		ipt.initObjectCollectSchemas()
+	}
+
 	var err error
 	ipt.timeoutDuration, err = time.ParseDuration(ipt.Timeout)
 	if err != nil || ipt.timeoutDuration <= 0 {
@@ -1242,6 +1258,9 @@ func defaultInput() *Input {
 		Object: mysqlObject{
 			Enable:   true,
 			Interval: datakit.Duration{Duration: 600 * time.Second},
+			CollectSchemas: mysqlCollectSchemas{
+				Enabled: true,
+			},
 		},
 		DbmMetric: dbmMetric{
 			Enabled:  true,

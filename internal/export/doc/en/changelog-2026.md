@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.7.0(2026/07/29) {#cl-2.7.0}
+
+This release is an iterative release, with the following main updates:
+
+### New Features {#cl-2.7.0-new}
+
+- The Dialtesting collector now supports NetPath online tasks over TCP, UDP, and ICMP, including debug support (#3160)
+- DataWay gzip uploads now support optional `gzip-caesar-v1` byte-shift obfuscation. It is disabled by default; enable it only after Kodo is compatible and continue using HTTPS (#3163)
+- Flameshot OSS hprof uploads now support STS temporary credentials while preserving static AK/SK compatibility (#3152)
+
+### Bug Fixes {#cl-2.7.0-fix}
+
+- Fixed the Oracle collector not continuously reporting `collector.up` (#3162)
+
+### Improvements {#cl-2.7.0-opt}
+
+- MySQL and SQL Server Object collection added switches and database/table scope filters to reduce collection overhead on large instances (#3161, #3164)
+- Upgraded the built-in Lightpanda browser used by browser dial testing to version 0.3.6 (#3167)
+
+---
+
 ## 2.6.1(2026/07/23) {#cl-2.6.1}
 
 This release is a hotfix release, contents are as follows:

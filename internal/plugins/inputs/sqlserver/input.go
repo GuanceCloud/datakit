@@ -950,6 +950,9 @@ func (ipt *Input) init() {
 	ipt.Object.name = fmt.Sprintf("%s:%s", host, port)
 
 	if ipt.Object.Enable {
+		if ipt.Object.CollectSchemas.Enabled {
+			ipt.initObjectCollectSchemas()
+		}
 		ipt.objectMetric = &objectMertric{}
 		ipt.Object.queryCache = map[string]string{}
 	}
@@ -1240,6 +1243,9 @@ func defaultInput() *Input {
 		Object: sqlserverObject{
 			Enable:   true,
 			Interval: datakit.Duration{Duration: time.Second * 600},
+			CollectSchemas: sqlserverCollectSchemas{
+				Enabled: true,
+			},
 		},
 		tagger: datakit.DefaultGlobalTagger(),
 		Dbm: &dbmConfig{

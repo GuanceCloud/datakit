@@ -1,6 +1,6 @@
 # DataKit Operator 注入 Flameshot
 
-[:octicons-tag-24: Operator Version-1.7.0](operator-changelog.md#cl-1.7.0)
+[:octicons-tag-24: Operator Version-1.8.0](operator-changelog.md#cl-1.8.0)
 
 ---
 
@@ -134,6 +134,7 @@ Flameshot 配置示例：
 | `FLAMESHOT_HPROF_UPLOAD_BUCKET` | 目标 bucket                                                                          |
 | `FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_ID` | 对象存储 AK                                                                    |
 | `FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_SECRET` | 对象存储 SK                                                                |
+| `FLAMESHOT_HPROF_UPLOAD_SECURITY_TOKEN` | 可选的阿里云 OSS STS SecurityToken；与临时 AK/SK 同时配置时使用 STS 认证。需使用 Flameshot 0.2.3 及以上版本，凭证过期前需重建 Pod。 |
 | `FLAMESHOT_HEAP_DUMP_ENABLED` | 是否开启内存紧急阈值主动 Heap Dump，例如 `true`                                      |
 | `FLAMESHOT_HEAP_DUMP_JMAP_PATH` | `jmap` 可执行文件路径。官方 Sidecar 镜像默认不内置 JVM/JDK，开启主动 Heap Dump 时需显式提供可用 `jmap` |
 | `FLAMESHOT_POD_MEM_LIMIT`    | Pod 内存 limit，单位 Mi，例如 `2048`                                                      |

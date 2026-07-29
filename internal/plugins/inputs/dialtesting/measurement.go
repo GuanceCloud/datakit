@@ -13,6 +13,8 @@ import (
 
 type httpMeasurement struct{}
 
+type netPathMeasurement struct{}
+
 func withTaskIDField(fields map[string]interface{}) map[string]interface{} {
 	fields["task_id"] = &inputs.FieldInfo{
 		DataType: inputs.String,
@@ -39,6 +41,78 @@ func withCommonDialtestingTags(tags map[string]interface{}) map[string]interface
 	tags["run_batch_id"] = &inputs.TagInfo{Desc: "The batch ID of a manual one-shot dialtesting run"}
 	tags[LabelDF] = &inputs.TagInfo{Desc: "The label of the task"}
 	return tags
+}
+
+func (m *netPathMeasurement) Info() *inputs.MeasurementInfo {
+	stringField := func(desc string) *inputs.FieldInfo {
+		return &inputs.FieldInfo{DataType: inputs.String, Type: inputs.String, Unit: inputs.NoUnit, Desc: desc}
+	}
+	intField := func(unit string, desc string) *inputs.FieldInfo {
+		return &inputs.FieldInfo{DataType: inputs.Int, Type: inputs.Gauge, Unit: unit, Desc: desc}
+	}
+	floatField := func(unit string, desc string) *inputs.FieldInfo {
+		return &inputs.FieldInfo{DataType: inputs.Float, Type: inputs.Gauge, Unit: unit, Desc: desc}
+	}
+
+	return &inputs.MeasurementInfo{
+		Name:   netPathMetricName,
+		Cat:    point.DialTesting,
+		Desc:   "Central NetPath synthetic test results.",
+		DescZh: "中心 NetPath 拨测结果。",
+		Tags: withCommonDialtestingTags(map[string]interface{}{
+			"task_name":           &inputs.TagInfo{Desc: "Probe task name."},
+			"task_source":         &inputs.TagInfo{Desc: "Task source; server for central dialtesting tasks."},
+			"dest_host":           &inputs.TagInfo{Desc: "Configured destination host, aligned with other dialtesting measurements."},
+			"dest_port":           &inputs.TagInfo{Desc: "Configured destination port, aligned with other dialtesting measurements."},
+			"dest_ip":             &inputs.TagInfo{Desc: "Resolved destination IP, aligned with other dialtesting measurements."},
+			"src_ip":              &inputs.TagInfo{Desc: "Source IP selected for the active probe."},
+			"src_port":            &inputs.TagInfo{Desc: "Source port, or * when unavailable."},
+			"source_host":         &inputs.TagInfo{Desc: "Source dialtesting node ID, or node name when the ID is unavailable."},
+			"probe_source_ip":     &inputs.TagInfo{Desc: "Source IP selected by the route used for the active probe."},
+			"dst_ip":              &inputs.TagInfo{Desc: "Destination IP, aligned with the NetPath measurement."},
+			"dst_port":            &inputs.TagInfo{Desc: "Destination port, or * when the protocol has no port."},
+			"dst_domain":          &inputs.TagInfo{Desc: "Configured destination domain."},
+			"protocol":            &inputs.TagInfo{Desc: "Configured NetPath protocol."},
+			"traceroute_protocol": &inputs.TagInfo{Desc: "Protocol used by traceroute."},
+			"traceroute_status":   &inputs.TagInfo{Desc: "Traceroute result status."},
+			"e2e_status":          &inputs.TagInfo{Desc: "End-to-end probe status."},
+			"source_name":         &inputs.TagInfo{Desc: "Configured source display name."},
+			"target_name":         &inputs.TagInfo{Desc: "Configured target display name."},
+			"path_key":            &inputs.TagInfo{Desc: "Stable path key scoped by node and task."},
+		}),
+		Fields: withTaskIDField(map[string]interface{}{
+			"seq_number":                 intField(inputs.NCount, "Execution sequence number."),
+			"task":                       stringField("Sanitized task JSON."),
+			"config_vars":                stringField("Task variables with secure values removed."),
+			"success":                    intField(inputs.NoUnit, "1 for success and -1 for failure."),
+			"fail_reason":                stringField("Assertion or execution failure reason."),
+			"message":                    stringField("Execution summary or diagnostic message."),
+			"test_run_id":                stringField("Unique ID of this execution."),
+			"scheduled_at":               intField(inputs.TimestampUS, "Scheduled time."),
+			"started_at":                 intField(inputs.TimestampUS, "Execution start time."),
+			"duration":                   intField(inputs.DurationUS, "Total execution duration."),
+			"max_ttl":                    intField(inputs.NCount, "Configured maximum traceroute TTL."),
+			"traceroute_queries":         intField(inputs.NCount, "Configured traceroute run count."),
+			"e2e_queries":                intField(inputs.NCount, "Configured end-to-end probe count."),
+			"hop_count":                  intField(inputs.NCount, "Maximum traceroute hop count."),
+			"traceroute":                 stringField("Normalized traceroute JSON."),
+			"traceroute_fail_type":       stringField("Normalized traceroute failure type."),
+			"traceroute_fail_reason":     stringField("Traceroute failure reason."),
+			"e2e_dest_ip":                stringField("Resolved end-to-end destination IP."),
+			"e2e_packets_sent":           intField(inputs.NCount, "End-to-end packets sent."),
+			"e2e_packets_received":       intField(inputs.NCount, "End-to-end packets received."),
+			"e2e_unknown":                intField(inputs.NCount, "End-to-end probes with unknown outcome."),
+			"e2e_probe_loss_percent":     floatField(inputs.Percent, "End-to-end packet loss percentage."),
+			"e2e_rtt_avg":                floatField(inputs.DurationUS, "Average end-to-end RTT."),
+			"e2e_rtt_min":                floatField(inputs.DurationUS, "Minimum end-to-end RTT."),
+			"e2e_rtt_max":                floatField(inputs.DurationUS, "Maximum end-to-end RTT."),
+			"e2e_rtt_variation_samples":  intField(inputs.NCount, "RTT variation sample count."),
+			"e2e_rtt_variation_avg":      floatField(inputs.DurationUS, "Average RTT variation."),
+			"e2e_rtt_variation_max":      floatField(inputs.DurationUS, "Maximum RTT variation."),
+			"e2e_tcp_connection_refused": intField(inputs.NCount, "TCP connection refused count."),
+			"e2e_fail_reason":            stringField("End-to-end probe failure reason."),
+		}),
+	}
 }
 
 //nolint:lll

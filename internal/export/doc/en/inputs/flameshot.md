@@ -58,6 +58,7 @@ These variables control the basic behavior of the Sidecar container.
 | `FLAMESHOT_HPROF_UPLOAD_BUCKET` | No | - | Target bucket. |
 | `FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_ID` | No | - | Object storage access key ID. |
 | `FLAMESHOT_HPROF_UPLOAD_ACCESS_KEY_SECRET` | No | - | Object storage access key secret. |
+| `FLAMESHOT_HPROF_UPLOAD_SECURITY_TOKEN` | No | - | SecurityToken for Alibaba Cloud OSS STS credentials. When set with temporary AK/SK, STS authentication is used. Restart the Pod with renewed credentials before they expire. :octicons-tag-24: Version-0.2.3 |
 | `FLAMESHOT_HPROF_UPLOAD_PATH_TEMPLATE` | No | `{service}/{pod_name}/{timestamp}/{filename}` | Object key template. Supports service / pod_name / pod_namespace / host / pid / timestamp / filename variables. |
 | `FLAMESHOT_HPROF_DOWNLOAD_URL_TEMPLATE` | No | - | Optional download URL template. When configured, events include `hprof_download_url` rendered from it. |
 | `FLAMESHOT_HEAP_DUMP_ENABLED` | No | `false` | Enable proactive Java Heap Dump when an emergency memory threshold is reached. |
@@ -484,6 +485,13 @@ Flameshot provides an HTTP interface allowing users or automated O&M scripts to 
         ```
 
 ## Changelog {#changelog}
+
+### 0.2.3 (2026-7-20) {#cl-0.2.3}
+
+#### New Features {#cl-0.2.3-new}
+
+- **Add config**
+    - hprof upload to Alibaba Cloud OSS now supports the SecurityToken from STS temporary credentials, allowing temporary AK/SK to be used without configuring long-term static AK/SK in Flameshot. (#3152)
 
 ### 0.2.2 (2026-5-12) {#cl-0.2.2}
 

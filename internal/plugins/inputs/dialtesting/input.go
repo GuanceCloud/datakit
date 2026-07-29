@@ -41,11 +41,13 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/git"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpapi"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/httpcli"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/dataway"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io/endpoint"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	netpathinput "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/netpath"
 )
 
 var ( // type assertions
@@ -130,6 +132,7 @@ type Input struct {
 	isServerMode bool
 
 	browserConcurrency chan struct{}
+	netPathConcurrency chan struct{}
 	streamWatchMu      sync.Mutex
 	streamWatchCancel  context.CancelFunc
 	streamWatchDone    chan struct{}
@@ -478,6 +481,7 @@ func (*Input) SampleMeasurement() []inputs.Measurement {
 		&multiMeasurement{},
 		&grpcMeasurement{},
 		&browserMeasurement{},
+		&netPathMeasurement{},
 	}
 }
 
@@ -632,9 +636,12 @@ func (ipt *Input) Run() {
 
 	ipt.setupWorker()
 	ipt.setupBrowserConcurrency()
+	ipt.setupNetPathConcurrency()
 
 	// set default region name
 	ipt.setRegionNames(ipt.RegionID, "")
+	setNetPathDebugInput(ipt)
+	defer clearNetPathDebugInput(ipt)
 
 	switch reqURL.Scheme {
 	case "http", "https":
@@ -770,6 +777,17 @@ func (ipt *Input) newTaskRun(t dt.ITask) (*dialer, error) {
 		// TODO
 	case dt.ClassSSL:
 		// TODO
+	case dt.ClassNetPath:
+		// NETPATH uses the existing central dialtesting scheduler, but the
+		// probe itself only supports part of the platforms dialtesting runs
+		// on. Reject unsupported OS/protocol combinations at dispatch time
+		// so they do not produce failing results on every schedule. Probe
+		// time validation in netpath.RunDialProbe stays as a safety net.
+		if task, ok := t.(*dt.NetPathTask); ok {
+			if err := netPathPlatformCheck(task.Protocol); err != nil {
+				return nil, err
+			}
+		}
 	case dt.ClassOther:
 		// TODO
 	case RegionInfo:
@@ -785,16 +803,16 @@ func (ipt *Input) newTaskRun(t dt.ITask) (*dialer, error) {
 	dialer := newDialer(t, ipt)
 	dialer.done = ipt.semStop.Wait()
 
-	func(id string) {
+	func(id, logID string) {
 		g.Go(func(ctx context.Context) error {
 			protectedRun(dialer)
 			defer func() {
 				ipt.curTasks.Delete(id)
 			}()
-			l.Infof("input %s exited", id)
+			l.Infof("input %s exited", logID)
 			return nil
 		})
-	}(t.ID())
+	}(t.ID(), taskLogID(t))
 
 	return dialer, nil
 }
@@ -1035,6 +1053,49 @@ func (ipt *Input) setupBrowserConcurrency() {
 	ipt.browserConcurrency = make(chan struct{}, ipt.Browser.MaxConcurrency)
 }
 
+// defaultNetPathMaxConcurrency caps how many central-dispatched NETPATH
+// probes run in parallel on this host, keeping traceroute/E2E overhead
+// bounded. It matches the netpath input's default worker count.
+const defaultNetPathMaxConcurrency = 4
+
+func (ipt *Input) setupNetPathConcurrency() {
+	ipt.netPathConcurrency = sharedNetPathConcurrency
+	taskMaxNetPathConcurrency.Set(float64(defaultNetPathMaxConcurrency))
+}
+
+// netPathPlatformCheck validates the OS/protocol combination of a NETPATH
+// task before it gets scheduled. It is a variable so tests can stub it.
+var netPathPlatformCheck = func(protocol string) error {
+	// Templated protocols are only rendered at run time; RunDialProbe
+	// validates the rendered value right before probing.
+	if strings.Contains(protocol, "{{") {
+		return nil
+	}
+	return netpathinput.CheckDialPlatform(protocol)
+}
+
+// stopWaitChan returns the input stop signal channel, or nil when the input
+// is not fully initialized (e.g. in tests).
+func (ipt *Input) stopWaitChan() <-chan interface{} {
+	if ipt == nil || ipt.semStop == nil {
+		return nil
+	}
+	return ipt.semStop.Wait()
+}
+
+// redactNetPathTaskError removes the raw NETPATH task payload that
+// cliutils.NewTask embeds in its unmarshal error, so task credentials never
+// reach the logs.
+func redactNetPathTaskError(err error, taskJSON string) string {
+	if err == nil {
+		return ""
+	}
+	if taskJSON == "" {
+		return err.Error()
+	}
+	return strings.ReplaceAll(err.Error(), taskJSON, "<redacted>")
+}
+
 func (ipt *Input) applyBrowserOptions(t dt.ITask, opt map[string]string) {
 	if t == nil || t.Class() != dt.ClassHeadless {
 		return
@@ -1072,16 +1133,17 @@ func protectedRun(d *dialer) {
 	crashcnt := 0
 	var f rtpanic.RecoverCallback
 
-	l.Infof("task %s(%s) starting...", d.task.ID(), d.class)
+	l.Infof("task %s(%s) starting...", taskLogID(d.task), d.class)
 
 	f = func(trace []byte, err error) {
 		defer rtpanic.Recover(f, nil)
 		if trace != nil {
-			l.Warnf("task %s panic: %+#v, trace: %s", d.task.ID(), err, string(trace))
+			l.Warnf("task %s panic: %s, trace: %s",
+				taskLogID(d.task), taskErrorForLog(d.task, err), string(trace))
 
 			crashcnt++
 			if crashcnt > maxCrashCnt {
-				l.Warnf("task %s crashed %d times, exit now", d.task.ID(), crashcnt)
+				l.Warnf("task %s crashed %d times, exit now", taskLogID(d.task), crashcnt)
 				return
 			}
 		}
@@ -1090,7 +1152,14 @@ func protectedRun(d *dialer) {
 		}
 
 		if err := d.run(); err != nil {
-			l.Errorf("run failed: %s, task: %s, ignored", err.Error(), d.task.String())
+			if d.task.Class() == dt.ClassNetPath {
+				// Task.String() dumps the full task JSON, including
+				// credentials; log the external ID only for NETPATH.
+				l.Errorf("run failed: %s, netpath external task id: %s, ignored",
+					taskErrorForLog(d.task, err), taskLogID(d.task))
+			} else {
+				l.Errorf("run failed: %s, task: %s, ignored", err.Error(), d.task.String())
+			}
 		}
 	}
 
@@ -1118,6 +1187,8 @@ func (ipt *Input) newTaskFromClassJSON(class, taskJSON string) (dt.ITask, error)
 		ct = &dt.GRPCTask{}
 	case dt.ClassSSL:
 		ct = &dt.SSLTask{}
+	case dt.ClassNetPath:
+		ct = &dt.NetPathTask{}
 	case dt.ClassOther:
 		return nil, fmt.Errorf("OTHER task deprecated")
 	default:
@@ -1127,6 +1198,10 @@ func (ipt *Input) newTaskFromClassJSON(class, taskJSON string) (dt.ITask, error)
 	t, err := dt.NewTask(taskJSON, ct)
 	if err != nil {
 		return nil, fmt.Errorf("newTask failed: %w", err)
+	}
+	if task, ok := t.(*dt.NetPathTask); ok {
+		task.SetExecutor(newNetPathExecutor(task, ipt.stopWaitChan()).
+			withResolvedIPValidator(ipt.netPathResolvedIPValidator()))
 	}
 
 	opt := map[string]string{
@@ -1179,7 +1254,7 @@ func (ipt *Input) runOneShotTaskSafely(runBatchID, class string, task dt.ITask) 
 				runBatchID, taskID, class, panicValue, debug.Stack())
 		}
 	}()
-	taskID = task.ID()
+	taskID = taskLogID(task)
 
 	if ipt.oneShotTaskRunner != nil {
 		return ipt.oneShotTaskRunner(runBatchID, task)
@@ -1195,7 +1270,8 @@ func (ipt *Input) executeOneShotPayload(payload oneShotRunPayload) {
 
 func oneShotMetricProtocol(class string) string {
 	switch class {
-	case dt.ClassHTTP, dt.ClassHeadless, dt.ClassMulti, dt.ClassTCP, dt.ClassWebsocket, dt.ClassICMP, dt.ClassGRPC, dt.ClassSSL:
+	case dt.ClassHTTP, dt.ClassHeadless, dt.ClassMulti, dt.ClassTCP, dt.ClassWebsocket, dt.ClassICMP, dt.ClassGRPC, dt.ClassSSL,
+		dt.ClassNetPath:
 		return class
 	default:
 		return "unknown"
@@ -1262,7 +1338,12 @@ func (ipt *Input) runOneShotPayload(payload oneShotRunPayload) {
 			if err != nil {
 				parseFailed++
 				oneShotTaskCounter.WithLabelValues(region, metricProtocol, "parse_failed").Inc()
-				l.Warnf("parse one-shot task failed: %s, class=%s, task json(%d bytes)", err.Error(), class, len(taskJSON))
+				if class == dt.ClassNetPath {
+					l.Warnf("parse one-shot task failed: %s, class=%s, task json(%d bytes)",
+						redactNetPathTaskError(err, taskJSON), class, len(taskJSON))
+				} else {
+					l.Warnf("parse one-shot task failed: %s, class=%s, task json(%d bytes)", err.Error(), class, len(taskJSON))
+				}
 				continue
 			}
 			if err := ipt.runOneShotTaskSafely(payload.RunBatchID, class, task); err != nil {
@@ -1273,7 +1354,7 @@ func (ipt *Input) runOneShotPayload(payload oneShotRunPayload) {
 				}
 				failed++
 				oneShotTaskCounter.WithLabelValues(region, metricProtocol, "failed").Inc()
-				l.Warnf("run one-shot task %s failed: %s", task.ID(), err.Error())
+				l.Warnf("run one-shot task %s failed: %s", taskLogID(task), taskErrorForLog(task, err))
 				continue
 			}
 			success++
@@ -1831,6 +1912,8 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 				ct = &dt.GRPCTask{}
 			case dt.ClassSSL:
 				ct = &dt.SSLTask{}
+			case dt.ClassNetPath:
+				ct = &dt.NetPathTask{}
 			case dt.ClassOther:
 				// TODO
 				l.Warnf("OTHER task deprecated, ignored")
@@ -1851,8 +1934,21 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 			}
 
 			if t, err = dt.NewTask(j, ct); err != nil {
-				l.Warnf("newTask failed: %s, task json(%d bytes): '%s'", err.Error(), len(j), j)
+				if k == dt.ClassNetPath {
+					// cliutils.NewTask embeds the raw task payload in its
+					// unmarshal error; redact it so NETPATH credentials
+					// (access_key, post_url token, secure vars) never reach
+					// the logs.
+					l.Warnf("newTask failed: %s, class=netpath, payload=%d bytes",
+						redactNetPathTaskError(err, j), len(j))
+				} else {
+					l.Warnf("newTask failed: %s, task json(%d bytes): '%s'", err.Error(), len(j), j)
+				}
 				continue
+			}
+			if task, ok := t.(*dt.NetPathTask); ok {
+				task.SetExecutor(newNetPathExecutor(task, ipt.stopWaitChan()).
+					withResolvedIPValidator(ipt.netPathResolvedIPValidator()))
 			}
 
 			opt := map[string]string{
@@ -1862,7 +1958,11 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 			ipt.applyBrowserOptions(t, opt)
 			t.SetOption(opt)
 
-			l.Debugf("unmarshal task: %+#v", t)
+			if k == dt.ClassNetPath {
+				l.Debugf("unmarshal netpath task: external_id=%s", taskLogID(t))
+			} else {
+				l.Debugf("unmarshal task: %+#v", t)
+			}
 
 			taskSynchronizedCounter.WithLabelValues(ipt.regionMetricName(), t.Class()).Inc()
 
@@ -1890,13 +1990,17 @@ func (ipt *Input) dispatchTasks(j []byte) error {
 				}
 			} else { // create new task
 				if strings.ToLower(t.Status()) == dt.StatusStop {
-					l.Warnf(`%s status is stop, exit ignore`, t.ID())
+					l.Warnf(`%s status is stop, exit ignore`, taskLogID(t))
 					continue
 				}
 
 				time.Sleep(taskStartInterval)
 
-				l.Debugf(`create new task %+#v`, t)
+				if k == dt.ClassNetPath {
+					l.Debugf("create new netpath task: external_id=%s", taskLogID(t))
+				} else {
+					l.Debugf(`create new task %+#v`, t)
+				}
 				dialer, err := ipt.newTaskRun(t)
 				if err != nil {
 					l.Errorf(`%s, ignore`, err.Error())
@@ -1962,7 +2066,7 @@ func (ipt *Input) pullTask() ([]byte, error) {
 		}
 	}
 
-	l.Debugf("task body: %s", string(res))
+	l.Debugf("task body received: %d bytes", len(res))
 
 	return res, err
 }
@@ -2149,4 +2253,14 @@ func init() { //nolint:gochecknoinits
 	inputs.Add(inputName, func() inputs.Input {
 		return defaultInput()
 	})
+	httpapi.RegisterDialtestingNetPathDebugTaskSetup(func(ctx context.Context, task *dt.NetPathTask) {
+		task.SetExecutor(newNetPathExecutor(task).
+			withContext(ctx).
+			withConcurrency(currentNetPathConcurrency()).
+			withResolvedIPValidator(makeNetPathResolvedIPValidator(
+				httpapi.DialtestingDisableInternalNetworkTask,
+				httpapi.DialtestingDisabledInternalNetworkCidrList,
+			)))
+	})
+	httpapi.RegisterDialtestingNetPathDebugResultEnricher(enrichNetPathDebugResult)
 }
