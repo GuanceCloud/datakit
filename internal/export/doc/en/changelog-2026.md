@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.7.1(2026/07/31) {#cl-2.7.1}
+
+This release is a hotfix release, contents are as follows:
+
+### Bug Fixes {#cl-2.7.1-fix}
+
+- Fixed an issue where an invalid SNMP configuration could start the Trap server too early and block DataKit restarts (#3165)
+- Updated the bundled Lightpanda for browser dial testing to GuanceCloud build 0.3.6-g1 (#3167)
+
+---
+
 ## 2.7.0(2026/07/29) {#cl-2.7.0}
 
 This release is an iterative release, with the following main updates:

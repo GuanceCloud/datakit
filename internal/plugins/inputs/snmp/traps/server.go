@@ -15,7 +15,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GuanceCloud/cliutils/logger"
 	"github.com/gosnmp/gosnmp"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/dkstring"
 )
@@ -51,41 +50,40 @@ var (
 	errStart        error
 )
 
-// StartServer starts the global trap server.
-func StartServer(c *TrapsServerOpt) error {
+// StartServer starts and registers a trap server.
+// If the listening address already exists, it skips the duplicate start and returns nil, nil.
+func StartServer(c *TrapsServerOpt) (*TrapServer, error) {
 	serverLock.Lock()
 	defer serverLock.Unlock()
 
-	l = logger.SLogger(packageName)
+	// internal initialize
+	if err := checkDefaultConfig(c, defaultAgentHostname); err != nil {
+		return nil, err
+	}
 
 	addr := c.Addr()
 	for _, s := range serverInstances {
 		if s.config.Addr() == addr {
-			l.Infof("trap server on %s already running, sharing instance", addr)
-			return nil
+			l.Infof("trap server on %s already running, skip duplicate start", addr)
+			return nil, nil
 		}
-	}
-
-	// internal initialize
-	if err := checkDefaultConfig(c, defaultAgentHostname); err != nil {
-		return err
 	}
 
 	oidResolver, err := NewMultiFilesOIDResolver()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	formatter, err := NewJSONFormatter(oidResolver, c.Namespace)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	server, err := NewTrapServer(*c, formatter)
+	server, err := newTrapServer(*c, formatter)
 	if err != nil {
 		errStart = err
-		return err
+		return nil, err
 	}
 	serverInstances = append(serverInstances, server)
-	return nil
+	return server, nil
 }
 
 func checkDefaultConfig(c *TrapsServerOpt, agentHostName string) error {
@@ -150,7 +148,7 @@ func StopServer() {
 
 	for _, serverInstance := range serverInstances {
 		if serverInstance != nil {
-			serverInstance.Stop()
+			serverInstance.stop()
 			serverInstance = nil
 			errStart = nil
 		}
@@ -163,8 +161,7 @@ func IsRunning() bool {
 	return len(serverInstances) > 0
 }
 
-// NewTrapServer configures and returns a running SNMP traps server.
-func NewTrapServer(opt TrapsServerOpt, formatter Formatter) (*TrapServer, error) {
+func newTrapServer(opt TrapsServerOpt, formatter Formatter) (*TrapServer, error) {
 	packets := make(PacketsChannel, packetsChanSize)
 
 	listener, err := startSNMPTrapListener(opt, packets)
@@ -208,6 +205,21 @@ func startSNMPTrapListener(opt TrapsServerOpt, packets PacketsChannel) (*TrapLis
 
 // Stop stops the TrapServer.
 func (s *TrapServer) Stop() {
+	serverLock.Lock()
+	defer serverLock.Unlock()
+
+	for i, server := range serverInstances {
+		if server != s {
+			continue
+		}
+
+		s.stop()
+		serverInstances = append(serverInstances[:i], serverInstances[i+1:]...)
+		return
+	}
+}
+
+func (s *TrapServer) stop() {
 	stopped := make(chan interface{})
 
 	go func() {

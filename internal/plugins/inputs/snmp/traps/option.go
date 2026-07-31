@@ -8,6 +8,7 @@ package traps
 
 import (
 	"fmt"
+	"sync"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
 
@@ -19,9 +20,16 @@ import (
 const packageName = "snmp"
 
 var (
-	l = logger.DefaultSLogger(packageName)
-	g = goroutine.G("snmp_traps")
+	l          = logger.DefaultSLogger(packageName)
+	g          = goroutine.G("snmp_traps")
+	setLogOnce sync.Once
 )
+
+func SetLog() {
+	setLogOnce.Do(func() {
+		l = logger.SLogger(packageName)
+	})
+}
 
 type TrapsServerOpt struct {
 	Enabled               bool

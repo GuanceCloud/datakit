@@ -1,9 +1,10 @@
 FROM pubrepo.truewatch.com/base/ubuntu:22.04 AS base
 ARG TARGETARCH
 ARG DIST_DIR
-ARG LIGHTPANDA_VERSION=0.3.6
-ARG LIGHTPANDA_SHA256_AMD64=e438c0ad44e0f6916c14cf13beb003512c60438d8fd200738d2e596e73f652d6
-ARG LIGHTPANDA_SHA256_ARM64=29c059cd0755a195350cc79dbcf7ee9580fd575ec3eaa31db755dbada417e616
+ARG LIGHTPANDA_RELEASE_REPOSITORY=GuanceCloud/browser
+ARG LIGHTPANDA_VERSION=0.3.6-g1
+ARG LIGHTPANDA_SHA256_AMD64=112a03abdea7a25ff38a524223b4d3d34f27e5d7e5c76550587c80905cc6b4cb
+ARG LIGHTPANDA_SHA256_ARM64=ea9288db3a4e5751449bacad5ebb467d6b95100193766373b32dac9abaaf622f
 ARG CC_HTTP_PROXY=
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -37,7 +38,7 @@ RUN \
     export http_proxy="$CC_HTTP_PROXY" https_proxy="$CC_HTTP_PROXY" HTTP_PROXY="$CC_HTTP_PROXY" HTTPS_PROXY="$CC_HTTP_PROXY"; \
   fi \
   && curl -fL --retry 5 --retry-delay 2 --retry-all-errors --connect-timeout 10 --max-time 300 \
-    "https://github.com/lightpanda-io/browser/releases/download/${LIGHTPANDA_VERSION}/lightpanda-${lightpanda_arch}-linux" \
+    "https://github.com/${LIGHTPANDA_RELEASE_REPOSITORY}/releases/download/${LIGHTPANDA_VERSION}/lightpanda-${lightpanda_arch}-linux" \
     -o /usr/local/bin/lightpanda \
   && echo "${lightpanda_sha256}  /usr/local/bin/lightpanda" | sha256sum -c - \
   && chmod 0755 /usr/local/bin/lightpanda \

@@ -79,17 +79,12 @@ Lightpanda 安装方式可参考[官方安装文档](https://lightpanda.io/docs/
 curl -fsSL https://pkg.lightpanda.io/install.sh | bash
 ```
 
-也可以指定版本，例如：
-
-```shell
-curl -fsSL https://pkg.lightpanda.io/install.sh | bash -s "0.3.6"
-```
-
-如需手动安装固定版本二进制，x86_64 Linux 示例：
+DataKit 镜像当前使用 GuanceCloud 构建的 `0.3.6-g1` 版本。如需在
+x86_64 Linux 主机上安装相同版本：
 
 ```shell
 curl -L -o lightpanda \
-  https://github.com/lightpanda-io/browser/releases/download/0.3.6/lightpanda-x86_64-linux
+  https://github.com/GuanceCloud/browser/releases/download/0.3.6-g1/lightpanda-x86_64-linux
 chmod a+x ./lightpanda
 sudo install -m 0755 lightpanda /usr/local/bin/lightpanda
 ```
@@ -98,7 +93,7 @@ arm64/aarch64 Linux 可使用：
 
 ```shell
 curl -L -o lightpanda \
-  https://github.com/lightpanda-io/browser/releases/download/0.3.6/lightpanda-aarch64-linux
+  https://github.com/GuanceCloud/browser/releases/download/0.3.6-g1/lightpanda-aarch64-linux
 chmod a+x ./lightpanda
 sudo install -m 0755 lightpanda /usr/local/bin/lightpanda
 ```

@@ -10,6 +10,7 @@ import (
 	"net"
 	"reflect"
 	"regexp"
+	"syscall"
 	"testing"
 	"time"
 
@@ -19,7 +20,9 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmpmeasurement"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmprefiles"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmputil"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/traps"
 )
 
 // go test -v -timeout 30s -run ^Test_AvailableArchs$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp
@@ -38,6 +41,133 @@ func Test_SampleMeasurement(t *testing.T) {
 		&snmpmeasurement.SNMPMetric{},
 		&snmpmeasurement.SNMPLLDP{},
 	}, out)
+}
+
+func setupTrapServerTest(t *testing.T) {
+	t.Helper()
+
+	oldConfdDir := datakit.ConfdDir
+	datakit.ConfdDir = t.TempDir()
+	traps.StopServer()
+	t.Cleanup(func() {
+		traps.StopServer()
+		datakit.ConfdDir = oldConfdDir
+	})
+	require.NoError(t, snmprefiles.ReleaseFiles())
+}
+
+func getFreeUDPPorts(t *testing.T, count int) []uint16 {
+	t.Helper()
+
+	connections := make([]*net.UDPConn, 0, count)
+	ports := make([]uint16, 0, count)
+	for i := 0; i < count; i++ {
+		conn, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.ParseIP("127.0.0.1")})
+		require.NoError(t, err)
+		connections = append(connections, conn)
+		ports = append(ports, uint16(conn.LocalAddr().(*net.UDPAddr).Port))
+	}
+
+	for _, conn := range connections {
+		require.NoError(t, conn.Close())
+	}
+	return ports
+}
+
+func startTestTrapServer(t *testing.T, port uint16) *traps.TrapServer {
+	t.Helper()
+
+	server, err := traps.StartServer(&traps.TrapsServerOpt{
+		Enabled:          true,
+		BindHost:         "127.0.0.1",
+		Port:             port,
+		CommunityStrings: []string{"public"},
+		StopTimeout:      1,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, server)
+	return server
+}
+
+func assertUDPPortAvailable(t *testing.T, port uint16) {
+	t.Helper()
+
+	conn, err := net.ListenUDP("udp4", &net.UDPAddr{
+		IP:   net.ParseIP("127.0.0.1"),
+		Port: int(port),
+	})
+	require.NoError(t, err)
+	require.NoError(t, conn.Close())
+}
+
+func assertUDPPortInUse(t *testing.T, port uint16) {
+	t.Helper()
+
+	conn, err := net.ListenUDP("udp4", &net.UDPAddr{
+		IP:   net.ParseIP("127.0.0.1"),
+		Port: int(port),
+	})
+	if conn != nil {
+		require.NoError(t, conn.Close())
+	}
+	require.ErrorIs(t, err, syscall.EADDRINUSE)
+}
+
+func TestRunDoesNotStartTrapWhenInitializationFails(t *testing.T) {
+	setupTrapServerTest(t)
+	port := getFreeUDPPorts(t, 1)[0]
+
+	ipt := defaultInput()
+	ipt.SNMPVersion = 2
+	ipt.ZabbixProfiles = []*snmputil.ZabbixProfile{}
+	ipt.Traps = TrapsConfig{
+		Enable:      true,
+		BindHost:    "127.0.0.1",
+		Port:        port,
+		StopTimeout: 1,
+	}
+	ipt.Run()
+
+	assertUDPPortAvailable(t, port)
+}
+
+func TestTerminateBeforeStartDoesNotStartTrapServer(t *testing.T) {
+	setupTrapServerTest(t)
+	port := getFreeUDPPorts(t, 1)[0]
+
+	ipt := defaultInput()
+	ipt.Traps = TrapsConfig{
+		Enable:      true,
+		BindHost:    "127.0.0.1",
+		Port:        port,
+		StopTimeout: 1,
+	}
+
+	ipt.Terminate()
+	ipt.startTrapServer()
+
+	require.True(t, ipt.trapTerminated)
+	require.Nil(t, ipt.trapServer)
+	assertUDPPortAvailable(t, port)
+}
+
+func TestInputExitStopsOnlyOwnedTrapServer(t *testing.T) {
+	setupTrapServerTest(t)
+	ports := getFreeUDPPorts(t, 2)
+
+	firstInput := defaultInput()
+	firstInput.trapServer = startTestTrapServer(t, ports[0])
+	secondInput := defaultInput()
+	secondInput.trapServer = startTestTrapServer(t, ports[1])
+
+	firstInput.exit()
+	require.Nil(t, firstInput.trapServer)
+	assertUDPPortAvailable(t, ports[0])
+	assertUDPPortInUse(t, ports[1])
+
+	secondInput.exit()
+	require.Nil(t, secondInput.trapServer)
+	assertUDPPortAvailable(t, ports[1])
 }
 
 // go test -v -timeout 30s -run ^Test_calcTagsHash$ gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp

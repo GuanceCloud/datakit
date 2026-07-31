@@ -145,6 +145,9 @@ type Input struct {
 	autodetectProfile    bool
 	feeder               dkio.Feeder
 	Tagger               datakit.GlobalTagger
+	trapMu               sync.Mutex
+	trapTerminated       bool
+	trapServer           *traps.TrapServer
 
 	ptsTime time.Time
 
@@ -179,6 +182,7 @@ func (ipt *Input) setup() {
 	l = logger.SLogger(snmpmeasurement.InputName)
 	snmputil.SetLog()
 	lldp.SetLog()
+	traps.SetLog()
 	l.Info("Run entry")
 
 	for _, s := range ipt.TagsIgnoreRegexp {
@@ -188,6 +192,53 @@ func (ipt *Input) setup() {
 			continue
 		}
 		ipt.TagsIgnoreRule = append(ipt.TagsIgnoreRule, matcher)
+	}
+}
+
+func (ipt *Input) startTrapServer() {
+	ipt.trapMu.Lock()
+	defer ipt.trapMu.Unlock()
+
+	if ipt.trapTerminated {
+		return
+	}
+
+	var communityStrings []string
+	if len(ipt.V2CommunityString) > 0 {
+		communityStrings = []string{ipt.V2CommunityString}
+	}
+
+	var v3 []traps.UserV3
+	if len(ipt.V3User) > 0 {
+		v3 = []traps.UserV3{
+			{
+				Username:     ipt.V3User,
+				AuthKey:      ipt.V3AuthKey,
+				AuthProtocol: ipt.V3AuthProtocol,
+				PrivKey:      ipt.V3PrivKey,
+				PrivProtocol: ipt.V3PrivProtocol,
+			},
+		}
+	}
+
+	server, err := traps.StartServer(&traps.TrapsServerOpt{
+		Enabled:          ipt.Traps.Enable,
+		BindHost:         ipt.Traps.BindHost,
+		Port:             ipt.Traps.Port,
+		Namespace:        ipt.DeviceNamespace,
+		CommunityStrings: communityStrings,
+		Users:            v3,
+		StopTimeout:      ipt.Traps.StopTimeout,
+		Election:         ipt.Election,
+		InputTags:        ipt.Tags,
+		Feeder:           ipt.feeder,
+		Tagger:           ipt.Tagger,
+		Source:           ipt.Traps.Source,
+	})
+	if err != nil {
+		l.Errorf("traps.StartServer failed: %v, port = %d", err, ipt.Traps.Port)
+	} else if server != nil {
+		ipt.trapServer = server
 	}
 }
 
@@ -201,42 +252,6 @@ func (ipt *Input) Run() {
 		})
 	} else {
 		ipt.SpecificDevices = ipt.SpecificDevices[0:0]
-	}
-
-	// starting traps server
-	if ipt.Traps.Enable {
-		var communityStrings []string
-		if len(ipt.V2CommunityString) > 0 {
-			communityStrings = []string{ipt.V2CommunityString}
-		}
-		var v3 []traps.UserV3
-		if len(ipt.V3User) > 0 {
-			v3 = []traps.UserV3{
-				{
-					Username:     ipt.V3User,
-					AuthKey:      ipt.V3AuthKey,
-					AuthProtocol: ipt.V3AuthProtocol,
-					PrivKey:      ipt.V3PrivKey,
-					PrivProtocol: ipt.V3PrivProtocol,
-				},
-			}
-		}
-		if err := traps.StartServer(&traps.TrapsServerOpt{
-			Enabled:          ipt.Traps.Enable,
-			BindHost:         ipt.Traps.BindHost,
-			Port:             ipt.Traps.Port,
-			Namespace:        ipt.DeviceNamespace,
-			CommunityStrings: communityStrings,
-			Users:            v3,
-			StopTimeout:      ipt.Traps.StopTimeout,
-			Election:         ipt.Election,
-			InputTags:        ipt.Tags,
-			Feeder:           ipt.feeder,
-			Tagger:           ipt.Tagger,
-			Source:           ipt.Traps.Source,
-		}); err != nil {
-			l.Errorf("traps.StartServer failed: %v, port = %d", err, ipt.Traps.Port)
-		}
 	}
 
 	// starting snmp collecting
@@ -262,6 +277,11 @@ func (ipt *Input) Run() {
 			l.Errorf("loadUserProfileStores failed: %v", err)
 			return
 		}
+	}
+
+	// starting traps server
+	if ipt.Traps.Enable {
+		ipt.startTrapServer()
 	}
 
 	workerNum := 0
@@ -1485,7 +1505,7 @@ func (ipt *Input) getIPCount() int {
 }
 
 func (ipt *Input) exit() {
-	traps.StopServer()
+	ipt.stopTrap()
 
 	for deviceIP, device := range ipt.mSpecificDevices {
 		if err := device.Session.Close(); err != nil {
@@ -1517,8 +1537,22 @@ func (ipt *Input) exit() {
 }
 
 func (ipt *Input) Terminate() {
+	ipt.stopTrap()
+
 	if ipt.semStop != nil {
 		ipt.semStop.Close()
+	}
+}
+
+func (ipt *Input) stopTrap() {
+	ipt.trapMu.Lock()
+	defer ipt.trapMu.Unlock()
+
+	ipt.trapTerminated = true
+
+	if ipt.trapServer != nil {
+		ipt.trapServer.Stop()
+		ipt.trapServer = nil
 	}
 }
 

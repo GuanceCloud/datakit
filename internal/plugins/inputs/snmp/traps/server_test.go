@@ -6,25 +6,50 @@
 
 package traps
 
-// var freePort = getFreePort()
+import (
+	"net"
+	"testing"
 
-// func TestStartFailure(t *testing.T) {
-// 	/*
-// 		Start two servers with the same config to trigger an "address already in use" error.
-// 	*/
+	"github.com/stretchr/testify/require"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs/snmp/snmprefiles"
+)
 
-// 	config := Config{Port: freePort, CommunityStrings: []string{"public"}}
-// 	Configure(t, config)
+func TestStopRemovesRegisteredServer(t *testing.T) {
+	oldConfdDir := datakit.ConfdDir
+	datakit.ConfdDir = t.TempDir()
+	StopServer()
+	t.Cleanup(func() {
+		StopServer()
+		datakit.ConfdDir = oldConfdDir
+	})
+	require.NoError(t, snmprefiles.ReleaseFiles())
 
-// 	mockSender := mocksender.NewMockSender("snmp-traps-listener")
-// 	mockSender.SetupAcceptAll()
+	conn, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.ParseIP("127.0.0.1")})
+	require.NoError(t, err)
+	port := uint16(conn.LocalAddr().(*net.UDPAddr).Port)
+	require.NoError(t, conn.Close())
 
-// 	sucessServer, err := NewTrapServer(config, &DummyFormatter{}, mockSender)
-// 	require.NoError(t, err)
-// 	require.NotNil(t, sucessServer)
-// 	defer sucessServer.Stop()
+	options := &TrapsServerOpt{
+		Enabled:          true,
+		BindHost:         "127.0.0.1",
+		Port:             port,
+		CommunityStrings: []string{"public"},
+		StopTimeout:      1,
+	}
 
-// 	failedServer, err := NewTrapServer(config, &DummyFormatter{}, mockSender)
-// 	require.Nil(t, failedServer)
-// 	require.Error(t, err)
-// }
+	server, err := StartServer(options)
+	require.NoError(t, err)
+	require.NotNil(t, server)
+
+	duplicate, err := StartServer(options)
+	require.NoError(t, err)
+	require.Nil(t, duplicate)
+
+	server.Stop()
+
+	restarted, err := StartServer(options)
+	require.NoError(t, err)
+	require.NotNil(t, restarted)
+	restarted.Stop()
+}

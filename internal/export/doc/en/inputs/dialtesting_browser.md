@@ -81,17 +81,12 @@ For Lightpanda installation methods, see the [official installation guide](https
 curl -fsSL https://pkg.lightpanda.io/install.sh | bash
 ```
 
-You can also install a specific version, for example:
-
-```shell
-curl -fsSL https://pkg.lightpanda.io/install.sh | bash -s "0.3.6"
-```
-
-To install a pinned binary manually, use the following x86_64 Linux example:
+The DataKit testing image currently uses the GuanceCloud
+`0.3.6-g1` build. To install the same build on x86_64 Linux:
 
 ```shell
 curl -L -o lightpanda \
-  https://github.com/lightpanda-io/browser/releases/download/0.3.6/lightpanda-x86_64-linux
+  https://github.com/GuanceCloud/browser/releases/download/0.3.6-g1/lightpanda-x86_64-linux
 chmod a+x ./lightpanda
 sudo install -m 0755 lightpanda /usr/local/bin/lightpanda
 ```
@@ -100,7 +95,7 @@ For arm64/aarch64 Linux, use:
 
 ```shell
 curl -L -o lightpanda \
-  https://github.com/lightpanda-io/browser/releases/download/0.3.6/lightpanda-aarch64-linux
+  https://github.com/GuanceCloud/browser/releases/download/0.3.6-g1/lightpanda-aarch64-linux
 chmod a+x ./lightpanda
 sudo install -m 0755 lightpanda /usr/local/bin/lightpanda
 ```
