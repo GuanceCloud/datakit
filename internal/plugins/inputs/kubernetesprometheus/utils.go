@@ -6,10 +6,8 @@
 package kubernetesprometheus
 
 import (
-	"fmt"
 	"net"
 	"net/url"
-	"os"
 	"strings"
 )
 
@@ -74,18 +72,4 @@ func splitHost(remote string) string {
 	}
 
 	return host
-}
-
-func getLocalNodeName() (string, error) {
-	var e string
-	if os.Getenv("NODE_NAME") != "" {
-		e = os.Getenv("NODE_NAME")
-	}
-	if os.Getenv("ENV_K8S_NODE_NAME") != "" {
-		e = os.Getenv("ENV_K8S_NODE_NAME")
-	}
-	if e != "" {
-		return e, nil
-	}
-	return "", fmt.Errorf("invalid ENV_K8S_NODE_NAME environment, cannot be empty")
 }

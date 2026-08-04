@@ -66,8 +66,10 @@ type Client interface {
 const (
 	NAMESPACE = "" // Use all namespace
 
-	LimiteQPS  = float32(1000)
-	LimitBurst = 1000
+	// LimitQPS is the aggregate API server request rate allowed for one Client.
+	LimitQPS = float32(50)
+	// LimitBurst is the aggregate API server request burst allowed for one Client.
+	LimitBurst = 50
 
 	//nolint:gosec
 	TokenFile = "/var/run/secrets/kubernetes.io/serviceaccount/token"
@@ -89,17 +91,17 @@ func DefaultConfigInCluster() (*rest.Config, error) {
 		TLSClientConfig: rest.TLSClientConfig{Insecure: true},
 		BearerToken:     string(token),
 		BearerTokenFile: TokenFile,
-		RateLimiter:     flowcontrol.NewTokenBucketRateLimiter(LimiteQPS, LimitBurst), // setting default limit
+		RateLimiter:     flowcontrol.NewTokenBucketRateLimiter(LimitQPS, LimitBurst), // setting default limit
 	}
 	return &config, nil
 }
 
-func NewKubernetesClientInCluster() (Client, error) {
+func NewKubernetesClientInCluster(component Component) (Client, error) {
 	config, err := DefaultConfigInCluster()
 	if err != nil {
 		return nil, err
 	}
-	return newKubernetesClient(config)
+	return newKubernetesClient(config, component)
 }
 
 type client struct {
@@ -110,8 +112,15 @@ type client struct {
 	loggingClient    *loggingclientv1.Clientset
 }
 
-func newKubernetesClient(restConfig *rest.Config) (*client, error) {
-	clientset, err := kubernetes.NewForConfig(restConfig)
+func newKubernetesClient(restConfig *rest.Config, component Component) (*client, error) {
+	if !validComponent(component) {
+		return nil, fmt.Errorf("invalid Kubernetes API server metrics component %q", component)
+	}
+
+	apiserverConfig := rest.CopyConfig(restConfig)
+	apiserverConfig.Wrap(newAPIServerMetricsWrapper(component))
+
+	clientset, err := kubernetes.NewForConfig(apiserverConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -121,17 +130,17 @@ func newKubernetesClient(restConfig *rest.Config) (*client, error) {
 		return nil, err
 	}
 
-	prometheusClient, err := prometheusclientv1.NewForConfig(restConfig)
+	prometheusClient, err := prometheusclientv1.NewForConfig(apiserverConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	loggingClient, err := loggingclientv1.NewForConfig(restConfig)
+	loggingClient, err := loggingclientv1.NewForConfig(apiserverConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	metricsClient, err := metricsv1beta1.NewForConfig(restConfig)
+	metricsClient, err := metricsv1beta1.NewForConfig(apiserverConfig)
 	if err != nil {
 		return nil, err
 	}

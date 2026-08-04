@@ -19,7 +19,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/podutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func (c *containerCollector) gatherLogging(trigger string) {
@@ -85,11 +84,8 @@ func (c *containerCollector) queryContainerLogInfoAndConfig(item *runtime.Contai
 		info.containerName = name
 	}
 
-	if c.k8sClient != nil && podName != "" {
-		pod, err := c.k8sClient.GetPods(namespace).Get(context.Background(), podName, metav1.GetOptions{ResourceVersion: "0"})
-		if err != nil {
-			l.Warnf("query pod fail, err: %s", err)
-		} else {
+	if c.podMetadata != nil && podName != "" {
+		if pod, ok := c.getPodMetadata(context.Background(), podMetadataUsageLogging, namespace, podName); ok {
 			// ex: datakit/logs
 			if v := pod.Annotations[fmt.Sprintf(logConfigAnnotationKeyFormat, "")]; v != "" {
 				configStr = v
@@ -101,6 +97,9 @@ func (c *containerCollector) queryContainerLogInfoAndConfig(item *runtime.Contai
 
 			info.podIP = pod.Status.PodIP
 			info.podLabels = pod.Labels
+			if info.podLabels == nil {
+				info.podLabels = map[string]string{}
+			}
 			info.ownerKind, info.ownerName = podutil.PodOwner(pod)
 			if img := podutil.ContainerImageFromPod(info.containerName, pod); img != "" {
 				info.image = img

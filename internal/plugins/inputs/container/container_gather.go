@@ -20,7 +20,6 @@ import (
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/podutil"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/ntp"
 	apicorev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func (c *containerCollector) gatherMetric() {
@@ -154,14 +153,8 @@ func (c *containerCollector) buildMetricPoints(item *runtime.Container) *point.P
 		nodeName      string
 	)
 
-	if c.k8sClient != nil && podname != "" {
-		pod, err := c.k8sClient.GetPods(namespace).Get(
-			context.Background(),
-			podname,
-			metav1.GetOptions{ResourceVersion: "0"})
-		if err != nil {
-			l.Warnf("query pod failed, err: %s", err)
-		} else {
+	if c.podMetadata != nil && podname != "" {
+		if pod, ok := c.getPodMetadata(context.Background(), podMetadataUsageMetric, namespace, podname); ok {
 			kvs = kvs.SetTag("pod_uid", string(pod.UID))
 			if img := podutil.ContainerImageFromPod(containerName, pod); img != "" {
 				image = img
@@ -207,11 +200,8 @@ func (c *containerCollector) buildObjectPoint(item *runtime.Container) *point.Po
 		nodeName      string
 	)
 
-	if c.k8sClient != nil && podname != "" {
-		pod, err := c.k8sClient.GetPods(namespace).Get(context.Background(), podname, metav1.GetOptions{ResourceVersion: "0"})
-		if err != nil {
-			l.Warnf("query pod failed, err: %s", err)
-		} else {
+	if c.podMetadata != nil && podname != "" {
+		if pod, ok := c.getPodMetadata(context.Background(), podMetadataUsageObject, namespace, podname); ok {
 			kvs = kvs.SetTag("pod_uid", string(pod.UID))
 			if img := podutil.ContainerImageFromPod(containerName, pod); img != "" {
 				// 优先使用 Pod 存在的 image

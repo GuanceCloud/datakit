@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.7.2(2026/08/04) {#cl-2.7.2}
+
+This release is a hotfix release, contents are as follows:
+
+### Bug Fixes {#cl-2.7.2-fix}
+
+- Fixed a Container collector issue present since version 2.1.5. It could occur only during high-frequency Pod creation and deletion and increase request pressure on the Kubernetes APIServer (#3170)
+
+---
+
 ## 2.7.1(2026/07/31) {#cl-2.7.1}
 
 This release is a hotfix release, contents are as follows:

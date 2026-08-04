@@ -7,10 +7,12 @@ package container
 
 import (
 	"fmt"
+	"path/filepath"
 	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/pkg/labels"
 )
 
 func testLoggingDefaults() *loggingDefaults {
@@ -102,6 +104,55 @@ func TestAddTaskKeepsExistingConfigOnChangedAnnotationParseError(t *testing.T) {
 	require.Equal(t, 1, taskCount(coordinator))
 	require.Equal(t, oldConfig, task.configStr)
 	require.True(t, task.useAnnotationOrEnvLogConfigs)
+}
+
+func TestAddTaskRefreshesDefaultConfigAfterPodMetadataBecomesAvailable(t *testing.T) {
+	defaults := testLoggingDefaults()
+	defaults.setLabelAsTags = func(labels map[string]string) map[string]string { return labels }
+	coordinator := newContainerLogCoordinator(defaults)
+
+	initialInfo := testContainerLogInfo()
+	initialInfo.logPath = filepath.Join(t.TempDir(), "container.log")
+	coordinator.addTask(initialInfo.containerID, initialInfo, "", false)
+	t.Cleanup(func() { coordinator.removeTask(initialInfo.containerID) })
+	task := coordinator.containerTasks[initialInfo.containerID]
+	require.Len(t, task.tailers, 1)
+	initialHash := task.tailers[0].configHash
+
+	enrichedInfo := *initialInfo
+	enrichedInfo.podLabels = map[string]string{"app": "example"}
+
+	coordinator.addTask(initialInfo.containerID, &enrichedInfo, "", false)
+
+	require.Same(t, &enrichedInfo, task.info)
+	require.NotEqual(t, initialHash, task.tailers[0].configHash)
+	require.Equal(t, task.configs[0].getStructHash(), task.tailers[0].configHash)
+}
+
+func TestCRDSelectorDistinguishesUnknownAndEmptyLabels(t *testing.T) {
+	selector, err := labels.Parse("!app")
+	require.NoError(t, err)
+	coordinator := newContainerLogCoordinator(testLoggingDefaults())
+	task := &containerLogTask{containerID: "cid-test", info: testContainerLogInfo()}
+	crd := &crdLoggingConfig{podLabelSelector: "!app", podLabelSelectorMatch: selector}
+
+	require.False(t, coordinator.matchesCRDConfig(task, crd))
+	task.info.podLabels = map[string]string{}
+	require.True(t, coordinator.matchesCRDConfig(task, crd))
+}
+
+func TestAddTaskDoesNotStoreConfigWhenTailerCreationFails(t *testing.T) {
+	coordinator := newContainerLogCoordinator(testLoggingDefaults())
+	info := testContainerLogInfo()
+	info.logPath = "["
+
+	coordinator.addTask(info.containerID, info, "", false)
+	coordinator.addTask(info.containerID, info, "", false)
+
+	task := coordinator.containerTasks[info.containerID]
+	require.NotNil(t, task)
+	require.Empty(t, task.tailers)
+	require.Empty(t, task.configs)
 }
 
 func TestRemoveTaskDeletesFromMap(t *testing.T) {

@@ -6,8 +6,6 @@
 package kubernetes
 
 import (
-	"fmt"
-	"os"
 	"strings"
 
 	"github.com/GuanceCloud/cliutils/point"
@@ -147,18 +145,4 @@ func buildDefaultChangeEventKVs() (kvs point.KVs) {
 	kvs = kvs.AddTag("df_sub_status", defaultStatus)
 
 	return
-}
-
-func getLocalNodeName() (string, error) {
-	var e string
-	if os.Getenv("NODE_NAME") != "" {
-		e = os.Getenv("NODE_NAME")
-	}
-	if os.Getenv("ENV_K8S_NODE_NAME") != "" {
-		e = os.Getenv("ENV_K8S_NODE_NAME")
-	}
-	if e != "" {
-		return e, nil
-	}
-	return "", fmt.Errorf("invalid ENV_K8S_NODE_NAME environment, cannot be empty")
 }

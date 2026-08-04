@@ -82,6 +82,8 @@ type Input struct {
 	Tagger  datakit.GlobalTagger
 	chPause chan bool
 	leader  *leaderGate
+
+	localNodeName string
 }
 
 func (*Input) SampleConfig() string              { return sampleCfg }
@@ -133,7 +135,10 @@ func (ipt *Input) Run() {
 	l = logger.SLogger(inputName)
 
 	l.Info("container input start")
-	ipt.setup()
+	if err := ipt.setup(); err != nil {
+		l.Errorf("failed to setup container input: %s", err)
+		return
+	}
 
 	if err := changes.LoadK8sManifest(); err != nil {
 		l.Errorf("load manifests fail, err: %s", err)
@@ -161,7 +166,7 @@ func (ipt *Input) Run() {
 	l.Info("container input exit")
 }
 
-func (ipt *Input) setup() {
+func (ipt *Input) setup() error {
 	if ipt.DeprecatedDockerEndpoint != "" {
 		ipt.Endpoints = append(ipt.Endpoints, ipt.DeprecatedDockerEndpoint)
 	}
@@ -189,11 +194,22 @@ func (ipt *Input) setup() {
 	if ipt.GCPCloudLoggingStateFile == "" {
 		ipt.GCPCloudLoggingStateFile = datakit.JoinToCacheDir("gcp-cloud-logging-state.json")
 	}
+
+	if datakit.Docker && config.IsKubernetes() && !ipt.GCPCloudAPIEnabled {
+		nodeName, err := config.GetLocalNodeName()
+		if err != nil {
+			return err
+		}
+		ipt.localNodeName = nodeName
+	}
+
 	electionEnabled := config.Cfg != nil && config.Cfg.Election != nil && config.Cfg.Election.Enable
 	ipt.leaderGate().ConfigureElection(electionEnabled)
 	if !electionEnabled {
 		ipt.trySendPause(false)
 	}
+
+	return nil
 }
 
 func (ipt *Input) Terminate() {

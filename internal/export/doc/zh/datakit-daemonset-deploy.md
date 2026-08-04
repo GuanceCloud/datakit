@@ -499,6 +499,8 @@ spec:
 
 当 k8s node 名称跟其对应的主机名不同时，可将 k8s 的 node 名称顶替默认采集到的主机名，在 *datakit.yaml* 中增加环境变量：
 
+普通 Kubernetes DaemonSet 模式下，Container 采集器及启用 `node_local = true` 的 Kubernetes Prometheus 采集器还会使用该值限定本节点的 Pod LIST/WATCH。该变量及兼容的旧变量 `NODE_NAME` 均未设置时，采集器会因无法确定本节点而拒绝启动。
+
 > [1.2.19](changelog.md#cl-1.2.19) 版本的 *datakit.yaml* 中默认就带了这个配置，如果是从老版本的 yaml 直接升级而来，需要对 *datakit.yaml* 做如下手动改动。
 
 ```yaml

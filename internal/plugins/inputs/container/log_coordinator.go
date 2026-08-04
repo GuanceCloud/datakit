@@ -95,7 +95,6 @@ func (c *containerLogCoordinator) addTask(containerID string, info *containerLog
 		c.taskMutex.Lock()
 		if existing, ok := c.containerTasks[containerID]; ok {
 			task = existing
-			exists = true
 		} else {
 			c.containerTasks[containerID] = task
 			created = true
@@ -130,11 +129,18 @@ func (c *containerLogCoordinator) addTask(containerID string, info *containerLog
 	if created {
 		l.Infof("creating new log task for container %s", containerID)
 	}
+
+	// Refresh metadata independently from log configuration reconciliation. The
+	// initial scan may run before the Pod informer cache is synced; a later scan
+	// must make the enriched Pod metadata available to CRD matching and tailer
+	// option generation for the same container.
+	task.info = info
+	task.podUID = info.podUID
+
 	useAnnotationOrEnvLogConfigs := configStr != ""
 
 	var configs []*logConfig
 	var err error
-	var useDefaultStdoutConfigs bool
 
 	if !useAnnotationOrEnvLogConfigs {
 		// 容器没有通过 Annotation 或环境变量配置日志采集
@@ -152,14 +158,14 @@ func (c *containerLogCoordinator) addTask(containerID string, info *containerLog
 
 			// 容器通过了过滤规则，使用默认配置创建日志采集任务
 			// 传入空的 configStr 会创建一个只采集 stdout 的默认配置
-			configs, useDefaultStdoutConfigs, err = newLogConfigs(c.defaults, info, configStr)
+			configs, _, err = newLogConfigs(c.defaults, info, configStr)
 			if err != nil {
 				l.Errorf("failed to parse log configs for container %s: %v", containerID, err)
 				return
 			}
 		}
 	} else {
-		configs, useDefaultStdoutConfigs, err = newLogConfigs(c.defaults, info, configStr)
+		configs, _, err = newLogConfigs(c.defaults, info, configStr)
 		if err != nil {
 			l.Errorf("failed to parse log configs for container %s: %v", containerID, err)
 			return
@@ -169,12 +175,7 @@ func (c *containerLogCoordinator) addTask(containerID string, info *containerLog
 	task.useAnnotationOrEnvLogConfigs = useAnnotationOrEnvLogConfigs
 	task.configStr = configStr
 
-	if exists && useDefaultStdoutConfigs {
-		l.Debugf("task exists for container=%s, using default stdout config, skip", containerID)
-		return
-	}
-
-	l.Debugf("task exists for container %s but config changed, updating task", containerID)
+	l.Debugf("reconciling log task for container %s", containerID)
 
 	// 当路径集合发生变化（例如新增或缺少某个 path）时，关闭现有 tailer，后续按正常流程重新创建
 	c.closeTailersIfPathChanged(task, configs)
@@ -197,11 +198,9 @@ func (c *containerLogCoordinator) addTask(containerID string, info *containerLog
 			continue
 		}
 		c.createTailerForTask(task, cfg)
-		task.configs = append(task.configs, cfg)
 	}
 
 	committed = true
-	l.Infof("added task for container %s, tailers=%d", containerID, len(task.tailers))
 }
 
 func (c *containerLogCoordinator) cleanMissingContainerLog(activeContainers []string) {
@@ -326,7 +325,11 @@ func (c *containerLogCoordinator) matchesCRDConfig(task *containerLogTask, crdCo
 		l.Debugf("matchesCRDConfig: container=%s container not match, name=%s regex=%s", task.containerID, info.containerName, crdConfig.containerRegex)
 		return false
 	}
-	if crdConfig.podLabelSelectorMatch != nil && info.podLabels != nil {
+	if crdConfig.podLabelSelectorMatch != nil {
+		if info.podLabels == nil {
+			l.Debugf("matchesCRDConfig: container=%s pod labels unavailable", task.containerID)
+			return false
+		}
 		if !crdConfig.podLabelSelectorMatch.Matches(labels.Set(info.podLabels)) {
 			l.Debugf("matchesCRDConfig: container=%s pod labels not match selector=%s", task.containerID, crdConfig.podLabelSelector)
 			return false
@@ -387,6 +390,7 @@ func (c *containerLogCoordinator) createTailerForTask(task *containerLogTask, cf
 	}
 
 	task.tailers = append(task.tailers, TailerItem{path: path, configHash: cfg.getStructHash(), tailer: tailer})
+	task.configs = append(task.configs, cfg)
 
 	containerLogTailerG.Go(func(ctx context.Context) error {
 		tailer.Start()

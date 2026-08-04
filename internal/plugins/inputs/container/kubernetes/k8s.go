@@ -18,6 +18,7 @@ import (
 	"k8s.io/client-go/informers"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/changes"
+	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/config"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/container/filter"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
@@ -82,7 +83,7 @@ func NewKubeCollector(client k8sclient.Client, cfg *Config, chanPause chan bool)
 		return nil, fmt.Errorf("invalid kubernetes collector config, cannot be nil")
 	}
 
-	nodeName, err := getLocalNodeName()
+	nodeName, err := config.GetLocalNodeName()
 	if err != nil {
 		return nil, err
 	}

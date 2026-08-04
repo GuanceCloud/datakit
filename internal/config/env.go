@@ -812,21 +812,8 @@ func (c *Config) loadHTTPAPIEnvs() {
 	}
 }
 
-func doGetNodename() string {
-	for _, x := range []string{
-		"ENV_K8S_NODE_NAME",
-		"NODE_NAME", // Deprecated
-	} {
-		if v := datakit.GetEnv(x); v != "" {
-			return v
-		}
-	}
-
-	return ""
-}
-
 func (c *Config) setNodenameAsHostname() {
-	nodeName := doGetNodename()
+	nodeName := localNodeNameFromEnv()
 	if nodeName != "" {
 		c.hostname = nodeName
 		datakit.DKHost = nodeName

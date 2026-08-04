@@ -27,14 +27,17 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	k8sclient "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
+	"golang.org/x/time/rate"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type containerCollector struct {
-	ipt       *Input
-	runtime   runtime.ContainerRuntime
-	k8sClient k8sclient.Client
+	ipt     *Input
+	runtime runtime.ContainerRuntime
+
+	podMetadata                podMetadataProvider
+	podCacheMissWarningLimiter *rate.Limiter
 
 	localNodeName        string
 	maxConcurrent        int
@@ -96,7 +99,7 @@ func newGCPCloudMonitoringCollector(ipt *Input, httpClient *http.Client, k8sClie
 	return &containerCollector{
 		ipt:           ipt,
 		runtime:       r,
-		k8sClient:     k8sClient,
+		podMetadata:   newAPIPodMetadataProvider(k8sClient),
 		maxConcurrent: ipt.ContainerMaxConcurrent,
 
 		enableCollectLogging:          false,
@@ -106,15 +109,22 @@ func newGCPCloudMonitoringCollector(ipt *Input, httpClient *http.Client, k8sClie
 		election:                      true,
 		leaderOnly:                    true,
 
-		extraTags: tags,
-		feeder:    ipt.Feeder,
+		extraTags:                  tags,
+		feeder:                     ipt.Feeder,
+		podCacheMissWarningLimiter: newPodCacheMissWarningLimiter(),
 	}, nil
 }
 
 var existingRuntimes sync.Map
 
 // nolint:lll
-func newContainerCollector(ipt *Input, endpoint string, mountPoint string, k8sClient k8sclient.Client, logCoordinator *containerLogCoordinator) (Collector, error) {
+func newContainerCollector(
+	ipt *Input,
+	endpoint string,
+	mountPoint string,
+	podMetadata podMetadataProvider,
+	logCoordinator *containerLogCoordinator,
+) (Collector, error) {
 	logFilter, err := createLogFilter(ipt)
 	if err != nil {
 		return nil, err
@@ -133,11 +143,12 @@ func newContainerCollector(ipt *Input, endpoint string, mountPoint string, k8sCl
 	labelOptions := buildLabelOptions(ipt)
 
 	return &containerCollector{
-		ipt:           ipt,
-		runtime:       runtime,
-		k8sClient:     k8sClient,
-		localNodeName: datakit.DKHost,
-		maxConcurrent: ipt.ContainerMaxConcurrent,
+		ipt:                        ipt,
+		runtime:                    runtime,
+		podMetadata:                podMetadata,
+		podCacheMissWarningLimiter: newPodCacheMissWarningLimiter(),
+		localNodeName:              datakit.DKHost,
+		maxConcurrent:              ipt.ContainerMaxConcurrent,
 
 		enableCollectLogging:          true,
 		enableExtractK8sLabelAsTagsV1: ipt.EnableExtractK8sLabelAsTags,

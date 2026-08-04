@@ -7,17 +7,18 @@ package container
 
 import (
 	"context"
-	"os"
+	"sync"
 	"time"
 
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/datakit"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/goroutine"
-	k8sclient "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 )
@@ -33,70 +34,99 @@ var podLoggingScanRetryDelays = []time.Duration{
 type podLoggingScanAttempt int
 
 type podWatcher struct {
-	client      k8sclient.Client
+	client      kubernetes.Interface
 	coordinator *containerLogCoordinator
+	nodeName    string
+
+	podMetadata podMetadataProvider
 
 	queue    workqueue.DelayingInterface
 	informer cache.SharedIndexInformer
 
-	stopCh chan struct{}
+	stopCh   chan struct{}
+	stopOnce sync.Once
 }
 
-func newPodWatcher(client k8sclient.Client, coordinator *containerLogCoordinator) *podWatcher {
-	return &podWatcher{
+func newPodWatcher(client kubernetes.Interface, coordinator *containerLogCoordinator, nodeName string) *podWatcher {
+	watcher := &podWatcher{
 		client:      client,
 		coordinator: coordinator,
+		nodeName:    nodeName,
 		queue:       workqueue.NewDelayingQueue(),
 		stopCh:      make(chan struct{}),
 	}
+	watcher.setupInformer()
+	return watcher
 }
 
 func (w *podWatcher) start(ctx context.Context) {
 	l.Info("starting pod watcher")
 
+	workers := goroutine.NewGroup(goroutine.Option{Name: "pod-watcher-workers"})
+	defer func() {
+		w.stop()
+		if err := workers.Wait(); err != nil {
+			l.Errorf("pod watcher worker stopped with error: %s", err)
+		}
+	}()
+
 	// RBAC 预检：尝试进行一次最小化的 List 调用，若无权限则退出
-	if clientset := w.client.KubernetesClientset(); clientset != nil {
-		_, err := clientset.CoreV1().Pods(metav1.NamespaceAll).List(ctx, metav1.ListOptions{Limit: 1})
+	if w.client != nil {
+		options := w.podListOptions()
+		options.Limit = 1
+		_, err := w.client.CoreV1().Pods(metav1.NamespaceAll).List(ctx, options)
 		if apierrors.IsForbidden(err) || apierrors.IsUnauthorized(err) {
 			l.Errorf("missing RBAC to access Pod: %v; exit pod watcher", err)
 			return
 		}
 	}
 
-	w.setupInformer()
-
-	podWatcherG.Go(func(_ context.Context) error {
+	workers.Go(func(_ context.Context) error {
 		w.processQueue(ctx)
 		return nil
 	})
 
-	podWatcherG.Go(func(_ context.Context) error {
+	workers.Go(func(_ context.Context) error {
 		w.informer.Run(w.stopCh)
 		return nil
 	})
 
-	if !cache.WaitForCacheSync(w.stopCh, w.informer.HasSynced) {
-		l.Error("failed to sync informer cache")
+	if !cache.WaitForCacheSync(ctx.Done(), w.informer.HasSynced) {
+		if ctx.Err() == nil {
+			l.Error("failed to sync informer cache")
+		}
 		return
 	}
 
 	l.Info("pod watcher started successfully")
+	w.coordinator.requestLoggingScan()
 
 	<-ctx.Done()
-	w.stop()
 }
 
 func (w *podWatcher) stop() {
-	close(w.stopCh)
-	w.queue.ShutDown()
-	l.Info("pod watcher stopped")
+	w.stopOnce.Do(func() {
+		close(w.stopCh)
+		w.queue.ShutDown()
+		l.Info("pod watcher stopped")
+	})
 }
 
 func (w *podWatcher) setupInformer() {
-	clientset := w.client.KubernetesClientset()
-	informerFactory := informers.NewSharedInformerFactory(clientset, 0)
+	informerFactory := informers.NewSharedInformerFactoryWithOptions(
+		w.client,
+		0,
+		informers.WithTweakListOptions(func(options *metav1.ListOptions) {
+			options.FieldSelector = w.podListOptions().FieldSelector
+		}),
+	)
 
-	w.informer = informerFactory.Core().V1().Pods().Informer()
+	podInformer := informerFactory.Core().V1().Pods()
+	w.informer = podInformer.Informer()
+	w.podMetadata = &informerPodMetadataProvider{
+		lister:    podInformer.Lister(),
+		hasSynced: w.informer.HasSynced,
+	}
 
 	w.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
@@ -112,6 +142,9 @@ func (w *podWatcher) setupInformer() {
 			newPod, newOK := newObj.(*corev1.Pod)
 			if !oldOK || !newOK {
 				l.Warnf("failed to convert update objects to Pod: old=%T, new=%T", oldObj, newObj)
+				return
+			}
+			if !w.isLocalPod(newPod) {
 				return
 			}
 
@@ -134,11 +167,7 @@ func (w *podWatcher) setupInformer() {
 }
 
 func (w *podWatcher) enqueueLoggingScans(pod *corev1.Pod) {
-	nodeName := os.Getenv("ENV_K8S_NODE_NAME")
-	if nodeName == "" {
-		nodeName = datakit.DKHost
-	}
-	if pod.Spec.NodeName == "" || pod.Spec.NodeName != nodeName {
+	if !w.isLocalPod(pod) {
 		return
 	}
 
@@ -159,6 +188,9 @@ func (w *podWatcher) enqueue(obj interface{}, action string) {
 		l.Warnf("failed to convert object to Pod: %v", obj)
 		return
 	}
+	if !w.isLocalPod(pod) {
+		return
+	}
 
 	podUID := string(pod.UID)
 	if podUID == "" {
@@ -168,6 +200,16 @@ func (w *podWatcher) enqueue(obj interface{}, action string) {
 
 	w.queue.AddAfter(podUID, time.Second)
 	l.Debugf("enqueued %s event for podUID: %s", action, podUID)
+}
+
+func (w *podWatcher) podListOptions() metav1.ListOptions {
+	return metav1.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector("spec.nodeName", w.nodeName).String(),
+	}
+}
+
+func (w *podWatcher) isLocalPod(pod *corev1.Pod) bool {
+	return pod != nil && pod.Spec.NodeName != "" && pod.Spec.NodeName == w.nodeName
 }
 
 func (w *podWatcher) processQueue(ctx context.Context) {
@@ -212,16 +254,19 @@ func (w *podWatcher) processNextItem() bool {
 	return true
 }
 
-func startPodWatcher(client k8sclient.Client, coordinator *containerLogCoordinator) {
+func startPodWatcher(watcher *podWatcher) {
 	ctx, cancel := context.WithCancel(context.Background())
-	watcher := newPodWatcher(client, coordinator)
+	defer cancel()
 
 	podWatcherG.Go(func(_ context.Context) error {
-		watcher.start(ctx)
+		select {
+		case <-datakit.Exit.Wait():
+			cancel()
+		case <-ctx.Done():
+		}
 		return nil
 	})
 
-	<-datakit.Exit.Wait()
-	cancel()
+	watcher.start(ctx)
 	l.Info("pod watcher exiting...")
 }

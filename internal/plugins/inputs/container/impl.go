@@ -59,10 +59,10 @@ func newContainerCollectors(ipt *Input) []Collector {
 	}
 
 	logCoordinator := newLogCoordinator(ipt)
-	k8sClient := createK8sClientIfNeeded(ipt, logCoordinator)
+	podMetadata := createK8sClientIfNeeded(ipt, logCoordinator)
 
 	for _, endpoint := range ipt.Endpoints {
-		collector, err := createContainerCollector(ipt, endpoint, k8sClient, logCoordinator)
+		collector, err := createContainerCollector(ipt, endpoint, podMetadata, logCoordinator)
 		if err != nil {
 			l.Warnf("failed to create collector for endpoint %s: %s", endpoint, err)
 			if isRuntimeConnectionError(err) {
@@ -74,7 +74,7 @@ func newContainerCollectors(ipt *Input) []Collector {
 	}
 	if len(collectors) == 0 && len(waitingEndpoints) != 0 {
 		collectors = append(collectors, newRuntimeWaitingCollector(waitingEndpoints, func(endpoint string) (Collector, error) {
-			return createContainerCollector(ipt, endpoint, k8sClient, logCoordinator)
+			return createContainerCollector(ipt, endpoint, podMetadata, logCoordinator)
 		}))
 	}
 
@@ -183,7 +183,7 @@ func createK8sClientForCloud() k8sclient.Client {
 		return nil
 	}
 
-	client, err := k8sclient.NewKubernetesClientInCluster()
+	client, err := k8sclient.NewKubernetesClientInCluster(k8sclient.ComponentContainerGCPCloud)
 	if err != nil {
 		l.Warnf("unable to connect k8s client for GCP cloud mode: %s", err)
 		return nil
@@ -192,7 +192,7 @@ func createK8sClientForCloud() k8sclient.Client {
 }
 
 func newK8sCollectors(ipt *Input) (Collector, error) {
-	client, err := k8sclient.NewKubernetesClientInCluster()
+	client, err := k8sclient.NewKubernetesClientInCluster(k8sclient.ComponentContainerKubernetes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8s client: %w", err)
 	}
@@ -222,12 +222,15 @@ func createECSFargateCollector(ipt *Input) (Collector, error) {
 	return collector, nil
 }
 
-func createK8sClientIfNeeded(ipt *Input, logCoordinator *containerLogCoordinator) k8sclient.Client {
+func createK8sClientIfNeeded(
+	ipt *Input,
+	logCoordinator *containerLogCoordinator,
+) podMetadataProvider {
 	if !datakit.Docker || !config.IsKubernetes() {
 		return nil
 	}
 
-	client, err := k8sclient.NewKubernetesClientInCluster()
+	client, err := k8sclient.NewKubernetesClientInCluster(k8sclient.ComponentContainerRuntime)
 	if err != nil {
 		l.Warnf("unable to connect k8s client: %s", err)
 		return nil
@@ -238,20 +241,26 @@ func createK8sClientIfNeeded(ipt *Input, logCoordinator *containerLogCoordinator
 		return nil
 	})
 
+	podWatcher := newPodWatcher(client.KubernetesClientset(), logCoordinator, ipt.localNodeName)
 	podWatcherG.Go(func(_ context.Context) error {
-		startPodWatcher(client, logCoordinator)
+		startPodWatcher(podWatcher)
 		return nil
 	})
 
-	return client
+	return podWatcher.podMetadata
 }
 
-func createContainerCollector(ipt *Input, endpoint string, k8sClient k8sclient.Client, logCoordinator *containerLogCoordinator) (Collector, error) {
+func createContainerCollector(
+	ipt *Input,
+	endpoint string,
+	podMetadata podMetadataProvider,
+	logCoordinator *containerLogCoordinator,
+) (Collector, error) {
 	if err := checkEndpoint(endpoint); err != nil {
 		return nil, fmt.Errorf("invalid endpoint %s: %w", endpoint, err)
 	}
 
-	collector, err := newContainerCollector(ipt, endpoint, getMountPoint(), k8sClient, logCoordinator)
+	collector, err := newContainerCollector(ipt, endpoint, getMountPoint(), podMetadata, logCoordinator)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create container collector: %w", err)
 	}

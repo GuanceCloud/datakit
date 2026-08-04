@@ -7,6 +7,7 @@ package kubernetesprometheus
 
 import (
 	"context"
+	"fmt"
 	"regexp"
 	"sync/atomic"
 
@@ -131,6 +132,7 @@ func (im InstanceManager) Run(
 	ctx context.Context,
 	clientset *kubernetes.Clientset,
 	informerFactory informers.SharedInformerFactory,
+	podInformerFactory informers.SharedInformerFactory,
 	scrapeManager scrapeManagerInterface,
 	feeder dkio.Feeder,
 ) {
@@ -180,7 +182,11 @@ func (im InstanceManager) Run(
 			launcher, err = NewEndpoints(informerFactory, instances, scrapeManager, feeder)
 
 		case RolePod:
-			launcher, err = NewPod(informerFactory, instances, scrapeManager, feeder)
+			if podInformerFactory == nil {
+				err = fmt.Errorf("cannot get pod informer factory")
+			} else {
+				launcher, err = NewPod(podInformerFactory, instances, scrapeManager, feeder)
+			}
 		}
 
 		if err != nil {
@@ -193,6 +199,15 @@ func (im InstanceManager) Run(
 			return nil
 		})
 	}
+}
+
+func (im InstanceManager) hasRole(role Role) bool {
+	for _, instance := range im.Instances {
+		if Role(instance.Role) == role {
+			return true
+		}
+	}
+	return false
 }
 
 type roleLauncher interface {

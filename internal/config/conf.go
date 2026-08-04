@@ -453,7 +453,7 @@ func (c *Config) GetHostname() string {
 
 func (c *Config) detectHostname() (string, error) {
 	// try get node name from k8s env
-	if v := doGetNodename(); v != "" {
+	if v := localNodeNameFromEnv(); v != "" {
 		return v, nil
 	}
 

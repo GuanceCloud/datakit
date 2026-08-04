@@ -492,6 +492,8 @@ For more info about recorder, see [here](datakit-tools-how-to.md#record-and-repl
 
 When the k8s node name is different from its corresponding host name, the k8s node name can be replaced by the default collected host name, and the environment variable can be added in *datakit.yaml*:
 
+In the regular Kubernetes DaemonSet mode, the container input and the Kubernetes Prometheus input with `node_local = true` also use this value to scope Pod LIST/WATCH requests to the local node. If neither this variable nor the legacy-compatible `NODE_NAME` variable is set, the input refuses to start because it cannot determine the local node.
+
 > This configuration is included by default in `datakit.yaml` version  [1.2.19](changelog.md#cl-1.2.19). If you upgrade directly from the old version of yaml, you need to make the following manual changes to *datakit.yaml*.
 
 ```yaml

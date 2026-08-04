@@ -21,8 +21,6 @@ import (
 	dkio "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/io"
 	k8sclient "gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/kubernetes/client"
 	"gitlab.jiagouyun.com/cloudcare-tools/datakit/internal/plugins/inputs"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/informers"
 )
 
 type Input struct {
@@ -132,7 +130,7 @@ func (ipt *Input) setup() error {
 	ipt.applyPredefinedInstances()
 
 	var err error
-	ipt.nodeName, err = getLocalNodeName()
+	ipt.nodeName, err = config.GetLocalNodeName()
 
 	return err
 }
@@ -149,14 +147,16 @@ func (ipt *Input) start() error {
 		ctx = withNodeLocal(ctx, ipt.NodeLocal)
 	}
 
-	client, err := k8sclient.NewKubernetesClientInCluster()
+	client, err := k8sclient.NewKubernetesClientInCluster(k8sclient.ComponentKubernetesPrometheus)
 	if err != nil {
 		return err
 	}
 
-	informerFactory := informers.NewSharedInformerFactoryWithOptions(
-		client.KubernetesClientset(), 0,
-		informers.WithTweakListOptions(func(v *metav1.ListOptions) { v.Limit = 50 }),
+	informerFactories := newInformerFactories(
+		client.KubernetesClientset(),
+		ipt.NodeLocal,
+		ipt.nodeName,
+		ipt.InstanceManager.hasRole(RolePod),
 	)
 
 	scrapeManager := newScrapeManager()
@@ -164,9 +164,16 @@ func (ipt *Input) start() error {
 
 	ipt.applyCRDs(ctx, client, scrapeManager)
 
-	ipt.InstanceManager.Run(ctx, client.KubernetesClientset(), informerFactory, scrapeManager, ipt.feeder)
-	informerFactory.Start(ctx.Done())
-	informerFactory.WaitForCacheSync(ctx.Done())
+	ipt.InstanceManager.Run(
+		ctx,
+		client.KubernetesClientset(),
+		informerFactories.general,
+		informerFactories.pod,
+		scrapeManager,
+		ipt.feeder,
+	)
+	informerFactories.Start(ctx.Done())
+	informerFactories.WaitForCacheSync(ctx.Done())
 
 	<-ctx.Done()
 	klog.Info("end")

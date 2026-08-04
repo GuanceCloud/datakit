@@ -17,6 +17,7 @@ var (
 	collectPtsVec                    *prometheus.CounterVec
 	loggingDiscoveryCostVec          *prometheus.SummaryVec
 	loggingDiscoveryScheduleDelayVec prometheus.Summary
+	podCacheMissVec                  *prometheus.CounterVec
 )
 
 func setupMetrics() {
@@ -67,10 +68,21 @@ func setupMetrics() {
 		},
 	)
 
+	podCacheMissVec = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "datakit",
+			Subsystem: "input",
+			Name:      "container_pod_cache_miss_total",
+			Help:      "Total number of container Pod metadata cache misses",
+		},
+		[]string{"usage", "reason"},
+	)
+
 	metrics.MustRegister(
 		collectCostVec,
 		collectPtsVec,
 		loggingDiscoveryCostVec,
 		loggingDiscoveryScheduleDelayVec,
+		podCacheMissVec,
 	)
 }
